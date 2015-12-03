@@ -1,0 +1,37 @@
+#ifndef CmtDeviceID_H
+#define CmtDeviceID_H
+
+namespace Chromatron
+{
+	enum DeviceTag
+	{
+		DC_LIGHTSOURCE = 0,
+		DC_PINWHEEL ,
+		DC_SMIRROR ,
+		DC_SPECTROSCOPE ,
+		DC_SMIRROR_45,
+		DC_PRISM ,
+		DC_FILTER ,
+		DC_DOPPLER ,
+		DC_QTANGLER ,
+		DC_TELEPORTER ,
+		DC_MULTIFILTER ,
+		DC_TWISTER ,
+		DC_DUALREFLECTOR ,
+		DC_CONDUITS ,
+		DC_STARBURST ,
+		DC_COMPLEMENTOR ,
+		DC_QUADBENDER ,
+		DC_LOGICGATE_AND ,
+		DC_LOGICGATE_AND_PRIMARY ,
+		DC_LOGICGATE_OR  ,
+
+		DC_QUANROTATOR ,
+
+		DC_DEVICE_NUM ,
+		DC_MAX_DEVICE_ID = 31 ,
+	};
+
+}//namespace Chromatron
+
+#endif //CmtDeviceID_H

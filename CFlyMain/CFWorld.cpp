@@ -26,7 +26,7 @@ namespace CFly
 
 	void   cleanupSystem()
 	{
-
+		WorldManager::getInstance().cleanup();
 	}
 
 	World* createWorld( HWND hWnd , int w, int h , int cDepth , bool fullscreen , TextureFormat backBufferFormat)
@@ -382,6 +382,11 @@ namespace CFly
 			return;
 
 		delete world;
+	}
+
+	void WorldManager::cleanup()
+	{
+
 	}
 
 }//namespace CFly

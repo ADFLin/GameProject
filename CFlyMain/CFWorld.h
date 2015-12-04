@@ -142,6 +142,7 @@ namespace CFly
 	public:
 		WorldManager();
 		bool       init();
+		void       cleanup();
 		World*     createWorld( HWND hWnd , int w, int h , int cDepth , bool fullscreen , TextureFormat backBufferFormat );
 		void       destroyWorld( World* world );
 	};

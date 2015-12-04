@@ -148,6 +148,7 @@ namespace CAR
 	void LevelStage::onEnd()
 	{
 		mCoroutine.exitGame();
+		CFly::cleanupSystem();
 		//::Global::getDrawEngine()->enableSweepBuffer( true );
 		//::Global::getDrawEngine()->stopOpenGL();
 	}

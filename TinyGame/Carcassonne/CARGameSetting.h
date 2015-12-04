@@ -1,6 +1,8 @@
 #ifndef CARGameSetting_h__85a4781f_a1e7_4eeb_a352_d8c9ee34798a
 #define CARGameSetting_h__85a4781f_a1e7_4eeb_a352_d8c9ee34798a
 
+#include <algorithm>
+
 namespace CAR
 {
 	enum GameRule
@@ -33,7 +35,6 @@ namespace CAR
 			TotalNum ,
 		};
 	};
-
 
 	class GameSetting
 	{

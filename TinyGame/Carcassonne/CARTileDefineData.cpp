@@ -120,7 +120,7 @@ namespace CAR
 
 
 
-#define EXPDATA( NAME , DATA ) { NAME , DATA , ARRAYSIZE( DATA ) } 
+#define EXPDATA( NAME , DATA ) { NAME , DATA , ARRAY_SIZE( DATA ) } 
 	ExpansionTileContent gAllExpansionTileContents[] =
 	{
 		

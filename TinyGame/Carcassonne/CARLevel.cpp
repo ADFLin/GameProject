@@ -294,7 +294,7 @@ namespace CAR
 
 		tile.contentFlag = tileDef.content;
 
-		for( int i = 0 ; i < ARRAYSIZE( tileDef.sideLink ) ; ++i )
+		for( int i = 0 ; i < ARRAY_SIZE( tileDef.sideLink ) ; ++i )
 		{
 			if ( tileDef.sideLink[i] == 0 )
 				break;
@@ -308,7 +308,7 @@ namespace CAR
 			}
 		}
 
-		for( int i = 0 ; i < ARRAYSIZE( tileDef.roadLink ) ; ++i )
+		for( int i = 0 ; i < ARRAY_SIZE( tileDef.roadLink ) ; ++i )
 		{
 			if ( tileDef.roadLink[i] == 0 )
 				break;
@@ -342,7 +342,7 @@ namespace CAR
 		}
 
 		unsigned farmLinkRe = Tile::AllFarmMask;
-		for( int i = 0 ; i < ARRAYSIZE( tileDef.farmLink ) ; ++i )
+		for( int i = 0 ; i < ARRAY_SIZE( tileDef.farmLink ) ; ++i )
 		{
 			if ( tileDef.farmLink[i] == 0 )
 				break;

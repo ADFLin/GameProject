@@ -3,6 +3,8 @@
 
 #include "CARCommon.h"
 
+#include <vector>
+
 namespace CAR
 {
 	class GameSetting;

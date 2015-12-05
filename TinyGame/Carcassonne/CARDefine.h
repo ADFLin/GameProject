@@ -6,7 +6,7 @@
 #include <cassert>
 
 #ifndef BIT
-#	define BIT( n ) ( 1 << n )
+#	define BIT( n ) ( 1 << (n) )
 #endif
 
 #define ARRAY_SIZE( array ) ( sizeof(array) / sizeof( array[0]) )
@@ -148,11 +148,11 @@ namespace CAR
 		uint8  numPiece;
 		uint8  linkType[4];
 		uint8  sideLink[2];
-		uint8  roadLink[2];
+		uint16 roadLink[2];
 		uint16 content;
 		uint16 sideContent[4];
 		uint8  centerFarmMask;
-		uint8  farmLink[4];
+		uint8  farmLink[6];
 		uint8  tag;
 		
 	};

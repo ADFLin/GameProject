@@ -172,6 +172,7 @@ namespace CAR
 		ActorPosInfo* info;
 		ActorType type;
 		int       indexPos;
+		Vec2f     mapPos;
 	};
 
 	class SelectButton : public GButtonBase
@@ -190,6 +191,7 @@ namespace CAR
 			ActorInfo*  actorInfo;
 		};
 		int       index;
+		Vec2f     mapPos;
 	};
 
 	class Renderer
@@ -245,6 +247,8 @@ namespace CAR
 		Vec2i showFeatureInfo( Graphics2D& g, Vec2i const& pos , FeatureBase* build , int offsetY );
 		void drawMapData( Graphics2D& g , Vec2f const& pos , MapTile const& mapData );
 		void drawTile( Graphics2D& g , Vec2f const& pos , Tile const& tile , int rotation );
+
+		Vec2f calcActorMapPos( ActorPos const& pos , MapTile const& mapTile );
 
 		Vec2i convertToMapPos( Vec2i const& sPos );
 

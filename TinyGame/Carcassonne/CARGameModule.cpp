@@ -475,13 +475,11 @@ namespace CAR
 						}
 					}
 				}
-				mPlaceTilePosList.clear();
-				if ( !mLevel.getPosibleLinkPos( mUseTileId , mPlaceTilePosList ) )
+				if ( updatePosibleLinkPos() == 0 )
 				{
 					if ( getRemainingTileNum() == 0 )
 						return eFinishGame;
 				}
-
 				break;
 			}
 
@@ -1094,9 +1092,16 @@ namespace CAR
 
 				FarmFeature* farm = updateFarm( mapTile , linkMask );
 				unsigned cityLinkMask = mapTile.getCityLinkFarmMask( idx );
+				unsigned cityLinkMaskCopy = cityLinkMask;
 				int dir;
 				while ( FBit::MaskIterator4( cityLinkMask , dir ) )
 				{
+					if ( mapTile.getSideGroup( dir ) == -1 )
+					{
+						TileSet const& tileSet = mTileSetManager.getTileSet( mapTile.getId() );
+						CAR_LOG("Error:Farm Side Mask Error Tile exp=%d index =%d" , (int)tileSet.expansions , tileSet.idxDefine );
+						continue;
+					}
 					CityFeature* city = static_cast< CityFeature* >( getFeature( mapTile.getSideGroup( dir ) ) );
 					assert( city->type == FeatureType::eCity );
 					city->linkFarms.insert( farm );
@@ -1359,6 +1364,12 @@ namespace CAR
 			addPlayerScore( player->getId() , score );
 			CAR_LOG( "Player %d add Score %d " , player->getId() , score );
 		}
+	}
+
+	int GameModule::updatePosibleLinkPos()
+	{
+		mPlaceTilePosList.clear();
+		return mLevel.getPosibleLinkPos( mUseTileId , mPlaceTilePosList );
 	}
 
 	int GameModule::findTagTileIndex( std::vector< TileId >& tiles , Expansion exp , TileTag tag )

@@ -251,6 +251,7 @@ namespace CAR
 
 
 		int    getMaxFieldValuePlayer( FieldType::Enum type , PlayerBase* outPlayer[] , int& maxValue );
+		int    updatePosibleLinkPos();
 
 		typedef MapTile::FarmNode FarmNode;
 		typedef MapTile::SideNode SideNode;

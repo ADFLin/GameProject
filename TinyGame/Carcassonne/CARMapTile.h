@@ -27,7 +27,6 @@ namespace CAR
 		{
 			uint32  farmLinkMask;
 			uint32  sideLinkMask;
-
 		};
 
 		TileId    id;

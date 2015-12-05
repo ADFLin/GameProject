@@ -115,7 +115,7 @@ namespace CAR
 		mCurMapPos = Vec2i(0,0);
 		mIdxShowFeature = 0;
 
-		//mMoudule.mDebug = true;
+		mMoudule.mDebug = true;
 		mMoudule.mListener = this;
 		
 		mCoroutine.onAction = std::bind( &LevelStage::onGameAction , 
@@ -412,7 +412,8 @@ namespace CAR
 					{
 						ActorPosButton* button = widget->cast< ActorPosButton >();
 						ActorPosInfo& info = mMoudule.mActorDeployPosList[ button->indexPos ];
-						Vec2f posNode = posBase + getActorPosMapOffset( info.pos );
+						Vec2f posNode = calcActorMapPos( info.pos , *myData->mapTile );
+						//posBase + getActorPosMapOffset( info.pos );
 						g.drawLine( button->getPos() + button->getSize() / 2 , calcRenderPos( posNode ) );
 
 					}
@@ -601,6 +602,7 @@ namespace CAR
 			++mMoudule.mUseTileId; 
 			if ( mMoudule.mUseTileId == mMoudule.mTileSetManager.getReigsterTileNum() ) 
 				mMoudule.mUseTileId = 0;
+			mMoudule.updatePosibleLinkPos();
 			setTileObjectTexture( mTileShowObject , mMoudule.mUseTileId );
 			break;
 		case Keyboard::eW: 
@@ -608,6 +610,7 @@ namespace CAR
 				mMoudule.mUseTileId = mMoudule.mTileSetManager.getReigsterTileNum() - 1;
 			else
 				--mMoudule.mUseTileId;
+			mMoudule.updatePosibleLinkPos();
 			setTileObjectTexture( mTileShowObject , mMoudule.mUseTileId );
 			break;
 		case Keyboard::eO: 
@@ -798,6 +801,7 @@ namespace CAR
 						button->indexPos = i;
 						button->type     = ActorType( type );
 						button->info     = &info;
+						button->mapPos   = pos;
 						addActionWidget( button );
 					}
 				}
@@ -823,6 +827,7 @@ namespace CAR
 					SelectButton* button = new SelectButton( UI_ACTOR_BUTTON , calcRenderPos( pos ) , Vec2i(20,20) , nullptr );
 					button->index = i;
 					button->actor = actor;
+					button->mapPos = pos;
 					addActionWidget( button );
 				}
 			}
@@ -844,6 +849,7 @@ namespace CAR
 					SelectButton* button = new SelectButton( UI_ACTOR_INFO_BUTTON , pos + Vec2i(30,0) , Vec2i(20,20) , nullptr );
 					button->index = i;
 					button->actorInfo = &myData->actorInfos[i];
+					button->mapPos = pos;
 					addActionWidget( button );
 				}
 			}
@@ -868,6 +874,7 @@ namespace CAR
 						SelectButton* button = new SelectButton( UI_MAP_TILE_BUTTON , calcRenderPos( pos ) , Vec2i(20,20) , nullptr );
 						button->index = i;
 						button->mapTile = mapTile;
+						button->mapPos = pos;
 						addActionWidget( button );
 					}
 				}
@@ -880,6 +887,7 @@ namespace CAR
 						SelectButton* button = new SelectButton( UI_MAP_TILE_BUTTON , calcRenderPos( pos ) , Vec2i(20,20) , nullptr );
 						button->index = i;
 						button->mapTile = mapTile;
+						button->mapPos = pos;
 						addActionWidget( button );
 					}
 				}
@@ -910,6 +918,27 @@ namespace CAR
 		offset.y = -mRenderOffset.y ;
 		offset.z = 0;
 		mCamera->setLookAt( offset + CFly::Vector3(0,0,10) , offset , CFly::Vector3(0,1,0) );
+		for( int i = 0; i < mGameActionUI.size() ; ++i )
+		{
+			GWidget* widget = mGameActionUI[i];
+			switch( widget->getID() )
+			{
+			case UI_ACTOR_POS_BUTTON:
+				{
+					ActorPosButton* button = widget->cast< ActorPosButton >();
+					button->setPos( calcRenderPos( button->mapPos) );
+				}
+				break;
+			case UI_ACTOR_INFO_BUTTON:
+			case UI_ACTOR_BUTTON:
+			case UI_MAP_TILE_BUTTON:
+				{
+					SelectButton* button = widget->cast< SelectButton >();
+					button->setPos( calcRenderPos( button->mapPos) );
+				}
+				break;
+			}
+		}
 	}
 
 	void LevelStage::onPutTile(MapTile& mapTile)
@@ -960,13 +989,17 @@ namespace CAR
 		CFly::Material* mat = obj->getElement(0)->getMaterial();
 		TileSet const& tileSet = mMoudule.mTileSetManager.getTileSet( id );
 
+
 		char const* dir = nullptr;
 		switch( tileSet.expansions )
 		{
 		case EXP_BASIC: dir = "Basic"; break;
+		case EXP_INNS_AND_CATHEDRALS: dir = "InnCathedral"; break;
+		case EXP_TRADEERS_AND_BUILDERS: dir = "TraderBuilder"; break;
 		case EXP_THE_RIVER: dir = "River"; break;
 		case EXP_THE_PRINCESS_AND_THE_DRAGON: dir = "PrincessDragon"; break;
 		case EXP_THE_TOWER: dir = "Tower"; break;
+		
 		}
 
 		FixString< 512 > texName;
@@ -991,6 +1024,51 @@ namespace CAR
 		assert( widget );
 		::Global::getGUI().addWidget( widget );
 		mGameActionUI.push_back( widget );
+	}
+
+	Vec2f LevelStage::calcActorMapPos(ActorPos const& pos , MapTile const& mapTile)
+	{
+		Vec2f result = mapTile.pos;
+		switch( pos.type )
+		{
+		case ActorPos::eFarmNode:
+			{
+				Vec2f offset = Vec2f(0,0);
+				unsigned mask = mapTile.getFarmLinkMask( pos.meta );
+				int idx;
+				int count = 0;
+				while( FBit::MaskIterator8(mask,idx))
+				{
+					offset += FarmPos[idx];
+					++count;
+				}
+				result += offset / count;
+			}
+			break;
+		case ActorPos::eSideNode:
+			switch ( mapTile.getLinkType( pos.meta ) )
+			{
+			case SideType::eCity:
+				{
+					Vec2f offset = Vec2f(0,0);
+					unsigned mask = mapTile.getSideLinkMask( pos.meta );
+					int idx;
+					int count = 0;
+					while( FBit::MaskIterator4(mask,idx))
+					{
+						offset += SidePos[idx];
+						++count;
+					}
+					result += offset / count;
+				}
+				break;
+			case SideType::eRoad:
+				result += SidePos[pos.meta] / 2;
+				break;
+			}
+			break;
+		}
+		return result;
 	}
 
 	void CGameCoroutine::waitTurnOver( GameModule& moudule , GameActionData& data )

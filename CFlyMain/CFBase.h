@@ -49,7 +49,7 @@ typedef IDirect3DVertexDeclaration9 D3DVertexDecl;
 
 
 #ifndef BIT
-#	define BIT( n ) ( 1 << n )
+#	define BIT( n ) ( 1 << (n) )
 #endif
 
 #undef  ARRAYSIZE

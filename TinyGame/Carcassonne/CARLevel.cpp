@@ -301,9 +301,17 @@ namespace CAR
 			assert( ( tileDef.sideLink[i] & ~0xf ) == 0 );
 
 			unsigned linkMask = tileDef.sideLink[i];
+			
 			int idx;
+#if _DEBUG
+			int idxStart = -1;
+#endif
 			while ( FBit::MaskIterator8( linkMask , idx ) )
 			{
+#if _DEBUG
+				if ( idxStart == -1 ){  idxStart = idx;  }
+				assert( Tile::CanLink( tile.sides[idx].linkType , tile.sides[idxStart].linkType ) );
+#endif
 				tile.sides[idx].linkDirMask = tileDef.sideLink[i];
 			}
 		}
@@ -317,7 +325,7 @@ namespace CAR
 			int idx;
 			while ( FBit::MaskIterator8( linkMask , idx ) )
 			{
-				tile.sides[idx].roadLinkDirMask = tileDef.roadLink[i];
+				tile.sides[idx].roadLinkDirMask |= tileDef.roadLink[i];
 			}
 		}
 

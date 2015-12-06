@@ -135,7 +135,7 @@ public:
 	void  onDestroy();
 
 	//EventHandler
-	bool  onEvent( int event , int id , GWidget* ui );
+	bool  onWidgetEvent( int event , int id , GWidget* ui );
 	// TaskHandler
 	void  onTaskMessage( TaskBase* task , TaskMsg const& msg );
 

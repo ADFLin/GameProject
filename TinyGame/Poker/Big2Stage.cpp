@@ -11,7 +11,7 @@
 #include "GameGUISystem.h"
 #include "WidgetUtility.h"
 
-#include "PokerNet.h"
+#include "DataTransferImpl.h"
 
 
 namespace Poker { namespace Big2 {

@@ -5,7 +5,7 @@
 #include "Big2Utility.h"
 
 #include "FixVector.h"
-#include "IDataTransfer.h"
+#include "DataTransfer.h"
 #include <algorithm>
 
 
@@ -238,7 +238,7 @@ namespace Poker { namespace Big2 {
 		};
 
 		void          restart( bool beInit );
-		void          pass();
+		void          passCard();
 		bool          showCard( int idxSelect[] , int num );
 
 		void          setPlayerSlotId( int id ){ mPlayerSlotId = id; }

@@ -23,7 +23,7 @@ namespace Rich
 		virtual ~IEditor(){}
 		virtual void setup( Level& level , Scene& scene ){}
 		virtual void stopEdit(){}
-		virtual bool onEvent( int event , int id , GWidget* widget ){  return true;  }
+		virtual bool onWidgetEvent( int event , int id , GWidget* widget ){  return true;  }
 		virtual bool onMouse( MouseMsg const& msg ){  return true;  }
 		virtual bool onKey( unsigned key , bool isDown ){  return true;  }
 	};

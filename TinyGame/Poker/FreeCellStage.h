@@ -36,7 +36,7 @@ namespace Poker
 
 		int getGroupCellIndex( Vec2i const& pos , Vec2i const& sPos , int numCell , int gap , int height );
 		virtual bool onMouse( MouseMsg const& msg );
-		virtual bool onEvent( int event , int id , GWidget* ui );
+		virtual bool onWidgetEvent( int event , int id , GWidget* ui );
 
 		bool preMoveCard( Cell& from , Cell& to , int num );
 		void checkMoveCard( bool beAutoMove );

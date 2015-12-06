@@ -16,16 +16,28 @@ class GameSettingPanel;
 class ServerListPanel;
 class NetRoomSettingHelper;
 
+class NetStateController
+{
+
+
+
+	GameStage* mStage;
+};
+
 class NetStageData : public ClientListener
 {
 public:
 	NetStageData();
 	void       initWorker( ComWorker* worker , ServerWorker* server = NULL );
+	
 	bool       haveServer(){ return mServer != NULL;  }
 	ComWorker* getWorker(){ return mWorker; }
 
 	ClientWorker* getClientWorker(){ assert( !haveServer() ); return static_cast< ClientWorker* >( mWorker ); }
 protected:
+
+	void  registerNetEvent();
+	void  unregisterNetEvent( void* processor );
 	void  disconnect();
 	virtual void setupServerProcFun( ComEvaluator& evaluator ) = 0;
 	virtual void setupWorkerProcFun( ComEvaluator& evaluator ) = 0;
@@ -47,40 +59,17 @@ public:
 	{
 		if ( !BaseClass::onInit() )
 			return false;
-
-		setupWorkerProcFun( mWorker->getEvaluator() );
-		if ( haveServer() )
-		{
-			setupServerProcFun( mServer->getEvaluator() );
-		}
-		else
-		{
-			static_cast< ClientWorker* >( mWorker )->setClientListener( this );
-		}
 		return true;
 	}
 	void onEnd()
 	{
-		mWorker->getEvaluator().removeProcesserFun( this );
-		if ( mServer )
-		{
-			mServer->getEvaluator().removeProcesserFun( this );
-		}
-		else
-		{
-			static_cast< ClientWorker* >( mWorker )->setClientListener( NULL );
-		}
+		unregisterNetEvent( this );
 		BaseClass::onEnd();
 	}
 
 	void onUpdate( long time )
 	{
 		BaseClass::onUpdate( time );
-		if ( haveServer() )
-		{
-			//update local worker
-			mWorker->update( time );
-		}
 	}
 };
 
@@ -118,7 +107,7 @@ public:
 
 	virtual void onEnd();
 	virtual void onRender( float dFrame );
-	virtual bool onEvent( int event , int id , GWidget* ui );
+	virtual bool onWidgetEvent( int event , int id , GWidget* ui );
 
 	virtual void onUpdate( long time );
 	virtual void onServerEvent( EventID event , unsigned msg );
@@ -159,7 +148,6 @@ protected:
 	ComMsgPanel*        mMsgPanel;
 	GButton*            mReadyButton;
 	GButton*            mExitButton;
-	StageBase*          mChangeLevelStage;
 
 };
 
@@ -183,7 +171,7 @@ public:
 
 
 	void onEnd();
-	bool onEvent( int event , int id , GWidget* ui );
+	bool onWidgetEvent( int event , int id , GWidget* ui );
 	void onUpdate( long time );
 	bool onKey( unsigned key , bool isDown );
 
@@ -200,15 +188,18 @@ public:
 
 	void procPlayerStateSv( IComPacket* cp );
 	void procPlayerState  ( IComPacket* cp );
+	void procLevelInfo    ( IComPacket* cp );
 	void procMsg( IComPacket* cp );
 
 	virtual void onServerEvent( EventID event , unsigned msg );
 
 	bool buildNetEngine();
-	bool loadLevel();
+	bool loadLevel( GameLevelInfo const& info );
 
+	bool             mbLevelInitialized;
 	INetEngine*      mNetEngine;
 	ComMsgPanel*     mMsgPanel;
+	uint64           mSeed;
 };
 
 

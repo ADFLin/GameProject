@@ -19,7 +19,7 @@ public:
 
 	bool   onInit();
 	void   onUpdate( long time );
-	bool   onEvent( int event , int id , GWidget* ui );
+	bool   onWidgetEvent( int event , int id , GWidget* ui );
 	bool   tryChangeState( GameState state );
 	void   onRestart( uint64& seed );
 	void   onRender( float dFrame );

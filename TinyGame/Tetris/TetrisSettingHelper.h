@@ -37,7 +37,7 @@ namespace Tetris
 		};
 
 
-		bool  onEvent( int event ,int id , GWidget* widget );
+		bool  onWidgetEvent( int event ,int id , GWidget* widget );
 
 		void  setupBaseUI();
 		void  setupNormalModeUI();

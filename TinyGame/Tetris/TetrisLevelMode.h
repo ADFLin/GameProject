@@ -95,7 +95,7 @@ namespace Tetris
 		void        onLevelEvent( LevelData& lvData , LevelEvent const& event );
 		void        onGameOver(){}
 
-		bool        onEvent( int event , int id , GWidget* ui );
+		bool        onWidgetEvent( int event , int id , GWidget* ui );
 
 		ModeData*   createModeData(){  return new PracticeModeData;  }
 

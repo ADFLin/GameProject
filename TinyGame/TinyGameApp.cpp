@@ -268,7 +268,7 @@ ClientWorker* TinyGameApp::createClinet()
 	return worker;
 }
 
-bool TinyGameApp::onEvent( int event , int id , GWidget* ui )
+bool TinyGameApp::onWidgetEvent( int event , int id , GWidget* ui )
 {
 
 	switch ( id )

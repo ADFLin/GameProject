@@ -43,9 +43,9 @@ namespace Rich
 		return true;
 	}
 
-	bool LevelStage::onEvent( int event , int id , GWidget* widget )
+	bool LevelStage::onWidgetEvent( int event , int id , GWidget* widget )
 	{
-		if ( mEditor && !mEditor->onEvent( event , id , widget ) )
+		if ( mEditor && !mEditor->onWidgetEvent( event , id , widget ) )
 			return false;
 
 		if ( !mUserCtrler.onWidgetEvent( event , id , widget ) )

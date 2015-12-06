@@ -1,14 +1,16 @@
 #ifndef ComPacket_h__
 #define ComPacket_h__
 
-#include <map>
-#include <list>
-#include <cassert>
+#include "CppVersion.h"
+#include "IntegerType.h"
 
 #include "Thread.h"
 #include "FastDelegate/FastDelegate.h"
 
-#include "IntegerType.h"
+#include <map>
+#include <list>
+#include <cassert>
+
 #include "GameConfig.h"
 
 class SBuffer;
@@ -101,8 +103,8 @@ class  ComEvaluator : public ComLibrary
 public:
 	typedef ComProcFun ProcFun;
 
-	ComEvaluator();
-	~ComEvaluator();
+	GAME_API ComEvaluator();
+	GAME_API ~ComEvaluator();
 
 	static GAME_API unsigned fillBuffer( IComPacket* cp , SBuffer& buffer );
 
@@ -158,6 +160,7 @@ private:
 	typedef std::list< UserCom > ComPacketList;
 
 	CPFactoryMap  mCPFactoryMap;
+	DEFINE_MUTEX( mMutexCPFactoryMap )
 	ComPacketList mProcCPList;
 	DEFINE_MUTEX( mMutexProcCPList )
 };
@@ -166,6 +169,7 @@ private:
 template< class GamePacket , class T , class Fun >
 bool ComEvaluator::setUserFun( T* processer , Fun fun )
 {
+	MUTEX_LOCK( mMutexCPFactoryMap );
 	ICPFactory* factory = addFactory< GamePacket >();
 	if ( !factory )
 		return false;
@@ -181,6 +185,7 @@ bool ComEvaluator::setUserFun( T* processer , Fun fun )
 template< class GamePacket , class T , class Fun >
 bool ComEvaluator::setWorkerFun( T* processer, Fun fun , void* )
 {
+	MUTEX_LOCK( mMutexCPFactoryMap );
 	ICPFactory* factory = addFactory< GamePacket >();
 	if ( !factory )
 		return false;
@@ -195,6 +200,7 @@ bool ComEvaluator::setWorkerFun( T* processer, Fun fun , void* )
 template< class GamePacket , class T , class Fun >
 bool ComEvaluator::setWorkerFun( T* processer, Fun fun , Fun funSocket )
 {
+	MUTEX_LOCK( mMutexCPFactoryMap );
 	ICPFactory* factory = addFactory< GamePacket >();
 	if ( !factory )
 		return false;
@@ -213,12 +219,10 @@ bool ComEvaluator::setWorkerFun( T* processer, Fun fun , Fun funSocket )
 template< class GamePacket >
 ComEvaluator::ICPFactory* ComEvaluator::addFactory()
 {
+	MUTEX_LOCK( mMutexCPFactoryMap );
 	ICPFactory* factory = findFactory( GamePacket::PID );
-
-	if ( !factory || factory->id != GamePacket::PID )
+	if ( factory == nullptr )
 	{
-		delete factory;
-
 		factory = new CPFactory< GamePacket >;
 		mCPFactoryMap.insert( std::make_pair( GamePacket::PID , factory ) );
 	}

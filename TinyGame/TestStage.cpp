@@ -98,7 +98,7 @@ bool CoroutineTestStage::onInit()
 }
 
 
-bool CoroutineTestStage::onEvent( int event , int id , GWidget* ui )
+bool CoroutineTestStage::onWidgetEvent( int event , int id , GWidget* ui )
 {
 	switch( id )
 	{
@@ -411,7 +411,7 @@ namespace Bsp2D
 		
 	}
 
-	bool TestStage::onEvent( int event , int id , GWidget* ui )
+	bool TestStage::onWidgetEvent( int event , int id , GWidget* ui )
 	{
 		switch( id )
 		{
@@ -433,7 +433,7 @@ namespace Bsp2D
 			mCtrlMode = CMOD_ACTOR_MOVE;
 			return false;
 		}
-		return BaseClass::onEvent( event , id , ui );
+		return BaseClass::onWidgetEvent( event , id , ui );
 	}
 
 	bool TestStage::onMouse( MouseMsg const& msg )

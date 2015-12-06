@@ -99,6 +99,7 @@ void ServerWorker::postChangeState( NetActionState oldState )
 	case NAS_ROOM_ENTER:
 		{
 			mPlayerManager->removePlayerFlag( ServerPlayer::eReady );
+			//mPlayerManager->removePlayerFlag( ServerPlayer::eReady );
 		}
 		break;
 	case NAS_TIME_SYNC:
@@ -255,9 +256,13 @@ void ServerWorker::onClose( Connection* con , ConCloseReason reason )
 	{
 		unsigned id = netPlayer->getId();
 		removeConnect( clientInfo , false );
-		getPlayerManager()->swepNetPlayerToLocal( netPlayer );
-		if ( mNetListener )
-			mNetListener->onPlayerStateMsg( id , PSM_CHANGE_TO_LOCAL );
+		{
+			MUTEX_LOCK( mMutexPlayerChangeInfoVec );
+			PlayerChangeInfo changeInfo;
+			changeInfo.changeType = PlayerChangeInfo::eSweepToLocal;
+			changeInfo.player = netPlayer;
+			mPlayerChangeInfoVec.push_back( changeInfo );
+		}
 	}
 	else
 	{
@@ -458,13 +463,16 @@ void ServerWorker::procPlayerState( IComPacket* cp )
 			player->getStateFlag().add( ServerPlayer::eLevelReady );
 			if ( mPlayerManager->checkPlayerFlag( ServerPlayer::eLevelReady , true ) )
 			{
-				changeState( NAS_LEVEL_RUN );
+				changeState( NAS_TIME_SYNC );
 			}
 		}
 		break;
 	case NAS_TIME_SYNC:
 		{
-
+			if ( mPlayerManager->checkPlayerFlag( ServerPlayer::eSyndDone , true ) )
+			{
+				changeState( NAS_LEVEL_RUN );
+			}
 		}
 		break;
 	case NAS_LEVEL_PAUSE:
@@ -549,7 +557,11 @@ void ServerWorker::removeConnect( ClientInfo* info , bool bRMPlayer )
 
 		if ( bRMPlayer )
 		{
-			mPlayerManager->removePlayer( info->player->getId() );
+			MUTEX_LOCK( mMutexPlayerChangeInfoVec );
+			PlayerChangeInfo changeInfo;
+			changeInfo.changeType = PlayerChangeInfo::eRemove;
+			changeInfo.player = info->player;
+			mPlayerChangeInfoVec.push_back( changeInfo );
 			info->player = NULL;
 		}
 	}
@@ -560,6 +572,31 @@ void ServerWorker::removeConnect( ClientInfo* info , bool bRMPlayer )
 void ServerWorker::doUpdate( long time )
 {
 	BaseClass::doUpdate( time );
+	if ( mLocalWorker )
+		mLocalWorker->update( time );
+
+	{
+		MUTEX_LOCK( mMutexPlayerChangeInfoVec );
+		for( PlayerChangeInfoVec::iterator iter = mPlayerChangeInfoVec.begin() , itEnd = mPlayerChangeInfoVec.end();
+			iter != itEnd ; ++iter )
+		{
+			switch( iter->changeType )
+			{
+			case PlayerChangeInfo::eRemove:
+				mPlayerManager->removePlayer( iter->player->getId() );
+				break;
+			case PlayerChangeInfo::eSweepToLocal:
+				{
+					PlayerId id = iter->player->getId();
+					getPlayerManager()->swepNetPlayerToLocal( iter->player );
+					if ( mNetListener )
+						mNetListener->onPlayerStateMsg( id , PSM_CHANGE_TO_LOCAL );
+				}
+				break;
+			}
+		}
+		mPlayerChangeInfoVec.clear();
+	}
 }
 
 bool ServerWorker::kickPlayer( unsigned id )
@@ -621,6 +658,11 @@ void ServerWorker::generatePlayerStatus( SPPlayerStatus& comPS )
 	getPlayerManager()->getPlayerInfo( comPS.info );
 	getPlayerManager()->getPlayerFlag( comPS.flag );
 	comPS.numPlayer = (unsigned)getPlayerManager()->getPlayerNum();
+}
+
+void ServerWorker::sendCommand(int channel , IComPacket* cp , unsigned flag)
+{
+	mPlayerManager->sendCommand( channel , cp , flag );
 }
 
 SVPlayerManager::SVPlayerManager()
@@ -930,7 +972,7 @@ bool ServerClientManager::doRemoveClient( SessionId id )
 bool ServerClientManager::removeClient( ClientInfo* info )
 {
 	MUTEX_LOCK( mMutexClientMap );
-	mRemoveList.push_front( info );
+	mRemoveList.push_back( info );
 	return true;
 }
 
@@ -1089,7 +1131,7 @@ void LocalWorker::procPlayerState( IComPacket* cp )
 
 	if ( com->playerID == ERROR_PLAYER_ID )
 	{
-		changeState( ( NetActionState )com->state );
+		//changeState( ( NetActionState )com->state );
 	}
 }
 
@@ -1109,10 +1151,12 @@ void LocalWorker::procClockSynd( IComPacket* cp )
 
 void LocalWorker::postChangeState( NetActionState oldState )
 {
+
 	CSPPlayerState com;
 	com.playerID = mPlayerMgr->getUserID();
 	com.state    = getActionState();
 	sendTcpCommand( &com );
+
 }
 
 void LocalWorker::doUpdate( long time )

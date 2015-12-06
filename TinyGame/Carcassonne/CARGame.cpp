@@ -1,26 +1,23 @@
-#include "TinyGamePCH.h"
-#include "PokerGame.h"
+#include "CARGame.h"
+
+#include "CARStage.h"
 
 #include "StageBase.h"
 #include "GameServer.h"
 #include "GameSettingHelper.h"
 #include "GameRoomUI.h"
 
-#include "Big2Stage.h"
-#include "HoldemStage.h"
-#include "FreeCellStage.h"
-
 #include "GameSettingPanel.h"
 #include "GameRoomUI.h"
 #include "GameWidgetID.h"
 #include "DataStreamBuffer.h"
 
-namespace Poker
+namespace CAR
 {
 
 	CGamePackage::CGamePackage()
 	{
-		mRule = RULE_BIG2;
+		
 	}
 
 	CGamePackage::~CGamePackage()
@@ -30,34 +27,14 @@ namespace Poker
 
 	StageBase* CGamePackage::createStage( unsigned id )
 	{
-		switch( mRule )
-		{
-		case RULE_FREECELL:
-			if ( id == STAGE_SINGLE_GAME )
-			{
-				return new FreeCellStage;
-			}
-			break;
-		}
 		return NULL;
 	}
 
 	GameSubStage* CGamePackage::createSubStage( unsigned id )
 	{ 
-		switch( mRule )
+		if ( id == STAGE_NET_GAME || id == STAGE_SINGLE_GAME )
 		{
-		case RULE_BIG2:
-			if ( id == STAGE_NET_GAME || id == STAGE_SINGLE_GAME )
-			{
-				return new Big2::LevelStage;
-			}
-			break;
-		case RULE_HOLDEM:
-			if ( id == STAGE_NET_GAME || id == STAGE_SINGLE_GAME )
-			{
-				return new Holdem::LevelStage;
-			}
-			break;
+			return new CAR::LevelStage;
 		}
 		return NULL;
 	}
@@ -78,7 +55,7 @@ namespace Poker
 
 	void CGamePackage::enter( StageManager& manger )
 	{
-
+		manger.changeStage( STAGE_SINGLE_GAME );
 	}
 
 	class CNetRoomSettingHelper : public NetRoomSettingHelper
@@ -100,17 +77,6 @@ namespace Poker
 		virtual bool checkSettingVaildSV()
 		{
 			SVPlayerManager* playerMgr = static_cast< SVPlayerManager* >( getPlayerListPanel()->getPlayerManager() );
-			switch( mGame->getRule() )
-			{
-			case RULE_BIG2:
-				if ( playerMgr->getPlayerNum() < 4 )
-				{
-					int num = 4 - playerMgr->getPlayerNum();
-					for( int i = 0 ; i < num ; ++i )
-						playerMgr->createAIPlayer();
-				}
-				break;
-			}
 			return true;
 		}
 		virtual void clearUserUI()
@@ -120,32 +86,11 @@ namespace Poker
 		virtual void doSetupSetting( bool beServer )
 		{
 			setupBaseUI();
-
-			switch( mGame->getRule() )
-			{
-			case RULE_BIG2:
-				setupUI_Big2();
-				break;
-			case RULE_HOLDEM:
-				setupUI_Holdem();
-				break;
-			}
 		}
 
 		void setupBaseUI()
 		{
 			GChoice* choice = mSettingPanel->addChoice( UI_RULE_CHOICE , LAN("Game Rule") , MASK_BASE );
-			choice->appendItem( LAN("Big2") );
-			choice->appendItem( LAN("Holdem") );
-			switch( mGame->getRule() )
-			{
-			case RULE_BIG2:   
-				choice->setSelection(0); 
-				break;
-			case RULE_HOLDEM: 
-				choice->setSelection(1); 
-				break;
-			}
 		}
 
 		bool onWidgetEvent( int event ,int id , GWidget* widget )
@@ -155,30 +100,11 @@ namespace Poker
 			case UI_RULE_CHOICE:
 				getSettingPanel()->removeGui( MASK_RULE );
 				getSettingPanel()->adjustGuiLocation();
-				switch( GUI::castFast< GChoice* >( widget )->getSelection() )
-				{
-				case 0:
-					mGame->setRule( RULE_BIG2 );
-					setupUI_Big2();
-					break;
-				case 1:
-					mGame->setRule( RULE_HOLDEM );
-					setupUI_Holdem();
-				}
 				modifyCallback( getSettingPanel() );
 				return false;
 			}
 
 			return true;
-		}
-		void setupUI_Big2()
-		{
-			setMaxPlayerNum( 4 );
-		}
-
-		void setupUI_Holdem()
-		{
-			setMaxPlayerNum( Holdem::MaxPlayerNum );
 		}
 
 		virtual void setupGame( StageManager& manager , GameSubStage* subStage )
@@ -187,19 +113,17 @@ namespace Poker
 		}
 		virtual void doSendSetting( DataStreamBuffer& buffer )
 		{
-			int rule = mGame->getRule();
-			buffer.fill( rule );
+			setMaxPlayerNum( CAR::MaxPlayerNum );
+
+			//int rule = mGame->getRule();
+			//buffer.fill( rule );
 
 		}
 		virtual void doRecvSetting( DataStreamBuffer& buffer )
 		{
 			getSettingPanel()->removeGui( MASK_BASE | MASK_RULE );
-			getSettingPanel()->adjustGuiLocation();
-
-			int rule;
-			buffer.take( rule );
-			mGame->setRule( GameRule( rule) );
-			setupBaseUI();
+			//getSettingPanel()->adjustGuiLocation();
+			//setupBaseUI();
 		}
 		CGamePackage* mGame;
 	};
@@ -214,6 +138,6 @@ namespace Poker
 		return NULL;
 	}
 
-}//namespace Poker
+}//namespace CAR
 
-EXPORT_GAME( Poker::CGamePackage )
+EXPORT_GAME( CAR::CGamePackage )

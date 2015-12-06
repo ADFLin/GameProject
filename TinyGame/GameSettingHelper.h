@@ -46,7 +46,7 @@ public:
 	virtual void doSendSetting( DataStreamBuffer& buffer ) = 0;
 	virtual void doRecvSetting( DataStreamBuffer& buffer ) = 0;
 
-	virtual bool onEvent( int event ,int id , GWidget* widget ){ return true; }
+	virtual bool onWidgetEvent( int event ,int id , GWidget* widget ){ return true; }
 
 	GAME_API void   addGUIControl( GWidget* ui );
 

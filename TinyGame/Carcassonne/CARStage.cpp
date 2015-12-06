@@ -115,7 +115,7 @@ namespace CAR
 		mCurMapPos = Vec2i(0,0);
 		mIdxShowFeature = 0;
 
-		mMoudule.mDebug = true;
+		mMoudule.mDebug = ::Global::getSetting().getIntValue( "Debug" , "CAR" , 0 ) != 0;
 		mMoudule.mListener = this;
 		
 		mCoroutine.onAction = std::bind( &LevelStage::onGameAction , 
@@ -140,7 +140,6 @@ namespace CAR
 		mMoudule.setupSetting( mSetting );
 
 		::Global::getGUI().cleanupWidget();
-		restart( true );
 
 		return true;
 	}
@@ -153,7 +152,7 @@ namespace CAR
 		//::Global::getDrawEngine()->stopOpenGL();
 	}
 
-	void LevelStage::restart(bool bInit)
+	void LevelStage::onRestart( uint64 seed , bool bInit)
 	{
 		mMoudule.restart( bInit );
 		
@@ -591,7 +590,7 @@ namespace CAR
 		float offset = 0.2f;
 		switch( key )
 		{
-		case Keyboard::eR: restart( false ); break;
+		case Keyboard::eR: getStage()->restart( false ); break;
 		case Keyboard::eF: gDrawFarmLink = !gDrawFarmLink; break;
 		case Keyboard::eS: gDrawSideLink = !gDrawSideLink; break;
 		case Keyboard::eQ: 
@@ -636,7 +635,6 @@ namespace CAR
 	{
 		if ( !BaseClass::onMouse( msg ) )
 			return false;
-
 
 		Level& level = mMoudule.getLevel();
 		if ( msg.onMoving() )
@@ -717,7 +715,7 @@ namespace CAR
 		return Vec2i( Math::Floor( temp.x ) , Math::Floor( temp.y ) );
 	}
 
-	bool LevelStage::onEvent(int event , int id , GWidget* ui)
+	bool LevelStage::onWidgetEvent(int event , int id , GWidget* ui)
 	{
 		switch( id )
 		{
@@ -1069,6 +1067,33 @@ namespace CAR
 			break;
 		}
 		return result;
+	}
+
+	void LevelStage::setupLocalGame(LocalPlayerManager& playerManager)
+	{
+		for( IPlayerManager::Iterator iter = playerManager.getIterator();
+			iter.haveMore() ; iter.goNext() )
+		{
+			GamePlayer* player = iter.getElement();
+			switch( player->getType() )
+			{
+			case PT_PLAYER:
+				{
+					PlayerBase* carPlayer = new PlayerBase;
+					carPlayer->mTeam = player->getSlot();
+					mPlayerManager.addPlayer( carPlayer );
+				}
+				break;
+			case PT_SPECTATORS:
+			case PT_COMPUTER:
+				break;
+			}
+		}
+	}
+
+	void LevelStage::setupScene(IPlayerManager& playerManager)
+	{
+
 	}
 
 	void CGameCoroutine::waitTurnOver( GameModule& moudule , GameActionData& data )

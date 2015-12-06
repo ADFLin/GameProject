@@ -353,7 +353,7 @@ namespace Poker
 		g.drawRoundRect( pos - border , mCardSize + 2 * border , Vec2i( 8 , 8 ) );
 	}
 
-	bool FreeCellStage::onEvent( int event , int id , GWidget* ui )
+	bool FreeCellStage::onWidgetEvent( int event , int id , GWidget* ui )
 	{
 		switch( id )
 		{

@@ -191,7 +191,7 @@ namespace Chromatron
 		return false;
 	}
 
-	bool LevelStage::onEvent( int event , int id , GWidget* ui )
+	bool LevelStage::onWidgetEvent( int event , int id , GWidget* ui )
 	{
 		switch ( id )
 		{
@@ -243,7 +243,7 @@ namespace Chromatron
 			return false;
 		}
 
-		return BaseClass::onEvent( event , id , ui );
+		return BaseClass::onWidgetEvent( event , id , ui );
 	}
 
 	void LevelStage::cleanupGameData()

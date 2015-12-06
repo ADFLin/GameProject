@@ -424,7 +424,7 @@ namespace Poker { namespace Big2 {
 
 	}
 
-	void ClientLevel::pass()
+	void ClientLevel::passCard()
 	{
 		if ( getNextShowSlot() != getPlayerStatus().slotId )
 			return;

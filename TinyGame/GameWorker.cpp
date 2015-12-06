@@ -165,16 +165,12 @@ bool NetWorker::addUdpCom( IComPacket* cp , NetAddress const& addr )
 {
 	try
 	{
+		MUTEX_LOCK( mMutexUdpComList );
 		size_t fSize = ComEvaluator::fillBuffer( cp , mUdpSendBuffer );
-
-		{
-			MUTEX_LOCK( mMutexUdpComList );
-			UdpCom uc;
-			uc.addr     = addr;
-			uc.dataSize = fSize;
-			mUdpComList.push_back( uc );
-		}
-
+		UdpCom uc;
+		uc.addr     = addr;
+		uc.dataSize = fSize;
+		mUdpComList.push_back( uc );
 	}
 	catch ( ... )
 	{

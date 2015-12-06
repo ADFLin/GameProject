@@ -8,6 +8,7 @@
 #include "DataStreamBuffer.h"
 
 #include "GamePlayer.h"
+#include "GameStage.h"
 
 #include <new>
 
@@ -326,6 +327,35 @@ public:
 	{
 		op & name & ip;
 	}
+};
+
+class SPLevelInfo : public GamePacket< SPLevelInfo , SP_LEVEL_INFO >
+	              , public GameLevelInfo
+{
+public:
+	SPLevelInfo()
+	{
+		needFree = false;
+	}
+	~SPLevelInfo()
+	{
+		if ( needFree )
+		{
+			delete [] (char*)data;
+		}
+	}
+	template < class BufferOP >
+	void  operateBuffer( BufferOP& op )
+	{
+		op & seed & numData;
+		if ( BufferOP::IsTake )
+		{
+			data = new char[ numData ];
+			needFree = true;
+		}
+		op & SBuffer::GData( data , numData );
+	}
+	bool needFree;
 };
 
 class CPUdpCon : public GamePacket< CPUdpCon , CP_UPD_CON >

@@ -67,7 +67,7 @@ namespace MV
 		void onRender( float dFrame );
 
 		bool onMouse( MouseMsg const& msg );
-		bool onEvent(int event , int id , GWidget* ui);
+		bool onWidgetEvent(int event , int id , GWidget* ui);
 		bool onKey( unsigned key , bool isDown );
 
 

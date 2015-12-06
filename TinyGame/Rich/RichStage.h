@@ -202,7 +202,7 @@ namespace Rich
 			return !mScene.haveAnimation();
 		}
 
-		virtual bool onEvent( int event , int id , GWidget* widget );
+		virtual bool onWidgetEvent( int event , int id , GWidget* widget );
 
 		virtual bool onMouse( MouseMsg const& msg )
 		{  

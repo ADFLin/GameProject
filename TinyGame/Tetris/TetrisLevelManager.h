@@ -92,7 +92,7 @@ namespace Tetris
 	public:
 		virtual void init() = 0;
 		virtual void tick(){}
-		virtual bool onEvent( int event , int id , GWidget* ui ){  return true;  }
+		virtual bool onWidgetEvent( int event , int id , GWidget* ui ){  return true;  }
 
 		virtual void render( Scene* scene ){}
 		virtual void setupScene( unsigned flag ){}

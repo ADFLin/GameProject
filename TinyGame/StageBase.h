@@ -53,7 +53,7 @@ public:
 	virtual bool onMouse( MouseMsg const& msg );
 	virtual bool onKey( unsigned key , bool isDown );
 
-	virtual bool onEvent( int event , int id , GWidget* ui ){ return true; }
+	virtual bool onWidgetEvent( int event , int id , GWidget* ui ){ return true; }
 	virtual void onTaskMessage( TaskBase* task , TaskMsg const& msg );
 
 	StageManager*  getManager(){ return mManager; }

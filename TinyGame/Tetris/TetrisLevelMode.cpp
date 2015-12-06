@@ -374,7 +374,7 @@ namespace Tetris
 		slider->setValue( level->getBlockStorage().getSizeY() );
 	}
 
-	bool PracticeMode::onEvent( int event , int id , GWidget* ui )
+	bool PracticeMode::onWidgetEvent( int event , int id , GWidget* ui )
 	{
 		LevelData* lvData = mLevelManager->getLevelData( 0 );
 		switch( id )

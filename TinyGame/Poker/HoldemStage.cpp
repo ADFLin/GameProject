@@ -2,7 +2,7 @@
 #include "HoldemStage.h"
 #include "HoldemScene.h"
 
-#include "PokerNet.h"
+#include "DataTransferImpl.h"
 #include "GameWorker.h"
 #include "NetGameStage.h"
 
@@ -64,10 +64,11 @@ namespace Poker { namespace Holdem {
 		}
 		playerManager.setUserID( 0 );
 
-		setupServerLevel();
+		GameLevelInfo info;
+		buildServerLevel( info );
 	}
 
-	void LevelStage::setupServerLevel()
+	void LevelStage::buildServerLevel( GameLevelInfo& info )
 	{
 		mServerLevel.reset( new ServerLevel );
 

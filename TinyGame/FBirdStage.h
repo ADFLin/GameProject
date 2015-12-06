@@ -148,7 +148,7 @@ namespace FlappyBird
 			return false;
 		}
 
-		bool onEvent( int event , int id , GWidget* ui )
+		bool onWidgetEvent( int event , int id , GWidget* ui )
 		{
 			switch( id )
 			{

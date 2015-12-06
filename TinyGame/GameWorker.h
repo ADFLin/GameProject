@@ -35,6 +35,7 @@ enum NetActionState
 
 	NAS_LEVEL_SETUP   ,
 	NAS_LEVEL_LOAD    ,
+	NAS_LEVEL_LOAD_FAIL ,
 	NAS_LEVEL_INIT    ,
 	NAS_LEVEL_RESTART ,
 	NAS_LEVEL_RUN     ,
@@ -90,7 +91,7 @@ class  ComWorker
 {
 public:
 	GAME_API ComWorker();
-	virtual ~ComWorker(){}
+	GAME_API virtual ~ComWorker(){}
 
 	GAME_API void   update( long time );
 	GAME_API void   changeState( NetActionState state );

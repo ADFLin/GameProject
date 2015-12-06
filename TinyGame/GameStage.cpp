@@ -55,7 +55,7 @@ bool GameStage::onInit()
 	return true;
 }
 
-bool GameStage::onEvent( int event , int id , GWidget* ui )
+bool GameStage::onWidgetEvent( int event , int id , GWidget* ui )
 {
 	if ( !mSubStage->onWidgetEvent( event, id , ui ) )
 		return false;
@@ -63,8 +63,9 @@ bool GameStage::onEvent( int event , int id , GWidget* ui )
 	if ( id >= UI_SUB_STAGE_ID )
 		return false;
 
-	return BaseClass::onEvent( event , id , ui );
+	return BaseClass::onWidgetEvent( event , id , ui );
 }
+
 
 bool GameStage::changeState( GameState state )
 {
@@ -115,6 +116,17 @@ bool GameStage::onMouse( MouseMsg const& msg )
 {
 	return mSubStage->onMouse( msg );
 }
+
+bool GameStage::onChar(unsigned code)
+{
+	return mSubStage->onChar(code);
+}
+
+bool GameStage::onKey(unsigned key , bool isDown)
+{
+	return mSubStage->onKey(key,isDown);
+}
+
 
 bool GameSubStage::getAttribValue( AttribValue& value )
 {

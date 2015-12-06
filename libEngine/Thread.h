@@ -265,4 +265,25 @@ private:
 	#define MUTEX_LOCK( MUTEX ) 
 #endif
 
+template< class T >
+struct LockObject
+{
+	struct Info
+	{
+		Info( T& obj , Mutex& m ):object(&obj),mutex(&m){}
+	private:
+		Mutex* mutex;
+		T*     object;
+		friend struct LockObject;
+	};
+	LockObject( Info const& info )
+		:mInfo(info){ mInfo.mutex->lock(); }
+	~LockObject(){ mInfo.mutex->unlock(); }
+	T* operator->(){ return mInfo.object; }
+	operator T* () { return mInfo.object; }
+private:
+	LockObject( LockObject& other ){}
+	Info   mInfo;
+};
+
 #endif // Thread_h__

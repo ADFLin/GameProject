@@ -20,7 +20,6 @@
 #include "Shoot2D/FlightGame.h"
 #include "Bejeweled/BJStage.h"
 #include "MonumentValley/MVStage.h"
-#include "Carcassonne/CARStage.h"
 
 #include "LightingStage.h"
 #include "TestStage.h"
@@ -98,7 +97,6 @@ StageInfo gPhyDevGroup[] =
 StageInfo gDevGroup[] =
 {
 	INFO( "Monument Valley" , MV::TestStage ) ,
-	INFO( "Carcassonne Pototype" , CAR::LevelStage ),
 	INFO( "Triple Town Test"  , TripleTown::LevelStage ) ,
 	INFO( "Bejeweled Test"    , Bejeweled::TestStage ) ,
 	INFO( "Bloxorz Test"      , Bloxorz::TestStage ), 
@@ -106,7 +104,7 @@ StageInfo gDevGroup[] =
 	
 };
 
-StageInfo gDev2Group[] =
+StageInfo gDev4Group[] =
 {
 	INFO( "Mario Test"        , Mario::TestStage ) ,
 	INFO( "Shoot2D Test"      , Shoot2D::TestStage ) ,
@@ -123,6 +121,7 @@ struct GameStageInfo
 
 GameStageInfo gSingleDev[] = 
 {
+	{ "Carcassonne Pototype" , "Carcassonne" } ,
 	{ "TD Test" , "TowerDefend" } ,
 	{ "Rich Test" , "Rich" } ,
 	{ "BomberMan Test" , "BomberMan" } ,
@@ -261,10 +260,8 @@ void MainMenuStage::doChangeGroup( StageGroupID group )
 	{
 	case UI_MAIN_GROUP:
 		CREATE_BUTTON( UI_GAME_DEV_GROUP  , "Game Dev"   );
-#if 0
 		CREATE_BUTTON( UI_GAME_DEV2_GROUP  , "Game Dev2"   );
-#endif
-		//CREATE_BUTTON( UI_GAME_DEV3_GROUP  , "Phyics Test"   );
+		CREATE_BUTTON( UI_GAME_DEV3_GROUP  , "Phyics Test"   );
 		CREATE_BUTTON( UI_GRAPHIC_TEST_GROUP , "Graphic Test" );
 		CREATE_BUTTON( UI_TEST_GROUP      , "Test" );
 		CREATE_BUTTON( UI_SINGLEPLAYER  , LAN("SinglePlayer")  );
@@ -303,18 +300,15 @@ void MainMenuStage::doChangeGroup( StageGroupID group )
 		{
 			CREATE_BUTTON( UI_GAME_DEV_INDEX + i , LAN( gDevGroup[i].decl ) );
 		}
-		for( int i = 0 ; i < ARRAY_SIZE( gSingleDev ) ; ++i )
-		{
-			CREATE_BUTTON( UI_SINGLE_DEV_INDEX + i , LAN( gSingleDev[i].decl ) );
-		}
+
 		CREATE_BUTTON( UI_CARD_GAME_DEV_GROUP  , "Card Game.." );
 		CREATE_BUTTON( UI_BACK_GROUP     , LAN("Back")          );
 		break;
 
 	case UI_GAME_DEV2_GROUP:
-		for( int i = 0 ; i < ARRAY_SIZE( gDev2Group ) ; ++i )
+		for( int i = 0 ; i < ARRAY_SIZE( gSingleDev ) ; ++i )
 		{
-			CREATE_BUTTON( UI_GAME_DEV2_INDEX + i , LAN( gDev2Group[i].decl ) );
+			CREATE_BUTTON( UI_SINGLE_DEV_INDEX + i , LAN( gSingleDev[i].decl ) );
 		}
 		CREATE_BUTTON( UI_BACK_GROUP     , LAN("Back")          );
 		break;
@@ -322,6 +316,13 @@ void MainMenuStage::doChangeGroup( StageGroupID group )
 		for( int i = 0 ; i < ARRAY_SIZE( gPhyDevGroup ) ; ++i )
 		{
 			CREATE_BUTTON( UI_GAME_DEV3_INDEX + i , LAN( gPhyDevGroup[i].decl ) );
+		}
+		CREATE_BUTTON( UI_BACK_GROUP     , LAN("Back")          );
+		break;
+	case UI_GAME_DEV4_GROUP:
+		for( int i = 0 ; i < ARRAY_SIZE( gDev4Group ) ; ++i )
+		{
+			CREATE_BUTTON( UI_GAME_DEV4_INDEX + i , LAN( gDev4Group[i].decl ) );
 		}
 		CREATE_BUTTON( UI_BACK_GROUP     , LAN("Back")          );
 		break;
@@ -350,7 +351,7 @@ void MainMenuStage::doChangeGroup( StageGroupID group )
 #undef  CREATE_BUTTON
 }
 
-bool MainMenuStage::onEvent( int event , int id , GWidget* ui )
+bool MainMenuStage::onWidgetEvent( int event , int id , GWidget* ui )
 {
 	if ( id < UI_GROUP_INDEX  )
 	{
@@ -442,13 +443,13 @@ bool MainMenuStage::onEvent( int event , int id , GWidget* ui )
 		{
 			info = &gDevGroup[ id - UI_GAME_DEV_INDEX ];
 		}
-		else if ( id < UI_GAME_DEV2_INDEX + MAX_NUM_GROUP )
-		{
-			info = &gDev2Group[ id - UI_GAME_DEV2_INDEX ];
-		}
 		else if ( id < UI_GAME_DEV3_INDEX + MAX_NUM_GROUP )
 		{
 			info = &gPhyDevGroup[ id - UI_GAME_DEV3_INDEX ];
+		}
+		else if ( id < UI_GAME_DEV4_INDEX + MAX_NUM_GROUP )
+		{
+			info = &gDev4Group[ id - UI_GAME_DEV4_INDEX ];
 		}
 		else if ( id < UI_TEST_INDEX + MAX_NUM_GROUP )
 		{

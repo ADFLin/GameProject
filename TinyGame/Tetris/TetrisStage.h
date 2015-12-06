@@ -52,6 +52,7 @@ namespace Tetris
 		void updateFrame( int frame );
 
 		void setupLocalGame( LocalPlayerManager& playerManager );
+		void setupLevel( GameLevelInfo const& info );
 		void setupScene( IPlayerManager& playerMgr );
 		bool onWidgetEvent( int event , int id , GWidget* ui );
 		void onChangeState( GameState state );
@@ -97,7 +98,7 @@ namespace Tetris
 		void doChangeGroup( StageGroupID group );
 		void onUpdate( long time );
 		void onRender( float dFrame );
-		bool onEvent( int event , int id , GWidget* ui );
+		bool onWidgetEvent( int event , int id , GWidget* ui );
 
 
 		Vec2i  offsetBG;
@@ -137,7 +138,7 @@ namespace Tetris
 	public:
 		RecordStage();
 
-		bool onEvent( int event , int id , GWidget* ui );
+		bool onWidgetEvent( int event , int id , GWidget* ui );
 		bool onKey( unsigned key , bool isDown );
 		bool onInit();
 		void onUpdate( long time );

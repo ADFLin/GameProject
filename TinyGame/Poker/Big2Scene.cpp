@@ -107,7 +107,7 @@ namespace Poker { namespace Big2 {
 			case eFOUR_OF_KIND:   getScene().nextCombination( CG_FOUR_OF_KIND ); break;
 			case eSTRAIGHT_FLUSH: getScene().nextCombination( CG_STRAIGHT_FLUSH ); break;
 			case eSHOW_CARD:      getScene().showCard(); break;
-			case ePASS:           getScene().getLevel().pass(); break;
+			case ePASS:           getScene().getLevel().passCard(); break;
 			case eCLEAR_SELECT:   getScene().clearSelect();
 			}
 		}

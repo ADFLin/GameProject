@@ -62,7 +62,7 @@ namespace Rich
 		WorldEditor();
 
 		void stopEdit();
-		bool onEvent( int event , int id , GWidget* widget )
+		bool onWidgetEvent( int event , int id , GWidget* widget )
 		{
 			return true;
 		}

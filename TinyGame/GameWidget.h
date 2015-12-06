@@ -148,7 +148,7 @@ typedef GUI::Manager         UIManager;
 class WidgetEventHandler
 {
 public:
-	virtual bool onEvent( int event , int id , GWidget* ui ) = 0;
+	virtual bool onWidgetEvent( int event , int id , GWidget* ui ) = 0;
 };
 
 class RenderCallBack 

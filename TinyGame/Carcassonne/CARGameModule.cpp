@@ -166,7 +166,7 @@ namespace CAR
 			PlayerBase* curTrunPlayer = mPlayerOrders[ mIdxPlayerTrun ];
 			curTrunPlayer->startTurn();
 
-			TurnResult result = procPlayerTurn( cort , curTrunPlayer );
+			TurnResult result = resolvePlayerTurn( cort , curTrunPlayer );
 			if ( result == eFinishGame )
 				break;
 			if ( result == eExitGame )
@@ -437,7 +437,7 @@ namespace CAR
 		}
 	}
 
-	TurnResult GameModule::procPlayerTurn(IGameCoroutine& cort , PlayerBase* curTrunPlayer)
+	TurnResult GameModule::resolvePlayerTurn(IGameCoroutine& cort , PlayerBase* curTrunPlayer)
 	{
 		TurnResult result;
 
@@ -562,7 +562,7 @@ namespace CAR
 
 				//d)princess
 				bool haveDone = false;
-				result = procPrincess( cort , placeMapTile , haveDone );
+				result = resolvePrincess( cort , placeMapTile , haveDone );
 				if ( result != TurnResult::eOK )
 					return result;
 				if ( haveDone )
@@ -657,7 +657,7 @@ namespace CAR
 					//e)
 					if ( mSetting->haveUse( EXP_THE_TOWER ) )
 					{
-						result = procTower( cort , curTrunPlayer );
+						result = resolveTower( cort , curTrunPlayer );
 						if ( result != TurnResult::eOK )
 							return result;
 					}
@@ -701,7 +701,7 @@ namespace CAR
 				{
 					if ( mDragon->mapTile != nullptr && ( placeMapTile->getTileContent() & TileContent::eTheDragon ) )
 					{
-						result = procDragonMove( cort , *mDragon );
+						result = resolveDragonMove( cort , *mDragon );
 						if ( result != TurnResult::eOK )
 							return result;
 					}
@@ -735,7 +735,7 @@ namespace CAR
 				{
 					if ( mDragon->mapTile != nullptr && ( placeMapTile->getTileContent() & TileContent::eTheDragon ) )
 					{
-						result = procDragonMove( cort , *mDragon );
+						result = resolveDragonMove( cort , *mDragon );
 						if ( result != TurnResult::eOK )
 							return result;
 					}
@@ -759,7 +759,7 @@ namespace CAR
 		return TurnResult::eOK;
 	}
 
-	TurnResult GameModule::procDragonMove(IGameCoroutine& cort , LevelActor& dragon)
+	TurnResult GameModule::resolveDragonMove(IGameCoroutine& cort , LevelActor& dragon)
 	{
 		assert( dragon.mapTile != nullptr );
 
@@ -845,7 +845,7 @@ namespace CAR
 		return TurnResult::eOK;
 	}
 
-	TurnResult GameModule::procTower(IGameCoroutine& cort , PlayerBase* curTurnPlayer)
+	TurnResult GameModule::resolveTower(IGameCoroutine& cort , PlayerBase* curTurnPlayer)
 	{
 		TurnResult result;
 		if ( curTurnPlayer->getFieldValue( FieldType::eTowerPices ) == 0 || mTowerTiles.empty() )
@@ -979,7 +979,7 @@ namespace CAR
 		return TurnResult::eOK;
 	}
 
-	CAR::TurnResult GameModule::procPrincess(IGameCoroutine& cort , MapTile* placeMapTile , bool& haveDone)
+	CAR::TurnResult GameModule::resolvePrincess(IGameCoroutine& cort , MapTile* placeMapTile , bool& haveDone)
 	{
 		TurnResult result;
 		unsigned sideMask = Tile::AllSideMask;

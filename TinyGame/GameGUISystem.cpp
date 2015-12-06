@@ -35,11 +35,11 @@ void GUISystem::addTask( TaskBase* task , bool beGlobal /*= false */ )
 
 void GUISystem::sendMessage( int event , int id , GWidget* ui )
 {
-	if ( !mStageManager->getCurStage()->onEvent( event , id , ui ) )
+	if ( !mStageManager->getCurStage()->onWidgetEvent( event , id , ui ) )
 		return ;
 	if ( id > UI_STAGE_ID )
 		return;
-	mStageManager->onEvent( event , id , ui );
+	mStageManager->onWidgetEvent( event , id , ui );
 }
 
 

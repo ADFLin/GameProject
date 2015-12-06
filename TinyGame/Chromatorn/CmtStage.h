@@ -32,7 +32,7 @@ namespace Chromatron
 		void   onEnd();
 		void   onUpdate( long time );
 		void   onRender( float dFrame );
-		bool   onEvent( int event , int id , GWidget* ui );
+		bool   onWidgetEvent( int event , int id , GWidget* ui );
 		bool   onKey( unsigned key , bool isDown );
 		bool   onMouse( MouseMsg const& msg );
 

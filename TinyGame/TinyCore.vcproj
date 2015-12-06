@@ -163,6 +163,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\DataTransferImpl.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\GamePackage.cpp"
 				>
 			</File>
@@ -206,6 +210,14 @@
 			</File>
 			<File
 				RelativePath=".\DataStreamBuffer.h"
+				>
+			</File>
+			<File
+				RelativePath=".\DataTransfer.h"
+				>
+			</File>
+			<File
+				RelativePath=".\DataTransferImpl.h"
 				>
 			</File>
 			<File

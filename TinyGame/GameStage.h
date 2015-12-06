@@ -1,6 +1,8 @@
 #ifndef GameStage_h__
 #define GameStage_h__
 
+#include "CppVersion.h"
+
 #include "GameConfig.h"
 #include "GameControl.h"
 #include "StageBase.h"
@@ -40,6 +42,20 @@ enum GameType
 	GT_REPLAY      ,
 };
 
+struct GameLevelInfo
+{
+	uint64 seed;
+	void*  data;
+	size_t numData;
+
+	GameLevelInfo()
+	{
+		seed = 0;
+		data = nullptr;
+		numData = 0;
+	}
+};
+
 class LocalPlayerManager;
 
 class GameStage : public StageBase
@@ -69,10 +85,13 @@ protected:
 	virtual void   onEnd();
 	virtual void   onRender( float dFrame );
 
-	virtual bool   onMouse( MouseMsg const& msg );
+	virtual bool onChar( unsigned code );
+	virtual bool onMouse( MouseMsg const& msg );
+	virtual bool onKey( unsigned key , bool isDown );
+	virtual bool onWidgetEvent( int event , int id , GWidget* ui );
 
 	virtual bool   tryChangeState( GameState state ){ return true; }
-	virtual bool   onEvent( int event , int id , GWidget* ui );
+	
 
 	ActionProcessor  mProcessor;
 	long             mTickTime;
@@ -96,10 +115,12 @@ public:
 
 	//Multi-Player
 	virtual bool setupNetwork( NetWorker* worker , INetEngine** engine ){ return true; }
-	virtual void setupServerLevel(){}
+	virtual void buildServerLevel( GameLevelInfo& info ){}
 
 	virtual void setupLocalGame( LocalPlayerManager& playerManager ){}
+	virtual void setupLevel( GameLevelInfo const& info ){}
 	virtual void setupScene( IPlayerManager& playerManager ){}
+	
 
 	virtual bool getAttribValue( AttribValue& value );
 	virtual bool setupAttrib( AttribValue const& value );
@@ -110,6 +131,9 @@ public:
 	virtual void onRender( float dFrame ){}
 
 	virtual bool onMouse( MouseMsg const& msg );
+	virtual bool onChar(unsigned code){  return true;  }
+	virtual bool onKey(unsigned key , bool isDown){  return true;  }
+	virtual bool onWidgetEvent( int event , int id , GWidget* ui ){ return true; }
 
 	virtual void onChangeState( GameState state ){}
 	virtual IFrameActionTemplate* createActionTemplate( unsigned version ){ return NULL; }
@@ -119,8 +143,6 @@ public:
 public:
 	GameStage*   getStage()  {  return mGameStage;  }
 
-protected:
-	virtual bool onWidgetEvent( int event , int id , GWidget* ui ){ return true; }
 
 public:
 	//Helper function

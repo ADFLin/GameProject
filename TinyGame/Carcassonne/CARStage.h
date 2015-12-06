@@ -1,7 +1,7 @@
 #ifndef CARStage_h__3414efe3_7df4_44fb_8375_e9165753a1c3
 #define CARStage_h__3414efe3_7df4_44fb_8375_e9165753a1c3
 
-#include "StageBase.h"
+#include "GameStage.h"
 
 #include "CARLevel.h"
 #include "CARGameSetting.h"
@@ -15,6 +15,8 @@
 
 #include <fstream>
 #include <sstream>
+
+class IDataTransfer;
 
 namespace CAR
 {
@@ -199,38 +201,29 @@ namespace CAR
 	public:
 	};
 
-	class LevelStage : public StageBase
+	class LevelStage : public GameSubStage
 		             , public IGameEventListener
 	{
-		typedef StageBase BaseClass;
+		typedef GameSubStage BaseClass;
 	public:
 		LevelStage(){}
 
 		virtual bool onInit();
-
-		void setRenderOffset( Vec2f const& a_offset );
-
 		virtual void onEnd();
+		virtual void onRestart( uint64 seed , bool bInit);
+		virtual void onRender( float dFrame );
+		virtual bool onWidgetEvent(int event , int id , GWidget* ui);
+		virtual bool onKey( unsigned key , bool isDown );
+		virtual bool onMouse( MouseMsg const& msg );
 
-		virtual void onUpdate( long time )
+		virtual bool setupNetwork( NetWorker* worker , INetEngine** engine ){ return true; }
+		virtual void buildServerLevel( GameLevelInfo& info )
 		{
-			BaseClass::onUpdate( time );
 
-			int frame = time / gDefaultTickTime;
-			for( int i = 0 ; i < frame ; ++i )
-				tick();
-
-			updateFrame( frame );
 		}
 
-		void onRender( float dFrame );
-
-		
-		bool onEvent(int event , int id , GWidget* ui);
-		bool onKey( unsigned key , bool isDown );
-		bool onMouse( MouseMsg const& msg );
-
-		void restart( bool bInit );
+		virtual void setupLocalGame( LocalPlayerManager& playerManager );
+		virtual void setupScene( IPlayerManager& playerManager );
 
 		void tick()
 		{
@@ -243,6 +236,7 @@ namespace CAR
 
 		}
 
+		void setRenderOffset( Vec2f const& a_offset );
 		Vec2i showPlayerInfo( Graphics2D& g, Vec2i const& pos , PlayerBase* player , int offsetY );
 		Vec2i showFeatureInfo( Graphics2D& g, Vec2i const& pos , FeatureBase* build , int offsetY );
 		void drawMapData( Graphics2D& g , Vec2f const& pos , MapTile const& mapData );
@@ -294,6 +288,9 @@ namespace CAR
 		GameSetting       mSetting;
 
 		void addActionWidget( GWidget* widget );
+
+		IDataTransfer* mDataTransfer;
+		
 		std::vector< GWidget* > mGameActionUI;
 
 		Vec2f  mRenderOffset;

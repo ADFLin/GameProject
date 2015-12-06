@@ -625,7 +625,7 @@ namespace CAR
 	{
 		if ( mapTile.group == group )
 		{
-			actorPos.type == ActorPos::eTile;
+			actorPos.type = ActorPos::eTile;
 			actorPos.meta = 0;
 			return true;
 		}

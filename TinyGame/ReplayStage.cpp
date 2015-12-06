@@ -276,7 +276,7 @@ void  GameReplayStage::onRestart( uint64& seed )
 	mReplayInput->restart();
 }
 
-bool GameReplayStage::onEvent( int event , int id , GWidget* ui )
+bool GameReplayStage::onWidgetEvent( int event , int id , GWidget* ui )
 {
 	switch( id )
 	{
@@ -323,7 +323,7 @@ bool GameReplayStage::onEvent( int event , int id , GWidget* ui )
 		break;
 	}
 
-	return BaseClass::onEvent( event , id , ui );
+	return BaseClass::onWidgetEvent( event , id , ui );
 }
 
 
@@ -376,7 +376,7 @@ bool ReplayEditStage::onInit()
 	return true;
 }
 
-bool ReplayEditStage::onEvent( int event , int id , GWidget* ui )
+bool ReplayEditStage::onWidgetEvent( int event , int id , GWidget* ui )
 {
 	switch( id )
 	{

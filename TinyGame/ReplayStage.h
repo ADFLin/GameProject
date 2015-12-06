@@ -60,7 +60,7 @@ protected:
 	virtual bool onInit();
 	virtual void onUpdate( long time ){}
 	virtual void onEnd(){}
-	virtual bool onEvent( int event , int id , GWidget* ui );
+	virtual bool onWidgetEvent( int event , int id , GWidget* ui );
 
 	void viewReplay();
 
@@ -108,7 +108,7 @@ protected:
 	bool loadReplay( char const* path );
 	void onEnd();
 	void onUpdate( long time );
-	bool onEvent( int event , int id , GWidget* ui );
+	bool onWidgetEvent( int event , int id , GWidget* ui );
 	void onRestart( uint64& seed );
 
 	TPtrHolder< IReplayInput >     mReplayInput;

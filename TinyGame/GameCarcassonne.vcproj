@@ -19,7 +19,7 @@
 			Name="Debug|Win32"
 			OutputDirectory="$(SolutionDir)$(ConfigurationName)"
 			IntermediateDirectory="$(ConfigurationName)"
-			ConfigurationType="4"
+			ConfigurationType="2"
 			CharacterSet="0"
 			>
 			<Tool
@@ -62,10 +62,16 @@
 				Name="VCPreLinkEventTool"
 			/>
 			<Tool
-				Name="VCLibrarianTool"
+				Name="VCLinkerTool"
+				AdditionalDependencies="Msimg32.lib d3d9.lib d3dx9d.lib dsound.lib dinput8.lib dxguid.lib winmm.lib"
+				OutputFile="$(OutDir)\$(ProjectName)D.dll"
+				AdditionalLibraryDirectories="../OtherLib/Boost/lib;../OtherLib/Dx9/lib"
 			/>
 			<Tool
 				Name="VCALinkTool"
+			/>
+			<Tool
+				Name="VCManifestTool"
 			/>
 			<Tool
 				Name="VCXDCMakeTool"
@@ -77,6 +83,9 @@
 				Name="VCFxCopTool"
 			/>
 			<Tool
+				Name="VCAppVerifierTool"
+			/>
+			<Tool
 				Name="VCPostBuildEventTool"
 				CommandLine="copy $(TargetPath) $(ProjectDir)out\"
 			/>
@@ -85,7 +94,7 @@
 			Name="Release|Win32"
 			OutputDirectory="$(SolutionDir)$(ConfigurationName)"
 			IntermediateDirectory="$(ConfigurationName)"
-			ConfigurationType="4"
+			ConfigurationType="2"
 			CharacterSet="0"
 			WholeProgramOptimization="1"
 			>
@@ -130,10 +139,15 @@
 				Name="VCPreLinkEventTool"
 			/>
 			<Tool
-				Name="VCLibrarianTool"
+				Name="VCLinkerTool"
+				AdditionalDependencies="Msimg32.lib d3d9.lib d3dx9.lib dsound.lib dinput8.lib dxguid.lib winmm.lib"
+				AdditionalLibraryDirectories="../OtherLib/Boost/lib;../OtherLib/Dx9/lib"
 			/>
 			<Tool
 				Name="VCALinkTool"
+			/>
+			<Tool
+				Name="VCManifestTool"
 			/>
 			<Tool
 				Name="VCXDCMakeTool"
@@ -143,6 +157,9 @@
 			/>
 			<Tool
 				Name="VCFxCopTool"
+			/>
+			<Tool
+				Name="VCAppVerifierTool"
 			/>
 			<Tool
 				Name="VCPostBuildEventTool"
@@ -191,6 +208,14 @@
 		</File>
 		<File
 			RelativePath=".\Carcassonne\CARFeature.h"
+			>
+		</File>
+		<File
+			RelativePath=".\Carcassonne\CARGame.cpp"
+			>
+		</File>
+		<File
+			RelativePath=".\Carcassonne\CARGame.h"
 			>
 		</File>
 		<File

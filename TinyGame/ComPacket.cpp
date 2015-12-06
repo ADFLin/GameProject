@@ -33,7 +33,11 @@ bool ComEvaluator::evalCommand( SBuffer& buffer , ComConnection* con )
 	{
 		buffer.take( comID );
 
-		ICPFactory* factory = findFactory( comID );
+		ICPFactory* factory;
+		{
+			MUTEX_LOCK( mMutexCPFactoryMap );
+			factory = findFactory( comID );
+		}
 		if ( factory == NULL )
 			throw ComException( "Can't find com" );
 
@@ -212,6 +216,7 @@ void ComEvaluator::procCommand(  ComVisitor& visitor )
 
 void ComEvaluator::removeProcesserFun( void* processer )
 {
+	MUTEX_LOCK( mMutexCPFactoryMap );
 	for( CPFactoryMap::iterator iter = mCPFactoryMap.begin();
 		iter != mCPFactoryMap.end() ; ++iter )
 	{

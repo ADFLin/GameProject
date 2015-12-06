@@ -12,6 +12,7 @@ class  NetAddress;
 struct sockaddr;
 
 
+
 class SBuffer : public StreamBuffer< ThrowCheckPolicy >
 {
 	typedef StreamBuffer< ThrowCheckPolicy > BaseClass;
@@ -48,6 +49,16 @@ public:
 	int  take( TSocket& socket , NetAddress& addr );
 
 	void append( SBuffer const& buffer );
+
+	struct GData
+	{
+		GData( void* ptr , size_t size ):ptr(ptr),size(size){}
+		void*  ptr;
+		size_t size;
+	};
+
+	void take( GData& data ){ take( data.ptr , data.size ); }
+	void fill( GData const& data ){ fill( data.ptr , data.size ); }
 
 	template< class T >
 	SBuffer& operator >> ( T& val ){ take( val ); return *this;  }

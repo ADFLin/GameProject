@@ -58,7 +58,6 @@ public:
 		ePause    ,
 		eLevelSetup  ,
 		eLevelLoaded ,
-		eLevelSync   ,
 		eLevelReady  ,
 		eDissconnect ,
 
@@ -159,7 +158,7 @@ protected:
 	};
 	typedef std::map< NetAddress const* , ClientInfo* , AddrCmp >  AddrMap;
 	typedef std::map< SessionId , ClientInfo* >              SessionMap;
-	typedef std::list< ClientInfo* > ClientList;
+	typedef std::vector< ClientInfo* > ClientList;
 
 	SessionId  mNextId;
 	ClientList mRemoveList;
@@ -218,6 +217,7 @@ protected:
 
 class LocalWorker;
 
+
 class  ServerWorker : public NetWorker
 {
 	typedef NetWorker BaseClass;
@@ -227,10 +227,7 @@ public:
 
 	bool  isServer(){   return true;  }
 	//NetWorker
-	void  sendCommand( int channel , IComPacket* cp , unsigned flag )
-	{
-		mPlayerManager->sendCommand( channel , cp , flag );
-	}
+	void  sendCommand( int channel , IComPacket* cp , unsigned flag );
 
 	GAME_API LocalWorker* createLocalWorker( UserProfile& profile );
 
@@ -252,8 +249,9 @@ protected:
 	virtual void onClose( Connection* con , ConCloseReason reason );
 
 public:
-	bool kickPlayer( unsigned id );
+	GAME_API bool kickPlayer( unsigned id );
 	void removeConnect( ClientInfo* info , bool bRMPlayer = true );
+
 	SVPlayerManager* getPlayerManager(){ return mPlayerManager; }
 
 	void  generatePlayerStatus( SPPlayerStatus& comPS );
@@ -276,9 +274,23 @@ protected:
 	
 	/////////////////////////////////////////
 
+	DEFINE_MUTEX( mMutexPlayerManager );
 	TPtrHolder< SVPlayerManager >  mPlayerManager;
 	TPtrHolder< LocalWorker >      mLocalWorker;
 
+	DEFINE_MUTEX( mMutexPlayerChangeInfoVec );
+	struct PlayerChangeInfo
+	{
+		enum ChangeType
+		{
+			eRemove ,
+			eSweepToLocal ,
+		};
+		ChangeType  changeType;
+		SNetPlayer* player;
+	};
+	typedef std::vector< PlayerChangeInfo > PlayerChangeInfoVec;
+	PlayerChangeInfoVec  mPlayerChangeInfoVec;
 	bool                 mbEnableUDPChain;
 	TcpServer            mTcpServer;
 	UdpServer            mUdpServer;

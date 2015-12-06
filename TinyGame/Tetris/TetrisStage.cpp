@@ -68,6 +68,11 @@ namespace Tetris
 		getStage()->getActionProcessor().setEnumer( NULL );
 	}
 
+	void LevelStage::setupLevel(GameLevelInfo const& info)
+	{
+
+	}
+
 	void LevelStage::setupScene( IPlayerManager& playerMgr )
 	{
 		unsigned flag = 0;
@@ -282,7 +287,7 @@ namespace Tetris
 
 	bool LevelStage::onWidgetEvent( int event , int id , GWidget* ui )
 	{
-		if ( !mGameMode->onEvent( event , id , ui ) )
+		if ( !mGameMode->onWidgetEvent( event , id , ui ) )
 			return false;
 
 		switch ( id )
@@ -412,6 +417,8 @@ namespace Tetris
 
 	}
 
+
+
 	static unsigned titleMap[] = 
 	{
 		BINARY32( 11111111,11110100,11000000 , 00000000 ) , 
@@ -509,7 +516,7 @@ namespace Tetris
 	}
 
 
-	bool MenuStage::onEvent( int event , int id , GWidget* ui )
+	bool MenuStage::onWidgetEvent( int event , int id , GWidget* ui )
 	{
 		switch ( id )
 		{
@@ -933,7 +940,7 @@ namespace Tetris
 	}
 
 
-	bool RecordStage::onEvent( int event , int id , GWidget* ui )
+	bool RecordStage::onWidgetEvent( int event , int id , GWidget* ui )
 	{
 		switch ( id )
 		{
@@ -941,7 +948,7 @@ namespace Tetris
 			getManager()->changeStage( STAGE_GAME_MENU );
 			return false;
 		}
-		return BaseClass::onEvent( event , id , ui );
+		return BaseClass::onWidgetEvent( event , id , ui );
 	}
 
 

@@ -134,28 +134,70 @@ namespace CAR
 /*09*/ 	{ 2, { LF,LL,LF,LL }, SL2(1,3)     , SL_NONE      , 0, { 0 , 0 , 0 , 0 }, 0, { BIT4(7,0,1,2) , FL_RE } , 0 } ,
 	};
 
+	static TileDefine DataKingRobber[] =
+	{
+// numPiece     linkType      sideLink       roadLink   content   sidecontent centerFarmMask farmLink tag
+/*00*/ 	{ 1, { LC,LC,LC,LC }, SL22(0,2,1,3), SL_NONE      , 0, { 0 , 0 , 0 , 0 }, BIT4(0,2,3,6), { BIT2(1,2) , BIT2(3,4) , BIT2(5,6) , BIT2(7,0) } , 0 } ,
+/*01*/ 	{ 1, { LC,LC,LR,LR }, SL2(0,1)     , SL22(0,3,1,2), 0, { 0 , 0 , 0 , 0 }, 0, { BIT2(7,0) , BIT2(3,4) , BIT2(5,2) , BIT2(6,1) } , 0 } ,
+/*02*/ 	{ 1, { LF,LC,LF,LF }, SL3(0,2,3)   , SL_NONE      ,TCL,{ 0 , 0 , 0 , 0 }, 0, { FL_RE } , 0 } ,
+/*03*/ 	{ 1, { LF,LC,LR,LF }, SL2(0,3)     , SL2(1,2)     , 0, { 0 , 0 , 0 , 0 }, 0, { BIT2(3,4) , FL_RE } , 0 } ,
+/*04*/ 	{ 1, { LR,LC,LR,LR }, SL2(0,3)     , SL2(1,2)     , 0, { 0 , 0 , 0 , 0 }, 0, { BIT2(3,4) , BIT2(7,0) , FL_RE } , 0 } ,
+	};
+
 	static TileDefine DataPrincessDragon[] =
 	{
 // numPiece     linkType      sideLink       roadLink   content   sidecontent centerFarmMask farmLink tag
 /*00*/ 	{ 5, { LC,LC,LF,LC }, SL2(0,3)     , SL_NONE      , 0, {SPE,SPR, 0 , 0 }, BIT2(2,6), { BIT3(3,4,5) , FL_RE } , 0 } ,
 /*01*/ 	{ 5, { LC,LC,LF,LC }, SL3(0,1,3)   , SL_NONE      , 0, {SPR, 0 , 0 , 0 }, 0, { BIT4(3,4,5,6) } , 0 } ,
 /*02*/ 	{ 5, { LC,LC,LF,LC }, SL3(0,1,3)   , SL_NONE      ,TMP,{SPE, 0 , 0 , 0 }, 0, { BIT4(3,4,5,6) } , 0 } ,
-/*03*/ 	{ 5, { LC,LC,LF,LC }, SL3(0,1,3)   , SL_NONE      ,TDR|TCC,{0, 0 , 0,0 }, 0, { BIT4(3,4,5,6) } , 0 } ,
+/*03*/ 	{ 5, { LC,LC,LF,LC }, SL3(0,1,3)   , SL_NONE      ,TDR|TCC,{0,0, 0 , 0 }, 0, { BIT4(3,4,5,6) } , 0 } ,
 /*04*/ 	{ 1, { LC,LC,LF,LF }, SL2(0,1)     , SL_NONE      , 0, {SPR, 0 , 0 , 0 }, 0, { BIT4(2,3,4,5) , FL_RE } , 0 } ,
 /*05*/ 	{ 1, { LC,LC,LF,LF }, SL22(0,1,2,3), SL_NONE      ,TDR,{ 0 , 0 , 0 , 0 }, 0, { FL_RE } , 0 } ,
 /*06*/ 	{ 1, { LC,LC,LF,LF }, SL22(0,1,2,3), SL_NONE      , 0, {SPR, 0 , 0 , 0 }, 0, { FL_RE } , 0 } ,
 /*07*/ 	{ 1, { LC,LC,LF,LF }, SL2(2,3)     , SL_NONE      ,TVO,{ 0 , 0 , 0 , 0 }, 0, { FL_RE } , 0 } ,
+/*08*/ 	{ 1, { LC,LC,LR,LR }, SL22(0,1,2,3), SL_NONE      , 0, {SPR, 0 , 0 , 0 }, 0, { BIT2(5,6) , FL_RE } , 0 } ,
+/*09*/ 	{ 1, { LC,LC,LR,LR }, SL22(0,1,2,3), SL_NONE      ,TMP,{ 0 , 0 , 0 , 0 }, 0, { BIT2(5,6) , FL_RE } , 0 } ,
+/*10*/ 	{ 1, { LF,LC,LF,LC }, SL2(1,3)     , SL_NONE      ,TDR,{ 0 , 0 , 0 ,SPE}, 0, { BIT4(7,0,1,2) , FL_RE } , 0 } ,
+/*11*/ 	{ 1, { LF,LC,LF,LF }, SL3(0,2,3)   , SL_NONE      ,TDR,{ 0 , 0 , 0 , 0 }, 0, { FL_RE } , 0 } ,
+/*12*/ 	{ 1, { LF,LC,LF,LF }, SL3(0,2,3)   , SL_NONE      ,TVO,{ 0 , 0 , 0 , 0 }, 0, { FL_RE } , 0 } ,
+/*13*/ 	{ 1, { LF,LC,LR,LR }, SL2(2,3)     , SL_NONE      ,TDR,{ 0 , 0 , 0 , 0 }, 0, { BIT2(5,6) , FL_RE } , 0 } ,
+/*14*/ 	{ 1, { LF,LC,LR,LR }, SL2(2,3)     , SL_NONE      ,TMP,{ 0 , 0 , 0 , 0 }, 0, { BIT2(5,6) , FL_RE } , 0 } ,
+/*15*/ 	{ 1, { LR,LC,LR,LC }, SL22(0,2,1,3), SL_NONE      ,TDR,{ 0 , 0 , 0 , 0 }, 0, { BIT4(7,0,1,2) , FL_RE } , 0 } ,
+/*16*/ 	{ 3, { LR,LC,LF,LR }, SL2(0,3)     , SL_NONE      ,TDR,{ 0 , 0 , 0 , 0 }, 0, { BIT2(0,7) , FL_RE } , 0 } ,
+/*17*/ 	{ 3, { LR,LC,LF,LR }, SL2(0,3)     , SL_NONE      ,TMP,{ 0 , 0 , 0 , 0 }, 0, { BIT2(0,7) , FL_RE } , 0 } ,
+/*18*/ 	{ 3, { LR,LC,LR,LR }, SL_NONE      , SL3(0,2,3)   , 0, { 0 ,SPR, 0 , 0 }, 0, { BIT2(5,6) , BIT2(7,0) , FL_RE } , 0 } ,
+/*19*/ 	{ 1, { LF,LF,LF,LF }, SL_ALL       , SL_NONE      ,TVO,{ 0 , 0 , 0 , 0 }, 0, { FL_RE } , 0 } ,
+/*20*/ 	{ 1, { LF,LF,LR,LF }, SL3(0,1,3)   , SL_NONE      ,TVO,{ 0 , 0 , 0 , 0 }, 0, { FL_RE } , 0 } ,
+/*21*/ 	{ 1, { LF,LF,LR,LR }, SL22(0,1,2,3), SL_NONE      ,TDR,{ 0 , 0 , 0 , 0 }, 0, { BIT2(5,6) , FL_RE } , 0 } ,
+/*22*/ 	{ 1, { LF,LF,LR,LR }, SL22(0,1,2,3), SL_NONE      ,TVO,{ 0 , 0 , 0 , 0 }, 0, { BIT2(5,6) , FL_RE } , 0 } ,
+/*23*/ 	{ 1, { LR,LF,LR,LF }, SL2(0,2)     , SL_NONE      ,TDR,{ 0 , 0 , 0 , 0 }, 0, { BIT4(1,2,3,4) , FL_RE } , 0 } ,
+/*24*/ 	{ 1, { LR,LF,LR,LF }, SL2(0,2)     , SL_NONE      ,TVO,{ 0 , 0 , 0 , 0 }, 0, { BIT4(1,2,3,4) , FL_RE } , 0 } ,
+/*25*/ 	{ 1, { LR,LF,LR,LR }, SL_NONE      , SL4(0,2,3,4) ,TDR|TCL,{0,0, 0 , 0 }, 0, { BIT2(5,6) , BIT2(7,0) , FL_RE } , 0 } ,
+/*26*/ 	{ 1, { LR,LF,LR,LR }, SL_NONE      , SL3(0,2,3)   ,TDR,{ 0 , 0 , 0 , 0 }, 0, { BIT2(5,6) , BIT2(7,0) , FL_RE } , 0 } ,
+/*27*/ 	{ 1, { LR,LF,LR,LR }, SL_NONE      , SL3(0,2,3)   ,TMP,{ 0 , 0 , 0 , 0 }, 0, { BIT2(5,6) , BIT2(7,0) , FL_RE } , 0 } ,
+/*28*/ 	{ 1, { LR,LR,LR,LR }, SL22(1,2,3,0), SL_NONE      ,TMP,{ 0 , 0 , 0 , 0 }, 0, { BIT2(3,4) , BIT2(7,0) , FL_RE } , 0 } ,
 	};
 
 	static TileDefine DataTower[] =
 	{
 // numPiece     linkType      sideLink       roadLink   content   sidecontent centerFarmMask farmLink tag
-/*00*/ 	{ 1, { LC,LC,LC,LC }, SL3(0,1,2)   , SL_NONE      ,TTF, {SPE, 0 , 0 , 0 }, BIT2(6,7), { BIT4(5,6,7,0) } , 0 } ,
-/*01*/ 	{ 1, { LC,LC,LR,LC }, SL3(0,1,3)   , SL_ALL       ,TTF, { 0 , 0 , 0 , 0 }, 0, { BIT4(1,2,3,4) , FL_RE } , 0 } ,
-/*02*/ 	{ 1, { LC,LC,LF,LF }, SL22(0,1,2,3), SL_NONE      ,TTF, { 0 , 0 , 0 , 0 }, 0, { FL_RE } , 0 } ,
-/*03*/ 	{ 1, { LC,LC,LF,LF }, SL2(2,3)     , SL_NONE      ,TTF, { 0 , 0 , 0 , 0 }, 0, { FL_RE } , 0 } ,
-/*04*/ 	{ 1, { LC,LC,LF,LR }, SL2(0,1)     , SL3(0,1,3)   ,TTF, { 0 , 0 , 0 , 0 }, 0, { BIT4(7,0,1,2) , BIT3(3,4,5) , BIT2(6,0) } , 0 } ,
-/*05*/ 	{ 1, { LF,LC,LF,LF }, SL3(0,2,3)   , SL_NONE      ,TTF, { 0 , 0 , 0 , 0 }, 0, { FL_RE } , 0 } ,
+/*00*/ 	{ 1, { LC,LC,LC,LC }, SL3(0,1,2)   , SL_NONE      ,TTF,{SPE, 0 , 0 , 0 }, BIT2(6,7), { BIT4(5,6,7,0) } , 0 } ,
+/*01*/ 	{ 1, { LC,LC,LR,LC }, SL3(0,1,3)   , SL_ALL       ,TTF,{ 0 , 0 , 0 , 0 }, 0, { BIT4(1,2,3,4) , FL_RE } , 0 } ,
+/*02*/ 	{ 1, { LC,LC,LF,LF }, SL22(0,1,2,3), SL_NONE      ,TTF,{ 0 , 0 , 0 , 0 }, 0, { FL_RE } , 0 } ,
+/*03*/ 	{ 1, { LC,LC,LF,LF }, SL2(2,3)     , SL_NONE      ,TTF,{ 0 , 0 , 0 , 0 }, 0, { FL_RE } , 0 } ,
+/*04*/ 	{ 1, { LC,LC,LF,LR }, SL2(0,1)     , SL3(0,1,3)   ,TTF,{ 0 , 0 , 0 , 0 }, 0, { BIT4(7,0,1,2) , BIT3(3,4,5) , BIT2(6,0) } , 0 } ,
+/*05*/ 	{ 1, { LF,LC,LF,LF }, SL3(0,2,3)   , SL_NONE      ,TTF,{ 0 , 0 , 0 , 0 }, 0, { FL_RE } , 0 } ,
+/*06*/ 	{ 1, { LF,LC,LF,LR }, SL_NONE      , SL2(1,3)     ,TTF,{ 0 , 0 , 0 , 0 }, 0, { BIT4(7,0,1,2) , FL_RE } , 0 } ,
+/*07*/ 	{ 1, { LF,LC,LR,LR }, SL2(2,3)     , SL_NONE      ,TTF,{ 0 , 0 , 0 , 0 }, 0, { BIT2(5,6) , FL_RE } , 0 } ,
+/*08*/ 	{ 1, { LR,LC,LR,LC }, SL22(0,2,1,3), SL_NONE      ,TTF,{ 0 , 0 , 0 , 0 }, 0, { BIT2(1,2) , BIT2(3,4) , BIT2(5,6) , BIT2(7,0) } , 0 } ,
+/*09*/ 	{ 1, { LR,LC,LR,LC }, SL2(0,2)     , SL_NONE      ,TTF,{ 0 , 0 , 0 , 0 }, 0, { BIT4(1,2,3,4) , FL_RE } , 0 } ,
+/*10*/ 	{ 1, { LR,LC,LR,LF }, SL2(0,2)     , SL_NONE      ,TTF,{ 0 , 0 , 0 , 0 }, 0, { BIT2(1,2) , BIT2(3,4) , FL_RE } , 0 } ,
+/*11*/ 	{ 1, { LF,LF,LF,LF }, SL_ALL       , SL_NONE      ,TTF,{ 0 , 0 , 0 , 0 }, 0, { FL_RE } , 0 } ,
+/*12*/ 	{ 1, { LF,LF,LF,LF }, SL_ALL       , SL_NONE      ,TTF|TCL,{0,0 , 0 , 0 }, 0, { FL_RE } , 0 } ,
+/*13*/ 	{ 1, { LF,LF,LR,LR }, SL2(0,1)     , SL2(2,3)     ,TTF,{ 0 , 0 , 0 , 0 }, 0, { BIT2(5,6) , FL_RE } , 0 } ,
+/*14*/ 	{ 1, { LR,LR,LR,LF }, SL_NONE      , SL3(0,1,2)   ,TTF,{ 0 , 0 , 0 , 0 }, 0, { BIT2(1,2) , BIT2(3,4) , FL_RE } , 0 } ,
+/*15*/ 	{ 1, { LR,LR,LR,LR }, SL22(1,2,3,0), SL_NONE      ,TTF,{ 0 , 0 , 0 , 0 }, 0, { BIT2(3,4) , BIT2(7,0) , FL_RE } , 0 } ,
+/*16*/ 	{ 1, { LR,LR,LR,LR }, SL_NONE      , SL4(0,1,2,3) ,TTF,{ 0 , 0 , 0 , 0 }, 0, { BIT2(1,2) , BIT2(3,4) , BIT2(5,6) , BIT2(7,0) } , 0 } ,
 	};
 
 	static TileDefine DataAbbeyAndMayor[] =
@@ -176,10 +218,10 @@ namespace CAR
 #define EXPDATA( NAME , DATA ) { NAME , DATA , ARRAY_SIZE( DATA ) } 
 	ExpansionTileContent gAllExpansionTileContents[] =
 	{
-		
-		EXPDATA( EXP_BASIC     , DataBasic ) ,
+		EXPDATA( EXP_BASIC , DataBasic ) ,
 		EXPDATA( EXP_INNS_AND_CATHEDRALS , DataInnCathedral ),
 		EXPDATA( EXP_TRADEERS_AND_BUILDERS , DataTraderBuilder ) ,
+		EXPDATA( EXP_KING_AND_ROBBER , DataKingRobber ) ,
 		EXPDATA( EXP_THE_RIVER , DataRiver1 ) ,
 		EXPDATA( EXP_THE_PRINCESS_AND_THE_DRAGON , DataPrincessDragon ),
 		EXPDATA( EXP_THE_TOWER , DataTower ),

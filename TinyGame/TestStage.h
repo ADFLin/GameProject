@@ -1366,7 +1366,7 @@ public:
 		UI_TEST_BUTTON2 ,
 	};
 	virtual bool onInit();
-	virtual bool onEvent( int event , int id , GWidget* ui );
+	virtual bool onWidgetEvent( int event , int id , GWidget* ui );
 
 };
 
@@ -1564,7 +1564,7 @@ namespace Bsp2D
 
 		bool onMouse( MouseMsg const& msg );
 		bool onKey( unsigned key , bool isDown );
-		bool onEvent( int event , int id , GWidget* ui );
+		bool onWidgetEvent( int event , int id , GWidget* ui );
 
 	protected:
 
@@ -2703,7 +2703,7 @@ public:
 	}
 
 
-	bool onEvent( int event , int id , GWidget* ui )
+	bool onWidgetEvent( int event , int id , GWidget* ui )
 	{
 		switch( id )
 		{
@@ -2723,7 +2723,7 @@ public:
 			}
 			return false;
 		}
-		return BaseClass::onEvent( event , id , ui );
+		return BaseClass::onWidgetEvent( event , id , ui );
 	}
 protected:
 

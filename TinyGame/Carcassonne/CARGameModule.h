@@ -230,12 +230,12 @@ namespace CAR
 
 		bool   checkGameState( GameActionData& actionData , TurnResult& result );
 
-		TurnResult  procPlayerTurn( IGameCoroutine& cort , PlayerBase* curTrunPlayer );
-		TurnResult  updateFeature( IGameCoroutine& cort , FeatureBase& build );
-		TurnResult  procDragonMove( IGameCoroutine& cort , LevelActor& dragon );
-		TurnResult  procPrincess( IGameCoroutine& cort , MapTile* placeMapTile , bool& haveDone );
-		TurnResult  procTower( IGameCoroutine& cort , PlayerBase* curTurnPlayer );
+		TurnResult  resolvePlayerTurn( IGameCoroutine& cort , PlayerBase* curTrunPlayer );
 		TurnResult  resolveCompleteFeature( IGameCoroutine& cort , FeatureBase& feature );
+		TurnResult  resolveDragonMove( IGameCoroutine& cort , LevelActor& dragon );
+		TurnResult  resolvePrincess( IGameCoroutine& cort , MapTile* placeMapTile , bool& haveDone );
+		TurnResult  resolveTower( IGameCoroutine& cort , PlayerBase* curTurnPlayer );
+		
 
 
 		PlayerBase* getTurnPlayer(){ return mPlayerOrders[ mIdxPlayerTrun ]; }

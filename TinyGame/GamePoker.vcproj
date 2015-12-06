@@ -622,10 +622,6 @@
 			>
 		</File>
 		<File
-			RelativePath=".\Poker\IDataTransfer.h"
-			>
-		</File>
-		<File
 			RelativePath=".\Poker\libcards.cpp"
 			>
 		</File>
@@ -643,14 +639,6 @@
 		</File>
 		<File
 			RelativePath=".\Poker\PokerGame.h"
-			>
-		</File>
-		<File
-			RelativePath=".\Poker\PokerNet.cpp"
-			>
-		</File>
-		<File
-			RelativePath=".\Poker\PokerNet.h"
 			>
 		</File>
 	</Files>

@@ -100,7 +100,7 @@ bool GameSingleStage::tryChangeState( GameState state )
 	return true;
 }
 
-bool GameSingleStage::onEvent( int event , int id , GWidget* ui )
+bool GameSingleStage::onWidgetEvent( int event , int id , GWidget* ui )
 {
 	switch ( id )
 	{
@@ -154,7 +154,7 @@ bool GameSingleStage::onEvent( int event , int id , GWidget* ui )
 		break;
 	}
 
-	return BaseClass::onEvent( event , id , ui );
+	return BaseClass::onWidgetEvent( event , id , ui );
 }
 
 

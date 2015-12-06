@@ -2,7 +2,7 @@
 #define HoldemLevel_h__
 
 #include "PokerBase.h"
-#include "IDataTransfer.h"
+#include "DataTransfer.h"
 #include "FixVector.h"
 
 namespace Poker { namespace Holdem {

@@ -13,7 +13,7 @@
 namespace Tetris
 {
 
-	bool CNetRoomSettingHelper::onEvent( int event ,int id , GWidget* widget )
+	bool CNetRoomSettingHelper::onWidgetEvent( int event ,int id , GWidget* widget )
 	{
 		switch( id )
 		{

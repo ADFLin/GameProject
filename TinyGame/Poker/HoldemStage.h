@@ -24,7 +24,7 @@ namespace Poker { namespace Holdem {
 	public:
 		LevelStage();
 
-		void setupServerLevel();
+		void buildServerLevel( GameLevelInfo& info );
 		void setupScene( IPlayerManager& playerManager );
 		void setupLocalGame( LocalPlayerManager& playerManager );
 

@@ -290,7 +290,7 @@ namespace MV
 		return false;
 	}
 
-	bool TestStage::onEvent(int event , int id , GWidget* ui)
+	bool TestStage::onWidgetEvent(int event , int id , GWidget* ui)
 	{
 		RenderParam& param = mRenderEngine.mParam;
 		switch( id )

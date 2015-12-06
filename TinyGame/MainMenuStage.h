@@ -22,6 +22,7 @@ public:
 		UI_GAME_DEV_GROUP ,
 		UI_GAME_DEV2_GROUP ,
 		UI_GAME_DEV3_GROUP ,
+		UI_GAME_DEV4_GROUP ,
 		UI_CARD_GAME_DEV_GROUP ,
 
 		UI_NET_TEST_SV  ,
@@ -36,14 +37,15 @@ public:
 		UI_GAME_DEV_INDEX      = UI_SINGLE_DEV_INDEX + MAX_NUM_GROUP,
 		UI_GAME_DEV2_INDEX     = UI_GAME_DEV_INDEX + MAX_NUM_GROUP,
 		UI_GAME_DEV3_INDEX     = UI_GAME_DEV2_INDEX + MAX_NUM_GROUP,
-		UI_TEST_INDEX          = UI_GAME_DEV3_INDEX + MAX_NUM_GROUP ,
+		UI_GAME_DEV4_INDEX     = UI_GAME_DEV3_INDEX + MAX_NUM_GROUP ,
+		UI_TEST_INDEX          = UI_GAME_DEV4_INDEX + MAX_NUM_GROUP ,
 		UI_GRAPHIC_TEST_INDEX  = UI_TEST_INDEX + MAX_NUM_GROUP ,
 		
 		NEXT_UI_ID             = UI_GRAPHIC_TEST_INDEX + MAX_NUM_GROUP ,
 	};
 	
 	bool onInit();
-	bool onEvent( int event , int id , GWidget* ui );
+	bool onWidgetEvent( int event , int id , GWidget* ui );
 	void doChangeGroup( StageGroupID group );
 };
 

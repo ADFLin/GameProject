@@ -8,7 +8,7 @@
 
 namespace CAR
 {
-	int const MaxPlayerNum = 8;
+	int const MaxPlayerNum = 6;
 	unsigned const AllPlayerMask = 0xfffffff;
 
 	class FeatureBase;

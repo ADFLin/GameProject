@@ -96,7 +96,7 @@ namespace Poker { namespace Big2 {
 		std::sort( cards.begin() , cards.end() , CardSortCmp() );
 	}
 
-	int LevelBase::calcScore( CardDeck& cards )
+	int LevelBase::calcScore( CardDeck& cards , uint32& reason )
 	{
 		int numBig2 = 0;
 
@@ -104,19 +104,29 @@ namespace Poker { namespace Big2 {
 		helper.parse( &cards[0]  , (int)cards.size() );
 
 		numBig2 = helper.getFaceNum( Card::toRank( Card::eN2 ) );
+
 		int factor = 1;
 		for( int i = 0 ; i < numBig2 ; ++i )
 		{
 			factor *= 2;
+			reason |= ( SR_HAVE_1_BIG_2 << i );
 		}
 
 		if ( cards.size() >= 10 )
+		{
 			factor *= 2;
+			reason |= SR_OVER_DOUBLE_NUM;
+		}
 		if ( helper.haveGroup( CG_FOUR_OF_KIND ) )
+		{
 			factor *= 2;
+			reason |= SR_HAVE_FOUR_OF_KINDS;
+		}
 		if ( helper.haveGroup( CG_STRAIGHT_FLUSH ) )
+		{
 			factor *= 2;
-
+			reason |= SR_HAVE_STRAIGHT_FLUSH;
+		}
 		return factor * (int)cards.size();
 	}
 
@@ -229,39 +239,55 @@ namespace Poker { namespace Big2 {
 		if ( mListener )
 			mListener->onSlotTurn( slotId , true );
 
-		if ( cards.size() )
+		if ( cards.size() != 0 )
 			return true;
 
 		doRoundEnd();
 
 		int factor = 1;
+		uint32 reason = 0;
 		switch ( mLastShowCard.group )
 		{
 		case CG_ONE_PAIR:
 		case CG_STRAIGHT:
 		case CG_SINGLE:
 			if ( mLastShowCard.card[0].getFace() == Card::eN2 )
+			{
 				factor *= 2;
+				reason |= SR_LAST_SHOW_BIG_2;
+			}
 			break;
 		case CG_FULL_HOUSE:
 			if ( mLastShowCard.card[4].getFace() == Card::eN2 )
+			{
 				factor *= 2;
+				reason |= SR_LAST_SHOW_BIG_2;
+			}
 			break;
 		case CG_FOUR_OF_KIND:
 			factor *= 2;
+			reason |= SR_LAST_FOUR_OF_KIND;
 			if ( mLastShowCard.card[4].getFace() == Card::eN2 )
+			{
 				factor *= 2;
+				reason |= SR_LAST_SHOW_BIG_2;
+			}
 			break;
 		case CG_STRAIGHT_FLUSH:
 			factor *= 2;
+			reason |= SR_LAST_STRAIGHT_FLUSH;
 			if ( mLastShowCard.card[0].getFace() == Card::eN2 )
+			{
 				factor *= 2;
+				reason |= SR_LAST_SHOW_BIG_2;
+			}
 			break;
 		}
 
 
 		SDRoundEnd endData;
 		endData.winner = slotId;
+		endData.reason[slotId] = reason;
 		int idxCard = 0;
 
 		bool isGameOver = false;
@@ -272,7 +298,8 @@ namespace Poker { namespace Big2 {
 
 			if ( id != slotId )
 			{
-				int score = factor * calcScore( otherCards );
+				endData.reason[id] = 0;
+				int score = factor * calcScore( otherCards , endData.reason[id] );
 				int decMoney = std::min( score , mSlotStatus[id].money );
 
 				mSlotStatus[id].money -= decMoney;
@@ -343,7 +370,7 @@ namespace Poker { namespace Big2 {
 		return true;
 	}
 
-	void ServerLevel::onRecvData( int slotId , int dataId , void* data )
+	void ServerLevel::onRecvData( int slotId , int dataId , void* data , int dataSize)
 	{
 		switch( dataId )
 		{
@@ -453,7 +480,7 @@ namespace Poker { namespace Big2 {
 		return true;
 	}
 
-	void ClientLevel::onRecvData( int slotId , int dataId , void* data )
+	void ClientLevel::onRecvData( int slotId , int dataId , void* data , int dataSize )
 	{
 		switch( dataId )
 		{

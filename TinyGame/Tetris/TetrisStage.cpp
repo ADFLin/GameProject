@@ -389,7 +389,15 @@ namespace Tetris
 			value.v2.x = UI_BasePos.x + ( 150 - UI_ButtonSize.x ) / 2;
 			value.v2.y = UI_BasePos.y + 200 - 18;
 			return true;
-
+		case ATTR_REPLAY_INFO_DATA:
+			{
+				ReplayInfo& info = *((ReplayInfo*)value.ptr);
+				strcpy_s( info.name , TETRIS_NAME );
+				info.gameVersion     = GameInfo::LastVersion;
+				info.templateVersion = CFrameActionTemplate::LastVersion;
+				info.setGameData( sizeof( GameInfo ) );
+			}
+			return true;
 		case ATTR_REPLAY_INFO:
 			{
 				ReplayInfo* info = reinterpret_cast< ReplayInfo* >( value.ptr );

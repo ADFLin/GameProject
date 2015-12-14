@@ -325,14 +325,6 @@
 				>
 			</File>
 			<File
-				RelativePath=".\GameSingleStage.cpp"
-				>
-			</File>
-			<File
-				RelativePath=".\GameSingleStage.h"
-				>
-			</File>
-			<File
 				RelativePath=".\LightingStage.cpp"
 				>
 			</File>
@@ -1026,8 +1018,16 @@
 			>
 		</Filter>
 		<Filter
-			Name="GameCarcassonne"
+			Name="Mode"
 			>
+			<File
+				RelativePath=".\GameSingleStage.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\GameSingleStage.h"
+				>
+			</File>
 		</Filter>
 		<File
 			RelativePath=".\out\Game.ini"

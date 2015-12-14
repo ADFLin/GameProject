@@ -92,7 +92,7 @@ protected:
 		FR_NO_STAGE ,
 		FR_INIT_FAIL ,
 	};
-	virtual StageBase* onStageChangeFail( FailReason reason ){  return NULL;  }
+	virtual StageBase* resolveChangeStageFail( FailReason reason ){  return NULL;  }
 	virtual void       postStageChange( StageBase* stage ){}
 	virtual void       prevChangeStage(){}
 	

@@ -183,7 +183,7 @@ void RenderUtility::setFont(IGraphics2D& g , int fontID )
 
 }
 
-GAME_API void RenderUtility::startOpenGL()
+void RenderUtility::startOpenGL()
 {
 	HDC hDC = ::Global::getDrawEngine()->getWindow().getHDC();
 	char const* faceName = "·s²Ó©úÅé";
@@ -194,8 +194,26 @@ GAME_API void RenderUtility::startOpenGL()
 	FontGL[ FONT_S24 ].create( 24 , faceName , hDC );
 }
 
-GAME_API void RenderUtility::stopOpenGL()
+void RenderUtility::stopOpenGL()
 {
 	for( int i = 0 ; i < FONT_NUM ; ++i)
 		FontGL[i].release();
+}
+
+void RenderUtility::setFontColor(Graphics2D& g , int color , int type /*= COLOR_NORMAL */)
+{
+	COLORREF const& c = gColorMap[type][color];
+	g.setTextColor( GetRValue( c ) , GetGValue( c )  , GetBValue( c ) );
+}
+
+void RenderUtility::setFontColor(GLGraphics2D& g , int color , int type /*= COLOR_NORMAL */)
+{
+	COLORREF const& c = gColorMap[type][color];
+	g.setTextColor( GetRValue( c ) , GetGValue( c )  , GetBValue( c ) );
+}
+
+void RenderUtility::setFontColor(IGraphics2D& g , int color , int type /*= COLOR_NORMAL */)
+{
+	COLORREF const& c = gColorMap[type][color];
+	g.setTextColor( GetRValue( c ) , GetGValue( c )  , GetBValue( c ) );
 }

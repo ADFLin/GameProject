@@ -7,6 +7,7 @@
 #include "SocketBuffer.h"
 #include "DataStreamBuffer.h"
 
+#include "GameConfig.h"
 #include "GamePlayer.h"
 #include "GameStage.h"
 
@@ -179,7 +180,7 @@ class CPLogin : public GamePacket< CPLogin , CP_LOGIN >
 {
 public:
 	SessionId       id;
-	FixString< 32 > name;
+	FixString< MAX_PLAYER_NAME_LENGTH > name;
 
 	template < class BufferOP >
 	void  operateBuffer( BufferOP& op )
@@ -401,7 +402,7 @@ public:
 			delete[] info[0];
 	}
 
-	uint8        numPlayer;
+	uint8       numPlayer;
 	int         flag[ MAX_PLAYER_NUM ];
 	PlayerInfo* info[ MAX_PLAYER_NUM ];
 

@@ -92,13 +92,13 @@ void ReplayListPanel::deleteCurFile()
 }
 
 
-GameReplayStage::GameReplayStage() 
+GameReplayMode::GameReplayMode() 
 	:BaseClass( GT_REPLAY )
 	,mPlayerManager( new LocalPlayerManager )
 {
 }
 
-bool GameReplayStage::onInit()
+bool GameReplayMode::onInit()
 {
 	ReplayInfo   info;
 	ReplayHeader header;
@@ -194,13 +194,13 @@ bool GameReplayStage::onInit()
 	return true;
 }
 
-void GameReplayStage::onEnd()
+void GameReplayMode::onEnd()
 {
 	BaseClass::onEnd();
 }
 
 
-void GameReplayStage::onUpdate( long time )
+void GameReplayMode::onUpdate( long time )
 {
 	if ( !mReplayInput->isVaild() )
 		return;
@@ -253,7 +253,7 @@ void GameReplayStage::onUpdate( long time )
 		mProgressSlider->setValue( 0 );
 }
 
-bool GameReplayStage::loadReplay( char const* path )
+bool GameReplayMode::loadReplay( char const* path )
 {
 	if ( !path )
 		return false;
@@ -264,7 +264,7 @@ bool GameReplayStage::loadReplay( char const* path )
 	return true;
 }
 
-void  GameReplayStage::onRestart( uint64& seed )
+void  GameReplayMode::onRestart( uint64& seed )
 {
 	seed = mReplayInput->getSeed();
 
@@ -276,7 +276,7 @@ void  GameReplayStage::onRestart( uint64& seed )
 	mReplayInput->restart();
 }
 
-bool GameReplayStage::onWidgetEvent( int event , int id , GWidget* ui )
+bool GameReplayMode::onWidgetEvent( int event , int id , GWidget* ui )
 {
 	switch( id )
 	{
@@ -327,7 +327,7 @@ bool GameReplayStage::onWidgetEvent( int event , int id , GWidget* ui )
 }
 
 
-LocalPlayerManager* GameReplayStage::getPlayerManager()
+LocalPlayerManager* GameReplayMode::getPlayerManager()
 {
 	return mPlayerManager.get();
 }
@@ -445,8 +445,10 @@ void ReplayEditStage::viewReplay()
 	IGamePackage* game = Global::getGameManager().changeGame( mGameInfo.name );
 	if ( game )
 	{
-		GameReplayStage* stage = static_cast< GameReplayStage* >( 
-			getManager()->changeStage( STAGE_REPLAY_GAME ) );
+		game->beginPlay( GT_REPLAY , *getManager() );
+		//TODO
+		GameReplayMode* stage = static_cast< GameReplayMode* >( 
+			getManager()->getNextStage() );
 		stage->setReplayPath( mReplayFilePath );
 	}
 }

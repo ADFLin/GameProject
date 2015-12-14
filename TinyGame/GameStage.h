@@ -1,46 +1,23 @@
 #ifndef GameStage_h__
 #define GameStage_h__
 
-#include "CppVersion.h"
-
-#include "GameConfig.h"
-#include "GameControl.h"
 #include "StageBase.h"
 
+#include "GameConfig.h"
+#include "GameDefines.h"
+#include "GameControl.h"
+#include "GameMode.h"
+
+
 #include "THolder.h"
+
+#include "CppVersion.h"
 
 #define  LAST_REPLAY_NAME     "LastReplay.rpf"
 #define  REPLAY_DIR           "Replay"
 
 struct AttribValue;
 
-class  ComWorker;
-class  NetWorker;
-class  GameSubStage;
-class  IFrameActionTemplate;
-class  INetFrameManager;
-class  INetEngine;
-class  IFrameUpdater;
-class  IReplayRecorder;
-class  IPlayerManager;
-class  LocalPlayerManager;
-
-enum GameState
-{
-	GS_START  ,
-	GS_RUN    ,
-	GS_PAUSE  ,
-	GS_END    ,
-};
-
-
-enum GameType
-{
-	GT_UNKNOW      ,
-	GT_SINGLE_GAME ,
-	GT_NET_GAME    ,
-	GT_REPLAY      ,
-};
 
 struct GameLevelInfo
 {
@@ -57,50 +34,6 @@ struct GameLevelInfo
 };
 
 class LocalPlayerManager;
-
-class GameStage : public StageBase
-{
-	typedef StageBase BaseClass;
-public:
-	GameStage( GameType gameType );
-
-	void           restart( bool beInit );
-	IGamePackage*  getGame()    { return mGame; }
-	GameState      getState()   { return mGameState;  }
-	GameType       getGameType(){ return mGameType;  }
-	long           getTickTime(){ return mTickTime;  }
-	bool           changeState( GameState state );
-	bool           togglePause();
-	GameSubStage*  getSubStage(){ return mSubStage;  }
-	void           setSubStage( GameSubStage* subStage );
-	virtual bool   saveReplay( char const* name ){ return false;  }
-
-	ActionProcessor& getActionProcessor(){ return mProcessor; }
-
-	virtual IPlayerManager* getPlayerManager() = 0;
-
-protected:
-	virtual void   onRestart( uint64& seed ){}
-	virtual bool   onInit();
-	virtual void   onEnd();
-	virtual void   onRender( float dFrame );
-
-	virtual bool onChar( unsigned code );
-	virtual bool onMouse( MouseMsg const& msg );
-	virtual bool onKey( unsigned key , bool isDown );
-	virtual bool onWidgetEvent( int event , int id , GWidget* ui );
-
-	virtual bool   tryChangeState( GameState state ){ return true; }
-	
-
-	ActionProcessor  mProcessor;
-	long             mTickTime;
-	long             mReplayFrame;
-	GameSubStage*    mSubStage;
-	GameType const   mGameType;
-	IGamePackage*    mGame;
-	GameState        mGameState;
-};
 
 class GameSubStage
 {
@@ -159,18 +92,6 @@ protected:
 	GameStage*  mGameStage;
 };
 
-class  GameLevelStage : public GameStage
-{
-	typedef GameStage BaseClass;
-public:
-	GameLevelStage( GameType gameType = GT_UNKNOW );
-	~GameLevelStage();
-	bool saveReplay( char const* name );
-protected:
-	void   onRestart( uint64& seed );
-	bool   buildReplayRecorder();
-	TPtrHolder< IReplayRecorder > mReplayRecorder;
-};
 
 
 #endif // GameStage_h__

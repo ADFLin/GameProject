@@ -5,6 +5,7 @@
 #include "Big2Utility.h"
 
 #include "FixVector.h"
+#include "IntegerType.h"
 #include "DataTransfer.h"
 #include <algorithm>
 
@@ -62,11 +63,11 @@ namespace Poker { namespace Big2 {
 	{
 		bool   isGameOver;
 		char   winner;
-		int    money[4];
-		int    score[4];
+		int32  money[4];
+		int32  score[4];
 		uint32 reason[4];
-		char   numCard[4];
-		char   card[52];
+		uint8  numCard[4];
+		uint8  card[52];
 	};
 
 	enum ScoreReason
@@ -80,7 +81,7 @@ namespace Poker { namespace Big2 {
 		SR_HAVE_STRAIGHT_FLUSH = BIT(6) ,
 
 		SR_LAST_SHOW_BIG_2     = BIT(7) ,
-		SR_LAST_FOUR_OF_KINDS  = BIT(8) ,
+		SR_LAST_FOUR_OF_KIND  = BIT(8) ,
 		SR_LAST_STRAIGHT_FLUSH = BIT(9) ,
 	};
 
@@ -117,8 +118,7 @@ namespace Poker { namespace Big2 {
 		void             doRoundEnd();
 
 		static void      sortCards( CardDeck& cards );
-		static int       calcScore( CardDeck& cards );
-
+		static int       calcScore( CardDeck& cards , uint32& reason );
 		TrickInfo       mLastShowCard;
 		SlotStatus      mSlotStatus[PlayerNum];
 	private:
@@ -173,7 +173,7 @@ namespace Poker { namespace Big2 {
 
 	private:
 		
-		void        onRecvData( int slotId , int dataId , void* data );
+		void        onRecvData( int slotId , int dataId , void* data , int dataSize );
 		void        doSetupTransfer();
 		void        updateBot();
 		bool        updateBotImpl( int slotId );
@@ -252,7 +252,7 @@ namespace Poker { namespace Big2 {
 		TablePos      getTablePos( int slotId );
 		int           getSlotId( TablePos pos );
 
-		void          onRecvData( int playerId , int dataId , void* data );
+		void          onRecvData( int playerId , int dataId , void* data , int dataSize );
 
 
 		void          doSetupTransfer();

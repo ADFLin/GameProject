@@ -198,13 +198,12 @@ namespace CAR
 		GameModule();
 
 		void   setupSetting( GameSetting& setting );
-		void   loadSetting();
-
 		void   restart( bool bInit );
 		Level& getLevel(){ return mLevel; }
 		void   runLogic( IGameCoroutine& cort );
 
 
+		void   loadSetting( bool bInit );
 		void   calcPlayerDeployActorPos(PlayerBase& player , MapTile& mapTile , bool bUsageMagicPortal );
 		int    getRemainingTileNum();
 		TileId drawPlayTile();
@@ -232,10 +231,11 @@ namespace CAR
 
 		TurnResult  resolvePlayerTurn( IGameCoroutine& cort , PlayerBase* curTrunPlayer );
 		TurnResult  resolveCompleteFeature( IGameCoroutine& cort , FeatureBase& feature );
+		TurnResult  resolveAbbey( IGameCoroutine& cort , PlayerBase* curTurnPlayer );
 		TurnResult  resolveDragonMove( IGameCoroutine& cort , LevelActor& dragon );
 		TurnResult  resolvePrincess( IGameCoroutine& cort , MapTile* placeMapTile , bool& haveDone );
-		TurnResult  resolveTower( IGameCoroutine& cort , PlayerBase* curTurnPlayer );
-		
+		TurnResult  resolveTower(IGameCoroutine& cort , PlayerBase* curTurnPlayer , bool& haveDone );
+
 
 
 		PlayerBase* getTurnPlayer(){ return mPlayerOrders[ mIdxPlayerTrun ]; }
@@ -262,10 +262,7 @@ namespace CAR
 		FarmFeature*  updateFarm( MapTile& putData , unsigned idxMask );
 		FeatureBase*  updateBasicSideFeature( MapTile& putData , unsigned dirMask , SideType linkType );
 
-		FeatureBase*  getFeature( int group )
-		{
-			return mFeatureMap[group];
-		}
+		FeatureBase*  getFeature( int group );
 		template< class T >
 		T*         createFeatureT()
 		{
@@ -329,7 +326,7 @@ namespace CAR
 		};
 
 		struct FindFeature
-		{
+		{ 
 			FindFeature( FeatureBase* aFeature ):feature( aFeature ){}
 			bool operator()( FeatureUpdateInfo const& info ) const
 			{

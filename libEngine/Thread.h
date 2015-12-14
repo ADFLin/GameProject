@@ -235,7 +235,7 @@ public:
 		bool result;
 		while( fun() )
 		{
-			result = SleepConditionVariableCS( &m_cd , &mutex.mCS , time ) !=0;
+			result = SleepConditionVariableCS( &m_cd , &mutex.mCS , INFINITE ) !=0;
 		}
 		return result;
 	}
@@ -270,17 +270,18 @@ struct LockObject
 {
 	struct Info
 	{
-		Info( T& obj , Mutex& m ):object(&obj),mutex(&m){}
+		Info( T& obj , Mutex* m ):object(&obj),mutex(m){}
 	private:
 		Mutex* mutex;
 		T*     object;
 		friend struct LockObject;
 	};
 	LockObject( Info const& info )
-		:mInfo(info){ mInfo.mutex->lock(); }
-	~LockObject(){ mInfo.mutex->unlock(); }
+		:mInfo(info){ if ( mInfo.mutex ) mInfo.mutex->lock(); }
+	~LockObject(){ if ( mInfo.mutex ) mInfo.mutex->unlock(); }
 	T* operator->(){ return mInfo.object; }
 	operator T* () { return mInfo.object; }
+	T& operator *(){ return *mInfo.object; }
 private:
 	LockObject( LockObject& other ){}
 	Info   mInfo;

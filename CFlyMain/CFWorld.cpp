@@ -333,6 +333,10 @@ namespace CFly
 
 
 #ifdef CF_RENDERSYSTEM_D3D9
+	D3DDevice* World::getD3DDevice()
+	{
+		return mD3dDevice;
+	}
 	HDC World::getBackBufferDC()
 	{
 		return mRenderSystem->getBackBufferDC();
@@ -342,11 +346,16 @@ namespace CFly
 
 #endif
 
-
 	Texture* World::createRenderTaget(char const* texName , TextureFormat format , int w , int h , bool haveZBuffer)
 	{
 		return mMatManager->createRenderTarget( texName , format , w , h  , haveZBuffer );
 	}
+
+	void World::setDir(DirTag tag , char const* dir)
+	{
+		mGroupDir[ tag ] = dir;
+	}
+
 
 	bool WorldManager::init()
 	{

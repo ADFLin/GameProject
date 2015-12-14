@@ -15,7 +15,7 @@ class  DataStreamBuffer : public StreamBuffer< GrowThrowPolicy >
 	                    , public DataStream
 {
 public:
-	DataStreamBuffer(){}
+	DataStreamBuffer();
 	DataStreamBuffer( size_t size );
 
 	DataStreamBuffer( DataStreamBuffer const& rhs ){ move( const_cast< DataStreamBuffer& >( rhs ) ); }

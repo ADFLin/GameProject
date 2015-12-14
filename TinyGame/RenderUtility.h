@@ -56,16 +56,19 @@ public:
 	static GAME_API void setPen( Graphics2D& g , int color , int type = COLOR_NORMAL );
 	static GAME_API void setBrush( Graphics2D& g , int color , int type = COLOR_NORMAL );
 	static GAME_API void setFont( Graphics2D& g , int fontID );
+	static GAME_API void setFontColor( Graphics2D& g , int color , int type = COLOR_NORMAL );
 
 	static GAME_API void startOpenGL();
 	static GAME_API void stopOpenGL();
 	static GAME_API void setPen( GLGraphics2D& g , int color , int type = COLOR_NORMAL );
 	static GAME_API void setBrush( GLGraphics2D& g , int color , int type = COLOR_NORMAL );
 	static GAME_API void setFont( GLGraphics2D& g , int fontID );
+	static GAME_API void setFontColor( GLGraphics2D& g , int color , int type = COLOR_NORMAL );
 
 	static GAME_API void setPen( IGraphics2D& g , int color , int type = COLOR_NORMAL );
 	static GAME_API void setBrush( IGraphics2D& g , int color , int type = COLOR_NORMAL );
 	static GAME_API void setFont( IGraphics2D& g , int fontID );
+	static GAME_API void setFontColor( IGraphics2D& g , int color , int type = COLOR_NORMAL );
 
 	template< class Graphics2D >
 	static void drawBlock( Graphics2D& g , Vec2i const& pos , Vec2i const& size , int color )

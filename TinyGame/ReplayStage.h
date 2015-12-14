@@ -78,7 +78,8 @@ protected:
 };
 
 
-class  GameReplayStage : public GameStage
+class  GameReplayMode : public GameStage
+	                  , public IReplayModeInterface
 {
 	typedef GameStage BaseClass;
 public:
@@ -93,7 +94,7 @@ public:
 		NEXT_UI_ID ,
 	};
 
-	GameReplayStage();
+	GameReplayMode();
 
 	void setReplayPath( String const& path )
 	{
@@ -111,7 +112,7 @@ protected:
 	bool onWidgetEvent( int event , int id , GWidget* ui );
 	void onRestart( uint64& seed );
 
-	TPtrHolder< IReplayInput >     mReplayInput;
+	TPtrHolder< IReplayInput >         mReplayInput;
 	TPtrHolder< LocalPlayerManager >   mPlayerManager;
 
 	std::string   mReplayFilePath;

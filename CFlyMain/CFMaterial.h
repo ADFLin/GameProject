@@ -205,16 +205,9 @@ namespace CFly
 
 		bool useShader(){  return mShader != nullptr; }
 
-		TextureLayer& getTextureLayer( int idxLayer )
-		{
-			assert( idxLayer < mNumLayer );
-			return mTexLayer[ idxLayer ];
-		}
+		TextureLayer& getTextureLayer( int idxLayer );
 
-		TextureLayer const& getTextureLayer( int idxLayer ) const
-		{
-			return const_cast< Material* >( this )->getTextureLayer( idxLayer );
-		}
+		TextureLayer const& getTextureLayer( int idxLayer ) const;
 
 		IMaterialShader* getShader(){ return nullptr; }
 		ShaderEffect* prepareShaderEffect();

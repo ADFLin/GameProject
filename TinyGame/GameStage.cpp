@@ -27,10 +27,12 @@ void GameStage::setSubStage( GameSubStage* subStage )
 
 bool GameStage::onInit()
 {
+	mGame = Global::getGameManager().getCurGame();
+
 	if ( !BaseClass::onInit() )
 		return false;
 
-	mGame = Global::getGameManager().getCurGame();
+	
 
 	if ( !mSubStage )
 	{
@@ -188,7 +190,7 @@ bool GameLevelStage::buildReplayRecorder()
 			new ReplayRecorder( actionTemplate , mReplayFrame ) );
 
 		AttribValue dataValue( ATTR_REPLAY_INFO_DATA , &mReplayRecorder->getReplay().getInfo() );
-		if ( !game->getAttribValue( dataValue ) )
+		if ( !getSubStage()->getAttribValue( dataValue ) )
 		{
 			mReplayRecorder.clear();
 		}

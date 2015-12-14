@@ -17,9 +17,9 @@ namespace Rich
 		return nullptr;
 	}
 
-	void GamePackage::enter( StageManager& manger )
+	void GamePackage::beginPlay( GameType type, StageManager& manger )
 	{
-		manger.changeStage( STAGE_SINGLE_GAME );
+		IGamePackage::beginPlay( type , manger );
 
 	}
 

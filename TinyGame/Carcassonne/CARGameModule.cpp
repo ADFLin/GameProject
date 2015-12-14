@@ -40,7 +40,7 @@ namespace CAR
 		{
 			FIELD_ACTOR( ActorType::eBarn , Value::BarnPlayerOwnNum );
 			FIELD_ACTOR( ActorType::eWagon , Value::WagonPlayerOwnNum );
-			FIELD_ACTOR( ActorType::eMayor , Value::MeeplePlayerOwnNum );
+			FIELD_ACTOR( ActorType::eMayor , Value::MayorPlayerOwnNum );
 			FIELD_VALUE( FieldType::eAbbeyPices  , Value::AbbeyTilePlayerOwnNum );
 		}
 		if ( setting.haveUse( EXP_THE_TOWER ) )
@@ -66,9 +66,10 @@ namespace CAR
 	void GameModule::setupSetting(GameSetting& setting)
 	{
 		mSetting = &setting;
+		mSetting->calcUsageField( mPlayerManager->getPlayerNum() );
 	}
 
-	void GameModule::loadSetting()
+	void GameModule::loadSetting( bool beInit )
 	{
 		if ( mSetting->haveUse( EXP_INNS_AND_CATHEDRALS) )
 		{
@@ -99,26 +100,29 @@ namespace CAR
 			ProcField( *mSetting , mPlayerManager->getPlayerNum() , proc );
 		}
 
-		for( int idx = 0 ;  ; ++idx )
+		if ( beInit )
 		{
-			ExpansionTileContent const& tileData = gAllExpansionTileContents[idx];
-			if ( tileData.exp == EXP_NULL )
-				break;
-			if ( tileData.exp == EXP_BASIC || 
-				mSetting->haveUse( tileData.exp ) )
+			for( int idx = 0 ;  ; ++idx )
 			{
-				mTileSetManager.import( tileData );
-			}
-			else if ( mDebug && tileData.exp == EXP_TEST )
-			{
-				mTileSetManager.import( tileData );
+				ExpansionTileContent const& tileData = gAllExpansionTileContents[idx];
+				if ( tileData.exp == EXP_NULL )
+					break;
+				if ( tileData.exp == EXP_BASIC || 
+					mSetting->haveUse( tileData.exp ) )
+				{
+					mTileSetManager.import( tileData );
+				}
+				else if ( mDebug && tileData.exp == EXP_TEST )
+				{
+					mTileSetManager.import( tileData );
+				}
 			}
 		}
 	}
 
-	void GameModule::restart( bool bInit )
+	void GameModule::restart( bool beInit )
 	{
-		if ( !bInit )
+		if ( !beInit )
 		{
 			mLevel.restart();
 			mTilesQueue.clear();
@@ -130,12 +134,18 @@ namespace CAR
 
 		mIsStartGame = false;
 		mIsRunning = false;
-		loadSetting();
+		loadSetting( beInit );
 	}
 
 
 	void GameModule::runLogic(IGameCoroutine& cort)
 	{
+		if ( mPlayerManager->getPlayerNum() == 0 )
+		{
+			CAR_LOG( "GameModule::runLogic: No Player Play !!");
+			return;
+		}
+
 		mIsStartGame = true;
 		mIdxPlayerTrun = 0;
 		generatePlayerPlayOrder();
@@ -281,7 +291,7 @@ namespace CAR
 
 	TileId GameModule::generatePlayTile()
 	{
-		int numTile = mTileSetManager.getReigsterTileNum();
+		int numTile = mTileSetManager.getRegisterTileNum();
 		std::vector< int > tilePieceMap( numTile );
 		std::vector< TileId > specialTileList;
 		for( int i = 0 ; i < numTile ; ++i )
@@ -479,6 +489,8 @@ namespace CAR
 				{
 					if ( getRemainingTileNum() == 0 )
 						return eFinishGame;
+
+					continue;
 				}
 				break;
 			}
@@ -544,9 +556,9 @@ namespace CAR
 				}
 			}
 
-			bool skipPlaceActor = false;
+			bool haveVolcano = false;
+			bool havePlagueSource = false;
 			bool skipAllActorStep = false;
-			
 			
 			if ( mSetting->haveUse( EXP_THE_PRINCESS_AND_THE_DRAGON ) )
 			{
@@ -557,7 +569,7 @@ namespace CAR
 						checkReservedTileToMix();
 
 					moveActor( mDragon , ActorPos( ActorPos::eTile , 0 ) , placeMapTile );
-					skipPlaceActor = true;
+					haveVolcano = true;
 				}
 
 				//d)princess
@@ -568,98 +580,104 @@ namespace CAR
 				if ( haveDone )
 					skipAllActorStep = true;
 			}
-			
+
 			if ( skipAllActorStep == false )
 			{
 				//Step 4A: Move the Wood (Phase 1)
-				if ( skipPlaceActor == false )
+				do 
 				{
-					MapTile* deployMapTile = placeMapTile;
-					bool bUsagePortal = false;
-					if ( placeMapTile->getTileContent() & TileContent::eMagicPortal )
+					if ( haveVolcano == false && havePlagueSource == false )
 					{
-						//TODO
-						int playerId = curTrunPlayer->getId();
-
-						std::set< MapTile* > mapTileSet;
-						for( int i = 0 ; i < mFeatureMap.size() ; ++i )
+						MapTile* deployMapTile = placeMapTile;
+						bool haveUsePortal = false;
+						if ( placeMapTile->getTileContent() & TileContent::eMagicPortal )
 						{
-							FeatureBase* feature = mFeatureMap[i];
-							if ( feature->group == -1 )
-								continue;
-							if ( feature->checkComplete() )
-								continue;
-							if ( feature->havePlayerActorMask( AllPlayerMask , mSetting->getFollowerMask() ) )
-								continue;
+							int playerId = curTrunPlayer->getId();
 
-							mapTileSet.insert( feature->mapTiles.begin() , feature->mapTiles.end() );
+							std::set< MapTile* > mapTileSet;
+							for( int i = 0 ; i < mFeatureMap.size() ; ++i )
+							{
+								FeatureBase* feature = mFeatureMap[i];
+								if ( feature->group == -1 )
+									continue;
+								if ( feature->checkComplete() )
+									continue;
+								if ( feature->havePlayerActorMask( AllPlayerMask , mSetting->getFollowerMask() ) )
+									continue;
+
+								mapTileSet.insert( feature->mapTiles.begin() , feature->mapTiles.end() );
+							}
+
+							if ( mapTileSet.empty() == false )
+							{
+								std::vector< MapTile* > mapTiles( mapTileSet.begin() , mapTileSet.end() );
+
+								GameSelectMapTileData data;
+								data.reason = SAR_MAGIC_PORTAL;
+								data.mapTiles = &mapTiles[0];
+								data.numSelection = mapTiles.size();
+								cort.waitSelectMapTile( *this , data );
+								if ( checkGameState( data , result ) == false )
+									return result;
+
+								deployMapTile = data.mapTiles[ data.resultIndex ];
+								haveUsePortal = true;
+							}
+							else
+							{
+								deployMapTile = nullptr;
+							}
 						}
 
-						if ( mapTileSet.empty() == false )
+						if ( deployMapTile )
 						{
-							std::vector< MapTile* > mapTiles( mapTileSet.begin() , mapTileSet.end() );
+							//a-c) follower and other figures
+							calcPlayerDeployActorPos(*curTrunPlayer, *deployMapTile , haveUsePortal );
 
-							GameSelectMapTileData data;
-							data.reason = SAR_MAGIC_PORTAL;
-							data.mapTiles = &mapTiles[0];
-							data.numSelection = mapTiles.size();
-							cort.waitSelectMapTile( *this , data );
-							if ( checkGameState( data , result ) == false )
+							GameDeployActorData deployActorData;
+							deployActorData.mapTile = deployMapTile;
+							cort.waitDeployActor( *this , deployActorData );
+							if ( checkGameState( deployActorData , result ) == false )
 								return result;
 
-							deployMapTile = data.mapTiles[ data.resultIndex ];
-							bUsagePortal = true;
-						}
-						else
-						{
-							deployMapTile = nullptr;
-						}
-					}
-
-					if ( deployMapTile )
-					{
-						//a-b) follower and other figures
-						calcPlayerDeployActorPos(*curTrunPlayer, *deployMapTile , bUsagePortal );
-
-						GameDeployActorData deployActorData;
-						deployActorData.mapTile = deployMapTile;
-						cort.waitDeployActor( *this , deployActorData );
-						if ( checkGameState( deployActorData , result ) == false )
-							return result;
-
-						if ( deployActorData.resultSkipAction == false  )
-						{
-							if ( deployActorData.resultIndex < 0 && deployActorData.resultIndex >= mActorDeployPosList.size() )
+							if ( deployActorData.resultSkipAction == false  )
 							{
-								CAR_LOG("Warning: Error Deploy Actor Index !!" );
-								deployActorData.resultIndex = 0;
+								if ( deployActorData.resultIndex < 0 && deployActorData.resultIndex >= mActorDeployPosList.size() )
+								{
+									CAR_LOG("Warning: Error Deploy Actor Index !!" );
+									deployActorData.resultIndex = 0;
+								}
+								ActorPosInfo& info = mActorDeployPosList[ deployActorData.resultIndex ];
+
+								FeatureBase* feature = getFeature( info.group );
+								assert( feature );
+								curTrunPlayer->modifyActorValue( deployActorData.resultType , -1 );
+								LevelActor* actor = createActor( deployActorData.resultType );
+
+								assert( actor );
+								deployMapTile->addActor( *actor );
+								feature->addActor( *actor );
+								actor->owner   = curTrunPlayer;
+								actor->pos     = info.pos;
+
+								mListener->onDeployActor( *actor );
+								CAR_LOG( "Player %d deploy Actor : type = %d  " , curTrunPlayer->getId() , actor->type );
+								break;
 							}
-							ActorPosInfo& info = mActorDeployPosList[ deployActorData.resultIndex ];
-
-							FeatureBase* feature = getFeature( info.group );
-							assert( feature );
-							curTrunPlayer->modifyActorValue( deployActorData.resultType , -1 );
-							LevelActor* actor = createActor( deployActorData.resultType );
-
-							assert( actor );
-							deployMapTile->addActor( *actor );
-							feature->addActor( *actor );
-							actor->owner   = curTrunPlayer;
-							actor->pos     = info.pos;
-
-							mListener->onDeployActor( *actor );
-							CAR_LOG( "Player %d deploy Actor : type = %d  " , curTrunPlayer->getId() , actor->type );
 						}
 					}
-				}
-				else
-				{
+					//d)
+
+			
 					//e)
 					if ( mSetting->haveUse( EXP_THE_TOWER ) )
 					{
-						result = resolveTower( cort , curTrunPlayer );
+						bool haveDone = false;
+						result = resolveTower( cort , curTrunPlayer , haveDone );
 						if ( result != TurnResult::eOK )
 							return result;
+						if ( haveDone )
+							break;
 					}
 					if ( mSetting->haveUse( EXP_THE_PRINCESS_AND_THE_DRAGON ) )
 					{
@@ -667,29 +685,33 @@ namespace CAR
 						int numFollower = getFollowers( BIT( curTrunPlayer->getId() ) , followers , mFairy->binder );
 						if ( numFollower != 0 )
 						{
-							GameSelectActorData selectFollowerData;
-							selectFollowerData.reason = SAR_FAIRY_MOVE_NEXT_TO_FOLLOWER;
-							selectFollowerData.actors = &followers[0];
-							selectFollowerData.numSelection = numFollower;
-							cort.waitSelectActor( *this , selectFollowerData );
-							if ( !checkGameState( selectFollowerData , result ) )
+							GameSelectActorData data;
+							data.reason = SAR_FAIRY_MOVE_NEXT_TO_FOLLOWER;
+							data.actors = &followers[0];
+							data.numSelection = numFollower;
+							cort.waitSelectActor( *this , data );
+							if ( !checkGameState( data , result ) )
 								return result;
-							if ( selectFollowerData.resultSkipAction == false ) 
+							if ( data.resultSkipAction == false ) 
 							{
-								if ( selectFollowerData.checkResultVaild() == false )
+								if ( data.checkResultVaild() == false )
 								{
 									CAR_LOG( "Warning: Error Fairy Select Actor Index !" );
-									selectFollowerData.resultIndex = 0;
+									data.resultIndex = 0;
 								}
-								LevelActor* actor = selectFollowerData.actors[ selectFollowerData.resultIndex ];
+								LevelActor* actor = data.actors[ data.resultIndex ];
 								actor->addFollower( *mFairy );
 								moveActor( mFairy , ActorPos( ActorPos::eTile , 0 ) , actor->mapTile );
+								break;
 							}
 						}
 					}
-				}
+				} 
+				while (0);
 
 				//Step 4B: Move the Wood (Phase 2)
+
+				
 			}
 
 			//Step 5: Resolve Move the Wood
@@ -845,7 +867,7 @@ namespace CAR
 		return TurnResult::eOK;
 	}
 
-	TurnResult GameModule::resolveTower(IGameCoroutine& cort , PlayerBase* curTurnPlayer)
+	TurnResult GameModule::resolveTower(IGameCoroutine& cort , PlayerBase* curTurnPlayer , bool& haveDone )
 	{
 		TurnResult result;
 		if ( curTurnPlayer->getFieldValue( FieldType::eTowerPices ) == 0 || mTowerTiles.empty() )
@@ -872,6 +894,7 @@ namespace CAR
 		mapTile->towerHeight += 1;
 		curTurnPlayer->modifyFieldValue( FieldType::eTowerPices , -1 );
 
+		haveDone = true;
 		mListener->onConstructTower( *mapTile );
 
 		std::vector< LevelActor* > actors;
@@ -1060,9 +1083,11 @@ namespace CAR
 					build = updateBasicSideFeature( mapTile , linkMask , linkType );
 					break;
 				case SideType::eAbbey:
+					mapTile.sideNodes[dir].group = ABBEY_GROUP_ID;
+					if ( mapTile.sideNodes[dir].outConnect )
 					{
 						int sideGroup = mapTile.sideNodes[dir].outConnect->group;
-						if( sideGroup != -1 )
+						if( sideGroup != ERROR_GROUP_ID )
 						{
 							SideFeature* sideFeature = static_cast< SideFeature* >( getFeature( sideGroup ) );
 							sideFeature->addAbbeyNode( mapTile , dir );
@@ -1070,7 +1095,7 @@ namespace CAR
 							build = sideFeature;
 						}
 					}
-
+					break;
 				}
 				if ( build )
 				{
@@ -1243,10 +1268,9 @@ namespace CAR
 		while( actor = feature.popActor() )
 		{
 			PlayerBase* player = actor->owner;
-
-			if ( actor->owner )
+			if ( player == nullptr )
 			{
-				returnActorToPlayer( actor );
+				//TODO: ??
 			}
 			else
 			{
@@ -1262,10 +1286,10 @@ namespace CAR
 		}
 		//l)
 
-		if ( mSetting->haveUse( EXP_ABBEY_AND_MAYOR ) && wagonGroup.empty() != false )
+		if ( mSetting->haveUse( EXP_ABBEY_AND_MAYOR ) && !wagonGroup.empty() )
 		{
 			std::set< unsigned > linkFeatureGroups;
-			feature.generateRoadLinkFeatures( mLevel , linkFeatureGroups );
+			feature.generateRoadLinkFeatures( linkFeatureGroups );
 
 			std::vector< FeatureBase* > linkFeatures;
 			for( std::set<unsigned>::iterator iter = linkFeatureGroups.begin() , itEnd = linkFeatureGroups.end();
@@ -1463,7 +1487,7 @@ namespace CAR
 		while ( FBit::MaskIterator4( mask , dir ) )
 		{
 			SideNode* linkNode = putData.sideNodes[ dir ].outConnect;
-			if ( linkNode == nullptr )
+			if ( linkNode == nullptr || linkNode->group == ABBEY_GROUP_ID )
 				continue;
 
 			int idxFind = 0;
@@ -1799,6 +1823,16 @@ namespace CAR
 			mapTile->addActor( *actor );
 		else if ( actor->mapTile )
 			actor->mapTile->removeActor( *actor );
+
+		for( int i = 0 ; i < actor->followers.size(); ++i )
+		{
+			LevelActor* followActor = actor->followers[i];
+			switch( followActor->type )
+			{
+			case ActorType::eFariy:
+				break;
+			}
+		}
 	}
 
 	void GameModule::reservePlayTile()
@@ -1846,13 +1880,64 @@ namespace CAR
 
 	void GameModule::placeAllTileDebug()
 	{
-		for( int i = 0 ; i < mTileSetManager.getReigsterTileNum() ; ++i )
+		for( int i = 0 ; i < mTileSetManager.getRegisterTileNum() ; ++i )
 		{
 			MapTile* mapTile = mLevel.placeTileNoCheck( i , Vec2i( 2 *(i/5),2*(i%5) ) , 2 );
 			mListener->onPutTile( *mapTile );
 			UpdateTileFeatureResult updateResult;
 			updateTileFeature( *mapTile , updateResult );
 		}
+	}
+
+	CAR::TurnResult GameModule::resolveAbbey(IGameCoroutine& cort , PlayerBase* curTurnPlayer)
+	{
+		assert( curTurnPlayer->getFieldValue( FieldType::eAbbeyPices ) > 0 );
+		Level& level = getLevel();
+
+		Tile const& tile = level.getTile( mAbbeyTileId );
+
+		std::vector< Vec2i > mapTilePosVec;
+
+		for( Level::PosSet::iterator iter = level.mEmptyLinkPosSet.begin() , itEnd = level.mEmptyLinkPosSet.end();
+			iter != itEnd ; ++iter )
+		{
+			Vec2i const& pos = *iter;
+
+			int dir = 0;
+			for(  ; dir < FDir::TotalNum ; ++dir )
+			{
+				int lDir = FDir::ToLocal( dir , 0 );
+
+				Vec2i linkPos = FDir::LinkPos( pos , dir );
+				MapTile* dataCheck = level.findMapTile( linkPos );
+				if ( dataCheck == nullptr )
+					break;
+
+				int lDirCheck = FDir::ToLocal( FDir::Inverse( dir ) , dataCheck->rotation );
+				Tile const& tileCheck = level.getTile( dataCheck->getId() );
+				if ( !Tile::CanLink( tileCheck , lDirCheck , tile , lDir ) )
+					break;
+			}
+			if ( dir == 4 )
+			{
+				mapTilePosVec.push_back( pos );
+			}
+		}
+
+		if ( mapTilePosVec.empty() == false )
+		{
+			GameSelectMapTileData data;
+			data.reason;
+			data.numSelection = mapTilePosVec.size();
+		}
+
+		return TurnResult::eOK;
+	}
+
+	FeatureBase* GameModule::getFeature(int group)
+	{
+		assert( group != -1 );
+		return mFeatureMap[group];
 	}
 
 	void GameSetting::calcUsageField( int numPlayer )

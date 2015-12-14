@@ -7,7 +7,7 @@ void CTestDataTransfer::sendData( int recvId , int dataId , void* data , int num
 {
 	if ( recvId == conTransfer->slotId || recvId == SLOT_SERVER )
 	{
-		conTransfer->mFun( slotId , dataId , data );
+		conTransfer->mFun( slotId , dataId , data , num );
 	}
 }
 
@@ -26,8 +26,8 @@ void CWorkerDataTransfer::sendTcpCommand( int recvId , IComPacket* cp )
 void CWorkerDataTransfer::sendData( int recvId , int dataId , void* data , int num )
 {
 	mStream.buffer.clear();
-	mStream.buffer.fill( &mSlotId , sizeof( mSlotId ) );
-	mStream.buffer.fill( &dataId , sizeof( dataId ) );
+	mStream.buffer.fill( mSlotId );
+	mStream.buffer.fill( dataId  );
 	mStream.buffer.fill( data , num );
 	sendTcpCommand( recvId , &mStream );
 }
@@ -38,10 +38,11 @@ void CWorkerDataTransfer::procPacket( IComPacket* cp )
 	int slotId;
 	int dataId;
 	size_t pos = com->buffer.getUseSize();
-	com->buffer.take( &slotId , sizeof( slotId ) );
-	com->buffer.take( &dataId , sizeof( dataId ) );
+	com->buffer.take( slotId );
+	com->buffer.take( dataId );
 	char* data = com->buffer.getData() + com->buffer.getUseSize();
-	mFun( slotId , dataId , data );
+	int dataSize = com->buffer.getAvailableSize();
+	mFun( slotId , dataId , data , dataSize );
 
 	com->buffer.setUseSize( pos );
 }
@@ -49,7 +50,7 @@ void CWorkerDataTransfer::procPacket( IComPacket* cp )
 
 CSVWorkerDataTransfer::CSVWorkerDataTransfer( NetWorker* worker , int numPlayer ) 
 	:CWorkerDataTransfer( worker , SLOT_SERVER )
-	,mPlayerIdMap( numPlayer , ERROR_PLAYER_ID )
+	,mPlayerIdMap( worker->getPlayerManager()->getPlayerNum() , ERROR_PLAYER_ID )
 {
 	assert( worker->isServer() );
 	for( IPlayerManager::Iterator iter = getServer()->getPlayerManager()->getIterator();

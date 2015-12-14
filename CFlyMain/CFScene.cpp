@@ -115,6 +115,11 @@ namespace CFly
 		return node;
 	}
 
+	void Scene::_destroyObject( Object* obj )
+	{
+		destroyNodeImpl( obj );
+	}
+
 	Actor* Scene::createActor( SceneNode* parent )
 	{
 		Actor* node = new Actor( this );
@@ -124,6 +129,11 @@ namespace CFly
 		return node;
 	}
 
+	void Scene::_destroyActor( Actor* actor )
+	{
+		destroyNodeImpl( actor );
+	}
+
 	Sprite* Scene::createSprite( SceneNode* parent )
 	{
 		Sprite* node = new Sprite( this );
@@ -131,6 +141,11 @@ namespace CFly
 		_linkSceneNode( node , parent );
 		EntityManger::getInstance().registerEntity( node );
 		return node;
+	}
+
+	void Scene::_destroySprite( Sprite* spr )
+	{
+		destroyNodeImpl( spr );
 	}
 
 	BillBoard* Scene::createBillBoard( SceneNode* parent /*= nullptr */ )
@@ -151,6 +166,11 @@ namespace CFly
 		return node;
 	}
 
+	void Scene::_destroyCamera( Camera* cam )
+	{
+		destroyNodeImpl( cam );
+	}
+
 	Light* Scene::createLight( SceneNode* parent )
 	{
 		Light* node = new Light( this );
@@ -163,6 +183,12 @@ namespace CFly
 		//update light list
 		node->updateWorldTransform( false );
 		return node;
+	}
+
+	void Scene::_destroyLight(Light* light)
+	{
+		mLightList.erase( std::find( mLightList.begin() , mLightList.end() , light ) );
+		destroyNodeImpl( light );
 	}
 
 	Object* Scene::createSkyBox( char const* name , float size , bool isCubeMap )
@@ -314,26 +340,6 @@ namespace CFly
 		node->unlinkChildren( true );
 		node->setParent( nullptr );
 		delete node;
-	}
-
-	void Scene::_destroyObject( Object* obj )
-	{
-		destroyNodeImpl( obj );
-	}
-
-	void Scene::_destroyActor( Actor* actor )
-	{
-		destroyNodeImpl( actor );
-	}
-
-	void Scene::_destroySprite( Sprite* spr )
-	{
-		destroyNodeImpl( spr );
-	}
-
-	void Scene::_destroyCamera( Camera* cam )
-	{
-		destroyNodeImpl( cam );
 	}
 
 	void Scene::_unlinkSceneNode( SceneNode* node )
@@ -808,6 +814,5 @@ namespace CFly
 		d3dDevice->SetTextureStageState( useStage , D3DTSS_COLOROP, D3DTOP_DISABLE );
 		d3dDevice->SetTextureStageState( useStage , D3DTSS_ALPHAOP, D3DTOP_DISABLE );
 	}
-
 
 }//namespace CFly

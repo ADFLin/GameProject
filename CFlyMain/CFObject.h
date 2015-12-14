@@ -89,9 +89,9 @@ namespace CFly
 		class Element : private RenderUnit
 		{
 		public:
-			MeshBase* getMesh(){ return mesh; }
-			void      setMaterial( Material* mat ){ material = mat; }
-			Material* getMaterial(){ return material; }
+			MeshBase* getMesh();
+			void      setMaterial( Material* mat );
+			Material* getMaterial();
 		private:
 			RenderUnit& getUnit(){ return *this; }
 			void clear()

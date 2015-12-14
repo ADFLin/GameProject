@@ -67,10 +67,6 @@ namespace Bejeweled
 		switch( key )
 		{
 		case 'R': restart(); break;
-			//case 'D': snake.changeMoveDir( DIR_WEST ); break;
-			//case 'A': snake.changeMoveDir( DIR_EAST ); break;
-			//case 'W': snake.changeMoveDir( DIR_NORTH ); break;
-			//case 'S': snake.changeMoveDir( DIR_SOUTH ); break;
 		default:
 			mScene.procKey( key , isDown );
 		}

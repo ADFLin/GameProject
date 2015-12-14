@@ -33,7 +33,6 @@ namespace BomberMan
 			value.iVal = true;
 			return true;
 		case ATTR_REPLAY_SUPPORT:
-		case ATTR_REPLAY_INFO_DATA:
 			return false;
 		case ATTR_CONTROLLER_DEFUAULT_SETTING:
 			mController.initKey( ACT_BM_MOVE_LEFT  , 0 , 'A' , VK_LEFT );
@@ -47,9 +46,9 @@ namespace BomberMan
 		return false;
 	}
 
-	void CGamePackage::enter( StageManager& manger )
+	void CGamePackage::beginPlay( GameType type, StageManager& manger )
 	{
-		manger.changeStage( STAGE_SINGLE_GAME );
+		IGamePackage::beginPlay( type , manger );
 	}
 
 	class CNetRoomSettingHelper : public NetRoomSettingHelper

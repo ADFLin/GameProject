@@ -18,10 +18,10 @@ namespace Cube
 		StageBase*      createStage( unsigned id );
 		//bool            getAttribValue( AttribValue& value );
 
-		virtual void    enter( StageManager& manger );
-		virtual bool    load();
-		virtual void    release();
-		virtual void    deleteThis(){ delete this; }
+		virtual void beginPlay( GameType type, StageManager& manger );
+		virtual void enter();
+		virtual void exit();
+		virtual void deleteThis(){ delete this; }
 	};
 
 

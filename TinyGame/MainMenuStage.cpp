@@ -413,7 +413,7 @@ bool MainMenuStage::onWidgetEvent( int event , int id , GWidget* ui )
 			{
 				IGamePackage* game = reinterpret_cast< IGamePackage* >( ui->getUserData() );
 				Global::getGameManager().changeGame( game->getName() );
-				game->enter( *getManager() );
+				game->beginPlay( GT_SINGLE_GAME , *getManager() );
 			}
 			return false;
 		case UI_GAME_OPTION:
@@ -432,6 +432,7 @@ bool MainMenuStage::onWidgetEvent( int event , int id , GWidget* ui )
 		IGamePackage* game = Global::getGameManager().changeGame( gSingleDev[ id - UI_SINGLE_DEV_INDEX ].game );
 		if ( !game )
 			return false;
+		game->beginPlay( GT_SINGLE_GAME , *getManager() );
 		getManager()->changeStage( STAGE_SINGLE_GAME );
 		return false;
 	}

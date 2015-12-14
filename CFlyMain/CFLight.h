@@ -19,6 +19,7 @@ namespace CFly
 	public:
 		Light( Scene* scene );
 
+		virtual void release();
 		LightType getLightType() const { return mType; }
 		void      setLightType( LightType type );
 		//void setIntensity(float){}

@@ -24,7 +24,7 @@ public:
 	FixVector( size_t num , T val = T() )
 	{
 		mNext = mEle;
-		Storge* pEnd = mEle + num;
+		Storage* pEnd = mEle + num;
 		for( ; mNext != pEnd ; ++mNext )
 			_contruct( mNext , val );
 	}
@@ -93,13 +93,13 @@ private:
 			++from;
 			++to;
 		}
-		mNext = reinterpret_cast< Storge*>( from );
+		mNext = reinterpret_cast< Storage*>( from );
 	}
 
 	void  eraseToEnd( iterator is )
 	{
 		_destroy( is , end() );
-		mNext = reinterpret_cast< Storge*>( is );
+		mNext = reinterpret_cast< Storage*>( is );
 	}
 
 	void  _destroy( iterator is , iterator ie )
@@ -116,15 +116,15 @@ private:
 	{
 		::new ( ptr ) T( val );  
 	}
-	struct Storge
+	struct Storage
 	{
 		char s[sizeof( T )];
 	};
-	Storge  mEle[ N ];
-	Storge* mNext;
+	Storage  mEle[ N ];
+	Storage* mNext;
 
-	static T&       _castType( Storge& s )      { return *((T*)&s ); }
-	static T const& _castType( Storge const& s ){ return *((T const*)&s ); }
+	static T&       _castType( Storage& s )      { return *((T*)&s ); }
+	static T const& _castType( Storage const& s ){ return *((T const*)&s ); }
 	void   _checkRange( const_iterator it ) const { assert( begin() <= it && it < end() ); }
 };
 
@@ -139,7 +139,7 @@ void  FixVector< T , N >::resize( size_t num )
 	}
 	else
 	{
-		Storge* pEnd = mEle + num;
+		Storage* pEnd = mEle + num;
 		for( ; mNext != pEnd ; ++mNext )
 			_contruct( mNext );
 	}
@@ -156,7 +156,7 @@ void  FixVector< T , N >::resize( size_t num , value_type const& value )
 	}
 	else
 	{
-		Storge* pEnd = mEle + num;
+		Storage* pEnd = mEle + num;
 		for( ; mNext != pEnd ; ++mNext )
 			_contruct( mNext , value );
 	}

@@ -495,5 +495,21 @@ namespace CFly
 		_renderInternal();
 	}
 
+
+	Material* Object::Element::getMaterial()
+	{
+		return material;
+	}
+
+	MeshBase* Object::Element::getMesh()
+	{
+		return mesh;
+	}
+
+	void Object::Element::setMaterial(Material* mat)
+	{
+		material = mat;
+	}
+
 }//namespace CFly
 

@@ -216,11 +216,9 @@ namespace Bubble
 		return NULL;
 	}
 
-	void CGamePackage::enter( StageManager& manger )
+	void CGamePackage::beginPlay( GameType type, StageManager& manger )
 	{
-		GameStage* stage = static_cast< GameStage* >( manger.changeStage( STAGE_SINGLE_GAME ) );
-
-
+		IGamePackage::beginPlay( type , manger );
 	}
 
 

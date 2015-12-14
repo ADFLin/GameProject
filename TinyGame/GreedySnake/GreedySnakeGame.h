@@ -12,8 +12,8 @@ namespace GreedySnake
 	{
 	public:
 		
-		virtual void    enter( StageManager& manger );
-		virtual void    deleteThis(){ delete this; }
+		virtual void   beginPlay( GameType type, StageManager& manger );
+		virtual void   deleteThis(){ delete this; }
 
 	public:
 		char const*                getName(){ return GREEDY_SNAKE_NAME;  }

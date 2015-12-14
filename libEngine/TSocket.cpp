@@ -360,15 +360,6 @@ void TSocket::close()
 }
 
 static bool sInitSystem = false;
-void TSocket::exitSystem()
-{
-	if ( sInitSystem )
-	{
-		WSACleanup();
-		sInitSystem = false;
-	}
-}
-
 bool TSocket::initSystem()
 {
 	if ( sInitSystem )
@@ -381,6 +372,15 @@ bool TSocket::initSystem()
 
 	sInitSystem  = true;
 	return true;
+}
+
+void TSocket::exitSystem()
+{
+	if ( sInitSystem )
+	{
+		WSACleanup();
+		sInitSystem = false;
+	}
 }
 
 int TSocket::getLastError()

@@ -651,7 +651,7 @@ namespace Poker { namespace Holdem {
 		}
 	}
 
-	void ServerLevel::procRecvData( int recvId , int dataId , void* data )
+	void ServerLevel::procRecvData( int recvId , int dataId , void* data , int dataSize )
 	{
 		switch( dataId )
 		{
@@ -1346,7 +1346,7 @@ namespace Poker { namespace Holdem {
 		mListener = NULL;
 	}
 
-	void ClientLevel::procRecvData( int recvId , int dataId , void* data )
+	void ClientLevel::procRecvData( int recvId , int dataId , void* data , int dataSize )
 	{
 		if ( recvId != SLOT_SERVER )
 		{

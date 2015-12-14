@@ -86,9 +86,9 @@ public:
 	class Iterator
 	{
 	public:
-		bool         haveMore()  { return numCount >= 0 ; }
-		GamePlayer*  getElement(){ return player; }
-		GAME_API void         goNext();
+		bool          haveMore()  { return numCount >= 0 ; }
+		GamePlayer*   getElement(){ return player; }
+		GAME_API void goNext();
 
 	private:
 		GAME_API Iterator( IPlayerManager* _mgr );

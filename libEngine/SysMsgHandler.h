@@ -189,24 +189,24 @@ bool SysMsgHandlerT<T,MSG>::_procMouseMsg( HWND hWnd , UINT msg , WPARAM wParam 
 
 	switch ( msg )
 	{
-#define CASE_MOUSE_MSG( BUTTON , WDOWN , WUP , WDCLICK )\
-	case WDOWN:\
+#define CASE_MOUSE_MSG( BUTTON , BUTTON_TYPE )\
+	case WM_##BUTTON_TYPE##DOWN:\
 		mMouseState |= BUTTON;\
 		button = BUTTON | MBS_DOWN;\
 		::SetCapture( hWnd );\
 		break;\
-	case WUP:\
+	case WM_##BUTTON_TYPE##UP:\
 		mMouseState &= ~BUTTON ;\
 		button = BUTTON ;\
 		::ReleaseCapture();\
 		break;\
-	case WDCLICK:\
+	case WM_##BUTTON_TYPE##DBLCLK:\
 		button = BUTTON | MBS_DOUBLE_CLICK ;\
 		break;
 
-		CASE_MOUSE_MSG( MBS_MIDDLE , WM_MBUTTONDOWN , WM_MBUTTONUP , WM_MBUTTONDBLCLK )
-		CASE_MOUSE_MSG( MBS_LEFT   , WM_LBUTTONDOWN , WM_LBUTTONUP , WM_LBUTTONDBLCLK )
-		CASE_MOUSE_MSG( MBS_RIGHT  , WM_RBUTTONDOWN , WM_RBUTTONUP , WM_RBUTTONDBLCLK )
+		CASE_MOUSE_MSG( MBS_MIDDLE , MBUTTON )
+		CASE_MOUSE_MSG( MBS_LEFT   , LBUTTON )
+		CASE_MOUSE_MSG( MBS_RIGHT  , RBUTTON )
 #undef CASE_MOUSE_MSG
 
 	case WM_MOUSEMOVE:

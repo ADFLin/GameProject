@@ -12,4 +12,5 @@ namespace CAR
 		va_end( argptr );
 	}
 
+
 }//namespace CAR

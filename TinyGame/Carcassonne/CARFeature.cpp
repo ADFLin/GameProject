@@ -5,12 +5,14 @@
 #include "CARParamValue.h"
 #include "CARLevelActor.h"
 #include "CARLevel.h"
+#include "CARDebug.h"
 
 #include <algorithm>
 
 namespace CAR
 {
 	int const DefaultActorMaskNum = 3;
+
 	int FeatureBase::getActorPutInfoInternal(int playerId , ActorPos const& actorPos , unsigned actorMasks[] , int numMask , std::vector< ActorPosInfo >& outInfo)
 	{
 		unsigned actorTypeMask = 0;
@@ -221,15 +223,23 @@ namespace CAR
 			node.group = group;
 			nodes.push_back( &node );
 
-			if ( node.outConnect && node.outConnect->group == group )
+			if ( node.outConnect )
 			{
-				--openCount;
-				assert( openCount >= 0 );
+				int conGroup = node.outConnect->group;
+				if ( conGroup == group )
+				{
+					--openCount;
+					continue;
+				}
+				else if ( conGroup == ABBEY_GROUP_ID )
+				{
+					continue;
+				}
 			}
-			else
-			{
-				++openCount;
-			}
+
+
+			++openCount;
+
 		}
 		
 	}
@@ -268,13 +278,16 @@ namespace CAR
 		return result;
 	}
 
-	void SideFeature::generateRoadLinkFeatures(Level& level, std::set< unsigned >& outFeatures)
+	void SideFeature::generateRoadLinkFeatures( std::set< unsigned >& outFeatures )
 	{
 		for( int i = 0 ; i < nodes.size() ; ++i )
 		{
 			SideNode* node = nodes[i];
 			MapTile const* mapTile = node->getMapTile();
 			unsigned roadMask = mapTile->getRoadLinkMask( node->index );
+
+			if ( roadMask == 0 )
+				continue;
 			
 			if ( roadMask & Tile::CenterMask )
 			{
@@ -290,10 +303,18 @@ namespace CAR
 			int dir;
 			while( FBit::MaskIterator4(roadMask,dir) )
 			{
-				MapTile* mapTileLink = level.findMapTile( FDir::LinkPos( mapTile->pos , dir ) );
-				if ( mapTileLink == nullptr )
+				SideNode const& linkNode = mapTile->sideNodes[dir];
+				if ( linkNode.group == group )
 					continue;
-				outFeatures.insert( mapTileLink->group );
+
+				if ( linkNode.group == -1 )
+				{
+					CAR_LOG("Warnning: No Link Feature In Road Link");
+				}
+				else
+				{
+					outFeatures.insert( linkNode.group );
+				}
 			}
 		}
 	}
@@ -598,7 +619,7 @@ namespace CAR
 		return 0;
 	}
 
-	void CloisterFeature::generateRoadLinkFeatures(Level& level, std::set< unsigned >& outFeatures)
+	void CloisterFeature::generateRoadLinkFeatures( std::set< unsigned >& outFeatures )
 	{
 		assert( mapTiles.empty() == false );
 		MapTile* mapTile = *mapTiles.begin();
@@ -608,10 +629,18 @@ namespace CAR
 		int dir;
 		while( FBit::MaskIterator4( roadMask , dir ) )
 		{
-			MapTile* mapTileLink = level.findMapTile( FDir::LinkPos( mapTile->pos , dir ) );
-			if ( mapTileLink == nullptr )
+			SideNode* linkNode = mapTile->sideNodes[dir].outConnect;
+			if ( linkNode == nullptr )
 				continue;
-			outFeatures.insert( mapTileLink->group );
+
+			if ( linkNode->group == -1 )
+			{
+				CAR_LOG("Warnning: No Link Feature In Road Link");
+			}
+			else
+			{
+				outFeatures.insert( linkNode->group );
+			}
 		}
 	}
 

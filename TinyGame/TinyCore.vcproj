@@ -154,12 +154,24 @@
 	</References>
 	<Files>
 		<Filter
-			Name="Source"
-			Filter="cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx"
-			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}"
+			Name="Common"
+			Filter="h;hpp;hxx;hm;inl;inc;xsd"
+			UniqueIdentifier="{93995380-89BD-4b04-88EB-625FBE52EBFB}"
 			>
 			<File
+				RelativePath=".\DataStream.h"
+				>
+			</File>
+			<File
 				RelativePath=".\DataStreamBuffer.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\DataStreamBuffer.h"
+				>
+			</File>
+			<File
+				RelativePath=".\DataTransfer.h"
 				>
 			</File>
 			<File
@@ -167,7 +179,31 @@
 				>
 			</File>
 			<File
+				RelativePath=".\DataTransferImpl.h"
+				>
+			</File>
+			<File
+				RelativePath=".\GameAction.h"
+				>
+			</File>
+			<File
+				RelativePath=".\GameConfig.h"
+				>
+			</File>
+			<File
+				RelativePath=".\GameDefines.h"
+				>
+			</File>
+			<File
+				RelativePath=".\GameMode.h"
+				>
+			</File>
+			<File
 				RelativePath=".\GamePackage.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\GamePackage.h"
 				>
 			</File>
 			<File
@@ -175,7 +211,15 @@
 				>
 			</File>
 			<File
+				RelativePath=".\GameRecord.h"
+				>
+			</File>
+			<File
 				RelativePath=".\PropertyKey.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\PropertyKey.h"
 				>
 			</File>
 			<File
@@ -197,48 +241,6 @@
 						UsePrecompiledHeader="1"
 					/>
 				</FileConfiguration>
-			</File>
-		</Filter>
-		<Filter
-			Name="Include"
-			Filter="h;hpp;hxx;hm;inl;inc;xsd"
-			UniqueIdentifier="{93995380-89BD-4b04-88EB-625FBE52EBFB}"
-			>
-			<File
-				RelativePath=".\DataStream.h"
-				>
-			</File>
-			<File
-				RelativePath=".\DataStreamBuffer.h"
-				>
-			</File>
-			<File
-				RelativePath=".\DataTransfer.h"
-				>
-			</File>
-			<File
-				RelativePath=".\DataTransferImpl.h"
-				>
-			</File>
-			<File
-				RelativePath=".\GameAction.h"
-				>
-			</File>
-			<File
-				RelativePath=".\GameConfig.h"
-				>
-			</File>
-			<File
-				RelativePath=".\GamePackage.h"
-				>
-			</File>
-			<File
-				RelativePath=".\GameRecord.h"
-				>
-			</File>
-			<File
-				RelativePath=".\PropertyKey.h"
-				>
 			</File>
 			<File
 				RelativePath=".\TinyGamePCH.h"

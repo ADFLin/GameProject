@@ -133,6 +133,7 @@ namespace CFly
 		void  _destroySprite( Sprite* spr );
 		void  _destroyActor( Actor* actor );
 		void  _destroyCamera( Camera* cam );
+		void  _destroyLight( Light* light );
 
 		void  _renderShadowMap( )
 		{

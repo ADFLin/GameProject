@@ -49,7 +49,7 @@
 				PrecompiledHeaderThrough="CAR_PCH.h"
 				ProgramDataBaseFileName="$(IntDir)\$(TargetName).pdb"
 				WarningLevel="3"
-				DebugInformationFormat="4"
+				DebugInformationFormat="3"
 				ForcedIncludeFiles="CAR_PCH.h"
 			/>
 			<Tool
@@ -66,6 +66,7 @@
 				AdditionalDependencies="Msimg32.lib d3d9.lib d3dx9d.lib dsound.lib dinput8.lib dxguid.lib winmm.lib"
 				OutputFile="$(OutDir)\$(ProjectName)D.dll"
 				AdditionalLibraryDirectories="../OtherLib/Boost/lib;../OtherLib/Dx9/lib"
+				GenerateDebugInformation="true"
 			/>
 			<Tool
 				Name="VCALinkTool"
@@ -142,6 +143,8 @@
 				Name="VCLinkerTool"
 				AdditionalDependencies="Msimg32.lib d3d9.lib d3dx9.lib dsound.lib dinput8.lib dxguid.lib winmm.lib"
 				AdditionalLibraryDirectories="../OtherLib/Boost/lib;../OtherLib/Dx9/lib"
+				GenerateDebugInformation="true"
+				AssemblyDebug="1"
 			/>
 			<Tool
 				Name="VCALinkTool"
@@ -175,6 +178,14 @@
 			>
 			<FileConfiguration
 				Name="Debug|Win32"
+				>
+				<Tool
+					Name="VCCLCompilerTool"
+					UsePrecompiledHeader="1"
+				/>
+			</FileConfiguration>
+			<FileConfiguration
+				Name="Release|Win32"
 				>
 				<Tool
 					Name="VCCLCompilerTool"

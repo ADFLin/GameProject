@@ -12,6 +12,13 @@ namespace CAR
 	class PlayerBase
 	{
 	public:
+		PlayerBase()
+		{
+			mScore = 0;
+			mSetting = nullptr;
+		}
+		virtual ~PlayerBase(){}
+		
 		void startTurn(){}
 		void endTurn(){}
 

@@ -172,7 +172,6 @@ namespace Zuma
 #endif
 			return true;
 		case ATTR_NET_SUPPORT:
-		case ATTR_REPLAY_INFO_DATA:
 		case ATTR_CONTROLLER_DEFUAULT_SETTING:
 			return false;
 		case ATTR_TICK_TIME:
@@ -203,19 +202,19 @@ namespace Zuma
 		mCore = NULL;
 	}
 
-	void CGamePackage::enter( StageManager& manger )
-	{
-		manger.changeStage( STAGE_SINGLE_GAME );
-	}
-
-	bool CGamePackage::load()
-	{
+	void CGamePackage::beginPlay( GameType type, StageManager& manger )
+	{		
 		if ( mCore == NULL )
 			mCore = new GameCore;
-		return true;
+		IGamePackage::beginPlay( type , manger );
 	}
 
-	void CGamePackage::release()
+	void CGamePackage::enter()
+    {
+
+	}
+
+	void CGamePackage::exit()
 	{
 		delete mCore;
 		mCore = NULL;

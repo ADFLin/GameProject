@@ -178,7 +178,7 @@ public:
 		}
 
 		g.setBrush( ColorKey3(0 , 255, 125 ) );
-		for( std::list< FindState >::iterator iter = path.begin();
+		for( std::list< AStar::FindState >::iterator iter = path.begin();
 			 iter != path.end() ; ++iter )
 		{
 			rect_t& rect = iter->region->getRect();
@@ -192,7 +192,7 @@ public:
 
 			Vec2i prevPos = CellLength * path.front().pos + MapOffset;
 
-			for( std::list< FindState >::iterator iter = path.begin();
+			for( std::list< AStar::FindState >::iterator iter = path.begin();
 				iter != path.end() ; ++iter )
 			{
 				Vec2i pos2 = CellLength * iter->pos + MapOffset;
@@ -277,14 +277,14 @@ public:
 				endPos = curPos;
 				if ( curRegion )
 				{
-					FindState state;
+					AStar::FindState state;
 					state.pos = startPos;
 					state.region = curRegion;
 
 					astar.mEndPos = endPos;
 					if ( astar.sreach( state ) )
 					{
-						TPortalAStar::NodeType* node = astar.getPath();
+						AStar::TPortalAStar::NodeType* node = astar.getPath();
 
 						path.clear();
 
@@ -304,11 +304,11 @@ public:
 
 	PortalList::iterator curPortal;
 	WinGdiRenderSystem*   mRenderSystem;
-	std::list< FindState > path;
+	std::list< AStar::FindState > path;
 
 	RegionManager* mRegionMgr;
 
-	TPortalAStar astar;
+	AStar::TPortalAStar astar;
 	
 	Vec2i    curPos;
 	Region*  curRegion;

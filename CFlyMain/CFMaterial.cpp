@@ -38,7 +38,7 @@ namespace CFly
 		case CFT_TEXTURE_2D:
 			{
 				D3DTexture* d3dTexture;
-				HRESULT hr = D3DXCreateTextureFromFileEx( 
+				hr = D3DXCreateTextureFromFileEx( 
 					mD3dDevice   , 
 					path         ,       //file name
 					D3DX_DEFAULT ,      //width
@@ -62,7 +62,7 @@ namespace CFly
 		case CFT_TEXTURE_CUBE_MAP:
 			{
 				D3DCubeTexture* d3dTexture;
-				HRESULT hr = D3DXCreateCubeTextureFromFileEx( 
+				hr = D3DXCreateCubeTextureFromFileEx( 
 					mD3dDevice , 
 					path , //file name
 					D3DX_DEFAULT , //length
@@ -85,7 +85,7 @@ namespace CFly
 		case CFT_TEXTURE_3D:
 			{
 				D3DVolumeTexture* d3dTexture;
-				HRESULT hr = D3DXCreateVolumeTextureFromFile( 
+				hr = D3DXCreateVolumeTextureFromFile( 
 					mD3dDevice , path , &d3dTexture 
 				);
 
@@ -484,6 +484,17 @@ namespace CFly
 		{
 			(*iter)->updateAnimation( dt );
 		}
+	}
+
+	TextureLayer& Material::getTextureLayer(int idxLayer)
+	{
+		assert( idxLayer < mNumLayer );
+		return mTexLayer[ idxLayer ];
+	}
+
+	TextureLayer const& Material::getTextureLayer(int idxLayer) const
+	{
+		return const_cast< Material* >( this )->getTextureLayer( idxLayer );
 	}
 
 	TextureLayer::TextureLayer() 

@@ -165,7 +165,7 @@ namespace CAR
 	void Level::DBGPutAllTile(int rotation)
 	{
 		int num = 10; 
-		for( int i = 0 ; i < mTileSetManager->getReigsterTileNum() ; ++ i )
+		for( int i = 0 ; i < mTileSetManager->getRegisterTileNum() ; ++ i )
 			placeTileNoCheck( i , Vec2i( 2 * ( i % num ) , 2 * ( i / num ) ) , rotation );
 	}
 

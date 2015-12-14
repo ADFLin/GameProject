@@ -59,7 +59,7 @@ namespace CFly
 			                          float shine = 1.0f , float const* emi = nullptr );
 		Texture*      createRenderTaget(char const* texName , TextureFormat format , int w , int h , bool haveZBuffer);
 #ifdef CF_RENDERSYSTEM_D3D9
-		D3DDevice*    getD3DDevice(){ return mD3dDevice; }
+		D3DDevice*    getD3DDevice();
 		HDC           getBackBufferDC();
 #elif defined CF_USE_OPENGL
 
@@ -76,8 +76,8 @@ namespace CFly
 		
 		void swapBuffers();
 		//void swapBuffers( SwapBufferInfo& info );
-		void setDir( DirTag tag , char const* dir  ){  mGroupDir[ tag ] = dir; }
-		
+		void setDir( DirTag tag , char const* dir  );
+
 		RenderWindow*    getRenderWindow(){ return mRenderWindow; }
 
 		char const* getPath( char* pathBuffer , char const* fileName , char const* subFileName );
@@ -118,8 +118,8 @@ namespace CFly
 			return false;
 		}
 
-		ViewportList      mViewports;
-		SceneList         mScenes;
+
+		
 
 		RenderSystem*     mRenderSystem;
 		MeshCreator*      mMeshCreator;	
@@ -131,7 +131,12 @@ namespace CFly
 		HWND              mhWnd;
 		IMsgListener*     mErrorMsgListener;
 		unsigned          mUseDirBit;
+
+		ViewportList      mViewports;
+		SceneList         mScenes;
 		String            mGroupDir[ DIR_NUM_DIR ];
+		
+		
 	};
 
 

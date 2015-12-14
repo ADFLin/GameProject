@@ -81,6 +81,8 @@ namespace CFly
 		void             _prevDestroy();
 
 		bool             testVisible( Matrix4 const& trans );
+
+		virtual void release(){ assert(0); }
 	protected:
 		virtual void releaseOwnedChildren(){}
 		virtual void changeOwnedChildrenRenderGroup( int group ){}

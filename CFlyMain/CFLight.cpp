@@ -113,6 +113,11 @@ namespace CFly
 #endif
 	}
 
+	void Light::release()
+	{
+		getScene()->_destroyLight( this );
+	}
+
 
 
 }//namespace CFly

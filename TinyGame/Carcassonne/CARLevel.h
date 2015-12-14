@@ -40,7 +40,7 @@ namespace CAR
 		void  import( ExpansionTileContent const& content );
 		TileSet const& getTileSet( TileId tileId ) const {  return mTileMap[ tileId ];  }
 
-		int  getReigsterTileNum() const { return (int)mTileMap.size(); }
+		int  getRegisterTileNum() const { return (int)mTileMap.size(); }
 		TileIdVec const& getSetGroup( TileSet::EGroup group ){ return mSetMap[ group ]; }
 
 

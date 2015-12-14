@@ -431,6 +431,9 @@ void NetRoomStage::procPlayerState( IComPacket* cp )
 
 			assert( Global::getGameManager().getCurGame()  );
 
+			Global::getGameManager().getCurGame()->beginPlay( GT_NET_GAME , *getManager() );
+			
+
 			StageBase* nextStage = NULL;
 			GameSubStage* subStage = Global::getGameManager().getCurGame()->createSubStage( STAGE_NET_GAME );
 			if ( subStage )
@@ -612,7 +615,7 @@ void NetRoomStage::procRawData( IComPacket* cp )
 		{
 			try
 			{
-				char gameName[ 32 ];
+				char gameName[ 128 ];
 				com->buffer.take( gameName , sizeof( gameName ) );
 				mSettingPanel->setGame( gameName );
 				mHelper->recvSetting( com->buffer );

@@ -10,7 +10,7 @@ bool GamePackageManager::registerGame( IGamePackage* game )
 	if ( findGame( game->getName() ) )
 		return false;
 
-	if ( !game->create() )
+	if ( !game->initialize() )
 		return false;
 
 	if ( !mPackageMap.insert( std::make_pair( game->getName() , game ) ).second )
@@ -28,7 +28,7 @@ bool GamePackageManager::registerGame( IGamePackage* game )
 void GamePackageManager::cleanup()
 {
 	if ( mCurGame )
-		mCurGame->release();
+		mCurGame->exit();
 	mCurGame = NULL;
 
 	struct CleanupVisit
@@ -86,16 +86,12 @@ IGamePackage* GamePackageManager::changeGame( char const* name )
 		return NULL;
 
 	if ( mCurGame )
-		mCurGame->release();
+		mCurGame->exit();
 
 	try
 	{
-		if ( !game->load() )
-		{
-			mCurGame = NULL;
-			return NULL;
-		}
 		mCurGame = game;
+		mCurGame->enter();
 		return game;
 	}
 	catch( ... )

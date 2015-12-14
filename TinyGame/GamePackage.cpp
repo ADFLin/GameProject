@@ -2,6 +2,7 @@
 #include "GamePackage.h"
 
 #include "GameControl.h"
+#include "StageBase.h"
 
 class EmptyController : public GameController
 {
@@ -28,4 +29,14 @@ namespace
 GameController& IGamePackage::getController()
 {
 	return gEmptyController;
+}
+
+void IGamePackage::beginPlay( GameType type, StageManager& manger )
+{
+	switch( type )
+	{
+	case GT_SINGLE_GAME: manger.changeStage( STAGE_SINGLE_GAME ); break;
+	case GT_REPLAY: manger.changeStage( STAGE_REPLAY_GAME ); break;
+	case GT_NET_GAME: /*manger.changeStage( STAGE_NET_GAME );*/ break;
+	}
 }

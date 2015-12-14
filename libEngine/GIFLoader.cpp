@@ -79,7 +79,9 @@ struct GIFIDtag
 	//    6: Interlace Flag
 	//    7: Local Color Table Flag
 };
-
+#ifdef _WIN32
+#pragma pack()
+#endif
 
 GIFLoader::GIFLoader()
 {

@@ -11,13 +11,13 @@ namespace Chromatron
 	class CGamePackage : public IGamePackage
 	{
 	public:
-		virtual bool  create(){ return true; }
+		virtual bool  initialize(){ return true; }
 		virtual void  cleanup(){}
-		virtual bool  load(){ return true; }
-		virtual void  release(){} 
+		virtual void  enter(){}
+		virtual void  exit(){} 
 		virtual void  deleteThis(){ delete this; }
 		//
-		virtual void  enter( StageManager& manger );
+		virtual void beginPlay( GameType type, StageManager& manger );
 	public:
 		virtual char const*           getName(){ return CHROMATRON_NAME;   }
 		virtual GameController&       getController(){ return IGamePackage::getController(); }

@@ -71,7 +71,7 @@ public:
 
 	SBuffer& getBuffer(){ return mBuffer; }
 	void     clear();
-
+	LockObject< SBuffer >::Info lockBuffer(){ return LockObject< SBuffer >::Info( mBuffer , &mMutexBuffer ); }
 	void     fillBuffer( SBuffer& buffer , unsigned num );
 	void     fillBuffer( ComEvaluator& evaluator , IComPacket* cp );
 

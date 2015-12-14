@@ -21,7 +21,7 @@ namespace TowerDefend
 		GameSubStage*   createSubStage( unsigned id );
 		bool            getAttribValue( AttribValue& value ){ return false; }
 
-		void            enter( StageManager& manger );
+		void beginPlay( GameType type, StageManager& manger );
 		virtual void    deleteThis(){ delete this; }
 
 	private:

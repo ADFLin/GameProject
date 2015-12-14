@@ -28,7 +28,7 @@ namespace Bubble
 		GameSubStage*   createSubStage( unsigned id );
 		bool            getAttribValue( AttribValue& value );
 		SettingHepler*  createSettingHelper( SettingHelperType type );
-		void            enter( StageManager& manger );
+		void beginPlay( GameType type, StageManager& manger );
 		virtual void    deleteThis(){ delete this; }
 	private:
 		Controller mController;

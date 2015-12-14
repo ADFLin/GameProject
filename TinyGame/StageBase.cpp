@@ -54,7 +54,7 @@ void StageBase::onTaskMessage( TaskBase* task , TaskMsg const& msg )
 void StageManager::setNextStage( StageBase* chStage )
 {
 	if ( chStage == NULL )
-		chStage = onStageChangeFail( FR_NO_STAGE );
+		chStage = resolveChangeStageFail( FR_NO_STAGE );
 
 	if ( chStage )
 	{
@@ -90,7 +90,7 @@ void StageManager::setupStage()
 	mCurStage->mManager = this;
 	while( !mCurStage->onInit() )
 	{
-		StageBase* stage = onStageChangeFail( FR_INIT_FAIL );
+		StageBase* stage = resolveChangeStageFail( FR_INIT_FAIL );
 		if ( stage == NULL )
 		{
 			stage = new EmptyStage;

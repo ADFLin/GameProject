@@ -55,7 +55,7 @@ namespace CAR
 		void        removeActor( LevelActor& actor );
 		virtual bool checkComplete(){ return false; }
 		virtual int  getActorPutInfo( int playerId , int posMeta , std::vector< ActorPosInfo >& outInfo ) = 0;
-		virtual void generateRoadLinkFeatures( Level& level, std::set< unsigned >& outFeatures ){ }
+		virtual void generateRoadLinkFeatures( std::set< unsigned >& outFeatures ){ }
 		virtual bool updateForNeighborTile( MapTile& tile ){ return false; }
 		virtual void mergeData( FeatureBase& other , MapTile const& putData , int meta );
 		virtual int  calcPlayerScore( int playerId ) = 0;
@@ -97,7 +97,7 @@ namespace CAR
 		virtual void mergeData( FeatureBase& other , MapTile const& putData , int meta );
 		virtual void addNode( MapTile& mapData , unsigned dirMask , SideNode* linkNode );
 		virtual void addAbbeyNode( MapTile& mapData , int dir );
-		virtual void generateRoadLinkFeatures( Level& level, std::set< unsigned >& outFeatures );
+		virtual void generateRoadLinkFeatures( std::set< unsigned >& outFeatures );
 		virtual bool getActorPos( MapTile const& mapTile , ActorPos& actorPos );
 
 
@@ -179,7 +179,7 @@ namespace CAR
 		virtual void mergeData( FeatureBase& other , MapTile const& putData , int meta );
 		virtual int  calcScore( std::vector< FeatureScoreInfo >& scoreInfos );
 		virtual int  calcPlayerScore( int playerId );
-		virtual void generateRoadLinkFeatures(Level& level, std::set< unsigned >& outFeatures);
+		virtual void generateRoadLinkFeatures( std::set< unsigned >& outFeatures );
 		virtual bool updateForNeighborTile(MapTile& tile);
 		virtual bool getActorPos(MapTile const& mapTile , ActorPos& actorPos);
 

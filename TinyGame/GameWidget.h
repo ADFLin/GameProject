@@ -44,12 +44,13 @@ enum
 	UI_OK  ,
 	UI_NEXT_GLOBAL_ID ,
 
-	UI_STAGE_ID     =  400 ,
-	UI_SUB_STAGE_ID =  800 ,
-	UI_GAME_ID      = 1200 ,
-	UI_MODE_ID      = 1600 ,
-	UI_WEIGET_ID    = 2000 ,
-	UI_EDITOR_ID    = 2400 ,
+	UI_STAGE_ID      =  400 ,
+	UI_GAME_MODE_ID  =  800 ,
+	UI_SUB_STAGE_ID  = 1200 ,
+	UI_GAME_ID       = 1600 ,
+	UI_STAGE_MODE_ID = 2000 ,
+	UI_WEIGET_ID     = 2400 ,
+	UI_EDITOR_ID     = 2800 ,
 };
 
 
@@ -295,7 +296,7 @@ public:
 
 	GAME_API GMsgBox( int _id , Vec2i const& size  , GWidget* parent ,unsigned flag = GMB_YESNO);
 
-	GAME_API void setTitle( char const* str ){ mTitle = str; }
+	void setTitle( char const* str ){ mTitle = str; }
 	bool onChildEvent( int event , int id , GWidget* ui );
 	void onRender();
 

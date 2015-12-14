@@ -26,9 +26,9 @@ namespace Tetris
 		StageBase*      createStage( unsigned id );
 		bool            getAttribValue( AttribValue& value );
 
-		void            enter( StageManager& manger );
-		bool            load();
-		virtual void    release(); 
+		virtual void    beginPlay( GameType type, StageManager& manger );
+		virtual void    enter();
+		virtual void    exit(); 
 		virtual void    deleteThis(){ delete this; }
 	private:
 		MyController  mController;

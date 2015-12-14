@@ -1,6 +1,7 @@
 #ifndef CARStage_h__3414efe3_7df4_44fb_8375_e9165753a1c3
 #define CARStage_h__3414efe3_7df4_44fb_8375_e9165753a1c3
 
+#include "CFlyHeader.h"
 #include "GameStage.h"
 
 #include "CARLevel.h"
@@ -11,7 +12,9 @@
 #include "Coroutine.h"
 #include "StreamBuffer.h"
 
-#include "CFlyHeader.h"
+#include "DataTransfer.h"
+
+
 
 #include <fstream>
 #include <sstream>
@@ -29,6 +32,41 @@ namespace CAR
 		ACTION_SELECT_ACTOR ,
 		ACTION_SELECT_ACTOR_INFO ,
 	};
+
+	
+	struct SkipCom
+	{
+		uint8 action;
+	};
+
+	struct ActionCom
+	{
+		ActionCom()
+		{
+			numParam = 0;
+		}
+		void addParam( int value ){ assert( numParam < MaxParamNum ); params[ numParam++ ].iValue = value; }
+		void addParam( float value ){ assert( numParam < MaxParamNum ); params[ numParam++ ].fValue = value; }
+		void send( int slot , int dataId  , IDataTransfer& transfer )
+		{
+			transfer.sendData( slot , dataId , this , sizeof( action ) + sizeof( numParam ) + numParam * sizeof( Param ) );
+		}
+		static int const MaxParamNum = 16;
+		uint8 action;
+		uint8 numParam;
+		struct Param
+		{
+			int   iValue;
+			float fValue;
+		};
+		Param params[ MaxParamNum ];
+	};
+
+	enum
+	{
+		DATA2ID( SkipCom ) ,
+		DATA2ID( ActionCom ) ,
+	};
 	class CGameCoroutine : public IGameCoroutine
 	{
 		typedef boost::coroutines::asymmetric_coroutine< void >::pull_type ImplType;
@@ -40,6 +78,7 @@ namespace CAR
 			beRecoredMode = false;
 			mAction = ACTION_NONE;
 			mActionData = nullptr;
+			mDataTransfer = nullptr;
 		}
 
 		void clearAction()
@@ -53,43 +92,30 @@ namespace CAR
 		{
 			mImpl = ImplType( std::bind( &CGameCoroutine::execEntry< Fun > , this , std::placeholders::_1 , fun ) );
 		}
-		void resquestPlaceTile( Vec2i const& pos , int rotation )
+
+		void setDataTransfer( IDataTransfer* transfer );
+
+		void sendCommond( ActionCom& com )
 		{
-			assert( mAction == ACTION_PLACE_TILE );
-			GamePlaceTileData* myData = static_cast< GamePlaceTileData* >( mActionData );
-			myData->resultPos = pos;
-			myData->resultRotation = rotation;
-			resquestInternal();
-		}
-		void resquestDeployActor( int index , ActorType type )
-		{
-			assert( mAction == ACTION_DEPLOY_ACTOR );
-			GameDeployActorData* myData = static_cast< GameDeployActorData* >( mActionData );
-			myData->resultIndex = index;
-			myData->resultType  = type;
-			resquestInternal();
+			com.action = getAction();
+			com.send( SLOT_SERVER , DATA2ID(ActionCom) , *mDataTransfer );
 		}
 
-		void requestSelect( int index )
-		{
-			assert( mAction == ACTION_SELECT_ACTOR || 
-				    mAction == ACTION_SELECT_MAPTILE ||
-					mAction == ACTION_SELECT_ACTOR_INFO );
+		void onRecvCommon( int slot , int dataId , void* data , int dataSize );
 
-			GameSelectActionData* myData = static_cast< GameSelectActionData* >( mActionData );
-			myData->resultIndex = index;
-			resquestInternal();
-		}
+		void requestCommon( ActionCom const& com );
 
 
-		void skipAction()
-		{
-			if ( mActionData )
-			{
-				mActionData->resultSkipAction = true;
-				resquestInternal();
-			}
-		}
+		void resquestPlaceTile( Vec2i const& pos , int rotation );
+		void resquestDeployActor( int index , ActorType type );
+		void requestSelect( int index );
+
+		void skipAction();
+
+		void doResquestPlaceTile( Vec2i const& pos , int rotation );
+		void doResquestDeployActor( int index , ActorType type );
+		void doRequestSelect( int index );
+		void doSkipAction();
 
 		void returnGame()
 		{
@@ -151,6 +177,7 @@ namespace CAR
 		bool save( char const* file );
 
 		
+		IDataTransfer*  mDataTransfer;
 
 
 		bool beRecoredMode;
@@ -196,6 +223,12 @@ namespace CAR
 		Vec2f     mapPos;
 	};
 
+	//class CarPlayer : public PlayerBase
+	//{
+	//public:
+	//	GamePlayer* mProxyPlayer;
+	//};
+
 	class Renderer
 	{
 	public:
@@ -216,10 +249,20 @@ namespace CAR
 		virtual bool onKey( unsigned key , bool isDown );
 		virtual bool onMouse( MouseMsg const& msg );
 
+		bool canInput()
+		{
+			if ( getGameType() == GT_SINGLE_GAME )
+				return true;
+			if ( getGameType() == GT_NET_GAME && isUserTrun() )
+				return true;
+			return false;
+		}
+		bool isUserTrun();
+
 		virtual bool setupNetwork( NetWorker* worker , INetEngine** engine ){ return true; }
 		virtual void buildServerLevel( GameLevelInfo& info )
 		{
-
+			info.seed = 0;
 		}
 
 		virtual void setupLocalGame( LocalPlayerManager& playerManager );
@@ -276,6 +319,8 @@ namespace CAR
 
 		CFly::Object* createTileObject();
 
+		void addActionWidget( GWidget* widget );
+		void onRecvDataSV( int slot , int dataId , void* data , int dataSize );
 	protected:
 
 
@@ -287,10 +332,8 @@ namespace CAR
 		GamePlayerManager mPlayerManager;
 		GameSetting       mSetting;
 
-		void addActionWidget( GWidget* widget );
+		IDataTransfer*    mServerDataTranfser;
 
-		IDataTransfer* mDataTransfer;
-		
 		std::vector< GWidget* > mGameActionUI;
 
 		Vec2f  mRenderOffset;
@@ -301,6 +344,7 @@ namespace CAR
 
 		IDirect3DSurface9* mSurfaceBufferTake;
 
+		std::vector< CFly::SceneNode* > mRenderObjects;
 		CFly::World*    mWorld;
 		CFly::Object*   mTileShowObject;
 		CFly::Scene*    mScene;

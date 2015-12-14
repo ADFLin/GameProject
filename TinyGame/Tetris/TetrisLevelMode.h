@@ -52,7 +52,7 @@ namespace Tetris
 		void        init();
 		void        getGameInfo( GameInfo& info ){  info.modeNormal = mInfo; }
 		ModeID      getModeID(){ return MODE_TS_CHALLENGE; } 
-		void fireAction( LevelData& lvData , ActionTrigger& trigger );
+		void        fireAction( LevelData& lvData , ActionTrigger& trigger );
 		ModeData*   createModeData(){  return new ChallengeModeData;  }
 		void        setupScene( unsigned flag );
 		void        setupSingleGame( MyController& controller );
@@ -77,7 +77,7 @@ namespace Tetris
 	public:
 		enum
 		{
-			UI_GRAVITY_VALUE_SLIDER = UI_MODE_ID ,
+			UI_GRAVITY_VALUE_SLIDER = UI_STAGE_MODE_ID ,
 			UI_ENTRY_DELAY_SLIDER ,
 			UI_CLEAR_LAYER_SLIDER ,
 			UI_LOCK_PIECE_SLIDER ,

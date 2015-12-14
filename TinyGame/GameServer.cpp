@@ -1199,6 +1199,8 @@ void LocalWorker::doUpdate( long time )
 
 void SNetPlayer::sendCommand( int channel , IComPacket* cp )
 {
+	SBuffer buffer( 1000 );
+	int num = FillBufferByCom( mServer->getEvaluator() , buffer , cp );
 	switch( channel )
 	{
 	case CHANNEL_TCP_CONNECT:

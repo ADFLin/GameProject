@@ -76,9 +76,9 @@ namespace Poker
 		return false;
 	}
 
-	void CGamePackage::enter( StageManager& manger )
+	void CGamePackage::beginPlay( GameType type, StageManager& manger )
 	{
-
+		IGamePackage::beginPlay( type , manger );
 	}
 
 	class CNetRoomSettingHelper : public NetRoomSettingHelper

@@ -97,6 +97,7 @@ static GMsgListener gMsgListener;
 TinyGameApp::TinyGameApp()
 	:mRenderEffect( NULL )
 	,mNetWorker( NULL )
+	//,mGameMode( nullptr )
 {
 	mShowErrorMsg = false;
 }
@@ -165,6 +166,9 @@ long TinyGameApp::onUpdate( long shouldTime )
 	{
 		if ( mNetWorker )
 			mNetWorker->update( getUpdateTime() );
+
+		//if ( mGameMode )
+		//	mGameMode->update( time );
 
 		checkNewStage();
 		runTask( getUpdateTime() );
@@ -270,6 +274,14 @@ ClientWorker* TinyGameApp::createClinet()
 
 bool TinyGameApp::onWidgetEvent( int event , int id , GWidget* ui )
 {
+	if ( !getCurStage()->onWidgetEvent( event , id , ui ) )
+		return false;
+	if ( id >= UI_STAGE_ID )
+		return false;
+	//if ( !mGameMode->onWidgetEvent( event , id , ui ) )
+	//	return false;
+	if ( id >= UI_GAME_MODE_ID )
+		return false;
 
 	switch ( id )
 	{
@@ -562,13 +574,13 @@ GameStage* TinyGameApp::createGameStage( StageID stageId )
 			case idx : gameStage = new Class; break;
 		CASE_STAGE( STAGE_SINGLE_GAME , GameSingleStage )
 		CASE_STAGE( STAGE_NET_GAME    , GameNetLevelStage )
-		CASE_STAGE( STAGE_REPLAY_GAME , GameReplayStage )
+		CASE_STAGE( STAGE_REPLAY_GAME , GameReplayMode )
 #undef CASE_STAGE
 	}
 	return gameStage;
 }
 
-StageBase* TinyGameApp::onStageChangeFail( FailReason reason )
+StageBase* TinyGameApp::resolveChangeStageFail( FailReason reason )
 {
 	switch( reason )
 	{

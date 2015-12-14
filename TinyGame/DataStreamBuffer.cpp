@@ -23,6 +23,11 @@ bool GrowThrowPolicy::check( char*& data , size_t& max , size_t cur , size_t num
 	return true;
 }
 
+DataStreamBuffer::DataStreamBuffer()
+{
+
+}
+
 DataStreamBuffer::DataStreamBuffer( size_t size )
 {
 	mData = new char[ size ];

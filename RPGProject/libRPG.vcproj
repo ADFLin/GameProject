@@ -108,6 +108,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				AdditionalOptions="/MP"
+				EnableIntrinsicFunctions="true"
 				AdditionalIncludeDirectories="libRPG/;.;../CFlyMain;../libEngine;../OtherLib/bullet/src;../OtherLib/Recast/Detour/Include;../OtherLib/boost;../OtherLib/Dx9/Include;../OtherLib/"
 				PreprocessorDefinitions="NDEBUG;_LIB;WIN32"
 				RuntimeLibrary="2"

@@ -111,7 +111,7 @@ public:
 protected:
 	StageBase*     createStage( StageID stageId );
 	GameStage*     createGameStage( StageID stageId );
-	StageBase*     onStageChangeFail( FailReason reason );
+	StageBase*     resolveChangeStageFail( FailReason reason );
 	void           postStageChange( StageBase* stage );
 	void           prevChangeStage();
 
@@ -148,6 +148,7 @@ private:
 
 
 	GameWindow         mGameWindow;
+	//GameMode*          mGameMode;
 	RenderEffect*      mRenderEffect;
 	NetWorker*         mNetWorker;
 	bool               mShowErrorMsg;

@@ -53,9 +53,9 @@ namespace CAR
 		return false;
 	}
 
-	void CGamePackage::enter( StageManager& manger )
+	void CGamePackage::beginPlay( GameType type, StageManager& manger )
 	{
-		manger.changeStage( STAGE_SINGLE_GAME );
+		IGamePackage::beginPlay( type , manger );
 	}
 
 	class CNetRoomSettingHelper : public NetRoomSettingHelper

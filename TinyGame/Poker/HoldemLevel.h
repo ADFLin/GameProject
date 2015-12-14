@@ -114,7 +114,7 @@ namespace Poker { namespace Holdem {
 
 	protected:
 
-		virtual void procRecvData( int recvId , int dataId , void* data ) = 0;
+		virtual void procRecvData( int recvId , int dataId , void* data , int dataSize ) = 0;
 
 
 		void      doGameInit( Rule const& rule );
@@ -171,7 +171,7 @@ namespace Poker { namespace Holdem {
 
 		void divideMoney( int totalMoney , int numWinner  , int pos[] , int winMoney[] );
 
-		void procRecvData( int recvId , int dataId , void* data );
+		void procRecvData( int recvId , int dataId , void* data , int dataSize );
 
 		Listener* mListener;
 		FixVector< char , 52 > mDecks;
@@ -204,7 +204,7 @@ namespace Poker { namespace Holdem {
 		void          setPlayerPos( int pos ){ mPosPlayer = pos; }
 		int           getPlayerPos(){ return mPosPlayer; }
 
-		void          procRecvData( int recvId , int dataId , void* data );
+		void          procRecvData( int recvId , int dataId , void* data , int dataSize );
 		void          betRequest( BetType type , int money = 0 );
 		Card const&   getPoketCard( int idx ){ return mPocketCards[ idx ]; }
 

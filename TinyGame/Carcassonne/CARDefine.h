@@ -16,6 +16,9 @@ namespace CAR
 	typedef uint32 TileId;
 	TileId const FAIL_TILE_ID = TileId(-1);
 
+	int const ERROR_GROUP_ID = -1;
+	int const ABBEY_GROUP_ID = -2;
+
 	enum Expansion
 	{
 		EXP_INNS_AND_CATHEDRALS ,

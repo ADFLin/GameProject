@@ -71,16 +71,6 @@ namespace Tetris
 		case ATTR_REPLAY_SUPPORT:
 			value.iVal = true;
 			return true;
-		case ATTR_REPLAY_INFO_DATA:
-			{
-				ReplayInfo& info = *((ReplayInfo*)value.ptr);
-
-				strcpy_s( info.name , TETRIS_NAME );
-				info.gameVersion     = GameInfo::LastVersion;
-				info.templateVersion = CFrameActionTemplate::LastVersion;
-				info.setGameData( sizeof( GameInfo ) );
-			}
-			return true;
 		case ATTR_CONTROLLER_DEFUAULT_SETTING:
 			mController.clearAllKey();
 			mController.initKey( ACT_MOVE_LEFT  , 2 , 'A' , VK_LEFT  );
@@ -190,10 +180,13 @@ namespace Tetris
 	}
 
 
-	void CGamePackage::enter( StageManager& manger )
+	void CGamePackage::beginPlay( GameType type, StageManager& manger )
 	{
 		::Msg( "Tetris!!!" );
-		manger.changeStage( STAGE_GAME_MENU );
+		if ( type == GT_SINGLE_GAME )
+			manger.changeStage( STAGE_GAME_MENU );
+		else
+			IGamePackage::beginPlay( type , manger );
 	}
 
 	CGamePackage::CGamePackage()
@@ -201,13 +194,12 @@ namespace Tetris
 
 	}
 
-	bool CGamePackage::load()
-	{
+	void CGamePackage::enter()
+{
 		getRecordManager().init();
-		return true;
 	}
 
-	void CGamePackage::release()
+	void CGamePackage::exit()
 	{
 		getRecordManager().saveFile( "record.dat" );
 		getRecordManager().clear();

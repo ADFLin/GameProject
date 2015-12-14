@@ -30,8 +30,6 @@ namespace GreedySnake
 		case ATTR_SINGLE_SUPPORT:
 			value.iVal = true;
 			return true;
-		case ATTR_REPLAY_INFO_DATA:
-			return false;
 		case ATTR_AI_SUPPORT:
 			value.iVal = true;
 			return true;
@@ -46,9 +44,9 @@ namespace GreedySnake
 		return false;
 	}
 
-	void CGamePackage::enter( StageManager& manger )
+	void CGamePackage::beginPlay( GameType type, StageManager& manger )
 	{
-		manger.changeStage( STAGE_SINGLE_GAME );
+		IGamePackage::beginPlay( type , manger );
 	}
 
 	class CNetRoomSettingHelper : public NetRoomSettingHelper

@@ -268,15 +268,15 @@ private:
 template< class T >
 struct LockObject
 {
-	struct Info
+	struct Param
 	{
-		Info( T& obj , Mutex* m ):object(&obj),mutex(m){}
+		Param( T& obj , Mutex* m ):object(&obj),mutex(m){}
 	private:
 		Mutex* mutex;
 		T*     object;
 		friend struct LockObject;
 	};
-	LockObject( Info const& info )
+	LockObject( Param const& info )
 		:mInfo(info){ if ( mInfo.mutex ) mInfo.mutex->lock(); }
 	~LockObject(){ if ( mInfo.mutex ) mInfo.mutex->unlock(); }
 	T* operator->(){ return mInfo.object; }
@@ -284,7 +284,7 @@ struct LockObject
 	T& operator *(){ return *mInfo.object; }
 private:
 	LockObject( LockObject& other ){}
-	Info   mInfo;
+	Param   mInfo;
 };
 
 #endif // Thread_h__

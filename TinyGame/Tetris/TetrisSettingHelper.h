@@ -43,7 +43,7 @@ namespace Tetris
 		void  setupNormalModeUI();
 
 
-		void  setMaxPlayerNumber( int num );
+		void  setupMaxPlayerNumUI( int num );
 		void  setupGame( StageManager& manager , GameSubStage* subStage );
 
 

@@ -127,3 +127,29 @@ void GameSettingPanel::renderTitle( GWidget* ui )
 		g.drawText( pos + Vec2i(5,3) , iter->title.c_str() );
 	}
 }
+
+GCheckBox* GameSettingPanel::addCheckBox(int id , char const* title , unsigned groupMask)
+{
+	Vec2i size( mUISize.y , mUISize.y );
+	GCheckBox* ui = new GCheckBox( id , mCurPos + Vec2i( mUISize.x - size.x  , 0 ) , size , this );
+	addWidgetInternal( ui , title , groupMask );
+	return ui;
+}
+
+GSlider* GameSettingPanel::addSlider(int id , char const* title , unsigned groupMask)
+{
+	GSlider* ui = new GSlider( id , mCurPos + Vec2i( 5 , 5 ) , mUISize.x - 10 - 30 ,  true  , this );
+	ui->showValue();
+	addWidgetInternal( ui , title , groupMask );
+	return ui;
+}
+
+GAME_API GChoice* GameSettingPanel::addChoice(int id , char const* title , unsigned groupMask)
+{
+	return addWidget< GChoice >( id , title , groupMask );
+}
+
+GAME_API GButton* GameSettingPanel::addButton(int id , char const* title , unsigned groupMask)
+{
+	return addWidget< GButton >( id , title , groupMask );
+}

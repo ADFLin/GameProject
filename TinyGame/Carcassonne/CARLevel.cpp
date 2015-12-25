@@ -43,14 +43,14 @@ namespace CAR
 		mEmptyLinkPosSet.clear();
 	}
 
-	MapTile* Level::placeTile(TileId tileId , Vec2i const& pos , int rotation , unsigned flag )
+	MapTile* Level::placeTile(TileId tileId , Vec2i const& pos , int rotation , PutTileParam& param )
 	{
-		if ( !canPlaceTile( tileId , pos , rotation , flag ) )
+		if ( !canPlaceTile( tileId , pos , rotation , param ) )
 			return nullptr;
-		return placeTileNoCheck( tileId , pos , rotation );
+		return placeTileNoCheck( tileId , pos , rotation , param );
 	}
 
-	bool Level::canPlaceTile( TileId tileId , Vec2i const& pos , int rotation , unsigned flag )
+	bool Level::canPlaceTile( TileId tileId , Vec2i const& pos , int rotation , PutTileParam& param )
 	{
 		if ( findMapTile( pos ) != nullptr )
 			return false;
@@ -64,7 +64,7 @@ namespace CAR
 		{
 			int lDir = FDir::ToLocal( i , rotation );
 
-			if ( ( flag & eDontCheckRiverConnect ) == 0 )
+			if ( param.checkRiverConnect )
 			{
 				if ( tile.getLinkType(lDir) == SideType::eRiver )
 				{
@@ -80,15 +80,21 @@ namespace CAR
 				Tile const& tileCheck = getTile( dataCheck->getId() );
 				if ( !Tile::CanLink( tileCheck , lDirCheck , tile , lDir ) )
 				{
-					if ( tile.canLinkRoad( lDir ) && ( flag & eUsageBridage ) != 0 )
+					if ( param.usageBridge )
 					{
-						if ( tileCheck.getLinkType(lDirCheck) != SideType::eField || 
-							 tileCheck.getLinkType(lDir) != SideType::eField  )
-						{
+						if ( !tileCheck.canLinkRoad( lDirCheck ) )
 							return false;
-						}
+
+						if ( tile.getLinkType(lDirCheck) != SideType::eField ||
+							tile.getLinkType(lDir) == SideType::eField  )
+							return false;
+
+						param.dirNeedUseBridge = i;
 					}
-					return false;
+					else
+					{
+						return false;
+					}
 				}
 
 				if ( checkRiverConnect && tileCheck.canLinkRiver( lDirCheck ) )
@@ -105,7 +111,7 @@ namespace CAR
 		return true;
 	}
 
-	MapTile* Level::placeTileNoCheck( TileId tileId , Vec2i const& pos , int rotation , unsigned flag )
+	MapTile* Level::placeTileNoCheck( TileId tileId , Vec2i const& pos , int rotation , PutTileParam& param )
 	{
 		Tile const& tile = getTile( tileId );
 
@@ -122,6 +128,11 @@ namespace CAR
 		mapData.checkCount = mCheckCount;
 		mapData.pos        = pos;
 		mapData.rotation   = rotation;
+
+		if ( param.usageBridge && param.dirNeedUseBridge != - 1 )
+		{
+			mapData.addBridge( param.dirNeedUseBridge );
+		}
 
 		for( int i = 0 ; i < FDir::TotalNum ; ++i )
 		{
@@ -152,6 +163,8 @@ namespace CAR
 				mEmptyLinkPosSet.insert( posLink );
 			}
 		}
+
+
 		return &mapData;
 	}
 
@@ -162,14 +175,7 @@ namespace CAR
 		return *tileSet.tile;
 	}
 
-	void Level::DBGPutAllTile(int rotation)
-	{
-		int num = 10; 
-		for( int i = 0 ; i < mTileSetManager->getRegisterTileNum() ; ++ i )
-			placeTileNoCheck( i , Vec2i( 2 * ( i % num ) , 2 * ( i / num ) ) , rotation );
-	}
-
-	int Level::getPosibleLinkPos( TileId tileId , std::vector< Vec2i >& outPos)
+	int Level::getPosibleLinkPos( TileId tileId , std::vector< Vec2i >& outPos , PutTileParam& param )
 	{
 		int result = 0;
 		for( PosSet::iterator iter = mEmptyLinkPosSet.begin() , itEnd = mEmptyLinkPosSet.end();
@@ -179,7 +185,7 @@ namespace CAR
 			
 			for(int i = 0 ; i < FDir::TotalNum ; ++i )
 			{
-				if ( canPlaceTile( tileId , pos , i ) )
+				if ( canPlaceTile( tileId , pos , i , param ) )
 				{
 					++result;
 					outPos.push_back( pos );
@@ -214,6 +220,11 @@ namespace CAR
 	Level::Level()
 	{
 
+	}
+
+	bool Level::isEmptyLinkPos(Vec2i const& pos)
+	{
+		return mEmptyLinkPosSet.find( pos ) != mEmptyLinkPosSet.end();
 	}
 
 

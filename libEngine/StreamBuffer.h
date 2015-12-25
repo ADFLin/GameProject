@@ -9,10 +9,8 @@
 
 class CheckPolicy
 {
-	static bool check( char* data , size_t max , size_t cur ,  size_t num , bool beTake )
-	{
-		return true;
-	}
+	static bool checkFill( char* data , size_t max , size_t cur ,  size_t num );
+	static bool checkTake( char* data , size_t max , size_t cur ,  size_t num );
 };
 
 class BufferException : public std::exception
@@ -23,7 +21,11 @@ public:
 
 struct NoCheckPolicy 
 {
-	static bool check( char* data , size_t max , size_t cur ,  size_t num , bool beTake )
+	static bool checkFill( char* data , size_t max , size_t cur ,  size_t num )
+	{
+		return true;
+	}
+	static bool checkTake( char* data , size_t max , size_t cur ,  size_t num )
 	{
 		return true;
 	}
@@ -31,7 +33,13 @@ struct NoCheckPolicy
 
 struct  FalseCheckPolicy
 {
-	static bool check( char* data , size_t max , size_t cur ,  size_t num , bool beTake )
+	static bool checkFill( char* data , size_t max , size_t cur ,  size_t num )
+	{
+		if ( cur + num > max )
+			return false;
+		return true;
+	}
+	static bool checkTake( char* data , size_t max , size_t cur ,  size_t num  )
 	{
 		if ( cur + num > max )
 			return false;
@@ -41,10 +49,16 @@ struct  FalseCheckPolicy
 
 struct  ThrowCheckPolicy
 {
-	static bool check( char* data , size_t max , size_t cur ,  size_t num , bool beTake )
+	static bool checkFill( char* data , size_t max , size_t cur ,  size_t num )
 	{
 		if ( cur + num > max )
-			throw BufferException( (beTake) ? "Overflow" : "No Enough Data" );
+			throw BufferException( "Overflow" );
+		return true;
+	}
+	static bool checkTake( char* data , size_t max , size_t cur ,  size_t num )
+	{
+		if ( cur + num > max )
+			throw BufferException( "No Enough Data" );
 		return true;
 	}
 };
@@ -178,11 +192,11 @@ public:
 private:
 	bool checkFill( size_t num )
 	{
-		return CP::check( mData , mMaxSize , mFillSize  , num , false );
+		return CP::checkFill( mData , mMaxSize , mFillSize  , num  );
 	}
 	bool checkTake( size_t num )
 	{
-		return CP::check( mData , mFillSize  , mUseSize ,  num , true );
+		return CP::checkTake( mData , mFillSize  , mUseSize ,  num );
 	}
 
 	struct AssignStrategy

@@ -180,3 +180,65 @@ bool NetWorker::addUdpCom( IComPacket* cp , NetAddress const& addr )
 	return true;
 }
 
+
+bool EvalCommand( UdpChain& chain , ComEvaluator& evaluator , SBuffer& buffer , ComConnection* con /*= NULL */)
+{
+	unsigned size;
+	while( chain.readPacket( buffer , size ) )
+	{	
+		size_t oldSize = buffer.getAvailableSize();
+
+		if ( oldSize < size )
+			throw ComException( "error UDP Packet" );
+
+		do
+		{
+			if ( !evaluator.evalCommand( buffer , con ) )
+			{
+				::Msg( "readPacket Error Need Fix" );
+				return false;
+			}
+		}
+		while( oldSize - buffer.getAvailableSize() < size );
+
+		if ( oldSize - buffer.getAvailableSize() != size )
+			throw ComException( "error UDP Packet" );
+	}
+
+	return true;
+}
+
+unsigned FillBufferByCom(NetBufferCtrl& bufferCtrl , IComPacket* cp)
+{
+	LockObject< SBuffer > buffer = bufferCtrl.lockBuffer();
+	return FillBufferByCom( *buffer , cp );
+}
+
+unsigned FillBufferByCom( SBuffer& buffer , IComPacket* cp )
+{
+	assert( cp );
+
+	bool done = false;
+	int  count = 1;
+	unsigned result;
+	while ( !done )
+	{
+		try
+		{
+			result = ComEvaluator::fillBuffer( cp , buffer );
+			done = true;
+		}
+		catch ( BufferException& e )
+		{
+			buffer.grow( ( buffer.getMaxSize() * 3 ) / 2 );
+			Msg( e.what() );
+		}
+		catch ( ComException& e )
+		{
+			Msg( e.what() );
+			return 0;
+		}
+		++count;
+	}
+	return result;
+}

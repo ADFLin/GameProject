@@ -43,7 +43,6 @@ namespace CFly
 		void  setRectTextureSlot( unsigned id , unsigned slot );
 		void  removeRectArea    ( unsigned id );
 
-
 	protected:
 		void  renderRectUnits( Matrix4 const& trans );
 
@@ -76,7 +75,7 @@ namespace CFly
 
 		typedef std::vector< RectUnit > RectUnitVector;
 		RectUnitVector     mRectUnits;
-
+		Vector3 mPivot;
 	};
 
 	DEFINE_ENTITY_TYPE( Sprite  , ET_SPRITE )

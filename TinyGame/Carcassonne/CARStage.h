@@ -13,6 +13,7 @@
 #include "StreamBuffer.h"
 
 #include "DataTransfer.h"
+#include "FixVector.h"
 
 
 
@@ -23,6 +24,9 @@ class IDataTransfer;
 
 namespace CAR
 {
+	using CFly::Vector3;
+	using CFly::Matrix4;
+
 	enum PlayerAction
 	{
 		ACTION_NONE ,
@@ -31,6 +35,8 @@ namespace CAR
 		ACTION_SELECT_MAPTILE ,
 		ACTION_SELECT_ACTOR ,
 		ACTION_SELECT_ACTOR_INFO ,
+		ACTION_AUCTION_TILE ,
+		ACTION_BUY_AUCTIONED_TILE ,
 	};
 
 	
@@ -67,18 +73,24 @@ namespace CAR
 		DATA2ID( SkipCom ) ,
 		DATA2ID( ActionCom ) ,
 	};
-	class CGameCoroutine : public IGameCoroutine
+	class CGameInput : public IGameInput
 	{
 		typedef boost::coroutines::asymmetric_coroutine< void >::pull_type ImplType;
 		typedef boost::coroutines::asymmetric_coroutine< void >::push_type YeildType;
 
 	public:
-		CGameCoroutine()
+		CGameInput()
+		{
+			reset();
+		}
+
+		void reset()
 		{
 			beRecoredMode = false;
 			mAction = ACTION_NONE;
 			mActionData = nullptr;
 			mDataTransfer = nullptr;
+			mNumActionInput = 0;
 		}
 
 		void clearAction()
@@ -90,7 +102,7 @@ namespace CAR
 		template< class Fun >
 		void run( Fun fun )
 		{
-			mImpl = ImplType( std::bind( &CGameCoroutine::execEntry< Fun > , this , std::placeholders::_1 , fun ) );
+			mImpl = ImplType( std::bind( &CGameInput::execEntry< Fun > , this , std::placeholders::_1 , fun ) );
 		}
 
 		void setDataTransfer( IDataTransfer* transfer );
@@ -106,14 +118,14 @@ namespace CAR
 		void requestCommon( ActionCom const& com );
 
 
-		void resquestPlaceTile( Vec2i const& pos , int rotation );
-		void resquestDeployActor( int index , ActorType type );
+		void requestPlaceTile( Vec2i const& pos , int rotation );
+		void requestDeployActor( int index , ActorType type );
 		void requestSelect( int index );
 
 		void skipAction();
 
-		void doResquestPlaceTile( Vec2i const& pos , int rotation );
-		void doResquestDeployActor( int index , ActorType type );
+		void doRequestPlaceTile( Vec2i const& pos , int rotation );
+		void doRequestDeployActor( int index , ActorType type );
 		void doRequestSelect( int index );
 		void doSkipAction();
 
@@ -149,11 +161,16 @@ namespace CAR
 		{  waitActionImpl( module , ACTION_SELECT_ACTOR_INFO , data );  }
 		virtual void waitSelectMapTile(GameModule& module , GameSelectMapTileData& data)
 		{  waitActionImpl( module , ACTION_SELECT_MAPTILE , data );  }
+		virtual void waitAuctionTile( GameModule& moudule , GameAuctionTileData& data )
+		{  waitActionImpl( moudule , ACTION_AUCTION_TILE , data ); }
+		virtual void waitBuyAuctionedTile( GameModule& moudule , GameAuctionTileData& data ) 
+		{  waitActionImpl( moudule , ACTION_BUY_AUCTIONED_TILE , data ); }
+
 		virtual void waitTurnOver( GameModule& moudule , GameActionData& data );
 
 		void waitActionImpl( GameModule& module , PlayerAction action , GameActionData& data );
 
-		void resquestInternal();
+		void requestInternal();
 
 		template< class Fun >
 		void execEntry( YeildType& type , Fun fun )
@@ -184,6 +201,7 @@ namespace CAR
 		std::stringstream mOFS;
 		std::ifstream     mIFS;
 
+		int             mNumActionInput;
 		PlayerAction    mAction;
 		GameActionData* mActionData;
 		ImplType        mImpl;
@@ -223,6 +241,11 @@ namespace CAR
 		Vec2f     mapPos;
 	};
 
+	class TileButton : public GButtonBase
+	{
+		CFly::Sprite* mSprite;
+	};
+
 	//class CarPlayer : public PlayerBase
 	//{
 	//public:
@@ -249,20 +272,10 @@ namespace CAR
 		virtual bool onKey( unsigned key , bool isDown );
 		virtual bool onMouse( MouseMsg const& msg );
 
-		bool canInput()
-		{
-			if ( getGameType() == GT_SINGLE_GAME )
-				return true;
-			if ( getGameType() == GT_NET_GAME && isUserTrun() )
-				return true;
-			return false;
-		}
-		bool isUserTrun();
-
 		virtual bool setupNetwork( NetWorker* worker , INetEngine** engine ){ return true; }
 		virtual void buildServerLevel( GameLevelInfo& info )
 		{
-			info.seed = 0;
+			info.seed = 10;
 		}
 
 		virtual void setupLocalGame( LocalPlayerManager& playerManager );
@@ -279,16 +292,6 @@ namespace CAR
 
 		}
 
-		void setRenderOffset( Vec2f const& a_offset );
-		Vec2i showPlayerInfo( Graphics2D& g, Vec2i const& pos , PlayerBase* player , int offsetY );
-		Vec2i showFeatureInfo( Graphics2D& g, Vec2i const& pos , FeatureBase* build , int offsetY );
-		void drawMapData( Graphics2D& g , Vec2f const& pos , MapTile const& mapData );
-		void drawTile( Graphics2D& g , Vec2f const& pos , Tile const& tile , int rotation );
-
-		Vec2f calcActorMapPos( ActorPos const& pos , MapTile const& mapTile );
-
-		Vec2i convertToMapPos( Vec2i const& sPos );
-
 		enum 
 		{
 			UI_ACTOR_POS_BUTTON = BaseClass::NEXT_UI_ID,
@@ -298,20 +301,29 @@ namespace CAR
 			UI_ACTION_SKIP ,
 			UI_ACTION_END_TURN ,
 
+			UI_TILE_SELECT ,
+
 			NEXT_UI_ID,
 		};
 
+
+		
+		Vec2i showPlayerInfo( Graphics2D& g, Vec2i const& pos , PlayerBase* player , int offsetY );
+		Vec2i showFeatureInfo( Graphics2D& g, Vec2i const& pos , FeatureBase* build , int offsetY );
+		void  drawMapData( Graphics2D& g , Vec2f const& pos , MapTile const& mapData );
+		void  drawTileRect( Graphics2D& g , Vec2f const& mapPos );
+		void  drawTile( Graphics2D& g , Vec2f const& pos , Tile const& tile , int rotation );
+
+		void  setRenderOffset( Vec2f const& a_offset );
+		void  setRenderScale( float scale );
+		Vec2f calcActorMapPos( ActorPos const& pos , MapTile const& mapTile );
+		Vec2i convertToMapTilePos( Vec2i const& sPos );
+		Vec2f convertToMapPos(Vec2i const& sPos);
+		Vec2f convertToScreenPos(Vec2f const& pos);
+
 		void onGameAction( GameModule& moudule , PlayerAction action , GameActionData* data );
 
-		void removeGamePlayUI()
-		{
-			for( int i = 0 ; i < mGameActionUI.size() ; ++i )
-			{
-				mGameActionUI[i]->destroy();
-			}
-			mGameActionUI.clear();
-		}
-		Vec2f calcRenderPos(Vec2f const& pos);
+		void  removeGameActionUI();
 		Vec2f getActorPosMapOffset( ActorPos const& pos );
 		virtual void onPutTile( MapTile& mapTile );
 
@@ -320,14 +332,22 @@ namespace CAR
 		CFly::Object* createTileObject();
 
 		void addActionWidget( GWidget* widget );
+
+		bool canInput();
+		bool isUserTrun();
+		int  getActionPlayerId();
 		void onRecvDataSV( int slot , int dataId , void* data , int dataSize );
+
+		GameSetting& getSetting(){ return mSetting; }
+		
+
 	protected:
 
 
 		typedef MapTile::SideNode SideNode;
 		typedef MapTile::FarmNode FarmNode;
 
-		CGameCoroutine    mCoroutine;
+		CGameInput        mInput;
 		GameModule        mMoudule;
 		GamePlayerManager mPlayerManager;
 		GameSetting       mSetting;
@@ -336,7 +356,16 @@ namespace CAR
 
 		std::vector< GWidget* > mGameActionUI;
 
-		Vec2f  mRenderOffset;
+		float   mRenderScale;
+		Vec2f   mRenderTileSize;
+		Vec2f   mRenderOffset;
+		Matrix4 mMatVP;
+		Matrix4 mMatInvVP;
+		bool    mbISOView;
+
+
+		int    mFiledTypeMap[ FieldType::NUM ];
+
 		Vec2i  mCurMapPos;
 		int    mRotation;
 

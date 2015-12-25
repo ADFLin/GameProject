@@ -350,7 +350,7 @@ void GButton::onRender()
 	//assert( !useColorKey );
 	gRenderer.drawButton( g , pos , size , getButtonState() , mColor  , isEnable() );
 
-	if ( !m_title.empty() )
+	if ( !mTitle.empty() )
 	{
 		RenderUtility::setFont( g , mFontType );
 
@@ -364,7 +364,7 @@ void GButton::onRender()
 		{
 			g.setTextColor(255 , 255 , 0 );
 		}
-		g.drawText( pos , size , m_title.c_str() , true );
+		g.drawText( pos , size , mTitle.c_str() , true );
 	}
 }
 
@@ -693,4 +693,35 @@ void GSlider::onRender()
 {
 	IGraphics2D& g = Global::getIGraphics2D();
 	gRenderer.drawSilder( g , getWorldPos() , getSize() , m_tipUI->getWorldPos() , TipSize );
+}
+
+GCheckBox::GCheckBox(int id , Vec2i const& pos , Vec2i const& size , GWidget* parent) 
+	:BaseClass( id , pos , size , parent )
+{
+	isCheck = false;
+	mID = id;
+}
+
+void GCheckBox::onRender()
+{
+	IGraphics2D& g = Global::getIGraphics2D();
+	Vec2i pos  = getWorldPos();
+	Vec2i size = getSize();
+
+	if ( isCheck )
+	{
+		RenderUtility::setBrush( g , Color::eRed );
+		RenderUtility::setPen( g , Color::eWhite );
+	}
+	else
+	{
+		RenderUtility::setBrush( g , Color::eBlue );
+		RenderUtility::setPen( g , Color::eBlack );
+	}
+
+	g.drawRect( pos , size );
+
+	RenderUtility::setFont( g , FONT_S12 );
+	g.setTextColor(255 , 255 , 0 );
+	g.drawText( pos , size , mTitle.c_str() );
 }

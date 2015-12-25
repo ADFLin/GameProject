@@ -39,6 +39,7 @@ namespace CAR
 		int majority;
 	};
 
+	typedef std::set< MapTile* > MapTileSet;
 	class  FeatureBase : public ActorContainer
 	{
 	public:
@@ -50,7 +51,7 @@ namespace CAR
 
 		int group;
 		int type;
-		std::set< MapTile* >      mapTiles;
+		MapTileSet  mapTiles;
 		void        addActor( LevelActor& actor );
 		void        removeActor( LevelActor& actor );
 		virtual bool checkComplete(){ return false; }
@@ -135,7 +136,10 @@ namespace CAR
 		CityFeature();
 		
 		bool haveCathedral;
+		bool isCastle;
 		std::set< FarmFeature* > linkFarms;
+
+		bool isSamllCircular();
 
 
 		virtual void mergeData( FeatureBase& other , MapTile const& putData , int meta ) override;

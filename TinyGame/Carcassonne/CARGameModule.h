@@ -34,6 +34,9 @@ namespace CAR
 			resultExitGame = false;
 			resultSkipAction = false;
 		}
+
+		template< class T >
+		T* cast(){ return static_cast< T* >( this ); }
 		bool resultExitGame;
 		bool resultSkipAction;
 	};
@@ -79,8 +82,8 @@ namespace CAR
 			resultIndex = 0;
 		}
 		SelectActionReason reason;
-		int resultIndex;
-		int numSelection;
+		unsigned resultIndex;
+		unsigned numSelection;
 
 		bool canSkip()
 		{
@@ -93,7 +96,7 @@ namespace CAR
 
 		bool checkResultVaild() const
 		{
-			return 0 <= resultIndex && resultIndex < numSelection;
+			return resultIndex < numSelection;
 		}
 	};
 
@@ -154,9 +157,28 @@ namespace CAR
 		}
 	};
 
+	struct GameAuctionTileData : public GameActionData
+	{
+		std::vector< TileId > auctionTiles;
+		
+		TileId   tileIdRound;
+		int      pIdRound;
+		int      pIdCallMaxScore;
+		int      pIdCur;
+		int      maxScore;
+		
+		unsigned resultIndexTileSelect;
+		union 
+		{
+			unsigned resultRiseScore;
+			bool     resultBuy;
+
+		};
+	};
+
 	class GameModule;
 
-	class IGameCoroutine
+	class IGameInput
 	{
 	public:
 		virtual void waitPlaceTile( GameModule& module , GamePlaceTileData& data ) = 0;
@@ -165,6 +187,9 @@ namespace CAR
 		virtual void waitSelectActor( GameModule& module , GameSelectActorData& data ) = 0;
 		virtual void waitSelectActorInfo( GameModule& module , GameSelectActorInfoData& data ) = 0;
 		virtual void waitTurnOver( GameModule& moudule , GameActionData& data ) = 0;
+		virtual void waitAuctionTile( GameModule& moudule , GameAuctionTileData& data ) = 0;
+		virtual void waitBuyAuctionedTile( GameModule& moudule , GameAuctionTileData& data ) = 0;
+
 	};
 
 	class GameRandom
@@ -200,7 +225,7 @@ namespace CAR
 		void   setupSetting( GameSetting& setting );
 		void   restart( bool bInit );
 		Level& getLevel(){ return mLevel; }
-		void   runLogic( IGameCoroutine& cort );
+		void   runLogic( IGameInput& input );
 
 
 		void   loadSetting( bool bInit );
@@ -229,13 +254,21 @@ namespace CAR
 
 		bool   checkGameState( GameActionData& actionData , TurnResult& result );
 
-		TurnResult  resolvePlayerTurn( IGameCoroutine& cort , PlayerBase* curTrunPlayer );
-		TurnResult  resolveCompleteFeature( IGameCoroutine& cort , FeatureBase& feature );
-		TurnResult  resolveAbbey( IGameCoroutine& cort , PlayerBase* curTurnPlayer );
-		TurnResult  resolveDragonMove( IGameCoroutine& cort , LevelActor& dragon );
-		TurnResult  resolvePrincess( IGameCoroutine& cort , MapTile* placeMapTile , bool& haveDone );
-		TurnResult  resolveTower(IGameCoroutine& cort , PlayerBase* curTurnPlayer , bool& haveDone );
+		TurnResult  resolvePlayerTurn( IGameInput& input , PlayerBase* curTrunPlayer );
+		TurnResult  resolveCompleteFeature( IGameInput& input , FeatureBase& feature );
+		TurnResult  resolveAbbey( IGameInput& input , PlayerBase* curTurnPlayer );
+		TurnResult  resolveDragonMove( IGameInput& input , LevelActor& dragon );
+		TurnResult  resolvePrincess( IGameInput& input , MapTile* placeMapTile , bool& haveDone );
+		TurnResult  resolveTower(IGameInput& input , PlayerBase* curTurnPlayer , bool& haveDone );
+		TurnResult  resolveAuction(IGameInput& input , PlayerBase* curTurnPlayer );
 
+
+		static bool canDeployFollower( MapTile const& mapTile )
+		{
+			if ( mapTile.towerHeight != 0 )
+				return false;
+			return true;
+		}
 
 
 		PlayerBase* getTurnPlayer(){ return mPlayerOrders[ mIdxPlayerTrun ]; }
@@ -251,16 +284,16 @@ namespace CAR
 
 
 		int    getMaxFieldValuePlayer( FieldType::Enum type , PlayerBase* outPlayer[] , int& maxValue );
+		int    updatePosibleLinkPos( PutTileParam& param );
 		int    updatePosibleLinkPos();
-
 		typedef MapTile::FarmNode FarmNode;
 		typedef MapTile::SideNode SideNode;
 
 		static void FillActionData( GameFeatureTileSelectData& data , std::vector< FeatureBase* >& linkFeatures, std::vector< MapTile* >& mapTiles );
 
 
-		FarmFeature*  updateFarm( MapTile& putData , unsigned idxMask );
-		FeatureBase*  updateBasicSideFeature( MapTile& putData , unsigned dirMask , SideType linkType );
+		FarmFeature*  updateFarm( MapTile& mapTile , unsigned idxMask );
+		FeatureBase*  updateBasicSideFeature( MapTile& mapTile , unsigned dirMask , SideType linkType );
 
 		FeatureBase*  getFeature( int group );
 		template< class T >
@@ -311,8 +344,8 @@ namespace CAR
 
 		void addUpdateFeature( FeatureBase* feature , bool bAbbeyUpdate = false );
 
-		void placeAllTileDebug();
-		
+		void placeAllTileDebug( int numRow );
+
 		struct FeatureUpdateInfo
 		{
 			FeatureUpdateInfo( FeatureBase* aFeature , bool abAbbeyUpdate = false )

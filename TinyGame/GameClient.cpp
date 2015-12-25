@@ -74,7 +74,7 @@ void ClientWorker::postChangeState( NetActionState oldState )
 		mNetListener->onChangeActionState( getActionState() );
 }
 
-void ClientWorker::onConnect( Connection* con )
+void ClientWorker::onConnect( NetConnection* con )
 {
 	assert( con == &mTcpClient );
 	try 
@@ -101,7 +101,7 @@ void ClientWorker::onConnect( Connection* con )
 	}
 }
 
-void ClientWorker::onClose( Connection* con , ConCloseReason reason )
+void ClientWorker::onClose( NetConnection* con , ConCloseReason reason )
 {
 	assert( con == &mTcpClient );
 
@@ -112,7 +112,7 @@ void ClientWorker::onClose( Connection* con , ConCloseReason reason )
 	}
 }
 
-bool ClientWorker::onRecvData( Connection* con , SBuffer& buffer , NetAddress* clientAddr  )
+bool ClientWorker::onRecvData( NetConnection* con , SBuffer& buffer , NetAddress* clientAddr  )
 {
 	if ( clientAddr )
 	{
@@ -130,7 +130,7 @@ bool ClientWorker::onRecvData( Connection* con , SBuffer& buffer , NetAddress* c
 		}
 		else
 		{
-			return mUdpClient.evalCommand( getEvaluator() , buffer );
+			return EvalCommand( mUdpClient , getEvaluator() , buffer );
 		}
 	}
 	else
@@ -146,7 +146,7 @@ bool ClientWorker::onRecvData( Connection* con , SBuffer& buffer , NetAddress* c
 	}
 }
 
-void ClientWorker::onConnectFailed( Connection* con )
+void ClientWorker::onConnectFailed( NetConnection* con )
 {
 	if ( mClientListener )
 		mClientListener->onServerEvent( ClientListener::eCON_RESULT , 0 );
@@ -276,10 +276,10 @@ void ClientWorker::sendCommand( int channel , IComPacket* cp , unsigned flag )
 	switch( channel )
 	{
 	case CHANNEL_TCP_CONNECT:
-		mTcpClient.getSendCtrl().fillBuffer( getEvaluator() , cp );
+		FillBufferByCom( mTcpClient.getSendCtrl() , cp );
 		break;
 	case CHANNEL_UDP_CHAIN:
-		mUdpClient.getSendCtrl().fillBuffer( getEvaluator() , cp );
+		FillBufferByCom( mUdpClient.getSendCtrl() , cp );
 		break;
 	}	
 }
@@ -295,7 +295,7 @@ void ClientWorker::sreachLanServer()
 	addUdpCom( &com , addr );
 }
 
-void ClientWorker::onSendData( Connection* con )
+void ClientWorker::onSendData( NetConnection* con )
 {
 	assert( con == &mUdpClient );
 	sendUdpCom( mUdpClient.getSocket() );
@@ -367,15 +367,15 @@ void DelayClientWorker::sendCommand( int channel , IComPacket* cp , unsigned fla
 	switch( channel )
 	{
 	case CHANNEL_TCP_CONNECT:
-		mSDCTcp.add( getEvaluator() , cp );
+		mSDCTcp.add( cp );
 		break;
 	case CHANNEL_UDP_CHAIN:
-		mSDCUdp.add( getEvaluator() , cp );
+		mSDCUdp.add( cp );
 		break;
 	}	
 }
 
-bool DelayClientWorker::onRecvData( Connection* con , SBuffer& buffer , NetAddress* clientAddr )
+bool DelayClientWorker::onRecvData( NetConnection* con , SBuffer& buffer , NetAddress* clientAddr )
 {
 	if ( clientAddr )
 	{
@@ -447,13 +447,13 @@ void SendDelayCtrl::update( long time )
 }
 
 
-bool SendDelayCtrl::add( ComEvaluator& evaluator , IComPacket* cp )
+bool SendDelayCtrl::add( IComPacket* cp )
 {
 	MUTEX_LOCK( mMutexBuffer );
 
 	SendInfo info;
 
-	info.size = FillBufferByCom( evaluator , mBuffer , cp );
+	info.size = FillBufferByCom( mBuffer , cp );
 
 	if ( info.size == 0 )
 		return false;
@@ -491,7 +491,7 @@ void RecvDelayCtrl::update( long time , UdpClient& client , ComEvaluator& evalua
 		{
 			if ( iter->isUdpPacket )
 			{
-				client.evalCommand( evaluator , mBuffer );
+				EvalCommand( client , evaluator , mBuffer );
 			}
 			else
 			{

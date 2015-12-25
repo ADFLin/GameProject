@@ -52,6 +52,7 @@ namespace CAR
 		bool        havePlayerActorMask(unsigned playerMask , unsigned actorTypeMask );
 		LevelActor* iteratorActorMask(unsigned playerMask , unsigned actorTypeMask , int& iter);
 		LevelActor* iteratorActorMask(unsigned playerMask , int& iter);
+		LevelActor* findActor(unsigned playerMask , unsigned actorTypeMask );
 
 		ActorList mActors;
 	};

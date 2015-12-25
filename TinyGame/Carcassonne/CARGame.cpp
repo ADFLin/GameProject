@@ -58,15 +58,39 @@ namespace CAR
 		IGamePackage::beginPlay( type , manger );
 	}
 
+	struct ExpInfo
+	{
+		int exp;
+		char const* name;
+	};
+
+	ExpInfo UsageExp[] = 
+	{
+		{ EXP_INNS_AND_CATHEDRALS , "Inns And Cathedrals" } ,
+		{ EXP_TRADERS_AND_BUILDERS , "Traders And Builders" } ,
+		{ EXP_THE_PRINCESS_AND_THE_DRAGON , "The Princess And The Dragon" } ,
+		{ EXP_THE_TOWER , "The Tower" } ,
+		{ EXP_ABBEY_AND_MAYOR , "Abbey And Mayor" } ,
+		{ EXP_KING_AND_ROBBER , "King And Robber" } ,
+		{ EXP_THE_RIVER , "The River" } ,
+		{ EXP_THE_RIVER_II , "The River II" } ,
+	};
+
 	class CNetRoomSettingHelper : public NetRoomSettingHelper
 	{
 	public:
 		CNetRoomSettingHelper( CGamePackage* game )
-			:mGame( game ){}
+			:mGame( game )
+		{
+			mExpMask = 0;
+		}
 
 		enum
 		{
 			UI_RULE_CHOICE = UI_GAME_ID ,
+
+			UI_EXP ,
+			UI_EXP_END = UI_EXP + NUM_EXPANSIONS ,
 
 		};
 		enum
@@ -85,46 +109,58 @@ namespace CAR
 		}
 		virtual void doSetupSetting( bool beServer )
 		{
+			mExpMask = 0;
+			setMaxPlayerNum( CAR::MaxPlayerNum );
 			setupBaseUI();
+		}
+
+		virtual bool onWidgetEvent( int event ,int id , GWidget* widget )
+		{
+			if ( UI_EXP <= id && id < UI_EXP_END )
+			{
+				if ( widget->cast< GCheckBox >()->isCheck )
+				{
+					mExpMask |= BIT( id - UI_EXP );
+				}
+				else
+				{
+					mExpMask &= ~BIT( id - UI_EXP );
+				}
+				modifyCallback( getSettingPanel() );
+				return false;
+			}
+			return true;
 		}
 
 		void setupBaseUI()
 		{
-			GChoice* choice = mSettingPanel->addChoice( UI_RULE_CHOICE , LAN("Game Rule") , MASK_BASE );
-		}
-
-		bool onWidgetEvent( int event ,int id , GWidget* widget )
-		{
-			switch( id )
+			GCheckBox* checkBox;
+			int id = UI_EXP;
+			for( int i = 0 ; i < ARRAY_SIZE( UsageExp ) ; ++i )
 			{
-			case UI_RULE_CHOICE:
-				getSettingPanel()->removeGui( MASK_RULE );
-				getSettingPanel()->adjustGuiLocation();
-				modifyCallback( getSettingPanel() );
-				return false;
+				checkBox = mSettingPanel->addCheckBox( UI_EXP + UsageExp[i].exp , UsageExp[i].name , MASK_BASE );
+				checkBox->isCheck = ( mExpMask & BIT( UsageExp[i].exp ) ) != 0;
 			}
-
-			return true;
 		}
 
 		virtual void setupGame( StageManager& manager , GameSubStage* subStage )
 		{
-
+			LevelStage* myStage = static_cast< LevelStage* >( subStage );
+			myStage->getSetting().mExpansionMask = mExpMask;
 		}
 		virtual void doSendSetting( DataStreamBuffer& buffer )
 		{
-			setMaxPlayerNum( CAR::MaxPlayerNum );
-
-			//int rule = mGame->getRule();
-			//buffer.fill( rule );
-
+			buffer.fill( mExpMask );
 		}
 		virtual void doRecvSetting( DataStreamBuffer& buffer )
 		{
 			getSettingPanel()->removeGui( MASK_BASE | MASK_RULE );
-			//getSettingPanel()->adjustGuiLocation();
-			//setupBaseUI();
+			getSettingPanel()->adjustGuiLocation();
+
+			buffer.take( mExpMask );
+			setupBaseUI();
 		}
+		uint32        mExpMask;
 		CGamePackage* mGame;
 	};
 

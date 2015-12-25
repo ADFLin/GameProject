@@ -82,6 +82,7 @@ static EmptyNetEngine gEmptyNetEngine;
 NetRoomStage::NetRoomStage()
 {
 	mConnectPanel     = NULL;
+	mNeedSendSetting = false;
 }
 
 NetRoomStage::~NetRoomStage()
@@ -411,6 +412,11 @@ void NetRoomStage::onServerEvent( EventID event , unsigned msg )
 void NetRoomStage::onUpdate( long time )
 {
 	BaseClass::onUpdate( time );
+	if ( mNeedSendSetting && ::GetTickCount() - mLastSendSetting > 500 )
+	{
+		sendGameSetting();
+		mNeedSendSetting = false;
+	}
 	::Global::getGUI().updateFrame( time / gDefaultTickTime , gDefaultTickTime );
 }
 
@@ -673,6 +679,10 @@ void NetRoomStage::onModify( GWidget* ui )
 		if ( haveServer() && mLastSendSetting - ::GetTickCount() > MinSendSettingTime )
 		{
 			sendGameSetting();
+		}
+		else
+		{
+			mNeedSendSetting = true;
 		}
 	}
 }

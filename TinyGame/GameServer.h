@@ -243,10 +243,10 @@ protected:
 
 
 
-	virtual void onSendData( Connection* con );
-	virtual bool onRecvData( Connection* con , SBuffer& buffer ,NetAddress* clientAddr );
-	virtual void onAccpetClient( Connection* con );
-	virtual void onClose( Connection* con , ConCloseReason reason );
+	virtual void onSendData( NetConnection* con );
+	virtual bool onRecvData( NetConnection* con , SBuffer& buffer ,NetAddress* clientAddr );
+	virtual void onAccpetClient( NetConnection* con );
+	virtual void onClose( NetConnection* con , ConCloseReason reason );
 
 public:
 	GAME_API bool kickPlayer( unsigned id );
@@ -305,14 +305,8 @@ class LocalWorker : public ComWorker
 public:
 	IPlayerManager*  getPlayerManager()    {  return mPlayerMgr;  }
 
-	void  sendCommand( int channel , IComPacket* cp , unsigned flag )
-	{  
-		::FillBufferByCom( mServer->getEvaluator() , mSendBuffer , cp );  
-	}
-	void  recvCommand( IComPacket* cp )
-	{  
-		::FillBufferByCom( getEvaluator() , mRecvBuffer , cp );  
-	}
+	void  sendCommand( int channel , IComPacket* cp , unsigned flag );
+	void  recvCommand( IComPacket* cp );
 protected:
 
 	void  doUpdate( long time );

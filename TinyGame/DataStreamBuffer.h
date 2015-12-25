@@ -8,7 +8,8 @@
 
 struct  GrowThrowPolicy
 {
-	static bool check( char*& data , size_t& max , size_t cur ,  size_t num , bool beTake );
+	static bool checkFill( char*& data , size_t& max , size_t cur ,  size_t num );
+	static bool checkTake( char*& data , size_t& max , size_t cur ,  size_t num );
 };
 
 class  DataStreamBuffer : public StreamBuffer< GrowThrowPolicy >

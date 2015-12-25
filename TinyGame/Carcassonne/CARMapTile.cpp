@@ -9,6 +9,7 @@ namespace CAR
 		,rotation(rotation)
 		,renderData(nullptr)
 		,towerHeight(0)
+		,bridgeMask(0)
 		,group(-1)
 	{
 
@@ -18,7 +19,9 @@ namespace CAR
 			node.index      = i;
 			node.outConnect = nullptr;
 			node.group  = -1;
-			unsigned mask = mTile->getSideLinkMask( FDir::ToLocal( i , rotation ) );
+			int lDir = FDir::ToLocal( i , rotation );
+			node.type = mTile->getLinkType( lDir );
+			unsigned mask = mTile->getSideLinkMask( lDir );
 			assert(( mask & ~Tile::AllSideMask ) == 0 );
 			node.linkMask = FBit::RotateLeft( mask , rotation , 4 );
 		}
@@ -43,7 +46,7 @@ namespace CAR
 
 	CAR::SideType MapTile::getLinkType(int dir) const
 	{
-		return mTile->getLinkType( FDir::ToLocal( dir , rotation ) );
+		return sideNodes[ dir ].type;
 	}
 
 	int MapTile::getFarmGroup(int idx)
@@ -127,6 +130,23 @@ namespace CAR
 	unsigned MapTile::getTileContent() const
 	{
 		return mTile->contentFlag;
+	}
+
+	void MapTile::addBridge(int dir)
+	{
+		int invDir = FDir::Inverse( dir );
+		assert( getLinkType( dir ) == eField && getLinkType( FDir::Inverse( invDir ) ) == eField );
+
+		unsigned linkMask = BIT( dir ) | BIT( invDir );
+		sideNodes[dir].type = SideType::eRoad;
+		removeLinkMask( dir );
+		sideNodes[dir].linkMask = linkMask;
+
+		sideNodes[invDir].type = SideType::eRoad;
+		removeLinkMask( invDir );
+		sideNodes[invDir].linkMask = linkMask;
+
+		bridgeMask |= linkMask;
 	}
 
 	int MapTile::SideNode::getLocalDir() const

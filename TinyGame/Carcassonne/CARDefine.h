@@ -22,11 +22,12 @@ namespace CAR
 	enum Expansion
 	{
 		EXP_INNS_AND_CATHEDRALS ,
-		EXP_TRADEERS_AND_BUILDERS ,
+		EXP_TRADERS_AND_BUILDERS ,
 		EXP_THE_PRINCESS_AND_THE_DRAGON ,
 		EXP_THE_TOWER ,
 		EXP_ABBEY_AND_MAYOR ,
 		EXP_KING_AND_ROBBER ,
+		EXP_BRIDGES_CASTLES_AND_BAZAARS ,
 
 		EXP_THE_RIVER ,
 		EXP_THE_RIVER_II ,
@@ -57,6 +58,7 @@ namespace CAR
 			eMagicPortal  = BIT(4) , //EXP_THE_PRINCESS_AND_THE_DRAGON
 			eCityCloister = BIT(6) , //EXP_THE_PRINCESS_AND_THE_DRAGON  Start //TODO
 			eTowerFoundation = BIT(7), //EXP_THE_TOWER
+			eBazaar       = BIT(8), //EXP_BRIDGES_CASTLES_AND_BAZAARS
 
 		};
 
@@ -73,6 +75,7 @@ namespace CAR
 			eGrainHouse = BIT(3) , //6 //EXP_TRADEERS_AND_BUILDERS
 			eClothHouse = BIT(4) , //5 //EXP_TRADEERS_AND_BUILDERS
 			ePrincess   = BIT(5) , //EXP_THE_PRINCESS_AND_THE_DRAGON
+			eNotSemiCircularCity = BIT(6) , //EXP_BRIDGES_CASTLES_AND_BAZAARS
 		};
 	};
 
@@ -132,6 +135,10 @@ namespace CAR
 			eTowerPices ,
 			//EXP_ABBEY_AND_MAYOR
 			eAbbeyPices ,
+			//EXP_BRIDGES_CASTLES_AND_BAZAARS
+			eBridgePices ,
+			eCastleTokens ,
+			eTileIdAuctioned ,
 
 			NUM,
 		};
@@ -141,6 +148,7 @@ namespace CAR
 	{
 		//Must > 0
 		TILE_START_TAG = 1,
+		TILE_FRIST_PLAY_TAG ,
 		TILE_END_TAG ,
 		TILE_ABBEY , //EXP_ABBEY_AND_MAYOR
 	};

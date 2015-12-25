@@ -58,6 +58,19 @@ namespace CAR
 
 
 
+	struct PutTileParam
+	{
+		PutTileParam()
+		{
+			usageBridge = 0;
+			checkRiverConnect = 0;
+			dirNeedUseBridge = -1;
+		}
+		uint8 usageBridge : 1;
+		uint8 checkRiverConnect : 1;
+
+		int   dirNeedUseBridge;
+	};
 
 	class Level
 	{
@@ -66,21 +79,13 @@ namespace CAR
 		void restart();
 
 		Tile const& getTile( TileId id ) const;
-		enum
-		{
-			eDontCheckRiverConnect = BIT(0),
-			eUsageBridage     = BIT(1),
-		};
-		MapTile*    placeTile( TileId tileId , Vec2i const& pos , int rotation , unsigned flag = 0 );
-		MapTile*    placeTileNoCheck( TileId tileId , Vec2i const& pos , int rotation , unsigned flag = 0 );
+		MapTile*    placeTile( TileId tileId , Vec2i const& pos , int rotation , PutTileParam& param );
+		MapTile*    placeTileNoCheck( TileId tileId , Vec2i const& pos , int rotation , PutTileParam& param );
+		bool        canPlaceTile( TileId tileId , Vec2i const& pos , int rotation , PutTileParam& param );
+		int         getPosibleLinkPos( TileId tileId , std::vector< Vec2i >& outPos , PutTileParam& param );
 		MapTile*    findMapTile( Vec2i const& pos );
-		bool        canPlaceTile( TileId tileId , Vec2i const& pos , int rotation , unsigned flag = 0 );
-		int         getPosibleLinkPos( TileId tileId  , std::vector< Vec2i >& outPos );
+		bool        isEmptyLinkPos( Vec2i const& pos );
 
-
-		void  DBGPutAllTile( int rotation );
-
-		
 		void incCheckCount();
 
 		struct VecCmp

@@ -148,6 +148,7 @@ protected:
 	ComMsgPanel*        mMsgPanel;
 	GButton*            mReadyButton;
 	GButton*            mExitButton;
+	bool                mNeedSendSetting;
 
 };
 

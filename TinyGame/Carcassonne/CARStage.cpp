@@ -16,9 +16,8 @@
 
 namespace CAR
 {
-	float const RenderScale = 60;
-
 	static Vec2f const SidePos[] = { Vec2f(0.5,0) , Vec2f(0,0.5) , Vec2f(-0.5,0) , Vec2f(0,-0.5) };
+	static Vec2f const CornerPos[] = { Vec2f(0.5,0.5) , Vec2f(-0.5,0.5) , Vec2f(-0.5,-0.5) , Vec2f(0.5,-0.5) };
 	float const farmOffset = 0.425;
 	float const farmOffset2 = 0.25;
 
@@ -30,13 +29,32 @@ namespace CAR
 
 	int ColorMap[] = { Color::eBlack , Color::eRed , Color::eYellow , Color::eGreen , Color::eBlue , Color::eGray };
 
-	Vec2i RenderTileSize = RenderScale * Vec2f( 1 , 1 );
 
 	bool gDrawFarmLink = true;
 	bool gDrawSideLink = true;
 	bool gDrawFeatureInfo = true;
 
-	extern TileDefine DataBasic[];
+	char const* gFieldNames[] = 
+	{
+		"Meeple" ,
+		"BigMeeple" ,
+		"Mayor" ,
+		"Wagon" ,
+		"Barn"  ,
+		"Builder" ,
+		"Pig" ,
+		"Gain" ,
+		"Wine" ,
+		"Cloth" ,
+		"Tower" ,
+		"Abbey" ,
+	};
+
+	char const* gActorShortNames[] =
+	{
+		"M" , "BM" , "MY" , "WG" , "BR" , "B" , "P" , "DG" , "FR" ,
+	};
+
 	bool LevelStage::onInit()
 	{
 		{
@@ -52,6 +70,7 @@ namespace CAR
 				return false;
 			}
 
+			mbISOView = false;
 			mRenderOffset = Vec2f(0,0);
 
 			mViewport = mWorld->createViewport( 0 , 0 , window.getWidth() , window.getHeight() );
@@ -69,15 +88,14 @@ namespace CAR
 			{
 				mCamera = mScene->createCamera();
 				mCamera->setProjectType(CFPT_ORTHOGONAL);
-				float factor = float(  window.getWidth() ) / window.getHeight();
-				float len = window.getWidth() / RenderScale;
-				mCamera->setScreenRange( 0 , len , len / factor , 0 );
+
 				mCamera->setNear( -10000 );
 				mCamera->setFar( 10000 );
 				//mCamera->setAspect( float(  window.getWidth() ) / window.getHeight() );
 				//mCamera->setNear(0.1f);
 				//mCamera->setFar(100000.0f);
-				setRenderOffset( Vec2f(5,5));
+				setRenderScale( 60 );
+				setRenderOffset( Vec2f(0,0));
 			}
 
 			{
@@ -117,7 +135,7 @@ namespace CAR
 		mMoudule.mDebug = ::Global::getSetting().getIntValue( "Debug" , "CAR" , 0 ) != 0;
 		mMoudule.mListener = this;
 		
-		mCoroutine.onAction = std::bind( &LevelStage::onGameAction , 
+		mInput.onAction = std::bind( &LevelStage::onGameAction , 
 			this , std::placeholders::_1 , std::placeholders::_2 , std::placeholders::_3 );
 
 		return true;
@@ -125,15 +143,17 @@ namespace CAR
 
 	void LevelStage::onEnd()
 	{
-		mCoroutine.exitGame();
-		//CFly::cleanupSystem();
+		mInput.exitGame();
+		if ( mSurfaceBufferTake )
+			mSurfaceBufferTake->Release();
+		CFly::cleanupSystem();
 	}
 
 	void LevelStage::onRestart( uint64 seed , bool bInit)
 	{
 		if ( !bInit )
 		{
-			mCoroutine.exitGame();
+			mInput.exitGame();
 			for( int i = 0 ; i < mRenderObjects.size() ; ++i )
 			{
 				mRenderObjects[i]->release();
@@ -146,11 +166,11 @@ namespace CAR
 		if ( ::Global::getSetting().getIntValue( "LoadGame" , "CAR" , 1 )  )
 		{
 			char const* file = ::Global::getSetting().getStringValue( "LoadGameName" , "CAR" , "car_record2" ) ;
-			mCoroutine.load(file);
+			mInput.load(file);
 		}
 		
-		std::function< void ( IGameCoroutine& ) > fun = std::bind( &GameModule::runLogic , &mMoudule , std::placeholders::_1 );
-		mCoroutine.run( fun );
+		std::function< void ( IGameInput& ) > fun = std::bind( &GameModule::runLogic , &mMoudule , std::placeholders::_1 );
+		mInput.run( fun );
 	}
 
 	void LevelStage::onRender(float dFrame)
@@ -185,7 +205,7 @@ namespace CAR
 
 			MapTile& mapData = iter->second;
 
-			g.drawRect( calcRenderPos( mapData.pos ) - RenderTileSize / 2   , RenderTileSize );
+			drawTileRect( g , mapData.pos );
 			drawMapData( g , mapData.pos , mapData );
 		}
 
@@ -199,6 +219,24 @@ namespace CAR
 		{
 
 			Vec2i pos = Vec2i( 10 , 500 );
+			FixString< 512 > str;
+			for( int i = 0 ; i < mSetting.getFieldNum() ; i += 2 )
+			{
+				str += gFieldNames[ mFiledTypeMap[i] ];
+				str += "  ";
+			}
+			g.drawText( pos , str );
+			pos.y += 12;
+
+			str.clear();
+			for( int i = 1 ; i < mSetting.getFieldNum() ; i += 2 )
+			{
+				str += gFieldNames[ mFiledTypeMap[i] ];
+				str += "  ";
+			}
+			g.drawText( pos , str );
+			pos.y += 12;
+			
 			for( int i = 0 ; i < mPlayerManager.getPlayerNum() ; ++i )
 			{
 				pos = showPlayerInfo( g , pos , mPlayerManager.getPlayer(i) , 12 );
@@ -228,12 +266,12 @@ namespace CAR
 
 				if ( feature->group != -1 )
 				{
-					for( std::set< MapTile*>::iterator iter = feature->mapTiles.begin() , itEnd = feature->mapTiles.end() ;
+					for( MapTileSet::iterator iter = feature->mapTiles.begin() , itEnd = feature->mapTiles.end() ;
 						iter != itEnd ; ++iter )
 					{
 						RenderUtility::setBrush( g , Color::eNull );
 						RenderUtility::setPen( g , Color::eRed );
-						g.drawRect( calcRenderPos( (*iter)->pos ) - RenderTileSize / 2  , RenderTileSize );
+						drawTileRect( g , (*iter)->pos );
 					}
 
 					switch( feature->type )
@@ -249,7 +287,7 @@ namespace CAR
 							{
 								SideNode* node = *iter;
 								Vec2i size( 4 , 4 );
-								g.drawRect( calcRenderPos( Vec2f( node->getMapTile()->pos ) + SidePos[ node->index ] ) - size / 2 , size );
+								g.drawRect( convertToScreenPos( Vec2f( node->getMapTile()->pos ) + SidePos[ node->index ] ) - size / 2 , size );
 							}
 						}
 						break;
@@ -263,7 +301,7 @@ namespace CAR
 							{
 								FarmNode* node = *iter;
 								Vec2i size( 4 ,4 );
-								g.drawRect( calcRenderPos( Vec2f(  node->getMapTile()->pos ) + FarmPos[ node->index ] ) - size / 2 , size );
+								g.drawRect( convertToScreenPos( Vec2f(  node->getMapTile()->pos ) + FarmPos[ node->index ] ) - size / 2 , size );
 							}
 						}
 						break;
@@ -298,57 +336,57 @@ namespace CAR
 			RenderUtility::setPen( g , Color::eWhite );
 
 			FixString< 128 > str;
+			Vec2f screenPos = convertToScreenPos( mapPos );
 			switch( actor->type )
 			{
 			case ActorType::eMeeple:
-				str = "M";
-				g.drawCircle( calcRenderPos( mapPos ) , 10 );
+				g.drawCircle( screenPos , 10 );
 				break;
 			case ActorType::eBigMeeple:
-				str = "BM";
-				g.drawCircle( calcRenderPos( mapPos ) , 15 );
+				g.drawCircle( screenPos , 15 );
 				break;
 
 			case ActorType::eDragon:
 				{
 					Vec2f size( 20 , 20 );
-					g.drawRect( calcRenderPos( mapPos ) - size / 2 ,  size );
+					g.drawRect( screenPos - size / 2 ,  size );
 					g.setTextColor( 255 , 0 , 0 );
-					g.drawText( calcRenderPos( mapPos ) - Vec2i( 20 , 20 ) / 2 , Vec2i( 20 , 20 ) , "D" );
+					g.drawText( screenPos - Vec2i( 20 , 20 ) / 2 , Vec2i( 20 , 20 ) , "D" );
 				}
 				break;
 			case ActorType::eFariy:
 				{
 					Vec2f size( 20 , 20 );
-					g.drawRect( calcRenderPos( mapPos ) - size / 2 ,  size );
+					g.drawRect( screenPos - size / 2 ,  size );
 					g.setTextColor( 255 , 0 , 0 );
-					g.drawText( calcRenderPos( mapPos ) - Vec2i( 20 , 20 ) / 2 , Vec2i( 20 , 20 ) , "F" );
+					g.drawText( screenPos - Vec2i( 20 , 20 ) / 2 , Vec2i( 20 , 20 ) , "F" );
 				}
 				break;
 			case ActorType::eBuilder:
 				{
-					str = "B";
 					Vec2f size( 10 , 20 );
-					g.drawRect( calcRenderPos( mapPos ) - size / 2 ,  size );
+					g.drawRect( screenPos - size / 2 ,  size );
 				}
 				break;
 			case ActorType::ePig:
 				{
-					str = "P";
 					Vec2f size( 20 , 20 );
-					g.drawRect( calcRenderPos( mapPos ) - size / 2 ,  size );
+					g.drawRect( screenPos - size / 2 ,  size );
 				}
 				break;
 			case ActorType::eBarn:
 				{
-					str = "BA";
-					g.drawCircle( calcRenderPos( mapPos ) , 15 );
+					g.drawCircle( screenPos , 15 );
+				}
+				break;
+			case ActorType::eMayor:
+				{
+					g.drawCircle( screenPos , 15 );
 				}
 				break;
 			case ActorType::eWagon:
 				{
-					str = "W";
-					g.drawCircle( calcRenderPos( mapPos ) , 15 );
+					g.drawCircle( screenPos , 15 );
 				}
 				break;
 			}
@@ -356,15 +394,15 @@ namespace CAR
 			if ( actor->owner )
 			{
 				RenderUtility::setFontColor( g , ColorMap[actor->owner->getId()] , COLOR_DEEP );
-				g.drawText( calcRenderPos( mapPos ) - Vec2i( 20 , 20 ) / 2 , Vec2i( 20 , 20 ) , str );
+				g.drawText( screenPos - Vec2i( 20 , 20 ) / 2 , Vec2i( 20 , 20 ) , gActorShortNames[ actor->type ] );
 			}
 		}
 
-		if ( mCoroutine.getAction() == ACTION_PLACE_TILE )
+		if ( mInput.getAction() == ACTION_PLACE_TILE )
 		{
 			RenderUtility::setBrush( g , Color::eNull );
 			RenderUtility::setPen( g , Color::eWhite );
-			g.drawRect( calcRenderPos( mCurMapPos ) - RenderTileSize / 2  , RenderTileSize );
+			drawTileRect( g , mCurMapPos );
 			if ( level.findMapTile( mCurMapPos ) == nullptr )
 			{
 				drawTile( g , Vec2f(mCurMapPos) , level.getTile( mMoudule.mUseTileId ) , mRotation );
@@ -375,20 +413,20 @@ namespace CAR
 				Vec2i pos = mMoudule.mPlaceTilePosList[i];
 				RenderUtility::setBrush( g , Color::eNull );
 				RenderUtility::setPen( g , Color::eGreen );
-				g.drawRect( calcRenderPos( pos ) - RenderTileSize / 2  , RenderTileSize );
+				drawTileRect( g , pos );
 			}
 		}
 
 		char const* actionStr = "Unknown Action";
-		if ( mCoroutine.getAction() != ACTION_NONE )
+		if ( mInput.getAction() != ACTION_NONE )
 		{
-			switch( mCoroutine.getAction() )
+			switch( mInput.getAction() )
 			{
 			case ACTION_SELECT_ACTOR_INFO:
 			case ACTION_SELECT_MAPTILE:
 			case ACTION_SELECT_ACTOR:
 				{
-					GameSelectActionData* myData = static_cast< GameSelectActionData* >( mCoroutine.getActionData() );
+					GameSelectActionData* myData = static_cast< GameSelectActionData* >( mInput.getActionData() );
 #define CASE( ID , STR )\
 			case ID: actionStr = STR; break;
 
@@ -396,12 +434,12 @@ namespace CAR
 					{
 					CASE(SAR_CONSTRUCT_TOWER , "Construct Tower")
 					CASE(SAR_MOVE_DRAGON, "Move Dragon")
+					CASE(SAR_MAGIC_PORTAL,"Magic Portal")
 					CASE(SAR_WAGON_MOVE_TO_FEATURE, "Wagon Move To Feature")
 					CASE(SAR_FAIRY_MOVE_NEXT_TO_FOLLOWER, "Move Fairy")
 					CASE(SAR_TOWER_CAPTURE_FOLLOWER, "Tower Capture Follower")
 					CASE(SAR_PRINCESS_REMOVE_KINGHT, "Princess Remove Kinght")
 					CASE(SAR_EXCHANGE_PRISONERS, "Exchange Prisoners")
-					CASE(SAR_MAGIC_PORTAL,"Magic Portal")
 					}
 #undef CASE
 				}
@@ -412,7 +450,7 @@ namespace CAR
 			case ACTION_DEPLOY_ACTOR:
 				{
 					actionStr = "Deploy Actor";
-					GameDeployActorData* myData = static_cast< GameDeployActorData* >( mCoroutine.getActionData() );
+					GameDeployActorData* myData = static_cast< GameDeployActorData* >( mInput.getActionData() );
 
 					RenderUtility::setBrush( g , Color::eNull );
 					RenderUtility::setPen( g , Color::eWhite );
@@ -427,7 +465,7 @@ namespace CAR
 							ActorPosInfo& info = mMoudule.mActorDeployPosList[ button->indexPos ];
 							Vec2f posNode = calcActorMapPos( info.pos , *myData->mapTile );
 							//posBase + getActorPosMapOffset( info.pos );
-							g.drawLine( button->getPos() + button->getSize() / 2 , calcRenderPos( posNode ) );
+							g.drawLine( button->getPos() + button->getSize() / 2 , convertToScreenPos( posNode ) );
 
 						}
 					}
@@ -435,6 +473,7 @@ namespace CAR
 				break;
 			}
 
+			g.setTextColor( 255 , 0 , 0 );
 			g.drawText( 400 , 10  , actionStr );
 		}
 	}
@@ -454,8 +493,8 @@ namespace CAR
 				if ( node.outConnect )
 				{
 					RenderUtility::setPen( g , color , COLOR_DEEP );
-					g.drawLine( calcRenderPos( mapPos + FarmPos[i] + ( 0.5 - farmOffset ) * SidePos[ Tile::FarmSideDir( i ) ]  ) ,
-						        calcRenderPos( mapPos + FarmPos[i] )  );
+					g.drawLine( convertToScreenPos( mapPos + FarmPos[i] + ( 0.5 - farmOffset ) * SidePos[ Tile::FarmSideDir( i ) ]  ) ,
+						        convertToScreenPos( mapPos + FarmPos[i] )  );
 				}
 
 				if ( ( maskAll & BIT(i) ) == 0 )
@@ -469,13 +508,13 @@ namespace CAR
 						unsigned bit = FBit::Extract( mask );
 						int idx = FBit::ToIndex8( bit );
 						RenderUtility::setPen( g , color , COLOR_DEEP );
-						g.drawLine( calcRenderPos( mapPos + FarmPos[indexPrev] ) , calcRenderPos( mapPos + FarmPos[idx] ) );
+						g.drawLine( convertToScreenPos( mapPos + FarmPos[indexPrev] ) , convertToScreenPos( mapPos + FarmPos[idx] ) );
 						mask &= ~bit;
 						indexPrev = idx;
 					}
 
 					RenderUtility::setPen( g , color , COLOR_DEEP );
-					g.drawLine( calcRenderPos( mapPos + FarmPos[indexPrev] ) , calcRenderPos( mapPos + FarmPos[i] ) );
+					g.drawLine( convertToScreenPos( mapPos + FarmPos[indexPrev] ) , convertToScreenPos( mapPos + FarmPos[i] ) );
 				}
 			}
 		}
@@ -504,7 +543,7 @@ namespace CAR
 				RenderUtility::setBrush( g , color , COLOR_NORMAL );
 				RenderUtility::setPen( g , color , COLOR_NORMAL );
 				Vec2i size( 6 ,6 );
-				g.drawRect( calcRenderPos( mapPos + SidePos[dir] ) - size / 2 , size );
+				g.drawRect( convertToScreenPos( mapPos + SidePos[dir] ) - size / 2 , size );
 
 				unsigned mask = tile.getSideLinkMask( i ) & ~( ( BIT( i+1 ) - 1 ) );
 				while( mask )
@@ -512,7 +551,7 @@ namespace CAR
 					unsigned bit = FBit::Extract( mask );
 					int idx = FBit::ToIndex4( bit );
 					RenderUtility::setPen( g , color , COLOR_LIGHT );
-					g.drawLine( calcRenderPos( mapPos + SidePos[dir] ) , calcRenderPos( mapPos + SidePos[ FDir::ToWorld( idx , rotation ) ] ) );
+					g.drawLine( convertToScreenPos( mapPos + SidePos[dir] ) , convertToScreenPos( mapPos + SidePos[ FDir::ToWorld( idx , rotation ) ] ) );
 					mask &= ~bit;
 				}
 			}
@@ -522,16 +561,18 @@ namespace CAR
 				RenderUtility::setBrush( g , Color::ePurple , COLOR_NORMAL );
 				RenderUtility::setPen( g , Color::ePurple , COLOR_NORMAL );
 				Vec2i size( 4 ,4 );
-				g.drawRect( calcRenderPos( mapPos ) - size / 2 , size );
+				g.drawRect( convertToScreenPos( mapPos ) - size / 2 , size );
 			}
 		}
 	}
+
 
 	Vec2i LevelStage::showPlayerInfo( Graphics2D& g, Vec2i const& pos , PlayerBase* player , int offsetY )
 	{
 		FixString< 512 > str;
 		Vec2i tempPos = pos;
 		FixString< 512 > fieldStr;
+
 		for( int i = 0 ; i < player->mFieldValues.size() ; ++i )
 		{
 			FixString< 32 > temp;
@@ -556,8 +597,9 @@ namespace CAR
 		case FeatureType::eCity:
 			{
 				CityFeature* myFeature = static_cast< CityFeature* >( build );
+				MapTile const* mapTile = myFeature->nodes[0]->getMapTile();
 				g.drawText( tempPos , str.format( " City: ( %d %d , %d ) NodeNum=%d OpenCount=%d  FarmNum=%d " ,
-					myFeature->nodes[0]->getMapTile()->pos.x , myFeature->nodes[0]->getMapTile()->pos.y , myFeature->nodes[0]->index ,
+					mapTile->pos.x , mapTile->pos.y , myFeature->nodes[0]->index ,
 					myFeature->nodes.size() , myFeature->openCount , myFeature->linkFarms.size() ) ) ;
 				tempPos.y += offsetY;
 			}
@@ -565,8 +607,9 @@ namespace CAR
 		case FeatureType::eRoad:
 			{
 				RoadFeature* myFeature = static_cast< RoadFeature* >( build );
+				MapTile const* mapTile = myFeature->nodes[0]->getMapTile();
 				g.drawText( tempPos , str.format( " Road: ( %d %d , %d ) NodeNum=%d OpenCount=%d" ,  
-					myFeature->nodes[0]->getMapTile()->pos.x , myFeature->nodes[0]->getMapTile()->pos.y , myFeature->nodes[0]->index ,
+					mapTile->pos.x , mapTile->pos.y , myFeature->nodes[0]->index ,
 					myFeature->nodes.size() , myFeature->openCount ) );
 				tempPos.y += offsetY;
 			}
@@ -574,8 +617,9 @@ namespace CAR
 		case FeatureType::eFarm:
 			{
 				FarmFeature* myFeature = static_cast< FarmFeature* >( build );
+				MapTile const* mapTile = myFeature->nodes[0]->getMapTile();
 				g.drawText( tempPos , str.format( " Farm: ( %d %d , %d ) NodeNum=%d CityNum=%d" , 
-					myFeature->nodes[0]->getMapTile()->pos.x , myFeature->nodes[0]->getMapTile()->pos.y , myFeature->nodes[0]->index ,
+					mapTile->pos.x , mapTile->pos.y , myFeature->nodes[0]->index ,
 					myFeature->nodes.size() , myFeature->linkCities.size() ) );
 				tempPos.y += offsetY;
 			}
@@ -600,6 +644,7 @@ namespace CAR
 		float offset = 0.2f;
 		switch( key )
 		{
+		case Keyboard::eZ: mbISOView = !mbISOView; setRenderOffset( mRenderOffset ); break;
 		case Keyboard::eR: getStage()->restart( false ); break;
 		case Keyboard::eF: gDrawFarmLink = !gDrawFarmLink; break;
 		case Keyboard::eS: gDrawSideLink = !gDrawSideLink; break;
@@ -647,61 +692,71 @@ namespace CAR
 			return false;
 
 		Level& level = mMoudule.getLevel();
-		if ( msg.onMoving() )
+
+		if ( msg.onLeftDown() )
 		{
-			Vec2i pos = convertToMapPos( msg.getPos() );
+			if ( canInput() )
+			{
+				switch( mInput.getAction() )
+				{
+				case ACTION_PLACE_TILE:
+					mInput.requestPlaceTile( mCurMapPos , mRotation );
+					break;
+				}
+			}
+		}
+		else if ( msg.onMoving() )
+		{
+			Vec2i pos = convertToMapTilePos( msg.getPos() );
 			if ( pos != mCurMapPos )
 			{
 				mCurMapPos = pos;
-				switch( mCoroutine.getAction() )
+				if ( canInput() )
 				{
-				case ACTION_PLACE_TILE:
+					switch( mInput.getAction() )
 					{
-						if ( level.mEmptyLinkPosSet.find( pos ) != level.mEmptyLinkPosSet.end() )
+					case ACTION_PLACE_TILE:
+						if ( level.isEmptyLinkPos( pos ) )
 						{
 							int dir = 0;
 							for(  ; dir < FDir::TotalNum ; ++dir )
 							{
 								int rotation = ( mRotation + dir ) % FDir::TotalNum;
-								if ( mMoudule.getLevel().canPlaceTile( mMoudule.mUseTileId , mCurMapPos , rotation ) )
+								PutTileParam param;
+								param.checkRiverConnect = 1;
+								param.usageBridge = 0;
+								if ( mMoudule.getLevel().canPlaceTile( mMoudule.mUseTileId , mCurMapPos , rotation , param ) )
 								{
 									mRotation = rotation;
 									break;
 								}
 							}
 							mTileShowObject->setLocalOrientation( CFly::CF_AXIS_Z , Math::Deg2Rad( mRotation * 90 ) );
-							
 						}
 						mTileShowObject->setLocalPosition( CFly::Vector3( pos.x , pos.y , 0 ) );
 						mTileShowObject->show( level.findMapTile( pos ) == nullptr );
+						break;
 					}
-					break;
 				}
-			}
-		}
-		else if ( msg.onLeftDown() )
-		{
-			switch( mCoroutine.getAction() )
-			{
-			case ACTION_PLACE_TILE:
-				if ( canInput() )
-					mCoroutine.resquestPlaceTile( mCurMapPos , mRotation );
-				break;
 			}
 		}
 		else if ( msg.onRightDown() )
 		{
-			switch( mCoroutine.getAction() )
+			if ( canInput() )
 			{
-			case ACTION_PLACE_TILE:
+				switch( mInput.getAction() )
 				{
-					Vec2i pos = convertToMapPos( msg.getPos() );
-					if ( level.mEmptyLinkPosSet.find( pos ) != level.mEmptyLinkPosSet.end() )
+				case ACTION_PLACE_TILE:
+					Vec2i pos = convertToMapTilePos( msg.getPos() );
+					if ( level.isEmptyLinkPos( pos ) )
 					{
 						for( int dir = 0 ; dir < FDir::TotalNum ; ++dir )
 						{
 							mRotation = ( mRotation + 1 ) % FDir::TotalNum;
-							if ( mMoudule.getLevel().canPlaceTile( mMoudule.mUseTileId , mCurMapPos , mRotation ) )
+							PutTileParam param;
+							param.checkRiverConnect = 1;
+							param.usageBridge = 0;
+							if ( mMoudule.getLevel().canPlaceTile( mMoudule.mUseTileId , mCurMapPos , mRotation , param ) )
 								break;
 						}
 					}
@@ -710,18 +765,130 @@ namespace CAR
 						mRotation = ( mRotation + 1 ) % FDir::TotalNum;
 					}
 					mTileShowObject->setLocalOrientation( CFly::CF_AXIS_Z , Math::Deg2Rad( mRotation * 90 ) );
+					break;
 				}
-				break;
 			}
 		}
 
 		return true;
 	}
 
-	Vec2i LevelStage::convertToMapPos(Vec2i const& sPos)
+	void LevelStage::setRenderScale(float scale)
 	{
-		Vec2f temp = ( Vec2f( sPos ) / RenderScale - mRenderOffset ) + Vec2f(0.5,0.5);
-		return Vec2i( Math::Floor( temp.x ) , Math::Floor( temp.y ) );
+		mRenderScale = scale;
+		mRenderTileSize = mRenderScale * Vec2f(1,1);
+
+		int w = ::Global::getDrawEngine()->getScreenWidth();
+		int h = ::Global::getDrawEngine()->getScreenHeight();
+		float factor = float( w ) / h;
+		float len = w / ( 2 * mRenderScale );
+		mCamera->setScreenRange( -len , len , -len / factor , len / factor );
+	}
+
+	void LevelStage::setRenderOffset(Vec2f const& a_offset)
+	{
+		mRenderOffset = a_offset;
+
+		Vector3 offset;
+		offset.x = -mRenderOffset.x ;
+		offset.y = -mRenderOffset.y ;
+		offset.z = 0;
+
+		if ( mbISOView )
+			mCamera->setLookAt( offset + Vector3( 10 , 10 , 10 ) , offset , Vector3(0,0,1) );
+		else
+		    mCamera->setLookAt( offset + Vector3(0,0,10) , offset , Vector3(0,1,0) );
+
+		mMatVP = mCamera->getViewMatrix() * mCamera->getProjectionMartix();
+		float det;
+		mMatVP.inverse( mMatInvVP , det );
+
+		for( int i = 0; i < mGameActionUI.size() ; ++i )
+		{
+			GWidget* widget = mGameActionUI[i];
+			switch( widget->getID() )
+			{
+			case UI_ACTOR_POS_BUTTON:
+				{
+					ActorPosButton* button = widget->cast< ActorPosButton >();
+					button->setPos( convertToScreenPos( button->mapPos) );
+				}
+				break;
+			case UI_ACTOR_INFO_BUTTON:
+			case UI_ACTOR_BUTTON:
+			case UI_MAP_TILE_BUTTON:
+				{
+					SelectButton* button = widget->cast< SelectButton >();
+					button->setPos( convertToScreenPos( button->mapPos) );
+				}
+				break;
+			}
+		}
+	}
+
+	Vec2f LevelStage::convertToMapPos(Vec2i const& sPos)
+	{
+		using namespace CFly;
+
+		int h = ::Global::getDrawEngine()->getScreenHeight();
+		int w = ::Global::getDrawEngine()->getScreenWidth();
+
+		if ( mbISOView )
+		{	
+			float x = float( 2 * sPos.x ) / w - 1;
+			float y = 1 - float( 2 * sPos.y ) / h;
+			Vector3 rayStart = transform( Vector3( x , y , 0 ) , mMatInvVP );
+			Vector3 rayEnd = transform( Vector3( x , y , 1 ) , mMatInvVP );
+			Vector3 dir = rayEnd - rayStart;
+			Vector3 temp = rayStart - ( rayStart.z / dir.z ) * ( dir );
+			return Vec2f( temp.x , temp.y );
+		}
+		return ( Vec2f( sPos.x - w / 2 , h / 2 - sPos.y ) / mRenderScale - mRenderOffset );
+	}
+
+	Vec2i LevelStage::convertToMapTilePos(Vec2i const& sPos)
+	{
+		using namespace CFly;
+		Vec2f mapPos = convertToMapPos( sPos );
+		return Vec2i( Math::Floor( mapPos.x + 0.5f ) , Math::Floor( mapPos.y + 0.5f ) );
+	}
+
+	Vec2f LevelStage::convertToScreenPos( Vec2f const& posMap )
+	{
+		using namespace CFly;
+
+		int h = ::Global::getDrawEngine()->getScreenHeight();
+		int w = ::Global::getDrawEngine()->getScreenWidth();
+		if ( mbISOView )
+		{
+			Vector3 pos;
+			pos.x = posMap.x;
+			pos.y = posMap.y;
+			pos.z = 0;
+			pos = transform( pos , mMatVP );
+
+			return  0.5f * Vec2f( ( 1 + pos.x ) * w , ( 1 - pos.y ) * h );
+		}
+
+		Vec2f pos = mRenderScale * ( mRenderOffset + posMap );
+		return Vec2f( w / 2 + pos.x , h / 2 - pos.y );
+	}
+
+	void LevelStage::drawTileRect(Graphics2D& g , Vec2f const& mapPos)
+	{
+		if ( mbISOView )
+		{
+			Vec2i pos[4];
+			for( int i = 0 ; i < 4 ; ++i )
+			{
+				pos[i] = convertToScreenPos( mapPos + CornerPos[i] );
+			}
+			g.drawPolygon( pos , 4 );
+		}
+		else
+		{
+			g.drawRect( convertToScreenPos( mapPos ) - mRenderTileSize / 2 , mRenderTileSize );
+		}
 	}
 
 	bool LevelStage::onWidgetEvent(int event , int id , GWidget* ui)
@@ -733,28 +900,28 @@ namespace CAR
 			{
 				int indexPos = ui->cast< ActorPosButton >()->indexPos;
 				ActorType type = ui->cast< ActorPosButton >()->type;
-				removeGamePlayUI();
-				mCoroutine.resquestDeployActor( indexPos , type );
+				removeGameActionUI();
+				mInput.requestDeployActor( indexPos , type );
 			}
 			return false;
 		case UI_ACTOR_BUTTON:
 		case UI_MAP_TILE_BUTTON:
 			{
 				int index = ui->cast< SelectButton >()->index;
-				removeGamePlayUI();
-				mCoroutine.requestSelect( index );
+				removeGameActionUI();
+				mInput.requestSelect( index );
 			}
 			return false;
 		case UI_ACTION_SKIP:
 			{
-				removeGamePlayUI();
-				mCoroutine.skipAction();
+				removeGameActionUI();
+				mInput.skipAction();
 			}
 			return false;
 		case UI_ACTION_END_TURN:
 			{
 				ui->destroy();
-				mCoroutine.returnGame();
+				mInput.returnGame();
 			}
 			return false;
 		}
@@ -766,7 +933,9 @@ namespace CAR
 	void LevelStage::onGameAction(GameModule& moudule , PlayerAction action , GameActionData* data)
 	{
 		if ( !canInput() )
+		{
 			return;
+		}
 
 		PlayerBase* player = moudule.getTurnPlayer();
 
@@ -808,11 +977,11 @@ namespace CAR
 					int type;
 					for ( int num = 0; FBit::MaskIterator8( mask , type ) ; ++num )
 					{
-						ActorPosButton* button = new ActorPosButton( UI_ACTOR_POS_BUTTON ,  calcRenderPos( pos ) + RenderScale * num * offset - size / 2 , size , nullptr );
+						ActorPosButton* button = new ActorPosButton( UI_ACTOR_POS_BUTTON ,  convertToScreenPos( pos + offset * num  ) - size / 2 , size , nullptr );
 						button->indexPos = i;
 						button->type     = ActorType( type );
 						button->info     = &info;
-						button->mapPos   = pos;
+						button->mapPos   = pos + offset * num;
 						addActionWidget( button );
 					}
 				}
@@ -835,7 +1004,7 @@ namespace CAR
 					Vec2f pos = getActorPosMapOffset( actor->pos );
 					if ( actor->mapTile )
 						pos += actor->mapTile->pos;
-					SelectButton* button = new SelectButton( UI_ACTOR_BUTTON , calcRenderPos( pos ) , Vec2i(20,20) , nullptr );
+					SelectButton* button = new SelectButton( UI_ACTOR_BUTTON , convertToScreenPos( pos ) , Vec2i(20,20) , nullptr );
 					button->index = i;
 					button->actor = actor;
 					button->mapPos = pos;
@@ -878,15 +1047,23 @@ namespace CAR
 
 				if ( myData->reason == SAR_WAGON_MOVE_TO_FEATURE )
 				{
-					for( int i = 0 ; i < myData->numSelection ; ++i )
+					GameFeatureTileSelectData* selectData = static_cast< GameFeatureTileSelectData* >( data );
+					for( int n = 0 ; n < selectData->infos.size() ; ++n )
 					{
-						MapTile* mapTile = myData->mapTiles[i];
-						Vec2f pos = mapTile->pos;
-						SelectButton* button = new SelectButton( UI_MAP_TILE_BUTTON , calcRenderPos( pos ) , Vec2i(20,20) , nullptr );
-						button->index = i;
-						button->mapTile = mapTile;
-						button->mapPos = pos;
-						addActionWidget( button );
+						GameFeatureTileSelectData::Info& info = selectData->infos[n];
+						for( int i = 0 ; i < info.num ; ++i )
+						{
+							int idx = info.index + i;
+							MapTile* mapTile = selectData->mapTiles[ idx ];
+							ActorPos actorPos;
+							info.feature->getActorPos( *mapTile , actorPos );
+							Vec2f pos = calcActorMapPos( actorPos , *mapTile );
+							SelectButton* button = new SelectButton( UI_MAP_TILE_BUTTON , convertToScreenPos( pos ) , Vec2i(20,20) , nullptr );
+							button->index   = idx;
+							button->mapTile = mapTile;
+							button->mapPos  = pos;
+							addActionWidget( button );
+						}
 					}
 				}
 				else
@@ -895,7 +1072,7 @@ namespace CAR
 					{
 						MapTile* mapTile = myData->mapTiles[i];
 						Vec2f pos = mapTile->pos;
-						SelectButton* button = new SelectButton( UI_MAP_TILE_BUTTON , calcRenderPos( pos ) , Vec2i(20,20) , nullptr );
+						SelectButton* button = new SelectButton( UI_MAP_TILE_BUTTON , convertToScreenPos( pos ) , Vec2i(20,20) , nullptr );
 						button->index = i;
 						button->mapTile = mapTile;
 						button->mapPos = pos;
@@ -905,44 +1082,6 @@ namespace CAR
 			}
 			break;
 		}
-	}
-
-	void LevelStage::setRenderOffset(Vec2f const& a_offset)
-	{
-		mRenderOffset = a_offset;
-
-		for( int i = 0; i < mGameActionUI.size() ; ++i )
-		{
-			GWidget* widget = mGameActionUI[i];
-			switch( widget->getID() )
-			{
-			case UI_ACTOR_POS_BUTTON:
-				{
-					ActorPosButton* button = widget->cast< ActorPosButton >();
-					button->setPos( calcRenderPos( button->mapPos) );
-				}
-				break;
-			case UI_ACTOR_INFO_BUTTON:
-			case UI_ACTOR_BUTTON:
-			case UI_MAP_TILE_BUTTON:
-				{
-					SelectButton* button = widget->cast< SelectButton >();
-					button->setPos( calcRenderPos( button->mapPos) );
-				}
-				break;
-			}
-		}
-
-		CFly::Vector3 offset;
-		offset.x = -mRenderOffset.x ;
-		offset.y = -mRenderOffset.y ;
-		offset.z = 0;
-		mCamera->setLookAt( offset + CFly::Vector3(0,0,10) , offset , CFly::Vector3(0,1,0) );
-	}
-
-	Vec2f LevelStage::calcRenderPos(Vec2f const& posMap )
-	{
-		return RenderScale * ( mRenderOffset + posMap );
 	}
 
 	Vec2f LevelStage::calcActorMapPos(ActorPos const& pos , MapTile const& mapTile)
@@ -999,7 +1138,7 @@ namespace CAR
 		case ActorPos::eFarmNode:
 			return FarmPos[ pos.meta ];
 		case ActorPos::eTileCorner:
-			return SidePos[ pos.meta ] + SidePos[ ( pos.meta + 1 ) % FDir::TotalNum ];
+			return CornerPos[ pos.meta ];
 		}
 		return Vec2f(0,0);
 	}
@@ -1026,7 +1165,7 @@ namespace CAR
 		Material* mat = mWorld->createMaterial( Color4f(1,1,1) );
 		Object* obj = mScene->createObject();
 		MeshInfo meshInfo;
-		int indices[] = { 0,2,1,0,3,2 }; 
+		int indices[] = { 0,1,2,0,2,3 }; 
 
 		float vtx[] = 
 		{
@@ -1059,8 +1198,9 @@ namespace CAR
 		{
 		case EXP_BASIC: dir = "Basic"; break;
 		case EXP_INNS_AND_CATHEDRALS: dir = "InnCathedral"; break;
-		case EXP_TRADEERS_AND_BUILDERS: dir = "TraderBuilder"; break;
+		case EXP_TRADERS_AND_BUILDERS: dir = "TraderBuilder"; break;
 		case EXP_THE_RIVER: dir = "River"; break;
+		case EXP_THE_RIVER_II: dir = "River2" ; break;
 		case EXP_THE_PRINCESS_AND_THE_DRAGON: dir = "PrincessDragon"; break;
 		case EXP_THE_TOWER: dir = "Tower"; break;
 		case EXP_ABBEY_AND_MAYOR: dir = "AbbiyMayor"; break;
@@ -1093,6 +1233,16 @@ namespace CAR
 
 	void LevelStage::setupLocalGame(LocalPlayerManager& playerManager)
 	{
+		mSetting.mExpansionMask = 
+			BIT( EXP_THE_RIVER ) | 
+			BIT( EXP_THE_RIVER_II ) | 
+			//BIT( EXP_TRADERS_AND_BUILDERS ) | 
+			//BIT( EXP_INNS_AND_CATHEDRALS ) |
+			//BIT( EXP_THE_PRINCESS_AND_THE_DRAGON ) |
+			//BIT( EXP_THE_TOWER ) |
+			//BIT( EXP_ABBEY_AND_MAYOR ) |
+			0;
+
 		for( int i = 0 ; i < 2 ; ++i )
 		{
 			GamePlayer* player = playerManager.createPlayer(i);
@@ -1123,16 +1273,17 @@ namespace CAR
 			}
 		}
 
-		mSetting.mExpansionMask = 
-			//BIT( EXP_THE_RIVER ) | 
-			BIT( EXP_TRADEERS_AND_BUILDERS ) | 
-			BIT( EXP_INNS_AND_CATHEDRALS ) |
-			BIT( EXP_THE_PRINCESS_AND_THE_DRAGON ) |
-			BIT( EXP_THE_TOWER ) |
-			BIT( EXP_ABBEY_AND_MAYOR );
-
 		mMoudule.mPlayerManager = &mPlayerManager;
 		mMoudule.setupSetting( mSetting );
+
+		for( int i = 0 ; i < FieldType::NUM ; ++i )
+		{
+			int idx = mSetting.getFieldIndex( FieldType::Enum(i) );
+			if ( idx != -1 )
+			{
+				mFiledTypeMap[ idx ] = i;
+			}
+		}
 
 		::Global::getGUI().cleanupWidget();
 
@@ -1140,7 +1291,7 @@ namespace CAR
 		if ( getGameType() == GT_NET_GAME )
 		{
 			ComWorker* worker = static_cast< GameNetLevelStage* >( getStage() )->getWorker();
-			mCoroutine.setDataTransfer( new CWorkerDataTransfer( worker , userSlotId ) );
+			mInput.setDataTransfer( new CWorkerDataTransfer( worker , userSlotId ) );
 			if ( getManager()->getNetWorker()->isServer() )
 			{
 				mServerDataTranfser = new CSVWorkerDataTransfer( getManager()->getNetWorker() , MaxPlayerNum );
@@ -1149,9 +1300,21 @@ namespace CAR
 		}
 	}
 
+	int LevelStage::getActionPlayerId()
+	{
+		if ( mInput.getAction() == ACTION_SELECT_MAPTILE )
+		{
+			GameActionData* data = mInput.getActionData();
+			if ( data->cast< GameSelectActionData >()->reason == SAR_MOVE_DRAGON )
+			{
+				return data->cast< GameDragonMoveData >()->playerId ;
+			}
+		}
+		return mMoudule.getTurnPlayer()->getId();
+	}
 	void LevelStage::onRecvDataSV( int slot , int dataId , void* data , int dataSize )
 	{
-		if ( slot != mMoudule.getTurnPlayer()->getId() )
+		if ( slot != getActionPlayerId() )
 			return;
 		mServerDataTranfser->sendData( SLOT_SERVER , dataId , data , dataSize );
 	}
@@ -1161,13 +1324,33 @@ namespace CAR
 		return getPlayerManager()->getUser()->getActionPort() == mMoudule.getTurnPlayer()->getId();
 	}
 
-	void CGameCoroutine::waitTurnOver( GameModule& moudule , GameActionData& data )
+	bool LevelStage::canInput()
+	{
+		if ( getGameType() == GT_SINGLE_GAME )
+			return true;
+
+		if ( getGameType() == GT_NET_GAME && getActionPlayerId() == getPlayerManager()->getUser()->getActionPort() )
+			return true;
+
+		return false;
+	}
+
+	void LevelStage::removeGameActionUI()
+	{
+		for( int i = 0 ; i < mGameActionUI.size() ; ++i )
+		{
+			mGameActionUI[i]->destroy();
+		}
+		mGameActionUI.clear();
+	}
+
+	void CGameInput::waitTurnOver( GameModule& moudule , GameActionData& data )
 	{
 		mAction = ACTION_NONE;
 		mActionData = &data;
 
 		mOFS << '\n';
-		if ( beRecoredMode && mYeild )
+		if ( beRecoredMode && mYeild && mNumActionInput > ::Global::getSetting().getIntValue( "ShowEndTunUIActionNum" , "CAR" , 0 ) )
 		{
 			GButton* button = new GButton( LevelStage::UI_ACTION_END_TURN , GUISystem::calcScreenCenterPos( Vec2i(100,30) ) + Vec2i(0,200) , Vec2i(100,30) , nullptr );
 			button->setTitle( "End Turn");
@@ -1176,7 +1359,7 @@ namespace CAR
 		}
 	}
 
-	void CGameCoroutine::waitActionImpl(GameModule& module , PlayerAction action , GameActionData& data)
+	void CGameInput::waitActionImpl(GameModule& module , PlayerAction action , GameActionData& data)
 	{
 		mAction = action;
 		mActionData = &data;
@@ -1229,7 +1412,7 @@ namespace CAR
 					break;
 				}
 			}
-			resquestInternal();
+			requestInternal();
 		}
 		else
 		{
@@ -1238,7 +1421,7 @@ namespace CAR
 		}
 	}
 
-	void CGameCoroutine::resquestInternal()
+	void CGameInput::requestInternal()
 	{
 		unsigned stateBits = 0;
 		if ( mActionData->resultSkipAction )
@@ -1271,6 +1454,7 @@ namespace CAR
 			}
 		}
 
+		++mNumActionInput;
 		clearAction();
 		if ( beRecoredMode == false && mYeild )
 		{
@@ -1278,7 +1462,7 @@ namespace CAR
 		}
 	}
 
-	bool CGameCoroutine::load(char const* file)
+	bool CGameInput::load(char const* file)
 	{
 		mIFS.open( file , std::ios::in | std::ios::binary );
 		if ( !mIFS.is_open() )
@@ -1289,7 +1473,7 @@ namespace CAR
 		return true;
 	}
 
-	bool CGameCoroutine::save(char const* file)
+	bool CGameInput::save(char const* file)
 	{
 		std::ofstream fs( file , std::ios::binary );
 		if ( !fs.is_open() )
@@ -1301,25 +1485,25 @@ namespace CAR
 		return true;
 	}
 
-	void CGameCoroutine::doResquestPlaceTile(Vec2i const& pos , int rotation)
+	void CGameInput::doRequestPlaceTile(Vec2i const& pos , int rotation)
 	{
 		assert( mAction == ACTION_PLACE_TILE );
 		GamePlaceTileData* myData = static_cast< GamePlaceTileData* >( mActionData );
 		myData->resultPos = pos;
 		myData->resultRotation = rotation;
-		resquestInternal();
+		requestInternal();
 	}
 
-	void CGameCoroutine::doResquestDeployActor(int index , ActorType type)
+	void CGameInput::doRequestDeployActor(int index , ActorType type)
 	{
 		assert( mAction == ACTION_DEPLOY_ACTOR );
 		GameDeployActorData* myData = static_cast< GameDeployActorData* >( mActionData );
 		myData->resultIndex = index;
 		myData->resultType  = type;
-		resquestInternal();
+		requestInternal();
 	}
 
-	void CGameCoroutine::doRequestSelect(int index)
+	void CGameInput::doRequestSelect(int index)
 	{
 		assert( mAction == ACTION_SELECT_ACTOR || 
 			mAction == ACTION_SELECT_MAPTILE ||
@@ -1327,19 +1511,19 @@ namespace CAR
 
 		GameSelectActionData* myData = static_cast< GameSelectActionData* >( mActionData );
 		myData->resultIndex = index;
-		resquestInternal();
+		requestInternal();
 	}
 
-	void CGameCoroutine::doSkipAction()
+	void CGameInput::doSkipAction()
 	{
 		if ( mActionData )
 		{
 			mActionData->resultSkipAction = true;
-			resquestInternal();
+			requestInternal();
 		}
 	}
 
-	void CGameCoroutine::resquestPlaceTile(Vec2i const& pos , int rotation)
+	void CGameInput::requestPlaceTile(Vec2i const& pos , int rotation)
 	{
 		assert( mAction == ACTION_PLACE_TILE );
 		if ( mDataTransfer )
@@ -1352,11 +1536,11 @@ namespace CAR
 		}
 		else
 		{
-			doResquestPlaceTile( pos , rotation );
+			doRequestPlaceTile( pos , rotation );
 		}
 	}
 
-	void CGameCoroutine::resquestDeployActor(int index , ActorType type)
+	void CGameInput::requestDeployActor(int index , ActorType type)
 	{
 		assert( mAction == ACTION_DEPLOY_ACTOR );
 		if ( mDataTransfer )
@@ -1369,11 +1553,11 @@ namespace CAR
 		}
 		else
 		{
-			doResquestDeployActor( index , type );
+			doRequestDeployActor( index , type );
 		}
 	}
 
-	void CGameCoroutine::requestSelect(int index)
+	void CGameInput::requestSelect(int index)
 	{
 		assert( mAction == ACTION_SELECT_ACTOR || 
 			    mAction == ACTION_SELECT_MAPTILE ||
@@ -1392,7 +1576,7 @@ namespace CAR
 		}
 	}
 
-	void CGameCoroutine::skipAction()
+	void CGameInput::skipAction()
 	{
 		if ( mDataTransfer )
 		{
@@ -1406,13 +1590,13 @@ namespace CAR
 		}
 	}
 
-	void CGameCoroutine::setDataTransfer(IDataTransfer* transfer)
+	void CGameInput::setDataTransfer(IDataTransfer* transfer)
 	{
 		mDataTransfer = transfer;
-		mDataTransfer->setRecvFun( RecvFun( this , &CGameCoroutine::onRecvCommon ) );
+		mDataTransfer->setRecvFun( RecvFun( this , &CGameInput::onRecvCommon ) );
 	}
 
-	void CGameCoroutine::onRecvCommon(int slot , int dataId , void* data , int dataSize)
+	void CGameInput::onRecvCommon(int slot , int dataId , void* data , int dataSize)
 	{
 		switch( dataId )
 		{
@@ -1438,7 +1622,7 @@ namespace CAR
 		}
 	}
 
-	void CGameCoroutine::requestCommon(ActionCom const& com)
+	void CGameInput::requestCommon(ActionCom const& com)
 	{
 		switch( com.action )
 		{
@@ -1451,7 +1635,7 @@ namespace CAR
 				pos.x = com.params[0].iValue;
 				pos.y = com.params[1].iValue;
 				rotation = com.params[2].iValue;
-				doResquestPlaceTile( pos , rotation );
+				doRequestPlaceTile( pos , rotation );
 			}
 			break;
 		case ACTION_DEPLOY_ACTOR:
@@ -1462,7 +1646,7 @@ namespace CAR
 				ActorType type;
 				index = com.params[0].iValue;
 				type = (ActorType) com.params[1].iValue;
-				doResquestDeployActor( index , type );
+				doRequestDeployActor( index , type );
 			}
 			break;
 		case ACTION_SELECT_ACTOR:
@@ -1499,12 +1683,12 @@ namespace CAR
 		else
 			RenderUtility::setPen( g , Color::eWhite );
 
-		switch( type )
+		switch( info->pos.type )
 		{
-		case ActorType::eMeeple:    RenderUtility::setBrush( g , Color::eYellow , COLOR_DEEP );  break;
-		case ActorType::eBigMeeple: RenderUtility::setBrush( g , Color::eYellow , COLOR_LIGHT ); break;
-		case ActorType::eBuilder:   RenderUtility::setBrush( g , Color::eOrange , COLOR_LIGHT ); break;
-		case ActorType::ePig:       RenderUtility::setBrush( g , Color::eGreen  , COLOR_LIGHT ); break;
+		case ActorPos::eSideNode:    RenderUtility::setBrush( g , Color::eYellow , COLOR_DEEP );  break;
+		case ActorPos::eFarmNode:    RenderUtility::setBrush( g , Color::eGreen , COLOR_LIGHT ); break;
+		case ActorPos::eTile:        RenderUtility::setBrush( g , Color::eOrange , COLOR_LIGHT ); break;
+		case ActorPos::eTileCorner:  RenderUtility::setBrush( g , Color::eYellow  , COLOR_LIGHT ); break;
 		default:
 			RenderUtility::setBrush( g , Color::eGray );
 		}
@@ -1512,10 +1696,8 @@ namespace CAR
 
 		g.setTextColor( 0 , 0 , 0 );
 		FixString< 128 > str;
-		g.drawText( pos , size , str.format( "%d %d" , (int)info->pos.type , info->pos.meta ) , true );
+		g.drawText( pos , size , str.format( "%s" , gActorShortNames[ type ] ) , true );
 	}
-
-
 
 	void SelectButton::onRender()
 	{

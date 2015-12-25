@@ -25,6 +25,7 @@ enum
 	EVT_LISTCTRL_DCLICK ,
 	EVT_LISTCTRL_SELECT ,
 	EVT_SLIDER_CHANGE ,
+	EVT_CHECK_BOX_CHANGE ,
 
 	EVT_ENTER_UI ,
 	EVT_EXIT_UI  ,
@@ -219,10 +220,23 @@ class  GButton : public GButtonBase
 public:
 	GAME_API GButton( int id , Vec2i const& pos , Vec2i const& size  , GWidget* parent );
 
-	void setTitle( char const* str ){ m_title = str; }
+	void setTitle( char const* str ){ mTitle = str; }
 	virtual void onMouse( bool beInside );
 	GAME_API void onRender();
-	std::string m_title;
+	std::string mTitle;
+};
+
+class GCheckBox : public GButtonBase
+{
+	typedef GButtonBase BaseClass;
+public:
+	GAME_API GCheckBox( int id , Vec2i const& pos , Vec2i const& size  , GWidget* parent );
+	virtual void onHotkey( unsigned key ){ onClick();  }
+	virtual void onClick(){  isCheck = !isCheck; sendEvent( EVT_CHECK_BOX_CHANGE );   }
+	GAME_API void onRender();
+	void setTitle( char const* str ){ mTitle = str; }
+	bool isCheck;
+	std::string mTitle;
 };
 
 class  GPanel : public GUI::Panel< GPanel >
@@ -267,7 +281,6 @@ public:
 	GAME_API void doRenderPage( Page* page );
 	GAME_API void doRenderBackground();
 
-
 	Vec2i getButtonSize(){ return Vec2i( 100 , 20 ); }
 	Vec2i getButtonOffset(){ return Vec2i( getButtonSize().x + 5 , 0 ); }
 	Vec2i getPagePos(){ return Vec2i( 0 , getButtonSize().y + 2 ); }
@@ -298,7 +311,7 @@ public:
 
 	void setTitle( char const* str ){ mTitle = str; }
 	bool onChildEvent( int event , int id , GWidget* ui );
-	void onRender();
+	GAME_API void onRender();
 
 	std::string     mTitle;
 };

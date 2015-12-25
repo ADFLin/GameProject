@@ -95,6 +95,12 @@ namespace CAR
 		return actor;
 	}
 
+	LevelActor* ActorContainer::findActor(unsigned playerMask , unsigned actorTypeMask)
+	{
+		int iter = 0;
+		return iteratorActorMask( playerMask , actorTypeMask , iter );
+	}
+
 
 	LevelActor* LevelActor::popFollower()
 	{

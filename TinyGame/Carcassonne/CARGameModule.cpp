@@ -8,9 +8,10 @@
 #include "CARParamValue.h"
 #include "CARDebug.h"
 
-
 namespace CAR
 {
+	unsigned const CANT_FOLLOW_ACTOR_MASK = ( BIT( ActorType::eBuilder ) | BIT( ActorType::ePig ) );
+
 	struct FieldProc
 	{
 		void exec( int type , int value );
@@ -28,7 +29,7 @@ namespace CAR
 		{
 			FIELD_ACTOR( ActorType::eBigMeeple , Value::BigMeeplePlayerOwnNum );
 		}
-		if ( setting.haveUse( EXP_TRADEERS_AND_BUILDERS ) )
+		if ( setting.haveUse( EXP_TRADERS_AND_BUILDERS ) )
 		{
 			FIELD_ACTOR( ActorType::eBuilder , Value::BuilderPlayerOwnNum );
 			FIELD_ACTOR( ActorType::ePig     , Value::PigPlayerOwnNum );
@@ -46,6 +47,12 @@ namespace CAR
 		if ( setting.haveUse( EXP_THE_TOWER ) )
 		{
 			FIELD_VALUE( FieldType::eTowerPices , Value::TowerPicesPlayerOwnNum[ numPlayer ] );
+		}
+		if ( setting.haveUse( EXP_BRIDGES_CASTLES_AND_BAZAARS ) )
+		{
+			FIELD_VALUE( FieldType::eBridgePices , Value::BridgePicesPlayerOwnNum[ numPlayer ] );
+			FIELD_VALUE( FieldType::eCastleTokens , Value::CastleTokensPlayerOwnNum[ numPlayer ] );
+			FIELD_VALUE( FieldType::eTileIdAuctioned , FAIL_TILE_ID );
 		}
 
 #undef FIELD_ACTOR
@@ -138,7 +145,7 @@ namespace CAR
 	}
 
 
-	void GameModule::runLogic(IGameCoroutine& cort)
+	void GameModule::runLogic(IGameInput& input)
 	{
 		if ( mPlayerManager->getPlayerNum() == 0 )
 		{
@@ -153,11 +160,15 @@ namespace CAR
 			TileId startId = generatePlayTile();
 			if ( mDebug )
 			{
-				placeAllTileDebug();
+				placeAllTileDebug( 5 );
 			}
 			else
 			{
-				MapTile* mapTile = mLevel.placeTileNoCheck( startId , Vec2i(0,0) , 0 );
+				PutTileParam param;
+				param.checkRiverConnect = 1;
+				param.usageBridge = 0;
+				
+				MapTile* mapTile = mLevel.placeTileNoCheck( startId , Vec2i(0,0) , 0 , param );
 				mListener->onPutTile( *mapTile );
 				UpdateTileFeatureResult updateResult;
 				updateTileFeature( *mapTile , updateResult );
@@ -176,7 +187,7 @@ namespace CAR
 			PlayerBase* curTrunPlayer = mPlayerOrders[ mIdxPlayerTrun ];
 			curTrunPlayer->startTurn();
 
-			TurnResult result = resolvePlayerTurn( cort , curTrunPlayer );
+			TurnResult result = resolvePlayerTurn( input , curTrunPlayer );
 			if ( result == eFinishGame )
 				break;
 			if ( result == eExitGame )
@@ -185,7 +196,7 @@ namespace CAR
 			if ( mIsRunning )
 			{
 				GameActionData data;
-				cort.waitTurnOver( *this , data );
+				input.waitTurnOver( *this , data );
 				if ( data.resultExitGame )
 					return;
 			}
@@ -244,7 +255,7 @@ namespace CAR
 			}
 		}
 
-		if ( mSetting->haveUse( EXP_TRADEERS_AND_BUILDERS ) )
+		if ( mSetting->haveUse( EXP_TRADERS_AND_BUILDERS ) )
 		{
 			PlayerBase* players[ MaxPlayerNum ];
 			FieldType::Enum treadeFields[] = { FieldType::eWine , FieldType::eGain , FieldType::eCloth };
@@ -308,6 +319,7 @@ namespace CAR
 		//River
 		TileId tileIdStart = FAIL_TILE_ID;
 		TileId tileIdRiverEnd = FAIL_TILE_ID;
+		TileId tileIdFristPlay = FAIL_TILE_ID;
 		if ( useRiver )
 		{
 			if ( mSetting->haveUse( EXP_THE_RIVER_II ) )
@@ -319,6 +331,9 @@ namespace CAR
 				idx = findTagTileIndex( specialTileList , EXP_THE_RIVER_II , TILE_END_TAG );
 				if ( idx != -1 )
 					tileIdRiverEnd = specialTileList[ idx ];
+				idx = findTagTileIndex( specialTileList , EXP_THE_RIVER_II , TILE_FRIST_PLAY_TAG );
+				if ( idx != -1 )
+					tileIdFristPlay = specialTileList[ idx ];
 			}
 
 			if ( mSetting->haveUse( EXP_THE_RIVER ) )
@@ -327,26 +342,28 @@ namespace CAR
 				idx = findTagTileIndex( specialTileList , EXP_THE_RIVER , TILE_START_TAG );
 				if ( idx != -1 )
 				{
+					TileId id = specialTileList[idx];
 					if ( tileIdStart != FAIL_TILE_ID )
 					{
-						tilePieceMap[ specialTileList[idx] ] = 0;
+						tilePieceMap[ id ] = 0;
 					}
 					else
 					{
-						tileIdStart = specialTileList[idx];
+						tileIdStart = id;
 					}
 				}
 
 				idx = findTagTileIndex( specialTileList , EXP_THE_RIVER , TILE_END_TAG );
 				if ( idx != -1 )
 				{
+					TileId id = specialTileList[idx];
 					if ( tileIdRiverEnd != FAIL_TILE_ID )
 					{
-						tilePieceMap[ specialTileList[idx] ] = 0;
+						tilePieceMap[ id ] = 0;
 					}
 					else
 					{
-						tileIdRiverEnd = specialTileList[idx];
+						tileIdRiverEnd = id;
 					}
 				}
 			}
@@ -355,6 +372,8 @@ namespace CAR
 				tilePieceMap[ tileIdStart ] -= 1;
 			if ( tileIdRiverEnd != FAIL_TILE_ID )
 				tilePieceMap[ tileIdRiverEnd ] -= 1;
+			if ( tileIdFristPlay != FAIL_TILE_ID )
+				tilePieceMap[ tileIdFristPlay ] -= 1;
 
 			if ( tileIdStart == FAIL_TILE_ID || tileIdRiverEnd == FAIL_TILE_ID )
 			{
@@ -366,6 +385,11 @@ namespace CAR
 		if ( useRiver )
 		{
 			TileIdVec const& idSetGroup = mTileSetManager.getSetGroup( TileSet::eRiver );
+			if ( tileIdFristPlay != FAIL_TILE_ID )
+			{
+				mTilesQueue.push_back( tileIdFristPlay );
+				shuffleGroup.push_back( mTilesQueue.size() );
+			}
 			for( TileIdVec::const_iterator iter = idSetGroup.begin() , itEnd = idSetGroup.end() ; 
 				iter != itEnd ; ++iter )
 			{
@@ -447,7 +471,7 @@ namespace CAR
 		}
 	}
 
-	TurnResult GameModule::resolvePlayerTurn(IGameCoroutine& cort , PlayerBase* curTrunPlayer)
+	TurnResult GameModule::resolvePlayerTurn(IGameInput& input , PlayerBase* curTrunPlayer)
 	{
 		TurnResult result;
 
@@ -456,7 +480,7 @@ namespace CAR
 		{
 			if ( mFairy->binder && mFairy->binder->owner == curTrunPlayer )
 			{
-				CAR_LOG( "%d Score:FairyBeginningOfATurnScore" , curTrunPlayer->getId() );
+				CAR_LOG( "%d Score:Fairy Beginning Of A Turn Score" , curTrunPlayer->getId() );
 				addPlayerScore( curTrunPlayer->getId() , Value::FairyBeginningOfATurnScore );
 			}
 		}
@@ -485,12 +509,25 @@ namespace CAR
 						}
 					}
 				}
-				if ( updatePosibleLinkPos() == 0 )
-				{
-					if ( getRemainingTileNum() == 0 )
-						return eFinishGame;
 
-					continue;
+				PutTileParam param;
+				param.usageBridge = 0;
+				param.checkRiverConnect = 1;
+				if ( updatePosibleLinkPos( param ) == 0 )
+				{
+					param.usageBridge = 1;
+					if ( updatePosibleLinkPos( param ) == 0 )
+					{
+						if ( getRemainingTileNum() == 0 )
+							return eFinishGame;
+
+						continue;
+					}
+					else
+					{
+						//TODO
+						continue;
+					}
 				}
 				break;
 			}
@@ -502,7 +539,7 @@ namespace CAR
 				//a) Place the tile.
 				GamePlaceTileData putTileData;
 				putTileData.id = mUseTileId;
-				cort.waitPlaceTile( *this , putTileData );
+				input.waitPlaceTile( *this , putTileData );
 				if ( checkGameState( putTileData , result ) == false )
 					return result;
 
@@ -511,7 +548,11 @@ namespace CAR
 					CAR_LOG("Warning: Place Tile have error rotation %d" , putTileData.resultRotation );
 					putTileData.resultRotation = 0;
 				}
-				placeMapTile = mLevel.placeTile( mUseTileId , putTileData.resultPos , putTileData.resultRotation );
+
+				PutTileParam param;
+				param.usageBridge = 0;
+				param.checkRiverConnect = 1;
+				placeMapTile = mLevel.placeTile( mUseTileId , putTileData.resultPos , putTileData.resultRotation , param );
 				if ( placeMapTile != nullptr )
 				{
 					CAR_LOG("Player %d Place Tile %d rotation=%d" , curTrunPlayer->getId() , mUseTileId , putTileData.resultRotation );
@@ -534,7 +575,7 @@ namespace CAR
 			}
 
 			bool haveBuilderFeatureExpend = false;
-			if ( mSetting->haveUse( EXP_TRADEERS_AND_BUILDERS ) )
+			if ( mSetting->haveUse( EXP_TRADERS_AND_BUILDERS ) )
 			{
 				for( FeatureUpdateInfoVec::iterator iter = mUpdateFeatures.begin(), itEnd = mUpdateFeatures.end();
 					iter != itEnd ; ++iter )
@@ -574,7 +615,7 @@ namespace CAR
 
 				//d)princess
 				bool haveDone = false;
-				result = resolvePrincess( cort , placeMapTile , haveDone );
+				result = resolvePrincess( input , placeMapTile , haveDone );
 				if ( result != TurnResult::eOK )
 					return result;
 				if ( haveDone )
@@ -605,8 +646,17 @@ namespace CAR
 								if ( feature->havePlayerActorMask( AllPlayerMask , mSetting->getFollowerMask() ) )
 									continue;
 
-								mapTileSet.insert( feature->mapTiles.begin() , feature->mapTiles.end() );
+								for( MapTileSet::iterator iter = feature->mapTiles.begin() , itEnd = feature->mapTiles.end();
+									 iter != itEnd ; ++iter )
+								{
+									MapTile* mapTile = *iter;
+									if ( !canDeployFollower( *mapTile ) )
+										continue;
+									mapTileSet.insert( mapTile );
+								}
 							}
+
+
 
 							if ( mapTileSet.empty() == false )
 							{
@@ -616,7 +666,7 @@ namespace CAR
 								data.reason = SAR_MAGIC_PORTAL;
 								data.mapTiles = &mapTiles[0];
 								data.numSelection = mapTiles.size();
-								cort.waitSelectMapTile( *this , data );
+								input.waitSelectMapTile( *this , data );
 								if ( checkGameState( data , result ) == false )
 									return result;
 
@@ -636,7 +686,7 @@ namespace CAR
 
 							GameDeployActorData deployActorData;
 							deployActorData.mapTile = deployMapTile;
-							cort.waitDeployActor( *this , deployActorData );
+							input.waitDeployActor( *this , deployActorData );
 							if ( checkGameState( deployActorData , result ) == false )
 								return result;
 
@@ -660,6 +710,23 @@ namespace CAR
 								actor->owner   = curTrunPlayer;
 								actor->pos     = info.pos;
 
+								switch( actor->type )
+								{
+								case ActorType::eBuilder:
+									{
+										LevelActor* actorFollow = feature->findActor( BIT( curTrunPlayer->getId() ) , mSetting->getFollowerMask() & ~CANT_FOLLOW_ACTOR_MASK );
+										if ( actor == nullptr )
+										{
+											CAR_LOG( "Error: Builder No Follower In Deploy Builder" );
+										}
+										else
+										{
+											actorFollow->addFollower( *actor );
+										}
+									}
+									break;
+								}
+
 								mListener->onDeployActor( *actor );
 								CAR_LOG( "Player %d deploy Actor : type = %d  " , curTrunPlayer->getId() , actor->type );
 								break;
@@ -673,7 +740,7 @@ namespace CAR
 					if ( mSetting->haveUse( EXP_THE_TOWER ) )
 					{
 						bool haveDone = false;
-						result = resolveTower( cort , curTrunPlayer , haveDone );
+						result = resolveTower( input , curTrunPlayer , haveDone );
 						if ( result != TurnResult::eOK )
 							return result;
 						if ( haveDone )
@@ -689,7 +756,7 @@ namespace CAR
 							data.reason = SAR_FAIRY_MOVE_NEXT_TO_FOLLOWER;
 							data.actors = &followers[0];
 							data.numSelection = numFollower;
-							cort.waitSelectActor( *this , data );
+							input.waitSelectActor( *this , data );
 							if ( !checkGameState( data , result ) )
 								return result;
 							if ( data.resultSkipAction == false ) 
@@ -723,7 +790,7 @@ namespace CAR
 				{
 					if ( mDragon->mapTile != nullptr && ( placeMapTile->getTileContent() & TileContent::eTheDragon ) )
 					{
-						result = resolveDragonMove( cort , *mDragon );
+						result = resolveDragonMove( input , *mDragon );
 						if ( result != TurnResult::eOK )
 							return result;
 					}
@@ -743,7 +810,7 @@ namespace CAR
 				{
 					CAR_LOG( "Feature %d complete by Player %d" , feature->group , curTrunPlayer->getId()  );
 					//Step 7: Resolve Completed Features
-					result = resolveCompleteFeature( cort , *feature );
+					result = resolveCompleteFeature( input , *feature );
 					if ( result != TurnResult::eOK )
 						return result;
 				}
@@ -757,7 +824,7 @@ namespace CAR
 				{
 					if ( mDragon->mapTile != nullptr && ( placeMapTile->getTileContent() & TileContent::eTheDragon ) )
 					{
-						result = resolveDragonMove( cort , *mDragon );
+						result = resolveDragonMove( input , *mDragon );
 						if ( result != TurnResult::eOK )
 							return result;
 					}
@@ -766,12 +833,22 @@ namespace CAR
 
 			//Step 9: Resolve the Turn
 			//a)builder
-			if ( mSetting->haveUse( EXP_TRADEERS_AND_BUILDERS ) && numPlaceTile == 1 )
+			if ( mSetting->haveUse( EXP_TRADERS_AND_BUILDERS ) && numPlaceTile == 1 )
 			{
 				if ( haveBuilderFeatureExpend )
 				{
 					CAR_LOG( "Player %d have double Turn" , getTurnPlayer()->getId() );
 					continue;
+				}
+			}
+			//b)bazaar
+			if ( mSetting->haveUse( EXP_BRIDGES_CASTLES_AND_BAZAARS ) )
+			{
+				if ( placeMapTile->getTileContent() & TileContent::eBazaar )
+				{
+					result = resolveAuction( input , curTrunPlayer );
+					if ( result != TurnResult::eOK )
+						return result;
 				}
 			}
 
@@ -781,7 +858,7 @@ namespace CAR
 		return TurnResult::eOK;
 	}
 
-	TurnResult GameModule::resolveDragonMove(IGameCoroutine& cort , LevelActor& dragon)
+	TurnResult GameModule::resolveDragonMove(IGameInput& input , LevelActor& dragon)
 	{
 		assert( dragon.mapTile != nullptr );
 
@@ -832,7 +909,7 @@ namespace CAR
 			data.numSelection = numTile;
 			data.playerId = mPlayerOrders[ idxPlayer ]->getId();
 			
-			cort.waitSelectMapTile(*this,data);
+			input.waitSelectMapTile(*this,data);
 			if ( checkGameState( data , result ) == false )
 				return result;
 
@@ -867,7 +944,7 @@ namespace CAR
 		return TurnResult::eOK;
 	}
 
-	TurnResult GameModule::resolveTower(IGameCoroutine& cort , PlayerBase* curTurnPlayer , bool& haveDone )
+	TurnResult GameModule::resolveTower(IGameInput& input , PlayerBase* curTurnPlayer , bool& haveDone )
 	{
 		TurnResult result;
 		if ( curTurnPlayer->getFieldValue( FieldType::eTowerPices ) == 0 || mTowerTiles.empty() )
@@ -877,7 +954,7 @@ namespace CAR
 		data.reason = SAR_CONSTRUCT_TOWER;
 		data.numSelection = mTowerTiles.size();
 		data.mapTiles   = &mTowerTiles[0];
-		cort.waitSelectMapTile( *this , data );
+		input.waitSelectMapTile( *this , data );
 		if ( checkGameState( data , result ) == false )
 			return result;
 
@@ -898,11 +975,13 @@ namespace CAR
 		mListener->onConstructTower( *mapTile );
 
 		std::vector< LevelActor* > actors;
-		for( int i = 1 ; i <= mapTile->towerHeight ; ++i )
+		for( int i = 0 ; i <= mapTile->towerHeight ; ++i )
 		{
-			for( int dir = 0 ; dir < FDir::TotalNum ; ++dir )
+			int num = ( i == 0 ) ? 1 : FDir::TotalNum;
+			for( int dir = 0 ; dir < num ; ++dir )
 			{
 				Vec2i posCheck = mapTile->pos + i * FDir::LinkOffset( dir );
+
 				MapTile* tileCheck = mLevel.findMapTile( posCheck );
 				if ( tileCheck == nullptr )
 					continue;
@@ -917,6 +996,10 @@ namespace CAR
 					if ( actor->owner == curTurnPlayer )
 						continue;
 
+					if ( actor->feature->type == FeatureType::eCity &&
+						 static_cast< CityFeature* >( actor->feature )->isCastle )
+						 continue;
+
 					actors.push_back( actor );
 				}
 			}
@@ -928,7 +1011,7 @@ namespace CAR
 			selectActorData.reason = SAR_TOWER_CAPTURE_FOLLOWER;
 			selectActorData.numSelection = actors.size();
 			selectActorData.actors = &actors[0];
-			cort.waitSelectActor( *this , selectActorData );
+			input.waitSelectActor( *this , selectActorData );
 			if ( checkGameState( selectActorData , result ) == false )
 				return result;
 
@@ -972,7 +1055,7 @@ namespace CAR
 					data.reason = SAR_EXCHANGE_PRISONERS;
 					data.actorInfos = &actorInfos[0];
 					data.numSelection = actorInfos.size();
-					cort.waitSelectActorInfo( *this , data );
+					input.waitSelectActorInfo( *this , data );
 					if ( data.checkResultVaild() == false )
 					{
 						CAR_LOG("Warning: Error Prisoner exhange Index" );
@@ -1002,7 +1085,104 @@ namespace CAR
 		return TurnResult::eOK;
 	}
 
-	CAR::TurnResult GameModule::resolvePrincess(IGameCoroutine& cort , MapTile* placeMapTile , bool& haveDone)
+
+	TurnResult GameModule::resolveAuction(IGameInput& input , PlayerBase* curTurnPlayer)
+	{
+		TurnResult result;
+		if ( getRemainingTileNum() < mPlayerOrders.size() )
+			return TurnResult::eOK;
+
+		for( int i = 0 ; i < mPlayerOrders.size() ; ++i )
+		{
+			if ( mPlayerOrders[ i ] ->getFieldValue( FieldType::eTileIdAuctioned ) != FAIL_TILE_ID )
+				return TurnResult::eOK;
+		}
+
+		GameAuctionTileData data;
+		for( int i = 0 ; i < mPlayerOrders.size() ; ++i )
+		{
+			data.auctionTiles.push_back( drawPlayTile() );
+		}
+
+		int idxRound = curTurnPlayer->mPlayOrder;
+		for( int i = 0 ; i < mPlayerOrders.size() ; ++i )
+		{
+			++idxRound;
+			if ( idxRound >= mPlayerOrders.size() )
+				idxRound = 0;
+
+			data.pIdRound = mPlayerOrders[ idxRound ]->getId();
+			data.maxScore = 0;
+			data.pIdCallMaxScore = -1;
+			data.tileIdRound = FAIL_TILE_ID;
+
+			int idxCur = idxRound;
+			for( int n = 0 ; n < mPlayerOrders.size() ; ++n )
+			{
+				if ( mPlayerOrders[ idxCur ]->getFieldValue( FieldType::eTileIdAuctioned ) != FAIL_TILE_ID )
+					continue;
+				data.pIdCur = mPlayerOrders[ idxCur ]->getId();
+
+				input.waitAuctionTile( *this , data );
+				if ( checkGameState( data , result ) == false )
+					return result;
+	
+				if (  data.pIdCur == data.pIdRound )
+				{
+					if ( data.resultIndexTileSelect >= data.auctionTiles.size()  )
+					{
+						CAR_LOG("Warning");
+						data.resultIndexTileSelect = 0;
+					}
+					data.tileIdRound = data.auctionTiles[ data.resultIndexTileSelect ];
+					data.maxScore = data.resultRiseScore;
+					data.pIdCallMaxScore = data.pIdCur;
+				}
+				else if ( data.resultRiseScore != 0 )
+				{
+					data.maxScore += data.resultRiseScore;
+					data.pIdCallMaxScore = data.pIdCur;
+				}
+
+				++idxCur;
+				if ( idxCur >= mPlayerOrders.size() )
+					idxCur = 0;
+			}
+
+			data.pIdCur = mPlayerOrders[ idxCur ]->getId();
+			assert( data.pIdCur == data.pIdRound );
+
+			input.waitBuyAuctionedTile( *this , data );
+			if ( checkGameState( data , result ) == false )
+				return result;
+
+			PlayerBase* pBuyer;
+			PlayerBase* pSeller;
+			if ( data.resultBuy )
+			{
+				pBuyer = mPlayerManager->getPlayer(data.pIdRound );
+				pSeller = mPlayerManager->getPlayer(data.pIdCallMaxScore );
+			}
+			else
+			{
+				pSeller = mPlayerManager->getPlayer(data.pIdRound );
+				pBuyer = mPlayerManager->getPlayer( data.pIdCallMaxScore );
+			}
+
+			addPlayerScore( pBuyer->getId() , -data.maxScore );
+			pBuyer->setFieldValue( FieldType::eTileIdAuctioned , data.tileIdRound );
+
+			if ( pBuyer != pSeller )
+			{
+				addPlayerScore( pSeller->getId() , data.maxScore );
+			}
+		}
+
+		return TurnResult::eOK;
+	}
+
+
+	TurnResult GameModule::resolvePrincess(IGameInput& input , MapTile* placeMapTile , bool& haveDone)
 	{
 		TurnResult result;
 		unsigned sideMask = Tile::AllSideMask;
@@ -1040,7 +1220,7 @@ namespace CAR
 				data.numSelection = kinghts.size();
 				data.actors   = &kinghts[0];
 
-				cort.waitSelectActor( *this , data );
+				input.waitSelectActor( *this , data );
 				if ( checkGameState( data , result ) == false )
 					return result;
 
@@ -1187,7 +1367,7 @@ namespace CAR
 		}
 	}
 
-	TurnResult GameModule::resolveCompleteFeature( IGameCoroutine& cort , FeatureBase& feature)
+	TurnResult GameModule::resolveCompleteFeature( IGameInput& input , FeatureBase& feature)
 	{
 		TurnResult result;
 		assert( feature.checkComplete() );
@@ -1207,7 +1387,7 @@ namespace CAR
 		if ( feature.type == FeatureType::eCity )
 		{
 			CityFeature& city = static_cast< CityFeature& >( feature );
-			if ( mSetting->haveUse( EXP_TRADEERS_AND_BUILDERS ) )
+			if ( mSetting->haveUse( EXP_TRADERS_AND_BUILDERS ) )
 			{
 				for( std::vector< SideNode* >::iterator iter = city.nodes.begin() , itEnd = city.nodes.end();
 					iter != itEnd ; ++iter )
@@ -1227,6 +1407,17 @@ namespace CAR
 					{
 						getTurnPlayer()->modifyFieldValue( FieldType::eWine, 1 );
 					}
+				}
+			}
+
+			if ( mSetting->haveUse( EXP_BRIDGES_CASTLES_AND_BAZAARS ) )
+			{
+				if ( city.isSamllCircular() )
+				{
+
+
+
+
 				}
 			}
 		}
@@ -1265,8 +1456,9 @@ namespace CAR
 		std::vector< LevelActor* > mageWitchGroup;
 		std::vector< LevelActor* > hereticMonkGroup;
 		std::vector< LevelActor* > otherGroup;
-		while( actor = feature.popActor() )
+		for( int i = 0; i < feature.mActors.size(); ++i )
 		{
+			LevelActor* actor = feature.mActors[i];
 			PlayerBase* player = actor->owner;
 			if ( player == nullptr )
 			{
@@ -1335,7 +1527,7 @@ namespace CAR
 					mapTiles.clear();
 					FillActionData( data , linkFeatures, mapTiles );
 
-					cort.waitSelectMapTile( *this , data );
+					input.waitSelectMapTile( *this , data );
 					if ( checkGameState( data , result ) == false )
 						return result;
 
@@ -1355,8 +1547,8 @@ namespace CAR
 						ActorPos actorPos;
 						bool isOK = feature->getActorPos( *mapTiles[ data.resultIndex ] , actorPos );
 						assert( isOK );
-
 						moveActor( wagonGroup[i] , actorPos , mapTiles[data.resultIndex] );
+						feature->addActor( *wagonGroup[i] );
 						linkFeatures.erase( std::find( linkFeatures.begin() , linkFeatures.end() , feature ) );
 					}
 				}
@@ -1390,10 +1582,20 @@ namespace CAR
 		}
 	}
 
-	int GameModule::updatePosibleLinkPos()
+	int GameModule::updatePosibleLinkPos( PutTileParam& param )
 	{
 		mPlaceTilePosList.clear();
-		return mLevel.getPosibleLinkPos( mUseTileId , mPlaceTilePosList );
+		return mLevel.getPosibleLinkPos( mUseTileId , mPlaceTilePosList , param );
+	}
+
+	int GameModule::updatePosibleLinkPos()
+	{
+		PutTileParam param;
+		param.usageBridge = 0;
+		param.checkRiverConnect = 1;
+
+		mPlaceTilePosList.clear();
+		return mLevel.getPosibleLinkPos( mUseTileId , mPlaceTilePosList , param );
 	}
 
 	int GameModule::findTagTileIndex( std::vector< TileId >& tiles , Expansion exp , TileTag tag )
@@ -1477,7 +1679,7 @@ namespace CAR
 		mActorDeployPosList.resize( num );
 	}
 
-	FeatureBase* GameModule::updateBasicSideFeature( MapTile& putData , unsigned dirMask , SideType linkType )
+	FeatureBase* GameModule::updateBasicSideFeature( MapTile& mapTile , unsigned dirMask , SideType linkType )
 	{
 		int numLinkGroup = 0;
 		int linkGroup[ Tile::NumSide ];
@@ -1486,7 +1688,7 @@ namespace CAR
 		int dir = 0;
 		while ( FBit::MaskIterator4( mask , dir ) )
 		{
-			SideNode* linkNode = putData.sideNodes[ dir ].outConnect;
+			SideNode* linkNode = mapTile.sideNodes[ dir ].outConnect;
 			if ( linkNode == nullptr || linkNode->group == ABBEY_GROUP_ID )
 				continue;
 
@@ -1523,18 +1725,18 @@ namespace CAR
 				assert(0);
 				return nullptr;
 			}
-			sideFeature->addNode( putData , dirMask , nullptr );
+			sideFeature->addNode( mapTile , dirMask , nullptr );
 		}
 		else
 		{
 			sideFeature = static_cast< SideFeature* >( getFeature( linkGroup[0] ) );
-			sideFeature->addNode( putData , dirMask , linkNodeFrist );
+			sideFeature->addNode( mapTile , dirMask , linkNodeFrist );
 		}
 
 		for( int i = 1 ; i < numLinkGroup ; ++i )
 		{
 			FeatureBase* buildOther = getFeature( linkGroup[i] );
-			sideFeature->mergeData( *buildOther , putData , linkNodeFrist->outConnect->index );
+			sideFeature->mergeData( *buildOther , mapTile , linkNodeFrist->outConnect->index );
 			destroyFeature(  buildOther );
 		}
 
@@ -1545,7 +1747,7 @@ namespace CAR
 		return sideFeature;
 	}
 
-	FarmFeature* GameModule::updateFarm(MapTile& putData , unsigned idxMask)
+	FarmFeature* GameModule::updateFarm(MapTile& mapTile , unsigned idxMask)
 	{
 		int numLinkGroup = 0;
 		int linkGroup[ Tile::NumFarm ];
@@ -1554,7 +1756,7 @@ namespace CAR
 		int idx = 0;
 		while ( FBit::MaskIterator8( mask , idx ) )
 		{
-			FarmNode* linkNode = putData.farmNodes[ idx ].outConnect;
+			FarmNode* linkNode = mapTile.farmNodes[ idx ].outConnect;
 			if ( linkNode == nullptr )
 				continue;
 
@@ -1580,18 +1782,18 @@ namespace CAR
 		if ( numLinkGroup == 0 )
 		{
 			farm = createFeatureT< FarmFeature >();
-			farm->addNode( putData , idxMask , nullptr );
+			farm->addNode( mapTile , idxMask , nullptr );
 		}
 		else
 		{
 			farm = static_cast< FarmFeature* >( getFeature( linkGroup[0] ) );
-			farm->addNode( putData , idxMask , linkNodeFrist );
+			farm->addNode( mapTile , idxMask , linkNodeFrist );
 		}
 
 		for( int i = 1 ; i < numLinkGroup ; ++i )
 		{
 			FeatureBase* farmOther = getFeature( linkGroup[i] );
-			farm->mergeData( *farmOther , putData , linkNodeFrist->outConnect->index );
+			farm->mergeData( *farmOther , mapTile , linkNodeFrist->outConnect->index );
 			destroyFeature( farmOther );
 		}
 		return farm;
@@ -1795,6 +1997,31 @@ namespace CAR
 			{
 			case ActorType::eFariy:
 				break;
+			case ActorType::eBuilder:
+				{
+					int iter = 0;
+					LevelActor* newFollower = nullptr;
+					unsigned playerMask = BIT(actor->owner->getId());
+					unsigned actorMask = mSetting->getFollowerMask() & ~CANT_FOLLOW_ACTOR_MASK;
+					do
+					{
+						newFollower = actor->feature->iteratorActorMask( playerMask , actorMask , iter );
+						if ( newFollower != actor )
+							break;
+					}
+					while ( newFollower != nullptr );
+
+					if ( newFollower != nullptr )
+					{
+						newFollower->addFollower( *follower );
+					}
+					else
+					{
+						returnActorToPlayer( follower );
+					}
+				}
+				break;
+
 			}
 		}
 		destroyActor( actor );
@@ -1863,33 +2090,47 @@ namespace CAR
 		mNumTileNeedMix = 0;
 	}
 
-	void GameModule::FillActionData(GameFeatureTileSelectData& data , std::vector< FeatureBase* >& linkFeatures, std::vector< MapTile* >& mapTiles)
+	void GameModule::FillActionData( GameFeatureTileSelectData& data , std::vector< FeatureBase* >& linkFeatures, std::vector< MapTile* >& mapTiles)
 	{
 		for( int n = 0; n < linkFeatures.size() ; ++n )
 		{
 			GameFeatureTileSelectData::Info info;
 			info.feature = linkFeatures[n];
 			info.index   = mapTiles.size();
-			info.num     = info.feature->mapTiles.size();
-			mapTiles.insert( mapTiles.end() , info.feature->mapTiles.begin() , info.feature->mapTiles.end() );
+			info.num     = 0;
+			for( MapTileSet::iterator iter = info.feature->mapTiles.begin() , itEnd = info.feature->mapTiles.end();
+				iter != itEnd ; ++iter )
+			{
+				MapTile* mapTile = *iter;
+				if ( !canDeployFollower( *mapTile ) )
+					continue;
+
+				++info.num;
+				mapTiles.push_back( mapTile );
+			}
+
 			data.infos.push_back( info );
 		}
 		data.mapTiles = &mapTiles[0];
 		data.numSelection = mapTiles.size();
 	}
 
-	void GameModule::placeAllTileDebug()
+	void GameModule::placeAllTileDebug( int numRow )
 	{
+		PutTileParam param;
+		param.checkRiverConnect = 0;
+		param.usageBridge = 0;
+
 		for( int i = 0 ; i < mTileSetManager.getRegisterTileNum() ; ++i )
 		{
-			MapTile* mapTile = mLevel.placeTileNoCheck( i , Vec2i( 2 *(i/5),2*(i%5) ) , 2 );
+			MapTile* mapTile = mLevel.placeTileNoCheck( i , Vec2i( 2 *(i/numRow),2*(i%numRow) ) , 2 , param );
 			mListener->onPutTile( *mapTile );
 			UpdateTileFeatureResult updateResult;
 			updateTileFeature( *mapTile , updateResult );
 		}
 	}
 
-	CAR::TurnResult GameModule::resolveAbbey(IGameCoroutine& cort , PlayerBase* curTurnPlayer)
+	CAR::TurnResult GameModule::resolveAbbey(IGameInput& input , PlayerBase* curTurnPlayer)
 	{
 		assert( curTurnPlayer->getFieldValue( FieldType::eAbbeyPices ) > 0 );
 		Level& level = getLevel();

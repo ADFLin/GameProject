@@ -54,7 +54,13 @@ namespace CAR
 		bool     canLinkRoad( int lDir ) const
 		{  return sides[lDir].linkType == SideType::eRoad;  }
 		bool     canLinkFarm( int lDir ) const {  return CanLinkFarm( sides[lDir].linkType );  }
-
+		bool     isSemiCircularCity( int lDir ) const
+		{
+			SideData const& sideData = sides[lDir];
+			assert( sideData.linkType == SideType::eCity );
+			return ( sideData.linkDirMask == FBit::Extract( sideData.linkDirMask ) ) && 
+				   ( ( sideData.contentFlag & SideContent::eNotSemiCircularCity ) == 0 );
+		}
 		bool  haveRiver()
 		{
 			for( int i = 0 ; i < NumSide ; ++i )
@@ -132,12 +138,24 @@ namespace CAR
 
 		unsigned calcRoadMaskLinkCenter() const;
 
+		void     addBridge( int dir );
+
+		void    removeLinkMask( int dir )
+		{
+			unsigned mask = sideNodes[dir].linkMask;
+			int linkDir;
+			while( FBit::MaskIterator4( mask , linkDir ) )
+			{
+				sideNodes[linkDir].linkMask &= ~BIT(dir);
+			}
+		}
 
 		struct SideNode
 		{
 			int       index;
 			int       group;
 			SideNode* outConnect;
+			SideType  type;
 			unsigned  linkMask;
 
 			int      getLocalDir() const;
@@ -180,6 +198,7 @@ namespace CAR
 		FarmNode    farmNodes[ Tile::NumFarm ];
 		int         group;
 		int         towerHeight;
+		uint8       bridgeMask;
 		void*       renderData;
 
 		//////////

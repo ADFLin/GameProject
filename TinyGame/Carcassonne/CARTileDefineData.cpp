@@ -16,6 +16,7 @@ namespace CAR
 #define SGH SideContent::eGrainHouse
 #define SCH SideContent::eClothHouse
 #define SPR SideContent::ePrincess
+#define SNC SideContent::eNotSemiCircularCity
 
 #define TCL TileContent::eCloister
 #define TCA TileContent::eCathedral
@@ -218,6 +219,24 @@ namespace CAR
 /*12*/ 	{ 1, { LR,LR,LR,LR }, SL_NONE      , SL_ALL_C     ,TCL,{ 0 , 0 , 0 , 0 }, 0, { BIT2(1,2) , BIT2(3,4) , BIT2(5,6) , BIT2(7,0) } , 0 } ,
 	};
 
+	static TileDefine DataRiver2[] =
+	{
+// numPiece     linkType      sideLink       roadLink   content   sidecontent centerFarmMask farmLink tag
+/*00*/ 	{ 1, { LF,LF,LL,LF }, SL3(0,1,3)   , SL_NONE      , 0, { 0 , 0 , 0 , 0 }, 0, { FL_RE } , TILE_START_TAG } ,
+/*01*/ 	{ 1, { LL,LF,LL,LL }, SL3(0,2,3)   , SL_NONE      , 0, { 0 , 0 , 0 , 0 }, 0, { BIT2(5,6) , BIT2(7,0) , FL_RE } , TILE_FRIST_PLAY_TAG } ,
+/*02*/ 	{ 1, { LF,LC,LF,LL }, SL_NONE      , SL_NONE      , 0, { 0 , 0 , 0 , 0 }, 0, { BIT4(7,0,1,2) , FL_RE } , 0 } ,
+/*03*/ 	{ 1, { LF,LF,LL,LF }, SL3(0,1,3)   , SL_NONE      ,TVO,{ 0 , 0 , 0 , 0 }, 0, { FL_RE } , TILE_END_TAG } ,
+/*04*/ 	{ 1, { LC,LC,LL,LL }, SL22(0,1,2,3), SL_NONE      , 0, {SPE, 0 , 0 , 0 }, 0, { BIT2(5,6) , FL_RE } , 0 } ,
+/*05*/ 	{ 1, { LL,LC,LL,LR }, SL2(0,2)     , SL2(1,3)     , 0, { 0 , 0 , 0 , 0 }, 0, { BIT2(1,2) , BIT2(3,4) , BIT2(5,6) , BIT2(7,0) } , 0 } ,
+/*06*/ 	{ 1, { LF,LF,LL,LL }, SL22(0,1,2,3), SL_NONE      , 0, { 0 , 0 , 0 , 0 }, 0, { BIT2(5,6) , FL_RE } , 0 } ,
+/*07*/ 	{ 1, { LL,LC,LL,LC }, SL22(0,2,1,3), SL_NONE      , 0, { 0 , 0 , 0 , 0 }, 0, { BIT4(1,2,3,4) , FL_RE } , 0 } ,
+/*08*/ 	{ 1, { LF,LF,LL,LL }, SL22(0,1,2,3), SL2(3,4)     , 0, { 0 , 0 , 0 , 0 }, 0, { BIT2(5,6) , FL_RE } , 0 } ,
+/*09*/ 	{ 1, { LL,LF,LL,LF }, SL2(0,2)     , SL_NONE      ,TCL,{ 0 , 0 , 0 , 0 }, 0, { BIT4(1,2,3,4) , FL_RE } , 0 } ,
+/*10*/ 	{ 1, { LR,LR,LL,LL }, SL22(0,1,2,3), SL_NONE      , 0, { 0 , 0 , 0 , 0 }, 0, { BIT2(1,2) , BIT2(5,6) , FL_RE } , 0 } ,
+/*11*/ 	{ 1, { LL,LR,LL,LR }, SL22(0,2,1,3), SL_NONE      , 0, { 0 , 0 , 0 ,SIN}, 0, { BIT2(1,2) , BIT2(3,4) , BIT2(5,6) , BIT2(7,0) } , 0 } ,
+	};
+
+
 	static TileDefine DataTest[] =
 	{
 // numPiece     linkType      sideLink       roadLink   content   sidecontent centerFarmMask farmLink tag
@@ -226,21 +245,22 @@ namespace CAR
 	};
 
 
-#define EXPDATA( NAME , DATA ) { NAME , DATA , ARRAY_SIZE( DATA ) } 
+
 	ExpansionTileContent gAllExpansionTileContents[] =
 	{
+#define EXPDATA( NAME , DATA ) { NAME , DATA , ARRAY_SIZE( DATA ) } 
 		EXPDATA( EXP_BASIC , DataBasic ) ,
 		EXPDATA( EXP_INNS_AND_CATHEDRALS , DataInnCathedral ),
-		EXPDATA( EXP_TRADEERS_AND_BUILDERS , DataTraderBuilder ) ,
+		EXPDATA( EXP_TRADERS_AND_BUILDERS , DataTraderBuilder ) ,
 		EXPDATA( EXP_KING_AND_ROBBER , DataKingRobber ) ,
 		EXPDATA( EXP_THE_RIVER , DataRiver1 ) ,
 		EXPDATA( EXP_THE_PRINCESS_AND_THE_DRAGON , DataPrincessDragon ),
 		EXPDATA( EXP_THE_TOWER , DataTower ),
 		EXPDATA( EXP_ABBEY_AND_MAYOR , DataAbbeyMayor ) ,
-
-
+		EXPDATA( EXP_THE_RIVER_II , DataRiver2 ) ,
 		EXPDATA( EXP_TEST , DataTest ) ,
-
+#undef EXPDATA
 		{ EXP_NULL , 0 , 0 } 
 	};
+
 }

@@ -1,26 +1,31 @@
 #include "TinyGamePCH.h"
 #include "DataStreamBuffer.h"
 
-bool GrowThrowPolicy::check( char*& data , size_t& max , size_t cur , size_t num , bool beTake )
+bool GrowThrowPolicy::checkFill( char*& data , size_t& max , size_t cur , size_t num  )
 {
 	if ( cur + num > max )
 	{
-		if ( beTake )
-			throw BufferException( "Overflow" );
-		else
+		size_t nSize = std::max( 2 * max , max + num );
+		char*  nData = new char[ nSize ];
+		if ( data )
 		{
-			size_t nSize = std::max( 2 * max , max + num );
-			char*  nData = new char[ nSize ];
-			if ( data )
-			{
-				memcpy( nData , data , cur );
-				delete[] data;
-			}
-			data =  nData;
-			max  =  nSize;
+			memcpy( nData , data , cur );
+			delete[] data;
 		}
+		data =  nData;
+		max  =  nSize;
 	}
 	return true;
+}
+
+bool GrowThrowPolicy::checkTake(char*& data , size_t& max , size_t cur , size_t num )
+{
+	if ( cur + num > max )
+	{
+		throw BufferException( "Overflow" );
+	}
+	return true;
+
 }
 
 DataStreamBuffer::DataStreamBuffer()
@@ -95,7 +100,7 @@ void DataStreamBuffer::take( char* str , size_t max )
 
 void DataStreamBuffer::copy( DataStreamBuffer const& rhs )
 {
-	if ( mMaxSize < rhs.mMaxSize )
+	if ( mMaxSize < rhs.mFillSize )
 	{
 		delete [] mData;
 		mData = new char [ rhs.mFillSize ];
@@ -103,6 +108,7 @@ void DataStreamBuffer::copy( DataStreamBuffer const& rhs )
 	}
 	::memcpy( mData , rhs.mData , rhs.mFillSize );
 	mFillSize = rhs.mFillSize;
+	mUseSize  = rhs.mUseSize;
 }
 
 void DataStreamBuffer::move( DataStreamBuffer& other )

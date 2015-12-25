@@ -7,11 +7,10 @@
 #include "IntegerType.h"
 #include <deque>
 
-class Connection;
+class NetConnection;
 class NetAddress;
 class ComEvaluator;
 class ComConnection;
-class IComPacket;
 class UdpChain;
 
 typedef unsigned SessionId;
@@ -45,23 +44,21 @@ enum ConBufferOperation
 };
 
 
-unsigned FillBufferByCom( ComEvaluator& evalutor , SBuffer& buffer , IComPacket* cp );
-bool     EvalCommand( UdpChain& chain , ComEvaluator& evaluator , SBuffer& buffer , ComConnection* con /*= NULL */ );
 class ConListener
 {
 public:
-	virtual void onExcept( Connection* con ){}
+	virtual void onExcept( NetConnection* con ){}
 	//TCP Server
-	virtual void onAccpetClient( Connection* con ){}
+	virtual void onAccpetClient( NetConnection* con ){}
 	//TCP Client
-	virtual void onConnectFailed( Connection* con ){}
-	virtual void onConnect( Connection* con ){}
-	virtual void onClose( Connection* con , ConCloseReason reason ){}
+	virtual void onConnectFailed( NetConnection* con ){}
+	virtual void onConnect( NetConnection* con ){}
+	virtual void onClose( NetConnection* con , ConCloseReason reason ){}
 
 	//UDP Server/Client
-	virtual void onSendData( Connection* con ){}
+	virtual void onSendData( NetConnection* con ){}
 	//UDP & TCP
-	virtual bool onRecvData( Connection* con , SBuffer& buffer , NetAddress* addr  = NULL ){ return true; }
+	virtual bool onRecvData( NetConnection* con , SBuffer& buffer , NetAddress* addr  = NULL ){ return true; }
 };
 
 class NetBufferCtrl 
@@ -71,9 +68,8 @@ public:
 
 	SBuffer& getBuffer(){ return mBuffer; }
 	void     clear();
-	LockObject< SBuffer >::Info lockBuffer(){ return LockObject< SBuffer >::Info( mBuffer , &mMutexBuffer ); }
+	LockObject< SBuffer >::Param lockBuffer(){ return LockObject< SBuffer >::Param( mBuffer , &mMutexBuffer ); }
 	void     fillBuffer( SBuffer& buffer , unsigned num );
-	void     fillBuffer( ComEvaluator& evaluator , IComPacket* cp );
 
 	bool     sendData( TSocket& socket , NetAddress* addr = NULL );
 	bool     recvData( TSocket& socket , int len , NetAddress* addr = NULL );
@@ -83,10 +79,10 @@ public:
 };
 
 
-class Connection : public SocketDetector
+class NetConnection : public SocketDetector
 {
 public:
-	Connection ():mListener( NULL ),mLastRespondTime(0){}
+	NetConnection ():mListener( NULL ),mLastRespondTime(0){}
 
 	void          setListener( ConListener* listener ){ mListener = listener; }
 	ConListener*  getListener(){ return mListener; }
@@ -130,9 +126,11 @@ public:
 	bool readPacket( SBuffer& buffer , unsigned& readSize );
 
 private:
+	UdpChain( UdpChain const& );
+	UdpChain& operator = ( UdpChain const& );
+
 	void refrushReliableData( unsigned outgoing );
 	
-
 	struct DataInfo
 	{
 		uint32 size;
@@ -159,7 +157,7 @@ class ServerBase
 };
 
 
-class UdpConnection : public Connection 
+class UdpConnection : public NetConnection 
 {
 public:
 	UdpConnection( int recvSize );
@@ -171,7 +169,7 @@ protected:
 	NetBufferCtrl    mRecvCtrl;
 };
 
-class TcpConnection : public Connection 
+class TcpConnection : public NetConnection 
 {
 public:
 	TcpConnection(){}
@@ -217,16 +215,14 @@ public:
 	void onSendable( TSocket& socket );
 	void onReadable( TSocket& socket , int len );
 	NetAddress const& getServerAddress(){ return mServerAddr; }
-	void sendData( TSocket& socket )
+	bool sendData( TSocket& socket )
 	{
+		LockObject< SBuffer > buffer = mSendCtrl.lockBuffer();
 		MUTEX_LOCK( mSendCtrl.mMutexBuffer );
-		mChain.sendPacket( mNetTime , socket , mSendCtrl.getBuffer() , mServerAddr );
+		return mChain.sendPacket( mNetTime , socket , *buffer , mServerAddr );
 	}
 
-	bool evalCommand( ComEvaluator& evaluator , SBuffer& buffer , ComConnection* con = NULL )
-	{
-		return EvalCommand( mChain , evaluator , buffer , con );
-	}
+	operator UdpChain&(){ return mChain; } 
 
 protected:
 	long       mNetTime;
@@ -270,26 +266,30 @@ public:
 
 	void run( unsigned port );
 	
+	
 	class Client
 	{
 	public:
 		Client():mSendCtrl( USC_SEND_BUFSIZE){}
 		NetBufferCtrl&  getSendCtrl(){ return mSendCtrl; }
 
-		void processSendData( long time , TSocket& socket , NetAddress& addr )
+		bool processSendData( long time , TSocket& socket , NetAddress& addr )
 		{
 			MUTEX_LOCK( mSendCtrl.mMutexBuffer );
-			mChain.sendPacket( time , socket , mSendCtrl.getBuffer() , addr );
+			return mChain.sendPacket( time , socket , mSendCtrl.getBuffer() , addr );
 		}
 
-		bool evalCommand( ComEvaluator& evaluator , SBuffer& buffer , ComConnection* con = NULL )
-		{
-			return EvalCommand( mChain , evaluator , buffer , con );
-		}
+		operator UdpChain&(){ return mChain; } 
+
 	private:
 		NetBufferCtrl   mSendCtrl;
 		UdpChain        mChain;
 	};
+
+	void sendPacket( long time , Client& client , NetAddress& addr )
+	{
+		client.processSendData( time , getSocket() ,  addr );
+	}
 protected:
 	virtual void onSendable( TSocket& socket );
 	unsigned        mPort;

@@ -134,7 +134,7 @@ bool ActionTrigger::detect( ControlAction action )
 bool ActionTrigger::peek( ControlAction action )
 {
 	mParam.act    = action;
-	mParam.bePeek = false;
+	mParam.bePeek = true;
 	return mProcessor->_checkAction( mParam );
 }
 

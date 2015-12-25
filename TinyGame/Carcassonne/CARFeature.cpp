@@ -61,7 +61,7 @@ namespace CAR
 		{
 			actorMasks[0] |= BIT( ActorType::eBigMeeple );
 		}
-		if ( mSetting->haveUse( EXP_TRADEERS_AND_BUILDERS ) )
+		if ( mSetting->haveUse( EXP_TRADERS_AND_BUILDERS ) )
 		{
 			actorMasks[1] |= BIT( ActorType::eBuilder );
 		}
@@ -187,14 +187,12 @@ namespace CAR
 		while( FBit::MaskIterator4( mask , dir ) )
 		{
 			SideNode* nodeCon = putData.sideNodes[dir].outConnect;
-			if ( nodeCon && nodeCon->group != group )
+			if ( nodeCon && nodeCon->group == other.group )
 			{
 				openCount -= 2;
 				assert( openCount >= 0 );
 			}
-
 		}
-
 		int idx = nodes.size();
 		MergeData( nodes , otherData.nodes );
 		for( int i = idx ; i < nodes.size() ; ++i )
@@ -286,6 +284,8 @@ namespace CAR
 			MapTile const* mapTile = node->getMapTile();
 			unsigned roadMask = mapTile->getRoadLinkMask( node->index );
 
+			CAR_LOG("road Mask = %u" , roadMask );
+
 			if ( roadMask == 0 )
 				continue;
 			
@@ -298,22 +298,23 @@ namespace CAR
 					break;
 				}
 			}
-			roadMask &= ~Tile::CenterMask;
-
-			int dir;
-			while( FBit::MaskIterator4(roadMask,dir) )
+			else
 			{
-				SideNode const& linkNode = mapTile->sideNodes[dir];
-				if ( linkNode.group == group )
-					continue;
+				int dir;
+				while( FBit::MaskIterator4(roadMask,dir) )
+				{
+					SideNode const& linkNode = mapTile->sideNodes[dir];
+					if ( linkNode.group == group )
+						continue;
 
-				if ( linkNode.group == -1 )
-				{
-					CAR_LOG("Warnning: No Link Feature In Road Link");
-				}
-				else
-				{
-					outFeatures.insert( linkNode.group );
+					if ( linkNode.group == -1 )
+					{
+						CAR_LOG("Warnning: No Link Feature In Road Link");
+					}
+					else
+					{
+						outFeatures.insert( linkNode.group );
+					}
 				}
 			}
 		}
@@ -408,6 +409,7 @@ namespace CAR
 	CityFeature::CityFeature()
 	{
 		haveCathedral = false;
+		isCastle = false;
 	}
 
 
@@ -483,6 +485,20 @@ namespace CAR
 		return numTile * factor + numPennats * pennatFactor;
 	}
 
+	bool CityFeature::isSamllCircular()
+	{
+		assert( checkComplete() );
+		if ( nodes.size() != 2 )
+			return false;
+		SideNode* nodeA = nodes[0];
+		if ( nodeA->getMapTile()->mTile->isSemiCircularCity( nodeA->getLocalDir() ) )
+			return false;
+		SideNode* nodeB = nodes[1];
+		if ( nodeB->getMapTile()->mTile->isSemiCircularCity( nodeB->getLocalDir() ) )
+			return false;
+		return true;
+	}
+
 	int FarmFeature::getActorPutInfo(int playerId , int posMeta ,std::vector< ActorPosInfo >& outInfo)
 	{
 		unsigned actorMasks[] = { BIT(ActorType::eMeeple) , 0 };
@@ -490,7 +506,7 @@ namespace CAR
 		{
 			actorMasks[0] |= BIT( ActorType::eBigMeeple );
 		}
-		if ( mSetting->haveUse( EXP_TRADEERS_AND_BUILDERS ) )
+		if ( mSetting->haveUse( EXP_TRADERS_AND_BUILDERS ) )
 		{
 			actorMasks[1] |= BIT( ActorType::ePig );
 		}
@@ -549,7 +565,7 @@ namespace CAR
 		case 3: factor = Value::FarmFactorV3; break;
 		}
 
-		if ( mSetting->haveUse( EXP_TRADEERS_AND_BUILDERS ) )
+		if ( mSetting->haveUse( EXP_TRADERS_AND_BUILDERS ) )
 		{
 			if ( havePlayerActor( playerId , ActorType::ePig ) )
 				factor += Value::PigAdditionFactor;

@@ -125,7 +125,7 @@ namespace Tetris
 		}
 		{
 			GChoice* choice = mSettingPanel->addChoice( UI_PLAYER_NUMBER_CHOICE , LAN("Player Number") , MASK_BASE );
-			setMaxPlayerNumber( Mode::getMaxPlayerNumber( mInfo.mode ) );
+			setupMaxPlayerNumUI( mMaxPlayerNum );
 			choice->setSelection( mMaxPlayerNum - 1 );
 			setMaxPlayerNum( mMaxPlayerNum );
 		}
@@ -143,7 +143,7 @@ namespace Tetris
 		mSettingPanel->removeGui( MASK_BASE | MASK_MODE );
 	}
 
-	void CNetRoomSettingHelper::setMaxPlayerNumber( int num )
+	void CNetRoomSettingHelper::setupMaxPlayerNumUI( int num )
 	{
 		GChoice* choice = getUI< GChoice >( UI_PLAYER_NUMBER_CHOICE );
 		choice->removeAllItem();

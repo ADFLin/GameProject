@@ -33,7 +33,7 @@ LocalWorker* ServerWorker::createLocalWorker( UserProfile& profile )
 
 void ServerWorker::sendClientTcpCommand( ClientInfo& client , IComPacket* cp )
 {
-	client.tcpClient.getSendCtrl().fillBuffer( getEvaluator() , cp );
+	FillBufferByCom( client.tcpClient.getSendCtrl() , cp );
 }
 
 bool ServerWorker::doStartNetwork()
@@ -139,7 +139,7 @@ void ServerWorker::postChangeState( NetActionState oldState )
 }
 
 
-bool ServerWorker::onRecvData( Connection* connection , SBuffer& buffer , NetAddress* clientAddr )
+bool ServerWorker::onRecvData( NetConnection* connection , SBuffer& buffer , NetAddress* clientAddr )
 {
 	if( clientAddr )
 	{
@@ -169,7 +169,7 @@ bool ServerWorker::onRecvData( Connection* connection , SBuffer& buffer , NetAdd
 			}
 			else
 			{
-				result = info->udpClient.evalCommand( getEvaluator() , buffer , info );
+				result = EvalCommand( info->udpClient , getEvaluator() , buffer , info );
 			}
 
 		}
@@ -210,7 +210,7 @@ bool ServerWorker::updateSocket( long time )
 	return true;
 }
 
-void ServerWorker::onSendData( Connection* con )
+void ServerWorker::onSendData( NetConnection* con )
 {
 	assert( con == &mUdpServer );
 	sendUdpCom( mUdpServer.getSocket() );
@@ -218,7 +218,7 @@ void ServerWorker::onSendData( Connection* con )
 }
 
 
-void ServerWorker::onAccpetClient( Connection* con )
+void ServerWorker::onAccpetClient( NetConnection* con )
 {
 	assert( con == &mTcpServer );
 
@@ -247,7 +247,7 @@ void ServerWorker::onAccpetClient( Connection* con )
 	}
 }
 
-void ServerWorker::onClose( Connection* con , ConCloseReason reason )
+void ServerWorker::onClose( NetConnection* con , ConCloseReason reason )
 {
 	ClientInfo* clientInfo = static_cast< ClientInfo::TCPClient* >( con )->clientInfo;
 	SNetPlayer* netPlayer = clientInfo->player; 
@@ -328,7 +328,7 @@ void ServerWorker::procEcho( IComPacket* cp )
 	CPEcho* com = cp->cast< CPEcho >();
 	ClientInfo* info = (ClientInfo*) cp->getConnection();
 	assert( info );
-	info->udpClient.getSendCtrl().fillBuffer( getEvaluator() , cp );
+	FillBufferByCom( info->udpClient.getSendCtrl() , cp );
 }
 
 
@@ -932,7 +932,7 @@ void ServerClientManager::sendUdpData( long time , UdpServer& server )
 		iter != mSessionMap.end(); ++iter )
 	{
 		ClientInfo* clinet = iter->second;
-		clinet->udpClient.processSendData( time , server.getSocket() , clinet->udpAddr );
+		server.sendPacket( time , clinet->udpClient , clinet->udpAddr );
 	}
 }
 
@@ -1031,7 +1031,7 @@ void ServerClientManager::sendTcpCommand( ComEvaluator& evaluator , IComPacket* 
 		iter != mSessionMap.end(); ++iter )
 	{
 		ClientInfo* clinet = iter->second;
-		clinet->tcpClient.getSendCtrl().fillBuffer( evaluator , cp );
+		FillBufferByCom( clinet->tcpClient.getSendCtrl() , cp );
 	}
 }
 
@@ -1042,7 +1042,7 @@ void ServerClientManager::sendUdpCommand( ComEvaluator& evaluator , IComPacket* 
 		iter != mSessionMap.end(); ++iter )
 	{
 		ClientInfo* clinet = iter->second;
-		clinet->udpClient.getSendCtrl().fillBuffer( evaluator , cp );
+		FillBufferByCom( clinet->udpClient.getSendCtrl() , cp );
 	}
 }
 
@@ -1196,30 +1196,39 @@ void LocalWorker::doUpdate( long time )
 
 }
 
+void LocalWorker::sendCommand(int channel , IComPacket* cp , unsigned flag)
+{
+	::FillBufferByCom( mSendBuffer , cp );
+}
+
+void LocalWorker::recvCommand(IComPacket* cp)
+{
+	::FillBufferByCom( mRecvBuffer , cp );
+}
 
 void SNetPlayer::sendCommand( int channel , IComPacket* cp )
 {
 	SBuffer buffer( 1000 );
-	int num = FillBufferByCom( mServer->getEvaluator() , buffer , cp );
+	int num = FillBufferByCom( buffer , cp );
 	switch( channel )
 	{
 	case CHANNEL_TCP_CONNECT:
-		mClientInfo->tcpClient.getSendCtrl().fillBuffer( mServer->getEvaluator() , cp );
+		FillBufferByCom( mClientInfo->tcpClient.getSendCtrl() , cp );
 		break;
 	case CHANNEL_UDP_CHAIN:
-		mClientInfo->udpClient.getSendCtrl().fillBuffer( mServer->getEvaluator() , cp );
+		FillBufferByCom( mClientInfo->udpClient.getSendCtrl() , cp );
 		break;
 	}
 }
 
 void SNetPlayer::sendTcpCommand( IComPacket* cp )
 {
-	mClientInfo->tcpClient.getSendCtrl().fillBuffer( mServer->getEvaluator() , cp );
+	FillBufferByCom( mClientInfo->tcpClient.getSendCtrl() , cp );
 }
 
 void SNetPlayer::sendUdpCommand( IComPacket* cp )
 {
-	mClientInfo->udpClient.getSendCtrl().fillBuffer( mServer->getEvaluator() , cp );
+	FillBufferByCom( mClientInfo->udpClient.getSendCtrl() , cp );
 }
 
 SNetPlayer::SNetPlayer( ServerWorker* server , ClientInfo* cInfo ) 

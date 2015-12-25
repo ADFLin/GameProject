@@ -45,11 +45,11 @@ public:
 	bool  haveConnect(){ return mSessoionId != 0; }
 
 protected:
-	void  onSendData( Connection* con );
-	void  onConnect( Connection* con );
-	void  onClose( Connection* con , ConCloseReason reason );
-	void  onConnectFailed( Connection* con );
-	bool  onRecvData( Connection* con , SBuffer& buffer , NetAddress* clientAddr );
+	void  onSendData( NetConnection* con );
+	void  onConnect( NetConnection* con );
+	void  onClose( NetConnection* con , ConCloseReason reason );
+	void  onConnectFailed( NetConnection* con );
+	bool  onRecvData( NetConnection* con , SBuffer& buffer , NetAddress* clientAddr );
 
 	//NetWorker
 	bool  doStartNetwork();
@@ -91,7 +91,7 @@ public:
 	SendDelayCtrl( NetBufferCtrl& bufferCtrl );
 
 	void update( long time );
-	bool add( ComEvaluator& evaluator , IComPacket* cp );
+	bool add( IComPacket* cp );
 	void setDelay( long delay ){ mDelay = delay;  }
 
 private:
@@ -139,7 +139,7 @@ public:
 	DelayClientWorker( UserProfile& profile );
 	void setDelay( long time );
 	bool updateSocket( long time );
-	virtual bool  onRecvData( Connection* connection , SBuffer& buffer , NetAddress* clientAddr );
+	virtual bool  onRecvData( NetConnection* connection , SBuffer& buffer , NetAddress* clientAddr );
 	virtual void  sendCommand( int channel , IComPacket* cp , unsigned flag );
 protected:
 	SendDelayCtrl mSDCTcp;

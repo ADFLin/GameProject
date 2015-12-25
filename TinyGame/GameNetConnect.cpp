@@ -1,10 +1,7 @@
 #include "TinyGamePCH.h"
 #include "GameNetConnect.h"
 
-#include "GameGlobal.h"
-#include "ComPacket.h"
-
-void Connection::recvData( NetBufferCtrl& bufCtrl , int len , NetAddress* addr )
+void NetConnection::recvData( NetBufferCtrl& bufCtrl , int len , NetAddress* addr )
 {
 	try 
 	{
@@ -30,17 +27,17 @@ void Connection::recvData( NetBufferCtrl& bufCtrl , int len , NetAddress* addr )
 	}
 }
 
-void Connection::close()
+void NetConnection::close()
 {
 	mSocket.close();
 }
 
-void Connection::updateSocket( long time )
+void NetConnection::updateSocket( long time )
 {
 	doUpdateSocket( time );
 }
 
-bool Connection::checkConnect( long time )
+bool NetConnection::checkConnect( long time )
 {
 	long const TimeOut = 1 * 1000;
 	if ( time - mLastRespondTime > TimeOut )
@@ -51,7 +48,7 @@ bool Connection::checkConnect( long time )
 	return true;
 }
 
-void Connection::resolveExcept()
+void NetConnection::resolveExcept()
 {
 	mListener->onExcept( this );
 }
@@ -109,33 +106,6 @@ void UdpClient::onReadable( TSocket& socket , int len )
 {
 	NetAddress clientAddr;
 	recvData( mRecvCtrl , len , &clientAddr );
-}
-
-bool EvalCommand( UdpChain& chain , ComEvaluator& evaluator , SBuffer& buffer , ComConnection* con /*= NULL */ )
-{
-	unsigned size;
-	while( chain.readPacket( buffer , size ) )
-	{	
-		size_t oldSize = buffer.getAvailableSize();
-
-		if ( oldSize < size )
-			throw ComException( "error UDP Packet" );
-
-		do
-		{
-			if ( !evaluator.evalCommand( buffer , con ) )
-			{
-				::Msg( "readPacket Error Need Fix" );
-				return false;
-			}
-		}
-		while( oldSize - buffer.getAvailableSize() < size );
-
-		if ( oldSize - buffer.getAvailableSize() != size )
-			throw ComException( "error UDP Packet" );
-	}
-
-	return true;
 }
 
 void UdpServer::run( unsigned port )
@@ -199,12 +169,6 @@ void TcpServer::onAcceptable( TSocket& socket )
 {
 	Msg( "Client Connection" );
 	mListener->onAccpetClient( this );
-}
-
-void NetBufferCtrl::fillBuffer( ComEvaluator& evaluator , IComPacket* cp )
-{
-	MUTEX_LOCK( mMutexBuffer );
-	FillBufferByCom( evaluator , mBuffer , cp );
 }
 
 void NetBufferCtrl::fillBuffer( SBuffer& buffer , unsigned num )
@@ -347,34 +311,6 @@ int checkBuffer( char const* buf , int num )
 	assert( num == 0 );
 #endif
 	return num;
-}
-
-unsigned FillBufferByCom( ComEvaluator& evalutor , SBuffer& buffer , IComPacket* cp )
-{
-
-	bool done = false;
-	int  count = 1;
-	unsigned result;
-	while ( !done )
-	{
-		try
-		{
-			result = ComEvaluator::fillBuffer( cp , buffer );
-			done = true;
-		}
-		catch ( BufferException& e )
-		{
-			buffer.grow( ( buffer.getMaxSize() * 3 ) / 2 );
-			Msg( e.what() );
-		}
-		catch ( ComException& e )
-		{
-			Msg( e.what() );
-			return 0;
-		}
-		++count;
-	}
-	return result;
 }
 
 bool UdpChain::sendPacket( long time , TSocket& socket , SBuffer& buffer , NetAddress& addr  )

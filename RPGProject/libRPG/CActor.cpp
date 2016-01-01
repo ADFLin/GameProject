@@ -40,6 +40,12 @@ CActor::CActor()
 }
 
 
+CActor::~CActor()
+{
+
+}
+
+
 bool CActor::init( GameObject* gameObject , GameObjectInitHelper const& helper )
 {
 	if ( !BaseClass::init( gameObject , helper ) )
@@ -912,7 +918,6 @@ void CActor::inputWeaponDamage( ILevelObject* dtEntity )
 
 	UG_InputDamage( info );
 }
-
 
 #include "IScriptTable.h"
 

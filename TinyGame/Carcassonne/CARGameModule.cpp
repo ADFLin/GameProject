@@ -11,6 +11,10 @@
 namespace CAR
 {
 	unsigned const CANT_FOLLOW_ACTOR_MASK = ( BIT( ActorType::eBuilder ) | BIT( ActorType::ePig ) );
+	unsigned const FARMER_MASK = BIT( ActorType::eMeeple ) | BIT( ActorType::eBigMeeple ) | BIT( ActorType::ePhantom );
+	unsigned const KINGHT_MASK = BIT( ActorType::eMeeple ) | BIT( ActorType::eBigMeeple ) | BIT( ActorType::ePhantom ) | BIT( ActorType::eMayor ) | BIT( ActorType::eWagon );
+
+	unsigned const CastleScoreTypeMask = BIT( FeatureType::eCity ) | BIT( FeatureType::eCloister ) | BIT( FeatureType::eRoad ); 
 
 	struct FieldProc
 	{
@@ -196,12 +200,17 @@ namespace CAR
 			if ( mIsRunning )
 			{
 				GameActionData data;
-				input.waitTurnOver( *this , data );
+				input.requestTurnOver( data );
 				if ( data.resultExitGame )
 					return;
 			}
 
 			curTrunPlayer->endTurn();
+
+			if ( mSetting->haveUse( EXP_BRIDGES_CASTLES_AND_BAZAARS ) )
+			{
+				mCastlesRoundBuild.moveAfter( mCastles.back() );
+			}
 			++mIdxPlayerTrun;
 			if ( mIdxPlayerTrun == mPlayerOrders.size() )
 				mIdxPlayerTrun = 0;
@@ -223,12 +232,8 @@ namespace CAR
 					{
 					case 1:
 						{
-							scoreInfos.resize( MaxPlayerNum );
-							for( int i = 0 ; i < MaxPlayerNum ; ++i )
-							{
-								scoreInfos[i].id       = i;
-								scoreInfos[i].majority = 0;
-							}
+							FeatureBase::initFeatureScoreInfo(scoreInfos);
+
 							for( std::set<FarmFeature*>::iterator iter = city->linkFarms.begin() , itEnd = city->linkFarms.end();
 								iter != itEnd ; ++iter )
 							{
@@ -251,6 +256,7 @@ namespace CAR
 			else
 			{
 				int numPlayer = build->calcScore( scoreInfos );
+				if ( numPlayer > 0 )
 				addFeaturePoints( *build , scoreInfos , numPlayer );
 			}
 		}
@@ -284,7 +290,10 @@ namespace CAR
 					continue;
 
 				if ( build->type == FeatureType::eCity )
-					++numCityComplete;
+				{
+					if ( static_cast< CityFeature* >( build )->isCastle == false )
+						++numCityComplete;
+				}
 				else if ( build->type == FeatureType::eRoad )
 					++numRoadComplete;
 			}
@@ -495,7 +504,18 @@ namespace CAR
 			{
 				++countDrawTileLoop;
 			
-				mUseTileId = drawPlayTile();
+				mUseTileId = FAIL_TILE_ID;
+				if ( mSetting->haveUse( EXP_BRIDGES_CASTLES_AND_BAZAARS ) )
+				{
+					if ( curTrunPlayer->getFieldValue( FieldType::eTileIdAuctioned ) != FAIL_TILE_ID )
+					{
+						mUseTileId = (TileId)curTrunPlayer->getFieldValue( FieldType::eTileIdAuctioned );
+						curTrunPlayer->setFieldValue( FieldType::eTileIdAuctioned , FAIL_TILE_ID );
+					}
+				}
+				if ( mUseTileId == FAIL_TILE_ID )
+					mUseTileId = drawPlayTile();
+
 				if ( mSetting->haveUse( EXP_THE_PRINCESS_AND_THE_DRAGON ) )
 				{
 					if ( countDrawTileLoop < getRemainingTileNum() )
@@ -504,7 +524,7 @@ namespace CAR
 						if ( tileSet.tile->contentFlag & TileContent::eTheDragon &&
 							mDragon->mapTile == nullptr )
 						{
-							reservePlayTile();
+							reserveTile( mUseTileId );
 							continue;
 						}
 					}
@@ -539,7 +559,7 @@ namespace CAR
 				//a) Place the tile.
 				GamePlaceTileData putTileData;
 				putTileData.id = mUseTileId;
-				input.waitPlaceTile( *this , putTileData );
+				input.requestPlaceTile( putTileData );
 				if ( checkGameState( putTileData , result ) == false )
 					return result;
 
@@ -643,7 +663,7 @@ namespace CAR
 									continue;
 								if ( feature->checkComplete() )
 									continue;
-								if ( feature->havePlayerActorMask( AllPlayerMask , mSetting->getFollowerMask() ) )
+								if ( feature->haveActorMask( mSetting->getFollowerMask() ) )
 									continue;
 
 								for( MapTileSet::iterator iter = feature->mapTiles.begin() , itEnd = feature->mapTiles.end();
@@ -666,7 +686,7 @@ namespace CAR
 								data.reason = SAR_MAGIC_PORTAL;
 								data.mapTiles = &mapTiles[0];
 								data.numSelection = mapTiles.size();
-								input.waitSelectMapTile( *this , data );
+								input.requestSelectMapTile( data );
 								if ( checkGameState( data , result ) == false )
 									return result;
 
@@ -686,7 +706,7 @@ namespace CAR
 
 							GameDeployActorData deployActorData;
 							deployActorData.mapTile = deployMapTile;
-							input.waitDeployActor( *this , deployActorData );
+							input.requestDeployActor( deployActorData );
 							if ( checkGameState( deployActorData , result ) == false )
 								return result;
 
@@ -712,12 +732,13 @@ namespace CAR
 
 								switch( actor->type )
 								{
+								case ActorType::ePig:
 								case ActorType::eBuilder:
 									{
 										LevelActor* actorFollow = feature->findActor( BIT( curTrunPlayer->getId() ) , mSetting->getFollowerMask() & ~CANT_FOLLOW_ACTOR_MASK );
 										if ( actor == nullptr )
 										{
-											CAR_LOG( "Error: Builder No Follower In Deploy Builder" );
+											CAR_LOG( "Error: Builder or Pig No Follower In Deploying" );
 										}
 										else
 										{
@@ -756,7 +777,7 @@ namespace CAR
 							data.reason = SAR_FAIRY_MOVE_NEXT_TO_FOLLOWER;
 							data.actors = &followers[0];
 							data.numSelection = numFollower;
-							input.waitSelectActor( *this , data );
+							input.requestSelectActor( data );
 							if ( !checkGameState( data , result ) )
 								return result;
 							if ( data.resultSkipAction == false ) 
@@ -810,10 +831,90 @@ namespace CAR
 				{
 					CAR_LOG( "Feature %d complete by Player %d" , feature->group , curTrunPlayer->getId()  );
 					//Step 7: Resolve Completed Features
-					result = resolveCompleteFeature( input , *feature );
+					result = resolveCompleteFeature( input , *feature , nullptr );
 					if ( result != TurnResult::eOK )
 						return result;
 				}
+				else if ( feature->type == FeatureType::eFarm )
+				{
+					if ( mSetting->haveUse( EXP_ABBEY_AND_MAYOR ) && feature->haveActorMask( BIT( ActorType::eBarn ) ) )
+					{
+						FarmFeature* farm = static_cast< FarmFeature*>( feature );
+						
+						bool haveFarmer = feature->haveActorMask( FARMER_MASK );
+						if ( haveFarmer )
+						{
+							std::vector< FeatureScoreInfo > scoreInfos;
+							FeatureBase::initFeatureScoreInfo( scoreInfos );
+							farm->addMajority( scoreInfos );
+							int numPlayer = farm->evalMajorityControl( scoreInfos );
+							assert( numPlayer > 0 );
+							for( int i = 0; i < numPlayer ; ++i )
+							{
+								scoreInfos[i].score = farm->calcPlayerScoreByBarnRemoveFarmer( scoreInfos[i].id );
+							}
+							addFeaturePoints( *feature , scoreInfos , numPlayer );
+							farm->haveBarn = true;
+
+							for( int i = 0 ; i < feature->mActors.size() ;  )
+							{
+								LevelActor* actor = feature->mActors[i];
+								if ( FARMER_MASK & BIT( actor->type ) )
+								{
+									feature->removeActorByIndex( i );
+									returnActorToPlayer( actor );
+								}
+								else
+								{
+									++i;
+								}
+							}
+						}
+					}
+				}
+			}
+			//castle complete
+			if ( mSetting->haveUse( EXP_BRIDGES_CASTLES_AND_BAZAARS ) )
+			{
+				std::vector< CastleInfo* > castleGroup;
+
+				do
+				{
+					castleGroup.clear();
+
+					for( CastleInfoList::iterator iter = mCastles.begin() , itEnd = mCastles.end() ;
+						iter != itEnd ; ++iter )
+					{
+						CastleInfo* info = *iter;
+						if ( info->featureScores.empty() == true )
+							continue;
+
+						castleGroup.push_back( info );
+					}
+
+					for( int i = 0 ; i < castleGroup.size() ; ++i )
+					{
+						CastleInfo* info = castleGroup[i];
+						CastleScoreInfo* scoreInfo;
+						if ( info->featureScores.size() == 1 )
+						{
+							scoreInfo = &info->featureScores[0];
+						}
+						else
+						{
+							//FIXME
+							scoreInfo = &info->featureScores[0];
+						}
+
+						result = resolveCompleteFeature( input , *info->city , scoreInfo );
+						if ( result != TurnResult::eOK )
+							return result;
+
+						delete info;
+					}
+				}
+				while( castleGroup.empty() == false );
+
 			}
 
 			//Step 8: Resolve the Tile
@@ -909,7 +1010,7 @@ namespace CAR
 			data.numSelection = numTile;
 			data.playerId = mPlayerOrders[ idxPlayer ]->getId();
 			
-			input.waitSelectMapTile(*this,data);
+			input.requestSelectMapTile(data);
 			if ( checkGameState( data , result ) == false )
 				return result;
 
@@ -954,7 +1055,7 @@ namespace CAR
 		data.reason = SAR_CONSTRUCT_TOWER;
 		data.numSelection = mTowerTiles.size();
 		data.mapTiles   = &mTowerTiles[0];
-		input.waitSelectMapTile( *this , data );
+		input.requestSelectMapTile( data );
 		if ( checkGameState( data , result ) == false )
 			return result;
 
@@ -1011,7 +1112,7 @@ namespace CAR
 			selectActorData.reason = SAR_TOWER_CAPTURE_FOLLOWER;
 			selectActorData.numSelection = actors.size();
 			selectActorData.actors = &actors[0];
-			input.waitSelectActor( *this , selectActorData );
+			input.requestSelectActor( selectActorData );
 			if ( checkGameState( selectActorData , result ) == false )
 				return result;
 
@@ -1055,10 +1156,10 @@ namespace CAR
 					data.reason = SAR_EXCHANGE_PRISONERS;
 					data.actorInfos = &actorInfos[0];
 					data.numSelection = actorInfos.size();
-					input.waitSelectActorInfo( *this , data );
+					input.requestSelectActorInfo( data );
 					if ( data.checkResultVaild() == false )
 					{
-						CAR_LOG("Warning: Error Prisoner exhange Index" );
+						CAR_LOG("Warning: Error Prisoner exchange Index" );
 						data.resultIndex = 0;
 					}
 
@@ -1121,13 +1222,14 @@ namespace CAR
 			{
 				if ( mPlayerOrders[ idxCur ]->getFieldValue( FieldType::eTileIdAuctioned ) != FAIL_TILE_ID )
 					continue;
-				data.pIdCur = mPlayerOrders[ idxCur ]->getId();
+				data.playerId = mPlayerOrders[ idxCur ]->getId();
+				data.resultRiseScore = 0;
 
-				input.waitAuctionTile( *this , data );
+				input.requestAuctionTile( data );
 				if ( checkGameState( data , result ) == false )
 					return result;
 	
-				if (  data.pIdCur == data.pIdRound )
+				if (  data.playerId == data.pIdRound )
 				{
 					if ( data.resultIndexTileSelect >= data.auctionTiles.size()  )
 					{
@@ -1136,12 +1238,14 @@ namespace CAR
 					}
 					data.tileIdRound = data.auctionTiles[ data.resultIndexTileSelect ];
 					data.maxScore = data.resultRiseScore;
-					data.pIdCallMaxScore = data.pIdCur;
+					data.pIdCallMaxScore = data.playerId;
+
+					data.auctionTiles.erase( data.auctionTiles.begin() + data.resultIndexTileSelect );
 				}
 				else if ( data.resultRiseScore != 0 )
 				{
 					data.maxScore += data.resultRiseScore;
-					data.pIdCallMaxScore = data.pIdCur;
+					data.pIdCallMaxScore = data.playerId;
 				}
 
 				++idxCur;
@@ -1149,24 +1253,24 @@ namespace CAR
 					idxCur = 0;
 			}
 
-			data.pIdCur = mPlayerOrders[ idxCur ]->getId();
-			assert( data.pIdCur == data.pIdRound );
+			data.playerId = mPlayerOrders[ idxCur ]->getId();
+			assert( data.playerId == data.pIdRound );
 
-			input.waitBuyAuctionedTile( *this , data );
+			input.requestBuyAuctionedTile( data );
 			if ( checkGameState( data , result ) == false )
 				return result;
 
 			PlayerBase* pBuyer;
 			PlayerBase* pSeller;
-			if ( data.resultBuy )
-			{
-				pBuyer = mPlayerManager->getPlayer(data.pIdRound );
-				pSeller = mPlayerManager->getPlayer(data.pIdCallMaxScore );
-			}
-			else
+			if ( data.resultSkipAction )
 			{
 				pSeller = mPlayerManager->getPlayer(data.pIdRound );
 				pBuyer = mPlayerManager->getPlayer( data.pIdCallMaxScore );
+			}
+			else
+			{
+				pBuyer = mPlayerManager->getPlayer(data.pIdRound );
+				pSeller = mPlayerManager->getPlayer(data.pIdCallMaxScore );
 			}
 
 			addPlayerScore( pBuyer->getId() , -data.maxScore );
@@ -1187,7 +1291,7 @@ namespace CAR
 		TurnResult result;
 		unsigned sideMask = Tile::AllSideMask;
 		int dir;
-		while( FBit::MaskIterator4( sideMask , dir ) )
+		while( FBit::MaskIterator< FDir::TotalNum >( sideMask , dir ) )
 		{
 			sideMask &= ~placeMapTile->getSideLinkMask( dir );
 
@@ -1208,7 +1312,7 @@ namespace CAR
 			int iter = 0;
 			LevelActor* actor;
 			ActorList kinghts;
-			while( actor = city->iteratorActorMask( AllPlayerMask , followerMask , iter ) )
+			while( actor = city->iteratorActorMask( AllPlayerMask , KINGHT_MASK , iter ) )
 			{
 				kinghts.push_back( actor );
 			}
@@ -1220,7 +1324,7 @@ namespace CAR
 				data.numSelection = kinghts.size();
 				data.actors   = &kinghts[0];
 
-				input.waitSelectActor( *this , data );
+				input.requestSelectActor( data );
 				if ( checkGameState( data , result ) == false )
 					return result;
 
@@ -1248,7 +1352,7 @@ namespace CAR
 		{
 			unsigned maskAll = Tile::AllSideMask;
 			int dir;
-			while( FBit::MaskIterator4( maskAll , dir ) )
+			while( FBit::MaskIterator< FDir::TotalNum >( maskAll , dir ) )
 			{
 				unsigned linkMask = mapTile.getSideLinkMask( dir );
 				maskAll &= ~linkMask;
@@ -1287,7 +1391,7 @@ namespace CAR
 		{
 			unsigned maskAll = Tile::AllFarmMask;
 			int idx;
-			while( FBit::MaskIterator8( maskAll , idx ) )
+			while( FBit::MaskIterator< Tile::NumFarm >( maskAll , idx ) )
 			{
 				unsigned linkMask = mapTile.getFarmLinkMask( idx );
 				if ( linkMask == 0 )
@@ -1299,7 +1403,7 @@ namespace CAR
 				unsigned cityLinkMask = mapTile.getCityLinkFarmMask( idx );
 				unsigned cityLinkMaskCopy = cityLinkMask;
 				int dir;
-				while ( FBit::MaskIterator4( cityLinkMask , dir ) )
+				while ( FBit::MaskIterator< FDir::TotalNum >( cityLinkMask , dir ) )
 				{
 					if ( mapTile.getSideGroup( dir ) == -1 )
 					{
@@ -1367,10 +1471,23 @@ namespace CAR
 		}
 	}
 
-	TurnResult GameModule::resolveCompleteFeature( IGameInput& input , FeatureBase& feature)
+	TurnResult GameModule::resolveCompleteFeature( IGameInput& input , FeatureBase& feature , CastleScoreInfo* castleScore )
 	{
 		TurnResult result;
 		assert( feature.checkComplete() );
+
+		if ( mSetting->haveUse( EXP_BRIDGES_CASTLES_AND_BAZAARS ) )
+		{
+			if ( feature.type == FeatureType::eCity )
+			{
+				bool haveBuild;
+				result = resolveBuildCastle( input , feature, haveBuild );
+				if ( result != TurnResult::eOK )
+					return result;
+				if ( haveBuild )
+					return TurnResult::eOK;
+			}
+		}
 
 		//c)
 		if ( mSetting->haveUse(EXP_THE_PRINCESS_AND_THE_DRAGON) )
@@ -1409,22 +1526,11 @@ namespace CAR
 					}
 				}
 			}
-
-			if ( mSetting->haveUse( EXP_BRIDGES_CASTLES_AND_BAZAARS ) )
-			{
-				if ( city.isSamllCircular() )
-				{
-
-
-
-
-				}
-			}
 		}
 		//->King or Robber Baron
 		if ( mSetting->haveUse( EXP_KING_AND_ROBBER ) )
 		{
-			if ( feature.type == FeatureType::eCity )
+			if ( feature.type == FeatureType::eCity && castleScore == nullptr )
 			{
 				if ( feature.mapTiles.size() > mMaxCityTileNum )
 				{
@@ -1444,13 +1550,46 @@ namespace CAR
 		}
 
 		//f - h)
-		std::vector< FeatureScoreInfo > scoreInfo;
-		int numController = feature.calcScore( scoreInfo );
+
+		int numController = 0;
+		std::vector< FeatureScoreInfo > scoreInfos;
+		if ( castleScore )
+		{
+			FeatureScoreInfo info;
+			info.id = feature.findActor( KINGHT_MASK )->owner->getId();
+			info.majority = 1;
+			info.score = castleScore->value;
+			scoreInfos.push_back( info );
+			numController = 1;
+		}
+		else
+		{
+			numController = feature.calcScore( scoreInfos );
+		}
 		if ( numController > 0 )
 		{
-			addFeaturePoints( feature , scoreInfo , numController );
+			addFeaturePoints( feature , scoreInfos , numController );
 		}
 
+		if ( mSetting->haveUse( EXP_BRIDGES_CASTLES_AND_BAZAARS ) )
+		{
+			int score = 0;
+			if ( numController > 0 )
+			{
+				for( int i = 0 ; i < numController ; ++i )
+				{
+					if ( score < scoreInfos[i].score )
+						score = scoreInfos[i].score;
+				}
+			}
+			else
+			{
+				score = feature.calcPlayerScore( FAIL_PLAYER_ID );
+			}
+
+			checkCastleComplete( feature , score );
+		}
+	
 		LevelActor* actor;
 		std::vector< LevelActor* > wagonGroup;
 		std::vector< LevelActor* > mageWitchGroup;
@@ -1527,7 +1666,7 @@ namespace CAR
 					mapTiles.clear();
 					FillActionData( data , linkFeatures, mapTiles );
 
-					input.waitSelectMapTile( *this , data );
+					input.requestSelectMapTile( data );
 					if ( checkGameState( data , result ) == false )
 						return result;
 
@@ -1574,11 +1713,9 @@ namespace CAR
 	{
 		for( int i = 0 ; i < numPlayer ; ++i )
 		{
-			PlayerBase* player = mPlayerManager->getPlayer( featureControls[i].id );
-			int score = feature.calcPlayerScore( player->getId() );
-			featureControls[i].score = score;
-			addPlayerScore( player->getId() , score );
-			CAR_LOG( "Player %d add Score %d " , player->getId() , score );
+			FeatureScoreInfo& info = featureControls[i];
+			addPlayerScore( info.id, info.score );
+			CAR_LOG( "Player %d add Score %d " , info.id , info.score );
 		}
 	}
 
@@ -1686,7 +1823,7 @@ namespace CAR
 		SideNode* linkNodeFrist = nullptr;
 		unsigned mask = dirMask;
 		int dir = 0;
-		while ( FBit::MaskIterator4( mask , dir ) )
+		while ( FBit::MaskIterator< FDir::TotalNum >( mask , dir ) )
 		{
 			SideNode* linkNode = mapTile.sideNodes[ dir ].outConnect;
 			if ( linkNode == nullptr || linkNode->group == ABBEY_GROUP_ID )
@@ -1754,7 +1891,7 @@ namespace CAR
 		FarmNode* linkNodeFrist = nullptr;
 		unsigned mask = idxMask;
 		int idx = 0;
-		while ( FBit::MaskIterator8( mask , idx ) )
+		while ( FBit::MaskIterator< Tile::NumFarm >( mask , idx ) )
 		{
 			FarmNode* linkNode = mapTile.farmNodes[ idx ].outConnect;
 			if ( linkNode == nullptr )
@@ -1822,7 +1959,7 @@ namespace CAR
 
 		maskAll = Tile::AllSideMask;
 		int dir;
-		while( FBit::MaskIterator4( maskAll , dir ) )
+		while( FBit::MaskIterator< FDir::TotalNum >( maskAll , dir ) )
 		{
 			maskAll &= ~mapTile.getSideLinkMask( dir );
 			int group = mapTile.getSideGroup( dir );
@@ -1837,7 +1974,7 @@ namespace CAR
 
 		maskAll = Tile::AllFarmMask;
 		int idx;
-		while( FBit::MaskIterator8( maskAll , idx ) )
+		while( FBit::MaskIterator< Tile::NumFarm >( maskAll , idx ) )
 		{
 			maskAll &= ~mapTile.getFarmLinkMask( idx );
 			int group = mapTile.getFarmGroup( idx );
@@ -1859,16 +1996,23 @@ namespace CAR
 				MapTile* mapTileCheck = &mapTile;
 				int dirCheck = i;
 				if ( Tile::CanLinkFarm( mapTileCheck->getLinkType( dirCheck) ) == false )
-					break;
+					continue;
+
+
+				FarmFeature* farm = static_cast< FarmFeature* >( getFeature( mapTile.farmNodes[ Tile::DirToFramIndexFrist( i ) + 1 ].group ) );
+				if ( farm->haveBarn )
+					continue;
+
 				for(  ; n < FDir::TotalNum - 1 ; ++n )
 				{
-					dirCheck = ( dirCheck + 1 ) % FDir::TotalNum;
 					posCheck = FDir::LinkPos( posCheck , dirCheck );
 					mapTileCheck = mLevel.findMapTile( posCheck );
+					dirCheck = ( dirCheck + 1 ) % FDir::TotalNum;
 					if ( mapTileCheck == nullptr )
 						break;
 					if ( Tile::CanLinkFarm( mapTileCheck->getLinkType( dirCheck) ) == false )
 						break;
+
 				}
 				if ( n == FDir::TotalNum - 1 )
 				{
@@ -1997,6 +2141,7 @@ namespace CAR
 			{
 			case ActorType::eFariy:
 				break;
+			case ActorType::ePig:
 			case ActorType::eBuilder:
 				{
 					int iter = 0;
@@ -2062,14 +2207,9 @@ namespace CAR
 		}
 	}
 
-	void GameModule::reservePlayTile()
+	void GameModule::reserveTile( TileId id )
 	{
-		if ( mIdxTile == mTilesQueue.size() )
-			return;
-
-		--mIdxTile;
-		mTilesQueue.erase( mTilesQueue.begin() + mIdxTile );
-		mTilesQueue.push_back( mUseTileId );
+		mTilesQueue.push_back( id );
 		++mNumTileNeedMix;
 	}
 
@@ -2123,7 +2263,7 @@ namespace CAR
 
 		for( int i = 0 ; i < mTileSetManager.getRegisterTileNum() ; ++i )
 		{
-			MapTile* mapTile = mLevel.placeTileNoCheck( i , Vec2i( 2 *(i/numRow),2*(i%numRow) ) , 2 , param );
+			MapTile* mapTile = mLevel.placeTileNoCheck( i , Vec2i( 2 *(i/numRow),2*(i%numRow) ) , 0 , param );
 			mListener->onPutTile( *mapTile );
 			UpdateTileFeatureResult updateResult;
 			updateTileFeature( *mapTile , updateResult );
@@ -2179,6 +2319,131 @@ namespace CAR
 	{
 		assert( group != -1 );
 		return mFeatureMap[group];
+	}
+
+	void GameModule::checkCastleComplete(FeatureBase &feature, int score)
+	{
+		for( CastleInfoList::iterator iter = mCastles.begin() , itEnd = mCastles.end() ;
+			iter != itEnd ; ++iter )
+		{
+			CastleInfo* info = *iter;
+			if ( ( BIT(feature.type) & CastleScoreTypeMask ) == 0 )
+				continue;
+
+			if ( feature.testInRange( info->min , info->max ) == false )
+				continue;
+
+			CastleScoreInfo s;
+			s.feature = &feature;
+			s.value   = score;
+			info->featureScores.push_back( s );
+
+		}
+	}
+
+	TurnResult GameModule::resolveBuildCastle(IGameInput& input , FeatureBase& feature , bool& haveBuild)
+	{
+		haveBuild = false;
+
+		TurnResult result;
+		CityFeature& city = static_cast< CityFeature& >( feature );
+		if ( city.isSamllCircular() == false || city.isCastle == true )
+			return TurnResult::eOK;
+
+		LevelActor* kinght = city.findActor( KINGHT_MASK );
+		if ( kinght == nullptr || kinght->owner->getFieldValue( FieldType::eCastleTokens ) <= 0 )
+			return TurnResult::eOK;
+
+		GameBuildCastleData data;
+		data.playerId = kinght->owner->getId();
+		data.city = &city;
+
+		input.requestBuildCastle( data );
+		if ( checkGameState( data , result ) == false )
+			return result;
+
+		if ( data.resultSkipAction == false )
+		{
+			data.city->isCastle = true;
+			kinght->owner->modifyFieldValue( FieldType::eCastleTokens , -1 );
+			CastleInfo* info = new CastleInfo;
+			info->city = data.city;
+			SideNode* nodeA = info->city->nodes[0];
+			SideNode* nodeB = info->city->nodes[1];
+			bool beH = nodeA->getMapTile()->pos.x == nodeB->getMapTile()->pos.x;
+			MapTile const* tileA = nodeA->getMapTile();
+			if ( beH )
+			{
+				info->min.x = tileA->pos.x - 1;
+				info->max.x = tileA->pos.x + 1;
+				info->min.y = tileA->pos.y;
+				info->max.y = nodeB->getMapTile()->pos.y;
+				if ( info->min.y > info->max.y )
+					std::swap( info->min.y , info->max.y );
+			}
+			else
+			{
+				info->min.y = tileA->pos.y - 1;
+				info->max.y = tileA->pos.y + 1;
+				info->min.x = tileA->pos.x;
+				info->max.x = nodeB->getMapTile()->pos.x;
+				if ( info->min.x > info->max.x )
+					std::swap( info->min.x , info->max.x );
+			}
+			mCastlesRoundBuild.push_back( info );
+			haveBuild = true;
+
+		}
+		return result;
+	}
+
+	bool GameModule::buildBridge(Vec2i const& pos , int dir)
+	{
+		if ( getTurnPlayer() == nullptr )
+			return false;
+
+		if ( getTurnPlayer()->getFieldValue( FieldType::eBridgePices ) == 0 )
+			return false;
+
+		MapTile* mapTile = mLevel.findMapTile( pos );
+		if ( mapTile == nullptr )
+			return false;
+
+		mapTile->addBridge( dir );
+		getTurnPlayer()->modifyFieldValue( FieldType::eBridgePices , -1 );
+		return true;
+	}
+
+	bool GameModule::buyBackPrisoner(int ownerId , ActorType type)
+	{
+		if ( getTurnPlayer() == nullptr )
+			return false;
+
+		int i = 0 ;
+		for( ; i < mPrisoners.size() ; ++i )
+		{
+			PrisonerInfo& info = mPrisoners[i];
+			if ( info.playerId == getTurnPlayer()->getId() &&
+				info.ownerId == ownerId &&
+				info.type == type )
+				break;
+		}
+		if ( i == mPrisoners.size() )
+			return false;
+
+		mPrisoners.erase( mPrisoners.begin() + i );
+
+		mPlayerManager->getPlayer( ownerId )->mScore += Value::PrisonerBuyBackScore;
+		getTurnPlayer()->mScore -= Value::PrisonerBuyBackScore;
+		getTurnPlayer()->modifyActorValue( type , 1 );
+		return true;
+	}
+
+	bool GameModule::changePlaceTile(TileId id)
+	{
+		mUseTileId = id;
+		updatePosibleLinkPos();
+		return true;
 	}
 
 	void GameSetting::calcUsageField( int numPlayer )

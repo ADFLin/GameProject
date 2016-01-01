@@ -66,7 +66,7 @@ namespace CAR
 		unsigned mask = 0;
 		unsigned sideMask = mTile->farms[ lDir ].sideLinkMask;
 		int lDirTest;
-		while( FBit::MaskIterator4( sideMask , lDirTest ) )
+		while( FBit::MaskIterator< FDir::TotalNum >( sideMask , lDirTest ) )
 		{
 			if ( mTile->canLinkCity( lDirTest ) )
 				mask |= BIT( lDirTest );

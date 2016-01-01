@@ -49,6 +49,7 @@ public:
 	};
 
 	CActor();
+	~CActor();
 	virtual bool init( GameObject* gameObject , GameObjectInitHelper const& helper );
 	virtual void release();
 

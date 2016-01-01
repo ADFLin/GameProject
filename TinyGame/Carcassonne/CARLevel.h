@@ -64,10 +64,12 @@ namespace CAR
 		{
 			usageBridge = 0;
 			checkRiverConnect = 0;
+			checkRiverDirection = 1;
 			dirNeedUseBridge = -1;
 		}
 		uint8 usageBridge : 1;
 		uint8 checkRiverConnect : 1;
+		uint8 checkRiverDirection: 1;
 
 		int   dirNeedUseBridge;
 	};
@@ -86,7 +88,10 @@ namespace CAR
 		MapTile*    findMapTile( Vec2i const& pos );
 		bool        isEmptyLinkPos( Vec2i const& pos );
 
-		void incCheckCount();
+
+
+		bool        checkRiverLinkDirection( Vec2i const& pos , int dirLink , int dir );
+		void        incCheckCount();
 
 		struct VecCmp
 		{

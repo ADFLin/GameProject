@@ -326,7 +326,7 @@ void ServerWorker::procLogin( IComPacket* cp )
 void ServerWorker::procEcho( IComPacket* cp )
 {
 	CPEcho* com = cp->cast< CPEcho >();
-	ClientInfo* info = (ClientInfo*) cp->getConnection();
+	ClientInfo* info = static_cast< ClientInfo*>( cp->getConnection() );
 	assert( info );
 	FillBufferByCom( info->udpClient.getSendCtrl() , cp );
 }
@@ -340,8 +340,8 @@ void ServerWorker::procMsg( IComPacket* cp )
 
 void ServerWorker::procClockSyndNet( IComPacket* cp )
 {
-	ClientInfo* info = (ClientInfo*) cp->getConnection();
-	if ( !info )
+	ClientInfo* info = static_cast< ClientInfo*>( cp->getConnection() );
+	if ( info == nullptr )
 		return;
 
 	CSPClockSynd* com = cp->cast< CSPClockSynd >();
@@ -368,7 +368,7 @@ void ServerWorker::procClockSynd( IComPacket* cp )
 	ServerPlayer* player;
 	if ( cp->getConnection() )
 	{
-		ClientInfo* info = (ClientInfo*) cp->getConnection();
+		ClientInfo* info = static_cast< ClientInfo*>( cp->getConnection() );
 		player = info->player;
 	}
 	else
@@ -398,7 +398,7 @@ void ServerWorker::procPlayerState( IComPacket* cp )
 {
 	CSPPlayerState* com = cp->cast< CSPPlayerState >();
 
-	ClientInfo* info = (ClientInfo*) cp->getConnection();
+	ClientInfo* info = static_cast< ClientInfo*>( cp->getConnection() );
 
 	if ( com->playerID == ERROR_PLAYER_ID )
 	{

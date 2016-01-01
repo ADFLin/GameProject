@@ -172,7 +172,7 @@ public:
 	void setFillSize( size_t size )
 	{
 		assert( size >= mUseSize );
-		assert( size <  mMaxSize );
+		assert( size <= mMaxSize );
 		mFillSize = size;
 	}
 

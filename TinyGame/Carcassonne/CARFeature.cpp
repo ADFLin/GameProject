@@ -96,17 +96,19 @@ namespace CAR
 		mActors.erase( std::find( mActors.begin() , mActors.end() , &actor ) );
 	}
 
+	LevelActor* FeatureBase::removeActorByIndex(int index)
+	{
+		assert(  0 <= index && index < mActors.size() );
+		LevelActor* actor = mActors[ index ];
+		actor->feature = nullptr;
+		mActors.erase( mActors.begin() + index );
+		return actor;
+	}
+
 	int FeatureBase::calcScore(std::vector< FeatureScoreInfo >& scoreInfos)
 	{
-		scoreInfos.resize( MaxPlayerNum );
-		for( int i = 0 ; i < MaxPlayerNum ; ++i )
-		{
-			scoreInfos[i].id       = i;
-			scoreInfos[i].majority = 0;
-		}
-
+		initFeatureScoreInfo( scoreInfos );
 		addMajority( scoreInfos );
-
 		int numPlayer = evalMajorityControl( scoreInfos );
 		for( int i = 0 ; i < numPlayer ; ++i )
 		{
@@ -170,6 +172,28 @@ namespace CAR
 		}
 	}
 
+	void FeatureBase::initFeatureScoreInfo(std::vector< FeatureScoreInfo > &scoreInfos)
+	{
+		scoreInfos.resize( MaxPlayerNum );
+		for( int i = 0 ; i < MaxPlayerNum ; ++i )
+		{
+			scoreInfos[i].id       = i;
+			scoreInfos[i].majority = 0;
+		}
+	}
+
+	bool FeatureBase::testInRange(Vec2i const& min , Vec2i const& max)
+	{
+		for( MapTileSet::iterator iter = mapTiles.begin() , itEnd = mapTiles.end() ;
+			iter != itEnd ; ++iter )
+		{
+			MapTile* mapTile = *iter;
+			if ( isInRange( mapTile->pos , min , max ) )
+				return true;
+		}
+		return false;
+	}
+
 	SideFeature::SideFeature()
 	{
 		openCount = 0;
@@ -184,7 +208,7 @@ namespace CAR
 		openCount += otherData.openCount;
 		unsigned mask = putData.getSideLinkMask( meta );
 		int dir;
-		while( FBit::MaskIterator4( mask , dir ) )
+		while( FBit::MaskIterator< FDir::TotalNum >( mask , dir ) )
 		{
 			SideNode* nodeCon = putData.sideNodes[dir].outConnect;
 			if ( nodeCon && nodeCon->group == other.group )
@@ -214,7 +238,7 @@ namespace CAR
 		addMapTile( mapData );
 		unsigned mask = dirMask;
 		int dir = 0;
-		while ( FBit::MaskIterator4( mask , dir ) )
+		while ( FBit::MaskIterator< FDir::TotalNum >( mask , dir ) )
 		{
 			SideNode& node = mapData.sideNodes[dir];
 			assert( node.group == -1 );
@@ -301,7 +325,7 @@ namespace CAR
 			else
 			{
 				int dir;
-				while( FBit::MaskIterator4(roadMask,dir) )
+				while( FBit::MaskIterator< FDir::TotalNum >(roadMask,dir) )
 				{
 					SideNode const& linkNode = mapTile->sideNodes[dir];
 					if ( linkNode.group == group )
@@ -371,7 +395,7 @@ namespace CAR
 		{
 			unsigned mask = dirMask;
 			int dir;
-			while( FBit::MaskIterator4( mask , dir ) )
+			while( FBit::MaskIterator< FDir::TotalNum >( mask , dir ) )
 			{
 				if ( mapData.getSideContnet( dir ) & SideContent::eInn )
 				{
@@ -477,7 +501,7 @@ namespace CAR
 		else if ( checkComplete() )
 		{
 			factor = Value::CityFactor;
-			factor = Value::PennatFactor;
+			pennatFactor = Value::PennatFactor;
 		}
 
 		int numPennats = getSideContentNum( SideContent::ePennant );
@@ -491,16 +515,31 @@ namespace CAR
 		if ( nodes.size() != 2 )
 			return false;
 		SideNode* nodeA = nodes[0];
-		if ( nodeA->getMapTile()->mTile->isSemiCircularCity( nodeA->getLocalDir() ) )
+		if ( nodeA->getMapTile()->mTile->isSemiCircularCity( nodeA->getLocalDir() ) == false )
 			return false;
 		SideNode* nodeB = nodes[1];
-		if ( nodeB->getMapTile()->mTile->isSemiCircularCity( nodeB->getLocalDir() ) )
+		if ( nodeB->getMapTile()->mTile->isSemiCircularCity( nodeB->getLocalDir() ) == false )
 			return false;
 		return true;
 	}
 
+	int CityFeature::calcScore(std::vector< FeatureScoreInfo >& scoreInfos)
+	{
+		if ( isCastle )
+			return -1;
+		return BaseClass::calcScore( scoreInfos );
+	}
+
+	FarmFeature::FarmFeature()
+	{
+		haveBarn = false;
+	}
+
 	int FarmFeature::getActorPutInfo(int playerId , int posMeta ,std::vector< ActorPosInfo >& outInfo)
 	{
+		if ( haveActorMask( BIT( ActorType::eBarn ) ) )
+			return 0;
+
 		unsigned actorMasks[] = { BIT(ActorType::eMeeple) , 0 };
 		if ( mSetting->haveUse( EXP_INNS_AND_CATHEDRALS ) )
 		{
@@ -537,7 +576,7 @@ namespace CAR
 
 		unsigned mask = idxMask;
 		int idx;
-		while ( FBit::MaskIterator8( mask , idx ) )
+		while ( FBit::MaskIterator< Tile::NumFarm >( mask , idx ) )
 		{
 			FarmNode& node = mapData.farmNodes[idx];
 			assert( node.group == -1 );
@@ -548,15 +587,6 @@ namespace CAR
 
 	int FarmFeature::calcPlayerScore( int playerId )
 	{
-		int numCityFinish = 0;
-		for( std::set< CityFeature* >::iterator iter = linkCities.begin() , itEnd = linkCities.end();
-			iter != itEnd ; ++iter )
-		{
-			CityFeature* city = *iter;
-			if ( city->checkComplete() )
-				++numCityFinish;
-		}
-
 		int factor = Value::FarmFactorV3;
 		switch ( mSetting->getFarmScoreVersion() )
 		{
@@ -565,13 +595,11 @@ namespace CAR
 		case 3: factor = Value::FarmFactorV3; break;
 		}
 
-		if ( mSetting->haveUse( EXP_TRADERS_AND_BUILDERS ) )
-		{
-			if ( havePlayerActor( playerId , ActorType::ePig ) )
-				factor += Value::PigAdditionFactor;
-		}
+		if ( haveBarn )
+			factor += Value::BarnAddtionFactor;
 
-		return numCityFinish * factor;
+		return calcPlayerScoreInternal(playerId, factor);
+
 	}
 
 	int FarmFeature::calcScore(std::vector< FeatureScoreInfo >& scoreInfos)
@@ -588,6 +616,38 @@ namespace CAR
 		}
 
 		return 0;
+	}
+
+	int FarmFeature::calcPlayerScoreInternal(int playerId, int farmFactor)
+	{
+		int factor = farmFactor;
+		int numCityFinish = 0;
+		int numCastle = 0;
+
+		for( std::set< CityFeature* >::iterator iter = linkCities.begin() , itEnd = linkCities.end();
+			iter != itEnd ; ++iter )
+		{
+			CityFeature* city = *iter;
+			if ( city->checkComplete() )
+			{
+				++numCityFinish;
+				if ( city->isCastle )
+					++numCastle;
+			}
+		}
+
+		if ( mSetting->haveUse( EXP_TRADERS_AND_BUILDERS ) )
+		{
+			if ( havePlayerActor( playerId , ActorType::ePig ) )
+				factor += Value::PigAdditionFactor;
+		}
+
+		return numCityFinish * factor + numCastle;
+	}
+
+	int FarmFeature::calcPlayerScoreByBarnRemoveFarmer(int playerId)
+	{
+		return calcPlayerScoreInternal( playerId , (haveBarn)?( Value::BarnRemoveFarmerFactor ):( Value::FarmFactorV3 ) );
 	}
 
 	CloisterFeature::CloisterFeature()
@@ -643,7 +703,7 @@ namespace CAR
 		unsigned roadMask = mapTile->calcRoadMaskLinkCenter() & ~Tile::CenterMask;
 
 		int dir;
-		while( FBit::MaskIterator4( roadMask , dir ) )
+		while( FBit::MaskIterator< FDir::TotalNum >( roadMask , dir ) )
 		{
 			SideNode* linkNode = mapTile->sideNodes[dir].outConnect;
 			if ( linkNode == nullptr )

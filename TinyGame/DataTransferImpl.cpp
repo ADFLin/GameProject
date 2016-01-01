@@ -50,7 +50,7 @@ void CWorkerDataTransfer::procPacket( IComPacket* cp )
 
 CSVWorkerDataTransfer::CSVWorkerDataTransfer( NetWorker* worker , int numPlayer ) 
 	:CWorkerDataTransfer( worker , SLOT_SERVER )
-	,mPlayerIdMap( worker->getPlayerManager()->getPlayerNum() , ERROR_PLAYER_ID )
+	,mPlayerIdMap( numPlayer , ERROR_PLAYER_ID )
 {
 	assert( worker->isServer() );
 	for( IPlayerManager::Iterator iter = getServer()->getPlayerManager()->getIterator();

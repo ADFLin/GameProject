@@ -7,6 +7,7 @@
 #include "CARFeature.h"
 
 #include "Random.h"
+#include "IntrList.h"
 
 namespace CAR
 {
@@ -31,12 +32,14 @@ namespace CAR
 	{
 		GameActionData()
 		{
+			playerId = -1;
 			resultExitGame = false;
 			resultSkipAction = false;
 		}
 
 		template< class T >
 		T* cast(){ return static_cast< T* >( this ); }
+		int  playerId;
 		bool resultExitGame;
 		bool resultSkipAction;
 	};
@@ -135,7 +138,6 @@ namespace CAR
 	struct GameDragonMoveData : public GameSelectMapTileData
 	{
 	public:
-		int playerId;
 	};
 	struct GameFeatureTileSelectData : public GameSelectMapTileData
 	{
@@ -150,8 +152,9 @@ namespace CAR
 		{
 			for( int i = 0 ;i < infos.size() ; ++i )
 			{
-				if ( resultIndex <= infos[i].index )
-					return infos[i].feature;
+				Info& info = infos[i];
+				if ( resultIndex < info.index + info.num )
+					return info.feature;
 			}
 			return nullptr;
 		}
@@ -164,16 +167,15 @@ namespace CAR
 		TileId   tileIdRound;
 		int      pIdRound;
 		int      pIdCallMaxScore;
-		int      pIdCur;
 		int      maxScore;
 		
 		unsigned resultIndexTileSelect;
-		union 
-		{
-			unsigned resultRiseScore;
-			bool     resultBuy;
+		unsigned resultRiseScore;
+	};
 
-		};
+	struct GameBuildCastleData : public GameActionData
+	{
+		CityFeature* city;
 	};
 
 	class GameModule;
@@ -181,14 +183,15 @@ namespace CAR
 	class IGameInput
 	{
 	public:
-		virtual void waitPlaceTile( GameModule& module , GamePlaceTileData& data ) = 0;
-		virtual void waitDeployActor( GameModule& module , GameDeployActorData& data ) = 0;
-		virtual void waitSelectMapTile( GameModule& module , GameSelectMapTileData& data ) = 0;
-		virtual void waitSelectActor( GameModule& module , GameSelectActorData& data ) = 0;
-		virtual void waitSelectActorInfo( GameModule& module , GameSelectActorInfoData& data ) = 0;
-		virtual void waitTurnOver( GameModule& moudule , GameActionData& data ) = 0;
-		virtual void waitAuctionTile( GameModule& moudule , GameAuctionTileData& data ) = 0;
-		virtual void waitBuyAuctionedTile( GameModule& moudule , GameAuctionTileData& data ) = 0;
+		virtual void requestPlaceTile( GamePlaceTileData& data ) = 0;
+		virtual void requestDeployActor( GameDeployActorData& data ) = 0;
+		virtual void requestSelectMapTile( GameSelectMapTileData& data ) = 0;
+		virtual void requestSelectActor( GameSelectActorData& data ) = 0;
+		virtual void requestSelectActorInfo( GameSelectActorInfoData& data ) = 0;
+		virtual void requestTurnOver( GameActionData& data ) = 0;
+		virtual void requestAuctionTile( GameAuctionTileData& data ) = 0;
+		virtual void requestBuyAuctionedTile( GameAuctionTileData& data ) = 0;
+		virtual void requestBuildCastle( GameBuildCastleData& data ) = 0;
 
 	};
 
@@ -227,12 +230,16 @@ namespace CAR
 		Level& getLevel(){ return mLevel; }
 		void   runLogic( IGameInput& input );
 
+		bool   buildBridge( Vec2i const& pos , int dir );
+		bool   buyBackPrisoner( int ownerId , ActorType type );
+		bool   changePlaceTile( TileId id );
 
 		void   loadSetting( bool bInit );
 		void   calcPlayerDeployActorPos(PlayerBase& player , MapTile& mapTile , bool bUsageMagicPortal );
 		int    getRemainingTileNum();
 		TileId drawPlayTile();
-		void   reservePlayTile();
+
+		void   reserveTile( TileId id );
 		void   checkReservedTileToMix();
 
 		void   generatePlayerPlayOrder();
@@ -255,7 +262,12 @@ namespace CAR
 		bool   checkGameState( GameActionData& actionData , TurnResult& result );
 
 		TurnResult  resolvePlayerTurn( IGameInput& input , PlayerBase* curTrunPlayer );
-		TurnResult  resolveCompleteFeature( IGameInput& input , FeatureBase& feature );
+		struct CastleScoreInfo;
+		TurnResult  resolveCompleteFeature( IGameInput& input , FeatureBase& feature , CastleScoreInfo* castleScore );
+		TurnResult  resolveBuildCastle(IGameInput& input , FeatureBase& feature , bool& haveBuild );
+
+		void checkCastleComplete(FeatureBase &feature, int score);
+
 		TurnResult  resolveAbbey( IGameInput& input , PlayerBase* curTurnPlayer );
 		TurnResult  resolveDragonMove( IGameInput& input , LevelActor& dragon );
 		TurnResult  resolvePrincess( IGameInput& input , MapTile* placeMapTile , bool& haveDone );
@@ -273,7 +285,8 @@ namespace CAR
 
 		PlayerBase* getTurnPlayer(){ return mPlayerOrders[ mIdxPlayerTrun ]; }
 
-		
+		void   initFeatureScoreInfo(std::vector< FeatureScoreInfo > &scoreInfos);
+	
 		void  returnActorToPlayer( LevelActor* actor );
 		void  moveActor( LevelActor* actor , ActorPos const& pos , MapTile* mapTile );
 
@@ -388,6 +401,28 @@ namespace CAR
 		int    mMaxRoadTileNum;
 		//EXP_ABBEY_AND_MAYOR
 		TileId mAbbeyTileId;
+		//EXP_BRIDGES_CASTLES_AND_BAZAARS
+		struct CastleScoreInfo
+		{
+			FeatureBase* feature;
+			int value;
+		};
+		struct CastleInfo
+		{
+			HookNode node;
+			CityFeature* city;
+			Vec2i min;
+			Vec2i max;
+			std::vector< CastleScoreInfo > featureScores;
+		};
+		typedef IntrList< 
+			CastleInfo , 
+			MemberHook< CastleInfo , &CastleInfo::node > , 
+			PointerType 
+		> CastleInfoList;
+		CastleInfoList mCastles;
+		CastleInfoList mCastlesRoundBuild;
+		int mCastleGroup;
 
 		GamePlayerManager* mPlayerManager;
 		TileSetManager mTileSetManager;

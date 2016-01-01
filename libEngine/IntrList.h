@@ -24,6 +24,7 @@ struct NodeTraits
 	static NodePtr getNext( NodePtr const& n );
 	static void setNext( NodePtr const& n , NodePtr const& next );
 	static void setPrev( NodePtr const& n , NodePtr const& prev );
+	static bool isEmpty( NodePtr const& n );
 };
 
 struct ListNodeTraits
@@ -37,6 +38,8 @@ struct ListNodeTraits
 	static ConstNodePtr getNext( ConstNodePtr const& n ){ return n->mNext; }
 	static void setNext( NodePtr const& n , NodePtr const& next ){ n->mNext = next; }
 	static void setPrev( NodePtr const& n , NodePtr const& prev ){ n->mPrev = prev; }
+	static bool isEmpty( ConstNodePtr const& n ){ return n == 0; }
+	static bool isEmpty( NodePtr const& n ){ return n == 0; }
 
 };
 
@@ -58,9 +61,9 @@ public:
 		NodeTraits::setNext( n , NodePtr(0) );
 		NodeTraits::setPrev( n , NodePtr(0) );
 	}
-	static bool isInited( ConstNodePtr const& n )
+	static bool isLinked( ConstNodePtr const& n )
 	{ 
-		return !NodeTraits::getNext( n );
+		return NodeTraits::isEmpty( NodeTraits::getNext( n ) ) == false;
 	}
 
 	static void linkBefore( NodePtr const& node , NodePtr const& where )
@@ -83,6 +86,26 @@ public:
 
 		NodeTraits::setNext( where , node );
 		NodeTraits::setPrev( next  , node );
+	}
+
+	static void linkBefore( NodePtr const& from , NodePtr const& to , NodePtr const& where )
+	{
+		NodePtr prev = NodeTraits::getPrev( where );
+
+		NodeTraits::setPrev( from , prev );
+		NodeTraits::setNext( prev , from );
+		NodeTraits::setPrev( where , to );
+		NodeTraits::setNext( to   , where );
+	}
+
+	static void linkAfter( NodePtr const& from , NodePtr const& to , NodePtr const& where )
+	{
+		NodePtr next = NodeTraits::getNext( where );
+
+		NodeTraits::setPrev( from , where );
+		NodeTraits::setNext( where , from );
+		NodeTraits::setPrev( next , to );
+		NodeTraits::setNext( to , next );
 	}
 
 	static size_t count( ConstNodePtr const& from , ConstNodePtr const& end )
@@ -121,7 +144,7 @@ public:
 		if ( isLinked() ) 
 			unlink();  
 	}
-	bool      isLinked() const { return !Algorithm::isInited( this );  }
+	bool      isLinked() const { return Algorithm::isLinked( this );  }
 	void      unlink(){  Algorithm::unlink( this );  }
 
 	template< class T , HookNode T::*Member >
@@ -198,7 +221,7 @@ public:
 	RType  front(){ return TP::fixRT( HookTraits::castValue< T >( *NodeTraits::getNext( &mHeader ) ) ); }
 	RType  back() { return TP::fixRT( HookTraits::castValue< T >( *NodeTraits::getPrev( &mHeader ) ) ); }
 
-	bool   empty() const { return NodeTraits::getNext( &mHeader ) != &mHeader; }
+	bool   empty() const { return NodeTraits::getNext( &mHeader ) == &mHeader; }
 	size_t size() const {  return Algorithm::count( NodeTraits::getNext( &mHeader ) , &mHeader );  }
 
 
@@ -215,7 +238,6 @@ public:
 	}
 
 
-
 	void   remove( InType value )
 	{
 		assert( haveLink( value ) );
@@ -229,11 +251,38 @@ public:
 
 	void   insertBefore( InType value , InType where ){ insertBefore( TP::fix( value ) , HookTraits::castNode( TP::fix( where ) ) ); }
 	void   insertAfter( InType value , InType where ) { insertAfter( TP::fix( value ) , HookTraits::castNode( TP::fix( where ) ) ); }
+	void   moveBefore( InType where )
+	{
+		if ( empty() )
+			return;
+
+		NodePtr node = &HookTraits::castNode( TP::fix( where ) );
+		assert( Algorithm::isLinked( node ) );
+		Algorithm::linkBefore( 
+			&HookTraits::castNode( TP::fix( front() ) ) ,
+			&HookTraits::castNode( TP::fix( back() ) ) ,
+			node );
+		Algorithm::initHeader( &mHeader );
+	}
+
+	void   moveAfter( InType where )
+	{
+		if ( empty() )
+			return;
+
+		NodePtr node = &HookTraits::castNode( TP::fix( where ) );
+		assert( Algorithm::isLinked( node ) );
+		Algorithm::linkAfter( 
+			&HookTraits::castNode( TP::fix( front() ) ) ,
+			&HookTraits::castNode( TP::fix( back() ) ) ,
+			node );
+		Algorithm::initHeader( &mHeader );
+	}
 
 	bool   haveLink( InType value )
 	{
 		NodePtr node = &HookTraits::castNode( TP::fix( value ) );
-		if ( Algorithm::isInited( node ) )
+		if ( Algorithm::isLinked( node ) == false )
 			return false;
 
 		NodePtr cur = NodeTraits::getNext( &mHeader );
@@ -283,7 +332,6 @@ public:
 		return iterator( next );
 	}
 
-
 private:
 
 	IntrList( IntrList const& );
@@ -292,15 +340,15 @@ private:
 	void insertBefore( T& value , NodeType& nodeWhere )
 	{
 		NodeType& nodeValue = HookTraits::castNode( value );
-		assert( Algorithm::isInited( &nodeValue ) );
-		assert( !Algorithm::isInited( &nodeWhere ) );
+		assert( !Algorithm::isLinked( &nodeValue ) );
+		assert( Algorithm::isLinked( &nodeWhere ) );
 		Algorithm::linkBefore( &nodeValue , &nodeWhere );
 	}
 	void insertAfter( T& value , NodeType& nodeWhere )
 	{
 		NodeType& nodeValue = HookTraits::castNode( value );
-		assert( Algorithm::isInited( &nodeValue ) );
-		assert( !Algorithm::isInited( &nodeWhere ) );
+		assert( !Algorithm::isLinked( &nodeValue ) );
+		assert( Algorithm::isLinked( &nodeWhere ) );
 		Algorithm::linkAfter( &nodeValue , &nodeWhere );
 	}
 

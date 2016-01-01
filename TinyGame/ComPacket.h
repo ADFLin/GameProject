@@ -115,13 +115,13 @@ public:
 	template< class GamePacket , class T , class Fun >
 	bool setUserFun( T* processer , Fun fun );
 
-	GAME_API void     removeProcesserFun( void* processer );
-	GAME_API void     procCommand( ComVisitor& visitor );
-	GAME_API void     procCommand();
-	GAME_API bool     takeBuffer( IComPacket* cp , SBuffer& buffer );
+	GAME_API void  removeProcesserFun( void* processer );
+	GAME_API void  procCommand( ComVisitor& visitor );
+	GAME_API void  procCommand();
+	GAME_API bool  takeBuffer( IComPacket* cp , SBuffer& buffer );
 	
-	GAME_API bool     evalCommand( SBuffer& buffer , ComConnection* con = NULL );
-	GAME_API void     execCommand( IComPacket* cp );
+	GAME_API bool  evalCommand( SBuffer& buffer , ComConnection* con = NULL );
+	GAME_API void  execCommand( IComPacket* cp );
 
 private:
 	struct ICPFactory

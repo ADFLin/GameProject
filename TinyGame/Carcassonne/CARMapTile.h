@@ -144,7 +144,7 @@ namespace CAR
 		{
 			unsigned mask = sideNodes[dir].linkMask;
 			int linkDir;
-			while( FBit::MaskIterator4( mask , linkDir ) )
+			while( FBit::MaskIterator< FDir::TotalNum >( mask , linkDir ) )
 			{
 				sideNodes[linkDir].linkMask &= ~BIT(dir);
 			}

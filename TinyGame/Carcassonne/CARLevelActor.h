@@ -49,10 +49,12 @@ namespace CAR
 		bool        havePlayerActor( int playerId , ActorType type );
 
 		unsigned    getPlayerActorTypeMask( unsigned playerMask );
+		bool        haveActorMask( unsigned actorTypeMask );
 		bool        havePlayerActorMask(unsigned playerMask , unsigned actorTypeMask );
 		LevelActor* iteratorActorMask(unsigned playerMask , unsigned actorTypeMask , int& iter);
 		LevelActor* iteratorActorMask(unsigned playerMask , int& iter);
-		LevelActor* findActor(unsigned playerMask , unsigned actorTypeMask );
+		LevelActor* findActor( unsigned playerMask , unsigned actorTypeMask );
+		LevelActor* findActor( unsigned actorTypeMask );
 
 		ActorList mActors;
 	};

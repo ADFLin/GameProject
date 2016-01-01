@@ -22,6 +22,16 @@ namespace CAR
 		if ( bit & 0xf0 ){ result += 4; bit >>= 4; }
 		return result + gBitIndexMap[ bit ];
 	}
+	int FBit::ToIndex32( unsigned bit )
+	{
+		assert( (bit&0xff) == bit );
+		assert( ( bit & ( bit - 1 ) ) == 0 );
+		int result = 0;
+		if ( bit & 0xffff0000 ){ result += 16; bit >>= 16; }
+		if ( bit & 0xff00 ){ result += 8; bit >>= 8; }
+		if ( bit & 0xf0 ){ result += 4; bit >>= 4; }
+		return result + gBitIndexMap[ bit ];
+	}
 
 	unsigned FBit::RotateRight(unsigned bits , unsigned offset , unsigned numBit)
 	{
@@ -35,6 +45,11 @@ namespace CAR
 		assert( offset <= numBit );
 		unsigned mask = ( 1 << numBit ) - 1;
 		return ( ( bits << offset ) | ( bits >> ( numBit - offset ) ) ) & mask;
+	}
+
+	Level::Level()
+	{
+
 	}
 
 	void Level::restart()
@@ -60,6 +75,8 @@ namespace CAR
 
 		bool checkRiverConnect = false;
 		int  numRiverConnect = 0;
+		MapTile* riverLink = nullptr;
+		int  dirRiverLink = -1;
 		for( int i = 0 ; i < FDir::TotalNum ; ++i )
 		{
 			int lDir = FDir::ToLocal( i , rotation );
@@ -98,18 +115,61 @@ namespace CAR
 				}
 
 				if ( checkRiverConnect && tileCheck.canLinkRiver( lDirCheck ) )
+				{
 					++numRiverConnect;
+					riverLink = dataCheck;
+					dirRiverLink = i;
+				}
 			}
 		}
 
 		if ( count == 0 )
 			return false;
 
-		if ( checkRiverConnect && numRiverConnect == 0 )
-			return false;
+		if ( checkRiverConnect )
+		{
+			if (  numRiverConnect == 0 )
+				return false;
+			if ( param.checkRiverDirection && numRiverConnect == 1 )
+			{
+				unsigned linkMask = FBit::RotateLeft( tile.sides[ FDir::ToLocal( dirRiverLink , rotation ) ].linkDirMask , rotation , 4 );
+				linkMask &= ~BIT( dirRiverLink );
+				if ( linkMask && FBit::Extract( linkMask ) == linkMask )
+				{
+					if ( !checkRiverLinkDirection( riverLink->pos , FDir::Inverse( dirRiverLink ) , FBit::ToIndex4( linkMask ) ) )
+						return false;
+				}
+			}
+		}
 
 		return true;
 	}
+
+	bool Level::checkRiverLinkDirection( Vec2i const& pos , int dirLink , int dir )
+	{
+		Vec2i posLink = pos;
+		for(;;)
+		{
+			MapTile* mapTile = findMapTile( posLink );
+			if ( mapTile == nullptr )
+				break;
+			unsigned mask = mapTile->getSideLinkMask(dirLink);
+			mask &= ~BIT( dirLink );
+			if ( mask == 0 )
+				return true;
+			if ( FBit::Extract( mask ) != mask )
+				return true;
+
+			int dirCheck = FBit::ToIndex4( mask );
+			if ( dirCheck == dir )
+				return false;
+
+			dirLink = FDir::Inverse( dirCheck );
+			posLink = FDir::LinkPos( posLink , dirCheck );
+		}
+		return true;
+	}
+
 
 	MapTile* Level::placeTileNoCheck( TileId tileId , Vec2i const& pos , int rotation , PutTileParam& param )
 	{
@@ -217,16 +277,10 @@ namespace CAR
 		}
 	}
 
-	Level::Level()
-	{
-
-	}
-
 	bool Level::isEmptyLinkPos(Vec2i const& pos)
 	{
 		return mEmptyLinkPosSet.find( pos ) != mEmptyLinkPosSet.end();
 	}
-
 
 	TileSetManager::TileSetManager()
 	{
@@ -317,7 +371,7 @@ namespace CAR
 #if _DEBUG
 			int idxStart = -1;
 #endif
-			while ( FBit::MaskIterator8( linkMask , idx ) )
+			while ( FBit::MaskIterator< 8 >( linkMask , idx ) )
 			{
 #if _DEBUG
 				if ( idxStart == -1 ){  idxStart = idx;  }
@@ -334,7 +388,7 @@ namespace CAR
 
 			unsigned linkMask = tileDef.roadLink[i] & ~Tile::CenterMask;
 			int idx;
-			while ( FBit::MaskIterator8( linkMask , idx ) )
+			while ( FBit::MaskIterator< 8 >( linkMask , idx ) )
 			{
 				tile.sides[idx].roadLinkDirMask |= tileDef.roadLink[i];
 			}
@@ -377,7 +431,7 @@ namespace CAR
 			unsigned farmSideLink = calcFarmSideLinkMask( usageFarmLink );
 			unsigned mask = linkMask;
 			int idx;
-			while ( FBit::MaskIterator8( mask , idx ) )
+			while ( FBit::MaskIterator< Tile::NumFarm >( mask , idx ) )
 			{
 				tile.farms[idx].farmLinkMask = linkMask;
 				tile.farms[idx].sideLinkMask = farmSideLink;

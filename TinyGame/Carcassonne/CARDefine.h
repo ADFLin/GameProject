@@ -9,12 +9,15 @@
 #	define BIT( n ) ( 1 << (n) )
 #endif
 
+
 #define ARRAY_SIZE( array ) ( sizeof(array) / sizeof( array[0]) )
 
 namespace CAR
 {
 	typedef uint32 TileId;
 	TileId const FAIL_TILE_ID = TileId(-1);
+
+	int const FAIL_PLAYER_ID = 31;
 
 	int const ERROR_GROUP_ID = -1;
 	int const ABBEY_GROUP_ID = -2;
@@ -56,13 +59,12 @@ namespace CAR
 			eVolcano      = BIT(2) , //EXP_THE_PRINCESS_AND_THE_DRAGON 
 			eTheDragon    = BIT(3) , //EXP_THE_PRINCESS_AND_THE_DRAGON 
 			eMagicPortal  = BIT(4) , //EXP_THE_PRINCESS_AND_THE_DRAGON
-			eCityCloister = BIT(6) , //EXP_THE_PRINCESS_AND_THE_DRAGON  Start //TODO
 			eTowerFoundation = BIT(7), //EXP_THE_TOWER
 			eBazaar       = BIT(8), //EXP_BRIDGES_CASTLES_AND_BAZAARS
 
 		};
 
-		static unsigned const FeatureMask = eCloister | eCityCloister;
+		static unsigned const FeatureMask = eCloister;
 	};
 
 	struct  SideContent
@@ -107,6 +109,9 @@ namespace CAR
 		eMayor , //EXP_ABBEY_AND_MAYOR
 		eWagon , //EXP_ABBEY_AND_MAYOR
 		eBarn  , //EXP_ABBEY_AND_MAYOR
+
+		ePhantom ,
+		eAbbot , //CII
 
 		eBuilder ,  //EXP_TRADEERS_AND_BUILDERS
 		ePig ,     //EXP_TRADEERS_AND_BUILDERS
@@ -170,7 +175,7 @@ namespace CAR
 
 	struct ExpansionTileContent
 	{
-		Expansion  exp;
+		Expansion   exp;
 		TileDefine* defines;
 		int         numDefines;
 	};

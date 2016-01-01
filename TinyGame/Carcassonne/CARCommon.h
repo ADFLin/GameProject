@@ -20,31 +20,40 @@ namespace CAR
 
 
 	typedef TVector2<int> Vec2i;
+
+	inline bool isInRange( Vec2i const& pos , Vec2i const& min , Vec2i const& max )
+	{
+		return min.x <= pos.x && pos.x <= max.x &&
+			   min.y <= pos.y && pos.y <= max.y;
+	}
+
 	struct FBit
 	{
 		static unsigned Extract( unsigned bits ){ return bits & ~( bits - 1 );} 
 		static int ToIndex4( unsigned bit );
 		static int ToIndex8( unsigned bit );
+		static int ToIndex32( unsigned bit );
 		static unsigned RotateRight( unsigned bits , unsigned offset , unsigned numBit );
 		static unsigned RotateLeft( unsigned bits , unsigned offset , unsigned numBit );
-		static bool MaskIterator4( unsigned& mask , int& index )
+
+		template< unsigned BitNum >
+		static int ToIndex( unsigned bit ){ return ToIndex32( bit ); }
+		template<>
+		static int ToIndex<4>( unsigned bit ){ return ToIndex4( bit ); }
+		template<>
+		static int ToIndex<8>( unsigned bit ){ return ToIndex8( bit ); }
+
+		template< unsigned BitNum >
+		static bool MaskIterator( unsigned& mask , int& index )
 		{
 			if ( mask == 0 )
 				return false;
 			unsigned bit = FBit::Extract( mask );
-			index = FBit::ToIndex4( bit );
+			index = FBit::ToIndex< BitNum >( bit );
 			mask &= ~bit;
 			return true;
 		}
-		static bool MaskIterator8( unsigned& mask , int& index )
-		{
-			if ( mask == 0 )
-				return false;
-			unsigned bit = FBit::Extract( mask );
-			index = FBit::ToIndex8( bit );
-			mask &= ~bit;
-			return true;
-		}
+
 	};
 
 	static Vec2i const gDirOffset[] =

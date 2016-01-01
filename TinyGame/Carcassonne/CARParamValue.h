@@ -40,12 +40,16 @@ namespace CAR
 		//EXP_THE_TOWER
 		int const TowerPicesTotalNum = 30;
 		int const TowerPicesPlayerOwnNum[] = { 0 , 0 , 10 , 9 , 7 , 6 , 5 };
+		int const PrisonerBuyBackScore = 3;
 
 		//EXP_ABBEY_AND_MAYOR
 		int const AbbeyTilePlayerOwnNum = 1;
 		int const BarnPlayerOwnNum = 1;
 		int const WagonPlayerOwnNum = 1;
 		int const MayorPlayerOwnNum = 1;
+
+		int const BarnAddtionFactor = 1;
+		int const BarnRemoveFarmerFactor = 1; 
 
 		//EXP_BRIDGES_CASTLES_AND_BAZAARS
 		int const BridgePicesPlayerOwnNum[] = { 0 , 0 , 3 , 3 , 3 , 2 , 2 };

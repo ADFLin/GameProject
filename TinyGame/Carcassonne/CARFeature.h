@@ -54,6 +54,9 @@ namespace CAR
 		MapTileSet  mapTiles;
 		void        addActor( LevelActor& actor );
 		void        removeActor( LevelActor& actor );
+		LevelActor* removeActorByIndex( int index );
+		bool        testInRange( Vec2i const& min , Vec2i const& max );
+
 		virtual bool checkComplete(){ return false; }
 		virtual int  getActorPutInfo( int playerId , int posMeta , std::vector< ActorPosInfo >& outInfo ) = 0;
 		virtual void generateRoadLinkFeatures( std::set< unsigned >& outFeatures ){ }
@@ -63,6 +66,7 @@ namespace CAR
 		virtual int  calcScore( std::vector< FeatureScoreInfo >& scoreInfos );
 		virtual bool getActorPos( MapTile const& mapTile , ActorPos& actorPos ){ return false; }
 
+		static void initFeatureScoreInfo(std::vector< FeatureScoreInfo > &scoreInfos);
 		int  getMajorityValue( ActorType actorType);
 		void addMajority( std::vector< FeatureScoreInfo >& scoreInfos );
 		int  evalMajorityControl(std::vector< FeatureScoreInfo >& featureControls);
@@ -82,7 +86,7 @@ namespace CAR
 
 		int getDefaultActorPutInfo( int playerId , ActorPos const& actorPos , unsigned actorMasks[] , std::vector< ActorPosInfo >& outInfo );
 		int getActorPutInfoInternal(int playerId , ActorPos const& actorPos , unsigned actorMasks[] , int numMask , std::vector< ActorPosInfo >& outInfo);
-
+		
 		GameSetting* mSetting;
 	};
 
@@ -137,6 +141,7 @@ namespace CAR
 		
 		bool haveCathedral;
 		bool isCastle;
+		int  cloisterGroup;
 		std::set< FarmFeature* > linkFarms;
 
 		bool isSamllCircular();
@@ -148,6 +153,7 @@ namespace CAR
 		virtual bool checkComplete() override;
 		virtual int  calcPlayerScore( int playerId );
 
+		virtual int calcScore(std::vector< FeatureScoreInfo >& scoreInfos);
 
 
 	};
@@ -156,6 +162,7 @@ namespace CAR
 	{
 		typedef FeatureBase BaseClass;
 	public:
+		FarmFeature();
 
 		static int const Type = FeatureType::eFarm;
 
@@ -166,6 +173,10 @@ namespace CAR
 		virtual int  calcScore( std::vector< FeatureScoreInfo >& scoreInfos );
 		virtual int  calcPlayerScore( int playerId );
 
+		int calcPlayerScoreByBarnRemoveFarmer( int playerId );
+		int calcPlayerScoreInternal(int playerId, int farmFactor);
+
+		bool haveBarn;
 		std::vector< FarmNode* > nodes;
 		std::set< CityFeature* > linkCities;
 	};

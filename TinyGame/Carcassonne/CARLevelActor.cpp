@@ -85,6 +85,18 @@ namespace CAR
 		return false;
 	}
 
+	bool ActorContainer::haveActorMask(unsigned actorTypeMask)
+	{
+		for(int idx = 0; idx < mActors.size(); ++idx )
+		{
+			LevelActor* actor = mActors[idx];
+			if ( BIT( actor->type ) & actorTypeMask )
+				return true;
+		}
+		return false;
+	}
+
+
 	LevelActor* ActorContainer::popActor()
 	{
 		if ( mActors.empty() )
@@ -101,6 +113,18 @@ namespace CAR
 		return iteratorActorMask( playerMask , actorTypeMask , iter );
 	}
 
+	LevelActor* ActorContainer::findActor(unsigned actorTypeMask)
+	{
+		int iter = 0;
+		for( ; iter < mActors.size() ; ++iter )
+		{
+			LevelActor* actor = mActors[iter];
+			if (( actorTypeMask & BIT(actor->type) ) == 0 )
+				continue;
+			return actor;
+		}
+		return nullptr;
+	}
 
 	LevelActor* LevelActor::popFollower()
 	{

@@ -8,11 +8,9 @@
 #include "CARGameSetting.h"
 #include "CARGameModule.h"
 #include "CARDebug.h"
+#include "CARGameInput.h"
 
-#include "Coroutine.h"
-#include "StreamBuffer.h"
 
-#include "DataTransfer.h"
 #include "FixVector.h"
 
 
@@ -27,186 +25,6 @@ namespace CAR
 	using CFly::Vector3;
 	using CFly::Matrix4;
 
-	enum PlayerAction
-	{
-		ACTION_NONE ,
-		ACTION_PLACE_TILE ,
-		ACTION_DEPLOY_ACTOR ,
-		ACTION_SELECT_MAPTILE ,
-		ACTION_SELECT_ACTOR ,
-		ACTION_SELECT_ACTOR_INFO ,
-		ACTION_AUCTION_TILE ,
-		ACTION_BUY_AUCTIONED_TILE ,
-	};
-
-	
-	struct SkipCom
-	{
-		uint8 action;
-	};
-
-	struct ActionCom
-	{
-		ActionCom()
-		{
-			numParam = 0;
-		}
-		void addParam( int value ){ assert( numParam < MaxParamNum ); params[ numParam++ ].iValue = value; }
-		void addParam( float value ){ assert( numParam < MaxParamNum ); params[ numParam++ ].fValue = value; }
-		void send( int slot , int dataId  , IDataTransfer& transfer )
-		{
-			transfer.sendData( slot , dataId , this , sizeof( action ) + sizeof( numParam ) + numParam * sizeof( Param ) );
-		}
-		static int const MaxParamNum = 16;
-		uint8 action;
-		uint8 numParam;
-		struct Param
-		{
-			int   iValue;
-			float fValue;
-		};
-		Param params[ MaxParamNum ];
-	};
-
-	enum
-	{
-		DATA2ID( SkipCom ) ,
-		DATA2ID( ActionCom ) ,
-	};
-	class CGameInput : public IGameInput
-	{
-		typedef boost::coroutines::asymmetric_coroutine< void >::pull_type ImplType;
-		typedef boost::coroutines::asymmetric_coroutine< void >::push_type YeildType;
-
-	public:
-		CGameInput()
-		{
-			reset();
-		}
-
-		void reset()
-		{
-			beRecoredMode = false;
-			mAction = ACTION_NONE;
-			mActionData = nullptr;
-			mDataTransfer = nullptr;
-			mNumActionInput = 0;
-		}
-
-		void clearAction()
-		{
-			mAction = ACTION_NONE;
-			mActionData = nullptr;
-			save( "car_record" );
-		}
-		template< class Fun >
-		void run( Fun fun )
-		{
-			mImpl = ImplType( std::bind( &CGameInput::execEntry< Fun > , this , std::placeholders::_1 , fun ) );
-		}
-
-		void setDataTransfer( IDataTransfer* transfer );
-
-		void sendCommond( ActionCom& com )
-		{
-			com.action = getAction();
-			com.send( SLOT_SERVER , DATA2ID(ActionCom) , *mDataTransfer );
-		}
-
-		void onRecvCommon( int slot , int dataId , void* data , int dataSize );
-
-		void requestCommon( ActionCom const& com );
-
-
-		void requestPlaceTile( Vec2i const& pos , int rotation );
-		void requestDeployActor( int index , ActorType type );
-		void requestSelect( int index );
-
-		void skipAction();
-
-		void doRequestPlaceTile( Vec2i const& pos , int rotation );
-		void doRequestDeployActor( int index , ActorType type );
-		void doRequestSelect( int index );
-		void doSkipAction();
-
-		void returnGame()
-		{
-			if ( mYeild )
-				mImpl();
-		}
-
-		void exitGame()
-		{
-			if ( mActionData && mYeild)
-			{
-				mActionData->resultExitGame = true;
-				mImpl();
-			}
-		}
-		PlayerAction getAction(){ return mAction; }
-		GameActionData* getActionData(){ return mActionData; }
-
-		std::function< void ( GameModule& , PlayerAction , GameActionData* ) > onAction;
-
-		
-	private:
-
-		virtual void waitPlaceTile( GameModule& module , GamePlaceTileData& data )
-		{  waitActionImpl( module , ACTION_PLACE_TILE , data ); }
-		virtual void waitDeployActor( GameModule& module , GameDeployActorData& data)
-		{  waitActionImpl( module , ACTION_DEPLOY_ACTOR , data ); }
-		virtual void waitSelectActor(GameModule& module , GameSelectActorData& data)
-		{  waitActionImpl( module , ACTION_SELECT_ACTOR , data );  }
-		virtual void waitSelectActorInfo(GameModule& module , GameSelectActorInfoData& data)
-		{  waitActionImpl( module , ACTION_SELECT_ACTOR_INFO , data );  }
-		virtual void waitSelectMapTile(GameModule& module , GameSelectMapTileData& data)
-		{  waitActionImpl( module , ACTION_SELECT_MAPTILE , data );  }
-		virtual void waitAuctionTile( GameModule& moudule , GameAuctionTileData& data )
-		{  waitActionImpl( moudule , ACTION_AUCTION_TILE , data ); }
-		virtual void waitBuyAuctionedTile( GameModule& moudule , GameAuctionTileData& data ) 
-		{  waitActionImpl( moudule , ACTION_BUY_AUCTIONED_TILE , data ); }
-
-		virtual void waitTurnOver( GameModule& moudule , GameActionData& data );
-
-		void waitActionImpl( GameModule& module , PlayerAction action , GameActionData& data );
-
-		void requestInternal();
-
-		template< class Fun >
-		void execEntry( YeildType& type , Fun fun )
-		{
-			try {
-				mYeild = &type;
-				fun( *this );
-				mYeild = nullptr;
-			} catch(const boost::coroutines::detail::forced_unwind&) 
-			{
-				CAR_LOG("Catch forced_unwind Exception!");
-				throw;
-			} catch(...) {
-				// possibly not re-throw pending exception
-			}
-		}
-	public:
-
-		bool load( char const* file );
-
-		bool save( char const* file );
-
-		
-		IDataTransfer*  mDataTransfer;
-
-
-		bool beRecoredMode;
-		std::stringstream mOFS;
-		std::ifstream     mIFS;
-
-		int             mNumActionInput;
-		PlayerAction    mAction;
-		GameActionData* mActionData;
-		ImplType        mImpl;
-		YeildType*      mYeild;
-	};
 
 	class ActorPosButton : public GButtonBase
 	{
@@ -300,6 +118,10 @@ namespace CAR
 			UI_ACTOR_INFO_BUTTON ,
 			UI_ACTION_SKIP ,
 			UI_ACTION_END_TURN ,
+			UI_ACTION_BUILD_CASTLE ,
+
+
+			UI_REPLAY_STOP ,
 
 			UI_TILE_SELECT ,
 
@@ -321,8 +143,8 @@ namespace CAR
 		Vec2f convertToMapPos(Vec2i const& sPos);
 		Vec2f convertToScreenPos(Vec2f const& pos);
 
-		void onGameAction( GameModule& moudule , PlayerAction action , GameActionData* data );
-
+		void  onGamePrevAction( GameModule& moudule , CGameInput& input );
+		void  onGameAction( GameModule& moudule , CGameInput& input );
 		void  removeGameActionUI();
 		Vec2f getActorPosMapOffset( ActorPos const& pos );
 		virtual void onPutTile( MapTile& mapTile );
@@ -340,6 +162,7 @@ namespace CAR
 
 		GameSetting& getSetting(){ return mSetting; }
 		
+
 
 	protected:
 
@@ -361,7 +184,7 @@ namespace CAR
 		Vec2f   mRenderOffset;
 		Matrix4 mMatVP;
 		Matrix4 mMatInvVP;
-		bool    mbISOView;
+		bool    mb2DView;
 
 
 		int    mFiledTypeMap[ FieldType::NUM ];

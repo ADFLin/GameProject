@@ -25,6 +25,7 @@ namespace CAR
 	using CFly::Vector3;
 	using CFly::Matrix4;
 
+	class LevelStage;
 
 	class ActorPosButton : public GButtonBase
 	{
@@ -62,6 +63,38 @@ namespace CAR
 	class TileButton : public GButtonBase
 	{
 		CFly::Sprite* mSprite;
+	};
+
+	class AuctionPanel : public GPanel
+	{
+		typedef GPanel BaseClass;
+
+	public:
+		AuctionPanel( int id , Vec2i const& pos , GWidget* parent )
+			:GPanel( id , pos , Vec2i( 320 , 100 ) , parent )
+		{
+			mSprite = nullptr;
+		}
+
+		~AuctionPanel()
+		{
+			if ( mSprite )
+				mSprite->release();
+		}
+
+		enum
+		{
+			UI_TILE_ID_SELECT = UI_WEIGET_ID ,
+			UI_SCORE ,
+		};
+
+		void init( LevelStage& stage , GameAuctionTileData* data);
+		void fireInput( CGameInput& input );
+		void onRender();
+		virtual bool onChildEvent( int event , int id , GWidget* ui );
+
+		CFly::Sprite* mSprite;
+		GameAuctionTileData* mData;
 	};
 
 	//class CarPlayer : public PlayerBase
@@ -118,8 +151,9 @@ namespace CAR
 			UI_ACTOR_INFO_BUTTON ,
 			UI_ACTION_SKIP ,
 			UI_ACTION_END_TURN ,
-			UI_ACTION_BUILD_CASTLE ,
-
+			UI_BUILD_CASTLE ,
+			UI_BUY_AUCTION_TILE ,
+			UI_AUCTION_TILE_PANEL ,
 
 			UI_REPLAY_STOP ,
 
@@ -150,6 +184,8 @@ namespace CAR
 		virtual void onPutTile( MapTile& mapTile );
 
 		void setTileObjectTexture(CFly::Object* obj, TileId id );
+
+		void getTileTexturePath( TileId id, FixString< 512 > &texName );
 
 		CFly::Object* createTileObject();
 
@@ -200,6 +236,7 @@ namespace CAR
 		CFly::World*    mWorld;
 		CFly::Object*   mTileShowObject;
 		CFly::Scene*    mScene;
+		CFly::Scene*    mSceneUI;
 		CFly::Camera*   mCamera;
 		CFly::Viewport* mViewport;
 	};

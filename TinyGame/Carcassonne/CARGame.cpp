@@ -74,6 +74,7 @@ namespace CAR
 		{ EXP_KING_AND_ROBBER , "King And Robber" } ,
 		{ EXP_THE_RIVER , "The River" } ,
 		{ EXP_THE_RIVER_II , "The River II" } ,
+		{ EXP_BRIDGES_CASTLES_AND_BAZAARS , "Bridges , Castles And Bazaars" } , 
 	};
 
 	class CNetRoomSettingHelper : public NetRoomSettingHelper

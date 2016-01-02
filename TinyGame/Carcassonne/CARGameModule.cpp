@@ -72,6 +72,7 @@ namespace CAR
 		mLevel.mTileSetManager = &mTileSetManager;
 		mDragon = nullptr;
 		mFairy = nullptr;
+		mIsStartGame = false;
 	}
 
 	void GameModule::setupSetting(GameSetting& setting)
@@ -142,8 +143,6 @@ namespace CAR
 			cleanupFeature();
 			mTowerTiles.clear();
 		}
-
-		mIsStartGame = false;
 		mIsRunning = false;
 		loadSetting( beInit );
 	}
@@ -151,13 +150,19 @@ namespace CAR
 
 	void GameModule::runLogic(IGameInput& input)
 	{
+		mIsStartGame = true;
+		doRunLogic( input );
+		mIsStartGame = false;
+	}
+	void GameModule::doRunLogic(IGameInput& input)
+	{
 		if ( mPlayerManager->getPlayerNum() == 0 )
 		{
 			CAR_LOG( "GameModule::runLogic: No Player Play !!");
 			return;
 		}
 
-		mIsStartGame = true;
+		
 		mIdxPlayerTrun = 0;
 		generatePlayerPlayOrder();
 		{
@@ -179,8 +184,10 @@ namespace CAR
 			}
 		}
 
-		mIsRunning = true;
+		
 		mNumTrun = 0;
+
+		mIsRunning = true;
 
 		while( mIsRunning )
 		{
@@ -902,8 +909,13 @@ namespace CAR
 						}
 						else
 						{
-							//FIXME
+							//TODO : Need Request
 							scoreInfo = &info->featureScores[0];
+							for( int i = 1 ; i < info->featureScores.size() ; ++i )
+							{
+								if ( scoreInfo->value < info->featureScores[i].value )
+									scoreInfo = &info->featureScores[i];
+							}
 						}
 
 						result = resolveCompleteFeature( input , *info->city , scoreInfo );
@@ -1208,77 +1220,94 @@ namespace CAR
 		int idxRound = curTurnPlayer->mPlayOrder;
 		for( int i = 0 ; i < mPlayerOrders.size() ; ++i )
 		{
-			++idxRound;
-			if ( idxRound >= mPlayerOrders.size() )
-				idxRound = 0;
-
-			data.pIdRound = mPlayerOrders[ idxRound ]->getId();
-			data.maxScore = 0;
-			data.pIdCallMaxScore = -1;
-			data.tileIdRound = FAIL_TILE_ID;
-
-			int idxCur = idxRound;
-			for( int n = 0 ; n < mPlayerOrders.size() ; ++n )
+			do 
 			{
-				if ( mPlayerOrders[ idxCur ]->getFieldValue( FieldType::eTileIdAuctioned ) != FAIL_TILE_ID )
-					continue;
-				data.playerId = mPlayerOrders[ idxCur ]->getId();
-				data.resultRiseScore = 0;
+				++idxRound;
+				if ( idxRound >= mPlayerOrders.size() )
+					idxRound = 0;
+			} 
+			while ( mPlayerOrders[ idxRound ]->getFieldValue( FieldType::eTileIdAuctioned ) != FAIL_TILE_ID );
 
-				input.requestAuctionTile( data );
-				if ( checkGameState( data , result ) == false )
-					return result;
-	
-				if (  data.playerId == data.pIdRound )
-				{
-					if ( data.resultIndexTileSelect >= data.auctionTiles.size()  )
-					{
-						CAR_LOG("Warning");
-						data.resultIndexTileSelect = 0;
-					}
-					data.tileIdRound = data.auctionTiles[ data.resultIndexTileSelect ];
-					data.maxScore = data.resultRiseScore;
-					data.pIdCallMaxScore = data.playerId;
-
-					data.auctionTiles.erase( data.auctionTiles.begin() + data.resultIndexTileSelect );
-				}
-				else if ( data.resultRiseScore != 0 )
-				{
-					data.maxScore += data.resultRiseScore;
-					data.pIdCallMaxScore = data.playerId;
-				}
-
-				++idxCur;
-				if ( idxCur >= mPlayerOrders.size() )
-					idxCur = 0;
-			}
-
-			data.playerId = mPlayerOrders[ idxCur ]->getId();
-			assert( data.playerId == data.pIdRound );
-
-			input.requestBuyAuctionedTile( data );
-			if ( checkGameState( data , result ) == false )
-				return result;
-
-			PlayerBase* pBuyer;
-			PlayerBase* pSeller;
-			if ( data.resultSkipAction )
+			if ( data.auctionTiles.size() == 1 )
 			{
-				pSeller = mPlayerManager->getPlayer(data.pIdRound );
-				pBuyer = mPlayerManager->getPlayer( data.pIdCallMaxScore );
+				mPlayerOrders[ idxRound ]->setFieldValue( FieldType::eTileIdAuctioned , data.auctionTiles[0] );
 			}
 			else
 			{
-				pBuyer = mPlayerManager->getPlayer(data.pIdRound );
-				pSeller = mPlayerManager->getPlayer(data.pIdCallMaxScore );
-			}
+				data.pIdRound = mPlayerOrders[ idxRound ]->getId();
+				data.maxScore = 0;
+				data.pIdCallMaxScore = -1;
+				data.tileIdRound = FAIL_TILE_ID;
 
-			addPlayerScore( pBuyer->getId() , -data.maxScore );
-			pBuyer->setFieldValue( FieldType::eTileIdAuctioned , data.tileIdRound );
+				int idxCur = idxRound;
+				for( int n = 0 ; n < mPlayerOrders.size() ; ++n )
+				{
+					if ( mPlayerOrders[ idxCur ]->getFieldValue( FieldType::eTileIdAuctioned ) == FAIL_TILE_ID )
+					{
+						data.playerId = mPlayerOrders[ idxCur ]->getId();
+						data.resultRiseScore = 0;
 
-			if ( pBuyer != pSeller )
-			{
-				addPlayerScore( pSeller->getId() , data.maxScore );
+						input.requestAuctionTile( data );
+						if ( checkGameState( data , result ) == false )
+							return result;
+
+						if (  data.playerId == data.pIdRound )
+						{
+							if ( data.resultIndexTileSelect >= data.auctionTiles.size()  )
+							{
+								CAR_LOG("Warning");
+								data.resultIndexTileSelect = 0;
+							}
+							data.tileIdRound = data.auctionTiles[ data.resultIndexTileSelect ];
+							data.maxScore = data.resultRiseScore;
+							data.pIdCallMaxScore = data.playerId;
+
+							data.auctionTiles.erase( data.auctionTiles.begin() + data.resultIndexTileSelect );
+						}
+						else if ( data.resultRiseScore != 0 )
+						{
+							data.maxScore += data.resultRiseScore;
+							data.pIdCallMaxScore = data.playerId;
+						}
+					}
+
+					++idxCur;
+					if ( idxCur >= mPlayerOrders.size() )
+						idxCur = 0;
+				}
+
+				
+
+				PlayerBase* pBuyer;
+				PlayerBase* pSeller;
+
+				bool haveBuy = true;
+				if ( data.pIdCallMaxScore != data.pIdRound )
+				{
+					data.playerId = data.pIdRound;
+					input.requestBuyAuctionedTile( data );
+					if ( checkGameState( data , result ) == false )
+						return result;
+					haveBuy = !data.resultSkipAction; 
+				}
+
+				if ( haveBuy )
+				{
+					pBuyer = mPlayerManager->getPlayer( data.pIdRound );
+					pSeller = mPlayerManager->getPlayer( data.pIdCallMaxScore );
+				}
+				else
+				{
+					pSeller = mPlayerManager->getPlayer( data.pIdRound );
+					pBuyer = mPlayerManager->getPlayer( data.pIdCallMaxScore );
+				}
+
+				if ( pBuyer != pSeller )
+				{
+					addPlayerScore( pSeller->getId() , data.maxScore );
+				}
+				addPlayerScore( pBuyer->getId() , -data.maxScore );
+				pBuyer->setFieldValue( FieldType::eTileIdAuctioned , data.tileIdRound );
 			}
 		}
 

@@ -234,6 +234,7 @@ namespace CAR
 		bool   buyBackPrisoner( int ownerId , ActorType type );
 		bool   changePlaceTile( TileId id );
 
+		void   doRunLogic( IGameInput& input );
 		void   loadSetting( bool bInit );
 		void   calcPlayerDeployActorPos(PlayerBase& player , MapTile& mapTile , bool bUsageMagicPortal );
 		int    getRemainingTileNum();

@@ -85,7 +85,8 @@ namespace CAR
 			mScene = mWorld->createScene( 1 );
 			mScene->setAmbientLight( Color4f(1,1,1) );
 
-			
+			mSceneUI = mWorld->createScene( 1 );
+
 			{
 				mCamera = mScene->createCamera();
 				mCamera->setProjectType(CFPT_ORTHOGONAL);
@@ -179,6 +180,7 @@ namespace CAR
 		if ( 1 )
 		{
 			mScene->render( mCamera , mViewport );
+			mSceneUI->render2D( mViewport , CFly::CFRF_CLEAR_Z );
 
 			IDirect3DSurface9* pBackBufferSurface;
 			D3DDevice* d3dDevice = mWorld->getD3DDevice();
@@ -472,6 +474,12 @@ namespace CAR
 						}
 					}
 				}
+				break;
+			case ACTION_AUCTION_TILE:
+				actionStr = "Auction Tile";
+				break;
+			case ACTION_BUY_AUCTIONED_TILE:
+				actionStr = "Buy Auction Tile";
 				break;
 			}
 
@@ -933,7 +941,8 @@ namespace CAR
 				mInput.replyDoIt();
 			}
 			return false;
-		case UI_ACTION_BUILD_CASTLE:
+		case UI_BUY_AUCTION_TILE:
+		case UI_BUILD_CASTLE:
 			if ( event == EVT_BOX_YES )
 			{
 				mInput.replyDoIt();
@@ -949,8 +958,13 @@ namespace CAR
 				mInput.returnGame();
 			}
 			return false;
+		case UI_AUCTION_TILE_PANEL:
+			{
+				ui->cast< AuctionPanel >()->fireInput( mInput );
+				ui->destroy();
+			}
+			return false;
 		}
-
 
 		return true;
 	}
@@ -973,7 +987,8 @@ namespace CAR
 
 		if ( !canInput() )
 		{
-			input.waitReply();
+			if ( action != ACTION_TRUN_OVER )
+				input.waitReply();
 			return;
 		}
 
@@ -984,14 +999,14 @@ namespace CAR
 		{
 		case ACTION_PLACE_TILE:
 			{
-				GamePlaceTileData* myData = static_cast< GamePlaceTileData* >( data );
+				GamePlaceTileData* myData = data->cast< GamePlaceTileData >();
 				mTileShowObject->show( true );
 				setTileObjectTexture( mTileShowObject , myData->id );
 			}
 			break;
 		case ACTION_DEPLOY_ACTOR:
 			{
-				GameDeployActorData* myData = static_cast< GameDeployActorData* >( data );
+				GameDeployActorData* myData = data->cast< GameDeployActorData >();
 
 				Vec2i size = Vec2i( 20 , 20 );
 				Vec2f basePos = myData->mapTile->pos;
@@ -1029,7 +1044,7 @@ namespace CAR
 			break;
 		case ACTION_SELECT_ACTOR:
 			{
-				GameSelectActorData* myData = static_cast< GameSelectActorData* >( data );
+				GameSelectActorData* myData = data->cast< GameSelectActorData >();
 
 				if ( myData->canSkip() )
 				{
@@ -1054,7 +1069,7 @@ namespace CAR
 			break;
 		case ACTION_SELECT_ACTOR_INFO:
 			{
-				GameSelectActorInfoData* myData = static_cast< GameSelectActorInfoData* >( data );
+				GameSelectActorInfoData* myData = data->cast< GameSelectActorInfoData >();
 
 				if ( myData->canSkip() )
 				{
@@ -1076,7 +1091,7 @@ namespace CAR
 			break;
 		case ACTION_SELECT_MAPTILE:
 			{
-				GameSelectMapTileData* myData = static_cast< GameSelectMapTileData* >( data );
+				GameSelectMapTileData* myData = data->cast< GameSelectMapTileData >();
 
 				if ( myData->canSkip() )
 				{
@@ -1087,7 +1102,7 @@ namespace CAR
 
 				if ( myData->reason == SAR_WAGON_MOVE_TO_FEATURE )
 				{
-					GameFeatureTileSelectData* selectData = static_cast< GameFeatureTileSelectData* >( data );
+					GameFeatureTileSelectData* selectData = data->cast< GameFeatureTileSelectData >();
 					for( int n = 0 ; n < selectData->infos.size() ; ++n )
 					{
 						GameFeatureTileSelectData::Info& info = selectData->infos[n];
@@ -1121,9 +1136,25 @@ namespace CAR
 				}
 			}
 			break;
+		case ACTION_AUCTION_TILE:
+			{
+				AuctionPanel* panel = new AuctionPanel( UI_AUCTION_TILE_PANEL , Vec2i( 100,100) , nullptr );
+
+				panel->mSprite = mSceneUI->createSprite();
+				panel->init( *this , data->cast< GameAuctionTileData >() );
+				::Global::getGUI().addWidget( panel );
+			}
+			break;
+		case ACTION_BUY_AUCTIONED_TILE:
+			{
+				GameAuctionTileData* myData = data->cast< GameAuctionTileData >();
+				FixString< 512 > str;
+				::Global::getGUI().showMessageBox( UI_BUY_AUCTION_TILE , str.format( "Can You Buy Tile : Score = %d , Id = %d" , myData->maxScore , myData->pIdCallMaxScore ) );
+			}
+			break;
 		case ACTION_BUILD_CASTLE:
 			{
-				::Global::getGUI().showMessageBox( UI_ACTION_BUILD_CASTLE , "Can You Build Castle" );
+				::Global::getGUI().showMessageBox( UI_BUILD_CASTLE , "Can You Build Castle" );
 			}
 			break;
 		case  ACTION_TRUN_OVER:
@@ -1251,37 +1282,11 @@ namespace CAR
 	void LevelStage::setTileObjectTexture(CFly::Object* obj, TileId id)
 	{
 		CFly::Material* mat = obj->getElement(0)->getMaterial();
-		TileSet const& tileSet = mMoudule.mTileSetManager.getTileSet( id );
-
-		char const* dir = nullptr;
-		switch( tileSet.expansions )
-		{
-		case EXP_BASIC: dir = "Basic"; break;
-		case EXP_INNS_AND_CATHEDRALS: dir = "InnCathedral"; break;
-		case EXP_TRADERS_AND_BUILDERS: dir = "TraderBuilder"; break;
-		case EXP_THE_RIVER: dir = "River"; break;
-		case EXP_THE_RIVER_II: dir = "River2" ; break;
-		case EXP_THE_PRINCESS_AND_THE_DRAGON: dir = "PrincessDragon"; break;
-		case EXP_THE_TOWER: dir = "Tower"; break;
-		case EXP_ABBEY_AND_MAYOR: dir = "AbbiyMayor"; break;
-		case EXP_BRIDGES_CASTLES_AND_BAZAARS: dir = "BridgeCastleBazaar"; break;
-		}
 
 		FixString< 512 > texName;
-		
-		if ( dir )
-		{
-			texName.format( "Tiles/%s/Tile_%02d_00_00" , dir , tileSet.idxDefine );
-		}
-		else
-		{
-			texName = "Tiles/Tile_NoTexture";
-		}
-
+		getTileTexturePath(id, texName);
 		mat->addTexture(0,0,texName);
 		mat->getTextureLayer(0).setFilterMode( CFly::CF_FILTER_POINT );
-		
-
 	}
 
 	void LevelStage::addActionWidget(GWidget* widget)
@@ -1293,19 +1298,20 @@ namespace CAR
 
 	void LevelStage::setupLocalGame(LocalPlayerManager& playerManager)
 	{
+		int numPlayer = 3;
 		mSetting.mExpansionMask = 
-			BIT( EXP_THE_RIVER ) | 
-			BIT( EXP_THE_RIVER_II ) | 
+			//BIT( EXP_THE_RIVER ) | 
+			//BIT( EXP_THE_RIVER_II ) | 
 			//BIT( EXP_TRADERS_AND_BUILDERS ) | 
 			//BIT( EXP_INNS_AND_CATHEDRALS ) |
 			//BIT( EXP_THE_PRINCESS_AND_THE_DRAGON ) |
 			//BIT( EXP_THE_TOWER ) |
-			BIT( EXP_ABBEY_AND_MAYOR ) |
+			//BIT( EXP_ABBEY_AND_MAYOR ) |
 			//BIT( EXP_KING_AND_ROBBER ) |
 			BIT( EXP_BRIDGES_CASTLES_AND_BAZAARS ) |
 			0;
 
-		for( int i = 0 ; i < 2 ; ++i )
+		for( int i = 0 ; i < numPlayer ; ++i )
 		{
 			GamePlayer* player = playerManager.createPlayer(i);
 			player->getInfo().type = PT_PLAYER;
@@ -1383,11 +1389,17 @@ namespace CAR
 
 	bool LevelStage::canInput()
 	{
+		if ( mMoudule.mIsStartGame == false )
+			return false;
+
 		if ( getGameType() == GT_SINGLE_GAME )
 			return true;
 
-		if ( getGameType() == GT_NET_GAME && getActionPlayerId() == getPlayerManager()->getUser()->getActionPort() )
-			return true;
+		if ( getGameType() == GT_NET_GAME )
+		{
+			if ( getActionPlayerId() == getPlayerManager()->getUser()->getActionPort() )
+				return true;
+		}
 
 		return false;
 	}
@@ -1399,6 +1411,33 @@ namespace CAR
 			mGameActionUI[i]->destroy();
 		}
 		mGameActionUI.clear();
+	}
+
+	void LevelStage::getTileTexturePath(TileId id, FixString< 512 > &texName)
+	{
+		TileSet const& tileSet = mMoudule.mTileSetManager.getTileSet( id );
+		char const* dir = nullptr;
+		switch( tileSet.expansions )
+		{
+		case EXP_BASIC: dir = "Basic"; break;
+		case EXP_INNS_AND_CATHEDRALS: dir = "InnCathedral"; break;
+		case EXP_TRADERS_AND_BUILDERS: dir = "TraderBuilder"; break;
+		case EXP_THE_RIVER: dir = "River"; break;
+		case EXP_THE_RIVER_II: dir = "River2" ; break;
+		case EXP_THE_PRINCESS_AND_THE_DRAGON: dir = "PrincessDragon"; break;
+		case EXP_THE_TOWER: dir = "Tower"; break;
+		case EXP_ABBEY_AND_MAYOR: dir = "AbbiyMayor"; break;
+		case EXP_BRIDGES_CASTLES_AND_BAZAARS: dir = "BridgeCastleBazaar"; break;
+		}
+
+		if ( dir )
+		{
+			texName.format( "Tiles/%s/Tile_%02d_00_00" , dir , tileSet.idxDefine );
+		}
+		else
+		{
+			texName = "Tiles/Tile_NoTexture";
+		}
 	}
 
 	ActorPosButton::ActorPosButton(int id , Vec2i const& pos , Vec2i const& size , GWidget* parent) 
@@ -1458,5 +1497,88 @@ namespace CAR
 		//FixString< 128 > str;
 		//g.drawText( pos , size , str.format( "%d %d" , (int)info->pos.type , info->pos.meta ) , true );
 	}
+
+
+	void AuctionPanel::init( LevelStage& stage , GameAuctionTileData* data)
+	{
+		mData = data;
+
+		FixString< 512 > str;
+		int const tileSize = 48;
+		Vec2i pos = getWorldPos();
+		pos.y -= ( tileSize + 2 );
+		
+		if ( mData->playerId == mData->pIdRound )
+		{
+			GChoice* choice = new GChoice( UI_TILE_ID_SELECT , Vec2i( 10 , 45 ) , Vec2i( 100 , 25 ) , this );
+			for( int i = 0 ; i < mData->auctionTiles.size() ; ++i )
+			{
+				str.format( "%d" , i );
+				choice->appendItem( str );
+
+				stage.getTileTexturePath( mData->auctionTiles[i] , str );
+				mSprite->createRectArea( pos.x + i * ( tileSize + 2 ) , pos.y , tileSize , tileSize , str );
+			}
+			choice->setSelection( 0 );
+		}
+		else
+		{
+			stage.getTileTexturePath( mData->tileIdRound , str );
+			mSprite->createRectArea( pos.x , pos.y , tileSize , tileSize , str );
+		}
+
+		GSlider* slider = new GSlider( UI_SCORE , Vec2i( 10 , 80 ) , 100 , true , this );
+		slider->showValue();
+		slider->setRange( 0 , 20 );
+		slider->setValue(0);
+
+
+		GButton* button = new GButton( UI_OK , Vec2i( 120 , 80 ) , Vec2i( 60 , 25 ) , this );
+		button->setTitle( "OK" );
+	}
+
+	void AuctionPanel::fireInput(CGameInput& input)
+	{
+		int idxSelect = -1;
+		if ( mData->playerId == mData->pIdRound )
+		{
+			idxSelect = findChild( UI_TILE_ID_SELECT )->cast< GChoice >()->getSelection();
+		}
+		int riseScore = findChild( UI_SCORE )->cast< GSlider >()->getValue();
+		input.replyAuctionTile( riseScore , idxSelect );
+	}
+
+	bool AuctionPanel::onChildEvent(int event , int id , GWidget* ui)
+	{
+		switch( id )
+		{
+		case UI_OK:
+			sendEvent( EVT_BOX_OK );
+			return false;
+		}
+		return true;
+	}
+
+	void AuctionPanel::onRender()
+	{
+		BaseClass::onRender();
+
+		IGraphics2D& g = Global::getIGraphics2D();
+		Vec2i pos  = getWorldPos();
+		Vec2i size = getSize();
+
+		FixString< 512 > str;
+		g.setTextColor( 255 , 255 , 0 );
+		RenderUtility::setFont( g , FONT_S12 );
+		g.drawText( pos + Vec2i(10,10) , str.format( "Round = %d , PlayerId = %d" , mData->pIdRound , mData->playerId ) );
+		if ( mData->playerId == mData->pIdRound )
+		{
+
+		}
+		else
+		{
+			g.drawText( pos + Vec2i(10,30) , str.format( "Max Score = %d , Id = %d" , mData->maxScore , mData->pIdCallMaxScore  ) );
+		}
+	} 
 
 }//namespace CAR

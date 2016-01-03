@@ -37,6 +37,8 @@ namespace CAR
 		int const FairyBeginningOfATurnScore = 1;
 		int const FairyFearureScoringScore = 3;
 
+		int const DragonMoveStepNum = 6;
+
 		//EXP_THE_TOWER
 		int const TowerPicesTotalNum = 30;
 		int const TowerPicesPlayerOwnNum[] = { 0 , 0 , 10 , 9 , 7 , 6 , 5 };
@@ -55,10 +57,9 @@ namespace CAR
 		int const BridgePicesPlayerOwnNum[] = { 0 , 0 , 3 , 3 , 3 , 2 , 2 };
 		int const CastleTokensPlayerOwnNum[] = { 0 , 0 , 3 , 3 , 3 , 2 , 2 };
 
-
-
-
-		int const DragonMoveStepNum = 6;
+		//EXP_HILLS_AND_SHEEP
+		int const SheepTokenNum[] = { 2 , 4 , 5 , 5 , 2 };
+		int const ShepherdPlayerOwnNum = 1;
 
 	}
 

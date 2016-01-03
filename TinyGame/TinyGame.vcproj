@@ -757,30 +757,6 @@
 			Name="GameTripleTown"
 			>
 			<File
-				RelativePath=".\TripleTown\lodepng.cpp"
-				>
-				<FileConfiguration
-					Name="Debug|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						UsePrecompiledHeader="0"
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						UsePrecompiledHeader="0"
-					/>
-				</FileConfiguration>
-			</File>
-			<File
-				RelativePath=".\TripleTown\lodepng.h"
-				>
-			</File>
-			<File
 				RelativePath=".\TripleTown\TextureId.h"
 				>
 			</File>
@@ -820,6 +796,14 @@
 		<Filter
 			Name="OtherLib"
 			>
+			<File
+				RelativePath="..\OtherLib\lodepng\lodepng.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\OtherLib\lodepng\lodepng.h"
+				>
+			</File>
 			<File
 				RelativePath=".\stb_image.cpp"
 				>

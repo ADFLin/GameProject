@@ -9,6 +9,8 @@
 #include "Random.h"
 #include "IntrList.h"
 
+#include <algorithm>
+
 namespace CAR
 {
 	class GameSetting;
@@ -60,6 +62,25 @@ namespace CAR
 		int       resultIndex;
 	};
 
+	enum AcionOption
+	{
+		//
+		ACTOPT_TILE_USE_RANDOM_TILE ,
+		ACTOPT_TILE_USE_ABBEY ,
+		ACTOPT_TILE_USE_HALFLING_TILE ,
+		//
+		ACTOPT_SHEPHERD_EXPAND_THE_FLOCK ,
+		ACTOPT_SHEPHERD_HERD_THE_FLOCK_INTO_THE_STABLE ,
+	};
+
+
+	struct GameSelectActionOptionData : public GameActionData
+	{
+		std::vector< AcionOption > options;
+		unsigned resultIndex;
+	};
+
+
 	enum SelectActionReason
 	{
 		//MapTile
@@ -74,6 +95,8 @@ namespace CAR
 		SAR_PRINCESS_REMOVE_KINGHT ,
 		//
 		SAR_EXCHANGE_PRISONERS ,
+		//MapPos
+		SAR_PLACE_ABBEY_TILE ,
 	};
 
 
@@ -101,6 +124,11 @@ namespace CAR
 		{
 			return resultIndex < numSelection;
 		}
+	};
+
+	struct GameSelectMapPosData : public GameSelectActionData
+	{
+		Vec2i* mapPositions;	
 	};
 
 	struct GameSelectMapTileData : public GameSelectActionData
@@ -188,6 +216,8 @@ namespace CAR
 		virtual void requestSelectMapTile( GameSelectMapTileData& data ) = 0;
 		virtual void requestSelectActor( GameSelectActorData& data ) = 0;
 		virtual void requestSelectActorInfo( GameSelectActorInfoData& data ) = 0;
+		virtual void requestSelectMapPos( GameSelectMapPosData& data ) = 0;
+		virtual void requestSelectActionOption( GameSelectActionOptionData& data ) = 0;
 		virtual void requestTurnOver( GameActionData& data ) = 0;
 		virtual void requestAuctionTile( GameAuctionTileData& data ) = 0;
 		virtual void requestBuyAuctionedTile( GameAuctionTileData& data ) = 0;
@@ -255,14 +285,30 @@ namespace CAR
 			{
 				
 			}
-
 		};
 
 		void   updateTileFeature( MapTile& mapTile , UpdateTileFeatureResult& updateResult );
 
 		bool   checkGameState( GameActionData& actionData , TurnResult& result );
 
-		TurnResult  resolvePlayerTurn( IGameInput& input , PlayerBase* curTrunPlayer );
+		TurnResult resolvePlayerTurn( IGameInput& input , PlayerBase* curTrunPlayer );
+
+		bool checkHaveBuilderFeatureExpend( PlayerBase* curTrunPlayer );
+
+		TurnResult resolveDeployActor( IGameInput &input , PlayerBase* curTrunPlayer, MapTile* deployMapTile, bool haveUsePortal , bool& haveDone );
+
+		TurnResult resolveMoveFairyToNextFollower( IGameInput &input, PlayerBase* curTrunPlayer , bool& haveDone );
+
+		void updateBarnFarm(FarmFeature* farm);
+
+		TurnResult resolvePlaceTile(IGameInput &input , PlayerBase* curTrunPlayer , MapTile*& placeMapTile );
+		TurnResult resolveUsePortal( IGameInput &input, PlayerBase* curTrunPlayer, MapTile* &deployMapTile, bool &haveUsePortal);
+		TurnResult resolveExpendShepherdFarm( IGameInput &input , PlayerBase* curTrunPlayer , FeatureBase* feature );
+		TurnResult resolveCastleComplete( IGameInput& input );
+		TurnResult resolveDrawTile( IGameInput& input , PlayerBase* curTrunPlayer);
+
+		void expandSheepFlock(LevelActor* actor);
+
 		struct CastleScoreInfo;
 		TurnResult  resolveCompleteFeature( IGameInput& input , FeatureBase& feature , CastleScoreInfo* castleScore );
 		TurnResult  resolveBuildCastle(IGameInput& input , FeatureBase& feature , bool& haveBuild );
@@ -321,7 +367,6 @@ namespace CAR
 			return data;
 		}
 		void      destroyFeature( FeatureBase* build );
-		void      cleanupFeature();
 
 		std::vector< FeatureBase* > mFeatureMap;
 		int mIndexCacheBuild;
@@ -329,8 +374,24 @@ namespace CAR
 		int getFollowers( unsigned playerIdMask , ActorList& outActors , LevelActor* actorSkip  = nullptr );
 		LevelActor* createActor( ActorType type );
 		void destroyActor( LevelActor* actor );
-		void cleanupActor();
-	
+
+
+		void deleteActor( LevelActor* actor );
+		
+		
+		void cleanupData();
+
+
+		//
+		GamePlayerManager* mPlayerManager;
+		TileSetManager     mTileSetManager;
+		GameSetting*       mSetting;
+		GameRandom         mRandom;
+		Level              mLevel;
+		
+		IGameEventListener* mListener;
+		bool     mDebug;
+
 		ActorList mActorList;
 
 		struct Team
@@ -356,7 +417,7 @@ namespace CAR
 		std::vector< PlayerBase* > mPlayerOrders;
 		std::vector< ActorPosInfo > mActorDeployPosList;
 
-		void addUpdateFeature( FeatureBase* feature , bool bAbbeyUpdate = false );
+		bool addUpdateFeature( FeatureBase* feature , bool bAbbeyUpdate = false );
 
 		void placeAllTileDebug( int numRow );
 
@@ -388,6 +449,7 @@ namespace CAR
 		//EXP_THE_PRINCESS_AND_THE_DRAGON
 		LevelActor*  mDragon;
 		LevelActor*  mFairy;
+
 		//EXP_THE_TOWER
 		std::vector< MapTile* > mTowerTiles;
 		struct PrisonerInfo : public ActorInfo
@@ -395,13 +457,16 @@ namespace CAR
 			int ownerId;
 		};
 		std::vector< PrisonerInfo > mPrisoners;
+
 		//EXP_KING_AND_ROBBER
 		int    mIdKing;
 		int    mMaxCityTileNum;
 		int    mIdRobberBaron;
 		int    mMaxRoadTileNum;
+
 		//EXP_ABBEY_AND_MAYOR
 		TileId mAbbeyTileId;
+
 		//EXP_BRIDGES_CASTLES_AND_BAZAARS
 		struct CastleScoreInfo
 		{
@@ -423,16 +488,15 @@ namespace CAR
 		> CastleInfoList;
 		CastleInfoList mCastles;
 		CastleInfoList mCastlesRoundBuild;
-		int mCastleGroup;
 
-		GamePlayerManager* mPlayerManager;
-		TileSetManager mTileSetManager;
-		GameSetting* mSetting;
-		GameRandom   mRandom;
-		Level        mLevel;
-		bool         mDebug;
+		//EXP_HILLS_AND_SHEEP
+		class ShepherdActor : public LevelActor
+		{
+		public:
+			std::vector< SheepToken > ownSheep;
+		};
+		std::vector< SheepToken > mSheepBags;
 
-		IGameEventListener* mListener;
 	};
 
 }//namespace CAR

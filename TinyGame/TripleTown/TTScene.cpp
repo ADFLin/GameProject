@@ -7,7 +7,7 @@
 
 #include "EasingFun.h"
 
-#include "lodepng.h"
+#include "lodepng/lodepng.h"
 #include "IntegerType.h"
 #include <fstream>
 

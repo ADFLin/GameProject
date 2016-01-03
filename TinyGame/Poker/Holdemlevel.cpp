@@ -22,8 +22,15 @@ namespace Poker { namespace Holdem {
 		}
 	};
 
-	class CardTrickUtility
+	class CardTrickHelper
 	{
+	public:
+		static CardGroup getGroup( int power )
+		{
+			return CardGroup( power >> 20 );
+		}
+		int calcPower( Card sortedCards[] , int numCard , int idxCardTake[] );
+	private:
 		static int const MaxCardNum = 7;
 		struct FaceGroup
 		{
@@ -41,15 +48,27 @@ namespace Poker { namespace Holdem {
 		{
 			return ( group << 20 ) | ( c0 << 16 ) | ( c1 << 12 ) | ( c2 << 8 ) | ( c3 << 4 ) | c4;
 		}
-	public:
-		static CardGroup getGroup( int power )
-		{
-			return CardGroup( power >> 20 );
-		}
-		static int calcPower( Card sortedCards[] , int numCard , int idxCardTake[] );
+
+		void initGroup( Card sortedCards[] , int numCard );
+		int calcStraight( int& idxStraight );
+		int makeTwoParis( int idxCardTake[] , int idxSubPair );
+		int makeFullHouse( int idxCardTake[] , int idxSubPair );
+		int makePair( int idxCardTake[] );
+		int makeThreeOfKind( int idxCardTake[] );
+		int makeFourOfAKind( int idxCardTake[] );
+		int makeHighHand(int idxCardTake[] );
+		int makeFlash( int idxCardTake[] , int idxFlushSuit , Card sortedCards[] );
+		int makeStraightFlush(int idxCardTake[] , int idxStraight , int idxFlushSuit , Card sortedCards[] );
+		int makeStraight(int idxCardTake[] , int idxStraight );
+
+		FaceGroup faceGroup[ MaxCardNum ];
+		SuitGroup suitGroup[ 4 ];
+
+		int idxLastGroup;
+		int idxMaxNumGroup;
 	};
 
-	int CardTrickUtility::calcPower( Card sortedCards[] , int numCard , int idxCardTake[] )
+	int CardTrickHelper::calcPower( Card sortedCards[] , int numCard , int idxCardTake[] )
 	{
 		assert( PocketCardNum == 2 );
 		assert( numCard >= 5 && numCard <= MaxCardNum );
@@ -58,9 +77,83 @@ namespace Poker { namespace Holdem {
 		for( int i = 0 ; i < numCard - 1; ++i )
 			assert( gFaceRankPower[ sortedCards[ i ].getFaceRank() ] <= gFaceRankPower[ sortedCards[ i + 1 ].getFaceRank() ]);
 #endif
+		initGroup(sortedCards, numCard);
 
-		FaceGroup faceGroup[ MaxCardNum ];
-		SuitGroup suitGroup[ 4 ];
+		FaceGroup& maxNumGroup = faceGroup[ idxMaxNumGroup ];
+
+		int idxSubPair = -1;
+		if ( maxNumGroup.num == 4 )
+		{
+		   return makeFourOfAKind( idxCardTake );
+		}
+		else if ( maxNumGroup.num >= 2 )
+		{
+			idxSubPair = idxLastGroup;
+			for(  ; idxSubPair >= 0 ; --idxSubPair )
+			{
+				if ( idxSubPair == idxMaxNumGroup )
+					continue;
+				if ( faceGroup[ idxSubPair ].num >= 2 )
+				{
+					if ( maxNumGroup.num == 3 )
+					{
+						return makeFullHouse( idxCardTake , idxSubPair);
+					}
+					break;
+				}
+			}
+		}
+
+		int idxFlushSuit = -1;
+		for( int i = 0 ; i < 4 ; ++i )
+		{
+			if ( suitGroup[i].num >= CardTrickNum )
+			{
+				idxFlushSuit = i;
+				break;
+			}
+		}
+
+		int idxStraight;
+		int countSeq = calcStraight( idxStraight );
+
+		if ( idxFlushSuit != -1 )
+		{
+			if ( countSeq == CardTrickNum )
+			{
+				return makeStraightFlush(idxCardTake , idxStraight, idxFlushSuit , sortedCards );
+			}
+			else
+			{
+				return makeFlash( idxCardTake , idxFlushSuit, sortedCards );
+			}
+		}
+
+		if ( countSeq == CardTrickNum )
+		{
+			return makeStraight( idxCardTake , idxStraight );
+		}
+
+		switch ( maxNumGroup.num )
+		{
+		case 3: return makeThreeOfKind(idxCardTake);
+		case 2:
+			if ( idxSubPair >= 0 )
+			{
+				return makeTwoParis( idxCardTake , idxSubPair );
+			}
+			else
+			{
+				return makePair( idxCardTake );
+			}
+			break;
+		}
+		return makeHighHand(idxCardTake);
+
+	}
+
+	void CardTrickHelper::initGroup(Card sortedCards[] , int numCard)
+	{
 		for( int i = 0 ; i < 4 ; ++i )
 			suitGroup[i].num = 0;
 
@@ -69,9 +162,9 @@ namespace Poker { namespace Holdem {
 		faceGroup[0].rank  = sortedCards[0].getFaceRank();
 		faceGroup[0].num   = 1;
 
-		int idxLastGroup = 0;
-		int idxMaxNumGroup = 0;
-		
+		idxLastGroup = 0;
+		idxMaxNumGroup = 0;
+
 		for( int i = 1 ; i < numCard ; ++i )
 		{
 			Card& card = sortedCards[i];
@@ -102,65 +195,18 @@ namespace Poker { namespace Holdem {
 
 		if ( faceGroup[ idxLastGroup ].num >= faceGroup[ idxMaxNumGroup ].num )
 			idxMaxNumGroup = idxLastGroup;
+	}
 
-		FaceGroup& maxNumGroup = faceGroup[ idxMaxNumGroup ];
-		int idxSubPair = -1;
-		switch( maxNumGroup.num )
-		{
-		case 4:
-			{
-				for( int i = 0 ; i < 4 ; ++i )
-					idxCardTake[i] = maxNumGroup.idx + i;
-				int idxSub = idxLastGroup;
-				if ( idxSub == idxMaxNumGroup )
-					--idxSub;
-				idxCardTake[ 4 ] = faceGroup[ idxSub ].idx;
-				return makePower( CG_FOUR_OF_A_KIND , 
-					maxNumGroup.power , faceGroup[ idxSub ].power );
-			}
-			break;
-		case 3:
-		case 2:
-			{
-				idxSubPair = idxLastGroup;
-				for(  ; idxSubPair >= 0 ; --idxSubPair )
-				{
-					if ( idxSubPair == idxMaxNumGroup )
-						continue;
-					if ( faceGroup[ idxSubPair ].num >= 2 )
-						break;
-				}
-				if ( idxSubPair >= 0 && maxNumGroup.num == 3 )
-				{
-					for( int i = 0 ; i < 3 ; ++i )
-						idxCardTake[i] = maxNumGroup.idx + i;
-					for( int i = 0 ; i < 2 ; ++i )
-						idxCardTake[3+i] = faceGroup[ idxSubPair ].idx + i;
-					return makePower( CG_FULL_HOUSE , 
-						maxNumGroup.power , faceGroup[ idxSubPair ].power );
-				}
-			}
-			break;
-		}
+	int CardTrickHelper::calcStraight(int& idxStraight)
+	{
+		idxStraight = idxLastGroup;
 
-		int idxFlushSuit = -1;
-		for( int i = 0 ; i < 4 ; ++i )
-		{
-			if ( suitGroup[i].num >= CardTrickNum )
-			{
-				idxFlushSuit = i;
-				break;
-			}
-		}
-
-		int idxCur = idxLastGroup;
 		int countSeq = 1;
+		int idxCur = idxLastGroup;
 		int rankSeq = faceGroup[ idxCur ].rank;
-		int idxStraight = idxLastGroup;
-		
 		// check 10 J Q K A
 		if ( rankSeq == Card::toRank( Card::eACE ) && 
-			 faceGroup[ idxCur - 1 ].rank == Card::toRank( Card::eKING ) )
+			faceGroup[ idxCur - 1 ].rank == Card::toRank( Card::eKING ) )
 		{
 			++countSeq;
 			--idxCur;
@@ -186,136 +232,163 @@ namespace Poker { namespace Holdem {
 
 		//check A 2 3 4 5
 		if ( countSeq == CardTrickNum - 1 && 
-			 rankSeq == Card::toRank( Card::eN2 ) &&
-			 faceGroup[ idxLastGroup ].rank == Card::toRank( Card::eACE ) )
+			rankSeq == Card::toRank( Card::eN2 ) &&
+			faceGroup[ idxLastGroup ].rank == Card::toRank( Card::eACE ) )
 		{
 			++countSeq;
 		}
-		if ( idxFlushSuit != -1 )
-		{
-			if ( countSeq == CardTrickNum )
-			{
-				for( int i = 0 ; i < CardTrickNum ; ++i )
-				{
-					int idxGroup = idxStraight - i;
-					if ( idxGroup < 0 )
-						idxGroup += 13;
-					FaceGroup& group = faceGroup[ idxGroup ];
-					for ( int n = 0 ; n < group.num ; ++n )
-					{
-						int idx = group.idx + n;
-						if ( sortedCards[ idx ].getSuit() == idxFlushSuit )
-						{
-							idxCardTake[i] = idx;
-							break;
-						}
-					}
-				}
 
-				if ( faceGroup[ idxStraight ].rank == Card::toRank( Card::eACE ) )
-				{
-					return makePower( CG_ROYAL_FLUSH );
-				}
-				else
-				{
-					return makePower( CG_STRAIGHT_FLUSH , faceGroup[ idxStraight ].power );
-				}
-			}
-			else
+		return countSeq;
+	}
+
+	int CardTrickHelper::makeFourOfAKind(int idxCardTake[])
+	{
+		FaceGroup& maxNumGroup = faceGroup[ idxMaxNumGroup ];
+		for( int i = 0 ; i < 4 ; ++i )
+			idxCardTake[i] = maxNumGroup.idx + i;
+		int idxSub = idxLastGroup;
+		if ( idxSub == idxMaxNumGroup )
+			--idxSub;
+		idxCardTake[ 4 ] = faceGroup[ idxSub ].idx;
+		return makePower( CG_FOUR_OF_A_KIND , 
+			maxNumGroup.power , faceGroup[ idxSub ].power );
+	}
+
+	int CardTrickHelper::makeThreeOfKind(int idxCardTake[])
+	{
+		FaceGroup &maxNumGroup = faceGroup[ idxMaxNumGroup ];
+		int idxSub[2];
+		idxSub[0] = idxLastGroup;
+		if ( idxSub[0] == idxMaxNumGroup )
+			--idxSub[0];
+		idxSub[1] = idxSub[0] - 1;
+		if ( idxSub[1] == idxMaxNumGroup )
+			--idxSub[1];
+		for( int i = 0 ; i < 3 ; ++i )
+			idxCardTake[i] = maxNumGroup.idx + i;
+		for( int i = 0 ; i < 2 ; ++i )
+			idxCardTake[3+i] = faceGroup[ idxSub[i] ].idx;
+		return makePower( CG_THREE_OF_A_KIND , 
+			maxNumGroup.power , 
+			faceGroup[ idxSub[0] ].power , 
+			faceGroup[ idxSub[1] ].power );
+	}
+
+	int CardTrickHelper::makeTwoParis(int idxCardTake[] , int idxSubPair)
+	{
+		FaceGroup &maxNumGroup = faceGroup[ idxMaxNumGroup ];
+		int idxSub2 = idxLastGroup;
+		if ( idxSub2 == idxMaxNumGroup )
+		{
+			--idxSub2;
+			if ( idxSub2 == idxSubPair )
+				--idxSub2;
+		}
+
+		for( int i = 0 ; i < 2 ; ++i )
+			idxCardTake[i] = maxNumGroup.idx + i;
+		for( int i = 0 ; i < 2 ; ++i )
+			idxCardTake[2+i] = faceGroup[ idxSubPair ].idx + i;
+		idxCardTake[4] = faceGroup[ idxSub2 ].idx;
+		return makePower( CG_TWO_PAIRS ,
+			maxNumGroup.power , 
+			faceGroup[ idxSubPair ].power , 
+			faceGroup[ idxSub2 ].power );
+	}
+
+	int CardTrickHelper::makePair(int idxCardTake[])
+	{
+		FaceGroup& maxNumGroup = faceGroup[ idxMaxNumGroup ];
+		int idxSub[3];
+		idxSub[0] = idxLastGroup;
+		if ( idxSub[0] == idxMaxNumGroup )
+			--idxSub[0];
+		idxSub[1] = idxSub[0] - 1;
+		if ( idxSub[1] == idxMaxNumGroup )
+			--idxSub[1];
+		idxSub[2] = idxSub[1] - 1;
+		if ( idxSub[2] == idxMaxNumGroup )
+			--idxSub[2];
+
+		for( int i = 0 ; i < 2 ; ++i )
+			idxCardTake[i] = maxNumGroup.idx + i;
+		for( int i = 0 ; i < 3 ; ++i )
+			idxCardTake[2+i] = faceGroup[ idxSub[i] ].idx;
+
+		return makePower( CG_PAIR , 
+			maxNumGroup.power , 
+			faceGroup[ idxSub[0] ].power , 
+			faceGroup[ idxSub[1] ].power , 
+			faceGroup[ idxSub[2] ].power );
+	}
+
+	int CardTrickHelper::makeFullHouse(int idxCardTake[] , int idxSubPair)
+	{
+		FaceGroup& maxNumGroup = faceGroup[ idxMaxNumGroup ];
+		for( int i = 0 ; i < 3 ; ++i )
+			idxCardTake[i] = maxNumGroup.idx + i;
+		for( int i = 0 ; i < 2 ; ++i )
+			idxCardTake[3+i] = faceGroup[ idxSubPair ].idx + i;
+		return makePower( CG_FULL_HOUSE , 
+			maxNumGroup.power , faceGroup[ idxSubPair ].power );
+	}
+
+	int CardTrickHelper::makeStraight(int idxCardTake[] , int idxStraight)
+	{
+		for( int i = 0 ; i < CardTrickNum ; ++i )
+		{
+			int idxGroup = idxStraight - i;
+			if ( idxGroup < 0 )
+				idxGroup += 13;
+			idxCardTake[i] = faceGroup[ idxGroup ].idx;
+		}
+		return makePower( CG_STRAIGHT , faceGroup[ idxStraight ].power );
+	}
+
+	int CardTrickHelper::makeStraightFlush(int idxCardTake[] , int idxStraight , int idxFlushSuit , Card sortedCards[])
+	{
+		for( int i = 0 ; i < CardTrickNum ; ++i )
+		{
+			int idxGroup = idxStraight - i;
+			if ( idxGroup < 0 )
+				idxGroup += 13;
+			FaceGroup& group = faceGroup[ idxGroup ];
+			for ( int n = 0 ; n < group.num ; ++n )
 			{
-				SuitGroup& sg = suitGroup[ idxFlushSuit ];
-				int power[ CardTrickNum ];
-				for( int i = 0 ; i < CardTrickNum ; ++i )
+				int idx = group.idx + n;
+				if ( sortedCards[ idx ].getSuit() == idxFlushSuit )
 				{
-					int idx = sg.index[ sg.num - 1 - i ];
 					idxCardTake[i] = idx;
-					power[i] = gFaceRankPower[ sortedCards[ idx ].getFaceRank() ];
+					break;
 				}
-				return makePower( CG_FLUSH , power[0] , power[1] , power[2] , power[3] , power[4] );
 			}
 		}
 
-		if ( countSeq == CardTrickNum )
+		if ( faceGroup[ idxStraight ].rank == Card::toRank( Card::eACE ) )
 		{
-			for( int i = 0 ; i < CardTrickNum ; ++i )
-			{
-				int idxGroup = idxStraight - i;
-				if ( idxGroup < 0 )
-					idxGroup += 13;
-				idxCardTake[i] = faceGroup[ idxGroup ].idx;
-			}
-
-			return makePower( CG_STRAIGHT , faceGroup[ idxStraight ].power );
+			return makePower( CG_ROYAL_FLUSH );
 		}
-
-		switch ( maxNumGroup.num )
+		else
 		{
-		case 3:
-			{
-				int idxSub[2];
-				idxSub[0] = idxLastGroup;
-				if ( idxSub[0] == idxMaxNumGroup )
-					--idxSub[0];
-				idxSub[1] = idxSub[0] - 1;
-				if ( idxSub[1] == idxMaxNumGroup )
-					--idxSub[1];
-				for( int i = 0 ; i < 3 ; ++i )
-					idxCardTake[i] = maxNumGroup.idx + i;
-				for( int i = 0 ; i < 2 ; ++i )
-					idxCardTake[3+i] = faceGroup[ idxSub[i] ].idx;
-				return makePower( CG_THREE_OF_A_KIND , 
-					maxNumGroup.power , 
-					faceGroup[ idxSub[0] ].power , 
-					faceGroup[ idxSub[1] ].power );
-			}
-			break;
-		case 2:
-			if ( idxSubPair >= 0 )
-			{
-				int idxSub2 = idxLastGroup;
-				if ( idxSub2 == idxMaxNumGroup )
-				{
-					--idxSub2;
-					if ( idxSub2 == idxSubPair )
-						--idxSub2;
-				}
- 
-				for( int i = 0 ; i < 2 ; ++i )
-					idxCardTake[i] = maxNumGroup.idx + i;
-				for( int i = 0 ; i < 2 ; ++i )
-					idxCardTake[2+i] = faceGroup[ idxSubPair ].idx + i;
-				idxCardTake[4] = faceGroup[ idxSub2 ].idx;
-				return makePower( CG_TWO_PAIRS ,
-					maxNumGroup.power , 
-					faceGroup[ idxSubPair ].power , 
-					faceGroup[ idxSub2 ].power );
-			}
-			else
-			{
-				int idxSub[3];
-				idxSub[0] = idxLastGroup;
-				if ( idxSub[0] == idxMaxNumGroup )
-					--idxSub[0];
-				idxSub[1] = idxSub[0] - 1;
-				if ( idxSub[1] == idxMaxNumGroup )
-					--idxSub[1];
-				idxSub[2] = idxSub[1] - 1;
-				if ( idxSub[2] == idxMaxNumGroup )
-					--idxSub[2];
-
-				for( int i = 0 ; i < 2 ; ++i )
-					idxCardTake[i] = maxNumGroup.idx + i;
-				for( int i = 0 ; i < 3 ; ++i )
-					idxCardTake[2+i] = faceGroup[ idxSub[i] ].idx;
-
-				return makePower( CG_PAIR , 
-					maxNumGroup.power , 
-					faceGroup[ idxSub[0] ].power , 
-					faceGroup[ idxSub[1] ].power , 
-					faceGroup[ idxSub[2] ].power );
-			}
-			break;
+			return makePower( CG_STRAIGHT_FLUSH , faceGroup[ idxStraight ].power );
 		}
+	}
+
+	int CardTrickHelper::makeFlash(int idxCardTake[] , int idxFlushSuit , Card sortedCards[])
+	{
+		SuitGroup& sg = suitGroup[ idxFlushSuit ];
+		int power[ CardTrickNum ];
+		for( int i = 0 ; i < CardTrickNum ; ++i )
+		{
+			int idx = sg.index[ sg.num - 1 - i ];
+			idxCardTake[i] = idx;
+			power[i] = gFaceRankPower[ sortedCards[ idx ].getFaceRank() ];
+		}
+		return makePower( CG_FLUSH , power[0] , power[1] , power[2] , power[3] , power[4] );
+	}
+
+	int CardTrickHelper::makeHighHand(int idxCardTake[])
+	{
 		int power[ CardTrickNum ];
 		for( int i = 0 ; i < CardTrickNum ; ++i )
 		{
@@ -1126,7 +1199,8 @@ namespace Poker { namespace Holdem {
 					sortedCards[i] = cards[ idxOldMap[i] ];
 
 				int idxTake[ CardTrickNum ];
-				trickInfo.power = CardTrickUtility::calcPower( sortedCards , HandCardNum , idxTake );
+				CardTrickHelper helper;
+				trickInfo.power = helper.calcPower( sortedCards , HandCardNum , idxTake );
 				
 				for( int i = 0 ; i < CardTrickNum ; ++ i )
 				{

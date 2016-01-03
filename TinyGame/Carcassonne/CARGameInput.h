@@ -18,6 +18,8 @@ namespace CAR
 		ACTION_SELECT_MAPTILE ,
 		ACTION_SELECT_ACTOR ,
 		ACTION_SELECT_ACTOR_INFO ,
+		ACTION_SELECT_MAP_POS ,
+		ACTION_SELECT_ACTION_OPTION ,
 		ACTION_AUCTION_TILE ,
 		ACTION_BUY_AUCTIONED_TILE ,
 		ACTION_BUILD_CASTLE ,
@@ -123,8 +125,11 @@ namespace CAR
 		REQUEST_ACTION( requestSelectMapTile , GameSelectMapTileData , ACTION_SELECT_MAPTILE );
 		REQUEST_ACTION( requestAuctionTile , GameAuctionTileData , ACTION_AUCTION_TILE );
 		REQUEST_ACTION( requestBuyAuctionedTile , GameAuctionTileData , ACTION_BUY_AUCTIONED_TILE );
-		REQUEST_ACTION( requestBuildCastle , GameBuildCastleData ,  ACTION_BUILD_CASTLE  );
+		REQUEST_ACTION( requestBuildCastle , GameBuildCastleData ,  ACTION_BUILD_CASTLE );
 		REQUEST_ACTION( requestTurnOver , GameActionData , ACTION_TRUN_OVER );
+		REQUEST_ACTION( requestSelectMapPos , GameSelectMapPosData , ACTION_SELECT_MAP_POS );
+		REQUEST_ACTION( requestSelectActionOption , GameSelectActionOptionData , ACTION_SELECT_ACTION_OPTION );
+
 
 #undef REQUEST_ACTION
 

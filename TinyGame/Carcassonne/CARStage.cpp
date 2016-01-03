@@ -42,6 +42,9 @@ namespace CAR
 		"Mayor" ,
 		"Wagon" ,
 		"Barn"  ,
+		"Shepherd",
+		"Phantom" ,
+		"Abbot" ,
 		"Builder" ,
 		"Pig" ,
 		"Gain" ,
@@ -49,11 +52,14 @@ namespace CAR
 		"Cloth" ,
 		"Tower" ,
 		"Abbey" ,
+		"Bridge" ,
+		"Castle" ,
+		"AuctionedTile" ,
 	};
 
 	char const* gActorShortNames[] =
 	{
-		"M" , "BM" , "MY" , "WG" , "BR" , "B" , "P" , "DG" , "FR" ,
+		"M" , "BM" , "MY" , "WG" , "BN" , "SH" , "PH" , "AB" , "BR" , "PG" , "DG" , "FR" ,
 	};
 
 	bool LevelStage::onInit()
@@ -1309,6 +1315,7 @@ namespace CAR
 			//BIT( EXP_ABBEY_AND_MAYOR ) |
 			//BIT( EXP_KING_AND_ROBBER ) |
 			BIT( EXP_BRIDGES_CASTLES_AND_BAZAARS ) |
+			BIT( EXP_HILLS_AND_SHEEP ) |
 			0;
 
 		for( int i = 0 ; i < numPlayer ; ++i )

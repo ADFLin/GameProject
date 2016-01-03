@@ -312,6 +312,15 @@ namespace MV
 		return true;
 	}
 
+#define KEY_CHANGE_VAR_RANGE( KEY1 , KEY2 , VAR , SIZE )\
+		case KEY1: --VAR; if ( VAR < 0 ) VAR = SIZE - 1; break;\
+		case KEY2: ++VAR; if ( VAR >= SIZE ) VAR = 0; break;
+
+
+#define KEY_CHANGE_INDEX_RANGE( KEY1 , KEY2 , VAR , C )\
+		case KEY1: if ( C.empty() ){ VAR = -1; } else { --VAR; if ( VAR < 0 ) VAR = C.size() - 1; } break;\
+		case KEY2: if ( C.empty() ){ VAR = -1; } else { ++VAR; if ( VAR >= C.size() ) VAR = 0; } break; 
+
 	bool TestStage::onKey(unsigned key , bool isDown)
 	{
 		if ( !isDown )
@@ -319,188 +328,19 @@ namespace MV
 
 		World& world = Level::mWorld;
 
-#define KEY_CHANGE_VAR_RANGE( KEY1 , KEY2 , VAR , SIZE )\
-		case KEY1: --VAR; if ( VAR < 0 ) VAR = SIZE - 1; break;\
-		case KEY2: ++VAR; if ( VAR >= SIZE ) VAR = 0; break;
-				
-
-#define KEY_CHANGE_INDEX_RANGE( KEY1 , KEY2 , VAR , C )\
-		case KEY1: if ( C.empty() ){ VAR = -1; } else { --VAR; if ( VAR < 0 ) VAR = C.size() - 1; } break;\
-		case KEY2: if ( C.empty() ){ VAR = -1; } else { ++VAR; if ( VAR >= C.size() ) VAR = 0; } break; 
-	
 		if ( isEditMode )
 		{
-			switch( key )
-			{
-			case 'T':
-				world.putActor( player , editPos );
-				break;
-			case 'Q':
-				if ( mEditType == NUM_EDIT_MODE - 1 )
-					mEditType = EditType(0);
-				else
-					mEditType = EditType( mEditType + 1 );
-				break;
-			
-
-			case Keyboard::eF9: 
-				clearLevel(); 
-				break;
-			case Keyboard::eF11:
-				saveLevel( DEV_SAVE_NAME );
-				break;
-			case Keyboard::eF12:
-				loadLevel( DEV_MAP_NAME );
-				break;
-			}
-
-			if ( mEditType != eEditMesh )
-			{
-				switch( key )
-				{
-				case 'W': editPos.y += 1; break;
-				case 'S': editPos.y -= 1; break;
-				case 'D': editPos.x += 1; break;
-				case 'A': editPos.x -= 1; break;
-				case 'Z': editPos.z += 1; break;
-				case 'X': editPos.z -= 1; break;
-				KEY_CHANGE_INDEX_RANGE( 'U' , 'I' , idxGroupUse , world.mGroups );
-				}
-			}
-
-			switch( mEditType )
-			{
-			case eEditBlock:
-				switch( key )
-				{
-				KEY_CHANGE_VAR_RANGE( 'O' , 'P' , editModelId , ARRAY_SIZE( gModels ) );
-				case 'G':
-					world.createGroup( getUseGroup() );
-					break;
-				case 'K': case 'L':
-					if ( world.checkPosVaild( editPos ) )
-					{
-						Dir axis = ( key == 'L') ? eDirZ : eDirX;
-						int id =  world.getBlock( editPos );
-						if ( id )
-						{
-							Block* block = world.mBlocks[ id ];
-							world.prevEditBlock( *block );
-							block->rotation.rotate( axis );
-							world.postEditBlock( *block );
-						}
-					}
-					break;
-				case 'E':
-					if ( world.checkPosVaild( editPos ) &&
-						 world.getBlock( editPos ) == 0 )
-					{
-						createBlock( editPos , editModelId );
-					}
-					break;
-				case 'M':
-					{
-						for( VectorSet< Block* >::iterator iter = mSelectBlocks.begin() , itEnd = mSelectBlocks.end() ;
-							iter != itEnd ; ++iter )
-						{
-							Block* block = *iter;
-							ObjectGroup* group = getUseGroup();
-							if ( block->group != group )
-							{
-								block->group->remove( *block );
-								group->add( * block );
-							}
-						}
-					}
-					break;
-				case Keyboard::eDELETE:
-					for( VectorSet< Block* >::iterator iter = mSelectBlocks.begin() , itEnd = mSelectBlocks.end() ;
-						iter != itEnd ; ++iter )
-					{
-						Block* block = *iter;
-						world.destroyBlock( block );
-					}
-					mSelectBlocks.clear();
-					break;
-				}
-				break;
-			case eEditSpaceNode:
-				{
-					ISpaceModifier* modifier = getUseModifier();
-					switch( key )
-					{
-					KEY_CHANGE_INDEX_RANGE( 'O' , 'P' , idxModifierUse , Level::mModifiers );
-					KEY_CHANGE_INDEX_RANGE( 'M' , 'N' , idxSpaceCtrlUse , Level::mSpaceCtrlors );
-					case 'K': case 'L':
-						{
-							if ( modifier && modifier->getType() == SNT_ROTATOR )
-							{
-								IRotator* rotator = static_cast< IRotator* >( modifier );
-								Dir axis = ( key == 'L') ? eDirZ : eDirX;
-								rotator->mDir = FDir::Rotate( axis , rotator->mDir );
-							}
-						}
-						break;
-					case 'C':
-						{
-
-						}
-					case 'R': 
-						{
-							IRotator* rotator = Level::createRotator( editPos , eDirZ );
-						}
-						break;
-					case 'G':
-						{
-							ObjectGroup* group = getUseGroup();
-							if ( modifier && group )
-							{
-								if ( modifier->isGroup() )
-								{
-									if ( group->node )
-										group->node->removeGroup( *group );
-									static_cast< IGroupModifier* >( modifier )->addGroup( *group );
-								}
-							}
-						}
-						break;
-					}
-				}
-				break;
-			case eEditMesh:
-				switch( key )
-				{
-				case 'W': editMeshPos.y = snapValue( editMeshPos.y + snapOffset() ); break;
-				case 'S': editMeshPos.y = snapValue( editMeshPos.y - snapOffset() ); break;
-				case 'D': editMeshPos.x = snapValue( editMeshPos.x + snapOffset() ); break;
-				case 'A': editMeshPos.x = snapValue( editMeshPos.x - snapOffset() ); break;
-				case 'Z': editMeshPos.z = snapValue( editMeshPos.z + snapOffset() ); break;
-				case 'X': editMeshPos.z = snapValue( editMeshPos.z - snapOffset() ); break;
-
-				KEY_CHANGE_INDEX_RANGE( 'U' , 'I' , editIdxMeshSelect , Level::mMeshVec );
-				KEY_CHANGE_VAR_RANGE( Keyboard::eDOWN , Keyboard::eUP , editMeshId , NUM_MESH );
-				case Keyboard::eLEFT: --editSnapFactor; break;
-				case Keyboard::eRIGHT: ++editSnapFactor; break;
-				case 'E': Level::createMesh( editMeshPos , editMeshId , Vec3f(0,0,0)  ); break;
-				case Keyboard::eDELETE:
-					if ( editIdxMeshSelect != -1 )
-					{
-						Level::destroyMeshByIndex( editIdxMeshSelect ); 
-						editIdxMeshSelect = -1;
-					}
-				}
-			}
-
+			onKeyDown_EditMode(key);
 		}
 		else
 		{
 			switch( key )
 			{
 			case 'R': restart( false ); break;
-			case Keyboard::eUP: mWorld.action( player , 0 ); break;
-			case Keyboard::eDOWN: mWorld.action( player , 1 ); break;
-			case Keyboard::eLEFT: mWorld.action( player , 2 ); break;
-			case Keyboard::eRIGHT: mWorld.action( player , 3 ); break;
+			case Keyboard::eUP: world.action( player , 0 ); break;
+			case Keyboard::eDOWN: world.action( player , 1 ); break;
+			case Keyboard::eLEFT: world.action( player , 2 ); break;
+			case Keyboard::eRIGHT: world.action( player , 3 ); break;
 			//case 'D': mWorld.player.rotate( 3 ); break;
 			//case 'A': mWorld.player.rotate( 1 ); break;
 			case 'Q':
@@ -541,24 +381,192 @@ namespace MV
 			bCameraView = !bCameraView;
 			break;
 		case Keyboard::eF7:
-			Level::mWorld.removeAllParallaxNavNode();
-			Level::mWorld.updateAllNavNode();
+			world.removeAllParallaxNavNode();
+			world.updateAllNavNode();
 			break;
 		case Keyboard::eF8:
 			{
-				int idx = Level::mWorld.mIdxParallaxDir;
+				int idx = world.mIdxParallaxDir;
 				++idx;
 				if ( idx >= 4 )
 					idx = 0;
-				Level::mWorld.setParallaxDir( idx );
+				world.setParallaxDir( idx );
 
 			}
 		}
 		return false;
+	}
+
+	void TestStage::onKeyDown_EditMode(unsigned key)
+	{
+		World& world = Level::mWorld;
+
+		switch( key )
+		{
+		case 'T':
+			world.putActor( player , editPos );
+			break;
+		case 'Q':
+			if ( mEditType == NUM_EDIT_MODE - 1 )
+				mEditType = EditType(0);
+			else
+				mEditType = EditType( mEditType + 1 );
+			break;
+
+
+		case Keyboard::eF9: 
+			clearLevel(); 
+			break;
+		case Keyboard::eF11:
+			saveLevel( DEV_SAVE_NAME );
+			break;
+		case Keyboard::eF12:
+			loadLevel( DEV_MAP_NAME );
+			break;
+		}
+
+		if ( mEditType != eEditMesh )
+		{
+			switch( key )
+			{
+			case 'W': editPos.y += 1; break;
+			case 'S': editPos.y -= 1; break;
+			case 'D': editPos.x += 1; break;
+			case 'A': editPos.x -= 1; break;
+			case 'Z': editPos.z += 1; break;
+			case 'X': editPos.z -= 1; break;
+			KEY_CHANGE_INDEX_RANGE( 'U' , 'I' , idxGroupUse , world.mGroups );
+			}
+		}
+
+		switch( mEditType )
+		{
+		case eEditBlock:
+			switch( key )
+			{
+				KEY_CHANGE_VAR_RANGE( 'O' , 'P' , editModelId , ARRAY_SIZE( gModels ) );
+			case 'G':
+				world.createGroup( getUseGroup() );
+				break;
+			case 'K': case 'L':
+				if ( world.checkPosVaild( editPos ) )
+				{
+					Dir axis = ( key == 'L') ? eDirZ : eDirX;
+					int id =  world.getBlock( editPos );
+					if ( id )
+					{
+						Block* block = world.mBlocks[ id ];
+						world.prevEditBlock( *block );
+						block->rotation.rotate( axis );
+						world.postEditBlock( *block );
+					}
+				}
+				break;
+			case 'E':
+				if ( world.checkPosVaild( editPos ) &&
+					world.getBlock( editPos ) == 0 )
+				{
+					createBlock( editPos , editModelId );
+				}
+				break;
+			case 'M':
+				{
+					for( VectorSet< Block* >::iterator iter = mSelectBlocks.begin() , itEnd = mSelectBlocks.end() ;
+						iter != itEnd ; ++iter )
+					{
+						Block* block = *iter;
+						ObjectGroup* group = getUseGroup();
+						if ( block->group != group )
+						{
+							block->group->remove( *block );
+							group->add( * block );
+						}
+					}
+				}
+				break;
+			case Keyboard::eDELETE:
+				for( VectorSet< Block* >::iterator iter = mSelectBlocks.begin() , itEnd = mSelectBlocks.end() ;
+					iter != itEnd ; ++iter )
+				{
+					Block* block = *iter;
+					world.destroyBlock( block );
+				}
+				mSelectBlocks.clear();
+				break;
+			}
+			break;
+		case eEditSpaceNode:
+			{
+				ISpaceModifier* modifier = getUseModifier();
+				switch( key )
+				{
+					KEY_CHANGE_INDEX_RANGE( 'O' , 'P' , idxModifierUse , Level::mModifiers );
+					KEY_CHANGE_INDEX_RANGE( 'M' , 'N' , idxSpaceCtrlUse , Level::mSpaceCtrlors );
+				case 'K': case 'L':
+					{
+						if ( modifier && modifier->getType() == SNT_ROTATOR )
+						{
+							IRotator* rotator = static_cast< IRotator* >( modifier );
+							Dir axis = ( key == 'L') ? eDirZ : eDirX;
+							rotator->mDir = FDir::Rotate( axis , rotator->mDir );
+						}
+					}
+					break;
+				case 'C':
+					{
+
+					}
+				case 'R': 
+					{
+						IRotator* rotator = Level::createRotator( editPos , eDirZ );
+					}
+					break;
+				case 'G':
+					{
+						ObjectGroup* group = getUseGroup();
+						if ( modifier && group )
+						{
+							if ( modifier->isGroup() )
+							{
+								if ( group->node )
+									group->node->removeGroup( *group );
+								static_cast< IGroupModifier* >( modifier )->addGroup( *group );
+							}
+						}
+					}
+					break;
+				}
+			}
+			break;
+		case eEditMesh:
+			switch( key )
+			{
+			case 'W': editMeshPos.y = snapValue( editMeshPos.y + snapOffset() ); break;
+			case 'S': editMeshPos.y = snapValue( editMeshPos.y - snapOffset() ); break;
+			case 'D': editMeshPos.x = snapValue( editMeshPos.x + snapOffset() ); break;
+			case 'A': editMeshPos.x = snapValue( editMeshPos.x - snapOffset() ); break;
+			case 'Z': editMeshPos.z = snapValue( editMeshPos.z + snapOffset() ); break;
+			case 'X': editMeshPos.z = snapValue( editMeshPos.z - snapOffset() ); break;
+
+				KEY_CHANGE_INDEX_RANGE( 'U' , 'I' , editIdxMeshSelect , Level::mMeshVec );
+				KEY_CHANGE_VAR_RANGE( Keyboard::eDOWN , Keyboard::eUP , editMeshId , NUM_MESH );
+			case Keyboard::eLEFT: --editSnapFactor; break;
+			case Keyboard::eRIGHT: ++editSnapFactor; break;
+			case 'E': Level::createMesh( editMeshPos , editMeshId , Vec3f(0,0,0)  ); break;
+			case Keyboard::eDELETE:
+				if ( editIdxMeshSelect != -1 )
+				{
+					Level::destroyMeshByIndex( editIdxMeshSelect ); 
+					editIdxMeshSelect = -1;
+				}
+			}
+		}
+	}
+
 
 #undef  KEY_CHANGE_VAR_RANGE
 #undef  KEY_CHANGE_INDEX_RANGE
-	}
+
 
 	void TestStage::onRender(float dFrame)
 	{
@@ -1115,9 +1123,5 @@ namespace MV
 		r.rotate( eDirY );
 		Dir d3 = r.toLocal( eDirZ );
 	}
-
-
-
-
 
 }//namespace MV

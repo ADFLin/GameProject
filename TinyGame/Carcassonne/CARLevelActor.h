@@ -13,6 +13,25 @@ namespace CAR
 
 	typedef std::vector< class LevelActor* > ActorList;
 
+	class ActorContainer
+	{
+	public:
+		LevelActor* popActor();
+		bool        haveActor(){ return mActors.empty() == false; }
+		bool        haveOtherActor( int playerId );
+		bool        havePlayerActor( int playerId , ActorType type );
+
+		unsigned    getPlayerActorTypeMask( unsigned playerMask );
+		bool        haveActorMask( unsigned actorTypeMask );
+		bool        havePlayerActorMask(unsigned playerMask , unsigned actorTypeMask );
+		LevelActor* iteratorActorMask( unsigned playerMask , unsigned actorTypeMask , int& iter);
+		LevelActor* iteratorActorMask( unsigned playerMask , int& iter);
+		LevelActor* findActor( unsigned playerMask , unsigned actorTypeMask );
+		LevelActor* findActor( unsigned actorTypeMask );
+
+		ActorList mActors;
+	};
+
 	class LevelActor
 	{
 	public:
@@ -40,25 +59,6 @@ namespace CAR
 	};
 
 	
-	class ActorContainer
-	{
-	public:
-		LevelActor* popActor();
-		bool        haveActor(){ return mActors.empty() == false; }
-		bool        haveOtherActor( int playerId );
-		bool        havePlayerActor( int playerId , ActorType type );
-
-		unsigned    getPlayerActorTypeMask( unsigned playerMask );
-		bool        haveActorMask( unsigned actorTypeMask );
-		bool        havePlayerActorMask(unsigned playerMask , unsigned actorTypeMask );
-		LevelActor* iteratorActorMask(unsigned playerMask , unsigned actorTypeMask , int& iter);
-		LevelActor* iteratorActorMask(unsigned playerMask , int& iter);
-		LevelActor* findActor( unsigned playerMask , unsigned actorTypeMask );
-		LevelActor* findActor( unsigned actorTypeMask );
-
-		ActorList mActors;
-	};
-
 
 
 

@@ -31,6 +31,7 @@ namespace CAR
 		EXP_ABBEY_AND_MAYOR ,
 		EXP_KING_AND_ROBBER ,
 		EXP_BRIDGES_CASTLES_AND_BAZAARS ,
+		EXP_HILLS_AND_SHEEP ,
 
 		EXP_THE_RIVER ,
 		EXP_THE_RIVER_II ,
@@ -61,6 +62,8 @@ namespace CAR
 			eMagicPortal  = BIT(4) , //EXP_THE_PRINCESS_AND_THE_DRAGON
 			eTowerFoundation = BIT(7), //EXP_THE_TOWER
 			eBazaar       = BIT(8), //EXP_BRIDGES_CASTLES_AND_BAZAARS
+			eHill         = BIT(9), //EXP_HILLS_AND_SHEEP
+			eVineyard     = BIT(10), //EXP_HILLS_AND_SHEEP
 
 		};
 
@@ -78,6 +81,7 @@ namespace CAR
 			eClothHouse = BIT(4) , //5 //EXP_TRADEERS_AND_BUILDERS
 			ePrincess   = BIT(5) , //EXP_THE_PRINCESS_AND_THE_DRAGON
 			eNotSemiCircularCity = BIT(6) , //EXP_BRIDGES_CASTLES_AND_BAZAARS
+			eSheep      = BIT(7) ,  //EXP_HILLS_AND_SHEEP use
 		};
 	};
 
@@ -109,7 +113,7 @@ namespace CAR
 		eMayor , //EXP_ABBEY_AND_MAYOR
 		eWagon , //EXP_ABBEY_AND_MAYOR
 		eBarn  , //EXP_ABBEY_AND_MAYOR
-
+		eShepherd , //EXP_HILLS_AND_SHEEP
 		ePhantom ,
 		eAbbot , //CII
 
@@ -121,7 +125,7 @@ namespace CAR
 		eFariy  , //EXP_THE_PRINCESS_AND_THE_DRAGON
 
 		NUM_ACTOR_TYPE  ,
-		NUM_PLAYER_ACTOR_TYPE = ePig ,
+		NUM_PLAYER_ACTOR_TYPE = eDragon ,
 		eNone,
 	};
 
@@ -130,7 +134,7 @@ namespace CAR
 		enum Enum
 		{
 			eActorStart = 0 ,
-			eActorEnd   = eActorStart + NUM_PLAYER_ACTOR_TYPE  ,
+			eActorEnd   = eActorStart + NUM_PLAYER_ACTOR_TYPE - 1 ,
 
 			//EXP_TRADEERS_AND_BUILDERS
 			eGain , 
@@ -158,7 +162,17 @@ namespace CAR
 		TILE_ABBEY , //EXP_ABBEY_AND_MAYOR
 	};
 
-	
+	enum SheepToken
+	{
+		eWolf = 0,
+		eOne ,
+		eTwo ,
+		eThree ,
+		eFour ,
+		
+		Num ,
+	};
+
 	struct TileDefine
 	{
 		uint8  numPiece;

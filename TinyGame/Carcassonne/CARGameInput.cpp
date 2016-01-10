@@ -5,8 +5,24 @@
 #include "GameGlobal.h"
 #include "PropertyKey.h"
 
+#include "CppVersion.h"
+
 namespace CAR
 {
+	union ActionHeader 
+	{
+		struct
+		{
+			uint8 id;
+			uint8 numParam;
+			uint16 reply : 1;
+			uint16 skip  : 1;
+			uint16 noInput: 1;
+		};
+		uint32 value;
+	};
+
+	static_assert( sizeof(ActionHeader) == sizeof( uint32 ) , "Action Header Size Check Fail");
 
 	CGameInput::CGameInput()
 	{
@@ -53,18 +69,7 @@ namespace CAR
 			// possibly not re-throw pending exception
 		}
 	}
-	union ActionHeader 
-	{
-		struct
-		{
-			uint32 id : 8;
-			uint32 numParam : 8;
-			uint32 reply : 1;
-			uint32 skip  : 1;
-			uint32 noInput: 1;
-		};
-		uint32 value;
-	};
+
 
 	void CGameInput::requestActionImpl( PlayerAction action , GameActionData& data )
 	{

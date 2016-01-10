@@ -48,9 +48,9 @@ namespace CAR
 			transfer.sendData( slot , dataId , this , sizeof( ActionCom ) - ( MaxParamNum - numParam ) * sizeof( Param ) );
 		}
 		static int const MaxParamNum = 16;
-		uint8 action;
-		uint8 numParam : 7;
-		uint8 bReply : 1;
+		uint16 action;
+		uint8  numParam;
+		uint8  bReply : 1;
 		union Param
 		{
 			int   iValue;

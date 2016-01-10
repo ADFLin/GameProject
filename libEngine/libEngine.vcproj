@@ -743,6 +743,18 @@
 				>
 			</File>
 		</Filter>
+		<Filter
+			Name="AI"
+			>
+		</Filter>
+		<Filter
+			Name="Algo"
+			>
+			<File
+				RelativePath=".\SortAlgo.h"
+				>
+			</File>
+		</Filter>
 	</Files>
 	<Globals>
 	</Globals>

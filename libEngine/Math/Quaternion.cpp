@@ -67,9 +67,17 @@ namespace Math
 
 	Vector3 Quaternion::rotateInverse(Vector3 const& v) const
 	{
-		//TODO
+#if 0
+		Vector3 qv(-x, -y, -z);
+		Vector3 uv = qv.cross(v);
+		Vector3 uuv = qv.cross(uv);
+		uv  *= (2.0f * w);
+		uuv *= 2.0f;
+		return v + uv + uuv;
+#else
 		Quaternion q = this->inverse();
 		return q.rotate( v );
+#endif
 	}
 
 	void Quaternion::setRotation( Vector3 const& axis , float angle )

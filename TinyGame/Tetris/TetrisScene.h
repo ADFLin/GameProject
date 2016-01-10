@@ -15,22 +15,6 @@ namespace Tetris
 	class  Mode;
 	class  LevelData;
 
-	enum TetrisAction
-	{
-		ACT_ROTATE_CCW = ACT_BUTTON0,
-		ACT_ROTATE_CW  = ACT_BUTTON1,
-
-		ACT_FALL_PIECE ,
-		ACT_HOLD_PIECE ,
-
-		ACT_MOVE_LEFT ,
-		ACT_MOVE_RIGHT,
-		ACT_MOVE_DOWN ,
-
-		NUM_TETRIS_ACTION ,
-	};
-
-
 	class Scene : public RenderSurface
 	{
 	public:

@@ -133,10 +133,26 @@ bool TinyGameApp::onInit()
 	loadGamePackage();
 
 	setupStage();
-	changeStage( STAGE_MAIN_MENU );
 
+
+	bool havePlayGame = false;
+	char const* gameName;
+	if ( ::Global::getSetting().tryGetStringValue( "DefaultGame" , nullptr , gameName ) )
+	{
+		IGamePackage* game = ::Global::getGameManager().changeGame( gameName );
+		if ( game )
+		{
+			game->beginPlay( GT_SINGLE_GAME , *this );
+			havePlayGame = true;
+		}
+	}
+	
+	if ( havePlayGame == false )
+	{
+		changeStage( STAGE_MAIN_MENU );
+	}
+	
 	mFPSCalc.init( getMillionSecond() );
-
 	return true;
 }
 

@@ -58,9 +58,8 @@ namespace Tetris
 		int          getMapSize() const {  return getTemplate().size;  }
 		int          getDirNum()  const {  return getTemplate().dirNum; }
 		int          getDir()     const {  return mDir; }
-
 		void         setBlockType( int idx , BlockType type ){ mBlock[ idx ].type = type; }
-
+		void         getRectBound( int x[] , int y[] );
 		int          getBlockNum() const { return mNumBlock; }
 		Block const& getBlock( unsigned idx ) const
 		{
@@ -139,7 +138,9 @@ namespace Tetris
 		BlockType*       getLayer( int y )       { return mLayerMap[y]->blocks; }
 		BlockType const* getLayer( int y ) const { return mLayerMap[y]->blocks; }
 
+		void             clearRemoveLayer( int ys[] , int num );
 		void             clearLayer( int y );
+
 		bool             isLayerFilled( int y );
 		bool             addLayer( int y , unsigned leakBit , BlockType block );
 		bool             isEmptyLayer( int y ) const { return mLayerMap[y]->isEmpty();  }
@@ -150,12 +151,12 @@ namespace Tetris
 		int              scanConnectRecursive( int cx , int cy , short color );
 		int              scanFilledLayer( int yMax , int yMin , int removeLayer[] );
 
-		inline bool isInExtendRange(int cx,int cy)
+		inline bool isVaildRange(int cx,int cy)
 		{
 			return 0 <= cx && cx < mSizeX &&
 				   0 <= cy && cy < getExtendSizeY();
 		}
-		inline bool isInRange(int cx,int cy)
+		inline bool isSafeRange(int cx,int cy)
 		{
 			return 0 <= cx && cx < mSizeX &&
 			       0 <= cy && cy < mSizeY;
@@ -267,7 +268,7 @@ namespace Tetris
 		void           setGravityValue( int value );
 
 		int            getLastRemoveLayerNum()  const { return mRemoveLayerNum; }
-		int            getLastRemoveLayerIndex( int n ){ return mRemoveLayer[ n ]; }
+		int*           getLastRemoveLayer(){ return mRemoveLayer; }
 
 		void           getPiecePos( int& nx , int& ny ){  nx = mXPosMP; ny = mYPosMP;  }
 

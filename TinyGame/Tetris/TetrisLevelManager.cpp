@@ -1,8 +1,8 @@
 #include "TetrisPCH.h"
 #include "TetrisLevelManager.h"
 
-
 #include "TetrisLevel.h"
+#include "TetrisActionId.h"
 #include "TetrisGame.h"
 #include "TetrisGameInfo.h"
 

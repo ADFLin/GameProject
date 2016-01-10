@@ -286,7 +286,7 @@ namespace Tetris
 				LevelData* other = getLevelManager()->getLevelData( ( lvData.getID() + 1 )  % 2 );
 				BattleModeData* otherData = static_cast< BattleModeData* >( other->getModeData() );
 				otherData->numAddLayer += event.numLayer;
-				otherData->checkAddLayer( lvData.getLevel() );
+				otherData->checkAddLayer( other->getLevel());
 			}
 			break;
 		}
@@ -327,7 +327,6 @@ namespace Tetris
 	void PracticeMode::setupScene( unsigned flag )
 	{
 		
-
 		LevelData* lvData = getLevelManager()->findPlayerData( 0 );
 
 		Vec2i const uiSize( 140 , 20 );

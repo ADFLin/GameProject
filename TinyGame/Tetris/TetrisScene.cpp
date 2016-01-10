@@ -83,20 +83,25 @@ namespace Tetris
 		int nR = 0;
 
 		int extendMapSizeY = mLevel->getBlockStorage().getExtendSizeY();
+		int  mapSizeX = getLevel()->getBlockStorage().getSizeX();
+
+		int* removeLayer = getLevel()->getLastRemoveLayer();
+		int  numRemoveLayer = getLevel()->getLastRemoveLayerNum();
+
 		for( int layer = extendMapSizeY  - 1; layer >= 0 ; --layer )
 		{
 			bool checkTop = true;
 
 			if ( useRemoveLayer )
 			{
-				if ( getLevel()->getLastRemoveLayerIndex( nR ) == layer )
+				if ( removeLayer[ nR ] == layer )
 					continue;
 
 				//layer of top is removed
-				if ( getLevel()->getLastRemoveLayerIndex( nR ) == layer + 1 )
+				if ( removeLayer[ nR ] == layer + 1 )
 				{
 					++nR;
-					if ( getLevel()->getLastRemoveLayerIndex( nR ) == layer )
+					if ( removeLayer[ nR ] == layer )
 						continue;
 					else checkTop = false;
 				}
@@ -106,22 +111,22 @@ namespace Tetris
 
 			if ( useRemoveLayer )
 			{
-				if ( getLevel()->getLastRemoveLayerIndex( nR ) == layer )
+				if ( removeLayer[ nR ] == layer )
 					continue;
 
 				//layer of top is removed
-				if ( getLevel()->getLastRemoveLayerIndex( nR ) == layer + 1 )
+				if ( removeLayer[ nR ] == layer + 1 )
 				{
 					++nR;
-					if ( getLevel()->getLastRemoveLayerIndex( nR ) == layer )
+					if ( removeLayer[ nR ] == layer )
 						continue;
 					else checkTop = false;
 				}
 
-				uPos += Vec2i( 0 , int( ( getLevel()->getLastRemoveLayerNum() - nR ) * offset ) );
+				uPos += Vec2i( 0 , int( ( numRemoveLayer - nR ) * offset ) );
 			}
 
-			for( int i = 0; i < mLevel->getBlockStorage().getSizeX() ; ++i )
+			for( int i = 0; i < mapSizeX ; ++i )
 			{
 				int data = getLevel()->getBlock( i , layer );
 				if ( data == 0 )
@@ -137,7 +142,7 @@ namespace Tetris
 
 				RenderUtility::setPen( g , Color::eNull );
 
-				if ( color == Piece::getColor( dataR ) && i != mLevel->getBlockStorage().getSizeX() - 1 )
+				if ( color == Piece::getColor( dataR ) && i != mapSizeX - 1 )
 				{
 					RenderUtility::setBrush( g , color , COLOR_DEEP );
 					g.drawRect( 
@@ -289,10 +294,12 @@ namespace Tetris
 					offset = 0;
 				}
 
+				int* remove = getLevel()->mRemoveLayer;
+				int  numRemove = getLevel()->mRemoveLayerNum;
 				int nR = 0;
 				for( int j = extendMapSizeY - 1 ; j >= 0 ; --j )
 				{
-					if ( j != getLevel()->mRemoveLayer[nR] )
+					if ( nR >= numRemove || j != getLevel()->mRemoveLayer[nR] )
 					{
 						renderLayer(  g , mapPos + Vec2i( 0 , int( ( getLevel()->getLastRemoveLayerNum()- nR ) * offset ) ) , j );
 					}
@@ -310,11 +317,9 @@ namespace Tetris
 				{
 					g.beginBlend( mapPos , sceneSize , ( 1.0f - 2 * float( stateTime ) / getLevel()->getClearLayerTime() ) );
 					{
-						int* remove = getLevel()->mRemoveLayer;
-						while (*remove != -1 )
+						for( int i = 0 ; i < numRemove ; ++i )
 						{
-							renderLayer( g , mapPos , *remove  );
-							++remove;
+							renderLayer( g , mapPos , remove[i] );
 						}
 					}
 					g.endBlend();

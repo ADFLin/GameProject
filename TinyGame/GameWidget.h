@@ -351,7 +351,7 @@ class  GListCtrl : public GUI::ListCtrl< GListCtrl >
 public:
 	GAME_API GListCtrl( int id , Vec2i const& pos , Vec2i const& size , GWidget* parent );
 
-	void onItemSelect( unsigned pos ){ sendEvent( EVT_LISTCTRL_SELECT ); }
+	void onItemSelect( unsigned pos ){ ensureVisible(pos); sendEvent( EVT_LISTCTRL_SELECT ); }
 	void onItemLDClick( unsigned pos ){ sendEvent( EVT_LISTCTRL_DCLICK ); }
 	void doRenderItem( Vec2i const& pos , Item& item , bool beSelected );
 	void doRenderBackground( Vec2i const& pos , Vec2i const& size );

@@ -2,8 +2,8 @@
 #include "OptionNoteBook.h"
 
 #include "GameWidgetID.h"
-#include "Tetris/TetrisGame.h"
-#include "Tetris/TetrisScene.h"
+
+#include "Tetris/TetrisActionId.h"
 
 #include "RenderUtility.h"
 

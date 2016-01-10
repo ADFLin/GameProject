@@ -477,7 +477,7 @@ void TListCtrlUI< Impl , CoreImpl >::onRender()
 		int posItem = i + mIndexShowStart;
 		if ( posItem >= (int)mItemList.size() )
 			break;
-		_this()->doRenderItem( pos , mItemList[posItem] , i == mCurSelect );
+		_this()->doRenderItem( pos , mItemList[posItem] , posItem == mCurSelect );
 		pos.y += _this()->getItemHeight();
 	}
 }
@@ -500,6 +500,26 @@ bool TListCtrlUI< Impl , CoreImpl >::onMouseMsg( MouseMsg const& msg )
 		}
 	}
 	return false;
+}
+
+
+template < class Impl , class CoreImpl  >
+void TListCtrlUI< Impl , CoreImpl >::ensureVisible( unsigned pos )
+{
+	int diff = int(pos) - mIndexShowStart;
+	if ( diff < 0 )
+	{
+		mIndexShowStart = pos;
+	}
+	else
+	{
+		int numItemShow = getSize().y / _this()->getItemHeight();
+		if ( numItemShow <= diff )
+		{
+			mIndexShowStart = std::min( pos - numItemShow , mItemList.size() - 1 );
+		}
+	}
+
 }
 
 #endif // TUICommon_hpp__

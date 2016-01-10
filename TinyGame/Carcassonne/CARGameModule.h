@@ -279,48 +279,38 @@ namespace CAR
 		void   addFeaturePoints( FeatureBase& build , std::vector< FeatureScoreInfo >& featureControls , int numPlayer );
 		int    addPlayerScore( int id , int value );
 
-		struct UpdateTileFeatureResult
-		{
-			UpdateTileFeatureResult()
-			{
-				
-			}
-		};
-
-		void   updateTileFeature( MapTile& mapTile , UpdateTileFeatureResult& updateResult );
-
-		bool   checkGameState( GameActionData& actionData , TurnResult& result );
-
 		TurnResult resolvePlayerTurn( IGameInput& input , PlayerBase* curTrunPlayer );
-
-		bool checkHaveBuilderFeatureExpend( PlayerBase* curTrunPlayer );
-
 		TurnResult resolveDeployActor( IGameInput &input , PlayerBase* curTrunPlayer, MapTile* deployMapTile, bool haveUsePortal , bool& haveDone );
-
 		TurnResult resolveMoveFairyToNextFollower( IGameInput &input, PlayerBase* curTrunPlayer , bool& haveDone );
-
-		void updateBarnFarm(FarmFeature* farm);
-
 		TurnResult resolvePlaceTile(IGameInput &input , PlayerBase* curTrunPlayer , MapTile*& placeMapTile );
 		TurnResult resolveUsePortal( IGameInput &input, PlayerBase* curTrunPlayer, MapTile* &deployMapTile, bool &haveUsePortal);
 		TurnResult resolveExpendShepherdFarm( IGameInput &input , PlayerBase* curTrunPlayer , FeatureBase* feature );
 		TurnResult resolveCastleComplete( IGameInput& input );
 		TurnResult resolveDrawTile( IGameInput& input , PlayerBase* curTrunPlayer);
-
-		void expandSheepFlock(LevelActor* actor);
-
 		struct CastleScoreInfo;
-		TurnResult  resolveCompleteFeature( IGameInput& input , FeatureBase& feature , CastleScoreInfo* castleScore );
-		TurnResult  resolveBuildCastle(IGameInput& input , FeatureBase& feature , bool& haveBuild );
+		TurnResult resolveCompleteFeature( IGameInput& input , FeatureBase& feature , CastleScoreInfo* castleScore );
+		TurnResult resolveBuildCastle(IGameInput& input , FeatureBase& feature , bool& haveBuild );
+		TurnResult resolveAbbey( IGameInput& input , PlayerBase* curTurnPlayer );
+		TurnResult resolveDragonMove( IGameInput& input , LevelActor& dragon );
+		TurnResult resolvePrincess( IGameInput& input , MapTile* placeMapTile , bool& haveDone );
+		TurnResult resolveTower(IGameInput& input , PlayerBase* curTurnPlayer , bool& haveDone );
+		TurnResult resolveAuction(IGameInput& input , PlayerBase* curTurnPlayer );
+		
 
+		struct UpdateTileFeatureResult
+		{
+			UpdateTileFeatureResult()
+			{
+
+			}
+		};
+
+		void updateTileFeature( MapTile& mapTile , UpdateTileFeatureResult& updateResult );
 		void checkCastleComplete(FeatureBase &feature, int score);
-
-		TurnResult  resolveAbbey( IGameInput& input , PlayerBase* curTurnPlayer );
-		TurnResult  resolveDragonMove( IGameInput& input , LevelActor& dragon );
-		TurnResult  resolvePrincess( IGameInput& input , MapTile* placeMapTile , bool& haveDone );
-		TurnResult  resolveTower(IGameInput& input , PlayerBase* curTurnPlayer , bool& haveDone );
-		TurnResult  resolveAuction(IGameInput& input , PlayerBase* curTurnPlayer );
-
+		void expandSheepFlock(LevelActor* actor);
+		bool checkHaveBuilderFeatureExpend( PlayerBase* curTrunPlayer );
+		void updateBarnFarm(FarmFeature* farm);
+		bool checkGameState( GameActionData& actionData , TurnResult& result );
 
 		static bool canDeployFollower( MapTile const& mapTile )
 		{

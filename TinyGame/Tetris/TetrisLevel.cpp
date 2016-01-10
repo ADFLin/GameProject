@@ -115,6 +115,22 @@ namespace Tetris
 		setTemplate( sEmptyTemp );
 	}
 
+	void Piece::getRectBound(int x[] , int y[])
+	{
+		x[0] = y[0] =  100;
+		x[1] = y[1] = -100;
+
+		for( int i = 0 ; i < getBlockNum() ; ++i )
+		{
+			Block const& block = getBlock(i);
+			if ( block.x < x[0] ) x[0] = block.x;
+			else if ( block.x > x[1] ) x[1] = block.x;
+
+			if ( block.y < y[0] ) y[0] = block.y;
+			else if ( block.y > y[1] ) y[1] = block.y;
+		}
+	}
+
 	PieceTemplateSet::PieceTemplateSet( PieceTemplate temp[] , int num )
 	{
 		mTemps = temp;
@@ -231,7 +247,7 @@ namespace Tetris
 			int xPos = x + block.getX();
 			int yPos = y + block.getY();
 
-			if ( isInExtendRange( xPos , yPos ) )
+			if ( isVaildRange( xPos , yPos ) )
 			{
 				setBlock( xPos , yPos , block.getType() );
 			}
@@ -254,20 +270,57 @@ namespace Tetris
 		return hit;
 	}
 
-	void BlockStorage::clearLayer( int y )
+	void BlockStorage::clearRemoveLayer( int ys[] , int num )
 	{
+		int extendMapSizeY = getExtendSizeY();
+		static int const MaxRemoveLayerNum = 10;
+		assert( num <= MaxRemoveLayerNum );
+
+		Layer* saveLayer[ MaxRemoveLayerNum ];
+		for( int i = 0 ; i < num ; ++i )
+		{
+			int y = ys[i];
+			assert( i - 1 < 0 || ys[i-1] > ys[i] );
+
+			Layer* cLayer = mLayerMap[y];
+
+			cLayer->markBit = 0;
+			std::fill_n( cLayer->blocks , mSizeX , 0 );
+			saveLayer[i] = cLayer;
+
+			mLayerMap[y] = NULL;
+		}
+
+		int yFill = ys[ num - 1 ];
+		int maxY = extendMapSizeY - 1;
+		for( int y = ys[ num - 1 ] + 1; y <= maxY ; ++y )
+		{
+			if ( mLayerMap[y] == NULL )
+				continue;
+
+			mLayerMap[yFill] = mLayerMap[y]; 
+			++yFill;
+		}
+		for( int i = 0 ; i < num ; ++i )
+		{
+			mLayerMap[yFill] = saveLayer[i];
+			++yFill;
+		}
+	}
+
+
+	void BlockStorage::clearLayer(int y)
+	{
+		int extendMapSizeY = getExtendSizeY();
 		Layer* cLayer = mLayerMap[y];
 
 		cLayer->markBit = 0;
 		std::fill_n( cLayer->blocks , mSizeX , 0 );
 
-		int extendMapSizeY = getExtendSizeY();
-
 		for( int j = y ; j < extendMapSizeY - 1; ++j )
 			mLayerMap[j] = mLayerMap[j+1];
 		mLayerMap[ extendMapSizeY -1 ] = cLayer;
 	}
-
 
 	bool BlockStorage::isLayerFilled( int y )
 	{
@@ -280,14 +333,13 @@ namespace Tetris
 
 		for( int y = yMax; y >= yMin ; --y )
 		{
-			if ( !isInRange(0,y) )
+			if ( !isSafeRange(0,y) )
 				continue;
 			if ( !isLayerFilled( y ) )
 				continue;
 	
 			removeLayer[ n++ ] = y;
 		}
-
 		removeLayer[n] = -1;
 		return n;
 	}
@@ -327,7 +379,7 @@ namespace Tetris
 		for (int i = 0; i <  mSizeX * mSizeY ; ++i)
 			temp[i] = 0;
 
-		if ( !isInRange( cx , cy ) )
+		if ( !isSafeRange( cx , cy ) )
 			return 0;
 
 		BlockType color = Piece::getColor( getBlock( cx , cy ) );
@@ -336,7 +388,7 @@ namespace Tetris
 
 	int BlockStorage::scanConnectRecursive( int cx , int cy , short color  )
 	{
-		assert( isInRange( cx , cy ) );
+		assert( isSafeRange( cx , cy ) );
 
 		if ( mConMap[cy][cx] )
 			return 0;
@@ -353,7 +405,7 @@ namespace Tetris
 		{\
 			int nx = ( PX );\
 			int ny = ( PY );\
-			if ( isInRange( nx , ny ) )\
+			if ( isSafeRange( nx , ny ) )\
 			{\
 				total += scanConnectRecursive( nx , ny, color );\
 				if ( Piece::getColor( getBlock( nx , ny ) ) == color )\
@@ -526,8 +578,7 @@ namespace Tetris
 		case LVS_REMOVE_MAPLINE:
 			if ( mStateDuration > getClearLayerTime() )
 			{
-				for( int i = 0 ; i < mRemoveLayerNum ; ++i )
-					mStorage.clearLayer( mRemoveLayer[i] );
+				mStorage.clearRemoveLayer( mRemoveLayer , mRemoveLayerNum );
 
 				mTotalLayerRemove += mRemoveLayerNum;
 				mListener->onRemoveLayer( this , mRemoveLayer , mRemoveLayerNum );
@@ -669,7 +720,7 @@ namespace Tetris
 		Piece& piece = getNextPiece();
 		mIndexPiece = (int)( &piece - mPiece );
 
-		int yMin = 10;
+		int yMin = 100;
 
 		for( int i = 0 ; i < piece.getBlockNum() ; ++i )
 		{
@@ -679,8 +730,8 @@ namespace Tetris
 		}
 
 		setMovePiece( piece, ( mStorage.getSizeX() - piece.getMapSize() )/ 2,  mStorage.getSizeY() - yMin  );
-		mCountMove = 0;
 
+		mCountMove = 0;
 		mListener->onChangePiece( this );
 	}
 
@@ -741,6 +792,22 @@ namespace Tetris
 	void Level::resetMap(int sizeX , int sizeY)
 	{
 		mStorage.reset( sizeX , sizeY );
+
+		Piece& piece = getMovePiece();
+
+		int sx[2];
+		int sy[2];
+		piece.getRectBound( sx , sy );
+
+		if ( mXPosMP + sx[0] < 0 )
+			mXPosMP = -sx[0];
+		else if ( mXPosMP + sx[1] >= getBlockStorage().getSizeX() )
+			mXPosMP = getBlockStorage().getSizeX() - sx[1] - 1;
+
+		if ( mYPosMP + sy[0] < 0 )
+			mYPosMP = -sy[0];
+		else if ( mYPosMP + sy[1] >= getBlockStorage().getSizeY() )
+			mYPosMP = getBlockStorage().getSizeY() - sy[1] - 1;
 	}
 
 

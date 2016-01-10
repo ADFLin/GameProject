@@ -71,6 +71,12 @@ namespace MV
 		bool onKey( unsigned key , bool isDown );
 		void onKeyDown_EditMode(unsigned key);
 
+		void onKeyDown_EditSpaceNode(unsigned key);
+
+		void onKeyDown_EditBlock(unsigned key);
+
+		void onKeyDown_EditMesh(unsigned key);
+
 
 		void cleanup( bool beDestroy );
 		void restart( bool bInit );

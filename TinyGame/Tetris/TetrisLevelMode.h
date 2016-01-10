@@ -88,7 +88,7 @@ namespace Tetris
 		ModeID      getModeID(){ return MODE_TS_PRACTICE; } 
 		void        init();
 		void        doRestart( bool beInit );
-		void fireAction( LevelData& lvData , ActionTrigger& trigger );
+		void        fireAction( LevelData& lvData , ActionTrigger& trigger );
 
 		void        setupScene( unsigned flag );
 		void        setupSingleGame( MyController& controller );
@@ -124,7 +124,7 @@ namespace Tetris
 		void        init();
 		void        doRestart( bool beInit ){}
 		void        setupScene( unsigned flag );
-		void fireAction( LevelData& lvData , ActionTrigger& trigger );
+		void        fireAction( LevelData& lvData , ActionTrigger& trigger );
 		ModeData*   createModeData(){  return new BattleModeData;  }
 		void        setupSingleGame( MyController& controller );
 		bool        checkOver();

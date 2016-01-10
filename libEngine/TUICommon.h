@@ -422,10 +422,8 @@ public:
 		mIndexShowStart = 0;
 	}
 
-	void  ensureVisible( unsigned pos )
-	{
-		mIndexShowStart = std::min( pos , mItemList.size() - 1 );
-	}
+	void  ensureVisible( unsigned pos );
+
 public:
 	///////// override function ////////
 	void onItemSelect( unsigned pos ){}

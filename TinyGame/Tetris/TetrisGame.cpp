@@ -8,6 +8,7 @@
 #include "TetrisLevelMode.h"
 #include "TetrisGameInfo.h"
 #include "TetrisSettingHelper.h"
+#include "TetrisActionId.h"
 
 #include "GameReplay.h"
 #include "GameRecord.h"

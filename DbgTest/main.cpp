@@ -21,6 +21,7 @@ public:
 
 AStartTest game;
 
+#if 0
 #include <boost/intrusive/list.hpp>
 #include <vector>
 
@@ -109,14 +110,14 @@ int test()
 
 	return 0;
 }
-
+#endif
 int WINAPI WinMain (HINSTANCE hThisInstance,
 					HINSTANCE hPrevInstance,
 					LPSTR lpszArgument,
 					int nFunsterStil)
 
 {
-	test();
+	//test();
 	
 	game.setUpdateTime( 15 );
 	game.run();

@@ -224,6 +224,7 @@ int PropertyKey::parseLine( char* buffer , KeySection** curSection )
 				char* keyValue = token;
 
 				cutBackSpace( token + strlen( token ) );
+
 				(*curSection)->addKeyValue( keyName , keyValue );
 			}
 			break;
@@ -239,17 +240,17 @@ int PropertyKey::parseLine( char* buffer , KeySection** curSection )
 
 bool PropertyKey::loadFile( char const* path )
 {
-	char buffer[2048];
-
+	
 	std::ifstream fs( path );
 	if ( !fs.is_open() )
 		return false;
 
-	KeySection* curSection = NULL;
+	KeySection* curSection = &mGourpMap[ GLOBAL_SECTION ];
 
 	fs.peek();
 	while( fs.good() )
 	{
+		char buffer[4096];
 		fs.getline( buffer , sizeof( buffer ) );
 
 		switch ( parseLine( buffer , &curSection ) )

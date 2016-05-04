@@ -6,6 +6,8 @@ namespace Chromatron
 	Device::Device( DeviceInfo& info , Dir dir, Color color )
 		:mDir(dir)
 		,mColor(color)
+		,mPos(0,0)
+		,mUserData(nullptr)
 	{
 		changeType( info );
 	};
@@ -35,22 +37,28 @@ namespace Chromatron
 	}
 
 
-	void Device::changeDir( Dir dir , bool beForce )
+	bool Device::changeDir( Dir dir , bool beForce )
 	{
 		if ( !isRotatable() )
-			return;
+			return false;
 
-		if( !isStatic() || beForce ) 
-			mDir = dir;
+		if( isStatic() && beForce == false )
+			return false;
+
+		mDir = dir;
+		return true;
 	}
 
-	void Device::rotate(Dir dir  , bool beForce )
+	bool Device::rotate(Dir dir  , bool beForce )
 	{
 		if ( !isRotatable() )
-			return;
+			return false;
 
-		if( !isStatic() || beForce ) 
-			mDir += dir;
+		if (isStatic() && beForce == false)
+			return false;
+
+		mDir += dir;
+		return true;
 	}
 
 }//namespace Chromatron

@@ -301,6 +301,10 @@ namespace MV
 		node.connect( destSurface.nodes[ NODE_DIRECT ][ idxDest ] );
 	}
 
+	enum
+	{
+		FUN_IAVE ,
+	};
 	class ActionNavFun
 	{
 	public:
@@ -934,7 +938,7 @@ namespace MV
 		NavNode* destNode = node->link;
 		BlockSurface* destSurface = destNode->getSurface();
 		Block* destBlock = destSurface->block;
-		Dir dirFaceL = Block::getLocalDir( *destSurface );
+		Dir dirFaceL = Block::LocalDir( *destSurface );
 		setActorBlock( actor , destBlock->id , destBlock->rotation.toWorld( dirFaceL ) );
 	}
 
@@ -1105,7 +1109,7 @@ namespace MV
 		{
 			NavNode* node = mFixNodes[i];
 
-			if (  face != Block::getWorldDir( *node->getSurface() ) )
+			if (  face != Block::WorldDir( *node->getSurface() ) )
 				continue;
 
 			Block* sBlock = node->getSurface()->block;

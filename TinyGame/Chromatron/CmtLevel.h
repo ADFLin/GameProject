@@ -52,6 +52,8 @@ namespace Chromatron
 
 		Device const* getWorldDevice( Vec2D const& pos ) const;
 		Device const* getStorageDevice( int idx ) const { assert( 0 <= idx && idx < MaxNumUserDC ); return mStorgeMap[idx]; }
+		Device*  getWorldDevice(Vec2D const& pos) { return const_cast<Device*>(static_cast<Level const&>(*this).getWorldDevice(pos)); }
+		Device*  getStorageDevice(int idx) { return const_cast<Device*>(static_cast<Level const&>(*this).getStorageDevice(idx)); }
 
 		void    updateWorld();
 		void    destoryAllDevice();
@@ -75,11 +77,31 @@ namespace Chromatron
 		World const&  getWorld() const { return mWorld;  }
 		void     restart();
 
+		template< class Fun >
+		void      visitAllDevice( Fun fun )
+		{
+			for (MapDCInfoList::iterator iter = mMapDCList.begin();
+				iter != mMapDCList.end(); ++iter)
+			{
+				Device* dc = iter->dc;
+				if (dc->isStatic())
+					fun(dc);
+			}
+
+			for (DeviceVec::iterator iter = mUserDC.begin();
+				iter != mUserDC.end(); ++iter)
+			{
+				Device* dc = *iter;
+				fun(dc);
+			}
+
+		}
 	public:
 
 		void     save( LevelInfoHeader& header , std::ostream& stream , unsigned version );
 		void     load( std::istream& stream , unsigned version);
 
+		static bool loadLevel(Level& level, std::istream& stream, int idxLevelData);
 		static bool saveLevelData( std::ostream& stream , Level* level[] , int num );
 		static int  loadLevelData( std::istream& stream , Level* level[] , int num );
 		static bool loadDCState( std::istream& stream , Level* level[] , int numLevel );
@@ -92,8 +114,7 @@ namespace Chromatron
 		unsigned saveUserDC( LevelInfoHeader& header ,std::ostream& stream , unsigned version);
 		void     loadUserDC( LevelInfoHeader& header , std::istream& stream , unsigned version );
 
-		Device*  getWorldDevice( Vec2D const& pos){ return const_cast< Device* >( static_cast< Level const& >( *this ).getWorldDevice( pos ) ); }
-		Device*  getStorageDevice( int idx )      { return const_cast< Device* >( static_cast< Level const& >( *this ).getStorageDevice( idx ) ); }
+
 		void     installDevice( Device& dc , Vec2D const& pos , bool inWorld );
 
 		

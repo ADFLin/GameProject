@@ -175,59 +175,59 @@
 	</References>
 	<Files>
 		<File
-			RelativePath=".\Chromatorn\CmtBase.h"
+			RelativePath=".\Chromatron\CmtBase.h"
 			>
 		</File>
 		<File
-			RelativePath=".\Chromatorn\CmtDefine.h"
+			RelativePath=".\Chromatron\CmtDefine.h"
 			>
 		</File>
 		<File
-			RelativePath=".\Chromatorn\CmtDevice.cpp"
+			RelativePath=".\Chromatron\CmtDevice.cpp"
 			>
 		</File>
 		<File
-			RelativePath=".\Chromatorn\CmtDevice.h"
+			RelativePath=".\Chromatron\CmtDevice.h"
 			>
 		</File>
 		<File
-			RelativePath=".\Chromatorn\CmtDeviceFactory.cpp"
+			RelativePath=".\Chromatron\CmtDeviceFactory.cpp"
 			>
 		</File>
 		<File
-			RelativePath=".\Chromatorn\CmtDeviceFactory.h"
+			RelativePath=".\Chromatron\CmtDeviceFactory.h"
 			>
 		</File>
 		<File
-			RelativePath=".\Chromatorn\CmtDeviceID.h"
+			RelativePath=".\Chromatron\CmtDeviceID.h"
 			>
 		</File>
 		<File
-			RelativePath=".\Chromatorn\CmtGame.cpp"
+			RelativePath=".\Chromatron\CmtGame.cpp"
 			>
 		</File>
 		<File
-			RelativePath=".\Chromatorn\CmtGame.h"
+			RelativePath=".\Chromatron\CmtGame.h"
 			>
 		</File>
 		<File
-			RelativePath=".\Chromatorn\CmtLevel.cpp"
+			RelativePath=".\Chromatron\CmtLevel.cpp"
 			>
 		</File>
 		<File
-			RelativePath=".\Chromatorn\CmtLevel.h"
+			RelativePath=".\Chromatron\CmtLevel.h"
 			>
 		</File>
 		<File
-			RelativePath=".\Chromatorn\CmtLightTrace.cpp"
+			RelativePath=".\Chromatron\CmtLightTrace.cpp"
 			>
 		</File>
 		<File
-			RelativePath=".\Chromatorn\CmtLightTrace.h"
+			RelativePath=".\Chromatron\CmtLightTrace.h"
 			>
 		</File>
 		<File
-			RelativePath=".\Chromatorn\CmtPCH.cpp"
+			RelativePath=".\Chromatron\CmtPCH.cpp"
 			>
 			<FileConfiguration
 				Name="Debug|Win32"
@@ -237,57 +237,49 @@
 					UsePrecompiledHeader="1"
 				/>
 			</FileConfiguration>
-			<FileConfiguration
-				Name="Release|Win32"
-				>
-				<Tool
-					Name="VCCLCompilerTool"
-					UsePrecompiledHeader="1"
-				/>
-			</FileConfiguration>
 		</File>
 		<File
-			RelativePath=".\Chromatorn\CmtPCH.h"
+			RelativePath=".\Chromatron\CmtPCH.h"
 			>
 		</File>
 		<File
-			RelativePath=".\Chromatorn\CmtScene.cpp"
+			RelativePath=".\Chromatron\CmtScene.cpp"
 			>
 		</File>
 		<File
-			RelativePath=".\Chromatorn\CmtScene.h"
+			RelativePath=".\Chromatron\CmtScene.h"
 			>
 		</File>
 		<File
-			RelativePath=".\Chromatorn\CmtStage.cpp"
+			RelativePath=".\Chromatron\CmtStage.cpp"
 			>
 		</File>
 		<File
-			RelativePath=".\Chromatorn\CmtStage.h"
+			RelativePath=".\Chromatron\CmtStage.h"
 			>
 		</File>
 		<File
-			RelativePath=".\Chromatorn\CmtWorld.cpp"
+			RelativePath=".\Chromatron\CmtWorld.cpp"
 			>
 		</File>
 		<File
-			RelativePath=".\Chromatorn\CmtWorld.h"
+			RelativePath=".\Chromatron\CmtWorld.h"
 			>
 		</File>
 		<File
-			RelativePath=".\Chromatorn\GameData1.h"
+			RelativePath=".\Chromatron\GameData1.h"
 			>
 		</File>
 		<File
-			RelativePath=".\Chromatorn\GameData2.h"
+			RelativePath=".\Chromatron\GameData2.h"
 			>
 		</File>
 		<File
-			RelativePath=".\Chromatorn\GameData3.h"
+			RelativePath=".\Chromatron\GameData3.h"
 			>
 		</File>
 		<File
-			RelativePath=".\Chromatorn\GameData4.h"
+			RelativePath=".\Chromatron\GameData4.h"
 			>
 		</File>
 	</Files>

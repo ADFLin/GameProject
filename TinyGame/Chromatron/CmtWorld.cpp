@@ -10,9 +10,6 @@ namespace Chromatron
 	int const MaxTransmitStepCount = MaxTransmitLightNum * 10;
 
 	World::World(int sx ,int sy)
-		:mIsSyncMode(false)
-		,mSyncProcessor( NULL )
-		,mSyncLights( NULL )
 	{
 		initData( sx , sy );
 	}
@@ -42,36 +39,6 @@ namespace Chromatron
 		return mTileMap.getData( pos.x , pos.y );
 	}
 
-
-	void World::addLight( Vec2D const& pos , Color color , Dir dir )
-	{
-		if ( color == COLOR_NULL )
-			return;
-
-		Tile& mapData = getMapData( pos );
-		
-		if ( isSyncMode() )
-		{
-			assert( mSyncProcessor );
-			mapData.addEmittedLightColor( dir , color );
-
-			if ( !mSyncProcessor->prevAddLight(  pos , color , dir , mLightParam , mLightAge ) )
-				return;
-
-			LightTrace light( pos , color , dir , mLightParam , mLightAge );
-			mSyncLights->push_front( light );
-		}
-		else
-		{
-			if ( ( color & mapData.getEmittedLightColor( dir ) ) == color )
-				return;
-
-			mapData.addEmittedLightColor( dir , color );
-			LightTrace light( pos , color , dir , mLightParam , mLightAge );
-			mNormalLights.push_back( light );
-		}
-		++mLightCount;
-	}
 
 	static Vec2D const gTestOffset[] = { Vec2D(0,-1) , Vec2D(-1,-1) , Vec2D(-1,0) , Vec2D(0,0) };
 
@@ -110,15 +77,16 @@ namespace Chromatron
 		return true;
 	}
 
-	TransmitStatus World::transmitLightSync( SyncProcessor& processor , LightList& transmitLights )
+	TransmitStatus World::transmitLightSync( WorldUpdateContext& context , SyncProcessor& processor , LightList& transmitLights )
 	{
-		assert( isSyncMode() );
+		bool prevMode = context.isSyncMode();
+		context.setSyncMode( true );
 
-		SyncProcessor* prevProvider  = mSyncProcessor;
-		LightList*     prevLightList = mSyncLights;
+		SyncProcessor* prevProvider  = context.mSyncProcessor;
+		LightList*     prevLightList = context.mSyncLights;
 
-		mSyncProcessor = &processor;
-		mSyncLights    = &transmitLights;
+		context.mSyncProcessor = &processor;
+		context.mSyncLights    = &transmitLights;
 
 		typedef std::list< LightList::iterator > IterList;
 		IterList   eraseIters;
@@ -170,7 +138,7 @@ namespace Chromatron
 
 						if ( processor.prevEffectDevice( *dc , light , pass ) )
 						{
-							if ( procDeviceEffect( *dc , light ) != TSS_OK )
+							if ( procDeviceEffect( context , *dc , light ) != TSS_OK )
 								goto SyncEnd;
 
 							transmitLights.erase( lightIter );
@@ -190,25 +158,26 @@ namespace Chromatron
 			++stepCount;
 			if ( stepCount > MaxTransmitStepCount )
 			{
-				notifyStatus( TSS_INFINITE_LOOP );
+				context.notifyStatus( TSS_INFINITE_LOOP );
 				goto SyncEnd;
 			}
 		}
 
 SyncEnd:
-		mSyncLights    = prevLightList;
-		mSyncProcessor = prevProvider;
-		return mStatus;
+		context.mSyncLights    = prevLightList;
+		context.mSyncProcessor = prevProvider;
+		context.setSyncMode( prevMode );
+
+		return context.mStatus;
 	}
 
 
-	TransmitStatus World::transmitLight()
+	TransmitStatus World::transmitLight( WorldUpdateContext& context )
 	{
-		
 		int loopCount = 0;
-		while( !mNormalLights.empty() )
+		while( !context.mNormalLights.empty() )
 		{
-			LightTrace& light = mNormalLights.front();
+			LightTrace& light = context.mNormalLights.front();
 			
 			Tile* mapData = &getMapData( light.getEndPos() );
 
@@ -223,12 +192,13 @@ SyncEnd:
 				Device* dc = mapData->getDevice();
 				if ( dc )
 				{
-					if ( procDeviceEffect( *dc , light ) != TSS_OK )
-						return mStatus;
+					TransmitStatus status = procDeviceEffect( context , *dc , light );
+					if ( status != TSS_OK )
+						return status;
 				}
 			}
 
-			mNormalLights.pop_front();
+			context.mNormalLights.pop_front();
 			++loopCount;
 
 			if ( loopCount > MaxTransmitLightNum )
@@ -244,8 +214,67 @@ SyncEnd:
 		{
 			mTileMap[i].clearLight();
 		}
-		mNormalLights.clear();
-		mLightCount = 0;
+	}
+
+	int World::countSameLighPathColortStepNum(Vec2D const& pos, Dir dir) const
+	{
+		assert(isVaildRange(pos));
+		Color color = getMapData(pos).getLightPathColor(dir);
+		if ( color == COLOR_NULL )
+			return 0;
+		int result = 1;
+		Dir invDir = dir.inverse();
+		Vec2D testPos = pos;
+		for (;;)
+		{
+			testPos += LightTrace::GetDirOffset(dir);
+			if (isVaildRange(testPos) == false)
+				break;
+
+			Tile const& tile = getMapData(testPos);
+			if ( tile.blockLight() )
+				break;
+
+			if (tile.getLightPathColor(invDir) != color )
+				break;
+
+			++result;
+
+			if (tile.getDevice() != nullptr)
+				break;
+
+			if (tile.getLightPathColor(dir) != color )
+				break;
+
+			++result;	
+		}
+
+
+		return result;
+	}
+
+	bool World::isLightPathEndpoint(Vec2D const& pos, Dir dir) const
+	{
+		assert(isVaildRange(pos));
+
+		Tile const& tile = getMapData(pos);
+		if (tile.getDevice() == nullptr)
+		{
+			Color color = tile.getLightPathColor(dir);
+			if (color == COLOR_NULL)
+				return false;
+			Dir invDir = dir.inverse();
+			if (color == tile.getLightPathColor(invDir))
+			{
+				Vec2D invPos = pos + LightTrace::GetDirOffset(invDir);
+				if ( isVaildRange( invPos ) && 
+					 getMapData( invPos ).getLightPathColor( dir ) == color )
+					return false;
+			}
+				
+		}
+
+		return true;
 	}
 
 	void World::clearDevice()
@@ -266,8 +295,7 @@ SyncEnd:
 		}
 	}
 
-
-	TransmitStatus World::procDeviceEffect( Device& dc , LightTrace const& light )
+	TransmitStatus World::procDeviceEffect( WorldUpdateContext& context , Device& dc , LightTrace const& light )
 	{
 		Tile& mapData = getMapData( dc.getPos() );
 
@@ -284,21 +312,21 @@ SyncEnd:
 				return TSS_OK;
 		}
 
-		mStatus   = TSS_OK;
-		int prevAge = mLightAge;
-		mLightAge = light.getAge();
+		context.mStatus   = TSS_OK;
+		int prevAge = context.mLightAge;
+		context.mLightAge = light.getAge();
 		
-		dc.effect( *this , light );
+		dc.effect( context , light );
 		
-		mLightAge = prevAge;
-		return mStatus;
+		context.mLightAge = prevAge;
+		return context.mStatus;
 	}
 
 	Device* World::goNextDevice( Dir dir , Vec2D& curPos )
 	{
 		for(;;)
 		{
-			curPos += LightTrace::getDirOffset( dir );
+			curPos += LightTrace::GetDirOffset( dir );
 			if( !isVaildRange( curPos ) )  
 				break;
 
@@ -310,16 +338,57 @@ SyncEnd:
 		return NULL;
 	}
 
-	void World::prevUpdate()
-	{
-		clearLight();
-		setLightParam( 0 );
-		mLightAge = 0;
-	}
 
 	void Tile::clearLight()
 	{
 		mLightPathColor = 0;
+	}
+
+	WorldUpdateContext::WorldUpdateContext(World& world) 
+		:mWorld(world)
+	{
+		mLightAge = 0;
+		mStatus = TSS_OK;
+	}
+
+	void WorldUpdateContext::prevUpdate()
+	{
+		mWorld.clearLight();
+		mLightParam = 0;
+		mLightCount = 0;
+		mNormalLights.clear();
+		mStatus = TSS_OK;
+		mIsSyncMode = false;
+	}
+
+	void WorldUpdateContext::addLight(Vec2D const& pos , Color color , Dir dir)
+	{
+		if ( color == COLOR_NULL )
+			return;
+
+		Tile& mapData = mWorld.getMapData( pos );
+
+		if ( isSyncMode() )
+		{
+			assert( mSyncProcessor );
+			mapData.addEmittedLightColor( dir , color );
+
+			if ( !mSyncProcessor->prevAddLight(  pos , color , dir , mLightParam , mLightAge ) )
+				return;
+
+			LightTrace light( pos , color , dir , mLightParam , mLightAge );
+			mSyncLights->push_front( light );
+		}
+		else
+		{
+			if ( ( color & mapData.getEmittedLightColor( dir ) ) == color )
+				return;
+
+			mapData.addEmittedLightColor( dir , color );
+			LightTrace light( pos , color , dir , mLightParam , mLightAge );
+			mNormalLights.push_back( light );
+		}
+		++mLightCount;
 	}
 
 }//namespace Chromatron

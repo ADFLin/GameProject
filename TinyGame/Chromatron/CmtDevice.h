@@ -4,8 +4,12 @@
 #include "CmtBase.h"
 #include "Flag.h"
 
+
+
 namespace Chromatron
 {
+	class WorldUpdateContext;
+
 	enum DeviceFlag
 	{
 		DFB_UNROTATABLE       = BIT(0),
@@ -27,9 +31,9 @@ namespace Chromatron
 	class LightTrace;
 	class Device;
 
-	typedef void (*EffectFun)( Device& , World& , LightTrace const& );
-	typedef void (*UpdateFun)( Device& , World& );
-	typedef bool (*CheckFun)( Device& , World& );
+	typedef void (*EffectFun)( Device& , WorldUpdateContext& , LightTrace const& );
+	typedef void (*UpdateFun)( Device& , WorldUpdateContext& );
+	typedef bool (*CheckFun)( Device& , WorldUpdateContext& );
 
 	struct DeviceInfo
 	{
@@ -64,9 +68,13 @@ namespace Chromatron
 		Dir   const& getDir()   const { return mDir; }
 		Color        getColor() const { return mColor; }
 
-		void         update( World& world ){ mInfo->funUpdate( *this , world ); }
-		void         effect( World& world , LightTrace const& light ){  mInfo->funEffect( *this , world , light ); }
-		bool         check( World& world ){ return mInfo->funCheck( *this , world ); }
+		void         update( WorldUpdateContext& context ){ mInfo->funUpdate( *this , context ); }
+		void         effect( WorldUpdateContext& context , LightTrace const& light ){  mInfo->funEffect( *this , context , light ); }
+
+
+		bool         checkFinish(WorldUpdateContext& context) { return mInfo->funCheck(*this, context); }
+
+		
 
 		bool         isRotatable() const { return !mFlag.checkBits( DFB_UNROTATABLE ); }
 		bool         isStatic()    const { return mFlag.checkBits( DFB_STATIC ); }
@@ -74,14 +82,19 @@ namespace Chromatron
 		void         setMovable( bool beM );
 		void         setStatic( bool beS );
 
-		void         rotate(Dir dir , bool beForce = false );
-		void         changeDir( Dir dir , bool beForce = false );
+		bool         rotate(Dir dir , bool beForce = false );
+		bool         changeDir( Dir dir , bool beForce = false );
 
 		Flag&        getFlag()       { return mFlag; }
 		Flag const&  getFlag() const { return mFlag; }
 		void         changeType( DeviceInfo& info );
 
+		void*        getUserData() const { return mUserData; }
+		void         setUserData(void* data) { mUserData = data; }
+
+
 	private:
+		void*       mUserData;
 		DeviceInfo* mInfo;
 		Vec2D       mPos;
 		Dir         mDir;

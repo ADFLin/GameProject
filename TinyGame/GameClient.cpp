@@ -276,10 +276,10 @@ void ClientWorker::sendCommand( int channel , IComPacket* cp , unsigned flag )
 	switch( channel )
 	{
 	case CHANNEL_TCP_CONNECT:
-		FillBufferByCom( mTcpClient.getSendCtrl() , cp );
+		FillBufferFromCom( mTcpClient.getSendCtrl() , cp );
 		break;
 	case CHANNEL_UDP_CHAIN:
-		FillBufferByCom( mUdpClient.getSendCtrl() , cp );
+		FillBufferFromCom( mUdpClient.getSendCtrl() , cp );
 		break;
 	}	
 }
@@ -453,7 +453,7 @@ bool SendDelayCtrl::add( IComPacket* cp )
 
 	SendInfo info;
 
-	info.size = FillBufferByCom( mBuffer , cp );
+	info.size = FillBufferFromCom( mBuffer , cp );
 
 	if ( info.size == 0 )
 		return false;

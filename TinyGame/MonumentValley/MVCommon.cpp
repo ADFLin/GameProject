@@ -99,8 +99,8 @@ namespace MV
 	{
 		//TODO: improve
 		int axis = FDir::Axis( dir );
-		int idx = ( axis == FDir::Axis( mDir[2] ) ) ? 2 :
-			( ( axis == FDir::Axis( mDir[1] ) ) ? 1 : 0 ) ;
+		int idx = ( axis == FDir::Axis( mDir[0] ) ) ? 0 :
+			( ( axis == FDir::Axis( mDir[1] ) ) ? 1 : 2 ) ;
 		assert( axis == FDir::Axis( mDir[idx] ) );
 		return Dir( 2 * idx + (( dir == mDir[idx] ) ? 0 : 1 ) );
 	}

@@ -599,7 +599,7 @@ namespace Chromatron
 			if ( color == COLOR_NULL ) 
 				continue;
 
-			Vec2D p2 = pos + ( (CellLength / 2) + 1 ) * LightTrace::getDirOffset( dir );
+			Vec2D p2 = pos + ( (CellLength / 2) + 1 ) * LightTrace::GetDirOffset( dir );
 			RenderUtility::setPen( g , gColorMap[ color ] );
 			g.drawLine( pos , p2 );
 		}

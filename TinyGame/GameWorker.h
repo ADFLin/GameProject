@@ -194,7 +194,7 @@ private:
 
 
 bool EvalCommand( UdpChain& chain , ComEvaluator& evaluator , SBuffer& buffer , ComConnection* con  = NULL  );
-unsigned FillBufferByCom( NetBufferCtrl& bufferCtrl , IComPacket* cp );
-unsigned FillBufferByCom( SBuffer& buffer , IComPacket* cp );
+unsigned FillBufferFromCom( NetBufferCtrl& bufferCtrl , IComPacket* cp );
+unsigned FillBufferFromCom( SBuffer& buffer , IComPacket* cp );
 
 #endif // NetWorker_h__

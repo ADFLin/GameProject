@@ -67,9 +67,9 @@ namespace MV
 						{
 						case NFT_LADDER :
 							{
-								Dir destFaceDir = Block::getWorldDir( *destSurface );
+								Dir destFaceDir = Block::WorldDir( *destSurface );
 								if ( destSurface->fun != NFT_PLANE_LADDER ||
-									destFaceDir != Block::getWorldDir( *srcSurface ) )
+									destFaceDir != Block::WorldDir( *srcSurface ) )
 								{
 									if ( destFaceDir != aNode.state.upDir )
 										continue;
@@ -78,22 +78,22 @@ namespace MV
 							break;
 						case NFT_STAIR:
 							{
-								if(  Block::getWorldDir( *destSurface ) != aNode.state.upDir )
+								if(  Block::WorldDir( *destSurface ) != aNode.state.upDir )
 										continue;
 							}
 							break;
 						case NFT_ROTATOR_C:
-							state.upDir = Block::getWorldDir( *destSurface );
+							state.upDir = Block::WorldDir( *destSurface );
 							break;
 						case NFT_ROTATOR_NC:
-							state.upDir = FDir::Inverse( Block::getWorldDir( *destSurface ) );
+							state.upDir = FDir::Inverse( Block::WorldDir( *destSurface ) );
 							break;
 						}
 					}
 
 					state.block = destSurface->block;
 					state.prevBlockNode  = node;
-					state.faceDirL = Block::getLocalDir( *destSurface );
+					state.faceDirL = Block::LocalDir( *destSurface );
 					addSreachNode( state , aNode , 1 );
 				}
 			}
@@ -160,7 +160,7 @@ namespace MV
 			{
 				BlockSurface* destSurf = pathNode.link->link->getSurface();
 				Block* destBlock = destSurf->block;
-				Vec3f destPos = Vec3f( destBlock->pos ) + 0.5 * ( FDir::OffsetF( Block::getWorldDir( *destSurf ) ) ) - outOffset;
+				Vec3f destPos = Vec3f( destBlock->pos ) + 0.5 * ( FDir::OffsetF( Block::WorldDir( *destSurf ) ) ) - outOffset;
 
 				points.push_back( faceCenterPos + 0.5 * FDir::OffsetF( outDir ) );
 				points.push_back( destPos );

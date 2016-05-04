@@ -160,7 +160,8 @@ namespace MV
 			{
 				MeshInfo const& info = gMeshInfo[i];
 				FixString< 256 > path = "Mesh/";
-				path += info.name; path += ".obj";
+				path += info.name; 
+				path += ".obj";
 				if ( !loader.load( mMesh[ info.id ] , path ) )
 					return false;
 			}

@@ -19,13 +19,13 @@ namespace Chromatron
 	}gHelper;
 
 
-	Device* DeviceFactory::create( DeviceId id , Dir dir, Color color )
+	Device* DeviceFactory::Create( DeviceId id , Dir dir, Color color )
 	{
 		assert( 0 <= id && id < DC_DEVICE_NUM );
-		return new Device( getInfo( id ) , dir , color );
+		return new Device( GetInfo( id ) , dir , color );
 	}
 
-	DeviceInfo& DeviceFactory::getInfo( DeviceId id )
+	DeviceInfo& DeviceFactory::GetInfo( DeviceId id )
 	{
 		return gDeviceInfo[ id ];
 	}
@@ -50,30 +50,30 @@ namespace Chromatron
 				return Color( ( ( color & ( COLOR_G | COLOR_R ) ) << 1 ) | ( ( color & COLOR_B ) >> 2 ) );
 		}
 		template< int ID >
-		static void effect( Device& dc , World& world , LightTrace const& light ){}
+		static void effect( Device& dc , WorldUpdateContext& context , LightTrace const& light ){}
 		template< int ID >
-		static void update( Device& dc , World& world ){}
+		static void update( Device& dc , WorldUpdateContext& context ){}
 		template< int ID >
-		static bool check( Device& dc , World& world ){ return true; }
+		static bool checkFinish( Device& dc , WorldUpdateContext& context ){ return true; }
 	};
 
 	template<>
-	void DeviceFun::update< DC_LIGHTSOURCE >( Device& dc , World& world )
+	void DeviceFun::update< DC_LIGHTSOURCE >( Device& dc , WorldUpdateContext& context )
 	{
-		world.addLight( dc.getPos() , dc.getColor() , dc.getDir() );
+		context.addLight( dc.getPos() , dc.getColor() , dc.getDir() );
 	}
 
 	template<>
-	void DeviceFun::effect< DC_PINWHEEL >( Device& dc , World& world , LightTrace const& light )
+	void DeviceFun::effect< DC_PINWHEEL >( Device& dc , WorldUpdateContext& context , LightTrace const& light )
 	{
-		world.addLight( dc.getPos() , light.getColor() , light.getDir() );
+		context.addLight( dc.getPos() , light.getColor() , light.getDir() );
 	}
 
 	template<>
-	bool DeviceFun::check< DC_PINWHEEL >( Device& dc , World& world )
+	bool DeviceFun::checkFinish< DC_PINWHEEL >( Device& dc , WorldUpdateContext& context )
 	{
 		Color color = COLOR_NULL;
-		Tile const& mapData = world.getMapData( dc.getPos() );
+		Tile const& mapData = context.getWorld().getMapData( dc.getPos() );
 
 		Color testColor = dc.getColor();
 		Color invColor = COLOR_W & ( ~testColor );
@@ -92,7 +92,7 @@ namespace Chromatron
 	}
 
 	template<>
-	void DeviceFun::effect< DC_SMIRROR >( Device& dc , World& world , LightTrace const& light )
+	void DeviceFun::effect< DC_SMIRROR >( Device& dc , WorldUpdateContext& context , LightTrace const& light )
 	{
 		Dir dir = calcIncidentDir( dc, light );
 
@@ -101,21 +101,21 @@ namespace Chromatron
 		//int dout=2*m_dir-arcdir;
 		dir = dc.getDir() - dir;
 
-		world.addLight( dc.getPos() ,light.getColor(),dir);
+		context.addLight( dc.getPos() ,light.getColor(),dir);
 	}
 
 	template<>
-	void DeviceFun::effect< DC_CONDUITS >( Device& dc , World& world , LightTrace const& light )
+	void DeviceFun::effect< DC_CONDUITS >( Device& dc , WorldUpdateContext& context , LightTrace const& light )
 	{
 		Dir dir = calcIncidentDir( dc, light );
 		if( dir == 0 || dir == 4 )
 		{
-			world.addLight( dc.getPos() , light.getColor(), light.getDir() );
+			context.addLight( dc.getPos() , light.getColor(), light.getDir() );
 		}
 	}
 
 	template<>
-	void DeviceFun::effect< DC_SPECTROSCOPE >( Device& dc , World& world , LightTrace const& light )
+	void DeviceFun::effect< DC_SPECTROSCOPE >( Device& dc , WorldUpdateContext& context , LightTrace const& light )
 	{
 		Dir dir = calcIncidentDir( dc, light );
 
@@ -125,13 +125,13 @@ namespace Chromatron
 		dir = dc.getDir() - dir;
 
 		//if ( dir != light.getDir().inverse() )
-		world.addLight( dc.getPos() , light.getColor(), dir );
+		context.addLight( dc.getPos() , light.getColor(), dir );
 
-		world.addLight( dc.getPos() , light.getColor(), light.getDir() );
+		context.addLight( dc.getPos() , light.getColor(), light.getDir() );
 	}
 
 	template<>
-	void DeviceFun::effect< DC_SMIRROR_45 >( Device& dc , World& world , LightTrace const& light )
+	void DeviceFun::effect< DC_SMIRROR_45 >( Device& dc , WorldUpdateContext& context , LightTrace const& light )
 	{
 		Dir dir = calcIncidentDir( dc, light );
 
@@ -141,11 +141,11 @@ namespace Chromatron
 		//int dout=2*m_dir-arcdir+1;
 		dir = dc.getDir() - dir + Dir(1);
 
-		world.addLight( dc.getPos() , light.getColor(),dir);
+		context.addLight( dc.getPos() , light.getColor(),dir);
 	}
 
 	template<>
-	void DeviceFun::effect< DC_PRISM >( Device& dc , World& world , LightTrace const& light )
+	void DeviceFun::effect< DC_PRISM >( Device& dc , WorldUpdateContext& context , LightTrace const& light )
 	{
 		Dir dir = calcIncidentDir( dc, light );
 		Dir invDir = light.getDir().inverse();
@@ -159,22 +159,22 @@ namespace Chromatron
 		if( ( color & COLOR_R ) && outR[dir] != -1 )
 		{
 			Dir outDir = invDir + Dir( outR[dir] );
-			world.addLight( dc.getPos() , COLOR_R , outDir );
+			context.addLight( dc.getPos() , COLOR_R , outDir );
 		}
 		if( ( color & COLOR_G ) && outG[dir] != -1 )
 		{
 			Dir outDir = invDir + Dir( outG[dir] );
-			world.addLight( dc.getPos() , COLOR_G , outDir );
+			context.addLight( dc.getPos() , COLOR_G , outDir );
 		}
 		if( ( color & COLOR_B ) && outB[dir] != -1 )
 		{
 			Dir outDir = invDir + Dir( outB[dir] );
-			world.addLight( dc.getPos() , COLOR_B , outDir );
+			context.addLight( dc.getPos() , COLOR_B , outDir );
 		}
 	}
 
 	template<>
-	void DeviceFun::effect< DC_FILTER >( Device& dc , World& world , LightTrace const& light )
+	void DeviceFun::effect< DC_FILTER >( Device& dc , WorldUpdateContext& context , LightTrace const& light )
 	{
 		Dir dir = calcIncidentDir( dc, light );
 
@@ -184,12 +184,12 @@ namespace Chromatron
 		Color color = Color( light.getColor() & dc.getColor() );
 		if (  color )
 		{
-			world.addLight( dc.getPos() , color , light.getDir() );
+			context.addLight( dc.getPos() , color , light.getDir() );
 		}
 	}
 
 	template<>
-	void DeviceFun::effect< DC_DOPPLER >( Device& dc , World& world , LightTrace const& light )
+	void DeviceFun::effect< DC_DOPPLER >( Device& dc , WorldUpdateContext& context , LightTrace const& light )
 	{
 		Dir dir = calcIncidentDir( dc, light );
 
@@ -199,14 +199,13 @@ namespace Chromatron
 		Color color =light.getColor();
 		Color outColor = calcDopplerColor( color , dir == Dir(0) );
 
-		world.addLight( dc.getPos() , outColor,light.getDir() );
+		context.addLight( dc.getPos() , outColor,light.getDir() );
 	}
 
 	class QTangterEffectSolver : public World::SyncProcessor
 	{
-		typedef World::LightList LightList;
 	public:
-		QTangterEffectSolver( World& w ):mWorld(w){}
+		QTangterEffectSolver( WorldUpdateContext& context ):mContext( context ){}
 		~QTangterEffectSolver(){}
 
 		static int const QStatsUp   =  1;
@@ -216,9 +215,6 @@ namespace Chromatron
 		{
 			Color color = light.getColor();
 
-			bool prevMode = mWorld.isSyncMode();
-			mWorld.setSyncMode( true );
-
 			bool keep = true;
 			if ( keep && ( color & COLOR_R ) )
 				keep = solveColor( pos , light.getDir() , COLOR_R );
@@ -226,13 +222,12 @@ namespace Chromatron
 				keep = solveColor( pos , light.getDir() , COLOR_G );
 			if ( keep && ( color & COLOR_B ) )
 				keep = solveColor( pos , light.getDir() , COLOR_B );
-
-			mWorld.setSyncMode( prevMode );
 		}
 
 		bool solveColor( Vec2D const& pos , Dir const& dir , Color color )
 		{
-			if ( mWorld.getMapData( pos ).getReceivedLightColor( dir.inverse() ) & color )
+			World& world = mContext.getWorld();
+			if ( world.getMapData( pos ).getReceivedLightColor( dir.inverse() ) & color )
 				return true;
 
 			mTransmitLights.clear();
@@ -241,7 +236,7 @@ namespace Chromatron
 			mTransmitLights.push_back( LightTrace( pos , color , dir + Dir(2) , QStatsUp ) );
 			mTransmitLights.push_back( LightTrace( pos , color , dir - Dir(2) , QStatsDown ) );
 
-			if ( mWorld.transmitLightSync( *this , mTransmitLights ) != TSS_OK )
+			if ( world.transmitLightSync( mContext , *this , mTransmitLights ) != TSS_OK )
 				return false;
 
 			return true;
@@ -274,13 +269,13 @@ namespace Chromatron
 			{
 				if ( dc.getFlag() & DFB_REMOVE_QE )
 				{
-					mWorld.setSyncMode( false );
-					mWorld.setLightParam( 0 );
+					mContext.setSyncMode( false );
+					mContext.setLightParam( 0 );
 				}
 				else
 				{
-					mWorld.setSyncMode( true );
-					mWorld.setLightParam( light.getParam() );
+					mContext.setSyncMode( true );
+					mContext.setLightParam( light.getParam() );
 				}
 			}
 
@@ -366,75 +361,73 @@ namespace Chromatron
 			}
 		}
 
+		WorldUpdateContext& mContext;
 		LightList  mTransmitLights;
 		LightList  mCheckLights;
 		Vec2D      mPos;
 		Dir        mDir;
 		Color      mColor;
-		World&     mWorld;
 	};
 
 	template<>
-	void DeviceFun::effect< DC_QTANGLER >( Device& dc , World& world , LightTrace const& light )
+	void DeviceFun::effect< DC_QTANGLER >( Device& dc , WorldUpdateContext& context , LightTrace const& light )
 	{
 		Dir dir = calcIncidentDir( dc, light );	
 		if ( dir != 0 ) 
 			return;
 
-		QTangterEffectSolver solver( world );
+		QTangterEffectSolver solver( context );
 		solver.solve( dc.getPos() , light );
 	}
 
 	class QRotatorEffectSolver : public World::SyncProcessor
 	{
 	public:
-		QRotatorEffectSolver( World& w ):mWorld(w){}
+		QRotatorEffectSolver( WorldUpdateContext& context ):mContext( context ){}
 
 		void solve( Vec2D const& pos , LightTrace const& light )
 		{
 			bool keep = true;
-			bool prevMode = mWorld.isSyncMode();
-
-
-			mWorld.setSyncMode( prevMode );
 		}
 
-
-
-		World& mWorld;
+		WorldUpdateContext& mContext;
 	};
 
 	template<>
-	void DeviceFun::effect< DC_QUANROTATOR >( Device& dc , World& world , LightTrace const& light )
+	void DeviceFun::effect< DC_QUANROTATOR >( Device& dc , WorldUpdateContext& context , LightTrace const& light )
 	{
 		Dir dir = calcIncidentDir( dc, light );	
 		if ( dir != 0 ) 
 			return;
 
-		//QRotatorEffectSolver solver( world );
+		//QRotatorEffectSolver solver( context );
 		//solver.solve( dc.getPos() , light );
 	}
 
 
 	template<>
-	void DeviceFun::effect< DC_TELEPORTER >( Device& dc , World& world , LightTrace const& light )
+	void DeviceFun::effect< DC_TELEPORTER >( Device& dc , WorldUpdateContext& context , LightTrace const& light )
 	{
 		Dir dir = light.getDir();
 		Vec2D pos = dc.getPos();
 
-		Device* pDC;
-		while( pDC = world.goNextDevice( dir , pos ) )
+		World& world = context.getWorld();
+		for(;;)
 		{
+			Device* pDC = world.goNextDevice(dir, pos);
+			if ( pDC == nullptr )
+				break;
+
 			if ( pDC->getId() == DC_TELEPORTER )
 			{
-				world.addLight( pDC->getPos() , light.getColor(), dir );
+				context.addLight( pDC->getPos() , light.getColor(), dir );
 				return;
 			}
 		}
 	}
 
 	template<>
-	void DeviceFun::effect< DC_MULTIFILTER >( Device& dc , World& world , LightTrace const& light )
+	void DeviceFun::effect< DC_MULTIFILTER >( Device& dc , WorldUpdateContext& context , LightTrace const& light )
 	{
 		Dir dir = calcIncidentDir( dc, light );
 		int select = dir % 4;
@@ -442,46 +435,46 @@ namespace Chromatron
 
 		Color color = Color( light.getColor() & filterColor[select] );
 		if (color) 
-			world.addLight( dc.getPos() ,  color, light.getDir());
+			context.addLight( dc.getPos() ,  color, light.getDir());
 
 	}
 
 	template<>
-	void DeviceFun::effect< DC_TWISTER >( Device& dc , World& world , LightTrace const& light )
+	void DeviceFun::effect< DC_TWISTER >( Device& dc , WorldUpdateContext& context , LightTrace const& light )
 	{
 		Dir turnDir = ( dc.getFlag() & DFB_CLOCKWISE ) ?Dir(-2):Dir(2);
 		Dir outDir(light.getDir() + turnDir);
 
-		world.addLight( dc.getPos() , light.getColor(), outDir );
+		context.addLight( dc.getPos() , light.getColor(), outDir );
 	}
 
 	template<>
-	void DeviceFun::effect< DC_DUALREFLECTOR >( Device& dc , World& world , LightTrace const& light )
+	void DeviceFun::effect< DC_DUALREFLECTOR >( Device& dc , WorldUpdateContext& context , LightTrace const& light )
 	{
 		Dir dir = calcIncidentDir( dc, light );
 		if ( dir == 2 || dir == 6 ) 
 			return;
 
 		dir = dc.getDir() - dir;
-		world.addLight( dc.getPos() , light.getColor(), dir );
+		context.addLight( dc.getPos() , light.getColor(), dir );
 	}
 
 	template<>
-	void DeviceFun::effect< DC_STARBURST >( Device& dc , World& world , LightTrace const& light )
+	void DeviceFun::effect< DC_STARBURST >( Device& dc , WorldUpdateContext& context , LightTrace const& light )
 	{
 		for(int i= (light.getDir()+1)%2 ; i < NumDir ; i+=2 )
-			world.addLight( dc.getPos() , light.getColor(), Dir::ValueNoCheck( i ) );
+			context.addLight( dc.getPos() , light.getColor(), Dir::ValueNoCheck( i ) );
 	}
 
 	template<>
-	void DeviceFun::effect< DC_COMPLEMENTOR >( Device& dc , World& world , LightTrace const& light )
+	void DeviceFun::effect< DC_COMPLEMENTOR >( Device& dc , WorldUpdateContext& context , LightTrace const& light )
 	{
 		Dir dir = calcIncidentDir( dc, light );
 
 		if ( dir % 2 == 1 ) 
 			return;
 
-		Tile& data = world.getMapData( dc.getPos() );
+		Tile& data = context.getWorld().getMapData( dc.getPos() );
 
 		Color color = complementary( data.getReceivedLightColor( light.getDir().inverse() ) );
 
@@ -490,42 +483,42 @@ namespace Chromatron
 		{
 			if ( !prevColor )
 			{
-				world.addLight( dc.getPos() , color, light.getDir() );
+				context.addLight( dc.getPos() , color, light.getDir() );
 				//dc.removeFlagBit( FB_BLOCK_EFFECT );
 			}
 			else if ( dc.getFlag() & DFB_LAZY_EFFECT )
 			{
 				dc.getFlag().addBits( DFB_SHOT_DOWN );
-				world.notifyStatus( TSS_LOGIC_ERROR );
+				context.notifyStatus( TSS_LOGIC_ERROR );
 			}
 			else
 			{
 				dc.getFlag().addBits( DFB_LAZY_EFFECT );
 				Dir invDir = light.getDir().inverse();
 				data.setLazyLightColor( invDir , data.getReceivedLightColor( invDir ) );
-				world.notifyStatus( TSS_RECALC );
+				context.notifyStatus( TSS_RECALC );
 			}
 
 		}
 	}
 
 	template<>
-	void DeviceFun::effect< DC_QUADBENDER >( Device& dc , World& world , LightTrace const& light )
+	void DeviceFun::effect< DC_QUADBENDER >( Device& dc , WorldUpdateContext& context , LightTrace const& light )
 	{
 		Dir dir = calcIncidentDir( dc, light );
 		//int dout=2*m_dir-arcdir+1;
 		dir = dc.getDir() - dir + Dir(1);
-		world.addLight( dc.getPos() , light.getColor() , dir );
+		context.addLight( dc.getPos() , light.getColor() , dir );
 	}
 
 	template<>
-	void DeviceFun::effect< DC_LOGICGATE_AND >( Device& dc , World& world , LightTrace const& light )
+	void DeviceFun::effect< DC_LOGICGATE_AND >( Device& dc , WorldUpdateContext& context , LightTrace const& light )
 	{
 		Dir dir = calcIncidentDir( dc , light );
 		if ( dir != 1 && dir != 7 )
 			return;
 
-		Tile& data = world.getMapData( dc.getPos() );
+		Tile& data = context.getWorld().getMapData( dc.getPos() );
 
 		Color colorT = data.getReceivedLightColor( dc.getDir()+Dir(1) );
 		Color colorD = data.getReceivedLightColor( dc.getDir()+Dir(-1) );
@@ -533,18 +526,18 @@ namespace Chromatron
 		Color color = Color( colorT & colorD );
 		if ( color )
 		{
-			world.addLight( dc.getPos() , color , dc.getDir().inverse() );
+			context.addLight( dc.getPos() , color , dc.getDir().inverse() );
 		}
 	}
 
 	template<>
-	void DeviceFun::effect< DC_LOGICGATE_AND_PRIMARY >( Device& dc , World& world , LightTrace const& light )
+	void DeviceFun::effect< DC_LOGICGATE_AND_PRIMARY >( Device& dc , WorldUpdateContext& context , LightTrace const& light )
 	{
 		Dir dir = calcIncidentDir( dc , light );
 		if ( dir != 1 && dir != 7 )
 			return;
 
-		Tile& data = world.getMapData( dc.getPos() );
+		Tile& data = context.getWorld().getMapData( dc.getPos() );
 
 		Color colorT = data.getReceivedLightColor( dc.getDir()+Dir(1) );
 		Color colorD = data.getReceivedLightColor( dc.getDir()+Dir(-1) );
@@ -552,18 +545,18 @@ namespace Chromatron
 		Color color = Color( colorT & colorD );
 		if ( color == COLOR_R || color == COLOR_G || color == COLOR_B )
 		{
-			world.addLight( dc.getPos() , color , dc.getDir().inverse() );
+			context.addLight( dc.getPos() , color , dc.getDir().inverse() );
 		}
 	}
 
 	template<>
-	void DeviceFun::effect< DC_LOGICGATE_OR >( Device& dc , World& world , LightTrace const& light )
+	void DeviceFun::effect< DC_LOGICGATE_OR >( Device& dc , WorldUpdateContext& context , LightTrace const& light )
 	{
 		Dir dir = calcIncidentDir( dc , light );
 		if ( dir != 1 && dir != 7 )
 			return;
 
-		Tile& data = world.getMapData( dc.getPos() );
+		Tile& data = context.getWorld().getMapData( dc.getPos() );
 
 		Color colorT = data.getReceivedLightColor( dc.getDir() + Dir(1) );
 		Color colorD = data.getReceivedLightColor( dc.getDir() + Dir(-1) );
@@ -571,7 +564,7 @@ namespace Chromatron
 		Color color = Color( colorT | colorD );
 		if ( color )
 		{
-			world.addLight( dc.getPos() , color , dc.getDir().inverse() );
+			context.addLight( dc.getPos() , color , dc.getDir().inverse() );
 		}
 	}
 
@@ -579,7 +572,7 @@ namespace Chromatron
 	void initDeviceInfo(){ \
 
 #define DC_INFO( id , flag ) \
-	gDeviceInfo[ id ] = DeviceInfo( id , flag , &DeviceFun::effect< id > , &DeviceFun::update< id > , &DeviceFun::check< id > );
+	gDeviceInfo[ id ] = DeviceInfo( id , flag , &DeviceFun::effect< id > , &DeviceFun::update< id > , &DeviceFun::checkFinish< id > );
 
 #define END_DC_INFO() }
 
@@ -606,6 +599,11 @@ namespace Chromatron
 		DC_INFO( DC_LOGICGATE_OR  , DFB_REMOVE_QE )
 		DC_INFO( DC_QUANROTATOR   , 0 )
 	END_DC_INFO()
+
+
+#undef BEGIN_DC_INFO
+#undef DC_INFO
+#undef END_DC_INFO
 
 
 }//namespace Chromatron

@@ -1,3 +1,4 @@
+#include "CAR_PCH.h"
 #include "CARGameModule.h"
 
 #include <algorithm>
@@ -798,7 +799,6 @@ namespace CAR
 
 	TurnResult GameModule::resolveDrawTile(IGameInput& input , PlayerBase* curTrunPlayer)
 	{
-		TurnResult result;
 		int countDrawTileLoop = 0;
 		for(;;)
 		{
@@ -1079,7 +1079,7 @@ namespace CAR
 			checkCastleComplete( feature , score );
 		}
 	
-		LevelActor* actor;
+		//LevelActor* actor;
 		std::vector< LevelActor* > wagonGroup;
 		std::vector< LevelActor* > mageWitchGroup;
 		std::vector< LevelActor* > hereticMonkGroup;
@@ -1155,13 +1155,13 @@ namespace CAR
 							data.resultIndex = 0;
 						}
 
-						FeatureBase* feature = data.getResultFeature();
+						FeatureBase* selectedFeature = data.getResultFeature();
 						ActorPos actorPos;
-						bool isOK = feature->getActorPos( *mapTiles[ data.resultIndex ] , actorPos );
+						bool isOK = selectedFeature->getActorPos( *mapTiles[ data.resultIndex ] , actorPos );
 						assert( isOK );
 						moveActor( wagonGroup[i] , actorPos , mapTiles[data.resultIndex] );
-						feature->addActor( *wagonGroup[i] );
-						linkFeatures.erase( std::find( linkFeatures.begin() , linkFeatures.end() , feature ) );
+						selectedFeature->addActor( *wagonGroup[i] );
+						linkFeatures.erase( std::find( linkFeatures.begin() , linkFeatures.end() , selectedFeature ) );
 					}
 				}
 			}
@@ -1736,10 +1736,12 @@ namespace CAR
 			unsigned followerMask = mSetting->getFollowerMask();
 
 			int iter = 0;
-			LevelActor* actor;
 			ActorList kinghts;
-			while( actor = city->iteratorActorMask( AllPlayerMask , KINGHT_MASK , iter ) )
+			for(;;)
 			{
+				LevelActor* actor = city->iteratorActorMask(AllPlayerMask, KINGHT_MASK, iter);
+				if ( actor == nullptr )
+					break;
 				kinghts.push_back( actor );
 			}
 
@@ -2718,7 +2720,7 @@ namespace CAR
 	void GameModule::updateBarnFarm(FarmFeature* farm)
 	{
 		bool haveFarmer = farm->haveActorMask( FARMER_MASK );
-		if ( haveFarmer == nullptr )
+		if ( haveFarmer == false )
 			return;
 
 		std::vector< FeatureScoreInfo > scoreInfos;

@@ -1,3 +1,4 @@
+#include "CAR_PCH.h"
 #include "CARDefine.h"
 
 #pragma warning( disable : 4482 ; error : 4002 )

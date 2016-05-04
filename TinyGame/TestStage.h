@@ -108,6 +108,124 @@ protected:
 };
 
 
+template< class T >
+class TQBezierSpline
+{
+public:
+	T operator()( float t ) const
+	{
+		float t1 = 1 - t;
+		return ( t1 * t1 ) * mA + ( 2 * t1 * t ) * mB + ( t * t ) * mC;
+	}
+
+	T mA , mB , mC;
+};
+
+class BSplineTestStage : public StageBase
+{
+	typedef StageBase BaseClass;
+public:
+	BSplineTestStage(){}
+
+	typedef TQBezierSpline< Vec2f > MySpline;
+
+	MySpline mSpline;
+
+	std::vector< Vec2f > mSplineLine;
+	void constructSpline()
+	{
+		int num = 100;
+		float dt = 1.0 / num;
+		mSplineLine.resize( num + 1 );
+		for( int i = 0 ; i <= num; ++i )
+		{
+			mSplineLine[i] = mSpline( dt * i );
+		}
+	}
+
+	virtual bool onInit()
+	{
+		::Global::getGUI().cleanupWidget();
+		restart();
+		return true;
+	}
+
+	virtual void onEnd()
+	{
+
+	}
+
+	virtual void onUpdate( long time )
+	{
+		BaseClass::onUpdate( time );
+
+		int frame = time / gDefaultTickTime;
+		for( int i = 0 ; i < frame ; ++i )
+			tick();
+
+		updateFrame( frame );
+	}
+
+	void onRender( float dFrame )
+	{
+		Graphics2D& g = Global::getGraphics2D();
+
+		RenderUtility::setPen( g , Color::eRed );
+		int num = mSplineLine.size() - 1;
+		for( int i = 0 ; i < num ; ++i )
+		{
+			g.drawLine( Vec2i( mSplineLine[i]) , Vec2i( mSplineLine[i+1] ) );
+		}
+	}
+
+	void restart()
+	{
+		mSpline.mA = Vec2f( 20 , 20 );
+		mSpline.mB = Vec2f( 40 , 40 );
+		mSpline.mC = Vec2f( 200 , 100 );
+		constructSpline();
+	}
+
+
+	void tick()
+	{
+
+	}
+
+	void updateFrame( int frame )
+	{
+
+	}
+
+	bool onMouse( MouseMsg const& msg )
+	{
+		if ( !BaseClass::onMouse( msg ) )
+			return false;
+		if ( msg.onLeftDown() )
+		{
+			mSpline.mB = msg.getPos();
+			constructSpline();
+		}
+		return true;
+	}
+
+	bool onKey( unsigned key , bool isDown )
+	{
+		if ( !isDown )
+			return false;
+
+		switch( key )
+		{
+		case 'R': restart(); break;
+		}
+		return false;
+	}
+
+protected:
+
+};
+
+
 #define TAG_VALUE( V ) "[VALUE="#V"]"
 #define START_TAG "[VALUE"
 #define ENG_TAG   "[/VALUE]"
@@ -115,6 +233,7 @@ protected:
 #define TAG_SIZE( TAG ) ( sizeof( TAG ) / sizeof( TAG[0] ) - 1 )
 
 #include "BitUtility.h"
+#include "Heap.h"
 class XMLPraseTestStage : public StageBase
 {
 	typedef StageBase BaseClass;
@@ -124,6 +243,8 @@ public:
 	std::vector< int > mOut;
 
 	int mPosY;
+
+	void testHeap();
 	void printBits( uint32 num )
 	{
 		FixString< 128 > str;
@@ -355,7 +476,7 @@ public:
 	{
 		Graphics2D& g = Global::getGraphics2D();
 
-		testFlag();
+		//testFlag();
 		return;
 		for( int i = 0 ; i < mOut.size() ; ++i )
 		{
@@ -366,6 +487,8 @@ public:
 
 	void restart()
 	{
+		testHeap();
+
 		char const testStr[] =
 			"xx"
 			TAG_VALUE( 1 )

@@ -325,6 +325,14 @@
 				>
 			</File>
 			<File
+				RelativePath=".\GGJStage.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\GGJStage.h"
+				>
+			</File>
+			<File
 				RelativePath=".\LightingStage.cpp"
 				>
 			</File>

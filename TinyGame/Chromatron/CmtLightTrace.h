@@ -11,7 +11,7 @@ namespace Chromatron
 		LightTrace( Vec2D const& start , Color color , 
 			        Dir dir ,int param = 0 , int age = 0 );
 
-		void         advance(){  ++mAge; mEndPos += getDirOffset( mDir );  }
+		void         advance(){  ++mAge; mEndPos += GetDirOffset( mDir );  }
 
 		void         setColor( Color color ){ mColor = color; }
 		Color        getColor()    const { return mColor; }
@@ -21,7 +21,7 @@ namespace Chromatron
 		Vec2D const& getEndPos()   const { return mEndPos; }
 		int          getAge()      const { return mAge; }
 
-		static Vec2D getDirOffset( Dir dir );
+		static Vec2D GetDirOffset( Dir dir );
 
 	private:
 		Vec2D mStartPos;

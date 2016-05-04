@@ -544,3 +544,37 @@ void GLGraphics2DTestStage::onRender(float dFrame)
 }
 
 
+template< class THeap >
+void MyMethod()
+{
+	int numSample = 10000;
+	THeap heap;
+	for( int i = 0 ; i < numSample ; ++i )
+		heap.push( rand() % 1000 );
+
+	FixString< 1024 > str;
+	int count = 0;
+	while( !heap.empty() )
+	{
+		FixString< 1024 > temp;
+		++count;
+		str += temp.format( "%d " , heap.top() );
+		if ( count == 30 )
+		{
+			count = 0;
+			::Msg( "%s" , str.c_str() );
+			str.clear();
+		}
+		heap.pop();
+	}
+	::Msg( "%s" , str.c_str() );
+}
+
+void XMLPraseTestStage::testHeap()
+{
+	MyMethod< PairingHeap< int > >();
+	MyMethod< FibonaccilHeap< int > >();
+	MyMethod< BinaryHeap< int > >();
+
+}
+

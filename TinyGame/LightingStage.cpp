@@ -44,9 +44,6 @@ namespace Lighting
 		glOrtho(0, window.getWidth() , 0 , window.getHeight() , 1, -1);
 		glMatrixMode(GL_MODELVIEW);
 
-		
-
-
 		::Global::getGUI().cleanupWidget();
 		WidgetUtility::createDevFrame();
 		restart();

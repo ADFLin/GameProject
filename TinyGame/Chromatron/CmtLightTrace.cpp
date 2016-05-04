@@ -23,7 +23,7 @@ namespace Chromatron
 	};
 
 
-	Vec2D LightTrace::getDirOffset( Dir dir )
+	Vec2D LightTrace::GetDirOffset( Dir dir )
 	{
 		return gDirOffset[ dir ];
 	}

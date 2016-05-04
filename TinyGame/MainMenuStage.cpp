@@ -28,6 +28,7 @@
 #include "AStarStage.h"
 #include "FBirdStage.h"
 #include "PlanetStage.h"
+#include "GGJStage.h"
 
 #include "EasingFun.h"
 
@@ -65,10 +66,11 @@ struct StageInfo
 
 StageInfo gGraphicsTestGroup[] = 
 {
+	INFO( "GGJ Test" , GGJ::TestStage ) ,
 	INFO( "2D Lighting Test"     , Lighting::TestStage ) ,
 	INFO( "Shader Test"  , GS::TestStage ), 
-
 	INFO( "GLGraphics2D Test"   , GLGraphics2DTestStage ) ,
+	INFO( "BSpline Test"   , BSplineTestStage ) ,
 };
 
 StageInfo gTestGroup[] =

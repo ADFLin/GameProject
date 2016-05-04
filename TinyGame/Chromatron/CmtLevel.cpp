@@ -11,13 +11,16 @@
 
 namespace Chromatron
 {
-	
-	struct GameInfoHeaderV2
+	struct GameInfoHeaderBaseV2
 	{
 		unsigned  totalSize;
 		unsigned  headerSize;
 		uint8      version;
 		uint8      numLevel;
+	};
+
+	struct GameInfoHeaderV2 : GameInfoHeaderBaseV2
+	{
 		unsigned  offsetLevel[];
 	};
 
@@ -177,23 +180,22 @@ namespace Chromatron
 
 	void Level::updateWorld()
 	{
-		resetDeviceFlag( true );
-
-		for ( ;; )
+		
+		WorldUpdateContext context( mWorld );
+		resetDeviceFlag(true);
+		bool recalc;
+		do
 		{
-			bool recalc = false;
-
-			mWorld.prevUpdate();
-
-			for( MapDCInfoList::iterator iter = mMapDCList.begin(); 
-				iter != mMapDCList.end() ;++iter )
+			recalc = false;
+			context.prevUpdate();
+			for (MapDCInfoList::iterator iter = mMapDCList.begin();
+				iter != mMapDCList.end(); ++iter)
 			{
 				Device* dc = iter->dc;
-				dc->update( mWorld );
+				dc->update(context);
 			}
 
-			
-			switch( mWorld.transmitLight() )
+			switch (mWorld.transmitLight(context))
 			{
 			case TSS_LOGIC_ERROR:
 			case TSS_RECALC:
@@ -203,11 +205,10 @@ namespace Chromatron
 				break;
 			}
 
-			if ( !recalc )
-				break;
+			if (recalc)
+				resetDeviceFlag(false);
 
-			resetDeviceFlag( false );
-		} 
+		} while (recalc);
 
 
 		bool goal = true;
@@ -217,7 +218,7 @@ namespace Chromatron
 		{
 			Device* dc = iter->dc;
 
-			if ( !dc->check( mWorld ) )
+			if ( !dc->checkFinish( context ) )
 			{
 				goal = false;
 				dc->getFlag().removeBits( DFB_GOAL );
@@ -276,11 +277,11 @@ namespace Chromatron
 		}
 		else
 		{
-			if ( mStorgeMap[pos.x] || ( DeviceFactory::getInfo( id ).flag & DFB_STATIC ) )
+			if ( mStorgeMap[pos.x] || ( DeviceFactory::GetInfo( id ).flag & DFB_STATIC ) )
 				return NULL;
 		}
 
-		Device* dc = DeviceFactory::create( id , dir , color );
+		Device* dc = DeviceFactory::Create( id , dir , color );
 		assert( dc );
 
 		dc->setStatic( !beUserDC );
@@ -583,6 +584,8 @@ namespace Chromatron
 
 	struct DcStateCoder
 	{
+
+
 		static int const offsetPos = 30;
 
 		void decode( char const* buf , Vec2D& pos , Dir& dir , bool& inWorld )
@@ -707,7 +710,7 @@ namespace Chromatron
 		if ( dc.getFlag().checkBits( DFB_IN_WORLD ) )
 			return false;
 
-		if ( DeviceFactory::getInfo( dc.getId() ).flag & DFB_STATIC  )
+		if ( DeviceFactory::GetInfo( dc.getId() ).flag & DFB_STATIC  )
 			return false;
 
 		if ( dc.isStatic() )
@@ -728,12 +731,12 @@ namespace Chromatron
 	{
 		unsigned pflag = dc.getFlag();
 
-		DeviceInfo& chInfo = DeviceFactory::getInfo( id );
+		DeviceInfo& chInfo = DeviceFactory::GetInfo( id );
 
 		if ( !dc.isInWorld() && ( chInfo.flag & DFB_STATIC ) )
 			return false;
 
-		dc.changeType( DeviceFactory::getInfo( id ) );
+		dc.changeType( DeviceFactory::GetInfo( id ) );
 		dc.getFlag().addBits( pflag &( DFB_IN_WORLD ) );
 
 		return true;
@@ -857,10 +860,10 @@ namespace Chromatron
 	int Level::loadLevelData( std::istream& stream , Level*  level[] , int num )
 	{
 		using std::ios;
-
+		typedef GameInfoHeaderBaseV2 GameInfoHeaderBaseLD;
 		typedef GameInfoHeaderV2 GameInfoHeaderLD;
 
-		GameInfoHeaderLD tempHeader;
+		GameInfoHeaderBaseLD tempHeader;
 
 		ios::pos_type pos = stream.tellg();
 
@@ -896,6 +899,39 @@ namespace Chromatron
 	}
 
 
+	bool Level::loadLevel(Level& level, std::istream& stream, int idxLevelData)
+	{
+		using std::ios;
+		typedef GameInfoHeaderBaseV2 GameInfoHeaderBaseLD;
+		typedef GameInfoHeaderV2 GameInfoHeaderLD;
+
+		GameInfoHeaderBaseLD tempHeader;
+
+		ios::pos_type pos = stream.tellg();
+
+		stream.read((char*)&tempHeader, sizeof(tempHeader));
+
+		GameInfoHeaderLD* gameHeader = (GameInfoHeaderLD*)malloc(tempHeader.headerSize);
+
+		if (gameHeader == NULL)
+			return false;
+
+		stream.seekg(pos);
+		stream.read((char*)gameHeader, tempHeader.headerSize);
+
+		if ( idxLevelData >= gameHeader->numLevel )
+			return false;
+
+		pos = stream.tellg();
+
+		stream.seekg(pos);
+		stream.seekg(gameHeader->offsetLevel[idxLevelData], ios::cur);
+
+		level.load(stream, gameHeader->version);
+
+		free(gameHeader);
+		return true;
+	}
 
 	bool data2CppCharString( char const* dataPath , char const* varName )
 	{

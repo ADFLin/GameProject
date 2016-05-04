@@ -131,6 +131,11 @@ namespace MV
 		HookNode     groupHook;
 	};
 
+	class WorldCell
+	{
+	public:
+	};
+
 	class Block : public Object
 	{
 	public:
@@ -158,11 +163,11 @@ namespace MV
 		}
 
 
-		static Dir getWorldDir( BlockSurface& surface )
+		static Dir WorldDir( BlockSurface& surface )
 		{
-			return surface.block->rotation.toWorld( getLocalDir( surface ) );
+			return surface.block->rotation.toWorld( LocalDir( surface ) );
 		}
-		static Dir getLocalDir( BlockSurface& surface )
+		static Dir LocalDir( BlockSurface& surface )
 		{
 			return Dir( &surface - surface.block->surfaces );
 		}

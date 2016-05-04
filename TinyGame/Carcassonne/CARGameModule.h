@@ -181,7 +181,7 @@ namespace CAR
 			for( int i = 0 ;i < infos.size() ; ++i )
 			{
 				Info& info = infos[i];
-				if ( resultIndex < info.index + info.num )
+				if ( resultIndex < (unsigned)(info.index + info.num) )
 					return info.feature;
 			}
 			return nullptr;

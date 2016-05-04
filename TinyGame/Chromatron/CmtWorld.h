@@ -2,6 +2,8 @@
 #define CmtWorld_H__
 
 #include "CmtBase.h"
+#include "CmtLightTrace.h"
+
 #include "TGrid2D.h"
 #include <list>
 
@@ -98,6 +100,9 @@ namespace Chromatron
 		TSS_INFINITE_LOOP,
 	};
 
+	typedef  std::list< LightTrace > LightList;
+	class WorldUpdateContext;
+
 	class World
 	{
 	public:
@@ -111,10 +116,10 @@ namespace Chromatron
 		int         getMapSizeY() const { return mTileMap.getSizeY(); }
 		void        clearDevice();
 		void        fillMap( MapType type );
+		
 		bool        canSetup( Vec2D const& pos )   const  { return getMapData( pos ).canSetup(); }
 		Device*     goNextDevice( Dir dir , Vec2D& curPos );
 	public:
-		typedef    std::list< LightTrace > LightList;
 
 		class SyncProcessor
 		{
@@ -122,35 +127,51 @@ namespace Chromatron
 			virtual bool prevEffectDevice( Device& dc  , LightTrace const& light , int pass ) = 0;
 			virtual bool prevAddLight( Vec2D const& pos , Color color , Dir dir , int param , int age ) = 0;
 		};
-
-		void           prevUpdate();
-
-		TransmitStatus transmitLightSync( SyncProcessor& provider , LightList& transmitLights );
-		TransmitStatus transmitLight();
-		void           notifyStatus( TransmitStatus status ){ mStatus = status;  }
-		void           addLight( Vec2D const& pos , Color color , Dir dir );
+		TransmitStatus transmitLightSync( WorldUpdateContext& context , SyncProcessor& processor , LightList& transmitLights );
+		TransmitStatus transmitLight( WorldUpdateContext& context );
 		void           clearLight();
 
+		int            countSameLighPathColortStepNum(Vec2D const& pos, Dir dir) const;
+		bool           isLightPathEndpoint(Vec2D const& pos, Dir dir) const;
+		
+	private:
+		
+		bool            transmitLightStep( LightTrace& light , Tile** curData );
+		
+		void            initData( int sx , int sy );
+		TransmitStatus  procDeviceEffect( WorldUpdateContext& context , Device& dc , LightTrace const& light );
+
+		TGrid2D< Tile >  mTileMap;
+	};
+
+	class WorldUpdateContext
+	{
+	public:
+		WorldUpdateContext( World& world );
+
+		World& getWorld(){ return mWorld; }
+		void   addLight( Vec2D const& pos , Color color , Dir dir );
+		void   prevUpdate();
+
+		void           setLightParam( int param ){ mLightParam = param; }
 		void           setSyncMode( bool beS ){ mIsSyncMode = beS; }
 		bool           isSyncMode(){ return mIsSyncMode; }
-		void           setLightParam( int param ){ mLightParam = param; }
+		void           notifyStatus( TransmitStatus status ){ mStatus = status;  }
 		int            getLightCount() const { return mLightCount; }
 
-	private:
-
-		bool            transmitLightStep( LightTrace& light , Tile** curData );
-		void            initData( int sx , int sy );
-		TransmitStatus  procDeviceEffect( Device& dc , LightTrace const& light );
-
-		int              mLightCount;
-		TransmitStatus   mStatus;
-		LightList        mNormalLights;
+		World::SyncProcessor*   mSyncProcessor;
 		LightList*       mSyncLights;
-		SyncProcessor*   mSyncProcessor;
+		LightList        mNormalLights;
+		int              mLightCount;
+
+
 		int              mLightParam;
-		int              mLightAge;
 		bool             mIsSyncMode;
-		TGrid2D< Tile >  mTileMap;
+		int              mLightAge;
+		TransmitStatus   mStatus;
+		World&           mWorld;
+
+		friend class World;
 	};
 
 }//namespace Chromatron

@@ -205,6 +205,8 @@ namespace GS
 		return invSqrt;
 	}
 
+
+
 	class TechBase
 	{
 	public:

@@ -208,13 +208,13 @@ bool EvalCommand( UdpChain& chain , ComEvaluator& evaluator , SBuffer& buffer , 
 	return true;
 }
 
-unsigned FillBufferByCom(NetBufferCtrl& bufferCtrl , IComPacket* cp)
+unsigned FillBufferFromCom(NetBufferCtrl& bufferCtrl , IComPacket* cp)
 {
 	LockObject< SBuffer > buffer = bufferCtrl.lockBuffer();
-	return FillBufferByCom( *buffer , cp );
+	return FillBufferFromCom( *buffer , cp );
 }
 
-unsigned FillBufferByCom( SBuffer& buffer , IComPacket* cp )
+unsigned FillBufferFromCom( SBuffer& buffer , IComPacket* cp )
 {
 	assert( cp );
 

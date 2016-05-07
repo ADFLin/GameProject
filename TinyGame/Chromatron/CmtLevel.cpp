@@ -239,14 +239,14 @@ namespace Chromatron
 		{
 			Device* dc = iter->dc;
 			if ( dc->isStatic() )
-				DeviceFactory::destroy( dc );
+				DeviceFactory::Destroy( dc );
 		}
 
 		for( DeviceVec::iterator iter = mUserDC.begin(); 
 			iter != mUserDC.end() ;++iter )
 		{
 			Device* dc = *iter;
-			DeviceFactory::destroy( dc );
+			DeviceFactory::Destroy( dc );
 		}
 
 
@@ -731,7 +731,7 @@ namespace Chromatron
 	{
 		unsigned pflag = dc.getFlag();
 
-		DeviceInfo& chInfo = DeviceFactory::GetInfo( id );
+		DeviceInfo const& chInfo = DeviceFactory::GetInfo( id );
 
 		if ( !dc.isInWorld() && ( chInfo.flag & DFB_STATIC ) )
 			return false;
@@ -758,7 +758,7 @@ namespace Chromatron
 		}
 
 		uninstallDevice( dc );
-		DeviceFactory::destroy( &dc );
+		DeviceFactory::Destroy( &dc );
 	}
 
 	void Level::installDevice( Device& dc , Vec2D const& pos , bool inWorld )

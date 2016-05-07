@@ -267,6 +267,7 @@ namespace CAR
 		void   doRunLogic( IGameInput& input );
 		void   loadSetting( bool bInit );
 		void   calcPlayerDeployActorPos(PlayerBase& player , MapTile& mapTile , bool bUsageMagicPortal );
+		
 		int    getRemainingTileNum();
 		TileId drawPlayTile();
 
@@ -279,22 +280,31 @@ namespace CAR
 		void   addFeaturePoints( FeatureBase& build , std::vector< FeatureScoreInfo >& featureControls , int numPlayer );
 		int    addPlayerScore( int id , int value );
 
+		struct TrunContext
+		{
+
+		};
+
 		TurnResult resolvePlayerTurn( IGameInput& input , PlayerBase* curTrunPlayer );
-		TurnResult resolveDeployActor( IGameInput &input , PlayerBase* curTrunPlayer, MapTile* deployMapTile, bool haveUsePortal , bool& haveDone );
+		TurnResult resolveDeployActor( IGameInput& input , PlayerBase* curTrunPlayer, MapTile* deployMapTile, bool haveUsePortal , bool& haveDone );
 		TurnResult resolveMoveFairyToNextFollower( IGameInput &input, PlayerBase* curTrunPlayer , bool& haveDone );
-		TurnResult resolvePlaceTile(IGameInput &input , PlayerBase* curTrunPlayer , MapTile*& placeMapTile );
-		TurnResult resolveUsePortal( IGameInput &input, PlayerBase* curTrunPlayer, MapTile* &deployMapTile, bool &haveUsePortal);
-		TurnResult resolveExpendShepherdFarm( IGameInput &input , PlayerBase* curTrunPlayer , FeatureBase* feature );
+		TurnResult resolvePlaceTile(IGameInput& input , PlayerBase* curTrunPlayer , MapTile*& placeMapTile );
+		TurnResult resolvePortalUse( IGameInput& input, PlayerBase* curTrunPlayer, MapTile*& deployMapTile, bool& haveUsePortal);
+		TurnResult resolveExpendShepherdFarm( IGameInput& input , PlayerBase* curTrunPlayer , FeatureBase* feature );
 		TurnResult resolveCastleComplete( IGameInput& input );
 		TurnResult resolveDrawTile( IGameInput& input , PlayerBase* curTrunPlayer);
 		struct CastleScoreInfo;
 		TurnResult resolveCompleteFeature( IGameInput& input , FeatureBase& feature , CastleScoreInfo* castleScore );
+
+
+
 		TurnResult resolveBuildCastle(IGameInput& input , FeatureBase& feature , bool& haveBuild );
 		TurnResult resolveAbbey( IGameInput& input , PlayerBase* curTurnPlayer );
 		TurnResult resolveDragonMove( IGameInput& input , LevelActor& dragon );
 		TurnResult resolvePrincess( IGameInput& input , MapTile* placeMapTile , bool& haveDone );
 		TurnResult resolveTower(IGameInput& input , PlayerBase* curTurnPlayer , bool& haveDone );
 		TurnResult resolveAuction(IGameInput& input , PlayerBase* curTurnPlayer );
+		TurnResult resolveFeatureReturnPlayerActor( IGameInput& input , FeatureBase& feature );
 		
 
 		struct UpdateTileFeatureResult
@@ -342,20 +352,13 @@ namespace CAR
 		static void FillActionData( GameFeatureTileSelectData& data , std::vector< FeatureBase* >& linkFeatures, std::vector< MapTile* >& mapTiles );
 
 
-		FarmFeature*  updateFarm( MapTile& mapTile , unsigned idxMask );
-		FeatureBase*  updateBasicSideFeature( MapTile& mapTile , unsigned dirMask , SideType linkType );
+		FarmFeature*  updateFarm( MapTile& mapTile , unsigned idxLinkMask );
+		FeatureBase*  updateBasicSideFeature( MapTile& mapTile , unsigned dirLinkMask , SideType linkType );
+		SideFeature*  mergeHalfSeparateBasicSideFeature( MapTile& mapTile , int dir , FeatureBase* featureMerged[] , int& numMerged );
 
 		FeatureBase*  getFeature( int group );
 		template< class T >
-		T*         createFeatureT()
-		{
-			T* data = new T;
-			data->type     = T::Type;
-			data->group    = mFeatureMap.size();
-			data->mSetting = mSetting;
-			mFeatureMap.push_back( data );
-			return data;
-		}
+		T*         createFeatureT();
 		void      destroyFeature( FeatureBase* build );
 
 		std::vector< FeatureBase* > mFeatureMap;
@@ -488,6 +491,17 @@ namespace CAR
 		std::vector< SheepToken > mSheepBags;
 
 	};
+
+	template< class T >
+	T* GameModule::createFeatureT()
+	{
+		T* data = new T;
+		data->type     = T::Type;
+		data->group    = mFeatureMap.size();
+		data->mSetting = mSetting;
+		mFeatureMap.push_back( data );
+		return data;
+	}
 
 }//namespace CAR
 

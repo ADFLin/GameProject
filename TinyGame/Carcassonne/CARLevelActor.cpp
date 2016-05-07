@@ -104,7 +104,6 @@ namespace CAR
 			return nullptr;
 		LevelActor* actor = mActors.back();
 		mActors.pop_back();
-		actor->feature = nullptr;
 		return actor;
 	}
 

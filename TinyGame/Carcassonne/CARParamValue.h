@@ -60,6 +60,7 @@ namespace CAR
 		//EXP_HILLS_AND_SHEEP
 		int const SheepTokenNum[] = { 2 , 4 , 5 , 5 , 2 };
 		int const ShepherdPlayerOwnNum = 1;
+		int const VineyardAdditionScore = 3;
 
 	}
 

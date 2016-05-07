@@ -10,8 +10,8 @@ namespace Chromatron
 	{
 	public:
 		static Device*     Create( DeviceId id , Dir dir , Color color );
-		static void        destroy( Device* dc );
-		static DeviceInfo& GetInfo( DeviceId id );
+		static void        Destroy( Device* dc );
+		static DeviceInfo const& GetInfo( DeviceId id );
 	};
 
 }//namespace Chromatron

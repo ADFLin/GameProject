@@ -100,7 +100,7 @@ namespace Math
 
 	inline Quaternion Quaternion::inverse() const
 	{
-		return ( 1.0 / length2() ) * conjugation();
+		return ( 1.0f / length2() ) * conjugation();
 	}
 
 	inline float Quaternion::dot( Quaternion const& q ) const

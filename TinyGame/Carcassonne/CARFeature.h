@@ -40,6 +40,8 @@ namespace CAR
 	};
 
 	typedef std::set< MapTile* > MapTileSet;
+	typedef std::set< unsigned > GroupSet;
+
 	class  FeatureBase : public ActorContainer
 	{
 	public:
@@ -49,9 +51,10 @@ namespace CAR
 
 		virtual ~FeatureBase(){}
 
-		int group;
-		int type;
+		int         group;
+		int         type;
 		MapTileSet  mapTiles;
+
 		void        addActor( LevelActor& actor );
 		void        removeActor( LevelActor& actor );
 		LevelActor* removeActorByIndex( int index );
@@ -59,7 +62,7 @@ namespace CAR
 
 		virtual bool checkComplete(){ return false; }
 		virtual int  getActorPutInfo( int playerId , int posMeta , std::vector< ActorPosInfo >& outInfo ) = 0;
-		virtual void generateRoadLinkFeatures( std::set< unsigned >& outFeatures ){ }
+		virtual void generateRoadLinkFeatures( GroupSet& outFeatures ){ }
 		virtual bool updateForNeighborTile( MapTile& tile ){ return false; }
 		virtual void mergeData( FeatureBase& other , MapTile const& putData , int meta );
 		virtual int  calcPlayerScore( int playerId ) = 0;
@@ -98,11 +101,12 @@ namespace CAR
 
 		std::vector< SideNode* > nodes;
 		int  openCount;
+		int  halfSepareteCount;
 
 		virtual void mergeData( FeatureBase& other , MapTile const& putData , int meta );
 		virtual void addNode( MapTile& mapData , unsigned dirMask , SideNode* linkNode );
 		virtual void addAbbeyNode( MapTile& mapData , int dir );
-		virtual void generateRoadLinkFeatures( std::set< unsigned >& outFeatures );
+		virtual void generateRoadLinkFeatures( GroupSet& outFeatures );
 		virtual bool getActorPos( MapTile const& mapTile , ActorPos& actorPos );
 
 
@@ -194,7 +198,7 @@ namespace CAR
 		virtual void mergeData( FeatureBase& other , MapTile const& putData , int meta );
 		virtual int  calcScore( std::vector< FeatureScoreInfo >& scoreInfos );
 		virtual int  calcPlayerScore( int playerId );
-		virtual void generateRoadLinkFeatures( std::set< unsigned >& outFeatures );
+		virtual void generateRoadLinkFeatures( GroupSet& outFeatures );
 		virtual bool updateForNeighborTile(MapTile& tile);
 		virtual bool getActorPos(MapTile const& mapTile , ActorPos& actorPos);
 

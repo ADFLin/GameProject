@@ -27,6 +27,9 @@ namespace CFly
 	void   cleanupSystem()
 	{
 		WorldManager::getInstance().cleanup();
+		WorldManager::releaseInstance();
+
+		EntityManager::releaseInstance();
 	}
 
 	World* createWorld( HWND hWnd , int w, int h , int cDepth , bool fullscreen , TextureFormat backBufferFormat)
@@ -102,7 +105,7 @@ namespace CFly
 	Scene* World::createScene( int numGroup )
 	{
 		Scene* scene = new Scene( this , numGroup );
-		EntityManger::getInstance().registerEntity( scene );
+		EntityManager::getInstance().registerEntity( scene );
 		mScenes.push_back( scene );
 
 		return scene;
@@ -111,7 +114,7 @@ namespace CFly
 	Viewport* World::createViewport( int x , int y , int w , int h )
 	{
 		Viewport* viewport = new Viewport( mRenderWindow , x , y , w , h );
-		EntityManger::getInstance().registerEntity( viewport );
+		EntityManager::getInstance().registerEntity( viewport );
 		mViewports.push_back( viewport );
 
 		return viewport;
@@ -370,7 +373,7 @@ namespace CFly
 		try
 		{
 			world = new World( hWnd , w , h , cDepth , fullscreen , backBufferFormat );
-			EntityManger::getInstance().registerEntity( world );
+			EntityManager::getInstance().registerEntity( world );
 		}
 		catch ( CFException& e )
 		{
@@ -387,7 +390,7 @@ namespace CFly
 
 	void WorldManager::destroyWorld( World* world )
 	{
-		if ( !EntityManger::getInstance().removeEntity( world ) )
+		if ( !EntityManager::getInstance().removeEntity( world ) )
 			return;
 
 		delete world;

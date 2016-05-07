@@ -58,7 +58,7 @@ namespace Chromatron
 		typedef FlagValue< unsigned > Flag;
 	public:
 
-		Device( DeviceInfo& info , Dir dir, Color color = COLOR_NULL );
+		Device( DeviceInfo const& info , Dir dir, Color color = COLOR_NULL );
 
 		DeviceId     getId() const {  return mInfo->id;  }	
 		void         setPos( Vec2D const& pos){ mPos = pos; }
@@ -87,15 +87,15 @@ namespace Chromatron
 
 		Flag&        getFlag()       { return mFlag; }
 		Flag const&  getFlag() const { return mFlag; }
-		void         changeType( DeviceInfo& info );
+		void         changeType( DeviceInfo const& info );
 
 		void*        getUserData() const { return mUserData; }
 		void         setUserData(void* data) { mUserData = data; }
 
 
 	private:
+		DeviceInfo const* mInfo;
 		void*       mUserData;
-		DeviceInfo* mInfo;
 		Vec2D       mPos;
 		Dir         mDir;
 		Color       mColor;

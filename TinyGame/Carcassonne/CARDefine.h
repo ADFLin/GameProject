@@ -9,8 +9,9 @@
 #	define BIT( n ) ( 1 << (n) )
 #endif
 
-
-#define ARRAY_SIZE( array ) ( sizeof(array) / sizeof( array[0]) )
+#ifndef ARRAY_SIZE
+#	define ARRAY_SIZE( array ) ( sizeof(array) / sizeof( array[0]) )
+#endif
 
 namespace CAR
 {
@@ -24,17 +25,18 @@ namespace CAR
 
 	enum Expansion
 	{
-		EXP_INNS_AND_CATHEDRALS ,
-		EXP_TRADERS_AND_BUILDERS ,
-		EXP_THE_PRINCESS_AND_THE_DRAGON ,
-		EXP_THE_TOWER ,
-		EXP_ABBEY_AND_MAYOR ,
-		EXP_KING_AND_ROBBER ,
-		EXP_BRIDGES_CASTLES_AND_BAZAARS ,
-		EXP_HILLS_AND_SHEEP ,
+		// ?process -Done +Tested
+		EXP_INNS_AND_CATHEDRALS ,         //
+		EXP_TRADERS_AND_BUILDERS ,        //
+		EXP_THE_PRINCESS_AND_THE_DRAGON , //+T +Dragon
+		EXP_THE_TOWER ,                   //-Tower
+		EXP_ABBEY_AND_MAYOR ,             //
+		EXP_KING_AND_ROBBER ,             //
+		EXP_BRIDGES_CASTLES_AND_BAZAARS , //
+		EXP_HILLS_AND_SHEEP ,             //-T -Vineyards -Hill -shepherd -ST_HalfSeparate
 
-		EXP_THE_RIVER ,
-		EXP_THE_RIVER_II ,
+		EXP_THE_RIVER ,                   //+T +RiverRule
+		EXP_THE_RIVER_II ,                //+T 
 
 		EXP_BASIC ,
 		EXP_TEST ,
@@ -82,6 +84,7 @@ namespace CAR
 			ePrincess   = BIT(5) , //EXP_THE_PRINCESS_AND_THE_DRAGON
 			eNotSemiCircularCity = BIT(6) , //EXP_BRIDGES_CASTLES_AND_BAZAARS
 			eSheep      = BIT(7) ,  //EXP_HILLS_AND_SHEEP use
+			eHalfSeparate = BIT(8) , //EXP_HILLS_AND_SHEEP
 		};
 	};
 
@@ -116,6 +119,8 @@ namespace CAR
 		eShepherd , //EXP_HILLS_AND_SHEEP
 		ePhantom ,
 		eAbbot , //CII
+		eMage ,
+		eWitch ,
 
 		eBuilder ,  //EXP_TRADEERS_AND_BUILDERS
 		ePig ,     //EXP_TRADEERS_AND_BUILDERS

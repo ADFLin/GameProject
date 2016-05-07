@@ -6,6 +6,11 @@
 
 #include "CARDefine.h"
 
+#include "CompilerConfig.h"
+#ifdef CPP_COMPILER_MSVC
+#pragma warning( disable : 4482 )
+#endif
+
 namespace CAR
 {
 	int const MaxPlayerNum = 6;

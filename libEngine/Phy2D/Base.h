@@ -14,7 +14,7 @@
 
 namespace Phy2D
 {
-	float const FLT_DIV_ZERO_EPSILON = 1e-6;
+	float const FLT_DIV_ZERO_EPSILON = 1e-6f;
 
 	class Vec2f : public TVector2< float >
 	{

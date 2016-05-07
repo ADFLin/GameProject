@@ -25,7 +25,7 @@ namespace CAR
 	}
 	int FBit::ToIndex32( unsigned bit )
 	{
-		assert( (bit&0xff) == bit );
+		assert( (bit&0xffffffff) == bit );
 		assert( ( bit & ( bit - 1 ) ) == 0 );
 		int result = 0;
 		if ( bit & 0xffff0000 ){ result += 16; bit >>= 16; }
@@ -71,7 +71,7 @@ namespace CAR
 		if ( findMapTile( pos ) != nullptr )
 			return false;
 
-		Tile const& tile = getTile( tileId );
+		TilePiece const& tile = getTile( tileId );
 		int count = 0;
 
 		bool checkRiverConnect = false;
@@ -95,8 +95,8 @@ namespace CAR
 			{
 				++count;
 				int lDirCheck = FDir::ToLocal( FDir::Inverse( i ) , dataCheck->rotation );
-				Tile const& tileCheck = getTile( dataCheck->getId() );
-				if ( !Tile::CanLink( tileCheck , lDirCheck , tile , lDir ) )
+				TilePiece const& tileCheck = getTile( dataCheck->getId() );
+				if ( !TilePiece::CanLink( tileCheck , lDirCheck , tile , lDir ) )
 				{
 					if ( param.usageBridge )
 					{
@@ -174,7 +174,7 @@ namespace CAR
 
 	MapTile* Level::placeTileNoCheck( TileId tileId , Vec2i const& pos , int rotation , PutTileParam& param )
 	{
-		Tile const& tile = getTile( tileId );
+		TilePiece const& tile = getTile( tileId );
 
 		LevelTileMap::iterator iter = mMap.insert( std::make_pair( pos , MapTile( tile ,rotation ) ) ).first;
 		assert( iter != mMap.end() );
@@ -205,7 +205,7 @@ namespace CAR
 			if ( dataCheck != nullptr )
 			{
 				//link node
-				assert( Tile::CanLink( tile , lDir , *dataCheck->mTile , 
+				assert( TilePiece::CanLink( tile , lDir , *dataCheck->mTile , 
 					    FDir::ToLocal( FDir::Inverse( i ) , dataCheck->rotation ) ) );
 
 				mapData.connectSide( i , *dataCheck );
@@ -213,7 +213,7 @@ namespace CAR
 				//link farm
 				if ( tile.canLinkFarm( lDir ) )
 				{
-					int idx = Tile::DirToFramIndexFrist( i );
+					int idx = TilePiece::DirToFramIndexFrist( i );
 					mapData.connectFarm( idx , *dataCheck );
 					mapData.connectFarm( idx + 1 , *dataCheck );
 				}
@@ -230,7 +230,7 @@ namespace CAR
 	}
 
 
-	Tile const& Level::getTile(TileId id) const
+	TilePiece const& Level::getTile(TileId id) const
 	{
 		TileSet const& tileSet = mTileSetManager->getTileSet( id );
 		return *tileSet.tile;
@@ -323,7 +323,7 @@ namespace CAR
 
 	TileSet& TileSetManager::createTileSet(TileDefine const& tileDef)
 	{
-		Tile* tile = new Tile;
+		TilePiece* tile = new TilePiece;
 		
 		TileId id = (TileId)mTileMap.size();
 		tile->id = id;
@@ -348,9 +348,9 @@ namespace CAR
 		return mTileMap[ id ];
 	}
 
-	void TileSetManager::setupTile(Tile& tile , TileDefine const& tileDef)
+	void TileSetManager::setupTile(TilePiece& tile , TileDefine const& tileDef)
 	{
-		for( int i = 0 ; i < Tile::NumSide ; ++i )
+		for( int i = 0 ; i < TilePiece::NumSide ; ++i )
 		{
 			tile.sides[i].linkType = (SideType)tileDef.linkType[i];
 			tile.sides[i].contentFlag = tileDef.sideContent[i];
@@ -376,7 +376,7 @@ namespace CAR
 			{
 #if _DEBUG
 				if ( idxStart == -1 ){  idxStart = idx;  }
-				assert( Tile::CanLink( tile.sides[idx].linkType , tile.sides[idxStart].linkType ) );
+				assert( TilePiece::CanLink( tile.sides[idx].linkType , tile.sides[idxStart].linkType ) );
 #endif
 				tile.sides[idx].linkDirMask = tileDef.sideLink[i];
 			}
@@ -387,7 +387,7 @@ namespace CAR
 			if ( tileDef.roadLink[i] == 0 )
 				break;
 
-			unsigned linkMask = tileDef.roadLink[i] & ~Tile::CenterMask;
+			unsigned linkMask = tileDef.roadLink[i] & ~TilePiece::CenterMask;
 			int idx;
 			while ( FBit::MaskIterator< 8 >( linkMask , idx ) )
 			{
@@ -400,13 +400,13 @@ namespace CAR
 		{
 			if ( tile.canRemoveFarm(i) )
 			{
-				int idx = Tile::DirToFramIndexFrist( i );
+				int idx = TilePiece::DirToFramIndexFrist( i );
 				noFramIndexMask |= BIT(idx)|BIT(idx+1);
 			}
 		}
 		noFramIndexMask &= ~tileDef.centerFarmMask;
 
-		for( int i = 0 ; i < Tile::NumFarm ; ++i )
+		for( int i = 0 ; i < TilePiece::NumFarm ; ++i )
 		{
 			tile.farms[i].sideLinkMask = 0;
 			if ( noFramIndexMask & BIT(i) )
@@ -415,7 +415,7 @@ namespace CAR
 				tile.farms[i].farmLinkMask = BIT(i);
 		}
 
-		unsigned farmLinkRe = Tile::AllFarmMask;
+		unsigned farmLinkRe = TilePiece::AllFarmMask;
 		for( int i = 0 ; i < ARRAY_SIZE( tileDef.farmLink ) ; ++i )
 		{
 			if ( tileDef.farmLink[i] == 0 )
@@ -432,7 +432,7 @@ namespace CAR
 			unsigned farmSideLink = calcFarmSideLinkMask( usageFarmLink );
 			unsigned mask = linkMask;
 			int idx;
-			while ( FBit::MaskIterator< Tile::NumFarm >( mask , idx ) )
+			while ( FBit::MaskIterator< TilePiece::NumFarm >( mask , idx ) )
 			{
 				tile.farms[idx].farmLinkMask = linkMask;
 				tile.farms[idx].sideLinkMask = farmSideLink;
@@ -447,7 +447,7 @@ namespace CAR
 		{
 			unsigned bit = FBit::Extract( linkMask );
 			int idx = FBit::ToIndex8( bit );
-			result |= BIT( Tile::FarmSideDir( idx ) );
+			result |= BIT( TilePiece::FarmSideDir( idx ) );
 			linkMask &= ~bit;
 		}
 		return result;

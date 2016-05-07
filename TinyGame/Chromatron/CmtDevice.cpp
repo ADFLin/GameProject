@@ -3,7 +3,7 @@
 
 namespace Chromatron
 {
-	Device::Device( DeviceInfo& info , Dir dir, Color color )
+	Device::Device( DeviceInfo const& info , Dir dir, Color color )
 		:mDir(dir)
 		,mColor(color)
 		,mPos(0,0)
@@ -12,7 +12,7 @@ namespace Chromatron
 		changeType( info );
 	};
 
-	void Device::changeType( DeviceInfo& info )
+	void Device::changeType( DeviceInfo const& info )
 	{
 		mInfo = &info;
 		mFlag.setValue( info.flag );

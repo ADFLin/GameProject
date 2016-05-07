@@ -5,7 +5,7 @@
 
 namespace CAR
 {
-	MapTile::MapTile( Tile const& tile , int rotation) 
+	MapTile::MapTile( TilePiece const& tile , int rotation) 
 		:mTile(&tile)
 		,rotation(rotation)
 		,renderData(nullptr)
@@ -14,7 +14,7 @@ namespace CAR
 		,group(-1)
 	{
 
-		for( int i = 0 ; i < Tile::NumSide ; ++i )
+		for( int i = 0 ; i < TilePiece::NumSide ; ++i )
 		{
 			SideNode& node = sideNodes[i];
 			node.index      = i;
@@ -23,10 +23,10 @@ namespace CAR
 			int lDir = FDir::ToLocal( i , rotation );
 			node.type = mTile->getLinkType( lDir );
 			unsigned mask = mTile->getSideLinkMask( lDir );
-			assert(( mask & ~Tile::AllSideMask ) == 0 );
+			assert(( mask & ~TilePiece::AllSideMask ) == 0 );
 			node.linkMask = FBit::RotateLeft( mask , rotation , 4 );
 		}
-		for( int i = 0 ; i < Tile::NumFarm ; ++i )
+		for( int i = 0 ; i < TilePiece::NumFarm ; ++i )
 		{
 			FarmNode& node = farmNodes[i];
 			node.index      = i;
@@ -42,7 +42,7 @@ namespace CAR
 
 	void MapTile::connectFarm(int idx , MapTile& data)
 	{
-		farmNodes[idx].connectNode( data.farmNodes[ Tile::FarmIndexConnect( idx ) ] );
+		farmNodes[idx].connectNode( data.farmNodes[ TilePiece::FarmIndexConnect( idx ) ] );
 	}
 
 	CAR::SideType MapTile::getLinkType(int dir) const
@@ -62,7 +62,7 @@ namespace CAR
 
 	unsigned MapTile::getCityLinkFarmMask(int idx) const
 	{
-		int lDir = Tile::ToLocalFramIndex( idx , rotation );
+		int lDir = TilePiece::ToLocalFramIndex( idx , rotation );
 
 		unsigned mask = 0;
 		unsigned sideMask = mTile->farms[ lDir ].sideLinkMask;
@@ -83,8 +83,8 @@ namespace CAR
 	unsigned MapTile::getRoadLinkMask(int dir) const
 	{
 		unsigned mask = mTile->getRoadLinkMask( FDir::ToLocal( dir , rotation ) );
-		unsigned bitCenter = mask & Tile::CenterMask;
-		return bitCenter | FBit::RotateLeft( mask & Tile::AllSideMask , rotation , 4 );
+		unsigned bitCenter = mask & TilePiece::CenterMask;
+		return bitCenter | FBit::RotateLeft( mask & TilePiece::AllSideMask , rotation , 4 );
 	}
 
 	unsigned MapTile::calcRoadMaskLinkCenter() const
@@ -92,17 +92,17 @@ namespace CAR
 		unsigned roadMask = 0;
 		for( int i = 0 ; i < FDir::TotalNum ; ++i)
 		{
-			if ( mTile->sides[i].roadLinkDirMask & Tile::CenterMask )
+			if ( mTile->sides[i].roadLinkDirMask & TilePiece::CenterMask )
 				roadMask |= mTile->sides[i].roadLinkDirMask;
 		}
-		unsigned bitCenter = roadMask & Tile::CenterMask;
-		return bitCenter | FBit::RotateLeft( roadMask & Tile::AllSideMask , rotation , 4 );
+		unsigned bitCenter = roadMask & TilePiece::CenterMask;
+		return bitCenter | FBit::RotateLeft( roadMask & TilePiece::AllSideMask , rotation , 4 );
 	}
 
 	unsigned MapTile::getFarmLinkMask(int idx) const
 	{
-		unsigned mask = mTile->farms[ Tile::ToLocalFramIndex( idx , rotation ) ].farmLinkMask;
-		assert(( mask & ~Tile::AllFarmMask ) == 0 );
+		unsigned mask = mTile->farms[ TilePiece::ToLocalFramIndex( idx , rotation ) ].farmLinkMask;
+		assert(( mask & ~TilePiece::AllFarmMask ) == 0 );
 		return FBit::RotateLeft( mask , 2 * rotation , 8 );
 	}
 
@@ -148,6 +148,16 @@ namespace CAR
 		sideNodes[invDir].linkMask = linkMask;
 
 		bridgeMask |= linkMask;
+	}
+
+	void MapTile::updateSideLink(unsigned linkMask)
+	{
+		int dir;
+		unsigned mask = linkMask;
+		while ( FBit::MaskIterator< FDir::TotalNum >( mask , dir ) )
+		{
+			sideNodes[dir].linkMask = linkMask;
+		}
 	}
 
 	int MapTile::SideNode::getLocalDir() const

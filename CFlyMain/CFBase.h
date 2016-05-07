@@ -72,21 +72,6 @@ namespace CFly
 
 	typedef std::string String;
 
-	template< class T >
-	class Singleton
-	{
-	public:
-		static T& getInstance()
-		{
-			static T _instance;
-			return _instance;
-		}
-	protected:
-		Singleton(){}
-		Singleton( Singleton& ){}
-	};
-
-
 	template < class C >
 	class VectorTypeIterWraper
 	{

@@ -25,12 +25,12 @@ namespace Chromatron
 		return new Device( GetInfo( id ) , dir , color );
 	}
 
-	DeviceInfo& DeviceFactory::GetInfo( DeviceId id )
+	DeviceInfo const& DeviceFactory::GetInfo( DeviceId id )
 	{
 		return gDeviceInfo[ id ];
 	}
 
-	void DeviceFactory::destroy( Device* dc )
+	void DeviceFactory::Destroy( Device* dc )
 	{
 		delete dc;
 	}

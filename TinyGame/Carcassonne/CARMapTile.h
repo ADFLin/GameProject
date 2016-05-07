@@ -6,7 +6,7 @@
 
 namespace CAR
 {
-	class Tile
+	class TilePiece
 	{
 	public:
 		static int const NumSide = FDir::TotalNum;
@@ -82,7 +82,7 @@ namespace CAR
 				return true;
 			return false;
 		}
-		static bool CanLink( Tile const& tileA , int lDirA , Tile const& tileB , int lDirB )
+		static bool CanLink( TilePiece const& tileA , int lDirA , TilePiece const& tileB , int lDirB )
 		{
 			return CanLink( tileA.sides[lDirA].linkType , tileB.sides[lDirB].linkType );
 		}
@@ -114,7 +114,7 @@ namespace CAR
 	class MapTile : public ActorContainer
 	{
 	public:
-		MapTile( Tile const& tile , int rotation );
+		MapTile( TilePiece const& tile , int rotation );
 
 		TileId getId() const { return mTile->id;  }
 		void addActor( LevelActor& actor );
@@ -139,6 +139,8 @@ namespace CAR
 		unsigned calcRoadMaskLinkCenter() const;
 
 		void     addBridge( int dir );
+
+		void     updateSideLink( unsigned linkMask );
 
 		void    removeLinkMask( int dir )
 		{
@@ -170,6 +172,11 @@ namespace CAR
 				ptrdiff_t offset = offsetof( MapTile , sideNodes ) + index * sizeof( SideNode );
 				return reinterpret_cast< MapTile* >( intptr_t( this ) - offset );
 			}
+			MapTile* getMapTile()
+			{
+				ptrdiff_t offset = offsetof( MapTile , sideNodes ) + index * sizeof( SideNode );
+				return reinterpret_cast< MapTile* >( intptr_t( this ) - offset );
+			}
 		};
 
 		struct FarmNode
@@ -190,19 +197,24 @@ namespace CAR
 				ptrdiff_t offset = offsetof( MapTile , farmNodes ) + index * sizeof( FarmNode );
 				return reinterpret_cast< MapTile* >( intptr_t( this ) - offset );
 			}
+			MapTile* getMapTile()
+			{
+				ptrdiff_t offset = offsetof( MapTile , farmNodes ) + index * sizeof( FarmNode );
+				return reinterpret_cast< MapTile* >( intptr_t( this ) - offset );
+			}
 		};
 
 		Vec2i       pos;
 		int         rotation;
-		SideNode    sideNodes[ Tile::NumSide ];
-		FarmNode    farmNodes[ Tile::NumFarm ];
+		SideNode    sideNodes[ TilePiece::NumSide ];
+		FarmNode    farmNodes[ TilePiece::NumFarm ];
 		int         group;
 		int         towerHeight;
 		uint8       bridgeMask;
 		void*       renderData;
 
 		//////////
-		Tile const* mTile;
+		TilePiece const* mTile;
 		unsigned    checkCount;
 	};
 

@@ -3,19 +3,19 @@
 
 namespace CFly
 {
-	EntityManger::EntityManger()
+	EntityManager::EntityManager()
 	{
-		m_curSerialNum = 0;
-		m_SoltVec.reserve( 64 );
+		mCurSerialNum = 0;
+		m_SoltVec.reserve( 256 );
 	}
 
-	bool EntityManger::checkType( Entity* entity , unsigned type )
+	bool EntityManager::checkType( Entity* entity , unsigned type )
 	{
-		unsigned id = entity->getEntityID();
+		uint32 id = entity->getEntityID();
 		return type == getType( id );
 	}
 
-	Entity* EntityManger::extractEntity( unsigned id , unsigned type )
+	Entity* EntityManager::extractEntity( uint32 id , unsigned type )
 	{
 		ID temp( id );
 		if ( type != getType( id ) )
@@ -35,7 +35,7 @@ namespace CFly
 	}
 
 
-	Entity* EntityManger::extractEntityBits( unsigned id , unsigned typeBits )
+	Entity* EntityManager::extractEntityBits( uint32 id , unsigned typeBits )
 	{
 		if ( typeBits &= (  1 << getType( id ) ) )
 			return NULL;
@@ -54,7 +54,7 @@ namespace CFly
 	}
 
 
-	bool EntityManger::removeEntity( Entity* entity )
+	bool EntityManager::removeEntity( Entity* entity )
 	{
 		unsigned id = entity->getEntityID();
 		if ( id == CF_ERROR_ID )
@@ -68,32 +68,32 @@ namespace CFly
 
 		slot.entity = NULL;
 		//entity->setRefHandle( RefHandle() );
-		mUnusedSlotIDVec.push_back( index );
+		mUnusedSlotIndices.push_back( index );
 
 		entity->setEntityID( CF_ERROR_ID );
 		return true;
 	}
 
-	unsigned EntityManger::markEntity( Entity* entity , unsigned type )
+	unsigned EntityManager::markEntity( Entity* entity , unsigned type )
 	{
 		unsigned slotIndex;
 		Slot_t* pSlot;
-		if ( !mUnusedSlotIDVec.empty() )
+		if ( !mUnusedSlotIndices.empty() )
 		{
-			slotIndex = mUnusedSlotIDVec.back();
-			mUnusedSlotIDVec.pop_back();
+			slotIndex = mUnusedSlotIndices.back();
+			mUnusedSlotIndices.pop_back();
 
 			pSlot = &m_SoltVec[ slotIndex ];
 
-			if ( pSlot->serialNum == m_curSerialNum )
+			if ( pSlot->serialNum == mCurSerialNum )
 			{
-				m_curSerialNum = ( m_curSerialNum + 1 ) % CF_ENTITY_SERIAL_MAX; 
+				mCurSerialNum = ( mCurSerialNum + 1 ) % CF_ENTITY_SERIAL_MAX; 
 			}
 
 			pSlot->entity = entity;
-			pSlot->serialNum = m_curSerialNum;
+			pSlot->serialNum = mCurSerialNum;
 
-			m_curSerialNum = ( m_curSerialNum + 1 ) % CF_ENTITY_SERIAL_MAX;
+			mCurSerialNum = ( mCurSerialNum + 1 ) % CF_ENTITY_SERIAL_MAX;
 		}
 		else
 		{
@@ -101,8 +101,8 @@ namespace CFly
 			assert(  slotIndex < CF_ENTITY_INDEX_MAX  );
 			Slot_t slot;
 			slot.entity = entity;
-			slot.serialNum = m_curSerialNum;
-			m_curSerialNum = ( m_curSerialNum + 1 ) % CF_ENTITY_SERIAL_MAX;
+			slot.serialNum = mCurSerialNum;
+			mCurSerialNum = ( mCurSerialNum + 1 ) % CF_ENTITY_SERIAL_MAX;
 
 			m_SoltVec.push_back( slot );
 			pSlot = &m_SoltVec.back();
@@ -115,7 +115,7 @@ namespace CFly
 		return id;
 	}
 
-	unsigned EntityManger::calcEntityID( unsigned type , unsigned idx , unsigned serial )
+	uint32 EntityManager::calcEntityID( unsigned type , unsigned idx , unsigned serial )
 	{
 		ID temp;
 		temp.type   = type;
@@ -126,7 +126,7 @@ namespace CFly
 
 	Entity::~Entity()
 	{
-		EntityManger::getInstance().removeEntity( this );
+		EntityManager::getInstance().removeEntity( this );
 	}
 
 }//namespace CFly

@@ -9,7 +9,7 @@
 
 namespace CAR
 {
-	class Tile;
+	class TilePiece;
 	class MapTile;
 
 
@@ -24,7 +24,7 @@ namespace CAR
 		};
 		Expansion expansions;
 		int    idxDefine;
-		Tile*  tile;
+		TilePiece*  tile;
 		EGroup group;
 		uint32 tag;
 		int    numPiece;
@@ -47,7 +47,7 @@ namespace CAR
 		void     cleanup();
 
 	private:
-		void     setupTile( Tile& tile , TileDefine const& tileDef );
+		void     setupTile( TilePiece& tile , TileDefine const& tileDef );
 		TileSet& createTileSet( TileDefine const& tileDef );
 		unsigned calcFarmSideLinkMask( unsigned linkMask );
 		
@@ -80,7 +80,7 @@ namespace CAR
 		Level();
 		void restart();
 
-		Tile const& getTile( TileId id ) const;
+		TilePiece const& getTile( TileId id ) const;
 		MapTile*    placeTile( TileId tileId , Vec2i const& pos , int rotation , PutTileParam& param );
 		MapTile*    placeTileNoCheck( TileId tileId , Vec2i const& pos , int rotation , PutTileParam& param );
 		bool        canPlaceTile( TileId tileId , Vec2i const& pos , int rotation , PutTileParam& param );

@@ -90,7 +90,7 @@ namespace CFly
 	NODE* Scene::cloneNode( NODE* ptr , SceneNode* parent )
 	{
 		NODE* node = new NODE(*ptr);
-		EntityManger::getInstance().registerEntity( node );
+		EntityManager::getInstance().registerEntity( node );
 		_linkSceneNode( node , parent );
 		return node;
 	}
@@ -111,7 +111,7 @@ namespace CFly
 		Object* node = new Object( this );
 
 		_linkSceneNode( node , parent );
-		EntityManger::getInstance().registerEntity( node );
+		EntityManager::getInstance().registerEntity( node );
 		return node;
 	}
 
@@ -125,7 +125,7 @@ namespace CFly
 		Actor* node = new Actor( this );
 
 		_linkSceneNode( node , parent );
-		EntityManger::getInstance().registerEntity( node );
+		EntityManager::getInstance().registerEntity( node );
 		return node;
 	}
 
@@ -139,7 +139,7 @@ namespace CFly
 		Sprite* node = new Sprite( this );
 
 		_linkSceneNode( node , parent );
-		EntityManger::getInstance().registerEntity( node );
+		EntityManager::getInstance().registerEntity( node );
 		return node;
 	}
 
@@ -153,7 +153,7 @@ namespace CFly
 		BillBoard* node = new BillBoard( this );
 
 		_linkSceneNode( node , parent );
-		EntityManger::getInstance().registerEntity( node );
+		EntityManager::getInstance().registerEntity( node );
 		return node;
 	}
 
@@ -162,7 +162,7 @@ namespace CFly
 		Camera* node = new Camera( this );
 
 		_linkSceneNode( node , parent );
-		EntityManger::getInstance().registerEntity( node );
+		EntityManager::getInstance().registerEntity( node );
 		return node;
 	}
 
@@ -176,7 +176,7 @@ namespace CFly
 		Light* node = new Light( this );
 
 		_linkSceneNode( node , parent );
-		EntityManger::getInstance().registerEntity( node );
+		EntityManager::getInstance().registerEntity( node );
 
 		mLightList.push_back( node );
 
@@ -321,7 +321,7 @@ namespace CFly
 		}
 
 		_linkSceneNode( obj , nullptr );
-		EntityManger::getInstance().registerEntity( obj );
+		EntityManager::getInstance().registerEntity( obj );
 
 		return obj;
 	}
@@ -331,7 +331,7 @@ namespace CFly
 	{
 		node->_prevDestroy();
 
-		if ( !EntityManger::getInstance().removeEntity( node ) )
+		if ( !EntityManager::getInstance().removeEntity( node ) )
 			return;
 
 		if ( node->getParent() != mRoot )
@@ -650,7 +650,7 @@ namespace CFly
 
 	SceneNode* Scene::findSceneNode( unsigned id )
 	{
-		return (SceneNode*) EntityManger::getInstance().extractEntityBits( id ,
+		return (SceneNode*) EntityManager::getInstance().extractEntityBits( id ,
 			BIT(ET_ACTOR) | BIT(ET_OBJECT) | BIT(ET_CAMERA) | BIT(ET_LIGHT) );
 	}
 

@@ -12,13 +12,13 @@ namespace CFly
 	{
 		Material* material = new Material( amb , dif , spe , shine , emi );
 		material->mMamager = this;
-		EntityManger::getInstance().registerEntity( material );
+		EntityManager::getInstance().registerEntity( material );
 		return material;
 	}
 
 	void MaterialManager::destoryMaterial( Material* material )
 	{
-		if ( !EntityManger::getInstance().removeEntity( material ) )
+		if ( !EntityManager::getInstance().removeEntity( material ) )
 			return;
 
 		delete material;
@@ -108,7 +108,7 @@ namespace CFly
 		unsigned flag = ( colorKey ) ? Texture::TF_USAGE_COLOR_KEY : 0;
 
 		texture->_setupAttribute( type , flag );
-		EntityManger::getInstance().registerEntity( texture );
+		EntityManager::getInstance().registerEntity( texture );
 		return texture;
 	}
 
@@ -206,7 +206,7 @@ namespace CFly
 
 		Texture* texture = new Texture( d3dTexture , this );
 		texture->_setupAttribute( CFT_TEXTURE_2D , flag );
-		EntityManger::getInstance().registerEntity( texture );
+		EntityManager::getInstance().registerEntity( texture );
 		return texture;
 	}
 

@@ -75,6 +75,7 @@ namespace CAR
 		assert( group != -1 && other.group != -1 );
 		while( LevelActor* actor = other.popActor() )
 		{
+			actor->feature = nullptr;
 			addActor( *actor );
 		}
 		MergeData( mapTiles , other.mapTiles );
@@ -198,6 +199,7 @@ namespace CAR
 	SideFeature::SideFeature()
 	{
 		openCount = 0;
+		halfSepareteCount = 0;
 	}
 
 	void SideFeature::mergeData( FeatureBase& other , MapTile const& putData , int meta)
@@ -207,6 +209,8 @@ namespace CAR
 		SideFeature& otherData = static_cast< SideFeature& >( other );
 
 		openCount += otherData.openCount;
+		halfSepareteCount += otherData.halfSepareteCount;
+
 		unsigned mask = putData.getSideLinkMask( meta );
 		int dir;
 		while( FBit::MaskIterator< FDir::TotalNum >( mask , dir ) )
@@ -243,6 +247,7 @@ namespace CAR
 		{
 			SideNode& node = mapData.sideNodes[dir];
 			assert( node.group == -1 );
+
 			node.group = group;
 			nodes.push_back( &node );
 
@@ -259,10 +264,7 @@ namespace CAR
 					continue;
 				}
 			}
-
-
 			++openCount;
-
 		}
 		
 	}
@@ -301,7 +303,7 @@ namespace CAR
 		return result;
 	}
 
-	void SideFeature::generateRoadLinkFeatures( std::set< unsigned >& outFeatures )
+	void SideFeature::generateRoadLinkFeatures( GroupSet& outFeatures )
 	{
 		for( int i = 0 ; i < nodes.size() ; ++i )
 		{
@@ -314,7 +316,7 @@ namespace CAR
 			if ( roadMask == 0 )
 				continue;
 			
-			if ( roadMask & Tile::CenterMask )
+			if ( roadMask & TilePiece::CenterMask )
 			{
 				switch ( mapTile->getTileContent() & TileContent::FeatureMask )
 				{
@@ -478,7 +480,7 @@ namespace CAR
 
 	bool CityFeature::checkComplete()
 {
-		return openCount == 0;
+		return openCount == 0 && halfSepareteCount == 0;
 	}
 
 	int CityFeature::calcPlayerScore( int playerId )
@@ -577,7 +579,7 @@ namespace CAR
 
 		unsigned mask = idxMask;
 		int idx;
-		while ( FBit::MaskIterator< Tile::NumFarm >( mask , idx ) )
+		while ( FBit::MaskIterator< TilePiece::NumFarm >( mask , idx ) )
 		{
 			FarmNode& node = mapData.farmNodes[idx];
 			assert( node.group == -1 );
@@ -673,7 +675,19 @@ namespace CAR
 
 	int CloisterFeature::calcPlayerScore( int playerId )
 	{
-		return ( neighborTiles.size() + 1 ) * Value::CloisterFactor;
+		int result = ( neighborTiles.size() + 1 ) * Value::CloisterFactor;
+		if ( checkComplete() )
+		{
+			for( int i = 0 ; i < neighborTiles.size() ; ++i )
+			{
+				MapTile* mapTile = neighborTiles[i];
+				if ( mapTile->getTileContent() & TileContent::eVineyard )
+				{
+					result += Value::VineyardAdditionScore;
+				}
+			}
+		}
+		return result;
 	}
 
 	int CloisterFeature::calcScore(std::vector< FeatureScoreInfo >& scoreInfos)
@@ -696,12 +710,12 @@ namespace CAR
 		return 0;
 	}
 
-	void CloisterFeature::generateRoadLinkFeatures( std::set< unsigned >& outFeatures )
+	void CloisterFeature::generateRoadLinkFeatures( GroupSet& outFeatures )
 	{
 		assert( mapTiles.empty() == false );
 		MapTile* mapTile = *mapTiles.begin();
 
-		unsigned roadMask = mapTile->calcRoadMaskLinkCenter() & ~Tile::CenterMask;
+		unsigned roadMask = mapTile->calcRoadMaskLinkCenter() & ~TilePiece::CenterMask;
 
 		int dir;
 		while( FBit::MaskIterator< FDir::TotalNum >( roadMask , dir ) )

@@ -6,6 +6,8 @@
 #include "CFTypeDef.h"
 #include "CFViewport.h"
 
+#include "Singleton.h"
+
 namespace CFly
 {
 	bool   initSystem();
@@ -142,7 +144,7 @@ namespace CFly
 
 	DEFINE_ENTITY_TYPE( World , ET_WORLD )
 
-	class WorldManager : public Singleton< WorldManager >
+	class WorldManager : public SingletonT< WorldManager >
 	{
 	public:
 		WorldManager();

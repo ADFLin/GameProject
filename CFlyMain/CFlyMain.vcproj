@@ -110,7 +110,7 @@
 				EnableIntrinsicFunctions="true"
 				EnableFiberSafeOptimizations="true"
 				AdditionalIncludeDirectories="../OtherLib/Dx9/Include;../libEngine"
-				PreprocessorDefinitions="_SECURE_SCL=0;NDEBUG;WIN32;_WINDOWS;"
+				PreprocessorDefinitions="_SECURE_SCL=0;WIN32;_WINDOWS;NDEBUG;"
 				RuntimeLibrary="2"
 				EnableFunctionLevelLinking="true"
 				UsePrecompiledHeader="2"

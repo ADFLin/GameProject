@@ -168,7 +168,7 @@ namespace CAR
 		Vec2i showFeatureInfo( Graphics2D& g, Vec2i const& pos , FeatureBase* build , int offsetY );
 		void  drawMapData( Graphics2D& g , Vec2f const& pos , MapTile const& mapData );
 		void  drawTileRect( Graphics2D& g , Vec2f const& mapPos );
-		void  drawTile( Graphics2D& g , Vec2f const& pos , Tile const& tile , int rotation );
+		void  drawTile( Graphics2D& g , Vec2f const& pos , TilePiece const& tile , int rotation , MapTile const* mapTile = nullptr );
 
 		void  setRenderOffset( Vec2f const& a_offset );
 		void  setRenderScale( float scale );

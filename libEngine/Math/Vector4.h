@@ -20,9 +20,9 @@ namespace Math
 		float   dot( Vector4 const& rhs ) const { return x * rhs.x + y * rhs.y + z * rhs.z + w * rhs.w; }
 		Vector4 mul( Vector4 const& rhs ) const { return Vector4( x * rhs.x , y * rhs.y , z * rhs.z , w * rhs.w ); }
 
-		void    divideW(){ assert( w != 0 ); float wf = 1.0 / w ; x *= wf ; y *= wf; z *= wf ; w = 1; }
+		void    divideW(){ assert( w != 0 ); float wf = 1.0f / w ; x *= wf ; y *= wf; z *= wf ; w = 1; }
 		Vector3 xyz() const { return Vector3(x,y,z); }
-		Vector3 dividedVector() const { float wf = 1.0 / w ; return Vector3(x*wf,y*wf,z*wf); }
+		Vector3 dividedVector() const { float wf = 1.0f / w ; return Vector3(x*wf,y*wf,z*wf); }
 
 		Vector4& operator *= ( float v ){ x *= v ; y *= v; z *= v; w *= v; return *this;}
 

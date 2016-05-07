@@ -501,7 +501,7 @@ namespace CAR
 		{
 			unsigned maskAll = 0;
 			
-			for( int i = 0; i < Tile::NumFarm ; ++i )
+			for( int i = 0; i < TilePiece::NumFarm ; ++i )
 			{
 				int color = Color::eCyan;
 				MapTile::FarmNode const& node = mapData.farmNodes[i];
@@ -509,7 +509,7 @@ namespace CAR
 				if ( node.outConnect )
 				{
 					RenderUtility::setPen( g , color , COLOR_DEEP );
-					g.drawLine( convertToScreenPos( mapPos + FarmPos[i] + ( 0.5 - farmOffset ) * SidePos[ Tile::FarmSideDir( i ) ]  ) ,
+					g.drawLine( convertToScreenPos( mapPos + FarmPos[i] + ( 0.5 - farmOffset ) * SidePos[ TilePiece::FarmSideDir( i ) ]  ) ,
 						        convertToScreenPos( mapPos + FarmPos[i] )  );
 				}
 
@@ -535,15 +535,15 @@ namespace CAR
 			}
 		}
 
-		drawTile( g , mapPos , *mapData.mTile , mapData.rotation );
+		drawTile( g , mapPos , *mapData.mTile , mapData.rotation , &mapData );
 	}
 
-	void LevelStage::drawTile(Graphics2D& g , Vec2f const& mapPos , Tile const& tile , int rotation )
+	void LevelStage::drawTile(Graphics2D& g , Vec2f const& mapPos , TilePiece const& tile , int rotation , MapTile const* mapTile )
 	{
 
 		if ( gDrawSideLink )
 		{
-			for( int i = 0; i < Tile::NumSide ; ++i )
+			for( int i = 0; i < TilePiece::NumSide ; ++i )
 			{
 				int dir = FDir::ToWorld( i , rotation );
 
@@ -561,14 +561,29 @@ namespace CAR
 				Vec2i size( 6 ,6 );
 				g.drawRect( convertToScreenPos( mapPos + SidePos[dir] ) - size / 2 , size );
 
-				unsigned mask = tile.getSideLinkMask( i ) & ~( ( BIT( i+1 ) - 1 ) );
-				while( mask )
+				if ( mapTile )
 				{
-					unsigned bit = FBit::Extract( mask );
-					int idx = FBit::ToIndex4( bit );
-					RenderUtility::setPen( g , color , COLOR_LIGHT );
-					g.drawLine( convertToScreenPos( mapPos + SidePos[dir] ) , convertToScreenPos( mapPos + SidePos[ FDir::ToWorld( idx , rotation ) ] ) );
-					mask &= ~bit;
+					unsigned mask = mapTile->getSideLinkMask( dir ) & ~( ( BIT( i+1 ) - 1 ) );
+					while( mask )
+					{
+						unsigned bit = FBit::Extract( mask );
+						int idx = FBit::ToIndex4( bit );
+						RenderUtility::setPen( g , color , COLOR_LIGHT );
+						g.drawLine( convertToScreenPos( mapPos + SidePos[dir] ) , convertToScreenPos( mapPos + SidePos[ idx ] ) );
+						mask &= ~bit;
+					}
+				}
+				else
+				{
+					unsigned mask = tile.getSideLinkMask( i ) & ~( ( BIT( i+1 ) - 1 ) );
+					while( mask )
+					{
+						unsigned bit = FBit::Extract( mask );
+						int idx = FBit::ToIndex4( bit );
+						RenderUtility::setPen( g , color , COLOR_LIGHT );
+						g.drawLine( convertToScreenPos( mapPos + SidePos[dir] ) , convertToScreenPos( mapPos + SidePos[ FDir::ToWorld( idx , rotation ) ] ) );
+						mask &= ~bit;
+					}
 				}
 			}
 
@@ -614,9 +629,9 @@ namespace CAR
 			{
 				CityFeature* myFeature = static_cast< CityFeature* >( build );
 				MapTile const* mapTile = myFeature->nodes[0]->getMapTile();
-				g.drawText( tempPos , str.format( " City: ( %d %d , %d ) NodeNum=%d OpenCount=%d  FarmNum=%d " ,
+				g.drawText( tempPos , str.format( " City: ( %d %d , %d ) NodeNum=%d OpenCount=%d HSCount=%d FarmNum=%d " ,
 					mapTile->pos.x , mapTile->pos.y , myFeature->nodes[0]->index ,
-					myFeature->nodes.size() , myFeature->openCount , myFeature->linkFarms.size() ) ) ;
+					myFeature->nodes.size() , myFeature->openCount , myFeature->halfSepareteCount , myFeature->linkFarms.size() ) ) ;
 				tempPos.y += offsetY;
 			}
 			break;
@@ -1192,7 +1207,7 @@ namespace CAR
 				unsigned mask = mapTile.getFarmLinkMask( pos.meta );
 				int idx;
 				int count = 0;
-				while( FBit::MaskIterator< Tile::NumFarm >(mask,idx))
+				while( FBit::MaskIterator< TilePiece::NumFarm >(mask,idx))
 				{
 					offset += FarmPos[idx];
 					++count;
@@ -1314,7 +1329,7 @@ namespace CAR
 			//BIT( EXP_THE_TOWER ) |
 			//BIT( EXP_ABBEY_AND_MAYOR ) |
 			//BIT( EXP_KING_AND_ROBBER ) |
-			BIT( EXP_BRIDGES_CASTLES_AND_BAZAARS ) |
+			//BIT( EXP_BRIDGES_CASTLES_AND_BAZAARS ) |
 			BIT( EXP_HILLS_AND_SHEEP ) |
 			0;
 
@@ -1435,6 +1450,8 @@ namespace CAR
 		case EXP_THE_TOWER: dir = "Tower"; break;
 		case EXP_ABBEY_AND_MAYOR: dir = "AbbiyMayor"; break;
 		case EXP_BRIDGES_CASTLES_AND_BAZAARS: dir = "BridgeCastleBazaar"; break;
+		case EXP_KING_AND_ROBBER: dir = "KingRobber"; break;
+		case EXP_HILLS_AND_SHEEP: dir = "HillsSheep"; break;
 		}
 
 		if ( dir )

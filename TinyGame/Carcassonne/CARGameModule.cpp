@@ -15,6 +15,11 @@ namespace CAR
 	unsigned const FARMER_MASK = BIT( ActorType::eMeeple ) | BIT( ActorType::eBigMeeple ) | BIT( ActorType::ePhantom );
 	unsigned const KINGHT_MASK = BIT( ActorType::eMeeple ) | BIT( ActorType::eBigMeeple ) | BIT( ActorType::ePhantom ) | BIT( ActorType::eMayor ) | BIT( ActorType::eWagon );
 
+	unsigned const DRAGON_EAT_ACTOR_TYPE_MASK = 
+		BIT( ActorType::eMeeple ) | BIT( ActorType::eBigMeeple ) | BIT( ActorType::eWagon ) | 
+		BIT( ActorType::eMayor ) | BIT( ActorType::ePhantom ) | BIT( ActorType::eAbbot ) |
+		BIT( ActorType::eShepherd ) | BIT( ActorType::eBuilder ) | BIT( ActorType::ePig ) |
+		BIT( ActorType::eMage ) | BIT( ActorType::eWitch );
 	unsigned const CastleScoreTypeMask = BIT( FeatureType::eCity ) | BIT( FeatureType::eCloister ) | BIT( FeatureType::eRoad ); 
 
 	struct WagonCompFun
@@ -644,7 +649,7 @@ namespace CAR
 						bool haveUsePortal = false;
 						if ( placeMapTile->getTileContent() & TileContent::eMagicPortal )
 						{
-							result = resolveUsePortal( input, curTrunPlayer, deployMapTile, haveUsePortal );
+							result = resolvePortalUse( input, curTrunPlayer, deployMapTile, haveUsePortal );
 							if ( result != TurnResult::eOK )
 								return result;
 						}
@@ -839,19 +844,17 @@ namespace CAR
 			param.checkRiverConnect = 1;
 			if ( updatePosibleLinkPos( param ) == 0 )
 			{
-				param.usageBridge = 1;
-				if ( updatePosibleLinkPos( param ) == 0 )
+				if ( mSetting->haveUse( EXP_BRIDGES_CASTLES_AND_BAZAARS ) )
 				{
-					if ( getRemainingTileNum() == 0 )
-						return TurnResult::eFinishGame;
-
-					continue;
+					param.usageBridge = 1;
+					if ( updatePosibleLinkPos( param ) != 0 )
+					{
+						//TODO
+						continue;
+					}
 				}
-				else
-				{
-					//TODO
-					continue;
-				}
+				if ( getRemainingTileNum() == 0 )
+					return TurnResult::eFinishGame;
 			}
 			break;
 		}
@@ -859,7 +862,7 @@ namespace CAR
 		return TurnResult::eOK;
 	}
 
-	TurnResult GameModule::resolvePlaceTile(IGameInput &input , PlayerBase* curTrunPlayer , MapTile*& placeMapTile)
+	TurnResult GameModule::resolvePlaceTile(IGameInput& input , PlayerBase* curTrunPlayer , MapTile*& placeMapTile)
 	{
 		TurnResult result;
 		for(;;)
@@ -893,7 +896,7 @@ namespace CAR
 		return TurnResult::eOK;
 	}
 
-	TurnResult GameModule::resolveDeployActor(IGameInput &input , PlayerBase* curTrunPlayer, MapTile* deployMapTile, bool haveUsePortal , bool& haveDone)
+	TurnResult GameModule::resolveDeployActor(IGameInput& input , PlayerBase* curTrunPlayer, MapTile* deployMapTile, bool haveUsePortal , bool& haveDone)
 	{
 		TurnResult result;
 
@@ -1078,107 +1081,11 @@ namespace CAR
 
 			checkCastleComplete( feature , score );
 		}
+
+		result = resolveFeatureReturnPlayerActor( input , feature );
+		if ( result != TurnResult::eOK )
+			return result;
 	
-		//LevelActor* actor;
-		std::vector< LevelActor* > wagonGroup;
-		std::vector< LevelActor* > mageWitchGroup;
-		std::vector< LevelActor* > hereticMonkGroup;
-		std::vector< LevelActor* > otherGroup;
-		for( int i = 0; i < feature.mActors.size(); ++i )
-		{
-			LevelActor* actor = feature.mActors[i];
-			PlayerBase* player = actor->owner;
-			if ( player == nullptr )
-			{
-				//TODO: 
-			}
-			else
-			{
-				switch( actor->type )
-				{
-				case ActorType::eWagon: 
-					wagonGroup.push_back( actor );
-					break;
-				default:
-					otherGroup.push_back( actor );
-				}
-			}
-		}
-		//l)
-
-		if ( mSetting->haveUse( EXP_ABBEY_AND_MAYOR ) && !wagonGroup.empty() )
-		{
-			std::set< unsigned > linkFeatureGroups;
-			feature.generateRoadLinkFeatures( linkFeatureGroups );
-
-			std::vector< FeatureBase* > linkFeatures;
-			for( std::set<unsigned>::iterator iter = linkFeatureGroups.begin() , itEnd = linkFeatureGroups.end();
-				 iter != itEnd ; ++iter )
-			{
-				FeatureBase* featureLink = getFeature( *iter );
-				if ( featureLink->checkComplete() )
-					continue;
-				if ( featureLink->havePlayerActorMask( AllPlayerMask , mSetting->getFollowerMask() ) )
-					continue;
-				linkFeatures.push_back( featureLink );
-			}
-
-			if ( linkFeatures.empty() == false )
-			{
-				WagonCompFun wagonFun;
-				wagonFun.curPlayerOrder = getTurnPlayer()->mPlayOrder;
-				wagonFun.numPlayer = mPlayerManager->getPlayerNum();
-				std::sort( wagonGroup.begin() , wagonGroup.end() , wagonFun );
-				
-				std::vector< MapTile* > mapTiles;
-				GameFeatureTileSelectData data;
-				data.reason = SAR_WAGON_MOVE_TO_FEATURE;
-				for( int i = 0 ; i < wagonGroup.size() ; ++i )
-				{
-					data.infos.clear();
-					mapTiles.clear();
-					FillActionData( data , linkFeatures, mapTiles );
-
-					input.requestSelectMapTile( data );
-					if ( checkGameState( data , result ) == false )
-						return result;
-
-					if ( data.resultSkipAction == true )
-					{
-						returnActorToPlayer( wagonGroup[i] );
-					}
-					else 
-					{
-						if ( data.checkResultVaild() == false )
-						{
-							CAR_LOG("Warning: Error Wagon Move Tile Map Index");
-							data.resultIndex = 0;
-						}
-
-						FeatureBase* selectedFeature = data.getResultFeature();
-						ActorPos actorPos;
-						bool isOK = selectedFeature->getActorPos( *mapTiles[ data.resultIndex ] , actorPos );
-						assert( isOK );
-						moveActor( wagonGroup[i] , actorPos , mapTiles[data.resultIndex] );
-						selectedFeature->addActor( *wagonGroup[i] );
-						linkFeatures.erase( std::find( linkFeatures.begin() , linkFeatures.end() , selectedFeature ) );
-					}
-				}
-			}
-			else
-			{
-				for( int i = 0 ; i < wagonGroup.size() ; ++i )
-				{
-					returnActorToPlayer( wagonGroup[i] );
-				}
-			}
-		}
-
-		//m)
-		for( int i = 0 ; i < otherGroup.size() ; ++i )
-		{
-			returnActorToPlayer( otherGroup[i] );
-		}
 		return TurnResult::eOK;
 	}
 
@@ -1261,7 +1168,6 @@ namespace CAR
 				if ( mFairy->mapTile == mapTile )
 					continue;
 
-
 				int idx = 0;
 				for ( ; idx < step ; ++idx )
 				{
@@ -1295,13 +1201,22 @@ namespace CAR
 			moveTilesBefore[ step ] = dragon.mapTile;
 			moveActor( &dragon , ActorPos( ActorPos::eTile , 0 ) , data.mapTiles[ data.resultIndex ] );
 			
-
 			for( int i = 0 ; i < dragon.mapTile->mActors.size() ; ++i )
 			{
 				LevelActor* actor = dragon.mapTile->mActors[i];
-				if ( mSetting->isFollower( actor->type ) == false )
+				bool bDrageCanEat = ( BIT( actor->type ) & DRAGON_EAT_ACTOR_TYPE_MASK ) != 0;
+
+				if ( bDrageCanEat == false )
 					continue;
 
+				if ( mSetting->haveUse( EXP_HILLS_AND_SHEEP ) && actor->type == ActorType::eShepherd )
+				{
+					ShepherdActor* shepherd = static_cast< ShepherdActor* >( actor );
+					for( int i = 0 ; i < (int)shepherd->ownSheep.size() ; ++ i )
+					{
+						mSheepBags.push_back( shepherd->ownSheep[i] );
+					}
+				}
 				//TODO
 				if ( actor->binder )
 				{
@@ -1317,7 +1232,7 @@ namespace CAR
 		return TurnResult::eOK;
 	}
 
-	TurnResult GameModule::resolveUsePortal(IGameInput &input, PlayerBase* curTrunPlayer, MapTile* &deployMapTile, bool &haveUsePortal)
+	TurnResult GameModule::resolvePortalUse(IGameInput& input, PlayerBase* curTrunPlayer, MapTile*& deployMapTile , bool& haveUsePortal)
 	{
 		TurnResult result;
 		int playerId = curTrunPlayer->getId();
@@ -1366,7 +1281,7 @@ namespace CAR
 		return TurnResult::eOK;
 	}
 
-	CAR::TurnResult GameModule::resolveExpendShepherdFarm(IGameInput &input , PlayerBase* curTrunPlayer , FeatureBase* feature)
+	CAR::TurnResult GameModule::resolveExpendShepherdFarm(IGameInput& input , PlayerBase* curTrunPlayer , FeatureBase* feature)
 	{
 		assert( feature->type == FeatureType::eFarm );
 
@@ -1401,7 +1316,7 @@ namespace CAR
 				int iter = 0;
 				while( ShepherdActor* shepherd = static_cast< ShepherdActor* >( feature->iteratorActorMask( AllPlayerMask , BIT( ActorType::eShepherd ) , iter ) ) )
 				{
-					for( int i = 0 ; i < shepherd->ownSheep.size() ; ++i )
+					for( int i = 0 ; i < (int)shepherd->ownSheep.size() ; ++i )
 					{
 						score += shepherd->ownSheep[i];
 						mSheepBags.push_back( shepherd->ownSheep[i] );
@@ -1712,10 +1627,118 @@ namespace CAR
 	}
 
 
+	CAR::TurnResult GameModule::resolveFeatureReturnPlayerActor(IGameInput& input , FeatureBase& feature)
+	{
+		TurnResult result;
+
+		//LevelActor* actor;
+		std::vector< LevelActor* > wagonGroup;
+		std::vector< LevelActor* > mageWitchGroup;
+		std::vector< LevelActor* > hereticMonkGroup;
+		std::vector< LevelActor* > otherGroup;
+		for( int i = 0; i < feature.mActors.size(); ++i )
+		{
+			LevelActor* actor = feature.mActors[i];
+			PlayerBase* player = actor->owner;
+			if ( player == nullptr )
+			{
+				//TODO: 
+			}
+			else
+			{
+				switch( actor->type )
+				{
+				case ActorType::eWagon: 
+					wagonGroup.push_back( actor );
+					break;
+				default:
+					otherGroup.push_back( actor );
+				}
+			}
+		}
+		//l)
+
+		if ( mSetting->haveUse( EXP_ABBEY_AND_MAYOR ) && !wagonGroup.empty() )
+		{
+			GroupSet linkFeatureGroups;
+			feature.generateRoadLinkFeatures( linkFeatureGroups );
+
+			std::vector< FeatureBase* > linkFeatures;
+			for( std::set<unsigned>::iterator iter = linkFeatureGroups.begin() , itEnd = linkFeatureGroups.end();
+				iter != itEnd ; ++iter )
+			{
+				FeatureBase* featureLink = getFeature( *iter );
+				if ( featureLink->checkComplete() )
+					continue;
+				if ( featureLink->havePlayerActorMask( AllPlayerMask , mSetting->getFollowerMask() ) )
+					continue;
+				linkFeatures.push_back( featureLink );
+			}
+
+			if ( linkFeatures.empty() == false )
+			{
+				WagonCompFun wagonFun;
+				wagonFun.curPlayerOrder = getTurnPlayer()->mPlayOrder;
+				wagonFun.numPlayer = mPlayerManager->getPlayerNum();
+				std::sort( wagonGroup.begin() , wagonGroup.end() , wagonFun );
+
+				std::vector< MapTile* > mapTiles;
+				GameFeatureTileSelectData data;
+				data.reason = SAR_WAGON_MOVE_TO_FEATURE;
+				for( int i = 0 ; i < wagonGroup.size() ; ++i )
+				{
+					data.infos.clear();
+					mapTiles.clear();
+					FillActionData( data , linkFeatures, mapTiles );
+
+					input.requestSelectMapTile( data );
+					if ( checkGameState( data , result ) == false )
+						return result;
+
+					if ( data.resultSkipAction == true )
+					{
+						returnActorToPlayer( wagonGroup[i] );
+					}
+					else 
+					{
+						if ( data.checkResultVaild() == false )
+						{
+							CAR_LOG("Warning: Error Wagon Move Tile Map Index");
+							data.resultIndex = 0;
+						}
+
+						FeatureBase* selectedFeature = data.getResultFeature();
+						ActorPos actorPos;
+						bool isOK = selectedFeature->getActorPos( *mapTiles[ data.resultIndex ] , actorPos );
+						assert( isOK );
+						moveActor( wagonGroup[i] , actorPos , mapTiles[data.resultIndex] );
+						selectedFeature->addActor( *wagonGroup[i] );
+						linkFeatures.erase( std::find( linkFeatures.begin() , linkFeatures.end() , selectedFeature ) );
+					}
+				}
+			}
+			else
+			{
+				for( int i = 0 ; i < wagonGroup.size() ; ++i )
+				{
+					returnActorToPlayer( wagonGroup[i] );
+				}
+			}
+		}
+
+		//m)
+		for( int i = 0 ; i < otherGroup.size() ; ++i )
+		{
+			returnActorToPlayer( otherGroup[i] );
+		}
+
+		return TurnResult::eOK;
+	}
+
 	TurnResult GameModule::resolvePrincess(IGameInput& input , MapTile* placeMapTile , bool& haveDone)
 	{
 		TurnResult result;
-		unsigned sideMask = Tile::AllSideMask;
+		unsigned sideMask = TilePiece::AllSideMask;
 		int dir;
 		while( FBit::MaskIterator< FDir::TotalNum >( sideMask , dir ) )
 		{
@@ -1778,7 +1801,10 @@ namespace CAR
 		mUpdateFeatures.clear();
 		//update Build
 		{
-			unsigned maskAll = Tile::AllSideMask;
+			FeatureBase* sideFeatures[ FDir::TotalNum ];
+			int numFeature;
+
+			unsigned maskAll = TilePiece::AllSideMask;
 			int dir;
 			while( FBit::MaskIterator< FDir::TotalNum >( maskAll , dir ) )
 			{
@@ -1792,7 +1818,9 @@ namespace CAR
 				{
 				case SideType::eCity:
 				case SideType::eRoad:
-					build = updateBasicSideFeature( mapTile , linkMask , linkType );
+					{
+						build = updateBasicSideFeature( mapTile , linkMask , linkType );
+					}
 					break;
 				case SideType::eAbbey:
 					mapTile.sideNodes[dir].group = ABBEY_GROUP_ID;
@@ -1814,12 +1842,45 @@ namespace CAR
 					addUpdateFeature( build , bAbbeyUpdate );
 				}
 			}
+
+			for ( int dir = 0 ; dir < FDir::TotalNum ; ++dir )
+			{
+				if ( ( mapTile.getSideContnet( dir ) & SideContent::eHalfSeparate ) != 0 )
+				{
+					int dirA = ( dir + 1 ) % FDir::TotalNum;
+					SideFeature* featureA = static_cast< SideFeature* >( getFeature( mapTile.sideNodes[ dirA ].group ) );
+					featureA->halfSepareteCount += 1;
+						
+					int dirB = ( dir - 1 + FDir::TotalNum ) % FDir::TotalNum;
+					SideFeature* featureB = static_cast< SideFeature* >( getFeature( mapTile.sideNodes[ dirB ].group ) );
+					featureB->halfSepareteCount += 1;
+
+					if ( mapTile.sideNodes[dir].outConnect )
+					{
+						int numMerged;
+						FeatureBase* featureMerged[2];
+						FeatureBase* featureNew = mergeHalfSeparateBasicSideFeature( mapTile , dir , featureMerged , numMerged );
+						if ( numMerged )
+						{
+							for( int i = 0 ; i < numMerged ; ++i )
+							{
+								FeatureUpdateInfoVec::iterator iterNew = std::find_if( mUpdateFeatures.begin() , mUpdateFeatures.end() , FindFeature( featureNew ) );
+								FeatureUpdateInfoVec::iterator iterMerged = std::find_if( mUpdateFeatures.begin() , mUpdateFeatures.end() , FindFeature( featureMerged[i] ) );
+
+								if ( iterNew->bAbbeyUpdate )
+									iterNew->bAbbeyUpdate = iterMerged->bAbbeyUpdate;
+								mUpdateFeatures.erase( iterMerged );
+							}
+						}
+					}
+				}
+			}
 		}
 
 		{
-			unsigned maskAll = Tile::AllFarmMask;
+			unsigned maskAll = TilePiece::AllFarmMask;
 			int idx;
-			while( FBit::MaskIterator< Tile::NumFarm >( maskAll , idx ) )
+			while( FBit::MaskIterator< TilePiece::NumFarm >( maskAll , idx ) )
 			{
 				unsigned linkMask = mapTile.getFarmLinkMask( idx );
 				if ( linkMask == 0 )
@@ -2005,18 +2066,75 @@ namespace CAR
 		mActorDeployPosList.resize( num );
 	}
 
-	FeatureBase* GameModule::updateBasicSideFeature( MapTile& mapTile , unsigned dirMask , SideType linkType )
+	SideFeature* GameModule::mergeHalfSeparateBasicSideFeature( MapTile& mapTile , int dir , FeatureBase* featureMerged[] , int& numMerged )
+	{
+		assert( ( mapTile.getSideContnet(dir) & SideContent::eHalfSeparate ) != 0 );
+
+		numMerged = 0;
+
+		SideFeature* feature = static_cast< SideFeature* >( getFeature( mapTile.sideNodes[dir].group ) );
+		int dirA = ( dir + 1 ) % FDir::TotalNum;
+		SideFeature* featureA = static_cast< SideFeature* >( getFeature( mapTile.sideNodes[ dirA ].group ) );
+		assert( feature->type == featureA->type );
+		featureA->halfSepareteCount -= 1;
+
+		if ( ( mapTile.getSideContnet(dirA) & SideContent::eHalfSeparate ) == 0 ||
+			   mapTile.sideNodes[dirA].outConnect != nullptr )
+		{
+			feature->mergeData( *featureA , mapTile , dir );
+			destroyFeature( featureA );
+
+			unsigned mask = mapTile.getSideLinkMask( dir ) | mapTile.getSideLinkMask( dirA );
+			mapTile.updateSideLink( mask );
+
+			featureMerged[numMerged++] = featureA;
+		}
+
+		int dirB = ( dir - 1 + FDir::TotalNum ) % FDir::TotalNum;
+		SideFeature* featureB = static_cast< SideFeature* >( getFeature( mapTile.sideNodes[ dirB ].group ) );
+		assert( feature->type == featureB->type );
+		featureB->halfSepareteCount -= 1;
+
+		if ( ( mapTile.getSideContnet(dirB) & SideContent::eHalfSeparate ) == 0 ||
+			   mapTile.sideNodes[dirB].outConnect != nullptr )
+		{
+			if ( featureB != feature )
+			{
+				feature->mergeData( *featureB , mapTile , dir );
+				destroyFeature( featureB );
+
+				unsigned mask = mapTile.getSideLinkMask( dir ) | mapTile.getSideLinkMask( dirB );
+				mapTile.updateSideLink( mask );
+
+				featureMerged[numMerged++] = featureB;
+			}
+		}
+		return feature;
+	}
+
+	FeatureBase* GameModule::updateBasicSideFeature( MapTile& mapTile , unsigned dirLinkMask , SideType linkType )
 	{
 		int numLinkGroup = 0;
-		int linkGroup[ Tile::NumSide ];
+		int linkGroup[ TilePiece::NumSide ];
 		SideNode* linkNodeFrist = nullptr;
-		unsigned mask = dirMask;
+
+		unsigned mask = dirLinkMask;
 		int dir = 0;
+
 		while ( FBit::MaskIterator< FDir::TotalNum >( mask , dir ) )
 		{
 			SideNode* linkNode = mapTile.sideNodes[ dir ].outConnect;
 			if ( linkNode == nullptr || linkNode->group == ABBEY_GROUP_ID )
 				continue;
+
+			MapTile* linkTile = linkNode->getMapTile();
+			int linkDir = FDir::Inverse( dir );
+			if ( linkTile->getSideContnet( linkDir ) & SideContent::eHalfSeparate )
+			{
+				int numMerged;
+				FeatureBase* featureMerged[2];
+				mergeHalfSeparateBasicSideFeature( *linkTile , linkDir , featureMerged , numMerged );
+			}
 
 			int idxFind = 0;
 			for( ; idxFind < numLinkGroup ; ++idxFind )
@@ -2051,36 +2169,40 @@ namespace CAR
 				assert(0);
 				return nullptr;
 			}
-			sideFeature->addNode( mapTile , dirMask , nullptr );
+			sideFeature->addNode( mapTile , dirLinkMask , nullptr );
 		}
 		else
 		{
 			sideFeature = static_cast< SideFeature* >( getFeature( linkGroup[0] ) );
-			sideFeature->addNode( mapTile , dirMask , linkNodeFrist );
+			sideFeature->addNode( mapTile , dirLinkMask , linkNodeFrist );
 		}
 
-		for( int i = 1 ; i < numLinkGroup ; ++i )
+		if ( numLinkGroup > 0 )
 		{
-			FeatureBase* buildOther = getFeature( linkGroup[i] );
-			sideFeature->mergeData( *buildOther , mapTile , linkNodeFrist->outConnect->index );
-			destroyFeature(  buildOther );
+			for( int i = 1 ; i < numLinkGroup ; ++i )
+			{
+				FeatureBase* buildOther = getFeature( linkGroup[i] );
+				sideFeature->mergeData( *buildOther , mapTile , linkNodeFrist->outConnect->index );
+				destroyFeature(  buildOther );
+			}
 		}
 
 		if ( sideFeature->calcOpenCount() != sideFeature->openCount )
 		{
 			CAR_LOG( "Warning: group=%d type=%d Error OpenCount!" , sideFeature->group , sideFeature->type );
 		}
+
 		return sideFeature;
 	}
 
-	FarmFeature* GameModule::updateFarm(MapTile& mapTile , unsigned idxMask)
+	FarmFeature* GameModule::updateFarm(MapTile& mapTile , unsigned idxLinkMask)
 	{
 		int numLinkGroup = 0;
-		int linkGroup[ Tile::NumFarm ];
+		int linkGroup[ TilePiece::NumFarm ];
 		FarmNode* linkNodeFrist = nullptr;
-		unsigned mask = idxMask;
+		unsigned mask = idxLinkMask;
 		int idx = 0;
-		while ( FBit::MaskIterator< Tile::NumFarm >( mask , idx ) )
+		while ( FBit::MaskIterator< TilePiece::NumFarm >( mask , idx ) )
 		{
 			FarmNode* linkNode = mapTile.farmNodes[ idx ].outConnect;
 			if ( linkNode == nullptr )
@@ -2108,12 +2230,12 @@ namespace CAR
 		if ( numLinkGroup == 0 )
 		{
 			farm = createFeatureT< FarmFeature >();
-			farm->addNode( mapTile , idxMask , nullptr );
+			farm->addNode( mapTile , idxLinkMask , nullptr );
 		}
 		else
 		{
 			farm = static_cast< FarmFeature* >( getFeature( linkGroup[0] ) );
-			farm->addNode( mapTile , idxMask , linkNodeFrist );
+			farm->addNode( mapTile , idxLinkMask , linkNodeFrist );
 		}
 
 		for( int i = 1 ; i < numLinkGroup ; ++i )
@@ -2138,24 +2260,29 @@ namespace CAR
 		int result = 0;
 		unsigned maskAll = 0;
 
-		maskAll = Tile::AllSideMask;
+		maskAll = TilePiece::AllSideMask;
 		int dir;
 		while( FBit::MaskIterator< FDir::TotalNum >( maskAll , dir ) )
 		{
 			maskAll &= ~mapTile.getSideLinkMask( dir );
+
+			if ( mapTile.getSideContnet(dir) & SideContent::eHalfSeparate )
+				continue;
+
 			int group = mapTile.getSideGroup( dir );
 			if ( group == -1 )
 				continue;
 			FeatureBase* feature = getFeature( group );
+
 			if ( bUsageMagicPortal && feature->checkComplete() )
 				continue;
 
 			result += feature->getActorPutInfo( playerId , dir , outInfo );
 		}
 
-		maskAll = Tile::AllFarmMask;
+		maskAll = TilePiece::AllFarmMask;
 		int idx;
-		while( FBit::MaskIterator< Tile::NumFarm >( maskAll , idx ) )
+		while( FBit::MaskIterator< TilePiece::NumFarm >( maskAll , idx ) )
 		{
 			maskAll &= ~mapTile.getFarmLinkMask( idx );
 			int group = mapTile.getFarmGroup( idx );
@@ -2176,11 +2303,11 @@ namespace CAR
 				Vec2i posCheck = mapTile.pos;
 				MapTile* mapTileCheck = &mapTile;
 				int dirCheck = i;
-				if ( Tile::CanLinkFarm( mapTileCheck->getLinkType( dirCheck) ) == false )
+				if ( TilePiece::CanLinkFarm( mapTileCheck->getLinkType( dirCheck) ) == false )
 					continue;
 
 
-				FarmFeature* farm = static_cast< FarmFeature* >( getFeature( mapTile.farmNodes[ Tile::DirToFramIndexFrist( i ) + 1 ].group ) );
+				FarmFeature* farm = static_cast< FarmFeature* >( getFeature( mapTile.farmNodes[ TilePiece::DirToFramIndexFrist( i ) + 1 ].group ) );
 				if ( farm->haveBarn )
 					continue;
 
@@ -2191,7 +2318,7 @@ namespace CAR
 					dirCheck = ( dirCheck + 1 ) % FDir::TotalNum;
 					if ( mapTileCheck == nullptr )
 						break;
-					if ( Tile::CanLinkFarm( mapTileCheck->getLinkType( dirCheck) ) == false )
+					if ( TilePiece::CanLinkFarm( mapTileCheck->getLinkType( dirCheck) ) == false )
 						break;
 
 				}
@@ -2201,7 +2328,7 @@ namespace CAR
 					info.pos.type = ActorPos::eTileCorner;
 					info.pos.meta = i;
 					info.actorTypeMask = BIT( ActorType::eBarn );
-					info.group = mapTile.farmNodes[ Tile::DirToFramIndexFrist( i ) + 1 ].group;
+					info.group = mapTile.farmNodes[ TilePiece::DirToFramIndexFrist( i ) + 1 ].group;
 					outInfo.push_back( info );
 					result += 1;
 				}
@@ -2218,7 +2345,7 @@ namespace CAR
 					continue;
 				if ( mapTile.getLinkType(i) != SideType::eField )
 					continue;
-				int group = mapTile.farmNodes[ Tile::DirToFramIndexFrist( i ) + 1 ].group;
+				int group = mapTile.farmNodes[ TilePiece::DirToFramIndexFrist( i ) + 1 ].group;
 				
 				FeatureBase* farm = getFeature( group );
 				if ( farm->haveActorMask( BIT( ActorType::eShepherd )) )
@@ -2506,7 +2633,7 @@ namespace CAR
 		assert( curTurnPlayer->getFieldValue( FieldType::eAbbeyPices ) > 0 );
 		Level& level = getLevel();
 
-		Tile const& tile = level.getTile( mAbbeyTileId );
+		TilePiece const& tile = level.getTile( mAbbeyTileId );
 
 		std::vector< Vec2i > mapTilePosVec;
 
@@ -2526,8 +2653,8 @@ namespace CAR
 					break;
 
 				int lDirCheck = FDir::ToLocal( FDir::Inverse( dir ) , dataCheck->rotation );
-				Tile const& tileCheck = level.getTile( dataCheck->getId() );
-				if ( !Tile::CanLink( tileCheck , lDirCheck , tile , lDir ) )
+				TilePiece const& tileCheck = level.getTile( dataCheck->getId() );
+				if ( !TilePiece::CanLink( tileCheck , lDirCheck , tile , lDir ) )
 					break;
 			}
 			if ( dir == 4 )

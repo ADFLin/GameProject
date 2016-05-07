@@ -3,6 +3,9 @@
 
 #include "CFBase.h"
 
+#include "Singleton.h"
+#include "IntegerType.h"
+
 #include <vector>
 
 #define CF_ERROR_ID ((unsigned)-1)
@@ -44,11 +47,11 @@ namespace CFly
 	public:
 		Entity():m_id( CF_ERROR_ID ){}
 		~Entity();
-		unsigned getEntityID() const { return m_id; }
+		uint32 getEntityID() const { return m_id; }
 	private:
-		void     setEntityID( unsigned id ){ m_id = id; }
-		friend class EntityManger;
-		unsigned m_id;
+		void     setEntityID( uint32 id ){ m_id = id; }
+		friend class EntityManager;
+		uint32 m_id;
 
 	};
 
@@ -64,32 +67,32 @@ namespace CFly
 	struct EntityTypeMap< type >{ enum { value = typeID }; };
 
 
-	class EntityManger : public Singleton< EntityManger >
+	class EntityManager : public SingletonT< EntityManager >
 	{
 	public:
 
 		struct ID
 		{
 			ID(){}
-			ID( unsigned id ):value( id ){}
+			ID( uint32 id ):value( id ){}
 			union
 			{
-				unsigned value;
+				uint32 value;
 				struct  
 				{
-					unsigned type   : CF_ENTITY_TYPE_BIT_NUM;
-					unsigned index  : CF_ENTITY_INDEX_BIT_NUM;
-					unsigned serial : CF_ENTITY_SERIAL_BIT_NUM;	
+					uint32 type   : CF_ENTITY_TYPE_BIT_NUM;
+					uint32 index  : CF_ENTITY_INDEX_BIT_NUM;
+					uint32 serial : CF_ENTITY_SERIAL_BIT_NUM;	
 				};
 			};	
 		};
 
-		EntityManger();
+		EntityManager();
 
-		static unsigned getIndex ( unsigned id ){ ID temp(id); return temp.index;  }
-		static unsigned getSerial( unsigned id ){ ID temp(id); return temp.serial;  }
-		static unsigned getType( unsigned id )  { ID temp(id); return temp.type;  }
-		static unsigned calcEntityID( unsigned type , unsigned idx , unsigned serial );
+		static unsigned getIndex ( uint32 id ){ ID temp(id); return temp.index;  }
+		static unsigned getSerial( uint32 id ){ ID temp(id); return temp.serial;  }
+		static unsigned getType( uint32 id )  { ID temp(id); return temp.type;  }
+		static uint32 calcEntityID( unsigned type , unsigned idx , unsigned serial );
 
 		template< class T >
 		unsigned registerEntity( T* entity )
@@ -97,21 +100,21 @@ namespace CFly
 			return markEntity( entity , EntityTypeMap< T >::value );
 		}
 		bool    removeEntity( Entity* entity );
-		Entity* extractEntity( unsigned id , unsigned type );
-		Entity* extractEntityBits( unsigned id , unsigned typeBits );
+		Entity* extractEntity( uint32 id , unsigned type );
+		Entity* extractEntityBits( uint32 id , unsigned typeBits );
 		bool    checkType( Entity* entity , unsigned type );
 	protected:
 
 		unsigned markEntity( Entity* entity , unsigned type );
 
-		unsigned m_curSerialNum;
+		unsigned mCurSerialNum;
 		struct Slot_t
 		{
 			Entity*   entity;
-			unsigned   serialNum;
+			unsigned  serialNum;
 		};
 		std::vector< Slot_t >    m_SoltVec;
-		std::vector< unsigned >  mUnusedSlotIDVec;
+		std::vector< unsigned >  mUnusedSlotIndices;
 
 		template< class T >
 		friend T*  entity_cast( Entity* entity );
@@ -136,7 +139,7 @@ namespace CFly
 		if ( !entity )
 			return nullptr;
 	
-		if ( !EntityManger::getInstance().checkType( 
+		if ( !EntityManager::getInstance().checkType( 
 				entity ,
 				EntityTypeMap< T >::value ) )
 			return nullptr;

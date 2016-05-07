@@ -297,6 +297,10 @@
 			RelativePath=".\Carcassonne\CARTileDefineData.cpp"
 			>
 		</File>
+		<File
+			RelativePath=".\Carcassonne\S-CAR_v7.4.pdf"
+			>
+		</File>
 	</Files>
 	<Globals>
 	</Globals>

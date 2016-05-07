@@ -18,6 +18,7 @@ namespace CAR
 #define SCH SideContent::eClothHouse
 #define SPR SideContent::ePrincess
 #define SNC SideContent::eNotSemiCircularCity
+#define SHS	SideContent::eHalfSeparate
 
 #define TCL TileContent::eCloister
 #define TCA TileContent::eCathedral
@@ -26,6 +27,7 @@ namespace CAR
 #define TVO TileContent::eVolcano
 #define TTF TileContent::eTowerFoundation
 #define TBZ TileContent::eBazaar
+#define TVI TileContent::eVineyard
 
 #define BIT2( A , B )     ( BIT(A)|BIT(B) )
 #define BIT3( A , B , C ) ( BIT(A)|BIT(B)|BIT(C) )
@@ -252,6 +254,12 @@ namespace CAR
 /*10*/ 	{ 1, { LR,LF,LR,LF }, SL2(0,2)     , SL_NONE      ,TCL,{ 0 , 0 , 0 , 0 }, 0, { BIT4(1,2,3,4) , FL_RE } , 0 } ,
 	};
 
+	static TileDefine DataHillsSheep[] =
+	{
+// numPiece     linkType      sideLink       roadLink   content   sidecontent centerFarmMask farmLink tag
+/*00*/ 	{ 2, { LC,LC,LC,LF }, SL_NONE      , SL_NONE      ,TVI, { 0 ,SHS, 0 , 0 }, 0, { FL_RE } , 0 } ,
+/*01*/ 	//{ 1, { LC,LC,LR,LC }, SL_NONE      , SL_NONE      , 0, { 0 , 0 , 0 , 0 }, 0, { FL_RE } , 0 } ,
+	};
 	static TileDefine DataTest[] =
 	{
 // numPiece     linkType      sideLink       roadLink   content   sidecontent centerFarmMask farmLink tag
@@ -272,7 +280,9 @@ namespace CAR
 		EXPDATA( EXP_ABBEY_AND_MAYOR , DataAbbeyMayor )
 		EXPDATA( EXP_THE_RIVER_II , DataRiver2 ) 
 		EXPDATA( EXP_BRIDGES_CASTLES_AND_BAZAARS , DataBrigeCastleBazaar )
-		EXPDATA( EXP_TEST , DataTest ) 
+		EXPDATA( EXP_HILLS_AND_SHEEP , DataHillsSheep )
+
+		EXPDATA( EXP_TEST , DataTest )
 #undef EXPDATA
 		{ EXP_NULL , 0 , 0 } 
 	};

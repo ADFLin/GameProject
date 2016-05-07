@@ -256,7 +256,7 @@ namespace Math
 		float const* mv = m;
 #define MAT_MUL( m , index )\
 	( v.x * m[ index ] + v.y * m[ index + 4 ] + v.z * m[ index + 8 ] + m[ index + 12 ] )
-		float wf = 1.0 / MAT_MUL( mv , 3 );
+		float wf = 1.0f / MAT_MUL( mv , 3 );
 		return Vector3( MAT_MUL( mv , 0 ) * wf , MAT_MUL( mv , 1 ) * wf , MAT_MUL( mv , 2 ) * wf );
 #undef MAT_MUL
 	}

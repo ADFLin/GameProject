@@ -26,7 +26,7 @@ namespace Math
 	{
 		return Min( Max(  minVal , val ) , maxVal );
 	}
-	inline float Round( float value ){ return ::floor( value + 0.5 ); }
+	inline float Round( float value ){ return ::floor( value + 0.5f ); }
 	inline float Fmod( float v1 , float v2 ){ return ::fmod( v1 , v2 ); }
 	inline float Deg2Rad( float val ){ return val * Math::PI / 180.0f; }
 	inline float Rad2Deg( float val ){ return val * 180.0f / Math::PI; }

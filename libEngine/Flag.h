@@ -15,7 +15,7 @@ namespace Private
 	template <  class T , int BitNum  >
 	class FlagBitsMulti
 	{
-		static int const TypeBitNum = sizeof( T ) * 4;
+		static int const TypeBitNum = sizeof( T ) * 8;
 		static int const StorageSize = ( BitNum / TypeBitNum ) + ( BitNum % TypeBitNum ) ? 1 : 0  ;
 	public:
 		void clear()
@@ -44,7 +44,7 @@ namespace Private
 	template< int BitNum , class T  >
 	struct FlagBitsSelector
 	{
-		static int const N =  4 * sizeof(T);
+		static int const N =  8 * sizeof(T);
 		typedef typename Meta::Select< 
 			BitNum <= N , FlagValue< T > , FlagBitsMulti< T , BitNum > 
 		>::ResultType ResultType;

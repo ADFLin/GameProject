@@ -194,6 +194,9 @@ void SBuffer::grow( size_t newSize )
 
 void SBuffer::clearUseData()
 {
+	if ( mUseSize == 0 )
+		return;
+
 	size_t size = getAvailableSize();
 
 	char* dst = mData;

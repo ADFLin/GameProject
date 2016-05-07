@@ -64,7 +64,7 @@ namespace Phy2D
 	void BoxShape::calcMass(MassInfo& info)
 	{
 		info.m =  mHalfExt.x * mHalfExt.y * 4;
-		info.I = ( 4 / 12.0 ) * info.m * ( mHalfExt.length2() );
+		info.I = ( 4 / 12.0f ) * info.m * ( mHalfExt.length2() );
 		info.center = Vec2f(0,0);
 	}
 
@@ -91,7 +91,7 @@ namespace Phy2D
 	{
 		float r2 = mRadius * mRadius;
 		info.m = Math::PI * r2;
-		info.I = ( 1 / 2.0 ) * info.m * r2;
+		info.I = ( 1 / 2.0f ) * info.m * r2;
 		info.center = Vec2f(0,0);
 	}
 
@@ -150,14 +150,14 @@ namespace Phy2D
 			Vec2f const& v = mVertices[i];
 			Vec2f const& vP = mVertices[ prev ];
 
-			float area = 0.5 * vP.cross( v );
+			float area = 0.5f * vP.cross( v );
 			float b2 = vP.length2();
 			float h2  = 4 * area * area / b2;
 			info.m += area;
 			info.I += ( area ) * ( 11 * b2 / 4 +  h2 ) / 9;
 			info.center += v;
 		}
-		info.center /= getVertexNum();
+		info.center /= (float)getVertexNum();
 	}
 
 	void CapsuleShape::calcAABB(AABB& aabb)

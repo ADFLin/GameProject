@@ -3,7 +3,7 @@
 
 #include "CARCommon.h"
 
-#include "CARLevel.h"
+#include "CARWorldTileManager.h"
 #include "CARFeature.h"
 
 #include "Random.h"
@@ -237,7 +237,7 @@ namespace CAR
 	class IGameEventListener
 	{
 	public:
-		virtual void onPutTile( MapTile& mapTile ){}
+		virtual void onPutTile( TileId id , MapTile* mapTiles[] , int numMapTile ){}
 		virtual void onDeployActor( LevelActor& actor ){}
 		virtual void onActorMove( LevelActor& actor , MapTile* oldMapTile ){}
 		virtual void onConstructTower( MapTile& mapTile ){}
@@ -257,7 +257,7 @@ namespace CAR
 
 		void   setupSetting( GameSetting& setting );
 		void   restart( bool bInit );
-		Level& getLevel(){ return mLevel; }
+		WorldTileManager& getLevel(){ return mLevel; }
 		void   runLogic( IGameInput& input );
 
 		bool   buildBridge( Vec2i const& pos , int dir );
@@ -265,6 +265,8 @@ namespace CAR
 		bool   changePlaceTile( TileId id );
 
 		void   doRunLogic( IGameInput& input );
+
+		
 		void   loadSetting( bool bInit );
 		void   calcPlayerDeployActorPos(PlayerBase& player , MapTile& mapTile , bool bUsageMagicPortal );
 		
@@ -279,6 +281,7 @@ namespace CAR
 
 		void   addFeaturePoints( FeatureBase& build , std::vector< FeatureScoreInfo >& featureControls , int numPlayer );
 		int    addPlayerScore( int id , int value );
+		void   calcFinalScore();
 
 		struct TrunContext
 		{
@@ -288,15 +291,14 @@ namespace CAR
 		TurnResult resolvePlayerTurn( IGameInput& input , PlayerBase* curTrunPlayer );
 		TurnResult resolveDeployActor( IGameInput& input , PlayerBase* curTrunPlayer, MapTile* deployMapTile, bool haveUsePortal , bool& haveDone );
 		TurnResult resolveMoveFairyToNextFollower( IGameInput &input, PlayerBase* curTrunPlayer , bool& haveDone );
-		TurnResult resolvePlaceTile(IGameInput& input , PlayerBase* curTrunPlayer , MapTile*& placeMapTile );
+		TurnResult resolvePlaceTile(IGameInput& input , PlayerBase* curTrunPlayer , MapTile* placeMapTile[] , int& numMapTile );
 		TurnResult resolvePortalUse( IGameInput& input, PlayerBase* curTrunPlayer, MapTile*& deployMapTile, bool& haveUsePortal);
 		TurnResult resolveExpendShepherdFarm( IGameInput& input , PlayerBase* curTrunPlayer , FeatureBase* feature );
 		TurnResult resolveCastleComplete( IGameInput& input );
-		TurnResult resolveDrawTile( IGameInput& input , PlayerBase* curTrunPlayer);
+		TurnResult resolveDrawTile( IGameInput& input , PlayerBase* curTrunPlayer , bool& haveHillTile );
+		
 		struct CastleScoreInfo;
 		TurnResult resolveCompleteFeature( IGameInput& input , FeatureBase& feature , CastleScoreInfo* castleScore );
-
-
 
 		TurnResult resolveBuildCastle(IGameInput& input , FeatureBase& feature , bool& haveBuild );
 		TurnResult resolveAbbey( IGameInput& input , PlayerBase* curTurnPlayer );
@@ -380,7 +382,7 @@ namespace CAR
 		TileSetManager     mTileSetManager;
 		GameSetting*       mSetting;
 		GameRandom         mRandom;
-		Level              mLevel;
+		WorldTileManager              mLevel;
 		
 		IGameEventListener* mListener;
 		bool     mDebug;
@@ -389,13 +391,8 @@ namespace CAR
 
 		struct Team
 		{
-
-
-
-
 			int score;
 		};
-
 
 		int    mNumTrun;
 		bool   mIsRunning;
@@ -411,16 +408,13 @@ namespace CAR
 		std::vector< ActorPosInfo > mActorDeployPosList;
 
 		bool addUpdateFeature( FeatureBase* feature , bool bAbbeyUpdate = false );
-
 		void placeAllTileDebug( int numRow );
-
 		struct FeatureUpdateInfo
 		{
 			FeatureUpdateInfo( FeatureBase* aFeature , bool abAbbeyUpdate = false )
 				:feature( aFeature )
 				,bAbbeyUpdate( abAbbeyUpdate )
 			{
-
 			}
 			FeatureBase* feature;
 			bool bAbbeyUpdate;
@@ -491,17 +485,6 @@ namespace CAR
 		std::vector< SheepToken > mSheepBags;
 
 	};
-
-	template< class T >
-	T* GameModule::createFeatureT()
-	{
-		T* data = new T;
-		data->type     = T::Type;
-		data->group    = mFeatureMap.size();
-		data->mSetting = mSetting;
-		mFeatureMap.push_back( data );
-		return data;
-	}
 
 }//namespace CAR
 

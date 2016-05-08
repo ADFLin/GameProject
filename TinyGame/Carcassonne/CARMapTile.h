@@ -6,6 +6,9 @@
 
 namespace CAR
 {
+
+
+
 	class TilePiece
 	{
 	public:
@@ -61,15 +64,17 @@ namespace CAR
 			return ( sideData.linkDirMask == FBit::Extract( sideData.linkDirMask ) ) && 
 				   ( ( sideData.contentFlag & SideContent::eNotSemiCircularCity ) == 0 );
 		}
-		bool  haveRiver()
+		bool  haveSideType( SideType type )
 		{
 			for( int i = 0 ; i < NumSide ; ++i )
 			{
-				if ( sides[i].linkType == SideType::eRiver )
+				if ( sides[i].linkType == type )
 					return true;
 			}
 			return false;
 		}
+
+		bool  haveRiver(){ return haveSideType( SideType::eRiver ); }
 
 		static bool CanLink( SideType typeA , SideType typeB )
 		{
@@ -115,6 +120,7 @@ namespace CAR
 	{
 	public:
 		MapTile( TilePiece const& tile , int rotation );
+		MapTile();
 
 		TileId getId() const { return mTile->id;  }
 		void addActor( LevelActor& actor );
@@ -212,6 +218,7 @@ namespace CAR
 		int         towerHeight;
 		uint8       bridgeMask;
 		void*       renderData;
+		bool        haveHill;
 
 		//////////
 		TilePiece const* mTile;

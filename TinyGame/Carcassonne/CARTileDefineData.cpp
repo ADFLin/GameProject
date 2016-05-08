@@ -207,7 +207,7 @@ namespace CAR
 	static TileDefine DataAbbeyMayor[] =
 	{
 // numPiece     linkType      sideLink       roadLink   content   sidecontent centerFarmMask farmLink tag
-/*00*/ 	{ 0, { LA,LA,LA,LA }, SL_NONE      , SL_NONE      , 0, { 0 , 0 , 0 , 0 }, 0, { 0 } , TILE_ABBEY } ,
+/*00*/ 	{ 0, { LA,LA,LA,LA }, SL_NONE      , SL_NONE      , 0, { 0 , 0 , 0 , 0 }, 0, { 0 } , TILE_ABBEY_TAG } ,
 /*01*/ 	{ 1, { LC,LC,LC,LC }, SL_ALL       , SL_NONE      , 0, { 0 ,SPE,SPE, 0 }, 0, { FL_RE } , 0 } ,
 /*02*/ 	{ 1, { LC,LC,LC,LC }, SL22(0,2,1,3), SL_NONE      , 0, { 0 ,SPE, 0 , 0 }, BIT4(2,3,6,7), { BIT4(1,2,3,4) , FL_RE } , 0 } ,
 /*03*/ 	{ 1, { LC,LC,LF,LC }, SL2(1,3)     , SL_NONE      , 0, {SPE|SNC,0,0, 0 }, BIT2(2,7), { BIT4(7,0,1,2) , BIT4(3,4,5,6)|BIT2(0,1) } , 0 } ,

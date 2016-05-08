@@ -128,6 +128,17 @@ namespace CAR
 		}
 	}
 
+	template< class T >
+	T* GameModule::createFeatureT()
+	{
+		T* data = new T;
+		data->type     = T::Type;
+		data->group    = mFeatureMap.size();
+		data->mSetting = mSetting;
+		mFeatureMap.push_back( data );
+		return data;
+	}
+
 	void GameModule::setupSetting(GameSetting& setting)
 	{
 		mSetting = &setting;
@@ -240,17 +251,20 @@ namespace CAR
 				PutTileParam param;
 				param.checkRiverConnect = 1;
 				param.usageBridge = 0;
-				
-				MapTile* mapTile = mLevel.placeTileNoCheck( startId , Vec2i(0,0) , 0 , param );
-				mListener->onPutTile( *mapTile );
-				UpdateTileFeatureResult updateResult;
-				updateTileFeature( *mapTile , updateResult );
+
+				MapTile* placeMapTiles[ 8 ];
+				int numMapTile = mLevel.placeTileNoCheck( startId , Vec2i(0,0) , 0 , param , placeMapTiles );
+				mListener->onPutTile( startId , placeMapTiles , numMapTile );
+				mUpdateFeatures.clear();
+				for( int i = 0 ; i < numMapTile ; ++i )
+				{
+					UpdateTileFeatureResult updateResult;
+					updateTileFeature( *placeMapTiles[i] , updateResult );
+				}
 			}
 		}
 
-		
 		mNumTrun = 0;
-
 		mIsRunning = true;
 
 		while( mIsRunning )
@@ -287,6 +301,12 @@ namespace CAR
 				mIdxPlayerTrun = 0;
 		}
 
+		calcFinalScore();
+
+	}
+
+	void GameModule::calcFinalScore()
+	{
 		for( int i = 0 ; i < mFeatureMap.size() ; ++i )
 		{
 			FeatureBase* build = mFeatureMap[i];
@@ -328,7 +348,7 @@ namespace CAR
 			{
 				int numPlayer = build->calcScore( scoreInfos );
 				if ( numPlayer > 0 )
-				addFeaturePoints( *build , scoreInfos , numPlayer );
+					addFeaturePoints( *build , scoreInfos , numPlayer );
 			}
 		}
 
@@ -389,7 +409,7 @@ namespace CAR
 		{
 			TileSet const& tileSet = mTileSetManager.getTileSet( TileId(i) );
 			if ( tileSet.tag != 0 )
-				specialTileList.push_back( tileSet.tile->id );
+				specialTileList.push_back( tileSet.tiles[0].id );
 				
 			tilePieceMap[i] = tileSet.numPiece;
 		}
@@ -464,7 +484,7 @@ namespace CAR
 		std::vector< int > shuffleGroup;
 		if ( useRiver )
 		{
-			TileIdVec const& idSetGroup = mTileSetManager.getSetGroup( TileSet::eRiver );
+			TileIdVec const& idSetGroup = mTileSetManager.getGroup( TileSet::eRiver );
 			if ( tileIdFristPlay != FAIL_TILE_ID )
 			{
 				mTilesQueue.push_back( tileIdFristPlay );
@@ -502,7 +522,7 @@ namespace CAR
 		}
 
 		{
-			TileIdVec const& idSetGroup = mTileSetManager.getSetGroup( TileSet::eCommon );
+			TileIdVec const& idSetGroup = mTileSetManager.getGroup( TileSet::eCommon );
 			for( TileIdVec::const_iterator iter = idSetGroup.begin() , itEnd = idSetGroup.end() ; 
 				iter != itEnd ; ++iter )
 			{
@@ -524,7 +544,7 @@ namespace CAR
 
 		if ( mSetting->haveUse( EXP_ABBEY_AND_MAYOR ) )
 		{
-			int idx = findTagTileIndex( specialTileList , EXP_ABBEY_AND_MAYOR , TILE_ABBEY );
+			int idx = findTagTileIndex( specialTileList , EXP_ABBEY_AND_MAYOR , TILE_ABBEY_TAG );
 			if ( idx != 0 )
 			{
 				CAR_LOG( "Can't Find Abbey Tile!");
@@ -583,21 +603,31 @@ namespace CAR
 		for(;;)// step 2 to 9
 		{
 			//Step 2: Draw a Tile
-			result = resolveDrawTile( input , curTrunPlayer );
+			bool haveHillTile = false;
+			result = resolveDrawTile( input , curTrunPlayer , haveHillTile );
 			if ( result != TurnResult::eOK )
 				return result;
 
-			//Step 3: Place the Tile
-			MapTile* placeMapTile = nullptr;
-			result = resolvePlaceTile( input, curTrunPlayer , placeMapTile );
-			if ( result != TurnResult::eOK )
-				return result;
+			MapTile* placeMapTile;
+			{
+				//Step 3: Place the Tile
+				MapTile* placeMapTiles[8];
+				int numMapTile = 0;
+				result = resolvePlaceTile( input, curTrunPlayer , placeMapTiles , numMapTile);
+				if ( result != TurnResult::eOK )
+					return result;
 
-			++numPlaceTile;
-
-			//b)Note: any feature that is finished is considered complete at this time.
-			UpdateTileFeatureResult updateResult;
-			updateTileFeature( *placeMapTile , updateResult );
+				++numPlaceTile;
+				//b)Note: any feature that is finished is considered complete at this time.
+				mUpdateFeatures.clear();
+				for( int i = 0 ; i < numMapTile ; ++i )
+				{
+					placeMapTiles[i]->haveHill = haveHillTile;
+					UpdateTileFeatureResult updateResult;
+					updateTileFeature( *placeMapTiles[i] , updateResult );
+				}
+				placeMapTile = placeMapTiles[0];
+			}
 
 			if ( mSetting->haveUse( EXP_THE_TOWER ) )
 			{
@@ -802,14 +832,17 @@ namespace CAR
 		return TurnResult::eOK;
 	}
 
-	TurnResult GameModule::resolveDrawTile(IGameInput& input , PlayerBase* curTrunPlayer)
+	TurnResult GameModule::resolveDrawTile(IGameInput& input , PlayerBase* curTrunPlayer , bool& haveHillTile )
 	{
+		TileId hillTileId = FAIL_TILE_ID;
 		int countDrawTileLoop = 0;
 		for(;;)
 		{
 			++countDrawTileLoop;
 
+			hillTileId = FAIL_TILE_ID;
 			mUseTileId = FAIL_TILE_ID;
+
 			if ( mSetting->haveUse( EXP_BRIDGES_CASTLES_AND_BAZAARS ) )
 			{
 				if ( curTrunPlayer->getFieldValue( FieldType::eTileIdAuctioned ) != FAIL_TILE_ID )
@@ -830,12 +863,20 @@ namespace CAR
 				if ( countDrawTileLoop < getRemainingTileNum() )
 				{
 					TileSet tileSet = mTileSetManager.getTileSet( mUseTileId );
-					if ( tileSet.tile->contentFlag & TileContent::eTheDragon &&
+					if ( tileSet.tiles[0].contentFlag & TileContent::eTheDragon &&
 						mDragon->mapTile == nullptr )
 					{
 						reserveTile( mUseTileId );
 						continue;
 					}
+				}
+			}
+			
+			if ( mSetting->haveUse( EXP_HILLS_AND_SHEEP ) )
+			{
+				if ( getRemainingTileNum() > 0 )
+				{
+					hillTileId = drawPlayTile();
 				}
 			}
 
@@ -859,10 +900,12 @@ namespace CAR
 			break;
 		}
 
+		haveHillTile = ( hillTileId != FAIL_TILE_ID );
+
 		return TurnResult::eOK;
 	}
 
-	TurnResult GameModule::resolvePlaceTile(IGameInput& input , PlayerBase* curTrunPlayer , MapTile*& placeMapTile)
+	TurnResult GameModule::resolvePlaceTile(IGameInput& input , PlayerBase* curTrunPlayer , MapTile* placeMapTile[] , int& numMapTile )
 	{
 		TurnResult result;
 		for(;;)
@@ -883,12 +926,11 @@ namespace CAR
 			PutTileParam param;
 			param.usageBridge = 0;
 			param.checkRiverConnect = 1;
-			placeMapTile = mLevel.placeTile( mUseTileId , putTileData.resultPos , putTileData.resultRotation , param );
-			if ( placeMapTile != nullptr )
+			numMapTile = mLevel.placeTile( mUseTileId , putTileData.resultPos , putTileData.resultRotation , param , placeMapTile );
+			if ( numMapTile != 0 )
 			{
 				CAR_LOG("Player %d Place Tile %d rotation=%d" , curTrunPlayer->getId() , mUseTileId , putTileData.resultRotation );
-				mListener->onPutTile( *placeMapTile );
-
+				mListener->onPutTile( mUseTileId , placeMapTile , numMapTile );
 				break;
 			}
 		}
@@ -1798,7 +1840,6 @@ namespace CAR
 
 	void GameModule::updateTileFeature( MapTile& mapTile , UpdateTileFeatureResult& updateResult )
 	{
-		mUpdateFeatures.clear();
 		//update Build
 		{
 			FeatureBase* sideFeatures[ FDir::TotalNum ];
@@ -2620,10 +2661,14 @@ namespace CAR
 
 		for( int i = 0 ; i < mTileSetManager.getRegisterTileNum() ; ++i )
 		{
-			MapTile* mapTile = mLevel.placeTileNoCheck( i , Vec2i( 2 *(i/numRow),2*(i%numRow) ) , 0 , param );
-			mListener->onPutTile( *mapTile );
-			UpdateTileFeatureResult updateResult;
-			updateTileFeature( *mapTile , updateResult );
+			MapTile* placeMapTiles[ 8 ];
+			int numMapTile = mLevel.placeTileNoCheck( i , Vec2i( 2 *(i/numRow),2*(i%numRow) ) , 0 , param  , placeMapTiles );
+			mListener->onPutTile( i , placeMapTiles , numMapTile );
+			for( int i = 0 ; i < numMapTile ; ++i )
+			{
+				UpdateTileFeatureResult updateResult;
+				updateTileFeature( *placeMapTiles[i] , updateResult );
+			}
 		}
 	}
 
@@ -2631,13 +2676,13 @@ namespace CAR
 	{
 		TurnResult result;
 		assert( curTurnPlayer->getFieldValue( FieldType::eAbbeyPices ) > 0 );
-		Level& level = getLevel();
+		WorldTileManager& level = getLevel();
 
 		TilePiece const& tile = level.getTile( mAbbeyTileId );
 
 		std::vector< Vec2i > mapTilePosVec;
 
-		for( Level::PosSet::iterator iter = level.mEmptyLinkPosSet.begin() , itEnd = level.mEmptyLinkPosSet.end();
+		for( WorldTileManager::PosSet::iterator iter = level.mEmptyLinkPosSet.begin() , itEnd = level.mEmptyLinkPosSet.end();
 			iter != itEnd ; ++iter )
 		{
 			Vec2i const& pos = *iter;

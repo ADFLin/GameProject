@@ -11,7 +11,7 @@ namespace CAR
 {
 	class GameSetting;
 	class PlayerBase;
-	class Level;
+	class WorldTileManager;
 
 	struct FeatureType
 	{
@@ -34,9 +34,10 @@ namespace CAR
 
 	struct FeatureScoreInfo
 	{
-		int id;
-		int score;
-		int majority;
+		int  id;
+		int  score;
+		int  majority;
+		int  hillFollowerCount;
 	};
 
 	typedef std::set< MapTile* > MapTileSet;

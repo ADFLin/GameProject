@@ -38,6 +38,8 @@ namespace CAR
 		EXP_THE_RIVER ,                   //+T +RiverRule
 		EXP_THE_RIVER_II ,                //+T 
 
+		EXP_CASTLES ,                     //?T ?CastleTile ?RoadCityScoring ?CastleFeature
+
 		EXP_BASIC ,
 		EXP_TEST ,
 		NUM_EXPANSIONS  ,
@@ -51,6 +53,7 @@ namespace CAR
 		eRiver ,
 		eCity  ,
 		eAbbey , //EXP_ABBEY_AND_MAYOR
+		eGermanCastle ,
 	};
 
 	struct TileContent
@@ -164,7 +167,8 @@ namespace CAR
 		TILE_START_TAG = 1,
 		TILE_FRIST_PLAY_TAG ,
 		TILE_END_TAG ,
-		TILE_ABBEY , //EXP_ABBEY_AND_MAYOR
+		TILE_ABBEY_TAG , //EXP_ABBEY_AND_MAYOR
+		TILE_GERMAN_CASTLE_TAG ,
 	};
 
 	enum SheepToken

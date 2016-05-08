@@ -12,6 +12,7 @@ namespace CAR
 		,towerHeight(0)
 		,bridgeMask(0)
 		,group(-1)
+		,haveHill( false )
 	{
 
 		for( int i = 0 ; i < TilePiece::NumSide ; ++i )

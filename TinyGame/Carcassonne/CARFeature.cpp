@@ -5,7 +5,7 @@
 #include "CARGameSetting.h"
 #include "CARParamValue.h"
 #include "CARLevelActor.h"
-#include "CARLevel.h"
+#include "CARWorldTileManager.h"
 #include "CARDebug.h"
 
 #include <algorithm>
@@ -123,23 +123,53 @@ namespace CAR
 	{
 		struct CmpFun
 		{
+			CmpFun()
+			{
+				useHomeRule = false;
+			}
 			bool operator() ( FeatureScoreInfo const& f1 , FeatureScoreInfo const& f2 ) const
 			{
+				if ( f1.hillFollowerCount || f2.hillFollowerCount )
+				{
+					if ( useHomeRule )
+						return f1.hillFollowerCount >= f2.hillFollowerCount;
+					else
+						return f1.hillFollowerCount != 0;
+				}
 				return f1.majority > f2.majority;
 			}
+
+			bool isEqual( FeatureScoreInfo const& f1 , FeatureScoreInfo const& f2 ) const
+			{
+				if ( useHomeRule )
+				{
+					if ( f1.hillFollowerCount != 0 && f1.hillFollowerCount == f2.hillFollowerCount )
+						return true;
+				}
+				else
+				{
+					if ( f1.hillFollowerCount != 0 && f2.hillFollowerCount != 0 )
+						return true;
+				}
+
+				return f1.majority == f2.majority;
+			}
+
+			bool useHomeRule;
 		};
-		std::sort( featureControls.begin() , featureControls.end() , CmpFun() );
+
+
+		CmpFun fun;
+		std::sort( featureControls.begin() , featureControls.end() , fun );
 
 		int numPlayer = 0;
 		if ( featureControls[0].majority != 0 )
 		{
-			int maxMajority  = featureControls[0].majority;
 			++numPlayer;
 			for( int i = 1; i < featureControls.size() ; ++i )
 			{
-				if ( featureControls[i].majority != maxMajority )
+				if ( fun.isEqual( featureControls[0] , featureControls[i] ) == false )
 					break;
-
 				++numPlayer;
 			}
 		}
@@ -171,6 +201,8 @@ namespace CAR
 			LevelActor* actor = mActors[i];
 			FeatureScoreInfo& info = scoreInfos[ actor->owner->getId() ];
 			info.majority += getMajorityValue( actor->type );
+			if ( mSetting->isFollower( actor->type ) && actor->mapTile->haveHill )
+				info.hillFollowerCount += 1;
 		}
 	}
 
@@ -181,6 +213,7 @@ namespace CAR
 		{
 			scoreInfos[i].id       = i;
 			scoreInfos[i].majority = 0;
+			scoreInfos[i].hillFollowerCount = 0;
 		}
 	}
 

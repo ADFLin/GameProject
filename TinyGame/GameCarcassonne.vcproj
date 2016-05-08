@@ -230,11 +230,11 @@
 			>
 		</File>
 		<File
-			RelativePath=".\Carcassonne\CARGameInput.cpp"
+			RelativePath=".\Carcassonne\CARGameInputImpl.cpp"
 			>
 		</File>
 		<File
-			RelativePath=".\Carcassonne\CARGameInput.h"
+			RelativePath=".\Carcassonne\CARGameInputImpl.h"
 			>
 		</File>
 		<File
@@ -247,14 +247,6 @@
 		</File>
 		<File
 			RelativePath=".\Carcassonne\CARGameSetting.h"
-			>
-		</File>
-		<File
-			RelativePath=".\Carcassonne\CARLevel.cpp"
-			>
-		</File>
-		<File
-			RelativePath=".\Carcassonne\CARLevel.h"
 			>
 		</File>
 		<File
@@ -295,6 +287,14 @@
 		</File>
 		<File
 			RelativePath=".\Carcassonne\CARTileDefineData.cpp"
+			>
+		</File>
+		<File
+			RelativePath=".\Carcassonne\CARWorldTileManager.cpp"
+			>
+		</File>
+		<File
+			RelativePath=".\Carcassonne\CARWorldTileManager.h"
 			>
 		</File>
 		<File

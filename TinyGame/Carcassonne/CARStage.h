@@ -4,16 +4,13 @@
 #include "CFlyHeader.h"
 #include "GameStage.h"
 
-#include "CARLevel.h"
+#include "CARWorldTileManager.h"
 #include "CARGameSetting.h"
 #include "CARGameModule.h"
 #include "CARDebug.h"
-#include "CARGameInput.h"
-
+#include "CARGameInputImpl.h"
 
 #include "FixVector.h"
-
-
 
 #include <fstream>
 #include <sstream>
@@ -181,7 +178,11 @@ namespace CAR
 		void  onGameAction( GameModule& moudule , CGameInput& input );
 		void  removeGameActionUI();
 		Vec2f getActorPosMapOffset( ActorPos const& pos );
-		virtual void onPutTile( MapTile& mapTile );
+
+		//IGameEventListener
+		virtual void onPutTile( TileId id , MapTile* mapTiles[] , int numMapTile );
+		//
+
 
 		void setTileObjectTexture(CFly::Object* obj, TileId id );
 

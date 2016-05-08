@@ -203,8 +203,8 @@ namespace CAR
 			mSurfaceBufferTake->ReleaseDC(hDC);
 		}
 
-		Level& level = mMoudule.getLevel();
-		for ( Level::LevelTileMap::iterator iter = level.mMap.begin() , itEnd = level.mMap.end();
+		WorldTileManager& level = mMoudule.getLevel();
+		for ( WorldTileManager::WorldTileMap::iterator iter = level.mMap.begin() , itEnd = level.mMap.end();
 			iter != itEnd ; ++iter )
 		{
 			RenderUtility::setBrush( g , Color::eNull );
@@ -729,7 +729,7 @@ namespace CAR
 		if ( !BaseClass::onMouse( msg ) )
 			return false;
 
-		Level& level = mMoudule.getLevel();
+		WorldTileManager& level = mMoudule.getLevel();
 
 		if ( msg.onLeftDown() )
 		{
@@ -1255,20 +1255,23 @@ namespace CAR
 		return Vec2f(0,0);
 	}
 
-	void LevelStage::onPutTile(MapTile& mapTile)
+	void LevelStage::onPutTile( TileId id , MapTile* mapTiles[] , int numMapTile )
 	{
 		mTileShowObject->show( false );
-
-		using namespace CFly;
-		Object* obj = createTileObject();
-		float x = mapTile.pos.x;
-		float y = mapTile.pos.y;
-		obj->setLocalPosition( Vector3(x,y,0) );
-		obj->setLocalOrientation( CF_AXIS_Z , Math::Deg2Rad(90*mapTile.rotation) );
-		setTileObjectTexture( obj, mapTile.getId() );
-
-		mRenderObjects.push_back( obj );
-		//mObject->setRenderOption( CFRO_CULL_FACE , CF_CULL_NONE );
+		
+		if ( numMapTile == 1 )
+		{
+			MapTile& mapTile = *mapTiles[0];
+			using namespace CFly;
+			Object* obj = createTileObject();
+			float x = mapTile.pos.x;
+			float y = mapTile.pos.y;
+			obj->setLocalPosition( Vector3(x,y,0) );
+			obj->setLocalOrientation( CF_AXIS_Z , Math::Deg2Rad(90*mapTile.rotation) );
+			//obj->setRenderOption( CFRO_CULL_FACE , CF_CULL_NONE );
+			setTileObjectTexture( obj, mapTile.getId() );
+			mRenderObjects.push_back( obj );
+		}
 	}
 
 	CFly::Object* LevelStage::createTileObject()

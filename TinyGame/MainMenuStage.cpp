@@ -20,6 +20,7 @@
 #include "Shoot2D/FlightGame.h"
 #include "Bejeweled/BJStage.h"
 #include "MonumentValley/MVStage.h"
+#include "Cantan/CantanStage.h"
 
 #include "LightingStage.h"
 #include "TestStage.h"
@@ -29,12 +30,13 @@
 #include "FBirdStage.h"
 #include "PlanetStage.h"
 #include "GGJStage.h"
+#include "RubiksStage.h"
 
 #include "EasingFun.h"
 
 #include <cmath>
 
-class IFactory
+class IStageFactory
 {
 public:
 	virtual void* create() = 0;
@@ -42,75 +44,78 @@ public:
 
 
 template< class T >
-class CFactory : public IFactory
+class TStageFactory : public IStageFactory
 {
 public:
 	void* create(){ return new T; }
 };
 
 template< class T >
-static IFactory* makeFactory()
+static IStageFactory* makeStageFactory()
 {
-	static CFactory< T > myFactory;
+	static TStageFactory< T > myFactory;
 	return &myFactory;
 }
 
 struct StageInfo
 {
 	char const*    decl;
-	IFactory* factory;
+	IStageFactory* factory;
 };
 
-#define INFO( DECL , CLASS )\
-	{ DECL , makeFactory< CLASS >() } 
+#define STAGE_INFO( DECL , CLASS )\
+	{ DECL , makeStageFactory< CLASS >() } 
 
 StageInfo gGraphicsTestGroup[] = 
 {
-	INFO( "GGJ Test" , GGJ::TestStage ) ,
-	INFO( "2D Lighting Test"     , Lighting::TestStage ) ,
-	INFO( "Shader Test"  , GS::TestStage ), 
-	INFO( "GLGraphics2D Test"   , GLGraphics2DTestStage ) ,
-	INFO( "BSpline Test"   , BSplineTestStage ) ,
+	STAGE_INFO( "Misc Test" , MiscTestStage ) ,
+	STAGE_INFO( "Cantan Test" , Cantan::LevelStage ) ,
+	STAGE_INFO( "GGJ Test" , GGJ::TestStage ) ,
+	STAGE_INFO( "2D Lighting Test"     , Lighting::TestStage ) ,
+	STAGE_INFO( "Shader Test"  , GS::TestStage ), 
+	STAGE_INFO( "GLGraphics2D Test"   , GLGraphics2DTestStage ) ,
+	STAGE_INFO( "BSpline Test"   , BSplineTestStage ) ,
 };
 
 StageInfo gTestGroup[] =
 {
-	INFO( "Bsp Test"    , Bsp2D::TestStage ) ,
-	INFO( "A-Star Test" , AStar::TestStage ) ,
-	INFO( "SAT Col Test"    , G2D::TestStage ) ,
-	INFO( "GJK Col Test" , Phy2D::CollideTestStage ) ,
-	INFO( "QHull Test"   , G2D::QHullTestStage ) ,
-	INFO( "RB Tree Test"   , TreeTestStage )  ,
-	INFO( "Tween Test"  , TweenTestStage ) ,
+	STAGE_INFO( "Bsp Test"    , Bsp2D::TestStage ) ,
+	STAGE_INFO( "A-Star Test" , AStar::TestStage ) ,
+	STAGE_INFO( "SAT Col Test" , G2D::TestStage ) ,
+	STAGE_INFO( "GJK Col Test" , Phy2D::CollideTestStage ) ,
+	STAGE_INFO( "QHull Test"   , G2D::QHullTestStage ) ,
+	STAGE_INFO( "RB Tree Test"   , TreeTestStage )  ,
+	STAGE_INFO( "Tween Test"  , TweenTestStage ) ,
 
 #if 1
-	INFO( "TileMap Test"  , TileMapTestStage ), 
-	INFO( "Corontine Test" , CoroutineTestStage ) ,
-	INFO( "SIMD Test" , SIMD::TestStage ) ,
-	INFO( "XML Prase Test" , XMLPraseTestStage ) ,
+	STAGE_INFO( "TileMap Test"  , TileMapTestStage ), 
+	STAGE_INFO( "Corontine Test" , CoroutineTestStage ) ,
+	STAGE_INFO( "SIMD Test" , SIMD::TestStage ) ,
+	STAGE_INFO( "XML Prase Test" , XMLPraseTestStage ) ,
 #endif
 };
 
 StageInfo gPhyDevGroup[] =
 {	
-	INFO( "RigidBody Test" , Phy2D::WorldTestStage ) ,	
+	STAGE_INFO( "RigidBody Test" , Phy2D::WorldTestStage ) ,	
 };
 
 StageInfo gDevGroup[] =
 {
-	INFO( "Monument Valley" , MV::TestStage ) ,
-	INFO( "Triple Town Test"  , TripleTown::LevelStage ) ,
-	INFO( "Bejeweled Test"    , Bejeweled::TestStage ) ,
-	INFO( "Bloxorz Test"      , Bloxorz::TestStage ), 
-	INFO( "FlappyBird Test"   , FlappyBird::TestStage ) , 
+	STAGE_INFO( "Monument Valley" , MV::TestStage ) ,
+	STAGE_INFO( "Triple Town Test"  , TripleTown::LevelStage ) ,
+	STAGE_INFO( "Bejeweled Test"    , Bejeweled::TestStage ) ,
+	STAGE_INFO( "Bloxorz Test"      , Bloxorz::TestStage ), 
+	STAGE_INFO( "FlappyBird Test"   , FlappyBird::TestStage ) , 
 	
 };
 
 StageInfo gDev4Group[] =
 {
-	INFO( "Mario Test"        , Mario::TestStage ) ,
-	INFO( "Shoot2D Test"      , Shoot2D::TestStage ) ,
-	INFO( "Go Test"           , Go::Stage ) ,
+	STAGE_INFO( "Rubiks Test"       , Rubiks::TestStage ) ,
+	STAGE_INFO( "Mario Test"        , Mario::TestStage ) ,
+	STAGE_INFO( "Shoot2D Test"      , Shoot2D::TestStage ) ,
+	STAGE_INFO( "Go Test"           , Go::Stage ) ,
 };
 
 #undef INFO
@@ -138,7 +143,7 @@ bool MainMenuStage::onInit()
 
 	getManager()->setTickTime( gDefaultTickTime );
 
-	::Global::getGUI().cleanupWidget();
+	::Global::GUI().cleanupWidget();
 
 #if 0
 	GButton* button = new GButton( UI_ANY , Vec2i(100 ,20 ) , Vec2i(100 ,20 )  , NULL );
@@ -183,7 +188,7 @@ MainOptionBook::MainOptionBook( int id , Vec2i const& pos , GWidget* parent )
 	page = addPage( LAN("User") );
 	page->setRenderCallback( RenderCallBack::create( this , &MainOptionBook::renderUser ) );
 	{
-		UserProfile& profile = ::Global::getGUI().getUserProfile();
+		UserProfile& profile = ::Global::getUserProfile();
 
 		Vec2i uiPos( 130 , 20 );
 		Vec2i const uiSize( 150 , 25 );
@@ -221,9 +226,9 @@ bool MainOptionBook::onChildEvent( int event , int id , GWidget* ui )
 	{
 	case UI_YES:
 		{
-			UserProfile& profile = ::Global::getGUI().getUserProfile();
+			UserProfile& profile = ::Global::getUserProfile();
 			profile.name = static_cast< GTextCtrl* >( getCurPage()->findChild( UI_USER_NAME ) )->getValue();
-			::Global::getGUI().getManager().getModalUI()->destroy();
+			::Global::GUI().getManager().getModalUI()->destroy();
 		}
 		return false;
 	}
@@ -264,6 +269,7 @@ void MainMenuStage::doChangeGroup( StageGroupID group )
 		CREATE_BUTTON( UI_GAME_DEV_GROUP  , "Game Dev"   );
 		CREATE_BUTTON( UI_GAME_DEV2_GROUP  , "Game Dev2"   );
 		CREATE_BUTTON( UI_GAME_DEV3_GROUP  , "Phyics Test"   );
+		CREATE_BUTTON( UI_GAME_DEV4_GROUP  , "Dev Test"   );
 		CREATE_BUTTON( UI_GRAPHIC_TEST_GROUP , "Graphic Test" );
 		CREATE_BUTTON( UI_TEST_GROUP      , "Test" );
 		CREATE_BUTTON( UI_SINGLEPLAYER  , LAN("SinglePlayer")  );
@@ -337,7 +343,7 @@ void MainMenuStage::doChangeGroup( StageGroupID group )
 	case UI_SINGLEPLAYER:
 		{
 			GamePackageVec games;
-			Global::getGameManager().classifyGame( ATTR_SINGLE_SUPPORT , games );
+			Global::GameManager().classifyGame( ATTR_SINGLE_SUPPORT , games );
 
 			for( GamePackageVec::iterator iter = games.begin() ; 
 				 iter != games.end() ; ++iter )
@@ -362,7 +368,7 @@ bool MainMenuStage::onWidgetEvent( int event , int id , GWidget* ui )
 		case UI_NET_TEST_CL:
 			{
 				GameNetLevelStage* stage = new GameNetLevelStage;
-				ClientWorker* worker = static_cast< ClientWorker* >( getManager()->buildNetwork( false ) );
+				ClientWorker* worker = static_cast< ClientWorker* >( ::Global::GameNet().buildNetwork( false ) );
 				stage->setSubStage( new Net::TestStage );
 				stage->initWorker( worker , NULL );
 				getManager()->setNextStage( stage );
@@ -371,9 +377,9 @@ bool MainMenuStage::onWidgetEvent( int event , int id , GWidget* ui )
 		case UI_NET_TEST_SV:
 			{
 				GameNetLevelStage* stage = new GameNetLevelStage;
-				ServerWorker* server = static_cast< ServerWorker* >( getManager()->buildNetwork( true ) );
+				ServerWorker* server = static_cast< ServerWorker* >(::Global::GameNet().buildNetwork( true ) );
 				stage->setSubStage( new Net::TestStage );
-				stage->initWorker( server->createLocalWorker( getManager()->getUserProfile() ) , server );
+				stage->initWorker( server->createLocalWorker(::Global::getUserProfile() ) , server );
 				getManager()->setNextStage( stage );
 			}
 			break;
@@ -381,7 +387,7 @@ bool MainMenuStage::onWidgetEvent( int event , int id , GWidget* ui )
 		case UI_FREECELL_TEST:
 		case UI_BIG2_TEST:
 			{
-				IGamePackage* game = Global::getGameManager().changeGame( "Poker" );
+				IGamePackage* game = Global::GameManager().changeGame( "Poker" );
 				if ( !game )
 					return false;
 				Poker::GameRule rule;
@@ -401,6 +407,7 @@ bool MainMenuStage::onWidgetEvent( int event , int id , GWidget* ui )
 		case UI_GAME_DEV_GROUP:
 		case UI_GAME_DEV2_GROUP:
 		case UI_GAME_DEV3_GROUP:
+		case UI_GAME_DEV4_GROUP:
 		case UI_TEST_GROUP:
 		case UI_GRAPHIC_TEST_GROUP:
 			pushGroup( id );
@@ -414,15 +421,15 @@ bool MainMenuStage::onWidgetEvent( int event , int id , GWidget* ui )
 		case UI_GAME_BUTTON:
 			{
 				IGamePackage* game = reinterpret_cast< IGamePackage* >( ui->getUserData() );
-				Global::getGameManager().changeGame( game->getName() );
+				Global::GameManager().changeGame( game->getName() );
 				game->beginPlay( GT_SINGLE_GAME , *getManager() );
 			}
 			return false;
 		case UI_GAME_OPTION:
 			{
-				Vec2i pos = ::Global::getGUI().calcScreenCenterPos( MainOptionBook::UISize );
+				Vec2i pos = ::Global::GUI().calcScreenCenterPos( MainOptionBook::UISize );
 				MainOptionBook* book = new MainOptionBook( UI_GAME_OPTION , pos  , NULL );
-				::Global::getGUI().getManager().addUI( book );
+				::Global::GUI().getManager().addUI( book );
 				book->setTop();
 				book->doModal();
 			}
@@ -431,7 +438,7 @@ bool MainMenuStage::onWidgetEvent( int event , int id , GWidget* ui )
 	}
 	else if ( id < UI_SINGLE_DEV_INDEX + MAX_NUM_GROUP )
 	{
-		IGamePackage* game = Global::getGameManager().changeGame( gSingleDev[ id - UI_SINGLE_DEV_INDEX ].game );
+		IGamePackage* game = Global::GameManager().changeGame( gSingleDev[ id - UI_SINGLE_DEV_INDEX ].game );
 		if ( !game )
 			return false;
 		game->beginPlay( GT_SINGLE_GAME , *getManager() );

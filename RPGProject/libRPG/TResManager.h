@@ -12,7 +12,8 @@
 
 typedef unsigned ResId;
 
-enum  ModelType;
+//enum  ModelType;
+typedef uint32 ModelType;
 struct DamageInfo;
 class TResManager;
 class eF3DFX;

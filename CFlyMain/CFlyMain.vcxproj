@@ -1,0 +1,185 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{CE65A4F4-D290-4E05-B119-7D6CF538E05D}</ProjectGuid>
+    <RootNamespace>CFlyMain</RootNamespace>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <PlatformToolset>v140</PlatformToolset>
+    <CharacterSet>NotSet</CharacterSet>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <PlatformToolset>v140</PlatformToolset>
+    <CharacterSet>NotSet</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup>
+    <_ProjectFileVersion>14.0.25431.1</_ProjectFileVersion>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <OutDir>$(SolutionDir)$(Configuration)\</OutDir>
+    <IntDir>$(Configuration)\</IntDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <OutDir>$(SolutionDir)$(Configuration)\</OutDir>
+    <IntDir>$(Configuration)\</IntDir>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <Optimization>Disabled</Optimization>
+      <AdditionalIncludeDirectories>../OtherLib/Dx9/Include;../libEngine;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>DEBUG;WIN32;_WINDOWS;D3D_DEBUG_INFO;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessToFile>false</PreprocessToFile>
+      <PreprocessSuppressLineNumbers>false</PreprocessSuppressLineNumbers>
+      <MinimalRebuild>true</MinimalRebuild>
+      <BasicRuntimeChecks>Default</BasicRuntimeChecks>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeaderFile>CFlyPCH.h</PrecompiledHeaderFile>
+      <WarningLevel>Level3</WarningLevel>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <ProgramDataBaseFileName>$(IntDir)vc$(PlatformToolsetVersion).pdb</ProgramDataBaseFileName>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <AdditionalOptions>/MP %(AdditionalOptions)</AdditionalOptions>
+      <Optimization>MaxSpeed</Optimization>
+      <InlineFunctionExpansion>Default</InlineFunctionExpansion>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <EnableFiberSafeOptimizations>true</EnableFiberSafeOptimizations>
+      <AdditionalIncludeDirectories>../OtherLib/Dx9/Include;../libEngine;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>_SECURE_SCL=0;WIN32;_WINDOWS;NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeaderFile>CFlyPCH.h</PrecompiledHeaderFile>
+      <PrecompiledHeaderOutputFile>$(IntDir)$(TargetName).pch</PrecompiledHeaderOutputFile>
+      <WarningLevel>Level3</WarningLevel>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <ProgramDataBaseFileName>$(IntDir)vc$(PlatformToolsetVersion).pdb</ProgramDataBaseFileName>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="CFActor.cpp" />
+    <ClCompile Include="CFAppMain.cpp" />
+    <ClCompile Include="CFBuffer.cpp" />
+    <ClCompile Include="CFCamera.cpp" />
+    <ClCompile Include="CFEntity.cpp" />
+    <ClCompile Include="CFFileLoader.cpp" />
+    <ClCompile Include="CFLight.cpp" />
+    <ClCompile Include="CFlyPCH.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="CFMaterial.cpp" />
+    <ClCompile Include="CFMeshBuilder.cpp" />
+    <ClCompile Include="CFNodeBase.cpp" />
+    <ClCompile Include="CFObject.cpp" />
+    <ClCompile Include="CFPluginManager.cpp" />
+    <ClCompile Include="CFRenderShape.cpp" />
+    <ClCompile Include="CFRenderSystem.cpp" />
+    <ClCompile Include="CFScene.cpp" />
+    <ClCompile Include="CFSceneNode.cpp" />
+    <ClCompile Include="CFShaderParamSet.cpp" />
+    <ClCompile Include="CFShuFa.cpp" />
+    <ClCompile Include="CFSkeleton.cpp" />
+    <ClCompile Include="CFSpatialNode.cpp" />
+    <ClCompile Include="CFSprite.cpp" />
+    <ClCompile Include="CFTransformUtility.cpp" />
+    <ClCompile Include="CFVertexUtility.cpp" />
+    <ClCompile Include="CFViewport.cpp" />
+    <ClCompile Include="CFWorld.cpp" />
+    <ClCompile Include="Cw3FileLoader.cpp" />
+    <ClCompile Include="LoLFileLoader.cpp" />
+    <ClCompile Include="MdlFileLoader.cpp" />
+    <ClCompile Include="ObjFileLoader.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="CFTheFlyPort.cpp_temp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="CFActor.h" />
+    <ClInclude Include="CFAnimatable.h" />
+    <ClInclude Include="CFBase.h" />
+    <ClInclude Include="CFBound.h" />
+    <ClInclude Include="CFBspNode.h" />
+    <ClInclude Include="CFBuffer.h" />
+    <ClInclude Include="CFCamera.h" />
+    <ClInclude Include="CFColor.h" />
+    <ClInclude Include="CFEntity.h" />
+    <ClInclude Include="CFFileLoader.h" />
+    <ClInclude Include="CFGeomUtility.h" />
+    <ClInclude Include="CFLight.h" />
+    <ClInclude Include="CFlyHeader.h" />
+    <ClInclude Include="CFlyPCH.h" />
+    <ClInclude Include="CFMaterial.h" />
+    <ClInclude Include="CFMath.h" />
+    <ClInclude Include="CFMatrix3.h" />
+    <ClInclude Include="CFMatrix4.h" />
+    <ClInclude Include="CFMatrixUtlity.h" />
+    <ClInclude Include="CFMeshBuilder.h" />
+    <ClInclude Include="CFNodeBase.h" />
+    <ClInclude Include="CFObject.h" />
+    <ClInclude Include="CFParticle.h" />
+    <ClInclude Include="CFPluginManager.h" />
+    <ClInclude Include="CFQuaternion.h" />
+    <ClInclude Include="CFRenderEntity.h" />
+    <ClInclude Include="CFRenderer.h" />
+    <ClInclude Include="CFRenderOption.h" />
+    <ClInclude Include="CFRenderShape.h" />
+    <ClInclude Include="CFRenderSystem.h" />
+    <ClInclude Include="CFRenderSystemGL.h" />
+    <ClInclude Include="CFScene.h" />
+    <ClInclude Include="CFSceneNode.h" />
+    <ClInclude Include="CFShader.h" />
+    <ClInclude Include="CFShaderParamSet.h" />
+    <ClInclude Include="CFShuFa.h" />
+    <ClInclude Include="CFSkeleton.h" />
+    <ClInclude Include="CFSpatialNode.h" />
+    <ClInclude Include="CFSprite.h" />
+    <ClInclude Include="CFTexture.h" />
+    <ClInclude Include="CFTheFlyPort.h" />
+    <ClInclude Include="CFTransformUtility.h" />
+    <ClInclude Include="CFTypeDef.h" />
+    <ClInclude Include="CFVector3.h" />
+    <ClInclude Include="CFVertexDecl.h" />
+    <ClInclude Include="CFVertexUtility.h" />
+    <ClInclude Include="CFViewport.h" />
+    <ClInclude Include="CFWaterSurface.h" />
+    <ClInclude Include="CFWorld.h" />
+    <ClInclude Include="Cw3FileLoader.h" />
+    <ClInclude Include="LoLFileLoader.h" />
+    <ClInclude Include="MdlFileLoader.h" />
+    <ClInclude Include="ObjFileLoader.h" />
+    <ClInclude Include="TheFly.h" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

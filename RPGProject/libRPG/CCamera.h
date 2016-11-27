@@ -25,12 +25,13 @@ public:
 	void  setLookPos( Vec3D const& lookPos )           {  setViewDir( lookPos - getPosition() );  }
 	void  move( Vec3D const& offset )                  {  mPos += offset;  }
 	void  moveLocal( Vec3D const& offset)              {  mPos += mRotation.rotate( offset );  }
-	void  roateLocal( Vec3D const& axis , float angle ){  mRotation = mRotation * Quat::Rotate( axis , angle );  }
+	void  rotateLocal( Vec3D const& axis , float angle ){  mRotation = mRotation * Quat::Rotate( axis , angle );  }
 	
 	//Mat3x3 getRotationMatrix(){	return Mat3x3( m_rotation ); }
 	Vec3D  calcRayDirection( int xPos, int yPos , float fov , float aspect )
 	{
-
+		//FIXME
+		return Vec3D(0, 0, 1);
 	}
 
 	Vec3D  transLocalDir( Vec3D const& lDir ){  return mRotation.rotate( lDir );  }

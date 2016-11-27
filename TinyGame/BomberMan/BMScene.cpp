@@ -87,6 +87,7 @@ namespace BomberMan
 			if ( !gifLoader.load( path  , texLoader ) )
 				return false;
 			mTransColor = texLoader.transColor;
+			return true;
 		}
 
 		ColorKey3 mTransColor;

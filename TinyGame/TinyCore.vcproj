@@ -40,7 +40,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories=".;../libEngine;../OtherLib;../OtherLib/boost;../OtherLib/glew"
+				AdditionalIncludeDirectories=".;TinyCore;../libEngine;../OtherLib;../OtherLib/boost;../OtherLib/glew"
 				PreprocessorDefinitions="WIN32;_WINDOWS;DEBUG;CORE_SHARE;"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="0"
@@ -109,7 +109,7 @@
 				Name="VCCLCompilerTool"
 				Optimization="2"
 				EnableIntrinsicFunctions="true"
-				AdditionalIncludeDirectories=".;../libEngine;../OtherLib;../OtherLib/boost"
+				AdditionalIncludeDirectories=".;TinyCore;../libEngine;../OtherLib;../OtherLib/boost"
 				PreprocessorDefinitions="_SECURE_SCL=0;WIN32;_WINDOWS;NDEBUG;"
 				StringPooling="true"
 				RuntimeLibrary="2"
@@ -159,39 +159,39 @@
 			UniqueIdentifier="{93995380-89BD-4b04-88EB-625FBE52EBFB}"
 			>
 			<File
-				RelativePath=".\DataStream.h"
+				RelativePath=".\TinyCore\DataStream.h"
 				>
 			</File>
 			<File
-				RelativePath=".\DataStreamBuffer.cpp"
+				RelativePath=".\TinyCore\DataStreamBuffer.cpp"
 				>
 			</File>
 			<File
-				RelativePath=".\DataStreamBuffer.h"
+				RelativePath=".\TinyCore\DataStreamBuffer.h"
 				>
 			</File>
 			<File
-				RelativePath=".\DataTransfer.h"
+				RelativePath=".\TinyCore\DataTransfer.h"
 				>
 			</File>
 			<File
-				RelativePath=".\DataTransferImpl.cpp"
+				RelativePath=".\TinyCore\DataTransferImpl.cpp"
 				>
 			</File>
 			<File
-				RelativePath=".\DataTransferImpl.h"
+				RelativePath=".\TinyCore\DataTransferImpl.h"
 				>
 			</File>
 			<File
-				RelativePath=".\GameAction.h"
+				RelativePath=".\TinyCore\GameAction.h"
 				>
 			</File>
 			<File
-				RelativePath=".\GameConfig.h"
+				RelativePath=".\TinyCore\GameConfig.h"
 				>
 			</File>
 			<File
-				RelativePath=".\GameDefines.h"
+				RelativePath=".\TinyCore\GameDefines.h"
 				>
 			</File>
 			<File
@@ -199,11 +199,11 @@
 				>
 			</File>
 			<File
-				RelativePath=".\GamePackage.cpp"
+				RelativePath=".\TinyCore\GamePackage.cpp"
 				>
 			</File>
 			<File
-				RelativePath=".\GamePackage.h"
+				RelativePath=".\TinyCore\GamePackage.h"
 				>
 			</File>
 			<File
@@ -215,11 +215,11 @@
 				>
 			</File>
 			<File
-				RelativePath=".\PropertyKey.cpp"
+				RelativePath=".\TinyCore\PropertyKey.cpp"
 				>
 			</File>
 			<File
-				RelativePath=".\PropertyKey.h"
+				RelativePath=".\TinyCore\PropertyKey.h"
 				>
 			</File>
 			<File
@@ -265,19 +265,19 @@
 				>
 			</File>
 			<File
-				RelativePath=".\GameStage.cpp"
+				RelativePath=".\TinyCore\GameStage.cpp"
 				>
 			</File>
 			<File
-				RelativePath=".\GameStage.h"
+				RelativePath=".\TinyCore\GameStage.h"
 				>
 			</File>
 			<File
-				RelativePath=".\StageBase.cpp"
+				RelativePath=".\TinyCore\StageBase.cpp"
 				>
 			</File>
 			<File
-				RelativePath=".\StageBase.h"
+				RelativePath=".\TinyCore\StageBase.h"
 				>
 			</File>
 		</Filter>
@@ -285,7 +285,7 @@
 			Name="GUI"
 			>
 			<File
-				RelativePath=".\GameWidgetID.h"
+				RelativePath=".\TinyCore\GameWidgetID.h"
 				>
 			</File>
 			<File

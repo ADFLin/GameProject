@@ -88,7 +88,7 @@ namespace Poker
 
 		mSeed  = 0;
 
-		::Global::getGUI().cleanupWidget();
+		::Global::GUI().cleanupWidget();
 		DevFrame* frame = WidgetUtility::createDevFrame();
 		frame->addButton( UI_RESTART_GAME , "Restart Game" );
 		frame->addButton( UI_NEW_GAME     , "New Game" );
@@ -366,7 +366,7 @@ namespace Poker
 				Vec2i pos = GUISystem::calcScreenCenterPos( panel->getSize() );
 				panel->stage = this;
 				panel->setPos( pos );
-				::Global::getGUI().addWidget( panel );
+				::Global::GUI().addWidget( panel );
 				panel->doModal();
 			}
 			return false;
@@ -493,14 +493,14 @@ namespace Poker
 		{
 			if ( getGCardNum() == 52 )
 			{
-				::Global::getGUI().showMessageBox( UI_NEW_GAME , "You Win! Do You Play Again?" , GMB_YESNO );
+				::Global::GUI().showMessageBox( UI_NEW_GAME , "You Win! Do You Play Again?" , GMB_YESNO );
 				return;
 			}
 
 			int numPossible = calcPossibleMoveNum();
 			if ( numPossible  == 0 )
 			{
-				::Global::getGUI().showMessageBox( UI_NEW_GAME , "You Lose! Do You Give up This Game?" , GMB_YESNO );
+				::Global::GUI().showMessageBox( UI_NEW_GAME , "You Lose! Do You Give up This Game?" , GMB_YESNO );
 			}
 			else if( numPossible == 1 )
 			{

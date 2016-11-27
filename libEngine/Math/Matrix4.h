@@ -226,12 +226,12 @@ namespace Math
 	}
 
 	// v' = ( v , 1 )
-	inline Vector3 operator * ( Matrix4 const m , Vector3 const& v )
+	inline Vector3 operator * ( Matrix4 const& m , Vector3 const& v )
 	{
 		return m.rightMul( v );
 	}
 
-	inline Vector3 operator * (  Vector3 const& v  , Matrix4 const m )
+	inline Vector3 operator * (  Vector3 const& v  , Matrix4 const& m )
 	{
 		return m.leftMul( v );
 	}
@@ -241,7 +241,7 @@ namespace Math
 		return m.rightMul( v );
 	}
 
-	inline Vector4 operator * (  Vector4 const& v  , Matrix4 const m )
+	inline Vector4 operator * (  Vector4 const& v  , Matrix4 const& m )
 	{
 		return m.leftMul( v );
 	}

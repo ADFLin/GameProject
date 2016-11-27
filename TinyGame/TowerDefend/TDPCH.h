@@ -5,6 +5,7 @@
 
 #include <vector>
 #include <list>
+#include <algorithm>
 
 #include "Win32Header.h"
 

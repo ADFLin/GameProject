@@ -790,7 +790,7 @@ namespace MV
 			if ( specialTest >= 0 )
 			{
 				//check 
-				BlockSurface& surf = ( FDir::isPositive( info.linkDir ) ) ? 
+				BlockSurface& surf = ( FDir::IsPositive( info.linkDir ) ) ? 
 					info.block->getFace( info.linkDir ) :
 				mBlocks[ destBlockId ]->getFace( FDir::Inverse( info.linkDir ) );
 				if ( surf.fun != NFT_PASS_VIEW )
@@ -859,7 +859,7 @@ namespace MV
 		int axis = FDir::Axis( dir );
 		if ( posA[axis] == posB[axis] )
 			return 0;
-		int result = ( FDir::isPositive( dir ) ) ? 1 : -1;
+		int result = ( FDir::IsPositive( dir ) ) ? 1 : -1;
 		result *= (  posA[axis] > posB[ axis ] ) ? 1 : -2;
 		return result;
 	}

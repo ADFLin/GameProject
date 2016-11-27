@@ -38,22 +38,14 @@ namespace Poker
 				return new FreeCellStage;
 			}
 			break;
-		}
-		return NULL;
-	}
-
-	GameSubStage* CGamePackage::createSubStage( unsigned id )
-	{ 
-		switch( mRule )
-		{
 		case RULE_BIG2:
-			if ( id == STAGE_NET_GAME || id == STAGE_SINGLE_GAME )
+			if( id == STAGE_NET_GAME || id == STAGE_SINGLE_GAME )
 			{
 				return new Big2::LevelStage;
 			}
 			break;
 		case RULE_HOLDEM:
-			if ( id == STAGE_NET_GAME || id == STAGE_SINGLE_GAME )
+			if( id == STAGE_NET_GAME || id == STAGE_SINGLE_GAME )
 			{
 				return new Holdem::LevelStage;
 			}
@@ -76,7 +68,7 @@ namespace Poker
 		return false;
 	}
 
-	void CGamePackage::beginPlay( GameType type, StageManager& manger )
+	void CGamePackage::beginPlay( StageModeType type, StageManager& manger )
 	{
 		IGamePackage::beginPlay( type , manger );
 	}
@@ -181,7 +173,7 @@ namespace Poker
 			setMaxPlayerNum( Holdem::MaxPlayerNum );
 		}
 
-		virtual void setupGame( StageManager& manager , GameSubStage* subStage )
+		virtual void setupGame( StageManager& manager , GameStageBase* subStage )
 		{
 
 		}

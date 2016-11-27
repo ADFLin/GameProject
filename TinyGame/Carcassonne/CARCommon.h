@@ -66,6 +66,12 @@ namespace CAR
 		Vec2i(1,0) , Vec2i(0,1) , Vec2i(-1,0) , Vec2i(0,-1)
 	};
 
+	static Vec2i const gNeighborOffset[] =
+	{
+		Vec2i(1,0) , Vec2i(1,1) , Vec2i(0,1) , Vec2i(-1,1),
+		Vec2i(-1,0) , Vec2i(-1,-1) , Vec2i(0,-1) , Vec2i(1,-1),
+	};
+
 	struct FDir
 	{
 		static int const TotalNum = 4;
@@ -90,6 +96,12 @@ namespace CAR
 		static Vec2i LinkPos( Vec2i const& pos , int dir )
 		{
 			return pos + gDirOffset[dir];
+		}
+
+		static int const NeighborNum = 8;
+		static Vec2i const& NeighborOffset( int idx )
+		{
+			return gNeighborOffset[ idx ];
 		}
 	};
 

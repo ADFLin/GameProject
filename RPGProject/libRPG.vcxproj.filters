@@ -1,0 +1,405 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="include">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hpp;hxx;hm;inl;inc;xsd</Extensions>
+    </Filter>
+    <Filter Include="資源檔">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav</Extensions>
+    </Filter>
+    <Filter Include="ui">
+      <UniqueIdentifier>{a7f1387c-6f51-4841-96b6-48f50685bfdb}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="gameObject">
+      <UniqueIdentifier>{80819731-2d8e-47bc-b15c-1c129100895e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="editor">
+      <UniqueIdentifier>{5ead2351-174c-4620-b0ab-5455706fb425}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="temp">
+      <UniqueIdentifier>{14a36edb-692d-4152-887b-dea40304bd8a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="engine">
+      <UniqueIdentifier>{112040e0-516d-434b-903d-ff5afc978dde}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="libRPG\AbilityProp.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="libRPG\ActorMovement.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="libRPG\AICondition.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="libRPG\CActorModel.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="libRPG\CCamera.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="libRPG\CHandle.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="libRPG\common.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="libRPG\ControlKey.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="libRPG\CRenderComponent.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="libRPG\CSceneLevel.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="libRPG\EventType.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="libRPG\GameObjectComponent.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="libRPG\NavMesh.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="libRPG\ObjectComponent.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="libRPG\PhysicsPrivate.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="libRPG\PhysicsSystem.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="libRPG\ProjectPCH.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="libRPG\serialization.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="libRPG\SingalSystem.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="libRPG\SpatialComponent.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="libRPG\TAblilityProp.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="libRPG\TCombatSystem.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="libRPG\TEventSystem.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="libRPG\Thinkable.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="libRPG\TItemSystem.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="libRPG\TMessageShow.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="libRPG\TNavigator.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="libRPG\TPlayerControl.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="libRPG\TResManager.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="libRPG\TriangleMeshData.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="libRPG\TRoleTemplate.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="libRPG\TSkill.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="libRPG\TSkillBook.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="libRPG\TTalkSystem.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="libRPG\UtilityFlyFun.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="libRPG\UtilityGlobal.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="libRPG\UtilityMath.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="libRPG\ui\CBloodBar.h">
+      <Filter>ui</Filter>
+    </ClInclude>
+    <ClInclude Include="libRPG\ui\CChestPanel.h">
+      <Filter>ui</Filter>
+    </ClInclude>
+    <ClInclude Include="libRPG\ui\CEquipFrame.h">
+      <Filter>ui</Filter>
+    </ClInclude>
+    <ClInclude Include="libRPG\ui\CFastPlayBar.h">
+      <Filter>ui</Filter>
+    </ClInclude>
+    <ClInclude Include="libRPG\ui\CGameUI.h">
+      <Filter>ui</Filter>
+    </ClInclude>
+    <ClInclude Include="libRPG\ui\CItemBagPanel.h">
+      <Filter>ui</Filter>
+    </ClInclude>
+    <ClInclude Include="libRPG\ui\CMiniMapUI.h">
+      <Filter>ui</Filter>
+    </ClInclude>
+    <ClInclude Include="libRPG\ui\CPlayButton.h">
+      <Filter>ui</Filter>
+    </ClInclude>
+    <ClInclude Include="libRPG\ui\CSkillFrame.h">
+      <Filter>ui</Filter>
+    </ClInclude>
+    <ClInclude Include="libRPG\ui\CStoreFrame.h">
+      <Filter>ui</Filter>
+    </ClInclude>
+    <ClInclude Include="libRPG\ui\CTextButton.h">
+      <Filter>ui</Filter>
+    </ClInclude>
+    <ClInclude Include="libRPG\ui\CUICommon.h">
+      <Filter>ui</Filter>
+    </ClInclude>
+    <ClInclude Include="libRPG\CUISystem.h">
+      <Filter>ui</Filter>
+    </ClInclude>
+    <ClInclude Include="libRPG\ui\CVitalStateUI.h">
+      <Filter>ui</Filter>
+    </ClInclude>
+    <ClInclude Include="libRPG\CActor.h">
+      <Filter>gameObject</Filter>
+    </ClInclude>
+    <ClInclude Include="libRPG\CHero.h">
+      <Filter>gameObject</Filter>
+    </ClInclude>
+    <ClInclude Include="libRPG\CNPCBase.h">
+      <Filter>gameObject</Filter>
+    </ClInclude>
+    <ClInclude Include="libRPG\CRigidObject.h">
+      <Filter>gameObject</Filter>
+    </ClInclude>
+    <ClInclude Include="libRPG\CVillager.h">
+      <Filter>gameObject</Filter>
+    </ClInclude>
+    <ClInclude Include="libRPG\CGFContent.h">
+      <Filter>editor</Filter>
+    </ClInclude>
+    <ClInclude Include="libRPG\CSceneCGF.h">
+      <Filter>editor</Filter>
+    </ClInclude>
+    <ClInclude Include="libRPG\LevelEditor.h">
+      <Filter>editor</Filter>
+    </ClInclude>
+    <ClInclude Include="libRPG\CEntity.h">
+      <Filter>engine</Filter>
+    </ClInclude>
+    <ClInclude Include="libRPG\CGameMod.h">
+      <Filter>engine</Filter>
+    </ClInclude>
+    <ClInclude Include="libRPG\GameFramework.h">
+      <Filter>engine</Filter>
+    </ClInclude>
+    <ClInclude Include="libRPG\GameObject.h">
+      <Filter>engine</Filter>
+    </ClInclude>
+    <ClInclude Include="libRPG\IScriptTable.h">
+      <Filter>engine</Filter>
+    </ClInclude>
+    <ClInclude Include="libRPG\ISystem.h">
+      <Filter>engine</Filter>
+    </ClInclude>
+    <ClInclude Include="libRPG\Platform.h">
+      <Filter>engine</Filter>
+    </ClInclude>
+    <ClInclude Include="libRPG\RenderSystem.h">
+      <Filter>engine</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="libRPG\ui\CBloodBar.cpp">
+      <Filter>ui</Filter>
+    </ClCompile>
+    <ClCompile Include="libRPG\ui\CChestPanel.cpp">
+      <Filter>ui</Filter>
+    </ClCompile>
+    <ClCompile Include="libRPG\ui\CEquipFrame.cpp">
+      <Filter>ui</Filter>
+    </ClCompile>
+    <ClCompile Include="libRPG\ui\CFastPlayBar.cpp">
+      <Filter>ui</Filter>
+    </ClCompile>
+    <ClCompile Include="libRPG\ui\CGameUI.cpp">
+      <Filter>ui</Filter>
+    </ClCompile>
+    <ClCompile Include="libRPG\ui\CItemBagPanel.cpp">
+      <Filter>ui</Filter>
+    </ClCompile>
+    <ClCompile Include="libRPG\ui\CMiniMapUI.cpp">
+      <Filter>ui</Filter>
+    </ClCompile>
+    <ClCompile Include="libRPG\ui\CPlayButton.cpp">
+      <Filter>ui</Filter>
+    </ClCompile>
+    <ClCompile Include="libRPG\ui\CSkillFrame.cpp">
+      <Filter>ui</Filter>
+    </ClCompile>
+    <ClCompile Include="libRPG\ui\CStoreFrame.cpp">
+      <Filter>ui</Filter>
+    </ClCompile>
+    <ClCompile Include="libRPG\ui\CTextButton.cpp">
+      <Filter>ui</Filter>
+    </ClCompile>
+    <ClCompile Include="libRPG\ui\CUICommon.cpp">
+      <Filter>ui</Filter>
+    </ClCompile>
+    <ClCompile Include="libRPG\CUISystem.cpp">
+      <Filter>ui</Filter>
+    </ClCompile>
+    <ClCompile Include="libRPG\ui\CVitalStateUI.cpp">
+      <Filter>ui</Filter>
+    </ClCompile>
+    <ClCompile Include="libRPG\CActor.cpp">
+      <Filter>gameObject</Filter>
+    </ClCompile>
+    <ClCompile Include="libRPG\CHero.cpp">
+      <Filter>gameObject</Filter>
+    </ClCompile>
+    <ClCompile Include="libRPG\CNPCBase.cpp">
+      <Filter>gameObject</Filter>
+    </ClCompile>
+    <ClCompile Include="libRPG\CRigidObject.cpp">
+      <Filter>gameObject</Filter>
+    </ClCompile>
+    <ClCompile Include="libRPG\CVillager.cpp">
+      <Filter>gameObject</Filter>
+    </ClCompile>
+    <ClCompile Include="libRPG\CGFContent.cpp">
+      <Filter>editor</Filter>
+    </ClCompile>
+    <ClCompile Include="libRPG\CSceneCGF.cpp">
+      <Filter>editor</Filter>
+    </ClCompile>
+    <ClCompile Include="libRPG\LevelEditor.cpp">
+      <Filter>editor</Filter>
+    </ClCompile>
+    <ClCompile Include="libRPG\AbilityProp.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="libRPG\ActorMovement.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="libRPG\CActorModel.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="libRPG\CCamera.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="libRPG\CHandle.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="libRPG\common.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="libRPG\CRenderComponent.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="libRPG\CSceneLevel.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="libRPG\GameObjectComponent.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="libRPG\NavMesh.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="libRPG\PhysicsSystem.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="libRPG\ProjectPCH.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="libRPG\SpatialComponent.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="libRPG\TCombatSystem.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="libRPG\TEventSystem.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="libRPG\Thinkable.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="libRPG\TItemSystem.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="libRPG\TNavigator.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="libRPG\TPlayerControl.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="libRPG\TResManager.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="libRPG\TriangleMeshData.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="libRPG\TRoleTemplate.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="libRPG\TSkill.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="libRPG\TSkillBook.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="libRPG\TTalkSystem.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="libRPG\UtilityFlyFun.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="libRPG\UtilityMath.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="libRPG\CEntity.cpp">
+      <Filter>engine</Filter>
+    </ClCompile>
+    <ClCompile Include="libRPG\CGameMod.cpp">
+      <Filter>engine</Filter>
+    </ClCompile>
+    <ClCompile Include="libRPG\GameFramework.cpp">
+      <Filter>engine</Filter>
+    </ClCompile>
+    <ClCompile Include="libRPG\GameObject.cpp">
+      <Filter>engine</Filter>
+    </ClCompile>
+    <ClCompile Include="libRPG\IScriptTable.cpp">
+      <Filter>engine</Filter>
+    </ClCompile>
+    <ClCompile Include="libRPG\Platform.cpp">
+      <Filter>engine</Filter>
+    </ClCompile>
+    <ClCompile Include="libRPG\RenderSystem.cpp">
+      <Filter>engine</Filter>
+    </ClCompile>
+  </ItemGroup>
+</Project>

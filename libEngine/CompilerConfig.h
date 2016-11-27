@@ -2,9 +2,9 @@
 #define CompilerConfig_h__
 
 #if defined ( _MSC_VER )
-#define CPP_COMPILER_MSVC
+#define CPP_COMPILER_MSVC 1
 #elif defined ( __GNUC__ )
-#define CPP_COMPILER_GCC
+#define CPP_COMPILER_GCC 1
 #else
 #error "unknown compiler"
 #endif

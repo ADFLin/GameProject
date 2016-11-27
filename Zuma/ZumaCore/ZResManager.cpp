@@ -266,7 +266,7 @@ namespace Zuma
 
 		node->tryGetProperty( "path" , str );
 
-		if ( str == "!program" )
+		if ( strcmp( str , "!program" ) == 0 )
 			return;
 
 		info.path = mCurDir  + str;
@@ -511,12 +511,12 @@ namespace Zuma
 		}
 
 	}
-
+#include "ResID.h"
 	void ResManager::registerResID()
 	{
-#define RES_ID( id ) mResIDMap.insert( std::make_pair( #id , id ) );
-#include "ResID.h"
-
+#define RegisterOp( A ) mResIDMap.insert( std::make_pair( #A , A ) );
+		RES_ID_LIST( RegisterOp )
+#undef RegisterOp
 	}
 
 	ResBase* ResManager::getResource( ResID id )

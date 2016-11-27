@@ -31,7 +31,7 @@ GWidget* GameMenuStage::createButton( int delay , int id , char const* title , V
 	button = new GButton( id , pos - Vec2i( 500 , 0 ), size , NULL );
 	button->setTitle( title );
 
-	::Global::getGUI().addWidget( button );
+	::Global::GUI().addWidget( button );
 
 	TaskBase* task = new DelayTask( delay );
 	TaskBase* task2 = new UIMotionTask( button , pos , 200 , WMT_LINE_MOTION );
@@ -51,7 +51,7 @@ bool GameMenuStage::onMouse( MouseMsg const& msg )
 	bool result = StageBase::onMouse( msg );
 
 	if ( msg.onLeftDown() &&
-		::Global::getGUI().getManager().getLastMouseMsgUI() == NULL )
+		::Global::GUI().getManager().getLastMouseMsgUI() == NULL )
 	{
 		for( TaskList::iterator iter = mSkipTasks.begin();
 			iter != mSkipTasks.end() ; ++iter )
@@ -90,7 +90,7 @@ void GameMenuStage::fadeoutGroup( int dDelay )
 
 void GameMenuStage::onUpdate( long time )
 {
-	::Global::getGUI().updateFrame( time / gDefaultTickTime , gDefaultTickTime );
+	::Global::GUI().updateFrame( time / gDefaultTickTime , gDefaultTickTime );
 }
 
 void GameMenuStage::onTaskMessage( TaskBase* task , TaskMsg const& msg )

@@ -40,7 +40,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories=".;../libEngine;../OtherLib;../Rich;"
+				AdditionalIncludeDirectories=".;TinyCore;../libEngine;../OtherLib;../Rich;"
 				PreprocessorDefinitions="WIN32;_WINDOWS;DEBUG;TG_DLL;"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
@@ -117,7 +117,7 @@
 				Name="VCCLCompilerTool"
 				Optimization="2"
 				EnableIntrinsicFunctions="true"
-				AdditionalIncludeDirectories=".;../libEngine;../OtherLib;../Rich;"
+				AdditionalIncludeDirectories=".;TinyCore;../libEngine;../OtherLib;../Rich;"
 				PreprocessorDefinitions="_SECURE_SCL=0;WIN32;_WINDOWS;NDEBUG;TG_DLL;"
 				StringPooling="true"
 				RuntimeLibrary="2"

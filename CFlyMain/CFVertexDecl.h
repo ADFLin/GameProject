@@ -123,7 +123,7 @@ namespace CFly
 
 
 
-
+			return nullptr;
 		}
 
 		void*  getSystemImpl(){ return mImpl; }

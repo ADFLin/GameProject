@@ -107,7 +107,7 @@ namespace MV
 
 	struct FDir
 	{
-		static bool isPositive( Dir dir ){ return ( dir & 0x1 ) == 0; }
+		static bool IsPositive( Dir dir ){ return ( dir & 0x1 ) == 0; }
 		static int  Axis( Dir dir ){  return dir / 2;  }
 		static int  Cross( Dir dir1 , Dir dir2 ){ return gDirCrossMap[dir1][dir2]; }
 		static int  Dot( Dir dir1 , Dir dir2 ){   return gDirDotMap[dir1][dir2];  }

@@ -44,14 +44,14 @@ namespace Chromatron
 	bool LevelStage::onInit()
 	{
 
-		::Global::getGUI().cleanupWidget();
+		::Global::GUI().cleanupWidget();
 
 		Vec2i buttonSize( 60 , 25 );
 
 		int screenWidth = Global::getDrawEngine()->getScreenWidth();
 		GPanel* panel = new GPanel( UI_ANY , Vec2i(0,0) , Vec2i( screenWidth , 30 ) , NULL );
 		panel->setRenderType( GPanel::eRectType );
-		::Global::getGUI().addWidget( panel );
+		::Global::GUI().addWidget( panel );
 
 		Vec2i pos( ( screenWidth - 2 * buttonSize.x - 300 ) / 2 , 2 );
 
@@ -94,11 +94,11 @@ namespace Chromatron
 
 		GPanel* statusPanel = new GPanel( UI_ANY , Vec2i( 10 , 120 ) , Vec2i( 150 , 300 ) , NULL );
 		statusPanel->setRenderCallback( RenderCallBack::create( this , &LevelStage::drawStatusPanel ) );
-		::Global::getGUI().addWidget( statusPanel );
+		::Global::GUI().addWidget( statusPanel );
 
 		mScene.setWorldPos( Vec2i( 190 , 80 ) );
 
-		int idxPackage = Global::getSetting().getIntValue( "LastPlayPackage" , CHROMATRON_NAME , 0 );
+		int idxPackage = Global::GameSetting().getIntValue( "LastPlayPackage" , CHROMATRON_NAME , 0 );
 		if ( !loadGameData( idxPackage , true ) )
 		{
 			if ( !loadGameData( 0 , true ) )
@@ -110,7 +110,7 @@ namespace Chromatron
 		else
 			choice->setSelection( choice->getItemNum() - 1 );
 
-		int level = Global::getSetting().getIntValue( "LastPlayLevel" , CHROMATRON_NAME , 0 );
+		int level = Global::GameSetting().getIntValue( "LastPlayLevel" , CHROMATRON_NAME , 0 );
 		changeLevel( level );
 
 
@@ -119,8 +119,8 @@ namespace Chromatron
 
 	void LevelStage::onEnd()
 	{
-		Global::getSetting().setKeyValue( "LastPlayLevel" , CHROMATRON_NAME , mIndexLevel );
-		Global::getSetting().setKeyValue( "LastPlayPackage" , CHROMATRON_NAME , mIndexGamePackage );
+		Global::GameSetting().setKeyValue( "LastPlayLevel" , CHROMATRON_NAME , mIndexLevel );
+		Global::GameSetting().setKeyValue( "LastPlayPackage" , CHROMATRON_NAME , mIndexGamePackage );
 		saveGameLevelState();
 		cleanupGameData();
 	}
@@ -384,7 +384,7 @@ namespace Chromatron
 
 			FixString< 32 > str;
 			str.format( "SaveData%d", mIndexGamePackage );
-			Global::getSetting().setKeyValue( str , CHROMATRON_NAME , code.c_str() );
+			Global::GameSetting().setKeyValue( str , CHROMATRON_NAME , code.c_str() );
 		}
 		return true;
 	}
@@ -396,7 +396,7 @@ namespace Chromatron
 			FixString< 32 > str;
 			str.format( "SaveData%d", mIndexGamePackage );
 			char const* code;
-			if ( !Global::getSetting().tryGetStringValue( str ,  CHROMATRON_NAME ,  code ) )
+			if ( !Global::GameSetting().tryGetStringValue( str ,  CHROMATRON_NAME ,  code ) )
 				return false;
 
 			int maxLen = strlen( code );

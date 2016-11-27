@@ -70,7 +70,7 @@ namespace Go
 		{
 			mGame.setup( 19 );
 			mLifeParam = 0;
-			::Global::getGUI().cleanupWidget();
+			::Global::GUI().cleanupWidget();
 			return true; 
 		}
 		virtual void onEnd(){}

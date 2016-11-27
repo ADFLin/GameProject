@@ -1306,7 +1306,7 @@ namespace Vor2
 			}
 		}
 #endif
-
+		
 		freeinit(&sfl, sizeof(Site)) ;
 		if (sorted)
 		{

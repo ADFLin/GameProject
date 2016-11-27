@@ -2,6 +2,8 @@
 #include "IScriptTable.h"
 
 IScriptTable::IScriptTable()
+	:mKeyTable(NULL)
+	,mNextSlotIndex(0)
 {
 	mDefaultTable = NULL;
 	mRefCount = 0;

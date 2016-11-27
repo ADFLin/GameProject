@@ -185,6 +185,7 @@ namespace GS
 
 			mBuffer.addTexture( mTexEnv , Texture::eFaceX );
 			mBuffer.setBuffer( depthBuffer , true );
+			return true;
 			
 		}
 		static int const MapSize = 512;

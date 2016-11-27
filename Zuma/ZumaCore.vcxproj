@@ -1,0 +1,199 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{1C8656B6-5629-401E-8264-E62D33DD7E34}</ProjectGuid>
+    <RootNamespace>ZumaCOre</RootNamespace>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <PlatformToolset>v140</PlatformToolset>
+    <CharacterSet>NotSet</CharacterSet>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <PlatformToolset>v140</PlatformToolset>
+    <CharacterSet>NotSet</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup>
+    <_ProjectFileVersion>14.0.25431.1</_ProjectFileVersion>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <OutDir>$(SolutionDir)$(Configuration)\</OutDir>
+    <IntDir>$(Configuration)\</IntDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <OutDir>$(SolutionDir)$(Configuration)\</OutDir>
+    <IntDir>$(Configuration)\</IntDir>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <AdditionalOptions>/MP %(AdditionalOptions)</AdditionalOptions>
+      <Optimization>Disabled</Optimization>
+      <AdditionalIncludeDirectories>../OtherLib/boost/;../OtherLib/FMOD/include;../libEngine;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>DEBUG;WIN32;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <MinimalRebuild>false</MinimalRebuild>
+      <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeaderFile>ZumaPCH.h</PrecompiledHeaderFile>
+      <WarningLevel>Level3</WarningLevel>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <ProgramDataBaseFileName>$(IntDir)vc$(PlatformToolsetVersion).pdb</ProgramDataBaseFileName>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <AdditionalOptions>/MP %(AdditionalOptions)</AdditionalOptions>
+      <Optimization>MaxSpeed</Optimization>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <WholeProgramOptimization>false</WholeProgramOptimization>
+      <AdditionalIncludeDirectories>../OtherLib/boost/;../OtherLib/FMOD/include;../libEngine;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>_SECURE_SCL=0;NDEBUG;WIN32;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <FloatingPointModel>Fast</FloatingPointModel>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeaderFile>ZumaPCH.h</PrecompiledHeaderFile>
+      <PrecompiledHeaderOutputFile>$(IntDir)ZumaPCH.pch</PrecompiledHeaderOutputFile>
+      <WarningLevel>Level3</WarningLevel>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <ProgramDataBaseFileName>$(IntDir)vc$(PlatformToolsetVersion).pdb</ProgramDataBaseFileName>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+    </ClCompile>
+    <Lib>
+      <OutputFile>$(OutDir)$(ProjectName).lib</OutputFile>
+    </Lib>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="ZumaCore\AudioPlayer.cpp" />
+    <ClCompile Include="ZumaCore\CometAction.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+      </PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+      </PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="ZumaCore\CometBase.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+      </PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+      </PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="ZumaCore\CometEmitter.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+      </PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+      </PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="ZumaCore\CometInitializer.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+      </PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+      </PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="ZumaCore\CometParticle.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+      </PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+      </PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="ZumaCore\CometZone.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+      </PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+      </PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="ZumaCore\CRSpline.cpp" />
+    <ClCompile Include="ZumaCore\glexten.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+      </PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+      </PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="ZumaCore\GLRenderSystem.cpp" />
+    <ClCompile Include="ZumaCore\IRenderSystem.cpp" />
+    <ClCompile Include="ZumaCore\XmlLoader.cpp" />
+    <ClCompile Include="ZumaCore\ZBall.cpp" />
+    <ClCompile Include="ZumaCore\ZBallConGroup.cpp" />
+    <ClCompile Include="ZumaCore\ZDraw.cpp" />
+    <ClCompile Include="ZumaCore\ZFont.cpp" />
+    <ClCompile Include="ZumaCore\ZLevel.cpp" />
+    <ClCompile Include="ZumaCore\ZLevelManager.cpp" />
+    <ClCompile Include="ZumaCore\ZLevelStage.cpp" />
+    <ClCompile Include="ZumaCore\ZParticle.cpp" />
+    <ClCompile Include="ZumaCore\ZPath.cpp" />
+    <ClCompile Include="ZumaCore\ZResManager.cpp" />
+    <ClCompile Include="ZumaCore\ZStage.cpp" />
+    <ClCompile Include="ZumaCore\ZTask.cpp" />
+    <ClCompile Include="ZumaCore\ZUISystem.cpp" />
+    <ClCompile Include="ZumaCore\ZumaGame.cpp" />
+    <ClCompile Include="ZumaCore\ZumaPCH.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="GdiRenderSystem.h" />
+    <ClInclude Include="ZumaCore\AudioPlayer.h" />
+    <ClInclude Include="ZumaCore\Comet.h" />
+    <ClInclude Include="ZumaCore\CometAction.h" />
+    <ClInclude Include="ZumaCore\CometBase.h" />
+    <ClInclude Include="ZumaCore\CometClock.h" />
+    <ClInclude Include="ZumaCore\CometEmiter.h" />
+    <ClInclude Include="ZumaCore\CometInitializer.h" />
+    <ClInclude Include="ZumaCore\CometParticle.h" />
+    <ClInclude Include="ZumaCore\CometRandom.h" />
+    <ClInclude Include="ZumaCore\CometZone.h" />
+    <ClInclude Include="ZumaCore\CRSpline.h" />
+    <ClInclude Include="ZumaCore\glexten.h" />
+    <ClInclude Include="ZumaCore\GLRenderSystem.h" />
+    <ClInclude Include="ZumaCore\IRenderSystem.h" />
+    <ClInclude Include="ZumaCore\RefCountObj.h" />
+    <ClInclude Include="ZumaCore\ResID.h" />
+    <ClInclude Include="ZumaCore\ThinkObjT.h" />
+    <ClInclude Include="ZumaCore\XmlLoader.h" />
+    <ClInclude Include="ZumaCore\ZBall.h" />
+    <ClInclude Include="ZumaCore\ZBallConGroup.h" />
+    <ClInclude Include="ZumaCore\ZBase.h" />
+    <ClInclude Include="ZumaCore\ZDraw.h" />
+    <ClInclude Include="ZumaCore\ZEvent.h" />
+    <ClInclude Include="ZumaCore\ZEventHandler.h" />
+    <ClInclude Include="ZumaCore\ZFont.h" />
+    <ClInclude Include="ZumaCore\ZLevel.h" />
+    <ClInclude Include="ZumaCore\ZLevelManager.h" />
+    <ClInclude Include="ZumaCore\ZLevelStage.h" />
+    <ClInclude Include="ZumaCore\ZParticle.h" />
+    <ClInclude Include="ZumaCore\ZPath.h" />
+    <ClInclude Include="ZumaCore\ZResManager.h" />
+    <ClInclude Include="ZumaCore\ZStage.h" />
+    <ClInclude Include="ZumaCore\ZTask.h" />
+    <ClInclude Include="ZumaCore\ZUISystem.h" />
+    <ClInclude Include="ZumaCore\ZumaGame.h" />
+    <ClInclude Include="ZumaCore\ZumaPCH.h" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

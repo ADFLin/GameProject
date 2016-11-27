@@ -10,7 +10,7 @@
 namespace GreedySnake
 {
 
-	GameSubStage* CGamePackage::createSubStage( unsigned id )
+	StageBase* CGamePackage::createStage( unsigned id )
 	{
 		switch( id )
 		{
@@ -44,7 +44,7 @@ namespace GreedySnake
 		return false;
 	}
 
-	void CGamePackage::beginPlay( GameType type, StageManager& manger )
+	void CGamePackage::beginPlay( StageModeType type, StageManager& manger )
 	{
 		IGamePackage::beginPlay( type , manger );
 	}
@@ -55,7 +55,7 @@ namespace GreedySnake
 	public:
 		virtual void clearUserUI(){}
 		virtual void doSetupSetting( bool beServer ){}
-		virtual void setupGame( StageManager& manager , GameSubStage* subStage )
+		virtual void setupGame( StageManager& manager , GameStageBase* subStage )
 		{
 
 		}

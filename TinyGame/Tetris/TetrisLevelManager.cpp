@@ -481,13 +481,13 @@ namespace Tetris
 
 		panel->setRenderCallback( 
 			RenderCallBack::create( lvData.getScene() ,  &Scene::renderPieceStorage ) );
-		::Global::getGUI().addWidget( panel );
+		::Global::GUI().addWidget( panel );
 		pos += Vec2i( 0 , ppHeight + 10 );
 
 		panel = new GPanel( UI_PANEL , pos , Vec2i( 130 , 200 ) ,  NULL );
 		panel->setRenderCallback( statsCallback );
 		panel->setUserData( intptr_t(&lvData) );
-		::Global::getGUI().addWidget( panel );
+		::Global::GUI().addWidget( panel );
 		pos += Vec2i( 0 , 200 );
 	}
 

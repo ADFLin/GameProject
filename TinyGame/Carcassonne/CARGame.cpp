@@ -27,12 +27,7 @@ namespace CAR
 
 	StageBase* CGamePackage::createStage( unsigned id )
 	{
-		return NULL;
-	}
-
-	GameSubStage* CGamePackage::createSubStage( unsigned id )
-	{ 
-		if ( id == STAGE_NET_GAME || id == STAGE_SINGLE_GAME )
+		if( id == STAGE_NET_GAME || id == STAGE_SINGLE_GAME )
 		{
 			return new CAR::LevelStage;
 		}
@@ -53,7 +48,7 @@ namespace CAR
 		return false;
 	}
 
-	void CGamePackage::beginPlay( GameType type, StageManager& manger )
+	void CGamePackage::beginPlay( StageModeType type, StageManager& manger )
 	{
 		IGamePackage::beginPlay( type , manger );
 	}
@@ -144,7 +139,7 @@ namespace CAR
 			}
 		}
 
-		virtual void setupGame( StageManager& manager , GameSubStage* subStage )
+		virtual void setupGame( StageManager& manager , GameStageBase* subStage )
 		{
 			LevelStage* myStage = static_cast< LevelStage* >( subStage );
 			myStage->getSetting().mExpansionMask = mExpMask;

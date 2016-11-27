@@ -34,7 +34,7 @@ struct FooFun
 			process = num;
 			GButton* button = new GButton( CoroutineTestStage::UI_TEST_BUTTON , Vec2i( 100 , 100 + 30 * process ) , Vec2i( 100 , 20 ) , NULL );
 			button->setTitle( str.format( "%d" , num ) );
-			::Global::getGUI().addWidget( button );
+			::Global::GUI().addWidget( button );
 			ca( process );
 		}
 		ca( -1 );
@@ -61,7 +61,7 @@ void foo2()
 {
 	GButton* button = new GButton( CoroutineTestStage::UI_TEST_BUTTON2 , Vec2i( 200 , 100  ) , Vec2i( 100 , 20 ) , NULL );
 	button->setTitle( "foo2" );
-	::Global::getGUI().addWidget( button );
+	::Global::GUI().addWidget( button );
 	gJumper.jump();
 
 	while( 1 )
@@ -82,7 +82,7 @@ void foo2()
 }
 bool CoroutineTestStage::onInit()
 {
-	::Global::getGUI().cleanupWidget();
+	::Global::GUI().cleanupWidget();
 	WidgetUtility::createDevFrame();
 	gFun.num = 0;
 	gCor = CoroutineType::pull_type( std::bind( &FooFun::foo , std::ref(gFun) , std::placeholders::_1 ) );
@@ -129,7 +129,7 @@ namespace Bsp2D
 	{
 		//testTree();
 
-		::Global::getGUI().cleanupWidget();
+		::Global::GUI().cleanupWidget();
 
 		DevFrame* frame = WidgetUtility::createDevFrame();
 		frame->addButton( UI_BUILD_TREE , "Build Tree" );
@@ -578,3 +578,520 @@ void XMLPraseTestStage::testHeap()
 
 }
 
+#include "Math/BigInteger.h"
+#include "Math/BigFloat.h"
+
+struct  SFloatFormat
+{
+	uint32 frac:23;
+	uint32 exp:8;
+	uint32 s:1;
+};
+
+static void PrintMsg(std::string &str)
+{
+	int const MaxLen = 128;
+	int numLine = ( str.length() - 1 ) / MaxLen;
+	char const* pStr = str.c_str();
+	for( int i = 0 ; i < numLine ; ++i )
+	{
+		std::string temp( pStr , pStr + MaxLen );
+		Msg( temp.c_str() );
+		pStr += MaxLen;
+	}
+	Msg( pStr );
+}
+
+static void testBigNumber()
+{
+	float value = 1.4e-44;
+	SFloatFormat* fv = (SFloatFormat*)&value;
+
+	//                     n 
+	//  PI*L           (-1)          4 L               L
+	// ----- = sum (  -------  [  ----------  -  ------------- ]  )
+	//   4     n=0     2n+1        5^(2n+1)        239^(2n+1)
+
+	typedef TBigUint< 4096  > UintType;
+	UintType L( 1 , 1000 );
+	UintType PiL;
+
+	PiL.setZero();
+
+	UintType A = ( L * 4 ) / 5;
+	UintType B =  L / 239 ;
+	UintType C ;
+
+	uint32 n = 0u;
+	UintType N2n1 = 1;
+
+	while ( 1 )
+	{
+		C =  A;
+		C -= B;
+		C /= N2n1;
+
+		if ( n )
+			PiL -= C;
+		else
+			PiL += C;
+
+		A /= 5 * 5;
+		if ( A.isZero() )
+			break;
+		B /= 239 * 239;
+
+		N2n1 += 2;
+		n = 1 - n;
+	}
+	PiL *= 4;
+	std::string str;
+	PiL.getString( str ) ;
+
+	PrintMsg(str);
+
+	typedef TBigFloat< 30 , 1 > FloatType;
+
+	{
+		FloatType f1 = 1.23;
+		FloatType f2 = 2.3;
+
+
+		f2.pow( f1 );
+
+		double fl;
+		f2.convertToDouble( fl );
+		int i = 1;
+	}
+
+	char* sf1 = "1.23456789123456789E15";
+
+	FloatType bff = -10.333;
+
+	FloatType bff3;
+	bff3.exp( bff );
+
+	FloatType bf1 = sf1;
+	str.clear();
+	bf1.getString( str );
+
+	double sf2;
+
+	bf1.convertToDouble( sf2 );
+
+	str.clear();
+	bf1.getString( str , 10 );
+
+	std::cout << str << std::endl;
+
+	//assert( sf1 == sf2 );
+
+	TBigInt< 2 > aa = "-12323213213213123";
+	FloatType fff2( -2423221.21231232132 );
+	str.clear();
+	fff2.getString( str );
+	fff2.rejectDecimal();
+	str.clear();
+	fff2.getString( str );
+	//fff2.convertToFloat(sf2);
+
+	FloatType fff;
+	fff.setValue( aa );
+
+	double df1,df2;
+
+
+	int nt;
+	std::cin >> nt;
+	long time;
+	{
+		FloatType f1 = "1.00000000000001";
+
+		time = GetTickCount() ;
+		for( int i = 1 ; i <= nt ; ++i )
+		{
+			f1 = 1.0000000001;
+			FloatType a = double(i) + 0.1;
+			f1.pow( a );
+		}
+		std::cout << GetTickCount() - time << std::endl;
+
+		f1.convertToDouble( df1 );
+		//cout << n2 << endl; 
+	}
+
+
+	std::cout << df1 << std::endl;
+
+	{
+		FloatType f( 4.0 );
+		FloatType f2( 4.0 );
+
+		f.add( f2 );
+	}
+
+	{
+		FloatType f( 1.0000000 );
+		FloatType f2( 3.0 );
+
+		f.div( f2 );
+		f.mul( f2 );
+
+		FloatType fn( 0.69314718055994530941723212145817656807550013436025 );
+		FloatType ff( 2.0 );
+		ff.ln();
+	}
+
+	{
+		FloatType f( 4.0 );
+		FloatType f2( 4.0 );
+		f.sub( f2 );
+	}
+
+
+}
+
+class ClassTreeNode
+{
+public:
+	ClassTreeNode( ClassTreeNode* parent );
+	~ClassTreeNode();
+
+	bool isChildOf( ClassTreeNode* testParent );
+	void changeParent( ClassTreeNode* newParent );
+
+private:
+	void offsetQueryIndex( int offset );
+#if _DEBUG
+	int  idDbg;
+#endif
+	int  indexParentSlot;
+	int  indexQuery;
+	unsigned numTotalChildren;
+	ClassTreeNode* parent;
+	std::vector< ClassTreeNode* > children;
+
+	struct RootConstruct {};
+	ClassTreeNode( RootConstruct );
+	friend class ClassTree;
+};
+
+class ClassTree
+{
+public:
+	static ClassTree& getInstance();
+	void registerClass( ClassTreeNode* node );
+	void unregisterClass( ClassTreeNode* node , bool bReregister );
+	void unregisterAllClass();
+
+private:
+	void unregisterAllNode_R( ClassTreeNode* node );
+	bool vaildate()
+	{
+		int numTotalChildren;
+		return vaildateChild_R(&mRoot , numTotalChildren );
+	}
+
+	bool vaildateChild_R( ClassTreeNode* parent , int& numTotalChildren )
+	{
+		numTotalChildren = 0;
+		for (int i = 0;i< parent->children.size();++i )
+		{
+			ClassTreeNode* node = parent->children[i];
+			if ( node->indexParentSlot != i )
+				return false;
+			if ( node->indexQuery != numTotalChildren + parent->indexQuery + 1 )
+				return false;
+			int num;
+			if ( !vaildateChild_R( node , num ) )
+				return false;
+			numTotalChildren += num + 1;
+		}
+		if ( parent->numTotalChildren != numTotalChildren )
+			return false;
+		return true;
+	}
+	ClassTree();
+	ClassTree( ClassTree const& );
+	~ClassTree();
+	ClassTreeNode mRoot;
+};
+
+void ClassTreeNode::offsetQueryIndex(int offset)
+{
+	indexQuery += offset;
+	for( int i = 0 ; i < children.size() ; ++i )
+	{
+		ClassTreeNode* child = children[i];
+		child->offsetQueryIndex( offset );
+	}
+}
+
+ClassTreeNode::ClassTreeNode(ClassTreeNode* parent) 
+	:parent(parent)
+	,numTotalChildren(0)
+	,indexParentSlot(-1)
+	,indexQuery(-1)
+{
+
+#if _DEBUG
+	static int gIdDbg = 0;
+	idDbg = gIdDbg++ ;
+#endif
+	ClassTree::getInstance().registerClass( this );
+}
+
+ClassTreeNode::ClassTreeNode( RootConstruct )
+	:parent(nullptr)
+	,numTotalChildren(0)
+	,indexParentSlot(-1)
+	,indexQuery(-1)
+{
+#if _DEBUG
+	idDbg = -1;
+#endif
+}
+
+ClassTreeNode::~ClassTreeNode()
+{
+	if ( indexParentSlot != -1 )
+		ClassTree::getInstance().unregisterClass( this , false );
+}
+
+bool ClassTreeNode::isChildOf(ClassTreeNode* testParent)
+{
+	assert( indexParentSlot != -1 && testParent->indexParentSlot != -1 );
+	return unsigned( indexQuery - testParent->indexQuery ) <= testParent->numTotalChildren;
+}
+
+void ClassTreeNode::changeParent(ClassTreeNode* newParent)
+{
+	if ( newParent == parent )
+		return;
+
+	ClassTree::getInstance().unregisterClass( this , true );
+	parent = newParent;
+	ClassTree::getInstance().registerClass( this );
+}
+
+void ClassTree::unregisterAllNode_R(ClassTreeNode* node)
+{
+	for ( int i = 0 ; i < node->children.size() ; ++i )
+	{
+		ClassTreeNode* child = node->children[i];
+		unregisterAllNode_R( child );
+	}
+	node->children.clear();
+	node->indexParentSlot = -1;
+	node->indexQuery = -1;
+	node->numTotalChildren = 0;
+}
+
+ClassTree::ClassTree() 
+	:mRoot( ClassTreeNode::RootConstruct() )
+{
+
+}
+
+ClassTree::~ClassTree()
+{
+	unregisterAllClass();
+}
+
+ClassTree& ClassTree::getInstance()
+{
+	static ClassTree sClassTree;
+	return sClassTree;
+}
+
+void ClassTree::registerClass(ClassTreeNode* node)
+{
+	assert( node->indexParentSlot == -1 );
+	if ( node->parent == nullptr )
+	{
+		node->parent = &mRoot;
+	}
+	ClassTreeNode* parent = node->parent;
+	assert( parent != node );
+
+	node->indexParentSlot = parent->children.size();
+	if ( node->indexQuery != -1 )
+	{
+		int offset = ( parent->indexQuery + parent->numTotalChildren + 1 ) - node->indexQuery;
+		if ( offset )
+			node->offsetQueryIndex(offset);
+	}
+	else
+	{
+		node->indexQuery = parent->indexQuery + parent->numTotalChildren + 1;
+	}
+	parent->children.push_back( node );
+	ClassTreeNode* super = parent;
+
+	int numChildren = 1 + node->numTotalChildren;
+	for(;;)
+	{
+		super->numTotalChildren += numChildren;
+		if ( super->parent == nullptr )
+			break;
+
+		int indexSlot = super->indexParentSlot + 1;
+		super = super->parent;
+		for( int i = indexSlot; i < super->children.size(); ++i )
+		{
+			super->children[i]->offsetQueryIndex(numChildren);
+		}
+	}
+
+	assert( vaildate() );
+}
+
+void ClassTree::unregisterClass( ClassTreeNode* node , bool bReregister )
+{
+	assert( node->indexParentSlot != - 1 );
+
+	ClassTreeNode* parent = node->parent;
+	assert( parent );
+
+	int numChildren = 1 + node->numTotalChildren;
+	for( int i = node->indexParentSlot + 1 ; i < parent->children.size() ; ++i )
+	{
+		ClassTreeNode* tempNode = parent->children[i];
+		tempNode->indexParentSlot -= 1;
+		tempNode->offsetQueryIndex(-numChildren);
+	}
+	parent->children.erase( parent->children.begin() + node->indexParentSlot );
+	node->indexParentSlot = -1;
+	ClassTreeNode* super = parent;
+
+	
+	for(;;)
+	{
+		super->numTotalChildren -= numChildren;
+
+		if ( super->parent == nullptr )
+			break;
+
+		int indexSlot = super->indexParentSlot + 1;
+		super = super->parent;
+		for( int i = indexSlot; i < super->children.size(); ++i )
+		{
+			super->children[i]->offsetQueryIndex(-numChildren);
+		}
+	}
+
+	assert( vaildate() );
+	
+	if ( !bReregister )
+	{
+		for( int i = 0 ; i < node->children.size() ; ++i )
+		{
+			ClassTreeNode* child = node->children[i];
+			child->indexParentSlot = -1;
+			child->parent = nullptr;
+			registerClass( child );
+		}
+	}
+}
+
+void ClassTree::unregisterAllClass()
+{
+	for ( int i = 0 ; i < mRoot.children.size() ; ++i )
+	{
+		ClassTreeNode* child = mRoot.children[i];
+		unregisterAllNode_R( child );
+	}
+}
+
+static void testClassTree()
+{
+
+	ClassTree& tree = ClassTree::getInstance();
+	TPtrHolder< ClassTreeNode > root = new ClassTreeNode( nullptr );
+	TPtrHolder< ClassTreeNode > a = new ClassTreeNode( root );
+	TPtrHolder< ClassTreeNode > b = new ClassTreeNode( root );
+	TPtrHolder< ClassTreeNode > c = new ClassTreeNode( a );
+	TPtrHolder< ClassTreeNode > d = new ClassTreeNode( a );
+	TPtrHolder< ClassTreeNode > e = new ClassTreeNode( b );
+
+	e->isChildOf( a );
+	e->isChildOf( d );
+	c->isChildOf( e );
+	c->isChildOf( a );
+
+	TPtrHolder< ClassTreeNode > f = new ClassTreeNode( d );
+	TPtrHolder< ClassTreeNode > g = new ClassTreeNode( a );
+
+	f->isChildOf(b);
+	f->isChildOf(root);
+	f->isChildOf(c);
+	f->isChildOf(a);
+
+	d->changeParent( b );
+	f->isChildOf( b );
+	f->isChildOf( d );
+	f->isChildOf( a );
+	e->isChildOf( b );
+
+	root.clear();
+	a.clear();
+	b.clear();
+	c.clear();
+	d.clear();
+	e.clear();
+}
+
+bool MiscTestStage::onInit()
+{
+	::Global::GUI().cleanupWidget();
+
+	addTest( "Class Tree" , testClassTree );
+	addTest( "Big Number" , testBigNumber );
+	restart();
+	return true;
+}
+
+
+void MiscTestStage::addTest(char const* name , TestFun const& fun)
+{
+	Vec2i pos;
+	pos.x = 20 + 120 * ( mInfos.size() % 5 );
+	pos.y = 20 + 30 * ( mInfos.size() / 5 );
+	GButton* button = new GButton( UI_TEST_BUTTON , pos , Vec2i(100,20) , nullptr );
+	button->setUserData( mInfos.size() );
+	button->setTitle( name );
+	::Global::GUI().addWidget( button );
+
+	TestInfo info;
+	info.fun = fun;
+	mInfos.push_back( info );
+}
+
+#include "Thread.h"
+#include "boost/thread.hpp"
+bool MiscTestStage::onWidgetEvent(int event , int id , GWidget* ui)
+{
+	class MyRunnable : public RunnableThreadT< MyRunnable >
+	{
+	public: 
+		unsigned run()
+		{
+			fun();
+			return 0;
+		}
+		void exit(){ delete this; }
+		MiscTestStage::TestFun fun;
+	};
+
+	switch ( id )
+	{
+	case UI_TEST_BUTTON:
+		{
+			MyRunnable* t = new MyRunnable;
+			t->fun = mInfos[ ui->getUserData() ].fun;
+			t->start();
+		}
+		return false;
+	}
+	return BaseClass::onWidgetEvent(event , id , ui );
+}

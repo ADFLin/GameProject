@@ -2,7 +2,7 @@
 #define AStarStage_h__
 
 #include "StageBase.h"
-#include "AStar.h"
+#include "Algo/AStar.h"
 #include "AStarTile2D.h"
 #include "TVector2.h"
 
@@ -332,7 +332,7 @@ namespace AStar
 
 		virtual bool onInit()
 		{
-			::Global::getGUI().cleanupWidget();
+			::Global::GUI().cleanupWidget();
 			restart();
 			DevFrame* frame = WidgetUtility::createDevFrame();
 			return true;

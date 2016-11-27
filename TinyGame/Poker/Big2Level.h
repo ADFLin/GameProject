@@ -7,8 +7,9 @@
 #include "FixVector.h"
 #include "IntegerType.h"
 #include "DataTransfer.h"
-#include <algorithm>
 
+#include <algorithm>
+#include <functional>
 
 namespace Poker { namespace Big2 {
 

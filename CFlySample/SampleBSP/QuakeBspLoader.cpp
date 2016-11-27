@@ -536,9 +536,11 @@ void HLBspFileDataV30::setScene( Scene* scene )
 
 void HLBspFileDataV30::loadPVS( BspV30::leaf_t* leaf , BspLeaf& bspLeaf , int numLeaf )
 {
+	assert(leaf);
+
 	int visOffset = leaf->visOffset;
 	int visLumpSize = getLumpDataLength( BspV30::LUMP_VISIBILITY );
-	assert ( leaf );
+	
 
 	int nRowBytes = (( numLeaf ) + 7) >> 3;
 	// Pointer to compressed cluster visibility data

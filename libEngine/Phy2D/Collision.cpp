@@ -170,6 +170,7 @@ namespace Phy2D
 	GJK gGJK;
 	void GJK::init(CollideObject* objA , CollideObject* objB)
 	{
+		assert( objA->getShape()->isConvex() && objB->getShape()->isConvex() );
 		mObj[0] = objA;
 		mObj[1] = objB;
 		mB2AWorld = objA->mXForm.mulInv( objB->mXForm );
@@ -240,6 +241,33 @@ namespace Phy2D
 		return true;
 	}
 
+	void GJK::generateContact(Contact& c)
+	{
+		if ( ( mSv[0]->v - mSv[1]->v ).cross( mSv[0]->v - mSv[2]->v ) < 0 )
+			std::swap( mSv[0] , mSv[1]);
+
+		addEdge( mSv[0] , mSv[1]->v )->next = mEdges + 1;
+		addEdge( mSv[1] , mSv[2]->v )->next = mEdges + 2;
+		addEdge( mSv[2] , mSv[0]->v )->next = mEdges + 0;
+
+		Edge* bestEdge;
+		for( int i = 0 ; i < MaxIterNum - 1; ++i )
+		{
+			bestEdge = getClosetEdge();
+			assert( bestEdge );
+			Simplex* sv = &mStorage[ mNumSimplex++ ];
+			calcSupport( sv , bestEdge->normal );
+
+			float depth = bestEdge->normal.dot( sv->v );
+			if ( depth - bestEdge->depth < 1e-4 )
+				break;
+
+			Edge* newE = insertEdge( bestEdge , sv );	
+		}
+
+		buildContact(bestEdge, c);
+	}
+
 	void GJK::buildContact( Edge* e, Contact &c )
 	{
 		Edge* next = e->next;
@@ -269,33 +297,6 @@ namespace Phy2D
 		c.posLocal[1] = mB2AWorld.mulInv( c.posLocal[0] - d );
 		c.pos[0] = mObj[0]->mXForm.mul( c.posLocal[0] );
 		c.pos[1] = mObj[1]->mXForm.mul( c.posLocal[1] );
-	}
-
-	void GJK::generateContact(Contact& c)
-	{
-		if ( ( mSv[0]->v - mSv[1]->v ).cross( mSv[0]->v - mSv[2]->v ) < 0 )
-			std::swap( mSv[0] , mSv[1]);
-
-		addEdge( mSv[0] , mSv[1]->v )->next = mEdges + 1;
-		addEdge( mSv[1] , mSv[2]->v )->next = mEdges + 2;
-		addEdge( mSv[2] , mSv[0]->v )->next = mEdges + 0;
-
-		Edge* bestEdge;
-		for( int i = 0 ; i < MaxIterNum - 1; ++i )
-		{
-			bestEdge = getClosetEdge();
-			assert( bestEdge );
-			Simplex* sv = &mStorage[ mNumSimplex++ ];
-			calcSupport( sv , bestEdge->normal );
-
-			float depth = bestEdge->normal.dot( sv->v );
-			if ( depth - bestEdge->depth < 1e-4 )
-				break;
-
-			Edge* newE = insertEdge( bestEdge , sv );	
-		}
-
-		buildContact(bestEdge, c);
 	}
 
 	GJK::Edge* GJK::addEdge( Simplex* sv , Vec2f const& b )

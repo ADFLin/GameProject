@@ -1,0 +1,241 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{EF8127D3-B6A4-4D4C-A4B5-93383D26F387}</ProjectGuid>
+    <RootNamespace>GamePoker</RootNamespace>
+    <WindowsTargetPlatformVersion>8.1</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <PlatformToolset>v140</PlatformToolset>
+    <CharacterSet>NotSet</CharacterSet>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <PlatformToolset>v140</PlatformToolset>
+    <CharacterSet>NotSet</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup>
+    <_ProjectFileVersion>14.0.25431.1</_ProjectFileVersion>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <OutDir>$(SolutionDir)$(Configuration)\</OutDir>
+    <IntDir>$(Configuration)\$(ProjectName)\</IntDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <OutDir>$(SolutionDir)$(Configuration)\</OutDir>
+    <IntDir>$(Configuration)\$(ProjectName)\</IntDir>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <Optimization>Disabled</Optimization>
+      <AdditionalIncludeDirectories>.;TinyCore;../libEngine;../OtherLib;../Poker;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN32;_WINDOWS;DEBUG;TG_DLL;CORE_SHARE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <MinimalRebuild>true</MinimalRebuild>
+      <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <PrecompiledHeader />
+      <PrecompiledHeaderFile>PokerPCH.h</PrecompiledHeaderFile>
+      <ProgramDataBaseFileName>$(IntDir)vc$(PlatformToolsetVersion).pdb</ProgramDataBaseFileName>
+      <WarningLevel>Level3</WarningLevel>
+      <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+    </ClCompile>
+    <Link>
+      <AdditionalDependencies>Msimg32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <OutputFile>$(OutDir)$(ProjectName)D.dll</OutputFile>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <TargetMachine>MachineX86</TargetMachine>
+    </Link>
+    <PostBuildEvent>
+      <Command>copy $(TargetDir)$(TargetName)D.dll $(ProjectDir)out\</Command>
+    </PostBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <Optimization>MaxSpeed</Optimization>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <AdditionalIncludeDirectories>.;TinyCore;../libEngine;../OtherLib;../Poker;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>_SECURE_SCL=0;WIN32;_WINDOWS;NDEBUG;TG_DLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <StringPooling>true</StringPooling>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <PrecompiledHeader />
+      <PrecompiledHeaderFile>PokerPCH.h</PrecompiledHeaderFile>
+      <ProgramDataBaseFileName>$(IntDir)vc$(PlatformToolsetVersion).pdb</ProgramDataBaseFileName>
+      <WarningLevel>Level3</WarningLevel>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+    </ClCompile>
+    <Link>
+      <AdditionalDependencies>Msimg32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <OutputFile>$(OutDir)$(ProjectName).dll</OutputFile>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <OptimizeReferences>true</OptimizeReferences>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <TargetMachine>MachineX86</TargetMachine>
+    </Link>
+    <PostBuildEvent>
+      <Command>copy $(TargetPath) $(ProjectDir)out\</Command>
+    </PostBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="..\OtherLib\FCSolver\AFreecellGameBoard.cpp" />
+    <ClCompile Include="..\OtherLib\FCSolver\FCCommandLineArguments.cpp" />
+    <ClCompile Include="..\OtherLib\FCSolver\FCCompactState.cpp" />
+    <ClCompile Include="..\OtherLib\FCSolver\FCDebugState.cpp" />
+    <ClCompile Include="..\OtherLib\FCSolver\FCIndirectState.cpp" />
+    <ClCompile Include="..\OtherLib\FCSolver\FCPresets.cpp" />
+    <ClCompile Include="..\OtherLib\FCSolver\FCSCard.cpp" />
+    <ClCompile Include="..\OtherLib\FCSolver\FCSCompactMove.cpp" />
+    <ClCompile Include="..\OtherLib\FCSolver\FCSDebugDisplayInfo.cpp" />
+    <ClCompile Include="..\OtherLib\FCSolver\FCSDebugMove.cpp" />
+    <ClCompile Include="..\OtherLib\FCSolver\FCSDerivedStates.cpp" />
+    <ClCompile Include="..\OtherLib\FCSolver\FCSFreecellAlgorithm.cpp" />
+    <ClCompile Include="..\OtherLib\FCSolver\FCSFreecellData.cpp" />
+    <ClCompile Include="..\OtherLib\FCSolver\FCSFreecellSolvingAlgorithm.cpp" />
+    <ClCompile Include="..\OtherLib\FCSolver\FCSMove.cpp" />
+    <ClCompile Include="..\OtherLib\FCSolver\FCSRandom.cpp" />
+    <ClCompile Include="..\OtherLib\FCSolver\FCSSimpleSimonSolvingAlgorithm.cpp" />
+    <ClCompile Include="..\OtherLib\FCSolver\FCSStackStorage.cpp" />
+    <ClCompile Include="..\OtherLib\FCSolver\FCSStateStorage.cpp" />
+    <ClCompile Include="..\OtherLib\FCSolver\FCSTalonSolvingAlgorithm.cpp" />
+    <ClCompile Include="..\OtherLib\FCSolver\FCSTalonStateWithLocations.cpp" />
+    <ClCompile Include="..\OtherLib\FCSolver\FCState.cpp" />
+    <ClCompile Include="..\OtherLib\FCSolver\FCTalonState.cpp" />
+    <ClCompile Include="..\OtherLib\FCSolver\MainGameFunctions.cpp" />
+    <ClCompile Include="..\OtherLib\FCSolver\MD5Hash.cpp" />
+    <ClCompile Include="..\OtherLib\FCSolver\MiscFreecellGameBoards.cpp" />
+    <ClCompile Include="..\OtherLib\FCSolver\PysolGameBoards.cpp" />
+    <ClCompile Include="..\OtherLib\FCSolver\TestAVLRedBlackTree.cpp" />
+    <ClCompile Include="..\OtherLib\FCSolver\TestCommandLine.cpp" />
+    <ClCompile Include="..\OtherLib\FCSolver\TestSolvingAlgorithms.cpp" />
+    <ClCompile Include="Poker\Big2Level.cpp" />
+    <ClCompile Include="Poker\Big2Scene.cpp" />
+    <ClCompile Include="Poker\Big2Stage.cpp" />
+    <ClCompile Include="Poker\Big2Utility.cpp" />
+    <ClCompile Include="Poker\CardDraw.cpp" />
+    <ClCompile Include="Poker\FreeCell.cpp" />
+    <ClCompile Include="Poker\FreeCellStage.cpp" />
+    <ClCompile Include="Poker\Holdemlevel.cpp" />
+    <ClCompile Include="Poker\HoldemScene.cpp" />
+    <ClCompile Include="Poker\HoldemStage.cpp" />
+    <ClCompile Include="Poker\libcards.cpp" />
+    <ClCompile Include="Poker\PokerGame.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\OtherLib\FCSolver\AFreecellGameBoard.h" />
+    <ClInclude Include="..\OtherLib\FCSolver\AGenericHash.h" />
+    <ClInclude Include="..\OtherLib\FCSolver\AGenericTree.h" />
+    <ClInclude Include="..\OtherLib\FCSolver\AVLNode.h" />
+    <ClInclude Include="..\OtherLib\FCSolver\AVLRedBlackNode.h" />
+    <ClInclude Include="..\OtherLib\FCSolver\AVLRedBlackTree.h" />
+    <ClInclude Include="..\OtherLib\FCSolver\AVLTree.h" />
+    <ClInclude Include="..\OtherLib\FCSolver\CompareAlgorithms.h" />
+    <ClInclude Include="..\OtherLib\FCSolver\Config.h" />
+    <ClInclude Include="..\OtherLib\FCSolver\FCCommandLineArguments.h" />
+    <ClInclude Include="..\OtherLib\FCSolver\FCCompactState.h" />
+    <ClInclude Include="..\OtherLib\FCSolver\FCDebugState.h" />
+    <ClInclude Include="..\OtherLib\FCSolver\FCEnums.h" />
+    <ClInclude Include="..\OtherLib\FCSolver\FCHelpingAlgorithms.h" />
+    <ClInclude Include="..\OtherLib\FCSolver\FCIndirectState.h" />
+    <ClInclude Include="..\OtherLib\FCSolver\FCInternalHash.h" />
+    <ClInclude Include="..\OtherLib\FCSolver\FCPresets.h" />
+    <ClInclude Include="..\OtherLib\FCSolver\FCSAStarSolvingAlgorithm.h" />
+    <ClInclude Include="..\OtherLib\FCSolver\FCSBFSSolvingAlgorithm.h" />
+    <ClInclude Include="..\OtherLib\FCSolver\FCSCard.h" />
+    <ClInclude Include="..\OtherLib\FCSolver\FCSCompactMove.h" />
+    <ClInclude Include="..\OtherLib\FCSolver\FCSCompactStateWithLocations.h" />
+    <ClInclude Include="..\OtherLib\FCSolver\FCSDebugDisplayInfo.h" />
+    <ClInclude Include="..\OtherLib\FCSolver\FCSDebugMove.h" />
+    <ClInclude Include="..\OtherLib\FCSolver\FCSDebugStateWithLocations.h" />
+    <ClInclude Include="..\OtherLib\FCSolver\FCSDerivedStates.h" />
+    <ClInclude Include="..\OtherLib\FCSolver\FCSDFSSolvingAlgorithm.h" />
+    <ClInclude Include="..\OtherLib\FCSolver\FCSFreecellAlgorithm.h" />
+    <ClInclude Include="..\OtherLib\FCSolver\FCSFreecellData.h" />
+    <ClInclude Include="..\OtherLib\FCSolver\FCSFreecellSolvingAlgorithm.h" />
+    <ClInclude Include="..\OtherLib\FCSolver\FCSIndirectStateCompareAlgorithm.h" />
+    <ClInclude Include="..\OtherLib\FCSolver\FCSIndirectStateWithLocations.h" />
+    <ClInclude Include="..\OtherLib\FCSolver\FCSMove.h" />
+    <ClInclude Include="..\OtherLib\FCSolver\FCSOptimizeSolvingAlgorithm.h" />
+    <ClInclude Include="..\OtherLib\FCSolver\FCSRandom.h" />
+    <ClInclude Include="..\OtherLib\FCSolver\FCSRandomDFSSolvingAlgorithm.h" />
+    <ClInclude Include="..\OtherLib\FCSolver\FCSSimpleSimonSolvingAlgorithm.h" />
+    <ClInclude Include="..\OtherLib\FCSolver\FCSSoftDFSSolvingAlgorithm.h" />
+    <ClInclude Include="..\OtherLib\FCSolver\FCSStackStorage.h" />
+    <ClInclude Include="..\OtherLib\FCSolver\FCSStateStorage.h" />
+    <ClInclude Include="..\OtherLib\FCSolver\FCSStateWithLocationsMatrix.h" />
+    <ClInclude Include="..\OtherLib\FCSolver\FCSTalonSolvingAlgorithm.h" />
+    <ClInclude Include="..\OtherLib\FCSolver\FCSTalonStateWithLocations.h" />
+    <ClInclude Include="..\OtherLib\FCSolver\FCState.h" />
+    <ClInclude Include="..\OtherLib\FCSolver\FCTalonState.h" />
+    <ClInclude Include="..\OtherLib\FCSolver\GLIBHash.h" />
+    <ClInclude Include="..\OtherLib\FCSolver\GLIBNode.h" />
+    <ClInclude Include="..\OtherLib\FCSolver\GLIBTree.h" />
+    <ClInclude Include="..\OtherLib\FCSolver\HashAlgorithms.h" />
+    <ClInclude Include="..\OtherLib\FCSolver\MainGameFunctions.h" />
+    <ClInclude Include="..\OtherLib\FCSolver\MD5Hash.h" />
+    <ClInclude Include="..\OtherLib\FCSolver\MiscFreecellGameBoards.h" />
+    <ClInclude Include="..\OtherLib\FCSolver\PriorityQueue.h" />
+    <ClInclude Include="..\OtherLib\FCSolver\PysolGameBoards.h" />
+    <ClInclude Include="..\OtherLib\FCSolver\RedBlackNode.h" />
+    <ClInclude Include="..\OtherLib\FCSolver\RedBlackTree.h" />
+    <ClInclude Include="..\OtherLib\FCSolver\SearchAlgorithms.h" />
+    <ClInclude Include="..\OtherLib\FCSolver\TestAVLRedBlackTree.h" />
+    <ClInclude Include="..\OtherLib\FCSolver\TestCommandLine.h" />
+    <ClInclude Include="..\OtherLib\FCSolver\TestSolvingAlgorithms.h" />
+    <ClInclude Include="Poker\Big2Level.h" />
+    <ClInclude Include="Poker\Big2Scene.h" />
+    <ClInclude Include="Poker\Big2Stage.h" />
+    <ClInclude Include="Poker\Big2Utility.h" />
+    <ClInclude Include="Poker\CardDraw.h" />
+    <ClInclude Include="Poker\FreeCell.h" />
+    <ClInclude Include="Poker\FreeCellSolver.h" />
+    <ClInclude Include="Poker\FreeCellStage.h" />
+    <ClInclude Include="Poker\HoldemLevel.h" />
+    <ClInclude Include="Poker\HoldemScene.h" />
+    <ClInclude Include="Poker\HoldemStage.h" />
+    <ClInclude Include="Poker\libcards.h" />
+    <ClInclude Include="Poker\PokerBase.h" />
+    <ClInclude Include="Poker\PokerGame.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\libEngine\libEngine.vcxproj">
+      <Project>{c1b32c2b-9a40-4874-869f-fcc57bb1d93f}</Project>
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+    </ProjectReference>
+    <ProjectReference Include="TinyCore.vcxproj">
+      <Project>{686cc0bf-4f6b-454a-8d74-3d2ca3a230e0}</Project>
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+    </ProjectReference>
+    <ProjectReference Include="TinyShare.vcxproj">
+      <Project>{f3b972df-7aed-4d2e-99af-5ad3bc736f61}</Project>
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+    </ProjectReference>
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

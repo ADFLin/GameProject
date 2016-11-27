@@ -80,6 +80,7 @@ namespace CAR
 			mb2DView = true;
 			mRenderOffset = Vec2f(0,0);
 
+
 			mViewport = mWorld->createViewport( 0 , 0 , window.getWidth() , window.getHeight() );
 
 
@@ -107,7 +108,9 @@ namespace CAR
 			}
 
 			{
-				mTileShowObject = createTileObject();
+
+				mTileShowObject = mScene->createObject();
+				mTileIdShow = FAIL_TILE_ID;
 				mTileShowObject->show( false );
 
 			}
@@ -140,11 +143,14 @@ namespace CAR
 		mCurMapPos = Vec2i(0,0);
 		mIdxShowFeature = 0;
 
-		mMoudule.mDebug = ::Global::getSetting().getIntValue( "Debug" , "CAR" , 0 ) != 0;
+		mMoudule.mDebug = ::Global::GameSetting().getIntValue( "Debug" , "CAR" , 0 ) != 0;
 		mMoudule.mListener = this;
 		
 		mInput.onAction = std::bind( &LevelStage::onGameAction , this , std::placeholders::_1 , std::placeholders::_2 );
 		mInput.onPrevAction = std::bind( &LevelStage::onGamePrevAction , this , std::placeholders::_1 , std::placeholders::_2 );
+
+		if( !BaseClass::onInit() )
+			return false;
 
 		return true;
 	}
@@ -170,9 +176,9 @@ namespace CAR
 		}
 
 		mMoudule.restart( bInit );
-		if ( ::Global::getSetting().getIntValue( "LoadGame" , "CAR" , 1 )  )
+		if ( ::Global::GameSetting().getIntValue( "LoadGame" , "CAR" , 1 )  )
 		{
-			char const* file = ::Global::getSetting().getStringValue( "LoadGameName" , "CAR" , "car_record2" ) ;
+			char const* file = ::Global::GameSetting().getStringValue( "LoadGameName" , "CAR" , "car_record2" ) ;
 			mInput.loadReplay(file);
 		}
 		
@@ -676,7 +682,7 @@ namespace CAR
 		switch( key )
 		{
 		case Keyboard::eZ: mb2DView = !mb2DView; setRenderOffset( mRenderOffset ); break;
-		case Keyboard::eR: getStage()->restart( false ); break;
+		case Keyboard::eR: getStageMode()->restart( false ); break;
 		case Keyboard::eF: gDrawFarmLink = !gDrawFarmLink; break;
 		case Keyboard::eS: gDrawSideLink = !gDrawSideLink; break;
 		case Keyboard::eQ: 
@@ -689,8 +695,9 @@ namespace CAR
 				TileId id = mMoudule.mUseTileId + 1;
 				if ( id == mMoudule.mTileSetManager.getRegisterTileNum() ) 
 					id = 0;
+
 				mInput.changePlaceTile( id );
-				setTileObjectTexture( mTileShowObject , id );
+				updateShowTileObject( id );
 			}
 			break;
 		case Keyboard::eW: 
@@ -701,8 +708,9 @@ namespace CAR
 					id = mMoudule.mTileSetManager.getRegisterTileNum() - 1;
 				else
 					id -= 1;
+
 				mInput.changePlaceTile( id );
-				setTileObjectTexture( mTileShowObject , id );
+				updateShowTileObject( id );
 			}
 			break;
 		case Keyboard::eO: 
@@ -754,7 +762,7 @@ namespace CAR
 					switch( mInput.getReplyAction() )
 					{
 					case ACTION_PLACE_TILE:
-						if ( level.isEmptyLinkPos( pos ) )
+						if ( level.isLinkTilePosible( pos , mMoudule.mUseTileId ) )
 						{
 							int dir = 0;
 							for(  ; dir < FDir::TotalNum ; ++dir )
@@ -786,7 +794,7 @@ namespace CAR
 				{
 				case ACTION_PLACE_TILE:
 					Vec2i pos = convertToMapTilePos( msg.getPos() );
-					if ( level.isEmptyLinkPos( pos ) )
+					if ( level.isLinkTilePosible( pos , mMoudule.mUseTileId ) )
 					{
 						for( int dir = 0 ; dir < FDir::TotalNum ; ++dir )
 						{
@@ -996,7 +1004,7 @@ namespace CAR
 		{
 			GButton* button = new GButton( UI_REPLAY_STOP , GUISystem::calcScreenCenterPos( Vec2i(100,30) ) + Vec2i(0,200) , Vec2i(100,30) , nullptr );
 			button->setTitle( "End Turn");
-			::Global::getGUI().addWidget( button );
+			::Global::GUI().addWidget( button );
 			input.waitReply();
 		}
 	}
@@ -1021,8 +1029,8 @@ namespace CAR
 		case ACTION_PLACE_TILE:
 			{
 				GamePlaceTileData* myData = data->cast< GamePlaceTileData >();
+				updateShowTileObject( myData->id );
 				mTileShowObject->show( true );
-				setTileObjectTexture( mTileShowObject , myData->id );
 			}
 			break;
 		case ACTION_DEPLOY_ACTOR:
@@ -1163,19 +1171,19 @@ namespace CAR
 
 				panel->mSprite = mSceneUI->createSprite();
 				panel->init( *this , data->cast< GameAuctionTileData >() );
-				::Global::getGUI().addWidget( panel );
+				::Global::GUI().addWidget( panel );
 			}
 			break;
 		case ACTION_BUY_AUCTIONED_TILE:
 			{
 				GameAuctionTileData* myData = data->cast< GameAuctionTileData >();
 				FixString< 512 > str;
-				::Global::getGUI().showMessageBox( UI_BUY_AUCTION_TILE , str.format( "Can You Buy Tile : Score = %d , Id = %d" , myData->maxScore , myData->pIdCallMaxScore ) );
+				::Global::GUI().showMessageBox( UI_BUY_AUCTION_TILE , str.format( "Can You Buy Tile : Score = %d , Id = %d" , myData->maxScore , myData->pIdCallMaxScore ) );
 			}
 			break;
 		case ACTION_BUILD_CASTLE:
 			{
-				::Global::getGUI().showMessageBox( UI_BUILD_CASTLE , "Can You Build Castle" );
+				::Global::GUI().showMessageBox( UI_BUILD_CASTLE , "Can You Build Castle" );
 			}
 			break;
 		case  ACTION_TRUN_OVER:
@@ -1185,7 +1193,7 @@ namespace CAR
 
 				GButton* button = new GButton( UI_ACTION_END_TURN , GUISystem::calcScreenCenterPos( Vec2i(100,30) ) + Vec2i(0,200) , Vec2i(100,30) , nullptr );
 				button->setTitle( "End Turn");
-				::Global::getGUI().addWidget( button );
+				::Global::GUI().addWidget( button );
 			}
 			break;
 		}
@@ -1259,30 +1267,30 @@ namespace CAR
 	{
 		mTileShowObject->show( false );
 		
-		if ( numMapTile == 1 )
-		{
-			MapTile& mapTile = *mapTiles[0];
-			using namespace CFly;
-			Object* obj = createTileObject();
-			float x = mapTile.pos.x;
-			float y = mapTile.pos.y;
-			obj->setLocalPosition( Vector3(x,y,0) );
-			obj->setLocalOrientation( CF_AXIS_Z , Math::Deg2Rad(90*mapTile.rotation) );
-			//obj->setRenderOption( CFRO_CULL_FACE , CF_CULL_NONE );
-			setTileObjectTexture( obj, mapTile.getId() );
-			mRenderObjects.push_back( obj );
-		}
+		MapTile& mapTile = *mapTiles[0];
+		using namespace CFly;
+		Object* obj = mScene->createObject();
+		float x = mapTile.pos.x;
+		float y = mapTile.pos.y;
+		obj->setLocalPosition( Vector3(x,y,0) );
+		obj->setLocalOrientation( CF_AXIS_Z , Math::Deg2Rad(90*mapTile.rotation) );
+		createTileMesh( obj , id );
+		//obj->setRenderOption( CFRO_CULL_FACE , CF_CULL_NONE );
+		setTileObjectTexture( obj, mapTile.getId() );
+		mRenderObjects.push_back( obj );
+
 	}
 
-	CFly::Object* LevelStage::createTileObject()
+
+
+	void LevelStage::createTileMesh( CFly::Object* obj , TileId id )
 	{
 		using namespace CFly;
-		Material* mat = mWorld->createMaterial( Color4f(1,1,1) );
-		Object* obj = mScene->createObject();
+
+		TileSet const& tileSet = mMoudule.mTileSetManager.getTileSet( id );
 		MeshInfo meshInfo;
 		int indices[] = { 0,1,2,0,2,3 }; 
-
-		float vtx[] = 
+		float const vtxSingle[] = 
 		{
 			-0.5,-0.5,0,0,1,
 			0.5,-0.5,0,1,1,
@@ -1290,17 +1298,27 @@ namespace CAR
 			-0.5,0.5,0,0,0
 		};
 
+		float const vtxDouble[] = 
+		{
+			-0.5,-0.5,0,0,1,
+			1.5,-0.5,0,1,1,
+			1.5,0.5,0,1,0,
+			-0.5,0.5,0,0,0
+		};
+
+		
 		meshInfo.isIntIndexType = true;
 		meshInfo.numIndices = 6;
 		meshInfo.pIndex = indices;
 
 		meshInfo.numVertices = 4;
-		meshInfo.pVertex = vtx;
+		meshInfo.pVertex = ( tileSet.type == TileType::eDouble ) ? (void*)vtxDouble : (void*)vtxSingle;
 		meshInfo.vertexType = CFVT_XYZ | CFVF_TEX1(2);
 		meshInfo.primitiveType = CFPT_TRIANGLELIST;
+
+		Material* mat = mWorld->createMaterial( Color4f(1,1,1) );
 		obj->createMesh( mat , meshInfo );
 
-		return obj;
 	}
 
 	void LevelStage::setTileObjectTexture(CFly::Object* obj, TileId id)
@@ -1313,10 +1331,35 @@ namespace CAR
 		mat->getTextureLayer(0).setFilterMode( CFly::CF_FILTER_POINT );
 	}
 
+	void LevelStage::updateTileMesh(CFly::Object* obj , TileId newId , TileId oldId )
+	{
+		if ( oldId != FAIL_TILE_ID )
+		{
+			TileSet const& tileSetOld = mMoudule.mTileSetManager.getTileSet( oldId );
+			TileSet const& tileSetNew = mMoudule.mTileSetManager.getTileSet( newId );
+			if ( tileSetNew.type != tileSetOld.type )
+			{
+				obj->removeAllElement();
+				createTileMesh( obj , newId );
+			}
+		}
+		else
+		{
+			createTileMesh( obj , newId );
+		}
+		setTileObjectTexture( obj , newId );
+	}
+
+	void LevelStage::updateShowTileObject(TileId id)
+	{
+		updateTileMesh( mTileShowObject , id , mTileIdShow );
+		mTileIdShow = id;
+	}
+
 	void LevelStage::addActionWidget(GWidget* widget)
 	{
 		assert( widget );
-		::Global::getGUI().addWidget( widget );
+		::Global::GUI().addWidget( widget );
 		mGameActionUI.push_back( widget );
 	}
 
@@ -1334,6 +1377,7 @@ namespace CAR
 			//BIT( EXP_KING_AND_ROBBER ) |
 			//BIT( EXP_BRIDGES_CASTLES_AND_BAZAARS ) |
 			BIT( EXP_HILLS_AND_SHEEP ) |
+			BIT( EXP_CASTLES ) |
 			0;
 
 		for( int i = 0 ; i < numPlayer ; ++i )
@@ -1378,16 +1422,16 @@ namespace CAR
 			}
 		}
 
-		::Global::getGUI().cleanupWidget();
+		::Global::GUI().cleanupWidget();
 
 		int userSlotId = playerManager.getUser()->getActionPort();
-		if ( getGameType() == GT_NET_GAME )
+		if ( getGameType() == SMT_NET_GAME )
 		{
-			ComWorker* worker = static_cast< GameNetLevelStage* >( getStage() )->getWorker();
+			ComWorker* worker = static_cast< NetLevelStageMode* >( getStageMode() )->getWorker();
 			mInput.setDataTransfer( new CWorkerDataTransfer( worker , userSlotId ) );
-			if ( getManager()->getNetWorker()->isServer() )
+			if ( ::Global::GameNet().getNetWorker()->isServer() )
 			{
-				mServerDataTranfser = new CSVWorkerDataTransfer( getManager()->getNetWorker() , MaxPlayerNum );
+				mServerDataTranfser = new CSVWorkerDataTransfer(::Global::GameNet().getNetWorker(), MaxPlayerNum );
 				mServerDataTranfser->setRecvFun( RecvFun( this , &LevelStage::onRecvDataSV ) );
 			}
 		}
@@ -1409,7 +1453,7 @@ namespace CAR
 
 	bool LevelStage::isUserTrun()
 	{
-		return getPlayerManager()->getUser()->getActionPort() == mMoudule.getTurnPlayer()->getId();
+		return getStageMode()->getPlayerManager()->getUser()->getActionPort() == mMoudule.getTurnPlayer()->getId();
 	}
 
 	bool LevelStage::canInput()
@@ -1417,12 +1461,12 @@ namespace CAR
 		if ( mMoudule.mIsStartGame == false )
 			return false;
 
-		if ( getGameType() == GT_SINGLE_GAME )
+		if ( getGameType() == SMT_SINGLE_GAME )
 			return true;
 
-		if ( getGameType() == GT_NET_GAME )
+		if ( getGameType() == SMT_NET_GAME )
 		{
-			if ( getActionPlayerId() == getPlayerManager()->getUser()->getActionPort() )
+			if ( getActionPlayerId() == getStageMode()->getPlayerManager()->getUser()->getActionPort() )
 				return true;
 		}
 
@@ -1455,6 +1499,7 @@ namespace CAR
 		case EXP_BRIDGES_CASTLES_AND_BAZAARS: dir = "BridgeCastleBazaar"; break;
 		case EXP_KING_AND_ROBBER: dir = "KingRobber"; break;
 		case EXP_HILLS_AND_SHEEP: dir = "HillsSheep"; break;
+		case EXP_CASTLES: dir = "Castle"; break;
 		}
 
 		if ( dir )

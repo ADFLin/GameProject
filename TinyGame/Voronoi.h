@@ -5,8 +5,14 @@
 #include <queue>
 #include <set>
 #include <new>
+#include <list>
+#include <cassert>
+
+#include "TVector2.h"
+
 namespace Voronoi
 {
+	typedef TVector2<float> Vec2f;
 
 	template< class T >
 	struct BTreeNode

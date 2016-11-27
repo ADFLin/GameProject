@@ -11,6 +11,7 @@
 
 #include "GameGUISystem.h"
 #include "GameStage.h"
+#include "GameStageMode.h"
 #include "GameGlobal.h"
 
 #include "GameServer.h"
@@ -32,6 +33,8 @@
 
 int g_DevMsgLevel = 10;
 
+GAME_API IGameNetInterface* gGameNetInterfaceImpl;
+
 class GMsgListener : public IMsgListener
 {
 public:
@@ -44,11 +47,12 @@ public:
 	{
 
 	}
+	static int const MaxLineNum = 60;
 
 	virtual void receive( MsgChannel channel , char const* str )
 	{
 		Mutex::Locker locker( mMutex );
-		if ( mMsgList.size() > 15 )
+		if ( mMsgList.size() > MaxLineNum )
 			mMsgList.pop_front();
 
 		mMsgList.push_back( str );
@@ -97,9 +101,11 @@ static GMsgListener gMsgListener;
 TinyGameApp::TinyGameApp()
 	:mRenderEffect( NULL )
 	,mNetWorker( NULL )
-	//,mGameMode( nullptr )
+	,mStageMode( nullptr )
 {
 	mShowErrorMsg = false;
+	gGameNetInterfaceImpl = this;
+	mbLockFPS = false;
 }
 
 TinyGameApp::~TinyGameApp()
@@ -111,12 +117,14 @@ bool TinyGameApp::onInit()
 {
 	GameLoop::setUpdateTime( gDefaultTickTime );
 
-	if ( !Global::getSetting().loadFile( GAME_SETTING_PATH ) )
+	if ( !Global::GameSetting().loadFile( GAME_SETTING_PATH ) )
 	{
 
 	}
 
 	exportUserProfile();
+
+	mbLockFPS = ::Global::GameSetting().getIntValue("bLockFPS", nullptr, 0);
 
 	gMsgListener.setLevel( g_DevMsgLevel );
 	gMsgListener.addChannel( MSG_DEV );
@@ -128,7 +136,7 @@ bool TinyGameApp::onInit()
 
 	::Global::getDrawEngine()->init( mGameWindow );
 
-	::Global::getGUI().init( this );
+	::Global::GUI().init( *this );
 
 	loadGamePackage();
 
@@ -137,12 +145,12 @@ bool TinyGameApp::onInit()
 
 	bool havePlayGame = false;
 	char const* gameName;
-	if ( ::Global::getSetting().tryGetStringValue( "DefaultGame" , nullptr , gameName ) )
+	if ( ::Global::GameSetting().tryGetStringValue( "DefaultGame" , nullptr , gameName ) )
 	{
-		IGamePackage* game = ::Global::getGameManager().changeGame( gameName );
+		IGamePackage* game = ::Global::GameManager().changeGame( gameName );
 		if ( game )
 		{
-			game->beginPlay( GT_SINGLE_GAME , *this );
+			game->beginPlay( SMT_SINGLE_GAME , *this );
 			havePlayGame = true;
 		}
 	}
@@ -162,10 +170,10 @@ void TinyGameApp::onEnd()
 
 	closeNetwork();
 
-	Global::getGameManager().cleanup();
+	Global::GameManager().cleanup();
 
 	importUserProfile();
-	Global::getSetting().saveFile( GAME_SETTING_PATH );
+	Global::GameSetting().saveFile( GAME_SETTING_PATH );
 
 	extern void saveTranslateAsset( char const* path );
 	saveTranslateAsset( "tt.txt" );
@@ -183,16 +191,13 @@ long TinyGameApp::onUpdate( long shouldTime )
 		if ( mNetWorker )
 			mNetWorker->update( getUpdateTime() );
 
-		//if ( mGameMode )
-		//	mGameMode->update( time );
-
 		checkNewStage();
 		runTask( getUpdateTime() );
 		getCurStage()->update( getUpdateTime() );
 
-		::Global::getGUI().update();
+		::Global::GUI().update();
 
-		IGamePackage* game = Global::getGameManager().getCurGame();
+		IGamePackage* game = Global::GameManager().getCurGame();
 		if ( game )
 			game->getController().clearFrameInput();
 	}
@@ -204,8 +209,10 @@ long TinyGameApp::onUpdate( long shouldTime )
 
 void TinyGameApp::onIdle(long time)
 {
-	//render( 0.0f );
-	::Sleep( time );
+	if ( mbLockFPS )
+		::Sleep(time);
+	else
+		render( 0.0f );
 }
 
 
@@ -232,7 +239,7 @@ void TinyGameApp::loadGamePackage()
 				continue;
 #endif
 
-			Global::getGameManager().loadGame( fileName );
+			Global::GameManager().loadGame( fileName );
 		}
 	}
 }
@@ -256,7 +263,7 @@ ServerWorker* TinyGameApp::createServer()
 	ServerWorker* server = new ServerWorker;
 	if ( !server->startNetwork() )
 	{
-		::Global::getGUI().showMessageBox( 
+		::Global::GUI().showMessageBox( 
 			UI_ANY , LAN("Can't Create Server") );
 		delete server;
 		return NULL;
@@ -274,12 +281,12 @@ ClientWorker* TinyGameApp::createClinet()
 	DelayClientWorker* worker = new DelayClientWorker( mUserProfile );
 	worker->setDelay( 50 );
 #else
-	ClientWorker* worker = new ClientWorker( getUserProfile() );
+	ClientWorker* worker = new ClientWorker( ::Global::getUserProfile() );
 #endif
 	if ( !worker->startNetwork() )
 	{
 		delete worker;
-		::Global::getGUI().showMessageBox( 
+		::Global::GUI().showMessageBox( 
 			UI_ANY , LAN("Can't Create Client") );
 		return NULL;
 	}
@@ -288,109 +295,18 @@ ClientWorker* TinyGameApp::createClinet()
 	return worker;
 }
 
-bool TinyGameApp::onWidgetEvent( int event , int id , GWidget* ui )
-{
-	if ( !getCurStage()->onWidgetEvent( event , id , ui ) )
-		return false;
-	if ( id >= UI_STAGE_ID )
-		return false;
-	//if ( !mGameMode->onWidgetEvent( event , id , ui ) )
-	//	return false;
-	if ( id >= UI_GAME_MODE_ID )
-		return false;
-
-	switch ( id )
-	{
-	//case UI_SINGLE_GAME:
-		//changeNextStage( MAIN_STAGE );
-		//restartGame( 0 ); 
-		break;
-	case UI_EXIT_GAME:
-		if ( event == EVT_BOX_YES )
-		{
-			setLoopOver( true );
-		}
-		else if ( event == EVT_BOX_NO )
-		{
-
-		}
-		else
-		{
-			::Global::getGUI().showMessageBox( 
-				UI_EXIT_GAME , LAN("Be Sure To Exit The Game?") );
-		}
-		break;
-	case UI_MAIN_MENU:
-		if ( event == EVT_BOX_YES )
-		{
-			changeStage( STAGE_MAIN_MENU );
-		}
-		else if ( event == EVT_BOX_NO )
-		{
-
-		}
-		else
-		{
-			::Global::getGUI().showMessageBox( 
-				UI_MAIN_MENU , LAN("Be Sure Back To Main Menu?") );
-		}
-
-		break;
-	case UI_BUILD_CLIENT:
-		{
-			closeNetwork();
-
-			ClientWorker* worker = createClinet();
-			if ( !worker )
-				return false;
-			NetRoomStage* stage = static_cast< NetRoomStage* >( changeStage( STAGE_NET_ROOM ) );
-			stage->initWorker( worker );
-		}
-		break;
-	case UI_CREATE_SERVER:
-		{
-			closeNetwork();
-
-			ServerWorker* server = createServer();
-			if ( !server )
-				return false;
-
-			LocalWorker* worker = server->createLocalWorker( getUserProfile() );
-
-			NetRoomStage* stage = static_cast< NetRoomStage* >( changeStage( STAGE_NET_ROOM ) );
-			stage->initWorker( worker , server );	
-		}
-		break;
-	case UI_GAME_MENU:
-		if ( event == EVT_BOX_YES )
-		{
-			if ( mNetWorker )
-			{
-				mNetWorker->closeNetwork();
-			}
-			changeStage( STAGE_GAME_MENU );
-
-		}
-		break;
-	}
-
-	return true;
-}
-
-
-
 bool TinyGameApp::onMouse( MouseMsg const& msg )
 {
 	bool result = true;
 
-	IGamePackage* game = Global::getGameManager().getCurGame();
+	IGamePackage* game = Global::GameManager().getCurGame();
 	if ( game )
 	{
 		GameController& controller = game->getController();
 
 		if ( !controller.haveLockMouse() )
 		{
-			result = ::Global::getGUI().getManager().procMouseMsg( msg );
+			result = ::Global::GUI().getManager().procMouseMsg( msg );
 		}
 
 		if ( result )
@@ -398,7 +314,7 @@ bool TinyGameApp::onMouse( MouseMsg const& msg )
 	}
 	else
 	{
-		result = ::Global::getGUI().getManager().procMouseMsg( msg );
+		result = ::Global::GUI().getManager().procMouseMsg( msg );
 	}
 
 	if ( result )
@@ -458,36 +374,46 @@ void TinyGameApp::render( float dframe )
 	if ( !de->beginRender() )
 		return;
 
-	getCurStage()->render( dframe );
+	bool bDrawScene = ( mStageMode == nullptr ) || mStageMode->canRender();
 
-	long dt = long( dframe * getUpdateTime() );
+	if( bDrawScene )
+	{
+		getCurStage()->render(dframe);
 
+		long dt = long(dframe * getUpdateTime());
 
-	if ( mRenderEffect )
-		mRenderEffect->onRender( dt );
+		if( mRenderEffect )
+			mRenderEffect->onRender(dt);
 
-	if ( ::Global::getDrawEngine()->isEnableOpenGL() )
-		::Global::getGLGraphics2D().beginRender();
+		if( ::Global::getDrawEngine()->isEnableOpenGL() )
+			::Global::getGLGraphics2D().beginRender();
 
-	Global::getGUI().render();
-	gMsgListener.render( Vec2i( 5 , 25 ) );
+		Global::GUI().render();
+	}
+	else
+	{
+		if( ::Global::getDrawEngine()->isEnableOpenGL() )
+			::Global::getGLGraphics2D().beginRender();
+	}
 
-	mFPSCalc.increaseFrame( getMillionSecond() );
+	gMsgListener.render(Vec2i(5, 25));
+
+	mFPSCalc.increaseFrame(getMillionSecond());
 	IGraphics2D& g = ::Global::getIGraphics2D();
 	FixString< 256 > str;
-	g.setTextColor( 255 , 255 , 0 );
-	g.drawText( Vec2i(5,5) , str.format( "FPS = %f" , mFPSCalc.getFPS() ) );
+	g.setTextColor(255, 255, 0);
+	g.drawText(Vec2i(5, 5), str.format("FPS = %f", mFPSCalc.getFPS()));
 
-	if ( ::Global::getDrawEngine()->isEnableOpenGL() )
+	if( ::Global::getDrawEngine()->isEnableOpenGL() )
 		::Global::getGLGraphics2D().endRender();
-
+		
 	de->endRender();
 }
 
 void TinyGameApp::exportUserProfile()
 {
-	PropertyKey& setting = Global::getSetting();
-	UserProfile& userPorfile = getUserProfile();
+	PropertyKey& setting = Global::GameSetting();
+	UserProfile& userPorfile = Global::getUserProfile();
 
 	userPorfile.name = setting.getStringValue( "Name" , "Player" , "Player" );
 	char const* lan = setting.getStringValue( "Language" , "Player" , "Chinese-T" );
@@ -509,9 +435,9 @@ void TinyGameApp::exportUserProfile()
 
 void TinyGameApp::importUserProfile()
 {
-	PropertyKey& setting = Global::getSetting();
+	PropertyKey& setting = Global::GameSetting();
 
-	UserProfile& userPorfile = getUserProfile();
+	UserProfile& userPorfile = Global::getUserProfile();
 
 	setting.setKeyValue( "Name" , "Player" , userPorfile.name.c_str() );
 	switch( userPorfile.language )
@@ -529,9 +455,9 @@ void TinyGameApp::importUserProfile()
 
 StageBase* TinyGameApp::createStage( StageID stageId )
 {
-	StageBase* chStage = NULL;
+	StageBase* newStage = NULL;
 
-	IGamePackage* curGame = Global::getGameManager().getCurGame();
+	IGamePackage* curGame = Global::GameManager().getCurGame();
 
 	if ( curGame )
 	{
@@ -549,21 +475,26 @@ StageBase* TinyGameApp::createStage( StageID stageId )
 				delete subStage;
 				ErrorMsg( "Can't Find GameStage" );
 			}
-			chStage = gameStage;
+			newStage = gameStage;
 		}
 
-		if ( !chStage )
-			chStage = curGame->createStage( stageId );
+		if ( !newStage )
+			newStage = curGame->createStage( stageId );
 	}
 
+	if( GameStageBase* gameStage = dynamic_cast<GameStageBase*>(newStage) )
+	{
+		GameStageMode* stageMode = createGameStageMode(stageId);
+		gameStage->setupStageMode(stageMode);
+	}
 
-	if ( !chStage )
+	if ( !newStage )
 	{
 		switch ( stageId )
 		{
 
 #define CASE_STAGE( id , Class )\
-		case id : chStage = new Class ; break;
+		case id : newStage = new Class ; break;
 
 		CASE_STAGE( STAGE_MAIN_MENU   , MainMenuStage )
 		CASE_STAGE( STAGE_NET_ROOM    , NetRoomStage )
@@ -575,7 +506,7 @@ StageBase* TinyGameApp::createStage( StageID stageId )
 		}
 	}
 
-	return chStage;
+	return newStage;
 }
 
 
@@ -590,10 +521,28 @@ GameStage* TinyGameApp::createGameStage( StageID stageId )
 			case idx : gameStage = new Class; break;
 		CASE_STAGE( STAGE_SINGLE_GAME , GameSingleStage )
 		CASE_STAGE( STAGE_NET_GAME    , GameNetLevelStage )
-		CASE_STAGE( STAGE_REPLAY_GAME , GameReplayMode )
+		CASE_STAGE( STAGE_REPLAY_GAME , GameReplayStage )
 #undef CASE_STAGE
 	}
 	return gameStage;
+}
+
+GameStageMode* TinyGameApp::createGameStageMode(StageID stageId)
+{
+	GameStageMode* stageMode = NULL;
+
+	switch( stageId )
+	{
+#define CASE_STAGE( idx , Class )\
+				case idx : stageMode  = new Class; break;
+
+		CASE_STAGE(STAGE_SINGLE_GAME, SingleStageMode)
+		CASE_STAGE(STAGE_NET_GAME, NetLevelStageMode)
+		CASE_STAGE(STAGE_REPLAY_GAME, ReplayStageMode)
+
+#undef CASE_STAGE
+	}
+	return stageMode;
 }
 
 StageBase* TinyGameApp::resolveChangeStageFail( FailReason reason )
@@ -623,6 +572,11 @@ void TinyGameApp::prevChangeStage()
 
 void TinyGameApp::postStageChange( StageBase* stage )
 {
+	if( GameStageBase* gameStage = dynamic_cast<GameStageBase*>(stage) )
+	{
+		mStageMode = gameStage->mStageMode;
+	}
+	
 	addTask( new FadeInEffect( Color::eBlack , 1000 ) , this );
 	if ( mShowErrorMsg )
 	{
@@ -636,11 +590,114 @@ bool TinyGameApp::onActivate( bool beA )
 	return true;
 }
 
+void TinyGameApp::onPaint(HDC hDC)
+{
+	if( !::Global::getDrawEngine()->isInitialized() )
+		return;
+
+	render(0.0f);
+}
+
 NetWorker* TinyGameApp::buildNetwork( bool beServer )
 {
 	if ( beServer )
 		return createServer();
 	return createClinet();
+}
+
+void TinyGameApp::addGUITask(TaskBase* task, bool bGlobal)
+{
+	TaskHandler* handler = (bGlobal) ? static_cast<TaskHandler*>( this ) : getCurStage();
+	handler->addTask(task);
+}
+
+void TinyGameApp::dispatchWidgetEvent( int event , int id , GWidget* ui )
+{
+	if ( !getCurStage()->onWidgetEvent( event , id , ui ) )
+		return;
+	if ( id >= UI_STAGE_ID )
+		return;
+	//if ( !mGameMode->onWidgetEvent( event , id , ui ) )
+	//	return false;
+	if ( id >= UI_GAME_STAGE_MODE_ID )
+		return;
+
+	switch ( id )
+	{
+	//case UI_SINGLE_GAME:
+		//changeNextStage( MAIN_STAGE );
+		//restartGame( 0 ); 
+		break;
+	case UI_EXIT_GAME:
+		if ( event == EVT_BOX_YES )
+		{
+			setLoopOver( true );
+		}
+		else if ( event == EVT_BOX_NO )
+		{
+
+		}
+		else
+		{
+			::Global::GUI().showMessageBox( 
+				UI_EXIT_GAME , LAN("Be Sure To Exit The Game?") );
+		}
+		break;
+	case UI_MAIN_MENU:
+		if ( event == EVT_BOX_YES )
+		{
+			changeStage( STAGE_MAIN_MENU );
+		}
+		else if ( event == EVT_BOX_NO )
+		{
+
+		}
+		else
+		{
+			::Global::GUI().showMessageBox( 
+				UI_MAIN_MENU , LAN("Be Sure Back To Main Menu?") );
+		}
+
+		break;
+	case UI_BUILD_CLIENT:
+		{
+			closeNetwork();
+
+			ClientWorker* worker = createClinet();
+			if ( !worker )
+				return;
+			NetRoomStage* stage = static_cast< NetRoomStage* >( changeStage( STAGE_NET_ROOM ) );
+			stage->initWorker( worker );
+		}
+		break;
+	case UI_CREATE_SERVER:
+		{
+			closeNetwork();
+
+			ServerWorker* server = createServer();
+			if ( !server )
+				return;
+
+			LocalWorker* worker = server->createLocalWorker(::Global::getUserProfile() );
+
+			NetRoomStage* stage = static_cast< NetRoomStage* >( changeStage( STAGE_NET_ROOM ) );
+			stage->initWorker( worker , server );	
+		}
+		break;
+	case UI_GAME_MENU:
+		if ( event == EVT_BOX_YES )
+		{
+			if ( mNetWorker )
+			{
+				mNetWorker->closeNetwork();
+			}
+			changeStage( STAGE_GAME_MENU );
+
+		}
+		break;
+	}
+
+	return;
 }
 
 FadeInEffect::FadeInEffect( int _color , long time )

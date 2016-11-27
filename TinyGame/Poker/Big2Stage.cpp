@@ -84,14 +84,14 @@ namespace Poker { namespace Big2 {
 
 	void LevelStage::setupScene( IPlayerManager& playerManager )
 	{
-		if ( ( getGameType() == GT_NET_GAME && getManager()->getNetWorker()->isServer() ) ||
-			   getGameType() == GT_SINGLE_GAME )
+		if ( ( getGameType() == SMT_NET_GAME && ::Global::GameNet().getNetWorker()->isServer() ) ||
+			   getGameType() == SMT_SINGLE_GAME )
 		{
 			mServerLevel = new ServerLevel;
 		}
 		mClientLevel = new ClientLevel;
 
-		NetWorker* netWorker = getManager()->getNetWorker();
+		NetWorker* netWorker = ::Global::GameNet().getNetWorker();
 
 		bool haveBot = false;
 		if ( mServerLevel )
@@ -132,16 +132,16 @@ namespace Poker { namespace Big2 {
 			}
 		}
 
-		if ( getGameType() == GT_NET_GAME )
+		if ( getGameType() == SMT_NET_GAME )
 		{
-			ComWorker* worker = static_cast< GameNetLevelStage* >( getStage() )->getWorker();
+			ComWorker* worker = static_cast< NetLevelStageMode* >( getStageMode() )->getWorker();
 			if ( mServerLevel  )
 			{
-				mServerLevel->setupTransfer( new CSVWorkerDataTransfer( getManager()->getNetWorker() , 4 ) );
+				mServerLevel->setupTransfer( new CSVWorkerDataTransfer(::Global::GameNet().getNetWorker(), 4 ) );
 			}
 			mClientLevel->setupTransfer( new CWorkerDataTransfer( worker , userSlotId ) );
 		}
-		else if ( getGameType() == GT_SINGLE_GAME )
+		else if ( getGameType() == SMT_SINGLE_GAME )
 		{
 			CTestDataTransfer* sv = new CTestDataTransfer;
 			CTestDataTransfer* cl = new CTestDataTransfer;
@@ -157,7 +157,7 @@ namespace Poker { namespace Big2 {
 
 
 
-		::Global::getGUI().cleanupWidget();
+		::Global::GUI().cleanupWidget();
 
 		mScene = new Scene( *mClientLevel , playerManager );
 		
@@ -186,7 +186,7 @@ namespace Poker { namespace Big2 {
 
 			mTestUI = frame;
 			mTestUI->show( false );
-			::Global::getGUI().addWidget( mTestUI );
+			::Global::GUI().addWidget( mTestUI );
 		}
 
 		WidgetUtility::createDevFrame();
@@ -231,7 +231,7 @@ namespace Poker { namespace Big2 {
 			{
 				if ( canPass )
 				{
-					getStage()->restart( false );
+					getStageMode()->restart( false );
 					canPass = false;
 				}
 			}
@@ -252,7 +252,7 @@ namespace Poker { namespace Big2 {
 		int nextSlot = mServerLevel->getNextShowSlot();
 		if ( nextSlot != -1 )
 		{
-			GamePlayer* player = getPlayerManager()->getPlayer( mServerLevel->getSlotStatus( nextSlot ).playerId );
+			GamePlayer* player = getStageMode()->getPlayerManager()->getPlayer( mServerLevel->getSlotStatus( nextSlot ).playerId );
 			if ( player->getType() == PT_COMPUTER )
 			{
 				static_cast< CardListUI* >( mTestUI->getChild() )->setClientCards( mServerLevel->getSlotOwnCards( nextSlot ) );
@@ -280,7 +280,7 @@ namespace Poker { namespace Big2 {
 		{
 			TaskBase* task = new DelayTask( 5000 );
 			task->setNextTask( TaskUtility::createMemberFunTask( this, &LevelStage::nextRound ) );
-			getStage()->addTask( task );
+			addTask( task );
 		}
 	}
 

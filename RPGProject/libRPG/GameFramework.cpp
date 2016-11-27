@@ -20,6 +20,7 @@
 
 GameFramework::GameFramework()
 	:mObjectSystem( new GameObjectSystem )
+	,mSystem(nullptr)
 {
 
 }

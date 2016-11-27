@@ -51,12 +51,12 @@ namespace CAR
 		return sideNodes[ dir ].type;
 	}
 
-	int MapTile::getFarmGroup(int idx)
+	int MapTile::getFarmGroup(int idx) const
 	{ 
 		return farmNodes[idx].group; 
 	}
 
-	int MapTile::getSideGroup(int dir)
+	int MapTile::getSideGroup(int dir) const
 	{ 
 		return sideNodes[dir].group; 
 	}

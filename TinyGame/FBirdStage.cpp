@@ -10,7 +10,7 @@ namespace FlappyBird
 
 	bool TestStage::onInit()
 	{
-		::Global::getGUI().cleanupWidget();
+		::Global::GUI().cleanupWidget();
 
 		mMaxScore = 0;
 		restart();
@@ -174,7 +174,7 @@ namespace FlappyBird
 		Vec2i pos = GUISystem::calcScreenCenterPos( box->getSize() );
 		box->setPos( pos );
 		box->setTitle( "You Die!" );
-		::Global::getGUI().addWidget( box );
+		::Global::GUI().addWidget( box );
 
 		mIsOver = true;
 	}

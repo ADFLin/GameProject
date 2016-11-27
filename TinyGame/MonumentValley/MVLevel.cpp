@@ -3,6 +3,7 @@
 #include "DataStream.h"
 
 #include <cmath>
+#include <map>
 
 namespace MV
 {
@@ -118,9 +119,9 @@ namespace MV
 
 				num = ctrlor->mInfo.size();
 				op & num;
-				for( int n = 0 ; n < ctrlor->mInfo.size() ; ++i )
+				for( int n = 0 ; n < ctrlor->mInfo.size() ; ++n )
 				{
-					SpaceControllor::Info& info = ctrlor->mInfo[i];
+					SpaceControllor::Info& info = ctrlor->mInfo[n];
 					ptrId = modifierPtrMap[ info.modifier ];
 					op & ptrId ;
 					op & info.factorScale;
@@ -242,9 +243,9 @@ namespace MV
 				SpaceControllor* ctrlor = createControllor();
 				int num2;
 				op & num2;
-				for( int n = 0 ; n < num2 ; ++i )
+				for( int n = 0 ; n < num2 ; ++n )
 				{
-					SpaceControllor::Info& info = ctrlor->mInfo[i];
+					SpaceControllor::Info& info = ctrlor->mInfo[n];
 					op & ptrId ;
 					float scale;
 					op & scale;

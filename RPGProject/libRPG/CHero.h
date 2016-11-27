@@ -59,12 +59,10 @@ public:
 	void idleThink( ThinkContent& content );
 	bool tryBreakAction()
 	{
-
+		return false;
 	}
 
 	
-
-
 	float m_frontSpeed;
 
 	void processAction();

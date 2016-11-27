@@ -9,6 +9,7 @@
 
 RenderSystem::RenderSystem()
 {
+	mScreenViewport = NULL;
 	mCFWorld = NULL;
 }
 

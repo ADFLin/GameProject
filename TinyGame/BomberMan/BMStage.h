@@ -23,10 +23,10 @@ namespace BomberMan
 
 	
 
-	class LevelStage : public GameSubStage
+	class LevelStage : public GameStageBase
 		             , public ActionEnumer
 	{
-		typedef GameSubStage BaseClass;
+		typedef GameStageBase BaseClass;
 	public:
 		LevelStage()
 		{
@@ -55,17 +55,7 @@ namespace BomberMan
 		void tick();
 		void updateFrame( int frame );
 
-		bool onKey( unsigned key , bool isDown )
-		{
-			if ( !isDown )
-				return false;
-
-			switch( key )
-			{
-			case 'R': getStage()->restart( false ); break;
-			}
-			return false;
-		}
+		bool onKey( unsigned key , bool isDown );
 		void fireAction( ActionTrigger& trigger );
 		void prevScanAction( bool beUpdateFrame );
 

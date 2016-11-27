@@ -43,21 +43,6 @@ namespace Tetris
 		unsigned  mActionBit[ gTetrisMaxPlayerNum ];
 	};
 
-	GameSubStage* CGamePackage::createSubStage( unsigned id )
-	{
-		switch( id )
-		{
-#define CASE_STAGE( ID , TYPE ) \
-	case ID : return new TYPE;
-			CASE_STAGE( STAGE_SINGLE_GAME , LevelStage )
-				CASE_STAGE( STAGE_REPLAY_GAME , LevelStage )
-				CASE_STAGE( STAGE_NET_GAME    , LevelStage )
-#undef  CASE_STAGE
-		}
-
-		return NULL;
-	}
-
 	ReplayTemplate* CGamePackage::createReplayTemplate( unsigned version )
 	{
 		return new TetrisReplayTemplate;
@@ -176,15 +161,22 @@ namespace Tetris
 		case STAGE_GAME_MENU: return new MenuStage;
 		case STAGE_ABOUT_GAME: return new AboutGameStage;
 		case STAGE_RECORD_GAME: return new RecordStage;
+#define CASE_STAGE( ID , TYPE ) \
+	case ID : return new TYPE;
+			CASE_STAGE(STAGE_SINGLE_GAME, LevelStage)
+			CASE_STAGE(STAGE_REPLAY_GAME, LevelStage)
+			CASE_STAGE(STAGE_NET_GAME, LevelStage)
+#undef  CASE_STAGE
+
 		}
 		return NULL;
 	}
 
 
-	void CGamePackage::beginPlay( GameType type, StageManager& manger )
+	void CGamePackage::beginPlay( StageModeType type, StageManager& manger )
 	{
 		::Msg( "Tetris!!!" );
-		if ( type == GT_SINGLE_GAME )
+		if ( type == SMT_SINGLE_GAME )
 			manger.changeStage( STAGE_GAME_MENU );
 		else
 			IGamePackage::beginPlay( type , manger );

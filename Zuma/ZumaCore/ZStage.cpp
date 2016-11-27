@@ -206,7 +206,7 @@ namespace Zuma
 	LoadingStage::LoadingStage( char const* resID ) 
 		:ZStage( STAGE_LOADING )
 		,loadID( resID )
-		,mThreadLoading( this , &LoadingStage::loadResFun )
+		,mThreadLoading( LoadingFun( this , &LoadingStage::loadResFun ) )
 	{
 
 	}
@@ -218,7 +218,7 @@ namespace Zuma
 		mThreadLoading.start();
 	}
 
-	unsigned LoadingStage::loadResFun()
+	void LoadingStage::loadResFun()
 	{
 		loadingTime = ::GetTickCount();
 
@@ -227,7 +227,6 @@ namespace Zuma
 		Global::getRenderSystem().postLoadResource();
 
 		loadingTime = ::GetTickCount() - loadingTime;
-		return 0;
 	}
 
 	void LoadingStage::onUpdate( long time )
@@ -239,7 +238,6 @@ namespace Zuma
 		{
 			sendEvent( EVT_LOADING_FINISH , this );
 		}
-
 	}
 
 

@@ -58,6 +58,7 @@ struct TEvent
 	}
 	TEvent()
 	{
+		id = EVENT_ANY_ID;
 		type   = EVT_UNDEFINE;
 		sender = nullptr;
 		data   = nullptr;

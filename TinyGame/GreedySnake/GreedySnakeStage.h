@@ -5,9 +5,9 @@ namespace GreedySnake
 	class Scene;
 	class Mode;
 
-	class LevelStage : public GameSubStage
+	class LevelStage : public GameStageBase
 	{
-		typedef GameSubStage BaseClass;
+		typedef GameStageBase BaseClass;
 	public:
 
 		LevelStage();

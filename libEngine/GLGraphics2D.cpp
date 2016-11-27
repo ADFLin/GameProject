@@ -416,7 +416,7 @@ void GLFont::printf(const char *fmt, ...)
 	char    text[1024];								// Holds Our String
 
 	va_start(ap, fmt);									// Parses The String For Variables
-	vsprintf(text, fmt, ap);						// And Converts Symbols To Actual Numbers
+	vsprintf_s(text, fmt, ap);						// And Converts Symbols To Actual Numbers
 	va_end(ap);											// Results Are Stored In Text
 
 

@@ -22,6 +22,7 @@ namespace CAR
 	using CFly::Vector3;
 	using CFly::Matrix4;
 
+
 	class LevelStage;
 
 	class ActorPosButton : public GButtonBase
@@ -105,10 +106,10 @@ namespace CAR
 	public:
 	};
 
-	class LevelStage : public GameSubStage
+	class LevelStage : public GameStageBase
 		             , public IGameEventListener
 	{
-		typedef GameSubStage BaseClass;
+		typedef GameStageBase BaseClass;
 	public:
 		LevelStage(){}
 
@@ -119,6 +120,7 @@ namespace CAR
 		virtual bool onWidgetEvent(int event , int id , GWidget* ui);
 		virtual bool onKey( unsigned key , bool isDown );
 		virtual bool onMouse( MouseMsg const& msg );
+
 
 		virtual bool setupNetwork( NetWorker* worker , INetEngine** engine ){ return true; }
 		virtual void buildServerLevel( GameLevelInfo& info )
@@ -181,14 +183,13 @@ namespace CAR
 
 		//IGameEventListener
 		virtual void onPutTile( TileId id , MapTile* mapTiles[] , int numMapTile );
+		
 		//
-
-
-		void setTileObjectTexture(CFly::Object* obj, TileId id );
-
+		void setTileObjectTexture( CFly::Object* obj, TileId id );
+		void createTileMesh( CFly::Object* obj , TileId id );
+		void updateTileMesh( CFly::Object* obj , TileId newId , TileId oldId );
+		void updateShowTileObject( TileId id );
 		void getTileTexturePath( TileId id, FixString< 512 > &texName );
-
-		CFly::Object* createTileObject();
 
 		void addActionWidget( GWidget* widget );
 
@@ -235,11 +236,14 @@ namespace CAR
 
 		std::vector< CFly::SceneNode* > mRenderObjects;
 		CFly::World*    mWorld;
-		CFly::Object*   mTileShowObject;
+		
 		CFly::Scene*    mScene;
 		CFly::Scene*    mSceneUI;
 		CFly::Camera*   mCamera;
 		CFly::Viewport* mViewport;
+
+		CFly::Object*   mTileShowObject;
+		TileId          mTileIdShow;
 	};
 
 }//namespace CAR

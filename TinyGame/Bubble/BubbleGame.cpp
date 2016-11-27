@@ -159,7 +159,7 @@ namespace Bubble
 		return new BubbleReplayTemplate;
 	}
 
-	GameSubStage* CGamePackage::createSubStage( unsigned id )
+	StageBase* CGamePackage::createStage( unsigned id )
 	{
 		switch( id )
 		{
@@ -216,7 +216,7 @@ namespace Bubble
 		return NULL;
 	}
 
-	void CGamePackage::beginPlay( GameType type, StageManager& manger )
+	void CGamePackage::beginPlay( StageModeType type, StageManager& manger )
 	{
 		IGamePackage::beginPlay( type , manger );
 	}

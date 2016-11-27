@@ -7,6 +7,8 @@
 
 #include "RenderUtility.h"
 
+#include <algorithm>
+
 namespace Bubble
 {
 	int const g_BubbleColor[] =

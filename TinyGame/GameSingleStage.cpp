@@ -8,7 +8,7 @@
 #include "GameWidgetID.h"
 
 GameSingleStage::GameSingleStage() 
-	:BaseClass( GT_SINGLE_GAME )
+	:BaseClass( SMT_SINGLE_GAME )
 	,mPlayerManager( new LocalPlayerManager )
 {
 
@@ -78,7 +78,7 @@ void GameSingleStage::onUpdate( long time )
 
 	getSubStage()->updateFrame( frame );
 
-	::Global::getGUI().scanHotkey( getGame()->getController() );
+	::Global::GUI().scanHotkey( getGame()->getController() );
 }
 
 void GameSingleStage::onRender( float dFrame )
@@ -122,7 +122,7 @@ bool GameSingleStage::onWidgetEvent( int event , int id , GWidget* ui )
 		else
 		{
 			togglePause();
-			::Global::getGUI().showMessageBox( UI_GAME_MENU , LAN("Back Game Menu?") );
+			::Global::GUI().showMessageBox( UI_GAME_MENU , LAN("Back Game Menu?") );
 			return false;
 		}
 		break;
@@ -141,7 +141,7 @@ bool GameSingleStage::onWidgetEvent( int event , int id , GWidget* ui )
 		{
 			if ( getState() != GS_END )
 			{
-				::Global::getGUI().showMessageBox( 
+				::Global::GUI().showMessageBox( 
 					UI_RESTART_GAME , LAN("Do you Want to Stop Current Game?") );
 			}
 			else
@@ -159,6 +159,151 @@ bool GameSingleStage::onWidgetEvent( int event , int id , GWidget* ui )
 
 
 LocalPlayerManager* GameSingleStage::getPlayerManager()
+{
+	return mPlayerManager.get();
+}
+
+SingleStageMode::SingleStageMode() 
+	:BaseClass(SMT_SINGLE_GAME)
+	,mPlayerManager(new LocalPlayerManager)
+{
+
+}
+
+bool SingleStageMode::onInit()
+{
+	if( !BaseClass::onInit() )
+		return false;
+
+	GameStageBase* stage = getStage();
+
+	stage->setupLocalGame(*mPlayerManager.get());
+	stage->setupScene(*mPlayerManager.get());
+
+	for( IPlayerManager::Iterator iter = getPlayerManager()->getIterator();
+		iter.haveMore(); iter.goNext() )
+	{
+		GamePlayer* player = iter.getElement();
+		if( player->getAI() )
+		{
+			ActionInput* input = player->getAI()->getActionInput();
+			if( input )
+				stage->getActionProcessor().addInput(*input);
+		}
+	}
+
+	if( !buildReplayRecorder() )
+	{
+
+	}
+
+	ActionProcessor& processor = stage->getActionProcessor();
+
+	processor.addInput(getGame()->getController());
+	restart(true);
+	return true;
+}
+
+void SingleStageMode::onRestart(uint64& seed)
+{
+	seed = ::generateRandSeed();
+	BaseClass::onRestart(seed);
+}
+
+void SingleStageMode::updateTime(long time)
+{
+	int frame = time / mCurStage->getTickTime();
+	ActionProcessor& processor = mCurStage->getActionProcessor();
+
+	for( int i = 0; i < frame; ++i )
+	{
+		unsigned flag = 0;
+		switch( getGameState() )
+		{
+		case GS_RUN:
+			++mReplayFrame;
+			break;
+		default:
+			flag |= CTF_FREEZE_FRAME;
+		}
+		processor.beginAction(flag);
+		mCurStage->tick();
+		processor.endAction();
+	}
+
+	mCurStage->updateFrame(frame);
+	::Global::GUI().scanHotkey(getGame()->getController());
+}
+
+bool SingleStageMode::onWidgetEvent(int event, int id, GWidget* ui)
+{
+	switch( id )
+	{
+	case UI_PAUSE_GAME:
+		togglePause();
+		return false;
+	case UI_GAME_MENU:
+		if( event == EVT_BOX_YES )
+		{
+			saveReplay(LAST_REPLAY_NAME);
+			getStage()->getManager()->changeStage(STAGE_GAME_MENU);
+			return true;
+		}
+		else if( event == EVT_BOX_NO )
+		{
+			togglePause();
+			return false;
+		}
+		else
+		{
+			togglePause();
+			::Global::GUI().showMessageBox(UI_GAME_MENU, LAN("Back Game Menu?"));
+			return false;
+		}
+		break;
+
+	case UI_RESTART_GAME:
+		if( event == EVT_BOX_YES )
+		{
+			restart(false);
+			return false;
+		}
+		else if( event == EVT_BOX_NO )
+		{
+
+		}
+		else
+		{
+			if( getGameState() != GS_END )
+			{
+				::Global::GUI().showMessageBox(
+					UI_RESTART_GAME, LAN("Do you Want to Stop Current Game?"));
+			}
+			else
+			{
+				restart(false);
+			}
+			return false;
+
+		}
+		break;
+	}
+
+	return BaseClass::onWidgetEvent(event, id, ui);
+}
+
+bool SingleStageMode::tryChangeState(GameState state)
+{
+	switch( state )
+	{
+	case GS_END:
+		saveReplay(LAST_REPLAY_NAME);
+		break;
+	}
+	return true;
+}
+
+LocalPlayerManager* SingleStageMode::getPlayerManager()
 {
 	return mPlayerManager.get();
 }

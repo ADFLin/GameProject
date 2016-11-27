@@ -5,10 +5,9 @@
 
 #include <cmath>
 
-#define  SIN_60 ( 1.73205081f * 0.5f )
-
 namespace Bubble
 {
+	float const SIN_60 = ( 1.73205081f * 0.5f );
 	int  const  g_MinBubbleDestroyNum = 2;
 	float const g_MinCollisionDistance = g_BubbleDiameter - 0.5f;
 

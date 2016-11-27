@@ -17,7 +17,7 @@ namespace Rich
 
 	bool LevelStage::onInit()
 	{
-		::Global::getGUI().cleanupWidget();
+		::Global::GUI().cleanupWidget();
 
 		mUserCtrler.mLevel = &mLevel;
 		mLevel.mTurn.mControl = this;
@@ -81,13 +81,13 @@ namespace Rich
 		{
 		case REQ_BUY_LAND:
 			{
-				GWidget* widget = ::Global::getGUI().showMessageBox( UI_BUY_LAND , "Buy Land?" );
+				GWidget* widget = ::Global::GUI().showMessageBox( UI_BUY_LAND , "Buy Land?" );
 				widget->setUserData( intptr_t( &turn ) );
 			}
 			break;
 		case REQ_UPGRADE_LAND:
 			{
-				GWidget* widget = ::Global::getGUI().showMessageBox( UI_BUY_LAND , "Upgrade Land?" );
+				GWidget* widget = ::Global::GUI().showMessageBox( UI_BUY_LAND , "Upgrade Land?" );
 				widget->setUserData( intptr_t( &turn ) );
 			}
 			break;
@@ -96,7 +96,7 @@ namespace Rich
 				RomateDiceFrame* frame = new RomateDiceFrame( UI_ANY , Vec2i( 100 , 100 ) , nullptr );
 				frame->mLevel    = mLevel;
 				frame->mTurn     = &turn;
-				::Global::getGUI().addWidget( frame );
+				::Global::GUI().addWidget( frame );
 			}
 			break;
 		}
@@ -130,7 +130,7 @@ namespace Rich
 				frame->mLevel    = mLevel;
 				frame->mTurn     = msg.turn;
 				frame->setMaxPower( mLevel->getActivePlayer()->getMovePower() );
-				::Global::getGUI().addWidget( frame );
+				::Global::GUI().addWidget( frame );
 			}
 			break;
 		}

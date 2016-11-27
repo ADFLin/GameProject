@@ -1,8 +1,8 @@
 #ifndef RigidBody_h__A43993CD_7DDA_413E_A692_9AD6619A297D
 #define RigidBody_h__A43993CD_7DDA_413E_A692_9AD6619A297D
 
+#include "ShareLibConfig.h"
 #include "Phy2D/Base.h"
-
 #include "Phy2D/Collision.h"
 
 namespace Phy2D
@@ -47,7 +47,7 @@ namespace Phy2D
 
 		}
 
-		void init( Shape* shape , BodyInfo const& info );
+		CORE_API void init( Shape* shape , BodyInfo const& info );
 
 		virtual PhyType  getType() const { return PhyObject::eRigidType; }
 		void             setMotionType( BodyMotion::Type type );
@@ -75,7 +75,7 @@ namespace Phy2D
 			return mLinearVel + Vec2f::Cross( mAngularVel , ( pos - mPosCenter ) );
 		}
 
-		void setupDefaultMass();
+		CORE_API void setupDefaultMass();
 		void saveState()
 		{
 			mSaveState.xform = mXForm;

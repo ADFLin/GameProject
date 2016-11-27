@@ -23,9 +23,9 @@ namespace TowerDefend
 		ActComPanel* mActComPanel;
 	};
 
-	class LevelStage : public GameSubStage
+	class LevelStage : public GameStageBase
 	{
-		typedef GameSubStage BaseClass;
+		typedef GameStageBase BaseClass;
 
 
 		virtual void tick()
@@ -46,7 +46,7 @@ namespace TowerDefend
 		{
 			BaseClass::updateFrame( frame );
 			mLevel->update( frame );
-			::Global::getGUI().updateFrame( frame , getTickTime() );
+			::Global::GUI().updateFrame( frame , getTickTime() );
 		}
 		virtual bool getAttribValue( AttribValue& value )
 		{ 
@@ -70,7 +70,7 @@ namespace TowerDefend
 		{
 
 			Level::RenderParam param;
-			param.drawMouse = ::Global::getGUI().getManager().getMouseUI() == NULL;
+			param.drawMouse = ::Global::GUI().getManager().getMouseUI() == NULL;
 			mLevel->render( *mRenderer , param );
 
 			Controller& controller = static_cast< Controller& >(

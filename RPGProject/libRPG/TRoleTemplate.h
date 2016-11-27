@@ -64,7 +64,7 @@ class TRoleManager : public SingletonT< TRoleManager >
 public:
 	TRoleManager();
 
-	void       initDefultRole();
+	void       initDefaultRole();
 	SRoleInfo* getRoleInfo( unsigned roleID );
 	unsigned   getModelID( unsigned roleID );
 

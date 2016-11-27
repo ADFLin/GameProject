@@ -1,6 +1,7 @@
 #ifndef ReplayStage_h__
 #define ReplayStage_h__
 
+#include "GameStageMode.h"
 #include "GameSingleStage.h"
 #include "GameWidget.h"
 #include "GameReplay.h"
@@ -78,8 +79,8 @@ protected:
 };
 
 
-class  GameReplayMode : public GameStage
-	                  , public IReplayModeInterface
+class  GameReplayStage : public GameStage
+	                   , public IReplayModeInterface
 {
 	typedef GameStage BaseClass;
 public:
@@ -94,7 +95,7 @@ public:
 		NEXT_UI_ID ,
 	};
 
-	GameReplayMode();
+	GameReplayStage();
 
 	void setReplayPath( String const& path )
 	{
@@ -111,6 +112,51 @@ protected:
 	void onUpdate( long time );
 	bool onWidgetEvent( int event , int id , GWidget* ui );
 	void onRestart( uint64& seed );
+
+	TPtrHolder< IReplayInput >         mReplayInput;
+	TPtrHolder< LocalPlayerManager >   mPlayerManager;
+
+	std::string   mReplayFilePath;
+	int           mIndexSpeed;
+	int           mReplaySpeed;
+	int           mReplayUpdateCount;
+	GSlider*      mProgressSlider;
+};
+
+
+class  ReplayStageMode : public LevelStageMode
+	                   , public IReplayModeInterface
+{
+	typedef LevelStageMode BaseClass;
+public:
+
+	enum
+	{
+		UI_REPLAY_TOGGLE_PAUSE = BaseClass::NEXT_UI_ID,
+		UI_REPLAY_RESTART,
+		UI_REPLAY_FAST,
+		UI_REPLAY_SLOW,
+
+		NEXT_UI_ID,
+	};
+
+	ReplayStageMode();
+
+	void setReplayPath(String const& path)
+	{
+		mReplayFilePath = path;
+	}
+
+	LocalPlayerManager* getPlayerManager();
+
+protected:
+
+	bool onInit();
+	bool loadReplay(char const* path);
+	void onEnd();
+	void updateTime(long time);
+	bool onWidgetEvent(int event, int id, GWidget* ui);
+	void onRestart(uint64& seed);
 
 	TPtrHolder< IReplayInput >         mReplayInput;
 	TPtrHolder< LocalPlayerManager >   mPlayerManager;

@@ -16,7 +16,7 @@ namespace Voronoi
 
 		virtual bool onInit()
 		{
-			::Global::getGUI().cleanupWidget();
+			::Global::GUI().cleanupWidget();
 			restart();
 			return true;
 		}

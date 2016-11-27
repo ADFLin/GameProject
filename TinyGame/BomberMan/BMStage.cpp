@@ -18,13 +18,16 @@ namespace BomberMan
 
 	bool LevelStage::onInit()
 	{
-		getStage()->getActionProcessor().setEnumer( this );
+		getActionProcessor().setEnumer( this );
+		if( !BaseClass::onInit() )
+			return false;
+
 		return true;
 	}
 
 	void LevelStage::onEnd()
 	{
-		getStage()->getActionProcessor().setEnumer( NULL );
+		getActionProcessor().setEnumer( NULL );
 
 		delete &mMode->getMapGenerator(); 
 		delete mMode;
@@ -114,13 +117,13 @@ namespace BomberMan
 		
 		switch( getGameType() )
 		{
-		case GT_NET_GAME:
+		case SMT_NET_GAME:
 			{
 				GamePlayer* player = playerMgr.getUser();
 				controller.setPortControl( player->getActionPort() , 0 );
 			}
 			break;
-		case GT_SINGLE_GAME:
+		case SMT_SINGLE_GAME:
 			{
 				controller.setPortControl( 0 , 0 );
 				controller.setPortControl( 1 , 1 );
@@ -129,7 +132,7 @@ namespace BomberMan
 		}
 
 		mScene.setViewPos( Vec2i( 0 , 0 ) );
-		::Global::getGUI().cleanupWidget();
+		::Global::GUI().cleanupWidget();
 
 		GFrame* frame = WidgetUtility::createDevFrame();
 	}
@@ -155,20 +158,20 @@ namespace BomberMan
 				}
 				else
 				{
-					getStage()->restart( false );
+					getStageMode()->restart( false );
 				}
 				break;
 			case STEP_GAME_OVER:
 				switch( getGameType() )
 				{
-				case GT_NET_GAME:
-					if ( getManager()->getNetWorker()->isServer() )
-						getManager()->getNetWorker()->changeState( NAS_ROOM_ENTER );
+				case SMT_NET_GAME:
+					if ( ::Global::GameNet().getNetWorker()->isServer() )
+						::Global::GameNet().getNetWorker()->changeState( NAS_ROOM_ENTER );
 					break;
-				case GT_SINGLE_GAME:
+				case SMT_SINGLE_GAME:
 					getManager()->changeStage( STAGE_GAME_MENU );
 					break;
-				case GT_REPLAY:
+				case SMT_REPLAY:
 					getManager()->changeStage( STAGE_MAIN_MENU );
 					break;
 				}
@@ -195,7 +198,19 @@ namespace BomberMan
 		mScene.updateFrame( frame );
 	}
 
-	IFrameActionTemplate* LevelStage::createActionTemplate( unsigned version )
+	bool LevelStage::onKey(unsigned key, bool isDown)
+	{
+		if( !isDown )
+			return false;
+
+		switch( key )
+		{
+		case 'R': getStageMode()->restart(false); break;
+		}
+		return false;
+	}
+
+	IFrameActionTemplate* LevelStage::createActionTemplate(unsigned version)
 	{ 
 		switch ( version )
 		{

@@ -20,16 +20,16 @@ namespace Phy2D
 		{
 			mGrivaty = Vec2f(0,-9.8);
 		}
+		
+		CORE_API CollideObject* createCollideObject( Shape* shape );
+		CORE_API void           destroyCollideObject( CollideObject* obj );
+		CORE_API RigidBody*     createRigidBody( Shape* shape , BodyInfo const& info );
+		CORE_API void           destroyRigidBody( RigidBody* body );
 
-		CollideObject* createCollideObject( Shape* shape );
-		void           destroyCollideObject( CollideObject* obj );
-		RigidBody*     createRigidBody( Shape* shape , BodyInfo const& info );
-		void           destroyRigidBody( RigidBody* body );
 
+		CORE_API void           simulate( float dt );
 
-		void           simulate( float dt );
-
-		void           clearnup( bool beDelete );
+		CORE_API void           clearnup( bool beDelete );
 
 		CollisionManager mColManager;
 

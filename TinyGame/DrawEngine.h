@@ -60,6 +60,7 @@ public:
 
 	Graphics2D* createGraphics()
 	{
+		return nullptr;
 
 	}
 	void  destroyGraphics(){}
@@ -105,6 +106,7 @@ public:
 	GameWindow& getWindow(){ return *mGameWindow; }
 
 	bool isEnableOpenGL(){ return mbGLEnable; }
+	bool isInitialized() { return mbInitialized; }
 
 	GAME_API bool  startOpenGL( bool useGLEW = true );
 	GAME_API void  stopOpenGL();
@@ -113,6 +115,8 @@ public:
 	GAME_API void  enableSweepBuffer( bool beS );
 private:
 	void        setupBuffer( int w , int h );
+
+	bool        mbInitialized;
 	bool        mbGLEnable;
 	bool        mbSweepBuffer;
 	

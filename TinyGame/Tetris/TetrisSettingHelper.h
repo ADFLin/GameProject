@@ -44,9 +44,7 @@ namespace Tetris
 
 
 		void  setupMaxPlayerNumUI( int num );
-		void  setupGame( StageManager& manager , GameSubStage* subStage );
-
-
+		void  setupGame(StageManager& manager, GameStageBase* stage);
 		int      mMaxPlayerNum;
 		GameInfo mInfo;
 	};

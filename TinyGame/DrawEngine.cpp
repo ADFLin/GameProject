@@ -44,6 +44,7 @@ IGraphics2D& DrawEngine::getIGraphics()
 DrawEngine::DrawEngine()
 {
 	mbGLEnable = false;
+	mbInitialized = false;
 	mbSweepBuffer = true;
 	mBufferDC = NULL;
 	mScreenGraphics = NULL;
@@ -67,6 +68,8 @@ void DrawEngine::init( GameWindow& window )
 	mGLGraphics = new GLGraphics2D;
 	mGLGraphics->init( mGameWindow->getWidth() , mGameWindow->getHeight() );
 	RenderUtility::init();
+
+	mbInitialized = true;
 }
 
 void DrawEngine::release()

@@ -350,53 +350,9 @@
 				>
 			</File>
 			<File
-				RelativePath=".\Thread.h"
-				>
-			</File>
-			<File
 				RelativePath=".\Tween.h"
 				>
 			</File>
-			<Filter
-				Name="AStar"
-				>
-				<File
-					RelativePath=".\AStar.h"
-					>
-				</File>
-				<File
-					RelativePath=".\AStarDefultPolicy.h"
-					>
-				</File>
-				<File
-					RelativePath=".\AStarTile2D.h"
-					>
-				</File>
-				<File
-					RelativePath=".\MortonCode.h"
-					>
-				</File>
-				<File
-					RelativePath=".\TileRegion.cpp"
-					>
-				</File>
-				<File
-					RelativePath=".\TileRegion.h"
-					>
-				</File>
-				<File
-					RelativePath=".\TQTPortalAStar.h"
-					>
-				</File>
-				<File
-					RelativePath=".\TQuadTree.h"
-					>
-				</File>
-				<File
-					RelativePath=".\TQuadTreeTile.h"
-					>
-				</File>
-			</Filter>
 		</Filter>
 		<Filter
 			Name="Net"
@@ -444,6 +400,14 @@
 			</File>
 			<File
 				RelativePath=".\Graphics2DBase.h"
+				>
+			</File>
+			<File
+				RelativePath=".\Thread.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\Thread.h"
 				>
 			</File>
 			<File
@@ -496,6 +460,26 @@
 			>
 			<File
 				RelativePath=".\Math\Base.h"
+				>
+			</File>
+			<File
+				RelativePath=".\Math\BigFloat.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\Math\BigFloat.h"
+				>
+			</File>
+			<File
+				RelativePath=".\Math\BigInteger.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\Math\BigInteger.h"
+				>
+			</File>
+			<File
+				RelativePath=".\Math\FixedFloat.h"
 				>
 			</File>
 			<File
@@ -751,9 +735,53 @@
 			Name="Algo"
 			>
 			<File
+				RelativePath=".\Algo\IDAStar.h"
+				>
+			</File>
+			<File
 				RelativePath=".\SortAlgo.h"
 				>
 			</File>
+			<Filter
+				Name="AStar"
+				>
+				<File
+					RelativePath=".\Algo\AStar.h"
+					>
+				</File>
+				<File
+					RelativePath=".\Algo\AStarDefultPolicy.h"
+					>
+				</File>
+				<File
+					RelativePath=".\AStarTile2D.h"
+					>
+				</File>
+				<File
+					RelativePath=".\MortonCode.h"
+					>
+				</File>
+				<File
+					RelativePath=".\TileRegion.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\TileRegion.h"
+					>
+				</File>
+				<File
+					RelativePath=".\TQTPortalAStar.h"
+					>
+				</File>
+				<File
+					RelativePath=".\TQuadTree.h"
+					>
+				</File>
+				<File
+					RelativePath=".\TQuadTreeTile.h"
+					>
+				</File>
+			</Filter>
 		</Filter>
 	</Files>
 	<Globals>

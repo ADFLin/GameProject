@@ -12,7 +12,7 @@ EXPORT_GAME( BomberMan::CGamePackage )
 
 namespace BomberMan
 {
-	GameSubStage* CGamePackage::createSubStage( unsigned id )
+	StageBase* CGamePackage::createStage( unsigned id )
 	{
 		switch( id )
 		{
@@ -46,7 +46,7 @@ namespace BomberMan
 		return false;
 	}
 
-	void CGamePackage::beginPlay( GameType type, StageManager& manger )
+	void CGamePackage::beginPlay( StageModeType type, StageManager& manger )
 	{
 		IGamePackage::beginPlay( type , manger );
 	}
@@ -78,7 +78,7 @@ namespace BomberMan
 			if ( beServer )
 				setupUI();
 		}
-		virtual void setupGame( StageManager& manager , GameSubStage* subStage )
+		virtual void setupGame( StageManager& manager , GameStageBase* subStage )
 		{
 			static_cast< LevelStage* >( subStage )->setMode( mMode );
 			mMode = NULL;

@@ -5,6 +5,10 @@
 
 #include <string>
 
+#ifndef BIT
+#define BIT( n ) ( 1 << ( n ) )
+#endif
+
 namespace GL
 {
 

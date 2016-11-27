@@ -72,7 +72,7 @@ namespace Poker { namespace Holdem {
 	{
 		mServerLevel.reset( new ServerLevel );
 
-		IPlayerManager& playerManager = *getPlayerManager();
+		IPlayerManager& playerManager = *getStageMode()->getPlayerManager();
 
 		for( IPlayerManager::Iterator iter = playerManager.getIterator();
 			iter.haveMore() ; iter.goNext() )
@@ -104,9 +104,9 @@ namespace Poker { namespace Holdem {
 	{
 		mClientLevel.reset( new ClientLevel );
 
-		mScene.reset( new Scene( *mClientLevel , *getPlayerManager() ) );
+		mScene.reset( new Scene( *mClientLevel , *getStageMode()->getPlayerManager() ) );
 
-		NetWorker* netWorker = getManager()->getNetWorker();
+		NetWorker* netWorker = ::Global::GameNet().getNetWorker();
 
 		int userSlotId;
 		for( IPlayerManager::Iterator iter = playerManager.getIterator();
@@ -123,16 +123,16 @@ namespace Poker { namespace Holdem {
 			}
 		}
 
-		if ( getGameType() == GT_NET_GAME )
+		if ( getGameType() == SMT_NET_GAME )
 		{
-			ComWorker* worker = static_cast< GameNetLevelStage* >( getStage() )->getWorker();
+			ComWorker* worker = static_cast< NetLevelStageMode* >( getStageMode() )->getWorker();
 			if ( mServerLevel )
 			{
-				mServerLevel->setupTransfer( new CSVWorkerDataTransfer( getManager()->getNetWorker() , MaxPlayerNum ) );
+				mServerLevel->setupTransfer( new CSVWorkerDataTransfer(::Global::GameNet().getNetWorker(), MaxPlayerNum ) );
 			}
 			mClientLevel->setupTransfer( new CWorkerDataTransfer( worker , userSlotId ) );
 		}
-		else if ( getGameType() == GT_SINGLE_GAME )
+		else if ( getGameType() == SMT_SINGLE_GAME )
 		{
 			CTestDataTransfer* sv = new CTestDataTransfer;
 			CTestDataTransfer* cl = new CTestDataTransfer;
@@ -146,13 +146,13 @@ namespace Poker { namespace Holdem {
 			mClientLevel->setupTransfer( cl );
 		}
 
-		::Global::getGUI().cleanupWidget();
+		::Global::GUI().cleanupWidget();
 		mScene->setupWidget();
-		if ( mServerLevel && getGameType() == GT_SINGLE_GAME )
+		if ( mServerLevel && getGameType() == SMT_SINGLE_GAME )
 		{
 			DevBetPanel* panel = new DevBetPanel( UI_ANY , Vec2i( 100 , 300 ) , NULL );
 			panel->mServer = mServerLevel;
-			::Global::getGUI().addWidget( panel );
+			::Global::GUI().addWidget( panel );
 		}
 		DevFrame* frame = WidgetUtility::createDevFrame();
 		frame->addButton( UI_RESTART_GAME , "Restart" );

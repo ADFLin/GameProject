@@ -226,8 +226,8 @@ bool SysMsgHandlerT<T,MSG>::_procMouseMsg( HWND hWnd , UINT msg , WPARAM wParam 
 	int x = (int) LOWORD(lParam);
 	int y = (int) HIWORD(lParam);
 
-	if (x >= 32767) x -= 65536;
-	if (y >= 32767) y -= 65536;
+	//if (x >= 32767) x -= 65536;
+	//if (y >= 32767) y -= 65536;
 
 	return _this()->onMouse( MouseMsg( x , y , button , mMouseState ) );
 }

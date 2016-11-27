@@ -9,7 +9,7 @@ namespace Cube
 
 	bool TestStage::onInit()
 	{
-		::Global::getGUI().cleanupWidget();
+		::Global::GUI().cleanupWidget();
 
 		Global::getDrawEngine()->startOpenGL();
 		GameWindow& window = Global::getDrawEngine()->getWindow();

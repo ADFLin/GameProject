@@ -14,4 +14,5 @@ int WINAPI WinMain (HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR szCmdLine
 {
 	game.setUpdateTime( g_GameTime.updateTime );
 	game.run();
+	return 0;
 }

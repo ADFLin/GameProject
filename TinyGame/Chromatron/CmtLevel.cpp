@@ -818,11 +818,10 @@ namespace Chromatron
 
 		GameInfoHeaderV2* gameHeader = (GameInfoHeaderV2*) malloc( gameHeaderSize );
 
-		gameHeader->version = GAME_DATA_VERSION;
-
 		if ( gameHeader == NULL )
 			return false;
 
+		gameHeader->version = GAME_DATA_VERSION;
 		gameHeader->totalSize = gameHeaderSize;
 
 		std::ios::pos_type pos = stream.tellp();

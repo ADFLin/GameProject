@@ -40,7 +40,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories=".;../libEngine;../OtherLib;../OtherLib/boost;../OtherLib/glew;"
+				AdditionalIncludeDirectories=".;TinyCore;../libEngine;../OtherLib;../OtherLib/boost;../OtherLib/glew;"
 				PreprocessorDefinitions="WIN32;_WINDOWS;DEBUG;GLEW_BUILD;TG_DLL;TG_EXPORT;CORE_SHARE;CORE_EXPORT"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="0"
@@ -118,7 +118,7 @@
 				Name="VCCLCompilerTool"
 				Optimization="2"
 				EnableIntrinsicFunctions="true"
-				AdditionalIncludeDirectories=".;../libEngine;../OtherLib;../OtherLib/boost;../OtherLib/glew;"
+				AdditionalIncludeDirectories=".;TinyCore;../libEngine;../OtherLib;../OtherLib/boost;../OtherLib/glew;"
 				PreprocessorDefinitions="_SECURE_SCL=0;WIN32;_WINDOWS;NDEBUG;TG_DLL;GLEW_BUILD;TG_EXPORT;"
 				StringPooling="true"
 				RuntimeLibrary="2"
@@ -189,91 +189,91 @@
 				>
 			</File>
 			<File
-				RelativePath=".\GameControl.cpp"
+				RelativePath=".\TinyCore\GameControl.cpp"
 				>
 			</File>
 			<File
-				RelativePath=".\GameControl.h"
+				RelativePath=".\TinyCore\GameControl.h"
 				>
 			</File>
 			<File
-				RelativePath=".\GameDllMain.cpp"
+				RelativePath=".\TinyCore\GameDllMain.cpp"
 				>
 			</File>
 			<File
-				RelativePath=".\GameGlobal.cpp"
+				RelativePath=".\TinyCore\GameGlobal.cpp"
 				>
 			</File>
 			<File
-				RelativePath=".\GameGlobal.h"
+				RelativePath=".\TinyCore\GameGlobal.h"
 				>
 			</File>
 			<File
-				RelativePath=".\GameGUISystem.cpp"
+				RelativePath=".\TinyCore\GameGUISystem.cpp"
 				>
 			</File>
 			<File
-				RelativePath=".\GameGUISystem.h"
+				RelativePath=".\TinyCore\GameGUISystem.h"
 				>
 			</File>
 			<File
-				RelativePath=".\GamePackageManager.cpp"
+				RelativePath=".\TinyCore\GamePackageManager.cpp"
 				>
 			</File>
 			<File
-				RelativePath=".\GamePackageManager.h"
+				RelativePath=".\TinyCore\GamePackageManager.h"
 				>
 			</File>
 			<File
-				RelativePath=".\GamePlayer.cpp"
+				RelativePath=".\TinyCore\GamePlayer.cpp"
 				>
 			</File>
 			<File
-				RelativePath=".\GamePlayer.h"
+				RelativePath=".\TinyCore\GamePlayer.h"
 				>
 			</File>
 			<File
-				RelativePath=".\GameReplay.cpp"
+				RelativePath=".\TinyCore\GameReplay.cpp"
 				>
 			</File>
 			<File
-				RelativePath=".\GameReplay.h"
+				RelativePath=".\TinyCore\GameReplay.h"
 				>
 			</File>
 			<File
-				RelativePath=".\GameSettingHelper.cpp"
+				RelativePath=".\TinyCore\GameSettingHelper.cpp"
 				>
 			</File>
 			<File
-				RelativePath=".\GameSettingHelper.h"
+				RelativePath=".\TinyCore\GameSettingHelper.h"
 				>
 			</File>
 			<File
-				RelativePath=".\GameTranslateString.cpp"
+				RelativePath=".\TinyCore\GameTranslateString.cpp"
 				>
 			</File>
 			<File
-				RelativePath=".\InputManager.cpp"
+				RelativePath=".\TinyCore\InputManager.cpp"
 				>
 			</File>
 			<File
-				RelativePath=".\InputManager.h"
+				RelativePath=".\TinyCore\InputManager.h"
 				>
 			</File>
 			<File
-				RelativePath=".\Localization.cpp"
+				RelativePath=".\TinyCore\Localization.cpp"
 				>
 			</File>
 			<File
-				RelativePath=".\Localization.h"
+				RelativePath=".\TinyCore\Localization.h"
 				>
 			</File>
 			<File
-				RelativePath=".\RenderUtility.cpp"
+				RelativePath=".\TinyCore\RenderUtility.cpp"
 				>
 			</File>
 			<File
-				RelativePath=".\RenderUtility.h"
+				RelativePath=".\TinyCore\RenderUtility.h"
 				>
 			</File>
 			<File
@@ -317,19 +317,19 @@
 				>
 			</File>
 			<File
-				RelativePath=".\GameSettingPanel.cpp"
+				RelativePath=".\TinyCore\GameSettingPanel.cpp"
 				>
 			</File>
 			<File
-				RelativePath=".\GameSettingPanel.h"
+				RelativePath=".\TinyCore\GameSettingPanel.h"
 				>
 			</File>
 			<File
-				RelativePath=".\GameWidget.cpp"
+				RelativePath=".\TinyCore\GameWidget.cpp"
 				>
 			</File>
 			<File
-				RelativePath=".\GameWidget.h"
+				RelativePath=".\TinyCore\GameWidget.h"
 				>
 			</File>
 		</Filter>
@@ -341,79 +341,79 @@
 			Name="Net"
 			>
 			<File
-				RelativePath=".\CAsyncFrameManager.h"
+				RelativePath=".\TinyCore\CAsyncFrameManager.h"
 				>
 			</File>
 			<File
-				RelativePath=".\CFrameActionNetEngine.cpp"
+				RelativePath=".\TinyCore\CFrameActionNetEngine.cpp"
 				>
 			</File>
 			<File
-				RelativePath=".\CFrameActionNetEngine.h"
+				RelativePath=".\TinyCore\CFrameActionNetEngine.h"
 				>
 			</File>
 			<File
-				RelativePath=".\ComPacket.cpp"
+				RelativePath=".\TinyCore\ComPacket.cpp"
 				>
 			</File>
 			<File
-				RelativePath=".\ComPacket.h"
+				RelativePath=".\TinyCore\ComPacket.h"
 				>
 			</File>
 			<File
-				RelativePath=".\CPredictFrameManager.h"
+				RelativePath=".\TinyCore\CPredictFrameManager.h"
 				>
 			</File>
 			<File
-				RelativePath=".\CSyncFrameManager.cpp"
+				RelativePath=".\TinyCore\CSyncFrameManager.cpp"
 				>
 			</File>
 			<File
-				RelativePath=".\CSyncFrameManager.h"
+				RelativePath=".\TinyCore\CSyncFrameManager.h"
 				>
 			</File>
 			<File
-				RelativePath=".\GameClient.cpp"
+				RelativePath=".\TinyCore\GameClient.cpp"
 				>
 			</File>
 			<File
-				RelativePath=".\GameClient.h"
+				RelativePath=".\TinyCore\GameClient.h"
 				>
 			</File>
 			<File
-				RelativePath=".\GameNetConnect.cpp"
+				RelativePath=".\TinyCore\GameNetConnect.cpp"
 				>
 			</File>
 			<File
-				RelativePath=".\GameNetConnect.h"
+				RelativePath=".\TinyCore\GameNetConnect.h"
 				>
 			</File>
 			<File
-				RelativePath=".\GameNetPacket.h"
+				RelativePath=".\TinyCore\GameNetPacket.h"
 				>
 			</File>
 			<File
-				RelativePath=".\GameServer.cpp"
+				RelativePath=".\TinyCore\GameServer.cpp"
 				>
 			</File>
 			<File
-				RelativePath=".\GameServer.h"
+				RelativePath=".\TinyCore\GameServer.h"
 				>
 			</File>
 			<File
-				RelativePath=".\GameWorker.cpp"
+				RelativePath=".\TinyCore\GameWorker.cpp"
 				>
 			</File>
 			<File
-				RelativePath=".\GameWorker.h"
+				RelativePath=".\TinyCore\GameWorker.h"
 				>
 			</File>
 			<File
-				RelativePath=".\GuideServer.h"
+				RelativePath=".\TinyCore\GuideServer.h"
 				>
 			</File>
 			<File
-				RelativePath=".\INetEngine.h"
+				RelativePath=".\TinyCore\INetEngine.h"
 				>
 			</File>
 		</Filter>

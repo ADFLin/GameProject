@@ -15,6 +15,9 @@
 
 namespace CAR
 {
+	class MapTile;
+	class LevelActor;
+
 	typedef uint32 TileId;
 	TileId const FAIL_TILE_ID = TileId(-1);
 
@@ -39,6 +42,7 @@ namespace CAR
 		EXP_THE_RIVER_II ,                //+T 
 
 		EXP_CASTLES ,                     //?T ?CastleTile ?RoadCityScoring ?CastleFeature
+		EXP_PHANTOM , 
 
 		EXP_BASIC ,
 		EXP_TEST ,
@@ -120,7 +124,7 @@ namespace CAR
 		eWagon , //EXP_ABBEY_AND_MAYOR
 		eBarn  , //EXP_ABBEY_AND_MAYOR
 		eShepherd , //EXP_HILLS_AND_SHEEP
-		ePhantom ,
+		ePhantom , //EXP_PHANTOM
 		eAbbot , //CII
 		eMage ,
 		eWitch ,
@@ -163,8 +167,8 @@ namespace CAR
 
 	enum TileTag
 	{
-		//Must > 0
-		TILE_START_TAG = 1,
+		TILE_NO_TAG = 0,
+		TILE_START_TAG ,
 		TILE_FRIST_PLAY_TAG ,
 		TILE_END_TAG ,
 		TILE_ABBEY_TAG , //EXP_ABBEY_AND_MAYOR
@@ -195,6 +199,19 @@ namespace CAR
 		uint8  tag;
 		
 	};
+
+	struct ActorInfo
+	{
+		int       playerId;
+		ActorType type;
+
+		bool operator == ( ActorInfo const& rhs ) const
+		{
+			return playerId == rhs.playerId &&
+				type == rhs.type;
+		}
+	};
+
 
 	struct ExpansionTileContent
 	{

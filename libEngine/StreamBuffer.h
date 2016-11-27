@@ -165,7 +165,7 @@ public:
 
 	void setUseSize( size_t size )
 	{
-		assert( size >= 0 );
+		//assert( size >= 0 );
 		assert( size <= mFillSize );
 		mUseSize = size;
 	}
@@ -178,7 +178,7 @@ public:
 
 	void shiftUseSize( int num )
 	{
-		assert( mUseSize + num >= 0 );
+		//assert( mUseSize + num >= 0 );
 		assert( mUseSize + num <= mFillSize );
 		mUseSize = (int)mUseSize + num;
 	}

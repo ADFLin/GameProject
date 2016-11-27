@@ -9,9 +9,13 @@
 #	    define CPP_VARIADIC_TEMPLATE_SUPPORT 1
 #       define CPP_C11_STDLIB_SUPPORT 1
 #       define CPP_STATIC_ASSERT_SUPPORT 1
-#   endif
-#	if ( _MSC_VER >= 1600 ) 
 #		define CPP_CX11_KEYWORD_SUPPORT 1
+#       define CPP_TR1_SUPPORT 1
+#	elif ( _MSC_VER >= 1600 ) 
+#		define CPP_CX11_KEYWORD_SUPPORT 1
+#		define CPP_TR1_SUPPORT 1
+#	elif ( _MSC_VER == 1500 ) 
+#       define CPP_TR1_SUPPORT 1
 #   endif
 #endif
 
@@ -34,6 +38,10 @@
 #ifndef CPP_STATIC_ASSERT_SUPPORT
 #	define CPP_STATIC_ASSERT_SUPPORT 0
 #endif //CPP_C11_STDLIB_SUPPORT
+
+#ifndef CPP_TR1_SUPPORT
+#	define CPP_TR1_SUPPORT 0
+#endif
 
 #if !CPP_CX11_KEYWORD_SUPPORT
 #	define override

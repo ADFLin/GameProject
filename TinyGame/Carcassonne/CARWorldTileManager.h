@@ -16,7 +16,7 @@ namespace CAR
 	{
 		enum Enum
 		{
-			eNormal ,
+			eSimple ,
 			eDouble ,
 			eHalfling ,
 		};
@@ -52,9 +52,12 @@ namespace CAR
 		
 		TileSet const& getTileSet( TileId tileId ) const {  return mTileMap[ tileId ];  }
 
+		unsigned getTileTag( TileId id )
+		{
+			return getTileSet( id ).tag;
+		}
 		int  getRegisterTileNum() const { return (int)mTileMap.size(); }
 		TileIdVec const& getGroup( TileSet::EGroup group ){ return mSetMap[ group ]; }
-
 
 		void     cleanup();
 
@@ -80,6 +83,7 @@ namespace CAR
 			usageBridge = false;
 			checkRiverConnect = false;
 			checkRiverDirection = true;
+			checkDontNearSameTag = false;
 			dirNeedUseBridge = -1;
 			idxTileUseBridge = -1;
 		}
@@ -87,6 +91,7 @@ namespace CAR
 		uint8 usageBridge : 1;
 		uint8 checkRiverConnect : 1;
 		uint8 checkRiverDirection: 1;
+		uint8 checkDontNearSameTag : 1;
 
 		int   dirNeedUseBridge;
 		int   idxTileUseBridge;
@@ -105,13 +110,17 @@ namespace CAR
 		int         getPosibleLinkPos( TileId tileId , std::vector< Vec2i >& outPos , PutTileParam& param );
 		MapTile*    findMapTile( Vec2i const& pos );
 		bool        isEmptyLinkPos( Vec2i const& pos );
+
+
+		bool        isLinkTilePosible( Vec2i const& pos , TileId id );
+
 	private:
 		bool        canPlaceTileList( TileId tileId , int numTile , Vec2i const& pos , int rotation , PutTileParam& param );
 		MapTile*    placeTileInternal( TilePiece const& tile , Vec2i const& pos , int rotation , PutTileParam& param );
 
 
 		//
-		struct PlaceInfo
+		struct PlaceResult
 		{
 			int  numTileLink;
 			int  numRiverConnect;
@@ -119,7 +128,7 @@ namespace CAR
 			bool bNeedCheckRiverConnectDir;
 			MapTile* riverLink;
 		};
-		bool        canPlaceTileInternal( TilePiece const& tile , Vec2i const& pos , int rotation , PutTileParam& param , PlaceInfo& info );
+		bool        canPlaceTileInternal( TilePiece const& tile , Vec2i const& pos , int rotation , PutTileParam& param , PlaceResult& result );
 		bool        checkRiverLinkDirection( Vec2i const& pos , int dirLink , int dir );
 		void        incCheckCount();
 

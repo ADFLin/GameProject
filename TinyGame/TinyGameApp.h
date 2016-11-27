@@ -11,6 +11,7 @@
 
 #include "GamePackageManager.h"
 #include "GameControl.h"
+#include "GameGUISystem.h"
 #include "GameWidget.h"
 
 #include <cassert>
@@ -27,7 +28,7 @@ class ClientWorker;
 class Mode;
 enum  StageID;
 
-
+class GameStageMode;
 class GameController;
 
 
@@ -97,6 +98,8 @@ class TinyGameApp : public GameLoopT< TinyGameApp , Win32Platform >
 				  , public SysMsgHandlerT< TinyGameApp , MSG_DEUFLT | MSG_DATA | MSG_DESTROY >
 				  , public StageManager
 				  , public TaskListener
+				  , public IGUIDelegate
+				  , public IGameNetInterface
 {
 public:
 
@@ -104,13 +107,20 @@ public:
 	~TinyGameApp();
 
 	//StageManager
-	void                setTickTime( long time ){ setUpdateTime( time ); }
+	void                setTickTime( long time ){ GameLoop::setUpdateTime( time ); }
+
+	//IGameNetInterface
 	NetWorker*          getNetWorker(){ return mNetWorker; }
 	NetWorker*          buildNetwork( bool beServer );
+
+	//IGUIDelegate
+	virtual void addGUITask(TaskBase* task, bool bGlobal) override;
+	virtual void dispatchWidgetEvent(int event, int id, GWidget* ui) override;
 
 protected:
 	StageBase*     createStage( StageID stageId );
 	GameStage*     createGameStage( StageID stageId );
+	GameStageMode* createGameStageMode(StageID stageId);
 	StageBase*     resolveChangeStageFail( FailReason reason );
 	void           postStageChange( StageBase* stage );
 	void           prevChangeStage();
@@ -131,11 +141,9 @@ public:
 	bool  onKey( unsigned key , bool isDown );
 	bool  onChar( unsigned code );
 	bool  onActivate( bool beA );
-	void  onPaint( HDC hDC ){  render( 0.0f );  }
+	void  onPaint( HDC hDC );
 	void  onDestroy();
 
-	//EventHandler
-	bool  onWidgetEvent( int event , int id , GWidget* ui );
 	// TaskHandler
 	void  onTaskMessage( TaskBase* task , TaskMsg const& msg );
 
@@ -146,9 +154,9 @@ private:
 	ServerWorker*      createServer();
 	ClientWorker*      createClinet();
 
-
+	bool               mbLockFPS;
 	GameWindow         mGameWindow;
-	//GameMode*          mGameMode;
+	GameStageMode*     mStageMode;
 	RenderEffect*      mRenderEffect;
 	NetWorker*         mNetWorker;
 	bool               mShowErrorMsg;

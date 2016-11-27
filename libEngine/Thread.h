@@ -1,6 +1,14 @@
 #ifndef Thread_h__
 #define Thread_h__
 
+#include "PlatformConfig.h"
+#include "CompilerConfig.h"
+
+#include "IntegerType.h"
+
+uint32 const WAIT_TIME_INFINITE = 0xffffffff;
+
+#if SYS_PLATFORM_WIN
 #include "Win32Header.h"
 #include <process.h>
 
@@ -33,215 +41,54 @@ public:
 	DWORD    getPriorityLevel() { return m_PriorityLevel; }
 	bool     setPriorityLevel( DWORD level);
 	DWORD    getSuspendTimes(){ return m_SupendTimes; }
-	unsigned getID(){ m_uThreadID; }
+	unsigned getID(){ return m_uThreadID; }
 	bool     isRunning(){ return m_beRunning; }
 
-	void      endRunning( unsigned retValue )
+	void     finish( unsigned retValue )
 	{ 
 		m_beRunning = false;
 		::_endthreadex( retValue );  
 	}
 protected:
+	template< class T >
+	static unsigned _stdcall RunnableProcess( void* t )
+	{
+		return static_cast< T* >( t )->execRunPrivate();
+	}
 
 	DWORD    m_SupendTimes;
 	DWORD    m_PriorityLevel;
-
 	HANDLE   m_hThread;
 	unsigned m_uThreadID;
 	bool     m_beRunning;
 };
 
-class PlatformThread
+
+class WinMutex
 {
 public:
-	class ThreadFunc;
-	bool  create( ThreadFunc fun , void* ptr );
-	void  endRunning( unsigned retValue );
-
-};
-
-class WinThread;
-
-template< class ThreadImpl , class PlatformThread = WinThread >
-class ThreadT : public PlatformThread
-{
-public:
-	typedef typename PlatformThread::ThreadFunc ThreadFunc;
-
-	bool     start()
-	{ 
-		return create( processThread , this );
-	}
-	unsigned run()
-	{
-		assert(0);
-	}
-
-private:
-	ThreadImpl* _this(){ return static_cast< ThreadImpl* >( this ); }
-
-	static unsigned _stdcall processThread( void* t )
-	{
-		ThreadT* ptrThread = static_cast< ThreadT* >( t );
-		unsigned reault = ptrThread->_this()->run();
-		ptrThread->endRunning( reault );
-		return reault;
-	}
-};
-
-
-class SimpleThread : public ThreadT< SimpleThread >
-{
-public:
-	typedef ThreadT< SimpleThread >::ThreadFunc ThreadFunc;
-
-	unsigned run()
-	{
-		return (*m_ThreadInfo.Func)( m_ThreadInfo.Data );
-	}
-
-private:
-	struct ThreadInfo
-	{
-		ThreadInfo():Func(0),Data(0){}
-		ThreadInfo(ThreadFunc fun,void* data)
-			:Func(fun),Data(data){}
-		ThreadFunc Func;
-		void* Data;
-	} m_ThreadInfo;
-};
-
-template< class T >
-class MemberFunThread : public ThreadT< MemberFunThread<T> >
-{
-public:
-	typedef unsigned (T::*MemFun)();
-	MemberFunThread( T* ptr , MemFun fun ){ init( ptr , fun ); }
-	MemberFunThread(){ mPtr = 0 ; mFun = 0; }
-	void init( T* ptr , MemFun fun )
-	{
-		mPtr = ptr; mFun = fun;
-	}
-	unsigned run(){  return (mPtr->*mFun)();  }
-
-private:
-	T*     mPtr;
-	MemFun mFun;
-};
-
-
-inline bool WinThread::create( ThreadFunc fun , void* ptr )
-{
-	if ( !m_beRunning )
-	{
-		if ( m_hThread )
-			CloseHandle(m_hThread);
-
-		m_hThread = (HANDLE) _beginthreadex(
-			NULL,0 , fun , ptr ,
-			0,&m_uThreadID );
-		if ( m_hThread == NULL )
-			return false;
-	}
-
-	m_beRunning = true;
-	return true;
-}
-
-
-inline bool WinThread::suspend()
-{
-	DWORD reault = SuspendThread(m_hThread);
-	if ( reault != -1 ) 
-	{
-		++m_SupendTimes;
-		return true;
-	}
-	return false;
-}
-
-inline bool WinThread::resume()
-{
-	DWORD reault = ResumeThread(m_hThread);
-	if ( reault != -1 ) 
-	{
-		--m_SupendTimes;
-		return true;
-	}
-	return false;
-}
-
-inline bool WinThread::setPriorityLevel( DWORD level )
-{
-	if ( isRunning() && !SetThreadPriority(m_hThread,level) )
-		return false;
-
-	m_PriorityLevel = level;
-	return true;
-}
-
-inline bool WinThread::kill()
-{
-	if ( isRunning() )
-	{
-		if ( TerminateThread(m_hThread,0) )
-		{
-			m_beRunning = false;
-			return true;
-		}
-	}
-	return false;
-}
-
-
-
-class Mutex
-{
-public:
-	Mutex()      { ::InitializeCriticalSection( &mCS ); }
-	~Mutex()     { ::DeleteCriticalSection( &mCS ); }
+	WinMutex()      { ::InitializeCriticalSection( &mCS ); }
+	~WinMutex()     { ::DeleteCriticalSection( &mCS ); }
 	void lock()  { ::EnterCriticalSection( &mCS ); }
 	void unlock(){ ::LeaveCriticalSection( &mCS ); }
-	class Locker
-	{
-	public:
-		Locker( Mutex& mutex ):mMutex( mutex ){ mMutex.lock(); }
-		~Locker(){ mMutex.unlock(); }
-	private:
-		Mutex& mMutex;
-	};
 private: 
-	friend class Condition;
+	friend class WinCondition;
 	CRITICAL_SECTION mCS;
 };
 
-class Condition
+
+class WinCondition
 {
 public:
-	Condition()
+	WinCondition()
 	{
 		InitializeConditionVariable( &m_cd );
 	}
 
-	~Condition()
+	~WinCondition()
 	{
 
-		
-	}
-	template< class Fun >
-	bool waitUntil( Mutex& matex , Fun fun )
-	{
-		Mutex::Locker locker(mutex);
-		bool result;
-		while( fun() )
-		{
-			result = SleepConditionVariableCS( &m_cd , &mutex.mCS , INFINITE ) !=0;
-		}
-		return result;
-	}
-	bool waitTime( Mutex& mutex , DWORD time = INFINITE )
-	{ 
-		return SleepConditionVariableCS( &m_cd , &mutex.mCS , time ) !=0;
+
 	}
 	void notify()
 	{
@@ -252,21 +99,161 @@ public:
 	{
 		WakeAllConditionVariable( &m_cd );
 	}
+protected:
 
+	template< class Fun >
+	bool doWaitUntil( WinMutex& mutex , Fun fun )
+	{
+		bool result = true;
+		while( !fun() )
+		{
+			result = SleepConditionVariableCS( &m_cd , &mutex.mCS , INFINITE ) !=0;
+		}
+		return result;
+	}
+	bool doWaitTime( WinMutex& mutex , uint32 time = INFINITE )
+	{ 
+		return SleepConditionVariableCS( &m_cd , &mutex.mCS , time ) !=0;
+	}
 private:
 	CONDITION_VARIABLE m_cd;
 };
 
-#ifndef SINGLE_THREAD
-	#define DEFINE_MUTEX( MUTEX ) Mutex MUTEX;
-	#define MUTEX_LOCK( MUTEX ) Mutex::Locker locker_##__LINE__( MUTEX );
+
+typedef WinThread PlatformThread;
+typedef WinMutex PlatformMutex;
+typedef WinCondition PlatformCondition;
+
+
 #else
-	#define DEFINE_MUTEX( MUTEX )
-	#define MUTEX_LOCK( MUTEX ) 
+
+class PosixThread
+{
+public:
+	typedef void* (*ThreadFunc)(void*);
+
+	bool create( ThreadFunc fun , void* ptr )
+	{
+		if ( pthread_create(&mHandle,NULL,fun,ptr) == 0 )
+			return true;
+
+		return false;
+	}
+	void detach()
+	{
+	}
+
+	bool     kill()
+	{
+		pthread_cancel(mHandle);
+	}
+	bool     suspend();
+	bool     resume();
+	void     join(){ pthread_join(mHandle,0); }
+
+
+	template< class T >
+	static void* RunnableProcess( void* t )
+	{
+		return static_cast< T* >( t )->execRun();
+	}
+
+	pthread_t mHandle;
+};
+
+class PosixMutex
+{
+public:
+	PostfixMutex()  { ::pthread_mutex_init(&mMutex,NULL); }
+	~PostfixMutex() { :: pthread_mutex_destroy(&mMutex); }
+	void lock()  { ::pthread_mutex_lock(&mMutex); }
+	void unlock(){ ::pthread_mutex_unlock(&mMutex); }
+private: 
+	friend class Condition;
+	pthread_mutex_t mMutex;
+};
+
+
 #endif
 
+
 template< class T >
-struct LockObject
+class RunnableThreadT : public PlatformThread
+{
+	T* _this(){ return static_cast< T* >( this ); }
+	typedef RunnableThreadT< T > RannableThread;
+public:
+	bool start()
+	{ 
+		if ( !_this()->init() )
+			return false;
+		return create( PlatformThread::RunnableProcess< RannableThread > , this );
+	}
+	void stop()
+	{
+		PlatformThread::kill();
+		_this()->exit();
+	}
+	unsigned run(){ return 0; }
+	bool init(){ return true; }
+	void exit(){}
+
+	unsigned execRunPrivate()
+	{
+		T* impl = _this();
+		unsigned reault = impl->run();
+		impl->finish( reault );
+		impl->exit();
+		return reault;
+	}
+};
+
+
+template< class T >
+class TFunctionThread : public RunnableThreadT< TFunctionThread<T> >
+{
+public:
+	TFunctionThread( T fun ):mFunction( fun ){}
+	unsigned run(){  (mFunction)(); return 0; }
+private:
+	T mFunction;
+};
+
+class Mutex : public PlatformMutex
+{
+public:
+	class Locker
+	{
+	public:
+		Locker( Mutex& mutex ):mMutex( mutex ){ mMutex.lock(); }
+		~Locker(){ mMutex.unlock(); }
+	private:
+		friend class Condition;
+		Mutex& mMutex;
+	};
+private: 
+	friend class Condition;
+};
+
+class Condition : public PlatformCondition
+{
+public:
+	Condition(){}
+	~Condition(){}
+
+	template< class Fun >
+	bool waitUntil( Mutex::Locker& locker , Fun fun )
+	{
+		return PlatformCondition::doWaitUntil( locker.mMutex , fun );
+	}
+	bool waitTime( Mutex::Locker& locker , uint32 time = WAIT_TIME_INFINITE )
+	{ 
+		return PlatformCondition::doWaitTime( locker.mMutex , time );
+	}
+};
+
+template< class T >
+struct TLockedObject
 {
 	struct Param
 	{
@@ -274,17 +261,27 @@ struct LockObject
 	private:
 		Mutex* mutex;
 		T*     object;
-		friend struct LockObject;
+		friend struct TLockedObject;
 	};
-	LockObject( Param const& info )
+	TLockedObject( Param const& info )
 		:mInfo(info){ if ( mInfo.mutex ) mInfo.mutex->lock(); }
-	~LockObject(){ if ( mInfo.mutex ) mInfo.mutex->unlock(); }
+	~TLockedObject(){ if ( mInfo.mutex ) mInfo.mutex->unlock(); }
 	T* operator->(){ return mInfo.object; }
 	operator T* () { return mInfo.object; }
 	T& operator *(){ return *mInfo.object; }
 private:
-	LockObject( LockObject& other ){}
+	TLockedObject( TLockedObject& other ){}
 	Param   mInfo;
 };
+
+
+#ifndef SINGLE_THREAD
+#define DEFINE_MUTEX( MUTEX ) Mutex MUTEX;
+#define MUTEX_LOCK( MUTEX ) Mutex::Locker locker_##__LINE__( MUTEX );
+#else
+#define DEFINE_MUTEX( MUTEX )
+#define MUTEX_LOCK( MUTEX ) 
+#endif
+
 
 #endif // Thread_h__

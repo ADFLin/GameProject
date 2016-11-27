@@ -1,6 +1,7 @@
 #ifndef GameSingleStage_h__
 #define GameSingleStage_h__
 
+#include "GameStageMode.h"
 #include "GameStage.h"
 #include "GamePlayer.h"
 
@@ -27,6 +28,22 @@ public:
 private:
 	TPtrHolder< LocalPlayerManager > mPlayerManager;
 	
+};
+
+class SingleStageMode : public LevelStageMode
+{
+	typedef LevelStageMode BaseClass;
+public:
+	SingleStageMode();
+
+	bool   onInit();
+	void   onRestart(uint64& seed);
+	void   updateTime(long time);
+	bool   tryChangeState(GameState state);
+	bool   onWidgetEvent(int event, int id, GWidget* ui);
+	
+	LocalPlayerManager* getPlayerManager();
+	TPtrHolder< LocalPlayerManager > mPlayerManager;
 };
 
 #endif // GameSingleStage_h__

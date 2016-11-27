@@ -11,19 +11,19 @@ namespace GGJ
 		case ValueProperty::PrimeNumber:
 			do
 			{
-				result = 1 + rand.Next() % 99;
+				result = 1 + rand.nextInt() % 99;
 			}
 			while (Utility::IsPrime(result));
 			break;
 		case ValueProperty::DividedBy4:
-			result = rand.Next() % 95 + 4;
+			result = rand.nextInt() % 95 + 4;
 			result = 4 * (result / 4);
 			break;
 		case ValueProperty::DSumIsBiggerThan10:
 			while (true)
 			{
-				int DO = 1 + rand.Next() % 9;
-				int DT = rand.Next() % 10;
+				int DO = 1 + rand.nextInt() % 9;
+				int DT = rand.nextInt() % 10;
 				result = 10 * DT + DO;
 				if (DO + DT > 10)
 					break;
@@ -32,8 +32,8 @@ namespace GGJ
 		case ValueProperty::DOIsBiggerThanDT:
 			while (true)
 			{
-				int DO = 1 + rand.Next() % 9;
-				int DT = rand.Next() % 10;
+				int DO = 1 + rand.nextInt() % 9;
+				int DT = rand.nextInt() % 10;
 				result = 10 * DT + DO;
 				if (DO > DT)
 					break;
@@ -84,7 +84,7 @@ namespace GGJ
 			for (int j = 0; j < num; ++j)
 			{
 				int temp = result[i];
-				int idx = rand.Next() % num;
+				int idx = rand.nextInt() % num;
 				result[i] = result[idx];
 				result[idx] = temp;
 			}
@@ -104,7 +104,7 @@ namespace GGJ
 			for (int j = 0; j < num; ++j)
 			{
 				bool temp = result[i];
-				int idx = rand.Next() % num;
+				int idx = rand.nextInt() % num;
 				result[i] = result[idx];
 				result[idx] = temp;
 			}
@@ -206,30 +206,30 @@ namespace GGJ
 			{
 				walls[i].name = (WallName::Enum)wallId[i - 1];
 			}
-			walls[i].color = (ColorId)(rand.Next() % (int)ColorId::Num);
+			walls[i].color = (ColorId)(rand.nextInt() % (int)ColorId::Num);
 		}
 
 		for (int i = 0; i < (int)ObjectId::NumCondObject; ++i)
 		{
-			addObject((ObjectId)i, 1 + rand.Next() % (MaxCondObjectNum - 1), ColorId::White);
+			addObject((ObjectId)i, 1 + rand.nextInt() % (MaxCondObjectNum - 1), ColorId::White);
 		}
 
 		addObject(ObjectId::MugCube, 1, ColorId::White);
 		addObject(ObjectId::Lantern, 1, ColorId::White);
-		addObject(ObjectId::Door, 1, (ColorId)(rand.Next() % (int)ColorId::Num));
-		addObject(ObjectId::MagicLight, 1, (ColorId)(rand.Next() % (int)ColorId::Num));
+		addObject(ObjectId::Door, 1, (ColorId)(rand.nextInt() % (int)ColorId::Num));
+		addObject(ObjectId::MagicLight, 1, (ColorId)(rand.nextInt() % (int)ColorId::Num));
 
-		indexWallHaveLight = rand.Next() % 4;
-		int valuePropReq = rand.Next() % (int)ValueProperty::NumProp;
+		indexWallHaveLight = rand.nextInt() % 4;
+		int valuePropReq = rand.nextInt() % (int)ValueProperty::NumProp;
 
 		valueForNumberWall = Utility::getRandomValueForProperty( rand , (ValueProperty)valuePropReq);
 		valuePropertyFlag = Utility::getValuePropertyFlag(valueForNumberWall);
 
 		for (int i = 0; i < 4; ++i)
 		{
-			bTopFireLighting[i] = rand.Next() % 2 == 1;
+			bTopFireLighting[i] = rand.nextInt() % 2 == 1;
 		}
-		bTopFireLighting[ rand.Next() % 4 ] = true;
+		bTopFireLighting[ rand.nextInt() % 4 ] = true;
 	}
 
 	static CondDir WallDirCond_dirMap[2] = { CondDir::Left , CondDir::Right };
@@ -238,16 +238,16 @@ namespace GGJ
 	{
 		if (IdxContent == 0)
 		{
-			return worldCond.checkVaild((WallName::Enum)elements[0].meta, (WallName::Enum)elements[1].meta, (CondDir)elements[2].meta);
+			return worldCond.checkVaild( elements[0].wall , elements[1].wall , elements[2].dir );
 		}
 		else
 		{
 			CondDir dir = (CondDir)elements[4].meta;
-			int curIdx = worldCond.getWallIndex((WallName::Enum)elements[0].meta);
+			int curIdx = worldCond.getWallIndex(elements[0].wall);
 			for (int i = 1; i < 4; ++i)
 			{
 				int nextIdx = worldCond.getRelDirWallIndex( curIdx , dir );
-				if (nextIdx != worldCond.getWallIndex((WallName::Enum)elements[0].meta))
+				if (nextIdx != worldCond.getWallIndex(elements[0].wall))
 					return false;
 			}
 			return true;
@@ -256,7 +256,7 @@ namespace GGJ
 
 	void WallDirCondExpression::generate(Random& rand)
 	{
-		IdxContent = rand.Next() % 2;
+		IdxContent = rand.nextInt() % 2;
 
 		int bufWallId[ WallName::Num ];
 		int* walllId = Utility::makeRandSeq( rand , WallName::Num , 0 , bufWallId );
@@ -268,7 +268,7 @@ namespace GGJ
 			elements[1].setWall( WallName::Enum(walllId[1]) );
 
 			elements[2].type = CondExprElement::eDir;
-			elements[2].meta = (int)WallDirCond_dirMap[ rand.Next() % 2 ];
+			elements[2].meta = (int)WallDirCond_dirMap[ rand.nextInt() % 2 ];
 		}
 		else
 		{
@@ -279,21 +279,21 @@ namespace GGJ
 			elements[3].setWall( WallName::Enum(walllId[3]) );
 
 			elements[4].type = CondExprElement::eDir;
-			elements[4].meta = (int)WallDirCond_dirMap[rand.Next() % 2];
+			elements[4].meta = (int)WallDirCond_dirMap[rand.nextInt() % 2];
 		}
 	}
 
 	void WallDirCondExpression::generateVaild(Random& rand , WorldCondition& worldCond)
 	{
-		IdxContent = rand.Next() % 2;
+		IdxContent = rand.nextInt() % 2;
 		if (IdxContent == 0)
 		{
 			elements.resize(3);
 			elements[0].type = CondExprElement::eWallName;
-			elements[0].meta = rand.Next()%4;
+			elements[0].meta = rand.nextInt()%4;
 
 			elements[2].type = CondExprElement::eDir;
-			elements[2].meta = (int)WallDirCond_dirMap[rand.Next() % 2];
+			elements[2].meta = (int)WallDirCond_dirMap[rand.nextInt() % 2];
 
 			elements[1].type = CondExprElement::eWallName;
 			elements[1].meta = (int)worldCond.getRelDirWall( (WallName::Enum)elements[0].meta , (CondDir)elements[2].meta );
@@ -301,8 +301,8 @@ namespace GGJ
 		else
 		{
 			elements.resize(5);
-			int idx = rand.Next() % 4;
-			CondDir dir = WallDirCond_dirMap[rand.Next() % 2];
+			int idx = rand.nextInt() % 4;
+			CondDir dir = WallDirCond_dirMap[rand.nextInt() % 2];
 
 			elements[4].type = CondExprElement::eDir;
 			elements[4].meta = (int)dir;
@@ -345,40 +345,40 @@ namespace GGJ
 
 	void TopLightCondExpression::generate(Random& rand)
 	{
-		IdxContent = rand.Next() % 2;
+		IdxContent = rand.nextInt() % 2;
 
 		if (IdxContent == 0)
 		{
 			elements.resize(3);
 			elements[0].type = CondExprElement::eFaceFront;
-			elements[0].meta = rand.Next() % 2;
+			elements[0].meta = rand.nextInt() % 2;
 
 			elements[1].type = CondExprElement::eWallName;
-			elements[1].meta = rand.Next() % 4;
+			elements[1].meta = rand.nextInt() % 4;
 
 			elements[2].type = CondExprElement::eDir;
-			elements[2].meta = (int)TopLightCond_dirMap[ rand.Next() % ARRAY_SIZE(TopLightCond_dirMap) ];
+			elements[2].meta = (int)TopLightCond_dirMap[ rand.nextInt() % ARRAY_SIZE(TopLightCond_dirMap) ];
 		}
 		else
 		{
 			elements.resize(1);
 			elements[0].type = CondExprElement::eIntValue;
-			elements[0].meta = rand.Next() % 5;
+			elements[0].meta = rand.nextInt() % 5;
 		}
 	}
 
 	void TopLightCondExpression::generateVaild(Random& rand, WorldCondition& worldCond)
 	{
-		IdxContent = rand.Next() % 2;
+		IdxContent = rand.nextInt() % 2;
 
 		if (IdxContent == 0)
 		{
 			elements.resize(3);
 			elements[0].type = CondExprElement::eFaceFront;
-			elements[0].meta = rand.Next() % 2;
+			elements[0].meta = rand.nextInt() % 2;
 
 			elements[2].type = CondExprElement::eDir;
-			elements[2].meta = (int)TopLightCond_dirMap[ rand.Next() % ARRAY_SIZE(TopLightCond_dirMap) ];
+			elements[2].meta = (int)TopLightCond_dirMap[ rand.nextInt() % ARRAY_SIZE(TopLightCond_dirMap) ];
 
 			std::vector<int> idxLighting;
 			for (int i = 0; i < 4; ++i )
@@ -388,7 +388,7 @@ namespace GGJ
 					idxLighting.push_back(i);
 				}
 			}
-			int idx = idxLighting[rand.Next() % idxLighting.size()];
+			int idx = idxLighting[rand.nextInt() % idxLighting.size()];
 			if (idx == 0)
 				idx += 2;
 			elements[1].type = CondExprElement::eWallName;
@@ -439,34 +439,34 @@ namespace GGJ
 		{
 			elements.resize(3);
 			elements[0].type = CondExprElement::eFaceFront;
-			elements[0].meta = rand.Next() % 2;
+			elements[0].meta = rand.nextInt() % 2;
 
 			elements[1].type = CondExprElement::eWallName;
-			elements[1].meta = rand.Next() % 4;
+			elements[1].meta = rand.nextInt() % 4;
 
 			elements[2].type = CondExprElement::eColor;
-			elements[2].meta = rand.Next() % (int)ColorId::Num;
+			elements[2].meta = rand.nextInt() % (int)ColorId::Num;
 		}
 		else
 		{
 			elements.resize(5);
 			elements[0].type = CondExprElement::eFaceFront;
-			elements[0].meta = rand.Next() % 2;
+			elements[0].meta = rand.nextInt() % 2;
 
 			elements[1].type = CondExprElement::eWallName;
-			elements[1].meta = rand.Next() % 4;
+			elements[1].meta = rand.nextInt() % 4;
 
 			elements[2].type = CondExprElement::eColor;
-			elements[2].meta = rand.Next() % (int)ColorId::Num;
+			elements[2].meta = rand.nextInt() % (int)ColorId::Num;
 
 			elements[3].type = CondExprElement::eDir;
-			if ( (rand.Next() % 2 ) == 0 )
+			if ( (rand.nextInt() % 2 ) == 0 )
 				elements[3].meta = (int)CondDir::Left;
 			else
 				elements[3].meta = (int)CondDir::Right;
 
 			elements[4].type = CondExprElement::eIntValue;
-			elements[4].meta = 1 + (rand.Next() % 3);
+			elements[4].meta = 1 + (rand.nextInt() % 3);
 		}
 	}
 
@@ -478,10 +478,10 @@ namespace GGJ
 		{
 			elements.resize(3);
 			elements[0].type = CondExprElement::eFaceFront;
-			elements[0].meta = rand.Next() % 2;
+			elements[0].meta = rand.nextInt() % 2;
 
 			elements[1].type = CondExprElement::eWallName;
-			elements[1].meta = rand.Next() % 4;
+			elements[1].meta = rand.nextInt() % 4;
 
 			int idx = worldCond.getWallIndex((WallName::Enum)elements[1].meta);
 			idx = worldCond.getRelDirIndex(idx, CondDir::Front, elements[0].meta != 0);
@@ -492,23 +492,23 @@ namespace GGJ
 		{
 			elements.resize(3);
 			elements[0].type = CondExprElement::eFaceFront;
-			elements[0].meta = rand.Next() % 2;
+			elements[0].meta = rand.nextInt() % 2;
 
 			elements[1].type = CondExprElement::eWallName;
-			elements[1].meta = rand.Next() % 4;
+			elements[1].meta = rand.nextInt() % 4;
 
 
 			int idx = worldCond.getWallIndex((WallName::Enum)elements[1].meta);
 			idx = worldCond.getRelDirIndex(idx, CondDir::Front, elements[0].meta != 0);
 
 			elements[3].type = CondExprElement::eDir;
-			if ( (rand.Next() % 2 ) == 0 )
+			if ( (rand.nextInt() % 2 ) == 0 )
 				elements[3].meta = (int)CondDir::Left;
 			else
 				elements[3].meta = (int)CondDir::Right;
 
 			elements[4].type = CondExprElement::eIntValue;
-			elements[4].meta = 1 + (rand.Next() % 3);
+			elements[4].meta = 1 + (rand.nextInt() % 3);
 
 			elements[2].type = CondExprElement::eColor;
 			elements[2].meta = (int)worldCond.walls[idx].color;
@@ -535,17 +535,17 @@ namespace GGJ
 	{
 		elements.resize(2);
 		elements[0].type = CondExprElement::eObject;
-		elements[0].meta = rand.Next() % (int)ObjectId::NumCondObject;
+		elements[0].meta = rand.nextInt() % (int)ObjectId::NumCondObject;
 
 		elements[1].type = CondExprElement::eIntValue;
-		elements[1].meta = rand.Next() % 10;
+		elements[1].meta = rand.nextInt() % 10;
 	}
 
 	void ObjectNumCondExpression::generateVaild(Random& rand, WorldCondition& worldCond)
 	{
 		elements.resize(2);
 		elements[0].type = CondExprElement::eObject;
-		elements[0].meta = rand.Next() % (int)ObjectId::NumCondObject;
+		elements[0].meta = rand.nextInt() % (int)ObjectId::NumCondObject;
 
 		elements[1].type = CondExprElement::eIntValue;
 		elements[1].meta = worldCond.getObjectNum((ObjectId)elements[0].meta);
@@ -568,17 +568,17 @@ namespace GGJ
 	{
 		elements.resize(2);
 		elements[0].type = CondExprElement::eIntValue;
-		elements[0].meta = rand.Next() % ARRAY_SIZE(ObjectColorCond_objectMap);
+		elements[0].meta = rand.nextInt() % ARRAY_SIZE(ObjectColorCond_objectMap);
 
 		elements[1].type = CondExprElement::eColor;
-		elements[1].meta = rand.Next() % (int)ColorId::Num;
+		elements[1].meta = rand.nextInt() % (int)ColorId::Num;
 	}
 
 	void ObjectColorCondExpression::generateVaild(Random& rand, WorldCondition& worldCond)
 	{
 		elements.resize(2);
 		elements[0].type = CondExprElement::eIntValue;
-		elements[0].meta = rand.Next() % ARRAY_SIZE(ObjectColorCond_objectMap);
+		elements[0].meta = rand.nextInt() % ARRAY_SIZE(ObjectColorCond_objectMap);
 
 		elements[1].type = CondExprElement::eColor;
 		elements[1].meta = (int)worldCond.getObjectColor(ObjectColorCond_objectMap[elements[0].meta]);
@@ -606,7 +606,7 @@ namespace GGJ
 	{
 		elements.resize(1);
 		elements[0].type = CondExprElement::eIntValue;
-		elements[0].meta = rand.Next() % (int)ValueProperty::NumProp;
+		elements[0].meta = rand.nextInt() % (int)ValueProperty::NumProp;
 	}
 
 	void WallNumberValueCondExpression::generateVaild(Random& rand, WorldCondition& worldCond)
@@ -619,7 +619,7 @@ namespace GGJ
 		}
 		elements.resize(1);
 		elements[0].type = CondExprElement::eIntValue;
-		elements[0].meta = props[ rand.Next() % props.size() ];
+		elements[0].meta = props[ rand.nextInt() % props.size() ];
 	}
 
 	String WallNumberValueCondExpression::getContent()
@@ -748,7 +748,7 @@ namespace GGJ
 				int numInvaild = 1;
 				int additionInvaild = numExpr - 1;
 				if (additionInvaild > 0)
-					numInvaild += rand.Next() % additionInvaild;
+					numInvaild += rand.nextInt() % additionInvaild;
 				conditions[i].generateRandom(rand, worldCond, numExpr, numInvaild );
 			}
 
@@ -861,7 +861,7 @@ namespace GGJ
 		//return false;
 		::srand(2);
 
-		::Global::getGUI().cleanupWidget();
+		::Global::GUI().cleanupWidget();
 		restart();
 		return true;
 	}

@@ -92,13 +92,13 @@ void ReplayListPanel::deleteCurFile()
 }
 
 
-GameReplayMode::GameReplayMode() 
-	:BaseClass( GT_REPLAY )
+GameReplayStage::GameReplayStage() 
+	:BaseClass( SMT_REPLAY )
 	,mPlayerManager( new LocalPlayerManager )
 {
 }
 
-bool GameReplayMode::onInit()
+bool GameReplayStage::onInit()
 {
 	ReplayInfo   info;
 	ReplayHeader header;
@@ -142,7 +142,7 @@ bool GameReplayMode::onInit()
 
 	getActionProcessor().addInput( *mReplayInput.get() );
 	///////////////////////////////////////////////////////////////
-	::Global::getGUI().cleanupWidget();
+	::Global::GUI().cleanupWidget();
 
 	mSubStage->setupScene( *mPlayerManager.get() );
 
@@ -150,7 +150,11 @@ bool GameReplayMode::onInit()
 		actionTemplate->setupPlayer( *mPlayerManager );
 
 	AttribValue attrPos( ATTR_REPLAY_UI_POS );
-	mSubStage->getAttribValue( attrPos );
+	if( !mSubStage->getAttribValue(attrPos) )
+	{
+		attrPos.v2.x = 0;
+		attrPos.v2.y = 0;
+	}
 
 	//create replay control UI
 	Vec2i baseSize( 120 , 20 );
@@ -164,7 +168,7 @@ bool GameReplayMode::onInit()
 	GFrame*  frame = new GFrame( UI_ANY , Vec2i(xUi ,yUi) , Vec2i(  baseSize.x + 2 * broader , 2 * baseSize.y + 2 * broader )  , NULL );
 	frame->setRenderType( GPanel::eRectType );
 	GButton* button;
-	::Global::getGUI().addWidget( frame );
+	::Global::GUI().addWidget( frame );
 
 	int px = broader;
 	int py = 12;
@@ -194,13 +198,13 @@ bool GameReplayMode::onInit()
 	return true;
 }
 
-void GameReplayMode::onEnd()
+void GameReplayStage::onEnd()
 {
 	BaseClass::onEnd();
 }
 
 
-void GameReplayMode::onUpdate( long time )
+void GameReplayStage::onUpdate( long time )
 {
 	if ( !mReplayInput->isVaild() )
 		return;
@@ -244,7 +248,7 @@ void GameReplayMode::onUpdate( long time )
 	getSubStage()->updateFrame( numGameFrame );
 
 
-	::Global::getGUI().scanHotkey( getGame()->getController() );
+	::Global::GUI().scanHotkey( getGame()->getController() );
 
 	int totalFrame = mReplayInput->getRecordFrame();
 	if ( totalFrame )
@@ -253,7 +257,7 @@ void GameReplayMode::onUpdate( long time )
 		mProgressSlider->setValue( 0 );
 }
 
-bool GameReplayMode::loadReplay( char const* path )
+bool GameReplayStage::loadReplay( char const* path )
 {
 	if ( !path )
 		return false;
@@ -264,7 +268,7 @@ bool GameReplayMode::loadReplay( char const* path )
 	return true;
 }
 
-void  GameReplayMode::onRestart( uint64& seed )
+void  GameReplayStage::onRestart( uint64& seed )
 {
 	seed = mReplayInput->getSeed();
 
@@ -276,7 +280,7 @@ void  GameReplayMode::onRestart( uint64& seed )
 	mReplayInput->restart();
 }
 
-bool GameReplayMode::onWidgetEvent( int event , int id , GWidget* ui )
+bool GameReplayStage::onWidgetEvent( int event , int id , GWidget* ui )
 {
 	switch( id )
 	{
@@ -300,7 +304,7 @@ bool GameReplayMode::onWidgetEvent( int event , int id , GWidget* ui )
 		return false;
 	case UI_GAME_MENU:
 		togglePause();
-		::Global::getGUI().showMessageBox( UI_MAIN_MENU , LAN("back Main Menu?") );
+		::Global::GUI().showMessageBox( UI_MAIN_MENU , LAN("back Main Menu?") );
 		return false;
 
 	case UI_MAIN_MENU:
@@ -317,7 +321,7 @@ bool GameReplayMode::onWidgetEvent( int event , int id , GWidget* ui )
 		else
 		{
 			togglePause();
-			::Global::getGUI().showMessageBox( UI_MAIN_MENU , LAN("back Main Menu?") );
+			::Global::GUI().showMessageBox( UI_MAIN_MENU , LAN("back Main Menu?") );
 			return false;
 		}
 		break;
@@ -327,7 +331,7 @@ bool GameReplayMode::onWidgetEvent( int event , int id , GWidget* ui )
 }
 
 
-LocalPlayerManager* GameReplayMode::getPlayerManager()
+LocalPlayerManager* GameReplayStage::getPlayerManager()
 {
 	return mPlayerManager.get();
 }
@@ -338,16 +342,16 @@ bool ReplayEditStage::onInit()
 		return false;
 
 
-	::Global::getGUI().cleanupWidget();
+	::Global::GUI().cleanupWidget();
 
 	Vec2i panelPos( 170 , 30 );
 	Vec2i panelSize( 250 , 500 );
 	mRLPanel = new ReplayListPanel( UI_REPLAYLIST_PANEL , panelPos , panelSize , NULL );
-	::Global::getGUI().addWidget( mRLPanel );
+	::Global::GUI().addWidget( mRLPanel );
 	mRLPanel->loadDir( REPLAY_DIR );
 
 	GPanel* infoPanel = new GPanel( UI_ANY , panelPos + Vec2i( panelSize.x + 10 , 0 ) , Vec2i( 200 , 400 ) , NULL );
-	::Global::getGUI().addWidget( infoPanel );
+	::Global::GUI().addWidget( infoPanel );
 	infoPanel->setRenderCallback( RenderCallBack::create( this , &ReplayEditStage::renderReplayInfo ));
 
 	GButton* button;
@@ -356,21 +360,21 @@ bool ReplayEditStage::onInit()
 	int offset = buttonSize.y + 8;
 	button = new GButton( UI_VIEW_REPLAY , buttonPos , buttonSize , NULL );
 	button->setTitle( LAN( "View Replay" ) );
-	::Global::getGUI().addWidget( button );
+	::Global::GUI().addWidget( button );
 	mViewButton = button;
 	mViewButton->enable( false );
 	buttonPos.y += offset;
 
 	button = new GButton( UI_DELETE_REPLAY , buttonPos , buttonSize , NULL );
 	button->setTitle( LAN( "Delete Replay" ) );
-	::Global::getGUI().addWidget( button );
+	::Global::GUI().addWidget( button );
 	mDelButton = button;
 	mDelButton->enable( false );
 	buttonPos.y += offset;
 
 	button = new GButton( UI_MAIN_MENU , buttonPos , buttonSize , NULL );
 	button->setTitle( LAN( "Back Main Menu" ) );
-	::Global::getGUI().addWidget( button );
+	::Global::GUI().addWidget( button );
 	buttonPos.y += offset;
 
 	return true;
@@ -442,13 +446,256 @@ void ReplayEditStage::viewReplay()
 	if ( !mIsVaildReplay )
 		return;
 
-	IGamePackage* game = Global::getGameManager().changeGame( mGameInfo.name );
+	IGamePackage* game = Global::GameManager().changeGame( mGameInfo.name );
 	if ( game )
 	{
-		game->beginPlay( GT_REPLAY , *getManager() );
+		game->beginPlay( SMT_REPLAY , *getManager() );
 		//TODO
-		GameReplayMode* stage = static_cast< GameReplayMode* >( 
+		GameReplayStage* stage = static_cast< GameReplayStage* >( 
 			getManager()->getNextStage() );
 		stage->setReplayPath( mReplayFilePath );
 	}
+}
+
+ReplayStageMode::ReplayStageMode() 
+	:BaseClass(SMT_REPLAY)
+	, mPlayerManager(new LocalPlayerManager)
+{
+
+}
+
+LocalPlayerManager* ReplayStageMode::getPlayerManager()
+{
+	return mPlayerManager.get();
+}
+
+bool ReplayStageMode::onInit()
+{
+	GameStageBase* stage = getStage();
+	ReplayInfo   info;
+	ReplayHeader header;
+	if( !ReplayBase::loadReplayInfo(mReplayFilePath.c_str(), header, info) )
+	{
+		return false;
+	}
+
+	AttribValue attrInfo(ATTR_REPLAY_INFO, &info);
+	if( !stage->setupAttrib(attrInfo) )
+	{
+		return false;
+	}
+
+	if( !BaseClass::onInit() )
+		return false;
+	//// Replay Input////////////
+
+	IFrameActionTemplate* actionTemplate = NULL;
+	if( header.version >= VERSION(0, 1, 0) )
+	{
+		actionTemplate = stage->createActionTemplate(info.templateVersion);
+		if( !actionTemplate )
+			return false;
+
+		mReplayInput.reset(new ReplayInput(actionTemplate, mReplayFrame));
+	}
+	else
+	{
+		ReplayTemplate* replayTemp = getGame()->createReplayTemplate(info.templateVersion);
+
+		if( !replayTemp )
+		{
+			return false;
+		}
+		mReplayInput.reset(new OldVersion::ReplayInput(replayTemp, mReplayFrame));
+	}
+
+	if( !loadReplay(mReplayFilePath.c_str()) )
+		return false;
+
+	stage->getActionProcessor().addInput(*mReplayInput.get());
+	///////////////////////////////////////////////////////////////
+	::Global::GUI().cleanupWidget();
+
+	stage->setupScene(*mPlayerManager.get());
+
+	if( actionTemplate )
+		actionTemplate->setupPlayer(*mPlayerManager);
+
+	AttribValue attrPos(ATTR_REPLAY_UI_POS);
+	if( !stage->getAttribValue(attrPos) )
+	{
+		attrPos.v2.x = 0;
+		attrPos.v2.y = 0;
+	}
+
+	//create replay control UI
+	Vec2i baseSize(120, 20);
+
+	int xUi = attrPos.v2.x;
+	int yUi = attrPos.v2.y;
+
+	int broader = 8;
+	int offset = 28;
+
+	GFrame*  frame = new GFrame(UI_ANY, Vec2i(xUi, yUi), Vec2i(baseSize.x + 2 * broader, 2 * baseSize.y + 2 * broader), NULL);
+	frame->setRenderType(GPanel::eRectType);
+	GButton* button;
+	::Global::GUI().addWidget(frame);
+
+	int px = broader;
+	int py = 12;
+
+	mProgressSlider = new GSlider(0, Vec2i(px, py), baseSize.x, true, frame);
+
+	Vec2i replayBtnSize(baseSize.x / 4, baseSize.y);
+
+	py += 18;
+
+	button = new GButton(UI_REPLAY_RESTART, Vec2i(px, py), replayBtnSize, frame);
+	button->setTitle("R");
+
+	button = new GButton(UI_REPLAY_TOGGLE_PAUSE, Vec2i(px + replayBtnSize.x, py), replayBtnSize, frame);
+	button->setTitle("=");
+
+	button = new GButton(UI_REPLAY_SLOW, Vec2i(px + 2 * replayBtnSize.x, py), replayBtnSize, frame);
+	button->setTitle("<<");
+
+	button = new GButton(UI_REPLAY_FAST, Vec2i(px + 3 * replayBtnSize.x, py), replayBtnSize, frame);
+	button->setTitle(">>");
+	//
+
+	restart(true);
+	return true;
+}
+
+bool ReplayStageMode::loadReplay(char const* path)
+{
+	if( !path )
+		return false;
+
+	if( !mReplayInput->load(path) )
+		return false;
+
+	return true;
+}
+
+void ReplayStageMode::onEnd()
+{
+	BaseClass::onEnd();
+}
+
+void ReplayStageMode::updateTime(long time)
+{
+	if( !mReplayInput->isVaild() )
+		return;
+
+	if( mReplayInput->isPlayEnd() )
+		changeState(GS_END);
+
+	int numFrame = time / gDefaultTickTime;
+
+	int numGameFrame = 0;
+
+	ActionProcessor& actionProcessor = getStage()->getActionProcessor();
+	for( int i = 0; i < numFrame; ++i )
+	{
+		switch( getGameState() )
+		{
+		case GS_RUN:
+			mReplayUpdateCount += mReplaySpeed;
+			while( mReplayUpdateCount >= g_ReplayNormalSpeed )
+			{
+				++numGameFrame;
+				++mReplayFrame;
+				actionProcessor.beginAction();
+				if( !mReplayInput->isPlayEnd() )
+					getStage()->tick();
+				actionProcessor.endAction();
+
+				mReplayUpdateCount -= g_ReplayNormalSpeed;
+				if( getGameState() == GS_END )
+					break;
+			}
+			break;
+
+		default:
+			++numGameFrame;
+			actionProcessor.beginAction(CTF_FREEZE_FRAME);
+			getStage()->tick();
+			actionProcessor.endAction();
+		}
+	}
+
+	getStage()->updateFrame(numGameFrame);
+
+
+	::Global::GUI().scanHotkey(getGame()->getController());
+
+	int totalFrame = mReplayInput->getRecordFrame();
+	if( totalFrame )
+		mProgressSlider->setValue(int(1000 * mReplayFrame / totalFrame));
+	else
+		mProgressSlider->setValue(0);
+}
+
+bool ReplayStageMode::onWidgetEvent(int event, int id, GWidget* ui)
+{
+	switch( id )
+	{
+	case UI_REPLAY_RESTART:
+		restart(true);
+		return false;
+	case UI_REPLAY_TOGGLE_PAUSE:
+		assert(event == EVT_BUTTON_CLICK);
+		if( togglePause() )
+		{
+			GUI::castFast< GButton* >(ui)->setTitle((getGameState() == GS_PAUSE) ? "->" : "=");
+		}
+		return false;
+	case UI_REPLAY_FAST:
+		mIndexSpeed = clamp(mIndexSpeed + 1, 0, ARRAY_SIZE(g_ReplaySpeed) - 1);
+		mReplaySpeed = g_ReplaySpeed[mIndexSpeed];
+		return false;
+	case UI_REPLAY_SLOW:
+		mIndexSpeed = clamp(mIndexSpeed - 1, 0, ARRAY_SIZE(g_ReplaySpeed) - 1);
+		mReplaySpeed = g_ReplaySpeed[mIndexSpeed];
+		return false;
+	case UI_GAME_MENU:
+		togglePause();
+		::Global::GUI().showMessageBox(UI_MAIN_MENU, LAN("back Main Menu?"));
+		return false;
+
+	case UI_MAIN_MENU:
+		if( event == EVT_BOX_YES )
+		{
+			getStage()->getManager()->changeStage(STAGE_MAIN_MENU);
+			return true;
+		}
+		else if( event == EVT_BOX_NO )
+		{
+			togglePause();
+			return true;
+		}
+		else
+		{
+			togglePause();
+			::Global::GUI().showMessageBox(UI_MAIN_MENU, LAN("back Main Menu?"));
+			return false;
+		}
+		break;
+	}
+
+	return BaseClass::onWidgetEvent(event, id, ui);
+}
+
+void ReplayStageMode::onRestart(uint64& seed)
+{
+	seed = mReplayInput->getSeed();
+
+	BaseClass::onRestart(seed);
+
+	mReplaySpeed = g_ReplayNormalSpeed;
+	mReplayUpdateCount = 0;
+	mIndexSpeed = g_NormalSpeedIndex;
+	mReplayInput->restart();
 }

@@ -18,10 +18,10 @@ namespace TowerDefend
 		{
 			return NULL;
 		}
-		GameSubStage*   createSubStage( unsigned id );
+		StageBase*      createStage( unsigned id );
 		bool            getAttribValue( AttribValue& value ){ return false; }
 
-		void beginPlay( GameType type, StageManager& manger );
+		void beginPlay( StageModeType type, StageManager& manger );
 		virtual void    deleteThis(){ delete this; }
 
 	private:

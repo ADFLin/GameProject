@@ -100,7 +100,7 @@ bool NetRoomStage::onInit()
 	mLastSendSetting = 0;
 	
 
-	::Global::getGUI().cleanupWidget();
+	::Global::GUI().cleanupWidget();
 	
 	if ( haveServer() )
 	{
@@ -116,7 +116,7 @@ bool NetRoomStage::onInit()
 			mPlayerPanel->addPlayer( player->getInfo() );
 		}
 
-		IGamePackage* curGame = Global::getGameManager().getCurGame();
+		IGamePackage* curGame = Global::GameManager().getCurGame();
 		mSettingPanel->setGame( curGame ? curGame->getName() : NULL );
 
 		mHelper->sendSlotStateSV();
@@ -128,10 +128,10 @@ bool NetRoomStage::onInit()
 		if ( worker->getActionState() == NAS_DISSCONNECT )
 		{
 			mConnectPanel  = new ServerListPanel( worker , Vec2i( 0 , 0 ) , NULL );
-			mConnectPanel->setPos( ::Global::getGUI().calcScreenCenterPos( mConnectPanel ->getSize() ) );
+			mConnectPanel->setPos( ::Global::GUI().calcScreenCenterPos( mConnectPanel ->getSize() ) );
 
 			addTask( TaskUtility::createMemberFunTask( this , &NetRoomStage::taskDestroyServerListPanelCL ) );
-			::Global::getGUI().addWidget( mConnectPanel  );
+			::Global::GUI().addWidget( mConnectPanel  );
 
 			mConnectPanel->refreshServerList();
 			mConnectPanel->doModal();
@@ -150,6 +150,8 @@ void NetRoomStage::onEnd()
 	{
 		mServer->getPlayerManager()->setListener( NULL );
 	}
+
+	unregisterNetEvent(this);
 	BaseClass::onEnd();
 }
 
@@ -157,7 +159,7 @@ bool NetRoomStage::setupUI()
 {
 
 	GamePackageVec gameVec;
-	Global::getGameManager().classifyGame( ATTR_NET_SUPPORT , gameVec );
+	Global::GameManager().classifyGame( ATTR_NET_SUPPORT , gameVec );
 	if ( gameVec.empty() )
 	{
 		return false;
@@ -172,11 +174,11 @@ bool NetRoomStage::setupUI()
 		mPlayerPanel = new PlayerListPanel( 
 			mWorker->getPlayerManager() ,UI_PLAYER_LIST_PANEL , panelPos , NULL );
 		mPlayerPanel->init( haveServer() );
-		::Global::getGUI().addWidget( mPlayerPanel );
+		::Global::GUI().addWidget( mPlayerPanel );
 
 		Vec2i from = Vec2i( -mPlayerPanel->getSize().x , panelPos.y );
 		mPlayerPanel->setPos( Vec2i( -mPlayerPanel->getSize().x , panelPos.y ) );
-		::Global::getGUI().addMotion< EasingFun >( mPlayerPanel , from , panelPos , timeUIAnim );
+		::Global::GUI().addMotion< EasingFun >( mPlayerPanel , from , panelPos , timeUIAnim );
 	}
 
 
@@ -192,7 +194,7 @@ bool NetRoomStage::setupUI()
 		}
 
 
-		::Global::getGUI().addWidget( panel );
+		::Global::GUI().addWidget( panel );
 		mSettingPanel = panel;
 		for( GamePackageVec::iterator iter = gameVec.begin();
 			iter != gameVec.end() ; ++iter )
@@ -201,18 +203,18 @@ bool NetRoomStage::setupUI()
 		}
 
 		Vec2i from = Vec2i( Global::getDrawEngine()->getScreenWidth() , pos.y );
-		::Global::getGUI().addMotion< EasingFun >( panel , from , pos , timeUIAnim );
+		::Global::GUI().addMotion< EasingFun >( panel , from , pos , timeUIAnim );
 	}
 
 	{
 		Vec2i pos = panelPos + Vec2i( 0 , PlayerListPanel::WidgetSize.y + 20 );
 		ComMsgPanel* panel = new ComMsgPanel( UI_ANY , pos , Vec2i( PlayerListPanel::WidgetSize.x , 230 ) , NULL );
 		panel->setWorker( mWorker );
-		::Global::getGUI().addWidget( panel );
+		::Global::GUI().addWidget( panel );
 		mMsgPanel = panel;
 
 		Vec2i from = Vec2i( -panel->getSize().x , pos.y );
-		::Global::getGUI().addMotion< EasingFun >( panel , from , pos , timeUIAnim );
+		::Global::GUI().addMotion< EasingFun >( panel , from , pos , timeUIAnim );
 	}
 
 
@@ -234,22 +236,22 @@ bool NetRoomStage::setupUI()
 
 	{
 		Vec2i from =  Vec2i( Global::getDrawEngine()->getScreenWidth() , btnPos.y );
-		::Global::getGUI().addMotion< EasingFun >( button , from , btnPos , timeUIAnim );
+		::Global::GUI().addMotion< EasingFun >( button , from , btnPos , timeUIAnim );
 	}
 
 	button->setFontType( FONT_S10 );
 	mReadyButton = button;
-	::Global::getGUI().addWidget( button );
+	::Global::GUI().addWidget( button );
 
 	btnPos += Vec2i( 0 , btnSize.y + 5 );
 	button = new GButton( UI_MAIN_MENU , btnPos , btnSize , NULL );
 	button->setFontType( FONT_S10 );
 	button->setTitle( LAN("Exit") );
-	::Global::getGUI().addWidget( button );
+	::Global::GUI().addWidget( button );
 	mExitButton = button;
 	{
 		Vec2i from =  Vec2i( Global::getDrawEngine()->getScreenWidth() , btnPos.y );
-		::Global::getGUI().addMotion< EasingFun >( button , from , btnPos , timeUIAnim );
+		::Global::GUI().addMotion< EasingFun >( button , from , btnPos , timeUIAnim );
 	}
 
 	return true;
@@ -417,7 +419,7 @@ void NetRoomStage::onUpdate( long time )
 		sendGameSetting();
 		mNeedSendSetting = false;
 	}
-	::Global::getGUI().updateFrame( time / gDefaultTickTime , gDefaultTickTime );
+	::Global::GUI().updateFrame( time / gDefaultTickTime , gDefaultTickTime );
 }
 
 void NetRoomStage::procPlayerState( IComPacket* cp )
@@ -435,13 +437,13 @@ void NetRoomStage::procPlayerState( IComPacket* cp )
 			mReadyButton->enable( false );
 			mExitButton->enable( false );
 
-			assert( Global::getGameManager().getCurGame()  );
+			assert( Global::GameManager().getCurGame()  );
 
-			Global::getGameManager().getCurGame()->beginPlay( GT_NET_GAME , *getManager() );
+			Global::GameManager().getCurGame()->beginPlay( SMT_NET_GAME , *getManager() );
 			
 
 			StageBase* nextStage = NULL;
-			GameSubStage* subStage = Global::getGameManager().getCurGame()->createSubStage( STAGE_NET_GAME );
+			GameSubStage* subStage = Global::GameManager().getCurGame()->createSubStage( STAGE_NET_GAME );
 			if ( subStage )
 			{
 				GameNetLevelStage* stage = new GameNetLevelStage;
@@ -449,28 +451,41 @@ void NetRoomStage::procPlayerState( IComPacket* cp )
 				stage->initWorker( mWorker , mServer );
 
 				nextStage = stage;
+
+				mHelper->setupGame(*getManager(), subStage);
 			}
 			else
 			{
 				nextStage = getManager()->createStage( STAGE_NET_GAME );
+				if( nextStage )
+				{
+					if( auto gameStage = dynamic_cast<GameStageBase*>(nextStage) )
+					{
+						auto netStageMode = dynamic_cast< NetLevelStageMode* >( gameStage->getStageMode() );
+						if( netStageMode )
+						{
+							netStageMode->initWorker(mWorker, mServer);
+						}
+						mHelper->setupGame(*getManager(), gameStage);
+					}
+				}
+				else
+				{
+					Msg("No NetLevel!");
+				}
 			}
 
-			if ( nextStage )
+			if( nextStage )
 			{
-				mHelper->setupGame( *getManager() , subStage );
 
-				if ( haveServer() )
+				if( haveServer() )
 				{
 					mHelper->sendPlayerStatusSV();
 				}
-			}
-			else
-			{
-				Msg( "No NetLevel!" );
-			}
 
-			getManager()->setNextStage( nextStage );
-			mWorker->changeState( NAS_LEVEL_SETUP );
+				getManager()->setNextStage(nextStage);
+				mWorker->changeState(NAS_LEVEL_SETUP);
+			}
 		}
 		break;
 	case NAS_ROOM_READY:
@@ -505,13 +520,13 @@ void NetRoomStage::procPlayerState( IComPacket* cp )
 	case NAS_DISSCONNECT:
 		if ( com->playerID == ERROR_PLAYER_ID )
 		{
-			::Global::getGUI().showMessageBox( 
+			::Global::GUI().showMessageBox( 
 				UI_DISCONNECT_MSGBOX , 
 				LAN("Server shout down") , GMB_OK );
 		}
 		else if ( mWorker->getPlayerManager()->getUserID() == com->playerID )
 		{
-			::Global::getGUI().showMessageBox( 
+			::Global::GUI().showMessageBox( 
 				UI_DISCONNECT_MSGBOX , 
 				LAN("You are kicked by Server") , GMB_OK );
 		}
@@ -642,14 +657,14 @@ void NetRoomStage::generateSetting( CSPRawData& com )
 	com.id = SETTING_DATA_ID;
 	DataStreamBuffer& buffer = com.buffer;
 
-	buffer.fill( Global::getGameManager().getCurGame()->getName() );
+	buffer.fill( Global::GameManager().getCurGame()->getName() );
 	mHelper->sendSetting( buffer );
 }
 
 
 void NetRoomStage::setupGame( char const* name )
 {
-	IGamePackage* game = Global::getGameManager().changeGame( name );
+	IGamePackage* game = Global::GameManager().changeGame( name );
 
 	SettingHepler* helper = game->createSettingHelper( SHT_NET_ROOM_HELPER );
 	assert( dynamic_cast< NetRoomSettingHelper* >( helper ) );
@@ -758,7 +773,7 @@ bool GameStartTask::onUpdate( long time )
 }
 
 GameNetLevelStage::GameNetLevelStage() 
-	:NetStageT< GameLevelStage >( GT_NET_GAME )
+	:GameLevelStage( SMT_NET_GAME )
 {
 	mNetEngine = &gEmptyNetEngine;
 }
@@ -768,14 +783,14 @@ bool GameNetLevelStage::onInit()
 	if ( !BaseClass::onInit() )
 		return false;
 
-	::Global::getGUI().enableRender( false );
-	::Global::getGUI().cleanupWidget();
+	::Global::GUI().enableRender( false );
+	::Global::GUI().cleanupWidget();
 
 
 	mMsgPanel = new ComMsgPanel( UI_ANY , Vec2i(0,0) , Vec2i( PlayerListPanel::WidgetSize.x , 230 ) , NULL );
 	mMsgPanel->setWorker( mWorker );
 	mMsgPanel->show( false );
-	::Global::getGUI().addWidget( mMsgPanel );
+	::Global::GUI().addWidget( mMsgPanel );
 
 	if ( haveServer() )
 	{
@@ -787,10 +802,10 @@ bool GameNetLevelStage::onInit()
 
 		ServerListPanel* panel = new ServerListPanel( getClientWorker() , Vec2i( 0 , 0 ) , NULL );
 
-		panel->setPos( ::Global::getGUI().calcScreenCenterPos( panel ->getSize() ) );
+		panel->setPos( ::Global::GUI().calcScreenCenterPos( panel ->getSize() ) );
 
 		//addTask( TaskUtility::createMemberFunTask( this , &NetRoomStage::taskDestroyServerListPanelCL ) );
-		::Global::getGUI().addWidget( panel );
+		::Global::GUI().addWidget( panel );
 
 		panel->refreshServerList();
 		panel->doModal();
@@ -827,7 +842,7 @@ bool GameNetLevelStage::loadLevel( GameLevelInfo const& info )
 
 bool GameNetLevelStage::buildNetEngine()
 {
-	NetWorker* netWorker = getManager()->getNetWorker();
+	NetWorker* netWorker = ::Global::GameNet().getNetWorker();
 
 	mNetEngine = &gLocalNetEngine;
 	if ( !getSubStage()->setupNetwork( netWorker , &mNetEngine ) )
@@ -867,6 +882,7 @@ void GameNetLevelStage::onEnd()
 		mNetEngine->release();
 		mNetEngine = NULL;
 	}
+	unregisterNetEvent(this);
 	BaseClass::onEnd();
 }
 
@@ -899,7 +915,7 @@ void GameNetLevelStage::onUpdate( long time )
 	mNetEngine->update( *this , time );
 
 	if ( getGame() )
-		::Global::getGUI().scanHotkey( getGame()->getController() );
+		::Global::GUI().scanHotkey( getGame()->getController() );
 }
 
 void GameNetLevelStage::onServerEvent( EventID event , unsigned msg )
@@ -910,7 +926,7 @@ void GameNetLevelStage::onServerEvent( EventID event , unsigned msg )
 	{
 	case eCON_CLOSE:
 		str.format( "Lost Server %s" , "" );
-		::Global::getGUI().showMessageBox( UI_ANY , str , GMB_OK );
+		::Global::GUI().showMessageBox( UI_ANY , str , GMB_OK );
 		break;
 	}
 }
@@ -984,7 +1000,7 @@ bool GameNetLevelStage::onWidgetEvent( int event , int id , GWidget* ui )
 				}
 				else
 				{
-					::Global::getGUI().showMessageBox( 
+					::Global::GUI().showMessageBox( 
 						UI_RESTART_GAME , LAN("Do you Want to Stop Current Game?") , GMB_YESNO );
 				}
 			}
@@ -1007,7 +1023,7 @@ bool GameNetLevelStage::onWidgetEvent( int event , int id , GWidget* ui )
 		}
 		else
 		{
-			::Global::getGUI().showMessageBox( id , LAN("Be Sure Exit Game") , GMB_YESNO );
+			::Global::GUI().showMessageBox( id , LAN("Be Sure Exit Game") , GMB_YESNO );
 			return false;
 		}
 		break;
@@ -1087,7 +1103,7 @@ void GameNetLevelStage::procPlayerState( IComPacket* cp )
 		{
 			if ( haveServer() ||  com->playerID == mWorker->getPlayerManager()->getUserID() )
 			{
-				::Global::getGUI().showMessageBox( 
+				::Global::GUI().showMessageBox( 
 					UI_UNPAUSE_GAME , LAN("Stop Game. Click OK to Continue Game.") , GMB_OK );
 			}
 			else
@@ -1095,14 +1111,14 @@ void GameNetLevelStage::procPlayerState( IComPacket* cp )
 				GamePlayer* player = mWorker->getPlayerManager()->getPlayer( com->playerID );
 				FixString< 256 > str;
 				str.format( LAN("%s Puase Game" ) , player->getName() );
-				::Global::getGUI().showMessageBox( 
+				::Global::GUI().showMessageBox( 
 					UI_UNPAUSE_GAME , str , GMB_NONE );
 			}
 		}
 		break;
 	case NAS_LEVEL_RUN:
 		{
-			GWidget* ui = ::Global::getGUI().getManager().getModalUI();
+			GWidget* ui = ::Global::GUI().getManager().getModalUI();
 			if ( ui && ui->getID() == UI_UNPAUSE_GAME )
 			{
 				ui->destroy();
@@ -1113,7 +1129,7 @@ void GameNetLevelStage::procPlayerState( IComPacket* cp )
 	case NAS_LEVEL_INIT:
 		{
 			restart( true );
-			::Global::getGUI().enableRender( true );
+			::Global::GUI().enableRender( true );
 			mWorker->changeState( NAS_LEVEL_INIT );
 		}
 		break;
@@ -1240,3 +1256,421 @@ void NetStageData::registerNetEvent()
 }
 
 
+NetLevelStageMode::NetLevelStageMode() :LevelStageMode(SMT_NET_GAME)
+{
+	mNetEngine = &gEmptyNetEngine;
+}
+
+bool NetLevelStageMode::onInit()
+{
+	if( !BaseClass::onInit() )
+		return false;
+
+	::Global::GUI().enableRender(false);
+	::Global::GUI().cleanupWidget();
+
+	mMsgPanel = new ComMsgPanel(UI_ANY, Vec2i(0, 0), Vec2i(PlayerListPanel::WidgetSize.x, 230), NULL);
+	mMsgPanel->setWorker(mWorker);
+	mMsgPanel->show(false);
+	::Global::GUI().addWidget(mMsgPanel);
+
+	if( haveServer() )
+	{
+
+	}
+	else if( !getClientWorker()->haveConnect() )
+	{
+		mNetEngine = &gEmptyNetEngine;
+
+		ServerListPanel* panel = new ServerListPanel(getClientWorker(), Vec2i(0, 0), NULL);
+
+		panel->setPos(::Global::GUI().calcScreenCenterPos(panel->getSize()));
+
+		//addTask( TaskUtility::createMemberFunTask( this , &NetRoomStage::taskDestroyServerListPanelCL ) );
+		::Global::GUI().addWidget(panel);
+
+		panel->refreshServerList();
+		panel->doModal();
+	}
+
+	return true;
+}
+
+void NetLevelStageMode::onEnd()
+{
+	if( mNetEngine )
+	{
+		mNetEngine->close();
+		mNetEngine->release();
+		mNetEngine = NULL;
+	}
+	unregisterNetEvent(this);
+	BaseClass::onEnd();
+}
+
+bool NetLevelStageMode::onWidgetEvent(int event, int id, GWidget* ui)
+{
+	if( !BaseClass::onWidgetEvent(event, id, ui) )
+		return false;
+
+	switch( id )
+	{
+	case UI_PAUSE_GAME:
+	{
+		CSPPlayerState com;
+		com.playerID = mWorker->getPlayerManager()->getUserID();
+		com.state = NAS_LEVEL_PAUSE;
+		mWorker->sendTcpCommand(&com);
+	}
+	return false;
+	case UI_UNPAUSE_GAME:
+	{
+		CSPPlayerState com;
+		com.playerID = mWorker->getPlayerManager()->getUserID();
+		com.state = NAS_LEVEL_RUN;
+		mWorker->sendTcpCommand(&com);
+	}
+	return false;
+	case UI_RESTART_GAME:
+		if( event == EVT_BOX_YES )
+		{
+			if( haveServer() )
+				mServer->changeState(NAS_LEVEL_RESTART);
+			return false;
+		}
+		else if( event == EVT_BOX_NO )
+		{
+			if( haveServer() && getGameState() == GS_END )
+			{
+				mServer->changeState(NAS_ROOM_ENTER);
+			}
+			return false;
+		}
+		else
+		{
+			if( haveServer() )
+			{
+				if( getGameState() == GS_END )
+				{
+					mServer->changeState(NAS_LEVEL_RESTART);
+				}
+				else
+				{
+					::Global::GUI().showMessageBox(
+						UI_RESTART_GAME, LAN("Do you Want to Stop Current Game?"), GMB_YESNO);
+				}
+			}
+			return false;
+
+		}
+		break;
+	case UI_GAME_MENU:
+	case UI_MAIN_MENU:
+		if( event == EVT_BOX_YES )
+		{
+			disconnect();
+			getStage()->getManager()->changeStage((id == UI_MAIN_MENU) ? STAGE_MAIN_MENU : STAGE_GAME_MENU);
+			return true;
+		}
+		else if( event == EVT_BOX_NO )
+		{
+
+
+		}
+		else
+		{
+			::Global::GUI().showMessageBox(id, LAN("Be Sure Exit Game"), GMB_YESNO);
+			return false;
+		}
+		break;
+
+	}
+	return true;
+}
+
+bool NetLevelStageMode::onKey(unsigned key, bool isDown)
+{
+	if( isDown && key == VK_TAB )
+	{
+		bool beShow = !mMsgPanel->isShow();
+		mMsgPanel->show(beShow);
+		if( beShow )
+		{
+			mMsgPanel->clearInputString();
+			mMsgPanel->setFocus();
+		}
+		getGame()->getController().blockKeyEvent(beShow);
+		return false;
+	}
+
+	if( !BaseClass::onKey(key, isDown) )
+		return false;
+
+	return true;
+}
+
+void NetLevelStageMode::onRestart(uint64& seed)
+{
+	//FIXME
+	seed = mSeed;
+	BaseClass::onRestart(seed);
+}
+
+bool NetLevelStageMode::tryChangeState(GameState state)
+{
+	switch( getGameState() )
+	{
+	case GS_START:
+		if( mWorker->getActionState() != NAS_LEVEL_RUN )
+			return false;
+	}
+	return true;
+}
+
+IPlayerManager* NetLevelStageMode::getPlayerManager()
+{
+	return mWorker->getPlayerManager();
+}
+
+void NetLevelStageMode::updateFrame(int frame)
+{
+	getStage()->updateFrame(frame);
+}
+
+void NetLevelStageMode::tick()
+{
+	ActionProcessor& actionProcessor = getStage()->getActionProcessor();
+
+	unsigned flag = 0;
+	switch( getGameState() )
+	{
+	case GS_RUN:
+		++mReplayFrame;
+		break;
+	default:
+		flag |= CTF_FREEZE_FRAME;
+	}
+	actionProcessor.beginAction(flag);
+	getStage()->tick();
+	actionProcessor.endAction();
+}
+
+void NetLevelStageMode::setupServerProcFun(ComEvaluator& evaluator)
+{
+#define DEFINE_CP_USER_FUN( Class , Func )\
+		evaluator.setUserFun< Class >( this , &NetLevelStageMode::Func );
+
+	DEFINE_CP_USER_FUN(CSPPlayerState, procPlayerStateSv);
+
+#undef  DEFINE_CP_USER_FUN
+}
+
+void NetLevelStageMode::setupWorkerProcFun(ComEvaluator& evaluator)
+{
+#define DEFINE_CP_USER_FUN( Class , Func )\
+		evaluator.setUserFun< Class >( this , &NetLevelStageMode::Func );
+
+	DEFINE_CP_USER_FUN(CSPPlayerState, procPlayerState);
+	DEFINE_CP_USER_FUN(SPLevelInfo, procLevelInfo);
+	DEFINE_CP_USER_FUN(CSPMsg, procMsg);
+
+
+#undef  DEFINE_CP_USER_FUN
+}
+
+void NetLevelStageMode::procPlayerStateSv(IComPacket* cp)
+{
+	CSPPlayerState* com = cp->cast< CSPPlayerState >();
+}
+
+void NetLevelStageMode::procPlayerState(IComPacket* cp)
+{
+	CSPPlayerState* com = cp->cast< CSPPlayerState >();
+
+	switch( com->state )
+	{
+	case NAS_ROOM_ENTER:
+	{
+		NetRoomStage* stage = static_cast<NetRoomStage*>( getManager()->changeStage(STAGE_NET_ROOM));
+		stage->initWorker(mWorker, mServer);
+	}
+	break;
+	case NAS_LEVEL_LOAD:
+	{
+		if( haveServer() )
+		{
+			assert(com->playerID == ERROR_PLAYER_ID);
+			SPLevelInfo info;
+			getStage()->buildServerLevel(info);
+			mServer->sendTcpCommand(&info);
+		}
+	}
+	break;
+	case NAS_LEVEL_PAUSE:
+		if( com->playerID != ERROR_PLAYER_ID )
+		{
+			if( haveServer() || com->playerID == mWorker->getPlayerManager()->getUserID() )
+			{
+				::Global::GUI().showMessageBox(
+					UI_UNPAUSE_GAME, LAN("Stop Game. Click OK to Continue Game."), GMB_OK);
+			}
+			else
+			{
+				GamePlayer* player = mWorker->getPlayerManager()->getPlayer(com->playerID);
+				FixString< 256 > str;
+				str.format(LAN("%s Puase Game"), player->getName());
+				::Global::GUI().showMessageBox(
+					UI_UNPAUSE_GAME, str, GMB_NONE);
+			}
+		}
+		break;
+	case NAS_LEVEL_RUN:
+	{
+		GWidget* ui = ::Global::GUI().getManager().getModalUI();
+		if( ui && ui->getID() == UI_UNPAUSE_GAME )
+		{
+			ui->destroy();
+		}
+		mWorker->changeState(NAS_LEVEL_RUN);
+	}
+	break;
+	case NAS_LEVEL_INIT:
+	{
+		restart(true);
+		::Global::GUI().enableRender(true);
+		mWorker->changeState(NAS_LEVEL_INIT);
+	}
+	break;
+	case NAS_LEVEL_RESTART:
+	{
+		restart(false);
+		mWorker->changeState(NAS_LEVEL_RESTART);
+	}
+	break;
+	case NAS_DISSCONNECT:
+		if( com->playerID == ERROR_PLAYER_ID ||
+		   com->playerID == mWorker->getPlayerManager()->getUserID() )
+		{
+			getStage()->getManager()->changeStage(STAGE_MAIN_MENU);
+		}
+		break;
+	}
+}
+
+void NetLevelStageMode::procLevelInfo(IComPacket* cp)
+{
+	SPLevelInfo* com = cp->cast< SPLevelInfo >();
+	if( !loadLevel(*com) )
+	{
+		mWorker->changeState(NAS_LEVEL_LOAD_FAIL);
+		return;
+	}
+	mWorker->changeState(NAS_LEVEL_LOAD);
+}
+
+void NetLevelStageMode::updateTime(long time)
+{
+	BaseClass::updateTime(time);
+	mNetEngine->update(*this, time);
+	if( getGame() )
+		::Global::GUI().scanHotkey(getGame()->getController());
+}
+
+bool NetLevelStageMode::canRender()
+{
+	if( getWorker()->getActionState() == NAS_LEVEL_LOAD ||
+	    getWorker()->getActionState() == NAS_LEVEL_SETUP )
+		return false;
+	return true;
+}
+
+void NetLevelStageMode::procMsg(IComPacket* cp)
+{
+	CSPMsg* com = cp->cast< CSPMsg >();
+
+	FixString< 128 > str;
+
+	switch( com->type )
+	{
+	case CSPMsg::eSERVER:
+		str.format("## %s ##", com->content.c_str());
+		mMsgPanel->addMessage(str, RGB(255, 0, 255));
+		//::Msg(  "server :" , com->str );
+		break;
+	case CSPMsg::ePLAYER:
+	{
+		GamePlayer* player = mWorker->getPlayerManager()->getPlayer(com->playerID);
+
+		if( !player )
+			return;
+		str.format("%s : %s ", player->getName(), com->content.c_str());
+		mMsgPanel->addMessage(str, RGB(255, 255, 0));
+		//::Msg( "( ID = %d ):%s" , com->playerID , com->str );
+	}
+	break;
+	}
+}
+
+void NetLevelStageMode::onServerEvent(EventID event, unsigned msg)
+{
+	FixString< 256 > str;
+
+	switch( event )
+	{
+	case eCON_CLOSE:
+		str.format("Lost Server %s", "");
+		::Global::GUI().showMessageBox(UI_ANY, str, GMB_OK);
+		break;
+	}
+}
+
+bool NetLevelStageMode::buildNetEngine()
+{
+	NetWorker* netWorker = ::Global::GameNet().getNetWorker();
+
+	mNetEngine = &gLocalNetEngine;
+	if( !getStage()->setupNetwork(netWorker, &mNetEngine) )
+	{
+		getStage()->getManager()->setErrorMsg("Can't setup Network");
+		return false;
+	}
+
+	INetEngine::BuildInfo info;
+	info.netWorker = netWorker;
+	info.worker = mWorker;
+	info.game = getGame();
+	info.processor = &getStage()->getActionProcessor();
+	info.tickTime = getStage()->getTickTime();
+
+	if( !mNetEngine->build(info) )
+	{
+		getStage()->getManager()->setErrorMsg("Can't Build NetEngine");
+		return false;
+	}
+	return true;
+}
+
+bool NetLevelStageMode::loadLevel(GameLevelInfo const& info)
+{
+	IPlayerManager* playerMgr = getPlayerManager();
+
+	mSeed = info.seed;
+	getStage()->setupLevel(info);
+
+	getStage()->setupScene(*playerMgr);
+
+	if( haveServer() )
+		mNetEngine->setupInputAI(*playerMgr);
+
+	if( !buildNetEngine() )
+	{
+		return false;
+	}
+
+	if( !buildReplayRecorder() )
+	{
+
+	}
+
+	return true;
+}

@@ -2,6 +2,7 @@
 
 #include "MVWorld.h"
 
+#include <algorithm>
 
 namespace MV
 {

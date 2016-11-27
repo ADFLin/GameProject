@@ -334,4 +334,5 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
 {
 	game.setUpdateTime( 15 );
 	game.run();
+	return 0;
 }

@@ -41,7 +41,7 @@
 				Name="VCCLCompilerTool"
 				AdditionalOptions="/MP"
 				Optimization="0"
-				AdditionalIncludeDirectories=".;../libEngine;../OtherLib;../CFlyMain;../Zuma;../OtherLib/boost;../OtherLib/glew;../OtherLib/Dx9/include"
+				AdditionalIncludeDirectories=".;TinyCore;../libEngine;../OtherLib;../CFlyMain;../Zuma;../OtherLib/boost;../OtherLib/glew;../OtherLib/Dx9/include"
 				PreprocessorDefinitions="WIN32;_WINDOWS;DEBUG;TG_DLL;CORE_SHARE"
 				MinimalRebuild="false"
 				BasicRuntimeChecks="3"
@@ -124,7 +124,7 @@
 				AdditionalOptions="/MP"
 				Optimization="2"
 				EnableFiberSafeOptimizations="true"
-				AdditionalIncludeDirectories=".;../libEngine;../OtherLib;../Zuma;../OtherLib/boost;../OtherLib/glew"
+				AdditionalIncludeDirectories=".;TinyCore;../libEngine;../OtherLib;../Zuma;../OtherLib/boost;../OtherLib/glew"
 				PreprocessorDefinitions="_SECURE_SCL=0;WIN32;_WINDOWS;NDEBUG;TG_DLL"
 				StringPooling="true"
 				RuntimeLibrary="2"
@@ -374,6 +374,14 @@
 			</File>
 			<File
 				RelativePath=".\ReplayStage.h"
+				>
+			</File>
+			<File
+				RelativePath=".\RubiksStage.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\RubiksStage.h"
 				>
 			</File>
 			<File
@@ -1018,6 +1026,22 @@
 			</File>
 			<File
 				RelativePath=".\GameSingleStage.h"
+				>
+			</File>
+		</Filter>
+		<Filter
+			Name="GameCantan"
+			>
+			<File
+				RelativePath=".\Cantan\CantanLevel.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\Cantan\CantanLevel.h"
+				>
+			</File>
+			<File
+				RelativePath=".\Cantan\CantanStage.h"
 				>
 			</File>
 		</Filter>

@@ -48,16 +48,16 @@ namespace Tetris
 
 	bool LevelStage::onInit()
 	{
-		if ( !BaseClass::onInit() )
-			return false;
-
-		if ( !mGameMode )
+		if( !mGameMode )
 		{
 			return false;
 		}
+		mWorld.reset(new GameWorld(mGameMode));
+		getActionProcessor().setEnumer(mWorld.get());
 
-		mWorld.reset( new GameWorld( mGameMode ) );
-		getStage()->getActionProcessor().setEnumer( mWorld.get() );
+		if ( !BaseClass::onInit() )
+			return false;
+
 		return true;
 	}
 
@@ -65,7 +65,7 @@ namespace Tetris
 
 	void LevelStage::onEnd()
 	{
-		getStage()->getActionProcessor().setEnumer( NULL );
+		getActionProcessor().setEnumer( NULL );
 	}
 
 	void LevelStage::setupLevel(GameLevelInfo const& info)
@@ -77,7 +77,7 @@ namespace Tetris
 	{
 		unsigned flag = 0;
 
-		::Global::getGUI().cleanupWidget();
+		::Global::GUI().cleanupWidget();
 
 		MyController& controller = static_cast< MyController& >(	
 			getGame()->getController() );
@@ -86,22 +86,22 @@ namespace Tetris
 
 		switch( getGameType() )
 		{
-		case GT_SINGLE_GAME:
+		case SMT_SINGLE_GAME:
 			mGameMode->setupSingleGame( controller );
 			break;
-		case GT_REPLAY:
-			if ( getGameType() == GT_REPLAY )
+		case SMT_REPLAY:
+			if ( getGameType() == SMT_REPLAY )
 			{
 				flag |= Mode::eReplay;
 			}
 			break;
-		case GT_NET_GAME: 
+		case SMT_NET_GAME: 
 			{
 				GamePlayer* player = playerMgr.getPlayer( playerMgr.getUserID() );
 				controller.setPortControl( player->getActionPort() , 0 );
 			}
 			flag |= Mode::eNetGame; 
-			if ( getManager()->getNetWorker()->isServer() )
+			if ( ::Global::GameNet().getNetWorker()->isServer() )
 				flag |= Mode::eOwnServer;
 			break;
 		}
@@ -116,7 +116,7 @@ namespace Tetris
 
 		GButton* button;
 		panel->setRenderType( GPanel::eRectType );
-		::Global::getGUI().addWidget( panel );
+		::Global::GUI().addWidget( panel );
 
 		Vec2i pos( Global::getDrawEngine()->getScreenWidth() - ( UI_ButtonSize.x + 10 ) , 5 );
 
@@ -200,7 +200,7 @@ namespace Tetris
 		switch( getState() )
 		{
 		case GS_START:
-			if ( mGameTime > 2500 || getGameType() == GT_REPLAY )
+			if ( mGameTime > 2500 || getGameType() == SMT_REPLAY )
 				changeState( GS_RUN );
 			break;
 		}
@@ -219,9 +219,9 @@ namespace Tetris
 		case GS_END:
 			switch( getGameType() )
 			{
-			case  GT_SINGLE_GAME:
+			case  SMT_SINGLE_GAME:
 				{
-					IPlayerManager* playerManager = getPlayerManager();
+					IPlayerManager* playerManager = getStageMode()->getPlayerManager();
 					mLastGameOrder = mGameMode->markRecord( 
 						playerManager->getPlayer( playerManager->getUserID() ),
 						getRecordManager() );
@@ -241,16 +241,16 @@ namespace Tetris
 							timeinfo.tm_mon + 1 , timeinfo.tm_mday , 
 							timeinfo.tm_hour , timeinfo.tm_min ,
 							mLastGameOrder + 1 );
-						getStage()->saveReplay( str );
+						getStageMode()->saveReplay( str );
 					}
-					::Global::getGUI().showMessageBox( 
+					::Global::GUI().showMessageBox( 
 						UI_RESTART_GAME , "Do You Want To Play Game Again ?" );
 				}
 				break;
-			case GT_NET_GAME:
-				if ( getManager()->getNetWorker()->isServer() )
+			case SMT_NET_GAME:
+				if ( ::Global::GameNet().getNetWorker()->isServer() )
 				{
-					::Global::getGUI().showMessageBox( 
+					::Global::GUI().showMessageBox( 
 						UI_RESTART_GAME , "Do You Want To Play Game Again ?" );
 				}
 				break;
@@ -295,7 +295,7 @@ namespace Tetris
 		case UI_RESTART_GAME:
 			if ( event == EVT_BOX_NO )
 			{
-				if ( getGameType() == GT_SINGLE_GAME )
+				if ( getGameType() == SMT_SINGLE_GAME )
 				{
 					RecordStage* stage = (RecordStage*)getManager()->changeStage( STAGE_RECORD_GAME );
 					stage->setPlayerOrder( mLastGameOrder );
@@ -363,9 +363,9 @@ namespace Tetris
 
 	bool LevelStage::setupGame( GameInfo &gameInfo )
 	{
-		if ( getStage() && getGameType() != GT_NET_GAME )
+		if ( getStageMode() && getGameType() != SMT_NET_GAME )
 		{
-			LocalPlayerManager* playerManager = static_cast< LocalPlayerManager* >( getPlayerManager() );
+			LocalPlayerManager* playerManager = static_cast< LocalPlayerManager* >(getStageMode()->getPlayerManager() );
 			for( int i = 0 ; i < gameInfo.numLevel ; ++i )
 			{
 				playerManager->createPlayer( i );
@@ -403,7 +403,7 @@ namespace Tetris
 				ReplayInfo* info = reinterpret_cast< ReplayInfo* >( value.ptr );
 				GameInfo& gameInfo = reinterpret_cast< GameInfoData*> ( info->gameInfoData )->info;
 
-				IPlayerManager* playerManager = getPlayerManager();
+				IPlayerManager* playerManager = getStageMode()->getPlayerManager();
 				gameInfo.mode      = mGameMode->getModeID();
 				gameInfo.numLevel  = (unsigned)mWorld->getLevelNum();
 
@@ -447,7 +447,7 @@ namespace Tetris
 		if ( !BaseClass::onInit() )
 			return false;
 
-		::Global::getGUI().cleanupWidget();
+		::Global::GUI().cleanupWidget();
 
 		changeGroup( eMainGroup );
 
@@ -540,10 +540,10 @@ namespace Tetris
 
 		case UI_GAME_OPTION:
 			{
-				Vec2i pos = ::Global::getGUI().calcScreenCenterPos( OptionNoteBook::UI_Size );
+				Vec2i pos = ::Global::GUI().calcScreenCenterPos( OptionNoteBook::UI_Size );
 				OptionNoteBook* book = new OptionNoteBook( UI_GAME_OPTION , pos  , NULL );
-				book->init( Global::getGameManager().getCurGame()->getController() );
-				::Global::getGUI().addWidget( book );
+				book->init( Global::GameManager().getCurGame()->getController() );
+				::Global::GUI().addWidget( book );
 				book->setTop();
 				book->doModal();
 			}
@@ -578,10 +578,9 @@ namespace Tetris
 
 				if ( info.mode != -1 )
 				{
-					GameSingleStage* stage = static_cast< GameSingleStage* >( 
-						getManager()->changeStage( STAGE_SINGLE_GAME ) );
+					GameStageBase* stage = static_cast< GameStageBase* >(getManager()->changeStage( STAGE_SINGLE_GAME ) );
 
-					if ( stage->getSubStage()->setupAttrib( AttribValue( ATTR_GAME_INFO , &info ) )  )
+					if ( stage->setupAttrib( AttribValue( ATTR_GAME_INFO , &info ) )  )
 						isOK = true;
 				}
 
@@ -592,11 +591,11 @@ namespace Tetris
 			}
 			return false;
 		case UI_YES :
-			switch ( ::Global::getGUI().getModalID() )
+			switch ( ::Global::GUI().getModalID() )
 			{
 			case UI_GAME_OPTION:
 				{
-					::Global::getGUI().getManager().getModalUI()->destroy();
+					::Global::GUI().getManager().getModalUI()->destroy();
 				}
 				return false;
 			}
@@ -775,14 +774,14 @@ namespace Tetris
 	bool RecordStage::onInit()
 	{
 		Vec2i panelSize = Vec2i( 400 , 440 );
-		::Global::getGUI().cleanupWidget();
+		::Global::GUI().cleanupWidget();
 
 		GPanel* panel;
 		Vec2i pos = GUISystem::calcScreenCenterPos( panelSize );
 		panel = new GPanel( UI_PANEL , pos, panelSize , NULL );
 		panel->setAlpha( 0.8f );
 		panel->setRenderCallback( RenderCallBack::create( this , &RecordStage::renderRecord ) );
-		::Global::getGUI().addWidget( panel );
+		::Global::GUI().addWidget( panel );
 
 		Vec2i btnSize( 100 , 20 );
 

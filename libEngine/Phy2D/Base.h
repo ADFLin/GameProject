@@ -1,6 +1,7 @@
 #ifndef Base_h__C8B87C85_21EC_4C14_B747_F8B15EE26510
 #define Base_h__C8B87C85_21EC_4C14_B747_F8B15EE26510
 
+#include "ShareLibConfig.h"
 #include "Math/Base.h"
 #include "TVector2.h"
 #include "IntegerType.h"

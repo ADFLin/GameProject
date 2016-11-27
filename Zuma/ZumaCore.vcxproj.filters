@@ -1,0 +1,216 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="原始程式檔">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="標頭檔">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hpp;hxx;hm;inl;inc;xsd</Extensions>
+    </Filter>
+    <Filter Include="資源檔">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav</Extensions>
+    </Filter>
+    <Filter Include="Comet">
+      <UniqueIdentifier>{29fbccca-37c9-4667-8509-0bc57df68e9a}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="ZumaCore\AudioPlayer.cpp">
+      <Filter>原始程式檔</Filter>
+    </ClCompile>
+    <ClCompile Include="ZumaCore\CRSpline.cpp">
+      <Filter>原始程式檔</Filter>
+    </ClCompile>
+    <ClCompile Include="ZumaCore\glexten.cpp">
+      <Filter>原始程式檔</Filter>
+    </ClCompile>
+    <ClCompile Include="ZumaCore\GLRenderSystem.cpp">
+      <Filter>原始程式檔</Filter>
+    </ClCompile>
+    <ClCompile Include="ZumaCore\IRenderSystem.cpp">
+      <Filter>原始程式檔</Filter>
+    </ClCompile>
+    <ClCompile Include="ZumaCore\XmlLoader.cpp">
+      <Filter>原始程式檔</Filter>
+    </ClCompile>
+    <ClCompile Include="ZumaCore\ZBall.cpp">
+      <Filter>原始程式檔</Filter>
+    </ClCompile>
+    <ClCompile Include="ZumaCore\ZBallConGroup.cpp">
+      <Filter>原始程式檔</Filter>
+    </ClCompile>
+    <ClCompile Include="ZumaCore\ZDraw.cpp">
+      <Filter>原始程式檔</Filter>
+    </ClCompile>
+    <ClCompile Include="ZumaCore\ZFont.cpp">
+      <Filter>原始程式檔</Filter>
+    </ClCompile>
+    <ClCompile Include="ZumaCore\ZLevel.cpp">
+      <Filter>原始程式檔</Filter>
+    </ClCompile>
+    <ClCompile Include="ZumaCore\ZLevelManager.cpp">
+      <Filter>原始程式檔</Filter>
+    </ClCompile>
+    <ClCompile Include="ZumaCore\ZLevelStage.cpp">
+      <Filter>原始程式檔</Filter>
+    </ClCompile>
+    <ClCompile Include="ZumaCore\ZParticle.cpp">
+      <Filter>原始程式檔</Filter>
+    </ClCompile>
+    <ClCompile Include="ZumaCore\ZPath.cpp">
+      <Filter>原始程式檔</Filter>
+    </ClCompile>
+    <ClCompile Include="ZumaCore\ZResManager.cpp">
+      <Filter>原始程式檔</Filter>
+    </ClCompile>
+    <ClCompile Include="ZumaCore\ZStage.cpp">
+      <Filter>原始程式檔</Filter>
+    </ClCompile>
+    <ClCompile Include="ZumaCore\ZTask.cpp">
+      <Filter>原始程式檔</Filter>
+    </ClCompile>
+    <ClCompile Include="ZumaCore\ZUISystem.cpp">
+      <Filter>原始程式檔</Filter>
+    </ClCompile>
+    <ClCompile Include="ZumaCore\ZumaGame.cpp">
+      <Filter>原始程式檔</Filter>
+    </ClCompile>
+    <ClCompile Include="ZumaCore\ZumaPCH.cpp">
+      <Filter>原始程式檔</Filter>
+    </ClCompile>
+    <ClCompile Include="ZumaCore\CometAction.cpp">
+      <Filter>Comet</Filter>
+    </ClCompile>
+    <ClCompile Include="ZumaCore\CometBase.cpp">
+      <Filter>Comet</Filter>
+    </ClCompile>
+    <ClCompile Include="ZumaCore\CometEmitter.cpp">
+      <Filter>Comet</Filter>
+    </ClCompile>
+    <ClCompile Include="ZumaCore\CometInitializer.cpp">
+      <Filter>Comet</Filter>
+    </ClCompile>
+    <ClCompile Include="ZumaCore\CometParticle.cpp">
+      <Filter>Comet</Filter>
+    </ClCompile>
+    <ClCompile Include="ZumaCore\CometZone.cpp">
+      <Filter>Comet</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="ZumaCore\AudioPlayer.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="ZumaCore\CRSpline.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="GdiRenderSystem.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="ZumaCore\glexten.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="ZumaCore\GLRenderSystem.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="ZumaCore\IRenderSystem.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="ZumaCore\RefCountObj.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="ZumaCore\ResID.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="ZumaCore\ThinkObjT.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="ZumaCore\XmlLoader.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="ZumaCore\ZBall.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="ZumaCore\ZBallConGroup.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="ZumaCore\ZBase.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="ZumaCore\ZDraw.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="ZumaCore\ZEvent.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="ZumaCore\ZEventHandler.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="ZumaCore\ZFont.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="ZumaCore\ZLevel.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="ZumaCore\ZLevelManager.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="ZumaCore\ZLevelStage.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="ZumaCore\ZParticle.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="ZumaCore\ZPath.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="ZumaCore\ZResManager.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="ZumaCore\ZStage.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="ZumaCore\ZTask.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="ZumaCore\ZUISystem.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="ZumaCore\ZumaGame.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="ZumaCore\ZumaPCH.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="ZumaCore\Comet.h">
+      <Filter>Comet</Filter>
+    </ClInclude>
+    <ClInclude Include="ZumaCore\CometAction.h">
+      <Filter>Comet</Filter>
+    </ClInclude>
+    <ClInclude Include="ZumaCore\CometBase.h">
+      <Filter>Comet</Filter>
+    </ClInclude>
+    <ClInclude Include="ZumaCore\CometClock.h">
+      <Filter>Comet</Filter>
+    </ClInclude>
+    <ClInclude Include="ZumaCore\CometEmiter.h">
+      <Filter>Comet</Filter>
+    </ClInclude>
+    <ClInclude Include="ZumaCore\CometInitializer.h">
+      <Filter>Comet</Filter>
+    </ClInclude>
+    <ClInclude Include="ZumaCore\CometParticle.h">
+      <Filter>Comet</Filter>
+    </ClInclude>
+    <ClInclude Include="ZumaCore\CometRandom.h">
+      <Filter>Comet</Filter>
+    </ClInclude>
+    <ClInclude Include="ZumaCore\CometZone.h">
+      <Filter>Comet</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>

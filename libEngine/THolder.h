@@ -91,7 +91,7 @@ class TPtrHolder : public TPtrHolderBase< T , Detail::PtrPolicy< T > >
 {
 public:
 	TPtrHolder(){}
-	explicit TPtrHolder(T* ptr):TPtrHolderBase< T , Detail::PtrPolicy< T > >(ptr){}
+	TPtrHolder(T* ptr):TPtrHolderBase< T , Detail::PtrPolicy< T > >(ptr){}
 };
 
 
@@ -100,7 +100,7 @@ class TPtrFunFreeHolder : public TPtrHolderBase< T , Detail::PtrFunFreePolicy< T
 {
 public:
 	TPtrFunFreeHolder(){}
-	explicit TPtrFunFreeHolder(T* ptr):TPtrHolderBase< T , Detail::PtrFunFreePolicy< T , FreeFun > >(ptr){}
+	TPtrFunFreeHolder(T* ptr):TPtrHolderBase< T , Detail::PtrFunFreePolicy< T , FreeFun > >(ptr){}
 };
 
 

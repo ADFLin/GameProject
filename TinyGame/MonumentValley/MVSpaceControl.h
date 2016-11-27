@@ -6,6 +6,8 @@
 
 #include "IntrList.h"
 
+#include <vector>
+
 namespace MV
 {
 	typedef IntrList< 

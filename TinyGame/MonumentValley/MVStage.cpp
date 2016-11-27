@@ -34,7 +34,7 @@ namespace MV
 
 	bool TestStage::onInit()
 	{
-		::Global::getGUI().cleanupWidget();
+		::Global::GUI().cleanupWidget();
 
 		if ( !Global::getDrawEngine()->startOpenGL() )
 			return false;
@@ -97,7 +97,7 @@ namespace MV
 
 		MeshViewPanel* panel = new MeshViewPanel( UI_MESH_VIEW_PANEL , Vec2i(0,0) , Vec2i(30,30) , NULL );
 		panel->idMesh = 3;
-		::Global::getGUI().addWidget( panel );
+		::Global::GUI().addWidget( panel );
 
 		return true;
 	}
@@ -728,7 +728,7 @@ namespace MV
 
 		if ( isEditMode )
 		{
-			MeshViewPanel* panel = ::Global::getGUI().findTopWidget( UI_MESH_VIEW_PANEL )->cast< MeshViewPanel >();
+			MeshViewPanel* panel = ::Global::GUI().findTopWidget( UI_MESH_VIEW_PANEL )->cast< MeshViewPanel >();
 			switch( mEditType )
 			{
 			case eEditBlock:

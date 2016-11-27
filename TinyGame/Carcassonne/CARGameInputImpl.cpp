@@ -1,6 +1,7 @@
 #include "CARGameInputImpl.h"
 
 #include "CARDebug.h"
+#include "CARGameModule.h"
 
 #include "GameGlobal.h"
 #include "PropertyKey.h"
@@ -185,9 +186,9 @@ namespace CAR
 			}
 		}
 
-		if ( ::Global::getSetting().getIntValue( "AutoSaveGame" , "CAR" , 1 ) )
+		if ( ::Global::GameSetting().getIntValue( "AutoSaveGame" , "CAR" , 1 ) )
 		{
-			saveReplay( ::Global::getSetting().getStringValue( "AutoSaveGameName" , "CAR" , "car_record_temp" ) );
+			saveReplay( ::Global::GameSetting().getStringValue( "AutoSaveGameName" , "CAR" , "car_record_temp" ) );
 		}
 
 		if ( com == nullptr || com->bReply == true )
@@ -435,7 +436,7 @@ namespace CAR
 		com.bReply = false;
 		if ( mDataTransfer )
 		{
-			com.send( SLOT_SERVER , DATA2ID(ActionCom) , *mDataTransfer );
+			com.send( *mDataTransfer , SLOT_SERVER , DATA2ID(ActionCom) );
 		}
 		else
 		{
@@ -451,7 +452,7 @@ namespace CAR
 
 		if ( mDataTransfer )
 		{
-			com.send( SLOT_SERVER , DATA2ID(ActionCom) , *mDataTransfer );
+			com.send( *mDataTransfer , SLOT_SERVER , DATA2ID(ActionCom) );
 		}
 		else
 		{

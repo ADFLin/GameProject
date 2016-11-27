@@ -17,7 +17,7 @@ namespace GGJ
 	class Random
 	{
 	public:
-		int Next(){ return ::rand();}
+		int nextInt(){ return ::rand();}
 	};
 	enum ObjectId
 	{
@@ -169,17 +169,26 @@ namespace GGJ
 		};
 
 		Type type;
-		int  meta;
+		union
+		{
+			ObjectId obj;
+			ColorId  color;
+			WallName::Enum wall;
+			int      value;
+			int      meta;
+			CondDir  dir;
+		};
+		
 
 		void setWall( WallName::Enum wallName )
 		{
 			type = eWallName;
-			meta = wallName;
+			wall = wallName;
 		}
 		void setObject( ObjectId id )
 		{
 			type = eObject;
-			meta = id;
+			obj = id;
 		}
 
 		static String toString( ColorId id );

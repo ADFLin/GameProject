@@ -12,6 +12,8 @@
 #include "ZParticle.h"
 #include "ZUISystem.h"
 
+#include "../FastDelegate/FastDelegate.h"
+
 class MouseMsg;
 
 namespace Zuma
@@ -162,8 +164,9 @@ namespace Zuma
 
 		char const* loadID;
 
-		unsigned loadResFun();
-		MemberFunThread< LoadingStage > mThreadLoading;
+		void loadResFun();
+		typedef fastdelegate::FastDelegate< void () > LoadingFun;
+		TFunctionThread< LoadingFun > mThreadLoading;
 		int  numTotal;
 		int  numCur;
 	};

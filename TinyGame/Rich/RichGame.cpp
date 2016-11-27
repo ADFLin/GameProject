@@ -17,7 +17,7 @@ namespace Rich
 		return nullptr;
 	}
 
-	void GamePackage::beginPlay( GameType type, StageManager& manger )
+	void GamePackage::beginPlay( StageModeType type, StageManager& manger )
 	{
 		IGamePackage::beginPlay( type , manger );
 

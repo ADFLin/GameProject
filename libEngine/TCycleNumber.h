@@ -1,6 +1,8 @@
 #ifndef TCycleNumber_h__
 #define TCycleNumber_h__
 
+#include <cassert>
+
 template < int N , class T = int >
 class TCycleNumber
 {

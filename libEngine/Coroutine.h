@@ -11,8 +11,10 @@
 //Useful for visualize debug data
 class FunctionJumper
 {
+
 	typedef boost::coroutines::asymmetric_coroutine< void >::pull_type ImplType;
 	typedef boost::coroutines::asymmetric_coroutine< void >::push_type YeildType;
+
 public:
 
 	template< class Fun >
@@ -39,17 +41,20 @@ public:
 	}
 
 private:
+
 	template< class Fun >
 	void execEntry( YeildType& type , Fun fun )
 	{
+
 		mYeild = &type;
 		fun();
 		mYeild = NULL;
-	}
 
+	}
 	bool       mbYeild;
 	YeildType* mYeild;
 	ImplType   mImpl;
+
 };
 
 #if 0

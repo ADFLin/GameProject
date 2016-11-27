@@ -158,7 +158,7 @@ namespace Bloxorz
 
 	bool TestStage::onInit()
 	{
-		::Global::getGUI().cleanupWidget();
+		::Global::GUI().cleanupWidget();
 
 		if ( !::Global::getDrawEngine()->startOpenGL() )
 			return false;

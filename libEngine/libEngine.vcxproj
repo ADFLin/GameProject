@@ -1,0 +1,227 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{C1B32C2B-9A40-4874-869F-FCC57BB1D93F}</ProjectGuid>
+    <RootNamespace>LibEngine</RootNamespace>
+    <WindowsTargetPlatformVersion>8.1</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <PlatformToolset>v140</PlatformToolset>
+    <CharacterSet>NotSet</CharacterSet>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <PlatformToolset>v140</PlatformToolset>
+    <CharacterSet>NotSet</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup>
+    <_ProjectFileVersion>14.0.25431.1</_ProjectFileVersion>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <OutDir>$(SolutionDir)$(Configuration)\</OutDir>
+    <IntDir>$(Configuration)\</IntDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <OutDir>$(SolutionDir)$(Configuration)\</OutDir>
+    <IntDir>$(Configuration)\</IntDir>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <Optimization>Disabled</Optimization>
+      <AdditionalIncludeDirectories>../OtherLib;.;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN32;_LIB;DEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <MinimalRebuild>true</MinimalRebuild>
+      <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <WarningLevel>Level3</WarningLevel>
+      <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
+      <SDLCheck>
+      </SDLCheck>
+      <ProgramDataBaseFileName>$(IntDir)vc$(PlatformToolsetVersion).pdb</ProgramDataBaseFileName>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <AdditionalOptions>/MP %(AdditionalOptions)</AdditionalOptions>
+      <Optimization>MaxSpeed</Optimization>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <AdditionalIncludeDirectories>../OtherLib;.;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>_SECURE_SCL=0;WIN32;_LIB;NDEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <WarningLevel>Level3</WarningLevel>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <ProgramDataBaseFileName>$(IntDir)vc$(PlatformToolsetVersion).pdb</ProgramDataBaseFileName>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="AppEntry.cpp" />
+    <ClCompile Include="BitmapDC.cpp" />
+    <ClCompile Include="Bitset.cpp" />
+    <ClCompile Include="Clock.cpp" />
+    <ClCompile Include="ConsoleSystem.cpp" />
+    <ClCompile Include="DebugSystem.cpp" />
+    <ClCompile Include="FileSystem.cpp" />
+    <ClCompile Include="GIFLoader.cpp" />
+    <ClCompile Include="GLGraphics2D.cpp" />
+    <ClCompile Include="Math\BigFloat.cpp" />
+    <ClCompile Include="Math\BigInteger.cpp" />
+    <ClCompile Include="Math\Matrix3.cpp" />
+    <ClCompile Include="Math\Matrix4.cpp" />
+    <ClCompile Include="Math\Quaternion.cpp" />
+    <ClCompile Include="Phy2D\Collision.cpp" />
+    <ClCompile Include="Phy2D\Phy2D.cpp" />
+    <ClCompile Include="Phy2D\RigidBody.cpp" />
+    <ClCompile Include="Phy2D\Shape.cpp" />
+    <ClCompile Include="Phy2D\World.cpp" />
+    <ClCompile Include="ProfileSystem.cpp" />
+    <ClCompile Include="SocketBuffer.cpp" />
+    <ClCompile Include="TaskBase.cpp" />
+    <ClCompile Include="Thread.cpp" />
+    <ClCompile Include="TileRegion.cpp" />
+    <ClCompile Include="TSocket.cpp" />
+    <ClCompile Include="UnitTest\TestClass.cpp" />
+    <ClCompile Include="WGLContext.cpp" />
+    <ClCompile Include="Win32ProfileViewer.cpp" />
+    <ClCompile Include="WinGDIRenderSystem.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Algo\AStar.h" />
+    <ClInclude Include="Algo\AStarDefultPolicy.h" />
+    <ClInclude Include="Algo\IDAStar.h" />
+    <ClInclude Include="AllocFIFO.h" />
+    <ClInclude Include="Any.h" />
+    <ClInclude Include="Asset.h" />
+    <ClInclude Include="AStarTile2D.h" />
+    <ClInclude Include="BitmapDC.h" />
+    <ClInclude Include="Bitset.h" />
+    <ClInclude Include="BitUtility.h" />
+    <ClInclude Include="CacheAllocator.h" />
+    <ClInclude Include="CHandle.h" />
+    <ClInclude Include="Clock.h" />
+    <ClInclude Include="CompilerConfig.h" />
+    <ClInclude Include="ConsoleSystem.h" />
+    <ClInclude Include="Coroutine.h" />
+    <ClInclude Include="Cpp11StdConfig.h" />
+    <ClInclude Include="CppVersion.h" />
+    <ClInclude Include="DebugSystem.h" />
+    <ClInclude Include="EasingFun.h" />
+    <ClInclude Include="FileSystem.h" />
+    <ClInclude Include="FixString.h" />
+    <ClInclude Include="FixVector.h" />
+    <ClInclude Include="Flag.h" />
+    <ClInclude Include="FlowSystem.h" />
+    <ClInclude Include="FunCallback.h" />
+    <ClInclude Include="GameEngine.h" />
+    <ClInclude Include="GameLoop.h" />
+    <ClInclude Include="Game\Entity.h" />
+    <ClInclude Include="GIFLoader.h" />
+    <ClInclude Include="GLConfig.h" />
+    <ClInclude Include="GLGraphics2D.h" />
+    <ClInclude Include="Graphics2DBase.h" />
+    <ClInclude Include="Heap.h" />
+    <ClInclude Include="IntegerType.h" />
+    <ClInclude Include="IntrList.h" />
+    <ClInclude Include="Math\Base.h" />
+    <ClInclude Include="Math\BigFloat.h" />
+    <ClInclude Include="Math\BigInteger.h" />
+    <ClInclude Include="Math\FixedFloat.h" />
+    <ClInclude Include="Math\Matrix3.h" />
+    <ClInclude Include="Math\Matrix4.h" />
+    <ClInclude Include="Math\MatrixUtility.h" />
+    <ClInclude Include="Math\Quaternion.h" />
+    <ClInclude Include="Math\Vector3.h" />
+    <ClInclude Include="Math\Vector4.h" />
+    <ClInclude Include="MetaBase.hpp" />
+    <ClInclude Include="MetaFunction.hpp" />
+    <ClInclude Include="MetaTypeList.h" />
+    <ClInclude Include="MortonCode.h" />
+    <ClInclude Include="Phy2D\Base.h" />
+    <ClInclude Include="Phy2D\Collision.h" />
+    <ClInclude Include="Phy2D\Phy2D.h" />
+    <ClInclude Include="Phy2D\RigidBody.h" />
+    <ClInclude Include="Phy2D\Shape.h" />
+    <ClInclude Include="Phy2D\World.h" />
+    <ClInclude Include="PlatformConfig.h" />
+    <ClInclude Include="ProfileSystem.h" />
+    <ClInclude Include="Random.h" />
+    <ClInclude Include="RedBlackTree.h" />
+    <ClInclude Include="Reflection.h" />
+    <ClInclude Include="RefObject.h" />
+    <ClInclude Include="ShareLibConfig.h" />
+    <ClInclude Include="Singleton.h" />
+    <ClInclude Include="SList.h" />
+    <ClInclude Include="SocketBuffer.h" />
+    <ClInclude Include="SortAlgo.h" />
+    <ClInclude Include="SortFunction.h" />
+    <ClInclude Include="StackParam.h" />
+    <ClInclude Include="StreamBuffer.h" />
+    <ClInclude Include="StringTokenizer.h" />
+    <ClInclude Include="SysMsg.h" />
+    <ClInclude Include="SysMsgHandler.h" />
+    <ClInclude Include="TaskBase.h" />
+    <ClInclude Include="TCycleNumber.h" />
+    <ClInclude Include="TGrid2D.h" />
+    <ClInclude Include="THolder.h" />
+    <ClInclude Include="Thread.h" />
+    <ClInclude Include="TileRegion.h" />
+    <ClInclude Include="TLinkable.h" />
+    <ClInclude Include="TQTPortalAStar.h" />
+    <ClInclude Include="TQuadTree.h" />
+    <ClInclude Include="TQuadTreeTile.h" />
+    <ClInclude Include="TSocket.h" />
+    <ClInclude Include="TTable.h" />
+    <ClInclude Include="TUICommon.h" />
+    <ClInclude Include="TUICommon.hpp" />
+    <ClInclude Include="TUICore.h" />
+    <ClInclude Include="TUICore.hpp" />
+    <ClInclude Include="TUnsignedHash.h" />
+    <ClInclude Include="TVector2.h" />
+    <ClInclude Include="TVector3.h" />
+    <ClInclude Include="Tween.h" />
+    <ClInclude Include="TypeCast.h" />
+    <ClInclude Include="UnitTest.h" />
+    <ClInclude Include="UnitTest\Config.h" />
+    <ClInclude Include="UnitTest\TestAssert.h" />
+    <ClInclude Include="UnitTest\TestClass.h" />
+    <ClInclude Include="VertorSet.h" />
+    <ClInclude Include="WGLContext.h" />
+    <ClInclude Include="Win32File.h" />
+    <ClInclude Include="Win32Header.h" />
+    <ClInclude Include="Win32Platform.h" />
+    <ClInclude Include="Win32ProfileViewer.h" />
+    <ClInclude Include="WinGDIRenderSystem.h" />
+    <ClInclude Include="WinGLPlatform.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="CHandle.cpp_temp" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

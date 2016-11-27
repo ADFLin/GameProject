@@ -97,7 +97,7 @@ namespace Zuma
 
 		virtual bool onInit()
 		{ 
-			::Global::getGUI().cleanupWidget();
+			::Global::GUI().cleanupWidget();
 			if ( !BaseClass::onInit() )
 				return false;
 
@@ -165,7 +165,7 @@ namespace Zuma
 		switch ( value.id )
 		{
 		case ATTR_SINGLE_SUPPORT:
-#if 0
+#if 1
 			value.iVal = true;
 #else 
 			value.iVal = false;
@@ -202,7 +202,7 @@ namespace Zuma
 		mCore = NULL;
 	}
 
-	void CGamePackage::beginPlay( GameType type, StageManager& manger )
+	void CGamePackage::beginPlay( StageModeType type, StageManager& manger )
 	{		
 		if ( mCore == NULL )
 			mCore = new GameCore;

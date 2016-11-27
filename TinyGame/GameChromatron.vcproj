@@ -40,7 +40,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories=".;../libEngine;../OtherLib;../Chromatron;"
+				AdditionalIncludeDirectories=".;TinyCore;../libEngine;../OtherLib;../Chromatron;"
 				PreprocessorDefinitions="WIN32;_WINDOWS;DEBUG;TG_DLL;CORE_SHARE;"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
@@ -118,7 +118,7 @@
 				Name="VCCLCompilerTool"
 				Optimization="2"
 				EnableIntrinsicFunctions="true"
-				AdditionalIncludeDirectories=".;../libEngine;../OtherLib;../Chromatron;"
+				AdditionalIncludeDirectories=".;TinyCore;../libEngine;../OtherLib;../Chromatron;"
 				PreprocessorDefinitions="_SECURE_SCL=0;WIN32;_WINDOWS;NDEBUG;TG_DLL;"
 				RuntimeLibrary="2"
 				EnableFunctionLevelLinking="true"

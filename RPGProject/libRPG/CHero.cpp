@@ -292,7 +292,7 @@ void CHero::onKillActor( CActor* actor )
 		TRoleManager::getInstance().getRoleInfo( m_roleID )->levelUp();
 		computeAbilityProp();
 
-		nextLevelExp += nextLevelExp * 1.5;
+		nextLevelExp = nextLevelExp + nextLevelExp * 1.5;
 
 		TEvent event( EVT_LEVEL_UP , EVENT_ANY_ID , this , this );
 		UG_SendEvent( event );

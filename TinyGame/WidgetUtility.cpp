@@ -21,7 +21,7 @@ GButton* DevFrame::addButton( int id , char const* tile )
 
 DevFrame* WidgetUtility::createDevFrame()
 {
-	GUISystem& system = ::Global::getGUI();
+	GUISystem& system = ::Global::GUI();
 
 	Vec2i sSize = Global::getDrawEngine()->getScreenSize();
 

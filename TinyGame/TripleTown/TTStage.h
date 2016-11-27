@@ -15,10 +15,9 @@ namespace TripleTown
 	{
 		typedef StageBase BaseClass;
 	public:
-		
 		virtual bool onInit()
 		{ 
-			::Global::getGUI().cleanupWidget();
+			::Global::GUI().cleanupWidget();
 
 			if ( !::Global::getDrawEngine()->startOpenGL() )
 				return false;

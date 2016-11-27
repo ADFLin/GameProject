@@ -10,10 +10,10 @@ namespace Bubble
 {
 	class Mode;
 
-	class LevelStage : public GameSubStage
+	class LevelStage : public GameStageBase
 		             , public ActionEnumer
 	{
-		typedef GameSubStage BaseClass;
+		typedef GameStageBase BaseClass;
 	public:
 		LevelStage();
 

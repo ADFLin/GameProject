@@ -17,7 +17,7 @@ namespace Agar
 			if ( !::Global::getDrawEngine()->startOpenGL() )
 				return false;
 
-			::Global::getGUI().cleanupWidget();
+			::Global::GUI().cleanupWidget();
 			restart();
 			return true;
 		}

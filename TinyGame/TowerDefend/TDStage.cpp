@@ -14,7 +14,7 @@ namespace TowerDefend
 			getGame()->getController() );
 
 		mLevel = new Level;
-		getStage()->getActionProcessor().setEnumer( mLevel );
+		getActionProcessor().setEnumer( mLevel );
 		mLevel->setController( &controller );
 
 		mRenderer = new Renderer();
@@ -23,12 +23,12 @@ namespace TowerDefend
 
 	void LevelStage::setupScene( IPlayerManager& playerManager )
 	{
-		::Global::getGUI().cleanupWidget();
+		::Global::GUI().cleanupWidget();
 
 		Controller& controller = static_cast< Controller& >(
 			getGame()->getController() );
 
-		CControlUI* controlUI = new CControlUI( controller , ::Global::getGUI() );
+		CControlUI* controlUI = new CControlUI( controller , ::Global::GUI() );
 		mLevel->setControlUI( controlUI );
 	}
 

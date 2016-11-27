@@ -5,7 +5,7 @@
 
 namespace TowerDefend
 {
-	GameSubStage* CGamePackage::createSubStage( unsigned id )
+	StageBase* CGamePackage::createStage( unsigned id )
 	{
 		switch( id )
 		{
@@ -16,7 +16,7 @@ namespace TowerDefend
 		return NULL;
 	}
 
-	void CGamePackage::beginPlay( GameType type, StageManager& manger )
+	void CGamePackage::beginPlay( StageModeType type, StageManager& manger )
 	{
 		manger.changeStage( STAGE_SINGLE_GAME );
 	}

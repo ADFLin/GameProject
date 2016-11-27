@@ -22,10 +22,10 @@ namespace Poker { namespace Big2 {
 		}
 	};
 
-	class LevelStage : public GameSubStage
+	class LevelStage : public GameStageBase
 		             , public ServerLevel::Listener
 	{
-		typedef GameSubStage BaseClass;
+		typedef GameStageBase BaseClass;
 	public:
 		LevelStage();
 

@@ -213,7 +213,7 @@ namespace Poker { namespace Holdem {
 			g.drawText( Vec2i( 200 , 200 + 20 ) , str.c_str() );
 		}
 
-		GWidget* ui = ::Global::getGUI().getManager().getMouseUI();
+		GWidget* ui = ::Global::GUI().getManager().getMouseUI();
 		if ( ui )
 		{
 			FixString< 128 > str;
@@ -271,9 +271,9 @@ namespace Poker { namespace Holdem {
 			SlotPanel* panel = new SlotPanel( UI_ANY , tableCenterPos + SlotOffset[i] + Vec2i( 0 , 50 ) - SlotPanel::Size / 2 , NULL );
 			panel->slotPos = i;
 			panel->setRenderCallback( RenderCallBack::create( this , &Scene::drawSlotPanel ) );
-			::Global::getGUI().addWidget( panel );
+			::Global::GUI().addWidget( panel );
 		}
-		::Global::getGUI().addWidget( mPanel );
+		::Global::GUI().addWidget( mPanel );
 	}
 
 	void Scene::onBetCall( int slot )

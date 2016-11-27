@@ -1,0 +1,125 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Common">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hpp;hxx;hm;inl;inc;xsd</Extensions>
+    </Filter>
+    <Filter Include="資源檔">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav</Extensions>
+    </Filter>
+    <Filter Include="Stage">
+      <UniqueIdentifier>{e1bba0fb-6f49-490f-a657-0ac18f4b9275}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="GUI">
+      <UniqueIdentifier>{37e7dfa7-8176-44ad-a709-abdc413b710a}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="TinyCore\DataStream.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="TinyCore\DataStreamBuffer.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="TinyCore\DataTransfer.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="TinyCore\DataTransferImpl.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="TinyCore\GameAction.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="TinyCore\GameConfig.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="TinyCore\GameDefines.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="TinyCore\GamePackage.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="GameRecord.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="TinyCore\PropertyKey.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="TinyGamePCH.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="GameMenuStage.h">
+      <Filter>Stage</Filter>
+    </ClInclude>
+    <ClInclude Include="TinyCore\GameStage.h">
+      <Filter>Stage</Filter>
+    </ClInclude>
+    <ClInclude Include="TinyCore\StageBase.h">
+      <Filter>Stage</Filter>
+    </ClInclude>
+    <ClInclude Include="TinyCore\GameWidgetID.h">
+      <Filter>GUI</Filter>
+    </ClInclude>
+    <ClInclude Include="OptionNoteBook.h">
+      <Filter>GUI</Filter>
+    </ClInclude>
+    <ClInclude Include="ServerListPanel.h">
+      <Filter>GUI</Filter>
+    </ClInclude>
+    <ClInclude Include="WidgetLayout.h">
+      <Filter>GUI</Filter>
+    </ClInclude>
+    <ClInclude Include="WidgetUtility.h">
+      <Filter>GUI</Filter>
+    </ClInclude>
+    <ClInclude Include="TinyCore\UserProfile.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="GameStageMode.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="TinyCore\DataStreamBuffer.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
+    <ClCompile Include="TinyCore\DataTransferImpl.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
+    <ClCompile Include="TinyCore\GamePackage.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
+    <ClCompile Include="GameRecord.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
+    <ClCompile Include="TinyCore\PropertyKey.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
+    <ClCompile Include="TinyGamePCH.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
+    <ClCompile Include="GameMenuStage.cpp">
+      <Filter>Stage</Filter>
+    </ClCompile>
+    <ClCompile Include="TinyCore\GameStage.cpp">
+      <Filter>Stage</Filter>
+    </ClCompile>
+    <ClCompile Include="TinyCore\StageBase.cpp">
+      <Filter>Stage</Filter>
+    </ClCompile>
+    <ClCompile Include="OptionNoteBook.cpp">
+      <Filter>GUI</Filter>
+    </ClCompile>
+    <ClCompile Include="ServeListPanel.cpp">
+      <Filter>GUI</Filter>
+    </ClCompile>
+    <ClCompile Include="WidgetUtility.cpp">
+      <Filter>GUI</Filter>
+    </ClCompile>
+    <ClCompile Include="GameStageMode.cpp">
+      <Filter>Stage</Filter>
+    </ClCompile>
+  </ItemGroup>
+</Project>

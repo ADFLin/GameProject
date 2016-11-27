@@ -21,11 +21,13 @@
 
 #include <cmath>
 #include "CppVersion.h"
-
+#include "Cpp11StdConfig.h"
 
 #include "WinGLPlatform.h"
 
 #include "InputManager.h"
+
+#include <functional>
 
 class DrawEngine;
 class GPanel;
@@ -42,7 +44,7 @@ public:
 
 	virtual bool onInit()
 	{
-		::Global::getGUI().cleanupWidget();
+		::Global::GUI().cleanupWidget();
 		restart();
 		return true;
 	}
@@ -107,6 +109,88 @@ protected:
 
 };
 
+class MiscTestStage : public StageBase
+{
+	typedef StageBase BaseClass;
+public:
+	MiscTestStage(){}
+
+	enum 
+	{
+		UI_TEST_BUTTON = BaseClass::NEXT_UI_ID ,
+	};
+	virtual bool onInit();
+
+	virtual void onEnd()
+	{
+
+	}
+
+	virtual void onUpdate( long time )
+	{
+		BaseClass::onUpdate( time );
+
+		int frame = time / gDefaultTickTime;
+		for( int i = 0 ; i < frame ; ++i )
+			tick();
+
+		updateFrame( frame );
+	}
+
+	typedef std::function< void() > TestFun; 
+	void addTest( char const* name , TestFun const& fun );
+
+	struct TestInfo
+	{
+		TestFun fun;
+	};
+	std::vector< TestInfo > mInfos;
+
+	void onRender( float dFrame )
+	{
+		Graphics2D& g = Global::getGraphics2D();
+	}
+
+	void restart()
+	{
+
+	}
+
+
+	void tick()
+	{
+
+	}
+
+	void updateFrame( int frame )
+	{
+
+	}
+
+	bool onMouse( MouseMsg const& msg )
+	{
+		if ( !BaseClass::onMouse( msg ) )
+			return false;
+		return true;
+	}
+
+	bool onKey( unsigned key , bool isDown )
+	{
+		if ( !isDown )
+			return false;
+
+		switch( key )
+		{
+		case 'R': restart(); break;
+		}
+		return false;
+	}
+
+	virtual bool onWidgetEvent(int event , int id , GWidget* ui);
+
+protected:
+
+};
 
 template< class T >
 class TQBezierSpline
@@ -145,7 +229,7 @@ public:
 
 	virtual bool onInit()
 	{
-		::Global::getGUI().cleanupWidget();
+		::Global::GUI().cleanupWidget();
 		restart();
 		return true;
 	}
@@ -451,7 +535,7 @@ public:
 
 	virtual bool onInit()
 	{
-		::Global::getGUI().cleanupWidget();
+		::Global::GUI().cleanupWidget();
 		restart();
 		return true;
 	}
@@ -578,7 +662,8 @@ namespace SIMD
 
 		float dot( VecF const& rhs ) const 
 		{
-
+			//FIXME
+			return 0;
 		}
 		VecF operator * ( VecF const& rhs ) const {  return _mm_mul_ps( mVal , rhs.mVal );  }
 		VecF operator + ( VecF const& rhs ) const {  return _mm_add_ps( mVal , rhs.mVal );  }
@@ -597,7 +682,7 @@ namespace SIMD
 		VecF d;
 		virtual bool onInit()
 		{
-			::Global::getGUI().cleanupWidget();
+			::Global::GUI().cleanupWidget();
 			restart();
 
 			VecF a(1,2,1,13);
@@ -674,6 +759,7 @@ namespace SIMD
 
 #include <vector>
 #include <string>
+#include "Heap.h"
 #include <boost/heap/binomial_heap.hpp>
 
 namespace MRT
@@ -706,41 +792,6 @@ namespace MRT
 		std::vector< Station* >  stations;
 		std::vector< LinkInfo* > links; 
 	};
-
-
-	template< class Key >
-	class BHeap
-	{
-	public:
-		struct Node
-		{
-			Key   key;
-			Node* parent;
-			Node* child;
-			Node* next;
-			Node* prev;
-			int   order;
-		};
-
-		bool compare( Node* n1 , Node* n2 ){ return n1->key > n2->key; }
-		void merge( Node* n1 , Node* n2 )
-		{
-			assert( n1->order == n2->order );
-			if ( !compare( n1 , n2 ) ) std::swap( n1 , n2 );
-			n2->next = n1->child;
-			n2->next->prev = n2;
-			n2->prev = n1->child->prev;
-			n2->prev->next = n2;
-			n2->parent = n1;
-			n1->child = n2;
-			n1->order += 1;
-		}
-		void insert( Key key )
-		{
-
-		}
-	};
-
 
 
 	template< class T , class CmpFun >
@@ -820,7 +871,7 @@ namespace MRT
 
 		virtual bool onInit()
 		{
-			::Global::getGUI().cleanupWidget();
+			::Global::GUI().cleanupWidget();
 			restart();
 			return true;
 		}
@@ -899,7 +950,7 @@ public:
 
 	virtual bool onInit()
 	{
-		::Global::getGUI().cleanupWidget();
+		::Global::GUI().cleanupWidget();
 		if ( !::Global::getDrawEngine()->startOpenGL( true ) )
 			return false;
 
@@ -986,7 +1037,7 @@ public:
 
 	virtual bool onInit()
 	{
-		::Global::getGUI().cleanupWidget();
+		::Global::GUI().cleanupWidget();
 
 		int mapData[10][10] =
 		{
@@ -1158,7 +1209,7 @@ namespace Mario
 
 		virtual bool onInit()
 		{
-			::Global::getGUI().cleanupWidget();
+			::Global::GUI().cleanupWidget();
 
 			Block::initMap();
 
@@ -1407,7 +1458,7 @@ namespace TankGame
 
 		virtual bool onInit()
 		{
-			::Global::getGUI().cleanupWidget();
+			::Global::GUI().cleanupWidget();
 
 			Global::getDrawEngine()->startOpenGL();
 			GameWindow& window = Global::getDrawEngine()->getWindow();
@@ -1458,6 +1509,8 @@ namespace TankGame
 		{
 			if ( !BaseClass::onMouse( msg ) )
 				return false;
+
+			return true;
 		}
 
 		bool onKey( unsigned key , bool isDown )
@@ -1718,174 +1771,31 @@ namespace Geom2d
 	struct PolyProperty< ::G2D::Vertices >
 	{
 		typedef ::G2D::Vertices PolyType;
-		static void  setup( PolyType& p , int size ){ p.resize( size ); }
-		static int   size( PolyType const& p ){ return p.size(); }
-		static Vec2f const& vertex( PolyType const& p , int idx ){ return p[idx]; }
-		static Vec2f& vertex( PolyType& p , int idx ){ return p[idx]; }
+		static void  Setup( PolyType& p , int size ){ p.resize( size ); }
+		static int   Size( PolyType const& p ){ return p.size(); }
+		static Vec2f const& Vertex( PolyType const& p , int idx ){ return p[idx]; }
+		static void  UpdateVertex( PolyType& p , int idx , Vec2f const& value ){ p[idx] = value; }
 	};
 }
 namespace G2D
 {
 
-	class QHullSolver
-	{
-	private:
-		Vec2f const* mV;
-		int*   mOut;
-	public:
-		int solve( Vec2f const v[] , int numV , int outIndex[] )
-		{
-			if ( numV <= 3 )
-			{
-				for( int i = 0 ; i < numV ; ++i )
-					outIndex[i] = i;
-				return numV;
-			}
-
-			assert( numV > 3 );
-			float xP[2] = { v[0].x , v[0].x };
-			float yP[2] = { v[0].y , v[0].y };
-			int xI[2] = { 0 , 0 };
-			int yI[2] = { 0 , 0 };
-			for( int i = 1 ; i < numV ; ++i )
-			{
-				float x = v[i].x;
-				float y = v[i].y;
-				if ( xP[0] > x ){ xI[0] = i; xP[0] = x; }
-				else if ( xP[1] < x ){ xI[1] = i; xP[1] = x; }
-				if ( yP[0] > y ){ yI[0] = i; yP[0] = y; }
-				else if ( yP[1] < y ){ yI[1] = i; yP[1] = y; }
-			}
-
-
-			std::vector< int > idxBuf( numV );
-			int* pIdx = &idxBuf[0];
-			int nV = 0;
-			for( int i = 0 ; i < numV ; ++i )
-			{
-				if ( i != xI[0] && i != xI[1] && i != yI[0] && i != yI[1] )
-				{
-					pIdx[ nV ] = i;
-					++nV;
-				}
-			}
-
-			mV   = v;
-			mOut = outIndex;
-			int num;
-			int idxQuad[5] = { xI[0] , yI[0] , xI[1] , yI[1] , xI[0] };
-
-			for( int i = 0 ; i < 4 ; ++i )
-			{
-				int i1 = idxQuad[i];
-				int i2 = idxQuad[i+1];
-				if ( i1 != i2 )
-				{
-					*mOut++ = i1;
-					if ( nV )
-					{
-						num = constuct_R( pIdx , nV , i1 , i2 );
-						pIdx += num;
-						nV -= num;
-					}
-				}
-			}
-			return mOut - outIndex;
-		}
-		int  constuct_R( int pIdx[] , int nV , int i1 , int i2 )
-		{
-			assert( nV > 0 );
-
-			int num = clip( pIdx , nV , i1 , i2 );
-
-			switch( num )
-			{
-			case 0: return 0;
-			case 1: *mOut++ = pIdx[0]; return 1;
-			default:
-				{
-					int iMax = pIdx[0];
-					int n = num - 1;
-					int* pTemp = pIdx + 1;
-					int temp = constuct_R( pTemp  , n , i1 , iMax );
-					n -= temp;
-					*mOut++ = iMax;
-					if ( n )
-					{
-						pTemp += temp;
-						constuct_R( pTemp  , n , iMax , i2 );
-					}
-				}
-			}
-			return num;
-		}
-
-		int clip( int pIdx[] , int nV , int i1 , int i2 )
-		{
-			assert( i1 != i2 );
-
-			Vec2f const* v = mV;
-			Vec2f const& v2 = v[i2]; 
-			Vec2f d = v[i1] - v2;
-
-			float valMax = 0;
-			int*  itMax = 0;
-
-			int*  iter = pIdx;
-			int*  itEnd = pIdx + nV;
-			while( iter != itEnd )
-			{
-				int idx = *iter;
-				assert( idx != i1 && idx != i2 );
-				float val = d.cross( v[ idx ] - v2 );
-
-				if ( val <= 0 )
-				{
-					--itEnd;
-					if ( iter != itEnd )
-					{
-						int temp = *iter;
-						*iter = *itEnd;
-						*itEnd = temp;
-					}
-				}
-				else 
-				{
-					if ( val > valMax )
-					{
-						itMax = iter;
-						valMax = val;
-					}
-					++iter;
-				}
-			}
-			if ( itMax && itMax != pIdx )
-			{
-				int temp = *itMax;
-				*itMax = *pIdx;
-				*pIdx = temp;
-			}
-			return iter - pIdx;
-		}
-
-	};
-	
-	inline int QuickHull( Vec2f const v[] , int nV , int outIndex[] )
-	{
-		QHullSolver solver;
-		return solver.solve( v , nV , outIndex );
-	}
-
 	class QHullTestStage : public StageBase
 	{
 		typedef StageBase BaseClass;
 	public:
-		QHullTestStage(){}
+		QHullTestStage()
+			:mTestPos(0,0)
+			,bInside(false)
+		{}
 
 		SimpleRenderer mRenderer;
-		std::vector< Vec2f > mVertices;
-		std::vector< Vec2f > mHullPoly;
+		Vertices mVertices;
+		Vertices mHullPoly;
 		std::vector< int >   mIndexHull;
+
+		Vec2f mTestPos;
+		bool  bInside;
 
 
 		void updateHull()
@@ -1897,7 +1807,7 @@ namespace G2D
 
 			mIndexHull.resize( mVertices.size() );
 
-			int num = QuickHull( &mVertices[0] , mVertices.size() , &mIndexHull[0] );
+			int num = Geom2d::QuickHull( mVertices , &mIndexHull[0] );
 			mIndexHull.resize( num );
 			for( int i = 0 ; i < num ; ++i )
 			{
@@ -1907,7 +1817,7 @@ namespace G2D
 
 		virtual bool onInit()
 		{
-			::Global::getGUI().cleanupWidget();
+			::Global::GUI().cleanupWidget();
 			restart();
 			return true;
 		}
@@ -1944,6 +1854,14 @@ namespace G2D
 				mRenderer.drawPoly( g , &mHullPoly[0] , mHullPoly.size() );
 			}
 
+			RenderUtility::setPen( g , Color::eGreen );
+			RenderUtility::setBrush( g, Color::eNull );
+			if ( !mVertices.empty() )
+			{
+				mRenderer.drawPoly( g , &mVertices[0] , mVertices.size() );
+			}
+
+
 			RenderUtility::setBrush( g , Color::eRed );
 			if ( !mVertices.empty() )
 			{
@@ -1953,12 +1871,14 @@ namespace G2D
 				}
 			}
 
+			RenderUtility::setBrush( g , bInside ? Color::eRed  : Color::eYellow );
+			mRenderer.drawCircle( g , mTestPos , 0.5 );
 
 		}
 
 		void restart()
 		{
-
+			updateTestPos( Vec2f(0,0) );
 		}
 
 
@@ -1980,8 +1900,16 @@ namespace G2D
 			if ( msg.onLeftDown() )
 			{
 				Vec2f wPos = mRenderer.convertToWorld( msg.getPos() );
-				mVertices.push_back( wPos );
-				updateHull();
+				if ( InputManager::getInstance().isKeyDown( Keyboard::eCONTROL ) )
+				{
+					updateTestPos(wPos);
+
+				}
+				else
+				{
+					mVertices.push_back( wPos );
+					updateHull();
+				}
 			}
 			else if ( msg.onRightDown() )
 			{
@@ -1992,6 +1920,13 @@ namespace G2D
 				}
 			}
 			return true;
+		}
+
+		void updateTestPos(Vec2f const& pos)
+		{
+			mTestPos = pos;
+			if ( mVertices.size() > 3 )
+				bInside = Geom2d::TestInSide( mVertices , mTestPos );
 		}
 
 		bool onKey( unsigned key , bool isDown )
@@ -2229,6 +2164,7 @@ namespace G2D
 
 		Mode mMode;
 
+
 		virtual bool onInit()
 		{
 			mMode = MODE_CIRCLE;
@@ -2252,7 +2188,7 @@ namespace G2D
 
 			updateCollision();
 
-			::Global::getGUI().cleanupWidget();
+			::Global::GUI().cleanupWidget();
 			WidgetUtility::createDevFrame();
 			restart();
 			return true;
@@ -2431,7 +2367,7 @@ public:
 
 	virtual bool onInit()
 	{
-		::Global::getGUI().cleanupWidget();
+		::Global::GUI().cleanupWidget();
 		restart();
 		return true;
 	}
@@ -2604,7 +2540,7 @@ namespace TMechine
 
 		virtual bool onInit()
 		{
-			::Global::getGUI().cleanupWidget();
+			::Global::GUI().cleanupWidget();
 			restart();
 			return true;
 		}
@@ -2658,10 +2594,6 @@ namespace TMechine
 			switch( key )
 			{
 			case 'R': restart(); break;
-				//case 'D': snake.changeMoveDir( DIR_WEST ); break;
-				//case 'A': snake.changeMoveDir( DIR_EAST ); break;
-				//case 'W': snake.changeMoveDir( DIR_NORTH ); break;
-				//case 'S': snake.changeMoveDir( DIR_SOUTH ); break;
 			}
 			return false;
 		}
@@ -2721,12 +2653,12 @@ public:
 	};
 	virtual bool onInit()
 	{
-		::Global::getGUI().cleanupWidget();
+		::Global::GUI().cleanupWidget();
 
 		DevFrame* frame = WidgetUtility::createDevFrame();
 
 		GTextCtrl* textCtrl = new GTextCtrl( UI_NUMBER_TEXT , Vec2i( 10 , 10 ) , 60 , NULL );
-		::Global::getGUI().addWidget( textCtrl );
+		::Global::GUI().addWidget( textCtrl );
 
 		restart();
 
@@ -2859,15 +2791,15 @@ protected:
 
 
 
-class NetTestStage : public GameSubStage
+class NetTestStage : public GameStageBase
 {
-	typedef GameSubStage BaseClass;
+	typedef GameStageBase BaseClass;
 public:
 	NetTestStage(){}
 
 	virtual bool onInit()
 	{
-		::Global::getGUI().cleanupWidget();
+		::Global::GUI().cleanupWidget();
 		restart();
 		return true;
 	}
@@ -2898,6 +2830,8 @@ public:
 	{
 		if ( !BaseClass::onMouse( msg ) )
 			return false;
+
+		return true;
 	}
 
 	bool onKey( unsigned key , bool isDown )
@@ -3007,6 +2941,8 @@ namespace Net
 		{
 			INetObject* obj = factory->create();
 			obj->mAccess = access;
+
+			return obj;
 		}
 
 		typedef std::vector< INetObject* > ObjectVec;
@@ -3018,9 +2954,9 @@ namespace Net
 		Vec2f pos;
 	};
 
-	class TestStage : public GameSubStage
+	class TestStage : public GameStageBase
 	{
-		typedef GameSubStage BaseClass;
+		typedef GameStageBase BaseClass;
 	public:
 		TestStage(){}
 

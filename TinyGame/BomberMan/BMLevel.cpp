@@ -8,6 +8,8 @@
 //FIXME
 #include "GameGlobal.h"
 
+#include <algorithm>
+
 //TODO: fix ignore damage when player hurted
 
 namespace BomberMan

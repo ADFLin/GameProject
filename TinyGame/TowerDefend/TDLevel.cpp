@@ -125,6 +125,7 @@ namespace TowerDefend
 				selectType = eOtherUnit;
 			}
 			level->selectActor( unit );
+			return true;
 		}
 
 		enum SelectType

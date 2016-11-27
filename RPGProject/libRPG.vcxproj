@@ -1,0 +1,224 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{BA443551-7968-4E17-AECD-0CEFB046C2CB}</ProjectGuid>
+    <RootNamespace>libRPG</RootNamespace>
+    <WindowsTargetPlatformVersion>8.1</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <PlatformToolset>v140</PlatformToolset>
+    <CharacterSet>NotSet</CharacterSet>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <PlatformToolset>v140</PlatformToolset>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup>
+    <_ProjectFileVersion>14.0.25431.1</_ProjectFileVersion>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <OutDir>$(SolutionDir)$(Configuration)\</OutDir>
+    <IntDir>$(Configuration)\$(ProjectName)\</IntDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <OutDir>$(SolutionDir)$(Configuration)\</OutDir>
+    <IntDir>$(Configuration)\$(ProjectName)\</IntDir>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <Optimization>Disabled</Optimization>
+      <AdditionalIncludeDirectories>libRPG/;.;../CFlyMain;../libEngine;../OtherLib/bullet/src;../OtherLib/Recast/Detour/Include;../OtherLib/boost;../OtherLib/Dx9/Include;../OtherLib/;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>DEBUG;WIN32;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <MinimalRebuild>true</MinimalRebuild>
+      <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeaderFile>ProjectPCH.h</PrecompiledHeaderFile>
+      <WarningLevel>Level3</WarningLevel>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <ProgramDataBaseFileName>$(IntDir)vc$(PlatformToolsetVersion).pdb</ProgramDataBaseFileName>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+    </ClCompile>
+    <PreLinkEvent>
+      <Command />
+    </PreLinkEvent>
+    <ProjectReference>
+      <LinkLibraryDependencies>true</LinkLibraryDependencies>
+    </ProjectReference>
+    <PostBuildEvent>
+      <Command />
+    </PostBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <AdditionalOptions>/MP %(AdditionalOptions)</AdditionalOptions>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <AdditionalIncludeDirectories>libRPG/;.;../CFlyMain;../libEngine;../OtherLib/bullet/src;../OtherLib/Recast/Detour/Include;../OtherLib/boost;../OtherLib/Dx9/Include;../OtherLib/;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>NDEBUG;_LIB;WIN32;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeaderFile>ProjectPCH.h</PrecompiledHeaderFile>
+      <WarningLevel>Level3</WarningLevel>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <ProgramDataBaseFileName>$(IntDir)vc$(PlatformToolsetVersion).pdb</ProgramDataBaseFileName>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClInclude Include="libRPG\AbilityProp.h" />
+    <ClInclude Include="libRPG\ActorMovement.h" />
+    <ClInclude Include="libRPG\AICondition.h" />
+    <ClInclude Include="libRPG\CActor.h" />
+    <ClInclude Include="libRPG\CActorModel.h" />
+    <ClInclude Include="libRPG\CCamera.h" />
+    <ClInclude Include="libRPG\CEntity.h" />
+    <ClInclude Include="libRPG\CGameMod.h" />
+    <ClInclude Include="libRPG\CGFContent.h" />
+    <ClInclude Include="libRPG\CHandle.h" />
+    <ClInclude Include="libRPG\CHero.h" />
+    <ClInclude Include="libRPG\CNPCBase.h" />
+    <ClInclude Include="libRPG\common.h" />
+    <ClInclude Include="libRPG\ControlKey.h" />
+    <ClInclude Include="libRPG\CRenderComponent.h" />
+    <ClInclude Include="libRPG\CRigidObject.h" />
+    <ClInclude Include="libRPG\CSceneCGF.h" />
+    <ClInclude Include="libRPG\CSceneLevel.h" />
+    <ClInclude Include="libRPG\CUISystem.h" />
+    <ClInclude Include="libRPG\CVillager.h" />
+    <ClInclude Include="libRPG\EventType.h" />
+    <ClInclude Include="libRPG\GameFramework.h" />
+    <ClInclude Include="libRPG\GameObject.h" />
+    <ClInclude Include="libRPG\GameObjectComponent.h" />
+    <ClInclude Include="libRPG\IScriptTable.h" />
+    <ClInclude Include="libRPG\ISystem.h" />
+    <ClInclude Include="libRPG\LevelEditor.h" />
+    <ClInclude Include="libRPG\NavMesh.h" />
+    <ClInclude Include="libRPG\ObjectComponent.h" />
+    <ClInclude Include="libRPG\PhysicsPrivate.h" />
+    <ClInclude Include="libRPG\PhysicsSystem.h" />
+    <ClInclude Include="libRPG\Platform.h" />
+    <ClInclude Include="libRPG\ProjectPCH.h" />
+    <ClInclude Include="libRPG\RenderSystem.h" />
+    <ClInclude Include="libRPG\serialization.h" />
+    <ClInclude Include="libRPG\SingalSystem.h" />
+    <ClInclude Include="libRPG\SpatialComponent.h" />
+    <ClInclude Include="libRPG\TAblilityProp.h" />
+    <ClInclude Include="libRPG\TCombatSystem.h" />
+    <ClInclude Include="libRPG\TEventSystem.h" />
+    <ClInclude Include="libRPG\Thinkable.h" />
+    <ClInclude Include="libRPG\TItemSystem.h" />
+    <ClInclude Include="libRPG\TMessageShow.h" />
+    <ClInclude Include="libRPG\TNavigator.h" />
+    <ClInclude Include="libRPG\TPlayerControl.h" />
+    <ClInclude Include="libRPG\TResManager.h" />
+    <ClInclude Include="libRPG\TriangleMeshData.h" />
+    <ClInclude Include="libRPG\TRoleTemplate.h" />
+    <ClInclude Include="libRPG\TSkill.h" />
+    <ClInclude Include="libRPG\TSkillBook.h" />
+    <ClInclude Include="libRPG\TTalkSystem.h" />
+    <ClInclude Include="libRPG\ui\CBloodBar.h" />
+    <ClInclude Include="libRPG\ui\CChestPanel.h" />
+    <ClInclude Include="libRPG\ui\CEquipFrame.h" />
+    <ClInclude Include="libRPG\ui\CFastPlayBar.h" />
+    <ClInclude Include="libRPG\ui\CGameUI.h" />
+    <ClInclude Include="libRPG\ui\CItemBagPanel.h" />
+    <ClInclude Include="libRPG\ui\CMiniMapUI.h" />
+    <ClInclude Include="libRPG\ui\CPlayButton.h" />
+    <ClInclude Include="libRPG\ui\CSkillFrame.h" />
+    <ClInclude Include="libRPG\ui\CStoreFrame.h" />
+    <ClInclude Include="libRPG\ui\CTextButton.h" />
+    <ClInclude Include="libRPG\ui\CUICommon.h" />
+    <ClInclude Include="libRPG\ui\CVitalStateUI.h" />
+    <ClInclude Include="libRPG\UtilityFlyFun.h" />
+    <ClInclude Include="libRPG\UtilityGlobal.h" />
+    <ClInclude Include="libRPG\UtilityMath.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="libRPG\AbilityProp.cpp" />
+    <ClCompile Include="libRPG\ActorMovement.cpp" />
+    <ClCompile Include="libRPG\CActor.cpp" />
+    <ClCompile Include="libRPG\CActorModel.cpp" />
+    <ClCompile Include="libRPG\CCamera.cpp" />
+    <ClCompile Include="libRPG\CEntity.cpp" />
+    <ClCompile Include="libRPG\CGameMod.cpp" />
+    <ClCompile Include="libRPG\CGFContent.cpp" />
+    <ClCompile Include="libRPG\CHandle.cpp" />
+    <ClCompile Include="libRPG\CHero.cpp" />
+    <ClCompile Include="libRPG\CNPCBase.cpp" />
+    <ClCompile Include="libRPG\common.cpp" />
+    <ClCompile Include="libRPG\CRenderComponent.cpp" />
+    <ClCompile Include="libRPG\CRigidObject.cpp" />
+    <ClCompile Include="libRPG\CSceneCGF.cpp" />
+    <ClCompile Include="libRPG\CSceneLevel.cpp" />
+    <ClCompile Include="libRPG\CUISystem.cpp" />
+    <ClCompile Include="libRPG\CVillager.cpp" />
+    <ClCompile Include="libRPG\GameFramework.cpp" />
+    <ClCompile Include="libRPG\GameObject.cpp" />
+    <ClCompile Include="libRPG\GameObjectComponent.cpp" />
+    <ClCompile Include="libRPG\IScriptTable.cpp" />
+    <ClCompile Include="libRPG\LevelEditor.cpp" />
+    <ClCompile Include="libRPG\NavMesh.cpp" />
+    <ClCompile Include="libRPG\PhysicsSystem.cpp" />
+    <ClCompile Include="libRPG\Platform.cpp" />
+    <ClCompile Include="libRPG\ProjectPCH.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="libRPG\RenderSystem.cpp" />
+    <ClCompile Include="libRPG\SpatialComponent.cpp" />
+    <ClCompile Include="libRPG\TCombatSystem.cpp" />
+    <ClCompile Include="libRPG\TEventSystem.cpp" />
+    <ClCompile Include="libRPG\Thinkable.cpp" />
+    <ClCompile Include="libRPG\TItemSystem.cpp" />
+    <ClCompile Include="libRPG\TNavigator.cpp" />
+    <ClCompile Include="libRPG\TPlayerControl.cpp" />
+    <ClCompile Include="libRPG\TResManager.cpp" />
+    <ClCompile Include="libRPG\TriangleMeshData.cpp" />
+    <ClCompile Include="libRPG\TRoleTemplate.cpp" />
+    <ClCompile Include="libRPG\TSkill.cpp" />
+    <ClCompile Include="libRPG\TSkillBook.cpp" />
+    <ClCompile Include="libRPG\TTalkSystem.cpp" />
+    <ClCompile Include="libRPG\ui\CBloodBar.cpp" />
+    <ClCompile Include="libRPG\ui\CChestPanel.cpp" />
+    <ClCompile Include="libRPG\ui\CEquipFrame.cpp" />
+    <ClCompile Include="libRPG\ui\CFastPlayBar.cpp" />
+    <ClCompile Include="libRPG\ui\CGameUI.cpp" />
+    <ClCompile Include="libRPG\ui\CItemBagPanel.cpp" />
+    <ClCompile Include="libRPG\ui\CMiniMapUI.cpp" />
+    <ClCompile Include="libRPG\ui\CPlayButton.cpp" />
+    <ClCompile Include="libRPG\ui\CSkillFrame.cpp" />
+    <ClCompile Include="libRPG\ui\CStoreFrame.cpp" />
+    <ClCompile Include="libRPG\ui\CTextButton.cpp" />
+    <ClCompile Include="libRPG\ui\CUICommon.cpp" />
+    <ClCompile Include="libRPG\ui\CVitalStateUI.cpp" />
+    <ClCompile Include="libRPG\UtilityFlyFun.cpp" />
+    <ClCompile Include="libRPG\UtilityMath.cpp" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

@@ -1,7 +1,7 @@
 #ifndef Grid2DAStar_h__
 #define Grid2DAStar_h__
 
-#include "AStar.h"
+#include "Algo/AStar.h"
 
 #include "TGrid2D.h"
 #include "TVector2.h"

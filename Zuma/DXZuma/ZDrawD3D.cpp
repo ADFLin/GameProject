@@ -11,6 +11,11 @@
 
 #include "ZStage.h"
 
+namespace Zuma
+{
+
+
+
 void ZDevStage::onRender( IRenderSystem& RDSystem )
 {
 	//ZBallBase ball( White );
@@ -53,4 +58,6 @@ void ZDevStage::onRender( IRenderSystem& RDSystem )
 
 	//	RDSystem.drawBall( ball , 0 );
 	//}
+}
+
 }

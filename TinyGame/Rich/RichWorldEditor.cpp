@@ -59,7 +59,7 @@ namespace Rich
 		mSelect = &scene;
 		Vec2i posFrame = Vec2i( 20 ,::Global::getDrawEngine()->getScreenHeight() - 60 );
 		mFrame = new WorldEditFrame( UI_ANY , posFrame , nullptr );
-		::Global::getGUI().addWidget( mFrame );
+		::Global::GUI().addWidget( mFrame );
 	}
 
 	void WorldEditor::stopEdit()

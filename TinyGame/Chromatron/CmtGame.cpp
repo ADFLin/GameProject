@@ -23,7 +23,7 @@ namespace Chromatron
 		return false;
 	}
 
-	void CGamePackage::beginPlay( GameType type, StageManager& manger )
+	void CGamePackage::beginPlay( StageModeType type, StageManager& manger )
 	{
 		IGamePackage::beginPlay( type , manger );
 	}
@@ -34,11 +34,6 @@ namespace Chromatron
 		{
 		case STAGE_SINGLE_GAME: return new LevelStage;
 		}
-		return NULL;
-	}
-
-	GameSubStage* CGamePackage::createSubStage( unsigned id )
-	{
 		return NULL;
 	}
 

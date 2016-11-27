@@ -105,6 +105,8 @@ namespace Zuma
 
 	void GameCore::cleanup()
 	{
+		TaskHandler::clearTask();
+
 		resManager.cleanup();
 		audioPlayer.cleunup();
 	}

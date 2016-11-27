@@ -86,22 +86,22 @@ void SRoleInfo::serialize( Archive & ar , const unsigned int file_version )
 template < class Archive >
 void SAbilityPropData::serialize( Archive & ar , const unsigned int file_version )
 {
-	ar &   level;
-	ar &   MaxHP;
-	ar &   MaxMP;
+	ar & level;
+	ar & MaxHP;
+	ar & MaxMP;
 	///////////////////////////
-	ar &   STR; //力量
-	ar &   INT; //智力
-	ar &   DEX; //敏捷
-	ar &   END; //耐力
+	ar & STR; //力量
+	ar & INT; //智力
+	ar & DEX; //敏捷
+	ar & END; //耐力
 	////////////////////////////
-	ar &  KExp;    //可獲得的經驗值
+	ar & KExp;    //可獲得的經驗值
 	//////////////////////////
-	ar &   viewDist;
-	ar &   ATRange; //攻擊範圍(由武器更改)
-	ar &   ATSpeed; //攻擊速度
-	ar &   MVSpeed; //最大移動速度
-	ar &   JumpHeight;
+	ar & viewDist;
+	ar & ATRange; //攻擊範圍(由武器更改)
+	ar & ATSpeed; //攻擊速度
+	ar & MVSpeed; //最大移動速度
+	ar & JumpHeight;
 }
 
 SRoleInfo* TRoleManager::getRoleInfo( unsigned roleID )
@@ -127,7 +127,7 @@ TRoleManager::TRoleManager()
 
 }
 
-void TRoleManager::initDefultRole()
+void TRoleManager::initDefaultRole()
 {
 	for ( int i = 0 ; i < ARRAY_SIZE( g_RoleData ) ; ++i )
 	{
@@ -192,7 +192,7 @@ bool TRoleManager::loadData( char const* path )
 		roleTable.clear();
 		roleList.clear();
 
-		initDefultRole();
+		initDefaultRole();
 
 		return false;
 	}

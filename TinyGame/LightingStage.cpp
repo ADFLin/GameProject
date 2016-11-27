@@ -41,10 +41,10 @@ namespace Lighting
 
 		glMatrixMode(GL_PROJECTION);
 		glLoadIdentity();
-		glOrtho(0, window.getWidth() , 0 , window.getHeight() , 1, -1);
+		glOrtho(0, window.getWidth() , window.getHeight() , 0 , 1, -1);
 		glMatrixMode(GL_MODELVIEW);
 
-		::Global::getGUI().cleanupWidget();
+		::Global::GUI().cleanupWidget();
 		WidgetUtility::createDevFrame();
 		restart();
 		return true;
@@ -95,12 +95,19 @@ namespace Lighting
 
 	void TestStage::onRender( float dFrame )
 	{
+		GameWindow& window = Global::getDrawEngine()->getWindow();
+
+		glMatrixMode(GL_PROJECTION);
+		glLoadIdentity();
+		glOrtho(0, window.getWidth(), window.getHeight(), 0, 1, -1);
+		glMatrixMode(GL_MODELVIEW);
+
 		glDisable( GL_DEPTH_TEST );
 		glDisable( GL_CULL_FACE );
 		glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT );
 		glEnable( GL_STENCIL_TEST );
 
-		GameWindow& window = Global::getDrawEngine()->getWindow();
+
 		int w = window.getWidth();
 		int h = window.getHeight();
 
@@ -209,7 +216,8 @@ namespace Lighting
 		else if ( msg.onRightDown() )
 		{
 			Block block;
-			block.setBox( Vec2f( msg.getPos().x , window.getHeight() - msg.getPos().y  ) , Vec2f( 50 , 50 ) );
+			//TODO
+			block.setBox( Vec2f( msg.getPos().x , msg.getPos().y  ) , Vec2f( 50 , 50 ) );
 			blocks.push_back( block );
 		}
 		else if ( msg.onMoving() )

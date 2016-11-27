@@ -1,0 +1,489 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="原始程式檔">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="標頭檔">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hpp;hxx;hm;inl;inc;xsd</Extensions>
+    </Filter>
+    <Filter Include="資源檔">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav</Extensions>
+    </Filter>
+    <Filter Include="Utility">
+      <UniqueIdentifier>{367e0579-aabe-4268-9a61-6d46744d6acd}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Net">
+      <UniqueIdentifier>{708a2dc3-14fb-4b6c-b945-a7e207d762a7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="temp">
+      <UniqueIdentifier>{8abc6a93-f69e-4e43-b558-994e6b0c5f5a}</UniqueIdentifier>
+      <ParseFiles>false</ParseFiles>
+    </Filter>
+    <Filter Include="Platform">
+      <UniqueIdentifier>{9296d05a-c5cb-40be-ac46-00fcd4171968}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Component">
+      <UniqueIdentifier>{7e20191a-3d92-4aeb-9472-313665742da3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Math">
+      <UniqueIdentifier>{4dde81d5-b2a2-4910-8727-b36781d1eb8e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="DataStructure">
+      <UniqueIdentifier>{557d7043-e34f-4d21-b653-b5625d583d06}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Config">
+      <UniqueIdentifier>{36920d3b-9a3e-4ba0-9cde-1013e011dabd}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="UnitTest">
+      <UniqueIdentifier>{71c9302c-5cf0-48b9-b467-2917b1e7fea6}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="GUI">
+      <UniqueIdentifier>{a640a770-4cad-4156-9229-e8daadbf49b0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Image">
+      <UniqueIdentifier>{d7a8b0d1-8914-412d-a73a-341e8f5fa5d2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Game">
+      <UniqueIdentifier>{9e425877-efb6-4cf3-a37d-a12f5a8f9efa}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Core">
+      <UniqueIdentifier>{e32d06ff-488f-4fe0-a5d2-1ea8492918fb}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Opengl">
+      <UniqueIdentifier>{c89481b0-3990-48b5-8b09-37649027a60d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="DataManage">
+      <UniqueIdentifier>{bc8a8356-be00-4fe7-8da4-867ab7c56ba2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Phy2D">
+      <UniqueIdentifier>{7127bf64-5b69-4c18-902a-aa2cfbee34eb}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="AI">
+      <UniqueIdentifier>{da6fd047-34f6-47b8-b2bd-3f586aed4179}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Algo">
+      <UniqueIdentifier>{edb75349-183a-49cf-95cc-71198a2e5b7e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Algo\AStar">
+      <UniqueIdentifier>{8c578ddc-2ab1-4011-910b-168786060738}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="AppEntry.cpp">
+      <Filter>原始程式檔</Filter>
+    </ClCompile>
+    <ClCompile Include="ConsoleSystem.cpp">
+      <Filter>原始程式檔</Filter>
+    </ClCompile>
+    <ClCompile Include="DebugSystem.cpp">
+      <Filter>原始程式檔</Filter>
+    </ClCompile>
+    <ClCompile Include="FileSystem.cpp">
+      <Filter>原始程式檔</Filter>
+    </ClCompile>
+    <ClCompile Include="ProfileSystem.cpp">
+      <Filter>原始程式檔</Filter>
+    </ClCompile>
+    <ClCompile Include="TaskBase.cpp">
+      <Filter>原始程式檔</Filter>
+    </ClCompile>
+    <ClCompile Include="Bitset.cpp">
+      <Filter>Utility</Filter>
+    </ClCompile>
+    <ClCompile Include="Clock.cpp">
+      <Filter>Utility</Filter>
+    </ClCompile>
+    <ClCompile Include="SocketBuffer.cpp">
+      <Filter>Net</Filter>
+    </ClCompile>
+    <ClCompile Include="TSocket.cpp">
+      <Filter>Net</Filter>
+    </ClCompile>
+    <ClCompile Include="BitmapDC.cpp">
+      <Filter>Platform</Filter>
+    </ClCompile>
+    <ClCompile Include="Thread.cpp">
+      <Filter>Platform</Filter>
+    </ClCompile>
+    <ClCompile Include="WGLContext.cpp">
+      <Filter>Platform</Filter>
+    </ClCompile>
+    <ClCompile Include="Win32ProfileViewer.cpp">
+      <Filter>Platform</Filter>
+    </ClCompile>
+    <ClCompile Include="WinGDIRenderSystem.cpp">
+      <Filter>Platform</Filter>
+    </ClCompile>
+    <ClCompile Include="Math\BigFloat.cpp">
+      <Filter>Math</Filter>
+    </ClCompile>
+    <ClCompile Include="Math\BigInteger.cpp">
+      <Filter>Math</Filter>
+    </ClCompile>
+    <ClCompile Include="Math\Matrix3.cpp">
+      <Filter>Math</Filter>
+    </ClCompile>
+    <ClCompile Include="Math\Matrix4.cpp">
+      <Filter>Math</Filter>
+    </ClCompile>
+    <ClCompile Include="Math\Quaternion.cpp">
+      <Filter>Math</Filter>
+    </ClCompile>
+    <ClCompile Include="UnitTest\TestClass.cpp">
+      <Filter>UnitTest</Filter>
+    </ClCompile>
+    <ClCompile Include="GIFLoader.cpp">
+      <Filter>Image</Filter>
+    </ClCompile>
+    <ClCompile Include="GLGraphics2D.cpp">
+      <Filter>Opengl</Filter>
+    </ClCompile>
+    <ClCompile Include="Phy2D\Collision.cpp">
+      <Filter>Phy2D</Filter>
+    </ClCompile>
+    <ClCompile Include="Phy2D\Phy2D.cpp">
+      <Filter>Phy2D</Filter>
+    </ClCompile>
+    <ClCompile Include="Phy2D\RigidBody.cpp">
+      <Filter>Phy2D</Filter>
+    </ClCompile>
+    <ClCompile Include="Phy2D\Shape.cpp">
+      <Filter>Phy2D</Filter>
+    </ClCompile>
+    <ClCompile Include="Phy2D\World.cpp">
+      <Filter>Phy2D</Filter>
+    </ClCompile>
+    <ClCompile Include="TileRegion.cpp">
+      <Filter>Algo\AStar</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="ConsoleSystem.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="Coroutine.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="DebugSystem.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="FileSystem.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="FlowSystem.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="FunCallback.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="GameEngine.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="GameLoop.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="IntegerType.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="ProfileSystem.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="Reflection.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="RefObject.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="StreamBuffer.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="SysMsg.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="SysMsgHandler.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="TaskBase.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="TVector2.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="TVector3.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="TypeCast.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="AllocFIFO.h">
+      <Filter>Utility</Filter>
+    </ClInclude>
+    <ClInclude Include="Bitset.h">
+      <Filter>Utility</Filter>
+    </ClInclude>
+    <ClInclude Include="BitUtility.h">
+      <Filter>Utility</Filter>
+    </ClInclude>
+    <ClInclude Include="CacheAllocator.h">
+      <Filter>Utility</Filter>
+    </ClInclude>
+    <ClInclude Include="Clock.h">
+      <Filter>Utility</Filter>
+    </ClInclude>
+    <ClInclude Include="EasingFun.h">
+      <Filter>Utility</Filter>
+    </ClInclude>
+    <ClInclude Include="FixString.h">
+      <Filter>Utility</Filter>
+    </ClInclude>
+    <ClInclude Include="Flag.h">
+      <Filter>Utility</Filter>
+    </ClInclude>
+    <ClInclude Include="MetaBase.hpp">
+      <Filter>Utility</Filter>
+    </ClInclude>
+    <ClInclude Include="MetaFunction.hpp">
+      <Filter>Utility</Filter>
+    </ClInclude>
+    <ClInclude Include="MetaTypeList.h">
+      <Filter>Utility</Filter>
+    </ClInclude>
+    <ClInclude Include="Random.h">
+      <Filter>Utility</Filter>
+    </ClInclude>
+    <ClInclude Include="Singleton.h">
+      <Filter>Utility</Filter>
+    </ClInclude>
+    <ClInclude Include="SortFunction.h">
+      <Filter>Utility</Filter>
+    </ClInclude>
+    <ClInclude Include="StackParam.h">
+      <Filter>Utility</Filter>
+    </ClInclude>
+    <ClInclude Include="StringTokenizer.h">
+      <Filter>Utility</Filter>
+    </ClInclude>
+    <ClInclude Include="TCycleNumber.h">
+      <Filter>Utility</Filter>
+    </ClInclude>
+    <ClInclude Include="TGrid2D.h">
+      <Filter>Utility</Filter>
+    </ClInclude>
+    <ClInclude Include="THolder.h">
+      <Filter>Utility</Filter>
+    </ClInclude>
+    <ClInclude Include="Tween.h">
+      <Filter>Utility</Filter>
+    </ClInclude>
+    <ClInclude Include="SocketBuffer.h">
+      <Filter>Net</Filter>
+    </ClInclude>
+    <ClInclude Include="TSocket.h">
+      <Filter>Net</Filter>
+    </ClInclude>
+    <ClInclude Include="CHandle.h">
+      <Filter>temp</Filter>
+    </ClInclude>
+    <ClInclude Include="BitmapDC.h">
+      <Filter>Platform</Filter>
+    </ClInclude>
+    <ClInclude Include="Graphics2DBase.h">
+      <Filter>Platform</Filter>
+    </ClInclude>
+    <ClInclude Include="Thread.h">
+      <Filter>Platform</Filter>
+    </ClInclude>
+    <ClInclude Include="WGLContext.h">
+      <Filter>Platform</Filter>
+    </ClInclude>
+    <ClInclude Include="Win32File.h">
+      <Filter>Platform</Filter>
+    </ClInclude>
+    <ClInclude Include="Win32Header.h">
+      <Filter>Platform</Filter>
+    </ClInclude>
+    <ClInclude Include="Win32Platform.h">
+      <Filter>Platform</Filter>
+    </ClInclude>
+    <ClInclude Include="Win32ProfileViewer.h">
+      <Filter>Platform</Filter>
+    </ClInclude>
+    <ClInclude Include="WinGDIRenderSystem.h">
+      <Filter>Platform</Filter>
+    </ClInclude>
+    <ClInclude Include="WinGLPlatform.h">
+      <Filter>Platform</Filter>
+    </ClInclude>
+    <ClInclude Include="Math\Base.h">
+      <Filter>Math</Filter>
+    </ClInclude>
+    <ClInclude Include="Math\BigFloat.h">
+      <Filter>Math</Filter>
+    </ClInclude>
+    <ClInclude Include="Math\BigInteger.h">
+      <Filter>Math</Filter>
+    </ClInclude>
+    <ClInclude Include="Math\FixedFloat.h">
+      <Filter>Math</Filter>
+    </ClInclude>
+    <ClInclude Include="Math\Matrix3.h">
+      <Filter>Math</Filter>
+    </ClInclude>
+    <ClInclude Include="Math\Matrix4.h">
+      <Filter>Math</Filter>
+    </ClInclude>
+    <ClInclude Include="Math\MatrixUtility.h">
+      <Filter>Math</Filter>
+    </ClInclude>
+    <ClInclude Include="Math\Quaternion.h">
+      <Filter>Math</Filter>
+    </ClInclude>
+    <ClInclude Include="Math\Vector3.h">
+      <Filter>Math</Filter>
+    </ClInclude>
+    <ClInclude Include="Math\Vector4.h">
+      <Filter>Math</Filter>
+    </ClInclude>
+    <ClInclude Include="FixVector.h">
+      <Filter>DataStructure</Filter>
+    </ClInclude>
+    <ClInclude Include="Heap.h">
+      <Filter>DataStructure</Filter>
+    </ClInclude>
+    <ClInclude Include="IntrList.h">
+      <Filter>DataStructure</Filter>
+    </ClInclude>
+    <ClInclude Include="RedBlackTree.h">
+      <Filter>DataStructure</Filter>
+    </ClInclude>
+    <ClInclude Include="SList.h">
+      <Filter>DataStructure</Filter>
+    </ClInclude>
+    <ClInclude Include="TLinkable.h">
+      <Filter>DataStructure</Filter>
+    </ClInclude>
+    <ClInclude Include="TTable.h">
+      <Filter>DataStructure</Filter>
+    </ClInclude>
+    <ClInclude Include="TUnsignedHash.h">
+      <Filter>DataStructure</Filter>
+    </ClInclude>
+    <ClInclude Include="VertorSet.h">
+      <Filter>DataStructure</Filter>
+    </ClInclude>
+    <ClInclude Include="CompilerConfig.h">
+      <Filter>Config</Filter>
+    </ClInclude>
+    <ClInclude Include="Cpp11StdConfig.h">
+      <Filter>Config</Filter>
+    </ClInclude>
+    <ClInclude Include="CppVersion.h">
+      <Filter>Config</Filter>
+    </ClInclude>
+    <ClInclude Include="PlatformConfig.h">
+      <Filter>Config</Filter>
+    </ClInclude>
+    <ClInclude Include="ShareLibConfig.h">
+      <Filter>Config</Filter>
+    </ClInclude>
+    <ClInclude Include="UnitTest\Config.h">
+      <Filter>UnitTest</Filter>
+    </ClInclude>
+    <ClInclude Include="UnitTest\TestAssert.h">
+      <Filter>UnitTest</Filter>
+    </ClInclude>
+    <ClInclude Include="UnitTest\TestClass.h">
+      <Filter>UnitTest</Filter>
+    </ClInclude>
+    <ClInclude Include="UnitTest.h">
+      <Filter>UnitTest</Filter>
+    </ClInclude>
+    <ClInclude Include="TUICommon.h">
+      <Filter>GUI</Filter>
+    </ClInclude>
+    <ClInclude Include="TUICommon.hpp">
+      <Filter>GUI</Filter>
+    </ClInclude>
+    <ClInclude Include="TUICore.h">
+      <Filter>GUI</Filter>
+    </ClInclude>
+    <ClInclude Include="TUICore.hpp">
+      <Filter>GUI</Filter>
+    </ClInclude>
+    <ClInclude Include="GIFLoader.h">
+      <Filter>Image</Filter>
+    </ClInclude>
+    <ClInclude Include="Game\Entity.h">
+      <Filter>Game</Filter>
+    </ClInclude>
+    <ClInclude Include="Any.h">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="GLConfig.h">
+      <Filter>Opengl</Filter>
+    </ClInclude>
+    <ClInclude Include="GLGraphics2D.h">
+      <Filter>Opengl</Filter>
+    </ClInclude>
+    <ClInclude Include="Asset.h">
+      <Filter>DataManage</Filter>
+    </ClInclude>
+    <ClInclude Include="Phy2D\Base.h">
+      <Filter>Phy2D</Filter>
+    </ClInclude>
+    <ClInclude Include="Phy2D\Collision.h">
+      <Filter>Phy2D</Filter>
+    </ClInclude>
+    <ClInclude Include="Phy2D\Phy2D.h">
+      <Filter>Phy2D</Filter>
+    </ClInclude>
+    <ClInclude Include="Phy2D\RigidBody.h">
+      <Filter>Phy2D</Filter>
+    </ClInclude>
+    <ClInclude Include="Phy2D\Shape.h">
+      <Filter>Phy2D</Filter>
+    </ClInclude>
+    <ClInclude Include="Phy2D\World.h">
+      <Filter>Phy2D</Filter>
+    </ClInclude>
+    <ClInclude Include="Algo\IDAStar.h">
+      <Filter>Algo</Filter>
+    </ClInclude>
+    <ClInclude Include="SortAlgo.h">
+      <Filter>Algo</Filter>
+    </ClInclude>
+    <ClInclude Include="Algo\AStar.h">
+      <Filter>Algo\AStar</Filter>
+    </ClInclude>
+    <ClInclude Include="Algo\AStarDefultPolicy.h">
+      <Filter>Algo\AStar</Filter>
+    </ClInclude>
+    <ClInclude Include="AStarTile2D.h">
+      <Filter>Algo\AStar</Filter>
+    </ClInclude>
+    <ClInclude Include="MortonCode.h">
+      <Filter>Algo\AStar</Filter>
+    </ClInclude>
+    <ClInclude Include="TileRegion.h">
+      <Filter>Algo\AStar</Filter>
+    </ClInclude>
+    <ClInclude Include="TQTPortalAStar.h">
+      <Filter>Algo\AStar</Filter>
+    </ClInclude>
+    <ClInclude Include="TQuadTree.h">
+      <Filter>Algo\AStar</Filter>
+    </ClInclude>
+    <ClInclude Include="TQuadTreeTile.h">
+      <Filter>Algo\AStar</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="CHandle.cpp_temp">
+      <Filter>temp</Filter>
+    </None>
+  </ItemGroup>
+</Project>

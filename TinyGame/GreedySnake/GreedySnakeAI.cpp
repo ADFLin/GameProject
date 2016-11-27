@@ -116,7 +116,7 @@ namespace GreedySnake
 
 
 		Vec2i pos;
-		unsigned const mask = Level::eTERRAIN_MASK | Level::eTERRAIN_MASK;
+		unsigned const mask = Level::eTERRAIN_MASK | Level::eSNAKE_MASK;
 		if ( !testCollision( head.pos , leftDir , pos ) )
 		{
 			unsigned c = sCheckMap.getData( pos.x , pos.y );

@@ -45,7 +45,8 @@ namespace CAR
 
 		bool canRemoveFarm( int lDir ) const
 		{
-			return sides[lDir].linkType == SideType::eCity;
+			return sides[lDir].linkType == SideType::eCity || 
+				   sides[lDir].linkType == SideType::eGermanCastle;
 		}
 
 		bool     isSideLinked( int lDirA , int lDirB ) const
@@ -80,7 +81,7 @@ namespace CAR
 		{
 			if ( typeA == typeB )
 				return true;
-			unsigned AbbeyLinkMask = BIT( SideType::eAbbey ) | BIT( SideType::eCity ) | BIT( SideType::eRoad ) | BIT( SideType::eField );
+			unsigned const AbbeyLinkMask = BIT( SideType::eAbbey ) | BIT( SideType::eCity ) | BIT( SideType::eRoad ) | BIT( SideType::eField );
 			if ( typeA == SideType::eAbbey && ( AbbeyLinkMask & BIT(typeB)) != 0 )
 				return true;
 			if ( typeB == SideType::eAbbey && ( AbbeyLinkMask & BIT(typeA)) != 0 )
@@ -93,7 +94,8 @@ namespace CAR
 		}
 		static bool CanLinkFarm( SideType type )
 		{
-			return type == SideType::eField || type == SideType::eRoad || type == SideType::eRiver;
+			unsigned const FarmLinkMask = BIT( SideType::eField ) | BIT( SideType::eRoad ) | BIT( SideType::eRiver ) | BIT( SideType::eGermanCastle );
+			return ( FarmLinkMask & BIT( type ) ) != 0;
 		}
 		static bool CanLinkBridge( SideType type )
 		{
@@ -136,8 +138,8 @@ namespace CAR
 		unsigned getFarmLinkMask( int idx ) const;
 		unsigned getCityLinkFarmMask( int idx ) const;
 
-		int      getSideGroup( int dir );
-		int      getFarmGroup( int idx );
+		int      getSideGroup( int dir ) const;
+		int      getFarmGroup( int idx ) const;
 
 		unsigned getSideContnet( int dir ) const;
 		unsigned getTileContent() const;

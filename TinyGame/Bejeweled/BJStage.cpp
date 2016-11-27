@@ -13,7 +13,7 @@ namespace Bejeweled
 		Vec2i pos = ( Global::getDrawEngine()->getScreenSize() - Vec2i( len , len ) ) / 2;
 		mScene.setBoardPos( pos );
 
-		::Global::getGUI().cleanupWidget();
+		::Global::GUI().cleanupWidget();
 		WidgetUtility::createDevFrame();
 
 		restart();

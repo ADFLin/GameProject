@@ -1,0 +1,195 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{F3B972DF-7AED-4D2E-99AF-5AD3BC736F61}</ProjectGuid>
+    <RootNamespace>TinyShare</RootNamespace>
+    <WindowsTargetPlatformVersion>8.1</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <PlatformToolset>v140</PlatformToolset>
+    <CharacterSet>NotSet</CharacterSet>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <PlatformToolset>v140</PlatformToolset>
+    <CharacterSet>NotSet</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup>
+    <_ProjectFileVersion>14.0.25431.1</_ProjectFileVersion>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <OutDir>$(SolutionDir)$(Configuration)\</OutDir>
+    <IntDir>$(Configuration)\$(ProjectName)\</IntDir>
+    <LinkIncremental>true</LinkIncremental>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <OutDir>$(SolutionDir)$(Configuration)\</OutDir>
+    <IntDir>$(Configuration)\$(ProjectName)\</IntDir>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <Optimization>Disabled</Optimization>
+      <AdditionalIncludeDirectories>.;TinyCore;../libEngine;../OtherLib;../OtherLib/boost;../OtherLib/glew;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN32;_WINDOWS;DEBUG;GLEW_BUILD;TG_DLL;TG_EXPORT;CORE_SHARE;CORE_EXPORT;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <MinimalRebuild>true</MinimalRebuild>
+      <BasicRuntimeChecks>Default</BasicRuntimeChecks>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeaderFile>TinyGamePCH.h</PrecompiledHeaderFile>
+      <PrecompiledHeaderOutputFile>$(IntDir)$(TargetName).pch</PrecompiledHeaderOutputFile>
+      <ObjectFileName>$(IntDir)</ObjectFileName>
+      <ProgramDataBaseFileName>$(IntDir)vc$(PlatformToolsetVersion).pdb</ProgramDataBaseFileName>
+      <XMLDocumentationFileName>$(IntDir)</XMLDocumentationFileName>
+      <WarningLevel>Level3</WarningLevel>
+      <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
+      <ForcedIncludeFiles>TinyGamePCH.h</ForcedIncludeFiles>
+      <SDLCheck>false</SDLCheck>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+    </ClCompile>
+    <Link>
+      <AdditionalDependencies>Msimg32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <GenerateDebugInformation>DebugFastLink</GenerateDebugInformation>
+      <AdditionalLibraryDirectories>../OtherLib/Boost/lib</AdditionalLibraryDirectories>
+      <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
+    </Link>
+    <PostBuildEvent>
+      <Command>copy $(TargetPath) $(ProjectDir)out\</Command>
+    </PostBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <Optimization>MaxSpeed</Optimization>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <AdditionalIncludeDirectories>.;TinyCore;../libEngine;../OtherLib;../OtherLib/boost;../OtherLib/glew;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>_SECURE_SCL=0;WIN32;_WINDOWS;NDEBUG;TG_DLL;GLEW_BUILD;TG_EXPORT;CORE_SHARE;CORE_EXPORT;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <StringPooling>true</StringPooling>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeaderFile>TinyGamePCH.h</PrecompiledHeaderFile>
+      <PrecompiledHeaderOutputFile>$(IntDir)$(TargetName).pch</PrecompiledHeaderOutputFile>
+      <ProgramDataBaseFileName>$(IntDir)vc$(PlatformToolsetVersion).pdb</ProgramDataBaseFileName>
+      <WarningLevel>Level3</WarningLevel>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <ForcedIncludeFiles>TinyGamePCH.h</ForcedIncludeFiles>
+      <SDLCheck>false</SDLCheck>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+    </ClCompile>
+    <Link>
+      <AdditionalDependencies>Msimg32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalLibraryDirectories>../OtherLib/Boost/lib</AdditionalLibraryDirectories>
+      <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
+    </Link>
+    <PostBuildEvent>
+      <Command>copy $(TargetPath) $(ProjectDir)out\</Command>
+    </PostBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClInclude Include="..\OtherLib\glew\GL\glew.h" />
+    <ClInclude Include="ConsoleFrame.h" />
+    <ClInclude Include="CoreShare.h" />
+    <ClInclude Include="DrawEngine.h" />
+    <ClInclude Include="GameRoomUI.h" />
+    <ClInclude Include="Phy2DStage.h" />
+    <ClInclude Include="TinyCore\CAsyncFrameManager.h" />
+    <ClInclude Include="TinyCore\CFrameActionNetEngine.h" />
+    <ClInclude Include="TinyCore\ComPacket.h" />
+    <ClInclude Include="TinyCore\CPredictFrameManager.h" />
+    <ClInclude Include="TinyCore\CSyncFrameManager.h" />
+    <ClInclude Include="TinyCore\GameClient.h" />
+    <ClInclude Include="TinyCore\GameControl.h" />
+    <ClInclude Include="TinyCore\GameGlobal.h" />
+    <ClInclude Include="TinyCore\GameGUISystem.h" />
+    <ClInclude Include="TinyCore\GameNetConnect.h" />
+    <ClInclude Include="TinyCore\GameNetPacket.h" />
+    <ClInclude Include="TinyCore\GamePackageManager.h" />
+    <ClInclude Include="TinyCore\GamePlayer.h" />
+    <ClInclude Include="TinyCore\GameReplay.h" />
+    <ClInclude Include="TinyCore\GameServer.h" />
+    <ClInclude Include="TinyCore\GameSettingHelper.h" />
+    <ClInclude Include="TinyCore\GameSettingPanel.h" />
+    <ClInclude Include="TinyCore\GameWidget.h" />
+    <ClInclude Include="TinyCore\GameWorker.h" />
+    <ClInclude Include="TinyCore\GuideServer.h" />
+    <ClInclude Include="TinyCore\INetEngine.h" />
+    <ClInclude Include="TinyCore\InputManager.h" />
+    <ClInclude Include="TinyCore\Localization.h" />
+    <ClInclude Include="TinyCore\RenderUtility.h" />
+    <ClInclude Include="TinyGamePCH.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\OtherLib\glew\glew.c">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
+      <ForcedIncludeFiles Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+      </ForcedIncludeFiles>
+      <ForcedIncludeFiles Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+      </ForcedIncludeFiles>
+    </ClCompile>
+    <ClCompile Include="DrawEngine.cpp" />
+    <ClCompile Include="GameRoomUI.cpp" />
+    <ClCompile Include="Phy2DStage.cpp" />
+    <ClCompile Include="TinyCore\CFrameActionNetEngine.cpp" />
+    <ClCompile Include="TinyCore\ComPacket.cpp" />
+    <ClCompile Include="TinyCore\CSyncFrameManager.cpp" />
+    <ClCompile Include="TinyCore\GameClient.cpp" />
+    <ClCompile Include="TinyCore\GameControl.cpp" />
+    <ClCompile Include="TinyCore\GameDllMain.cpp" />
+    <ClCompile Include="TinyCore\GameGlobal.cpp" />
+    <ClCompile Include="TinyCore\GameGUISystem.cpp" />
+    <ClCompile Include="TinyCore\GameNetConnect.cpp" />
+    <ClCompile Include="TinyCore\GamePackageManager.cpp" />
+    <ClCompile Include="TinyCore\GamePlayer.cpp" />
+    <ClCompile Include="TinyCore\GameReplay.cpp" />
+    <ClCompile Include="TinyCore\GameServer.cpp" />
+    <ClCompile Include="TinyCore\GameSettingHelper.cpp" />
+    <ClCompile Include="TinyCore\GameSettingPanel.cpp" />
+    <ClCompile Include="TinyCore\GameTranslateString.cpp" />
+    <ClCompile Include="TinyCore\GameWidget.cpp" />
+    <ClCompile Include="TinyCore\GameWorker.cpp" />
+    <ClCompile Include="TinyCore\InputManager.cpp" />
+    <ClCompile Include="TinyCore\Localization.cpp" />
+    <ClCompile Include="TinyCore\RenderUtility.cpp" />
+    <ClCompile Include="TinyGamePCH.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\libEngine\libEngine.vcxproj">
+      <Project>{c1b32c2b-9a40-4874-869f-fcc57bb1d93f}</Project>
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+    </ProjectReference>
+    <ProjectReference Include="TinyCore.vcxproj">
+      <Project>{686cc0bf-4f6b-454a-8d74-3d2ca3a230e0}</Project>
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+    </ProjectReference>
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

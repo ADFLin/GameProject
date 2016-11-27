@@ -10,6 +10,7 @@ namespace CAR
 #define LR SideType::eRoad
 #define LS SideType::eRiver
 #define LA SideType::eAbbey
+#define LG SideType::eGermanCastle
 
 #define SPE SideContent::ePennant
 #define SIN SideContent::eInn
@@ -260,6 +261,14 @@ namespace CAR
 /*00*/ 	{ 2, { LC,LC,LC,LF }, SL_NONE      , SL_NONE      ,TVI, { 0 ,SHS, 0 , 0 }, 0, { FL_RE } , 0 } ,
 /*01*/ 	//{ 1, { LC,LC,LR,LC }, SL_NONE      , SL_NONE      , 0, { 0 , 0 , 0 , 0 }, 0, { FL_RE } , 0 } ,
 	};
+
+	static TileDefine DataCastle[] =
+	{
+// numPiece     linkType      sideLink       roadLink   content   sidecontent centerFarmMask farmLink tag
+/*00*/ 	{ 1, { LG,LR,LR,LF }, SL_NONE      , SL3(0,1,2)   , 0, { 0 , 0 , 0 , 0 }, 0, { BIT2(1,2),BIT2(3,4),FL_RE } , TILE_GERMAN_CASTLE_TAG } ,
+/*--*/ 	{ 1, { LF,LC,LG,LR }, SL_NONE      , SL2(2,3)     , 0, { 0 , 0 , 0 , 0 }, 0, { BIT2(5,6),FL_RE } , TILE_GERMAN_CASTLE_TAG } ,
+	};
+
 	static TileDefine DataTest[] =
 	{
 // numPiece     linkType      sideLink       roadLink   content   sidecontent centerFarmMask farmLink tag
@@ -281,6 +290,8 @@ namespace CAR
 		EXPDATA( EXP_THE_RIVER_II , DataRiver2 ) 
 		EXPDATA( EXP_BRIDGES_CASTLES_AND_BAZAARS , DataBrigeCastleBazaar )
 		EXPDATA( EXP_HILLS_AND_SHEEP , DataHillsSheep )
+
+		EXPDATA( EXP_CASTLES , DataCastle )
 
 		EXPDATA( EXP_TEST , DataTest )
 #undef EXPDATA

@@ -1,7 +1,7 @@
 #ifndef TQTPortalAStar_h__
 #define TQTPortalAStar_h__
 
-#include "AStar.h"
+#include "Algo/AStar.h"
 
 #include "TQuadTree.h"
 #include "TVector2.h"

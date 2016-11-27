@@ -60,7 +60,7 @@ namespace CAR
 			unsigned const BaseFollowrMask = 
 				BIT( ActorType::eMeeple ) | BIT( ActorType::eBigMeeple ) |
 				BIT( ActorType::eMayor ) | BIT( ActorType::eWagon ) |
-				BIT( ActorType::eBarn );
+				BIT( ActorType::eBarn ) | BIT( ActorType::ePhantom );
 
 			return BaseFollowrMask;
 		}

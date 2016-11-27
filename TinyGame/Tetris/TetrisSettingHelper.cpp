@@ -67,9 +67,9 @@ namespace Tetris
 		setupNormalModeUI();
 	}
 
-	void CNetRoomSettingHelper::setupGame( StageManager& manager , GameSubStage* subStage )
+	void CNetRoomSettingHelper::setupGame( StageManager& manager , GameStageBase* stage )
 	{
-		if ( !static_cast< LevelStage* >( subStage )->setupGame( mInfo ) )
+		if( !static_cast<LevelStage*>(stage)->setupGame(mInfo) )
 		{
 
 		}

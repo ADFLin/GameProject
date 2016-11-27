@@ -4,8 +4,14 @@
 
 #include "GLCommon.h"
 #include "GLUtility.h"
+#include "FixString.h"
 
 #include <fstream>
+
+#ifndef ARRAY_SIZE
+#define ARRAY_SIZE( ar ) ( sizeof(ar)/sizeof(ar[0]) )
+#endif
+
 
 namespace MV
 {

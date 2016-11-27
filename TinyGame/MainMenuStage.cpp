@@ -367,20 +367,23 @@ bool MainMenuStage::onWidgetEvent( int event , int id , GWidget* ui )
 		{
 		case UI_NET_TEST_CL:
 			{
-				GameNetLevelStage* stage = new GameNetLevelStage;
+				auto* stage = new Net::TestStage;
 				ClientWorker* worker = static_cast< ClientWorker* >( ::Global::GameNet().buildNetwork( false ) );
-				stage->setSubStage( new Net::TestStage );
-				stage->initWorker( worker , NULL );
+				auto stageMode = new NetLevelStageMode;
+				stageMode->initWorker(worker, NULL);
+				stage->setupStageMode(stageMode);
 				getManager()->setNextStage( stage );
 			}
 			break;
 		case UI_NET_TEST_SV:
 			{
-				GameNetLevelStage* stage = new GameNetLevelStage;
-				ServerWorker* server = static_cast< ServerWorker* >(::Global::GameNet().buildNetwork( true ) );
-				stage->setSubStage( new Net::TestStage );
-				stage->initWorker( server->createLocalWorker(::Global::getUserProfile() ) , server );
-				getManager()->setNextStage( stage );
+				auto* stage = new Net::TestStage;
+				ServerWorker* server = static_cast<ServerWorker*>(::Global::GameNet().buildNetwork(true));
+				auto stageMode = new NetLevelStageMode;
+				stageMode->initWorker(server->createLocalWorker(::Global::getUserProfile()), server);
+				stage->setupStageMode(stageMode);
+				getManager()->setNextStage(stage);
+
 			}
 			break;
 		case UI_HOLDEM_TEST:
@@ -422,7 +425,7 @@ bool MainMenuStage::onWidgetEvent( int event , int id , GWidget* ui )
 			{
 				IGamePackage* game = reinterpret_cast< IGamePackage* >( ui->getUserData() );
 				Global::GameManager().changeGame( game->getName() );
-				game->beginPlay( GT_SINGLE_GAME , *getManager() );
+				game->beginPlay( SMT_SINGLE_GAME , *getManager() );
 			}
 			return false;
 		case UI_GAME_OPTION:
@@ -441,7 +444,7 @@ bool MainMenuStage::onWidgetEvent( int event , int id , GWidget* ui )
 		IGamePackage* game = Global::GameManager().changeGame( gSingleDev[ id - UI_SINGLE_DEV_INDEX ].game );
 		if ( !game )
 			return false;
-		game->beginPlay( GT_SINGLE_GAME , *getManager() );
+		game->beginPlay( SMT_SINGLE_GAME , *getManager() );
 		getManager()->changeStage( STAGE_SINGLE_GAME );
 		return false;
 	}

@@ -26,7 +26,7 @@ namespace Shoot2D
 	bool TestStage::onInit()
 	{
 
-		::Global::getGUI().cleanupWidget();
+		::Global::GUI().cleanupWidget();
 
 		srand( GetTickCount() );
 

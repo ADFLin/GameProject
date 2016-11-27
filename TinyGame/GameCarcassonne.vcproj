@@ -40,7 +40,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories=".;../libEngine;../OtherLib;../Game;../OtherLib/boost;../CFlyMain;../OtherLib/Dx9/include"
+				AdditionalIncludeDirectories=".;TinyCore;../libEngine;../OtherLib;../Game;../OtherLib/boost;../CFlyMain;../OtherLib/Dx9/include"
 				PreprocessorDefinitions="WIN32;_WINDOWS;DEBUG;TG_DLL;"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
@@ -118,7 +118,7 @@
 				Name="VCCLCompilerTool"
 				Optimization="2"
 				EnableIntrinsicFunctions="true"
-				AdditionalIncludeDirectories=".;../libEngine;../OtherLib;../Game;../OtherLib/boost;../CFlyMain;../OtherLib/Dx9/include"
+				AdditionalIncludeDirectories=".;TinyCore;../libEngine;../OtherLib;../Game;../OtherLib/boost;../CFlyMain;../OtherLib/Dx9/include"
 				PreprocessorDefinitions="_SECURE_SCL=0;WIN32;_WINDOWS;NDEBUG;TG_DLL;"
 				StringPooling="true"
 				RuntimeLibrary="2"
@@ -227,6 +227,10 @@
 		</File>
 		<File
 			RelativePath=".\Carcassonne\CARGame.h"
+			>
+		</File>
+		<File
+			RelativePath=".\Carcassonne\CARGameInput.h"
 			>
 		</File>
 		<File

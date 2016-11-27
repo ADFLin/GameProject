@@ -677,6 +677,7 @@ namespace GL
 		int* fetchEdge( int i1 , int i2 )
 		{
 
+			return nullptr;
 		}
 		bool build( int numSubDiv )
 		{

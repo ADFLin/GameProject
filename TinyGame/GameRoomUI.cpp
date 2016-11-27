@@ -254,7 +254,7 @@ void PlayerListPanel::addSlotFrameAnim( SlotFrame* frame , SlotId destId )
 	long time = abs( pos.y - frame->getPos().y ) * 2;
 
 	UIMotionTask* task = new UIMotionTask( frame , pos , time , WMT_LINE_MOTION );
-	::Global::getGUI().addTask( task , false );
+	::Global::GUI().addTask( task , false );
 }
 
 void PlayerListPanel::procSlotFrameMouseMsg( SlotFrame* frame , MouseMsg const& msg )

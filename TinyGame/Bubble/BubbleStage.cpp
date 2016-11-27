@@ -26,7 +26,10 @@ namespace Bubble
 		}
 
 		mDataManager.setMode( mMode );
-		getStage()->getActionProcessor().setEnumer( this );
+		getActionProcessor().setEnumer( this );
+
+		if( !BaseClass::onInit() )
+			return false;
 
 		return true;
 	}
@@ -85,7 +88,7 @@ namespace Bubble
 
 		}
 
-		::Global::getGUI().cleanupWidget();
+		::Global::GUI().cleanupWidget();
 
 		WidgetUtility::createDevFrame();
 	}
@@ -111,12 +114,12 @@ namespace Bubble
 		case UI_RESTART_GAME:
 			if ( getState() != GS_END )
 			{
-				::Global::getGUI().showMessageBox( 
+				::Global::GUI().showMessageBox( 
 					UI_RESTART_GAME , LAN("Do you Want to Stop Current Game?") );
 			}
 			else
 			{
-				getStage()->restart( false ); 
+				getStageMode()->restart( false ); 
 			}
 			return false;
 

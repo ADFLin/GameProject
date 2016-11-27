@@ -1,0 +1,287 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="原始程式檔">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="標頭檔">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hpp;hxx;hm;inl;inc;xsd</Extensions>
+    </Filter>
+    <Filter Include="資源檔">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav</Extensions>
+    </Filter>
+    <Filter Include="Plugin">
+      <UniqueIdentifier>{818b387c-4034-4e6f-a988-c547009842eb}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Core">
+      <UniqueIdentifier>{d9dd04ff-67b6-4833-9364-8b60613dc831}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Node">
+      <UniqueIdentifier>{d7bc74ac-aa69-4684-affd-93bdb694c0f3}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="CFAppMain.cpp">
+      <Filter>原始程式檔</Filter>
+    </ClCompile>
+    <ClCompile Include="CFBuffer.cpp">
+      <Filter>原始程式檔</Filter>
+    </ClCompile>
+    <ClCompile Include="CFEntity.cpp">
+      <Filter>原始程式檔</Filter>
+    </ClCompile>
+    <ClCompile Include="CFlyPCH.cpp">
+      <Filter>原始程式檔</Filter>
+    </ClCompile>
+    <ClCompile Include="CFMaterial.cpp">
+      <Filter>原始程式檔</Filter>
+    </ClCompile>
+    <ClCompile Include="CFMeshBuilder.cpp">
+      <Filter>原始程式檔</Filter>
+    </ClCompile>
+    <ClCompile Include="CFRenderShape.cpp">
+      <Filter>原始程式檔</Filter>
+    </ClCompile>
+    <ClCompile Include="CFRenderSystem.cpp">
+      <Filter>原始程式檔</Filter>
+    </ClCompile>
+    <ClCompile Include="CFScene.cpp">
+      <Filter>原始程式檔</Filter>
+    </ClCompile>
+    <ClCompile Include="CFShaderParamSet.cpp">
+      <Filter>原始程式檔</Filter>
+    </ClCompile>
+    <ClCompile Include="CFShuFa.cpp">
+      <Filter>原始程式檔</Filter>
+    </ClCompile>
+    <ClCompile Include="CFSkeleton.cpp">
+      <Filter>原始程式檔</Filter>
+    </ClCompile>
+    <ClCompile Include="CFTransformUtility.cpp">
+      <Filter>原始程式檔</Filter>
+    </ClCompile>
+    <ClCompile Include="CFVertexUtility.cpp">
+      <Filter>原始程式檔</Filter>
+    </ClCompile>
+    <ClCompile Include="CFViewport.cpp">
+      <Filter>原始程式檔</Filter>
+    </ClCompile>
+    <ClCompile Include="CFWorld.cpp">
+      <Filter>原始程式檔</Filter>
+    </ClCompile>
+    <ClCompile Include="CFFileLoader.cpp">
+      <Filter>Plugin</Filter>
+    </ClCompile>
+    <ClCompile Include="CFPluginManager.cpp">
+      <Filter>Plugin</Filter>
+    </ClCompile>
+    <ClCompile Include="Cw3FileLoader.cpp">
+      <Filter>Plugin</Filter>
+    </ClCompile>
+    <ClCompile Include="LoLFileLoader.cpp">
+      <Filter>Plugin</Filter>
+    </ClCompile>
+    <ClCompile Include="MdlFileLoader.cpp">
+      <Filter>Plugin</Filter>
+    </ClCompile>
+    <ClCompile Include="ObjFileLoader.cpp">
+      <Filter>Plugin</Filter>
+    </ClCompile>
+    <ClCompile Include="CFActor.cpp">
+      <Filter>Node</Filter>
+    </ClCompile>
+    <ClCompile Include="CFCamera.cpp">
+      <Filter>Node</Filter>
+    </ClCompile>
+    <ClCompile Include="CFLight.cpp">
+      <Filter>Node</Filter>
+    </ClCompile>
+    <ClCompile Include="CFNodeBase.cpp">
+      <Filter>Node</Filter>
+    </ClCompile>
+    <ClCompile Include="CFObject.cpp">
+      <Filter>Node</Filter>
+    </ClCompile>
+    <ClCompile Include="CFSceneNode.cpp">
+      <Filter>Node</Filter>
+    </ClCompile>
+    <ClCompile Include="CFSpatialNode.cpp">
+      <Filter>Node</Filter>
+    </ClCompile>
+    <ClCompile Include="CFSprite.cpp">
+      <Filter>Node</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="CFTheFlyPort.cpp_temp">
+      <Filter>原始程式檔</Filter>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="CFAnimatable.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="CFBase.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="CFBound.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="CFBuffer.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="CFColor.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="CFEntity.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="CFGeomUtility.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="CFlyHeader.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="CFlyPCH.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="CFMaterial.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="CFMeshBuilder.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="CFRenderEntity.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="CFRenderer.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="CFRenderOption.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="CFRenderShape.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="CFRenderSystem.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="CFRenderSystemGL.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="CFScene.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="CFShader.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="CFShaderParamSet.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="CFShuFa.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="CFSkeleton.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="CFTexture.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="CFTheFlyPort.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="CFTransformUtility.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="CFTypeDef.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="CFVertexDecl.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="CFVertexUtility.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="CFViewport.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="CFWaterSurface.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="CFWorld.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="TheFly.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="CFFileLoader.h">
+      <Filter>Plugin</Filter>
+    </ClInclude>
+    <ClInclude Include="CFPluginManager.h">
+      <Filter>Plugin</Filter>
+    </ClInclude>
+    <ClInclude Include="Cw3FileLoader.h">
+      <Filter>Plugin</Filter>
+    </ClInclude>
+    <ClInclude Include="LoLFileLoader.h">
+      <Filter>Plugin</Filter>
+    </ClInclude>
+    <ClInclude Include="MdlFileLoader.h">
+      <Filter>Plugin</Filter>
+    </ClInclude>
+    <ClInclude Include="ObjFileLoader.h">
+      <Filter>Plugin</Filter>
+    </ClInclude>
+    <ClInclude Include="CFMath.h">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="CFMatrix3.h">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="CFMatrix4.h">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="CFMatrixUtlity.h">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="CFQuaternion.h">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="CFVector3.h">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="CFActor.h">
+      <Filter>Node</Filter>
+    </ClInclude>
+    <ClInclude Include="CFBspNode.h">
+      <Filter>Node</Filter>
+    </ClInclude>
+    <ClInclude Include="CFCamera.h">
+      <Filter>Node</Filter>
+    </ClInclude>
+    <ClInclude Include="CFLight.h">
+      <Filter>Node</Filter>
+    </ClInclude>
+    <ClInclude Include="CFNodeBase.h">
+      <Filter>Node</Filter>
+    </ClInclude>
+    <ClInclude Include="CFObject.h">
+      <Filter>Node</Filter>
+    </ClInclude>
+    <ClInclude Include="CFParticle.h">
+      <Filter>Node</Filter>
+    </ClInclude>
+    <ClInclude Include="CFSceneNode.h">
+      <Filter>Node</Filter>
+    </ClInclude>
+    <ClInclude Include="CFSpatialNode.h">
+      <Filter>Node</Filter>
+    </ClInclude>
+    <ClInclude Include="CFSprite.h">
+      <Filter>Node</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>

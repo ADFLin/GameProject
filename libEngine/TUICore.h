@@ -65,7 +65,7 @@ class TUILink
 protected:
 	T*      getPrev(){ return mPrev; }
 	T*      getNext(){ return mNext; }
-	T*      linkChild( T* ui )
+	void    linkChild( T* ui )
 	{
 		if ( mChild )
 		{
@@ -300,6 +300,7 @@ protected:
 	friend class TUICore<T>;
 private:
 	TUIManager( TUIManager const& ){}
+	TUIManager& operator = (TUIManager const&);
 };
 
 

@@ -1,6 +1,6 @@
 #include "MVPathFinder.h"
 
-#include "AStar.h"
+#include "Algo/AStar.h"
 
 namespace MV
 {

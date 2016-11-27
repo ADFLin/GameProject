@@ -4,6 +4,9 @@
 #include "GIFLoader.h"
 #include "ZFont.h"
 
+namespace Zuma
+{
+
 
 bool DXTexture2D::createFromRawData( LPDIRECT3DDEVICE9 d3dDevice , unsigned char* data , int w , int h )
 {
@@ -550,3 +553,7 @@ void D3DRenderSystem::drawPolygon( Vec2D const pos[] , int num )
 	mD3DDevice->SetFVF( PVertex::FVF );
 	mD3DDevice->DrawPrimitive( D3DPT_TRIANGLEFAN , 0 , num  - 2 );
 }
+
+
+
+}//namespace Zuma

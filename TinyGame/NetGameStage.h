@@ -1,6 +1,7 @@
 #ifndef NetGameStage_h__
 #define NetGameStage_h__
 
+#include "GameStageMode.h"
 #include "GameStage.h"
 #include "GamePackage.h"
 #include "GameWorker.h"
@@ -10,6 +11,7 @@
 #include "ComPacket.h"
 
 #include "GameRoomUI.h"
+
 
 class CSPRawData;
 class GameSettingPanel;
@@ -45,34 +47,6 @@ protected:
 	ServerWorker* mServer;
 };
 
-template< class Stage >
-class NetStageT : public Stage
-	            , public NetStageData
-{
-	typedef Stage BaseClass;
-public:
-	template< class T1 >
-	NetStageT( T1 t1 ):Stage(t1){}
-	NetStageT(){} 
-
-	bool onInit()
-	{
-		if ( !BaseClass::onInit() )
-			return false;
-		return true;
-	}
-	void onEnd()
-	{
-		unregisterNetEvent( this );
-		BaseClass::onEnd();
-	}
-
-	void onUpdate( long time )
-	{
-		BaseClass::onUpdate( time );
-	}
-};
-
 class GameStartTask : public TaskBase
 {
 public:
@@ -87,11 +61,12 @@ public:
 };
 
 
-class NetRoomStage : public NetStageT< StageBase >
+class NetRoomStage : public StageBase
+	               , public NetStageData
 	               , public SettingListener
 				   , public PlayerListener
 {
-	typedef NetStageT< StageBase > BaseClass;
+	typedef StageBase BaseClass;
 
 	enum
 	{
@@ -152,10 +127,11 @@ protected:
 
 };
 
-class  GameNetLevelStage : public NetStageT< GameLevelStage >
+class  GameNetLevelStage : public GameLevelStage
+						 , public NetStageData
 	                     , public IFrameUpdater
 {
-	typedef NetStageT< GameLevelStage > BaseClass;
+	typedef GameLevelStage BaseClass;
 public:
 
 	enum
@@ -169,15 +145,13 @@ public:
 	void onRender( float dFrame );
 	bool onInit();
 
-
-
 	void onEnd();
 	bool onWidgetEvent( int event , int id , GWidget* ui );
 	void onUpdate( long time );
 	bool onKey( unsigned key , bool isDown );
 
 	void   onRestart( uint64& seed );
-	bool   tryChangeState(GameState state );
+	bool   tryChangeState( GameState state );
 	IPlayerManager* getPlayerManager(); 
 
 	//FrameUpdater
@@ -204,6 +178,57 @@ public:
 };
 
 
+class NetLevelStageMode : public LevelStageMode
+	                    , public NetStageData
+	                    , public IFrameUpdater
+{
+	typedef LevelStageMode BaseClass;
+public:
+
+	enum
+	{
+		UI_UNPAUSE_GAME = BaseClass::NEXT_UI_ID,
+		NEXT_UI_ID,
+	};
+
+	NetLevelStageMode();
+
+	bool onInit();
+	void onEnd();
+	
+	void updateTime(long time);
+	bool canRender();
+
+
+	bool onWidgetEvent(int event, int id, GWidget* ui);
+	bool onKey(unsigned key, bool isDown);
+
+	void   onRestart(uint64& seed);
+	bool   tryChangeState(GameState state);
+	IPlayerManager* getPlayerManager();
+
+	//FrameUpdater
+	void  updateFrame(int frame);
+	void  tick();
+
+	void setupServerProcFun(ComEvaluator& evaluator);
+	void setupWorkerProcFun(ComEvaluator& evaluator);
+
+	void procPlayerStateSv(IComPacket* cp);
+	void procPlayerState(IComPacket* cp);
+	void procLevelInfo(IComPacket* cp);
+	void procMsg(IComPacket* cp);
+
+	virtual void onServerEvent(EventID event, unsigned msg);
+
+	bool buildNetEngine();
+	bool loadLevel(GameLevelInfo const& info);
+
+	bool             mbLevelInitialized;
+	INetEngine*      mNetEngine;
+	ComMsgPanel*     mMsgPanel;
+	uint64           mSeed;
+};
 
 
 

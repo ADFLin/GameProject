@@ -115,6 +115,7 @@ namespace Comet
 				mPtr->decRef();
 			mPtr = rhs.mPtr;
 			mPtr->incRef();
+			return *this;
 		}
 
 		~SharePtr()

@@ -13,6 +13,13 @@ namespace CAR
 	class PlayerBase;
 	class WorldTileManager;
 
+	class IWorldQuery
+	{
+	public:
+		virtual FeatureBase* getFeature( int groupId ) = 0;
+		virtual WorldTileManager& getTileManager() = 0;
+	};
+
 	struct FeatureType
 	{
 		enum Enum
@@ -21,12 +28,14 @@ namespace CAR
 			eCity ,
 			eRoad ,
 			eCloister ,
+			eGermanCastle ,
 		};
 	};
 
 
 	struct ActorPosInfo
 	{
+		MapTile*  mapTile;
 		unsigned  actorTypeMask;
 		ActorPos  pos;
 		int       group;
@@ -202,6 +211,27 @@ namespace CAR
 		virtual void generateRoadLinkFeatures( GroupSet& outFeatures );
 		virtual bool updateForNeighborTile(MapTile& tile);
 		virtual bool getActorPos(MapTile const& mapTile , ActorPos& actorPos);
+
+	};
+
+	class GermanCastleFeature : public FeatureBase
+	{
+	public:
+		static int const Type = FeatureType::eGermanCastle;
+
+		GermanCastleFeature();
+
+		std::vector< MapTile* > neighborTiles;
+
+		virtual bool checkComplete(){ return neighborTiles.size() == 10; }
+		virtual int  getActorPutInfo( int playerId , int posMeta , std::vector< ActorPosInfo >& outInfo ) override;
+		virtual void mergeData( FeatureBase& other , MapTile const& putData , int meta );
+		virtual int  calcScore( std::vector< FeatureScoreInfo >& scoreInfos );
+		virtual int  calcPlayerScore( int playerId );
+		virtual void generateRoadLinkFeatures( GroupSet& outFeatures );
+		virtual bool updateForNeighborTile(MapTile& tile);
+		virtual bool getActorPos(MapTile const& mapTile , ActorPos& actorPos);
+
 
 	};
 

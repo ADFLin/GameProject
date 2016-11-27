@@ -36,10 +36,10 @@ namespace GreedySnake
 			mMode = new SurvivalMode;
 		}
 
-		::Global::getGUI().cleanupWidget();
+		::Global::GUI().cleanupWidget();
 
 		mScene.reset( new Scene( *mMode ) );
-		getStage()->getActionProcessor().setEnumer( mScene.get() );
+		getActionProcessor().setEnumer( mScene.get() );
 		return true;
 	}
 
@@ -62,8 +62,8 @@ namespace GreedySnake
 
 		switch( getGameType() )
 		{
-		case GT_SINGLE_GAME:
-		case GT_NET_GAME:
+		case SMT_SINGLE_GAME:
+		case SMT_NET_GAME:
 			{
 				GamePlayer* player = playerManager.getUser();
 				getGame()->getController().setPortControl( player->getActionPort() , 0 );
@@ -125,8 +125,8 @@ namespace GreedySnake
 		case GS_END:
 			switch( getGameType() )
 			{
-			case GT_SINGLE_GAME:
-				::Global::getGUI().showMessageBox( 
+			case SMT_SINGLE_GAME:
+				::Global::GUI().showMessageBox( 
 					UI_RESTART_GAME , "Do You Want To Play Game Again ?" );
 				break;
 			}
@@ -141,7 +141,7 @@ namespace GreedySnake
 		case UI_RESTART_GAME:
 			if ( event == EVT_BOX_NO )
 			{
-				if ( getGameType() == GT_SINGLE_GAME )
+				if ( getGameType() == SMT_SINGLE_GAME )
 					getManager()->changeStage( STAGE_MAIN_MENU );
 			}
 			break;

@@ -4,6 +4,8 @@
 #include "RichPlayer.h"
 #include "RichCell.h"
 
+#include <algorithm>
+
 namespace Rich
 {
 

@@ -18,9 +18,10 @@ namespace Poker { namespace Holdem {
 		}
 	};
 
-	class LevelStage : public GameSubStage
+	class LevelStage : public GameStageBase
 		             , public ServerLevel::Listener
 	{
+		typedef GameStageBase BaseClass;
 	public:
 		LevelStage();
 

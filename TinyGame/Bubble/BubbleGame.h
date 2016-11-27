@@ -25,10 +25,10 @@ namespace Bubble
 		char const*     getName(){ return BUBBLE_NAME;  }
 		GameController& getController(){  return mController;  }
 		ReplayTemplate* createReplayTemplate( unsigned version );
-		GameSubStage*   createSubStage( unsigned id );
+		StageBase*      createStage( unsigned id );
 		bool            getAttribValue( AttribValue& value );
 		SettingHepler*  createSettingHelper( SettingHelperType type );
-		void beginPlay( GameType type, StageManager& manger );
+		void beginPlay( StageModeType type, StageManager& manger );
 		virtual void    deleteThis(){ delete this; }
 	private:
 		Controller mController;

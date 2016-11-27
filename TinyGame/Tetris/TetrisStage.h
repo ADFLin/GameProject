@@ -27,9 +27,9 @@ namespace Tetris
 		ATTR_TT_MODE = ATTR_NEXT_ID ,
 	};
 
-	class LevelStage : public GameSubStage
+	class LevelStage : public GameStageBase
 	{
-		typedef GameSubStage BaseClass;
+		typedef GameStageBase BaseClass;
 
 	public:
 

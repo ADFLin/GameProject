@@ -1,7 +1,7 @@
 #ifndef CARGameInput_h__4f6924ee_9b2e_4404_b84f_1209a9c6d58e
 #define CARGameInput_h__4f6924ee_9b2e_4404_b84f_1209a9c6d58e
 
-#include "CARGameModule.h"
+#include "CARGameInput.h"
 
 #include "Coroutine.h"
 #include "DataStreamBuffer.h"
@@ -43,7 +43,7 @@ namespace CAR
 		}
 		void addParam( int value ){ assert( numParam < MaxParamNum ); params[ numParam++ ].iValue = value; }
 		void addParam( float value ){ assert( numParam < MaxParamNum ); params[ numParam++ ].fValue = value; }
-		void send( int slot , int dataId  , IDataTransfer& transfer )
+		void send( IDataTransfer& transfer , int slot , int dataId )
 		{
 			transfer.sendData( slot , dataId , this , sizeof( ActionCom ) - ( MaxParamNum - numParam ) * sizeof( Param ) );
 		}

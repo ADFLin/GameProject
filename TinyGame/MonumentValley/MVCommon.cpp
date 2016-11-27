@@ -1,5 +1,7 @@
 #include "MVCommon.h"
 
+#include <algorithm>
+
 namespace MV
 {
 	Dir FDir::Rotate(Dir axis , Dir dir , int factor)
@@ -90,7 +92,7 @@ namespace MV
 	Dir Roataion::toWorld(Dir dir)
 	{
 		Dir outDir = mDir[ dir / 2 ];
-		if ( !FDir::isPositive( dir ) )
+		if ( !FDir::IsPositive( dir ) )
 			outDir = FDir::Inverse( outDir );
 		return outDir;
 	}

@@ -20,7 +20,7 @@ public:
 	static int const Length ;
 	static int const MapRadius;
 	
-	bool setRotateMap( bool beT ){  rotateMap = beT;  }
+	void setRotateMap( bool beT ){  rotateMap = beT;  }
 	void onUpdateUI();
 	void drawText();
 	void onRender()

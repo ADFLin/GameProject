@@ -62,6 +62,12 @@ namespace CAR
 		int const ShepherdPlayerOwnNum = 1;
 		int const VineyardAdditionScore = 3;
 
+		//EXP_CASTLES
+		int const GermanCastleAdditionFactor = 3;
+
+		//EXP_PHANTOM
+		int const PhantomPlayerOwnNum = 1;
+
 	}
 
 }//namespace CAR

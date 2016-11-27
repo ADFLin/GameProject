@@ -20,6 +20,7 @@ int WINAPI WinMain (HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR szCmdLine
 	g_game->run();
 
 	delete g_game;
+	return 0;
 }
 
 

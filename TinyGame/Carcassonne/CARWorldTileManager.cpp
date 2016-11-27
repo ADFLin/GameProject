@@ -10,8 +10,6 @@ namespace CAR
 {
 	static int const gBitIndexMap[ 9 ] = { 0 , 0 , 1 , 1 , 2 , 2 , 2 , 2 , 3 };
 
-	
-
 	int FBit::ToIndex4( unsigned bit )
 	{
 		assert( (bit&0xf) == bit );
@@ -75,45 +73,49 @@ namespace CAR
 
 		switch( tileSet.type )
 		{
-		case TileType::eNormal:
+		case TileType::eSimple:
 			{
-				PlaceInfo info;
-				if ( canPlaceTileInternal( getTile( tileId ) , pos , rotation , param , info ) == false )
+				PlaceResult result;
+				if ( canPlaceTileInternal( getTile( tileId ) , pos , rotation , param , result ) == false )
 					return false;
 
-				if ( info.numTileLink == 0 )
+				if ( result.numTileLink == 0 )
 					return false;
 
-				if ( info.bNeedCheckRiverConnectDir )
+				if ( result.bNeedCheckRiverConnectDir )
 				{
-					if (  info.numRiverConnect == 0 )
+					if (  result.numRiverConnect == 0 )
 						return false;
 
-					if ( param.checkRiverDirection && info.numRiverConnect == 1 )
+					if ( param.checkRiverDirection && result.numRiverConnect == 1 )
 					{
 						TilePiece const& tile = getTile( tileId );
 
-						unsigned linkMask = FBit::RotateLeft( tile.sides[ FDir::ToLocal( info.dirRiverLink , rotation ) ].linkDirMask , rotation , 4 );
-						linkMask &= ~BIT( info.dirRiverLink );
+						unsigned linkMask = FBit::RotateLeft( tile.sides[ FDir::ToLocal( result.dirRiverLink , rotation ) ].linkDirMask , rotation , 4 );
+						linkMask &= ~BIT( result.dirRiverLink );
 						if ( linkMask && FBit::Extract( linkMask ) == linkMask )
 						{
-							if ( !checkRiverLinkDirection( info.riverLink->pos , FDir::Inverse( info.dirRiverLink ) , FBit::ToIndex4( linkMask ) ) )
+							if ( !checkRiverLinkDirection( result.riverLink->pos , FDir::Inverse( result.dirRiverLink ) , FBit::ToIndex4( linkMask ) ) )
 								return false;
 						}
 					}
 				}
 			}
-			break;
+			return true;
 		case TileType::eDouble:
+			//
+			param.checkRiverConnect = false;
 			return canPlaceTileList( tileId , 2 , pos , rotation , param );
 		case TileType::eHalfling:
+			assert(0);
 			return false;
 		}
 
+		assert(0);
 		return true;
 	}
 
-	bool WorldTileManager::canPlaceTileInternal( TilePiece const& tile , Vec2i const& pos , int rotation , PutTileParam& param , PlaceInfo& info )
+	bool WorldTileManager::canPlaceTileInternal( TilePiece const& tile , Vec2i const& pos , int rotation , PutTileParam& param , PlaceResult& result  )
 	{
 		if ( findMapTile( pos ) != nullptr )
 			return false;
@@ -169,11 +171,23 @@ namespace CAR
 			}
 		}
 
-		info.numTileLink = linkCount;
-		info.bNeedCheckRiverConnectDir = checkRiverConnect;
-		info.dirRiverLink = dirRiverLink;
-		info.numRiverConnect = numRiverConnect;
-		info.riverLink = riverLink;
+		if ( param.checkDontNearSameTag )
+		{
+			unsigned tag = mTileSetManager->getTileTag( tile.id );
+
+			for( int i = 0 ; i < FDir::NeighborNum ; ++i )
+			{
+				MapTile* dataCheck = this->findMapTile( pos + FDir::NeighborOffset(i) );
+				if ( dataCheck && mTileSetManager->getTileTag( dataCheck->getId() ) == tag )
+					return false;
+			}
+		}
+
+		result.numTileLink = linkCount;
+		result.bNeedCheckRiverConnectDir = checkRiverConnect;
+		result.dirRiverLink = dirRiverLink;
+		result.numRiverConnect = numRiverConnect;
+		result.riverLink = riverLink;
 		return true;
 	}
 
@@ -189,8 +203,8 @@ namespace CAR
 		for( int i = 0 ; i < numTile ; ++i )
 		{
 			int dirTemp = param.dirNeedUseBridge;
-			PlaceInfo info;
-			if ( !canPlaceTileInternal( getTile( tileId , i ) , curPos , rotation , param , info ) )
+			PlaceResult result;
+			if ( !canPlaceTileInternal( getTile( tileId , i ) , curPos , rotation , param , result ) )
 				return false;
 
 			if ( param.usageBridge && param.idxTileUseBridge != -1 )
@@ -200,7 +214,7 @@ namespace CAR
 				param.idxTileUseBridge = i;
 			}
 
-			numTileLink += info.numTileLink;
+			numTileLink += result.numTileLink;
 			curPos += FDir::LinkOffset( rotation );
 		}
 
@@ -241,7 +255,7 @@ namespace CAR
 		TileSet const& tileSet = mTileSetManager->getTileSet( tileId );
 		switch( tileSet.type )
 		{
-		case TileType::eNormal:
+		case TileType::eSimple:
 			outMapTile[0] = placeTileInternal( getTile( tileId ) , pos , rotation , param );
 			return 1;
 		case TileType::eDouble:
@@ -256,8 +270,10 @@ namespace CAR
 			return 2;
 		case TileType::eHalfling:
 			//TODO
+			assert(0);
 			return 0;
 		}
+		assert(0);
 		return 0;
 	}
 
@@ -324,25 +340,77 @@ namespace CAR
 		return tileSet.tiles[idx];
 	}
 
-	int WorldTileManager::getPosibleLinkPos( TileId tileId , std::vector< Vec2i >& outPos , PutTileParam& param )
+	void makeValueUnique( std::vector< Vec2i >& outPos , int idxStart )
 	{
-		int result = 0;
-		for( PosSet::iterator iter = mEmptyLinkPosSet.begin() , itEnd = mEmptyLinkPosSet.end();
-			iter != itEnd ; ++iter )
+		int len = outPos.size();
+		for( int i = idxStart ; i < len ; ++i )
 		{
-			Vec2i const& pos = *iter;
-			
-			for(int i = 0 ; i < FDir::TotalNum ; ++i )
+			for( int j = i + 1 ; j < len ; ++j )
 			{
-				if ( canPlaceTile( tileId , pos , i , param ) )
+				if ( outPos[i] == outPos[j] )
 				{
-					++result;
-					outPos.push_back( pos );
-					break;
+					if ( j != len - 1 ) 
+					{
+						std::swap( outPos[j] , outPos[ len - 1 ] );
+						--j;
+					}
+					--len;
 				}
 			}
 		}
-		return result;
+		if ( len != outPos.size() )
+		{
+			outPos.resize( len );
+		}
+	}
+
+	int WorldTileManager::getPosibleLinkPos( TileId tileId , std::vector< Vec2i >& outPos , PutTileParam& param )
+	{
+		TileSet const& tileSet = mTileSetManager->getTileSet( tileId );
+
+		int idxStart = outPos.size();
+		switch ( tileSet.type )
+		{
+		case TileType::eSimple:
+			for( PosSet::iterator iter = mEmptyLinkPosSet.begin() , itEnd = mEmptyLinkPosSet.end();
+				iter != itEnd ; ++iter )
+			{
+				Vec2i const& pos = *iter;
+				for(int i = 0 ; i < FDir::TotalNum ; ++i )
+				{
+					if ( canPlaceTile( tileId , pos , i , param ) )
+					{
+						outPos.push_back( pos );
+						break;
+					}
+				}
+			}
+			break;
+		case TileType::eDouble:
+			
+			for( PosSet::iterator iter = mEmptyLinkPosSet.begin() , itEnd = mEmptyLinkPosSet.end();
+				iter != itEnd ; ++iter )
+			{
+				Vec2i const& pos = *iter;
+				for( int n = 0 ; n < 2 ; ++n )
+				{
+					for(int i = 0 ; i < FDir::TotalNum ; ++i )
+					{
+						Vec2i testPos = pos - n * FDir::LinkOffset( i );
+						if ( canPlaceTile( tileId , testPos , i , param ) )
+						{
+							outPos.push_back( testPos );
+						}
+					}
+				}
+			}
+			makeValueUnique( outPos ,idxStart );
+			break;
+		default:
+			assert(0);
+		}
+
+		return outPos.size() - idxStart;
 	}
 
 	MapTile* WorldTileManager::findMapTile(Vec2i const& pos)
@@ -369,6 +437,27 @@ namespace CAR
 	bool WorldTileManager::isEmptyLinkPos(Vec2i const& pos)
 	{
 		return mEmptyLinkPosSet.find( pos ) != mEmptyLinkPosSet.end();
+	}
+
+	bool WorldTileManager::isLinkTilePosible(Vec2i const& pos , TileId id)
+	{
+		TileSet const& tileSet = mTileSetManager->getTileSet( id );
+		switch( tileSet.type )
+		{
+		case TileType::eDouble:
+			for( int i = 0 ; i < FDir::NeighborNum ; ++i )
+			{
+				if ( isEmptyLinkPos( pos + FDir::NeighborOffset(i) ) )
+					return true;
+			}
+			return false;
+		case TileType::eHalfling:
+		case TileType::eSimple:
+			return isEmptyLinkPos( pos );
+		}
+
+		assert(0);
+		return false;
 	}
 
 	TileSetManager::TileSetManager()
@@ -429,7 +518,7 @@ namespace CAR
 				tileSet = &createSingleTileSet( tileDef );
 			}
 			tileSet->expansions = content.exp;
-			tileSet->idxDefine = ++idxDefine;
+			tileSet->idxDefine = idxDefine++;
 		}
 	}
 
@@ -470,7 +559,7 @@ namespace CAR
 		tileSet.numPiece = tileDef.numPiece;
 		tileSet.tiles = tile;
 		tileSet.tag = tileDef.tag;
-		tileSet.type = TileType::eNormal;
+		tileSet.type = TileType::eSimple;
 
 		mTileMap.push_back( tileSet );
 

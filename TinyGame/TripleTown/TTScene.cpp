@@ -56,11 +56,12 @@ namespace TripleTown
 	};
 
 
+#define StringOp(A,B,...) B,
 	char const* gTextureName[] = 
 	{
-#define TEX_INFO( id , name ) name ,
-#include "TextureId.h"
+		TEXTURE_ID_LIST( StringOp )
 	};
+#undef StringOp
 
 	Vec2i const ItemImageSize = Vec2i( 114 , 224 );
 	Vec2i const ItemImageSizeFix = Vec2i( 128 , 256 );

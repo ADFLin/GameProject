@@ -336,7 +336,7 @@ namespace Tetris
 		GPanel* panel = new GPanel( UI_PANEL , lvData->getScene()->getSurfacePos() + Vec2i( 250 , 10 ) , Vec2i( uiSize.x + 20 , 350 ) , NULL );
 		panel->setRenderCallback( RenderCallBack::create( this , &PracticeMode::renderControl ) );
 		panel->setUserData( intptr_t(lvData) );
-		::Global::getGUI().addWidget( panel );
+		::Global::GUI().addWidget( panel );
 
 		Level* level = lvData->getLevel();
 		Vec2i off( 0 , 40 );

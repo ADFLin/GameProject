@@ -93,7 +93,6 @@ public:
 
 	bool onEnterChild( SampleNode* node )
 	{ 
-
 		mIdxChild = 0;
 
 		msgShow.shiftPos( 20 , 0 );

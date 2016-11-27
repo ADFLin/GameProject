@@ -170,7 +170,7 @@ namespace Poker { namespace Big2 {
 		mOwnCardsUI = new CardListUI( getLevel().getOwnCards() , Vec2i( sSize.x / 2 , sSize.y - mCardSize.y - 75 ) , NULL );
 		mOwnCardsUI->onChangeIndexSelected.bind( this , &Scene::onListCardSelect );
 		mOwnCardsUI->show( false );
-		::Global::getGUI().addWidget( mOwnCardsUI );
+		::Global::GUI().addWidget( mOwnCardsUI );
 
 		int numCol = 6;
 		Vec2i size( 80 , 20 );
@@ -182,7 +182,7 @@ namespace Poker { namespace Big2 {
 #define  ACTION_BUTTON( ID )\
 	button = new ActionButton( this , ID , pos , size , NULL );\
 	mButton[ ID ] = button;\
-	::Global::getGUI().addWidget( button );\
+	::Global::GUI().addWidget( button );\
 	pos.x += offset;
 
 		ACTION_BUTTON( ActionButton::eSTRAIGHT_FLUSH );

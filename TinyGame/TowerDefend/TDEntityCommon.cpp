@@ -3,6 +3,8 @@
 
 #include "TDWorld.h"
 
+#include <algorithm>
+
 namespace TowerDefend
 {
 	Actor::Actor( ActorId aID )

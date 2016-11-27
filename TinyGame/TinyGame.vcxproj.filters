@@ -1,0 +1,490 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source">
+      <UniqueIdentifier>{37e3c69f-7c44-482a-818b-6e3e25c01b1e}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="Include">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hpp;hxx;hm;inl;inc;xsd</Extensions>
+    </Filter>
+    <Filter Include="資源檔">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav</Extensions>
+    </Filter>
+    <Filter Include="Stage">
+      <UniqueIdentifier>{b9218adf-4ea7-4099-919e-f9bc016bbb48}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="GameBejeweled">
+      <UniqueIdentifier>{a63245b7-ebd9-4088-87ad-edd1c5117fb2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="GameCiv">
+      <UniqueIdentifier>{c36eb002-32e2-4856-8fa4-72ffbb15bad0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="GameLordMonarch">
+      <UniqueIdentifier>{a94193a2-3f9e-4244-9f25-d64ca628f1ea}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="GameFight">
+      <UniqueIdentifier>{1bb0635d-1370-4b4d-8b14-5edf3e2a474d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="GameShoot2D">
+      <UniqueIdentifier>{02106709-9eb0-452a-a8c9-f164387c0f97}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="GameQix">
+      <UniqueIdentifier>{c41cce02-b9a4-4537-ac69-39efd73bac6a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="GameGo">
+      <UniqueIdentifier>{7f776862-f28c-44ba-9e97-75de743bdb40}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="GameTripleTown">
+      <UniqueIdentifier>{0a15e99d-d5a5-4df4-b991-470ba2381ec7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="GameSudoku">
+      <UniqueIdentifier>{715ca2a3-4bbc-4a9b-8ece-9f8a71a3ce90}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="OtherLib">
+      <UniqueIdentifier>{0f7ff99f-338c-444e-8692-aaabbacbb788}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="GameMario">
+      <UniqueIdentifier>{8ef26039-d285-4665-b968-22f2af6c0260}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shader">
+      <UniqueIdentifier>{a10dcf6c-ad8b-4d0a-b767-dc7af1a851c9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="GameMonumentValley">
+      <UniqueIdentifier>{d75e6ddb-2c62-4f89-be63-61d3f6b28ba1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Test">
+      <UniqueIdentifier>{41584605-750f-447c-b0bd-1b1077f18a29}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Mode">
+      <UniqueIdentifier>{0bd27b6b-7dd4-49e6-85f4-0f3d3a2c65a8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="GameCantan">
+      <UniqueIdentifier>{f7ff1483-faf0-46f9-baf6-1c1de48f8e3c}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="Bsp2D.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="GLCommon.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="GLUtility.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="main.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="TinyGameApp.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="TinyGamePCH.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="Voronoi.cpp">
+      <Filter>Include</Filter>
+    </ClCompile>
+    <ClCompile Include="BloxorzStage.cpp">
+      <Filter>Stage</Filter>
+    </ClCompile>
+    <ClCompile Include="FBirdStage.cpp">
+      <Filter>Stage</Filter>
+    </ClCompile>
+    <ClCompile Include="GGJStage.cpp">
+      <Filter>Stage</Filter>
+    </ClCompile>
+    <ClCompile Include="LightingStage.cpp">
+      <Filter>Stage</Filter>
+    </ClCompile>
+    <ClCompile Include="MainMenuStage.cpp">
+      <Filter>Stage</Filter>
+    </ClCompile>
+    <ClCompile Include="NetGameStage.cpp">
+      <Filter>Stage</Filter>
+    </ClCompile>
+    <ClCompile Include="PlanetStage.cpp">
+      <Filter>Stage</Filter>
+    </ClCompile>
+    <ClCompile Include="ReplayStage.cpp">
+      <Filter>Stage</Filter>
+    </ClCompile>
+    <ClCompile Include="RubiksStage.cpp">
+      <Filter>Stage</Filter>
+    </ClCompile>
+    <ClCompile Include="TestStage.cpp">
+      <Filter>Stage</Filter>
+    </ClCompile>
+    <ClCompile Include="Bejeweled\BJLevel.cpp">
+      <Filter>GameBejeweled</Filter>
+    </ClCompile>
+    <ClCompile Include="Bejeweled\BJScene.cpp">
+      <Filter>GameBejeweled</Filter>
+    </ClCompile>
+    <ClCompile Include="Bejeweled\BJStage.cpp">
+      <Filter>GameBejeweled</Filter>
+    </ClCompile>
+    <ClCompile Include="Shoot2D\Action.cpp">
+      <Filter>GameShoot2D</Filter>
+    </ClCompile>
+    <ClCompile Include="Shoot2D\AxisSweepDetector.cpp">
+      <Filter>GameShoot2D</Filter>
+    </ClCompile>
+    <ClCompile Include="Shoot2D\CollisionSystem.cpp">
+      <Filter>GameShoot2D</Filter>
+    </ClCompile>
+    <ClCompile Include="Shoot2D\FlightGame.cpp">
+      <Filter>GameShoot2D</Filter>
+    </ClCompile>
+    <ClCompile Include="Shoot2D\Object.cpp">
+      <Filter>GameShoot2D</Filter>
+    </ClCompile>
+    <ClCompile Include="Shoot2D\ObjectManger.cpp">
+      <Filter>GameShoot2D</Filter>
+    </ClCompile>
+    <ClCompile Include="Shoot2D\ObjModel.cpp">
+      <Filter>GameShoot2D</Filter>
+    </ClCompile>
+    <ClCompile Include="Shoot2D\Player.cpp">
+      <Filter>GameShoot2D</Filter>
+    </ClCompile>
+    <ClCompile Include="Shoot2D\RenderEngine.cpp">
+      <Filter>GameShoot2D</Filter>
+    </ClCompile>
+    <ClCompile Include="Shoot2D\ResourcesLoader.cpp">
+      <Filter>GameShoot2D</Filter>
+    </ClCompile>
+    <ClCompile Include="Shoot2D\Weapon.cpp">
+      <Filter>GameShoot2D</Filter>
+    </ClCompile>
+    <ClCompile Include="Qix\QixLevel.cpp">
+      <Filter>GameQix</Filter>
+    </ClCompile>
+    <ClCompile Include="Go\GoCore.cpp">
+      <Filter>GameGo</Filter>
+    </ClCompile>
+    <ClCompile Include="Go\GoStage.cpp">
+      <Filter>GameGo</Filter>
+    </ClCompile>
+    <ClCompile Include="TripleTown\TTLevel.cpp">
+      <Filter>GameTripleTown</Filter>
+    </ClCompile>
+    <ClCompile Include="TripleTown\TTScene.cpp">
+      <Filter>GameTripleTown</Filter>
+    </ClCompile>
+    <ClCompile Include="..\OtherLib\lodepng\lodepng.cpp">
+      <Filter>OtherLib</Filter>
+    </ClCompile>
+    <ClCompile Include="stb_image.cpp">
+      <Filter>OtherLib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\OtherLib\tinyobjloader\tiny_obj_loader.cc">
+      <Filter>OtherLib</Filter>
+    </ClCompile>
+    <ClCompile Include="Mario\MBLevel.cpp">
+      <Filter>GameMario</Filter>
+    </ClCompile>
+    <ClCompile Include="MonumentValley\MVCommon.cpp">
+      <Filter>GameMonumentValley</Filter>
+    </ClCompile>
+    <ClCompile Include="MonumentValley\MVLevel.cpp">
+      <Filter>GameMonumentValley</Filter>
+    </ClCompile>
+    <ClCompile Include="MonumentValley\MVObject.cpp">
+      <Filter>GameMonumentValley</Filter>
+    </ClCompile>
+    <ClCompile Include="MonumentValley\MVPathFinder.cpp">
+      <Filter>GameMonumentValley</Filter>
+    </ClCompile>
+    <ClCompile Include="MonumentValley\MVRenderEngine.cpp">
+      <Filter>GameMonumentValley</Filter>
+    </ClCompile>
+    <ClCompile Include="MonumentValley\MVSpaceControl.cpp">
+      <Filter>GameMonumentValley</Filter>
+    </ClCompile>
+    <ClCompile Include="MonumentValley\MVStage.cpp">
+      <Filter>GameMonumentValley</Filter>
+    </ClCompile>
+    <ClCompile Include="MonumentValley\MVWidget.cpp">
+      <Filter>GameMonumentValley</Filter>
+    </ClCompile>
+    <ClCompile Include="MonumentValley\MVWorld.cpp">
+      <Filter>GameMonumentValley</Filter>
+    </ClCompile>
+    <ClCompile Include="GameSingleStage.cpp">
+      <Filter>Mode</Filter>
+    </ClCompile>
+    <ClCompile Include="Cantan\CantanLevel.cpp">
+      <Filter>GameCantan</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="GLDrawUtility.h">
+      <Filter>Source</Filter>
+    </ClInclude>
+    <ClInclude Include="Bsp2D.h">
+      <Filter>Include</Filter>
+    </ClInclude>
+    <ClInclude Include="CellWalker.h">
+      <Filter>Include</Filter>
+    </ClInclude>
+    <ClInclude Include="Geometry2d.h">
+      <Filter>Include</Filter>
+    </ClInclude>
+    <ClInclude Include="GLCommon.h">
+      <Filter>Include</Filter>
+    </ClInclude>
+    <ClInclude Include="GLUtility.h">
+      <Filter>Include</Filter>
+    </ClInclude>
+    <ClInclude Include="resource.h">
+      <Filter>Include</Filter>
+    </ClInclude>
+    <ClInclude Include="ShaderBuilder.h">
+      <Filter>Include</Filter>
+    </ClInclude>
+    <ClInclude Include="TinyGameApp.h">
+      <Filter>Include</Filter>
+    </ClInclude>
+    <ClInclude Include="TinyGamePCH.h">
+      <Filter>Include</Filter>
+    </ClInclude>
+    <ClInclude Include="Voronoi.h">
+      <Filter>Include</Filter>
+    </ClInclude>
+    <ClInclude Include="AgarStage.h">
+      <Filter>Stage</Filter>
+    </ClInclude>
+    <ClInclude Include="AStarStage.h">
+      <Filter>Stage</Filter>
+    </ClInclude>
+    <ClInclude Include="BloxorzStage.h">
+      <Filter>Stage</Filter>
+    </ClInclude>
+    <ClInclude Include="FBirdStage.h">
+      <Filter>Stage</Filter>
+    </ClInclude>
+    <ClInclude Include="GGJStage.h">
+      <Filter>Stage</Filter>
+    </ClInclude>
+    <ClInclude Include="LightingStage.h">
+      <Filter>Stage</Filter>
+    </ClInclude>
+    <ClInclude Include="MainMenuStage.h">
+      <Filter>Stage</Filter>
+    </ClInclude>
+    <ClInclude Include="NetGameStage.h">
+      <Filter>Stage</Filter>
+    </ClInclude>
+    <ClInclude Include="PlanetStage.h">
+      <Filter>Stage</Filter>
+    </ClInclude>
+    <ClInclude Include="ReplayStage.h">
+      <Filter>Stage</Filter>
+    </ClInclude>
+    <ClInclude Include="RubiksStage.h">
+      <Filter>Stage</Filter>
+    </ClInclude>
+    <ClInclude Include="TestStage.h">
+      <Filter>Stage</Filter>
+    </ClInclude>
+    <ClInclude Include="VoronoiStage.h">
+      <Filter>Stage</Filter>
+    </ClInclude>
+    <ClInclude Include="Bejeweled\BJLevel.h">
+      <Filter>GameBejeweled</Filter>
+    </ClInclude>
+    <ClInclude Include="Bejeweled\BJScene.h">
+      <Filter>GameBejeweled</Filter>
+    </ClInclude>
+    <ClInclude Include="Bejeweled\BJStage.h">
+      <Filter>GameBejeweled</Filter>
+    </ClInclude>
+    <ClInclude Include="Civ\CvCity.h">
+      <Filter>GameCiv</Filter>
+    </ClInclude>
+    <ClInclude Include="Civ\CvMap.h">
+      <Filter>GameCiv</Filter>
+    </ClInclude>
+    <ClInclude Include="LordMonarch\LmLevel.h">
+      <Filter>GameLordMonarch</Filter>
+    </ClInclude>
+    <ClInclude Include="Fight\FightLevel.h">
+      <Filter>GameFight</Filter>
+    </ClInclude>
+    <ClInclude Include="Shoot2D\Action.h">
+      <Filter>GameShoot2D</Filter>
+    </ClInclude>
+    <ClInclude Include="Shoot2D\AxisSweepDetector.h">
+      <Filter>GameShoot2D</Filter>
+    </ClInclude>
+    <ClInclude Include="Shoot2D\CollisionSystem.h">
+      <Filter>GameShoot2D</Filter>
+    </ClInclude>
+    <ClInclude Include="Shoot2D\Common.h">
+      <Filter>GameShoot2D</Filter>
+    </ClInclude>
+    <ClInclude Include="Shoot2D\CommonFwd.h">
+      <Filter>GameShoot2D</Filter>
+    </ClInclude>
+    <ClInclude Include="Shoot2D\FlightGame.h">
+      <Filter>GameShoot2D</Filter>
+    </ClInclude>
+    <ClInclude Include="Shoot2D\GridManger.h">
+      <Filter>GameShoot2D</Filter>
+    </ClInclude>
+    <ClInclude Include="Shoot2D\Object.h">
+      <Filter>GameShoot2D</Filter>
+    </ClInclude>
+    <ClInclude Include="Shoot2D\ObjectFactory.h">
+      <Filter>GameShoot2D</Filter>
+    </ClInclude>
+    <ClInclude Include="Shoot2D\ObjectManger.h">
+      <Filter>GameShoot2D</Filter>
+    </ClInclude>
+    <ClInclude Include="Shoot2D\ObjModel.h">
+      <Filter>GameShoot2D</Filter>
+    </ClInclude>
+    <ClInclude Include="Shoot2D\Player.h">
+      <Filter>GameShoot2D</Filter>
+    </ClInclude>
+    <ClInclude Include="Shoot2D\RenderEngine.h">
+      <Filter>GameShoot2D</Filter>
+    </ClInclude>
+    <ClInclude Include="Shoot2D\ResourcesLoader.h">
+      <Filter>GameShoot2D</Filter>
+    </ClInclude>
+    <ClInclude Include="Shoot2D\Weapon.h">
+      <Filter>GameShoot2D</Filter>
+    </ClInclude>
+    <ClInclude Include="Qix\QixLevel.h">
+      <Filter>GameQix</Filter>
+    </ClInclude>
+    <ClInclude Include="Go\GoCore.h">
+      <Filter>GameGo</Filter>
+    </ClInclude>
+    <ClInclude Include="Go\GoStage.h">
+      <Filter>GameGo</Filter>
+    </ClInclude>
+    <ClInclude Include="TripleTown\TextureId.h">
+      <Filter>GameTripleTown</Filter>
+    </ClInclude>
+    <ClInclude Include="TripleTown\TTLevel.h">
+      <Filter>GameTripleTown</Filter>
+    </ClInclude>
+    <ClInclude Include="TripleTown\TTScene.h">
+      <Filter>GameTripleTown</Filter>
+    </ClInclude>
+    <ClInclude Include="TripleTown\TTStage.h">
+      <Filter>GameTripleTown</Filter>
+    </ClInclude>
+    <ClInclude Include="Sudoku\SudokuSolver.h">
+      <Filter>GameSudoku</Filter>
+    </ClInclude>
+    <ClInclude Include="Sudoku\SudokuSolver.hpp">
+      <Filter>GameSudoku</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OtherLib\lodepng\lodepng.h">
+      <Filter>OtherLib</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OtherLib\tinyobjloader\tiny_obj_loader.h">
+      <Filter>OtherLib</Filter>
+    </ClInclude>
+    <ClInclude Include="Mario\MBLevel.h">
+      <Filter>GameMario</Filter>
+    </ClInclude>
+    <ClInclude Include="MonumentValley\MVCommon.h">
+      <Filter>GameMonumentValley</Filter>
+    </ClInclude>
+    <ClInclude Include="MonumentValley\MVLevel.h">
+      <Filter>GameMonumentValley</Filter>
+    </ClInclude>
+    <ClInclude Include="MonumentValley\MVObject.h">
+      <Filter>GameMonumentValley</Filter>
+    </ClInclude>
+    <ClInclude Include="MonumentValley\MVPathFinder.h">
+      <Filter>GameMonumentValley</Filter>
+    </ClInclude>
+    <ClInclude Include="MonumentValley\MVRenderEngine.h">
+      <Filter>GameMonumentValley</Filter>
+    </ClInclude>
+    <ClInclude Include="MonumentValley\MVSpaceControl.h">
+      <Filter>GameMonumentValley</Filter>
+    </ClInclude>
+    <ClInclude Include="MonumentValley\MVStage.h">
+      <Filter>GameMonumentValley</Filter>
+    </ClInclude>
+    <ClInclude Include="MonumentValley\MVWidget.h">
+      <Filter>GameMonumentValley</Filter>
+    </ClInclude>
+    <ClInclude Include="MonumentValley\MVWorld.h">
+      <Filter>GameMonumentValley</Filter>
+    </ClInclude>
+    <ClInclude Include="GameSingleStage.h">
+      <Filter>Mode</Filter>
+    </ClInclude>
+    <ClInclude Include="Cantan\CantanLevel.h">
+      <Filter>GameCantan</Filter>
+    </ClInclude>
+    <ClInclude Include="Cantan\CantanStage.h">
+      <Filter>GameCantan</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="Poker\cards.bmp">
+      <Filter>資源檔</Filter>
+    </Image>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="TinyGame.rc">
+      <Filter>資源檔</Filter>
+    </ResourceCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="out\Shader\BumpFS.glsl">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="out\Shader\BumpVS.glsl">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="out\Shader\Light.glsl">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="out\Shader\MVPiece.glsl">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="out\Shader\Parallax.glsl">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="out\Shader\PlanetSurface.glsl">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="out\Shader\PongShaderVS.glsl">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="out\Shader\Reflection.glsl">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="out\Shader\ShadowLighting.glsl">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="out\Shader\ShadowMap.glsl">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="out\Shader\Simple.glsl">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="out\Shader\Skin.glsl">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="out\Shader\Sphere.glsl">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="out\Shader\Water.glsl">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="out\Game.ini" />
+  </ItemGroup>
+</Project>

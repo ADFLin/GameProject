@@ -54,7 +54,7 @@
       <Optimization>Disabled</Optimization>
       <AdditionalIncludeDirectories>.;TinyCore;../libEngine;../OtherLib;../OtherLib/boost;../OtherLib/glew;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;_WINDOWS;DEBUG;GLEW_BUILD;TG_DLL;TG_EXPORT;CORE_SHARE;CORE_EXPORT;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <MinimalRebuild>true</MinimalRebuild>
+      <MinimalRebuild>false</MinimalRebuild>
       <BasicRuntimeChecks>Default</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
       <PrecompiledHeader>Use</PrecompiledHeader>
@@ -139,6 +139,7 @@
     <ClInclude Include="TinyCore\InputManager.h" />
     <ClInclude Include="TinyCore\Localization.h" />
     <ClInclude Include="TinyCore\RenderUtility.h" />
+    <ClInclude Include="TinyCore\StageRegister.h" />
     <ClInclude Include="TinyGamePCH.h" />
   </ItemGroup>
   <ItemGroup>
@@ -174,6 +175,7 @@
     <ClCompile Include="TinyCore\InputManager.cpp" />
     <ClCompile Include="TinyCore\Localization.cpp" />
     <ClCompile Include="TinyCore\RenderUtility.cpp" />
+    <ClCompile Include="TinyCore\StageRegister.cpp" />
     <ClCompile Include="TinyGamePCH.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>

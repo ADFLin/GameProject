@@ -1,17 +1,17 @@
 #ifndef CubeGame_h__
 #define CubeGame_h__
 
-#include "GamePackage.h"
+#include "GameInstance.h"
 
 namespace Cube
 {
 
-	class CGamePackage : public IGamePackage
+	class GameInstance : public IGameInstance
 	{
 	public:
 		char const*     getName(){  return "CubeWorld"; }
 
-		GameController& getController(){  return IGamePackage::getController(); }
+		GameController& getController(){  return IGameInstance::getController(); }
 		//SettingHepler*  createSettingHelper( SettingHelperType type );
 		//ReplayTemplate* createReplayTemplate( unsigned version );
 		//GameSubStage*   createSubStage( unsigned id );

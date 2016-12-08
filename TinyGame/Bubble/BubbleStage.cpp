@@ -20,22 +20,23 @@ namespace Bubble
 
 	bool LevelStage::onInit()
 	{
+		if( !BaseClass::onInit() )
+			return false;
+
 		if ( mMode == NULL )
 		{
 			mMode = new TestMode;
 		}
 
 		mDataManager.setMode( mMode );
-		getActionProcessor().setEnumer( this );
-
-		if( !BaseClass::onInit() )
-			return false;
+		getActionProcessor().setLanucher( this );
 
 		return true;
 	}
 
 	void LevelStage::onEnd()
 	{
+		getActionProcessor().setLanucher( nullptr );
 		delete mMode;
 	}
 
@@ -112,7 +113,7 @@ namespace Bubble
 		switch ( id )
 		{
 		case UI_RESTART_GAME:
-			if ( getState() != GS_END )
+			if ( getGameState() != GS_END )
 			{
 				::Global::GUI().showMessageBox( 
 					UI_RESTART_GAME , LAN("Do you Want to Stop Current Game?") );
@@ -145,7 +146,7 @@ namespace Bubble
 
 	void LevelStage::tick()
 	{
-		switch( getState() )
+		switch( getGameState() )
 		{
 		case GS_START:
 			changeState( GS_RUN );

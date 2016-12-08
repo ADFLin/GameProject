@@ -1,7 +1,7 @@
 #include "TinyGamePCH.h"
 #include "ReplayStage.h"
 
-#include "GamePackage.h"
+#include "GameInstance.h"
 #include "GamePackageManager.h"
 
 #include "GameReplay.h"
@@ -89,251 +89,6 @@ void ReplayListPanel::deleteCurFile()
 	::DeleteFile( path.c_str() );
 
 	mFileListCtrl->removeItem( mFileListCtrl->getSelection() );
-}
-
-
-GameReplayStage::GameReplayStage() 
-	:BaseClass( SMT_REPLAY )
-	,mPlayerManager( new LocalPlayerManager )
-{
-}
-
-bool GameReplayStage::onInit()
-{
-	ReplayInfo   info;
-	ReplayHeader header;
-	if ( !ReplayBase::loadReplayInfo( mReplayFilePath.c_str() , header , info ) )
-	{
-		return false;
-	}
-
-	AttribValue attrInfo( ATTR_REPLAY_INFO , &info );
-	if ( !getSubStage()->setupAttrib( attrInfo ) )
-	{
-		return false;
-	}
-
-	if ( !BaseClass::onInit() )
-		return false;
-	//// Replay Input////////////
-
-	IFrameActionTemplate* actionTemplate = NULL;
-	if ( header.version >= VERSION( 0,1,0 ) )
-	{
-		actionTemplate = getSubStage()->createActionTemplate( info.templateVersion );
-		if ( !actionTemplate )
-			return false;
-
-		mReplayInput.reset( new ReplayInput( actionTemplate , mReplayFrame ) );
-	}
-	else
-	{
-		ReplayTemplate* replayTemp = getGame()->createReplayTemplate( info.templateVersion );
-
-		if ( !replayTemp )
-		{
-			return false;
-		}
-		mReplayInput.reset( new OldVersion::ReplayInput( replayTemp , mReplayFrame ) );
-	}
-
-	if ( !loadReplay( mReplayFilePath.c_str() ) )
-		return false;
-
-	getActionProcessor().addInput( *mReplayInput.get() );
-	///////////////////////////////////////////////////////////////
-	::Global::GUI().cleanupWidget();
-
-	mSubStage->setupScene( *mPlayerManager.get() );
-
-	if ( actionTemplate )
-		actionTemplate->setupPlayer( *mPlayerManager );
-
-	AttribValue attrPos( ATTR_REPLAY_UI_POS );
-	if( !mSubStage->getAttribValue(attrPos) )
-	{
-		attrPos.v2.x = 0;
-		attrPos.v2.y = 0;
-	}
-
-	//create replay control UI
-	Vec2i baseSize( 120 , 20 );
-
-	int xUi = attrPos.v2.x;
-	int yUi = attrPos.v2.y;
-
-	int broader = 8;
-	int offset = 28;
-
-	GFrame*  frame = new GFrame( UI_ANY , Vec2i(xUi ,yUi) , Vec2i(  baseSize.x + 2 * broader , 2 * baseSize.y + 2 * broader )  , NULL );
-	frame->setRenderType( GPanel::eRectType );
-	GButton* button;
-	::Global::GUI().addWidget( frame );
-
-	int px = broader;
-	int py = 12;
-
-	mProgressSlider = new GSlider( 0 , Vec2i( px , py ), baseSize.x , true , frame );
-
-	Vec2i replayBtnSize( baseSize.x / 4 , baseSize.y );
-
-	py += 18;
-
-	button = new GButton( UI_REPLAY_RESTART , Vec2i( px , py  ) , replayBtnSize , frame );
-	button->setTitle( "R" );
-
-	button = new GButton( UI_REPLAY_TOGGLE_PAUSE , Vec2i(  px + replayBtnSize.x , py ) , replayBtnSize , frame );
-	button->setTitle( "=" );
-
-	button = new GButton( UI_REPLAY_SLOW , Vec2i( px + 2 * replayBtnSize.x , py  ) , replayBtnSize , frame );
-	button->setTitle( "<<" );
-
-	button = new GButton( UI_REPLAY_FAST , Vec2i( px + 3 * replayBtnSize.x , py  ) , replayBtnSize , frame );
-	button->setTitle( ">>" );
-	//
-
-
-
-	restart( true );
-	return true;
-}
-
-void GameReplayStage::onEnd()
-{
-	BaseClass::onEnd();
-}
-
-
-void GameReplayStage::onUpdate( long time )
-{
-	if ( !mReplayInput->isVaild() )
-		return;
-
-	if ( mReplayInput->isPlayEnd() )
-		changeState( GS_END );
-
-	int numFrame = time / gDefaultTickTime;
-
-	int numGameFrame = 0;
-
-	for( int i = 0 ; i < numFrame ; ++i )
-	{
-		switch ( getState() )
-		{
-		case GS_RUN:
-			mReplayUpdateCount += mReplaySpeed;
-			while( mReplayUpdateCount >= g_ReplayNormalSpeed )
-			{
-				++numGameFrame;
-				++mReplayFrame;
-				getActionProcessor().beginAction();
-				if ( !mReplayInput->isPlayEnd() )
-					getSubStage()->tick();
-				getActionProcessor().endAction();
-
-				mReplayUpdateCount -= g_ReplayNormalSpeed;
-				if ( getState() == GS_END )
-					break;
-			}
-			break;
-
-		default:
-			++numGameFrame;
-			getActionProcessor().beginAction( CTF_FREEZE_FRAME );
-			getSubStage()->tick();
-			getActionProcessor().endAction();
-		}
-	}
-
-	getSubStage()->updateFrame( numGameFrame );
-
-
-	::Global::GUI().scanHotkey( getGame()->getController() );
-
-	int totalFrame = mReplayInput->getRecordFrame();
-	if ( totalFrame )
-		mProgressSlider->setValue( int ( 1000 * mReplayFrame / totalFrame ) );
-	else
-		mProgressSlider->setValue( 0 );
-}
-
-bool GameReplayStage::loadReplay( char const* path )
-{
-	if ( !path )
-		return false;
-
-	if ( !mReplayInput->load( path ) )
-		return false;
-
-	return true;
-}
-
-void  GameReplayStage::onRestart( uint64& seed )
-{
-	seed = mReplayInput->getSeed();
-
-	BaseClass::onRestart( seed );
-
-	mReplaySpeed = g_ReplayNormalSpeed;
-	mReplayUpdateCount = 0;
-	mIndexSpeed = g_NormalSpeedIndex;
-	mReplayInput->restart();
-}
-
-bool GameReplayStage::onWidgetEvent( int event , int id , GWidget* ui )
-{
-	switch( id )
-	{
-	case UI_REPLAY_RESTART:
-		restart( true );
-		return false;
-	case UI_REPLAY_TOGGLE_PAUSE:
-		assert( event == EVT_BUTTON_CLICK );
-		if ( togglePause() )
-		{
-			GUI::castFast< GButton* >(ui)->setTitle( ( getState() == GS_PAUSE ) ? "->" : "=" );
-		}
-		return false;
-	case UI_REPLAY_FAST:
-		mIndexSpeed = clamp( mIndexSpeed + 1 , 0 , ARRAY_SIZE( g_ReplaySpeed ) - 1 );
-		mReplaySpeed = g_ReplaySpeed[ mIndexSpeed ];
-		return false;
-	case UI_REPLAY_SLOW:
-		mIndexSpeed = clamp( mIndexSpeed - 1 , 0 , ARRAY_SIZE( g_ReplaySpeed ) - 1 );
-		mReplaySpeed = g_ReplaySpeed[ mIndexSpeed ];
-		return false;
-	case UI_GAME_MENU:
-		togglePause();
-		::Global::GUI().showMessageBox( UI_MAIN_MENU , LAN("back Main Menu?") );
-		return false;
-
-	case UI_MAIN_MENU:
-		if ( event == EVT_BOX_YES )
-		{
-			getManager()->changeStage( STAGE_MAIN_MENU );
-			return true;
-		}
-		else if ( event == EVT_BOX_NO )
-		{
-			togglePause();
-			return true;
-		}
-		else
-		{
-			togglePause();
-			::Global::GUI().showMessageBox( UI_MAIN_MENU , LAN("back Main Menu?") );
-			return false;
-		}
-		break;
-	}
-
-	return BaseClass::onWidgetEvent( event , id , ui );
-}
-
-
-LocalPlayerManager* GameReplayStage::getPlayerManager()
-{
-	return mPlayerManager.get();
 }
 
 bool ReplayEditStage::onInit()
@@ -446,14 +201,19 @@ void ReplayEditStage::viewReplay()
 	if ( !mIsVaildReplay )
 		return;
 
-	IGamePackage* game = Global::GameManager().changeGame( mGameInfo.name );
+	IGameInstance* game = Global::GameManager().changeGame( mGameInfo.name );
 	if ( game )
 	{
 		game->beginPlay( SMT_REPLAY , *getManager() );
 		//TODO
-		GameReplayStage* stage = static_cast< GameReplayStage* >( 
-			getManager()->getNextStage() );
-		stage->setReplayPath( mReplayFilePath );
+		if( auto gameStage = dynamic_cast<GameStageBase*>(getManager()->getNextStage()) )
+		{
+			if ( auto replayMode = dynamic_cast<ReplayStageMode*>(gameStage->getStageMode()) )
+			{
+				replayMode->setReplayPath(mReplayFilePath);
+
+			}
+		}
 	}
 }
 
@@ -468,9 +228,11 @@ LocalPlayerManager* ReplayStageMode::getPlayerManager()
 {
 	return mPlayerManager.get();
 }
-
-bool ReplayStageMode::onInit()
+bool ReplayStageMode::prevStageInit()
 {
+	if( !BaseClass::prevStageInit() )
+		return false;
+
 	GameStageBase* stage = getStage();
 	ReplayInfo   info;
 	ReplayHeader header;
@@ -485,11 +247,9 @@ bool ReplayStageMode::onInit()
 		return false;
 	}
 
-	if( !BaseClass::onInit() )
-		return false;
 	//// Replay Input////////////
 
-	IFrameActionTemplate* actionTemplate = NULL;
+	actionTemplate = NULL;
 	if( header.version >= VERSION(0, 1, 0) )
 	{
 		actionTemplate = stage->createActionTemplate(info.templateVersion);
@@ -514,6 +274,16 @@ bool ReplayStageMode::onInit()
 
 	stage->getActionProcessor().addInput(*mReplayInput.get());
 	///////////////////////////////////////////////////////////////
+
+	return true;
+}
+bool ReplayStageMode::postStageInit()
+{
+	if( !BaseClass::postStageInit() )
+		return false;
+
+	GameStageBase* stage = getStage();
+
 	::Global::GUI().cleanupWidget();
 
 	stage->setupScene(*mPlayerManager.get());
@@ -596,7 +366,7 @@ void ReplayStageMode::updateTime(long time)
 
 	int numGameFrame = 0;
 
-	ActionProcessor& actionProcessor = getStage()->getActionProcessor();
+	ActionProcessor& processor = getStage()->getActionProcessor();
 	for( int i = 0; i < numFrame; ++i )
 	{
 		switch( getGameState() )
@@ -607,10 +377,10 @@ void ReplayStageMode::updateTime(long time)
 			{
 				++numGameFrame;
 				++mReplayFrame;
-				actionProcessor.beginAction();
+				processor.beginAction();
 				if( !mReplayInput->isPlayEnd() )
 					getStage()->tick();
-				actionProcessor.endAction();
+				processor.endAction();
 
 				mReplayUpdateCount -= g_ReplayNormalSpeed;
 				if( getGameState() == GS_END )
@@ -620,9 +390,9 @@ void ReplayStageMode::updateTime(long time)
 
 		default:
 			++numGameFrame;
-			actionProcessor.beginAction(CTF_FREEZE_FRAME);
+			processor.beginAction(CTF_FREEZE_FRAME);
 			getStage()->tick();
-			actionProcessor.endAction();
+			processor.endAction();
 		}
 	}
 

@@ -219,6 +219,9 @@
     <ClCompile Include="Cantan\CantanLevel.cpp">
       <Filter>GameCantan</Filter>
     </ClCompile>
+    <ClCompile Include="Go\ZenBot.cpp">
+      <Filter>GameGo</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="GLDrawUtility.h">
@@ -430,6 +433,12 @@
     </ClInclude>
     <ClInclude Include="Cantan\CantanStage.h">
       <Filter>GameCantan</Filter>
+    </ClInclude>
+    <ClInclude Include="Go\zen.h">
+      <Filter>GameGo</Filter>
+    </ClInclude>
+    <ClInclude Include="Go\ZenBot.h">
+      <Filter>GameGo</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

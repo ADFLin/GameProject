@@ -17,16 +17,34 @@ namespace Rich
 	}
 
 
-	bool Player::changePos( MapCoord const& pos )
+	void Player::initPos(MapCoord const& pos, MapCoord const& posPrev)
 	{
-		Tile* tile = getWorld().getTile( pos );
-		if ( !tile )
+		mPosPrev = posPrev;
+		mPos = pos;
+		updateTile(pos);
+	}
+
+	bool Player::updateTile(MapCoord const& pos)
+	{
+		Tile* tile = getWorld().getTile(pos);
+		if( tile == nullptr )
 			return false;
 
-		if ( tileHook.isLinked() )
+		if( tileHook.isLinked() )
 			tileHook.unlink();
+		tile->actors.push_back(*this);
 
-		tile->actors.push_back( *this );
+		return true;
+	}
+
+	bool Player::changePos(MapCoord const& pos)
+	{
+		Tile* tile = getWorld().getTile( pos );
+
+		if( !updateTile(pos) )
+			return false;
+
+		mPosPrev = pos;
 		mPos = pos;
 		return true;
 	}

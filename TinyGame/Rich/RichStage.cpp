@@ -8,6 +8,22 @@
 
 namespace Rich
 {
+	namespace SimpleMap
+	{
+		uint8 const EE = 0;
+		uint8 const TE = 1;
+		int const SizeX = 8;
+		int const SizeY = 6;
+		uint8 Data[] =
+		{
+			TE,TE,TE,TE,TE,TE,TE,TE,
+			TE,EE,EE,EE,EE,EE,EE,TE,
+			TE,EE,EE,EE,EE,EE,EE,TE,
+			TE,EE,EE,EE,EE,EE,EE,TE,
+			TE,EE,EE,EE,EE,EE,EE,TE,
+			TE,TE,TE,TE,TE,TE,TE,TE,
+		};
+	}
 
 	LevelStage::LevelStage()
 	{
@@ -29,12 +45,33 @@ namespace Rich
 		mLevel.getWorld().addMsgListener( *this );
 		mLevel.getWorld().addMsgListener( mUserCtrler );
 
+		Cell* cell = new LandCell;
+
+		int idx = 0;
+		for( int j = 0 ; j < SimpleMap::SizeY ; ++j )
+		{
+			for( int i = 0; i < SimpleMap::SizeX; ++i )
+			{
+				switch( SimpleMap::Data[idx] )
+				{
+				case SimpleMap::TE:
+					mLevel.getWorld().addTile(MapCoord(i, j), EMPTY_CELL_ID);
+					break;
+				}
+				++idx;
+			}
+		}
+
 		Player* player;
 		player = createUserPlayer();
+		player->initPos(MapCoord(0, 0), MapCoord(0, 1));
 		player->setRole( 0 );
+		
 
 		player = createUserPlayer();
+		player->initPos(MapCoord(0, 0), MapCoord(0, 1));
 		player->setRole( 1 );
+
 
 		DevFrame* frame = WidgetUtility::createDevFrame();
 		frame->addButton( UI_WORLD_EDITOR , "World Edit" );
@@ -71,7 +108,6 @@ namespace Rich
 		Player* player = mLevel.createPlayer();
 		PlayerRenderComp* comp = mScene.createComponentT< PlayerRenderComp >( player );
 		player->setController( mUserCtrler );
-		player->changePos( MapCoord(0,0) );
 		return player;
 	}
 

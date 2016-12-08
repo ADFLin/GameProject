@@ -20,7 +20,7 @@ ComEvaluator::ComEvaluator()
 }
 
 
-bool ComEvaluator::evalCommand( SBuffer& buffer , ComConnection* con )
+bool ComEvaluator::evalCommand( SocketBuffer& buffer , int group , void* userData )
 {
 	if ( !buffer.getAvailableSize() )
 		return false;
@@ -42,9 +42,10 @@ bool ComEvaluator::evalCommand( SBuffer& buffer , ComConnection* con )
 			throw ComException( "Can't find com" );
 
 		cp.reset( factory->createCom() );
-		cp->mConnection = con;
+		cp->mGroup = group;
+		cp->mUserData = userData;
 
-		if ( !takeBuffer( cp.get() , buffer )  )
+		if ( !TakeBuffer( buffer , cp.get() )  )
 			return false;
 
 		if ( factory->workerFunSocket )
@@ -76,7 +77,7 @@ bool ComEvaluator::evalCommand( SBuffer& buffer , ComConnection* con )
 }
 
 
-void ComEvaluator::execCommand( IComPacket* cp )
+void ComEvaluator::execCommand( IComPacket* cp , int group , void* userData )
 {
 	ICPFactory* factory = findFactory( cp->getID() );
 
@@ -86,7 +87,9 @@ void ComEvaluator::execCommand( IComPacket* cp )
 		return;
 	}
 
-	cp->mConnection = NULL;
+	cp->mGroup = group;
+	cp->mUserData = userData;
+
 	if ( factory->userFun )
 		( factory->userFun )( cp );
 
@@ -111,7 +114,7 @@ ComEvaluator::ICPFactory* ComEvaluator::findFactory( ComID com )
 	return NULL;
 }
 
-unsigned ComEvaluator::fillBuffer( IComPacket* cp , SBuffer& buffer )
+unsigned ComEvaluator::FillBuffer( SocketBuffer& buffer , IComPacket* cp )
 {
 	size_t oldSize = buffer.getFillSize();	
 	unsigned size = 0;
@@ -136,7 +139,7 @@ unsigned ComEvaluator::fillBuffer( IComPacket* cp , SBuffer& buffer )
 	return size;
 }
 
-bool ComEvaluator::takeBuffer( IComPacket* cp , SBuffer& buffer )
+bool ComEvaluator::TakeBuffer( SocketBuffer& buffer , IComPacket* cp )
 {
 	unsigned takeSize;
 	buffer.take( takeSize );
@@ -236,12 +239,12 @@ void ComEvaluator::removeProcesserFun( void* processer )
 	}
 }
 
-void IComPacket::fillBuffer( SBuffer& buffer )
+void IComPacket::fillBuffer( SocketBuffer& buffer )
 {
 	doFill( buffer );
 }
 
-void IComPacket::takeBuffer( SBuffer& buffer )
+void IComPacket::takeBuffer( SocketBuffer& buffer )
 {
 	doTake( buffer );
 }

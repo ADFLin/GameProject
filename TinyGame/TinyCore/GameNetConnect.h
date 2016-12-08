@@ -2,7 +2,7 @@
 #define GameNetConnect_h__
 
 #include "Thread.h"
-#include "TSocket.h"
+#include "NetSocket.h"
 #include "SocketBuffer.h"
 #include "IntegerType.h"
 #include <deque>
@@ -47,18 +47,18 @@ enum ConBufferOperation
 class ConListener
 {
 public:
-	virtual void onExcept( NetConnection* con ){}
+	virtual void onConnectExcept( NetConnection* con ){}
 	//TCP Server
-	virtual void onAccpetClient( NetConnection* con ){}
+	virtual void onConnectAccpet( NetConnection* con ){}
 	//TCP Client
-	virtual void onConnectFailed( NetConnection* con ){}
-	virtual void onConnect( NetConnection* con ){}
-	virtual void onClose( NetConnection* con , ConCloseReason reason ){}
+	virtual void onConnectFail( NetConnection* con ){}
+	virtual void onConnectOpen( NetConnection* con ){}
+	virtual void onConnectClose( NetConnection* con , ConCloseReason reason ){}
 
 	//UDP Server/Client
 	virtual void onSendData( NetConnection* con ){}
 	//UDP & TCP
-	virtual bool onRecvData( NetConnection* con , SBuffer& buffer , NetAddress* addr  = NULL ){ return true; }
+	virtual bool onRecvData( NetConnection* con , SocketBuffer& buffer , NetAddress* addr  = NULL ){ return true; }
 };
 
 class NetBufferCtrl 
@@ -66,15 +66,15 @@ class NetBufferCtrl
 public:
 	NetBufferCtrl( int size ): mBuffer( size ){}
 
-	SBuffer& getBuffer(){ return mBuffer; }
+	SocketBuffer& getBuffer(){ return mBuffer; }
 	void     clear();
-	TLockedObject< SBuffer >::Param lockBuffer(){ return TLockedObject< SBuffer >::Param( mBuffer , &mMutexBuffer ); }
-	void     fillBuffer( SBuffer& buffer , unsigned num );
+	auto     lockBuffer(){ return MakeLockedObjectHandle( mBuffer , &mMutexBuffer ); }
+	void     fillBuffer( SocketBuffer& buffer , unsigned num );
 
-	bool     sendData( TSocket& socket , NetAddress* addr = NULL );
-	bool     recvData( TSocket& socket , int len , NetAddress* addr = NULL );
-	
-	SBuffer  mBuffer;
+	bool     sendData( NetSocket& socket , NetAddress* addr = NULL );
+	bool     recvData( NetSocket& socket , int len , NetAddress* addr = NULL );
+private:
+	SocketBuffer  mBuffer;
 	DEFINE_MUTEX( mMutexBuffer )
 };
 
@@ -86,7 +86,7 @@ public:
 
 	void          setListener( ConListener* listener ){ mListener = listener; }
 	ConListener*  getListener(){ return mListener; }
-	TSocket&      getSocket()  { return mSocket; }
+	NetSocket&    getSocket()  { return mSocket; }
 
 	void          recvData( NetBufferCtrl& bufCtrl , int len , NetAddress* addr );
 	void          close();
@@ -99,11 +99,11 @@ protected:
 	virtual void  doUpdateSocket( long time ){}
 
 	//SocketDetector
-	virtual void onReadable( TSocket& socket , int len ){ assert(0); }
-	virtual void onSendable( TSocket& socket ){ assert(0); }
+	virtual void onReadable( NetSocket& socket , int len ){ assert(0); }
+	virtual void onSendable( NetSocket& socket ){ assert(0); }
 
 	void    resolveExcept();
-	TSocket       mSocket;
+	NetSocket     mSocket;
 	ConListener*  mListener;
 	long          mLastRespondTime;
 };
@@ -122,8 +122,8 @@ class UdpChain
 {
 public:
 	UdpChain();
-	bool sendPacket( long time , TSocket& socket , SBuffer& buffer , NetAddress& addr );
-	bool readPacket( SBuffer& buffer , unsigned& readSize );
+	bool sendPacket( long time , NetSocket& socket , SocketBuffer& buffer , NetAddress& addr );
+	bool readPacket( SocketBuffer& buffer , unsigned& readSize );
 
 private:
 	UdpChain( UdpChain const& );
@@ -143,8 +143,8 @@ private:
 	long    mTimeLastUpdate;
 	long    mTimeResendRel;
 
-	SBuffer mBufferCache;
-	SBuffer mBufferRel;
+	SocketBuffer mBufferCache;
+	SocketBuffer mBufferRel;
 	uint32  mIncomingAck;
 	uint32  mOutgoingSeq;
 	uint32  mOutgoingAck;
@@ -163,7 +163,7 @@ public:
 	UdpConnection( int recvSize );
 
 	void doUpdateSocket( long time ){   mSocket.detectUDP( *this );  }
-	void onReadable( TSocket& socket , int len );
+	void onReadable( NetSocket& socket , int len );
 
 protected:
 	NetBufferCtrl    mRecvCtrl;
@@ -175,7 +175,7 @@ public:
 	TcpConnection(){}
 	bool isConnected(){ return mSocket.getState() == SKS_CONNECT; }
 	void doUpdateSocket( long time ){  mSocket.detectTCP( *this );  }
-	void onExcept( TSocket& socket ){ resolveExcept(); }
+	void onExcept( NetSocket& socket ){ resolveExcept(); }
 };
 
 
@@ -189,14 +189,18 @@ public:
 		,mRecvCtrl( recvSize ){}
 
 	void connect( char const* addrName , unsigned port );
+	void clearBuffer();
 
-	virtual void onConnect(TSocket& socket);
-	virtual void onConnectFailed(TSocket& socket);
-	virtual void onClose(TSocket& socket , bool beGraceful );
+	virtual void onConnect(NetSocket& socket);
+	virtual void onConnectFailed(NetSocket& socket);
+	virtual void onClose(NetSocket& socket , bool beGraceful );
 
-	virtual void onSendable( TSocket& socket );
-	virtual void onReadable( TSocket& socket , int len );
+	virtual void onSendable( NetSocket& socket );
+	virtual void onReadable( NetSocket& socket , int len );
 
+	NetBufferCtrl& getRecvCtrl() { return mRecvCtrl;  }
+
+private:
 	NetBufferCtrl mRecvCtrl;
 };
 
@@ -212,15 +216,11 @@ public:
 		mNetTime = time;
 		UdpConnection::doUpdateSocket( time );
 	}
-	void onSendable( TSocket& socket );
-	void onReadable( TSocket& socket , int len );
+	void onSendable( NetSocket& socket );
+	void onReadable( NetSocket& socket , int len );
 	NetAddress const& getServerAddress(){ return mServerAddr; }
-	bool sendData( TSocket& socket )
-	{
-		TLockedObject< SBuffer > buffer = mSendCtrl.lockBuffer();
-		MUTEX_LOCK( mSendCtrl.mMutexBuffer );
-		return mChain.sendPacket( mNetTime , socket , *buffer , mServerAddr );
-	}
+	bool sendData( NetSocket& socket );
+	void clearBuffer();
 
 	operator UdpChain&(){ return mChain; } 
 
@@ -230,9 +230,6 @@ protected:
 	UdpChain   mChain;
 };
 
-
-
-
 class TcpServer : public TcpConnection
 	            , public ServerBase
 {
@@ -241,18 +238,15 @@ public:
 	{
 		if ( !mSocket.listen( port , 10 ) )
 			throw SocketException( "Can't Listen Socket" );
-
 	}
 
-	virtual void onAcceptable(TSocket& socket);
+	virtual void onAcceptable(NetSocket& socket);
 
 	class Client : public TcpClient
 	{
 	public:
 		Client():TcpClient( TSC_RECV_BUFSZE , TSC_SEND_BUFSZE ){}
 	};
-
-
 };
 
 
@@ -273,13 +267,19 @@ public:
 		Client():mSendCtrl( USC_SEND_BUFSIZE){}
 		NetBufferCtrl&  getSendCtrl(){ return mSendCtrl; }
 
-		bool processSendData( long time , TSocket& socket , NetAddress& addr )
+		bool processSendData( long time , NetSocket& socket , NetAddress& addr )
 		{
-			MUTEX_LOCK( mSendCtrl.mMutexBuffer );
-			return mChain.sendPacket( time , socket , mSendCtrl.getBuffer() , addr );
+			TLockedObject< SocketBuffer > buffer = mSendCtrl.lockBuffer();
+			return mChain.sendPacket( time , socket , *buffer , addr );
 		}
 
 		operator UdpChain&(){ return mChain; } 
+
+		void clearBuffer()
+		{
+			TLockedObject< SocketBuffer > buffer = mSendCtrl.lockBuffer();
+			buffer->clear();
+		}
 
 	private:
 		NetBufferCtrl   mSendCtrl;
@@ -291,7 +291,7 @@ public:
 		client.processSendData( time , getSocket() ,  addr );
 	}
 protected:
-	virtual void onSendable( TSocket& socket );
+	virtual void onSendable( NetSocket& socket );
 	unsigned        mPort;
 };
 

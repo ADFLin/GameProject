@@ -1,19 +1,23 @@
-#ifndef TSocket_h__
-#define TSocket_h__
+#ifndef NetSocket_h__
+#define NetSocket_h__
 
+#include "PlatformConfig.h"
 
+#if SYS_PLATFORM_WIN
 #define  NOMINMAX
 #include <WinSock.h>
 #pragma comment(lib, "wsock32.lib")
-
 #include <Windows.h>
+#else
+#error "NetSockt not supported"
+#endif
 #include <exception>
 
 #define NET_INIT_OK 0
 
 extern WORD  g_sockVersion;
 
-class TSocket;
+class NetSocket;
 
 
 class SocketDetector
@@ -22,16 +26,16 @@ public:
 	virtual ~SocketDetector(){}
 
 
-	virtual void onExcept(TSocket& socket){}
+	virtual void onExcept(NetSocket& socket){}
 
 	// server
-	virtual void onAcceptable(TSocket& socket){}
+	virtual void onAcceptable(NetSocket& socket){}
 	// client
-	virtual void onConnect(TSocket& socket){}
-	virtual void onConnectFailed(TSocket& socket){}
-	virtual void onClose(TSocket& socket , bool beGraceful ){}
-	virtual void onReadable(TSocket& socket , int len ){}
-	virtual void onSendable(TSocket& socket){}
+	virtual void onConnect(NetSocket& socket){}
+	virtual void onConnectFailed(NetSocket& socket){}
+	virtual void onClose(NetSocket& socket , bool beGraceful ){}
+	virtual void onReadable(NetSocket& socket , int len ){}
+	virtual void onSendable(NetSocket& socket){}
 };
 
 
@@ -41,7 +45,7 @@ public:
 	NetAddress(){}
 	explicit NetAddress( sockaddr_in const& addr ){ mAddr = addr; }
 
-	bool setFromSocket( TSocket const& socket );
+	bool setFromSocket( NetSocket const& socket );
 	bool setInternet( char const* addrName , unsigned port );
 	void setBroadcast( unsigned port );
 	char const* getIP() const
@@ -80,7 +84,7 @@ public:
 
 
 private:
-	friend class TSocket;
+	friend class NetSocket;
 	sockaddr_in mAddr;
 };
 
@@ -154,14 +158,14 @@ public:
 	SOCKET       mSocketHandle;
 };
 
-class TSocket
+class NetSocket
 {
 public:
-	TSocket();
-	explicit TSocket( SOCKET hSocket )
+	NetSocket();
+	explicit NetSocket( SOCKET hSocket )
 		:mSocketObj( hSocket ){}
 
-	~TSocket();
+	~NetSocket();
 
 	SocketState getState(){ return mState; }
 
@@ -174,7 +178,7 @@ public:
 	bool bindPort( unsigned port );
 	int  getLastError();
 
-	void move( TSocket& socket );
+	void move( NetSocket& socket );
 public:	// TCP
 	bool createTCP( bool beNB );
 	bool detectTCP( SocketDetector& detector );
@@ -183,10 +187,11 @@ public:	// TCP
 	bool listen( unsigned port , int maxWaitClient );
 	bool connect( NetAddress const& addr );
 	bool connect( char const* addrName , unsigned port );
-	bool accept( TSocket& clinetSocket , sockaddr* addr , int addrLength ) const;
+
+	bool accept(NetSocket& clientSocket , NetAddress& address );
+	bool accept(NetSocket& clientSocket, sockaddr* addr, int addrLength);
+
 	int  recvData( char* data , size_t maxNum );
-
-
 	int  sendData( char const* data , size_t num );
 
 public: 	//UDP
@@ -208,10 +213,11 @@ public: 	//UDP
 	}
 	void   close();
 
+	SOCKET getSocketObject() const { return mSocketObj; }
 protected:
 
 	friend class NetAddress;
-	SOCKET getSocketObject() const { return mSocketObj; }
+	
 	static char const* getIPByName( char const* AddrName );
 
 private:
@@ -228,5 +234,4 @@ public:
 	{}
 };
 
-
-#endif // TSocket_h__
+#endif // NetSocket_h__

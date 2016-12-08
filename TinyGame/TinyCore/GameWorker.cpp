@@ -50,11 +50,19 @@ NetWorker::~NetWorker()
 		mUdpComList.clear();
 	}
 	mSocketThread.stop();
-	TSocket::exitSystem();
+	NetSocket::exitSystem();
+}
+
+uint32 gSocketThreadId = 0;
+bool IsInSocketThread()
+{
+	return gSocketThreadId == PlatformThread::GetCurrentThreadId();
 }
 
 void NetWorker::procSocketThread()
 {
+	gSocketThreadId = PlatformThread::GetCurrentThreadId();
+
 	mNetRunningTime = 0;
 	long beforeTime = ::GetTickCount();
 
@@ -95,7 +103,7 @@ bool NetWorker::startNetwork()
 {
 	try 
 	{
-		if ( !TSocket::initSystem() )
+		if ( !NetSocket::initSystem() )
 			return false;
 
 		if ( !doStartNetwork() )
@@ -114,8 +122,6 @@ bool NetWorker::startNetwork()
 	return true;
 }
 
-
-
 void NetWorker::closeNetwork()
 {
 	MUTEX_LOCK( mMutexUdpComList );
@@ -124,10 +130,10 @@ void NetWorker::closeNetwork()
 	mSocketThread.stop();
 	doCloseNetwork();
 
-	TSocket::exitSystem();
+	NetSocket::exitSystem();
 }
 
-void NetWorker::sendUdpCom( TSocket& socket )
+void NetWorker::sendUdpCom( NetSocket& socket )
 {
 	MUTEX_LOCK( mMutexUdpComList );
 	UdpComList::iterator iter = mUdpComList.begin();
@@ -163,10 +169,10 @@ bool NetWorker::addUdpCom( IComPacket* cp , NetAddress const& addr )
 	try
 	{
 		MUTEX_LOCK( mMutexUdpComList );
-		size_t fSize = ComEvaluator::fillBuffer( cp , mUdpSendBuffer );
+		size_t fillSize = ComEvaluator::FillBuffer( mUdpSendBuffer , cp );
 		UdpCom uc;
 		uc.addr     = addr;
-		uc.dataSize = fSize;
+		uc.dataSize = fillSize;
 		mUdpComList.push_back( uc );
 	}
 	catch ( ... )
@@ -178,7 +184,8 @@ bool NetWorker::addUdpCom( IComPacket* cp , NetAddress const& addr )
 }
 
 
-bool EvalCommand( UdpChain& chain , ComEvaluator& evaluator , SBuffer& buffer , ComConnection* con /*= NULL */)
+
+bool EvalCommand( UdpChain& chain , ComEvaluator& evaluator , SocketBuffer& buffer , int group , void* userData )
 {
 	unsigned size;
 	while( chain.readPacket( buffer , size ) )
@@ -190,7 +197,7 @@ bool EvalCommand( UdpChain& chain , ComEvaluator& evaluator , SBuffer& buffer , 
 
 		do
 		{
-			if ( !evaluator.evalCommand( buffer , con ) )
+			if ( !evaluator.evalCommand( buffer , group , userData ) )
 			{
 				::Msg( "readPacket Error Need Fix" );
 				return false;
@@ -207,11 +214,11 @@ bool EvalCommand( UdpChain& chain , ComEvaluator& evaluator , SBuffer& buffer , 
 
 unsigned FillBufferFromCom(NetBufferCtrl& bufferCtrl , IComPacket* cp)
 {
-	TLockedObject< SBuffer > buffer = bufferCtrl.lockBuffer();
+	TLockedObject< SocketBuffer > buffer = bufferCtrl.lockBuffer();
 	return FillBufferFromCom( *buffer , cp );
 }
 
-unsigned FillBufferFromCom( SBuffer& buffer , IComPacket* cp )
+unsigned FillBufferFromCom( SocketBuffer& buffer , IComPacket* cp )
 {
 	assert( cp );
 
@@ -222,7 +229,7 @@ unsigned FillBufferFromCom( SBuffer& buffer , IComPacket* cp )
 	{
 		try
 		{
-			result = ComEvaluator::fillBuffer( cp , buffer );
+			result = ComEvaluator::FillBuffer( buffer , cp );
 			done = true;
 		}
 		catch ( BufferException& e )

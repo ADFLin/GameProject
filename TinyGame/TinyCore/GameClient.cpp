@@ -5,9 +5,8 @@
 #include "GameNetPacket.h"
 
 
-ClientWorker::ClientWorker( UserProfile& profile )
+ClientWorker::ClientWorker()
 	:NetWorker()
-	,mUserProfile( profile )
 	,mCalculator( 300 )
 	,mClientListener(NULL)
 {
@@ -32,17 +31,17 @@ bool ClientWorker::doStartNetwork()
 #define COM_THIS_PACKET_SET( Class , Fun )\
 	COM_PACKET_SET( Class , this , &ClientWorker::##Fun , NULL )
 
-#define COM_THIS_PACKET_SET2( Class , Fun , SocketFun )\
+#define COM_THIS_PACKET_SET_2( Class , Fun , SocketFun )\
 	COM_PACKET_SET( Class , this , &ClientWorker::##Fun , &ClientWorker::##SocketFun )
 
 	COM_THIS_PACKET_SET ( SPConSetting , procConSetting )
 	COM_THIS_PACKET_SET ( SPPlayerStatus , procPlayerStatus )
 	COM_THIS_PACKET_SET ( CSPPlayerState , procPlayerState )
-	COM_THIS_PACKET_SET2( CSPClockSynd  , procClockSynd  , procClockSyndNet )
+	COM_THIS_PACKET_SET_2( CSPClockSynd  , procClockSynd  , procClockSyndNet )
 
 #undef  COM_PACKET_SET
 #undef  COM_THIS_PACKET_SET
-#undef  COM_THIS_PACKET_SET2
+#undef  COM_THIS_PACKET_SET_2
 	return true;
 }
 
@@ -74,7 +73,7 @@ void ClientWorker::postChangeState( NetActionState oldState )
 		mNetListener->onChangeActionState( getActionState() );
 }
 
-void ClientWorker::onConnect( NetConnection* con )
+void ClientWorker::onConnectOpen( NetConnection* con )
 {
 	assert( con == &mTcpClient );
 	try 
@@ -86,7 +85,7 @@ void ClientWorker::onConnect( NetConnection* con )
 
 		CPLogin com;
 		com.id   = mSessoionId;
-		com.name = mUserProfile.name;
+		com.name = mLoginName;
 		
 		sendTcpCommand( &com );
 
@@ -101,7 +100,7 @@ void ClientWorker::onConnect( NetConnection* con )
 	}
 }
 
-void ClientWorker::onClose( NetConnection* con , ConCloseReason reason )
+void ClientWorker::onConnectClose( NetConnection* con , ConCloseReason reason )
 {
 	assert( con == &mTcpClient );
 
@@ -112,7 +111,7 @@ void ClientWorker::onClose( NetConnection* con , ConCloseReason reason )
 	}
 }
 
-bool ClientWorker::onRecvData( NetConnection* con , SBuffer& buffer , NetAddress* clientAddr  )
+bool ClientWorker::onRecvData( NetConnection* con , SocketBuffer& buffer , NetAddress* clientAddr  )
 {
 	if ( clientAddr )
 	{
@@ -146,13 +145,13 @@ bool ClientWorker::onRecvData( NetConnection* con , SBuffer& buffer , NetAddress
 	}
 }
 
-void ClientWorker::onConnectFailed( NetConnection* con )
+void ClientWorker::onConnectFail( NetConnection* con )
 {
 	if ( mClientListener )
 		mClientListener->onServerEvent( ClientListener::eCON_RESULT , 0 );
 }
 
-void ClientWorker::procClockSyndNet( IComPacket* cp )
+void ClientWorker::procClockSyndNet( IComPacket* cp)
 {
 	CSPClockSynd* com = cp->cast< CSPClockSynd >();
 
@@ -192,7 +191,7 @@ void ClientWorker::procClockSyndNet( IComPacket* cp )
 	}
 }
 
-void ClientWorker::procClockSynd( IComPacket* cp )
+void ClientWorker::procClockSynd( IComPacket* cp)
 {
 	CSPClockSynd* com = cp->cast< CSPClockSynd >();
 
@@ -211,13 +210,13 @@ void ClientWorker::procClockSynd( IComPacket* cp )
 }
 
 
-void ClientWorker::procPlayerStatus( IComPacket* cp )
+void ClientWorker::procPlayerStatus( IComPacket* cp)
 {
 	SPPlayerStatus* com = cp->cast< SPPlayerStatus >();
 	mPlayerManager->updatePlayer( com->info , com->numPlayer );
 }
 
-void ClientWorker::procPlayerState( IComPacket* cp )
+void ClientWorker::procPlayerState( IComPacket* cp)
 {
 	CSPPlayerState* com = cp->cast< CSPPlayerState >();
 
@@ -239,6 +238,8 @@ void ClientWorker::procPlayerState( IComPacket* cp )
 		if ( com->playerID == getPlayerManager()->getUserID() || 
 			 com->playerID == ERROR_PLAYER_ID )
 		{
+			if ( mClientListener )
+				mClientListener->onServerEvent(ClientListener::eCON_CLOSE, CCR_SHUTDOWN);
 			closeNetwork();
 		}
 		break;
@@ -251,7 +252,7 @@ void ClientWorker::procPlayerState( IComPacket* cp )
 	}
 }
 
-void ClientWorker::procConSetting( IComPacket* cp )
+void ClientWorker::procConSetting( IComPacket* cp)
 {
 	SPConSetting* com = cp->cast< SPConSetting >();
 	if ( com->result == SPConSetting::eNEW_CON )
@@ -275,10 +276,10 @@ void ClientWorker::sendCommand( int channel , IComPacket* cp , unsigned flag )
 {
 	switch( channel )
 	{
-	case CHANNEL_TCP_CONNECT:
+	case CHANNEL_GAME_NET_TCP:
 		FillBufferFromCom( mTcpClient.getSendCtrl() , cp );
 		break;
-	case CHANNEL_UDP_CHAIN:
+	case CHANNEL_GAME_NET_UDP_CHAIN:
 		FillBufferFromCom( mUdpClient.getSendCtrl() , cp );
 		break;
 	}	
@@ -310,8 +311,12 @@ void ClientWorker::doUpdate( long time )
 	BaseClass::doUpdate( time ); 
 }
 
-void ClientWorker::connect( char const* hostName )
+void ClientWorker::connect( char const* hostName , char const* loginName )
 {
+	if( loginName )
+		mLoginName = loginName;
+	else
+		mLoginName = "Player";
 	mTcpClient.connect( hostName , TG_TCP_PORT );
 }
 
@@ -350,8 +355,8 @@ void CLPlayerManager::updatePlayer( PlayerInfo* info[] , int num )
 
 
 
-DelayClientWorker::DelayClientWorker( UserProfile& profile ) 
-	:ClientWorker( profile )
+DelayClientWorker::DelayClientWorker() 
+	:ClientWorker()
 	,mSDCTcp( mTcpClient.getSendCtrl() )
 	,mSDCUdp( mUdpClient.getSendCtrl() )
 	,mRDCTcp( 10240 )
@@ -362,20 +367,25 @@ DelayClientWorker::DelayClientWorker( UserProfile& profile )
 }
 
 
+DelayClientWorker::~DelayClientWorker()
+{
+
+}
+
 void DelayClientWorker::sendCommand( int channel , IComPacket* cp , unsigned flag )
 {
 	switch( channel )
 	{
-	case CHANNEL_TCP_CONNECT:
+	case CHANNEL_GAME_NET_TCP:
 		mSDCTcp.add( cp );
 		break;
-	case CHANNEL_UDP_CHAIN:
+	case CHANNEL_GAME_NET_UDP_CHAIN:
 		mSDCUdp.add( cp );
 		break;
 	}	
 }
 
-bool DelayClientWorker::onRecvData( NetConnection* con , SBuffer& buffer , NetAddress* clientAddr )
+bool DelayClientWorker::onRecvData( NetConnection* con , SocketBuffer& buffer , NetAddress* clientAddr )
 {
 	if ( clientAddr )
 	{
@@ -491,7 +501,7 @@ void RecvDelayCtrl::update( long time , UdpClient& client , ComEvaluator& evalua
 		{
 			if ( iter->isUdpPacket )
 			{
-				EvalCommand( client , evaluator , mBuffer );
+				EvalCommand( client , evaluator , mBuffer , -1 );
 			}
 			else
 			{
@@ -519,7 +529,7 @@ void RecvDelayCtrl::update( long time , UdpClient& client , ComEvaluator& evalua
 	}
 }
 
-bool RecvDelayCtrl::add( SBuffer& buffer , bool isUdpPacket )
+bool RecvDelayCtrl::add( SocketBuffer& buffer , bool isUdpPacket )
 {
 	RecvInfo info;
 

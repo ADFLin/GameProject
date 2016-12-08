@@ -14,18 +14,6 @@ namespace CAR
 {
 	int const DefaultActorMaskNum = 3;
 
-	template< class T >
-	bool AddUnique( std::vector< T >& v , T const& val )
-	{
-		for( int i = 0 ; i < v.size() ; ++i )
-		{
-			if ( v[i] == val )
-				return false;
-		}
-		v.push_back( val );
-		return true;
-	}
-
 	int FeatureBase::getActorPutInfoInternal(int playerId , ActorPos const& actorPos , unsigned actorMasks[] , int numMask , std::vector< ActorPosInfo >& outInfo)
 	{
 		unsigned actorTypeMask = 0;
@@ -428,7 +416,7 @@ namespace CAR
 	{
 		BaseClass::addNode( mapData , dirMask , linkNode );
 
-		if ( mSetting->haveUse( EXP_INNS_AND_CATHEDRALS) )
+		if ( mSetting->haveRule( Rule::eInn ) )
 		{
 			unsigned mask = dirMask;
 			int dir;
@@ -453,7 +441,7 @@ namespace CAR
 		int numTile = mapTiles.size();
 
 		int factor = Value::NonCompleteFactor;
-		if ( mSetting->haveUse( EXP_INNS_AND_CATHEDRALS ) && haveInn )
+		if ( mSetting->haveRule( Rule::eInn ) && haveInn )
 		{
 			if ( checkComplete() )
 				factor += Value::InnAddtitionFactor;
@@ -499,7 +487,7 @@ namespace CAR
 	{
 		BaseClass::addNode( mapData , dirMask , linkNode );
 
-		if ( mSetting->haveUse( EXP_INNS_AND_CATHEDRALS) )
+		if ( mSetting->haveRule( Rule::eCathedral ) )
 		{
 			if ( mapData.getTileContent() & TileContent::eCathedral )
 			{
@@ -518,7 +506,7 @@ namespace CAR
 		int numTile = mapTiles.size();
 		int factor = Value::NonCompleteFactor;
 		int pennatFactor = Value::PennatNonCompletFactor;
-		if ( mSetting->haveUse( EXP_INNS_AND_CATHEDRALS ) && haveCathedral )
+		if ( mSetting->haveRule(Rule::eCathedral) && haveCathedral )
 		{
 			if ( checkComplete() )
 			{
@@ -660,7 +648,7 @@ namespace CAR
 			}
 		}
 
-		if ( mSetting->haveUse( EXP_TRADERS_AND_BUILDERS ) )
+		if ( mSetting->haveRule(Rule::ePig) )
 		{
 			if ( havePlayerActor( playerId , ActorType::ePig ) )
 				factor += Value::PigAdditionFactor;

@@ -19,4 +19,16 @@
 
 #define F_INLINE __forceinline
 
+#define CONCATENATE_DIRECT(s1, s2) s1##s2
+#define CONCATENATE(s1, s2) CONCATENATE_DIRECT(s1, s2)
+
+#ifndef SINGLE_THREAD
+#define DEFINE_MUTEX( MUTEX ) Mutex MUTEX;
+#define MUTEX_LOCK( MUTEX ) Mutex::Locker CONCATENATE( locker , __LINE__ )( MUTEX );
+#else
+#define DEFINE_MUTEX( MUTEX )
+#define MUTEX_LOCK( MUTEX ) 
+#endif
+
+
 #endif // GameConfig_h__

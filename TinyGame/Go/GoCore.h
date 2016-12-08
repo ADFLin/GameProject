@@ -4,7 +4,7 @@
 #include <list>
 #include <vector>
 
-class SBuffer;
+class SocketBuffer;
 
 namespace Go
 {
@@ -122,6 +122,8 @@ namespace Go
 		void    pass();
 		void    undo();
 		
+		DataType getNextPlayColor() { return mNextPlayColor; }
+		DataType getFristPlayColor() { return mNextPlayColor; }
 		Board const& getBoard() const { return mBoard; }
 
 		int     getBlackRemovedNum() const { return mNumBlackRemoved; }
@@ -159,8 +161,8 @@ namespace Go
 		typedef std::vector< StepInfo > StepVec;
 		StepVec   mStepVec;
 
-		void takeData( SBuffer& buffer );
-		bool restoreData( SBuffer& buffer );
+		void takeData( SocketBuffer& buffer );
+		bool restoreData( SocketBuffer& buffer );
 		
 	};
 

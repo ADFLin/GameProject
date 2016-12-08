@@ -100,9 +100,6 @@
     <ClCompile Include="SocketBuffer.cpp">
       <Filter>Net</Filter>
     </ClCompile>
-    <ClCompile Include="TSocket.cpp">
-      <Filter>Net</Filter>
-    </ClCompile>
     <ClCompile Include="BitmapDC.cpp">
       <Filter>Platform</Filter>
     </ClCompile>
@@ -159,6 +156,9 @@
     </ClCompile>
     <ClCompile Include="TileRegion.cpp">
       <Filter>Algo\AStar</Filter>
+    </ClCompile>
+    <ClCompile Include="NetSocket.cpp">
+      <Filter>Net</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -280,9 +280,6 @@
       <Filter>Utility</Filter>
     </ClInclude>
     <ClInclude Include="SocketBuffer.h">
-      <Filter>Net</Filter>
-    </ClInclude>
-    <ClInclude Include="TSocket.h">
       <Filter>Net</Filter>
     </ClInclude>
     <ClInclude Include="CHandle.h">
@@ -479,6 +476,9 @@
     </ClInclude>
     <ClInclude Include="TQuadTreeTile.h">
       <Filter>Algo\AStar</Filter>
+    </ClInclude>
+    <ClInclude Include="NetSocket.h">
+      <Filter>Net</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

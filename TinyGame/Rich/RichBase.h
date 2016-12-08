@@ -107,19 +107,21 @@ namespace Rich
 		virtual void turnTick(){}
 		virtual void onMeet( Actor const& other , bool beStay ){}
 
+
 		MapCoord const& getPos() const { return mPos; }
 		MapCoord const& getPrevPos() const { return mPosPrev; }
-		ActorId        getId() const { return mId; }
+		ActorId         getId() const { return mId; }
 
 		void move( Tile& tile , bool beStay );
 	protected:
+
 		friend class Tile;
 		HookNode   tileHook;
 		friend class Level;
 		HookNode   levelHook;
 		ActorId    mId;
-		MapCoord  mPos;
-		MapCoord  mPosPrev;
+		MapCoord   mPos;
+		MapCoord   mPosPrev;
 	};
 
 	class CellVisitor;

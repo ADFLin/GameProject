@@ -159,7 +159,7 @@ namespace TowerDefend
 	};
 
 	class Level : public World
-		        , public ActionEnumer
+		        , public IActionLanucher
 
 	{
 	public:

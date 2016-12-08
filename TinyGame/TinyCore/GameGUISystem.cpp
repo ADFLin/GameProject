@@ -9,8 +9,11 @@
 
 GUISystem::GUISystem()
 {
-	mStageManager = NULL;
-	mSkipRender   = false;
+	mGuiDelegate  = nullptr;
+	mHideWidgets  = false;
+	mbSkipCharEvent = false;
+	mbSkipKeyEvent  = false;
+	mbSkipMouseEvent = false;
 }
 
 bool GUISystem::init(IGUIDelegate&  guiDelegate)
@@ -118,6 +121,27 @@ void GUISystem::updateFrame( int frame , long tickTime )
 	mTweener.update( frame * tickTime );
 }
 
+bool GUISystem::procMouseMsg(MouseMsg const& msg)
+{
+	if( mHideWidgets || mbSkipMouseEvent )
+		return true;
+	return getManager().procMouseMsg(msg);
+}
+
+bool GUISystem::procKeyMsg(unsigned key, bool isDown)
+{
+	if( mHideWidgets || mbSkipKeyEvent )
+		return true;
+	return getManager().procKeyMsg(key, isDown);
+}
+
+bool GUISystem::procCharMsg(unsigned code)
+{
+	if( mHideWidgets || mbSkipCharEvent )
+		return true;
+	return getManager().procCharMsg(code);
+}
+
 void GUISystem::addWidget( GWidget* widget )
 {
 	mUIManager.addUI( widget );
@@ -131,7 +155,7 @@ void GUISystem::cleanupWidget()
 
 void GUISystem::render()
 {
-	if ( mSkipRender )
+	if ( mHideWidgets )
 		return;
 
 	mUIManager.render();

@@ -35,4 +35,20 @@ else
 #	define SYS_PLATFORM_FREEBSD 0
 #endif
 
+
+#if SYS_PLATFORM_WIN
+#	if defined( _WIN64 )
+#		define TARGET_PLATFORM_64BITS					1
+#	else
+#		define TARGET_PLATFORM_64BITS					0
+#	endif
+#elif SYS_PLATFORM_LINUX
+#	if defined(_LINUX64) || defined(_LP64)
+#		define TARGET_PLATFORM_64BITS					1
+#	else
+#		define TARGET_PLATFORM_64BITS					0
+#	endif
+#endif
+
+
 #endif // PlatformConfig_h__

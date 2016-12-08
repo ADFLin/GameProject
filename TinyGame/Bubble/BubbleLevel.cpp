@@ -50,8 +50,8 @@ namespace Bubble
 		int num = mNumLayer * mNumCellLayer;
 		mNumCellData = num;
 
-		mIndexPopCell  = new short[ num ];
-		mIndexFallCell = new short[ num ];
+		mIndexPopCell  = new short[ 2 * num ];
+		mIndexFallCell = mIndexPopCell + num;
 		mColFlag       = new unsigned char[ num ];
 
 		mCellData = new BubbleCell[ num ];
@@ -95,8 +95,8 @@ namespace Bubble
 		mCellData = NULL;
 		delete [] mIndexPopCell;
 		mIndexPopCell = NULL;
-		delete [] mIndexFallCell;
 		mIndexFallCell = NULL;
+
 		delete [] mColFlag;
 		mColFlag = NULL;
 

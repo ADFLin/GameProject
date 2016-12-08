@@ -26,7 +26,7 @@ namespace Rich
 
 	static Tool* gToolMap[ TOOL_NUM ];
 
-	void Tool::init()
+	void Tool::Initialize()
 	{
 		for ( int i = 0 ; i < TOOL_NUM ; ++i )
 			gToolMap[i] = nullptr;
@@ -34,7 +34,7 @@ namespace Rich
 		gToolMap[ TOOL_ROADBLOCK ] = new RomateDice;
 	}
 
-	void Tool::release()
+	void Tool::Release()
 	{
 		for ( int i = 0 ; i < TOOL_NUM ; ++i )
 		{

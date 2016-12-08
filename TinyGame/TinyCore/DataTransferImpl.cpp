@@ -32,7 +32,7 @@ void CWorkerDataTransfer::sendData( int recvId , int dataId , void* data , int n
 	sendTcpCommand( recvId , &mStream );
 }
 
-void CWorkerDataTransfer::procPacket( IComPacket* cp )
+void CWorkerDataTransfer::procPacket( IComPacket* cp)
 {
 	GDPStream* com = cp->cast< GDPStream >();
 	int slotId;

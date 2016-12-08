@@ -11,6 +11,7 @@
 #       define CPP_STATIC_ASSERT_SUPPORT 1
 #		define CPP_CX11_KEYWORD_SUPPORT 1
 #       define CPP_TR1_SUPPORT 1
+#       define CPP_TYPE_TRAITS_SUPPORT 1
 #	elif ( _MSC_VER >= 1600 ) 
 #		define CPP_CX11_KEYWORD_SUPPORT 1
 #		define CPP_TR1_SUPPORT 1
@@ -43,14 +44,24 @@
 #	define CPP_TR1_SUPPORT 0
 #endif
 
+#ifndef CPP_TYPE_TRAITS_SUPPORT
+#   define CPP_TYPE_TRAITS_SUPPORT 0
+#endif
+
 #if !CPP_CX11_KEYWORD_SUPPORT
 #	define override
 #	define final
 #	define nullptr 0
 #endif
 
-#define NAME_LINE_BIND__( NAME )\
-	NAME##__LINE__
+#define CONCATENATE_DIRECT(s1, s2) s1##s2
+#define CONCATENATE(s1, s2) CONCATENATE_DIRECT(s1, s2)
+
+#ifdef CPP_COMPILER_MSVC
+# define ANONYMOUS_VARIABLE(str) CONCATENATE(str, __COUNTER__)
+#else
+# define ANONYMOUS_VARIABLE(str) CONCATENATE(str, __LINE__)
+#endif 
 
 namespace CppVerPriv
 {
@@ -62,7 +73,7 @@ namespace CppVerPriv
 //TODO
 #if !CPP_STATIC_ASSERT_SUPPORT
 #	define static_assert( EXPR , MSG )\
-	typedef int ( NAME_LINE_BIND__( STATIC_ASSERT_ )[ ::CppVerPriv::StaticAssertSize< EXPR >::Size ] );
+	typedef int ( ANONYMOUS_VARIABLE( STATIC_ASSERT_ )[ ::CppVerPriv::StaticAssertSize< EXPR >::Size ] );
 #endif
 
 

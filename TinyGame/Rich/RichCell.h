@@ -90,7 +90,8 @@ namespace Rich
 
 		char const* getName() const { return mInfo.name.c_str(); }
 
-		void setOwner( Player& player )
+		Player* getOwner() { return mOwner;  }
+		void    setOwner( Player& player )
 		{
 			mOwner = &player;
 		}

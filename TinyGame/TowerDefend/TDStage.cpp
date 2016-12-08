@@ -10,11 +10,14 @@ namespace TowerDefend
 {
 	bool LevelStage::onInit()
 	{ 
+		if( !BaseClass::onInit() )
+			return false;
+
 		Controller& controller = static_cast< Controller& >(
 			getGame()->getController() );
 
 		mLevel = new Level;
-		getActionProcessor().setEnumer( mLevel );
+		getActionProcessor().setLanucher( mLevel );
 		mLevel->setController( &controller );
 
 		mRenderer = new Renderer();

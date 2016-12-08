@@ -5,7 +5,7 @@
 
 namespace Cube
 {
-	StageBase* CGamePackage::createStage( unsigned id )
+	StageBase* GameInstance::createStage( unsigned id )
 	{
 		switch( id )
 		{
@@ -15,21 +15,21 @@ namespace Cube
 		return nullptr;
 	}
 
-	void CGamePackage::beginPlay( StageModeType type, StageManager& manger )
+	void GameInstance::beginPlay( StageModeType type, StageManager& manger )
 	{
-		IGamePackage::beginPlay( type , manger );
+		IGameInstance::beginPlay( type , manger );
 	}
 
-	void CGamePackage::enter()
+	void GameInstance::enter()
 	{
 
 	}
 
-	void CGamePackage::exit()
+	void GameInstance::exit()
 	{
 
 	}
 
 }//namespace Cube
 
-EXPORT_GAME( Cube::CGamePackage )
+EXPORT_GAME( Cube::GameInstance )

@@ -5,12 +5,13 @@
 #include "GameWidgetID.h"
 
 #include "GameRoomUI.h"
-#include "GamePackage.h"
+#include "GameInstance.h"
 #include "GamePackageManager.h"
 
 #include "GameSingleStage.h"
 #include "NetGameStage.h"
 
+#include "StageRegister.h"
 #include "RenderUtility.h"
 #include "Localization.h"
 
@@ -36,95 +37,54 @@
 
 #include <cmath>
 
-class IStageFactory
+#define STAGE_INFO( DECL , CLASS , GROUP )\
+	{ DECL , makeStageFactory< CLASS >() , GROUP } 
+
+bool gbNeedRegisterStage = true;
+
+
+StageInfo gPreRegisterStageGroup[] = 
 {
-public:
-	virtual void* create() = 0;
-};
+	STAGE_INFO( "Misc Test" , MiscTestStage , StageRegisterGroup::GraphicsTest) ,
+	STAGE_INFO( "Cantan Test" , Cantan::LevelStage , StageRegisterGroup::GraphicsTest) ,
+	STAGE_INFO( "GGJ Test" , GGJ::TestStage , StageRegisterGroup::GraphicsTest) ,
+	STAGE_INFO( "2D Lighting Test"     , Lighting::TestStage , StageRegisterGroup::GraphicsTest) ,
+	STAGE_INFO( "Shader Test"  , GS::TestStage , StageRegisterGroup::GraphicsTest),
+	STAGE_INFO( "GLGraphics2D Test"   , GLGraphics2DTestStage , StageRegisterGroup::GraphicsTest) ,
+	STAGE_INFO( "BSpline Test"   , BSplineTestStage , StageRegisterGroup::GraphicsTest) ,
 
-
-template< class T >
-class TStageFactory : public IStageFactory
-{
-public:
-	void* create(){ return new T; }
-};
-
-template< class T >
-static IStageFactory* makeStageFactory()
-{
-	static TStageFactory< T > myFactory;
-	return &myFactory;
-}
-
-struct StageInfo
-{
-	char const*    decl;
-	IStageFactory* factory;
-};
-
-#define STAGE_INFO( DECL , CLASS )\
-	{ DECL , makeStageFactory< CLASS >() } 
-
-StageInfo gGraphicsTestGroup[] = 
-{
-	STAGE_INFO( "Misc Test" , MiscTestStage ) ,
-	STAGE_INFO( "Cantan Test" , Cantan::LevelStage ) ,
-	STAGE_INFO( "GGJ Test" , GGJ::TestStage ) ,
-	STAGE_INFO( "2D Lighting Test"     , Lighting::TestStage ) ,
-	STAGE_INFO( "Shader Test"  , GS::TestStage ), 
-	STAGE_INFO( "GLGraphics2D Test"   , GLGraphics2DTestStage ) ,
-	STAGE_INFO( "BSpline Test"   , BSplineTestStage ) ,
-};
-
-StageInfo gTestGroup[] =
-{
-	STAGE_INFO( "Bsp Test"    , Bsp2D::TestStage ) ,
-	STAGE_INFO( "A-Star Test" , AStar::TestStage ) ,
-	STAGE_INFO( "SAT Col Test" , G2D::TestStage ) ,
-	STAGE_INFO( "GJK Col Test" , Phy2D::CollideTestStage ) ,
-	STAGE_INFO( "QHull Test"   , G2D::QHullTestStage ) ,
-	STAGE_INFO( "RB Tree Test"   , TreeTestStage )  ,
-	STAGE_INFO( "Tween Test"  , TweenTestStage ) ,
+	STAGE_INFO( "Bsp Test"    , Bsp2D::TestStage , StageRegisterGroup::Test ) ,
+	STAGE_INFO( "A-Star Test" , AStar::TestStage , StageRegisterGroup::Test ) ,
+	STAGE_INFO( "SAT Col Test" , G2D::TestStage , StageRegisterGroup::Test ) ,
+	
+	STAGE_INFO( "QHull Test"   , G2D::QHullTestStage , StageRegisterGroup::Test ) ,
+	STAGE_INFO( "RB Tree Test"   , TreeTestStage , StageRegisterGroup::Test )  ,
+	STAGE_INFO( "Tween Test"  , TweenTestStage , StageRegisterGroup::Test ) ,
 
 #if 1
-	STAGE_INFO( "TileMap Test"  , TileMapTestStage ), 
-	STAGE_INFO( "Corontine Test" , CoroutineTestStage ) ,
-	STAGE_INFO( "SIMD Test" , SIMD::TestStage ) ,
-	STAGE_INFO( "XML Prase Test" , XMLPraseTestStage ) ,
+	STAGE_INFO( "TileMap Test"  , TileMapTestStage , StageRegisterGroup::Test),
+	STAGE_INFO( "Corontine Test" , CoroutineTestStage , StageRegisterGroup::Test) ,
+	STAGE_INFO( "SIMD Test" , SIMD::TestStage , StageRegisterGroup::Test) ,
+	STAGE_INFO( "XML Prase Test" , XMLPraseTestStage , StageRegisterGroup::Test ) ,
 #endif
-};
 
-StageInfo gPhyDevGroup[] =
-{	
-	STAGE_INFO( "RigidBody Test" , Phy2D::WorldTestStage ) ,	
-};
-
-StageInfo gDevGroup[] =
-{
-	STAGE_INFO( "Monument Valley" , MV::TestStage ) ,
-	STAGE_INFO( "Triple Town Test"  , TripleTown::LevelStage ) ,
-	STAGE_INFO( "Bejeweled Test"    , Bejeweled::TestStage ) ,
-	STAGE_INFO( "Bloxorz Test"      , Bloxorz::TestStage ), 
-	STAGE_INFO( "FlappyBird Test"   , FlappyBird::TestStage ) , 
+	STAGE_INFO("GJK Col Test" , Phy2D::CollideTestStage , StageRegisterGroup::PhyDev) ,
+	STAGE_INFO( "RigidBody Test" , Phy2D::WorldTestStage , StageRegisterGroup::PhyDev ) ,
 	
-};
-
-StageInfo gDev4Group[] =
-{
-	STAGE_INFO( "Rubiks Test"       , Rubiks::TestStage ) ,
-	STAGE_INFO( "Mario Test"        , Mario::TestStage ) ,
-	STAGE_INFO( "Shoot2D Test"      , Shoot2D::TestStage ) ,
-	STAGE_INFO( "Go Test"           , Go::Stage ) ,
+	STAGE_INFO( "Monument Valley" , MV::TestStage , StageRegisterGroup::Dev ) ,
+	STAGE_INFO( "Triple Town Test"  , TripleTown::LevelStage , StageRegisterGroup::Dev) ,
+	STAGE_INFO( "Bejeweled Test"    , Bejeweled::TestStage , StageRegisterGroup::Dev) ,
+	STAGE_INFO( "Bloxorz Test"      , Bloxorz::TestStage , StageRegisterGroup::Dev),
+	STAGE_INFO( "FlappyBird Test"   , FlappyBird::TestStage , StageRegisterGroup::Dev) ,
+	
+	STAGE_INFO( "Rubiks Test"       , Rubiks::TestStage , StageRegisterGroup::Dev4 ) ,
+	STAGE_INFO( "Mario Test"        , Mario::TestStage , StageRegisterGroup::Dev4 ) ,
+	STAGE_INFO( "Shoot2D Test"      , Shoot2D::TestStage , StageRegisterGroup::Dev4 ) ,
+	STAGE_INFO( "Go Test"           , Go::Stage , StageRegisterGroup::Dev4 ) ,
 };
 
 #undef INFO
 
-struct GameStageInfo
-{
-	char const* decl;
-	char const* game;
-};
 
 GameStageInfo gSingleDev[] = 
 {
@@ -140,6 +100,15 @@ bool MainMenuStage::onInit()
 {
 	if ( !BaseClass::onInit() )
 		return false;
+
+	if( gbNeedRegisterStage )
+	{
+		for( auto& info : gPreRegisterStageGroup )
+		{
+			gStageRegisterCollection.registerStage(info);
+		}
+		gbNeedRegisterStage = false;
+	}
 
 	getManager()->setTickTime( gDefaultTickTime );
 
@@ -246,22 +215,23 @@ void MainOptionBook::renderUser( GWidget* ui )
 	g.drawText( pos , LAN("Language") );
 }
 
+Vec2i const MenuBtnSize(120, 25);
+int const MenuDeltaDelay = 100;
+int const MenuYOffset = 30;
+
+#define CREATE_BUTTON( ID , NAME )\
+	createButton( delay += MenuDeltaDelay , ID  , NAME  , Vec2i( xUI , yUI += MenuYOffset  ) , MenuBtnSize )
 
 void MainMenuStage::doChangeGroup( StageGroupID group )
 {
-	Vec2i btnSize( 120 , 25 );
-	int xUi = ( Global::getDrawEngine()->getScreenWidth() - btnSize.x ) / 2 ;
-	int yUi = 200;
+	
+	int xUI = ( Global::getDrawEngine()->getScreenWidth() - MenuBtnSize.x ) / 2 ;
+	int yUI = 200;
 	int offset = 30;
-
 	int delay = 0;
-	int dDelay = 100;
 
-	fadeoutGroup( dDelay );
+	fadeoutGroup( MenuDeltaDelay );
 	mGroupUI.clear();
-
-#define CREATE_BUTTON( ID , NAME )\
-	createButton( delay += dDelay , ID  , NAME  , Vec2i( xUi , yUi += offset  ) , btnSize )
 
 	switch( group )
 	{
@@ -286,33 +256,35 @@ void MainMenuStage::doChangeGroup( StageGroupID group )
 		CREATE_BUTTON( UI_BACK_GROUP    , LAN("Back")          );
 		break;
 	case UI_GRAPHIC_TEST_GROUP:
-		for( int i = 0 ; i < ARRAY_SIZE( gGraphicsTestGroup ) ; ++i )
-		{
-			CREATE_BUTTON( UI_GRAPHIC_TEST_INDEX + i , LAN( gGraphicsTestGroup[i].decl ) );
-		}
+		changeStageGroup(StageRegisterGroup::GraphicsTest);
+		createStageGroupButton(delay, xUI, yUI);
 		CREATE_BUTTON( UI_BACK_GROUP     , LAN("Back")          );
 		break;
 	case UI_TEST_GROUP:
-		for( int i = 0 ; i < ARRAY_SIZE( gTestGroup ) ; ++i )
-		{
-			CREATE_BUTTON( UI_TEST_INDEX + i , LAN( gTestGroup[i].decl ) );
-		}
-#if 0
-		CREATE_BUTTON( UI_NET_TEST_SV , LAN("Net Test( Server )") );
-		CREATE_BUTTON( UI_NET_TEST_CL , LAN("Net Test( Client )") );
-#endif
+		changeStageGroup(StageRegisterGroup::Test);
+		createStageGroupButton(delay, xUI, yUI);
 		CREATE_BUTTON( UI_BACK_GROUP  , LAN("Back")          );
 		break;
 	case UI_GAME_DEV_GROUP:
-		for( int i = 0 ; i < ARRAY_SIZE( gDevGroup ) ; ++i )
-		{
-			CREATE_BUTTON( UI_GAME_DEV_INDEX + i , LAN( gDevGroup[i].decl ) );
-		}
-
+		changeStageGroup(StageRegisterGroup::Dev);
+		createStageGroupButton(delay, xUI, yUI);
 		CREATE_BUTTON( UI_CARD_GAME_DEV_GROUP  , "Card Game.." );
+#if 1
+		CREATE_BUTTON(UI_NET_TEST_SV, LAN("Net Test( Server )"));
+		CREATE_BUTTON(UI_NET_TEST_CL, LAN("Net Test( Client )"));
+#endif
 		CREATE_BUTTON( UI_BACK_GROUP     , LAN("Back")          );
 		break;
-
+	case UI_GAME_DEV3_GROUP:
+		changeStageGroup(StageRegisterGroup::PhyDev);
+		createStageGroupButton(delay, xUI, yUI);
+		CREATE_BUTTON(UI_BACK_GROUP, LAN("Back"));
+		break;
+	case UI_GAME_DEV4_GROUP:
+		changeStageGroup(StageRegisterGroup::Dev4);
+		createStageGroupButton(delay, xUI, yUI);
+		CREATE_BUTTON(UI_BACK_GROUP, LAN("Back"));
+		break;
 	case UI_GAME_DEV2_GROUP:
 		for( int i = 0 ; i < ARRAY_SIZE( gSingleDev ) ; ++i )
 		{
@@ -320,20 +292,7 @@ void MainMenuStage::doChangeGroup( StageGroupID group )
 		}
 		CREATE_BUTTON( UI_BACK_GROUP     , LAN("Back")          );
 		break;
-	case UI_GAME_DEV3_GROUP:
-		for( int i = 0 ; i < ARRAY_SIZE( gPhyDevGroup ) ; ++i )
-		{
-			CREATE_BUTTON( UI_GAME_DEV3_INDEX + i , LAN( gPhyDevGroup[i].decl ) );
-		}
-		CREATE_BUTTON( UI_BACK_GROUP     , LAN("Back")          );
-		break;
-	case UI_GAME_DEV4_GROUP:
-		for( int i = 0 ; i < ARRAY_SIZE( gDev4Group ) ; ++i )
-		{
-			CREATE_BUTTON( UI_GAME_DEV4_INDEX + i , LAN( gDev4Group[i].decl ) );
-		}
-		CREATE_BUTTON( UI_BACK_GROUP     , LAN("Back")          );
-		break;
+
 	case UI_CARD_GAME_DEV_GROUP:
 		CREATE_BUTTON( UI_BIG2_TEST      , "Big2 Test" );
 		CREATE_BUTTON( UI_HOLDEM_TEST    , "Holdem Test" );
@@ -348,7 +307,7 @@ void MainMenuStage::doChangeGroup( StageGroupID group )
 			for( GamePackageVec::iterator iter = games.begin() ; 
 				 iter != games.end() ; ++iter )
 			{
-				IGamePackage* g = *iter;
+				IGameInstance* g = *iter;
 				GWidget* widget = CREATE_BUTTON( UI_GAME_BUTTON , g->getName() );
 				widget->setUserData( intptr_t(g) );
 			}
@@ -356,8 +315,26 @@ void MainMenuStage::doChangeGroup( StageGroupID group )
 		}
 		break;
 	}
-#undef  CREATE_BUTTON
+
 }
+
+void MainMenuStage::createStageGroupButton( int& delay , int& xUI , int& yUI )
+{
+	int idx = 0;
+	for( auto info : gStageRegisterCollection.getGroupStage( mCurGroup ) )
+	{
+		CREATE_BUTTON( UI_GROUP_STAGE_INDEX + idx , info.decl );
+		++idx;
+	}
+}
+#undef  CREATE_BUTTON
+
+void MainMenuStage::changeStageGroup(StageRegisterGroup group)
+{
+	mCurGroup = group;
+}
+
+
 
 bool MainMenuStage::onWidgetEvent( int event , int id , GWidget* ui )
 {
@@ -367,7 +344,7 @@ bool MainMenuStage::onWidgetEvent( int event , int id , GWidget* ui )
 		{
 		case UI_NET_TEST_CL:
 			{
-				auto* stage = new Net::TestStage;
+				auto stage = new Net::TestStage;
 				ClientWorker* worker = static_cast< ClientWorker* >( ::Global::GameNet().buildNetwork( false ) );
 				auto stageMode = new NetLevelStageMode;
 				stageMode->initWorker(worker, NULL);
@@ -377,10 +354,10 @@ bool MainMenuStage::onWidgetEvent( int event , int id , GWidget* ui )
 			break;
 		case UI_NET_TEST_SV:
 			{
-				auto* stage = new Net::TestStage;
+				auto stage = new Net::TestStage;
 				ServerWorker* server = static_cast<ServerWorker*>(::Global::GameNet().buildNetwork(true));
 				auto stageMode = new NetLevelStageMode;
-				stageMode->initWorker(server->createLocalWorker(::Global::getUserProfile()), server);
+				stageMode->initWorker(server->createLocalWorker(::Global::getUserProfile().name), server);
 				stage->setupStageMode(stageMode);
 				getManager()->setNextStage(stage);
 
@@ -390,7 +367,7 @@ bool MainMenuStage::onWidgetEvent( int event , int id , GWidget* ui )
 		case UI_FREECELL_TEST:
 		case UI_BIG2_TEST:
 			{
-				IGamePackage* game = Global::GameManager().changeGame( "Poker" );
+				IGameInstance* game = Global::GameManager().changeGame( "Poker" );
 				if ( !game )
 					return false;
 				Poker::GameRule rule;
@@ -400,7 +377,7 @@ bool MainMenuStage::onWidgetEvent( int event , int id , GWidget* ui )
 				case UI_FREECELL_TEST: rule = Poker::RULE_FREECELL; break;
 				case UI_HOLDEM_TEST:   rule = Poker::RULE_HOLDEM; break;
 				}
-				static_cast< Poker::CGamePackage* >( game )->setRule( rule );
+				static_cast< Poker::GameInstance* >( game )->setRule( rule );
 				getManager()->changeStage( STAGE_SINGLE_GAME );
 			}
 			return false;
@@ -423,7 +400,7 @@ bool MainMenuStage::onWidgetEvent( int event , int id , GWidget* ui )
 			return false;
 		case UI_GAME_BUTTON:
 			{
-				IGamePackage* game = reinterpret_cast< IGamePackage* >( ui->getUserData() );
+				IGameInstance* game = reinterpret_cast< IGameInstance* >( ui->getUserData() );
 				Global::GameManager().changeGame( game->getName() );
 				game->beginPlay( SMT_SINGLE_GAME , *getManager() );
 			}
@@ -441,7 +418,7 @@ bool MainMenuStage::onWidgetEvent( int event , int id , GWidget* ui )
 	}
 	else if ( id < UI_SINGLE_DEV_INDEX + MAX_NUM_GROUP )
 	{
-		IGamePackage* game = Global::GameManager().changeGame( gSingleDev[ id - UI_SINGLE_DEV_INDEX ].game );
+		IGameInstance* game = Global::GameManager().changeGame( gSingleDev[ id - UI_SINGLE_DEV_INDEX ].game );
 		if ( !game )
 			return false;
 		game->beginPlay( SMT_SINGLE_GAME , *getManager() );
@@ -452,25 +429,9 @@ bool MainMenuStage::onWidgetEvent( int event , int id , GWidget* ui )
 	{
 		StageInfo const* info = nullptr;
 
-		if ( id < UI_GAME_DEV_INDEX + MAX_NUM_GROUP )
+		if( id < UI_GROUP_STAGE_INDEX + MAX_NUM_GROUP )
 		{
-			info = &gDevGroup[ id - UI_GAME_DEV_INDEX ];
-		}
-		else if ( id < UI_GAME_DEV3_INDEX + MAX_NUM_GROUP )
-		{
-			info = &gPhyDevGroup[ id - UI_GAME_DEV3_INDEX ];
-		}
-		else if ( id < UI_GAME_DEV4_INDEX + MAX_NUM_GROUP )
-		{
-			info = &gDev4Group[ id - UI_GAME_DEV4_INDEX ];
-		}
-		else if ( id < UI_TEST_INDEX + MAX_NUM_GROUP )
-		{
-			info = &gTestGroup[ id - UI_TEST_INDEX ];
-		}
-		else if ( id < UI_GRAPHIC_TEST_INDEX + MAX_NUM_GROUP )
-		{
-			info = &gGraphicsTestGroup[ id - UI_GRAPHIC_TEST_INDEX ];
+			info = &gStageRegisterCollection.getGroupStage(mCurGroup)[id - UI_GROUP_STAGE_INDEX];
 		}
 
 		if ( info )

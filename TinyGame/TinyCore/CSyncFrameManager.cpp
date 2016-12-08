@@ -7,7 +7,7 @@
 #include "GameNetPacket.h"
 
 #define USE_UDP_FRAME_DATA 1
-int const UseChannel = CHANNEL_UDP_CHAIN;
+int const UseChannel = CHANNEL_GAME_NET_UDP_CHAIN;
 
 FrameDataManager::FrameDataManager()
 {
@@ -15,7 +15,7 @@ FrameDataManager::FrameDataManager()
 	mLastDataFrame = 0;
 }
 
-void FrameDataManager::addFrameData( long frame , DataStreamBuffer& buffer )
+void FrameDataManager::addFrameData( long frame , DataSteamBuffer& buffer )
 {
 	if ( mLastDataFrame < frame )
 		mLastDataFrame = frame;
@@ -65,7 +65,8 @@ void FrameDataManager::restoreData( IFrameActionTemplate* actionTemp  )
 	for( FrameDataVec::iterator iter = mProcessData.begin();
 		iter != mProcessData.end() ; ++iter )
 	{
-		actionTemp->restoreData( DataSerializer( *(iter->iter) ) );
+		auto dataSteam = MakeBufferDataSteam(*(iter->iter));
+		actionTemp->restoreData( DataSerializer( dataSteam ) );
 	}
 }
 
@@ -83,8 +84,8 @@ CSyncFrameManager::CSyncFrameManager( IFrameActionTemplate* actionTemp , INetFra
 {
 	mActionTemplate = actionTemp;
 	mFrameGenerator = frameGenerator;
-	mProcessor.setEnumer( this );
-	mProcessor.setListener( frameGenerator );
+	mProcessor.setLanucher( this );
+	mProcessor.addListener( *frameGenerator );
 	
 }
 
@@ -263,12 +264,14 @@ bool SVSyncFrameManager::sendFrameData()
 
 	mFrameStream->buffer.clear();
 	mFrameStream->frame = mFrameMgr.getFrame() + 1;
-	mFrameGenerator->generate( DataSerializer( mFrameStream->buffer ) );
+
+	auto dataSteam = MakeBufferDataSteam(mFrameStream->buffer);
+	mFrameGenerator->generate( DataSerializer( dataSteam ) );
 
 	//DevMsg( 10 ,"Send Frame Data frame = %d" , fp->frame  );
 	mWorker->sendCommand( UseChannel , mFrameStream.get() , WSF_IGNORE_LOCAL );
 
-	DataStreamBuffer buffer;
+	DataSteamBuffer buffer;
 	buffer.copy( mFrameStream->buffer );
 
 	mFrameMgr.addFrameData( mFrameStream->frame , buffer );
@@ -280,7 +283,7 @@ bool SVSyncFrameManager::sendFrameData()
 
 void SVSyncFrameManager::procFrameData( IComPacket* cp )
 {
-	ClientInfo* info = static_cast< ClientInfo* >( cp->getConnection() );
+	ClientInfo* info = static_cast< ClientInfo* >( cp->getUserData() );
 	if ( !info )
 	{
 		return;
@@ -402,7 +405,8 @@ bool CLSyncFrameManager::sendFrameData()
 	mFrameStream->frame = mFrameMgr.getFrame() + 1;
 	mFrameStream->buffer.clear();
 
-	mFrameGenerator->generate( DataSerializer( mFrameStream->buffer ) );
+	auto dataStream = MakeBufferDataSteam(mFrameStream->buffer);
+	mFrameGenerator->generate( DataSerializer(dataStream) );
 
 
 #if 0
@@ -421,7 +425,7 @@ bool CLSyncFrameManager::sendFrameData()
 	return true;
 }
 
-void CLSyncFrameManager::procFrameData( IComPacket* cp )
+void CLSyncFrameManager::procFrameData( IComPacket* cp)
 {
 	GDPFrameStream* data = cp->cast< GDPFrameStream >();
 

@@ -2,7 +2,7 @@
 #define BubbleStage_h__
 
 #include "GameStage.h"
-#include "GamePackage.h"
+#include "GameInstance.h"
 
 #include "BubbleMode.h"
 
@@ -11,13 +11,13 @@ namespace Bubble
 	class Mode;
 
 	class LevelStage : public GameStageBase
-		             , public ActionEnumer
+		             , public IActionLanucher
 	{
 		typedef GameStageBase BaseClass;
 	public:
 		LevelStage();
 
-		//ActionEnumer
+		//IActionLanucher
 		void  fireAction( ActionTrigger& trigger );
 		//GameSubStage
 		void  tick();

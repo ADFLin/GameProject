@@ -19,12 +19,14 @@ enum GameAttrib
 	ATTR_AI_SUPPORT      ,
 
 	ATTR_CONTROLLER_DEFUAULT_SETTING ,
-	//SubStage
+
+	//GameStage
 	ATTR_REPLAY_INFO_DATA ,
 	ATTR_REPLAY_INFO     ,
 	ATTR_TICK_TIME       ,
 	ATTR_GAME_INFO       ,
 	ATTR_REPLAY_UI_POS   ,
+	
 	ATTR_NEXT_ID ,
 };
 

@@ -1,7 +1,7 @@
 #ifndef GameSettingHelper_h__
 #define GameSettingHelper_h__
 
-#include "GamePackage.h"
+#include "GameInstance.h"
 #include "GamePlayer.h"
 
 #include "GameRoomUI.h"
@@ -10,7 +10,7 @@ class ServerWorker;
 class GameSettingPanel;
 class PlayerListPanel;
 class StageManager;
-class DataStreamBuffer;
+class DataSteamBuffer;
 class GameStageBase;
 
 class  NetRoomSettingHelper : public SettingHepler
@@ -21,7 +21,7 @@ public:
 	
 
 	template < class T >
-	T*  getUI( int id )
+	T*  getWidget( int id )
 	{
 		T* ui = GUI::castFast< T* >( mSettingPanel->findChild( id ) );
 		return ui;
@@ -33,8 +33,8 @@ public:
 		doSetupSetting( mServer != NULL );
 	}
 
-	GAME_API void recvSetting( DataStreamBuffer& buffer );
-	GAME_API void sendSetting( DataStreamBuffer& buffer );
+	GAME_API void importSetting( DataSteamBuffer& buffer );
+	GAME_API void exportSetting( DataSteamBuffer& buffer );
 
 	GAME_API void sendSlotStateSV();
 	GAME_API void addPlayerSV( PlayerId id );
@@ -42,11 +42,10 @@ public:
 	GAME_API void sendPlayerStatusSV();
 
 	virtual void clearUserUI() = 0;
-	virtual void setupGame( StageManager& manager , GameSubStage* subStage ) {}
-	virtual void setupGame( StageManager& manager, GameStageBase* gameStage ){}
+	virtual void setupGame( StageManager& manager, StageBase* gameStage ){}
 	virtual void doSetupSetting( bool beServer ) = 0;
-	virtual void doSendSetting( DataStreamBuffer& buffer ) = 0;
-	virtual void doRecvSetting( DataStreamBuffer& buffer ) = 0;
+	virtual void doExportSetting( DataSteamBuffer& buffer ) = 0;
+	virtual void doImportSetting( DataSteamBuffer& buffer ) = 0;
 
 	virtual bool onWidgetEvent( int event ,int id , GWidget* widget ){ return true; }
 

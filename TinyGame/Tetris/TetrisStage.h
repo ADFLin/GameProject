@@ -2,7 +2,7 @@
 #define TetrisStage_h__
 
 #include "GameStage.h"
-#include "GamePackage.h"
+#include "GameInstance.h"
 #include "GameMenuStage.h"
 
 #include "TetrisAction.h"

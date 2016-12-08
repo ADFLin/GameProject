@@ -63,7 +63,7 @@ namespace Bubble
 		typedef SVKeyFrameGeneratorT< BuFrameData > BaseClass;
 	public:
 		CServerFrameGenerator();
-		void recvClientData( unsigned pID , DataStreamBuffer& buffer );
+		void recvClientData( unsigned pID , DataSteamBuffer& buffer );
 	};
 
 }// namespace Bubble

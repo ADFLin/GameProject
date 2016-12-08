@@ -27,6 +27,7 @@
 #include "NetGameStage.h"
 #include "ReplayStage.h"
 
+#include "Thread.h"
 #include "GLUtility.h"
 
 #define GAME_SETTING_PATH "Game.ini"
@@ -34,6 +35,7 @@
 int g_DevMsgLevel = 10;
 
 GAME_API IGameNetInterface* gGameNetInterfaceImpl;
+GAME_API uint32 gGameThreadId;
 
 class GMsgListener : public IMsgListener
 {
@@ -115,6 +117,8 @@ TinyGameApp::~TinyGameApp()
 
 bool TinyGameApp::onInit()
 {
+	gGameThreadId = PlatformThread::GetCurrentThreadId();
+
 	GameLoop::setUpdateTime( gDefaultTickTime );
 
 	if ( !Global::GameSetting().loadFile( GAME_SETTING_PATH ) )
@@ -147,7 +151,7 @@ bool TinyGameApp::onInit()
 	char const* gameName;
 	if ( ::Global::GameSetting().tryGetStringValue( "DefaultGame" , nullptr , gameName ) )
 	{
-		IGamePackage* game = ::Global::GameManager().changeGame( gameName );
+		IGameInstance* game = ::Global::GameManager().changeGame( gameName );
 		if ( game )
 		{
 			game->beginPlay( SMT_SINGLE_GAME , *this );
@@ -197,7 +201,7 @@ long TinyGameApp::onUpdate( long shouldTime )
 
 		::Global::GUI().update();
 
-		IGamePackage* game = Global::GameManager().getCurGame();
+		IGameInstance* game = Global::GameManager().getCurGame();
 		if ( game )
 			game->getController().clearFrameInput();
 	}
@@ -255,7 +259,6 @@ void TinyGameApp::closeNetwork()
 }
 
 
-
 ServerWorker* TinyGameApp::createServer()
 {
 	closeNetwork();
@@ -275,23 +278,28 @@ ServerWorker* TinyGameApp::createServer()
 
 ClientWorker* TinyGameApp::createClinet()
 {
-
 	closeNetwork();
-#if 0
-	DelayClientWorker* worker = new DelayClientWorker( mUserProfile );
-	worker->setDelay( 50 );
-#else
-	ClientWorker* worker = new ClientWorker( ::Global::getUserProfile() );
-#endif
+
+	ClientWorker* worker;
+	if ( ::Global::GameSetting().getIntValue("SimNetLog", nullptr, 0) )
+	{
+		DelayClientWorker* delayWorker = new DelayClientWorker();
+		delayWorker->setDelay(::Global::GameSetting().getIntValue("SimNetLagDelay", nullptr, 30));
+		worker = delayWorker;
+	}
+	else
+	{
+		worker = new ClientWorker();
+	}
+
 	if ( !worker->startNetwork() )
 	{
 		delete worker;
-		::Global::GUI().showMessageBox( 
-			UI_ANY , LAN("Can't Create Client") );
+		::Global::GUI().showMessageBox( UI_ANY , LAN("Can't Create Client") );
 		return NULL;
 	}
-	mNetWorker = worker;
 
+	mNetWorker = worker;
 	return worker;
 }
 
@@ -299,14 +307,14 @@ bool TinyGameApp::onMouse( MouseMsg const& msg )
 {
 	bool result = true;
 
-	IGamePackage* game = Global::GameManager().getCurGame();
+	IGameInstance* game = Global::GameManager().getCurGame();
 	if ( game )
 	{
 		GameController& controller = game->getController();
 
 		if ( !controller.haveLockMouse() )
 		{
-			result = ::Global::GUI().getManager().procMouseMsg( msg );
+			result = ::Global::GUI().procMouseMsg( msg );
 		}
 
 		if ( result )
@@ -314,12 +322,12 @@ bool TinyGameApp::onMouse( MouseMsg const& msg )
 	}
 	else
 	{
-		result = ::Global::GUI().getManager().procMouseMsg( msg );
+		result = ::Global::GUI().procMouseMsg(msg);
 	}
 
 	if ( result )
 	{
-		getCurStage()->onMouse( msg );
+		result = getCurStage()->onMouse( msg );
 		InputManager::getInstance().procMouseEvent( msg );
 	}
 	return result;
@@ -334,12 +342,22 @@ bool TinyGameApp::onKey( unsigned key , bool isDown )
 			mGameWindow.toggleFullscreen();
 		}
 	}
-	return getCurStage()->onKey( key , isDown );
+	bool result = ::Global::GUI().procKeyMsg( key , isDown );
+	if( result )
+	{
+		result = getCurStage()->onKey( key , isDown );
+	}
+	return result;
 }
 
 bool TinyGameApp::onChar( unsigned code )
 {
-	return getCurStage()->onChar( code );
+	bool result = ::Global::GUI().procCharMsg(code);
+	if( result )
+	{
+		result = getCurStage()->onChar(code);
+	}
+	return result;
 }
 
 void TinyGameApp::onDestroy()
@@ -457,35 +475,17 @@ StageBase* TinyGameApp::createStage( StageID stageId )
 {
 	StageBase* newStage = NULL;
 
-	IGamePackage* curGame = Global::GameManager().getCurGame();
+	IGameInstance* curGame = Global::GameManager().getCurGame();
 
 	if ( curGame )
 	{
-		GameSubStage* subStage = curGame->createSubStage( stageId );
-		if ( subStage )
+		newStage = curGame->createStage( stageId );
+
+		if( GameStageBase* gameStage = dynamic_cast<GameStageBase*>(newStage) )
 		{
-			GameStage* gameStage = createGameStage( stageId );
-
-			if ( gameStage )
-			{
-				gameStage->setSubStage( subStage );
-			}
-			else
-			{
-				delete subStage;
-				ErrorMsg( "Can't Find GameStage" );
-			}
-			newStage = gameStage;
+			GameStageMode* stageMode = createGameStageMode(stageId);
+			gameStage->setupStageMode(stageMode);
 		}
-
-		if ( !newStage )
-			newStage = curGame->createStage( stageId );
-	}
-
-	if( GameStageBase* gameStage = dynamic_cast<GameStageBase*>(newStage) )
-	{
-		GameStageMode* stageMode = createGameStageMode(stageId);
-		gameStage->setupStageMode(stageMode);
 	}
 
 	if ( !newStage )
@@ -509,23 +509,6 @@ StageBase* TinyGameApp::createStage( StageID stageId )
 	return newStage;
 }
 
-
-
-GameStage* TinyGameApp::createGameStage( StageID stageId )
-{
-	GameStage* gameStage = NULL;
-
-	switch( stageId )
-	{
-#define CASE_STAGE( idx , Class )\
-			case idx : gameStage = new Class; break;
-		CASE_STAGE( STAGE_SINGLE_GAME , GameSingleStage )
-		CASE_STAGE( STAGE_NET_GAME    , GameNetLevelStage )
-		CASE_STAGE( STAGE_REPLAY_GAME , GameReplayStage )
-#undef CASE_STAGE
-	}
-	return gameStage;
-}
 
 GameStageMode* TinyGameApp::createGameStageMode(StageID stageId)
 {
@@ -557,7 +540,30 @@ StageBase* TinyGameApp::resolveChangeStageFail( FailReason reason )
 	return createStage( STAGE_MAIN_MENU );
 }
 
-void TinyGameApp::prevChangeStage()
+bool TinyGameApp::initStage(StageBase* stage)
+{
+	if( auto gameStage = dynamic_cast<GameStageBase*>(stage) )
+	{
+		mStageMode = gameStage->getStageMode();
+		if( !mStageMode->prevStageInit() )
+			return false;
+
+		if( !stage->onInit() )
+			return false;
+
+		if( !mStageMode->postStageInit() )
+			return false;
+	}
+	else
+	{
+		if( !stage->onInit() )
+			return false;
+	}
+
+	return true;
+}
+
+void TinyGameApp::prevStageChange()
 {
 	DrawEngine* de = ::Global::getDrawEngine();
 	Graphics2D& g = ::Global::getGraphics2D();
@@ -572,11 +578,6 @@ void TinyGameApp::prevChangeStage()
 
 void TinyGameApp::postStageChange( StageBase* stage )
 {
-	if( GameStageBase* gameStage = dynamic_cast<GameStageBase*>(stage) )
-	{
-		mStageMode = gameStage->mStageMode;
-	}
-	
 	addTask( new FadeInEffect( Color::eBlack , 1000 ) , this );
 	if ( mShowErrorMsg )
 	{
@@ -678,7 +679,7 @@ void TinyGameApp::dispatchWidgetEvent( int event , int id , GWidget* ui )
 			if ( !server )
 				return;
 
-			LocalWorker* worker = server->createLocalWorker(::Global::getUserProfile() );
+			LocalWorker* worker = server->createLocalWorker(::Global::getUserProfile().name );
 
 			NetRoomStage* stage = static_cast< NetRoomStage* >( changeStage( STAGE_NET_ROOM ) );
 			stage->initWorker( worker , server );	

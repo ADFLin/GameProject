@@ -35,8 +35,8 @@ namespace Rich
 		
 
 		static Tool* FromType( ToolType type );
-		static void  init();
-		static void  release();
+		static void  Initialize();
+		static void  Release();
 	};
 
 

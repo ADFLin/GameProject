@@ -24,7 +24,8 @@ namespace BomberMan
 	
 
 	class LevelStage : public GameStageBase
-		             , public ActionEnumer
+		             , public IActionLanucher
+		             , public IActionListener
 	{
 		typedef GameStageBase BaseClass;
 	public:
@@ -57,9 +58,13 @@ namespace BomberMan
 
 		bool onKey( unsigned key , bool isDown );
 		void fireAction( ActionTrigger& trigger );
-		void prevScanAction( bool beUpdateFrame );
 
 		void setStep( StageStep step , long time );
+
+		//IActionListener
+		virtual void onScanActionStart(bool bUpdateFrame) override;
+		virtual void onFireAction(ActionParam& param) override;
+
 	protected:
 		//virtual 
 		IFrameActionTemplate* createActionTemplate( unsigned version );

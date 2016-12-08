@@ -7,7 +7,7 @@
 
 #include "GameWidgetID.h"
 #include "GamePackageManager.h"
-#include "DataStreamBuffer.h"
+#include "DataSteamBuffer.h"
 
 void NetRoomSettingHelper::addGUIControl( GWidget* ui )
 {
@@ -107,19 +107,19 @@ void NetRoomSettingHelper::setMaxPlayerNum( int num )
 	}
 }
 
-void NetRoomSettingHelper::recvSetting( DataStreamBuffer& buffer )
+void NetRoomSettingHelper::importSetting( DataSteamBuffer& buffer )
 {
 	int numSlot;
 	buffer.take( numSlot );
 	getPlayerListPanel()->setupSlotNum( numSlot );
-	doRecvSetting( buffer );
+	doImportSetting( buffer );
 }
 
-void NetRoomSettingHelper::sendSetting( DataStreamBuffer& buffer )
+void NetRoomSettingHelper::exportSetting( DataSteamBuffer& buffer )
 {
 	int numSlot = getPlayerListPanel()->getSlotNum();
 	buffer.fill( numSlot );
-	doSendSetting( buffer );
+	doExportSetting( buffer );
 }
 
 void NetRoomSettingHelper::sendSlotStateSV()

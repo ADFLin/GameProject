@@ -1,7 +1,7 @@
 #ifndef TetrisGame_h__
 #define TetrisGame_h__
 
-#include "GamePackage.h"
+#include "GameInstance.h"
 #include "GameControl.h"
 
 #define TETRIS_NAME "Tetris"
@@ -14,10 +14,10 @@ namespace Tetris
 	union GameInfoData;	
 	typedef SimpleController MyController;
 
-	class CGamePackage : public IGamePackage
+	class GameInstance : public IGameInstance
 	{
 	public:
-		CGamePackage();
+		GameInstance();
 		char const*     getName(){  return TETRIS_NAME;  }
 		GameController& getController(){  return mController;  }
 		SettingHepler*  createSettingHelper( SettingHelperType type );

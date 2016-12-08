@@ -1,10 +1,6 @@
 #include "TinyGamePCH.h"
 #include "StageBase.h"
 
-#include "GamePackage.h"
-#include "GamePackageManager.h"
-
-#include "GameGUISystem.h"
 
 StageBase::StageBase() : mManager( NULL )
 {
@@ -29,15 +25,12 @@ void StageBase::render( float dFrame )
 
 bool StageBase::onChar( unsigned code )
 {
-	return ::Global::GUI().getManager().procCharMsg( code );
+	return true;
 }
 
 bool StageBase::onKey( unsigned key , bool isDown )
 {
-	bool result = ::Global::GUI().getManager().procKeyMsg( key , isDown );
-	//getManager()->getController().setBlocked( !result );
-
-	return result;
+	return true;
 }
 
 bool StageBase::onMouse( MouseMsg const& msg )
@@ -85,10 +78,10 @@ StageManager::~StageManager()
 
 void StageManager::setupStage()
 {
-	prevChangeStage();
+	prevStageChange();
 
 	mCurStage->mManager = this;
-	while( !mCurStage->onInit() )
+	while( !initStage( mCurStage ) )
 	{
 		StageBase* stage = resolveChangeStageFail( FR_INIT_FAIL );
 		if ( stage == NULL )

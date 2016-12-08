@@ -138,7 +138,7 @@ namespace Rich
 		Tile*        mTile;
 		int          mNumDice;
 
-		MapCoord    mPosPrevMove;
+		MapCoord     mPosPrevMove;
 		int          mTotalMoveStep;
 		int          mCurMoveStep;
 

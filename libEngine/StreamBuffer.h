@@ -6,6 +6,7 @@
 #include <exception>
 #include <memory>
 #include <cassert>
+#include <vector>
 
 class CheckPolicy
 {
@@ -63,12 +64,12 @@ struct  ThrowCheckPolicy
 	}
 };
 template< class CheckPolicy = NoCheckPolicy >
-class StreamBuffer
+class TStreamBuffer
 {
 	typedef CheckPolicy CP;
 public:
-	StreamBuffer(){  setEmpty();  }
-	StreamBuffer( char* data , int maxSize )
+	TStreamBuffer(){  setEmpty();  }
+	TStreamBuffer( char* data , int maxSize )
 	{
 		mData = data;
 		mMaxSize = maxSize;
@@ -110,7 +111,7 @@ public:
 
 
 	template< class Q >
-	void fill( StreamBuffer< Q >& buffer , size_t num )
+	void fill( TStreamBuffer< Q >& buffer , size_t num )
 	{
 		assert( num <= buffer.getAvailableSize() );
 		fill(  (void*)( buffer.getData() + buffer.mUseSize ) , num  );
@@ -124,7 +125,7 @@ public:
 			return;
 
 		typedef typename Meta::Select< 
-			( sizeof( T ) > 8 ) , 
+			(sizeof(T) > 8) && Meta::IsPod< T >::Result ,
 			MemcpyStrategy , AssignStrategy 
 		>::ResultType Strategy;
 
@@ -139,7 +140,7 @@ public:
 			return;
 
 		typedef typename Meta::Select< 
-			( sizeof( T ) > 8 ) , 
+			( sizeof( T ) > 8 ) && Meta::IsPod< T >::Result , 
 			MemcpyStrategy , AssignStrategy 
 		>::ResultType Strategy;
 
@@ -147,7 +148,7 @@ public:
 		mUseSize += sizeof( T );
 	}
 
-	void swap( StreamBuffer& buffer )
+	void swap( TStreamBuffer& buffer )
 	{
 		using std::swap;
 		swap( mData    , buffer.mData );
@@ -156,8 +157,88 @@ public:
 		swap( mFillSize, buffer.mFillSize );
 	}
 
+	template< class T >
+	struct TArrayData
+	{
+		T*     ptr;
+		size_t length;
+	};
+
+	template< class T >
+	static TArrayData< T > MakeArrayData(T* ptr, size_t length)
+	{
+		TArrayData< T > result;
+		result.ptr = ptr;
+		result.length = length;
+		return result;
+	}
+
+	template< class T >
+	void take(TArrayData< T >& data)
+	{
+		if ( data.length )
+			takeArray(data , Meta::IsPod< T >::ResultType() );
+	}
+	template< class T >
+	void takeArray(TArrayData< T >& data, Meta::TrueType )
+	{
+		take((void*)data.ptr, sizeof(T) * data.length);
+	}
+	template< class T >
+	void takeArray(TArrayData< T >& data, Meta::FalseType)
+	{
+		for( size_t i = 0; i < data.length; ++i )
+		{
+			take(*(data.ptr + i));
+		}
+	}
+
+	template< class T >
+	void fill(TArrayData< T > const& data)
+	{
+		if( data.length )
+			fillArray(data , Meta::IsPod< T >::ResultType() );
+	}
+
+	template< class T >
+	void fillArray(TArrayData< T > const& data, Meta::TrueType )
+	{
+		fill((void*)data.ptr, sizeof(T) * data.length);
+	}
+	template< class T >
+	void fillArray(TArrayData< T > const& data, Meta::FalseType )
+	{
+		for( size_t i = 0; i < data.length; ++i )
+		{
+			fill(*(data.ptr + i));
+		}
+	}
+
+	template < class T >
+	void fill(std::vector< T > const& data)
+	{
+		size_t num = data.size();
+		fill(num);
+		if( num )
+		{
+			fill(MakeArrayData(&data[0], num));
+		}
+	}
+
+	template < class T >
+	void take(std::vector< T >& data)
+	{
+		size_t num;
+		take(num);
+		if ( num )
+		{
+			data.resize(num);
+			take(MakeArrayData(&data[0], num));
+		}
+	}
+
 	template< class Q >
-	void copy( StreamBuffer< Q >& buffer , size_t num )
+	void copy( TStreamBuffer< Q >& buffer , size_t num )
 	{
 		assert( num <= buffer.getAvailableSize() );
 		fill(  (void*)( buffer.getData() + buffer.mUseSize ) , num );
@@ -224,7 +305,7 @@ protected:
 	}
 
 	template< class Q >
-	friend class StreamBuffer;
+	friend class TStreamBuffer;
 	char*    mData;
 	size_t   mMaxSize;
 	size_t   mUseSize;

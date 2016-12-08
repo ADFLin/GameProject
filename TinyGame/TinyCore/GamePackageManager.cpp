@@ -3,7 +3,7 @@
 #include "GameControl.h"
 #include "Win32Header.h"
 
-bool GamePackageManager::registerGame( IGamePackage* game )
+bool GamePackageManager::registerGame( IGameInstance* game )
 {
 	assert( game );
 
@@ -33,7 +33,7 @@ void GamePackageManager::cleanup()
 
 	struct CleanupVisit
 	{
-		bool visit( IGamePackage* game )
+		bool visit( IGameInstance* game )
 		{
 			game->cleanup();
 			game->deleteThis();
@@ -52,7 +52,7 @@ void GamePackageManager::classifyGame( int attrID , GamePackageVec& games )
 	{
 		ClassifyVisit( int id  , GamePackageVec& games )
 			:attrValue( id ),games( games ){}
-		bool visit( IGamePackage* game )
+		bool visit( IGameInstance* game )
 		{
 			if ( game->getAttribValue( attrValue ) ) 
 			{
@@ -71,7 +71,7 @@ void GamePackageManager::classifyGame( int attrID , GamePackageVec& games )
 	visitInternal( visitor );
 }
 
-IGamePackage* GamePackageManager::findGame( char const* name )
+IGameInstance* GamePackageManager::findGame( char const* name )
 {
 	PackageMap::iterator iter = mPackageMap.find( name );
 	if ( iter != mPackageMap.end() )
@@ -79,9 +79,9 @@ IGamePackage* GamePackageManager::findGame( char const* name )
 	return NULL;
 }
 
-IGamePackage* GamePackageManager::changeGame( char const* name )
+IGameInstance* GamePackageManager::changeGame( char const* name )
 {
-	IGamePackage* game = findGame( name );
+	IGameInstance* game = findGame( name );
 	if ( !game )
 		return NULL;
 
@@ -122,7 +122,7 @@ bool GamePackageManager::loadGame( char const* path )
 	if ( !createFun )
 		return false;
 
-	IGamePackage* game = (*createFun)();
+	IGameInstance* game = (*createFun)();
 	if ( !game )
 		return false;
 

@@ -3,9 +3,9 @@
 
 #include "ComPacket.h"
 
-#include "TSocket.h"
+#include "NetSocket.h"
 #include "SocketBuffer.h"
-#include "DataStreamBuffer.h"
+#include "DataSteamBuffer.h"
 
 #include "GameConfig.h"
 #include "GamePlayer.h"
@@ -54,10 +54,10 @@ enum NetPacketID
 };
 
 
-class AllocTake : public SBuffer::Take
+class AllocTake : public SocketBuffer::Take
 {
 public:
-	AllocTake( SBuffer& buffer ):SBuffer::Take( buffer ){}
+	AllocTake( SocketBuffer& buffer ):SocketBuffer::Take( buffer ){}
 
 	static void* alloc( unsigned size ){ return malloc( size ); }
 	static void  free( void* ptr ){ ::free( ptr ); }
@@ -71,7 +71,7 @@ public:
 };
 
 
-inline SBuffer& operator >> ( SBuffer& buffer , DataStreamBuffer& dataBuffer )
+inline SocketBuffer& operator >> ( SocketBuffer& buffer , DataSteamBuffer& dataBuffer )
 {
 	size_t size;
 	buffer.take( size );
@@ -79,7 +79,7 @@ inline SBuffer& operator >> ( SBuffer& buffer , DataStreamBuffer& dataBuffer )
 	return buffer;
 }
 
-inline SBuffer& operator << ( SBuffer& buffer , DataStreamBuffer& dataBuffer )
+inline SocketBuffer& operator << ( SocketBuffer& buffer , DataSteamBuffer& dataBuffer )
 {
 	size_t size = dataBuffer.getAvailableSize();
 	buffer.fill( size );
@@ -88,19 +88,62 @@ inline SBuffer& operator << ( SBuffer& buffer , DataStreamBuffer& dataBuffer )
 }
 
 template< int N >
-inline SBuffer& operator >> ( SBuffer& buffer , FixString< N >& val )
+inline SocketBuffer& operator >> ( SocketBuffer& buffer , FixString< N >& val )
 {
 	buffer.take( val , N );
 	return buffer;
 }
 
 template< int N >
-inline SBuffer& operator << ( SBuffer& buffer , FixString< N > const& val )
+inline SocketBuffer& operator << ( SocketBuffer& buffer , FixString< N > const& val )
 {
 	buffer.fill( val , N );
 	return buffer;
 }
 
+template< class T >
+struct TArrayData
+{
+public:
+	bool bNeedFree;
+	T*   data;
+	int  length;
+
+	TArrayData()
+	{
+		length = 0;
+		data = nullptr;
+		bNeedFree = false;
+	}
+	~TArrayData()
+	{
+		if( bNeedFree )
+		{
+			delete[] data;
+		}
+	}
+};
+
+template< class T >
+inline SocketBuffer& operator >> (SocketBuffer& buffer, TArrayData< T >& val)
+{
+	buffer.take(val.length);
+	if( val.length )
+	{
+		val.data = new T[val.length];
+		val.bNeedFree = true;
+	}
+	buffer.take(SocketBuffer::MakeArrayData(val.data, val.length));
+	return buffer;
+}
+
+template< class T >
+inline SocketBuffer& operator << (SocketBuffer& buffer, TArrayData< T > const& val)
+{
+	buffer.fill(val.length);
+	buffer.fill(SocketBuffer::MakeArrayData(val.data, val.length));
+	return buffer;
+}
 
 template< class T , int ID >
 class GamePacket : public IComPacket
@@ -108,14 +151,14 @@ class GamePacket : public IComPacket
 public:
 	enum { PID = ID , };
 	GamePacket():IComPacket( ID ){}
-	void doTake( SBuffer& buffer )
+	void doTake( SocketBuffer& buffer )
 	{  
 		AllocTake takeOp( buffer ); 
 		static_cast<T*>( this )->operateBuffer( takeOp );      
 	}
-	void doFill( SBuffer& buffer )
+	void doFill( SocketBuffer& buffer )
 	{  
-		SBuffer::Fill fillOp( buffer );
+		SocketBuffer::Fill fillOp( buffer );
 		static_cast<T*>( this )->operateBuffer( fillOp ); 
 	}
 	template < class BufferOP >
@@ -136,16 +179,16 @@ public:
 	enum { PID = ID , };
 	GameFramePacket():FramePacket( ID ){}
 
-	void doTake( SBuffer& buffer )
+	void doTake( SocketBuffer& buffer )
 	{  
 		buffer.take( frame ); 
 		AllocTake takeOp( buffer ); 
 		static_cast<T*>( this )->operateBuffer( takeOp );      
 	}
-	void doFill( SBuffer& buffer )
+	void doFill( SocketBuffer& buffer )
 	{  
 		buffer.fill( frame ); 
-		SBuffer::Fill fillOp( buffer );
+		SocketBuffer::Fill fillOp( buffer );
 		static_cast<T*>( this )->operateBuffer( fillOp ); 
 	}
 	template < class BufferOP >
@@ -156,7 +199,7 @@ public:
 class GDPFrameStream : public GameFramePacket< GDPFrameStream , GDP_FARME_STREAM >
 {
 public:
-	DataStreamBuffer buffer;
+	DataSteamBuffer buffer;
 
 	template < class BufferOP >
 	void  operateBuffer( BufferOP& op )
@@ -168,7 +211,7 @@ public:
 class GDPStream : public GamePacket< GDPStream , GDP_STREAM >
 {
 public:
-	DataStreamBuffer buffer;
+	DataSteamBuffer buffer;
 	template < class BufferOP >
 	void  operateBuffer( BufferOP& op )
 	{
@@ -194,7 +237,7 @@ class CSPRawData : public GamePacket< CSPRawData , CSP_RAW_DATA >
 {
 public:
 	int   id;
-	DataStreamBuffer buffer;
+	DataSteamBuffer buffer;
 
 	template < class BufferOP >
 	void  operateBuffer( BufferOP& op )
@@ -268,14 +311,17 @@ public:
 	}
 };
 
-
-
 class CSPPlayerState : public GamePacket< CSPPlayerState , CSP_PLAYER_STATE >
 {
 public:
 	unsigned playerID;
-	uint8     state;
+	uint8    state;
 
+	void setServerState( uint8 inState )
+	{
+		playerID = ERROR_PLAYER_ID;
+		state = inState;
+	}
 	template < class BufferOP >
 	void  operateBuffer( BufferOP& op )
 	{
@@ -354,7 +400,7 @@ public:
 			data = new char[ numData ];
 			needFree = true;
 		}
-		op & SBuffer::GData( data , numData );
+		op & SocketBuffer::RawData( data , numData );
 	}
 	bool needFree;
 };
@@ -403,14 +449,16 @@ public:
 	}
 
 	uint8       numPlayer;
-	int         flag[ MAX_PLAYER_NUM ];
+	int         flags[ MAX_PLAYER_NUM ];
 	PlayerInfo* info[ MAX_PLAYER_NUM ];
-
+	
 
 	template < class BufferOP >
 	void  operateBuffer( BufferOP& op )
 	{
-		op & numPlayer & flag;
+		op & numPlayer;
+		op & flags;
+		//op & SocketBuffer::MakeArrayData(flags, numPlayer);
 		if ( BufferOP::IsTake )
 		{
 			PlayerInfo* newInfo = new PlayerInfo[ numPlayer ];
@@ -418,6 +466,7 @@ public:
 				info[i] = newInfo + i;
 			needFree = true;
 		}
+
 		for( unsigned i = 0 ; i < numPlayer ; ++i )
 		{
 			PlayerInfo* pInfo = info[i];
@@ -450,23 +499,7 @@ public:
 	template < class BufferOP >
 	void  operateBuffer( BufferOP& op )
 	{
-		size_t size;
-
-		if ( BufferOP::IsTake )
-		{
-			op & size;
-			gameSvInfo.resize( size );
-		}
-		else
-		{
-			size = gameSvInfo.size();
-			op & size;
-		}
-
-		for( int i = 0 ; i < (int)size ; ++i )
-		{
-			op & gameSvInfo[i];
-		}
+		op & gameSvInfo;
 	}
 };
 

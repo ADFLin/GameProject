@@ -24,7 +24,7 @@ enum PlayerType
 class AIBase
 {
 public:
-	virtual ActionInput* getActionInput() = 0;
+	virtual IActionInput* getActionInput() = 0;
 };
 
 struct PlayerInfo

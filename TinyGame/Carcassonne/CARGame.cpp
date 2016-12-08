@@ -1,6 +1,7 @@
 #include "CARGame.h"
 
 #include "CARStage.h"
+#include "CARExpansion.h"
 
 #include "StageBase.h"
 #include "GameServer.h"
@@ -10,22 +11,22 @@
 #include "GameSettingPanel.h"
 #include "GameRoomUI.h"
 #include "GameWidgetID.h"
-#include "DataStreamBuffer.h"
+#include "DataSteamBuffer.h"
 
 namespace CAR
 {
 
-	CGamePackage::CGamePackage()
+	GameInstance::GameInstance()
 	{
 		
 	}
 
-	CGamePackage::~CGamePackage()
+	GameInstance::~GameInstance()
 	{
 
 	}
 
-	StageBase* CGamePackage::createStage( unsigned id )
+	StageBase* GameInstance::createStage( unsigned id )
 	{
 		if( id == STAGE_NET_GAME || id == STAGE_SINGLE_GAME )
 		{
@@ -34,7 +35,7 @@ namespace CAR
 		return NULL;
 	}
 
-	bool CGamePackage::getAttribValue( AttribValue& value )
+	bool GameInstance::getAttribValue( AttribValue& value )
 	{
 		switch( value.id )
 		{
@@ -48,9 +49,9 @@ namespace CAR
 		return false;
 	}
 
-	void CGamePackage::beginPlay( StageModeType type, StageManager& manger )
+	void GameInstance::beginPlay( StageModeType type, StageManager& manger )
 	{
-		IGamePackage::beginPlay( type , manger );
+		IGameInstance::beginPlay( type , manger );
 	}
 
 	struct ExpInfo
@@ -75,7 +76,7 @@ namespace CAR
 	class CNetRoomSettingHelper : public NetRoomSettingHelper
 	{
 	public:
-		CNetRoomSettingHelper( CGamePackage* game )
+		CNetRoomSettingHelper( GameInstance* game )
 			:mGame( game )
 		{
 			mExpMask = 0;
@@ -139,16 +140,16 @@ namespace CAR
 			}
 		}
 
-		virtual void setupGame( StageManager& manager , GameStageBase* subStage )
+		virtual void setupGame( StageManager& manager , StageBase* subStage )
 		{
 			LevelStage* myStage = static_cast< LevelStage* >( subStage );
 			myStage->getSetting().mExpansionMask = mExpMask;
 		}
-		virtual void doSendSetting( DataStreamBuffer& buffer )
+		virtual void doExportSetting( DataSteamBuffer& buffer )
 		{
 			buffer.fill( mExpMask );
 		}
-		virtual void doRecvSetting( DataStreamBuffer& buffer )
+		virtual void doImportSetting( DataSteamBuffer& buffer )
 		{
 			getSettingPanel()->removeGui( MASK_BASE | MASK_RULE );
 			getSettingPanel()->adjustGuiLocation();
@@ -157,10 +158,10 @@ namespace CAR
 			setupBaseUI();
 		}
 		uint32        mExpMask;
-		CGamePackage* mGame;
+		GameInstance* mGame;
 	};
 
-	SettingHepler* CGamePackage::createSettingHelper( SettingHelperType type )
+	SettingHepler* GameInstance::createSettingHelper( SettingHelperType type )
 	{
 		switch( type )
 		{
@@ -172,4 +173,4 @@ namespace CAR
 
 }//namespace CAR
 
-EXPORT_GAME( CAR::CGamePackage )
+EXPORT_GAME( CAR::GameInstance )

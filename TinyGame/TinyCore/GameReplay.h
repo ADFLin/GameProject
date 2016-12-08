@@ -68,7 +68,7 @@ protected:
 	ReplayInfo    mInfo;
 };
 
-class IReplayRecorder : public ActionListener
+class IReplayRecorder : public IActionListener
 {
 public:
 	virtual ~IReplayRecorder(){}
@@ -78,7 +78,7 @@ public:
 	virtual ReplayBase& getReplay() = 0;
 };
 
-class IReplayInput : public ActionInput
+class IReplayInput : public IActionInput
 {
 public:
 	virtual ~IReplayInput(){}
@@ -142,7 +142,7 @@ public:
 
 protected:
 
-	void onScanActionStart();
+	void onScanActionStart( bool bUpdateFrame );
 	void onFireAction( ActionParam& param );
 	void onScanActionEnd();
 
@@ -236,7 +236,7 @@ namespace OldVersion
 
 
 		//ActionLister
-		virtual void onScanActionStart();
+		virtual void onScanActionStart( bool bUpdateFrame );
 		virtual void onFireAction( ActionParam& param );
 		virtual void onScanActionEnd();
 

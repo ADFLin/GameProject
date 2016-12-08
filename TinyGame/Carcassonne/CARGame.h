@@ -1,18 +1,18 @@
 #ifndef CARGame_h__9c08f051_07b8_4f17_b7f0_9f5cf184db8e
 #define CARGame_h__9c08f051_07b8_4f17_b7f0_9f5cf184db8e
 
-#include "GamePackage.h"
+#include "GameInstance.h"
 
 #define CAR_GAME_NAME "Carcassonne"
 
 namespace CAR
 {
 
-	class CGamePackage : public IGamePackage
+	class GameInstance : public IGameInstance
 	{
 	public:
-		CGamePackage();
-		virtual ~CGamePackage();
+		GameInstance();
+		virtual ~GameInstance();
 		virtual bool  initialize(){ return true; }
 		virtual void  cleanup(){}
 		virtual void  enter(){}
@@ -22,7 +22,7 @@ namespace CAR
 		virtual void beginPlay( StageModeType type, StageManager& manger );
 	public:
 		virtual char const*           getName(){ return CAR_GAME_NAME; }
-		virtual GameController&       getController(){ return IGamePackage::getController(); }
+		virtual GameController&       getController(){ return IGameInstance::getController(); }
 		virtual StageBase*            createStage( unsigned id );
 		virtual SettingHepler*        createSettingHelper( SettingHelperType type );
 		virtual bool                  getAttribValue( AttribValue& value );

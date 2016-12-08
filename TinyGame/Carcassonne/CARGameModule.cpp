@@ -4,9 +4,11 @@
 #include "CARGameInput.h"
 #include "CARPlayer.h"
 #include "CARMapTile.h"
-#include "CARGameSetting.h"
-#include "CARParamValue.h"
 #include "CARDebug.h"
+
+#include "CARGameSetting.h"
+#include "CARExpansion.h"
+#include "CARParamValue.h"
 
 #include <algorithm>
 
@@ -53,40 +55,62 @@ namespace CAR
 	proc.exec( TYPE , VALUE )
 
 		FIELD_ACTOR( ActorType::eMeeple , Value::MeeplePlayerOwnNum );
-		if ( setting.haveUse( EXP_INNS_AND_CATHEDRALS ) )
+		
+		if( setting.haveRule(Rule::eBigMeeple) )
 		{
 			FIELD_ACTOR( ActorType::eBigMeeple , Value::BigMeeplePlayerOwnNum );
 		}
-		if ( setting.haveUse( EXP_TRADERS_AND_BUILDERS ) )
+		if( setting.haveRule(Rule::eBuilder) )
 		{
-			FIELD_ACTOR( ActorType::eBuilder , Value::BuilderPlayerOwnNum );
-			FIELD_ACTOR( ActorType::ePig     , Value::PigPlayerOwnNum );
-			FIELD_VALUE( FieldType::eWine    , 0 );
-			FIELD_VALUE( FieldType::eGain    , 0 );
-			FIELD_VALUE( FieldType::eCloth   , 0 );
+			FIELD_ACTOR(ActorType::eBuilder, Value::BuilderPlayerOwnNum);
 		}
-		if ( setting.haveUse( EXP_ABBEY_AND_MAYOR ) )
+		if( setting.haveRule(Rule::ePig) )
 		{
-			FIELD_ACTOR( ActorType::eBarn , Value::BarnPlayerOwnNum );
-			FIELD_ACTOR( ActorType::eWagon , Value::WagonPlayerOwnNum );
-			FIELD_ACTOR( ActorType::eMayor , Value::MayorPlayerOwnNum );
-			FIELD_VALUE( FieldType::eAbbeyPices  , Value::AbbeyTilePlayerOwnNum );
+			FIELD_ACTOR(ActorType::ePig, Value::PigPlayerOwnNum);
 		}
-		if ( setting.haveUse( EXP_THE_TOWER ) )
+		if( setting.haveRule(Rule::eTraders) )
+		{
+			FIELD_VALUE(FieldType::eWine, 0);
+			FIELD_VALUE(FieldType::eGain, 0);
+			FIELD_VALUE(FieldType::eCloth, 0);
+		}
+		if( setting.haveRule(Rule::eBarn) )
+		{
+			FIELD_ACTOR(ActorType::eBarn, Value::BarnPlayerOwnNum);
+		}
+		if( setting.haveRule(Rule::eWagon) )
+		{
+			FIELD_ACTOR(ActorType::eWagon, Value::WagonPlayerOwnNum);
+		}
+		if( setting.haveRule(Rule::eMayor) )
+		{
+			FIELD_ACTOR(ActorType::eMayor, Value::MayorPlayerOwnNum);
+		}
+		if( setting.haveRule(Rule::eAbbey) )
+		{
+			FIELD_VALUE(FieldType::eAbbeyPices, Value::AbbeyTilePlayerOwnNum);
+		}
+		if( setting.haveRule(Rule::eTower) )
 		{
 			FIELD_VALUE( FieldType::eTowerPices , Value::TowerPicesPlayerOwnNum[ numPlayer ] );
 		}
-		if ( setting.haveUse( EXP_BRIDGES_CASTLES_AND_BAZAARS ) )
+		if( setting.haveRule(Rule::eBridge) )
 		{
-			FIELD_VALUE( FieldType::eBridgePices , Value::BridgePicesPlayerOwnNum[ numPlayer ] );
-			FIELD_VALUE( FieldType::eCastleTokens , Value::CastleTokensPlayerOwnNum[ numPlayer ] );
+			FIELD_VALUE(FieldType::eBridgePices, Value::BridgePicesPlayerOwnNum[numPlayer]);
+		}
+		if( setting.haveRule(Rule::eCastleToken) )
+		{
+			FIELD_VALUE(FieldType::eCastleTokens, Value::CastleTokensPlayerOwnNum[numPlayer]);
+		}
+		if( setting.haveRule(Rule::eBazaar) )
+		{
 			FIELD_VALUE( FieldType::eTileIdAuctioned , FAIL_TILE_ID );
 		}
-		if ( setting.haveUse( EXP_HILLS_AND_SHEEP ) )
+		if ( setting.haveRule(Rule::eShepherdAndSheep) )
 		{
 			FIELD_ACTOR( ActorType::eShepherd , Value::ShepherdPlayerOwnNum );
 		}
-		if ( setting.haveUse( EXP_PHANTOM ) )
+		if( setting.haveRule(Rule::ePhantom) )
 		{
 			FIELD_ACTOR( ActorType::ePhantom , Value::PhantomPlayerOwnNum );
 		}
@@ -152,19 +176,20 @@ namespace CAR
 
 	void GameModule::loadSetting( bool beInit )
 	{
-		if ( mSetting->haveUse( EXP_INNS_AND_CATHEDRALS) )
+		if( mSetting->haveRule(Rule::eKingAndRobber) )
 		{
 			mMaxCityTileNum = 0;
 			mMaxRoadTileNum = 0;
 		}
-
-		if ( mSetting->haveUse( EXP_THE_PRINCESS_AND_THE_DRAGON ) )
+		if( mSetting->haveRule(Rule::eDragon) )
 		{
-			mDragon = createActor( ActorType::eDragon );
+			mDragon = createActor(ActorType::eDragon);
+		}
+		if ( mSetting->haveRule(Rule::eFariy) )
+		{
 			mFairy  = createActor( ActorType::eFariy );
 		}
-
-		if ( mSetting->haveUse( EXP_HILLS_AND_SHEEP ) )
+		if( mSetting->haveRule(Rule::eShepherdAndSheep) )
 		{
 			for( int i = 0 ; i < SheepToken::Num ; ++i )
 			{
@@ -191,20 +216,11 @@ namespace CAR
 
 		if ( beInit )
 		{
-			for( int idx = 0 ;  ; ++idx )
+			mTileSetManager.addExpansion(EXP_BASIC);
+			for( int i = 0; i < NUM_EXPANSIONS; ++i )
 			{
-				ExpansionTileContent const& tileData = gAllExpansionTileContents[idx];
-				if ( tileData.exp == EXP_NULL )
-					break;
-				if ( tileData.exp == EXP_BASIC || 
-					mSetting->haveUse( tileData.exp ) )
-				{
-					mTileSetManager.import( tileData );
-				}
-				else if ( mDebug && tileData.exp == EXP_TEST )
-				{
-					mTileSetManager.import( tileData );
-				}
+				if( mSetting->mExpansionMask & BIT(i) )
+					mTileSetManager.addExpansion(Expansion(i));
 			}
 		}
 	}
@@ -297,7 +313,7 @@ namespace CAR
 
 			curTrunPlayer->endTurn();
 
-			if ( mSetting->haveUse( EXP_BRIDGES_CASTLES_AND_BAZAARS ) )
+			if ( mSetting->haveRule(Rule::eCastleToken) )
 			{
 				mCastlesRoundBuild.moveAfter( mCastles.back() );
 			}
@@ -356,7 +372,7 @@ namespace CAR
 			}
 		}
 
-		if ( mSetting->haveUse( EXP_TRADERS_AND_BUILDERS ) )
+		if ( mSetting->haveRule(Rule::eTraders) )
 		{
 			PlayerBase* players[ MaxPlayerNum ];
 			FieldType::Enum treadeFields[] = { FieldType::eWine , FieldType::eGain , FieldType::eCloth };
@@ -371,7 +387,7 @@ namespace CAR
 			}
 		}
 
-		if ( mSetting->haveUse( EXP_KING_AND_ROBBER ) )
+		if( mSetting->haveRule(Rule::eKingAndRobber) )
 		{		
 			int numCityComplete = 0;
 			int numRoadComplete = 0;
@@ -418,7 +434,7 @@ namespace CAR
 			tilePieceMap[i] = tileSet.numPiece;
 		}
 	
-		bool useRiver = mSetting->haveUse( EXP_THE_RIVER ) || mSetting->haveUse( EXP_THE_RIVER_II ) ;
+		bool useRiver = mTileSetManager.haveUse( EXP_THE_RIVER ) || mTileSetManager.haveUse( EXP_THE_RIVER_II ) ;
 
 		//River
 		TileId tileIdStart = FAIL_TILE_ID;
@@ -426,7 +442,7 @@ namespace CAR
 		TileId tileIdFristPlay = FAIL_TILE_ID;
 		if ( useRiver )
 		{
-			if ( mSetting->haveUse( EXP_THE_RIVER_II ) )
+			if ( mTileSetManager.haveUse( EXP_THE_RIVER_II ) )
 			{
 				int idx;
 				idx = findTagTileIndex( specialTileList , EXP_THE_RIVER_II , TILE_START_TAG );
@@ -440,7 +456,7 @@ namespace CAR
 					tileIdFristPlay = specialTileList[ idx ];
 			}
 
-			if ( mSetting->haveUse( EXP_THE_RIVER ) )
+			if ( mTileSetManager.haveUse( EXP_THE_RIVER ) )
 			{
 				int idx;
 				idx = findTagTileIndex( specialTileList , EXP_THE_RIVER , TILE_START_TAG );
@@ -546,7 +562,7 @@ namespace CAR
 			idxPrev = idx;
 		}
 
-		if ( mSetting->haveUse( EXP_ABBEY_AND_MAYOR ) )
+		if ( mTileSetManager.haveUse( EXP_ABBEY_AND_MAYOR ) )
 		{
 			int idx = findTagTileIndex( specialTileList , EXP_ABBEY_AND_MAYOR , TILE_ABBEY_TAG );
 			if ( idx != 0 )
@@ -560,14 +576,11 @@ namespace CAR
 			}
 		}
 
-		if ( mSetting->haveUse( EXP_CASTLES ) )
+		if ( mTileSetManager.haveUse( EXP_CASTLES ) )
 		{
 			TileIdVec const& castales = mTileSetManager.getGroup( TileSet::eGermanCastle );
 			int numCastalePlayer = mPlayerManager->getPlayerNum() > 3 ? 1 : 2;
 			//TODO
-
-
-
 		}
 
 		mIdxTile = 0;
@@ -614,7 +627,7 @@ namespace CAR
 		TurnResult result;
 
 		//Step 1: Begin Turn
-		if ( mSetting->haveUse( EXP_THE_PRINCESS_AND_THE_DRAGON ))
+		if ( mSetting->haveRule( Rule::eFariy ))
 		{
 			if ( mFairy->binder && mFairy->binder->owner == curTrunPlayer )
 			{
@@ -656,7 +669,7 @@ namespace CAR
 				placeMapTile = placeMapTiles[0];
 			}
 
-			if ( mSetting->haveUse( EXP_THE_TOWER ) )
+			if ( mSetting->haveRule( Rule::eTower ) )
 			{
 				for( int i = 0 ; i < numPlaceTile ; ++i )
 				{
@@ -666,7 +679,7 @@ namespace CAR
 			}
 
 			bool haveBuilderFeatureExpend = false;
-			if ( mSetting->haveUse( EXP_TRADERS_AND_BUILDERS ) )
+			if ( mSetting->haveRule( Rule::eBuilder ) )
 			{
 				haveBuilderFeatureExpend = checkHaveBuilderFeatureExpend( curTrunPlayer );
 			}
@@ -675,31 +688,35 @@ namespace CAR
 			bool havePlagueSource = false;
 			bool skipAllActorStep = false;
 			
-			if ( mSetting->haveUse( EXP_THE_PRINCESS_AND_THE_DRAGON ) )
-			{
-				//c)volcano
 
-				for( int i = 0 ; i < numPlaceTile ; ++i )
+			//c)volcano
+			if( mSetting->haveRule(Rule::eDragon) )
+			{
+				for( int i = 0; i < numPlaceTile; ++i )
 				{
 					MapTile* tile = placeMapTiles[i];
-					if ( tile->getTileContent() & TileContent::eVolcano )
+					if( tile->getTileContent() & TileContent::eVolcano )
 					{
-						mTowerTiles.push_back( placeMapTiles[i] );
-						if ( mDragon->mapTile == nullptr )
+						mTowerTiles.push_back(placeMapTiles[i]);
+						if( mDragon->mapTile == nullptr )
 							checkReservedTileToMix();
 
-						moveActor( mDragon , ActorPos( ActorPos::eTile , 0 ) , tile );
+						moveActor(mDragon, ActorPos(ActorPos::eTile, 0), tile);
 						haveVolcano = true;
 					}
 				}
-				//d)princess
+			}
+			//d)princess
+			if( mSetting->haveRule(Rule::ePrinecess) )
+			{
 				bool haveDone = false;
-				result = resolvePrincess( input , placeMapTile , haveDone );
-				if ( result != TurnResult::eOK )
+				result = resolvePrincess(input, placeMapTile, haveDone);
+				if( result != TurnResult::eOK )
 					return result;
-				if ( haveDone )
+				if( haveDone )
 					skipAllActorStep = true;
 			}
+
 
 			if ( skipAllActorStep == false )
 			{
@@ -765,7 +782,7 @@ namespace CAR
 					//d)
 
 					//e)
-					if ( mSetting->haveUse( EXP_THE_TOWER ) )
+					if ( mSetting->haveRule( Rule::eTower ) )
 					{
 						bool haveDone = false;
 						result = resolveTower( input , curTrunPlayer , haveDone );
@@ -774,7 +791,8 @@ namespace CAR
 						if ( haveDone )
 							break;
 					}
-					if ( mSetting->haveUse( EXP_THE_PRINCESS_AND_THE_DRAGON ) )
+
+					if( mSetting->haveRule(Rule::eFariy) )
 					{
 						bool haveDone = false;
 						result = resolveMoveFairyToNextFollower( input, curTrunPlayer , haveDone );
@@ -794,7 +812,7 @@ namespace CAR
 			//Step 5: Resolve Move the Wood
 
 			//c) Shepherd
-			if ( mSetting->haveUse( EXP_HILLS_AND_SHEEP ) )
+			if ( mSetting->haveRule( Rule::eShepherdAndSheep ) )
 			{
 				for( FeatureUpdateInfoVec::iterator iter = mUpdateFeatures.begin(), itEnd = mUpdateFeatures.end();
 					iter != itEnd ; ++iter )
@@ -811,9 +829,9 @@ namespace CAR
 				}
 			}
 			//d) dragon move
-			if ( mSetting->haveUse( EXP_THE_PRINCESS_AND_THE_DRAGON ) )
+			if ( mSetting->haveRule( Rule::eDragon ) )
 			{
-				if ( mSetting->haveRule(eMoveDragonBeforeScoring ) == true )
+				if ( mSetting->haveRule( Rule::eMoveDragonBeforeScoring ) == true )
 				{
 					bool haveDragon = false;
 					for( int i = 0 ; i < numPlaceTile ; ++i )
@@ -853,7 +871,7 @@ namespace CAR
 				}
 				else if ( feature->type == FeatureType::eFarm )
 				{
-					if ( mSetting->haveUse( EXP_ABBEY_AND_MAYOR ) && feature->haveActorMask( BIT( ActorType::eBarn ) ) )
+					if ( mSetting->haveRule( Rule::eBarn ) && feature->haveActorMask( BIT( ActorType::eBarn ) ) )
 					{
 						FarmFeature* farm = static_cast< FarmFeature*>( feature );
 						updateBarnFarm(farm);
@@ -861,7 +879,7 @@ namespace CAR
 				}
 			}
 			//castle complete
-			if ( mSetting->haveUse( EXP_BRIDGES_CASTLES_AND_BAZAARS ) )
+			if ( mSetting->haveRule(Rule::eCastleToken) )
 			{
 				result = resolveCastleComplete( input );
 				if ( result != TurnResult::eOK )
@@ -870,9 +888,9 @@ namespace CAR
 
 			//Step 8: Resolve the Tile
 			//d) dragon move
-			if ( mSetting->haveUse( EXP_THE_PRINCESS_AND_THE_DRAGON ) )
+			if( mSetting->haveRule(Rule::eDragon) )
 			{
-				if ( mSetting->haveRule(eMoveDragonBeforeScoring ) == false )
+				if ( mSetting->haveRule(Rule::eMoveDragonBeforeScoring ) == false )
 				{
 					bool haveDragon = false;
 					for( int i = 0 ; i < numPlaceTile ; ++i )
@@ -895,7 +913,7 @@ namespace CAR
 
 			//Step 9: Resolve the Turn
 			//a)builder
-			if ( mSetting->haveUse( EXP_TRADERS_AND_BUILDERS ) && numPlaceTile == 1 )
+			if ( mSetting->haveRule( Rule::eBuilder ) && numPlaceTile == 1 )
 			{
 				if ( haveBuilderFeatureExpend )
 				{
@@ -904,7 +922,7 @@ namespace CAR
 				}
 			}
 			//b)bazaar
-			if ( mSetting->haveUse( EXP_BRIDGES_CASTLES_AND_BAZAARS ) )
+			if ( mSetting->haveRule( Rule::eBazaar ) )
 			{
 				for( int i = 0 ; i < numPlaceTile ; ++i )
 				{
@@ -935,7 +953,7 @@ namespace CAR
 			hillTileId = FAIL_TILE_ID;
 			mUseTileId = FAIL_TILE_ID;
 
-			if ( mSetting->haveUse( EXP_BRIDGES_CASTLES_AND_BAZAARS ) )
+			if ( mSetting->haveRule(Rule::eBazaar) )
 			{
 				if ( curTrunPlayer->getFieldValue( FieldType::eTileIdAuctioned ) != FAIL_TILE_ID )
 				{
@@ -950,7 +968,7 @@ namespace CAR
 				mUseTileId = drawPlayTile();
 			}
 
-			if ( mSetting->haveUse( EXP_THE_PRINCESS_AND_THE_DRAGON ) )
+			if ( mSetting->haveRule( Rule::eDragon ) )
 			{
 				if ( countDrawTileLoop < getRemainingTileNum() )
 				{
@@ -964,7 +982,7 @@ namespace CAR
 				}
 			}
 			
-			if ( mSetting->haveUse( EXP_HILLS_AND_SHEEP ) )
+			if ( mSetting->haveRule( Rule::eUseHill ) )
 			{
 				if ( getRemainingTileNum() > 0 )
 				{
@@ -977,7 +995,7 @@ namespace CAR
 			param.checkRiverConnect = 1;
 			if ( updatePosibleLinkPos( param ) == 0 )
 			{
-				if ( mSetting->haveUse( EXP_BRIDGES_CASTLES_AND_BAZAARS ) )
+				if( mSetting->haveRule(Rule::eBridge) )
 				{
 					param.usageBridge = 1;
 					if ( updatePosibleLinkPos( param ) != 0 )
@@ -1102,7 +1120,7 @@ namespace CAR
 		TurnResult result;
 		assert( feature.checkComplete() );
 
-		if ( mSetting->haveUse( EXP_BRIDGES_CASTLES_AND_BAZAARS ) )
+		if( mSetting->haveRule(Rule::eCastleToken) )
 		{
 			if ( feature.type == FeatureType::eCity )
 			{
@@ -1116,7 +1134,7 @@ namespace CAR
 		}
 
 		//c)
-		if ( mSetting->haveUse(EXP_THE_PRINCESS_AND_THE_DRAGON) )
+		if ( mSetting->haveRule(Rule::eFariy) )
 		{
 			LevelActor* actor = mFairy->binder;
 			if ( actor && actor->feature == &feature )
@@ -1130,7 +1148,7 @@ namespace CAR
 		if ( feature.type == FeatureType::eCity )
 		{
 			CityFeature& city = static_cast< CityFeature& >( feature );
-			if ( mSetting->haveUse( EXP_TRADERS_AND_BUILDERS ) )
+			if ( mSetting->haveRule( Rule::eTraders ) )
 			{
 				for( std::vector< SideNode* >::iterator iter = city.nodes.begin() , itEnd = city.nodes.end();
 					iter != itEnd ; ++iter )
@@ -1154,7 +1172,7 @@ namespace CAR
 			}
 		}
 		//->King or Robber Baron
-		if ( mSetting->haveUse( EXP_KING_AND_ROBBER ) )
+		if ( mSetting->haveRule( Rule::eKingAndRobber ) )
 		{
 			if ( feature.type == FeatureType::eCity && castleScore == nullptr )
 			{
@@ -1194,7 +1212,7 @@ namespace CAR
 		}
 		if ( numController > 0 )
 		{
-			if ( mSetting->haveUse( EXP_CASTLES ) && 
+			if ( mSetting->haveRule( Rule::eGermanCastles ) &&
 				 ( feature.type == FeatureType::eCity || feature.type == FeatureType::eRoad ) )
 			{
 				int numNeighborCastle = 0;
@@ -1240,7 +1258,7 @@ namespace CAR
 			addFeaturePoints( feature , scoreInfos , numController );
 		}
 
-		if ( mSetting->haveUse( EXP_BRIDGES_CASTLES_AND_BAZAARS ) )
+		if ( mSetting->haveRule( Rule::eCastleToken ) )
 		{
 			int score = 0;
 			if ( numController > 0 )
@@ -1341,8 +1359,7 @@ namespace CAR
 					continue;
 
 				//TODO: castle school city of car. , wheel of fea.
-				assert( mSetting->haveUse( EXP_THE_PRINCESS_AND_THE_DRAGON ) );
-				if ( mFairy->mapTile == mapTile )
+				if ( mSetting->haveRule( Rule::eFariy ) && mFairy->mapTile == mapTile )
 					continue;
 
 				int idx = 0;
@@ -1386,7 +1403,7 @@ namespace CAR
 				if ( bDrageCanEat == false )
 					continue;
 
-				if ( mSetting->haveUse( EXP_HILLS_AND_SHEEP ) && actor->type == ActorType::eShepherd )
+				if ( mSetting->haveRule( Rule::eShepherdAndSheep ) && actor->type == ActorType::eShepherd )
 				{
 					ShepherdActor* shepherd = static_cast< ShepherdActor* >( actor );
 					for( int i = 0 ; i < (int)shepherd->ownSheep.size() ; ++ i )
@@ -1835,7 +1852,7 @@ namespace CAR
 		}
 		//l)
 
-		if ( mSetting->haveUse( EXP_ABBEY_AND_MAYOR ) && !wagonGroup.empty() )
+		if ( mSetting->haveRule( Rule::eWagon ) && !wagonGroup.empty() )
 		{
 			GroupSet linkFeatureGroups;
 			feature.generateRoadLinkFeatures( linkFeatureGroups );
@@ -2460,7 +2477,7 @@ namespace CAR
 			result += feature->getActorPutInfo( playerId , idx , outInfo );
 		}
 
-		if ( mSetting->haveUse( EXP_ABBEY_AND_MAYOR ) && bUsageMagicPortal == false )
+		if ( mSetting->haveRule( Rule::eBarn ) && bUsageMagicPortal == false )
 		{
 			//Barn
 			for( int i = 0 ; i < FDir::TotalNum ; ++i )
@@ -2502,7 +2519,7 @@ namespace CAR
 			}
 		}
 
-		if ( mSetting->haveUse( EXP_HILLS_AND_SHEEP ) )
+		if ( mSetting->haveRule( Rule::eShepherdAndSheep ) )
 		{
 			//Shepherd
 			unsigned mask = 0;
@@ -3085,7 +3102,7 @@ namespace CAR
 			if ( feature->havePlayerActor( curTrunPlayer->getId() , ActorType::eBuilder ) == false )
 				continue;
 	
-			if ( mSetting->haveUse( EXP_ABBEY_AND_MAYOR ) )
+			if ( mSetting->haveRule( Rule::eAbbey ) )
 			{
 				if ( iter->bAbbeyUpdate )
 					continue;

@@ -48,15 +48,15 @@ namespace Tetris
 
 	bool LevelStage::onInit()
 	{
+		if( !BaseClass::onInit() )
+			return false;
+
 		if( !mGameMode )
 		{
 			return false;
 		}
 		mWorld.reset(new GameWorld(mGameMode));
-		getActionProcessor().setEnumer(mWorld.get());
-
-		if ( !BaseClass::onInit() )
-			return false;
+		getActionProcessor().setLanucher(mWorld.get());
 
 		return true;
 	}
@@ -65,7 +65,7 @@ namespace Tetris
 
 	void LevelStage::onEnd()
 	{
-		getActionProcessor().setEnumer( NULL );
+		getActionProcessor().setLanucher( NULL );
 	}
 
 	void LevelStage::setupLevel(GameLevelInfo const& info)
@@ -84,13 +84,13 @@ namespace Tetris
 
 		mWorld->storePlayerLevel( playerMgr );
 
-		switch( getGameType() )
+		switch( getModeType() )
 		{
 		case SMT_SINGLE_GAME:
 			mGameMode->setupSingleGame( controller );
 			break;
 		case SMT_REPLAY:
-			if ( getGameType() == SMT_REPLAY )
+			if ( getModeType() == SMT_REPLAY )
 			{
 				flag |= Mode::eReplay;
 			}
@@ -187,20 +187,20 @@ namespace Tetris
 
 	void LevelStage::tick()
 	{
-		if ( getState() == GS_RUN )
+		if ( getGameState() == GS_RUN )
 		{
 			mWorld->tick();
 			if ( mWorld->isGameEnd() )
 				changeState( GS_END );
 		}
 
-		if ( getState() != GS_PAUSE )
+		if ( getGameState() != GS_PAUSE )
 			mGameTime += gDefaultTickTime;
 
-		switch( getState() )
+		switch( getGameState() )
 		{
 		case GS_START:
-			if ( mGameTime > 2500 || getGameType() == SMT_REPLAY )
+			if ( mGameTime > 2500 || getModeType() == SMT_REPLAY )
 				changeState( GS_RUN );
 			break;
 		}
@@ -217,7 +217,7 @@ namespace Tetris
 		switch( state )
 		{
 		case GS_END:
-			switch( getGameType() )
+			switch( getModeType() )
 			{
 			case  SMT_SINGLE_GAME:
 				{
@@ -265,7 +265,7 @@ namespace Tetris
 
 		mWorld->render( g );
 
-		if ( getState() == GS_START )
+		if ( getGameState() == GS_START )
 		{
 			RenderUtility::setFont( g , FONT_S24 );
 			Vec2i pos( de->getScreenWidth() / 2 , de->getScreenHeight() / 2 );
@@ -295,7 +295,7 @@ namespace Tetris
 		case UI_RESTART_GAME:
 			if ( event == EVT_BOX_NO )
 			{
-				if ( getGameType() == SMT_SINGLE_GAME )
+				if ( getModeType() == SMT_SINGLE_GAME )
 				{
 					RecordStage* stage = (RecordStage*)getManager()->changeStage( STAGE_RECORD_GAME );
 					stage->setPlayerOrder( mLastGameOrder );
@@ -363,7 +363,7 @@ namespace Tetris
 
 	bool LevelStage::setupGame( GameInfo &gameInfo )
 	{
-		if ( getStageMode() && getGameType() != SMT_NET_GAME )
+		if ( getStageMode() && getModeType() != SMT_NET_GAME )
 		{
 			LocalPlayerManager* playerManager = static_cast< LocalPlayerManager* >(getStageMode()->getPlayerManager() );
 			for( int i = 0 ; i < gameInfo.numLevel ; ++i )

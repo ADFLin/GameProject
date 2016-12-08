@@ -19,7 +19,7 @@ namespace Rich
 
 	void GamePackage::beginPlay( StageModeType type, StageManager& manger )
 	{
-		IGamePackage::beginPlay( type , manger );
+		IGameInstance::beginPlay( type , manger );
 
 	}
 

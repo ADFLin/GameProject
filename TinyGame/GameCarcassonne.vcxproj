@@ -53,14 +53,14 @@
       <Optimization>Disabled</Optimization>
       <AdditionalIncludeDirectories>.;TinyCore;../libEngine;../OtherLib;../Game;../OtherLib/boost;../CFlyMain;../OtherLib/Dx9/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;_WINDOWS;DEBUG;TG_DLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <MinimalRebuild>true</MinimalRebuild>
+      <MinimalRebuild>false</MinimalRebuild>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>CAR_PCH.h</PrecompiledHeaderFile>
       <ProgramDataBaseFileName>$(IntDir)vc$(PlatformToolsetVersion).pdb</ProgramDataBaseFileName>
       <WarningLevel>Level3</WarningLevel>
-      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
       <ForcedIncludeFiles>CAR_PCH.h;%(ForcedIncludeFiles)</ForcedIncludeFiles>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
@@ -109,11 +109,12 @@
     <ClCompile Include="Carcassonne\CARGame.cpp" />
     <ClCompile Include="Carcassonne\CARGameInputImpl.cpp" />
     <ClCompile Include="Carcassonne\CARGameModule.cpp" />
+    <ClCompile Include="Carcassonne\CARGameSetting.cpp" />
     <ClCompile Include="Carcassonne\CARLevelActor.cpp" />
     <ClCompile Include="Carcassonne\CARMapTile.cpp" />
     <ClCompile Include="Carcassonne\CARPlayer.cpp" />
     <ClCompile Include="Carcassonne\CARStage.cpp" />
-    <ClCompile Include="Carcassonne\CARTileDefineData.cpp" />
+    <ClCompile Include="Carcassonne\CARExpansion.cpp" />
     <ClCompile Include="Carcassonne\CARWorldTileManager.cpp" />
     <ClCompile Include="Carcassonne\CAR_PCH.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
@@ -124,6 +125,7 @@
     <ClInclude Include="Carcassonne\CARCommon.h" />
     <ClInclude Include="Carcassonne\CARDebug.h" />
     <ClInclude Include="Carcassonne\CARDefine.h" />
+    <ClInclude Include="Carcassonne\CARExpansion.h" />
     <ClInclude Include="Carcassonne\CARFeature.h" />
     <ClInclude Include="Carcassonne\CARGame.h" />
     <ClInclude Include="Carcassonne\CARGameInput.h" />

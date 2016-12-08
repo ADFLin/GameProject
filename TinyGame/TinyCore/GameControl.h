@@ -10,7 +10,7 @@
 
 typedef unsigned ControlAction;
 
-class ActionInput;
+class IActionInput;
 class ActionProcessor;
 
 #define ERROR_ACTION_PORT (-1)
@@ -73,27 +73,26 @@ private:
 	friend class ActionProcessor;
 };
 
-class  ActionEnumer
+class  IActionLanucher
 {
 public:
-	virtual void prevScanAction( bool beUpdateFrame ){}
-	//call ActionTrigger::checkFire and act action if return ture
+	//call ActionTrigger::detect and act action if return ture
 	virtual void fireAction( ActionTrigger& trigger ) = 0;
 };
 
-class ActionInput
+class IActionInput
 {
 public:
-	virtual ~ActionInput(){}
+	virtual ~IActionInput(){}
 	virtual bool scanInput( bool beUpdateFrame ) = 0;
 	virtual bool checkAction( ActionParam& param ) = 0;
 };
 
-class  ActionListener
+class  IActionListener
 {
 public:
-	virtual ~ActionListener(){}
-	virtual void onScanActionStart(){}
+	virtual ~IActionListener(){}
+	virtual void onScanActionStart( bool bUpdateFrame ){}
 	virtual void onFireAction( ActionParam& param ) = 0;
 	virtual void onScanActionEnd(){}
 };
@@ -115,31 +114,33 @@ public:
 	GAME_API void beginAction( unsigned flag = 0 );
 	GAME_API void endAction();
 
-	GAME_API void setEnumer( ActionEnumer* enumer );
-	GAME_API void setListener( ActionListener* listener );
+	GAME_API void setLanucher( IActionLanucher* lanucher );
+	GAME_API void addListener( IActionListener& listener );
+	GAME_API bool removeListener(IActionListener& listener);
 	
-	GAME_API void addInput   ( ActionInput& input , unsigned targetPort = ERROR_ACTION_PORT );
-	GAME_API bool removeInput( ActionInput& input );
+	GAME_API void addInput   ( IActionInput& input , unsigned targetPort = ERROR_ACTION_PORT );
+	GAME_API bool removeInput( IActionInput& input );
 
 public:
 	GAME_API void _prevFireAction( ActionParam& param );
 	GAME_API bool _checkAction( ActionParam& param );
 protected:
 	GAME_API void scanControl( unsigned flag = 0 );
-	GAME_API void scanControl( ActionEnumer& enumer , unsigned flag = 0 );
+	GAME_API void scanControl( IActionLanucher& lanucher , unsigned flag = 0 );
 private:
-	typedef std::vector< ActionListener*> ListenerList;
-	typedef std::vector< ActionInput* >   InputList;
+	typedef std::vector< IActionListener*> ListenerList;
+	typedef std::vector< IActionInput* >   InputList;
 
 	struct InputInfo
 	{
-		ActionInput* input;
+		IActionInput* input;
 		unsigned     port;
 	};
-	ActionListener* mListener;
-	ActionEnumer*   mEnumer;
-	InputList       mInputList;
-	InputList       mActiveInputs;
+	std::vector< IActionListener* > mListeners;
+
+	IActionLanucher* mLanucher;
+	InputList        mInputList;
+	InputList        mActiveInputs;
 };
 
 
@@ -154,7 +155,7 @@ enum GameAction
 	ACT_BUTTON2 = 2,
 };
 
-class  GameController : public ActionInput
+class  GameController : public IActionInput
 {
 public:
 	//ActionInput

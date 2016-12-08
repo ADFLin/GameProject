@@ -3,7 +3,7 @@
 
 #include "BMAction.h"
 
-#include "GamePackage.h"
+#include "GameInstance.h"
 #include "RenderUtility.h"
 #include "GameSingleStage.h"
 
@@ -18,16 +18,18 @@ namespace BomberMan
 
 	bool LevelStage::onInit()
 	{
-		getActionProcessor().setEnumer( this );
 		if( !BaseClass::onInit() )
 			return false;
 
+		getActionProcessor().setLanucher( this );
+		getActionProcessor().addListener( *this );
 		return true;
 	}
 
 	void LevelStage::onEnd()
 	{
-		getActionProcessor().setEnumer( NULL );
+		getActionProcessor().setLanucher( NULL );
+		getActionProcessor().removeListener(*this);
 
 		delete &mMode->getMapGenerator(); 
 		delete mMode;
@@ -115,7 +117,7 @@ namespace BomberMan
 
 		GameController& controller = getGame()->getController();
 		
-		switch( getGameType() )
+		switch( getModeType() )
 		{
 		case SMT_NET_GAME:
 			{
@@ -162,7 +164,7 @@ namespace BomberMan
 				}
 				break;
 			case STEP_GAME_OVER:
-				switch( getGameType() )
+				switch( getModeType() )
 				{
 				case SMT_NET_GAME:
 					if ( ::Global::GameNet().getNetWorker()->isServer() )
@@ -178,7 +180,7 @@ namespace BomberMan
 				break;
 			}
 		}
-		switch( getState() )
+		switch( getGameState() )
 		{
 		case GS_RUN:
 			mMode->tick();
@@ -241,14 +243,6 @@ namespace BomberMan
 	}
 
 
-	void LevelStage::prevScanAction( bool beUpdateFrame )
-	{
-		if ( beUpdateFrame )
-		{
-			mScene.getWorld().clearAction();
-		}
-	}
-
 	void LevelStage::fireAction( ActionTrigger& trigger )
 	{
 		World& world = mScene.getWorld();
@@ -274,6 +268,19 @@ namespace BomberMan
 			mNextStepTime = mGameTime + time;
 
 		mStep = step;
+	}
+
+	void LevelStage::onScanActionStart(bool bUpdateFrame )
+	{
+		if( bUpdateFrame )
+		{
+			mScene.getWorld().clearAction();
+		}
+	}
+
+	void LevelStage::onFireAction(ActionParam& param)
+	{
+		return;
 	}
 
 }//namespace BomberMan

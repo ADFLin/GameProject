@@ -1,7 +1,7 @@
 #include "TinyGamePCH.h"
 #include "CFrameActionNetEngine.h"
 
-#include "GamePackage.h"
+#include "GameInstance.h"
 #include "GamePlayer.h"
 
 CFrameActionEngine::CFrameActionEngine( INetFrameManager* netFrameMgr )
@@ -15,14 +15,13 @@ CFrameActionEngine::~CFrameActionEngine()
 	mNetFrameMgr->release();
 }
 
-bool CFrameActionEngine::build( BuildInfo& info )
+bool CFrameActionEngine::build( BuildParam& buildParam )
 {
-	mWorker   = info.worker;
-	mTickTime = info.tickTime;
+	mWorker   = buildParam.worker;
+	mTickTime = buildParam.tickTime;
 
-	info.processor->addInput( *mNetFrameMgr );
-
-	mNetFrameMgr->getActionProcessor().addInput( info.game->getController() );
+	buildParam.processor->addInput( *mNetFrameMgr );
+	mNetFrameMgr->getActionProcessor().addInput( buildParam.game->getController() );
 
 	return true;
 }
@@ -52,7 +51,7 @@ void CFrameActionEngine::setupInputAI( IPlayerManager& manager )
 		GamePlayer* player = iter.getElement();
 		if ( player->getAI() )
 		{
-			ActionInput* input = player->getAI()->getActionInput();
+			IActionInput* input = player->getAI()->getActionInput();
 			if ( input )
 				mNetFrameMgr->getActionProcessor().addInput( *input );
 		}

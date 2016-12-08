@@ -10,7 +10,7 @@
 namespace GreedySnake
 {
 
-	StageBase* CGamePackage::createStage( unsigned id )
+	StageBase* GameInstance::createStage( unsigned id )
 	{
 		switch( id )
 		{
@@ -22,7 +22,7 @@ namespace GreedySnake
 		return NULL;
 	}
 
-	bool CGamePackage::getAttribValue( AttribValue& value )
+	bool GameInstance::getAttribValue( AttribValue& value )
 	{
 		switch( value.id )
 		{
@@ -44,9 +44,9 @@ namespace GreedySnake
 		return false;
 	}
 
-	void CGamePackage::beginPlay( StageModeType type, StageManager& manger )
+	void GameInstance::beginPlay( StageModeType type, StageManager& manger )
 	{
-		IGamePackage::beginPlay( type , manger );
+		IGameInstance::beginPlay( type , manger );
 	}
 
 	class CNetRoomSettingHelper : public NetRoomSettingHelper
@@ -55,16 +55,16 @@ namespace GreedySnake
 	public:
 		virtual void clearUserUI(){}
 		virtual void doSetupSetting( bool beServer ){}
-		virtual void setupGame( StageManager& manager , GameStageBase* subStage )
+		virtual void setupGame( StageManager& manager , StageBase* subStage )
 		{
 
 		}
 
-		virtual void doSendSetting( DataStreamBuffer& buffer ){}
-		virtual void doRecvSetting( DataStreamBuffer& buffer ){}
+		virtual void doExportSetting( DataSteamBuffer& buffer ){}
+		virtual void doImportSetting( DataSteamBuffer& buffer ){}
 	};
 
-	SettingHepler* CGamePackage::createSettingHelper( SettingHelperType type )
+	SettingHepler* GameInstance::createSettingHelper( SettingHelperType type )
 	{
 		switch( type )
 		{

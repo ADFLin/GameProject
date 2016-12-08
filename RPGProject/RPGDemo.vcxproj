@@ -53,7 +53,7 @@
       <Optimization>Disabled</Optimization>
       <AdditionalIncludeDirectories>../CFlyMain;../libEngine;libRPG;../OtherLib/bullet/src;../OtherLib/Recast/Detour/Include;../OtherLib/boost;../OtherLib/Dx9/Include;../OtherLib/;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>DEBUG;WIN32;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <MinimalRebuild>true</MinimalRebuild>
+      <MinimalRebuild>false</MinimalRebuild>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
       <FloatingPointModel>Fast</FloatingPointModel>
@@ -78,10 +78,11 @@
     <ClCompile>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <AdditionalIncludeDirectories>libRPG/;.;../CFlyMain;../libEngine;../OtherLib/bullet/src;../OtherLib/Recast/Detour/Include;../OtherLib/boost;../OtherLib/Dx9/Include;../OtherLib/;../libEngine;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>NDEBUG;WIN32;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_SECURE_SCL=0;NDEBUG;WIN32;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <WarningLevel>Level3</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
       <AdditionalDependencies>BulletCollision.lib;BulletDynamics.lib;BulletSoftBody.lib;LinearMath.lib;ConvexDecomposition.lib;Recast.lib;d3d9.lib;d3dx9.lib;dsound.lib;dinput8.lib;dxguid.lib;winmm.lib;%(AdditionalDependencies)</AdditionalDependencies>

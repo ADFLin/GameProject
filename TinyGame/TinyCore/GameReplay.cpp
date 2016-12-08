@@ -1,6 +1,6 @@
 #include "TinyGamePCH.h"
 #include "GameReplay.h"
-#include "GamePackage.h"
+#include "GameInstance.h"
 #include "GameAction.h"
 
 #include <fstream>
@@ -328,7 +328,7 @@ bool ReplayRecorder::save( char const* path )
 	return mReplay.save( path );
 }
 
-void ReplayRecorder::onScanActionStart()
+void ReplayRecorder::onScanActionStart(bool bUpdateFrame)
 {
 	mTemplate->prevListenAction();
 }
@@ -521,8 +521,8 @@ namespace OldVersion
 		delete mTemplate;
 	}
 
-	void ReplayRecorder::onScanActionStart()
-	{
+	void ReplayRecorder::onScanActionStart(bool bUpdateFrame)
+{
 		mTemplate->startFrame();
 	}
 

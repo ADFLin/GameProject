@@ -1,6 +1,14 @@
 #ifndef MetaTemplate_hpp__
 #define MetaTemplate_hpp__
 
+#include "CppVersion.h"
+
+#if CPP_TYPE_TRAITS_SUPPORT
+#include <type_traits>
+#else
+#include <boost/type_traits.hpp>
+#endif
+
 namespace Meta
 {
 	struct EmptyType {};
@@ -79,6 +87,20 @@ namespace Meta
 	DEINE_PRIMARY_TYPE( float )
 
 #undef DEINE_PRIMARY_TYPE
+
+
+	template < class T > 
+	struct IsPod
+		: HaveResult< typename Select< 
+#if CPP_TYPE_TRAITS_SUPPORT
+			std::is_pod<T>::value,
+#else
+			boost::is_pod<T>::value,
+#endif
+			TrueType, FalseType >::ResultType 
+		>
+	{};
+
 
 }//namespace MTSpace
 

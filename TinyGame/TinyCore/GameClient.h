@@ -23,14 +23,14 @@ public:
 	void   updatePlayer( PlayerInfo* info[] , int num );
 };
 
-class  ClientWorker : public NetWorker
+class  ClientWorker : public NetWorker, public ConListener
 {
 	typedef NetWorker BaseClass;
 public:
-	GAME_API ClientWorker( UserProfile& profile );
+	GAME_API ClientWorker();
 	GAME_API ~ClientWorker();
 
-	GAME_API void  connect( char const* hostName );
+	GAME_API void connect(char const* hostName, char const* loginName);
 	GAME_API void  sreachLanServer();
 
 	//NetWorker
@@ -45,11 +45,12 @@ public:
 	bool  haveConnect(){ return mSessoionId != 0; }
 
 protected:
-	void  onSendData( NetConnection* con );
-	void  onConnect( NetConnection* con );
-	void  onClose( NetConnection* con , ConCloseReason reason );
-	void  onConnectFailed( NetConnection* con );
-	bool  onRecvData( NetConnection* con , SBuffer& buffer , NetAddress* clientAddr );
+	
+	void  onConnectOpen( NetConnection* con );
+	void  onConnectClose( NetConnection* con , ConCloseReason reason );
+	void  onConnectFail( NetConnection* con );
+	void  onSendData(NetConnection* con);
+	bool  onRecvData( NetConnection* con , SocketBuffer& buffer , NetAddress* clientAddr );
 
 	//NetWorker
 	bool  doStartNetwork();
@@ -61,21 +62,21 @@ protected:
 	void  postChangeState( NetActionState oldState );
 
 	////////////////////////////////
-	void  procConSetting  ( IComPacket* cp );
-	void  procClockSynd   ( IComPacket* cp );
-	void  procPlayerStatus( IComPacket* cp );
-	void  procPlayerState ( IComPacket* cp );
-	void  procClockSyndNet( IComPacket* cp );
+	void  procConSetting  ( IComPacket* cp);
+	void  procClockSynd   ( IComPacket* cp);
+	void  procPlayerStatus( IComPacket* cp);
+	void  procPlayerState ( IComPacket* cp);
+	void  procClockSyndNet( IComPacket* cp);
 	
 
 	/////////////////////////////////
 
 	TPtrHolder< CLPlayerManager > mPlayerManager;
 
+	FixString< MAX_PLAYER_NAME_LENGTH > mLoginName;
 	SessionId           mSessoionId;
 	TcpClient           mTcpClient;
 	UdpClient           mUdpClient;
-	UserProfile&        mUserProfile;
 	NetActionState      mNextState;
 	ClientListener*     mClientListener;
 	LatencyCalculator   mCalculator;
@@ -106,7 +107,7 @@ private:
 	SendInfoList mInfoList;
 	long         mDelay;
 	long         mCurTime;
-	SBuffer      mBuffer;
+	SocketBuffer mBuffer;
 	NetBufferCtrl& mBufferCtrl;
 };
 
@@ -116,7 +117,7 @@ public:
 	RecvDelayCtrl( int size );
 
 	void update( long time , UdpClient& client , ComEvaluator& evaluator );
-	bool add( SBuffer& buffer , bool isUdpPacket );
+	bool add( SocketBuffer& buffer , bool isUdpPacket );
 	void setDelay( long delay ){ mDelay = delay;  }
 private:
 	struct RecvInfo
@@ -129,17 +130,19 @@ private:
 	RecvInfoList mInfoList;
 	long         mDelay;
 	long         mCurTime;
-	SBuffer      mBuffer;
+	SocketBuffer mBuffer;
 };
 
 class DelayClientWorker : public ClientWorker
 {
 	typedef ClientWorker BaseClass;
 public:
-	DelayClientWorker( UserProfile& profile );
-	void setDelay( long time );
+	GAME_API DelayClientWorker();
+	GAME_API ~DelayClientWorker();
+
+	GAME_API void setDelay( long time );
 	bool updateSocket( long time );
-	virtual bool  onRecvData( NetConnection* connection , SBuffer& buffer , NetAddress* clientAddr );
+	virtual bool  onRecvData( NetConnection* connection , SocketBuffer& buffer , NetAddress* clientAddr );
 	virtual void  sendCommand( int channel , IComPacket* cp , unsigned flag );
 protected:
 	SendDelayCtrl mSDCTcp;

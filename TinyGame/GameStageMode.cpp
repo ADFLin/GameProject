@@ -2,10 +2,50 @@
 #include "GameStageMode.h"
 
 #include "GameReplay.h"
-#include "GamePackage.h"
+#include "GameInstance.h"
 #include "GameAction.h"
 
-LevelStageMode::LevelStageMode(StageModeType mode) 
+GameStageMode::GameStageMode(StageModeType mode) 
+	:mStageMode(mode)
+	, mCurStage(nullptr)
+	, mGameState(GameState::GS_END)
+	, mReplayFrame(0)
+{
+
+}
+
+bool GameStageMode::changeState(GameState state)
+{
+	if( mGameState == state )
+		return true;
+
+	if( !tryChangeState(state) )
+		return false;
+
+	mCurStage->onChangeState(state);
+	mGameState = state;
+	return true;
+}
+
+void GameStageMode::restart(bool beInit)
+{
+	uint64 seed;
+	onRestart(seed);
+	mCurStage->onRestart(seed, beInit);
+	mReplayFrame = 0;
+	changeState(GS_START);
+}
+
+bool GameStageMode::togglePause()
+{
+	if( getGameState() == GS_RUN )
+		return changeState(GS_PAUSE);
+	else if( getGameState() == GS_PAUSE )
+		return changeState(GS_RUN);
+	return false;
+}
+
+LevelStageMode::LevelStageMode(StageModeType mode)
 	:BaseClass(mode)
 {
 
@@ -40,7 +80,7 @@ void LevelStageMode::onRestart(uint64& seed)
 
 bool LevelStageMode::buildReplayRecorder()
 {
-	IGamePackage* game = getGame();
+	IGameInstance* game = getGame();
 	if( !game )
 		return false;
 
@@ -77,34 +117,8 @@ bool LevelStageMode::buildReplayRecorder()
 	if( !mReplayRecorder )
 		return false;
 
-	processor.setListener(mReplayRecorder.get());
+	processor.addListener( *mReplayRecorder.get() );
 
 	return true;
 }
 
-GameStageMode::GameStageMode(StageModeType mode) 
-	:mStageMode(mode)
-	, mCurStage(nullptr)
-	, mGameState(GameState::GS_END)
-	, mReplayFrame(0)
-{
-
-}
-
-void GameStageMode::restart(bool beInit)
-{
-	uint64 seed;
-	onRestart(seed);
-	mCurStage->onRestart(seed, beInit);
-	mReplayFrame = 0;
-	changeState(GS_START);
-}
-
-bool GameStageMode::togglePause()
-{
-	if( getGameState() == GS_RUN )
-		return changeState(GS_PAUSE);
-	else if( getGameState() == GS_PAUSE )
-		return changeState(GS_RUN);
-	return false;
-}

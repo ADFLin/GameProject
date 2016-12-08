@@ -9,12 +9,12 @@
 
 #include <vector>
 
-class TSocket;
+class NetSocket;
 class IFrameUpdater;
 class NetAddress;
 struct ActionParam;
 class ComEvaluator;
-class ActionInput;
+class IActionInput;
 class IComPacket;
 class IPlayerManager;
 class GameController;
@@ -26,6 +26,7 @@ enum NetActionState
 	NAS_LOGIN       ,
 	NAS_ACCPET      , //Server
 	NAS_CONNECT     ,
+	NAS_RECONNECT   ,
 
 	NAS_TIME_SYNC   ,
 
@@ -82,8 +83,8 @@ enum WorkerSendFlag
 
 enum DefaultChannel
 {
-	CHANNEL_TCP_CONNECT = 1,
-	CHANNEL_UDP_CHAIN   = 2,
+	CHANNEL_GAME_NET_TCP = 1,
+	CHANNEL_GAME_NET_UDP_CHAIN   = 2,
 	NEXT_CHANNEL ,
 };
 
@@ -104,8 +105,8 @@ public:
 	virtual void  sendCommand( int channel , IComPacket* cp , unsigned flag = 0 ){}
 	virtual long  getNetLatency(){ return 0; }
 
-	void  sendTcpCommand( IComPacket* cp ){ sendCommand( CHANNEL_TCP_CONNECT , cp , 0 ); }
-	void  sendUdpCommand( IComPacket* cp ){ sendCommand( CHANNEL_UDP_CHAIN   , cp , 0 ); }
+	void  sendTcpCommand( IComPacket* cp ){ sendCommand( CHANNEL_GAME_NET_TCP , cp , 0 ); }
+	void  sendUdpCommand( IComPacket* cp ){ sendCommand( CHANNEL_GAME_NET_UDP_CHAIN , cp , 0 ); }
 
 protected:
 	virtual void  doUpdate( long time ){}
@@ -146,8 +147,9 @@ class Channel
 	};
 	Type getType();
 };
+
+GAME_API bool IsInSocketThread();
 class  NetWorker : public ComWorker
-	             , public ConListener
 {
 public:
 	GAME_API NetWorker();
@@ -171,7 +173,7 @@ protected:
 protected:
 	typedef fastdelegate::FastDelegate< void ( )> SocketFun;
 	typedef TFunctionThread< SocketFun > SocketThread;
-	GAME_API void sendUdpCom( TSocket& socket );
+	GAME_API void sendUdpCom( NetSocket& socket );
 
 	typedef std::vector< NetMessageListener* > NetMsgListenerVec;
 	NetMessageListener* mNetListener;
@@ -186,16 +188,17 @@ private:
 	typedef std::vector< UdpCom > UdpComList;
 	DEFINE_MUTEX( mMutexUdpComList )
 	UdpComList    mUdpComList;
-	SBuffer       mUdpSendBuffer;
+	SocketBuffer  mUdpSendBuffer;
 	SocketThread  mSocketThread;
 	long          mNetRunningTime;
+
 
 	void  procSocketThread();
 };
 
 
-bool EvalCommand( UdpChain& chain , ComEvaluator& evaluator , SBuffer& buffer , ComConnection* con  = NULL  );
+bool EvalCommand( UdpChain& chain , ComEvaluator& evaluator , SocketBuffer& buffer , int group = -1 , void* userData = nullptr );
 unsigned FillBufferFromCom( NetBufferCtrl& bufferCtrl , IComPacket* cp );
-unsigned FillBufferFromCom( SBuffer& buffer , IComPacket* cp );
+unsigned FillBufferFromCom( SocketBuffer& buffer , IComPacket* cp );
 
 #endif // NetWorker_h__

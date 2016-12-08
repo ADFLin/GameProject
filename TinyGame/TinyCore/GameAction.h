@@ -1,7 +1,7 @@
 #ifndef GameAction_h__
 #define GameAction_h__
 
-#include "DataStreamBuffer.h"
+#include "DataSteamBuffer.h"
 #include "GameNetPacket.h"
 #include "GameWorker.h"
 #include "THolder.h"
@@ -55,12 +55,12 @@ protected:
 };
 
 
-class INetFrameGenerator : public ActionListener
+class INetFrameGenerator : public IActionListener
 	                     , public ComListener
 {
 public:
 	//ActionListener
-	virtual void  onScanActionStart(){}
+	virtual void onScanActionStart( bool bUpdateFrame ){}
 	virtual void  onFireAction( ActionParam& param ) = 0;
 	virtual void  onScanActionEnd(){}
 
@@ -68,7 +68,7 @@ public:
 
 	//for server
 	virtual void  prevProcCommand(){}
-	virtual void  recvClientData( unsigned pID , DataStreamBuffer& stream ){}
+	virtual void  recvClientData( unsigned pID , DataSteamBuffer& stream ){}
 	virtual void  reflashPlayer( IPlayerManager& playerManager ){}
 };
 
@@ -193,9 +193,10 @@ public:
 	SVKeyFrameGeneratorT( size_t dataMaxSize )
 		:ServerFrameHelper< KeyFrameActionTemplateT<FrameData > >( dataMaxSize ){}
 
-	void recvClientData( unsigned pID , DataStreamBuffer& buffer )
+	void recvClientData( unsigned pID , DataSteamBuffer& buffer )
 	{
-		DataSerializer serializer( buffer ); 
+		auto dataStream = MakeBufferDataSteam(buffer);
+		DataSerializer serializer(dataStream);
 		KeyFrameData fd;
 		serializer.read( fd );
 
@@ -212,7 +213,7 @@ template< class FrameData >
 class CLKeyFrameGeneratorT : public INetFrameGenerator
 {
 public:
-	void onScanActionStart()
+	void onScanActionStart( bool bUpdateFrame )
 	{
 		mFrameData.port = ERROR_ACTION_PORT;
 		mFrameData.keyActBit = 0;

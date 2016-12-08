@@ -209,7 +209,7 @@ void PlayerListPanel::setupPlayerList( SPPlayerStatus& status )
 	for( int i = 0 ; i < status.numPlayer ; ++i )
 	{
 		Slot&  slot = getSlot( status.info[i]->slot );
-		if ( status.flag[i] & ServerPlayer::eReady )
+		if ( status.flags[i] & ServerPlayer::eReady )
 			slot.choice->setColor( Color::eGreen );
 	}
 }

@@ -1,7 +1,7 @@
 #ifndef BubbleGame_h__
 #define BubbleGame_h__
 
-#include "GamePackage.h"
+#include "GameInstance.h"
 #include "GameReplay.h"
 
 #include "BubbleAction.h"
@@ -19,7 +19,7 @@ namespace Bubble
 		int     oldX;
 	};
 
-	class CGamePackage : public IGamePackage
+	class GameInstance : public IGameInstance
 	{
 	public:
 		char const*     getName(){ return BUBBLE_NAME;  }

@@ -15,7 +15,7 @@
 #include "DrawEngine.h"
 #include "INetEngine.h"
 #include "RenderUtility.h"
-#include "GamePackage.h"
+#include "GameInstance.h"
 
 #include "GameStage.h"
 
@@ -2799,6 +2799,8 @@ public:
 
 	virtual bool onInit()
 	{
+		if( !BaseClass::onInit() )
+			return false;
 		::Global::GUI().cleanupWidget();
 		restart();
 		return true;
@@ -2855,16 +2857,16 @@ protected:
 
 namespace Net
 {
-	class TestPackage : public IGamePackage
+	class TestPackage : public IGameInstance
 	{
 
 	};
 	class NetEngine : public INetEngine
 	{
 	public:
-		virtual bool build( BuildInfo& info )
+		virtual bool build( BuildParam& buildParam )
 		{
-			mTickTime = info.tickTime;
+			mTickTime = buildParam.tickTime;
 			return true;
 		}
 		virtual void update( IFrameUpdater& updater , long time )
@@ -2912,13 +2914,12 @@ namespace Net
 	public:
 		virtual void onCreate(){}
 		virtual void onDestroy(){}
-		uint32 getUID(){  return mUID; }
-		//virtual void send( ISerializer& serializer ) = 0;
+		uint32 getGUID(){  return mGUID; }
 	private:
 		friend class NetObjectManager;
 
 		ObjectModifyAccess mAccess;
-		uint32             mUID;
+		uint32             mGUID;
 	};
 
 	class INetObjectFactory
@@ -3038,10 +3039,6 @@ namespace Net
 		std::vector< TestObj > mDataMap;
 	};
 }
-class IGamePackage;
-
-
-
 
 
 #endif // TestStage_h__

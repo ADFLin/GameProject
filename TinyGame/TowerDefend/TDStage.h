@@ -3,7 +3,7 @@
 
 #include "GameStage.h"
 
-#include "GamePackage.h"
+#include "GameInstance.h"
 #include "GameControl.h"
 #include "GameGUISystem.h"
 
@@ -32,7 +32,7 @@ namespace TowerDefend
 		{
 			BaseClass::tick();
 
-			switch( getState() )
+			switch( getGameState() )
 			{
 			case GS_RUN:
 				mLevel->tick();

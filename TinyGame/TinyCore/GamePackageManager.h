@@ -1,10 +1,10 @@
 #ifndef GameManager_h__
 #define GameManager_h__
 
-#include "GamePackage.h"
+#include "GameInstance.h"
 #include <map>
 
-typedef std::vector< IGamePackage* > GamePackageVec;
+typedef std::vector< IGameInstance* > GamePackageVec;
 
 class GamePackageManager
 {
@@ -13,15 +13,15 @@ public:
 	~GamePackageManager();
 
 	GAME_API bool           loadGame( char const* path );
-	GAME_API bool           registerGame( IGamePackage* game );
+	GAME_API bool           registerGame( IGameInstance* game );
 	GAME_API void           cleanup();
 	GAME_API void           classifyGame( int attrID , GamePackageVec& games );
 
-	GAME_API IGamePackage*  changeGame( char const* name );
-	IGamePackage*  getCurGame(){ return mCurGame; }
+	GAME_API IGameInstance*  changeGame( char const* name );
+	IGameInstance*  getCurGame(){ return mCurGame; }
 
 private:
-	IGamePackage*  findGame( char const* name );
+	IGameInstance*  findGame( char const* name );
 
 	template< class Visitor >
 	void  visitInternal( Visitor& visitor )
@@ -42,10 +42,10 @@ private:
 		}
 	};
 
-	typedef std::map< char const* , IGamePackage* , StrCmp > PackageMap;
+	typedef std::map< char const* , IGameInstance* , StrCmp > PackageMap;
 	GamePackageVec mGamePackages;
 	PackageMap     mPackageMap;
-	IGamePackage*  mCurGame;
+	IGameInstance*  mCurGame;
 };
 
 

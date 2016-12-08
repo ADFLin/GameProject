@@ -27,8 +27,10 @@ namespace Tetris
 		//SettingHepler
 		void          clearUserUI();
 		void          doSetupSetting( bool beServer );
-		void          doSendSetting( DataStreamBuffer& buffer );
-		void          doRecvSetting( DataStreamBuffer& buffer );
+		void          doExportSetting( DataSteamBuffer& buffer );
+		void          doImportSetting( DataSteamBuffer& buffer );
+
+		virtual bool  checkSettingVaildSV();
 
 		enum 
 		{
@@ -44,7 +46,8 @@ namespace Tetris
 
 
 		void  setupMaxPlayerNumUI( int num );
-		void  setupGame(StageManager& manager, GameStageBase* stage);
+		void  setupGame(StageManager& manager, StageBase* stage);
+
 		int      mMaxPlayerNum;
 		GameInfo mInfo;
 	};

@@ -47,7 +47,7 @@ namespace Rich
 
 	void Level::tick()
 	{
-		for( PlayerVec::iterator iter( mPlayerVec.begin() ) , end( mPlayerVec.end() );
+		for( PlayerVec::iterator iter = mPlayerVec.begin()  , end = mPlayerVec.end() ;
 			 iter != end ; ++iter )
 		{
 			Player* player = *iter;

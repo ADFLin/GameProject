@@ -1,14 +1,14 @@
 #ifndef CmtGame_h__
 #define CmtGame_h__
 
-#include "GamePackage.h"
+#include "GameInstance.h"
 
 #include "CmtDefine.h"
 
 namespace Chromatron
 {
 
-	class CGamePackage : public IGamePackage
+	class GameInstance : public IGameInstance
 	{
 	public:
 		virtual bool  initialize(){ return true; }
@@ -20,7 +20,7 @@ namespace Chromatron
 		virtual void beginPlay( StageModeType type, StageManager& manger );
 	public:
 		virtual char const*           getName(){ return CHROMATRON_NAME;   }
-		virtual GameController&       getController(){ return IGamePackage::getController(); }
+		virtual GameController&       getController(){ return IGameInstance::getController(); }
 		virtual StageBase*            createStage( unsigned id );
 		virtual SettingHepler*        createSettingHelper( SettingHelperType type ){ return NULL; }
 		virtual bool                  getAttribValue( AttribValue& value );

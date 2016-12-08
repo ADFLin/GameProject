@@ -123,7 +123,7 @@ namespace Poker { namespace Holdem {
 			}
 		}
 
-		if ( getGameType() == SMT_NET_GAME )
+		if ( getModeType() == SMT_NET_GAME )
 		{
 			ComWorker* worker = static_cast< NetLevelStageMode* >( getStageMode() )->getWorker();
 			if ( mServerLevel )
@@ -132,7 +132,7 @@ namespace Poker { namespace Holdem {
 			}
 			mClientLevel->setupTransfer( new CWorkerDataTransfer( worker , userSlotId ) );
 		}
-		else if ( getGameType() == SMT_SINGLE_GAME )
+		else if ( getModeType() == SMT_SINGLE_GAME )
 		{
 			CTestDataTransfer* sv = new CTestDataTransfer;
 			CTestDataTransfer* cl = new CTestDataTransfer;
@@ -148,7 +148,7 @@ namespace Poker { namespace Holdem {
 
 		::Global::GUI().cleanupWidget();
 		mScene->setupWidget();
-		if ( mServerLevel && getGameType() == SMT_SINGLE_GAME )
+		if ( mServerLevel && getModeType() == SMT_SINGLE_GAME )
 		{
 			DevBetPanel* panel = new DevBetPanel( UI_ANY , Vec2i( 100 , 300 ) , NULL );
 			panel->mServer = mServerLevel;

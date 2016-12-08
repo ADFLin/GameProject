@@ -39,7 +39,7 @@ namespace GreedySnake
 		::Global::GUI().cleanupWidget();
 
 		mScene.reset( new Scene( *mMode ) );
-		getActionProcessor().setEnumer( mScene.get() );
+		getActionProcessor().setLanucher( mScene.get() );
 		return true;
 	}
 
@@ -60,7 +60,7 @@ namespace GreedySnake
 	{
 		mMode->setupLevel( playerManager );
 
-		switch( getGameType() )
+		switch( getModeType() )
 		{
 		case SMT_SINGLE_GAME:
 		case SMT_NET_GAME:
@@ -75,7 +75,7 @@ namespace GreedySnake
 
 	void LevelStage::tick()
 	{
-		switch( getState() )
+		switch( getGameState() )
 		{
 		case GS_START:
 			changeState( GS_RUN );
@@ -123,7 +123,7 @@ namespace GreedySnake
 		switch ( state )
 		{
 		case GS_END:
-			switch( getGameType() )
+			switch( getModeType() )
 			{
 			case SMT_SINGLE_GAME:
 				::Global::GUI().showMessageBox( 
@@ -141,7 +141,7 @@ namespace GreedySnake
 		case UI_RESTART_GAME:
 			if ( event == EVT_BOX_NO )
 			{
-				if ( getGameType() == SMT_SINGLE_GAME )
+				if ( getModeType() == SMT_SINGLE_GAME )
 					getManager()->changeStage( STAGE_MAIN_MENU );
 			}
 			break;

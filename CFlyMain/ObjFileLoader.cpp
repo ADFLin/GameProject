@@ -6,17 +6,18 @@
 
 namespace CFly
 {
-	std::ostream& operator << ( std::ostream& os , Vector3& vec )
+	static std::ostream& operator << ( std::ostream& os , Vector3& vec )
 	{
 		os << vec.x << " " << vec.y << " " << vec.z;
 		return os;
 	}
 
-	std::istream& operator >> ( std::istream& is , Vector3& vec )
+	static std::istream& operator >> ( std::istream& is , Vector3& vec )
 	{
 		is >> vec.x >> vec.y >> vec.z;
 		return is;
 	}
+
 
 	String getFileName( char const* path )
 	{

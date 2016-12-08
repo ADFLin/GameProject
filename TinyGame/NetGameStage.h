@@ -2,8 +2,7 @@
 #define NetGameStage_h__
 
 #include "GameStageMode.h"
-#include "GameStage.h"
-#include "GamePackage.h"
+#include "GameInstance.h"
 #include "GameWorker.h"
 #include "GameServer.h"
 #include "GameClient.h"
@@ -23,13 +22,14 @@ class NetStateController
 
 
 
-	GameStage* mStage;
+	GameStageBase* mStage;
 };
 
 class NetStageData : public ClientListener
 {
 public:
 	NetStageData();
+	~NetStageData();
 	void       initWorker( ComWorker* worker , ServerWorker* server = NULL );
 	
 	bool       haveServer(){ return mServer != NULL;  }
@@ -45,6 +45,7 @@ protected:
 	virtual void setupWorkerProcFun( ComEvaluator& evaluator ) = 0;
 	ComWorker*    mWorker;
 	ServerWorker* mServer;
+	bool          bCloseNetWork;
 };
 
 class GameStartTask : public TaskBase
@@ -64,7 +65,7 @@ public:
 class NetRoomStage : public StageBase
 	               , public NetStageData
 	               , public SettingListener
-				   , public PlayerListener
+				   , public ServerPlayerListener
 {
 	typedef StageBase BaseClass;
 
@@ -106,12 +107,12 @@ protected:
 	bool taskDestroyServerListPanelCL( long time );
 	void sendGameSetting( unsigned pID = ERROR_PLAYER_ID );
 
-	void procPlayerStateSv( IComPacket* cp );
-	void procPlayerState  ( IComPacket* cp );
-	void procMsg          ( IComPacket* cp );
-	void procPlayerStatus ( IComPacket* cp );
-	void procSlotState    ( IComPacket* cp );
-	void procRawData      ( IComPacket* cp );
+	void procPlayerStateSv( IComPacket* cp);
+	void procPlayerState  ( IComPacket* cp);
+	void procMsg          ( IComPacket* cp);
+	void procPlayerStatus ( IComPacket* cp);
+	void procSlotState    ( IComPacket* cp);
+	void procRawData      ( IComPacket* cp);
 	
 	TPtrHolder< NetRoomSettingHelper >  mHelper;
 
@@ -127,60 +128,10 @@ protected:
 
 };
 
-class  GameNetLevelStage : public GameLevelStage
-						 , public NetStageData
-	                     , public IFrameUpdater
-{
-	typedef GameLevelStage BaseClass;
-public:
-
-	enum
-	{
-		UI_UNPAUSE_GAME = BaseClass::NEXT_UI_ID ,
-		NEXT_UI_ID ,
-	};
-
-	GameNetLevelStage();
-
-	void onRender( float dFrame );
-	bool onInit();
-
-	void onEnd();
-	bool onWidgetEvent( int event , int id , GWidget* ui );
-	void onUpdate( long time );
-	bool onKey( unsigned key , bool isDown );
-
-	void   onRestart( uint64& seed );
-	bool   tryChangeState( GameState state );
-	IPlayerManager* getPlayerManager(); 
-
-	//FrameUpdater
-	void  updateFrame( int frame );
-	void  tick();
-
-	void setupServerProcFun( ComEvaluator& evaluator );
-	void setupWorkerProcFun( ComEvaluator& evaluator );
-
-	void procPlayerStateSv( IComPacket* cp );
-	void procPlayerState  ( IComPacket* cp );
-	void procLevelInfo    ( IComPacket* cp );
-	void procMsg( IComPacket* cp );
-
-	virtual void onServerEvent( EventID event , unsigned msg );
-
-	bool buildNetEngine();
-	bool loadLevel( GameLevelInfo const& info );
-
-	bool             mbLevelInitialized;
-	INetEngine*      mNetEngine;
-	ComMsgPanel*     mMsgPanel;
-	uint64           mSeed;
-};
-
-
 class NetLevelStageMode : public LevelStageMode
 	                    , public NetStageData
 	                    , public IFrameUpdater
+						, public ServerEventResolver
 {
 	typedef LevelStageMode BaseClass;
 public:
@@ -193,7 +144,8 @@ public:
 
 	NetLevelStageMode();
 
-	bool onInit();
+	bool prevStageInit();
+	bool postStageInit();
 	void onEnd();
 	
 	void updateTime(long time);
@@ -215,9 +167,9 @@ public:
 	void setupWorkerProcFun(ComEvaluator& evaluator);
 
 	void procPlayerStateSv(IComPacket* cp);
-	void procPlayerState(IComPacket* cp);
-	void procLevelInfo(IComPacket* cp);
-	void procMsg(IComPacket* cp);
+	void procPlayerState  (IComPacket* cp);
+	void procLevelInfo    (IComPacket* cp);
+	void procMsg          (IComPacket* cp);
 
 	virtual void onServerEvent(EventID event, unsigned msg);
 
@@ -228,6 +180,12 @@ public:
 	INetEngine*      mNetEngine;
 	ComMsgPanel*     mMsgPanel;
 	uint64           mSeed;
+	bool             mbReconnectMode;
+
+	//ServerEventResolver
+	virtual PlayerDisconnectMode resolvePlayerClose(PlayerId id, ConCloseReason reason) override;
+	virtual void resolvePlayerReconnect(PlayerId id) override;
+
 };
 
 

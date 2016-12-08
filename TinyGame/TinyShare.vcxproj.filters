@@ -115,6 +115,9 @@
     <ClInclude Include="TinyGamePCH.h">
       <Filter>Common</Filter>
     </ClInclude>
+    <ClInclude Include="TinyCore\StageRegister.h">
+      <Filter>Common</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="DrawEngine.cpp">
@@ -193,6 +196,9 @@
       <Filter>Stage</Filter>
     </ClCompile>
     <ClCompile Include="TinyGamePCH.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
+    <ClCompile Include="TinyCore\StageRegister.cpp">
       <Filter>Common</Filter>
     </ClCompile>
   </ItemGroup>

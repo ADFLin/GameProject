@@ -7,7 +7,7 @@
 
 #include "INetEngine.h"
 
-class INetFrameManager : public ActionInput
+class INetFrameManager : public IActionInput
 {
 public:
 	virtual ActionProcessor& getActionProcessor() = 0;
@@ -29,7 +29,7 @@ public:
 	GAME_API CFrameActionEngine( INetFrameManager* netFrameMgr );
 	GAME_API ~CFrameActionEngine();
 
-	bool build( BuildInfo& info );
+	bool build( BuildParam& buildParam );
 	void update( IFrameUpdater& updater , long time );
 	void setupInputAI( IPlayerManager& manager );
 	void release(){ delete this; }

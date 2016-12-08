@@ -84,8 +84,8 @@ namespace Poker { namespace Big2 {
 
 	void LevelStage::setupScene( IPlayerManager& playerManager )
 	{
-		if ( ( getGameType() == SMT_NET_GAME && ::Global::GameNet().getNetWorker()->isServer() ) ||
-			   getGameType() == SMT_SINGLE_GAME )
+		if ( ( getModeType() == SMT_NET_GAME && ::Global::GameNet().getNetWorker()->isServer() ) ||
+			   getModeType() == SMT_SINGLE_GAME )
 		{
 			mServerLevel = new ServerLevel;
 		}
@@ -132,7 +132,7 @@ namespace Poker { namespace Big2 {
 			}
 		}
 
-		if ( getGameType() == SMT_NET_GAME )
+		if ( getModeType() == SMT_NET_GAME )
 		{
 			ComWorker* worker = static_cast< NetLevelStageMode* >( getStageMode() )->getWorker();
 			if ( mServerLevel  )
@@ -141,7 +141,7 @@ namespace Poker { namespace Big2 {
 			}
 			mClientLevel->setupTransfer( new CWorkerDataTransfer( worker , userSlotId ) );
 		}
-		else if ( getGameType() == SMT_SINGLE_GAME )
+		else if ( getModeType() == SMT_SINGLE_GAME )
 		{
 			CTestDataTransfer* sv = new CTestDataTransfer;
 			CTestDataTransfer* cl = new CTestDataTransfer;

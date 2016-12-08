@@ -160,7 +160,7 @@ namespace Zuma
 		GameCore* mGameCore;
 	};
 
-	bool CGamePackage::getAttribValue( AttribValue& value )
+	bool GameInstance::getAttribValue( AttribValue& value )
 	{ 
 		switch ( value.id )
 		{
@@ -181,7 +181,7 @@ namespace Zuma
 		return false;
 	}
 
-	StageBase* CGamePackage::createStage( unsigned id )
+	StageBase* GameInstance::createStage( unsigned id )
 	{
 		switch( id )
 		{
@@ -197,24 +197,24 @@ namespace Zuma
 		return NULL;
 	}
 
-	CGamePackage::CGamePackage()
+	GameInstance::GameInstance()
 	{
 		mCore = NULL;
 	}
 
-	void CGamePackage::beginPlay( StageModeType type, StageManager& manger )
+	void GameInstance::beginPlay( StageModeType type, StageManager& manger )
 	{		
 		if ( mCore == NULL )
 			mCore = new GameCore;
-		IGamePackage::beginPlay( type , manger );
+		IGameInstance::beginPlay( type , manger );
 	}
 
-	void CGamePackage::enter()
+	void GameInstance::enter()
     {
 
 	}
 
-	void CGamePackage::exit()
+	void GameInstance::exit()
 	{
 		delete mCore;
 		mCore = NULL;
@@ -222,4 +222,4 @@ namespace Zuma
 
 }
 
-EXPORT_GAME( Zuma::CGamePackage )
+EXPORT_GAME( Zuma::GameInstance )

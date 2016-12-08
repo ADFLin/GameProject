@@ -1,12 +1,13 @@
 #include "TinyGamePCH.h"
 #include "GameSettingPanel.h"
 
-#include "DataStreamBuffer.h"
+#include "DataSteamBuffer.h"
 #include "GameWidgetID.h"
 
 #include "RenderUtility.h"
 
 int const TitleLength = 130;
+
 GameSettingPanel::GameSettingPanel( int id , Vec2i const& pos , Vec2i const& size , GWidget* parent ) 
 	:GPanel( id , pos , size , parent )
 {
@@ -95,7 +96,7 @@ void GameSettingPanel::setGame( char const* name )
 	mGameChoice->modifySelection( idx );
 }
 
-void GameSettingPanel::addGame( IGamePackage* game )
+void GameSettingPanel::addGame( IGameInstance* game )
 {
 	unsigned id = mGameChoice->appendItem( game->getName() );
 	mGameChoice->setItemData( id , game );

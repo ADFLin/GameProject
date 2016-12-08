@@ -2,9 +2,9 @@
 #define GameSettingPanel_h__
 
 #include "GameWidget.h"
-#include "GamePackage.h"
+#include "GameInstance.h"
 
-class DataStreamBuffer;
+class DataSteamBuffer;
 
 class  GameSettingPanel : public GPanel
 {
@@ -13,7 +13,7 @@ public:
 
 	virtual bool  onChildEvent( int event , int id , GWidget* ui );
 
-	GAME_API void      addGame( IGamePackage* game );
+	GAME_API void      addGame( IGameInstance* game );
 	GAME_API void      removeGui( unsigned mask );
 	GAME_API void      adjustGuiLocation();
 	GAME_API GChoice*   addChoice( int id , char const* title , unsigned groupMask  );

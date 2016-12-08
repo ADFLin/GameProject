@@ -8,11 +8,11 @@
 #include "GameRoomUI.h"
 #include "GameSettingPanel.h"
 
-EXPORT_GAME( BomberMan::CGamePackage )
+EXPORT_GAME( BomberMan::GameInstance )
 
 namespace BomberMan
 {
-	StageBase* CGamePackage::createStage( unsigned id )
+	StageBase* GameInstance::createStage( unsigned id )
 	{
 		switch( id )
 		{
@@ -24,7 +24,7 @@ namespace BomberMan
 		return NULL;
 	}
 
-	bool CGamePackage::getAttribValue( AttribValue& value )
+	bool GameInstance::getAttribValue( AttribValue& value )
 	{
 		switch( value.id )
 		{
@@ -46,9 +46,9 @@ namespace BomberMan
 		return false;
 	}
 
-	void CGamePackage::beginPlay( StageModeType type, StageManager& manger )
+	void GameInstance::beginPlay( StageModeType type, StageManager& manger )
 	{
-		IGamePackage::beginPlay( type , manger );
+		IGameInstance::beginPlay( type , manger );
 	}
 
 	class CNetRoomSettingHelper : public NetRoomSettingHelper
@@ -78,12 +78,12 @@ namespace BomberMan
 			if ( beServer )
 				setupUI();
 		}
-		virtual void setupGame( StageManager& manager , GameStageBase* subStage )
+		virtual void setupGame( StageManager& manager , StageBase* subStage )
 		{
 			static_cast< LevelStage* >( subStage )->setMode( mMode );
 			mMode = NULL;
 		}
-		virtual void doSendSetting( DataStreamBuffer& buffer )
+		virtual void doExportSetting( DataSteamBuffer& buffer )
 		{
 			buffer.fill( (int)mMode->getId() );
 			switch( mMode->getId() )
@@ -97,7 +97,7 @@ namespace BomberMan
 			}
 
 		}
-		virtual void doRecvSetting( DataStreamBuffer& buffer )
+		virtual void doImportSetting( DataSteamBuffer& buffer )
 		{
 			getSettingPanel()->removeGui( MASK_BASE );
 
@@ -166,7 +166,7 @@ namespace BomberMan
 
 	};
 
-	SettingHepler* CGamePackage::createSettingHelper( SettingHelperType type )
+	SettingHepler* GameInstance::createSettingHelper( SettingHelperType type )
 	{
 		switch( type )
 		{

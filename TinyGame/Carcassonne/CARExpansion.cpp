@@ -1,9 +1,66 @@
 #include "CAR_PCH.h"
+#include "CARExpansion.h"
 #include "CARDefine.h"
+#include "CARGameSetting.h"
 
 #pragma warning( disable : 4482 ; error : 4002 )
 namespace CAR
 {
+
+	void AddExpansionRule(GameSetting& gameSetting, Expansion exp)
+	{
+		switch( exp )
+		{
+		case EXP_INNS_AND_CATHEDRALS:
+			gameSetting.addRule(Rule::eInn);
+			gameSetting.addRule(Rule::eCathedral);
+			break;
+		case EXP_TRADERS_AND_BUILDERS:
+			gameSetting.addRule(Rule::eBuilder);
+			gameSetting.addRule(Rule::eTraders);
+			break;
+		case EXP_THE_PRINCESS_AND_THE_DRAGON:
+			gameSetting.addRule(Rule::eFariy);
+			gameSetting.addRule(Rule::eDragon);
+			gameSetting.addRule(Rule::ePrinecess);
+			break;
+		case EXP_THE_TOWER:
+			gameSetting.addRule(Rule::eTower);
+			break;
+		case EXP_ABBEY_AND_MAYOR:
+			gameSetting.addRule(Rule::eAbbey);
+			gameSetting.addRule(Rule::eMayor);
+			gameSetting.addRule(Rule::eBarn);
+			gameSetting.addRule(Rule::eWagon);
+			break;
+		case EXP_KING_AND_ROBBER:
+			gameSetting.addRule(Rule::eKingAndRobber);
+			break;
+		case EXP_BRIDGES_CASTLES_AND_BAZAARS:
+			gameSetting.addRule(Rule::eBridge);
+			gameSetting.addRule(Rule::eCastleToken);
+			gameSetting.addRule(Rule::eBazaar);
+			break;
+		case EXP_HILLS_AND_SHEEP:
+			gameSetting.addRule(Rule::eShepherdAndSheep);
+			gameSetting.addRule(Rule::eUseHill);
+			break;
+		case EXP_CASTLES:
+			gameSetting.addRule(Rule::eGermanCastles);
+			break;
+		case EXP_PHANTOM:
+			break;
+		case EXP_BASIC:
+			break;
+		case EXP_THE_RIVER:
+			break;
+		case EXP_THE_RIVER_II:
+			break;
+		case EXP_NULL:
+			break;
+		}
+	}
+
 
 #define LF SideType::eField
 #define LC SideType::eCity
@@ -276,26 +333,55 @@ namespace CAR
 /*00*/ 	{ 1, { LC,LC,LR,LC }, SL_NONE      , SL_NONE      , 0, { 0 , 0 , 0 , 0 }, 0, { FL_RE } , 0 } ,
 	};
 
-	ExpansionTileContent gAllExpansionTileContents[] =
+	ExpansionContent gAllExpansionTileContents[] =
 	{
 #define EXPDATA( NAME , DATA ) { NAME , DATA , ARRAY_SIZE( DATA ) } ,
-		EXPDATA( EXP_BASIC , DataBasic )
-		EXPDATA( EXP_INNS_AND_CATHEDRALS , DataInnCathedral )
-		EXPDATA( EXP_TRADERS_AND_BUILDERS , DataTraderBuilder )
-		EXPDATA( EXP_KING_AND_ROBBER , DataKingRobber )
-		EXPDATA( EXP_THE_RIVER , DataRiver1 )
-		EXPDATA( EXP_THE_PRINCESS_AND_THE_DRAGON , DataPrincessDragon )
-		EXPDATA( EXP_THE_TOWER , DataTower )
-		EXPDATA( EXP_ABBEY_AND_MAYOR , DataAbbeyMayor )
-		EXPDATA( EXP_THE_RIVER_II , DataRiver2 ) 
-		EXPDATA( EXP_BRIDGES_CASTLES_AND_BAZAARS , DataBrigeCastleBazaar )
-		EXPDATA( EXP_HILLS_AND_SHEEP , DataHillsSheep )
+		EXPDATA(EXP_BASIC , DataBasic)
+		EXPDATA(EXP_INNS_AND_CATHEDRALS , DataInnCathedral)
+		EXPDATA(EXP_TRADERS_AND_BUILDERS , DataTraderBuilder)
+		EXPDATA(EXP_KING_AND_ROBBER , DataKingRobber)
+		EXPDATA(EXP_THE_RIVER , DataRiver1)
+		EXPDATA(EXP_THE_PRINCESS_AND_THE_DRAGON , DataPrincessDragon)
+		EXPDATA(EXP_THE_TOWER , DataTower)
+		EXPDATA(EXP_ABBEY_AND_MAYOR , DataAbbeyMayor)
+		EXPDATA(EXP_THE_RIVER_II , DataRiver2)
+		EXPDATA(EXP_BRIDGES_CASTLES_AND_BAZAARS , DataBrigeCastleBazaar)
+		EXPDATA(EXP_HILLS_AND_SHEEP , DataHillsSheep)
 
-		EXPDATA( EXP_CASTLES , DataCastle )
+		EXPDATA(EXP_CASTLES , DataCastle)
 
-		EXPDATA( EXP_TEST , DataTest )
+		EXPDATA(EXP_TEST , DataTest)
 #undef EXPDATA
-		{ EXP_NULL , 0 , 0 } 
+	{
+		EXP_NULL , 0 , 0
+	}
 	};
+
+#undef LF 
+#undef LC
+#undef LR
+#undef LS
+#undef LA
+#undef LG
+
+#undef SPE
+#undef SIN
+#undef SWH
+#undef SGH
+#undef SCH
+#undef SPR
+#undef SNC
+#undef SHS
+
+#undef TCL
+#undef TCA
+#undef TMP
+#undef TDR
+#undef TVO
+#undef TTF
+#undef TBZ
+#undef TVI
+
+
 
 }

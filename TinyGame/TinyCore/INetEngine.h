@@ -5,7 +5,7 @@ class NetWorker;
 class ComWorker;
 class ActionProcessor;
 class IPlayerManager;
-class IGamePackage;
+class IGameInstance;
 
 class IFrameUpdater
 {
@@ -18,15 +18,15 @@ public:
 class INetEngine
 {
 public:
-	struct BuildInfo
+	struct BuildParam
 	{
 		NetWorker*       netWorker;
 		ComWorker*       worker;
 		ActionProcessor* processor;
-		IGamePackage*    game;
+		IGameInstance*    game;
 		long             tickTime;
 	};
-	virtual bool build( BuildInfo& info ) = 0;
+	virtual bool build( BuildParam& buildParam ) = 0;
 	virtual void update( IFrameUpdater& updater , long time ) = 0;
 	virtual void close(){}
 	virtual void setupInputAI( IPlayerManager& manager ) = 0;

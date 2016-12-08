@@ -13,7 +13,7 @@
 
 #include "GameConfig.h"
 
-class SBuffer;
+class SocketBuffer;
 typedef uint32 ComID;
 
 class ComException : public std::exception
@@ -24,28 +24,22 @@ public:
 	ComID com;
 };
 
-class IComPacket;
-
-class ComConnection
-{
-
-};
-
 class  IComPacket
 {
 public:
 
 	IComPacket( ComID com )
-		: mId( com )
-		, mConnection( NULL ){}
+		: mId( com ) , mGroup( -1 ) , mUserData( nullptr )
+	{
+	}
 	virtual ~IComPacket(){}
 
-	GAME_API void fillBuffer( SBuffer& buffer );
-	GAME_API void takeBuffer( SBuffer& buffer );
+	GAME_API void fillBuffer( SocketBuffer& buffer );
+	GAME_API void takeBuffer( SocketBuffer& buffer );
 
-	ComID           getID()        { return mId; }
-	ComConnection*  getConnection(){ return mConnection; }
-
+	ComID  getID(){ return mId; }
+	int    getGroup() { return mGroup; }
+	void*  getUserData() { return mUserData; }
 
 	template < class GamePacket >
 	GamePacket* cast()
@@ -64,11 +58,12 @@ public:
 
 protected:
 	friend class ComEvaluator;
-	virtual void doFill( SBuffer& buffer ) = 0;
-	virtual void doTake( SBuffer& buffer ) = 0;
+	virtual void doFill( SocketBuffer& buffer ) = 0;
+	virtual void doTake( SocketBuffer& buffer ) = 0;
 
-	ComID          mId;
-	ComConnection* mConnection;
+	ComID   mId;
+	void*   mUserData;
+	int     mGroup;
 };
 
 
@@ -97,7 +92,7 @@ class ComLibrary
 
 };
 
-typedef fastdelegate::FastDelegate< void ( IComPacket* ) > ComProcFun;
+typedef fastdelegate::FastDelegate< void ( IComPacket*) > ComProcFun;
 class  ComEvaluator : public ComLibrary
 {
 public:
@@ -106,7 +101,8 @@ public:
 	GAME_API ComEvaluator();
 	GAME_API ~ComEvaluator();
 
-	static GAME_API unsigned fillBuffer( IComPacket* cp , SBuffer& buffer );
+	GAME_API static unsigned FillBuffer( SocketBuffer& buffer , IComPacket* cp );
+	GAME_API static bool     TakeBuffer( SocketBuffer& buffer , IComPacket* cp );
 
 	template< class GamePacket , class T , class Fun >
 	bool setWorkerFun( T* processer, Fun fun , Fun funSocket );
@@ -118,10 +114,9 @@ public:
 	GAME_API void  removeProcesserFun( void* processer );
 	GAME_API void  procCommand( ComVisitor& visitor );
 	GAME_API void  procCommand();
-	GAME_API bool  takeBuffer( IComPacket* cp , SBuffer& buffer );
-	
-	GAME_API bool  evalCommand( SBuffer& buffer , ComConnection* con = NULL );
-	GAME_API void  execCommand( IComPacket* cp );
+
+	GAME_API bool  evalCommand( SocketBuffer& buffer, int group = -1, void* userData = nullptr );
+	GAME_API void  execCommand( IComPacket* cp , int group = -1 , void* userData = nullptr );
 
 private:
 	struct ICPFactory

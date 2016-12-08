@@ -9,7 +9,7 @@
 namespace GreedySnake
 {
 	class SnakeAI : public AIBase
-		          , public ActionInput
+		          , public IActionInput
 	{
 	public:
 		SnakeAI( Scene& scene , unsigned id );
@@ -19,7 +19,7 @@ namespace GreedySnake
 		virtual bool scanInput( bool beUpdateFrame );
 		virtual bool checkAction( ActionParam& param );
 
-		virtual ActionInput* getActionInput(){ return this; }
+		virtual IActionInput* getActionInput(){ return this; }
 
 		DirType mMoveDir;
 

@@ -17,7 +17,7 @@ namespace Bubble
 
 	float const g_BubbleRadius = 15.0f;
 	float const g_BubbleDiameter = 2 * g_BubbleRadius;
-	int const g_BubbleColorNum = 5;
+	int const g_BubbleColorNum = 8;
 
 	enum LinkDir
 	{

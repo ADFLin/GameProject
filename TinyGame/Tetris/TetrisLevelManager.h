@@ -139,7 +139,7 @@ namespace Tetris
 
 
 	class GameWorld : public Level::EventListener
-		            , public ActionEnumer
+		            , public IActionLanucher
 		            , public UnCopiable
 	{
 	public:
@@ -160,7 +160,7 @@ namespace Tetris
 		LevelData*   createPlayerLevel( GamePlayer* player );
 		LevelData*   findPlayerData( unsigned id );
 
-		// ActionEnumer
+		// IActionLanucher
 		void         fireAction( ActionTrigger& trigger );
 		void         fireLevelAction( ActionTrigger& trigger );
 

@@ -4,7 +4,7 @@
 #include "TetrisStage.h"
 #include "TetrisLevelManager.h"
 
-#include "DataStreamBuffer.h"
+#include "DataSteamBuffer.h"
 #include "GameSettingPanel.h"
 #include "GameRoomUI.h"
 
@@ -23,7 +23,7 @@ namespace Tetris
 				setMaxPlayerNum( num );
 
 				mMaxPlayerNum = num;
-				getUI< GChoice >( UI_PLAYER_NUMBER_CHOICE )->setSelection( mMaxPlayerNum - 1 );
+				getWidget< GChoice >( UI_PLAYER_NUMBER_CHOICE )->setSelection( mMaxPlayerNum - 1 );
 			}
 			mSettingPanel->removeGui( MASK_MODE );
 			mSettingPanel->adjustGuiLocation();
@@ -67,7 +67,7 @@ namespace Tetris
 		setupNormalModeUI();
 	}
 
-	void CNetRoomSettingHelper::setupGame( StageManager& manager , GameStageBase* stage )
+	void CNetRoomSettingHelper::setupGame( StageManager& manager , StageBase* stage )
 	{
 		if( !static_cast<LevelStage*>(stage)->setupGame(mInfo) )
 		{
@@ -75,7 +75,7 @@ namespace Tetris
 		}
 	}
 
-	void CNetRoomSettingHelper::doRecvSetting( DataStreamBuffer& buffer )
+	void CNetRoomSettingHelper::doImportSetting( DataSteamBuffer& buffer )
 	{
 		mSettingPanel->removeGui( MASK_BASE | MASK_MODE );
 		mSettingPanel->adjustGuiLocation();
@@ -96,7 +96,16 @@ namespace Tetris
 
 	}
 
-	void CNetRoomSettingHelper::doSendSetting( DataStreamBuffer& buffer )
+	bool CNetRoomSettingHelper::checkSettingVaildSV()
+	{
+		if( mInfo.mode == MODE_TS_BATTLE )
+		{
+
+		}
+		return true;
+	}
+
+	void CNetRoomSettingHelper::doExportSetting(DataSteamBuffer& buffer)
 	{
 		buffer.fill( mInfo.mode );
 		buffer.fill( mMaxPlayerNum );
@@ -145,7 +154,7 @@ namespace Tetris
 
 	void CNetRoomSettingHelper::setupMaxPlayerNumUI( int num )
 	{
-		GChoice* choice = getUI< GChoice >( UI_PLAYER_NUMBER_CHOICE );
+		GChoice* choice = getWidget< GChoice >( UI_PLAYER_NUMBER_CHOICE );
 		choice->removeAllItem();
 		for( int i = 0 ; i < num ; ++i )
 		{

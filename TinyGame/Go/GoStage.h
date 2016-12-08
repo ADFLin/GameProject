@@ -8,6 +8,8 @@
 #include "GameWorker.h"
 #include "GameGUISystem.h"
 
+#include "ZenBot.h"
+
 namespace Go
 {
 	enum PacketID
@@ -34,7 +36,7 @@ namespace Go
 			ComEvaluator& evaluator = worker->getEvaluator();
 			evaluator.setUserFun< CSPPlay >( this , &Server::procPlay );
 		}
-		void procPlay( IComPacket* cp )
+		void procPlay( IComPacket* cp)
 		{
 			CSPPlay* com = cp->cast< CSPPlay >();
 
@@ -63,20 +65,79 @@ namespace Go
 		ComWorker* mWorker;
 	};
 
+	class GameMode
+	{
+
+
+	};
+
+	class BotTestMode : public GameMode
+	{
+	public:
+		BotTestMode()
+		{
+			bGameEnd = true;
+			bDrawPriorKnowledge = true;
+			bDrawTerritoryStatictics = true;
+		}
+		typedef Zen::TBotCore< Zen::DynamicLibrary, 4 > ZenCoreV4;
+		typedef Zen::TBotCore< Zen::DynamicLibrary, 6 > ZenCoreV6;
+		bool init();
+
+		void setupGame(Game& game);
+
+		void nextStep();
+
+		void update();
+		void exit()
+		{
+			if( !bGameEnd && players[idxCur]->mCore->isThinking() )
+			{
+				players[idxCur]->mCore->stopThink();
+			}
+			ZenCoreV4::Get().release();
+			ZenCoreV6::Get().release();
+		}
+
+
+		void  draw(Graphics2D& g, Vec2i const& pos, int x, int y);
+		bool  bDrawTerritoryStatictics;
+		bool  bDrawPriorKnowledge;
+
+		int   territoryStatictics[19][19];
+		int   priorKnowledge[19][19];
+		Game* mGame;
+		bool  bGameEnd;
+		int   passCount;
+		int   idxCur;
+		Zen::Bot* players[2];
+		Zen::Bot botA;
+		Zen::Bot botB;
+	};
+
 	class Stage : public StageBase
 	{
 	public:
 		virtual bool onInit()
 		{
-			mGame.setup( 19 );
+			if( !mMode.init() )
+				return false;
+
+			mGame.setup(13);
 			mLifeParam = 0;
+			mMode.setupGame(mGame);
+
 			::Global::GUI().cleanupWidget();
 			return true; 
 		}
-		virtual void onEnd(){}
-		virtual void onUpdate( long time ){}
-
-		
+		virtual void onEnd()
+		{
+			mMode.exit();
+		}
+		virtual void onUpdate( long time )
+		{
+			mMode.update();
+		}
 		virtual void onRender( float dFrame );
 
 		void drawStone( Graphics2D& g , Vec2i const& pos , int color );
@@ -92,9 +153,9 @@ namespace Go
 			}
 			return false;
 		}
-
-		Game mGame;
-		int  mLifeParam;
+		BotTestMode mMode;
+		Game        mGame;
+		int         mLifeParam;
 	};
 
 

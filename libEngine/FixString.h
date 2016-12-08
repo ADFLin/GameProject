@@ -7,10 +7,10 @@
 namespace Detail
 {
 	template< class CharT >
-	struct CharFunTrait;
+	struct CharFunTraits;
 
 	template<>
-	struct CharFunTrait< char > 
+	struct CharFunTraits< char > 
 	{
 		typedef char CharT;
 		typedef std::string StdString;
@@ -24,7 +24,7 @@ namespace Detail
 
 	};
 	template<>
-	struct CharFunTrait< wchar_t > 
+	struct CharFunTraits< wchar_t > 
 	{
 		typedef wchar_t CharT;
 		typedef std::wstring StdString;
@@ -42,7 +42,7 @@ template< int N , class T = char >
 class FixString
 {
 	typedef T CharT;
-	typedef Detail::CharFunTrait< CharT > CFT;
+	typedef Detail::CharFunTraits< CharT > CFT;
 	typedef typename CFT::StdString StdString;
 public:
 	FixString(){ mStr[0] = 0; }

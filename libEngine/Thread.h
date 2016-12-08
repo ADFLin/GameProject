@@ -22,6 +22,10 @@ public:
 		,m_hThread(0),m_beRunning(false){}
 	~WinThread(){  detach(); }
 
+	static uint32 GetCurrentThreadId()
+	{
+		return ::GetCurrentThreadId();
+	}
 
 	bool create( ThreadFunc fun , void* ptr );
 	void detach()
@@ -125,12 +129,18 @@ typedef WinMutex PlatformMutex;
 typedef WinCondition PlatformCondition;
 
 
-#else
+#elif SYS_PLATFORM_LINUX 
 
 class PosixThread
 {
 public:
 	typedef void* (*ThreadFunc)(void*);
+
+	static uint32 GetCurrentThreadId()
+	{
+		static_assert(sizeof(uint32) == sizeof(pthread_t), "pthread_t cannot be converted to uint32 one to one");
+		return static_cast<uint32>(pthread_self());
+	}
 
 	bool create( ThreadFunc fun , void* ptr )
 	{
@@ -173,7 +183,18 @@ private:
 	pthread_mutex_t mMutex;
 };
 
+class PosixCondition
+{
 
+
+};
+
+typedef PosixThread PlatformThread;
+typedef PosixMutex PlatformMutex;
+typedef PosixCondition PlatformCondition;
+
+#else
+#error "Thread Not Support!"
 #endif
 
 
@@ -253,35 +274,39 @@ public:
 };
 
 template< class T >
-struct TLockedObject
+struct TLockedObjectHandle
 {
-	struct Param
-	{
-		Param( T& obj , Mutex* m ):object(&obj),mutex(m){}
-	private:
-		Mutex* mutex;
-		T*     object;
-		friend struct TLockedObject;
-	};
-	TLockedObject( Param const& info )
-		:mInfo(info){ if ( mInfo.mutex ) mInfo.mutex->lock(); }
-	~TLockedObject(){ if ( mInfo.mutex ) mInfo.mutex->unlock(); }
-	T* operator->(){ return mInfo.object; }
-	operator T* () { return mInfo.object; }
-	T& operator *(){ return *mInfo.object; }
+public:
+	TLockedObjectHandle(T& obj, Mutex* m) :object(&obj), mutex(m) {}
 private:
-	TLockedObject( TLockedObject& other ){}
-	Param   mInfo;
+	Mutex* mutex;
+	T*     object;
+	template< class T >
+	friend class TLockedObject;
 };
 
+template < class T >
+auto MakeLockedObjectHandle(T& obj, Mutex* mutex)
+{
+	return TLockedObjectHandle< T >(obj, mutex);
+}
 
-#ifndef SINGLE_THREAD
-#define DEFINE_MUTEX( MUTEX ) Mutex MUTEX;
-#define MUTEX_LOCK( MUTEX ) Mutex::Locker locker_##__LINE__( MUTEX );
-#else
-#define DEFINE_MUTEX( MUTEX )
-#define MUTEX_LOCK( MUTEX ) 
-#endif
+template< class T >
+class TLockedObject
+{
+public:
+	TLockedObject( TLockedObjectHandle<T> const& handle )
+		:mHandle(handle){ if ( mHandle.mutex ) mHandle.mutex->lock(); }
+	~TLockedObject(){ if ( mHandle.mutex ) mHandle.mutex->unlock(); }
+	T* operator->(){ return mHandle.object; }
+	operator T* () { return mHandle.object; }
+	T& operator *(){ return *mHandle.object; }
+
+private:
+	TLockedObject(TLockedObject const& other) = delete;
+	TLockedObject& operator = (TLockedObject const& other) = delete;
+	TLockedObjectHandle<T>   mHandle;
+};
 
 
 #endif // Thread_h__

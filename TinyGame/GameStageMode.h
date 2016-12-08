@@ -10,10 +10,9 @@
 #include "THolder.h"
 #include "CppVersion.h"
 
-#define  LAST_REPLAY_NAME     "LastReplay.rpf"
-#define  REPLAY_DIR           "Replay"
 
-class  IGamePackage;
+
+class  IGameInstance;
 class  IReplayRecorder;
 class  IPlayerManager;
 class  GameStageBase;
@@ -28,7 +27,8 @@ public:
 	};
 	GameStageMode(StageModeType mode);
 	virtual ~GameStageMode() {}
-	virtual bool onInit() {  return true; }
+	virtual bool prevStageInit() { return true; }
+	virtual bool postStageInit() {  return true; }
 	virtual void onEnd(){}
 	virtual void onRestart(uint64& seed) {}
 	virtual bool onKey(unsigned key, bool isDown) { return true;  }
@@ -47,7 +47,7 @@ public:
 	bool  togglePause();
 
 	GameStageBase* getStage() { return mCurStage; }
-	IGamePackage*  getGame() { return mCurStage->getGame(); }
+	IGameInstance* getGame() { return mCurStage->getGame(); }
 	GameState      getGameState() { return mGameState; }
 	StageManager*  getManager() { return mCurStage->getManager();  }
 
@@ -63,12 +63,11 @@ class LevelStageMode : public GameStageMode
 	typedef GameStageMode BaseClass;
 public:
 	LevelStageMode(StageModeType mode);
-	bool   onInit() { return true; }
+
+	void   onRestart(uint64& seed);
 	bool   saveReplay(char const* name);
 
 protected:
-
-	void onRestart(uint64& seed);
 	bool buildReplayRecorder();
 	TPtrHolder< IReplayRecorder > mReplayRecorder;
 };

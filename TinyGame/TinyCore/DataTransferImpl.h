@@ -27,6 +27,8 @@ public:
 	virtual void sendTcpCommand( int recvId , IComPacket* cp );
 	void  sendData( int recvId , int dataId , void* data , int num );
 	void  setRecvFun( RecvFun fun ){  mFun = fun;  }
+
+	//
 	void  procPacket( IComPacket* cp );
 
 	int        mSlotId;

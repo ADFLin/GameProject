@@ -43,12 +43,12 @@ namespace Tetris
 		unsigned  mActionBit[ gTetrisMaxPlayerNum ];
 	};
 
-	ReplayTemplate* CGamePackage::createReplayTemplate( unsigned version )
+	ReplayTemplate* GameInstance::createReplayTemplate( unsigned version )
 	{
 		return new TetrisReplayTemplate;
 	}
 
-	bool CGamePackage::getAttribValue( AttribValue& value )
+	bool GameInstance::getAttribValue( AttribValue& value )
 	{
 		switch( value.id )
 		{
@@ -144,7 +144,7 @@ namespace Tetris
 	}
 
 
-	SettingHepler* CGamePackage::createSettingHelper( SettingHelperType type )
+	SettingHepler* GameInstance::createSettingHelper( SettingHelperType type )
 	{
 		switch( type )
 		{
@@ -154,7 +154,7 @@ namespace Tetris
 		return NULL;
 	}
 
-	StageBase* CGamePackage::createStage( unsigned id )
+	StageBase* GameInstance::createStage( unsigned id )
 	{
 		switch( id )
 		{
@@ -173,26 +173,26 @@ namespace Tetris
 	}
 
 
-	void CGamePackage::beginPlay( StageModeType type, StageManager& manger )
+	void GameInstance::beginPlay( StageModeType type, StageManager& manger )
 	{
 		::Msg( "Tetris!!!" );
 		if ( type == SMT_SINGLE_GAME )
 			manger.changeStage( STAGE_GAME_MENU );
 		else
-			IGamePackage::beginPlay( type , manger );
+			IGameInstance::beginPlay( type , manger );
 	}
 
-	CGamePackage::CGamePackage()
+	GameInstance::GameInstance()
 	{
 
 	}
 
-	void CGamePackage::enter()
+	void GameInstance::enter()
 {
 		getRecordManager().init();
 	}
 
-	void CGamePackage::exit()
+	void GameInstance::exit()
 	{
 		getRecordManager().saveFile( "record.dat" );
 		getRecordManager().clear();
@@ -202,4 +202,4 @@ namespace Tetris
 }//namespace Tetris
 
 
-EXPORT_GAME( Tetris::CGamePackage )
+EXPORT_GAME( Tetris::GameInstance )

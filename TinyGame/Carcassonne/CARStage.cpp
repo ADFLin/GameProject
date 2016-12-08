@@ -1,6 +1,7 @@
 #include "CARStage.h"
 
 #include "CARPlayer.h"
+#include "CARExpansion.h"
 
 #include "DrawEngine.h"
 #include "RenderUtility.h"
@@ -64,6 +65,9 @@ namespace CAR
 
 	bool LevelStage::onInit()
 	{
+		if( !BaseClass::onInit() )
+			return false;
+
 		{
 			using namespace CFly;
 			if ( !CFly::initSystem() )
@@ -148,9 +152,6 @@ namespace CAR
 		
 		mInput.onAction = std::bind( &LevelStage::onGameAction , this , std::placeholders::_1 , std::placeholders::_2 );
 		mInput.onPrevAction = std::bind( &LevelStage::onGamePrevAction , this , std::placeholders::_1 , std::placeholders::_2 );
-
-		if( !BaseClass::onInit() )
-			return false;
 
 		return true;
 	}
@@ -1425,7 +1426,7 @@ namespace CAR
 		::Global::GUI().cleanupWidget();
 
 		int userSlotId = playerManager.getUser()->getActionPort();
-		if ( getGameType() == SMT_NET_GAME )
+		if ( getModeType() == SMT_NET_GAME )
 		{
 			ComWorker* worker = static_cast< NetLevelStageMode* >( getStageMode() )->getWorker();
 			mInput.setDataTransfer( new CWorkerDataTransfer( worker , userSlotId ) );
@@ -1461,10 +1462,10 @@ namespace CAR
 		if ( mMoudule.mIsStartGame == false )
 			return false;
 
-		if ( getGameType() == SMT_SINGLE_GAME )
+		if ( getModeType() == SMT_SINGLE_GAME )
 			return true;
 
-		if ( getGameType() == SMT_NET_GAME )
+		if ( getModeType() == SMT_NET_GAME )
 		{
 			if ( getActionPlayerId() == getStageMode()->getPlayerManager()->getUser()->getActionPort() )
 				return true;

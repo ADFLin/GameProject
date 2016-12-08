@@ -1,6 +1,6 @@
 #include "PlatformConfig.h"
 
-#ifdef SYS_PLATFORM_WIN
+#if SYS_PLATFORM_WIN
 
 #include "Win32Header.h"
 
@@ -9,12 +9,24 @@ extern int main( int argc , char* argv[] );
 
 int WINAPI WinMain ( HINSTANCE hInstance , HINSTANCE hPrevInstance , LPSTR lpCmdLine , int nCmdShow )
 {
-	char* argv[ 64 ];
+	lpCmdLine = GetCommandLineA();
+
+	char* argv[ 128 ];
 	int   argc = 0;
 
-	
 	char* context;
-	char* ptrCmd = strtok_s( lpCmdLine , " " , &context );
+	char* ptrCmd;
+
+	if( *lpCmdLine == '\"' )
+	{
+		++lpCmdLine;
+		ptrCmd = strtok_s(lpCmdLine, "\"", &context);
+	}
+	else
+	{
+		ptrCmd = strtok_s(lpCmdLine, " ", &context);
+	}
+
 	while ( ptrCmd )
 	{
 		argv[ argc++ ] = ptrCmd;
@@ -22,7 +34,6 @@ int WINAPI WinMain ( HINSTANCE hInstance , HINSTANCE hPrevInstance , LPSTR lpCmd
 	}
 
 	int ret = main( argc , argv );
-
 	return ret;
 }
 

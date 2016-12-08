@@ -20,7 +20,7 @@ public:
 
 	GAME_API int          getModalID();
 	GAME_API GWidget*     showMessageBox( int id , char const* msg , unsigned flag = GMB_YESNO );
-	GAME_API void         enableRender( bool bR ){ mSkipRender = !bR; }
+	GAME_API void         hideWidgets( bool bHide ){ mHideWidgets = bHide; }
 	GAME_API void         update();
 	GAME_API void         render();
 
@@ -40,6 +40,10 @@ public:
 
 	GAME_API void         updateFrame( int frame , long tickTime );
 
+	GAME_API bool         procMouseMsg(MouseMsg const& msg);
+	GAME_API bool         procKeyMsg(unsigned key, bool isDown);
+	GAME_API bool         procCharMsg(unsigned code);
+
 	typedef Tween::GroupTweener< float > Tweener;
 	Tweener&     getTweener(){ return mTweener; }
 	template< class Fun >
@@ -51,6 +55,9 @@ public:
 	GAME_API GWidget* findTopWidget( int id , GWidget* start = NULL );
 	GAME_API static Vec2i  calcScreenCenterPos( Vec2i const& size );
 
+	void  skipMouseEvent(bool bSkip) { mbSkipMouseEvent = bSkip;  }
+	void  skipKeyEvent(bool bSkip) { mbSkipKeyEvent = bSkip; }
+	void  skipCharEvent(bool bSkip) { mbSkipCharEvent = bSkip; }
 private:
 	struct HotkeyInfo
 	{
@@ -61,11 +68,13 @@ private:
 	int           mCurUpdateFrame;
 	HotkeyList    mHotKeys;
 	IGUIDelegate* mGuiDelegate;
-	StageManager* mStageManager;
 	GUI::Manager  mUIManager;
 	typedef Tween::GroupTweener< float > MyTweener;
-	MyTweener mTweener;
-	bool      mSkipRender;
+	MyTweener     mTweener;
+	bool          mHideWidgets;
+	bool          mbSkipKeyEvent;
+	bool          mbSkipCharEvent;
+	bool          mbSkipMouseEvent;
 };
 
 #endif // GameGUISystem_h__

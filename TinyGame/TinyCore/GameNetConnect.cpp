@@ -39,10 +39,10 @@ void NetConnection::updateSocket( long time )
 
 bool NetConnection::checkConnect( long time )
 {
-	long const TimeOut = 1 * 1000;
+	long const TimeOut = 30 * 1000;
 	if ( time - mLastRespondTime > TimeOut )
 	{
-		mListener->onClose( this , CCR_TIMEOUT );
+		mListener->onConnectClose( this , CCR_TIMEOUT );
 		return false;
 	}
 	return true;
@@ -50,7 +50,7 @@ bool NetConnection::checkConnect( long time )
 
 void NetConnection::resolveExcept()
 {
-	mListener->onExcept( this );
+	mListener->onConnectExcept( this );
 }
 
 UdpConnection::UdpConnection( int recvSize ) :mRecvCtrl( recvSize )
@@ -58,7 +58,7 @@ UdpConnection::UdpConnection( int recvSize ) :mRecvCtrl( recvSize )
 
 }
 
-void UdpConnection::onReadable( TSocket& socket , int len )
+void UdpConnection::onReadable( NetSocket& socket , int len )
 {
 	NetAddress clientAddr;
 	recvData( mRecvCtrl , len , &clientAddr );
@@ -96,16 +96,34 @@ void UdpClient::setServerAddr( char const* addrName , unsigned port )
 	}
 }
 
-void UdpClient::onSendable( TSocket& socket )
+void UdpClient::onSendable( NetSocket& socket )
 {
 	sendData( socket );
 	mListener->onSendData( this );
 }
 
-void UdpClient::onReadable( TSocket& socket , int len )
+void UdpClient::onReadable( NetSocket& socket , int len )
 {
 	NetAddress clientAddr;
 	recvData( mRecvCtrl , len , &clientAddr );
+}
+
+bool UdpClient::sendData(NetSocket& socket)
+{
+	TLockedObject< SocketBuffer > buffer = mSendCtrl.lockBuffer();
+	return mChain.sendPacket(mNetTime, socket, *buffer, mServerAddr);
+}
+
+void UdpClient::clearBuffer()
+{
+	{
+		TLockedObject< SocketBuffer > buffer = mSendCtrl.lockBuffer();
+		buffer->clear();
+	}
+	{
+		TLockedObject< SocketBuffer > buffer = mRecvCtrl.lockBuffer();
+		buffer->clear();
+	}
 }
 
 void UdpServer::run( unsigned port )
@@ -124,7 +142,7 @@ void UdpServer::run( unsigned port )
 	}
 }
 
-void UdpServer::onSendable( TSocket& socket )
+void UdpServer::onSendable( NetSocket& socket )
 {
 	mListener->onSendData( this );
 }
@@ -136,42 +154,54 @@ void TcpClient::connect( char const* addrName , unsigned port )
 		throw SocketException("Can't Connect Sever" );
 }
 
-void TcpClient::onReadable( TSocket& socket , int len )
+void TcpClient::clearBuffer()
+{
+	{
+		TLockedObject< SocketBuffer > buffer = getSendCtrl().lockBuffer();
+		buffer->clear();
+	}
+	{
+		TLockedObject< SocketBuffer > buffer = getRecvCtrl().lockBuffer();
+		buffer->clear();
+	}
+}
+
+void TcpClient::onReadable( NetSocket& socket , int len )
 {
 	recvData( mRecvCtrl , len , NULL );
 }
 
-void TcpClient::onSendable( TSocket& socket )
+void TcpClient::onSendable( NetSocket& socket )
 {
 	mSendCtrl.sendData( socket );
 }
 
 
-void TcpClient::onConnectFailed( TSocket& socket )
+void TcpClient::onConnectFailed( NetSocket& socket )
 {
 	Msg( "Connect Failed" );
-	mListener->onConnectFailed( this );
+	mListener->onConnectFail( this );
 }
 
-void TcpClient::onConnect( TSocket& socket )
+void TcpClient::onConnect( NetSocket& socket )
 {
 	Msg( "Connect success" );
-	mListener->onConnect( this );
+	mListener->onConnectOpen( this );
 }
 
-void TcpClient::onClose( TSocket& socket , bool beGraceful )
+void TcpClient::onClose( NetSocket& socket , bool beGraceful )
 {
 	Msg( "Connection close" );
-	mListener->onClose( this , CCR_SHUTDOWN );
+	mListener->onConnectClose( this , CCR_SHUTDOWN );
 }
 
-void TcpServer::onAcceptable( TSocket& socket )
+void TcpServer::onAcceptable( NetSocket& socket )
 {
 	Msg( "Client Connection" );
-	mListener->onAccpetClient( this );
+	mListener->onConnectAccpet( this );
 }
 
-void NetBufferCtrl::fillBuffer( SBuffer& buffer , unsigned num )
+void NetBufferCtrl::fillBuffer( SocketBuffer& buffer , unsigned num )
 {
 	MUTEX_LOCK( mMutexBuffer );
 
@@ -194,7 +224,7 @@ void NetBufferCtrl::fillBuffer( SBuffer& buffer , unsigned num )
 	}
 }
 
-bool NetBufferCtrl::sendData( TSocket& socket , NetAddress* addr )
+bool NetBufferCtrl::sendData( NetSocket& socket , NetAddress* addr )
 {
 	MUTEX_LOCK( mMutexBuffer );
 
@@ -235,7 +265,7 @@ bool NetBufferCtrl::sendData( TSocket& socket , NetAddress* addr )
 	return true;
 }
 
-bool NetBufferCtrl::recvData( TSocket& socket , int len , NetAddress* addr /*= NULL */ )
+bool NetBufferCtrl::recvData( NetSocket& socket , int len , NetAddress* addr /*= NULL */ )
 {
 	try 
 	{
@@ -313,7 +343,7 @@ int checkBuffer( char const* buf , int num )
 	return num;
 }
 
-bool UdpChain::sendPacket( long time , TSocket& socket , SBuffer& buffer , NetAddress& addr  )
+bool UdpChain::sendPacket( long time , NetSocket& socket , SocketBuffer& buffer , NetAddress& addr  )
 {
 	if ( buffer.getFillSize() == 0 && time - mTimeLastUpdate > mTimeResendRel )
 	{
@@ -391,7 +421,7 @@ bool UdpChain::sendPacket( long time , TSocket& socket , SBuffer& buffer , NetAd
 
 }
 
-bool UdpChain::readPacket( SBuffer& buffer , unsigned& readSize )
+bool UdpChain::readPacket( SocketBuffer& buffer , unsigned& readSize )
 {
 	if ( !buffer.getAvailableSize() )
 		return false;

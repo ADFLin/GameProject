@@ -7,9 +7,13 @@
 #include "CARDefine.h"
 
 #include "CompilerConfig.h"
+#include "PlatformConfig.h"
+
 #ifdef CPP_COMPILER_MSVC
 #pragma warning( disable : 4482 )
 #endif
+
+#include <vector>
 
 namespace CAR
 {
@@ -38,11 +42,24 @@ namespace CAR
 		static int ToIndex4( unsigned bit );
 		static int ToIndex8( unsigned bit );
 		static int ToIndex32( unsigned bit );
-		static unsigned RotateRight( unsigned bits , unsigned offset , unsigned numBit );
+#if TARGET_PLATFORM_64BITS
+		static int ToIndex64( unsigned bit );
+#endif
+		static unsigned RotateRight(unsigned bits, unsigned offset, unsigned numBit);
 		static unsigned RotateLeft( unsigned bits , unsigned offset , unsigned numBit );
 
 		template< unsigned BitNum >
-		static int ToIndex( unsigned bit ){ return ToIndex32( bit ); }
+		static int ToIndex( unsigned bit )
+		{ 
+#if TARGET_PLATFORM_64BITS
+			if( BitNum > 32 )
+				return ToIndex64(bit);
+			else
+				return ToIndex32(bit);
+#else
+			return ToIndex32( bit ); 
+#endif
+		}
 		template<>
 		static int ToIndex<4>( unsigned bit ){ return ToIndex4( bit ); }
 		template<>
@@ -104,6 +121,61 @@ namespace CAR
 			return gNeighborOffset[ idx ];
 		}
 	};
+
+	template< class T >
+	bool AddUnique(std::vector< T >& v, T const& val)
+	{
+		for( int i = 0; i < v.size(); ++i )
+		{
+			if( v[i] == val )
+				return false;
+		}
+		v.push_back(val);
+		return true;
+	}
+
+	template < class T >
+	bool IsValueUnique(std::vector< T > const& v)
+	{
+		int size = v.size();
+
+		for( int i = 0; i < size; ++i )
+		{
+			for( int j = i+1; j < size; ++j )
+			{
+				if( v[i] == v[j] )
+					return false;
+			}
+		}
+		return true;
+	}
+
+	template< class T >
+	void MakeValueUnique(std::vector< T >& v, int idxStart = 0)
+	{
+		int idxLast = v.size() - 1;
+		for( int i = idxStart; i <= idxLast; ++i )
+		{
+			for( int j = 0; j < i; ++j )
+			{
+				if( v[i] == v[j] )
+				{
+					if( i != idxLast )
+					{
+						std::swap(v[i], v[idxLast]);
+						--i;
+					}
+					--idxLast;
+				}
+			}
+		}
+		if( idxLast + 1 != v.size() )
+		{
+			v.resize(idxLast + 1);
+		}
+
+		assert(IsValueUnique(v));
+	}
 
 
 }//namespace CAR

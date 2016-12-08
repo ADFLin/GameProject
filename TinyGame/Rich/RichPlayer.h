@@ -26,6 +26,9 @@ namespace Rich
 			eGAME_OVER ,
 		};
 		Player( World& world , ActorId id );
+		void initPos(MapCoord const& pos, MapCoord const& prevPos);
+
+		bool updateTile(MapCoord const& pos);
 
 		World& getWorld(){ return *mWorld; }
 		bool   changePos( MapCoord const& pos );
@@ -33,10 +36,7 @@ namespace Rich
 		void    setRole( RoleId id ){ mRoleId = id; }
 		RoleId  getRoleId(){ return mRoleId; }
 
-
 		int     getMovePower();
-		MapCoord const& getPos() const { return mPos; }
-
 
 		int            getMoney() const { return mMoney; }
 		void           modifyMoney( int delta )

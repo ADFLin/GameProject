@@ -6,35 +6,26 @@
 
 namespace
 {
-	class EmptyActionListener : public ActionListener
-	{
-	public:
-		virtual void onFireAction( ActionParam& param ){}
-	} gListerner;
-
-	class EmptyActionEnumer : public ActionEnumer
+	class EmptyIActionLanucher : public IActionLanucher
 	{
 	public:
 		virtual void fireAction( ActionTrigger& trigger ){}
-	} gEnumer;
+	} gLanucher;
 }
 
 ActionProcessor::ActionProcessor() 
-	:mListener( &gListerner )
-	,mEnumer( &gEnumer )
+	:mLanucher( &gLanucher )
 {
 
 }
 
 void ActionProcessor::scanControl( unsigned flag /*= 0 */ )
 {
-	scanControl( *mEnumer , flag );
+	scanControl( *mLanucher , flag );
 }
 
-void ActionProcessor::scanControl( ActionEnumer& enumer , unsigned flag )
+void ActionProcessor::scanControl( IActionLanucher& lanucher , unsigned flag )
 {
-	mListener->onScanActionStart();
-
 	ActionTrigger trigger;
 
 	bool beUpdateFrame = ( flag & CTF_FREEZE_FRAME ) == 0;
@@ -43,13 +34,14 @@ void ActionProcessor::scanControl( ActionEnumer& enumer , unsigned flag )
 	trigger.mbAcceptFireAction   = ( flag & CTF_BLOCK_ACTION ) == 0;
 	trigger.mProcessor           = this;
 
-	enumer.prevScanAction( beUpdateFrame );
+	for( auto listener : mListeners )
+	{
+		listener->onScanActionStart(beUpdateFrame);
+	}
 
 	mActiveInputs.clear();
-	for( InputList::iterator iter = mInputList.begin();
-		iter != mInputList.end(); ++iter )
+	for( auto input : mInputList )
 	{
-		ActionInput* input = *iter;
 		if ( input->scanInput( beUpdateFrame ) )
 		{
 			mActiveInputs.push_back( input );
@@ -57,9 +49,12 @@ void ActionProcessor::scanControl( ActionEnumer& enumer , unsigned flag )
 	}
 
 	trigger.mParam.port = ERROR_ACTION_PORT;
-	enumer.fireAction( trigger );
+	lanucher.fireAction( trigger );
 
-	mListener->onScanActionEnd();
+	for( auto listener : mListeners )
+	{
+		listener->onScanActionEnd();
+	}
 }
 
 bool ActionProcessor::_checkAction( ActionParam& param )
@@ -68,7 +63,7 @@ bool ActionProcessor::_checkAction( ActionParam& param )
 	for( InputList::iterator iter = mActiveInputs.begin();
 		iter != mActiveInputs.end() ; ++iter )
 	{
-		ActionInput* input = *iter;
+		IActionInput* input = *iter;
 		if ( input->checkAction( param ) )
 		{
 			result = true;
@@ -77,12 +72,12 @@ bool ActionProcessor::_checkAction( ActionParam& param )
 	return result;
 }
 
-void ActionProcessor::addInput( ActionInput& input , unsigned targetPort )
+void ActionProcessor::addInput( IActionInput& input , unsigned targetPort )
 {
 	mInputList.push_back( &input );
 }
 
-bool ActionProcessor::removeInput( ActionInput& input )
+bool ActionProcessor::removeInput( IActionInput& input )
 {
 	InputList::iterator iter = std::find( mInputList.begin() , mInputList.end() , &input );
 	if ( iter == mInputList.end() )
@@ -93,7 +88,10 @@ bool ActionProcessor::removeInput( ActionInput& input )
 
 void ActionProcessor::_prevFireAction( ActionParam& param )
 {
-	mListener->onFireAction( param );
+	for( auto listener : mListeners )
+	{
+		listener->onFireAction(param);
+	}
 }
 
 void ActionProcessor::beginAction( unsigned flag /*= 0 */ )
@@ -106,18 +104,27 @@ void ActionProcessor::endAction()
 
 }
 
-void ActionProcessor::setListener( ActionListener* listener )
+void ActionProcessor::addListener( IActionListener& listener )
 {
-	mListener = listener;
-	if ( mListener == NULL )
-		mListener = &gListerner;
+	assert(std::find(mListeners.begin(), mListeners.end(), &listener) == mListeners.end());
+	mListeners.push_back(&listener);
 }
 
-void ActionProcessor::setEnumer( ActionEnumer* enumer )
+bool ActionProcessor::removeListener(IActionListener& listener)
 {
-	mEnumer = enumer;
-	if ( mEnumer == NULL )
-		mEnumer = &gEnumer;
+	auto iter = std::find(mListeners.begin(), mListeners.end(), &listener);
+	if( iter == mListeners.end() )
+		return false;
+
+	mListeners.erase(iter);
+	return true;
+}
+
+void ActionProcessor::setLanucher( IActionLanucher* lanucher )
+{
+	mLanucher = lanucher;
+	if ( mLanucher == NULL )
+		mLanucher = &gLanucher;
 }
 
 bool ActionTrigger::detect( ControlAction action )

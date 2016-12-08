@@ -95,7 +95,7 @@ bool ServerListPanel::connectServer( char const* hostName )
 {
 	try
 	{
-		mWorker->connect( hostName );
+		mWorker->connect( hostName , ::Global::getUserProfile().name );
 	}
 	catch ( ... )
 	{

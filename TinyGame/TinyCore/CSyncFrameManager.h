@@ -4,7 +4,7 @@
 #include "CFrameActionNetEngine.h"
 #include "GameControl.h"
 #include "GamePlayer.h"
-#include "DataStreamBuffer.h"
+#include "DataSteamBuffer.h"
 #include "THolder.h"
 
 #include <vector>
@@ -29,7 +29,7 @@ public:
 
 	void       beginFrame();
 	void       endFrame();
-	void       addFrameData( long frame , DataStreamBuffer& buffer );
+	void       addFrameData( long frame , DataSteamBuffer& buffer );
 	bool       checkUpdateFrame();
 	void       setFrame( unsigned frame ){ mCurFrame = frame; }
 	long       getFrame(){ return mCurFrame; }
@@ -38,7 +38,7 @@ public:
 	bool       haveFrameData(){ return !mProcessData.empty();  }
 	long       getLastDataFrame(){ return mLastDataFrame;  }
 
-	typedef std::list< DataStreamBuffer > DataList;
+	typedef std::list< DataSteamBuffer > DataList;
 	struct FrameData
 	{
 		long               frame;
@@ -63,7 +63,7 @@ public:
 };
 
 class  CSyncFrameManager : public INetFrameManager
-	                     , public ActionEnumer
+	                     , public IActionLanucher
 {
 public:
 	CSyncFrameManager( IFrameActionTemplate* actionTemp , INetFrameGenerator* frameGenerator );
@@ -104,7 +104,7 @@ public:
 
 private:
 	unsigned calcLocalPlayerBit();
-	void     procFrameData( IComPacket* cp );
+	void     procFrameData( IComPacket* cp);
 
 	TPtrHolder< GDPFrameStream >   mFrameStream;
 	unsigned         mCountDataDelay;
@@ -117,7 +117,7 @@ private:
 		PlayerId id;
 		int      recvFrame;
 		int      sendFrame;
-		DataStreamBuffer buffer;
+		DataSteamBuffer buffer;
 	};
 	typedef std::list< ClientFrameData > ClientFrameDataList;
 	ClientFrameDataList mFrameDataList;
@@ -135,7 +135,7 @@ public:
 	void fireAction( ActionTrigger& trigger );
 	void release();
 private:
-	void procFrameData( IComPacket* cp );
+	void procFrameData( IComPacket* cp);
 
 	TPtrHolder< GDPFrameStream >  mFrameStream;
 	LatencyCalculator mCalcuator;

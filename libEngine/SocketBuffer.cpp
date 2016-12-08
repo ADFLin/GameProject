@@ -1,26 +1,26 @@
 #include "SocketBuffer.h"
 
-#include "TSocket.h"
+#include "NetSocket.h"
 #include <cstring>
 
 
-SBuffer::SBuffer( size_t maxSize ) 
+SocketBuffer::SocketBuffer( size_t maxSize ) 
 {
 	resize( maxSize );
 }
 
-SBuffer::SBuffer()
+SocketBuffer::SocketBuffer()
 {
 
 }
 
-SBuffer::~SBuffer()
+SocketBuffer::~SocketBuffer()
 {
 	delete [] mData;
 }
 
 
-void SBuffer::fill( char const* str )
+void SocketBuffer::fill( char const* str )
 {
 	size_t len = strnlen( str , getFreeSize() ) + 1;
 
@@ -31,7 +31,7 @@ void SBuffer::fill( char const* str )
 	mFillSize += len;
 }
 
-void SBuffer::fill( char const* str , size_t maxSize )
+void SocketBuffer::fill( char const* str , size_t maxSize )
 {
 	size_t len = strnlen( str , maxSize ) + 1;
 
@@ -42,7 +42,7 @@ void SBuffer::fill( char const* str , size_t maxSize )
 	mFillSize += len;
 }
 
-int SBuffer::fill( TSocket& socket , size_t len )
+int SocketBuffer::fill( NetSocket& socket , size_t len )
 {
 	if ( len > getFreeSize()  )
 		throw BufferException( "Fill error : Free size too small" );
@@ -57,7 +57,7 @@ int SBuffer::fill( TSocket& socket , size_t len )
 	return 0;
 }
 
-int SBuffer::fill( TSocket& socket , size_t len , NetAddress& addr )
+int SocketBuffer::fill( NetSocket& socket , size_t len , NetAddress& addr )
 {
 	if  ( len > getFreeSize()  )
 		throw BufferException( "Fill error : Free size too small" );
@@ -71,7 +71,7 @@ int SBuffer::fill( TSocket& socket , size_t len , NetAddress& addr )
 	return 0;
 }
 
-int SBuffer::fill( TSocket& socket , size_t len , sockaddr* addr , unsigned addrLen )
+int SocketBuffer::fill( NetSocket& socket , size_t len , sockaddr* addr , unsigned addrLen )
 {
 	if  ( len > getFreeSize() )
 		throw BufferException( "Fill error : Free size too small" );
@@ -86,14 +86,14 @@ int SBuffer::fill( TSocket& socket , size_t len , sockaddr* addr , unsigned addr
 
 }
 
-void SBuffer::append( SBuffer const& buffer )
+void SocketBuffer::append( SocketBuffer const& buffer )
 {
 	fill(  (void*)buffer.getData() , buffer.getFillSize()  );
 }
 
 
 
-void SBuffer::take( char* str )
+void SocketBuffer::take( char* str )
 {
 	size_t avialable = getAvailableSize();
 
@@ -105,7 +105,7 @@ void SBuffer::take( char* str )
 	mUseSize += len;
 }
 
-void SBuffer::take( char* str , size_t maxSize )
+void SocketBuffer::take( char* str , size_t maxSize )
 {
 	size_t len = strnlen( mData + mUseSize , getAvailableSize() ) + 1;
 
@@ -121,7 +121,7 @@ void SBuffer::take( char* str , size_t maxSize )
 
 
 
-int SBuffer::take( TSocket& socket )
+int SocketBuffer::take( NetSocket& socket )
 {
 	int numSend = socket.sendData( mData + mUseSize , mFillSize - mUseSize );
 	
@@ -132,7 +132,7 @@ int SBuffer::take( TSocket& socket )
 	return numSend;
 }
 
-int SBuffer::take( TSocket& socket , size_t num )
+int SocketBuffer::take( NetSocket& socket , size_t num )
 {
 	int numSend = socket.sendData( mData + mUseSize , num );
 
@@ -144,7 +144,7 @@ int SBuffer::take( TSocket& socket , size_t num )
 }
 
 
-int SBuffer::take( TSocket& socket , size_t num , NetAddress& addr )
+int SocketBuffer::take( NetSocket& socket , size_t num , NetAddress& addr )
 {
 	if ( num < getAvailableSize() )
 		return false;
@@ -158,7 +158,7 @@ int SBuffer::take( TSocket& socket , size_t num , NetAddress& addr )
 	return numSend;
 }
 
-int SBuffer::take( TSocket& socket  , NetAddress& addr )
+int SocketBuffer::take( NetSocket& socket  , NetAddress& addr )
 {
 	int numSend = socket.sendData( mData + mUseSize , mFillSize - mUseSize , addr );
 	
@@ -171,7 +171,7 @@ int SBuffer::take( TSocket& socket  , NetAddress& addr )
 
 
 
-void SBuffer::resize( size_t size )
+void SocketBuffer::resize( size_t size )
 {
 	delete [] mData;
 
@@ -180,7 +180,7 @@ void SBuffer::resize( size_t size )
 	clear();
 }
 
-void SBuffer::grow( size_t newSize )
+void SocketBuffer::grow( size_t newSize )
 {
 	if ( newSize <= mMaxSize )
 		return;
@@ -192,7 +192,7 @@ void SBuffer::grow( size_t newSize )
 	mMaxSize = newSize;
 }
 
-void SBuffer::clearUseData()
+void SocketBuffer::clearUseData()
 {
 	if ( mUseSize == 0 )
 		return;

@@ -1,14 +1,14 @@
 #ifndef GreedySnakeGame_h__
 #define GreedySnakeGame_h__
 
-#include "GamePackage.h"
+#include "GameInstance.h"
 #include "GameControl.h"
 
 #define GREEDY_SNAKE_NAME "Greedy Snake"
 namespace GreedySnake
 {
 
-	class CGamePackage : public IGamePackage
+	class GameInstance : public IGameInstance
 	{
 	public:
 		

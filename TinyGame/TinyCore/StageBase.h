@@ -6,7 +6,7 @@
 #include "GameWidget.h"
 
 class StageManager;
-class IGamePackage;
+class IGameInstance;
 class GamePackageManager;
 class MouseMsg;
 class NetWorker;
@@ -91,10 +91,9 @@ protected:
 		FR_INIT_FAIL ,
 	};
 	virtual StageBase* resolveChangeStageFail( FailReason reason ){  return NULL;  }
-	virtual void       postStageChange( StageBase* stage ){}
-	virtual void       prevChangeStage(){}
-	
-
+	virtual void       postStageChange(StageBase* stage) {}
+	virtual bool       initStage(StageBase* stage) { return stage->onInit(); }
+	virtual void       prevStageChange(){}
 protected:
 	void             checkNewStage();
 	void             setupStage();

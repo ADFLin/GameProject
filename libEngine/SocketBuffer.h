@@ -7,19 +7,17 @@
 #include <memory>
 
 
-class  TSocket;
+class  NetSocket;
 class  NetAddress;
 struct sockaddr;
 
-
-
-class SBuffer : public StreamBuffer< ThrowCheckPolicy >
+class SocketBuffer : public TStreamBuffer< ThrowCheckPolicy >
 {
-	typedef StreamBuffer< ThrowCheckPolicy > BaseClass;
+	typedef TStreamBuffer< ThrowCheckPolicy > BaseClass;
 public:
-	SBuffer();
-	SBuffer( size_t maxSize );
-	~SBuffer();
+	SocketBuffer();
+	SocketBuffer( size_t maxSize );
+	~SocketBuffer();
 
 	void  resize( size_t size );
 	void  grow( size_t newSize );
@@ -37,44 +35,45 @@ public:
 	void take( char* str );
 	void take( char* str , size_t maxSize );
 
-	int fill( TSocket& socket , size_t len  );
-	int fill( TSocket& socket , size_t len , NetAddress& addr );
-	int fill( TSocket& socket , size_t len , sockaddr* addr , unsigned addrLen );
+	int fill( NetSocket& socket , size_t len  );
+	int fill( NetSocket& socket , size_t len , NetAddress& addr );
+	int fill( NetSocket& socket , size_t len , sockaddr* addr , unsigned addrLen );
 	
 	//Tcp
-	int  take( TSocket& socket );
-	int  take( TSocket& socket , size_t num );
+	int  take( NetSocket& socket );
+	int  take( NetSocket& socket , size_t num );
 	//Udp
-	int  take( TSocket& socket , size_t num , NetAddress& addr );
-	int  take( TSocket& socket , NetAddress& addr );
+	int  take( NetSocket& socket , size_t num , NetAddress& addr );
+	int  take( NetSocket& socket , NetAddress& addr );
 
-	void append( SBuffer const& buffer );
+	void append( SocketBuffer const& buffer );
 
-	struct GData
+	struct RawData
 	{
-		GData( void* ptr , size_t size ):ptr(ptr),size(size){}
+		RawData( void* ptr , size_t size ):ptr(ptr),size(size){}
 		void*  ptr;
 		size_t size;
 	};
 
-	void take( GData& data ){ take( data.ptr , data.size ); }
-	void fill( GData const& data ){ fill( data.ptr , data.size ); }
+	void take( RawData& data ){ take( data.ptr , data.size ); }
+	void fill( RawData const& data ){ fill( data.ptr , data.size ); }
+
 
 	template< class T >
-	SBuffer& operator >> ( T& val ){ take( val ); return *this;  }
+	SocketBuffer& operator >> ( T& val ){ take( val ); return *this;  }
 	template< class T >
-	SBuffer& operator << ( T const & val ){ fill( val ); return *this;  }
+	SocketBuffer& operator << ( T const & val ){ fill( val ); return *this;  }
 
 	struct Take
 	{
 		typedef Take ThisType;
 		enum { IsTake = 1 , IsFill = 0 };
-		Take( SBuffer& buffer ): buffer( buffer ){}
+		Take( SocketBuffer& buffer ): buffer( buffer ){}
 		template< class T >
 		inline ThisType& operator & ( T&  val ){  buffer >> val; return *this;  }
 		template< int N >
 		inline ThisType& operator & ( char (&str)[N] ){  buffer.take( str , N ); return *this;  }
-		inline ThisType& operator & ( SBuffer& buf )
+		inline ThisType& operator & ( SocketBuffer& buf )
 		{
 			unsigned size;
 			buffer.take( size );
@@ -85,7 +84,7 @@ public:
 			buf.fill( buffer , size );
 			return *this;
 		}
-		SBuffer& buffer;
+		SocketBuffer& buffer;
 	};
 
 
@@ -93,12 +92,12 @@ public:
 	{
 		typedef Fill ThisType;
 		enum { IsTake = 0 , IsFill = 1 };
-		Fill( SBuffer& buffer ): buffer( buffer ){}
+		Fill( SocketBuffer& buffer ): buffer( buffer ){}
 		template< class T >
 		inline ThisType& operator & ( T&  val ){  buffer << val; return *this;  }
 		template< int N >
 		inline ThisType& operator & ( char (&str)[N] ){  buffer.fill( str , N ); return *this;  }
-		inline ThisType& operator & ( SBuffer& buf )
+		inline ThisType& operator & ( SocketBuffer& buf )
 		{
 			size_t size = buf.getAvailableSize();
 			buffer.fill( size );
@@ -106,7 +105,7 @@ public:
 			return *this;
 		}
 
-		SBuffer& buffer;
+		SocketBuffer& buffer;
 	};
 };
 

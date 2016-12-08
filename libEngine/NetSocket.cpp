@@ -1,4 +1,4 @@
-#include "TSocket.h"
+#include "NetSocket.h"
 
 #include <cstdlib>
 #include <cassert>
@@ -7,19 +7,19 @@ WORD  g_sockVersion = MAKEWORD(1,1);
 
 void socketError(char* str){ }
 
-TSocket::TSocket()
+NetSocket::NetSocket()
 	:mSocketObj( INVALID_SOCKET )
 	,mState( SKS_CLOSE )
 {
 
 }
 
-TSocket::~TSocket()
+NetSocket::~NetSocket()
 {
 	close();
 }
 
-bool TSocket::connect( char const* addrName  , unsigned  port )
+bool NetSocket::connect( char const* addrName  , unsigned  port )
 {
 	assert( mSocketObj == INVALID_SOCKET );
 	NetAddress addr;
@@ -29,7 +29,7 @@ bool TSocket::connect( char const* addrName  , unsigned  port )
 	return connect( addr );
 }
 
-bool TSocket::connect( NetAddress const& addr )
+bool NetSocket::connect( NetAddress const& addr )
 {
 
 	if ( !createTCP( true ) )
@@ -48,7 +48,12 @@ bool TSocket::connect( NetAddress const& addr )
 	return true;
 }
 
-bool TSocket::listen( unsigned port , int maxWaitClient )
+bool NetSocket::accept(NetSocket& clientSocket, NetAddress& address)
+{
+	return accept( clientSocket, (sockaddr*)&address.get(), sizeof(address.get()) );
+}
+
+bool NetSocket::listen( unsigned port , int maxWaitClient )
 {
 	if ( !createTCP( true ) )
 		return false;
@@ -66,22 +71,22 @@ bool TSocket::listen( unsigned port , int maxWaitClient )
 	return true;
 }
 
-int TSocket::recvData( char* data , size_t maxNum )
+int NetSocket::recvData( char* data , size_t maxNum )
 {
 	return ::recv( getSocketObject() , data , (int)maxNum , 0 );
 }
 
-int TSocket::recvData( char* data , size_t maxNum , sockaddr* addrInfo , int addrLength )
+int NetSocket::recvData( char* data , size_t maxNum , sockaddr* addrInfo , int addrLength )
 {
 	return ::recvfrom( getSocketObject() ,data , (int)maxNum , 0 , addrInfo , &addrLength );
 }
 
-int TSocket::sendData( char const* data , size_t num )
+int NetSocket::sendData( char const* data , size_t num )
 {
 	return ::send( getSocketObject() , data , (int)num , 0 );
 }
 
-int TSocket::sendData( char const* data , size_t num , char const* addrName , unsigned port )
+int NetSocket::sendData( char const* data , size_t num , char const* addrName , unsigned port )
 {
 	NetAddress addr;
 	if ( !addr.setInternet( addrName , port ) )
@@ -91,7 +96,7 @@ int TSocket::sendData( char const* data , size_t num , char const* addrName , un
 }
 
 
-int TSocket::sendData( char const* data , size_t num , sockaddr* addrInfo , int addrLength )
+int NetSocket::sendData( char const* data , size_t num , sockaddr* addrInfo , int addrLength )
 {
 	if ( mSocketObj == INVALID_SOCKET && ! createUDP( ) )
 		return false;
@@ -99,7 +104,7 @@ int TSocket::sendData( char const* data , size_t num , sockaddr* addrInfo , int 
 	return ::sendto( getSocketObject() , data , (int)num , 0 , addrInfo , addrLength );
 }
 
-bool TSocket::createTCP( bool beNB )
+bool NetSocket::createTCP( bool beNB )
 {
 	close();
 
@@ -113,7 +118,7 @@ bool TSocket::createTCP( bool beNB )
 	return true;
 }
 
-bool TSocket::createUDP()
+bool NetSocket::createUDP()
 {
 	close();
 	mSocketObj = ::socket( PF_INET , SOCK_DGRAM , IPPROTO_UDP );
@@ -130,7 +135,7 @@ bool TSocket::createUDP()
 	return true;
 }
 
-bool TSocket::setBroadcast()
+bool NetSocket::setBroadcast()
 {
 	int i = 1;
 	if ( setsockopt( getSocketObject() , SOL_SOCKET, SO_BROADCAST, (char *)&i, sizeof(i)) == SOCKET_ERROR )
@@ -138,7 +143,7 @@ bool TSocket::setBroadcast()
 	return true;
 }
 
-bool TSocket::bindPort( unsigned port )
+bool NetSocket::bindPort( unsigned port )
 {
 	sockaddr_in  addr;
 	addr.sin_family      = AF_INET;
@@ -156,7 +161,7 @@ bool TSocket::bindPort( unsigned port )
 }
 
 
-bool TSocket::setNonBlocking( bool beNB )
+bool NetSocket::setNonBlocking( bool beNB )
 {
 	u_long  nonBlocking = beNB ? 1 : 0;
 	int rVal = ioctlsocket( getSocketObject() , FIONBIO , &nonBlocking );
@@ -167,7 +172,7 @@ bool TSocket::setNonBlocking( bool beNB )
 	return true;
 }
 
-char const* TSocket::getIPByName( char const* AddrName )
+char const* NetSocket::getIPByName( char const* AddrName )
 {
 	hostent *pHost = NULL;
 	pHost = gethostbyname( AddrName );
@@ -179,53 +184,88 @@ char const* TSocket::getIPByName( char const* AddrName )
 	return inet_ntoa(*(in_addr *)(*pHost->h_addr_list));
 }
 
-bool TSocket::accept( TSocket& clinetSocket , sockaddr* addr , int addrLength ) const
+bool NetSocket::accept( NetSocket& clientSocket , sockaddr* addr , int addrLength )
 {
-	assert( clinetSocket.mSocketObj == INVALID_SOCKET );
-	clinetSocket.mSocketObj = ::accept( mSocketObj , addr , &addrLength );
+	assert( clientSocket.mSocketObj == INVALID_SOCKET );
+	clientSocket.mSocketObj = ::accept( mSocketObj , addr , &addrLength );
 
-	if ( clinetSocket.mSocketObj == INVALID_SOCKET )
+	if ( clientSocket.mSocketObj == INVALID_SOCKET )
 		return false;
 
-	clinetSocket.mState  = SKS_CONNECT;
+	clientSocket.mState  = SKS_CONNECT;
 	return  true;
 }
 
-bool TSocket::detectTCP( SocketDetector& detector )
+struct NetSelectSet 
+{
+	NetSelectSet()
+	{
+		clear();
+	}
+	void clear()
+	{
+		numFD = 0;
+		FD_ZERO(&read);
+		FD_ZERO(&write);
+		FD_ZERO(&except);
+	}
+	void addSocket(NetSocket& socket)
+	{
+		SOCKET hSocket = socket.getSocketObject();
+		FD_SET(hSocket, &read);
+		FD_SET(hSocket, &write);
+		FD_SET(hSocket, &except);
+		++numFD;
+	}
+
+	int select(long sec, long usec)
+	{
+		timeval TimeOut;
+		TimeOut.tv_sec = sec;
+		TimeOut.tv_usec = usec;
+		return ::select(numFD, &read, &write, &except, &TimeOut);
+	}
+
+	bool canRead(NetSocket& socket)
+	{
+		return FD_ISSET( socket.getSocketObject() , &read );
+	}
+	bool canWrite(NetSocket& socket)
+	{
+		return FD_ISSET(socket.getSocketObject(), &write);
+	}
+	bool haveExcept(NetSocket& socket)
+	{
+		return FD_ISSET(socket.getSocketObject(), &except);
+	}
+
+	int numFD;
+	fd_set read;
+	fd_set write;
+	fd_set except;
+};
+
+bool NetSocket::detectTCP( SocketDetector& detector )
 {
 	if ( mState == SKS_CLOSE )
 		return false;
 
-	fd_set fRead;
-	fd_set fWrite;
-	fd_set fExcept;
-
-	FD_ZERO(&fRead);
-	FD_ZERO(&fWrite);
-	FD_ZERO(&fExcept);
-
-
-	SOCKET hSocket = getSocketObject();
-
-	FD_SET( hSocket , &fRead );
-	FD_SET( hSocket , &fWrite );
-	FD_SET( hSocket , &fExcept);
-	
 	int rVal;
 
-	timeval TimeOut;
-	TimeOut.tv_sec	= 0;
-	TimeOut.tv_usec	= 0;
-	rVal = select( 1, &fRead, &fWrite, &fExcept, &TimeOut );
+	NetSelectSet selectSet;
+	selectSet.addSocket(*this);
+	rVal = selectSet.select( 0 , 0 );
 	if( rVal == SOCKET_ERROR)
 	{
 		return false;
 	}
 
+
+	SOCKET hSocket = getSocketObject();
 	switch ( mState )
 	{
 	case  SKS_CONNECT:
-		if(FD_ISSET( hSocket , &fRead ))
+		if( selectSet.canRead( *this ))
 		{
 			int length = 0;
 			rVal = ioctlsocket( hSocket , FIONREAD ,(unsigned long *)&length); 
@@ -249,24 +289,24 @@ bool TSocket::detectTCP( SocketDetector& detector )
 			}
 		}
 
-		if( FD_ISSET( hSocket , &fWrite ) )
+		if( selectSet.canWrite(*this) )
 		{
 			detector.onSendable( *this );
 		}
 
-		if( FD_ISSET( hSocket , &fExcept ) )
+		if( selectSet.haveExcept( *this ) )
 		{	
 			detector.onExcept( *this );
 		}
 		break;
 	case SKS_LISTING:
-		if( FD_ISSET( hSocket ,&fRead) )
+		if( selectSet.canRead(*this) )
 		{
 			detector.onAcceptable( *this );
 		}
 		break;
 	case SKS_CONNECTING:
-		if( FD_ISSET( hSocket , &fWrite ) )
+		if( selectSet.canWrite(*this) )
 		{
 			sockaddr_in Address;
 			memset(&Address,0,sizeof(Address));
@@ -276,7 +316,7 @@ bool TSocket::detectTCP( SocketDetector& detector )
 
 		}
 		// connect failed
-		if(FD_ISSET( hSocket ,&fExcept) )
+		if( selectSet.canRead(*this) )
 		{	
 			mState = SKS_CLOSE;
 			detector.onConnectFailed(*this); 
@@ -287,40 +327,27 @@ bool TSocket::detectTCP( SocketDetector& detector )
 	return true;
 }
 
-bool TSocket::detectUDP( SocketDetector& detector )
+bool NetSocket::detectUDP( SocketDetector& detector )
 {
 	if ( mState == SKS_CLOSE )
 		return false;
 
 	assert( mState == SKS_UDP );
 
-	fd_set fRead;
-	fd_set fWrite;
-	fd_set fExcept;
-
-	FD_ZERO(&fRead);
-	FD_ZERO(&fWrite);
-	FD_ZERO(&fExcept);
-
 	int rVal;
 
-	timeval TimeOut;
-	TimeOut.tv_sec	= 0;
-	TimeOut.tv_usec	= 0;
+	NetSelectSet selectSet;
+	selectSet.addSocket(*this);
+	rVal = selectSet.select(0, 0);
 
-	SOCKET hSocket = getSocketObject();
-
-	FD_SET( hSocket , &fRead  );
-	FD_SET( hSocket , &fWrite );
-	FD_SET( hSocket , &fExcept);
-
-	rVal = select( 1, &fRead, &fWrite, &fExcept, &TimeOut );
 	if( rVal == SOCKET_ERROR)
 	{
 		return false;
 	}
 
-	if ( FD_ISSET( hSocket , &fRead ) )
+	SOCKET hSocket = getSocketObject();
+
+	if ( selectSet.canRead( *this ) )
 	{
 		while ( 1 )
 		{
@@ -332,11 +359,11 @@ bool TSocket::detectUDP( SocketDetector& detector )
 			detector.onReadable( *this , length );
 		}
 	}
-	if ( FD_ISSET( hSocket , &fWrite ) )
+	if ( selectSet.canWrite( *this ) )
 	{
 		detector.onSendable( *this );
 	}
-	if ( FD_ISSET( hSocket , &fExcept ) )
+	if ( selectSet.haveExcept( *this ) )
 	{
 		detector.onExcept( *this );
 	}
@@ -344,7 +371,7 @@ bool TSocket::detectUDP( SocketDetector& detector )
 	return true;
 }
 
-void TSocket::close()
+void NetSocket::close()
 {
 	if ( getSocketObject() != INVALID_SOCKET )
 	{
@@ -360,7 +387,7 @@ void TSocket::close()
 }
 
 static bool sInitSystem = false;
-bool TSocket::initSystem()
+bool NetSocket::initSystem()
 {
 	if ( sInitSystem )
 		return true;
@@ -374,7 +401,7 @@ bool TSocket::initSystem()
 	return true;
 }
 
-void TSocket::exitSystem()
+void NetSocket::exitSystem()
 {
 	if ( sInitSystem )
 	{
@@ -383,12 +410,12 @@ void TSocket::exitSystem()
 	}
 }
 
-int TSocket::getLastError()
+int NetSocket::getLastError()
 {
 	return WSAGetLastError();
 }
 
-void TSocket::move( TSocket& socket )
+void NetSocket::move( NetSocket& socket )
 {
 	assert( mSocketObj == INVALID_SOCKET );
 
@@ -400,7 +427,7 @@ void TSocket::move( TSocket& socket )
 }
 
 
-bool NetAddress::setFromSocket( TSocket const& socket )
+bool NetAddress::setFromSocket( NetSocket const& socket )
 {
 	int len = sizeof( mAddr );
 	return ::getpeername( socket.getSocketObject() , (sockaddr*)&mAddr, &len) != 0;

@@ -99,7 +99,12 @@ namespace CAR
 
 		int getDefaultActorPutInfo( int playerId , ActorPos const& actorPos , unsigned actorMasks[] , std::vector< ActorPosInfo >& outInfo );
 		int getActorPutInfoInternal(int playerId , ActorPos const& actorPos , unsigned actorMasks[] , int numMask , std::vector< ActorPosInfo >& outInfo);
-		
+
+		//bool useRule(RuleFunc::Enum ruleFunc)
+		//{
+		//	return mSetting->haveRule(ruleFunc);
+		//}
+
 		GameSetting* mSetting;
 	};
 

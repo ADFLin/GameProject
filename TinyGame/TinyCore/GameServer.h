@@ -13,14 +13,14 @@ class ServerWorker;
 
 class SPPlayerStatus;
 
-struct ClientInfo : public ComConnection
+struct ClientInfo
 {
 	typedef UdpServer::Client UdpClient;
 
 	class TCPClient : public TcpServer::Client
 	{
 	public:
-		TCPClient( TSocket& socket )
+		TCPClient( NetSocket& socket )
 		{
 			getSocket().move( socket );
 		}
@@ -28,10 +28,17 @@ struct ClientInfo : public ComConnection
 	};
 
 
-	ClientInfo( TSocket& socket )
+	ClientInfo( NetSocket& socket )
 		:tcpClient( socket )
 	{
 		tcpClient.clientInfo = this;
+	}
+
+	void reconnect(NetSocket& socket)
+	{
+		tcpClient.getSocket().move(socket);
+		tcpClient.clearBuffer();
+		udpClient.clearBuffer();
 	}
 
 	SessionId    id;
@@ -127,7 +134,7 @@ public:
 	void        sendUdpData( long time , UdpServer& server );
 	ClientInfo* findClient( NetAddress const& addr );
 	ClientInfo* findClient( SessionId id );
-	ClientInfo* createClient( TSocket& socket );
+	ClientInfo* createClient( NetSocket& socket );
 
 	void        removeAllClient(){  cleanup();  }
 	bool        removeClient( ClientInfo* info );
@@ -168,7 +175,7 @@ protected:
 };
 
 
-class PlayerListener
+class ServerPlayerListener
 {
 public:
 	virtual void onAddPlayer( PlayerId id ) = 0;
@@ -181,32 +188,34 @@ public:
 	SVPlayerManager();
 	~SVPlayerManager();
 
-	size_t         getPlayerNum();
-	ServerPlayer*  getPlayer( PlayerId id );
+	GAME_API size_t          getPlayerNum();
+	GAME_API ServerPlayer*   getPlayer( PlayerId id );
 	PlayerId       getUserID(){  return mUserID;  }
 
 	GAME_API SNetPlayer*    createNetPlayer( ServerWorker* server , char const* name , ClientInfo* client );
-	GAME_API SUserPlayer*   createUserPlayer( LocalWorker* worker , UserProfile& profile );
+	GAME_API SUserPlayer*   createUserPlayer( LocalWorker* worker , char const* name );
 	GAME_API SLocalPlayer*  createAIPlayer();
 	SLocalPlayer*  swepNetPlayerToLocal( SNetPlayer* player );
 	
-	bool  removePlayer( PlayerId id );
-	void  getPlayerInfo( PlayerInfo* info[] );
-	void  removePlayerFlag( unsigned bitPos );
+	GAME_API bool  removePlayer( PlayerId id );
+	GAME_API void  getPlayerInfo( PlayerInfo* info[] );
+	GAME_API void  removePlayerFlag( unsigned bitPos );
 	GAME_API bool  checkPlayerFlag( unsigned bitPos , bool beNet );
-	void  getPlayerFlag( int flag[] );
-	void  cleanup();
+	GAME_API void  getPlayerFlag( int flags[] );
+	GAME_API void  cleanup();
 
-	void sendTcpCommand( IComPacket* cp );
-	void sendCommand( int channel , IComPacket* cp , unsigned flag );
-	void sendUdpCommand( IComPacket* cp );
-	void setListener( PlayerListener* listener ){ mListener = listener; }
+	GAME_API void sendTcpCommand( IComPacket* cp );
+	GAME_API void sendCommand( int channel , IComPacket* cp , unsigned flag );
+	GAME_API void sendUdpCommand( IComPacket* cp );
+	void setListener( ServerPlayerListener* listener ){ mListener = listener; }
+
+	auto Lock() { return MakeLockedObjectHandle(*this, &mMutexPlayerTable); }
 
 protected:
 	void insertPlayer( ServerPlayer* player , char const* name , PlayerType type );
 
 	
-	PlayerListener* mListener;
+	ServerPlayerListener* mListener;
 	DEFINE_MUTEX( mMutexPlayerTable );
 	typedef TTable< ServerPlayer* > PlayerTable; 
 	PlayerTable  mPlayerTable;
@@ -217,21 +226,37 @@ protected:
 
 class LocalWorker;
 
+enum class PlayerDisconnectMode
+{
+	WaitReconnect ,
+	ChangeToLocal ,
+	Remove ,
+};
 
-class  ServerWorker : public NetWorker
+class ServerEventResolver
+{
+public:
+	//Socket Thread
+	virtual PlayerDisconnectMode resolvePlayerClose( PlayerId id , ConCloseReason reason) { return PlayerDisconnectMode::Remove;  }
+	virtual void resolvePlayerReconnect( PlayerId id ){}
+};
+
+class  ServerWorker : public NetWorker, public ConListener
 {
 	typedef NetWorker BaseClass;
 public:
 	GAME_API ServerWorker();
-	~ServerWorker();
+	GAME_API ~ServerWorker();
 
 	bool  isServer(){   return true;  }
 	//NetWorker
 	void  sendCommand( int channel , IComPacket* cp , unsigned flag );
 
-	GAME_API LocalWorker* createLocalWorker( UserProfile& profile );
+	GAME_API LocalWorker* createLocalWorker(char const* userName);
 
 	void sendClientTcpCommand( ClientInfo& client , IComPacket* cp );
+	void setEventResolver(ServerEventResolver* resolver) { mEventResolver = resolver;  }
+
 protected:
 	//NetWorker
 	void  postChangeState( NetActionState oldState );
@@ -242,11 +267,11 @@ protected:
 	void  doUpdate( long time );
 
 
-
+	// ConListener
 	virtual void onSendData( NetConnection* con );
-	virtual bool onRecvData( NetConnection* con , SBuffer& buffer ,NetAddress* clientAddr );
-	virtual void onAccpetClient( NetConnection* con );
-	virtual void onClose( NetConnection* con , ConCloseReason reason );
+	virtual bool onRecvData( NetConnection* con , SocketBuffer& buffer ,NetAddress* clientAddr );
+	virtual void onConnectAccpet( NetConnection* con );
+	virtual void onConnectClose( NetConnection* con , ConCloseReason reason );
 
 public:
 	GAME_API bool kickPlayer( unsigned id );
@@ -258,23 +283,22 @@ public:
 	/////////////////////////////////////////////////
 
 protected:
-	void procLogin      ( IComPacket* cp );
-	void procEcho       ( IComPacket* cp );
-	void procClockSynd  ( IComPacket* cp );
-	void procUdpAddress ( IComPacket* cp );
-	void procMsg        ( IComPacket* cp );
-	void procPlayerState( IComPacket* cp );
-	void procComMsg     ( IComPacket* cp );
-	void procUdpCon      ( IComPacket* cp );
+	void procLogin      ( IComPacket* cp);
+	void procEcho       ( IComPacket* cp);
+	void procClockSynd  ( IComPacket* cp);
+	void procUdpAddress ( IComPacket* cp);
+	void procMsg        ( IComPacket* cp);
+	void procPlayerState( IComPacket* cp);
+	void procComMsg     ( IComPacket* cp);
+	void procUdpCon     ( IComPacket* cp);
 
-	void procEchoNet     ( IComPacket* cp );
-	void procClockSyndNet( IComPacket* cp );
-	void procComMsgNet   ( IComPacket* cp );
-	void procUdpConNet   ( IComPacket* cp );
+	void procEchoNet     ( IComPacket* cp);
+	void procClockSyndNet( IComPacket* cp);
+	void procComMsgNet   ( IComPacket* cp);
+	void procUdpConNet   ( IComPacket* cp);
 	
 	/////////////////////////////////////////
 
-	DEFINE_MUTEX( mMutexPlayerManager );
 	TPtrHolder< SVPlayerManager >  mPlayerManager;
 	TPtrHolder< LocalWorker >      mLocalWorker;
 
@@ -296,7 +320,7 @@ protected:
 	UdpServer            mUdpServer;
 	TcpClient            mGuideClient;
 	ServerClientManager  mClientManager;
-	NetAddress*          mSendAddr;
+	ServerEventResolver* mEventResolver;
 };
 
 
@@ -313,13 +337,13 @@ protected:
 	void  postChangeState( NetActionState oldState );
 protected:
 	LocalWorker( ServerWorker* worker );
-	void procPlayerState( IComPacket* cp );
-	void procClockSynd  ( IComPacket* cp );
+	void procPlayerState( IComPacket* cp);
+	void procClockSynd  ( IComPacket* cp);
 	friend class ServerWorker;
 protected:
 
-	SBuffer           mSendBuffer;
-	SBuffer           mRecvBuffer;
+	SocketBuffer      mSendBuffer;
+	SocketBuffer      mRecvBuffer;
 	SVPlayerManager*  mPlayerMgr;
 	ServerWorker*     mServer;
 };

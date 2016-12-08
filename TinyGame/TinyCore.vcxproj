@@ -53,7 +53,7 @@
       <Optimization>Disabled</Optimization>
       <AdditionalIncludeDirectories>.;TinyCore;../libEngine;../OtherLib;../OtherLib/boost;../OtherLib/glew;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;_WINDOWS;DEBUG;CORE_SHARE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <MinimalRebuild>true</MinimalRebuild>
+      <MinimalRebuild>false</MinimalRebuild>
       <BasicRuntimeChecks>Default</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
       <PrecompiledHeader>Use</PrecompiledHeader>
@@ -63,7 +63,7 @@
       <ProgramDataBaseFileName>$(IntDir)vc$(PlatformToolsetVersion).pdb</ProgramDataBaseFileName>
       <XMLDocumentationFileName>$(IntDir)</XMLDocumentationFileName>
       <WarningLevel>Level3</WarningLevel>
-      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
   </ItemDefinitionGroup>
@@ -92,13 +92,13 @@
     <ClInclude Include="OptionNoteBook.h" />
     <ClInclude Include="ServerListPanel.h" />
     <ClInclude Include="TinyCore\DataStream.h" />
-    <ClInclude Include="TinyCore\DataStreamBuffer.h" />
+    <ClInclude Include="TinyCore\DataSteamBuffer.h" />
     <ClInclude Include="TinyCore\DataTransfer.h" />
     <ClInclude Include="TinyCore\DataTransferImpl.h" />
     <ClInclude Include="TinyCore\GameAction.h" />
     <ClInclude Include="TinyCore\GameConfig.h" />
     <ClInclude Include="TinyCore\GameDefines.h" />
-    <ClInclude Include="TinyCore\GamePackage.h" />
+    <ClInclude Include="TinyCore\GameInstance.h" />
     <ClInclude Include="TinyCore\GameStage.h" />
     <ClInclude Include="TinyCore\GameWidgetID.h" />
     <ClInclude Include="TinyCore\PropertyKey.h" />
@@ -114,9 +114,9 @@
     <ClCompile Include="GameRecord.cpp" />
     <ClCompile Include="OptionNoteBook.cpp" />
     <ClCompile Include="ServeListPanel.cpp" />
-    <ClCompile Include="TinyCore\DataStreamBuffer.cpp" />
+    <ClCompile Include="TinyCore\DataSteamBuffer.cpp" />
     <ClCompile Include="TinyCore\DataTransferImpl.cpp" />
-    <ClCompile Include="TinyCore\GamePackage.cpp" />
+    <ClCompile Include="TinyCore\GameInstance.cpp" />
     <ClCompile Include="TinyCore\GameStage.cpp" />
     <ClCompile Include="TinyCore\PropertyKey.cpp" />
     <ClCompile Include="TinyCore\StageBase.cpp" />

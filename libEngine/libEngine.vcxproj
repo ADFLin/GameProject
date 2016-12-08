@@ -53,7 +53,7 @@
       <Optimization>Disabled</Optimization>
       <AdditionalIncludeDirectories>../OtherLib;.;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;_LIB;DEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <MinimalRebuild>true</MinimalRebuild>
+      <MinimalRebuild>false</MinimalRebuild>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
       <WarningLevel>Level3</WarningLevel>
@@ -104,7 +104,7 @@
     <ClCompile Include="TaskBase.cpp" />
     <ClCompile Include="Thread.cpp" />
     <ClCompile Include="TileRegion.cpp" />
-    <ClCompile Include="TSocket.cpp" />
+    <ClCompile Include="NetSocket.cpp" />
     <ClCompile Include="UnitTest\TestClass.cpp" />
     <ClCompile Include="WGLContext.cpp" />
     <ClCompile Include="Win32ProfileViewer.cpp" />
@@ -194,7 +194,7 @@
     <ClInclude Include="TQTPortalAStar.h" />
     <ClInclude Include="TQuadTree.h" />
     <ClInclude Include="TQuadTreeTile.h" />
-    <ClInclude Include="TSocket.h" />
+    <ClInclude Include="NetSocket.h" />
     <ClInclude Include="TTable.h" />
     <ClInclude Include="TUICommon.h" />
     <ClInclude Include="TUICommon.hpp" />

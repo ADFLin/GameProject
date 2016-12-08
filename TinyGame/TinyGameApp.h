@@ -107,11 +107,12 @@ public:
 	~TinyGameApp();
 
 	//StageManager
-	void                setTickTime( long time ){ GameLoop::setUpdateTime( time ); }
+	void        setTickTime( long time ){ GameLoop::setUpdateTime( time ); }
 
 	//IGameNetInterface
-	NetWorker*          getNetWorker(){ return mNetWorker; }
-	NetWorker*          buildNetwork( bool beServer );
+	NetWorker*  getNetWorker(){ return mNetWorker; }
+	NetWorker*  buildNetwork( bool beServer );	
+	void        closeNetwork();
 
 	//IGUIDelegate
 	virtual void addGUITask(TaskBase* task, bool bGlobal) override;
@@ -119,11 +120,11 @@ public:
 
 protected:
 	StageBase*     createStage( StageID stageId );
-	GameStage*     createGameStage( StageID stageId );
 	GameStageMode* createGameStageMode(StageID stageId);
 	StageBase*     resolveChangeStageFail( FailReason reason );
+	bool           initStage(StageBase* stage);
 	void           postStageChange( StageBase* stage );
-	void           prevChangeStage();
+	void           prevStageChange();
 
 	void  exportUserProfile();
 	void  importUserProfile();
@@ -150,7 +151,7 @@ public:
 private:
 	void               loadGamePackage();
 	void               render( float dframe );
-	void               closeNetwork();
+
 	ServerWorker*      createServer();
 	ClientWorker*      createClinet();
 

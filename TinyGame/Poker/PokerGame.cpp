@@ -13,22 +13,22 @@
 #include "GameSettingPanel.h"
 #include "GameRoomUI.h"
 #include "GameWidgetID.h"
-#include "DataStreamBuffer.h"
+#include "DataSteamBuffer.h"
 
 namespace Poker
 {
 
-	CGamePackage::CGamePackage()
+	GameInstance::GameInstance()
 	{
 		mRule = RULE_BIG2;
 	}
 
-	CGamePackage::~CGamePackage()
+	GameInstance::~GameInstance()
 	{
 
 	}
 
-	StageBase* CGamePackage::createStage( unsigned id )
+	StageBase* GameInstance::createStage( unsigned id )
 	{
 		switch( mRule )
 		{
@@ -54,7 +54,7 @@ namespace Poker
 		return NULL;
 	}
 
-	bool CGamePackage::getAttribValue( AttribValue& value )
+	bool GameInstance::getAttribValue( AttribValue& value )
 	{
 		switch( value.id )
 		{
@@ -68,15 +68,15 @@ namespace Poker
 		return false;
 	}
 
-	void CGamePackage::beginPlay( StageModeType type, StageManager& manger )
+	void GameInstance::beginPlay( StageModeType type, StageManager& manger )
 	{
-		IGamePackage::beginPlay( type , manger );
+		IGameInstance::beginPlay( type , manger );
 	}
 
 	class CNetRoomSettingHelper : public NetRoomSettingHelper
 	{
 	public:
-		CNetRoomSettingHelper( CGamePackage* game )
+		CNetRoomSettingHelper( GameInstance* game )
 			:mGame( game ){}
 
 		enum
@@ -173,17 +173,17 @@ namespace Poker
 			setMaxPlayerNum( Holdem::MaxPlayerNum );
 		}
 
-		virtual void setupGame( StageManager& manager , GameStageBase* subStage )
+		virtual void setupGame( StageManager& manager , StageBase* subStage )
 		{
 
 		}
-		virtual void doSendSetting( DataStreamBuffer& buffer )
+		virtual void doExportSetting( DataSteamBuffer& buffer )
 		{
 			int rule = mGame->getRule();
 			buffer.fill( rule );
 
 		}
-		virtual void doRecvSetting( DataStreamBuffer& buffer )
+		virtual void doImportSetting( DataSteamBuffer& buffer )
 		{
 			getSettingPanel()->removeGui( MASK_BASE | MASK_RULE );
 			getSettingPanel()->adjustGuiLocation();
@@ -193,10 +193,10 @@ namespace Poker
 			mGame->setRule( GameRule( rule) );
 			setupBaseUI();
 		}
-		CGamePackage* mGame;
+		GameInstance* mGame;
 	};
 
-	SettingHepler* CGamePackage::createSettingHelper( SettingHelperType type )
+	SettingHepler* GameInstance::createSettingHelper( SettingHelperType type )
 	{
 		switch( type )
 		{
@@ -208,4 +208,4 @@ namespace Poker
 
 }//namespace Poker
 
-EXPORT_GAME( Poker::CGamePackage )
+EXPORT_GAME( Poker::GameInstance )

@@ -8,7 +8,7 @@
 #include "GameSettingHelper.h"
 #include "GameClient.h"
 
-EXPORT_GAME( Bubble::CGamePackage )
+EXPORT_GAME( Bubble::GameInstance )
 
 namespace Bubble
 {
@@ -154,12 +154,12 @@ namespace Bubble
 	}
 
 
-	ReplayTemplate* CGamePackage::createReplayTemplate( unsigned version )
+	ReplayTemplate* GameInstance::createReplayTemplate( unsigned version )
 	{
 		return new BubbleReplayTemplate;
 	}
 
-	StageBase* CGamePackage::createStage( unsigned id )
+	StageBase* GameInstance::createStage( unsigned id )
 	{
 		switch( id )
 		{
@@ -172,7 +172,7 @@ namespace Bubble
 		return NULL;
 	}
 
-	bool CGamePackage::getAttribValue( AttribValue& value )
+	bool GameInstance::getAttribValue( AttribValue& value )
 	{
 		switch ( value.id )
 		{
@@ -201,13 +201,13 @@ namespace Bubble
 		{
 
 		}
-		virtual void setupGame( StageManager& manager , GameSubStage* subStage ){}
+		virtual void setupGame( StageManager& manager , StageBase* subStage ){}
 		//for network
-		virtual void doSendSetting( DataStreamBuffer& buffer ){}
-		virtual void doRecvSetting( DataStreamBuffer& buffer ){}
+		virtual void doExportSetting( DataSteamBuffer& buffer ){}
+		virtual void doImportSetting( DataSteamBuffer& buffer ){}
 	};
 
-	SettingHepler* CGamePackage::createSettingHelper( SettingHelperType type )
+	SettingHepler* GameInstance::createSettingHelper( SettingHelperType type )
 	{
 		switch( type )
 		{
@@ -216,9 +216,9 @@ namespace Bubble
 		return NULL;
 	}
 
-	void CGamePackage::beginPlay( StageModeType type, StageManager& manger )
+	void GameInstance::beginPlay( StageModeType type, StageManager& manger )
 	{
-		IGamePackage::beginPlay( type , manger );
+		IGameInstance::beginPlay( type , manger );
 	}
 
 

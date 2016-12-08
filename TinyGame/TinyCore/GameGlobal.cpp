@@ -8,9 +8,17 @@
 #include "GameGUISystem.h"
 #include "UserProfile.h"
 
+#include "Thread.h"
+
 #include <cstdlib>
 
 GAME_API IGameNetInterface* gGameNetInterfaceImpl = nullptr;
+GAME_API uint32 gGameThreadId = 0;
+
+bool IsInGameThead()
+{
+	return PlatformThread::GetCurrentThreadId() == gGameThreadId;
+}
 
 uint64 generateRandSeed()
 {

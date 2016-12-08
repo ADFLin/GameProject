@@ -63,10 +63,11 @@ namespace Bubble
 
 	}
 
-	void CServerFrameGenerator::recvClientData( unsigned pID , DataStreamBuffer& buffer )
+	void CServerFrameGenerator::recvClientData( unsigned pID , DataSteamBuffer& buffer )
 	{
 		BuFrameData data;
-		DataSerializer serializer( buffer );
+		auto dataStream = MakeBufferDataSteam(buffer);
+		DataSerializer serializer(dataStream);
 		DataSerializer::ReadOp op( serializer );
 		data.serialize( op );
 

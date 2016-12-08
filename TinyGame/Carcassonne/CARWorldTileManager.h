@@ -11,6 +11,7 @@ namespace CAR
 {
 	class TilePiece;
 	class MapTile;
+	struct ExpansionContent;
 
 	struct TileType
 	{
@@ -48,7 +49,10 @@ namespace CAR
 		TileSetManager();
 		~TileSetManager();
 
-		void  import( ExpansionTileContent const& content );
+		void  addExpansion(Expansion exp);
+
+		bool  haveUse(Expansion exp) const { return (mUseExpansionMask & BIT(exp)) != 0; }
+		void  import( ExpansionContent const& content );
 		
 		TileSet const& getTileSet( TileId tileId ) const {  return mTileMap[ tileId ];  }
 
@@ -70,6 +74,8 @@ namespace CAR
 
 		TileIdVec mSetMap[ TileSet::NumGroup ];
 		std::vector< TileSet > mTileMap;
+
+		unsigned mUseExpansionMask;
 	};
 
 

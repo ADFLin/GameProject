@@ -140,6 +140,7 @@
     <ClCompile Include="GLUtility.cpp" />
     <ClCompile Include="Go\GoCore.cpp" />
     <ClCompile Include="Go\GoStage.cpp" />
+    <ClCompile Include="Go\ZenBot.cpp" />
     <ClCompile Include="LightingStage.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="MainMenuStage.cpp" />
@@ -265,6 +266,8 @@
     <ClInclude Include="GLUtility.h" />
     <ClInclude Include="Go\GoCore.h" />
     <ClInclude Include="Go\GoStage.h" />
+    <ClInclude Include="Go\zen.h" />
+    <ClInclude Include="Go\ZenBot.h" />
     <ClInclude Include="LightingStage.h" />
     <ClInclude Include="LordMonarch\LmLevel.h" />
     <ClInclude Include="MainMenuStage.h" />

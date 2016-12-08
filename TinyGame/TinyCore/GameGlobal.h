@@ -8,8 +8,6 @@
 #include "FixString.h"
 #include "IntegerType.h"
 
-
-
 #define USE_TRANSLATE
 #include "Localization.h"
 
@@ -66,12 +64,16 @@ class NetWorker;
 
 GAME_API uint64 generateRandSeed();
 
+extern GAME_API uint32 gGameThreadId;
+GAME_API bool IsInGameThead();
+
 class IGameNetInterface
 {
 public:
 	~IGameNetInterface(){}
 	virtual NetWorker*  getNetWorker() = 0;
 	virtual NetWorker*  buildNetwork(bool beServer) = 0;
+	virtual void        closeNetwork() = 0;
 };
 
 class Global
@@ -130,5 +132,6 @@ template< class T >
 TRef< T >      ref( T& val ){ return TRef< T >( val );   }
 template< class T >
 TConstRef< T > ref( T const& val ){ return TConstRef< T >( val );   }
+
 
 #endif // GameGlobal_h__

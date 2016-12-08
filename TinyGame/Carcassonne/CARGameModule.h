@@ -140,7 +140,7 @@ namespace CAR
 
 		PlayerBase* getTurnPlayer(){ return mPlayerOrders[ mIdxPlayerTrun ]; }
 
-		void   initFeatureScoreInfo(std::vector< FeatureScoreInfo > &scoreInfos);
+		void  initFeatureScoreInfo(std::vector< FeatureScoreInfo > &scoreInfos);
 	
 		void  returnActorToPlayer( LevelActor* actor );
 		void  moveActor( LevelActor* actor , ActorPos const& pos , MapTile* mapTile );

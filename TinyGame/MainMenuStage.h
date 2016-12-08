@@ -3,6 +3,8 @@
 
 #include "GameMenuStage.h"
 
+#include "StageRegister.h"
+
 class MainMenuStage : public GameMenuStage
 {
 	typedef GameMenuStage BaseClass;
@@ -33,13 +35,17 @@ public:
 		UI_FREECELL_TEST ,
 
 		UI_GROUP_INDEX ,
-		UI_SINGLE_DEV_INDEX    = UI_GROUP_INDEX ,
-		UI_GAME_DEV_INDEX      = UI_SINGLE_DEV_INDEX + MAX_NUM_GROUP,
+
+		UI_SINGLE_DEV_INDEX    = UI_GROUP_INDEX,
+		UI_GROUP_STAGE_INDEX   = UI_SINGLE_DEV_INDEX + MAX_NUM_GROUP,
+		UI_GAME_DEV_INDEX      = UI_GROUP_STAGE_INDEX + MAX_NUM_GROUP,
 		UI_GAME_DEV2_INDEX     = UI_GAME_DEV_INDEX + MAX_NUM_GROUP,
 		UI_GAME_DEV3_INDEX     = UI_GAME_DEV2_INDEX + MAX_NUM_GROUP,
 		UI_GAME_DEV4_INDEX     = UI_GAME_DEV3_INDEX + MAX_NUM_GROUP ,
 		UI_TEST_INDEX          = UI_GAME_DEV4_INDEX + MAX_NUM_GROUP ,
 		UI_GRAPHIC_TEST_INDEX  = UI_TEST_INDEX + MAX_NUM_GROUP ,
+
+		
 		
 		NEXT_UI_ID             = UI_GRAPHIC_TEST_INDEX + MAX_NUM_GROUP ,
 	};
@@ -47,6 +53,11 @@ public:
 	bool onInit();
 	bool onWidgetEvent( int event , int id , GWidget* ui );
 	void doChangeGroup( StageGroupID group );
+
+	void changeStageGroup(StageRegisterGroup group);
+	void createStageGroupButton(int& delay, int& xUI, int& yUI);
+
+	StageRegisterGroup mCurGroup;
 };
 
 

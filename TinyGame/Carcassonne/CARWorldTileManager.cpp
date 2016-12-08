@@ -3,6 +3,7 @@
 
 #include "CARMapTile.h"
 #include "CARDebug.h"
+#include "CARExpansion.h"
 
 #include <algorithm>
 
@@ -34,6 +35,20 @@ namespace CAR
 		if ( bit & 0xf0 ){ result += 4; bit >>= 4; }
 		return result + gBitIndexMap[ bit ];
 	}
+
+#if TARGET_PLATFORM_64BITS
+	int FBit::ToIndex64(unsigned bit)
+	{
+		assert((bit & 0xffffffffffffffff) == bit);
+		assert((bit & (bit - 1)) == 0);
+		int result = 0;
+		if( bit & 0xffffffff00000000 ) { result += 32; bit >>= 32; }
+		if( bit & 0xffff0000 ) { result += 16; bit >>= 16; }
+		if( bit & 0xff00 ) { result += 8; bit >>= 8; }
+		if( bit & 0xf0 ) { result += 4; bit >>= 4; }
+		return result + gBitIndexMap[bit];
+	}
+#endif
 
 	unsigned FBit::RotateRight(unsigned bits , unsigned offset , unsigned numBit)
 	{
@@ -340,30 +355,6 @@ namespace CAR
 		return tileSet.tiles[idx];
 	}
 
-	void makeValueUnique( std::vector< Vec2i >& outPos , int idxStart )
-	{
-		int len = outPos.size();
-		for( int i = idxStart ; i < len ; ++i )
-		{
-			for( int j = i + 1 ; j < len ; ++j )
-			{
-				if ( outPos[i] == outPos[j] )
-				{
-					if ( j != len - 1 ) 
-					{
-						std::swap( outPos[j] , outPos[ len - 1 ] );
-						--j;
-					}
-					--len;
-				}
-			}
-		}
-		if ( len != outPos.size() )
-		{
-			outPos.resize( len );
-		}
-	}
-
 	int WorldTileManager::getPosibleLinkPos( TileId tileId , std::vector< Vec2i >& outPos , PutTileParam& param )
 	{
 		TileSet const& tileSet = mTileSetManager->getTileSet( tileId );
@@ -404,7 +395,7 @@ namespace CAR
 					}
 				}
 			}
-			makeValueUnique( outPos ,idxStart );
+			MakeValueUnique( outPos ,idxStart );
 			break;
 		default:
 			assert(0);
@@ -462,13 +453,31 @@ namespace CAR
 
 	TileSetManager::TileSetManager()
 	{
-
+		mUseExpansionMask = 0;
 	}
 
 
 	TileSetManager::~TileSetManager()
 	{
 		cleanup();
+	}
+
+	void TileSetManager::addExpansion(Expansion exp)
+	{
+		assert(!haveUse(exp));
+		mUseExpansionMask |= BIT(exp);
+
+		for( int idx = 0; ; ++idx )
+		{
+			ExpansionContent const& content = gAllExpansionTileContents[idx];
+			if( content.exp == EXP_NULL )
+				break;
+			if( content.exp == exp )
+			{
+				import(content);
+				return;
+			}
+		}
 	}
 
 	void TileSetManager::cleanup()
@@ -491,10 +500,9 @@ namespace CAR
 			mSetMap[i].clear();
 		}
 		mTileMap.clear();
-
 	}
 
-	void TileSetManager::import( ExpansionTileContent const& content )
+	void TileSetManager::import( ExpansionContent const& content )
 	{
 		TileId id = 0;
 		int idxDefine = 0;

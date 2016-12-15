@@ -1,74 +1,91 @@
 #ifndef CARScore_h__f1f98b18_a3e7_48f7_b3f8_c6faff593bd6
 #define CARScore_h__f1f98b18_a3e7_48f7_b3f8_c6faff593bd6
 
+#define CAR_USE_CONST_PARAMVALUE 0
+
+#if CAR_USE_CONST_PARAMVALUE
+#define CAR_PARAM_VALUE( SETTING , NAME ) Setting->##NAME
+#else
+#define CAR_PARAM_VALUE( SETTING , NAME ) GameParamCollection::GetDefalut().##NAME
+#endif
+
 namespace CAR
 {
 	namespace Value
 	{
-		//Basic
-		int const CloisterFactor = 1;
+		int const MaxPlayerNum = 6;
+		int const SheepTokenTypeNum = 5;
+	}
 
-		int const CityFactor = 2;
-		int const RoadFactor = 1;
-		int const FarmFactorV1 = 4;
-		int const FarmFactorV2 = 3;
-		int const FarmFactorV3 = 3;
+	struct GameParamCollection
+	{
+		int CloisterFactor = 1;
 
-		int const PennatFactor = 2;
-		int const PennatNonCompletFactor = 1;
+		int CityFactor = 2;
+		int RoadFactor = 1;
+		int FarmFactorV1 = 4;
+		int FarmFactorV2 = 3;
+		int FarmFactorV3 = 3;
 
+		int PennatFactor = 2;
+		int PennatNonCompletFactor = 1;
 
-		int const NonCompleteFactor = 1;
-		int const MeeplePlayerOwnNum = 6;
+		int NonCompleteFactor = 1;
+		int MeeplePlayerOwnNum = 6;
 
 		//EXP_INNS_AND_CATHEDRALS
-		int const CathedralAdditionFactor = 1;
-		int const InnAddtitionFactor = 1;
-		int const RobberBaronFactor = 1;
-		int const KingFactor = 1;
-		int const BigMeeplePlayerOwnNum = 1;
+		int CathedralAdditionFactor = 1;
+		int InnAddtitionFactor = 1;
+		int RobberBaronFactor = 1;
+		int KingFactor = 1;
+		int BigMeeplePlayerOwnNum = 1;
 		//EXP_TRADEERS_AND_BUILDERS
-		int const TradeScore = 10;
-		int const PigAdditionFactor = 1;
-		int const BuilderPlayerOwnNum = 1;
-		int const PigPlayerOwnNum = 1;
+		int TradeScore = 10;
+		int PigAdditionFactor = 1;
+		int BuilderPlayerOwnNum = 1;
+		int PigPlayerOwnNum = 1;
 
 		//EXP_THE_PRINCESS_AND_THE_DRAGON
-		int const FairyBeginningOfATurnScore = 1;
-		int const FairyFearureScoringScore = 3;
+		int FairyBeginningOfATurnScore = 1;
+		int FairyFearureScoringScore = 3;
 
-		int const DragonMoveStepNum = 6;
+		int DragonMoveStepNum = 6;
 
 		//EXP_THE_TOWER
-		int const TowerPicesTotalNum = 30;
-		int const TowerPicesPlayerOwnNum[] = { 0 , 0 , 10 , 9 , 7 , 6 , 5 };
-		int const PrisonerBuyBackScore = 3;
+		int TowerPicesTotalNum = 30;
+		int TowerPicesPlayerOwnNum[Value::MaxPlayerNum] = { 0 , 10 , 9 , 7 , 6 , 5 };
+		int PrisonerBuyBackScore = 3;
 
 		//EXP_ABBEY_AND_MAYOR
-		int const AbbeyTilePlayerOwnNum = 1;
-		int const BarnPlayerOwnNum = 1;
-		int const WagonPlayerOwnNum = 1;
-		int const MayorPlayerOwnNum = 1;
+		int AbbeyTilePlayerOwnNum = 1;
+		int BarnPlayerOwnNum = 1;
+		int WagonPlayerOwnNum = 1;
+		int MayorPlayerOwnNum = 1;
 
-		int const BarnAddtionFactor = 1;
-		int const BarnRemoveFarmerFactor = 1; 
+		int BarnAddtionFactor = 1;
+		int BarnRemoveFarmerFactor = 1;
 
 		//EXP_BRIDGES_CASTLES_AND_BAZAARS
-		int const BridgePicesPlayerOwnNum[] = { 0 , 0 , 3 , 3 , 3 , 2 , 2 };
-		int const CastleTokensPlayerOwnNum[] = { 0 , 0 , 3 , 3 , 3 , 2 , 2 };
+		int BridgePicesPlayerOwnNum[Value::MaxPlayerNum] = { 0 , 3 , 3 , 3 , 2 , 2 };
+		int CastleTokensPlayerOwnNum[Value::MaxPlayerNum] = { 0 , 3 , 3 , 3 , 2 , 2 };
 
 		//EXP_HILLS_AND_SHEEP
-		int const SheepTokenNum[] = { 2 , 4 , 5 , 5 , 2 };
-		int const ShepherdPlayerOwnNum = 1;
-		int const VineyardAdditionScore = 3;
+		int SheepTokenNum[Value::SheepTokenTypeNum] = { 2 , 4 , 5 , 5 , 2 };
+		int ShepherdPlayerOwnNum = 1;
+		int VineyardAdditionScore = 3;
 
 		//EXP_CASTLES
-		int const GermanCastleAdditionFactor = 3;
+		int GermanCastleAdditionFactor = 3;
 
 		//EXP_PHANTOM
-		int const PhantomPlayerOwnNum = 1;
+		int PhantomPlayerOwnNum = 1;
 
-	}
+		static GameParamCollection const& GetDefalut()
+		{
+			static GameParamCollection const sDefalutValue;
+			return sDefalutValue;
+		}
+	};
 
 }//namespace CAR
 #endif // CARScore_h__f1f98b18_a3e7_48f7_b3f8_c6faff593bd6

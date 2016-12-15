@@ -20,6 +20,7 @@ namespace CAR
 
 	typedef uint32 TileId;
 	TileId const FAIL_TILE_ID = TileId(-1);
+	TileId const TEMP_TILE_ID = TileId(-2);
 
 	int const FAIL_PLAYER_ID = 31;
 
@@ -28,7 +29,7 @@ namespace CAR
 
 	enum Expansion : uint8;
 
-	enum SideType
+	enum SideType : uint8
 	{
 		eField  = 0,
 		eRoad  ,
@@ -36,6 +37,8 @@ namespace CAR
 		eCity  ,
 		eAbbey , //EXP_ABBEY_AND_MAYOR
 		eGermanCastle ,
+
+		eEmptySide ,
 	};
 
 	struct TileContent
@@ -51,7 +54,10 @@ namespace CAR
 			eBazaar       = BIT(8), //EXP_BRIDGES_CASTLES_AND_BAZAARS
 			eHill         = BIT(9), //EXP_HILLS_AND_SHEEP
 			eVineyard     = BIT(10), //EXP_HILLS_AND_SHEEP
+			eHalfling     = BIT(11) ,
 
+			//runtime
+			eTemp         = BIT(12) ,
 		};
 
 		static unsigned const FeatureMask = eCloister;
@@ -138,6 +144,10 @@ namespace CAR
 			eBridgePices ,
 			eCastleTokens ,
 			eTileIdAuctioned ,
+			//EXP_CASTLES
+			eGermanCastleTiles ,
+			//EXP_HALFLINGS_I && EXP_HALFLINGS_II
+			eHalflingTiles ,
 
 			NUM,
 		};
@@ -151,6 +161,7 @@ namespace CAR
 		TILE_END_TAG ,
 		TILE_ABBEY_TAG , //EXP_ABBEY_AND_MAYOR
 		TILE_GERMAN_CASTLE_TAG ,
+		TILE_HALFLING_TAG ,
 	};
 
 	enum SheepToken
@@ -162,20 +173,6 @@ namespace CAR
 		eFour ,
 		
 		Num ,
-	};
-
-	struct TileDefine
-	{
-		uint8  numPiece;
-		uint8  linkType[4];
-		uint8  sideLink[2];
-		uint16 roadLink[2];
-		uint16 content;
-		uint16 sideContent[4];
-		uint8  centerFarmMask;
-		uint8  farmLink[6];
-		uint8  tag;
-		
 	};
 
 	struct ActorInfo

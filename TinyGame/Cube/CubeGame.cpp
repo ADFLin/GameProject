@@ -5,6 +5,8 @@
 
 namespace Cube
 {
+	EXPORT_GAME(GameInstance)
+
 	StageBase* GameInstance::createStage( unsigned id )
 	{
 		switch( id )
@@ -32,4 +34,4 @@ namespace Cube
 
 }//namespace Cube
 
-EXPORT_GAME( Cube::GameInstance )
+

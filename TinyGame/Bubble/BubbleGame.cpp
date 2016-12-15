@@ -8,10 +8,9 @@
 #include "GameSettingHelper.h"
 #include "GameClient.h"
 
-EXPORT_GAME( Bubble::GameInstance )
-
 namespace Bubble
 {
+	EXPORT_GAME(GameInstance)
 
 	void BubbleReplayTemplate::registerNode( OldVersion::Replay& replay )
 	{

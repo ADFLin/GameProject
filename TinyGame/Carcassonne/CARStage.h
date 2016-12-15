@@ -15,13 +15,14 @@
 #include <fstream>
 #include <sstream>
 
+#define CAR_USE_INPUT_COMMAND 1
+
 class IDataTransfer;
 
 namespace CAR
 {
 	using CFly::Vector3;
 	using CFly::Matrix4;
-
 
 	class LevelStage;
 
@@ -115,7 +116,10 @@ namespace CAR
 
 		virtual bool onInit();
 		virtual void onEnd();
-		virtual void onRestart( uint64 seed , bool bInit);
+
+
+
+		virtual void onRestart(uint64 seed, bool bInit);
 		virtual void onRender( float dFrame );
 		virtual bool onWidgetEvent(int event , int id , GWidget* ui);
 		virtual bool onKey( unsigned key , bool isDown );
@@ -131,10 +135,7 @@ namespace CAR
 		virtual void setupLocalGame( LocalPlayerManager& playerManager );
 		virtual void setupScene( IPlayerManager& playerManager );
 
-		void tick()
-		{
-
-		}
+		void tick();
 
 		void updateFrame( int frame )
 		{
@@ -185,7 +186,7 @@ namespace CAR
 		virtual void onPutTile( TileId id , MapTile* mapTiles[] , int numMapTile );
 		
 		//
-		void setTileObjectTexture( CFly::Object* obj, TileId id );
+		void setTileObjectTexture( CFly::Object* obj, TileId id , int idMesh = 0 );
 		void createTileMesh( CFly::Object* obj , TileId id );
 		void updateTileMesh( CFly::Object* obj , TileId newId , TileId oldId );
 		void updateShowTileObject( TileId id );
@@ -200,6 +201,7 @@ namespace CAR
 
 		GameSetting& getSetting(){ return mSetting; }
 		
+		void cleanupGameData();
 
 
 	protected:
@@ -244,6 +246,11 @@ namespace CAR
 
 		CFly::Object*   mTileShowObject;
 		TileId          mTileIdShow;
+
+#if CAR_USE_INPUT_COMMAND
+		std::vector< class IInputCommand* > mInputCommands;
+		void addInputCommand(IInputCommand* command) { mInputCommands.push_back(command); }
+#endif
 	};
 
 }//namespace CAR

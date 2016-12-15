@@ -5,6 +5,7 @@
 
 namespace Chromatron
 {
+	EXPORT_GAME(GameInstance)
 
 	bool GameInstance::getAttribValue( AttribValue& value )
 	{
@@ -41,4 +42,3 @@ namespace Chromatron
 }//namespace Chromatron
 
 
-EXPORT_GAME( Chromatron::GameInstance )

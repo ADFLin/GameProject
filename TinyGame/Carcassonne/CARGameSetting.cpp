@@ -8,7 +8,11 @@ namespace CAR
 		mExpansionMask = 0;
 		mNumField = 0;
 		mFarmScoreVersion = 3;
-		std::fill_n(mFieldIndex, (int)FieldType::NUM, -1);
+		for( auto info : mFieldInfos )
+		{
+			info.index = -1;
+			info.num = 0;
+		}
 	}
 
 	bool GameSetting::haveRule(Rule ruleFunc) const

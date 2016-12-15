@@ -94,7 +94,7 @@ namespace BomberMan
 		}
 	}
 	CFrameActionTemplate::CFrameActionTemplate( World& level ) 
-		:KeyFrameActionTemplateT< KeyFrameData >( gMaxPlayerNum )
+		:TKeyFrameActionTemplate< KeyFrameData >( gMaxPlayerNum )
 		,mLevel( level )
 	{
 

@@ -101,10 +101,10 @@ struct KeyFrameData
 
 
 template< class FrameData >
-class KeyFrameActionTemplateT : public FrameActionHelper< KeyFrameActionTemplateT< FrameData > >
+class TKeyFrameActionTemplate : public FrameActionHelper< TKeyFrameActionTemplate< FrameData > >
 {
 public:
-	KeyFrameActionTemplateT( size_t dataMaxSize )
+	TKeyFrameActionTemplate( size_t dataMaxSize )
 		:mFrameData( new FrameData[ dataMaxSize ] )
 		,mPortDataMap( new unsigned[ dataMaxSize ] )
 		,mDataMaxSize( dataMaxSize )
@@ -187,11 +187,11 @@ protected:
 
 
 template< class FrameData >
-class SVKeyFrameGeneratorT : public ServerFrameHelper< KeyFrameActionTemplateT<FrameData > >
+class TSVKeyFrameGenerator : public ServerFrameHelper< TKeyFrameActionTemplate<FrameData > >
 {
 public:
-	SVKeyFrameGeneratorT( size_t dataMaxSize )
-		:ServerFrameHelper< KeyFrameActionTemplateT<FrameData > >( dataMaxSize ){}
+	TSVKeyFrameGenerator( size_t dataMaxSize )
+		:ServerFrameHelper< TKeyFrameActionTemplate<FrameData > >( dataMaxSize ){}
 
 	void recvClientData( unsigned pID , DataSteamBuffer& buffer )
 	{
@@ -205,12 +205,12 @@ public:
 	}
 	void  reflashPlayer( IPlayerManager& playerManager )
 	{
-		KeyFrameActionTemplateT< FrameData >::setupPlayer( playerManager );
+		TKeyFrameActionTemplate< FrameData >::setupPlayer( playerManager );
 	}
 };
 
 template< class FrameData >
-class CLKeyFrameGeneratorT : public INetFrameGenerator
+class TCLKeyFrameGenerator : public INetFrameGenerator
 {
 public:
 	void onScanActionStart( bool bUpdateFrame )
@@ -236,8 +236,8 @@ public:
 };
 
 
-typedef KeyFrameActionTemplateT< KeyFrameData > KeyFrameActionTemplate;
-typedef SVKeyFrameGeneratorT< KeyFrameData >    SVKeyFrameGenerator;
-typedef CLKeyFrameGeneratorT< KeyFrameData >    CLKeyFrameGenerator;
+typedef TKeyFrameActionTemplate< KeyFrameData > KeyFrameActionTemplate;
+typedef TSVKeyFrameGenerator< KeyFrameData >    SVKeyFrameGenerator;
+typedef TCLKeyFrameGenerator< KeyFrameData >    CLKeyFrameGenerator;
 
 #endif // GameAction_h__

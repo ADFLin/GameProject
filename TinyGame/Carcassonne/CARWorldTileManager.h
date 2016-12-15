@@ -3,8 +3,11 @@
 
 #include "CARCommon.h"
 #include "CARLevelActor.h"
+#include "CARExpansion.h"
+#include "CARMapTile.h"
 
 #include <map>
+#include <unordered_map>
 #include <set>
 
 namespace CAR
@@ -106,7 +109,7 @@ namespace CAR
 	class WorldTileManager
 	{
 	public:
-		WorldTileManager();
+		WorldTileManager( TileSetManager& manager );
 		void       restart();
 
 		TilePiece const& getTile( TileId id , int idx = 0 ) const;
@@ -119,9 +122,13 @@ namespace CAR
 
 
 		bool        isLinkTilePosible( Vec2i const& pos , TileId id );
+	
+		auto        createWorldTileIterator() const { return MakeIterator(mMap); }
+		auto        createEmptyLinkPosIterator() const { return MakeIterator(mEmptyLinkPosSet); }
 
 	private:
 		bool        canPlaceTileList( TileId tileId , int numTile , Vec2i const& pos , int rotation , PutTileParam& param );
+		
 		MapTile*    placeTileInternal( TilePiece const& tile , Vec2i const& pos , int rotation , PutTileParam& param );
 
 
@@ -135,8 +142,10 @@ namespace CAR
 			MapTile* riverLink;
 		};
 		bool        canPlaceTileInternal( TilePiece const& tile , Vec2i const& pos , int rotation , PutTileParam& param , PlaceResult& result );
+		bool        canMergeHalflingTile(TilePiece const& tile, MapTile* halflingTile, PutTileParam& param);
 		bool        checkRiverLinkDirection( Vec2i const& pos , int dirLink , int dir );
 		void        incCheckCount();
+
 
 		struct VecCmp
 		{
@@ -145,16 +154,40 @@ namespace CAR
 				return ( v1.x < v2.x ) || ( v1.x == v2.x && v1.y < v2.y );
 			}
 		};
+		struct VecHasher
+		{
+			static inline uint32 HashCombine(uint32 A, uint32 C)
+			{
+				uint32 B = 0x9e3779b9;
+				A += B;
 
-	public:
-		typedef std::map< Vec2i , MapTile , VecCmp > WorldTileMap;
+				A -= B; A -= C; A ^= (C >> 13);
+				B -= C; B -= A; B ^= (A << 8);
+				C -= A; C -= B; C ^= (B >> 13);
+				A -= B; A -= C; A ^= (C >> 12);
+				B -= C; B -= A; B ^= (A << 16);
+				C -= A; C -= B; C ^= (B >> 5);
+				A -= B; A -= C; A ^= (C >> 3);
+				B -= C; B -= A; B ^= (A << 10);
+				C -= A; C -= B; C ^= (B >> 15);
 
+				return C;
+			}
+			size_t operator()( Vec2i const& v) const
+			{
+				return HashCombine(v.x, v.y);
+			}
+		};
+		typedef std::unordered_map< Vec2i , MapTile , VecHasher > WorldTileMap;
+		//typedef std::map< Vec2i , MapTile , VecCmp > WorldTileMap;
+
+		std::vector< MapTile* > mHalflingTiles;
 		WorldTileMap    mMap;
 		TileSetManager* mTileSetManager;
 		uint32          mCheckCount;
 		typedef std::set< Vec2i , VecCmp > PosSet;
 		PosSet          mEmptyLinkPosSet;
-		
+
 	};
 
 

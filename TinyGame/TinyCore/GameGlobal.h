@@ -25,7 +25,9 @@ float const PI = 3.141592653589793238462643383279f;
 #define DEG2RAD( deg ) float( deg * PI / 180.0f )
 #define RAD2DEG( rad ) float( rad * 180.0f / PI )
 
+#ifndef ARRAY_SIZE
 #define ARRAY_SIZE( ar ) ( sizeof(ar)/sizeof(ar[0]) )
+#endif
 
 #define HEX__(n) 0x##n##LU
 
@@ -98,12 +100,13 @@ public:
 	
 };
 
-class UnCopiable
+class Uncopiable
 {
 public:
-	UnCopiable(){}
+	Uncopiable(){}
 private:
-	UnCopiable( UnCopiable const& rhs ){}
+	Uncopiable( Uncopiable const& rhs ){}
+	Uncopiable& operator = ( Uncopiable const& rhs ){}
 };
 
 template< class T >

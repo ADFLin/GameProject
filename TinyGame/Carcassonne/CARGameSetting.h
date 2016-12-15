@@ -3,6 +3,7 @@
 
 #include <algorithm>
 #include "Flag.h"
+#include "CARParamValue.h"
 
 namespace CAR
 {
@@ -31,7 +32,7 @@ namespace CAR
 		eDragon,
 		eFariy,
 		eTower,
-		eAbbey,
+		
 		eWagon ,
 		eMayor,
 		eBarn,
@@ -42,7 +43,10 @@ namespace CAR
 		eBridge ,
 		eCastleToken ,
 
-		eGermanCastles ,
+		eHaveGermanCastleTile ,
+		eHaveAbbeyTile ,
+		eHaveRiverTile ,
+		eHaveHalflingTile ,
 
 		//////////////
 		eHardcore,
@@ -56,7 +60,7 @@ namespace CAR
 		TotalNum,
 	};
 
-	class GameSetting
+	class GameSetting : public GameParamCollection
 	{
 	public:
 		GameSetting();
@@ -73,20 +77,39 @@ namespace CAR
 			return ( getFollowerMask() & BIT( type ) ) != 0;
 		}
 
+		int getTotalFieldValueNum()
+		{
+			int result = 0;
+			for( auto info : mFieldInfos )
+			{
+				result += info.num;
+			}
+			return result;
+		}
 		int getFieldNum()
 		{
 			return mNumField;
 		}
 		int getFieldIndex( FieldType::Enum type )
 		{
-			return mFieldIndex[type];
+			return mFieldInfos[type].index;
 		}
 
-		int      mFarmScoreVersion;
-		int      mNumField;
-		int      mFieldIndex[FieldType::NUM];
+		int getFieldValueNum(FieldType::Enum type)
+		{
+			return mFieldInfos[type].num;
+		}
 
-		FlagBits< (unsigned)Rule::TotalNum > mRuleFlags;
+		struct FieldInfo
+		{
+			int index;
+			int num;
+		};
+		int        mFarmScoreVersion;
+		int        mNumField;
+		FieldInfo  mFieldInfos[FieldType::NUM];
+
+		FlagBits< (int)Rule::TotalNum > mRuleFlags;
 		unsigned mExpansionMask;
 	};
 

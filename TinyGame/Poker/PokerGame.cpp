@@ -17,6 +17,7 @@
 
 namespace Poker
 {
+	EXPORT_GAME(GameInstance)
 
 	GameInstance::GameInstance()
 	{
@@ -207,5 +208,3 @@ namespace Poker
 	}
 
 }//namespace Poker
-
-EXPORT_GAME( Poker::GameInstance )

@@ -23,11 +23,8 @@ namespace CAR
 	{
 		unsigned result = 0;
 		int idx = 0;
-		for(;;)
-		{
-			LevelActor* actor = iteratorActorMask( playerMask , idx );
-			if ( actor == nullptr )
-				break;
+		while ( LevelActor* actor = iteratorActorMask( playerMask , idx ) )
+		{ 
 			result |= BIT(actor->type);
 		}
 		return result;
@@ -75,11 +72,8 @@ namespace CAR
 	bool ActorContainer::havePlayerActorMask(unsigned playerMask , unsigned actorTypeMask )
 	{
 		int idx = 0;
-		for(;;)
+		while( LevelActor* actor = iteratorActorMask(playerMask, idx) )
 		{
-			LevelActor* actor = iteratorActorMask( playerMask , idx );
-			if ( actor == nullptr )
-				break;
 			if ( BIT( actor->type ) & actorTypeMask )
 				return true;
 		}

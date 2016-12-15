@@ -140,7 +140,7 @@ namespace Tetris
 
 	class GameWorld : public Level::EventListener
 		            , public IActionLanucher
-		            , public UnCopiable
+		            , public Uncopiable
 	{
 	public:
 		GameWorld( Mode* mode ){  init( mode ); }

@@ -71,7 +71,7 @@ namespace CAR
 		bool        testInRange( Vec2i const& min , Vec2i const& max );
 
 		virtual bool checkComplete(){ return false; }
-		virtual int  getActorPutInfo( int playerId , int posMeta , std::vector< ActorPosInfo >& outInfo ) = 0;
+		virtual int  getActorPutInfo( int playerId , int posMeta , MapTile& mapTile, std::vector< ActorPosInfo >& outInfo ) = 0;
 		virtual void generateRoadLinkFeatures( GroupSet& outFeatures ){ }
 		virtual bool updateForNeighborTile( MapTile& tile ){ return false; }
 		virtual void mergeData( FeatureBase& other , MapTile const& putData , int meta );
@@ -97,8 +97,8 @@ namespace CAR
 			to.insert( src.begin() , src.end() );
 		}
 
-		int getDefaultActorPutInfo( int playerId , ActorPos const& actorPos , unsigned actorMasks[] , std::vector< ActorPosInfo >& outInfo );
-		int getActorPutInfoInternal(int playerId , ActorPos const& actorPos , unsigned actorMasks[] , int numMask , std::vector< ActorPosInfo >& outInfo);
+		int getDefaultActorPutInfo( int playerId , ActorPos const& actorPos , MapTile& mapTile, unsigned actorMasks[] , std::vector< ActorPosInfo >& outInfo );
+		int getActorPutInfoInternal( int playerId , ActorPos const& actorPos , MapTile& mapTile, unsigned actorMasks[] , int numMask , std::vector< ActorPosInfo >& outInfo);
 
 		//bool useRule(RuleFunc::Enum ruleFunc)
 		//{
@@ -143,7 +143,7 @@ namespace CAR
 		RoadFeature();
 		virtual void mergeData( FeatureBase& other , MapTile const& putData , int meta ) override;
 		virtual void addNode( MapTile& mapData , unsigned dirMask , SideNode* linkNode ) override;
-		virtual int  getActorPutInfo( int playerId , int posMeta ,std::vector< ActorPosInfo >& outInfo ) override;
+		virtual int  getActorPutInfo( int playerId , int posMeta , MapTile& mapTile, std::vector< ActorPosInfo >& outInfo ) override;
 		virtual bool checkComplete() override;
 		virtual int  calcPlayerScore( int playerId );
 
@@ -168,7 +168,7 @@ namespace CAR
 
 		virtual void mergeData( FeatureBase& other , MapTile const& putData , int meta ) override;
 		virtual void addNode( MapTile& mapData , unsigned dirMask , SideNode* linkNode ) override;
-		virtual int  getActorPutInfo( int playerId , int posMeta ,std::vector< ActorPosInfo >& outInfo ) override;
+		virtual int  getActorPutInfo( int playerId , int posMeta , MapTile& mapTile, std::vector< ActorPosInfo >& outInfo ) override;
 		virtual bool checkComplete() override;
 		virtual int  calcPlayerScore( int playerId );
 
@@ -187,7 +187,7 @@ namespace CAR
 
 		void addNode( MapTile& mapData , unsigned idxMask , FarmNode* linkNode );
 		virtual void mergeData( FeatureBase& other , MapTile const& putData , int meta ) override;
-		virtual int  getActorPutInfo( int playerId , int posMeta ,std::vector< ActorPosInfo >& outInfo ) override;
+		virtual int  getActorPutInfo( int playerId , int posMeta , MapTile& mapTile, std::vector< ActorPosInfo >& outInfo ) override;
 		virtual bool checkComplete() override { return false; }
 		virtual int  calcScore( std::vector< FeatureScoreInfo >& scoreInfos );
 		virtual int  calcPlayerScore( int playerId );
@@ -209,7 +209,7 @@ namespace CAR
 		std::vector< MapTile* > neighborTiles;
 
 		virtual bool checkComplete(){ return neighborTiles.size() == 8; }
-		virtual int  getActorPutInfo( int playerId , int posMeta , std::vector< ActorPosInfo >& outInfo ) override;
+		virtual int  getActorPutInfo( int playerId , int posMeta , MapTile& mapTile, std::vector< ActorPosInfo >& outInfo ) override;
 		virtual void mergeData( FeatureBase& other , MapTile const& putData , int meta );
 		virtual int  calcScore( std::vector< FeatureScoreInfo >& scoreInfos );
 		virtual int  calcPlayerScore( int playerId );
@@ -229,7 +229,7 @@ namespace CAR
 		std::vector< MapTile* > neighborTiles;
 
 		virtual bool checkComplete(){ return neighborTiles.size() == 10; }
-		virtual int  getActorPutInfo( int playerId , int posMeta , std::vector< ActorPosInfo >& outInfo ) override;
+		virtual int  getActorPutInfo( int playerId , int posMeta , MapTile& mapTile, std::vector< ActorPosInfo >& outInfo ) override;
 		virtual void mergeData( FeatureBase& other , MapTile const& putData , int meta );
 		virtual int  calcScore( std::vector< FeatureScoreInfo >& scoreInfos );
 		virtual int  calcPlayerScore( int playerId );

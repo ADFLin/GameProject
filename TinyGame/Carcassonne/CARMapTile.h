@@ -6,8 +6,8 @@
 
 namespace CAR
 {
-
-
+	
+	int const IndexHalflingSide = 2;
 
 	class TilePiece
 	{
@@ -43,69 +43,56 @@ namespace CAR
 		unsigned getRoadLinkMask( int lDir ) const {  return sides[lDir].roadLinkDirMask;  }
 		unsigned getFarmLinkMask( int idx  ) const {  return farms[idx].farmLinkMask;  }
 
-		bool canRemoveFarm( int lDir ) const
-		{
-			return sides[lDir].linkType == SideType::eCity || 
-				   sides[lDir].linkType == SideType::eGermanCastle;
-		}
-
-		bool     isSideLinked( int lDirA , int lDirB ) const
-		{  return ( sides[lDirA].linkDirMask & BIT(lDirB ) ) != 0;  }
-		bool     canLinkCity( int lDir ) const
-		{  return sides[lDir].linkType == SideType::eCity;  }
-		bool     canLinkRiver( int lDir ) const
-		{  return sides[lDir].linkType == SideType::eRiver;  }
-		bool     canLinkRoad( int lDir ) const
-		{  return sides[lDir].linkType == SideType::eRoad;  }
+		bool     canRemoveFarm( int lDir ) const {  return CanRemoveFarm(sides[lDir].linkType);  }
+		bool     isSideLinked( int lDirA , int lDirB ) const {  return !!( sides[lDirA].linkDirMask & BIT(lDirB ) );  }
+		bool     canLinkCity(int lDir) const { return CanLinkCity(sides[lDir].linkType); }
+		bool     canLinkRiver( int lDir ) const { return CanLinkRiver(sides[lDir].linkType); }
+		bool     canLinkRoad( int lDir ) const { return CanLinkRoad(sides[lDir].linkType); }
 		bool     canLinkFarm( int lDir ) const {  return CanLinkFarm( sides[lDir].linkType );  }
-		bool     isSemiCircularCity( int lDir ) const
-		{
-			SideData const& sideData = sides[lDir];
-			assert( sideData.linkType == SideType::eCity );
-			return ( sideData.linkDirMask == FBit::Extract( sideData.linkDirMask ) ) && 
-				   ( ( sideData.contentFlag & SideContent::eNotSemiCircularCity ) == 0 );
-		}
-		bool  haveSideType( SideType type )
-		{
-			for( int i = 0 ; i < NumSide ; ++i )
-			{
-				if ( sides[i].linkType == type )
-					return true;
-			}
-			return false;
-		}
+		bool     isSemiCircularCity( int lDir ) const;
+		bool     isHalflingType() const {  return !!(contentFlag & TileContent::eHalfling);  }
+		bool     haveSideType( SideType type ) const;
+		bool     haveRiver() const { return haveSideType( SideType::eRiver ); }
 
-		bool  haveRiver(){ return haveSideType( SideType::eRiver ); }
+		static bool CanLink( SideType typeA , SideType typeB );
 
-		static bool CanLink( SideType typeA , SideType typeB )
-		{
-			if ( typeA == typeB )
-				return true;
-			unsigned const AbbeyLinkMask = BIT( SideType::eAbbey ) | BIT( SideType::eCity ) | BIT( SideType::eRoad ) | BIT( SideType::eField );
-			if ( typeA == SideType::eAbbey && ( AbbeyLinkMask & BIT(typeB)) != 0 )
-				return true;
-			if ( typeB == SideType::eAbbey && ( AbbeyLinkMask & BIT(typeA)) != 0 )
-				return true;
-			return false;
-		}
 		static bool CanLink( TilePiece const& tileA , int lDirA , TilePiece const& tileB , int lDirB )
 		{
 			return CanLink( tileA.sides[lDirA].linkType , tileB.sides[lDirB].linkType );
 		}
+
+		static bool CanLinkCity(SideType type)
+		{
+			return type == SideType::eCity;
+		}
+		static bool CanLinkRiver(SideType type)
+		{
+			return type == SideType::eRiver;
+		}
+		static bool CanLinkRoad(SideType type)
+		{
+			return type == SideType::eRoad;
+		}
 		static bool CanLinkFarm( SideType type )
 		{
 			unsigned const FarmLinkMask = BIT( SideType::eField ) | BIT( SideType::eRoad ) | BIT( SideType::eRiver ) | BIT( SideType::eGermanCastle );
-			return ( FarmLinkMask & BIT( type ) ) != 0;
+			return !!( FarmLinkMask & BIT( type ) );
 		}
+
+		static bool CanRemoveFarm(SideType type)
+		{
+			return !!(BIT(type) & (BIT(SideType::eCity) | BIT(SideType::eGermanCastle)));
+		}
+
 		static bool CanLinkBridge( SideType type )
 		{
-			return type == SideType::eField || type == SideType::eRoad;
+			return !!(BIT(type) & (BIT(SideType::eField) | BIT(SideType::eRoad)));
 		}
 
 		static int FarmSideDir( int idx ){ return idx / 2; }
-		static int DirToFramIndexFrist( int dir ){ return 2 * dir; }
+		static int DirToFarmIndexFrist( int dir ){ return 2 * dir; }
 
-		static int ToLocalFramIndex( int idx , int roatation )
+		static int ToLocalFarmIndex( int idx , int roatation )
 		{
 			return ( idx - 2 * roatation + NumFarm ) % NumFarm;
 		}
@@ -122,9 +109,11 @@ namespace CAR
 	{
 	public:
 		MapTile( TilePiece const& tile , int rotation );
-		MapTile();
 
 		TileId getId() const { return mTile->id;  }
+		bool   isHalflingType() const { return mTile->isHalflingType(); }
+
+		TilePiece::SideData const& getHalflingSideData() { assert(mTile->isHalflingType()); return mTile->sides[IndexHalflingSide]; }
 		void addActor( LevelActor& actor );
 		void removeActor(LevelActor& actor);
 
@@ -136,7 +125,8 @@ namespace CAR
 		unsigned getSideLinkMask( int dir ) const;
 		unsigned getRoadLinkMask( int dir ) const;
 		unsigned getFarmLinkMask( int idx ) const;
-		unsigned getCityLinkFarmMask( int idx ) const;
+
+		unsigned getCityLinkFarmMask(int idx) const;
 
 		int      getSideGroup( int dir ) const;
 		int      getFarmGroup( int idx ) const;
@@ -144,11 +134,16 @@ namespace CAR
 		unsigned getSideContnet( int dir ) const;
 		unsigned getTileContent() const;
 
-		unsigned calcRoadMaskLinkCenter() const;
+		unsigned calcSideRoadLinkMeskToCenter() const;
+
+		static unsigned LocalToWorldRoadLinkMask( unsigned mask , int rotation );
+		static unsigned LocalToWorldSideLinkMask( unsigned mask , int rotation );
+		static unsigned LocalToWorldFarmLinkMask( unsigned mask , int rotation );
 
 		void     addBridge( int dir );
-
+		void     margeHalflingTile(TilePiece const& tile);
 		void     updateSideLink( unsigned linkMask );
+		bool     isSemiCircularCity( int dir );
 
 		void    removeLinkMask( int dir )
 		{
@@ -207,8 +202,8 @@ namespace CAR
 			}
 			MapTile* getMapTile()
 			{
-				ptrdiff_t offset = offsetof( MapTile , farmNodes ) + index * sizeof( FarmNode );
-				return reinterpret_cast< MapTile* >( intptr_t( this ) - offset );
+				ptrdiff_t offset = offsetof(MapTile, farmNodes) + index * sizeof(FarmNode);
+				return reinterpret_cast<MapTile*>(intptr_t(this) - offset);
 			}
 		};
 
@@ -221,6 +216,8 @@ namespace CAR
 		uint8       bridgeMask;
 		void*       renderData;
 		bool        haveHill;
+		//HalflingTile
+		TileId      mergedTileId[2];
 
 		//////////
 		TilePiece const* mTile;

@@ -3,7 +3,6 @@
 
 #include "CARMapTile.h"
 #include "CARDebug.h"
-#include "CARExpansion.h"
 
 #include <algorithm>
 
@@ -31,8 +30,8 @@ namespace CAR
 		assert( ( bit & ( bit - 1 ) ) == 0 );
 		int result = 0;
 		if ( bit & 0xffff0000 ){ result += 16; bit >>= 16; }
-		if ( bit & 0xff00 ){ result += 8; bit >>= 8; }
-		if ( bit & 0xf0 ){ result += 4; bit >>= 4; }
+		if ( bit & 0x0000ff00 ){ result += 8; bit >>= 8; }
+		if ( bit & 0x000000f0 ){ result += 4; bit >>= 4; }
 		return result + gBitIndexMap[ bit ];
 	}
 
@@ -43,9 +42,9 @@ namespace CAR
 		assert((bit & (bit - 1)) == 0);
 		int result = 0;
 		if( bit & 0xffffffff00000000 ) { result += 32; bit >>= 32; }
-		if( bit & 0xffff0000 ) { result += 16; bit >>= 16; }
-		if( bit & 0xff00 ) { result += 8; bit >>= 8; }
-		if( bit & 0xf0 ) { result += 4; bit >>= 4; }
+		if( bit & 0x00000000ffff0000 ) { result += 16; bit >>= 16; }
+		if( bit & 0x000000000000ff00 ) { result += 8; bit >>= 8; }
+		if( bit & 0x00000000000000f0 ) { result += 4; bit >>= 4; }
 		return result + gBitIndexMap[bit];
 	}
 #endif
@@ -64,7 +63,8 @@ namespace CAR
 		return ( ( bits << offset ) | ( bits >> ( numBit - offset ) ) ) & mask;
 	}
 
-	WorldTileManager::WorldTileManager()
+	WorldTileManager::WorldTileManager(TileSetManager& manager)
+		:mTileSetManager(&manager)
 	{
 
 	}
@@ -105,8 +105,8 @@ namespace CAR
 					if ( param.checkRiverDirection && result.numRiverConnect == 1 )
 					{
 						TilePiece const& tile = getTile( tileId );
-
-						unsigned linkMask = FBit::RotateLeft( tile.sides[ FDir::ToLocal( result.dirRiverLink , rotation ) ].linkDirMask , rotation , 4 );
+						int dirRiverLinkLocal = FDir::ToLocal(result.dirRiverLink, rotation);
+						unsigned linkMask = MapTile::LocalToWorldSideLinkMask(tile.sides[dirRiverLinkLocal].linkDirMask, rotation);
 						linkMask &= ~BIT( result.dirRiverLink );
 						if ( linkMask && FBit::Extract( linkMask ) == linkMask )
 						{
@@ -122,8 +122,14 @@ namespace CAR
 			param.checkRiverConnect = false;
 			return canPlaceTileList( tileId , 2 , pos , rotation , param );
 		case TileType::eHalfling:
-			assert(0);
-			return false;
+			{
+				param.checkRiverConnect = false;
+
+				PlaceResult result;
+				if( canPlaceTileInternal(getTile(tileId), pos, rotation, param, result) == false )
+					return false;
+			}
+			return true;
 		}
 
 		assert(0);
@@ -132,9 +138,32 @@ namespace CAR
 
 	bool WorldTileManager::canPlaceTileInternal( TilePiece const& tile , Vec2i const& pos , int rotation , PutTileParam& param , PlaceResult& result  )
 	{
-		if ( findMapTile( pos ) != nullptr )
-			return false;
+		if( tile.isHalflingType() )
+		{
+			assert(tile.sides[IndexHalflingSide].linkType != SideType::eAbbey &&
+				   tile.sides[IndexHalflingSide].linkType != SideType::eEmptySide);
 
+			MapTile* mapTile = findMapTile(pos);
+			if( mapTile )
+			{
+				if( mapTile->isHalflingType() == false )
+					return false;
+				if( FDir::Inverse(rotation) != mapTile->rotation )
+					return false;
+				if( !TilePiece::CanLink(mapTile->getHalflingSideData().linkType, tile.sides[IndexHalflingSide].linkType) )
+					return false;
+			}
+			else
+			{
+				param.usageBridge = false;
+			}
+		}
+		else
+		{
+			if( findMapTile(pos) != nullptr )
+				return false;
+		}
+		
 		int linkCount = 0;
 		bool checkRiverConnect = false;
 		int  numRiverConnect = 0;
@@ -206,7 +235,7 @@ namespace CAR
 		return true;
 	}
 
-	bool WorldTileManager::canPlaceTileList( TileId tileId , int numTile , Vec2i const& pos , int rotation , PutTileParam& param )
+	bool WorldTileManager::canPlaceTileList(TileId tileId, int numTile, Vec2i const& pos, int rotation, PutTileParam& param)
 	{
 		assert( param.checkRiverConnect == false );
 		assert( param.idxTileUseBridge == -1 );
@@ -284,9 +313,8 @@ namespace CAR
 			}
 			return 2;
 		case TileType::eHalfling:
-			//TODO
-			assert(0);
-			return 0;
+			outMapTile[0] = placeTileInternal(getTile(tileId), pos, rotation, param);
+			return 1;
 		}
 		assert(0);
 		return 0;
@@ -314,36 +342,39 @@ namespace CAR
 			mapData.addBridge( param.dirNeedUseBridge );
 		}
 
-		for( int i = 0 ; i < FDir::TotalNum ; ++i )
+		bool bHalflingTile = tile.isHalflingType();
+		int sideNum = (bHalflingTile) ? FDir::TotalNum/2 : FDir::TotalNum;
+		for( int i = 0 ; i < sideNum ; ++i )
 		{
 			Vec2i posLink = FDir::LinkPos( pos , i );
 			
-			MapTile* dataCheck = findMapTile( posLink );
+			MapTile* mapTileCheck = findMapTile( posLink );
 			int lDir = FDir::ToLocal( i , rotation );
 
-			if ( dataCheck != nullptr )
+			if ( mapTileCheck != nullptr )
 			{
 				//link node
-				assert( TilePiece::CanLink( tile , lDir , *dataCheck->mTile , 
-					    FDir::ToLocal( FDir::Inverse( i ) , dataCheck->rotation ) ) );
+				assert( TilePiece::CanLink( tile , lDir , *mapTileCheck->mTile , 
+					    FDir::ToLocal( FDir::Inverse( i ) , mapTileCheck->rotation ) ) );
 
-				mapData.connectSide( i , *dataCheck );
-
-				//link farm
-				if ( tile.canLinkFarm( lDir ) )
+				if ( tile.getLinkType(lDir) != SideType::eEmptySide )
 				{
-					int idx = TilePiece::DirToFramIndexFrist( i );
-					mapData.connectFarm( idx , *dataCheck );
-					mapData.connectFarm( idx + 1 , *dataCheck );
-				}
+					mapData.connectSide(i, *mapTileCheck);
 
+					//link farm
+					if( tile.canLinkFarm(lDir) )
+					{
+						int idx = TilePiece::DirToFarmIndexFrist(i);
+						mapData.connectFarm(idx, *mapTileCheck);
+						mapData.connectFarm(idx + 1, *mapTileCheck);
+					}
+				}
 			}
 			else
 			{
 				mEmptyLinkPosSet.insert( posLink );
 			}
 		}
-
 
 		return &mapData;
 	}
@@ -378,7 +409,6 @@ namespace CAR
 			}
 			break;
 		case TileType::eDouble:
-			
 			for( PosSet::iterator iter = mEmptyLinkPosSet.begin() , itEnd = mEmptyLinkPosSet.end();
 				iter != itEnd ; ++iter )
 			{
@@ -396,6 +426,27 @@ namespace CAR
 				}
 			}
 			MakeValueUnique( outPos ,idxStart );
+			break;
+		case TileType::eHalfling:
+			for( PosSet::iterator iter = mEmptyLinkPosSet.begin(), itEnd = mEmptyLinkPosSet.end();
+				iter != itEnd; ++iter )
+			{
+				Vec2i const& pos = *iter;
+				for( int i = 0; i < FDir::TotalNum; ++i )
+				{
+					if( canPlaceTile(tileId, pos, i, param) )
+					{
+						outPos.push_back(pos);
+					}
+				}
+			}
+			for( auto mapTile : mHalflingTiles )
+			{
+				if( canPlaceTile(tileId, mapTile->pos, FDir::Inverse( mapTile->rotation ) , param) )
+				{
+					outPos.push_back(mapTile->pos);
+				}
+			}
 			break;
 		default:
 			assert(0);
@@ -442,9 +493,16 @@ namespace CAR
 					return true;
 			}
 			return false;
-		case TileType::eHalfling:
+		
 		case TileType::eSimple:
 			return isEmptyLinkPos( pos );
+		case TileType::eHalfling:
+			{
+				MapTile* mapTile = findMapTile(pos);
+				if( mapTile && mapTile->isHalflingType() )
+					return true;
+			}
+			return isEmptyLinkPos(pos);
 		}
 
 		assert(0);
@@ -487,11 +545,15 @@ namespace CAR
 			TileSet& tileSet = mTileMap[i];
 			switch( tileSet.type )
 			{
+			case TileType::eHalfling:
+			case TileType::eSimple:
+				delete tileSet.tiles;
+				break;
 			case TileType::eDouble: 
 				delete [] tileSet.tiles;
 				break;
 			default:
-				delete tileSet.tiles;
+				assert(0);
 			}
 		}
 
@@ -585,7 +647,8 @@ namespace CAR
 
 	void TileSetManager::setupTile(TilePiece& tile , TileDefine const& tileDef)
 	{
-		for( int i = 0 ; i < TilePiece::NumSide ; ++i )
+		bool isHalflingType = !!(tileDef.content & TileContent::eHalfling );
+		for( int i = 0; i < TilePiece::NumSide; ++i )
 		{
 			tile.sides[i].linkType = (SideType)tileDef.linkType[i];
 			tile.sides[i].contentFlag = tileDef.sideContent[i];
@@ -595,83 +658,116 @@ namespace CAR
 
 		tile.contentFlag = tileDef.content;
 
-		for( int i = 0 ; i < ARRAY_SIZE( tileDef.sideLink ) ; ++i )
+		for( int i = 0; i < ARRAY_SIZE(tileDef.sideLink); ++i )
 		{
-			if ( tileDef.sideLink[i] == 0 )
+			if( tileDef.sideLink[i] == 0 )
 				break;
-			assert( ( tileDef.sideLink[i] & ~0xf ) == 0 );
-
+			assert((tileDef.sideLink[i] & ~0xf) == 0);
 			unsigned linkMask = tileDef.sideLink[i];
-			
-			int idx;
 #if _DEBUG
 			int idxStart = -1;
 #endif
-			while ( FBit::MaskIterator< 8 >( linkMask , idx ) )
+			int idx;
+			while( FBit::MaskIterator< 8 >(linkMask, idx) )
 			{
 #if _DEBUG
-				if ( idxStart == -1 ){  idxStart = idx;  }
-				assert( TilePiece::CanLink( tile.sides[idx].linkType , tile.sides[idxStart].linkType ) );
+				if( idxStart == -1 ) { idxStart = idx; }
+				assert(TilePiece::CanLink(tile.sides[idx].linkType, tile.sides[idxStart].linkType));
 #endif
 				tile.sides[idx].linkDirMask = tileDef.sideLink[i];
 			}
 		}
 
-		for( int i = 0 ; i < ARRAY_SIZE( tileDef.roadLink ) ; ++i )
+		for( int i = 0; i < ARRAY_SIZE(tileDef.roadLink); ++i )
 		{
-			if ( tileDef.roadLink[i] == 0 )
+			if( tileDef.roadLink[i] == 0 )
 				break;
 
 			unsigned linkMask = tileDef.roadLink[i] & ~TilePiece::CenterMask;
 			int idx;
-			while ( FBit::MaskIterator< 8 >( linkMask , idx ) )
+			while( FBit::MaskIterator< 8 >(linkMask, idx) )
 			{
 				tile.sides[idx].roadLinkDirMask |= tileDef.roadLink[i];
 			}
 		}
 
-		unsigned noFramIndexMask = 0;
-		for( int i = 0 ; i < FDir::TotalNum ; ++i )
+		int numSide;
+		int numFarm;
+		unsigned farmLinkRe;
+		if( isHalflingType )
 		{
-			if ( tile.canRemoveFarm(i) )
+			for( int i = 0; i < TilePiece::NumSide / 2; ++i )
 			{
-				int idx = TilePiece::DirToFramIndexFrist( i );
-				noFramIndexMask |= BIT(idx)|BIT(idx+1);
+				tile.sides[i].linkDirMask &= ~BIT(IndexHalflingSide);
+				tile.sides[i].roadLinkDirMask &= ~BIT(IndexHalflingSide);
+			}
+
+			numSide = TilePiece::NumSide / 2 + 1;
+			numFarm = TilePiece::NumFarm / 2 + 2;
+			farmLinkRe = BIT(6) - 1;
+		}
+		else
+		{
+			numSide = TilePiece::NumSide;
+			numFarm = TilePiece::NumFarm;
+			farmLinkRe = TilePiece::AllFarmMask;
+		}
+
+		unsigned noFarmIndexMask = 0;
+		for( int i = 0; i < numSide; ++i )
+		{
+			if( tile.canRemoveFarm(i) )
+			{
+				int idx = TilePiece::DirToFarmIndexFrist(i);
+				noFarmIndexMask |= BIT(idx) | BIT(idx + 1);
 			}
 		}
-		noFramIndexMask &= ~tileDef.centerFarmMask;
 
-		for( int i = 0 ; i < TilePiece::NumFarm ; ++i )
+		noFarmIndexMask &= ~tileDef.centerFarmMask;
+		if( isHalflingType )
+			noFarmIndexMask |= ( BIT(6) | BIT(7) );
+
+
+		for( int i = 0; i < numFarm; ++i )
 		{
 			tile.farms[i].sideLinkMask = 0;
-			if ( noFramIndexMask & BIT(i) )
+			if( noFarmIndexMask & BIT(i) )
 				tile.farms[i].farmLinkMask = 0;
 			else
 				tile.farms[i].farmLinkMask = BIT(i);
 		}
 
-		unsigned farmLinkRe = TilePiece::AllFarmMask;
-		for( int i = 0 ; i < ARRAY_SIZE( tileDef.farmLink ) ; ++i )
+		for( int i = 0; i < ARRAY_SIZE(tileDef.farmLink); ++i )
 		{
-			if ( tileDef.farmLink[i] == 0 )
+			if( tileDef.farmLink[i] == 0 )
 				break;
 
 			unsigned usageFarmLink = tileDef.farmLink[i];
-			if ( usageFarmLink == 0xff )
+			if( usageFarmLink == 0xff )
 			{
 				usageFarmLink = farmLinkRe;
 			}
 			farmLinkRe &= ~tileDef.farmLink[i];
 
-			unsigned linkMask = usageFarmLink & ~noFramIndexMask;
-			unsigned farmSideLink = calcFarmSideLinkMask( usageFarmLink );
+			unsigned linkMask = usageFarmLink & ~noFarmIndexMask;
+			unsigned farmSideLink = calcFarmSideLinkMask(usageFarmLink);
 			unsigned mask = linkMask;
 			int idx;
-			while ( FBit::MaskIterator< TilePiece::NumFarm >( mask , idx ) )
+			while( FBit::MaskIterator< TilePiece::NumFarm >(mask, idx) )
 			{
 				tile.farms[idx].farmLinkMask = linkMask;
 				tile.farms[idx].sideLinkMask = farmSideLink;
 			}
+		}
+
+		if( isHalflingType )
+		{
+			for( int i = 0; i < TilePiece::NumFarm / 2; ++i )
+			{
+				tile.farms[i].farmLinkMask &= ~(BIT(4) | BIT(5));
+				tile.farms[i].sideLinkMask &= ~BIT(IndexHalflingSide);
+			}
+
 		}
 	}
 

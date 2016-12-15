@@ -16,7 +16,7 @@ namespace Private
 	class FlagBitsMulti
 	{
 		static int const TypeBitNum = sizeof( T ) * 8;
-		static int const StorageSize = ( BitNum / TypeBitNum ) + ( BitNum % TypeBitNum ) ? 1 : 0  ;
+		static int const StorageSize = (BitNum - 1 ) / TypeBitNum + 1;
 	public:
 		void clear()
 		{

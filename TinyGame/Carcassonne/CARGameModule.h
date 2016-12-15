@@ -64,7 +64,7 @@ namespace CAR
 
 		void   setupSetting( GameSetting& setting );
 		void   restart( bool bInit );
-		WorldTileManager& getLevel(){ return mLevel; }
+		WorldTileManager& getWorld(){ return mWorld; }
 		void   runLogic( IGameInput& input );
 
 		bool   buildBridge( Vec2i const& pos , int dir );
@@ -75,7 +75,7 @@ namespace CAR
 
 		
 		void   loadSetting( bool bInit );
-		void   calcPlayerDeployActorPos(PlayerBase& player , MapTile& mapTile , unsigned actorMask , bool bUsageMagicPortal );
+		void   calcPlayerDeployActorPos(PlayerBase& player, MapTile* deplyMapTiles[], int numDeployTile, unsigned actorMask, bool bUsageMagicPortal);
 		int    getRemainingTileNum();
 		TileId drawPlayTile();
 
@@ -95,9 +95,9 @@ namespace CAR
 		};
 
 		TurnResult resolvePlayerTurn( IGameInput& input , PlayerBase* curTrunPlayer );
-		TurnResult resolveDeployActor( IGameInput& input , PlayerBase* curTrunPlayer, MapTile* deployMapTile, unsigned actorMask , bool haveUsePortal , bool& haveDone );
-		TurnResult resolveMoveFairyToNextFollower( IGameInput &input, PlayerBase* curTrunPlayer , bool& haveDone );
-		TurnResult resolvePlaceTile(IGameInput& input , PlayerBase* curTrunPlayer , MapTile* placeMapTile[] , int& numMapTile );
+		TurnResult resolveDeployActor(IGameInput& input, PlayerBase* curTrunPlayer, MapTile* deployMapTiles[], int numDeployTile, unsigned actorMask, bool haveUsePortal, bool& haveDone);
+		TurnResult resolveMoveFairyToNextFollower(IGameInput &input, PlayerBase* curTrunPlayer, bool& haveDone);
+		TurnResult resolvePlaceTile(IGameInput& input , PlayerBase* curTrunPlayer , MapTile* placeMapTiles[] , int& numMapTile );
 		TurnResult resolvePortalUse( IGameInput& input, PlayerBase* curTrunPlayer, MapTile*& deployMapTile, bool& haveUsePortal);
 		TurnResult resolveExpendShepherdFarm( IGameInput& input , PlayerBase* curTrunPlayer , FeatureBase* feature );
 		TurnResult resolveCastleComplete( IGameInput& input );
@@ -139,8 +139,6 @@ namespace CAR
 
 
 		PlayerBase* getTurnPlayer(){ return mPlayerOrders[ mIdxPlayerTrun ]; }
-
-		void  initFeatureScoreInfo(std::vector< FeatureScoreInfo > &scoreInfos);
 	
 		void  returnActorToPlayer( LevelActor* actor );
 		void  moveActor( LevelActor* actor , ActorPos const& pos , MapTile* mapTile );
@@ -162,13 +160,13 @@ namespace CAR
 
 
 		FarmFeature*  updateFarm( MapTile& mapTile , unsigned idxLinkMask );
-		FeatureBase*  updateBasicSideFeature( MapTile& mapTile , unsigned dirLinkMask , SideType linkType );
-		SideFeature*  mergeHalfSeparateBasicSideFeature( MapTile& mapTile , int dir , FeatureBase* featureMerged[] , int& numMerged );
+		FeatureBase*  updateBasicSideFeature( MapTile& mapTile, unsigned dirLinkMask, SideType linkType );
+		SideFeature*  mergeHalfSeparateBasicSideFeature(MapTile& mapTile, int dir, FeatureBase* featureMerged[], int& numMerged);
 
 		FeatureBase*  getFeature( int group );
 		template< class T >
 		T*         createFeatureT();
-		void      destroyFeature( FeatureBase* build );
+		void       destroyFeature( FeatureBase* build );
 
 		std::vector< FeatureBase* > mFeatureMap;
 		int mIndexCacheBuild;
@@ -189,7 +187,7 @@ namespace CAR
 		TileSetManager     mTileSetManager;
 		GameSetting*       mSetting;
 		GameRandom         mRandom;
-		WorldTileManager              mLevel;
+		WorldTileManager   mWorld;
 		
 		IGameEventListener* mListener;
 		bool     mDebug;
@@ -201,7 +199,9 @@ namespace CAR
 			int score;
 		};
 
+		PlayerBase* mCurTurnPlayer;
 		int    mNumTrun;
+		bool   mbNeedShutdown;
 		bool   mIsRunning;
 		bool   mIsStartGame;
 		TileId mUseTileId;

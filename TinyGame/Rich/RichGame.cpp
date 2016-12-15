@@ -3,11 +3,11 @@
 
 #include "RichStage.h"
 
-EXPORT_GAME( Rich::GamePackage )
-
 namespace Rich
 {
-	StageBase* GamePackage::createStage( unsigned id )
+	EXPORT_GAME(GameInstance)
+
+	StageBase* GameInstance::createStage( unsigned id )
 	{
 		switch( id )
 		{
@@ -17,7 +17,7 @@ namespace Rich
 		return nullptr;
 	}
 
-	void GamePackage::beginPlay( StageModeType type, StageManager& manger )
+	void GameInstance::beginPlay( StageModeType type, StageManager& manger )
 	{
 		IGameInstance::beginPlay( type , manger );
 

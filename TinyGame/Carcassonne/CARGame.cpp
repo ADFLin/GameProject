@@ -15,6 +15,7 @@
 
 namespace CAR
 {
+	EXPORT_GAME(GameInstance)
 
 	GameInstance::GameInstance()
 	{
@@ -173,4 +174,3 @@ namespace CAR
 
 }//namespace CAR
 
-EXPORT_GAME( CAR::GameInstance )

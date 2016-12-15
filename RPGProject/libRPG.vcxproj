@@ -78,7 +78,7 @@
       <AdditionalOptions>/MP %(AdditionalOptions)</AdditionalOptions>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <AdditionalIncludeDirectories>libRPG/;.;../CFlyMain;../libEngine;../OtherLib/bullet/src;../OtherLib/Recast/Detour/Include;../OtherLib/boost;../OtherLib/Dx9/Include;../OtherLib/;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>_SECURE_SCL=0;NDEBUG;_LIB;WIN32;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_SECURE_SCL=0;NDEBUG;_LIB;WIN32;CORE_SHARE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>ProjectPCH.h</PrecompiledHeaderFile>

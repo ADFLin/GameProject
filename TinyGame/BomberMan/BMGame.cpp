@@ -8,10 +8,10 @@
 #include "GameRoomUI.h"
 #include "GameSettingPanel.h"
 
-EXPORT_GAME( BomberMan::GameInstance )
-
 namespace BomberMan
 {
+	EXPORT_GAME(GameInstance)
+
 	StageBase* GameInstance::createStage( unsigned id )
 	{
 		switch( id )

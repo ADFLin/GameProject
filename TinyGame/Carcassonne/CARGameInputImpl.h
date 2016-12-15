@@ -69,13 +69,13 @@ namespace CAR
 
 	class CGameInput : public IGameInput
 	{
-		typedef boost::coroutines::asymmetric_coroutine< void >::pull_type ImplType;
+		typedef boost::coroutines::asymmetric_coroutine< void >::pull_type ExecType;
 		typedef boost::coroutines::asymmetric_coroutine< void >::push_type YeildType;
 
 	public:
 		CGameInput();
 
-		void run( GameModule& module );
+		void runLogic( GameModule& module );
 		void setDataTransfer( IDataTransfer* transfer );
 
 		void reset();
@@ -116,7 +116,7 @@ namespace CAR
 	private:
 
 #define REQUEST_ACTION( FUN , DATA , DATA_ID )\
-	virtual void FUN( DATA& data ){  requestActionImpl( DATA_ID , data ); }
+	virtual void FUN( DATA& data ) override {  requestActionImpl( DATA_ID , data ); }
 
 		REQUEST_ACTION( requestPlaceTile , GamePlaceTileData , ACTION_PLACE_TILE );
 		REQUEST_ACTION( requestDeployActor , GameDeployActorData , ACTION_DEPLOY_ACTOR );
@@ -147,7 +147,7 @@ namespace CAR
 		//Networking
 		IDataTransfer*   mDataTransfer;
 		//Replay
-		DataSteamBuffer mRecordAction;
+		DataSteamBuffer  mRecordAction;
 		bool             mbReplayMode;
 
 		bool             mbWaitReply;
@@ -155,7 +155,7 @@ namespace CAR
 		GameModule*      mModule;
 		PlayerAction     mAction;
 		GameActionData*  mActionData;
-		ImplType         mImpl;
+		ExecType         mExec;
 		YeildType*       mYeild;
 	};
 

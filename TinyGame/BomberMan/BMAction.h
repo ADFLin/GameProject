@@ -20,7 +20,7 @@ namespace BomberMan
 
 	void evalPlayerAction( Player& player , ActionTrigger& trigger );
 
-	class CFrameActionTemplate : public KeyFrameActionTemplateT< KeyFrameData >
+	class CFrameActionTemplate : public TKeyFrameActionTemplate< KeyFrameData >
 	{
 	public:
 		static unsigned const LastVersion = VERSION(0,0,1);

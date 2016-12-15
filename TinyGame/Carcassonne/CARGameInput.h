@@ -13,14 +13,12 @@ namespace CAR
 		GameActionData()
 		{
 			playerId = -1;
-			resultExitGame = false;
 			resultSkipAction = false;
 		}
 
 		template< class T >
 		T* cast(){ return static_cast< T* >( this ); }
 		int  playerId;
-		bool resultExitGame;
 		bool resultSkipAction;
 	};
 
@@ -35,14 +33,18 @@ namespace CAR
 
 	struct GameDeployActorData : public GameActionData
 	{
-		MapTile*  mapTile;
 		ActorType resultType;
 		int       resultIndex;
 	};
 
+	enum ActionOptionGroup
+	{
+		ACTOPT_GROUP_DRAW_TILE ,
+
+	};
 	enum AcionOption
 	{
-		//
+		//ACTOPT_GROUP_DRAW_TILE
 		ACTOPT_TILE_USE_RANDOM_TILE ,
 		ACTOPT_TILE_USE_ABBEY ,
 		ACTOPT_TILE_USE_HALFLING_TILE ,
@@ -54,6 +56,7 @@ namespace CAR
 
 	struct GameSelectActionOptionData : public GameActionData
 	{
+		ActionOptionGroup group;
 		std::vector< AcionOption > options;
 		unsigned resultIndex;
 	};

@@ -45,9 +45,10 @@ namespace CAR
 		int  modifyActorValue( ActorType type , int value = 1 )
 		{  return modifyFieldValue( FieldType::Enum( FieldType::eActorStart + type ) , value ); }
 
-		int getFieldValue( FieldType::Enum type );
-		void setFieldValue( FieldType::Enum type , int value );
-		int modifyFieldValue( FieldType::Enum type , int value = 1 );
+		int  getFieldValue( FieldType::Enum type , int index = 0 );
+		void setFieldArrayValues(FieldType::Enum type, int* values, int num);
+		void setFieldValue(FieldType::Enum type, int value , int index = 0 );
+		int  modifyFieldValue( FieldType::Enum type , int value = 1 );
 
 		static int const MaxAcotrSlotNum = 10;
 

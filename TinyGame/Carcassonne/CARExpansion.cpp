@@ -28,7 +28,7 @@ namespace CAR
 			gameSetting.addRule(Rule::eTower);
 			break;
 		case EXP_ABBEY_AND_MAYOR:
-			gameSetting.addRule(Rule::eAbbey);
+			gameSetting.addRule(Rule::eHaveAbbeyTile);
 			gameSetting.addRule(Rule::eMayor);
 			gameSetting.addRule(Rule::eBarn);
 			gameSetting.addRule(Rule::eWagon);
@@ -46,7 +46,7 @@ namespace CAR
 			gameSetting.addRule(Rule::eUseHill);
 			break;
 		case EXP_CASTLES:
-			gameSetting.addRule(Rule::eGermanCastles);
+			gameSetting.addRule(Rule::eHaveGermanCastleTile);
 			break;
 		case EXP_PHANTOM:
 			break;
@@ -68,6 +68,7 @@ namespace CAR
 #define LS SideType::eRiver
 #define LA SideType::eAbbey
 #define LG SideType::eGermanCastle
+#define LE SideType::eEmptySide
 
 #define SPE SideContent::ePennant
 #define SIN SideContent::eInn
@@ -86,6 +87,7 @@ namespace CAR
 #define TTF TileContent::eTowerFoundation
 #define TBZ TileContent::eBazaar
 #define TVI TileContent::eVineyard
+#define THL TileContent::eHalfling
 
 #define BIT2( A , B )     ( BIT(A)|BIT(B) )
 #define BIT3( A , B , C ) ( BIT(A)|BIT(B)|BIT(C) )
@@ -276,7 +278,7 @@ namespace CAR
 /*08*/ 	{ 1, { LR,LC,LR,LC }, SL22(0,2,1,3), SL_NONE      , 0, { 0 ,SPE, 0 , 0 }, 0, { BIT2(7,0) , BIT2(1,2) , FL_RE } , 0 } ,
 /*09*/ 	{ 1, { LR,LC,LF,LR }, SL2(0,3)     , SL_NONE      , 0, { 0 , 0 , 0 , 0 }, 0, { BIT2(7,0) , BIT2(1,2) , FL_RE } , 0 } ,
 /*10*/ 	{ 1, { LF,LF,LR,LF }, SL3(0,1,3)   , SL2(1,2)     , 0, { 0 , 0 , 0 , 0 }, 0, { FL_RE } , 0 } ,
-/*11*/ 	{ 1, { LR,LF,LR,LR }, SL3(0,2,3)   , SL_NONE      , 0,{ 0 , 0 , 0 , 0 }, 0, { BIT2(5,6) , BIT2(7,0) , FL_RE } , 0 } ,
+/*11*/ 	{ 1, { LR,LF,LR,LR }, SL3(0,2,3)   , SL_NONE      , 0, { 0 , 0 , 0 , 0 }, 0, { BIT2(5,6) , BIT2(7,0) , FL_RE } , 0 } ,
 /*12*/ 	{ 1, { LR,LR,LR,LR }, SL_NONE      , SL_ALL_C     ,TCL,{ 0 , 0 , 0 , 0 }, 0, { BIT2(1,2) , BIT2(3,4) , BIT2(5,6) , BIT2(7,0) } , 0 } ,
 	};
 
@@ -326,6 +328,16 @@ namespace CAR
 /*--*/ 	{ 1, { LF,LC,LG,LR }, SL_NONE      , SL2(2,3)     , 0, { 0 , 0 , 0 , 0 }, 0, { BIT2(5,6),FL_RE } , TILE_GERMAN_CASTLE_TAG } ,
 	};
 
+	static TileDefine DataHalflings1[] =
+	{
+// numPiece     linkType      sideLink       roadLink   content   sidecontent centerFarmMask farmLink tag
+/*00*/  { 1, { LF,LR,LF,LE }, SL2(0,2)     , SL_NONE      , THL, { 0 , 0 , 0 , 0 }, 0, { FL_RE } , TILE_HALFLING_TAG } ,
+/*01*/  { 1, { LR,LR,LF,LE }, SL_NONE      , SL_NONE      , THL, { 0 , 0 , 0 , 0 }, 0, { FL_RE } , TILE_HALFLING_TAG } ,
+/*02*/  { 1, { LR,LR,LF,LE }, SL2(0,1)     , SL_NONE      , THL, { 0 , 0 , 0 , 0 }, 0, { BIT2(1,2),FL_RE } , TILE_HALFLING_TAG } ,
+/*03*/  { 1, { LF,LF,LF,LE }, SL3(0,1,2)   , SL_NONE      , THL|TCL, { 0 , 0 , 0 , 0 }, 0, { FL_RE } , TILE_HALFLING_TAG } ,
+/*04*/  { 1, { LC,LR,LF,LE }, SL_NONE      , SL_NONE      , THL, { 0 , 0 , 0 , 0 }, 0, { FL_RE } , TILE_HALFLING_TAG } ,
+	};
+
 	static TileDefine DataTest[] =
 	{
 // numPiece     linkType      sideLink       roadLink   content   sidecontent centerFarmMask farmLink tag
@@ -349,12 +361,11 @@ namespace CAR
 		EXPDATA(EXP_HILLS_AND_SHEEP , DataHillsSheep)
 
 		EXPDATA(EXP_CASTLES , DataCastle)
+		EXPDATA(EXP_HALFLINGS_I , DataHalflings1 )
 
 		EXPDATA(EXP_TEST , DataTest)
 #undef EXPDATA
-	{
-		EXP_NULL , 0 , 0
-	}
+		{  EXP_NULL , 0 , 0  }
 	};
 
 #undef LF 
@@ -384,4 +395,4 @@ namespace CAR
 
 
 
-}
+}//namespace CAR

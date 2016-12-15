@@ -202,4 +202,7 @@
       <Filter>Common</Filter>
     </ClCompile>
   </ItemGroup>
+  <ItemGroup>
+    <None Include="TinyCore\StdUtility" />
+  </ItemGroup>
 </Project>

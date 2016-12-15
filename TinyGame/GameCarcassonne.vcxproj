@@ -52,7 +52,7 @@
     <ClCompile>
       <Optimization>Disabled</Optimization>
       <AdditionalIncludeDirectories>.;TinyCore;../libEngine;../OtherLib;../Game;../OtherLib/boost;../CFlyMain;../OtherLib/Dx9/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>WIN32;_WINDOWS;DEBUG;TG_DLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;_WINDOWS;DEBUG;TG_DLL;CORE_SHARE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MinimalRebuild>false</MinimalRebuild>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
@@ -80,7 +80,7 @@
       <Optimization>MaxSpeed</Optimization>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <AdditionalIncludeDirectories>.;TinyCore;../libEngine;../OtherLib;../Game;../OtherLib/boost;../CFlyMain;../OtherLib/Dx9/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>_SECURE_SCL=0;WIN32;_WINDOWS;NDEBUG;TG_DLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_SECURE_SCL=0;WIN32;_WINDOWS;NDEBUG;TG_DLL;CORE_SHARE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <StringPooling>true</StringPooling>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <FunctionLevelLinking>true</FunctionLevelLinking>
@@ -139,6 +139,7 @@
     <ClInclude Include="Carcassonne\CARStage.h" />
     <ClInclude Include="Carcassonne\CARWorldTileManager.h" />
     <ClInclude Include="Carcassonne\CAR_PCH.h" />
+    <ClInclude Include="Carcassonne\StdUtility.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Carcassonne\S-CAR_v7.4.pdf" />
@@ -146,7 +147,6 @@
   <ItemGroup>
     <ProjectReference Include="..\CFlyMain\CFlyMain.vcxproj">
       <Project>{ce65a4f4-d290-4e05-b119-7d6cf538e05d}</Project>
-      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
     </ProjectReference>
     <ProjectReference Include="..\libEngine\libEngine.vcxproj">
       <Project>{c1b32c2b-9a40-4874-869f-fcc57bb1d93f}</Project>
@@ -158,7 +158,6 @@
     </ProjectReference>
     <ProjectReference Include="TinyShare.vcxproj">
       <Project>{f3b972df-7aed-4d2e-99af-5ad3bc736f61}</Project>
-      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

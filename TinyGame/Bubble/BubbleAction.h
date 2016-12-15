@@ -23,9 +23,9 @@ namespace Bubble
 		}
 	};
 
-	class CFrameActionTemplate : public KeyFrameActionTemplateT< BuFrameData >
+	class CFrameActionTemplate : public TKeyFrameActionTemplate< BuFrameData >
 	{
-		typedef KeyFrameActionTemplateT< BuFrameData > BaseClass;
+		typedef TKeyFrameActionTemplate< BuFrameData > BaseClass;
 	public:
 		CFrameActionTemplate( PlayerDataManager& manager );
 		static unsigned const LastVersion = VERSION( 0,0,1 );
@@ -50,17 +50,17 @@ namespace Bubble
 		PlayerDataManager* mManager;
 	};
 
-	class CClientFrameGenerator : public CLKeyFrameGeneratorT< BuFrameData >
+	class CClientFrameGenerator : public TCLKeyFrameGenerator< BuFrameData >
 	{
-		typedef CLKeyFrameGeneratorT< BuFrameData > BaseClass;
+		typedef TCLKeyFrameGenerator< BuFrameData > BaseClass;
 	public:
 		virtual void  onFireAction( ActionParam& param );
 		virtual void  generate( DataSerializer & serializer );
 	};
 
-	class CServerFrameGenerator : public SVKeyFrameGeneratorT< BuFrameData >
+	class CServerFrameGenerator : public TSVKeyFrameGenerator< BuFrameData >
 	{
-		typedef SVKeyFrameGeneratorT< BuFrameData > BaseClass;
+		typedef TSVKeyFrameGenerator< BuFrameData > BaseClass;
 	public:
 		CServerFrameGenerator();
 		void recvClientData( unsigned pID , DataSteamBuffer& buffer );

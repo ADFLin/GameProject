@@ -117,7 +117,7 @@ bool GamePackageManager::loadGame( char const* path )
 	if ( hInstance == NULL )
 		return false;
 
-	CREATEGAMEFUN createFun = (CREATEGAMEFUN)GetProcAddress( hInstance , GAME_CREATE_FUN_NAME );
+	CreateGameFun createFun = (CreateGameFun)GetProcAddress( hInstance , GAME_CREATE_FUN_NAME );
 
 	if ( !createFun )
 		return false;

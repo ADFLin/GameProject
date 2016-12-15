@@ -16,6 +16,8 @@
 
 namespace Zuma
 {
+	EXPORT_GAME(GameInstance)
+
 	void ZDevStage::onRender( IRenderSystem& RDSystem )
 	{
 		ZObject ball( zWhite );
@@ -221,5 +223,3 @@ namespace Zuma
 	}
 
 }
-
-EXPORT_GAME( Zuma::GameInstance )

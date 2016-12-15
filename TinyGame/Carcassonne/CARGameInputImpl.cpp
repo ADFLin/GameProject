@@ -46,10 +46,10 @@ namespace CAR
 		mActionData = nullptr;
 	}
 
-	void CGameInput::run(GameModule& module)
+	void CGameInput::runLogic(GameModule& module)
 	{
 		mModule = &module;
-		mImpl = ImplType( std::bind( &CGameInput::execEntry , this , std::placeholders::_1 ) );
+		mExec = ExecType( std::bind( &CGameInput::execEntry , this , std::placeholders::_1 ) );
 	}
 
 	void CGameInput::execEntry(YeildType& yeild )
@@ -473,14 +473,14 @@ namespace CAR
 	void CGameInput::returnGame()
 	{
 		if ( mYeild )
-			mImpl();
+			mExec();
 	}
 
 	void CGameInput::exitGame()
 	{
 		if ( mActionData )
 		{
-			mActionData->resultExitGame = true;
+			mModule->mbNeedShutdown = true;
 			returnGame();
 		}
 	}

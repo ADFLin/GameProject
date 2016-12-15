@@ -15,6 +15,8 @@
 
 namespace Tetris
 {
+	EXPORT_GAME(GameInstance)
+
 	RecordManager& getRecordManager()
 	{
 		static RecordManager manager;
@@ -202,4 +204,3 @@ namespace Tetris
 }//namespace Tetris
 
 
-EXPORT_GAME( Tetris::GameInstance )

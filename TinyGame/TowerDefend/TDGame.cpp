@@ -5,6 +5,8 @@
 
 namespace TowerDefend
 {
+	EXPORT_GAME(GameInstance)
+
 	StageBase* GameInstance::createStage( unsigned id )
 	{
 		switch( id )
@@ -23,4 +25,3 @@ namespace TowerDefend
 
 }//namespace TowerDefend
 
-EXPORT_GAME( TowerDefend::GameInstance )

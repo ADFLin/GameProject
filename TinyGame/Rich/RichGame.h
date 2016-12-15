@@ -6,7 +6,7 @@
 namespace Rich
 {
 
-	class GamePackage : public IGameInstance
+	class GameInstance : public IGameInstance
 	{
 	public:
 		virtual bool  initialize(){ return true; }

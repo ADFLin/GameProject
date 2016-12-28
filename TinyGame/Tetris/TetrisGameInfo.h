@@ -21,7 +21,7 @@ namespace Tetris
 
 	struct  TetrisGameInfoNEW
 	{
-		static uint32 const LastVersion = VERSION(0,0,1);
+		static uint32 const LastVersion = MAKE_VERSION(0,0,1);
 		ModeID   mode;
 		union
 		{
@@ -35,7 +35,7 @@ namespace Tetris
 
 	struct  GameInfo
 	{
-		static uint32 const LastVersion = VERSION(0,0,1);
+		static uint32 const LastVersion = MAKE_VERSION(0,0,1);
 
 		ModeID   mode;
 		union

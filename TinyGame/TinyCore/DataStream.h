@@ -2,6 +2,8 @@
 #define DataStream_h__
 
 #include <vector>
+#include "DataBitSerialize.h"
+#include "MetaBase.h"
 
 class DataStream
 {
@@ -54,7 +56,6 @@ protected:
 	std::ofstream mFS;
 };
 
-
 class FileStream : public DataStream
 {
 public:
@@ -72,18 +73,127 @@ public:
 	{
 		mFS.write( (char const*)ptr , ( std::streamsize ) num );
 	}
+
+	size_t getSize()
+	{
+		std::ios::pos_type cur = mFS.tellg();
+		mFS.seekg(0, mFS.end);
+		std::ios::pos_type result = mFS.tellg();
+		mFS.seekg(cur, mFS.beg);
+		return result;
+	}
 protected:
 	std::fstream mFS;
 };
 
+class DataSerializer;
+SUPPORT_BINARY_OPERATOR(HaveSerializerOutput, operator<< , &, const&);
+SUPPORT_BINARY_OPERATOR(HaveSerializerInput, operator>> , &, &);
+SUPPORT_BINARY_OPERATOR(HaveBitDataOutput, operator<< , &, const &);
+SUPPORT_BINARY_OPERATOR(HaveBitDataInput, operator>> , &, &);
 
 class DataSerializer
 {
 public:
 	DataSerializer( DataStream& stream ):mStream( stream ){}
 
-	struct PODTag {};
-	struct ObjectTag {};
+	DataStream& getStream() { return mStream;  }
+
+	struct StreamDataPolicy
+	{
+		typedef DataStream DataType;
+		static void fill(DataType& buffer, uint8 value)
+		{
+			buffer.write(&value, 1);
+		}
+		static void take(DataType& buffer, uint8& value)
+		{
+			buffer.read(&value, 1);
+		}
+	};
+
+	typedef TDataBitWriter< StreamDataPolicy > BitWriter;
+	typedef TDataBitReader< StreamDataPolicy > BitReader;
+
+	template< class T >
+	struct TArrayBitData
+	{
+		T*     ptr;
+		size_t num;
+		size_t length;
+		uint32 numBit;
+	};
+
+	template< class T >
+	typename Meta::EnableIf< HaveBitDataOutput< BitWriter , T >::Result >::ResultType
+	write(TArrayBitData<T> const& data)
+	{
+		if( data.length )
+		{
+			BitWriter writer(mStream);
+			for( size_t i = 0; i < data.length; ++i )
+			{
+				writer << data.ptr[i];
+			}
+			writer.finalize();
+		}
+	}
+
+	template< class T >
+	typename Meta::EnableIf< !HaveBitDataOutput< BitWriter , T >::Result >::ResultType
+    write(TArrayBitData<T> const& data )
+	{
+		if( data.length )
+		{
+			BitWriter writer(mStream);
+			writer.fillArray(data.ptr, data.num, data.length, data.numBit);
+			writer.finalize();
+		}
+	}
+
+	template< class T>
+	typename Meta::EnableIf< HaveBitDataInput< BitReader , T >::Result >::ResultType
+	read(TArrayBitData<T> const& data)
+	{
+		if( data.length )
+		{
+			BitReader reader(mStream);
+			for( size_t i = 0; i < data.length; ++i )
+			{
+				reader >> data.ptr[i];
+			}
+		}
+	}
+
+	template< class T>
+	typename Meta::EnableIf< !HaveBitDataInput< BitReader, T >::Result >::ResultType
+	read(TArrayBitData<T> const& data)
+	{
+		if( data.length )
+		{
+			BitReader reader(mStream);
+			reader.takeArray(data.ptr, data.num, data.length, data.numBit);
+		}
+	}
+
+	template< class T >
+	static TArrayBitData<T> MakeArrayBit(T* data, size_t length , uint32 numBit )
+	{
+		return { data , sizeof(T) , length , numBit };
+	}
+
+	template< class T >
+	static TArrayBitData<T> MakeArrayBit(std::vector< T >& data, uint32 numBit)
+	{
+		if( data.empty() )
+		{
+			return{ nullptr , sizeof(T) , 0 , numBit };
+		}
+		else
+		{
+			return{ &data[0] , sizeof(T) , data.size() , numBit };
+		}
+	}
 
 	template< class T >
 	void write( T const& value )
@@ -96,31 +206,47 @@ public:
 		mStream.read( &value , sizeof( value ) );
 	}
 
-	template < class T >
-	void read( T* ptr , size_t num , PODTag )
-	{
-		mStream.read( ptr , num * sizeof( T ) );
-	}
+
 
 	template< class T >
-	void write( T const* ptr , size_t num , PODTag )
+	struct CanUseInputSequence : Meta::HaveResult< 
+		(!HaveSerializerInput<DataSerializer , T>::Result) && Meta::IsPod<T>::Result >
+	{};
+
+	template< class T >
+	struct CanUseOutputSequence : Meta::HaveResult<
+		(!HaveSerializerOutput<DataSerializer, T>::Result) && Meta::IsPod<T>::Result >
+	{};
+
+	template < class T >
+	typename Meta::EnableIf< CanUseInputSequence<T>::Result >::ResultType
+	read( T* ptr , size_t num  )
 	{
-		mStream.write( ptr , num * sizeof( T ) );
+		mStream.read( ptr , num * sizeof(T) );
 	}
 
 	template < class T >
-	void read( T* ptr , size_t num , ObjectTag )
+	typename Meta::EnableIf< !CanUseInputSequence<T>::Result >::ResultType
+	read(T* ptr, size_t num)
 	{
-		for( size_t i = 0 ; i < num ; ++i )
+		for( size_t i = 0; i < num; ++i )
 		{
 			(*this) >> ptr[i];
 		}
 	}
 
 	template< class T >
-	void write( T const* ptr , size_t num , ObjectTag )
+	typename Meta::EnableIf< CanUseOutputSequence<T>::Result >::ResultType
+	write(T const* ptr, size_t num)
 	{
-		for( size_t i = 0 ; i < num ; ++i )
+		mStream.write(ptr, num * sizeof(T));
+	}
+
+	template< class T >
+	typename Meta::EnableIf< !CanUseOutputSequence<T>::Result >::ResultType
+	write(T const* ptr, size_t num)
+	{
+		for( size_t i = 0; i < num; ++i )
 		{
 			(*this) << ptr[i];
 		}
@@ -131,22 +257,37 @@ public:
 	{
 		size_t size = vec.size();
 		this->write( size );
-		this->write( &vec[0] , size , ObjectTag() );
+		if( size )
+		{
+			this->write(&vec[0], size);
+		}
 	}
 
 	template< class T >
-	void read( std::vector< T > const& vec )
+	void read( std::vector< T >& vec )
 	{
 		size_t size;
 		this->read( size );
-		vec.resize( size );
-		this->read( &vec[0] , size , ObjectTag() );
+		if ( size )
+		{
+			vec.resize(size);
+			this->read(&vec[0], size);
+		}
 	}
 
 	template< class T >
-	DataSerializer& operator >> ( T& value )      { read( value ); return *this; }
+	DataSerializer& operator >> (T& value)
+	{
+		this->read(value);
+		return *this;
+	}
+
 	template< class T >
-	DataSerializer& operator << ( T const& value ){ write( value ); return *this; }
+	DataSerializer& operator << (T const& value)
+	{
+		this->write(value);
+		return *this;
+	}
 
 	DataStream& mStream;
 
@@ -158,6 +299,10 @@ public:
 		typedef ReadOp ThisOp;
 		template< class T >
 		ThisOp& operator & ( T& value ){ serializer >> value; return *this;  }
+		template< class T >
+		ThisOp& operator << (T& value) { return *this; }
+		template< class T >
+		ThisOp& operator >> (T& value) { serializer >> value; return *this; }
 		DataSerializer& serializer;
 	};
 
@@ -169,9 +314,15 @@ public:
 		WriteOp( DataSerializer& s ):serializer(s){}
 		template< class T >
 		ThisOp& operator & ( T const& value ){ serializer << value; return *this;  }
+		template< class T >
+		ThisOp& operator << (T const& value) { serializer << value; return *this; }
+		template< class T >
+		ThisOp& operator >> (T const& value) { return *this; }
+
 		DataSerializer& serializer;
 	};
 };
+
 
 
 #endif // DataStream_h__

@@ -3,6 +3,7 @@
 #include "GameLoop.h"
 #include "Win32Platform.h"
 #include "SysMsgHandler.h"
+#include "LogSystem.h"
 
 #include "CFlyHeader.h"
 #include "PhysicsSystem.h"
@@ -64,8 +65,16 @@ class EntityTemplateManager
 class ControlComponent;
 
 
+class DebugMsgListener : public ILogListener
+{
 
 
+
+	virtual void receiveLog(LogChannel channel, char const* str)
+	{
+
+	}
+};
 
 
 #include <memory>

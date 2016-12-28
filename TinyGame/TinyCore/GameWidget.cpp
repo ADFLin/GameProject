@@ -92,7 +92,7 @@ void WidgetRenderer::drawSilder( IGraphics2D& g , Vec2i const& pos , Vec2i const
 }
 
 GWidget::GWidget( Vec2i const& pos , Vec2i const& size , GWidget* parent ) 
-:TUICore< GWidget >( pos , size , parent )
+:WidgetCoreT< GWidget >( pos , size , parent )
 {
 	mID = UI_ANY;
 	callback   = NULL;
@@ -113,17 +113,14 @@ GWidget::~GWidget()
 
 void GWidget::sendEvent( int eventID )
 {
-	GUI::Core* root = getManager()->getRoot(); 
 	GUI::Core* ui   = this;
-	while ( ui != root )
+	while ( ui != nullptr )
 	{
-		if ( ui->isTopUI())
+		if ( ui->isTop())
 			break;
-		else
-			ui = ui->getParent();
 
+		ui = ui->getParent();
 		GWidget* widget = static_cast< GWidget* > ( ui );
-
 		if ( !widget->onChildEvent( eventID, mID , this ) )
 			return;
 	}
@@ -155,13 +152,10 @@ void GWidget::setHotkey( ControlAction key )
 
 GWidget* GWidget::findChild( int id , GWidget* start )
 {
-	GWidget* child = ( start ) ? nextChild( start ) : getChild();
-
-	while( child )
+	for( auto child = createChildrenIterator(); child; ++child )
 	{
-		if ( child->mID == id )
-			return child;
-		child = nextChild( child );
+		if( child->mID == id )
+			return &(*child);
 	}
 	return NULL;
 }
@@ -174,7 +168,7 @@ void GWidget::onPostRender()
 
 bool GWidget::doClipTest()
 {
-	if ( getParent() == getManager()->getRoot() )
+	if ( isTop() )
 		return true;
 	return true;
 }
@@ -369,7 +363,7 @@ void GButton::onRender()
 }
 
 GNoteBook::GNoteBook( int id , Vec2i const& pos , Vec2i const& size , GWidget* parent ) 
-	:GUI::NoteBook< GNoteBook >(  pos , size , parent )
+	:GUI::NoteBookT< GNoteBook >(  pos , size , parent )
 {
 	mID = id;
 }

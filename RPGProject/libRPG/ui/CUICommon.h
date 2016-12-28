@@ -2,13 +2,13 @@
 #define CUICommon_h__
 
 #include "common.h"
-#include "TUICommon.h"
+#include "WidgetCommon.h"
 
 #include "CFSprite.h"
 #include "CFObject.h"
 #include "CFShuFa.h"
 
-class CWidget : public TUICore< CWidget >
+class CWidget : public WidgetCoreT< CWidget >
 {
 public:
 	CWidget( Vec2i const& pos , Vec2i const& size , CWidget* parent );
@@ -44,14 +44,14 @@ protected:
 	Sprite* mSprite;
 };
 
-typedef UIPackage< CWidget > CUI;
+typedef TWidgetLibrary< CWidget > CUI;
 
 
-class CButtonUI : public CUI::Button< CButtonUI >
+class CButtonUI : public CUI::ButtonT< CButtonUI >
 {
 public:
 	CButtonUI( Vec2i const& pos , Vec2i const& size  , CWidget* parent )
-		:CUI::Button< CButtonUI >( pos , size , parent )
+		:CUI::ButtonT< CButtonUI >( pos , size , parent )
 	{
 		
 	}
@@ -111,9 +111,9 @@ struct PanelTemplateInfo
 };
 
 
-class CPanelUI : public CUI::Panel< CPanelUI >
+class CPanelUI : public CUI::PanelT< CPanelUI >
 {
-	typedef CUI::Panel< CPanelUI > BaseClass;
+	typedef CUI::PanelT< CPanelUI > BaseClass;
 public:
 	CPanelUI( PanelTemplateInfo& info , 
 		      Vec2i const& pos , Vec2i const& size  , 

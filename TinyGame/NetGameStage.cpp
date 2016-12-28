@@ -1111,7 +1111,7 @@ void NetLevelStageMode::procPlayerState(IComPacket* cp)
 		break;
 	case NAS_LEVEL_RUN:
 	{
-		GWidget* ui = ::Global::GUI().getManager().getModalUI();
+		GWidget* ui = ::Global::GUI().getManager().getModalWidget();
 		if( ui && ui->getID() == UI_UNPAUSE_GAME )
 		{
 			ui->destroy();

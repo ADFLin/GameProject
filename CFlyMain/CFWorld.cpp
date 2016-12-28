@@ -37,7 +37,7 @@ namespace CFly
 		return WorldManager::getInstance().createWorld( hWnd , w , h , cDepth , fullscreen , backBufferFormat );
 	}
 
-	class MsgBoxListener : public IMsgListener
+	class MsgBoxListener : public ILogListener
 	{
 	public:
 		MsgBoxListener( HWND hWnd )
@@ -45,7 +45,7 @@ namespace CFly
 			m_hWnd = hWnd;
 		}
 
-		virtual void receive( MsgChannel channel , char const* str )
+		virtual void receiveLog( LogChannel channel , char const* str )
 		{
 			::MessageBox( m_hWnd , str , "Error" , MB_OK );
 		}
@@ -70,8 +70,8 @@ namespace CFly
 		,mFont( nullptr )
 	{
 		mErrorMsgListener = new MsgBoxListener( hWnd );
-		mErrorMsgListener->addChannel( MSG_ERROR );
-		mErrorMsgListener->addChannel( MSG_WARNING );
+		mErrorMsgListener->addChannel( LOG_ERROR );
+		mErrorMsgListener->addChannel( LOG_WARNING );
 
 		mRenderSystem = new RenderSystem;
 
@@ -362,8 +362,7 @@ namespace CFly
 
 	bool WorldManager::init()
 	{
-
-
+		::Msg("World Init");
 		return true;
 	}
 

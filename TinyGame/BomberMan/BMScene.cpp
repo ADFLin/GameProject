@@ -5,11 +5,12 @@
 
 #include "GIFLoader.h"
 #include "BitmapDC.h"
+#include "CommonMarco.h"
 
 #include "BMRender.h"
 
 #include <algorithm>
-#define ARRAY_SIZE( AR ) ( sizeof(AR) / sizeof( AR[0]) )
+
 //TODO : fix animation of dangerous bomb
 
 namespace BomberMan

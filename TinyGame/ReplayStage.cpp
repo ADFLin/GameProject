@@ -250,7 +250,7 @@ bool ReplayStageMode::prevStageInit()
 	//// Replay Input////////////
 
 	actionTemplate = NULL;
-	if( header.version >= VERSION(0, 1, 0) )
+	if( header.version >= MAKE_VERSION(0, 1, 0) )
 	{
 		actionTemplate = stage->createActionTemplate(info.templateVersion);
 		if( !actionTemplate )

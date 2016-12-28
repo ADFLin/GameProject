@@ -4,13 +4,10 @@
 #include "TVector2.h"
 #include "CppVersion.h"
 #include "IntrList.h"
+#include "CommonMarco.h"
 
 #include <functional>
 #include <string>
-
-#ifndef ARRAY_SIZE
-#define ARRAY_SIZE( ar ) ( sizeof(ar)/sizeof(ar[0]) )
-#endif
 
 namespace Rich
 {

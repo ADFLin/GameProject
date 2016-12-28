@@ -21,14 +21,15 @@ float const CWidget::MaxLevelDepth = 10000;
 
 void refreshChildrenDepth( CUI::Core* parent , float delta )
 {
+	assert(parent);
 	float depth = 1.0f;
-	CWidget* ui = parent->getChild();
-	while( ui )
+
+	for( auto ui = parent->createChildrenIterator(); ui; ++ui )
 	{
-		ui->setLocalDepth( -depth );
+		ui->setLocalDepth(-depth);
 		depth += delta;
-		ui = parent->nextChild( ui );
 	}
+
 }
 
 
@@ -45,7 +46,7 @@ public:
 static UITextRender gUITextRender;
 
 CWidget::CWidget( Vec2i const& pos , Vec2i const& size , CWidget* parent ) 
-	:TUICore< CWidget >( pos , size , nullptr )
+	:WidgetCoreT< CWidget >( pos , size , nullptr )
 {
 	if ( parent )
 	{
@@ -93,11 +94,9 @@ void CWidget::setOpacity( float val , bool bothChildren /*= true */ )
 
 	if ( bothChildren )
 	{
-		CWidget* ui = getChild();
-		while ( ui )
+		for( auto child = createChildrenIterator(); child; ++child )
 		{
-			ui->setOpacity( val , true );
-			ui = nextChild( ui );
+			child->setOpacity( val , true );
 		}
 	}
 }
@@ -179,10 +178,16 @@ bool CWidget::onMouseMsg( MouseMsg const& msg )
 
 void CWidget::onChangeOrder()
 {
-	if ( getParent() == getManager()->getRoot() )
+	if ( isTop() )
 	{
 		float delta = calcDepthOffset();
-		refreshChildrenDepth( getParent() , delta );
+
+		float depth = 1.0f;
+		for( auto ui = getManager()->createTopWidgetIterator(); ui; ++ui )
+		{
+			ui->setLocalDepth(-depth);
+			depth += delta;
+		}
 	}
 }
 
@@ -272,7 +277,7 @@ bool CFrameUI::onMouseMsg( MouseMsg const& msg )
 
 
 CPanelUI::CPanelUI( PanelTemplateInfo& info , Vec2i const& pos , Vec2i const& size , CWidget* parent ) 
-	:CUI::Panel< CPanelUI >( pos , size , parent )
+	:CUI::PanelT< CPanelUI >( pos , size , parent )
 {
 	initTemplate( info );
 }

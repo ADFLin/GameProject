@@ -40,7 +40,7 @@ class TestStage : public StageBase
 {
 	typedef StageBase BaseClass;
 public:
-	TestStage(){}
+	TestStage() {}
 
 	virtual bool onInit()
 	{
@@ -54,18 +54,18 @@ public:
 
 	}
 
-	virtual void onUpdate( long time )
+	virtual void onUpdate(long time)
 	{
-		BaseClass::onUpdate( time );
+		BaseClass::onUpdate(time);
 
 		int frame = time / gDefaultTickTime;
-		for( int i = 0 ; i < frame ; ++i )
+		for( int i = 0; i < frame; ++i )
 			tick();
 
-		updateFrame( frame );
+		updateFrame(frame);
 	}
 
-	void onRender( float dFrame )
+	void onRender(float dFrame)
 	{
 		Graphics2D& g = Global::getGraphics2D();
 	}
@@ -81,21 +81,21 @@ public:
 
 	}
 
-	void updateFrame( int frame )
+	void updateFrame(int frame)
 	{
 
 	}
 
-	bool onMouse( MouseMsg const& msg )
+	bool onMouse(MouseMsg const& msg)
 	{
-		if ( !BaseClass::onMouse( msg ) )
+		if( !BaseClass::onMouse(msg) )
 			return false;
 		return true;
 	}
 
-	bool onKey( unsigned key , bool isDown )
+	bool onKey(unsigned key, bool isDown)
 	{
-		if ( !isDown )
+		if( !isDown )
 			return false;
 
 		switch( key )
@@ -365,7 +365,7 @@ public:
 		{
 			printBits( flag );
 			printBits( bit );
-			int index = BitUtility::countTrailingZeros( bit );
+			int index = BitUtility::CountTrailingZeros( bit );
 			int i;
 		}	
 	}

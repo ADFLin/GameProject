@@ -1,7 +1,6 @@
 #ifndef Base_h__C8B87C85_21EC_4C14_B747_F8B15EE26510
 #define Base_h__C8B87C85_21EC_4C14_B747_F8B15EE26510
 
-#include "ShareLibConfig.h"
 #include "Math/Base.h"
 #include "TVector2.h"
 #include "IntegerType.h"
@@ -16,6 +15,9 @@
 namespace Phy2D
 {
 	float const FLT_DIV_ZERO_EPSILON = 1e-6f;
+
+	typedef void(*DebugJumpFun)();
+	extern DebugJumpFun GDebugJumpFun;
 
 	class Vec2f : public TVector2< float >
 	{

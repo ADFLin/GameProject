@@ -28,7 +28,7 @@ namespace Bubble
 		typedef TKeyFrameActionTemplate< BuFrameData > BaseClass;
 	public:
 		CFrameActionTemplate( PlayerDataManager& manager );
-		static unsigned const LastVersion = VERSION( 0,0,1 );
+		static unsigned const LastVersion = MAKE_VERSION( 0,0,1 );
 
 		void  listenAction( ActionParam& param );
 		bool  checkAction( ActionParam& param );

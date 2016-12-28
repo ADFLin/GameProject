@@ -87,10 +87,10 @@ public:
 	operator CharT const*( ) const { return mStr; }
 	operator CharT*      ( )       { return mStr; }
 
-
+	int   compare(CharT const* str) const { return CFT::compare(mStr, str); }
 
 private:
-	int   compare( CharT const* str ) const { return CFT::compare( mStr , str );  }
+	
 	void  assign( CharT const* str ){ CFT::copy( mStr , str );  }
 
 	template< int M , class T >

@@ -2,7 +2,7 @@
 #define ProjectPCH_h__
 
 #include "FastDelegate/FastDelegate.h"
-
+#include "LogSystem.h"
 #include "Win32Header.h"
 
 #include "CFMath.h"

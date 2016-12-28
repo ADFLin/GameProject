@@ -427,13 +427,13 @@ namespace Tetris
 
 
 
-	static unsigned titleMap[] = 
+	static uint32 titleMap[] = 
 	{
-		BINARY32( 11111111,11110100,11000000 , 00000000 ) , 
-		BINARY32( 01010001,01010101,00000000 , 00000000 ) , 
-		BINARY32( 01011101,01100101,11000000 , 00000000 ) , 
-		BINARY32( 01010001,01010100,01000000 , 00000000 ) , 
-		BINARY32( 01011101,01010101,10000000 , 00000000 ) , 
+		BINARY32( 11111111,11110100,11000000,00000000 ) , 
+		BINARY32( 01010001,01010101,00000000,00000000 ) , 
+		BINARY32( 01011101,01100101,11000000,00000000 ) , 
+		BINARY32( 01010001,01010100,01000000,00000000 ) , 
+		BINARY32( 01011101,01010101,10000000,00000000 ) , 
 	};
 
 	static int const gBGColor[] = 
@@ -595,7 +595,7 @@ namespace Tetris
 			{
 			case UI_GAME_OPTION:
 				{
-					::Global::GUI().getManager().getModalUI()->destroy();
+					::Global::GUI().getManager().getModalWidget()->destroy();
 				}
 				return false;
 			}

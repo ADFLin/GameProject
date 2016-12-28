@@ -2,12 +2,12 @@
 #define BitUtility_h__
 
 #include <cassert>
+#include "IntegerType.h"
 
-typedef unsigned __int32 uint32;
 class BitUtility
 {
 public:
-	static int countTrailingZeros( uint32 n )
+	static int CountTrailingZeros( uint32 n )
 	{
 		int result = 0;
 		if (( n & 0x0000ffff ) == 0 ){ result += 16 ; n >>= 16; }
@@ -18,7 +18,7 @@ public:
 		return result + ( n & 0x1 );
 	}
 
-	static int countLeadingZeros( uint32 n )
+	static int CountLeadingZeros( uint32 n )
 	{
 		int result = 0;
 		if (( n & 0xffff0000 ) != 0 ){ result += 16 ; n <<= 16; }
@@ -29,12 +29,24 @@ public:
 		return 1;
 	}
 
-	static int countSet( uint32 x )
+	static int CountSet( uint32 x )
 	{
 		int count = 0;
 		for( ; x ; ++count )
 			x &= x - 1; 
 		return count;
+	}
+
+	static int NextNumberOfPow2( uint32 n)
+	{
+		n--;
+		n |= n >> 1;
+		n |= n >> 2;
+		n |= n >> 4;
+		n |= n >> 8;
+		n |= n >> 16;
+		n++;
+		return n;
 	}
 };
 

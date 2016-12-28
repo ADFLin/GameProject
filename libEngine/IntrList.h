@@ -314,8 +314,31 @@ private:
 
 		reference operator*(){ return TP::fixRT( HookTraits::castValue< T >( *mNode ) );  }
 		pointer   operator->(){ return &TP::fixRT( HookTraits::castValue< T >( *mNode ) ); }
-		bool operator == ( Iterator other ){ return mNode == other.mNode; }
-		bool operator != ( Iterator other ){ return mNode != other.mNode; }
+		bool operator == ( Iterator other ) const { return mNode == other.mNode; }
+		bool operator != ( Iterator other ) const { return mNode != other.mNode; }
+	private:
+		friend class IntrList;
+		NodePtr mNode;
+	};
+
+	template< class Node >
+	class ReverseIterator
+	{
+	public:
+		typedef RType     reference;
+		typedef BaseType* pointer;
+
+		ReverseIterator(Node* node) :mNode(node) {}
+
+		ReverseIterator  operator--() { Node* node = mNode; mNode = NodeTraits::getNext(mNode); return ReverseIterator(node); }
+		ReverseIterator  operator++() { Node* node = mNode; mNode = NodeTraits::getPrev(mNode); return ReverseIterator(node); }
+		ReverseIterator& operator--(int) { mNode = NodeTraits::getNext(mNode); return *this; }
+		ReverseIterator& operator++(int) { mNode = NodeTraits::getPrev(mNode); return *this; }
+
+		reference operator*() { return TP::fixRT(HookTraits::castValue< T >(*mNode)); }
+		pointer   operator->() { return &TP::fixRT(HookTraits::castValue< T >(*mNode)); }
+		bool operator == (ReverseIterator other) const { return mNode == other.mNode; }
+		bool operator != (ReverseIterator other) const { return mNode != other.mNode; }
 	private:
 		friend class IntrList;
 		NodePtr mNode;
@@ -323,8 +346,12 @@ private:
 public:
 
 	typedef Iterator< NodeType >       iterator;
-	iterator end()   { return iterator( &mHeader ); }
-	iterator begin() { return iterator( NodeTraits::getNext( &mHeader ) ); }
+	typedef ReverseIterator< NodeType >      reverse_iterator;
+	iterator begin() { return iterator(NodeTraits::getNext(&mHeader)); }
+	iterator end()    { return iterator(&mHeader); }
+	reverse_iterator rbegin() { return reverse_iterator(NodeTraits::getPrev(&mHeader)); }
+	reverse_iterator rend()   { return reverse_iterator(&mHeader); }
+	
 	iterator erase( iterator iter )
 	{
 		NodePtr next = NodeTraits::getNext( iter.mNode );

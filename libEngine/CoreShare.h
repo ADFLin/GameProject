@@ -1,5 +1,5 @@
-#ifndef ShareLibConfig_h__
-#define ShareLibConfig_h__
+#ifndef CoreShare_h__
+#define CoreShare_h__
 
 #include "PlatformConfig.h"
 
@@ -10,8 +10,11 @@
 #		define CORE_API __declspec( dllimport )
 #	endif
 #else
-#	define CORE_API __declspec( dllexport )
+#	define CORE_API __declspec( dllimport )
 #endif
 
+CORE_API void CoreShareInitialize();
+CORE_API void CoreShareFinalize();
 
-#endif // ShareLibConfig_h__
+
+#endif // CoreShare_h__

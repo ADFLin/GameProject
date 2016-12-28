@@ -2,6 +2,7 @@
 #define CppVersion_h__
 
 #include "CompilerConfig.h"
+#include "CommonMarco.h"
 
 #ifdef CPP_COMPILER_MSVC
 #	if ( _MSC_VER >= 1700 ) 
@@ -54,13 +55,11 @@
 #	define nullptr 0
 #endif
 
-#define CONCATENATE_DIRECT(s1, s2) s1##s2
-#define CONCATENATE(s1, s2) CONCATENATE_DIRECT(s1, s2)
 
 #ifdef CPP_COMPILER_MSVC
-# define ANONYMOUS_VARIABLE(str) CONCATENATE(str, __COUNTER__)
+# define ANONYMOUS_VARIABLE(str) MARCO_NAME_COMBINE_2(str, __COUNTER__)
 #else
-# define ANONYMOUS_VARIABLE(str) CONCATENATE(str, __LINE__)
+# define ANONYMOUS_VARIABLE(str) MARCO_NAME_COMBINE_2(str, __LINE__)
 #endif 
 
 namespace CppVerPriv

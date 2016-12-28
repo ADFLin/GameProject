@@ -24,7 +24,7 @@
 #include "Cantan/CantanStage.h"
 
 #include "LightingStage.h"
-#include "TestStage.h"
+#include "MiscTestStage.h"
 #include "Phy2DStage.h"
 #include "BloxorzStage.h"
 #include "AStarStage.h"
@@ -197,7 +197,7 @@ bool MainOptionBook::onChildEvent( int event , int id , GWidget* ui )
 		{
 			UserProfile& profile = ::Global::getUserProfile();
 			profile.name = static_cast< GTextCtrl* >( getCurPage()->findChild( UI_USER_NAME ) )->getValue();
-			::Global::GUI().getManager().getModalUI()->destroy();
+			::Global::GUI().getManager().getModalWidget()->destroy();
 		}
 		return false;
 	}
@@ -236,6 +236,7 @@ void MainMenuStage::doChangeGroup( StageGroupID group )
 	switch( group )
 	{
 	case UI_MAIN_GROUP:
+
 		CREATE_BUTTON( UI_GAME_DEV_GROUP  , "Game Dev"   );
 		CREATE_BUTTON( UI_GAME_DEV2_GROUP  , "Game Dev2"   );
 		CREATE_BUTTON( UI_GAME_DEV3_GROUP  , "Phyics Test"   );
@@ -246,7 +247,6 @@ void MainMenuStage::doChangeGroup( StageGroupID group )
 		CREATE_BUTTON( UI_MULTIPLAYER   , LAN("MultiPlayer")   );
 		CREATE_BUTTON( UI_VIEW_REPLAY   , LAN("View Replay")   );
 		//CREATE_BUTTON( UI_ABOUT_GAME    , LAN("About Game")    );
-
 		CREATE_BUTTON( UI_GAME_OPTION   , LAN("Option")        );
 		CREATE_BUTTON( UI_EXIT_GAME     , LAN("Exit")          );
 		break;
@@ -409,7 +409,7 @@ bool MainMenuStage::onWidgetEvent( int event , int id , GWidget* ui )
 			{
 				Vec2i pos = ::Global::GUI().calcScreenCenterPos( MainOptionBook::UISize );
 				MainOptionBook* book = new MainOptionBook( UI_GAME_OPTION , pos  , NULL );
-				::Global::GUI().getManager().addUI( book );
+				::Global::GUI().getManager().addWidget( book );
 				book->setTop();
 				book->doModal();
 			}

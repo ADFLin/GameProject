@@ -52,7 +52,7 @@ public:
 		mTweener.tween< Fun , WidgetPos >( *widget , from , to , time , delay ).finishCallback( cb );
 	}
 
-	GAME_API GWidget* findTopWidget( int id , GWidget* start = NULL );
+	GAME_API GWidget* findTopWidget( int id );
 	GAME_API static Vec2i  calcScreenCenterPos( Vec2i const& size );
 
 	void  skipMouseEvent(bool bSkip) { mbSkipMouseEvent = bSkip;  }

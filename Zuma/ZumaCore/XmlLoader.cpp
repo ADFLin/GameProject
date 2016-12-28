@@ -1,7 +1,7 @@
 #include "ZumaPCH.h"
 #include "XmlLoader.h"
 
-#include "DebugSystem.h"
+#include "LogSystem.h"
 
 #if USE_NEW_XML
 

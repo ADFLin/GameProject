@@ -1,7 +1,7 @@
 #include "CAR_PCH.h"
 #include "CARDebug.h"
 
-#include "DebugSystem.h"
+#include "LogSystem.h"
 #include <cstdarg>
 
 namespace CAR

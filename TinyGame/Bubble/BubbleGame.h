@@ -42,7 +42,7 @@ namespace Bubble
 	class BubbleReplayTemplate : public ReplayTemplate
 	{
 	public:
-		static uint32 const Version = VERSION(0,0,1);
+		static uint32 const Version = MAKE_VERSION(0,0,1);
 
 		bool   getReplayInfo( ReplayInfo& info );
 

@@ -1,6 +1,7 @@
 #ifndef Heap_h__
 #define Heap_h__
 
+#include <algorithm>
 
 template< class KT , class CmpFun = std::less< KT > >
 class BinaryHeap

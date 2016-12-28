@@ -213,7 +213,7 @@ namespace Poker { namespace Holdem {
 			g.drawText( Vec2i( 200 , 200 + 20 ) , str.c_str() );
 		}
 
-		GWidget* ui = ::Global::GUI().getManager().getMouseUI();
+		GWidget* ui = ::Global::GUI().getManager().getMouseWidget();
 		if ( ui )
 		{
 			FixString< 128 > str;

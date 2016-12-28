@@ -10,7 +10,7 @@ namespace Tetris
 	class CFrameActionTemplate : public KeyFrameActionTemplate
 	{
 	public:
-		static unsigned const LastVersion = VERSION(0,0,1);
+		static unsigned const LastVersion = MAKE_VERSION(0,0,1);
 
 		CFrameActionTemplate( GameWorld& world );
 		void  firePortAction( ActionTrigger& trigger );

@@ -28,21 +28,25 @@ namespace Zuma
 		return true;
 	}
 
-	ZWidget* ZUISystem::findUI( int idUI , TUICore<ZWidget>* parent )
+	ZWidget* ZUISystem::findUI( int idUI , WidgetCoreT<ZWidget>* parent )
 	{
-		if ( parent == NULL )
-			parent = getRoot();
-
-		ZWidget* ui = parent->getChild();
-
-		while ( ui )
+		if( parent == nullptr )
 		{
-			if ( ui->getUIID() == idUI )
-				return ui;
-
-			ui = parent->nextChild(ui);
+			for( auto ui = createTopWidgetIterator(); ui; ui )
+			{
+				if( ui->getUIID() == idUI )
+					return &(*ui);
+			}
 		}
+		else
+		{
+			for( auto ui = parent->createChildrenIterator(); ui; ui )
+			{
+				if( ui->getUIID() == idUI )
+					return &(*ui);
+			}
 
+		}
 		return NULL;
 	}
 
@@ -86,7 +90,7 @@ namespace Zuma
 	unsigned ZAdvButton::selectStageID = 0;
 
 	ZButton::ZButton( int idUI , ResID idTex , Vec2i const& pos , ZWidget* parent )
-		:GameUI::Button< ZButton >( pos , Vec2i(0,0) , parent )
+		:GameUI::ButtonT< ZButton >( pos , Vec2i(0,0) , parent )
 	{
 		m_idUI  = idUI;
 		m_idTex = idTex;
@@ -190,7 +194,7 @@ namespace Zuma
 	}
 
 	ZSlider::ZSlider( int idUI , Vec2i const& pos , ZWidget* parent )
-		:GameUI::Slider< ZSlider >( pos , 1 , calcUISize(IMAGE_SLIDER_THUMB) , true , 0 , 100 , parent )
+		:GameUI::SliderT< ZSlider >( pos , 1 , calcUISize(IMAGE_SLIDER_THUMB) , true , 0 , 100 , parent )
 	{
 		m_idUI  = idUI;
 		m_idTex = IMAGE_SLIDER_TRACK;
@@ -205,7 +209,7 @@ namespace Zuma
 	}
 
 	ZPanel::ZPanel( int idUI , Vec2i const& pos , Vec2i const& size , ZWidget* parent )
-		:GameUI::Panel< ZPanel >(  pos , Vec2D(1,1) , parent )
+		:GameUI::PanelT< ZPanel >(  pos , Vec2D(1,1) , parent )
 	{
 		m_idUI  = idUI;
 		m_idTex = IMAGE_DIALOG_BACK;

@@ -1,7 +1,7 @@
 #ifndef TScalePanel_h__
 #define TScalePanel_h__
 
-#include "TUICommon.h"
+#include "WidgetCommon.h"
 #include "CPlayButton.h"
 
 

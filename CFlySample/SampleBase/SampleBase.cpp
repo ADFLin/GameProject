@@ -29,7 +29,7 @@ bool SampleBase::onInit()
 	m_frameCount = 0;
 	m_fps = 0.0f;
 
-	addChannel( MSG_DEV );
+	addChannel( LOG_DEV );
 
 	if ( !WinFrame::create( "Sample Test" , g_ScreenWidth , g_ScreenHeight ,
 		   SysMsgHandler::MsgProc , false ) )
@@ -166,7 +166,7 @@ void SampleBase::createCoorditeAxis( float len )
 	obj->setRenderOption( CFRO_LIGHTING , true );
 }
 
-void SampleBase::receive( MsgChannel channel , char const* str )
+void SampleBase::receiveLog( LogChannel channel , char const* str )
 {
 	static int idx = 0;
 	mDevMsg[ idx ] = str;

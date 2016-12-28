@@ -48,6 +48,9 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <OutDir>$(SolutionDir)$(Configuration)\</OutDir>
     <IntDir>$(Configuration)\$(ProjectName)\</IntDir>
+    <LinkIncremental>
+    </LinkIncremental>
+    <IgnoreImportLibrary>false</IgnoreImportLibrary>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -56,7 +59,7 @@
       <AdditionalIncludeDirectories>.;TinyCore;../libEngine;../OtherLib;../CFlyMain;../Zuma;../OtherLib/boost;../OtherLib/glew;../OtherLib/Dx9/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;_WINDOWS;DEBUG;TG_DLL;CORE_SHARE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MinimalRebuild>false</MinimalRebuild>
-      <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
+      <BasicRuntimeChecks>Default</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile>TinyGamePCH.h</PrecompiledHeaderFile>
@@ -114,6 +117,8 @@
       <DataExecutionPrevention />
       <TargetMachine>MachineX86</TargetMachine>
       <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
+      <IgnoreSpecificDefaultLibraries>
+      </IgnoreSpecificDefaultLibraries>
     </Link>
     <PostBuildEvent>
       <Command>copy $(TargetPath) $(ProjectDir)out\</Command>
@@ -121,6 +126,15 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\OtherLib\lodepng\lodepng.cpp" />
+    <ClCompile Include="..\OtherLib\lz78\bitio.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="..\OtherLib\lz78\lz78.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="..\OtherLib\lz78\wrapper.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
+    </ClCompile>
     <ClCompile Include="..\OtherLib\tinyobjloader\tiny_obj_loader.cc">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
       </PrecompiledHeader>
@@ -136,8 +150,6 @@
     <ClCompile Include="FBirdStage.cpp" />
     <ClCompile Include="GameSingleStage.cpp" />
     <ClCompile Include="GGJStage.cpp" />
-    <ClCompile Include="GLCommon.cpp" />
-    <ClCompile Include="GLUtility.cpp" />
     <ClCompile Include="Go\GoCore.cpp" />
     <ClCompile Include="Go\GoStage.cpp" />
     <ClCompile Include="Go\ZenBot.cpp" />
@@ -225,13 +237,14 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
       </PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="Stage\CompressionTestStage.cpp" />
     <ClCompile Include="stb_image.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
       </PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
       </PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="TestStage.cpp" />
+    <ClCompile Include="MiscTestStage.cpp" />
     <ClCompile Include="TinyGameApp.cpp" />
     <ClCompile Include="TinyGamePCH.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
@@ -243,6 +256,9 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\OtherLib\lodepng\lodepng.h" />
+    <ClInclude Include="..\OtherLib\lz78\bitio.h" />
+    <ClInclude Include="..\OtherLib\lz78\lz78.h" />
+    <ClInclude Include="..\OtherLib\lz78\wrapper.h" />
     <ClInclude Include="..\OtherLib\tinyobjloader\tiny_obj_loader.h" />
     <ClInclude Include="AgarStage.h" />
     <ClInclude Include="AStarStage.h" />
@@ -261,9 +277,6 @@
     <ClInclude Include="GameSingleStage.h" />
     <ClInclude Include="Geometry2d.h" />
     <ClInclude Include="GGJStage.h" />
-    <ClInclude Include="GLCommon.h" />
-    <ClInclude Include="GLDrawUtility.h" />
-    <ClInclude Include="GLUtility.h" />
     <ClInclude Include="Go\GoCore.h" />
     <ClInclude Include="Go\GoStage.h" />
     <ClInclude Include="Go\zen.h" />
@@ -303,9 +316,10 @@
     <ClInclude Include="Shoot2D\RenderEngine.h" />
     <ClInclude Include="Shoot2D\ResourcesLoader.h" />
     <ClInclude Include="Shoot2D\Weapon.h" />
+    <ClInclude Include="Stage\TestStageHeader.h" />
     <ClInclude Include="Sudoku\SudokuSolver.h" />
     <ClInclude Include="Sudoku\SudokuSolver.hpp" />
-    <ClInclude Include="TestStage.h" />
+    <ClInclude Include="MiscTestStage.h" />
     <ClInclude Include="TinyGameApp.h" />
     <ClInclude Include="TinyGamePCH.h" />
     <ClInclude Include="TripleTown\TextureId.h" />
@@ -339,6 +353,9 @@
     <None Include="out\Shader\Water.glsl" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\libEngine\EngineShare.vcxproj">
+      <Project>{061a25a9-fc8b-4fe1-915f-ec50c0ea354b}</Project>
+    </ProjectReference>
     <ProjectReference Include="..\libEngine\libEngine.vcxproj">
       <Project>{c1b32c2b-9a40-4874-869f-fcc57bb1d93f}</Project>
     </ProjectReference>

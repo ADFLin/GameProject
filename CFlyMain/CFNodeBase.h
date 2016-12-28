@@ -34,7 +34,7 @@ namespace CFly
 		NodeBase*     getParent() const { return mParent; }
 		int           getChildrenNum(){ return mChildren.size(); }
 		//ChildIterator getChildren(){ return ChildIterator( mChildren ); }
-		char const*   getName(){ return mName ? mName : ""; }
+		char const*   getName(){ return mName.toString(); }
 		bool          registerName( char const* name );
 
 		bool          checkFlag    ( unsigned flag ) const { return ( mFlag & BIT( flag ) ) != 0; }
@@ -79,7 +79,7 @@ namespace CFly
 		}
 
 		NodeManager*   mManager;
-		char const*    mName;
+		HashString       mName;
 		NodeBase*      mParent;
 		friend class NodeManager;
 
@@ -115,7 +115,15 @@ namespace CFly
 				return strcmp( s1 , s2 ) < 0;
 			}
 		};
-		typedef std::map< String , NodeBase* > NodeNameMap;
+
+		struct NameCmp
+		{
+			bool operator()(HashString  const& s1, HashString  const& s2) const
+			{
+				return s1.getIndex() < s2.getIndex();
+			}
+		};
+		typedef std::map< HashString , NodeBase* , NameCmp > NodeNameMap;
 		NodeNameMap mNameMap;
 	};
 

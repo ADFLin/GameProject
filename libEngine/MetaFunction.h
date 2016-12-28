@@ -1,12 +1,12 @@
 #ifndef MetaFunction_hpp__
-#define MetaFunction_hpp__
+#define MetaFunction_h__
 
-#include "MetaBase.hpp"
+#include "MetaBase.h"
 
 namespace Meta{
 
 	template < class T >
-	struct IsMemberFun : HaveResult< FalseType >{};
+	struct IsMemberFunPointer : HaveResult< false >{};
 
 	//template < class RT >
 	//struct FunTraits
@@ -46,14 +46,14 @@ namespace Meta{
 
 
 	template < class T , class RT >
-	struct IsMemberFun< RT (T::*)() > : HaveResult< TrueType >{};
+	struct IsMemberFunPointer< RT (T::*)() > : HaveResult< true >{};
 	template < class T , class RT , class P1 >
-	struct IsMemberFun< RT (T::*)( P1 ) > : HaveResult< TrueType >{};
+	struct IsMemberFunPointer< RT (T::*)( P1 ) > : HaveResult< true >{};
 	template < class T , class RT , class P1 , class P2 >
-	struct IsMemberFun< RT (T::*)( P1 , P2 ) > : HaveResult< TrueType >{};
+	struct IsMemberFunPointer< RT (T::*)( P1 , P2 ) > : HaveResult< true >{};
 	template < class T , class RT , class P1 , class P2 , class P3 >
-	struct IsMemberFun< RT (T::*)( P1 , P2 , P3 ) > : HaveResult< TrueType >{};
+	struct IsMemberFunPointer< RT (T::*)( P1 , P2 , P3 ) > : HaveResult< true >{};
 
 }//namespace Meta
 
-#endif // MetaFunction_hpp__
+#endif // MetaFunction_h__

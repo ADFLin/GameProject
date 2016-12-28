@@ -1,8 +1,10 @@
 #ifndef GameConfig_h__
 #define GameConfig_h__
 
-#define VERSION( a , b , c ) ( ( unsigned char(a)<< 24 ) | ( unsigned char(b)<< 16 ) | unsigned short(c) )
-#define LAST_VERSION  VERSION( 0xff , 0xff , 0xff )
+#include "CommonMarco.h"
+#include "CoreShare.h"
+
+#define LAST_VERSION  MAKE_VERSION( 0xff , 0xff , 0xffff )
 #define MAX_PLAYER_NAME_LENGTH 32
 
 #ifdef TG_DLL
@@ -19,12 +21,10 @@
 
 #define F_INLINE __forceinline
 
-#define CONCATENATE_DIRECT(s1, s2) s1##s2
-#define CONCATENATE(s1, s2) CONCATENATE_DIRECT(s1, s2)
 
 #ifndef SINGLE_THREAD
 #define DEFINE_MUTEX( MUTEX ) Mutex MUTEX;
-#define MUTEX_LOCK( MUTEX ) Mutex::Locker CONCATENATE( locker , __LINE__ )( MUTEX );
+#define MUTEX_LOCK( MUTEX ) Mutex::Locker MARCO_NAME_COMBINE_2( locker , __LINE__ )( MUTEX );
 #else
 #define DEFINE_MUTEX( MUTEX )
 #define MUTEX_LOCK( MUTEX ) 

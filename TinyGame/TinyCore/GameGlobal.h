@@ -2,11 +2,12 @@
 #define GameGlobal_h__
 
 #include "GameConfig.h"
-#include "CoreShare.h"
+#include "GameShare.h"
 
 #include "TVector2.h"
 #include "FixString.h"
 #include "IntegerType.h"
+#include "CommonMarco.h"
 
 #define USE_TRANSLATE
 #include "Localization.h"
@@ -25,14 +26,10 @@ float const PI = 3.141592653589793238462643383279f;
 #define DEG2RAD( deg ) float( deg * PI / 180.0f )
 #define RAD2DEG( rad ) float( rad * 180.0f / PI )
 
-#ifndef ARRAY_SIZE
-#define ARRAY_SIZE( ar ) ( sizeof(ar)/sizeof(ar[0]) )
-#endif
-
-#define HEX__(n) 0x##n##LU
+#define COMBINE_HEX(n) 0x##n##LU
 
 /* 8-bit conversion function */
-#define B8__( n ) \
+#define HEX_TO_BINARY8( n ) \
 	( ( n & 0x0000000fLU)?  1:0 ) + \
 	( ( n & 0x000000f0LU)?  2:0 ) + \
 	( ( n & 0x00000f00LU)?  4:0 ) + \
@@ -42,15 +39,10 @@ float const PI = 3.141592653589793238462643383279f;
 	( ( n & 0x0f000000LU)? 64:0 ) + \
 	( ( n & 0xf0000000LU)?128:0 )
 
-#define BINARY(d) ( (unsigned)B8__( HEX__(d) ) )
-#define BINARY32( a , b , c , d ) ( ( BINARY( a ) << 24) | (BINARY( b ) << 16) | (BINARY( c ) << 8) | BINARY( d ))
-#define ARRAY2BIT4( a , b , c , d ) ( (BINARY(a)<<12)|(BINARY(b)<<8)|(BINARY(c)<<4)|BINARY(d) ) 
-#define ARRAY2BIT3( a , b , c )     ( (BINARY(a)<< 6)|(BINARY(b)<<3)|BINARY(c) )
-
-#ifndef BIT
-#define BIT(i) ( 1 << (i) )
-#endif
-
+#define BINARY8(d) ( (unsigned)HEX_TO_BINARY8( COMBINE_HEX(d) ) )
+#define BINARY32( a , b , c , d ) ( ( BINARY8( a ) << 24) | (BINARY8( b ) << 16) | (BINARY8( c ) << 8) | BINARY8( d ))
+#define ARRAY2BIT4( a , b , c , d ) ( (BINARY8(a)<<12)|(BINARY8(b)<<8)|(BINARY8(c)<<4)|BINARY8(d) ) 
+#define ARRAY2BIT3( a , b , c )     ( (BINARY8(a)<< 6)|(BINARY8(b)<<3)|BINARY8(c) )
 
 
 class DrawEngine;

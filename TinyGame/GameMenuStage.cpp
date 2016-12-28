@@ -51,7 +51,7 @@ bool GameMenuStage::onMouse( MouseMsg const& msg )
 	bool result = StageBase::onMouse( msg );
 
 	if ( msg.onLeftDown() &&
-		::Global::GUI().getManager().getLastMouseMsgUI() == NULL )
+		::Global::GUI().getManager().getLastMouseMsgWidget() == NULL )
 	{
 		for( TaskList::iterator iter = mSkipTasks.begin();
 			iter != mSkipTasks.end() ; ++iter )

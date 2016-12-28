@@ -19,8 +19,11 @@ namespace Phy2D
 			gDebugJumper.jump();
 	}
 
+
 	bool Phy2DStageBase::onInit()
 	{
+		GDebugJumpFun = jumpDebug;
+
 		if( !BaseClass::onInit() )
 			return false;
 		::Global::GUI().cleanupWidget();

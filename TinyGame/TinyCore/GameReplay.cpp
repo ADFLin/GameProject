@@ -151,7 +151,7 @@ bool ReplayBase::loadReplayInfo( char const* path , ReplayHeader& header , Repla
 		return false;
 	IStreamOpteraion op( fs );
 	op & header;
-	if ( header.version == VERSION(0,0,1) )
+	if ( header.version == MAKE_VERSION(0,0,1) )
 	{
 		ReplayInfoV0_0_1 oldInfo;
 
@@ -160,7 +160,7 @@ bool ReplayBase::loadReplayInfo( char const* path , ReplayHeader& header , Repla
 		info.gameInfoData    = oldInfo.gameInfoData;
 		info.dataSize        = oldInfo.dataSize;
 		info.gameVersion     = oldInfo.gameVersion;
-		info.templateVersion = VERSION( 0 , 0 , 1 );
+		info.templateVersion = MAKE_VERSION( 0 , 0 , 1 );
 
 		oldInfo.gameInfoData = NULL;
 	}
@@ -413,7 +413,7 @@ namespace OldVersion
 		{
 			switch( mHeader.version )
 			{
-			case VERSION(0,0,1):
+			case MAKE_VERSION(0,0,1):
 				{
 					ReplayInfoV0_0_1 oldInfo;
 					op & oldInfo;
@@ -422,7 +422,7 @@ namespace OldVersion
 					mInfo.gameInfoData    = oldInfo.gameInfoData;
 					mInfo.dataSize        = oldInfo.dataSize;
 					mInfo.gameVersion     = oldInfo.gameVersion;
-					mInfo.templateVersion = VERSION( 0 , 0 , 1 );
+					mInfo.templateVersion = MAKE_VERSION( 0 , 0 , 1 );
 
 					oldInfo.gameInfoData = NULL;
 				}

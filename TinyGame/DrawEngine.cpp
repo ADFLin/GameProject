@@ -8,10 +8,10 @@
 #include <cmath>
 
 template< class T >
-class TGraphics2D : public IGraphics2D
+class TGraphics2DProxy : public IGraphics2D
 {
 public:
-	TGraphics2D( T& g ):mImpl(g){}
+	TGraphics2DProxy( T& g ):mImpl(g){}
 
 	virtual void beginBlend( Vec2i const& pos , Vec2i const& size , float alpha ){ mImpl.beginBlend( pos , size , alpha ); }
 	virtual void endBlend(){ mImpl.endBlend(); }
@@ -34,11 +34,11 @@ public:
 
 IGraphics2D& DrawEngine::getIGraphics()
 {
-	static TGraphics2D< Graphics2D > g1( *mScreenGraphics );
-	static TGraphics2D< GLGraphics2D > g2( *mGLGraphics );
+	static TGraphics2DProxy< Graphics2D > proxySimple( *mScreenGraphics );
+	static TGraphics2DProxy< GLGraphics2D > proxyGL( *mGLGraphics );
 	if ( mbGLEnable ) 
-		return g2;
-	return g1;
+		return proxyGL;
+	return proxySimple;
 }
 
 DrawEngine::DrawEngine()

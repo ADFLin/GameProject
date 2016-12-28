@@ -416,21 +416,32 @@ bool DelayClientWorker::updateSocket( long time )
 	return true;
 }
 
-void DelayClientWorker::setDelay( long time )
+void DelayClientWorker::setDelay( long delay , long delayRand )
 {
-	mSDCTcp.setDelay( time );
-	mSDCUdp.setDelay( time );
-	mRDCTcp.setDelay( time );
-	mRDCUdp.setDelay( time );
-	mRDCUdpCL.setDelay( time );
+	mSDCTcp.setDelay( delay , delayRand );
+	mSDCUdp.setDelay( delay, delayRand );
+	mRDCTcp.setDelay(delay, delayRand);
+	mRDCUdp.setDelay(delay, delayRand);
+	mRDCUdpCL.setDelay(delay, delayRand);
+}
+
+DelayCtrlBase::DelayCtrlBase() 
+	:mDelay(0)
+	,mDelayRand(0)
+	,mCurTime(0)
+{
+
+}
+
+long DelayCtrlBase::makeDelayValue()
+{
+	return mDelay + ::Global::Random() % mDelayRand;
 }
 
 SendDelayCtrl::SendDelayCtrl( NetBufferCtrl& bufferCtrl ) 
 	:mBufferCtrl( bufferCtrl )
 	,mBuffer( bufferCtrl.getBuffer().getMaxSize() )
 {
-	mDelay = 0;
-	mCurTime = 0;
 }
 
 void SendDelayCtrl::update( long time )
@@ -468,14 +479,13 @@ bool SendDelayCtrl::add( IComPacket* cp )
 	if ( info.size == 0 )
 		return false;
 
-	info.time = mCurTime + mDelay;
+	info.time = mCurTime + makeDelayValue();
 	mInfoList.push_back( info );
 	return true;
 }
 
 RecvDelayCtrl::RecvDelayCtrl( int size ) 
 	:mBuffer( size )
-	,mCurTime(0)
 {
 
 }
@@ -553,7 +563,7 @@ bool RecvDelayCtrl::add( SocketBuffer& buffer , bool isUdpPacket )
 		++count;
 	}
 
-	info.time  = mCurTime + mDelay;
+	info.time  = mCurTime + makeDelayValue();
 	mInfoList.push_back( info );
 	return true;
 }

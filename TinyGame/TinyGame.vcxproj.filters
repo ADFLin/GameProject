@@ -69,12 +69,6 @@
     <ClCompile Include="Bsp2D.cpp">
       <Filter>Source</Filter>
     </ClCompile>
-    <ClCompile Include="GLCommon.cpp">
-      <Filter>Source</Filter>
-    </ClCompile>
-    <ClCompile Include="GLUtility.cpp">
-      <Filter>Source</Filter>
-    </ClCompile>
     <ClCompile Include="main.cpp">
       <Filter>Source</Filter>
     </ClCompile>
@@ -112,9 +106,6 @@
       <Filter>Stage</Filter>
     </ClCompile>
     <ClCompile Include="RubiksStage.cpp">
-      <Filter>Stage</Filter>
-    </ClCompile>
-    <ClCompile Include="TestStage.cpp">
       <Filter>Stage</Filter>
     </ClCompile>
     <ClCompile Include="Bejeweled\BJLevel.cpp">
@@ -222,11 +213,23 @@
     <ClCompile Include="Go\ZenBot.cpp">
       <Filter>GameGo</Filter>
     </ClCompile>
+    <ClCompile Include="MiscTestStage.cpp">
+      <Filter>Stage</Filter>
+    </ClCompile>
+    <ClCompile Include="Stage\CompressionTestStage.cpp">
+      <Filter>Stage</Filter>
+    </ClCompile>
+    <ClCompile Include="..\OtherLib\lz78\bitio.cpp">
+      <Filter>OtherLib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\OtherLib\lz78\lz78.cpp">
+      <Filter>OtherLib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\OtherLib\lz78\wrapper.cpp">
+      <Filter>OtherLib</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="GLDrawUtility.h">
-      <Filter>Source</Filter>
-    </ClInclude>
     <ClInclude Include="Bsp2D.h">
       <Filter>Include</Filter>
     </ClInclude>
@@ -234,12 +237,6 @@
       <Filter>Include</Filter>
     </ClInclude>
     <ClInclude Include="Geometry2d.h">
-      <Filter>Include</Filter>
-    </ClInclude>
-    <ClInclude Include="GLCommon.h">
-      <Filter>Include</Filter>
-    </ClInclude>
-    <ClInclude Include="GLUtility.h">
       <Filter>Include</Filter>
     </ClInclude>
     <ClInclude Include="resource.h">
@@ -288,9 +285,6 @@
       <Filter>Stage</Filter>
     </ClInclude>
     <ClInclude Include="RubiksStage.h">
-      <Filter>Stage</Filter>
-    </ClInclude>
-    <ClInclude Include="TestStage.h">
       <Filter>Stage</Filter>
     </ClInclude>
     <ClInclude Include="VoronoiStage.h">
@@ -439,6 +433,21 @@
     </ClInclude>
     <ClInclude Include="Go\ZenBot.h">
       <Filter>GameGo</Filter>
+    </ClInclude>
+    <ClInclude Include="MiscTestStage.h">
+      <Filter>Stage</Filter>
+    </ClInclude>
+    <ClInclude Include="Stage\TestStageHeader.h">
+      <Filter>Stage</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OtherLib\lz78\lz78.h">
+      <Filter>OtherLib</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OtherLib\lz78\wrapper.h">
+      <Filter>OtherLib</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OtherLib\lz78\bitio.h">
+      <Filter>OtherLib</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

@@ -124,6 +124,9 @@
     <ClInclude Include="BomberMan\BMStage.h" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\libEngine\EngineShare.vcxproj">
+      <Project>{061a25a9-fc8b-4fe1-915f-ec50c0ea354b}</Project>
+    </ProjectReference>
     <ProjectReference Include="..\libEngine\libEngine.vcxproj">
       <Project>{c1b32c2b-9a40-4874-869f-fcc57bb1d93f}</Project>
       <ReferenceOutputAssembly>false</ReferenceOutputAssembly>

@@ -1,6 +1,8 @@
 #ifndef ProfileSystem_h__
 #define ProfileSystem_h__
 
+#include "CoreShare.h"
+
 #ifdef USE_PROFILE
 #	define	PROFILE_ENTRY( name )         ProfileSample __profile_##__LINE__( name );
 #	define	PROFILE_ENTRY2( name , flag ) ProfileSample __profile_##__LINE__( name , flag );
@@ -36,28 +38,27 @@ public:
 
 	ProfileSystem ( char const* rootName = "Root" );
 
-	void	startProfile( const char * name , unsigned flag = 0 );
-	void	stopProfile();
+	CORE_API void startProfile( const char * name , unsigned flag = 0 );
+	CORE_API void stopProfile();
 
 	SampleNode* getRootSample(){ return mRootSample; }
-	void	    cleanup();
+	CORE_API void cleanup();
 
-	void	reset();
-	void	incrementFrameCount();
+	CORE_API void	reset();
+	CORE_API void	incrementFrameCount();
 	int		getFrameCountSinceReset( )		{ return mFrameCounter; }
-	float   getTimeSinceReset( );
+	CORE_API float   getTimeSinceReset( );
 
-	SampleIterator  getSampleIterator( );
+	CORE_API SampleIterator  getSampleIterator( );
 
-	void    dumpRecursive( SampleIterator* profileIterator, int spacing );
-	void    dumpAll();
-
-	SampleNode* createSampleNode( char const* name , SampleNode* parent );
-	void        destorySampleNode( SampleNode* node );
-
-
+	CORE_API void    dumpRecursive( SampleIterator* profileIterator, int spacing );
+	CORE_API void    dumpAll();
 
 private:
+
+	SampleNode* createSampleNode(char const* name, SampleNode* parent);
+	void        destorySampleNode(SampleNode* node);
+
 	void cleanup( SampleNode* node );
 
 	unsigned              mCurFlag;
@@ -227,7 +228,7 @@ public:
 };
 
 
-class	ProfileSample 
+class CORE_API ProfileSample
 {
 public:
 	ProfileSample( const char * name , unsigned flag = 0 );

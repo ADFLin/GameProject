@@ -1,7 +1,7 @@
 #ifndef ZUISystem_h__
 #define ZUISystem_h__
 
-#include "TUICommon.h"
+#include "WidgetCommon.h"
 #include "ZEventHandler.h"
 #include "IRenderSystem.h"
 
@@ -61,11 +61,11 @@ namespace Zuma
 	};
 
 
-	class ZWidget : public TUICore< ZWidget >
+	class ZWidget : public WidgetCoreT< ZWidget >
 	{
 	public:
 		ZWidget( Vec2i const& pos , Vec2i const& size , ZWidget* parent )
-			:TUICore< ZWidget >( pos , size , parent ){}
+			:WidgetCoreT< ZWidget >( pos , size , parent ){}
 		int    getUIID() const { return m_idUI; }
 		ResID  getTexID() const { return m_idTex; }
 
@@ -82,7 +82,7 @@ namespace Zuma
 		int    m_idUI;
 	};
 
-	typedef UIPackage< ZWidget > GameUI;
+	typedef TWidgetLibrary< ZWidget > GameUI;
 	
 	class ZDialogButton;
 
@@ -96,7 +96,7 @@ namespace Zuma
 		ITexture2D*     getTexture( ResID idTex );
 		void            drawUI( ZWidget* ui , int frame = -1);
 		void            drawTex( ResID idTex , Vec2D const& pos , int frame = -1);
-		ZWidget*        findUI( int idUI , TUICore<ZWidget>* parent = NULL );
+		ZWidget*        findUI( int idUI , WidgetCoreT<ZWidget>* parent = NULL );
 		IRenderSystem&  getRenderSystem(){ return *mRDSystem; }
 
 	protected:
@@ -120,7 +120,7 @@ namespace Zuma
 	};
 
 
-	class ZButton : public GameUI::Button< ZButton >
+	class ZButton : public GameUI::ButtonT< ZButton >
 	{
 	public:
 		ZButton( int idUI , ResID idTex , Vec2i const& pos , ZWidget* parent );
@@ -189,7 +189,7 @@ namespace Zuma
 		std::string  title;
 	};
 
-	class ZSlider : public GameUI::Slider< ZSlider >
+	class ZSlider : public GameUI::SliderT< ZSlider >
 	{
 	public:
 		ZSlider( int idUI , Vec2i const& pos , ZWidget* parent );
@@ -206,7 +206,7 @@ namespace Zuma
 		ResID idTexTip;
 	};
 
-	class ZPanel : public GameUI::Panel< ZPanel >
+	class ZPanel : public GameUI::PanelT< ZPanel >
 	{
 	public:
 		ZPanel( int idUI , Vec2i const& pos ,  Vec2i const& size , ZWidget* parent );

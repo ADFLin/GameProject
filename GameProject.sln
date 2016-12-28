@@ -13,7 +13,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "CFly Sample", "CFly Sample"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Test", "Test", "{5728F750-488F-42D3-9DE7-E42FE131D6D5}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "libEngine", "libEngine\libEngine.vcxproj", "{C1B32C2B-9A40-4874-869F-FCC57BB1D93F}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "EngineCore", "libEngine\libEngine.vcxproj", "{C1B32C2B-9A40-4874-869F-FCC57BB1D93F}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "libRPG", "RPGProject\libRPG.vcxproj", "{BA443551-7968-4E17-AECD-0CEFB046C2CB}"
 EndProject
@@ -107,6 +107,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "GameCarcassonne", "TinyGame
 	ProjectSection(ProjectDependencies) = postProject
 		{F3B972DF-7AED-4D2E-99AF-5AD3BC736F61} = {F3B972DF-7AED-4D2E-99AF-5AD3BC736F61}
 	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "EngineShare", "libEngine\EngineShare.vcxproj", "{061A25A9-FC8B-4FE1-915F-EC50C0EA354B}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -326,6 +328,12 @@ Global
 		{3E831092-4348-48AF-821A-9CAF0EEA86E1}.Release|Win32.ActiveCfg = Release|Win32
 		{3E831092-4348-48AF-821A-9CAF0EEA86E1}.Release|Win32.Build.0 = Release|Win32
 		{3E831092-4348-48AF-821A-9CAF0EEA86E1}.Release|x64.ActiveCfg = Release|Win32
+		{061A25A9-FC8B-4FE1-915F-EC50C0EA354B}.Debug|Win32.ActiveCfg = Debug|Win32
+		{061A25A9-FC8B-4FE1-915F-EC50C0EA354B}.Debug|Win32.Build.0 = Debug|Win32
+		{061A25A9-FC8B-4FE1-915F-EC50C0EA354B}.Debug|x64.ActiveCfg = Debug|Win32
+		{061A25A9-FC8B-4FE1-915F-EC50C0EA354B}.Release|Win32.ActiveCfg = Release|Win32
+		{061A25A9-FC8B-4FE1-915F-EC50C0EA354B}.Release|Win32.Build.0 = Release|Win32
+		{061A25A9-FC8B-4FE1-915F-EC50C0EA354B}.Release|x64.ActiveCfg = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

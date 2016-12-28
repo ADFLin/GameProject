@@ -36,7 +36,6 @@ namespace CFly
 		mFlag      = 0;
 		mParent    = nullptr;
 		mManager   = nullptr;
-		mName      = nullptr;
 	}
 
 	void NodeBase::setParent( NodeBase* parent )
@@ -60,7 +59,7 @@ namespace CFly
 
 	void NodeManager::unregisterName( NodeBase* node )
 	{
-		if ( node->mName == NULL )
+		if ( node->mName == EName::None )
 			return;
 
 		NodeNameMap::iterator iter = mNameMap.find( node->mName );
@@ -68,17 +67,17 @@ namespace CFly
 			return;
 
 		mNameMap.erase( iter );
-		node->mName = NULL;
+		node->mName = EName::None;
 	}
 
 	bool NodeManager::registerName( NodeBase* node , char const* name )
 	{
-		if ( node->mName )
+		if ( node->mName != EName::None )
 			unregisterName( node );
 
-		assert( node->mName == NULL );
+		node->mName = name;
 		std::pair< NodeNameMap::iterator, bool> result = mNameMap.insert( 
-			std::make_pair( String( name ) , node ) );
+			std::make_pair(node->mName, node ) );
 
 		return result.second;
 	}

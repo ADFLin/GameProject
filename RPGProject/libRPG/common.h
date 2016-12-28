@@ -9,7 +9,8 @@
 typedef TVector2< int > Vec2i;
 
 #include "CppVersion.h"
-#include "DebugSystem.h"
+#include "LogSystem.h"
+#include "CommonMarco.h"
 #include "FastDelegate/FastDelegate.h"
 
 #include <vector>
@@ -70,16 +71,6 @@ typedef std::wstring String;
 typedef std::string String;
 #endif
 
-template< class T , size_t N >
-size_t array_size( T (&ar)[N] ){ return N; }
-
-#define ARRAY_SIZE( var ) array_size( var )
-
-
-
-#ifndef BIT
-#	define BIT( n ) ( 1 <<(n) )
-#endif
 
 template < class T >
 inline T TMax( T a , T b )

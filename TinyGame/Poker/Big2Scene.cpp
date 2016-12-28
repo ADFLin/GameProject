@@ -16,9 +16,9 @@
 
 namespace Poker { namespace Big2 {
 
-	class CardButton : public GUI::Button< CardButton >
+	class CardButton : public GUI::ButtonT< CardButton >
 	{
-		typedef GUI::Button< CardButton > BaseClass;
+		typedef GUI::ButtonT< CardButton > BaseClass;
 	public:
 		CardButton( Scene* scene , int idx )
 			:BaseClass( Vec2i(0,0) , scene->getCardSize() , NULL )
@@ -65,9 +65,9 @@ namespace Poker { namespace Big2 {
 
 
 
-	class ActionButton : public GUI::Button< ActionButton >
+	class ActionButton : public GUI::ButtonT< ActionButton >
 	{
-		typedef GUI::Button< ActionButton > BaseClass;
+		typedef GUI::ButtonT< ActionButton > BaseClass;
 	public:
 		enum Action
 		{

@@ -21,7 +21,7 @@ namespace Bubble
 	bool BubbleReplayTemplate::getReplayInfo( ReplayInfo& info )
 	{
 		strcpy_s( info.name , BUBBLE_NAME );
-		info.gameVersion     = VERSION(0,0,1);
+		info.gameVersion     = MAKE_VERSION(0,0,1);
 		info.templateVersion = BubbleReplayTemplate::Version;
 		info.setGameData( sizeof( BubbleGameInfo ) );
 		return true;

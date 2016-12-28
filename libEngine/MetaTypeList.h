@@ -1,7 +1,7 @@
 #ifndef MetaTypeList_h__
 #define MetaTypeList_h__
 
-#include "MetaBase.hpp"
+#include "MetaBase.h"
 
 namespace Meta
 {

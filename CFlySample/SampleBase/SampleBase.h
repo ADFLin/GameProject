@@ -42,7 +42,7 @@ class CameraController
 class SampleBase : public GameLoopT< SampleBase , Win32Platform > 
 	             , public WinFrameT< SampleBase >
 	             , public SysMsgHandlerT< SampleBase >
-				 , public IMsgListener
+				 , public ILogListener
 {
 public:
 	virtual bool onSetupSample(){ return true; }
@@ -73,7 +73,7 @@ private:
 	friend class GameLoopT;
 
 protected:
-	virtual void receive( MsgChannel channel , char const* str );
+	virtual void receiveLog( LogChannel channel , char const* str );
 
 	String          mDevMsg[ 7 ];
 	CFly::Camera*   mMainCamera;

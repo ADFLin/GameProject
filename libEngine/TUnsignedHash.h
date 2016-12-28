@@ -82,7 +82,8 @@ public:
 		Node** head;
 		Node* current;
 
-		friend axUIntHash;
+		template< class T >
+		friend class TUnisgnedHash;
 	};
 
 	void push( T const& val)

@@ -3,7 +3,7 @@
 #include "BMLevel.h"
 #include "BMRender.h"
 
-#include "CoreShare.h"
+#include "GameShare.h"
 
 //FIXME
 #include "GameGlobal.h"

@@ -1,7 +1,7 @@
 #include "TinyGamePCH.h"
 #include "ComPacket.h"
 
-#include "CoreShare.h"
+#include "GameShare.h"
 #include "SocketBuffer.h"
 
 #include "THolder.h"

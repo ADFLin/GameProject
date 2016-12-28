@@ -1,7 +1,10 @@
-#include "TinyGamePCH.h"
 #include "GLUtility.h"
 
 #include "Win32Header.h"
+
+#include "CommonMarco.h"
+#include "FixString.h"
+
 #include <map>
 
 namespace GL

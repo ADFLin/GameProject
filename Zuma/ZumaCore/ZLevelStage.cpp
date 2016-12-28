@@ -38,7 +38,7 @@ namespace Zuma
 		button = new ZTexButton( 
 			UI_MENU_BUTTON , IMAGE_MENU_BUTTON , Vec2D(540,5) , NULL );
 
-		getUISystem()->addUI( button );
+		getUISystem()->addWidget( button );
 
 		restartLevel();
 
@@ -122,7 +122,7 @@ namespace Zuma
 		{
 		case UI_MENU_BUTTON: 
 			if ( getUISystem()->findUI( UI_MENU_PANEL ) == NULL )
-				getUISystem()->addUI( new ZMenuPanel( Vec2i(0,0) , NULL ) );
+				getUISystem()->addWidget( new ZMenuPanel( Vec2i(0,0) , NULL ) );
 			break;
 		}
 

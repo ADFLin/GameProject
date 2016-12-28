@@ -22,9 +22,6 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="CoreShare.h">
-      <Filter>Common</Filter>
-    </ClInclude>
     <ClInclude Include="DrawEngine.h">
       <Filter>Common</Filter>
     </ClInclude>
@@ -116,6 +113,9 @@
       <Filter>Common</Filter>
     </ClInclude>
     <ClInclude Include="TinyCore\StageRegister.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="GameShare.h">
       <Filter>Common</Filter>
     </ClInclude>
   </ItemGroup>

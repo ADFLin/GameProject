@@ -1,5 +1,7 @@
 #include "TinyGamePCH.h"
-#include "TestStage.h"
+#include "MiscTestStage.h"
+
+#include "Stage/TestStageHeader.h"
 
 #include <cmath>
 
@@ -984,7 +986,7 @@ void ClassTree::unregisterClass( ClassTreeNode* node , bool bReregister )
 	
 	if ( !bReregister )
 	{
-		for( int i = 0 ; i < node->children.size() ; ++i )
+		for( size_t i = 0 ; i < node->children.size() ; ++i )
 		{
 			ClassTreeNode* child = node->children[i];
 			child->indexParentSlot = -1;
@@ -1041,12 +1043,37 @@ static void testClassTree()
 	e.clear();
 }
 
+#include <functional>
+
+struct MiscTestEntry
+{
+	FixString< 128 > name;
+	std::function< void () > fun;
+};
+
+std::vector< MiscTestEntry>& GetRegisterMiscTestEntries()
+{
+	static std::vector< MiscTestEntry> gRegisterMiscTestEntries;
+	return gRegisterMiscTestEntries;
+}
+
+MiscTestRegister::MiscTestRegister(char const* name, std::function< void() > const& fun )
+{
+	GetRegisterMiscTestEntries().push_back({ name , fun });
+}
+
 bool MiscTestStage::onInit()
 {
 	::Global::GUI().cleanupWidget();
 
 	addTest( "Class Tree" , testClassTree );
 	addTest( "Big Number" , testBigNumber );
+
+	auto& entries = GetRegisterMiscTestEntries();
+	for( auto entry : entries )
+	{
+		addTest(entry.name, entry.fun);
+	}
 	restart();
 	return true;
 }

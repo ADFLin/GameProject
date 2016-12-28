@@ -21,7 +21,7 @@ bool Bitset::test( size_t pos ) const
 	size_t idx = pos >> STORAGE_POS_OFFSET;
 	StorageType bit =  1 << ( pos & BIT_POS_MASK );
 
-	return ( mStorage[ idx ] & bit ) != 0;
+	return !!( mStorage[ idx ] & bit );
 }
 
 Bitset& Bitset::set( size_t pos , bool val /*= true */ )

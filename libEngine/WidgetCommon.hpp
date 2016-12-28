@@ -1,7 +1,7 @@
 #ifndef TUICommon_hpp__
 #define TUICommon_hpp__
 
-#include "TUICommon.h"
+#include "WidgetCommon.h"
 #include "PlatformConfig.h"
 
 #ifdef SYS_PLATFORM_WIN
@@ -9,7 +9,7 @@
 #endif
 
 template < class Impl ,class CoreImpl >
-bool  TButtonUI< Impl , CoreImpl >::onMouseMsg( MouseMsg const& msg )
+bool  WButtonT< Impl , CoreImpl >::onMouseMsg( MouseMsg const& msg )
 {
 	CoreImpl::onMouseMsg( msg );
 
@@ -30,7 +30,7 @@ bool  TButtonUI< Impl , CoreImpl >::onMouseMsg( MouseMsg const& msg )
 }
 
 template < class Impl ,class CoreImpl >
-void TButtonUI< Impl , CoreImpl >::mouseOverlap( bool beInside )
+void WButtonT< Impl , CoreImpl >::mouseOverlap( bool beInside )
 {
 	CoreImpl::mouseOverlap( beInside );
 
@@ -41,7 +41,7 @@ void TButtonUI< Impl , CoreImpl >::mouseOverlap( bool beInside )
 }
 
 template < class Impl ,class CoreImpl >
-void TButtonUI< Impl , CoreImpl >::setButtonState( ButtonState state )
+void WButtonT< Impl , CoreImpl >::setButtonState( ButtonState state )
 {
 	if ( m_state == state )
 		return;
@@ -156,7 +156,7 @@ bool TItemOwnerUI<Impl, CoreImpl>::onKeyMsg( unsigned key , bool isDown )
 }
 
 template < class Impl, class CoreImpl >
-bool TChoiceUI<Impl, CoreImpl>::onMouseMsg( MouseMsg const& msg )
+bool WChoiceT<Impl, CoreImpl>::onMouseMsg( MouseMsg const& msg )
 {
 	CoreImpl::onMouseMsg( msg );
 
@@ -174,7 +174,7 @@ bool TChoiceUI<Impl, CoreImpl>::onMouseMsg( MouseMsg const& msg )
 		mLightSelect = mCurSelect;
 
 		Menu* menu = new Menu( pos , size , this );
-		getManager()->addUI( menu );
+		getManager()->addWidget( menu );
 		//_addFlag( UF_HITTEST_CHILDREN );
 		menu->setTop();
 		menu->setFocus();
@@ -183,7 +183,7 @@ bool TChoiceUI<Impl, CoreImpl>::onMouseMsg( MouseMsg const& msg )
 }
 
 template < class Impl, class CoreImpl >
-bool TChoiceUI<Impl, CoreImpl>::_onMenuMouseMsg( Menu* menu , MouseMsg const& msg )
+bool WChoiceT<Impl, CoreImpl>::_onMenuMouseMsg( Menu* menu , MouseMsg const& msg )
 {
 	Vec2i menuSize = menu->getSize();
 	int posSelect = ( msg.getPos().y - menu->getWorldPos().y ) / _this()->getMenuItemHeight();
@@ -207,7 +207,7 @@ bool TChoiceUI<Impl, CoreImpl>::_onMenuMouseMsg( Menu* menu , MouseMsg const& ms
 }
 
 template < class Impl, class CoreImpl >
-void TChoiceUI<Impl, CoreImpl>::_onRenderMenu( Menu* menu )
+void WChoiceT<Impl, CoreImpl>::_onRenderMenu( Menu* menu )
 {
 	_this()->doRenderMenuBG( menu );
 	Vec2i pos = menu->getWorldPos();
@@ -219,7 +219,7 @@ void TChoiceUI<Impl, CoreImpl>::_onRenderMenu( Menu* menu )
 }
 
 template < class Impl , class CoreImpl >
-bool TTextCtrlUI<Impl, CoreImpl>::isDoubleChar( int pos )
+bool WTextCtrlT<Impl, CoreImpl>::isDoubleChar( int pos )
 {
 	if ( pos < 0 )
 		return false;
@@ -238,7 +238,7 @@ bool TTextCtrlUI<Impl, CoreImpl>::isDoubleChar( int pos )
 }
 
 template < class Impl , class CoreImpl >
-bool TTextCtrlUI<Impl, CoreImpl>::onKeyMsg( unsigned key , bool isDown )
+bool WTextCtrlT<Impl, CoreImpl>::onKeyMsg( unsigned key , bool isDown )
 {
 	if ( isDown )
 	{
@@ -265,7 +265,7 @@ bool TTextCtrlUI<Impl, CoreImpl>::onKeyMsg( unsigned key , bool isDown )
 			break;
 		case Keyboard::eRETURN:
 			_this()->onPressEnter();
-			getManager()->setFocusUI( NULL );
+			getManager()->focusWidget( NULL );
 			break;
 
 		case Keyboard::eV:
@@ -306,7 +306,7 @@ bool TTextCtrlUI<Impl, CoreImpl>::onKeyMsg( unsigned key , bool isDown )
 }
 
 template < class Impl , class CoreImpl >
-bool TTextCtrlUI<Impl, CoreImpl>::onCharMsg( unsigned code )
+bool WTextCtrlT<Impl, CoreImpl>::onCharMsg( unsigned code )
 {
 	if ( ( code & 0x80 ) || isprint( code ) )
 	{
@@ -318,7 +318,7 @@ bool TTextCtrlUI<Impl, CoreImpl>::onCharMsg( unsigned code )
 }
 
 template < class Impl , class CoreImpl >
-void TSliderUI<Impl, CoreImpl >::updateTipPos()
+void WSliderT<Impl, CoreImpl >::updateTipPos()
 {
 	Vec2i  const& size = m_tipUI->getSize();
 	float ratio = float( m_curValue - m_minRange ) / ( m_maxRange - m_minRange );
@@ -329,7 +329,7 @@ void TSliderUI<Impl, CoreImpl >::updateTipPos()
 }
 
 template < class Impl , class CoreImpl >
-void TSliderUI<Impl, CoreImpl >::correctTipPos( Vec2i& pos )
+void WSliderT<Impl, CoreImpl >::correctTipPos( Vec2i& pos )
 {
 	Vec2i  const& size = m_tipUI->getSize();
 	if ( m_beHorizontal )
@@ -345,7 +345,7 @@ void TSliderUI<Impl, CoreImpl >::correctTipPos( Vec2i& pos )
 }
 
 template < class Impl , class CoreImpl >
-void TSliderUI<Impl, CoreImpl>::updateValue()
+void WSliderT<Impl, CoreImpl>::updateValue()
 {
 	Vec2i const& pos = m_tipUI->getPos();
 	Vec2i const& size = m_tipUI->getSize();
@@ -359,7 +359,7 @@ void TSliderUI<Impl, CoreImpl>::updateValue()
 }
 
 template < class Impl , class CoreImpl >
-bool TSliderUI<Impl, CoreImpl>::TipUI::onMouseMsg( MouseMsg const& msg )
+bool WSliderT<Impl, CoreImpl>::TipUI::onMouseMsg( MouseMsg const& msg )
 {
 	static int x , y;
 
@@ -391,7 +391,7 @@ bool TSliderUI<Impl, CoreImpl>::TipUI::onMouseMsg( MouseMsg const& msg )
 
 
 template < class Impl , class CoreImpl  >
-TNoteBookUI<Impl, CoreImpl>::TNoteBookUI( Vec2i const& pos , Vec2i const& size , CoreImpl* parent ) 
+WNoteBookT<Impl, CoreImpl>::WNoteBookT( Vec2i const& pos , Vec2i const& size , CoreImpl* parent ) 
 	:CoreImpl(  pos , size , parent )
 {
 	curPageButton = NULL;
@@ -402,7 +402,7 @@ TNoteBookUI<Impl, CoreImpl>::TNoteBookUI( Vec2i const& pos , Vec2i const& size ,
 
 
 template < class Impl , class CoreImpl  >
-void TNoteBookUI<Impl, CoreImpl>::updatePageButtonPos()
+void WNoteBookT<Impl, CoreImpl>::updatePageButtonPos()
 {
 	int pid = 0;
 	for( ButtonVec::iterator iter = m_PBVec.begin();
@@ -416,7 +416,7 @@ void TNoteBookUI<Impl, CoreImpl>::updatePageButtonPos()
 
 
 template < class Impl , class CoreImpl  >
-void TNoteBookUI< Impl , CoreImpl >::render()
+void WNoteBookT< Impl , CoreImpl >::render()
 {
 	CoreImpl::render();
 
@@ -426,14 +426,14 @@ void TNoteBookUI< Impl , CoreImpl >::render()
 }
 
 template < class Impl , class CoreImpl  >
-void TNoteBookUI<Impl, CoreImpl >::changePage( int pID )
+void WNoteBookT<Impl, CoreImpl >::changePage( int pID )
 {
 	if ( curPageButton )
 	{
 		if ( curPageButton->pID == pID )
 			return;
 
-		curPageButton->page->_unlinkInternal();
+		curPageButton->page->_unlinkInternal(true);
 	}
 	PageButton* pb = m_PBVec[ pID ];
 	addChild( pb->page );
@@ -445,8 +445,8 @@ void TNoteBookUI<Impl, CoreImpl >::changePage( int pID )
 
 
 template < class Impl , class CoreImpl  >
-typename TNoteBookUI<Impl, CoreImpl>::Page* 
-TNoteBookUI<Impl, CoreImpl >::addPage( char const* title )
+typename WNoteBookT<Impl, CoreImpl>::Page* 
+WNoteBookT<Impl, CoreImpl >::addPage( char const* title )
 {
 	Page* page = new Page( _this()->getPagePos() , mPageSize , NULL );
 
@@ -466,7 +466,7 @@ TNoteBookUI<Impl, CoreImpl >::addPage( char const* title )
 }
 
 template < class Impl , class CoreImpl  >
-void TListCtrlUI< Impl , CoreImpl >::onRender()
+void WListCtrlT< Impl , CoreImpl >::onRender()
 {
 	Vec2i pos = getWorldPos();
 	Vec2i size = getSize();
@@ -483,7 +483,7 @@ void TListCtrlUI< Impl , CoreImpl >::onRender()
 }
 
 template < class Impl , class CoreImpl  >
-bool TListCtrlUI< Impl , CoreImpl >::onMouseMsg( MouseMsg const& msg )
+bool WListCtrlT< Impl , CoreImpl >::onMouseMsg( MouseMsg const& msg )
 {
 	unsigned posItem = mIndexShowStart + ( msg.getPos().y - getWorldPos().y ) / _this()->getItemHeight(); 
 	if ( posItem < mItemList.size() )
@@ -504,7 +504,7 @@ bool TListCtrlUI< Impl , CoreImpl >::onMouseMsg( MouseMsg const& msg )
 
 
 template < class Impl , class CoreImpl  >
-void TListCtrlUI< Impl , CoreImpl >::ensureVisible( unsigned pos )
+void WListCtrlT< Impl , CoreImpl >::ensureVisible( unsigned pos )
 {
 	int diff = int(pos) - mIndexShowStart;
 	if ( diff < 0 )

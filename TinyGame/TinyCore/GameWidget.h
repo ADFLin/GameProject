@@ -1,8 +1,8 @@
 #ifndef GameWidget_h__
 #define GameWidget_h__
 
-#include "TUICore.h"
-#include "TUICommon.h"
+#include "WidgetCore.h"
+#include "WidgetCommon.h"
 
 #include "DrawEngine.h"
 #include "Singleton.h"
@@ -59,7 +59,7 @@ class RenderCallBack ;
 class UIMotionTask;
 class WidgetRenderer;
 
-class  GWidget : public TUICore< GWidget >
+class  GWidget : public WidgetCoreT< GWidget >
 {
 public:
 	enum
@@ -144,7 +144,7 @@ public:
 	void operator()( DataType& data , ValueType const& value ){ data.setSize( value ); }
 };
 
-typedef UIPackage< GWidget > GUI;
+typedef TWidgetLibrary< GWidget > GUI;
 typedef GUI::Manager         UIManager;
 
 
@@ -196,9 +196,9 @@ RenderCallBack* RenderCallBack::create( T* ptr , MemFun fun )
 #include <string>
 
 
-class  GButtonBase : public GUI::Button< GButtonBase >
+class  GButtonBase : public GUI::ButtonT< GButtonBase >
 {
-	typedef GUI::Button< GButtonBase > BaseClass;
+	typedef GUI::ButtonT< GButtonBase > BaseClass;
 public:
 	GAME_API GButtonBase( int id , Vec2i const& pos , Vec2i const& size  , GWidget* parent )
 		:BaseClass( pos , size , parent )
@@ -234,9 +234,9 @@ public:
 	std::string mTitle;
 };
 
-class  GPanel : public GUI::Panel< GPanel >
+class  GPanel : public GUI::PanelT< GPanel >
 {
-	typedef GUI::Panel< GPanel > BaseClass;
+	typedef GUI::PanelT< GPanel > BaseClass;
 public:
 	enum RenderType
 	{
@@ -267,7 +267,7 @@ protected:
 };
 
 
-class  GNoteBook : public GUI::NoteBook< GNoteBook >
+class  GNoteBook : public GUI::NoteBookT< GNoteBook >
 {
 public:
 	GAME_API GNoteBook( int id , Vec2i const& pos , Vec2i const& size  , GWidget* parent );
@@ -282,9 +282,9 @@ public:
 	Vec2i getBaseButtonPos(){ return Vec2i( 2 , 2 ); }
 };
 
-class  GSlider : public GUI::Slider< GSlider >
+class  GSlider : public GUI::SliderT< GSlider >
 {
-	typedef GUI::Slider< GSlider > BaseClass;
+	typedef GUI::SliderT< GSlider > BaseClass;
 public:
 	GAME_API GSlider( int id , Vec2i const& pos , int length , bool beH , GWidget* parent );
 	static Vec2i TipSize;
@@ -312,9 +312,9 @@ public:
 };
 
 
-class  GTextCtrl : public GUI::TextCtrl < GTextCtrl >
+class  GTextCtrl : public GUI::TextCtrlT< GTextCtrl >
 {
-	typedef GUI::TextCtrl < GTextCtrl > BaseClass;
+	typedef GUI::TextCtrlT< GTextCtrl > BaseClass;
 public:
 	static const int UI_Height = 20;
 	GAME_API GTextCtrl( int id , Vec2i const& pos , int length , GWidget* parent );
@@ -324,9 +324,9 @@ public:
 	GAME_API void onRender();
 };
 
-class  GChoice : public GUI::Choice< GChoice >
+class  GChoice : public GUI::ChoiceT< GChoice >
 {
-	typedef GUI::Choice< GChoice > BaseClass;
+	typedef GUI::ChoiceT< GChoice > BaseClass;
 
 public:
 	GAME_API GChoice( int id , Vec2i const& pos , Vec2i const& size , GWidget* parent );
@@ -340,9 +340,9 @@ public:
 
 };
 
-class  GListCtrl : public GUI::ListCtrl< GListCtrl >
+class  GListCtrl : public GUI::ListCtrlT< GListCtrl >
 {
-	typedef GUI::ListCtrl< GListCtrl > BaseClass;
+	typedef GUI::ListCtrlT< GListCtrl > BaseClass;
 public:
 	GAME_API GListCtrl( int id , Vec2i const& pos , Vec2i const& size , GWidget* parent );
 

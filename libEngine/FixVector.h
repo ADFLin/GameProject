@@ -26,7 +26,7 @@ public:
 		mNext = mEle;
 		Storage* pEnd = mEle + num;
 		for( ; mNext != pEnd ; ++mNext )
-			_contruct( mNext , val );
+			contruct( mNext , val );
 	}
 	~FixVector(){  clear();  }
 
@@ -43,35 +43,35 @@ public:
 	void    resize( size_t num );
 	void    resize( size_t num , value_type const& value );
 
-	void push_back( T const& val ){  assert( mNext != mEle + N ); _contruct( mNext , val ); ++mNext; }
-	void pop_back(){  assert( size() != 0 ); --mNext; _castType( *mNext ).~T();  }
+	void push_back( T const& val ){  assert( mNext != mEle + N ); contruct( mNext , val ); ++mNext; }
+	void pop_back(){  assert( size() != 0 ); --mNext; castType( *mNext ).~T();  }
 
-	const_refernece front() const { return _castType( mEle[ 0 ] ); }
-	reference       front()       { return _castType( mEle[ 0 ] ); }
-	const_refernece back() const { return _castType( *(mNext - 1) ); }
-	reference       back()       { return _castType( *(mNext - 1) ); }
+	const_refernece front() const { return castType( mEle[ 0 ] ); }
+	reference       front()       { return castType( mEle[ 0 ] ); }
+	const_refernece back() const { return castType( *(mNext - 1) ); }
+	reference       back()       { return castType( *(mNext - 1) ); }
 
-	const_refernece at( size_t idx ) const  { _checkRange( begin() + idx ) ; return _castType( mEle[ idx ] ); }
-	reference       at( size_t idx )        { _checkRange( begin() + idx ) ; return _castType( mEle[ idx ] ); }
+	const_refernece at( size_t idx ) const  { checkRange( begin() + idx ) ; return castType( mEle[ idx ] ); }
+	reference       at( size_t idx )        { checkRange( begin() + idx ) ; return castType( mEle[ idx ] ); }
 
-	const_refernece operator[]( size_t idx ) const  { return _castType( mEle[ idx ] ); }
-	reference       operator[]( size_t idx )        { return _castType( mEle[ idx ] ); }
+	const_refernece operator[]( size_t idx ) const  { return castType( mEle[ idx ] ); }
+	reference       operator[]( size_t idx )        { return castType( mEle[ idx ] ); }
 
 	iterator erase( iterator iter )
 	{
-		_checkRange( iter );
+		checkRange( iter );
 		iter->~T();
-		_moveToEnd( iter , iter + 1 );
+		moveToEnd( iter , iter + 1 );
 		return iter;
 	}
 
 	iterator erase( iterator from , iterator to )
 	{
-		_checkRange( from );
-		_checkRange( to );
+		checkRange( from );
+		checkRange( to );
 		assert( to > from );
-		_destroy( from , to );
-		_moveToEnd( from ,  to );
+		destroy( from , to );
+		moveToEnd( from ,  to );
 		return from;
 	}	
 
@@ -81,13 +81,13 @@ public:
 #endif
 
 private:
-	T*        _getHead()       { return reinterpret_cast< T* >( mEle[0] ); }
-	T const*  _getHead() const { return reinterpret_cast< T const* >( mEle[0] ); }
-	void _moveToEnd( iterator from , iterator to  )
+	T*        getHead()       { return reinterpret_cast< T* >( mEle[0] ); }
+	T const*  getHead() const { return reinterpret_cast< T const* >( mEle[0] ); }
+	void      moveToEnd( iterator from , iterator to  )
 	{
 		while( to != (T*)mNext )
 		{
-			_contruct( from , *to );
+			contruct( from , *to );
 			to->~T();
 
 			++from;
@@ -98,21 +98,27 @@ private:
 
 	void  eraseToEnd( iterator is )
 	{
-		_destroy( is , end() );
+		destroy( is , end() );
 		mNext = reinterpret_cast< Storage*>( is );
 	}
 
-	void  _destroy( iterator is , iterator ie )
+	void  destroy( iterator is , iterator ie )
 	{
-		for (; is != ie ; ++is )
+		destroyInternal(is, ie, std::is_trivially_destructible<T>());
+	}
+
+	void  destroyInternal(iterator is, iterator ie, std::true_type ){}
+	void  destroyInternal(iterator is, iterator ie, std::false_type) 
+	{
+		for( ; is != ie; ++is )
 			is->~T();
 	}
 
-	void _contruct( void* ptr )
+	void contruct( void* ptr )
 	{
 		::new ( ptr ) T;  
 	}
-	void _contruct( void* ptr , T const& val )
+	void contruct( void* ptr , T const& val )
 	{
 		::new ( ptr ) T( val );  
 	}
@@ -123,9 +129,9 @@ private:
 	Storage  mEle[ N ];
 	Storage* mNext;
 
-	static T&       _castType( Storage& s )      { return *((T*)&s ); }
-	static T const& _castType( Storage const& s ){ return *((T const*)&s ); }
-	void   _checkRange( const_iterator it ) const { assert( begin() <= it && it < end() ); }
+	static T&       castType( Storage& s )      { return *((T*)&s ); }
+	static T const& castType( Storage const& s ){ return *((T const*)&s ); }
+	void   checkRange( const_iterator it ) const { assert( begin() <= it && it < end() ); }
 };
 
 
@@ -141,7 +147,7 @@ void  FixVector< T , N >::resize( size_t num )
 	{
 		Storage* pEnd = mEle + num;
 		for( ; mNext != pEnd ; ++mNext )
-			_contruct( mNext );
+			contruct( mNext );
 	}
 }
 
@@ -158,7 +164,7 @@ void  FixVector< T , N >::resize( size_t num , value_type const& value )
 	{
 		Storage* pEnd = mEle + num;
 		for( ; mNext != pEnd ; ++mNext )
-			_contruct( mNext , value );
+			contruct( mNext , value );
 	}
 }
 

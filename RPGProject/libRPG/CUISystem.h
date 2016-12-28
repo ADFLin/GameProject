@@ -42,7 +42,7 @@ public:
 	void render( bool clearFrame = false );
 	void addWidget( CWidget* w )
 	{
-		mUIManager.addUI( w );
+		mUIManager.addWidget( w );
 	}
 
 	void updateFrame();

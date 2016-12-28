@@ -131,7 +131,7 @@ namespace CFly
 		MaterialManager*  mMatManager;
 		D3DDevice*        mD3dDevice;
 		HWND              mhWnd;
-		IMsgListener*     mErrorMsgListener;
+		ILogListener*     mErrorMsgListener;
 		unsigned          mUseDirBit;
 
 		ViewportList      mViewports;

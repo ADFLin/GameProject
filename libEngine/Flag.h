@@ -1,7 +1,7 @@
 #ifndef Flag_h__
 #define Flag_h__
 
-#include "MetaBase.hpp"
+#include "MetaBase.h"
 
 #ifndef BIT
 #define BIT( n ) ( 1 << ( n ) )

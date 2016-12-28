@@ -3,7 +3,7 @@
 
 #include "Win32Header.h"
 #include "SysMsg.h"
-#include "MetaBase.hpp"
+#include "MetaBase.h"
 
 enum
 {

@@ -97,7 +97,7 @@ class  Replay : public ReplayBase
 	          , public DataStream
 {
 public:
-	static uint32 const LastVersion = VERSION(0,1,0);
+	static uint32 const LastVersion = MAKE_VERSION(0,1,0);
 
 	bool save( char const* path );
 	bool load( char const* path );
@@ -182,7 +182,7 @@ namespace OldVersion
 	class Replay : public ReplayBase
 	{
 	public:
-		static uint32 const LastVersion = VERSION(0,0,2);
+		static uint32 const LastVersion = MAKE_VERSION(0,0,2);
 		GAME_API Replay();
 
 		bool   isVaild();

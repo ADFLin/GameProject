@@ -177,7 +177,7 @@ namespace Zuma
 	void GameCore::onStageEnd( ZStage* stage , unsigned flag )
 	{
 		if ( ( flag & SF_DONT_CLEAR_UI ) == 0 )
-			getUISystem()->cleanupUI();
+			getUISystem()->cleanupWidgets();
 		if ( ( flag & SF_DONT_CLEAR_TASK ) == 0 )
 			clearTask();
 	}
@@ -337,7 +337,7 @@ namespace Zuma
 			if ( !getUISystem()->findUI( UI_OPTIONS_PANEL ) )
 			{
 				ZPanel* panel = new ZSettingPanel( UI_OPTIONS_PANEL , Vec2i(100,100) , NULL );
-				getUISystem()->addUI( panel );
+				getUISystem()->addWidget( panel );
 			}
 			break;
 		case UI_MAIN_MENU:

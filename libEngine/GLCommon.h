@@ -11,6 +11,8 @@
 #include "Math/Matrix3.h"
 #include "Math/Quaternion.h"
 
+#include <vector>
+
 namespace GL
 {
 	using namespace ::Math;
@@ -23,8 +25,6 @@ namespace GL
 	{
 		return Math::Abs( 1.0 - v.length2() ) < 1e-6;
 	}
-
-
 
 	template< class T >
 	class GLDataMove

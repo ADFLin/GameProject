@@ -1,4 +1,3 @@
-#include "TinyGamePCH.h"
 #include "GLCommon.h"
 
 #include "stb/stb_image.h"

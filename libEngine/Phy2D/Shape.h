@@ -40,10 +40,10 @@ namespace Phy2D
 	{
 	public:
 		virtual Type  getType() const { return eBox; }
-		CORE_API virtual void  calcAABB( XForm const& xform , AABB& aabb );
-		CORE_API virtual void  calcAABB( AABB& aabb );
-		CORE_API virtual void  calcMass( MassInfo& info );
-		CORE_API virtual Vec2f getSupport( Vec2f const& dir );
+		virtual void  calcAABB( XForm const& xform , AABB& aabb );
+		virtual void  calcAABB( AABB& aabb );
+		virtual void  calcMass( MassInfo& info );
+		virtual Vec2f getSupport( Vec2f const& dir );
 		virtual bool isConvex() const{ return true; }
 		Vec2f mHalfExt;
 	};
@@ -52,10 +52,10 @@ namespace Phy2D
 	{
 	public:
 		virtual Type  getType() const { return eCircle; }
-		CORE_API virtual void  calcAABB( XForm const& xform , AABB& aabb );
-		CORE_API virtual void  calcAABB( AABB& aabb );
-		CORE_API virtual void calcMass( MassInfo& info );
-		CORE_API virtual Vec2f getSupport(Vec2f const& dir);
+		virtual void  calcAABB( XForm const& xform , AABB& aabb );
+		virtual void  calcAABB( AABB& aabb );
+		virtual void calcMass( MassInfo& info );
+		virtual Vec2f getSupport(Vec2f const& dir);
 		virtual bool isConvex() const{ return true; }
 
 		float getRadius() const { return mRadius; }
@@ -69,10 +69,10 @@ namespace Phy2D
 	{
 	public:
 		virtual Type getType() const { return ePolygon; }
-		CORE_API virtual void calcAABB( XForm const& xform , AABB& aabb );
-		CORE_API virtual void calcAABB( AABB& aabb );
-		CORE_API virtual void calcMass( MassInfo& info );
-		CORE_API virtual Vec2f getSupport( Vec2f const& dir );
+		virtual void calcAABB( XForm const& xform , AABB& aabb );
+		virtual void calcAABB( AABB& aabb );
+		virtual void calcMass( MassInfo& info );
+		virtual Vec2f getSupport( Vec2f const& dir );
 		bool isConvex() const
 		{
 			//TODO
@@ -89,10 +89,10 @@ namespace Phy2D
 	public:
 		virtual Type getType() const { return eCapsule; }
 		virtual bool isConvex() const {  return true;  }
-		CORE_API virtual void calcAABB(XForm const& xform , AABB& aabb);
-		CORE_API virtual void calcAABB(AABB& aabb);
-		CORE_API virtual void calcMass(MassInfo& info);
-		CORE_API virtual Vec2f getSupport(Vec2f const& dir);
+		virtual void calcAABB(XForm const& xform , AABB& aabb);
+		virtual void calcAABB(AABB& aabb);
+		virtual void calcMass(MassInfo& info);
+		virtual Vec2f getSupport(Vec2f const& dir);
 
 		float getRadius() const { return mHalfExt.x; }
 

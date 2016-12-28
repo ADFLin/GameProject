@@ -11,9 +11,9 @@ class TEquipTable;
 enum  EquipSlot;
 class IRenderEntity;
 
-class CModelShowPanel : public CUI::Panel< CModelShowPanel >
+class CModelShowPanel : public CUI::PanelT< CModelShowPanel >
 {
-	typedef CUI::Panel< CModelShowPanel > BaseClass;
+	typedef CUI::PanelT< CModelShowPanel > BaseClass;
 public:
 	CModelShowPanel( IRenderEntity* comp , Vec2i const& pos , Vec2i const& size , CWidget* parent );
 	~CModelShowPanel();

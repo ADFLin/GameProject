@@ -14,6 +14,7 @@
     <ProjectGuid>{C1B32C2B-9A40-4874-869F-FCC57BB1D93F}</ProjectGuid>
     <RootNamespace>LibEngine</RootNamespace>
     <WindowsTargetPlatformVersion>8.1</WindowsTargetPlatformVersion>
+    <ProjectName>EngineCore</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
@@ -42,16 +43,16 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <OutDir>$(SolutionDir)$(Configuration)\</OutDir>
-    <IntDir>$(Configuration)\</IntDir>
+    <IntDir>$(Configuration)\$(ProjectName)\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <OutDir>$(SolutionDir)$(Configuration)\</OutDir>
-    <IntDir>$(Configuration)\</IntDir>
+    <IntDir>$(Configuration)\$(ProjectName)\</IntDir>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>../OtherLib;.;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../OtherLib/boost;../OtherLib/glew;../OtherLib;.;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;_LIB;DEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MinimalRebuild>false</MinimalRebuild>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
@@ -62,14 +63,18 @@
       </SDLCheck>
       <ProgramDataBaseFileName>$(IntDir)vc$(PlatformToolsetVersion).pdb</ProgramDataBaseFileName>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <RemoveUnreferencedCodeData>false</RemoveUnreferencedCodeData>
     </ClCompile>
+    <ProjectReference>
+      <LinkLibraryDependencies>true</LinkLibraryDependencies>
+    </ProjectReference>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
       <AdditionalOptions>/MP %(AdditionalOptions)</AdditionalOptions>
       <Optimization>MaxSpeed</Optimization>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <AdditionalIncludeDirectories>../OtherLib;.;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../OtherLib/boost;../OtherLib/glew;../OtherLib;.;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>_SECURE_SCL=0;WIN32;_LIB;NDEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <FunctionLevelLinking>true</FunctionLevelLinking>
@@ -78,17 +83,27 @@
       <ProgramDataBaseFileName>$(IntDir)vc$(PlatformToolsetVersion).pdb</ProgramDataBaseFileName>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
+    <ProjectReference>
+      <LinkLibraryDependencies>true</LinkLibraryDependencies>
+    </ProjectReference>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="AppEntry.cpp" />
+    <ClCompile Include="BehaviorTree\BehaviorTree.cpp" />
+    <ClCompile Include="BehaviorTree\BTNode.cpp" />
+    <ClCompile Include="BehaviorTree\TreeBuilder.cpp" />
     <ClCompile Include="BitmapDC.cpp" />
     <ClCompile Include="Bitset.cpp" />
     <ClCompile Include="Clock.cpp" />
     <ClCompile Include="ConsoleSystem.cpp" />
-    <ClCompile Include="DebugSystem.cpp" />
+    <ClCompile Include="CoreShare.cpp" />
+    <ClCompile Include="LogSystem.cpp" />
     <ClCompile Include="FileSystem.cpp" />
     <ClCompile Include="GIFLoader.cpp" />
+    <ClCompile Include="GLCommon.cpp" />
     <ClCompile Include="GLGraphics2D.cpp" />
+    <ClCompile Include="GLUtility.cpp" />
+    <ClCompile Include="HashString.cpp" />
     <ClCompile Include="Math\BigFloat.cpp" />
     <ClCompile Include="Math\BigInteger.cpp" />
     <ClCompile Include="Math\Matrix3.cpp" />
@@ -118,33 +133,49 @@
     <ClInclude Include="Any.h" />
     <ClInclude Include="Asset.h" />
     <ClInclude Include="AStarTile2D.h" />
+    <ClInclude Include="AVLTree.h" />
+    <ClInclude Include="BehaviorTree\BTNode.h" />
+    <ClInclude Include="BehaviorTree\delegateN.hxx" />
+    <ClInclude Include="BehaviorTree\delegeate.h" />
+    <ClInclude Include="BehaviorTree\FixNumber.h" />
+    <ClInclude Include="BehaviorTree\NodeExpression.h" />
+    <ClInclude Include="BehaviorTree\TreeBuilder.h" />
+    <ClInclude Include="BehaviorTree\Visitor.h" />
+    <ClInclude Include="DataBitSerialize.h" />
     <ClInclude Include="BitmapDC.h" />
     <ClInclude Include="Bitset.h" />
     <ClInclude Include="BitUtility.h" />
     <ClInclude Include="CacheAllocator.h" />
     <ClInclude Include="CHandle.h" />
     <ClInclude Include="Clock.h" />
+    <ClInclude Include="CommonMarco.h" />
     <ClInclude Include="CompilerConfig.h" />
     <ClInclude Include="ConsoleSystem.h" />
     <ClInclude Include="Coroutine.h" />
     <ClInclude Include="Cpp11StdConfig.h" />
     <ClInclude Include="CppVersion.h" />
-    <ClInclude Include="DebugSystem.h" />
+    <ClInclude Include="LogSystem.h" />
     <ClInclude Include="EasingFun.h" />
     <ClInclude Include="FileSystem.h" />
     <ClInclude Include="FixString.h" />
     <ClInclude Include="FixVector.h" />
     <ClInclude Include="Flag.h" />
     <ClInclude Include="FlowSystem.h" />
+    <ClInclude Include="FrameAllocator.h" />
     <ClInclude Include="FunCallback.h" />
     <ClInclude Include="GameEngine.h" />
     <ClInclude Include="GameLoop.h" />
     <ClInclude Include="Game\Entity.h" />
     <ClInclude Include="GIFLoader.h" />
+    <ClInclude Include="GLCommon.h" />
     <ClInclude Include="GLConfig.h" />
+    <ClInclude Include="GLDrawUtility.h" />
     <ClInclude Include="GLGraphics2D.h" />
+    <ClInclude Include="GLUtility.h" />
     <ClInclude Include="Graphics2DBase.h" />
+    <ClInclude Include="HashString.h" />
     <ClInclude Include="Heap.h" />
+    <ClInclude Include="CompressAlgo.h" />
     <ClInclude Include="IntegerType.h" />
     <ClInclude Include="IntrList.h" />
     <ClInclude Include="Math\Base.h" />
@@ -157,8 +188,8 @@
     <ClInclude Include="Math\Quaternion.h" />
     <ClInclude Include="Math\Vector3.h" />
     <ClInclude Include="Math\Vector4.h" />
-    <ClInclude Include="MetaBase.hpp" />
-    <ClInclude Include="MetaFunction.hpp" />
+    <ClInclude Include="MetaBase.h" />
+    <ClInclude Include="MetaFunction.h" />
     <ClInclude Include="MetaTypeList.h" />
     <ClInclude Include="MortonCode.h" />
     <ClInclude Include="Phy2D\Base.h" />
@@ -173,13 +204,14 @@
     <ClInclude Include="RedBlackTree.h" />
     <ClInclude Include="Reflection.h" />
     <ClInclude Include="RefObject.h" />
-    <ClInclude Include="ShareLibConfig.h" />
+    <ClInclude Include="CoreShare.h" />
     <ClInclude Include="Singleton.h" />
     <ClInclude Include="SList.h" />
     <ClInclude Include="SocketBuffer.h" />
     <ClInclude Include="SortAlgo.h" />
     <ClInclude Include="SortFunction.h" />
     <ClInclude Include="StackParam.h" />
+    <ClInclude Include="StdUtility.h" />
     <ClInclude Include="StreamBuffer.h" />
     <ClInclude Include="StringTokenizer.h" />
     <ClInclude Include="SysMsg.h" />
@@ -196,10 +228,11 @@
     <ClInclude Include="TQuadTreeTile.h" />
     <ClInclude Include="NetSocket.h" />
     <ClInclude Include="TTable.h" />
-    <ClInclude Include="TUICommon.h" />
-    <ClInclude Include="TUICommon.hpp" />
-    <ClInclude Include="TUICore.h" />
-    <ClInclude Include="TUICore.hpp" />
+    <ClInclude Include="TypeHash.h" />
+    <ClInclude Include="WidgetCommon.h" />
+    <ClInclude Include="WidgetCommon.hpp" />
+    <ClInclude Include="WidgetCore.h" />
+    <ClInclude Include="WidgetCore.hpp" />
     <ClInclude Include="TUnsignedHash.h" />
     <ClInclude Include="TVector2.h" />
     <ClInclude Include="TVector3.h" />

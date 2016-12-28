@@ -1,7 +1,7 @@
 #ifndef StreamBuffer_h__
 #define StreamBuffer_h__
 
-#include "MetaBase.hpp"
+#include "MetaBase.h"
 
 #include <exception>
 #include <memory>
@@ -20,19 +20,21 @@ public:
 	BufferException( char const* msg ):std::exception( msg ){}
 };
 
-struct NoCheckPolicy 
+struct AssertCheckPolicy 
 {
 	static bool checkFill( char* data , size_t max , size_t cur ,  size_t num )
 	{
+		assert( cur + num <= max );
 		return true;
 	}
 	static bool checkTake( char* data , size_t max , size_t cur ,  size_t num )
 	{
+		assert(cur + num <= max);
 		return true;
 	}
 };
 
-struct  FalseCheckPolicy
+struct  FailCheckPolicy
 {
 	static bool checkFill( char* data , size_t max , size_t cur ,  size_t num )
 	{
@@ -63,7 +65,9 @@ struct  ThrowCheckPolicy
 		return true;
 	}
 };
-template< class CheckPolicy = NoCheckPolicy >
+
+
+template< class CheckPolicy = AssertCheckPolicy >
 class TStreamBuffer
 {
 	typedef CheckPolicy CP;
@@ -98,6 +102,15 @@ public:
 		memcpy( mData + mFillSize , ptr , num );
 		mFillSize += num;
 
+	}
+
+	void fillValue(int value , size_t num)
+	{
+		if( !checkFill(num) )
+			return;
+
+		memset(mData + mFillSize, value, num);
+		mFillSize += num;
 	}
 
 	void take( void* ptr , size_t num )
@@ -177,13 +190,15 @@ public:
 	void take(TArrayData< T >& data)
 	{
 		if ( data.length )
-			takeArray(data , Meta::IsPod< T >::ResultType() );
+			takeArray(data , Meta::IsPod< T >() );
 	}
+
 	template< class T >
-	void takeArray(TArrayData< T >& data, Meta::TrueType )
+	void takeArray(TArrayData< T >& data, Meta::TrueType)
 	{
 		take((void*)data.ptr, sizeof(T) * data.length);
 	}
+
 	template< class T >
 	void takeArray(TArrayData< T >& data, Meta::FalseType)
 	{
@@ -197,7 +212,7 @@ public:
 	void fill(TArrayData< T > const& data)
 	{
 		if( data.length )
-			fillArray(data , Meta::IsPod< T >::ResultType() );
+			fillArray(data , Meta::IsPod< T >() );
 	}
 
 	template< class T >

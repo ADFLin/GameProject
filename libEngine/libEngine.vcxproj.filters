@@ -71,15 +71,18 @@
     <Filter Include="Algo\AStar">
       <UniqueIdentifier>{8c578ddc-2ab1-4011-910b-168786060738}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Memory">
+      <UniqueIdentifier>{5365de4e-dbab-4145-8e9c-9bbaa473a9fa}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Core\Meta">
+      <UniqueIdentifier>{f23b0b33-c6a3-4d1d-a6e1-8688ad60752d}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="AppEntry.cpp">
       <Filter>原始程式檔</Filter>
     </ClCompile>
     <ClCompile Include="ConsoleSystem.cpp">
-      <Filter>原始程式檔</Filter>
-    </ClCompile>
-    <ClCompile Include="DebugSystem.cpp">
       <Filter>原始程式檔</Filter>
     </ClCompile>
     <ClCompile Include="FileSystem.cpp">
@@ -160,15 +163,36 @@
     <ClCompile Include="NetSocket.cpp">
       <Filter>Net</Filter>
     </ClCompile>
+    <ClCompile Include="GLUtility.cpp">
+      <Filter>Opengl</Filter>
+    </ClCompile>
+    <ClCompile Include="GLCommon.cpp">
+      <Filter>Opengl</Filter>
+    </ClCompile>
+    <ClCompile Include="BehaviorTree\BehaviorTree.cpp">
+      <Filter>AI</Filter>
+    </ClCompile>
+    <ClCompile Include="BehaviorTree\BTNode.cpp">
+      <Filter>AI</Filter>
+    </ClCompile>
+    <ClCompile Include="BehaviorTree\TreeBuilder.cpp">
+      <Filter>AI</Filter>
+    </ClCompile>
+    <ClCompile Include="LogSystem.cpp">
+      <Filter>原始程式檔</Filter>
+    </ClCompile>
+    <ClCompile Include="CoreShare.cpp">
+      <Filter>原始程式檔</Filter>
+    </ClCompile>
+    <ClCompile Include="HashString.cpp">
+      <Filter>原始程式檔</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ConsoleSystem.h">
       <Filter>標頭檔</Filter>
     </ClInclude>
     <ClInclude Include="Coroutine.h">
-      <Filter>標頭檔</Filter>
-    </ClInclude>
-    <ClInclude Include="DebugSystem.h">
       <Filter>標頭檔</Filter>
     </ClInclude>
     <ClInclude Include="FileSystem.h">
@@ -210,25 +234,13 @@
     <ClInclude Include="TaskBase.h">
       <Filter>標頭檔</Filter>
     </ClInclude>
-    <ClInclude Include="TVector2.h">
-      <Filter>標頭檔</Filter>
-    </ClInclude>
-    <ClInclude Include="TVector3.h">
-      <Filter>標頭檔</Filter>
-    </ClInclude>
     <ClInclude Include="TypeCast.h">
       <Filter>標頭檔</Filter>
-    </ClInclude>
-    <ClInclude Include="AllocFIFO.h">
-      <Filter>Utility</Filter>
     </ClInclude>
     <ClInclude Include="Bitset.h">
       <Filter>Utility</Filter>
     </ClInclude>
     <ClInclude Include="BitUtility.h">
-      <Filter>Utility</Filter>
-    </ClInclude>
-    <ClInclude Include="CacheAllocator.h">
       <Filter>Utility</Filter>
     </ClInclude>
     <ClInclude Include="Clock.h">
@@ -241,15 +253,6 @@
       <Filter>Utility</Filter>
     </ClInclude>
     <ClInclude Include="Flag.h">
-      <Filter>Utility</Filter>
-    </ClInclude>
-    <ClInclude Include="MetaBase.hpp">
-      <Filter>Utility</Filter>
-    </ClInclude>
-    <ClInclude Include="MetaFunction.hpp">
-      <Filter>Utility</Filter>
-    </ClInclude>
-    <ClInclude Include="MetaTypeList.h">
       <Filter>Utility</Filter>
     </ClInclude>
     <ClInclude Include="Random.h">
@@ -384,9 +387,6 @@
     <ClInclude Include="PlatformConfig.h">
       <Filter>Config</Filter>
     </ClInclude>
-    <ClInclude Include="ShareLibConfig.h">
-      <Filter>Config</Filter>
-    </ClInclude>
     <ClInclude Include="UnitTest\Config.h">
       <Filter>UnitTest</Filter>
     </ClInclude>
@@ -398,18 +398,6 @@
     </ClInclude>
     <ClInclude Include="UnitTest.h">
       <Filter>UnitTest</Filter>
-    </ClInclude>
-    <ClInclude Include="TUICommon.h">
-      <Filter>GUI</Filter>
-    </ClInclude>
-    <ClInclude Include="TUICommon.hpp">
-      <Filter>GUI</Filter>
-    </ClInclude>
-    <ClInclude Include="TUICore.h">
-      <Filter>GUI</Filter>
-    </ClInclude>
-    <ClInclude Include="TUICore.hpp">
-      <Filter>GUI</Filter>
     </ClInclude>
     <ClInclude Include="GIFLoader.h">
       <Filter>Image</Filter>
@@ -479,6 +467,99 @@
     </ClInclude>
     <ClInclude Include="NetSocket.h">
       <Filter>Net</Filter>
+    </ClInclude>
+    <ClInclude Include="StdUtility.h">
+      <Filter>Utility</Filter>
+    </ClInclude>
+    <ClInclude Include="CacheAllocator.h">
+      <Filter>Memory</Filter>
+    </ClInclude>
+    <ClInclude Include="AllocFIFO.h">
+      <Filter>Memory</Filter>
+    </ClInclude>
+    <ClInclude Include="FrameAllocator.h">
+      <Filter>Memory</Filter>
+    </ClInclude>
+    <ClInclude Include="GLUtility.h">
+      <Filter>Opengl</Filter>
+    </ClInclude>
+    <ClInclude Include="GLCommon.h">
+      <Filter>Opengl</Filter>
+    </ClInclude>
+    <ClInclude Include="GLDrawUtility.h">
+      <Filter>Opengl</Filter>
+    </ClInclude>
+    <ClInclude Include="CommonMarco.h">
+      <Filter>Config</Filter>
+    </ClInclude>
+    <ClInclude Include="WidgetCore.h">
+      <Filter>GUI</Filter>
+    </ClInclude>
+    <ClInclude Include="WidgetCore.hpp">
+      <Filter>GUI</Filter>
+    </ClInclude>
+    <ClInclude Include="WidgetCommon.h">
+      <Filter>GUI</Filter>
+    </ClInclude>
+    <ClInclude Include="WidgetCommon.hpp">
+      <Filter>GUI</Filter>
+    </ClInclude>
+    <ClInclude Include="AVLTree.h">
+      <Filter>DataStructure</Filter>
+    </ClInclude>
+    <ClInclude Include="BehaviorTree\BTNode.h">
+      <Filter>AI</Filter>
+    </ClInclude>
+    <ClInclude Include="BehaviorTree\delegateN.hxx">
+      <Filter>AI</Filter>
+    </ClInclude>
+    <ClInclude Include="BehaviorTree\delegeate.h">
+      <Filter>AI</Filter>
+    </ClInclude>
+    <ClInclude Include="BehaviorTree\FixNumber.h">
+      <Filter>AI</Filter>
+    </ClInclude>
+    <ClInclude Include="BehaviorTree\NodeExpression.h">
+      <Filter>AI</Filter>
+    </ClInclude>
+    <ClInclude Include="BehaviorTree\TreeBuilder.h">
+      <Filter>AI</Filter>
+    </ClInclude>
+    <ClInclude Include="BehaviorTree\Visitor.h">
+      <Filter>AI</Filter>
+    </ClInclude>
+    <ClInclude Include="CompressAlgo.h">
+      <Filter>Algo</Filter>
+    </ClInclude>
+    <ClInclude Include="TypeHash.h">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="DataBitSerialize.h">
+      <Filter>Utility</Filter>
+    </ClInclude>
+    <ClInclude Include="MetaTypeList.h">
+      <Filter>Core\Meta</Filter>
+    </ClInclude>
+    <ClInclude Include="MetaFunction.h">
+      <Filter>Core\Meta</Filter>
+    </ClInclude>
+    <ClInclude Include="MetaBase.h">
+      <Filter>Core\Meta</Filter>
+    </ClInclude>
+    <ClInclude Include="LogSystem.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="CoreShare.h">
+      <Filter>Config</Filter>
+    </ClInclude>
+    <ClInclude Include="HashString.h">
+      <Filter>DataStructure</Filter>
+    </ClInclude>
+    <ClInclude Include="TVector3.h">
+      <Filter>Math</Filter>
+    </ClInclude>
+    <ClInclude Include="TVector2.h">
+      <Filter>Math</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

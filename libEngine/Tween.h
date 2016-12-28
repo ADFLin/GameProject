@@ -5,7 +5,7 @@
 #include <vector>
 #include <algorithm>
 
-#include "MetaBase.hpp"
+#include "MetaBase.h"
 
 namespace Tween
 {
@@ -633,9 +633,6 @@ namespace Tween
 	{
 	public:
 		//typedef typename Detail< TimeType >::IComponent IComponent;
-		typedef typename Detail< TimeType , CallbackPolicy >::CMultiTween CMultiTween;
-		typedef IComponentT< TimeType > IComponent;
-
 	};
 
 	template< class TimeType , template< class > class CallbackPolicy = StdFunCallback >
@@ -643,7 +640,12 @@ namespace Tween
 		               , public Define< TimeType , CallbackPolicy >
 	{
 		typedef GroupTweener< TimeType , CallbackPolicy > ThisType;
+
 	public:
+
+		typedef typename Detail< TimeType, CallbackPolicy >::CMultiTween CMultiTween;
+		typedef IComponentT< TimeType > IComponent;
+
 		GroupTweener( bool beRM = true )
 		{
 			mAutoRemove = beRM;
@@ -756,10 +758,14 @@ namespace Tween
 
 	template< class TimeType , template< class > class CallbackPolicy = StdFunCallback >
 	class SquenceTweener : public Detail< TimeType , CallbackPolicy >::template TweenerT< SquenceTweener< TimeType , CallbackPolicy > >
-		                 , public Define< TimeType , CallbackPolicy >
 	{
 		typedef SquenceTweener< TimeType , CallbackPolicy > ThisType;
+
 	public:
+
+		typedef typename Detail< TimeType, CallbackPolicy >::CMultiTween CMultiTween;
+		typedef IComponentT< TimeType > IComponent;
+
 		SquenceTweener()
 		{
 			mNumFinished = 0;

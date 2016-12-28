@@ -126,12 +126,6 @@
     </ClCompile>
     <ClCompile Include="WidgetUtility.cpp" />
   </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\libEngine\libEngine.vcxproj">
-      <Project>{c1b32c2b-9a40-4874-869f-fcc57bb1d93f}</Project>
-      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
-    </ProjectReference>
-  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

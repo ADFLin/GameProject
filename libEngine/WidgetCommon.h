@@ -1,9 +1,8 @@
-#ifndef TUICommon_h__
-#define TUICommon_h__
+#ifndef WidgetCommon_h__
+#define WidgetCommon_h__
 
-#include "TUICore.h"
+#include "WidgetCore.h"
 #include <algorithm>
-
 
 enum ButtonState
 {
@@ -13,15 +12,14 @@ enum ButtonState
 	BS_NUM_STATE ,
 };
 
-
 template < class Impl , class CoreImpl >
-class TButtonUI : public CoreImpl
+class WButtonT : public CoreImpl
 {
 private:
 	Impl* _this(){ return static_cast< Impl*>(this); }
 
 public:
-	TButtonUI( Vec2i const& pos , Vec2i const& size  , CoreImpl* parent )
+	WButtonT( Vec2i const& pos , Vec2i const& size  , CoreImpl* parent )
 		:CoreImpl(  pos , size , parent )
 		,m_state( BS_NORMAL ){}
 
@@ -41,11 +39,11 @@ protected:
 
 
 template < class Impl , class CoreImpl >
-class TPanelUI : public CoreImpl
+class WPanelT : public CoreImpl
 {
 	Impl* _this(){ return static_cast< Impl*>(this); }
 public:
-	TPanelUI( Vec2i const& pos , Vec2i const& size  , CoreImpl* parent )
+	WPanelT( Vec2i const& pos , Vec2i const& size  , CoreImpl* parent )
 		:CoreImpl(  pos , size , parent ){}
 
 };
@@ -60,33 +58,33 @@ enum UISide
 };
 
 template < class Impl , class CoreImpl >
-class TNoteBookUI : public CoreImpl
+class WNoteBookT : public CoreImpl
 {
 	Impl* _this(){ return static_cast< Impl*>(this); }
 
 public:
-	TNoteBookUI( Vec2i const& pos , Vec2i const& size  , CoreImpl* parent );
+	WNoteBookT( Vec2i const& pos , Vec2i const& size  , CoreImpl* parent );
 
 	struct NullData {};
 
-	class Page : public TPanelUI< Page , CoreImpl >
+	class Page : public WPanelT< Page , CoreImpl >
 	{
 	public:
 		Page( Vec2i const& pos , Vec2i const& size  , CoreImpl* parent )
-			:TPanelUI< Page , CoreImpl >( pos , size , parent ){}
+			:WPanelT< Page , CoreImpl >( pos , size , parent ){}
 	};
 
-	class PageButton  : public TButtonUI< PageButton , CoreImpl >
+	class PageButton  : public WButtonT< PageButton , CoreImpl >
 	{
 	public:
 		PageButton( int _pID , Page* _page, Vec2i const& pos , Vec2i const& size , CoreImpl* parent )
-			:TButtonUI< PageButton , CoreImpl >( pos , size , parent )
+			:WButtonT< PageButton , CoreImpl >( pos , size , parent )
 		{
 			pID  = _pID;
 			page = _page;
 		}
 
-		TNoteBookUI* getBook(){ return static_cast< TNoteBookUI* >( getParent() ); }
+		WNoteBookT* getBook(){ return static_cast< WNoteBookT* >( getParent() ); }
 		void onClick(){  getBook()->changePage( pID );  }
 		void render() {  getBook()->_this()->doRenderButton( this ); }
 
@@ -130,12 +128,12 @@ protected:
 };
 
 template < class Impl , class CoreImpl >
-class TSliderUI : public CoreImpl
+class WSliderT : public CoreImpl
 {
 	Impl* _this(){ return static_cast< Impl*>(this); }
 
 public:
-	TSliderUI( Vec2i const& pos , int length , Vec2i const& sizeTip  ,
+	WSliderT( Vec2i const& pos , int length , Vec2i const& sizeTip  ,
 		bool beH  , int minRange , int maxRange , CoreImpl* parent )
 		:CoreImpl(  pos , ( beH ) ? Vec2i( length , sizeTip.y ) : Vec2i( sizeTip.x , length ) , parent )
 		,m_minRange( minRange )
@@ -151,7 +149,7 @@ public:
 		TipUI( Vec2i const& size , CoreImpl* parent )
 			:CoreImpl( Vec2i(0,0) , size , parent ){}
 		bool onMouseMsg( MouseMsg const& msg );
-		TSliderUI* getSlider(){ return  static_cast< TSliderUI*>( getParent() ); }
+		WSliderT* getSlider(){ return  static_cast< WSliderT*>( getParent() ); }
 	};
 
 
@@ -198,13 +196,13 @@ protected:
 };
 
 template < class Impl , class CoreImpl >
-class TTextCtrlUI : public CoreImpl
+class WTextCtrlT : public CoreImpl
 {
 private:
 	Impl* _this(){ return static_cast< Impl*>(this); }
 
 public:
-	TTextCtrlUI( Vec2i const& pos , Vec2i const& size  , CoreImpl* parent )
+	WTextCtrlT( Vec2i const& pos , Vec2i const& size  , CoreImpl* parent )
 		:CoreImpl(  pos , size , parent ){ mKeyInPos = 0; }
 
 	char const* getValue() const { return mValue.c_str(); }
@@ -352,14 +350,14 @@ protected:
 
 
 template < class Impl, class CoreImpl >
-class TChoiceUI : public TItemOwnerUI< Impl , CoreImpl >
+class WChoiceT : public TItemOwnerUI< Impl , CoreImpl >
 {
 private:
 	Impl* _this(){ return static_cast< Impl*>(this); }
 
 public:
 
-	TChoiceUI( Vec2i const& pos , Vec2i const& size, CoreImpl* parent )
+	WChoiceT( Vec2i const& pos , Vec2i const& size, CoreImpl* parent )
 		:TItemOwnerUI< Impl , CoreImpl >( pos , size , parent )
 	{
 		mLightSelect = -1;
@@ -368,7 +366,7 @@ public:
 	class Menu : public CoreImpl
 	{
 	public:
-		Menu( Vec2i const& pos , Vec2i const& size, TChoiceUI* owner )
+		Menu( Vec2i const& pos , Vec2i const& size, WChoiceT* owner )
 			:CoreImpl( pos , size , NULL )
 			,mOwner( owner )
 		{
@@ -381,12 +379,12 @@ public:
 			if (!beF) 
 				_getOwner()->destroyMenu( this );
 		}
-		TChoiceUI* _getOwner(){ return mOwner; }
+		WChoiceT* _getOwner(){ return mOwner; }
 		virtual void render(){  _getOwner()->_onRenderMenu( this );  }
 		virtual bool onMouseMsg( MouseMsg const& msg ){  return _getOwner()->_onMenuMouseMsg( this , msg ); }
 
 	private:
-		TChoiceUI* mOwner;
+		WChoiceT* mOwner;
 	};
 
 	///////// override function ////////
@@ -411,12 +409,12 @@ protected:
 
 
 template < class Impl, class CoreImpl >
-class TListCtrlUI : public TItemOwnerUI< Impl , CoreImpl >
+class WListCtrlT : public TItemOwnerUI< Impl , CoreImpl >
 {
 private:
 	Impl* _this(){ return static_cast< Impl*>(this); }
 public:
-	TListCtrlUI( Vec2i const& pos , Vec2i const& size, CoreImpl* parent )
+	WListCtrlT( Vec2i const& pos , Vec2i const& size, CoreImpl* parent )
 		:TItemOwnerUI< Impl , CoreImpl >( pos , size , parent )
 	{
 		mIndexShowStart = 0;
@@ -440,20 +438,20 @@ protected:
 };
 
 template < class CoreImpl >
-class UIPackage
+class TWidgetLibrary
 {
 public:
-	typedef CoreImpl               Widget;
-	typedef TUICore< CoreImpl >    Core;
-	typedef TUIManager< CoreImpl > Manager;  
+	typedef CoreImpl                    Widget;
+	typedef WidgetCoreT< CoreImpl >     Core;
+	typedef TWidgetManager< CoreImpl >  Manager;  
 
 	template < class Impl >
-	class Slider : public TSliderUI< Impl , CoreImpl >
+	class SliderT : public WSliderT< Impl , CoreImpl >
 	{
 	public:
-		Slider( Vec2i const& pos , int length , Vec2i const& sizeTip  ,
+		SliderT( Vec2i const& pos , int length , Vec2i const& sizeTip  ,
 			bool beH  , int minRange , int maxRange , CoreImpl* parent )
-			:TSliderUI< Impl , CoreImpl >( pos , length , sizeTip  , beH  , minRange , maxRange ,  parent ){}
+			:WSliderT< Impl , CoreImpl >( pos , length , sizeTip  , beH  , minRange , maxRange ,  parent ){}
 	};
 
 #define DEFINE_UI_CLASS( Class , BaseClass )\
@@ -466,12 +464,12 @@ public:
 	};
 
 
-	DEFINE_UI_CLASS( Panel    , TPanelUI )
-	DEFINE_UI_CLASS( Button   , TButtonUI )
-	DEFINE_UI_CLASS( TextCtrl , TTextCtrlUI )
-	DEFINE_UI_CLASS( Choice   , TChoiceUI   )
-	DEFINE_UI_CLASS( NoteBook , TNoteBookUI )
-	DEFINE_UI_CLASS( ListCtrl , TListCtrlUI )
+	DEFINE_UI_CLASS( PanelT    , WPanelT )
+	DEFINE_UI_CLASS( ButtonT   , WButtonT )
+	DEFINE_UI_CLASS( TextCtrlT , WTextCtrlT )
+	DEFINE_UI_CLASS( ChoiceT   , WChoiceT   )
+	DEFINE_UI_CLASS( NoteBookT , WNoteBookT )
+	DEFINE_UI_CLASS( ListCtrlT , WListCtrlT )
 
 #undef DEFINE_UI_CLASS
 
@@ -488,7 +486,7 @@ public:
 
 };
 
-#include "TUICommon.hpp"
+#include "WidgetCommon.hpp"
 
-#endif // TUICommon_h__
 
+#endif // WidgetCommon_h__

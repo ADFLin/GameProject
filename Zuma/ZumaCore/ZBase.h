@@ -2,7 +2,7 @@
 #define ZBase_h__
 
 #include "TVector2.h"
-#include "DebugSystem.h"
+#include "LogSystem.h"
 #include "FixString.h"
 
 #include <memory>

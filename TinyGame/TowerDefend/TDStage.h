@@ -70,7 +70,7 @@ namespace TowerDefend
 		{
 
 			Level::RenderParam param;
-			param.drawMouse = ::Global::GUI().getManager().getMouseUI() == NULL;
+			param.drawMouse = ::Global::GUI().getManager().getMouseWidget() == NULL;
 			mLevel->render( *mRenderer , param );
 
 			Controller& controller = static_cast< Controller& >(

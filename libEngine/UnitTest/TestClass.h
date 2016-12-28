@@ -1,11 +1,11 @@
 #ifndef UT_TestClass_h__
 #define UT_TestClass_h__
 
+#include "CoreShare.h"
 #include "UnitTest/Config.h"
 
 namespace UnitTest 
 {
-
 	class TestResult
 	{
 
@@ -19,13 +19,13 @@ namespace UnitTest
 	class Component
 	{
 	public:
-		Component();
+		CORE_API Component();
 		enum RunResult
 		{
 			RR_SUCCESS ,
 		};
 		virtual RunResult run() = 0;
-		static bool RunTest();
+		CORE_API static bool RunTest();
 	private:
 		Component* mNext;
 	};
@@ -41,7 +41,7 @@ namespace UnitTest
 
 
 #define UT_REG_TEST_CLASS( CLASS )\
-	static CLASS sTest_##CLASS; 
+	static CLASS sTestUnit_##CLASS; 
 #define UT_RUN_TEST()\
 	UnitTest::Component::RunTest();
 

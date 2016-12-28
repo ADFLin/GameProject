@@ -8,9 +8,10 @@
 
 
 #include "ProfileSystem.h"
-#include "DebugSystem.h"
+#include "LogSystem.h"
 #include "CppVersion.h"
 #include "IntegerType.h"
+#include "HashString.h"
 
 #define	CF_PROFILE( name ) PROFILE_ENTRY( name )
 #define	CF_PROFILE2( name , flag ) PROFILE_ENTRY2( name , flag )

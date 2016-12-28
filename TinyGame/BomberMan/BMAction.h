@@ -23,7 +23,7 @@ namespace BomberMan
 	class CFrameActionTemplate : public TKeyFrameActionTemplate< KeyFrameData >
 	{
 	public:
-		static unsigned const LastVersion = VERSION(0,0,1);
+		static unsigned const LastVersion = MAKE_VERSION(0,0,1);
 
 		CFrameActionTemplate( World& level );
 		virtual void firePortAction( ActionTrigger& trigger );

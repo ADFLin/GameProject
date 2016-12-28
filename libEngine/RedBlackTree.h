@@ -3,7 +3,6 @@
 
 #include <algorithm>
 #include <cassert>
-#include <map>
 
 template< class K , class V , class Cmp = std::less< K > >
 class RedBlackTree

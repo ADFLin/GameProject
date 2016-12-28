@@ -99,7 +99,7 @@ GWidget* GUISystem::showMessageBox( int id , char const* msg , unsigned flag /*=
 
 int GUISystem::getModalID()
 {
-	GWidget* ui = getManager().getModalUI();
+	GWidget* ui = getManager().getModalWidget();
 	if ( ui )
 		return ui->getID();
 	return UI_ANY;
@@ -117,7 +117,7 @@ void GUISystem::updateFrame( int frame , long tickTime )
 	} visitor;
 
 	visitor.frame = frame;
-	getManager().visitUI( visitor );
+	getManager().visitWidgets( visitor );
 	mTweener.update( frame * tickTime );
 }
 
@@ -144,12 +144,12 @@ bool GUISystem::procCharMsg(unsigned code)
 
 void GUISystem::addWidget( GWidget* widget )
 {
-	mUIManager.addUI( widget );
+	mUIManager.addWidget( widget );
 }
 
 void GUISystem::cleanupWidget()
 {
-	mUIManager.cleanupUI();
+	mUIManager.cleanupWidgets();
 	mTweener.clear();
 }
 
@@ -167,16 +167,13 @@ void GUISystem::update()
 	mUIManager.update();
 }
 
-GWidget* GUISystem::findTopWidget(int id , GWidget* start /*= NULL */)
+GWidget* GUISystem::findTopWidget(int id)
 {
-	GUI::Core* root = mUIManager.getRoot();
-	GWidget* child = ( start ) ? root->nextChild( start ) : root->getChild();
-	while( child )
+	for( auto child = mUIManager.createTopWidgetIterator() ; child ; ++child )
 	{
 		if ( child->getID() == id )
-			return child;
-		child = root->nextChild( child );
+			return &(*child);
 	}
-	return NULL;
+	return nullptr;
 }
 

@@ -85,16 +85,29 @@ protected:
 
 };
 
+class DelayCtrlBase
+{
+public:
+	DelayCtrlBase();
 
-class SendDelayCtrl
+	void setDelay( long delay , long delayRand = 0 ) 
+	{ 
+		mDelay = delay;
+		mDelayRand = delayRand;
+	}
+	long makeDelayValue();
+protected:
+	long         mDelay;
+	long         mDelayRand;
+	long         mCurTime;
+};
+class SendDelayCtrl : public DelayCtrlBase
 {
 public:
 	SendDelayCtrl( NetBufferCtrl& bufferCtrl );
 
 	void update( long time );
 	bool add( IComPacket* cp );
-	void setDelay( long delay ){ mDelay = delay;  }
-
 private:
 	struct SendInfo
 	{
@@ -105,20 +118,17 @@ private:
 
 	DEFINE_MUTEX( mMutexBuffer )
 	SendInfoList mInfoList;
-	long         mDelay;
-	long         mCurTime;
 	SocketBuffer mBuffer;
 	NetBufferCtrl& mBufferCtrl;
 };
 
-class RecvDelayCtrl
+class RecvDelayCtrl : public DelayCtrlBase
 {
 public:
 	RecvDelayCtrl( int size );
 
 	void update( long time , UdpClient& client , ComEvaluator& evaluator );
 	bool add( SocketBuffer& buffer , bool isUdpPacket );
-	void setDelay( long delay ){ mDelay = delay;  }
 private:
 	struct RecvInfo
 	{
@@ -128,8 +138,6 @@ private:
 	};
 	typedef std::list< RecvInfo > RecvInfoList;
 	RecvInfoList mInfoList;
-	long         mDelay;
-	long         mCurTime;
 	SocketBuffer mBuffer;
 };
 
@@ -140,8 +148,8 @@ public:
 	GAME_API DelayClientWorker();
 	GAME_API ~DelayClientWorker();
 
-	GAME_API void setDelay( long time );
-	bool updateSocket( long time );
+	GAME_API void setDelay(long delay, long delayRand = 0);
+	bool updateSocket(long time);
 	virtual bool  onRecvData( NetConnection* connection , SocketBuffer& buffer , NetAddress* clientAddr );
 	virtual void  sendCommand( int channel , IComPacket* cp , unsigned flag );
 protected:

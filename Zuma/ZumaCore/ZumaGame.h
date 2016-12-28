@@ -15,24 +15,24 @@
 
 #include <fstream>
 
-#include "DebugSystem.h"
+#include "LogSystem.h"
 
 namespace Zuma
 {
 	class LevelStage;
 	struct ZComboInfo;
 
-	class LogRecorder : public IMsgListener
+	class LogRecorder : public ILogListener
 	{
 	public:
 		LogRecorder( char const* logPath )
 		{
 			stream.open( logPath );
-			addChannel( MSG_ERROR );
-			addChannel( MSG_WARNING );
+			addChannel( LOG_ERROR );
+			addChannel( LOG_WARNING );
 		}
 
-		virtual void receive( MsgChannel channel , char const* str )
+		virtual void receiveLog( LogChannel channel , char const* str )
 		{
 			if ( stream )
 				stream << str << "\n";

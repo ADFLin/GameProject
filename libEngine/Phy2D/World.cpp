@@ -3,14 +3,17 @@
 #include "Phy2D/Shape.h"
 #include "Phy2D/RigidBody.h"
 
-#include "DebugSystem.h"
+#include "LogSystem.h"
+
 
 namespace Phy2D
 {
-	extern void jumpDebug();
+	void EmptyDebugJump(){}
+	DebugJumpFun GDebugJumpFun = EmptyDebugJump;
 
 	void World::simulate(float dt)
 	{
+		::Msg("World::sim");
 		mAllocator.clearFrame();
 
 		int vIterNum = 50;
@@ -93,7 +96,7 @@ namespace Phy2D
 		}
 
 		if ( numMainfold != 0 )
-			jumpDebug();
+			GDebugJumpFun();
 		//std::sort( sortedContact.begin() , sortedContact.end() , DepthSort() );
 
 		for( int nIter = 0 ; nIter < vIterNum ; ++nIter )
@@ -142,7 +145,7 @@ namespace Phy2D
 				}
 
 				if ( numMainfold != 0 )
-					jumpDebug();
+					GDebugJumpFun();
 			}
 		}
 
@@ -232,7 +235,7 @@ namespace Phy2D
 		}
 
 		if ( numMainfold != 0 )
-			jumpDebug();
+			GDebugJumpFun();
 
 	}
 

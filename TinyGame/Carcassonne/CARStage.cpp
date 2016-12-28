@@ -256,8 +256,8 @@ namespace CAR
 			mSurfaceBufferTake->ReleaseDC(hDC);
 		}
 
-		WorldTileManager& level = mMoudule.getWorld();
-		for ( auto iter = level.createWorldTileIterator() ; iter ; ++iter )
+		WorldTileManager& world = mMoudule.getWorld();
+		for ( auto iter = world.createWorldTileIterator() ; iter ; ++iter )
 		{
 			RenderUtility::setBrush( g , Color::eNull );
 			RenderUtility::setPen( g , Color::eGray );
@@ -465,9 +465,9 @@ namespace CAR
 			RenderUtility::setBrush( g , Color::eNull );
 			RenderUtility::setPen( g , Color::eWhite );
 			drawTileRect( g , mCurMapPos );
-			if ( level.findMapTile( mCurMapPos ) == nullptr )
+			if ( world.findMapTile( mCurMapPos ) == nullptr )
 			{
-				drawTile( g , Vec2f(mCurMapPos) , level.getTile( mMoudule.mUseTileId ) , mRotation );
+				drawTile( g , Vec2f(mCurMapPos) , world.getTile( mMoudule.mUseTileId ) , mRotation );
 			}
 
 			for( int i = 0  ; i < mMoudule.mPlaceTilePosList.size() ; ++i )

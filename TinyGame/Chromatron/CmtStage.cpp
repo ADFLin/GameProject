@@ -1,7 +1,7 @@
 #include "CmtPCH.h"
 #include "CmtStage.h"
 
-#include "CoreShare.h"
+#include "GameShare.h"
 
 #include "CmtDeviceFactory.h"
 #include "CmtDeviceID.h"

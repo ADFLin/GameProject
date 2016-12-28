@@ -299,11 +299,11 @@ namespace Zuma
 
 		//getResManager().load( "MainMenu" );
 		ZTexButton* button;
-		getUISystem()->addUI( new ZTexButton( UI_ADVENTLIRE , IMAGE_MM_ARCADE ,  Vec2i( 452 , 63) , NULL  ) );
-		getUISystem()->addUI( new ZTexButton( UI_GAUNTLET  , IMAGE_MM_GAUNTLET ,  Vec2i( 435 , 153 ) , NULL  ) );
-		getUISystem()->addUI( new ZTexButton( UI_OPTIONS_BUTTON , IMAGE_MM_OPTIONS , Vec2i( 423 , 237 ) , NULL  ) );
-		getUISystem()->addUI( new ZTexButton( UI_MORE_GAMES , IMAGE_MM_MOREGAMES , Vec2i( 395 , 306 ) , NULL  ) );
-		getUISystem()->addUI( new ZTexButton( UI_QUIT_GAME  , IMAGE_MM_QUIT , Vec2i(500 , 313 ) , NULL  ) );
+		getUISystem()->addWidget( new ZTexButton( UI_ADVENTLIRE , IMAGE_MM_ARCADE ,  Vec2i( 452 , 63) , NULL  ) );
+		getUISystem()->addWidget( new ZTexButton( UI_GAUNTLET  , IMAGE_MM_GAUNTLET ,  Vec2i( 435 , 153 ) , NULL  ) );
+		getUISystem()->addWidget( new ZTexButton( UI_OPTIONS_BUTTON , IMAGE_MM_OPTIONS , Vec2i( 423 , 237 ) , NULL  ) );
+		getUISystem()->addWidget( new ZTexButton( UI_MORE_GAMES , IMAGE_MM_MOREGAMES , Vec2i( 395 , 306 ) , NULL  ) );
+		getUISystem()->addWidget( new ZTexButton( UI_QUIT_GAME  , IMAGE_MM_QUIT , Vec2i(500 , 313 ) , NULL  ) );
 	}
 
 	void ZMainMenuStage::onUpdate( long time )
@@ -348,10 +348,10 @@ namespace Zuma
 		ZTexButton* texButton;
 		texButton = new ZTexButton( 
 			UI_PLAY_STAGE , IMAGE_ADVPLAYBUTTON , Vec2i( 543 ,441 ) , NULL );
-		getUISystem()->addUI( texButton );
+		getUISystem()->addWidget( texButton );
 		texButton = new ZTexButton( 
 			UI_MAIN_MENU , IMAGE_ADVMAINMENUBUTTON , Vec2i( 0 ,441 ) , NULL );
-		getUISystem()->addUI( texButton );
+		getUISystem()->addWidget( texButton );
 	}
 
 	void AdvMenuStage::onUpdate( long time )
@@ -367,7 +367,7 @@ namespace Zuma
 		button = new ZAdvButton( texID , pos , NULL );
 		button->stageID = stageID;
 		button->enable( stageID <= userData.unlockStage );
-		getUISystem()->addUI( button );
+		getUISystem()->addWidget( button );
 
 		return button;
 	}

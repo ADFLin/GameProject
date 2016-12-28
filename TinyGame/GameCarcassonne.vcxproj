@@ -139,7 +139,6 @@
     <ClInclude Include="Carcassonne\CARStage.h" />
     <ClInclude Include="Carcassonne\CARWorldTileManager.h" />
     <ClInclude Include="Carcassonne\CAR_PCH.h" />
-    <ClInclude Include="Carcassonne\StdUtility.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Carcassonne\S-CAR_v7.4.pdf" />
@@ -147,6 +146,9 @@
   <ItemGroup>
     <ProjectReference Include="..\CFlyMain\CFlyMain.vcxproj">
       <Project>{ce65a4f4-d290-4e05-b119-7d6cf538e05d}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\libEngine\EngineShare.vcxproj">
+      <Project>{061a25a9-fc8b-4fe1-915f-ec50c0ea354b}</Project>
     </ProjectReference>
     <ProjectReference Include="..\libEngine\libEngine.vcxproj">
       <Project>{c1b32c2b-9a40-4874-869f-fcc57bb1d93f}</Project>

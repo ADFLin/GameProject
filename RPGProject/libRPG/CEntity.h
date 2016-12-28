@@ -94,14 +94,12 @@ private:
 	friend class CEntity;
 };
 
-
-
 enum EntityUpdatePolicy
 {
 	EUP_ALWAYS ,
 	EUP_NEVER  ,
-
 };
+
 enum EntityFlag
 {
 	EF_DESTROY = 0x001, 
@@ -114,7 +112,6 @@ enum EntityFlag
 	EF_ZONE_MAK = 0x0f0 ,
 	EF_MANAGING = 0x100 ,
 };
-
 
 
 class CEntity

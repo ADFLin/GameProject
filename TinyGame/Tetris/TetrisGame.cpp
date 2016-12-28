@@ -26,7 +26,7 @@ namespace Tetris
 	class TetrisReplayTemplate : public ReplayTemplate
 	{
 	public:
-		static uint32 const LastVersion = VERSION(0,0,1);
+		static uint32 const LastVersion = MAKE_VERSION(0,0,1);
 
 		TetrisReplayTemplate();
 		~TetrisReplayTemplate();

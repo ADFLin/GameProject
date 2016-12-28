@@ -37,7 +37,7 @@ int g_DevMsgLevel = 10;
 GAME_API IGameNetInterface* gGameNetInterfaceImpl;
 GAME_API uint32 gGameThreadId;
 
-class GMsgListener : public IMsgListener
+class GMsgListener : public ILogListener
 {
 public:
 
@@ -51,7 +51,7 @@ public:
 	}
 	static int const MaxLineNum = 60;
 
-	virtual void receive( MsgChannel channel , char const* str )
+	virtual void receiveLog( LogChannel channel , char const* str ) override
 	{
 		Mutex::Locker locker( mMutex );
 		if ( mMsgList.size() > MaxLineNum )
@@ -60,6 +60,15 @@ public:
 		mMsgList.push_back( str );
 		if ( mMsgList.size() == 1 )
 			mTime = 0;
+	}
+
+	virtual bool filterLog(LogChannel channel, int level) override
+	{
+		if( channel == LOG_DEV )
+		{
+			return g_DevMsgLevel < level;
+		}
+		return true;
 	}
 
 	void update( long time )
@@ -95,6 +104,9 @@ public:
 	unsigned mTime;
 	typedef  std::list< std::string > StringList;
 	StringList mMsgList;
+
+
+
 };
 
 static GMsgListener gMsgListener;
@@ -130,10 +142,9 @@ bool TinyGameApp::onInit()
 
 	mbLockFPS = ::Global::GameSetting().getIntValue("bLockFPS", nullptr, 0);
 
-	gMsgListener.setLevel( g_DevMsgLevel );
-	gMsgListener.addChannel( MSG_DEV );
-	gMsgListener.addChannel( MSG_NORMAL );
-	gMsgListener.addChannel( MSG_ERROR  );
+	gMsgListener.addChannel( LOG_DEV );
+	gMsgListener.addChannel( LOG_MSG );
+	gMsgListener.addChannel( LOG_ERROR  );
 
 	if ( !mGameWindow.create( TEXT("Tiny Game") , gDefaultScreenWidth , gDefaultScreenHeight , SysMsgHandler::MsgProc  ) )
 		return false;
@@ -284,7 +295,9 @@ ClientWorker* TinyGameApp::createClinet()
 	if ( ::Global::GameSetting().getIntValue("SimNetLog", nullptr, 0) )
 	{
 		DelayClientWorker* delayWorker = new DelayClientWorker();
-		delayWorker->setDelay(::Global::GameSetting().getIntValue("SimNetLagDelay", nullptr, 30));
+		delayWorker->setDelay(
+			::Global::GameSetting().getIntValue("SimNetLagDelay", nullptr, 30),
+			::Global::GameSetting().getIntValue("SimNetLagDelayRand", nullptr, 0));
 		worker = delayWorker;
 	}
 	else

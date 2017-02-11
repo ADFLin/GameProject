@@ -50,20 +50,18 @@ namespace Poker
 	public:
 		SingleCell( Type type )
 			:Cell( type )
-			,mCard( NoCard )
+			,mCard(Card::None())
 		{
 
 		}
 
-		void   clear(){ mCard = NoCard; }
+		void   clear(){ mCard = Card::None(); }
 		int    getCardNum() const { return (isEmpty())? 0 : 1 ; }
-		bool   isEmpty() const { return  mCard == NoCard;  }
+		bool   isEmpty() const { return  mCard == Card::None();  }
 		Card const& getCard() const { return mCard; }
 		void   push(Card const& card ){ mCard = card; }
-		void   pop(){ mCard = NoCard; }
-
+		void   pop(){ mCard = Card::None(); }
 	protected:
-		static Card const NoCard; 
 		Card mCard;
 	};
 
@@ -116,7 +114,7 @@ namespace Poker
 		void   pop()
 		{
 			if ( mCard.getFace() == Card::eACE )
-				mCard = NoCard;
+				mCard = Card::None();
 			else
 				mCard = Card( mCard.getSuit() , mCard.getFaceRank() - 1 );
 		}

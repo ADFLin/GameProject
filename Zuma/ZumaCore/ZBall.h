@@ -2,7 +2,7 @@
 #define ZBall_h__
 
 #include "ZBase.h"
-#include "RefObject.h"
+#include "RefCount.h"
 #include "TLinkable.h"
 
 #define ZUSE_LINKABLE 0
@@ -68,7 +68,7 @@ namespace Zuma
 
 	class   ZConBall;
 	class   ZPath;
-	typedef std::list< RefPtrT< ZConBall> > ZBallList;
+	typedef std::list< TRefCountPtr< ZConBall> > ZBallList;
 
 #if ZUSE_LINKABLE
 	typedef ZConBall* ZBallNode;
@@ -94,7 +94,7 @@ namespace Zuma
 
 
 	class ZConBall : public ZObject
-		           , public RefObjectT< ZConBall >
+		           , public RefCountedObjectT< ZConBall >
 #ifdef ZUSE_LINKABLE
 		           , public TLinkable< ZConBall >
 #endif

@@ -114,7 +114,7 @@ namespace MV
 			iter != itEnd ; ++iter )
 		{
 			Block* block = *iter;
-			//TODO:map only 1 block
+			//#TODO:map only 1 block
 			if ( getBlock( block->pos ) == block->id )
 				setBlock( block->pos , 0 );
 		}
@@ -217,7 +217,7 @@ namespace MV
 	{
 		assert( block && block->id > 0 );
 		int idx = getBlockIndex( block->pos );
-		//TODO:map only 1 block
+		//#TODO:map only 1 block
 		if ( mBlockMap[ idx ] == block->id )
 		{
 			mBlockMap[idx] = 0;
@@ -499,7 +499,7 @@ namespace MV
 
 	void World::updateNavNode( Block& block )
 	{
-		//TODO:map only 1 block
+		//#TODO:map only 1 block
 		if ( getBlock( block.pos ) != block.id )
 			return;
 
@@ -575,7 +575,7 @@ namespace MV
 			}
 			else
 			{
-				//TODO
+				//#TODO
 
 				return;
 			}
@@ -962,7 +962,7 @@ namespace MV
 		Block* updateBlock[ 30 ];
 		int numBlock = 0;
 
-		//TODO: optimize code
+		//#TODO: optimize code
 		for( int i = -1 ; i <= 1 ; ++i )
 		{
 			for( int j = -1 ; j <= 1 ; ++j )

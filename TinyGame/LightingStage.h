@@ -96,7 +96,7 @@ namespace Lighting
 
 			switch( key )
 			{
-			case 'R': restart(); break;
+			case Keyboard::eR: restart(); break;
 			}
 			return false;
 		}

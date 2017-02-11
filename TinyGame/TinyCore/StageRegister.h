@@ -13,6 +13,8 @@ enum class StageRegisterGroup
 	PhyDev ,
 	Dev ,
 	Dev4 ,
+
+	NumGroup ,
 };
 
 class IStageFactory
@@ -78,11 +80,7 @@ struct StageRegisterHelper
 };
 
 
-#ifdef _MSC_VER // Necessary for edit & continue in MS Visual C++.
-# define ANONYMOUS_VARIABLE(str) MARCO_NAME_COMBINE_2(str, __COUNTER__)
-#else
-# define ANONYMOUS_VARIABLE(str) MARCO_NAME_COMBINE_2(str, __LINE__)
-#endif 
+
 
 #define REGISTER_STAGE( DECL , CLASS , GROUP )\
 	static StageRegisterHelper ANONYMOUS_VARIABLE(gStageRegister)( StageInfo( DECL , makeStageFactory< CLASS >() , GROUP ) );

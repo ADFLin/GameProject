@@ -23,9 +23,11 @@
 #include "Localization.h"
 
 #include "MainMenuStage.h"
-#include "GameSingleStage.h"
+
 #include "NetGameStage.h"
-#include "ReplayStage.h"
+
+#include "SingleStageMode.h"
+#include "ReplayStageMode.h"
 
 #include "Thread.h"
 #include "GLUtility.h"
@@ -185,15 +187,19 @@ void TinyGameApp::onEnd()
 
 	closeNetwork();
 
+	//cleanup widget before delete game instance
+	Global::GUI().cleanupWidget( true );
+
 	Global::GameManager().cleanup();
 
-	importUserProfile();
-	Global::GameSetting().saveFile( GAME_SETTING_PATH );
-
-	extern void saveTranslateAsset( char const* path );
-	saveTranslateAsset( "tt.txt" );
-
 	Global::getDrawEngine()->release();
+
+	importUserProfile();
+
+	Global::GameSetting().saveFile(GAME_SETTING_PATH);
+
+	extern void saveTranslateAsset(char const* path);
+	saveTranslateAsset("tt.txt");
 }
 
 long TinyGameApp::onUpdate( long shouldTime )
@@ -212,7 +218,7 @@ long TinyGameApp::onUpdate( long shouldTime )
 
 		::Global::GUI().update();
 
-		IGameInstance* game = Global::GameManager().getCurGame();
+		IGameInstance* game = Global::GameManager().getRunningGame();
 		if ( game )
 			game->getController().clearFrameInput();
 	}
@@ -320,7 +326,7 @@ bool TinyGameApp::onMouse( MouseMsg const& msg )
 {
 	bool result = true;
 
-	IGameInstance* game = Global::GameManager().getCurGame();
+	IGameInstance* game = Global::GameManager().getRunningGame();
 	if ( game )
 	{
 		GameController& controller = game->getController();
@@ -416,14 +422,14 @@ void TinyGameApp::render( float dframe )
 		if( mRenderEffect )
 			mRenderEffect->onRender(dt);
 
-		if( ::Global::getDrawEngine()->isEnableOpenGL() )
+		if( de->isEnableOpenGL() )
 			::Global::getGLGraphics2D().beginRender();
 
 		Global::GUI().render();
 	}
 	else
 	{
-		if( ::Global::getDrawEngine()->isEnableOpenGL() )
+		if( de->isEnableOpenGL() )
 			::Global::getGLGraphics2D().beginRender();
 	}
 
@@ -435,7 +441,7 @@ void TinyGameApp::render( float dframe )
 	g.setTextColor(255, 255, 0);
 	g.drawText(Vec2i(5, 5), str.format("FPS = %f", mFPSCalc.getFPS()));
 
-	if( ::Global::getDrawEngine()->isEnableOpenGL() )
+	if( de->isEnableOpenGL() )
 		::Global::getGLGraphics2D().endRender();
 		
 	de->endRender();
@@ -488,7 +494,7 @@ StageBase* TinyGameApp::createStage( StageID stageId )
 {
 	StageBase* newStage = NULL;
 
-	IGameInstance* curGame = Global::GameManager().getCurGame();
+	IGameInstance* curGame = Global::GameManager().getRunningGame();
 
 	if ( curGame )
 	{
@@ -545,7 +551,8 @@ StageBase* TinyGameApp::resolveChangeStageFail( FailReason reason )
 {
 	switch( reason )
 	{
-	case FR_INIT_FAIL:
+	case FailReason::InitFail:
+	case FailReason::NoStage:
 		//if ( !mErrorMsg.empty() )
 		//	mShowErrorMsg = true;
 		break;
@@ -553,7 +560,7 @@ StageBase* TinyGameApp::resolveChangeStageFail( FailReason reason )
 	return createStage( STAGE_MAIN_MENU );
 }
 
-bool TinyGameApp::initStage(StageBase* stage)
+bool TinyGameApp::initializeStage(StageBase* stage)
 {
 	if( auto gameStage = dynamic_cast<GameStageBase*>(stage) )
 	{

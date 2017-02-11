@@ -511,7 +511,7 @@ typedef struct
 
 		Scene*          mScene;
 		uint8*           mData;
-		Texture::RefPtr mTexture[32];
+		Texture::RefCountPtr mTexture[32];
 		int             mNumTexture;
 		studioseqhdr_t* mAnimSeqHeader[ 32 ];
 		studiohdr_t*    mTextureHeader;

@@ -68,7 +68,7 @@ namespace CFly
 		virtual void setParamValue( int idxParam , float* value ) = 0;
 	};
 
-	class Skeleton : public RefObjectT< Skeleton >
+	class Skeleton : public RefCountedObjectT< Skeleton >
 	{
 	public:
 

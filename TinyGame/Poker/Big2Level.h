@@ -29,7 +29,6 @@ namespace Poker { namespace Big2 {
 		}
 	}
 
-
 	struct SlotStatus
 	{
 		int      slotId;

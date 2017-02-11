@@ -110,7 +110,7 @@ namespace Zuma
 	{
 		for( int i = 0 ; i < info.numCutout ;++i )
 		{
-			ITexture2D* tex = info.cutout[i].image.get();
+			ITexture2D const* tex = info.cutout[i].image.get();
 			Vec2D const& pos = info.cutout[i].pos;
 
 			RDSystem.setWorldIdentity();

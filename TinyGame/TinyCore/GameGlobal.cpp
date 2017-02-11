@@ -4,7 +4,7 @@
 #include "PropertyKey.h"
 #include "DrawEngine.h"
 #include "Random.h"
-#include "GamePackageManager.h"
+#include "GameInstanceManager.h"
 #include "GameGUISystem.h"
 #include "UserProfile.h"
 
@@ -89,9 +89,9 @@ Graphics2D& Global::getGraphics2D()
 	return getDrawEngine()->getScreenGraphics();
 }
 
-GamePackageManager& Global::GameManager()
+GameInstanceManager& Global::GameManager()
 {
-	static GamePackageManager manager;
+	static GameInstanceManager manager;
 	return manager;
 }
 

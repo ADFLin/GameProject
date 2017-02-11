@@ -210,6 +210,23 @@ public:
 	T& val;
 };
 
+#include <functional>
+class DelegateTask : public TaskBase
+{
+public:
+	typedef std::function< bool(long) > DelegateFun;
+
+	template< class FunType >
+	DelegateTask(FunType fun)
+		:mFun(fun)
+	{
+
+	}
+	void release() { delete this; }
+	bool onUpdate(long time) { return mFun( time ); }
+	DelegateFun mFun;
+};
+
 template < class T , class MemFun >
 class MemberFunTask : public TaskBase
 {
@@ -234,6 +251,12 @@ namespace TaskUtility
 	MemberFunTask< T , MemFun >* createMemberFunTask( T* ptr , MemFun fun )
 	{
 		return new MemberFunTask< T , MemFun >( ptr , fun );
+	}
+
+	template < class FunType >
+	DelegateTask* createDelegateTask( FunType fun )
+	{
+		return new DelegateTask(fun);
 	}
 }
 #endif // TaskBase_h__

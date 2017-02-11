@@ -24,6 +24,8 @@ namespace Poker {
 		}
 		void draw( Graphics2D& g , Vec2i const& pos , Card const& card )
 		{
+			if( card == Card::None() )
+				return;
 			cdtDraw( mBugFixDC.getDC() , 0  , 0 , card.getIndex() , mdFACES , RGB( 0,0,0 )  );
 			mBugFixDC.bitBlt( g.getRenderDC() , pos.x , pos.y  );
 		}
@@ -99,6 +101,9 @@ namespace Poker {
 		}
 		void draw( Graphics2D& g , Vec2i const& pos , Card const& card )
 		{
+			if( card == Card::None() )
+				return;
+
 			Vec2i const& posImg = mCardPos[ card.getIndex() ];
 			mBmpDC.bitBlt( g.getRenderDC() , pos.x , pos.y , posImg.x , posImg.y , CardSize.x , CardSize.y );
 		}

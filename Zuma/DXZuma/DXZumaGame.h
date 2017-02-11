@@ -5,7 +5,7 @@
 #include "ZumaGame.h"
 #include "SysMsgHandler.h"
 
-#include "D3DRenderSystem.h"
+#include "D3D9RenderSystem.h"
 
 using namespace Zuma;
 

@@ -147,10 +147,12 @@ void GUISystem::addWidget( GWidget* widget )
 	mUIManager.addWidget( widget );
 }
 
-void GUISystem::cleanupWidget()
+void GUISystem::cleanupWidget(bool bForceCleanup)
 {
 	mUIManager.cleanupWidgets();
 	mTweener.clear();
+	if( bForceCleanup )
+		mUIManager.cleanupPaddingKillWidgets();
 }
 
 void GUISystem::render()

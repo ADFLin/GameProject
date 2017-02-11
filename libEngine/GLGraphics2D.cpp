@@ -108,11 +108,11 @@ void GLGraphics2D::endRender()
 	glEnable( GL_CULL_FACE );
 	glEnable( GL_DEPTH_TEST );
 
+	glMatrixMode(GL_MODELVIEW);
 	glPopMatrix();
-	glMatrixMode( GL_MODELVIEW );
+	glMatrixMode(GL_PROJECTION);
 	glPopMatrix();
-	glMatrixMode( GL_PROJECTION );
-
+	glMatrixMode(GL_MODELVIEW);
 }
 
 void GLGraphics2D::emitPolygonVertex(Vec2f pos[] , int num)

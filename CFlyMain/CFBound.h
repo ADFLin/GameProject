@@ -12,7 +12,11 @@ namespace CFly
 		AABBox(){}
 		static AABBox Empty(){ return AABBox( Vector3(0,0) , Vector3(0,0) ); }
 
-
+		void addPoint(Vector3 const& v)
+		{
+			mMax.max(v);
+			mMin.min(v);
+		}
 		void translate( Vector3 const& offset )
 		{
 			mMax += offset;
@@ -24,7 +28,6 @@ namespace CFly
 			mMin -= dv;
 		}
 
-
 		bool makeInteration( AABBox const& other )
 		{
 			
@@ -34,7 +37,6 @@ namespace CFly
 
 
 		}
-
 		bool rayTest( Vector3 const& p , Vector3 const& dir , float& )
 		{
 
@@ -43,8 +45,8 @@ namespace CFly
 
 		void makeUnion( AABBox const& other )
 		{
-			mMin.min( other );
-			mMax.max( other );
+			mMin.min( other.mMin );
+			mMax.max( other.mMax );
 		}
 	private:
 		Vector3 mMin;

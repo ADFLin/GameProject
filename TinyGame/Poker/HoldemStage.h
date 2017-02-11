@@ -32,12 +32,20 @@ namespace Poker { namespace Holdem {
 		void onRestart( uint64 seed , bool beInit );
 		void onEnd();
 		void onRender( float dFrame );
+		void tick();
 
+		//ServerLevel::Listener
+		virtual void onRoundEnd();
+		virtual void onPlayerLessBetMoney(int posSlot);
 		CRandom  mRandom;
 
 		TPtrHolder< ServerLevel >  mServerLevel;
 		TPtrHolder< ClientLevel >  mClientLevel;
 		TPtrHolder< Scene >        mScene;
+		class DevBetPanel*         mDevPanel;
+
+		
+
 	};
 
 }//namespace Holdem

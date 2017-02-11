@@ -1,5 +1,5 @@
 #include "ZumaPCH.h"
-#include "D3DRenderSystem.h"
+#include "D3D9RenderSystem.h"
 
 #include "ZBallConGroup.h"
 #include "ResID.h"

@@ -158,7 +158,7 @@ namespace Cube
 
 			switch( key )
 			{
-			case 'R': restart(); break;
+			case Keyboard::eR: restart(); break;
 			case 'W': mCamera.moveFront( 0.5 ); break;
 			case 'S': mCamera.moveFront( -0.5 ); break;
 			case VK_UP: mCamera.setPos( mCamera.getPos() + Vec3f( 0,0,2) );break;

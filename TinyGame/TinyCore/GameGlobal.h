@@ -50,7 +50,7 @@ class Graphics2D;
 class IGraphics2D;
 class GLGraphics2D;
 
-class GamePackageManager;
+class GameInstanceManager;
 class PropertyKey;
 class GUISystem;
 struct UserProfile;
@@ -78,7 +78,7 @@ public:
 	static GAME_API int  Random();
 	static GAME_API void RandSeed(unsigned seed );
 
-	static GAME_API GamePackageManager& GameManager();
+	static GAME_API GameInstanceManager& GameManager();
 	static GAME_API IGameNetInterface&  GameNet();
 	static GAME_API PropertyKey&        GameSetting();
 	static GAME_API GUISystem&          GUI();

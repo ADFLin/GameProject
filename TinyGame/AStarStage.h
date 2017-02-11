@@ -248,7 +248,7 @@ namespace AStar
 		{
 	
 #if 0   
-			//TODO
+			//#TODO
 			if ( x == mMap.getSizeX() - 1 )
 			{
 				mMap( x , y ).clearance = haveBlock( x , y ) ? 0 : 1;
@@ -491,15 +491,15 @@ namespace AStar
 
 			switch( key )
 			{
-			case 'R': restart(); break;
-			case 'Q': 
+			case Keyboard::eR: restart(); break;
+			case Keyboard::eQ:
 				++mAStar.mClearance; 
 				if ( mAStar.sreach( mStartPos ) )
 				{
 					mPath = mAStar.getPath();
 				}
 				break;
-			case 'W':
+			case Keyboard::eW:
 				--mAStar.mClearance;
 				if ( mAStar.mClearance <= 0 )
 					mAStar.mClearance = 1;

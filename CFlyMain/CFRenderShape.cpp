@@ -111,7 +111,7 @@ namespace CFly
 
 		unsigned vtxSize = mVertexBuffer[0]->getVertexSize();
 
-		VertexBuffer::RefPtr newVBuffer = new VertexBuffer;
+		VertexBuffer::RefCountPtr newVBuffer = new VertexBuffer;
 		if ( !newVBuffer->create( d3dDevice , vtxSize + 4 * 3  , mNumVertex  , mFVF | D3DFVF_NORMAL ) )
 		{
 			return;

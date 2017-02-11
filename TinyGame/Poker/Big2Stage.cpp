@@ -27,7 +27,8 @@ namespace Poker { namespace Big2 {
 
 	bool LevelStage::onInit()
 	{
-
+		if( !BaseClass::onInit() )
+			return false;
 
 		return true;
 	}

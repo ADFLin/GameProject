@@ -2,7 +2,7 @@
 #include "GameStage.h"
 
 #include "GameInstance.h"
-#include "GamePackageManager.h"
+#include "GameInstanceManager.h"
 #include "GameReplay.h"
 #include "GameAction.h"
 #include "GameStageMode.h"
@@ -49,13 +49,15 @@ private:
 
 GameStageBase::GameStageBase()
 {
+	mGame = nullptr;
 	mStageMode = nullptr;
 	mTickTime = gDefaultTickTime;
-	mGame = nullptr;
 }
 
 bool GameStageBase::onInit()
 {
+	mGame = Global::GameManager().getRunningGame();
+
 	if( !mStageMode )
 	{
 		mStageMode = new EmptyStageMode;
@@ -76,8 +78,6 @@ bool GameStageBase::onInit()
 
 	if( !BaseClass::onInit() )
 		return false;
-
-	mGame = Global::GameManager().getCurGame();
 
 	return true;
 }

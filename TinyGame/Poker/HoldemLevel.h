@@ -48,6 +48,7 @@ namespace Poker { namespace Holdem {
 		STEP_FLOP_CARDS ,
 		STEP_TURN_CARD ,
 		STEP_RIVER_CARD ,
+
 		NUM_BET_STEP ,
 	};
 
@@ -84,6 +85,7 @@ namespace Poker { namespace Holdem {
 		int       betMoney[ NUM_BET_STEP ];
 		int       totalBetMoney;
 		int       betMoneyOrder;
+		char      pocketCards[2];
 	};
 
 
@@ -112,12 +114,15 @@ namespace Poker { namespace Holdem {
 		int         getPotNum(){ return mIdxPotLast + 1; }
 		int         getPotMoney( int idx ){ return mPotPool[ idx ]; }
 
+		bool        isPlaying() { return mBetStep >= 0; }
+
 	protected:
 
 		virtual void procRecvData( int recvId , int dataId , void* data , int dataSize ) = 0;
 
 
 		void      doGameInit( Rule const& rule );
+		void      doInitNewRound();
 		void      doNewRound( int posButton , int posBet );
 		void      doNextStep( BetStep step , char cards[] );
 		void      doBet( int pos , BetType type , int money );
@@ -147,6 +152,7 @@ namespace Poker { namespace Holdem {
 	class ServerLevel : public LevelBase
 	{
 	public:
+		ServerLevel();
 
 		class Listener
 		{
@@ -154,8 +160,11 @@ namespace Poker { namespace Holdem {
 			virtual void onBetCall( int slot ){}
 			virtual void onBetResult( int slot , BetType type , int money ){}
 			virtual void onShowDown( SlotTrickInfo info[] , int num ){}
+			virtual void onRoundEnd(){}
+			virtual void onPlayerLessBetMoney(int slot) {}
 		};
 
+		void setListener(Listener* listener) { mListener = listener; }
 		void startNewRound( IRandom& random );
 		void setupGame( Rule const& rule );
 		void addPlayer( unsigned playerId , int pos , int money );
@@ -164,7 +173,7 @@ namespace Poker { namespace Holdem {
 		void procBetRequest( int pos , BetType type , int money );
 
 	private:
-
+		void showHandCard( uint32 betTypeMask );
 		void shuffle( IRandom& random );
 		void nextStep();
 		void calcRoundResult();
@@ -198,19 +207,21 @@ namespace Poker { namespace Holdem {
 			virtual void onNextStep( BetStep step , char card[] ){}
 			virtual void onBetResult( int slot , BetType type , int money ){}
 			virtual void onShowDown( SlotTrickInfo info[] , int num ){}
+			virtual void onShowPocketCard(){}
 		};
 
 		void          setListener( Listener* listener ){ mListener = listener; }
 		void          setPlayerPos( int pos ){ mPosPlayer = pos; }
 		int           getPlayerPos(){ return mPosPlayer; }
 
+		SlotInfo&     getPlayerSlot() { return getSlotInfo(mPosPlayer); }
+
 		void          procRecvData( int recvId , int dataId , void* data , int dataSize );
 		void          betRequest( BetType type , int money = 0 );
-		Card const&   getPoketCard( int idx ){ return mPocketCards[ idx ]; }
+		Card          getPoketCard( int idx ){ return Card( getPlayerSlot().pocketCards[ idx ] ); }
+
 
 	private:
-
-		Card       mPocketCards[ PocketCardNum ];
 		int        mPosPlayer;
 		Listener*  mListener;
 	};

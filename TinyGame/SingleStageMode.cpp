@@ -1,5 +1,5 @@
 #include "TinyGamePCH.h"
-#include "GameSingleStage.h"
+#include "SingleStageMode.h"
 
 #include "GameInstance.h"
 #include "GameGUISystem.h"

@@ -28,6 +28,7 @@ void CWorkerDataTransfer::sendData( int recvId , int dataId , void* data , int n
 	mStream.buffer.clear();
 	mStream.buffer.fill( mSlotId );
 	mStream.buffer.fill( dataId  );
+	mStream.buffer.fill( num );
 	mStream.buffer.fill( data , num );
 	sendTcpCommand( recvId , &mStream );
 }
@@ -40,10 +41,19 @@ void CWorkerDataTransfer::procPacket( IComPacket* cp)
 	size_t pos = com->buffer.getUseSize();
 	com->buffer.take( slotId );
 	com->buffer.take( dataId );
+	int dataSizeRecord;
+	com->buffer.take(dataSizeRecord);
 	char* data = com->buffer.getData() + com->buffer.getUseSize();
 	int dataSize = com->buffer.getAvailableSize();
-	mFun( slotId , dataId , data , dataSize );
+	if( dataSizeRecord == dataSize )
+	{
+		mFun(slotId, dataId, data, dataSize);
+	}
+	else
+	{
+		//#TODO:Add log
 
+	}
 	com->buffer.setUseSize( pos );
 }
 

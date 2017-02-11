@@ -10,7 +10,7 @@
 
 #include <algorithm>
 
-//TODO: fix ignore damage when player hurted
+//#TODO: fix ignore damage when player hurted
 
 namespace BomberMan
 {

@@ -436,6 +436,17 @@ namespace Poker { namespace Holdem {
 	};
 	int const SDGameInfo::BaseSize = sizeof( SDGameInfo ) - sizeof( SDSlotInfo ) * MaxPlayerNum;
 
+	struct SDShowPocketCard
+	{
+		static int const BaseSize;
+		int  numPlayer;
+		struct
+		{
+			char pos;
+			char cards[2];
+		} pocketCardInfos[ MaxPlayerNum ];
+	};
+	int const SDShowPocketCard::BaseSize = sizeof(SDGameInfo) - sizeof( SDShowPocketCard::pocketCardInfos[0] ) * MaxPlayerNum;
 
 	struct SDRoundInit
 	{
@@ -484,6 +495,7 @@ namespace Poker { namespace Holdem {
 		DATA2ID( SDNextStep ) ,
 		DATA2ID( SDTrickResult ) ,
 		DATA2ID( SDWinnerResult ) ,
+		DATA2ID( SDShowPocketCard ) ,
 	};
 
 	LevelBase::LevelBase()
@@ -500,33 +512,45 @@ namespace Poker { namespace Holdem {
 		mBetStep = STEP_NO_BET;
 	}
 
-	void LevelBase::doNewRound( int posButton , int posBet )
+	void LevelBase::doInitNewRound()
+	{
+		std::fill_n(mPotPool, MaxPlayerNum, 0);
+		mIdxPotLast = 0;
+		mPotBetMoney = 0;
+
+		for( int i = 0; i < MaxPlayerNum; ++i )
+		{
+			SlotInfo& info = getSlotInfo(i);
+			std::fill_n(info.betMoney, (int)NUM_BET_STEP, 0);
+
+			info.betMoneyOrder = -1;
+			for( int n = 0; n < PocketCardNum; ++n )
+				info.pocketCards[n] = -1;
+		}
+	}
+
+	void LevelBase::doNewRound(int posButton, int posBet)
 	{
 		mPosButton   = posButton;
 		mPosCurBet   = posBet;
-
-		doNextStep( STEP_HOLE_CARDS , NULL );
 		mMaxBetMoney = getRule().bigBlind;
 
-
-		std::fill_n( mPotPool , MaxPlayerNum , 0 );
-		mIdxPotLast = 0;
-		mPotBetMoney = 0;
-		for( int i = 0 ; i < MaxPlayerNum ; ++i )
+		for( int i = 0; i < MaxPlayerNum; ++i )
 		{
-			SlotInfo& info = getSlotInfo( i );
-			info.totalBetMoney = info.betMoney[ STEP_HOLE_CARDS ];
-			for( int j = 1 ; j < NUM_BET_STEP ; ++j )
-				info.betMoney[j] = 0;
-
-			info.betMoneyOrder = -1;
+			SlotInfo& info = getSlotInfo(i);
+			info.totalBetMoney = info.betMoney[STEP_HOLE_CARDS];
 		}
+
+		doNextStep( STEP_HOLE_CARDS , NULL );
 	}
 
 	void LevelBase::doBet( int pos , BetType type , int money )
 	{
+		assert(isPlaying());
+
 		if ( pos != mPosCurBet )
 			return;
+
 		SlotInfo& info = getSlotInfo( pos );
 
 		info.betType = type;
@@ -582,6 +606,7 @@ namespace Poker { namespace Holdem {
 	void LevelBase::doRoundEnd()
 	{
 		mBetStep = STEP_SHOW_DOWN;
+		mPosCurBet = -1;
 	}
 
 	void LevelBase::doWinMoney( int pos , int money )
@@ -705,7 +730,30 @@ namespace Poker { namespace Holdem {
 		}
 	}
 
-	void ServerLevel::shuffle( IRandom& random )
+	void ServerLevel::showHandCard(uint32 betTypeMask)
+	{
+		SDShowPocketCard data;
+		data.numPlayer = 0;
+		for( int i = 0; i < MaxPlayerNum; ++i )
+		{
+			SlotInfo& slot = getSlotInfo(i);
+
+			if( slot.state != SLOT_PLAY )
+				continue;
+			if( !(BIT(slot.betType) & betTypeMask) )
+				continue;
+			int idx = data.numPlayer;
+			data.pocketCardInfos[idx].pos = slot.pos;
+			for( int n = 0; n < PocketCardNum; ++n )
+				data.pocketCardInfos[idx].cards[n] = mSlotPocketCards[slot.pos][n].getIndex();
+			++data.numPlayer;
+		}
+
+		getTransfer()->sendData(SLOT_SERVER, DATA2ID(SDShowPocketCard), &data, 
+			SDShowPocketCard::BaseSize + data.numPlayer * sizeof(SDShowPocketCard::pocketCardInfos[0]));
+	}
+
+	void ServerLevel::shuffle(IRandom& random)
 	{
 		for( int i = 0 ; i < 2 ; ++i )
 			random.getInt();
@@ -768,10 +816,15 @@ namespace Poker { namespace Holdem {
 			SDGameInfo::BaseSize + num * sizeof( SDSlotInfo ) );
 	}
 
-
-	void ServerLevel::startNewRound( IRandom& random )
+	ServerLevel::ServerLevel()
 	{
-		if ( getBetStep() != STEP_NO_BET )
+		mListener = nullptr;
+	}
+
+	void ServerLevel::startNewRound(IRandom& random)
+	{
+		//FIXME
+		if ( isPlaying() )
 		{
 			for( int i = 0 ; i < MaxPlayerNum; ++i )
 			{
@@ -782,19 +835,27 @@ namespace Poker { namespace Holdem {
 				info.totalBetMoney = 0;
 			}
 		}
+
+		doInitNewRound();
+
 		int numPlaying = 0;
 		for( int i = 0 ; i < MaxPlayerNum; ++i )
 		{
 			SlotInfo& info = getSlotInfo( i );
-
 			if ( info.state == SLOT_EMPTY )
 				continue;
 
 			if ( info.ownMoney < getRule().bigBlind )
 			{
-				info.state = SLOT_WAIT_NEXT;
-				//FIXME
-				continue;
+				if( mListener )
+					mListener->onPlayerLessBetMoney(info.pos);
+
+				if( info.ownMoney < getRule().bigBlind )
+				{
+					info.state = SLOT_WAIT_NEXT;
+					//FIXME
+					continue;
+				}
 			}
 
 			++numPlaying;
@@ -901,17 +962,29 @@ namespace Poker { namespace Holdem {
 					break;	
 				}
 			}
+
 			for( int i = 0 ; i < MaxPlayerNum ; ++i )
 			{
-				SlotInfo& info = getSlotInfo( i );
-				if ( info.state == SLOT_PLAY )
+				SlotInfo& slot = getSlotInfo( i );
+
+				if ( slot.state == SLOT_EMPTY )
+					continue;
+				
+				if( slot.state == SLOT_PLAY )
 				{
-					for( int n = 0 ; n < PocketCardNum ; ++n )
+					for( int n = 0; n < PocketCardNum; ++n )
 					{
-						data.pocketCard[n] = mSlotPocketCards[ i ][ n ].getIndex();	
+						data.pocketCard[n] = mSlotPocketCards[i][n].getIndex();
 					}
-					getTransfer()->sendData( i , DATA2ID( SDRoundInit ) , data );
 				}
+				else
+				{
+					for( int n = 0; n < PocketCardNum; ++n )
+					{
+						data.pocketCard[n] = -1;
+					}
+				}
+				getTransfer()->sendData(i, DATA2ID(SDRoundInit), data);
 			}
 		}
 
@@ -924,6 +997,9 @@ namespace Poker { namespace Holdem {
 
 	void ServerLevel::procBetRequest( int pos , BetType type , int money )
 	{
+		if( !isPlaying() )
+			return;
+
 		if ( pos != mPosCurBet )
 			return;
 
@@ -1028,9 +1104,16 @@ namespace Poker { namespace Holdem {
 				SDWinnerResult::BaseSize + 1 * sizeof( SDWinnerInfo ) );
 
 			doRoundEnd();
+			if( mListener )
+				mListener->onRoundEnd();
 		}
 		else if ( mNumFinishBet == mNumBet )
 		{
+			if( mNumAllIn == mNumBet )
+			{
+				showHandCard(BIT(BET_ALL_IN));
+			}
+			//
 			do 
 			{
 				nextStep();
@@ -1064,6 +1147,9 @@ namespace Poker { namespace Holdem {
 			updatePotPool( true );
 			calcRoundResult();
 			doRoundEnd();
+			if( mListener )
+				mListener->onRoundEnd();
+
 			return;
 		}
 
@@ -1120,7 +1206,7 @@ namespace Poker { namespace Holdem {
 
 	static bool powerCmp( CardTrickInfo* i1 , CardTrickInfo* i2 )
 	{
-		return i1->power >= i2 ->power;
+		return i1->power > i2 ->power;
 	}
 	static bool betCmp( CardTrickInfo* i1 , CardTrickInfo* i2 )
 	{
@@ -1163,7 +1249,7 @@ namespace Poker { namespace Holdem {
 			if ( info.state != SLOT_PLAY )
 				continue;
 
-			CardTrickInfo& trickInfo = storage[ pos ];
+			CardTrickInfo& trickInfo = storage[ numPlayer ];
 
 			powerSorted[numPlayer] = &trickInfo;
 			++numPlayer;
@@ -1377,6 +1463,7 @@ namespace Poker { namespace Holdem {
 				data.info[i].money = winMoney[i];
 				doWinMoney( pos[i] , winMoney[i] );
 			}
+
 			getTransfer()->sendData( SLOT_SERVER , DATA2ID( SDWinnerResult ) , &data ,
 				SDWinnerResult::BaseSize + numWinner * sizeof( SDWinnerInfo ) );
 		}
@@ -1472,6 +1559,8 @@ namespace Poker { namespace Holdem {
 			{
 				SDRoundInit* myData = static_cast< SDRoundInit* >( data );
 				
+				doInitNewRound();
+
 				for( int i = 0 ; i < MaxPlayerNum ; ++i )
 				{
 					SlotInfo& info = getSlotInfo( i );
@@ -1494,10 +1583,15 @@ namespace Poker { namespace Holdem {
 						break;
 					}
 				}
-				doNewRound( myData->posButton , myData->posBet );
 
-				for( int i = 0 ; i < PocketCardNum ; ++i )
-					mPocketCards[i] = Card( myData->pocketCard[i] );
+				doNewRound( myData->posButton , myData->posBet );
+				
+				for( int i = 0; i < PocketCardNum; ++i )
+				{
+					SlotInfo& slot = getPlayerSlot();
+					slot.pocketCards[i] = myData->pocketCard[i];
+				}
+					
 			}
 			break;
 		case DATA2ID( SDBetCall ):
@@ -1537,8 +1631,6 @@ namespace Poker { namespace Holdem {
 			{
 				SDWinnerResult* myData = static_cast< SDWinnerResult* >( data );
 
-				
-
 				int countInfo = 0;
 				for( int cb = 0; cb < myData->numPot ; ++cb )
 				{
@@ -1550,6 +1642,22 @@ namespace Poker { namespace Holdem {
 					countInfo += myData->numWinner[ cb ];
 				}
 				doRoundEnd();
+			}
+			break;
+		case DATA2ID( SDShowPocketCard ):
+			{
+				SDShowPocketCard* myData = static_cast<SDShowPocketCard*>(data);
+				for( int i = 0; i < myData->numPlayer; ++i )
+				{
+					int pos = myData->pocketCardInfos[i].pos;
+					SlotInfo& slot = getSlotInfo(pos);
+					
+					for( int n = 0 ; n < PocketCardNum ; ++n )
+						slot.pocketCards[n] = myData->pocketCardInfos[i].cards[n];
+				}
+
+				if( mListener )
+					mListener->onShowPocketCard();
 			}
 			break;
 		}

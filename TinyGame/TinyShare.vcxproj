@@ -127,7 +127,7 @@
     <ClInclude Include="TinyCore\GameGUISystem.h" />
     <ClInclude Include="TinyCore\GameNetConnect.h" />
     <ClInclude Include="TinyCore\GameNetPacket.h" />
-    <ClInclude Include="TinyCore\GamePackageManager.h" />
+    <ClInclude Include="TinyCore\GameInstanceManager.h" />
     <ClInclude Include="TinyCore\GamePlayer.h" />
     <ClInclude Include="TinyCore\GameReplay.h" />
     <ClInclude Include="TinyCore\GameServer.h" />
@@ -164,7 +164,7 @@
     <ClCompile Include="TinyCore\GameGlobal.cpp" />
     <ClCompile Include="TinyCore\GameGUISystem.cpp" />
     <ClCompile Include="TinyCore\GameNetConnect.cpp" />
-    <ClCompile Include="TinyCore\GamePackageManager.cpp" />
+    <ClCompile Include="TinyCore\GameInstanceManager.cpp" />
     <ClCompile Include="TinyCore\GamePlayer.cpp" />
     <ClCompile Include="TinyCore\GameReplay.cpp" />
     <ClCompile Include="TinyCore\GameServer.cpp" />
@@ -193,9 +193,6 @@
       <Project>{686cc0bf-4f6b-454a-8d74-3d2ca3a230e0}</Project>
       <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
     </ProjectReference>
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="TinyCore\StdUtility" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

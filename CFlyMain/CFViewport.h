@@ -7,7 +7,7 @@
 
 namespace CFly
 {
-	class RenderTarget : public RefObjectT< RenderTarget >
+	class RenderTarget : public RefCountedObjectT< RenderTarget >
 	{
 	public:
 		void destroyThis(){ delete this; }
@@ -54,7 +54,7 @@ namespace CFly
 
 
 	private:
-		RenderTarget::RefPtr mRenderTarget;
+		RenderTarget::RefCountPtr mRenderTarget;
 		int                  mIdxTarget;
 		Color4f              mBGColor;
 

@@ -606,7 +606,7 @@ namespace CAR
 		{
 			TileIdVec const& castales = mTileSetManager.getGroup( TileSet::eGermanCastle );
 			int numCastalePlayer = mPlayerManager->getPlayerNum() > 3 ? 1 : 2;
-			//TODO
+			//#TODO
 		}
 
 		mIdxTile = 0;
@@ -1030,7 +1030,7 @@ namespace CAR
 					param.usageBridge = 1;
 					if ( updatePosibleLinkPos( param ) != 0 )
 					{
-						//TODO
+						//#TODO
 						continue;
 					}
 				}
@@ -1341,7 +1341,7 @@ namespace CAR
 				}
 				else
 				{
-					//TODO : Need Request
+					//#TODO : Need Request
 					scoreInfo = &info->featureScores[0];
 					for( int i = 1 ; i < info->featureScores.size() ; ++i )
 					{
@@ -1389,10 +1389,11 @@ namespace CAR
 				if ( mapTile == nullptr )
 					continue;
 
-				//TODO: castle school city of car. , wheel of fea.
+				//#TODO: castle school city of car. , wheel of fea.
 				if ( mSetting->haveRule( Rule::eFariy ) && mFairy->mapTile == mapTile )
 					continue;
 
+				//check prev move
 				int idx = 0;
 				for ( ; idx < step ; ++idx )
 				{
@@ -1442,7 +1443,7 @@ namespace CAR
 						mSheepBags.push_back( shepherd->ownSheep[i] );
 					}
 				}
-				//TODO
+				//#TODO
 				if ( actor->binder )
 				{
 
@@ -1873,7 +1874,7 @@ namespace CAR
 			PlayerBase* player = actor->owner;
 			if ( player == nullptr )
 			{
-				//TODO: 
+				//#TODO: 
 			}
 			else
 			{
@@ -2096,7 +2097,7 @@ namespace CAR
 
 					if ( mapTile.sideNodes[dir].outConnect )
 					{
-						//TODO??
+						//#TODO??
 						int numMerged;
 						FeatureBase* featureMerged[2];
 						FeatureBase* featureNew = mergeHalfSeparateBasicSideFeature( mapTile , dir , featureMerged , numMerged );
@@ -2485,7 +2486,7 @@ namespace CAR
 	{
 		assert( build->group != -1 );
 		build->group = ERROR_GROUP_ID;
-		//TODO
+		//#TODO
 	}
 
 	int GameModule::getActorPutInfo(int playerId , MapTile& mapTile , bool bUsageMagicPortal , std::vector< ActorPosInfo >& outInfo )
@@ -2750,7 +2751,7 @@ namespace CAR
 
 		while( LevelActor* follower = actor->popFollower() )
 		{
-			//TODO
+			//#TODO
 			switch( follower->type )
 			{
 			case ActorType::eFariy:

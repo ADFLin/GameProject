@@ -182,7 +182,7 @@ namespace Tetris
 		void         onChangePiece( Level* level );
 
 		void         calcScenePos( unsigned mainID );
-		int          getSortedLevelData( unsigned mainID , LevelData* sortedData[] );
+		int          sortLevelData( unsigned mainID , LevelData* sortedData[] );
 		LevelData&   getUsingData( unsigned idx )
 		{
 			assert( mUsingData[idx] );

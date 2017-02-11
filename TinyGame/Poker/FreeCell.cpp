@@ -6,10 +6,6 @@
 namespace Poker
 {
 
-
-	Card const SingleCell::NoCard(-1);
-
-
 	bool Cell::testStackRule( Card const& top,Card const& bottom )
 	{
 		return  ( top.getFaceRank() == bottom.getFaceRank() + 1 ) && 

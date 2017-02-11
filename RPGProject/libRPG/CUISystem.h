@@ -67,7 +67,7 @@ public:
 			return strcmp( a , b ) < 0;
 		}
 	};
-	typedef std::map< char const*  , Texture::RefPtr > TextureMap;
+	typedef std::map< char const*  , Texture::RefCountPtr > TextureMap;
 	void clearUnusedCacheTexture();
 
 	void  captureMouse( CWidget* ui ){  mUIManager.captureMouse( ui );  }

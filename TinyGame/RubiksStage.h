@@ -379,7 +379,7 @@ namespace Rubiks
 			switch( key )
 			{
 
-			case 'R': restart(); break;
+			case Keyboard::eR: restart(); break;
 			case 'A': rotateCube( FaceLeft , bInvRotation ); break;
 			case 'S': rotateCube( FaceFront , bInvRotation); break;
 			case 'D': rotateCube( FaceRight , bInvRotation ); break;

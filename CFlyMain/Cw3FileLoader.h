@@ -75,7 +75,7 @@ namespace CFly
 		int    numSkinWeight;
 
 		static int const MAX_GROUP_NUM = 8;
-		Material::RefPtr mat[ MAX_GROUP_NUM ];
+		Material::RefCountPtr mat[ MAX_GROUP_NUM ];
 		int   numTriGroup[ MAX_GROUP_NUM ];
 		int*  tri[ MAX_GROUP_NUM ];
 		int*  nextTri[ MAX_GROUP_NUM ];

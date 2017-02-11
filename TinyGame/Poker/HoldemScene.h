@@ -63,6 +63,8 @@ namespace Poker { namespace Holdem {
 
 		}
 
+		Vec2i mCardSize;
+
 		IPlayerManager* mPlayerMgr;
 		ClientLevel*    mLevel;
 		BetPanel*       mPanel;

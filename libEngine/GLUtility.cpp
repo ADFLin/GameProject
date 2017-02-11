@@ -9,6 +9,7 @@
 
 namespace GL
 {
+
 	void calcTangent( uint8* v0 , uint8* v1 , uint8* v2 , int texOffset , Vector3& tangent , Vector3& binormal )
 	{
 		Vector3& p0 = *reinterpret_cast< Vector3* >( v0 );
@@ -802,13 +803,6 @@ namespace GL
 #else
 		int numFace = IcoFaceNum * ( numDiv + 1 ) * ( numDiv + 1 );
 
-		
-
-
-
-
-
-
 #endif
 
 		return true;
@@ -819,12 +813,36 @@ namespace GL
 		mbSingle = false;
 	}
 
-	bool ShaderEffect::loadFromSingleFile(char const* name , char const* def )
+	bool ShaderEffect::loadFromSingleFile(char const* fileName , char const* def )
+	{
+		return loadFromSingleFile(fileName, "mainVS", "mainFS", def);
+	}
+
+	bool ShaderEffect::loadFromSingleFile(char const* fileName, char const* vertexEntryName, char const* pixelEntryName, char const* def /*= NULL*/)
 	{
 		mbSingle = true;
-		mName = name;
-		if ( def )
-			mDefine = def;
+		mName = fileName;
+		if( def )
+		{
+			mDefine[0] = mDefine[1] = def;
+			mDefine[0] += '\n';
+			mDefine[1] += '\n';
+		}
+		else
+		{
+			mDefine[0] = mDefine[1] = "";
+		}
+
+		mDefine[0] += "#define ";
+		mDefine[0] += vertexEntryName;
+		mDefine[0] += + " main\n";
+		mDefine[0] += "#define VERTEX_SHADER\n";
+
+		mDefine[1] += "#define ";
+		mDefine[1] += pixelEntryName;
+		mDefine[1] += +" main\n";
+		mDefine[1] += "#define PIXEL_SHADER\n";
+
 		return loadSingleInternal();
 	}
 
@@ -835,21 +853,16 @@ namespace GL
 		FixString< 256 > path;
 		path.format( "%s%s" , mName.c_str() , ".glsl" );
 
-		FixString< 512 > def;
-		def = "#define mainVS main\n"
-			  "#define USE_VERTEX_SHADER 1\n";
-		def += mDefine;
-		if ( !mShader[0].loadFile( Shader::eVertex , path , def ) )
+		
+
+		if ( !mShader[0].loadFile( Shader::eVertex , path , mDefine[0].c_str() ) )
 			return false;
 		attachShader( mShader[0] );
 
-		def = "#define mainFS main\n"
-			  "#define USE_FRAGMENT_SHADER 1\n";
-		def += mDefine;
-		if ( !mShader[1].loadFile( Shader::ePixel , path , def ) )
+		if ( !mShader[1].loadFile( Shader::ePixel , path , mDefine[1].c_str() ) )
 			return false;
-
 		attachShader( mShader[1] );
+
 		updateShader();
 		return true;
 	}

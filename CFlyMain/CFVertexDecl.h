@@ -95,7 +95,7 @@ namespace CFly
 		CFTF_SHORT2 ,
 	};
 
-	class VertexDecl : public RefObjectT< VertexDecl > 
+	class VertexDecl : public RefCountedObjectT< VertexDecl > 
 	{
 	public:
 		typedef VertexElementSemantic Sematic;

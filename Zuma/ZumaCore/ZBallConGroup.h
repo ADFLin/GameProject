@@ -3,8 +3,9 @@
 
 #include "ZBase.h"
 #include "ZEventHandler.h"
-#include "RefObject.h"
 #include "ZBall.h"
+
+#include "RefCount.h"
 
 namespace Zuma
 {
@@ -13,7 +14,7 @@ namespace Zuma
 	enum  ZColor;
 	class IRenderSystem;
 
-	typedef std::list< RefPtrT< ZConBall> > ZBallList;
+	typedef std::list< TRefCountPtr< ZConBall> > ZBallList;
 	typedef ZBallList::iterator  ZBallNode;
 
 	enum

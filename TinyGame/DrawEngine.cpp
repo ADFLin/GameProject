@@ -215,7 +215,6 @@ void DrawEngine::setupBuffer( int w , int h )
 		bmpInfo.bmiHeader.biYPelsPerMeter = 0;
 		bmpInfo.bmiHeader.biSizeImage = 0;
 
-
 		if ( !mBufferDC->create( getWindow().getHDC() , &bmpInfo ) )
 			return;
 	}

@@ -12,7 +12,7 @@ bool DXZumaGame::onEvent( int evtID , ZEventData const& data , ZEventHandler* se
 
 IRenderSystem* DXZumaGame::createRenderSystem()
 {
-	D3DRenderSystem* renderSystem = new D3DRenderSystem;
+	D3D9RenderSystem* renderSystem = new D3D9RenderSystem;
 	if( !renderSystem->init( mFrame.getD3DDevice() ) )
 	{
 		delete renderSystem;

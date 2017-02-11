@@ -42,12 +42,12 @@ namespace TowerDefend
 			return false;
 		}
 
-		bool           result;
-		Vec2f          max , min;
+		bool         result;
+		Vec2f        max , min;
 		PlayerInfo*  pInfo;
 		Unit*        builder;
 		World*       world;
-		bool           beTrySolve;
+		bool         beTrySolve;
 	};
 
 	World::World() 

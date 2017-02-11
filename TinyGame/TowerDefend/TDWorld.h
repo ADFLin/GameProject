@@ -35,8 +35,8 @@ namespace TowerDefend
 		{
 			unsigned    tileID;
 			unsigned    tileParam;
-			uint8        blockMask[ NumCollsisionLayer ];
-			uint8        blockBlgMask;
+			uint8       blockMask[ NumCollsisionLayer ];
+			uint8       blockBlgMask;
 			Building*   building;
 		};
 

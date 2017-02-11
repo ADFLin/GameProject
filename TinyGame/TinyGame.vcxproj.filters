@@ -58,11 +58,11 @@
     <Filter Include="Test">
       <UniqueIdentifier>{41584605-750f-447c-b0bd-1b1077f18a29}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Mode">
-      <UniqueIdentifier>{0bd27b6b-7dd4-49e6-85f4-0f3d3a2c65a8}</UniqueIdentifier>
-    </Filter>
     <Filter Include="GameCantan">
       <UniqueIdentifier>{f7ff1483-faf0-46f9-baf6-1c1de48f8e3c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="StageMode">
+      <UniqueIdentifier>{a7bcd586-f00e-4b97-80fa-078643775276}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -97,12 +97,6 @@
       <Filter>Stage</Filter>
     </ClCompile>
     <ClCompile Include="NetGameStage.cpp">
-      <Filter>Stage</Filter>
-    </ClCompile>
-    <ClCompile Include="PlanetStage.cpp">
-      <Filter>Stage</Filter>
-    </ClCompile>
-    <ClCompile Include="ReplayStage.cpp">
       <Filter>Stage</Filter>
     </ClCompile>
     <ClCompile Include="RubiksStage.cpp">
@@ -204,9 +198,6 @@
     <ClCompile Include="MonumentValley\MVWorld.cpp">
       <Filter>GameMonumentValley</Filter>
     </ClCompile>
-    <ClCompile Include="GameSingleStage.cpp">
-      <Filter>Mode</Filter>
-    </ClCompile>
     <ClCompile Include="Cantan\CantanLevel.cpp">
       <Filter>GameCantan</Filter>
     </ClCompile>
@@ -219,14 +210,17 @@
     <ClCompile Include="Stage\CompressionTestStage.cpp">
       <Filter>Stage</Filter>
     </ClCompile>
-    <ClCompile Include="..\OtherLib\lz78\bitio.cpp">
-      <Filter>OtherLib</Filter>
+    <ClCompile Include="Sudoku\SudokuStage.cpp">
+      <Filter>GameSudoku</Filter>
     </ClCompile>
-    <ClCompile Include="..\OtherLib\lz78\lz78.cpp">
-      <Filter>OtherLib</Filter>
+    <ClCompile Include="SingleStageMode.cpp">
+      <Filter>StageMode</Filter>
     </ClCompile>
-    <ClCompile Include="..\OtherLib\lz78\wrapper.cpp">
-      <Filter>OtherLib</Filter>
+    <ClCompile Include="ReplayStageMode.cpp">
+      <Filter>StageMode</Filter>
+    </ClCompile>
+    <ClCompile Include="RenderGLStage.cpp">
+      <Filter>Stage</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -276,12 +270,6 @@
       <Filter>Stage</Filter>
     </ClInclude>
     <ClInclude Include="NetGameStage.h">
-      <Filter>Stage</Filter>
-    </ClInclude>
-    <ClInclude Include="PlanetStage.h">
-      <Filter>Stage</Filter>
-    </ClInclude>
-    <ClInclude Include="ReplayStage.h">
       <Filter>Stage</Filter>
     </ClInclude>
     <ClInclude Include="RubiksStage.h">
@@ -419,9 +407,6 @@
     <ClInclude Include="MonumentValley\MVWorld.h">
       <Filter>GameMonumentValley</Filter>
     </ClInclude>
-    <ClInclude Include="GameSingleStage.h">
-      <Filter>Mode</Filter>
-    </ClInclude>
     <ClInclude Include="Cantan\CantanLevel.h">
       <Filter>GameCantan</Filter>
     </ClInclude>
@@ -440,14 +425,17 @@
     <ClInclude Include="Stage\TestStageHeader.h">
       <Filter>Stage</Filter>
     </ClInclude>
-    <ClInclude Include="..\OtherLib\lz78\lz78.h">
-      <Filter>OtherLib</Filter>
+    <ClInclude Include="Sudoku\SamplerTest.h">
+      <Filter>GameSudoku</Filter>
     </ClInclude>
-    <ClInclude Include="..\OtherLib\lz78\wrapper.h">
-      <Filter>OtherLib</Filter>
+    <ClInclude Include="SingleStageMode.h">
+      <Filter>StageMode</Filter>
     </ClInclude>
-    <ClInclude Include="..\OtherLib\lz78\bitio.h">
-      <Filter>OtherLib</Filter>
+    <ClInclude Include="ReplayStageMode.h">
+      <Filter>StageMode</Filter>
+    </ClInclude>
+    <ClInclude Include="RenderGLStage.h">
+      <Filter>Stage</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -504,5 +492,23 @@
       <Filter>Shader</Filter>
     </None>
     <None Include="out\Game.ini" />
+    <None Include="out\Shader\DeferredLighting.glsl">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="out\Shader\CopyTexture.glsl">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="out\Shader\DeferredLightingCommon.glsl">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="out\Shader\LightingCommon.glsl">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="out\Shader\Common.glsl">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="out\Shader\ShadowCommon.glsl">
+      <Filter>Shader</Filter>
+    </None>
   </ItemGroup>
 </Project>

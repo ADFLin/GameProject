@@ -907,7 +907,7 @@ namespace MV
 
 	int TestStage::getBlockFormScreen( float dx , float dy  , Vec3f const& offset , Dir& outDir )
 	{
-		//TODO:Support parallaxOffset.z = -1?
+		//#TODO:Support parallaxOffset.z = -1?
 
 		float const factorScan = Sqrt_2d3; // sqrt( 2 / 3 );
 		float const factorScanY = factorScan;

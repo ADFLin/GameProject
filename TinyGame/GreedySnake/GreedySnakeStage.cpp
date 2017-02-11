@@ -8,7 +8,6 @@
 
 #include "GameWidgetID.h"
 #include "GameGUISystem.h"
-#include "GameSingleStage.h"
 
 #include "CSyncFrameManager.h"
 

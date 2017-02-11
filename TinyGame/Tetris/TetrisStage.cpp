@@ -9,7 +9,7 @@
 #include "GameGUISystem.h"
 #include "GameClient.h"
 #include "GameReplay.h"
-#include "GamePackageManager.h"
+#include "GameInstanceManager.h"
 #include "GameWidgetID.h"
 
 #include "GameServer.h"
@@ -18,7 +18,6 @@
 #include "RenderUtility.h"
 #include "OptionNoteBook.h"
 
-#include "GameSingleStage.h"
 #include "NetGameStage.h"
 
 #include "GameWorker.h"
@@ -542,7 +541,7 @@ namespace Tetris
 			{
 				Vec2i pos = ::Global::GUI().calcScreenCenterPos( OptionNoteBook::UI_Size );
 				OptionNoteBook* book = new OptionNoteBook( UI_GAME_OPTION , pos  , NULL );
-				book->init( Global::GameManager().getCurGame()->getController() );
+				book->init( Global::GameManager().getRunningGame()->getController() );
 				::Global::GUI().addWidget( book );
 				book->setTop();
 				book->doModal();

@@ -5,6 +5,7 @@
 #include "GameGUISystem.h"
 
 #include "THolder.h"
+#include "IntegerType.h"
 #include "CppVersion.h"
 #include "Random.h"
 
@@ -19,7 +20,7 @@ namespace GGJ
 	public:
 		int nextInt(){ return ::rand();}
 	};
-	enum ObjectId
+	enum class ObjectId
 	{
 		Ball = 0 ,
 		Candlestick, 
@@ -35,7 +36,7 @@ namespace GGJ
 		NumCondObject = 4,
 	};
 
-	enum CondDir
+	enum class CondDir
 	{
 		Front = 0,
 		Right = 1,
@@ -45,20 +46,23 @@ namespace GGJ
 		Bottom = 5,
 	};
 
-	namespace WallName
+	inline CondDir invertDir(CondDir dir)
 	{
-		enum Enum
-		{
-			Bed,
-			Number,
-			Door,
-			Clock,
-
-			Num ,
-		};
+		static const CondDir invDirMap[] = { CondDir::Back , CondDir::Left , CondDir::Front , CondDir::Right , CondDir::Bottom , CondDir::Top };
+		return invDirMap[(int)dir];
 	}
 
-	enum ColorId
+	enum class WallName
+	{
+		Bed,
+		Number,
+		Door,
+		Clock,
+
+		Num,
+	};
+
+	enum class ColorId
 	{
 		Red = 0,
 		Yellow,
@@ -84,64 +88,43 @@ namespace GGJ
 	public:
 		
 		static int getRandomValueForProperty( Random& rand , ValueProperty prop );
-		static int getValuePropertyFlag( int value );
+		static int getValuePropertyFlags( int value );
 		static bool IsPrime( int value );
 		static int* makeRandSeq( Random& rand, int num, int start, int buf[] );
 		static bool* makeRandBool(Random& rand , int num , int numTrue , bool buf[] );
+		static uint8* makeRandBool(Random& rand, int num, int numTrue, uint8 buf[] );
 	};
-
-	struct WallInfo
-	{
-		WallName::Enum name;
-		ColorId color;
-	};
-
-	struct ObjectInfo
-	{
-		ObjectId id;
-		ColorId color;
-		int num;
-	};
-
-
 
 	class WorldCondition
 	{
 	public:
-		WallInfo walls[4];
-		int indexWallHaveLight;
-		int valueForNumberWall;
-		int valuePropertyFlag;
+		WorldCondition();
 
-		std::vector<ObjectInfo> objects;
+		WallName getWallName(int idx) const { return walls[idx].name; }
+		ColorId  getWallColor(int idx) const { return walls[idx].color; }
+
+		int    indexWallHaveLight;
+		int    valueForNumberWall;
+		uint32 valuePropertyFlags;
 
 		static const int MaxCondObjectNum = 10;
 
-		bool bTopFireLighting[4];
-
-		WorldCondition();
-
-		int getObjectNum( ObjectId id );
-
-		int getTopFireLightingNum();
-
-		int getRelDirIndex( int index , CondDir dir , bool bFaceWall );
-
-		bool isTopFireLighting( WallName::Enum nearWallName , CondDir dir , bool bFaceWall );
-
+		int  getObjectNum( ObjectId id );
+		int  getTopFireLightingNum();
+		int  getRelDirIndex( int index , CondDir dir , bool bFaceWall );
+		int  getRelDirInvIndex(int index, CondDir dir, bool bFaceWall);
+		bool isTopFireLighting(WallName nearWallName, CondDir dir, bool bFaceWall);
 		bool isTopFireLighting(int idx);
 
 		ColorId getObjectColor(ObjectId id);
-
 		int getRelDirWallIndex( int idx , CondDir dir )
 		{
 			return getRelDirIndex(idx, dir, false);
 		}
 
-		bool checkVaild( WallName::Enum a , WallName::Enum b , CondDir dir );
-
-		int getWallIndex(WallName::Enum name);
-		WallName::Enum getRelDirWall( WallName::Enum name , CondDir dir );
+		bool checkWallCondVaild( WallName a , WallName b , CondDir dir );
+		int  getWallIndex(WallName name);
+		WallName getRelDirWall( WallName name , CondDir dir );
 
 		void generate(Random& rand);
 
@@ -150,11 +133,28 @@ namespace GGJ
 			ObjectInfo info;
 			info.id = id;
 			info.num = num;
-			info.color = ColorId::White;
+			info.color = color;
 			objects.push_back(info);
 		}
-	};
 
+	private:
+
+		struct ObjectInfo
+		{
+			ObjectId id;
+			ColorId color;
+			int num;
+		};
+		std::vector<ObjectInfo> objects;
+
+		struct WallInfo
+		{
+			WallName name;
+			ColorId  color;
+		};
+		WallInfo walls[4];
+		bool bTopFireLighting[4];
+	};
 
 	struct CondExprElement
 	{
@@ -173,29 +173,38 @@ namespace GGJ
 		{
 			ObjectId obj;
 			ColorId  color;
-			WallName::Enum wall;
-			int      value;
-			int      meta;
+			WallName wall;
 			CondDir  dir;
+			int      intValue;
 		};
-		
 
-		void setWall( WallName::Enum wallName )
-		{
-			type = eWallName;
-			wall = wallName;
+#define TYPE_FUN( TYPE , TYPEID , MEMBER )\
+		operator TYPE() { assert(type == TYPEID); return MEMBER; }\
+		void set(TYPE value)\
+		{\
+			type = TYPEID;\
+			MEMBER = value;\
 		}
-		void setObject( ObjectId id )
+
+		TYPE_FUN(ObjectId, eObject, obj)
+		TYPE_FUN(WallName, eWallName, wall)
+		TYPE_FUN(ColorId, eColor, color)
+		TYPE_FUN(CondDir, eDir, dir)
+		TYPE_FUN(int, eIntValue, intValue)
+
+#undef TYPE_FUN
+
+		void setFaceFront(bool bFace)
 		{
-			type = eObject;
-			obj = id;
+			type = eFaceFront;
+			intValue = (bFace) ? 1 : 0;
 		}
+		String toString();
 
 		static String toString( ColorId id );
 		static String toString( ObjectId id );
 		static String toString( int value );
-		static String toString( CondExprElement ele );
-		static String toString( WallName::Enum name );
+		static String toString( WallName name );
 		static String toString( CondDir dir );
 	};
 
@@ -203,29 +212,23 @@ namespace GGJ
 	class CondExpression
 	{
 	public:
-		std::vector< CondExprElement > elements;
-		int IdxContent;
+		String toString( int idx ){ return mElements[idx].toString(); }
 
-		String toString( int idx )
-		{
-			return CondExprElement::toString( elements[idx]);
-		}
-
-		virtual bool testVaild( WorldCondition& worldCond){ return false; }
-		virtual void generate(Random& rand){}
-		virtual void generateVaild(Random& rand, WorldCondition& worldCond) { }
-		virtual String getContent(){ return ""; }
-
-
-
+		virtual void generate(Random& rand) = 0;
+		virtual void generateVaild(Random& rand, WorldCondition& worldCond) = 0;
+		virtual bool testVaild(WorldCondition& worldCond) = 0;
+		virtual String getContent() = 0;
+	protected:
+		std::vector< CondExprElement > mElements;
+		int mIdxContent;
 	};
 
 	class WallDirCondExpression : public CondExpression
 	{
 	public:
-		bool testVaild( WorldCondition& worldCond) override;
 		void generate(Random& rand) override;
 		void generateVaild(Random& rand ,  WorldCondition& worldCond ) override;
+		bool testVaild(WorldCondition& worldCond) override;
 		String getContent() override;
 
 	};
@@ -233,18 +236,19 @@ namespace GGJ
 	class TopLightCondExpression : public CondExpression
 	{
 	public:
-		bool testVaild(WorldCondition& worldCond) override;
+		
 		void generate(Random& rand) override;
 		void generateVaild(Random& rand, WorldCondition& worldCond) override;
+		bool testVaild(WorldCondition& worldCond) override;
 		String getContent() override;
 	};
 
 	class WallColorCondExpression : public CondExpression
 	{
 	public:
-		bool testVaild(WorldCondition& worldCond) override;
 		void generate(Random& rand) override;
 		void generateVaild(Random& rand, WorldCondition& worldCond) override;
+		bool testVaild(WorldCondition& worldCond) override;
 		String getContent() override;
 	};
 	
@@ -259,55 +263,42 @@ namespace GGJ
 
 	class ObjectColorCondExpression : public CondExpression
 	{
-		
 	public:
-		bool testVaild(WorldCondition& worldCond) override;
 		void generate(Random& rand) override;
 		void generateVaild(Random& rand, WorldCondition& worldCond) override;
+		bool testVaild(WorldCondition& worldCond) override;
 		String getContent() override;
 	};
-
 
 	class WallNumberValueCondExpression : public CondExpression
 	{
 	public:
-		bool testVaild(WorldCondition& worldCond) override;
 		void generate(Random& rand) override;
 		void generateVaild(Random& rand, WorldCondition& worldCond) override;
+		bool testVaild(WorldCondition& worldCond) override;
 		String getContent() override;
-
 	};
+
 
 	class Condition
 	{
 	public:
-		static const int TotalExprNum = 6;
-		std::vector< CondExpression* > exprList;
-
+		
 		~Condition();
 
-		void cleanup();
-
-		ObjectId targetId;
-
-		bool bVaild;
-
-		int getExprissionNum() { return exprList.size(); }
-
+		int             getExpressionNum() { return mExprList.size(); }
+		CondExpression* getExpression( int idx ) { return mExprList[idx]; }
 		String getTarget() { return CondExprElement::toString(targetId); }
-		String getContent(int idxExpr)
-		{
-			return exprList[idxExpr]->getContent();
-		}
-		bool testVaild( WorldCondition& worldCond , int idxExpr )
-		{
-			return exprList[idxExpr]->testVaild(worldCond);
-		}
-		CondExpression* CreateExpression( int idx );
 
 		void generateVaild(Random& rand, WorldCondition& worldCond, int numExpr);
-
 		void generateRandom(Random& rand, WorldCondition& worldCond, int numExpr, int numInvaild);
+
+		ObjectId targetId;
+		bool     bVaild;
+
+	private:
+		void cleanup();
+		std::vector< CondExpression* > mExprList;
 	};
 
 	class ConditionTable
@@ -388,7 +379,7 @@ namespace GGJ
 
 			switch( key )
 			{
-			case 'R': restart(); break;
+			case Keyboard::eR: restart(); break;
 			}
 			return false;
 		}

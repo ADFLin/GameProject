@@ -43,8 +43,8 @@ namespace CFly
 
 	struct RenderUnit
 	{
-		RefPtrT< MeshBase > mesh;
-		RefPtrT< Material > material;
+		TRefCountPtr< MeshBase > mesh;
+		TRefCountPtr< Material > material;
 		unsigned  flag;
 	};
 
@@ -122,7 +122,7 @@ namespace CFly
 		
 		void         updateBoundSphere();
 
-		typedef std::vector< RefPtrT<MeshBase> > ShapeVector;
+		typedef std::vector< TRefCountPtr<MeshBase> > ShapeVector;
 		typedef std::vector< Element > ElementVec;
 
 	public:

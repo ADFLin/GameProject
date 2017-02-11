@@ -506,7 +506,7 @@ namespace Bsp2D
 
 		switch( key )
 		{
-		case 'R': restart(); break;
+		case Keyboard::eR: restart(); break;
 		case 'Q': --gIdxNode; break;
 		case Keyboard::eW: ++gIdxNode; break;
 		case Keyboard::eF2: gShowEdgeNormal = !gShowEdgeNormal; break;
@@ -1043,6 +1043,47 @@ static void testClassTree()
 	e.clear();
 }
 
+#include "CycleQueue.h"
+
+void testCycleQueue()
+{
+	TCycleQueue< int > queue;
+
+	int i = 0;
+	for( ; i < 10; ++i )
+		queue.push_back(i);
+
+	for( auto val : queue )
+	{
+		::Msg("%d", val);
+	}
+
+	int value = queue.front();
+	queue.pop_front();
+	int value1 = queue.front();
+	queue.pop_front();
+
+	queue.push_back(i);
+	i = 0;
+	for( ; i < 10; ++i )
+		queue.push_back(i);
+
+
+	while( !queue.empty() )
+	{
+		int value = queue.front();
+		queue.pop_front();
+
+		if ( queue.empty() )
+			break;
+		int value1 = queue.front();
+		queue.pop_front();
+
+		queue.push_back(i);
+		++i;
+	}
+}
+
 #include <functional>
 
 struct MiscTestEntry
@@ -1068,6 +1109,7 @@ bool MiscTestStage::onInit()
 
 	addTest( "Class Tree" , testClassTree );
 	addTest( "Big Number" , testBigNumber );
+	addTest( "Cycle Queue", testCycleQueue );
 
 	auto& entries = GetRegisterMiscTestEntries();
 	for( auto entry : entries )

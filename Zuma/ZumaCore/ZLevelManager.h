@@ -4,6 +4,8 @@
 #include "ZBase.h"
 #include "Singleton.h"
 
+#include "RefCount.h"
+
 #define USE_NEW_XML_LEVEL 1
 
 #if USE_NEW_XML_LEVEL
@@ -27,6 +29,8 @@ namespace Zuma
 {
 	class ITexture2D;
 
+	typedef TRefCountPtr<ITexture2D> ITexture2DRef;
+
 	int const MAX_BALLPATH_NUM = 2;
 	int const MAX_CUTOUT_NUM = 6;
 	int const MAX_TPOINT_NUM = 6;
@@ -41,14 +45,14 @@ namespace Zuma
 
 	struct ZLvCutout
 	{
-		shared_ptr< ITexture2D > image;
+		ITexture2DRef image;
 		Vec2D pos;
 		int   pri;
 	};
 
 	struct ZBGAlpha
 	{
-		shared_ptr< ITexture2D > image;
+		ITexture2DRef image;
 		Vec2D pos;
 		Vec2D vel;
 	};
@@ -62,7 +66,7 @@ namespace Zuma
 
 		std::string pathCurve[ MAX_BALLPATH_NUM ];
 
-		shared_ptr< ITexture2D > BGImage;
+		ITexture2DRef BGImage;
 
 		int numCurve;
 		int numPt;

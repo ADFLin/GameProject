@@ -1,15 +1,16 @@
-#ifndef RefObject_h__
-#define RefObject_h__
+#pragma once
+#ifndef RefCount_H_AE7BB79E_FF29_450C_9F52_A7F3B2CF78A2
+#define RefCount_H_AE7BB79E_FF29_450C_9F52_A7F3B2CF78A2
 
 template < class T >
-class RefPtrT;
+class TRefCountPtr;
 
 template < class T >
-class RefObjectT
+class RefCountedObjectT
 {
 public:
-	typedef RefPtrT< T > RefPtr;
-	RefObjectT():mRefCount(0){}
+	typedef TRefCountPtr< T > RefCountPtr;
+	RefCountedObjectT():mRefCount(0){}
 	void destroyThis(){ delete static_cast< T*>( this ); }
 	int  getRefCount(){ return mRefCount; }
 public:
@@ -26,19 +27,19 @@ public:
 	void  incRef(){ ++mRefCount; }
 private:
 	T*  _this(){ return static_cast< T* >( this ); }
-	friend class RefPtrT<T>;
+	friend class TRefCountPtr<T>;
 
 	int  mRefCount;
 };
 
 template < class T >
-class RefPtrT
+class TRefCountPtr
 {
 public:
-	RefPtrT():mPtr(0){}
-	RefPtrT( T* ptr ){  init( ptr );  }
-	RefPtrT( RefPtrT const& rcPtr ){  init( rcPtr.mPtr ); }
-	~RefPtrT(){  cleanup(); }
+	TRefCountPtr():mPtr(0){}
+	TRefCountPtr( T* ptr ){  init( ptr );  }
+	TRefCountPtr( TRefCountPtr const& other ){  init( other.mPtr ); }
+	~TRefCountPtr(){  cleanup(); }
 
 	T*       operator->()       { return mPtr; }
 	T const* operator->() const { return mPtr; }
@@ -48,17 +49,19 @@ public:
 	operator T* ( void )       { return mPtr; }
 	operator T* ( void ) const { return mPtr; }
 
+	void     reset(T* ptr) { assign(ptr);  }
 	T*       get()       { return mPtr; }
 	T const* get() const { return mPtr; }
 
+	bool     isVaild() const { return mPtr != nullptr; }
 	void     release() 
 	{ 
 		cleanup();
 		mPtr = 0;
 	}
 
-	RefPtrT& operator = ( RefPtrT const& rcPtr ){  assign( rcPtr.mPtr ); return *this;  }
-	RefPtrT& operator = ( T* ptr ){  assign( ptr ); return *this;  }
+	TRefCountPtr& operator = ( TRefCountPtr const& rcPtr ){  assign( rcPtr.mPtr ); return *this;  }
+	TRefCountPtr& operator = ( T* ptr ){  assign( ptr ); return *this;  }
 private:
 	void init( T* ptr ){ mPtr = ptr; if ( mPtr ) mPtr->incRef(); }
 	void cleanup(){  if ( mPtr ) mPtr->decRef();  }
@@ -72,4 +75,4 @@ private:
 	T* mPtr;
 };
 
-#endif // RefObject_h__
+#endif // RefCount_H_AE7BB79E_FF29_450C_9F52_A7F3B2CF78A2

@@ -6,7 +6,7 @@
 #include "GameNetPacket.h"
 
 #include "GameWidgetID.h"
-#include "GamePackageManager.h"
+#include "GameInstanceManager.h"
 #include "DataSteamBuffer.h"
 
 void NetRoomSettingHelper::addGUIControl( GWidget* ui )

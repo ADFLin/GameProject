@@ -128,7 +128,7 @@ namespace Zuma
 			ball->setToolProp( TOOL_NORMAL );
 		}
 		ToolProp  prop;
-		RefPtrT< ZConBall >  ball;
+		TRefCountPtr< ZConBall >  ball;
 	};
 
 	ZLevel::ZLevel( ZLevelInfo& info )

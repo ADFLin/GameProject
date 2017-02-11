@@ -100,7 +100,7 @@ public:
 
 		switch( key )
 		{
-		case 'R': restart(); break;
+		case Keyboard::eR: restart(); break;
 		}
 		return false;
 	}
@@ -181,7 +181,7 @@ public:
 
 		switch( key )
 		{
-		case 'R': restart(); break;
+		case Keyboard::eR: restart(); break;
 		}
 		return false;
 	}
@@ -300,7 +300,7 @@ public:
 
 		switch( key )
 		{
-		case 'R': restart(); break;
+		case Keyboard::eR: restart(); break;
 		}
 		return false;
 	}
@@ -627,7 +627,7 @@ public:
 
 		switch( key )
 		{
-		case 'R': restart(); break;
+		case Keyboard::eR: restart(); break;
 		}
 		return false;
 	}
@@ -746,7 +746,7 @@ namespace SIMD
 
 			switch( key )
 			{
-			case 'R': restart(); break;
+			case Keyboard::eR: restart(); break;
 			}
 			return false;
 		}
@@ -927,7 +927,7 @@ namespace MRT
 
 			switch( key )
 			{
-			case 'R': restart(); break;
+			case Keyboard::eR: restart(); break;
 			}
 			return false;
 		}
@@ -1011,7 +1011,7 @@ public:
 
 		switch( key )
 		{
-		case 'R': restart(); break;
+		case Keyboard::eR: restart(); break;
 		}
 		return false;
 	}
@@ -1178,7 +1178,7 @@ public:
 
 		switch( key )
 		{
-		case 'R': restart(); break;
+		case Keyboard::eR: restart(); break;
 		}
 		return false;
 	}
@@ -1380,7 +1380,7 @@ namespace Mario
 
 			switch( key )
 			{
-			case 'R': restart(); break;
+			case Keyboard::eR: restart(); break;
 			}
 			return false;
 		}
@@ -1520,7 +1520,7 @@ namespace TankGame
 
 			switch( key )
 			{
-			case 'R': restart(); break;
+			case Keyboard::eR: restart(); break;
 			}
 			return false;
 		}
@@ -1936,7 +1936,7 @@ namespace G2D
 
 			switch( key )
 			{
-			case 'R': restart(); break;
+			case Keyboard::eR: restart(); break;
 			}
 			return false;
 		}
@@ -2333,7 +2333,7 @@ namespace G2D
 
 			switch( key )
 			{
-			case 'R': restart(); break;
+			case Keyboard::eR: restart(); break;
 			case 'W': mMode = ( mMode == MODE_CIRCLE ) ? MODE_POLY : MODE_CIRCLE; break;
 			case 'Q': updateCollision(); break;
 			}
@@ -2435,7 +2435,7 @@ public:
 
 		switch( key )
 		{
-		case 'R': restart(); break;
+		case Keyboard::eR: restart(); break;
 		//case 'D': snake.changeMoveDir( DIR_WEST ); break;
 		//case 'A': snake.changeMoveDir( DIR_EAST ); break;
 		//case 'W': snake.changeMoveDir( DIR_NORTH ); break;
@@ -2593,7 +2593,7 @@ namespace TMechine
 
 			switch( key )
 			{
-			case 'R': restart(); break;
+			case Keyboard::eR: restart(); break;
 			}
 			return false;
 		}
@@ -2748,7 +2748,7 @@ public:
 
 		switch( key )
 		{
-		case 'R': restart(); break;
+		case Keyboard::eR: restart(); break;
 			//case 'D': snake.changeMoveDir( DIR_WEST ); break;
 			//case 'A': snake.changeMoveDir( DIR_EAST ); break;
 			//case 'W': snake.changeMoveDir( DIR_NORTH ); break;
@@ -2843,7 +2843,7 @@ public:
 
 		switch( key )
 		{
-		case 'R': restart(); break;
+		case Keyboard::eR: restart(); break;
 			//case 'D': snake.changeMoveDir( DIR_WEST ); break;
 			//case 'A': snake.changeMoveDir( DIR_EAST ); break;
 			//case 'W': snake.changeMoveDir( DIR_NORTH ); break;

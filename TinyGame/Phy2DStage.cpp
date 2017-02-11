@@ -214,7 +214,7 @@ namespace Phy2D
 		float speed = 0.013;
 		switch( key )
 		{
-		case 'R': restart(); break;
+		case Keyboard::eR: restart(); break;
 		case 'D': moveObject(Vec2f(speed, 0)); break;
 		case 'A': moveObject(Vec2f(-speed, 0)); break;
 		case 'W': moveObject(Vec2f(0, speed)); break;
@@ -371,7 +371,7 @@ namespace Phy2D
 			Vec2f cpA = bodyA->mXForm.mul(c.posLocal[0]);
 			Vec2f cpB = bodyB->mXForm.mul(c.posLocal[1]);
 
-			//TODO: normal change need concerned
+			//#TODO: normal change need concerned
 			float depth2 = c.normal.dot(cpA - cpB);
 
 			g.drawText(100, 20, str.format("vn = %f depth = %f", vn, depth2));
@@ -395,7 +395,7 @@ namespace Phy2D
 		float speed = 0.013;
 		switch( key )
 		{
-		case 'R': restart(); break;
+		case Keyboard::eR: restart(); break;
 		case 'D':  break;
 		case 'A': break;
 		case 'W': break;

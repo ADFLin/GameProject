@@ -1,11 +1,24 @@
 #include "GLCommon.h"
 
 #include "stb/stb_image.h"
-
+#include "CPreprocessor.h"
+#include "CommonMarco.h"
+#include <sstream>
 #include <fstream>
 
 namespace GL
 {
+	static bool checkGLError()
+	{
+		GLenum error = glGetError();
+		if( error != GL_NO_ERROR )
+		{
+			int i = 1;
+			return false;
+		}
+
+		return true;
+	}
 
 	bool Shader::loadFile( Type type , char const* path , char const* def )
 	{
@@ -56,14 +69,53 @@ namespace GL
 		return eUnknown;
 	}
 
-	bool Shader::compileSource( Type type , char const* src[] , int num )
+	bool Shader::compileSource( Type type , char const* src[] , int num , bool bUsePreprocess )
 	{
 		if ( !create( type ) )
 			return false;
 
-		glShaderSource( mHandle , num , src , 0 );
-		glCompileShader( mHandle );
+		if( bUsePreprocess )
+		{
+			CPP::SourceInput sourceInput;
+			for( int i = 0; i < num; ++i )
+			{
+				sourceInput.appendString(src[i]);
+			}
+			sourceInput.reset();
 
+			;
+			std::ostringstream oss;
+			CPP::SourceOutput sourceOutput( oss );
+
+			CPP::Translator translator;
+			translator.mOutput = &sourceOutput;
+			try
+			{
+				translator.parse(sourceInput);
+			}
+			catch (...)
+			{
+				return false;
+			}
+			std::string code = oss.str();
+			if( 1 )
+			{
+				std::ofstream of("temp.glsl" , std::ios::binary );
+				if( of.is_open() )
+				{
+					of.write(code.c_str(), code.size());
+				}
+			}
+			src[0] = code.c_str();
+			glShaderSource(mHandle, 1, src , 0);
+			glCompileShader(mHandle);
+		}
+		else
+		{
+			glShaderSource(mHandle, num, src, 0);
+			glCompileShader(mHandle);
+		}
+		
 		if ( getParam( GL_COMPILE_STATUS ) == GL_FALSE )
 		{
 			int maxLength;
@@ -158,7 +210,21 @@ namespace GL
 		if ( mNeedLink )
 		{
 			glLinkProgram( mHandle );
+			checkLinkStatus();
 			mNeedLink = false;
+		}
+	}
+
+	void ShaderProgram::checkLinkStatus()
+	{
+		GLint value;
+		glGetProgramiv(mHandle, GL_LINK_STATUS, &value);
+		if( value != GL_TRUE )
+		{
+			GLchar buffer[1024];
+			GLsizei size;
+			glGetProgramInfoLog(mHandle, 1024, &size, buffer);
+			::Msg("Can't Link Program : %", buffer);
 		}
 	}
 
@@ -166,6 +232,10 @@ namespace GL
 	{
 		updateShader();
 		glUseProgram( mHandle );
+		if( !checkGLError() )
+		{
+			checkLinkStatus();
+		}
 	}
 
 	void ShaderProgram::unbind()
@@ -216,7 +286,7 @@ namespace GL
 	void Mesh::draw()
 	{
 		glBindBuffer( GL_ARRAY_BUFFER , mVboVertex );
-		mDecl.bindArray();
+		mDecl.bind();
 
 		if ( mVboIndex )
 		{
@@ -229,7 +299,7 @@ namespace GL
 			glDrawArrays( convert( mType ) , 0 , mNumVertices );
 		}
 
-		mDecl.unbindArray();
+		mDecl.unbind();
 		glBindBuffer( GL_ARRAY_BUFFER , 0 );
 	}
 
@@ -239,7 +309,7 @@ namespace GL
 		mVertexSize = 0;
 	}
 
-	void VertexDecl::bindArray()
+	void VertexDecl::bind()
 	{
 		bool haveTex = false;
 		for ( InfoVec::iterator iter = mInfoVec.begin() , itEnd = mInfoVec.end(); 
@@ -279,7 +349,7 @@ namespace GL
 		}
 	}
 
-	void VertexDecl::unbindArray()
+	void VertexDecl::unbind()
 	{
 		bool haveTex = false;
 		for ( InfoVec::iterator iter = mInfoVec.begin() , itEnd = mInfoVec.end(); 
@@ -406,7 +476,7 @@ namespace GL
 	}
 
 
-	bool TextureBase::loadFileInternal(char const* path , GLenum texType)
+	bool TextureBase::loadFileInternal(char const* path , GLenum texType , Vec2i& outSize)
 	{
 		int w;
 		int h;
@@ -416,9 +486,12 @@ namespace GL
 		if( !image )
 			return false;
 
+		outSize.x = w;
+		outSize.y = h;
+
 		glTexParameteri( texType, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
 		glTexParameteri( texType, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
-		//TODO
+		//#TODO
 		switch( comp )
 		{
 		case 3:
@@ -437,10 +510,13 @@ namespace GL
 	{
 		if ( !fetchHandle() )
 			return false;
+		mSizeX = width;
+		mSizeY = height;
+
 		glBindTexture( GL_TEXTURE_2D , mHandle );
 		glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
 		glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
-		glTexImage2D(GL_TEXTURE_2D, 0, Texture::convert( format ) , width , height , 0, GL_RGBA , GL_FLOAT, NULL);
+		glTexImage2D(GL_TEXTURE_2D, 0, Texture::Convert( format ) , width , height , 0, GL_RGBA , GL_FLOAT, NULL);
 		glBindTexture(GL_TEXTURE_2D, 0);
 		return true;
 	}
@@ -452,7 +528,13 @@ namespace GL
 			return false;
 
 		glBindTexture( GL_TEXTURE_2D , mHandle );
-		bool result = loadFileInternal( path , GL_TEXTURE_2D );
+		Vec2i size;
+		bool result = loadFileInternal( path , GL_TEXTURE_2D , size );
+		if( result )
+		{
+			mSizeX = size.x;
+			mSizeY = size.y;
+		}
 		glBindTexture(GL_TEXTURE_2D, 0);
 		return result;
 	}
@@ -477,7 +559,7 @@ namespace GL
 		{
 			glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
 			glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
-			glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i , 0, Texture::convert( format ) , width , height , 0, GL_RGBA , GL_FLOAT, NULL );
+			glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i , 0, Texture::Convert( format ) , width , height , 0, GL_RGBA , GL_FLOAT, NULL );
 		}
 		glBindTexture( GL_TEXTURE_CUBE_MAP , 0 );
 		return true;
@@ -493,7 +575,8 @@ namespace GL
 		bool result = true; 
 		for( int i = 0 ; i < 6 ; ++i )
 		{
-			if ( !loadFileInternal( path[i] , GL_TEXTURE_CUBE_MAP_POSITIVE_X + i ) )
+			Vec2i size;
+			if ( !loadFileInternal( path[i] , GL_TEXTURE_CUBE_MAP_POSITIVE_X + i , size ) )
 			{
 				result = false;
 			}
@@ -513,6 +596,26 @@ namespace GL
 		glBindTexture( GL_TEXTURE_CUBE_MAP , 0 );
 	}
 
+	bool DepthTexture::create(Texture::DepthFormat format, int width, int height)
+	{
+		if( !fetchHandle() )
+			return false;
+		
+		mFromat = format;
+
+		glBindTexture(GL_TEXTURE_2D, mHandle);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_POINT);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_POINT);
+		glTexImage2D(GL_TEXTURE_2D, 0,  Texture::Convert(format), width, height, 0, GL_DEPTH_STENCIL, GL_UNSIGNED_INT_24_8, NULL);
+
+		GLenum error = glGetError();
+		if( error != GL_NO_ERROR )
+		{
+		}
+		glBindTexture(GL_TEXTURE_2D, 0);
+		return true;	
+	}
+
 	FrameBuffer::FrameBuffer()
 	{
 		mFBO = 0;
@@ -524,7 +627,7 @@ namespace GL
 		{
 			for( int i = 0 ; i < mTextures.size() ; ++i )
 			{
-				Info& info = mTextures[i];
+				BufferInfo& info = mTextures[i];
 				if ( info.handle && info.bManaged )
 					glDeleteTextures( 1 , &info.handle );
 			}
@@ -541,7 +644,7 @@ namespace GL
 	{
 		int idx = mTextures.size();
 
-		Info info;
+		BufferInfo info;
 		info.handle   = target.mHandle;
 		info.idx      = face;
 		info.bManaged = ( beManaged ) ? target.mbManaged : false;
@@ -557,7 +660,7 @@ namespace GL
 	{
 		int idx = mTextures.size();
 
-		Info info;
+		BufferInfo info;
 		info.handle   = target.mHandle;
 		info.idx      = 0;
 		info.bManaged = ( beManaged ) ? target.mbManaged : false;
@@ -573,7 +676,7 @@ namespace GL
 	void FrameBuffer::setTexture( int idx , Texture2D& target , bool beManaged )
 	{
 		assert( idx < mTextures.size() );
-		Info info = mTextures[idx];
+		BufferInfo& info = mTextures[idx];
 		info.handle   = target.mHandle;
 		info.idx      = 0;
 		info.bManaged = ( beManaged ) ? target.mbManaged : false;
@@ -585,7 +688,7 @@ namespace GL
 	void FrameBuffer::setTexture( int idx , TextureCube& target , Texture::Face face , bool beManaged )
 	{
 		assert( idx < mTextures.size() );
-		Info info = mTextures[idx];
+		BufferInfo& info = mTextures[idx];
 		info.handle   = target.mHandle;
 		info.idx      = face;
 		info.bManaged = ( beManaged ) ? target.mbManaged : false;
@@ -594,68 +697,151 @@ namespace GL
 		setTextureInternal( idx , info , GL_TEXTURE_CUBE_MAP_POSITIVE_X + info.idx );
 	}
 
-	void FrameBuffer::setTextureInternal( int idx , Info& info , GLenum texType )
+	void FrameBuffer::setTextureInternal( int idx , BufferInfo& info , GLenum texType )
 	{
 		assert( mFBO );
-		glBindFramebuffer( GL_DRAW_FRAMEBUFFER , mFBO );
-		glFramebufferTexture2D( GL_DRAW_FRAMEBUFFER , GL_COLOR_ATTACHMENT0 + idx , texType , info.handle , 0 );
-
-
-		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0 );
+		glBindFramebuffer( GL_FRAMEBUFFER , mFBO );
+		glFramebufferTexture2D( GL_FRAMEBUFFER , GL_COLOR_ATTACHMENT0 + idx , texType , info.handle , 0 );
+		GLenum Status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+		if( Status != GL_FRAMEBUFFER_COMPLETE )
+		{
+			::Msg("Texture Can't Attach to FrameBuffer");
+		}
+		glBindFramebuffer(GL_FRAMEBUFFER, 0 );
 	}
 
 	void FrameBuffer::bind()
 	{
-		glBindFramebuffer( GL_DRAW_FRAMEBUFFER, mFBO );
-
+		glBindFramebuffer( GL_FRAMEBUFFER, mFBO );
+#if 0
+		for( int i = 0; i < mTextures.size(); ++i )
+		{
+			BufferInfo& info = mTextures[i];
+			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + i, GL_TEXTURE_2D, info.handle, 0);
+		}
+#endif
 		GLenum DrawBuffers[] =
 		{ 
 			GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2 , GL_COLOR_ATTACHMENT3, GL_COLOR_ATTACHMENT4,
 			GL_COLOR_ATTACHMENT5, GL_COLOR_ATTACHMENT6, GL_COLOR_ATTACHMENT7 , GL_COLOR_ATTACHMENT8, GL_COLOR_ATTACHMENT9
 		};
 		glDrawBuffers( mTextures.size() , DrawBuffers );
+
+
+		GLenum status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+		if( status != GL_FRAMEBUFFER_COMPLETE )
+		{
+			
+		}
 	}
 
 	void FrameBuffer::unbind()
 	{
-		glBindFramebuffer( GL_DRAW_FRAMEBUFFER, 0 );
+		glBindFramebuffer( GL_FRAMEBUFFER, 0 );
 	}
 
 	bool FrameBuffer::create()
 	{
 		glGenFramebuffers( 1, &mFBO ); 
-		glBindFramebuffer( GL_DRAW_FRAMEBUFFER , mFBO );
+		//glBindFramebuffer( GL_DRAW_FRAMEBUFFER , mFBO );
 		return mFBO != 0;
 	}
 
-	void FrameBuffer::setBuffer( DepthBuffer& buffer , bool beManaged )
+	void FrameBuffer::setDepthInternal( GLuint handle , Texture::DepthFormat format, bool bTexture , bool bManaged )
 	{
-		glBindFramebuffer( GL_DRAW_FRAMEBUFFER, mFBO );
-		mDepthBuffer.mHandle = buffer.mHandle;
-		mDepthBuffer.mbManaged = ( beManaged ) ? buffer.mbManaged : false;
-		if ( mDepthBuffer.mbManaged )
-			buffer.release();
+		clearDepth();
 
-		if ( mDepthBuffer.mHandle )
+		mDepth.handle = handle;
+		mDepth.bManaged = bManaged;
+		mDepth.bTexture = bTexture;
+
+		if( mDepth.handle )
 		{
-			glFramebufferRenderbuffer( GL_FRAMEBUFFER , GL_DEPTH_STENCIL_ATTACHMENT , GL_RENDERBUFFER , mDepthBuffer.mHandle ); 
-		}
+			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, mFBO);
 
-		GLenum Status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
-		if (Status != GL_FRAMEBUFFER_COMPLETE) 
-		{
+			GLenum attachType = GL_DEPTH_ATTACHMENT;
+			if( Texture::ContainStencil(format) )
+			{
+				if( Texture::ContainDepth(format) )
+					attachType = GL_DEPTH_STENCIL_ATTACHMENT;
+				else
+					attachType = GL_STENCIL_ATTACHMENT;
+			}
 
+			if( bTexture )
+			{
+				glFramebufferTexture2D(GL_FRAMEBUFFER, attachType , GL_TEXTURE_2D, mDepth.handle, 0);
+			}
+			else
+			{
+				glFramebufferRenderbuffer(GL_FRAMEBUFFER, attachType, GL_RENDERBUFFER, mDepth.handle);
+			}
+
+
+			GLenum status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+			if( status != GL_FRAMEBUFFER_COMPLETE )
+			{
+				::Msg("DepthBuffer Can't Attach to FrameBuffer");
+			}
+			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
 		}
-		glBindFramebuffer( GL_DRAW_FRAMEBUFFER, 0 );
 	}
 
+	void FrameBuffer::setDepth( DepthRenderBuffer& buffer , bool bManaged )
+	{
+		bManaged = (bManaged) ? buffer.mbManaged : false;
+		setDepthInternal( buffer.mHandle , buffer.getFormat() , false , bManaged );
+		if ( bManaged )
+			buffer.release();
+	}
 
-	bool DepthBuffer::create(int w , int h , Texture::DepthFormat format)
+	void FrameBuffer::setDepth(DepthTexture& target, bool bManaged /*= false */)
+	{
+		bManaged = (bManaged) ? target.mbManaged : false;
+		setDepthInternal(target.mHandle, target.getFormat(), true , bManaged);
+		if( bManaged )
+			target.release();
+	}
+
+	void FrameBuffer::clearDepth()
+	{
+		if ( mDepth.handle )
+		{
+			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, mFBO);
+			if( mDepth.bTexture )
+			{
+				glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_TEXTURE_2D, 0, 0);
+			}
+			else
+			{
+				glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, 0);
+			}
+			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+
+			if( mDepth.bManaged )
+			{
+				if( mDepth.bTexture )
+				{
+					glDeleteTextures(1, &mDepth.handle);
+				}
+				else
+				{
+					glDeleteRenderbuffers(1, &mDepth.handle);
+				}
+				mDepth.bManaged = false;
+			}
+			mDepth.handle = 0;
+		}
+
+	}
+
+	bool DepthRenderBuffer::create(int w, int h, Texture::DepthFormat format)
 	{
 		assert( mHandle == 0 );
+		mFormat = format;
 		glGenRenderbuffers(1, &mHandle );
 		glBindRenderbuffer( GL_RENDERBUFFER , mHandle );
-		glRenderbufferStorage( GL_RENDERBUFFER , Texture::convert( format ), w , h );
+		glRenderbufferStorage( GL_RENDERBUFFER , Texture::Convert( format ), w , h );
 		//glRenderbufferStorage( GL_RENDERBUFFER , GL_DEPTH_COMPONENT , w , h );
 		glBindRenderbuffer( GL_RENDERBUFFER , 0 );
 

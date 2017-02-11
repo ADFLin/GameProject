@@ -222,9 +222,9 @@ public:
 	typedef std::vector< Wad3FileData* > Wad3FileList;
 
 	Wad3FileList    mWadLoader;
-	std::vector< Texture::RefPtr > mTextureMap;
-	Texture::RefPtr mTexEmpty;
-	Texture::RefPtr mTexLightMap;
+	std::vector< Texture::RefCountPtr > mTextureMap;
+	Texture::RefCountPtr mTexEmpty;
+	Texture::RefCountPtr mTexLightMap;
 	BspLightMapMergeHelper* mHelper;
 	Scene*  mScene;
 	World*  mWorld;

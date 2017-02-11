@@ -1,5 +1,5 @@
 #include "ZumaPCH.h"
-#include "D3DRenderSystem.h"
+#include "D3D9RenderSystem.h"
 
 #include "GIFLoader.h"
 #include "ZFont.h"
@@ -64,13 +64,13 @@ void DXTexture2D::release()
 	}
 }
 
-D3DRenderSystem::D3DRenderSystem() 
+D3D9RenderSystem::D3D9RenderSystem() 
 	:mD3DDevice(NULL)
 {
 
 }
 
-bool D3DRenderSystem::init( LPDIRECT3DDEVICE9 d3dDevice )
+bool D3D9RenderSystem::init( LPDIRECT3DDEVICE9 d3dDevice )
 {
 	mD3DDevice = d3dDevice;
 
@@ -109,7 +109,7 @@ bool D3DRenderSystem::init( LPDIRECT3DDEVICE9 d3dDevice )
 	return true;
 }
 
-bool D3DRenderSystem::prevRender()
+bool D3D9RenderSystem::prevRender()
 {
 	if( FAILED( getD3DDevice()->BeginScene() ) )
 		return false;
@@ -131,7 +131,7 @@ bool D3DRenderSystem::prevRender()
 	return true;
 }
 
-void D3DRenderSystem::postRender()
+void D3D9RenderSystem::postRender()
 {
 	HRESULT hr;
 	hr = getD3DDevice()->EndScene();
@@ -148,7 +148,7 @@ void D3DRenderSystem::postRender()
 	}
 }
 
-void D3DRenderSystem::cleanup()
+void D3D9RenderSystem::cleanup()
 {
 	if ( mD3DSprite )
 		mD3DSprite->Release();
@@ -156,17 +156,17 @@ void D3DRenderSystem::cleanup()
 		mWorldMatStack->Release();
 }
 
-bool D3DRenderSystem::loadGIFAlpha( char const* path , TempRawData& data )
+bool D3D9RenderSystem::loadGIFAlpha( char const* path , TempRawData& data )
 {
 	return ::LoadGIFImage( path , &TempRawData::GIFCreateAlpha , &data );
 }
 
-bool D3DRenderSystem::loadGIF( char const* path , TempRawData& data )
+bool D3D9RenderSystem::loadGIF( char const* path , TempRawData& data )
 {
 	return LoadGIFImage( path , &TempRawData::GIFCreateRGB , &data );
 }
 
-bool D3DRenderSystem::loadGIFAlpha( DXTexture2D& texture , char const* path )
+bool D3D9RenderSystem::loadGIFAlpha( DXTexture2D& texture , char const* path )
 {
 
 	D3DLOCKED_RECT rect;
@@ -189,7 +189,7 @@ bool D3DRenderSystem::loadGIFAlpha( DXTexture2D& texture , char const* path )
 
 
 
-bool D3DRenderSystem::loadTexture( ITexture2D& texture , char const* path , char const* alphaPath )
+bool D3D9RenderSystem::loadTexture( ITexture2D& texture , char const* path , char const* alphaPath )
 {
 	texture.release();
 
@@ -227,7 +227,7 @@ bool D3DRenderSystem::loadTexture( ITexture2D& texture , char const* path , char
 	return true;
 }
 
-DXTexture2D* D3DRenderSystem::createTexture( char const* path , char const* alphaPath )
+DXTexture2D* D3D9RenderSystem::createTexture( char const* path , char const* alphaPath )
 {
 
 	bool haveImage = ( path != NULL && *path != '\0');
@@ -268,43 +268,43 @@ fail:
 	return NULL;
 }
 
-void D3DRenderSystem::translateWorld( float x , float y  )
+void D3D9RenderSystem::translateWorld( float x , float y  )
 {
 	mWorldMatStack->TranslateLocal( x , y , 0.0f );
 	updateWorldMatrix();
 }
 
-void D3DRenderSystem::rotateWorld( float angle )
+void D3D9RenderSystem::rotateWorld( float angle )
 {
 	mWorldMatStack->RotateAxisLocal( &D3DXVECTOR3( 0 , 0 , 1 ) , PI * angle / 180.0f );
 	updateWorldMatrix();
 }
 
-void D3DRenderSystem::scaleWorld( float sx , float sy )
+void D3D9RenderSystem::scaleWorld( float sx , float sy )
 {
 	mWorldMatStack->ScaleLocal( sx , sy , 1.0f );
 	updateWorldMatrix();
 
 }
 
-void D3DRenderSystem::setWorldIdentity()
+void D3D9RenderSystem::setWorldIdentity()
 {
 	mWorldMatStack->LoadIdentity();
 	updateWorldMatrix();
 }
 
-void D3DRenderSystem::popWorldTransform()
+void D3D9RenderSystem::popWorldTransform()
 {
 	mWorldMatStack->Pop();
 	updateWorldMatrix();
 }
 
-void D3DRenderSystem::pushWorldTransform()
+void D3D9RenderSystem::pushWorldTransform()
 {
 	mWorldMatStack->Push();
 }
 
-void D3DRenderSystem::loadWorldMatrix( Vec2D const& pos , Vec2D const& dir )
+void D3D9RenderSystem::loadWorldMatrix( Vec2D const& pos , Vec2D const& dir )
 {
 	static float m[16] =
 	{
@@ -322,9 +322,9 @@ void D3DRenderSystem::loadWorldMatrix( Vec2D const& pos , Vec2D const& dir )
 	getD3DDevice()->SetTransform( D3DTS_WORLD , mWorldMatStack->GetTop() );
 }
 
-void D3DRenderSystem::drawBitmap( ITexture2D& tex , unsigned flag  )
+void D3D9RenderSystem::drawBitmap( ITexture2D const& tex , unsigned flag  )
 {
-	DXTexture2D& texture = DXTexture2D::castImpl( tex  );
+	DXTexture2D const& texture = DXTexture2D::castImpl( tex  );
 
 	pushWorldTransform();
 
@@ -349,9 +349,9 @@ void D3DRenderSystem::drawBitmap( ITexture2D& tex , unsigned flag  )
 
 }
 
-void D3DRenderSystem::drawBitmap( ITexture2D& tex , Vec2D const& texPos , Vec2D const& texSize, unsigned flag /*= 0 */ )
+void D3D9RenderSystem::drawBitmap( ITexture2D const& tex , Vec2D const& texPos , Vec2D const& texSize, unsigned flag /*= 0 */ )
 {
-	DXTexture2D& texture = DXTexture2D::castImpl( tex  );
+	DXTexture2D const& texture = DXTexture2D::castImpl( tex  );
 
 	RECT rect;
 	rect.left = texPos.x;
@@ -380,10 +380,10 @@ void D3DRenderSystem::drawBitmap( ITexture2D& tex , Vec2D const& texPos , Vec2D 
 
 }
 
-void D3DRenderSystem::drawBitmapWithinMask( ITexture2D& tex , ITexture2D& mask , Vec2D const& pos , unsigned flag /*= 0 */ )
+void D3D9RenderSystem::drawBitmapWithinMask( ITexture2D const& tex , ITexture2D const& mask , Vec2D const& pos , unsigned flag /*= 0 */ )
 {
 
-	DXTexture2D& texDX = DXTexture2D::castImpl( tex );
+	DXTexture2D const& texDX = DXTexture2D::castImpl( tex );
 
 	setupBlend( tex.ownAlpha() ,  flag );
 
@@ -463,7 +463,7 @@ void D3DRenderSystem::drawBitmapWithinMask( ITexture2D& tex , ITexture2D& mask ,
 }
 
 
-void D3DRenderSystem::setColor( uint8 r , uint8 g , uint8 b , uint8 a /*= 255 */ )
+void D3D9RenderSystem::setColor( uint8 r , uint8 g , uint8 b , uint8 a /*= 255 */ )
 {
 	mCurColor.r = FLOAT(r) / 255.0f;
 	mCurColor.g = FLOAT(g) / 255.0f;
@@ -473,7 +473,7 @@ void D3DRenderSystem::setColor( uint8 r , uint8 g , uint8 b , uint8 a /*= 255 */
 	//m_curColor = D3DCOLOR_ARGB( 255 , 255 , 255 , 255 );
 }
 
-D3DBLEND D3DRenderSystem::convBlendValue( BlendEnum value )
+D3DBLEND D3D9RenderSystem::convBlendValue( BlendEnum value )
 {
 	switch ( value )
 	{
@@ -493,19 +493,19 @@ D3DBLEND D3DRenderSystem::convBlendValue( BlendEnum value )
 	return D3DBLEND_ONE;
 }
 
-void D3DRenderSystem::setupBlendFun( BlendEnum src , BlendEnum dst )
+void D3D9RenderSystem::setupBlendFun( BlendEnum src , BlendEnum dst )
 {
 	getD3DDevice()->SetRenderState( D3DRS_SRCBLEND,  convBlendValue( src ) );
 	getD3DDevice()->SetRenderState( D3DRS_DESTBLEND , convBlendValue( dst)  );
 }
 
-void D3DRenderSystem::enableBlendImpl( bool beE )
+void D3D9RenderSystem::enableBlendImpl( bool beE )
 {
 	getD3DDevice()->SetRenderState( D3DRS_ALPHABLENDENABLE , ( beE ) ? TRUE : FALSE );
 }
 
 
-ITexture2D* D3DRenderSystem::createTextureRes( ImageResInfo& info )
+ITexture2D* D3D9RenderSystem::createTextureRes( ImageResInfo& info )
 {
 	DXTexture2D* tex = createTexture( info.path.c_str() , info.pathAlpha.c_str() );
 
@@ -517,18 +517,18 @@ ITexture2D* D3DRenderSystem::createTextureRes( ImageResInfo& info )
 	return tex;
 }
 
-void D3DRenderSystem::updateWorldMatrix()
+void D3D9RenderSystem::updateWorldMatrix()
 {
 	//m_worldMatStack->LoadMatrix( &mat );
 	getD3DDevice()->SetTransform( D3DTS_WORLD ,  mWorldMatStack->GetTop() );
 }
 
-ITexture2D* D3DRenderSystem::createFontTexture( ZFontLayer& layer )
+ITexture2D* D3D9RenderSystem::createFontTexture( ZFontLayer& layer )
 {
 	return createTexture( layer.imagePath.c_str() ,layer.alhpaPath.c_str() );
 }
 
-void D3DRenderSystem::drawPolygon( Vec2D const pos[] , int num )
+void D3D9RenderSystem::drawPolygon( Vec2D const pos[] , int num )
 {
 	assert( num <= MaxPolygonSize );
 

@@ -9,7 +9,7 @@
 #include "StageBase.h"
 #include "TaskBase.h"
 
-#include "GamePackageManager.h"
+#include "GameInstanceManager.h"
 #include "GameControl.h"
 #include "GameGUISystem.h"
 #include "GameWidget.h"
@@ -68,19 +68,23 @@ public:
 		++frameCount;
 		if ( frameCount > NumFramePerSample )
 		{
-			fpsSamples[idxSample] = 1000.0f * ( frameCount ) / ( time - timeFrame );
-			timeFrame = time;
-			frameCount = 0;
+			int64 deltaTime = time - timeFrame;
+			if ( deltaTime > 0 )
+			{
+				fpsSamples[idxSample] = 1000.0f * (frameCount) / deltaTime;
+				timeFrame = time;
+				frameCount = 0;
 
-			++idxSample;
-			if ( idxSample == NUM_FPS_SAMPLES )
-				idxSample = 0;
+				++idxSample;
+				if( idxSample == NUM_FPS_SAMPLES )
+					idxSample = 0;
 
-			mFPS = 0;
-			for (int i = 0; i < NUM_FPS_SAMPLES; ++i)
-				mFPS += fpsSamples[i];
+				mFPS = 0;
+				for( int i = 0; i < NUM_FPS_SAMPLES; ++i )
+					mFPS += fpsSamples[i];
 
-			mFPS /= NUM_FPS_SAMPLES;
+				mFPS /= NUM_FPS_SAMPLES;
+			}
 		}
 	}
 
@@ -122,7 +126,7 @@ protected:
 	StageBase*     createStage( StageID stageId );
 	GameStageMode* createGameStageMode(StageID stageId);
 	StageBase*     resolveChangeStageFail( FailReason reason );
-	bool           initStage(StageBase* stage);
+	bool           initializeStage(StageBase* stage);
 	void           postStageChange( StageBase* stage );
 	void           prevStageChange();
 

@@ -167,7 +167,7 @@ namespace FlappyBird
 
 			switch( key )
 			{
-			case 'R': restart(); break;
+			case Keyboard::eR: restart(); break;
 			case 'S': 
 				if ( !mIsOver ) 
 					mBird.fly();

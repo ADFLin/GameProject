@@ -11,7 +11,7 @@
 
 #include <algorithm>
 
-//TODO : fix animation of dangerous bomb
+//#TODO : fix animation of dangerous bomb
 
 namespace BomberMan
 {

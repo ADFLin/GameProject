@@ -102,7 +102,7 @@ namespace CFly
 
 #define CF_FAIL_ID  -1
 
-#include "RefObject.h"
+#include "RefCount.h"
 #include "CFColor.h"
 #include "CFEntity.h"
 #include "CFMath.h"

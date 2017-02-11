@@ -85,10 +85,10 @@ class IShadowMapTechnique : public IShadowTechnique
 
 	struct LightShadowData
 	{
-		Texture::RefPtr  ShadowMap;
+		Texture::RefCountPtr  ShadowMap;
 		Viewport*        viewport;
 	};
-	Material::RefPtr m_material;
+	Material::RefCountPtr m_material;
 	Camera*          m_viewCamera;
 	Scene*           m_scene;
 };
@@ -103,7 +103,7 @@ public:
 	Object*   ball[BallNum];
 	Object*   plane;
 	Camera*   viewCamera;
-	Material::RefPtr SMMaterial;
+	Material::RefCountPtr SMMaterial;
 	Viewport* SMViewport;
 
 
@@ -239,7 +239,7 @@ public:
 
 	void renderShadowMap( Object* obj , bool beC )
 	{
-		Material::RefPtr mat = obj->getElement()->getMaterial();
+		Material::RefCountPtr mat = obj->getElement()->getMaterial();
 		obj->getElement()->setMaterial( SMMaterial );
 		mMainScene->renderObject( obj , viewCamera , SMViewport , (beC) ? CFRF_DEFULT : 0 );
 		obj->getElement()->setMaterial( mat );
@@ -248,7 +248,7 @@ public:
 	void renderScene( Object* obj , bool beC )
 	{
 		Color4f color;
-		Material::RefPtr mat = plane->getElement()->getMaterial();
+		Material::RefCountPtr mat = plane->getElement()->getMaterial();
 		color = mat->getDiffuse();
 		SMMaterial->setDiffuse( color );
 		obj->getElement()->setMaterial( SMMaterial );

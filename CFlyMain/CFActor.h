@@ -180,7 +180,7 @@ namespace CFly
 
 
 		SkinVec          mSkinVec;
-		Skeleton::RefPtr mSkeleton;
+		Skeleton::RefCountPtr mSkeleton;
 
 		struct AttachInfo
 		{
@@ -194,7 +194,7 @@ namespace CFly
 
 		struct MeshGroup
 		{
-			Skeleton::RefPtr mSkeleton;
+			Skeleton::RefCountPtr mSkeleton;
 			SkinVec          mSkinVec;
 		};
 		AttachInfoVec mAttachVec;

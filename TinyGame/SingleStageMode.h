@@ -1,5 +1,6 @@
-#ifndef GameSingleStage_h__
-#define GameSingleStage_h__
+#pragma once
+#ifndef SingleStageMode_H_2188C010_CF34_4BDF_9C40_0FAC3FF0E33C
+#define SingleStageMode_H_2188C010_CF34_4BDF_9C40_0FAC3FF0E33C
 
 #include "GameStageMode.h"
 
@@ -22,4 +23,5 @@ public:
 	TPtrHolder< LocalPlayerManager > mPlayerManager;
 };
 
-#endif // GameSingleStage_h__
+
+#endif // SingleStageMode_H_2188C010_CF34_4BDF_9C40_0FAC3FF0E33C

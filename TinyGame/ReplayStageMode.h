@@ -2,7 +2,7 @@
 #define ReplayStage_h__
 
 #include "GameStageMode.h"
-#include "GameSingleStage.h"
+#include "SingleStageMode.h"
 #include "GameWidget.h"
 #include "GameReplay.h"
 

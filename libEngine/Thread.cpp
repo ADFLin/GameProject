@@ -4,28 +4,28 @@
 
 bool WinThread::create( ThreadFunc fun , void* ptr )
 {
-	if ( !m_beRunning )
+	if ( !mbRunning )
 	{
-		if ( m_hThread )
-			CloseHandle(m_hThread);
+		if ( mhThread )
+			CloseHandle(mhThread);
 
-		m_hThread = (HANDLE) _beginthreadex(
+		mhThread = (HANDLE) _beginthreadex(
 			NULL,0 , fun , ptr ,
-			0,&m_uThreadID );
-		if ( m_hThread == NULL )
+			0,&mThreadID );
+		if ( mhThread == NULL )
 			return false;
 	}
 
-	m_beRunning = true;
+	mbRunning = true;
 	return true;
 }
 
 bool WinThread::suspend()
 {
-	DWORD reault = SuspendThread(m_hThread);
+	DWORD reault = SuspendThread(mhThread);
 	if ( reault != -1 ) 
 	{
-		++m_SupendTimes;
+		++mSupendTimes;
 		return true;
 	}
 	return false;
@@ -33,10 +33,10 @@ bool WinThread::suspend()
 
 bool WinThread::resume()
 {
-	DWORD reault = ResumeThread(m_hThread);
+	DWORD reault = ResumeThread(mhThread);
 	if ( reault != -1 ) 
 	{
-		--m_SupendTimes;
+		--mSupendTimes;
 		return true;
 	}
 	return false;
@@ -44,10 +44,10 @@ bool WinThread::resume()
 
 bool WinThread::setPriorityLevel( DWORD level )
 {
-	if ( isRunning() && !SetThreadPriority(m_hThread,level) )
+	if ( isRunning() && !SetThreadPriority(mhThread,level) )
 		return false;
 
-	m_PriorityLevel = level;
+	mPriorityLevel = level;
 	return true;
 }
 
@@ -55,9 +55,9 @@ bool WinThread::kill()
 {
 	if ( isRunning() )
 	{
-		if ( TerminateThread(m_hThread,0) )
+		if ( TerminateThread(mhThread,0) )
 		{
-			m_beRunning = false;
+			mbRunning = false;
 			return true;
 		}
 	}

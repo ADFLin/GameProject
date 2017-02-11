@@ -741,7 +741,7 @@ bool TBigFloat<MantNum, ExpNum>::convertToDouble( double& val )
 	if ( exponent >  DFLOAT_EXP_BIAS ||
 		 exponent < -DFLOAT_EXP_BIAS )
 	{
-		//TODO: Denormalize case
+		//#TODO: Denormalize case
 		return false;
 	}
 
@@ -784,7 +784,7 @@ bool TBigFloat<MantNum, ExpNum>::convertToFloat( float& val )
 	if ( exponent >  SFLOAT_EXP_BIAS ||
 		exponent < -SFLOAT_EXP_BIAS )
 	{
-		//TODO : Denormalize case
+		//#TODO : Denormalize case
 		return false;
 	}
 	int exp;
@@ -822,7 +822,7 @@ void TBigFloat<MantNum, ExpNum>::setValue( float val )
 			setZero();
 			return;
 		}
-		//TODO: Denormalize case
+		//#TODO: Denormalize case
 	}
 	else
 	{
@@ -871,7 +871,7 @@ void TBigFloat<MantNum, ExpNum>::setValue( double val )
 			setZero();
 			return;
 		}
-		//TODO: Denormalize case
+		//#TODO: Denormalize case
 	}
 	else
 	{

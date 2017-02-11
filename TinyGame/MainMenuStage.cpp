@@ -6,9 +6,8 @@
 
 #include "GameRoomUI.h"
 #include "GameInstance.h"
-#include "GamePackageManager.h"
+#include "GameInstanceManager.h"
 
-#include "GameSingleStage.h"
 #include "NetGameStage.h"
 
 #include "StageRegister.h"
@@ -29,7 +28,7 @@
 #include "BloxorzStage.h"
 #include "AStarStage.h"
 #include "FBirdStage.h"
-#include "PlanetStage.h"
+#include "RenderGLStage.h"
 #include "GGJStage.h"
 #include "RubiksStage.h"
 
@@ -49,9 +48,9 @@ StageInfo gPreRegisterStageGroup[] =
 	STAGE_INFO( "Cantan Test" , Cantan::LevelStage , StageRegisterGroup::GraphicsTest) ,
 	STAGE_INFO( "GGJ Test" , GGJ::TestStage , StageRegisterGroup::GraphicsTest) ,
 	STAGE_INFO( "2D Lighting Test"     , Lighting::TestStage , StageRegisterGroup::GraphicsTest) ,
-	STAGE_INFO( "Shader Test"  , GS::TestStage , StageRegisterGroup::GraphicsTest),
+	STAGE_INFO( "Shader Test"  , RenderGL::SampleStage , StageRegisterGroup::GraphicsTest),
 	STAGE_INFO( "GLGraphics2D Test"   , GLGraphics2DTestStage , StageRegisterGroup::GraphicsTest) ,
-	STAGE_INFO( "BSpline Test"   , BSplineTestStage , StageRegisterGroup::GraphicsTest) ,
+	STAGE_INFO( "B-Spline Test"   , BSplineTestStage , StageRegisterGroup::GraphicsTest) ,
 
 	STAGE_INFO( "Bsp Test"    , Bsp2D::TestStage , StageRegisterGroup::Test ) ,
 	STAGE_INFO( "A-Star Test" , AStar::TestStage , StageRegisterGroup::Test ) ,
@@ -301,10 +300,10 @@ void MainMenuStage::doChangeGroup( StageGroupID group )
 		break;
 	case UI_SINGLEPLAYER:
 		{
-			GamePackageVec games;
+			GameInstanceVec games;
 			Global::GameManager().classifyGame( ATTR_SINGLE_SUPPORT , games );
 
-			for( GamePackageVec::iterator iter = games.begin() ; 
+			for( GameInstanceVec::iterator iter = games.begin() ; 
 				 iter != games.end() ; ++iter )
 			{
 				IGameInstance* g = *iter;
@@ -422,7 +421,6 @@ bool MainMenuStage::onWidgetEvent( int event , int id , GWidget* ui )
 		if ( !game )
 			return false;
 		game->beginPlay( SMT_SINGLE_GAME , *getManager() );
-		getManager()->changeStage( STAGE_SINGLE_GAME );
 		return false;
 	}
 	else

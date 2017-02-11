@@ -22,6 +22,7 @@ namespace Zuma
 
 		void release();
 		static GLTexture& castImpl( ITexture2D& tex ){ return static_cast< GLTexture& >( tex ) ; }
+		static GLTexture const& castImpl(ITexture2D const& tex) { return static_cast< GLTexture const& >(tex); }
 		bool createFromRawData( unsigned char* data , int w , int h , bool beAlpha );
 	};
 
@@ -46,9 +47,9 @@ namespace Zuma
 		virtual void  pushWorldTransform(){  glPushMatrix();  }
 		virtual void  popWorldTransform(){  glPopMatrix();  }
 
-		virtual void  drawBitmap( ITexture2D& tex , unsigned flag );
-		virtual void  drawBitmap( ITexture2D& tex ,Vec2D const& texPos , Vec2D const& texSize , unsigned flag = 0 );
-		virtual void  drawBitmapWithinMask( ITexture2D& tex , ITexture2D& mask , Vec2D const& pos , unsigned flag = 0 );
+		virtual void  drawBitmap( ITexture2D const& tex , unsigned flag );
+		virtual void  drawBitmap( ITexture2D const& tex ,Vec2D const& texPos , Vec2D const& texSize , unsigned flag = 0 );
+		virtual void  drawBitmapWithinMask( ITexture2D const& tex , ITexture2D const& mask , Vec2D const& pos , unsigned flag = 0 );
 
 
 		virtual void  drawPolygon( Vec2D const pos[] , int num );

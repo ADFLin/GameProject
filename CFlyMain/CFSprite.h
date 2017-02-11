@@ -61,8 +61,8 @@ namespace CFly
 			Color4ub         color;
 			int              curSlot;
 			FilterMode       filter;
-			std::vector< Texture::RefPtr >  texSlot;
-			VertexBuffer::RefPtr buffer;
+			std::vector< Texture::RefCountPtr >  texSlot;
+			VertexBuffer::RefCountPtr buffer;
 		};
 
 		void  renderImpl( Matrix4 const& trans );

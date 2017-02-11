@@ -126,7 +126,7 @@ namespace CFly
 		RenderSystem*     mRenderSystem;
 		MeshCreator*      mMeshCreator;	
 
-		RefPtrT< RenderWindow > mRenderWindow;
+		TRefCountPtr< RenderWindow > mRenderWindow;
 		LPD3DXFONT        mFont;
 		MaterialManager*  mMatManager;
 		D3DDevice*        mD3dDevice;

@@ -2,6 +2,7 @@
 #define PokerBase_h__
 
 #include <iostream>
+#include <cassert>
 
 namespace Poker
 {
@@ -25,7 +26,6 @@ namespace Poker
 			eN2 , eN3 , eN4 , eN5 , eN6 , 
 			eN7 , eN8 , eN9 , eN10 ,
 			eJACK , eQUEEN , eKING ,
-			eJOKER ,
 		};
 
 		enum Suit
@@ -34,11 +34,24 @@ namespace Poker
 			eDIAMONDS = 1,
 			eHEARTS   = 2,
 			eSPADES   = 3,
+
+			eNONE ,
+			eJOKER ,
 		};
 
 		Card(){}
-		explicit Card(int index); // index = 0 ~ 51
+
+		// index = 0 ~ 51
+		explicit Card(int index)
+		{
+			assert(0 <= index && index < 52);
+			mSuit = Suit(index % 4);
+			mFace = Face(index / 4);
+		}
 		Card(Suit suit , int faceRank );
+
+		static Card const None() { return Card(Suit::eNONE, 0); }
+		static Card const Joker() { return Card(Suit::eJOKER, 0); }
 
 		Face   getFace()     const { return mFace; }
 		Suit   getSuit()     const { return mSuit; }
@@ -84,12 +97,6 @@ namespace Poker
 		static const char suit[]={ 0x05,0x04,0x03,0x06 };
 		o << suit[card.getSuit()] << Card::toString( card.getFace() );
 		return o;
-	}
-
-	inline Card::Card( int index )
-	{
-		mSuit     = Suit( index % 4 );
-		mFace     = Face( index / 4 );
 	}
 
 	inline Card::Card( Suit suit,int faceRank ) 

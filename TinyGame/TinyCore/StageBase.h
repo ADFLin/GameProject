@@ -7,7 +7,7 @@
 
 class StageManager;
 class IGameInstance;
-class GamePackageManager;
+class GameInstanceManager;
 class MouseMsg;
 class NetWorker;
 class GWidget;
@@ -45,6 +45,7 @@ public:
 	void  render( float dFrame );
 
 	virtual bool onInit(){ return true; }
+	virtual void onInitFail(){}
 	virtual void onEnd(){}
 	virtual void onUpdate( long time ){}
 	virtual void onRender( float dFrame ){}
@@ -85,14 +86,14 @@ public:
 
 protected:
 
-	enum FailReason
+	enum class FailReason
 	{
-		FR_NO_STAGE ,
-		FR_INIT_FAIL ,
+		NoStage ,
+		InitFail ,
 	};
 	virtual StageBase* resolveChangeStageFail( FailReason reason ){  return NULL;  }
 	virtual void       postStageChange(StageBase* stage) {}
-	virtual bool       initStage(StageBase* stage) { return stage->onInit(); }
+	virtual bool       initializeStage(StageBase* stage) { return stage->onInit(); }
 	virtual void       prevStageChange(){}
 protected:
 	void             checkNewStage();

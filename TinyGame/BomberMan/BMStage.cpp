@@ -5,11 +5,11 @@
 
 #include "GameInstance.h"
 #include "RenderUtility.h"
-#include "GameSingleStage.h"
 
 #include "GameGUISystem.h"
 #include "WidgetUtility.h"
 
+#include "GameStageMode.h"
 #include "CSyncFrameManager.h"
 
 namespace BomberMan

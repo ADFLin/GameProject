@@ -289,9 +289,9 @@ cleanup:
 		enableBlendImpl( false );
 	}
 
-	void GLRenderSystem::drawBitmap( ITexture2D& tex , unsigned flag )
+	void GLRenderSystem::drawBitmap( ITexture2D const& tex , unsigned flag )
 	{
-		GLTexture& texture = GLTexture::castImpl( tex );
+		GLTexture const& texture = GLTexture::castImpl( tex );
 		setupBlend( texture.ownAlpha() , flag );
 
 		glPushMatrix();
@@ -316,9 +316,9 @@ cleanup:
 
 	}
 
-	void GLRenderSystem::drawBitmap( ITexture2D& tex ,Vec2D const& texPos , Vec2D const& texSize , unsigned flag )
+	void GLRenderSystem::drawBitmap( ITexture2D const& tex ,Vec2D const& texPos , Vec2D const& texSize , unsigned flag )
 	{
-		GLTexture& texture = GLTexture::castImpl( tex );
+		GLTexture const& texture = GLTexture::castImpl( tex );
 
 		setupBlend( texture.ownAlpha() ,  flag );
 
@@ -350,10 +350,10 @@ cleanup:
 	}
 
 
-	void GLRenderSystem::drawBitmapWithinMask( ITexture2D& tex ,  ITexture2D& mask , Vec2D const& pos , unsigned flag )
+	void GLRenderSystem::drawBitmapWithinMask( ITexture2D const& tex ,  ITexture2D const& mask , Vec2D const& pos , unsigned flag )
 	{
-		GLTexture& texG =  GLTexture::castImpl( tex );
-		GLTexture& maskG = GLTexture::castImpl( mask );
+		GLTexture const& texG =  GLTexture::castImpl( tex );
+		GLTexture const& maskG = GLTexture::castImpl( mask );
 		setupBlend( true , flag );
 
 		float tx = pos.x / tex.getWidth();

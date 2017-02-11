@@ -73,7 +73,7 @@ namespace CFly
 
 	void Actor::updateBoneLine( float frame )
 	{
-		RefPtrT< Material > mat;
+		TRefCountPtr< Material > mat;
 
 		Object::Element* ele = mBoneLine->getElement(0);
 		if ( ele )

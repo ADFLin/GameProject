@@ -66,7 +66,7 @@ namespace Bejeweled
 
 		switch( key )
 		{
-		case 'R': restart(); break;
+		case Keyboard::eR: restart(); break;
 		default:
 			mScene.procKey( key , isDown );
 		}

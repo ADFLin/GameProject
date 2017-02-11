@@ -19,7 +19,7 @@ namespace CFly
 
 
 	class VertexBuffer : public BufferBase
-		               , public RefObjectT< VertexBuffer >
+		               , public RefCountedObjectT< VertexBuffer >
 	{
 	public:
 		VertexBuffer();
@@ -49,7 +49,7 @@ namespace CFly
 	};
 
 	class IndexBuffer : public BufferBase
-		              , public RefObjectT< IndexBuffer >
+		              , public RefCountedObjectT< IndexBuffer >
 	{
 	public:
 		IndexBuffer();

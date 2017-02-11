@@ -123,19 +123,19 @@ namespace Tetris
 
 	void GameWorld::init( Mode* mode )
 	{
-		mNeedScene = true;
-
-		mLevelMode = mode;
-		mLevelMode->mLevelManager = this;
-		mLevelMode->init();
-
 		mNumLevel = 0;
-		for ( int i = 0 ; i < gTetrisMaxPlayerNum ; ++i )
+		for( int i = 0; i < gTetrisMaxPlayerNum; ++i )
 		{
 			mUsingData[i] = NULL;
 			mDataStorage[i].id = i;
 			mDataStorage[i].idxUse = -1;
 		}
+
+		mNeedScene = true;
+
+		mLevelMode = mode;
+		mLevelMode->mLevelManager = this;
+		mLevelMode->init();
 	}
 
 	bool GameWorld::removePlayer( unsigned id )
@@ -318,7 +318,7 @@ namespace Tetris
 
 	}
 
-	int GameWorld::getSortedLevelData( unsigned mainID , LevelData* sortedData[] )
+	int GameWorld::sortLevelData( unsigned mainID , LevelData* sortedData[] )
 	{
 		int other = 1;
 		for( int i = 0 ; i < mNumLevel ; ++i )
@@ -392,7 +392,7 @@ namespace Tetris
 		calcScenePos( mainID );
 
 		LevelData* levelData[ gTetrisMaxPlayerNum ];
-		getSortedLevelData( mainID , levelData );
+		sortLevelData( mainID , levelData );
 		Vec2i pos = levelData[0]->getScene()->getSurfacePos() - Vec2i( 140 , 0 );
 
 		addBaseUI( *levelData[0] , pos , 

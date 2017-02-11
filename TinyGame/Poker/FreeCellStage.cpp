@@ -244,8 +244,6 @@ namespace Poker
 		return -1;
 	}
 
-
-
 	int FreeCellStage::getGroupCellIndex( Vec2i const& pos , Vec2i const& sPos , int numCell , int gap , int height )
 	{
 		Vec2i size = Vec2i( mCardSize.x * numCell + gap * ( numCell - 1 ) , height );

@@ -21,7 +21,9 @@ public:
 	void start( Fun fun )
 	{
 		mbYeild = false;
-		mImpl = ImplType( std::bind( &FunctionJumper::execEntry< Fun > , this , std::placeholders::_1 , fun ) );
+		auto entryFun = std::bind(&FunctionJumper::execEntry< Fun >, this, std::placeholders::_1, fun );
+		//entryFun(*(YeildType*)0);
+		mImpl = ImplType( entryFun );
 	}
 
 	void jump()
@@ -45,12 +47,11 @@ private:
 	template< class Fun >
 	void execEntry( YeildType& type , Fun fun )
 	{
-
 		mYeild = &type;
 		fun();
 		mYeild = NULL;
-
 	}
+
 	bool       mbYeild;
 	YeildType* mYeild;
 	ImplType   mImpl;

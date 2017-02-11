@@ -20,6 +20,11 @@ namespace Zuma
 			return static_cast< DXTexture2D& >( tex );
 		}
 
+		static DXTexture2D const& castImpl(ITexture2D const& tex)
+		{
+			return static_cast<DXTexture2D const&>(tex);
+		}
+
 
 		bool createFromRawData( LPDIRECT3DDEVICE9 d3dDevice , unsigned char* data , int w , int h  );
 		bool createFromFile(  LPDIRECT3DDEVICE9 d3dDevice , char const* path , D3DCOLOR colorKey );
@@ -31,10 +36,10 @@ namespace Zuma
 	};
 
 
-	class D3DRenderSystem : public IRenderSystem
+	class D3D9RenderSystem : public IRenderSystem
 	{
 	public:
-		D3DRenderSystem();
+		D3D9RenderSystem();
 
 
 		bool init( LPDIRECT3DDEVICE9 d3dDevice );
@@ -65,14 +70,14 @@ namespace Zuma
 
 		void cleanup();
 
-		virtual void  drawBitmap( ITexture2D& tex , unsigned flag = 0 );
-		virtual void  drawBitmap( ITexture2D& tex , Vec2D const& texPos , Vec2D const& texSize, unsigned flag = 0 );
-		virtual void  drawBitmapWithinMask( ITexture2D& tex , ITexture2D& mask , Vec2D const& pos , unsigned flag = 0 );
+		virtual void  drawBitmap( ITexture2D const& tex , unsigned flag = 0 );
+		virtual void  drawBitmap( ITexture2D const& tex , Vec2D const& texPos , Vec2D const& texSize, unsigned flag = 0 );
+		virtual void  drawBitmapWithinMask( ITexture2D const& tex , ITexture2D const& mask , Vec2D const& pos , unsigned flag = 0 );
 
 
 		virtual void  drawPolygon( Vec2D const pos[] , int num );
 
-		void bindTexture( DWORD stage , ITexture2D& tex )
+		void bindTexture( DWORD stage , ITexture2D const& tex )
 		{
 			getD3DDevice()->SetTexture( stage , getD3DTexture( tex ) );
 		}
@@ -107,7 +112,7 @@ namespace Zuma
 		bool loadGIFAlpha( DXTexture2D& texture , char const* path );
 		LPDIRECT3DDEVICE9 getD3DDevice() const { return mD3DDevice; }
 
-		static LPDIRECT3DTEXTURE9 getD3DTexture( ITexture2D& texture ){ return DXTexture2D::castImpl(texture).getD3DTexture(); }
+		static LPDIRECT3DTEXTURE9 getD3DTexture( ITexture2D const& texture ){ return DXTexture2D::castImpl(texture).getD3DTexture(); }
 		static int const MaxPolygonSize = 64;
 		LPDIRECT3DDEVICE9 mD3DDevice;
 		LPD3DXMATRIXSTACK mWorldMatStack;

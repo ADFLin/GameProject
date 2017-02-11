@@ -19,9 +19,6 @@ class NetRoomSettingHelper;
 
 class NetStateController
 {
-
-
-
 	GameStageBase* mStage;
 };
 
@@ -187,10 +184,6 @@ public:
 	virtual void resolvePlayerReconnect(PlayerId id) override;
 
 };
-
-
-
-
 
 
 

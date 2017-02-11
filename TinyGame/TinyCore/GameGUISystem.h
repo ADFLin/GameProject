@@ -28,7 +28,7 @@ public:
 	GAME_API void         addTask( TaskBase* task , bool beGlobal = false );
 
 	GAME_API void         addWidget( GWidget* widget );
-	GAME_API void         cleanupWidget();
+	GAME_API void         cleanupWidget(bool bForceCleanup = false );
 
 	UIManager&   getManager(){ return mUIManager; }
 

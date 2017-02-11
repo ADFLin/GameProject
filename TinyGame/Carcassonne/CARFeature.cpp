@@ -348,7 +348,7 @@ namespace CAR
 			
 			if ( roadMask & TilePiece::CenterMask )
 			{
-				//TODO: use feature type check
+				//#TODO: use feature type check
 				switch ( mapTile->getTileContent() & TileContent::FeatureMask )
 				{
 				case TileContent::eCloister:

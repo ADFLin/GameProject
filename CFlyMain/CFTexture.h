@@ -25,7 +25,7 @@ namespace CFly
 
 
 	class Texture : public Entity
-		          , public RefObjectT< Texture >
+		          , public RefCountedObjectT< Texture >
 	{
 	public:
 
@@ -78,7 +78,7 @@ namespace CFly
 		D3DTexture* getD3DTexture(){ return mTex2D; }
 
 		TextureType mType;
-		typedef RefPtrT< RenderTexture > RenderTexturePtr; 
+		typedef TRefCountPtr< RenderTexture > RenderTexturePtr; 
 		std::vector< RenderTexturePtr > mRenderTargetVec;
 		unsigned  mipMapLevel;
 		unsigned  mFlag;

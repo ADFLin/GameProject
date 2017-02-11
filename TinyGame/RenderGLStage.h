@@ -1,5 +1,6 @@
-#ifndef PlanetStage_h__
-#define PlanetStage_h__
+#pragma once
+#ifndef RenderGLStage_H_A0BE1A79_C2DE_4703_A032_404ED3032080
+#define RenderGLStage_H_A0BE1A79_C2DE_4703_A032_404ED3032080
 
 #include "StageBase.h"
 
@@ -17,14 +18,17 @@
 
 #include "GLCommon.h"
 #include "GLUtility.h"
+#include "GLDrawUtility.h"
 
 #include <limits>
 
-namespace GS
+namespace RenderGL
 {
+	typedef GL::Vec2i Vec2i;
+
 	float const FLT_DIV_ZERO_EPSILON = 1e-6;
 
-	class PostProcessEffect
+	class PostProcess
 	{
 
 
@@ -128,6 +132,45 @@ namespace GS
 		TileNode*  child[4];
 	};
 
+	enum class LightType
+	{
+		Spot ,
+		Point ,
+		Directional ,
+	};
+
+	struct LightInfo
+	{
+		LightType type;
+		Vector3   pos;
+		Vector3   color;
+		Vector3   dir;
+		float     radius;
+	};
+
+	struct ViewInfo
+	{
+		Camera* camera;
+
+		Matrix4 matVP;
+		Matrix4 matView;
+		Matrix4 matViewInv;
+
+		void setParam(ShaderProgram& program)
+		{
+			program.setParam("gParam.viewPos", camera->getPos());
+			program.setParam("gParam.matView", matView);
+			program.setParam("gParam.matView", matViewInv);
+		}
+	};
+
+	class RenderParam;
+	class SceneRender
+	{
+	public:
+		virtual void render( ViewInfo& view , RenderParam& param ) = 0;
+	};
+
 	class RenderParam
 	{
 	public:
@@ -144,7 +187,7 @@ namespace GS
 	class Scene
 	{
 	public:
-		void render( RenderParam& param )
+		void render( ViewInfo& view , RenderParam& param )
 		{
 			for( RenderUnitVec::iterator iter = mUnits.begin() , itEnd = mUnits.end();
 				 iter != itEnd ; ++iter )
@@ -164,8 +207,6 @@ namespace GS
 
 
 
-	typedef ::fastdelegate::FastDelegate< void ( RenderParam& ) > RenderFun;
-
 	class EnvTech
 	{
 	public:
@@ -179,12 +220,12 @@ namespace GS
 				return false;
 
 
-			DepthBuffer depthBuffer;
+			DepthRenderBuffer depthBuffer;
 			if ( !depthBuffer.create( MapSize , MapSize , Texture::eDepth24 ) )
 				return false;
 
 			mBuffer.addTexture( mTexEnv , Texture::eFaceX );
-			mBuffer.setBuffer( depthBuffer , true );
+			mBuffer.setDepth( depthBuffer , true );
 			return true;
 			
 		}
@@ -206,22 +247,64 @@ namespace GS
 		return invSqrt;
 	}
 
-
-
 	class TechBase
 	{
 	public:
 
-		void drawCubeTexture( TextureCube& texCube );
+		static void drawCubeTexture( TextureCube& texCube );
 	};
 
+
+
+	class DefferredLightingTech : public TechBase
+		                        , public RenderParam
+	{
+	public:
+		bool init();
+
+		void renderBassPass(ViewInfo& view, SceneRender& scene);
+		void renderLight(ViewInfo& view, LightInfo const& light, TextureCube& texShadow, float shadowParam[2]);
+
+		enum BufferId
+		{
+			BufferA , //xyz : WorldPos
+			BufferB , //xyz : Noraml
+			BufferC , //xyz : BaseColor
+			BufferD ,
+
+			NumBuffer ,
+		};
+
+		FrameBuffer  mBuffer;
+		Texture2D    mGTextures[ NumBuffer ];
+		DepthTexture mDepthTexture;
+		ShaderEffect mBassPass;
+		ShaderEffect mLightingPass;
+		
+
+		virtual void setWorld(Matrix4 const& mat) override
+		{
+			glMultMatrixf(mat);
+			Matrix4 matInv;
+			float det;
+			mat.inverseAffine(matInv, det);
+			mBassPass.setMatrix44("gParam.matWorld", mat);
+			mBassPass.setMatrix44("gParam.matWorldInv", matInv);
+		}
+
+		void renderBuffer();
+
+		void renderDepthTexture(int x, int y, int width, int height);
+		void renderTexture(int x, int y, int width, int height, int idxBuffer);
+
+	};
 	class WaterTech : TechBase
 	{
 	public:
 		static int const MapSize = 512;
 		bool init();
 
-		void render( RenderFun fun )
+		void render( ViewInfo& view , SceneRender& scene)
 		{
 			normalizePlane( waterPlane );
 			int vp[4];
@@ -237,7 +320,7 @@ namespace GS
 
 			mBuffer.setTexture( 0 , mReflectMap );
 			mBuffer.bind();
-			//fun( *this );
+			//scene.render(view, *this);
 			mBuffer.unbind();
 
 			glDisable( GL_CLIP_PLANE0 );
@@ -253,20 +336,20 @@ namespace GS
 		FrameBuffer mBuffer;
 	};
 
-	class ShadowMapTech : public RenderParam
+	class ShadowDepthTech : public RenderParam
 	{
 	public:
 		static int const MapSize = 512;
 		bool init();
-		void render( RenderFun fun , bool bMultiple );
 
-		void renderShadowMapPass(RenderFun fun);
+		void renderLighting( ViewInfo& view, SceneRender& scene , LightInfo const& light , bool bMultiple );
+		void renderShadowDepth(ViewInfo& view, SceneRender& scene , LightInfo const& light );
 
-		void drawShadowMap();
+		void drawShadowTexture();
 		
 		void reload()
 		{
-			mProgMap.reload();
+			mProgShadowDepth.reload();
 			mProgLighting.reload();
 		}
 
@@ -282,22 +365,19 @@ namespace GS
 			}
 		}
 
-		Vector3       lightPos;
-		Vector3       lightColor;
 		float         depthParam[2];
-		Vector3       viewPos;
 		Matrix4       matLightView;
 		
 		ShaderEffect* mEffectCur;
 
-		Mesh         mCubeMesh;
-		ShaderEffect mEffectCube;
+		Mesh          mCubeMesh;
+		ShaderEffect  mEffectCube;
 
-		Texture2D    mShadowMap2;
-		TextureCube  mShadowMap;
-		FrameBuffer  mBuffer;
-		ShaderEffect mProgMap;
-		ShaderEffect mProgLighting;
+		Texture2D     mShadowMap2;
+		TextureCube   mShadowMap;
+		FrameBuffer   mShadowBuffer;
+		ShaderEffect  mProgShadowDepth;
+		ShaderEffect  mProgLighting;
 	};
 
 
@@ -320,16 +400,17 @@ namespace GS
 		Vector3 min,max;
 	};
 
-	class TestStage : public StageBase
+	class SampleStage : public StageBase
+		              , public SceneRender
 	{
 		typedef StageBase BaseClass;
 		
 	public:
-		TestStage();
-		~TestStage();
+		SampleStage();
+		~SampleStage();
 
 		virtual bool onInit();
-
+		virtual void onInitFail();
 		virtual void onEnd();
 
 		bool createPlaneMesh(float len, float texF);
@@ -347,14 +428,27 @@ namespace GS
 
 		void onRender( float dFrame );
 
-		void renderTest0();
-		void renderTest1();
-		void renderTest2();
-		void renderTest3();
+		void renderTest0( ViewInfo& view );
+		void renderTest1( ViewInfo& view );
+		void renderTest2( ViewInfo& view );
+		void renderTest3( ViewInfo& view );
+		void renderTest4( ViewInfo& view );
+
+		void showLight(int num)
+		{
+			mProgSphere.bind();
+			mProgSphere.setParam("gParam.viewPos", mCamera->getPos());
+			mProgSphere.setParam("gParam.matWorldInv", Matrix4::Identity());
+			mProgSphere.setParam("sphere.radius", 0.2f);
+			for( int i = 0; i < num; ++i )
+			{
+				mProgSphere.setParam("sphere.localPos", mLightPos[i]);
+				mSpherePlane.draw();
+			}
+			mProgSphere.unbind();
+		}
 
 		void renderScene( RenderParam& param );
-
-
 
 		void restart()
 		{
@@ -418,6 +512,9 @@ namespace GS
 
 		}
 
+
+		virtual void render(ViewInfo& view, RenderParam& param) override;
+
 	protected:
 
 		float mTime;
@@ -453,7 +550,8 @@ namespace GS
 		bool   mPause;
 
 		bool  mLineMode;
-		ShadowMapTech mTech;
+		ShadowDepthTech mShadowTech;
+		DefferredLightingTech mDefferredLightingTech;
 		
 		Mesh   mSkyMesh;
 		TextureCube mTexSky;
@@ -463,10 +561,30 @@ namespace GS
 
 		int   mIdxChioce;
 
+		bool initFrameBuffer( Vec2i const& size );
+
+		void copyTexture(Texture2D& destTexture, Texture2D& srcTexture);
+		void copyTextureToBuffer(Texture2D& copyTexture);
+
+		Texture2D&  getRenderFrameTexture() { return mFrameTextures[mIdxRenderFrameTexture]; }
+		Texture2D&  getPrevRednerFrameTexture() { return mFrameTextures[1 - mIdxRenderFrameTexture]; }
+		void swapFrameBufferTexture()
+		{
+			mIdxRenderFrameTexture = 1 - mIdxRenderFrameTexture;
+			mFrameBuffer.setTexture(0, getRenderFrameTexture());
+		}
+		Texture2D   mFrameTextures[2];
+		int         mIdxRenderFrameTexture;
+		FrameBuffer mFrameBuffer;
+
+		ShaderEffect mProgCopyTexture;
 	};
 
 
 
-}//namespace Planet
 
-#endif // PlanetStage_h__
+
+}//namespace RenderGL
+
+
+#endif // RenderGLStage_H_A0BE1A79_C2DE_4703_A032_404ED3032080

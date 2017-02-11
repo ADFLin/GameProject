@@ -75,7 +75,7 @@ namespace Phy2D
 		virtual Vec2f getSupport( Vec2f const& dir );
 		bool isConvex() const
 		{
-			//TODO
+			//#TODO
 			return true;
 		}
 

@@ -9,7 +9,7 @@
 namespace
 {
 	HBRUSH hBrush[3][ Color::Number ];
-	HPEN   hCPen[ Color::Number ];
+	HPEN   hCPen[3][ Color::Number ];
 	HFONT  hFont[ FONT_NUM ];
 	COLORREF gColorMap[3][ Color::Number ];
 
@@ -42,7 +42,7 @@ void RenderUtility::init()
 	hBrush[ COLOR_DEEP   ][ Color::eNull ] =
 	hBrush[ COLOR_LIGHT  ][ Color::eNull ] = (HBRUSH)::GetStockObject( NULL_BRUSH );
 
-	hCPen[ Color::eNull ] = (HPEN)::GetStockObject( NULL_PEN ) ;
+	hCPen[COLOR_NORMAL][ Color::eNull ] = hCPen[COLOR_DEEP][Color::eNull] = hCPen[COLOR_LIGHT][Color::eNull] = (HPEN)::GetStockObject( NULL_PEN ) ;
 
 	for(int i = 1; i < Color::Number ; ++i )
 	{
@@ -56,9 +56,11 @@ void RenderUtility::init()
 			min( GetGValue( gColorMap[COLOR_NORMAL][i] ) + 180 , 255 )  ,
 			min( GetBValue( gColorMap[COLOR_NORMAL][i] ) + 180 , 255 )  );
 
-		hBrush[ COLOR_DEEP ][i] = ::CreateSolidBrush(  gColorMap[COLOR_DEEP][i]);
+		hBrush[ COLOR_DEEP ][i] = ::CreateSolidBrush(  gColorMap[COLOR_DEEP][i] );
 		hBrush[ COLOR_LIGHT ][i] = ::CreateSolidBrush( gColorMap[COLOR_LIGHT][i] );
-		hCPen[ i ] = CreatePen( PS_SOLID , 1 , gColorMap[COLOR_NORMAL][i] );
+		hCPen[COLOR_NORMAL][ i ] = CreatePen( PS_SOLID , 1 , gColorMap[COLOR_NORMAL][i] );
+		hCPen[COLOR_DEEP][i] = CreatePen(PS_SOLID, 1, gColorMap[COLOR_DEEP][i]);
+		hCPen[COLOR_LIGHT][i] = CreatePen(PS_SOLID, 1, gColorMap[COLOR_LIGHT][i]);
 	}
 
 	DrawEngine* de = Global::getDrawEngine();
@@ -83,7 +85,9 @@ void RenderUtility::release()
 		::DeleteObject( hBrush[ COLOR_DEEP ][i] );
 		::DeleteObject( hBrush[ COLOR_LIGHT ][i] );
 
-		::DeleteObject( hCPen[i] );
+		::DeleteObject( hCPen[COLOR_NORMAL][i] );
+		::DeleteObject(hCPen[COLOR_DEEP][i]);
+		::DeleteObject(hCPen[COLOR_LIGHT][i]);
 	}
 
 	for( int i = 0 ; i < FONT_NUM ; ++i )
@@ -94,7 +98,7 @@ void RenderUtility::release()
 
 void RenderUtility::setPen( Graphics2D& g , int color , int type )
 {
-	g.setPen( hCPen[ color ] );
+	g.setPen( hCPen[type][ color ] );
 }
 
 void RenderUtility::setBrush( Graphics2D& g , int color , int type )
@@ -137,7 +141,7 @@ void RenderUtility::setBrush(GLGraphics2D& g , int color , int type /*= COLOR_NO
 
 void RenderUtility::setFont(GLGraphics2D& g , int fontID)
 {
-	//TODO
+	//#TODO
 	g.setFont( FontGL[ fontID ] );
 
 }

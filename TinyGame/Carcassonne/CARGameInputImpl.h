@@ -30,6 +30,8 @@ namespace CAR
 		ACTION_PLACE_TARGET_TILE ,
 	};
 
+	class IInptActionCommand;
+
 	struct SkipCom
 	{
 		uint8 action;

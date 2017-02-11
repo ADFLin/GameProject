@@ -18,8 +18,8 @@ public:
 	typedef unsigned (_stdcall *ThreadFunc)(void*);
 
 	WinThread()
-		:m_PriorityLevel( THREAD_PRIORITY_NORMAL )
-		,m_hThread(0),m_beRunning(false){}
+		:mPriorityLevel( THREAD_PRIORITY_NORMAL )
+		,mhThread(0),mbRunning(false){}
 	~WinThread(){  detach(); }
 
 	static uint32 GetCurrentThreadId()
@@ -30,27 +30,27 @@ public:
 	bool create( ThreadFunc fun , void* ptr );
 	void detach()
 	{
-		if ( m_hThread )
+		if ( mhThread )
 		{
-			m_hThread = NULL;
-			m_beRunning = false;
+			mhThread = NULL;
+			mbRunning = false;
 		}
 	}
 
 	bool     kill();
 	bool     suspend();
 	bool     resume();
-	void     join(){ ::WaitForSingleObject( m_hThread , INFINITE ); }
+	void     join(){ ::WaitForSingleObject( mhThread , INFINITE ); }
 
-	DWORD    getPriorityLevel() { return m_PriorityLevel; }
+	DWORD    getPriorityLevel() { return mPriorityLevel; }
 	bool     setPriorityLevel( DWORD level);
-	DWORD    getSuspendTimes(){ return m_SupendTimes; }
-	unsigned getID(){ return m_uThreadID; }
-	bool     isRunning(){ return m_beRunning; }
+	DWORD    getSuspendTimes(){ return mSupendTimes; }
+	unsigned getID(){ return mThreadID; }
+	bool     isRunning(){ return mbRunning; }
 
 	void     finish( unsigned retValue )
 	{ 
-		m_beRunning = false;
+		mbRunning = false;
 		::_endthreadex( retValue );  
 	}
 protected:
@@ -60,11 +60,11 @@ protected:
 		return static_cast< T* >( t )->execRunPrivate();
 	}
 
-	DWORD    m_SupendTimes;
-	DWORD    m_PriorityLevel;
-	HANDLE   m_hThread;
-	unsigned m_uThreadID;
-	bool     m_beRunning;
+	DWORD    mSupendTimes;
+	DWORD    mPriorityLevel;
+	HANDLE   mhThread;
+	unsigned mThreadID;
+	bool     mbRunning;
 };
 
 
@@ -86,7 +86,7 @@ class WinCondition
 public:
 	WinCondition()
 	{
-		InitializeConditionVariable( &m_cd );
+		InitializeConditionVariable( &mCV );
 	}
 
 	~WinCondition()
@@ -96,12 +96,12 @@ public:
 	}
 	void notify()
 	{
-		WakeConditionVariable( &m_cd );
+		WakeConditionVariable( &mCV );
 	}
 
 	void notifyAll()
 	{
-		WakeAllConditionVariable( &m_cd );
+		WakeAllConditionVariable( &mCV );
 	}
 protected:
 
@@ -111,16 +111,16 @@ protected:
 		bool result = true;
 		while( !fun() )
 		{
-			result = SleepConditionVariableCS( &m_cd , &mutex.mCS , INFINITE ) !=0;
+			result = SleepConditionVariableCS( &mCV , &mutex.mCS , INFINITE ) !=0;
 		}
 		return result;
 	}
 	bool doWaitTime( WinMutex& mutex , uint32 time = INFINITE )
 	{ 
-		return SleepConditionVariableCS( &m_cd , &mutex.mCS , time ) !=0;
+		return SleepConditionVariableCS( &mCV , &mutex.mCS , time ) !=0;
 	}
 private:
-	CONDITION_VARIABLE m_cd;
+	CONDITION_VARIABLE mCV;
 };
 
 

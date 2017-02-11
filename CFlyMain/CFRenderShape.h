@@ -87,7 +87,7 @@ namespace CFly
 	};
 
 
-	class MeshBase : public RefObjectT< MeshBase >
+	class MeshBase : public RefCountedObjectT< MeshBase >
 		           //, public IRenderable
 	{
 	public:
@@ -130,8 +130,8 @@ namespace CFly
 		void          addNormalFVF();
 		void          createVertexDeclFVF( D3DDevice* d3dDevice );
 
-		RefPtrT<VertexBuffer> mVertexBuffer[ NUM_STREAM_GROUP ];
-		RefPtrT<IndexBuffer>  mIndexBuffer;
+		TRefCountPtr<VertexBuffer> mVertexBuffer[ NUM_STREAM_GROUP ];
+		TRefCountPtr<IndexBuffer>  mIndexBuffer;
 		
 		PrimitiveType         mPrimitiveType;
 		uint32                mNumElement;

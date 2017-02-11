@@ -36,7 +36,7 @@ namespace MV
 			float height = width * size.y / size.x;
 			Mat4 matProj = OrthoMatrix( width , width , -10 , 10 );
 			Mat4 matView = LookAtMatrix( Vec3f(0,0,0) , -Vec3f( FDir::ParallaxOffset(0) ) , Vector3(0,0,1) );
-			GL::MatrixSave matSave( matProj , matView );
+			GL::MatrixSaveScope Scope( matProj , matView );
 			
 			re.beginRender( matView );
 			glColor3f(1,1,1);

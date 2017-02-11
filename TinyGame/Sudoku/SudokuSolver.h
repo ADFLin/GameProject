@@ -1,21 +1,19 @@
 #ifndef SudokuSolver_h__
 #define SudokuSolver_h__
 
-
 #include <iostream>
 #include <cassert>
 
 #include "BitUtility.h"
-using namespace std;
 
 #ifndef BIT
 #define BIT( n ) ( 1 << (n) )
 #endif
 
-
 class SudokuSolverBase
 {
 public:
+
 
 	enum Group
 	{
@@ -24,7 +22,10 @@ public:
 		BOX ,
 		NO_GROUP ,
 	};
-
+	static bool isOneBitSet(unsigned n)
+	{
+		return !(n & (n - 1));
+	}
 	static unsigned Bit2Num( unsigned n )
 	{
 		unsigned result = 0;
@@ -61,7 +62,7 @@ private:
 
 
 template < class T , int BS = 3 >
-class TSudokuSolver : public SudokuSolverBase
+class SudokuSolverT : public SudokuSolverBase
 {
 	T* _this(){ return static_cast< T* >( this ); }
 public:
@@ -90,68 +91,129 @@ public:
 		eXYChain ,
 	};
 
+	struct MethodSolveResult
+	{
+		Method   method;
+		Group    group;
+		int      idx;
+		unsigned numBits;
+	};
 
-	TSudokuSolver()
-		:problem( 0 )
+
+
+	SudokuSolverT()
 	{
 
 	}
 
 
 
-	void solve( int* prob )
+	bool solve( int const* prob )
 	{
-		init( prob );
-		doSolve( 0 );
+		if( !setupProbInternal(prob) )
+			return false;
+		doSolveR( 0 );
+		return true;
 	}
 	int  getNumSolution() const { return numSolution; }
 	void printSolution( int nSol ){ print( solution[nSol] ); }
 
+	//
+	bool onPrevEvalMethod( Method method, Group group, int idx, unsigned numBits ){ return true; }
+	void onPostEvalMethod( Method method, Group group, int idx, unsigned numBits ){}
 
-	bool OnPrevEvalMethod( Method method , Group group , int idx , unsigned numBit ){ return true; }
-	void OnPostEvalMethod( Method method , Group group , int idx , unsigned numBit ){}
-
-
-
-
-	void setProblem( int* prob )
+	struct RelatedCellInfo
 	{
-		init( prob );
+		bool bRemove;
+		int  index;
+		unsigned numBits;
+	};
+	bool needEnumRelatedCellInfo() { return true; }
+	void doEnumRelatedCellInfo(RelatedCellInfo const& info){}
+	//
+	void enumRelatedCellInfo(RelatedCellInfo const& info)
+	{
+		if( _this()->needEnumRelatedCellInfo() )
+		{
+			_this()->doEnumRelatedCellInfo(info);
+		}
+	}
+
+	bool setupProblem( int const* prob )
+	{
+		if( !setupProbInternal(prob) )
+			return false;
 
 		for( int i = 0 ; i < MaxIndex ; ++i )
 		{
-			int col = getCol(i);
-			int row = getRow(i);
-			int box = getBox( col , row );
+			int col = ColIndex(i);
+			int row = RowIndex(i);
+			int box = BoxIndex( col , row );
 
-			idxPosible[i] = groupPosible[COL][col] & groupPosible[ROW][row] & groupPosible[BOX][ box ];
+			mPosibleBitsCell[i] = mPosibleBitsGroup[COL][col] & mPosibleBitsGroup[ROW][row] & mPosibleBitsGroup[BOX][ box ];
 
 			if ( problem[i] )
 			{
-				curSolution[i] = 1 << ( problem[i] - 1 );
-				idxPosible[i] = 0;
+				mCurSolution[i] = 1 << ( problem[i] - 1 );
+				mPosibleBitsCell[i] = 0;
 			}
 			else
 			{
-				curSolution[i] = 0;
+				mCurSolution[i] = 0;
 			}
 		}
+		return true;
 	}
 
 	int const* getProblem(){ return problem; }
 
-	int  getSolution( int idx ) const
+
+
+
+	bool checkGroupVaild( Group group ,  int idxGroup )
 	{
-		return curSolution[idx];
+		unsigned checkNum = 0;
+		for( Iterator iter = Iterator::FromGroupIndex(group, idxGroup); iter.haveMore(); ++iter )
+		{			
+			int idx = iter.getCellIndex();
+			if( mCurSolution[idx] )
+			{
+				if( mPosibleBitsCell[idx] != 0 )
+					return false;
+				checkNum |= mCurSolution[idx];
+			}
+		}
+
+		checkNum |= mPosibleBitsGroup[group][idxGroup];
+		if( checkNum != NumberBitFill )
+			return false;
+
+		return true;
 	}
 
-	bool keepSolve;
-
-	void solveLogicSolution()
+	bool  checkStateVaild()
 	{
-		assert( problem );
+		for( int i = 0; i < 3; ++i )
+		{
+			for( int n = 0; n < NumberNum; ++n )
+			{
+				if( !checkGroupVaild(Group(i), n) )
+					return false;
+			}
+		}
+		return true;
+	}
 
-		contructIter();
+	int  getSolution( int idx ) const
+	{
+		return mCurSolution[idx];
+	}
+
+	bool bKeepSolve;
+
+	void solveLogic()
+	{
+		InitIterator();
 
 		groupCheck[ ROW ] = NumberBitFill;
 		groupCheck[ COL ] = NumberBitFill;
@@ -159,18 +221,18 @@ public:
 
 		int numStep = 0;
 
-		keepSolve = true;
+		bKeepSolve = true;
 
 		bool finish = false;
 
-		while ( !finish && keepSolve )
+		while ( !finish && bKeepSolve )
 		{
 			finish = true;
 CHECK_SIMPLE:
 			bool reCheck = false;
 			for( int index = 0 ; index < MaxIndex ; ++index )
 			{
-				if ( !keepSolve )
+				if ( !bKeepSolve )
 					break;
 
 				if ( !indexCheck[index] )
@@ -187,16 +249,16 @@ CHECK_SIMPLE:
 
 			for( int index = 0 ; index < MaxIndex ; ++index )
 			{
-				if ( !keepSolve )
+				if ( !bKeepSolve )
 					break;
 
 				if ( !indexCheck[index] )
 					continue;
 
 				int groupAt[3];
-				groupAt[ COL ] = getCol( index );
-				groupAt[ ROW ] = getRow( index );
-				groupAt[ BOX ] = getBox( groupAt[ COL ] , groupAt[ ROW ] );
+				groupAt[ COL ] = ColIndex( index );
+				groupAt[ ROW ] = RowIndex( index );
+				groupAt[ BOX ] = BoxIndex( groupAt[ COL ] , groupAt[ ROW ] );
 
 				if ( evalSingleValueMethod( index , COL , groupAt[ COL ] ) ||
 					 evalSingleValueMethod( index , ROW , groupAt[ ROW ] ) ||
@@ -210,7 +272,7 @@ CHECK_SIMPLE:
 
 			for( int index = 0 ; index < MaxIndex ; ++index )
 			{
-				if ( !keepSolve )
+				if ( !bKeepSolve )
 					break;
 
 				if ( !indexCheck[index] )
@@ -222,9 +284,9 @@ CHECK_SIMPLE:
 
 				int groupAt[3];
 
-				groupAt[ COL ] = getCol( index );
-				groupAt[ ROW ] = getRow( index );
-				groupAt[ BOX ] = getBox( groupAt[ COL ] , groupAt[ ROW ] );
+				groupAt[ COL ] = ColIndex( index );
+				groupAt[ ROW ] = RowIndex( index );
+				groupAt[ BOX ] = BoxIndex( groupAt[ COL ] , groupAt[ ROW ] );
 
 				if ( evalSingleValueMethod( index , COL , groupAt[ COL ] ) ||
 					 evalSingleValueMethod( index , ROW , groupAt[ ROW ] ) ||
@@ -232,11 +294,11 @@ CHECK_SIMPLE:
 					 continue;
 
 
-				int at = getBox( index );
-				if ( !evalBoxLineMethod( index , BOX , at ) )
-					evalPointingMethod( index , BOX , at );
+				int idxGroup = BoxIndex( index );
+				if ( !evalBoxLineMethod( index , BOX , idxGroup ) )
+					evalPointingMethod( index , BOX , idxGroup );
 
-#if 0
+#if 1
 				for( int g = 0 ; g < 3 ; ++g )
 				{
 					Group group = Group(g);
@@ -244,19 +306,22 @@ CHECK_SIMPLE:
 					if ( groupCheck[group] == 0 )
 						continue;
 
-					at = groupAt[ group ];
+					idxGroup = groupAt[ group ];
 
-					if ( !( groupCheck[group] & BIT(at) ) )
+					if ( !( groupCheck[group] & BIT(idxGroup) ) )
 						continue;
 
-					evalNakedMethod( index , group , at );
-					evalHiddenMethod( index , group , at );
+
+					evalNakedMethod( index , group , idxGroup );
+					evalHiddenMethod( index , group , idxGroup );
 					if ( group != BOX )
 					{
-						bool s = evalXWingMethod( index , group , at );
-						evalYWingMethod( index , group , at );
+						bool s = evalXWingMethod( index , group , idxGroup );
+#if 0
+						evalYWingMethod( index , group , idxGroup );
 						if ( !s )
-							evalSwordFishMethod( index , group , at );
+							evalSwordFishMethod( index , group , idxGroup );
+#endif
 					}
 				}
 
@@ -267,126 +332,155 @@ CHECK_SIMPLE:
 			}
 		}
 
-		print( curSolution );
+		print( mCurSolution );
 	}
 
-	int getIdxPosible( int idx ){ return idxPosible[idx]; }
+	int getIdxPosible( int idx ){ return mPosibleBitsCell[idx]; }
 
 	class Iterator
 	{
 	public:
-		void setGroupAt( Group group , int at )
+		static Iterator FromGroupIndex(Group group, int idxGroup)
 		{
-			mIter = sGroupIterator[ group ];
-			mIndex = getIteratorBegin( group , at );
+			Iterator iter;
+			iter.setGroupIndex(group, idxGroup);
+			return iter;
 		}
-		void setGroupIndex( Group group , int index )
+
+		static Iterator FromCellIndex(Group group, int idxCell)
+		{
+			Iterator iter;
+			iter.setCellIndex(group, idxCell);
+			return iter;
+		}
+		void setGroupIndex( Group group , int idxGroup )
+		{
+			mNextIndex = sGroupNextIndex[ group ];
+			mIndex = GetIteratorBeginFromGroupIndex( group , idxGroup );
+		}
+		void setCellIndex( Group group , int index )
 		{
 			assert( index != -1 );
-			mIter = sGroupIterator[ group ];
-			mIndex = getIteratorIndexBegin( group , index );
+			mNextIndex = sGroupNextIndex[ group ];
+			mIndex = GetIteratorBeginFromCellIndex( group , index );
 		}
 		void setNextIndex( Group group , int index )
 		{
 			assert( index != -1 );
-			mIter = sGroupIterator[ group ];
-			mIndex = mIter[ index ];
+			mNextIndex = sGroupNextIndex[ group ];
+			mIndex = mNextIndex[ index ];
 		}
 		bool haveMore() const { return mIndex != -1; }
 
-		int  getIndex() const { return mIndex; }
-		int  operator *( void ) const { return getIndex(); }
+		int  getCellIndex() const { return mIndex; }
+		int  operator *( void ) const { return getCellIndex(); }
 		Iterator& operator ++ ( void )
 		{ 
-			mIndex = mIter[mIndex]; 
+			mIndex = mNextIndex[mIndex]; 
 			return *this; 
 		}
 		Iterator  operator ++ ( int )
 		{ 
 			Iterator temp(*this); 
-			mIndex = mIter[mIndex]; 
+			mIndex = mNextIndex[mIndex]; 
 			return temp; 
 		}
 
 	private:
 		int  mIndex;
-		int* mIter;
+		int const* mNextIndex;
 	};
 
 protected:
 
-	static int getBox( int col , int row ){ return ( col / BoxSize ) + BoxSize * ( row / BoxSize ); }
-	static int getBox( int idx ){ return getBox( getCol(idx) ,getRow(idx) ); }
-	static int getCol( int idx ){ return idx % NumberNum; }
-	static int getRow( int idx ){ return idx / NumberNum; }
+	static int BoxIndex( int col , int row ){ return ( col / BoxSize ) + BoxSize * ( row / BoxSize ); }
+	static int BoxIndex( int idx ){ return BoxIndex( ColIndex(idx) ,RowIndex(idx) ); }
+	static int ColIndex( int idx ){ return idx % NumberNum; }
+	static int RowIndex( int idx ){ return idx / NumberNum; }
+	static int ToCellIndex(int col, int row) { return row * NumberNum + col; }
 
-	void doSolve( int idx );
-	void init( int* prob );
+	void doSolveR( int idx );
+	bool setupProbInternal(int const* prob);
+	
 
 	static void print( int* sol )
 	{
 		for ( int i = 0 ; i < MaxIndex ; ++i )
 		{
-			cout << Bit2Num( sol[i] ) << " ";
+			std::cout << Bit2Num( sol[i] ) << " ";
 			if ( i % NumberNum == NumberNum - 1 )
-				cout << endl;
+				std::cout << std::endl;
 		}
 	}
 
 
 
-	void fillNumber( int idx , unsigned numberBit )
+	void fillNumber( int idx , unsigned posNumber )
 	{
-		curSolution[ idx ] = numberBit;
-		idxPosible[ idx ] = 0;
+		assert(isOneBitSet(posNumber));
 
-		int col = getCol( idx );
-		int row = getRow( idx );
-		int box = getBox( col , row );
+		RelatedCellInfo info;
+		info.bRemove = false;
+		info.index = idx;
+		info.numBits = posNumber;
+		enumRelatedCellInfo(info);
 
-		groupPosible[COL][ col ] &= ~numberBit;
-		removeGroupNumBit( COL , col , numberBit );
+		
+		mCurSolution[idx] = posNumber;
+		mPosibleBitsCell[idx] = 0;
 
-		groupPosible[ROW][ row ] &= ~numberBit;
-		removeGroupNumBit( ROW , row , numberBit );
+		int col = ColIndex(idx);
+		int row = RowIndex(idx);
+		int box = BoxIndex(col, row);
 
-		groupPosible[BOX][ box ] &= ~numberBit;
-		removeGroupNumBit( BOX , box , numberBit );
+		mPosibleBitsGroup[COL][col] &= ~posNumber;
+		removeGroupNumBit(COL, col, posNumber);
+
+		mPosibleBitsGroup[ROW][row] &= ~posNumber;
+		removeGroupNumBit(ROW, row, posNumber);
+
+		mPosibleBitsGroup[BOX][box] &= ~posNumber;
+		removeGroupNumBit(BOX, box, posNumber);
 	}
 
-	bool removeNumBit( int idx , int numBit )
+
+	bool removeNumBit( int idx , int numBits )
 	{
-		if ( curSolution[idx] )
+		if( mCurSolution[idx] )
 			return false;
 
-		if ( idxPosible[idx] & numBit )
-		{
-			idxPosible[idx] &= ~numBit;
-			addCheck( idx );
+		if( !(mPosibleBitsCell[idx] & numBits) )
 			return false;
-		}
+
+		RelatedCellInfo info;
+		info.bRemove = true;
+		info.index = idx;
+		info.numBits = numBits;
+		enumRelatedCellInfo(info);
+
+		mPosibleBitsCell[idx] &= ~numBits;
+		addCheck( idx );
 		return true;
 	}
 
 	void addCheck( int idx )
 	{
-		int col = getCol(idx);
-		int row = getRow(idx);
-		int box = getBox( col , row );
+		int col = ColIndex(idx);
+		int row = RowIndex(idx);
+		int box = BoxIndex( col , row );
 
 		groupCheck[COL] |= BIT( col );
 		groupCheck[ROW] |= BIT( row );
 		groupCheck[BOX] |= BIT( box );
 
-		int* iterator ;
 #define INDEX_CHECK( G , g )\
-		iterator = sGroupIterator[ G ];\
-		for( int index = getIteratorBegin( G , g ) ;\
-			 index != idx ; index = iterator[index] )\
 		{\
-			indexCheck[g] = true;\
+			Iterator iter;\
+			for( iter.setGroupIndex( G , g ); iter.haveMore() ; ++iter )\
+			{\
+				indexCheck[iter.getCellIndex()] = true;\
+			}\
 		}
-
 		INDEX_CHECK( COL , col );
 		INDEX_CHECK( ROW , row );
 		INDEX_CHECK( BOX , box );
@@ -395,61 +489,61 @@ protected:
 		indexCheck[idx] = true;
 	}
 
-	void fillNumBit( int idx , int numBit )
+	void fillNumBit( int idx , int numBits )
 	{
-		idxPosible[idx] |=  numBit;
+		mPosibleBitsCell[idx] |=  numBits;
 
 	}
 
-	void removeGroupNumBit( Group group , int at , int numBit )
-	{
-		Iterator iter;
-		for( iter.setGroupAt( group ,at ); iter.haveMore() ; ++iter  )
-			removeNumBit( iter.getIndex() , numBit );
-	}
-
-	void removeGroupNumBit( Group group , int at , unsigned numBit  , int* skipIndex , int numSkip );
-	void removeGroupNumBit( Iterator& iter ,  unsigned numBit  , int* skipIndex , int numSkip );
-
-	void fillGroupNumBit( Group group , int at , int numBit )
+	void removeGroupNumBit( Group group , int idxGroup , int numBits )
 	{
 		Iterator iter;
-		for( iter.setGroupAt( group ,at ); iter.haveMore() ; ++iter  )
-			fillNumBit( iter.getIndex() , numBit );
+		for( iter.setGroupIndex( group ,idxGroup ); iter.haveMore() ; ++iter  )
+			removeNumBit( iter.getCellIndex() , numBits );
 	}
 
-	bool evalNakedOrderInternal(  int index , Group group , int at , int count );
+	void removeGroupNumBit( Group group , int idxGroup , unsigned numBits  , int* skipIndex , int numSkip );
+	void removeGroupNumBit( Iterator& iter ,  unsigned numBits  , int* skipIndex , int numSkip );
 
-	bool evalSolvedValueMethod( int index , Group group = NO_GROUP , int at = -1 );
-	bool evalSingleValueMethod( int index , Group group  , int at );
-	bool evalNakedMethod( int index , Group group , int at );
-	bool evalPointingMethod( int index , Group  group , int at );
-	bool evalHiddenMethod( int index , Group group , int at );
-	bool evalBoxLineMethod( int index , Group group , int at );
-	bool evalXWingMethod( int index , Group group , int at );
-	bool evalYWingMethod( int index , Group group , int at );
-	bool evalSwordFishMethod(  int index , Group group , int at );
-	bool evalSimpleColourMethod( int index , Group group = NO_GROUP , int at = -1 );
+	void fillGroupNumBit( Group group , int idxGroup , int numBits )
+	{
+		Iterator iter;
+		for( iter.setGroupIndex( group ,idxGroup ); iter.haveMore() ; ++iter  )
+			fillNumBit( iter.getCellIndex() , numBits );
+	}
 
-	bool evalXYChainMethod( int index , Group group = NO_GROUP , int at = -1 )
+	bool evalNakedOrderInternal(  int index , Group group , int idxGroup , int count );
+
+	bool evalSolvedValueMethod( int index , Group group = NO_GROUP , int idxGroup = -1 );
+	bool evalSingleValueMethod( int index , Group group  , int idxGroup );
+	bool evalNakedMethod( int index , Group group , int idxGroup );
+	bool evalPointingMethod( int index , Group  group , int idxGroup );
+	bool evalHiddenMethod( int index , Group group , int idxGroup );
+	bool evalBoxLineMethod( int index , Group group , int idxGroup );
+	bool evalXWingMethod( int index , Group group , int idxGroup );
+	bool evalYWingMethod( int index , Group group , int idxGroup );
+	bool evalSwordFishMethod(  int index , Group group , int idxGroup );
+	bool evalSimpleColourMethod( int index , Group group = NO_GROUP , int idxGroup = -1 );
+
+	bool evalXYChainMethod( int index , Group group = NO_GROUP , int idxGroup = -1 )
 	{
 
 		return false;
 	}
 
-	bool evalXCycleMethod( int index , Group group = NO_GROUP , int at = -1 )
+	bool evalXCycleMethod( int index , Group group = NO_GROUP , int idxGroup = -1 )
 	{
 		(void) group;
-		(void) at;
+		(void) idxGroup;
 		bool result = false;
 
-		unsigned pBit = idxPosible[ index ];
+		unsigned pBit = mPosibleBitsCell[ index ];
 		while( pBit )
 		{
-			unsigned numBit = pBit & -pBit;
-			pBit -= numBit;
+			unsigned numBits = pBit & -pBit;
+			pBit -= numBits;
 
-			while( evalXCycleInternal( index ,  numBit ) )
+			while( evalXCycleInternal( index ,  numBits ) )
 			{
 				result |= true;
 			}
@@ -512,10 +606,10 @@ protected:
 		return -1;
 	}
 
-	bool evalXCycleInternal( int index , unsigned numBit )
+	bool evalXCycleInternal( int index , unsigned numBits )
 	{
 
-		if ( !( idxPosible[index] & numBit ) )
+		if ( !( mPosibleBitsCell[index] & numBits ) )
 			return false;
 
 		LinkInfo linkInfo[ MaxIndex ];
@@ -531,7 +625,7 @@ protected:
 		Group groupMap[] = { BOX , COL , ROW };
 		for( int g = 0 ; g < 3 ; ++g )
 		{
-			int num = generateGroupNumBitIndex( groupMap[g] , index , numBit , pIndex , 9 );
+			int num = generateGroupNumBitIndex( groupMap[g] , index , numBits , pIndex , 9 );
 
 			LinkType type = ( num == 1 ) ? LINK_STRONG : LINK_WEAK;
 
@@ -566,7 +660,7 @@ protected:
 				if ( curInfo.group == curGroup )
 					continue;
 
-				int num = generateGroupNumBitIndex( curGroup , curIndex , numBit , pIndex , 9 );
+				int num = generateGroupNumBitIndex( curGroup , curIndex , numBits , pIndex , 9 );
 
 				if ( num == 0 )
 					continue;
@@ -591,7 +685,7 @@ protected:
 						if ( splitIndex == -1 )
 							continue;
 
-						if ( _this()->OnPrevEvalMethod( eXCycle , NO_GROUP , index , numBit ) )
+						if ( _this()->onPrevEvalMethod( eXCycle , NO_GROUP , index , numBits ) )
 						{
 							if ( testInfo.type != type )
 							{
@@ -612,11 +706,11 @@ protected:
 										if ( info.type == LINK_WEAK )
 										{
 											Iterator iter;
-											for( iter.setGroupIndex( info.group , testIndex );
+											for( iter.setCellIndex( info.group , testIndex );
 												iter.haveMore() ; ++iter )
 											{
-												if ( iter.getIndex() != testIndex )
-													removeNumBit( iter.getIndex() , numBit );
+												if ( iter.getCellIndex() != testIndex )
+													removeNumBit( iter.getCellIndex() , numBits );
 											}
 										}
 										testIndex = info.prevIndex;
@@ -626,7 +720,7 @@ protected:
 							}
 							else if ( type == LINK_STRONG )
 							{
-								removeNumBit( splitIndex , numBit );
+								removeNumBit( splitIndex , numBits );
 
 								int rIndex[2] = { curIndex , testInfo.prevIndex };
 								for( int i = 0 ; i < 2 ; ++i )
@@ -639,17 +733,17 @@ protected:
 										LinkInfo& info = linkInfo[ linkMap[removeIndex] ];
 										assert( removeIndex == info.index );
 
-										removeNumBit( removeIndex , numBit );
+										removeNumBit( removeIndex , numBits );
 										removeIndex = info.prevIndex;
 									}
 								}
 							}
 							else // type == LINK_WEAK
 							{
-								removeNumBit( idx , numBit );
+								removeNumBit( idx , numBits );
 							}
 
-							_this()->OnPostEvalMethod( eXCycle , NO_GROUP , index , numBit );
+							_this()->onPostEvalMethod( eXCycle , NO_GROUP , index , numBits );
 							return true;
 						}
 
@@ -677,81 +771,65 @@ protected:
 		return false;
 	}
 
+
 	bool  isSameGroup( Group group , int idx1 , int idx2 )
 	{
 		switch( group )
 		{
-		case COL: return getCol( idx1 ) == getCol( idx2 );
-		case ROW: return getRow( idx1 ) == getRow( idx2 );
-		case BOX: return getBox( idx1 ) == getBox( idx2 );
+		case COL: return ColIndex( idx1 ) == ColIndex( idx2 );
+		case ROW: return RowIndex( idx1 ) == RowIndex( idx2 );
+		case BOX: return BoxIndex( idx1 ) == BoxIndex( idx2 );
 		}
 		return false;
 	}
 
-	bool evalNakedPairOrderInternal( int index , Group group , int at );
-	bool evalNakedTripleOrderInternal(  int index , Group group , int at , int count );
-	bool evalPointingInternal( int index , int at , unsigned numBit );
-	bool evalXWingInternal( int index , Group group , int at , unsigned numBit );
-	bool evalYWingInternal( int index , Group group , int at , Group nGroup , int nIdx );
-	bool evalSimpleColourInternal( int index , unsigned numBit );
-	bool evalSwordFishInternal( int index , Group group , int at , unsigned numBit );
+	bool evalNakedPairOrderInternal( int index , Group group , int idxGroup );
+	bool evalNakedTripleOrderInternal(  int index , Group group , int idxGroup , int count );
+	bool evalPointingInternal( int index , int idxGroup , unsigned numBits );
+	bool evalXWingInternal( int index , Group group , int idxGroup , unsigned numBits );
+	bool evalYWingInternal( int index , Group group , int idxGroup , Group nGroup , int nIdx );
+	bool evalSimpleColourInternal( int index , unsigned numBits );
+	bool evalSwordFishInternal( int index , Group group , int idxGroup , unsigned numBits );
 
-	int  calcGroupNumBitCount( Group group , int at , unsigned numBit );
-	bool checkNumInBox( Group group , int at , int box , unsigned numBit );
+	int  calcGroupNumBitCount( Group group , int idxGroup , unsigned numBits );
+	bool checkNumInBox( Group group , int idxGroup , int box , unsigned numBits );
 
-	int  generateGroupNumBitIndex( Group group , int index , unsigned numBit , int pIndex[] , int maxNum );
+	int  generateGroupNumBitIndex( Group group , int index , unsigned numBits , int pIndex[] , int maxNum );
 
-	bool evalHiddenMethodInternal( int index , Group group , int at , int num , unsigned numBit , Method method  );
+	bool evalHiddenMethodInternal( int index , Group group , int idxGroup , int num , unsigned numBits , Method method  );
 
 	bool      indexCheck[ MaxIndex ];
 	unsigned  groupCheck[3];
 
 
-	int  curSolution[ MaxIndex ];
-	int* problem;
+	int  mCurSolution[ MaxIndex ];
+	int  problem[ MaxIndex ];
 	int  numSolution;
 	int  solution[ 16 ][ MaxIndex ];
 
-	unsigned  idxPosible[ MaxIndex ];
-	unsigned  groupPosible[3][ NumberNum ];
+	unsigned  mPosibleBitsCell[ MaxIndex ];
+	unsigned  mPosibleBitsGroup[3][ NumberNum ];
 
-	static int offsetIndex( int index , Group group , int num )
-	{
-		switch( group )
-		{
-		case ROW: return index + num;
-		case COL: return index + num * NumberNum;
-		case BOX: 
-			{
-				int* iterator = sGroupIterator[group];
-				for( int i = 0 ; i < num; ++i )
-				{
-					index = iterator[index];
-					if ( index == -1 )
-						return -1;
-				}
-				return index;
-			}
-		}
-		return -1;
-	}
+	static int OffsetCellIndex( int index , Group group , int num );
 
-	static int  getIndex( int col , int row ){ return col + NumberNum * row; }
-	static int  getIteratorIndexBegin( Group group , int index );
-	static int  getIteratorBegin( Group group , int at );
-	static void contructIter();
-	static void printIter( int*  iter )
+	static int  GetCellIndex( int col , int row ){ return col + NumberNum * row; }
+	static int  GetIteratorBeginFromCellIndex(Group group, int idxCell );
+	static int  GetIteratorBeginFromGroupIndex( Group group , int idxGroup );
+	static void InitIterator();
+	static void PrintInterator( int* iter )
 	{
 		for ( int i = 0 ; i < MaxIndex ; ++i )
 		{
-			cout << iter[i]  << " ";
+			std::cout << iter[i]  << " ";
 			if ( i % NumberNum == NumberNum - 1 )
-				cout << endl;
+				std::cout << std::endl;
 		}
 	}
 
-	static int  sGroupIterator[3][ MaxIndex ];
+	static int  sGroupNextIndex[3][ MaxIndex ];
 };
+
+
 
 #endif // SudokuSolver_h__
 

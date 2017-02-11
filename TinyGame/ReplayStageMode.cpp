@@ -1,8 +1,8 @@
 #include "TinyGamePCH.h"
-#include "ReplayStage.h"
+#include "ReplayStageMode.h"
 
 #include "GameInstance.h"
-#include "GamePackageManager.h"
+#include "GameInstanceManager.h"
 
 #include "GameReplay.h"
 #include "GameAction.h"
@@ -11,7 +11,6 @@
 #include "GameWidgetID.h"
 
 #include "GameStage.h"
-#include "GameSingleStage.h"
 
 #include "FileSystem.h"
 
@@ -205,7 +204,7 @@ void ReplayEditStage::viewReplay()
 	if ( game )
 	{
 		game->beginPlay( SMT_REPLAY , *getManager() );
-		//TODO
+		//#TODO
 		if( auto gameStage = dynamic_cast<GameStageBase*>(getManager()->getNextStage()) )
 		{
 			if ( auto replayMode = dynamic_cast<ReplayStageMode*>(gameStage->getStageMode()) )

@@ -2,7 +2,7 @@
 #define FixVector_h__
 
 #include <cassert>
-
+#include "TypeConstruct.h"
 
 template< class T , size_t N >
 class FixVector
@@ -23,10 +23,8 @@ public:
 
 	FixVector( size_t num , T val = T() )
 	{
-		mNext = mEle;
-		Storage* pEnd = mEle + num;
-		for( ; mNext != pEnd ; ++mNext )
-			contruct( mNext , val );
+		TypeConstructHelpler::construct((T*)mEle, num, val);
+		mNext = mEle + num;
 	}
 	~FixVector(){  clear();  }
 
@@ -43,8 +41,8 @@ public:
 	void    resize( size_t num );
 	void    resize( size_t num , value_type const& value );
 
-	void push_back( T const& val ){  assert( mNext != mEle + N ); contruct( mNext , val ); ++mNext; }
-	void pop_back(){  assert( size() != 0 ); --mNext; castType( *mNext ).~T();  }
+	void push_back( T const& val ){  assert( mNext != mEle + N ); TypeConstructHelpler::construct((T*)mNext , val ); ++mNext; }
+	void pop_back() { assert(size() != 0); --mNext; TypeConstructHelpler::destruct((T*)mNext); }
 
 	const_refernece front() const { return castType( mEle[ 0 ] ); }
 	reference       front()       { return castType( mEle[ 0 ] ); }
@@ -60,7 +58,8 @@ public:
 	iterator erase( iterator iter )
 	{
 		checkRange( iter );
-		iter->~T();
+		TypeConstructHelpler::destruct(iter);
+		
 		moveToEnd( iter , iter + 1 );
 		return iter;
 	}
@@ -70,58 +69,35 @@ public:
 		checkRange( from );
 		checkRange( to );
 		assert( to > from );
-		destroy( from , to );
-		moveToEnd( from ,  to );
+		TypeConstructHelpler::destruct(from, to - from);
+		moveToEnd( from , to );
 		return from;
 	}	
 
 #if 0
-	operator const_pointer () const {  return _getHead();  } 
-	operator pointer       ()       {  return _getHead();  } 
+	operator const_pointer () const {  return getHead();  } 
+	operator pointer       ()       {  return getHead();  } 
 #endif
 
 private:
 	T*        getHead()       { return reinterpret_cast< T* >( mEle[0] ); }
 	T const*  getHead() const { return reinterpret_cast< T const* >( mEle[0] ); }
-	void      moveToEnd( iterator from , iterator to  )
+	void      moveToEnd( iterator where , iterator src )
 	{
-		while( to != (T*)mNext )
+		size_t num = (T*)mNext - src;
+		if( num )
 		{
-			contruct( from , *to );
-			to->~T();
-
-			++from;
-			++to;
+			TypeConstructHelpler::move(where, num, src);
 		}
-		mNext = reinterpret_cast< Storage*>( from );
+		mNext = reinterpret_cast< Storage*>( where + num );
 	}
 
 	void  eraseToEnd( iterator is )
 	{
-		destroy( is , end() );
+		TypeConstructHelpler::destruct(is, end() - is);
 		mNext = reinterpret_cast< Storage*>( is );
 	}
 
-	void  destroy( iterator is , iterator ie )
-	{
-		destroyInternal(is, ie, std::is_trivially_destructible<T>());
-	}
-
-	void  destroyInternal(iterator is, iterator ie, std::true_type ){}
-	void  destroyInternal(iterator is, iterator ie, std::false_type) 
-	{
-		for( ; is != ie; ++is )
-			is->~T();
-	}
-
-	void contruct( void* ptr )
-	{
-		::new ( ptr ) T;  
-	}
-	void contruct( void* ptr , T const& val )
-	{
-		::new ( ptr ) T( val );  
-	}
 	struct Storage
 	{
 		char s[sizeof( T )];
@@ -145,9 +121,8 @@ void  FixVector< T , N >::resize( size_t num )
 	}
 	else
 	{
-		Storage* pEnd = mEle + num;
-		for( ; mNext != pEnd ; ++mNext )
-			contruct( mNext );
+		TypeConstructHelpler::construct(mNext, num);
+		mNext += num;
 	}
 }
 
@@ -162,9 +137,8 @@ void  FixVector< T , N >::resize( size_t num , value_type const& value )
 	}
 	else
 	{
-		Storage* pEnd = mEle + num;
-		for( ; mNext != pEnd ; ++mNext )
-			contruct( mNext , value );
+		TypeConstructHelpler::construct(mNext, num, value );
+		mNext += num;
 	}
 }
 

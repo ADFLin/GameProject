@@ -61,6 +61,26 @@ namespace GL
 			RenderRT::draw< RenderRT::eXYZ_C >( GL_LINES , v , 6 , 2 * sizeof( Vector3 ) );
 		}
 
+		static void Rect( int width, int height )
+		{
+			glBegin(GL_QUADS);
+			glTexCoord2f(0, 0); glVertex2f(0, 0);
+			glTexCoord2f(1, 0); glVertex2f(width, 0);
+			glTexCoord2f(1, 1); glVertex2f(width, height);
+			glTexCoord2f(0, 1); glVertex2f(0, height);
+			glEnd();
+
+		}
+		static void ScreenRect()
+		{
+			glBegin(GL_QUADS);
+			glTexCoord2f(0, 0); glVertex4f(-1, -1, 0, 1);
+			glTexCoord2f(1, 0); glVertex4f(1, -1, 0, 1);
+			glTexCoord2f(1, 1); glVertex4f(1, 1, 0, 1);
+			glTexCoord2f(0, 1); glVertex4f(-1, 1, 0, 1);
+			glEnd();
+		}
+
 	};
 
 

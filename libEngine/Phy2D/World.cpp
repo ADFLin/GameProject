@@ -181,7 +181,7 @@ namespace Phy2D
 
 				Vec2f cpA = bodyA->mXForm.mul( c.posLocal[0] );
 				Vec2f cpB = bodyB->mXForm.mul( c.posLocal[1] );
-				//TODO: normal change need concerned
+				//#TODO: normal change need concerned
 				Vec2f normal = c.normal;
 
 				float depth = normal.dot( cpA - cpB ) + 0.001;
@@ -220,7 +220,7 @@ namespace Phy2D
 					Vec2f cpA = bodyA->mXForm.mul( c.posLocal[0] );
 					Vec2f cpB = bodyB->mXForm.mul( c.posLocal[1] );
 
-					//TODO: normal change need concerned
+					//#TODO: normal change need concerned
 					float depth2 = normal.dot( cpA - cpB );
 
 					float dp = depth - depth2;

@@ -2,10 +2,11 @@
 #define IRenderSystem_h__
 
 #include "ZBase.h"
-#include "RefObject.h"
+#include "RefCount.h"
 #include "ZResManager.h"
 #include "ZBall.h"
 
+#include "RefCount.h"
 
 struct GIFImageInfo;
 
@@ -15,6 +16,8 @@ namespace Zuma
 	struct ZFontLayer;
 
 	class ITexture2D : public ImageRes
+		             , public RefCountedObjectT< ITexture2D >
+		               
 	{
 	public:
 		int  getWidth()  const { return mWidth; }
@@ -80,7 +83,7 @@ namespace Zuma
 		int  mOrder;
 	};
 
-	class IRenderEffect : public RefObjectT< IRenderEffect >
+	class IRenderEffect : public RefCountedObjectT< IRenderEffect >
 	{
 	public:
 		virtual ~IRenderEffect(){}
@@ -88,7 +91,7 @@ namespace Zuma
 		virtual void postRenderEffect( IRenderSystem& RDSystem ) = 0;
 
 	private:
-		RefPtrT< IRenderEffect > nextEffect;
+		TRefCountPtr< IRenderEffect > nextEffect;
 		friend class IRenderSystem;
 	};
 
@@ -121,9 +124,9 @@ namespace Zuma
 		//							ITexture2D& mask , Vec2D const& maskPos , Vec2D const& maskSize ,
 		//                          unsigned flag );
 		//virtual void  drawBitmap( ITexture2D& tex , ITexture2D& mask , unsigned flag );
-		virtual void  drawBitmap( ITexture2D& tex , unsigned flag = 0 ) = 0;
-		virtual void  drawBitmap( ITexture2D& tex , Vec2D const& texPos , Vec2D const& texSize, unsigned flag = 0 ) = 0;
-		virtual void  drawBitmapWithinMask( ITexture2D& tex , ITexture2D& mask , Vec2D const& pos , unsigned flag = 0 ) = 0;
+		virtual void  drawBitmap( ITexture2D const& tex , unsigned flag = 0 ) = 0;
+		virtual void  drawBitmap( ITexture2D const& tex , Vec2D const& texPos , Vec2D const& texSize, unsigned flag = 0 ) = 0;
+		virtual void  drawBitmapWithinMask( ITexture2D const& tex , ITexture2D const& mask , Vec2D const& pos , unsigned flag = 0 ) = 0;
 		virtual void  drawPolygon( Vec2D const pos[] , int num ) = 0;
 
 		virtual void  loadWorldMatrix( Vec2D const& pos , Vec2D const& dir ) = 0;
@@ -171,7 +174,7 @@ namespace Zuma
 		bool      mBlendEnable;
 
 	private:
-		typedef RefPtrT< IRenderEffect > REPtr;
+		typedef TRefCountPtr< IRenderEffect > REPtr;
 		struct RNODE
 		{
 			REPtr           effect;

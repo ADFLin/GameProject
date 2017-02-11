@@ -69,7 +69,8 @@ namespace CppVerPriv
 	template <>
 	struct StaticAssertSize< true > { enum { Size = 1 }; };
 }
-//TODO
+
+//#TODO
 #if !CPP_STATIC_ASSERT_SUPPORT
 #	define static_assert( EXPR , MSG )\
 	typedef int ( ANONYMOUS_VARIABLE( STATIC_ASSERT_ )[ ::CppVerPriv::StaticAssertSize< EXPR >::Size ] );

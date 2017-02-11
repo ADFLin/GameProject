@@ -77,6 +77,9 @@
     <Filter Include="Core\Meta">
       <UniqueIdentifier>{f23b0b33-c6a3-4d1d-a6e1-8688ad60752d}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Compiler">
+      <UniqueIdentifier>{3d52d85a-20f4-4166-8ea6-9248666a8d99}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="AppEntry.cpp">
@@ -187,6 +190,12 @@
     <ClCompile Include="HashString.cpp">
       <Filter>原始程式檔</Filter>
     </ClCompile>
+    <ClCompile Include="StringParse.cpp">
+      <Filter>原始程式檔</Filter>
+    </ClCompile>
+    <ClCompile Include="CPreprocessor.cpp">
+      <Filter>原始程式檔</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ConsoleSystem.h">
@@ -217,9 +226,6 @@
       <Filter>標頭檔</Filter>
     </ClInclude>
     <ClInclude Include="Reflection.h">
-      <Filter>標頭檔</Filter>
-    </ClInclude>
-    <ClInclude Include="RefObject.h">
       <Filter>標頭檔</Filter>
     </ClInclude>
     <ClInclude Include="StreamBuffer.h">
@@ -265,9 +271,6 @@
       <Filter>Utility</Filter>
     </ClInclude>
     <ClInclude Include="StackParam.h">
-      <Filter>Utility</Filter>
-    </ClInclude>
-    <ClInclude Include="StringTokenizer.h">
       <Filter>Utility</Filter>
     </ClInclude>
     <ClInclude Include="TCycleNumber.h">
@@ -561,10 +564,26 @@
     <ClInclude Include="TVector2.h">
       <Filter>Math</Filter>
     </ClInclude>
+    <ClInclude Include="StringParse.h">
+      <Filter>Utility</Filter>
+    </ClInclude>
+    <ClInclude Include="CPreprocessor.h">
+      <Filter>Compiler</Filter>
+    </ClInclude>
+    <ClInclude Include="RefCount.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="CycleQueue.h">
+      <Filter>DataStructure</Filter>
+    </ClInclude>
+    <ClInclude Include="TypeConstruct.h">
+      <Filter>Core</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="CHandle.cpp_temp">
       <Filter>temp</Filter>
     </None>
+    <None Include="TypeFactory" />
   </ItemGroup>
 </Project>

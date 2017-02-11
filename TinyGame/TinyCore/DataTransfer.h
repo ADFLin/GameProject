@@ -6,7 +6,7 @@
 #define SLOT_SERVER -1
 #define DATA2ID( CLASS ) DATA_##CLASS
 
-typedef fastdelegate::FastDelegate< void ( int , int , void* , int ) > RecvFun;
+typedef fastdelegate::FastDelegate< void ( int recvId , int dataId , void* data , int dataSize ) > RecvFun;
 
 class IDataTransfer
 {

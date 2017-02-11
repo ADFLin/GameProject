@@ -62,7 +62,7 @@ namespace MV
 		void setBlock( Vec3i const& pos , int id )
 		{
 			int idx = getBlockIndex( pos );
-			//TODO:map only 1 block
+			//#TODO:map only 1 block
 			if ( id && mBlockMap[ idx ] )
 			{
 				return;

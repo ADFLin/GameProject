@@ -126,15 +126,6 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\OtherLib\lodepng\lodepng.cpp" />
-    <ClCompile Include="..\OtherLib\lz78\bitio.cpp">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
-    </ClCompile>
-    <ClCompile Include="..\OtherLib\lz78\lz78.cpp">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
-    </ClCompile>
-    <ClCompile Include="..\OtherLib\lz78\wrapper.cpp">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
-    </ClCompile>
     <ClCompile Include="..\OtherLib\tinyobjloader\tiny_obj_loader.cc">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
       </PrecompiledHeader>
@@ -148,7 +139,7 @@
     <ClCompile Include="Bsp2D.cpp" />
     <ClCompile Include="Cantan\CantanLevel.cpp" />
     <ClCompile Include="FBirdStage.cpp" />
-    <ClCompile Include="GameSingleStage.cpp" />
+    <ClCompile Include="SingleStageMode.cpp" />
     <ClCompile Include="GGJStage.cpp" />
     <ClCompile Include="Go\GoCore.cpp" />
     <ClCompile Include="Go\GoStage.cpp" />
@@ -167,9 +158,9 @@
     <ClCompile Include="MonumentValley\MVWidget.cpp" />
     <ClCompile Include="MonumentValley\MVWorld.cpp" />
     <ClCompile Include="NetGameStage.cpp" />
-    <ClCompile Include="PlanetStage.cpp" />
+    <ClCompile Include="RenderGLStage.cpp" />
     <ClCompile Include="Qix\QixLevel.cpp" />
-    <ClCompile Include="ReplayStage.cpp" />
+    <ClCompile Include="ReplayStageMode.cpp" />
     <ClCompile Include="RubiksStage.cpp" />
     <ClCompile Include="Shoot2D\Action.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
@@ -245,6 +236,7 @@
       </PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="MiscTestStage.cpp" />
+    <ClCompile Include="Sudoku\SudokuStage.cpp" />
     <ClCompile Include="TinyGameApp.cpp" />
     <ClCompile Include="TinyGamePCH.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
@@ -256,9 +248,6 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\OtherLib\lodepng\lodepng.h" />
-    <ClInclude Include="..\OtherLib\lz78\bitio.h" />
-    <ClInclude Include="..\OtherLib\lz78\lz78.h" />
-    <ClInclude Include="..\OtherLib\lz78\wrapper.h" />
     <ClInclude Include="..\OtherLib\tinyobjloader\tiny_obj_loader.h" />
     <ClInclude Include="AgarStage.h" />
     <ClInclude Include="AStarStage.h" />
@@ -274,7 +263,7 @@
     <ClInclude Include="Civ\CvMap.h" />
     <ClInclude Include="FBirdStage.h" />
     <ClInclude Include="Fight\FightLevel.h" />
-    <ClInclude Include="GameSingleStage.h" />
+    <ClInclude Include="SingleStageMode.h" />
     <ClInclude Include="Geometry2d.h" />
     <ClInclude Include="GGJStage.h" />
     <ClInclude Include="Go\GoCore.h" />
@@ -295,9 +284,9 @@
     <ClInclude Include="MonumentValley\MVWidget.h" />
     <ClInclude Include="MonumentValley\MVWorld.h" />
     <ClInclude Include="NetGameStage.h" />
-    <ClInclude Include="PlanetStage.h" />
+    <ClInclude Include="RenderGLStage.h" />
     <ClInclude Include="Qix\QixLevel.h" />
-    <ClInclude Include="ReplayStage.h" />
+    <ClInclude Include="ReplayStageMode.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="RubiksStage.h" />
     <ClInclude Include="ShaderBuilder.h" />
@@ -317,6 +306,7 @@
     <ClInclude Include="Shoot2D\ResourcesLoader.h" />
     <ClInclude Include="Shoot2D\Weapon.h" />
     <ClInclude Include="Stage\TestStageHeader.h" />
+    <ClInclude Include="Sudoku\SamplerTest.h" />
     <ClInclude Include="Sudoku\SudokuSolver.h" />
     <ClInclude Include="Sudoku\SudokuSolver.hpp" />
     <ClInclude Include="MiscTestStage.h" />
@@ -339,12 +329,18 @@
     <None Include="out\Game.ini" />
     <None Include="out\Shader\BumpFS.glsl" />
     <None Include="out\Shader\BumpVS.glsl" />
+    <None Include="out\Shader\Common.glsl" />
+    <None Include="out\Shader\CopyTexture.glsl" />
+    <None Include="out\Shader\DeferredLighting.glsl" />
+    <None Include="out\Shader\DeferredLightingCommon.glsl" />
     <None Include="out\Shader\Light.glsl" />
+    <None Include="out\Shader\LightingCommon.glsl" />
     <None Include="out\Shader\MVPiece.glsl" />
     <None Include="out\Shader\Parallax.glsl" />
     <None Include="out\Shader\PlanetSurface.glsl" />
     <None Include="out\Shader\PongShaderVS.glsl" />
     <None Include="out\Shader\Reflection.glsl" />
+    <None Include="out\Shader\ShadowCommon.glsl" />
     <None Include="out\Shader\ShadowLighting.glsl" />
     <None Include="out\Shader\ShadowMap.glsl" />
     <None Include="out\Shader\Simple.glsl" />

@@ -97,6 +97,7 @@
     <ClCompile Include="Clock.cpp" />
     <ClCompile Include="ConsoleSystem.cpp" />
     <ClCompile Include="CoreShare.cpp" />
+    <ClCompile Include="CPreprocessor.cpp" />
     <ClCompile Include="LogSystem.cpp" />
     <ClCompile Include="FileSystem.cpp" />
     <ClCompile Include="GIFLoader.cpp" />
@@ -116,6 +117,7 @@
     <ClCompile Include="Phy2D\World.cpp" />
     <ClCompile Include="ProfileSystem.cpp" />
     <ClCompile Include="SocketBuffer.cpp" />
+    <ClCompile Include="StringParse.cpp" />
     <ClCompile Include="TaskBase.cpp" />
     <ClCompile Include="Thread.cpp" />
     <ClCompile Include="TileRegion.cpp" />
@@ -141,6 +143,8 @@
     <ClInclude Include="BehaviorTree\NodeExpression.h" />
     <ClInclude Include="BehaviorTree\TreeBuilder.h" />
     <ClInclude Include="BehaviorTree\Visitor.h" />
+    <ClInclude Include="CPreprocessor.h" />
+    <ClInclude Include="CycleQueue.h" />
     <ClInclude Include="DataBitSerialize.h" />
     <ClInclude Include="BitmapDC.h" />
     <ClInclude Include="Bitset.h" />
@@ -203,7 +207,7 @@
     <ClInclude Include="Random.h" />
     <ClInclude Include="RedBlackTree.h" />
     <ClInclude Include="Reflection.h" />
-    <ClInclude Include="RefObject.h" />
+    <ClInclude Include="RefCount.h" />
     <ClInclude Include="CoreShare.h" />
     <ClInclude Include="Singleton.h" />
     <ClInclude Include="SList.h" />
@@ -213,7 +217,7 @@
     <ClInclude Include="StackParam.h" />
     <ClInclude Include="StdUtility.h" />
     <ClInclude Include="StreamBuffer.h" />
-    <ClInclude Include="StringTokenizer.h" />
+    <ClInclude Include="StringParse.h" />
     <ClInclude Include="SysMsg.h" />
     <ClInclude Include="SysMsgHandler.h" />
     <ClInclude Include="TaskBase.h" />
@@ -228,6 +232,7 @@
     <ClInclude Include="TQuadTreeTile.h" />
     <ClInclude Include="NetSocket.h" />
     <ClInclude Include="TTable.h" />
+    <ClInclude Include="TypeConstruct.h" />
     <ClInclude Include="TypeHash.h" />
     <ClInclude Include="WidgetCommon.h" />
     <ClInclude Include="WidgetCommon.hpp" />
@@ -253,6 +258,7 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="CHandle.cpp_temp" />
+    <None Include="TypeFactory" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

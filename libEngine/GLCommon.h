@@ -11,15 +11,71 @@
 #include "Math/Matrix3.h"
 #include "Math/Quaternion.h"
 
+#include "TVector2.h"
+
 #include <vector>
+
+#include "LogSystem.h"
 
 namespace GL
 {
-	using namespace ::Math;
-	using ::Math::Vector3;
-	using ::Math::Vector4;
-	using ::Math::Quaternion;
-	using ::Math::Matrix4;
+	typedef ::Math::Vector3 Vector3;
+	typedef ::Math::Vector4 Vector4;
+	typedef ::Math::Quaternion Quaternion;
+	typedef ::Math::Matrix4 Matrix4;
+	typedef ::Math::Matrix3 Matrix3;
+
+	typedef TVector2<int> Vec2i;
+
+	class AABBox
+	{
+	public:
+
+		AABBox() {}
+		AABBox( Vector3 const& min , Vector3 const& max )
+			:mMin(min),mMax(max){ }
+
+		static AABBox Empty() { return AABBox(Vector3::Zero() , Vector3::Zero()); }
+
+		Vector3 getMin() const { return mMin; }
+		Vector3 getMax() const { return mMax; }
+		Vector3 getSize() const { return mMax - mMin; }
+		float getVolume()
+		{
+			Vector3 size = getSize();
+			return size.x * size.y * size.z;
+		}
+		void setEmpty()
+		{
+			mMin = mMax = Vector3::Zero();
+		}
+
+		void addPoint(Vector3 const& v)
+		{
+			mMax.max(v);
+			mMin.min(v);
+		}
+		void translate(Vector3 const& offset)
+		{
+			mMax += offset;
+			mMin += offset;
+		}
+		void expand(Vector3 const& dv)
+		{
+			mMax += dv;
+			mMin -= dv;
+		}
+
+		void makeUnion(AABBox const& other)
+		{
+			mMin.min(other.mMin);
+			mMax.max(other.mMax);
+		}
+	private:
+		Vector3 mMin;
+		Vector3 mMax;
+	};
+
 
 	inline bool isNormalize( Vector3 const& v )
 	{
@@ -44,16 +100,21 @@ namespace GL
 
 		~GLObject()
 		{
-			if ( mHandle && mbManaged )
-			{
-				RMPolicy::destroy( mHandle );
-			}
+			destroy();
 		}
+
 		void destroy()
 		{
 			if ( mbManaged && mHandle )
 			{
 				RMPolicy::destroy( mHandle );
+
+				GLenum error = glGetError();
+				if( error != GL_NO_ERROR )
+				{
+					//#TODO
+					::Msg("Can't Destory GL Object");
+				}
 			}
 			mHandle = 0;
 		}
@@ -100,6 +161,8 @@ namespace GL
 			eR32F ,
 			eRGB32F ,
 			eRGBA32F ,
+			eRGB16F,
+			eRGBA16F ,
 		};
 
 		enum Face
@@ -111,7 +174,7 @@ namespace GL
 			eFaceZ    = 4,
 			eFaceInvZ = 5,
 		};
-		static GLenum convert( Format format )
+		static GLenum Convert( Format format )
 		{
 			switch( format )
 			{
@@ -120,6 +183,8 @@ namespace GL
 			case eR32F:    return GL_R32F;
 			case eRGB32F:  return GL_RGB32F;
 			case eRGBA32F: return GL_RGBA32F;
+			case eRGB16F:  return GL_RGB16F;
+			case eRGBA16F:  return GL_RGBA16F;
 			}
 			return 0;
 		}
@@ -130,22 +195,44 @@ namespace GL
 			eDepth24 ,
 			eDepth32 ,
 			eDepth32F ,
+
 			eD24S8 ,
 			eD32FS8 ,
+
+			eStencil1 ,
+			eStencil4 ,
+			eStencil8 ,
+			eStencil16 ,
 		};
 
-		static GLenum convert( DepthFormat format )
+		static GLenum Convert( DepthFormat format )
 		{
 			switch( format )
 			{
 			case eDepth16: return GL_DEPTH_COMPONENT16;
 			case eDepth24: return GL_DEPTH_COMPONENT24;
 			case eDepth32: return GL_DEPTH_COMPONENT32;
-			case eDepth32F: return GL_DEPTH_COMPONENT32F;
-			case eD24S8: return GL_DEPTH24_STENCIL8;
-			case eD32FS8: return GL_DEPTH32F_STENCIL8;
+			case eDepth32F:return GL_DEPTH_COMPONENT32F;
+			case eD24S8:   return GL_DEPTH24_STENCIL8;
+			case eD32FS8:  return GL_DEPTH32F_STENCIL8;
+			case eStencil1: return GL_STENCIL_INDEX1;
+			case eStencil4: return GL_STENCIL_INDEX4;
+			case eStencil8: return GL_STENCIL_INDEX8;
+			case eStencil16: return GL_STENCIL_INDEX16;
 			}
 			return 0;
+		}
+
+		static bool ContainDepth(DepthFormat format)
+		{
+			return format != eStencil1 &&
+				   format != eStencil4 &&
+				   format != eStencil8 &&
+				   format != eStencil16;
+		}
+		static bool ContainStencil(DepthFormat format)
+		{
+			return format == eD24S8 || format == eD32FS8;
 		}
 	};
 
@@ -158,7 +245,7 @@ namespace GL
 	class TextureBase : public GLObject< RMPTexture >
 	{
 	protected:
-		bool loadFileInternal( char const* path , GLenum texType );
+		bool loadFileInternal(char const* path, GLenum texType, Vec2i& outSize);
 	};
 
 	class RenderTarget
@@ -170,8 +257,14 @@ namespace GL
 	public:
 		bool loadFile( char const* path );
 		bool create( Texture::Format format , int width , int height );
+		int  getSizeX() { return mSizeX; }
+		int  getSizeY() { return mSizeY; }
 		void bind();
 		void unbind();
+
+	private:
+		int mSizeX;
+		int mSizeY;
 	};
 
 	class TextureCube : public TextureBase
@@ -181,6 +274,15 @@ namespace GL
 		bool create( Texture::Format format , int width , int height );
 		void bind();
 		void unbind();
+	};
+
+	class DepthTexture : public TextureBase
+	{
+	public:
+		bool create(Texture::DepthFormat format, int width, int height);
+
+		Texture::DepthFormat getFormat() { return mFromat; }
+		Texture::DepthFormat mFromat;
 	};
 
 	struct RMPShader
@@ -205,7 +307,7 @@ namespace GL
 
 		bool loadFile( Type type , char const* path , char const* def = NULL );
 		Type getType();
-		bool compileSource( Type type , char const* src[] , int num );
+		bool compileSource( Type type , char const* src[] , int num , bool bUsePreprocess = true );
 		bool create( Type type );
 		void destroy();
 
@@ -225,6 +327,8 @@ namespace GL
 		Shader* removeShader( Shader::Type type );
 		void    attachShader( Shader& shader );
 		void    updateShader();
+
+		void checkLinkStatus();
 
 		void    bind();
 		void    unbind();
@@ -265,11 +369,11 @@ namespace GL
 		void setParam( char const* name , Vector3 const& v ){ setParam( name , v.x , v.y , v.z ); }
 		void setParam( char const* name , Matrix4 const& m ){ setMatrix44( name , m ); }
 		void setParam( char const* name , Matrix3 const& m ){ setMatrix33( name , m ); }
-		void setTexture( char const* name , Texture2D& tex , int idx )
+		void setTexture( char const* name , Texture2D& tex , int idx = 0)
 		{ return setTextureInternal( name , GL_TEXTURE_2D , tex.mHandle , idx ); }
-		void setTexture( char const* name , TextureCube& tex , int idx )
+		void setTexture( char const* name , TextureCube& tex , int idx = 0)
 		{ return setTextureInternal( name , GL_TEXTURE_CUBE_MAP , tex.mHandle , idx ); }
-#if 0 //TODO Can't Bind to texture 2d
+#if 0 //#TODO Can't Bind to texture 2d
 		void setTexture2D( char const* name , TextureCube& tex , Texture::Face face , int idx )
 		{
 			glActiveTexture( GL_TEXTURE0 + idx );
@@ -325,10 +429,12 @@ namespace GL
 		static void destroy( GLuint& handle ){ 	glDeleteRenderbuffers( 1 , &handle ); }
 	};
 
-	class DepthBuffer : public GLObject< RMPRenderBuffer >
+	class DepthRenderBuffer : public GLObject< RMPRenderBuffer >
 	{
 	public:
 		bool create( int w , int h , Texture::DepthFormat format );
+		Texture::DepthFormat getFormat() { return mFormat;  }
+		Texture::DepthFormat mFormat;
 	};
 
 
@@ -340,27 +446,40 @@ namespace GL
 
 		bool create();
 
-		int  addTexture( TextureCube& target , Texture::Face face , bool beManaged = false );
+		
+		int  addTexture(TextureCube& target, Texture::Face face, bool beManaged = false);
 		int  addTexture( Texture2D& target , bool beManaged = false );
 		void setTexture( int idx , Texture2D& target , bool beManaged = false );
-		void setTexture( int idx , TextureCube& target , Texture::Face face , bool beManaged = false );
+		void setTexture( int idx , TextureCube& target , Texture::Face face , bool bManaged = false );
 		void bind();
 		void unbind();
-		void setBuffer( DepthBuffer& buffer , bool beManaged = false );
-
+		void setDepth( DepthRenderBuffer& buffer , bool bManaged = false );
+		void setDepth( DepthTexture& target, bool bManaged = false );
+		void clearDepth();
 		GLuint getTextureHandle( int idx ){ return mTextures[idx].handle; }
 
-		struct Info
+		void setDepthInternal(GLuint handle, Texture::DepthFormat format, bool bTexture, bool bManaged);
+
+		struct BufferInfo
 		{
+			BufferInfo()
+			{
+				handle = 0;
+				
+			}
 			GLuint handle;
-			uint8  idx;
+			union 
+			{
+				uint8  idx;
+				bool   bTexture;
+			};
 			bool   bManaged;
 		};
-		void   setTextureInternal( int idx , Info& info , GLenum texType );
+		void   setTextureInternal( int idx , BufferInfo& info , GLenum texType );
 
-		std::vector< Info > mTextures;
+		std::vector< BufferInfo > mTextures;
+		BufferInfo  mDepth;
 		GLuint      mFBO;
-		DepthBuffer mDepthBuffer;
 	};
 
 	struct Vertex
@@ -399,8 +518,8 @@ namespace GL
 		VertexDecl&   addElement( Vertex::Semantic s , Vertex::Format f , uint8 idx = 0 );
 
 
-		void bindArray();
-		void unbindArray();
+		void bind();
+		void unbind();
 		struct Info
 		{
 			uint8 semantic;
@@ -459,6 +578,27 @@ namespace GL
 		VertexDecl mDecl;
 	};
 
+
+	template< class T >
+	struct BindLockScope
+	{
+		BindLockScope(T& obj)
+			:mObj(obj)
+		{
+			mObj.bind();
+		}
+
+		~BindLockScope()
+		{
+			mObj.unbind();
+		}
+
+		T& mObj;
+	};
+
+#define GL_BIND_LOCK_OBJECT( obj )\
+	BindLockScope< decltype(obj) >  ANONYMOUS_VARIABLE( BindLockObj )( obj );
+	
 }
 
 #endif // GLCommon_h__

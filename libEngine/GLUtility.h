@@ -2,7 +2,7 @@
 #define GLUtility_h__
 
 #include "GLCommon.h"
-
+#include "CommonMarco.h"
 #include <string>
 
 #ifndef BIT
@@ -194,7 +194,12 @@ namespace GL
 	{
 	public:
 		ShaderEffect();
-		bool loadFromSingleFile( char const* name , char const* def = NULL );
+		bool loadFromSingleFile( char const* fileName , char const* def = NULL );
+		bool loadFromSingleFile(
+			char const* fileName,
+			char const* vertexEntryName,
+			char const* pixelEntryName,
+			char const* def = NULL);
 		bool loadFromFile( char const* name );
 		bool reload();
 
@@ -202,7 +207,7 @@ namespace GL
 		bool loadInternal();
 		Shader      mShader[2];
 		std::string mName;
-		std::string mDefine;
+		std::string mDefine[2];
 		bool        mbSingle;
 	};
 
@@ -331,9 +336,9 @@ namespace GL
 	};
 
 
-	struct MatrixSave
+	struct MatrixSaveScope
 	{
-		MatrixSave( Matrix4 const& projMat , Matrix4 const& viewMat )
+		MatrixSaveScope( Matrix4 const& projMat , Matrix4 const& viewMat )
 		{
 			glMatrixMode( GL_PROJECTION );
 			glPushMatrix();
@@ -343,13 +348,47 @@ namespace GL
 			glLoadMatrixf( viewMat );
 		}
 
-		~MatrixSave()
+		MatrixSaveScope(Matrix4 const& projMat)
 		{
+			glMatrixMode(GL_PROJECTION);
+			glPushMatrix();
+			glLoadMatrixf(projMat);
+			glMatrixMode(GL_MODELVIEW);
+			glPushMatrix();
+			glLoadIdentity();
+		}
+
+		MatrixSaveScope()
+		{
+			glMatrixMode(GL_PROJECTION);
+			glPushMatrix();
+			glMatrixMode(GL_MODELVIEW);
+			glPushMatrix();
+		}
+
+		~MatrixSaveScope()
+		{
+			glMatrixMode(GL_MODELVIEW);
 			glPopMatrix();
 			glMatrixMode( GL_PROJECTION );
 			glPopMatrix();
 			glMatrixMode( GL_MODELVIEW );
 		}
+	};
+
+	struct ViewportSaveScope
+	{
+		ViewportSaveScope()
+		{
+			glGetIntegerv(GL_VIEWPORT, value);
+		}
+		~ViewportSaveScope()
+		{
+			glViewport(value[0], value[1], value[2], value[3]);
+		}
+
+		int operator[](int idx) const { return value[idx]; }
+		int value[4];
 	};
 
 

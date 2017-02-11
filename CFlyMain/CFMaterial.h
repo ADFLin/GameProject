@@ -127,11 +127,11 @@ namespace CFly
 
 		struct Slot
 		{
-			RefPtrT< Texture > texture;
+			TRefCountPtr< Texture > texture;
 			unsigned  usageFlag;
 		};
 
-		std::vector< Texture::RefPtr > mSlot;
+		std::vector< Texture::RefCountPtr > mSlot;
 	};
 
 	class TexLayerAnimation;
@@ -152,7 +152,7 @@ namespace CFly
 
 
 	class Material : public Entity
-		           , public RefObjectT< Material >
+		           , public RefCountedObjectT< Material >
 	{
 	private:
 		Material(  float const* amb = nullptr ,  float const* dif = nullptr ,  
@@ -262,7 +262,7 @@ namespace CFly
 		
 
 		unsigned  mLightingColorUsage;
-		RefPtrT<ShaderEffect> mShader;
+		TRefCountPtr<ShaderEffect> mShader;
 		
 		int       mMaxLayer; 
 		int       mNumLayer;
@@ -311,7 +311,7 @@ namespace CFly
 		int   mNumTex;
 		float mFramePos;
 		float mFPS;
-		Material::RefPtr mMaterial;
+		Material::RefCountPtr mMaterial;
 		int   mIdxLayer;
 	};
 
@@ -335,7 +335,7 @@ namespace CFly
 
 
 	class ShaderEffect : public Entity
-		               , public RefObjectT< ShaderEffect >
+		               , public RefCountedObjectT< ShaderEffect >
 					   , public IShaderParamInput
 	{
 	public:

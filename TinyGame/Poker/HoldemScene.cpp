@@ -4,6 +4,7 @@
 #include "GameWidget.h"
 #include "GamePlayer.h"
 #include "GameGUISystem.h"
+#include "RenderUtility.h"
 
 #include "CardDraw.h"
 
@@ -167,6 +168,7 @@ namespace Poker { namespace Holdem {
 	{
 		mLevel->setListener( this );
 		mCardDraw = ICardDraw::create( ICardDraw::eWin7 );
+		mCardSize = mCardDraw->getSize();
 	}
 
 	Scene::~Scene()
@@ -182,10 +184,20 @@ namespace Poker { namespace Holdem {
 			SlotInfo const& info = mLevel->getSlotInfo( i );
 			drawPlayerState( g , Vec2i( 20 , 20 + 30 * i ) , i , info );
 			drawSlot( g , tableCenterPos + SlotOffset[i] , info );
+
+			if( info.pos == mLevel->getCurBetPos() )
+			{
+				RenderUtility::setPen(g, Color::eBlack);
+				RenderUtility::setBrush(g, Color::eRed);
+				g.drawCircle(tableCenterPos + SlotOffset[i] , 10);
+			}
 		}
 		
 		FixString< 64 > str;
 		char const* suit[] = { "C" ,"D" , "H" ,"S" };
+		int const ComunityCardGap = 5;
+		int const CommunityCardOffset = ComunityCardGap + mCardSize.x;
+		int const ComunityCardGroupOffset = (ComunityCardGap * 4 + 5 * mCardSize.x) / 2;
 		int cardNum = mLevel->getCommunityCardNum();
 		for( int i = 0 ; i < cardNum ; ++i )
 		{
@@ -195,20 +207,27 @@ namespace Poker { namespace Holdem {
 			str += Card::toString( card.getFace() );
 			str += "]";
 
-			mCardDraw->draw( g , tableCenterPos + Vec2i( i * 50 , -10 ) , card );
+			mCardDraw->draw( g , tableCenterPos + Vec2i( i * CommunityCardOffset - ComunityCardGroupOffset , -mCardSize.y/2 ) , card );
 		}
 		g.drawText( Vec2i( 200 , 200 ) , str.c_str() );
 
 		if ( getLevel().getPlayerPos() != -1 )
 		{
 			str.clear();
-			for ( int i = 0 ; i < PocketCardNum ; ++i )
+			if ( mLevel->getPlayerSlot().state == SLOT_PLAY )
 			{
-				Card const& card = mLevel->getPoketCard( i );
-				str += "[";
-				str += suit[ card.getSuit() ];
-				str += Card::toString( card.getFace() );
-				str += "]";
+				for( int i = 0; i < PocketCardNum; ++i )
+				{
+					Card card = mLevel->getPoketCard(i);
+					str += "[";
+					str += suit[card.getSuit()];
+					str += Card::toString(card.getFace());
+					str += "]";
+				}
+			}
+			else
+			{
+				str == "No Play";
 			}
 			g.drawText( Vec2i( 200 , 200 + 20 ) , str.c_str() );
 		}
@@ -278,9 +297,12 @@ namespace Poker { namespace Holdem {
 
 	void Scene::onBetCall( int slot )
 	{
-		mPanel->enable( slot == mLevel->getPlayerPos() );
-		mPanel->show( slot == mLevel->getPlayerPos() );
-		mPanel->refreshWidget();
+		if ( mPanel )
+		{
+			mPanel->enable(slot == mLevel->getPlayerPos());
+			mPanel->show(slot == mLevel->getPlayerPos());
+			mPanel->refreshWidget();
+		}
 	}
 
 	void Scene::drawSlotPanel( GWidget* widget )
@@ -291,6 +313,7 @@ namespace Poker { namespace Holdem {
 		SlotInfo& info = getLevel().getSlotInfo( panel->slotPos );
 		Vec2i worldPos = widget->getWorldPos();
 
+		g.setTextColor(255, 255, 0);
 		if ( info.state != SLOT_EMPTY )
 		{
 			GamePlayer* player = mPlayerMgr->getPlayer( info.playerId );
@@ -307,28 +330,25 @@ namespace Poker { namespace Holdem {
 
 	void Scene::drawSlot( Graphics2D& g , Vec2i const& pos , SlotInfo const& info )
 	{
-		if ( info.state == SLOT_EMPTY )
+		if ( info.state == SLOT_EMPTY || info.state == SLOT_WAIT_NEXT )
 			return;
 
-		if ( getLevel().getBetStep() != STEP_NO_BET  )
+		if ( getLevel().getBetStep() != STEP_NO_BET )
 		{
 			if ( info.betType != BET_FOLD )
 			{
 				Vec2i cardPos = pos - mCardDraw->getSize() / 2;
-				if ( info.pos == getLevel().getPlayerPos() )
+				
+				for( int i = 0; i < PocketCardNum; ++i )
 				{
-					for ( int i = 0 ; i < PocketCardNum ; ++i )
+					if( info.pocketCards[i] != -1 )
 					{
-						Card const& card = mLevel->getPoketCard( i );
-						mCardDraw->draw( g , cardPos + Vec2i( 20 * i , 0 ) , card );
+						Card card = Card(info.pocketCards[i]);
+						mCardDraw->draw(g, cardPos + Vec2i(20 * i, 0), card);
 					}
-				}
-				else
-				{
-					for ( int i = 0 ; i < PocketCardNum ; ++i )
+					else
 					{
-						Card const& card = mLevel->getPoketCard( i );
-						mCardDraw->drawCardBack( g , cardPos + Vec2i( 20 * i , 0 ) );
+						mCardDraw->drawCardBack(g, cardPos + Vec2i(20 * i, 0));
 					}
 				}
 			}

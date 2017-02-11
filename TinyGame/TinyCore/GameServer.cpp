@@ -556,7 +556,7 @@ void ServerWorker::procComMsgNet( IComPacket* cp)
 
 		if( gethostname(hostname, 256) == 0 )
 		{
-			//TODO
+			//#TODO
 			TLockedObject< SVPlayerManager > playerManager = mPlayerManager->Lock();
 			SPServerInfo info;
 			ServerPlayer* player = playerManager->getPlayer(playerManager->getUserID());

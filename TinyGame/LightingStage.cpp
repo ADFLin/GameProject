@@ -216,7 +216,7 @@ namespace Lighting
 		else if ( msg.onRightDown() )
 		{
 			Block block;
-			//TODO
+			//#TODO
 			block.setBox( Vec2f( msg.getPos().x , msg.getPos().y  ) , Vec2f( 50 , 50 ) );
 			blocks.push_back( block );
 		}

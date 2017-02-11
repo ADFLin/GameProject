@@ -7,6 +7,10 @@
 class BitUtility
 {
 public:
+
+	template< class T >
+	static T ExtractTrailingBit(T v) { return (v & -v); }
+	
 	static int CountTrailingZeros( uint32 n )
 	{
 		int result = 0;

@@ -9,7 +9,7 @@
 
 namespace Zuma
 {
-	using std::tr1::shared_ptr;
+	//using std::tr1::shared_ptr;
 
 	typedef TVector2< float > Vec2D;
 

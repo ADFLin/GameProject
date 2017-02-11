@@ -10,8 +10,6 @@
 
 #include "HashString.h"
 
-#include "lz78/lz78.h"
-
 template< class T >
 struct DataFoo
 {
@@ -439,7 +437,7 @@ namespace Compression
 
 			switch( key )
 			{
-			case 'R': restart(); break;
+			case Keyboard::eR: restart(); break;
 			}
 			return false;
 		}

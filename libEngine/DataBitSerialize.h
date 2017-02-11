@@ -43,7 +43,7 @@ public:
 	template < class T >
 	void fill(T const value[], size_t num, uint32 numBit)
 	{
-		//TODO: Optimize ME
+		//#TODO: Optimize ME
 		for( size_t i = 0; i < num; ++i )
 		{
 			fill(value[i], numBit);
@@ -201,7 +201,7 @@ public:
 
 	void take(uint32 value[], size_t num, uint32 numBit)
 	{
-		//TODO: Optimize ME
+		//#TODO: Optimize ME
 		for( size_t i = 0; i < num; ++i )
 		{
 			take(value[i] , numBit);

@@ -8,6 +8,7 @@
 
 #include "GameGUISystem.h"
 #include "WidgetUtility.h"
+#include "TaskBase.h"
 
 namespace Poker { namespace Holdem {
 
@@ -71,6 +72,7 @@ namespace Poker { namespace Holdem {
 	void LevelStage::buildServerLevel( GameLevelInfo& info )
 	{
 		mServerLevel.reset( new ServerLevel );
+		mServerLevel->setListener(this);
 
 		IPlayerManager& playerManager = *getStageMode()->getPlayerManager();
 
@@ -82,7 +84,7 @@ namespace Poker { namespace Holdem {
 			player->getInfo().actionPort = slotId;
 
 			assert( player->getType() != PT_SPECTATORS );
-			int money = 100 + 50 * player->getId();
+			int money = 200 /*+ 50 * player->getId()*/;
 			switch ( player->getType() )
 			{
 			case PT_COMPUTER:
@@ -150,9 +152,9 @@ namespace Poker { namespace Holdem {
 		mScene->setupWidget();
 		if ( mServerLevel && getModeType() == SMT_SINGLE_GAME )
 		{
-			DevBetPanel* panel = new DevBetPanel( UI_ANY , Vec2i( 100 , 300 ) , NULL );
-			panel->mServer = mServerLevel;
-			::Global::GUI().addWidget( panel );
+			mDevPanel = new DevBetPanel( UI_ANY , Vec2i( 100 , 300 ) , NULL );
+			mDevPanel->mServer = mServerLevel;
+			::Global::GUI().addWidget(mDevPanel);
 		}
 		DevFrame* frame = WidgetUtility::createDevFrame();
 		frame->addButton( UI_RESTART_GAME , "Restart" );
@@ -181,7 +183,35 @@ namespace Poker { namespace Holdem {
 		mScene->render( g );
 	}
 
-	void LevelStage::onRestart( uint64 seed , bool beInit )
+	void LevelStage::tick()
+	{
+		BaseClass::tick();
+		mDevPanel->show(mServerLevel->isPlaying());
+	}
+
+	void LevelStage::onRoundEnd()
+	{
+		auto fun = [this](long time)->bool
+		{
+			mServerLevel->startNewRound(mRandom);
+			return false;
+		};
+
+		DelayTask* delay = new DelayTask(2000);
+		delay->setNextTask( TaskUtility::createDelegateTask(fun) );
+		addTask(delay);
+	}
+
+	void LevelStage::onPlayerLessBetMoney(int posSlot)
+	{
+		if( posSlot % 2 )
+		{
+			SlotInfo& slot = mServerLevel->getSlotInfo(posSlot);
+			slot.ownMoney = 100;
+		}
+	}
+
+	void LevelStage::onRestart(uint64 seed, bool beInit)
 	{
 		if ( mServerLevel )
 		{

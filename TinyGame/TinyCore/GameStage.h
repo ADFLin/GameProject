@@ -91,7 +91,7 @@ public:
 
 	GameStageMode*   mStageMode;
 	ActionProcessor  mProcessor;
-	IGameInstance*    mGame;
+	IGameInstance*   mGame;
 	long             mTickTime;
 };
 

@@ -1,6 +1,6 @@
 #include "MVRenderEngine.h"
 
-#include "tinyobjloader/tiny_obj_loader.h"
+
 
 #include "GLCommon.h"
 #include "GLUtility.h"
@@ -33,7 +33,6 @@ namespace MV
 		{ MESH_LADDER , "ladder" }  ,
 	};
 
-
 	float groupColor[][3] = 
 	{
 		{ 1 , 1 , 1 },
@@ -44,98 +43,6 @@ namespace MV
 		{ 1 , 0.5 , 1 },
 		{ 0.5 , 1 , 1 },
 	};
-
-
-	bool MeshLoader::load( GL::Mesh& mesh , char const* path )
-	{
-		std::ifstream objStream( path );
-		if ( !objStream.is_open() )
-			return false;
-
-		class MaterialStringStreamReader : public tinyobj::MaterialReader
-		{
-		public:
-			virtual std::string operator() (
-				const std::string& matId,
-				std::vector< tinyobj::material_t >& materials,
-				std::map<std::string, int>& matMap)
-			{
-				return "";
-			}
-		};  
-
-		MaterialStringStreamReader matSSReader;
-		std::vector<tinyobj::shape_t> shapes;
-		std::vector<tinyobj::material_t> materials;
-
-		std::string err = tinyobj::LoadObj(shapes, materials, objStream, matSSReader);
-
-		if ( shapes.empty() )
-			return true;
-
-		tinyobj::mesh_t& objMesh = shapes[0].mesh;
-		int numVertex = objMesh.positions.size() / 3;
-		std::vector< float > vertices( 3 * numVertex * 2 );
-		float* v = &vertices[0];
-		float* p = &objMesh.positions[0];
-		float* n = &objMesh.normals[0];
-		for( int i = 0 ; i < numVertex ; ++i )
-		{
-			v[0] = p[0];v[1] = p[1];v[2] = p[2];
-			v[3] = n[0];v[4] = n[1];v[5] = n[2];
-			p +=3;
-			n +=3;
-			v +=6;
-		}
-
-		mesh.mDecl.addElement( Vertex::ePosition , Vertex::eFloat3 );
-		mesh.mDecl.addElement( Vertex::eNormal   , Vertex::eFloat3 );
-		if ( !mesh.createBuffer( &vertices[0] , numVertex , &objMesh.indices[0] , objMesh.indices.size() , true ) )
-			return false;
-		return true;
-	}
-
-	bool MeshLoader::load( GL::Mesh& mesh , Data& data )
-	{
-		int maxNumVertex = data.numPosition * data.numNormal;
-		std::vector< int > idxMap( maxNumVertex , -1 );
-		std::vector< float > vertices;
-		std::vector< int > indices( data.numIndex );
-		vertices.reserve( maxNumVertex );
-
-		int numVertex = 0;
-		for( int i = 0 ; i < data.numIndex; ++i )
-		{
-			int idxPos = data.indices[2*i] - 1;
-			int idxNormal = data.indices[2*i + 1] - 1;
-			int idxToVertex = idxPos + idxNormal * data.numPosition;
-			int idx = idxMap[idxToVertex];
-			if ( idx == -1 )
-			{
-				idx = numVertex;
-				++numVertex;
-				idxMap[idxToVertex] = idx;
-
-				float* p = data.position + 3 * idxPos;
-				vertices.push_back( p[0] );
-				vertices.push_back( p[1] );
-				vertices.push_back( p[2] );
-				float* n = data.normal+ 3 * idxNormal;
-				vertices.push_back( n[0] );
-				vertices.push_back( n[1] );
-				vertices.push_back( n[2] );
-			}
-			indices[i] = idx;
-		}
-
-		mesh.mDecl.addElement( Vertex::ePosition , Vertex::eFloat3 );
-		mesh.mDecl.addElement( Vertex::eNormal   , Vertex::eFloat3 );
-		if ( !mesh.createBuffer( &vertices[0] , numVertex , &indices[0] , data.numIndex , true ) )
-			return false;
-		return true;
-	}
-
-
 	static RenderEngine* gRE = NULL;
 
 	RenderEngine& getRenderEngine(){ return *gRE; }
@@ -155,8 +62,6 @@ namespace MV
 		locLocalScale = mEffect.getParamLoc( "localScale" );
 
 		{
-			MeshLoader loader;
-
 			if ( !MeshUtility::createCube( mMesh[ MESH_BOX ] , 0.5f ) ||
 				!MeshUtility::createUVSphere( mMesh[ MESH_SPHERE ] , 0.3 , 10 , 10 ) ||
 				!MeshUtility::createPlane( mMesh[ MESH_PLANE ] , Vector3(0.5,0,0) ,Vector3(1,0,0) , Vector3(0,1,0) , 0.5 , 1 ) )
@@ -168,7 +73,7 @@ namespace MV
 				FixString< 256 > path = "Mesh/";
 				path += info.name; 
 				path += ".obj";
-				if ( !loader.load( mMesh[ info.id ] , path ) )
+				if ( !MeshUtility::createFromObjectFile( mMesh[ info.id ] , path ) )
 					return false;
 			}
 		}
@@ -190,7 +95,7 @@ namespace MV
 		float det;
 		matView.inverse( matViewInv , det );
 		mEffect.bind();
-		mEffect.setParam( "gParam.matViewInv" , matViewInv );
+		mEffect.setParam( SHADER_PARAM(View.viewToWorld) , matViewInv );
 
 		glLoadMatrixf( matView );
 		renderGroup( mParam.world->mRootGroup );

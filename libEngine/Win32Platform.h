@@ -57,8 +57,14 @@ public:
 		AdjustWindowRectEx( &rect, _this()->getWinStyle() , FALSE , _this()->getWinExtStyle() );
 
 		// move the window back to its old position
-		SetWindowPos( m_hWnd, 0, 0 , 0 , 		
+		BOOL result = SetWindowPos( m_hWnd, 0, 0 , 0 , 		
 			rect.right -rect.left ,rect.bottom - rect.top , SWP_NOMOVE | SWP_NOZORDER );
+
+		if( result == FALSE )
+		{
+			int i = 1;
+
+		}
 
 	}
 

@@ -1,25 +1,24 @@
+#include "ViewParam.glsl"
+
 #define USE_NORMAL
 #define SKIN_BLEND_BONE_NUM 4
 
 uniform mat4 matBone[ 64 ];
 
-struct GlobalParam
+struct VertexFactoryParameters
 {
-	mat4 matView;
-	mat4 matWorld;
-	mat4 matWorldInv;
-	vec3 viewPos;
+	mat4 localToWorld;
+	mat4 worldToLocal;
 };
-uniform GlobalParam gParam = GlobalParam( 
+
+uniform VertexFactoryParameters VertexFactoryParams = VertexFactoryParameters( 
    mat4( 1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1 ) ,
-   mat4( 1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1 ) ,
-   mat4( 1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1 ) ,
-   vec3( 0,0,0 ) );
+   mat4( 1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1 ) );
 
 struct VSOutput
 {
 	vec3 vertex;
-	vec3 normal;
+	vec3 worldNormal;
 };
 
 #ifdef VERTEX_SHADER
@@ -61,12 +60,12 @@ vec4 VSOutputMain( out VSOutput outVS )
 #endif
 
 	outVS.vertex = v;
-	outVS.normal = normal;
+	outVS.worldNormal = normal;
 	return ftransform();
 }
 
 out VSOutput vsOutput;
-void mainVS()
+void MainVS()
 {
 	gl_Position = VSOutputMain( vsOutput );
 }
@@ -100,11 +99,11 @@ vec3 FSLightOffset( vec3 lightPos , vec3 V )
 #ifdef FSINPUT_LIGHT_POS_TRANSFORMED
 	return lightPos  - V;
 #elif defined( FSINPUT_LOCAL_SPACE )
-	return vec3( gParam.matWorldInv * vec4( lightPos , 1 ) ) - V;
+	return vec3( VertexFactoryParams.worldToLocal * vec4( lightPos , 1 ) ) - V;
 #elif defined( FSINPUT_WORLD_SPACE )
 	return lightPos  - V;
 #elif defined(FSINPUT_VIEW_SPACE )
-	return vec3( gParam.matView * vec4( lightPos , 1 ) ) - V;
+	return vec3( View.worldToView * vec4( lightPos , 1 ) ) - V;
 #elif defined(FSINPUT_VIEW_TSPACE )
 	return lightPos  - V;
 #elif defined( FSINPUT_LOCAL_TSPACE )
@@ -121,7 +120,7 @@ vec3 FSLighting( in FSInput inFS )
 	vec3 color = vec3(0,0,0);
 	for( int i = 0 ; i < 4 ; ++i )
 	{
-		vec3 L = FSLightOffset( lightPos[i] , V );
+		vec3 L = FSLightOffset( LightPos[i] , V );
 		L = normalize( L );
 		float diff = clamp( dot( L , N ) , 0 , 1 );
 		float spec = 0;
@@ -133,13 +132,13 @@ vec3 FSLighting( in FSInput inFS )
 			//vec3 H = normalize( L + E );  
 			//spec = clamp( pow( max( dot(H,N), 0.0 ) , 100.0 ) , 0.0 , 1.0 );
 		}
-		color += ( diff + spec ) * lightColor[i];
+		color += ( diff + spec ) * LightColor[i];
 	}
 	return color;
 }
 
 
-void mainFS() 
+void MainPS() 
 {
 	FSInput inFS;
 	if ( !FSInputMain( vsOutput , inFS ) )

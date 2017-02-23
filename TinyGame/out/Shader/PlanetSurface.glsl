@@ -19,7 +19,7 @@ varying float  factor;
 
 #ifdef VERTEX_SHADER
 
-void mainVS() 
+void MainVS() 
 {
 	// st = 2.0 * gl_Vertex.xy - vec2(1.0,1.0) , s t = [ -1 , 1 ]
 	vec2 st = vec2 ( tile.scale , tile.scale ) * gl_Vertex.xy + tile.pos;
@@ -36,7 +36,7 @@ void mainVS()
 
 #ifdef PIXEL_SHADER
 
-void mainFS() 
+void MainPS() 
 {
 	float c = 0.5 * clamp( factor , 0.0 , 1.0 ) + 0.5;
 	gl_FragColor = vec4(c,c,c,1);

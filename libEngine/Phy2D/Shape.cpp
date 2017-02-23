@@ -45,7 +45,7 @@ namespace Phy2D
 
 	void BoxShape::calcAABB(XForm const& xform , AABB& aabb)
 	{
-		Vec2f len = xform.rotateVector( mHalfExt );
+		Vec2f len = xform.transformVector( mHalfExt );
 		Vec2f dir = xform.getRotation().getXDir();
 		dir.x = Math::Abs( dir.x );
 		dir.y = Math::Abs( dir.y );
@@ -108,7 +108,7 @@ namespace Phy2D
 		AABBUpdater updater( aabb );
 		for( int i = 0 ; i < getVertexNum() ; ++i )
 		{
-			Vec2f v = xform.mul( mVertices[i] );
+			Vec2f v = xform.transformPosition( mVertices[i] );
 			updater.add( v );
 		}
 	}

@@ -59,7 +59,7 @@ namespace Phy2D
 		return result;
 	}
 
-	// ( a x b ) x c = (a.c)b - |b|^2 a
+	// ( a x b ) x c = (a.c)b - (b.c) a
 	inline Vec2f tripleProduct( Vec2f const& a , Vec2f const& b , Vec2f const& c )
 	{
 		return a.dot( c ) * b - b.dot( c ) * a;
@@ -180,12 +180,8 @@ namespace Phy2D
 
 		Vec2f const& getPos() const { return mP; }
 		Rotation const& getRotation() const { return mR; }
-		//  T = [ R  P ]   Vw = T v = R V + P;
-		//      [ 0  1 ]
-		Vec2f mul( Vec2f const& v ) const { return mP + mR.mul( v ); }
-		//  Tinv = [ Rt  -Rt * P ]   VL = Tinv V = Rt * ( V - P );
-		//         [ 0    1      ]
-		Vec2f mulInv( Vec2f const& v ) const { return mR.mulInv( v - mP ); }
+
+
 
 		// [ R P ][ Rr Pr ]=[ R*Rr R*Pr+P ]  R * Rr = [ c -s ][ cr -sr ] = [ c*cr-s*sr -(c*sr+s*cr)]
 		// [ 0 1 ][ 0  1  ] [  0     1    ]           [ s  c ][ sr  cr ]   [ c*sr+s*cr   c*cr-s*sr ]
@@ -200,7 +196,6 @@ namespace Phy2D
 		{
 			return XForm( mR.mulInv( rhs.mP ) - mP , mR.mulInv( rhs.mR ) );
 		}
-
 		// [ R  P ][ Rr^t -Pr ]=[ R*Rr^t -R*Pr+P ]  R * Rr^t = [ c -s ][  cr  sr ] = [ c*cr+s*sr -(c*sr-s*cr)]
 		// [ 0  1 ][ 0     1  ] [   0       1    ]             [ s  c ][ -sr  cr ]   [ c*sr-s*cr   c*cr+s*sr ]
 		XForm mulRightInv( XForm const rhs ) const 
@@ -208,8 +203,14 @@ namespace Phy2D
 			return XForm( mP - mR.mulInv( rhs.mP )  , mR.mulRightInv( rhs.mR ) );
 		}
 
-		Vec2f rotateVector( Vec2f const& v ) const { return mR.mul( v ); }
-		Vec2f rotateVectorInv( Vec2f const& v ) const { return mR.mulInv( v ); }
+		//  T = [ R  P ]   Vw = T v = R V + P;
+		//      [ 0  1 ]
+		Vec2f transformPosition(Vec2f const& v) const { return mP + mR.mul(v); }
+		//  Tinv = [ Rt  -Rt * P ]   VL = Tinv V = Rt * ( V - P );
+		//         [ 0    1      ]
+		Vec2f transformPositionInv(Vec2f const& v) const { return mR.mulInv(v - mP); }
+		Vec2f transformVector( Vec2f const& v ) const { return mR.mul( v ); }
+		Vec2f transformVectorInv( Vec2f const& v ) const { return mR.mulInv( v ); }
 
 		void  translate( Vec2f const& offset ){ mP += offset; }
 		//void translateLocal( Vec2f const& offset ){ mP += offset; }

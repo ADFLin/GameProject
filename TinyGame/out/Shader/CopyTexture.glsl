@@ -20,10 +20,44 @@ void CopyTextureVS()
 in VSOutput vsOutput;
 
 uniform sampler2D CopyTexture;
-void CopyTextureFS()
+void CopyTexturePS()
 {
 	vec2 UVs = vsOutput.UVs;
 	gl_FragColor = texture2D(CopyTexture, UVs);
+}
+
+
+uniform float4 ColorMask;
+void CopyTextureMaskPS()
+{
+	vec2 UVs = vsOutput.UVs;
+	float c = dot(texture2D(CopyTexture, UVs), ColorMask);
+	gl_FragColor = float4( c , c , c , 1 );
+}
+
+uniform float2 ValueFactor;
+
+static const float3 Color[] =
+{
+	float3(1,0,0),
+	float3(0,1,0),
+	float3(0,0,1),
+	float3(1,1,0),
+	float3(0,1,1),
+	float3(1,0,1),
+	float3(1,0.5,0.5),
+	float3(0.5,1,0.5),
+	float3(0.5,0.5,1),
+};
+void MappingTextureColorPS()
+{
+	vec2 UVs = vsOutput.UVs;
+	float c = dot(texture2D(CopyTexture, UVs), ColorMask);
+	int idx = int( round(ValueFactor.x * c + ValueFactor.y) );
+	if ( idx < 0 || idx > 9 )
+		gl_FragColor = float4(1, 1, 1, 1);
+	gl_FragColor = float4( Color[idx] , 1 );
+	//gl_FragColor = float4(c, c, c, 1);
 }
 
 #endif //PIXEL_SHADER

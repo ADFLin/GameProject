@@ -950,6 +950,7 @@ public:
 
 	virtual bool onInit()
 	{
+		::Global::getDrawEngine()->changeScreenSize(1600, 1200);
 		::Global::GUI().cleanupWidget();
 		if ( !::Global::getDrawEngine()->startOpenGL( true ) )
 			return false;

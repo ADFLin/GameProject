@@ -431,7 +431,7 @@ public:
 			if ( GetAsyncKeyState( VK_UP ) )
 			{
 				Vec3D frontDir(0,-1,0);
-				frontDir = rotate( frontDir , mSpatialComp->getTransform() );
+				frontDir = TransformVector( frontDir , mSpatialComp->getTransform() );
 
 				mMovement->setVelocityForTimeInterval( 500 * frontDir , shouldTime / 1000.0f);
 

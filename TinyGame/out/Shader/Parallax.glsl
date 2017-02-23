@@ -1,18 +1,19 @@
+#include "ViewParam.glsl"
+#include "LightParam.glsl"
+#include "ParallaxOcclusionCommon.glsl"
 #define PARALLAX_DEPTH_CORRECT 1
 #define PARALLAX_DRAW_SHADOW 1
 #define PARALLAX_USE_VIEW_TSPACE 1
 
 #define PARALLAX_BUMP
 
-uniform vec3 lightPos = vec3( 5 , 0 , 0 );
-uniform vec3 viewPos = vec3(0.5,0.5,0.3);
 
 uniform sampler2D texBase;
 uniform sampler2D texNormal;
 
 uniform float parallaxScale = 0.05;
 uniform float parallaxBias = 1.0;
-uniform float shadowBias = 0.01;
+uniform float ShadowBias = 0.01;
 
 #if PARALLAX_DEPTH_CORRECT
 varying vec3 tangentX;
@@ -31,22 +32,22 @@ struct VSOutput
 
 #ifdef VERTEX_SHADER
 
-void mainVS()
+void MainVS()
 {
 #if PARALLAX_USE_VIEW_TSPACE
 	vec3 tangent  = normalize( gl_NormalMatrix * gl_MultiTexCoord1.xyz );
 	vec3 normal   = normalize( gl_NormalMatrix * gl_Normal );
 
 	vec3 cPos  = vec3( gl_ModelViewMatrix * gl_Vertex );	
-	vec3 cCamPos = vec3( gl_ModelViewMatrix * vec4( viewPos , 1.0 ) );
-	vec3 cLightPos =  vec3( gl_ModelViewMatrix * vec4( lightPos , 1.0 ) );
+	vec3 cCamPos = vec3( gl_ModelViewMatrix * vec4( View.worldPos , 1.0 ) );
+	vec3 cLightPos =  vec3( gl_ModelViewMatrix * vec4(GLight.worldPosAndRadius.xyz , 1.0 ) );
 #else
 	vec3 tangent  = normalize( gl_MultiTexCoord1.xyz );
 	vec3 normal   = normalize( gl_Normal );
 
 	vec3 cPos  = vec3( gl_Vertex );
-	vec3 cCamPos = viewPos;
-	vec3 cLightPos = lightPos;
+	vec3 cCamPos = View.worldPos;
+	vec3 cLightPos = GLight.worldPosAndRadius.xyz;
 #endif
 
 	vec3 binormal = cross( normal , tangent );
@@ -188,13 +189,23 @@ float parallaxSoftShadowMultiplier(in vec3 L, in vec2 initialTexCoord,
 }
 
 
-void mainFS()
+void MainPS()
 {
 	vec3 E = normalize( viewOffset );
 	vec3 L = normalize( lightOffset );
 
-	float parallaxDepth;
-	vec2 T = calcParallaxPos3( E , gl_TexCoord[0].st , parallaxDepth );
+
+	POMParameters pomParams;
+	pomParams.dispTexture = texNormal;
+	pomParams.dispMask = float4(0, 0, 0, 1);
+	pomParams.dispBias = 0;
+	pomParams.parallaxScale = parallaxScale;
+	pomParams.iteratorParams = float2(30, 105);
+	pomParams.shadowIteratorParams = float2(15, 40);
+	
+	POMOutput pomOutput = POMapping(pomParams, E, gl_TexCoord[0].st);
+	float parallaxDepth = pomOutput.depth;
+	vec2 T = pomOutput.UVs;
 
 	vec3 N = texture2D( texNormal , T ).xyz * 2.0 - 1.0;
 	vec3 baseColor = texture2D( texBase , T ).rgb;
@@ -211,7 +222,7 @@ void mainFS()
 	}
 
 #if PARALLAX_DRAW_SHADOW
-	float shadowMultiplier = parallaxSoftShadowMultiplier( L , T , parallaxDepth - shadowBias );
+	float shadowMultiplier = CalcPOMSoftShadowMultiplier( pomParams , L , T , parallaxDepth - ShadowBias );
 	color += pow( shadowMultiplier , 10.0 ) * ( diff + spec ) * vec3( 0.6 , 0.6 , 0.6 );
 #else
 	color += ( diff + spec ) * vec3( 0.6 , 0.6 , 0.6 );
@@ -228,7 +239,7 @@ void mainFS()
 #else
 	vec4 depth = gl_ModelViewProjectionMatrix * vec4( V , 1.0 );
 #endif
-	gl_FragDepth = ( gl_DepthRange.diff * depth.z / depth.w + gl_DepthRange.near + gl_DepthRange.far ) * 0.5;
+	gl_FragDepth = ( gl_DepthRange.diff * depth.z / depth.w + gl_DepthRange.near + gl_DepthRange.far ) * 0.5 ;
 	gl_FragColor = vec4( 2.0 * vec3( depth.z / depth.w / depth.w ) - 0.1 , 1 ); 
 #endif
 	//gl_FragColor = vec4( E , 1.0 );

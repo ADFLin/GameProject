@@ -368,8 +368,8 @@ namespace Phy2D
 			Vec2f vrel = vB - vA;
 			float vn = vrel.dot(c.normal);
 
-			Vec2f cpA = bodyA->mXForm.mul(c.posLocal[0]);
-			Vec2f cpB = bodyB->mXForm.mul(c.posLocal[1]);
+			Vec2f cpA = bodyA->mXForm.transformPosition(c.posLocal[0]);
+			Vec2f cpB = bodyB->mXForm.transformPosition(c.posLocal[1]);
 
 			//#TODO: normal change need concerned
 			float depth2 = c.normal.dot(cpA - cpB);

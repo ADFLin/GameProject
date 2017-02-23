@@ -88,7 +88,7 @@ namespace CFly
 	void TransformUntility::translateLocal( Matrix4& self , Vector3 const& offset )
 	{
 		checkFormat( self );
-		self.translate( Math::rotate( offset , self )  );
+		self.translate( Math::TransformVector( offset , self )  );
 	}
 
 	void TransformUntility::scaleGlobal( Matrix4& self , Vector3 const& s )

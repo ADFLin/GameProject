@@ -2,6 +2,8 @@
 #define FileSystem_h__
 
 #include <string>
+#include <vector>
+
 #include "PlatformConfig.h"
 #include "IntegerType.h"
 
@@ -14,6 +16,7 @@ class FileUtility
 public:
 	static char const* getSubName( char const* fileName );
 	static char const* getDirPathPos( char const* filePath );
+	static bool LoadToBuffer(char const* path, std::vector< char >& outBuffer);
 };
 
 class FilePath

@@ -1,5 +1,4 @@
 #include "GLGraphics2D.h"
-
 #include <cassert>
 #include <algorithm>
 
@@ -92,6 +91,8 @@ void GLGraphics2D::beginRender()
 	glDisable( GL_DEPTH_TEST );
 	glDisable( GL_CULL_FACE );
 
+	glGetIntegerv(GL_VIEWPORT, mSavedViewport );
+	glViewport(0, 0, mWidth, mHeight);
 	glMatrixMode( GL_PROJECTION );
 	glPushMatrix();
 	glLoadIdentity();
@@ -105,14 +106,16 @@ void GLGraphics2D::endRender()
 {
 	glFlush();
 
-	glEnable( GL_CULL_FACE );
-	glEnable( GL_DEPTH_TEST );
-
 	glMatrixMode(GL_MODELVIEW);
 	glPopMatrix();
 	glMatrixMode(GL_PROJECTION);
 	glPopMatrix();
 	glMatrixMode(GL_MODELVIEW);
+	glViewport(mSavedViewport[0], mSavedViewport[1], mSavedViewport[2], mSavedViewport[3]);
+
+	glEnable(GL_CULL_FACE);
+	glEnable(GL_DEPTH_TEST);
+
 }
 
 void GLGraphics2D::emitPolygonVertex(Vec2f pos[] , int num)

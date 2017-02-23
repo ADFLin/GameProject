@@ -173,7 +173,7 @@ namespace Phy2D
 		assert( objA->getShape()->isConvex() && objB->getShape()->isConvex() );
 		mObj[0] = objA;
 		mObj[1] = objB;
-		mB2AWorld = objA->mXForm.mulInv( objB->mXForm );
+		mBToALocal = objA->mXForm.mulInv( objB->mXForm );
 		mSv[0] = mStorage + 0;
 		mSv[1] = mStorage + 1;
 		mSv[2] = mStorage + 2;
@@ -204,6 +204,8 @@ namespace Phy2D
 		}
 		d = sv->v + dir;
 		dir = tripleProduct( sv->v , d , d );
+		//#FIXME
+		//if( dir.length2() )
 
 		for(int iterCount = 0; iterCount < 20 ; ++iterCount )
 		{
@@ -287,16 +289,16 @@ namespace Phy2D
 			p[1] /= sum;
 		}
 		XForm const& worldTrans = mObj[0]->mXForm;
-		c.normal = worldTrans.rotateVector( e->normal );
+		c.normal = worldTrans.transformVector( e->normal );
 		c.depth  = e->depth;
 
 		c.object[0] = mObj[0];
 		c.object[1] = mObj[1];
 		c.posLocal[0] = p[0] * ( mObj[0]->mShape->getSupport( e->sv->d ) ) +
 			            p[1] * ( mObj[0]->mShape->getSupport( next->sv->d ) );
-		c.posLocal[1] = mB2AWorld.mulInv( c.posLocal[0] - d );
-		c.pos[0] = mObj[0]->mXForm.mul( c.posLocal[0] );
-		c.pos[1] = mObj[1]->mXForm.mul( c.posLocal[1] );
+		c.posLocal[1] = mBToALocal.transformPositionInv( c.posLocal[0] - d );
+		c.pos[0] = mObj[0]->mXForm.transformPosition( c.posLocal[0] );
+		c.pos[1] = mObj[1]->mXForm.transformPosition( c.posLocal[1] );
 	}
 
 	GJK::Edge* GJK::addEdge( Simplex* sv , Vec2f const& b )
@@ -349,12 +351,12 @@ namespace Phy2D
 	{
 		assert( sv );
 		Vec2f v0 = mObj[0]->mShape->getSupport( dir );
-		Vec2f v1 = mObj[1]->mShape->getSupport( mB2AWorld.rotateVectorInv(-dir) );
+		Vec2f v1 = mObj[1]->mShape->getSupport( mBToALocal.transformVectorInv(-dir) );
 #if PHY2D_DEBUG
 		sv->vObj[0] = v0;
 		sv->vObj[1] = v1;
 #endif
-		sv->v = v0 - mB2AWorld.mul( v1 );
+		sv->v = v0 - mBToALocal.transformPosition( v1 );
 		sv->d = dir;
 		return  sv;
 	}
@@ -363,7 +365,7 @@ namespace Phy2D
 	{
 		gGJK.init( objA , objB );
 		Vec2f dir = objB->getPos() - objA->getPos();
-		if ( gGJK.test( objA->mXForm.rotateVectorInv( dir ) ) )
+		if ( gGJK.test( objA->mXForm.transformVectorInv( dir ) ) )
 		{
 			gGJK.generateContact( c );
 			return true;
@@ -401,8 +403,8 @@ namespace Phy2D
 		c.object[1] = objB;
 		c.pos[0] = objA->getPos() + ca->getRadius() * c.normal;
 		c.pos[1] = objB->getPos() - cb->getRadius() * c.normal;
-		c.posLocal[0] = objA->mXForm.mulInv( c.pos[0] );
-		c.posLocal[1] = objB->mXForm.mulInv( c.pos[1] );
+		c.posLocal[0] = objA->mXForm.transformPositionInv( c.pos[0] );
+		c.posLocal[1] = objB->mXForm.transformPositionInv( c.pos[1] );
 		return true;
 	}
 
@@ -413,7 +415,7 @@ namespace Phy2D
 
 		assert( objA->mShape->getType() == Shape::eBox && objB->mShape->getType() == Shape::eCircle );
 
-		Vec2f offset = objA->mXForm.rotateVector( objB->getPos() - objA->getPos() );
+		Vec2f offset = objA->mXForm.transformVector( objB->getPos() - objA->getPos() );
 		Vec2f const& half  = static_cast< BoxShape* >( objA->mShape )->mHalfExt;
 		float radius = static_cast< CircleShape* >( objB->mShape )->getRadius();
 
@@ -535,15 +537,15 @@ namespace Phy2D
 		{
 			Vec2f pB = offset - radius * c.normal; 
 			c.posLocal[0] = pB + c.depth * c.normal;
-			c.pos[1] = objA->mXForm.mul( pB );
+			c.pos[1] = objA->mXForm.transformPosition( pB );
 		}
 		else
 		{
 			c.posLocal[0] = vCol;
-			c.pos[1] = objA->mXForm.mul( vCol - c.depth * c.normal );
+			c.pos[1] = objA->mXForm.transformPosition( vCol - c.depth * c.normal );
 		}
-		c.pos[0] = objA->mXForm.mul( c.posLocal[0] );
-		c.posLocal[1] = objB->mXForm.mulInv( c.pos[1] );
+		c.pos[0] = objA->mXForm.transformPosition( c.posLocal[0] );
+		c.posLocal[1] = objB->mXForm.transformPositionInv( c.pos[1] );
 		return true;
 	}
 

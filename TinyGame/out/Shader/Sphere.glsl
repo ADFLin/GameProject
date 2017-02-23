@@ -1,28 +1,25 @@
+#include "ViewParam.glsl"
 
-struct Sphere
+struct SphereData
 {
 	vec3  localPos;
 	float radius;
 };
 
-uniform Sphere sphere = Sphere( vec3(0,0,0) , 1.0 );
-uniform vec2   depthParam;
+uniform SphereData Sphere = SphereData( vec3(0,0,0) , 1.0 );
+uniform vec2   DepthParam;
 
-uniform vec3   lightPos[] = vec3[]( vec3( 0 , 10 , 10 ) , vec3( 0 , -10 , 10 ) , vec3( 0 , 0 , -30 ) , vec3( -30 , 0 , 10 ) );
-uniform vec3   lightColor[] = vec3[]( vec3( 0.3 , 0 , 0 ) , vec3( 0 , 0.4 , 0 ) , vec3( 0 , 0 , 0.5 ) , vec3( 0.1 , 0 , 0.2 ) );
+uniform vec3   LightPos[] = vec3[]( vec3( 0 , 10 , 10 ) , vec3( 0 , -10 , 10 ) , vec3( 0 , 0 , -30 ) , vec3( -30 , 0 , 10 ) );
+uniform vec3   LightColor[] = vec3[]( vec3( 0.3 , 0 , 0 ) , vec3( 0 , 0.4 , 0 ) , vec3( 0 , 0 , 0.5 ) , vec3( 0.1 , 0 , 0.2 ) );
 
-struct GlobalParam
+struct VertexFactoryParameters
 {
-	mat4 matView;
-	mat4 matWorld;
-	mat4 matWorldInv;
-	vec3 viewPos;
+	mat4 localToWorld;
+	mat4 worldToLocal;
 };
-uniform GlobalParam gParam = GlobalParam( 
+uniform VertexFactoryParameters VertexFactoryParams = VertexFactoryParameters( 
    mat4( 1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1 ) ,
-   mat4( 1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1 ) ,
-   mat4( 1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1 ) ,
-   vec3( 0,0,0 ) );
+   mat4( 1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1 ) );
 
 struct VSOutput
 {
@@ -76,12 +73,12 @@ float calcOffset( vec2 p , float r , float factor )
 vec4 VSOutputMain( out VSOutput outVS )
 {
 	vec3 camPosL = vec3( gl_ModelViewMatrixInverse * vec4(0.0, 0.0, 0.0, 1.0) );
-	vec3 spherePosV = vec3( gl_ModelViewMatrix * vec4( sphere.localPos , 1.0 ) );
+	vec3 spherePosV = vec3( gl_ModelViewMatrix * vec4( Sphere.localPos , 1.0 ) );
 	vec3 offsetV = vec3( 
-		calcOffset( vec2( spherePosV.x , -spherePosV.z ) , sphere.radius , gl_Vertex.x ),
-		calcOffset( vec2( spherePosV.y , -spherePosV.z ) , sphere.radius , gl_Vertex.y ), 
-		-sphere.radius );
-	outVS.viewOffsetL = sphere.localPos + ( gl_ModelViewMatrixInverse * vec4( offsetV , 0 ) ) - camPosL;
+		calcOffset( vec2( spherePosV.x , -spherePosV.z ) , Sphere.radius , gl_Vertex.x ),
+		calcOffset( vec2( spherePosV.y , -spherePosV.z ) , Sphere.radius , gl_Vertex.y ), 
+		-Sphere.radius );
+	outVS.viewOffsetL = Sphere.localPos + ( gl_ModelViewMatrixInverse * vec4( offsetV , 0 ) ) - camPosL;
 #ifdef USE_SHADOW_MAP
 	outVS.viewOffsetV = offsetV;
 #endif
@@ -89,7 +86,7 @@ vec4 VSOutputMain( out VSOutput outVS )
 }
 
 out VSOutput vsOutput;
-void mainVS()
+void MainVS()
 {
 	gl_Position = VSOutputMain( vsOutput );
 }
@@ -116,10 +113,10 @@ bool FSInputMain( in VSOutput inVS , out FSInput outFS )
 	// ( ld + vd * t ) ^ 2 = r^2 ; ld = camPos - sphere.localPos
 	// t^2 + 2 ( ld * vd ) t + ( ld^2 - r^2 ) = 0
 	vec3  vd = normalize( inVS.viewOffsetL );
-	vec3  ld = viewPosL - sphere.localPos;
+	vec3  ld = viewPosL - Sphere.localPos;
 
 	float b = dot( ld , vd );
-	float c = dot( ld , ld ) - sphere.radius * sphere.radius;
+	float c = dot( ld , ld ) - Sphere.radius * Sphere.radius;
 	float d = b * b - c;
 
 	if ( d < 0 || b > 0 )
@@ -139,7 +136,7 @@ bool FSInputMain( in VSOutput inVS , out FSInput outFS )
 	float t = -b - sqrt( d );
 	vec3 vL = viewPosL + vd * t;
 	outFS.vertex  = vL;
-	outFS.normal  = ( vL - sphere.localPos ) / sphere.radius;
+	outFS.normal  = ( vL - Sphere.localPos ) / Sphere.radius;
 	outFS.viewDir = normalize( viewPosL - vL );
 #if USE_SHADOW_MAP
 	outFS.viewOffsetV = inVS.viewOffsetV;
@@ -159,11 +156,11 @@ vec3 FSLightOffset( vec3 lightPos , vec3 V )
 #ifdef FSINPUT_LIGHT_POS_TRANSFORMED
 	return lightPos  - V;
 #elif defined( FSINPUT_LOCAL_SPACE )
-	return vec3( gParam.matWorldInv * vec4( lightPos , 1 ) ) - V;
+	return vec3( VertexFactoryParams.worldToLocal * vec4( lightPos , 1 ) ) - V;
 #elif defined( FSINPUT_WORLD_SPACE )
 	return lightPos  - V;
 #elif defined(FSINPUT_VIEW_SPACE )
-	return vec3( gParam.matView * vec4( lightPos , 1 ) ) - V;
+	return vec3( View.worldToView * vec4( lightPos , 1 ) ) - V;
 #elif defined(FSINPUT_VIEW_TSPACE )
 	return lightPos  - V;
 #elif defined( FSINPUT_LOCAL_TSPACE )
@@ -180,7 +177,7 @@ vec3 FSLighting( in FSInput inFS )
 	vec3 color = vec3(0,0,0);
 	for( int i = 0 ; i < 4 ; ++i )
 	{
-		vec3 L = FSLightOffset( lightPos[i] , V );
+		vec3 L = FSLightOffset( LightPos[i] , V );
 		L = normalize( L );
 		float diff = clamp( dot( L , N ) , 0.0 , 1.0 );
 		float spec = 0;
@@ -192,14 +189,14 @@ vec3 FSLighting( in FSInput inFS )
 			//vec3 H = normalize( L + E );  
 			//spec = clamp( pow( max( dot(H,N), 0.0 ) , 100.0 ) , 0.0 , 1.0 );
 		}
-		color += ( diff + spec ) * lightColor[i];
+		color += ( diff + spec ) * LightColor[i];
 	}
 	return color;
 }
 
 
 #if USE_SHADOW_MAP
-void mainFS() 
+void MainPS() 
 {
 	FSInput inFS;
 	if ( !FSInputMain( vsOutput , inFS ) )
@@ -208,15 +205,15 @@ void mainFS()
 	FSDepthCorrect( inFS );
 
 #if USE_POINT_LIGHT
-	float depth = ( length( inFS.viewOffsetV ) - depthParam.x ) / ( depthParam.y - depthParam.x );
+	float depth = ( length( inFS.viewOffsetV ) - DepthParam.x ) / ( DepthParam.y - DepthParam.x );
 #else
-	float depth = ( -inFS.viewOffsetV.z  - depthParam.x ) / ( depthParam.y - depthParam.x );
+	float depth = ( -inFS.viewOffsetV.z  - DepthParam.x ) / ( DepthParam.y - DepthParam.x );
 #endif
 	gl_FragData[0] = vec4(depth,depth,depth,1);
 
 }
 #else
-void mainFS() 
+void MainPS() 
 {
 	FSInput inFS;
 	if ( !FSInputMain( vsOutput , inFS ) )

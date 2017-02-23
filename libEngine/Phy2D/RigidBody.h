@@ -62,12 +62,12 @@ namespace Phy2D
 		void synTransform()
 		{
 			mXForm.setRoatation( mRotationAngle );
-			mPosCenter = mXForm.mul( mPosCenterLocal );
+			mPosCenter = mXForm.transformPosition( mPosCenterLocal );
 		}
 
 		Vec2f getVelFromLocalPos( Vec2f const& posLocal ) const
 		{
-			return mLinearVel + mXForm.rotateVector( Vec2f::Cross( mAngularVel , ( posLocal - mPosCenterLocal ) ) );
+			return mLinearVel + mXForm.transformVector( Vec2f::Cross( mAngularVel , ( posLocal - mPosCenterLocal ) ) );
 		}
 		Vec2f getVelFromWorldPos( Vec2f const& pos ) const
 		{

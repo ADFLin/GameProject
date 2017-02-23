@@ -36,7 +36,7 @@ namespace Phy2D
 		mShape->calcMass( info );
 
 		mPosCenterLocal = info.center;
-		mPosCenter = mXForm.mul( mPosCenterLocal );
+		mPosCenter = mXForm.transformPosition( mPosCenterLocal );
 		if ( mDensity == 0 )
 		{
 			mMass = mInvMass = 0; 

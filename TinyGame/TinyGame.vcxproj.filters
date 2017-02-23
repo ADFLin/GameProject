@@ -64,6 +64,9 @@
     <Filter Include="StageMode">
       <UniqueIdentifier>{a7bcd586-f00e-4b97-80fa-078643775276}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Shader\Material">
+      <UniqueIdentifier>{203377aa-53e1-4229-a2bf-843c1d2331f3}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Bsp2D.cpp">
@@ -220,6 +223,9 @@
       <Filter>StageMode</Filter>
     </ClCompile>
     <ClCompile Include="RenderGLStage.cpp">
+      <Filter>Stage</Filter>
+    </ClCompile>
+    <ClCompile Include="RenderGLStageScene.cpp">
       <Filter>Stage</Filter>
     </ClCompile>
   </ItemGroup>
@@ -437,6 +443,12 @@
     <ClInclude Include="RenderGLStage.h">
       <Filter>Stage</Filter>
     </ClInclude>
+    <ClInclude Include="..\va_stdafx.h">
+      <Filter>Include</Filter>
+    </ClInclude>
+    <ClInclude Include="RenderGLStageAssetID.h">
+      <Filter>Stage</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Image Include="Poker\cards.bmp">
@@ -509,6 +521,72 @@
     </None>
     <None Include="out\Shader\ShadowCommon.glsl">
       <Filter>Shader</Filter>
+    </None>
+    <None Include="out\Shader\ScreenSpaceReflection.glsl">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="out\Shader\DeferredBasePass.glsl">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="out\Shader\MaterialCommon.glsl">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="out\Shader\ViewParam.glsl">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="out\Shader\Material\MaterialTemplate.glsl">
+      <Filter>Shader\Material</Filter>
+    </None>
+    <None Include="out\Shader\VertexFactory.glsl">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="out\Shader\MaterialProcess.glsl">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="out\Shader\Material\Elephant.glsl">
+      <Filter>Shader\Material</Filter>
+    </None>
+    <None Include="out\Shader\ShadowDepthRender.glsl">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="out\Shader\Material\Simple3.glsl">
+      <Filter>Shader\Material</Filter>
+    </None>
+    <None Include="out\Shader\Material\Simple1.glsl">
+      <Filter>Shader\Material</Filter>
+    </None>
+    <None Include="out\Shader\Material\Simple2.glsl">
+      <Filter>Shader\Material</Filter>
+    </None>
+    <None Include="out\Shader\SphereCommon.glsl">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="out\Shader\Material\Mario.glsl">
+      <Filter>Shader\Material</Filter>
+    </None>
+    <None Include="out\Shader\Material\MetelA.glsl">
+      <Filter>Shader\Material</Filter>
+    </None>
+    <None Include="out\Shader\Material\Lightning.glsl">
+      <Filter>Shader\Material</Filter>
+    </None>
+    <None Include="out\Shader\LightParam.glsl">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="out\Shader\Material\Sphere.glsl">
+      <Filter>Shader\Material</Filter>
+    </None>
+    <None Include="out\Shader\Material\EmptyMaterial.glsl">
+      <Filter>Shader\Material</Filter>
+    </None>
+    <None Include="out\Shader\ParallaxOcclusionCommon.glsl">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="out\Shader\Material\POMTitle.glsl">
+      <Filter>Shader\Material</Filter>
+    </None>
+    <None Include="out\Shader\Material\Havoc.glsl">
+      <Filter>Shader\Material</Filter>
     </None>
   </ItemGroup>
 </Project>

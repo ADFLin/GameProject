@@ -30,6 +30,8 @@ namespace Math
 	inline float Fmod( float v1 , float v2 ){ return ::fmod( v1 , v2 ); }
 	inline float Deg2Rad( float val ){ return val * Math::PI / 180.0f; }
 	inline float Rad2Deg( float val ){ return val * 180.0f / Math::PI; }
+	inline float Pow(float base, float exp) { return ::pow(base, exp); }
+	inline float Lerp(float form, float to, float alpha) { return form * (1 - alpha) + to * alpha;  }
 
 }//namespace Math
 

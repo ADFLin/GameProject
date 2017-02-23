@@ -2,7 +2,13 @@
 
 #include "Common.glsl"
 
-float3 phongShading(float3 diffuseColor , float3 SpecularColor , float3 N, float3 L, float3 V , float shininess )
+float CalcRaidalAttenuation( float lightDist , float lightRadiusInv )
+{
+	float falloff = Square(saturate(1.0 - Square(lightDist * lightRadiusInv)));
+	return falloff * (1.0 / (lightDist * lightDist + 1.0));
+}
+
+float3 PhongShading(float3 diffuseColor , float3 SpecularColor , float3 N, float3 L, float3 V , float shininess )
 {
 	float3 H = normalize(L + V);
 
@@ -13,4 +19,68 @@ float3 phongShading(float3 diffuseColor , float3 SpecularColor , float3 N, float
 	float3 diff = diffuseColor * NoL;
 	float3 spec = SpecularColor * pow( max( NoH , 0.001 ) , shininess );
 	return diff + spec;
+}
+
+float3 Diffuse_Lambert(float3 DiffuseColor)
+{
+	return DiffuseColor * (1.0 / PI);
+}
+
+// GGX / Trowbridge-Reitz
+// [Walter et al. 2007, "Microfacet models for refraction through rough surfaces"]
+float D_GGX(float Roughness, float NoH)
+{
+	float a = Roughness * Roughness;
+	float a2 = a * a;
+	float d = (NoH * a2 - NoH) * NoH + 1;	// 2 mad
+	return a2 / (PI*d*d);					// 4 mul, 1 rcp
+}
+
+// Appoximation of joint Smith term for GGX
+// [Heitz 2014, "Understanding the Masking-Shadowing Function in Microfacet-Based BRDFs"]
+float Vis_SmithJointApprox(float Roughness, float NoV, float NoL)
+{
+	float a = Square(Roughness);
+	float Vis_SmithV = NoL * (NoV * (1.0 - a) + a);
+	float Vis_SmithL = NoV * (NoL * (1.0 - a) + a);
+	// Note: will generate NaNs with Roughness = 0.  MinRoughness is used to prevent this
+	return 0.5 * rcp(Vis_SmithV + Vis_SmithL);
+}
+
+float Pow5(float x)
+{
+	float xx = x*x;
+	return xx * xx * x;
+}
+
+// [Schlick 1994, "An Inexpensive BRDF Model for Physically-Based Rendering"]
+float3 F_Schlick(float3 SpecularColor, float VoH)
+{
+	float Fc = Pow5(1.0 - VoH);					// 1 sub, 3 mul
+												//return Fc + (1 - Fc) * SpecularColor;		// 1 add, 3 mad
+
+												// Anything less than 2% is physically impossible and is instead considered to be shadowing
+	return saturate(50.0 * SpecularColor.g) * Fc + (1.0 - Fc) * SpecularColor;
+
+}
+
+
+float3 StandardShading(float3 DiffuseColor, float3 SpecularColor, float3 LobeRoughness, float3 LobeEnergy, float3 L, float3 V, float3 N)
+{
+	float3 H = normalize(V + L);
+	float NoL = saturate(dot(N, L));
+	float NoV = saturate(abs(dot(N, V)) + 1e-5);
+	float NoH = saturate(dot(N, H));
+	float VoH = saturate(dot(V, H));
+
+	// Generalized microfacet specular
+	float D = D_GGX(LobeRoughness[1], NoH) * LobeEnergy[1];
+	float Vis = Vis_SmithJointApprox(LobeRoughness[1], NoV, NoL);
+	float3 F = F_Schlick(SpecularColor, VoH);
+
+	float3 Diffuse = Diffuse_Lambert(DiffuseColor);
+	//float3 Diffuse = Diffuse_Burley( DiffuseColor, LobeRoughness[1], NoV, NoL, VoH );
+	//float3 Diffuse = Diffuse_OrenNayar( DiffuseColor, LobeRoughness[1], NoV, NoL, VoH );
+
+	return NoL * ( Diffuse * LobeEnergy[2] + (D * Vis) * F );
 }

@@ -1,10 +1,11 @@
 #include "FileSystem.h"
+#include "PlatformConfig.h"
 
 #include <tchar.h> 
 #include <stdio.h>
 #include <strsafe.h>
+#include <fstream>
 
-#include "PlatformConfig.h"
 
 bool FileSystem::isExist( char const* path )
 {
@@ -119,4 +120,26 @@ char const* FileUtility::getDirPathPos( char const* filePath )
 	if ( !pos )
 		pos = strrchr( filePath , '/' );
 	return pos;
+}
+
+bool FileUtility::LoadToBuffer(char const* path, std::vector< char >& outBuffer)
+{
+	std::ifstream fs(path);
+
+	if( !fs.is_open() )
+		return false;
+
+	int64 size = 0;
+
+	fs.seekg(0, std::ios::end);
+	size = fs.tellg();
+	fs.seekg(0, std::ios::beg);
+	size -= fs.tellg();
+
+	outBuffer.resize(size + 1);
+	fs.read(&outBuffer[0], size);
+
+	outBuffer[size] = '\0';
+	fs.close();
+	return true;
 }

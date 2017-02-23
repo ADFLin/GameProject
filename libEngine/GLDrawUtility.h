@@ -60,7 +60,17 @@ namespace GL
 			};
 			RenderRT::draw< RenderRT::eXYZ_C >( GL_LINES , v , 6 , 2 * sizeof( Vector3 ) );
 		}
-
+		static void Rect(int x , int y , int width, int height)
+		{
+			int x2 = x + width;
+			int y2 = y + height;
+			glBegin(GL_QUADS);
+			glTexCoord2f(0, 0); glVertex2f(x, y);
+			glTexCoord2f(1, 0); glVertex2f(x2, y);
+			glTexCoord2f(1, 1); glVertex2f(x2, y2);
+			glTexCoord2f(0, 1); glVertex2f(x, y2);
+			glEnd();
+		}
 		static void Rect( int width, int height )
 		{
 			glBegin(GL_QUADS);
@@ -69,7 +79,6 @@ namespace GL
 			glTexCoord2f(1, 1); glVertex2f(width, height);
 			glTexCoord2f(0, 1); glVertex2f(0, height);
 			glEnd();
-
 		}
 		static void ScreenRect()
 		{

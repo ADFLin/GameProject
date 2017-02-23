@@ -1,9 +1,11 @@
 #include "CPreprocessor.h"
 
 #include "CommonMarco.h"
-#include <fstream>
+#include "FileSystem.h"
+#include "THolder.h"
 
-#define SYNTAL_ERROR( MSG ) SyntalError( MSG );
+#define SYNTAL_ERROR( MSG ) throw SyntalError( MSG );
+#define FUNCTION_CHECK( fun ) fun
 
 namespace CPP
 {
@@ -28,7 +30,7 @@ namespace CPP
 	};
 
 
-	Translator::Translator()
+	Preprocessor::Preprocessor()
 	{
 		mScopeCount = 0;
 		mDelimsTable.addDelims(" \t\r", DelimsTable::DropMask);
@@ -42,7 +44,7 @@ namespace CPP
 		}
 	}
 
-	CPP::TokenInfo Translator::nextToken(SourceInput& input)
+	CPP::TokenInfo Preprocessor::nextToken(CodeInput& input)
 	{
 		TokenInfo result;
 
@@ -63,25 +65,25 @@ namespace CPP
 		return result;
 	}
 
-	void Translator::execInclude(SourceInput& input)
+	void Preprocessor::execInclude(CodeInput& input)
 	{
 		TokenInfo token = nextToken(input);
 		if( token.type != Token_String )
-			throw SYNTAL_ERROR("Error include Format");
+			SYNTAL_ERROR("Error include Format");
 
 		if( token.str.num < 2 )
-			throw SYNTAL_ERROR("Error include Format");
+			SYNTAL_ERROR("Error include Format");
 
 		bool bSystemPath = false;
 		if( token.str[1] == '\"' )
 		{
 			if( token.str[token.str.num - 1] != '\"' )
-				throw SYNTAL_ERROR("Error include Format");
+				SYNTAL_ERROR("Error include Format");
 		}
 		else if( token.str[0] == '<' )
 		{
 			if( token.str[token.str.num - 1] != '>' )
-				throw SYNTAL_ERROR("Error include Format");
+				SYNTAL_ERROR("Error include Format");
 
 			bSystemPath = true;
 		}
@@ -92,25 +94,24 @@ namespace CPP
 
 		if( mParamOnceSet.find(path.toStdString()) == mParamOnceSet.end() )
 		{
-			SourceInput* includeInput = new SourceInput;
-			//#TODO
-			std::string fullPath = "Shader/";
-			fullPath += path.toStdString().c_str();
+			std::string fullPath;
+			if ( !findFile(path.toStdString() , fullPath ) )
+				SYNTAL_ERROR("Can't find include file");
+
+			TPtrHolder< CodeInput > includeInput( new CodeInput );
 			if( !includeInput->loadFile(fullPath.c_str()) )
 			{
-				delete includeInput;
-				throw SYNTAL_ERROR("Can't open include file");
+				SYNTAL_ERROR("Can't open include file");
 			}
 			includeInput->mFileName = path.toStdString();
 			includeInput->reset();
-			parse(*includeInput);
-			delete includeInput;
+			translate(*includeInput);
 		}
 
 		input.skipLine();
 	}
 
-	void Translator::execIf(SourceInput& input)
+	void Preprocessor::execIf(CodeInput& input)
 	{
 		std::string expr = getExpression(input);
 		int evalValue;
@@ -119,7 +120,7 @@ namespace CPP
 
 		if( evalValue != 0 )
 		{
-			parse(input);
+			translate(input);
 		}
 		else
 		{
@@ -127,9 +128,9 @@ namespace CPP
 		}
 	}
 
-	std::map< TokenString, Command, Translator::StrCmp > Translator::sCommandMap;
+	std::map< TokenString, Command, Preprocessor::StrCmp > Preprocessor::sCommandMap;
 
-	CPP::Command Translator::nextCommand( SourceInput& input, bool bOutString , char const*& comStart )
+	CPP::Command Preprocessor::nextCommand( CodeInput& input, bool bOutString , char const*& comStart )
 	{
 		char const*& str = input.mCur;
 
@@ -196,7 +197,23 @@ namespace CPP
 		return result;
 	}
 
-	void Translator::parse(SourceInput& input)
+	bool Preprocessor::findFile(std::string const& name, std::string& fullPath)
+	{
+		if( FileSystem::isExist(name.c_str()) )
+		{
+			fullPath = name;
+			return true;
+		}
+		for( int i = 0; i < mFileSreachDirs.size(); ++i )
+		{
+			fullPath = mFileSreachDirs[i] + name;
+			if( FileSystem::isExist(fullPath.c_str()) )
+				return true;
+		}
+		return false;
+	}
+
+	void Preprocessor::translate(CodeInput& input)
 	{
 		bool done = false;
 		do
@@ -209,7 +226,7 @@ namespace CPP
 				done = true;
 				break;
 			case Command::Include:
-				execInclude(input);
+				FUNCTION_CHECK(execInclude(input);)
 				break;
 			case Command::Pragma:
 				{
@@ -238,58 +255,93 @@ namespace CPP
 				break;
 
 			case Command::If:
-				{
-					++mScopeCount;
-					State state;
-					state.bEval = false;
-					mStateStack.push_back(state);
-				}
-				break;
 			case Command::Ifdef:
-				{
-					++mScopeCount;
-					State state;
-					state.bEval = false;
-					mStateStack.push_back(state);
-				}
-				break;
 			case Command::Ifndef:
 				{
-					++mScopeCount;
-					State state;
-					state.bEval = false;
-					mStateStack.push_back(state);
+					if ( mStateStack.empty() || mStateStack.back().bEval == true )
+					{
+						++mScopeCount;
+						State state;
+						state.bEval = false;
+						mStateStack.push_back(state);
+					}
 				}
 				break;
-
-
 			case Command::Endif:
 				{
 					--mScopeCount;
+					if( mStateStack.empty() )
+						SYNTAL_ERROR("");
 					mStateStack.pop_back();
 				}
 				break;
 			case Command::Elif:
+				{
+					if( mStateStack.empty() )
+						SYNTAL_ERROR("Error Command");
+
+					if( mStateStack.back().bHaveElse )
+						SYNTAL_ERROR("Error Command");
+
+					if( mStateStack.back().bEval )
+					{
+						mStateStack.back().bEval = false;
+						//skip
+					}
+					else
+					{
+
+
+					}
+				}
 			case Command::Else:
+				{
+					if ( mStateStack.empty() )
+						SYNTAL_ERROR("Error Command");
+
+					mStateStack.back().bHaveElse = true;
+
+					if( mStateStack.back().bEval )
+					{
+						mStateStack.back().bEval = false;
+						//skip
+					}
+					else
+					{
+
+					}
+				}
 			default:
 				SYNTAL_ERROR("Error Command");
 			}
 		}
 		while( !done );
+
+		if ( !mStateStack.empty() )
+			SYNTAL_ERROR("");
+
 	}
 
-	bool SourceInput::loadFile(char const* path)
+	void Preprocessor::setOutput(CodeOutput& output)
 	{
-		std::ifstream fs(path, std::ios::binary);
-		if( !fs.is_open() )
+		mOutput = &output;
+	}
+
+	void Preprocessor::addSreachDir(char const* dir)
+	{
+		mFileSreachDirs.push_back(dir);
+		std::string& dirAdd = mFileSreachDirs.back();
+		if( dirAdd[dirAdd.length() - 1] != '/' )
+		{
+			dirAdd += '/';
+		}
+	}
+
+	bool CodeInput::loadFile(char const* path)
+	{
+		if( !FileUtility::LoadToBuffer(path , mBuffer ) )
 			return false;
-		fs.seekg(0, fs.end);
-		std::ios::pos_type size = fs.tellg();
-		mBuffer.resize(size);
-		fs.seekg(0, fs.beg);
-		fs.read((char*)&mBuffer[0], size);
-		fs.close();
-		mBuffer.push_back(0);
+		reset();
 		return true;
 	}
 

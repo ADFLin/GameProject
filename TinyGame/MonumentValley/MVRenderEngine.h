@@ -12,6 +12,8 @@
 #include "GLCommon.h"
 #include "GLUtility.h"
 
+
+
 namespace MV
 {
 	class CRotator : public IRotator
@@ -82,23 +84,6 @@ namespace MV
 		float rotateAngle;
 	};
 
-	struct MeshLoader
-	{
-	public:
-		struct Data
-		{
-			float* position;
-			int    numPosition;
-			float* normal;
-			int    numNormal;
-			int*   indices;
-			int    numIndex;
-		};
-		bool load( GL::Mesh& mesh , Data& data );
-		bool load( GL::Mesh& mesh , char const* path );
-	};
-
-
 
 	class CModifyCreator : public IModifyCreator
 	{
@@ -158,7 +143,7 @@ namespace MV
 			matView.inverse( matViewInv , det );
 			glLoadMatrixf( matView );
 			mEffect.bind();
-			mEffect.setParam( "gParam.matViewInv" , matViewInv );
+			mEffect.setParam( "Global.matViewInv" , matViewInv );
 		}
 
 		void endRender()
@@ -176,7 +161,7 @@ namespace MV
 
 		RenderParam mParam;
 
-		GL::ShaderEffect mEffect;
+		GL::GlobalShader mEffect;
 		int locDirX;
 		int locDirZ;
 		int locLocalScale;

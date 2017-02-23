@@ -4,6 +4,7 @@
 #include "GL/glew.h"
 #include "GLConfig.h"
 
+#include "LogSystem.h"
 #include "IntegerType.h"
 #include "Math/Vector3.h"
 #include "Math/Vector4.h"
@@ -14,8 +15,8 @@
 #include "TVector2.h"
 
 #include <vector>
+#include <functional>
 
-#include "LogSystem.h"
 
 namespace GL
 {
@@ -153,6 +154,7 @@ namespace GL
 			e2D ,
 			e3D ,
 			eCube ,
+			eDepth ,
 		};
 		enum Format
 		{
@@ -242,7 +244,7 @@ namespace GL
 		static void destroy( GLuint& handle ){ glDeleteTextures( 1 , &handle ); }
 	};
 
-	class TextureBase : public GLObject< RMPTexture >
+	class TextureBaseRHI : public GLObject< RMPTexture >
 	{
 	protected:
 		bool loadFileInternal(char const* path, GLenum texType, Vec2i& outSize);
@@ -252,7 +254,7 @@ namespace GL
 	{
 
 	};
-	class Texture2D : public TextureBase
+	class Texture2DRHI : public TextureBaseRHI
 	{
 	public:
 		bool loadFile( char const* path );
@@ -267,7 +269,23 @@ namespace GL
 		int mSizeY;
 	};
 
-	class TextureCube : public TextureBase
+	class Texture3DRHI : public TextureBaseRHI
+	{
+	public:
+		bool create(Texture::Format format, int sizeX , int sizeY , int sizeZ );
+		int  getSizeX() { return mSizeX; }
+		int  getSizeY() { return mSizeY; }
+		int  getSizeZ() { return mSizeZ; }
+		void bind();
+		void unbind();
+
+	private:
+		int mSizeX;
+		int mSizeY;
+		int mSizeZ;
+	};
+
+	class TextureCubeRHI : public TextureBaseRHI
 	{
 	public:
 		bool loadFile( char const* path[] );
@@ -276,7 +294,7 @@ namespace GL
 		void unbind();
 	};
 
-	class DepthTexture : public TextureBase
+	class TextureDepthRHI : public TextureBaseRHI
 	{
 	public:
 		bool create(Texture::DepthFormat format, int width, int height);
@@ -336,45 +354,93 @@ namespace GL
 		void setParam( char const* name , float v1 )
 		{
 			int loc = getParamLoc( name );
-			glUniform1f( loc , v1 );	
+			if( loc != -1 ) 
+			{ 
+				glUniform1f(loc, v1); 
+			}
 		}
 		void setParam( char const* name , float v1 , float v2 )
 		{
 			int loc = getParamLoc( name );
-			glUniform2f( loc , v1, v2 );	
+			if( loc != -1 )
+			{  
+				glUniform2f(loc, v1, v2); 
+			}
 		}
 		void setParam( char const* name , float v1 , float v2 , float v3 )
 		{
 			int loc = getParamLoc( name );
-			glUniform3f( loc , v1, v2 , v3 );	
+			if( loc != -1 )
+			{
+				glUniform3f(loc, v1, v2, v3);
+			}
 		}
-
+		void setParam(char const* name, float v1, float v2, float v3 , float v4)
+		{
+			int loc = getParamLoc(name);
+			if( loc != -1 )
+			{
+				glUniform4f(loc, v1, v2, v3, v4);
+			}
+		}
 		void setParam( char const* name , int v1 )
 		{
 			int loc = glGetUniformLocation( mHandle , name );
-			glUniform1i( loc , v1 );	
+			if( loc != -1 )
+			{
+				glUniform1i(loc, v1);
+			}
 		}
 
-		void setMatrix33( char const* name , float const* value )
+		void setMatrix33( char const* name , float const* value, int num = 1)
 		{
 			int loc = glGetUniformLocation( mHandle , name );
-			glUniformMatrix3fv( loc , 1 , false , value );	
+			if( loc != -1 )
+			{
+				glUniformMatrix3fv(loc, num, false, value);
+			}
 		}
-		void setMatrix44( char const* name , float const* value )
+		void setMatrix44( char const* name , float const* value , int num = 1)
 		{
 			int loc = glGetUniformLocation( mHandle , name );
-			glUniformMatrix4fv( loc , 1 , false , value );	
+			if( loc != -1 )
+			{
+				glUniformMatrix4fv(loc, num, false, value);
+			}
+		}
+		void setParam(char const* name, float const v[] , int num ) 
+		{ 
+			int loc = glGetUniformLocation(mHandle, name);
+			if( loc != -1 )
+			{
+				glUniform1fv(loc, num, v);
+			}
 		}
 
 		void setParam( char const* name , Vector3 const& v ){ setParam( name , v.x , v.y , v.z ); }
-		void setParam( char const* name , Matrix4 const& m ){ setMatrix44( name , m ); }
-		void setParam( char const* name , Matrix3 const& m ){ setMatrix33( name , m ); }
-		void setTexture( char const* name , Texture2D& tex , int idx = 0)
-		{ return setTextureInternal( name , GL_TEXTURE_2D , tex.mHandle , idx ); }
-		void setTexture( char const* name , TextureCube& tex , int idx = 0)
-		{ return setTextureInternal( name , GL_TEXTURE_CUBE_MAP , tex.mHandle , idx ); }
+		void setParam( char const* name , Vector4 const& v) { setParam( name, v.x, v.y, v.z , v.w ); }
+		void setParam( char const* name , Matrix4 const& m ){ setMatrix44( name , m , 1 ); }
+		void setParam( char const* name , Matrix3 const& m ){ setMatrix33( name , m , 1 ); }
+		void setParam( char const* name, Matrix4 const v[], int num) { setMatrix44(name, v[0], num);  }
+
+		void setTexture( char const* name , Texture2DRHI& tex , int idx = -1 )
+		{ 
+			return setTextureInternal( name , GL_TEXTURE_2D , tex.mHandle , idx ); 
+		}
+		void setTexture(char const* name, TextureDepthRHI& tex, int idx = -1)
+		{
+			return setTextureInternal(name, GL_TEXTURE_2D, tex.mHandle, idx);
+		}
+		void setTexture( char const* name , TextureCubeRHI& tex , int idx = -1 )
+		{
+			return setTextureInternal( name , GL_TEXTURE_CUBE_MAP , tex.mHandle , idx ); 
+		}
+		void setTexture(char const* name, Texture3DRHI& tex, int idx = -1)
+		{
+			return setTextureInternal(name, GL_TEXTURE_3D, tex.mHandle, idx);
+		}
 #if 0 //#TODO Can't Bind to texture 2d
-		void setTexture2D( char const* name , TextureCube& tex , Texture::Face face , int idx )
+		void setTexture2D( char const* name , TextureCube& tex , Texture::Face face , int idx = -1 )
 		{
 			glActiveTexture( GL_TEXTURE0 + idx );
 			glBindTexture( GL_TEXTURE_CUBE_MAP_POSITIVE_X + face , tex.mHandle );
@@ -383,10 +449,17 @@ namespace GL
 		}
 #endif
 
-		void setTexture2D( char const* name , GLuint idTex , int idx ){ setTextureInternal( name , GL_TEXTURE_2D , idTex , idx ); }
+		void setTexture2D( char const* name , GLuint idTex , int idx = -1 ){ setTextureInternal( name , GL_TEXTURE_2D , idTex , idx ); }
 	
+
+		static int const IdxTextureAutoBindStart = 4;
 		void setTextureInternal( char const* name , GLenum texType , GLuint idTex , int idx )
 		{
+			if( idx < 0 || idx >= IdxTextureAutoBindStart )
+			{
+				idx = mIdxTextureAutoBind;
+				++mIdxTextureAutoBind;
+			}
 			glActiveTexture( GL_TEXTURE0 + idx );
 			glBindTexture( texType , idTex );
 			setParam( name , idx );
@@ -399,6 +472,7 @@ namespace GL
 		void setParam( int loc , float v1 , float v2 , float v3 ){  glUniform3f( loc , v1, v2 , v3 );  }
 		void setParam( int loc , int v1 ){  glUniform1i( loc , v1 );	}
 		void setParam( int loc , Vector3 const& v ){ glUniform3f( loc , v.x , v.y , v.z ); }
+		void setParam( int loc , Vector4 const& v ) { glUniform4f( loc, v.x, v.y, v.z , v.w ); }
 
 		
 		void setTexture2D( int loc , GLuint idTex , int idx )
@@ -421,6 +495,7 @@ namespace GL
 		GLuint  mHandle;
 		Shader* mShader[ NumShader ];
 		bool    mNeedLink;
+		int     mIdxTextureAutoBind;
 	};
 
 	struct RMPRenderBuffer
@@ -446,15 +521,14 @@ namespace GL
 
 		bool create();
 
-		
-		int  addTexture(TextureCube& target, Texture::Face face, bool beManaged = false);
-		int  addTexture( Texture2D& target , bool beManaged = false );
-		void setTexture( int idx , Texture2D& target , bool beManaged = false );
-		void setTexture( int idx , TextureCube& target , Texture::Face face , bool bManaged = false );
+		int  addTexture(TextureCubeRHI& target, Texture::Face face, bool beManaged = false);
+		int  addTexture( Texture2DRHI& target , bool beManaged = false );
+		void setTexture( int idx , Texture2DRHI& target , bool beManaged = false );
+		void setTexture( int idx , TextureCubeRHI& target , Texture::Face face , bool bManaged = false );
 		void bind();
 		void unbind();
 		void setDepth( DepthRenderBuffer& buffer , bool bManaged = false );
-		void setDepth( DepthTexture& target, bool bManaged = false );
+		void setDepth( TextureDepthRHI& target, bool bManaged = false );
 		void clearDepth();
 		GLuint getTextureHandle( int idx ){ return mTextures[idx].handle; }
 
@@ -508,7 +582,7 @@ namespace GL
 		VertexDecl();
 
 		void  setSize( uint8 size ){ mVertexSize = size; }
-		uint8 getSize() const { return mVertexSize; }
+		uint8 getVertexSize() const { return mVertexSize; }
 		int   getSematicOffset( Vertex::Semantic s ) const;
 		int   getSematicOffset( Vertex::Semantic s , int idx ) const;
 		Vertex::Format  getSematicFormat( Vertex::Semantic s ) const;
@@ -555,6 +629,9 @@ namespace GL
 
 		bool createBuffer( void* pVertex  , int nV , void* pIdx , int nIndices , bool bIntIndex );
 		void draw();
+		void drawSection(int idx);
+
+		void drawInternal(int idxStart , int num );
 
 		static GLenum convert( PrimitiveType type )
 		{
@@ -576,6 +653,13 @@ namespace GL
 		int        mNumIndices;
 		bool       mbIntIndex;
 		VertexDecl mDecl;
+
+		struct Section
+		{
+			int start;
+			int num;
+		};
+		std::vector< Section > mSections;
 	};
 
 

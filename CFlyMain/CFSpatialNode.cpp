@@ -222,7 +222,7 @@ namespace CFly
 			Vector3 lPos = pos;
 
 			Matrix4 const& trans = parent->getWorldTransform();
-			lPos = Math::rotateInverse( pos , trans ) - trans.getTranslation();
+			lPos = Math::TransformVectorInverse( pos , trans ) - trans.getTranslation();
 			setLocalPosition( lPos );
 		}
 		else

@@ -125,12 +125,15 @@
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="..\OtherLib\lodepng\lodepng.cpp" />
+    <ClCompile Include="..\OtherLib\lodepng\lodepng.cpp">
+      <Optimization Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">MaxSpeed</Optimization>
+    </ClCompile>
     <ClCompile Include="..\OtherLib\tinyobjloader\tiny_obj_loader.cc">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
       </PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
       </PrecompiledHeader>
+      <Optimization Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">MaxSpeed</Optimization>
     </ClCompile>
     <ClCompile Include="Bejeweled\BJLevel.cpp" />
     <ClCompile Include="Bejeweled\BJScene.cpp" />
@@ -139,6 +142,7 @@
     <ClCompile Include="Bsp2D.cpp" />
     <ClCompile Include="Cantan\CantanLevel.cpp" />
     <ClCompile Include="FBirdStage.cpp" />
+    <ClCompile Include="RenderGLStageScene.cpp" />
     <ClCompile Include="SingleStageMode.cpp" />
     <ClCompile Include="GGJStage.cpp" />
     <ClCompile Include="Go\GoCore.cpp" />
@@ -234,6 +238,7 @@
       </PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
       </PrecompiledHeader>
+      <Optimization Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">MaxSpeed</Optimization>
     </ClCompile>
     <ClCompile Include="MiscTestStage.cpp" />
     <ClCompile Include="Sudoku\SudokuStage.cpp" />
@@ -249,6 +254,7 @@
   <ItemGroup>
     <ClInclude Include="..\OtherLib\lodepng\lodepng.h" />
     <ClInclude Include="..\OtherLib\tinyobjloader\tiny_obj_loader.h" />
+    <ClInclude Include="..\va_stdafx.h" />
     <ClInclude Include="AgarStage.h" />
     <ClInclude Include="AStarStage.h" />
     <ClInclude Include="Bejeweled\BJLevel.h" />
@@ -263,6 +269,7 @@
     <ClInclude Include="Civ\CvMap.h" />
     <ClInclude Include="FBirdStage.h" />
     <ClInclude Include="Fight\FightLevel.h" />
+    <ClInclude Include="RenderGLStageAssetID.h" />
     <ClInclude Include="SingleStageMode.h" />
     <ClInclude Include="Geometry2d.h" />
     <ClInclude Include="GGJStage.h" />
@@ -331,21 +338,43 @@
     <None Include="out\Shader\BumpVS.glsl" />
     <None Include="out\Shader\Common.glsl" />
     <None Include="out\Shader\CopyTexture.glsl" />
+    <None Include="out\Shader\DeferredBasePass.glsl" />
     <None Include="out\Shader\DeferredLighting.glsl" />
     <None Include="out\Shader\DeferredLightingCommon.glsl" />
     <None Include="out\Shader\Light.glsl" />
     <None Include="out\Shader\LightingCommon.glsl" />
+    <None Include="out\Shader\LightParam.glsl" />
+    <None Include="out\Shader\MaterialCommon.glsl" />
+    <None Include="out\Shader\MaterialProcess.glsl" />
+    <None Include="out\Shader\Material\EmptyMaterial.glsl" />
+    <None Include="out\Shader\Material\Havoc.glsl" />
+    <None Include="out\Shader\Material\Lightning.glsl" />
+    <None Include="out\Shader\Material\MetelA.glsl" />
+    <None Include="out\Shader\Material\Elephant.glsl" />
+    <None Include="out\Shader\Material\Mario.glsl" />
+    <None Include="out\Shader\Material\MaterialTemplate.glsl" />
+    <None Include="out\Shader\Material\POMTitle.glsl" />
+    <None Include="out\Shader\Material\Simple3.glsl" />
+    <None Include="out\Shader\Material\Simple1.glsl" />
+    <None Include="out\Shader\Material\Simple2.glsl" />
+    <None Include="out\Shader\Material\Sphere.glsl" />
     <None Include="out\Shader\MVPiece.glsl" />
     <None Include="out\Shader\Parallax.glsl" />
+    <None Include="out\Shader\ParallaxOcclusionCommon.glsl" />
     <None Include="out\Shader\PlanetSurface.glsl" />
     <None Include="out\Shader\PongShaderVS.glsl" />
     <None Include="out\Shader\Reflection.glsl" />
+    <None Include="out\Shader\ScreenSpaceReflection.glsl" />
     <None Include="out\Shader\ShadowCommon.glsl" />
     <None Include="out\Shader\ShadowLighting.glsl" />
     <None Include="out\Shader\ShadowMap.glsl" />
     <None Include="out\Shader\Simple.glsl" />
     <None Include="out\Shader\Skin.glsl" />
     <None Include="out\Shader\Sphere.glsl" />
+    <None Include="out\Shader\ShadowDepthRender.glsl" />
+    <None Include="out\Shader\SphereCommon.glsl" />
+    <None Include="out\Shader\VertexFactory.glsl" />
+    <None Include="out\Shader\ViewParam.glsl" />
     <None Include="out\Shader\Water.glsl" />
   </ItemGroup>
   <ItemGroup>

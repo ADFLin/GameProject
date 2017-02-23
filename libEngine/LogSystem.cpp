@@ -7,13 +7,15 @@
 
 #include <vector>
 
+char buffer[10240];
+
 class LogManager : public SingletonT< LogManager >
 {
 public:
 
 	typedef std::vector< ILogListener* > MsgListenerList;
 	MsgListenerList chanelListenerList[ NUM_DEFAULT_LOG_CHANNEL ];
-	char buffer[1024];
+	
 
 	void   addListener( LogChannel channel , ILogListener* listener )
 	{
@@ -125,6 +127,7 @@ void ErrorMsg( char const* format , ... )
 
 void Msg       ( char const* format , va_list argptr )
 {
+	return;
 	LogManager::getInstance().sendMessage( LOG_MSG , format , argptr , 0 );
 }
 

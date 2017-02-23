@@ -48,16 +48,15 @@ public:
 	unsigned getID(){ return mThreadID; }
 	bool     isRunning(){ return mbRunning; }
 
-	void     finish( unsigned retValue )
-	{ 
-		mbRunning = false;
-		::_endthreadex( retValue );  
-	}
+
 protected:
 	template< class T >
 	static unsigned _stdcall RunnableProcess( void* t )
 	{
-		return static_cast< T* >( t )->execRunPrivate();
+		unsigned result = static_cast< T* >( t )->execRunPrivate();
+		static_cast< T* >(t)->mbRunning = false;
+		::_endthreadex(result);
+		return result;
 	}
 
 	DWORD    mSupendTimes;
@@ -208,7 +207,7 @@ public:
 	{ 
 		if ( !_this()->init() )
 			return false;
-		return create( PlatformThread::RunnableProcess< RannableThread > , this );
+		return create( PlatformThread::RunnableProcess< T > , this );
 	}
 	void stop()
 	{
@@ -223,8 +222,8 @@ public:
 	{
 		T* impl = _this();
 		unsigned reault = impl->run();
-		impl->finish( reault );
 		impl->exit();
+		
 		return reault;
 	}
 };

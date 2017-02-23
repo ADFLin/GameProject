@@ -67,7 +67,7 @@ void TNavigator::performMovement()
 
 	float angle = 0;
 
-	Vec3D faceDir = Math::rotate( mLocalFaceDir , mSpatialComp->getTransform() );
+	Vec3D faceDir = Math::TransformVector( mLocalFaceDir , mSpatialComp->getTransform() );
 
 
 	if ( dist > 1e-8 )

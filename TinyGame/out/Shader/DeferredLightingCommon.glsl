@@ -1,27 +1,82 @@
 #pragma once
 
+#include "Common.glsl"
+
+uniform sampler2D GBufferTextureA;
+uniform sampler2D GBufferTextureB;
+uniform sampler2D GBufferTextureC;
+uniform sampler2D GBufferTextureD;
+
 struct GBufferData
 {
-	vec3 worldPos;
-	vec3 normal;
-	vec4 baseColor;
+	float3 worldPos;
+	float3 normal;
+	float3 baseColor;
+
+	float metallic;
+	float specular;
+	float roughness;
+	uint  shadingModel;
+	
+	float3 diffuseColor;
+	float  depth;
+	float3 specularColor;
+
+	
 };
 
-void encodeGBuffer(in GBufferData data,
-				   out vec4 GBufferA,
-				   out vec4 GBufferB,
-				   out vec4 GBufferC)
+uint DecodeShadingModel(float value)
 {
-	GBufferA = vec4(data.worldPos, 0);
-	GBufferB = vec4(data.normal, 0);
-	GBufferC = data.baseColor;
+	return ((uint)round(value * float(0xff))) & 0xff;
 }
 
-GBufferData decodeGBuffer(in vec4 GBufferA, in vec4 GBufferB, in vec4 GBufferC)
+float EncodeShadingModel(uint value)
 {
-	GBufferData data;
-	data.worldPos = GBufferA.xyz;
-	data.normal = GBufferB.xyz;
-	data.baseColor = GBufferC;
-	return data;
+	return float(value) / float(0xff);
+}
+
+void EncodeGBuffer(in GBufferData GBuffer ,
+				   out float4 GBufferA,
+				   out float4 GBufferB,
+				   out float4 GBufferC,
+				   out float4 GBufferD)
+{
+	GBufferA = float4(GBuffer.worldPos, GBuffer.depth);
+	GBufferB = float4(GBuffer.normal, GBuffer.depth);
+	GBufferC = float4(GBuffer.baseColor, GBuffer.depth);
+
+	GBufferD.r = GBuffer.metallic;
+	GBufferD.g = GBuffer.roughness;
+	GBufferD.b = GBuffer.specular;
+	GBufferD.a = EncodeShadingModel(GBuffer.shadingModel);
+}
+
+GBufferData DecodeGBuffer(in float4 GBufferA, in float4 GBufferB, in float4 GBufferC , in float4 GBufferD)
+{
+	GBufferData GBuffer;
+	GBuffer.worldPos = GBufferA.rgb;
+	GBuffer.depth = GBufferC.a;
+	GBuffer.normal = GBufferB.rgb;
+	GBuffer.baseColor = GBufferC.rgb;
+
+	GBuffer.metallic = GBufferD.r;
+	GBuffer.roughness = GBufferD.g;
+	GBuffer.specular = GBufferD.b;
+	GBuffer.shadingModel = DecodeShadingModel(GBufferD.a);
+	GBuffer.specularColor = lerp(0.08 * GBuffer.specular.xxx, GBuffer.baseColor, GBuffer.metallic);
+	GBuffer.diffuseColor = GBuffer.baseColor - GBuffer.baseColor * GBuffer.metallic;
+
+	return GBuffer;
+}
+
+
+GBufferData GetScreenGBuffer(in float2 UVs)
+{
+	GBufferData GBuffer = DecodeGBuffer(
+		texture2D(GBufferTextureA, UVs),
+		texture2D(GBufferTextureB, UVs),
+		texture2D(GBufferTextureC, UVs),
+		texture2D(GBufferTextureD, UVs));
+
+	return GBuffer;
 }

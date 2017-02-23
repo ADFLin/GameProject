@@ -5,9 +5,14 @@
 #include "CommonMarco.h"
 #include <string>
 
+
+
 #ifndef BIT
 #define BIT( n ) ( 1 << ( n ) )
 #endif
+
+#define SHADER_ENTRY( NAME ) #NAME
+#define SHADER_PARAM( NAME ) #NAME
 
 namespace GL
 {
@@ -125,6 +130,16 @@ namespace GL
 			updateInternal();
 		}
 		void setPos( Vector3 const& pos ){ mPos = pos; }
+		void setViewDir(Vector3 const& forwardDir, Vector3 const& upDir)
+		{
+			LookAtMatrix mat(Vector3::Zero(), forwardDir, upDir);
+			mRotation.setMatrix(mat);
+			mRotation = mRotation.inverse();
+			Vector3 angle = mRotation.getEulerZYX();
+			mYaw = angle.z;
+			mRoll = angle.y;
+			mPitch = angle.x;
+		}
 		void setRotation( float yaw , float pitch , float roll )
 		{ 
 			mYaw = yaw;
@@ -185,15 +200,40 @@ namespace GL
 		static bool createIcoSphere( Mesh& mesh , float radius , int numDiv );
 		static bool createSkyBox( Mesh& mesh );
 		static bool createCube( Mesh& mesh , float halfLen = 1.0f );
+		static bool createCone(Mesh& mesh, float height, int numSide, bool bShareVertex);
+		static bool createCone(Mesh& mesh, float height, int numSide);
 		static bool createDoughnut(Mesh& mesh , float radius , float ringRadius , int rings , int sectors);
 		static bool createPlaneZ( Mesh& mesh , float len, float texFactor );
 		static bool createPlane( Mesh& mesh , Vector3 const& offset , Vector3 const& normal , Vector3 const& dir , float len , float texFactor);
+
+		struct MeshData
+		{
+			float* position;
+			int    numPosition;
+			float* normal;
+			int    numNormal;
+			int*   indices;
+			int    numIndex;
+		};
+		static bool createMesh(Mesh& mesh, MeshData& data);
+
+		struct MaterialInfo
+		{
+
+
+		};
+		static bool createFromObjectFile(
+			Mesh& mesh, char const* path , 
+			Matrix4* pTransform = nullptr , 
+			//std::function< void ( int idxScetion , MaterialInfo const& mat ) >* materialFun = nullptr , 
+			int * skip = nullptr );
+
 	};
 
-	class ShaderEffect : public ShaderProgram
+	class GlobalShader : public ShaderProgram
 	{
 	public:
-		ShaderEffect();
+		GlobalShader();
 		bool loadFromSingleFile( char const* fileName , char const* def = NULL );
 		bool loadFromSingleFile(
 			char const* fileName,

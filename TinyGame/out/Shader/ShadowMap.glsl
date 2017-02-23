@@ -1,60 +1,35 @@
+#include "Common.glsl"
+
 #define USE_POINT_LIGHT 1
 #define USE_SHADOW_MAP 1
 
-uniform vec2 depthParam;
+uniform float2 DepthParam;
 
 struct VSOutput
 {
-	vec3 viewOffsetV;
+	float3 viewOffsetV;
 };
 
 #ifdef VERTEX_SHADER
 
-vec4 VSOutputMain( out VSOutput outVS )
-{
-	outVS.viewOffsetV = vec3( gl_ModelViewMatrix * gl_Vertex );
-	return ftransform();
-}
-
 out VSOutput vsOutput;
-void mainVS()
+void MainVS()
 {
-	gl_Position = VSOutputMain( vsOutput );
+	vsOutput.viewOffsetV = float3(gl_ModelViewMatrix * gl_Vertex);
+	gl_Position = ftransform();
 }
 
 #endif //VERTEX_SHADER
 
 #ifdef PIXEL_SHADER
 
-struct FSInput 
-{
-	vec3 viewOffsetV;
-};
-
 in VSOutput vsOutput;
-bool FSInputMain( in VSOutput inVS , out FSInput outFS )
+void MainPS() 
 {
-	outFS.viewOffsetV = inVS.viewOffsetV;
-	return true;
-}
-
-void FSDepthCorrect( in FSInput inFS )
-{
-	
-}
-
-void mainFS() 
-{
-	FSInput inFS;
-	if ( !FSInputMain( vsOutput , inFS ) )
-		return;
-
-	 FSDepthCorrect( inFS );
-
 #if USE_POINT_LIGHT
-	float depth = ( length( inFS.viewOffsetV ) - depthParam.x ) / ( depthParam.y - depthParam.x );
+	float depth = ( length(vsOutput.viewOffsetV) - DepthParam.x ) / ( DepthParam.y - DepthParam.x );
 #else
-	float depth = ( -inFS.viewOffsetV.z  - depthParam.x ) / ( depthParam.y - depthParam.x );
+	float depth = ( -vsOutput.viewOffsetV.z  - DepthParam.x ) / ( DepthParam.y - DepthParam.x );
 #endif
 	//depth = 1.0;
 	gl_FragColor = vec4(depth,depth,depth,1);

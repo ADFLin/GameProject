@@ -1,13 +1,18 @@
 #include "GLCommon.h"
 
-#include "stb/stb_image.h"
 #include "CPreprocessor.h"
 #include "CommonMarco.h"
-#include <sstream>
+#include "FileSystem.h"
+
+#include "stb/stb_image.h"
+
 #include <fstream>
+#include <sstream>
 
 namespace GL
 {
+	static bool gbRecompileMode = true;
+
 	static bool checkGLError()
 	{
 		GLenum error = glGetError();
@@ -20,25 +25,14 @@ namespace GL
 		return true;
 	}
 
+
+
 	bool Shader::loadFile( Type type , char const* path , char const* def )
 	{
-		std::ifstream fs( path );
 
-		if ( !fs.is_open() )
+		std::vector< char > codeBuffer;
+		if( !FileUtility::LoadToBuffer(path, codeBuffer) )
 			return false;
-
-		int64 size = 0;
-
-		fs.seekg(0, std::ios::end); 
-		size = fs.tellg();
-		fs.seekg(0, std::ios::beg);
-		size -= fs.tellg();
-
-		std::vector< char > buf(size + 1);
-		fs.read( &buf[0] , size );
-
-		buf[ size ]='\0';
-		fs.close();
 
 		int num = 0;
 		char const* src[2];
@@ -47,7 +41,7 @@ namespace GL
 			src[num] = def;
 			++num;
 		}
-		src[num] = &buf[0];
+		src[num] = &codeBuffer[0];
 		++num;
 
 		bool result = compileSource( type , src , num );
@@ -74,58 +68,76 @@ namespace GL
 		if ( !create( type ) )
 			return false;
 
-		if( bUsePreprocess )
+		//#TODO: Move To ShaderCompiler
+	Recompile:
+
+		bool bCompileSuccess = true;
 		{
-			CPP::SourceInput sourceInput;
-			for( int i = 0; i < num; ++i )
+			if( bUsePreprocess )
 			{
-				sourceInput.appendString(src[i]);
-			}
-			sourceInput.reset();
-
-			;
-			std::ostringstream oss;
-			CPP::SourceOutput sourceOutput( oss );
-
-			CPP::Translator translator;
-			translator.mOutput = &sourceOutput;
-			try
-			{
-				translator.parse(sourceInput);
-			}
-			catch (...)
-			{
-				return false;
-			}
-			std::string code = oss.str();
-			if( 1 )
-			{
-				std::ofstream of("temp.glsl" , std::ios::binary );
-				if( of.is_open() )
+				CPP::CodeInput sourceInput;
+				for( int i = 0; i < num; ++i )
 				{
-					of.write(code.c_str(), code.size());
+					sourceInput.appendString(src[i]);
+				}
+				sourceInput.reset();
+
+				std::ostringstream oss;
+				CPP::CodeOutput codeOutput(oss);
+
+				CPP::Preprocessor preporcessor;
+				preporcessor.setOutput( codeOutput );
+				preporcessor.addSreachDir("Shader/");
+				try
+				{
+					preporcessor.translate(sourceInput);
+				}
+				catch( std::exception& e )
+				{
+					e.what();
+					return false;
+				}
+				std::string code = oss.str();
+
+				src[0] = code.c_str();
+				glShaderSource(mHandle, 1, src, 0);
+				glCompileShader(mHandle);
+
+				if( getParam(GL_COMPILE_STATUS) == GL_FALSE )
+				{
+					std::ofstream of("temp.glsl", std::ios::binary);
+					if( of.is_open() )
+					{
+						of.write(code.c_str(), code.size());
+					}
 				}
 			}
-			src[0] = code.c_str();
-			glShaderSource(mHandle, 1, src , 0);
-			glCompileShader(mHandle);
+			else
+			{
+				glShaderSource(mHandle, num, src, 0);
+				glCompileShader(mHandle);
+			}
+
+			if( getParam(GL_COMPILE_STATUS) == GL_FALSE )
+			{
+				int maxLength;
+				glGetShaderiv(mHandle, GL_INFO_LOG_LENGTH, &maxLength);
+				std::vector< char > buf(maxLength);
+				int logLength = 0;
+				glGetShaderInfoLog(mHandle, maxLength, &logLength, &buf[0]);
+				::MessageBoxA(NULL, &buf[0], "Shader Compile Error", 0 );
+				bCompileSuccess = false;
+			}
 		}
-		else
+
+		if ( bCompileSuccess == false )
 		{
-			glShaderSource(mHandle, num, src, 0);
-			glCompileShader(mHandle);
-		}
-		
-		if ( getParam( GL_COMPILE_STATUS ) == GL_FALSE )
-		{
-			int maxLength;
-			glGetShaderiv( mHandle ,GL_INFO_LOG_LENGTH,&maxLength);
-			std::vector< char > buf( maxLength + 1 );
-			int logLength = 0;
-			glGetShaderInfoLog( mHandle , maxLength, &logLength, &buf[0] );
-			::MessageBoxA( NULL , &buf[0] , "Error" , 0 );
+			if( gbRecompileMode )
+				goto Recompile;
+
 			return false;
 		}
+
 		return true;
 	}
 
@@ -221,10 +233,10 @@ namespace GL
 		glGetProgramiv(mHandle, GL_LINK_STATUS, &value);
 		if( value != GL_TRUE )
 		{
-			GLchar buffer[1024];
+			GLchar buffer[4096];
 			GLsizei size;
-			glGetProgramInfoLog(mHandle, 1024, &size, buffer);
-			::Msg("Can't Link Program : %", buffer);
+			glGetProgramInfoLog(mHandle, ARRAY_SIZE(buffer), &size, buffer);
+			//::Msg("Can't Link Program : %s", buffer);
 		}
 	}
 
@@ -232,6 +244,7 @@ namespace GL
 	{
 		updateShader();
 		glUseProgram( mHandle );
+		mIdxTextureAutoBind = IdxTextureAutoBindStart;
 		if( !checkGLError() )
 		{
 			checkLinkStatus();
@@ -269,7 +282,7 @@ namespace GL
 	{
 		glGenBuffers( 1 , &mVboVertex );
 		glBindBuffer( GL_ARRAY_BUFFER , mVboVertex );
-		glBufferData( GL_ARRAY_BUFFER , mDecl.getSize() * nV , pVertex , GL_STATIC_DRAW );
+		glBufferData( GL_ARRAY_BUFFER , mDecl.getVertexSize() * nV , pVertex , GL_STATIC_DRAW );
 		glBindBuffer( GL_ARRAY_BUFFER , 0 );
 
 		glGenBuffers( 1 , &mVboIndex );
@@ -292,17 +305,43 @@ namespace GL
 		{
 			glBindBuffer( GL_ELEMENT_ARRAY_BUFFER , mVboIndex );
 			glDrawElements( convert( mType ) , mNumIndices , mbIntIndex ? GL_UNSIGNED_INT : GL_UNSIGNED_SHORT , (void*)0 );
-			glBindBuffer( GL_ELEMENT_ARRAY_BUFFER_ARB , 0 );
+			glBindBuffer( GL_ELEMENT_ARRAY_BUFFER , 0 );
 		}
 		else
 		{
 			glDrawArrays( convert( mType ) , 0 , mNumVertices );
 		}
-
+		checkGLError();
 		mDecl.unbind();
 		glBindBuffer( GL_ARRAY_BUFFER , 0 );
 	}
 
+
+	void Mesh::drawSection(int idx)
+	{
+		Section& section = mSections[idx];
+		drawInternal( section.start , section.num);
+	}
+
+	void Mesh::drawInternal(int idxStart, int num)
+	{
+		glBindBuffer(GL_ARRAY_BUFFER, mVboVertex);
+		mDecl.bind();
+
+		if( mVboIndex )
+		{
+			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mVboIndex);
+			glDrawElements(convert(mType), num, mbIntIndex ? GL_UNSIGNED_INT : GL_UNSIGNED_SHORT, (void*)idxStart);
+			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+		}
+		else
+		{
+			glDrawArrays(convert(mType), idxStart, num);
+		}
+		checkGLError();
+		mDecl.unbind();
+		glBindBuffer(GL_ARRAY_BUFFER, 0);
+	}
 
 	VertexDecl::VertexDecl()
 	{
@@ -476,7 +515,7 @@ namespace GL
 	}
 
 
-	bool TextureBase::loadFileInternal(char const* path , GLenum texType , Vec2i& outSize)
+	bool TextureBaseRHI::loadFileInternal(char const* path , GLenum texType , Vec2i& outSize)
 	{
 		int w;
 		int h;
@@ -506,7 +545,7 @@ namespace GL
 		return true;
 	}
 
-	bool Texture2D::create(Texture::Format format , int width , int height)
+	bool Texture2DRHI::create(Texture::Format format , int width , int height)
 	{
 		if ( !fetchHandle() )
 			return false;
@@ -522,7 +561,7 @@ namespace GL
 	}
 
 
-	bool Texture2D::loadFile(char const* path)
+	bool Texture2DRHI::loadFile(char const* path)
 	{
 		if ( !fetchHandle() )
 			return false;
@@ -539,17 +578,43 @@ namespace GL
 		return result;
 	}
 
-	void Texture2D::bind()
+	void Texture2DRHI::bind()
 	{
 		glBindTexture( GL_TEXTURE_2D , mHandle );
 	}
 
-	void Texture2D::unbind()
+	void Texture2DRHI::unbind()
 	{
 		glBindTexture( GL_TEXTURE_2D , 0 );
 	}
 
-	bool TextureCube::create(Texture::Format format , int width , int height)
+	bool Texture3DRHI::create(Texture::Format format, int sizeX , int sizeY , int sizeZ )
+	{
+		if( !fetchHandle() )
+			return false;
+		mSizeX = sizeX;
+		mSizeY = sizeY;
+		mSizeZ = sizeZ;
+
+		glBindTexture(GL_TEXTURE_2D, mHandle);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		glTexImage3D(GL_TEXTURE_2D, 0, Texture::Convert(format), sizeX, sizeY , sizeZ, 0, GL_RGBA, GL_FLOAT, NULL);
+		glBindTexture(GL_TEXTURE_2D, 0);
+		return true;
+	}
+
+	void Texture3DRHI::bind()
+	{
+		glBindTexture(GL_TEXTURE_3D, mHandle);
+	}
+
+	void Texture3DRHI::unbind()
+	{
+		glBindTexture(GL_TEXTURE_3D, 0);
+	}
+
+	bool TextureCubeRHI::create(Texture::Format format , int width , int height)
 	{
 		if ( !fetchHandle() )
 			return false;
@@ -565,7 +630,7 @@ namespace GL
 		return true;
 	}
 
-	bool TextureCube::loadFile(char const* path[])
+	bool TextureCubeRHI::loadFile(char const* path[])
 	{
 		if ( !fetchHandle() )
 			return false;
@@ -586,17 +651,17 @@ namespace GL
 		return result;
 	}
 
-	void TextureCube::bind()
+	void TextureCubeRHI::bind()
 	{
 		glBindTexture( GL_TEXTURE_CUBE_MAP , mHandle );
 	}
 
-	void TextureCube::unbind()
+	void TextureCubeRHI::unbind()
 	{
 		glBindTexture( GL_TEXTURE_CUBE_MAP , 0 );
 	}
 
-	bool DepthTexture::create(Texture::DepthFormat format, int width, int height)
+	bool TextureDepthRHI::create(Texture::DepthFormat format, int width, int height)
 	{
 		if( !fetchHandle() )
 			return false;
@@ -606,7 +671,7 @@ namespace GL
 		glBindTexture(GL_TEXTURE_2D, mHandle);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_POINT);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_POINT);
-		glTexImage2D(GL_TEXTURE_2D, 0,  Texture::Convert(format), width, height, 0, GL_DEPTH_STENCIL, GL_UNSIGNED_INT_24_8, NULL);
+		glTexImage2D(GL_TEXTURE_2D, 0,  Texture::Convert(format), width, height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
 
 		GLenum error = glGetError();
 		if( error != GL_NO_ERROR )
@@ -640,7 +705,7 @@ namespace GL
 		}
 	}
 
-	int FrameBuffer::addTexture( TextureCube& target , Texture::Face face , bool beManaged )
+	int FrameBuffer::addTexture( TextureCubeRHI& target , Texture::Face face , bool beManaged )
 	{
 		int idx = mTextures.size();
 
@@ -656,7 +721,7 @@ namespace GL
 		return idx;
 	}
 
-	int FrameBuffer::addTexture( Texture2D& target , bool beManaged )
+	int FrameBuffer::addTexture( Texture2DRHI& target , bool beManaged )
 	{
 		int idx = mTextures.size();
 
@@ -673,7 +738,7 @@ namespace GL
 		return idx;
 	}
 
-	void FrameBuffer::setTexture( int idx , Texture2D& target , bool beManaged )
+	void FrameBuffer::setTexture( int idx , Texture2DRHI& target , bool beManaged )
 	{
 		assert( idx < mTextures.size() );
 		BufferInfo& info = mTextures[idx];
@@ -685,7 +750,7 @@ namespace GL
 		setTextureInternal( idx , info , GL_TEXTURE_2D );
 	}
 
-	void FrameBuffer::setTexture( int idx , TextureCube& target , Texture::Face face , bool beManaged )
+	void FrameBuffer::setTexture( int idx , TextureCubeRHI& target , Texture::Face face , bool beManaged )
 	{
 		assert( idx < mTextures.size() );
 		BufferInfo& info = mTextures[idx];
@@ -795,7 +860,7 @@ namespace GL
 			buffer.release();
 	}
 
-	void FrameBuffer::setDepth(DepthTexture& target, bool bManaged /*= false */)
+	void FrameBuffer::setDepth(TextureDepthRHI& target, bool bManaged /*= false */)
 	{
 		bManaged = (bManaged) ? target.mbManaged : false;
 		setDepthInternal(target.mHandle, target.getFormat(), true , bManaged);

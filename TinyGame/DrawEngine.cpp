@@ -206,8 +206,8 @@ void DrawEngine::setupBuffer( int w , int h )
 
 		BITMAPINFO bmpInfo;
 		bmpInfo.bmiHeader.biSize     = sizeof(BITMAPINFOHEADER);
-		bmpInfo.bmiHeader.biWidth    = getScreenWidth();
-		bmpInfo.bmiHeader.biHeight   = getScreenHeight();
+		bmpInfo.bmiHeader.biWidth    = w;
+		bmpInfo.bmiHeader.biHeight   = h;
 		bmpInfo.bmiHeader.biPlanes   = 1;
 		bmpInfo.bmiHeader.biBitCount = bitsPerPixel;
 		bmpInfo.bmiHeader.biCompression = BI_RGB;

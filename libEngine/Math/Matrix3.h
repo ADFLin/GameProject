@@ -120,13 +120,13 @@ namespace Math
 
 	}
 
-	inline Vector3 rotate( Vector3 const& v  , Matrix3 const& m )
+	inline Vector3 TransformVector( Vector3 const& v  , Matrix3 const& m )
 	{
 		return MatrixUtility::rotate( v , m );
 	}
 
 
-	inline Vector3 rotateInverse( Vector3 const& v , Matrix3 const& m )
+	inline Vector3 TransformVectorInverse( Vector3 const& v , Matrix3 const& m )
 	{
 		return MatrixUtility::rotateInverse( v , m );
 	}

@@ -156,14 +156,15 @@ class sampler2D;
 class sampler3D;
 class samplerCUBE;
 
+
 class texture;
 class sampler_state;
 
 class SamplerState;
 
 class Texture1D;
-class Texture2D;
-class Texture3D;
+class Texture2DRHI;
+class Texture3DRHI;
 
 struct float2
 {
@@ -278,6 +279,8 @@ vec4 texture( sampler2D , vec2 );
 vec4 texture( sampler3D , vec3 );
 vec4 texture( samplerCube , vec3 );
 
+
+int textureSize(sampler1D, int);
 template< class T >
 T dFdx( T );
 template< class T >

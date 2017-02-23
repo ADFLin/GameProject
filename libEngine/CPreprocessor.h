@@ -12,10 +12,10 @@
 
 namespace CPP
 {
-	class SourceOutput
+	class CodeOutput
 	{
 	public:
-		SourceOutput(std::ostream& stream)
+		CodeOutput(std::ostream& stream)
 			:mStream(stream)
 		{
 		}
@@ -45,14 +45,8 @@ namespace CPP
 
 	};
 
-	struct DefineSymbol
-	{
-		TokenString name;
-		std::string expr;
-		std::vector< uint8 > paramEntry;
-	};
 
-	class SourceInput
+	class CodeInput
 	{
 	public:
 		void appendString(char const* str)
@@ -105,7 +99,7 @@ namespace CPP
 
 	};
 
-	class SyntalError : std::exception
+	class SyntalError : public std::exception
 	{
 	public:
 		SyntalError( char const* str ):
@@ -127,20 +121,32 @@ namespace CPP
 		None,
 	};
 
+	struct DefineSymbol
+	{
+		TokenString name;
+		std::string expr;
+		std::vector< uint8 > paramEntry;
+	};
 
-	class Translator
+
+	class Preprocessor
 	{
 	public:
-		Translator();
+		Preprocessor();
+		void translate( CodeInput& input );
+		void setOutput(CodeOutput& output);
+		void addSreachDir(char const* dir);
+		void define(char const* name, int value){}
+	private:
 
-		TokenInfo nextToken(SourceInput& input);
+		TokenInfo nextToken(CodeInput& input);
 
 		bool bSupportMarco = false;
 
-		void execInclude(SourceInput& input);
+		void execInclude(CodeInput& input);
 
 
-		void execIf(SourceInput& input);
+		void execIf(CodeInput& input);
 
 		bool evalExpression( std::string const& expr , int& outValue )
 		{
@@ -157,9 +163,9 @@ namespace CPP
 		};
 		static std::map< TokenString, Command , StrCmp > sCommandMap;
 
-		Command nextCommand(SourceInput& input, bool bOutString, char const*& comStart);
+		Command nextCommand(CodeInput& input, bool bOutString, char const*& comStart);
 
-		std::string getExpression(SourceInput& input)
+		std::string getExpression(CodeInput& input)
 		{
 			return std::string("");
 		}
@@ -170,22 +176,23 @@ namespace CPP
 			return true;
 		}
 
-		void parse( SourceInput& input );
+		bool findFile(std::string const& name, std::string& fullPath);
 
 		int mScopeCount;
 		DelimsTable   mDelimsTable;
-		SourceOutput* mOutput;
+		CodeOutput* mOutput;
 		std::set< DefineSymbol > mDefineSymbolSet;
-		std::string   mIncludePath;
 
-		std::set< std::string > mParamOnceSet;
+		std::set< std::string >  mParamOnceSet;
 
 		struct State
 		{
 			bool bEval;
+			bool bHaveElse;
 		};
 
-		std::vector< State > mStateStack;
+		std::vector< State >       mStateStack;
+		std::vector< std::string > mFileSreachDirs;
 	};
 }
 

@@ -1,18 +1,14 @@
-struct GlobalParam
+#include "ViewParam.glsl"
+
+struct VertexFactoryParameters
 {
-	mat4 matView;
-	mat4 matWorld;
-	mat4 matWorldInv;
-	mat4 matViewInv;
-	vec3 viewPos;
+	mat4 localToWorld;
+	mat4 worldToLocal;
 };
 
-uniform GlobalParam gParam = GlobalParam( 
+uniform VertexFactoryParameters VertexFactoryParams = VertexFactoryParameters( 
    mat4( 1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1 ) ,
-   mat4( 1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1 ) ,
-   mat4( 1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1 ) ,
-   mat4( 1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1 ) ,
-   vec3( 0,0,0 ) );
+   mat4( 1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1 ) );
 
 uniform vec3 color = vec3( 0.7 , 0.8 , 0.75 );
 uniform vec3 lightDir = vec3( 0.4 , 0.5 , 0.8 );
@@ -22,9 +18,9 @@ varying vec3 normal;
 
 #ifdef VERTEX_SHADER
 
-void mainVS()
+void MainVS()
 {
-	mat4 matWorld = gParam.matViewInv * gl_ModelViewMatrix;
+	mat4 matWorld = View.viewToWorld * gl_ModelViewMatrix;
 	normal = normalize( transpose( inverse( mat3( matWorld ) ) ) * gl_Normal );
 	outColor = abs( dot( normal , normalize(lightDir) ) ) * gl_Color.rgb;
 	gl_Position = ftransform();
@@ -34,7 +30,7 @@ void mainVS()
 
 #ifdef PIXEL_SHADER
 
-void mainFS() 
+void MainPS() 
 {
 	vec3 N = normalize( normal );
 	gl_FragColor = vec4( outColor , 1.0 );

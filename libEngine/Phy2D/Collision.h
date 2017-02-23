@@ -41,8 +41,8 @@ namespace Phy2D
 
 		Vec2f getSupport( Vec2f const& dir ) const
 		{
-			Vec2f pos = mShape->getSupport( mXForm.rotateVectorInv( dir ) );
-			return mXForm.mul( pos );
+			Vec2f pos = mShape->getSupport( mXForm.transformVectorInv( dir ) );
+			return mXForm.transformPosition( pos );
 		}
 
 		Shape* getShape(){ return mShape; }

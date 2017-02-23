@@ -14,9 +14,12 @@ namespace Math
 
 		float normalize()
 		{  
-			float invLength =  Math::InvSqrt( length2() );
-			this->operator*=( invLength );
-			return invLength;
+			float length = length2();
+			if( length < 1e-8 )
+				return 0;
+			length =  Math::Sqrt(length);
+			this->operator /= (length );
+			return length;
 		}
 
 		void setValue(float sx,float sy,float sz)
@@ -31,6 +34,7 @@ namespace Math
 		Vector3& operator += ( Vector3 const& v );
 		Vector3& operator -= ( Vector3 const& v );
 		Vector3& operator *= ( float s );
+		Vector3& operator /= ( float s );
 
 		Vector3 mul( Vector3 const& v )
 		{
@@ -43,15 +47,15 @@ namespace Math
 		void    max( Vector3 const& rhs )
 		{
 			if ( x < rhs.x ) x = rhs.x;
-			if ( y < rhs.x ) y = rhs.y;
-			if ( z < rhs.x ) z = rhs.z;
+			if ( y < rhs.y ) y = rhs.y;
+			if ( z < rhs.z ) z = rhs.z;
 		}
 
 		void    min( Vector3 const& rhs )
 		{
 			if ( x > rhs.x ) x = rhs.x;
-			if ( y > rhs.x ) y = rhs.y;
-			if ( z > rhs.x ) z = rhs.z;
+			if ( y > rhs.y ) y = rhs.y;
+			if ( z > rhs.z ) z = rhs.z;
 		}
 
 		static Vector3 Zero(){ return Vector3(0,0,0); }
@@ -108,6 +112,12 @@ namespace Math
 	inline Vector3& Vector3::operator *= ( float s )
 	{
 		x *= s; y *= s; z *= s;
+		return *this;
+	}
+
+	inline Vector3& Vector3::operator /= (float s)
+	{
+		x /= s; y /= s; z /= s;
 		return *this;
 	}
 

@@ -246,12 +246,12 @@ namespace Math
 		return m.leftMul( v );
 	}
 
-	inline Vector3 rotate( Vector3 const& v  , Matrix4 const& m )
+	inline Vector3 TransformVector( Vector3 const& v  , Matrix4 const& m )
 	{ 
 		return MatrixUtility::rotate( v , m );
 	}
 
-	inline Vector3 transform( Vector3 const& v ,  Matrix4 const& m )
+	inline Vector3 TransformPosition( Vector3 const& v ,  Matrix4 const& m )
 	{
 		float const* mv = m;
 #define MAT_MUL( m , index )\
@@ -261,7 +261,7 @@ namespace Math
 #undef MAT_MUL
 	}
 
-	inline Vector3 rotateInverse( Vector3 const& v , Matrix4 const& m )
+	inline Vector3 TransformVectorInverse( Vector3 const& v , Matrix4 const& m )
 	{
 		return MatrixUtility::rotateInverse( v , m );
 	}

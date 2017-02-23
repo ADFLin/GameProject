@@ -63,7 +63,7 @@ void ILevelObject::getFrontUpDirection( Vec3D* front , Vec3D* up ) const
 {
 	Mat4x4 const& xform = getSpatialComponent()->getTransform();
 	if ( front )
-		*front = Math::rotate( CFly::getAxisDirection( mFrontAxis ) , xform );
+		*front = Math::TransformVector( CFly::getAxisDirection( mFrontAxis ) , xform );
 	if ( up )
-		*up = Math::rotate( CFly::getAxisDirection( mUpAxis ) , xform );
+		*up = Math::TransformVector( CFly::getAxisDirection( mUpAxis ) , xform );
 }

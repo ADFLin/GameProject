@@ -137,7 +137,7 @@ private:
 	bool      mDrawPen;
 	GLuint    mColorKeyShader;
 	GLFont*   mFont;
-
+	int       mSavedViewport[4];
 	std::vector< float > mBuffer;
 };
 

@@ -940,8 +940,8 @@ namespace CAR
 
 		float x = float( 2 * sPos.x ) / w - 1;
 		float y = 1 - float( 2 * sPos.y ) / h;
-		Vector3 rayStart = transform( Vector3( x , y , 0 ) , mMatInvVP );
-		Vector3 rayEnd = transform( Vector3( x , y , 1 ) , mMatInvVP );
+		Vector3 rayStart = TransformPosition( Vector3( x , y , 0 ) , mMatInvVP );
+		Vector3 rayEnd = TransformPosition( Vector3( x , y , 1 ) , mMatInvVP );
 		Vector3 dir = rayEnd - rayStart;
 		Vector3 temp = rayStart - ( rayStart.z / dir.z ) * ( dir );
 		return Vec2f( temp.x , temp.y );
@@ -969,7 +969,7 @@ namespace CAR
 		pos.x = posMap.x;
 		pos.y = posMap.y;
 		pos.z = 0;
-		pos = transform( pos , mMatVP );
+		pos = TransformPosition( pos , mMatVP );
 
 		return  0.5f * Vec2f( ( 1 + pos.x ) * w , ( 1 - pos.y ) * h );
 	}

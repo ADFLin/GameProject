@@ -1,5 +1,6 @@
 #define MATERIAL_TEXCOORD_NUM 1
 #define MATERIAL_BLENDING_MASKED 1
+#define MATERIAL_USE_DEPTH_OFFSET 1
 
 #include "MaterialCommon.glsl"
 #include "ViewParam.glsl"
@@ -42,8 +43,10 @@ void CalcMaterialInputPS(inout MaterialInputPS input, inout MaterialParametersPS
 	input.roughness = 0.5;
 	input.specular = 0.1;
 	input.normal = tex2D(NoramlTexture, pomOutput.UVs).xyz;
-	input.depthOffset = CalcPOMCorrectDepth(pomOutput, parameters.tangentToWorld, viewVectorTangent) - parameters.svPosition.z;
-
+	if( pomOutput.depth > 0 )
+		input.depthOffset = CalcPOMCorrectDepth(pomOutput, parameters.tangentToWorld, viewVectorTangent) - parameters.svPosition.z;
+	else
+		input.depthOffset = 0;
 	float2 value = 2 * frac(5 * (parameters.texCoords[0].xy)) - 1;
 	//input.mask = value.x * value.y > 0 ? 1 : 0;
 	//input.emissiveColor = abs( float3(0.3, 0.3, 0.3) * parameters.worldNormal );

@@ -248,7 +248,7 @@ namespace Phy2D
 		void     buildContact( Edge* e, Contact &c );
 		Edge*    getClosetEdge();
 
-		XForm     mB2AWorld;
+		XForm     mBToALocal;
 
 
 		static int const MaxIterNum = 20;

@@ -62,7 +62,7 @@ void MainPS()
 
 	float outDepth = Depth;
 
-#if 1
+#if MATERIAL_USE_DEPTH_OFFSET
 	if( materialInput.depthOffset != 0 )
 	{
 		float3 svPosition = materialParameters.svPosition;
@@ -77,6 +77,10 @@ void MainPS()
 #else
 		outDepth = outPosition.z * ShadowParam.y;
 #endif
+	}
+	else
+	{
+		WritePxielDepth(materialParameters.svPosition.z);
 	}
 #endif
 	//depth = 0.5;

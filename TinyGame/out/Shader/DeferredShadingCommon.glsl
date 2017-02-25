@@ -51,7 +51,7 @@ void EncodeGBuffer(in GBufferData GBuffer ,
 	GBufferD.a = EncodeShadingModel(GBuffer.shadingModel);
 }
 
-GBufferData DecodeGBuffer(in float4 GBufferA, in float4 GBufferB, in float4 GBufferC , in float4 GBufferD)
+GBufferData DecodeGBuffer(in float4 GBufferA, in float4 GBufferB, in float4 GBufferC , in float4 GBufferD )
 {
 	GBufferData GBuffer;
 	GBuffer.worldPos = GBufferA.rgb;
@@ -69,14 +69,13 @@ GBufferData DecodeGBuffer(in float4 GBufferA, in float4 GBufferB, in float4 GBuf
 	return GBuffer;
 }
 
-
-GBufferData GetScreenGBuffer(in float2 UVs)
+GBufferData GetGBufferData( in float2 UVs )
 {
-	GBufferData GBuffer = DecodeGBuffer(
+	GBufferData data = DecodeGBuffer(
 		texture2D(GBufferTextureA, UVs),
 		texture2D(GBufferTextureB, UVs),
 		texture2D(GBufferTextureC, UVs),
 		texture2D(GBufferTextureD, UVs));
 
-	return GBuffer;
+	return data;
 }

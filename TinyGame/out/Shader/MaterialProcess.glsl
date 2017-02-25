@@ -27,6 +27,7 @@ float3 GetMaterialNormal(in MaterialInputPS input, inout MaterialParametersPS pa
 
 float3 GetMaterialWorldPositionAndCheckDepthOffset(in MaterialInputPS input, inout MaterialParametersPS parameters)
 {
+#if MATERIAL_USE_DEPTH_OFFSET
 	if( input.depthOffset != 0 )
 	{
 		float3 svPosition = parameters.svPosition;
@@ -37,6 +38,11 @@ float3 GetMaterialWorldPositionAndCheckDepthOffset(in MaterialInputPS input, ino
 		float4 worldPos = View.clipToWorld * float4( svPosition , 1 );
 		return worldPos.xyz / worldPos.w;
 	}
+	else
+	{
+		WritePxielDepth(parameters.svPosition.z);
+	}
+#endif
 	return parameters.worldPos.xyz;
 }
 

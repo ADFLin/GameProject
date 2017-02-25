@@ -97,7 +97,7 @@ namespace RenderGL
 				MeshTransform[MeshId::Mario] = Matrix4::Scale(0.05) * FixRotation;
 				MeshTransform[MeshId::Lightning] = Matrix4::Scale(0.03) *  FixRotation;
 				MeshTransform[MeshId::Vanille] = Matrix4::Scale(0.03) *  FixRotation;
-				MeshTransform[MeshId::Havoc] = Matrix4::Scale(0.03) *  FixRotation;
+				MeshTransform[MeshId::Havoc] = Matrix4::Scale(0.015) *  FixRotation;
 				MeshTransform[MeshId::Skeleton] = Matrix4::Scale(0.5) *  FixRotation;
 				int skip[] = { 4 , 5 , -1 };
 				int skeletonSkip[200];
@@ -185,7 +185,7 @@ namespace RenderGL
 			param.setMaterialParameter(SHADER_PARAM(NoramlTexture), getTexture(TextureId::Normal));
 #endif
 			glPushMatrix();
-			matWorld = Matrix4::Translate(Vector3(0, 0, 4));
+			matWorld = Matrix4::Scale(0.5) * Matrix4::Translate(Vector3(-12, 0, 2));
 			param.setWorld(matWorld);
 			glColor3f(0.7, 0.7, 0.7);
 			mPlane.draw();
@@ -304,7 +304,7 @@ namespace RenderGL
 			glPopMatrix();
 		}
 
-		if(0)
+		if(1)
 		{
 
 			int TextureGroup[][3] =
@@ -439,7 +439,7 @@ namespace RenderGL
 		mBoxMesh.draw();
 		glPopMatrix();
 #endif
-		param.setMaterial(getMaterial((int)MaterialId::Simple2));
+		param.setMaterial(getMaterial(MaterialId::Simple2));
 		glPushMatrix();
 		matWorld = Matrix4::Scale(10.0) * Matrix4::Translate(Vector3(0, 0, 0));
 		param.setWorld(matWorld);

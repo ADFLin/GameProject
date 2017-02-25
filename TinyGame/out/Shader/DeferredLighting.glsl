@@ -1,4 +1,4 @@
-#include "DeferredLightingCommon.glsl"
+#include "DeferredShadingCommon.glsl"
 #include "LightingCommon.glsl"
 #include "ShadowCommon.glsl"
 #include "MaterialCommon.glsl"
@@ -19,7 +19,8 @@ in VSOutput vsOutput;
 void LightingPassPS()
 {
 	vec2 ScreenUVs = vsOutput.UVs;
-	GBufferData GBuffer = GetScreenGBuffer(ScreenUVs);
+
+	GBufferData GBuffer = GetGBufferData(ScreenUVs);
 
 	if( GBuffer.shadingModel == SHADINGMODEL_UNLIT )
 	{
@@ -27,24 +28,12 @@ void LightingPassPS()
 		//gl_FragColor = float4( 0 , 0 , 0 , 1 );
 	}
 
-#if 0
-	float3 worldPos = ScreenUVToWorldPos(ScreenUVs);
-	float NDCz = tex2D(FrameDepthTexture, ScreenUVs).r;
-	//gl_FragColor = float4(NDCz, NDCz, NDCz, 1);
-	worldPos = StoreWorldPos(GBuffer.depth , ScreenUVs);
-	float dz = GBuffer.depth - tex2D(FrameDepthTexture, ScreenUVs).r;
-	float depth = tex2D(FrameDepthTexture, ScreenUVs).r;
-	float4 svPos = float4(0, 0, GBuffer.depth, 1);
-	svPos = View.clipToWorld * svPos;
-	gl_FragColor = float4( worldPos , 1 );
-	gl_FragColor = float4(NDCz, 0 , 0,0);
-	gl_FragColor = float4(GBuffer.depth, GBuffer.depth, GBuffer.depth, 1);
-	return;
-#endif
-
-	gl_FragColor = float4( GBuffer.worldPos , 1 );
+	float3 worldPos = GBuffer.worldPos;
+	//worldPos = StoreWorldPos(ScreenUVs , GBuffer.depth);
+	gl_FragColor = float4(worldPos, 1);
 	//return;
-	float3 viewOffset = View.worldPos - GBuffer.worldPos;
+	
+	float3 viewOffset = View.worldPos - worldPos;
 	
 	float attenuation = 1;
 	float3 shadow = 1;
@@ -54,14 +43,14 @@ void LightingPassPS()
 //#if DEFERRED_LIGHT_TYPE == LIGHTTYPE_DIRECTIONAL
 	{
 		L = -GLight.dir;
-		float4 shadowPos = ProjectShadowMatrix[0] * float4(GBuffer.worldPos, 1);
-		shadow = CalcDirectionalLightShadow(GBuffer.worldPos, ProjectShadowMatrix);
+		float4 shadowPos = ProjectShadowMatrix[0] * float4(worldPos, 1);
+		shadow = CalcDirectionalLightShadow(worldPos, ProjectShadowMatrix);
 		//shadow = 1;
 	}
 //#else
 	else
 	{
-		float3 lightVector = GLight.worldPosAndRadius.xyz - GBuffer.worldPos;
+		float3 lightVector = GLight.worldPosAndRadius.xyz - worldPos;
 		float dist = length(lightVector);
 
 		L = lightVector / dist;

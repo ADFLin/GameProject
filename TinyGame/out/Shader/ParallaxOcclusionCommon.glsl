@@ -47,13 +47,20 @@ POMOutput POMapping( in POMParameters parameters, float3 viewVector, float2 inUV
 		texDepth = GetDispDepth( parameters , texCur);
 	}
 	//#TODO: binary sreach?
-	vec2 texPrev = texCur + dt;
-	float texDepthPrev = GetDispDepth(parameters , texPrev);
-
-	float w = (curDepth - texDepth) / (stepDepth + texDepthPrev - texDepth);
 	POMOutput output;
-	output.UVs = texCur + w * dt;
-	output.depth = curDepth - w * stepDepth;
+	if ( curDepth > 0 )
+	{
+		vec2 texPrev = texCur + dt;
+		float texDepthPrev = GetDispDepth(parameters, texPrev);
+		float w = (curDepth - texDepth) / (stepDepth + texDepthPrev - texDepth);
+		output.UVs = texCur + w * dt;
+		output.depth = curDepth - w * stepDepth;
+	}
+	else
+	{
+		output.UVs = inUVs;
+		output.depth = 0.0;
+	}
 	return output;
 }
 
@@ -112,8 +119,17 @@ float CalcPOMSoftShadowMultiplier(in POMParameters parameters , float3 LightVect
 
 float CalcPOMCorrectDepth( in POMOutput pomOut , mat3 tangentToWorld , float3 viewVectorTangent )
 {
+#if 1
+	float3 viewVectorDirTangent = normalize(viewVectorTangent);
+	float3 viewOffset = tangentToWorld * ( viewVectorTangent + viewVectorDirTangent * (pomOut.depth / viewVectorTangent.z) );
+	float4 clipPos = View.worldToClip * float4(View.worldPos - viewOffset,1.0);
+	return clipPos.z / clipPos.w;
+#else
+	float3 viewDirTangent = View.direction * tangentToWorld;
+	//float sceneDepth = dot(-viewVectorTangent, viewDirTangent);
 	float sceneDepth = length(viewVectorTangent);
 	sceneDepth += sceneDepth * (pomOut.depth / viewVectorTangent.z);
-	float4 clipPos = View.viewToClip * float4(0,0,-sceneDepth, 1.0);
+	float4 clipPos = View.viewToClip * float4(0, 0, -sceneDepth, 1.0);
 	return clipPos.z / clipPos.w;
+#endif
 }

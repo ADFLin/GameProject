@@ -510,9 +510,6 @@
     <None Include="out\Shader\CopyTexture.glsl">
       <Filter>Shader</Filter>
     </None>
-    <None Include="out\Shader\DeferredLightingCommon.glsl">
-      <Filter>Shader</Filter>
-    </None>
     <None Include="out\Shader\LightingCommon.glsl">
       <Filter>Shader</Filter>
     </None>
@@ -587,6 +584,9 @@
     </None>
     <None Include="out\Shader\Material\Havoc.glsl">
       <Filter>Shader\Material</Filter>
+    </None>
+    <None Include="out\Shader\DeferredShadingCommon.glsl">
+      <Filter>Shader</Filter>
     </None>
   </ItemGroup>
 </Project>

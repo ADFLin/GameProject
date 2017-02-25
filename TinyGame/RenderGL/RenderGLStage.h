@@ -247,6 +247,7 @@ namespace RenderGL
 	struct ViewInfo
 	{
 		Vector3 worldPos;
+		Vector3 direction;
 		Matrix4 worldToClip;
 		Matrix4 worldToView;
 		Matrix4 viewToWorld;
@@ -282,11 +283,14 @@ namespace RenderGL
 
 			viewToClip.inverse(clipToView, det);
 			clipToWorld = clipToView * viewToWorld;
+
+			direction = TransformVector( Vector3(0, 0, -1) , viewToWorld );
 		}
 
 		void bindParam(ShaderProgram& program)
 		{
 			program.setParam(SHADER_PARAM(View.worldPos), worldPos);
+			program.setParam(SHADER_PARAM(View.direction), direction);
 			program.setParam(SHADER_PARAM(View.worldToView), worldToView);
 			program.setParam(SHADER_PARAM(View.worldToClip), worldToClip);
 			program.setParam(SHADER_PARAM(View.viewToWorld), viewToWorld);

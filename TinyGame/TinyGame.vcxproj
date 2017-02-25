@@ -340,7 +340,7 @@
     <None Include="out\Shader\CopyTexture.glsl" />
     <None Include="out\Shader\DeferredBasePass.glsl" />
     <None Include="out\Shader\DeferredLighting.glsl" />
-    <None Include="out\Shader\DeferredLightingCommon.glsl" />
+    <None Include="out\Shader\DeferredShadingCommon.glsl" />
     <None Include="out\Shader\Light.glsl" />
     <None Include="out\Shader\LightingCommon.glsl" />
     <None Include="out\Shader\LightParam.glsl" />

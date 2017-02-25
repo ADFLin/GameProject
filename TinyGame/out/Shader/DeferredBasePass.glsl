@@ -1,4 +1,4 @@
-#include "DeferredLightingCommon.glsl"
+#include "DeferredShadingCommon.glsl"
 #include "MaterialProcess.glsl"
 #include "ViewParam.glsl"
 #include "VertexFactory.glsl"
@@ -55,12 +55,11 @@ void BasePassPS()
 	GBuffer.shadingModel = materialInput.shadingModel;
 	float4 svPos = View.worldToClip * float4(materialParameters.worldPos, 1);
 	svPos = materialParameters.screenPos;
-	GBuffer.depth = (gl_DepthRange.diff * svPos.z / svPos.w + gl_DepthRange.near + gl_DepthRange.far) * 0.5;
-	GBuffer.depth = svPos.z;
-	
+	GBuffer.depth = materialParameters.screenPos.z;
 	
 	float4 GBufferA, GBufferB, GBufferC, GBufferD;
 	EncodeGBuffer(GBuffer, GBufferA, GBufferB, GBufferC, GBufferD);
+
 
 	gl_FragData[0] = color;
 #if 1

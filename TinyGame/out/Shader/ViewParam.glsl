@@ -10,6 +10,7 @@ struct ViewData
 	mat4   clipToView;
 	mat4   clipToWorld;
 
+	float3 direction;
 	float3 worldPos;
 	float  gameTime;
 	float  realTime;
@@ -18,31 +19,27 @@ struct ViewData
 uniform ViewData View;
 uniform sampler2D FrameDepthTexture;
 
-float ScreenUVToSceneDepth(float2 UVs)
+
+float BufferDepthToSceneDepth(float depth)
 {
-	float NDCz = 2.0 * tex2D(FrameDepthTexture, UVs).r - 1.0;
-	return View.viewToClip[3][2] * (View.viewToClip[2][2] + NDCz);
+	float sceneDepth = (depth - View.viewToClip[3][2]) / View.viewToClip[2][2];
+	return sceneDepth;
 }
 
-float BufferDepthToSceneDepth(float bufferDepth)
+float ScreenUVToSceneDepth(float2 ScreenUVs)
 {
-	float NDCz = 2.0 * bufferDepth - 1.0;
-	return View.viewToClip[3][2] * (View.viewToClip[2][2] + NDCz);
+	float depth = tex2D(FrameDepthTexture, ScreenUVs).r;
+	return BufferDepthToSceneDepth(depth);
 }
 
-float3 ScreenUVToWorldPos(float2 UVs)
+float3 StoreWorldPos(float2 ScreenUVs, float depth)
 {
-	float NDCz = 2.0 * tex2D(FrameDepthTexture, UVs).r - 1.0;
-	float4 clipPos = float4( 2.0 * UVs - 1.0, NDCz , 1.0);
-	float4 pos = View.clipToWorld * clipPos;
-	return pos.xyz / pos.w;
+	float sceneDepth = -(depth - View.viewToClip[3][2]) / View.viewToClip[2][2];
+	return float3(View.viewToWorld * (sceneDepth * (2.0 * ScreenUVs - 1.0), -sceneDepth, 1));
 }
 
-float3 StoreWorldPos(float bufferDepth , float2 ScreenUVs)
+float3 ScreenUVToWorldPos(float2 ScreenUVs)
 {
-	float sceneDepth = BufferDepthToSceneDepth(bufferDepth);
-	float2 screenPos = 2.0 * ScreenUVs - 1.0;
-	float4 clipPos = float4( sceneDepth * screenPos, -sceneDepth , 1.0);
-	float4 pos = View.viewToWorld * clipPos;
-	return pos.xyz / pos.w;
+	return StoreWorldPos(ScreenUVs, tex2D(FrameDepthTexture, ScreenUVs).r);
 }
+

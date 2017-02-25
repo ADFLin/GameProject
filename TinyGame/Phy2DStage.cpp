@@ -156,12 +156,14 @@ namespace Phy2D
 
 #if PHY2D_DEBUG	
 
+#if 0
 			RenderUtility::setPen(g, Color::eOrange);
 			for( int n = 0; n < 3; ++n )
 			{
 				Vec2f size = Vec2f(0.1, 0.1);
 				g.drawRect(gGJK.mSv[n]->vObj[0] - size / 2, size);
 			}
+#endif
 #endif //PHY2D_DEBUG
 #if 0
 			RenderUtility::setPen(g, Color::eBlue);
@@ -171,6 +173,7 @@ namespace Phy2D
 				g.drawRect(gGJK.mSv[n]->v - size / 2, size);
 			}
 #endif
+#if 1
 			for( int n = 0; n < gGJK.mNumEdge; ++n )
 			{
 				GJK::Edge& edge = gGJK.mEdges[n];
@@ -180,16 +183,19 @@ namespace Phy2D
 				RenderUtility::setPen(g, Color::eCyan);
 				g.drawLine(edge.sv->v, edge.sv->v + normalize(edge.sv->d));
 			}
+#endif
 #if PHY2D_DEBUG	
 			for( int n = 0; n < gGJK.mDBG.size(); ++n )
 			{
 				GJK::Simplex& sv = gGJK.mDBG[n];
+				Vec2f pos = mObjects[0].mXForm.transformPosition(sv.v);
 				Vec2f size = Vec2f(0.05, 0.05);
 				RenderUtility::setPen(g, Color::eGreen);
-				g.drawRect(sv.v - size / 2, size);
+				g.drawRect(pos - size / 2, size);
 				RenderUtility::setPen(g, Color::eGreen);
-				g.drawLine(sv.v, sv.v + 0.5 * normalize(sv.d));
+				g.drawLine(pos, pos + 0.5 * normalize(sv.d));
 			}
+
 #endif //PHY2D_DEBUG
 
 			glPopMatrix();

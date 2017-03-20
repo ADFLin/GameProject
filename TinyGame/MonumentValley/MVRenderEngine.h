@@ -9,8 +9,8 @@
 #include "GL/glew.h"
 #include "GLConfig.h"
 
-#include "GLCommon.h"
-#include "GLUtility.h"
+#include "RenderGL/GLCommon.h"
+#include "RenderGL/GLUtility.h"
 
 
 
@@ -161,7 +161,7 @@ namespace MV
 
 		RenderParam mParam;
 
-		GL::GlobalShader mEffect;
+		GL::ShaderProgram mEffect;
 		int locDirX;
 		int locDirZ;
 		int locLocalScale;

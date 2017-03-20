@@ -20,9 +20,14 @@ void CalcMaterialInputPS(inout MaterialInputPS input, in MaterialParametersPS pa
 
 #ifdef PIXEL_SHADER
 
-float3 GetMaterialNormal(in MaterialInputPS input, inout MaterialParametersPS parameters)
+float3 GetMaterialWorldNormal(in MaterialInputPS input, inout MaterialParametersPS parameters)
 {
+#if MATERIAL_USE_WORLD_NORMAL
 	return input.normal;
+#else
+
+	return normalize(parameters.tangentToWorld * input.normal);
+#endif
 }
 
 float3 GetMaterialWorldPositionAndCheckDepthOffset(in MaterialInputPS input, inout MaterialParametersPS parameters)

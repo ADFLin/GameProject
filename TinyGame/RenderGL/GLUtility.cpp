@@ -3,12 +3,13 @@
 #include "Win32Header.h"
 #include "CommonMarco.h"
 #include "FixString.h"
-
+#include "FileSystem.h"
 
 #include "tinyobjloader/tiny_obj_loader.h"
 
-#include <map>
+#include <unordered_map>
 #include <fstream>
+#include <algorithm>
 
 namespace GL
 {
@@ -92,11 +93,11 @@ namespace GL
 		assert( decl.getSematicFormat( Vertex::ePosition ) == Vertex::eFloat3 );
 		assert( decl.getSematicFormat( Vertex::eNormal ) == Vertex::eFloat3 );
 		assert( decl.getSematicFormat( Vertex::eTexcoord , 0 ) == Vertex::eFloat2 );
-		assert( decl.getSematicFormat( Vertex::eTexcoord , 1 ) == Vertex::eFloat4 );
+		assert( decl.getSematicFormat( Vertex::eTangent ) == Vertex::eFloat4 );
 
 		int posOffset = decl.getSematicOffset( Vertex::ePosition );
 		int texOffset = decl.getSematicOffset( Vertex::eTexcoord , 0 ) - posOffset;
-		int tangentOffset = decl.getSematicOffset( Vertex::eTexcoord , 1 ) - posOffset;
+		int tangentOffset = decl.getSematicOffset( Vertex::eTangent ) - posOffset;
 		int normalOffset = decl.getSematicOffset( Vertex::eNormal ) - posOffset;
 		uint8* pV = (uint8*)(pVertex) + posOffset;
 
@@ -163,11 +164,11 @@ namespace GL
 		assert( decl.getSematicFormat( Vertex::ePosition ) == Vertex::eFloat3 );
 		assert( decl.getSematicFormat( Vertex::eNormal ) == Vertex::eFloat3 );
 		assert( decl.getSematicFormat( Vertex::eTexcoord , 0 ) == Vertex::eFloat2 );
-		assert( decl.getSematicFormat( Vertex::eTexcoord , 1 ) == Vertex::eFloat4 );
+		assert( decl.getSematicFormat( Vertex::eTangent ) == Vertex::eFloat4 );
 
 		int posOffset = decl.getSematicOffset( Vertex::ePosition );
 		int texOffset = decl.getSematicOffset( Vertex::eTexcoord , 0 ) - posOffset;
-		int tangentOffset = decl.getSematicOffset( Vertex::eTexcoord , 1 ) - posOffset;
+		int tangentOffset = decl.getSematicOffset( Vertex::eTangent ) - posOffset;
 		int normalOffset = decl.getSematicOffset( Vertex::eNormal ) - posOffset;
 		uint8* pV = (uint8*)(pVertex) + posOffset;
 
@@ -335,7 +336,7 @@ namespace GL
 			p3 += 6;
 		}
 
-		if ( !mesh.createBuffer( &v[0] , nV , &idx[0] , nI , true ) )
+		if ( !mesh.create( &v[0] , nV , &idx[0] , nI , true ) )
 			return false;
 
 		return true;
@@ -343,7 +344,7 @@ namespace GL
 
 	bool MeshUtility::createUVSphere(Mesh& mesh, float radius, int rings, int sectors)
 	{ 
-		assert(rings > 0);
+		assert(rings > 1);
 		assert(sectors > 0);
 		assert(radius > 0);
 
@@ -354,20 +355,24 @@ namespace GL
 		//mesh.mDecl.addElement(Vertex::eTexcoord, Vertex::eFloat4, 1);
 		int size = mesh.mDecl.getVertexSize() / sizeof(float);
 
-		int nV = rings * sectors;
+		int nV = ( rings - 1 ) * ( sectors + 1 )+ 2 * sectors;
 		std::vector< float > vertex(nV * size);
-		float const rf = 1.0 / (rings - 1);
-		float const sf = 1.0 / (sectors);
+		float const rf = 1.0 / rings;
+		float const sf = 1.0 / sectors;
 		int r, s;
 
-		float* v = &vertex[0] + mesh.mDecl.getOffset(0) / sizeof(float);
-		float* n = &vertex[0] + mesh.mDecl.getOffset(1) / sizeof(float);
-		float* t = &vertex[0] + mesh.mDecl.getOffset(2) / sizeof(float);
+		float* v = &vertex[0] + mesh.mDecl.getSematicOffset(Vertex::ePosition) / sizeof(float);
+		float* n = &vertex[0] + mesh.mDecl.getSematicOffset(Vertex::eNormal) / sizeof(float);
+		float* t = &vertex[0] + mesh.mDecl.getSematicOffset(Vertex::eTexcoord) / sizeof(float);
 
-		for( r = 0; r < rings; ++r )
+		for( r = 1; r < rings; ++r )
 		{
 			float const z = sin(-Math::PI / 2 + Math::PI * r * rf);
 			float sr = sin(Math::PI * r * rf);
+
+			float* vb = v;
+			float* nb = n;
+			float* tb = t;
 
 			for( s = 0; s < sectors; ++s )
 			{
@@ -391,40 +396,79 @@ namespace GL
 				n += size;
 				t += size;
 			}
+
+			v[0] = vb[0]; v[1] = vb[1]; v[2] = vb[2];
+			n[0] = nb[0]; n[1] = nb[1]; n[2] = nb[2];
+			t[0] = 1; t[1] = tb[1];
+
+			v += size;
+			n += size;
+			t += size;
 		}
 
-		std::vector< int > indices(rings * (sectors) * 6);
-		int* i = &indices[0];
-		for( s = 0; s < sectors - 1; ++s )
+		for( int i = 0; i < sectors; ++i )
 		{
-			for( r = 0; r < rings; ++r )
-			{
-				i[0] = r * sectors + s;
-				i[1] = (r + 1) * sectors + (s + 1);
-				i[2] = r * sectors + (s + 1);
+			v[0] = 0; v[1] = 0; v[2] = -radius;
+			n[0] = 0; n[1] = 0; n[2] = -1;
+			t[0] = i * sf + 0.5 * sf; t[1] = 0;
 
-				i[3] = i[1];
-				i[4] = i[0];
-				i[5] = (r + 1) * sectors + s;
+			v += size;
+			n += size;
+			t += size;
+		}
+		for( int i = 0; i < sectors; ++i )
+		{
+			v[0] = 0; v[1] = 0; v[2] = radius;
+			n[0] = 0; n[1] = 0; n[2] = 1;
+			t[0] = i * sf + 0.5 * sf; t[1] = 1;
+
+			v += size;
+			n += size;
+			t += size;
+		}
+
+
+		std::vector< int > indices( (rings - 1 ) * (sectors) * 6 + sectors * 2 * 3 );
+		int* i = &indices[0];
+
+		int idxOffset = 0;
+		int idxDown = nV - 2 * sectors;
+		for( s = 0; s < sectors; ++s )
+		{
+			i[0] = idxDown + s;
+			i[2] = idxOffset + s + 1;
+			i[1] = idxOffset + s;
+			i += 3;
+		}
+		int ringOffset = sectors + 1;
+		for( s = 0; s < sectors ; ++s )
+		{
+			for( r = 0; r < rings - 2; ++r )
+			{
+				i[0] = idxOffset + r * ringOffset + s;
+				i[1] = idxOffset + (r + 1) * ringOffset + (s + 1);
+				i[2] = idxOffset + r * ringOffset + (s + 1);
+
+				i[3] = idxOffset + i[1];
+				i[4] = idxOffset + i[0];
+				i[5] = idxOffset + (r + 1) * ringOffset + s;
 
 				i += 6;
 			}
 		}
-		for( r = 0; r < rings; ++r )
+
+		int idxTop = nV - sectors;
+		idxOffset = idxDown - ringOffset;
+		for( s = 0; s < sectors; ++s )
 		{
-			i[0] = r * sectors + s;
-			i[1] = (r + 1) * sectors;
-			i[2] = r * sectors;
-
-			i[3] = i[1];
-			i[4] = i[0];
-			i[5] = (r + 1) * sectors + s;
-
-			i += 6;
+			i[0] = idxTop + s;
+			i[1] = idxOffset + s + 1;
+			i[2] = idxOffset + s ;
+			i += 3;
 		}
 
 		//fillTangent_TriangleList(mesh.mDecl, &vertex[0], nV, &indices[0], indices.size());
-		if ( !mesh.createBuffer( &vertex[0] , nV , &indices[0] , ( nV )* 6 , true ) )
+		if ( !mesh.create( &vertex[0] , nV , &indices[0] , ( nV )* 6 , true ) )
 			return false;
 
 		return true;
@@ -454,7 +498,7 @@ namespace GL
 			0 , 2 , 3 , 1 ,
 			4 , 5 , 7 , 6 ,
 		};
-		if ( !mesh.createBuffer( &v[0] , 8 , &idx[0] , 4 * 6 , true ) )
+		if ( !mesh.create( &v[0] , 8 , &idx[0] , 4 * 6 , true ) )
 			return false;
 
 		mesh.mType = Mesh::eQuad;
@@ -466,7 +510,7 @@ namespace GL
 		mesh.mDecl.addElement( Vertex::ePosition , Vertex::eFloat3 );
 		mesh.mDecl.addElement( Vertex::eNormal , Vertex::eFloat3 );
 		mesh.mDecl.addElement( Vertex::eTexcoord , Vertex::eFloat2 , 0 );
-		mesh.mDecl.addElement( Vertex::eTexcoord , Vertex::eFloat4 , 1 );
+		mesh.mDecl.addElement( Vertex::eTangent , Vertex::eFloat4 );
 		struct MyVertex
 		{
 			Vector3 pos;
@@ -519,17 +563,13 @@ namespace GL
 
 		fillTangent_QuadList( mesh.mDecl , &v[0] , 6 * 4 , &idx[0] , 6 * 4 );
 		mesh.mType = Mesh::eQuad;
-		if ( !mesh.createBuffer( &v[0] , 6 * 4 , &idx[0] , 6 * 4 , true ) )
+		if ( !mesh.create( &v[0] , 6 * 4 , &idx[0] , 6 * 4 , true ) )
 			return false;
 
 
 		return true;
 	}
 
-	bool MeshUtility::createCone(Mesh& mesh, float height, int numSide , bool bShareVertex )
-	{
-		return false;
-	}
 
 	bool MeshUtility::createDoughnut(Mesh& mesh, float radius, float ringRadius, int rings, int sectors)
 	{
@@ -624,7 +664,7 @@ namespace GL
 		i[4] = i[2];
 		i[5] = s;
 
-		if ( !mesh.createBuffer( &vertex[0] , nV , &indices[0] , ( nV )* 6 , true ) )
+		if ( !mesh.create( &vertex[0] , nV , &indices[0] , ( nV )* 6 , true ) )
 			return false;
 
 		return true;
@@ -635,7 +675,7 @@ namespace GL
 		mesh.mDecl.addElement( Vertex::ePosition , Vertex::eFloat3 );
 		mesh.mDecl.addElement( Vertex::eNormal   , Vertex::eFloat3 );
 		mesh.mDecl.addElement( Vertex::eTexcoord , Vertex::eFloat2 , 0 );
-		mesh.mDecl.addElement( Vertex::eTexcoord , Vertex::eFloat4 , 1 );
+		mesh.mDecl.addElement( Vertex::eTangent , Vertex::eFloat4 );
 
 		Vector3 n = normalize( normal );
 		Vector3 f = dir - n * ( n.dot( dir ) );
@@ -663,7 +703,7 @@ namespace GL
 		int   idx[6] = { 0 , 1 , 2 , 0 , 2 , 3 };
 
 		fillTangent_TriangleList( mesh.mDecl , &v[0] , 4  , &idx[0] , 6 );
-		if ( !mesh.createBuffer( &v[0] , 4  , &idx[0] , 6 , true ) )
+		if ( !mesh.create( &v[0] , 4  , &idx[0] , 6 , true ) )
 			return false;
 
 		return true;
@@ -705,7 +745,7 @@ namespace GL
 
 		mesh.mDecl.addElement(Vertex::ePosition, Vertex::eFloat3);
 		mesh.mDecl.addElement(Vertex::eNormal, Vertex::eFloat3);
-		if( !mesh.createBuffer(&vertices[0], numVertex, &indices[0], data.numIndex, true) )
+		if( !mesh.create(&vertices[0], numVertex, &indices[0], data.numIndex, true) )
 			return false;
 		return true;
 	}
@@ -723,17 +763,21 @@ namespace GL
 		}
 	};
 
-	bool MeshUtility::createFromObjectFile(Mesh& mesh, char const* path , Matrix4* pTransform , int* skip )
+	bool MeshUtility::createFromObjectFile(Mesh& mesh, char const* path , Matrix4* pTransform , OBJMaterialBuildListener* listener, int* skip )
 	{
-		std::ifstream objStream(path);
-		if( !objStream.is_open() )
-			return false;
+		//std::ifstream objStream(path);
+		//if( !objStream.is_open() )
+			//return false;
 
 		MaterialStringStreamReader matSSReader;
 		std::vector<tinyobj::shape_t> shapes;
 		std::vector<tinyobj::material_t> materials;
 
-		std::string err = tinyobj::LoadObj(shapes, materials, objStream, matSSReader);
+		char const* dirPos = FileUtility::getDirPathPos(path);
+
+		std::string dir = std::string(path, dirPos - path + 1);
+
+		std::string err = tinyobj::LoadObj(shapes, materials, path , dir.c_str());
 
 		if( shapes.empty() )
 			return true;
@@ -765,18 +809,29 @@ namespace GL
 
 		mesh.mDecl.addElement(Vertex::ePosition, Vertex::eFloat3);
 		mesh.mDecl.addElement(Vertex::eNormal, Vertex::eFloat3);
-		//mesh.mDecl.addElement(Vertex::eTexcoord, Vertex::eFloat4, 1);
-
-
+		
 		if( !shapes[0].mesh.texcoords.empty() )
 		{
 			mesh.mDecl.addElement(Vertex::eTexcoord, Vertex::eFloat2, 0);
+			mesh.mDecl.addElement(Vertex::eTangent, Vertex::eFloat4);
 		}
+
 		int vertexSize = mesh.mDecl.getVertexSize() / sizeof(float);
 		std::vector< float > vertices(numVertex * vertexSize);
 		std::vector< int > indices;
 		indices.reserve(numIndices);
 
+
+#define USE_SAME_MATERIAL_MERGE 1
+
+#if USE_SAME_MATERIAL_MERGE
+		struct MeshSection
+		{
+			int matId;
+			std::vector< int > indices;
+		};
+		std::map< int , MeshSection > meshSectionMap;
+#endif
 		int vOffset = 0;
 		nSkip = 0;
 		for( int idx = 0; idx < shapes.size(); ++idx )
@@ -791,14 +846,29 @@ namespace GL
 
 			int nvCur = vOffset / vertexSize;
 			
-			int startIndex = indices.size();
+#if USE_SAME_MATERIAL_MERGE
+			MeshSection& meshSection = meshSectionMap[objMesh.material_ids[0]];
+			meshSection.matId = objMesh.material_ids[0];
+			int startIndex = meshSection.indices.size();
+			meshSection.indices.insert(meshSection.indices.end(), objMesh.indices.begin(), objMesh.indices.end());
+			if( idx != 0 )
+			{
+				int nvCur = vOffset / vertexSize;
+				for( int i = startIndex; i < meshSection.indices.size(); ++i )
+				{
+					meshSection.indices[i] += nvCur;
+				}
+			}
 
+#else
+			
 			Mesh::Section section;
 			section.num = objMesh.indices.size();
-			section.start = 4 * startIndex;
+			section.start = sizeof(int32) * startIndex;
 			mesh.mSections.push_back(section);
 
-			indices.insert( indices.end() , objMesh.indices.begin(), objMesh.indices.end());
+			int startIndex = indices.size();
+			indices.insert(indices.end(), objMesh.indices.begin(), objMesh.indices.end());
 			if( idx != 0 )
 			{
 				int nvCur = vOffset / vertexSize;
@@ -807,7 +877,8 @@ namespace GL
 					indices[i] += nvCur;
 				}
 			}
-			
+#endif //USE_SAME_MATERIAL_MERGE
+
 			int objNV = objMesh.positions.size() / 3;
 			float* tex = nullptr;
 			if( !objMesh.texcoords.empty() )
@@ -853,9 +924,28 @@ namespace GL
 
 			}
 			vOffset += objNV * vertexSize;
-
-
 		}
+
+#if USE_SAME_MATERIAL_MERGE
+		std::vector< MeshSection* > sortedMeshSctions;
+		for( auto& pair : meshSectionMap )
+		{
+			sortedMeshSctions.push_back(&pair.second);
+		}
+		std::sort( sortedMeshSctions.begin() , sortedMeshSctions.end() , 
+			[](MeshSection const* m1, MeshSection const* m2) -> bool 
+			{
+				return m1->matId < m2->matId;
+			});
+		for( auto meshSection : sortedMeshSctions )
+		{
+			Mesh::Section section;
+			section.num = meshSection->indices.size();
+			section.start = sizeof(int32) * indices.size();
+			mesh.mSections.push_back(section);
+			indices.insert(indices.end(), meshSection->indices.begin(), meshSection->indices.end());
+		}
+#endif //  USE_SAME_MATERIAL_MERGE
 
 		if( shapes[0].mesh.normals.empty() )
 		{
@@ -869,8 +959,10 @@ namespace GL
 					v += vertexSize;
 				}
 			}
-
-			fillNormal_TriangleList(mesh.mDecl, &vertices[0], numVertex, (int*)&indices[0], indices.size());
+			if ( !shapes[0].mesh.texcoords.empty() )
+				fillNormalTangent_TriangleList(mesh.mDecl, &vertices[0], numVertex, (int*)&indices[0], indices.size());
+			else
+				fillNormal_TriangleList(mesh.mDecl, &vertices[0], numVertex, (int*)&indices[0], indices.size());
 		}
 		else
 		{
@@ -886,9 +978,47 @@ namespace GL
 					v += vertexSize;
 				}
 			}
+			if( !shapes[0].mesh.texcoords.empty() )
+				fillTangent_TriangleList(mesh.mDecl, &vertices[0], numVertex, (int*)&indices[0], indices.size());
 		}
-		if( !mesh.createBuffer(&vertices[0], numVertex, &indices[0], indices.size(), true) )
+		if( !mesh.create(&vertices[0], numVertex, &indices[0], indices.size(), true) )
 			return false;
+
+		if( listener )
+		{
+			for( int i = 0; i < sortedMeshSctions.size(); ++i )
+			{
+				if( sortedMeshSctions[i]->matId != -1 )
+				{
+					tinyobj::material_t  const& mat = materials[sortedMeshSctions[i]->matId];
+
+					OBJMaterialInfo info;
+					info.name = mat.name.c_str();
+					info.ambient = Vector3(mat.ambient);
+					info.diffuse = Vector3(mat.diffuse);
+					info.specular = Vector3(mat.specular);
+					info.transmittance = Vector3(mat.transmittance);
+					info.emission = Vector3(mat.emission);
+					info.ambientTextureName = mat.ambient_texname.empty() ? nullptr : mat.ambient_texname.c_str();
+					info.diffuseTextureName = mat.diffuse_texname.empty() ? nullptr : mat.diffuse_texname.c_str();
+					info.specularTextureName = mat.specular_texname.empty() ? nullptr : mat.specular_texname.c_str();
+					info.normalTextureName = mat.normal_texname.empty() ? nullptr : mat.normal_texname.c_str();
+					for( auto& pair : mat.unknown_parameter )
+					{
+						std::pair< char const*, char const* > parmPair;
+						parmPair.first = pair.first.c_str();
+						parmPair.second = pair.second.c_str();
+						info.unknownParameters.push_back(parmPair);
+					}
+					listener->build(i, &info);
+				}
+				else
+				{
+					listener->build(i, nullptr);
+				}
+
+			}
+		}
 
 		return true;
 	}
@@ -898,7 +1028,7 @@ namespace GL
 		mesh.mDecl.addElement( Vertex::ePosition , Vertex::eFloat3 );
 		mesh.mDecl.addElement( Vertex::eNormal   , Vertex::eFloat3 );
 		mesh.mDecl.addElement( Vertex::eTexcoord , Vertex::eFloat2 , 0 );
-		mesh.mDecl.addElement( Vertex::eTexcoord , Vertex::eFloat4 , 1 );
+		mesh.mDecl.addElement( Vertex::eTangent , Vertex::eFloat4 );
 		struct MyVertex 
 		{
 			Vector3 v;
@@ -917,7 +1047,7 @@ namespace GL
 		int   idx[6] = { 0 , 1 , 2 , 0 , 2 , 3 };
 
 		fillTangent_TriangleList( mesh.mDecl , &v[0] , 4  , &idx[0] , 6 );
-		if ( !mesh.createBuffer( &v[0] , 4  , &idx[0] , 6 , true ) )
+		if ( !mesh.create( &v[0] , 4  , &idx[0] , 6 , true ) )
 			return false;
 
 		return true;
@@ -942,84 +1072,33 @@ namespace GL
 	};
 	static int const IcoFaceNum = ARRAY_SIZE( IcoIndex ) / 3;
 	static int const IcoVertexNum = ARRAY_SIZE( IcoVertex ) / 3;
-	class IcoShpereBuilder
+
+
+
+	template< class VertexTraits >
+	class IcoSphereBuilder
 	{
 	public:
-		void fillTriangleIndexMap( int num , int* pIdx )
-		{
-			int cur = 0;
-			for( int i = 0 ; i < num ; ++i )
-			{
-				cur += i;
-				pIdx[0] = cur; pIdx[1] = cur + i + 1; pIdx[2] = pIdx[1] + 1; pIdx += 3;
-				for( int n = 0 ; n < i ; ++n )
-				{
-					int start = cur + n;
-					int next  = start + i + 2;
-					pIdx[0] = start; pIdx[1] = next; pIdx[2] = start + 1; pIdx += 3;
-					pIdx[0] = start + 1; pIdx[1] = next; pIdx[2] = next + 1; pIdx += 3;
-				}
-			}
-		}
-		int* fetchEdge( int i1 , int i2 )
-		{
-
-			return nullptr;
-		}
-		bool build( int numSubDiv )
-		{
-			int numV = IcoVertexNum + 3 * IcoFaceNum * ( numSubDiv ) / 2 + IcoFaceNum *( numSubDiv - 1 ) * ( numSubDiv - 1 );  
-
-			mVertices.resize( numV );
-			for( int face = 0 ; face < IcoFaceNum ; ++face )
-			{
-
-
-
-			}
-		}
-
-		struct MyVertex
-		{
-			Vector3 v;
-			Vector3 n;
-		};
-		std::map< int , int* > mEdgeMap;
-		std::vector< MyVertex > mVertices;
-	};
-	class IcoSphereVertexHelper
-	{
-	public:
-		struct MyVertex
-		{
-			Vector3 v;
-			Vector3 n;
-		};
+		typedef typename VertexTraits::Type VertexType;
 		void init( int numDiv , float radius )
 		{
 			mRadius = radius;
 			int nv = 10 * ( 1 << ( 2 * numDiv ) ) + 2;
-			mNumV = IcoVertexNum / 3;
+			mNumV = IcoVertexNum;
 			mVertices.resize( nv );
 			float const* pV = IcoVertex;
-			for( int i = 0 ; i < IcoFaceNum ; ++i )
+			for( int i = 0 ; i < IcoVertexNum ; ++i )
 			{
-				MyVertex& vtx = mVertices[i];
-				vtx.v.x = radius * pV[0];
-				vtx.v.y = radius * pV[1];
-				vtx.v.z = radius * pV[2];
-				vtx.n.x = pV[0];
-				vtx.n.y = pV[1];
-				vtx.n.z = pV[2];
+				VertexType& vtx = mVertices[i];
+				VertexTraits::SetVertex(vtx, radius, *reinterpret_cast<Vector3 const*>(pV));
 				pV += 3;
 			}
 		}
 		int addVertex( Vector3 const& v )
 		{
 			int idx = mNumV++;
-			MyVertex& vtx = mVertices[idx];
-			vtx.n = normalize( v );
-			vtx.v = mRadius * vtx.n; 
+			VertexType& vtx = mVertices[idx];
+			VertexTraits::SetVertex(vtx, mRadius, v);
 			return idx;
 		}
 		int divVertex( int i1 , int i2 )
@@ -1034,11 +1113,50 @@ namespace GL
 			mKeyMap.insert( iter , std::make_pair( key , idx ) );
 			return idx;
 		}
+
+		bool build(Mesh& mesh, float radius, int numDiv)
+		{
+			init(numDiv, radius);
+			
+			int nIdx = 3 * IcoFaceNum * (1 << (2 * numDiv));
+			std::vector< int > indices(2 * nIdx);
+			std::copy(IcoIndex, IcoIndex + ARRAY_SIZE(IcoIndex), &indices[0]);
+
+			int* pIdx = &indices[0];
+			int* pIdxPrev = &indices[nIdx];
+			int numFace = IcoFaceNum;
+			for( int i = 0; i < numDiv; ++i )
+			{
+				std::swap(pIdx, pIdxPrev);
+
+				int* pTri = pIdxPrev;
+				int* pIdxFill = pIdx;
+				for( int n = 0; n < numFace; ++n )
+				{
+					int i0 = divVertex(pTri[1], pTri[2]);
+					int i1 = divVertex(pTri[2], pTri[0]);
+					int i2 = divVertex(pTri[0], pTri[1]);
+
+					pIdxFill[0] = pTri[0]; pIdxFill[1] = i2; pIdxFill[2] = i1; pIdxFill += 3;
+					pIdxFill[0] = i0; pIdxFill[1] = pTri[2]; pIdxFill[2] = i1; pIdxFill += 3;
+					pIdxFill[0] = i0; pIdxFill[1] = i2; pIdxFill[2] = pTri[1]; pIdxFill += 3;
+					pIdxFill[0] = i0; pIdxFill[1] = i1; pIdxFill[2] = i2; pIdxFill += 3;
+
+					pTri += 3;
+				}
+				numFace *= 4;
+			}
+
+			if( !mesh.create(&mVertices[0], mNumV, pIdx, nIdx, true) )
+				return false;
+
+			return true;
+		}
 		int    mNumV;
 		float  mRadius;
 		typedef uint64 KeyType;
-		typedef std::map< KeyType , int > KeyMap;
-		std::vector< MyVertex > mVertices;
+		typedef std::unordered_map< KeyType , int > KeyMap;
+		std::vector< VertexType > mVertices;
 		KeyMap  mKeyMap;
 	};
 	bool MeshUtility::createIcoSphere(Mesh& mesh , float radius , int numDiv )
@@ -1046,140 +1164,107 @@ namespace GL
 		mesh.mDecl.addElement( Vertex::ePosition , Vertex::eFloat3 );
 		mesh.mDecl.addElement( Vertex::eNormal   , Vertex::eFloat3 );
 
-#if 1
-		int nIdx = 3 * IcoFaceNum * ( 1 << ( 2 * numDiv ) );
 
-		IcoSphereVertexHelper vHelper;
-
-		vHelper.init( numDiv , radius );
-		std::vector< int > indices( 2 * nIdx );
-		std::copy( IcoIndex , IcoIndex + ARRAY_SIZE(IcoIndex) , &indices[0] );
-
-		int* pIdx = &indices[0];
-		int* pIdxPrev = &indices[nIdx];
-		int numFace = IcoFaceNum;
-		for( int i = 0 ; i < numDiv ; ++i )
+		struct VertexTraits
 		{
-			std::swap( pIdx , pIdxPrev );
-			
-			int* pTri  = pIdxPrev;
-			int* pIdxFill = pIdx;
-			for( int n = 0 ; n < numFace ; ++n )
+			struct Type
 			{
-				int i0 = vHelper.divVertex( pTri[1] , pTri[2] );
-				int i1 = vHelper.divVertex( pTri[2] , pTri[0] );
-				int i2 = vHelper.divVertex( pTri[0] , pTri[1] );
-
-				pIdxFill[0] = pTri[0]; pIdxFill[1] = i2; pIdxFill[2] = i1; pIdxFill += 3;
-				pIdxFill[0] = i0; pIdxFill[1] = pTri[2]; pIdxFill[2] = i1; pIdxFill += 3;
-				pIdxFill[0] = i0; pIdxFill[1] = i2; pIdxFill[2] = pTri[1]; pIdxFill += 3;
-				pIdxFill[0] = i0; pIdxFill[1] = i1; pIdxFill[2] = i2; pIdxFill += 3;
-
-				pTri += 3;
+				Vector3 v;
+				Vector3 n;
+			};
+			static void SetVertex(Type& vtx, float radius, Vector3 const& pos)
+			{
+				vtx.n = normalize(pos);
+				vtx.v = radius * vtx.n;
 			}
-			numFace *= 4;
-		}
+		};
 
-		if ( !mesh.createBuffer( &vHelper.mVertices[0] , vHelper.mNumV  , pIdx , nIdx , true ) )
-			return false;
-		return true;
-#else
-		int numFace = IcoFaceNum * ( numDiv + 1 ) * ( numDiv + 1 );
+		IcoSphereBuilder< VertexTraits > builder;
+		return builder.build(mesh, radius, numDiv);
 
-#endif
-
-		return true;
 	}
 
-	GlobalShader::GlobalShader()
+	bool MeshUtility::createLightSphere(Mesh& mesh)
 	{
-		mbSingle = false;
-	}
-
-	bool GlobalShader::loadFromSingleFile(char const* fileName , char const* def )
-	{
-		return loadFromSingleFile(fileName, SHADER_ENTRY(MainVS), SHADER_ENTRY(MainPS), def);
-	}
-
-	bool GlobalShader::loadFromSingleFile(char const* fileName, char const* vertexEntryName, char const* pixelEntryName, char const* def /*= NULL*/)
-	{
-		mbSingle = true;
-		mName = fileName;
-
-		mDefine[0] = "#define ";
-		mDefine[0] += vertexEntryName;
-		mDefine[0] += + " main\n";
-		mDefine[0] += "#define VERTEX_SHADER\n";
-
-		mDefine[1] = "#define ";
-		mDefine[1] += pixelEntryName;
-		mDefine[1] += +" main\n";
-		mDefine[1] += "#define PIXEL_SHADER\n";
-
-		if( def )
+		mesh.mDecl.addElement(Vertex::ePosition, Vertex::eFloat3);
+		struct VertexTraits
 		{
-			mDefine[0] += def;
-			mDefine[0] += '\n';
-			mDefine[1] += def;
-			mDefine[1] += '\n';
+			struct Type
+			{
+				Vector3 v;
+			};
+			static void SetVertex(Type& vtx, float radius, Vector3 const& pos)
+			{
+				vtx.v = radius * normalize(pos);
+			}
+		};
+		IcoSphereBuilder< VertexTraits > builder;
+		return builder.build(mesh, 1.00 , 4 );
+	}
+
+	bool MeshUtility::createLightCone(Mesh& mesh)
+	{
+		int numSide = 96;
+		mesh.mDecl.addElement(Vertex::ePosition, Vertex::eFloat3);
+
+		int size = mesh.mDecl.getVertexSize() / sizeof(float);
+
+		int nV = numSide + 2;
+		std::vector< float > vertices(nV * size);
+		float const sf = 2 * PI / numSide;
+
+		float* v = &vertices[0] + mesh.mDecl.getSematicOffset(Vertex::ePosition) / sizeof(float);
+
+		for( int i = 0; i < numSide; ++i )
+		{
+			float s, c;
+			Math::SinCos(sf * i, s, c);
+			v[0] = c;
+			v[1] = s;
+			v[2] = 1.0f;
+
+			v += size;
 		}
 
-		return loadSingleInternal();
-	}
+		{
+			v[0] = 0;
+			v[1] = 0;
+			v[2] = 1.0f;
 
-	bool GlobalShader::loadSingleInternal()
-	{
-		if ( !ShaderProgram::create() )
+			v += size;
+
+			v[0] = 0;
+			v[1] = 0;
+			v[2] = 0;
+
+			v += size;
+		}
+		std::vector< int > indices(2 * numSide * 3 );
+		int* idx = &indices[0];
+
+		int idxPrev = numSide - 1;
+		int idxA = numSide;
+		int idxB = numSide + 1;
+		for( int i = 0; i < numSide; ++i )
+		{
+			idx[0] = idxPrev;
+			idx[1] = i;
+			idx[2] = idxA;
+
+			idx[3] = i;
+			idx[4] = idxPrev;
+			idx[5] = idxB;
+			idx += 6;
+
+			idxPrev = i;
+		}
+
+		if( !mesh.create( &vertices[0] , nV, &indices[0], indices.size() , true) )
 			return false;
-		FixString< 256 > path;
-		path.format( "%s%s" , mName.c_str() , ".glsl" );
 
-		if ( !mShader[0].loadFile( Shader::eVertex , path , mDefine[0].c_str() ) )
-			return false;
-		attachShader( mShader[0] );
-
-		if ( !mShader[1].loadFile( Shader::ePixel , path , mDefine[1].c_str() ) )
-			return false;
-		attachShader( mShader[1] );
-
-		updateShader();
 		return true;
 	}
 
-	bool GlobalShader::loadFromFile(char const* name)
-	{
-		mName = name;
-		return loadInternal();
-	}
-
-	bool GlobalShader::loadInternal()
-	{
-		if ( !ShaderProgram::create() )
-			return false;
-		FixString< 256 > path;
-		path.format( "%s%s" , mName.c_str() , "VS.glsl" );
-		if ( !mShader[0].loadFile( Shader::eVertex , path ) )
-			return false;
-		attachShader( mShader[0] );
-
-		path.format( "%s%s" , mName.c_str() , "FS.glsl" );
-		if ( !mShader[1].loadFile( Shader::ePixel , path ) )
-			return false;
-		attachShader( mShader[1] );
-		updateShader();
-		return true;
-	}
-
-	bool GlobalShader::reload()
-	{
-		removeShader( Shader::eVertex );
-		removeShader( Shader::ePixel  );
-
-		if ( mbSingle )
-			return loadSingleInternal();
-
-		return loadInternal();
-	}
 
 	void Font::buildFontImage( int size , HDC hDC )
 	{

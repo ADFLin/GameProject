@@ -11,11 +11,16 @@
 #define BIT( n ) ( 1 << ( n ) )
 #endif
 
-#define SHADER_ENTRY( NAME ) #NAME
-#define SHADER_PARAM( NAME ) #NAME
+
 
 namespace GL
 {
+
+
+	inline bool isNormalize(Vector3 const& v)
+	{
+		return Math::Abs(1.0 - v.length2()) < 1e-6;
+	}
 
 	class LookAtMatrix : public Matrix4
 	{
@@ -88,6 +93,82 @@ namespace GL
 				      0 ,0 , -( zFar + zNear ) * zFactor , 1 );
 		}
 
+	};
+
+	class BasisMaterix : public Matrix4
+	{
+	public:
+		static Matrix4 FromX(Vector3 const& axis)
+		{
+			Vector3 x0 = axis;
+			Vector3 x1 = AnyOrthoVector(x0);
+			Vector3 x2 = x0.cross(x1);
+			return BasisMaterix(x0, x1, x2);
+		}
+		static Matrix4 FromY(Vector3 const& axis)
+		{
+			Vector3 x0 = axis;
+			Vector3 x1 = AnyOrthoVector(x0);
+			Vector3 x2 = x0.cross(x1);
+			return BasisMaterix(x2, x0, x1);
+		}
+		static Matrix4 FromZ(Vector3 const& axis)
+		{
+			Vector3 x0 = axis;
+			Vector3 x1 = AnyOrthoVector(x0);
+			Vector3 x2 = x0.cross(x1);
+			return BasisMaterix(x1, x2, x0);
+		}
+		static Matrix4 FromXY(Vector3 const& xAxis, Vector3 const& yAxis)
+		{
+			Vector3 x0 = xAxis;
+			Vector3 x1 = yAxis;
+			x1 -= Porjection(x1, x0);
+			Vector3 x2 = x0.cross(x1);
+			return BasisMaterix(x0, x1, x2);
+		}
+
+		static Matrix4 FromYZ(Vector3 const& yAxis, Vector3 const& zAxis)
+		{
+			Vector3 x0 = yAxis;
+			Vector3 x1 = zAxis;
+			x1 -= Porjection(x1, x0);
+			Vector3 x2 = x0.cross(x1);
+			return BasisMaterix(x2, x0, x1);
+		}
+
+		static Matrix4 FromZX(Vector3 const& zAxis, Vector3 const& xAxis)
+		{
+			Vector3 x0 = zAxis;
+			Vector3 x1 = xAxis;
+			x1 -= Porjection(x1, x0);
+			Vector3 x2 = x0.cross(x1);
+			return BasisMaterix(x1, x2, x0);
+		}
+	private:
+		//#MOVE
+		static Vector3 Porjection(Vector3 v, Vector3 dir)
+		{
+			return v - ( dir.dot(v) / dir.length2() ) * dir;
+		}
+
+		static Vector3 AnyOrthoVector(Vector3 v)
+		{
+			Vector3 temp = v.cross(Vector3(0, 0, 1));
+			if( temp.length2() > 1e-5 )
+				return temp;
+			return v.cross(Vector3(1,0,0));
+		}
+		BasisMaterix(Vector3 xAxis, Vector3 yAxis, Vector3 zAxis)
+		{
+			float s;
+			s = xAxis.normalize(); assert(s != 0);
+			s = yAxis.normalize(); assert(s != 0);
+			s = zAxis.normalize(); assert(s != 0);
+			setValue(xAxis.x, xAxis.y, xAxis.z,
+					 yAxis.x, yAxis.y, yAxis.z,
+					 zAxis.x, zAxis.y, zAxis.z);
+		}
 	};
 
 
@@ -191,6 +272,41 @@ namespace GL
 		float   mRoll;
 	};
 
+	struct OBJMaterialInfo
+	{
+		char const* name;
+
+		Vector3 ambient;
+		Vector3 diffuse;
+		Vector3 specular;
+		Vector3 transmittance;
+		Vector3 emission;
+		float shininess;
+		float ior;
+		float dissolve;
+		int   illum;
+		char const* ambientTextureName;
+		char const* diffuseTextureName;
+		char const* specularTextureName;
+		char const* normalTextureName;
+		std::vector < std::pair< char const*, char const* > > unknownParameters;
+
+		char const* findParam(char const* name) const
+		{
+			for( auto& pair : unknownParameters )
+			{
+				if( strcmp(name, pair.first) == 0 )
+					return pair.second;
+			}
+			return nullptr;
+		}
+	};
+
+	class OBJMaterialBuildListener
+	{
+	public:
+		virtual void build(int idxSection, OBJMaterialInfo const* mat) = 0;
+	};
 
 	class MeshUtility
 	{
@@ -200,11 +316,14 @@ namespace GL
 		static bool createIcoSphere( Mesh& mesh , float radius , int numDiv );
 		static bool createSkyBox( Mesh& mesh );
 		static bool createCube( Mesh& mesh , float halfLen = 1.0f );
-		static bool createCone(Mesh& mesh, float height, int numSide, bool bShareVertex);
+		
 		static bool createCone(Mesh& mesh, float height, int numSide);
 		static bool createDoughnut(Mesh& mesh , float radius , float ringRadius , int rings , int sectors);
 		static bool createPlaneZ( Mesh& mesh , float len, float texFactor );
 		static bool createPlane( Mesh& mesh , Vector3 const& offset , Vector3 const& normal , Vector3 const& dir , float len , float texFactor);
+
+		static bool createLightSphere(Mesh& mesh);
+		static bool createLightCone(Mesh& mesh);
 
 		struct MeshData
 		{
@@ -217,39 +336,16 @@ namespace GL
 		};
 		static bool createMesh(Mesh& mesh, MeshData& data);
 
-		struct MaterialInfo
-		{
 
 
-		};
 		static bool createFromObjectFile(
 			Mesh& mesh, char const* path , 
 			Matrix4* pTransform = nullptr , 
-			//std::function< void ( int idxScetion , MaterialInfo const& mat ) >* materialFun = nullptr , 
+			OBJMaterialBuildListener* listener = nullptr ,
 			int * skip = nullptr );
 
 	};
 
-	class GlobalShader : public ShaderProgram
-	{
-	public:
-		GlobalShader();
-		bool loadFromSingleFile( char const* fileName , char const* def = NULL );
-		bool loadFromSingleFile(
-			char const* fileName,
-			char const* vertexEntryName,
-			char const* pixelEntryName,
-			char const* def = NULL);
-		bool loadFromFile( char const* name );
-		bool reload();
-
-		bool loadSingleInternal();
-		bool loadInternal();
-		Shader      mShader[2];
-		std::string mName;
-		std::string mDefine[2];
-		bool        mbSingle;
-	};
 
 	class Font
 	{

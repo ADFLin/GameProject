@@ -1,6 +1,8 @@
 #include "GLCommon.h"
 
-#include "CPreprocessor.h"
+#include "GpuProfiler.h"
+
+
 #include "CommonMarco.h"
 #include "FileSystem.h"
 
@@ -11,8 +13,6 @@
 
 namespace GL
 {
-	static bool gbRecompileMode = true;
-
 	static bool checkGLError()
 	{
 		GLenum error = glGetError();
@@ -27,7 +27,7 @@ namespace GL
 
 
 
-	bool Shader::loadFile( Type type , char const* path , char const* def )
+	bool RHIShader::loadFile( Type type , char const* path , char const* def )
 	{
 
 		std::vector< char > codeBuffer;
@@ -49,7 +49,7 @@ namespace GL
 
 	}
 
-	Shader::Type Shader::getType()
+	RHIShader::Type RHIShader::getType()
 	{
 		if ( mHandle )
 		{
@@ -63,85 +63,22 @@ namespace GL
 		return eUnknown;
 	}
 
-	bool Shader::compileSource( Type type , char const* src[] , int num , bool bUsePreprocess )
+	bool RHIShader::compileSource( Type type , char const* src[] , int num )
 	{
 		if ( !create( type ) )
 			return false;
 
-		//#TODO: Move To ShaderCompiler
-	Recompile:
+		glShaderSource(mHandle, num, src, 0);
+		glCompileShader(mHandle);
 
-		bool bCompileSuccess = true;
+		if( getParam(GL_COMPILE_STATUS) == GL_FALSE )
 		{
-			if( bUsePreprocess )
-			{
-				CPP::CodeInput sourceInput;
-				for( int i = 0; i < num; ++i )
-				{
-					sourceInput.appendString(src[i]);
-				}
-				sourceInput.reset();
-
-				std::ostringstream oss;
-				CPP::CodeOutput codeOutput(oss);
-
-				CPP::Preprocessor preporcessor;
-				preporcessor.setOutput( codeOutput );
-				preporcessor.addSreachDir("Shader/");
-				try
-				{
-					preporcessor.translate(sourceInput);
-				}
-				catch( std::exception& e )
-				{
-					e.what();
-					return false;
-				}
-				std::string code = oss.str();
-
-				src[0] = code.c_str();
-				glShaderSource(mHandle, 1, src, 0);
-				glCompileShader(mHandle);
-
-				if( getParam(GL_COMPILE_STATUS) == GL_FALSE )
-				{
-					std::ofstream of("temp.glsl", std::ios::binary);
-					if( of.is_open() )
-					{
-						of.write(code.c_str(), code.size());
-					}
-				}
-			}
-			else
-			{
-				glShaderSource(mHandle, num, src, 0);
-				glCompileShader(mHandle);
-			}
-
-			if( getParam(GL_COMPILE_STATUS) == GL_FALSE )
-			{
-				int maxLength;
-				glGetShaderiv(mHandle, GL_INFO_LOG_LENGTH, &maxLength);
-				std::vector< char > buf(maxLength);
-				int logLength = 0;
-				glGetShaderInfoLog(mHandle, maxLength, &logLength, &buf[0]);
-				::MessageBoxA(NULL, &buf[0], "Shader Compile Error", 0 );
-				bCompileSuccess = false;
-			}
-		}
-
-		if ( bCompileSuccess == false )
-		{
-			if( gbRecompileMode )
-				goto Recompile;
-
 			return false;
 		}
-
 		return true;
 	}
 
-	bool Shader::create(Type type)
+	bool RHIShader::create(Type type)
 	{
 		if ( mHandle )
 		{
@@ -158,7 +95,7 @@ namespace GL
 		return mHandle != 0;
 	}
 
-	void Shader::destroy()
+	void RHIShader::destroy()
 	{
 		if ( mHandle )
 		{
@@ -167,7 +104,7 @@ namespace GL
 		}
 	}
 
-	GLuint Shader::getParam(GLuint val)
+	GLuint RHIShader::getParam(GLuint val)
 	{
 		GLint status;
 		glGetShaderiv( mHandle , val , &status );
@@ -177,57 +114,54 @@ namespace GL
 
 	ShaderProgram::ShaderProgram()
 	{
-		mHandle = 0;
 		mNeedLink = true;
-		std::fill_n( mShader , NumShader , (Shader*)0 );
+		std::fill_n( mShaders , NumShader , (RHIShader*)0 );
 	}
 
 	ShaderProgram::~ShaderProgram()
 	{
-		if ( mHandle )
-			glDeleteProgram( mHandle );
+
 	}
 
 	bool ShaderProgram::create()
 	{
-		if ( mHandle == 0 )
-			mHandle = glCreateProgram();
-		return mHandle != 0;
+		return fetchHandle();
 	}
 
-	Shader* ShaderProgram::removeShader( Shader::Type type )
+	RHIShader* ShaderProgram::removeShader( RHIShader::Type type )
 	{
-		Shader* out = mShader[ type ];
-		if ( mShader[ type ] )
+		RHIShader* out = mShaders[ type ];
+		if ( mShaders[ type ] )
 		{
-			glDetachShader( mHandle , mShader[ type ]->mHandle );
-			mShader[ type ] = NULL;
+			glDetachShader( mHandle , mShaders[ type ]->mHandle );
+			mShaders[ type ] = NULL;
 			mNeedLink = true;
 		}
 		return out;
 	}
 
-	void ShaderProgram::attachShader(Shader& shader)
+	void ShaderProgram::attachShader(RHIShader& shader)
 	{
-		Shader::Type type = shader.getType();
-		if ( mShader[ type ] )
-			glDetachShader( mHandle , mShader[ type ]->mHandle );
+		RHIShader::Type type = shader.getType();
+		if ( mShaders[ type ] )
+			glDetachShader( mHandle , mShaders[ type ]->mHandle );
 		glAttachShader( mHandle , shader.mHandle );
-		mShader[ type ] = &shader;
+		mShaders[ type ] = &shader;
 		mNeedLink = true;
 	}
 
-	void ShaderProgram::updateShader()
+	void ShaderProgram::updateShader(bool bForce)
 	{
-		if ( mNeedLink )
+		if ( mNeedLink || bForce )
 		{
 			glLinkProgram( mHandle );
-			checkLinkStatus();
+			glValidateProgram(mHandle);
+			checkProgramStatus();
 			mNeedLink = false;
 		}
 	}
 
-	void ShaderProgram::checkLinkStatus()
+	void ShaderProgram::checkProgramStatus()
 	{
 		GLint value;
 		glGetProgramiv(mHandle, GL_LINK_STATUS, &value);
@@ -237,6 +171,17 @@ namespace GL
 			GLsizei size;
 			glGetProgramInfoLog(mHandle, ARRAY_SIZE(buffer), &size, buffer);
 			//::Msg("Can't Link Program : %s", buffer);
+			int i = 1;
+		}
+
+		glGetProgramiv(mHandle, GL_VALIDATE_STATUS, &value);
+		if( value != GL_TRUE )
+		{
+			GLchar buffer[4096];
+			GLsizei size;
+			glGetProgramInfoLog(mHandle, ARRAY_SIZE(buffer), &size, buffer);
+			//::Msg("Can't Link Program : %s", buffer);
+			int i = 1;
 		}
 	}
 
@@ -245,10 +190,6 @@ namespace GL
 		updateShader();
 		glUseProgram( mHandle );
 		mIdxTextureAutoBind = IdxTextureAutoBindStart;
-		if( !checkGLError() )
-		{
-			checkLinkStatus();
-		}
 	}
 
 	void ShaderProgram::unbind()
@@ -259,61 +200,65 @@ namespace GL
 	Mesh::Mesh()
 	{
 		mType = eTriangleList;
-		mVboVertex = 0;
-		mVboIndex = 0;
-		mNumIndices = 0;
-		mNumVertices = 0;
-		mbIntIndex = false;
+		mVAO = 0;
 	}
 
 	Mesh::~Mesh()
 	{
-		if ( mVboVertex )
-		{
-			glDeleteBuffers( 1 , &mVboVertex );
-		}
-		if ( mVboIndex )
-		{
-			glDeleteBuffers( 1 , &mVboIndex );
-		}
+
 	}
 
-	bool Mesh::createBuffer(void* pVertex , int nV , void* pIdx , int nIndices , bool bIntIndex)
+	bool Mesh::create(void* pVertex , int nV , void* pIdx , int nIndices , bool bIntIndex)
 	{
-		glGenBuffers( 1 , &mVboVertex );
-		glBindBuffer( GL_ARRAY_BUFFER , mVboVertex );
-		glBufferData( GL_ARRAY_BUFFER , mDecl.getVertexSize() * nV , pVertex , GL_STATIC_DRAW );
-		glBindBuffer( GL_ARRAY_BUFFER , 0 );
+		//glGenVertexArrays(1, &mVAO);
+		//glBindVertexArray(mVAO);
+		mVertexBuffer = new VertexBufferRHI;
+		if( !mVertexBuffer->create(mDecl.getVertexSize() , nV , pVertex ) )
+			return false;
 
-		glGenBuffers( 1 , &mVboIndex );
-		glBindBuffer( GL_ELEMENT_ARRAY_BUFFER , mVboIndex );
-		glBufferData( GL_ELEMENT_ARRAY_BUFFER , ( (bIntIndex)?sizeof(GLuint):sizeof(GLushort) ) * nIndices , pIdx , GL_STATIC_DRAW );
-		glBindBuffer( GL_ELEMENT_ARRAY_BUFFER , 0 );
+		if ( nIndices )
+		{
+			mIndexBuffer = new IndexBufferRHI;
+			if( !mIndexBuffer->create(nIndices, bIntIndex, pIdx) )
+				return false;
+		}
+		
+		//glBindVertexArray(0);
 
-		mNumIndices  = nIndices;
-		mNumVertices = nV;
-		mbIntIndex   = bIntIndex;
+		mDecl.unbind();
 		return true;
 	}
 
-	void Mesh::draw()
+	void Mesh::draw(bool bUseVAO)
 	{
-		glBindBuffer( GL_ARRAY_BUFFER , mVboVertex );
-		mDecl.bind();
+		if( mVertexBuffer == nullptr )
+			return;
 
-		if ( mVboIndex )
+		//glBindVertexArray(mVAO);
+		//if( bUseVAO )
+			//mDecl.bindVAO();
+
+		GL_BIND_LOCK_OBJECT(mVertexBuffer);
+		
+		if( !bUseVAO )
+			mDecl.bind();
+
+		if ( mIndexBuffer )
 		{
-			glBindBuffer( GL_ELEMENT_ARRAY_BUFFER , mVboIndex );
-			glDrawElements( convert( mType ) , mNumIndices , mbIntIndex ? GL_UNSIGNED_INT : GL_UNSIGNED_SHORT , (void*)0 );
-			glBindBuffer( GL_ELEMENT_ARRAY_BUFFER , 0 );
+			GL_BIND_LOCK_OBJECT(mIndexBuffer);
+			glDrawElements( convert( mType ) , mIndexBuffer->mNumIndices , mIndexBuffer->mbIntIndex ? GL_UNSIGNED_INT : GL_UNSIGNED_SHORT , (void*)0 );
 		}
 		else
 		{
-			glDrawArrays( convert( mType ) , 0 , mNumVertices );
+			glDrawArrays( convert( mType ) , 0 , mVertexBuffer->mNumVertices );
 		}
 		checkGLError();
-		mDecl.unbind();
-		glBindBuffer( GL_ARRAY_BUFFER , 0 );
+
+		//if( bUseVAO )
+			//mDecl.unbindVAO();
+		//else
+			mDecl.unbind();
+		//glBindVertexArray(0);
 	}
 
 
@@ -325,36 +270,40 @@ namespace GL
 
 	void Mesh::drawInternal(int idxStart, int num)
 	{
-		glBindBuffer(GL_ARRAY_BUFFER, mVboVertex);
+		if( mVertexBuffer == nullptr )
+			return;
+
+		GL_BIND_LOCK_OBJECT(mVertexBuffer);
+
 		mDecl.bind();
 
-		if( mVboIndex )
 		{
-			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mVboIndex);
-			glDrawElements(convert(mType), num, mbIntIndex ? GL_UNSIGNED_INT : GL_UNSIGNED_SHORT, (void*)idxStart);
-			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-		}
-		else
-		{
-			glDrawArrays(convert(mType), idxStart, num);
+			if( mIndexBuffer )
+			{
+				GL_BIND_LOCK_OBJECT(mIndexBuffer);
+				glDrawElements(convert(mType), num, mIndexBuffer->mbIntIndex ? GL_UNSIGNED_INT : GL_UNSIGNED_SHORT, (void*)idxStart);
+			}
+			else
+			{
+				glDrawArrays(convert(mType), idxStart, num);
+			}
 		}
 		checkGLError();
 		mDecl.unbind();
-		glBindBuffer(GL_ARRAY_BUFFER, 0);
+		
 	}
 
 	VertexDecl::VertexDecl()
 	{
 		mVertexSize = 0;
+		mVAO = 0;
 	}
 
 	void VertexDecl::bind()
 	{
 		bool haveTex = false;
-		for ( InfoVec::iterator iter = mInfoVec.begin() , itEnd = mInfoVec.end(); 
-			iter != itEnd; ++iter )
+		for( Info& info : mInfoVec )
 		{
-			Info& info = *iter;
 			switch( info.semantic )
 			{
 			case Vertex::ePosition:
@@ -378,6 +327,12 @@ namespace GL
 					glSecondaryColorPointer( getElementSize( info.format ) , getFormatType( info.format ) , mVertexSize , (void*)info.offset );
 				}
 				break;
+			case Vertex::eTangent:
+				glClientActiveTexture(GL_TEXTURE5);
+				glEnableClientState(GL_TEXTURE_COORD_ARRAY);
+				glTexCoordPointer(getElementSize(info.format), getFormatType(info.format), mVertexSize, (void*)info.offset);
+				haveTex = true;
+				break;
 			case Vertex::eTexcoord:
 				glClientActiveTexture( GL_TEXTURE0 + info.idx );
 				glEnableClientState( GL_TEXTURE_COORD_ARRAY );
@@ -391,10 +346,8 @@ namespace GL
 	void VertexDecl::unbind()
 	{
 		bool haveTex = false;
-		for ( InfoVec::iterator iter = mInfoVec.begin() , itEnd = mInfoVec.end(); 
-			iter != itEnd; ++iter )
+		for( Info& info : mInfoVec )
 		{
-			Info& info = *iter;
 			switch( info.semantic )
 			{
 			case Vertex::ePosition:
@@ -406,9 +359,14 @@ namespace GL
 			case Vertex::eColor:
 				glDisableClientState( ( info.idx == 0) ? GL_COLOR_ARRAY:GL_SECONDARY_COLOR_ARRAY );
 				break;
+			case Vertex::eTangent:
+				haveTex = true;
+				glClientActiveTexture(GL_TEXTURE0);
+				glDisableClientState(GL_TEXTURE_COORD_ARRAY);
+				break;
 			case Vertex::eTexcoord:
-				haveTex = false;
-				glClientActiveTexture( GL_TEXTURE0 + info.idx );
+				haveTex = true;
+				glClientActiveTexture( GL_TEXTURE1 + info.idx );
 				glDisableClientState( GL_TEXTURE_COORD_ARRAY );
 				break;
 			}
@@ -417,7 +375,63 @@ namespace GL
 			glClientActiveTexture( GL_TEXTURE0 );
 	}
 
-	VertexDecl& VertexDecl::addElement(Vertex::Semantic s , Vertex::Format f , uint8 idx /*= 0 */)
+	enum
+	{
+		ATTRIBUTE0,
+		ATTRIBUTE1,
+		ATTRIBUTE2,
+		ATTRIBUTE3,
+		ATTRIBUTE4,
+		ATTRIBUTE5,
+		ATTRIBUTE6,
+		ATTRIBUTE7,
+		ATTRIBUTE8,
+		ATTRIBUTE9,
+		ATTRIBUTE10,
+		ATTRIBUTE11,
+		ATTRIBUTE12,
+		ATTRIBUTE13,
+		ATTRIBUTE14,
+		ATTRIBUTE15,
+
+		ATTRIBUTE_POSITION = ATTRIBUTE0,
+		ATTRIBUTE_COLOR = ATTRIBUTE1,
+		ATTRIBUTE_NORMAL = ATTRIBUTE2,
+		ATTRIBUTE_TANGENT = ATTRIBUTE3,
+		ATTRIBUTE_TEXCOORD = ATTRIBUTE4,
+	};
+	
+	void VertexDecl::setupVAO()
+	{
+		for( Info& info : mInfoVec )
+		{
+			switch( info.semantic )
+			{
+			case Vertex::ePosition:
+				glEnableVertexAttribArray(ATTRIBUTE_POSITION);
+				glVertexAttribPointer(ATTRIBUTE_POSITION, getElementSize(info.format), getFormatType(info.format), GL_FALSE, mVertexSize, (void*)info.offset);
+				break;
+			case Vertex::eNormal:
+				glEnableVertexAttribArray(ATTRIBUTE_NORMAL);
+				glVertexAttribPointer(ATTRIBUTE_NORMAL, getElementSize(info.format), getFormatType(info.format), GL_FALSE, mVertexSize, (void*)info.offset);
+				break;
+			case Vertex::eTangent:
+				glEnableVertexAttribArray(ATTRIBUTE_TANGENT);
+				glVertexAttribPointer(ATTRIBUTE_TANGENT, getElementSize(info.format), getFormatType(info.format), GL_FALSE, mVertexSize, (void*)info.offset);
+				break;
+			case Vertex::eColor:
+				glEnableVertexAttribArray(ATTRIBUTE_COLOR);
+				glVertexAttribPointer(ATTRIBUTE_COLOR, getElementSize(info.format), getFormatType(info.format), GL_FALSE, mVertexSize, (void*)info.offset);
+				break;
+			case Vertex::eTexcoord:
+				glEnableVertexAttribArray(ATTRIBUTE_TEXCOORD + info.idx);
+				glVertexAttribPointer(ATTRIBUTE_TEXCOORD + info.idx , getElementSize(info.format), getFormatType(info.format), GL_FALSE, mVertexSize, (void*)info.offset);
+				break;
+			}
+		}
+	}
+
+	VertexDecl& VertexDecl::addElement(Vertex::Semantic s, Vertex::Format f, uint8 idx /*= 0 */)
 	{
 		Info info;
 		info.semantic = s;
@@ -514,8 +528,7 @@ namespace GL
 		return ( info ) ? Vertex::Format( info->format ) : Vertex::eUnknowFormat;
 	}
 
-
-	bool TextureBaseRHI::loadFileInternal(char const* path , GLenum texType , Vec2i& outSize)
+	bool RHITextureBase::loadFileInternal(char const* path, GLenum texType, Vec2i& outSize)
 	{
 		int w;
 		int h;
@@ -534,10 +547,10 @@ namespace GL
 		switch( comp )
 		{
 		case 3:
-			glTexImage2D(texType, 0, GL_RGB, w, h, 0, GL_RGB, GL_UNSIGNED_BYTE, image); 
+			glTexImage2D(texType, 0, GL_RGB8, w, h, 0, GL_RGB, GL_UNSIGNED_BYTE, image); 
 			break;
 		case 4:
-			glTexImage2D(texType, 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, image);
+			glTexImage2D(texType, 0, GL_RGBA8, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, image);
 			break;
 		}
 		//glGenerateMipmap( texType);
@@ -545,7 +558,7 @@ namespace GL
 		return true;
 	}
 
-	bool Texture2DRHI::create(Texture::Format format , int width , int height)
+	bool RHITexture2D::create(Texture::Format format , int width , int height)
 	{
 		if ( !fetchHandle() )
 			return false;
@@ -560,8 +573,22 @@ namespace GL
 		return true;
 	}
 
+	bool RHITexture2D::create(Texture::Format format, int width, int height, void* data)
+	{
+		if( !fetchHandle() )
+			return false;
+		mSizeX = width;
+		mSizeY = height;
 
-	bool Texture2DRHI::loadFile(char const* path)
+		glBindTexture(GL_TEXTURE_2D, mHandle);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		glTexImage2D(GL_TEXTURE_2D, 0, Texture::Convert(format), width, height, 0, Texture::GetBaseFormat(format) , Texture::GetFormatType(format), data );
+		glBindTexture(GL_TEXTURE_2D, 0);
+		return true;
+	}
+
+	bool RHITexture2D::loadFile(char const* path)
 	{
 		if ( !fetchHandle() )
 			return false;
@@ -578,17 +605,17 @@ namespace GL
 		return result;
 	}
 
-	void Texture2DRHI::bind()
+	void RHITexture2D::bind()
 	{
 		glBindTexture( GL_TEXTURE_2D , mHandle );
 	}
 
-	void Texture2DRHI::unbind()
+	void RHITexture2D::unbind()
 	{
 		glBindTexture( GL_TEXTURE_2D , 0 );
 	}
 
-	bool Texture3DRHI::create(Texture::Format format, int sizeX , int sizeY , int sizeZ )
+	bool RHITexture3D::create(Texture::Format format, int sizeX , int sizeY , int sizeZ )
 	{
 		if( !fetchHandle() )
 			return false;
@@ -604,17 +631,17 @@ namespace GL
 		return true;
 	}
 
-	void Texture3DRHI::bind()
+	void RHITexture3D::bind()
 	{
 		glBindTexture(GL_TEXTURE_3D, mHandle);
 	}
 
-	void Texture3DRHI::unbind()
+	void RHITexture3D::unbind()
 	{
 		glBindTexture(GL_TEXTURE_3D, 0);
 	}
 
-	bool TextureCubeRHI::create(Texture::Format format , int width , int height)
+	bool RHITextureCube::create(Texture::Format format , int width , int height)
 	{
 		if ( !fetchHandle() )
 			return false;
@@ -630,7 +657,25 @@ namespace GL
 		return true;
 	}
 
-	bool TextureCubeRHI::loadFile(char const* path[])
+	bool RHITextureCube::create(Texture::Format format, int width, int height , void* data )
+	{
+		if( !fetchHandle() )
+			return false;
+
+		glBindTexture(GL_TEXTURE_CUBE_MAP, mHandle);
+		for( int i = 0; i < 6; ++i )
+		{
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+			glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, 
+						 Texture::Convert(format), width, height, 0, 
+						 Texture::GetBaseFormat(format), Texture::GetFormatType(format), data );
+		}
+		glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
+		return true;
+	}
+
+	bool RHITextureCube::loadFile(char const* path[])
 	{
 		if ( !fetchHandle() )
 			return false;
@@ -651,17 +696,17 @@ namespace GL
 		return result;
 	}
 
-	void TextureCubeRHI::bind()
+	void RHITextureCube::bind()
 	{
 		glBindTexture( GL_TEXTURE_CUBE_MAP , mHandle );
 	}
 
-	void TextureCubeRHI::unbind()
+	void RHITextureCube::unbind()
 	{
 		glBindTexture( GL_TEXTURE_CUBE_MAP , 0 );
 	}
 
-	bool TextureDepthRHI::create(Texture::DepthFormat format, int width, int height)
+	bool RHITextureDepth::create(Texture::DepthFormat format, int width, int height)
 	{
 		if( !fetchHandle() )
 			return false;
@@ -679,6 +724,16 @@ namespace GL
 		}
 		glBindTexture(GL_TEXTURE_2D, 0);
 		return true;	
+	}
+
+	void RHITextureDepth::bind()
+	{
+		glBindTexture(GL_TEXTURE_2D, mHandle);
+	}
+
+	void RHITextureDepth::unbind()
+	{
+		glBindTexture(GL_TEXTURE_2D, 0);
 	}
 
 	FrameBuffer::FrameBuffer()
@@ -705,32 +760,32 @@ namespace GL
 		}
 	}
 
-	int FrameBuffer::addTexture( TextureCubeRHI& target , Texture::Face face , bool beManaged )
+	int FrameBuffer::addTexture( RHITextureCube& target , Texture::Face face , bool beManaged )
 	{
 		int idx = mTextures.size();
 
 		BufferInfo info;
 		info.handle   = target.mHandle;
-		info.idx      = face;
+		info.idxFace      = face;
 		info.bManaged = ( beManaged ) ? target.mbManaged : false;
 		if ( info.bManaged )
-			target.release();
+			target.releaseResource();
 		mTextures.push_back( info );
 		
-		setTextureInternal( idx , info , GL_TEXTURE_CUBE_MAP_POSITIVE_X + info.idx );
+		setTextureInternal( idx , info , GL_TEXTURE_CUBE_MAP_POSITIVE_X + info.idxFace );
 		return idx;
 	}
 
-	int FrameBuffer::addTexture( Texture2DRHI& target , bool beManaged )
+	int FrameBuffer::addTexture( RHITexture2D& target , bool beManaged )
 	{
 		int idx = mTextures.size();
 
 		BufferInfo info;
 		info.handle   = target.mHandle;
-		info.idx      = 0;
+		info.idxFace      = 0;
 		info.bManaged = ( beManaged ) ? target.mbManaged : false;
 		if ( info.bManaged )
-			target.release();
+			target.releaseResource();
 
 		mTextures.push_back( info );
 		setTextureInternal( idx , info , GL_TEXTURE_2D );
@@ -738,31 +793,32 @@ namespace GL
 		return idx;
 	}
 
-	void FrameBuffer::setTexture( int idx , Texture2DRHI& target , bool beManaged )
+	void FrameBuffer::setTexture( int idx , RHITexture2D& target , bool beManaged )
 	{
 		assert( idx < mTextures.size() );
 		BufferInfo& info = mTextures[idx];
 		info.handle   = target.mHandle;
-		info.idx      = 0;
+		info.idxFace  = 0;
 		info.bManaged = ( beManaged ) ? target.mbManaged : false;
 		if ( info.bManaged )
-			target.release();
+			target.releaseResource();
 		setTextureInternal( idx , info , GL_TEXTURE_2D );
 	}
 
-	void FrameBuffer::setTexture( int idx , TextureCubeRHI& target , Texture::Face face , bool beManaged )
+	void FrameBuffer::setTexture( int idx , RHITextureCube& target , Texture::Face face , bool beManaged )
 	{
 		assert( idx < mTextures.size() );
 		BufferInfo& info = mTextures[idx];
 		info.handle   = target.mHandle;
-		info.idx      = face;
+		info.idxFace      = face;
 		info.bManaged = ( beManaged ) ? target.mbManaged : false;
 		if ( info.bManaged )
-			target.release();
-		setTextureInternal( idx , info , GL_TEXTURE_CUBE_MAP_POSITIVE_X + info.idx );
+			target.releaseResource();
+		setTextureInternal( idx , info , GL_TEXTURE_CUBE_MAP_POSITIVE_X + info.idxFace );
 	}
 
-	void FrameBuffer::setTextureInternal( int idx , BufferInfo& info , GLenum texType )
+
+	void FrameBuffer::setTextureInternal(int idx, BufferInfo& info, GLenum texType)
 	{
 		assert( mFBO );
 		glBindFramebuffer( GL_FRAMEBUFFER , mFBO );
@@ -774,6 +830,12 @@ namespace GL
 		}
 		glBindFramebuffer(GL_FRAMEBUFFER, 0 );
 	}
+
+	void FrameBuffer::bindDepthOnly()
+	{
+		glBindFramebuffer(GL_FRAMEBUFFER, mFBO);
+	}
+
 
 	void FrameBuffer::bind()
 	{
@@ -812,9 +874,27 @@ namespace GL
 		return mFBO != 0;
 	}
 
-	void FrameBuffer::setDepthInternal( GLuint handle , Texture::DepthFormat format, bool bTexture , bool bManaged )
+	void FrameBuffer::clearBuffer(Vector4 const* colorValue, float const* depthValue, uint8 stencilValue)
 	{
-		clearDepth();
+		if( colorValue )
+		{
+
+			for( int i = 0; i < mTextures.size(); ++i )
+			{
+				BufferInfo& bufferInfo = mTextures[i];
+				glClearBufferfv(GL_COLOR, i, (float const*)colorValue);
+			}
+		}
+		if( depthValue )
+		{
+			//FIXME
+			glClearBufferfv(GL_DEPTH, 0, depthValue);
+		}
+	}
+
+	void FrameBuffer::setDepthInternal(GLuint handle, Texture::DepthFormat format, bool bTexture, bool bManaged)
+	{
+		removeDepthBuffer();
 
 		mDepth.handle = handle;
 		mDepth.bManaged = bManaged;
@@ -857,18 +937,18 @@ namespace GL
 		bManaged = (bManaged) ? buffer.mbManaged : false;
 		setDepthInternal( buffer.mHandle , buffer.getFormat() , false , bManaged );
 		if ( bManaged )
-			buffer.release();
+			buffer.releaseResource();
 	}
 
-	void FrameBuffer::setDepth(TextureDepthRHI& target, bool bManaged /*= false */)
+	void FrameBuffer::setDepth(RHITextureDepth& target, bool bManaged /*= false */)
 	{
 		bManaged = (bManaged) ? target.mbManaged : false;
 		setDepthInternal(target.mHandle, target.getFormat(), true , bManaged);
 		if( bManaged )
-			target.release();
+			target.releaseResource();
 	}
 
-	void FrameBuffer::clearDepth()
+	void FrameBuffer::removeDepthBuffer()
 	{
 		if ( mDepth.handle )
 		{

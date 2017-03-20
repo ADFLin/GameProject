@@ -16,7 +16,7 @@
 #include "GameClient.h"
 
 #include "RenderUtility.h"
-#include "OptionNoteBook.h"
+#include "Widget/OptionNoteBook.h"
 
 #include "NetGameStage.h"
 

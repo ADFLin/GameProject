@@ -40,7 +40,7 @@
 #define technique
 #define pass
 #define triangle
-#define compile
+#define compileSource
 #define vs_2_0
 #define ps_2_0
 
@@ -163,8 +163,8 @@ class sampler_state;
 class SamplerState;
 
 class Texture1D;
-class Texture2DRHI;
-class Texture3DRHI;
+class RHITexture2D;
+class RHITexture3D;
 
 struct float2
 {

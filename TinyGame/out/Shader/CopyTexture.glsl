@@ -35,10 +35,21 @@ void CopyTextureMaskPS()
 	gl_FragColor = float4( c , c , c , 1 );
 }
 
+
+uniform float2 ColorBais;
+void CopyTextureBaisPS()
+{
+	vec2 UVs = vsOutput.UVs;
+	float3 color = ColorBais.x * texture2D(CopyTexture, UVs).rgb + ColorBais.y;
+	//color = texture2D(CopyTexture, UVs).rgb;
+	gl_FragColor = float4(color, 1);
+}
+
 uniform float2 ValueFactor;
 
 static const float3 Color[] =
 {
+	float3(0,0,0),
 	float3(1,0,0),
 	float3(0,1,0),
 	float3(0,0,1),

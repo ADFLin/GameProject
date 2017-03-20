@@ -28,7 +28,7 @@
 #include "BloxorzStage.h"
 #include "AStarStage.h"
 #include "FBirdStage.h"
-#include "RenderGLStage.h"
+#include "RenderGL/RenderGLStage.h"
 #include "GGJStage.h"
 #include "RubiksStage.h"
 

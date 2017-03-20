@@ -9,7 +9,7 @@ namespace Math
 	{
 	public:
 		Vector3(){}
-		Vector3( float v[] ){ setValue( v[0] , v[1] , v[2] ); }
+		Vector3( float const v[] ){ setValue( v[0] , v[1] , v[2] ); }
 		Vector3(float sx,float sy,float sz);
 
 		float normalize()

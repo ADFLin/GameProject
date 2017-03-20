@@ -432,6 +432,7 @@ void GLFont::printf(const char *fmt, ...)
 
 void GLFont::print( char const* str )
 {
+
 	if (str == NULL)									// If There's No Text
 		return;											// Do Nothing
 	glPushAttrib(GL_LIST_BIT);							// Pushes The Display List Bits

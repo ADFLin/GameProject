@@ -138,19 +138,23 @@
     <ClCompile Include="Bejeweled\BJLevel.cpp" />
     <ClCompile Include="Bejeweled\BJScene.cpp" />
     <ClCompile Include="Bejeweled\BJStage.cpp" />
-    <ClCompile Include="BloxorzStage.cpp" />
     <ClCompile Include="Bsp2D.cpp" />
     <ClCompile Include="Cantan\CantanLevel.cpp" />
-    <ClCompile Include="FBirdStage.cpp" />
-    <ClCompile Include="RenderGLStageScene.cpp" />
+    <ClCompile Include="RenderGL\GLCommon.cpp" />
+    <ClCompile Include="RenderGL\GLUtility.cpp" />
+    <ClCompile Include="RenderGL\GpuProfiler.cpp" />
+    <ClCompile Include="RenderGL\Material.cpp" />
+    <ClCompile Include="RenderGL\RenderGLStage.cpp" />
+    <ClCompile Include="RenderGL\RenderGLStageScene.cpp" />
+    <ClCompile Include="RenderGL\RHICommon.cpp" />
+    <ClCompile Include="RenderGL\SceneRenderer.cpp" />
+    <ClCompile Include="RenderGL\ShaderCompiler.cpp" />
     <ClCompile Include="SingleStageMode.cpp" />
-    <ClCompile Include="GGJStage.cpp" />
     <ClCompile Include="Go\GoCore.cpp" />
     <ClCompile Include="Go\GoStage.cpp" />
     <ClCompile Include="Go\ZenBot.cpp" />
-    <ClCompile Include="LightingStage.cpp" />
     <ClCompile Include="main.cpp" />
-    <ClCompile Include="MainMenuStage.cpp" />
+    <ClCompile Include="Stage\MainMenuStage.cpp" />
     <ClCompile Include="Mario\MBLevel.cpp" />
     <ClCompile Include="MonumentValley\MVCommon.cpp" />
     <ClCompile Include="MonumentValley\MVLevel.cpp" />
@@ -162,10 +166,8 @@
     <ClCompile Include="MonumentValley\MVWidget.cpp" />
     <ClCompile Include="MonumentValley\MVWorld.cpp" />
     <ClCompile Include="NetGameStage.cpp" />
-    <ClCompile Include="RenderGLStage.cpp" />
     <ClCompile Include="Qix\QixLevel.cpp" />
     <ClCompile Include="ReplayStageMode.cpp" />
-    <ClCompile Include="RubiksStage.cpp" />
     <ClCompile Include="Shoot2D\Action.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
       </PrecompiledHeader>
@@ -232,7 +234,12 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
       </PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="Stage\BloxorzStage.cpp" />
     <ClCompile Include="Stage\CompressionTestStage.cpp" />
+    <ClCompile Include="Stage\FBirdStage.cpp" />
+    <ClCompile Include="Stage\GGJStage.cpp" />
+    <ClCompile Include="Stage\LightingStage.cpp" />
+    <ClCompile Include="Stage\RubiksStage.cpp" />
     <ClCompile Include="stb_image.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
       </PrecompiledHeader>
@@ -240,7 +247,7 @@
       </PrecompiledHeader>
       <Optimization Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">MaxSpeed</Optimization>
     </ClCompile>
-    <ClCompile Include="MiscTestStage.cpp" />
+    <ClCompile Include="Stage\MiscTestStage.cpp" />
     <ClCompile Include="Sudoku\SudokuStage.cpp" />
     <ClCompile Include="TinyGameApp.cpp" />
     <ClCompile Include="TinyGamePCH.cpp">
@@ -255,31 +262,35 @@
     <ClInclude Include="..\OtherLib\lodepng\lodepng.h" />
     <ClInclude Include="..\OtherLib\tinyobjloader\tiny_obj_loader.h" />
     <ClInclude Include="..\va_stdafx.h" />
-    <ClInclude Include="AgarStage.h" />
-    <ClInclude Include="AStarStage.h" />
     <ClInclude Include="Bejeweled\BJLevel.h" />
     <ClInclude Include="Bejeweled\BJScene.h" />
     <ClInclude Include="Bejeweled\BJStage.h" />
-    <ClInclude Include="BloxorzStage.h" />
     <ClInclude Include="Bsp2D.h" />
     <ClInclude Include="Cantan\CantanLevel.h" />
     <ClInclude Include="Cantan\CantanStage.h" />
     <ClInclude Include="CellWalker.h" />
     <ClInclude Include="Civ\CvCity.h" />
     <ClInclude Include="Civ\CvMap.h" />
-    <ClInclude Include="FBirdStage.h" />
     <ClInclude Include="Fight\FightLevel.h" />
-    <ClInclude Include="RenderGLStageAssetID.h" />
+    <ClInclude Include="RenderGL\GLCommon.h" />
+    <ClInclude Include="RenderGL\GLDrawUtility.h" />
+    <ClInclude Include="RenderGL\GLUtility.h" />
+    <ClInclude Include="RenderGL\GpuProfiler.h" />
+    <ClInclude Include="RenderGL\Material.h" />
+    <ClInclude Include="RenderGL\RenderGLStage.h" />
+    <ClInclude Include="RenderGL\RenderGLStageAssetID.h" />
+    <ClInclude Include="RenderGL\RHICommon.h" />
+    <ClInclude Include="RenderGL\Scene.h" />
+    <ClInclude Include="RenderGL\SceneRenderer.h" />
+    <ClInclude Include="RenderGL\ShaderCompiler.h" />
     <ClInclude Include="SingleStageMode.h" />
     <ClInclude Include="Geometry2d.h" />
-    <ClInclude Include="GGJStage.h" />
     <ClInclude Include="Go\GoCore.h" />
     <ClInclude Include="Go\GoStage.h" />
     <ClInclude Include="Go\zen.h" />
     <ClInclude Include="Go\ZenBot.h" />
-    <ClInclude Include="LightingStage.h" />
     <ClInclude Include="LordMonarch\LmLevel.h" />
-    <ClInclude Include="MainMenuStage.h" />
+    <ClInclude Include="Stage\MainMenuStage.h" />
     <ClInclude Include="Mario\MBLevel.h" />
     <ClInclude Include="MonumentValley\MVCommon.h" />
     <ClInclude Include="MonumentValley\MVLevel.h" />
@@ -291,12 +302,9 @@
     <ClInclude Include="MonumentValley\MVWidget.h" />
     <ClInclude Include="MonumentValley\MVWorld.h" />
     <ClInclude Include="NetGameStage.h" />
-    <ClInclude Include="RenderGLStage.h" />
     <ClInclude Include="Qix\QixLevel.h" />
     <ClInclude Include="ReplayStageMode.h" />
     <ClInclude Include="resource.h" />
-    <ClInclude Include="RubiksStage.h" />
-    <ClInclude Include="ShaderBuilder.h" />
     <ClInclude Include="Shoot2D\Action.h" />
     <ClInclude Include="Shoot2D\AxisSweepDetector.h" />
     <ClInclude Include="Shoot2D\CollisionSystem.h" />
@@ -312,11 +320,18 @@
     <ClInclude Include="Shoot2D\RenderEngine.h" />
     <ClInclude Include="Shoot2D\ResourcesLoader.h" />
     <ClInclude Include="Shoot2D\Weapon.h" />
+    <ClInclude Include="Stage\AgarStage.h" />
+    <ClInclude Include="Stage\AStarStage.h" />
+    <ClInclude Include="Stage\BloxorzStage.h" />
+    <ClInclude Include="Stage\FBirdStage.h" />
+    <ClInclude Include="Stage\GGJStage.h" />
+    <ClInclude Include="Stage\LightingStage.h" />
+    <ClInclude Include="Stage\RubiksStage.h" />
     <ClInclude Include="Stage\TestStageHeader.h" />
     <ClInclude Include="Sudoku\SamplerTest.h" />
     <ClInclude Include="Sudoku\SudokuSolver.h" />
     <ClInclude Include="Sudoku\SudokuSolver.hpp" />
-    <ClInclude Include="MiscTestStage.h" />
+    <ClInclude Include="Stage\MiscTestStage.h" />
     <ClInclude Include="TinyGameApp.h" />
     <ClInclude Include="TinyGamePCH.h" />
     <ClInclude Include="TripleTown\TextureId.h" />
@@ -369,10 +384,13 @@
     <None Include="out\Shader\ShadowLighting.glsl" />
     <None Include="out\Shader\ShadowMap.glsl" />
     <None Include="out\Shader\Simple.glsl" />
+    <None Include="out\Shader\SimpleBasePass.glsl" />
     <None Include="out\Shader\Skin.glsl" />
     <None Include="out\Shader\Sphere.glsl" />
     <None Include="out\Shader\ShadowDepthRender.glsl" />
     <None Include="out\Shader\SphereCommon.glsl" />
+    <None Include="out\Shader\SSAO.glsl" />
+    <None Include="out\Shader\Tonemap.glsl" />
     <None Include="out\Shader\VertexFactory.glsl" />
     <None Include="out\Shader\ViewParam.glsl" />
     <None Include="out\Shader\Water.glsl" />

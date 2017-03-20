@@ -19,7 +19,7 @@ void CalcMaterialInputPS(inout MaterialInputPS input, inout MaterialParametersPS
 	float c = cos( 0.001 * parameters.worldPos.x );
 	float3 n = normalize( float3(-c, 0, 1) );
 	float3 t = normalize( float3(1, 0, c) );
-	input.baseColor = parameters.vectexColor;
+	input.baseColor = parameters.vectexColor.rgb;
 	//input.baseColor = float3(1,1,1) * float3( parameters.worldPos.xy , 0 );
 	input.metallic = 0.9;
 	input.roughness = 0.7;

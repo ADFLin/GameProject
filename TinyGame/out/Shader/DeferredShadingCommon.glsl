@@ -27,7 +27,7 @@ struct GBufferData
 
 uint DecodeShadingModel(float value)
 {
-	return ((uint)round(value * float(0xff))) & 0xff;
+	return (uint(round(value * float(0xff)))) & 0xff;
 }
 
 float EncodeShadingModel(uint value)
@@ -63,7 +63,7 @@ GBufferData DecodeGBuffer(in float4 GBufferA, in float4 GBufferB, in float4 GBuf
 	GBuffer.roughness = GBufferD.g;
 	GBuffer.specular = GBufferD.b;
 	GBuffer.shadingModel = DecodeShadingModel(GBufferD.a);
-	GBuffer.specularColor = lerp(0.08 * GBuffer.specular.xxx, GBuffer.baseColor, GBuffer.metallic);
+	GBuffer.specularColor = lerp( float3(0.08 *GBuffer.specular) , GBuffer.baseColor, GBuffer.metallic);
 	GBuffer.diffuseColor = GBuffer.baseColor - GBuffer.baseColor * GBuffer.metallic;
 
 	return GBuffer;

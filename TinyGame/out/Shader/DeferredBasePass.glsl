@@ -35,17 +35,14 @@ void BasePassPS()
 	CalcMaterialParameters(materialInput , materialParameters);
 
 	//float4 color = float4( materialParameters.vectexColor * 0.1 , 1 );
-	float4 color = 0;
+	float4 color = float4(0.0);
 	color.rgb += materialInput.emissiveColor;
 	color.a = 1;
 
 	GBufferData GBuffer;
 	GBuffer.worldPos = GetMaterialWorldPositionAndCheckDepthOffset(materialInput, materialParameters);
 	//GBuffer.normal = normalize(vsOutput.normal.xyz);
-	float3 materialNormal = GetMaterialNormal(materialInput , materialParameters);
-	materialNormal.y *= intermediates.normalYSign;
-	GBuffer.normal = normalize( materialParameters.tangentToWorld * materialNormal );
-
+	GBuffer.normal = GetMaterialWorldNormal(materialInput , materialParameters);
 	//GBuffer.normal = materialParameters.worldNormal;
 
 	GBuffer.baseColor = materialInput.baseColor;
@@ -55,24 +52,16 @@ void BasePassPS()
 	GBuffer.shadingModel = materialInput.shadingModel;
 	float4 svPos = View.worldToClip * float4(materialParameters.worldPos, 1);
 	svPos = materialParameters.screenPos;
-	GBuffer.depth = materialParameters.screenPos.z;
+	GBuffer.depth = -materialParameters.screenPos.z;
 	
 	float4 GBufferA, GBufferB, GBufferC, GBufferD;
 	EncodeGBuffer(GBuffer, GBufferA, GBufferB, GBufferC, GBufferD);
 
-
 	gl_FragData[0] = color;
-#if 1
 	gl_FragData[1] = GBufferA;
 	gl_FragData[2] = GBufferB;
 	gl_FragData[3] = GBufferC;
-#else
-	gl_FragData[1] = float4( tangentX, 1 );
-	gl_FragData[2] = float4( tangentY, 1 );
-	gl_FragData[3] = float4( tangentZ, 1 );
-#endif
 	gl_FragData[4] = GBufferD;
-
 }
 
 

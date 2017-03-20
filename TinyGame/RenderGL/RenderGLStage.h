@@ -20,19 +20,82 @@
 #include "GLCommon.h"
 #include "GLUtility.h"
 #include "GLDrawUtility.h"
+#include "CommonMarco.h"
 
 #include <limits>
 #include <memory>
 
+#include "Material.h"
+#include "Scene.h"
+#include "SceneRenderer.h"
+#include "GpuProfiler.h"
+
+
 namespace RenderGL
 {
-	typedef GL::Vec2i Vec2i;
-
+	using namespace GL;
 	float const FLT_DIV_ZERO_EPSILON = 1e-6;
 
-	struct GpuSync
+	class MaterialMaster;
+
+	typedef TVector2<int> Vec2i;
+
+	class AABBox
 	{
-		GpuSync()
+	public:
+
+		AABBox() {}
+		AABBox(Vector3 const& min, Vector3 const& max)
+			:mMin(min), mMax(max)
+		{
+		}
+
+		static AABBox Empty() { return AABBox(Vector3::Zero(), Vector3::Zero()); }
+
+		Vector3 getMin() const { return mMin; }
+		Vector3 getMax() const { return mMax; }
+		Vector3 getSize() const { return mMax - mMin; }
+		float getVolume()
+		{
+			Vector3 size = getSize();
+			return size.x * size.y * size.z;
+		}
+		void setEmpty()
+		{
+			mMin = mMax = Vector3::Zero();
+		}
+
+		void addPoint(Vector3 const& v)
+		{
+			mMax.max(v);
+			mMin.min(v);
+		}
+		void translate(Vector3 const& offset)
+		{
+			mMax += offset;
+			mMin += offset;
+		}
+		void expand(Vector3 const& dv)
+		{
+			mMax += dv;
+			mMin -= dv;
+		}
+
+		void makeUnion(AABBox const& other)
+		{
+			mMin.min(other.mMin);
+			mMax.max(other.mMax);
+		}
+	private:
+		Vector3 mMin;
+		Vector3 mMax;
+	};
+
+
+
+	struct GLGpuSync
+	{
+		GLGpuSync()
 		{
 			bUseFence = false;
 			renderSync = nullptr;
@@ -48,8 +111,6 @@ namespace RenderGL
 		GLsync loadingSync;
 	};
 
-
-	using namespace GL;
 
 	inline bool isInside( Vector3 const& min , Vector3 const& max , Vector3 const& p )
 	{
@@ -188,301 +249,84 @@ namespace RenderGL
 		Vector3 min, max;
 	};
 
-	class ShaderHelper : public SingletonT< ShaderHelper >
+
+	typedef std::shared_ptr< Material > MaterialPtr;
+	class StaticMesh : public Mesh
 	{
 	public:
-		bool init();
-
-		void copyTextureToBuffer(Texture2DRHI& copyTexture);
-		void copyTextureMaskToBuffer(Texture2DRHI& copyTexture, Vector4 const& colorMask);
-		void mapTextureColorToBuffer(Texture2DRHI& copyTexture, Vector4 const& colorMask, float valueFactor[2]);
-		void copyTexture(Texture2DRHI& destTexture, Texture2DRHI& srcTexture);
-
-
-		static void drawCubeTexture(TextureCubeRHI& texCube, Vec2i const& pos, int length);
-		static void drawTexture(Texture2DRHI& texture, Vec2i const& pos, Vec2i const& size);
-
-		void reload();
-		GlobalShader mProgCopyTexture;
-		GlobalShader mProgCopyTextureMask;
-		GlobalShader mProgMappingTextureColor;
-	};
-
-
-
-	enum class LightType
-	{
-		Spot ,
-		Point ,
-		Directional ,
-	};
-
-	struct LightInfo
-	{
-		LightType type;
-		Vector3   pos;
-		Vector3   color;
-		Vector3   dir;
-		Vector3   spotAngle;
-		float     intensity;
-		float     radius;
-
-		Vector3   upDir;
-
-		void bindGlobalParam(ShaderProgram& program) const
+		void postLoad()
 		{
-			program.setParam(SHADER_PARAM(GLight.worldPosAndRadius), Vector4( pos , radius ) );
-			program.setParam(SHADER_PARAM(GLight.color), intensity * color);
-			program.setParam(SHADER_PARAM(GLight.type), int(type));
-			program.setParam(SHADER_PARAM(GLight.dir), normalize(dir));
 
-			Vector3 spotParam;
-			float angleInner = Math::Min(spotAngle.x, spotAngle.y);
-			spotParam.x = Math::Cos( Math::Deg2Rad( Math::Min(89.9, angleInner)) );
-			spotParam.y = Math::Cos( Math::Deg2Rad( Math::Min(89.9, spotAngle.y)) );
-			program.setParam(SHADER_PARAM(GLight.spotParam), spotParam);
-		}
-	};
 
-	struct ViewInfo
-	{
-		Vector3 worldPos;
-		Vector3 direction;
-		Matrix4 worldToClip;
-		Matrix4 worldToView;
-		Matrix4 viewToWorld;
-		Matrix4 viewToClip;
-		Matrix4 clipToWorld;
-		Matrix4 clipToView;
-		
-		float   gameTime;
-		float   realTime;
 
-		Vector3 getViewForwardDir() const
-		{
-			return TransformVector(Vector3(0, 0, -1), viewToWorld);
-		}
-		Vector3 getViewRightDir() const
-		{
-			return TransformVector(Vector3(1, 0, 0), viewToWorld);
-		}
-		Vector3 getViewUpDir() const
-		{
-			return TransformVector(Vector3(0, 1, 0), viewToWorld);
 		}
 
-		void setupTransform( Matrix4 const& inViewMatrix  , Matrix4 const& inProjectMatrix )
+		void render(Matrix4 const& worldTrans , RenderParam& param , Material* material)
 		{
-			
-			worldToView = inViewMatrix;
-			float det;
-			worldToView.inverse(viewToWorld, det);
-			worldPos = TransformPosition(Vector3(0, 0, 0) , viewToWorld);
-			viewToClip = inProjectMatrix;
-			worldToClip = worldToView * viewToClip;
+			param.setMaterial(material);
+			param.setWorld(worldTrans);
 
-			viewToClip.inverse(clipToView, det);
-			clipToWorld = clipToView * viewToWorld;
-
-			direction = TransformVector( Vector3(0, 0, -1) , viewToWorld );
-		}
-
-		void bindParam(ShaderProgram& program)
-		{
-			program.setParam(SHADER_PARAM(View.worldPos), worldPos);
-			program.setParam(SHADER_PARAM(View.direction), direction);
-			program.setParam(SHADER_PARAM(View.worldToView), worldToView);
-			program.setParam(SHADER_PARAM(View.worldToClip), worldToClip);
-			program.setParam(SHADER_PARAM(View.viewToWorld), viewToWorld);
-			program.setParam(SHADER_PARAM(View.viewToClip), viewToClip);
-			program.setParam(SHADER_PARAM(View.clipToView), clipToView);
-			program.setParam(SHADER_PARAM(View.clipToWorld), clipToWorld);
-			program.setParam(SHADER_PARAM(View.gameTime), gameTime);
-			program.setParam(SHADER_PARAM(View.realTime), realTime);
-		}
-	};
-
-
-	class RenderParam;
-	class SceneRender
-	{
-	public:
-		virtual void render( ViewInfo& view , RenderParam& param ) = 0;
-	};
-
-	struct ShaderParameter
-	{
-		uint8 Index;
-	};
-
-	class Material
-	{
-	public:
-		bool loadFile(char const* name)
-		{
-			mName = name;
-			return loadInternal();
-		}
-
-		void reload()
-		{
-			loadInternal();
-		}
-
-		void setParameter(char const* name, Texture2DRHI& texture) { setTextureParameterInternal(name, ParamType::eTexture2DRHI , texture); }
-		void setParameter(char const* name, Texture3DRHI& texture) { setTextureParameterInternal(name, ParamType::eTexture3DRHI, texture); }
-		void setParameter(char const* name, TextureCubeRHI& texture) { setTextureParameterInternal(name, ParamType::eTextureCubeRHI, texture); }
-		void setParameter(char const* name, TextureDepthRHI& texture) { setTextureParameterInternal(name, ParamType::eTextureDepthRHI, texture); }
-
-		void setParameter(char const* name, Matrix4 const& value){  setParameterT(name, ParamType::eMatrix4 , value );  }
-		void setParameter(char const* name, Matrix3 const& value) {  setParameterT(name, ParamType::eMatrix3, value);  }
-		void setParameter(char const* name, Vector4 const& value) {  setParameterT(name, ParamType::eVector, value);  }
-		void setParameter(char const* name, float value) {  setParameterT(name, ParamType::eScale , value);  }
-
-		enum class ParamType
-		{
-			
-			eMatrix4,
-			eMatrix3,
-			eVector,
-			eScale,
-
-			eTexture2DRHI,
-			eTexture3DRHI,
-			eTextureCubeRHI,
-			eTextureDepthRHI,
-		};
-		struct ParamSlot
-		{
-			HashString    name;
-			ParamType     type;
-			int16         offset;
-		};
-
-		template< class T >
-		void setParameterT(char const* name, ParamType type , T const& value)
-		{
-			ParamSlot& slot = fetchParam(name , type);
-			if( slot.offset != -1 )
 			{
-				T& dateStorage = *reinterpret_cast<T*>(&mParamDataStorage[slot.offset]);
-				dateStorage = value;
+				//GPU_PROFILE_VA("MeshDraw %s", name.c_str());
+				draw();
 			}
 		}
-
-		void setTextureParameterInternal(char const* name, ParamType type, TextureBaseRHI& texture)
+		void render(Matrix4 const& worldTrans , RenderParam& param)
 		{
-			ParamSlot& slot = fetchParam(name, type);
-			if( slot.offset != -1 )
+			glPushMatrix();
+			for( int i = 0; i < mSections.size(); ++i )
 			{
-				TextureBaseRHI*& dateStorage = *reinterpret_cast<TextureBaseRHI**>(&mParamDataStorage[slot.offset]);
-				dateStorage = &texture;
+				//if ( i != 5  )
+					//continue;
+				Material* material = getMaterial(i);
+				param.setMaterial(material);
+				param.setWorld(worldTrans);
+
+				{
+					char const* matName = material ? material->getMaster()->mName.c_str() : "DefalutMaterial";
+					//GPU_PROFILE_VA( "MeshDraw %s %s %d" , name.c_str() , matName , mSections[i].num);
+					this->drawSection(i);
+				}
 			}
+			glPopMatrix();
 		}
 
-		void bindShaderParam(ShaderProgram& shader);
-		bool loadInternal();
-
-		
-
-
-
-		ParamSlot& fetchParam(char const* name , ParamType type );
-
-
-		std::vector< uint8 > mParamDataStorage;
-		std::vector< ParamSlot > mParams;
-
-		//
-		GlobalShader mShader;
-		GlobalShader mShadowShader;
-		std::string  mName;
-
-	};
-
-
-	class RenderParam
-	{
-	public:
-		ViewInfo*      mCurView;
-		ShaderProgram* mCurMaterialShader;
-
-		virtual ShaderProgram* getMaterialShader(Material& material)
+		void setMaterial(int idx, MaterialPtr material)
 		{
+			if( idx >= mMaterials.size() )
+				mMaterials.resize(idx + 1);
+			mMaterials[idx] = material;
+		}
+		Material* getMaterial(int idx)
+		{
+			if( idx < mMaterials.size() )
+				return mMaterials[idx].get();
 			return nullptr;
 		}
-
-		virtual void setWorld(Matrix4 const& mat)
-		{
-			glMultMatrixf(mat);
-			if ( mCurMaterialShader )
-			{
-				Matrix4 matInv;
-				float det;
-				mat.inverseAffine(matInv, det);
-				mCurMaterialShader->setParam(SHADER_PARAM(VertexFactoryParams.localToWorld), mat);
-				mCurMaterialShader->setParam(SHADER_PARAM(VertexFactoryParams.worldToLocal), matInv);
-			}
-		}
-		virtual void setupMaterialShader(ShaderProgram& shader){}
-
-		void beginRender( ViewInfo& view )
-		{
-			mCurView = &view;
-			mCurMaterialShader = nullptr;
-		}
-		void endRender()
-		{
-			if( mCurMaterialShader )
-			{
-				mCurMaterialShader->unbind();
-				mCurMaterialShader = nullptr;
-			}
-		}
-
-		void setMaterial(Material& material)
-		{
-			ShaderProgram* shader = getMaterialShader(material);
-			if( shader == nullptr )
-				return;
-			if( mCurMaterialShader != shader )
-			{
-				if( mCurMaterialShader )
-				{
-					mCurMaterialShader->unbind();
-				}
-				mCurMaterialShader = shader;
-				mCurMaterialShader->bind();
-				mCurView->bindParam(*mCurMaterialShader);
-				material.bindShaderParam(*mCurMaterialShader);
-				setupMaterialShader(*mCurMaterialShader);
-			}
-		}
-		void setMaterialParameter(char const* name, Texture2DRHI& texture )
-		{
-			if( mCurMaterialShader )
-			{
-				mCurMaterialShader->setTexture(name, texture);
-			}
-		}
-		void setMaterialParameter(char const* name, Vector3 value)
-		{
-			if( mCurMaterialShader )
-			{
-				mCurMaterialShader->setParam(name, value);
-			}
-		}
-
+		std::vector< MaterialPtr > mMaterials;
+		std::string name;
 	};
 
-	struct RenderUnit
+	struct Transform
 	{
-		bool     beShow;
+		Vector3    scale;
+		Vector3    translate;
+		Quaternion rotation;
+	};
+
+	class StaticMeshObject
+	{
+		StaticMesh* mesh;
+		Transform   localTransform;
+	};
+
+	struct MeshBatchElement
+	{
+		ShaderProgram* Shader;
 		Mesh*    mesh;
 		Matrix4  world;
+		int      idxSection;
 	};
-
-
 
 	class Scene
 	{
@@ -492,227 +336,14 @@ namespace RenderGL
 			for( RenderUnitVec::iterator iter = mUnits.begin() , itEnd = mUnits.end();
 				 iter != itEnd ; ++iter )
 			{
-				RenderUnit& unit = *iter;
-				if ( !unit.beShow )
-					continue;
-
+				MeshBatchElement& unit = *iter;
 				param.setWorld( unit.world );
 				unit.mesh->draw();
 			}
 		}
 
-		typedef std::vector< RenderUnit > RenderUnitVec;
+		typedef std::vector< MeshBatchElement > RenderUnitVec;
 		RenderUnitVec mUnits;
-	};
-
-
-
-	class PostProcess
-	{
-
-
-
-
-	};
-
-
-	inline float normalizePlane( Vector4& plane )
-	{
-		float len2 = plane.xyz().dot( plane.xyz() );
-		float invSqrt =  Math::InvSqrt( len2 );
-		plane *= invSqrt;
-		return invSqrt;
-	}
-
-	class TechBase
-	{
-	public:
-
-		
-	};
-
-	struct GBufferParamData
-	{
-		enum BufferId
-		{
-			BufferA, //xyz : WorldPos
-			BufferB, //xyz : Noraml
-			BufferC, //xyz : BaseColor
-			BufferD,
-
-			NumBuffer,
-		};
-
-		Texture2DRHI    textures[NumBuffer];
-		TextureDepthRHI depthTexture;
-
-		bool init( Vec2i const& size );
-		void bindParam(ShaderProgram& program , bool bUseDepth );
-
-		void drawBuffer();
-		void drawDepthTexture(int x, int y, int width, int height);
-		void drawTexture(int x, int y, int width, int height, int idxBuffer);
-		void drawTexture(int x, int y, int width, int height, int idxBuffer, Vector4 const& colorMask);
-	};
-
-	struct ShadowProjectParam
-	{
-		static int const MaxCascadeNum = 8;
-		LightInfo const*   light;
-		TextureBaseRHI* shadowTexture;
-		Matrix4      shadowMatrix[8];
-		Vector3      shadowParam;
-
-		int          numCascade;
-		float        cacadeDepth[MaxCascadeNum];
-
-		void setupLight(LightInfo const& inLight)
-		{
-			light = &inLight;
-			switch( light->type )
-			{
-			case LightType::Spot:
-			case LightType::Point:
-				shadowParam.y = 1.0 / inLight.radius;
-				break;
-			case LightType::Directional:
-				//#TODO
-				shadowParam.y = 1.0;
-				break;
-			}
-		}
-
-		void bindParam(ShaderProgram& program) const
-		{
-			program.setParam(SHADER_PARAM(ShadowParam), shadowParam.x, shadowParam.y);
-			switch( light->type )
-			{
-			case LightType::Spot:
-				program.setParam(SHADER_PARAM(ProjectShadowMatrix), shadowMatrix, 1);
-				program.setTexture(SHADER_PARAM(ShadowTexture2D), *(Texture2DRHI*)shadowTexture);
-				break;
-			case LightType::Point:
-				program.setParam(SHADER_PARAM(ProjectShadowMatrix), shadowMatrix, 6);
-				program.setTexture(SHADER_PARAM(ShadowTextureCube), *(TextureCubeRHI*)shadowTexture);
-				break;
-			case LightType::Directional:
-				program.setParam(SHADER_PARAM(ProjectShadowMatrix), shadowMatrix, numCascade);
-				program.setTexture(SHADER_PARAM(ShadowTexture2D), *(Texture2DRHI*)shadowTexture);
-				program.setParam(SHADER_PARAM(NumCascade), numCascade);
-				program.setParam(SHADER_PARAM(CacadeDepth), cacadeDepth , numCascade );
-				break;
-			}
-		}
-	};
-
-	class DefferredLightingTech : public TechBase
-		                        , public RenderParam
-	{
-	public:
-		bool init(GBufferParamData& inGBufferParamData);
-
-		void renderBassPass(ViewInfo& view, SceneRender& scene , Texture2DRHI& frameTexture );
-		void renderLight(ViewInfo& view, LightInfo const& light, ShadowProjectParam const& shadowProjectParam);
-
-		FrameBuffer  mBuffer;
-		GlobalShader mProgLighting[3];
-
-		GBufferParamData* mGBufferParamData;
-		
-		virtual ShaderProgram* getMaterialShader(Material& material)
-		{
-			return &material.mShader;
-		}
-
-		void reload()
-		{
-			for( int i= 0;i < 3 ; ++i )
-				mProgLighting[i].reload();
-		}
-	};
-
-
-#define USE_MATERIAL_SHADOW 1
-
-
-
-	class ShadowDepthTech : public RenderParam
-	{
-	public:
-		static int const ShadowTextureSize = 2048;
-		static int const CascadeTextureSize = 2028;
-		static int const CascadedShadowNum = 4;
-
-		ShadowDepthTech()
-		{
-			mCascadeMaxDist = 40;
-		}
-		bool init();
-		void renderLighting(ViewInfo& view, SceneRender& scene, LightInfo const& light, bool bMultiple);
-		void renderShadowDepth(ViewInfo& view, SceneRender& scene , ShadowProjectParam& shadowProjectParam );
-		void calcCascadeShadowProjectInfo(ViewInfo &view, LightInfo const &light, float depthParam[2], Matrix4 &worldToLight, Matrix4 &shadowProject);
-
-		static void determineCascadeSplitDist(float nearDist , float farDist , int numCascade , float lambda  , float outDist[]);
-
-		void drawShadowTexture(LightType type);
-		void reload()
-		{
-			for( int i = 0; i < 3; ++i )
-			{
-				mProgShadowDepth[i].reload();
-			}
-			mProgLighting.reload();
-		}
-
-		virtual void setWorld(Matrix4 const& mat)
-		{
-			RenderParam::setWorld(mat);
-			if( mEffectCur == &mProgLighting )
-			{
-				mEffectCur->setParam(SHADER_PARAM(VertexFactoryParams.localToWorld), mat);
-			}
-		}
-
-		virtual ShaderProgram* getMaterialShader(Material& material)
-		{
-#if USE_MATERIAL_SHADOW
-			if( mEffectCur == &mProgLighting )
-				return nullptr;
-			return &material.mShadowShader;
-
-#else
-			return nullptr;
-#endif
-		}
-
-		virtual void setupMaterialShader(ShaderProgram& shader)
-		{
-			shader.setParam(SHADER_PARAM(DepthShadowMatrix), mShadowMatrix);
-			shader.setParam(SHADER_PARAM(ShadowParam), shadowParam.x, shadowParam.y);
-		}
-
-		float         depthParam[2];
-		Vector3       shadowParam;
-	
-		float         mCascadeMaxDist;
-		
-		GlobalShader* mEffectCur;
-
-		Mesh          mCubeMesh;
-		GlobalShader  mEffectCube;
-
-		Texture2DRHI     mShadowMap2;
-		TextureCubeRHI   mShadowMap;
-		Texture2DRHI     mCascadeTexture;
-		FrameBuffer   mShadowBuffer;
-
-		GlobalShader  mProgShadowDepth[3];
-		GlobalShader  mProgLighting;
-
-		Matrix4       mShadowMatrix;
-
-		DepthRenderBuffer depthBuffer1;
-		DepthRenderBuffer depthBuffer2;
 	};
 
 	class EnvTech
@@ -724,9 +355,8 @@ namespace RenderGL
 			if( !mBuffer.create() )
 				return false;
 
-			if( !mTexEnv.create(Texture::eRGBA32F, MapSize, MapSize) )
+			if( !mTexEnv.create(Texture::eFloatRGBA, MapSize, MapSize) )
 				return false;
-
 
 			DepthRenderBuffer depthBuffer;
 			if( !depthBuffer.create(MapSize, MapSize, Texture::eDepth24) )
@@ -741,8 +371,8 @@ namespace RenderGL
 
 		FrameBuffer mBuffer;
 
-		TextureCubeRHI mTexSky;
-		TextureCubeRHI mTexEnv;
+		RHITextureCube mTexSky;
+		RHITextureCube mTexEnv;
 
 
 	};
@@ -766,7 +396,7 @@ namespace RenderGL
 			glEnable(GL_CLIP_PLANE0);
 			glClipPlane(GL_CLIP_PLANE0, equ);
 
-			mBuffer.setTexture(0, mReflectMap);
+			mBuffer.setTexture(0, *mReflectMap);
 			mBuffer.bind();
 			//scene.render(view, *this);
 			mBuffer.unbind();
@@ -776,12 +406,12 @@ namespace RenderGL
 			glViewport(vp[0], vp[1], vp[2], vp[3]);
 		}
 
-		Vector4     waterPlane;
+		Vector4      waterPlane;
 
-		Mesh        mWaterMesh;
-		Texture2DRHI   mReflectMap;
-		Texture2DRHI   mRefractMap;
-		FrameBuffer mBuffer;
+		Mesh         mWaterMesh;
+		RHITexture2DRef mReflectMap;
+		RHITexture2DRef mRefractMap;
+		FrameBuffer  mBuffer;
 	};
 
 
@@ -799,7 +429,7 @@ namespace RenderGL
 		virtual void onEnd();
 
 		bool loadAssetResouse();
-		void buildLights();
+		void setupScene();
 
 		virtual void onUpdate( long time )
 		{
@@ -865,14 +495,25 @@ namespace RenderGL
 		}
 
 	protected:
-		GpuSync mGpuSync;
+		GLGpuSync   mGpuSync;
+		void prevLoading()
+		{
+			while( !mGpuSync.pervLoading() )
+			{
+				::Sleep(1);
+			}
+		}
+		void postLoading()
+		{
+			mGpuSync.postLoading();
+		}
 
-		GL::GlobalShader mProgPlanet;
-		GL::GlobalShader mProgSphere;
-		GL::GlobalShader mProgBump;
-		GL::GlobalShader mProgParallax;
-		GL::GlobalShader mEffectSphereSM;
-		GL::GlobalShader mEffectSimple;
+		ShaderProgram mProgPlanet;
+		ShaderProgram mProgSphere;
+		ShaderProgram mProgBump;
+		ShaderProgram mProgParallax;
+		ShaderProgram mEffectSphereSM;
+		ShaderProgram mEffectSimple;
 
 		Mesh   mMesh;
 		Mesh   mSphereMesh;
@@ -884,14 +525,16 @@ namespace RenderGL
 		Mesh   mFrustumMesh;
 
 		int  mNumLightDraw = 4;
-		static int const LightNum = 4;
-		LightInfo  mLights[LightNum];
+		std::vector< LightInfo > mLights;
 		CycleTrack mTracks[4];
 
 		Vector3 mPos;
 		GL::Camera  mCamStorage[2];
 		GL::Camera* mCamera;
 		ViewFrustum mViewFrustum;
+		Scene mScene;
+
+		bool bUseFrustumTest = true;
 
 		static int const NumAabb = 3;
 		AABB    mAabb[3];
@@ -900,67 +543,59 @@ namespace RenderGL
 		Vector3 rayStart , rayEnd;
 
 
-		typedef std::shared_ptr< Material > MaterialPtr;
-		std::vector< MaterialPtr > mMaterials;
-		typedef std::shared_ptr< Texture2DRHI > Texture2DPtr;
-		std::vector< Texture2DPtr > mTextures;
-		typedef std::shared_ptr< Mesh > MeshPtr;
-		std::vector< MeshPtr > mMeshs;
+		std::vector< MaterialMaster > mMaterials;
+		typedef std::shared_ptr< RHITexture2D > Texture2DPtr;
+		std::vector< Texture2D > mTextures;
+		typedef std::shared_ptr< StaticMesh > StaticMeshPtr;
+		std::vector< StaticMeshPtr > mMeshs;
 
-
-		Material&  getMaterial(int idx)
+		Material*  getMaterial(int idx)
 		{ 
-			if ( mMaterials[idx] )
-				return *mMaterials[idx]; 
-			return mEmptyMaterial;
+			return &mMaterials[idx]; 
 		}
-		Texture2DRHI& getTexture(int idx) 
+		Texture2D& getTexture(int idx) 
 		{ 
-			if( mTextures[idx] )
-				return *mTextures[idx];
-			return mEmptyTexture;
+			return mTextures[idx];
 		}
-		Mesh&      getMesh(int idx) 
+		StaticMesh&  getMesh(int idx) 
 		{ 
 			if( mMeshs[idx] )
 				return *mMeshs[idx];
 			return mEmptyMesh;
 		}
 
+		RHITexture2D* RHICreateTexture2D()
+		{
+			return new RHITexture2D;
+		}
+
 		bool  mLineMode;
+
+		SceneRenderTargets mSceneRenderTargets;
+
 		ShadowDepthTech mShadowTech;
 		DefferredLightingTech mDefferredLightingTech;
-		GBufferParamData mGBufferParamData;
+
+		PostProcessSSAO  mSSAO;
+
 		bool   mbShowBuffer;
+
+		int    renderLightCount = 0;
 		
 		Mesh   mSkyMesh;
-		TextureCubeRHI mTexSky;
+		RHITextureCubeRef mTexSky;
 
-		Material  mEmptyMaterial;
-		Texture2DRHI mEmptyTexture;
-		Mesh      mEmptyMesh;
+		StaticMesh  mEmptyMesh;
 		
-		Texture2DRHI mTexBase;
-		Texture2DRHI mTexNormal;
+		RHITexture2DRef mTexBase;
+		RHITexture2DRef mTexNormal;
 
 		bool   mPause;
 		float  mTime;
 		float  mRealTime;
 		int    mIdxChioce;
 
-		bool initFrameBuffer( Vec2i const& size );
 
-
-		Texture2DRHI&  getRenderFrameTexture() { return mFrameTextures[mIdxRenderFrameTexture]; }
-		Texture2DRHI&  getPrevRednerFrameTexture() { return mFrameTextures[1 - mIdxRenderFrameTexture]; }
-		void swapFrameBufferTexture()
-		{
-			mIdxRenderFrameTexture = 1 - mIdxRenderFrameTexture;
-			mFrameBuffer.setTexture(0, getRenderFrameTexture());
-		}
-		Texture2DRHI   mFrameTextures[2];
-		int         mIdxRenderFrameTexture;
-		FrameBuffer mFrameBuffer;
 
 
 		bool bInitialized = false;

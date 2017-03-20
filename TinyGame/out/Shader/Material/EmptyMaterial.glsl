@@ -10,7 +10,7 @@ uniform sampler2D BaseTexture;
 
 void  CalcMaterialInputVS(inout MaterialInputVS input, inout MaterialParametersVS parameters)
 {
-	input.worldOffset = 0;
+	input.worldOffset = float3(0.0);
 }
 
 #endif //VERTEX_SHADER
@@ -20,7 +20,7 @@ void  CalcMaterialInputVS(inout MaterialInputVS input, inout MaterialParametersV
 void CalcMaterialInputPS(inout MaterialInputPS input, inout MaterialParametersPS parameters)
 {
 	input.shadingModel = SHADINGMODEL_DEFAULT_LIT;
-	input.baseColor = tex2D(BaseTexture, parameters.texCoords[0].xy) * parameters.vectexColor;
+	input.baseColor = texture2D(BaseTexture, parameters.texCoords[0].xy).rgb * parameters.vectexColor.rgb;
 	input.metallic  = 0.1;
 	input.roughness = 0.9;
 	input.specular  = 0.1;

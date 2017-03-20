@@ -11,7 +11,8 @@
 #include "GLGraphics2D.h"
 
 #include <limits>
-#include "GLDrawUtility.h"
+#include "RenderGL/GLDrawUtility.h"
+#include "RenderGL/ShaderCompiler.h"
 
 namespace MV
 {
@@ -366,7 +367,7 @@ namespace MV
 		switch( key )
 		{
 		case Keyboard::eF2:
-			mRenderEngine.mEffect.reload();
+			ShaderManager::getInstance().reloadShader(mRenderEngine.mEffect);
 			break;
 		case Keyboard::eF3:
 			isEditMode = !isEditMode;

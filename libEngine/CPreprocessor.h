@@ -137,11 +137,14 @@ namespace CPP
 		void setOutput(CodeOutput& output);
 		void addSreachDir(char const* dir);
 		void define(char const* name, int value){}
+
+		bool bSupportMarco = false;
+
 	private:
 
 		TokenInfo nextToken(CodeInput& input);
 
-		bool bSupportMarco = false;
+
 
 		void execInclude(CodeInput& input);
 

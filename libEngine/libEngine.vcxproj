@@ -101,9 +101,7 @@
     <ClCompile Include="LogSystem.cpp" />
     <ClCompile Include="FileSystem.cpp" />
     <ClCompile Include="GIFLoader.cpp" />
-    <ClCompile Include="GLCommon.cpp" />
     <ClCompile Include="GLGraphics2D.cpp" />
-    <ClCompile Include="GLUtility.cpp" />
     <ClCompile Include="HashString.cpp" />
     <ClCompile Include="Math\BigFloat.cpp" />
     <ClCompile Include="Math\BigInteger.cpp" />
@@ -171,11 +169,8 @@
     <ClInclude Include="GameLoop.h" />
     <ClInclude Include="Game\Entity.h" />
     <ClInclude Include="GIFLoader.h" />
-    <ClInclude Include="GLCommon.h" />
     <ClInclude Include="GLConfig.h" />
-    <ClInclude Include="GLDrawUtility.h" />
     <ClInclude Include="GLGraphics2D.h" />
-    <ClInclude Include="GLUtility.h" />
     <ClInclude Include="Graphics2DBase.h" />
     <ClInclude Include="HashString.h" />
     <ClInclude Include="Heap.h" />

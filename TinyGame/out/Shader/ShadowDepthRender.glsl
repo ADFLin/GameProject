@@ -26,25 +26,22 @@ void MainVS()
 	float4 outPosition = DepthShadowMatrix * float4( VFOutputVS.worldPos , 1 );
 
 #if 0
-
 	float4 viewOffset = View.worldToView * float4(VFOutputVS.worldPos, 1);
-#if SHADOW_LIGHT_TYPE == LIGHTTYPE_POINT
+#	if SHADOW_LIGHT_TYPE == LIGHTTYPE_POINT
 	Depth = (length(viewOffset.xyz) - DepthParam.x) / (DepthParam.y - DepthParam.x);
-#else
+#	else
 	Depth = (-viewOffset.z - DepthParam.x) / (DepthParam.y - DepthParam.x);
-#endif
-
+#	endif
 #else
-
-#if USE_PERSPECTIVE_DEPTH
+#	if USE_PERSPECTIVE_DEPTH
 	Depth = outPosition.z / outPosition.w;
-#else
+#	else
 	Depth = outPosition.z * ShadowParam.y;
+#	endif
 #endif
 
-#endif
 }
-#endif
+#endif //VERTEX_SHADER
 
 #ifdef PIXEL_SHADER
 
@@ -89,4 +86,4 @@ void MainPS()
 	//gl_FragColor *= float4(materialParameters.worldNormal, 1);
 	//gl_FragColor = depth;
 }
-#endif
+#endif //PIXEL_SHADER

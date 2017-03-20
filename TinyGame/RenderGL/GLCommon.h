@@ -17,6 +17,10 @@
 #include <vector>
 #include <functional>
 
+#include "RefCount.h"
+
+#define SHADER_ENTRY( NAME ) #NAME
+#define SHADER_PARAM( NAME ) #NAME
 
 namespace GL
 {
@@ -26,89 +30,39 @@ namespace GL
 	typedef ::Math::Matrix4 Matrix4;
 	typedef ::Math::Matrix3 Matrix3;
 
-	typedef TVector2<int> Vec2i;
-
-	class AABBox
-	{
-	public:
-
-		AABBox() {}
-		AABBox( Vector3 const& min , Vector3 const& max )
-			:mMin(min),mMax(max){ }
-
-		static AABBox Empty() { return AABBox(Vector3::Zero() , Vector3::Zero()); }
-
-		Vector3 getMin() const { return mMin; }
-		Vector3 getMax() const { return mMax; }
-		Vector3 getSize() const { return mMax - mMin; }
-		float getVolume()
-		{
-			Vector3 size = getSize();
-			return size.x * size.y * size.z;
-		}
-		void setEmpty()
-		{
-			mMin = mMax = Vector3::Zero();
-		}
-
-		void addPoint(Vector3 const& v)
-		{
-			mMax.max(v);
-			mMin.min(v);
-		}
-		void translate(Vector3 const& offset)
-		{
-			mMax += offset;
-			mMin += offset;
-		}
-		void expand(Vector3 const& dv)
-		{
-			mMax += dv;
-			mMin -= dv;
-		}
-
-		void makeUnion(AABBox const& other)
-		{
-			mMin.min(other.mMin);
-			mMax.max(other.mMax);
-		}
-	private:
-		Vector3 mMin;
-		Vector3 mMax;
-	};
-
-
-	inline bool isNormalize( Vector3 const& v )
-	{
-		return Math::Abs( 1.0 - v.length2() ) < 1e-6;
-	}
-
 	template< class T >
-	class GLDataMove
+	class TGLDataMove
 	{
 
 	};
 
 	template< class RMPolicy >
-	class GLObject
+	class TGLObjectBase
 	{
 	public:
-		GLObject()
+		TGLObjectBase()
 		{
 			mHandle = 0;
 			mbManaged = true;
 		}
 
-		~GLObject()
+		~TGLObjectBase()
+		{
+			destroy();
+		}
+
+		bool isVaildate() { return mHandle != 0; }
+
+		void release()
 		{
 			destroy();
 		}
 
 		void destroy()
 		{
-			if ( mbManaged && mHandle )
+			if( mbManaged && mHandle )
 			{
-				RMPolicy::destroy( mHandle );
+				RMPolicy::destroy(mHandle);
 
 				GLenum error = glGetError();
 				if( error != GL_NO_ERROR )
@@ -122,26 +76,46 @@ namespace GL
 
 		bool fetchHandle()
 		{
-			if ( !mHandle )
-				RMPolicy::create( mHandle );
+			if( !mHandle )
+				RMPolicy::create(mHandle);
 			return mHandle != 0;
 		}
 
 		template< class P1 >
-		bool fetchHandle( P1 p1 )
+		bool fetchHandle(P1 p1)
 		{
-			if ( !mHandle )
-				RMPolicy::create( mHandle , p1 );
+			if( !mHandle )
+				RMPolicy::create(mHandle, p1);
 			return mHandle != 0;
 		}
-		
-		GLuint release(){ mbManaged = false ; return mHandle; }
 
-		template< class Q >
-		void operator = ( GLDataMove< Q >& rhs ){}
+		GLuint releaseResource() { mbManaged = false; return mHandle; }
+
 
 		bool   mbManaged;
 		GLuint mHandle;
+	};
+
+	template< class T , class RMPolicy >
+	class RHIResource : public RefCountedObjectT< T >
+		              , public TGLObjectBase< RMPolicy >
+	{
+	public:
+		RHIResource()
+		{
+			mHandle = 0;
+			mbManaged = true;
+		}
+
+		~RHIResource()
+		{
+			destroy();
+		}
+
+		void destroyThis() 
+		{ 
+			delete static_cast< T*>(this); 
+		}
 	};
 
 
@@ -165,6 +139,8 @@ namespace GL
 			eRGBA32F ,
 			eRGB16F,
 			eRGBA16F ,
+
+			eFloatRGBA = eRGBA16F ,
 		};
 
 		enum Face
@@ -187,6 +163,41 @@ namespace GL
 			case eRGBA32F: return GL_RGBA32F;
 			case eRGB16F:  return GL_RGB16F;
 			case eRGBA16F:  return GL_RGBA16F;
+			}
+			return 0;
+		}
+
+		static GLenum GetBaseFormat(Format format)
+		{
+			switch( format )
+			{
+			case eRGB8:
+			case eRGB32F:
+			case eRGB16F:
+				return GL_RGB;
+			case eRGBA8:
+			case eRGBA32F:
+			case eRGBA16F:
+				return GL_RGBA;
+			case eR32F:   
+				return GL_RED;
+			}
+			return 0;
+		}
+
+		static GLenum GetFormatType(Format format)
+		{
+			switch( format )
+			{
+			case eRGB8:
+			case eRGBA8:
+				return GL_UNSIGNED_BYTE;
+			case eRGB32F:
+			case eRGB16F:
+			case eRGBA32F:
+			case eRGBA16F:
+			case eR32F:
+				return GL_FLOAT;
 			}
 			return 0;
 		}
@@ -244,8 +255,10 @@ namespace GL
 		static void destroy( GLuint& handle ){ glDeleteTextures( 1 , &handle ); }
 	};
 
-	class TextureBaseRHI : public GLObject< RMPTexture >
+	class RHITextureBase : public RHIResource< RHITextureBase , RMPTexture >
 	{
+	public:
+		virtual ~RHITextureBase() {}
 	protected:
 		bool loadFileInternal(char const* path, GLenum texType, Vec2i& outSize);
 	};
@@ -254,11 +267,13 @@ namespace GL
 	{
 
 	};
-	class Texture2DRHI : public TextureBaseRHI
+
+	class RHITexture2D : public RHITextureBase
 	{
 	public:
 		bool loadFile( char const* path );
 		bool create( Texture::Format format , int width , int height );
+		bool create( Texture::Format format, int width, int height , void* data );
 		int  getSizeX() { return mSizeX; }
 		int  getSizeY() { return mSizeY; }
 		void bind();
@@ -269,7 +284,9 @@ namespace GL
 		int mSizeY;
 	};
 
-	class Texture3DRHI : public TextureBaseRHI
+
+
+	class RHITexture3D : public RHITextureBase
 	{
 	public:
 		bool create(Texture::Format format, int sizeX , int sizeY , int sizeZ );
@@ -285,23 +302,31 @@ namespace GL
 		int mSizeZ;
 	};
 
-	class TextureCubeRHI : public TextureBaseRHI
+	class RHITextureCube : public RHITextureBase
 	{
 	public:
 		bool loadFile( char const* path[] );
 		bool create( Texture::Format format , int width , int height );
+		bool create( Texture::Format format, int width, int height, void* data);
 		void bind();
 		void unbind();
 	};
 
-	class TextureDepthRHI : public TextureBaseRHI
+	typedef TRefCountPtr< RHITextureBase > RHITextureRef;
+	typedef TRefCountPtr< RHITexture2D > RHITexture2DRef;
+	typedef TRefCountPtr< RHITexture3D > RHITexture3DRef;
+	typedef TRefCountPtr< RHITextureCube > RHITextureCubeRef;
+
+	class RHITextureDepth : public RHITextureBase
 	{
 	public:
 		bool create(Texture::DepthFormat format, int width, int height);
-
+		void bind();
+		void unbind();
 		Texture::DepthFormat getFormat() { return mFromat; }
 		Texture::DepthFormat mFromat;
 	};
+	typedef TRefCountPtr< RHITextureDepth > RHITextureDepthRef;
 
 	struct RMPShader
 	{  
@@ -309,7 +334,7 @@ namespace GL
 		static void destroy( GLuint& handle ){ 	glDeleteShader( handle ); }
 	};
 
-	class Shader : public GLObject< RMPShader >
+	class RHIShader : public RHIResource< RHIShader , RMPShader >
 	{
 	public:
 		enum Type
@@ -325,7 +350,7 @@ namespace GL
 
 		bool loadFile( Type type , char const* path , char const* def = NULL );
 		Type getType();
-		bool compileSource( Type type , char const* src[] , int num , bool bUsePreprocess = true );
+		bool compileSource( Type type , char const* src[] , int num );
 		bool create( Type type );
 		void destroy();
 
@@ -333,20 +358,30 @@ namespace GL
 		friend class ShaderProgram;
 	};
 
-	class ShaderProgram
+	
+	typedef TRefCountPtr< RHIShader > RHIShaderRef;
+
+	struct RMPShaderProgram
+	{
+		static void create(GLuint& handle) { handle = glCreateProgram(); }
+		static void destroy(GLuint& handle) { glDeleteProgram(handle); }
+	};
+
+	class ShaderProgram : public TGLObjectBase< RMPShaderProgram >
 	{
 	public:
 		ShaderProgram();
 
 		~ShaderProgram();
 
+
 		bool create();
 
-		Shader* removeShader( Shader::Type type );
-		void    attachShader( Shader& shader );
-		void    updateShader();
+		RHIShader* removeShader( RHIShader::Type type );
+		void    attachShader( RHIShader& shader );
+		void    updateShader(bool bForce = false);
 
-		void checkLinkStatus();
+		void checkProgramStatus();
 
 		void    bind();
 		void    unbind();
@@ -417,25 +452,45 @@ namespace GL
 			}
 		}
 
+		void setVector3(char const* name, float const v[], int num)
+		{
+			int loc = glGetUniformLocation(mHandle, name);
+			if( loc != -1 )
+			{
+				glUniform3fv(loc, num, v);
+			}
+		}
+
+		void setVector4(char const* name, float const v[], int num)
+		{
+			int loc = glGetUniformLocation(mHandle, name);
+			if( loc != -1 )
+			{
+				glUniform4fv(loc, num, v);
+			}
+		}
+
 		void setParam( char const* name , Vector3 const& v ){ setParam( name , v.x , v.y , v.z ); }
 		void setParam( char const* name , Vector4 const& v) { setParam( name, v.x, v.y, v.z , v.w ); }
 		void setParam( char const* name , Matrix4 const& m ){ setMatrix44( name , m , 1 ); }
 		void setParam( char const* name , Matrix3 const& m ){ setMatrix33( name , m , 1 ); }
 		void setParam( char const* name, Matrix4 const v[], int num) { setMatrix44(name, v[0], num);  }
+		void setParam( char const* name, Vector3 const v[], int num) { setVector3(name, (float*)&v[0], num); }
+		void setParam( char const* name, Vector4 const v[], int num) { setVector4(name, (float*)&v[0], num); }
 
-		void setTexture( char const* name , Texture2DRHI& tex , int idx = -1 )
+		void setTexture( char const* name , RHITexture2D& tex , int idx = -1 )
 		{ 
 			return setTextureInternal( name , GL_TEXTURE_2D , tex.mHandle , idx ); 
 		}
-		void setTexture(char const* name, TextureDepthRHI& tex, int idx = -1)
+		void setTexture(char const* name, RHITextureDepth& tex, int idx = -1)
 		{
 			return setTextureInternal(name, GL_TEXTURE_2D, tex.mHandle, idx);
 		}
-		void setTexture( char const* name , TextureCubeRHI& tex , int idx = -1 )
+		void setTexture( char const* name , RHITextureCube& tex , int idx = -1 )
 		{
 			return setTextureInternal( name , GL_TEXTURE_CUBE_MAP , tex.mHandle , idx ); 
 		}
-		void setTexture(char const* name, Texture3DRHI& tex, int idx = -1)
+		void setTexture(char const* name, RHITexture3D& tex, int idx = -1)
 		{
 			return setTextureInternal(name, GL_TEXTURE_3D, tex.mHandle, idx);
 		}
@@ -492,10 +547,9 @@ namespace GL
 
 		int  getParamLoc( char const* name ){ return glGetUniformLocation( mHandle , name ); }
 		static int const NumShader = 3;
-		GLuint  mHandle;
-		Shader* mShader[ NumShader ];
-		bool    mNeedLink;
-		int     mIdxTextureAutoBind;
+		RHIShaderRef mShaders[ NumShader ];
+		bool         mNeedLink;
+		int          mIdxTextureAutoBind;
 	};
 
 	struct RMPRenderBuffer
@@ -504,14 +558,16 @@ namespace GL
 		static void destroy( GLuint& handle ){ 	glDeleteRenderbuffers( 1 , &handle ); }
 	};
 
-	class DepthRenderBuffer : public GLObject< RMPRenderBuffer >
+	class DepthRenderBuffer : public TGLObjectBase< RMPRenderBuffer >
 	{
 	public:
 		bool create( int w , int h , Texture::DepthFormat format );
 		Texture::DepthFormat getFormat() { return mFormat;  }
 		Texture::DepthFormat mFormat;
+
 	};
 
+	//typedef TRefCountPtr< RHIDepthRenderBuffer > RHIDepthRenderBufferRef;
 
 	class FrameBuffer
 	{
@@ -521,16 +577,20 @@ namespace GL
 
 		bool create();
 
-		int  addTexture(TextureCubeRHI& target, Texture::Face face, bool beManaged = false);
-		int  addTexture( Texture2DRHI& target , bool beManaged = false );
-		void setTexture( int idx , Texture2DRHI& target , bool beManaged = false );
-		void setTexture( int idx , TextureCubeRHI& target , Texture::Face face , bool bManaged = false );
+		int  addTexture(RHITextureCube& target, Texture::Face face, bool beManaged = false);
+		int  addTexture( RHITexture2D& target , bool beManaged = false );
+		void setTexture( int idx , RHITexture2D& target , bool beManaged = false );
+		void setTexture( int idx , RHITextureCube& target , Texture::Face face , bool bManaged = false );
+
+		void bindDepthOnly();
 		void bind();
 		void unbind();
 		void setDepth( DepthRenderBuffer& buffer , bool bManaged = false );
-		void setDepth( TextureDepthRHI& target, bool bManaged = false );
-		void clearDepth();
+		void setDepth( RHITextureDepth& target, bool bManaged = false );
+		void removeDepthBuffer();
 		GLuint getTextureHandle( int idx ){ return mTextures[idx].handle; }
+
+		void clearBuffer( Vector4 const* colorValue, float const* depthValue = nullptr, uint8 stencilValue = 0);
 
 		void setDepthInternal(GLuint handle, Texture::DepthFormat format, bool bTexture, bool bManaged);
 
@@ -541,10 +601,11 @@ namespace GL
 				handle = 0;
 				
 			}
+
 			GLuint handle;
 			union 
 			{
-				uint8  idx;
+				uint8  idxFace;
 				bool   bTexture;
 			};
 			bool   bManaged;
@@ -572,6 +633,7 @@ namespace GL
 			ePosition ,
 			eNormal ,
 			eColor ,
+			eTangent ,
 			eTexcoord ,
 		};
 	};
@@ -594,6 +656,25 @@ namespace GL
 
 		void bind();
 		void unbind();
+		void bindVAO()
+		{
+			if( mVAO )
+			{
+				glBindVertexArray(mVAO);
+			}
+			else
+			{
+				glGenVertexArrays(1, &mVAO);
+				glBindVertexArray(mVAO);
+
+			}
+			setupVAO();
+		}
+		void unbindVAO()
+		{
+			glBindVertexArray(0);
+		}
+		void setupVAO();
 		struct Info
 		{
 			uint8 semantic;
@@ -610,9 +691,96 @@ namespace GL
 		typedef std::vector< Info > InfoVec;
 		InfoVec mInfoVec;
 		uint8   mVertexSize;
-		GLuint  mHandle;
+		GLuint  mVAO;
 	};
 
+	struct RMPBufferObject
+	{
+		static void create(GLuint& handle) { glGenBuffers(1, &handle); }
+		static void destroy(GLuint& handle) { glDeleteBuffers(1, &handle); }
+	};
+
+	struct Buffer
+	{
+
+		enum Usage
+		{
+			eStatic ,
+			eDynamic ,
+		};
+
+
+
+
+	};
+
+
+	class VertexBufferRHI : public RHIResource< VertexBufferRHI , RMPBufferObject >
+	{
+	public:
+		VertexBufferRHI()
+		{
+			mBufferSize = 0;
+			mNumVertices = 0;
+		}
+		bool create( uint32 vertexSize,  uint32 numVertices , void* data )
+		{
+			if( !fetchHandle() )
+				return false;
+			glBindBuffer(GL_ARRAY_BUFFER, mHandle);
+			glBufferData(GL_ARRAY_BUFFER, vertexSize * numVertices , data , GL_STATIC_DRAW);
+			glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+			mBufferSize = vertexSize * numVertices;
+			mNumVertices = numVertices;
+			return true;
+		}
+		void bind() { glBindBuffer(GL_ARRAY_BUFFER, mHandle); }
+		void unbind(){ glBindBuffer(GL_ARRAY_BUFFER, 0); }
+
+		uint32 mBufferSize;
+		uint32 mNumVertices;
+
+	};
+
+	
+	class IndexBufferRHI : public RHIResource< IndexBufferRHI , RMPBufferObject >
+	{
+	public:
+		IndexBufferRHI()
+		{
+			mNumIndices = 0;
+			mbIntIndex = false;
+		}
+		bool create(int nIndices, bool bIntIndex , void* data )
+		{
+			if( !fetchHandle() )
+				return false;
+
+			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mHandle);
+			glBufferData(GL_ELEMENT_ARRAY_BUFFER, ((bIntIndex) ? sizeof(GLuint) : sizeof(GLushort)) * nIndices, data , GL_STATIC_DRAW);
+			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+
+			mNumIndices = nIndices;
+			mbIntIndex = bIntIndex;
+			return true;
+		}
+		void bind() { glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mHandle); }
+		void unbind() { glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0); }
+
+		bool   mbIntIndex;
+		uint32 mNumIndices;
+	};
+
+	typedef TRefCountPtr< VertexBufferRHI > RHIVertexBufferRef;
+	typedef TRefCountPtr< IndexBufferRHI > RHIIndexBufferRef;
+
+	struct PrimitiveDebugInfo
+	{
+		int32 numVertex;
+		int32 numIndex;
+		int32 numElement;
+	};
 	class Mesh
 	{
 	public:
@@ -627,8 +795,8 @@ namespace GL
 		Mesh();
 		~Mesh();
 
-		bool createBuffer( void* pVertex  , int nV , void* pIdx , int nIndices , bool bIntIndex );
-		void draw();
+		bool create( void* pVertex  , int nV , void* pIdx , int nIndices , bool bIntIndex );
+		void draw(bool bUseVAO = false);
 		void drawSection(int idx);
 
 		void drawInternal(int idxStart , int num );
@@ -646,13 +814,12 @@ namespace GL
 			return GL_POINTS;
 		}
 
-		PrimitiveType mType;    
-		GLuint     mVboVertex;
-		GLuint     mVboIndex;
-		int        mNumVertices;
-		int        mNumIndices;
-		bool       mbIntIndex;
-		VertexDecl mDecl;
+
+		PrimitiveType    mType;
+		VertexDecl       mDecl;
+		RHIVertexBufferRef  mVertexBuffer;
+		RHIIndexBufferRef   mIndexBuffer;
+		uint32           mVAO;
 
 		struct Section
 		{
@@ -680,9 +847,27 @@ namespace GL
 		T& mObj;
 	};
 
+	template< class T >
+	struct BindLockScope< TRefCountPtr< T > >
+	{
+		BindLockScope(TRefCountPtr< T >& obj)
+			:mObj(obj)
+		{
+			assert(mObj);
+			mObj->bind();
+		}
+
+		~BindLockScope()
+		{
+			mObj->unbind();
+		}
+
+		TRefCountPtr< T >& mObj;
+	};
+
 #define GL_BIND_LOCK_OBJECT( obj )\
 	BindLockScope< decltype(obj) >  ANONYMOUS_VARIABLE( BindLockObj )( obj );
-	
+
 }
 
 #endif // GLCommon_h__

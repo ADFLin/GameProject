@@ -13,6 +13,7 @@ public:
 	RefCountedObjectT():mRefCount(0){}
 	void destroyThis(){ delete static_cast< T*>( this ); }
 	int  getRefCount(){ return mRefCount; }
+
 public:
 	bool  decRef()
 	{ 

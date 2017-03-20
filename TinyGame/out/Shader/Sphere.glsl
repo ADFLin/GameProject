@@ -2,11 +2,12 @@
 
 struct SphereData
 {
-	vec3  localPos;
-	float radius;
+	vec3   localPos;
+	float  radius;
+	float3 baseColor;
 };
 
-uniform SphereData Sphere = SphereData( vec3(0,0,0) , 1.0 );
+uniform SphereData Sphere = SphereData( vec3(0,0,0) , 1.0 , float3(1,1,1) );
 uniform vec2   DepthParam;
 
 uniform vec3   LightPos[] = vec3[]( vec3( 0 , 10 , 10 ) , vec3( 0 , -10 , 10 ) , vec3( 0 , 0 , -30 ) , vec3( -30 , 0 , 10 ) );
@@ -170,6 +171,10 @@ vec3 FSLightOffset( vec3 lightPos , vec3 V )
 
 vec3 FSLighting( in FSInput inFS )
 {
+	float power = 0.8;
+	float factor = -dot( View.direction , inFS.normal );
+	return pow( factor , power ) * Sphere.baseColor;
+
 	vec3 V = inFS.vertex;
 	vec3 N = inFS.normal;
 	vec3 E = inFS.viewDir;

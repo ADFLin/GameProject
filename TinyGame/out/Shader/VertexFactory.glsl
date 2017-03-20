@@ -1,6 +1,9 @@
 #pragma once
+#include "Common.glsl"
 #include "MaterialCommon.glsl"
 #include "ViewParam.glsl"
+
+#define USE_VERTEX_ATTRIBUTE_INDEX 0
 
 struct VertexFactoryParameters
 {
@@ -30,6 +33,35 @@ struct VertexFactoryOutputVSToPS
 
 #ifdef VERTEX_SHADER
 
+#if USE_VERTEX_ATTRIBUTE_INDEX
+
+//in VertexFactoryInput
+//{
+
+	layout(location = 0) in float4 VertexInput_vertex;
+	layout(location = ATTRIBUTE1) in float4 VertexInput_color;
+	layout(location = ATTRIBUTE2) in float3 VertexInput_normal;
+	layout(location = ATTRIBUTE3) in float4 VertexInput_tangent;
+
+#if MATERIAL_TEXCOORD_NUM
+#if MATERIAL_TEXCOORD_NUM > 0
+	layout(location = ATTRIBUTE4) in float2 VertexInput_texCoord0;
+#endif
+#if MATERIAL_TEXCOORD_NUM > 1
+	layout(location = ATTRIBUTE5) in float2 VertexInput_texCoord1;
+#endif
+#if MATERIAL_TEXCOORD_NUM > 2
+	layout(location = ATTRIBUTE6) in float2 VertexInput_texCoord2;
+#endif
+#if MATERIAL_TEXCOORD_NUM > 3
+	layout(location = ATTRIBUTE7) in float2 VertexInput_texCoord3;
+#endif
+#endif//MATERIAL_TEXCOORD_NUM
+
+//} VertexInput;
+
+#endif //USE_VERTEX_ATTRIBUTE_INDEX
+
 struct VertexFactoryIntermediatesVS
 {
 	float4 worldPos;
@@ -42,12 +74,20 @@ struct VertexFactoryIntermediatesVS
 VertexFactoryIntermediatesVS GetVertexFactoryIntermediatesVS()
 {
 	VertexFactoryIntermediatesVS intermediates;
-	float noramlFactor = 1;// (gl_FrontFacing) ? 1 : -1;
+	float noramlFactor = 1;// gl_FrontFacing ? 1 : -1;
+#if USE_VERTEX_ATTRIBUTE_INDEX
+	intermediates.normal = noramlFactor * float4(VertexInput_normal, 0) * VertexFactoryParams.worldToLocal;
+	intermediates.tangent = noramlFactor * float4(VertexInput_tangent.xyz, 0) * VertexFactoryParams.worldToLocal;
+	intermediates.tangent.w = VertexInput_tangent.w;
+	intermediates.worldPos = VertexFactoryParams.localToWorld * VertexInput_vertex;
+	intermediates.vertexColor = VertexInput_color;
+#else //USE_VERTEX_ATTRIBUTE_INDEX
 	intermediates.normal = noramlFactor * float4(gl_Normal, 0) * VertexFactoryParams.worldToLocal;
-	intermediates.tangent = noramlFactor * float4(gl_MultiTexCoord1.xyz, 0) * VertexFactoryParams.worldToLocal;
-	intermediates.tangent.w = gl_MultiTexCoord1.w;
+	intermediates.tangent = noramlFactor * float4(gl_MultiTexCoord5.xyz, 0) * VertexFactoryParams.worldToLocal;
+	intermediates.tangent.w = gl_MultiTexCoord5.w;
 	intermediates.worldPos = VertexFactoryParams.localToWorld * gl_Vertex;
 	intermediates.vertexColor = gl_Color;
+#endif //USE_VERTEX_ATTRIBUTE_INDEX
 
 	return intermediates;
 }
@@ -55,21 +95,45 @@ VertexFactoryIntermediatesVS GetVertexFactoryIntermediatesVS()
 MaterialParametersVS GetMaterialParameterVS(in VertexFactoryIntermediatesVS intermediates)
 {
 	MaterialParametersVS parameters;
+	
 	parameters.noraml = intermediates.normal.xyz;
 	parameters.worldPos = intermediates.worldPos.xyz;
 	parameters.vectexColor = intermediates.vertexColor;
+
+#if USE_VERTEX_ATTRIBUTE_INDEX
+	parameters.vertexPos = VertexInput_vertex;
+
+#if MATERIAL_TEXCOORD_NUM > 0
+	parameters.texCoords[0] = VertexInput_texCoord0.xy;
+#endif
+#if MATERIAL_TEXCOORD_NUM > 1
+	parameters.texCoords[1] = VertexInput_texCoord1.xy;
+#endif
+#if MATERIAL_TEXCOORD_NUM > 2
+	parameters.texCoords[2] = VertexInput_texCoord2.xy;
+#endif
+#if MATERIAL_TEXCOORD_NUM > 3
+	parameters.texCoords[3] = VertexInput_texCoord3.xy;
+#endif
+
+#else //USE_VERTEX_ATTRIBUTE_INDEX
+	parameters.vertexPos = gl_Vertex;
+
 #if MATERIAL_TEXCOORD_NUM > 0
 	parameters.texCoords[0] = gl_MultiTexCoord0.xy;
 #endif
 #if MATERIAL_TEXCOORD_NUM > 1
-	parameters.texCoords[1] = gl_MultiTexCoord2.xy;
+	parameters.texCoords[1] = gl_MultiTexCoord1.xy;
 #endif
 #if MATERIAL_TEXCOORD_NUM > 2
-	parameters.texCoords[2] = gl_MultiTexCoord3.xy;
+	parameters.texCoords[2] = gl_MultiTexCoord2.xy;
 #endif
 #if MATERIAL_TEXCOORD_NUM > 3
-	parameters.texCoords[3] = gl_MultiTexCoord4.xy;
+	parameters.texCoords[3] = gl_MultiTexCoord3.xy;
 #endif
+
+#endif //USE_VERTEX_ATTRIBUTE_INDEX
+
 	return parameters;
 }
 
@@ -108,11 +172,13 @@ VertexFactoryIntermediatesPS GetVertexFactoryIntermediatesPS(in VertexFactoryIut
 
 	float3 worldNormal = normalize(vertexFactoryInput.worldNormal.xyz);
 	float noramlYSign = sign(vertexFactoryInput.tangent.w);
-	if ( 1 )
+	
+	if ( true )
 	{
+		float normalFactor = 1.0; // gl_FrontFacing ? 1.0 : -1.0;
 		float3 tangentX = normalize(vertexFactoryInput.tangent.xyz );
 		tangentX = normalize(tangentX - dot(tangentX, worldNormal));
-		float3 tangentZ = worldNormal;
+		float3 tangentZ = normalFactor * worldNormal;
 		float3 tangentY = cross(tangentZ, tangentX);
 		intermediates.tangentToWorld = mat3(tangentX, tangentY, tangentZ);
 		intermediates.normalYSign = noramlYSign;

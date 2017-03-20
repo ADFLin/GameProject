@@ -22,7 +22,7 @@
 
 #include "Localization.h"
 
-#include "MainMenuStage.h"
+#include "Stage/MainMenuStage.h"
 
 #include "NetGameStage.h"
 
@@ -30,7 +30,7 @@
 #include "ReplayStageMode.h"
 
 #include "Thread.h"
-#include "GLUtility.h"
+#include "RenderGL/GLUtility.h"
 
 #define GAME_SETTING_PATH "Game.ini"
 

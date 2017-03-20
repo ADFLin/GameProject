@@ -4,8 +4,8 @@
 #include "ViewParam.glsl"
 
 
-sampler2D TextureD;
-sampler2D TextureS;
+uniform sampler2D TextureD;
+uniform sampler2D TextureS;
 
 
 #ifdef VERTEX_SHADER
@@ -25,10 +25,10 @@ void CalcMaterialInputPS(inout MaterialInputPS input, inout MaterialParametersPS
 	float3 n = normalize( float3(-c, 0, 1) );
 	float3 t = normalize( float3(1, 0, c) );
 
-	float3 baseColor = tex2D(TextureD, float2(parameters.texCoords[0].x, 1 - parameters.texCoords[0].y));
+	float3 baseColor = texture2D(TextureD, float2(parameters.texCoords[0].x, 1 - parameters.texCoords[0].y)).rgb;
 
-	input.baseColor = texture( TextureD , float2( parameters.texCoords[0].x , 1 - parameters.texCoords[0].y ) );
-	input.emissiveColor = 0.2 * baseColor;
+	input.baseColor = baseColor;
+	//input.emissiveColor = 0.2 * baseColor;
 	//input.baseColor = float3(1,1,1) * float3( parameters.worldPos.xy , 0 );
 	input.metallic = 0.9;
 	input.roughness = 0.7;

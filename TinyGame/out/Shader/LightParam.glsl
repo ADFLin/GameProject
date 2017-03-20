@@ -9,6 +9,7 @@ struct LightParam
 	float3   dir;
 	float3   spotParam;
 	int      type;
+	int      bCastShadow;
 };
 
 uniform LightParam GLight;

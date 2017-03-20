@@ -166,12 +166,6 @@
     <ClCompile Include="NetSocket.cpp">
       <Filter>Net</Filter>
     </ClCompile>
-    <ClCompile Include="GLUtility.cpp">
-      <Filter>Opengl</Filter>
-    </ClCompile>
-    <ClCompile Include="GLCommon.cpp">
-      <Filter>Opengl</Filter>
-    </ClCompile>
     <ClCompile Include="BehaviorTree\BehaviorTree.cpp">
       <Filter>AI</Filter>
     </ClCompile>
@@ -482,15 +476,6 @@
     </ClInclude>
     <ClInclude Include="FrameAllocator.h">
       <Filter>Memory</Filter>
-    </ClInclude>
-    <ClInclude Include="GLUtility.h">
-      <Filter>Opengl</Filter>
-    </ClInclude>
-    <ClInclude Include="GLCommon.h">
-      <Filter>Opengl</Filter>
-    </ClInclude>
-    <ClInclude Include="GLDrawUtility.h">
-      <Filter>Opengl</Filter>
     </ClInclude>
     <ClInclude Include="CommonMarco.h">
       <Filter>Config</Filter>

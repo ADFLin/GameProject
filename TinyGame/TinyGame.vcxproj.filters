@@ -67,6 +67,9 @@
     <Filter Include="Shader\Material">
       <UniqueIdentifier>{203377aa-53e1-4229-a2bf-843c1d2331f3}</UniqueIdentifier>
     </Filter>
+    <Filter Include="RenderGL">
+      <UniqueIdentifier>{a66ac7cc-a22f-4d19-b682-c9e03b251cf5}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Bsp2D.cpp">
@@ -84,25 +87,7 @@
     <ClCompile Include="Voronoi.cpp">
       <Filter>Include</Filter>
     </ClCompile>
-    <ClCompile Include="BloxorzStage.cpp">
-      <Filter>Stage</Filter>
-    </ClCompile>
-    <ClCompile Include="FBirdStage.cpp">
-      <Filter>Stage</Filter>
-    </ClCompile>
-    <ClCompile Include="GGJStage.cpp">
-      <Filter>Stage</Filter>
-    </ClCompile>
-    <ClCompile Include="LightingStage.cpp">
-      <Filter>Stage</Filter>
-    </ClCompile>
-    <ClCompile Include="MainMenuStage.cpp">
-      <Filter>Stage</Filter>
-    </ClCompile>
     <ClCompile Include="NetGameStage.cpp">
-      <Filter>Stage</Filter>
-    </ClCompile>
-    <ClCompile Include="RubiksStage.cpp">
       <Filter>Stage</Filter>
     </ClCompile>
     <ClCompile Include="Bejeweled\BJLevel.cpp">
@@ -207,9 +192,6 @@
     <ClCompile Include="Go\ZenBot.cpp">
       <Filter>GameGo</Filter>
     </ClCompile>
-    <ClCompile Include="MiscTestStage.cpp">
-      <Filter>Stage</Filter>
-    </ClCompile>
     <ClCompile Include="Stage\CompressionTestStage.cpp">
       <Filter>Stage</Filter>
     </ClCompile>
@@ -222,11 +204,53 @@
     <ClCompile Include="ReplayStageMode.cpp">
       <Filter>StageMode</Filter>
     </ClCompile>
-    <ClCompile Include="RenderGLStage.cpp">
+    <ClCompile Include="Stage\BloxorzStage.cpp">
       <Filter>Stage</Filter>
     </ClCompile>
-    <ClCompile Include="RenderGLStageScene.cpp">
+    <ClCompile Include="Stage\FBirdStage.cpp">
       <Filter>Stage</Filter>
+    </ClCompile>
+    <ClCompile Include="Stage\GGJStage.cpp">
+      <Filter>Stage</Filter>
+    </ClCompile>
+    <ClCompile Include="Stage\LightingStage.cpp">
+      <Filter>Stage</Filter>
+    </ClCompile>
+    <ClCompile Include="Stage\RubiksStage.cpp">
+      <Filter>Stage</Filter>
+    </ClCompile>
+    <ClCompile Include="RenderGL\RenderGLStageScene.cpp">
+      <Filter>RenderGL</Filter>
+    </ClCompile>
+    <ClCompile Include="RenderGL\RenderGLStage.cpp">
+      <Filter>RenderGL</Filter>
+    </ClCompile>
+    <ClCompile Include="Stage\MainMenuStage.cpp">
+      <Filter>Stage</Filter>
+    </ClCompile>
+    <ClCompile Include="Stage\MiscTestStage.cpp">
+      <Filter>Stage</Filter>
+    </ClCompile>
+    <ClCompile Include="RenderGL\Material.cpp">
+      <Filter>RenderGL</Filter>
+    </ClCompile>
+    <ClCompile Include="RenderGL\RHICommon.cpp">
+      <Filter>RenderGL</Filter>
+    </ClCompile>
+    <ClCompile Include="RenderGL\GpuProfiler.cpp">
+      <Filter>RenderGL</Filter>
+    </ClCompile>
+    <ClCompile Include="RenderGL\SceneRenderer.cpp">
+      <Filter>RenderGL</Filter>
+    </ClCompile>
+    <ClCompile Include="RenderGL\GLCommon.cpp">
+      <Filter>RenderGL</Filter>
+    </ClCompile>
+    <ClCompile Include="RenderGL\GLUtility.cpp">
+      <Filter>RenderGL</Filter>
+    </ClCompile>
+    <ClCompile Include="RenderGL\ShaderCompiler.cpp">
+      <Filter>Source</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -242,9 +266,6 @@
     <ClInclude Include="resource.h">
       <Filter>Include</Filter>
     </ClInclude>
-    <ClInclude Include="ShaderBuilder.h">
-      <Filter>Include</Filter>
-    </ClInclude>
     <ClInclude Include="TinyGameApp.h">
       <Filter>Include</Filter>
     </ClInclude>
@@ -254,31 +275,7 @@
     <ClInclude Include="Voronoi.h">
       <Filter>Include</Filter>
     </ClInclude>
-    <ClInclude Include="AgarStage.h">
-      <Filter>Stage</Filter>
-    </ClInclude>
-    <ClInclude Include="AStarStage.h">
-      <Filter>Stage</Filter>
-    </ClInclude>
-    <ClInclude Include="BloxorzStage.h">
-      <Filter>Stage</Filter>
-    </ClInclude>
-    <ClInclude Include="FBirdStage.h">
-      <Filter>Stage</Filter>
-    </ClInclude>
-    <ClInclude Include="GGJStage.h">
-      <Filter>Stage</Filter>
-    </ClInclude>
-    <ClInclude Include="LightingStage.h">
-      <Filter>Stage</Filter>
-    </ClInclude>
-    <ClInclude Include="MainMenuStage.h">
-      <Filter>Stage</Filter>
-    </ClInclude>
     <ClInclude Include="NetGameStage.h">
-      <Filter>Stage</Filter>
-    </ClInclude>
-    <ClInclude Include="RubiksStage.h">
       <Filter>Stage</Filter>
     </ClInclude>
     <ClInclude Include="VoronoiStage.h">
@@ -425,9 +422,6 @@
     <ClInclude Include="Go\ZenBot.h">
       <Filter>GameGo</Filter>
     </ClInclude>
-    <ClInclude Include="MiscTestStage.h">
-      <Filter>Stage</Filter>
-    </ClInclude>
     <ClInclude Include="Stage\TestStageHeader.h">
       <Filter>Stage</Filter>
     </ClInclude>
@@ -440,14 +434,68 @@
     <ClInclude Include="ReplayStageMode.h">
       <Filter>StageMode</Filter>
     </ClInclude>
-    <ClInclude Include="RenderGLStage.h">
-      <Filter>Stage</Filter>
-    </ClInclude>
     <ClInclude Include="..\va_stdafx.h">
       <Filter>Include</Filter>
     </ClInclude>
-    <ClInclude Include="RenderGLStageAssetID.h">
+    <ClInclude Include="Stage\AgarStage.h">
       <Filter>Stage</Filter>
+    </ClInclude>
+    <ClInclude Include="Stage\AStarStage.h">
+      <Filter>Stage</Filter>
+    </ClInclude>
+    <ClInclude Include="Stage\BloxorzStage.h">
+      <Filter>Stage</Filter>
+    </ClInclude>
+    <ClInclude Include="Stage\FBirdStage.h">
+      <Filter>Stage</Filter>
+    </ClInclude>
+    <ClInclude Include="Stage\GGJStage.h">
+      <Filter>Stage</Filter>
+    </ClInclude>
+    <ClInclude Include="Stage\LightingStage.h">
+      <Filter>Stage</Filter>
+    </ClInclude>
+    <ClInclude Include="Stage\RubiksStage.h">
+      <Filter>Stage</Filter>
+    </ClInclude>
+    <ClInclude Include="RenderGL\RenderGLStageAssetID.h">
+      <Filter>RenderGL</Filter>
+    </ClInclude>
+    <ClInclude Include="RenderGL\RenderGLStage.h">
+      <Filter>RenderGL</Filter>
+    </ClInclude>
+    <ClInclude Include="Stage\MainMenuStage.h">
+      <Filter>Stage</Filter>
+    </ClInclude>
+    <ClInclude Include="Stage\MiscTestStage.h">
+      <Filter>Stage</Filter>
+    </ClInclude>
+    <ClInclude Include="RenderGL\ShaderCompiler.h">
+      <Filter>RenderGL</Filter>
+    </ClInclude>
+    <ClInclude Include="RenderGL\Material.h">
+      <Filter>RenderGL</Filter>
+    </ClInclude>
+    <ClInclude Include="RenderGL\RHICommon.h">
+      <Filter>RenderGL</Filter>
+    </ClInclude>
+    <ClInclude Include="RenderGL\Scene.h">
+      <Filter>RenderGL</Filter>
+    </ClInclude>
+    <ClInclude Include="RenderGL\SceneRenderer.h">
+      <Filter>RenderGL</Filter>
+    </ClInclude>
+    <ClInclude Include="RenderGL\GpuProfiler.h">
+      <Filter>RenderGL</Filter>
+    </ClInclude>
+    <ClInclude Include="RenderGL\GLCommon.h">
+      <Filter>RenderGL</Filter>
+    </ClInclude>
+    <ClInclude Include="RenderGL\GLUtility.h">
+      <Filter>RenderGL</Filter>
+    </ClInclude>
+    <ClInclude Include="RenderGL\GLDrawUtility.h">
+      <Filter>RenderGL</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -586,6 +634,15 @@
       <Filter>Shader\Material</Filter>
     </None>
     <None Include="out\Shader\DeferredShadingCommon.glsl">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="out\Shader\SSAO.glsl">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="out\Shader\Tonemap.glsl">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="out\Shader\SimpleBasePass.glsl">
       <Filter>Shader</Filter>
     </None>
   </ItemGroup>

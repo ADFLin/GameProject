@@ -6,7 +6,7 @@ varying vec3 viewOffset;
 
 void main()
 {
-	vec3 tang   = normalize( gl_NormalMatrix * gl_MultiTexCoord1.xyz );
+	vec3 tang   = normalize( gl_NormalMatrix * gl_MultiTexCoord5.xyz );
 	vec3 normal = normalize( gl_NormalMatrix * gl_Normal );
 	vec3 binormal = cross( normal , tang );
 

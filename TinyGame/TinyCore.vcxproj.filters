@@ -56,12 +56,6 @@
     <ClInclude Include="TinyCore\GameWidgetID.h">
       <Filter>GUI</Filter>
     </ClInclude>
-    <ClInclude Include="OptionNoteBook.h">
-      <Filter>GUI</Filter>
-    </ClInclude>
-    <ClInclude Include="ServerListPanel.h">
-      <Filter>GUI</Filter>
-    </ClInclude>
     <ClInclude Include="WidgetLayout.h">
       <Filter>GUI</Filter>
     </ClInclude>
@@ -79,6 +73,12 @@
     </ClInclude>
     <ClInclude Include="TinyCore\DataSteamBuffer.h">
       <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="Widget\OptionNoteBook.h">
+      <Filter>GUI</Filter>
+    </ClInclude>
+    <ClInclude Include="Widget\ServerListPanel.h">
+      <Filter>GUI</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -103,12 +103,6 @@
     <ClCompile Include="TinyCore\StageBase.cpp">
       <Filter>Stage</Filter>
     </ClCompile>
-    <ClCompile Include="OptionNoteBook.cpp">
-      <Filter>GUI</Filter>
-    </ClCompile>
-    <ClCompile Include="ServeListPanel.cpp">
-      <Filter>GUI</Filter>
-    </ClCompile>
     <ClCompile Include="WidgetUtility.cpp">
       <Filter>GUI</Filter>
     </ClCompile>
@@ -120,6 +114,12 @@
     </ClCompile>
     <ClCompile Include="TinyCore\DataSteamBuffer.cpp">
       <Filter>Common</Filter>
+    </ClCompile>
+    <ClCompile Include="Widget\ServeListPanel.cpp">
+      <Filter>GUI</Filter>
+    </ClCompile>
+    <ClCompile Include="Widget\OptionNoteBook.cpp">
+      <Filter>GUI</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

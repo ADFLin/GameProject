@@ -1,9 +1,9 @@
 #include "MVRenderEngine.h"
 
+#include "RenderGL/GLCommon.h"
+#include "RenderGL/GLUtility.h"
+#include "RenderGL/ShaderCompiler.h"
 
-
-#include "GLCommon.h"
-#include "GLUtility.h"
 #include "FixString.h"
 
 #include <fstream>
@@ -11,7 +11,6 @@
 #ifndef ARRAY_SIZE
 #define ARRAY_SIZE( ar ) ( sizeof(ar)/sizeof(ar[0]) )
 #endif
-
 
 namespace MV
 {
@@ -54,7 +53,7 @@ namespace MV
 
 	bool RenderEngine::init()
 	{
-		if ( !mEffect.loadFromSingleFile( "Shader/MVPiece") )
+		if ( !ShaderManager::getInstance().loadFile(mEffect , "Shader/MVPiece") )
 			return false;
 
 		locDirX = mEffect.getParamLoc( "dirX" );

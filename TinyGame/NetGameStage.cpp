@@ -13,7 +13,7 @@
 #include "GameGUISystem.h"
 #include "GameWidgetID.h"
 #include "GameSettingPanel.h"
-#include "ServerListPanel.h"
+#include "Widget/ServerListPanel.h"
 
 #include "GameNetPacket.h"
 #include "GameAction.h"

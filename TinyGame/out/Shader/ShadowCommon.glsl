@@ -47,16 +47,16 @@ int GetCubeFace(float3 lightVector)
 	return result;
 }
 
-float3 sampleOffsetDirections[20] =
-{
+float3 sampleOffsetDirections[20] = float3[]
+(
 	float3(1.0, 1.0, 1.0), float3(1.0, -1.0, 1.0), float3(-1.0, -1.0, 1.0), float3(-1.0, 1.0, 1.0),
 	float3(1.0, 1.0,-1.0), float3(1.0, -1.0, -1.0), float3(-1.0, -1.0, -1.0), float3(-1.0, 1.0, -1.0),
 	float3(1.0, 1.0, 0.0), float3(1.0, -1.0, 0.0), float3(-1.0, -1.0, 0.0), float3(-1.0, 1.0, 0.0),
 	float3(1.0, 0.0, 1.0), float3(-1.0, 0.0, 1.0), float3(1.0, 0.0, -1.0), float3(-1.0, 0.0, -1.0),
 	float3(0.0, 1.0, 1.0), float3(0.0, -1.0, 1.0), float3(0.0, -1.0, -1.0), float3(0.0, 1.0, -1.0)
-};
+);
 
-float3 CalcPointLightShadow( float3 worldPos , mat4 shadowMatrix[] , float3 lightVector )
+float3 CalcPointLightShadow( float3 worldPos , mat4 shadowMatrix[8] , float3 lightVector )
 {
 	const float factor = 0;
 #if 0
@@ -89,15 +89,15 @@ float3 CalcPointLightShadow( float3 worldPos , mat4 shadowMatrix[] , float3 ligh
 	for( int i = 0; i < numSample; ++i )
 	{
 		float3 dir = lightVector + diskRadius * sampleOffsetDirections[i];
-		shadow += (texCUBE(ShadowTextureCube, dir).r >= depth) ? 1 : factor;
+		shadow += (texture(ShadowTextureCube, dir).r >= depth) ? 1 : factor;
 	}
 	shadow /= float(numSample);
 #else
-	shadow += (texCUBE(ShadowTextureCube, lightVector).r >= depth) ? 1 : factor;
+	shadow += (texture(ShadowTextureCube, lightVector).r >= depth) ? 1 : factor;
 #endif
 	//shadow = 0.5 * (shadowPos.z + 1);
 #endif
-	return shadow;
+	return float3(shadow);
 }
 
 float3 SimplePCF(sampler2D shadowTexture , float2 shadowUV, float depth)
@@ -120,7 +120,7 @@ float3 SimplePCF(sampler2D shadowTexture , float2 shadowUV, float depth)
 #else
 	float shadow = count;
 #endif
-	return shadow;
+	return float3(shadow);
 }
 
 float3 CalcSpotLightShadow(float3 worldPos, mat4 shadowMatrix)
@@ -159,21 +159,21 @@ float3 CalcDirectionalLightShadowInternal(float3 worldPos, mat4 shadowMatrix)
 
 #if 1
 	if( shadowUV.x <= 0.0 )
-		return 1.0;
+		return float3(1.0);
 	if( shadowUV.y <= 0.0 )
-		return 1.0;
+		return float3(1.0);
 	if( shadowUV.x >= 1.0 )
-		return 1.0;
+		return float3(1.0);
 	if( shadowUV.y >= 1.0 )
-		return 1.0;
+		return float3(1.0);
 #endif
 
 	float3 shadow = SimplePCF(ShadowTexture2D , shadowUV, depth);
 	return shadow;
 }
 
-const float3 debugColor[8] =
-{
+const float3 debugColor[8] = float3[]
+(
 	float3(1.0,0.0,0.0),
 	float3(0.0,1.0,0.0),
 	float3(0.0,0.0,1.0),
@@ -181,14 +181,14 @@ const float3 debugColor[8] =
 	float3(1.0,0.0,1.0),
 	float3(0.0,1.0,1.0),
 	float3(0.5,0.5,1.0),
-	float3(0.5,1.0,0.5),
-};
+	float3(0.5,1.0,0.5)
+);
 
-float3 CalcDirectionalLightShadow(float3 worldPos, mat4 shadowMatrix[])
+float3 CalcDirectionalLightShadow(float3 worldPos, mat4 shadowMatrix[8])
 {
-	float3 viewPos = View.worldToView * float4(worldPos, 1.0);
+	float4 viewPos = View.worldToView * float4(worldPos, 1.0);
 
-	float3 result = 1.0;
+	float3 result = float3(1.0);
 	//return -viewPos.z / 100;
 	for( int i = 0; i < NumCascade; ++i )
 	{

@@ -9,7 +9,7 @@
 #include "WinGLPlatform.h"
 #include "TGrid2D.h"
 #include "CppVersion.h"
-#include "GLCommon.h"
+#include "RenderGL/GLCommon.h"
 
 namespace Lighting
 {

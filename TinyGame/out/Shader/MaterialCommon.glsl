@@ -12,8 +12,12 @@
 #define MATERIAL_USE_DEPTH_OFFSET 0
 #endif
 
-#define SHADINGMODEL_UNLIT        0
-#define SHADINGMODEL_DEFAULT_LIT  1
+#ifndef MATERIAL_USE_WORLD_NORMAL
+#define MATERIAL_USE_WORLD_NORMAL 0
+#endif
+
+#define SHADINGMODEL_UNLIT        1
+#define SHADINGMODEL_DEFAULT_LIT  2
 
 #ifdef VERTEX_SHADER
 
@@ -24,8 +28,9 @@ struct MaterialInputVS
 
 struct MaterialParametersVS
 {
+	float4 vertexPos;
 	float3 worldPos;
-	float3 vectexColor;
+	float4 vectexColor;
 	float3 noraml;
 #if MATERIAL_TEXCOORD_NUM
 	float2 texCoords[MATERIAL_TEXCOORD_NUM];
@@ -35,7 +40,7 @@ struct MaterialParametersVS
 MaterialInputVS InitMaterialInputVS()
 {
 	MaterialInputVS input;
-	input.worldOffset = 0;
+	input.worldOffset = float3(0.0);
 	return input;
 }
 
@@ -58,7 +63,7 @@ struct MaterialInputPS
 
 struct MaterialParametersPS
 {
-	float3 vectexColor;
+	float4 vectexColor;
 	float3 worldPos;
 	float4 screenPos;
 	float3 svPosition;
@@ -72,18 +77,22 @@ struct MaterialParametersPS
 MaterialInputPS InitMaterialInputPS()
 {
 	MaterialInputPS input;
-	input.baseColor = 0;
+	input.baseColor = float3(0.0);
 	input.normal = float3(0.0, 0.0, 1);
-	input.emissiveColor = 0.0;
+	input.emissiveColor = float3(0.0);
 	input.metallic = 0.0;
 	input.specular = 0.0;
 	input.roughness = 0.0;
 	input.mask = 1.0;
 	input.shadingModel = SHADINGMODEL_DEFAULT_LIT;
-	input.depthOffset = 0;
+	input.depthOffset = 0.0;
 	return input;
 }
 
+float3 GetTextureNormal(sampler2D texture, float2 UVs)
+{
+	return 2 * texture2D(texture, UVs).xyz - 1;
+}
 #endif //PIXEL_SHADER
 
 

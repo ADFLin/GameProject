@@ -89,8 +89,6 @@
     <ClInclude Include="GameMenuStage.h" />
     <ClInclude Include="GameStageMode.h" />
     <ClInclude Include="GameRecord.h" />
-    <ClInclude Include="OptionNoteBook.h" />
-    <ClInclude Include="ServerListPanel.h" />
     <ClInclude Include="TinyCore\DataStream.h" />
     <ClInclude Include="TinyCore\DataSteamBuffer.h" />
     <ClInclude Include="TinyCore\DataTransfer.h" />
@@ -107,13 +105,13 @@
     <ClInclude Include="TinyGamePCH.h" />
     <ClInclude Include="WidgetLayout.h" />
     <ClInclude Include="WidgetUtility.h" />
+    <ClInclude Include="Widget\OptionNoteBook.h" />
+    <ClInclude Include="Widget\ServerListPanel.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="GameMenuStage.cpp" />
     <ClCompile Include="GameStageMode.cpp" />
     <ClCompile Include="GameRecord.cpp" />
-    <ClCompile Include="OptionNoteBook.cpp" />
-    <ClCompile Include="ServeListPanel.cpp" />
     <ClCompile Include="TinyCore\DataSteamBuffer.cpp" />
     <ClCompile Include="TinyCore\DataTransferImpl.cpp" />
     <ClCompile Include="TinyCore\GameInstance.cpp" />
@@ -125,6 +123,8 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="WidgetUtility.cpp" />
+    <ClCompile Include="Widget\OptionNoteBook.cpp" />
+    <ClCompile Include="Widget\ServeListPanel.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

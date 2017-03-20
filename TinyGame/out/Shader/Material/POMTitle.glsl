@@ -13,7 +13,7 @@ uniform float3    DispFactor;
 
 void  CalcMaterialInputVS(inout MaterialInputVS input, inout MaterialParametersVS parameters)
 {
-	input.worldOffset = 0;//3 * sin( 10 * View.gameTime ) * parameters.noraml;
+	input.worldOffset = float3(0.0);
 }
 
 #endif //VERTEX_SHADER
@@ -30,19 +30,19 @@ void CalcMaterialInputPS(inout MaterialInputPS input, inout MaterialParametersPS
 	pomParams.dispMask = float4(0, 0, 0, DispFactor.x);
 	pomParams.dispBias = DispFactor.y;
 	pomParams.parallaxScale = 0.2;
-	pomParams.iteratorParams = float2(15,80);
+	pomParams.iteratorParams = float2(20,120);
 	pomParams.shadowIteratorParams = float2(15, 128);
 
 	POMOutput pomOutput = POMapping(pomParams, normalize(viewVectorTangent), parameters.texCoords[0].xy);
 
 	input.shadingModel = SHADINGMODEL_DEFAULT_LIT;
-	input.baseColor = tex2D(BaseTexture, pomOutput.UVs);
-	//input.emissiveColor = tex2D(BaseTexture, pomOutput.UVs) * parameters.vectexColor;
+	input.baseColor = texture2D(BaseTexture, pomOutput.UVs).rgb;
+	//input.emissiveColor = texture2D(BaseTexture, pomOutput.UVs) * parameters.vectexColor;
 	//input.emissiveColor = normalize(parameters.tangentToWorld[0]);
 	input.metallic = 0.9;
 	input.roughness = 0.5;
 	input.specular = 0.1;
-	input.normal = tex2D(NoramlTexture, pomOutput.UVs).xyz;
+	input.normal = GetTextureNormal(NoramlTexture, pomOutput.UVs);
 	if( pomOutput.depth > 0 )
 		input.depthOffset = CalcPOMCorrectDepth(pomOutput, parameters.tangentToWorld, viewVectorTangent) - parameters.svPosition.z;
 	else

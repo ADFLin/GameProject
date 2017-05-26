@@ -156,7 +156,7 @@ namespace Poker { namespace Holdem {
 			mDevPanel->mServer = mServerLevel;
 			::Global::GUI().addWidget(mDevPanel);
 		}
-		DevFrame* frame = WidgetUtility::createDevFrame();
+		DevFrame* frame = WidgetUtility::CreateDevFrame();
 		frame->addButton( UI_RESTART_GAME , "Restart" );
 	}
 

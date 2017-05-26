@@ -89,7 +89,7 @@ namespace MV
 
 		restart( true );
 
-		DevFrame* frame = WidgetUtility::createDevFrame();
+		DevFrame* frame = WidgetUtility::CreateDevFrame();
 		frame->addButton( UI_SHOW_NAV_LINK , "Show NavLink");
 		frame->addButton( UI_SHOW_NAV_PATH , "Show NavPath");
 		frame->addButton( UI_SAVE_LEVEL , "Save Level" );

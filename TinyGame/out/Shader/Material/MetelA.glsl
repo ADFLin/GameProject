@@ -6,7 +6,7 @@
 
 uniform sampler2D BaseTexture;
 
-#ifdef VERTEX_SHADER
+#if VERTEX_SHADER
 
 void  CalcMaterialInputVS(inout MaterialInputVS input, inout MaterialParametersVS parameters)
 {
@@ -15,7 +15,7 @@ void  CalcMaterialInputVS(inout MaterialInputVS input, inout MaterialParametersV
 
 #endif //VERTEX_SHADER
 
-#ifdef PIXEL_SHADER
+#if PIXEL_SHADER
 
 void CalcMaterialInputPS(inout MaterialInputPS input, inout MaterialParametersPS parameters)
 {
@@ -23,6 +23,7 @@ void CalcMaterialInputPS(inout MaterialInputPS input, inout MaterialParametersPS
 	input.shadingModel = SHADINGMODEL_DEFAULT_LIT;
 	//input.baseColor = ( 0.5 * sin(View.gameTime) + 0.5 )* parameters.vectexColor;
 	input.baseColor = s *texture2D( BaseTexture , parameters.texCoords[0].xy ).rgb * parameters.vectexColor.rgb /** frac( dot(parameters.worldPos, parameters.worldPos) / 100 )*/;
+	//input.baseColor = parameters.worldNormal;
 	//input.baseColor = float3(parameters.texCoords[0].xy, 0);
 	input.metallic = 0.9;
 	input.roughness = texture2D(BaseTexture, parameters.texCoords[0].xy).r * 0.9;

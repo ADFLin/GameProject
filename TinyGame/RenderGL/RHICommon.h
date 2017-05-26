@@ -9,7 +9,7 @@
 
 namespace RenderGL
 {
-	using namespace GL;
+	using namespace RenderGL;
 	typedef TVector2<int> Vec2i;
 
 	extern RHITexture2DRef  GDefaultMaterialTexture2D;
@@ -41,6 +41,9 @@ namespace RenderGL
 		void mapTextureColorToBuffer(RHITexture2D& copyTexture, Vector4 const& colorMask, float valueFactor[2]);
 		void copyTexture(RHITexture2D& destTexture, RHITexture2D& srcTexture);
 
+		void clearBuffer(RHITexture2D& texture, float clearValue[]);
+		void clearBuffer(RHITexture2D& texture, uint32 clearValue[]);
+		void clearBuffer(RHITexture2D& texture, int32 clearValue[]);
 
 		static void drawCubeTexture(RHITextureCube& texCube, Vec2i const& pos, int length);
 		static void drawTexture(RHITexture2D& texture, Vec2i const& pos, Vec2i const& size);
@@ -50,6 +53,7 @@ namespace RenderGL
 		ShaderProgram mProgCopyTextureMask;
 		ShaderProgram mProgCopyTextureBias;
 		ShaderProgram mProgMappingTextureColor;
+		FrameBuffer mFrameBuffer;
 	};
 
 }//namespace RenderGL

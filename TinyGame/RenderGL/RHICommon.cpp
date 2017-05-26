@@ -5,6 +5,7 @@
 
 #include "GLDrawUtility.h"
 #include "ShaderCompiler.h"
+#include "VertexFactory.h"
 
 namespace RenderGL
 {
@@ -57,10 +58,12 @@ namespace RenderGL
 		if( !GDefaultMaterialTexture2D->loadFile("Texture/Gird.png") )
 			return false;
 
+		ShaderCompileOption option;
+		VertexFarcoryType::DefaultType->GetCompileOption(option);
 		if( !ShaderManager::getInstance().loadFile( 
 			GSimpleBasePass ,
 			"Shader/SimpleBasePass",
-			SHADER_ENTRY(BassPassVS), SHADER_ENTRY(BasePassPS), "") )
+			SHADER_ENTRY(BassPassVS), SHADER_ENTRY(BasePassPS), option , nullptr) )
 			return false;
 
 		return true;
@@ -105,7 +108,34 @@ namespace RenderGL
 			SHADER_ENTRY(CopyTextureVS), SHADER_ENTRY(MappingTextureColorPS)) )
 			return false;
 
+		if( !mFrameBuffer.create() )
+			return false;
+		mFrameBuffer.addTexture(*GWhiteTexture2D);
 		return true;
+	}
+
+	void ShaderHelper::clearBuffer(RHITexture2D& texture, float clearValue[])
+	{
+		mFrameBuffer.setTexture(0, texture);
+		mFrameBuffer.bind();
+		glClearBufferfv(GL_COLOR, 0, (float const*)clearValue);
+		mFrameBuffer.unbind();
+	}
+
+	void ShaderHelper::clearBuffer(RHITexture2D& texture, uint32 clearValue[])
+	{
+		mFrameBuffer.setTexture(0, texture);
+		mFrameBuffer.bind();
+		glClearBufferuiv(GL_COLOR, 0, clearValue);
+		mFrameBuffer.unbind();
+	}
+
+	void ShaderHelper::clearBuffer(RHITexture2D& texture, int32 clearValue[])
+	{
+		mFrameBuffer.setTexture(0, texture);
+		mFrameBuffer.bind();
+		glClearBufferiv(GL_COLOR, 0, clearValue);
+		mFrameBuffer.unbind();
 	}
 
 	void ShaderHelper::drawCubeTexture(RHITextureCube& texCube, Vec2i const& pos, int length)
@@ -119,6 +149,7 @@ namespace RenderGL
 			length = 100;
 
 		glPushMatrix();
+
 		glTranslatef(pos.x, pos.y, 0);
 		glTranslatef(1 * length, 1 * length, 0);
 		glBegin(GL_QUADS); //x
@@ -213,22 +244,10 @@ namespace RenderGL
 
 	void ShaderHelper::copyTexture(RHITexture2D& destTexture, RHITexture2D& srcTexture)
 	{
-		static FrameBuffer frameBuffer;
-		static bool bInit = false;
-		if( bInit == false )
-		{
-			frameBuffer.create();
-			frameBuffer.addTexture(destTexture);
-			bInit = true;
-		}
-		else
-		{
-			frameBuffer.setTexture(0, destTexture);
-		}
-
-		frameBuffer.bind();
+		mFrameBuffer.setTexture(0, destTexture);
+		mFrameBuffer.bind();
 		copyTextureToBuffer(srcTexture);
-		frameBuffer.unbind();
+		mFrameBuffer.unbind();
 	}
 
 	void ShaderHelper::reload()

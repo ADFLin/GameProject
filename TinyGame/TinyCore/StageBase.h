@@ -95,6 +95,7 @@ protected:
 	virtual void       postStageChange(StageBase* stage) {}
 	virtual bool       initializeStage(StageBase* stage) { return stage->onInit(); }
 	virtual void       prevStageChange(){}
+	virtual void       postStageEnd(){}
 protected:
 	void             checkNewStage();
 	void             setupStage();

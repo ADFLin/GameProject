@@ -190,7 +190,7 @@ namespace Poker { namespace Big2 {
 			::Global::GUI().addWidget( mTestUI );
 		}
 
-		WidgetUtility::createDevFrame();
+		WidgetUtility::CreateDevFrame();
 	}
 
 	void LevelStage::onRender( float dFrame )

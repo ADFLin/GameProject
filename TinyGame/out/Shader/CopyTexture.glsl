@@ -3,7 +3,7 @@ struct VSOutput
 	vec2 UVs;
 };
 
-#ifdef VERTEX_SHADER
+#if VERTEX_SHADER
 
 out VSOutput vsOutput;
 
@@ -15,7 +15,7 @@ void CopyTextureVS()
 
 #endif //VERTEX_SHADER
 
-#ifdef PIXEL_SHADER
+#if PIXEL_SHADER
 
 in VSOutput vsOutput;
 

@@ -7,8 +7,9 @@
 #include "Singleton.h"
 
 #include <unordered_map>
+#include <memory>
 
-namespace GL
+namespace RenderGL
 {
 	struct GLGpuTiming
 	{
@@ -38,31 +39,14 @@ namespace GL
 	struct GpuProfiler : public SingletonT< GpuProfiler >
 	{
 	public:
-		GpuProfiler()
-		{
-			numSampleUsed = 0;
-		}
-		void beginFrame()
-		{
-			numSampleUsed = 0;
-			mCurLevel = 0;
+		GpuProfiler();
 
-		}
-		void endFrame()
-		{
-			for( int i = 0; i < numSampleUsed; ++i )
-			{
-				GpuProfileSample* sample = mSamples[i];
-				uint64 time;
-				while( !sample->timing.getTime(time) )
-				{
+		void beginFrame();
+		void endFrame();
 
+		int getSampleNum() { return numSampleUsed; }
 
-				}
-				sample->time = time / 1000000.0;
-			}
-		}
-
+		GpuProfileSample* getSample(int idx) { return mSamples[idx].get(); }
 		GpuProfileSample* startSample(char const* name);
 
 		struct SampleGroup
@@ -71,9 +55,8 @@ namespace GL
 			float time;
 			int idxParent;
 		};
-
 		void endSample(GpuProfileSample* sample);
-		std::vector< GpuProfileSample* > mSamples;
+		std::vector< std::unique_ptr< GpuProfileSample > > mSamples;
 		int mCurLevel;
 		int numSampleUsed;
 	};
@@ -91,7 +74,7 @@ namespace GL
 
 }//namespace RenderGL
 
-#define GPU_PROFILE( name ) GL::GpuProfileScope ANONYMOUS_VARIABLE(GPUProfile)( GL::GpuProfileScope::NoVA() , name );
-#define GPU_PROFILE_VA( name , ... ) GL::GpuProfileScope ANONYMOUS_VARIABLE(GPUProfile)( name , __VA_ARGS__);
+#define GPU_PROFILE( name ) RenderGL::GpuProfileScope ANONYMOUS_VARIABLE(GPUProfile)( RenderGL::GpuProfileScope::NoVA() , name );
+#define GPU_PROFILE_VA( name , ... ) RenderGL::GpuProfileScope ANONYMOUS_VARIABLE(GPUProfile)( name , __VA_ARGS__);
 
 #endif // GpuProfiler_H_5CF3071A_820F_435C_BC97_1975A2C6D546

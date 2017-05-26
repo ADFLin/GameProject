@@ -7,7 +7,7 @@ uniform sampler2D TextureBase;
 uniform sampler2D TextureB;
 uniform sampler2D TextureC;
 
-#ifdef VERTEX_SHADER
+#if VERTEX_SHADER
 
 void  CalcMaterialInputVS(inout MaterialInputVS input, inout MaterialParametersVS parameters)
 {
@@ -16,7 +16,7 @@ void  CalcMaterialInputVS(inout MaterialInputVS input, inout MaterialParametersV
 
 #endif //VERTEX_SHADER
 
-#ifdef PIXEL_SHADER
+#if PIXEL_SHADER
 
 void CalcMaterialInputPS(inout MaterialInputPS input, inout MaterialParametersPS parameters)
 {
@@ -31,6 +31,7 @@ void CalcMaterialInputPS(inout MaterialInputPS input, inout MaterialParametersPS
 	input.metallic = 0.9;
 	input.roughness = 0.7;
 	input.specular = 0.2;
+	input.opacity = 0.7;
 	//float2 value = 2 * frac(10 * (parameters.worldPos.x + parameters.worldPos.y + parameters.worldPos.z )) - 1;
 	float2 value = 2 * frac(10 * (parameters.worldPos.xy)) - 1;
 	//input.mask = value.x * value.y > 0 ? 1 : 0;

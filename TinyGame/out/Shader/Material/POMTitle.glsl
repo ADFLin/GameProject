@@ -9,7 +9,8 @@
 uniform sampler2D BaseTexture;
 uniform sampler2D NoramlTexture;
 uniform float3    DispFactor;
-#ifdef VERTEX_SHADER
+uniform float3    TileUVScale = float3(1,1,1);
+#if VERTEX_SHADER
 
 void  CalcMaterialInputVS(inout MaterialInputVS input, inout MaterialParametersVS parameters)
 {
@@ -18,7 +19,7 @@ void  CalcMaterialInputVS(inout MaterialInputVS input, inout MaterialParametersV
 
 #endif //VERTEX_SHADER
 
-#ifdef PIXEL_SHADER
+#if PIXEL_SHADER
 
 void CalcMaterialInputPS(inout MaterialInputPS input, inout MaterialParametersPS parameters)
 {
@@ -26,14 +27,13 @@ void CalcMaterialInputPS(inout MaterialInputPS input, inout MaterialParametersPS
 	float3 viewVectorTangent = viewVector * parameters.tangentToWorld;
 
 	POMParameters pomParams;
-	pomParams.dispTexture = NoramlTexture;
 	pomParams.dispMask = float4(0, 0, 0, DispFactor.x);
 	pomParams.dispBias = DispFactor.y;
 	pomParams.parallaxScale = 0.2;
 	pomParams.iteratorParams = float2(20,120);
 	pomParams.shadowIteratorParams = float2(15, 128);
 
-	POMOutput pomOutput = POMapping(pomParams, normalize(viewVectorTangent), parameters.texCoords[0].xy);
+	POMOutput pomOutput = POMapping(NoramlTexture , pomParams, normalize(viewVectorTangent), parameters.texCoords[0].xy * TileUVScale.xy );
 
 	input.shadingModel = SHADINGMODEL_DEFAULT_LIT;
 	input.baseColor = texture2D(BaseTexture, pomOutput.UVs).rgb;
@@ -44,7 +44,7 @@ void CalcMaterialInputPS(inout MaterialInputPS input, inout MaterialParametersPS
 	input.specular = 0.1;
 	input.normal = GetTextureNormal(NoramlTexture, pomOutput.UVs);
 	if( pomOutput.depth > 0 )
-		input.depthOffset = CalcPOMCorrectDepth(pomOutput, parameters.tangentToWorld, viewVectorTangent) - parameters.svPosition.z;
+		input.depthOffset = CalcPOMCorrectDepth(pomOutput, parameters.tangentToWorld, viewVectorTangent) - parameters.clipPos.z;
 	else
 		input.depthOffset = 0;
 	float2 value = 2 * frac(5 * (parameters.texCoords[0].xy)) - 1;

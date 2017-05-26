@@ -105,19 +105,20 @@ public:
 	
 	GameWindow& getWindow(){ return *mGameWindow; }
 
-	bool isEnableOpenGL(){ return mbGLEnable; }
+	bool isOpenGLEnabled(){ return mbGLEnabled; }
 	bool isInitialized() { return mbInitialized; }
 
 	GAME_API bool  startOpenGL( bool useGLEW = true );
-	GAME_API void  stopOpenGL();
+	GAME_API void  stopOpenGL(bool bDeferred = false);
 	GAME_API bool  beginRender();
 	GAME_API void  endRender();
 	GAME_API void  enableSweepBuffer( bool beS );
+	GAME_API bool  cleanupGLContextDeferred();
 private:
 	void        setupBuffer( int w , int h );
 
 	bool        mbInitialized;
-	bool        mbGLEnable;
+	bool        mbGLEnabled;
 	bool        mbSweepBuffer;
 	
 	GameWindow* mGameWindow;

@@ -76,7 +76,7 @@ public:
 	void update( long time )
 	{
 		mTime += time;
-		if ( mTime > 10000 )
+		if ( mTime > 2000 )
 		{
 			Mutex::Locker locker( mMutex );
 			if ( !mMsgList.empty() )
@@ -183,12 +183,18 @@ bool TinyGameApp::onInit()
 
 void TinyGameApp::onEnd()
 {
+	cleanup();
+
+}
+
+void TinyGameApp::cleanup()
+{
 	StageManager::cleanup();
 
 	closeNetwork();
 
 	//cleanup widget before delete game instance
-	Global::GUI().cleanupWidget( true );
+	Global::GUI().cleanupWidget(true);
 
 	Global::GameManager().cleanup();
 
@@ -381,7 +387,7 @@ bool TinyGameApp::onChar( unsigned code )
 
 void TinyGameApp::onDestroy()
 {
-	Global::getDrawEngine()->release();
+	cleanup();
 }
 
 void TinyGameApp::onTaskMessage( TaskBase* task , TaskMsg const& msg )
@@ -422,14 +428,14 @@ void TinyGameApp::render( float dframe )
 		if( mRenderEffect )
 			mRenderEffect->onRender(dt);
 
-		if( de->isEnableOpenGL() )
+		if( de->isOpenGLEnabled() )
 			::Global::getGLGraphics2D().beginRender();
 
 		Global::GUI().render();
 	}
 	else
 	{
-		if( de->isEnableOpenGL() )
+		if( de->isOpenGLEnabled() )
 			::Global::getGLGraphics2D().beginRender();
 	}
 
@@ -441,7 +447,7 @@ void TinyGameApp::render( float dframe )
 	g.setTextColor(255, 255, 0);
 	g.drawText(Vec2i(5, 5), str.format("FPS = %f", mFPSCalc.getFPS()));
 
-	if( de->isEnableOpenGL() )
+	if( de->isOpenGLEnabled() )
 		::Global::getGLGraphics2D().endRender();
 		
 	de->endRender();
@@ -594,6 +600,11 @@ void TinyGameApp::prevStageChange()
 		g.drawRect( Vec2i(0,0) , ::Global::getDrawEngine()->getScreenSize() );
 		de->endRender();
 	}
+}
+
+void TinyGameApp::postStageEnd()
+{
+	::Global::getDrawEngine()->cleanupGLContextDeferred();
 }
 
 void TinyGameApp::postStageChange( StageBase* stage )

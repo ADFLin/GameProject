@@ -1,8 +1,6 @@
 #pragma once
 
-
-
-struct LightParam
+struct LightParameters
 {
 	float4   worldPosAndRadius;
 	float3   color;
@@ -12,4 +10,4 @@ struct LightParam
 	int      bCastShadow;
 };
 
-uniform LightParam GLight;
+uniform LightParameters GLight;

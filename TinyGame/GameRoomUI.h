@@ -142,7 +142,7 @@ public:
 	void onFocus( bool beF )
 	{
 		if ( beF )
-			mMsgTextCtrl->setFocus();
+			mMsgTextCtrl->makeFocus();
 	}
 	void clearInputString()
 	{

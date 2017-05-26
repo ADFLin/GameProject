@@ -219,20 +219,20 @@ namespace Tetris
 			int xPos = cx + block.getX();
 			int yPos = cy + block.getY();
 
-			int temp = 0;
+			int hitFlag = 0;
 
 			if ( xPos < 0 )
-				temp |= HIT_LEFT_SIDE;
+				hitFlag |= HIT_LEFT_SIDE;
 			else if ( xPos >= mSizeX )
-				temp |= HIT_RIGHT_SIDE;
+				hitFlag |= HIT_RIGHT_SIDE;
 
 			if ( yPos < 0 )
-				temp |= HIT_BOTTOM_SIDE;
+				hitFlag |= HIT_BOTTOM_SIDE;
 
-			if ( temp == 0 && getBlock( xPos , yPos ) )
-				temp |= HIT_BLOCK;
+			if ( hitFlag == 0 && getBlock( xPos , yPos ) )
+				hitFlag |= HIT_BLOCK;
 
-			result |= temp;
+			result |= hitFlag;
 		}
 
 		return result;

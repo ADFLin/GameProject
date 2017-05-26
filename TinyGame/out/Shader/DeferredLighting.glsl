@@ -12,7 +12,7 @@
 
 #if DEFERRED_SHADING_USE_BOUND_SHAPE
 
-#ifdef VERTEX_SHADER
+#if VERTEX_SHADER
 //layout(location = ATTRIBUTE0) in float4 BoundVertex;
 uniform mat4 BoundTransform;
 void LightingPassVS()
@@ -34,7 +34,7 @@ uniform mat4 ProjectShadowMatrix[8];
 #define DEFERRED_LIGHT_TYPE LIGHTTYPE_POINT
 #endif
 
-#ifdef PIXEL_SHADER
+#if PIXEL_SHADER
 
 #if DEFERRED_SHADING_USE_BOUND_SHAPE
 //layout(early_fragment_tests) in;
@@ -58,7 +58,7 @@ void LightingPassPS()
 
 	GBufferData GBuffer = GetGBufferData(ScreenUVs);
 
-	if( GBuffer.shadingModel == SHADINGMODEL_UNLIT )
+	if( GBuffer.shadingModel == SHADINGMODEL_UNLIT || GBuffer.shadingModel == 0)
 	{
 		//discard;
 		gl_FragColor = float4( 0 , 0 , 0 , 1 );
@@ -77,6 +77,7 @@ void LightingPassPS()
 	float3 shadow = float3(1.0,1.0,1.0);
 	float3 L = float3(0, 0, 1);
 	float3 outColor = float3(0.0);
+
 	//if( GLight.type == LIGHTTYPE_DIRECTIONAL )
 #if DEFERRED_LIGHT_TYPE == LIGHTTYPE_DIRECTIONAL
 	{
@@ -129,16 +130,18 @@ void LightingPassPS()
 		float c = 1;
 		float3 N = GBuffer.normal;
 		float3 V = normalize(viewOffset);
+		float NoL = saturate(dot(N, L));
 
 		float3 roughness = float3(GBuffer.roughness, GBuffer.roughness, 1);
 
 		roughness = max(roughness, 0.04);
 		//float3 shading = phongShading(data.baseColor.rgb, data.baseColor.rgb, N, L, V, 20);
-		float3 shading = StandardShading(GBuffer.diffuseColor, GBuffer.specularColor, roughness, float3(1), L, V, N);
+		float3 shading = NoL * StandardShading(GBuffer.diffuseColor, GBuffer.specularColor, roughness, float3(1), L, V, N);
 
 		outColor = attenuation  * shading * GLight.color;
 		//outColor = shading * attenuation * GLight.color;
 		outColor *= shadow;
+		//outColor = float3(1, 0, 0);
 
 		//outColor = shadow;
 		//outColor = 2 * shadow * shading;

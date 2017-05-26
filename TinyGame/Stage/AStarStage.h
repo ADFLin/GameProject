@@ -334,7 +334,7 @@ namespace AStar
 		{
 			::Global::GUI().cleanupWidget();
 			restart();
-			DevFrame* frame = WidgetUtility::createDevFrame();
+			DevFrame* frame = WidgetUtility::CreateDevFrame();
 			return true;
 		}
 

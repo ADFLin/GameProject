@@ -85,7 +85,7 @@ void foo2()
 bool CoroutineTestStage::onInit()
 {
 	::Global::GUI().cleanupWidget();
-	WidgetUtility::createDevFrame();
+	WidgetUtility::CreateDevFrame();
 	gFun.num = 0;
 	gCor = CoroutineType::pull_type( std::bind( &FooFun::foo , std::ref(gFun) , std::placeholders::_1 ) );
 	int id = gCor.get();
@@ -133,7 +133,7 @@ namespace Bsp2D
 
 		::Global::GUI().cleanupWidget();
 
-		DevFrame* frame = WidgetUtility::createDevFrame();
+		DevFrame* frame = WidgetUtility::CreateDevFrame();
 		frame->addButton( UI_BUILD_TREE , "Build Tree" );
 		frame->addButton( UI_ADD_POLYAREA , "Add PolyArea" );
 		frame->addButton( UI_TEST_INTERATION , "Test Collision" );

@@ -6,8 +6,6 @@
 #include "RenderUtility.h"
 #include "GLGraphics2D.h"
 
-
-
 namespace Lighting
 {
 	bool TestStage::onInit()
@@ -20,7 +18,7 @@ namespace Lighting
 		program    = glCreateProgram();
 		fragShader = glCreateShader( GL_FRAGMENT_SHADER );
 
-		char const* strFrag = readFile( "Shader/light.glsl" );
+		char const* strFrag = readFile( "Shader/Game/light.glsl" );
 
 		if ( strFrag == NULL )
 			return false;
@@ -30,9 +28,9 @@ namespace Lighting
 		glAttachShader( program , fragShader );
 		glLinkProgram( program );
 
-		loc_lightLocation = glGetUniformLocation( program , "lightLocation" );
-		loc_lightColor = glGetUniformLocation( program , "lightColor" );
-		loc_lightAttenuation = glGetUniformLocation( program , "lightAttenuation" );
+		loc_lightLocation = glGetUniformLocation( program , "LightLocation" );
+		loc_lightColor = glGetUniformLocation( program , "LightColor" );
+		loc_lightAttenuation = glGetUniformLocation( program , "LightAttenuation" );
 
 
 		free( (void*)strFrag );
@@ -45,7 +43,7 @@ namespace Lighting
 		glMatrixMode(GL_MODELVIEW);
 
 		::Global::GUI().cleanupWidget();
-		WidgetUtility::createDevFrame();
+		WidgetUtility::CreateDevFrame();
 		restart();
 		return true;
 	}
@@ -99,8 +97,9 @@ namespace Lighting
 
 		glMatrixMode(GL_PROJECTION);
 		glLoadIdentity();
-		glOrtho(0, window.getWidth(), window.getHeight(), 0, 1, -1);
+		glOrtho(0, window.getWidth(), 0 , window.getHeight(), 1, -1);
 		glMatrixMode(GL_MODELVIEW);
+		glLoadIdentity();
 
 		glDisable( GL_DEPTH_TEST );
 		glDisable( GL_CULL_FACE );
@@ -204,10 +203,11 @@ namespace Lighting
 
 		GameWindow& window = Global::getDrawEngine()->getWindow();
 
+		Vec2f worldPos = Vec2f(msg.getPos().x, window.getHeight() - msg.getPos().y);
 		if ( msg.onLeftDown() )
 		{
 			Light light;
-			light.pos = Vec2f( msg.getPos().x , window.getHeight() - msg.getPos().y  );
+			light.pos = worldPos;
 			light.color = Color( float( ::Global::Random() ) / RAND_MAX  , 
 				                 float( ::Global::Random() ) / RAND_MAX  , 
 				                 float( ::Global::Random() ) / RAND_MAX  );
@@ -217,14 +217,14 @@ namespace Lighting
 		{
 			Block block;
 			//#TODO
-			block.setBox( Vec2f( msg.getPos().x , msg.getPos().y  ) , Vec2f( 50 , 50 ) );
+			block.setBox(worldPos, Vec2f( 50 , 50 ) );
 			blocks.push_back( block );
 		}
 		else if ( msg.onMoving() )
 		{
 			if ( !lights.empty() )
 			{
-				lights.back().pos = Vec2f( msg.getPos().x , window.getHeight() - msg.getPos().y  );
+				lights.back().pos = worldPos;
 			}
 		}
 

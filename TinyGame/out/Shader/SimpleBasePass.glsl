@@ -1,6 +1,7 @@
 #include "Common.glsl"
 #include "ViewParam.glsl"
-#include "VertexFactory.glsl"
+#include "PrimitiveParam.glsl"
+#include "VertexProcess.glsl"
 #include "DeferredShadingCommon.glsl"
 
 struct VSOutputParam
@@ -10,20 +11,20 @@ struct VSOutputParam
 	float4 normal;
 };
 
-#ifdef VERTEX_SHADER
+#if VERTEX_SHADER
 
 out VSOutputParam VSOutput;
 void BassPassVS()
 {
 	VSOutput.color = gl_Color;
-	VSOutput.worldPos = VertexFactoryParams.localToWorld * gl_Vertex;
-	VSOutput.normal = float4(gl_Normal, 0) * VertexFactoryParams.worldToLocal;
+	VSOutput.worldPos = Primitive.localToWorld * gl_Vertex;
+	VSOutput.normal = float4(gl_Normal, 0) * Primitive.worldToLocal;
 	gl_Position = View.worldToClip * VSOutput.worldPos;
 }
 
 #endif //VERTEX_SHADER
 
-#ifdef PIXEL_SHADER
+#if PIXEL_SHADER
 
 in VSOutputParam VSOutput;
 void BasePassPS()

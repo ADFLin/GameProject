@@ -1,14 +1,24 @@
+#ifndef SHADOW_DEPTH_ONE_PASS
+#define SHADOW_DEPTH_ONE_PASS 0
+#endif
+
+#if SHADOW_DEPTH_ONE_PASS
+#define VERTEX_FACTORY_USE_GEOMETRY_SHADER 1
+#endif
+
 #include "Common.glsl"
 #include "MaterialProcess.glsl"
-#include "VertexFactory.glsl"
+#include "VertexProcess.glsl"
 #include "ShadowCommon.glsl"
+
+
 
 #ifndef SHADOW_LIGHT_TYPE
 #define SHADOW_LIGHT_TYPE LIGHTTYPE_POINT
 #endif
 uniform mat4 DepthShadowMatrix;
 
-#ifdef VERTEX_SHADER
+#if VERTEX_SHADER
 
 out float Depth;
 
@@ -23,7 +33,7 @@ void MainVS()
 	CalcMaterialInputVS(materialInput, materialParameters);
 
 	gl_Position = CalcVertexFactoryOutputVS(VFOutputVS, intermediates, materialInput, materialParameters);
-	float4 outPosition = DepthShadowMatrix * float4( VFOutputVS.worldPos , 1 );
+	float4 outPosition = DepthShadowMatrix * float4(VFOutputVS.worldPos , 1 );
 
 #if 0
 	float4 viewOffset = View.worldToView * float4(VFOutputVS.worldPos, 1);
@@ -43,29 +53,51 @@ void MainVS()
 }
 #endif //VERTEX_SHADER
 
-#ifdef PIXEL_SHADER
+#if SHADOW_DEPTH_ONE_PASS
 
-in VertexFactoryIutputPS VFOutputVS;
+#if GEOMETRY_SHADER
+void MainGS()
+{
+	for( int face = 0; face < 6; ++face )
+	{
+
+
+
+
+	}
+}
+
+#endif //GEOMETRY_SHADER
+
+#endif //SHADOW_DEPTH_ONE_PASS
+
+#if PIXEL_SHADER
+
+#if SHADOW_DEPTH_ONE_PASS
+#define VFInputPS VFOutputGS
+#else
+#define VFInputPS VFOutputVS
+#endif  //SHADOW_DEPTH_ONE_PASS
+
+
+in VertexFactoryIutputPS VFInputPS;
+
 in float Depth;
-
 void MainPS()
 {
-	VertexFactoryIntermediatesPS intermediates = GetVertexFactoryIntermediatesPS(VFOutputVS);
 
 	MaterialInputPS materialInput = InitMaterialInputPS();
-	MaterialParametersPS materialParameters = GetMaterialParameterPS(VFOutputVS, intermediates);
+	MaterialParametersPS materialParameters = GetMaterialParameterPS(VFInputPS);
 
 	CalcMaterialParameters(materialInput, materialParameters);
 
 	float outDepth = Depth;
 
 #if MATERIAL_USE_DEPTH_OFFSET
+	float3 svPosition = materialParameters.clipPos;
 	if( materialInput.depthOffset != 0 )
 	{
-		float3 svPosition = materialParameters.svPosition;
 		svPosition.z += materialInput.depthOffset;
-
-		WritePxielDepth(svPosition.z);
 
 		float4 worldPos = View.clipToWorld * float4( svPosition , 1 );
 		float4 outPosition = DepthShadowMatrix * float4( worldPos.xyz / worldPos.w , 1);
@@ -75,10 +107,8 @@ void MainPS()
 		outDepth = outPosition.z * ShadowParam.y;
 #endif
 	}
-	else
-	{
-		WritePxielDepth(materialParameters.svPosition.z);
-	}
+	WritePxielDepth(svPosition.z);
+
 #endif
 	//depth = 0.5;
 	gl_FragColor = vec4(outDepth, outDepth, outDepth, 1.0);

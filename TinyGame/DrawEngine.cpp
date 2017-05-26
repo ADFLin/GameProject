@@ -36,14 +36,14 @@ IGraphics2D& DrawEngine::getIGraphics()
 {
 	static TGraphics2DProxy< Graphics2D > proxySimple( *mScreenGraphics );
 	static TGraphics2DProxy< GLGraphics2D > proxyGL( *mGLGraphics );
-	if ( mbGLEnable ) 
+	if ( mbGLEnabled ) 
 		return proxyGL;
 	return proxySimple;
 }
 
 DrawEngine::DrawEngine()
 {
-	mbGLEnable = false;
+	mbGLEnabled = false;
 	mbInitialized = false;
 	mbSweepBuffer = true;
 	mBufferDC = NULL;
@@ -74,13 +74,16 @@ void DrawEngine::init( GameWindow& window )
 
 void DrawEngine::release()
 {
-	stopOpenGL();
+	if( mbGLEnabled )
+		stopOpenGL();
+	else
+		cleanupGLContextDeferred();
 	RenderUtility::release();
 }
 
 bool DrawEngine::startOpenGL( bool useGLEW )
 {
-	if ( mbGLEnable )
+	if ( mbGLEnabled )
 		return true;
 
 	setupBuffer( getScreenWidth() , getScreenHeight() );
@@ -93,27 +96,31 @@ bool DrawEngine::startOpenGL( bool useGLEW )
 			return false;
 	}
 	RenderUtility::startOpenGL();
-	mbGLEnable = true;
+	mbGLEnabled = true;
 
 	return true;
 }
 
-void DrawEngine::stopOpenGL()
+void DrawEngine::stopOpenGL(bool bDeferred)
 {
-	if ( !mbGLEnable )
+	if ( !mbGLEnabled )
 		return;
 
-	mbGLEnable = false;
+	mbGLEnabled = false;
 
 	RenderUtility::stopOpenGL();
-	setupBuffer( getScreenWidth() , getScreenHeight() );
-	mGLContext.cleanup();
+	if( bDeferred == false )
+	{
+		mGLContext.cleanup();
+	}	
+
+	setupBuffer(getScreenWidth(), getScreenHeight());
 }
 
 
 bool DrawEngine::beginRender()
 {
-	if ( mbGLEnable )
+	if ( mbGLEnabled )
 	{
 		if ( !mGLContext.makeCurrent( getWindow().getHDC() ) )
 			return false;
@@ -130,7 +137,7 @@ bool DrawEngine::beginRender()
 
 void DrawEngine::endRender()
 {
-	if ( mbGLEnable )
+	if ( mbGLEnabled )
 	{
 		::glFlush();
 
@@ -183,7 +190,7 @@ void DrawEngine::changeScreenSize( int w , int h )
 
 void DrawEngine::setupBuffer( int w , int h )
 {
-	if ( mbGLEnable )
+	if ( mbGLEnabled )
 	{
 		int bitsPerPixel = GetDeviceCaps( getWindow().getHDC() , BITSPIXEL );
 
@@ -235,5 +242,15 @@ GAME_API void DrawEngine::enableSweepBuffer(bool beS)
 		mScreenGraphics->setTargetDC( mGameWindow->getHDC() );
 	else
 		mScreenGraphics->setTargetDC( mBufferDC->getDC() );
+}
+
+GAME_API bool DrawEngine::cleanupGLContextDeferred()
+{
+	if( mbGLEnabled == false && mGLContext.isVaild() )
+	{
+		mGLContext.cleanup();
+		return true;
+	}
+	return false;
 }
 

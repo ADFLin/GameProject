@@ -3,12 +3,31 @@
 #include "FileSystem.h"
 
 #include "CPreprocessor.h"
+#include "BitUtility.h"
+
 #include <fstream>
 #include <sstream>
 #include <iterator>
 
-namespace GL
+namespace RenderGL
 {
+
+	char const* ShaderPosfixNames[] =
+	{
+		"VS" SHADER_FILE_SUBNAME ,
+		"PS" SHADER_FILE_SUBNAME ,
+		"GS" SHADER_FILE_SUBNAME ,
+		"CS" SHADER_FILE_SUBNAME ,
+	};
+
+	char const* shaderDefines[] =
+	{
+		"#define VERTEX_SHADER 1\n" ,
+		"#define PIXEL_SHADER 1\n" ,
+		"#define GEOMETRY_SHADER 1\n" ,
+		"#define COMPUTE_SHADER 1\n" ,
+	};
+
 
 	ShaderManager::~ShaderManager()
 	{
@@ -18,44 +37,62 @@ namespace GL
 		}
 	}
 
-	bool ShaderManager::loadFile(ShaderProgram& shaderProgram, char const* fileName, char const* def /*= nullptr*/)
+	bool ShaderManager::loadFileSimple(ShaderProgram& shaderProgram, char const* fileName, char const* def , char const* additionalCode )
 	{
-		return loadFile(shaderProgram , fileName, SHADER_ENTRY(MainVS), SHADER_ENTRY(MainPS), def);
+		return loadFile(shaderProgram , fileName, SHADER_ENTRY(MainVS), SHADER_ENTRY(MainPS), def, additionalCode);
 	}
 
-	bool ShaderManager::loadFile(ShaderProgram& shaderProgram, char const* fileName, char const* vertexEntryName, char const* pixelEntryName, char const* def /*= nullptr */, int version /*= -1 */)
+	bool ShaderManager::loadFile(ShaderProgram& shaderProgram, char const* fileName, char const* vertexEntryName, char const* pixelEntryName, char const* def, char const* additionalCode)
+	{
+		char const* entryNames[] = { vertexEntryName , pixelEntryName };
+		uint8 shaderMask = BIT(RHIShader::eVertex) | BIT(RHIShader::ePixel);
+		return loadFile(shaderProgram, fileName, shaderMask, entryNames, def, additionalCode);
+	}
+
+	bool ShaderManager::loadFile(ShaderProgram& shaderProgram, char const* fileName, uint8 shaderMask, char const* entryNames[], char const* def, char const* additionalCode)
+	{
+		return loadInternal(shaderProgram, fileName, shaderMask, entryNames, def, additionalCode, true);
+	}
+
+	bool ShaderManager::loadFile(ShaderProgram& shaderProgram, char const* fileName, uint8 shaderMask, char const* entryNames[], ShaderCompileOption const& option, char const* additionalCode /*= nullptr*/)
+	{
+		return loadInternal(shaderProgram, fileName, shaderMask, entryNames, option, additionalCode, true);
+	}
+
+	bool ShaderManager::loadFile(ShaderProgram& shaderProgram, char const* fileName, char const* vertexEntryName, char const* pixelEntryName, ShaderCompileOption const& option, char const* additionalCode /*= nullptr*/)
+	{
+		char const* entryNames[] = { vertexEntryName , pixelEntryName };
+		uint8 shaderMask = BIT(RHIShader::eVertex) | BIT(RHIShader::ePixel);
+		return loadFile(shaderProgram, fileName, shaderMask, entryNames, option, additionalCode);
+	}
+
+	bool ShaderManager::loadInternal(ShaderProgram& shaderProgram, char const* fileName, uint8 shaderMask, char const* entryNames[], ShaderCompileOption const& option, char const* additionalCode, bool bSingle)
 	{
 		ShaderCompileInfo* info = new ShaderCompileInfo;
 
-		info->bSingle = true;
+		info->shaderProgram = &shaderProgram;
+		info->shaderMask = shaderMask;
+		info->bSingle = bSingle;
 		info->fileName = fileName;
 
-		if( version != -1 )
+		for( int i = 0; i < RHIShader::NUM_SHADER_TYPE; ++i )
 		{
-			FixString< 128 > versionStr;
-			versionStr.format("#version %d\n", version);
-			info->defines[0] = versionStr;
-			info->defines[1] = versionStr;
+			if( (info->shaderMask & BIT(i)) == 0 )
+				continue;
+
+			std::string defCode;
+			defCode += shaderDefines[i];
+			if( entryNames )
+			{
+				defCode += "#define ";
+				defCode += entryNames[i];
+				defCode += " main\n";
+			}
+
+			std::string headCode = option.getCode(defCode.c_str(), additionalCode);
+			info->headCodes.push_back(std::move(headCode));
 		}
 
-
-		info->defines[0] += "#define ";
-		info->defines[0] += vertexEntryName;
-		info->defines[0] += +" main\n";
-		info->defines[0] += "#define VERTEX_SHADER\n";
-
-		info->defines[1] += "#define ";
-		info->defines[1] += pixelEntryName;
-		info->defines[1] += +" main\n";
-		info->defines[1] += "#define PIXEL_SHADER\n";
-
-		if( def )
-		{
-			info->defines[0] += def;
-			info->defines[0] += '\n';
-			info->defines[1] += def;
-			info->defines[1] += '\n';
-		}
 		if( !updateShaderInternal(shaderProgram, *info) )
 		{
 			delete info;
@@ -66,29 +103,45 @@ namespace GL
 		return true;
 	}
 
-	bool ShaderManager::loadMultiFile(ShaderProgram& shaderProgram, char const* fileName , char const* def, int version )
+	bool ShaderManager::loadInternal(ShaderProgram& shaderProgram, char const* fileName, uint8 shaderMask, char const* entryNames[], char const* def , char const* additionalCode, bool bSingle )
 	{
 		ShaderCompileInfo* info = new ShaderCompileInfo;
 
-		info->bSingle = false;
+		info->shaderProgram = &shaderProgram;
+		info->shaderMask = shaderMask;
+		info->bSingle = bSingle;
 		info->fileName = fileName;
 
-		if( version != -1 )
+		for( int i = 0; i < RHIShader::NUM_SHADER_TYPE; ++i )
 		{
-			FixString< 128 > versionStr;
-			versionStr.format("#version %d\n", version);
-			info->defines[0] = versionStr;
-			info->defines[1] = versionStr;
+			if( (info->shaderMask & BIT(i)) == 0 )
+				continue;
+
+			std::string headCode;
+			if( def )
+			{
+				headCode += def;
+				headCode += '\n';
+			}
+
+			headCode += shaderDefines[i];
+			if( entryNames )
+			{
+				headCode += "#define ";
+				headCode += entryNames[i];
+				headCode += " main\n";
+			}
+
+			if( additionalCode )
+			{
+				headCode += additionalCode;
+				headCode += '\n';
+			}
+
+			info->headCodes.push_back(std::move(headCode));
 		}
 
-		if( def )
-		{
-			info->defines[0] += def;
-			info->defines[0] += '\n';
-			info->defines[1] += def;
-			info->defines[1] += '\n';
-		}
-		if( !updateShaderMultiInternal(shaderProgram, *info) )
+		if( !updateShaderInternal(shaderProgram, *info) )
 		{
 			delete info;
 			return false;
@@ -98,16 +151,27 @@ namespace GL
 		return true;
 	}
 
+	bool ShaderManager::loadMultiFile(ShaderProgram& shaderProgram, char const* fileName, char const* def, char const* additionalCode)
+	{
+		return loadInternal(shaderProgram, fileName, BIT(RHIShader::eVertex) | BIT(RHIShader::ePixel), nullptr, def, additionalCode, false);
+	}
+
 	bool ShaderManager::reloadShader(ShaderProgram& shaderProgram)
 	{
 		auto iter = mShaderCompileMap.find(&shaderProgram);
 		if( iter == mShaderCompileMap.end() )
 			return false;
 
-		if ( iter->second->bSingle )
-			return updateShaderInternal(shaderProgram, *iter->second);
+		return updateShaderInternal(shaderProgram, *iter->second);
+	}
 
-		return updateShaderMultiInternal(shaderProgram, *iter->second);
+
+	void ShaderManager::reloadAll()
+	{
+		for( auto pair : mShaderCompileMap )
+		{
+			updateShaderInternal(*pair.first, *pair.second);
+		}
 	}
 
 	bool ShaderManager::updateShaderInternal(ShaderProgram& shaderProgram, ShaderCompileInfo& info)
@@ -118,78 +182,35 @@ namespace GL
 				return false;
 		}
 
-		FixString< 256 > path;
-		path.format("%s%s", info.fileName.c_str(), ".glsl");
-		RHIShaderRef vertexShader = shaderProgram.mShaders[RHIShader::eVertex];
-		if( vertexShader == nullptr )
+		for( int i = 0; i < RHIShader::NUM_SHADER_TYPE; ++i )
 		{
-			vertexShader = new RHIShader;
-			if( !mCompiler.compileSource( RHIShader::eVertex , *vertexShader , path, info.defines[0].c_str() ) )
-				return false;
-			shaderProgram.attachShader(*vertexShader);
-		}
-		else
-		{
-			if( !mCompiler.compileSource( RHIShader::eVertex ,  *vertexShader ,  path, info.defines[0].c_str()) )
-				return false;
-		}
+			if ( ( info.shaderMask & BIT(i) ) == 0 )
+				continue;
 
-		RHIShaderRef pixelShader = shaderProgram.mShaders[RHIShader::ePixel];
-		if( pixelShader == nullptr )
-		{
-			pixelShader = new RHIShader;
-			if( !mCompiler.compileSource(RHIShader::ePixel,  *pixelShader ,  path, info.defines[1].c_str()) )
-				return false;
-			shaderProgram.attachShader(*pixelShader);
+			FixString< 256 > path;
+			if( info.bSingle )
+			{
+				path.format("%s%s", info.fileName.c_str(), SHADER_FILE_SUBNAME );
+			}
+			else
+			{
+				path.format("%s%s", info.fileName.c_str(), ShaderPosfixNames[i]);
+			}
+			
+			RHIShaderRef shader = shaderProgram.mShaders[i];
+			if( shader == nullptr )
+			{
+				shader = new RHIShader;
+				if( !mCompiler.compileSource(RHIShader::Type(i), *shader, path, info.headCodes[i].c_str()) )
+					return false;
+				shaderProgram.attachShader(*shader);
+			}
+			else
+			{
+				if( !mCompiler.compileSource(RHIShader::Type(i), *shader, path, info.headCodes[i].c_str()) )
+					return false;
+			}
 		}
-		else
-		{
-			if( !mCompiler.compileSource( RHIShader::ePixel, *pixelShader , path, info.defines[1].c_str()) )
-				return false;
-		}
-		shaderProgram.updateShader(true);
-		return true;
-	}
-
-	bool ShaderManager::updateShaderMultiInternal(ShaderProgram& shaderProgram, ShaderCompileInfo& info)
-	{
-		if( !shaderProgram.isVaildate() )
-		{
-			if( !shaderProgram.create() )
-				return false;
-		}
-
-		FixString< 256 > path;
-		path.format("%s%s", info.fileName.c_str(), "VS.glsl");
-		RHIShaderRef vertexShader = shaderProgram.mShaders[RHIShader::eVertex];
-		if( vertexShader == nullptr )
-		{
-			vertexShader = new RHIShader;
-			if( !mCompiler.compileSource(RHIShader::eVertex, *vertexShader, path, info.defines[0].c_str()) )
-				return false;
-			shaderProgram.attachShader(*vertexShader);
-		}
-		else
-		{
-			if( !mCompiler.compileSource(RHIShader::eVertex, *vertexShader , path, info.defines[0].c_str()) )
-				return false;
-		}
-
-		path.format("%s%s", info.fileName.c_str(), "FS.glsl");
-		RHIShaderRef pixelShader = shaderProgram.mShaders[RHIShader::ePixel];
-		if( pixelShader == nullptr )
-		{
-			pixelShader = new RHIShader;
-			if( !mCompiler.compileSource(RHIShader::ePixel, *pixelShader, path, info.defines[1].c_str()) )
-				return false;
-			shaderProgram.attachShader(*pixelShader);
-		}
-		else
-		{
-			if( !mCompiler.compileSource(RHIShader::ePixel, *pixelShader , path, info.defines[1].c_str()) )
-				return false;
-		}
-
 		shaderProgram.updateShader(true);
 		return true;
 	}
@@ -223,8 +244,17 @@ namespace GL
 
 				std::stringstream oss;
 				CPP::CodeOutput codeOutput(oss);
+
+				char const* DefaultDir = "Shader";
 				preporcessor.setOutput(codeOutput);
-				preporcessor.addSreachDir("Shader/");
+				preporcessor.addSreachDir(DefaultDir);
+				char const* dirPathEnd = FileUtility::getDirPathPos(path);
+				if( strncmp(DefaultDir, path, dirPathEnd - path) != 0 )
+				{
+					std::string dir(path, dirPathEnd);
+					preporcessor.addSreachDir(dir.c_str());
+				}
+
 				try
 				{
 					preporcessor.translate(sourceInput);
@@ -259,10 +289,12 @@ namespace GL
 
 			if( !bSuccess && bUsePreprocess )
 			{
-				std::ofstream of("temp.glsl", std::ios::binary);
-				if( of.is_open() )
 				{
-					of.write(&codeBuffer[0], codeBuffer.size());
+					std::ofstream of("temp" SHADER_FILE_SUBNAME, std::ios::binary);
+					if( of.is_open() )
+					{
+						of.write(&codeBuffer[0], codeBuffer.size());
+					}
 				}
 
 				int maxLength;
@@ -279,17 +311,32 @@ namespace GL
 		return bSuccess;
 	}
 
-	std::string ShaderCompiler::getConfigDefine()
+
+
+	void ShaderManager::ShaderCompileInfo::getDependentFilePaths(std::vector<std::wstring>& paths)
 	{
-		std::string reslut;
-		for( int i = 0; i < mConfigVars.size(); ++i )
+		FixString< 256 > path;
+		if( bSingle )
 		{
-			reslut += "#define";
-			reslut += mConfigVars[i].name;
-			reslut += mConfigVars[i].value;
-			reslut += "\n";
+			path.format("%s%s", fileName.c_str(), SHADER_FILE_SUBNAME);
+			paths.push_back(CharToWChar(path));
 		}
-		return reslut;
+		else
+		{
+			for( int i = 0; i < RHIShader::NUM_SHADER_TYPE; ++i )
+			{
+				if( ( shaderMask & BIT(i)) == 0 )
+					continue;
+				path.format("%s%s", fileName.c_str(), ShaderPosfixNames[i]);
+				paths.push_back(CharToWChar(path));
+			}
+		}
+	}
+
+	void ShaderManager::ShaderCompileInfo::postFileModify(FileAction action)
+	{
+		if ( action == FileAction::Modify )
+			ShaderManager::getInstance().updateShaderInternal(*shaderProgram, *this);
 	}
 
 }//namespace GL

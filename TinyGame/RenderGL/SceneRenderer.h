@@ -4,256 +4,23 @@
 
 #include "RHICommon.h"
 #include "Material.h"
+#include "RenderContext.h"
 
 namespace RenderGL
 {
 
-	class RenderParam;
+	class RenderContext;
+	struct LightInfo;
 
-	class  Plane
+	class SceneRenderer
 	{
 	public:
-		Plane() {}
 
-		Plane(Vector3 const& v0, Vector3 const& v1, Vector3 const&  v2)
-		{
-			Vector3 d1 = v1 - v0;
-			Vector3 d2 = v2 - v0;
-			mNormal = d1.cross(d2);
-			mNormal.normalize();
 
-			mDistance = mNormal.dot(v0);
-		}
 
-		Plane(Vector3 const& normal, Vector3 const& pos)
-			:mNormal(normal)
-		{
-			mNormal.normalize();
-			mDistance = mNormal.dot(pos);
-		}
 
-		Plane(Vector3 const& n, float d)
-			:mNormal(n)
-			, mDistance(d)
-		{
-			mNormal.normalize();
-		}
-
-#if 0
-		void swap(Plane& p)
-		{
-			using std::swap;
-
-			swap(mNormal, p.mNormal);
-			swap(mDistance, p.mDistance);
-		}
-#endif
-
-		float calcDistance(Vector3 const& p) const
-		{
-			return p.dot(mNormal) - mDistance;
-		}
-	private:
-		Vector3 mNormal;
-		float   mDistance;
+		SceneInterface* mRenderScene;
 	};
-
-	struct ViewInfo
-	{
-		Vector3 worldPos;
-		Vector3 direction;
-		Matrix4 worldToClip;
-		Matrix4 worldToView;
-		Matrix4 viewToWorld;
-		Matrix4 viewToClip;
-		Matrix4 clipToWorld;
-		Matrix4 clipToView;
-
-		float   gameTime;
-		float   realTime;
-
-
-		Plane frustumPlanes[6];
-
-		bool frustumTest(Vector3 const& pos, float radius) const
-		{
-			for(int i = 0 ; i < 6 ; ++i )
-			{
-				if( frustumPlanes[i].calcDistance(pos) > radius )
-					return false;
-			}
-			return true;
-		}
-
-		Vector3 getViewForwardDir() const
-		{
-			return TransformVector(Vector3(0, 0, -1), viewToWorld);
-		}
-		Vector3 getViewRightDir() const
-		{
-			return TransformVector(Vector3(1, 0, 0), viewToWorld);
-		}
-		Vector3 getViewUpDir() const
-		{
-			return TransformVector(Vector3(0, 1, 0), viewToWorld);
-		}
-
-		void setupTransform(Matrix4 const& inViewMatrix, Matrix4 const& inProjectMatrix);
-
-		void setupShader(ShaderProgram& program);
-
-
-		void updateFrustumPlanes();
-	};
-
-
-	class SceneRender
-	{
-	public:
-		virtual void render(ViewInfo& view, RenderParam& param) = 0;
-	};
-
-
-	enum class LightType
-	{
-		Spot,
-		Point,
-		Directional,
-	};
-
-	struct LightInfo
-	{
-		LightType type;
-		Vector3   pos;
-		Vector3   color;
-		Vector3   dir;
-		Vector3   spotAngle;
-		float     intensity;
-		float     radius;
-
-		Vector3   upDir;
-		bool      bCastShadow;
-
-		void setupShaderGlobalParam(ShaderProgram& shader) const;
-		
-		bool testVisible(ViewInfo const& view) const
-		{
-			switch( type )
-			{
-			case LightType::Spot:
-				{
-					float d = 0.5 * radius / Math::Cos(Math::Deg2Rad(spotAngle.y));
-					return view.frustumTest(pos + d * dir, d);
-				}
-				break;
-			case LightType::Point:
-				return view.frustumTest(pos, radius);
-			}
-
-			return true;
-		}
-	};
-
-
-
-	class RenderParam
-	{
-	public:
-		ViewInfo*      mCurView;
-		ShaderProgram* mCurMaterialShader;
-
-		virtual ShaderProgram* getMaterialShader(MaterialMaster& material)
-		{
-			return nullptr;
-		}
-
-		virtual void setWorld(Matrix4 const& mat)
-		{
-			glMultMatrixf(mat);
-			if( mCurMaterialShader )
-			{
-				Matrix4 matInv;
-				float det;
-				mat.inverseAffine(matInv, det);
-				mCurMaterialShader->setParam(SHADER_PARAM(VertexFactoryParams.localToWorld), mat);
-				mCurMaterialShader->setParam(SHADER_PARAM(VertexFactoryParams.worldToLocal), matInv);
-			}
-		}
-		virtual void setupMaterialShader(ShaderProgram& shader) {}
-
-		void beginRender(ViewInfo& view)
-		{
-			mCurView = &view;
-			mCurMaterialShader = nullptr;
-		}
-		void endRender()
-		{
-			if( mCurMaterialShader )
-			{
-				mCurMaterialShader->unbind();
-				mCurMaterialShader = nullptr;
-			}
-		}
-
-		void setMaterial(Material* material)
-		{
-			ShaderProgram* shader;
-			if( material )
-			{
-				shader = getMaterialShader(*material->getMaster());
-				if( shader == nullptr || !shader->isVaildate() )
-				{
-					material = nullptr;
-				}
-			}
-
-			if( material == nullptr )
-			{
-				material = GDefalutMaterial;
-				shader = getMaterialShader(*GDefalutMaterial);
-			}
-
-			if( shader == nullptr )
-				return;
-
-			if( mCurMaterialShader != shader )
-			{
-				if( mCurMaterialShader )
-				{
-					mCurMaterialShader->unbind();
-				}
-				mCurMaterialShader = shader;
-				mCurMaterialShader->bind();
-				mCurView->setupShader(*mCurMaterialShader);
-				setupMaterialShader(*mCurMaterialShader);
-			}
-			material->bindShaderParam(*mCurMaterialShader);
-		}
-		void setMaterialParameter(char const* name, Texture2D& texture)
-		{
-			if( mCurMaterialShader )
-			{
-				RHITexture2D* textureRHI = texture.getRHI() ? texture.getRHI() : GDefaultMaterialTexture2D;
-				mCurMaterialShader->setTexture(name, *textureRHI);
-			}
-		}
-		void setMaterialParameter(char const* name, RHITexture2D& texture)
-		{
-			if( mCurMaterialShader )
-			{
-				mCurMaterialShader->setTexture(name, texture);
-			}
-		}
-		void setMaterialParameter(char const* name, Vector3 value)
-		{
-			if( mCurMaterialShader )
-			{
-				mCurMaterialShader->setParam(name, value);
-			}
-		}
-
-	};
-
 
 	struct GBufferParamData
 	{
@@ -324,27 +91,20 @@ namespace RenderGL
 		int          numCascade;
 		float        cacadeDepth[MaxCascadeNum];
 
-		void setupLight(LightInfo const& inLight)
-		{
-			light = &inLight;
-			switch( light->type )
-			{
-			case LightType::Spot:
-			case LightType::Point:
-				shadowParam.y = 1.0 / inLight.radius;
-				break;
-			case LightType::Directional:
-				//#TODO
-				shadowParam.y = 1.0;
-				break;
-			}
-		}
+		void setupLight(LightInfo const& inLight);
 
 		void setupShader(ShaderProgram& program) const;
 	};
 
+	class ForwardShadingTech : public RenderTechique
+	{
+
+
+
+	};
+
 #define USE_MATERIAL_SHADOW 1
-	class ShadowDepthTech : public RenderParam
+	class ShadowDepthTech : public RenderTechique
 	{
 	public:
 		static int const ShadowTextureSize = 2048;
@@ -356,37 +116,38 @@ namespace RenderGL
 			mCascadeMaxDist = 40;
 		}
 		bool init();
-		void renderLighting(ViewInfo& view, SceneRender& scene, LightInfo const& light, bool bMultiple);
-		void renderShadowDepth(ViewInfo& view, SceneRender& scene, ShadowProjectParam& shadowProjectParam);
+		void renderLighting(ViewInfo& view, SceneInterface& scene, LightInfo const& light, bool bMultiple);
+		void renderShadowDepth(ViewInfo& view, SceneInterface& scene, ShadowProjectParam& shadowProjectParam);
 		void calcCascadeShadowProjectInfo(ViewInfo &view, LightInfo const &light, float depthParam[2], Matrix4 &worldToLight, Matrix4 &shadowProject);
 
 		static void determineCascadeSplitDist(float nearDist, float farDist, int numCascade, float lambda, float outDist[]);
 
-		void drawShadowTexture(LightType type);
+		void drawShadowTexture(LightType type, Vec2i const& pos, int length);
 		void reload();
 
-		virtual void setWorld(Matrix4 const& mat)
+		//RenderTechique
+		virtual void setupWorld(RenderContext& context , Matrix4 const& mat) override
 		{
-			RenderParam::setWorld(mat);
+			RenderTechique::setupWorld( context , mat);
 			if( mEffectCur == &mProgLighting )
 			{
-				mEffectCur->setParam(SHADER_PARAM(VertexFactoryParams.localToWorld), mat);
+				mEffectCur->setParam(SHADER_PARAM(Primitive.localToWorld), mat);
 			}
 		}
 
-		virtual ShaderProgram* getMaterialShader(MaterialMaster& material)
+		virtual ShaderProgram* getMaterialShader(RenderContext& context,  MaterialMaster& material , VertexFactory* vertexFactory ) override
 		{
 #if USE_MATERIAL_SHADOW
 			if( mEffectCur == &mProgLighting )
 				return nullptr;
-			return &material.mShadowShader;
+			return material.getShader(RenderTechiqueUsage::Shadow, vertexFactory);
 
 #else
 			return nullptr;
 #endif
 		}
 
-		virtual void setupMaterialShader(ShaderProgram& shader)
+		virtual void setupMaterialShader(RenderContext& context, ShaderProgram& shader) override
 		{
 			shader.setParam(SHADER_PARAM(DepthShadowMatrix), mShadowMatrix);
 			shader.setParam(SHADER_PARAM(ShadowParam), shadowParam.x, shadowParam.y);
@@ -412,8 +173,8 @@ namespace RenderGL
 
 		Matrix4       mShadowMatrix;
 
-		DepthRenderBuffer depthBuffer1;
-		DepthRenderBuffer depthBuffer2;
+		RHIDepthRenderBufferRef depthBuffer1;
+		RHIDepthRenderBufferRef depthBuffer2;
 	};
 
 
@@ -478,13 +239,6 @@ namespace RenderGL
 		return invSqrt;
 	}
 
-	class TechBase
-	{
-	public:
-
-
-	};
-
 
 	enum LightBoundMethod
 	{
@@ -495,8 +249,7 @@ namespace RenderGL
 		NumLightBoundMethod,
 	};
 
-	class DefferredLightingTech : public TechBase
-		                       , public RenderParam
+	class DefferredShadingTech : public RenderTechique
 	{
 	public:
 
@@ -515,7 +268,7 @@ namespace RenderGL
 
 		bool init(SceneRenderTargets& sceneRenderTargets);
 
-		void renderBassPass(ViewInfo& view, SceneRender& scene);
+		void renderBassPass(ViewInfo& view, SceneInterface& scene);
 
 		void prevRenderLights(ViewInfo& view);
 		void renderLight(ViewInfo& view, LightInfo const& light, ShadowProjectParam const& shadowProjectParam );
@@ -532,14 +285,62 @@ namespace RenderGL
 		Mesh mSphereMesh;
 		Mesh mConeMesh;
 
-		virtual ShaderProgram* getMaterialShader(MaterialMaster& material)
+		virtual ShaderProgram* getMaterialShader(RenderContext& context, MaterialMaster& material , VertexFactory* vertexFactory)
 		{
 			//return &GSimpleBasePass;
 
-			return &material.mShader;
+			return material.getShader(RenderTechiqueUsage::BasePass, vertexFactory);
 		}
 
 		void reload();
+	};
+
+
+	class OITTech :  public RenderTechique
+	{
+
+	public:
+		//backwards memory allocation
+		bool bUseBMA = true;
+
+		bool init(Vec2i const& size);
+
+		void render(ViewInfo& view, SceneInterface& scnenRender , SceneRenderTargets* sceneRenderTargets );
+		void renderTest(ViewInfo& view, SceneRenderTargets& sceneRenderTargets, Mesh& mesh , Material* material );
+		void reload();
+
+		void renderInternal(ViewInfo& view , std::function< void() > drawFuncion , SceneRenderTargets* sceneRenderTargets = nullptr );
+
+		static int const NumBMALevel = 2;
+		int BMA_MaxPixelCounts[NumBMALevel] =
+		{
+			//256 ,
+			//128 , 
+			//64 , 
+			//48 ,
+			32 , 
+			16 ,  
+			//8 ,
+		};
+		int BMA_InternalValMin[NumBMALevel];
+
+		ShaderProgram mShaderBassPassTest;
+		ShaderProgram mShaderResolve;
+		ShaderProgram mShaderBMAResolves[NumBMALevel];
+		RHITexture2DRef mColorStorageTexture;
+		RHITexture2DRef mNodeAndDepthStorageTexture;
+		RHITexture2DRef mNodeHeadTexture;
+		AtomicCounterBuffer mStorageUsageCounter;
+		Mesh mMeshScreenTri;
+		Mesh mScreenMesh;
+
+		
+
+		FrameBuffer mFrameBuffer;
+
+		virtual ShaderProgram* getMaterialShader( RenderContext& context , MaterialMaster& material , VertexFactory* vertexFactory) override;
+		virtual void setupMaterialShader(RenderContext& context, ShaderProgram& shader) override;
+
 	};
 }//namespace RenderGL
 

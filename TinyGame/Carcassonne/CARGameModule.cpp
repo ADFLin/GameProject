@@ -280,7 +280,7 @@ namespace CAR
 
 		
 		mIdxPlayerTrun = 0;
-		generatePlayerPlayOrder();
+		randomPlayerPlayOrder();
 		{
 			TileId startId = generatePlayTile();
 			if ( mDebug )
@@ -615,7 +615,7 @@ namespace CAR
 		return tileIdStart;
 	}
 
-	void GameModule::generatePlayerPlayOrder()
+	void GameModule::randomPlayerPlayOrder()
 	{
 		int numPlayer = mPlayerManager->getPlayerNum();
 		for( int i = 0 ; i < numPlayer ; ++i )

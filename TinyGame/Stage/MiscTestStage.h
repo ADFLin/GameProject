@@ -44,6 +44,8 @@ public:
 
 	virtual bool onInit()
 	{
+		if( !BaseClass::onInit() )
+			return false;
 		::Global::GUI().cleanupWidget();
 		restart();
 		return true;
@@ -51,7 +53,7 @@ public:
 
 	virtual void onEnd()
 	{
-
+		BaseClass::onEnd();
 	}
 
 	virtual void onUpdate(long time)
@@ -959,7 +961,7 @@ public:
 
 		restart();
 
-		WidgetUtility::createDevFrame();
+		WidgetUtility::CreateDevFrame();
 		return true;
 	}
 
@@ -2190,7 +2192,7 @@ namespace G2D
 			updateCollision();
 
 			::Global::GUI().cleanupWidget();
-			WidgetUtility::createDevFrame();
+			WidgetUtility::CreateDevFrame();
 			restart();
 			return true;
 		}
@@ -2656,7 +2658,7 @@ public:
 	{
 		::Global::GUI().cleanupWidget();
 
-		DevFrame* frame = WidgetUtility::createDevFrame();
+		DevFrame* frame = WidgetUtility::CreateDevFrame();
 
 		GTextCtrl* textCtrl = new GTextCtrl( UI_NUMBER_TEXT , Vec2i( 10 , 10 ) , 60 , NULL );
 		::Global::GUI().addWidget( textCtrl );

@@ -1,13 +1,13 @@
 #include "ViewParam.glsl"
 #define WATER_USE_VIEW_TSPACE 1
 
-struct VertexFactoryParameters
+struct PrimitiveParameters
 {
 	mat4 localToWorld;
 	mat4 worldToLocal;
 };
 
-uniform VertexFactoryParameters VertexFactoryParams = VertexFactoryParameters( 
+uniform PrimitiveParameters Primitive = PrimitiveParameters( 
    mat4( 1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1 ) ,
    mat4( 1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1 ) );
 
@@ -16,7 +16,7 @@ struct VSOutput
 
 };
 
-#ifdef VERTEX_SHADER
+#if VERTEX_SHADER
 
 vec4 VSOutputMain( out VSOutput outVS )
 {
@@ -48,7 +48,7 @@ void MainVS()
 
 #endif //VERTEX_SHADER
 
-#ifdef PIXEL_SHADER
+#if PIXEL_SHADER
 
 #define FSINPUT_LOCAL_SPACE 1
 struct FSInput 
@@ -74,7 +74,7 @@ vec3 FSLightOffset( vec3 lightPos , vec3 V )
 #ifdef FSINPUT_LIGHT_POS_TRANSFORMED
 	return lightPos  - V;
 #elif defined( FSINPUT_LOCAL_SPACE )
-	return vec3( VertexFactoryParams.worldToLocal * vec4( lightPos , 1 ) ) - V;
+	return vec3( Primitive.worldToLocal * vec4( lightPos , 1 ) ) - V;
 #elif defined( FSINPUT_WORLD_SPACE )
 	return lightPos  - V;
 #elif defined( FSINPUT_VIEW_SPACE )

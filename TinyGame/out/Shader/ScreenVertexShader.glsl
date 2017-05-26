@@ -5,7 +5,7 @@ struct VSOutput
 	float2 UVs;
 };
 
-#ifdef VERTEX_SHADER
+#if VERTEX_SHADER
 
 out VSOutput vsOutput;
 

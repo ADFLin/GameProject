@@ -15,7 +15,7 @@ namespace FlappyBird
 		mMaxScore = 0;
 		restart();
 
-		DevFrame* frame = WidgetUtility::createDevFrame();
+		DevFrame* frame = WidgetUtility::CreateDevFrame();
 		return true;
 	}
 

@@ -32,7 +32,8 @@ namespace RenderGL
 	op( Normal , "Texture/tile1.tga" )\
 	op( RocksD, "Texture/rocks.png")\
 	op( RocksNH, "Texture/rocks_NM_height.tga")\
-	op( CircleN , "Texture/rocks_NM_height.tga")\
+	op( CircleN , "Texture/CircleN.tga")\
+	op( Star , "Texture/star.png")\
 	\
 	op(Metel , "Model/Metel.tga")\
 	op(MarioD, "Model/marioD.png")\

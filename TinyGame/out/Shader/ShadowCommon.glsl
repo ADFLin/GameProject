@@ -131,7 +131,7 @@ float3 CalcSpotLightShadow(float3 worldPos, mat4 shadowMatrix)
 #if USE_PERSPECTIVE_DEPTH
 	float depth = shadowPos.z / shadowPos.w - 0.003;
 #else
-	float depth = shadowPos.z * ShadowParam.y - 0.0005;
+	float depth = shadowPos.z * ShadowParam.y - 0.005;
 #endif
 	float2 shadowUV = shadowPos.xy / shadowPos.w;
 	float3 shadow = SimplePCF( ShadowTexture2D , shadowUV , depth );

@@ -6,7 +6,7 @@
 
 uniform sampler2D BaseTexture;
 
-#ifdef VERTEX_SHADER
+#if VERTEX_SHADER
 
 void  CalcMaterialInputVS(inout MaterialInputVS input, inout MaterialParametersVS parameters)
 {
@@ -15,7 +15,7 @@ void  CalcMaterialInputVS(inout MaterialInputVS input, inout MaterialParametersV
 
 #endif //VERTEX_SHADER
 
-#ifdef PIXEL_SHADER
+#if PIXEL_SHADER
 
 void CalcMaterialInputPS(inout MaterialInputPS input, inout MaterialParametersPS parameters)
 {

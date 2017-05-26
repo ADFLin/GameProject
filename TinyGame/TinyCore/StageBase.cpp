@@ -119,6 +119,8 @@ void StageManager::checkNewStage()
 	{
 		mCurStage->onEnd();
 		delete mCurStage;
+		postStageEnd();
+
 		mCurStage = mNextStage;
 		mNextStage = NULL;
 		setupStage();
@@ -129,13 +131,17 @@ void StageManager::cleanup()
 {
 	TaskHandler::clearTask();
 
-	delete mNextStage;
-	mNextStage = NULL;
 
 	if ( mCurStage )
 	{
 		mCurStage->onEnd();
 		delete mCurStage;
 		mCurStage = NULL;
+
+		postStageEnd();
 	}
+
+	delete mNextStage;
+	mNextStage = NULL;
+
 }

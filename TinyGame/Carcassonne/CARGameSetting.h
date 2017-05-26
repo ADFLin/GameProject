@@ -42,6 +42,7 @@ namespace CAR
 		eBazaar ,
 		eBridge ,
 		eCastleToken ,
+		eUseVineyard ,
 
 		eHaveGermanCastleTile ,
 		eHaveAbbeyTile ,

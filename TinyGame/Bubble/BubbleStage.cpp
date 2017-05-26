@@ -91,7 +91,7 @@ namespace Bubble
 
 		::Global::GUI().cleanupWidget();
 
-		WidgetUtility::createDevFrame();
+		WidgetUtility::CreateDevFrame();
 	}
 
 	void LevelStage::onRender( float dFrame )

@@ -5,17 +5,12 @@
 #include "CommonMarco.h"
 #include <string>
 
-
-
 #ifndef BIT
 #define BIT( n ) ( 1 << ( n ) )
 #endif
 
-
-
-namespace GL
+namespace RenderGL
 {
-
 
 	inline bool isNormalize(Vector3 const& v)
 	{
@@ -238,6 +233,7 @@ namespace GL
 
 		Vector3 getViewDir() const {  return mRotation.rotate( LocalViewDir() );  }
 		Vector3 getUpDir() const {  return mRotation.rotate( LocalUpDir() );  }
+		Vector3 getRightDir() const { return mRotation.rotate(Vector3(1, 0, 0)); }
 
 		void    moveRight( float dist ){  mPos += mRotation.rotate( Vector3( dist , 0 , 0 ) );  }
 		void    moveFront( float dist ){  mPos += dist * getViewDir();  }
@@ -321,6 +317,9 @@ namespace GL
 		static bool createDoughnut(Mesh& mesh , float radius , float ringRadius , int rings , int sectors);
 		static bool createPlaneZ( Mesh& mesh , float len, float texFactor );
 		static bool createPlane( Mesh& mesh , Vector3 const& offset , Vector3 const& normal , Vector3 const& dir , float len , float texFactor);
+
+
+		static bool createSimpleSkin(Mesh& mesh, float width, float height, int nx, int ny);
 
 		static bool createLightSphere(Mesh& mesh);
 		static bool createLightCone(Mesh& mesh);

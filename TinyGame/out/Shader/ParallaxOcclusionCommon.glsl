@@ -3,7 +3,7 @@
 
 struct POMParameters
 {
-	sampler2D dispTexture;
+	//sampler2D dispTexture;
 	float4    dispMask;
 	float     dispBias;
 	float     parallaxScale;
@@ -17,21 +17,21 @@ struct POMOutput
 	float  depth;
 };
 
-float GetDispDepth( in POMParameters parameters , float2 inUVs )
+float GetDispDepth( in sampler2D dispTexture , in POMParameters parameters , float2 inUVs )
 {
-	return dot( texture2D(parameters.dispTexture , inUVs ) , parameters.dispMask ) + parameters.dispBias;
+	return dot( texture2D(dispTexture , inUVs ) , parameters.dispMask ) + parameters.dispBias;
 }
 
-POMOutput BumpMapping( in POMParameters parameters , float3 viewVector , float2 inUVs )
+POMOutput BumpMapping(in sampler2D dispTexture, in POMParameters parameters , float3 viewVector , float2 inUVs )
 {
-	float h = GetDispDepth( parameters , inUVs ) * parameters.parallaxScale;
-	POMOutput output;
-	output.UVs = inUVs - viewVector.xy / viewVector.z * h;
-	output.depth = h;
-	return output;
+	float h = GetDispDepth(dispTexture , parameters , inUVs ) * parameters.parallaxScale;
+	POMOutput pomOutput;
+	pomOutput.UVs = inUVs - viewVector.xy / viewVector.z * h;
+	pomOutput.depth = h;
+	return pomOutput;
 }
 
-POMOutput POMapping( in POMParameters parameters, float3 viewVector, float2 inUVs)
+POMOutput POMapping(in sampler2D dispTexture, in POMParameters parameters, float3 viewVector, float2 inUVs)
 {
 	float numLayer = mix( parameters.iteratorParams.x , parameters.iteratorParams.y , abs(dot(viewVector, float3(0, 0, 1))));
 	float stepDepth = 1.0 / numLayer;
@@ -39,32 +39,32 @@ POMOutput POMapping( in POMParameters parameters, float3 viewVector, float2 inUV
 	float2  dt = viewVector.xy * (parameters.parallaxScale / viewVector.z) / numLayer;
 	float curDepth = 0.0;
 	float2  texCur = inUVs;
-	float texDepth = GetDispDepth(parameters, texCur);
+	float texDepth = GetDispDepth(dispTexture,parameters, texCur);
 	while( curDepth < texDepth )
 	{
 		curDepth += stepDepth;
 		texCur -= dt;
-		texDepth = GetDispDepth( parameters , texCur);
+		texDepth = GetDispDepth(dispTexture, parameters , texCur);
 	}
 	//#TODO: binary sreach?
-	POMOutput output;
+	POMOutput pomOutput;
 	if ( curDepth > 0 )
 	{
 		vec2 texPrev = texCur + dt;
-		float texDepthPrev = GetDispDepth(parameters, texPrev);
+		float texDepthPrev = GetDispDepth(dispTexture, parameters, texPrev);
 		float w = (curDepth - texDepth) / (stepDepth + texDepthPrev - texDepth);
-		output.UVs = texCur + w * dt;
-		output.depth = curDepth - w * stepDepth;
+		pomOutput.UVs = texCur + w * dt;
+		pomOutput.depth = curDepth - w * stepDepth;
 	}
 	else
 	{
-		output.UVs = inUVs;
-		output.depth = 0.0;
+		pomOutput.UVs = inUVs;
+		pomOutput.depth = 0.0;
 	}
-	return output;
+	return pomOutput;
 }
 
-float CalcPOMSoftShadowMultiplier(in POMParameters parameters , float3 LightVector, float2 inPosUVs , float inPosDepth )
+float CalcPOMSoftShadowMultiplier(in sampler2D dispTexture, in POMParameters parameters , float3 LightVector, float2 inPosUVs , float inPosDepth )
 {
 	float shadowMultiplier = 1;
 
@@ -81,7 +81,7 @@ float CalcPOMSoftShadowMultiplier(in POMParameters parameters , float3 LightVect
 		// current parameters
 		float curDepth = inPosDepth - layerHeight;
 		float2 curTexcoord = inPosUVs + texStep;
-		float depthTexture = GetDispDepth(parameters , curTexcoord);
+		float depthTexture = GetDispDepth(dispTexture, parameters , curTexcoord);
 		int stepIndex = 1;
 
 		// while point is below depth 0.0 )
@@ -101,7 +101,7 @@ float CalcPOMSoftShadowMultiplier(in POMParameters parameters , float3 LightVect
 			stepIndex += 1;
 			curDepth -= layerHeight;
 			curTexcoord += texStep;
-			depthTexture = GetDispDepth(parameters, curTexcoord);
+			depthTexture = GetDispDepth(dispTexture , parameters, curTexcoord);
 		}
 
 		// Shadowing factor should be 1 if there were no points under the surface
@@ -117,18 +117,18 @@ float CalcPOMSoftShadowMultiplier(in POMParameters parameters , float3 LightVect
 	return shadowMultiplier;
 }
 
-float CalcPOMCorrectDepth( in POMOutput pomOut , mat3 tangentToWorld , float3 viewVectorTangent )
+float CalcPOMCorrectDepth( in POMOutput pomOutput , mat3 tangentToWorld , float3 viewVectorTangent )
 {
 #if 1
 	float3 viewVectorDirTangent = normalize(viewVectorTangent);
-	float3 viewOffset = tangentToWorld * ( viewVectorTangent + viewVectorDirTangent * (pomOut.depth / viewVectorTangent.z) );
+	float3 viewOffset = tangentToWorld * ( viewVectorTangent + viewVectorDirTangent * (pomOutput.depth / viewVectorTangent.z) );
 	float4 clipPos = View.worldToClip * float4(View.worldPos - viewOffset,1.0);
 	return clipPos.z / clipPos.w;
 #else
 	float3 viewDirTangent = View.direction * tangentToWorld;
 	//float sceneDepth = dot(-viewVectorTangent, viewDirTangent);
 	float sceneDepth = length(viewVectorTangent);
-	sceneDepth += sceneDepth * (pomOut.depth / viewVectorTangent.z);
+	sceneDepth += sceneDepth * (pomOutput.depth / viewVectorTangent.z);
 	float4 clipPos = View.viewToClip * float4(0, 0, -sceneDepth, 1.0);
 	return clipPos.z / clipPos.w;
 #endif

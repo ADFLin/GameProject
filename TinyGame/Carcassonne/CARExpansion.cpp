@@ -44,6 +44,7 @@ namespace CAR
 		case EXP_HILLS_AND_SHEEP:
 			gameSetting.addRule(Rule::eShepherdAndSheep);
 			gameSetting.addRule(Rule::eUseHill);
+			gameSetting.addRule(Rule::eUseVineyard);
 			break;
 		case EXP_CASTLES:
 			gameSetting.addRule(Rule::eHaveGermanCastleTile);

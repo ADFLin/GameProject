@@ -4,6 +4,7 @@
 #ifndef MATERIAL_TEXCOORD_NUM
 #define MATERIAL_TEXCOORD_NUM 0
 #endif
+
 #ifndef MATERIAL_BLENDING_MASKED
 #define MATERIAL_BLENDING_MASKED 0
 #endif
@@ -19,7 +20,7 @@
 #define SHADINGMODEL_UNLIT        1
 #define SHADINGMODEL_DEFAULT_LIT  2
 
-#ifdef VERTEX_SHADER
+#if VERTEX_SHADER
 
 struct MaterialInputVS
 {
@@ -46,7 +47,7 @@ MaterialInputVS InitMaterialInputVS()
 
 #endif //VERTEX_SHADER
 
-#ifdef PIXEL_SHADER
+#if PIXEL_SHADER
 
 struct MaterialInputPS
 {
@@ -57,6 +58,7 @@ struct MaterialInputPS
 	float  specular;
 	float  roughness;
 	float  mask;
+	float  opacity;
 	float  depthOffset;
 	uint   shadingModel;
 };
@@ -66,7 +68,7 @@ struct MaterialParametersPS
 	float4 vectexColor;
 	float3 worldPos;
 	float4 screenPos;
-	float3 svPosition;
+	float3 clipPos;
 	float3 worldNormal;
 	mat3   tangentToWorld;
 #if MATERIAL_TEXCOORD_NUM
@@ -84,6 +86,7 @@ MaterialInputPS InitMaterialInputPS()
 	input.specular = 0.0;
 	input.roughness = 0.0;
 	input.mask = 1.0;
+	input.opacity = 0.5;
 	input.shadingModel = SHADINGMODEL_DEFAULT_LIT;
 	input.depthOffset = 0.0;
 	return input;

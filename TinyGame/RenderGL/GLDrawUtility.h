@@ -3,7 +3,7 @@
 
 #include "GLUtility.h"
 
-namespace GL
+namespace RenderGL
 {
 	class DrawUtiltiy
 	{

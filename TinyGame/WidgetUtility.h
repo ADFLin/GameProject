@@ -13,7 +13,7 @@ public:
 class  WidgetUtility
 {
 public:
-	static DevFrame* createDevFrame();
+	static DevFrame* CreateDevFrame( Vec2i const& size = Vec2i(100, 200));
 
 };
 #endif // WidgetUtility_h__

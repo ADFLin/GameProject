@@ -7,38 +7,173 @@
 #include "HashString.h"
 #include "GL/glew.h"
 #include "WinGLPlatform.h"
-
+#include "Asset.h"
+#include "LazyObject.h"
+#include "CommonMarco.h"
 #include "TVector3.h"
-
-#include "Math/Quaternion.h"
-#include "Math/Vector3.h"
-#include "Math/Vector4.h"
-#include "Math/Matrix4.h"
-
 #include "FastDelegate/FastDelegate.h"
 
 #include "GLCommon.h"
 #include "GLUtility.h"
 #include "GLDrawUtility.h"
-#include "CommonMarco.h"
-
-#include <limits>
-#include <memory>
-
-#include "Material.h"
-#include "Scene.h"
-#include "SceneRenderer.h"
 #include "GpuProfiler.h"
 
 
+#include "Material.h"
+#include "Scene.h"
+#include "SceneObject.h"
+#include "SceneRenderer.h"
+
+#include "SceneScript.h"
+
+#include <limits>
+#include <memory>
+#include <typeindex>
+
 namespace RenderGL
 {
-	using namespace GL;
 	float const FLT_DIV_ZERO_EPSILON = 1e-6;
 
 	class MaterialMaster;
 
 	typedef TVector2<int> Vec2i;
+
+	class CameraMove
+	{
+	public:
+		CameraMove()
+		{
+			vel = Vector3::Zero();
+			frameMoveDir = Vector3::Zero();
+			maxSpeed = 50.0f;
+			accMe = 5000.f * maxSpeed;
+			
+		}
+
+		void moveFront() { frameMoveDir += target->getViewDir(); }
+		void moveBack() { frameMoveDir -= target->getViewDir(); }
+		void moveRight() { frameMoveDir += target->getRightDir(); }
+		void moveLeft() { frameMoveDir -= target->getRightDir(); }
+
+		void update(float dt)
+		{
+			float len = frameMoveDir.normalize();
+
+			Vector3 dv = Vector3::Zero();
+			if( len == 0 )
+			{
+				frameMoveDir = -vel;
+				len = frameMoveDir.normalize();
+				if( len != 0 )
+				{
+					dv = Math::Min( len , accMe * dt ) * frameMoveDir;
+				}
+			}
+			else
+			{
+				dv = ( accMe * dt ) * frameMoveDir;
+			}
+
+			Vector3 velPrev = vel;
+			vel += dv;
+
+			float speedSqr = vel.length();
+
+			if( speedSqr > maxSpeed * maxSpeed )
+			{
+				vel = ( sqrt( speedSqr ) / maxSpeed ) * vel;
+				dv = vel - velPrev;
+			}
+
+			Vector3 offset = vel * dt + dv * (0.5 * dt);
+			target->setPos(target->getPos() + offset);
+			frameMoveDir = Vector3::Zero();
+		}
+
+		float maxSpeed;
+		float accMe;
+
+		Vector3 frameMoveDir;
+		Vector3 vel;
+		//Vector3 acc;
+		Camera* target;
+	};
+
+	//
+
+
+
+	class MaterialAsset : public AssetBase
+	{
+	public:
+		TLazyObjectGuid< Material > materialId;
+		std::shared_ptr< MaterialMaster > material;
+		bool load(char const* file)
+		{
+			material.reset( new MaterialMaster );
+			if( !material->loadFile(file) )
+				return false;
+			materialId = material.get();
+			return true;
+		}
+	protected:
+		virtual void getDependentFilePaths(std::vector<std::wstring>& paths) override
+		{
+			std::string cPath = MaterialShaderMap::GetFilePath( material->mName.c_str() );
+			paths.push_back(CharToWChar(cPath.c_str()));
+		}
+		virtual void postFileModify(FileAction action) override
+		{
+			if ( action == FileAction::Modify )
+				material->reload();
+		}
+	};
+
+	class SceneAsset : public AssetBase
+	{
+	public:
+		bool load(char const* name)
+		{
+			mName = name;
+			return loadInternal();
+		}
+
+		static IAssetProvider* sAssetProvider;
+		Scene  scene;
+
+		std::function< void(Scene&) > setupDelegate;
+	protected:
+		virtual void getDependentFilePaths(std::vector<std::wstring>& paths) override
+		{
+			auto script = ISceneScript::Create();
+			std::string cPath = script->getFilePath( mName.c_str() );
+			paths.push_back(CharToWChar(cPath.c_str()));
+			script->release();
+		}
+		virtual void postFileModify(FileAction action) override
+		{
+			if( action == FileAction::Modify )
+			{
+				scene.removeAll();
+				loadInternal();
+			}
+		}
+		bool loadInternal()
+		{
+			if( setupDelegate )
+			{
+				setupDelegate(scene);
+			}
+			auto script = ISceneScript::Create();
+			bool result = script->setup(scene, *sAssetProvider, mName.c_str());
+			script->release();
+			return result;
+		}
+		
+
+		std::string mName;
+		
+	};
 
 	class AABBox
 	{
@@ -111,6 +246,32 @@ namespace RenderGL
 		GLsync loadingSync;
 	};
 
+	//#MOVE
+	inline float RandFloat()
+	{
+		return float(::rand()) / RAND_MAX;
+	}
+	inline float RandFloat(float min, float max)
+	{
+		return min + (max - min) * float(::rand()) / RAND_MAX;
+	}
+	inline Vector3 RandVector(Vector3 const& min, Vector3 const& max)
+	{
+		return Vector3(RandFloat(min.x, max.x), RandFloat(min.y, max.y), RandFloat(min.z, max.z));
+	}
+	inline Vector3 RandVector()
+	{
+		return Vector3(RandFloat(), RandFloat(), RandFloat());
+	}
+
+	inline Vector3 RandDirection()
+	{
+		float s1, c1;
+		Math::SinCos(Math::PI * RandFloat(), s1, c1);
+		float s2, c2;
+		Math::SinCos(2 * Math::PI * RandFloat(), s2, c2);
+		return Vector3(s1 * c2, s1 * s2, c1);
+	}
 
 	inline bool isInside( Vector3 const& min , Vector3 const& max , Vector3 const& p )
 	{
@@ -207,27 +368,31 @@ namespace RenderGL
 		TileNode*  child[4];
 	};
 
-	struct CycleTrack
+
+	class IValueModifier
 	{
-		Vector3 planeNormal;
-		Vector3 center;
-		float   radius;
-		float   period;
+	public:
+		virtual bool isHook(void* ptr) { return false; }
+		virtual void update(float time) = 0;
+	};
 
-		Vector3 getValue(float time)
+	template< class TrackType >
+	class TVectorTrackModifier : public IValueModifier
+	{
+	public:
+		TVectorTrackModifier(Vector3& value)
+			:mValue(value)
 		{
-			float theta = 2 * Math::PI * (time / period);
-			Quaternion q;
-			q.setRotation(planeNormal, theta);
 
-			Vector3 p;
-			if( planeNormal.z < planeNormal.y )
-				p = Vector3(planeNormal.y, -planeNormal.x, 0);
-			else
-				p = Vector3( 0 , -planeNormal.z, planeNormal.y);
-			p.normalize();
-			return center + radius * q.rotate(p);
 		}
+		virtual void update(float time)
+		{
+			mValue = track.getValue(time);
+		}
+		virtual bool isHook(void* ptr) { return &mValue == ptr; }
+		TrackType track;
+	private:
+		Vector3&  mValue;
 	};
 
 	class ViewFrustum
@@ -250,101 +415,47 @@ namespace RenderGL
 	};
 
 
-	typedef std::shared_ptr< Material > MaterialPtr;
-	class StaticMesh : public Mesh
+
+
+	class DualQuat
 	{
 	public:
-		void postLoad()
+		DualQuat( Quaternion const& InQr , Quaternion const& InQd )
+			:Qr(InQr), Qd(InQd){ }
+
+		DualQuat(Quaternion const& InQr, Vector3 const& InOrg )
+			:Qr(InQr), Qd(0.5 * InOrg.x , 0.5 *InOrg.y , 0.5 *InOrg.z , 0 )
 		{
-
-
-
+		}
+		DualQuat(Vector3 const& InOrg)
+			:Qr(Quaternion::Identity()), Qd(0.5 * InOrg.x, 0.5 *InOrg.y, 0.5 *InOrg.z, 0)
+		{
 		}
 
-		void render(Matrix4 const& worldTrans , RenderParam& param , Material* material)
-		{
-			param.setMaterial(material);
-			param.setWorld(worldTrans);
+		Quaternion Qr;
+		Quaternion Qd;
 
-			{
-				//GPU_PROFILE_VA("MeshDraw %s", name.c_str());
-				draw();
-			}
-		}
-		void render(Matrix4 const& worldTrans , RenderParam& param)
+		DualQuat operator + (DualQuat const& rhs)
 		{
-			glPushMatrix();
-			for( int i = 0; i < mSections.size(); ++i )
-			{
-				//if ( i != 5  )
-					//continue;
-				Material* material = getMaterial(i);
-				param.setMaterial(material);
-				param.setWorld(worldTrans);
-
-				{
-					char const* matName = material ? material->getMaster()->mName.c_str() : "DefalutMaterial";
-					//GPU_PROFILE_VA( "MeshDraw %s %s %d" , name.c_str() , matName , mSections[i].num);
-					this->drawSection(i);
-				}
-			}
-			glPopMatrix();
+			return DualQuat(Qr + rhs.Qr, Qd + rhs.Qd);
 		}
 
-		void setMaterial(int idx, MaterialPtr material)
+		DualQuat operator - (DualQuat const& rhs)
 		{
-			if( idx >= mMaterials.size() )
-				mMaterials.resize(idx + 1);
-			mMaterials[idx] = material;
+			return DualQuat(Qr - rhs.Qr, Qd - rhs.Qd);
 		}
-		Material* getMaterial(int idx)
+
+		friend DualQuat operator * (float s, DualQuat const& DQ)
 		{
-			if( idx < mMaterials.size() )
-				return mMaterials[idx].get();
-			return nullptr;
+			return DualQuat(s * DQ.Qr, s * DQ.Qd);
 		}
-		std::vector< MaterialPtr > mMaterials;
-		std::string name;
+
+		DualQuat operator * (DualQuat const& rhs)
+		{
+			return DualQuat(Qr * rhs.Qr, Qr * rhs.Qd + Qd * rhs.Qr);
+		}
 	};
 
-	struct Transform
-	{
-		Vector3    scale;
-		Vector3    translate;
-		Quaternion rotation;
-	};
-
-	class StaticMeshObject
-	{
-		StaticMesh* mesh;
-		Transform   localTransform;
-	};
-
-	struct MeshBatchElement
-	{
-		ShaderProgram* Shader;
-		Mesh*    mesh;
-		Matrix4  world;
-		int      idxSection;
-	};
-
-	class Scene
-	{
-	public:
-		void render( ViewInfo& view , RenderParam& param )
-		{
-			for( RenderUnitVec::iterator iter = mUnits.begin() , itEnd = mUnits.end();
-				 iter != itEnd ; ++iter )
-			{
-				MeshBatchElement& unit = *iter;
-				param.setWorld( unit.world );
-				unit.mesh->draw();
-			}
-		}
-
-		typedef std::vector< MeshBatchElement > RenderUnitVec;
-		RenderUnitVec mUnits;
-	};
 
 	class EnvTech
 	{
@@ -355,15 +466,16 @@ namespace RenderGL
 			if( !mBuffer.create() )
 				return false;
 
-			if( !mTexEnv.create(Texture::eFloatRGBA, MapSize, MapSize) )
+			mTexEnv = new RHITextureCube;
+			if( !mTexEnv->create(Texture::eFloatRGBA, MapSize, MapSize) )
 				return false;
 
-			DepthRenderBuffer depthBuffer;
-			if( !depthBuffer.create(MapSize, MapSize, Texture::eDepth24) )
+			RHIDepthRenderBufferRef depthBuffer = new RHIDepthRenderBuffer;
+			if( !depthBuffer->create(MapSize, MapSize, Texture::eDepth24) )
 				return false;
 
-			mBuffer.addTexture(mTexEnv, Texture::eFaceX);
-			mBuffer.setDepth(depthBuffer, true);
+			mBuffer.addTexture(*mTexEnv, Texture::eFaceX);
+			mBuffer.setDepth(*depthBuffer);
 			return true;
 
 		}
@@ -371,18 +483,18 @@ namespace RenderGL
 
 		FrameBuffer mBuffer;
 
-		RHITextureCube mTexSky;
-		RHITextureCube mTexEnv;
-
-
+		RHITextureCubeRef mTexSky;
+		RHITextureCubeRef mTexEnv;
 	};
-	class WaterTech : TechBase
+
+
+	class WaterTech
 	{
 	public:
 		static int const MapSize = 512;
 		bool init();
 
-		void render(ViewInfo& view, SceneRender& scene)
+		void render(ViewInfo& view, SceneInterface& scene)
 		{
 			normalizePlane(waterPlane);
 			int vp[4];
@@ -416,7 +528,9 @@ namespace RenderGL
 
 
 	class SampleStage : public StageBase
-		              , public SceneRender
+		              , public SceneInterface
+		              , public IAssetProvider
+		              , public SceneListener
 	{
 		typedef StageBase BaseClass;
 		
@@ -428,6 +542,7 @@ namespace RenderGL
 		virtual void onInitFail();
 		virtual void onEnd();
 
+		void testCode();
 		bool loadAssetResouse();
 		void setupScene();
 
@@ -448,10 +563,18 @@ namespace RenderGL
 		void renderTest2( ViewInfo& view );
 		void renderTest3( ViewInfo& view );
 		void renderTest4( ViewInfo& view );
+		void renderTest5( ViewInfo& view );
+		void renderTest6( ViewInfo& view );
+		void renderTest7( ViewInfo& view )
+		{
 
-		void showLight( ViewInfo& view );
+		}
 
-		void renderScene( RenderParam& param );
+		void renderScene(RenderContext& param);
+
+		void showLight(ViewInfo& view);
+		
+		void buildScene1(Scene& scene);
 
 		void restart()
 		{
@@ -469,6 +592,12 @@ namespace RenderGL
 		bool onMouse( MouseMsg const& msg );
 
 		bool onKey( unsigned key , bool isDown );
+		
+		enum
+		{
+			UI_SAMPLE_TEST = BaseClass::NEXT_UI_ID,
+		};
+		bool onWidgetEvent(int event, int id, GWidget* ui);
 
 		void reloadMaterials();
 
@@ -480,10 +609,9 @@ namespace RenderGL
 
 		void calcViewRay( float x , float y );
 
-
-		virtual void render(ViewInfo& view, RenderParam& param) override;
-
-
+		virtual void render( RenderContext& context) override;
+		virtual void renderTranslucent( RenderContext& context) override;
+		
 		template< class Fun >
 		void visitLights( Fun& fun )
 		{
@@ -492,7 +620,18 @@ namespace RenderGL
 				LightInfo const& light = mLights[i];
 				fun( i , light);
 			}
+			for( int i = 0; i < getScene().lights.size(); ++i )
+			{
+				LightInfo const& light = getScene().lights[i]->info;
+				fun(i, light);
+			}
 		}
+
+
+		virtual void onRemoveLight(SceneLight* light) override;
+
+
+		virtual void onRemoveObject(SceneObject* object) override;
 
 	protected:
 		GLGpuSync   mGpuSync;
@@ -515,23 +654,83 @@ namespace RenderGL
 		ShaderProgram mEffectSphereSM;
 		ShaderProgram mEffectSimple;
 
-		Mesh   mMesh;
-		Mesh   mSphereMesh;
-		Mesh   mSphereMesh2;
-		Mesh   mSpherePlane;
-		Mesh   mBoxMesh;
-		Mesh   mPlane;
-		Mesh   mDoughnutMesh;
+		ShaderProgram mProgSimpleSprite;
+
+		AssetManager  mAssetManager;
+
+		struct SimpleMeshId
+		{
+			enum
+			{
+				Tile,
+				Sphere,
+				Sphere2,
+				SpherePlane,
+				Box,
+				Plane,
+				Doughnut,
+				SkyBox ,
+				SimpleSkin ,
+				NumSimpleMesh,
+			};
+		};
+
+
+		Mesh   mSimpleMeshs[ SimpleMeshId::NumSimpleMesh ];
+
 		Mesh   mFrustumMesh;
+		Mesh   mSpritePosMesh;
+		RHITextureCubeRef mTexSky;
+
+
+		std::vector< std::unique_ptr< IValueModifier > > mValueModifiers;
+
+		virtual CycleTrack* addCycleTrack(Vector3& value) final
+		{
+			auto modifier = std::make_unique< TVectorTrackModifier< CycleTrack > >(value);
+			CycleTrack* result = &modifier->track;
+			mValueModifiers.push_back(std::move(modifier));
+			return result;
+		}
+		virtual VectorCurveTrack* addCurveTrack(Vector3& value) final 
+		{ 
+			auto modifier = std::make_unique< TVectorTrackModifier< VectorCurveTrack > >(value);
+			VectorCurveTrack* result = &modifier->track;
+			mValueModifiers.push_back(std::move(modifier));
+			return result;
+		}
+
 
 		int  mNumLightDraw = 4;
 		std::vector< LightInfo > mLights;
 		CycleTrack mTracks[4];
 
 		Vector3 mPos;
-		GL::Camera  mCamStorage[2];
-		GL::Camera* mCamera;
+		RenderGL::Camera  mCamStorage[2];
+		CameraMove  mCameraMove;
 		ViewFrustum mViewFrustum;
+
+		
+		typedef std::unique_ptr< SceneAsset > SceneAssetPtr;
+		std::vector< SceneAssetPtr > mSceneAssets;
+		Scene& getScene(int idx = 0) { return mSceneAssets[idx]->scene; }
+		Scene& addScene(char const* name)
+		{
+			auto sceneAsset = std::make_unique< SceneAsset >();
+			sceneAsset->scene.mListener = this;
+			sceneAsset->setupDelegate = [this](Scene& scene)
+			{
+				auto debugObject = new DebugGeometryObject;
+				scene.addObject(debugObject);
+				mDebugGeometryObject = debugObject;
+			};
+			sceneAsset->load(name);
+			mSceneAssets.push_back(std::move(sceneAsset));
+
+			mAssetManager.registerAsset(mSceneAssets.back().get());
+
+			return mSceneAssets.back()->scene;
+		}
 		Scene mScene;
 
 		bool bUseFrustumTest = true;
@@ -542,28 +741,35 @@ namespace RenderGL
 		Vector3 mIntersectPos;
 		Vector3 rayStart , rayEnd;
 
+		FrameBuffer mLayerFrameBuffer;
 
-		std::vector< MaterialMaster > mMaterials;
+		std::vector< MaterialAsset > mMaterialAssets;
 		typedef std::shared_ptr< RHITexture2D > Texture2DPtr;
-		std::vector< Texture2D > mTextures;
-		typedef std::shared_ptr< StaticMesh > StaticMeshPtr;
-		std::vector< StaticMeshPtr > mMeshs;
+		std::vector< Texture2D > mTextures; 
+		std::vector< TLazyObjectGuid< StaticMesh > > mMeshs;
 
-		Material*  getMaterial(int idx)
+		virtual TLazyObjectGuid< Material >&  getMaterial(int idx) final
 		{ 
-			return &mMaterials[idx]; 
+			return mMaterialAssets[idx].materialId;
 		}
-		Texture2D& getTexture(int idx) 
+		virtual Texture2D& getTexture(int idx) final
 		{ 
 			return mTextures[idx];
 		}
-		StaticMesh&  getMesh(int idx) 
+		virtual TLazyObjectGuid< StaticMesh >& getMesh(int idx)  final
 		{ 
-			if( mMeshs[idx] )
-				return *mMeshs[idx];
-			return mEmptyMesh;
+			return mMeshs[idx];
+		}
+		virtual Mesh& getSimpleMesh(int idx) final
+		{
+			return mSimpleMeshs[idx];
+		}
+		virtual DebugGeometryObject* getDebugGeometryObject() final
+		{ 
+			return mDebugGeometryObject;
 		}
 
+		DebugGeometryObject* mDebugGeometryObject = nullptr;
 		RHITexture2D* RHICreateTexture2D()
 		{
 			return new RHITexture2D;
@@ -571,19 +777,18 @@ namespace RenderGL
 
 		bool  mLineMode;
 
-		SceneRenderTargets mSceneRenderTargets;
+		SceneRenderTargets   mSceneRenderTargets;
+		
+		DefferredShadingTech mDefferredShadingTech;
+		ShadowDepthTech      mShadowTech;
+		OITTech              mOITTech;
 
-		ShadowDepthTech mShadowTech;
-		DefferredLightingTech mDefferredLightingTech;
-
-		PostProcessSSAO  mSSAO;
+		PostProcessSSAO      mSSAO;
 
 		bool   mbShowBuffer;
 
 		int    renderLightCount = 0;
 		
-		Mesh   mSkyMesh;
-		RHITextureCubeRef mTexSky;
 
 		StaticMesh  mEmptyMesh;
 		
@@ -593,18 +798,17 @@ namespace RenderGL
 		bool   mPause;
 		float  mTime;
 		float  mRealTime;
-		int    mIdxChioce;
 
-
-
-
+		struct SampleTest
+		{
+			char const* name;
+			std::function< void (ViewInfo&) > renderFun;
+		};
+		std::vector< SampleTest > mSampleTests;
+		int    mIdxTestChioce;
 		bool bInitialized = false;
 
 	};
-
-
-
-
 
 }//namespace RenderGL
 

@@ -1,10 +1,11 @@
 #include "Material.h"
 
 #include "ShaderCompiler.h"
-
+#include "VertexFactory.h"
 #include "FileSystem.h"
 
 #include "stb/stb_image.h"
+
 
 namespace RenderGL
 {
@@ -35,30 +36,7 @@ namespace RenderGL
 		return true;
 	}
 
-	bool MaterialMaster::loadInternal()
-	{
-		std::string path("Shader/Material/");
-		path += mName;
-		path += ".glsl";
 
-		std::vector< char > materialCode;
-		if( !FileUtility::LoadToBuffer(path.c_str(), materialCode) )
-			return false;
-
-		if( !ShaderManager::getInstance().loadFile( 
-			mShader ,
-			"Shader/DeferredBasePass",
-			SHADER_ENTRY(BassPassVS), SHADER_ENTRY(BasePassPS), &materialCode[0] ) )
-			return false;
-
-		if( !ShaderManager::getInstance().loadFile(
-			mShadowShader ,
-			"Shader/ShadowDepthRender",
-			SHADER_ENTRY(MainVS), SHADER_ENTRY(MainPS), &materialCode[0] ) )
-			return false;
-
-		return true;
-	}
 
 	void Material::bindShaderParamInternal(ShaderProgram& shader, uint32 skipMask)
 	{
@@ -178,8 +156,103 @@ namespace RenderGL
 	}
 
 
+	MaterialShaderMap::~MaterialShaderMap()
+	{
+		for ( auto& pair : mShaderCacheMap )
+		{
+			delete pair.second;
+		}
+	}
 
+	RenderGL::ShaderProgram* MaterialShaderMap::getShader(RenderTechiqueUsage shaderUsage, VertexFactory* vertexFactory)
+	{
+		VertexFarcoryType* VFType = VertexFarcoryType::DefaultType;
+		if( vertexFactory )
+		{
+			VFType = &vertexFactory->getType();
+		}
 
+		auto itFind = mShaderCacheMap.find(VFType);
+		if( itFind == mShaderCacheMap.end() )
+			return nullptr;
+
+		return &itFind->second->shaders[(int)shaderUsage];
+	}
+
+	void MaterialShaderMap::releaseRHI()
+	{
+		for( auto& pair : mShaderCacheMap )
+		{
+			ShaderCache* shaderCache = pair.second;
+			for( int i = 0; i < (int)RenderTechiqueUsage::Count; ++i )
+			{
+				shaderCache->shaders[i].release();
+			}
+		}
+	}
+
+	std::string MaterialShaderMap::GetFilePath(char const* name)
+	{
+		std::string path("Shader/Material/");
+		path += name;
+		path += ".glsl";
+		return path;
+	}
+
+	bool MaterialShaderMap::load(char const* name)
+	{
+		std::string path = GetFilePath(name);
+
+		std::vector< char > materialCode;
+		if( !FileUtility::LoadToBuffer(path.c_str(), materialCode) )
+			return false;
+
+		for( auto VFType : VertexFarcoryType::TypeList )
+		{
+			ShaderCache* shaderCache = new ShaderCache;
+
+			ShaderCompileOption option;
+			VFType->GetCompileOption(option);
+
+			if( !ShaderManager::getInstance().loadFile(
+				shaderCache->shaders[(int)RenderTechiqueUsage::BasePass],
+				"Shader/DeferredBasePass",
+				SHADER_ENTRY(BassPassVS), SHADER_ENTRY(BasePassPS),
+				option , &materialCode[0]) )
+				return false;
+
+			if( !ShaderManager::getInstance().loadFile(
+				shaderCache->shaders[(int)RenderTechiqueUsage::Shadow],
+				"Shader/ShadowDepthRender",
+				SHADER_ENTRY(MainVS), SHADER_ENTRY(MainPS), 
+				option , &materialCode[0]) )
+				return false;
+
+#if 1
+			option.version = 430;
+			option.addDefine(SHADER_PARAM(OIT_USE_MATERIAL) , true);
+			option.addDefine(SHADER_PARAM(OIT_STORAGE_SIZE), OIT_StorageSize);
+
+#if 0
+			FixString< 512 > define;
+			define.format(
+				"#version 430 compatibility\n"
+				"#define OIT_USE_MATERIAL 1\n"
+				"#define OIT_STORAGE_SIZE %d\n", OIT_StorageSize);
+#endif
+			if( !ShaderManager::getInstance().loadFile(
+				shaderCache->shaders[(int)RenderTechiqueUsage::OIT],
+				"Shader/OITRender",
+				SHADER_ENTRY(BassPassVS), SHADER_ENTRY(BassPassPS),
+				option, &materialCode[0]) )
+				return false;
+#endif
+
+			mShaderCacheMap.insert({ VFType , shaderCache });
+		}
+
+		return true;
+	}
 
 }//namespace RenderGL
 

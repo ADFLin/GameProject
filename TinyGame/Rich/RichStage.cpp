@@ -73,7 +73,7 @@ namespace Rich
 		player->setRole( 1 );
 
 
-		DevFrame* frame = WidgetUtility::createDevFrame();
+		DevFrame* frame = WidgetUtility::CreateDevFrame();
 		frame->addButton( UI_WORLD_EDITOR , "World Edit" );
 		restart();
 

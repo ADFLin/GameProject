@@ -17,7 +17,7 @@ uniform Tile   tile;
 
 varying float  factor;
 
-#ifdef VERTEX_SHADER
+#if VERTEX_SHADER
 
 void MainVS() 
 {
@@ -34,7 +34,7 @@ void MainVS()
 
 #endif //VERTEX_SHADER
 
-#ifdef PIXEL_SHADER
+#if PIXEL_SHADER
 
 void MainPS() 
 {

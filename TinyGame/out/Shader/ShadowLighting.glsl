@@ -10,12 +10,12 @@ uniform mat4 matLightView;
 
 uniform float SMSize = 512;
 
-struct VertexFactoryParameters
+struct PrimitiveParameters
 {
 	mat4 localToWorld;
 };
 
-uniform VertexFactoryParameters VertexFactoryParams = VertexFactoryParameters( 
+uniform PrimitiveParameters Primitive = PrimitiveParameters( 
 	mat4( 1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1 ) );
 
 #if USE_POINT_LIGHT
@@ -30,12 +30,12 @@ varying vec3 lightOffset;
 varying vec3 normal;
 varying vec3 color;
 
-#ifdef VERTEX_SHADER
+#if VERTEX_SHADER
 
 void MainVS() 
 {
-	vec3 pos = vec3( VertexFactoryParams.localToWorld * gl_Vertex );
-	normal = mat3( VertexFactoryParams.localToWorld ) * gl_Normal;
+	vec3 pos = vec3( Primitive.localToWorld * gl_Vertex );
+	normal = mat3( Primitive.localToWorld ) * gl_Normal;
 	lightViewOffset = vec3( matLightView * vec4( pos , 1 ) );
 	lightOffset = GLight.worldPosAndRadius.xyz - pos;
 	viewOffset = View.worldPos - pos;
@@ -45,7 +45,7 @@ void MainVS()
 
 #endif //VERTEX_SHADER
 
-#ifdef PIXEL_SHADER
+#if PIXEL_SHADER
 
 //layout(depth_unchanged) 
 out float gl_FragDepth;

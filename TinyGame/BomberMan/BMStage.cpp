@@ -136,7 +136,7 @@ namespace BomberMan
 		mScene.setViewPos( Vec2i( 0 , 0 ) );
 		::Global::GUI().cleanupWidget();
 
-		GFrame* frame = WidgetUtility::createDevFrame();
+		GFrame* frame = WidgetUtility::CreateDevFrame();
 	}
 
 	void LevelStage::tick()

@@ -1,9 +1,8 @@
 #include "GLCommon.h"
 
 #include "GpuProfiler.h"
-
-
 #include "CommonMarco.h"
+#include "IntegerType.h"
 #include "FileSystem.h"
 
 #include "stb/stb_image.h"
@@ -11,7 +10,7 @@
 #include <fstream>
 #include <sstream>
 
-namespace GL
+namespace RenderGL
 {
 	static bool checkGLError()
 	{
@@ -57,7 +56,7 @@ namespace GL
 			{
 			case GL_VERTEX_SHADER:   return eVertex;
 			case GL_FRAGMENT_SHADER: return ePixel;
-			case GL_GEOMETRY_SHADER: return eGemotery;
+			case GL_GEOMETRY_SHADER: return eGeometry;
 			}
 		}
 		return eUnknown;
@@ -90,7 +89,8 @@ namespace GL
 		{
 		case eVertex:   mHandle = glCreateShader( GL_VERTEX_SHADER ); break;
 		case ePixel:    mHandle = glCreateShader( GL_FRAGMENT_SHADER ); break;
-		case eGemotery: mHandle = glCreateShader( GL_GEOMETRY_SHADER ); break;
+		case eGeometry: mHandle = glCreateShader( GL_GEOMETRY_SHADER ); break;
+		case eCompute:  mHandle = glCreateShader(GL_COMPUTE_SHADER); break;
 		}
 		return mHandle != 0;
 	}
@@ -155,6 +155,18 @@ namespace GL
 		if ( mNeedLink || bForce )
 		{
 			glLinkProgram( mHandle );
+
+			GLint value;
+			glGetProgramiv(mHandle, GL_LINK_STATUS, &value);
+			if( value != GL_TRUE )
+			{
+				GLchar buffer[40960];
+				GLsizei size;
+				glGetProgramInfoLog(mHandle, ARRAY_SIZE(buffer), &size, buffer);
+				//::Msg("Can't Link Program : %s", buffer);
+				int i = 1;
+			}
+
 			glValidateProgram(mHandle);
 			checkProgramStatus();
 			mNeedLink = false;
@@ -167,7 +179,7 @@ namespace GL
 		glGetProgramiv(mHandle, GL_LINK_STATUS, &value);
 		if( value != GL_TRUE )
 		{
-			GLchar buffer[4096];
+			GLchar buffer[40960];
 			GLsizei size;
 			glGetProgramInfoLog(mHandle, ARRAY_SIZE(buffer), &size, buffer);
 			//::Msg("Can't Link Program : %s", buffer);
@@ -177,7 +189,7 @@ namespace GL
 		glGetProgramiv(mHandle, GL_VALIDATE_STATUS, &value);
 		if( value != GL_TRUE )
 		{
-			GLchar buffer[4096];
+			GLchar buffer[40960];
 			GLsizei size;
 			glGetProgramInfoLog(mHandle, ARRAY_SIZE(buffer), &size, buffer);
 			//::Msg("Can't Link Program : %s", buffer);
@@ -189,7 +201,7 @@ namespace GL
 	{
 		updateShader();
 		glUseProgram( mHandle );
-		mIdxTextureAutoBind = IdxTextureAutoBindStart;
+		resetTextureAutoBindIndex();
 	}
 
 	void ShaderProgram::unbind()
@@ -199,33 +211,30 @@ namespace GL
 
 	Mesh::Mesh()
 	{
-		mType = eTriangleList;
+		mType = PrimitiveType::eTriangleList;
 		mVAO = 0;
 	}
 
 	Mesh::~Mesh()
 	{
-
+		if( mVAO )
+		{
+			glDeleteVertexArrays(1, &mVAO);
+		}
 	}
 
-	bool Mesh::create(void* pVertex , int nV , void* pIdx , int nIndices , bool bIntIndex)
+	bool Mesh::createBuffer(void* pVertex , int nV , void* pIdx , int nIndices , bool bIntIndex)
 	{
-		//glGenVertexArrays(1, &mVAO);
-		//glBindVertexArray(mVAO);
-		mVertexBuffer = new VertexBufferRHI;
+		mVertexBuffer = new RHIVertexBuffer;
 		if( !mVertexBuffer->create(mDecl.getVertexSize() , nV , pVertex ) )
 			return false;
 
 		if ( nIndices )
 		{
-			mIndexBuffer = new IndexBufferRHI;
+			mIndexBuffer = new RHIIndexBuffer;
 			if( !mIndexBuffer->create(nIndices, bIntIndex, pIdx) )
 				return false;
 		}
-		
-		//glBindVertexArray(0);
-
-		mDecl.unbind();
 		return true;
 	}
 
@@ -234,69 +243,84 @@ namespace GL
 		if( mVertexBuffer == nullptr )
 			return;
 
-		//glBindVertexArray(mVAO);
-		//if( bUseVAO )
-			//mDecl.bindVAO();
-
-		GL_BIND_LOCK_OBJECT(mVertexBuffer);
-		
-		if( !bUseVAO )
-			mDecl.bind();
-
-		if ( mIndexBuffer )
-		{
-			GL_BIND_LOCK_OBJECT(mIndexBuffer);
-			glDrawElements( convert( mType ) , mIndexBuffer->mNumIndices , mIndexBuffer->mbIntIndex ? GL_UNSIGNED_INT : GL_UNSIGNED_SHORT , (void*)0 );
-		}
-		else
-		{
-			glDrawArrays( convert( mType ) , 0 , mVertexBuffer->mNumVertices );
-		}
-		checkGLError();
-
-		//if( bUseVAO )
-			//mDecl.unbindVAO();
-		//else
-			mDecl.unbind();
-		//glBindVertexArray(0);
+		drawInternal(0, (mIndexBuffer) ? mIndexBuffer->mNumIndices : mVertexBuffer->mNumVertices, bUseVAO);
 	}
 
 
-	void Mesh::drawSection(int idx)
-	{
-		Section& section = mSections[idx];
-		drawInternal( section.start , section.num);
-	}
-
-	void Mesh::drawInternal(int idxStart, int num)
+	void Mesh::drawSection( int idx , bool bUseVAO )
 	{
 		if( mVertexBuffer == nullptr )
 			return;
+		Section& section = mSections[idx];
+		drawInternal( section.start , section.num , bUseVAO );
+	}
 
-		GL_BIND_LOCK_OBJECT(mVertexBuffer);
+	void Mesh::drawInternal(int idxStart, int num, bool bUseVAO)
+	{
+		assert(mVertexBuffer != nullptr);
 
-		mDecl.bind();
-
+		if( bUseVAO )
 		{
+			bindVAO();
+
 			if( mIndexBuffer )
 			{
-				GL_BIND_LOCK_OBJECT(mIndexBuffer);
-				glDrawElements(convert(mType), num, mIndexBuffer->mbIntIndex ? GL_UNSIGNED_INT : GL_UNSIGNED_SHORT, (void*)idxStart);
+				glDrawElements(GLConvert::To(mType), num, mIndexBuffer->mbIntIndex ? GL_UNSIGNED_INT : GL_UNSIGNED_SHORT, (void*)idxStart);
 			}
 			else
 			{
-				glDrawArrays(convert(mType), idxStart, num);
+				glDrawArrays(GLConvert::To(mType), idxStart, num);
 			}
+
+			checkGLError();
+
+			unbindVAO();
 		}
-		checkGLError();
-		mDecl.unbind();
-		
+		else
+		{
+			mVertexBuffer->bind();
+			mDecl.bind();
+
+			if( mIndexBuffer )
+			{
+				GL_BIND_LOCK_OBJECT(mIndexBuffer);
+				glDrawElements(GLConvert::To(mType), num, mIndexBuffer->mbIntIndex ? GL_UNSIGNED_INT : GL_UNSIGNED_SHORT, (void*)idxStart);
+			}
+			else
+			{
+				glDrawArrays(GLConvert::To(mType), idxStart, num);
+			}
+
+			checkGLError();
+
+			mDecl.unbind();
+			mVertexBuffer->unbind();
+		}
+	}
+
+	void Mesh::bindVAO()
+	{
+		if( mVAO == 0 )
+		{
+			glGenVertexArrays(1, &mVAO);
+			glBindVertexArray(mVAO);
+
+			mVertexBuffer->bind();
+			mDecl.setupVAO();
+			if( mIndexBuffer )
+				mIndexBuffer->bind();
+			glBindVertexArray(0);
+			mVertexBuffer->unbind();
+			if( mIndexBuffer )
+				mIndexBuffer->unbind();
+			mDecl.setupVAOEnd();
+		}
+		glBindVertexArray(mVAO);
 	}
 
 	VertexDecl::VertexDecl()
 	{
 		mVertexSize = 0;
-		mVAO = 0;
 	}
 
 	void VertexDecl::bind()
@@ -375,71 +399,65 @@ namespace GL
 			glClientActiveTexture( GL_TEXTURE0 );
 	}
 
-	enum
-	{
-		ATTRIBUTE0,
-		ATTRIBUTE1,
-		ATTRIBUTE2,
-		ATTRIBUTE3,
-		ATTRIBUTE4,
-		ATTRIBUTE5,
-		ATTRIBUTE6,
-		ATTRIBUTE7,
-		ATTRIBUTE8,
-		ATTRIBUTE9,
-		ATTRIBUTE10,
-		ATTRIBUTE11,
-		ATTRIBUTE12,
-		ATTRIBUTE13,
-		ATTRIBUTE14,
-		ATTRIBUTE15,
-
-		ATTRIBUTE_POSITION = ATTRIBUTE0,
-		ATTRIBUTE_COLOR = ATTRIBUTE1,
-		ATTRIBUTE_NORMAL = ATTRIBUTE2,
-		ATTRIBUTE_TANGENT = ATTRIBUTE3,
-		ATTRIBUTE_TEXCOORD = ATTRIBUTE4,
-	};
-	
 	void VertexDecl::setupVAO()
 	{
 		for( Info& info : mInfoVec )
 		{
-			switch( info.semantic )
-			{
-			case Vertex::ePosition:
-				glEnableVertexAttribArray(ATTRIBUTE_POSITION);
-				glVertexAttribPointer(ATTRIBUTE_POSITION, getElementSize(info.format), getFormatType(info.format), GL_FALSE, mVertexSize, (void*)info.offset);
-				break;
-			case Vertex::eNormal:
-				glEnableVertexAttribArray(ATTRIBUTE_NORMAL);
-				glVertexAttribPointer(ATTRIBUTE_NORMAL, getElementSize(info.format), getFormatType(info.format), GL_FALSE, mVertexSize, (void*)info.offset);
-				break;
-			case Vertex::eTangent:
-				glEnableVertexAttribArray(ATTRIBUTE_TANGENT);
-				glVertexAttribPointer(ATTRIBUTE_TANGENT, getElementSize(info.format), getFormatType(info.format), GL_FALSE, mVertexSize, (void*)info.offset);
-				break;
-			case Vertex::eColor:
-				glEnableVertexAttribArray(ATTRIBUTE_COLOR);
-				glVertexAttribPointer(ATTRIBUTE_COLOR, getElementSize(info.format), getFormatType(info.format), GL_FALSE, mVertexSize, (void*)info.offset);
-				break;
-			case Vertex::eTexcoord:
-				glEnableVertexAttribArray(ATTRIBUTE_TEXCOORD + info.idx);
-				glVertexAttribPointer(ATTRIBUTE_TEXCOORD + info.idx , getElementSize(info.format), getFormatType(info.format), GL_FALSE, mVertexSize, (void*)info.offset);
-				break;
-			}
+			glEnableVertexAttribArray(info.semantic);
+			glVertexAttribPointer(info.semantic, getElementSize(info.format), getFormatType(info.format), GL_FALSE, mVertexSize, (void*)info.offset);
 		}
+	}
+
+	void VertexDecl::setupVAOEnd()
+	{
+		for( Info& info : mInfoVec )
+		{
+			glDisableVertexAttribArray(info.attribute);
+		}
+	}
+	static Vertex::Semantic AttributeToSemantic(uint8 attribute, uint8& idx)
+	{
+		switch( attribute )
+		{
+		case Vertex::ATTRIBUTE_POSITION: idx = 0; return Vertex::ePosition;
+		case Vertex::ATTRIBUTE_COLOR: idx = 0; return Vertex::eColor;
+		case Vertex::ATTRIBUTE_NORMAL: idx = 0; return Vertex::eNormal;
+		case Vertex::ATTRIBUTE_TANGENT: idx = 0; return Vertex::eTangent;
+		}
+
+		idx = attribute - Vertex::ATTRIBUTE_TEXCOORD;
+		return Vertex::eTexcoord;
+	}
+
+	static uint8 SemanticToAttribute(Vertex::Semantic s , uint8 idx)
+	{
+		return uint8(s) + idx;
 	}
 
 	VertexDecl& VertexDecl::addElement(Vertex::Semantic s, Vertex::Format f, uint8 idx /*= 0 */)
 	{
 		Info info;
-		info.semantic = s;
+		info.attribute = SemanticToAttribute(s, idx);
 		info.format   = f;
 		info.offset   = mVertexSize;
+		info.semantic = s;
 		info.idx      = idx;
+		info.bNormalize = false;
 		mInfoVec.push_back( info );
 		mVertexSize += getFormatSize( f );
+		return *this;
+	}
+
+	VertexDecl& VertexDecl::addElement(uint8 attribute, Vertex::Format f, bool bNormailze)
+	{
+		Info info;
+		info.attribute = attribute;
+		info.format = f;
+		info.offset = mVertexSize;
+		info.semantic = AttributeToSemantic(attribute, info.idx);
+		info.bNormalize = bNormailze;
+		mInfoVec.push_back(info);
+		mVertexSize += getFormatSize(f);
 		return *this;
 	}
 
@@ -451,6 +469,30 @@ namespace GL
 		case Vertex::eFloat2: return 2 * sizeof( float );
 		case Vertex::eFloat3: return 3 * sizeof( float );
 		case Vertex::eFloat4: return 4 * sizeof( float );
+		case Vertex::eUInt1: return 1 * sizeof( uint32 );
+		case Vertex::eUInt2: return 2 * sizeof( uint32 );
+		case Vertex::eUInt3: return 3 * sizeof( uint32 );
+		case Vertex::eUInt4: return 4 * sizeof( uint32 );
+		case Vertex::eInt1: return 1 * sizeof(int32);
+		case Vertex::eInt2: return 2 * sizeof(int32);
+		case Vertex::eInt3: return 3 * sizeof(int32);
+		case Vertex::eInt4: return 4 * sizeof(int32);
+		case Vertex::eUShort1: return 1 * sizeof(uint16);
+		case Vertex::eUShort2: return 2 * sizeof(uint16);
+		case Vertex::eUShort3: return 3 * sizeof(uint16);
+		case Vertex::eUShort4: return 4 * sizeof(uint16);
+		case Vertex::eShort1: return 1 * sizeof(int16);
+		case Vertex::eShort2: return 2 * sizeof(int16);
+		case Vertex::eShort3: return 3 * sizeof(int16);
+		case Vertex::eShort4: return 4 * sizeof(int16);
+		case Vertex::eUByte1: return 1 * sizeof(uint8);
+		case Vertex::eUByte2: return 2 * sizeof(uint8);
+		case Vertex::eUByte3: return 3 * sizeof(uint8);
+		case Vertex::eUByte4: return 4 * sizeof(uint8);
+		case Vertex::eByte1: return 1 * sizeof(int8);
+		case Vertex::eByte2: return 2 * sizeof(int8);
+		case Vertex::eByte3: return 3 * sizeof(int8);
+		case Vertex::eByte4: return 4 * sizeof(int8);
 		}
 		return 0;
 	}
@@ -459,11 +501,27 @@ namespace GL
 	{
 		switch( format )
 		{
-		case Vertex::eFloat1:
-		case Vertex::eFloat2:
-		case Vertex::eFloat3:
-		case Vertex::eFloat4:
+		case Vertex::eFloat1:case Vertex::eFloat2:
+		case Vertex::eFloat3:case Vertex::eFloat4:
 			return GL_FLOAT;
+		case Vertex::eUInt1:case Vertex::eUInt2:
+		case Vertex::eUInt3:case Vertex::eUInt4:
+			return GL_UNSIGNED_INT;
+		case Vertex::eInt1:case Vertex::eInt2:
+		case Vertex::eInt3:case Vertex::eInt4:
+			return GL_INT;
+		case Vertex::eUShort1:case Vertex::eUShort2:
+		case Vertex::eUShort3:case Vertex::eUShort4:
+			return GL_UNSIGNED_SHORT;
+		case Vertex::eShort1:case Vertex::eShort2:
+		case Vertex::eShort3:case Vertex::eShort4:
+			return GL_SHORT;
+		case Vertex::eUByte1:case Vertex::eUByte2:
+		case Vertex::eUByte3:case Vertex::eUByte4:
+			return GL_UNSIGNED_BYTE;
+		case Vertex::eByte1:case Vertex::eByte2:
+		case Vertex::eByte3:case Vertex::eByte4:
+			return GL_BYTE;
 		}
 		return GL_FLOAT;
 	}
@@ -472,10 +530,26 @@ namespace GL
 	{
 		switch( format )
 		{
-		case Vertex::eFloat1: return 1;
-		case Vertex::eFloat2: return 2;
-		case Vertex::eFloat3: return 3;
-		case Vertex::eFloat4: return 4;
+		case Vertex::eFloat1: 
+		case Vertex::eUInt1: case Vertex::eInt1: 
+		case Vertex::eUShort1: case Vertex::eShort1:
+		case Vertex::eUByte1: case Vertex::eByte1:
+			return 1;
+		case Vertex::eFloat2: 
+		case Vertex::eUInt2: case Vertex::eInt2:
+		case Vertex::eUShort2: case Vertex::eShort2:
+		case Vertex::eUByte2: case Vertex::eByte2:
+			return 2;
+		case Vertex::eFloat3:
+		case Vertex::eUInt3: case Vertex::eInt3:
+		case Vertex::eUShort3: case Vertex::eShort3:
+		case Vertex::eUByte3: case Vertex::eByte3:
+			return 3;
+		case Vertex::eFloat4: 
+		case Vertex::eUInt4: case Vertex::eInt4:
+		case Vertex::eUShort4: case Vertex::eShort4:
+		case Vertex::eUByte4: case Vertex::eByte4:
+			return 4;
 		}
 		return 0;
 	}
@@ -558,20 +632,6 @@ namespace GL
 		return true;
 	}
 
-	bool RHITexture2D::create(Texture::Format format , int width , int height)
-	{
-		if ( !fetchHandle() )
-			return false;
-		mSizeX = width;
-		mSizeY = height;
-
-		glBindTexture( GL_TEXTURE_2D , mHandle );
-		glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
-		glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
-		glTexImage2D(GL_TEXTURE_2D, 0, Texture::Convert( format ) , width , height , 0, GL_RGBA , GL_FLOAT, NULL);
-		glBindTexture(GL_TEXTURE_2D, 0);
-		return true;
-	}
 
 	bool RHITexture2D::create(Texture::Format format, int width, int height, void* data)
 	{
@@ -579,11 +639,14 @@ namespace GL
 			return false;
 		mSizeX = width;
 		mSizeY = height;
+		mFormat = format;
 
 		glBindTexture(GL_TEXTURE_2D, mHandle);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-		glTexImage2D(GL_TEXTURE_2D, 0, Texture::Convert(format), width, height, 0, Texture::GetBaseFormat(format) , Texture::GetFormatType(format), data );
+		glTexImage2D(GL_TEXTURE_2D, 0, GLConvert::To(format), width, height, 0, 
+					 Texture::GetBaseFormat(format) , Texture::GetFormatType(format), data );
+		checkGLError();
 		glBindTexture(GL_TEXTURE_2D, 0);
 		return true;
 	}
@@ -626,7 +689,8 @@ namespace GL
 		glBindTexture(GL_TEXTURE_2D, mHandle);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-		glTexImage3D(GL_TEXTURE_2D, 0, Texture::Convert(format), sizeX, sizeY , sizeZ, 0, GL_RGBA, GL_FLOAT, NULL);
+		glTexImage3D(GL_TEXTURE_2D, 0, GLConvert::To(format), sizeX, sizeY , sizeZ, 0, 
+					 Texture::GetBaseFormat(format), Texture::GetFormatType(format), NULL);
 		glBindTexture(GL_TEXTURE_2D, 0);
 		return true;
 	}
@@ -641,21 +705,6 @@ namespace GL
 		glBindTexture(GL_TEXTURE_3D, 0);
 	}
 
-	bool RHITextureCube::create(Texture::Format format , int width , int height)
-	{
-		if ( !fetchHandle() )
-			return false;
-
-		glBindTexture( GL_TEXTURE_CUBE_MAP , mHandle );
-		for( int i = 0 ; i < 6 ; ++i )
-		{
-			glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
-			glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
-			glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i , 0, Texture::Convert( format ) , width , height , 0, GL_RGBA , GL_FLOAT, NULL );
-		}
-		glBindTexture( GL_TEXTURE_CUBE_MAP , 0 );
-		return true;
-	}
 
 	bool RHITextureCube::create(Texture::Format format, int width, int height , void* data )
 	{
@@ -668,7 +717,7 @@ namespace GL
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 			glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, 
-						 Texture::Convert(format), width, height, 0, 
+						 GLConvert::To(format), width, height, 0,
 						 Texture::GetBaseFormat(format), Texture::GetFormatType(format), data );
 		}
 		glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
@@ -743,86 +792,64 @@ namespace GL
 
 	FrameBuffer::~FrameBuffer()
 	{
-		if ( !mTextures.empty() )
+		if( mFBO )
 		{
-			for( int i = 0 ; i < mTextures.size() ; ++i )
-			{
-				BufferInfo& info = mTextures[i];
-				if ( info.handle && info.bManaged )
-					glDeleteTextures( 1 , &info.handle );
-			}
-			mTextures.clear();
-		}
-		if ( mFBO )
-		{
-			glDeleteFramebuffers( 1 , &mFBO );
+			glDeleteFramebuffers(1, &mFBO);
 			mFBO = 0;
 		}
+		mTextures.clear();
 	}
 
-	int FrameBuffer::addTexture( RHITextureCube& target , Texture::Face face , bool beManaged )
+	int FrameBuffer::addTexture( RHITextureCube& target , Texture::Face face  )
 	{
 		int idx = mTextures.size();
 
 		BufferInfo info;
-		info.handle   = target.mHandle;
-		info.idxFace      = face;
-		info.bManaged = ( beManaged ) ? target.mbManaged : false;
-		if ( info.bManaged )
-			target.releaseResource();
+		info.bufferRef = &target;
+		info.idxFace   = face;
 		mTextures.push_back( info );
 		
-		setTextureInternal( idx , info , GL_TEXTURE_CUBE_MAP_POSITIVE_X + info.idxFace );
+		setTextureInternal( idx , target.mHandle , GL_TEXTURE_CUBE_MAP_POSITIVE_X + info.idxFace );
 		return idx;
 	}
 
-	int FrameBuffer::addTexture( RHITexture2D& target , bool beManaged )
+	int FrameBuffer::addTexture( RHITexture2D& target )
 	{
 		int idx = mTextures.size();
 
 		BufferInfo info;
-		info.handle   = target.mHandle;
-		info.idxFace      = 0;
-		info.bManaged = ( beManaged ) ? target.mbManaged : false;
-		if ( info.bManaged )
-			target.releaseResource();
-
-		mTextures.push_back( info );
-		setTextureInternal( idx , info , GL_TEXTURE_2D );
-		
-		return idx;
-	}
-
-	void FrameBuffer::setTexture( int idx , RHITexture2D& target , bool beManaged )
-	{
-		assert( idx < mTextures.size() );
-		BufferInfo& info = mTextures[idx];
-		info.handle   = target.mHandle;
+		info.bufferRef = &target;
 		info.idxFace  = 0;
-		info.bManaged = ( beManaged ) ? target.mbManaged : false;
-		if ( info.bManaged )
-			target.releaseResource();
-		setTextureInternal( idx , info , GL_TEXTURE_2D );
+		mTextures.push_back( info );
+		setTextureInternal( idx , target.mHandle , GL_TEXTURE_2D );
+		
+		return idx;
 	}
 
-	void FrameBuffer::setTexture( int idx , RHITextureCube& target , Texture::Face face , bool beManaged )
+	void FrameBuffer::setTexture( int idx , RHITexture2D& target )
 	{
 		assert( idx < mTextures.size() );
 		BufferInfo& info = mTextures[idx];
-		info.handle   = target.mHandle;
-		info.idxFace      = face;
-		info.bManaged = ( beManaged ) ? target.mbManaged : false;
-		if ( info.bManaged )
-			target.releaseResource();
-		setTextureInternal( idx , info , GL_TEXTURE_CUBE_MAP_POSITIVE_X + info.idxFace );
+		info.bufferRef = &target;
+		info.idxFace  = 0;
+		setTextureInternal( idx , target.mHandle , GL_TEXTURE_2D );
+	}
+
+	void FrameBuffer::setTexture( int idx , RHITextureCube& target , Texture::Face face )
+	{
+		assert( idx < mTextures.size() );
+		BufferInfo& info = mTextures[idx];
+		info.bufferRef = &target;
+		info.idxFace   = face;
+		setTextureInternal( idx , target.mHandle , GL_TEXTURE_CUBE_MAP_POSITIVE_X + info.idxFace );
 	}
 
 
-	void FrameBuffer::setTextureInternal(int idx, BufferInfo& info, GLenum texType)
+	void FrameBuffer::setTextureInternal(int idx, GLuint handle , GLenum texType)
 	{
 		assert( mFBO );
 		glBindFramebuffer( GL_FRAMEBUFFER , mFBO );
-		glFramebufferTexture2D( GL_FRAMEBUFFER , GL_COLOR_ATTACHMENT0 + idx , texType , info.handle , 0 );
+		glFramebufferTexture2D( GL_FRAMEBUFFER , GL_COLOR_ATTACHMENT0 + idx , texType , handle , 0 );
 		GLenum Status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
 		if( Status != GL_FRAMEBUFFER_COMPLETE )
 		{
@@ -840,13 +867,6 @@ namespace GL
 	void FrameBuffer::bind()
 	{
 		glBindFramebuffer( GL_FRAMEBUFFER, mFBO );
-#if 0
-		for( int i = 0; i < mTextures.size(); ++i )
-		{
-			BufferInfo& info = mTextures[i];
-			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + i, GL_TEXTURE_2D, info.handle, 0);
-		}
-#endif
 		GLenum DrawBuffers[] =
 		{ 
 			GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2 , GL_COLOR_ATTACHMENT3, GL_COLOR_ATTACHMENT4,
@@ -874,11 +894,28 @@ namespace GL
 		return mFBO != 0;
 	}
 
+	int FrameBuffer::addTextureLayer(RHITextureCube& target)
+	{
+		int idx = mTextures.size();
+		BufferInfo info;
+		info.bufferRef = &target;
+		info.idxFace = 0;
+		mTextures.push_back(info);
+		glBindFramebuffer(GL_FRAMEBUFFER, mFBO);
+		glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, target.mHandle, 0);
+		GLenum Status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+		if( Status != GL_FRAMEBUFFER_COMPLETE )
+		{
+			::Msg("Texture Can't Attach to FrameBuffer");
+		}
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+		return idx;
+	}
+
 	void FrameBuffer::clearBuffer(Vector4 const* colorValue, float const* depthValue, uint8 stencilValue)
 	{
 		if( colorValue )
 		{
-
 			for( int i = 0; i < mTextures.size(); ++i )
 			{
 				BufferInfo& bufferInfo = mTextures[i];
@@ -892,15 +929,14 @@ namespace GL
 		}
 	}
 
-	void FrameBuffer::setDepthInternal(GLuint handle, Texture::DepthFormat format, bool bTexture, bool bManaged)
+	void FrameBuffer::setDepthInternal( RHIResource& resource , GLuint handle, Texture::DepthFormat format, bool bTexture )
 	{
 		removeDepthBuffer();
 
-		mDepth.handle = handle;
-		mDepth.bManaged = bManaged;
+		mDepth.bufferRef = &resource;
 		mDepth.bTexture = bTexture;
 
-		if( mDepth.handle )
+		if( handle )
 		{
 			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, mFBO);
 
@@ -915,11 +951,11 @@ namespace GL
 
 			if( bTexture )
 			{
-				glFramebufferTexture2D(GL_FRAMEBUFFER, attachType , GL_TEXTURE_2D, mDepth.handle, 0);
+				glFramebufferTexture2D(GL_FRAMEBUFFER, attachType , GL_TEXTURE_2D, handle, 0);
 			}
 			else
 			{
-				glFramebufferRenderbuffer(GL_FRAMEBUFFER, attachType, GL_RENDERBUFFER, mDepth.handle);
+				glFramebufferRenderbuffer(GL_FRAMEBUFFER, attachType, GL_RENDERBUFFER, handle);
 			}
 
 
@@ -932,26 +968,21 @@ namespace GL
 		}
 	}
 
-	void FrameBuffer::setDepth( DepthRenderBuffer& buffer , bool bManaged )
+	void FrameBuffer::setDepth( RHIDepthRenderBuffer& buffer)
 	{
-		bManaged = (bManaged) ? buffer.mbManaged : false;
-		setDepthInternal( buffer.mHandle , buffer.getFormat() , false , bManaged );
-		if ( bManaged )
-			buffer.releaseResource();
+		setDepthInternal( buffer , buffer.mHandle , buffer.getFormat() , false );
 	}
 
-	void FrameBuffer::setDepth(RHITextureDepth& target, bool bManaged /*= false */)
+	void FrameBuffer::setDepth(RHITextureDepth& target)
 	{
-		bManaged = (bManaged) ? target.mbManaged : false;
-		setDepthInternal(target.mHandle, target.getFormat(), true , bManaged);
-		if( bManaged )
-			target.releaseResource();
+		setDepthInternal( target , target.mHandle, target.getFormat(), true );
 	}
 
 	void FrameBuffer::removeDepthBuffer()
 	{
-		if ( mDepth.handle )
+		if ( mDepth.bufferRef )
 		{
+			mDepth.bufferRef = nullptr;
 			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, mFBO);
 			if( mDepth.bTexture )
 			{
@@ -962,25 +993,11 @@ namespace GL
 				glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, 0);
 			}
 			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
-
-			if( mDepth.bManaged )
-			{
-				if( mDepth.bTexture )
-				{
-					glDeleteTextures(1, &mDepth.handle);
-				}
-				else
-				{
-					glDeleteRenderbuffers(1, &mDepth.handle);
-				}
-				mDepth.bManaged = false;
-			}
-			mDepth.handle = 0;
 		}
 
 	}
 
-	bool DepthRenderBuffer::create(int w, int h, Texture::DepthFormat format)
+	bool RHIDepthRenderBuffer::create(int w, int h, Texture::DepthFormat format)
 	{
 		assert( mHandle == 0 );
 		mFormat = format;
@@ -993,5 +1010,172 @@ namespace GL
 		return true;
 	}
 
+
+	GLenum GLConvert::To(Texture::Format format)
+	{
+		switch( format )
+		{
+		case Texture::eRGBA8:   return GL_RGBA8;
+		case Texture::eRGB8:    return GL_RGB8;
+		case Texture::eR32F:    return GL_R32F;
+		case Texture::eRGB32F:  return GL_RGB32F;
+		case Texture::eRGBA32F: return GL_RGBA32F;
+		case Texture::eRGB16F:  return GL_RGB16F;
+		case Texture::eRGBA16F:  return GL_RGBA16F;
+		case Texture::eR8I: return GL_R8I;
+		case Texture::eR16I:  return GL_R16I;
+		case Texture::eR32I:  return GL_R32I;
+		case Texture::eR8U: return GL_R8UI;
+		case Texture::eR16U: return GL_R16UI;
+		case Texture::eR32U: return GL_R32UI;
+		case Texture::eRG8I: return GL_RG8I;
+		case Texture::eRG16I:  return GL_RG16I;
+		case Texture::eRG32I:  return GL_RG32I;
+		case Texture::eRG8U: return GL_RG8UI;
+		case Texture::eRG16U: return GL_RG16UI;
+		case Texture::eRG32U: return GL_RG32UI;
+		case Texture::eRGB8I: return GL_RGB8I;
+		case Texture::eRGB16I:  return GL_RGB16I;
+		case Texture::eRGB32I:  return GL_RGB32I;
+		case Texture::eRGB8U: return GL_RGB8UI;
+		case Texture::eRGB16U: return GL_RGB16UI;
+		case Texture::eRGB32U: return GL_RGB32UI;
+		case Texture::eRGBA8I: return GL_RGBA8I;
+		case Texture::eRGBA16I:  return GL_RGBA16I;
+		case Texture::eRGBA32I:  return GL_RGBA32I;
+		case Texture::eRGBA8U: return GL_RGBA8UI;
+		case Texture::eRGBA16U: return GL_RGBA16UI;
+		case Texture::eRGBA32U: return GL_RGBA32UI;
+		}
+		return 0;
+	}
+
+	GLenum GLConvert::To(AccessOperator op)
+	{
+		switch( op )
+		{
+		case AO_READ_ONLY: return GL_READ_ONLY;
+		case AO_WRITE_ONLY: return GL_WRITE_ONLY;
+		case AO_READ_AND_WRITE: return GL_READ_WRITE;
+		}
+		assert(0);
+		return GL_READ_WRITE;
+	}
+
+	GLenum GLConvert::To(PrimitiveType type)
+	{
+		switch( type )
+		{
+		case PrimitiveType::eTriangleList:  return GL_TRIANGLES;
+		case PrimitiveType::eTriangleStrip: return GL_TRIANGLE_STRIP;
+		case PrimitiveType::eTriangleFan:   return GL_TRIANGLE_FAN;
+		case PrimitiveType::eLineList:      return GL_LINES;
+		case PrimitiveType::eQuad:          return GL_QUADS;
+		case PrimitiveType::ePoints:        return GL_POINTS;
+		}
+		return GL_POINTS;
+	}
+
+	GLenum Texture::Convert(DepthFormat format)
+	{
+		switch( format )
+		{
+		case eDepth16: return GL_DEPTH_COMPONENT16;
+		case eDepth24: return GL_DEPTH_COMPONENT24;
+		case eDepth32: return GL_DEPTH_COMPONENT32;
+		case eDepth32F:return GL_DEPTH_COMPONENT32F;
+		case eD24S8:   return GL_DEPTH24_STENCIL8;
+		case eD32FS8:  return GL_DEPTH32F_STENCIL8;
+		case eStencil1: return GL_STENCIL_INDEX1;
+		case eStencil4: return GL_STENCIL_INDEX4;
+		case eStencil8: return GL_STENCIL_INDEX8;
+		case eStencil16: return GL_STENCIL_INDEX16;
+		}
+		return 0;
+	}
+
+	GLenum Texture::GetBaseFormat(Format format)
+	{
+		switch( format )
+		{
+		case eRGB8:
+		case eRGB32F:
+		case eRGB16F:
+			return GL_RGB;
+		case eRGBA8:
+		case eRGBA32F:
+		case eRGBA16F:
+			return GL_RGBA;
+		case eR32F:
+			return GL_RED;
+		case eR8I:case eR16I:case eR32I:
+		case eR8U:case eR16U:case eR32U:
+			return GL_RED_INTEGER;
+		case eRG8I:case eRG16I:case eRG32I:
+		case eRG8U:case eRG16U:case eRG32U:
+			return GL_RG_INTEGER;
+		case eRGB8I:case eRGB16I:case eRGB32I:
+		case eRGB8U:case eRGB16U:case eRGB32U:
+			return GL_RGB_INTEGER;
+		case eRGBA8I:case eRGBA16I:case eRGBA32I:
+		case eRGBA8U:case eRGBA16U:case eRGBA32U:
+			return GL_RGBA_INTEGER;
+		}
+		return 0;
+	}
+
+	GLenum Texture::GetFormatType(Format format)
+	{
+		switch( format )
+		{
+		case eR16I:case eRG16I:case eRGB16I:case eRGBA16I:
+			return GL_SHORT;
+		case eR32I:case eRG32I:case eRGB32I:case eRGBA32I:
+			return GL_INT;
+		case eR16U:case eRG16U:case eRGB16U:case eRGBA16U:
+			return GL_UNSIGNED_SHORT;
+		case eR32U:case eRG32U:case eRGB32U:case eRGBA32U:
+			return GL_UNSIGNED_INT;
+		case eR8I:
+			return GL_BYTE;
+		case eR8U:
+		case eRGB8:
+		case eRGBA8:
+			return GL_UNSIGNED_BYTE;
+		case eRGB32F:
+		case eRGB16F:
+		case eRGBA32F:
+		case eRGBA16F:
+		case eR32F:
+			return GL_FLOAT;
+		}
+		return 0;
+	}
+
+	GLenum Texture::GetImage2DType(Format format)
+	{
+		switch( format )
+		{
+		case eRGBA8:
+		case eRGB8:
+		case eR32F:
+		case eRGB32F:
+		case eRGBA32F:
+		case eRGB16F:
+		case eRGBA16F:
+			return GL_IMAGE_2D;
+		case eR8I:case eR16I:case eR32I:
+		case eRG8I:case eRG16I:case eRG32I:
+		case eRGB8I:case eRGB16I:case eRGB32I:
+		case eRGBA8I:case eRGBA16I:case eRGBA32I:
+			return GL_INT_IMAGE_2D;
+		case eR8U:case eR16U:case eR32U:
+		case eRG8U:case eRG16U:case eRG32U:
+		case eRGB8U:case eRGB16U:case eRGB32U:
+		case eRGBA8U:case eRGBA16U:case eRGBA32U:
+			return GL_UNSIGNED_INT_IMAGE_2D;
+		}
+		return 0;
+	}
 
 }//namespace GL

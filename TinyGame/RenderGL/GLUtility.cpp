@@ -11,7 +11,7 @@
 #include <fstream>
 #include <algorithm>
 
-namespace GL
+namespace RenderGL
 {
 
 	class MeshBuildUtility
@@ -336,7 +336,7 @@ namespace GL
 			p3 += 6;
 		}
 
-		if ( !mesh.create( &v[0] , nV , &idx[0] , nI , true ) )
+		if ( !mesh.createBuffer( &v[0] , nV , &idx[0] , nI , true ) )
 			return false;
 
 		return true;
@@ -468,7 +468,7 @@ namespace GL
 		}
 
 		//fillTangent_TriangleList(mesh.mDecl, &vertex[0], nV, &indices[0], indices.size());
-		if ( !mesh.create( &vertex[0] , nV , &indices[0] , ( nV )* 6 , true ) )
+		if ( !mesh.createBuffer( &vertex[0] , nV , &indices[0] , indices.size() , true ) )
 			return false;
 
 		return true;
@@ -498,10 +498,10 @@ namespace GL
 			0 , 2 , 3 , 1 ,
 			4 , 5 , 7 , 6 ,
 		};
-		if ( !mesh.create( &v[0] , 8 , &idx[0] , 4 * 6 , true ) )
+		if ( !mesh.createBuffer( &v[0] , 8 , &idx[0] , 4 * 6 , true ) )
 			return false;
 
-		mesh.mType = Mesh::eQuad;
+		mesh.mType = PrimitiveType::eQuad;
 		return true;
 	}
 
@@ -562,8 +562,8 @@ namespace GL
 		};
 
 		fillTangent_QuadList( mesh.mDecl , &v[0] , 6 * 4 , &idx[0] , 6 * 4 );
-		mesh.mType = Mesh::eQuad;
-		if ( !mesh.create( &v[0] , 6 * 4 , &idx[0] , 6 * 4 , true ) )
+		mesh.mType = PrimitiveType::eQuad;
+		if ( !mesh.createBuffer( &v[0] , 6 * 4 , &idx[0] , 6 * 4 , true ) )
 			return false;
 
 
@@ -664,7 +664,7 @@ namespace GL
 		i[4] = i[2];
 		i[5] = s;
 
-		if ( !mesh.create( &vertex[0] , nV , &indices[0] , ( nV )* 6 , true ) )
+		if ( !mesh.createBuffer( &vertex[0] , nV , &indices[0] , ( nV )* 6 , true ) )
 			return false;
 
 		return true;
@@ -703,12 +703,83 @@ namespace GL
 		int   idx[6] = { 0 , 1 , 2 , 0 , 2 , 3 };
 
 		fillTangent_TriangleList( mesh.mDecl , &v[0] , 4  , &idx[0] , 6 );
-		if ( !mesh.create( &v[0] , 4  , &idx[0] , 6 , true ) )
+		if ( !mesh.createBuffer( &v[0] , 4  , &idx[0] , 6 , true ) )
 			return false;
 
 		return true;
 	}
 
+
+	bool MeshUtility::createSimpleSkin(Mesh& mesh, float width, float height, int nx, int ny)
+	{
+		struct FVertex
+		{
+			Vector3 pos;
+			Vector3 normal;
+			Vector4 tangent;
+			float   uv[2];
+			uint8   boneIndices[4];
+			Vector4 blendWeight;
+		};
+		mesh.mDecl.addElement(Vertex::ATTRIBUTE_POSITION, Vertex::eFloat3);
+		mesh.mDecl.addElement(Vertex::ATTRIBUTE_NORMAL, Vertex::eFloat3);
+		mesh.mDecl.addElement(Vertex::ATTRIBUTE_TANGENT, Vertex::eFloat4);
+		mesh.mDecl.addElement(Vertex::ATTRIBUTE_TEXCOORD, Vertex::eFloat2);
+		mesh.mDecl.addElement(Vertex::ATTRIBUTE_BONEINDEX, Vertex::eUInt4);
+		mesh.mDecl.addElement(Vertex::ATTRIBUTE_BLENDWEIGHT, Vertex::eFloat4);
+
+		float du = 1.0 / (nx - 1);
+		float dv = 1.0 / (ny - 1);
+		float dw = width / (nx - 1);
+		float dh = height / (ny - 1);
+
+		std::vector< FVertex > vertices;
+		vertices.resize(nx*ny);
+
+		FVertex* pDataV = &vertices[0];
+		for( int i = 0; i < nx; ++i )
+		{
+			for( int j = 0; j < ny; ++j )
+			{
+				FVertex& v = *pDataV++;
+				v.pos = Vector3(i*dw - 0.5 * width, j*dh - 0.5 * height, 0);
+				v.normal = Vector3(0, 0, 1);
+				v.tangent = Vector4(1, 0, 0, 1);
+				v.uv[0] = i * du;
+				v.uv[1] = j * dv;
+				v.boneIndices[0] = 0;
+				v.boneIndices[1] = 1;
+				v.boneIndices[2] = 0;
+				v.boneIndices[3] = 0;
+				v.blendWeight = Vector4(1 - du, du, 0, 0);
+
+			}
+		}
+
+		std::vector< int > indices;
+		indices.resize(6 * (nx - 1) * (ny - 1));
+
+		int* pIdx = &indices[0];
+
+		for( int i = 0; i < nx - 1; ++i )
+		{
+			for( int j = 0; j < ny - 1; ++j )
+			{
+				int i00 = j * nx + i;
+				int i10 = i00 + 1;
+				int i01 = (j + 1) * nx + i;
+				int i11 = i01 + 1;
+				pIdx[0] = i00; pIdx[1] = i10; pIdx[2] = i11;
+				pIdx[3] = i00; pIdx[4] = i11; pIdx[5] = i01;
+				pIdx += 6;
+			}
+		}
+
+		if( !mesh.createBuffer(&vertices[0], vertices.size(), &indices[0], indices.size(), true) )
+			return false;
+
+		return true;
+	}
 
 	bool MeshUtility::createMesh(Mesh& mesh, MeshData& data)
 	{
@@ -745,7 +816,7 @@ namespace GL
 
 		mesh.mDecl.addElement(Vertex::ePosition, Vertex::eFloat3);
 		mesh.mDecl.addElement(Vertex::eNormal, Vertex::eFloat3);
-		if( !mesh.create(&vertices[0], numVertex, &indices[0], data.numIndex, true) )
+		if( !mesh.createBuffer(&vertices[0], numVertex, &indices[0], data.numIndex, true) )
 			return false;
 		return true;
 	}
@@ -974,14 +1045,26 @@ namespace GL
 					Vector3& pos = *reinterpret_cast<Vector3*>(v);
 					Vector3& noraml = *reinterpret_cast<Vector3*>(v + 3);
 					pos = Math::TransformPosition(pos, *pTransform);
+					//TODO: non-uniform scale
 					noraml = Math::TransformVector(noraml, *pTransform);
+					noraml.normalize();
+					v += vertexSize;
+				}
+			}
+			else
+			{
+				float* v = &vertices[0];
+				for( int i = 0; i < numVertex; ++i )
+				{
+					Vector3& noraml = *reinterpret_cast<Vector3*>(v + 3);
+					noraml.normalize();
 					v += vertexSize;
 				}
 			}
 			if( !shapes[0].mesh.texcoords.empty() )
 				fillTangent_TriangleList(mesh.mDecl, &vertices[0], numVertex, (int*)&indices[0], indices.size());
 		}
-		if( !mesh.create(&vertices[0], numVertex, &indices[0], indices.size(), true) )
+		if( !mesh.createBuffer(&vertices[0], numVertex, &indices[0], indices.size(), true) )
 			return false;
 
 		if( listener )
@@ -1047,7 +1130,7 @@ namespace GL
 		int   idx[6] = { 0 , 1 , 2 , 0 , 2 , 3 };
 
 		fillTangent_TriangleList( mesh.mDecl , &v[0] , 4  , &idx[0] , 6 );
-		if ( !mesh.create( &v[0] , 4  , &idx[0] , 6 , true ) )
+		if ( !mesh.createBuffer( &v[0] , 4  , &idx[0] , 6 , true ) )
 			return false;
 
 		return true;
@@ -1062,7 +1145,7 @@ namespace GL
 		-IcoA,IcoB,0, IcoA,IcoB,0, -IcoA,-IcoB,0, IcoA,-IcoB,0,
 		0,-IcoA,IcoB, 0,IcoA,IcoB, 0,-IcoA,-IcoB, 0,IcoA,-IcoB,
 		IcoB,0,-IcoA, IcoB,0,IcoA, -IcoB,0,-IcoA, -IcoB,0,IcoA,
-	 };
+	};
 	static int IcoIndex[] = 
 	{
 		0,11,5, 0,5,1, 0,1,7, 0,7,10, 0,10,11,
@@ -1072,8 +1155,6 @@ namespace GL
 	};
 	static int const IcoFaceNum = ARRAY_SIZE( IcoIndex ) / 3;
 	static int const IcoVertexNum = ARRAY_SIZE( IcoVertex ) / 3;
-
-
 
 	template< class VertexTraits >
 	class IcoSphereBuilder
@@ -1147,7 +1228,7 @@ namespace GL
 				numFace *= 4;
 			}
 
-			if( !mesh.create(&mVertices[0], mNumV, pIdx, nIdx, true) )
+			if( !mesh.createBuffer(&mVertices[0], mNumV, pIdx, nIdx, true) )
 				return false;
 
 			return true;
@@ -1159,11 +1240,11 @@ namespace GL
 		std::vector< VertexType > mVertices;
 		KeyMap  mKeyMap;
 	};
+
 	bool MeshUtility::createIcoSphere(Mesh& mesh , float radius , int numDiv )
 	{
 		mesh.mDecl.addElement( Vertex::ePosition , Vertex::eFloat3 );
 		mesh.mDecl.addElement( Vertex::eNormal   , Vertex::eFloat3 );
-
 
 		struct VertexTraits
 		{
@@ -1181,7 +1262,6 @@ namespace GL
 
 		IcoSphereBuilder< VertexTraits > builder;
 		return builder.build(mesh, radius, numDiv);
-
 	}
 
 	bool MeshUtility::createLightSphere(Mesh& mesh)
@@ -1259,7 +1339,7 @@ namespace GL
 			idxPrev = i;
 		}
 
-		if( !mesh.create( &vertices[0] , nV, &indices[0], indices.size() , true) )
+		if( !mesh.createBuffer( &vertices[0] , nV, &indices[0], indices.size() , true) )
 			return false;
 
 		return true;

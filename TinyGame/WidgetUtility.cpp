@@ -19,14 +19,13 @@ GButton* DevFrame::addButton( int id , char const* tile )
 	return button;
 }
 
-DevFrame* WidgetUtility::createDevFrame()
+DevFrame* WidgetUtility::CreateDevFrame( Vec2i const& size )
 {
 	GUISystem& system = ::Global::GUI();
 
 	Vec2i sSize = Global::getDrawEngine()->getScreenSize();
 
-	Vec2i frameSize( 100 , 200 );
-	DevFrame* frame = new DevFrame( UI_ANY , Vec2i( sSize.x - frameSize.x - 5 , 5 ) , frameSize  , NULL );
+	DevFrame* frame = new DevFrame( UI_ANY , Vec2i( sSize.x - size.x - 5 , 5 ) , size  , NULL );
 	frame->setRenderType( GPanel::eRectType );
 	frame->addButton( UI_MAIN_MENU , "Main Menu" );
 	system.addWidget( frame );

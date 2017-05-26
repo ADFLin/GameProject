@@ -692,12 +692,15 @@ namespace CAR
 		int result = ( neighborTiles.size() + 1 ) * CAR_PARAM_VALUE( mSetting , CloisterFactor );
 		if ( checkComplete() )
 		{
-			for( int i = 0 ; i < neighborTiles.size() ; ++i )
+			if ( mSetting->haveRule( Rule::eUseVineyard) )
 			{
-				MapTile* mapTile = neighborTiles[i];
-				if ( mapTile->getTileContent() & TileContent::eVineyard )
+				for( int i = 0; i < neighborTiles.size(); ++i )
 				{
-					result += CAR_PARAM_VALUE(mSetting, VineyardAdditionScore);
+					MapTile* mapTile = neighborTiles[i];
+					if( mapTile->getTileContent() & TileContent::eVineyard )
+					{
+						result += CAR_PARAM_VALUE(mSetting, VineyardAdditionScore);
+					}
 				}
 			}
 		}
@@ -788,12 +791,15 @@ namespace CAR
 		int result = ( neighborTiles.size() + 1 ) * CAR_PARAM_VALUE(mSetting, CloisterFactor);
 		if ( checkComplete() )
 		{
-			for( int i = 0 ; i < neighborTiles.size() ; ++i )
+			if( mSetting->haveRule(Rule::eUseVineyard) )
 			{
-				MapTile* mapTile = neighborTiles[i];
-				if ( mapTile->getTileContent() & TileContent::eVineyard )
+				for( int i = 0; i < neighborTiles.size(); ++i )
 				{
-					result += CAR_PARAM_VALUE(mSetting, VineyardAdditionScore);
+					MapTile* mapTile = neighborTiles[i];
+					if( mapTile->getTileContent() & TileContent::eVineyard )
+					{
+						result += CAR_PARAM_VALUE(mSetting, VineyardAdditionScore);
+					}
 				}
 			}
 		}

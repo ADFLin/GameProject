@@ -4,21 +4,21 @@
 
 //Material Template
 #if 0
-#ifdef VERTEX_SHADER
+#if VERTEX_SHADER
 void  CalcMaterialInputVS(inout MaterialInputVS input, in MaterialParametersVS parameters)
 {
 }
 
 #endif //VERTEX_SHADER
 
-#ifdef PIXEL_SHADER
+#if PIXEL_SHADER
 void CalcMaterialInputPS(inout MaterialInputPS input, in MaterialParametersPS parameters)
 {
 }
 #endif //PIXEL_SHADER
 #endif
 
-#ifdef PIXEL_SHADER
+#if PIXEL_SHADER
 
 float3 GetMaterialWorldNormal(in MaterialInputPS input, inout MaterialParametersPS parameters)
 {
@@ -32,27 +32,27 @@ float3 GetMaterialWorldNormal(in MaterialInputPS input, inout MaterialParameters
 
 float3 GetMaterialWorldPositionAndCheckDepthOffset(in MaterialInputPS input, inout MaterialParametersPS parameters)
 {
+	float3 worldPos = parameters.worldPos;
 #if MATERIAL_USE_DEPTH_OFFSET
+	float3 clipPos = parameters.clipPos;
 	if( input.depthOffset != 0 )
 	{
-		float3 svPosition = parameters.svPosition;
-		svPosition.z += input.depthOffset;
-
-		WritePxielDepth(svPosition.z);
-
-		float4 worldPos = View.clipToWorld * float4( svPosition , 1 );
-		return worldPos.xyz / worldPos.w;
+		clipPos.z += input.depthOffset;
+		float4 worldPosH = View.clipToWorld * float4( clipPos , 1 );
+		worldPos = worldPosH.xyz / worldPosH.w;
 	}
-	else
-	{
-		WritePxielDepth(parameters.svPosition.z);
-	}
+	WritePxielDepth(clipPos.z);
 #endif
-	return parameters.worldPos.xyz;
+	return worldPos;
+	
 }
 
 void CalcMaterialParameters(inout MaterialInputPS input, inout MaterialParametersPS parameters)
 {
+
+
+
+
 	CalcMaterialInputPS(input, parameters);
 
 #if MATERIAL_BLENDING_MASKED

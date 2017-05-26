@@ -1,8 +1,30 @@
 #pragma once
 
+#ifndef VERTEX_SHADER
+#define VERTEX_SHADER 0
+#endif
+
+#ifndef PIXEL_SHADER
+#define PIXEL_SHADER 0
+#endif
+
+#ifndef GEOMETRY_SHADER
+#define GEOMETRY_SHADER 0
+#endif
+
+#ifndef COMPUTE_SHADER
+#define COMPUTE_SHADER 0
+#endif
+
 #define float2 vec2
 #define float3 vec3
 #define float4 vec4
+#define uint2 uvec2
+#define uint3 uvec3
+#define uint4 uvec4
+#define int2 ivec2
+#define int3 ivec3
+#define int4 ivec4
 #define float4x4 mat4
 #define float3x3 mat3
 
@@ -27,6 +49,12 @@
 #define ATTRIBUTE13 13
 #define ATTRIBUTE14 14
 #define ATTRIBUTE15 15
+
+#define ATTRIBUTE_POSITION ATTRIBUTE0
+#define ATTRIBUTE_COLOR ATTRIBUTE1
+#define ATTRIBUTE_NORMAL ATTRIBUTE2
+#define ATTRIBUTE_TANGENT ATTRIBUTE3
+#define ATTRIBUTE_TEXCOORD ATTRIBUTE4
 
 #define LIGHTTYPE_SPOT 0
 #define LIGHTTYPE_POINT 1
@@ -62,7 +90,7 @@ float saturate(float x)
 	return clamp(x, 0.0, 1.0);
 }
 
-#ifdef PIXEL_SHADER
+#if PIXEL_SHADER
 void WritePxielDepth(float depth)
 {
 	gl_FragDepth = (gl_DepthRange.diff * depth  + gl_DepthRange.near + gl_DepthRange.far) * 0.5;

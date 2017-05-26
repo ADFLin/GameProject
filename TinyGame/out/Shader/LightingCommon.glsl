@@ -82,5 +82,5 @@ float3 StandardShading(float3 DiffuseColor, float3 SpecularColor, float3 LobeRou
 	//float3 Diffuse = Diffuse_Burley( DiffuseColor, LobeRoughness[1], NoV, NoL, VoH );
 	//float3 Diffuse = Diffuse_OrenNayar( DiffuseColor, LobeRoughness[1], NoV, NoL, VoH );
 
-	return NoL * ( Diffuse * LobeEnergy[2] + (D * Vis) * F );
+	return  Diffuse * LobeEnergy[2] + (D * Vis) * F ;
 }

@@ -3,10 +3,18 @@
 #include "RHICommon.h"
 
 #include "HashString.h"
+#include "LazyObject.h"
+
+#include <functional>
 
 namespace RenderGL
 {
 	class MaterialMaster;
+	class VertexFactory;
+	class VertexFarcoryType;
+
+	//#MOVE
+	int const OIT_StorageSize = 4096;
 
 	class Texture2D
 	{
@@ -25,35 +33,40 @@ namespace RenderGL
 
 		bool loadFile(char const* path);
 
-		RHITexture2D* getRHI() { return mRHI; }
+		RHITexture2D* getRHI() 
+		{
+			if ( mRHI )
+				return mRHI;
+			return GDefaultMaterialTexture2D;
+		}
 		RHITexture2D* mRHI;
 	};
 
 	class Material
 	{
 	public:
-		virtual void setParameter(char const* name, RHITexture2D& texture) = 0;
-		virtual void setParameter(char const* name, RHITexture3D& texture) = 0;
-		virtual void setParameter(char const* name, RHITextureCube& texture) = 0;
-		virtual void setParameter(char const* name, RHITextureDepth& texture) = 0;
 
-		virtual void setParameter(char const* name, Texture2D& texture) = 0;
+		void setParameter(char const* name, RHITexture2D& texture){ setParameterRHITexture(name, ParamType::eTexture2DRHI, &texture); }
+		void setParameter(char const* name, RHITexture3D& texture){ setParameterRHITexture(name, ParamType::eTexture3DRHI, &texture); }
+		void setParameter(char const* name, RHITextureCube& texture) { setParameterRHITexture(name, ParamType::eTextureCubeRHI, &texture); }
+		void setParameter(char const* name, RHITextureDepth& texture){ setParameterRHITexture(name, ParamType::eTextureDepthRHI, &texture); }
 
-		virtual void setParameter(char const* name, Matrix4 const& value) = 0;
-		virtual void setParameter(char const* name, Matrix3 const& value) = 0;
-		virtual void setParameter(char const* name, Vector4 const& value) = 0;
-		virtual void setParameter(char const* name, Vector3 const& value) = 0;
-		virtual void setParameter(char const* name, float value) = 0;
+		void setParameter(char const* name, Texture2D& texture){ setParameterT(name, ParamType::eTexture2D, &texture); }
+
+		void setParameter(char const* name, Matrix4 const& value){ setParameterT(name, ParamType::eMatrix4, value); }
+		void setParameter(char const* name, Matrix3 const& value){ setParameterT(name, ParamType::eMatrix3, value); }
+		void setParameter(char const* name, Vector4 const& value){ setParameterT(name, ParamType::eVector4, value); }
+		void setParameter(char const* name, Vector3 const& value){ setParameterT(name, ParamType::eVector3, value); }
+		void setParameter(char const* name, float value) { setParameterT(name, ParamType::eScale, value); }
 
 		virtual MaterialMaster* getMaster() = 0;
 
-		void bindShaderParam(ShaderProgram& shader) { doBindShaderParam(shader, 0); }
+		void setupShader(ShaderProgram& shader) { doSetupShader(shader, 0); }
 
 	protected:
-		virtual void doBindShaderParam(ShaderProgram& shader, uint32 skipMask) = 0;
+
 		enum class ParamType
 		{
-
 			eMatrix4,
 			eMatrix3,
 			eVector4,
@@ -74,6 +87,36 @@ namespace RenderGL
 			int16         offset;
 		};
 
+		virtual void postSetParameter(ParamSlot& slot) {}
+
+		template< class T >
+		void setParameterT(char const* name, ParamType type, T const& value)
+		{
+			ParamSlot& slot = fetchParam(name, type);
+			if( slot.offset != -1 )
+			{
+				T& dateStorage = *reinterpret_cast<T*>(&mParamDataStorage[slot.offset]);
+				dateStorage = value;
+				postSetParameter(slot);
+			}
+		}
+
+		void setParameterRHITexture(char const* name, ParamType type, RHITextureBase* value)
+		{
+			ParamSlot& slot = fetchParam(name, type);
+			if( slot.offset != -1 )
+			{
+				RHITextureBase*& dateStorage = *reinterpret_cast<RHITextureBase**>(&mParamDataStorage[slot.offset]);
+				dateStorage = value;
+				mTextures.push_back(value);
+				postSetParameter(slot);
+			}
+		}
+
+
+		virtual void doSetupShader(ShaderProgram& shader, uint32 skipMask) = 0;
+
+
 		friend class MaterialInstance;
 		void bindShaderParamInternal(ShaderProgram& shader, uint32 skipMask);
 		ParamSlot& fetchParam(char const* name, ParamType type);
@@ -83,6 +126,60 @@ namespace RenderGL
 		std::vector< ParamSlot > mParams;
 		std::vector< RHITextureRef > mTextures;
 
+	};
+
+	enum class RenderTechiqueUsage
+	{
+		BasePass ,
+		Shadow ,
+		OIT ,
+
+		Count ,
+	};
+
+	enum class VertexFactoryTypeUsage
+	{
+		Local ,
+
+		Count,
+	};
+
+	enum BlendMode
+	{
+		Blend_Opaque,
+		Blend_Masked,
+		Blend_Translucent,
+		Blend_Additive,
+		Blend_Modulate,
+
+		NumBlendMode,
+	};
+
+	struct MaterialShaderOption
+	{
+		RenderTechiqueUsage    renderTechique;
+		VertexFactoryTypeUsage vertexFactory;
+	};
+
+
+	class MaterialShaderMap
+	{
+	public:
+		~MaterialShaderMap();
+		ShaderProgram*  getShader(RenderTechiqueUsage shaderUsage , VertexFactory* vertexFactory );
+
+
+		void releaseRHI();
+		static std::string GetFilePath(char const* name);
+
+		bool load( char const* name );
+
+		struct ShaderCache
+		{
+			ShaderProgram shaders[(int)RenderTechiqueUsage::Count];
+		};
+
+		std::unordered_map< VertexFarcoryType*, ShaderCache* > mShaderCacheMap;
 	};
 
 	class MaterialMaster : public Material
@@ -99,55 +196,30 @@ namespace RenderGL
 			loadInternal();
 		}
 
-		void setParameter(char const* name, RHITexture2D& texture) override { setParameterRHITexture(name, ParamType::eTexture2DRHI, &texture); }
-		void setParameter(char const* name, RHITexture3D& texture) override { setParameterRHITexture(name, ParamType::eTexture3DRHI, &texture); }
-		void setParameter(char const* name, RHITextureCube& texture) override { setParameterRHITexture(name, ParamType::eTextureCubeRHI, &texture); }
-		void setParameter(char const* name, RHITextureDepth& texture) override { setParameterRHITexture(name, ParamType::eTextureDepthRHI, &texture); }
 
-		void setParameter(char const* name, Texture2D& texture) override { setParameterT(name, ParamType::eTexture2D, &texture); }
-
-		void setParameter(char const* name, Matrix4 const& value) override { setParameterT(name, ParamType::eMatrix4, value); }
-		void setParameter(char const* name, Matrix3 const& value) override { setParameterT(name, ParamType::eMatrix3, value); }
-		void setParameter(char const* name, Vector4 const& value) override { setParameterT(name, ParamType::eVector4, value); }
-		void setParameter(char const* name, Vector3 const& value) override { setParameterT(name, ParamType::eVector3, value); }
-		void setParameter(char const* name, float value) { setParameterT(name, ParamType::eScale, value); }
-		void doBindShaderParam(ShaderProgram& shader, uint32 skipMask) override { bindShaderParamInternal(shader, 0); }
+		void doSetupShader(ShaderProgram& shader, uint32 skipMask) override { bindShaderParamInternal(shader, 0); }
 
 		void releaseRHI()
 		{
-			mShader.release();
-			mShadowShader.release();
+			mShaderMap.releaseRHI();
 		}
 
 		MaterialMaster* getMaster() override { return this; }
-
-		template< class T >
-		void setParameterT(char const* name, ParamType type, T const& value)
+		MaterialShaderMap& getShaderMap() { return mShaderMap; }
+		ShaderProgram*  getShader(RenderTechiqueUsage shaderUsage , VertexFactory* vertexFactory )
 		{
-			ParamSlot& slot = fetchParam(name, type);
-			if( slot.offset != -1 )
-			{
-				T& dateStorage = *reinterpret_cast<T*>(&mParamDataStorage[slot.offset]);
-				dateStorage = value;
-			}
+			return mShaderMap.getShader(shaderUsage , vertexFactory);
 		}
 
-		void setParameterRHITexture(char const* name, ParamType type, RHITextureBase* value)
+
+		bool loadInternal()
 		{
-			ParamSlot& slot = fetchParam(name, type);
-			if( slot.offset != -1 )
-			{
-				RHITextureBase*& dateStorage = *reinterpret_cast<RHITextureBase**>(&mParamDataStorage[slot.offset]);
-				dateStorage = value;
-				mTextures.push_back(value);
-			}
+			return mShaderMap.load(mName.c_str());
 		}
 
-		bool loadInternal();
 
-		//
-		ShaderProgram mShader;
-		ShaderProgram mShadowShader;
+		BlendMode blendMode;
+		MaterialShaderMap mShaderMap;
 		std::string  mName;
 
 	};
@@ -155,6 +227,13 @@ namespace RenderGL
 	class MaterialInstance : public Material
 	{
 	public:
+		MaterialInstance( TLazyObjectGuid< Material > const& parent )
+			:mParent(parent)
+		{
+			LazyObjectManager::getInstance().registerResolveCallback(mParent, std::bind( &MaterialInstance::refreshOverwriteParam , this ));
+			mOverwriteMask = 0;
+		}
+
 		MaterialInstance(Material* parent)
 			:mParent(parent)
 		{
@@ -162,20 +241,8 @@ namespace RenderGL
 			mOverwriteMask = 0;
 		}
 
-		void setParameter(char const* name, RHITexture2D& texture) override { setParameterRHITexture(name, ParamType::eTexture2DRHI, &texture); }
-		void setParameter(char const* name, RHITexture3D& texture) override { setParameterRHITexture(name, ParamType::eTexture3DRHI, &texture); }
-		void setParameter(char const* name, RHITextureCube& texture) override { setParameterRHITexture(name, ParamType::eTextureCubeRHI, &texture); }
-		void setParameter(char const* name, RHITextureDepth& texture) override { setParameterRHITexture(name, ParamType::eTextureDepthRHI, &texture); }
 
-		void setParameter(char const* name, Texture2D& texture) override { setParameterT(name, ParamType::eTexture2D, &texture); }
-
-		void setParameter(char const* name, Matrix4 const& value) override { setParameterT(name, ParamType::eMatrix4, value); }
-		void setParameter(char const* name, Matrix3 const& value) override { setParameterT(name, ParamType::eMatrix3, value); }
-		void setParameter(char const* name, Vector4 const& value) override { setParameterT(name, ParamType::eVector4, value); }
-		void setParameter(char const* name, Vector3 const& value) override { setParameterT(name, ParamType::eVector3, value); }
-		void setParameter(char const* name, float value) override { setParameterT(name, ParamType::eScale, value); }
-
-		void doBindShaderParam(ShaderProgram& shader, uint32 skipMask) override
+		void doSetupShader(ShaderProgram& shader, uint32 skipMask) override
 		{
 			bindShaderParamInternal(shader, skipMask);
 			mParent->bindShaderParamInternal(shader, mOverwriteMask);
@@ -186,39 +253,28 @@ namespace RenderGL
 			return mParent->getMaster();
 		}
 
-		template< class T >
-		void setParameterT(char const* name, ParamType type, T const& value)
+		void postSetParameter(ParamSlot& slot) override
 		{
-			ParamSlot& slot = fetchParam(name, type);
-			if( slot.offset != -1 )
-			{
-				T& dateStorage = *reinterpret_cast<T*>(&mParamDataStorage[slot.offset]);
-				dateStorage = value;
-				upateOverwriteParam(slot);
-			}
+			updateOverwriteParam(slot);
 		}
 
-		void setParameterRHITexture(char const* name, ParamType type, RHITextureBase* value)
-		{
-			ParamSlot& slot = fetchParam(name, type);
-			if( slot.offset != -1 )
-			{
-				RHITextureBase*& dateStorage = *reinterpret_cast<RHITextureBase**>(&mParamDataStorage[slot.offset]);
-				dateStorage = value;
-				mTextures.push_back(value);
-				upateOverwriteParam(slot);
-			}
-		}
-
-		void upateOverwriteParam(ParamSlot& slot)
+		void updateOverwriteParam(ParamSlot& slot)
 		{
 			int index = mParent->findParam(slot);
 			if( index != -1 )
 				mOverwriteMask |= BIT(index);
 		}
 
+		void refreshOverwriteParam()
+		{
+			mOverwriteMask = 0;
+			for( ParamSlot& slot : mParams )
+			{
+				updateOverwriteParam(slot);
+			}
+		}
 		uint32  mOverwriteMask;
-		Material* mParent;
+		TLazyObjectPtr< Material > mParent;
 	};
 
 

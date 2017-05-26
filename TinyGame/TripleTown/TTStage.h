@@ -30,7 +30,7 @@ namespace TripleTown
 			mScene.setupLevel( mLevel );
 			onRestart( 0 , true );
 
-			WidgetUtility::createDevFrame();
+			WidgetUtility::CreateDevFrame();
 			return true; 
 		}
 		virtual void onEnd()

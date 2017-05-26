@@ -17,7 +17,7 @@
 
 namespace MV
 {
-	using namespace GL;
+	using namespace RenderGL;
 
 
 	struct BlockModel
@@ -120,7 +120,7 @@ namespace MV
 
 	protected:
 
-		GL::Camera mCamera;
+		RenderGL::Camera mCamera;
 		bool  bCameraView;
 
 		////////////////////////

@@ -82,7 +82,7 @@ namespace CAR
 		void   reserveTile( TileId id );
 		void   checkReservedTileToMix();
 
-		void   generatePlayerPlayOrder();
+		void   randomPlayerPlayOrder();
 		TileId generatePlayTile();
 
 		void   addFeaturePoints( FeatureBase& build , std::vector< FeatureScoreInfo >& featureControls , int numPlayer );

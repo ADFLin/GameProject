@@ -982,7 +982,7 @@ bool NetLevelStageMode::onKey(unsigned key, bool isDown)
 		if( beShow )
 		{
 			mMsgPanel->clearInputString();
-			mMsgPanel->setFocus();
+			mMsgPanel->makeFocus();
 		}
 		getGame()->getController().blockKeyEvent(beShow);
 		return false;

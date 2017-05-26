@@ -123,12 +123,14 @@ public:
 	virtual void dispatchWidgetEvent(int event, int id, GWidget* ui) override;
 
 protected:
+	//StageManager
 	StageBase*     createStage( StageID stageId );
 	GameStageMode* createGameStageMode(StageID stageId);
 	StageBase*     resolveChangeStageFail( FailReason reason );
 	bool           initializeStage(StageBase* stage);
 	void           postStageChange( StageBase* stage );
 	void           prevStageChange();
+	void           postStageEnd();
 
 	void  exportUserProfile();
 	void  importUserProfile();
@@ -137,7 +139,10 @@ public:
 	//GameLoop
 	bool  onInit();
 	void  onEnd();
-	long  onUpdate( long shouldTime );
+
+
+
+	long  onUpdate(long shouldTime);
 	void  onRender();
 	void  onIdle( long time );
 
@@ -155,6 +160,7 @@ public:
 private:
 	void               loadGamePackage();
 	void               render( float dframe );
+	void               cleanup();
 
 	ServerWorker*      createServer();
 	ClientWorker*      createClinet();

@@ -3,7 +3,7 @@
 #include "DeferredShadingCommon.glsl"
 #include "ViewParam.glsl"
 
-#ifdef PIXEL_SHADER
+#if PIXEL_SHADER
 
 in VSOutput vsOutput;
 
@@ -55,9 +55,9 @@ void GeneratePS()
 		occlusion += radiusCheck * ((checkSceneDepth * ( 1 + DepthBiasFactor.x) + DepthBiasFactor.y >= -sampleViewPos.z ) ? 0 : 1);
 
 	}
-	float ambientFactor = 1 - occlusion / KernelNum;
+	float ambientFactor = 1.0 - occlusion / KernelNum;
 
-	gl_FragData[0] = float4(ambientFactor, ambientFactor, ambientFactor, 1 );
+	gl_FragData[0] = float4(ambientFactor, ambientFactor, ambientFactor, 1.0 );
 
 }
 
@@ -101,10 +101,11 @@ float3 AmbientColor =  1 * float3(1,1,1);
 
 void AmbientPS()
 {
-	vec2 ScreenUVs = vsOutput.UVs;
+	float2 ScreenUVs = vsOutput.UVs;
 	GBufferData GBuffer = GetGBufferData(ScreenUVs);
 	float4 outColor;
-	outColor.rgb = GBuffer.diffuseColor * AmbientColor * texture2D(TextureSSAO, ScreenUVs).r;
+	outColor.rgb = ( GBuffer.diffuseColor * AmbientColor ) * texture2D(TextureSSAO, ScreenUVs).r;
+	//outColor.rgb = GBuffer.diffuseColor * AmbientColor;
 	outColor.a = 1;
 	gl_FragColor = outColor;
 	//gl_FragColor = 0;

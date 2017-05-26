@@ -30,7 +30,7 @@ struct VSOutput
 #endif
 };
 
-#ifdef VERTEX_SHADER
+#if VERTEX_SHADER
 
 void MainVS()
 {
@@ -69,7 +69,7 @@ void MainVS()
 
 #endif //VERTEX_SHADER
 
-#ifdef PIXEL_SHADER
+#if PIXEL_SHADER
 
 float getDepth( in vec2 T )
 {
@@ -196,14 +196,13 @@ void MainPS()
 
 
 	POMParameters pomParams;
-	pomParams.dispTexture = texNormal;
 	pomParams.dispMask = float4(0, 0, 0, 1);
 	pomParams.dispBias = 0;
 	pomParams.parallaxScale = parallaxScale;
 	pomParams.iteratorParams = float2(30, 105);
 	pomParams.shadowIteratorParams = float2(15, 40);
 	
-	POMOutput pomOutput = POMapping(pomParams, E, gl_TexCoord[0].st);
+	POMOutput pomOutput = POMapping(texNormal , pomParams, E, gl_TexCoord[0].st);
 	float parallaxDepth = pomOutput.depth;
 	vec2 T = pomOutput.UVs;
 
@@ -222,7 +221,7 @@ void MainPS()
 	}
 
 #if PARALLAX_DRAW_SHADOW
-	float shadowMultiplier = CalcPOMSoftShadowMultiplier( pomParams , L , T , parallaxDepth - ShadowBias );
+	float shadowMultiplier = CalcPOMSoftShadowMultiplier(texNormal, pomParams , L , T , parallaxDepth - ShadowBias );
 	color += pow( shadowMultiplier , 10.0 ) * ( diff + spec ) * vec3( 0.6 , 0.6 , 0.6 );
 #else
 	color += ( diff + spec ) * vec3( 0.6 , 0.6 , 0.6 );

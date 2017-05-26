@@ -1,12 +1,12 @@
 #include "ViewParam.glsl"
 
-struct VertexFactoryParameters
+struct PrimitiveParameters
 {
 	mat4 localToWorld;
 	mat4 worldToLocal;
 };
 
-uniform VertexFactoryParameters VertexFactoryParams = VertexFactoryParameters( 
+uniform PrimitiveParameters Primitive = PrimitiveParameters( 
    mat4( 1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1 ) ,
    mat4( 1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1 ) );
 
@@ -16,7 +16,7 @@ uniform vec3 lightDir = vec3( 0.4 , 0.5 , 0.8 );
 varying vec3 outColor;
 varying vec3 normal;
 
-#ifdef VERTEX_SHADER
+#if VERTEX_SHADER
 
 void MainVS()
 {
@@ -28,7 +28,7 @@ void MainVS()
 
 #endif //VERTEX_SHADER
 
-#ifdef PIXEL_SHADER
+#if PIXEL_SHADER
 
 void MainPS() 
 {

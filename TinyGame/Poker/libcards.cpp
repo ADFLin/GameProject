@@ -25,7 +25,7 @@ bool CardLib::InitCardsDll32()
 	if(GetVersion() >= 0x80000000)
 		return false;
 
-	if ( ( hCardDll = ::LoadLibrary("cards.dll") ) == 0 ) 
+	if ( ( hCardDll = ::LoadLibraryA("cards.dll") ) == 0 ) 
 		return false;
 
 	readProcAddress( hCardDll , cdtInit , "cdtInit" );

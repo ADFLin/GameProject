@@ -14,7 +14,7 @@
 
 namespace MV
 {
-	using namespace GL;
+	using namespace RenderGL;
 
 	struct MeshInfo
 	{
@@ -53,7 +53,7 @@ namespace MV
 
 	bool RenderEngine::init()
 	{
-		if ( !ShaderManager::getInstance().loadFile(mEffect , "Shader/MVPiece") )
+		if ( !ShaderManager::getInstance().loadFileSimple(mEffect , "Shader/Game/MVPiece") )
 			return false;
 
 		locDirX = mEffect.getParamLoc( "dirX" );

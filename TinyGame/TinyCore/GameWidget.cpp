@@ -113,7 +113,7 @@ GWidget::~GWidget()
 
 void GWidget::sendEvent( int eventID )
 {
-	GUI::Core* ui   = this;
+	GUI::Core* ui = this;
 	while ( ui != nullptr )
 	{
 		if ( ui->isTop())
@@ -686,7 +686,7 @@ void GSlider::showValue()
 void GSlider::onRender()
 {
 	IGraphics2D& g = Global::getIGraphics2D();
-	gRenderer.drawSilder( g , getWorldPos() , getSize() , m_tipUI->getWorldPos() , TipSize );
+	gRenderer.drawSilder( g , getWorldPos() , getSize() , getTipWidget()->getWorldPos() , TipSize );
 }
 
 GCheckBox::GCheckBox(int id , Vec2i const& pos , Vec2i const& size , GWidget* parent) 

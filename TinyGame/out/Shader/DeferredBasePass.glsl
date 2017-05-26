@@ -1,9 +1,9 @@
 #include "DeferredShadingCommon.glsl"
 #include "MaterialProcess.glsl"
 #include "ViewParam.glsl"
-#include "VertexFactory.glsl"
+#include "VertexProcess.glsl"
 
-#ifdef VERTEX_SHADER
+#if VERTEX_SHADER
 
 out VertexFactoryOutputVS VFOutputVS;
 void BassPassVS()
@@ -21,23 +21,25 @@ void BassPassVS()
 
 #endif //VERTEX_SHADER
 
-#ifdef PIXEL_SHADER
+#if PIXEL_SHADER
+
+#define VFInputPS VFOutputVS
 
 in VertexFactoryIutputPS VFOutputVS;
 
 void BasePassPS()
 {
-	VertexFactoryIntermediatesPS intermediates = GetVertexFactoryIntermediatesPS( VFOutputVS );
 
 	MaterialInputPS materialInput = InitMaterialInputPS();
-	MaterialParametersPS materialParameters = GetMaterialParameterPS( VFOutputVS, intermediates );
+	MaterialParametersPS materialParameters = GetMaterialParameterPS(VFInputPS);
 
 	CalcMaterialParameters(materialInput , materialParameters);
 
 	//float4 color = float4( materialParameters.vectexColor * 0.1 , 1 );
 	float4 color = float4(0.0);
-	color.rgb += materialInput.emissiveColor;
-	color.a = 1;
+	//color.rgb += materialInput.emissiveColor;
+	color.a = 1.0;
+
 
 	GBufferData GBuffer;
 	GBuffer.worldPos = GetMaterialWorldPositionAndCheckDepthOffset(materialInput, materialParameters);

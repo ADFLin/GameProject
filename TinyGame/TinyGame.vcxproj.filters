@@ -70,6 +70,18 @@
     <Filter Include="RenderGL">
       <UniqueIdentifier>{a66ac7cc-a22f-4d19-b682-c9e03b251cf5}</UniqueIdentifier>
     </Filter>
+    <Filter Include="OtherLib\Chaiscript">
+      <UniqueIdentifier>{cfa139e1-645b-45db-b326-fc4e88816b02}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="RenderGL\Script">
+      <UniqueIdentifier>{198e4d1a-e8db-4058-8af1-8c13e3d0a4db}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="MiscTest">
+      <UniqueIdentifier>{2ea4ee9d-b0aa-40ed-b988-80bd4e6bc739}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shader\Game">
+      <UniqueIdentifier>{ee644861-e77a-4284-98fc-54cb6cbc000b}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Bsp2D.cpp">
@@ -250,7 +262,34 @@
       <Filter>RenderGL</Filter>
     </ClCompile>
     <ClCompile Include="RenderGL\ShaderCompiler.cpp">
-      <Filter>Source</Filter>
+      <Filter>RenderGL</Filter>
+    </ClCompile>
+    <ClCompile Include="RenderGL\Scene.cpp">
+      <Filter>RenderGL</Filter>
+    </ClCompile>
+    <ClCompile Include="RenderGL\RenderContext.cpp">
+      <Filter>RenderGL</Filter>
+    </ClCompile>
+    <ClCompile Include="RenderGL\PrimitiveBatch.cpp">
+      <Filter>RenderGL</Filter>
+    </ClCompile>
+    <ClCompile Include="RenderGL\LazyObject.cpp">
+      <Filter>RenderGL</Filter>
+    </ClCompile>
+    <ClCompile Include="RenderGL\SceneScript.cpp">
+      <Filter>RenderGL</Filter>
+    </ClCompile>
+    <ClCompile Include="RenderGL\SceneObject.cpp">
+      <Filter>RenderGL</Filter>
+    </ClCompile>
+    <ClCompile Include="MiscTest\MatrixTest.cpp">
+      <Filter>MiscTest</Filter>
+    </ClCompile>
+    <ClCompile Include="RenderGL\VertexFactory.cpp">
+      <Filter>RenderGL</Filter>
+    </ClCompile>
+    <ClCompile Include="Stage\SoftwareRenderStage.cpp">
+      <Filter>Stage</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -497,6 +536,165 @@
     <ClInclude Include="RenderGL\GLDrawUtility.h">
       <Filter>RenderGL</Filter>
     </ClInclude>
+    <ClInclude Include="RenderGL\RenderContext.h">
+      <Filter>RenderGL</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OtherLib\chaiscript\dispatchkit\any.hpp">
+      <Filter>OtherLib\Chaiscript</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OtherLib\chaiscript\dispatchkit\bad_boxed_cast.hpp">
+      <Filter>OtherLib\Chaiscript</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OtherLib\chaiscript\dispatchkit\bind_first.hpp">
+      <Filter>OtherLib\Chaiscript</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OtherLib\chaiscript\dispatchkit\bootstrap.hpp">
+      <Filter>OtherLib\Chaiscript</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OtherLib\chaiscript\dispatchkit\bootstrap_stl.hpp">
+      <Filter>OtherLib\Chaiscript</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OtherLib\chaiscript\dispatchkit\boxed_cast.hpp">
+      <Filter>OtherLib\Chaiscript</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OtherLib\chaiscript\dispatchkit\boxed_cast_helper.hpp">
+      <Filter>OtherLib\Chaiscript</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OtherLib\chaiscript\dispatchkit\boxed_number.hpp">
+      <Filter>OtherLib\Chaiscript</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OtherLib\chaiscript\dispatchkit\boxed_value.hpp">
+      <Filter>OtherLib\Chaiscript</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OtherLib\chaiscript\dispatchkit\callable_traits.hpp">
+      <Filter>OtherLib\Chaiscript</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OtherLib\chaiscript\chaiscript.hpp">
+      <Filter>OtherLib\Chaiscript</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OtherLib\chaiscript\language\chaiscript_algebraic.hpp">
+      <Filter>OtherLib\Chaiscript</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OtherLib\chaiscript\chaiscript_basic.hpp">
+      <Filter>OtherLib\Chaiscript</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OtherLib\chaiscript\language\chaiscript_common.hpp">
+      <Filter>OtherLib\Chaiscript</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OtherLib\chaiscript\chaiscript_defines.hpp">
+      <Filter>OtherLib\Chaiscript</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OtherLib\chaiscript\language\chaiscript_engine.hpp">
+      <Filter>OtherLib\Chaiscript</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OtherLib\chaiscript\language\chaiscript_eval.hpp">
+      <Filter>OtherLib\Chaiscript</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OtherLib\chaiscript\language\chaiscript_optimizer.hpp">
+      <Filter>OtherLib\Chaiscript</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OtherLib\chaiscript\language\chaiscript_parser.hpp">
+      <Filter>OtherLib\Chaiscript</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OtherLib\chaiscript\language\chaiscript_posix.hpp">
+      <Filter>OtherLib\Chaiscript</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OtherLib\chaiscript\language\chaiscript_prelude.hpp">
+      <Filter>OtherLib\Chaiscript</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OtherLib\chaiscript\language\chaiscript_prelude_docs.hpp">
+      <Filter>OtherLib\Chaiscript</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OtherLib\chaiscript\chaiscript_stdlib.hpp">
+      <Filter>OtherLib\Chaiscript</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OtherLib\chaiscript\chaiscript_threading.hpp">
+      <Filter>OtherLib\Chaiscript</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OtherLib\chaiscript\language\chaiscript_tracer.hpp">
+      <Filter>OtherLib\Chaiscript</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OtherLib\chaiscript\language\chaiscript_unknown.hpp">
+      <Filter>OtherLib\Chaiscript</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OtherLib\chaiscript\language\chaiscript_windows.hpp">
+      <Filter>OtherLib\Chaiscript</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OtherLib\chaiscript\dispatchkit\dispatchkit.hpp">
+      <Filter>OtherLib\Chaiscript</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OtherLib\chaiscript\dispatchkit\dynamic_object.hpp">
+      <Filter>OtherLib\Chaiscript</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OtherLib\chaiscript\dispatchkit\dynamic_object_detail.hpp">
+      <Filter>OtherLib\Chaiscript</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OtherLib\chaiscript\dispatchkit\exception_specification.hpp">
+      <Filter>OtherLib\Chaiscript</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OtherLib\chaiscript\utility\fnv1a.hpp">
+      <Filter>OtherLib\Chaiscript</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OtherLib\chaiscript\dispatchkit\function_call.hpp">
+      <Filter>OtherLib\Chaiscript</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OtherLib\chaiscript\dispatchkit\function_call_detail.hpp">
+      <Filter>OtherLib\Chaiscript</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OtherLib\chaiscript\dispatchkit\handle_return.hpp">
+      <Filter>OtherLib\Chaiscript</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OtherLib\chaiscript\utility\json.hpp">
+      <Filter>OtherLib\Chaiscript</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OtherLib\chaiscript\utility\json_wrap.hpp">
+      <Filter>OtherLib\Chaiscript</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OtherLib\chaiscript\dispatchkit\operators.hpp">
+      <Filter>OtherLib\Chaiscript</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OtherLib\chaiscript\dispatchkit\proxy_constructors.hpp">
+      <Filter>OtherLib\Chaiscript</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OtherLib\chaiscript\dispatchkit\proxy_functions.hpp">
+      <Filter>OtherLib\Chaiscript</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OtherLib\chaiscript\dispatchkit\proxy_functions_detail.hpp">
+      <Filter>OtherLib\Chaiscript</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OtherLib\chaiscript\dispatchkit\register_function.hpp">
+      <Filter>OtherLib\Chaiscript</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OtherLib\chaiscript\dispatchkit\short_alloc.hpp">
+      <Filter>OtherLib\Chaiscript</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OtherLib\chaiscript\utility\static_string.hpp">
+      <Filter>OtherLib\Chaiscript</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OtherLib\chaiscript\utility\utility.hpp">
+      <Filter>OtherLib\Chaiscript</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OtherLib\chaiscript\dispatchkit\type_info.hpp">
+      <Filter>OtherLib\Chaiscript</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OtherLib\chaiscript\dispatchkit\type_conversions.hpp">
+      <Filter>OtherLib\Chaiscript</Filter>
+    </ClInclude>
+    <ClInclude Include="RenderGL\SceneScript.h">
+      <Filter>RenderGL</Filter>
+    </ClInclude>
+    <ClInclude Include="RenderGL\SceneObject.h">
+      <Filter>RenderGL</Filter>
+    </ClInclude>
+    <ClInclude Include="RenderGL\BaseType.h">
+      <Filter>RenderGL</Filter>
+    </ClInclude>
+    <ClInclude Include="RenderGL\VertexFactory.h">
+      <Filter>RenderGL</Filter>
+    </ClInclude>
+    <ClInclude Include="RenderGL\FrameGraph.h">
+      <Filter>RenderGL</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Image Include="Poker\cards.bmp">
@@ -509,27 +707,6 @@
     </ResourceCompile>
   </ItemGroup>
   <ItemGroup>
-    <None Include="out\Shader\BumpFS.glsl">
-      <Filter>Shader</Filter>
-    </None>
-    <None Include="out\Shader\BumpVS.glsl">
-      <Filter>Shader</Filter>
-    </None>
-    <None Include="out\Shader\Light.glsl">
-      <Filter>Shader</Filter>
-    </None>
-    <None Include="out\Shader\MVPiece.glsl">
-      <Filter>Shader</Filter>
-    </None>
-    <None Include="out\Shader\Parallax.glsl">
-      <Filter>Shader</Filter>
-    </None>
-    <None Include="out\Shader\PlanetSurface.glsl">
-      <Filter>Shader</Filter>
-    </None>
-    <None Include="out\Shader\PongShaderVS.glsl">
-      <Filter>Shader</Filter>
-    </None>
     <None Include="out\Shader\Reflection.glsl">
       <Filter>Shader</Filter>
     </None>
@@ -537,15 +714,6 @@
       <Filter>Shader</Filter>
     </None>
     <None Include="out\Shader\ShadowMap.glsl">
-      <Filter>Shader</Filter>
-    </None>
-    <None Include="out\Shader\Simple.glsl">
-      <Filter>Shader</Filter>
-    </None>
-    <None Include="out\Shader\Skin.glsl">
-      <Filter>Shader</Filter>
-    </None>
-    <None Include="out\Shader\Sphere.glsl">
       <Filter>Shader</Filter>
     </None>
     <None Include="out\Shader\Water.glsl">
@@ -581,9 +749,6 @@
     </None>
     <None Include="out\Shader\Material\MaterialTemplate.glsl">
       <Filter>Shader\Material</Filter>
-    </None>
-    <None Include="out\Shader\VertexFactory.glsl">
-      <Filter>Shader</Filter>
     </None>
     <None Include="out\Shader\MaterialProcess.glsl">
       <Filter>Shader</Filter>
@@ -643,6 +808,72 @@
       <Filter>Shader</Filter>
     </None>
     <None Include="out\Shader\SimpleBasePass.glsl">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="out\Shader\SimpleSprite.glsl">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="out\Shader\OITRender.glsl">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="out\Shader\ShaderDefine.glsl">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="RenderGL\PrimitiveBatch.h">
+      <Filter>RenderGL</Filter>
+    </None>
+    <None Include="RenderGL\LazyObject.h">
+      <Filter>RenderGL</Filter>
+    </None>
+    <None Include="out\Script\SceneA.chai">
+      <Filter>RenderGL\Script</Filter>
+    </None>
+    <None Include="out\Shader\SimpleElement.glsl">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="out\Shader\VertexProcess.glsl">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="out\Shader\Game\BumpPS.glsl">
+      <Filter>Shader\Game</Filter>
+    </None>
+    <None Include="out\Shader\Game\BumpVS.glsl">
+      <Filter>Shader\Game</Filter>
+    </None>
+    <None Include="out\Shader\Game\FS.glsl">
+      <Filter>Shader\Game</Filter>
+    </None>
+    <None Include="out\Shader\Game\Light.glsl">
+      <Filter>Shader\Game</Filter>
+    </None>
+    <None Include="out\Shader\Game\MVPiece.glsl">
+      <Filter>Shader\Game</Filter>
+    </None>
+    <None Include="out\Shader\Game\Parallax.glsl">
+      <Filter>Shader\Game</Filter>
+    </None>
+    <None Include="out\Shader\Game\Sphere.glsl">
+      <Filter>Shader\Game</Filter>
+    </None>
+    <None Include="out\Shader\Game\Simple.glsl">
+      <Filter>Shader\Game</Filter>
+    </None>
+    <None Include="out\Shader\Game\PlanetSurface.glsl">
+      <Filter>Shader\Game</Filter>
+    </None>
+    <None Include="out\Shader\Game\PongShader.glsl">
+      <Filter>Shader\Game</Filter>
+    </None>
+    <None Include="out\Shader\LocalVertexFactory.glsl">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="out\Shader\PrimitiveParam.glsl">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="out\Shader\GpuSkinCommon.glsl">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="out\Shader\GPUSkinVertexFactory.glsl">
       <Filter>Shader</Filter>
     </None>
   </ItemGroup>

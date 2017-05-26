@@ -1,7 +1,7 @@
 #pragma once
 #include "Common.glsl"
 
-struct ViewData
+struct ViewParameters
 {
 	mat4   worldToView;
 	mat4   worldToClip;
@@ -17,7 +17,7 @@ struct ViewData
 	float  realTime;
 };
 
-uniform ViewData View;
+uniform ViewParameters View;
 uniform sampler2D FrameDepthTexture;
 
 

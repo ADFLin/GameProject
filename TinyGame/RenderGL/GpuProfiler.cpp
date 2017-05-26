@@ -2,7 +2,7 @@
 
 #include "FixString.h"
 
-namespace GL
+namespace RenderGL
 {
 
 	void GLGpuTiming::start()
@@ -49,17 +49,44 @@ namespace GL
 		return false;
 	}
 
+	GpuProfiler::GpuProfiler()
+	{
+		numSampleUsed = 0;
+	}
+
+	void GpuProfiler::beginFrame()
+	{
+		numSampleUsed = 0;
+		mCurLevel = 0;
+	}
+
+	void GpuProfiler::endFrame()
+	{
+		for( int i = 0; i < numSampleUsed; ++i )
+		{
+			GpuProfileSample* sample = mSamples[i].get();
+			uint64 time;
+			while( !sample->timing.getTime(time) )
+			{
+
+
+			}
+			sample->time = time / 1000000.0;
+		}
+	}
+
 	GpuProfileSample* GpuProfiler::startSample(char const* name)
 	{
 		GpuProfileSample* sample;
 		if( numSampleUsed >= mSamples.size() )
 		{
-			sample = new GpuProfileSample;
-			mSamples.push_back(sample);
+			mSamples.push_back(std::make_unique< GpuProfileSample>());
+			sample = mSamples.back().get();
+			
 		}
 		else
 		{
-			sample = mSamples[numSampleUsed];
+			sample = mSamples[numSampleUsed].get();
 		}
 		sample->name = name;
 		sample->level = mCurLevel;

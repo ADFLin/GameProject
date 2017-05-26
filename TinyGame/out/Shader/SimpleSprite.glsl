@@ -1,0 +1,96 @@
+#include "Common.glsl"
+#include "ViewParam.glsl"
+
+struct OutputVSParam
+{
+	float3 color;
+	float  size;
+};
+
+#if VERTEX_SHADER
+
+layout(location = ATTRIBUTE0) in float3 InPos;
+layout(location = ATTRIBUTE1) in float3 InColor;
+layout(location = ATTRIBUTE2) in float3 InParam;
+
+out OutputVSParam OutputVS;
+void MainVS()
+{
+	gl_Position = float4(InPos, 1.0);
+	OutputVS.color = InColor;
+	OutputVS.size = InParam.x;
+}
+
+#endif //VERTEX_SHADER
+
+struct OutputGSParam
+{
+	float3 color;
+	float2 UVs;
+};
+
+
+#if GEOMETRY_SHADER
+
+in OutputVSParam OutputVS[];
+out OutputGSParam OutputGS;
+
+uniform mat4 ViewMatrix[6];
+uniform mat4 ViewProjectMatrix;
+
+layout(points, invocations = 1) in;
+layout(triangle_strip, max_vertices = 24) out;
+void MainGS()
+{
+	float3 color = OutputVS[0].color;
+
+	for( int face = 0 ; face < 6 ; ++face )
+	{
+		float4 pos = ViewMatrix[face] * float4(gl_in[0].gl_Position.xyz, 1);
+		//float4 pos = View.worldToView * float4(gl_in[0].gl_Position.xyz, 1);
+		//float size = (aa + 1)  * 0.05 * OutputVS[0].size;
+		float size =  0.05 * OutputVS[0].size;
+		gl_Layer = face;
+
+		gl_Position = ViewProjectMatrix * float4(pos.xyz + float3(size, size, 0.0), 1.0);
+
+		OutputGS.color = color;
+		OutputGS.UVs = float2(1, 1);
+		EmitVertex();
+
+		gl_Position = ViewProjectMatrix * float4(pos.xyz + float3(-size, size, 0.0), 1.0);
+		OutputGS.color = color;
+		OutputGS.UVs = float2(0, 1);
+		EmitVertex();
+
+		gl_Position = ViewProjectMatrix * float4(pos.xyz + float3(size, -size, 0.0), 1.0);
+		OutputGS.color = color;
+		OutputGS.UVs = float2(1, 0);
+		EmitVertex();
+
+		gl_Position = ViewProjectMatrix * float4(pos.xyz + float3(-size, -size, 0.0), 1.0);
+		OutputGS.color = color;
+		OutputGS.UVs = float2(0, 0);
+		EmitVertex();
+
+		EndPrimitive();
+	}
+
+
+}
+
+#endif //GEOMETRY_SHADER
+
+#if PIXEL_SHADER
+
+layout(location = 0) out vec4 OutColor;
+
+in OutputGSParam OutputGS;
+
+uniform sampler2D BaseTexture;
+void MainPS()
+{
+	OutColor =  float4(texture(BaseTexture, OutputGS.UVs).rgb * OutputGS.color, 1.0);
+}
+
+#endif //PIXEL_SHADER

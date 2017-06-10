@@ -53,7 +53,7 @@ private:
 		OBJ* obj;
 	};
 
-	bool  empty(){  mPtr != 0;  }
+	bool  empty(){  return mPtr != 0;  }
 	void  clear(){  mPtr = NULL;  }
 	union
 	{
@@ -77,8 +77,8 @@ private:
 //};
 
 #undef DelegateN
-#undef PARAM_ARG 
+#undef PARAM_ARG
 #undef TEMP_ARG
 #undef TEMP_ARG2
-#undef SIG_ARG   
-#undef FUN_ARG 
+#undef SIG_ARG
+#undef FUN_ARG

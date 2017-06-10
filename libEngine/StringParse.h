@@ -4,9 +4,12 @@
 
 #include <string>
 #include <cassert>
+#include <cstring>
+#include <cstdlib>
 
 #include "IntegerType.h"
 #include "EnumCommon.h"
+#include "MemorySecurity.h"
 
 struct TokenString
 {
@@ -90,7 +93,7 @@ public:
 		eDelimsType = 2,
 	};
 	static TokenType StringToken(char const*& inoutStr, DelimsTable const& table, TokenString& outToken);
-	
+
 	static TokenType StringToken(char const*& inoutStr, char const* dropDelims, char const* stopDelims, TokenString& outToken);
 	static bool      StringToken(char const*& inoutStr, char const* dropDelims, TokenString& outToken);
 	static TokenString StringTokenLine(char const*& inoutStr);
@@ -114,7 +117,7 @@ public:
 
 private:
 	static char const* TrySkipToSectionEnd(char const* str, char c);
-	
+
 };
 
 
@@ -138,7 +141,7 @@ public:
 class TokenException : public std::exception
 {
 public:
-	TokenException(char const* what) :std::exception(what) {}
+	EXCEPTION_CONSTRUCTOR_WITH_WHAT( TokenException )
 };
 
 

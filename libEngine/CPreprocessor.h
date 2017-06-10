@@ -106,8 +106,7 @@ namespace CPP
 	class SyntaxError : public std::exception
 	{
 	public:
-		SyntaxError( char const* str ):
-			std::exception( str ){}
+		EXCEPTION_CONSTRUCTOR_WITH_WHAT( SyntaxError )
 	};
 
 	enum class Command

@@ -6,7 +6,8 @@
 #include <cassert>
 
 #include "Visitor.h"
-namespace ntu
+
+namespace BT
 {
 	class BTNode;
 	class BTTransform;

@@ -1,7 +1,8 @@
 #ifndef FunCallback_h__
 #define FunCallback_h__
 
-namespace detail{
+namespace detail
+{
 
 
 template< class T >
@@ -38,19 +39,19 @@ class BaseFunType{};
 template< class FunSig >
 struct FunTraits;
 
-template < class RT > 
+template < class RT >
 struct FunTraits< RT (*)() >
 {
 	typedef BaseFunType FunType;
 	enum { NumParam = 0 };
 	static char const** getParam()
-	{ 
+	{
 		return NULL;
 	}
 
 };
 
-template < class RT , class P1 > 
+template < class RT , class P1 >
 struct FunTraits< RT (*)(P1) >
 {
 	typedef BaseFunType FunType;
@@ -58,16 +59,16 @@ struct FunTraits< RT (*)(P1) >
 	typedef typename TypeTraits<P1>::BaseType Param1;
 
 	static char const** getParam()
-	{ 
-		static char const* s_param[] = 
-		{ 
+	{
+		static char const* s_param[] =
+		{
 			TypeToParam<Param1>::getTypeParam() ,
 		};
-		return &s_param[0]; 
+		return &s_param[0];
 	}
 };
 
-template < class RT , class P1 , class P2 > 
+template < class RT , class P1 , class P2 >
 struct FunTraits< RT (*)(P1 , P2) >
 {
 	typedef BaseFunType FunType;
@@ -76,19 +77,19 @@ struct FunTraits< RT (*)(P1 , P2) >
 	typedef typename TypeTraits<P2>::BaseType Param2;
 
 	static char const** getParam()
-	{ 
-		static char const* s_param[] = 
-		{ 
+	{
+		static char const* s_param[] =
+		{
 			TypeToParam<Param1>::getTypeParam() ,
 			TypeToParam<Param2>::getTypeParam()
 		};
-		return &s_param[0]; 
+		return &s_param[0];
 	}
 };
 
 
 
-template < class RT , class P1 , class P2 , class P3 > 
+template < class RT , class P1 , class P2 , class P3 >
 struct FunTraits< RT (*)(P1 , P2 , P3) >
 {
 	typedef BaseFunType FunType;
@@ -98,30 +99,30 @@ struct FunTraits< RT (*)(P1 , P2 , P3) >
 	typedef typename TypeTraits<P3>::BaseType Param3;
 
 	static char const** getParam()
-	{ 
-		static char const* s_param[] = 
-		{ 
+	{
+		static char const* s_param[] =
+		{
 			TypeToParam<Param1>::getTypeParam() ,
 			TypeToParam<Param2>::getTypeParam() ,
 			TypeToParam<Param3>::getTypeParam()
-		}
-		return &s_param[0]; 
+		};
+		return &s_param[0];
 	}
 };
 
 
-template < class RT , class OBJ > 
+template < class RT , class OBJ >
 struct FunTraits< RT (OBJ::*)() >
 {
 	typedef MemFunType FunType;
 	enum { NumParam = 0 };
 	typedef OBJ ObjType;
 	static char const** getParam()
-	{ 
+	{
 		return NULL;
 	}
 };
-template < class RT , class OBJ , class P1 > 
+template < class RT , class OBJ , class P1 >
 struct FunTraits< RT (OBJ::*)(P1) >
 {
 	typedef MemFunType FunType;
@@ -132,16 +133,16 @@ struct FunTraits< RT (OBJ::*)(P1) >
 	typedef typename TypeTraits<P1>::BaseType Param1;
 
 	static char const** getParam()
-	{ 
-		static char const* s_param[] = 
-		{ 
+	{
+		static char const* s_param[] =
+		{
 			TypeToParam<Param1>::getTypeParam()
 		};
-		return &s_param[0]; 
+		return &s_param[0];
 	}
 };
 
-template < class RT , class OBJ , class P1 , class P2 > 
+template < class RT , class OBJ , class P1 , class P2 >
 struct FunTraits< RT (OBJ::*)(P1 , P2) >
 {
 	typedef MemFunType FunType;
@@ -152,18 +153,18 @@ struct FunTraits< RT (OBJ::*)(P1 , P2) >
 	typedef typename TypeTraits<P2>::BaseType Param2;
 
 	static char const** getParam()
-	{ 
-		static char const* s_param[] = 
-		{ 
+	{
+		static char const* s_param[] =
+		{
 			TypeToParam<Param1>::getTypeParam() ,
-			TypeToParam<Param2>::getTypeParam() 
+			TypeToParam<Param2>::getTypeParam()
 		};
-		return &s_param[0]; 
+		return &s_param[0];
 	}
 };
 
 
-template < class RT , class OBJ , class P1 , class P2 , class P3 > 
+template < class RT , class OBJ , class P1 , class P2 , class P3 >
 struct FunTraits< RT (OBJ::*)(P1 , P2 , P3) >
 {
 	typedef MemFunType FunType;
@@ -175,18 +176,18 @@ struct FunTraits< RT (OBJ::*)(P1 , P2 , P3) >
 	typedef typename TypeTraits<P3>::BaseType Param3;
 
 	static char const** getParam()
-	{ 
-		static char const* s_param[] = 
-		{ 
+	{
+		static char const* s_param[] =
+		{
 			TypeToParam<Param1>::getTypeParam() ,
 			TypeToParam<Param2>::getTypeParam() ,
 			TypeToParam<Param3>::getTypeParam()
 		};
-		return &s_param[0]; 
+		return &s_param[0];
 	}
 };
 
-template < class RT , class OBJ , class P1 , class P2 , class P3 ,class P4 > 
+template < class RT , class OBJ , class P1 , class P2 , class P3 ,class P4 >
 struct FunTraits< RT (OBJ::*)(P1 , P2 , P3 , P4) >
 {
 	typedef MemFunType FunType;
@@ -199,19 +200,19 @@ struct FunTraits< RT (OBJ::*)(P1 , P2 , P3 , P4) >
 	typedef typename TypeTraits<P4>::BaseType Param4;
 
 	static char const** getParam()
-	{ 
-		static char const* s_param[] = 
-		{ 
+	{
+		static char const* s_param[] =
+		{
 			TypeToParam<Param1>::getTypeParam() ,
 			TypeToParam<Param2>::getTypeParam() ,
 			TypeToParam<Param3>::getTypeParam() ,
 			TypeToParam<Param4>::getTypeParam()
 		};
-		return &s_param[0]; 
+		return &s_param[0];
 	}
 };
 
-template < class FunSig , int PN > 
+template < class FunSig , int PN >
 struct FunParamHelper
 {
 };
@@ -271,7 +272,7 @@ struct FunCallback< FunSig , 2 >
 		:p1(_p1),p2(_p2){}
 
 	FunCallback( void** data )
-		:p1( *((P1*)data[0]) ) 
+		:p1( *((P1*)data[0]) )
 		,p2( *((P2*)data[1]) ){}
 
 	void exec( FunSig fun ){ fun(p1,p2); }
@@ -293,7 +294,7 @@ struct FunCallback< FunSig , 3 >
 		:p1(_p1),p2(_p2),p3(_p3){}
 
 	FunCallback( void** data )
-		:p1( *((P1*)data[0]) ) 
+		:p1( *((P1*)data[0]) )
 		,p2( *((P2*)data[1]) )
 		,p3( *((P3*)data[2]) ){}
 
@@ -316,9 +317,9 @@ struct FunCallback< FunSig , 4 >
 		:p1(_p1),p2(_p2),p3(_p3),p4(_p4){}
 
 	FunCallback( void** data )
-		:p1( *((P1*)data[0]) ) 
+		:p1( *((P1*)data[0]) )
 		,p2( *((P2*)data[1]) )
-		,p3( *((P3*)data[2]) ) 
+		,p3( *((P3*)data[2]) )
 		,p4( *((P4*)data[3]) ) {}
 
 	void exec( FunSig fun ){ fun(p1,p2,p3,p4); }
@@ -360,7 +361,7 @@ struct FunCallbackHelper
 template< class FunSig , class T >
 inline void execCallbackFun( FunSig fun , T* obj , void** data )
 {
-	detail::FunCallbackHelper< FunSig >::Type callback( data );
+	typename detail::FunCallbackHelper< FunSig >::Type callback( data );
 	callback.exec( fun , obj );
 }
 
@@ -368,14 +369,15 @@ inline void execCallbackFun( FunSig fun , T* obj , void** data )
 template< class FunSig >
 inline void execCallbackFun( FunSig fun , void** data )
 {
-	detail::FunCallbackHelper< FunSig >::Type callback( data );
+	typename detail::FunCallbackHelper< FunSig >::Type callback( data );
 	callback.exec( fun );
 }
 
 
 #define DEF_TYPE_PARAM( type , mapName ) \
+namespace detail {\
 	template<>\
-	struct detail::TypeToParam< type >\
+	struct TypeToParam< type >\
 	{ \
 		enum { size = sizeof( type ) };\
 		static char const*  getTypeParam(){ return mapName; }\
@@ -384,7 +386,8 @@ inline void execCallbackFun( FunSig fun , void** data )
 			static char const* s_param[] = { getTypeParam() };\
 			return &s_param[0]; \
 		}\
-	};
+	};\
+}
 
 
 DEF_TYPE_PARAM( bool          , "%d" )

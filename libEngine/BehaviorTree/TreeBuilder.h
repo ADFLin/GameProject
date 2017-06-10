@@ -4,7 +4,7 @@
 #include "BTNode.h"
 #include "NodeExpression.h"
 
-namespace ntu
+namespace BT
 {
 	class TreeBuilder
 	{
@@ -48,7 +48,7 @@ namespace ntu
 	NodeBuilder< typename ConditionTransform< ConstVarRef< Var , VAR > , CmpOp  >::NodeType >
 	condition()
 	{
-		typedef ConditionTransform< ConstVarRef< Var , VAR > , CmpOp  >::NodeType Node;
+		typedef typename ConditionTransform< ConstVarRef< Var , VAR > , CmpOp  >::NodeType Node;
 		return NodeBuilder< Node >( new Node );
 	}
 
@@ -56,7 +56,7 @@ namespace ntu
 	NodeBuilder< typename ConditionTransform< ConstFunRef< Var , FUN > , CmpOp  >::NodeType >
 	condition()
 	{
-		typedef ConditionTransform< ConstFunRef< Var , FUN > , CmpOp  >::NodeType Node;
+		typedef typename ConditionTransform< ConstFunRef< Var , FUN > , CmpOp  >::NodeType Node;
 		return NodeBuilder< Node >( new Node );
 	}
 
@@ -64,7 +64,7 @@ namespace ntu
 	NodeBuilder< typename ConditionTransform< ContextVarRef< Var > , CmpOp  >::NodeType >
 	condition()
 	{
-		typedef ConditionTransform< ContextVarRef< Var > , CmpOp  >::NodeType Node;
+		typedef typename ConditionTransform< ContextVarRef< Var > , CmpOp  >::NodeType Node;
 		return NodeBuilder< Node >( new Node );
 	}
 
@@ -72,7 +72,7 @@ namespace ntu
 	NodeBuilder< typename ConditionTransform< ContextFunRef< Var > , CmpOp  >::NodeType >
 	conditionFun()
 	{
-		typedef ConditionTransform< ContextFunRef< Var > , CmpOp  >::NodeType Node;
+		typedef typename ConditionTransform< ContextFunRef< Var > , CmpOp  >::NodeType Node;
 		return NodeBuilder< Node >( new Node );
 	}
 
@@ -97,7 +97,7 @@ namespace ntu
 	NodeBuilder< typename FilterTransform< ConstVarRef< Var , VAR > , CmpOp  >::NodeType >
 	filter()
 	{
-		typedef FilterTransform< ConstVarRef< Var , VAR > , CmpOp  >::NodeType Node;
+		typedef typename FilterTransform< ConstVarRef< Var , VAR > , CmpOp  >::NodeType Node;
 		return NodeBuilder< Node >( new Node );
 	}
 
@@ -105,7 +105,7 @@ namespace ntu
 	NodeBuilder< typename FilterTransform< ConstFunRef< Var , FUN > , CmpOp  >::NodeType >
 	filter()
 	{
-		typedef FilterTransform< ConstFunRef< Var , FUN > , CmpOp  >::NodeType Node;
+		typedef typename FilterTransform< ConstFunRef< Var , FUN > , CmpOp  >::NodeType Node;
 		return NodeBuilder< Node >( new Node );
 	}
 
@@ -113,7 +113,7 @@ namespace ntu
 	NodeBuilder< typename FilterTransform< ContextVarRef< Var > , CmpOp  >::NodeType >
 	filter()
 	{
-		typedef FilterTransform< ContextVarRef< Var > , CmpOp  >::NodeType Node;
+		typedef typename FilterTransform< ContextVarRef< Var > , CmpOp  >::NodeType Node;
 		return NodeBuilder< Node >( new Node );
 	}
 
@@ -121,7 +121,7 @@ namespace ntu
 	NodeBuilder< typename FilterTransform< ContextFunRef< Var > , CmpOp  >::NodeType >
 	filter()
 	{
-		typedef FilterTransform< ContextFunRef< Var > , CmpOp  >::NodeType Node;
+		typedef typename FilterTransform< ContextFunRef< Var > , CmpOp  >::NodeType Node;
 		return NodeBuilder< Node >( new Node );
 	}
 

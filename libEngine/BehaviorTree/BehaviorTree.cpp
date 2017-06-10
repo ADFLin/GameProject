@@ -1,3 +1,4 @@
+#if 0
 // BehaviorTree.cpp : 定義主控台應用程式的進入點。
 //
 
@@ -61,7 +62,7 @@ namespace ntu
 #include <list>
 
 
-struct PlayerContext 
+struct PlayerContext
 {
 	long getIdleTime(){ return idleTime; }
 	long idleTime;
@@ -109,8 +110,8 @@ int TestBTMain()
 
 	long time;
 
-	BTNode* root = TreeBuilder::generate( 
-	node< SequenceNode >() >> 
+	BTNode* root = TreeBuilder::generate(
+	node< SequenceNode >() >>
 		( node< PrintActin >()->text("start")
 		| filter< GreaterEqualCmp , int , &gVar >()->setValue( 0 ) >>
 			filter< GreaterEqualCmp >( varPtr( &gVar ) )->setValue( 1 ) >>
@@ -121,7 +122,7 @@ int TestBTMain()
 		| condition< EqualCmp >( member( &PlayerContext::isSleep ) )->setValue( false )
 		| condition< EqualCmp >( member( &PlayerContext::msg ) )->setValue( "Hello" )
 		| node< PrintActin >()->text( "DD" )
-		| node< ParallelNode >()->setSuccessPolicy( RequireOne ) >> 
+		| node< ParallelNode >()->setSuccessPolicy( RequireOne ) >>
 			( node< LoopDecNode >()->setMaxCount( 2 ) >> node< PrintActin >()->text("AA").resultState( TS_FAILED )
 			| node< SequenceNode >() >>
 				( condition< GreaterCmp >( memberFun( &PlayerContext::getIdleTime ) )->setValue( 1 )
@@ -148,4 +149,6 @@ int TestBTMain()
 
 	return 0;
 }
+
+#endif
 

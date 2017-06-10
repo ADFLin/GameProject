@@ -1,6 +1,6 @@
 #include "TreeBuilder.h"
 
-namespace ntu
+namespace BT
 {
 
 

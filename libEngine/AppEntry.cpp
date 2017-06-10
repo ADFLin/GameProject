@@ -38,4 +38,4 @@ int WINAPI WinMain ( HINSTANCE hInstance , HINSTANCE hPrevInstance , LPSTR lpCmd
 	return ret;
 }
 
-#endif SYS_PLATFORM_WIN
+#endif //SYS_PLATFORM_WIN

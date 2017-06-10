@@ -1,6 +1,6 @@
 #include "BTNode.h"
 
-namespace ntu
+namespace BT
 {
 	BTTransform* TreeWalker::enter( BTNode& node , BTTransform* prevState )
 	{
@@ -147,7 +147,7 @@ namespace ntu
 	}
 
 
-	ntu::TaskState ParallelTransform::execute()
+	BT::TaskState ParallelTransform::execute()
 	{
 		NodeList& children = getNode< ParallelNode >()->_getChildren();
 		if ( children.empty() )

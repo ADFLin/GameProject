@@ -41,8 +41,8 @@ using namespace std;
 #ifdef _WIN32
 #pragma pack(1)
 #endif
-struct GIFGCEtag 
-{				
+struct GIFGCEtag
+{
 	unsigned char BlockSize;		// Block Size: 4 bytes
 	unsigned char PackedFields;		// Packed Fields. Bits detail:
 	//    0: Transparent Color Flag
@@ -52,11 +52,11 @@ struct GIFGCEtag
 	unsigned char  Transparent;		// Transparent Color Index
 };
 
-struct GIFLSDtag 
+struct GIFLSDtag
 {
 	unsigned short ScreenWidth;		// Logical Screen Width
 	unsigned short ScreenHeight;	// Logical Screen Height
-	unsigned char PackedFields;		
+	unsigned char PackedFields;
 	// Packed Fields. Bits detail:
 	//  0-2: Size of Global Color Table
 	//    3: Sort Flag
@@ -66,13 +66,13 @@ struct GIFLSDtag
 	unsigned char PixelAspectRatio;	// Pixel Aspect Ratio
 };
 
-struct GIFIDtag 
-{	
+struct GIFIDtag
+{
 	unsigned short xPos;			// Image Left Position
 	unsigned short yPos;			// Image Top Position
 	unsigned short Width;			// Image Width
 	unsigned short Height;			// Image Height
-	unsigned char  PackedFields;		
+	unsigned char  PackedFields;
 	// Packed Fields. Bits detail:
 	//  0-2: Size of Local Color Table
 	//  3-4: (Reserved)
@@ -99,7 +99,7 @@ int GIFLoader::load( char const* path , Listener& listener )
 	// OPEN FILE
 	std::ifstream fs( path , ios::in|ios::binary );
 
-	if (!fs.is_open()) 
+	if (!fs.is_open())
 	{
 		ERRORMSG("File not found");
 		return 0;
@@ -114,9 +114,9 @@ int GIFLoader::load( std::istream& fs , Listener& listener )
 	fs.read(szSignature,6);
 
 	if ( memcmp(szSignature,"GIF",2) != 0)
-	{ 
-		ERRORMSG("Not a GIF File"); 
-		return 0; 
+	{
+		ERRORMSG("Not a GIF File");
+		return 0;
 	}
 
 	// *2* READ LOGICAL SCREEN DESCRIPTOR
@@ -172,7 +172,7 @@ int GIFLoader::load( std::istream& fs , Listener& listener )
 	{
 		int charGot = fs.get();
 
-		if (charGot == 0x21)		// *A* EXTENSION BLOCK 
+		if (charGot == 0x21)		// *A* EXTENSION BLOCK
 		{
 			switch (fs.get())
 			{
@@ -191,14 +191,14 @@ int GIFLoader::load( std::istream& fs , Listener& listener )
 				// read (and ignore) data sub-blocks
 				while (int nBlockLength = fs.get())
 				{
-					for (int i=0; i < nBlockLength; i++ ) 
+					for (int i=0; i < nBlockLength; i++ )
 						fs.get();
 				}
 				break;
 			}
 		}
 		else if (charGot == 0x2c) // *B* IMAGE (0x2c Image Separator)
-		{	
+		{
 
 			// Read Image Descriptor
 			GIFIDtag gifid;
@@ -254,9 +254,9 @@ int GIFLoader::load( std::istream& fs , Listener& listener )
 
 			// Calculate compressed image block size
 			// to fix: this allocates an extra byte per block
-			long ImgStart,ImgEnd;				
+			long ImgStart,ImgEnd;
 			ImgEnd = ImgStart = fs.tellg();
-			while ( int n = fs.get() ) 
+			while ( int n = fs.get() )
 			{
 				fs.seekg (ImgEnd += n+1);
 			}
@@ -297,15 +297,15 @@ int GIFLoader::load( std::istream& fs , Listener& listener )
 			// Some cleanup
 			graphicExtensionFound = 0;
 		}
-		else if (charGot == 0x3b) 
+		else if (charGot == 0x3b)
 		{	// *C* TRAILER: End of GIF Info
 			break; // Ok. Standard End.
 		}
 
-	} 
+	}
 	while ( fs.good() );
 
-	if (nImages==0) 
+	if (nImages==0)
 	{
 		ERRORMSG("Premature End Of File");
 	}
@@ -333,12 +333,12 @@ int LZWDecoder ( unsigned char * bufIn, unsigned char * bufOut,
 {
 	int  const MAX_TABLE_NUM = 4096;
 	int  const maxPixels = width * height;
-		
+
 	// Set up values that depend on InitCodeSize Parameter.
 	short const clearCode = (1 << initCodeSize); // Clear code : resets decompressor
 	short const endCode    = clearCode + 1;         // End code : marks end of information
 	short const firstEntry = clearCode + 2; // Index of first free entry in table
-	
+
 
 	short codeSize   = initCodeSize +1;      // Current CodeSize (size in bits of codes)
 	short nextEntry  = firstEntry;    // Index of next free entry in table
@@ -352,17 +352,17 @@ int LZWDecoder ( unsigned char * bufIn, unsigned char * bufOut,
 	// Translation Table:
 	short prefix[ MAX_TABLE_NUM ];				// Prefix: index of another Code
 	unsigned char suffix[ MAX_TABLE_NUM ];		// Suffix: terminating character
-	unsigned char outStack[ MAX_TABLE_NUM + 1 ];// Output buffer	
+	unsigned char outStack[ MAX_TABLE_NUM + 1 ];// Output buffer
 
-	while (nPixels<maxPixels) 
+	while (nPixels<maxPixels)
 	{
-	
+
 		// Characters in OutStack
 		int outIndex = 0;
 
 		// GET NEXT CODE FROM bufIn:
 		// LZW compression uses code items longer than a single byte.
-		// For GIF Files, code sizes are variable between 9 and 12 bits 
+		// For GIF Files, code sizes are variable between 9 and 12 bits
 		// That's why we must read data (Code) this way:
 		long LongCode=*((long*)(bufIn+whichBit/8));	// Get some bytes from bufIn
 		LongCode>>=(whichBit&7);				    // Discard too low bits
@@ -377,7 +377,7 @@ int LZWDecoder ( unsigned char * bufIn, unsigned char * bufOut,
 
 		// CLEAR CODE:
 		if (Code == clearCode)
-		{				
+		{
 			codeSize = initCodeSize+1;			// Reset CodeSize
 			nextEntry = firstEntry;				// Reset Translation Table
 			prevCode = Code;				    // Prevent next to be added to table.
@@ -389,7 +389,7 @@ int LZWDecoder ( unsigned char * bufIn, unsigned char * bufOut,
 		{
 			outCode = Code;						// Set code to output.
 		}
-		else 
+		else
 		{									// CODE IS NOT IN TABLE:
 			outIndex++;			// Keep "first" character of previous output.
 			outCode = prevCode;					// Set PrevCode to be output
@@ -400,9 +400,9 @@ int LZWDecoder ( unsigned char * bufIn, unsigned char * bufOut,
 		// - Table Prefices contain indexes to other codes
 		// - Table Suffices contain the raw codes to be output
 
-		while (outCode >= firstEntry) 
+		while (outCode >= firstEntry)
 		{
-			if (outIndex > MAX_TABLE_NUM ) 
+			if (outIndex > MAX_TABLE_NUM )
 				return 0;
 
 			outStack[outIndex++] = suffix[outCode];	// Add suffix to Output Stack
@@ -410,25 +410,25 @@ int LZWDecoder ( unsigned char * bufIn, unsigned char * bufOut,
 		}
 
 		// NOW OutCode IS A RAW CODE, ADD IT TO OUTPUT STACK.
-		if ( outIndex > MAX_TABLE_NUM ) 
+		if ( outIndex > MAX_TABLE_NUM )
 			return 0;
 
 		outStack[outIndex++] = (unsigned char) outCode;
 
 		// ADD NEW ENTRY TO TABLE (PrevCode + OutCode)
 		// (EXCEPT IF PREVIOUS CODE WAS A CLEARCODE)
-		if (prevCode!=clearCode) 
+		if (prevCode!=clearCode)
 		{
 			prefix[nextEntry] = prevCode;
 			suffix[nextEntry] = (unsigned char) outCode;
 			nextEntry++;
 
 			// Prevent Translation table overflow:
-			if (nextEntry >= MAX_TABLE_NUM ) 
+			if (nextEntry >= MAX_TABLE_NUM )
 				return 0;
-      
+
 			// INCREASE CodeSize IF NextEntry IS INVALID WITH CURRENT CodeSize
-			if (nextEntry >= (1<<codeSize)) 
+			if (nextEntry >= (1<<codeSize))
 			{
 				if (codeSize < 12) codeSize++;
 				else {}				// Do nothing. Maybe next is Clear Code.
@@ -438,15 +438,15 @@ int LZWDecoder ( unsigned char * bufIn, unsigned char * bufOut,
 		prevCode = Code;
 
 		// Avoid the possibility of overflow on 'bufOut'.
-		if (nPixels + outIndex > maxPixels) 
+		if (nPixels + outIndex > maxPixels)
 			outIndex = maxPixels - nPixels;
 
 		// OUTPUT OutStack (LAST-IN FIRST-OUT ORDER)
-		for ( int n = outIndex-1; n >= 0; n-- ) 
+		for ( int n = outIndex-1; n >= 0; n-- )
 		{
 			if ( col == width )						// Check if new row.
 			{
-				if ( Interlace ) 
+				if ( Interlace )
 				{
 					if      ((row&7)==0) {row+=8; if (row>=height) row=4;}
 					else if ((row&3)==0) {row+=8; if (row>=height) row=2;}
@@ -474,8 +474,8 @@ class MyListener : public GIFLoader::Listener
 {
 public:
 	virtual bool loadImage( GIFImageInfo const& info )
-	{ 
-		return callback( info , userData ); 
+	{
+		return callback( info , userData );
 	}
 
 	void*           userData;

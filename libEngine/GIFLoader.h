@@ -3,7 +3,6 @@
 
 #include <vector>
 #include <iosfwd>
-
 struct COLOR {unsigned char b,g,r,x;};	// Windows GDI expects 4bytes per color
 #define GIF_DEFAULT_ALIGN sizeof(int)				// Windows GDI expects all int-aligned
 
@@ -23,7 +22,7 @@ struct GIFImageInfo
 	// Extra members for animations:
 	int    transparency; // Animation Transparency.
 	int    imgPosX;      // Relative Position
-	int    imgPosY;      
+	int    imgPosY;
 	int    delay;        // Delay after image in 1/1000 seconds.
 
 };
@@ -44,7 +43,7 @@ public:
 	int  load( std::istream& fs , Listener& listener );
 private:
 	int    mImgRowAlign;
-	typedef std::vector< unsigned char > Buffer; 
+	typedef std::vector< unsigned char > Buffer;
 	Buffer mCompressedBuffer;
 	Buffer mRasterBuffer;
 	std::vector< COLOR > globalColorMap;

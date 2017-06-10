@@ -1,9 +1,10 @@
 #include "FileSystem.h"
 #include "PlatformConfig.h"
 
-#include <tchar.h> 
+#include <tchar.h>
 #include <stdio.h>
-#include <strsafe.h>
+
+#include <Strsafe.h>
 #include <fstream>
 
 
@@ -45,7 +46,7 @@ bool FileSystem::findFile( char const* dir , char const* subName , FileIterator&
 	// Find the first file in the directory.
 	iter.mhFind = FindFirstFileA( szDir, &iter.mFindData );
 
-	if ( iter.mhFind == INVALID_HANDLE_VALUE ) 
+	if ( iter.mhFind == INVALID_HANDLE_VALUE )
 		return false;
 
 	iter.mHaveMore = true;

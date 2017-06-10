@@ -6,7 +6,9 @@
 #define CHAIN_OP   operator |
 #define SUBNODE_OP operator >>
 
-namespace ntu
+#define FORCEINLINE
+
+namespace BT
 {
 	template< class LExpr , class RExpr >
 	class ChainNodeExpr;
@@ -21,8 +23,8 @@ namespace ntu
 	public:
 		template< class Q >
 		ChainNodeExpr< T , Q > CHAIN_OP( NodeExpr< Q > const& expr )
-		{ 
-			return ChainNodeExpr< T , Q >( static_cast< T const& >(*this) , static_cast< Q const& >( expr ) ); 
+		{
+			return ChainNodeExpr< T , Q >( static_cast< T const& >(*this) , static_cast< Q const& >( expr ) );
 		}
 	};
 
@@ -79,8 +81,8 @@ namespace ntu
 
 		template< class Q >
 		SubNodeExpr< SubNodeExpr , Q > SUBNODE_OP( NodeExpr< Q > const& expr ) const
-		{ 
-			return SubNodeExpr< SubNodeExpr , Q >( *this , static_cast< Q const& >( expr ) ); 
+		{
+			return SubNodeExpr< SubNodeExpr , Q >( *this , static_cast< Q const& >( expr ) );
 		}
 	};
 
@@ -88,7 +90,7 @@ namespace ntu
 	typedef int checkExprType##__LINE__[ ( expr ) ? 1 : -1  ];
 
 	struct FalseType{};
-	struct TrueType{}; 
+	struct TrueType{};
 
 	template< class Node >
 	class NodeBuilder : public NodeExpr< NodeBuilder< Node > >
@@ -110,60 +112,60 @@ namespace ntu
 		Node* operator->(){ return mNode; }
 		template< class Q >
 		SubNodeExpr< ThisType , Q > SUBNODE_OP( NodeExpr< Q > const& expr ) const
-		{ 
-			STATIC_ASSERT( !Node::isLeaf );
-			return SubNodeExpr< ThisType , Q >( *this , static_cast< Q const& >( expr ) ); 
+		{
+			//STATIC_ASSERT( !Node::isLeaf );
+			return SubNodeExpr< ThisType , Q >( *this , static_cast< Q const& >( expr ) );
 		}
 		Node* mNode;
 	};
 
 
 	template< class Node , class Expr >
-	SubNodeExpr< NodeBuilder< Node > , Expr > 
+	SubNodeExpr< NodeBuilder< Node > , Expr >
 	SUBNODE_OP( Node& node , NodeExpr< Expr > const& expr )
 	{
-		return SubNodeExpr< NodeBuilder< Node > , Expr >( 
+		return SubNodeExpr< NodeBuilder< Node > , Expr >(
 			NodeBuilder< Node >( node ) , static_cast< Expr const& >( expr ) );
 	}
 
 	template< class Node , class Expr >
-	SubNodeExpr< Expr , NodeBuilder< Node > > 
+	SubNodeExpr< Expr , NodeBuilder< Node > >
 	SUBNODE_OP( NodeExpr< Expr > const& expr , Node& node )
 	{
-		return SubNodeExpr< Expr , NodeBuilder< Node > >( 
+		return SubNodeExpr< Expr , NodeBuilder< Node > >(
 			static_cast< Expr const& >( expr )  , NodeBuilder< Node >( node ) );
 	}
 
 	template< class NODE1 , class NODE2 >
-	SubNodeExpr< NodeBuilder< NODE1 > , NodeBuilder< NODE2 > > 
+	SubNodeExpr< NodeBuilder< NODE1 > , NodeBuilder< NODE2 > >
 	SUBNODE_OP( NODE1& node , NODE2& node2 )
 	{
-		return SubNodeExpr< NodeBuilder< NODE1 > , NodeBuilder< NODE2 > >( 
+		return SubNodeExpr< NodeBuilder< NODE1 > , NodeBuilder< NODE2 > >(
 			NodeBuilder< NODE1 >( node ) , NodeBuilder< NODE2 >( node2 ) );
 	}
 
 	template< class Node , class Expr >
-	ChainNodeExpr< NodeBuilder< Node > , Expr > 
+	ChainNodeExpr< NodeBuilder< Node > , Expr >
 	CHAIN_OP( Node& node , NodeExpr< Expr > const& expr )
 	{
-		return ChainNodeExpr< NodeBuilder< Node > , Expr >( 
+		return ChainNodeExpr< NodeBuilder< Node > , Expr >(
 			NodeBuilder< Node >( node ) , static_cast< Expr const& >( expr ) );
 	}
 
 	template< class Node , class Expr >
-	ChainNodeExpr< Expr , NodeBuilder< Node > > 
+	ChainNodeExpr< Expr , NodeBuilder< Node > >
 	CHAIN_OP( NodeExpr< Expr > const& expr , Node& node )
 	{
-		return ChainNodeExpr< Expr , NodeBuilder< Node > >( 
+		return ChainNodeExpr< Expr , NodeBuilder< Node > >(
 			static_cast< Expr const& >( expr )  , NodeBuilder< Node >( node ) );
 	}
 
 
 	template< class NODE1 , class NODE2 >
-	ChainNodeExpr< NodeBuilder< NODE1 > , NodeBuilder< NODE2 > > 
+	ChainNodeExpr< NodeBuilder< NODE1 > , NodeBuilder< NODE2 > >
 	CHAIN_OP( NODE1& node , NODE2& node2 )
 	{
-		return ChainNodeExpr< NodeBuilder< NODE1 > , NodeBuilder< NODE2 > >( 
+		return ChainNodeExpr< NodeBuilder< NODE1 > , NodeBuilder< NODE2 > >(
 			NodeBuilder< NODE1 >( node ) , NodeBuilder< NODE2 >( node2 ) );
 	}
 

@@ -5,18 +5,18 @@
 #include <map>
 
 #include "FunCallback.h"
-#include <string>
+#include <cstring>
 #include "Singleton.h"
 
 
 struct ComBase
 {
-	ComBase( char const* _name , void* _ptr , 
+	ComBase( char const* _name , void* _ptr ,
 		     int _num , char const** _pararm );
 
 	virtual ~ComBase()
 	{
-		
+
 	}
 
 	std::string  name;
@@ -41,8 +41,8 @@ struct MemFunCom : public ComBase
 	MemFunCom( char const* _name , FunSig _fun , T* _obj = NULL )
 		:ComBase( _name , _obj,
 			detail::FunTraits<FunSig>::NumParam ,
-			detail::FunTraits<FunSig>::getParam() ) 
-		,fun(_fun) 
+			detail::FunTraits<FunSig>::getParam() )
+		,fun(_fun)
 	{
 	}
 
@@ -58,7 +58,7 @@ struct BaseFunCom : public ComBase
 	BaseFunCom( char const* _name , void* _fun )
 		:ComBase( _name ,_fun ,
 			detail::FunTraits<FunSig>::NumParam ,
-			detail::FunTraits<FunSig>::getParam() ) 
+			detail::FunTraits<FunSig>::getParam() )
 	{
 	}
 
@@ -73,7 +73,7 @@ template < class Type >
 struct VarCom : public ComBase
 {
 	VarCom( char const* _name , void* _ptr )
-		:ComBase( _name, _ptr , 1 , detail::TypeToParam< Type >::getParam() ) 
+		:ComBase( _name, _ptr , 1 , detail::TypeToParam< Type >::getParam() )
 	{
 	}
 
@@ -84,8 +84,8 @@ struct VarCom : public ComBase
 	}
 
 	void getVal(void* g)
-	{  
-		*(Type*)g   = *(Type*) ptr; 
+	{
+		*(Type*)g   = *(Type*) ptr;
 	}
 };
 
@@ -141,7 +141,7 @@ protected:
 	ComBase*    m_curCom;
 
 	static int const NumMaxParams = 16;
-		
+
 	int         m_numStr;
 	char*       m_str[ NumMaxParams ];
 	int         m_numParam;

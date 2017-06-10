@@ -9,7 +9,7 @@ namespace Detail
 	template< class T >
 	struct PtrPolicy
 	{
-		typedef T* ManageType; 
+		typedef T* ManageType;
 		void destroy( ManageType ptr ){  delete ptr;  }
 		void setZero( ManageType& ptr ){ ptr = 0; }
 	};
@@ -17,7 +17,7 @@ namespace Detail
 	template< class T , class FreeFun >
 	struct PtrFunFreePolicy
 	{
-		typedef T* ManageType; 
+		typedef T* ManageType;
 		void destroy( ManageType ptr ){  if ( ptr ) FreeFun()( ptr );  }
 		void setZero( ManageType& ptr ){ ptr = 0; }
 	};
@@ -25,7 +25,7 @@ namespace Detail
 	template< class T >
 	struct ArrayPtrPolicy
 	{
-		typedef T* ManageType; 
+		typedef T* ManageType;
 		void destroy( ManageType ptr ){  delete [] ptr;  }
 		void setZero( ManageType& ptr ){ ptr = 0; }
 	};
@@ -53,8 +53,8 @@ namespace Detail
 			MP::setZero( m_ptr );
 		}
 		ManageType release()
-		{ 
-			ManageType temp = m_ptr; 
+		{
+			ManageType temp = m_ptr;
 			MP::setZero( m_ptr );
 			return temp;
 		}
@@ -63,11 +63,11 @@ namespace Detail
 	protected:
 		ManageType m_ptr;
 	private:
-		template < template < class > class M >
+		template < class M >
 		HolderImpl<T , M >& operator=( ManageType ptr);
-		template < template < class > class M >
+		template < class M >
 		HolderImpl( HolderImpl<T , M > const& );
-		template < template < class > class M >
+		template < class M >
 		HolderImpl<T , M >& operator=(HolderImpl<T , M > const&);
 	};
 }
@@ -79,12 +79,12 @@ public:
 	TPtrHolderBase(){}
 	explicit TPtrHolderBase(T* ptr):Detail::HolderImpl< T , Policy >(ptr){}
 
-	T&       operator*()        { return *m_ptr; }
-	T const& operator*()  const { return *m_ptr; }
-	T*       operator->()       { return m_ptr; }
-	T const* operator->() const { return m_ptr; }
-	operator T*()               { return m_ptr; }
-	operator T const*() const   { return m_ptr; }
+	T&       operator*()        { return *this->m_ptr; }
+	T const& operator*()  const { return *this->m_ptr; }
+	T*       operator->()       { return this->m_ptr; }
+	T const* operator->() const { return this->m_ptr; }
+	operator T*()               { return this->m_ptr; }
+	operator T const*() const   { return this->m_ptr; }
 };
 
 template< class T >
@@ -116,8 +116,8 @@ public:
 
 	TArrayHolder(TArrayHolder<T>&& Other) :Detail::HolderImpl< T, Detail::ArrayPtrPolicy< T > >(Other.release()) {}
 
-	operator T*()             { return m_ptr;  }
-	operator T const*() const { return m_ptr;  }
+	operator T*()             { return this->m_ptr;  }
+	operator T const*() const { return this->m_ptr;  }
 };
 
 #endif // THolder_h__

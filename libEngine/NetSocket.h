@@ -2,6 +2,7 @@
 #define NetSocket_h__
 
 #include "PlatformConfig.h"
+#include "CompilerConfig.h"
 
 #if SYS_PLATFORM_WIN
 #define  NOMINMAX
@@ -229,9 +230,7 @@ private:
 class SocketException : public std::exception
 {
 public:
-	SocketException( char const* what )
-		:exception( what )
-	{}
+	EXCEPTION_CONSTRUCTOR_WITH_WHAT( SocketException )
 };
 
 #endif // NetSocket_h__

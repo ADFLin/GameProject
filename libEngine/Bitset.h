@@ -2,6 +2,19 @@
 #define Bitset_h__
 
 #include <algorithm>
+namespace Private
+{
+    template < int N >
+	struct TLog2{};
+	template <>
+	struct TLog2<  8 >{ enum{ Result = 3 }; };
+	template <>
+	struct TLog2< 16 >{ enum{ Result = 4 }; };
+	template <>
+	struct TLog2< 32 >{ enum{ Result = 5 }; };
+	template <>
+	struct TLog2< 64 >{ enum{ Result = 6 }; };
+}
 
 class Bitset
 {
@@ -37,21 +50,12 @@ public:
 	}
 private:
 	typedef unsigned char StorageType;
-	template < int N >
-	struct Log2{};
-	template <>
-	struct Log2<  8 >{ enum{ Result = 3 }; };
-	template <>
-	struct Log2< 16 >{ enum{ Result = 4 }; };
-	template <>
-	struct Log2< 32 >{ enum{ Result = 5 }; };
-	template <>
-	struct Log2< 64 >{ enum{ Result = 6 }; };
+
 
 	enum
 	{
 		STORAGE_BIT_NUM    = sizeof( StorageType ) * 8 ,
-		STORAGE_POS_OFFSET = Log2< STORAGE_BIT_NUM >::Result ,
+		STORAGE_POS_OFFSET = Private::TLog2< STORAGE_BIT_NUM >::Result ,
 	};
 	static StorageType const BIT_POS_MASK = StorageType( ( ( STORAGE_POS_OFFSET ) << 1 ) - 1 );
 

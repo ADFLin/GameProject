@@ -1,7 +1,7 @@
 #ifndef Visitor_h__
 #define Visitor_h__
 
-namespace ntu
+namespace BT
 {
 	class BaseVisitor
 	{

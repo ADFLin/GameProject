@@ -19,8 +19,8 @@ typedef uint32 ComID;
 class ComException : public std::exception
 {
 public:
-	ComException( char const* what )
-		:std::exception( what ){}
+	EXCEPTION_CONSTRUCTOR_WITH_WHAT( ComException )
+
 	ComID com;
 };
 

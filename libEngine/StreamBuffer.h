@@ -2,6 +2,7 @@
 #define StreamBuffer_h__
 
 #include "MetaBase.h"
+#include "CompilerConfig.h"
 
 #include <exception>
 #include <memory>
@@ -17,7 +18,7 @@ class CheckPolicy
 class BufferException : public std::exception
 {
 public:
-	BufferException( char const* msg ):std::exception( msg ){}
+	EXCEPTION_CONSTRUCTOR_WITH_WHAT( BufferException )
 };
 
 struct AssertCheckPolicy 

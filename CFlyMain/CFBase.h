@@ -6,7 +6,7 @@
 #define CF_USE_OPENGL 1
 #define CF_USE_RENDERSYSTEM CF_USE_D3D9
 
-
+#include "CompilerConfig.h"
 #include "ProfileSystem.h"
 #include "LogSystem.h"
 #include "CppVersion.h"
@@ -94,8 +94,7 @@ namespace CFly
 	class CFException : public std::exception
 	{
 	public:
-		CFException( char const* what )
-			:std::exception( what ){}
+		EXCEPTION_CONSTRUCTOR_WITH_WHAT( CFException )
 	};
 
 }//namespace CFly

@@ -1,5 +1,9 @@
 #include "ConsoleSystem.h"
 
+#include "MemorySecurity.h"
+#include <cstdlib>
+
+
 static ConsoleSystem* g_console = NULL;
 ComBase* ComBase::s_unRegCom = NULL;
 
@@ -7,12 +11,12 @@ ComBase* ComBase::s_unRegCom = NULL;
 #define STRING_BUFFER_SIZE 256
 #define DATA_BUFFER_SIZE 64
 ConsoleSystem* getConsole()
-{ 
-	return g_console; 
+{
+	return g_console;
 }
 
-ComBase::ComBase( char const* _name , void* _ptr , 
-				  int _num , char const** _pararm ) 
+ComBase::ComBase( char const* _name , void* _ptr ,
+				  int _num , char const** _pararm )
 	:name(_name)
 	,ptr(_ptr)
 	,numParam(_num)
@@ -62,7 +66,7 @@ bool ConsoleSystem::init()
 
 	return true;
 }
- 
+
 bool ConsoleSystem::command( char const* comStr )
 {
 	size_t maxLen = strlen( comStr );
@@ -164,8 +168,8 @@ char* ConsoleSystem::fillVarData( char* data , char const* format )
 	{
 		while( fptr[0] != '%' &&
 			   fptr[0] != '\0')
-		{ 
-			++fptr; 
+		{
+			++fptr;
 		}
 
 		if ( *fptr =='\0' )
@@ -188,7 +192,7 @@ char* ConsoleSystem::fillVarData( char* data , char const* format )
 				case 'u': m_errorMsg += "#unsigned"; break;
 				case 'l':
 					if ( pStr[2] == 'f')
-						m_errorMsg += "#double"; 
+						m_errorMsg += "#double";
 					break;
 				}
 			}
@@ -214,7 +218,7 @@ char* ConsoleSystem::fillVarData( char* data , char const* format )
 			{
 				m_errorMsg = "ComVar's param is not match function's param";
 				return NULL;
-			}	
+			}
 		}
 		else
 		{
@@ -236,7 +240,7 @@ char* ConsoleSystem::fillVarData( char* data , char const* format )
 			}
 		}
 
-		union 
+		union
 		{
 			float* fptr;
 			int  * iptr;
@@ -254,7 +258,7 @@ char* ConsoleSystem::fillVarData( char* data , char const* format )
 		case 'u': data += sizeof(unsigned); break;
 		case 'l':
 			if ( fptr[2] == 'f')
-				data += sizeof(double); 
+				data += sizeof(double);
 			break;
 		}
 
@@ -284,7 +288,7 @@ ComBase* ConsoleSystem::findCommand( char const* str )
 
 void ConsoleSystem::insertCommand( ComBase* com )
 {
-	std::pair<CommandMap::iterator,bool> result = 
+	std::pair<CommandMap::iterator,bool> result =
 		mNameMap.insert( std::make_pair( com->name.c_str() , com ) );
 	if ( !result.second )
 		delete com;

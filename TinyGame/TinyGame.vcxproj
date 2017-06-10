@@ -164,6 +164,7 @@
     <ClCompile Include="Go\GoStage.cpp" />
     <ClCompile Include="Go\ZenBot.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="Stage\StickMoveStage.cpp" />
     <ClCompile Include="Stage\MainMenuStage.cpp" />
     <ClCompile Include="Mario\MBLevel.cpp" />
     <ClCompile Include="MonumentValley\MVCommon.cpp" />
@@ -391,6 +392,7 @@
     <ClInclude Include="Stage\GGJStage.h" />
     <ClInclude Include="Stage\LightingStage.h" />
     <ClInclude Include="Stage\RubiksStage.h" />
+    <ClInclude Include="Stage\StickMoveStage.h" />
     <ClInclude Include="Stage\TestStageHeader.h" />
     <ClInclude Include="Sudoku\SamplerTest.h" />
     <ClInclude Include="Sudoku\SudokuSolver.h" />

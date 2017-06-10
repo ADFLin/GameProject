@@ -16,10 +16,13 @@ namespace Math
 		float x,y,z,w;
 
 		Quaternion(){ setValue( 0,0,0,1); }
+		Quaternion(EForceInit) { setValue(0, 0, 0, 1); }
 		Quaternion( float sx , float sy, float sz , float sw ){ setValue( sx , sy , sz , sw ); }
 
+		static Quaternion Identity() { return Quaternion(0, 0, 0, 1); }
 		static Quaternion Value( Vector3 const& v , float w );
 		static Quaternion Rotate( Vector3 const& axis , float angle );
+		static Quaternion EulerZYX(Vector3 const& v);
 
 		void    setValue( float sx,float sy,float sz , float sw ){	x=sx; y=sy; z=sz; w=sw;  }
 		void    setRotation( Vector3 const& axis , float angle );
@@ -74,6 +77,11 @@ namespace Math
 	inline Quaternion operator + ( Quaternion const& a, Quaternion const& b )
 	{
 		return Quaternion( a.x+b.x , a.y+b.y , a.z+b.z , a.w+b.w );
+	}
+
+	inline Quaternion operator - (Quaternion const& a, Quaternion const& b)
+	{
+		return Quaternion(a.x - b.x, a.y - b.y, a.z - b.z, a.w - b.w);
 	}
 
 	inline Quaternion& Quaternion::operator *= (Quaternion const& rhs)

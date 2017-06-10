@@ -111,6 +111,7 @@ protected:
 
 };
 
+
 class MiscTestStage : public StageBase
 {
 	typedef StageBase BaseClass;

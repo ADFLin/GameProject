@@ -291,6 +291,9 @@
     <ClCompile Include="Stage\SoftwareRenderStage.cpp">
       <Filter>Stage</Filter>
     </ClCompile>
+    <ClCompile Include="Stage\StickMoveStage.cpp">
+      <Filter>Stage</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Bsp2D.h">
@@ -694,6 +697,9 @@
     </ClInclude>
     <ClInclude Include="RenderGL\FrameGraph.h">
       <Filter>RenderGL</Filter>
+    </ClInclude>
+    <ClInclude Include="Stage\StickMoveStage.h">
+      <Filter>Stage</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

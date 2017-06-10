@@ -11,6 +11,7 @@ namespace Math
 		Vector3(){}
 		Vector3( float const v[] ){ setValue( v[0] , v[1] , v[2] ); }
 		Vector3(float sx,float sy,float sz);
+		Vector3(float value):x(value),y(value),z(value){}
 
 		float normalize()
 		{  
@@ -36,9 +37,13 @@ namespace Math
 		Vector3& operator *= ( float s );
 		Vector3& operator /= ( float s );
 
-		Vector3 mul( Vector3 const& v )
+		Vector3 mul( Vector3 const& v ) const
 		{
 			return Vector3( x * v.x , y * v.y , z * v.z );
+		}
+		Vector3 div(Vector3 const& v) const
+		{
+			return Vector3(x / v.x, y / v.y, z / v.z);
 		}
 
 		float   dot(Vector3 const& b) const;
@@ -131,6 +136,16 @@ namespace Math
 		return Vector3(a.x-b.x,a.y-b.y,a.z-b.z);
 	}
 
+	inline Vector3 operator*(Vector3 const& v1, Vector3 const& v2)
+	{
+		return v1.mul(v2);
+	}
+
+	inline Vector3 operator/(Vector3 const& v1, Vector3 const& v2)
+	{
+		return v1.div(v2);
+	}
+
 	inline Vector3 operator*( float a, Vector3 const& b )
 	{
 		return Vector3(a*b.x,a*b.y,a*b.z);
@@ -139,6 +154,11 @@ namespace Math
 	inline Vector3 operator*( Vector3 const& b , float a )
 	{
 		return Vector3(a*b.x,a*b.y,a*b.z);
+	}
+
+	inline Vector3 operator / (Vector3 const& b, float a)
+	{
+		return ( 1.0f / a ) * b;
 	}
 
 	inline Vector3 operator-( Vector3 const& a )

@@ -21,9 +21,9 @@ private:
 public:
 	WButtonT( Vec2i const& pos , Vec2i const& size  , CoreImpl* parent )
 		:CoreImpl(  pos , size , parent )
-		,m_state( BS_NORMAL ){}
+		,mState( BS_NORMAL ){}
 
-	ButtonState getButtonState() const { return m_state; }
+	ButtonState getButtonState() const { return mState; }
 	///////// override function ////////
 public:
 	void onClick(){}
@@ -34,7 +34,7 @@ protected:
 	bool onMouseMsg( MouseMsg const& msg );
 
 	void setButtonState( ButtonState state );
-	ButtonState m_state;
+	ButtonState mState;
 };
 
 
@@ -115,16 +115,16 @@ public:
 	void   updatePageButtonPos();
 
 	Vec2i const& getPageSize(){ return mPageSize; }
-	Page*  getCurPage()        { return curPageButton->page; }
+	Page*  getCurPage()        { return mCurPageButton->page; }
 
 protected:
 	//virtual 
 	void   render();
 
-	Vec2i      mPageSize;
-	PageButton* curPageButton;
+	Vec2i       mPageSize;
+	PageButton* mCurPageButton;
 	typedef std::vector< PageButton* > ButtonVec;
-	ButtonVec   m_PBVec;
+	ButtonVec   mPageButtons;
 };
 
 template < class Impl , class CoreImpl >
@@ -136,17 +136,17 @@ public:
 	WSliderT( Vec2i const& pos , int length , Vec2i const& sizeTip  ,
 		bool beH  , int minRange , int maxRange , CoreImpl* parent )
 		:CoreImpl(  pos , ( beH ) ? Vec2i( length , sizeTip.y ) : Vec2i( sizeTip.x , length ) , parent )
-		,m_minRange( minRange )
-		,m_maxRange( maxRange )
-		,m_beHorizontal( beH )
+		,mMinValue( minRange )
+		,mMaxValue( maxRange )
+		,mbHorizontal( beH )
 	{
-		m_tipUI = new TipUI( sizeTip , this );
+		mTipWidget = new TipWidget( sizeTip , this );
 	}
 
-	class TipUI : public CoreImpl
+	class TipWidget : public CoreImpl
 	{
 	public:
-		TipUI( Vec2i const& size , CoreImpl* parent )
+		TipWidget( Vec2i const& size , CoreImpl* parent )
 			:CoreImpl( Vec2i(0,0) , size , parent ){}
 		bool onMouseMsg( MouseMsg const& msg );
 		WSliderT* getSlider(){ return  static_cast< WSliderT*>( getParent() ); }
@@ -155,7 +155,7 @@ public:
 
 	///////// override function ////////
 	void onScrollChange( int value ){}
-	void doRenderTip( TipUI* ui ){}
+	void doRenderTip( TipWidget* ui ){}
 	void doRenderBackground(){}
 	/////////////////////////////////////////
 
@@ -163,36 +163,38 @@ public:
 
 	void  correctTipPos( Vec2i& pos );
 
-	int   getValue() const { return m_curValue; }
-	int   getMaxValue() const { return m_maxRange; }
-	int   getMinValue() const { return m_minRange; }
+	int   getValue() const { return mCurValue; }
+	int   getMaxValue() const { return mMaxValue; }
+	int   getMinValue() const { return mMinValue; }
 
 	void  setValue( int val )
 	{
-		m_curValue = std::max( m_minRange , std::min( val , m_maxRange ) );
+		mCurValue = std::max( mMinValue , std::min( val , mMaxValue ) );
 		updateTipPos();
 	}
 
 	void setRange( int min , int max )
 	{
-		m_minRange = min;
-		m_maxRange = max;
+		mMinValue = min;
+		mMaxValue = max;
 	}
+
+	TipWidget* getTipWidget() { return mTipWidget; }
 
 protected:
 	void onRender()
 	{
 		_this()->doRenderBackground();
-		_this()->doRenderTip( m_tipUI );
+		_this()->doRenderTip( mTipWidget );
 	}
 
 	void  updateTipPos();
 
-	int    m_curValue;
-	int    m_minRange;
-	int    m_maxRange;
-	TipUI* m_tipUI;
-	bool   m_beHorizontal;
+	int    mCurValue;
+	int    mMinValue;
+	int    mMaxValue;
+	TipWidget* mTipWidget;
+	bool   mbHorizontal;
 };
 
 template < class Impl , class CoreImpl >

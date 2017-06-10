@@ -15,7 +15,7 @@
 
 #define NET_INIT_OK 0
 
-extern WORD  g_sockVersion;
+extern WORD  gSockVersion;
 
 class NetSocket;
 

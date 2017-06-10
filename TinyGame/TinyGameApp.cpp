@@ -220,6 +220,7 @@ long TinyGameApp::onUpdate( long shouldTime )
 
 		checkNewStage();
 		runTask( getUpdateTime() );
+
 		getCurStage()->update( getUpdateTime() );
 
 		::Global::GUI().update();
@@ -387,7 +388,7 @@ bool TinyGameApp::onChar( unsigned code )
 
 void TinyGameApp::onDestroy()
 {
-	cleanup();
+	setLoopOver(true);
 }
 
 void TinyGameApp::onTaskMessage( TaskBase* task , TaskMsg const& msg )

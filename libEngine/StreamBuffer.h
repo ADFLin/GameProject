@@ -285,6 +285,19 @@ public:
 		mFillSize = (int)mFillSize + num;
 	}
 
+	void removeUseData()
+	{
+		if( mUseSize == 0 )
+			return;
+
+		size_t size = getAvailableSize();
+		char* dst = mData;
+		char* src = mData + mUseSize;
+		::memmove(dst, src, size);
+		mUseSize = 0;
+		mFillSize = size;
+	}
+
 private:
 	bool checkFill( size_t num )
 	{

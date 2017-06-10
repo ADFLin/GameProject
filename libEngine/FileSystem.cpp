@@ -122,6 +122,14 @@ char const* FileUtility::getDirPathPos( char const* filePath )
 	return pos;
 }
 
+wchar_t const* FileUtility::getDirPathPos(wchar_t const* filePath)
+{
+	wchar_t const* pos = wcsrchr(filePath, L'\\');
+	if( !pos )
+		pos = wcsrchr(filePath, L'/');
+	return pos;
+}
+
 bool FileUtility::LoadToBuffer(char const* path, std::vector< char >& outBuffer)
 {
 	std::ifstream fs(path);

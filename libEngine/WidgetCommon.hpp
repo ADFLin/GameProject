@@ -43,10 +43,10 @@ void WButtonT< Impl , CoreImpl >::mouseOverlap( bool beInside )
 template < class Impl ,class CoreImpl >
 void WButtonT< Impl , CoreImpl >::setButtonState( ButtonState state )
 {
-	if ( m_state == state )
+	if ( mState == state )
 		return;
 	_this()->onChangeState( state );
-	m_state = state;
+	mState = state;
 }
 
 template < class Impl, class CoreImpl >
@@ -177,7 +177,7 @@ bool WChoiceT<Impl, CoreImpl>::onMouseMsg( MouseMsg const& msg )
 		getManager()->addWidget( menu );
 		//_addFlag( UF_HITTEST_CHILDREN );
 		menu->setTop();
-		menu->setFocus();
+		menu->makeFocus();
 	}
 	return false;
 }
@@ -320,19 +320,19 @@ bool WTextCtrlT<Impl, CoreImpl>::onCharMsg( unsigned code )
 template < class Impl , class CoreImpl >
 void WSliderT<Impl, CoreImpl >::updateTipPos()
 {
-	Vec2i  const& size = m_tipUI->getSize();
-	float ratio = float( m_curValue - m_minRange ) / ( m_maxRange - m_minRange );
-	if ( m_beHorizontal )
-		m_tipUI->setPos( Vec2i( int( ratio * ( this->getSize().x - size.x ) ) , 0 ) );
+	Vec2i  const& size = mTipWidget->getSize();
+	float ratio = float( mCurValue - mMinValue) / ( mMaxValue - mMinValue);
+	if ( mbHorizontal )
+		mTipWidget->setPos( Vec2i( int( ratio * ( this->getSize().x - size.x ) ) , 0 ) );
 	else
-		m_tipUI->setPos( Vec2i( 0 , int ( ratio *( this->getSize().y - size.y ) ) ) );
+		mTipWidget->setPos( Vec2i( 0 , int ( ratio *( this->getSize().y - size.y ) ) ) );
 }
 
 template < class Impl , class CoreImpl >
 void WSliderT<Impl, CoreImpl >::correctTipPos( Vec2i& pos )
 {
-	Vec2i  const& size = m_tipUI->getSize();
-	if ( m_beHorizontal )
+	Vec2i  const& size = mTipWidget->getSize();
+	if ( mbHorizontal )
 	{
 		pos.y = 0;
 		pos.x = std::max( 0 , std::min( pos.x , this->getSize().x - size.x) );
@@ -347,19 +347,19 @@ void WSliderT<Impl, CoreImpl >::correctTipPos( Vec2i& pos )
 template < class Impl , class CoreImpl >
 void WSliderT<Impl, CoreImpl>::updateValue()
 {
-	Vec2i const& pos = m_tipUI->getPos();
-	Vec2i const& size = m_tipUI->getSize();
+	Vec2i const& pos = mTipWidget->getPos();
+	Vec2i const& size = mTipWidget->getSize();
 
-	if ( m_beHorizontal )
-		m_curValue =  m_minRange + ( m_maxRange - m_minRange) * pos.x / ( this->getSize().x - size.x ) ;
+	if ( mbHorizontal )
+		mCurValue =  mMinValue + ( mMaxValue - mMinValue) * pos.x / ( this->getSize().x - size.x ) ;
 	else
-		m_curValue =  m_minRange + ( m_maxRange - m_minRange) * pos.y / ( this->getSize().y - size.y );
+		mCurValue =  mMinValue + ( mMaxValue - mMinValue) * pos.y / ( this->getSize().y - size.y );
 
-	_this()->onScrollChange( m_curValue );
+	_this()->onScrollChange( mCurValue );
 }
 
 template < class Impl , class CoreImpl >
-bool WSliderT<Impl, CoreImpl>::TipUI::onMouseMsg( MouseMsg const& msg )
+bool WSliderT<Impl, CoreImpl>::TipWidget::onMouseMsg( MouseMsg const& msg )
 {
 	static int x , y;
 
@@ -394,7 +394,7 @@ template < class Impl , class CoreImpl  >
 WNoteBookT<Impl, CoreImpl>::WNoteBookT( Vec2i const& pos , Vec2i const& size , CoreImpl* parent ) 
 	:CoreImpl(  pos , size , parent )
 {
-	curPageButton = NULL;
+	mCurPageButton = NULL;
 
 	mPageSize = size;
 	mPageSize.y -= _this()->getButtonSize().y + 2;
@@ -405,8 +405,8 @@ template < class Impl , class CoreImpl  >
 void WNoteBookT<Impl, CoreImpl>::updatePageButtonPos()
 {
 	int pid = 0;
-	for( ButtonVec::iterator iter = m_PBVec.begin();
-		iter != m_PBVec.end() ; ++iter )
+	for( ButtonVec::iterator iter = mPageButtons.begin();
+		iter != mPageButtons.end() ; ++iter )
 	{
 		PageButton* button = *iter;
 		button->setPos( _this()->calcPageButtonPos( pid ) );
@@ -421,24 +421,24 @@ void WNoteBookT< Impl , CoreImpl >::render()
 	CoreImpl::render();
 
 	_this()->doRenderBackground();
-	if ( curPageButton )
+	if ( mCurPageButton )
 		_this()->doRenderPage( getCurPage() );
 }
 
 template < class Impl , class CoreImpl  >
 void WNoteBookT<Impl, CoreImpl >::changePage( int pID )
 {
-	if ( curPageButton )
+	if ( mCurPageButton )
 	{
-		if ( curPageButton->pID == pID )
+		if ( mCurPageButton->pID == pID )
 			return;
 
-		curPageButton->page->_unlinkInternal(true);
+		mCurPageButton->page->_unlinkInternal(true);
 	}
-	PageButton* pb = m_PBVec[ pID ];
+	PageButton* pb = mPageButtons[ pID ];
 	addChild( pb->page );
 
-	curPageButton = pb;
+	mCurPageButton = pb;
 }
 
 
@@ -450,16 +450,16 @@ WNoteBookT<Impl, CoreImpl >::addPage( char const* title )
 {
 	Page* page = new Page( _this()->getPagePos() , mPageSize , NULL );
 
-	int pID = (int)m_PBVec.size();
+	int pID = (int)mPageButtons.size();
 
 	Vec2i pos = _this()->calcPageButtonPos( pID );
 
 	PageButton* button = new PageButton( pID , page , pos , _this()->getButtonSize() , this );
 	button->title = title;
 
-	m_PBVec.push_back( button );
+	mPageButtons.push_back( button );
 
-	if ( curPageButton == NULL )
+	if ( mCurPageButton == NULL )
 		_this()->changePage( pID );
 
 	return page;

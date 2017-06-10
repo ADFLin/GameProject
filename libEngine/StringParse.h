@@ -6,8 +6,7 @@
 #include <cassert>
 
 #include "IntegerType.h"
-
-enum EForceInit { ForceInit, };
+#include "EnumCommon.h"
 
 struct TokenString
 {
@@ -78,6 +77,7 @@ public:
 
 
 	static char const* SkipChar(char const* str, char const* skipChars);
+	static char const* SkipSpace(char const* str);
 
 	static char const* SkipToChar(char const* str, char c, bool bCheckComment, bool bCheckString);
 	static char const* SkipToChar(char const* str, char c, char cPair, bool bCheckComment, bool bCheckString);
@@ -93,6 +93,7 @@ public:
 	
 	static TokenType StringToken(char const*& inoutStr, char const* dropDelims, char const* stopDelims, TokenString& outToken);
 	static bool      StringToken(char const*& inoutStr, char const* dropDelims, TokenString& outToken);
+	static TokenString StringTokenLine(char const*& inoutStr);
 
 	enum
 	{
@@ -104,6 +105,8 @@ public:
 		ErrorNumber,
 	};
 	static int ParseNumber(char const* str, int& num);
+	//
+	static int ParseIntNumber(char const* str, int& num);
 
 	static char const* TrySkipToStringSectionEnd(char const* str) { return TrySkipToSectionEnd(str, '\"'); }
 	static char const* TrySkipToCharSectionEnd(char const* str) { return TrySkipToSectionEnd(str, '\''); }

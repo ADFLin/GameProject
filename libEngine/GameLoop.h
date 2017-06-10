@@ -67,8 +67,11 @@ void GameLoopT< T , PP >::run()
 			if ( !Platform::updateSystem() )
 			{
 				mIsOver = true;
-				break;
 			}
+
+			if ( mIsOver )
+				break;
+
 			long updateTime = _this()->onUpdate( intervalTime );
 			_this()->onRender();
 

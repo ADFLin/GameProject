@@ -36,7 +36,7 @@ public:
 	GAME_API void         removeHotkey( GWidget* ui );
 	GAME_API void         scanHotkey( GameController& controller );
 
-	GAME_API int          getUpdateFrameNum(){ return mCurUpdateFrame; }
+	int          getUpdateFrameNum(){ return mCurUpdateFrame; }
 
 	GAME_API void         updateFrame( int frame , long tickTime );
 

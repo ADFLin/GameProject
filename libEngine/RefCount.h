@@ -42,6 +42,10 @@ public:
 	TRefCountPtr( TRefCountPtr const& other ){  init( other.mPtr ); }
 	~TRefCountPtr(){  cleanup(); }
 
+	template< class Q >
+	TRefCountPtr( TRefCountPtr< Q > const& other ) { init(other.mPtr); }
+
+
 	T*       operator->()       { return mPtr; }
 	T const* operator->() const { return mPtr; }
 	T&       operator *( void )       { return *mPtr; }
@@ -73,6 +77,8 @@ private:
 		cleanup();
 		init( ptr );
 	}
+	template< class Q >
+	friend class TRefCountPtr;
 	T* mPtr;
 };
 

@@ -2,7 +2,8 @@
 #include <algorithm>
 #include "Stage/TestStageHeader.h"
 
-#define FORCEINLINE __forceinline
+#include "CompilerConfig.h"
+
 namespace Homework
 {
 	class MatrixBase

@@ -109,7 +109,7 @@ public:
 	T&             setPos( Vec2i const& pos );
 	T&             setSize( Vec2i const& size ){  mBoundRect.max = mBoundRect.min + size;  return *_this(); }
 	T&             setTop( bool beAlways = false );
-	T&             setFocus();
+	T&             makeFocus();
 	T&             show( bool beS );
 	T&             enable( bool beE = true );
 

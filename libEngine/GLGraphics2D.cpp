@@ -2,24 +2,30 @@
 #include <cassert>
 #include <algorithm>
 
-static char const* vertexShader =
-	"varying vec2 vTexCoord;"
-	"void main(void)"
-	"{"
-		"vTexCoord = gl_MultiTexCoord0.xy;"
-		"gl_Position = ftransform();"
-	"}";
-static char const* fragmentShader = 
-	"sampler2D myTexture;"
-	"varying vec2 vTexCoord;"
-	"uniform vec3 colorKey;"
-	"void main(void)"
-	"{"
-		"vec4 color = texture2D(myTexture, vTexCoord);"
-		"if (color.rgb == colorKey )"
-			"discard;"
-		"gl_FragColor = color;"
-	"}";
+
+static char const* vertexShader = 
+R"SHADER_CODE__(
+varying vec2 vTexCoord;
+void main(void)
+{
+	vTexCoord = gl_MultiTexCoord0.xy;
+	gl_Position = ftransform();
+}
+)SHADER_CODE__";
+
+static char const* fragmentShader =
+R"SHADER_CODE__(
+	sampler2D myTexture;
+	varying vec2 vTexCoord;
+	uniform vec3 colorKey;
+	void main(void)"
+	{
+		vec4 color = texture2D(myTexture, vTexCoord);
+		if (color.rgb == colorKey )
+			"discard;
+		gl_FragColor = color;
+	}
+)SHADER_CODE__";
 
 #define DRAW_LINE_IMPL( EXPR )\
 	mBuffer.clear();\
@@ -74,6 +80,9 @@ void GLGraphics2D::init( int w , int h )
 {
 	mWidth = w;
 	mHeight = h;
+
+	char const* str = vertexShader;
+	int i = 1;
 }
 
 void GLGraphics2D::beginXForm()

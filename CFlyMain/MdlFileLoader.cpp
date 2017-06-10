@@ -521,7 +521,7 @@ namespace CFly
 
 	void MdlFileImport::slerpBones( Quaternion q1[], vec3_t pos1[], Quaternion q2[], vec3_t pos2[], float s )
 	{
-		s = Math::Clamp( s , 0 , 1.0f );
+		s = Math::Clamp<float>( s , 0 , 1.0f );
 
 		for ( int i = 0; i < mStudioHeader->numbones; i++)
 		{

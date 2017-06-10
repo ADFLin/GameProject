@@ -463,7 +463,7 @@ void SendDelayCtrl::update( long time )
 	{
 		mBufferCtrl.fillBuffer( mBuffer , size );
 		mInfoList.erase( mInfoList.begin() , iter );
-		mBuffer.clearUseData();
+		mBuffer.removeUseData();
 	}
 }
 
@@ -535,7 +535,7 @@ void RecvDelayCtrl::update( long time , UdpClient& client , ComEvaluator& evalua
 	if ( size )
 	{
 		mInfoList.erase( mInfoList.begin() , iter );
-		mBuffer.clearUseData();
+		mBuffer.removeUseData();
 	}
 }
 

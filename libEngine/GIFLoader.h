@@ -2,6 +2,7 @@
 #define GIFLoader_h__
 
 #include <vector>
+#include <iosfwd>
 
 struct COLOR {unsigned char b,g,r,x;};	// Windows GDI expects 4bytes per color
 #define GIF_DEFAULT_ALIGN sizeof(int)				// Windows GDI expects all int-aligned

@@ -7,7 +7,7 @@ class Win32Platform
 {
 public:
 	Win32Platform(){ m_hInstance = ::GetModuleHandle( NULL );  }
-	HINSTANCE getWinInstance(){ return m_hInstance; }
+	HINSTANCE getAppInstance(){ return m_hInstance; }
 	long      getMillionSecond(){ return GetTickCount(); }
 	bool      updateSystem()
 	{

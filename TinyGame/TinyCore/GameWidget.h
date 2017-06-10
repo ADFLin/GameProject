@@ -105,8 +105,11 @@ public:
 	template< class T >
 	T* cast()
 	{ 
-		assert( dynamic_cast< T* >( this ) );
+#if _DEBUG
+		return dynamic_cast< T* >( this );
+#else
 		return static_cast< T* >( this );
+#endif
 	}
 
 protected:

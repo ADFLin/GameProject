@@ -438,7 +438,7 @@ void WidgetCoreT<T>::removeChildFlag( unsigned flag )
 
 
 template< class T >
-T& WidgetCoreT<T>::setFocus()
+T& WidgetCoreT<T>::makeFocus()
 {
 	getManager()->focusWidget( this );
 	return *_this();
@@ -455,7 +455,7 @@ void WidgetCoreT<T>::_destroyChildren()
 		getManager()->removeWidgetReference( ui );
 
 		++childIter;
-		delete ui;
+		ui->deleteThis();
 	}
 }
 
@@ -761,15 +761,17 @@ void TWidgetManager<T>::removeWidgetReference( WidgetCore* ui )
 {
 	if ( mNamedWidgets[EWidgetName::Focus] == ui )
 	{
+		mNamedWidgets[EWidgetName::Focus] = nullptr;
 		ui->focus( false );
 	}
 	if ( mNamedWidgets[EWidgetName::Mouse] == ui )
 	{
+		mNamedWidgets[EWidgetName::Mouse] = nullptr;
 		ui->mouseOverlap( false );
 	}
 	for( int i = 0; i < (int)EWidgetName::Num; ++i )
 	{
-		if( mNamedWidgets[i] = ui )
+		if( mNamedWidgets[i] == ui )
 			mNamedWidgets[i] = nullptr;
 	}
 }
@@ -780,14 +782,14 @@ void TWidgetManager<T>::destroyWidget( WidgetCore* ui )
 	if ( ui == NULL || ui->checkFlag( UF_MARK_DESTROY ) )
 		return;
 
+	ui->_addFlag(UF_MARK_DESTROY);
 	if ( mProcessingMsg || ui->checkFlag( UF_BLOCK_DESTROY ))
 	{
-		ui->_addFlag(UF_MARK_DESTROY);
 		ui->_unlinkInternal(false);
 #if UI_CORE_USE_INTRLIST
-			mRemoveWidgetList.push_back(*static_cast<T*>(ui));
+		mRemoveWidgetList.push_back(*static_cast<T*>(ui));
 #else
-			mRemoveUI.linkChildInternal( ui );
+		mRemoveUI.linkChildInternal( ui );
 #endif
 
 	}

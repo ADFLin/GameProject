@@ -83,6 +83,7 @@ void WidgetRenderer::drawPanel2( IGraphics2D& g , Vec2i const& pos , Vec2i const
 
 void WidgetRenderer::drawSilder( IGraphics2D& g , Vec2i const& pos , Vec2i const& size , Vec2i const& tipPos , Vec2i const& tipSize )
 {
+	RenderUtility::setPen(g, Color::eBlack);
 	RenderUtility::setBrush( g , Color::eBlue );
 	g.drawRoundRect( pos ,size , Vec2i( 3 , 3 ) );
 	RenderUtility::setBrush( g , Color::eYellow , COLOR_DEEP );

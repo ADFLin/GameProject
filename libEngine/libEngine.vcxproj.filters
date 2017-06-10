@@ -190,6 +190,12 @@
     <ClCompile Include="CPreprocessor.cpp">
       <Filter>原始程式檔</Filter>
     </ClCompile>
+    <ClCompile Include="Asset.cpp">
+      <Filter>原始程式檔</Filter>
+    </ClCompile>
+    <ClCompile Include="Math\Transform.cpp">
+      <Filter>Math</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ConsoleSystem.h">
@@ -563,6 +569,27 @@
     </ClInclude>
     <ClInclude Include="TypeConstruct.h">
       <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="ReflectionCollect.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="Math\Transform.h">
+      <Filter>Math</Filter>
+    </ClInclude>
+    <ClInclude Include="EnumCommon.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="HashMap.h">
+      <Filter>DataStructure</Filter>
+    </ClInclude>
+    <ClInclude Include="Math\Math2D.h">
+      <Filter>Math</Filter>
+    </ClInclude>
+    <ClInclude Include="Math\Vector2.h">
+      <Filter>Math</Filter>
+    </ClInclude>
+    <ClInclude Include="MemorySecurity.h">
+      <Filter>標頭檔</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

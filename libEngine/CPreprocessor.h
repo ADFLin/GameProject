@@ -67,6 +67,10 @@ namespace CPP
 			if( *mCur != 0 )
 				++mCur;
 		}
+		void skipSpace()
+		{
+			mCur = ParseUtility::SkipSpace(mCur);
+		}
 
 		std::vector< char > mBuffer;
 		std::string   mFileName;
@@ -99,10 +103,10 @@ namespace CPP
 
 	};
 
-	class SyntalError : public std::exception
+	class SyntaxError : public std::exception
 	{
 	public:
-		SyntalError( char const* str ):
+		SyntaxError( char const* str ):
 			std::exception( str ){}
 	};
 
@@ -121,11 +125,13 @@ namespace CPP
 		None,
 	};
 
-	struct DefineSymbol
+	struct MarcoSymbol
 	{
 		TokenString name;
 		std::string expr;
 		std::vector< uint8 > paramEntry;
+		int cacheEvalValue;
+		int EvalFrame;
 	};
 
 
@@ -133,12 +139,15 @@ namespace CPP
 	{
 	public:
 		Preprocessor();
+		~Preprocessor();
+
 		void translate( CodeInput& input );
 		void setOutput(CodeOutput& output);
 		void addSreachDir(char const* dir);
 		void define(char const* name, int value){}
 
-		bool bSupportMarco = false;
+		bool bSupportMarcoArg = false;
+		bool bCanRedefineMarco = false;
 
 	private:
 
@@ -147,9 +156,8 @@ namespace CPP
 
 
 		void execInclude(CodeInput& input);
-
-
 		void execIf(CodeInput& input);
+		void execDefine(CodeInput& input);
 
 		bool evalExpression( std::string const& expr , int& outValue )
 		{
@@ -168,12 +176,6 @@ namespace CPP
 
 		Command nextCommand(CodeInput& input, bool bOutString, char const*& comStart);
 
-		std::string getExpression(CodeInput& input)
-		{
-			return std::string("");
-		}
-
-
 		bool evalNeedOutput()
 		{
 			return true;
@@ -182,10 +184,19 @@ namespace CPP
 		bool findFile(std::string const& name, std::string& fullPath);
 
 		int mScopeCount;
-		DelimsTable   mDelimsTable;
+		DelimsTable mDelimsTable;
+		DelimsTable mExprDelimsTable;
 		CodeOutput* mOutput;
-		std::set< DefineSymbol > mDefineSymbolSet;
 
+		std::map< TokenString , MarcoSymbol , StrCmp > mMarcoSymbolMap;
+
+		MarcoSymbol* findMarco(TokenString token)
+		{
+			auto iter = mMarcoSymbolMap.find(token);
+			if( iter == mMarcoSymbolMap.end() )
+				return nullptr;
+			return &iter->second;
+		}
 		std::set< std::string >  mParamOnceSet;
 
 		struct State
@@ -196,6 +207,74 @@ namespace CPP
 
 		std::vector< State >       mStateStack;
 		std::vector< std::string > mFileSreachDirs;
+		std::vector< CodeInput* >  mLoadedInput;
+
+
+		//expr eval
+		struct ExprToken
+		{
+			enum Type
+			{
+				eOP,
+				eString,
+				eNumber,
+				eEof,
+			} type;
+
+			union
+			{
+				TokenString string;
+				int value;
+			};
+
+			ExprToken(Type inType,int inValue = 0):type(inType),value(inValue){}
+			ExprToken(TokenString inString):type(eString),string(inString){}
+
+
+		};
+
+		enum OpType
+		{
+			OP_EQ = 1,
+			OP_BEQ ,
+			OP_SEQ ,
+			OP_NEQ ,
+			OP_LOFFSET,
+			OP_ROFFSET,
+		};
+
+		ExprToken nextExprToken(CodeInput& input);
+
+		int evalExpression(CodeInput& input)
+		{
+			return 0;
+		}
+		
+		int eval_Compare(ExprToken token , CodeInput& input)
+		{
+			if( token.type == ExprToken::eOP )
+			{
+				int lvalue , rvalue;
+				switch( token.value )
+				{
+				case '>': 
+					lvalue = eval_Compare( nextExprToken(input) , input );
+				case '<':
+				case OP_BEQ:
+				case OP_SEQ:
+				case OP_EQ:
+				case OP_NEQ:
+					break;
+				}
+			}
+			return 0;
+		}
+		int eval_MulDiv(ExprToken token, CodeInput& input)
+		{
+
+			return 0;
+		}
+		int eval_Atom(ExprToken token , CodeInput& input);
 	};
 }
 

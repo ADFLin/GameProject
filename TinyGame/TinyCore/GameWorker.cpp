@@ -161,7 +161,7 @@ void NetWorker::sendUdpCom( NetSocket& socket )
 	}
 
 	mUdpComList.erase( mUdpComList.begin() , iter );
-	mUdpSendBuffer.clearUseData();
+	mUdpSendBuffer.removeUseData();
 }
 
 bool NetWorker::addUdpCom( IComPacket* cp , NetAddress const& addr )

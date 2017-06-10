@@ -26,6 +26,8 @@ public:
 	bool  init( HDC hDC , InitSetting const& setting , bool beWindow = true );
 	void  cleanup();
 	bool  makeCurrent( HDC hDC );
+
+	bool  isVaild() { return mhRC != NULL; }
 	HGLRC getHandle(){ return mhRC; }
 
 private:

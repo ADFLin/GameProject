@@ -1,6 +1,7 @@
 #ifndef THolder_h__
 #define THolder_h__
 
+#include "CppVersion.h"
 
 namespace Detail
 {
@@ -92,6 +93,8 @@ class TPtrHolder : public TPtrHolderBase< T , Detail::PtrPolicy< T > >
 public:
 	TPtrHolder(){}
 	TPtrHolder(T* ptr):TPtrHolderBase< T , Detail::PtrPolicy< T > >(ptr){}
+
+	TPtrHolder(TPtrHolder<T>&& Other) :TPtrHolderBase< T, Detail::PtrPolicy< T > >(Other.release()) {}
 };
 
 
@@ -110,6 +113,8 @@ class TArrayHolder : public Detail::HolderImpl< T , Detail::ArrayPtrPolicy< T > 
 public:
 	TArrayHolder(){}
 	explicit TArrayHolder(T* ptr):Detail::HolderImpl< T , Detail::ArrayPtrPolicy< T > >(ptr){}
+
+	TArrayHolder(TArrayHolder<T>&& Other) :Detail::HolderImpl< T, Detail::ArrayPtrPolicy< T > >(Other.release()) {}
 
 	operator T*()             { return m_ptr;  }
 	operator T const*() const { return m_ptr;  }

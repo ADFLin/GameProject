@@ -3,8 +3,9 @@
 #if SYS_PLATFORM_WIN
 
 #include "Win32Header.h"
-
+#include "MemorySecurity.h"
 #include <cstring>
+
 extern int main( int argc , char* argv[] );
 
 int WINAPI WinMain ( HINSTANCE hInstance , HINSTANCE hPrevInstance , LPSTR lpCmdLine , int nCmdShow )

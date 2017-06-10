@@ -201,7 +201,7 @@ namespace Phy2D
 				invMass += bodyB->mInvMass + bodyB->mInvI * nrB * nrB;
 
 
-				float offDepth = Math::Clamp (  ( depth - kSlopValue ) , 0 , kMaxDepth );
+				float offDepth = Math::Clamp<float>(  ( depth - kSlopValue ) , 0 , kMaxDepth );
 
 				float impulse = ( invMass > 0 ) ? kValueB * offDepth / invMass : 0;
 				if ( impulse > 0 )

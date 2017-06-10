@@ -195,7 +195,7 @@ namespace Zuma
 		ZSlider( int idUI , Vec2i const& pos , ZWidget* parent );
 
 		virtual void onScrollChange( int value );
-		virtual void doRenderTip( TipUI* ui )
+		virtual void doRenderTip( TipWidget* ui )
 		{
 			getUISystem()->drawTex( idTexTip , ui->getWorldPos() );
 		}

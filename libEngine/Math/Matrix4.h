@@ -82,6 +82,10 @@ namespace Math
 		{
 			Matrix4 m; m.setTranslation( pos ); return m;
 		}
+		static Matrix4 Translate(float x, float y, float z) 
+		{ 
+			return Translate(Vector3(x, y, z)); 
+		}
 		static Matrix4 Rotate( Quaternion const& q )
 		{
 			Matrix4 m; m.setQuaternion( q ); return m;

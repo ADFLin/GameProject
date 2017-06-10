@@ -20,35 +20,11 @@ namespace Reflection
 	};
 
 
-	template< class T >
-	class ReflectSupportT
-	{
-	public:
-		static IClass* getClass(){}
-		void    registerClass()
-		{
-	
-		}
-
-
-
-
-	};
-
-
 	class IProporty
 	{
 	public:
-		IProporty* next;
-
-
-
-
-
-
 
 	};
-#define REF_PROPERTY_VAR( NAME , VAR )
 
 
 	template< class T >
@@ -57,9 +33,7 @@ namespace Reflection
 
 	};
 
-
-
-
 }
+
 
 #endif // Reflection_h__

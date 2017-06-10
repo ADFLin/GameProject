@@ -192,25 +192,3 @@ void SocketBuffer::grow( size_t newSize )
 	mMaxSize = newSize;
 }
 
-void SocketBuffer::clearUseData()
-{
-	if ( mUseSize == 0 )
-		return;
-
-	size_t size = getAvailableSize();
-
-	char* dst = mData;
-	char* src = mData + mUseSize;
-	if ( size > mUseSize )
-	{
-		for( size_t i = 0 ; i < size ; ++i )
-			(*dst++) = (*src++);
-	}
-	else
-	{
-		::memmove( dst , src , size );
-	}
-	mUseSize  = 0;
-	mFillSize = size;
-}
-

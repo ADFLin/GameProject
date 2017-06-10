@@ -64,7 +64,7 @@ public:
 
 	~TChunkArray()
 	{
-		release( std::is_trivially_destructible<T>() );
+		release();
 	}
 
 	void* addUninitialized()
@@ -89,7 +89,9 @@ public:
 	size_t size() const { return mNumElement; }
 
 private:
-	void release(std::true_type)
+	
+	template< class Q = T >
+	auto release() -> typename std::enable_if< std::is_trivially_destructible<Q>::value >::type
 	{
 		if ( mNumElement )
 		{
@@ -101,7 +103,8 @@ private:
 		}
 	}
 
-	void release(std::false_type)
+	template< class Q = T >
+	auto release() -> typename std::enable_if< !std::is_trivially_destructible<Q>::value >::type
 	{
 		if ( mNumElement )
 		{

@@ -8,24 +8,21 @@
 
 int const TitleLength = 130;
 
-GameSettingPanel::GameSettingPanel( int id , Vec2i const& pos , Vec2i const& size , GWidget* parent ) 
-	:GPanel( id , pos , size , parent )
+BaseSettingPanel::BaseSettingPanel( int id , Vec2i const& pos , Vec2i const& size , GWidget* parent ) 
+	:BaseClass( id , pos , size , parent )
 {
 	int borderX = 4;
 
-	Vec2i uiPos( borderX + TitleLength , 5 );
-	Vec2i uiSize( size.x - 2 * borderX - TitleLength  , 25 );
-	mGameChoice = new GChoice( UI_GAME_CHOICE , uiPos , uiSize , this );
+	Vec2i uiPos(borderX + TitleLength, 5);
+	Vec2i uiSize(size.x - 2 * borderX - TitleLength, 25);
 
 	mUISize = uiSize;
-	mOffset = Vec2i( 0 , mUISize.y + 3 );
+	mOffset = Vec2i(0, 3);
 	mCurPos = uiPos + mOffset;
-
-	setRenderCallback( RenderCallBack::create( this , &GameSettingPanel::renderTitle ) );
-
+	setRenderCallback( RenderCallBack::create( this , &BaseSettingPanel::renderTitle ) );
 }
 
-void   GameSettingPanel::removeGui( unsigned mask )
+void  BaseSettingPanel::removeGui( unsigned mask )
 {
 	for( SettingInfoVec::iterator iter = mSettingInfoVec.begin();
 		iter != mSettingInfoVec.end() ;  )
@@ -42,7 +39,7 @@ void   GameSettingPanel::removeGui( unsigned mask )
 	}
 }
 
-void GameSettingPanel::adjustGuiLocation()
+void BaseSettingPanel::adjustGuiLocation()
 {
 	int borderX = 4;
 
@@ -62,7 +59,7 @@ void GameSettingPanel::adjustGuiLocation()
 	}
 }
 
-void GameSettingPanel::addWidgetInternal( GWidget* ui , char const* title , unsigned groupMask )
+void BaseSettingPanel::addWidgetInternal( GWidget* ui , char const* title , unsigned groupMask )
 {
 	//if ( !mSetInfoVec.empty() )
 	//{
@@ -85,24 +82,7 @@ void GameSettingPanel::addWidgetInternal( GWidget* ui , char const* title , unsi
 	mSettingInfoVec.push_back( info );
 }
 
-
-void GameSettingPanel::setGame( char const* name )
-{
-	int idx = -1;
-	if ( name )
-		idx = mGameChoice->findItem( name );
-	if ( idx == -1 )
-		idx = 0;
-	mGameChoice->modifySelection( idx );
-}
-
-void GameSettingPanel::addGame( IGameInstance* game )
-{
-	unsigned id = mGameChoice->appendItem( game->getName() );
-	mGameChoice->setItemData( id , game );
-}
-
-bool GameSettingPanel::onChildEvent( int event , int id , GWidget* ui )
+bool BaseSettingPanel::onChildEvent( int event , int id , GWidget* ui )
 {
 	if ( mCallback )
 		return ( mCallback )( event , id , ui );
@@ -110,16 +90,13 @@ bool GameSettingPanel::onChildEvent( int event , int id , GWidget* ui )
 	return true;
 }
 
-void GameSettingPanel::renderTitle( GWidget* ui )
+void BaseSettingPanel::renderTitle( GWidget* ui )
 {
 	int borderX = 4;
 	Graphics2D& g = Global::getGraphics2D();
 
 	RenderUtility::setFont( g , FONT_S10 );
 	g.setTextColor(255 , 200 , 100 );
-
-	Vec2i uiPos( borderX + 5 , 5 + 3 );
-	g.drawText( getWorldPos() + uiPos , LAN("Game Name") );
 
 	for( SettingInfoVec::iterator iter = mSettingInfoVec.begin();
 		iter != mSettingInfoVec.end() ; ++iter )
@@ -129,7 +106,7 @@ void GameSettingPanel::renderTitle( GWidget* ui )
 	}
 }
 
-GCheckBox* GameSettingPanel::addCheckBox(int id , char const* title , unsigned groupMask)
+GCheckBox* BaseSettingPanel::addCheckBox(int id , char const* title , unsigned groupMask)
 {
 	Vec2i size( mUISize.y , mUISize.y );
 	GCheckBox* ui = new GCheckBox( id , mCurPos + Vec2i( mUISize.x - size.x  , 0 ) , size , this );
@@ -137,7 +114,7 @@ GCheckBox* GameSettingPanel::addCheckBox(int id , char const* title , unsigned g
 	return ui;
 }
 
-GSlider* GameSettingPanel::addSlider(int id , char const* title , unsigned groupMask)
+GSlider* BaseSettingPanel::addSlider(int id , char const* title , unsigned groupMask)
 {
 	GSlider* ui = new GSlider( id , mCurPos + Vec2i( 5 , 5 ) , mUISize.x - 10 - 30 ,  true  , this );
 	ui->showValue();
@@ -145,12 +122,52 @@ GSlider* GameSettingPanel::addSlider(int id , char const* title , unsigned group
 	return ui;
 }
 
-GAME_API GChoice* GameSettingPanel::addChoice(int id , char const* title , unsigned groupMask)
+GChoice* BaseSettingPanel::addChoice(int id , char const* title , unsigned groupMask)
 {
 	return addWidget< GChoice >( id , title , groupMask );
 }
 
-GAME_API GButton* GameSettingPanel::addButton(int id , char const* title , unsigned groupMask)
+GButton* BaseSettingPanel::addButton(int id , char const* title , unsigned groupMask)
 {
 	return addWidget< GButton >( id , title , groupMask );
+}
+
+GameSettingPanel::GameSettingPanel(int id, Vec2i const& pos, Vec2i const& size, GWidget* parent)
+	:BaseClass(id, pos, size, parent)
+{
+	int borderX = 4;
+
+	Vec2i uiPos(borderX + TitleLength, 5);
+	Vec2i uiSize(size.x - 2 * borderX - TitleLength, 25);
+	mGameChoice = new GChoice(UI_GAME_CHOICE, uiPos, uiSize, this);
+
+	mUISize = uiSize;
+	mOffset = Vec2i(0, mUISize.y + 3);
+	mCurPos = uiPos + mOffset;
+}
+
+void GameSettingPanel::setGame(char const* name)
+{
+	int idx = -1;
+	if( name )
+		idx = mGameChoice->findItem(name);
+	if( idx == -1 )
+		idx = 0;
+	mGameChoice->modifySelection(idx);
+}
+
+void GameSettingPanel::renderTitle(GWidget* ui)
+{
+	int borderX = 4;
+	Graphics2D& g = Global::getGraphics2D();
+
+	BaseClass::renderTitle(ui);
+	Vec2i uiPos(borderX + 5, 5 + 3);
+	g.drawText(getWorldPos() + uiPos, LAN("Game Name"));
+}
+
+void GameSettingPanel::addGame(IGameInstance* game)
+{
+	unsigned id = mGameChoice->appendItem(game->getName());
+	mGameChoice->setItemData(id, game);
 }

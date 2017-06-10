@@ -129,6 +129,29 @@ int ParseUtility::ParseNumber(char const* str, int& num)
 	return result;
 }
 
+int ParseUtility::ParseIntNumber(char const* str, int& num)
+{
+	char const* cur = str;
+	int base = 10;
+	if( cur[0] == '0' && cur[1] == 'x' )
+	{
+		cur += 2;
+		base = 16;
+	}
+
+	int result = 0;
+	while( *cur != 0 )
+	{
+		if( '0' > *cur || *cur > '9' )
+			break;
+
+		result *= base;
+		result += int(*cur - '0');
+		++cur;
+	}
+	return result;
+}
+
 char const* ParseUtility::FindLastChar(char const* str, int num, char c)
 {
 	char const* ptr = str + (num - 1);
@@ -265,6 +288,13 @@ char const* ParseUtility::SkipChar(char const* str, char const* skipChars)
 		++str;
 	}
 	return str;
+}
+
+char const* ParseUtility::SkipSpace(char const* str)
+{
+	char const* p = str;
+	while( ::isspace(*p) ) { ++p; }
+	return p;
 }
 
 char const* ParseUtility::SkipToChar(char const* str, char c, char cPair, bool bCheckComment, bool bCheckString)
@@ -562,7 +592,27 @@ bool ParseUtility::StringToken(char const*& inoutStr, char const* dropDelims, To
 	return true;
 }
 
-
+TokenString ParseUtility::StringTokenLine(char const*& inoutStr)
+{
+	char const* start = inoutStr;
+	inoutStr = FindChar(inoutStr, '\n');
+	char const* end = inoutStr;
+	if( *end != 0 )
+	{
+		++inoutStr;
+		if( *end == '\n' )
+		{
+			if( end != start && *(end - 1) == '\r' )
+			{
+				--end;
+			}
+		}
+	}
+	TokenString result;
+	result.ptr = start;
+	result.num = end - start;
+	return result;
+}
 
 DelimsTable::DelimsTable()
 {

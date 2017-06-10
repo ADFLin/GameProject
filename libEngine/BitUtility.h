@@ -33,6 +33,14 @@ public:
 		return 1;
 	}
 
+	static int CountSet(uint8 x )
+	{
+		int count = 0;
+		for( ; x; ++count )
+			x &= x - 1;
+		return count;
+	}
+
 	static int CountSet( uint32 x )
 	{
 		int count = 0;

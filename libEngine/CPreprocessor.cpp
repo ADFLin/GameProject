@@ -4,7 +4,7 @@
 #include "FileSystem.h"
 #include "THolder.h"
 
-#define SYNTAL_ERROR( MSG ) throw SyntalError( MSG );
+#define SYNTAX_ERROR( MSG ) throw SyntaxError( MSG );
 #define FUNCTION_CHECK( fun ) fun
 
 namespace CPP
@@ -19,6 +19,7 @@ namespace CPP
 		{ Command::Pragma , "pragma" } ,
 #if 0
 		{ Command::Define , "define" },
+
 		{ Command::If , "if" },
 		{ Command::Ifdef ,"ifdef" },
 		{ Command::Ifndef ,"ifndef" },
@@ -35,6 +36,10 @@ namespace CPP
 		mScopeCount = 0;
 		mDelimsTable.addDelims(" \t\r", DelimsTable::DropMask);
 		mDelimsTable.addDelims("\n", DelimsTable::StopMask);
+
+		mDelimsTable.addDelims(" \t\r", DelimsTable::DropMask);
+		mDelimsTable.addDelims("+-*/><=!&|()\n", DelimsTable::StopMask);
+
 		if( sCommandMap.empty() )
 		{
 			for( int i = 0; i < ARRAY_SIZE(gCommandList); ++i )
@@ -42,6 +47,15 @@ namespace CPP
 				sCommandMap.insert(std::make_pair(TokenString(gCommandList[i].name), gCommandList[i].com));
 			}
 		}
+	}
+
+	Preprocessor::~Preprocessor()
+	{
+		for( auto input : mLoadedInput )
+		{
+			delete input;
+		}
+		mLoadedInput.clear();
 	}
 
 	CPP::TokenInfo Preprocessor::nextToken(CodeInput& input)
@@ -69,21 +83,21 @@ namespace CPP
 	{
 		TokenInfo token = nextToken(input);
 		if( token.type != Token_String )
-			SYNTAL_ERROR("Error include Format");
+			SYNTAX_ERROR("Error include Format");
 
 		if( token.str.num < 2 )
-			SYNTAL_ERROR("Error include Format");
+			SYNTAX_ERROR("Error include Format");
 
 		bool bSystemPath = false;
 		if( token.str[1] == '\"' )
 		{
 			if( token.str[token.str.num - 1] != '\"' )
-				SYNTAL_ERROR("Error include Format");
+				SYNTAX_ERROR("Error include Format");
 		}
 		else if( token.str[0] == '<' )
 		{
 			if( token.str[token.str.num - 1] != '>' )
-				SYNTAL_ERROR("Error include Format");
+				SYNTAX_ERROR("Error include Format");
 
 			bSystemPath = true;
 		}
@@ -96,16 +110,19 @@ namespace CPP
 		{
 			std::string fullPath;
 			if ( !findFile(path.toStdString() , fullPath ) )
-				SYNTAL_ERROR("Can't find include file");
+				SYNTAX_ERROR("Can't find include file");
 
 			TPtrHolder< CodeInput > includeInput( new CodeInput );
 			if( !includeInput->loadFile(fullPath.c_str()) )
 			{
-				SYNTAL_ERROR("Can't open include file");
+				SYNTAX_ERROR("Can't open include file");
 			}
 			includeInput->mFileName = path.toStdString();
 			includeInput->reset();
+
 			translate(*includeInput);
+			mOutput->pushNewline();
+			mLoadedInput.push_back(includeInput.release());
 		}
 
 		input.skipLine();
@@ -113,10 +130,9 @@ namespace CPP
 
 	void Preprocessor::execIf(CodeInput& input)
 	{
-		std::string expr = getExpression(input);
-		int evalValue;
-		if( !evalExpression(expr, evalValue) )
-			SYNTAL_ERROR("Error expression");
+		return;
+
+		int evalValue = evalExpression(input);
 
 		if( evalValue != 0 )
 		{
@@ -128,9 +144,42 @@ namespace CPP
 		}
 	}
 
+	void Preprocessor::execDefine(CodeInput& input)
+	{
+		return;
+
+		TokenInfo token = nextToken(input);
+
+		if ( token.type == Token_Eof )
+			SYNTAX_ERROR("Define Syntex Error");
+
+		auto iter = mMarcoSymbolMap.find(token.str);
+
+		MarcoSymbol*  marco = nullptr;
+		if( iter != mMarcoSymbolMap.end() )
+		{
+			if( !bCanRedefineMarco )
+			{
+				SYNTAX_ERROR("Define Syntex Error");
+			}
+			marco = &iter->second;
+		}
+		else
+		{
+			auto iterInsert = mMarcoSymbolMap.insert(std::make_pair(token.str, MarcoSymbol()));
+			marco = &iterInsert.first->second;
+			marco->name = token.str;
+		}
+
+		input.skipSpace();
+		TokenString expr = ParseUtility::StringTokenLine(input.mCur);
+
+
+	}
+
 	std::map< TokenString, Command, Preprocessor::StrCmp > Preprocessor::sCommandMap;
 
-	CPP::Command Preprocessor::nextCommand( CodeInput& input, bool bOutString , char const*& comStart )
+	Command Preprocessor::nextCommand( CodeInput& input, bool bOutString , char const*& comStart )
 	{
 		char const*& str = input.mCur;
 
@@ -213,6 +262,107 @@ namespace CPP
 		return false;
 	}
 
+	Preprocessor::ExprToken Preprocessor::nextExprToken(CodeInput& input)
+	{
+		//TODO : Skip Comment
+		TokenString str;
+		if( !ParseUtility::StringToken(input.mCur, mExprDelimsTable, str) )
+			return ExprToken(ExprToken::eEof);
+
+		if( isalpha(str[0]) )
+			return ExprToken(str);
+
+		if( '0' <= str[0] && str[0] <= '9' )
+		{
+			int numEval = 0;
+			int value = ParseUtility::ParseIntNumber(str.ptr, numEval);
+			if ( numEval != str.num )
+				SYNTAX_ERROR("Unknow Token");
+
+			return ExprToken(ExprToken::eNumber, value);
+		}
+
+		if( !mExprDelimsTable.isStopDelims(str[0]) )
+			SYNTAX_ERROR("Unknow Token");
+
+		int op = -1;
+		switch( str[0] )
+		{
+		case '!':
+			if( str[1] == '=' )
+			{
+				++input.mCur;
+				op = OP_EQ;
+			}
+			else
+			{
+				op = str[0];
+			}
+			break;
+		case '>':
+			if( str[1] == '=' )
+			{
+				++input.mCur;
+				op = OP_BEQ;
+			}
+			else
+			{
+				op = str[0];
+			}
+			break;
+		case '<':
+			if( str[1] == '=' )
+			{
+				++input.mCur;
+				op = OP_SEQ;
+			}
+			else
+			{
+				op = str[0];
+			}
+			break;
+		case '=':
+			if( str[1] == '=' )
+			{
+				++input.mCur;
+				op = OP_EQ;
+			}
+			else
+			{
+				op = str[0];
+			}
+			break;
+		}
+
+		return ExprToken(ExprToken::eOP, op);
+	}
+
+	int Preprocessor::eval_Atom(ExprToken token , CodeInput& input)
+	{
+		if( token.type == ExprToken::eNumber )
+			return token.value;
+		else if( token.type == ExprToken::eString )
+		{
+			MarcoSymbol* marco = findMarco(token.string);
+			if( marco == nullptr )
+				SYNTAX_ERROR("Unknow Marco");
+			return marco->cacheEvalValue;
+		}
+		else if( token.type == ExprToken::eOP )
+		{
+			if( token.value == '(' )
+			{
+				int value = evalExpression(input);
+				token = nextExprToken(input);
+				if( token.type != ExprToken::eOP || token.value != ')' )
+					SYNTAX_ERROR("Missing \")\"");
+				return value;
+			}	
+		}
+
+		SYNTAX_ERROR("Unknow Expr Node");
+	}
+
 	void Preprocessor::translate(CodeInput& input)
 	{
 		bool done = false;
@@ -233,7 +383,7 @@ namespace CPP
 					TokenInfo token = nextToken(input);
 
 					if( token.type != Token_String )
-						SYNTAL_ERROR("Error");
+						SYNTAX_ERROR("Error");
 
 					if( token.str == "once" )
 					{
@@ -242,16 +392,14 @@ namespace CPP
 					}
 					else
 					{
-						SYNTAL_ERROR("Unknown Param Command");
+						SYNTAX_ERROR("Unknown Param Command");
 					}
 
 					input.skipLine();
 				}
 				break;
 			case Command::Define:
-				{
-
-				}
+				FUNCTION_CHECK(execDefine(input));
 				break;
 
 			case Command::If:
@@ -271,17 +419,17 @@ namespace CPP
 				{
 					--mScopeCount;
 					if( mStateStack.empty() )
-						SYNTAL_ERROR("");
+						SYNTAX_ERROR("");
 					mStateStack.pop_back();
 				}
 				break;
 			case Command::Elif:
 				{
 					if( mStateStack.empty() )
-						SYNTAL_ERROR("Error Command");
+						SYNTAX_ERROR("Error Command");
 
 					if( mStateStack.back().bHaveElse )
-						SYNTAL_ERROR("Error Command");
+						SYNTAX_ERROR("Error Command");
 
 					if( mStateStack.back().bEval )
 					{
@@ -297,7 +445,7 @@ namespace CPP
 			case Command::Else:
 				{
 					if ( mStateStack.empty() )
-						SYNTAL_ERROR("Error Command");
+						SYNTAX_ERROR("Error Command");
 
 					mStateStack.back().bHaveElse = true;
 
@@ -312,13 +460,13 @@ namespace CPP
 					}
 				}
 			default:
-				SYNTAL_ERROR("Error Command");
+				SYNTAX_ERROR("Error Command");
 			}
 		}
 		while( !done );
 
 		if ( !mStateStack.empty() )
-			SYNTAL_ERROR("");
+			SYNTAX_ERROR("");
 
 	}
 

@@ -70,8 +70,8 @@ void DataSteamBuffer::fill( char const* str )
 
 void DataSteamBuffer::fill( char const* str , size_t max )
 {
-	size_t len = strlen( str ) + 1;
-	fill( (void*)str , std::min( len , max ) );
+	size_t len = strnlen( str , max );
+	fill( (void*)str , len );
 }
 
 void DataSteamBuffer::take( char* str )

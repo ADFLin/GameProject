@@ -4,10 +4,15 @@
 #include <cmath>
 #include <cassert>
 
+#include "EnumCommon.h"
+
+float const FLT_DIV_ZERO_EPSILON = 1e-6f;
+
+
 namespace Math
 {
-
 	float const PI = 3.141592654f;
+	inline int FloorToInt(float val) { return (int)::floor(val); }
 	inline float Floor( float val ){ return ::floor( val ); }
 	inline float Sqrt( float val ){ return ::sqrt( val ); }
 	inline float InvSqrt( float val ){ return 1.0f / Sqrt( val ); }
@@ -20,12 +25,8 @@ namespace Math
 	inline float ATan( float val ){ return ::atan( val ); }
 	inline float Abs( float val ){ return ::fabs( val ); }
 	inline float ATan2( float y , float x ){ return ::atan2( y ,x ); }
-	inline float Min( float v1 , float v2 ){ return ( v1 < v2 ) ? v1 : v2; }
-	inline float Max( float v1 , float v2 ){ return ( v1 > v2 ) ? v1 : v2; }
-	inline float Clamp( float val , float minVal , float maxVal )
-	{
-		return Min( Max(  minVal , val ) , maxVal );
-	}
+
+
 	inline float Round( float value ){ return ::floor( value + 0.5f ); }
 	inline float Fmod( float v1 , float v2 ){ return ::fmod( v1 , v2 ); }
 	inline float Deg2Rad( float val ){ return val * Math::PI / 180.0f; }
@@ -33,6 +34,37 @@ namespace Math
 	inline float Pow(float base, float exp) { return ::pow(base, exp); }
 	inline float Lerp(float form, float to, float alpha) { return form * (1 - alpha) + to * alpha;  }
 
+	template< class T >
+	inline T Min(T v1, T v2) { return (v1 < v2) ? v1 : v2; }
+	template< class T >
+	inline T Max(T v1, T v2) { return (v1 > v2) ? v1 : v2; }
+	template< class T >
+	inline T Clamp(T val, T minVal, T maxVal)
+	{
+		return Min(Max(minVal, val), maxVal);
+	}
+
+	template< class T >
+	static T LinearLerp(T const& p0, T const& p1, float alpha)
+	{
+		return (1 - alpha) * p0 + alpha * p1;
+	}
+
+	template< class T >
+	static T BezierLerp(T const& p0, T const& p1, T const& p2, float alpha)
+	{
+		float frac = 1 - alpha;
+		return (frac * frac) * p0 + (2 * frac * alpha) * p1 + (alpha * alpha) * p2;
+	}
+
+	template< class T >
+	static T BezierLerp(T const& p0, T const& p1, T const& p2, T const& p3, float alpha)
+	{
+		float frac = 1 - alpha;
+		float frac2 = frac * frac;
+		float alpha2 = alpha * alpha;
+		return (frac * frac2) * p0 + (3 * frac2 * alpha) * p1 + (3 * frac * alpha2) * p2 + (alpha * alpha2) * p3;
+	}
 }//namespace Math
 
 #endif // Base_h__

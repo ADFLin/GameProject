@@ -3,23 +3,22 @@
 
 #include "CommonMarco.h"
 #include "CoreShare.h"
+#include "CompilerConfig.h"
 
 #define LAST_VERSION  MAKE_VERSION( 0xff , 0xff , 0xffff )
 #define MAX_PLAYER_NAME_LENGTH 32
 
 #ifdef TG_DLL
 #	ifdef TG_EXPORT
-#		define GAME_API __declspec( dllexport )
+#		define GAME_API DLLEXPORT
 #	else
-#		define GAME_API __declspec( dllimport )
+#		define GAME_API DLLIMPORT
 #	endif
 #endif //TG_DLL
 
 #ifndef GAME_API
 #	define GAME_API
 #endif
-
-#define F_INLINE __forceinline
 
 #define HAVE_NET_THREAD 1
 

@@ -253,10 +253,12 @@ typedef float4x3 half4x3;
 #define discard
 #define layout
 
-enum 
+enum
 {
-	depth_unchanged ,
+	depth_unchanged,
+
 };
+
 
 class sampler1D;
 class sampler2D;
@@ -428,3 +430,44 @@ struct gl_LightProductParams
 
 uniform gl_LightProductParams gl_FrontLightProduct[gl_MaxLights];  
 uniform gl_LightProductParams gl_BackLightProduct[gl_MaxLights];
+
+in gl_PerVertex
+{
+	vec4 gl_Position;
+	float gl_PointSize;
+	float gl_ClipDistance[];
+} gl_in[];
+
+
+//layout(points, invocations = 1) in;
+//layout(line_strip, max_vertices = 2) out;
+
+int max_vertices;
+int invocations;
+
+in int gl_PrimitiveIDIn;
+in int gl_InvocationID;  //Requires GLSL 4.0 or ARB_gpu_shader5
+
+//Layered rendering
+out int gl_Layer;
+out int gl_ViewportIndex; //Requires GL 4.1 or ARB_viewport_array.
+
+enum
+{
+	points,
+	lines,
+	lines_adjacency,
+	triangles,
+	triangles_adjacency,
+};
+
+enum
+{
+	points,
+	line_strip,
+	triangle_strip,
+};
+
+void EmitVertex();
+void EndPrimitive();
+

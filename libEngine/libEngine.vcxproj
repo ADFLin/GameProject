@@ -89,6 +89,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="AppEntry.cpp" />
+    <ClCompile Include="Asset.cpp" />
     <ClCompile Include="BehaviorTree\BehaviorTree.cpp" />
     <ClCompile Include="BehaviorTree\BTNode.cpp" />
     <ClCompile Include="BehaviorTree\TreeBuilder.cpp" />
@@ -108,6 +109,7 @@
     <ClCompile Include="Math\Matrix3.cpp" />
     <ClCompile Include="Math\Matrix4.cpp" />
     <ClCompile Include="Math\Quaternion.cpp" />
+    <ClCompile Include="Math\Transform.cpp" />
     <ClCompile Include="Phy2D\Collision.cpp" />
     <ClCompile Include="Phy2D\Phy2D.cpp" />
     <ClCompile Include="Phy2D\RigidBody.cpp" />
@@ -156,6 +158,8 @@
     <ClInclude Include="Coroutine.h" />
     <ClInclude Include="Cpp11StdConfig.h" />
     <ClInclude Include="CppVersion.h" />
+    <ClInclude Include="EnumCommon.h" />
+    <ClInclude Include="HashMap.h" />
     <ClInclude Include="LogSystem.h" />
     <ClInclude Include="EasingFun.h" />
     <ClInclude Include="FileSystem.h" />
@@ -181,12 +185,16 @@
     <ClInclude Include="Math\BigFloat.h" />
     <ClInclude Include="Math\BigInteger.h" />
     <ClInclude Include="Math\FixedFloat.h" />
+    <ClInclude Include="Math\Math2D.h" />
     <ClInclude Include="Math\Matrix3.h" />
     <ClInclude Include="Math\Matrix4.h" />
     <ClInclude Include="Math\MatrixUtility.h" />
     <ClInclude Include="Math\Quaternion.h" />
+    <ClInclude Include="Math\Transform.h" />
+    <ClInclude Include="Math\Vector2.h" />
     <ClInclude Include="Math\Vector3.h" />
     <ClInclude Include="Math\Vector4.h" />
+    <ClInclude Include="MemorySecurity.h" />
     <ClInclude Include="MetaBase.h" />
     <ClInclude Include="MetaFunction.h" />
     <ClInclude Include="MetaTypeList.h" />
@@ -204,6 +212,7 @@
     <ClInclude Include="Reflection.h" />
     <ClInclude Include="RefCount.h" />
     <ClInclude Include="CoreShare.h" />
+    <ClInclude Include="ReflectionCollect.h" />
     <ClInclude Include="Singleton.h" />
     <ClInclude Include="SList.h" />
     <ClInclude Include="SocketBuffer.h" />

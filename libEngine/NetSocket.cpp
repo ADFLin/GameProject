@@ -3,7 +3,7 @@
 #include <cstdlib>
 #include <cassert>
 
-WORD  g_sockVersion = MAKEWORD(1,1);
+WORD  gSockVersion = MAKEWORD(1,1);
 
 void socketError(char* str){ }
 
@@ -393,7 +393,7 @@ bool NetSocket::initSystem()
 		return true;
 
 	WSADATA wsaData;
-	if ( WSAStartup( g_sockVersion , &wsaData ) != NET_INIT_OK )
+	if ( WSAStartup( gSockVersion , &wsaData ) != NET_INIT_OK )
 		return false;
 
 

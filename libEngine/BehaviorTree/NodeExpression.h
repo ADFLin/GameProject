@@ -1,6 +1,8 @@
 #ifndef NodeExpression_h__
 #define NodeExpression_h__
 
+#include "CompilerConfig.h"
+
 #define CHAIN_OP   operator |
 #define SUBNODE_OP operator >>
 
@@ -49,7 +51,7 @@ namespace ntu
 		ChainNodeExpr( LExpr const& lhs , RExpr const& rhs ):lhs(lhs),rhs(rhs){}
 
 		enum { ExprNum = LExpr::ExprNum + RExpr::ExprNum,  };
-		__forceinline BTNode* build( BTNode* parent ) const
+		FORCEINLINE BTNode* build( BTNode* parent ) const
 		{
 			BTNode* lNode = lhs.build( parent );
 			rhs.build( parent );

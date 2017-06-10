@@ -38,7 +38,7 @@ public:
 	CORE_API char const* toString() const;
 	operator char const* () const { return toString(); }
 
-	bool operator == (EName name) const { return mNumber == uint32(name) << 1; }
+	bool operator == (EName name) const { return mIndex == uint32(name) << 1; }
 	bool operator != (EName name) const { return !operator == ( name ); }
 
 

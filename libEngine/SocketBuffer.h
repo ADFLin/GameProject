@@ -29,9 +29,6 @@ public:
 	void fill( char const* str );
 	void fill( char const* str , size_t maxSize );
 
-	void clearUseData();
-
-
 	void take( char* str );
 	void take( char* str , size_t maxSize );
 

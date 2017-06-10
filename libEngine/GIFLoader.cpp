@@ -1,6 +1,7 @@
 #include "GIFLoader.h"
 
 #include <fstream>
+#include <cstring>
 
 // ****************************************************************************
 //

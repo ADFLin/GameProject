@@ -494,7 +494,7 @@ void UdpChain::refrushReliableData( unsigned outgoing )
 	{
 		mInfoList.erase( mInfoList.begin() , iter );
 		mBufferRel.shiftUseSize( endPos );
-		mBufferRel.clearUseData();
+		mBufferRel.removeUseData();
 		checkBuffer( mBufferRel.getData() , (int)mBufferRel.getFillSize() );
 	}
 }

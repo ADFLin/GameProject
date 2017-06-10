@@ -80,7 +80,14 @@ namespace Math
 #endif
 	}
 
-	void Quaternion::setRotation( Vector3 const& axis , float angle )
+	Math::Quaternion Quaternion::EulerZYX(Vector3 const& v)
+	{
+		Quaternion result;
+		result.setEulerZYX(v.z, v.y, v.x);
+		return result;
+	}
+
+	void Quaternion::setRotation(Vector3 const& axis, float angle)
 	{
 		float d = 1.0f / axis.length();
 

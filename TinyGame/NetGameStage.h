@@ -148,6 +148,7 @@ public:
 	void updateTime(long time);
 	bool canRender();
 
+	void restart(bool beInit);
 
 	bool onWidgetEvent(int event, int id, GWidget* ui);
 	bool onKey(unsigned key, bool isDown);
@@ -176,11 +177,11 @@ public:
 	bool             mbLevelInitialized;
 	INetEngine*      mNetEngine;
 	ComMsgPanel*     mMsgPanel;
-	uint64           mSeed;
+	uint64           mNetSeed;
 	bool             mbReconnectMode;
 
 	//ServerEventResolver
-	virtual PlayerDisconnectMode resolvePlayerClose(PlayerId id, ConCloseReason reason) override;
+	virtual PlayerDisconnectMode resolvePlayerClose(PlayerId id, NetCloseReason reason) override;
 	virtual void resolvePlayerReconnect(PlayerId id) override;
 
 };

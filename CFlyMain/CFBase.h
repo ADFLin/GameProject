@@ -94,7 +94,7 @@ namespace CFly
 	class CFException : public std::exception
 	{
 	public:
-		EXCEPTION_CONSTRUCTOR_WITH_WHAT( CFException )
+		STD_EXCEPTION_CONSTRUCTOR_WITH_WHAT( CFException )
 	};
 
 }//namespace CFly

@@ -1,8 +1,10 @@
-#ifndef SysMsgHandler_h__
-#define SysMsgHandler_h__
+#pragma once
+#ifndef WindowsMessageHander_H_B9615608_C535_4E09_881F_D1CDF5D3734E
+#define WindowsMessageHander_H_B9615608_C535_4E09_881F_D1CDF5D3734E
 
-#include "Win32Header.h"
-#include "SysMsg.h"
+
+#include "WindowsHeader.h"
+#include "SystemMessage.h"
 #include "MetaBase.h"
 
 enum
@@ -31,14 +33,14 @@ namespace Private
 #define MSG_DEUFLT MSG_CHAR | MSG_KEY | MSG_MOUSE | MSG_ACTIAVTE | MSG_PAINT
 
 template< class T , unsigned MSG = MSG_DEUFLT >
-class SysMsgHandlerT : private Meta::Select< MSG & MSG_MOUSE , Private::MouseData , Meta::EmptyType >::ResultType
+class WindowsMessageHandlerT : private Meta::Select< MSG & MSG_MOUSE , Private::MouseData , Meta::EmptyType >::ResultType
 {
 
-	typedef SysMsgHandlerT< T , MSG >  ThisType;
+	typedef WindowsMessageHandlerT< T , MSG >  ThisType;
 public:
-	typedef SysMsgHandlerT< T , MSG >  SysMsgHandler;
+	typedef WindowsMessageHandlerT< T , MSG >  WindowsMessageHandler;
 
-	SysMsgHandlerT()
+	WindowsMessageHandlerT()
 	{
 		s_MsgHandler = this;
 	}
@@ -57,7 +59,7 @@ public:
 	static LRESULT CALLBACK MsgProc( HWND hWnd , UINT msg , WPARAM wParam , LPARAM lParam );
 
 private:
-	static SysMsgHandlerT* s_MsgHandler;
+	static WindowsMessageHandlerT* s_MsgHandler;
 
 	inline bool _procDefault( HWND hWnd , UINT msg , WPARAM wParam , LPARAM lParam , LRESULT& result )
 	{
@@ -117,24 +119,22 @@ private:
 
 
 template< class T , unsigned MSG >
-SysMsgHandlerT<T,MSG>* SysMsgHandlerT<T, MSG>::s_MsgHandler = NULL;
+WindowsMessageHandlerT<T,MSG>* WindowsMessageHandlerT<T, MSG>::s_MsgHandler = NULL;
 
 template< class T , unsigned MSG >
-LRESULT CALLBACK SysMsgHandlerT<T, MSG>::MsgProc( HWND hWnd , UINT msg , WPARAM wParam , LPARAM lParam )
+LRESULT CALLBACK WindowsMessageHandlerT<T, MSG>::MsgProc( HWND hWnd , UINT msg , WPARAM wParam , LPARAM lParam )
 {
 	LRESULT result = 0;
 
 	using namespace Meta;
 	typedef EvalFun< &ThisType::_procDefault > DefaultEval;
 	
-
-
 	switch ( msg )                  /* handle the messages */
 	{
 
-#define PROC_MSG_FUN( msg_ , fun_ )\
+#define PROC_MSG_FUN(  CASE_MSG , FUN )\
 	{\
-		typename Select< ( MSG & msg_ ) != 0 , EvalFun< &ThisType::##fun_ > , DefaultEval >::ResultType evaler;\
+		typename Select< ( MSG & CASE_MSG ) != 0 , EvalFun< &ThisType::FUN > , DefaultEval >::ResultType evaler;\
 		if ( !evaler( s_MsgHandler , hWnd , msg , wParam , lParam , result ) )\
 		return result;\
 	}
@@ -183,7 +183,7 @@ LRESULT CALLBACK SysMsgHandlerT<T, MSG>::MsgProc( HWND hWnd , UINT msg , WPARAM 
 }
 
 template< class T , unsigned MSG >
-bool SysMsgHandlerT<T,MSG>::_procMouseMsg( HWND hWnd , UINT msg , WPARAM wParam , LPARAM lParam , LRESULT& result )
+bool WindowsMessageHandlerT<T,MSG>::_procMouseMsg( HWND hWnd , UINT msg , WPARAM wParam , LPARAM lParam , LRESULT& result )
 {
 	unsigned button = 0;
 
@@ -226,10 +226,10 @@ bool SysMsgHandlerT<T,MSG>::_procMouseMsg( HWND hWnd , UINT msg , WPARAM wParam 
 	int x = (int) LOWORD(lParam);
 	int y = (int) HIWORD(lParam);
 
-	//if (x >= 32767) x -= 65536;
-	//if (y >= 32767) y -= 65536;
+	if (x >= 32767) x -= 65536;
+	if (y >= 32767) y -= 65536;
 
 	return _this()->onMouse( MouseMsg( x , y , button , mMouseState ) );
 }
 
-#endif // SysMsgHandler_h__
+#endif // WindowsMessageHander_H_B9615608_C535_4E09_881F_D1CDF5D3734E

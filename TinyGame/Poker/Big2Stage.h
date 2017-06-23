@@ -40,6 +40,7 @@ namespace Poker { namespace Big2 {
 		void onEnd();
 		void onRender( float dFrame );
 		bool onWidgetEvent( int event , int id , GWidget* ui );
+		bool onMouse(MouseMsg const& msg);
 
 		void tick();
 		void updateFrame( int frame );
@@ -47,13 +48,12 @@ namespace Poker { namespace Big2 {
 		void setupLocalGame( LocalPlayerManager& playerManager );
 		void setupScene( IPlayerManager& playerManager );
 
-		bool onMouse( MouseMsg const& msg );
-
-
+		//<ServerLevel::Listener>
 		virtual void onRoundInit();
 		virtual void onSlotTurn( int slotId , bool beShow );
 		virtual void onRoundEnd( bool isGameOver );
 		virtual void onNewCycle();
+		//</ServerLevel::Listener>
 
 		bool nextRound( long time );
 

@@ -16,10 +16,11 @@
 class SocketBuffer;
 typedef uint32 ComID;
 
+
 class ComException : public std::exception
 {
 public:
-	EXCEPTION_CONSTRUCTOR_WITH_WHAT( ComException )
+	STD_EXCEPTION_CONSTRUCTOR_WITH_WHAT( ComException )
 
 	ComID com;
 };

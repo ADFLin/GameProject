@@ -1,7 +1,5 @@
 #include "PlatformConfig.h"
 
-
-
 #include "LogSystem.h"
 #include "ProfileSystem.h"
 #include "Phy2D/Phy2D.h"
@@ -18,7 +16,7 @@ EXPORT_FUN( static_cast< void (*)(char const*, ...) >( &Msg ));
 
 #undef EXPORT_FUN
 
-#include "Win32Header.h"
+#include "WindowsHeader.h"
 
 BOOL WINAPI DllMain( _In_  HINSTANCE hinstDLL, _In_  DWORD fdwReason, _In_  LPVOID lpvReserved)
 {

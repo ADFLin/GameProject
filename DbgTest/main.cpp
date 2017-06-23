@@ -1,18 +1,18 @@
-#include "Win32Header.h"
+#include "WindowsHeader.h"
 #include "GameLoop.h"
-#include "Win32Platform.h"
-#include "SysMsgHandler.h"
+#include "WindowsPlatform.h"
+#include "WindowsMessageHander.h"
 
 #include "IntrList.h"
 
-class AStartTest : public GameLoopT< AStartTest , Win32Platform >
+class AStartTest : public GameLoopT< AStartTest , WindowsPlatform >
 	             , public WinFrameT< AStartTest >
-	             , public SysMsgHandlerT< AStartTest >
+	             , public WindowsMessageHandlerT< AStartTest >
 {
 public:
 	bool onInit()
 	{ 
-		if ( !WinFrame::create( TEXT("Test") , 800 , 600 , SysMsgHandler::MsgProc ) )
+		if ( !WinFrame::create( TEXT("Test") , 800 , 600 , WindowsMessageHandler::MsgProc ) )
 			return false;
 
 		return true;

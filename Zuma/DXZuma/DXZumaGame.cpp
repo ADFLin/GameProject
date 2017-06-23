@@ -23,6 +23,6 @@ IRenderSystem* DXZumaGame::createRenderSystem()
 
 bool DXZumaGame::setupWindow( char const* title , int w , int h )
 {
-	return mFrame.create( ( LPTSTR) title , w , h , &SysMsgHandler::MsgProc );
+	return mFrame.create( ( LPTSTR) title , w , h , &WindowsMessageHandler::MsgProc );
 }
 

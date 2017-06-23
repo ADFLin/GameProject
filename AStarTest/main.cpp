@@ -1,11 +1,11 @@
 
 #include "GameLoop.h"
-#include "Win32Platform.h"
+#include "WindowsPlatform.h"
 
 #include "ProfileSystem.h"
-#include "Win32Platform.h"
+#include "WindowsPlatform.h"
 
-#include "SysMsgHandler.h"
+#include "WindowsMessageHander.h"
 #include "WinGDIRenderSystem.h"
 
 #include "TQTPortalAStar.h"
@@ -58,15 +58,15 @@ int map[ MAP_HEIGHT][ MAP_WIDTH ] =
 };
 
 
-class AStartTest : public GameLoopT< AStartTest , Win32Platform >
+class AStartTest : public GameLoopT< AStartTest , WindowsPlatform >
 	             , public WinFrameT< AStartTest >
-	             , public SysMsgHandlerT< AStartTest >
+	             , public WindowsMessageHandlerT< AStartTest >
 {
 public:
 	void onIdle( long time ){ ::Sleep( time / 2 ); }
 	bool onInit()
 	{ 
-		if ( !WinFrame::create( TEXT("Test") , 800 , 800 , SysMsgHandler::MsgProc ) )
+		if ( !WinFrame::create( TEXT("Test") , 800 , 800 , WindowsMessageHandler::MsgProc ) )
 			return false;
 
 		mRenderSystem = ( new WinGdiRenderSystem( getHWnd() , getHDC() ) );

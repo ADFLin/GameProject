@@ -1,7 +1,7 @@
 #ifndef RenderSystemWinGDI_h__
 #define RenderSystemWinGDI_h__
 
-#include "Win32Header.h"
+#include "WindowsHeader.h"
 #include "IntegerType.h"
 
 #include "Graphics2DBase.h"

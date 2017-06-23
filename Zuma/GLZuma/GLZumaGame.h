@@ -7,7 +7,7 @@
 #include "ZumaGame.h"
 #include "GLRenderSystem.h"
 #include "ZParticle.h"
-#include "SysMsgHandler.h"
+#include "WindowsMessageHander.h"
 
 namespace Zuma
 {

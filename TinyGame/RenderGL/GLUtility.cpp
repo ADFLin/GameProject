@@ -1,6 +1,6 @@
 #include "GLUtility.h"
 
-#include "Win32Header.h"
+#include "WindowsHeader.h"
 #include "CommonMarco.h"
 #include "FixString.h"
 #include "FileSystem.h"

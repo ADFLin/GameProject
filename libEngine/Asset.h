@@ -38,7 +38,7 @@ protected:
 
 #if SYS_PLATFORM_WIN
 
-#include "Win32Header.h"
+#include "WindowsHeader.h"
 
 class Win32FileModifyMonitor
 {

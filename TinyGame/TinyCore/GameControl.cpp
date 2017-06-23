@@ -1,7 +1,7 @@
 #include "TinyGamePCH.h"
 #include "GameControl.h"
 
-#include "Win32Header.h"
+#include "WindowsHeader.h"
 #include <algorithm>
 
 namespace

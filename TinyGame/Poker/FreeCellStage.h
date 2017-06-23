@@ -10,7 +10,7 @@ namespace Poker
 {
 
 	class FreeCellStage : public StageBase
-		                , private FreeCell
+		                , private FreeCellLevel
 	{
 		typedef StageBase BaseClass;
 	public:
@@ -50,9 +50,9 @@ namespace Poker
 
 		void undoMove();
 		void onAnimFinish( int idx , bool bUndoMove );
-		int  clickCard( SCell& cell , Vec2i const& pos );
+		int  clickCard( StackCell& cell , Vec2i const& pos );
 		void drawCell( Graphics2D& g , Vec2i const& pos );
-		void drawSprite( Graphics2D& g , SCell& cell );
+		void drawSprite( Graphics2D& g , StackCell& cell );
 		void drawSprite( Graphics2D& g , Card const& card );
 		void drawSelectRect( Graphics2D& g );
 
@@ -74,7 +74,7 @@ namespace Poker
 			STATE_END ,
 		};
 		State      mState;
-		bool       addAnim(  Card const& card , Vec2i const& to , float delay = 0.0f , int type = ANIM_MOVEING );
+		bool       playAnim(  Card const& card , Vec2i const& to , float delay = 0.0f , int type = ANIM_MOVEING );
 		Cell*      mSelectCell;
 		ICardDraw* mCardDraw;
 		Vec2i      mCardSize;

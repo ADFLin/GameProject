@@ -16,7 +16,7 @@
 
 //#include "GameWidget.h"
 #include "GameGlobal.h"
-#include "Win32Header.h"
+#include "WindowsHeader.h"
 
 #endif
 

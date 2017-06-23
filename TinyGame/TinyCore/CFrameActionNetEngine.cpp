@@ -45,8 +45,7 @@ void CFrameActionEngine::update( IFrameUpdater& updater , long time )
 
 void CFrameActionEngine::setupInputAI( IPlayerManager& manager )
 {
-	for( IPlayerManager::Iterator iter = manager.getIterator();
-		iter.haveMore() ; iter.goNext() )
+	for( IPlayerManager::Iterator iter = manager.createIterator(); iter ; ++iter )
 	{
 		GamePlayer* player = iter.getElement();
 		if ( player->getAI() )
@@ -56,4 +55,9 @@ void CFrameActionEngine::setupInputAI( IPlayerManager& manager )
 				mNetFrameMgr->getActionProcessor().addInput( *input );
 		}
 	}
+}
+
+void CFrameActionEngine::restart()
+{
+	mNetFrameMgr->resetFrameData();
 }

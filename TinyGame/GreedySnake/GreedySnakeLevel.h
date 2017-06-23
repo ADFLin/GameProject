@@ -15,13 +15,22 @@ typedef TVector2< int > Vec2i;
 namespace GreedySnake
 {
 	int const gMaxPlayerNum = 4;
+
+	enum DirEnum
+	{
+		DIR_EAST = 0,
+		DIR_SOUTH = 1,
+		DIR_WEST = 2,
+		DIR_NORTH = 3,
+	};
+
 	typedef int DirType;
 	inline Vec2i getDirOffset( DirType dir )
 	{
 		Vec2i const offset[] = { Vec2i(1,0) , Vec2i(0,1), Vec2i(-1,0), Vec2i(0,-1) };
 		return offset[dir];
 	}
-	inline DirType inverseDir( DirType dir )
+	inline DirType InverseDir( DirType dir )
 	{
 		dir += 2;
 		if ( dir >= 4 )
@@ -29,35 +38,42 @@ namespace GreedySnake
 		return dir; 
 	}
 
-	class Snake
+	class SnakeBody
 	{
 		
 	public:
-		struct Body
+		struct Element
 		{
 			Vec2i   pos;
 			DirType dir;
 		};
-		Snake( Vec2i const& pos , DirType dir , size_t length = 1 )
+
+		SnakeBody(){}
+		SnakeBody( Vec2i const& pos , DirType dir, size_t length = 1 )
 		{
-			mBodies.reserve( 16 );
-			_reset( pos , dir , length );  
+			Elements.reserve( 16 );
+			reset( pos , dir , length );  
 		}
 
-		DirType getMoveDir() const { return mMoveDir; }
-		bool    changeMoveDir( DirType dir );
-		size_t  getBodyLength(){ return mBodies.size(); }
+		void init(Vec2i const& pos, DirType dir, size_t length)
+		{
+			Elements.reserve(16);
+			reset(pos, dir , length);
+		}
 
-		void    moveStep();
+		
+		size_t  getLength() { return Elements.size(); }
+
+		void    moveStep(DirType moveDir);
 		void    growBody( size_t num = 1 );
-		Body const& getHead(){ return mBodies[ mIdxHead ];  }
-		Body const& getTail(){ return mBodies[ mIdxTail ];  } 
+		Element const& getHead(){ return Elements[ mIdxHead ];  }
+		Element const& getTail(){ return Elements[ mIdxTail ];  } 
 
-		typedef std::vector< Body > BodyVec;
+		typedef std::vector< Element > ElementVec;
 		class Iterator
 		{
 		public:
-			Body const& getElement(){ return mBodies[mIdxCur];  }
+			Element const& getElement(){ return mBodies[mIdxCur];  }
 			bool haveMore(){  return mCount < mBodies.size();  }
 			void goNext()
 			{
@@ -67,29 +83,25 @@ namespace GreedySnake
 				--mIdxCur;	
 			}
 		private:
-			Iterator( BodyVec const& bodies , unsigned idxHead )
+			Iterator( ElementVec const& bodies , unsigned idxHead )
 				:mBodies( bodies ) , mIdxCur( idxHead ),mCount(0){}
-			BodyVec const& mBodies;
+			ElementVec const& mBodies;
 			size_t   mCount;
 			unsigned mIdxCur;
-			friend class Snake;
+			friend class SnakeBody;
 		};
 
-		Iterator    getBodyIterator(){  return Iterator( mBodies , mIdxHead ); }
-		Body const& getBodyByIndex( unsigned idx ){  return mBodies[ idx ];  }
-		Body const* hitTest( Vec2i const& pos );
+		Iterator       createIterator(){  return Iterator( Elements , mIdxHead ); }
+		Element const& getElementByIndex( unsigned idx ){  return Elements[ idx ];  }
+		Element const* hitTest( Vec2i const& pos );
 		void        warpHeadPos( int w , int h );
 
-		void       _reset( Vec2i const& pos , DirType dir , size_t length );
+		void       reset( Vec2i const& pos , DirType dir, size_t length );
 	private:	
-		BodyVec  mBodies;
-		DirType  mMoveDir;
+		ElementVec  Elements;
 		unsigned mIdxTail;
 		unsigned mIdxHead;
 	};
-
-	
-
 
 	struct FoodInfo
 	{
@@ -99,7 +111,11 @@ namespace GreedySnake
 
 	enum SnakeState
 	{
-		SS_DEAD = BIT(0) ,
+		SS_DEAD      = BIT(0),
+		SS_INC_SPEED = BIT(1),
+		SS_DEC_SPEED = BIT(2),
+		SS_CONFUSE   = BIT(3),
+		SS_FREEZE    = BIT(4),
 	};
 
 	enum TerrainType
@@ -109,26 +125,37 @@ namespace GreedySnake
 		TT_SIDE  ,
 
 	};
-	struct SnakeInfo
+
+	class Snake
 	{
-		unsigned id;
-		Snake*   snake;
-		unsigned stateBit;
-		int      moveSpeed;
-		int      curMoveCount;
+	public:
+		void init(Vec2i const& pos, DirType dir, size_t length);
+
+		bool canMove() const
+		{
+			return (stateBit & (SS_FREEZE | SS_DEAD) )== 0;
+		}
+		unsigned   id;
+		unsigned   stateBit;
+		int        moveSpeed;
+		int        moveCountAcc;
+
+		int        frameMoveCount;
+
+		bool       changeMoveDir(DirType dir);
+		SnakeBody& getBody() { return mBody; }
+		DirType    getMoveDir() const { return mMoveDir; }
+	private:
+		DirType    mMoveDir;
+		SnakeBody  mBody;
 	};
 
-	struct MapData 
+	struct MapTileData 
 	{
-		int      terrain ;
-		unsigned snake   ;
+		int      terrain;
+		unsigned snakeMask;
 	};
 
-
-	struct LevelVisitor
-	{
-		void visitFood( FoodInfo const& info );
-	};
 	class Level
 	{
 	public:
@@ -137,21 +164,21 @@ namespace GreedySnake
 		{
 		public:
 			virtual ~Listener(){}
-			virtual void onEatFood( SnakeInfo& snake , FoodInfo& food ){}
-			virtual void onCollideSnake( SnakeInfo& snake , SnakeInfo& colSnake ){}
-			virtual void onCollideTerrain( SnakeInfo& snake , int type ){}
+			virtual void onEatFood( Snake& snake , FoodInfo& food ){}
+			virtual void onCollideSnake( Snake& snake , Snake& colSnake ){}
+			virtual void onCollideTerrain( Snake& snake , int type ){}
 		};
 
 		Level( Listener* listener );
-		enum MapType
+		enum MapBoundType
 		{
-			eMAP_WARP_XY ,
-			eMAP_WARP_X  ,
-			eMAP_WARP_Y  ,
-			eMAP_CLIFF   ,
+			WarpXY ,
+			WarpX  ,
+			WarpY  ,
+			Cliff  ,
 		};
 		bool       isVaildMapRange( Vec2i const& pos ){ return mMap.checkRange( pos.x , pos.y ); }
-		void       setupMap( int w , int h , MapType type );
+		void       setupMap( int w , int h , MapBoundType type );
 		void       setTerrain( Vec2i const& pos , int type ){ mMap.getData( pos.x , pos.y ).terrain = type;  }
 		int        getTerrain( Vec2i const& pos ){ return mMap.getData( pos.x , pos.y ).terrain;  }
 		Vec2i      getMapSize(){ return Vec2i( mMap.getSizeX() , mMap.getSizeY() );  }
@@ -160,17 +187,17 @@ namespace GreedySnake
 
 		void       removeFood( Vec2i const& pos );
 		void       addFood( Vec2i const& pos , int type );
-		SnakeInfo* addSnake( Vec2i const& pos , DirType dir , size_t length );
+		Snake*     addSnake( Vec2i const& pos , DirType dir , size_t length );
 
 		bool       addSnakeState( unsigned id , SnakeState state );
 
 		void       removeAllFood();
 		void       removeAllSnake();
 
-		SnakeInfo&  getSnakeInfo( unsigned id )
+		Snake&  getSnake( unsigned id )
 		{ 
-			assert( (int)id < mNumSnake );
-			return mSnakeInfo[ id ];
+			assert( (int)id < mNumSnakePlay );
+			return mSnakes[ id ];
 		}
 
 		enum HitMask
@@ -191,33 +218,32 @@ namespace GreedySnake
 			for( FoodVec::iterator iter = mFoodVec.begin();
 				iter != mFoodVec.end() ; ++iter )
 			{
-				visitor.visit( *iter );
+				visitor( *iter );
 			}
 		}
-		int       getSnakeNum() const { return mNumSnake;  }
-		MapType   getMapType() const { return mMapType; }
+		int       getSnakeNum() const { return mNumSnakePlay;  }
+		MapBoundType   getMapType() const { return mMapBoundType; }
 
 		bool      getMapPos( Vec2i const& pos , DirType dir , Vec2i& result );
 
 
 	private:
-		void      detectSnakeCollision( SnakeInfo& info );
-		void      addSnakeMark( SnakeInfo& info );
-		void      addSnakeBodyMark( unsigned id , Vec2i const& pos );
-		void      removeSnakeMark( SnakeInfo& info );
-		void      removeSnakeBodyMark( unsigned id , Vec2i const& pos );
+		void      detectMoveSnakeCollision( Snake& snake );
+		void      addSnakeMark( Snake& snake);
+		void      addSnakeBodyElementMark( unsigned id , Vec2i const& pos );
+		void      removeSnakeMark( Snake& snake);
+		void      removeSnakeBodyElementMark( unsigned id , Vec2i const& pos );
 		
 		typedef std::list< FoodInfo > FoodVec;
 		FoodVec    mFoodVec;
 		Listener*  mListener;
-		int        mNumSnake;
-		SnakeInfo  mSnakeInfo[ gMaxPlayerNum ];
+		int        mNumSnakePlay;
+		Snake      mSnakes[ gMaxPlayerNum ];
 		int        mMoveSpeed;
-		int        mCurMoveCount;
 
-		typedef TGrid2D< MapData > WorldMap;
-		WorldMap   mMap;
-		MapType    mMapType;
+		typedef TGrid2D< MapTileData > WorldMap;
+		WorldMap     mMap;
+		MapBoundType mMapBoundType;
 
 		friend class Scene;
 	};

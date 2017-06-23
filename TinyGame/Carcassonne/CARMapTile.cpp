@@ -8,7 +8,7 @@ namespace CAR
 	MapTile::MapTile( TilePiece const& tile , int rotation) 
 		:mTile(&tile)
 		,rotation(rotation)
-		,renderData(nullptr)
+		,userData(nullptr)
 		,towerHeight(0)
 		,bridgeMask(0)
 		,group(-1)

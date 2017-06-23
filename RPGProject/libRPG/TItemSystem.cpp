@@ -853,7 +853,7 @@ unsigned   UG_GetItemID( char const* itemName )
 
 void TItemBase::getDataInfo( ItemDataInfo& info )
 {
-#define ASSIGN_INFO( var ) info.##var = var
+#define ASSIGN_INFO( VAR ) info.VAR = VAR
 
 	info.id   = id;
 	info.type = type;
@@ -918,7 +918,7 @@ void TEquipment::modify( ItemDataInfo& info )
 
 void TWeapon::getDataInfo( ItemDataInfo& info )
 {
-#define ASSIGN_INFO( var )  info.##var = var
+#define ASSIGN_INFO( VAR ) VAR = info.VAR
 	TEquipment::getDataInfo( info );
 	ASSIGN_INFO( weaponType );
 #undef ASSIGN_INFO
@@ -927,7 +927,7 @@ void TWeapon::getDataInfo( ItemDataInfo& info )
 
 void TWeapon::modify( ItemDataInfo& info )
 {
-#define ASSIGN_INFO( var ) var = info.##var
+#define ASSIGN_INFO( VAR ) VAR = info.VAR
 	TEquipment::modify( info );
 	ASSIGN_INFO( weaponType );
 #undef ASSIGN_INFO

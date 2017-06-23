@@ -476,12 +476,12 @@ public:
 #undef DEFINE_UI_CLASS
 
 	template < class T >
-	static T castFast( CoreImpl* ui )
+	static T* CastFast( CoreImpl* ui )
 	{
 #if _DEBUG
-		return dynamic_cast< T >( ui );
+		return dynamic_cast< T* >( ui );
 #else
-		return static_cast< T >( ui );
+		return static_cast< T* >( ui );
 #endif
 	}
 

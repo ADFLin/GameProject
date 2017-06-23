@@ -32,7 +32,7 @@ bool SampleBase::onInit()
 	addChannel( LOG_DEV );
 
 	if ( !WinFrame::create( "Sample Test" , g_ScreenWidth , g_ScreenHeight ,
-		   SysMsgHandler::MsgProc , false ) )
+		   WindowsMessageHandler::MsgProc , false ) )
 		return false;
 
 	if ( !CFly::initSystem() )

@@ -105,6 +105,8 @@ namespace CFly
 
 		void  setSpriteWorldSize( int w , int h , int depth );
 		void  destroyAllSceneNode();
+
+		void  destroyNodeChildren_R(SceneNode* node);
 		
 		World*         getWorld(){ return mWorld; }
 

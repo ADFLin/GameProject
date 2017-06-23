@@ -18,7 +18,7 @@ class CheckPolicy
 class BufferException : public std::exception
 {
 public:
-	EXCEPTION_CONSTRUCTOR_WITH_WHAT( BufferException )
+	STD_EXCEPTION_CONSTRUCTOR_WITH_WHAT( BufferException )
 };
 
 struct AssertCheckPolicy 

@@ -63,8 +63,7 @@ CSVWorkerDataTransfer::CSVWorkerDataTransfer( NetWorker* worker , int numPlayer 
 	,mPlayerIdMap( numPlayer , ERROR_PLAYER_ID )
 {
 	assert( worker->isServer() );
-	for( IPlayerManager::Iterator iter = getServer()->getPlayerManager()->getIterator();
-		iter.haveMore() ; iter.goNext())
+	for( auto iter = getServer()->getPlayerManager()->createIterator(); iter; ++iter )
 	{
 		GamePlayer* player = iter.getElement();
 		if ( player->getActionPort() != ERROR_ACTION_PORT )

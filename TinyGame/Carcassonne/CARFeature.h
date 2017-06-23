@@ -58,12 +58,16 @@ namespace CAR
 
 		typedef MapTile::FarmNode FarmNode;
 		typedef MapTile::SideNode SideNode;
-
+		FeatureBase()
+		{
+			userData = nullptr;
+		}
 		virtual ~FeatureBase(){}
 
 		int         group;
 		int         type;
 		MapTileSet  mapTiles;
+		void*       userData;
 
 		void        addActor( LevelActor& actor );
 		void        removeActor( LevelActor& actor );

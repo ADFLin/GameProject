@@ -13,6 +13,7 @@
 #include <cstdlib>
 
 GAME_API IGameNetInterface* gGameNetInterfaceImpl = nullptr;
+GAME_API IDebugInterface* gDebugInterfaceImpl = nullptr;
 GAME_API uint32 gGameThreadId = 0;
 
 bool IsInGameThead()
@@ -101,6 +102,12 @@ IGameNetInterface& Global::GameNet()
 	return *gGameNetInterfaceImpl;
 }
 
+IDebugInterface& Global::Debug()
+{
+	assert(gDebugInterfaceImpl);
+	return *gDebugInterfaceImpl;
+}
+
 GUISystem& Global::GUI()
 {
 	static GUISystem system;
@@ -122,3 +129,4 @@ UserProfile& Global::getUserProfile()
 	static UserProfile profile;
 	return profile;
 }
+

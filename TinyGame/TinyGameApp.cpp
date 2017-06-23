@@ -37,9 +37,11 @@
 int g_DevMsgLevel = 10;
 
 GAME_API IGameNetInterface* gGameNetInterfaceImpl;
+GAME_API IDebugInterface*   gDebugInterfaceImpl;
 GAME_API uint32 gGameThreadId;
 
 class GMsgListener : public ILogListener
+	               , public IDebugInterface
 {
 public:
 
@@ -101,14 +103,18 @@ public:
 		}
 	}
 
+	void clearDebugMsg()
+	{
+		Mutex::Locker locker(mMutex);
+		mMsgList.clear();
+		mTime = 0;
+	}
+
 	//bool     beInited;
 	Mutex    mMutex;
 	unsigned mTime;
 	typedef  std::list< std::string > StringList;
 	StringList mMsgList;
-
-
-
 };
 
 static GMsgListener gMsgListener;
@@ -120,8 +126,10 @@ TinyGameApp::TinyGameApp()
 	,mStageMode( nullptr )
 {
 	mShowErrorMsg = false;
-	gGameNetInterfaceImpl = this;
 	mbLockFPS = false;
+
+	gGameNetInterfaceImpl = this;
+	gDebugInterfaceImpl = &gMsgListener;
 }
 
 TinyGameApp::~TinyGameApp()
@@ -148,12 +156,12 @@ bool TinyGameApp::onInit()
 	gMsgListener.addChannel( LOG_MSG );
 	gMsgListener.addChannel( LOG_ERROR  );
 
-	if ( !mGameWindow.create( TEXT("Tiny Game") , gDefaultScreenWidth , gDefaultScreenHeight , SysMsgHandler::MsgProc  ) )
+	if ( !mGameWindow.create( TEXT("Tiny Game") , gDefaultScreenWidth , gDefaultScreenHeight , WindowsMessageHandler::MsgProc  ) )
 		return false;
 
 	::Global::getDrawEngine()->init( mGameWindow );
 
-	::Global::GUI().init( *this );
+	::Global::GUI().initialize( *this );
 
 	loadGamePackage();
 
@@ -197,6 +205,8 @@ void TinyGameApp::cleanup()
 	Global::GUI().cleanupWidget(true);
 
 	Global::GameManager().cleanup();
+
+	Global::GUI().finalize();
 
 	Global::getDrawEngine()->release();
 

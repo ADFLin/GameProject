@@ -323,7 +323,7 @@ namespace Zuma
 			break;
 		case UI_SOUND_VOLUME:
 			{
-				ZSlider* slider = GameUI::castFast< ZSlider* >( ui );
+				ZSlider* slider = GameUI::CastFast< ZSlider >( ui );
 				audioPlayer.setSoundVolume( slider->getValue() / 100.0f );
 				static unsigned timePlaySound = 0;
 				if ( g_GameTime.curTime - timePlaySound > 300 )

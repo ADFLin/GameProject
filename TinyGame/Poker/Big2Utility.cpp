@@ -531,7 +531,7 @@ namespace Poker { namespace Big2 {
 				for( int i = 0 ; i < 4 ; ++i )
 					outIndex[i] = mFaceGroups[ idxGroup + i ].index + straight.index[i];
 
-				if ( mFaceGroups[ idxGroup ].rank == Card::toRank( Card::eN10 ) )
+				if ( mFaceGroups[ idxGroup ].rank == Card::ToRank( Card::eN10 ) )
 					outIndex[4] = mFaceGroups[ 0 ].index + straight.index[4];
 				else
 					outIndex[4] = mFaceGroups[ idxGroup + 4 ].index + straight.index[4];
@@ -611,7 +611,7 @@ namespace Poker { namespace Big2 {
 					outIndex[i] = mFaceGroups[ idx ].index + count;
 				}
 				{
-					int idx = ( mFaceGroups[ idxGroup ].rank == Card::toRank( Card::eN10 ) ) ? 0 : idxGroup + 4;
+					int idx = ( mFaceGroups[ idxGroup ].rank == Card::ToRank( Card::eN10 ) ) ? 0 : idxGroup + 4;
 					int count = 0;
 					for( int n = 0 ; n < suit ; ++n )
 					{

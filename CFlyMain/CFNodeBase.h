@@ -91,6 +91,7 @@ namespace CFly
 		void          init();
 		mutable unsigned  mFlag;
 		NodeList          mChildren;
+		friend class Scene;
 	};
 
 

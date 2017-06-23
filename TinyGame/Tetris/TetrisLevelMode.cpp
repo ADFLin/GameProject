@@ -379,32 +379,32 @@ namespace Tetris
 		switch( id )
 		{
 		case UI_GRAVITY_VALUE_SLIDER:
-			mGravityValue = gPracticeGravityValue[ GUI::castFast< GSlider* >( ui )->getValue() ];
+			mGravityValue = gPracticeGravityValue[ GUI::CastFast< GSlider >( ui )->getValue() ];
 			lvData->getLevel()->setGravityValue( mGravityValue );
 			mMaxClearLayerNum = 0;
 			return false;
 		case UI_ENTRY_DELAY_SLIDER:
-			lvData->getLevel()->setEntryDelayTime( GUI::castFast< GSlider* >( ui )->getValue() );
+			lvData->getLevel()->setEntryDelayTime( GUI::CastFast< GSlider >( ui )->getValue() );
 			mMaxClearLayerNum = 0;
 			return false;
 		case UI_CLEAR_LAYER_SLIDER:
-			lvData->getLevel()->setClearLayerTime( GUI::castFast< GSlider* >( ui )->getValue() );
+			lvData->getLevel()->setClearLayerTime( GUI::CastFast< GSlider >( ui )->getValue() );
 			mMaxClearLayerNum = 0;
 			return false;
 		case UI_LOCK_PIECE_SLIDER:
-			lvData->getLevel()->setLockPieceTime( GUI::castFast< GSlider* >( ui )->getValue() );
+			lvData->getLevel()->setLockPieceTime( GUI::CastFast< GSlider >( ui )->getValue() );
 			mMaxClearLayerNum = 0;
 			return false;
 		case UI_MAP_SIZE_X_SLIDER:
 			{
-				int sizeX = GUI::castFast< GSlider* >( ui )->getValue();
+				int sizeX = GUI::CastFast< GSlider >( ui )->getValue();
 				lvData->getLevel()->resetMap( sizeX , lvData->getLevel()->getBlockStorage().getSizeY() );
 				mMaxClearLayerNum = 0;
 			}
 			return false;
 		case UI_MAP_SIZE_Y_SLIDER:
 			{
-				int sizeY = GUI::castFast< GSlider* >( ui )->getValue();
+				int sizeY = GUI::CastFast< GSlider >( ui )->getValue();
 				lvData->getLevel()->resetMap( lvData->getLevel()->getBlockStorage().getSizeX() , sizeY );
 				mMaxClearLayerNum = 0;
 			}

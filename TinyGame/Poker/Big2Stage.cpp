@@ -97,8 +97,8 @@ namespace Poker { namespace Big2 {
 		bool haveBot = false;
 		if ( mServerLevel )
 		{
-			for( IPlayerManager::Iterator iter = playerManager.getIterator();
-				iter.haveMore() ; iter.goNext() )
+
+			for( auto iter = playerManager.createIterator(); iter; ++iter )
 			{
 				GamePlayer* player = iter.getElement();
 				int slotId = player->getInfo().slot;
@@ -118,8 +118,8 @@ namespace Poker { namespace Big2 {
 
 
 		int userSlotId;
-		for( IPlayerManager::Iterator iter = playerManager.getIterator();
-			iter.haveMore() ; iter.goNext() )
+
+		for( auto iter = playerManager.createIterator(); iter; ++iter )
 		{
 			GamePlayer* player = iter.getElement();
 			assert( player->getType() != PT_SPECTATORS );
@@ -256,7 +256,7 @@ namespace Poker { namespace Big2 {
 			GamePlayer* player = getStageMode()->getPlayerManager()->getPlayer( mServerLevel->getSlotStatus( nextSlot ).playerId );
 			if ( player->getType() == PT_COMPUTER )
 			{
-				static_cast< CardListUI* >( mTestUI->getChild() )->setClientCards( mServerLevel->getSlotOwnCards( nextSlot ) );
+				mTestUI->getChild()->cast<CardListUI>()->setClientCards( mServerLevel->getSlotOwnCards( nextSlot ) );
 				mTestUI->show( true );
 				return;
 			}
@@ -280,7 +280,7 @@ namespace Poker { namespace Big2 {
 		if ( !isGameOver )
 		{
 			TaskBase* task = new DelayTask( 5000 );
-			task->setNextTask( TaskUtility::createMemberFunTask( this, &LevelStage::nextRound ) );
+			task->setNextTask( TaskUtility::MemberFun( this, &LevelStage::nextRound ) );
 			addTask( task );
 		}
 	}

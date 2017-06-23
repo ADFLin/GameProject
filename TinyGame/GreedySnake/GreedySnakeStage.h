@@ -16,7 +16,8 @@ namespace GreedySnake
 		bool onInit();
 		void onEnd(){}
 		void onRestart( uint64 seed , bool beInit );
-
+		
+		
 		void setupLocalGame( LocalPlayerManager& playerManager );
 		void setupScene( IPlayerManager& playerManager );
 
@@ -25,6 +26,7 @@ namespace GreedySnake
 		void onChangeState( GameState state );
 	
 		bool onWidgetEvent( int event , int id , GWidget* ui );
+		bool onKey(unsigned key, bool isDown);
 		void onRender( float dFrame );
 
 		bool                  getAttribValue( AttribValue& value );
@@ -33,7 +35,10 @@ namespace GreedySnake
 		bool                  setupNetwork( NetWorker* netWorker , INetEngine** engine );
 
 		TPtrHolder< Scene >  mScene;
-		Mode*  mMode;
+		Mode*  mGameMode;
+
+		
+
 	};
 
 }//namespace GreedySnake

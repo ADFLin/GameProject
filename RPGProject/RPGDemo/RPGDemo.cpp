@@ -1,8 +1,8 @@
 #include "common.h"
 
 #include "GameLoop.h"
-#include "Win32Platform.h"
-#include "SysMsgHandler.h"
+#include "WindowsPlatform.h"
+#include "WindowsMessageHander.h"
 #include "LogSystem.h"
 
 #include "CFlyHeader.h"
@@ -147,9 +147,9 @@ public:
 
 extern Vec3D dbgMoveDir;
 
-class RPGProjectGame : public GameLoopT< RPGProjectGame , Win32Platform >
+class RPGProjectGame : public GameLoopT< RPGProjectGame , WindowsPlatform >
 	                 , public WinFrameT < RPGProjectGame >
-	                 , public SysMsgHandlerT< RPGProjectGame >
+	                 , public WindowsMessageHandlerT< RPGProjectGame >
 {
 public:
 	RPGProjectGame()
@@ -206,7 +206,7 @@ public:
 		int w = 1024;
 		int h = 768;
 
-		if ( !WinFrame::create( TEXT("RPG Project") , w , h , &SysMsgHandler::MsgProc ) )
+		if ( !WinFrame::create( TEXT("RPG Project") , w , h , &WindowsMessageHandler::MsgProc ) )
 			return false;
 
 		SSystemInitParams sysParams;

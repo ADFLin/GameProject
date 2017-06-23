@@ -2,7 +2,7 @@
 
 #if SYS_PLATFORM_WIN
 
-#include "Win32Header.h"
+#include "WindowsHeader.h"
 #include "MemorySecurity.h"
 #include <cstring>
 

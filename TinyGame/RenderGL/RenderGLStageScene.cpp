@@ -17,21 +17,21 @@ namespace RenderGL
 
 	LoadDatalInfo gMaterialLists[] =
 	{
-#define DataOp( NAME ) { MaterialId::##NAME , #NAME } ,
+#define DataOp( NAME ) { MaterialId::NAME , #NAME } ,
 		MATERIAL_LIST(DataOp)
 #undef DataOp
 	};
 
 	LoadDatalInfo gTextureLists[] =
 	{
-#define DataOp( NAME , PATH ) { TextureId::##NAME , PATH } ,
+#define DataOp( NAME , PATH ) { TextureId::NAME , PATH } ,
 		TEXTURE_LIST(DataOp)
 #undef DataOp
 	};
 
 	LoadDatalInfo gMeshLists[] =
 	{
-#define DataOp( NAME , PATH ) { MeshId::##NAME , PATH } ,
+#define DataOp( NAME , PATH ) { MeshId::NAME , PATH } ,
 		MESH_LIST(DataOp)
 #undef DataOp
 	};

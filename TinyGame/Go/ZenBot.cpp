@@ -1,7 +1,7 @@
 
 #include "ZenBot.h"
 
-#include "Win32Header.h"
+#include "WindowsHeader.h"
 
 //#include <sysinfoapi.h>
 //#include <process.h>

@@ -1,12 +1,12 @@
 #ifndef Win32Platform_h__
 #define Win32Platform_h__
 
-#include "Win32Header.h"
+#include "WindowsHeader.h"
 
-class Win32Platform
+class WindowsPlatform
 {
 public:
-	Win32Platform(){ m_hInstance = ::GetModuleHandle( NULL );  }
+	WindowsPlatform(){ m_hInstance = ::GetModuleHandle( NULL );  }
 	HINSTANCE getAppInstance(){ return m_hInstance; }
 	long      getMillionSecond(){ return GetTickCount(); }
 	bool      updateSystem()

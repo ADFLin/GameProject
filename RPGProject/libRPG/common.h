@@ -106,7 +106,7 @@ class GameFramework;
 class RenderSystem;
 class ScriptSystem;
 class IGameMod;
-#include "Win32Header.h"
+#include "WindowsHeader.h"
 
 
 extern struct SGlobalEnv* gEnv;

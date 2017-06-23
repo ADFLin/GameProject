@@ -105,8 +105,7 @@ namespace BomberMan
 
 	void LevelStage::setupScene( IPlayerManager& playerMgr )
 	{
-		for( IPlayerManager::Iterator iter = playerMgr.getIterator();
-			iter.haveMore() ; iter.goNext() )
+		for( auto iter = playerMgr.createIterator(); iter; ++iter )
 		{
 			GamePlayer* player = iter.getElement();
 			if ( player->getType() != PT_SPECTATORS )

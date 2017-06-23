@@ -196,7 +196,7 @@ namespace Chromatron
 		switch ( id )
 		{
 		case UI_LEVEL_CHOICE:
-			changeLevel( mMinChoiceLevel + GUI::castFast< GChoice* >( ui )->getSelection() );
+			changeLevel( mMinChoiceLevel + GUI::CastFast< GChoice >( ui )->getSelection() );
 			return false;
 		case UI_NEXT_LEVEL_BUTTON:
 			changeLevel( mIndexLevel + 1 );
@@ -205,9 +205,9 @@ namespace Chromatron
 			changeLevel( mIndexLevel - 1 );
 			return false;
 		case UI_GAME_PACKAGE_CHOICE:
-			if ( mIndexGamePackage != GUI::castFast< GChoice* >( ui )->getSelection() )
+			if ( mIndexGamePackage != GUI::CastFast< GChoice >( ui )->getSelection() )
 			{
-				GChoice* choice = GUI::castFast< GChoice* >( ui );
+				GChoice* choice = GUI::CastFast< GChoice >( ui );
 				int index = choice->getSelection();
 				saveGameLevelState();
 
@@ -217,7 +217,7 @@ namespace Chromatron
 				if ( !loadGameData( index , true ) )
 				{
 					loadGameData( 0 , true );
-					GUI::castFast< GChoice* >( ui )->setSelection( 0 );
+					GUI::CastFast< GChoice >( ui )->setSelection( 0 );
 				}
 
 			}

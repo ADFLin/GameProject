@@ -2401,7 +2401,7 @@ public:
 		mPos = Vec2f( 0 , 0 );
 		radius = 10;
 		mTweener.clear();
-		Tween::build( mTweener )
+		Tween::Build( mTweener )
 			.sequence().cycle()
 				.tweenValue< Easing::Linear >( mPos , Vec2f( 0 , 0 ) , Vec2f( 100 , 100 ) , 1 ).delay(0.5).end()
 				.tweenValue< Easing::Linear >( mPos , Vec2f( 100 , 100 ) , Vec2f( 0 , 0 ) , 1 ).end()
@@ -2771,11 +2771,11 @@ public:
 			{
 			case EVT_TEXTCTRL_ENTER:
 				{
-					char const* str = GUI::castFast< GTextCtrl* >( ui )->getValue();
+					char const* str = GUI::CastFast< GTextCtrl >( ui )->getValue();
 					int input = atoi( str );
 					mTree.insert( input , Data() );
 
-					GUI::castFast< GTextCtrl* >( ui )->clearValue();
+					GUI::CastFast< GTextCtrl >( ui )->clearValue();
 					mTree.visit( DataUpdateVisitor());
 				}
 				break;
@@ -2986,8 +2986,7 @@ namespace Net
 
 		void setupScene( IPlayerManager& playerManager )
 		{
-			for( IPlayerManager::Iterator iter = playerManager.getIterator();
-				 iter.haveMore() ; iter.goNext() )
+			for( auto iter = playerManager.createIterator(); iter ; ++iter )
 			{
 				GamePlayer* player = iter.getElement();
 				if ( player->getType() == PT_PLAYER )

@@ -20,8 +20,8 @@ namespace GreedySnake
 
 		for( int i = 0 ; i < mLevel.getSnakeNum() ; ++i )
 		{
-			SnakeInfo& info = mLevel.getSnakeInfo( i );
-			trigger.setPort( info.id );
+			Snake& snake = mLevel.getSnake( i );
+			trigger.setPort( snake.id );
 			fireSnakeAction( trigger );
 		}
 	}
@@ -29,16 +29,21 @@ namespace GreedySnake
 
 	void Scene::fireSnakeAction( ActionTrigger& trigger )
 	{
+		Snake& snake = mLevel.getSnake(trigger.getPort());
 #define CHECK_MOVE_ACTION( ACT , DIR )\
 	if ( trigger.detect( ACT )  )\
 	{\
-		changeSnakeMoveDir( trigger.getPort() , DIR );\
+		changeSnakeMoveDir( snake , DIR );\
 	}
 
 		CHECK_MOVE_ACTION( ACT_GS_MOVE_E , DIR_EAST );
 		CHECK_MOVE_ACTION( ACT_GS_MOVE_N , DIR_NORTH );
 		CHECK_MOVE_ACTION( ACT_GS_MOVE_W , DIR_WEST );
 		CHECK_MOVE_ACTION( ACT_GS_MOVE_S , DIR_SOUTH );
+		if( trigger.detect(ACT_GS_CHANGE_DIR) )
+		{
+			changeSnakeMoveDir(snake, DirEnum((snake.getMoveDir() + 1) % 4) );
+		}
 
 #undef CHECK_MOVE_ACTION
 	}
@@ -61,16 +66,22 @@ namespace GreedySnake
 		level.addFood( pos , type );
 	}
 
-	void Scene::drawSnake( Graphics2D& g , SnakeInfo& info , float dFrame )
+	void Scene::drawSnake( Graphics2D& g , Snake& snake , float dFrame )
 	{
-		float frac = ( info.curMoveCount + info.moveSpeed * dFrame ) / float( Level::MoveCount );
+		if( snake.stateBit & SS_DEAD )
+			return;
+
+		int ColorMap[4] = { Color::eYellow  , Color::eOrange , Color::eWhite , Color::eBlack };
+		float frac = ( snake.moveCountAcc + snake.moveSpeed * dFrame ) / float( Level::MoveCount );
 		int offset = int( BlockSize * frac );
-		drawSnakeBody( g , *info.snake , Color::eYellow , offset );
+		drawSnakeBody( g , snake , ColorMap[ snake.id ] , offset );
 	}
 
 	void Scene::drawSnakeBody( Graphics2D& g , Snake& snake , int color , int offset )
 	{
-		assert( snake.getBodyLength() >= 2 );
+		SnakeBody& snakeBody = snake.getBody();
+
+		assert( snakeBody.getLength() >= 2 );
 		assert( offset >= 0 );
 
 		//      base           
@@ -84,29 +95,21 @@ namespace GreedySnake
 		RenderUtility::setBrush( g , color );
 		RenderUtility::setPen( g , color );
 
-		Snake::Iterator iter = snake.getBodyIterator();
+		SnakeBody::Iterator iter = snakeBody.createIterator();
 
 		Vec2i basePos;
 
-		Snake::Body const& head = iter.getElement();
+		SnakeBody::Element const& head = iter.getElement();
 		basePos = BlockSize * head.pos + Vec2i( SnakeGap , SnakeGap );
 
 		if ( offset  )
 		{
 			switch( head.dir )
 			{
-			case DIR_NORTH: 
-				g.drawRect( basePos + Vec2i( 0 , -offset ) , Vec2i( SnakeWidth , offset ));
-				break;
-			case DIR_SOUTH:
-				g.drawRect( basePos + Vec2i( 0 , SnakeWidth ) , Vec2i( SnakeWidth , offset ));
-				break;
-			case DIR_EAST:
-				g.drawRect( basePos + Vec2i( SnakeWidth , 0 ) , Vec2i( offset , SnakeWidth ));
-				break;
-			case DIR_WEST:
-				g.drawRect( basePos + Vec2i( -offset , 0 ) , Vec2i( offset , SnakeWidth ));
-				break;
+			case DIR_NORTH: g.drawRect( basePos + Vec2i( 0 , -offset ) , Vec2i( SnakeWidth , offset )); break;
+			case DIR_SOUTH: g.drawRect( basePos + Vec2i( 0 , SnakeWidth ) , Vec2i( SnakeWidth , offset )); break;
+			case DIR_EAST:  g.drawRect( basePos + Vec2i( SnakeWidth , 0 ) , Vec2i( offset , SnakeWidth )); break;
+			case DIR_WEST:  g.drawRect( basePos + Vec2i( -offset , 0 ) , Vec2i( offset , SnakeWidth )); break;
 			}
 		}
 
@@ -116,82 +119,78 @@ namespace GreedySnake
 		while( 1 )
 		{
 
-			Snake::Body const& body = iter.getElement();
+			SnakeBody::Element const& bodyElement = iter.getElement();
 
 			iter.goNext();
 			if ( !iter.haveMore() )
 				break;
 
-			basePos = BlockSize * body.pos + Vec2i( SnakeGap , SnakeGap );
+			basePos = BlockSize * bodyElement.pos + Vec2i( SnakeGap , SnakeGap );
 			
-			switch ( body.dir )
+			switch ( bodyElement.dir )
 			{
-			case DIR_SOUTH: 
-				g.drawRect( basePos + Vec2i( 0 , SnakeWidth ) , Vec2i( SnakeWidth , 2 * SnakeGap ));
-				break;
-			case DIR_NORTH:
-				g.drawRect( basePos + Vec2i( 0 , - 2 * SnakeGap ) , Vec2i( SnakeWidth , 2 * SnakeGap ));
-				break;
-			case DIR_WEST:
-				g.drawRect( basePos + Vec2i( - 2 * SnakeGap , 0 ) , Vec2i( 2 * SnakeGap , SnakeWidth ));
-				break;
-			case DIR_EAST:
-				g.drawRect( basePos + Vec2i( SnakeWidth , 0 ) , Vec2i( 2 * SnakeGap , SnakeWidth ));
-				break;
+			case DIR_SOUTH: g.drawRect( basePos + Vec2i( 0 , SnakeWidth ) , Vec2i( SnakeWidth , 2 * SnakeGap )); break;
+			case DIR_NORTH: g.drawRect( basePos + Vec2i( 0 , - 2 * SnakeGap ) , Vec2i( SnakeWidth , 2 * SnakeGap )); break;
+			case DIR_WEST:  g.drawRect( basePos + Vec2i( - 2 * SnakeGap , 0 ) , Vec2i( 2 * SnakeGap , SnakeWidth )); break;
+			case DIR_EAST:  g.drawRect( basePos + Vec2i( SnakeWidth , 0 ) , Vec2i( 2 * SnakeGap , SnakeWidth )); break;
 			}
 
 			g.drawRect( basePos , Vec2i( SnakeWidth , SnakeWidth ) );
 		}
 
-		Snake::Body const& tail = snake.getTail();
+		SnakeBody::Element const& tail = snakeBody.getTail();
 		basePos = BlockSize * tail.pos + Vec2i( SnakeGap , SnakeGap );
 
 		if ( offset )
 		{
 			switch ( tail.dir )
 			{
-			case DIR_SOUTH: 
-				g.drawRect( basePos + Vec2i( 0 , offset ) , Vec2i( SnakeWidth , BlockSize - offset ));
-				break;
-			case DIR_NORTH:
-				g.drawRect( basePos + Vec2i( 0 , - 2 * SnakeGap ) , Vec2i( SnakeWidth , BlockSize - offset ));
-				break;
-			case DIR_WEST:
-				g.drawRect( basePos + Vec2i( - 2 * SnakeGap , 0 ) , Vec2i( BlockSize - offset , SnakeWidth ));
-				break;
-			case DIR_EAST:
-				g.drawRect( basePos + Vec2i( offset , 0 ) , Vec2i( BlockSize - offset , SnakeWidth ));
-				break;
+			case DIR_SOUTH:g.drawRect( basePos + Vec2i( 0 , offset ) , Vec2i( SnakeWidth , BlockSize - offset )); break;
+			case DIR_NORTH:g.drawRect( basePos + Vec2i( 0 , - 2 * SnakeGap ) , Vec2i( SnakeWidth , BlockSize - offset )); break;
+			case DIR_WEST: g.drawRect( basePos + Vec2i( - 2 * SnakeGap , 0 ) , Vec2i( BlockSize - offset , SnakeWidth )); break;
+			case DIR_EAST: g.drawRect( basePos + Vec2i( offset , 0 ) , Vec2i( BlockSize - offset , SnakeWidth )); break;
 			}
 		}
 		else
 		{
 			switch ( tail.dir )
 			{
-			case DIR_SOUTH: 
-				g.drawRect( basePos + Vec2i( 0 , SnakeWidth ) , Vec2i( SnakeWidth , 2 * SnakeGap ));
-				break;
-			case DIR_NORTH:
-				g.drawRect( basePos + Vec2i( 0 , - 2 * SnakeGap ) , Vec2i( SnakeWidth , 2 * SnakeGap ));
-				break;
-			case DIR_WEST:
-				g.drawRect( basePos + Vec2i( - 2 * SnakeGap , 0 ) , Vec2i( 2 * SnakeGap , SnakeWidth ));
-				break;
-			case DIR_EAST:
-				g.drawRect( basePos + Vec2i( SnakeWidth , 0 ) , Vec2i( 2 * SnakeGap , SnakeWidth ));
-				break;
+			case DIR_SOUTH: g.drawRect( basePos + Vec2i( 0 , SnakeWidth ) , Vec2i( SnakeWidth , 2 * SnakeGap )); break;
+			case DIR_NORTH: g.drawRect( basePos + Vec2i( 0 , - 2 * SnakeGap ) , Vec2i( SnakeWidth , 2 * SnakeGap )); break;
+			case DIR_WEST:  g.drawRect( basePos + Vec2i( - 2 * SnakeGap , 0 ) , Vec2i( 2 * SnakeGap , SnakeWidth )); break;
+			case DIR_EAST:  g.drawRect( basePos + Vec2i( SnakeWidth , 0 ) , Vec2i( 2 * SnakeGap , SnakeWidth )); break;
 			}
 			g.drawRect( basePos , Vec2i( SnakeWidth , SnakeWidth ) );
 		}
 	}
 
-	void Scene::render( Graphics2D& g , float dFrame )
+	void Scene::drawFood(Graphics2D& g)
 	{
+		auto fun = [&g](FoodInfo const& info)
+		{
+			switch( info.type )
+			{
+			case FOOD_GROW:
+				RenderUtility::setBrush(g, Color::eRed);
+				break;
+			case FOOD_SPEED_UP:
+				RenderUtility::setBrush(g, Color::eGreen);
+				break;
+			case FOOD_SPEED_SLOW:
+				RenderUtility::setBrush(g, Color::ePurple);
+				break;
+			case FOOD_CONFUSED:
+				RenderUtility::setBrush(g, Color::eGray);
+				break;
+			}
+			g.drawCircle(BlockSize * info.pos + Vec2i(BlockSize / 2, BlockSize / 2), SnakeWidth / 2);
+		};
+		getLevel().visitFood(fun);
+	}
 
-
+	void Scene::render(Graphics2D& g, float dFrame)
+	{
 		Vec2i mapSize = mLevel.getMapSize();
-
-
 		Vec2i rectSize = mLevel.getMapSize() * BlockSize;
 		Vec2i offset = ( Global::getDrawEngine()->getScreenSize() - rectSize ) / 2 ;
 
@@ -207,7 +206,7 @@ namespace GreedySnake
 
 		for( int i = 0 ; i < mLevel.getSnakeNum() ; ++i )
 		{
-			drawSnake( g , mLevel.getSnakeInfo( i ) , dFrame );
+			drawSnake( g , mLevel.getSnake( i ) , dFrame );
 		}
 
 
@@ -220,17 +219,19 @@ namespace GreedySnake
 		{
 			for( int j = 0 ; j < mapSize.y ; ++j )
 			{
-				MapData const& data = mLevel.mMap.getData( i , j );
+				MapTileData const& tile = mLevel.mMap.getData( i , j );
 
 				FixString< 32 > str;
-				str.format( "%u" , data.snake );
-				g.drawText( BlockSize * Vec2i(i,j) + offset , str );
+				str.format( "%u" , tile.snakeMask );
+				//g.drawText( BlockSize * Vec2i(i,j) + offset , Vec2i( BlockSize , BlockSize) , str );
+				g.drawText(BlockSize * Vec2i(i, j) + offset + Vec2i( 5 , 5 ) , str);
 			}
 		}
 	}
 
 	void Scene::tick()
 	{
+		++mFrame;
 		if ( !mIsOver )
 		{
 			mMode.prevLevelTick();
@@ -241,28 +242,30 @@ namespace GreedySnake
 
 	void Scene::restart( bool beInit )
 	{
+		mFrame = 0;
 		mIsOver = false;
 		mMode.restart( beInit );
 	}
 
-	void Scene::onEatFood( SnakeInfo& info , FoodInfo& food )
+	void Scene::onEatFood( Snake& snake , FoodInfo& food )
 	{
-		mMode.onEatFood( info , food );
+		mMode.onEatFood( snake , food );
 	}
 
-	void Scene::onCollideSnake( SnakeInfo& snake , SnakeInfo& colSnake )
+	void Scene::onCollideSnake( Snake& snake , Snake& colSnake )
 	{
 		mMode.onCollideSnake( snake , colSnake );
 	}
 
-	void Scene::onCollideTerrain( SnakeInfo& snake , int type )
+	void Scene::onCollideTerrain( Snake& snake , int type )
 	{
 		mMode.onCollideTerrain( snake , type );
 	}
 
-	void Scene::changeSnakeMoveDir( unsigned id , DirEnum dir )
+	void Scene::changeSnakeMoveDir(Snake& snake, DirEnum dir )
 	{
-		mLevel.getSnakeInfo( id ).snake->changeMoveDir( dir );
+		snake.changeMoveDir( dir );
+		::Msg("%d : %u change dir %d", mFrame, snake.id , (int)dir);
 	}
 
 	void Scene::killSnake( unsigned id )
@@ -271,10 +274,24 @@ namespace GreedySnake
 			return;
 	}
 
-	void Scene::RenderVisitor::visit( FoodInfo const& info )
+
+	void Mode::applyDefaultEffect(Snake& snake, FoodInfo const& food)
 	{
-		RenderUtility::setBrush( g , Color::eRed );
-		g.drawCircle( BlockSize * info.pos + Vec2i( BlockSize / 2  , BlockSize / 2 ) , SnakeWidth / 2 );
+		switch( food.type )
+		{
+		case FOOD_GROW:
+			snake.getBody().growBody();
+			break;
+		case FOOD_SPEED_UP:
+			snake.stateBit ^= SS_INC_SPEED;
+			break;
+		case FOOD_SPEED_SLOW:
+			snake.stateBit ^= SS_DEC_SPEED;
+			break;
+		case FOOD_CONFUSED:
+			snake.stateBit ^= SS_CONFUSE;
+			break;
+		}
 	}
 
 }//namespace GreedySnake

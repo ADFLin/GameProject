@@ -5,7 +5,7 @@
 #include "PlatformConfig.h"
 
 #ifdef SYS_PLATFORM_WIN
-#include "Win32Header.h"
+#include "WindowsHeader.h"
 #endif
 
 template < class Impl ,class CoreImpl >

@@ -1,7 +1,7 @@
 #ifndef WinGLPlatform_h__
 #define WinGLPlatform_h__
 
-#include "Win32Platform.h"
+#include "WindowsPlatform.h"
 
 #include <gl\gl.h>		// Header File For The OpenGL32 Library
 #include <gl\glu.h>		// Header File For The GLu32 Library
@@ -215,7 +215,7 @@ protected:
 	void   destoryWindow()
 	{
 		OpenGLSupport::cleanup();
-		Win32Platform<T>::destoryWindow();
+		WindowsPlatform<T>::destoryWindow();
 	}
 	bool   setupWindow( bool fullscreen , unsigned colorBit )
 	{

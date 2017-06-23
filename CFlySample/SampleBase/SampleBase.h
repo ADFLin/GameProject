@@ -3,8 +3,8 @@
 
 #include "GameLoop.h"
 
-#include "Win32Platform.h"
-#include "SysMsgHandler.h"
+#include "WindowsPlatform.h"
+#include "WindowsMessageHander.h"
 
 #include "CFlyHeader.h"
 
@@ -39,9 +39,9 @@ class CameraController
 
 };
 
-class SampleBase : public GameLoopT< SampleBase , Win32Platform > 
+class SampleBase : public GameLoopT< SampleBase , WindowsPlatform > 
 	             , public WinFrameT< SampleBase >
-	             , public SysMsgHandlerT< SampleBase >
+	             , public WindowsMessageHandlerT< SampleBase >
 				 , public ILogListener
 {
 public:

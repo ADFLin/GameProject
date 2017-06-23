@@ -23,7 +23,7 @@ public:
 	template < class T >
 	T*  getWidget( int id )
 	{
-		T* ui = GUI::castFast< T* >( mSettingPanel->findChild( id ) );
+		T* ui = GUI::CastFast< T >( mSettingPanel->findChild( id ) );
 		return ui;
 	}
 
@@ -37,7 +37,7 @@ public:
 	GAME_API void exportSetting( DataSteamBuffer& buffer );
 
 	GAME_API void sendSlotStateSV();
-	GAME_API void addPlayerSV( PlayerId id );
+	GAME_API bool addPlayerSV( PlayerId id );
 	GAME_API void emptySlotSV( SlotId id , SlotState state );
 	GAME_API void sendPlayerStatusSV();
 

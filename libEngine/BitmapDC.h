@@ -1,7 +1,7 @@
 #ifndef BitmapDC_h__
 #define BitmapDC_h__
 
-#include "Win32Header.h"
+#include "WindowsHeader.h"
 
 class BitmapDC
 {

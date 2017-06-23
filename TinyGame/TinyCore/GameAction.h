@@ -19,6 +19,8 @@ public:
 	virtual void  prevCheckAction() = 0;
 	virtual bool  checkAction( ActionParam& param ) = 0;
 
+	virtual void  debugMessage(long frame){}
+
 	void translateData( DataSerializer& serializer )
 	{
 		outputData( serializer );
@@ -120,8 +122,7 @@ public:
 			mPortDataMap[i] = ERROR_DATA_ID;
 		mNumPort = 0;
 
-		for( IPlayerManager::Iterator iter = playerManager.getIterator(); 
-			 iter.haveMore() ; iter.goNext() )
+		for( auto iter = playerManager.createIterator(); iter; ++iter )
 		{
 			GamePlayer* player = iter.getElement();
 			unsigned port = player->getInfo().actionPort;
@@ -177,6 +178,30 @@ public:
 	}
 
 	virtual void firePortAction( ActionTrigger& trigger ) = 0;
+
+
+	virtual void debugMessage(long frame)
+	{
+		FixString< 512 > msg;
+
+		msg.format("%ld =", frame);
+		int count = 0;
+		for( size_t i = 0; i < mNumPort; ++i )
+		{
+			FrameData& data = mFrameData[i];
+			if( data.keyActBit )
+			{
+				FixString< 512 > temp;
+				temp.format("(%u %u)" , data.port , data.keyActBit );
+				msg += temp;
+				++count;
+			}
+		}
+		if( count )
+		{
+			::Msg( msg );
+		}
+	}
 
 protected:
 	size_t  mDataMaxSize;

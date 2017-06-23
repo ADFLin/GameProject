@@ -27,7 +27,7 @@ namespace Tetris
 			}
 			mSettingPanel->removeGui( MASK_MODE );
 			mSettingPanel->adjustGuiLocation();
-			switch( GUI::castFast< GChoice* >( widget )->getSelection() )
+			switch( GUI::CastFast< GChoice >( widget )->getSelection() )
 			{
 			case 0:  
 				mInfo.mode = MODE_TS_CHALLENGE;
@@ -42,7 +42,7 @@ namespace Tetris
 			return false;
 		case UI_PLAYER_NUMBER_CHOICE:
 			{
-				int num = GUI::castFast< GChoice* >( widget )->getSelection() + 1;
+				int num = GUI::CastFast< GChoice >( widget )->getSelection() + 1;
 				setMaxPlayerNum( num );
 				mMaxPlayerNum = num;
 
@@ -50,7 +50,7 @@ namespace Tetris
 			}
 			return false;
 		case UI_GRAVITY_LEVEL_SLIDER:
-			mInfo.modeNormal.startGravityLevel = GUI::castFast< GSlider* >( widget )->getValue();
+			mInfo.modeNormal.startGravityLevel = GUI::CastFast< GSlider >( widget )->getValue();
 			modifyCallback( getSettingPanel() );
 			return false;
 		}

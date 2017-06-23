@@ -80,19 +80,24 @@ public:
 	class Iterator
 	{
 	public:
-		bool          haveMore()  { return numCount >= 0 ; }
-		GamePlayer*   getElement(){ return player; }
+		bool          haveMore() const { return mPlayer != nullptr; }
+		GamePlayer*   getElement(){ return mPlayer; }
 		GAME_API void goNext();
 
+		operator bool() const { return haveMore(); }
+
+		Iterator& operator++(void)  { goNext(); return *this; }
+		Iterator  operator++(int) { Iterator temp = *this; goNext(); return temp; }
+
 	private:
-		GAME_API Iterator( IPlayerManager* _mgr );
-		GamePlayer*     player;
-		IPlayerManager* mgr;
-		int             numCount;
+		GAME_API Iterator( IPlayerManager* inManager );
+		GamePlayer*     mPlayer;
+		IPlayerManager* mManager;
+		int             mPlayerCount;
 		friend class IPlayerManager;
 	};
 
-	Iterator     getIterator(){ return Iterator( this ); }
+	Iterator     createIterator(){ return Iterator( this ); }
 	GamePlayer*  getUser()
 	{ 
 		PlayerId id = getUserID();

@@ -60,7 +60,7 @@ namespace Poker
 			{
 			case UI_OK:
 				{
-					GTextCtrl* textCtrl = GUI::castFast< GTextCtrl* >( findChild( UI_SEED_TEXT ) );
+					GTextCtrl* textCtrl = GUI::CastFast< GTextCtrl >( findChild( UI_SEED_TEXT ) );
 					int seed = atoi( textCtrl->getValue() );
 					if ( seed )
 					{
@@ -158,7 +158,7 @@ namespace Poker
 
 		for( int i = 0 ; i < SCellNum ; ++i )
 		{
-			SCell& cell = getSCell( i );
+			StackCell& cell = getStackCell( i );
 			drawSprite( g , cell );
 		}
 
@@ -184,7 +184,7 @@ namespace Poker
 		g.drawRoundRect( pos - bSize  , mCardSize + 2 * bSize + Vec2i( 1 , 1 ) , Vec2i( 5 , 5 ) );
 	}
 
-	void FreeCellStage::drawSprite( Graphics2D& g , SCell& cell )
+	void FreeCellStage::drawSprite( Graphics2D& g , StackCell& cell )
 	{
 		int num = cell.getCardNum();
 		for( int i = 0 ; i < num - 1 ; ++i )
@@ -233,7 +233,7 @@ namespace Poker
 		return NULL;
 	}
 
-	int FreeCellStage::clickCard( SCell& cell , Vec2i const& pos )
+	int FreeCellStage::clickCard( StackCell& cell , Vec2i const& pos )
 	{
 		for( int idx = cell.getCardNum() - 1 ; idx >= 0 ; --idx )
 		{
@@ -263,8 +263,8 @@ namespace Poker
 			Cell* cell = clickCell( msg.getPos() );
 			if ( cell )
 			{
-				if ( ( isStackCell( *cell ) && tryMoveToFCell( static_cast< SCell& >( *cell ) ) ) ||
-					 ( isFreeCell( *cell ) && tryMoveToSCell( static_cast< FCell& >( *cell ) ) ) )
+				if ( ( isStackCell( *cell ) && tryMoveToFreeCell( static_cast< StackCell& >( *cell ) ) ) ||
+					 ( isFreeCell( *cell ) && tryMoveToStackCell( static_cast< FreeCell& >( *cell ) ) ) )
 				{
 					++mMoveStep;
 				}
@@ -305,11 +305,11 @@ namespace Poker
 		{
 			if ( mIdxCellLook != -1 )
 			{
-				SCell& lookCell = static_cast< SCell& >( getCell( mIdxCellLook ) );
+				StackCell& lookCell = static_cast< StackCell& >( getCell( mIdxCellLook ) );
 				for( int i = mIdxCardLook + 1 ; i < lookCell.getCardNum() ; ++i )
 				{
 					Card const& card = lookCell.getCard( i );
-					addAnim( card , mSprites[ card.getIndex() ].pos - Vec2f( 0 , 10 ) );
+					playAnim( card , mSprites[ card.getIndex() ].pos - Vec2f( 0 , 10 ) );
 				}
 				mIdxCellLook = -1;
 				mIdxCardLook = -1;
@@ -320,14 +320,14 @@ namespace Poker
 			Cell* cell = clickCell( msg.getPos() );
 			if ( cell && isStackCell( *cell ) )
 			{
-				SCell& lookCell = static_cast< SCell& >(*cell);
+				StackCell& lookCell = static_cast< StackCell& >(*cell);
 				int idx = clickCard( lookCell , msg.getPos() );
 				if ( idx != -1 )
 				{
 					for( int i = idx + 1 ; i < lookCell.getCardNum() ; ++i )
 					{
 						Card const& card = lookCell.getCard( i );
-						addAnim( card , mSprites[ card.getIndex() ].pos + Vec2f( 0 , 15 ) , 0 , ANIM_LOOK );
+						playAnim( card , mSprites[ card.getIndex() ].pos + Vec2f( 0 , 15 ) , 0 , ANIM_LOOK );
 					}
 					//mIdxCellLook = cell->getIndex();
 					//mIdxCardLook = idx;
@@ -390,7 +390,7 @@ namespace Poker
 
 	void FreeCellStage::restart()
 	{
-		FreeCell::setupGame( mSeed );
+		FreeCellLevel::setupGame( mSeed );
 		mSelectCell = NULL;
 		mMoveStep   = 0;
 		mMoveInfoVec.clear();
@@ -403,7 +403,7 @@ namespace Poker
 
 		for( int i = 0 ; i < SCellNum ; ++i )
 		{
-			SCell& cell = getSCell( i );
+			StackCell& cell = getStackCell( i );
 			for( int n = 0 ; n < cell.getCardNum() ; ++n )
 			{
 				int idx = cell.getCard( n ).getIndex();
@@ -428,7 +428,7 @@ namespace Poker
 			break;
 		case Cell::eSTACK: 
 			pos = SCellStartPos; idx = SCellIndex; gap = SCellGap;
-			pos.y += ( static_cast< SCell& >( cell ).getCardNum() ) * SCellCardOffsetY;
+			pos.y += ( static_cast< StackCell& >( cell ).getCardNum() ) * SCellCardOffsetY;
 			break;
 		}
 		pos.x += ( cell.getIndex() - idx ) * ( gap + mCardSize.x );
@@ -454,12 +454,12 @@ namespace Poker
 			if ( mSprites[ from.getCard().getIndex() ].beAnim )
 				return false;
 
-			SCell& fCell = static_cast< SCell& >( from );
+			StackCell& fCell = static_cast< StackCell& >( from );
 			int idx = fCell.getCardNum() - num;
 			float delay = 0;
 			for( int i = 0 ; i < num ; ++i )
 			{
-				bool result = addAnim( fCell.getCard( idx + i ) , endPos , delay );
+				bool result = playAnim( fCell.getCard( idx + i ) , endPos , delay );
 				assert( result );
 				endPos.y += SCellCardOffsetY;
 				delay += 40;
@@ -467,7 +467,7 @@ namespace Poker
 		}
 		else 
 		{
-		   if ( !addAnim( from.getCard() , endPos ) )
+		   if ( !playAnim( from.getCard() , endPos ) )
 			   return false;
 		}
 
@@ -485,11 +485,11 @@ namespace Poker
 
 	void FreeCellStage::checkMoveCard( bool beAutoMove )
 	{
-		while( beAutoMove && autoMoveToGCell() ){}
+		while( beAutoMove && moveToGoalCellAuto() ){}
 
 		if ( mTweener.getActiveNum() == 1 )
 		{
-			if ( getGCardNum() == 52 )
+			if ( getGoalCardNum() == 52 )
 			{
 				::Global::GUI().showMessageBox( UI_NEW_GAME , "You Win! Do You Play Again?" , GMB_YESNO );
 				return;
@@ -508,7 +508,7 @@ namespace Poker
 		}
 	}
 
-	bool FreeCellStage::addAnim( Card const& card , Vec2i const& to , float delay , int type )
+	bool FreeCellStage::playAnim( Card const& card , Vec2i const& to , float delay , int type )
 	{
 		typedef Easing::IOCubic MyFun;
 		int idx = card.getIndex();

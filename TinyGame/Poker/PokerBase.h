@@ -4,6 +4,8 @@
 #include <iostream>
 #include <cassert>
 
+#include "IntegerType.h"
+
 namespace Poker
 {
 
@@ -20,7 +22,7 @@ namespace Poker
 	class Card
 	{
 	public:
-		enum Face
+		enum Face : uint8
 		{
 			eACE = 0,
 			eN2 , eN3 , eN4 , eN5 , eN6 , 
@@ -28,7 +30,7 @@ namespace Poker
 			eJACK , eQUEEN , eKING ,
 		};
 
-		enum Suit
+		enum Suit : uint8
 		{
 			eCLUBS    = 0,
 			eDIAMONDS = 1,
@@ -55,14 +57,14 @@ namespace Poker
 
 		Face   getFace()     const { return mFace; }
 		Suit   getSuit()     const { return mSuit; }
-		int    getFaceRank() const { return toRank( mFace ); }
-		int    getIndex()    const { return toIndex( getSuit() , getFace() ); }
+		int    getFaceRank() const { return ToRank( mFace ); }
+		int    getIndex()    const { return ToIndex( getSuit() , getFace() ); }
 
 		bool operator == (Card const& card) const;
 
-		static int         toRank( Face face ){ return int( face ); }
-		static int         toIndex( Suit suit , Face face ){ return face * 4 + suit; }
-		static char const* toString( Face face );
+		static int         ToRank( Face face ){ return int( face ); }
+		static int         ToIndex( Suit suit , Face face ){ return face * 4 + suit; }
+		static char const* ToString( Face face );
 
 		static bool isRedSuit( Card const& c )
 		{ 
@@ -84,8 +86,17 @@ namespace Poker
 		}
 
 	private:
-		Suit mSuit;
-		Face mFace;
+		union 
+		{
+			struct  
+			{
+				Suit mSuit;
+				Face mFace;
+			};
+
+			uint16 mValue;
+		};
+
 	};
 
 	std::ostream& operator << ( std::ostream& o , Card const& card );
@@ -95,7 +106,7 @@ namespace Poker
 	inline std::ostream& operator << (std::ostream& o,Card const& card)
 	{
 		static const char suit[]={ 0x05,0x04,0x03,0x06 };
-		o << suit[card.getSuit()] << Card::toString( card.getFace() );
+		o << suit[card.getSuit()] << Card::ToString( card.getFace() );
 		return o;
 	}
 
@@ -105,7 +116,7 @@ namespace Poker
 
 	}
 
-	inline char const* Card::toString( Face face )
+	inline char const* Card::ToString( Face face )
 	{
 		char const* faceStr[]={"A","2","3","4","5","6","7","8","9","10","J","Q","K"};
 		return faceStr[ face ];
@@ -113,8 +124,7 @@ namespace Poker
 
 	inline bool Card::operator==( Card const& card ) const
 	{
-		return mSuit == card.getSuit() && 
-			   mFace == card.getFace();
+		return mValue == card.mValue;
 	}
 
 }

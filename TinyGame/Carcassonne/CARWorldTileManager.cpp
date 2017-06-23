@@ -118,9 +118,11 @@ namespace CAR
 			}
 			return true;
 		case TileType::eDouble:
-			//
-			param.checkRiverConnect = false;
-			return canPlaceTileList( tileId , 2 , pos , rotation , param );
+			{
+				//
+				param.checkRiverConnect = false;
+				return canPlaceTileList(tileId, 2, pos, rotation, param);
+			}
 		case TileType::eHalfling:
 			{
 				param.checkRiverConnect = false;
@@ -138,6 +140,8 @@ namespace CAR
 
 	bool WorldTileManager::canPlaceTileInternal( TilePiece const& tile , Vec2i const& pos , int rotation , PutTileParam& param , PlaceResult& result  )
 	{
+		int numSideCheck = FDir::TotalNum;
+		int deltaDir = 0;
 		if( tile.isHalflingType() )
 		{
 			assert(tile.sides[IndexHalflingSide].linkType != SideType::eAbbey &&
@@ -169,9 +173,10 @@ namespace CAR
 		int  numRiverConnect = 0;
 		MapTile* riverLink = nullptr;
 		int  dirRiverLink = -1;
-		for( int i = 0 ; i < FDir::TotalNum ; ++i )
+		for( int i = 0 ; i < numSideCheck ; ++i )
 		{
-			int lDir = FDir::ToLocal( i , rotation );
+			int lDir = i + deltaDir;
+			int dir = FDir::ToWorld(lDir, rotation);
 
 			if ( param.checkRiverConnect )
 			{
@@ -180,12 +185,12 @@ namespace CAR
 					checkRiverConnect = true;
 				}
 			}
-			Vec2i linkPos = FDir::LinkPos( pos , i );
+			Vec2i linkPos = FDir::LinkPos( pos , dir );
 			MapTile* dataCheck = findMapTile( linkPos );
 			if ( dataCheck )
 			{
 				++linkCount;
-				int lDirCheck = FDir::ToLocal( FDir::Inverse( i ) , dataCheck->rotation );
+				int lDirCheck = FDir::ToLocal( FDir::Inverse( dir ) , dataCheck->rotation );
 				TilePiece const& tileCheck = getTile( dataCheck->getId() );
 				if ( !TilePiece::CanLink( tileCheck , lDirCheck , tile , lDir ) )
 				{
@@ -198,7 +203,7 @@ namespace CAR
 							tile.getLinkType(lDir) == SideType::eField  )
 							return false;
 
-						param.dirNeedUseBridge = i;
+						param.dirNeedUseBridge = dir;
 					}
 					else
 					{
@@ -210,7 +215,7 @@ namespace CAR
 				{
 					++numRiverConnect;
 					riverLink = dataCheck;
-					dirRiverLink = i;
+					dirRiverLink = dir;
 				}
 			}
 		}
@@ -323,50 +328,78 @@ namespace CAR
 
 	MapTile* WorldTileManager::placeTileInternal( TilePiece const& tile , Vec2i const& pos , int rotation , PutTileParam& param )
 	{
-		WorldTileMap::iterator iter = mMap.insert( std::make_pair( pos , MapTile( tile ,rotation ) ) ).first;
-		assert( iter != mMap.end() );
 
+		MapTile* mapTilePlace = nullptr;
+		int numSideLink = FDir::TotalNum;
+		int deltaDir = 0;
+
+		if( tile.isHalflingType() )
 		{
-			PosSet::iterator iter = mEmptyLinkPosSet.find( pos );
-			if ( iter != mEmptyLinkPosSet.end() )
-				mEmptyLinkPosSet.erase( iter );
+			numSideLink = FDir::TotalNum / 2;
+
+			auto iter = mMap.find(pos);
+			if( iter != mMap.end() )
+			{
+				mapTilePlace = &iter->second;
+				assert(mapTilePlace->isHalflingType());
+				mapTilePlace->margeHalflingTile(tile);
+
+				deltaDir = FDir::TotalNum / 2;
+				mHalflingTiles.erase(std::find(mHalflingTiles.begin(), mHalflingTiles.end(), mapTilePlace));
+			}
 		}
-
-		MapTile& mapData = iter->second;
-		mapData.checkCount = mCheckCount;
-		mapData.pos        = pos;
-		mapData.rotation   = rotation;
-
-		if ( param.usageBridge && param.dirNeedUseBridge != - 1 )
+		
+		if ( mapTilePlace == nullptr )
 		{
-			mapData.addBridge( param.dirNeedUseBridge );
-		}
+			WorldTileMap::iterator iter = mMap.insert(std::make_pair(pos, MapTile(tile, rotation))).first;
+			assert(iter != mMap.end());
 
-		bool bHalflingTile = tile.isHalflingType();
-		int sideNum = (bHalflingTile) ? FDir::TotalNum/2 : FDir::TotalNum;
-		for( int i = 0 ; i < sideNum ; ++i )
+			{
+				PosSet::iterator iter = mEmptyLinkPosSet.find(pos);
+				if( iter != mEmptyLinkPosSet.end() )
+					mEmptyLinkPosSet.erase(iter);
+			}
+
+			mapTilePlace = &iter->second;
+			mapTilePlace->checkCount = mCheckCount;
+			mapTilePlace->pos = pos;
+			mapTilePlace->rotation = rotation;
+
+			if( param.usageBridge && param.dirNeedUseBridge != -1 )
+			{
+				mapTilePlace->addBridge(param.dirNeedUseBridge);
+			}
+
+			if( tile.isHalflingType() )
+			{
+				mHalflingTiles.push_back(mapTilePlace);
+			}
+		}	
+		
+		for( int i = 0 ; i < numSideLink ; ++i )
 		{
-			Vec2i posLink = FDir::LinkPos( pos , i );
-			
+			int lDir = i + deltaDir;
+			int dir = FDir::ToWorld( lDir , rotation );
+
+			Vec2i posLink = FDir::LinkPos( pos , dir );
 			MapTile* mapTileCheck = findMapTile( posLink );
-			int lDir = FDir::ToLocal( i , rotation );
 
 			if ( mapTileCheck != nullptr )
 			{
 				//link node
 				assert( TilePiece::CanLink( tile , lDir , *mapTileCheck->mTile , 
-					    FDir::ToLocal( FDir::Inverse( i ) , mapTileCheck->rotation ) ) );
+					    FDir::ToLocal( FDir::Inverse(dir) , mapTileCheck->rotation ) ) );
 
 				if ( tile.getLinkType(lDir) != SideType::eEmptySide )
 				{
-					mapData.connectSide(i, *mapTileCheck);
+					mapTilePlace->connectSide(dir, *mapTileCheck);
 
 					//link farm
 					if( tile.canLinkFarm(lDir) )
 					{
-						int idx = TilePiece::DirToFarmIndexFrist(i);
-						mapData.connectFarm(idx, *mapTileCheck);
-						mapData.connectFarm(idx + 1, *mapTileCheck);
+						int idx = TilePiece::DirToFarmIndexFrist(dir);
+						mapTilePlace->connectFarm(idx, *mapTileCheck);
+						mapTilePlace->connectFarm(idx + 1, *mapTileCheck);
 					}
 				}
 			}
@@ -376,7 +409,7 @@ namespace CAR
 			}
 		}
 
-		return &mapData;
+		return mapTilePlace;
 	}
 
 

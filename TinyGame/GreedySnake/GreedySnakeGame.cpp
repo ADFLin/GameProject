@@ -1,8 +1,9 @@
 #include "GreedySnakePCH.h"
 #include "GreedySnakeGame.h"
-#include "GreedySnakeStage.h"
 
+#include "GreedySnakeStage.h"
 #include "GreedySnakeScene.h"
+#include "GreedySnakeMode.h"
 
 #include "GameSettingHelper.h"
 #include "GameRoomUI.h"
@@ -39,6 +40,7 @@ namespace GreedySnake
 			mController.initKey( ACT_GS_MOVE_N , KEY_ONCE , 'W' , VK_UP    );
 			mController.initKey( ACT_GS_MOVE_S , KEY_ONCE , 'S' , VK_DOWN  );
 			mController.initKey( ACT_GS_MOVE_W , KEY_ONCE , 'A' , VK_LEFT  );
+			mController.initKey( ACT_GS_CHANGE_DIR, KEY_ONCE, 'E');
 			return true;
 		}
 		return false;
@@ -54,7 +56,10 @@ namespace GreedySnake
 
 	public:
 		virtual void clearUserUI(){}
-		virtual void doSetupSetting( bool beServer ){}
+		virtual void doSetupSetting( bool beServer )
+		{
+			setMaxPlayerNum( BattleMode::MaxPlayerNum );
+		}
 		virtual void setupGame( StageManager& manager , StageBase* subStage )
 		{
 
@@ -74,3 +79,6 @@ namespace GreedySnake
 	}
 
 }
+
+
+EXPORT_GAME(GreedySnake::GameInstance);

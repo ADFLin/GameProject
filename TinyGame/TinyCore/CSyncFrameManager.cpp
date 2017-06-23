@@ -7,6 +7,7 @@
 #include "GameNetPacket.h"
 
 #define USE_UDP_FRAME_DATA 1
+#define RESET_DATA_FRAME (-1)
 int const UseChannel = CHANNEL_GAME_NET_UDP_CHAIN;
 
 FrameDataManager::FrameDataManager()
@@ -28,7 +29,7 @@ void FrameDataManager::addFrameData( long frame , DataSteamBuffer& buffer )
 	mDataQueue.push( fd );
 }
 
-bool FrameDataManager::checkUpdateFrame()
+bool FrameDataManager::canAdvanceFrame()
 {
 	if ( mDataQueue.empty() )
 		return false;
@@ -68,6 +69,8 @@ void FrameDataManager::restoreData( IFrameActionTemplate* actionTemp  )
 		auto dataSteam = MakeBufferDataSteam(*(iter->iter));
 		actionTemp->restoreData( DataSerializer( dataSteam ) );
 	}
+
+	actionTemp->debugMessage(mCurFrame);
 }
 
 void FrameDataManager::endFrame()
@@ -86,6 +89,7 @@ CSyncFrameManager::CSyncFrameManager( IFrameActionTemplate* actionTemp , INetFra
 	mFrameGenerator = frameGenerator;
 	mProcessor.setLanucher( this );
 	mProcessor.addListener( *frameGenerator );
+	bClearData = false;
 	
 }
 
@@ -108,6 +112,12 @@ bool CSyncFrameManager::checkAction( ActionParam& param )
 
 int CSyncFrameManager::evalFrame( IFrameUpdater& updater , int updateFrames , int maxDelayFrames )
 {
+	if( bClearData )
+	{
+		bClearData = false;
+		return 0;
+	}
+
 	int frameCount = 0;
 
 	int deltaFrame = mFrameMgr.getLastDataFrame() - mFrameMgr.getFrame();
@@ -116,7 +126,7 @@ int CSyncFrameManager::evalFrame( IFrameUpdater& updater , int updateFrames , in
 
 	sendFrameData();
 
-	if ( mFrameMgr.checkUpdateFrame() )
+	if ( mFrameMgr.canAdvanceFrame() )
 	{
 		do
 		{
@@ -131,7 +141,7 @@ int CSyncFrameManager::evalFrame( IFrameUpdater& updater , int updateFrames , in
 
 			sendFrameData();
 		}
-		while ( mFrameMgr.checkUpdateFrame() );
+		while ( mFrameMgr.canAdvanceFrame() );
 	}
 
 	updater.updateFrame( frameCount );
@@ -152,25 +162,24 @@ SVSyncFrameManager::SVSyncFrameManager( NetWorker* worker , IFrameActionTemplate
 
 	frameGenerator->reflashPlayer( *mWorker->getPlayerManager() );
 
-	mCheckDataBit = 0;
-	mLocalDataBit = 0;
+	mCheckDataBits = 0;
+	mLocalDataBits = 0;
 	mUpdateDataBit = 0;
 
-	IPlayerManager::Iterator iter = worker->getPlayerManager()->getIterator();
-	for( ; iter.haveMore() ; iter.goNext())
+	for( auto iter = worker->getPlayerManager()->createIterator(); iter ; ++iter )
 	{
 		ServerPlayer* player = static_cast< ServerPlayer*>( iter.getElement() );
 
-		mCheckDataBit |= BIT( player->getId() );
+		mCheckDataBits |= BIT( player->getId() );
 		if ( !player->isNetwork() )
-			mLocalDataBit |= BIT( player->getId() );
+			mLocalDataBits |= BIT( player->getId() );
 
 		player->lastUpdateFrame = -1;
 		player->lastRecvFrame   = -1;
 		player->lastSendFrame   = -1;
 	}
 
-	mUpdateDataBit = mCheckDataBit;
+	mUpdateDataBit = mCheckDataBits;
 	mCountDataDelay = 0;
 }
 
@@ -190,57 +199,59 @@ bool SVSyncFrameManager::sendFrameData()
 
 		ServerPlayer* player = mWorker->getPlayerManager()->getPlayer( data.id );
 
-		if ( mFrameMgr.getFrame() - data.recvFrame < 10 )
+		//Preserve null when Player disconnect 
+		if( player != nullptr )
 		{
-			if ( ( BIT( data.id ) & mUpdateDataBit ) && 
-				 data.recvFrame >= player->lastRecvFrame &&
-				 data.sendFrame >  player->lastSendFrame )
+			if( mFrameMgr.getFrame() - data.recvFrame < 10 )
 			{
-				++iter;
-				continue;
+				if( (BIT(data.id) & mUpdateDataBit) &&
+				   data.recvFrame >= player->lastRecvFrame &&
+				   data.sendFrame > player->lastSendFrame )
+				{
+					++iter;
+					continue;
+				}
 			}
-		}
 
-
-		bool isOk = true;
-		if ( data.buffer.getAvailableSize() )
-		{
-			try
+			bool isOk = true;
+			if( data.buffer.getAvailableSize() )
 			{
-				mFrameGenerator->recvClientData( data.id , data.buffer );
-				
-			}
-			catch ( BufferException&  )
-			{
-				isOk = false;
-			}
-		}
+				try
+				{
+					mFrameGenerator->recvClientData(data.id, data.buffer);
 
-		if ( isOk )
-		{
-			mUpdateDataBit |= BIT( data.id );
-			player->lastRecvFrame = data.recvFrame;
-			player->lastSendFrame = data.sendFrame;
+				}
+				catch( BufferException& )
+				{
+					isOk = false;
+				}
+			}
+
+			if( isOk )
+			{
+				mUpdateDataBit |= BIT(data.id);
+				player->lastRecvFrame = data.recvFrame;
+				player->lastSendFrame = data.sendFrame;
+			}
 		}
 
 		iter = mFrameDataList.erase( iter );
 	}
 
-	mUpdateDataBit |= mLocalDataBit;
+	mUpdateDataBit |= mLocalDataBits;
 
 	mProcessor.beginAction( CTF_BLOCK_ACTION );
 
 	int const MaxWaitDiffFrame = 30;
-	if ( mCheckDataBit != mUpdateDataBit )
+	if ( mCheckDataBits != mUpdateDataBit )
 	{
 		bool needStop = false;
 
-		IPlayerManager::Iterator iter = mWorker->getPlayerManager()->getIterator();
-		for( ; iter.haveMore() ; iter.goNext())
+		for( auto iter = mWorker->getPlayerManager()->createIterator(); iter; ++iter )
 		{
 			ServerPlayer* player = static_cast< ServerPlayer*>( iter.getElement() );
 
-			if ( BIT( player->getId() ) & mLocalDataBit )
+			if ( BIT( player->getId() ) & mLocalDataBits )
 				continue;
 
 			if ( (int)mFrameMgr.getFrame() - player->lastUpdateFrame > MaxWaitDiffFrame  )
@@ -283,7 +294,10 @@ bool SVSyncFrameManager::sendFrameData()
 
 void SVSyncFrameManager::procFrameData( IComPacket* cp )
 {
-	ClientInfo* info = static_cast< ClientInfo* >( cp->getUserData() );
+	if( bClearData )
+		return;
+
+	NetClientData* info = static_cast< NetClientData* >( cp->getUserData() );
 	if ( !info )
 	{
 		return;
@@ -294,7 +308,8 @@ void SVSyncFrameManager::procFrameData( IComPacket* cp )
 	ServerPlayer* player = mWorker->getPlayerManager()->getPlayer( id );
 
 	int maxDiscardDifFrame = 5;
-	if ( player->lastUpdateFrame >= fp->frame + maxDiscardDifFrame )
+	if ( player->lastUpdateFrame >= fp->frame + maxDiscardDifFrame ||
+		 fp->frame >= player->lastUpdateFrame + maxDiscardDifFrame )
 		return;
 
 	static int count = 0;
@@ -322,30 +337,32 @@ void SVSyncFrameManager::procFrameData( IComPacket* cp )
 unsigned SVSyncFrameManager::calcLocalPlayerBit()
 {
 	unsigned result = 0;
-	IPlayerManager::Iterator iter = mWorker->getPlayerManager()->getIterator();
-	while( iter.haveMore() )
+	for( auto iter = mWorker->getPlayerManager()->createIterator(); iter; ++iter )
 	{
 		ServerPlayer* sPlayer = static_cast< ServerPlayer* >( iter.getElement() );
 		if ( !sPlayer->isNetwork() )
 			result |= BIT( sPlayer->getId() );
-
-		iter.goNext();
 	}
 	return result;
 }
 
 void SVSyncFrameManager::refreshPlayerState()
 {
-	mLocalDataBit = calcLocalPlayerBit();
+	mLocalDataBits = 0;
+	mCheckDataBits = 0;
+	for( auto iter = mWorker->getPlayerManager()->createIterator(); iter; ++iter )
+	{
+		ServerPlayer* sPlayer = static_cast<ServerPlayer*>(iter.getElement());
+		mCheckDataBits |= BIT(sPlayer->getId());
+		if( !sPlayer->isNetwork() )
+			mLocalDataBits |= BIT(sPlayer->getId());
+	}
 }
-
 
 void SVSyncFrameManager::onPlayerStateMsg( unsigned pID , PlayerStateMsg state )
 {
 	mFrameGenerator->reflashPlayer( *mWorker->getPlayerManager() );
-
-	if ( state == PSM_CHANGE_TO_LOCAL )
-		refreshPlayerState();
+	refreshPlayerState();
 }
 
 void SVSyncFrameManager::onChangeActionState( NetActionState state )
@@ -358,11 +375,10 @@ void SVSyncFrameManager::onChangeActionState( NetActionState state )
 
 void SVSyncFrameManager::fireAction( ActionTrigger& trigger )
 {
-	for( IPlayerManager::Iterator iter = mWorker->getPlayerManager()->getIterator(); 
-		 iter.haveMore() ; iter.goNext() )
+	for( auto iter = mWorker->getPlayerManager()->createIterator(); iter; ++iter )
 	{
 		GamePlayer* player = iter.getElement();
-		if ( mLocalDataBit & BIT( player->getId() ) )
+		if ( mLocalDataBits & BIT( player->getId() ) )
 		{
 			if ( player->getInfo().actionPort == ERROR_ACTION_PORT )
 				continue;
@@ -371,6 +387,13 @@ void SVSyncFrameManager::fireAction( ActionTrigger& trigger )
 			mActionTemplate->firePortAction( trigger );
 		}
 	}
+}
+
+void SVSyncFrameManager::resetFrameData()
+{
+	mFrameDataList.clear();
+	mFrameMgr.clearData();
+	mCountDataDelay = 0;
 }
 
 void SVSyncFrameManager::release()
@@ -429,6 +452,9 @@ void CLSyncFrameManager::procFrameData( IComPacket* cp)
 {
 	GDPFrameStream* data = cp->cast< GDPFrameStream >();
 
+	if( bClearData )
+		return;
+
 	if ( data->frame <= mFrameMgr.getFrame() )
 		return;
 
@@ -455,6 +481,14 @@ void CLSyncFrameManager::fireAction( ActionTrigger& trigger )
 		return;
 	trigger.setPort( mUserPlayer->getInfo().actionPort );
 	mActionTemplate->firePortAction( trigger );
+}
+
+void CLSyncFrameManager::resetFrameData()
+{
+	bClearData = true;
+	mFrameMgr.clearData();
+	mLastSendDataFrame = 0;
+	mLastRecvDataFrame = 0;
 }
 
 void CLSyncFrameManager::release()

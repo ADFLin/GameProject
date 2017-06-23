@@ -1,7 +1,7 @@
 #ifndef Clock_h__
 #define Clock_h__
 
-#include "Win32Header.h"
+#include "WindowsHeader.h"
 
 class TClock
 {

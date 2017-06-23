@@ -29,9 +29,14 @@ bool GameStageMode::changeState(GameState state)
 
 void GameStageMode::restart(bool beInit)
 {
+	restartImpl(beInit);
+}
+
+void GameStageMode::restartImpl(bool bInit)
+{
 	uint64 seed;
 	onRestart(seed);
-	mCurStage->onRestart(seed, beInit);
+	mCurStage->onRestart(seed, bInit);
 	mReplayFrame = 0;
 	changeState(GS_START);
 }
@@ -44,6 +49,7 @@ bool GameStageMode::togglePause()
 		return changeState(GS_RUN);
 	return false;
 }
+
 
 LevelStageMode::LevelStageMode(StageModeType mode)
 	:BaseClass(mode)

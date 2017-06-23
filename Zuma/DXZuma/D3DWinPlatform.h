@@ -1,7 +1,7 @@
 #ifndef D3DWinPlatform_h__
 #define D3DWinPlatform_h__
 
-#include "Win32Platform.h"
+#include "WindowsPlatform.h"
 #include <d3d9.h>
 
 

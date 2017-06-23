@@ -42,7 +42,7 @@ namespace Zuma
 	{
 		std::string filePath = mBaseDir + path;
 #if USE_NEW_XML
-		mDocRes = IXmlDocument::createFromFile( filePath.c_str() );
+		mDocRes = IXmlDocument::CreateFromFile( filePath.c_str() );
 		return mDocRes;
 #else
 		return mXmlLoader->loadFile( filePath.c_str() );

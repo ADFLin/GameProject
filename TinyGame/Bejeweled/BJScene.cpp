@@ -2,7 +2,7 @@
 #include "BJScene.h"
 
 #include "RenderUtility.h"
-#include "SysMsg.h"
+#include "SystemMessage.h"
 #include "EasingFun.h"
 
 namespace Bejeweled

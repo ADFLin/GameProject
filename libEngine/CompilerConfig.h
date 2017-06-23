@@ -25,10 +25,10 @@
 #endif
 
 #if CPP_COMPILER_MSVC
-#define EXCEPTION_CONSTRUCTOR_WITH_WHAT( CLASSNAME )\
+#define STD_EXCEPTION_CONSTRUCTOR_WITH_WHAT( CLASSNAME )\
 	CLASSNAME(char const* what) :std::exception(what) {}
 #elif CPP_COMPILER_GCC
-#define EXCEPTION_CONSTRUCTOR_WITH_WHAT( CLASSNAME )\
+#define STD_EXCEPTION_CONSTRUCTOR_WITH_WHAT( CLASSNAME )\
 	CLASSNAME(char const* what) :mWhat(what) {}\
 	virtual char const* what() const { return mWhat; }\
 	char const* mWhat;

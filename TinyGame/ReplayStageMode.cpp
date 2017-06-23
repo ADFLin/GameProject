@@ -333,7 +333,7 @@ bool ReplayStageMode::postStageInit()
 	button->setTitle(">>");
 	//
 
-	restart(true);
+	restartImpl(true);
 	return true;
 }
 
@@ -412,13 +412,13 @@ bool ReplayStageMode::onWidgetEvent(int event, int id, GWidget* ui)
 	switch( id )
 	{
 	case UI_REPLAY_RESTART:
-		restart(true);
+		restartImpl(true);
 		return false;
 	case UI_REPLAY_TOGGLE_PAUSE:
 		assert(event == EVT_BUTTON_CLICK);
 		if( togglePause() )
 		{
-			GUI::castFast< GButton* >(ui)->setTitle((getGameState() == GS_PAUSE) ? "->" : "=");
+			GUI::CastFast< GButton >(ui)->setTitle((getGameState() == GS_PAUSE) ? "->" : "=");
 		}
 		return false;
 	case UI_REPLAY_FAST:

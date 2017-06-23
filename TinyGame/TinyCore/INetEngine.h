@@ -29,6 +29,7 @@ public:
 	virtual bool build( BuildParam& buildParam ) = 0;
 	virtual void update( IFrameUpdater& updater , long time ) = 0;
 	virtual void close(){}
+	virtual void restart(){}
 	virtual void setupInputAI( IPlayerManager& manager ) = 0;
 	virtual void release() = 0;
 };

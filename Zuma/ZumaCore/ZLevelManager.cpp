@@ -71,7 +71,7 @@ namespace Zuma
 		std::string filePath = Global::getResManager().getWorkDir();
 		filePath += path;
 #if USE_NEW_XML_LEVEL
-		mDoc = IXmlDocument::createFromFile( filePath.c_str() );
+		mDoc = IXmlDocument::CreateFromFile( filePath.c_str() );
 		if ( !mDoc )
 			return false;
 

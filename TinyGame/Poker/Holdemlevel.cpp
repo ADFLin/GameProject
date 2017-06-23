@@ -205,12 +205,12 @@ namespace Poker { namespace Holdem {
 		int idxCur = idxLastGroup;
 		int rankSeq = faceGroup[ idxCur ].rank;
 		// check 10 J Q K A
-		if ( rankSeq == Card::toRank( Card::eACE ) && 
-			faceGroup[ idxCur - 1 ].rank == Card::toRank( Card::eKING ) )
+		if ( rankSeq == Card::ToRank( Card::eACE ) && 
+			faceGroup[ idxCur - 1 ].rank == Card::ToRank( Card::eKING ) )
 		{
 			++countSeq;
 			--idxCur;
-			rankSeq = Card::toRank( Card::eKING );
+			rankSeq = Card::ToRank( Card::eKING );
 		}
 
 		for(  ; idxCur >= 0 ; --idxCur )
@@ -232,8 +232,8 @@ namespace Poker { namespace Holdem {
 
 		//check A 2 3 4 5
 		if ( countSeq == CardTrickNum - 1 && 
-			rankSeq == Card::toRank( Card::eN2 ) &&
-			faceGroup[ idxLastGroup ].rank == Card::toRank( Card::eACE ) )
+			rankSeq == Card::ToRank( Card::eN2 ) &&
+			faceGroup[ idxLastGroup ].rank == Card::ToRank( Card::eACE ) )
 		{
 			++countSeq;
 		}
@@ -364,7 +364,7 @@ namespace Poker { namespace Holdem {
 			}
 		}
 
-		if ( faceGroup[ idxStraight ].rank == Card::toRank( Card::eACE ) )
+		if ( faceGroup[ idxStraight ].rank == Card::ToRank( Card::eACE ) )
 		{
 			return makePower( CG_ROYAL_FLUSH );
 		}

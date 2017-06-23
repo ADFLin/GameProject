@@ -201,7 +201,7 @@ namespace CAR
 
 		GameSetting& getSetting(){ return mSetting; }
 		
-		void cleanupGameData();
+		void cleanupGameData( bool bEndStage );
 
 
 	protected:

@@ -76,7 +76,7 @@ public:
 	virtual bool onWidgetEvent(int event, int id, GWidget* ui);
 
 	virtual void onChangeState(GameState state) {}
-	virtual IFrameActionTemplate* createActionTemplate(unsigned version) { return NULL; }
+	virtual IFrameActionTemplate* createActionTemplate(unsigned version) { return NULL; }           
 
 	void             setupStageMode(GameStageMode* mode);
 	GameStageMode*   getStageMode() { return mStageMode; }

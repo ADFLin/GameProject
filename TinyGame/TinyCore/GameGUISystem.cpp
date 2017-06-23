@@ -16,10 +16,15 @@ GUISystem::GUISystem()
 	mbSkipMouseEvent = false;
 }
 
-bool GUISystem::init(IGUIDelegate&  guiDelegate)
+bool GUISystem::initialize(IGUIDelegate&  guiDelegate)
 {
 	mGuiDelegate = &guiDelegate;
 	return true;
+}
+
+void GUISystem::finalize()
+{
+
 }
 
 Vec2i GUISystem::calcScreenCenterPos( Vec2i const& size )

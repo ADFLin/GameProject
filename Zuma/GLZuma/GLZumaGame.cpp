@@ -49,6 +49,6 @@ IRenderSystem* GLZumaGame::createRenderSystem()
 
 bool GLZumaGame::setupWindow( char const* title , int w , int h )
 {
-	return create( (LPTSTR)title , w , h , &SysMsgHandler::MsgProc );
+	return create( (LPTSTR)title , w , h , &WindowsMessageHandler::MsgProc );
 }
 

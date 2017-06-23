@@ -28,23 +28,21 @@ typedef unsigned SessionId;
 #define TC_RECV_BUFSZE   10240
 #define TC_SEND_BUFSZE   10240
 
-
-enum ConCloseReason
+enum class NetCloseReason
 {
-	CCR_TIMEOUT  ,
-	CCR_SHUTDOWN ,
-	CCR_KICK     ,
+	Timeout  ,
+	ShutDown ,
+	Kick     ,
 };
 
-
-enum ConBufferOperation
+enum NetBufferOperation
 {
 	CBO_DISCARD ,
 	CBO_RESERVE ,
 };
 
 
-class ConListener
+class INetConnectListener
 {
 public:
 	virtual void onConnectExcept( NetConnection* con ){}
@@ -53,7 +51,7 @@ public:
 	//TCP Client
 	virtual void onConnectFail( NetConnection* con ){}
 	virtual void onConnectOpen( NetConnection* con ){}
-	virtual void onConnectClose( NetConnection* con , ConCloseReason reason ){}
+	virtual void onConnectClose( NetConnection* con , NetCloseReason reason ){}
 
 	//UDP Server/Client
 	virtual void onSendData( NetConnection* con ){}
@@ -61,10 +59,10 @@ public:
 	virtual bool onRecvData( NetConnection* con , SocketBuffer& buffer , NetAddress* addr  = NULL ){ return true; }
 };
 
-class NetBufferCtrl 
+class NetBufferOperator
 {
 public:
-	NetBufferCtrl( int size ): mBuffer( size ){}
+	NetBufferOperator( int bufferSize ): mBuffer( bufferSize ){}
 
 	SocketBuffer& getBuffer(){ return mBuffer; }
 	void     clear();
@@ -82,13 +80,16 @@ private:
 class NetConnection : public SocketDetector
 {
 public:
-	NetConnection ():mListener( NULL ),mLastRespondTime(0){}
+	NetConnection ()
+		:mListener( NULL )
+		,mLastRespondTime(0)
+	{}
 
-	void          setListener( ConListener* listener ){ mListener = listener; }
-	ConListener*  getListener(){ return mListener; }
+	void          setListener( INetConnectListener* listener ){ mListener = listener; }
+	INetConnectListener*  getListener(){ return mListener; }
 	NetSocket&    getSocket()  { return mSocket; }
 
-	void          recvData( NetBufferCtrl& bufCtrl , int len , NetAddress* addr );
+	void          recvData( NetBufferOperator& bufCtrl , int len , NetAddress* addr );
 	void          close();
 
 	void          updateSocket( long time );
@@ -104,7 +105,7 @@ protected:
 
 	void    resolveExcept();
 	NetSocket     mSocket;
-	ConListener*  mListener;
+	INetConnectListener*  mListener;
 	long          mLastRespondTime;
 };
 
@@ -113,9 +114,9 @@ class ClientBase
 {
 public:
 	ClientBase( int sendSize ) :mSendCtrl( sendSize ){}
-	NetBufferCtrl&  getSendCtrl(){ return mSendCtrl; }
+	NetBufferOperator&  getSendCtrl(){ return mSendCtrl; }
 protected:
-	NetBufferCtrl   mSendCtrl;
+	NetBufferOperator   mSendCtrl;
 };
 
 class UdpChain
@@ -166,7 +167,7 @@ public:
 	void onReadable( NetSocket& socket , int len );
 
 protected:
-	NetBufferCtrl    mRecvCtrl;
+	NetBufferOperator    mRecvCtrl;
 };
 
 class TcpConnection : public NetConnection 
@@ -198,10 +199,10 @@ public:
 	virtual void onSendable( NetSocket& socket );
 	virtual void onReadable( NetSocket& socket , int len );
 
-	NetBufferCtrl& getRecvCtrl() { return mRecvCtrl;  }
+	NetBufferOperator& getRecvCtrl() { return mRecvCtrl;  }
 
 private:
-	NetBufferCtrl mRecvCtrl;
+	NetBufferOperator mRecvCtrl;
 };
 
 class UdpClient : public UdpConnection
@@ -265,7 +266,7 @@ public:
 	{
 	public:
 		Client():mSendCtrl( USC_SEND_BUFSIZE){}
-		NetBufferCtrl&  getSendCtrl(){ return mSendCtrl; }
+		NetBufferOperator&  getSendCtrl(){ return mSendCtrl; }
 
 		bool processSendData( long time , NetSocket& socket , NetAddress& addr )
 		{
@@ -282,7 +283,7 @@ public:
 		}
 
 	private:
-		NetBufferCtrl   mSendCtrl;
+		NetBufferOperator   mSendCtrl;
 		UdpChain        mChain;
 	};
 

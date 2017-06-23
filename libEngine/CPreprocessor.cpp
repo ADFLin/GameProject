@@ -79,7 +79,7 @@ namespace CPP
 		return result;
 	}
 
-	void Preprocessor::execInclude(CodeInput& input)
+	bool Preprocessor::execInclude(CodeInput& input)
 	{
 		TokenInfo token = nextToken(input);
 		if( token.type != Token_String )
@@ -126,27 +126,28 @@ namespace CPP
 		}
 
 		input.skipLine();
+		return true;
 	}
 
-	void Preprocessor::execIf(CodeInput& input)
+	bool Preprocessor::execIf(CodeInput& input)
 	{
-		return;
+		return true;
 
-		int evalValue = evalExpression(input);
+		//int evalValue = execExpression(input);
 
-		if( evalValue != 0 )
-		{
-			translate(input);
-		}
-		else
-		{
+		//if( evalValue != 0 )
+		//{
+		//	translate(input);
+		//}
+		//else
+		//{
 
-		}
+		//}
 	}
 
-	void Preprocessor::execDefine(CodeInput& input)
+	bool Preprocessor::execDefine(CodeInput& input)
 	{
-		return;
+		return true;
 
 		TokenInfo token = nextToken(input);
 
@@ -337,7 +338,7 @@ namespace CPP
 		return ExprToken(ExprToken::eOP, op);
 	}
 
-	int Preprocessor::eval_Atom(ExprToken token , CodeInput& input)
+	bool Preprocessor::eval_Atom(ExprToken token , CodeInput& input)
 	{
 		if( token.type == ExprToken::eNumber )
 			return token.value;
@@ -352,11 +353,11 @@ namespace CPP
 		{
 			if( token.value == '(' )
 			{
-				int value = evalExpression(input);
-				token = nextExprToken(input);
-				if( token.type != ExprToken::eOP || token.value != ')' )
-					SYNTAX_ERROR("Missing \")\"");
-				return value;
+				//int value = execExpression(input);
+				//token = nextExprToken(input);
+				//if( token.type != ExprToken::eOP || token.value != ')' )
+				//	SYNTAX_ERROR("Missing \")\"");
+				//return value;
 			}	
 		}
 

@@ -234,7 +234,6 @@ namespace Poker { namespace Big2 {
 			virtual void onNewCycle(){}
 			virtual void onRoundEnd( SDRoundEnd const& endData ){}
 			virtual void onGameOver(){}
-			
 		};
 
 		void          restart( bool beInit );

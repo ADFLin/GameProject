@@ -9,7 +9,7 @@
 #include "ZTask.h"
 
 #include "Thread.h"
-#include "SysMsg.h"
+#include "SystemMessage.h"
 #include <fstream>
 
 long loadingTime = 0;

@@ -40,7 +40,7 @@ namespace CAR
 			feature = nullptr;
 			mapTile = nullptr;
 			owner   = nullptr;
-			renderData = nullptr;
+			userData = nullptr;
 			binder = nullptr;
 		}
 		ActorType   type;
@@ -51,7 +51,7 @@ namespace CAR
 		FeatureBase* feature;
 		LevelActor*  binder;
 		ActorList    followers;
-		void*        renderData;
+		void*        userData;
 
 		LevelActor* popFollower();
 		void removeFollower( LevelActor& actor );

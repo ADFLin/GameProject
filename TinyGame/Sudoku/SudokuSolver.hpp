@@ -56,7 +56,7 @@ int SudokuSolverT<T,BS>::calcGroupNumBitCount( Group group , int idxGroup , unsi
 	int result = 0;
 
 	Iterator iter;
-	for( iter.setGroupIndex( group , idxGroup ); iter.haveMore(); ++iter )
+	for( iter.setGroupIndex( group , idxGroup ); iter ; ++iter )
 	{
 		int idx = iter.getCellIndex();
 		if ( mPosibleBitsCell[idx] & numBits )
@@ -94,7 +94,7 @@ bool SudokuSolverT<T,BS>::evalNakedPairOrderInternal(  int index , Group group ,
 	assert( bitCount( posible ) == 2 );
 
 	Iterator iter1;
-	for( iter1.setNextIndex( group , index ); iter1.haveMore(); ++iter1 )
+	for( iter1.setNextIndex( group , index ); iter1; ++iter1 )
 	{
 		int idx1 = iter1.getCellIndex();
 
@@ -106,7 +106,7 @@ bool SudokuSolverT<T,BS>::evalNakedPairOrderInternal(  int index , Group group ,
 			if ( _this()->onPrevEvalMethod( eNakedPair , group , index  , posible ) )
 			{
 				Iterator iter2;
-				for( iter2.setGroupIndex( group , idxGroup ); iter2.haveMore(); ++iter2 )
+				for( iter2.setGroupIndex( group , idxGroup ); iter2; ++iter2 )
 				{
 					int idx2 = iter2.getCellIndex();
 					if ( idx2 != idx1 && idx2 != index )
@@ -133,7 +133,7 @@ void SudokuSolverT<T,BS>::removeGroupNumBit( Group group , int idxGroup , unsign
 template < class T , int BS>
 void SudokuSolverT<T,BS>::removeGroupNumBit( Iterator& iter , unsigned numBits , int* skipIndex , int numSkip )
 {
-	for( ; iter.haveMore(); ++iter )
+	for( ; iter; ++iter )
 	{
 		int idx = iter.getCellIndex();
 		for( int i = 0 ; i < numSkip ; ++i )
@@ -164,7 +164,7 @@ bool SudokuSolverT<T,BS>::evalNakedOrderInternal(  int index , Group group , int
 	useIdx[ acc++ ] = index;
 
 	Iterator iter1;
-	for( iter1.setNextIndex( group , index ); iter1.haveMore() ; ++iter1 )
+	for( iter1.setNextIndex( group , index ); iter1 ; ++iter1 )
 	{
 		int idx1 = iter1.getCellIndex();
 
@@ -213,7 +213,7 @@ bool SudokuSolverT<T,BS>::evalNakedTripleOrderInternal(  int index , Group group
 		TYPE_23X ,    // 12 123 23 or 12 123 123 
 	};
 	Iterator iter1;
-	for( iter1.setNextIndex( group , index ); iter1.haveMore() ; ++iter1 )
+	for( iter1.setNextIndex( group , index ); iter1 ; ++iter1 )
 	{
 		int idx1 = iter1.getCellIndex();
 
@@ -256,7 +256,7 @@ bool SudokuSolverT<T,BS>::evalNakedTripleOrderInternal(  int index , Group group
 			continue;
 
 		Iterator iter2;
-		for( iter2.setNextIndex( group , idx1 ); iter2.haveMore(); ++iter2 )
+		for( iter2.setNextIndex( group , idx1 ); iter2; ++iter2 )
 		{
 			int idx2 = iter2.getCellIndex();
 
@@ -306,7 +306,7 @@ bool SudokuSolverT<T,BS>::evalNakedTripleOrderInternal(  int index , Group group
 			if ( _this()->onPrevEvalMethod( eNakedTriple , group , index  , numBits ) )
 			{
 				Iterator iter;
-				for( iter.setGroupIndex( group , idxGroup ); iter.haveMore(); ++iter )
+				for( iter.setGroupIndex( group , idxGroup ); iter; ++iter )
 				{
 					int idx = iter.getCellIndex();
 					if ( idx != idx2 && idx != idx1 && idx != index )
@@ -346,7 +346,7 @@ bool SudokuSolverT<T,BS>::evalPointingInternal( int index , int idxGroup , unsig
 	Group lineGroup = BOX;
 
 	Iterator iter;
-	for ( iter.setGroupIndex( BOX , idxGroup ); iter.haveMore() ; ++iter )
+	for ( iter.setGroupIndex( BOX , idxGroup ); iter ; ++iter )
 	{
 		int idx = iter.getCellIndex();
 
@@ -387,7 +387,7 @@ bool SudokuSolverT<T,BS>::evalPointingInternal( int index , int idxGroup , unsig
 
 	if ( _this()->onPrevEvalMethod( ePointing , BOX , index , numBits ) )
 	{
-		for ( iter.setGroupIndex( lineGroup , lineAt ); iter.haveMore(); ++iter )
+		for ( iter.setGroupIndex( lineGroup , lineAt ); iter; ++iter )
 		{
 			int idx = iter.getCellIndex();
 			if ( BoxIndex( idx ) != idxGroup )
@@ -404,7 +404,7 @@ template < class T , int BS>
 bool SudokuSolverT<T,BS>::checkNumInBox(  Group group , int idxGroup , int box , unsigned numBits )
 {
 	for( Iterator iter = Iterator::FromGroupIndex( group , idxGroup ); 
-		 iter.haveMore(); ++iter )
+		 iter; ++iter )
 	{
 		int idx = iter.getCellIndex();
 		if ( mPosibleBitsCell[ idx ] & numBits )
@@ -436,7 +436,7 @@ bool SudokuSolverT<T,BS>::evalBoxLineMethod( int index , Group group , int idxGr
 			if ( _this()->onPrevEvalMethod( eBoxLine , BOX , index , numBits ) )
 			{
 				Iterator iter;
-				for ( iter.setGroupIndex( BOX , idxGroup ) ; iter.haveMore(); ++iter )
+				for ( iter.setGroupIndex( BOX , idxGroup ) ; iter ; ++iter )
 				{
 					int idx = iter.getCellIndex();
 					if( ColIndex(idx) != col )
@@ -454,7 +454,7 @@ bool SudokuSolverT<T,BS>::evalBoxLineMethod( int index , Group group , int idxGr
 			if ( _this()->onPrevEvalMethod( eBoxLine , BOX , index , numBits ) )
 			{
 				Iterator iter;
-				for ( iter.setGroupIndex( BOX , idxGroup ) ; iter.haveMore(); ++iter )
+				for ( iter.setGroupIndex( BOX , idxGroup ) ; iter ; ++iter )
 				{
 					int idx = iter.getCellIndex();
 					if ( RowIndex( idx ) != row )
@@ -500,7 +500,7 @@ bool SudokuSolverT<T,BS>::evalXWingInternal(  int index , Group group , int idxG
 	int  indexP;
 
 	Iterator iter;
-	for( iter.setGroupIndex( group , idxGroup ); iter.haveMore() ; ++iter )
+	for( iter.setGroupIndex( group , idxGroup ); iter ; ++iter )
 	{
 		int idx = iter.getCellIndex();
 
@@ -538,7 +538,7 @@ bool SudokuSolverT<T,BS>::evalXWingInternal(  int index , Group group , int idxG
 			{
 				for( int i = 0 ; i < 2 ; ++i )
 				{
-					for( iter.setCellIndex( rGroup , cIndex[i][0] ); iter.haveMore(); ++iter )
+					for( iter.setCellIndex( rGroup , cIndex[i][0] ); iter; ++iter )
 					{
 						int idx = iter.getCellIndex();
 						if ( idx != cIndex[i][0] && idx != cIndex[i][1] )
@@ -584,7 +584,7 @@ bool SudokuSolverT<T,BS>::evalSwordFishInternal(  int index , Group group , int 
 
 	Iterator iter;
 	int* iterator = sGroupNextIndex[ group ];
-	for( iter.setGroupIndex( group , idxGroup ); iter.haveMore() ; ++iter )
+	for( iter.setGroupIndex( group , idxGroup ); iter ; ++iter )
 	{
 		int idx = iter.getCellIndex();
 
@@ -811,7 +811,7 @@ bool SudokuSolverT<T,BS>::evalYWingInternal( int index , Group group , int idxGr
 	bool result = false;
 
 	Iterator iter;
-	for( iter.setCellIndex( nGroup , index ); iter.haveMore(); ++iter )
+	for( iter.setCellIndex( nGroup , index ); iter; ++iter )
 	{
 		int idx = iter.getCellIndex();
 
@@ -850,7 +850,7 @@ bool SudokuSolverT<T,BS>::evalYWingInternal( int index , Group group , int idxGr
 					int* iterator = sGroupNextIndex[ group ];
 
 					box = BoxIndex( nIdx );
-					for( iter1.setCellIndex( group , idx ); iter1.haveMore(); ++iter1 )
+					for( iter1.setCellIndex( group , idx ); iter1; ++iter1 )
 					{
 						int idx1 = iter1.getCellIndex();
 						if ( BoxIndex( idx1) == box  )
@@ -858,7 +858,7 @@ bool SudokuSolverT<T,BS>::evalYWingInternal( int index , Group group , int idxGr
 					}
 
 					box = BoxIndex( index );
-					for( iter1.setGroupIndex( group , idxGroup ); iter1.haveMore(); ++iter1 )
+					for( iter1.setGroupIndex( group , idxGroup ); iter1; ++iter1 )
 					{
 						int idx1 = iter1.getCellIndex();
 						if ( BoxIndex( idx1) == box && idx1 != index )
@@ -1177,7 +1177,7 @@ int  SudokuSolverT<T,BS>::generateGroupNumBitIndex( Group group , int index , un
 	int count = 0;
 	assert( mPosibleBitsCell[index] & numBits );
 	Iterator iter;
-	for( iter.setCellIndex( group , index ); iter.haveMore(); ++iter )
+	for( iter.setCellIndex( group , index ); iter; ++iter )
 	{
 		int idx = iter.getCellIndex();
 

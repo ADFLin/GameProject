@@ -110,8 +110,7 @@ bool NetRoomStage::onInit()
 		if ( !setupUI() )
 			return false;
 
-		for( IPlayerManager::Iterator iter = mServer->getPlayerManager()->getIterator();
-			iter.haveMore() ; iter.goNext() )
+		for( auto iter = mServer->getPlayerManager()->createIterator(); iter; ++iter )
 		{
 			GamePlayer* player = iter.getElement();
 			mPlayerPanel->addPlayer( player->getInfo() );
@@ -131,7 +130,7 @@ bool NetRoomStage::onInit()
 			mConnectPanel  = new ServerListPanel( worker , Vec2i( 0 , 0 ) , NULL );
 			mConnectPanel->setPos( ::Global::GUI().calcScreenCenterPos( mConnectPanel ->getSize() ) );
 
-			addTask( TaskUtility::createMemberFunTask( this , &NetRoomStage::taskDestroyServerListPanelCL ) );
+			addTask( TaskUtility::MemberFun( this , &NetRoomStage::taskDestroyServerListPanelCL ) );
 			::Global::GUI().addWidget( mConnectPanel  );
 
 			mConnectPanel->refreshServerList();
@@ -329,7 +328,7 @@ bool NetRoomStage::onWidgetEvent( int event , int id , GWidget* ui )
 		case EVT_CHOICE_SELECT:
 			if ( haveServer() )
 			{
-				GChoice* choice = GUI::castFast< GChoice*>( ui );
+				GChoice* choice = GUI::CastFast< GChoice >( ui );
 				PlayerListPanel::Slot* slot = (PlayerListPanel::Slot*) ui->getUserData();
 
 				switch ( choice->getSelection() )
@@ -366,7 +365,7 @@ bool NetRoomStage::onWidgetEvent( int event , int id , GWidget* ui )
 
 	case UI_NET_ROOM_READY: //Client
 		{
-			GButton* button = GUI::castFast< GButton* >( ui );
+			GButton* button = GUI::CastFast< GButton >( ui );
 			assert( button == mReadyButton );
 			if ( mWorker->getActionState() != NAS_ROOM_READY )
 			{
@@ -707,7 +706,11 @@ void NetRoomStage::sendGameSetting( unsigned pID )
 
 void NetRoomStage::onAddPlayer( PlayerId id )
 {
-	mHelper->addPlayerSV( id );
+	if( !mHelper->addPlayerSV(id) )
+	{
+
+
+	}
 }
 
 void NetRoomStage::onRemovePlayer( PlayerInfo const& info )
@@ -997,7 +1000,7 @@ bool NetLevelStageMode::onKey(unsigned key, bool isDown)
 void NetLevelStageMode::onRestart(uint64& seed)
 {
 	//FIXME
-	seed = mSeed;
+	seed = mNetSeed;
 	BaseClass::onRestart(seed);
 }
 
@@ -1121,14 +1124,16 @@ void NetLevelStageMode::procPlayerState(IComPacket* cp)
 		break;
 	case NAS_LEVEL_INIT:
 		{
-			restart(true);
+			restartImpl(true);
 			::Global::GUI().hideWidgets(false);
 			mWorker->changeState(NAS_LEVEL_INIT);
 		}
 		break;
 	case NAS_LEVEL_RESTART:
 		{
-			restart(false);
+			if( mNetEngine )
+				mNetEngine->restart();
+			restartImpl(false);
 			mWorker->changeState(NAS_LEVEL_RESTART);
 		}
 		break;
@@ -1167,6 +1172,13 @@ bool NetLevelStageMode::canRender()
 	    getWorker()->getActionState() == NAS_LEVEL_SETUP )
 		return false;
 	return true;
+}
+
+void NetLevelStageMode::restart(bool beInit)
+{
+	//TODO
+	if( mServer )
+		mServer->changeState(NAS_LEVEL_RESTART);
 }
 
 void NetLevelStageMode::procMsg(IComPacket* cp)
@@ -1239,9 +1251,8 @@ bool NetLevelStageMode::loadLevel(GameLevelInfo const& info)
 {
 	IPlayerManager* playerMgr = getPlayerManager();
 
-	mSeed = info.seed;
+	mNetSeed = info.seed;
 	getStage()->setupLevel(info);
-
 	getStage()->setupScene(*playerMgr);
 
 	if( haveServer() )
@@ -1260,7 +1271,7 @@ bool NetLevelStageMode::loadLevel(GameLevelInfo const& info)
 	return true;
 }
 
-PlayerDisconnectMode NetLevelStageMode::resolvePlayerClose(PlayerId id, ConCloseReason reason)
+PlayerDisconnectMode NetLevelStageMode::resolvePlayerClose(PlayerId id, NetCloseReason reason)
 {
 	assert(IsInSocketThread());
 	return PlayerDisconnectMode::Remove;

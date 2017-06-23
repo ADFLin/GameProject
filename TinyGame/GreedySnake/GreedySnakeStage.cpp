@@ -8,6 +8,7 @@
 
 #include "GameWidgetID.h"
 #include "GameGUISystem.h"
+#include "GameStageMode.h"
 
 #include "CSyncFrameManager.h"
 
@@ -15,12 +16,12 @@ namespace GreedySnake
 {
 	LevelStage::LevelStage()
 	{
-		mMode = NULL;
+		mGameMode = NULL;
 	}
 
 	LevelStage::~LevelStage()
 	{
-		delete mMode;
+		delete mGameMode;
 	}
 
 	bool LevelStage::onInit()
@@ -28,24 +29,32 @@ namespace GreedySnake
 		if ( !BaseClass::onInit() )
 			return false;
 
-		if ( mMode == NULL )
+		if ( mGameMode == NULL )
 		{
-			//return false;
-			//mMode = new BattleMode;
-			mMode = new SurvivalMode;
+			if( getModeType() == SMT_NET_GAME )
+			{
+				mGameMode = new BattleMode;
+			}
+			else
+			{
+				mGameMode = new SurvivalMode;
+			}
 		}
 
 		::Global::GUI().cleanupWidget();
 
-		mScene.reset( new Scene( *mMode ) );
+		mScene.reset( new Scene( *mGameMode ) );
 		getActionProcessor().setLanucher( mScene.get() );
 		return true;
 	}
 
 	void LevelStage::onRestart( uint64 seed , bool beInit )
 	{
-		if ( beInit )
-			Global::RandSeedNet( seed );
+		if( beInit )
+		{
+			::Msg("Seed = %ld", seed);
+			Global::RandSeedNet(seed);
+		}
 		mScene->restart( beInit );
 	}
 
@@ -57,7 +66,7 @@ namespace GreedySnake
 
 	void LevelStage::setupScene( IPlayerManager& playerManager )
 	{
-		mMode->setupLevel( playerManager );
+		mGameMode->setupLevel( playerManager );
 
 		switch( getModeType() )
 		{
@@ -168,7 +177,28 @@ namespace GreedySnake
 		return true;
 	}
 
-	void LevelStage::setupLocalGame( LocalPlayerManager& playerManager )
+	bool LevelStage::onKey(unsigned key, bool isDown)
+	{
+		if( !BaseClass::onKey(key, isDown) )
+			return false;
+
+		if ( isDown )
+		{
+			switch( key )
+			{
+			case Keyboard::eR:
+				getStageMode()->restart(false);
+				Global::Debug().clearDebugMsg();
+				break;
+			default:
+				break;
+			}
+		}
+
+		return true;
+	}
+
+	void LevelStage::setupLocalGame(LocalPlayerManager& playerManager)
 	{
 		playerManager.createPlayer( 0 );
 		playerManager.setUserID( 0 );

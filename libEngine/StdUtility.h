@@ -2,6 +2,20 @@
 #ifndef StdUtility_h__
 #define StdUtility_h__
 
+#include <algorithm>
+
+template< class T >
+bool RemoveValue(std::vector< T >& v, T const& val)
+{
+	auto iter = std::find(v.begin(), v.end(), val);
+
+	if( iter == v.end() )
+		return false;
+
+	v.erase(iter);
+	return true;
+}
+
 template< class T >
 bool AddUnique(std::vector< T >& v, T const& val)
 {

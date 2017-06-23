@@ -1,6 +1,6 @@
 #include "TestStageHeader.h"
 
-#include "Win32Header.h"
+#include "WindowsHeader.h"
 #include "WidgetUtility.h"
 #include "Math/Base.h"
 

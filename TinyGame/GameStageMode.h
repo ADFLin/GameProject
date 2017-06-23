@@ -34,7 +34,7 @@ public:
 	virtual bool onKey(unsigned key, bool isDown) { return true;  }
 	virtual bool onWidgetEvent(int event, int id, GWidget* ui) { return true; }
 
-	void restart(bool beInit);
+	virtual void restart(bool beInit);
 
 	virtual void   updateTime(long time){}
 	virtual bool   canRender() { return true; }
@@ -55,6 +55,10 @@ public:
 	StageModeType const mStageMode;
 	GameStageBase* mCurStage;
 	long           mReplayFrame;
+
+protected:
+
+	void restartImpl(bool bInit);
 };
 
 

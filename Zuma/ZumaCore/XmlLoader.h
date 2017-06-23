@@ -106,7 +106,7 @@ public:
 	virtual IXmlNodePtr     getRoot() = 0;
 	virtual void            cleanupCacheObject() = 0;
 public:
-	static IXmlDocumentPtr createFromFile( char const* path );
+	static IXmlDocumentPtr CreateFromFile( char const* path );
 };
 
 

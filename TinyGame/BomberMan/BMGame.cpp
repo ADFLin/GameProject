@@ -136,7 +136,7 @@ namespace BomberMan
 			{
 			case UI_WIN_ROUND:
 				static_cast< BattleMode* >( mMode )->getInfo().numWinRounds = 
-					GUI::castFast< GSlider* >( widget )->getValue();
+					GUI::CastFast< GSlider >( widget )->getValue();
 				modifyCallback( getSettingPanel() );
 				break;
 

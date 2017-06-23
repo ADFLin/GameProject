@@ -893,14 +893,14 @@ namespace Tween
 
 	template< class TimeType , template< class > class CallbackPolicy  >
 	typename Builder< GroupTweener< TimeType , CallbackPolicy >, TimeType , CallbackPolicy >
-		build( GroupTweener< TimeType , CallbackPolicy >& tweener )
+		Build( GroupTweener< TimeType , CallbackPolicy >& tweener )
 	{ 
 		return Builder< GroupTweener< TimeType ,CallbackPolicy >, TimeType , CallbackPolicy >(tweener);
 	}
 
 	template< class TimeType , template< class > class CallbackPolicy >
 	typename Builder< SquenceTweener< TimeType , CallbackPolicy >, TimeType , CallbackPolicy >
-		build( SquenceTweener< TimeType , CallbackPolicy >& tweener )
+		Build( SquenceTweener< TimeType , CallbackPolicy >& tweener )
 	{ 
 		return Builder< SquenceTweener< TimeType , CallbackPolicy >, TimeType , CallbackPolicy >(tweener);
 	}

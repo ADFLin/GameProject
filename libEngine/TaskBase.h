@@ -3,6 +3,7 @@
 
 #include <list>
 #include <cassert>
+#include "EasingFun.h"
 
 class TaskBase;
 
@@ -124,6 +125,7 @@ public:
 
 private:
 	bool   update( long time );
+	long             mDelay;
 	TaskUpdatePolicy mUpdatePolicy;
 	TaskBase*        mNextTask;
 	TaskHandler*     mHandler;
@@ -240,23 +242,31 @@ public:
 };
 
 
-namespace TaskUtility
+class TaskUtility
 {
+public:
 	template < class T , class CV >
-	ValueModifyTask< T , CV >* createChangeValTask( T& val , T const& from , T const& to , long time )
+	static ValueModifyTask< T , CV >* ChangeVal( T& val , T const& from , T const& to , long time )
 	{
 		return new ValueModifyTask< T , CV >( val , from , to , time );
 	}
 	template < class T, class MemFun >
-	MemberFunTask< T , MemFun >* createMemberFunTask( T* ptr , MemFun fun )
+	static MemberFunTask< T , MemFun >* MemberFun( T* ptr , MemFun fun )
 	{
 		return new MemberFunTask< T , MemFun >( ptr , fun );
 	}
 
+	template < class T, class EasingFun >
+	static TaskBase* ValueEasing( T& val , T const& from, T const& to , long time )
+	{
+		return nullptr;
+	}
+
 	template < class FunType >
-	DelegateTask* createDelegateTask( FunType fun )
+	static DelegateTask* DelegateFun( FunType fun )
 	{
 		return new DelegateTask(fun);
 	}
-}
+};
+
 #endif // TaskBase_h__

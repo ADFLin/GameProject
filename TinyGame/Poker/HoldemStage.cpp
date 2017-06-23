@@ -76,8 +76,7 @@ namespace Poker { namespace Holdem {
 
 		IPlayerManager& playerManager = *getStageMode()->getPlayerManager();
 
-		for( IPlayerManager::Iterator iter = playerManager.getIterator();
-			iter.haveMore() ; iter.goNext() )
+		for( auto iter = playerManager.createIterator(); iter; ++iter )
 		{
 			GamePlayer* player = iter.getElement();
 			int slotId = player->getInfo().slot;
@@ -111,8 +110,8 @@ namespace Poker { namespace Holdem {
 		NetWorker* netWorker = ::Global::GameNet().getNetWorker();
 
 		int userSlotId;
-		for( IPlayerManager::Iterator iter = playerManager.getIterator();
-			iter.haveMore() ; iter.goNext() )
+
+		for( auto iter = playerManager.createIterator(); iter; ++iter )
 		{
 			GamePlayer* player = iter.getElement();
 			assert( player->getType() != PT_SPECTATORS );
@@ -198,7 +197,7 @@ namespace Poker { namespace Holdem {
 		};
 
 		DelayTask* delay = new DelayTask(2000);
-		delay->setNextTask( TaskUtility::createDelegateTask(fun) );
+		delay->setNextTask( TaskUtility::DelegateFun(fun) );
 		addTask(delay);
 	}
 

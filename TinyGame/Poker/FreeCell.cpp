@@ -6,20 +6,50 @@
 namespace Poker
 {
 
-	bool Cell::testStackRule( Card const& top,Card const& bottom )
+	bool Cell::TestStackRule( Card const& top,Card const& bottom )
 	{
 		return  ( top.getFaceRank() == bottom.getFaceRank() + 1 ) && 
 			!Card::isSameColorSuit( top , bottom );
 	}
 
-	bool Cell::testGoalRule( Card const& top,Card const& bottom )
+	bool Cell::TestGoalRule( Card const& top,Card const& bottom )
 	{
 		return  ( top.getFaceRank() + 1 == bottom.getFaceRank() ) && 
 			top.getSuit() == bottom.getSuit();
 	}
 
 
-	void SCell::moveCard( SCell& to ,int num )
+	GoalCell::GoalCell() :SingleCell(Cell::eGOAL)
+	{
+
+	}
+
+	void GoalCell::pop()
+	{
+		if( mCard.getFace() == Card::eACE )
+			mCard = Card::None();
+		else
+			mCard = Card(mCard.getSuit(), mCard.getFaceRank() - 1);
+	}
+
+	bool GoalCell::testRule(Card const& card)
+	{
+		if( isEmpty() )
+			return card.getFace() == Card::eACE;
+		return Cell::TestGoalRule(getCard(), card);
+	}
+
+	FreeCell::FreeCell() :SingleCell(Cell::eFREE)
+	{
+
+	}
+
+	bool FreeCell::testRule(Card const& card)
+	{
+		return isEmpty();
+	}
+
+	void StackCell::moveCard(StackCell& to, int num)
 	{
 		assert( num <= getCardNum() );
 
@@ -31,15 +61,21 @@ namespace Poker
 		deleteCard(num);
 	}
 
-
-	void SCell::deleteCard( int num )
+	void StackCell::deleteCard( int num )
 	{
 		assert( num <= getCardNum() );
 		mCards.erase( mCards.end() - num , mCards.end() );
 	}
 
+	bool StackCell::testRule(Card const& card)
+	{
 
-	FreeCell::FreeCell()
+		if( isEmpty() )
+			return true;
+		return Cell::TestStackRule(getCard(), card);
+	}
+
+	FreeCellLevel::FreeCellLevel()
 	{
 		for ( int i = 0 ; i < SCellNum ; ++i )
 		{
@@ -58,12 +94,12 @@ namespace Poker
 		}
 	}
 
-	FreeCell::~FreeCell()
+	FreeCellLevel::~FreeCellLevel()
 	{
 
 	}
 
-	void FreeCell::setupGame( int seed )
+	void FreeCellLevel::setupGame( int seed )
 	{
 		for ( int i = 0 ; i < TotalCellNum ; ++i )
 			mCells[i]->clear();
@@ -121,25 +157,25 @@ namespace Poker
 
 		for(int i = 0; i < 52 ;++i)
 		{
-			SCell& cell = mSCells[ i % SCellNum ];
+			StackCell& cell = mSCells[ i % SCellNum ];
 			cell.push( Card( Card::Suit( card[i] / 13 ) , card[i] % 13 ) );
 		}
 	}
 
 
-	int FreeCell::evalMoveCardNum( Cell& from , Cell& to )
+	int FreeCellLevel::evalMoveCardNum( Cell& from , Cell& to )
 	{
 		assert( !from.isEmpty() );
 
 		if ( isStackCell( from ) && isStackCell( to ) )
 		{
-			int num = evalMoveCardNum( static_cast< SCell& >( from ) , static_cast< SCell& >( to )  );
+			int num = evalMoveCardNum( static_cast< StackCell& >( from ) , static_cast< StackCell& >( to )  );
 
 			if ( num == 0 ) 
 				return 0;
 
-			int emptyFCNum = getEmptyFCellNum();
-			int emptySCNum = getEmptySCellNum();
+			int emptyFCNum = getEmptyFreeCellNum();
+			int emptySCNum = getEmptyStackCellNum();
 
 			if ( to.isEmpty() ) 
 				--emptySCNum;
@@ -162,7 +198,7 @@ namespace Poker
 		return 0;
 	}
 
-	int FreeCell::evalMoveCardNum( SCell& from , SCell& to )
+	int FreeCellLevel::evalMoveCardNum( StackCell& from , StackCell& to )
 	{
 		if ( to.isEmpty() )
 			return getRuleCardNum( from );
@@ -173,7 +209,7 @@ namespace Poker
 		while( index >= 0 )
 		{
 			Card const& testCard = from.getCard(index);
-			if ( Cell::testStackRule( lastToCard , testCard ) )
+			if ( Cell::TestStackRule( lastToCard , testCard ) )
 			{
 				break;
 			}
@@ -182,7 +218,7 @@ namespace Poker
 				return 0;
 
 			Card const& nextCard = from.getCard( index -1 );
-			if ( ! Cell::testStackRule( nextCard , testCard ) )
+			if ( ! Cell::TestStackRule( nextCard , testCard ) )
 			{
 				return 0;
 			}
@@ -192,7 +228,7 @@ namespace Poker
 		return from.getCardNum() - index;
 	}
 
-	int FreeCell::getRuleCardNum( SCell& cell )
+	int FreeCellLevel::getRuleCardNum( StackCell& cell )
 	{
 		assert( !cell.isEmpty() );
 		int index = cell.getCardNum() - 1;
@@ -202,7 +238,7 @@ namespace Poker
 			Card const& testCard = cell.getCard(index);
 			Card const& nextCard = cell.getCard(index -1);
 
-			if ( !Cell::testStackRule( nextCard , testCard ) )
+			if ( !Cell::TestStackRule( nextCard , testCard ) )
 				break;
 
 			--index;
@@ -212,7 +248,7 @@ namespace Poker
 
 
 
-	int FreeCell::countEmptyCellNum( int index ,int num )
+	int FreeCellLevel::countEmptyCellNum( int index ,int num )
 	{
 		int result = 0;
 		int end = index + num;
@@ -226,7 +262,7 @@ namespace Poker
 	}
 
 
-	Cell* FreeCell::findEmptyCell( int index ,int num )
+	Cell* FreeCellLevel::findEmptyCell( int index ,int num )
 	{
 		int to = index + num;
 		for(int i = index ; i < to ; ++i )
@@ -238,11 +274,11 @@ namespace Poker
 		return NULL;
 	}
 
-	GCell* FreeCell::getGCell( Card::Suit suit )
+	GoalCell* FreeCellLevel::getGoalCell( Card::Suit suit )
 	{
 		for( int i = 0; i < 4 ; ++i )
 		{
-			GCell& cell = mGCells[i];
+			GoalCell& cell = mGCells[i];
 			if ( !cell.isEmpty() )
 			{
 				if ( cell.getCard().getSuit() == suit )
@@ -252,12 +288,12 @@ namespace Poker
 		return NULL;
 	}
 
-	bool FreeCell::autoMoveToGCell()
+	bool FreeCellLevel::moveToGoalCellAuto()
 	{
 		int rank[4]={0,0,0,0};
 		for( int i = 0; i < 4 ; ++i )
 		{
-			GCell& cell = mGCells[i];
+			GoalCell& cell = mGCells[i];
 			if ( !cell.isEmpty() )
 			{
 				Card const& card = cell.getCard();
@@ -270,20 +306,20 @@ namespace Poker
 
 		for (int i = 0; i < SCellNum ; ++i )
 		{
-			if ( autoToGCell( mSCells[i] , blackRank , redRank  ) )
+			if ( moveToGoalCellAuto( mSCells[i] , blackRank , redRank  ) )
 				return true;
 		}
 
 		for (int i = 0; i < FCellNum ; ++i )
 		{
-			if ( autoToGCell( mFCells[i] , blackRank , redRank  ) )
+			if ( moveToGoalCellAuto( mFCells[i] , blackRank , redRank  ) )
 				return true;
 		}
 
 		return false;
 	}
 
-	bool FreeCell::autoToGCell( Cell& cell , int blackRank , int redRank )
+	bool FreeCellLevel::moveToGoalCellAuto( Cell& cell , int blackRank , int redRank )
 	{
 		if ( cell.isEmpty() ) 
 			return false;
@@ -292,15 +328,15 @@ namespace Poker
 
 		if ( card.getFace() == Card::eACE )
 		{
-			SingleCell* emptyCell = getEmptyGCell();
+			SingleCell* emptyCell = getEmptyGoalCell();
 			assert( emptyCell );
 			return processMoveCard( cell , *emptyCell  , 1 );
 		}
 
-		SingleCell* fCell = getGCell( card.getSuit() );
+		SingleCell* fCell = getGoalCell( card.getSuit() );
 		if ( fCell )
 		{
-			if ( Cell::testGoalRule( fCell->getCard(), card ) )
+			if ( Cell::TestGoalRule( fCell->getCard(), card ) )
 			{
 				int rank = Card::isBlackSuit( card ) ?  redRank : blackRank ;
 
@@ -315,7 +351,7 @@ namespace Poker
 
 
 
-	bool FreeCell::processMoveCard( Cell& from , Cell& to , int num )
+	bool FreeCellLevel::processMoveCard( Cell& from , Cell& to , int num )
 	{
 		assert( num != 0 );
 
@@ -325,7 +361,7 @@ namespace Poker
 		if ( num > 1 )
 		{
 			assert ( isStackCell(from)  && isStackCell( to ) );
-			moveCard( static_cast< SCell& >( from ), static_cast< SCell& >( to ) , num );
+			moveCard( static_cast< StackCell& >( from ), static_cast< StackCell& >( to ) , num );
 		}
 		else if ( num == 1 )
 		{
@@ -335,7 +371,7 @@ namespace Poker
 		return true;
 	}
 
-	bool FreeCell::tryMoveToSCell( FCell& fc )
+	bool FreeCellLevel::tryMoveToStackCell( FreeCell& fc )
 	{
 		if ( fc.isEmpty() )
 			return false;
@@ -345,7 +381,7 @@ namespace Poker
 		Cell* emptyCell = NULL;
 		for ( int i = 0 ; i < SCellNum ; ++i )
 		{
-			SCell& cell = getSCell( i );
+			StackCell& cell = getStackCell( i );
 			if ( cell.isEmpty() )
 			{
 				if ( !emptyCell )
@@ -362,20 +398,19 @@ namespace Poker
 		return false;
 	}
 
-	bool FreeCell::tryMoveToFCell( SCell& mc )
+	bool FreeCellLevel::tryMoveToFreeCell( StackCell& mc )
 	{
 		if ( mc.isEmpty() )
 			return false;
 		
-
-		FCell* cell = getEmptyFCell();
+		FreeCell* cell = getEmptyFreeCell();
 		if ( cell == NULL )
 			return false;
 
 		return processMoveCard( mc , *cell , 1 );
 	}
 
-	bool FreeCell::tryMoveCard( Cell& from , Cell& to )
+	bool FreeCellLevel::tryMoveCard( Cell& from , Cell& to )
 	{
 		if ( from.isEmpty() ) 
 			return false;
@@ -392,70 +427,70 @@ namespace Poker
 	}
 
 
-	void FreeCell::moveSingleCard( Cell& from ,Cell& to )
+	void FreeCellLevel::moveSingleCard( Cell& from ,Cell& to )
 	{
 		Card card = from.getCard();
 		from.pop();
 		to.push( card );
 	}
 
-	void FreeCell::moveCard( SCell& form , SCell& to , int num )
+	void FreeCellLevel::moveCard( StackCell& form , StackCell& to , int num )
 	{
 		form.moveCard( to , num );
 	}
 
-	int FreeCell::getGCardNum()
+	int FreeCellLevel::getGoalCardNum()
 	{
 		int result = 0;
 		for(int i=0 ; i< 4 ; ++i)
 		{
-			GCell& cell = mGCells[i];
+			GoalCell& cell = mGCells[i];
 			if ( !cell.isEmpty() )
 				result += cell.getCard().getFaceRank() + 1;
 		}
 		return result;
 	}
 
-	bool FreeCell::isStackCell( Cell& cell )
+	bool FreeCellLevel::isStackCell( Cell& cell )
 	{
 		return cell.getType() == Cell::eSTACK;
 	}
 
-	bool FreeCell::isFreeCell( Cell& cell )
+	bool FreeCellLevel::isFreeCell( Cell& cell )
 	{
 		return cell.getType() == Cell::eFREE;
 	}
 
-	bool FreeCell::isGoalCell( Cell& cell )
+	bool FreeCellLevel::isGoalCell( Cell& cell )
 	{
 		return cell.getType() == Cell::eGOAL;
 	}
 
-	int FreeCell::getEmptySCellNum()
+	int FreeCellLevel::getEmptyStackCellNum()
 	{
 		return countEmptyCellNum( SCellIndex , SCellNum );
 	}
 
-	int FreeCell::getEmptyFCellNum()
+	int FreeCellLevel::getEmptyFreeCellNum()
 	{
 		return countEmptyCellNum( FCellIndex , FCellNum );
 	}
 
-	GCell* FreeCell::getEmptyGCell()
+	GoalCell* FreeCellLevel::getEmptyGoalCell()
 	{
 		Cell* cell = findEmptyCell( GCellIndex , 4 );
 		assert( !cell || isGoalCell( *cell ) );
-		return static_cast< GCell* >( cell );
+		return static_cast< GoalCell* >( cell );
 	}
 
-	FCell* FreeCell::getEmptyFCell()
+	FreeCell* FreeCellLevel::getEmptyFreeCell()
 	{
 		Cell* cell = findEmptyCell( FCellIndex , FCellNum );
 		assert( !cell || isFreeCell( *cell ) );
-		return static_cast< FCell*>( cell );
+		return static_cast< FreeCell*>( cell );
 	}
 
-	int FreeCell::calcPossibleMoveNum()
+	int FreeCellLevel::calcPossibleMoveNum()
 	{
 		int result = 0;
 		for( int i = SCellIndex ; i < SCellIndex + SCellNum ; ++i )

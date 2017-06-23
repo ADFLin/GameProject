@@ -130,7 +130,7 @@ enum LevelStateMsg
 	LSM_END   ,
 };
 
-class NetMessageListener
+class INetStateListener
 {
 public:
 	virtual void onPlayerStateMsg( unsigned pID , PlayerStateMsg msg ){}
@@ -159,7 +159,7 @@ public:
 	GAME_API void  closeNetwork();
 	GAME_API bool  addUdpCom( IComPacket* cp , NetAddress const& addr );
 
-	void  setNetListener( NetMessageListener* listener ){ mNetListener = listener;  }
+	void  setNetListener( INetStateListener* listener ){ mNetListener = listener;  }
 	virtual bool  isServer() = 0;
 
 	long  getNetRunningTime() const { return mNetRunningTime;  }
@@ -175,8 +175,8 @@ protected:
 	typedef TFunctionThread< SocketFun > SocketThread;
 	GAME_API void sendUdpCom( NetSocket& socket );
 
-	typedef std::vector< NetMessageListener* > NetMsgListenerVec;
-	NetMessageListener* mNetListener;
+	typedef std::vector< INetStateListener* > NetMsgListenerVec;
+	INetStateListener* mNetListener;
 
 
 private:
@@ -198,7 +198,7 @@ private:
 
 
 bool EvalCommand( UdpChain& chain , ComEvaluator& evaluator , SocketBuffer& buffer , int group = -1 , void* userData = nullptr );
-unsigned FillBufferFromCom( NetBufferCtrl& bufferCtrl , IComPacket* cp );
+unsigned FillBufferFromCom( NetBufferOperator& bufferCtrl , IComPacket* cp );
 unsigned FillBufferFromCom( SocketBuffer& buffer , IComPacket* cp );
 
 #endif // NetWorker_h__

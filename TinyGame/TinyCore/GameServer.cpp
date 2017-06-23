@@ -34,9 +34,9 @@ LocalWorker* ServerWorker::createLocalWorker( char const* userName )
 	return mLocalWorker;
 }
 
-void ServerWorker::sendClientTcpCommand( ClientInfo& client , IComPacket* cp )
+void ServerWorker::sendClientTcpCommand( NetClientData& client , IComPacket* cp )
 {
-	FillBufferFromCom( client.tcpClient.getSendCtrl() , cp );
+	FillBufferFromCom( client.tcpChannel.getSendCtrl() , cp );
 }
 
 bool ServerWorker::doStartNetwork()
@@ -58,11 +58,11 @@ bool ServerWorker::doStartNetwork()
 	getEvaluator().setWorkerFun< Class >( Processer , Fun , Fun2 );
 
 #define COM_THIS_PACKET_SET( Class , Fun )\
-	COM_PACKET_SET( Class , this , &ThisClass::##Fun , NULL )
+	COM_PACKET_SET( Class , this , &ThisClass::Fun , NULL )
 
 
 #define COM_THIS_PACKET_SET_2( Class , Fun , SocketFun )\
-	COM_PACKET_SET( Class , this , &ThisClass::##Fun , &ThisClass::##SocketFun )
+	COM_PACKET_SET( Class , this , &ThisClass::Fun , &ThisClass::SocketFun )
 
 	COM_THIS_PACKET_SET( CPLogin       , procLogin )
 	COM_THIS_PACKET_SET( CPEcho        , procEcho )
@@ -146,12 +146,12 @@ bool ServerWorker::onRecvData( NetConnection* connection , SocketBuffer& buffer 
 	if( clientAddr )
 	{
 		assert(  connection == &mUdpServer );
-		ClientInfo* info = mClientManager.findClient( *clientAddr );
+		NetClientData* client = mClientManager.findClient( *clientAddr );
 
 		bool result = true;
 
 		//maybe broadcast
-		if( info == NULL )
+		if( client == nullptr )
 		{
 			::Msg("ip = %lu , port = %u", clientAddr->get().sin_addr.s_addr, clientAddr->get().sin_port);
 
@@ -166,7 +166,7 @@ bool ServerWorker::onRecvData( NetConnection* connection , SocketBuffer& buffer 
 		}
 		else
 		{
-			result = EvalCommand(info->udpClient, getEvaluator(), buffer, CLIENT_GROUP , info);
+			result = EvalCommand(client->udpChannel, getEvaluator(), buffer, CLIENT_GROUP , client);
 		}
 
 		return result;
@@ -176,12 +176,12 @@ bool ServerWorker::onRecvData( NetConnection* connection , SocketBuffer& buffer 
 		if ( connection == &mTcpServer )
 			return true;
 
-		ClientInfo::TCPClient* tcpClient = static_cast< ClientInfo::TCPClient*>( connection );
-		ClientInfo* info  = tcpClient->clientInfo;
+		NetClientData::TCPClient* tcpChannel = static_cast< NetClientData::TCPClient*>( connection );
+		NetClientData* client  = tcpChannel->client;
 
 		while( buffer.getAvailableSize() )
 		{		
-			if ( !getEvaluator().evalCommand( buffer , CLIENT_GROUP, info ) )
+			if ( !getEvaluator().evalCommand( buffer , CLIENT_GROUP, client ) )
 			{
 				return false;
 			}
@@ -219,27 +219,27 @@ void ServerWorker::onConnectAccpet( NetConnection* con )
 
 	::Msg( "Accpet ip = %lu port = %u" , hostAddr.get().sin_addr.s_addr , hostAddr.get().sin_port );
 
-	ClientInfo* info = mClientManager.findClient(hostAddr);
-	if( info )
+	NetClientData* client = mClientManager.findClient(hostAddr);
+	if( client )
 	{
-		info->reconnect(conSocket);
-		if( info->player )
+		client->reconnect(conSocket);
+		if( client->player )
 		{
 			if( mEventResolver )
-				mEventResolver->resolvePlayerReconnect(info->player->getId());
+				mEventResolver->resolvePlayerReconnect(client->player->getId());
 
 			CSPPlayerState com;
-			com.playerID = info->player->getId();
+			com.playerID = client->player->getId();
 			com.state = NAS_RECONNECT;
 			sendTcpCommand(&com);
 		}
 	}
 	else
 	{
-		ClientInfo* client = mClientManager.createClient(conSocket);
+		client = mClientManager.createClient(conSocket);
 		if( client )
 		{
-			client->tcpClient.setListener(this);
+			client->tcpChannel.setListener(this);
 
 			SPConSetting com;
 			com.result = SPConSetting::eNEW_CON;
@@ -255,10 +255,10 @@ void ServerWorker::onConnectAccpet( NetConnection* con )
 	}
 }
 
-void ServerWorker::onConnectClose( NetConnection* con , ConCloseReason reason )
+void ServerWorker::onConnectClose( NetConnection* con , NetCloseReason reason )
 {
-	ClientInfo* clientInfo = static_cast< ClientInfo::TCPClient* >( con )->clientInfo;
-	SNetPlayer* netPlayer = clientInfo->player; 
+	NetClientData* client  = static_cast< NetClientData::TCPClient* >( con )->client;
+	SNetPlayer* netPlayer = client ->player; 
 
 	PlayerDisconnectMode mode = PlayerDisconnectMode::Remove;
 
@@ -268,12 +268,12 @@ void ServerWorker::onConnectClose( NetConnection* con , ConCloseReason reason )
 	switch( mode )
 	{
 	case PlayerDisconnectMode::Remove:
-		removeConnect(clientInfo, true);
+		removeConnect(client , true);
 		break;
 	case PlayerDisconnectMode::ChangeToLocal:
 		{
 			unsigned id = netPlayer->getId();
-			removeConnect(clientInfo, false);
+			removeConnect(client , false);
 			{
 				MUTEX_LOCK(mMutexPlayerChangeInfoVec);
 				PlayerChangeInfo changeInfo;
@@ -321,18 +321,18 @@ void ServerWorker::procUdpCon( IComPacket* cp)
 void ServerWorker::procLogin( IComPacket* cp)
 {
 	CPLogin* com = cp->cast< CPLogin >();
-	ClientInfo* info = static_cast< ClientInfo*>( cp->getUserData() );
+	NetClientData* client = static_cast< NetClientData*>( cp->getUserData() );
 
-	if ( !info )
+	if ( !client )
 	{
 		return;
 	}
 
-	SNetPlayer* player = getPlayerManager()->createNetPlayer( this , com->name , info );
+	SNetPlayer* player = getPlayerManager()->createNetPlayer( this , com->name , client );
 
 	if ( player == NULL )
 	{
-		mClientManager.removeClient( info );
+		mClientManager.removeClient( client );
 		return;
 	}
 
@@ -357,9 +357,9 @@ void ServerWorker::procLogin( IComPacket* cp)
 void ServerWorker::procEcho( IComPacket* cp)
 {
 	CPEcho* com = cp->cast< CPEcho >();
-	ClientInfo* info = static_cast< ClientInfo*>(cp->getUserData());
-	assert( info );
-	FillBufferFromCom( info->udpClient.getSendCtrl() , cp );
+	NetClientData* client = static_cast< NetClientData*>(cp->getUserData());
+	assert( client );
+	FillBufferFromCom( client->udpChannel.getSendCtrl() , cp );
 }
 
 
@@ -371,12 +371,12 @@ void ServerWorker::procMsg( IComPacket* cp)
 
 void ServerWorker::procClockSyndNet( IComPacket* cp )
 {
-	ClientInfo* info = static_cast< ClientInfo*>( cp->getUserData() );
-	if ( info == nullptr )
+	NetClientData* client = static_cast< NetClientData*>( cp->getUserData() );
+	if ( client == nullptr )
 		return;
 
 	CSPClockSynd* com = cp->cast< CSPClockSynd >();
-	SNetPlayer*   player = info->player;
+	SNetPlayer*   player = client->player;
 
 	switch( com->code )
 	{
@@ -399,8 +399,8 @@ void ServerWorker::procClockSynd( IComPacket* cp )
 	ServerPlayer* player;
 	if ( cp->getUserData() )
 	{
-		ClientInfo* info = static_cast< ClientInfo*>(cp->getUserData());
-		player = info->player;
+		NetClientData* client = static_cast< NetClientData*>(cp->getUserData());
+		player = client->player;
 	}
 	else
 	{
@@ -429,7 +429,7 @@ void ServerWorker::procPlayerState( IComPacket* cp )
 {
 	CSPPlayerState* com = cp->cast< CSPPlayerState >();
 
-	ClientInfo* info = static_cast< ClientInfo*>(cp->getUserData());
+	NetClientData* client = static_cast< NetClientData*>(cp->getUserData());
 
 	if ( com->playerID == ERROR_PLAYER_ID )
 	{
@@ -547,7 +547,7 @@ void ServerWorker::procComMsgNet( IComPacket* cp)
 		NetAddress* sendAddr = (NetAddress*)com->getUserData();
 		if( cp->getGroup() == CLIENT_GROUP )
 		{
-			sendAddr = &static_cast<ClientInfo*>(cp->getUserData())->udpAddr;
+			sendAddr = &static_cast<NetClientData*>(cp->getUserData())->udpAddr;
 		}
 		else
 		{
@@ -588,14 +588,14 @@ void ServerWorker::procUdpAddress( IComPacket* cp)
 
 }
 
-void ServerWorker::removeConnect( ClientInfo* info , bool bRMPlayer )
+void ServerWorker::removeConnect( NetClientData* client , bool bRMPlayer )
 {
-	if ( info->player )
+	if ( client->player )
 	{
-		if ( !info->player->getStateFlag().check( ServerPlayer::eDissconnect ) )
+		if ( !client->player->getStateFlag().check( ServerPlayer::eDissconnect ) )
 		{
 			CSPPlayerState com;
-			com.playerID = info->player->getId();
+			com.playerID = client->player->getId();
 			com.state    = NAS_DISSCONNECT;
 			sendTcpCommand( &com );
 		}
@@ -605,12 +605,12 @@ void ServerWorker::removeConnect( ClientInfo* info , bool bRMPlayer )
 			MUTEX_LOCK( mMutexPlayerChangeInfoVec );
 			PlayerChangeInfo changeInfo;
 			changeInfo.changeType = PlayerChangeInfo::eRemove;
-			changeInfo.player = info->player;
+			changeInfo.player = client->player;
 			mPlayerChangeInfoVec.push_back( changeInfo );
-			info->player = NULL;
+			client->player = NULL;
 		}
 	}
-	mClientManager.removeClient( info );
+	mClientManager.removeClient( client );
 }
 
 
@@ -656,7 +656,7 @@ bool ServerWorker::kickPlayer( unsigned id )
 	if ( player->isNetwork() )
 	{
 		SNetPlayer* netPlayer = static_cast< SNetPlayer*>( player );
-		removeConnect( &netPlayer->getClientInfo() , true );
+		removeConnect( &netPlayer->getClient() , true );
 	}
 	else
 	{
@@ -688,7 +688,7 @@ bool ServerWorker::swapServer()
 	//	
 	//	sprintf_s( comMsg.str , "serverchange %u %s" ,
 	//		netPlayer->getID() ,
-	//		netPlayer->getClientInfo().udpAddr.getIP() );
+	//		netPlayer->getClient().udpAddr.getIP() );
 
 	//	netPlayer->sendTcpCommand( &comMsg );
 	//	mWorker->sendTcpCommand( &comMsg );
@@ -721,13 +721,13 @@ SVPlayerManager::~SVPlayerManager()
 	cleanup();
 }
 
-SNetPlayer* SVPlayerManager::createNetPlayer( ServerWorker* server , char const* name , ClientInfo* client  )
+SNetPlayer* SVPlayerManager::createNetPlayer( ServerWorker* server , char const* name , NetClientData* client  )
 {
 	MUTEX_LOCK( mMutexPlayerTable );
 
 	SNetPlayer* player = new SNetPlayer( server , client );
 
-	FixString< 64 > useName = name;
+	FixString< 64 > nameUsed = name;
 
 	int idx = 1;
 	while( 1 )
@@ -738,10 +738,10 @@ SNetPlayer* SVPlayerManager::createNetPlayer( ServerWorker* server , char const*
 			iter != mPlayerTable.end(); ++iter )
 		{
 			ServerPlayer* player = *iter;
-			if ( useName != player->getName() )
+			if ( nameUsed != player->getName() )
 				continue;
 
-			useName.format(  "%s(%d)" , name , idx++ );
+			nameUsed.format(  "%s(%d)" , name , idx++ );
 			done = false;
 			break;
 		}
@@ -749,7 +749,7 @@ SNetPlayer* SVPlayerManager::createNetPlayer( ServerWorker* server , char const*
 			break;
 	} 
 
-	insertPlayer( player , useName , PT_PLAYER );
+	insertPlayer( player , nameUsed , PT_PLAYER );
 
 	return player;
 }
@@ -976,16 +976,16 @@ void ServerClientManager::sendUdpData( long time , UdpServer& server )
 	for( SessionMap::iterator iter = mSessionMap.begin();
 		iter != mSessionMap.end(); ++iter )
 	{
-		ClientInfo* client = iter->second;
-		server.sendPacket( time , client->udpClient , client->udpAddr );
+		NetClientData* client = iter->second;
+		server.sendPacket( time , client->udpChannel , client->udpAddr );
 	}
 }
 
-ClientInfo* ServerClientManager::createClient( NetSocket& socket  )
+NetClientData* ServerClientManager::createClient( NetSocket& socket  )
 {
 	MUTEX_LOCK( mMutexClientMap );
 
-	ClientInfo* client = new ClientInfo( socket );
+	NetClientData* client = new NetClientData( socket );
 
 	client->id      = getNewSessionId();
 	//client->udpAddr.setPort( TG_UDP_PORT );
@@ -1014,21 +1014,21 @@ bool ServerClientManager::doRemoveClient( SessionId id )
 	return true;
 }
 
-bool ServerClientManager::removeClient( ClientInfo* info )
+bool ServerClientManager::removeClient( NetClientData* info )
 {
 	MUTEX_LOCK( mMutexClientMap );
 	mRemoveList.push_back( info );
 	return true;
 }
 
-void ServerClientManager::cleanupClient( ClientInfo* info )
+void ServerClientManager::cleanupClient( NetClientData* info )
 {
 	delete info;
 }
 
 
 
-ClientInfo* ServerClientManager::findClient( NetAddress const& addr )
+NetClientData* ServerClientManager::findClient( NetAddress const& addr )
 {
 	MUTEX_LOCK( mMutexClientMap );
 	AddrMap::iterator iter = mAddrMap.find( &addr );
@@ -1039,7 +1039,7 @@ ClientInfo* ServerClientManager::findClient( NetAddress const& addr )
 	return NULL;
 }
 
-ClientInfo* ServerClientManager::findClient( SessionId id )
+NetClientData* ServerClientManager::findClient( SessionId id )
 {
 	MUTEX_LOCK( mMutexClientMap );
 	SessionMap::iterator iter = mSessionMap.find( id );
@@ -1056,15 +1056,15 @@ void ServerClientManager::updateNet( long time )
 	for( SessionMap::iterator iter = mSessionMap.begin();
 		iter != mSessionMap.end(); ++iter )
 	{
-		ClientInfo* client = iter->second;
-		client->tcpClient.updateSocket( time );
+		NetClientData* client = iter->second;
+		client->tcpChannel.updateSocket( time );
 	}
 
 	for( ClientList::iterator iter = mRemoveList.begin() ;
 		 iter != mRemoveList.end() ; ++iter )
 	{
-		ClientInfo* info = *iter;
-		doRemoveClient( info->id );
+		NetClientData* client = *iter;
+		doRemoveClient( client->id );
 	}
 	mRemoveList.clear();
 }
@@ -1075,8 +1075,8 @@ void ServerClientManager::sendTcpCommand( ComEvaluator& evaluator , IComPacket* 
 	for( SessionMap::iterator iter = mSessionMap.begin();
 		iter != mSessionMap.end(); ++iter )
 	{
-		ClientInfo* client = iter->second;
-		FillBufferFromCom( client->tcpClient.getSendCtrl() , cp );
+		NetClientData* client = iter->second;
+		FillBufferFromCom( client->tcpChannel.getSendCtrl() , cp );
 	}
 }
 
@@ -1086,8 +1086,8 @@ void ServerClientManager::sendUdpCommand( ComEvaluator& evaluator , IComPacket* 
 	for( SessionMap::iterator iter = mSessionMap.begin();
 		iter != mSessionMap.end(); ++iter )
 	{
-		ClientInfo* client = iter->second;
-		FillBufferFromCom( client->udpClient.getSendCtrl() , cp );
+		NetClientData* client = iter->second;
+		FillBufferFromCom( client->udpChannel.getSendCtrl() , cp );
 	}
 }
 
@@ -1112,11 +1112,11 @@ SessionId ServerClientManager::getNewSessionId()
 
 void ServerClientManager::setClientUdpAddr( SessionId id , NetAddress const& addr )
 {
-	ClientInfo* info = findClient( id );
-	if ( !info )
+	NetClientData* client = findClient( id );
+	if ( !client )
 		return;
-	info->udpAddr = addr;
-	bool isOk = mAddrMap.insert( std::make_pair( &info->udpAddr , info ) ).second;
+	client->udpAddr = addr;
+	bool isOk = mAddrMap.insert( std::make_pair( &client->udpAddr , client ) ).second;
 	assert( isOk );
 }
 
@@ -1156,10 +1156,10 @@ LocalWorker::LocalWorker( ServerWorker* worker )
 	getEvaluator().setWorkerFun< Class >( Processer , Fun , Fun2 );
 
 #define COM_THIS_PACKET_SET( Class , Fun )\
-	COM_PACKET_SET( Class , this , &LocalWorker::##Fun , NULL )
+	COM_PACKET_SET( Class , this , &LocalWorker::Fun , NULL )
 
 #define COM_THIS_PACKET_SET_2( Class , Fun , SocketFun )\
-	COM_PACKET_SET( Class , this , &LocalWorker::##Fun , &LocalWorker::##SocketFun )
+	COM_PACKET_SET( Class , this , &LocalWorker::Fun , &LocalWorker::SocketFun )
 
 	COM_THIS_PACKET_SET( CSPPlayerState , procPlayerState )
 	COM_THIS_PACKET_SET( CSPClockSynd   , procClockSynd )
@@ -1258,28 +1258,28 @@ void SNetPlayer::sendCommand( int channel , IComPacket* cp )
 	switch( channel )
 	{
 	case CHANNEL_GAME_NET_TCP:
-		FillBufferFromCom( mClientInfo->tcpClient.getSendCtrl() , cp );
+		FillBufferFromCom( mClient->tcpChannel.getSendCtrl() , cp );
 		break;
 	case CHANNEL_GAME_NET_UDP_CHAIN:
-		FillBufferFromCom( mClientInfo->udpClient.getSendCtrl() , cp );
+		FillBufferFromCom( mClient->udpChannel.getSendCtrl() , cp );
 		break;
 	}
 }
 
 void SNetPlayer::sendTcpCommand( IComPacket* cp )
 {
-	FillBufferFromCom( mClientInfo->tcpClient.getSendCtrl() , cp );
+	FillBufferFromCom( mClient->tcpChannel.getSendCtrl() , cp );
 }
 
 void SNetPlayer::sendUdpCommand( IComPacket* cp )
 {
-	FillBufferFromCom( mClientInfo->udpClient.getSendCtrl() , cp );
+	FillBufferFromCom( mClient->udpChannel.getSendCtrl() , cp );
 }
 
-SNetPlayer::SNetPlayer( ServerWorker* server , ClientInfo* cInfo ) 
+SNetPlayer::SNetPlayer( ServerWorker* server , NetClientData* client ) 
 	:ServerPlayer( true )
 {
 	mServer     = server;
-	mClientInfo = cInfo;
-	cInfo->player = this;
+	mClient     = client;
+	client->player = this;
 }

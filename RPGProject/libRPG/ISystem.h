@@ -1,7 +1,7 @@
 #ifndef ISystem_h__
 #define ISystem_h__
 
-#include "Win32Header.h"
+#include "WindowsHeader.h"
 
 class ISystem;
 class IGameMod;

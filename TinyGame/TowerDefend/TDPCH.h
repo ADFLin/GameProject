@@ -7,6 +7,6 @@
 #include <list>
 #include <algorithm>
 
-#include "Win32Header.h"
+#include "WindowsHeader.h"
 
 #endif // TDPCH_h__

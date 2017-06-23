@@ -16,7 +16,8 @@ class  GUISystem
 public:
 	GUISystem();
 
-	GAME_API bool         init(IGUIDelegate&  guiDelegate);
+	GAME_API bool         initialize(IGUIDelegate&  guiDelegate);
+	GAME_API void         finalize();
 
 	GAME_API int          getModalID();
 	GAME_API GWidget*     showMessageBox( int id , char const* msg , unsigned flag = GMB_YESNO );

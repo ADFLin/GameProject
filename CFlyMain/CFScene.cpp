@@ -677,15 +677,29 @@ namespace CFly
 
 	void Scene::release()
 	{
+		destroyAllSceneNode();
 		getWorld()->_destroyScene( this );
 	}
 
 	void Scene::destroyAllSceneNode()
 	{
-
+		assert(mRoot);
+		destroyNodeChildren_R(mRoot);
+		mRoot->release();
+		mRoot = nullptr;
 	}
 
-	Actor* Scene::createActorFromFile( char const* fileName , char const* loaderName )
+	void Scene::destroyNodeChildren_R(SceneNode* node)
+	{
+		for( auto child : node->mChildren )
+		{
+			SceneNode* sceneChild = static_cast<SceneNode*>(child);
+			destroyNodeChildren_R(sceneChild);
+			sceneChild->release();
+		}
+	}
+
+	Actor* Scene::createActorFromFile(char const* fileName, char const* loaderName)
 	{
 		Actor* actor = createActor( nullptr );
 

@@ -23,7 +23,7 @@ public:
 	void   updatePlayer( PlayerInfo* info[] , int num );
 };
 
-class  ClientWorker : public NetWorker, public ConListener
+class  ClientWorker : public NetWorker, public INetConnectListener
 {
 	typedef NetWorker BaseClass;
 public:
@@ -47,7 +47,7 @@ public:
 protected:
 	
 	void  onConnectOpen( NetConnection* con );
-	void  onConnectClose( NetConnection* con , ConCloseReason reason );
+	void  onConnectClose( NetConnection* con , NetCloseReason reason );
 	void  onConnectFail( NetConnection* con );
 	void  onSendData(NetConnection* con);
 	bool  onRecvData( NetConnection* con , SocketBuffer& buffer , NetAddress* clientAddr );
@@ -104,7 +104,7 @@ protected:
 class SendDelayCtrl : public DelayCtrlBase
 {
 public:
-	SendDelayCtrl( NetBufferCtrl& bufferCtrl );
+	SendDelayCtrl( NetBufferOperator& bufferCtrl );
 
 	void update( long time );
 	bool add( IComPacket* cp );
@@ -119,7 +119,7 @@ private:
 	DEFINE_MUTEX( mMutexBuffer )
 	SendInfoList mInfoList;
 	SocketBuffer mBuffer;
-	NetBufferCtrl& mBufferCtrl;
+	NetBufferOperator& mBufferCtrl;
 };
 
 class RecvDelayCtrl : public DelayCtrlBase

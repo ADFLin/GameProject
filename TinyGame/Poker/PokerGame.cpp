@@ -148,7 +148,7 @@ namespace Poker
 			case UI_RULE_CHOICE:
 				getSettingPanel()->removeGui( MASK_RULE );
 				getSettingPanel()->adjustGuiLocation();
-				switch( GUI::castFast< GChoice* >( widget )->getSelection() )
+				switch( GUI::CastFast< GChoice >( widget )->getSelection() )
 				{
 				case 0:
 					mGame->setRule( RULE_BIG2 );

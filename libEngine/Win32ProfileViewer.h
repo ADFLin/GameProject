@@ -2,7 +2,7 @@
 #define Win32ProfileViewer_h__
 
 #include "ProfileSystem.h"
-#include "Win32Header.h"
+#include "WindowsHeader.h"
 
 class TMessageShow
 {

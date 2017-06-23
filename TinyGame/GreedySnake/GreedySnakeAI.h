@@ -40,8 +40,8 @@ namespace GreedySnake
 			eSTATE_GO_DEST_POS ,
 		};
 
-		SnakeInfo& mInfo;
-		Scene&     mScene;
+		Snake& hostSnake;
+		Scene& mScene;
 
 
 	};

@@ -5,7 +5,7 @@
 #include "CmtDevice.h"
 #include "CmtLightTrace.h"
 
-#include "SysMsg.h"
+#include "SystemMessage.h"
 
 #include "RenderUtility.h"
 #include "GameGlobal.h"

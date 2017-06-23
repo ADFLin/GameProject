@@ -4,66 +4,58 @@
 namespace GreedySnake
 {
 
-	void Snake::_reset( Vec2i const& pos , DirType dir , size_t length )
+	void SnakeBody::reset( Vec2i const& pos , DirType dir , size_t length )
 	{
-		mMoveDir = dir;
 		mIdxTail = 0;
 		mIdxHead = length - 1;
 
-		mBodies.clear();
-		Body body;
+		Elements.clear();
+		Element body;
 		body.pos = pos;
 		body.dir = dir;
-		mBodies.resize( length , body );
+		Elements.resize( length , body );
 	}
 
-	bool  Snake::changeMoveDir( DirType dir )
-	{
-		if ( ( dir % 2 ) == ( getHead().dir % 2 ) )
-			return false;
-		mMoveDir = dir;
-		return true;
-	}
 
-	void Snake::moveStep()
+	void SnakeBody::moveStep( DirType moveDir )
 	{
-		Body& body = mBodies[ mIdxTail ];
+		Element& body = Elements[ mIdxTail ];
 
-		Body const& head = getHead();
-		body.dir = mMoveDir;
+		Element const& head = getHead();
+		body.dir = moveDir;
 		body.pos = head.pos + getDirOffset( head.dir );
 
 		mIdxHead = mIdxTail;
 		++mIdxTail;
-		if ( mIdxTail >= mBodies.size() )
+		if ( mIdxTail >= Elements.size() )
 			mIdxTail = 0;
 	}
 
-	void Snake::growBody( size_t num )
+	void SnakeBody::growBody( size_t num )
 	{
-		Body newBody = mBodies[ mIdxTail ];
-		mBodies.insert( mBodies.begin() + mIdxTail , num , newBody );
+		Element newBody = Elements[ mIdxTail ];
+		Elements.insert( Elements.begin() + mIdxTail , num , newBody );
 
-		//solve this example
+		//solve this case
 		//[ Tail ] [][]....[][ Head ]
 		if ( mIdxTail <= mIdxHead )
 			mIdxHead += num;
 	}
 
-	Snake::Body const* Snake::hitTest( Vec2i const& pos )
+	SnakeBody::Element const* SnakeBody::hitTest( Vec2i const& pos )
 	{
-		int num = (int)mBodies.size();
+		int num = (int)Elements.size();
 		for( int i = 0 ; i < num ; ++i  )
 		{
-			if ( pos == mBodies[i].pos )
-				return &mBodies[i];
+			if ( pos == Elements[i].pos )
+				return &Elements[i];
 		}
 		return NULL;
 	}
 
-	void Snake::warpHeadPos( int w , int h )
+	void SnakeBody::warpHeadPos( int w , int h )
 	{
-		Body& head = mBodies[ mIdxHead ];
+		Element& head = Elements[ mIdxHead ];
 		if ( w )
 		{
 			if ( head.pos.x < 0 )
@@ -83,53 +75,45 @@ namespace GreedySnake
 	Level::Level( Listener* listener )
 	{
 		mListener = listener;
-		mNumSnake = 0;
+		mNumSnakePlay = 0;
 		for( int i = 0 ; i < gMaxPlayerNum ; ++i )
 		{
-			SnakeInfo& info = mSnakeInfo[ i ];
-			info.id    = i;
-			info.snake = NULL;
+			Snake& snake = mSnakes[ i ];
+			snake.id    = i;
 		}
 	}
 
-	SnakeInfo* Level::addSnake( Vec2i const& pos , DirType dir , size_t length )
+	Snake* Level::addSnake( Vec2i const& pos , DirType dir , size_t length )
 	{
-		SnakeInfo& info = mSnakeInfo[ mNumSnake ];
-		if ( info.snake )
-		{
-			info.snake->_reset( pos , dir , length );
-		}
-		else
-		{
-			info.snake = new Snake( pos , dir , length );
-		}
-		info.snake->changeMoveDir( dir );
-		info.curMoveCount = 0;
-		info.moveSpeed    = DefaultMoveSpeed;
-		info.stateBit     = 0;
-		++mNumSnake;
+		Snake& snake = mSnakes[ mNumSnakePlay ];
 
-		addSnakeMark( info );
+		snake.init( pos , dir , length );
+		snake.moveCountAcc = 0;
+		snake.moveSpeed    = DefaultMoveSpeed;
+		snake.stateBit     = 0;
+		++mNumSnakePlay;
 
-		return &info;
+		addSnakeMark( snake );
+
+		return &snake;
 	}
 
 	Level::HitMask Level::hitTest( Vec2i const& pos , unsigned mask , int& hitResult )
 	{
-		MapData& data = mMap.getData( pos.x , pos.y );
+		MapTileData& tile = mMap.getData( pos.x , pos.y );
 		if ( mask & eTERRAIN_MASK )
 		{
-			if ( data.terrain )
+			if ( tile.terrain )
 			{
-				hitResult = data.terrain;
+				hitResult = tile.terrain;
 				return eTERRAIN_MASK;
 			}
 		}
 		if ( mask & eSNAKE_MASK )
 		{
-			if ( data.snake )
+			if ( tile.snakeMask )
 			{
-				hitResult = data.snake;
+				hitResult = tile.snakeMask;
 				return eSNAKE_MASK;
 			}
 		}
@@ -149,115 +133,155 @@ namespace GreedySnake
 		return eNO_HIT_MASK;
 	}
 
-	void Level::setupMap( int w , int h , MapType type )
+	void Level::setupMap( int w , int h , MapBoundType type )
 	{
-		assert( mNumSnake == 0 );
-		mMapType = type;
+		assert( mNumSnakePlay == 0 );
+		mMapBoundType = type;
 		mMap.resize( w , h );
-		MapData data;
-		data.snake = 0;
-		data.terrain = 0;
-		mMap.fillValue( data );
+		MapTileData tile;
+		tile.snakeMask = 0;
+		tile.terrain = 0;
+		mMap.fillValue( tile );
 	}
 
 
-	void Level::addSnakeBodyMark( unsigned id , Vec2i const& pos )
+	void Level::addSnakeBodyElementMark( unsigned id , Vec2i const& pos )
 	{
 		if ( !mMap.checkRange( pos.x , pos.y ) )
 			return ;
-		mMap.getData( pos.x , pos.y ).snake |= BIT( id );
+		mMap.getData( pos.x , pos.y ).snakeMask |= BIT( id );
 	}
 
-	void Level::removeSnakeBodyMark( unsigned id , Vec2i const& pos )
+	void Level::removeSnakeBodyElementMark( unsigned id , Vec2i const& pos )
 	{
 		if ( !mMap.checkRange( pos.x , pos.y ) )
 			return;
-		mMap.getData( pos.x , pos.y  ).snake &= ~BIT( id );
+		mMap.getData( pos.x , pos.y  ).snakeMask &= ~BIT( id );
 	}
 
-	void Level::removeSnakeMark( SnakeInfo& info )
+	void Level::removeSnakeMark( Snake& snake )
 	{
-		for( size_t i = 0 ; i < info.snake->getBodyLength() ; ++i )
+		for( size_t i = 0 ; i < snake.getBody().getLength() ; ++i )
 		{
-			Snake::Body const& body = info.snake->getBodyByIndex( i );
-			removeSnakeBodyMark( info.id , body.pos );
+			SnakeBody::Element const& bodyElement = snake.getBody().getElementByIndex( i );
+			removeSnakeBodyElementMark( snake.id , bodyElement.pos );
 		}
 	}
-	void Level::addSnakeMark( SnakeInfo& info )
+	void Level::addSnakeMark( Snake& snake )
 	{
-		for( unsigned i = 0 ; i < ( unsigned ) info.snake->getBodyLength() ; ++i )
+		for( unsigned i = 0 ; i < ( unsigned ) snake.getBody().getLength() ; ++i )
 		{
-			Snake::Body const& body = info.snake->getBodyByIndex( i );
-			addSnakeBodyMark( info.id , body.pos );
+			SnakeBody::Element const& bodyElement = snake.getBody().getElementByIndex( i );
+			addSnakeBodyElementMark( snake.id , bodyElement.pos );
 		}
 	}
 
 	void Level::removeAllSnake()
 	{
-		for( int i = 0 ; i < mNumSnake ; ++i )
+		for( int i = 0 ; i < mNumSnakePlay ; ++i )
 		{
-			removeSnakeMark( mSnakeInfo[i] );
+			removeSnakeMark( mSnakes[i] );
 		}
-		mNumSnake = 0;
+		mNumSnakePlay = 0;
 	}
 
 
 	void Level::tick()
 	{
-		for( int i = 0 ; i < mNumSnake ; ++i )
+		Snake* moveableSnake[gMaxPlayerNum];
+		int numMoveableSnake = 0;
+		for( int i = 0; i < mNumSnakePlay; ++i )
 		{
-			SnakeInfo& info = mSnakeInfo[i];
+			Snake& snake = mSnakes[i];
 
-			if ( info.stateBit & SS_DEAD )
-				continue;
-
-			info.curMoveCount += info.moveSpeed;
-			while ( info.curMoveCount > MoveCount )
+			snake.frameMoveCount = -1;
+			if( !snake.canMove() )
 			{
-				info.curMoveCount -= MoveCount;
+				snake.moveCountAcc = 0;
+			}
+			else
+			{
+				int moveSpeed = snake.moveSpeed;
+				if( snake.stateBit & SS_INC_SPEED )
+					moveSpeed *= 2;
+				else if( snake.stateBit & SS_DEC_SPEED )
+					moveSpeed /= 2;
 
-				Vec2i tailPos = info.snake->getTail().pos;
-
-				info.snake->moveStep();
-
-				Vec2i headPos = info.snake->getHead().pos;
-				switch( mMapType )
+				snake.moveCountAcc += moveSpeed;
+				if( snake.moveCountAcc > MoveCount )
 				{
-				case eMAP_CLIFF:
-					if ( !mMap.checkRange( headPos.x , headPos.y ) )
+					snake.frameMoveCount = 0;
+					moveableSnake[numMoveableSnake] = &snake;
+					++numMoveableSnake;
+				}
+			}
+		}
+
+		while( numMoveableSnake )
+		{
+			for( int i = 0; i < numMoveableSnake; ++i )
+			{
+				Snake& snake = *moveableSnake[i];
+
+				//Maybe change state after collision
+				if( snake.canMove() )
+				{
+					snake.moveCountAcc -= MoveCount;
+
+					assert(snake.moveCountAcc >= 0);
+
+					Vec2i tailPos = snake.getBody().getTail().pos;
+
+					snake.getBody().moveStep(snake.getMoveDir());
+
+					Vec2i headPos = snake.getBody().getHead().pos;
+					switch( mMapBoundType )
 					{
-						mListener->onCollideTerrain( info , TT_SIDE );
+					case MapBoundType::Cliff:
+						if( !mMap.checkRange(headPos.x, headPos.y) )
+						{
+							mListener->onCollideTerrain(snake, TT_SIDE);
+						}
+						break;
+					case MapBoundType::WarpXY:
+						snake.getBody().warpHeadPos(mMap.getSizeX(), mMap.getSizeY());
+						break;
+					case MapBoundType::WarpX:
+						snake.getBody().warpHeadPos(mMap.getSizeX(), 0);
+						if( !mMap.checkRange(headPos.x, headPos.y) )
+						{
+							mListener->onCollideTerrain(snake, TT_SIDE);
+						}
+						break;
+					case MapBoundType::WarpY:
+						snake.getBody().warpHeadPos(0, mMap.getSizeY());
+						if( !mMap.checkRange(headPos.x, headPos.y) )
+						{
+							mListener->onCollideTerrain(snake, TT_SIDE);
+						}
+						break;
 					}
-					break;
-				case eMAP_WARP_XY:
-					info.snake->warpHeadPos( mMap.getSizeX() , mMap.getSizeY() );
-					break;
-				case eMAP_WARP_X:
-					info.snake->warpHeadPos( mMap.getSizeX() , 0 );
-					if ( !mMap.checkRange( headPos.x , headPos.y ) )
+
+					//Element of body can locate in same pos
+					if( tailPos != snake.getBody().getTail().pos )
 					{
-						mListener->onCollideTerrain( info , TT_SIDE );
+						removeSnakeBodyElementMark(snake.id, tailPos);
 					}
-					break;
-				case eMAP_WARP_Y:
-					info.snake->warpHeadPos( 0 , mMap.getSizeY() );
-					if ( !mMap.checkRange( headPos.x , headPos.y ) )
+					addSnakeBodyElementMark(snake.id, snake.getBody().getHead().pos);
+
+					if( !(snake.stateBit & SS_DEAD) )
 					{
-						mListener->onCollideTerrain( info , TT_SIDE );
+						detectMoveSnakeCollision(snake);
 					}
-					break;
+					
 				}
 
-				if ( tailPos != info.snake->getTail().pos )
-				{
-					removeSnakeBodyMark( info.id , tailPos );
-				}
 
-				if ( !( info.stateBit & SS_DEAD ) )
+				if( snake.moveCountAcc < MoveCount || !snake.canMove() )
 				{
-					detectSnakeCollision( info );
-					if ( !( info.stateBit & SS_DEAD ) )
-						addSnakeBodyMark( info.id , info.snake->getHead().pos );
+					--numMoveableSnake;
+					if( i != numMoveableSnake )
+						moveableSnake[i] = moveableSnake[numMoveableSnake];
 				}
 			}
 		}
@@ -288,33 +312,57 @@ namespace GreedySnake
 		}
 	}
 
-	void Level::detectSnakeCollision( SnakeInfo& info )
+	void Level::detectMoveSnakeCollision( Snake& snake )
 	{
-		Vec2i headPos = info.snake->getHead().pos;
-		MapData& data = mMap.getData( headPos.x , headPos.y );
+		auto const& head = snake.getBody().getHead();
 
-		if ( data.snake )
+		MapTileData& tile = mMap.getData( head.pos.x , head.pos.y );
+
+		unsigned snakeMask = tile.snakeMask & ~BIT( snake.id );
+		if ( snakeMask )
 		{
-			for( unsigned i = 0 ; i < (unsigned)mNumSnake ; ++i )
+			for( unsigned i = 0 ; i < (unsigned)mNumSnakePlay ; ++i )
 			{
-				if ( data.snake & BIT( i ) )
-					mListener->onCollideSnake( info , mSnakeInfo[i] );
+				if( ( snakeMask & BIT(i) ) == 0 )
+					continue;
+
+				Snake& otherSnake = mSnakes[i];
+
+				bool bCollide = true;
+				if( head.pos == otherSnake.getBody().getHead().pos )
+				{
+					if( head.dir == InverseDir(otherSnake.getBody().getHead().dir) ||
+					   snake.frameMoveCount == snake.frameMoveCount )
+					{
+						mListener->onCollideSnake(otherSnake, snake);
+					}
+				}
+				else if( head.pos == otherSnake.getBody().getTail().pos )
+				{
+					if( snake.frameMoveCount > snake.frameMoveCount )
+					{
+						bCollide = false;
+					}
+				}
+
+				if( bCollide )
+				{
+					mListener->onCollideSnake(snake, otherSnake);
+				}
 			}
 		}
-		else if ( data.terrain )
+		else if ( tile.terrain )
 		{
-			mListener->onCollideTerrain( info , data.terrain );
+			mListener->onCollideTerrain( snake , tile.terrain );
 		}
 		else
 		{
-			Snake& snake = *info.snake;
-
 			for( FoodVec::iterator iter = mFoodVec.begin();
 				iter != mFoodVec.end() ; )
 			{
-				if ( iter->pos == snake.getHead().pos )
+				if ( iter->pos == head.pos )
 				{
-					mListener->onEatFood( info , *iter );
+					mListener->onEatFood( snake , *iter );
 					iter = mFoodVec.erase( iter );
 				}
 				else
@@ -327,7 +375,7 @@ namespace GreedySnake
 
 	bool  Level::addSnakeState( unsigned id , SnakeState state )
 	{
-		SnakeInfo& info = getSnakeInfo( id );
+		Snake& info = getSnake( id );
 		if ( info.stateBit & state )
 			return false;
 
@@ -343,9 +391,9 @@ namespace GreedySnake
 	{
 		assert( mMap.checkRange( pos.x , pos.y ) );
 		result = pos + getDirOffset( dir );
-		switch( mMapType )
+		switch( mMapBoundType )
 		{
-		case eMAP_WARP_XY:
+		case MapBoundType::WarpXY:
 			if ( result.x < 0 )
 				result.x += mMap.getSizeX();
 			else if ( result.x >= mMap.getSizeX() )
@@ -355,23 +403,40 @@ namespace GreedySnake
 			else if ( result.y >= mMap.getSizeY() )
 				result.y -= mMap.getSizeY();
 			break;
-		case eMAP_WARP_X:
+		case MapBoundType::WarpX:
 			if ( result.x < 0 )
 				result.x += mMap.getSizeX();
 			else if ( result.x >= mMap.getSizeX() )
 				result.x -= mMap.getSizeX();
 			break;
-		case eMAP_WARP_Y:
+		case MapBoundType::WarpY:
 			if ( result.y < 0 )
 				result.y += mMap.getSizeY();
 			else if ( result.y >= mMap.getSizeY() )
 				result.y -= mMap.getSizeY();
 			break;
-		case eMAP_CLIFF:
+		case MapBoundType::Cliff:
 			if ( !isVaildMapRange( result ) )
 				return false;
 			break;
 		}
+		return true;
+	}
+
+	void Snake::init(Vec2i const& pos, DirType dir, size_t length)
+	{
+		mMoveDir = dir;
+		getBody().init(pos, dir, length);
+	}
+
+	bool Snake::changeMoveDir(DirType dir)
+	{
+		if( stateBit & SS_CONFUSE )
+			dir = InverseDir(dir);
+
+		if( (dir % 2) == (getBody().getHead().dir % 2) )
+			return false;
+		mMoveDir = dir;
 		return true;
 	}
 

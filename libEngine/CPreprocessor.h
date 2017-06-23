@@ -106,7 +106,7 @@ namespace CPP
 	class SyntaxError : public std::exception
 	{
 	public:
-		EXCEPTION_CONSTRUCTOR_WITH_WHAT( SyntaxError )
+		STD_EXCEPTION_CONSTRUCTOR_WITH_WHAT( SyntaxError )
 	};
 
 	enum class Command
@@ -154,11 +154,145 @@ namespace CPP
 
 
 
-		void execInclude(CodeInput& input);
-		void execIf(CodeInput& input);
-		void execDefine(CodeInput& input);
+		bool execInclude(CodeInput& input);
+		bool execIf(CodeInput& input);
+		bool execDefine(CodeInput& input);
 
-		bool evalExpression( std::string const& expr , int& outValue )
+		bool execDefined(CodeInput& input)
+		{
+
+		}
+
+
+		bool execEvalCommad(CodeInput& input, Command& outCommand)
+		{
+
+
+			return false;
+		}
+
+		bool execCommand(CodeInput& input , char const* str)
+		{
+			return false;
+		}
+
+		bool execStatement(CodeInput& input)
+		{
+			Command com;
+			bool bExecIf = false;
+			bool retVal = false;
+			if( execCommand(input, "if") )
+			{
+				bExecIf = true;
+				int evalValue;
+				if( !execExpression(input, evalValue) )
+				{
+
+				}
+				retVal = evalValue != 0;
+			}
+			else if( execCommand(input, "ifdef") )
+			{
+				retVal = execDefined(input);
+			}
+
+			if( bExecIf )
+			{
+				while( retVal == false)
+				for (;;)
+				{
+					if( retVal )
+					{
+						if( !execStatement(input) )
+						{
+
+						}
+						break;
+					}
+
+					if( execCommand(input, "elif") )
+					{
+
+					
+					}
+					else
+					{
+						
+					}
+
+					int evalValue;
+					if( !execExpression(input, evalValue) )
+					{
+
+					}
+					retVal = evalValue != 0;
+				}
+			}
+			
+			retVal = execBlock(input);
+
+			if ( !execCommand(input, "endif") )
+			{
+
+
+			}
+
+			return true;
+		}
+
+		bool execExpression(CodeInput& input, int& evalValue)
+		{
+			return false;
+		}
+		bool isCommand(CodeInput& input , Command com )
+		{
+
+			return false;
+		}
+		bool execBlock(CodeInput& input)
+		{
+			Command com;
+			if( isCommand( input , com ) )
+			{
+				switch( com )
+				{
+				case Command::Include:
+					if( !execInclude(input) )
+						return false;
+					break;
+				case Command::Define:
+					break;
+				case CPP::Command::If:
+					break;
+				case CPP::Command::Ifdef:
+					{
+						if( execDefined(input) )
+						{
+
+
+						}
+
+
+
+					}
+					break;
+				case CPP::Command::Endif:
+					break;
+				case CPP::Command::Pragma:
+					break;
+				}
+			}
+			return true;
+		}
+
+		bool execCommand(CodeInput& input, Command com)
+		{
+
+
+
+		}
+
+		bool execExpression( std::string const& expr , int& outValue )
 		{
 			//#TODO:support \ connect
 			return true;
@@ -209,6 +343,8 @@ namespace CPP
 		std::vector< CodeInput* >  mLoadedInput;
 
 
+
+
 		//expr eval
 		struct ExprToken
 		{
@@ -244,12 +380,19 @@ namespace CPP
 
 		ExprToken nextExprToken(CodeInput& input);
 
-		int evalExpression(CodeInput& input)
+		struct EvalRet
 		{
-			return 0;
-		}
+			int value;
+		};
+
 		
-		int eval_Compare(ExprToken token , CodeInput& input)
+		struct OperatorInfo
+		{
+			char value;
+			bool bRightAssoc;
+			int  prodence;
+		};
+		bool eval_Compare(ExprToken token , CodeInput& input)
 		{
 			if( token.type == ExprToken::eOP )
 			{
@@ -268,12 +411,12 @@ namespace CPP
 			}
 			return 0;
 		}
-		int eval_MulDiv(ExprToken token, CodeInput& input)
+		bool eval_MulDiv(ExprToken token, CodeInput& input)
 		{
 
 			return 0;
 		}
-		int eval_Atom(ExprToken token , CodeInput& input);
+		bool eval_Atom(ExprToken token , CodeInput& input);
 	};
 }
 

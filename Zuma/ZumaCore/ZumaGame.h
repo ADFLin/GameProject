@@ -3,8 +3,8 @@
 
 
 #include "GameLoop.h"
-#include "Win32Platform.h"
-#include "SysMsgHandler.h"
+#include "WindowsPlatform.h"
+#include "WindowsMessageHander.h"
 
 #include "ZTask.h"
 #include "ZUISystem.h"
@@ -151,8 +151,8 @@ namespace Zuma
 #define MSG_ZUMA (MSG_DEUFLT| MSG_ACTIAVTE | MSG_DESTROY | MSG_PAINT )
 
 	class ZumaGame : public GameCore
-		           , public GameLoopT< ZumaGame , Win32Platform >
-		           , public SysMsgHandlerT< ZumaGame , MSG_ZUMA >
+		           , public GameLoopT< ZumaGame , WindowsPlatform >
+		           , public WindowsMessageHandlerT< ZumaGame , MSG_ZUMA >
 				   , public GameInitialer
 	{
 	public:

@@ -339,10 +339,9 @@ namespace Tetris
 		return mNumLevel;
 	}
 
-	void GameWorld::storePlayerLevel( IPlayerManager& playerMgr )
+	void GameWorld::storePlayerLevel( IPlayerManager& playerManager)
 	{
-		for( IPlayerManager::Iterator iter = playerMgr.getIterator();
-			iter.haveMore() ; iter.goNext() )
+		for( auto iter = playerManager.createIterator(); iter; ++iter )
 		{
 			GamePlayer* player = iter.getElement();
 			if ( player->getType() != PT_SPECTATORS )

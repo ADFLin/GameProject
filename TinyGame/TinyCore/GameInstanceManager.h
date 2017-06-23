@@ -33,7 +33,7 @@ private:
 		for( GameInfoVec::iterator iter = mGameInfos.begin() ;
 			iter != mGameInfos.end() ;++iter )
 		{
-			if ( !visitor.visit( *iter ) )
+			if ( !visitor( *iter ) )
 				return;
 		}
 	}

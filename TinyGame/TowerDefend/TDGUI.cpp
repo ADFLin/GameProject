@@ -53,7 +53,7 @@ namespace TowerDefend
 		{
 		case UI_COM_BUTTON:
 			{
-				ActComButton* button = GUI::castFast< ActComButton* >( ui );
+				ActComButton* button = GUI::CastFast< ActComButton >( ui );
 				mController->addUICom( button->getIndex() , button->getComKey()->comID );
 			}
 			break;

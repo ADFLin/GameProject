@@ -13,7 +13,7 @@ class ServerWorker;
 
 class SPPlayerStatus;
 
-struct ClientInfo
+struct NetClientData
 {
 	typedef UdpServer::Client UdpClient;
 
@@ -24,26 +24,26 @@ struct ClientInfo
 		{
 			getSocket().move( socket );
 		}
-		ClientInfo* clientInfo;
+		NetClientData* client;
 	};
 
 
-	ClientInfo( NetSocket& socket )
-		:tcpClient( socket )
+	NetClientData( NetSocket& socket )
+		:tcpChannel( socket )
 	{
-		tcpClient.clientInfo = this;
+		tcpChannel.client = this;
 	}
 
 	void reconnect(NetSocket& socket)
 	{
-		tcpClient.getSocket().move(socket);
-		tcpClient.clearBuffer();
-		udpClient.clearBuffer();
+		tcpChannel.getSocket().move(socket);
+		tcpChannel.clearBuffer();
+		udpChannel.clearBuffer();
 	}
 
 	SessionId    id;
-	TCPClient    tcpClient;
-	UdpClient    udpClient;
+	TCPClient    tcpChannel;
+	UdpClient    udpChannel;
 	NetAddress   udpAddr;
 	SNetPlayer*  player;
 };
@@ -92,14 +92,14 @@ private:
 class SNetPlayer : public ServerPlayer
 {
 public:
-	SNetPlayer( ServerWorker* server , ClientInfo* cInfo );
-	ClientInfo& getClientInfo(){  return *mClientInfo;  }
+	SNetPlayer( ServerWorker* server , NetClientData* client );
+	NetClientData& getClient(){  return *mClient;  }
 	void  sendTcpCommand( IComPacket* cp );
 	void  sendUdpCommand( IComPacket* cp );
 	void  sendCommand( int channel , IComPacket* cp );
 protected:
 	ServerWorker* mServer;
-	ClientInfo*   mClientInfo;
+	NetClientData*   mClient;
 };
 
 class SLocalPlayer : public ServerPlayer
@@ -132,12 +132,12 @@ public:
 
 	void        updateNet( long time );
 	void        sendUdpData( long time , UdpServer& server );
-	ClientInfo* findClient( NetAddress const& addr );
-	ClientInfo* findClient( SessionId id );
-	ClientInfo* createClient( NetSocket& socket );
+	NetClientData* findClient( NetAddress const& addr );
+	NetClientData* findClient( SessionId id );
+	NetClientData* createClient( NetSocket& socket );
 
 	void        removeAllClient(){  cleanup();  }
-	bool        removeClient( ClientInfo* info );
+	bool        removeClient( NetClientData* client );
 	void        sendTcpCommand( ComEvaluator& evaluator , IComPacket* cp );
 	void        sendUdpCommand( ComEvaluator& evaluator , IComPacket* cp );
 
@@ -148,7 +148,7 @@ protected:
 	SessionId   getNewSessionId();
 	void        cleanup();
 	bool        doRemoveClient( SessionId id );
-	void        cleanupClient( ClientInfo* info );
+	void        cleanupClient( NetClientData* client );
 
 	struct AddrCmp
 	{
@@ -163,9 +163,9 @@ protected:
 			return false;
 		}
 	};
-	typedef std::map< NetAddress const* , ClientInfo* , AddrCmp >  AddrMap;
-	typedef std::map< SessionId , ClientInfo* >              SessionMap;
-	typedef std::vector< ClientInfo* > ClientList;
+	typedef std::map< NetAddress const* , NetClientData* , AddrCmp >  AddrMap;
+	typedef std::map< SessionId , NetClientData* >              SessionMap;
+	typedef std::vector< NetClientData* > ClientList;
 
 	SessionId  mNextId;
 	ClientList mRemoveList;
@@ -192,7 +192,7 @@ public:
 	GAME_API ServerPlayer*   getPlayer( PlayerId id );
 	PlayerId       getUserID(){  return mUserID;  }
 
-	GAME_API SNetPlayer*    createNetPlayer( ServerWorker* server , char const* name , ClientInfo* client );
+	GAME_API SNetPlayer*    createNetPlayer( ServerWorker* server , char const* name , NetClientData* client );
 	GAME_API SUserPlayer*   createUserPlayer( LocalWorker* worker , char const* name );
 	GAME_API SLocalPlayer*  createAIPlayer();
 	SLocalPlayer*  swepNetPlayerToLocal( SNetPlayer* player );
@@ -237,11 +237,11 @@ class ServerEventResolver
 {
 public:
 	//Socket Thread
-	virtual PlayerDisconnectMode resolvePlayerClose( PlayerId id , ConCloseReason reason) { return PlayerDisconnectMode::Remove;  }
+	virtual PlayerDisconnectMode resolvePlayerClose( PlayerId id , NetCloseReason reason) { return PlayerDisconnectMode::Remove;  }
 	virtual void resolvePlayerReconnect( PlayerId id ){}
 };
 
-class  ServerWorker : public NetWorker, public ConListener
+class  ServerWorker : public NetWorker, public INetConnectListener
 {
 	typedef NetWorker BaseClass;
 public:
@@ -254,7 +254,7 @@ public:
 
 	GAME_API LocalWorker* createLocalWorker(char const* userName);
 
-	void sendClientTcpCommand( ClientInfo& client , IComPacket* cp );
+	void sendClientTcpCommand( NetClientData& client , IComPacket* cp );
 	void setEventResolver(ServerEventResolver* resolver) { mEventResolver = resolver;  }
 
 protected:
@@ -271,11 +271,11 @@ protected:
 	virtual void onSendData( NetConnection* con );
 	virtual bool onRecvData( NetConnection* con , SocketBuffer& buffer ,NetAddress* clientAddr );
 	virtual void onConnectAccpet( NetConnection* con );
-	virtual void onConnectClose( NetConnection* con , ConCloseReason reason );
+	virtual void onConnectClose( NetConnection* con , NetCloseReason reason );
 
 public:
 	GAME_API bool kickPlayer( unsigned id );
-	void removeConnect( ClientInfo* info , bool bRMPlayer = true );
+	void removeConnect( NetClientData* client, bool bRMPlayer = true );
 
 	SVPlayerManager* getPlayerManager(){ return mPlayerManager; }
 

@@ -154,7 +154,7 @@ namespace Tetris
 
 		int          getLevelNum()    { return mNumLevel; }
 		int          getLevelOverNum(){ return mNumLevelOver; }
-		void         storePlayerLevel( IPlayerManager& playerMgr );
+		void         storePlayerLevel( IPlayerManager& playerManager );
 		bool         isGameEnd(){  return mbGameEnd;  }
 
 		LevelData*   createPlayerLevel( GamePlayer* player );

@@ -1,7 +1,7 @@
 #include "TinyGamePCH.h"
 #include "GameNetConnect.h"
 
-void NetConnection::recvData( NetBufferCtrl& bufCtrl , int len , NetAddress* addr )
+void NetConnection::recvData( NetBufferOperator& bufCtrl , int len , NetAddress* addr )
 {
 	try 
 	{
@@ -42,7 +42,7 @@ bool NetConnection::checkConnect( long time )
 	long const TimeOut = 30 * 1000;
 	if ( time - mLastRespondTime > TimeOut )
 	{
-		mListener->onConnectClose( this , CCR_TIMEOUT );
+		mListener->onConnectClose( this , NetCloseReason::Timeout );
 		return false;
 	}
 	return true;
@@ -192,7 +192,7 @@ void TcpClient::onConnect( NetSocket& socket )
 void TcpClient::onClose( NetSocket& socket , bool beGraceful )
 {
 	Msg( "Connection close" );
-	mListener->onConnectClose( this , CCR_SHUTDOWN );
+	mListener->onConnectClose( this , NetCloseReason::ShutDown );
 }
 
 void TcpServer::onAcceptable( NetSocket& socket )
@@ -201,7 +201,7 @@ void TcpServer::onAcceptable( NetSocket& socket )
 	mListener->onConnectAccpet( this );
 }
 
-void NetBufferCtrl::fillBuffer( SocketBuffer& buffer , unsigned num )
+void NetBufferOperator::fillBuffer( SocketBuffer& buffer , unsigned num )
 {
 	MUTEX_LOCK( mMutexBuffer );
 
@@ -224,7 +224,7 @@ void NetBufferCtrl::fillBuffer( SocketBuffer& buffer , unsigned num )
 	}
 }
 
-bool NetBufferCtrl::sendData( NetSocket& socket , NetAddress* addr )
+bool NetBufferOperator::sendData( NetSocket& socket , NetAddress* addr )
 {
 	MUTEX_LOCK( mMutexBuffer );
 
@@ -265,7 +265,7 @@ bool NetBufferCtrl::sendData( NetSocket& socket , NetAddress* addr )
 	return true;
 }
 
-bool NetBufferCtrl::recvData( NetSocket& socket , int len , NetAddress* addr /*= NULL */ )
+bool NetBufferOperator::recvData( NetSocket& socket , int len , NetAddress* addr /*= NULL */ )
 {
 	try 
 	{
@@ -295,7 +295,7 @@ bool NetBufferCtrl::recvData( NetSocket& socket , int len , NetAddress* addr /*=
 	return true;
 }
 
-void NetBufferCtrl::clear()
+void NetBufferOperator::clear()
 {
 	MUTEX_LOCK( mMutexBuffer )
 	mBuffer.clear();

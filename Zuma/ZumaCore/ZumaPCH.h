@@ -16,7 +16,7 @@ using std::tr1::shared_ptr;
 #include <cmath>
 #include <cassert>
 
-#include "Win32Header.h"
+#include "WindowsHeader.h"
 
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/xml_parser.hpp>

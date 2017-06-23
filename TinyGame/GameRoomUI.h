@@ -95,7 +95,7 @@ public:
 	SlotId calcSoltId( int y )
 	{
 		int idx = ( y - 10 + 35 / 2 ) / 35;
-		if ( idx < 0 || idx >= MAX_PLAYER_NUM )
+		if ( idx < 0 || idx >= getSlotNum() )
 			return ERROR_SLOT_ID;
 		return SlotId( idx );
 	}

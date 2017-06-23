@@ -9,30 +9,33 @@ namespace GreedySnake
 {
 	class SurvivalMode : public Mode
 	{
+		typedef Mode BaseClass;
 	public:
 		/*virtual */
 		void restart( bool beInit  );
 		void setupLevel( IPlayerManager& playerManager );
-		void onEatFood( SnakeInfo& info , FoodInfo& food );
-		void onCollideSnake( SnakeInfo& snake , SnakeInfo& colSnake );
-		void onCollideTerrain( SnakeInfo& snake , int type );
+		void onEatFood( Snake& snake, FoodInfo& food );
+		void onCollideSnake( Snake& snake , Snake& colSnake );
+		void onCollideTerrain( Snake& snake , int type );
 	};
 
 	class BattleMode : public Mode
 	{
+		typedef Mode BaseClass;
 	public:
+		static int const MaxPlayerNum = 4;
 		/*virtual */
 		void restart( bool beInit );
 		void setupLevel( IPlayerManager& playerManager );
 		void prevLevelTick(){}
 		void postLevelTick(){}
 	protected:
-		void onEatFood( SnakeInfo& info , FoodInfo& food );
-		void onCollideSnake( SnakeInfo& snake , SnakeInfo& colSnake );
-		void onCollideTerrain( SnakeInfo& snake , int type );
+		void onEatFood( Snake& snake , FoodInfo& food );
+		void onCollideSnake( Snake& snake , Snake& colSnake );
+		void onCollideTerrain( Snake& snake , int type );
 
 	protected:
-		void killSnake( SnakeInfo &snake );
+		void killSnake( Snake& snake );
 
 		unsigned mCurRound;
 		unsigned mWinRound[ gMaxPlayerNum ];

@@ -6,7 +6,7 @@
 
 #include "CubeMesh.h"
 
-#include "Win32Header.h"
+#include "WindowsHeader.h"
 #include <gl/GL.h>
 #include <gl/GLU.h>
 

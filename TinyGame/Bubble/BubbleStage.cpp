@@ -54,8 +54,7 @@ namespace Bubble
 		
 		int numLevel = 0;
 		PlayerData* mainViewPlayer = NULL;
-		for( IPlayerManager::Iterator iter = playerManager.getIterator();
-			 iter.haveMore() ; iter.goNext() )
+		for( auto iter = playerManager.createIterator(); iter; ++iter )
 		{
 			GamePlayer* player = iter.getElement();
 			if ( player->getType() != PT_SPECTATORS )

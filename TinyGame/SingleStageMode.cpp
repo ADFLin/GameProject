@@ -23,8 +23,7 @@ bool SingleStageMode::postStageInit()
 	stage->setupLocalGame(*mPlayerManager.get());
 	stage->setupScene(*mPlayerManager.get());
 
-	for( IPlayerManager::Iterator iter = getPlayerManager()->getIterator();
-		iter.haveMore(); iter.goNext() )
+	for( auto iter = getPlayerManager()->createIterator(); iter; ++iter )
 	{
 		GamePlayer* player = iter.getElement();
 		if( player->getAI() )
@@ -43,7 +42,7 @@ bool SingleStageMode::postStageInit()
 	ActionProcessor& processor = stage->getActionProcessor();
 
 	processor.addInput(getGame()->getController());
-	restart(true);
+	restartImpl(true);
 	return true;
 }
 
@@ -108,7 +107,7 @@ bool SingleStageMode::onWidgetEvent(int event, int id, GWidget* ui)
 	case UI_RESTART_GAME:
 		if( event == EVT_BOX_YES )
 		{
-			restart(false);
+			restartImpl(false);
 			return false;
 		}
 		else if( event == EVT_BOX_NO )
@@ -124,7 +123,7 @@ bool SingleStageMode::onWidgetEvent(int event, int id, GWidget* ui)
 			}
 			else
 			{
-				restart(false);
+				restartImpl(false);
 			}
 			return false;
 

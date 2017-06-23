@@ -230,7 +230,7 @@ private:
 class SocketException : public std::exception
 {
 public:
-	EXCEPTION_CONSTRUCTOR_WITH_WHAT( SocketException )
+	STD_EXCEPTION_CONSTRUCTOR_WITH_WHAT( SocketException )
 };
 
 #endif // NetSocket_h__

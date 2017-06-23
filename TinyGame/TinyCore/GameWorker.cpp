@@ -212,7 +212,7 @@ bool EvalCommand( UdpChain& chain , ComEvaluator& evaluator , SocketBuffer& buff
 	return true;
 }
 
-unsigned FillBufferFromCom(NetBufferCtrl& bufferCtrl , IComPacket* cp)
+unsigned FillBufferFromCom(NetBufferOperator& bufferCtrl , IComPacket* cp)
 {
 	TLockedObject< SocketBuffer > buffer = bufferCtrl.lockBuffer();
 	return FillBufferFromCom( *buffer , cp );

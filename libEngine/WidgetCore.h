@@ -5,7 +5,7 @@
 #include <cassert>
 #include <vector>
 
-#include "SysMsg.h"
+#include "SystemMessage.h"
 #include "Rect.h"
 
 #define UI_CORE_USE_INTRLIST 1

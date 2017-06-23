@@ -2,8 +2,8 @@
 #define TinyGameApp_h__
 
 #include "GameLoop.h"
-#include "Win32Platform.h"
-#include "SysMsgHandler.h"
+#include "WindowsPlatform.h"
+#include "WindowsMessageHander.h"
 
 #include "DrawEngine.h"
 #include "StageBase.h"
@@ -98,8 +98,8 @@ public:
 };
 
 
-class TinyGameApp : public GameLoopT< TinyGameApp , Win32Platform >
-				  , public SysMsgHandlerT< TinyGameApp , MSG_DEUFLT | MSG_DATA | MSG_DESTROY >
+class TinyGameApp : public GameLoopT< TinyGameApp , WindowsPlatform >
+				  , public WindowsMessageHandlerT< TinyGameApp , MSG_DEUFLT | MSG_DATA | MSG_DESTROY >
 				  , public StageManager
 				  , public TaskListener
 				  , public IGUIDelegate

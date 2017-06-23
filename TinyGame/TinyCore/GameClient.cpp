@@ -29,10 +29,10 @@ bool ClientWorker::doStartNetwork()
 	getEvaluator().setWorkerFun< Class >( Processer , Fun , Fun2 );
 
 #define COM_THIS_PACKET_SET( Class , Fun )\
-	COM_PACKET_SET( Class , this , &ClientWorker::##Fun , NULL )
+	COM_PACKET_SET( Class , this , &ClientWorker::Fun , NULL )
 
 #define COM_THIS_PACKET_SET_2( Class , Fun , SocketFun )\
-	COM_PACKET_SET( Class , this , &ClientWorker::##Fun , &ClientWorker::##SocketFun )
+	COM_PACKET_SET( Class , this , &ClientWorker::Fun , &ClientWorker::SocketFun )
 
 	COM_THIS_PACKET_SET ( SPConSetting , procConSetting )
 	COM_THIS_PACKET_SET ( SPPlayerStatus , procPlayerStatus )
@@ -100,14 +100,14 @@ void ClientWorker::onConnectOpen( NetConnection* con )
 	}
 }
 
-void ClientWorker::onConnectClose( NetConnection* con , ConCloseReason reason )
+void ClientWorker::onConnectClose( NetConnection* con , NetCloseReason reason )
 {
 	assert( con == &mTcpClient );
 
 	mSessoionId = 0;
 	if ( mClientListener )
 	{
-		mClientListener->onServerEvent( ClientListener::eCON_CLOSE , reason );
+		mClientListener->onServerEvent( ClientListener::eCON_CLOSE , (unsigned)reason );
 	}
 }
 
@@ -239,7 +239,7 @@ void ClientWorker::procPlayerState( IComPacket* cp)
 			 com->playerID == ERROR_PLAYER_ID )
 		{
 			if ( mClientListener )
-				mClientListener->onServerEvent(ClientListener::eCON_CLOSE, CCR_SHUTDOWN);
+				mClientListener->onServerEvent(ClientListener::eCON_CLOSE, (unsigned)NetCloseReason::ShutDown);
 			closeNetwork();
 		}
 		break;
@@ -438,7 +438,7 @@ long DelayCtrlBase::makeDelayValue()
 	return mDelay + ::Global::Random() % mDelayRand;
 }
 
-SendDelayCtrl::SendDelayCtrl( NetBufferCtrl& bufferCtrl ) 
+SendDelayCtrl::SendDelayCtrl( NetBufferOperator& bufferCtrl ) 
 	:mBufferCtrl( bufferCtrl )
 	,mBuffer( bufferCtrl.getBuffer().getMaxSize() )
 {

@@ -141,7 +141,7 @@ public:
 class TokenException : public std::exception
 {
 public:
-	EXCEPTION_CONSTRUCTOR_WITH_WHAT( TokenException )
+	STD_EXCEPTION_CONSTRUCTOR_WITH_WHAT( TokenException )
 };
 
 

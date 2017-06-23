@@ -9,6 +9,7 @@
 #include "CFRenderShape.h"
 
 #include "FileSystem.h"
+#include "StdUtility.h"
 
 namespace CFly
 {
@@ -186,7 +187,7 @@ namespace CFly
 
 	void World::_destroyViewport( Viewport* viewport )
 	{
-		if ( !removeObject( mViewports , viewport ) )
+		if ( !RemoveValue( mViewports , viewport ) )
 			return;
 		delete viewport;
 	}
@@ -301,7 +302,7 @@ namespace CFly
 
 	void World::_destroyScene( Scene* scene )
 	{
-		if ( !removeObject( mScenes , scene ) )
+		if ( !RemoveValue( mScenes , scene ) )
 			return;
 
 		delete scene;

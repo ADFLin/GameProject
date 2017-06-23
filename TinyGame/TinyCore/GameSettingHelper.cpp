@@ -15,13 +15,13 @@ void NetRoomSettingHelper::addGUIControl( GWidget* ui )
 	{
 	case UI_GAME_SETTING_PANEL:
 		{
-			mSettingPanel = GUI::castFast< GameSettingPanel* >( ui );
+			mSettingPanel = GUI::CastFast< GameSettingPanel >( ui );
 			mSettingPanel->setEventCallback( EvtCallBack( this , &NetRoomSettingHelper::onWidgetEvent ) );
 		}
 		break;
 	case UI_PLAYER_LIST_PANEL:
 		{
-			mPlayerListPanel = GUI::castFast< PlayerListPanel* >( ui );
+			mPlayerListPanel = GUI::CastFast< PlayerListPanel >( ui );
 		}
 		break;
 	}
@@ -130,7 +130,7 @@ void NetRoomSettingHelper::sendSlotStateSV()
 	mServer->sendTcpCommand( &com );
 }
 
-void NetRoomSettingHelper::addPlayerSV( PlayerId id )
+bool NetRoomSettingHelper::addPlayerSV( PlayerId id )
 {
 	assert( mServer );
 
@@ -139,12 +139,14 @@ void NetRoomSettingHelper::addPlayerSV( PlayerId id )
 	SlotId slotId = getPlayerListPanel()->addPlayer( player->getInfo() );
 	if ( slotId == ERROR_SLOT_ID )
 	{
+		return false;
 		//FIXME
 	}
 
 	player->getInfo().slot = slotId;
 	sendPlayerStatusSV();
 	sendSlotStateSV();
+	return true;
 }
 
 void NetRoomSettingHelper::sendPlayerStatusSV()

@@ -1,24 +1,36 @@
 #include "TinyGamePCH.h"
 #include "GamePlayer.h"
 
-IPlayerManager::Iterator::Iterator( IPlayerManager* _mgr )
+IPlayerManager::Iterator::Iterator( IPlayerManager* inManager )
 {
-	mgr      = _mgr;
-	numCount = (int) _mgr->getPlayerNum();
-	player   = NULL;
+	mManager      = inManager;
+	mPlayerCount = (int) inManager->getPlayerNum();
+	mPlayer = nullptr;
 	goNext();
 }
 
 void IPlayerManager::Iterator::goNext()
 {
-	unsigned idxCount = ( player ) ? ( player->getId() + 1 ) : 0;
-	while( numCount > 0 )
+	if ( mPlayerCount )
 	{
-		player = mgr->getPlayer( idxCount );
-		if ( player )
-			break;
+		PlayerId idNext = (mPlayer) ? PlayerId(mPlayer->getId() + 1) : PlayerId(0);
 
-		++idxCount;
+		int count = 0;
+		for(; count < MAX_PLAYER_NUM; ++count)
+		{
+			mPlayer = mManager->getPlayer(idNext);
+			if( mPlayer )
+				break;
+			++idNext;
+		}
+		if( count == MAX_PLAYER_NUM )
+		{
+			mPlayerCount = 0;
+		}
+		--mPlayerCount;
 	}
-	--numCount;
+	else
+	{
+		mPlayer = nullptr;
+	}
 }

@@ -70,6 +70,13 @@ public:
 	virtual void        closeNetwork() = 0;
 };
 
+class IDebugInterface
+{
+public:
+	~IDebugInterface(){}
+	virtual void clearDebugMsg() = 0;
+};
+
 class Global
 {
 public:
@@ -79,9 +86,10 @@ public:
 	static GAME_API void RandSeed(unsigned seed );
 
 	static GAME_API GameInstanceManager& GameManager();
-	static GAME_API IGameNetInterface&  GameNet();
-	static GAME_API PropertyKey&        GameSetting();
-	static GAME_API GUISystem&          GUI();
+	static GAME_API IGameNetInterface&   GameNet();
+	static GAME_API IDebugInterface&     Debug();
+	static GAME_API PropertyKey&         GameSetting();
+	static GAME_API GUISystem&           GUI();
 	
 	static GAME_API DrawEngine*   getDrawEngine();
 	static GAME_API Graphics2D&   getGraphics2D();
@@ -89,7 +97,7 @@ public:
 	static GAME_API IGraphics2D&  getIGraphics2D();
 
 	static GAME_API UserProfile&  getUserProfile();
-	
+
 };
 
 class Uncopiable

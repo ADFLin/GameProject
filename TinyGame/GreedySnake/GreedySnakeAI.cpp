@@ -8,7 +8,7 @@ namespace GreedySnake
 
 	SnakeAI::SnakeAI( Scene& scene , unsigned id ) 
 		:mScene( scene )
-		,mInfo( scene.getLevel().getSnakeInfo( id ) )
+		,hostSnake( scene.getLevel().getSnake( id ) )
 	{
 
 	}
@@ -88,7 +88,7 @@ namespace GreedySnake
 	DirType SnakeAI::decideMoveDir()
 	{
 		Level& level = mScene.getLevel();
-		Snake::Body const& head = mInfo.snake->getHead();
+		SnakeBody::Element const& head = hostSnake.getBody().getHead();
 		DirType frontDir = head.dir;
 		DirType leftDir  = ( head.dir + 3 ) % 4;
 		DirType rightDir = ( head.dir + 1 ) % 4;
@@ -169,17 +169,17 @@ namespace GreedySnake
 		if ( !beUpdateFrame )
 			return false;
 
-		if ( mInfo.curMoveCount + mInfo.moveSpeed < Level::MoveCount )
+		if ( hostSnake.moveCountAcc + hostSnake.moveSpeed < Level::MoveCount )
 			return false;
 
 		mMoveDir = decideMoveDir();
 
-		return mMoveDir != mInfo.snake->getMoveDir();
+		return mMoveDir != hostSnake.getMoveDir();
 	}
 
 	bool SnakeAI::checkAction( ActionParam& param )
 	{
-		if ( param.port != mInfo.id )
+		if ( param.port != hostSnake.id )
 			return false;
 		return mMoveDir == param.act;
 	}

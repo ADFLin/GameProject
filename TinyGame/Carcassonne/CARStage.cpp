@@ -184,18 +184,22 @@ namespace CAR
 
 	void LevelStage::onEnd()
 	{
-		cleanupGameData();
+		cleanupGameData( true );
 		if ( mSurfaceBufferTake )
 			mSurfaceBufferTake->Release();
 		CFly::cleanupSystem();
 	}
 
-	void LevelStage::cleanupGameData()
-	{
+	void LevelStage::cleanupGameData(bool bEndStage)
+{
 		mInput.exitGame();
-		for( int i = 0; i < mRenderObjects.size(); ++i )
+		if ( !bEndStage )
 		{
-			mRenderObjects[i]->release();
+			for( int i = 0; i < mRenderObjects.size(); ++i )
+			{
+				mRenderObjects[i]->release();
+			}
+			mRenderObjects.clear();
 		}
 #if CAR_USE_INPUT_COMMAND
 		std::for_each(mInputCommands.begin(), mInputCommands.end(), [](auto com) { delete com; });
@@ -206,7 +210,7 @@ namespace CAR
 	{
 		if ( !bInit )
 		{
-			cleanupGameData();
+			cleanupGameData(false);
 		}
 
 		mMoudule.restart( bInit );
@@ -1492,8 +1496,7 @@ namespace CAR
 
 	void LevelStage::setupScene(IPlayerManager& playerManager)
 	{
-		for( IPlayerManager::Iterator iter = playerManager.getIterator();
-			iter.haveMore() ; iter.goNext() )
+		for( auto iter = playerManager.createIterator(); iter; ++iter )
 		{
 			GamePlayer* player = iter.getElement();
 			switch( player->getType() )

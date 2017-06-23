@@ -18,10 +18,10 @@ namespace GreedySnake
 	public:
 		char const*                getName(){ return GREEDY_SNAKE_NAME;  }
 
-		virtual GameController&    getController(){ return mController; }
-		virtual StageBase*         createStage(unsigned id);
-		virtual SettingHepler*     createSettingHelper( SettingHelperType type );
-		virtual bool               getAttribValue( AttribValue& value );
+		virtual GameController&    getController() override { return mController; }
+		virtual StageBase*         createStage(unsigned id) override;
+		virtual SettingHepler*     createSettingHelper( SettingHelperType type ) override;
+		virtual bool               getAttribValue( AttribValue& value ) override;
 
 		SimpleController   mController;
 	};

@@ -30,13 +30,20 @@ public:
 	void       beginFrame();
 	void       endFrame();
 	void       addFrameData( long frame , DataSteamBuffer& buffer );
-	bool       checkUpdateFrame();
+	bool       canAdvanceFrame();
 	void       setFrame( unsigned frame ){ mCurFrame = frame; }
 	long       getFrame(){ return mCurFrame; }
 
 	void       restoreData( IFrameActionTemplate* actionTemp );
 	bool       haveFrameData(){ return !mProcessData.empty();  }
 	long       getLastDataFrame(){ return mLastDataFrame;  }
+
+	void       clearData()
+	{
+		mProcessData.clear();
+		FrameDataQueue emptyQueue;
+		mDataQueue.swap(emptyQueue);
+	}
 
 	typedef std::list< DataSteamBuffer > DataList;
 	struct FrameData
@@ -77,6 +84,8 @@ public:
 
 protected:
 
+	bool  bClearData;
+
 	ActionProcessor       mProcessor;
 	FrameDataManager      mFrameMgr;
 	IFrameActionTemplate* mActionTemplate;
@@ -84,7 +93,7 @@ protected:
 };
 
 class SVSyncFrameManager : public CSyncFrameManager
-	                     , public NetMessageListener
+	                     , public INetStateListener
 {
 	typedef CSyncFrameManager BaseClass;
 public:
@@ -100,6 +109,8 @@ public:
 	void     onChangeActionState( NetActionState state );
 
 	void     fireAction( ActionTrigger& trigger );
+
+	void      resetFrameData();
 	void     release();
 
 private:
@@ -108,8 +119,8 @@ private:
 
 	TPtrHolder< GDPFrameStream >   mFrameStream;
 	unsigned         mCountDataDelay;
-	unsigned         mLocalDataBit;
-	unsigned         mCheckDataBit;
+	unsigned         mLocalDataBits;
+	unsigned         mCheckDataBits;
 	unsigned         mUpdateDataBit;
 
 	struct ClientFrameData
@@ -133,6 +144,7 @@ public:
 
 	bool sendFrameData();
 	void fireAction( ActionTrigger& trigger );
+	void resetFrameData();
 	void release();
 private:
 	void procFrameData( IComPacket* cp);

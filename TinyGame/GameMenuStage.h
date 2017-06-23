@@ -4,7 +4,7 @@
 #include "StageBase.h"
 #include "DrawEngine.h"
 
-#include "SysMsg.h" // TVec2D
+#include "SystemMessage.h" // TVec2D
 #include <list>
 
 class TaskBase;

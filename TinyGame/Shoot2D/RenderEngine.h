@@ -2,7 +2,7 @@
 #define RenderEngine_H
 
 #include "CommonFwd.h"
-#include "Win32Header.h"
+#include "WindowsHeader.h"
 #include "BitmapDC.h"
 
 

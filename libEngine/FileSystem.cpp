@@ -10,6 +10,7 @@
 
 bool FileSystem::isExist( char const* path )
 {
+#ifdef SYS_PLATFORM_WIN
 	WIN32_FIND_DATAA data;
 	HANDLE hFind = ::FindFirstFileA( path , &data );
 	if ( hFind == INVALID_HANDLE_VALUE )
@@ -17,6 +18,9 @@ bool FileSystem::isExist( char const* path )
 
 	::FindClose( hFind );
 	return true;
+#else
+	return false;
+#endif
 }
 
 bool FileSystem::findFile( char const* dir , char const* subName , FileIterator& iter )

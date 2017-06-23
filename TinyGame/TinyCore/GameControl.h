@@ -2,7 +2,7 @@
 #define GameControl_h__
 
 #include "GameGlobal.h"
-#include "SysMsg.h"
+#include "SystemMessage.h"
 
 #include <cassert>
 #include <cstdio>

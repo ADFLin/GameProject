@@ -253,6 +253,7 @@ void PlayerListPanel::addSlotFrameAnim( SlotFrame* frame , SlotId destId )
 	Vec2i pos = calcSlotFramePos( destId );
 	long time = abs( pos.y - frame->getPos().y ) * 2;
 
+	//::Global::GUI().addMotion< Easing::OBounce >(frame, frame->getPos(), pos, time);
 	UIMotionTask* task = new UIMotionTask( frame , pos , time , WMT_LINE_MOTION );
 	::Global::GUI().addTask( task , false );
 }
@@ -264,6 +265,7 @@ void PlayerListPanel::procSlotFrameMouseMsg( SlotFrame* frame , MouseMsg const& 
 		mDragFrame = frame;
 		setTop();
 		frame->setTop();
+		//::Global::GUI().getManager().captureMouse( mDragFrame );
 	}
 	else if ( msg.onLeftUp() )
 	{
@@ -276,7 +278,7 @@ void PlayerListPanel::procSlotFrameMouseMsg( SlotFrame* frame , MouseMsg const& 
 
 			std::swap( mPlayerSlots[ idx1 ] , mPlayerSlots[ idx2 ] );
 			std::swap( mSwapFrame->getSlot().id , mDragFrame->getSlot().id );
-
+			//::Global::GUI().getManager().releaseMouse();
 			sendEvent( EVT_SLOT_CHANGE );
 		}
 		else if ( mDragFrame )
@@ -289,9 +291,10 @@ void PlayerListPanel::procSlotFrameMouseMsg( SlotFrame* frame , MouseMsg const& 
 	}
 	else if ( msg.isLeftDown() && msg.onMoving() )
 	{
+		::Msg("mouse Pos = %d %d", msg.getPos().x, msg.getPos().y);
 		SlotId swapId = calcSoltId( frame->getPos().y );
 
-		if ( swapId < getSlotNum() && swapId != ERROR_SLOT_ID )
+		if ( swapId != ERROR_SLOT_ID )
 		{
 			if ( mSwapFrame && mSwapFrame->getSlot().id != swapId )
 			{

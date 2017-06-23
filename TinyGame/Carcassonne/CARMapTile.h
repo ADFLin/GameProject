@@ -214,7 +214,7 @@ namespace CAR
 		int         group;
 		int         towerHeight;
 		uint8       bridgeMask;
-		void*       renderData;
+		void*       userData;
 		bool        haveHill;
 		//HalflingTile
 		TileId      mergedTileId[2];

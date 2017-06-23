@@ -103,7 +103,7 @@ namespace Poker { namespace Big2 {
 		TrickHelper helper;
 		helper.parse( &cards[0]  , (int)cards.size() );
 
-		numBig2 = helper.getFaceNum( Card::toRank( Card::eN2 ) );
+		numBig2 = helper.getFaceNum( Card::ToRank( Card::eN2 ) );
 
 		int factor = 1;
 		for( int i = 0 ; i < numBig2 ; ++i )
@@ -168,7 +168,7 @@ namespace Poker { namespace Big2 {
 		for( int i = 0 ; i < 52 ; ++i )
 			std::swap( cardIndex[i] , cardIndex[ random.getInt() % 52 ] );
 
-		int idxClubs2 = Card::toIndex( Card::eCLUBS , Card::eN3 );
+		int idxClubs2 = Card::ToIndex( Card::eCLUBS , Card::eN3 );
 		int startSlot = 0;
 		for( int i = 0 ; i < 52 ; ++i )
 		{

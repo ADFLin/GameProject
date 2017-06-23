@@ -72,7 +72,7 @@ namespace Poker { namespace Holdem {
 			switch( event )
 			{
 			case EVT_TEXTCTRL_CHANGE:
-				char const* str = GUI::castFast< GTextCtrl* >( ui )->getValue();
+				char const* str = GUI::CastFast< GTextCtrl >( ui )->getValue();
 				if ( str )
 				{
 					char* end;
@@ -87,7 +87,7 @@ namespace Poker { namespace Holdem {
 			break;
 		case UI_RISE_MONEY:
 			{
-				int money = GUI::castFast< GSlider* >( ui )->getValue();
+				int money = GUI::CastFast< GSlider >( ui )->getValue();
 				setRiseMoney( money );
 			}
 			return false;
@@ -204,7 +204,7 @@ namespace Poker { namespace Holdem {
 			Card const& card = mLevel->getCommunityCard( i );
 			str += "[";
 			str += suit[ card.getSuit() ];
-			str += Card::toString( card.getFace() );
+			str += Card::ToString( card.getFace() );
 			str += "]";
 
 			mCardDraw->draw( g , tableCenterPos + Vec2i( i * CommunityCardOffset - ComunityCardGroupOffset , -mCardSize.y/2 ) , card );
@@ -221,7 +221,7 @@ namespace Poker { namespace Holdem {
 					Card card = mLevel->getPoketCard(i);
 					str += "[";
 					str += suit[card.getSuit()];
-					str += Card::toString(card.getFace());
+					str += Card::ToString(card.getFace());
 					str += "]";
 				}
 			}
@@ -309,7 +309,7 @@ namespace Poker { namespace Holdem {
 	{
 		Graphics2D& g = ::Global::getGraphics2D();
 
-		SlotPanel* panel = GUI::castFast< SlotPanel* >( widget );
+		SlotPanel* panel = GUI::CastFast< SlotPanel >( widget );
 		SlotInfo& info = getLevel().getSlotInfo( panel->slotPos );
 		Vec2i worldPos = widget->getWorldPos();
 

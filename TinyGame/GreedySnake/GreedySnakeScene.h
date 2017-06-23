@@ -16,16 +16,9 @@ namespace GreedySnake
 		ACT_GS_MOVE_S ,
 		ACT_GS_MOVE_W ,
 		ACT_GS_MOVE_N ,
+		ACT_GS_CHANGE_DIR ,
 	};
 
-
-	enum DirEnum
-	{
-		DIR_EAST  = 0,
-		DIR_SOUTH = 1,
-		DIR_WEST  = 2,
-		DIR_NORTH = 3,
-	};
 
 	enum FoodType 
 	{
@@ -33,6 +26,8 @@ namespace GreedySnake
 		FOOD_SPEED_SLOW ,
 		FOOD_SPEED_UP   ,
 		FOOD_CONFUSED   ,
+
+		NumFoodType ,
 	};
 
 	class Mode
@@ -43,10 +38,13 @@ namespace GreedySnake
 		virtual void setupLevel( IPlayerManager& playerManager ) = 0;
 		virtual void prevLevelTick(){}
 		virtual void postLevelTick(){}
-		virtual void onEatFood( SnakeInfo& info , FoodInfo& food ){}
-		virtual void onCollideSnake( SnakeInfo& snake , SnakeInfo& colSnake ){}
-		virtual void onCollideTerrain( SnakeInfo& snake , int type ){}
+		virtual void onEatFood( Snake& info , FoodInfo& food ){}
+		virtual void onCollideSnake( Snake& snake , Snake& colSnake ){}
+		virtual void onCollideTerrain( Snake& snake , int type ){}
 		Scene& getScene(){ return *mScene; }
+
+
+		void applyDefaultEffect(Snake& snake , FoodInfo const& food );
 	private:
 		friend class Scene;
 		Scene* mScene;
@@ -60,7 +58,7 @@ namespace GreedySnake
 
 	struct GameInfo
 	{
-		Level::MapType mapType;
+		Level::MapBoundType mapType;
 		GameMode       mode;
 		size_t         numPlayer;
 	};
@@ -86,26 +84,17 @@ namespace GreedySnake
 
 		void render( Graphics2D& g , float dFrame );
 		//Level::Listener
-		void onEatFood( SnakeInfo& info , FoodInfo& food );
-		void onCollideSnake( SnakeInfo& snake , SnakeInfo& colSnake );
-		void onCollideTerrain( SnakeInfo& snake , int type );
+		void onEatFood( Snake& snake , FoodInfo& food );
+		void onCollideSnake( Snake& snake , Snake& colSnake );
+		void onCollideTerrain( Snake& snake , int type );
 
 
-		void  fireSnakeAction( ActionTrigger& trigger );
+		
+		void  fireSnakeAction(ActionTrigger& trigger);
 		void  fireAction( ActionTrigger& trigger );
 
 		void  killSnake( unsigned id );
-
-		void  changeSnakeMoveDir( unsigned id , DirEnum dir );
-
-		class RenderVisitor
-		{
-		public:
-			RenderVisitor( Graphics2D& _g ):g(_g){}
-			void visit( FoodInfo const& info );
-
-			Graphics2D& g;
-		};
+		void  changeSnakeMoveDir(Snake& snake, DirEnum dir);
 
 		static int const BlockSize  = 20;
 		static int const SnakeWidth = 14;
@@ -113,18 +102,17 @@ namespace GreedySnake
 
 		void productRandomFood( int type );
 
-		void drawSnake( Graphics2D& g , SnakeInfo& info , float dFrame );
-		void drawSnakeBody( Graphics2D& g , Snake& snake , int color , int offset );
-		void drawFood( Graphics2D& g )
-		{
-			getLevel().visitFood( RenderVisitor( g ) );
-		}
+		void drawSnake( Graphics2D& g , Snake& snake, float dFrame );
+		void drawSnakeBody(Graphics2D& g, Snake& snake, int color, int offset);
+		void drawFood( Graphics2D& g );
 
 		Level& getLevel(){  return mLevel;  }
 		void   setOver(){ mIsOver = true; }
 
 		bool   isOver(){ return mIsOver; }
 
+
+		long    mFrame;
 		bool    mIsOver;
 		Level   mLevel;
 		Mode&   mMode;

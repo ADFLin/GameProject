@@ -17,8 +17,8 @@ namespace Poker
 	class Cell
 	{
 	public:
-		static bool testStackRule( Card const& top , Card const& bottom );
-		static bool testGoalRule( Card const& top , Card const& bottom );
+		static bool TestStackRule( Card const& top , Card const& bottom );
+		static bool TestGoalRule( Card const& top , Card const& bottom );
 
 		enum Type
 		{
@@ -66,10 +66,10 @@ namespace Poker
 	};
 
 
-	class SCell : public Cell 
+	class StackCell : public Cell 
 	{
 	public:
-		SCell():Cell( Cell::eSTACK ){ mCards.reserve( 20 ); }
+		StackCell():Cell( Cell::eSTACK ){ mCards.reserve( 20 ); }
 
 		bool  isEmpty()    const { return mCards.empty(); }
 		int   getCardNum() const { return (int)mCards.size(); }
@@ -81,15 +81,10 @@ namespace Poker
 
 		Card const& getCard(size_t idx) const {  return mCards[idx]; }
 
-		void moveCard(SCell& to,int num);
+		void moveCard(StackCell& to,int num);
 		void deleteCard(int num);
 
-		bool   testRule( Card const& card )
-		{ 
-			if ( isEmpty() ) 
-				return true; 
-			return Cell::testStackRule( getCard() , card );
-		}
+		bool   testRule( Card const& card );
 
 
 		typedef std::vector< Card > CGroup;
@@ -97,68 +92,54 @@ namespace Poker
 		CGroup   mCards;
 	};
 
-	class FCell : public SingleCell
+	class FreeCell : public SingleCell
 	{
 	public:
-		FCell():SingleCell( Cell::eFREE ){}
-		bool   testRule( Card const& card )
-		{
-			return isEmpty();
-		}
-	};
-
-	class GCell : public SingleCell
-	{
-	public:
-		GCell():SingleCell( Cell::eGOAL ){}
-		void   pop()
-		{
-			if ( mCard.getFace() == Card::eACE )
-				mCard = Card::None();
-			else
-				mCard = Card( mCard.getSuit() , mCard.getFaceRank() - 1 );
-		}
-
-		bool   testRule( Card const& card )
-		{
-			if ( isEmpty() )
-				return card.getFace() == Card::eACE;
-			return Cell::testGoalRule( getCard() , card );
-		}
-	};
-
-	class FreeCell
-	{
-	public:
-
 		FreeCell();
-		virtual ~FreeCell();
+		bool   testRule( Card const& card );
+	};
+
+	class GoalCell : public SingleCell
+	{
+	public:
+		GoalCell();
+
+		void   pop();
+		bool   testRule( Card const& card );
+	};
+
+	class FreeCellLevel
+	{
+	public:
+
+		FreeCellLevel();
+		virtual ~FreeCellLevel();
 		typedef   Card::Suit Suit;
 
 		void      setupGame( int seed );
-		bool      tryMoveToFCell( SCell& mc );
-		bool      tryMoveToSCell( FCell& fc );
+		bool      tryMoveToFreeCell( StackCell& mc );
+		bool      tryMoveToStackCell( FreeCell& fc );
 		bool      tryMoveCard( Cell& from , Cell& to );
-		bool      autoMoveToGCell();
+		bool      moveToGoalCellAuto();
 
-		Cell&     getCell( int index ){ assert( 0 <= index && index < TotalCellNum ); return *mCells[index]; }
-		GCell*    getGCell( Card::Suit suit );
-		SCell&    getSCell( int index ){ return mSCells[ index ]; }
+		Cell&        getCell( int index ){ assert( 0 <= index && index < TotalCellNum ); return *mCells[index]; }
+		GoalCell*    getGoalCell( Card::Suit suit );
+		StackCell&   getStackCell( int index ){ return mSCells[ index ]; }
 
-		int       getGCardNum();
+		int       getGoalCardNum();
 		int       evalMoveCardNum( Cell& from , Cell& to );
 
-		GCell*    getEmptyGCell();
-		FCell*    getEmptyFCell();
+		GoalCell*    getEmptyGoalCell();
+		FreeCell*    getEmptyFreeCell();
 
-		int       getEmptyFCellNum();
-		int       getEmptySCellNum();
+		int       getEmptyFreeCellNum();
+		int       getEmptyStackCellNum();
 
 
 		int       calcPossibleMoveNum();
 
-		static int getRuleCardNum( SCell& cell );
-		static int evalMoveCardNum( SCell& from , SCell& to);
+		static int getRuleCardNum( StackCell& cell );
+		static int evalMoveCardNum( StackCell& from , StackCell& to);
 
 		static bool isStackCell( Cell& cell );
 		static bool isFreeCell( Cell& cell );
@@ -182,16 +163,16 @@ namespace Poker
 		virtual bool preMoveCard( Cell& from , Cell& to , int num ){ return true; }
 		virtual void postMoveCard(){}
 		virtual void moveSingleCard( Cell& from ,Cell& to );
-		virtual void moveCard( SCell& form , SCell& to , int num );
+		virtual void moveCard( StackCell& form , StackCell& to , int num );
 
 		bool processMoveCard( Cell& from , Cell& to , int num );
-		bool autoToGCell( Cell& cell , int blackRank , int redRank );
+		bool moveToGoalCellAuto( Cell& cell , int blackRank , int redRank );
 
 	private:
-		SCell   mSCells[ SCellNum ];
-		FCell   mFCells[ FCellNum ];
-		GCell   mGCells[4];
-		Cell*   mCells[ TotalCellNum ];
+		StackCell  mSCells[ SCellNum ];
+		FreeCell   mFCells[ FCellNum ];
+		GoalCell   mGCells[4];
+		Cell*      mCells[ TotalCellNum ];
 
 	};
 

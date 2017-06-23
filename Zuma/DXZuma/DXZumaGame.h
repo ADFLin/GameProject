@@ -3,7 +3,7 @@
 #include "GameLoop.h"
 #include "D3DWinPlatform.h"
 #include "ZumaGame.h"
-#include "SysMsgHandler.h"
+#include "WindowsMessageHander.h"
 
 #include "D3D9RenderSystem.h"
 

@@ -2,7 +2,7 @@
 #define RichPCH_h__
 
 #include "RichBase.h"
-#include "Win32Header.h"
+#include "WindowsHeader.h"
 
 
 #endif // RichPCH_h__

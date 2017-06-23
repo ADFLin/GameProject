@@ -10,7 +10,7 @@ namespace GreedySnake
 		Level& level = getScene().getLevel();
 		if ( beInit )
 		{
-			level.setupMap( 21 , 21 , Level::eMAP_CLIFF );
+			level.setupMap( 21 , 21 , Level::Cliff );
 		}
 		else
 		{
@@ -18,16 +18,15 @@ namespace GreedySnake
 			level.removeAllSnake();
 		}
 
-		SnakeInfo* snakeInfo = level.addSnake( Vec2i(10,10) , 0 , 5 );
-		getScene().productRandomFood( FOOD_GROW );
+		Snake* snake = level.addSnake( Vec2i(10,10) , 0 , 5 );
+		getScene().productRandomFood(FOOD_GROW);
 	}
 
 	void SurvivalMode::setupLevel( IPlayerManager& playerManager )
 	{
 		Level& level = getScene().getLevel();
 
-		for( IPlayerManager::Iterator iter = playerManager.getIterator(); 
-			 iter.haveMore() ; iter.goNext() )
+		for( auto iter = playerManager.createIterator(); iter; ++iter )
 		{
 			GamePlayer* player = iter.getElement();
 			if( player->getType() == PT_SPECTATORS )
@@ -37,18 +36,18 @@ namespace GreedySnake
 		}
 	}
 
-	void SurvivalMode::onEatFood( SnakeInfo& info , FoodInfo& food )
+	void SurvivalMode::onEatFood( Snake& snake , FoodInfo& food )
 	{
-		info.snake->growBody();
-		getScene().productRandomFood( FOOD_GROW );
+		applyDefaultEffect(snake, food);
+		getScene().productRandomFood( ::Global::RandomNet() %  NumFoodType );
 	}
 
-	void SurvivalMode::onCollideSnake( SnakeInfo& snake , SnakeInfo& colSnake )
+	void SurvivalMode::onCollideSnake( Snake& snake , Snake& colSnake )
 	{
 		snake.stateBit |= SS_DEAD;
 		getScene().setOver();
 	}
-	void SurvivalMode::onCollideTerrain( SnakeInfo& snake , int type )
+	void SurvivalMode::onCollideTerrain( Snake& snake , int type )
 	{
 		snake.stateBit |= SS_DEAD;
 		getScene().setOver();
@@ -60,7 +59,7 @@ namespace GreedySnake
 		Level& level = getScene().getLevel();
 		if ( beInit )
 		{
-			level.setupMap( 21 , 21 , Level::eMAP_CLIFF );
+			level.setupMap( 21 , 21 , Level::WarpXY);
 			std::fill_n( mWinRound , gMaxPlayerNum , 0 );
 		}
 		else
@@ -79,17 +78,19 @@ namespace GreedySnake
 		};
 		for( unsigned i = 0 ; i < mNumPlayer ; ++i )
 		{
-			SnakeInfo* snakeInfo = level.addSnake( spawnPos[i] , DirType(i) , 3 );
+			Snake* snake = level.addSnake( spawnPos[i] , DirType(i) , 3 );
 		}
 
 		mNumAlivePlayer = mNumPlayer;
+
+		for( int i = 0; i < mNumPlayer ; ++i )
+			getScene().productRandomFood(::Global::RandomNet() % NumFoodType);
 	}
 
 	void BattleMode::setupLevel( IPlayerManager& playerManager )
 	{
 		mNumPlayer = 0;
-		for( IPlayerManager::Iterator iter = playerManager.getIterator(); 
-			iter.haveMore() ; iter.goNext() )
+		for( auto iter = playerManager.createIterator(); iter; ++iter )
 		{
 			GamePlayer* player = iter.getElement();
 			if( player->getType() == PT_SPECTATORS )
@@ -100,18 +101,17 @@ namespace GreedySnake
 		}
 	}
 
-	void BattleMode::onCollideSnake( SnakeInfo& snake , SnakeInfo& colSnake )
+	void BattleMode::onCollideSnake( Snake& snake , Snake& colSnake )
 	{
-		killSnake(snake);
-
+		//killSnake(snake);
 	}
 
-	void BattleMode::onCollideTerrain( SnakeInfo& snake , int type )
+	void BattleMode::onCollideTerrain( Snake& snake , int type )
 	{
 		killSnake( snake );
 	}
 
-	void BattleMode::killSnake( SnakeInfo &snake )
+	void BattleMode::killSnake( Snake &snake )
 	{
 		Level& level = getScene().getLevel();
 
@@ -124,19 +124,20 @@ namespace GreedySnake
 
 			for( unsigned i = 0 ; i < (unsigned)level.getSnakeNum(); ++i )
 			{
-				SnakeInfo& info = level.getSnakeInfo( i );
-				if ( info.stateBit & SS_DEAD )
+				Snake& snake = level.getSnake( i );
+				if ( snake.stateBit & SS_DEAD )
 					continue;
 
-				mWinRound[ info.id ] += 1;
+				mWinRound[ snake.id ] += 1;
 				break;
 			}
 		}
 	}
 
-	void BattleMode::onEatFood( SnakeInfo& info , FoodInfo& food )
+	void BattleMode::onEatFood( Snake& snake , FoodInfo& food )
 	{
-
+		applyDefaultEffect(snake, food);
+		getScene().productRandomFood(::Global::RandomNet() % NumFoodType);
 	}
 
 }//namespace GreedySnake

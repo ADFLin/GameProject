@@ -1,8 +1,8 @@
 #include "rcPCH.h"
 
 #include "GameLoop.h"
-#include "Win32Platform.h"
-#include "SysMsgHandler.h"
+#include "WindowsPlatform.h"
+#include "WindowsMessageHander.h"
 #include "ProfileSystem.h"
 
 #include "rcBase.h"
@@ -171,9 +171,9 @@ public:
 	TMessageShow msgShow;
 };
 
-class RomeCityGame : public GameLoopT< RomeCityGame , Win32Platform >
+class RomeCityGame : public GameLoopT< RomeCityGame , WindowsPlatform >
 				   , public WinFrameT< RomeCityGame >
-				   , public SysMsgHandlerT< RomeCityGame >
+				   , public WindowsMessageHandlerT< RomeCityGame >
 {
 public:
 	RomeCityGame(){}
@@ -184,7 +184,7 @@ public:  //GameCore
 	{
 		PROFILE_ENTRY( "Game::Init" )
 
-			if ( !WinFrame::create( TEXT("Tetris") , 800 , 600 , SysMsgHandler::MsgProc  ) )
+			if ( !WinFrame::create( TEXT("Tetris") , 800 , 600 , WindowsMessageHandler::MsgProc  ) )
 			return false;
 
 		mRenderSystem.reset( new rcRenderSystem( getHWnd() , getHDC() ) );

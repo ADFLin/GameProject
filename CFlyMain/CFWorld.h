@@ -105,24 +105,6 @@ namespace CFly
 		typedef std::vector< Viewport* > ViewportList;
 		typedef std::vector< Scene* >  SceneList;
 
-		template< class T >
-		bool removeObject( std::vector< T >& vec , T ptr )
-		{
-			for( int i = 0 ; i < vec.size(); ++i )
-			{
-				if ( vec[i] == ptr )
-				{
-					vec[i] = vec.back();
-					vec.pop_back();
-					return true;
-				}
-			}
-			return false;
-		}
-
-
-		
-
 		RenderSystem*     mRenderSystem;
 		MeshCreator*      mMeshCreator;	
 

@@ -404,7 +404,7 @@ char const* CXmlNodeBase::getProperty( char const* key , char const* value )
 	return iter->second.data().c_str();
 }
 
-IXmlDocumentPtr IXmlDocument::createFromFile( char const* path )
+IXmlDocumentPtr IXmlDocument::CreateFromFile( char const* path )
 {
 	try
 	{

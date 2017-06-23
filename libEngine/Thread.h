@@ -9,7 +9,7 @@
 uint32 const WAIT_TIME_INFINITE = 0xffffffff;
 
 #if SYS_PLATFORM_WIN
-#include "Win32Header.h"
+#include "WindowsHeader.h"
 #include <process.h>
 
 class WinThread

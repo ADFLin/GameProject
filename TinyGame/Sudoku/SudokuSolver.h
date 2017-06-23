@@ -371,6 +371,7 @@ CHECK_SIMPLE:
 			mIndex = mNextIndex[ index ];
 		}
 		bool haveMore() const { return mIndex != -1; }
+		operator bool() const { return haveMore();  }
 
 		int  getCellIndex() const { return mIndex; }
 		int  operator *( void ) const { return getCellIndex(); }
@@ -476,7 +477,7 @@ protected:
 #define INDEX_CHECK( G , g )\
 		{\
 			Iterator iter;\
-			for( iter.setGroupIndex( G , g ); iter.haveMore() ; ++iter )\
+			for( iter.setGroupIndex( G , g ); iter ; ++iter )\
 			{\
 				indexCheck[iter.getCellIndex()] = true;\
 			}\
@@ -498,7 +499,7 @@ protected:
 	void removeGroupNumBit( Group group , int idxGroup , int numBits )
 	{
 		Iterator iter;
-		for( iter.setGroupIndex( group ,idxGroup ); iter.haveMore() ; ++iter  )
+		for( iter.setGroupIndex( group ,idxGroup ); iter ; ++iter  )
 			removeNumBit( iter.getCellIndex() , numBits );
 	}
 

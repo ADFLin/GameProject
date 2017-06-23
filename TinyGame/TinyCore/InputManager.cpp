@@ -1,7 +1,7 @@
 #include "TinyGamePCH.h"
 #include "InputManager.h"
 
-#include "Win32Header.h"
+#include "WindowsHeader.h"
 
 #include <algorithm>
 

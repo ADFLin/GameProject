@@ -231,12 +231,6 @@
     <ClInclude Include="StreamBuffer.h">
       <Filter>標頭檔</Filter>
     </ClInclude>
-    <ClInclude Include="SysMsg.h">
-      <Filter>標頭檔</Filter>
-    </ClInclude>
-    <ClInclude Include="SysMsgHandler.h">
-      <Filter>標頭檔</Filter>
-    </ClInclude>
     <ClInclude Include="TaskBase.h">
       <Filter>標頭檔</Filter>
     </ClInclude>
@@ -301,15 +295,6 @@
       <Filter>Platform</Filter>
     </ClInclude>
     <ClInclude Include="WGLContext.h">
-      <Filter>Platform</Filter>
-    </ClInclude>
-    <ClInclude Include="Win32File.h">
-      <Filter>Platform</Filter>
-    </ClInclude>
-    <ClInclude Include="Win32Header.h">
-      <Filter>Platform</Filter>
-    </ClInclude>
-    <ClInclude Include="Win32Platform.h">
       <Filter>Platform</Filter>
     </ClInclude>
     <ClInclude Include="Win32ProfileViewer.h">
@@ -590,6 +575,21 @@
     </ClInclude>
     <ClInclude Include="MemorySecurity.h">
       <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="SystemMessage.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="WindowsMessageHander.h">
+      <Filter>Platform</Filter>
+    </ClInclude>
+    <ClInclude Include="WindowsFileSystem.h">
+      <Filter>Platform</Filter>
+    </ClInclude>
+    <ClInclude Include="WindowsHeader.h">
+      <Filter>Platform</Filter>
+    </ClInclude>
+    <ClInclude Include="WindowsPlatform.h">
+      <Filter>Platform</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

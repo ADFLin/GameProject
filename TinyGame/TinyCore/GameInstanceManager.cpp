@@ -1,7 +1,7 @@
 #include "TinyGamePCH.h"
 #include "GameInstanceManager.h"
 #include "GameControl.h"
-#include "Win32Header.h"
+#include "WindowsHeader.h"
 
 bool GameInstanceManager::registerGame( IGameInstance* game , HMODULE hModule )
 {
@@ -31,45 +31,32 @@ void GameInstanceManager::cleanup()
 		mGameRunning->exit();
 	mGameRunning = NULL;
 
-	struct CleanupVisit
+	visitInternal( [](GameInfo& info) ->bool
 	{
-		bool visit( GameInfo& info )
-		{
-			info.instance->cleanup();
-			info.instance->deleteThis();
-			::FreeLibrary(info.hModule);
-			return true;
-		}
-	};
-	CleanupVisit visitor;
-	visitInternal( visitor );
+		info.instance->cleanup();
+		info.instance->deleteThis();
+		::FreeLibrary(info.hModule);
+		return true;
+	});
+
 	mPackageMap.clear();
 	mGameInfos.clear();
 }
 
 void GameInstanceManager::classifyGame( int attrID , GameInstanceVec& games )
 {
-	struct ClassifyVisit
+	visitInternal( [ attrID , &games ](GameInfo& info)-> bool
 	{
-		ClassifyVisit( int id  , GameInstanceVec& games )
-			:attrValue( id ),games( games ){}
-		bool visit(GameInfo& info)
+		AttribValue    attrValue(attrID);
+		if( info.instance->getAttribValue(attrValue) )
 		{
-			if ( info.instance->getAttribValue( attrValue ) ) 
+			if( attrValue.iVal )
 			{
-				if ( attrValue.iVal )
-				{
-					games.push_back(info.instance);
-				}
+				games.push_back(info.instance);
 			}
-			return true;
 		}
-		GameInstanceVec& games;
-		AttribValue     attrValue;
-	};
-
-	ClassifyVisit visitor( attrID , games );
-	visitInternal( visitor );
+		return true;
+	});
 }
 
 IGameInstance* GameInstanceManager::findGame( char const* name )

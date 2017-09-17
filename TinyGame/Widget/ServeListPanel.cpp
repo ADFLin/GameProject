@@ -23,7 +23,7 @@ ServerListPanel::ServerListPanel( ClientWorker* worker, Vec2i const& pos , GWidg
 	mConButton->enable( false );
 
 	mIPTextCtrl = new GTextCtrl( UI_ANY , Vec2i( 10 , 240 ) , 120 , this );
-	mIPTextCtrl->setValue( Global::GameSetting().getStringValue( "LastConServer" , "Net" , "0.0.0.0" ) );
+	mIPTextCtrl->setValue( Global::GameConfig().getStringValue( "LastConServer" , "Net" , "0.0.0.0" ) );
 
 	button= new GButton( UI_ADD_SERVER ,  Vec2i( 135 , 240 - 1 ) , Vec2i( 80 , 20 ) , this );
 	button->setTitle( LAN("Add") );
@@ -115,7 +115,7 @@ void ServerListPanel::onServerEvent( ClientListener::EventID event , unsigned ms
 		if ( msg )
 		{
 			ServerInfo* info = ( ServerInfo* ) mServerListCtrl->getSelectedItemData();
-			Global::GameSetting().setKeyValue( "LastConServer" , "Net" ,info->ip.c_str() );
+			Global::GameConfig().setKeyValue( "LastConServer" , "Net" ,info->ip.c_str() );
 		}
 		else
 		{

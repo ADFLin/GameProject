@@ -11,7 +11,7 @@ namespace Zuma
 {
 	//using std::tr1::shared_ptr;
 
-	typedef TVector2< float > Vec2D;
+	typedef TVector2< float > Vec2f;
 
 
 	class IRenderSystem;

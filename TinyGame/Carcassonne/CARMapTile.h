@@ -114,8 +114,9 @@ namespace CAR
 		bool   isHalflingType() const { return mTile->isHalflingType(); }
 
 		TilePiece::SideData const& getHalflingSideData() { assert(mTile->isHalflingType()); return mTile->sides[IndexHalflingSide]; }
-		void addActor( LevelActor& actor );
-		void removeActor(LevelActor& actor);
+
+		void   addActor( LevelActor& actor );
+		void   removeActor(LevelActor& actor);
 
 		void connectSide( int dir , MapTile& data );
 		void connectFarm( int idx , MapTile& data );
@@ -131,6 +132,10 @@ namespace CAR
 		int      getSideGroup( int dir ) const;
 		int      getFarmGroup( int idx ) const;
 
+		bool     have(TileContent::Enum context) const
+		{
+			return !!(mTile->contentFlag & context);
+		}
 		unsigned getSideContnet( int dir ) const;
 		unsigned getTileContent() const;
 

@@ -82,6 +82,9 @@
     <Filter Include="Shader\Game">
       <UniqueIdentifier>{ee644861-e77a-4284-98fc-54cb6cbc000b}</UniqueIdentifier>
     </Filter>
+    <Filter Include="ECS">
+      <UniqueIdentifier>{b1ec9003-b01e-4075-9e33-6214e9ca409f}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Bsp2D.cpp">
@@ -293,6 +296,21 @@
     </ClCompile>
     <ClCompile Include="Stage\StickMoveStage.cpp">
       <Filter>Stage</Filter>
+    </ClCompile>
+    <ClCompile Include="Stage\FluidSimStage.cpp">
+      <Filter>Stage</Filter>
+    </ClCompile>
+    <ClCompile Include="Stage\StageRegister.cpp">
+      <Filter>Stage</Filter>
+    </ClCompile>
+    <ClCompile Include="MiscTest\BoneIKTest.cpp">
+      <Filter>MiscTest</Filter>
+    </ClCompile>
+    <ClCompile Include="Stage\AsyncWokTestStage.cpp">
+      <Filter>Stage</Filter>
+    </ClCompile>
+    <ClCompile Include="MiscTest\BehaviorTreeTest.cpp">
+      <Filter>MiscTest</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -700,6 +718,12 @@
     </ClInclude>
     <ClInclude Include="Stage\StickMoveStage.h">
       <Filter>Stage</Filter>
+    </ClInclude>
+    <ClInclude Include="Stage\FluidSimStage.h">
+      <Filter>Stage</Filter>
+    </ClInclude>
+    <ClInclude Include="ECS\ECSBase.h">
+      <Filter>ECS</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

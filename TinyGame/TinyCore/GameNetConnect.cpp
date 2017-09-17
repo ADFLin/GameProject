@@ -421,7 +421,7 @@ bool UdpChain::sendPacket( long time , NetSocket& socket , SocketBuffer& buffer 
 
 }
 
-bool UdpChain::readPacket( SocketBuffer& buffer , unsigned& readSize )
+bool UdpChain::readPacket( SocketBuffer& buffer , uint32& readSize )
 {
 	if ( !buffer.getAvailableSize() )
 		return false;

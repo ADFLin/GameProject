@@ -218,10 +218,10 @@ namespace MV
 
 	};
 
-	typedef IntrList< Block , MemberHook< Object , &Object::groupHook > , PointerType > BlockList;
-	typedef IntrList< Actor , MemberHook< Object , &Object::groupHook > , PointerType > ActorList;
-	typedef IntrList< MeshObject , MemberHook< Object , &Object::groupHook > , PointerType > MeshList;
-	typedef IntrList< ObjectGroup , MemberHook< Object , &Object::groupHook > , PointerType > GroupList;
+	typedef TIntrList< Block , MemberHook< Object , &Object::groupHook > , PointerType > BlockList;
+	typedef TIntrList< Actor , MemberHook< Object , &Object::groupHook > , PointerType > ActorList;
+	typedef TIntrList< MeshObject , MemberHook< Object , &Object::groupHook > , PointerType > MeshList;
+	typedef TIntrList< ObjectGroup , MemberHook< Object , &Object::groupHook > , PointerType > GroupList;
 
 	class ObjectGroup : public Object
 	{
@@ -232,10 +232,10 @@ namespace MV
 		}
 #define ADD_FUN( TYPE , LIST )\
 	void add( TYPE& data )\
-		{\
+	{\
 		LIST.push_back( &data );\
 		data.group = this;\
-		}
+	}
 
 		ADD_FUN( Block , blocks )
 		ADD_FUN( Actor , actors )

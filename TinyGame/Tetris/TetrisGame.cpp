@@ -11,7 +11,7 @@
 #include "TetrisActionId.h"
 
 #include "GameReplay.h"
-#include "GameRecord.h"
+#include "TetrisRecord.h"
 
 namespace Tetris
 {
@@ -138,7 +138,7 @@ namespace Tetris
 
 	bool TetrisReplayTemplate::getReplayInfo( ReplayInfo& info )
 	{
-		strcpy_s( info.name , TETRIS_NAME );
+		info.name = TETRIS_NAME;
 		info.gameVersion     = GameInfo::LastVersion;
 		info.templateVersion = TetrisReplayTemplate::LastVersion;
 		info.setGameData( sizeof(  GameInfo ) );

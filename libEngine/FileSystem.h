@@ -7,6 +7,7 @@
 #include "PlatformConfig.h"
 #include "IntegerType.h"
 
+
 #ifdef SYS_PLATFORM_WIN
 #include "WindowsHeader.h"
 #endif
@@ -15,7 +16,7 @@ class FileUtility
 {
 public:
 	static char const* getSubName( char const* fileName );
-	static char const* getDirPathPos( char const* filePath );
+	static char const*    getDirPathPos(char const* filePath);
 	static wchar_t const* getDirPathPos(wchar_t const* filePath);
 	static bool LoadToBuffer(char const* path, std::vector< char >& outBuffer);
 };
@@ -62,10 +63,11 @@ private:
 class FileSystem
 {
 public:
-	static bool findFile( char const* dir , char const* subName , FileIterator& iterator );
-	static bool isExist( FilePath const& path ){ return isExist( path.getString() ); }
-	static bool isExist( char const* path );
-	static bool getFileSize( char const* path , int64& size );
+	static bool FindFile( char const* dir , char const* subName , FileIterator& iterator );
+	static bool IsExist( FilePath const& path ){ return IsExist( path.getString() ); }
+	static bool IsExist( char const* path );
+	static bool GetFileSize( char const* path , int64& size );
+	static bool DeleteFile(char const* path);
 };
 
 

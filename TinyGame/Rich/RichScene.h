@@ -116,7 +116,7 @@ namespace Rich
 
 	};
 
-	class Scene : public IMsgListener
+	class Scene : public IWorldMessageListener
 		        , public AnimSetupHelper
 				, public IViewSelect
 	{
@@ -158,7 +158,7 @@ namespace Rich
 		Animation*    mAnimCur;
 		Animation*    mAnimLast;
 
-		typedef IntrList< 
+		typedef TIntrList< 
 			RenderComp , 
 			MemberHook< RenderComp , &RenderComp::hook > , 
 			PointerType 

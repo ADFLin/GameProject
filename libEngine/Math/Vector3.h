@@ -184,7 +184,7 @@ namespace Math
 		return ( 1.0f - t ) * a + t * b; 
 	}
 
-	inline Vector3 normalize( Vector3 const& v )
+	inline Vector3 Normalize( Vector3 const& v )
 	{
 		float len = v.length();
 		if ( len < 1e-5 )

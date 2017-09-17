@@ -232,8 +232,8 @@ cleanup:
 		return result;												    // Return True (All Good)
 	}
 
-	void GLRenderSystem::drawBitmap( GLTexture const& tex  , Vec2D const& texPos , Vec2D const& texSize ,
-		GLTexture const& mask , Vec2D const& maskPos , Vec2D const& maskSize )
+	void GLRenderSystem::drawBitmap( GLTexture const& tex  , Vec2f const& texPos , Vec2f const& texSize ,
+		GLTexture const& mask , Vec2f const& maskPos , Vec2f const& maskSize )
 	{
 
 		float tx = texPos.x / tex.getWidth() ;
@@ -316,7 +316,7 @@ cleanup:
 
 	}
 
-	void GLRenderSystem::drawBitmap( ITexture2D const& tex ,Vec2D const& texPos , Vec2D const& texSize , unsigned flag )
+	void GLRenderSystem::drawBitmap( ITexture2D const& tex ,Vec2f const& texPos , Vec2f const& texSize , unsigned flag )
 	{
 		GLTexture const& texture = GLTexture::castImpl( tex );
 
@@ -350,7 +350,7 @@ cleanup:
 	}
 
 
-	void GLRenderSystem::drawBitmapWithinMask( ITexture2D const& tex ,  ITexture2D const& mask , Vec2D const& pos , unsigned flag )
+	void GLRenderSystem::drawBitmapWithinMask( ITexture2D const& tex ,  ITexture2D const& mask , Vec2f const& pos , unsigned flag )
 	{
 		GLTexture const& texG =  GLTexture::castImpl( tex );
 		GLTexture const& maskG = GLTexture::castImpl( mask );
@@ -414,7 +414,7 @@ cleanup:
 
 	}
 
-	void GLRenderSystem::setMatrix( Vec2D const& pos , float c , float s )
+	void GLRenderSystem::setMatrix( Vec2f const& pos , float c , float s )
 	{
 		static float m[16] =
 		{
@@ -642,7 +642,7 @@ cleanup:
 		glColor4ub( r , g , b , a );
 	}
 
-	void GLRenderSystem::drawPolygon( Vec2D const pos[] , int num )
+	void GLRenderSystem::drawPolygon( Vec2f const pos[] , int num )
 	{
 		glDisable( GL_TEXTURE_2D );
 		glBegin( GL_POLYGON );

@@ -4,7 +4,7 @@
 #include <algorithm>
 
 template< class KT , class CmpFun = std::less< KT > >
-class BinaryHeap
+class TBinaryHeap
 {
 public:
 	typedef KT     KeyType;
@@ -12,7 +12,7 @@ public:
 
 	typedef KeyType Node;
 
-	~BinaryHeap()
+	~TBinaryHeap()
 	{
 		clear();
 	}
@@ -167,24 +167,36 @@ protected:
 			otherPrev->next = static_cast< T* >( this );
 			this->prev = otherPrev;
 		}
+
+		template< class Fun >
+		void visitList( Fun fun )
+		{
+			T* node = next;
+			while( node != this )
+			{
+				fun(node);
+				node = node->next;
+			}
+		}
+
 	};
 
 };
 
 
 template < class KT , class CmpFun = std::less< KT > >
-class FibonaccilHeap : public TreeHeapBase
+class TFibonaccilHeap : public TreeHeapBase
 {
 public:
 
-	FibonaccilHeap()
+	TFibonaccilHeap()
 	{
 		mNumNode = 0;
 		mNodeMin = nullptr;
 		mRoot.init();
 	}
 
-	~FibonaccilHeap()
+	~TFibonaccilHeap()
 	{
 		cleanupNode();
 	}
@@ -195,6 +207,7 @@ public:
 	typedef CmpFun CompareFunType;
 	typedef Node*  NodeHandle;
 
+	static NodeHandle EmptyHandle() { return nullptr; }
 
 	struct Node : ListHook< Node >
 	{
@@ -237,8 +250,38 @@ public:
 		return node;
 	}
 
+	void  update(NodeHandle handle)
+	{
+		Node* nodeCur = handle;
+		for( ;;)
+		{
+			Node* parent = nodeCur->parent;
+			if( parent == nullptr )
+			{
+				if( nodeCur != mNodeMin && compareKey(nodeCur, mNodeMin) )
+				{
+					mNodeMin = nodeCur;
+				}
+				return;
+			}
+			if( !compareKey(nodeCur->key, parent->key) )
+				return;
 
-	bool  compareKey( Node* n1 , Node* n2 ){ return CompareFunType()( n1->key , n2->key ); }
+			using std::swap;
+			swap(nodeCur->key, parent->key);
+			nodeCur = parent;
+		}
+	}
+
+	void  update(NodeHandle handle, KeyType const& key)
+	{
+		assert(compareKey(key, handle->key));
+		handle->key = key;
+		update(handle);
+	}
+
+	bool  compareKey(KeyType const& key1, KeyType const& key2) const { return CompareFunType()(key1, key2); }
+	bool  compareKey( Node* n1 , Node* n2 ) const { return CompareFunType()( n1->key , n2->key ); }
 
 
 	int   size() const { return mNumNode; }
@@ -250,6 +293,9 @@ public:
 		if ( mNodeMin == nullptr )
 			return;
 		
+		mNodeMin->unLink();
+		bool bOneNodeOnly = (mRoot.next == &mRoot);
+
 		{
 			ListHook< Node >* children = &mNodeMin->children;
 			Node* child = children->next;
@@ -263,12 +309,12 @@ public:
 				while( child != children );
 				mRoot.merge( mNodeMin->children );
 			}
-			mNodeMin->unLink();
 		}
+
 		--mNumNode;
-		freeNode( mNodeMin );
-		
-		if ( mRoot.next == &mRoot )
+		freeNode(mNodeMin);
+
+		if ( bOneNodeOnly )
 		{
 			mNodeMin = findMinNode();
 		}
@@ -297,9 +343,9 @@ public:
 						std::swap( cur , mergeNode );
 
 					mergeNode->unLink();
-					mergeNode->parent = cur;
 					cur->children.linkBefore( mergeNode );
-					cur->degree += 1;
+					mergeNode->parent = cur;
+					++cur->degree;
 
 					mergeNode = nodeMap[ cur->degree ];
 				}
@@ -314,14 +360,17 @@ public:
 
 	Node* findMinNode()
 	{
-		Node* result = nullptr;
-		Node* cur = mRoot.next;
+		if( mRoot.next == &mRoot )
+			return nullptr;
+
+		Node* result = mRoot.next;
+		Node* cur = result->next;
 		while( cur != &mRoot )
 		{
 			if ( compareKey( cur , result ) )
 				result = cur;
 			cur = cur->next;
-		}	
+		}
 		return result;
 	}
 
@@ -360,7 +409,7 @@ private:
 
 
 template< class KT , class CmpFun = std::less< KT > >
-class PairingHeap : public TreeHeapBase
+class TPairingHeap : public TreeHeapBase
 {
 public:
 
@@ -375,7 +424,7 @@ public:
 		ListHook< Node > children;
 	};
 
-	PairingHeap()
+	TPairingHeap()
 	{
 		mRoot = nullptr;
 		mNodeNum = 0;

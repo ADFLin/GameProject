@@ -5,6 +5,8 @@
 #include <vector>
 #include <new>
 
+#include "IntrList.h"
+
 template < class T , class K = unsigned >
 class TTable
 {
@@ -135,7 +137,7 @@ public:
 
 	typedef K        KeyType;
 
-	TTable()
+	TTableNew()
 	{
 		mFreeId = 0;
 		mNumUsed = 0;

@@ -118,7 +118,7 @@ public:
 			alphabetNodes[alphabet].alphabet = alphabet;
 		}
 
-		struct WidgetCmp
+		struct WeightCmp
 		{
 			bool operator()(Node const* a, Node const* b) const
 			{
@@ -127,15 +127,15 @@ public:
 				return a->length < b->length;
 			}
 		};
-		typedef BinaryHeap< Node* , WidgetCmp > MyHeap;
+		typedef TBinaryHeap< Node* , WeightCmp > MyHeap;
 		int maxTempNum = 0;
-		MyHeap widgetHeap;
+		MyHeap nodeHeap;
 		for( Node& node : alphabetNodes )
 		{
 			if( node.weight )
 			{
 				++maxTempNum;
-				widgetHeap.push(&node);
+				nodeHeap.push(&node);
 			}
 		}
 
@@ -146,17 +146,17 @@ public:
 		{
 			for( ;;)
 			{
-				Node* node1 = widgetHeap.top();
-				widgetHeap.pop();
+				Node* node1 = nodeHeap.top();
+				nodeHeap.pop();
 
-				if( widgetHeap.empty() )
+				if( nodeHeap.empty() )
 				{
 					mRoot = node1;
 					break;
 				}
 
-				Node* node2 = widgetHeap.top();
-				widgetHeap.pop();
+				Node* node2 = nodeHeap.top();
+				nodeHeap.pop();
 
 				assert(numUseTemp <= maxTempNum);
 				Node* parent = &tempNodes[numUseTemp++];
@@ -166,7 +166,7 @@ public:
 				parent->length = node1->length + node2->length + node1->leaf + node2->leaf;
 				parent->children[0] = node1;
 				parent->children[1] = node2;
-				widgetHeap.push(parent);
+				nodeHeap.push(parent);
 			}
 
 			generateCode_R(mRoot, 0, 0);

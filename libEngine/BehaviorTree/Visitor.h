@@ -41,6 +41,6 @@ namespace BT
 		}
 	};
 
-}//namespace ntu
+}//namespace BT
 
 #endif // Visitor_h__

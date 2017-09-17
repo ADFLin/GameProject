@@ -8,6 +8,7 @@
 #include "FixString.h"
 #include "IntegerType.h"
 #include "CommonMarco.h"
+#include "TemplateMisc.h"
 
 #define USE_TRANSLATE
 #include "Localization.h"
@@ -88,7 +89,7 @@ public:
 	static GAME_API GameInstanceManager& GameManager();
 	static GAME_API IGameNetInterface&   GameNet();
 	static GAME_API IDebugInterface&     Debug();
-	static GAME_API PropertyKey&         GameSetting();
+	static GAME_API PropertyKey&         GameConfig();
 	static GAME_API GUISystem&           GUI();
 	
 	static GAME_API DrawEngine*   getDrawEngine();
@@ -100,41 +101,6 @@ public:
 
 };
 
-class Uncopiable
-{
-public:
-	Uncopiable(){}
-private:
-	Uncopiable( Uncopiable const& rhs ){}
-	Uncopiable& operator = ( Uncopiable const& rhs ){}
-};
-
-template< class T >
-class TRef
-{
-public:
-	explicit TRef( T& val ):mValue( val ){}
-	operator T&      ()       { return mValue; }
-	operator T const&() const { return mValue; }
-private:
-	T& mValue;
-};
-
-template< class T >
-class TConstRef
-{
-public:
-	explicit TConstRef( T const& val ):mValue( val ){}
-	operator T const&() const { return mValue; }
-
-private:
-	T const& mValue;
-};
-
-template< class T >
-TRef< T >      ref( T& val ){ return TRef< T >( val );   }
-template< class T >
-TConstRef< T > ref( T const& val ){ return TConstRef< T >( val );   }
 
 
 #endif // GameGlobal_h__

@@ -23,7 +23,7 @@
 #include "GameWorker.h"
 #include "CSyncFrameManager.h"
 
-#include "GameRecord.h"
+#include "TetrisRecord.h"
 
 #include <ctime>
 #include <cmath>
@@ -69,7 +69,7 @@ namespace Tetris
 
 	void LevelStage::setupLevel(GameLevelInfo const& info)
 	{
-
+		::Global::RandSeedNet(info.seed);
 	}
 
 	void LevelStage::setupScene( IPlayerManager& playerMgr )
@@ -91,7 +91,7 @@ namespace Tetris
 		case SMT_REPLAY:
 			if ( getModeType() == SMT_REPLAY )
 			{
-				flag |= Mode::eReplay;
+				flag |= LevelMode::eReplay;
 			}
 			break;
 		case SMT_NET_GAME: 
@@ -99,9 +99,9 @@ namespace Tetris
 				GamePlayer* player = playerMgr.getPlayer( playerMgr.getUserID() );
 				controller.setPortControl( player->getActionPort() , 0 );
 			}
-			flag |= Mode::eNetGame; 
+			flag |= LevelMode::eNetGame; 
 			if ( ::Global::GameNet().getNetWorker()->isServer() )
-				flag |= Mode::eOwnServer;
+				flag |= LevelMode::eOwnServer;
 			break;
 		}
 
@@ -119,16 +119,16 @@ namespace Tetris
 
 		Vec2i pos( Global::getDrawEngine()->getScreenWidth() - ( UI_ButtonSize.x + 10 ) , 5 );
 
-		button = new GButton( ( flag & Mode::eNetGame ) ? UI_MAIN_MENU : UI_GAME_MENU , pos , UI_ButtonSize  , panel );
+		button = new GButton( ( flag & LevelMode::eNetGame ) ? UI_MAIN_MENU : UI_GAME_MENU , pos , UI_ButtonSize  , panel );
 		button->setTitle( LAN("Exit Game") );
 
-		if ( !( flag & Mode::eReplay ) )
+		if ( !( flag & LevelMode::eReplay ) )
 		{
 			pos += offset;
 			button = new GButton( UI_PAUSE_GAME , pos , UI_ButtonSize  , panel );
 			button->setTitle( LAN("Pause Game") );
 
-			if ( !( flag & Mode::eNetGame ) || ( flag & Mode::eOwnServer ) )
+			if ( !( flag & LevelMode::eNetGame ) || ( flag & LevelMode::eOwnServer ) )
 			{
 				pos += offset;
 				button = new GButton( UI_RESTART_GAME , pos , UI_ButtonSize , panel );
@@ -175,7 +175,12 @@ namespace Tetris
 	}
 
 
-	void LevelStage::onRestart( uint64 seed , bool beInit )
+	void LevelStage::buildServerLevel(GameLevelInfo& info)
+	{
+		info.seed = 10;
+	}
+
+	void LevelStage::onRestart(uint64 seed, bool beInit)
 	{
 		if ( beInit )
 			Global::RandSeedNet( seed );
@@ -222,8 +227,8 @@ namespace Tetris
 				{
 					IPlayerManager* playerManager = getStageMode()->getPlayerManager();
 					mLastGameOrder = mGameMode->markRecord( 
-						playerManager->getPlayer( playerManager->getUserID() ),
-						getRecordManager() );
+						getRecordManager(),
+						playerManager->getPlayer( playerManager->getUserID() ) );
 
 					if ( mLastGameOrder < 10 && mGameMode->getModeID() == MODE_TS_CHALLENGE )
 					{
@@ -307,9 +312,9 @@ namespace Tetris
 	}
 
 
-	Mode* LevelStage::createMode( GameInfo const& info )
+	LevelMode* LevelStage::createMode( GameInfo const& info )
 	{
-		Mode* levelMode = NULL;
+		LevelMode* levelMode = NULL;
 		switch( info.mode )
 		{
 		case MODE_TS_BATTLE:
@@ -333,7 +338,7 @@ namespace Tetris
 		case ATTR_REPLAY_INFO:
 			{
 				ReplayInfo* info = reinterpret_cast< ReplayInfo* >( value.ptr );
-				if ( strcmp( info->name , TETRIS_NAME ) != 0 )
+				if ( info->name != TETRIS_NAME )
 					return false;
 
 				switch( info->gameVersion )
@@ -391,7 +396,7 @@ namespace Tetris
 		case ATTR_REPLAY_INFO_DATA:
 			{
 				ReplayInfo& info = *((ReplayInfo*)value.ptr);
-				strcpy_s( info.name , TETRIS_NAME );
+				info.name = TETRIS_NAME;
 				info.gameVersion     = GameInfo::LastVersion;
 				info.templateVersion = CFrameActionTemplate::LastVersion;
 				info.setGameData( sizeof( GameInfo ) );
@@ -408,7 +413,7 @@ namespace Tetris
 
 				LevelData* lvData = mWorld->findPlayerData( playerManager->getUserID() );
 				if ( lvData )
-					gameInfo.userID = lvData->getID();
+					gameInfo.userID = lvData->getId();
 				else
 					gameInfo.userID = 0;
 
@@ -731,9 +736,9 @@ namespace Tetris
 
 	void AboutGameStage::productSprite( PieceSprite& spr )
 	{
-		PieceTemplateSet& tempSet = PieceTemplateSet::getClassicSet();
+		PieceTemplateSet& tempSet = PieceTemplateSet::GetClassic();
 		tempSet.setTemplate( tempSet.getTemplateNum() % Global::Random() , spr.piece );
-		spr.piece.rotate( spr.piece.getDirNum() % Global::Random() );
+		spr.piece.rotate( spr.piece.getDirectionNum() % Global::Random() );
 		spr.angle    = RandomFloat() * 2 * PI;
 		spr.angleVel = RandomFloat( -1 , 1 ) * 5;
 		spr.vel   =  500 * Vec2f( RandomFloat( -1 , 1 )  , RandomFloat( -1 , 1 ) );
@@ -749,9 +754,9 @@ namespace Tetris
 
 		for( int i = 0 ; i < piece.getBlockNum(); ++i )
 		{
-			Tetris::Block const& block = piece.getBlock(i);
+			Tetris::PieceBlock const& block = piece.getBlock(i);
 			Vec2i bPos = BlockSize * Vec2i( block.getX() , - block.getY() );
-			RenderUtility::drawBlock( g , bPos , Tetris::Piece::getColor( block.getType() ) );
+			RenderUtility::drawBlock( g , bPos , Tetris::Piece::Color( block.getType() ) );
 		}
 		g.finishXForm();
 	}
@@ -765,7 +770,7 @@ namespace Tetris
 	RecordStage::RecordStage()
 	{
 		chName = false;
-		lightOrder = -1;
+		highLightRecordOrder = -1;
 		idxChar = 0;
 	}
 
@@ -779,7 +784,7 @@ namespace Tetris
 		Vec2i pos = GUISystem::calcScreenCenterPos( panelSize );
 		panel = new GPanel( UI_PANEL , pos, panelSize , NULL );
 		panel->setAlpha( 0.8f );
-		panel->setRenderCallback( RenderCallBack::create( this , &RecordStage::renderRecord ) );
+		panel->setRenderCallback( RenderCallBack::Create( this , &RecordStage::renderRecord ) );
 		::Global::GUI().addWidget( panel );
 
 		Vec2i btnSize( 100 , 20 );
@@ -803,12 +808,13 @@ namespace Tetris
 		if ( order >= RecordManager::NumMaxRecord )
 			return;
 
-		lightOrder = order;
-		lightRecord = Tetris::getRecordManager().getRecord();
-		for ( int i = 0 ; i < order ; ++i )
-		{
-			lightRecord = lightRecord->next;
-		}
+		highLightRecordOrder = order;
+		//highLightRecord = Tetris::getRecordManager().getRecord();
+		auto recordIter = Tetris::getRecordManager().getRecords();
+
+		for ( int i = 0 ; i < order && recordIter ; ++i , ++recordIter ){}
+
+		highLightRecord = *recordIter;
 		chName = true;
 	}
 
@@ -827,8 +833,8 @@ namespace Tetris
 
 		switch ( key )
 		{
-		case VK_UP   : limitChar( ++lightRecord->name[ idxChar ] ); break;
-		case VK_DOWN : limitChar( --lightRecord->name[ idxChar ] ); break;
+		case VK_UP   : limitChar( ++highLightRecord->name[ idxChar ] ); break;
+		case VK_DOWN : limitChar( --highLightRecord->name[ idxChar ] ); break;
 		case VK_RIGHT: idxChar = std::min( idxChar + 1 , 2 ); break;
 		case VK_LEFT : idxChar = std::max( idxChar - 1 , 0 ); break;
 		}
@@ -868,7 +874,7 @@ namespace Tetris
 				FixString< 128 > str;
 				va_list vl;
 				va_start( vl ,y );
-				g.drawText( x + valPos , y , str.formatV( fmt , vl ) );
+				g.drawText( x + valPos , y , str.formatVA( fmt , vl ) );
 				va_end(vl);
 			}
 
@@ -898,12 +904,14 @@ namespace Tetris
 
 		g.setTextColor(255 , 255 , 255 );
 
-		Record* curRecord = Tetris::getRecordManager().getRecord();
-		for( int i = 0 ; i < RecordManager::NumMaxRecord ; ++ i )
+		auto recordIter = Tetris::getRecordManager().getRecords();
+		for( int i = 0 ; i < RecordManager::NumMaxRecord; ++i  )
 		{
 			y += d;
-			if ( curRecord )
+			if ( recordIter )
 			{
+				Record* curRecord = *recordIter;
+
 				long sec = ( curRecord->durtion / 1000 );
 				long min = ( sec / 60 ); 
 
@@ -913,7 +921,7 @@ namespace Tetris
 				propList[3].drawText( g , x , y , curRecord->level );
 				propList[4].drawText( g , x , y , min , sec % 60 , curRecord->durtion % 1000 );
 
-				curRecord = curRecord->next;
+				++recordIter;
 			}
 			else
 			{
@@ -934,7 +942,7 @@ namespace Tetris
 			default: g.setBrush( ColorKey3( 0 , 255 , 255 ) ); break;
 			}
 
-			if ( i == lightOrder && lightBlink > 0 )
+			if ( i == highLightRecordOrder && lightBlink > 0 )
 			{
 				RenderUtility::setBrush( g, Color::eRed );
 			}

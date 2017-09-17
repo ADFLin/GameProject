@@ -2,14 +2,19 @@
 #include "RichPlayerTurn.h"
 
 #include "RichPlayer.h"
-#include "RichCell.h"
+#include "RichArea.h"
 
 #include <algorithm>
 
 namespace Rich
 {
 
-	void PlayerTurn::beginTurn( Player& player )
+	World& PlayerTurn::getWorld()
+	{
+		return mPlayer->getWorld();
+	}
+
+	void PlayerTurn::beginTurn(Player& player)
 	{
 		mPlayer = &player;
 		mReqInfo.id = REQ_NONE;
@@ -21,8 +26,8 @@ namespace Rich
 
 		WorldMsg msg;
 		msg.id   = MSG_TURN_START;
-		msg.turn = this;
-		mPlayer->getWorld().sendMsg( msg );
+		msg.addParam(this);
+		getWorld().dispatchMessage( msg );
 
 		mTurnState = TURN_KEEP;
 		mUseRomateDice = false;
@@ -44,7 +49,7 @@ namespace Rich
 		if ( !checkKeepRun() )
 			return;
 
-		World& world = mPlayer->getWorld();
+		World& world = getWorld();
 
 		switch( mStep )
 		{
@@ -71,16 +76,16 @@ namespace Rich
 				{
 					for( int i = 0 ; i < mNumDice; ++i )
 					{
-						step[i] = mPlayer->getWorld().getRandom().getInt() % 6 + 1;
+						step[i] = getWorld().getRandom().getInt() % 6 + 1;
 						mTotalMoveStep += step[i];
 					}
 				}
 				
 				WorldMsg msg;
 				msg.id = MSG_THROW_DICE;
-				msg.numDice    = mNumDice;
-				msg.diceValue  = step;
-				mPlayer->getWorld().sendMsg( msg );
+				msg.addParam(mNumDice);
+				msg.addParam(step);
+				getWorld().dispatchMessage( msg );
 
 				if ( !checkKeepRun() )
 				{
@@ -100,18 +105,18 @@ namespace Rich
 				}
 
 
-				DirType dir[ MAX_DIR_NUM ];
-				int numDir = world.getMoveDir( mPlayer->getPos() , mPlayer->getPrevPos() , dir );
+				LinkHandle links[ MAX_DIR_NUM ];
+				int numLink = world.getMovableLinks( mPlayer->getPos() , mPlayer->getPrevPos() , links );
 
-				mMoveDir = dir[0];
-				if ( numDir > 1 )
+				mMoveLinkHandle = links[0];
+				if ( numLink > 1 )
 				{
 #if 0
 					if ( mCurMoveStep == 0 )
 					{
 						ReqData data;
-						data.numDir = numDir;
-						data.dir    = dir;
+						data.numLink = numLink;
+						data.links   = links;
 						queryAction( REQ_MOVE_DIR , data );
 						mActState = STEP_MOVE_DIR;
 						return;
@@ -119,8 +124,8 @@ namespace Rich
 					else
 #endif
 					{
-						int idx = mPlayer->getWorld().getRandom().getInt() % numDir;
-						mMoveDir = dir[ idx ];
+						int idx = getWorld().getRandom().getInt() % numLink;
+						mMoveLinkHandle = links[ idx ];
 					}
 				}
 
@@ -128,7 +133,7 @@ namespace Rich
 		case STEP_MOVE_DIR:
 			{
 				bool isFinish = false;
-				if ( mMoveDir == NoDir )
+				if ( mMoveLinkHandle == EmptyLinkHandle )
 				{
 					mTurnState = TURN_END;
 					return;
@@ -137,7 +142,7 @@ namespace Rich
 				++mCurMoveStep;
 
 				bool beStay = mCurMoveStep == mTotalMoveStep;
-				MapCoord posMove = world.getConPos( mPlayer->getPos() , mMoveDir );
+				MapCoord posMove = world.getLinkCoord( mPlayer->getPos() , mMoveLinkHandle );
 
 				mTile = world.getTile( posMove );
 
@@ -153,25 +158,24 @@ namespace Rich
 			{
 				WorldMsg msg;
 				msg.id     = MSG_MOVE_STEP;
-				msg.player = mPlayer;
-
+				msg.addParam(mPlayer);
 				if ( !sendTurnMsg( msg ) )
 				{
-					mStep = STEP_PROCESS_CELL;
+					mStep = STEP_PROCESS_AREA;
 					return;
 				}
 			}
-		case STEP_PROCESS_CELL:
+		case STEP_PROCESS_AREA:
 			{
 				bool beStay = mCurMoveStep == mTotalMoveStep;
 
-				Cell* cell = world.getCell( mTile->cell );
-				if ( cell )
+				Area* area = world.getArea( mTile->areaId );
+				if ( area )
 				{
 					if ( beStay )
-						cell->onPlayerStay( *this );
+						area->onPlayerStay( *this );
 					else
-						cell->onPlayerPass( *this );
+						area->onPlayerPass( *this );
 
 					if ( !checkKeepRun() )
 					{
@@ -203,7 +207,7 @@ namespace Rich
 
 		WorldMsg msg;
 		msg.id  = MSG_MOVE_START;
-		mPlayer->getWorld().sendMsg( msg );
+		getWorld().dispatchMessage( msg );
 	}
 
 
@@ -217,18 +221,23 @@ namespace Rich
 
 		WorldMsg msg;
 		msg.id  = MSG_MOVE_START;
-		mPlayer->getWorld().sendMsg( msg );
+		getWorld().dispatchMessage( msg );
 	}
 
-	bool PlayerTurn::sendTurnMsg( WorldMsg const& event )
+	void PlayerTurn::obtainMoney(int money)
 	{
-		mPlayer->getWorld().sendMsg( event );
+		mPlayer->modifyMoney(money);
+	}
+
+	bool PlayerTurn::sendTurnMsg(WorldMsg const& msg)
+	{
+		getWorld().dispatchMessage( msg );
 		return checkKeepRun();
 	}
 
 	bool PlayerTurn::checkKeepRun()
 	{
-		if ( !mControl->needRunTurn() || waitQuery() )
+		if ( !mControl->needRunTurn() || isWaitingQuery() )
 		{
 			mTurnState = TURN_WAIT;
 			return false;
@@ -262,26 +271,48 @@ namespace Rich
 		value[ numDice - 1 ] = 1 + flac;
 	}
 
-	void PlayerTurn::queryAction( RequestID id, ReqData const& data )
+	void PlayerTurn::queryAction( ActionRequestID id, ActionReqestData const& data )
 	{
 		mReqInfo.id = id;
 
 		switch( id )
 		{
 		case REQ_BUY_LAND:
-			mReqInfo.callback = stdex::bind( &PlayerTurn::replyBuyLand , this , stdex::placeholders::_1 , data.land , data.money );
+			mReqInfo.callback = [this,data](ActionReplyData const& answer)
+			{
+				if( answer.getParam<int>() == 0 )
+					return;
+				mPlayer->modifyMoney(-data.money);
+				data.land->setOwner(*mPlayer);
+
+				WorldMsg msg;
+				msg.id = MSG_BUY_LAND;
+				msg.addParam(data.land);
+				mPlayer->getWorld().dispatchMessage(msg);
+			};
 			break;
 		case REQ_UPGRADE_LAND:
-			mReqInfo.callback = stdex::bind( &PlayerTurn::replyUpgradeLevel , this , stdex::placeholders::_1 , data.land , data.money );
+			mReqInfo.callback = [this, data](ActionReplyData const& answer)
+			{
+				if( answer.getParam<int>() == 0 )
+					return;
+				mPlayer->modifyMoney(-data.money);
+				data.land->upgradeLevel();
+			};
 			break;
 		case REQ_ROMATE_DICE_VALUE:
-			mReqInfo.callback = stdex::bind( &PlayerTurn::replyRomateDiceValue , this , stdex::placeholders::_1 );
+			mReqInfo.callback = [this](ActionReplyData const& answer)
+			{
+				assert(0 < answer.getParam<int>() && answer.getParam<int>() <= 6);
+				goMoveByStep(answer.getParam<int>());
+			};
 			break;
 		}
+
 		mPlayer->getController().queryAction( id , *this , data );
 	}
 
-	void PlayerTurn::replyAction( ReplyData const& answer )
+	void PlayerTurn::replyAction( ActionReplyData const& answer )
 	{
 		assert( mReqInfo.id != REQ_NONE );
 		mReqInfo.callback( answer );
@@ -289,31 +320,9 @@ namespace Rich
 		mReqInfo.id = REQ_NONE;
 	}
 
-	void PlayerTurn::replyUpgradeLevel( ReplyData const& answer , LandCell* land , int cost )
+	void PlayerTurn::loseMoney(int money)
 	{
-		if ( answer.intVal == 0 )
-			return;
-		mPlayer->modifyMoney( -cost );
-		land->upgradeLevel();
-	}
-
-	void PlayerTurn::replyBuyLand( ReplyData const& answer , LandCell* land , int piece )
-	{
-		if ( answer.intVal == 0 )
-			return;
-		mPlayer->modifyMoney( -piece );
-		land->setOwner( *mPlayer );
-
-		WorldMsg msg;
-		msg.id   = MSG_BUY_LAND;
-		msg.land = land;
-		mPlayer->getWorld().sendMsg( msg );
-	}
-
-	void PlayerTurn::replyRomateDiceValue( ReplyData const& answer )
-	{
-		assert( 0 < answer.intVal && answer.intVal <= 6 );
-		goMoveByStep( answer.intVal );
+		mPlayer->modifyMoney(-money);
 	}
 
 }//namespace Rich

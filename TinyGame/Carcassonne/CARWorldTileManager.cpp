@@ -544,7 +544,7 @@ namespace CAR
 
 	TileSetManager::TileSetManager()
 	{
-		mUseExpansionMask = 0;
+		mUsageExpansionMask = 0;
 	}
 
 
@@ -556,7 +556,7 @@ namespace CAR
 	void TileSetManager::addExpansion(Expansion exp)
 	{
 		assert(!haveUse(exp));
-		mUseExpansionMask |= BIT(exp);
+		mUsageExpansionMask |= BIT(exp);
 
 		for( int idx = 0; ; ++idx )
 		{

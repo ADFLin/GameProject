@@ -12,15 +12,16 @@ class  NetWorker;
 class  CLPlayerManager;
 class  INetFrameHelper;
 
-struct Record;
-class  RecordManager;
+
 
 namespace Tetris
 {
-	class  Mode;
+	class  LevelMode;
 	class  GameWorld;
 	struct GameInfo;
 	class  CFrameActionTemplate;
+	struct Record;
+	class  RecordManager;
 
 	enum TetrisAttrib
 	{
@@ -52,6 +53,7 @@ namespace Tetris
 		void updateFrame( int frame );
 
 		void setupLocalGame( LocalPlayerManager& playerManager );
+		void buildServerLevel(GameLevelInfo& info) override;
 		void setupLevel( GameLevelInfo const& info );
 		void setupScene( IPlayerManager& playerMgr );
 		bool onWidgetEvent( int event , int id , GWidget* ui );
@@ -61,16 +63,19 @@ namespace Tetris
 
 		bool setupGame( GameInfo &gameInfo );
 
-		Mode*                 createMode( GameInfo const& info );
+		LevelMode*                 createMode( GameInfo const& info );
 		GameWorld*            getWorld(){ return mWorld.get(); }
 		CFrameActionTemplate* createActionTemplate( unsigned version );
 		bool                  setupNetwork( NetWorker* netWorker , INetEngine** engine );
 		TPtrHolder< GameWorld > mWorld;
-		Mode*    mGameMode;
+		LevelMode*    mGameMode;
 		long     mGameTime;
 		int      mLastGameOrder;
 
 		friend class CNetRoomSettingHelper;
+
+		
+
 	};
 
 
@@ -147,9 +152,9 @@ namespace Tetris
 		void setPlayerOrder( int order );
 		void renderRecord( GWidget* ui );
 
-		Record* lightRecord;
+		Record* highLightRecord;
 		int     lightBlink;
-		int     lightOrder;
+		int     highLightRecordOrder;
 
 		int     idxChar;
 		bool    chName;

@@ -58,11 +58,11 @@ namespace Zuma
 		ZLevel( ZLevelInfo& info );
 		~ZLevel();
 		void           restart();
-		void           applyBomb( Vec2D const& pos );
-		bool           isInScreenRange( Vec2D const& pos );
+		void           applyBomb( Vec2f const& pos );
+		bool           isInScreenRange( Vec2f const& pos );
 		void           update( long time );
 		void           generateBall( ZConBallGroup& group , int numBall , int  numColor , int repet , int repetDec );
-		ZConBall*      calcFrogAimBall( Vec2D& aimPos );
+		ZConBall*      calcFrogAimBall( Vec2f& aimPos );
 		int            getTotalConBallNum() const;
 		int            getBallGroupNum() const;
 		ZConBallGroup* getBallGroup( int idx )  const { return mBallGroup[idx]; }
@@ -83,8 +83,8 @@ namespace Zuma
 		struct RenderParam
 		{
 			ZConBall* aimBall;
-			Vec2D     aimPos;
-			Vec2D     holeDir[ MaxNumZConBallGroup ];
+			Vec2f     aimPos;
+			Vec2f     holeDir[ MaxNumZConBallGroup ];
 		};
 		void           render( IRenderSystem& RDSystem , RenderParam const& param );
 		void           checkImportBall();

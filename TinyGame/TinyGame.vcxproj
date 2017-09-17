@@ -251,6 +251,8 @@
     <ClCompile Include="Bejeweled\BJStage.cpp" />
     <ClCompile Include="Bsp2D.cpp" />
     <ClCompile Include="Cantan\CantanLevel.cpp" />
+    <ClCompile Include="MiscTest\BehaviorTreeTest.cpp" />
+    <ClCompile Include="MiscTest\BoneIKTest.cpp" />
     <ClCompile Include="MiscTest\MatrixTest.cpp" />
     <ClCompile Include="RenderGL\GLCommon.cpp" />
     <ClCompile Include="RenderGL\GLUtility.cpp" />
@@ -276,6 +278,9 @@
     <ClCompile Include="Go\GoStage.cpp" />
     <ClCompile Include="Go\ZenBot.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="Stage\AsyncWokTestStage.cpp" />
+    <ClCompile Include="Stage\FluidSimStage.cpp" />
+    <ClCompile Include="Stage\StageRegister.cpp" />
     <ClCompile Include="Stage\StickMoveStage.cpp" />
     <ClCompile Include="Stage\MainMenuStage.cpp" />
     <ClCompile Include="Mario\MBLevel.cpp" />
@@ -493,6 +498,7 @@
     <ClInclude Include="CellWalker.h" />
     <ClInclude Include="Civ\CvCity.h" />
     <ClInclude Include="Civ\CvMap.h" />
+    <ClInclude Include="ECS\ECSBase.h" />
     <ClInclude Include="Fight\FightLevel.h" />
     <ClInclude Include="RenderGL\BaseType.h" />
     <ClInclude Include="RenderGL\FrameGraph.h" />
@@ -518,6 +524,7 @@
     <ClInclude Include="Go\zen.h" />
     <ClInclude Include="Go\ZenBot.h" />
     <ClInclude Include="LordMonarch\LmLevel.h" />
+    <ClInclude Include="Stage\FluidSimStage.h" />
     <ClInclude Include="Stage\MainMenuStage.h" />
     <ClInclude Include="Mario\MBLevel.h" />
     <ClInclude Include="MonumentValley\MVCommon.h" />

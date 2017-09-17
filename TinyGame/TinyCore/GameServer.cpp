@@ -36,7 +36,7 @@ LocalWorker* ServerWorker::createLocalWorker( char const* userName )
 
 void ServerWorker::sendClientTcpCommand( NetClientData& client , IComPacket* cp )
 {
-	FillBufferFromCom( client.tcpChannel.getSendCtrl() , cp );
+	WriteComToBuffer( client.tcpChannel.getSendCtrl() , cp );
 }
 
 bool ServerWorker::doStartNetwork()
@@ -359,7 +359,7 @@ void ServerWorker::procEcho( IComPacket* cp)
 	CPEcho* com = cp->cast< CPEcho >();
 	NetClientData* client = static_cast< NetClientData*>(cp->getUserData());
 	assert( client );
-	FillBufferFromCom( client->udpChannel.getSendCtrl() , cp );
+	WriteComToBuffer( client->udpChannel.getSendCtrl() , cp );
 }
 
 
@@ -1076,7 +1076,7 @@ void ServerClientManager::sendTcpCommand( ComEvaluator& evaluator , IComPacket* 
 		iter != mSessionMap.end(); ++iter )
 	{
 		NetClientData* client = iter->second;
-		FillBufferFromCom( client->tcpChannel.getSendCtrl() , cp );
+		WriteComToBuffer( client->tcpChannel.getSendCtrl() , cp );
 	}
 }
 
@@ -1087,7 +1087,7 @@ void ServerClientManager::sendUdpCommand( ComEvaluator& evaluator , IComPacket* 
 		iter != mSessionMap.end(); ++iter )
 	{
 		NetClientData* client = iter->second;
-		FillBufferFromCom( client->udpChannel.getSendCtrl() , cp );
+		WriteComToBuffer( client->udpChannel.getSendCtrl() , cp );
 	}
 }
 
@@ -1243,37 +1243,39 @@ void LocalWorker::doUpdate( long time )
 
 void LocalWorker::sendCommand(int channel , IComPacket* cp , unsigned flag)
 {
-	::FillBufferFromCom( mSendBuffer , cp );
+	::WriteComToBuffer( mSendBuffer , cp );
 }
 
 void LocalWorker::recvCommand(IComPacket* cp)
 {
-	::FillBufferFromCom( mRecvBuffer , cp );
+	::WriteComToBuffer( mRecvBuffer , cp );
 }
 
 void SNetPlayer::sendCommand( int channel , IComPacket* cp )
 {
+#if 0
 	SocketBuffer buffer( 1000 );
 	int num = FillBufferFromCom( buffer , cp );
+#endif
 	switch( channel )
 	{
 	case CHANNEL_GAME_NET_TCP:
-		FillBufferFromCom( mClient->tcpChannel.getSendCtrl() , cp );
+		WriteComToBuffer( mClient->tcpChannel.getSendCtrl() , cp );
 		break;
 	case CHANNEL_GAME_NET_UDP_CHAIN:
-		FillBufferFromCom( mClient->udpChannel.getSendCtrl() , cp );
+		WriteComToBuffer( mClient->udpChannel.getSendCtrl() , cp );
 		break;
 	}
 }
 
 void SNetPlayer::sendTcpCommand( IComPacket* cp )
 {
-	FillBufferFromCom( mClient->tcpChannel.getSendCtrl() , cp );
+	WriteComToBuffer( mClient->tcpChannel.getSendCtrl() , cp );
 }
 
 void SNetPlayer::sendUdpCommand( IComPacket* cp )
 {
-	FillBufferFromCom( mClient->udpChannel.getSendCtrl() , cp );
+	WriteComToBuffer( mClient->udpChannel.getSendCtrl() , cp );
 }
 
 SNetPlayer::SNetPlayer( ServerWorker* server , NetClientData* client ) 

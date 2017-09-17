@@ -1,6 +1,6 @@
 #include "TinyGamePCH.h"
 #include "GameWorker.h"
-
+#include "SystemPlatform.h"
 
 ComWorker::ComWorker() 
 	:mNAState( NAS_DISSCONNECT )
@@ -78,7 +78,7 @@ void NetWorker::procSocketThread()
 			if ( !updateSocket( mNetRunningTime ) )
 				break;
 
-			::Sleep(0);
+			SystemPlatform::Sleep(0);
 		}
 		catch( ComException& e )
 		{
@@ -169,7 +169,7 @@ bool NetWorker::addUdpCom( IComPacket* cp , NetAddress const& addr )
 	try
 	{
 		MUTEX_LOCK( mMutexUdpComList );
-		size_t fillSize = ComEvaluator::FillBuffer( mUdpSendBuffer , cp );
+		size_t fillSize = ComEvaluator::WriteBuffer( mUdpSendBuffer , cp );
 		UdpCom uc;
 		uc.addr     = addr;
 		uc.dataSize = fillSize;
@@ -187,12 +187,12 @@ bool NetWorker::addUdpCom( IComPacket* cp , NetAddress const& addr )
 
 bool EvalCommand( UdpChain& chain , ComEvaluator& evaluator , SocketBuffer& buffer , int group , void* userData )
 {
-	unsigned size;
-	while( chain.readPacket( buffer , size ) )
+	uint32 readSize;
+	while( chain.readPacket( buffer , readSize ) )
 	{	
 		size_t oldSize = buffer.getAvailableSize();
 
-		if ( oldSize < size )
+		if ( oldSize < readSize )
 			throw ComException( "error UDP Packet" );
 
 		do
@@ -203,22 +203,22 @@ bool EvalCommand( UdpChain& chain , ComEvaluator& evaluator , SocketBuffer& buff
 				return false;
 			}
 		}
-		while( oldSize - buffer.getAvailableSize() < size );
+		while( oldSize - buffer.getAvailableSize() < readSize );
 
-		if ( oldSize - buffer.getAvailableSize() != size )
+		if ( oldSize - buffer.getAvailableSize() != readSize )
 			throw ComException( "error UDP Packet" );
 	}
 
 	return true;
 }
 
-unsigned FillBufferFromCom(NetBufferOperator& bufferCtrl , IComPacket* cp)
+unsigned WriteComToBuffer(NetBufferOperator& bufferCtrl , IComPacket* cp)
 {
 	TLockedObject< SocketBuffer > buffer = bufferCtrl.lockBuffer();
-	return FillBufferFromCom( *buffer , cp );
+	return WriteComToBuffer( *buffer , cp );
 }
 
-unsigned FillBufferFromCom( SocketBuffer& buffer , IComPacket* cp )
+unsigned WriteComToBuffer( SocketBuffer& buffer , IComPacket* cp )
 {
 	assert( cp );
 
@@ -229,7 +229,7 @@ unsigned FillBufferFromCom( SocketBuffer& buffer , IComPacket* cp )
 	{
 		try
 		{
-			result = ComEvaluator::FillBuffer( buffer , cp );
+			result = ComEvaluator::WriteBuffer( buffer , cp );
 			done = true;
 		}
 		catch ( BufferException& e )

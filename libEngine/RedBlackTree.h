@@ -5,7 +5,7 @@
 #include <cassert>
 
 template< class K , class V , class Cmp = std::less< K > >
-class RedBlackTree
+class TRedBlackTree
 {
 public:
 	typedef K KeyType;
@@ -14,8 +14,8 @@ public:
 
 	struct Node;
 
-	RedBlackTree(){ mRoot = 0; mCount = 0; }
-	~RedBlackTree()
+	TRedBlackTree(){ mRoot = 0; mCount = 0; }
+	~TRedBlackTree()
 	{
 
 
@@ -26,50 +26,51 @@ public:
 	{
 		Node* node;
 
-		if ( mRoot )
+		if ( mRoot == nullptr )
 		{
-			Node* pNode = mRoot;
-			while( 1 )
+			node = new Node(key, value);
+			mRoot = node;
+			return node;
+		}
+
+		Node* pNode = mRoot;
+		while( 1 )
+		{
+			if( Cmp()(key, pNode->key) )
 			{
-				if ( Cmp()( key , pNode->key ) )
+				if( pNode->left )
 				{
-					if ( pNode->left )
-					{
-						pNode = pNode->left;
-					}
-					else
-					{
-						node = new Node( key , value );
-						pNode->linkLeft( *node );
-						break;
-					}
+					pNode = pNode->left;
 				}
-				else if ( key == pNode->key )
-					return NULL;
 				else
 				{
-					if ( pNode->right )
-					{
-						pNode = pNode->right;
-					}
-					else
-					{
-						node = new Node( key , value );
-						pNode->linkRight( *node );
-						break;
-					}
+					node = new Node(key, value);
+					pNode->linkLeft(*node);
+					break;
 				}
 			}
-		}
-		else
-		{
-			node = new Node( key , value );
-			mRoot = node;
+			else if( Cmp()(pNode->key, key) )
+			{
+				if( pNode->right )
+				{
+					pNode = pNode->right;
+				}
+				else
+				{
+					node = new Node(key, value);
+					pNode->linkRight(*node);
+					break;
+				}
+			}
+			else
+			{
+				//Find Key
+				return NULL;
+			}
 		}
 
 		++mCount;
 		balanceInsert( node );
-		
 		return node;
 	}
 
@@ -334,16 +335,16 @@ private:
 			{
 				node = node->left;
 			}
-			else if ( node->key == key )
-			{
-				return node;
-			}
-			else
+			else if( Cmp()(node->key, key) )
 			{
 				node = node->right;
 			}
+			else
+			{
+				return node;
+			}
 		}
-		return 0;
+		return nullptr;
 	}
 
 	void rotateRight( Node& node , Node** link )

@@ -9,8 +9,8 @@ namespace Rich
 {
 
 	Player::Player( World& world , ActorId id )
-		:Actor( id )
-		,mWorld( &world )
+		:ActorComp( id )
+		,mOwnedWorld( &world )
 	{
 		mState = eIDLE;
 		mMovePower = 1;

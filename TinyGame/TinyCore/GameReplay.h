@@ -12,6 +12,8 @@
 #include <vector>
 #include <string>
 
+#include "FixString.h"
+
 class IFrameActionTemplate;
 
 struct ReplayInfo
@@ -26,7 +28,9 @@ struct ReplayInfo
 	{
 		delete [] gameInfoData;
 	}
-	char      name[8];
+
+	FixString< 8 > name;
+	//char      name[8];
 	unsigned  gameVersion;
 	unsigned  templateVersion;
 	char*     gameInfoData;

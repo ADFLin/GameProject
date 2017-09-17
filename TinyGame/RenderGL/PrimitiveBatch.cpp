@@ -101,7 +101,7 @@ namespace RenderGL
 
 	void SimpleElementRenderer::draw( RenderContext& context , SimpleVertex* vertices, int numVertices)
 	{
-		mVertexBuffer->update(sizeof(SimpleVertex), numVertices, vertices);
+		mVertexBuffer->updateData(sizeof(SimpleVertex), numVertices, vertices);
 
 		glBindVertexArray(mVAO);
 		context.setShader(mShader);

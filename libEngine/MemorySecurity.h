@@ -1,9 +1,13 @@
-#define __STDC_WANT_LIB_EXT1__ 1
-#include <string.h>
+
 #include "CompilerConfig.h"
 
-#if CPP_COMPILER_GCC
-#include "string.h"
+#if CPP_COMPILER_MSVC
+#include <string.h>
+
+#elif CPP_COMPILER_GCC
+
+#define __STDC_WANT_LIB_EXT1__ 1
+#include <string.h>
 #include <cstdio>
 
 #define strtok_s strtok_r

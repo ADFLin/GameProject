@@ -27,11 +27,12 @@ public:
 		return ::GetCurrentThreadId();
 	}
 
-	bool create( ThreadFunc fun , void* ptr );
+	bool create( ThreadFunc fun , void* ptr , uint32 stackSize = 0 );
 	void detach()
 	{
 		if ( mhThread )
 		{
+			CloseHandle(mhThread);
 			mhThread = NULL;
 			mbRunning = false;
 		}
@@ -47,8 +48,45 @@ public:
 	DWORD    getSuspendTimes(){ return mSupendTimes; }
 	unsigned getID(){ return mThreadID; }
 	bool     isRunning(){ return mbRunning; }
+	void     setDisplayName(char const* name)
+	{
+		SetThreadName(mThreadID, name);
+	}
 
+	static void SetThreadName(uint32 ThreadID, LPCSTR ThreadName)
+	{
+		/**
+		* Code setting the thread name for use in the debugger.
+		*
+		* http://msdn.microsoft.com/en-us/library/xcb2z8hs.aspx
+		*/
+		const uint32 MS_VC_EXCEPTION = 0x406D1388;
 
+		struct THREADNAME_INFO
+		{
+			uint32 dwType;		// Must be 0x1000.
+			LPCSTR szName;		// Pointer to name (in user addr space).
+			uint32 dwThreadID;	// Thread ID (-1=caller thread).
+			uint32 dwFlags;		// Reserved for future use, must be zero.
+		};
+
+		// on the xbox setting thread names messes up the XDK COM API that UnrealConsole uses so check to see if they have been
+		// explicitly enabled
+		Sleep(10);
+		THREADNAME_INFO ThreadNameInfo;
+		ThreadNameInfo.dwType = 0x1000;
+		ThreadNameInfo.szName = ThreadName;
+		ThreadNameInfo.dwThreadID = ThreadID;
+		ThreadNameInfo.dwFlags = 0;
+
+		__try
+		{
+			RaiseException(MS_VC_EXCEPTION, 0, sizeof(ThreadNameInfo) / sizeof(ULONG_PTR), (ULONG_PTR*)&ThreadNameInfo);
+		}
+		__except( EXCEPTION_EXECUTE_HANDLER )
+		{
+		}
+	}
 protected:
 	template< class T >
 	static unsigned _stdcall RunnableProcess( void* t )
@@ -70,8 +108,8 @@ protected:
 class WinMutex
 {
 public:
-	WinMutex()      { ::InitializeCriticalSection( &mCS ); }
-	~WinMutex()     { ::DeleteCriticalSection( &mCS ); }
+	WinMutex()   { ::InitializeCriticalSection( &mCS ); }
+	~WinMutex()  { ::DeleteCriticalSection( &mCS ); }
 	void lock()  { ::EnterCriticalSection( &mCS ); }
 	void unlock(){ ::LeaveCriticalSection( &mCS ); }
 private: 
@@ -105,7 +143,7 @@ public:
 protected:
 
 	template< class Fun >
-	bool doWaitUntil( WinMutex& mutex , Fun fun )
+	bool doWait( WinMutex& mutex , Fun fun )
 	{
 		bool result = true;
 		while( !fun() )
@@ -141,7 +179,7 @@ public:
 		return static_cast<uint32>(pthread_self());
 	}
 
-	bool create( ThreadFunc fun , void* ptr )
+	bool create( ThreadFunc fun , void* ptr , uint32 stackSize)
 	{
 		if ( pthread_create(&mHandle,NULL,fun,ptr) == 0 )
 			return true;
@@ -203,20 +241,24 @@ class RunnableThreadT : public PlatformThread
 	T* _this(){ return static_cast< T* >( this ); }
 	typedef RunnableThreadT< T > RannableThread;
 public:
-	bool start()
+
+	//~
+	unsigned run() { return 0; }
+	bool init() { return true; }
+	void exit() {}
+	//
+
+	bool start(uint32 stackSize = 0)
 	{ 
 		if ( !_this()->init() )
 			return false;
-		return create( PlatformThread::RunnableProcess< T > , this );
+		return create( PlatformThread::RunnableProcess< T > , this , stackSize );
 	}
 	void stop()
 	{
 		PlatformThread::kill();
 		_this()->exit();
 	}
-	unsigned run(){ return 0; }
-	bool init(){ return true; }
-	void exit(){}
 
 	unsigned execRunPrivate()
 	{
@@ -262,9 +304,9 @@ public:
 	~Condition(){}
 
 	template< class Fun >
-	bool waitUntil( Mutex::Locker& locker , Fun fun )
+	bool wait( Mutex::Locker& locker , Fun fun )
 	{
-		return PlatformCondition::doWaitUntil( locker.mMutex , fun );
+		return PlatformCondition::doWait( locker.mMutex , fun );
 	}
 	bool waitTime( Mutex::Locker& locker , uint32 time = WAIT_TIME_INFINITE )
 	{ 

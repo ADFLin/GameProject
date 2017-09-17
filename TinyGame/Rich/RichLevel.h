@@ -49,8 +49,8 @@ namespace Rich
 		friend class Scene;
 		typedef std::vector< Player* > PlayerVec;
 		std::vector< Player* > mPlayerVec;
-		typedef IntrList< 
-			Actor , MemberHook< Actor , &Actor::levelHook > , PointerType 
+		typedef TIntrList< 
+			ActorComp , MemberHook< ActorComp , &ActorComp::levelHook > , PointerType 
 		> ActorList;
 		ActorList     mActors;
 		World         mWorld;

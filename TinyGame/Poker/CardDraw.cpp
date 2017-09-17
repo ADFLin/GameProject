@@ -142,13 +142,33 @@ namespace Poker {
 		{
 			return CardSize;
 		}
+		static int const RoundSize = 12;
 		void draw( Graphics2D& g , Vec2i const& pos , Card const& card )
 		{
-			g.drawRect( pos , CardSize );
+			if( card == Card::None() )
+				return;
+
+			RenderUtility::setPen(g, Color::eBlack);
+			RenderUtility::setBrush(g, Color::eWhite);
+			g.drawRoundRect( pos , CardSize , Vec2i(RoundSize, RoundSize));
+			if( Card::isBlackSuit(card) )
+				g.setTextColor(0, 0, 0);
+			else
+				g.setTextColor(255, 0, 0);
+			char const* suitStr[] = { "C" , "D" , "H" , "S" };
+			FixString< 128 > str;
+			str.format("%s%s", suitStr[card.getSuit()], Card::ToString(card.getFace()) );
+			g.drawText( pos, Vec2i(25,20), str.c_str());
+			g.drawText( pos + CardSize - Vec2i(25, 20), Vec2i(25, 20), str.c_str());
 		}
 		void drawCardBack( Graphics2D& g , Vec2i const& pos )
 		{
-			g.drawRect( pos , CardSize );
+			RenderUtility::setPen(g, Color::eBlack);
+			RenderUtility::setBrush(g, Color::eWhite);
+			g.drawRoundRect( pos , CardSize , Vec2i(RoundSize, RoundSize));
+			RenderUtility::setBrush(g, Color::eRed);
+			Vec2i border = Vec2i(4, 4);
+			g.drawRoundRect(pos +border , CardSize - 2 * border , Vec2i(RoundSize, RoundSize));
 		}
 		void release()
 		{
@@ -156,9 +176,9 @@ namespace Poker {
 		}
 	};
 
-	Vec2i DBGCardDraw::CardSize( 10 , 20 );
+	Vec2i DBGCardDraw::CardSize( 73 , 98 );
 
-	ICardDraw* ICardDraw::create( StyleType type )
+	ICardDraw* ICardDraw::Create( StyleType type )
 	{
 		switch( type )
 		{

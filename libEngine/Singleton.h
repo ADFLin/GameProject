@@ -1,6 +1,8 @@
 #ifndef Singleton_h__
 #define Singleton_h__
 
+#include "CppVersion.h"
+
 template< class T >
 class SingletonT
 {
@@ -21,8 +23,11 @@ public:
 		}
 	}
 protected:
-	SingletonT(){}
-	SingletonT( SingletonT const& sing ){}
+	SingletonT() {}
+
+	FUNCTION_DELETE(SingletonT(SingletonT const& sing));
+	FUNCTION_DELETE(SingletonT& operator = (SingletonT const& sing));
+
 private:
 	static T* _instance;
 };

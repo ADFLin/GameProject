@@ -190,6 +190,7 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|VisualGDB'">Create</PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="Tetris\TetrisRecord.cpp" />
     <ClCompile Include="Tetris\TetrisScene.cpp" />
     <ClCompile Include="Tetris\TetrisSettingHelper.cpp" />
     <ClCompile Include="Tetris\TetrisStage.cpp" />
@@ -203,6 +204,7 @@
     <ClInclude Include="Tetris\TetrisLevelManager.h" />
     <ClInclude Include="Tetris\TetrisLevelMode.h" />
     <ClInclude Include="Tetris\TetrisPCH.h" />
+    <ClInclude Include="Tetris\TetrisRecord.h" />
     <ClInclude Include="Tetris\TetrisScene.h" />
     <ClInclude Include="Tetris\TetrisSettingHelper.h" />
     <ClInclude Include="Tetris\TetrisStage.h" />

@@ -23,7 +23,7 @@ namespace Zuma
 		{
 			ZPath* path = mLevel.getBallGroup(i)->getFollowPath();
 			float ePos = path->getPathLength();
-			Vec2D dir  = path->getLocation( ePos ) - path->getLocation( ePos - 5.0f );
+			Vec2f dir  = path->getLocation( ePos ) - path->getLocation( ePos - 5.0f );
 			mRenderParam.holeDir[i] = dir / sqrt( dir.length2() );
 		}
 
@@ -36,7 +36,7 @@ namespace Zuma
 	{
 		ZTexButton* button;
 		button = new ZTexButton( 
-			UI_MENU_BUTTON , IMAGE_MENU_BUTTON , Vec2D(540,5) , NULL );
+			UI_MENU_BUTTON , IMAGE_MENU_BUTTON , Vec2f(540,5) , NULL );
 
 		getUISystem()->addWidget( button );
 
@@ -86,7 +86,7 @@ namespace Zuma
 		if ( mPauseGame )
 			return true;
 
-		Vec2D dir = Vec2D( msg.getPos() ) - mLevel.getFrog().getPos();
+		Vec2f dir = Vec2f( msg.getPos() ) - mLevel.getFrog().getPos();
 		dir *= 1.0 / sqrt( dir.length2() );
 		mLevel.getFrog().setDir( dir );
 
@@ -345,7 +345,7 @@ namespace Zuma
 	{
 		if ( msg.onEnd() && !msg.checkFlag( TF_HAVE_NEXT_TASK ) )
 		{
-			switch ( msg.getID() )
+			switch ( msg.getGroup() )
 			{
 			case TASK_FONT_FADE_IN:
 				timerSound = 250;
@@ -429,7 +429,7 @@ namespace Zuma
 
 			mLevelStage->addScore( 200 );
 
-			task->speed       = Vec2D(0,-20.0f / 1000.0f);
+			task->speed       = Vec2f(0,-20.0f / 1000.0f);
 			task->pos         = curPath->getLocation( pathPos );
 			task->color.value = 0xff00ffff;
 			task->setOrder( LRO_TEXT );
@@ -518,7 +518,7 @@ namespace Zuma
 		curProgess = eRemoveBall;
 		timerSound = 250;
 
-		Vec2D const& dir = level.getFrog().getDir();
+		Vec2f const& dir = level.getFrog().getDir();
 		angle = atan2( dir.y , dir.x );
 
 		level.setMoveSpeed( 1.0 );
@@ -545,7 +545,7 @@ namespace Zuma
 		case  eRemoveBall:
 			{
 				angle += rotateSpeed * time;
-				level.getFrog().setDir( Vec2D( cos( angle),sin(angle) ) );
+				level.getFrog().setDir( Vec2f( cos( angle),sin(angle) ) );
 
 				bool finish = true;
 				for ( int i = 0 ; i < level.getBallGroupNum() ; ++i )

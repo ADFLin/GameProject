@@ -1,6 +1,8 @@
 #include "FileSystem.h"
 #include "PlatformConfig.h"
 
+#include "CString.h"
+
 #include <tchar.h>
 #include <stdio.h>
 
@@ -8,7 +10,7 @@
 #include <fstream>
 
 
-bool FileSystem::isExist( char const* path )
+bool FileSystem::IsExist( char const* path )
 {
 #ifdef SYS_PLATFORM_WIN
 	WIN32_FIND_DATAA data;
@@ -23,7 +25,7 @@ bool FileSystem::isExist( char const* path )
 #endif
 }
 
-bool FileSystem::findFile( char const* dir , char const* subName , FileIterator& iter )
+bool FileSystem::FindFile( char const* dir , char const* subName , FileIterator& iter )
 {
 	char szDir[MAX_PATH];
 
@@ -57,7 +59,7 @@ bool FileSystem::findFile( char const* dir , char const* subName , FileIterator&
 	return true;
 }
 
-bool FileSystem::getFileSize( char const* path , int64& size )
+bool FileSystem::GetFileSize( char const* path , int64& size )
 {
 #ifdef SYS_PLATFORM_WIN
 	WIN32_FILE_ATTRIBUTE_DATA fad;
@@ -82,6 +84,15 @@ bool FileSystem::getFileSize( char const* path , int64& size )
 
 	return true;
 #endif
+}
+
+bool FileSystem::DeleteFile(char const* path)
+{
+#if SYS_PLATFORM_WIN
+	return ::DeleteFileA(path) == TRUE;
+#endif
+	return false;
+
 }
 
 #ifdef SYS_PLATFORM_WIN
@@ -109,7 +120,7 @@ void FileIterator::goNext()
 
 char const* FileUtility::getSubName( char const* fileName )
 {
-	char const* pos = strrchr( fileName , '.' );
+	char const* pos = TCString<char>::Strrchr( fileName , '.' );
 	if ( pos )
 	{
 		++pos;
@@ -121,17 +132,17 @@ char const* FileUtility::getSubName( char const* fileName )
 
 char const* FileUtility::getDirPathPos( char const* filePath )
 {
-	char const* pos = strrchr( filePath , '\\' );
+	char const* pos = TCString<char>::Strrchr( filePath , '\\' );
 	if ( !pos )
-		pos = strrchr( filePath , '/' );
+		pos = TCString<char>::Strrchr( filePath , '/' );
 	return pos;
 }
 
 wchar_t const* FileUtility::getDirPathPos(wchar_t const* filePath)
 {
-	wchar_t const* pos = wcsrchr(filePath, L'\\');
+	wchar_t const* pos = TCString<wchar_t>::Strrchr(filePath, L'\\');
 	if( !pos )
-		pos = wcsrchr(filePath, L'/');
+		pos = TCString<wchar_t>::Strrchr(filePath, L'/');
 	return pos;
 }
 

@@ -19,7 +19,7 @@ BaseSettingPanel::BaseSettingPanel( int id , Vec2i const& pos , Vec2i const& siz
 	mUISize = uiSize;
 	mOffset = Vec2i(0, 3);
 	mCurPos = uiPos + mOffset;
-	setRenderCallback( RenderCallBack::create( this , &BaseSettingPanel::renderTitle ) );
+	setRenderCallback( RenderCallBack::Create( this , &BaseSettingPanel::renderTitle ) );
 }
 
 void  BaseSettingPanel::removeGui( unsigned mask )

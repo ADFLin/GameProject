@@ -2,7 +2,7 @@
 #include "RichScene.h"
 
 #include "RichPlayer.h"
-#include "RichCell.h"
+#include "RichArea.h"
 
 #include "RenderUtility.h"
 #include "GameGlobal.h"
@@ -12,8 +12,8 @@
 namespace Rich
 {
 	Vec2i const MapPos( 20 , 20 );
-	int const CellLength = 80;
-	Vec2i const CellSize( CellLength , CellLength );
+	int const   TileVisualLength = 80;
+	Vec2i const TileVisualSize( TileVisualLength , TileVisualLength );
 
 	int gRoleColor[] = { Color::eOrange , Color::ePurple };
 
@@ -50,37 +50,37 @@ namespace Rich
 		mbSkipMoveAnim = false;
 	}
 
-	class CellDrawer : public CellVisitor
+	class AreaRenderer : public AreaVisitor
 	{
 	public:
-		CellDrawer( Graphics2D& g ):g(g){}
+		AreaRenderer( Graphics2D& g ):g(g){}
 
-		virtual void visit( LandCell& land )
+		virtual void visit( LandArea& area )
 		{
-			Player* owner = land.getOwner();
+			Player* owner = area.getOwner();
 			if ( owner )
 			{
 				RenderUtility::setBrush( g , gRoleColor[ owner->getRoleId() ] , COLOR_LIGHT );
-				g.drawRect( rPos , CellSize );
+				g.drawRect( rPos , TileVisualSize );
 			}
 		}
 
-		virtual void visit( StationCell& ts )
+		virtual void visit( StationArea& area )
 		{
 			
 		}
 
-		virtual void visit( CardCell& cardCell )
+		virtual void visit( CardArea& area )
 		{
 			
 		}
 
-		virtual void visit( EmptyCell& cell )
+		virtual void visit( EmptyArea& area )
 		{
 			
 		}
 
-		virtual void visit( StartCell& cell )
+		virtual void visit( StartArea& area )
 		{
 			
 		}
@@ -100,19 +100,19 @@ namespace Rich
 		g.drawRect( Vec2i(0,0) , ::Global::getDrawEngine()->getScreenSize() );
 		
 
-		CellDrawer drawer( g );
+		AreaRenderer drawer( g );
 		for( int i = 0 ; i < map.getSizeX() ; ++i )
 		{
 			for( int j = 0 ; j < map.getSizeY() ; ++j )
 			{
-				Cell* cell = world.getCell( MapCoord(i,j) );
-				if ( cell )
+				Area* area = world.getArea( MapCoord(i,j) );
+				if ( area )
 				{
 					RenderUtility::setPen( g , Color::eBlack );
 					RenderUtility::setBrush( g , Color::eWhite );
-					g.drawRect( MapPos + CellLength * Vec2i( i , j ) , CellSize );
-					drawer.rPos = MapPos + CellLength * Vec2i( i , j );
-					cell->accept( drawer );
+					g.drawRect( MapPos + TileVisualLength * Vec2i( i , j ) , TileVisualSize );
+					drawer.rPos = MapPos + TileVisualLength * Vec2i( i , j );
+					area->accept( drawer );
 				}
 			}
 		}
@@ -231,12 +231,13 @@ namespace Rich
 		int  numDice;
 		int  value[ MAX_MOVE_POWER ];
 	};
+
 	class ActorMoveAnimation : public Animation
 	{
 	public:
-		ActorMoveAnimation( Actor& actor , long durtion )
+		ActorMoveAnimation( ActorComp& actor , long durtion )
 		{
-			comp = actor.getComponentT< ActorRenderComp >( COMP_RENDER );
+			comp = actor.getOwner()->getComponentT< ActorRenderComp >( COMP_RENDER );
 			comp->bUpdatePos = false;
 
 			from = actor.getPrevPos();
@@ -284,16 +285,16 @@ namespace Rich
 		case MSG_MOVE_STEP:
 			{
 				if ( !mbSkipMoveAnim )
-					addAnim( new ActorMoveAnimation( *msg.player , 500 ) );
+					addAnim( new ActorMoveAnimation( *msg.getParam<Player*>() , 500 ) );
 			}
 			break;
 		case MSG_THROW_DICE:
 			{
 				DiceAnimation* anim = new DiceAnimation;
 				anim->durtion = 1000;
-				anim->numDice = msg.numDice;
+				anim->numDice = msg.getParam<int>(0);
 				for( int i = 0 ; i < anim->numDice ; ++i )
-					anim->value[i] = msg.diceValue[i];
+					anim->value[i] = msg.getParam<int*>(1)[i];
 
 				addAnim( anim );
 			}
@@ -319,7 +320,7 @@ namespace Rich
 
 	bool Scene::calcCoord( Vec2i const& sPos , MapCoord& coord )
 	{
-		coord = ( sPos - MapPos ) / CellLength;
+		coord = ( sPos - MapPos ) / TileVisualLength;
 		return true;
 	}
 
@@ -327,7 +328,7 @@ namespace Rich
 	{
 		RenderUtility::setPen( g , Color::eBlack );
 		RenderUtility::setBrush( g , Color::eRed );
-		Vec2i rPos = Vec2i( CellLength * pos ) + CellSize / 2;
+		Vec2i rPos = Vec2i( TileVisualLength * pos ) + TileVisualSize / 2;
 		g.drawCircle( rPos  , 10 );
 	}
 
@@ -335,15 +336,15 @@ namespace Rich
 	{
 		if ( !bUpdatePos )
 			return;
-		pos = static_cast< Actor* >( getOwner() )->getPos();
+		pos = getOwner()->getComponentT< ActorComp >(COMP_ACTOR)->getPos();
 	}
 
 	void PlayerRenderComp::render( Graphics2D& g )
 	{
-		Player* player = static_cast< Player* >( getOwner() );
+		Player* player = getOwner()->getComponentT< Player >(COMP_ACTOR);
 		RenderUtility::setPen( g , Color::eBlack );
 		RenderUtility::setBrush( g , gRoleColor[ player->getRoleId() ] );
-		Vec2i rPos = Vec2i( CellLength * pos ) + CellSize / 2;
+		Vec2i rPos = Vec2i( TileVisualLength * pos ) + TileVisualSize / 2;
 		g.drawCircle( rPos  , 10 );
 	}
 

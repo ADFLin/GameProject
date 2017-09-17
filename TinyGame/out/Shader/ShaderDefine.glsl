@@ -12,8 +12,8 @@ class sampler_state;
 class SamplerState;
 
 class Texture1D;
-class RHITexture2D;
-class RHITexture3D;
+class Texture2D;
+class Texture3D;
 
 template< class T >
 struct TVec2

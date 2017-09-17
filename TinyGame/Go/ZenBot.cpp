@@ -1,7 +1,7 @@
 
 #include "ZenBot.h"
 
-#include "WindowsHeader.h"
+#include "SystemPlatform.h"
 
 //#include <sysinfoapi.h>
 //#include <process.h>
@@ -229,9 +229,7 @@ namespace Zen
 
 int runBotTest()
 {
-	SYSTEM_INFO sysinfo;
-	GetSystemInfo(&sysinfo);
-	int numCPU = sysinfo.dwNumberOfProcessors;
+	int numCPU = SystemPlatform::GetProcessorNumber();
 
 	Zen::CoreSetting setting;
 	setting.numThreads = numCPU - 1;

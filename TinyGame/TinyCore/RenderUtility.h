@@ -2,30 +2,11 @@
 #define RenderUtility_h__
 
 #include "DrawEngine.h"
+#include "ColorName.h"
 
 int const BlockSize = 18;
 
 class GLGraphics2D;
-
-struct Color
-{
-	enum ColorEnum
-	{
-		eNull = 0,
-		eCyan ,
-		eBlue ,
-		eOrange ,
-		eYellow,
-		eGreen,
-		ePurple,
-		eRed,
-		ePink  ,
-		eGray ,
-		eWhite ,
-		eBlack ,
-		Number ,
-	};
-};
 
 enum
 {

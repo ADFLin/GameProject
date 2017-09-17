@@ -45,19 +45,19 @@ namespace CAR
 	{
 		enum Enum
 		{
-			eCloister     = BIT(0) ,
-			eCathedral    = BIT(1) , //EXP_INNS_AND_CATHEDRALS
-			eVolcano      = BIT(2) , //EXP_THE_PRINCESS_AND_THE_DRAGON 
-			eTheDragon    = BIT(3) , //EXP_THE_PRINCESS_AND_THE_DRAGON 
-			eMagicPortal  = BIT(4) , //EXP_THE_PRINCESS_AND_THE_DRAGON
-			eTowerFoundation = BIT(7), //EXP_THE_TOWER
-			eBazaar       = BIT(8), //EXP_BRIDGES_CASTLES_AND_BAZAARS
-			eHill         = BIT(9), //EXP_HILLS_AND_SHEEP
-			eVineyard     = BIT(10), //EXP_HILLS_AND_SHEEP
-			eHalfling     = BIT(11) ,
+			eCloister        = BIT(0) ,
+			eCathedral       = BIT(1) , //EXP_INNS_AND_CATHEDRALS
+			eVolcano         = BIT(2) , //EXP_THE_PRINCESS_AND_THE_DRAGON 
+			eTheDragon       = BIT(3) , //EXP_THE_PRINCESS_AND_THE_DRAGON 
+			eMagicPortal     = BIT(4) , //EXP_THE_PRINCESS_AND_THE_DRAGON
+			eTowerFoundation = BIT(7) , //EXP_THE_TOWER
+			eBazaar          = BIT(8) , //EXP_BRIDGES_CASTLES_AND_BAZAARS
+			eHill            = BIT(9) , //EXP_HILLS_AND_SHEEP
+			eVineyard        = BIT(10), //EXP_HILLS_AND_SHEEP
+			eHalfling        = BIT(11),
 
 			//runtime
-			eTemp         = BIT(12) ,
+			eTemp            = BIT(12) ,
 		};
 
 		static unsigned const FeatureMask = eCloister;
@@ -96,6 +96,15 @@ namespace CAR
 
 		Enum type;
 		int  meta;
+
+		bool operator == (ActorPos const& rhs) const
+		{
+			if( type != rhs.type )
+				return false;
+			if( type != ActorPos::eTile && meta != rhs.meta )
+				return false;
+			return true;
+		}
 	};
 
 

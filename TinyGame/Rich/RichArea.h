@@ -1,5 +1,5 @@
-#ifndef RichCell_h__
-#define RichCell_h__
+#ifndef RichArea_h__
+#define RichArea_h__
 
 #include "RichBase.h"
 
@@ -9,13 +9,13 @@
 
 namespace Rich
 {
-	class LandCell;
-	class StationCell;
-	class CardCell;
-	class EmptyCell;
-	class StartCell;
-	class ComponyCell;
-	class StoreCell;
+	class LandArea;
+	class StationArea;
+	class CardArea;
+	class EmptyArea;
+	class StartArea;
+	class ComponyArea;
+	class StoreArea;
 
 	enum StationType
 	{
@@ -30,53 +30,55 @@ namespace Rich
 		STORE_BANK ,
 	};
 
-	class CellVisitor
+	class AreaVisitor
 	{
 	public:
-		virtual void visit( LandCell& land ){}
-		virtual void visit( StationCell& ts ){}
-		virtual void visit( CardCell& cardCell ){}
-		virtual void visit( EmptyCell& emptyCell ){}
-		virtual void visit( StartCell& startcell ){}
-		virtual void visit( ComponyCell& compony ){}
-		virtual void visit( StoreCell& compony ){}
+		virtual void visit( LandArea& area ){}
+		virtual void visit( StationArea& area ){}
+		virtual void visit( CardArea& area ){}
+		virtual void visit( EmptyArea& area){}
+		virtual void visit( StartArea& area ){}
+		virtual void visit( ComponyArea& area ){}
+		virtual void visit( StoreArea& area ){}
 	};
 
-	class EmptyCell : public Cell
+#define ACCEPT_VISIT()\
+	virtual void accept( AreaVisitor& visitor ) override { visitor.visit( *this ); }
+
+	class EmptyArea : public Area
 	{
 	public:
-		EmptyCell( CellId id ){ setId( id ); }
+		EmptyArea( AreaId id ){ setId( id ); }
 		ACCEPT_VISIT();
 	};
 
 	class LandGroup
 	{
 	public:
-		std::vector< LandCell* > mLands;
+		std::vector< LandArea* > mLands;
 	};
 
 
 
-	class OwnedCell : public Cell
+	class OwnableArea : public Area
 	{
 	public:
-		OwnedCell()
+		OwnableArea()
 		{
 			mOwner = nullptr;
 		}
 		Player*  getOwner(){ return mOwner; }
 	protected:
-		MapCoord mPos;
 		Player*  mOwner;
 	};
 
 
-	class LandCell : public OwnedCell
+	class LandArea : public OwnableArea
 	{
 	public:
 		ACCEPT_VISIT();
 
-		LandCell()
+		LandArea()
 		{
 			mLevel = 0;
 		}
@@ -124,7 +126,7 @@ namespace Rich
 	};
 
 
-	class StoreCell : public Cell
+	class StoreArea : public Area
 	{
 	public:
 		void onPlayerStay( PlayerTurn& turn );
@@ -132,13 +134,13 @@ namespace Rich
 		StoreType mType;
 	};
 
-	class ComponyCell : public Cell
+	class ComponyArea : public Area
 	{
 	public:
 		ACCEPT_VISIT();
 
 	};
-	class StationCell : public Cell
+	class StationArea : public Area
 	{
 	public:
 		ACCEPT_VISIT();
@@ -152,7 +154,7 @@ namespace Rich
 		CG_DESTINY ,
 	};
 
-	class CardCell : public Cell
+	class CardArea : public Area
 	{
 	public:
 		ACCEPT_VISIT();
@@ -169,7 +171,7 @@ namespace Rich
 		CardGroup mGroup;
 	};
 
-	class StartCell : public Cell
+	class StartArea : public Area
 	{
 	public:
 		ACCEPT_VISIT();
@@ -182,4 +184,4 @@ namespace Rich
 
 }//namespace Rich
 
-#endif // RichCell_h__
+#endif // RichArea_h__

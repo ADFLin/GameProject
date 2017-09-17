@@ -38,7 +38,7 @@ namespace RenderGL
 			REF_PROPERTY(intensity)
 			REF_PROPERTY(radius)
 			REF_PROPERTY(bCastShadow)
-			REF_OBJECT_COLLECTION_END()
+		REF_OBJECT_COLLECTION_END()
 	};
 
 	class SceneLight

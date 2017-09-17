@@ -19,7 +19,7 @@ namespace Tetris
 		{
 		case UI_MODE_CHOICE:
 			{
-				int num = Mode::getMaxPlayerNumber( mInfo.mode );
+				int num = LevelMode::getMaxPlayerNumber( mInfo.mode );
 				setMaxPlayerNum( num );
 
 				mMaxPlayerNum = num;
@@ -61,7 +61,7 @@ namespace Tetris
 	void CNetRoomSettingHelper::doSetupSetting( bool beServer )
 	{
 		mInfo.mode    = MODE_TS_CHALLENGE;
-		mMaxPlayerNum = Mode::getMaxPlayerNumber( mInfo.mode );
+		mMaxPlayerNum = LevelMode::getMaxPlayerNumber( mInfo.mode );
 		setupBaseUI();
 		mInfo.modeNormal.startGravityLevel = 0;
 		setupNormalModeUI();

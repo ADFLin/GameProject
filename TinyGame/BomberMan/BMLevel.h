@@ -114,7 +114,7 @@ namespace BomberMan
 	inline int makeRailOffset( Dir dir1 , Dir dir2 )
 	{
 		assert( dir1 != dir2 );
-		int const offsetMap[4][4] =
+		static int const offsetMap[4][4] =
 		{    // E    S    W    N
 		/*E*/{ -1 ,  0 ,  4 ,  3 } ,
 		/*S*/{  0 , -1 ,  1 ,  5 } ,
@@ -128,7 +128,7 @@ namespace BomberMan
 	{
 		assert( MT_RAIL <= railID && railID < MT_RAIL_END );
 
-		int const map[6][4] =
+		static int const map[6][4] =
 		{   // E    S    W    N
 			{  1 ,  0 , -1 , -1 } ,
 			{ -1 ,  2 ,  1 , -1 } ,

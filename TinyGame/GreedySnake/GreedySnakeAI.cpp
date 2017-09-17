@@ -48,7 +48,7 @@ namespace GreedySnake
 		return count;
 	}
 
-	void SnakeAI::incTestCount()
+	void SnakeAI::incrTestCount()
 	{
 		++sCheckCount;
 		if ( sCheckCount == 0 )
@@ -110,7 +110,7 @@ namespace GreedySnake
 
 		int count[3];
 		unsigned testCount[3];
-		incTestCount();
+		incrTestCount();
 		count[0] = calcBoundedCount( head.pos , frontDir );
 		testCount[0] = sCheckCount;
 
@@ -126,7 +126,7 @@ namespace GreedySnake
 			}
 			else
 			{
-				incTestCount();
+				incrTestCount();
 				count[1] = calcBoundedCount( head.pos , leftDir );
 			}
 			testCount[1] = sCheckCount;
@@ -150,7 +150,7 @@ namespace GreedySnake
 			}
 			else
 			{
-				incTestCount();
+				incrTestCount();
 				count[2] = calcBoundedCount( head.pos , leftDir );
 			}
 			testCount[2] = sCheckCount;

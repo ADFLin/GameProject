@@ -4,9 +4,9 @@
 #define CAR_USE_CONST_PARAMVALUE 0
 
 #if CAR_USE_CONST_PARAMVALUE
-#define CAR_PARAM_VALUE( SETTING , NAME ) GameParamCollection::GetDefalut().NAME
+#define CAR_PARAM_VALUE( NAME ) GameParamCollection::GetDefalut().NAME
 #else
-#define CAR_PARAM_VALUE( SETTING , NAME ) SETTING->NAME
+#define CAR_PARAM_VALUE( NAME ) getSetting().NAME
 #endif
 
 namespace CAR

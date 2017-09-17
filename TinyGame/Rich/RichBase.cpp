@@ -5,7 +5,7 @@
 
 namespace Rich
 {
-	void Actor::move( Tile& tile , bool beStay )
+	void ActorComp::move( Tile& tile , bool beStay )
 	{
 		mPosPrev = mPos;
 
@@ -26,8 +26,8 @@ namespace Rich
 		}
 	}
 
-	Cell::Cell() 
-		:mId( ERROR_CELL_ID )
+	Area::Area() 
+		:mId( ERROR_AREA_ID )
 	{
 
 	}

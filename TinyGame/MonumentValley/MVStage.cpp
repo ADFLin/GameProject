@@ -513,10 +513,8 @@ namespace MV
 			break;
 		case 'M':
 			{
-				for( VectorSet< Block* >::iterator iter = mSelectBlocks.begin() , itEnd = mSelectBlocks.end() ;
-					iter != itEnd ; ++iter )
+				for( auto block : mSelectBlocks )
 				{
-					Block* block = *iter;
 					ObjectGroup* group = getUseGroup();
 					if ( block->group != group )
 					{
@@ -527,10 +525,9 @@ namespace MV
 			}
 			break;
 		case Keyboard::eDELETE:
-			for( VectorSet< Block* >::iterator iter = mSelectBlocks.begin() , itEnd = mSelectBlocks.end() ;
-				iter != itEnd ; ++iter )
+
+			for( auto block : mSelectBlocks )
 			{
-				Block* block = *iter;
 				world.destroyBlock( block );
 			}
 			mSelectBlocks.clear();
@@ -559,6 +556,7 @@ namespace MV
 			{
 
 			}
+			break;
 		case 'R': 
 			{
 				IRotator* rotator = Level::createRotator( editPos , eDirZ );
@@ -792,7 +790,7 @@ namespace MV
 					v[0] = -len; v[1] = p; v[2] = z; v += 3;
 					v[0] =  len; v[1] = p; v[2] = z; v += 3;
 				}
-				RenderRT::draw< RenderRT::eXYZ >( GL_LINES , buffer , size / 3 );
+				RenderRT::Draw< RenderRT::eXYZ >( GL_LINES , buffer , size / 3 );
 			}
 
 			{
@@ -816,7 +814,7 @@ namespace MV
 					glColor3f(1,0,1);
 					if ( !mSelectBlocks.empty() )
 					{
-						for( VectorSet< Block* >::iterator iter = mSelectBlocks.begin() , itEnd = mSelectBlocks.end() ;
+						for( TVectorSet< Block* >::iterator iter = mSelectBlocks.begin() , itEnd = mSelectBlocks.end() ;
 							iter != itEnd ; ++iter )
 						{
 							Block* block = *iter;

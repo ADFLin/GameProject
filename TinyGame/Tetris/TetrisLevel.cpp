@@ -2,7 +2,7 @@
 #include "TetrisLevel.h"
 #include "GameGlobal.h"
 
-#include "RenderUtility.h"
+#include "ColorName.h"
 
 namespace Tetris
 {
@@ -14,23 +14,31 @@ namespace Tetris
 	int const TsClassicMapSizeX = 10;
 	int const TsClassicMapSizeY = 20;
 
-	static unsigned char gRotate3x3[ 4 * 9 ] =
+	static uint8 const* GetRotationTransform(int size, int time)
 	{
-		0,1,2, 3,4,5, 6,7,8,
-		2,5,8, 1,4,7, 0,3,6,
-		8,7,6, 5,4,3, 2,1,0,
-		6,3,0, 7,4,1, 8,5,2,
-	};
+		assert(size == 3 || size == 4);
+		static uint8 const gRotate3x3[4 * 9] =
+		{
+			0,1,2, 3,4,5, 6,7,8,
+			2,5,8, 1,4,7, 0,3,6,
+			8,7,6, 5,4,3, 2,1,0,
+			6,3,0, 7,4,1, 8,5,2,
+		};
 
-	static unsigned char gRotate4x4[ 4 * 16 ] =
-	{ 
-		0, 1, 2, 3,   4, 5, 6, 7,   8, 9,10,11, 12,13,14,15,
-		3, 7,11,15,   2, 6,10,14,   1, 5, 9,13,   0, 4, 8,12,
-		15,14,13,12,  11,10, 9, 8,  7, 6, 5, 4,   3, 2, 1, 0,
-		12, 8, 4, 0,  13, 9, 5, 1,  14,10, 6, 2,  15,11, 7, 3,
-	};
+		static uint8 const gRotate4x4[4 * 16] =
+		{
+			0, 1, 2, 3,   4, 5, 6, 7,   8, 9,10,11, 12,13,14,15,
+			3, 7,11,15,   2, 6,10,14,   1, 5, 9,13,   0, 4, 8,12,
+			15,14,13,12,  11,10, 9, 8,  7, 6, 5, 4,   3, 2, 1, 0,
+			12, 8, 4, 0,  13, 9, 5, 1,  14,10, 6, 2,  15,11, 7, 3,
+		};
+		uint8 const* curTrans = (size == 3) ? gRotate3x3 : gRotate4x4;
+		curTrans += size *size*time;
 
-	static PieceTemplate gPieceTemplate[] = 
+		return curTrans;
+	}
+
+	static PieceTemplate gClassicTemplateData[] = 
 	{
 		4 , 2 , Color::eRed    , ARRAY2BIT4( 0010 , 0010 , 0010 , 0010 ) ,
 		4 , 1 , Color::eYellow , ARRAY2BIT4( 0000 , 0110 , 0110 , 0000 ) ,
@@ -40,20 +48,19 @@ namespace Tetris
 		3 , 4 , Color::eBlue   , ARRAY2BIT3( 110 , 010 , 010 ) ,
 		3 , 4 , Color::eOrange , ARRAY2BIT3( 011 , 010 , 010 ) ,
 	};
-	static int const gPieceTemplateNum = sizeof( gPieceTemplate ) / sizeof( PieceTemplate );
-	PieceTemplateSet gClassicTemplateSet = PieceTemplateSet( gPieceTemplate , gPieceTemplateNum );
+	PieceTemplateSet gClassicTemplateSet = PieceTemplateSet( gClassicTemplateData , sizeof(gClassicTemplateData) / sizeof(PieceTemplate));
 
 	static PieceTemplate sEmptyTemp = { 3 ,1 , Color::eRed , 0 };
 	static Piece         sEmptyPiece;
 
-	void Block::transformPos( unsigned char* trans , int size )
+	void PieceBlock::transformPos( uint8 const* trans, int size )
 	{
 		index = trans[ index ];
 		x = index % size;
 		y = index / size;
 	}
 
-	void Block::setPos( int idx , int size )
+	void PieceBlock::setPos( int idx , int size )
 	{
 		index = idx;
 		x = index % size;
@@ -64,18 +71,18 @@ namespace Tetris
 	{
 		mTemp = &temp;
 
-		assert( getMapSize() == 3 || getMapSize() == 4 );
-		int len = getMapSize() * getMapSize();
+		assert( getRotationSize() == 3 || getRotationSize() == 4 );
+		int len = getRotationSize() * getRotationSize();
 
 		mNumBlock = 0;
 		for( int i = 0 ; i < len ; ++i )
 		{
-			if ( getTemplate().map & ( 1 << i ) )
+			if ( getTemplate().blockData & ( 1 << i ) )
 			{
-				Block& block = _getBlock( mNumBlock );
+				PieceBlock& block = getBlockInternal( mNumBlock );
 
-				block.setPos( i , getMapSize() );
-				block.type = getTemplate().color;
+				block.setPos( i , getRotationSize() );
+				block.type = getTemplate().baseColor;
 
 				++mNumBlock;
 			}
@@ -84,7 +91,7 @@ namespace Tetris
 
 	void Piece::rotate( int time )
 	{
-		int dirNum = getDirNum();
+		int dirNum = getDirectionNum();
 		time = time % dirNum;
 
 		if ( time < 0 )
@@ -92,37 +99,40 @@ namespace Tetris
 
 		if ( dirNum == 2 )
 		{
-			if ( mDir == 1 && time == 1 )
+			if ( mDirection == 1 && time == 1 )
 				time = 3;
 			//else if ( mDir == 0 && time == -1 )
 				//time = 1;
 		}
 
-		mDir = ( mDir + time + dirNum ) % dirNum;
+		mDirection = ( mDirection + time + dirNum ) % dirNum;
 
-		unsigned char* curTrans = ( getMapSize() == 3 ) ? gRotate3x3 : gRotate4x4;
-		curTrans +=  getMapSize()* getMapSize() * time;
-		for( int i = 0 ; i < getBlockNum(); ++i )
+		int mapSize = getRotationSize();
+		if ( mapSize )
 		{
-			Block& block = _getBlock(i);
-			block.transformPos( curTrans , getMapSize() );
+			uint8 const* curTrans = GetRotationTransform(mapSize, time);
+			for( int i = 0; i < getBlockNum(); ++i )
+			{
+				PieceBlock& block = getBlockInternal(i);
+				block.transformPos(curTrans, mapSize);
+			}
 		}
 	}
 
 	Piece::Piece()
 	{
-		mDir   = 0;
+		mDirection   = 0;
 		setTemplate( sEmptyTemp );
 	}
 
-	void Piece::getRectBound(int x[] , int y[])
+	void Piece::getBoundRect(int x[] , int y[])
 	{
 		x[0] = y[0] =  100;
 		x[1] = y[1] = -100;
 
 		for( int i = 0 ; i < getBlockNum() ; ++i )
 		{
-			Block const& block = getBlock(i);
+			PieceBlock const& block = getBlock(i);
 			if ( block.x < x[0] ) x[0] = block.x;
 			else if ( block.x > x[1] ) x[1] = block.x;
 
@@ -137,7 +147,7 @@ namespace Tetris
 		mNum   = num;
 	}
 
-	PieceTemplateSet& PieceTemplateSet::getClassicSet()
+	PieceTemplateSet& PieceTemplateSet::GetClassic()
 	{
 		return gClassicTemplateSet;
 	}
@@ -160,11 +170,10 @@ namespace Tetris
 	{
 		int extendMapSizeY = getExtendSizeY();
 		mLayerMap.resize( extendMapSizeY );
-		BlockType* blocks = new  BlockType[ mSizeX * extendMapSizeY ];
-		mLayerStorage = new Layer[ extendMapSizeY ];
+		mBlockStorage.reset( new  BlockType[ mSizeX * extendMapSizeY ] );
 		for( int i = 0 ; i < extendMapSizeY ; ++i )
 		{
-			mLayerStorage[i].blocks = blocks + i * mSizeX;
+			mLayerMap[i].blocks = mBlockStorage.get() + i * mSizeX;
 		}
 
 		mConMap.resize( mSizeY );
@@ -178,8 +187,7 @@ namespace Tetris
 	void BlockStorage::cleanupData()
 	{
 		delete [] mConMap[0];
-		delete [] mLayerStorage[0].blocks;
-		delete [] mLayerStorage;
+		mBlockStorage.clear();
 	}
 
 	void BlockStorage::reset(int sizeX , int sizeY )
@@ -197,15 +205,12 @@ namespace Tetris
 	void BlockStorage::clearBlock()
 	{
 		int extendMapSizeY = getExtendSizeY();
-		BlockType* blocks = mLayerStorage[0].blocks;
+		BlockType* blocks = mBlockStorage.get();
 		memset( blocks , 0 , sizeof( BlockType ) * extendMapSizeY * mSizeX );
 		for( int i = 0 ; i < extendMapSizeY ; ++i )
 		{
-			mLayerStorage[i].markBit = 0;
+			mLayerMap[i].markMask = 0;
 		}
-		for( int j = 0 ; j < extendMapSizeY ; ++j )
-			mLayerMap[j] = mLayerStorage + j;
-
 	}
 
 	int BlockStorage::testCollision( Piece& piece , int cx, int cy )
@@ -214,7 +219,7 @@ namespace Tetris
 
 		for( int i = 0 ; i < piece.getBlockNum(); ++i )
 		{
-			Block const& block = piece.getBlock(i);
+			PieceBlock const& block = piece.getBlock(i);
 
 			int xPos = cx + block.getX();
 			int yPos = cy + block.getY();
@@ -242,7 +247,7 @@ namespace Tetris
 	{
 		for( int i = 0 ; i < piece.getBlockNum(); ++i )
 		{
-			Block const& block = piece.getBlock(i);
+			PieceBlock const& block = piece.getBlock(i);
 
 			int xPos = x + block.getX();
 			int yPos = y + block.getY();
@@ -270,32 +275,27 @@ namespace Tetris
 		return hit;
 	}
 
-	void BlockStorage::clearRemoveLayer( int ys[] , int num )
+	void BlockStorage::removeLayer( int ys[] , int num )
 	{
 		int extendMapSizeY = getExtendSizeY();
 		static int const MaxRemoveLayerNum = 10;
 		assert( num <= MaxRemoveLayerNum );
 
-		Layer* saveLayer[ MaxRemoveLayerNum ];
+		BlockType* savedBlocks[ MaxRemoveLayerNum ];
 		for( int i = 0 ; i < num ; ++i )
 		{
 			int y = ys[i];
 			assert( i - 1 < 0 || ys[i-1] > ys[i] );
 
-			Layer* cLayer = mLayerMap[y];
-
-			cLayer->markBit = 0;
-			std::fill_n( cLayer->blocks , mSizeX , 0 );
-			saveLayer[i] = cLayer;
-
-			mLayerMap[y] = NULL;
+			savedBlocks[i] = mLayerMap[y].blocks;
+			mLayerMap[y].blocks = nullptr;
 		}
 
 		int yFill = ys[ num - 1 ];
 		int maxY = extendMapSizeY - 1;
 		for( int y = ys[ num - 1 ] + 1; y <= maxY ; ++y )
 		{
-			if ( mLayerMap[y] == NULL )
+			if ( mLayerMap[y].blocks == nullptr )
 				continue;
 
 			mLayerMap[yFill] = mLayerMap[y]; 
@@ -303,28 +303,36 @@ namespace Tetris
 		}
 		for( int i = 0 ; i < num ; ++i )
 		{
-			mLayerMap[yFill] = saveLayer[i];
+			Layer& layer = mLayerMap[yFill];
+			layer.blocks = savedBlocks[i];
+			layer.markMask = 0;
+			std::fill_n(layer.blocks, mSizeX, 0);
 			++yFill;
 		}
 	}
 
 
-	void BlockStorage::clearLayer(int y)
+	void BlockStorage::removeLayer(int y)
 	{
 		int extendMapSizeY = getExtendSizeY();
-		Layer* cLayer = mLayerMap[y];
+		
+		mLayerMap[y].markMask = 0;
+		std::fill_n(mLayerMap[y].blocks , mSizeX , 0 );
 
-		cLayer->markBit = 0;
-		std::fill_n( cLayer->blocks , mSizeX , 0 );
-
+		BlockType* savedBlock = mLayerMap[y].blocks;
+		Layer cLayer = mLayerMap[y];
 		for( int j = y ; j < extendMapSizeY - 1; ++j )
 			mLayerMap[j] = mLayerMap[j+1];
-		mLayerMap[ extendMapSizeY -1 ] = cLayer;
+
+		Layer& layer = mLayerMap[extendMapSizeY - 1];
+		layer.blocks = savedBlock;
+		layer.markMask = 0;
+		std::fill_n(layer.blocks, mSizeX, 0);
 	}
 
 	bool BlockStorage::isLayerFilled( int y )
 	{
-		return mLayerMap[y]->markBit == getFilledBits();
+		return mLayerMap[y].markMask == getFilledMask();
 	}
 
 	int BlockStorage::scanFilledLayer( int yMax , int yMin , int removeLayer[] )
@@ -382,7 +390,7 @@ namespace Tetris
 		if ( !isSafeRange( cx , cy ) )
 			return 0;
 
-		BlockType color = Piece::getColor( getBlock( cx , cy ) );
+		BlockType color = Piece::Color( getBlock( cx , cy ) );
 		return scanConnectRecursive( cx , cy , color );
 	}
 
@@ -393,7 +401,7 @@ namespace Tetris
 		if ( mConMap[cy][cx] )
 			return 0;
 
-		if ( Piece::getColor( getBlock( cx , cy ) )!= color )
+		if ( Piece::Color( getBlock( cx , cy ) )!= color )
 			return 0;
 
 		int num = 0;
@@ -408,7 +416,7 @@ namespace Tetris
 			if ( isSafeRange( nx , ny ) )\
 			{\
 				total += scanConnectRecursive( nx , ny, color );\
-				if ( Piece::getColor( getBlock( nx , ny ) ) == color )\
+				if ( Piece::Color( getBlock( nx , ny ) ) == color )\
 				++num;\
 			}\
 		}
@@ -449,24 +457,23 @@ namespace Tetris
 
 		int extendMapSizeY = getExtendSizeY();
 
-		Layer* layer = mLayerMap[ extendMapSizeY - 1 ];
-
-		if ( !layer->isEmpty() )
+		if ( !mLayerMap[extendMapSizeY - 1].isEmpty() )
 			return false;
 
-		for( int i = 0 ; i < mSizeX ; ++i )
+		Layer layer = mLayerMap[extendMapSizeY - 1];
+		for( int i = 0; i < mSizeX; ++i )
 		{
-			if ( leakBit & BIT(i) )
+			if( leakBit & BIT(i) )
 				continue;
 
-			layer->blocks[i] = block;
+			layer.blocks[i] = block;
 		}
-		layer->markBit = getFilledBits() & (~leakBit);
+		layer.markMask = getFilledMask() & (~leakBit);
 
 		for( int j = extendMapSizeY - 1 ; j > y ; --j )
 			mLayerMap[j] = mLayerMap[j-1];
-
 		mLayerMap[y] = layer;
+
 		return true;
 	}
 
@@ -474,20 +481,20 @@ namespace Tetris
 	{
 		assert( val );
 		
-		Layer* layer = mLayerMap[y];
-		layer->blocks[x] = val;
+		Layer& layer = mLayerMap[y];
+		layer.blocks[x] = val;
 
-		assert( x <= sizeof( layer->markBit ) * 8 );
-		layer->markBit |= ( 1 << x );
+		assert( x <= sizeof( layer.markMask ) * 8 );
+		layer.markMask |= ( 1 << x );
 	}
 
 	void BlockStorage::emptyBlock( int x , int y )
 	{
-		Layer* layer = mLayerMap[y];
-		layer->blocks[x] = 0;
+		Layer& layer = mLayerMap[y];
+		layer.blocks[x] = 0;
 
-		assert( x <= sizeof( layer->markBit ) * 8 );
-		layer->markBit &= ~( 1 << x );
+		assert( x <= sizeof( layer.markMask ) * 8 );
+		layer.markMask &= ~( 1 << x );
 	}
 
 	void BlockStorage::fixPiecePos( Piece& piece , int& cx , int& cy , int dy )
@@ -578,7 +585,7 @@ namespace Tetris
 		case LVS_REMOVE_MAPLINE:
 			if ( mStateDuration > getClearLayerTime() )
 			{
-				mStorage.clearRemoveLayer( mRemoveLayer , mRemoveLayerNum );
+				mStorage.removeLayer( mRemoveLayer , mRemoveLayerNum );
 
 				mTotalLayerRemove += mRemoveLayerNum;
 				mListener->onRemoveLayer( this , mRemoveLayer , mRemoveLayerNum );
@@ -610,7 +617,7 @@ namespace Tetris
 	{
 		PieceTemplateSet* set = LevelRule::getPieceTemplateSet();
 		set->setTemplate( Global::Random() % set->getTemplateNum() , piece );
-		int rotateTime = Global::Random() % piece.getDirNum();
+		int rotateTime = Global::Random() % piece.getDirectionNum();
 		piece.rotate( rotateTime );
 	}
 
@@ -681,7 +688,7 @@ namespace Tetris
 							return LVS_OVER;
 					}
 
-					int numLayer = mStorage.scanFilledLayer( mYPosMP + getMovePiece().getMapSize() - 1 , mYPosMP ,  mRemoveLayer );
+					int numLayer = mStorage.scanFilledLayer( mYPosMP + getMovePiece().getRotationSize() - 1 , mYPosMP ,  mRemoveLayer );
 					assert( numLayer <= MaxRemoveLayerNum );
 
 					++mTotalPieceUse;
@@ -724,12 +731,12 @@ namespace Tetris
 
 		for( int i = 0 ; i < piece.getBlockNum() ; ++i )
 		{
-			Block const& block = piece.getBlock(i);
+			PieceBlock const& block = piece.getBlock(i);
 			if ( block.getY() < yMin )
 				yMin = block.getY();
 		}
 
-		setMovePiece( piece, ( mStorage.getSizeX() - piece.getMapSize() )/ 2,  mStorage.getSizeY() - yMin  );
+		setMovePiece( piece, ( mStorage.getSizeX() - piece.getRotationSize() )/ 2,  mStorage.getSizeY() - yMin  );
 
 		mCountMove = 0;
 		mListener->onChangePiece( this );
@@ -797,7 +804,7 @@ namespace Tetris
 
 		int sx[2];
 		int sy[2];
-		piece.getRectBound( sx , sy );
+		piece.getBoundRect( sx , sy );
 
 		if ( mXPosMP + sx[0] < 0 )
 			mXPosMP = -sx[0];
@@ -813,7 +820,12 @@ namespace Tetris
 
 	LevelRule::LevelRule()
 	{
-		mPieceTempSet = &PieceTemplateSet::getClassicSet();
+		setDefault();
+	}
+
+	void LevelRule::setDefault()
+	{
+		mPieceTempSet = &PieceTemplateSet::GetClassic();
 
 		mTimeLockPiece = DefaultTimeLockPiece;
 		mTimeClearLayer = DefaultTimeClearLayer;

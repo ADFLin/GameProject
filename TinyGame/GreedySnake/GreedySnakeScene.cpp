@@ -33,17 +33,15 @@ namespace GreedySnake
 #define CHECK_MOVE_ACTION( ACT , DIR )\
 	if ( trigger.detect( ACT )  )\
 	{\
-		changeSnakeMoveDir( snake , DIR );\
+		snake.changeMoveDir( DIR );\
+		::Msg("%d : %u change dir %d", mFrame, snake.id, (int)DIR);\
 	}
 
 		CHECK_MOVE_ACTION( ACT_GS_MOVE_E , DIR_EAST );
 		CHECK_MOVE_ACTION( ACT_GS_MOVE_N , DIR_NORTH );
 		CHECK_MOVE_ACTION( ACT_GS_MOVE_W , DIR_WEST );
 		CHECK_MOVE_ACTION( ACT_GS_MOVE_S , DIR_SOUTH );
-		if( trigger.detect(ACT_GS_CHANGE_DIR) )
-		{
-			changeSnakeMoveDir(snake, DirEnum((snake.getMoveDir() + 1) % 4) );
-		}
+		CHECK_MOVE_ACTION( ACT_GS_CHANGE_DIR, DirType((snake.getMoveDir() + 1) % 4));
 
 #undef CHECK_MOVE_ACTION
 	}
@@ -262,11 +260,6 @@ namespace GreedySnake
 		mMode.onCollideTerrain( snake , type );
 	}
 
-	void Scene::changeSnakeMoveDir(Snake& snake, DirEnum dir )
-	{
-		snake.changeMoveDir( dir );
-		::Msg("%d : %u change dir %d", mFrame, snake.id , (int)dir);
-	}
 
 	void Scene::killSnake( unsigned id )
 	{

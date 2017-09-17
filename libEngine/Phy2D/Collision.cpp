@@ -203,7 +203,7 @@ namespace Phy2D
 			return false;
 		}
 		d = sv->v + dir;
-		dir = tripleProduct( sv->v , d , d );
+		dir = TripleProduct( sv->v , d , d );
 		//#FIXME
 		//if( dir.length2() )
 
@@ -221,8 +221,8 @@ namespace Phy2D
 			Vec2f d0 = mSv[0]->v - sv->v;
 			Vec2f d1 = mSv[1]->v - sv->v;
 
-			Vec2f d0Prep = tripleProduct( d1 , d0 , d0 );
-			Vec2f d1Prep = tripleProduct( d0 , d1 , d1 );
+			Vec2f d0Prep = TripleProduct( d1 , d0 , d0 );
+			Vec2f d1Prep = TripleProduct( d0 , d1 , d1 );
 
 			if ( d0Prep.dot( sv->v ) <= 0 )
 			{
@@ -315,7 +315,7 @@ namespace Phy2D
 		assert( e );
 		Simplex* sv = e->sv;
 		Vec2f d = b - sv->v;
-		e->normal = tripleProduct( d , sv->v , d );
+		e->normal = TripleProduct( d , sv->v , d );
 		e->normal.normalize();
 		e->depth = e->normal.dot( sv->v );
 	}
@@ -491,7 +491,7 @@ namespace Phy2D
 			c.depth = radius - len;
 			if ( len < FLT_DIV_ZERO_EPSILON )
 			{
-				c.normal = normalize( Vec2f( vCol.x > 0 ? 1 : -1 , vCol.y > 0 ? 1 : -1 ) );
+				c.normal = Normalize( Vec2f( vCol.x > 0 ? 1 : -1 , vCol.y > 0 ? 1 : -1 ) );
 			}
 			else
 			{

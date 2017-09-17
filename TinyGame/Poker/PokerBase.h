@@ -102,7 +102,6 @@ namespace Poker
 	std::ostream& operator << ( std::ostream& o , Card const& card );
 
 
-
 	inline std::ostream& operator << (std::ostream& o,Card const& card)
 	{
 		static const char suit[]={ 0x05,0x04,0x03,0x06 };
@@ -111,7 +110,8 @@ namespace Poker
 	}
 
 	inline Card::Card( Suit suit,int faceRank ) 
-		:mSuit(suit) ,mFace( Face( faceRank) )
+		:mSuit(suit) 
+		,mFace( Face( faceRank) )
 	{
 
 	}

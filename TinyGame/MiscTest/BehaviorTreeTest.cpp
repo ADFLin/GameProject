@@ -1,16 +1,14 @@
-#if 0
-// BehaviorTree.cpp : 定義主控台應用程式的進入點。
-//
+#include "Stage/TestStageHeader.h"
 
 #include <cassert>
 #include <iostream>
 #include <string>
 
 
-#include "delegeate.h"
-#include "TreeBuilder.h"
+#include "BehaviorTree/delegeate.h"
+#include "BehaviorTree/TreeBuilder.h"
 
-namespace ntu
+namespace BT
 {
 	typedef Delegate0< void > TaskFun;
 	class Task
@@ -31,7 +29,7 @@ namespace ntu
 		}
 	};
 
-	class PrintActin : public BaseActionNode< PrintActin >
+	class PrintActin : public BaseActionNodeT< PrintActin >
 	{
 	public:
 		typedef PrintActin ThisClass;
@@ -46,7 +44,11 @@ namespace ntu
 
 		TaskState action( TransformType* transform )
 		{
+#if 0
 			std::cout << mMsg << std::endl;
+#else
+			::Msg(mMsg.c_str());
+#endif
 			return mResultState;
 		}
 
@@ -72,7 +74,7 @@ struct PlayerContext
 //using namespace std;
 
 
-namespace ntu
+namespace BT
 {
 	class MyInitializer : public TreeInitializer
 		, public Visitor< ContextTransform< PlayerContext > >
@@ -103,33 +105,33 @@ class Bot
 
 int gVar = 1;
 
-int TestBTMain()
+void TestBTMain()
 {
-	using namespace ntu;
+	using namespace BT;
 	TreeBuilder builder;
 
 	long time;
 
 	BTNode* root = TreeBuilder::generate(
-	node< SequenceNode >() >>
-		( node< PrintActin >()->text("start")
-		| filter< GreaterEqualCmp , int , &gVar >()->setValue( 0 ) >>
-			filter< GreaterEqualCmp >( varPtr( &gVar ) )->setValue( 1 ) >>
-			node< PrintActin >()->text("test filter2")
-		| filter< GreaterCmp >( member( &PlayerContext::idleTime ) )->setValue( 10 ) >>
-			node< PrintActin >()->text("test filter")
-		| condition< GreaterCmp , long >()->setValue( 3 )
-		| condition< EqualCmp >( member( &PlayerContext::isSleep ) )->setValue( false )
-		| condition< EqualCmp >( member( &PlayerContext::msg ) )->setValue( "Hello" )
-		| node< PrintActin >()->text( "DD" )
-		| node< ParallelNode >()->setSuccessPolicy( RequireOne ) >>
-			( node< LoopDecNode >()->setMaxCount( 2 ) >> node< PrintActin >()->text("AA").resultState( TS_FAILED )
-			| node< SequenceNode >() >>
-				( condition< GreaterCmp >( memberFun( &PlayerContext::getIdleTime ) )->setValue( 1 )
-				| node< LoopDecNode >()->setMaxCount( 10 ) >> node< PrintActin >()->text("BB")
+	Node< SequenceNode >() >>
+		( Node< PrintActin >()->text("start")
+		| Filter< GreaterEqualCmp , int , &gVar >()->setValue( 0 ) >>
+			Filter< GreaterEqualCmp >( VarPtr( &gVar ) )->setValue( 1 ) >>
+			Node< PrintActin >()->text("test filter2")
+		| Filter< GreaterCmp >( MemberPtr( &PlayerContext::idleTime ) )->setValue( 10 ) >>
+			Node< PrintActin >()->text("test filter")
+		| Condition< GreaterCmp , long >()->setValue( 3 )
+		| Condition< EqualCmp >( MemberPtr( &PlayerContext::isSleep ) )->setValue( false )
+		| Condition< EqualCmp >( MemberPtr( &PlayerContext::msg ) )->setValue( "Hello" )
+		| Node< PrintActin >()->text( "DD" )
+		| Node< ParallelNode >()->setSuccessPolicy( RequireOne ) >>
+			( Node< LoopDecNode >()->setMaxCount( 2 ) >> Node< PrintActin >()->text("AA").resultState( TS_FAILED )
+			| Node< SequenceNode >() >>
+				( Condition< GreaterCmp >( MemberFun( &PlayerContext::getIdleTime ) )->setValue( 1 )
+				| Node< LoopDecNode >()->setMaxCount( 10 ) >> Node< PrintActin >()->text("BB")
 				)
 			)
-		| node< PrintActin >()->text("CC")
+		| Node< PrintActin >()->text("CC")
 		)
 	);
 
@@ -147,8 +149,7 @@ int TestBTMain()
 	walker.start( root );
 	walker.update();
 
-	return 0;
 }
 
-#endif
 
+REGISTER_MISC_TEST("BT Test" , TestBTMain);

@@ -4,6 +4,7 @@
 #include "GL/glew.h"
 #include "GLConfig.h"
 
+#include "CppVersion.h"
 #include "BaseType.h"
 
 #include "LogSystem.h"
@@ -61,6 +62,18 @@ namespace RenderGL
 			mHandle = 0;
 		}
 
+
+
+#if CPP_VARIADIC_TEMPLATE_SUPPORT
+		template< class ...Args >
+		bool fetchHandle(Args ...args)
+		{
+			if( !mHandle )
+				RMPolicy::create(mHandle, args...);
+			return mHandle != 0;
+		}
+
+#else
 		bool fetchHandle()
 		{
 			if( !mHandle )
@@ -75,9 +88,41 @@ namespace RenderGL
 				RMPolicy::create(mHandle, p1);
 			return mHandle != 0;
 		}
+
+#endif
 		GLuint mHandle;
 	};
 
+	struct RMPTexture
+	{
+		static void create(GLuint& handle) { glGenTextures(1, &handle); }
+		static void destroy(GLuint& handle) { glDeleteTextures(1, &handle); }
+	};
+	
+	struct RMPShader
+	{
+		static void create(GLuint& handle, GLenum type) { handle = glCreateShader(type); }
+		static void destroy(GLuint& handle) { glDeleteShader(handle); }
+	};	
+	
+	struct RMPShaderProgram
+	{
+		static void create(GLuint& handle) { handle = glCreateProgram(); }
+		static void destroy(GLuint& handle) { glDeleteProgram(handle); }
+	};
+	
+	struct RMPRenderBuffer
+	{
+		static void create(GLuint& handle) { glGenRenderbuffers(1, &handle); }
+		static void destroy(GLuint& handle) { glDeleteRenderbuffers(1, &handle); }
+	};
+
+	
+	struct RMPBufferObject
+	{
+		static void create(GLuint& handle) { glGenBuffers(1, &handle); }
+		static void destroy(GLuint& handle) { glDeleteBuffers(1, &handle); }
+	};
 
 	class RHIResource : public RefCountedObjectT< RHIResource >
 	{
@@ -165,7 +210,7 @@ namespace RenderGL
 			eFaceZ    = 4,
 			eFaceInvZ = 5,
 		};
-		static GLenum Convert( Format format );
+
 		static GLenum GetBaseFormat(Format format);
 		static GLenum GetFormatType(Format format);
 		static GLenum GetImage2DType(Format format);
@@ -199,12 +244,6 @@ namespace RenderGL
 		{
 			return format == eD24S8 || format == eD32FS8;
 		}
-	};
-
-	struct RMPTexture
-	{  
-		static void create( GLuint& handle ){ glGenTextures( 1 , &handle ); }
-		static void destroy( GLuint& handle ){ glDeleteTextures( 1 , &handle ); }
 	};
 
 	class RHITextureBase : public TRHIResource< RMPTexture >
@@ -279,11 +318,6 @@ namespace RenderGL
 	};
 	typedef TRefCountPtr< RHITextureDepth > RHITextureDepthRef;
 
-	struct RMPShader
-	{  
-		static void create( GLuint& handle , GLenum type ){ handle = glCreateShader( type ); }
-		static void destroy( GLuint& handle ){ 	glDeleteShader( handle ); }
-	};
 
 	class RHIShader : public TRHIResource< RMPShader >
 	{
@@ -295,13 +329,15 @@ namespace RenderGL
 			ePixel    = 1,
 			eGeometry = 2,
 			eCompute  = 3,
+			eHull     = 4,
+			eDomain   = 5,
 			NUM_SHADER_TYPE ,
 		};
 
 
 		bool loadFile( Type type , char const* path , char const* def = NULL );
 		Type getType();
-		bool compileSource( Type type , char const* src[] , int num );
+		bool compileCode( Type type , char const* src[] , int num );
 		bool create( Type type );
 		void destroy();
 
@@ -311,12 +347,6 @@ namespace RenderGL
 
 	
 	typedef TRefCountPtr< RHIShader > RHIShaderRef;
-
-	struct RMPShaderProgram
-	{
-		static void create(GLuint& handle) { handle = glCreateProgram(); }
-		static void destroy(GLuint& handle) { glDeleteProgram(handle); }
-	};
 
 	enum AccessOperator
 	{
@@ -605,12 +635,6 @@ namespace RenderGL
 		int  mIdxTextureAutoBind;
 	};
 
-	struct RMPRenderBuffer
-	{  
-		static void create( GLuint& handle ){ glGenRenderbuffers( 1 , &handle ); }
-		static void destroy( GLuint& handle ){ 	glDeleteRenderbuffers( 1 , &handle ); }
-	};
-
 	class RHIDepthRenderBuffer : public TRHIResource< RMPRenderBuffer >
 	{
 	public:
@@ -790,12 +814,6 @@ namespace RenderGL
 		uint8   mVertexSize;
 	};
 
-	struct RMPBufferObject
-	{
-		static void create(GLuint& handle) { glGenBuffers(1, &handle); }
-		static void destroy(GLuint& handle) { glDeleteBuffers(1, &handle); }
-	};
-
 
 	class RHIVertexBuffer : public TRHIResource< RMPBufferObject >
 	{
@@ -818,7 +836,7 @@ namespace RenderGL
 			return true;
 		}
 
-		void update(uint32 vertexSize, uint32 numVertices, void* data )
+		void updateData(uint32 vertexSize, uint32 numVertices, void* data )
 		{
 			glBindBuffer(GL_ARRAY_BUFFER, mHandle);
 			glBufferSubData(GL_ARRAY_BUFFER, 0, vertexSize*numVertices, data);

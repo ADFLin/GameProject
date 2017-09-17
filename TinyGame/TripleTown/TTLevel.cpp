@@ -8,7 +8,7 @@
 namespace TripleTown
 {
 
-	AnimManager gEmptyAnimManager;
+	LevelListener gEmptyAnimManager;
 
 	int const DirOffsetX[] = { 1 , -1 , 0 , 0 };
 	int const DirOffsetY[] = { 0 , 0 , 1 , -1 };
@@ -549,7 +549,7 @@ namespace TripleTown
 
 	void Level::create( LandType type )
 	{
-		getAnimManager().prevCreateLand();
+		getListener().prevPrevCreateLand();
 
 		mLandType = type;
 
@@ -588,7 +588,7 @@ namespace TripleTown
 
 		setupRandProduce( pInfo , numInfo );
 		restart();
-		getAnimManager().postCreateLand();
+		getListener().postCreateLand();
 	}
 
 	void Level::restart()
@@ -836,7 +836,7 @@ namespace TripleTown
 		tile.id   = OBJ_NULL;
 		tile.meta = 0;
 		++mNumEmptyTile;
-		getAnimManager().removeObject( pos , id );
+		getListener().notifyObjectRemoved( pos , id );
 
 		for ( int i = 0 ; i < DirNum ; ++i )
 			removeConnectObject_R( getNeighborPos( pos , i ) , id );
@@ -910,7 +910,7 @@ namespace TripleTown
 		return result;
 	}
 
-	void Level::setAnimManager( AnimManager* manager )
+	void Level::setListener( LevelListener* manager )
 	{
 		mAnimMgr = ( manager ) ? manager : ( &gEmptyAnimManager );
 	}
@@ -1159,7 +1159,7 @@ namespace TripleTown
 
 		--mNumEmptyTile;
 		mIdxUpdateQueue.push_back( idx );
-		getAnimManager().addActor( pos , id );
+		getListener().nodifyActorAdded( pos , id );
 
 		return tile.meta;
 	}
@@ -1171,7 +1171,7 @@ namespace TripleTown
 		int idx = tile.meta;
 		ActorData& e = mActorStorage[ idx ];
 
-		getAnimManager().prevRemoveActor( tile , e );
+		getListener().prevRemoveActor( tile , e );
 
 		ObjectId id = e.id;
 		TilePos pos = e.pos;
@@ -1190,7 +1190,7 @@ namespace TripleTown
 
 		getInfo( id ).typeClass->onRemove( *this , pos , id );
 		
-		getAnimManager().removeActor( pos , id );
+		getListener().postRemoveActor( pos , id );
 	}
 
 
@@ -1215,7 +1215,7 @@ namespace TripleTown
 
 		TilePos posOld = e.pos;
 		e.pos = posTo;
-		getAnimManager().moveActor( e.id , posOld , posTo );
+		getListener().notifyActorMoved( e.id , posOld , posTo );
 	}
 
 	void Level::increaseCheckCount()

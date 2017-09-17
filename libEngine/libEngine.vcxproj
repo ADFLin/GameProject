@@ -158,7 +158,7 @@
   <ItemGroup>
     <ClCompile Include="AppEntry.cpp" />
     <ClCompile Include="Asset.cpp" />
-    <ClCompile Include="BehaviorTree\BehaviorTree.cpp" />
+    <ClCompile Include="AsyncWork.cpp" />
     <ClCompile Include="BehaviorTree\BTNode.cpp" />
     <ClCompile Include="BehaviorTree\TreeBuilder.cpp" />
     <ClCompile Include="BitmapDC.cpp" />
@@ -167,6 +167,7 @@
     <ClCompile Include="ConsoleSystem.cpp" />
     <ClCompile Include="CoreShare.cpp" />
     <ClCompile Include="CPreprocessor.cpp" />
+    <ClCompile Include="FlowSystem.cpp" />
     <ClCompile Include="LogSystem.cpp" />
     <ClCompile Include="FileSystem.cpp" />
     <ClCompile Include="GIFLoader.cpp" />
@@ -174,6 +175,7 @@
     <ClCompile Include="HashString.cpp" />
     <ClCompile Include="Math\BigFloat.cpp" />
     <ClCompile Include="Math\BigInteger.cpp" />
+    <ClCompile Include="Math\Math2D.cpp" />
     <ClCompile Include="Math\Matrix3.cpp" />
     <ClCompile Include="Math\Matrix4.cpp" />
     <ClCompile Include="Math\Quaternion.cpp" />
@@ -186,6 +188,7 @@
     <ClCompile Include="ProfileSystem.cpp" />
     <ClCompile Include="SocketBuffer.cpp" />
     <ClCompile Include="StringParse.cpp" />
+    <ClCompile Include="SystemPlatform.cpp" />
     <ClCompile Include="TaskBase.cpp" />
     <ClCompile Include="Thread.cpp" />
     <ClCompile Include="TileRegion.cpp" />
@@ -203,6 +206,7 @@
     <ClInclude Include="Any.h" />
     <ClInclude Include="Asset.h" />
     <ClInclude Include="AStarTile2D.h" />
+    <ClInclude Include="AsyncWork.h" />
     <ClInclude Include="AVLTree.h" />
     <ClInclude Include="BehaviorTree\BTNode.h" />
     <ClInclude Include="BehaviorTree\delegateN.hxx" />
@@ -212,6 +216,7 @@
     <ClInclude Include="BehaviorTree\TreeBuilder.h" />
     <ClInclude Include="BehaviorTree\Visitor.h" />
     <ClInclude Include="CPreprocessor.h" />
+    <ClInclude Include="CString.h" />
     <ClInclude Include="CycleQueue.h" />
     <ClInclude Include="DataBitSerialize.h" />
     <ClInclude Include="BitmapDC.h" />
@@ -252,6 +257,7 @@
     <ClInclude Include="Math\Base.h" />
     <ClInclude Include="Math\BigFloat.h" />
     <ClInclude Include="Math\BigInteger.h" />
+    <ClInclude Include="Math\DualQuat.h" />
     <ClInclude Include="Math\FixedFloat.h" />
     <ClInclude Include="Math\Math2D.h" />
     <ClInclude Include="Math\Matrix3.h" />
@@ -291,11 +297,13 @@
     <ClInclude Include="StreamBuffer.h" />
     <ClInclude Include="StringParse.h" />
     <ClInclude Include="SystemMessage.h" />
+    <ClInclude Include="SystemPlatform.h" />
+    <ClInclude Include="TemplateMisc.h" />
     <ClInclude Include="WindowsMessageHander.h" />
     <ClInclude Include="TaskBase.h" />
     <ClInclude Include="TCycleNumber.h" />
     <ClInclude Include="TGrid2D.h" />
-    <ClInclude Include="THolder.h" />
+    <ClInclude Include="Holder.h" />
     <ClInclude Include="Thread.h" />
     <ClInclude Include="TileRegion.h" />
     <ClInclude Include="TLinkable.h" />
@@ -330,7 +338,6 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="CHandle.cpp_temp" />
-    <None Include="TypeFactory" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

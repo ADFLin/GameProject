@@ -14,6 +14,328 @@
 
 #include "RenderUtility.h"
 
+#include "StringParse.h"
+
+namespace MRT
+{
+
+
+	char const* StationData =
+		"A2=B3=C2\n"
+		"C4=B1\n"
+		"A1-10-A2-18-A3-16-A4\n"
+		"B1-20-B2-18-B3-12-B4\n"
+		"C1-10-C2-18-C3-18-C4-17-C5\n";
+
+	void Algo::run()
+	{
+		assert(startStation);
+
+		for( int i = 0; i < network->stations.size(); ++i )
+		{
+			Station* st = network->stations[i];
+			st->minLink = nullptr;
+			st->totalDistance = -1;
+			st->nodeHandle = StationHeap::EmptyHandle();
+			st->inQueue = false;
+		}
+
+		StationHeap queue;
+		startStation->totalDistance = 0;
+		startStation->nodeHandle = queue.push(startStation);
+
+		while( !queue.empty() )
+		{
+			Station* st = queue.top();
+			queue.pop();
+			st->nodeHandle = StationHeap::EmptyHandle();
+
+			for( int i = 0; i < st->links.size(); ++i )
+			{
+				LinkInfo* link = st->links[i];
+				Station* dest = link->getDestStation(st);
+
+				if( dest == st->minLink )
+					continue;
+
+				float dist = st->totalDistance + link->distance;
+				if( dest->minLink == nullptr || dest->totalDistance > dist )
+				{
+					dest->totalDistance = dist;
+					dest->minLink = st;
+					if( dest->nodeHandle == StationHeap::EmptyHandle() )
+					{
+						dest->nodeHandle = queue.push(dest);
+					}
+					else
+					{
+						queue.update(dest->nodeHandle);
+					}
+				}
+			}
+		}
+	}
+
+	bool TestStage::loadData(char const* data)
+	{
+		Tokenizer tokenizer(data, " ", "-=\n");
+
+
+		enum Mode
+		{
+			None ,
+			Link ,
+			Alais ,
+		};
+
+		bool bKeep = true;
+		Station* prevStation = nullptr;
+		bool bGetDistance = false;
+		int  mode = 0;
+		float  distance = 0;
+
+		std::unordered_map< std::string, int > nameMap;
+		std::vector< Station* > stationVec;
+		auto createfun = [&](TokenString const& str) -> Station*
+		{
+			auto iter = nameMap.find(str.toStdString());
+			if( iter != nameMap.end() )
+			{
+				int idx = iter->second;
+				if( stationVec[idx] == nullptr )
+				{
+					stationVec[idx] = createNewStation();
+					stationVec[idx]->name = str.toStdString();
+				}
+				return stationVec[idx];
+			}
+
+			Station* station = createNewStation();
+			station->name = str.toStdString();
+
+			int idx = stationVec.size();
+			stationVec.push_back(station);
+			nameMap.insert({ station->name , idx });
+			return station;
+		};
+
+		while( bKeep )
+		{
+			TokenString str;
+			switch( tokenizer.take(str) )
+			{
+			case ParseUtility::eNoToken:
+				bKeep = false;
+				break;
+			case ParseUtility::eDelimsType:
+				if( str[0] == '=' )
+				{
+					if( mode != Mode::None )
+						return false;
+					mode = Mode::Alais;
+				}
+				else if( str[0] == '-' )
+				{
+					if( mode != Mode::None )
+						return false;
+					mode = Mode::Link;
+					bGetDistance = !bGetDistance;
+				}
+				else if( str[0] == '\n' )
+				{
+					mode = Mode::None;
+					prevStation = nullptr;
+					bGetDistance = false;
+				}
+				break;
+			case ParseUtility::eStringType:
+				if( mode == Mode::None )
+				{
+					prevStation = createfun(str);
+				}
+				else if( mode == Mode::Link )
+				{
+					if( bGetDistance )
+					{
+						if( !str.toFloat( distance ) )
+						{
+							return false;
+						}
+					}
+					else
+					{
+						Station* station = createfun(str);
+						if( station == prevStation )
+						{
+							return false;
+						}
+						LinkInfo* link = linkStation(station, prevStation);
+						link->distance = distance;
+						prevStation = station;
+					}
+					mode = Mode::None;
+				}
+				else if( mode == Mode::Alais )
+				{
+					auto iter = nameMap.find(prevStation->name);
+					if( iter == nameMap.end() )
+					{
+						return false;
+					}
+					nameMap.insert({ str.toStdString() , iter->second });
+					mode = Mode::None;
+				}
+				break;
+			}
+		}
+	}
+
+	bool TestStage::onInit()
+	{
+		::Global::GUI().cleanupWidget();
+
+		loadData(StationData);
+		restart();
+
+		auto frame = WidgetUtility::CreateDevFrame();
+		frame->addButton(UI_NEW_STATION, "New Station");
+		frame->addButton(UI_LINK_STATION, "Link Station");
+		frame->addButton(UI_REMOVE_STATION, "Remove Station");
+		frame->addButton(UI_CALC_PATH, "Calc Path");
+		return true;
+	}
+
+	void TestStage::onRender(float dFrame)
+	{
+		Graphics2D& g = Global::getGraphics2D();
+
+		if( mStationSelected )
+		{
+			Vec2i pos = mStationSelected->visual->getPos();
+			Vec2i size = mStationSelected->visual->getSize();
+
+			RenderUtility::setBrush(g, Color::eRed);
+			g.drawRect(pos, size);
+		}
+
+		RenderUtility::setPen(g, Color::eYellow);
+		for( auto const& link : mNetwork.links )
+		{
+			Vec2i posA = link->stations[0]->visual->getPos();
+			Vec2i posB = link->stations[1]->visual->getPos();
+			Vec2i sizeA = link->stations[0]->visual->getSize();
+			Vec2i sizeB = link->stations[1]->visual->getSize();
+
+			Vec2i posMid = ( posA + posB ) / 2;
+			g.drawLine(posA + sizeA / 2, posB + sizeB / 2);
+			FixString< 128 > str;
+			g.drawText(posMid, str.format("%.2f", link->distance));
+		}
+	}
+
+	bool TestStage::onWidgetEvent(int event, int id, GWidget* ui)
+	{
+		if( !BaseClass::onWidgetEvent(event, id, ui) )
+			return false;
+
+		switch( id )
+		{
+		case UI_STATION:
+			if( mbLinkMode && mStationSelected )
+			{
+				auto link = linkStation(reinterpret_cast<Station*>(ui->getUserData()), mStationSelected);
+				if( link->distance == 0 )
+				{
+					link->distance = float(::Global::Random() % 20 + 10);
+				}
+				mbLinkMode = false;
+			}
+			else
+			{
+				mStationSelected = reinterpret_cast<Station*>(ui->getUserData());
+			}
+			return false;
+		case UI_NEW_STATION:
+			mStationSelected = createNewStation();
+			mbLinkMode = false;
+			return false;
+		case UI_LINK_STATION:
+			mbLinkMode = true;
+			return false;
+		case UI_REMOVE_STATION:
+			if( mStationSelected )
+			{
+				destroyStation(mStationSelected);
+				mStationSelected = nullptr;
+			}
+			return false;
+		case UI_CALC_PATH:
+			if( mStationSelected )
+			{
+				Algo algo;
+				algo.network = &mNetwork;
+				algo.startStation = mStationSelected;
+				algo.run();
+			}
+			return false;
+		}
+	}
+
+	MRT::Station* TestStage::createNewStation()
+	{
+		Station* station = mNetwork.createNewStation();
+		station->visual = new GFrame(UI_STATION, Vec2i(100, 100), Vec2i(100, 20), nullptr);
+		station->visual->setUserData((intptr_t)station);
+		station->visual->setRenderCallback(
+			RenderCallBack::Create([](GWidget* widget)
+		{
+			Graphics2D& g = ::Global::getGraphics2D();
+			Station* station = (Station*)widget->getUserData();
+			FixString<256> str;
+			str.format("%s %.2f", station->name.c_str(), station->totalDistance);
+
+			g.drawText(widget->getWorldPos(), widget->getSize(), str);
+		}));
+		::Global::GUI().addWidget(station->visual);
+		return station;
+	}
+
+	void TestStage::destroyStation(Station* station)
+	{
+		station->visual->destroy();
+		mNetwork.destroyStation(station);
+	}
+
+}
+
+REGISTER_STAGE("MRT Test", MRT::TestStage, StageRegisterGroup::Dev);
+
+struct MoneyInfo
+{
+	int value;
+	int count;
+};
+void CalcMoney()
+{
+	MoneyInfo infos[] =
+	{
+		{ 500,1 },
+		{ 100,3 },
+		{  50,2 },
+		{  10,6 },
+		{   5,1 },
+		{   1,4 },
+	};
+
+	int money = 0;
+	for( auto const& info : infos )
+	{
+		money += info.count * info.value;
+	}
+	::Msg("Money = %d", money);
+}
+
+REGISTER_MISC_TEST("Calc Money", CalcMoney);
 #if 1
 
 #include "Coroutine.h"
@@ -572,13 +894,31 @@ void MyMethod()
 	::Msg( "%s" , str.c_str() );
 }
 
-void XMLPraseTestStage::testHeap()
+void TestHeap()
 {
-	MyMethod< PairingHeap< int > >();
-	MyMethod< FibonaccilHeap< int > >();
-	MyMethod< BinaryHeap< int > >();
+	typedef TFibonaccilHeap< int > MyHeap;
+	MyHeap heap;
+	heap.push(4);
+	heap.push(2);
+	heap.push(7);
+	MyHeap::NodeHandle handle = heap.push(10);
+	heap.update(handle, 1);
+	::Msg( "%d" , heap.top() );
+	heap.pop();
+	::Msg("%d", heap.top());
+	heap.pop();
+	::Msg("%d", heap.top());
+	heap.pop();
+	::Msg("%d", heap.top());
 
+#if 1
+	MyMethod< TFibonaccilHeap< int > >();
+	MyMethod< TPairingHeap< int > >();
+	MyMethod< TBinaryHeap< int > >();
+#endif
 }
+
+REGISTER_MISC_TEST("Heap Test", TestHeap);
 
 #include "Math/BigInteger.h"
 #include "Math/BigFloat.h"
@@ -604,7 +944,7 @@ static void PrintMsg(std::string &str)
 	Msg( pStr );
 }
 
-static void testBigNumber()
+static void TestBigNumber()
 {
 	float value = 1.4e-44;
 	SFloatFormat* fv = (SFloatFormat*)&value;
@@ -1005,7 +1345,7 @@ void ClassTree::unregisterAllClass()
 	}
 }
 
-static void testClassTree()
+static void TestClassTree()
 {
 
 	ClassTree& tree = ClassTree::getInstance();
@@ -1045,7 +1385,7 @@ static void testClassTree()
 
 #include "CycleQueue.h"
 
-void testCycleQueue()
+void TestCycleQueue()
 {
 	TCycleQueue< int > queue;
 
@@ -1084,6 +1424,10 @@ void testCycleQueue()
 	}
 }
 
+REGISTER_MISC_TEST("Class Tree", TestClassTree);
+REGISTER_MISC_TEST("Big Number", TestBigNumber);
+REGISTER_MISC_TEST("Cycle Queue", TestCycleQueue);
+
 #include <functional>
 
 struct MiscTestEntry
@@ -1107,9 +1451,7 @@ bool MiscTestStage::onInit()
 {
 	::Global::GUI().cleanupWidget();
 
-	addTest( "Class Tree" , testClassTree );
-	addTest( "Big Number" , testBigNumber );
-	addTest( "Cycle Queue", testCycleQueue );
+
 
 	auto& entries = GetRegisterMiscTestEntries();
 	for( auto entry : entries )
@@ -1164,3 +1506,54 @@ bool MiscTestStage::onWidgetEvent(int event , int id , GWidget* ui)
 	}
 	return BaseClass::onWidgetEvent(event , id , ui );
 }
+
+
+
+#include "xmmintrin.h"
+#include "smmintrin.h"
+
+namespace SIMD
+{
+	struct VecF
+	{
+		VecF() {}
+		VecF(float x, float y, float z, float w)
+		{
+			mVal.m128_f32[0] = x;
+			mVal.m128_f32[1] = y;
+			mVal.m128_f32[2] = z;
+			mVal.m128_f32[3] = w;
+		}
+
+		VecF(__m128 val) :mVal(val) {}
+
+		float x() const { return mVal.m128_f32[0]; }
+		float y() const { return mVal.m128_f32[1]; }
+		float z() const { return mVal.m128_f32[2]; }
+		float w() const { return mVal.m128_f32[3]; }
+
+		float dot(VecF const& rhs) const
+		{
+			//FIXME
+			return 0;
+		}
+		VecF operator * (VecF const& rhs) const { return _mm_mul_ps(mVal, rhs.mVal); }
+		VecF operator + (VecF const& rhs) const { return _mm_add_ps(mVal, rhs.mVal); }
+		VecF operator - (VecF const& rhs) const { return _mm_sub_ps(mVal, rhs.mVal); }
+		VecF operator / (VecF const& rhs) const { return _mm_div_ps(mVal, rhs.mVal); }
+	private:
+		__m128 mVal;
+	};
+
+	void TestFun()
+	{
+		VecF a(1, 2, 1, 13);
+		VecF b(2, 3, 6, 2);
+		VecF c(3, 4, 5, 3);
+		VecF e = a + b;
+		VecF d = a * e + c * b;
+		int aa = 3;
+	}
+}
+
+REGISTER_MISC_TEST("SIMD Test", SIMD::TestFun);

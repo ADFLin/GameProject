@@ -1,7 +1,8 @@
 
-#include <algorithm>
+
 #include "Stage/TestStageHeader.h"
 
+#include <algorithm>
 #include "CompilerConfig.h"
 
 namespace Homework

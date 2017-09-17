@@ -2,7 +2,7 @@
 
 #if SYS_PLATFORM_WIN
 
-bool WinThread::create( ThreadFunc fun , void* ptr )
+bool WinThread::create( ThreadFunc fun , void* ptr , uint32 stackSize )
 {
 	if ( !mbRunning )
 	{
@@ -10,7 +10,7 @@ bool WinThread::create( ThreadFunc fun , void* ptr )
 			CloseHandle(mhThread);
 
 		mhThread = (HANDLE) _beginthreadex(
-			NULL,0 , fun , ptr ,
+			NULL, stackSize , fun , ptr ,
 			0,&mThreadID );
 		if ( mhThread == NULL )
 			return false;

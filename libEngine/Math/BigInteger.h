@@ -67,10 +67,10 @@ public:
 	}
 
 
-	void setValue( TBigUint const& rh )
+	void setValue( TBigUint const& rhs )
 	{
 		for( int i = 0 ; i < NumWord ; ++i )
-			elements[i] = rh.elements[i];
+			elements[i] = rhs.elements[i];
 	}
 
 	bool getString( char* str , int maxLen , unsigned base = 10 ) const;
@@ -81,31 +81,31 @@ public:
 	void setMax(){ fillElements( BaseTypeMaxValue ); }
 	bool isZero() const;
 
-	unsigned add( TBigUint const& rh );
+	unsigned add( TBigUint const& rhs );
 	unsigned add( BaseType n ){ return addElement( 0 , n ); }
 	
-	unsigned sub( TBigUint const& rh );
+	unsigned sub( TBigUint const& rhs );
 	unsigned sub( BaseType n ){ return subElement( 0 , n ); }
 
 	unsigned mul( BaseType n );
-	unsigned mul( TBigUint const& rh );
+	unsigned mul( TBigUint const& rhs );
 	BaseType div( BaseType divisor );
 	void     div( TBigUint const& divisor , TBigUint& mod );
 
 	unsigned pow( BaseType n );
 	void     sqrt();
 
-	TBigUint const operator + ( TBigUint const& rh ) const{  TBigUint temp(*this); temp += rh; return temp;  }
-	TBigUint const operator - ( TBigUint const& rh ) const{  TBigUint temp(*this); temp -= rh; return temp;  }
-	TBigUint const operator * ( TBigUint const& rh ) const{  TBigUint temp(*this); temp *= rh; return temp;  }
-	TBigUint const operator / ( TBigUint const& rh ) const{  TBigUint temp(*this); temp /= rh; return temp;  }
-	TBigUint const operator % ( TBigUint const& rh ) const{  TBigUint temp(*this); temp %= rh; return temp;  }
+	TBigUint const operator + ( TBigUint const& rhs ) const{  TBigUint temp(*this); temp += rhs; return temp;  }
+	TBigUint const operator - ( TBigUint const& rhs ) const{  TBigUint temp(*this); temp -= rhs; return temp;  }
+	TBigUint const operator * ( TBigUint const& rhs ) const{  TBigUint temp(*this); temp *= rhs; return temp;  }
+	TBigUint const operator / ( TBigUint const& rhs ) const{  TBigUint temp(*this); temp /= rhs; return temp;  }
+	TBigUint const operator % ( TBigUint const& rhs ) const{  TBigUint temp(*this); temp %= rhs; return temp;  }
 
-	TBigUint& operator -= ( TBigUint const& rh ){  sub( rh ); return *this; }
-	TBigUint& operator += ( TBigUint const& rh ){  add( rh ); return *this; }
-	TBigUint& operator *= ( TBigUint const& rh ){  mul( rh ); return *this; }
-	TBigUint& operator /= ( TBigUint const& rh ){  TBigUint mod; div( rh , mod ); return *this;  }
-	TBigUint& operator %= ( TBigUint const& rh ){  TBigUint mod; div( rh , mod ); *this = mod ; return *this; }
+	TBigUint& operator -= ( TBigUint const& rhs ){  sub( rhs ); return *this; }
+	TBigUint& operator += ( TBigUint const& rhs ){  add( rhs ); return *this; }
+	TBigUint& operator *= ( TBigUint const& rhs ){  mul( rhs ); return *this; }
+	TBigUint& operator /= ( TBigUint const& rhs ){  TBigUint mod; div( rhs , mod ); return *this;  }
+	TBigUint& operator %= ( TBigUint const& rhs ){  TBigUint mod; div( rhs , mod ); *this = mod ; return *this; }
 
 
 	TBigUint const operator + ( unsigned n ) const{  TBigUint temp(*this); temp += n; return temp;  }
@@ -120,34 +120,34 @@ public:
 	TBigUint& operator += ( unsigned n ){ add( n ); return *this; }
 	TBigUint& operator %= ( unsigned n ){  *this = div( n ); return *this;  }
 
-	bool big( TBigUint const& rh ) const;
-	bool equal( TBigUint const& rh ) const;
-	bool operator >  ( TBigUint const& rh ) const { return big(rh);}
-	bool operator <= ( TBigUint const& rh ) const { return !big(rh); }
-	bool operator <  ( TBigUint const& rh ) const { return rh.big( *this ); }
-	bool operator >= ( TBigUint const& rh ) const { return !rh.big( *this ); }
+	bool big( TBigUint const& rhs ) const;
+	bool equal( TBigUint const& rhs ) const;
+	bool operator >  ( TBigUint const& rhs ) const { return big(rhs);}
+	bool operator <= ( TBigUint const& rhs ) const { return !big(rhs); }
+	bool operator <  ( TBigUint const& rhs ) const { return rhs.big( *this ); }
+	bool operator >= ( TBigUint const& rhs ) const { return !rhs.big( *this ); }
 	
-	bool operator == ( TBigUint const& rh ) const { return equal( rh ); }
-	bool operator != ( TBigUint const& rh ) const { return !equal( rh ); }
+	bool operator == ( TBigUint const& rhs ) const { return equal( rhs ); }
+	bool operator != ( TBigUint const& rhs ) const { return !equal( rhs ); }
 
 	TBigUint& operator <<=( unsigned shift ){  shiftLeftBit( shift , 0 ); return *this; }
 	TBigUint& operator >>=( unsigned shift ){  shiftRightBit( shift , 0 ); return *this; }
 
-	TBigUint& operator &= ( TBigUint const& rh ){  bitAND( rh ); return *this; }
-	TBigUint& operator |= ( TBigUint const& rh ){  bitOR( rh );  return *this;  }
-	TBigUint& operator ^= ( TBigUint const& rh ){  bitXOR( rh ); return *this; }
+	TBigUint& operator &= ( TBigUint const& rhs ){  bitAND( rhs ); return *this; }
+	TBigUint& operator |= ( TBigUint const& rhs ){  bitOR( rhs );  return *this;  }
+	TBigUint& operator ^= ( TBigUint const& rhs ){  bitXOR( rhs ); return *this; }
 
 
 	TBigUint const operator ~ (){ TBigUint temp(*this); temp.bitNOT(); return temp; }
-	TBigUint const operator & ( TBigUint const& rh ) const{  TBigUint temp(*this); temp &= rh; return temp;  }
-	TBigUint const operator | ( TBigUint const& rh ) const{  TBigUint temp(*this); temp |= rh; return temp;  }
-	TBigUint const operator ^ ( TBigUint const& rh ) const{  TBigUint temp(*this); temp ^= rh; return temp;  }
+	TBigUint const operator & ( TBigUint const& rhs ) const{  TBigUint temp(*this); temp &= rhs; return temp;  }
+	TBigUint const operator | ( TBigUint const& rhs ) const{  TBigUint temp(*this); temp |= rhs; return temp;  }
+	TBigUint const operator ^ ( TBigUint const& rhs ) const{  TBigUint temp(*this); temp ^= rhs; return temp;  }
 
 	friend std::istream& operator >> ( std::istream& s , TBigUint& v )
-	{  v.inputSteam( s ); return s; }
+	{  v.inputStream( s ); return s; }
 
 	friend std::ostream& operator << ( std::ostream& s , TBigUint const& v )
-	{  v.outputSteam( s ); return s; }
+	{  v.outputStream( s ); return s; }
 
 	unsigned getElement( unsigned idx ) const { return elements[ idx ];  }
 	void     setElement( unsigned idx , BaseType val ){ elements[ idx ] = val; }
@@ -196,12 +196,12 @@ protected:
 		return -1;
 	}
 
-	void doMul( TBigUint const& rh  , MulRType& result );
+	void doMul( TBigUint const& rhs  , MulRType& result );
 
 
-	void bitOR( TBigUint& rh );
-	void bitXOR( TBigUint& rh );
-	void bitAND( TBigUint& rh );
+	void bitOR( TBigUint& rhs );
+	void bitXOR( TBigUint& rhs );
+	void bitAND( TBigUint& rhs );
 	void bitNOT();
 
 
@@ -221,8 +221,8 @@ protected:
 	static void convertToString( TBigUint& temp , std::string& str , unsigned base , unsigned fNum = 0);
 	static bool convertToString( TBigUint& temp , char* str , int maxLen  , unsigned base  );
 
-	void outputSteam( std::ostream& s ) const;
-	void inputSteam( std::istream& s );
+	void outputStream( std::ostream& s ) const;
+	void inputStream( std::istream& s );
 
 	BaseType elements[ NumWord ];
 
@@ -235,22 +235,22 @@ private:
 
 
 template < int NumWord >
-bool TBigUint<NumWord>::big( TBigUint const& rh ) const
+bool TBigUint<NumWord>::big( TBigUint const& rhs ) const
 {
 	for( int i = NumWord - 1; i >= 0 ; --i )
 	{
-		if ( elements[i] != rh.elements[i] )
-			return elements[i] > rh.elements[i];
+		if ( elements[i] != rhs.elements[i] )
+			return elements[i] > rhs.elements[i];
 	}
 	return false;
 }
 
 template < int NumWord >
-bool TBigUint<NumWord>::equal( TBigUint const& rh ) const
+bool TBigUint<NumWord>::equal( TBigUint const& rhs ) const
 {
 	for( int i = 0; i < NumWord ; ++i )
 	{
-		if ( elements[i] != rh.elements[i] )
+		if ( elements[i] != rhs.elements[i] )
 			return false;
 	}
 	return true;
@@ -258,7 +258,7 @@ bool TBigUint<NumWord>::equal( TBigUint const& rh ) const
 
 
 template < int NumWord >
-unsigned TBigUint<NumWord>::sub( TBigUint const& rh )
+unsigned TBigUint<NumWord>::sub( TBigUint const& rhs )
 {
 	BaseType carry = 0;
 	BaseType val;
@@ -267,12 +267,12 @@ unsigned TBigUint<NumWord>::sub( TBigUint const& rh )
 		val = elements[i];
 		if ( carry )
 		{
-			elements[i] -= rh.elements[i] + 1;
+			elements[i] -= rhs.elements[i] + 1;
 			carry = ( elements[i] >= val ) ? 1 : 0;
 		}
 		else
 		{
-			elements[i] -= rh.elements[i];
+			elements[i] -= rhs.elements[i];
 			carry = ( elements[i] > val ) ? 1 : 0;
 		}
 	}
@@ -280,7 +280,7 @@ unsigned TBigUint<NumWord>::sub( TBigUint const& rh )
 }
 
 template < int NumWord >
-unsigned TBigUint<NumWord>::add( TBigUint const& rh )
+unsigned TBigUint<NumWord>::add( TBigUint const& rhs )
 {
 	BaseType carry = 0;
 	BaseType val;
@@ -290,12 +290,12 @@ unsigned TBigUint<NumWord>::add( TBigUint const& rh )
 
 		if ( carry )
 		{
-			elements[i] += rh.elements[i] + 1;
+			elements[i] += rhs.elements[i] + 1;
 			carry = ( elements[i] <= val ) ? 1 : 0;
 		}
 		else
 		{
-			elements[i] += rh.elements[i];
+			elements[i] += rhs.elements[i];
 			carry = ( elements[i] < val ) ? 1 : 0;
 		}
 	}
@@ -303,10 +303,10 @@ unsigned TBigUint<NumWord>::add( TBigUint const& rh )
 }
 
 template < int NumWord >
-unsigned TBigUint<NumWord>::mul( TBigUint const& rh )
+unsigned TBigUint<NumWord>::mul( TBigUint const& rhs )
 {
 	MulRType  result;
-	doMul( rh , result );
+	doMul( rhs , result );
 
 	int i;
 	for ( i = 0 ; i < NumWord ; ++i )
@@ -338,7 +338,7 @@ unsigned TBigUint<NumWord>::addElement( unsigned idx , BaseType n1 , BaseType n0
 }
 
 template < int NumWord >
-void TBigUint<NumWord>::doMul( TBigUint const& rh , MulRType& result )
+void TBigUint<NumWord>::doMul( TBigUint const& rhs , MulRType& result )
 {
 	result.setZero();
 	CompType temp;
@@ -347,7 +347,7 @@ void TBigUint<NumWord>::doMul( TBigUint const& rh , MulRType& result )
 	if ( NumWord > MIN_NUM_WORD_CHECK_WORD )
 	{
 		n1 = getHighestNonZeroElement();
-		n2 = rh.getHighestNonZeroElement();
+		n2 = rhs.getHighestNonZeroElement();
 	}
 	else
 	{
@@ -358,7 +358,7 @@ void TBigUint<NumWord>::doMul( TBigUint const& rh , MulRType& result )
 	for( int i = 0 ; i <= n1 ; ++i )
 	for( int j = 0 ; j <= n2 ; ++j )
 	{
-		temp.val = (ExtendType) elements[i] * rh.elements[j];
+		temp.val = (ExtendType) elements[i] * rhs.elements[j];
 		result.addElement( i + j , temp.high , temp.low );
 	}
 }
@@ -769,24 +769,24 @@ void TBigUint<NumWord>::setFromStr( char const* str , unsigned base /*= 10 */ )
 }
 
 template < int NumWord >
-void TBigUint<NumWord>::bitOR( TBigUint& rh )
+void TBigUint<NumWord>::bitOR( TBigUint& rhs )
 {
 	for ( int i = 0 ; i < NumWord ; ++i )
-		elements[i] |= rh.elements[i];
+		elements[i] |= rhs.elements[i];
 }
 
 template < int NumWord >
-void TBigUint<NumWord>::bitXOR( TBigUint& rh )
+void TBigUint<NumWord>::bitXOR( TBigUint& rhs )
 {
 	for ( int i = 0 ; i < NumWord ; ++i )
-		elements[i] ^= rh.elements[i];
+		elements[i] ^= rhs.elements[i];
 }
 
 template < int NumWord >
-void TBigUint<NumWord>::bitAND( TBigUint& rh )
+void TBigUint<NumWord>::bitAND( TBigUint& rhs )
 {
 	for ( int i = 0 ; i < NumWord ; ++i )
-		elements[i] &= rh.elements[i];
+		elements[i] &= rhs.elements[i];
 }
 
 template < int NumWord >
@@ -797,7 +797,7 @@ void TBigUint<NumWord>::bitNOT()
 }
 
 template < int NumWord >
-void TBigUint<NumWord>::inputSteam( std::istream& s )
+void TBigUint<NumWord>::inputStream( std::istream& s )
 {
 	std::string str;
 	s >> str;
@@ -805,7 +805,7 @@ void TBigUint<NumWord>::inputSteam( std::istream& s )
 }
 
 template < int NumWord >
-void TBigUint<NumWord>::outputSteam( std::ostream& s ) const
+void TBigUint<NumWord>::outputStream( std::ostream& s ) const
 {
 	std::string str;
 	getString( str , 10 );
@@ -905,9 +905,9 @@ public:
 	TBigInt( char const* str , unsigned base = 10 ){ setFromStr( str , base ); }
 
 	void     setValue( int n );
-	unsigned setValue( TBigUint< NumWord > const& rh )
+	unsigned setValue( TBigUint< NumWord > const& rhs )
 	{  
-		TBigUint::setValue( rh );
+		TBigUint::setValue( rhs );
 		if ( elements[ NumWord - 1 ] & BaseTypeHighestBit )
 			return 1;
 		return 0;
@@ -927,17 +927,17 @@ public:
 	}
 
 	
-	TBigInt const operator + ( TBigInt const& rh ) const{  TBigInt temp(*this); temp += rh; return temp;  }
-	TBigInt const operator - ( TBigInt const& rh ) const{  TBigInt temp(*this); temp -= rh; return temp;  }
-	TBigInt const operator * ( TBigInt const& rh ) const{  TBigInt temp(*this); temp *= rh; return temp;  }
-	//BUInt const operator / ( BInt const& rh ) const{  BInt temp(*this); temp /= rh; return temp;  }
-	//BUInt const operator % ( BInt const& rh ) const{  BInt temp(*this); temp %= rh; return temp;  }
+	TBigInt const operator + ( TBigInt const& rhs ) const{  TBigInt temp(*this); temp += rhs; return temp;  }
+	TBigInt const operator - ( TBigInt const& rhs ) const{  TBigInt temp(*this); temp -= rhs; return temp;  }
+	TBigInt const operator * ( TBigInt const& rhs ) const{  TBigInt temp(*this); temp *= rhs; return temp;  }
+	//BUInt const operator / ( BInt const& rhs ) const{  BInt temp(*this); temp /= rhs; return temp;  }
+	//BUInt const operator % ( BInt const& rhs ) const{  BInt temp(*this); temp %= rhs; return temp;  }
 
-	TBigInt& operator += ( TBigInt const& rh ){  add( rh ); return *this; }
-	TBigInt& operator -= ( TBigInt const& rh ){  sub( rh ); return *this; }
-	TBigInt& operator *= ( TBigInt const& rh ){  mul( rh ); return *this; }
-	//BInt& operator /= ( BInt const& rh ){  BUInt mod; div( rh , mod ); return *this;  }
-	//BInt& operator %= ( BInt const& rh ){  BUInt mod; div( rh , mod ); *this = mod ; return *this; }
+	TBigInt& operator += ( TBigInt const& rhs ){  add( rhs ); return *this; }
+	TBigInt& operator -= ( TBigInt const& rhs ){  sub( rhs ); return *this; }
+	TBigInt& operator *= ( TBigInt const& rhs ){  mul( rhs ); return *this; }
+	//BInt& operator /= ( BInt const& rhs ){  BUInt mod; div( rhs , mod ); return *this;  }
+	//BInt& operator %= ( BInt const& rhs ){  BUInt mod; div( rhs , mod ); *this = mod ; return *this; }
 
 	TBigInt const operator + ( unsigned n ) const{  TBigInt temp(*this); temp += n; return temp;  }
 	TBigInt const operator - ( unsigned n ) const{  TBigInt temp(*this); temp -= n; return temp;  }
@@ -956,27 +956,27 @@ public:
 	TBigInt& operator -= ( int n ){ sub( n ); return *this; }
 
 
-	bool operator  > ( TBigInt const& rh ) const{ return  big(rh); }
-	bool operator <= ( TBigInt const& rh ) const{ return !big(rh); }
-	bool operator  < ( TBigInt const& rh ) const{ return  rh.big(*this); }
-	bool operator >= ( TBigInt const& rh ) const{ return !rh.big(*this); }
+	bool operator  > ( TBigInt const& rhs ) const{ return  big(rhs); }
+	bool operator <= ( TBigInt const& rhs ) const{ return !big(rhs); }
+	bool operator  < ( TBigInt const& rhs ) const{ return  rhs.big(*this); }
+	bool operator >= ( TBigInt const& rhs ) const{ return !rhs.big(*this); }
 
 
 	TBigUint< NumWord >& castUInt(){ return static_cast< TBigUint< NumWord >& >(*this); }
-	bool  big( TBigInt const& rh ) const;
-	TBigInt& operator = ( TBigUint< NumWord > const& rh ){ setValue( rh ); return *this; }
+	bool  big( TBigInt const& rhs ) const;
+	TBigInt& operator = ( TBigUint< NumWord > const& rhs ){ setValue( rhs ); return *this; }
 
 	TBigInt& operator = ( char const* str ){ setFromStr( str ); return *this; }
-	TBigInt& operator = ( int rh ){ setValue( rh ); return *this; }
+	TBigInt& operator = ( int rhs ){ setValue( rhs ); return *this; }
 
 	void  getElements( TBigUint< NumWord >&lh ) const
 	{  
 		lh.setValue( *this );  
 	}
 
-	bool equal( TBigInt const& rh ) const { return TBigUint::equal( rh ); }
-	bool operator == ( TBigInt const& rh ) const { return equal( rh ); }
-	bool operator != ( TBigInt const& rh ) const { return !equal( rh ); }
+	bool equal( TBigInt const& rhs ) const { return TBigUint::equal( rhs ); }
+	bool operator == ( TBigInt const& rhs ) const { return equal( rhs ); }
+	bool operator != ( TBigInt const& rhs ) const { return !equal( rhs ); }
 
 	bool isZero() const { return TBigUint::isZero(); }
 	void setZero(){  TBigUint::setZero(); }
@@ -1049,18 +1049,18 @@ public:
 		}
 	}
 
-	void div( TBigInt const& rh , TBigInt& mod )
+	void div( TBigInt const& rhs , TBigInt& mod )
 	{
-		TBigInt& ncRh = const_cast< TBigInt& >( rh );
+		TBigInt& ncrhs = const_cast< TBigInt& >( rhs );
 
-		bool beSS = ( isSign() == ncRh.isSign() );
-		bool beRS = ncRh.isSign();
+		bool beSS = ( isSign() == ncrhs.isSign() );
+		bool beRS = ncrhs.isSign();
 		if ( isSign() )
 			applyComplement();
-		if ( ncRh.isSign() )
+		if ( ncrhs.isSign() )
 			applyComplement();
 
-		TBigUint::div( rh , mod );
+		TBigUint::div( rhs , mod );
 
 		if ( !beSS )
 			applyComplement();
@@ -1068,7 +1068,7 @@ public:
 		if ( beRS )
 		{
 			mod.applyComplement();
-			ncRh.applyComplement();
+			ncrhs.applyComplement();
 		}
 	}
 
@@ -1192,10 +1192,10 @@ public:
 	}
 
 	friend std::istream& operator >> ( std::istream& s , TBigInt& v )
-	{  v.inputSteam( s ); return s; }
+	{  v.inputStream( s ); return s; }
 
 	friend std::ostream& operator << ( std::ostream& s , TBigInt const& v )
-	{  v.outputSteam( s ); return s; }
+	{  v.outputStream( s ); return s; }
 
 
 protected:
@@ -1205,13 +1205,13 @@ protected:
 			applyComplement();
 	}
 
-	void outputSteam( std::ostream& s ) const
+	void outputStream( std::ostream& s ) const
 	{
 		std::string str;
 		getString( str , 10 );
 		s << str;
 	}
-	void inputSteam( std::istream& s )
+	void inputStream( std::istream& s )
 	{
 		std::string str;
 		s >> str;
@@ -1246,18 +1246,18 @@ bool TBigInt<NumWord>::convertToInt(int& val) const
 }
 
 template < int NumWord >
-bool TBigInt<NumWord>::big(TBigInt const& rh) const
+bool TBigInt<NumWord>::big(TBigInt const& rhs) const
 {
 	int lv = int ( elements[ NumWord - 1] );
-	int rv = int ( rh.elements[ NumWord - 1 ] );
+	int rv = int ( rhs.elements[ NumWord - 1 ] );
 
 	if ( lv != rv )
 		return lv > rv;
 
 	for ( int i = NumWord - 2  ; i >= 0 ; --i )
 	{
-		if ( elements[i] != rh.elements[i] )
-			return elements[i] > rh.elements[i];
+		if ( elements[i] != rhs.elements[i] )
+			return elements[i] > rhs.elements[i];
 	}
 	return false;
 }

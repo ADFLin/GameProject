@@ -83,7 +83,7 @@ namespace Poker
 
 	bool FreeCellStage::onInit()
 	{ 
-		mCardDraw = ICardDraw::create( ICardDraw::eWin7 );
+		mCardDraw = ICardDraw::Create( ICardDraw::eWin7 );
 		mCardSize = mCardDraw->getSize();
 
 		mSeed  = 0;
@@ -111,7 +111,7 @@ namespace Poker
 
 	void FreeCellStage::onRender( float dFrame )
 	{
-		Graphics2D& g = Global::getGraphics2D();
+		Graphics2D& g = Global::getGraphics2D(); 
 
 		g.setBrush( ColorKey3( 0 , 125 , 0 ) );
 		g.setPen( ColorKey3( 0 , 125 , 0 ) );

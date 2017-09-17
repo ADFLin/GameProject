@@ -217,7 +217,7 @@ bool SimpleController::checkKey( uint8 k , uint8& keySen , uint8 sen )
 		{
 			if ( keySen == 0 )
 			{
-					keySen = 1;
+				keySen = 1;
 				return true;
 			}
 		}

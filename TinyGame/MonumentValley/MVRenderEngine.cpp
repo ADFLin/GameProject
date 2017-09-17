@@ -136,7 +136,7 @@ namespace MV
 	void RenderEngine::renderPath( Path& path , PointVec& points)
 	{
 		if ( !points.empty() )
-			RenderRT::draw< RenderRT::eXYZ >( GL_LINE_STRIP , &points[0] , points.size() , sizeof( Vec3f ) );
+			RenderRT::Draw< RenderRT::eXYZ >( GL_LINE_STRIP , &points[0] , points.size() , sizeof( Vec3f ) );
 	}
 
 	void RenderEngine::renderMesh(int idMesh , Vec3f const& pos , Vec3f const& rotation)
@@ -309,7 +309,7 @@ namespace MV
 				}
 			}
 		}
-		RenderRT::draw< RenderRT::eXYZ_C >( GL_LINES , buffer , nV  );
+		RenderRT::Draw< RenderRT::eXYZ_C >( GL_LINES , buffer , nV  );
 		mEffect.bind();
 	}
 

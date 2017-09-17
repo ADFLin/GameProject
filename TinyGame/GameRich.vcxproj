@@ -180,7 +180,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="Rich\RichBase.cpp" />
-    <ClCompile Include="Rich\RichCell.cpp" />
+    <ClCompile Include="Rich\RichArea.cpp" />
     <ClCompile Include="Rich\RichGame.cpp" />
     <ClCompile Include="Rich\RichLevel.cpp" />
     <ClCompile Include="Rich\RichPCH.cpp">
@@ -200,7 +200,7 @@
   <ItemGroup>
     <ClInclude Include="Rich\RichBase.h" />
     <ClInclude Include="Rich\RichCard.h" />
-    <ClInclude Include="Rich\RichCell.h" />
+    <ClInclude Include="Rich\RichArea.h" />
     <ClInclude Include="Rich\RichEditInterface.h" />
     <ClInclude Include="Rich\RichGame.h" />
     <ClInclude Include="Rich\RichLevel.h" />
@@ -229,6 +229,9 @@
       <Project>{f3b972df-7aed-4d2e-99af-5ad3bc736f61}</Project>
       <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Rich\ParamCollection.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

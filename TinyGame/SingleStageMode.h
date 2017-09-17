@@ -5,7 +5,7 @@
 #include "GameStageMode.h"
 
 #include "GamePlayer.h"
-#include "THolder.h"
+#include "Holder.h"
 
 class SingleStageMode : public LevelStageMode
 {

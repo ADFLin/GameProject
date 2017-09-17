@@ -5,7 +5,7 @@
 #include "GamePlayer.h"
 
 #include "Flag.h"
-#include "THolder.h"
+#include "Holder.h"
 
 class LocalWorker;
 class SNetPlayer;

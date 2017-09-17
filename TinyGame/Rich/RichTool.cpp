@@ -5,7 +5,7 @@
 
 namespace Rich
 {
-	class RoadBlockActor : public Actor
+	class RoadBlockActor : public ActorComp
 	{
 
 
@@ -17,7 +17,7 @@ namespace Rich
 	public:
 		virtual void use( PlayerTurn& turn )
 		{
-			ReqData data;
+			ActionReqestData data;
 			data.numDice = 1;
 			turn.queryAction( REQ_ROMATE_DICE_VALUE , data );
 		}

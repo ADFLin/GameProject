@@ -10,7 +10,7 @@
 bool isFileExist( char const* path , char const* subFileName )
 {
 	std::string pathFile = std::string(path) + subFileName;
-	return FileSystem::isExist( pathFile.c_str() );
+	return FileSystem::IsExist( pathFile.c_str() );
 }
 
 namespace Zuma

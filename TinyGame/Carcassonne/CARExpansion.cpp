@@ -1,53 +1,53 @@
 #include "CAR_PCH.h"
 #include "CARExpansion.h"
 #include "CARDefine.h"
-#include "CARGameSetting.h"
+#include "CARGameplaySetting.h"
 
 #pragma warning( disable : 4482 ; error : 4002 )
 namespace CAR
 {
 
-	void AddExpansionRule(GameSetting& gameSetting, Expansion exp)
+	void AddExpansionRule(GameplaySetting& setting, Expansion exp)
 	{
 		switch( exp )
 		{
 		case EXP_INNS_AND_CATHEDRALS:
-			gameSetting.addRule(Rule::eInn);
-			gameSetting.addRule(Rule::eCathedral);
+			setting.addRule(Rule::eInn);
+			setting.addRule(Rule::eCathedral);
 			break;
 		case EXP_TRADERS_AND_BUILDERS:
-			gameSetting.addRule(Rule::eBuilder);
-			gameSetting.addRule(Rule::eTraders);
+			setting.addRule(Rule::eBuilder);
+			setting.addRule(Rule::eTraders);
 			break;
 		case EXP_THE_PRINCESS_AND_THE_DRAGON:
-			gameSetting.addRule(Rule::eFariy);
-			gameSetting.addRule(Rule::eDragon);
-			gameSetting.addRule(Rule::ePrinecess);
+			setting.addRule(Rule::eFariy);
+			setting.addRule(Rule::eDragon);
+			setting.addRule(Rule::ePrinecess);
 			break;
 		case EXP_THE_TOWER:
-			gameSetting.addRule(Rule::eTower);
+			setting.addRule(Rule::eTower);
 			break;
 		case EXP_ABBEY_AND_MAYOR:
-			gameSetting.addRule(Rule::eHaveAbbeyTile);
-			gameSetting.addRule(Rule::eMayor);
-			gameSetting.addRule(Rule::eBarn);
-			gameSetting.addRule(Rule::eWagon);
+			setting.addRule(Rule::eHaveAbbeyTile);
+			setting.addRule(Rule::eMayor);
+			setting.addRule(Rule::eBarn);
+			setting.addRule(Rule::eWagon);
 			break;
 		case EXP_KING_AND_ROBBER:
-			gameSetting.addRule(Rule::eKingAndRobber);
+			setting.addRule(Rule::eKingAndRobber);
 			break;
 		case EXP_BRIDGES_CASTLES_AND_BAZAARS:
-			gameSetting.addRule(Rule::eBridge);
-			gameSetting.addRule(Rule::eCastleToken);
-			gameSetting.addRule(Rule::eBazaar);
+			setting.addRule(Rule::eBridge);
+			setting.addRule(Rule::eCastleToken);
+			setting.addRule(Rule::eBazaar);
 			break;
 		case EXP_HILLS_AND_SHEEP:
-			gameSetting.addRule(Rule::eShepherdAndSheep);
-			gameSetting.addRule(Rule::eUseHill);
-			gameSetting.addRule(Rule::eUseVineyard);
+			setting.addRule(Rule::eShepherdAndSheep);
+			setting.addRule(Rule::eUseHill);
+			setting.addRule(Rule::eUseVineyard);
 			break;
 		case EXP_CASTLES:
-			gameSetting.addRule(Rule::eHaveGermanCastleTile);
+			setting.addRule(Rule::eHaveGermanCastleTile);
 			break;
 		case EXP_PHANTOM:
 			break;

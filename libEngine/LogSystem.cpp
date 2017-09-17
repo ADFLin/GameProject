@@ -7,7 +7,7 @@
 
 #include <vector>
 
-char buffer[10240];
+
 
 class LogManager : public SingletonT< LogManager >
 {
@@ -47,6 +47,7 @@ public:
 	{
 		MsgListenerList& listenList = chanelListenerList[ channel ];
 
+		char buffer[10240];
 		vsprintf_s( buffer , format , argptr );
 
 		MsgListenerList::iterator itEnd = listenList.end();
@@ -127,7 +128,6 @@ void ErrorMsg( char const* format , ... )
 
 void Msg       ( char const* format , va_list argptr )
 {
-	return;
 	LogManager::getInstance().sendMessage( LOG_MSG , format , argptr , 0 );
 }
 

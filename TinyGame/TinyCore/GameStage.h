@@ -7,7 +7,7 @@
 #include "GameDefines.h"
 #include "GameControl.h"
 
-#include "THolder.h"
+#include "Holder.h"
 #include "CppVersion.h"
 
 struct AttribValue;
@@ -82,7 +82,7 @@ public:
 	GameStageMode*   getStageMode() { return mStageMode; }
 
 	ActionProcessor& getActionProcessor() { return mProcessor; }
-	IGameInstance*    getGame() { return mGame; }
+	IGameInstance*   getGame() { return mGame; }
 	long             getTickTime() { return mTickTime; }
 
 	bool             changeState(GameState state);

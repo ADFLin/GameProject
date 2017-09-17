@@ -455,7 +455,7 @@ namespace Zuma
 		}
 	}
 
-	int ZFont::print( Vec2D const& pos ,char const* str , unsigned flag )
+	int ZFont::print( Vec2f const& pos ,char const* str , unsigned flag )
 	{
 		IRenderSystem& renderSys = Global::getRenderSystem();
 

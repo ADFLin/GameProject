@@ -1,10 +1,13 @@
 #ifndef TetrisCore_h__
 #define TetrisCore_h__
 
+#include "IntegerType.h"
+#include "Holder.h"
+
 #include <cassert>
 #include <algorithm>
 #include <vector>
-#include "IntegerType.h"
+
 
 namespace Tetris
 {
@@ -12,28 +15,28 @@ namespace Tetris
 
 	typedef short BlockType;
 
-	class Block
+	class PieceBlock
 	{
 	public:
 		BlockType getType() const { return type; }
 		int       getX() const { return x; }
 		int       getY() const { return y; }
 	private:
-		void      transformPos( unsigned char* trans , int size );
+		void      transformPos( uint8 const* trans , int size );
 		void      setPos( int idx , int size );
 		friend class Piece;
 		char      x;
 		char      y;
 		BlockType type;
-		char      index;
+		uint8     index;
 	};
 
 	struct PieceTemplate
 	{
-		char     size;
-		char     dirNum;
-		char     color;
-		uint32   map;
+		uint8      rotationSize;
+		uint8      directionNum;
+		uint8      baseColor;
+		uint32     blockData;
 	};
 
 	class Piece
@@ -47,21 +50,20 @@ namespace Tetris
 			FUNC_MASK   = 0xff00,
 		};
 
-		static short getColor( BlockType data )
+		static short Color( BlockType data )
 		{
 			return data & Piece::COLOR_MASK;
 		}
 
 
 		void         rotate( int time );
-		int          getColor()   const {  return getTemplate().color; }
-		int          getMapSize() const {  return getTemplate().size;  }
-		int          getDirNum()  const {  return getTemplate().dirNum; }
-		int          getDir()     const {  return mDir; }
+		int          getRotationSize() const {  return getTemplate().rotationSize;  }
+		int          getDirectionNum()  const {  return getTemplate().directionNum; }
+		int          getDirection()     const {  return mDirection; }
 		void         setBlockType( int idx , BlockType type ){ mBlock[ idx ].type = type; }
-		void         getRectBound( int x[] , int y[] );
+		void         getBoundRect( int x[] , int y[] );
 		int          getBlockNum() const { return mNumBlock; }
-		Block const& getBlock( unsigned idx ) const
+		PieceBlock const& getBlock( unsigned idx ) const
 		{
 			assert( idx < mNumBlock );
 			return mBlock[idx];
@@ -70,7 +72,7 @@ namespace Tetris
 		Piece&  operator = ( Piece const& piece )
 		{
 			mNumBlock = piece.mNumBlock;
-			mDir      = piece.mDir;
+			mDirection= piece.mDirection;
 			mTemp     = piece.mTemp;
 			std::copy( piece.mBlock , piece.mBlock + piece.mNumBlock , mBlock );
 			return *this;
@@ -79,12 +81,12 @@ namespace Tetris
 	private:
 		friend class PieceTemplateSet;
 		void         setTemplate( PieceTemplate& temp );
-		Block&       _getBlock( unsigned idx ){  return mBlock[idx];  }
+		PieceBlock&  getBlockInternal( unsigned idx ){  return mBlock[idx];  }
 		PieceTemplate const&  getTemplate() const { assert( mTemp ); return *mTemp; }
 		PieceTemplate const* mTemp;
 		unsigned char  mNumBlock;
-		char           mDir;
-		Block          mBlock[ 16 ];
+		char           mDirection;
+		PieceBlock     mBlock[ 16 ];
 
 	};
 
@@ -95,7 +97,7 @@ namespace Tetris
 		int   getTemplateNum() const { return mNum; }
 		void  setTemplate( int idx , Piece& piece ){ piece.setTemplate( mTemps[ idx ] ); }
 
-		static PieceTemplateSet& getClassicSet();
+		static PieceTemplateSet& GetClassic();
 	private:
 		PieceTemplate* mTemps;
 		int            mNum;
@@ -135,15 +137,15 @@ namespace Tetris
 		BlockType        getBlock( int x , int y ) const {  return getLayer(y)[x];  }
 		void             setBlock( int x , int y , BlockType val );
 		void             emptyBlock( int x , int y );
-		BlockType*       getLayer( int y )       { return mLayerMap[y]->blocks; }
-		BlockType const* getLayer( int y ) const { return mLayerMap[y]->blocks; }
+		BlockType*       getLayer( int y )       { return mLayerMap[y].blocks; }
+		BlockType const* getLayer( int y ) const { return mLayerMap[y].blocks; }
 
-		void             clearRemoveLayer( int ys[] , int num );
-		void             clearLayer( int y );
+		void             removeLayer( int ys[] , int num );
+		void             removeLayer( int y );
 
 		bool             isLayerFilled( int y );
 		bool             addLayer( int y , unsigned leakBit , BlockType block );
-		bool             isEmptyLayer( int y ) const { return mLayerMap[y]->isEmpty();  }
+		bool             isEmptyLayer( int y ) const { return mLayerMap[y].isEmpty();  }
 
 		int              removeConnect();
 		int              scanConnect( int cx , int cy );
@@ -165,21 +167,23 @@ namespace Tetris
 		
 	private:
 
-		unsigned getFilledBits() const { return ( 1 << mSizeX ) - 1;  }
+		typedef uint32 MarkMaskType;
+		MarkMaskType getFilledMask() const { assert(mSizeX <= 8 * sizeof(MarkMaskType)); return MarkMaskType(1 << mSizeX) - 1; }
 
 		struct Layer
 		{
-			unsigned   markBit;
-			BlockType* blocks;
-			bool  isEmpty(){  return markBit == 0;  }
+			MarkMaskType markMask;
+			BlockType*   blocks;
+
+			bool  isEmpty() const {  return markMask == 0;  }
 		};
 
 		friend class Scene;
 		int     mSizeX;
 		int     mSizeY;
-		Layer*  mLayerStorage;
-		std::vector< Layer* >  mLayerMap;
-		std::vector< int* >    mConMap;
+		TArrayHolder< BlockType > mBlockStorage;
+		std::vector< Layer >  mLayerMap;
+		std::vector< int* >   mConMap;
 
 	};
 
@@ -199,9 +203,9 @@ namespace Tetris
 	{
 	public:
 		LevelRule();
-		static int const DefaultTimeClearLayer;
-		static int const DefaultTimeLockPiece;
-		static int const DefaultTimeEntryDelay;
+
+		void          setDefault();
+
 
 		int            getClearLayerTime() const { return mTimeClearLayer;  }
 		int            getLockPieceTime()  const { return mTimeLockPiece;  }
@@ -213,6 +217,9 @@ namespace Tetris
 
 		PieceTemplateSet* getPieceTemplateSet(){ return mPieceTempSet; }
 
+		static int const DefaultTimeClearLayer;
+		static int const DefaultTimeLockPiece;
+		static int const DefaultTimeEntryDelay;
 		
 	protected:
 

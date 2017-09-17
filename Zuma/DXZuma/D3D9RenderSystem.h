@@ -49,7 +49,7 @@ namespace Zuma
 		virtual void  rotateWorld( float angle );
 		virtual void  scaleWorld( float sx , float sy );
 		virtual void  setWorldIdentity();
-		virtual void  loadWorldMatrix( Vec2D const& pos , Vec2D const& dir );
+		virtual void  loadWorldMatrix( Vec2f const& pos , Vec2f const& dir );
 		virtual void  pushWorldTransform();
 		virtual void  popWorldTransform();
 
@@ -71,11 +71,11 @@ namespace Zuma
 		void cleanup();
 
 		virtual void  drawBitmap( ITexture2D const& tex , unsigned flag = 0 );
-		virtual void  drawBitmap( ITexture2D const& tex , Vec2D const& texPos , Vec2D const& texSize, unsigned flag = 0 );
-		virtual void  drawBitmapWithinMask( ITexture2D const& tex , ITexture2D const& mask , Vec2D const& pos , unsigned flag = 0 );
+		virtual void  drawBitmap( ITexture2D const& tex , Vec2f const& texPos , Vec2f const& texSize, unsigned flag = 0 );
+		virtual void  drawBitmapWithinMask( ITexture2D const& tex , ITexture2D const& mask , Vec2f const& pos , unsigned flag = 0 );
 
 
-		virtual void  drawPolygon( Vec2D const pos[] , int num );
+		virtual void  drawPolygon( Vec2f const pos[] , int num );
 
 		void bindTexture( DWORD stage , ITexture2D const& tex )
 		{

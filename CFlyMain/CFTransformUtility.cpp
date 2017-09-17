@@ -128,9 +128,4 @@ namespace CFly
 #undef MUL3
 	}
 
-	void TransformUntility::inverse( Matrix4 const& trans , Matrix4& result )
-	{
-
-	}
-
 }//namespace CFly

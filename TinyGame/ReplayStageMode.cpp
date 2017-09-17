@@ -16,6 +16,13 @@
 
 #include <algorithm>
 
+enum ReplayFileVersion
+{
+	
+
+
+};
+
 int const g_ReplayNormalSpeed = 1 << 5;
 int const g_ReplaySpeed[] =
 {
@@ -71,7 +78,7 @@ void ReplayListPanel::loadDir( char const* dir )
 	mFileListCtrl->removeAllItem();
 
 	FileIterator fileIter;
-	if ( !FileSystem::findFile( dir , REPLAY_SUB_FILE_NAME , fileIter ) )
+	if ( !FileSystem::FindFile( dir , REPLAY_SUB_FILE_NAME , fileIter ) )
 		return;
 
 	for( ; fileIter.haveMore() ; fileIter.goNext() )
@@ -80,12 +87,12 @@ void ReplayListPanel::loadDir( char const* dir )
 	}
 }
 
-void ReplayListPanel::deleteCurFile()
+void ReplayListPanel::deleteSelectedFile()
 {
 	if ( mFileListCtrl->getSelection() == -1 )
 		return;
 	String path = getFilePath();
-	::DeleteFile( path.c_str() );
+	FileSystem::DeleteFile(path.c_str());
 
 	mFileListCtrl->removeItem( mFileListCtrl->getSelection() );
 }
@@ -106,7 +113,7 @@ bool ReplayEditStage::onInit()
 
 	GPanel* infoPanel = new GPanel( UI_ANY , panelPos + Vec2i( panelSize.x + 10 , 0 ) , Vec2i( 200 , 400 ) , NULL );
 	::Global::GUI().addWidget( infoPanel );
-	infoPanel->setRenderCallback( RenderCallBack::create( this , &ReplayEditStage::renderReplayInfo ));
+	infoPanel->setRenderCallback( RenderCallBack::Create( this , &ReplayEditStage::renderReplayInfo ));
 
 	GButton* button;
 	Vec2i buttonPos = panelPos + Vec2i( panelSize.x + 10 , 400 + 10 );
@@ -154,7 +161,7 @@ bool ReplayEditStage::onWidgetEvent( int event , int id , GWidget* ui )
 		return false;
 	case UI_DELETE_REPLAY:
 		{
-			mRLPanel->deleteCurFile();
+			mRLPanel->deleteSelectedFile();
 			mViewButton->enable( false );
 			mDelButton->enable( false );
 		}
@@ -185,7 +192,7 @@ void ReplayEditStage::renderReplayInfo( GWidget* ui )
 	g.setTextColor(255 , 255 , 255 );
 
 	FixString< 256 > str;
-	str.format( "Game Name : %s" , mGameInfo.name );
+	str.format( "Game Name : %s" , mGameInfo.name.c_str() );
 	g.drawText( Vec2i( px , py ) , str );
 	str.format( "Frame Number : %u" , mReplayHeader.totalFrame );
 	py += d;
@@ -257,7 +264,7 @@ bool ReplayStageMode::prevStageInit()
 
 		mReplayInput.reset(new ReplayInput(actionTemplate, mReplayFrame));
 	}
-	else
+	else if ( getGame() )
 	{
 		ReplayTemplate* replayTemp = getGame()->createReplayTemplate(info.templateVersion);
 
@@ -266,6 +273,10 @@ bool ReplayStageMode::prevStageInit()
 			return false;
 		}
 		mReplayInput.reset(new OldVersion::ReplayInput(replayTemp, mReplayFrame));
+	}
+	else
+	{
+		return false;
 	}
 
 	if( !loadReplay(mReplayFilePath.c_str()) )
@@ -397,8 +408,8 @@ void ReplayStageMode::updateTime(long time)
 
 	getStage()->updateFrame(numGameFrame);
 
-
-	::Global::GUI().scanHotkey(getGame()->getController());
+	if ( getGame() )
+		::Global::GUI().scanHotkey(getGame()->getController());
 
 	int totalFrame = mReplayInput->getRecordFrame();
 	if( totalFrame )

@@ -8,10 +8,12 @@
 typedef TVector2< int > Vec2i;
 
 class  CLPlayerManager;
-struct Record;
+
 
 namespace Tetris
 {
+	struct Record;
+	class RecordManager;
 	class GameWorld;
 
 	class NormalModeData : public ModeData
@@ -32,11 +34,11 @@ namespace Tetris
 	class ChallengeModeData : public NormalModeData
 	{
 	public:
-		void reset( Mode* mode , LevelData& lvData  , bool beInit );
+		void reset( LevelMode* mode , LevelData& lvData  , bool beInit );
 	};
 
 
-	class ChallengeMode : public Mode
+	class ChallengeMode : public LevelMode
 	{
 	public:
 		ChallengeMode()
@@ -56,9 +58,9 @@ namespace Tetris
 		ModeData*   createModeData(){  return new ChallengeModeData;  }
 		void        setupScene( unsigned flag );
 		void        setupSingleGame( MyController& controller );
-		void        onLevelEvent( LevelData& lvData , LevelEvent const& event );
+		void        onLevelEvent( LevelData& lvData , Event const& event );
 		void        renderStats( GWidget* ui );
-		int         markRecord( GamePlayer* player , RecordManager& manager );
+		int         markRecord( RecordManager& manager, GamePlayer* player );
 
 
 		NormalModeInfo mInfo;
@@ -69,10 +71,10 @@ namespace Tetris
 	class PracticeModeData : public NormalModeData
 	{
 	public:
-		void reset( Mode* mode , LevelData& data , bool beInit );
+		void reset( LevelMode* mode , LevelData& data , bool beInit );
 	};
 
-	class PracticeMode : public Mode
+	class PracticeMode : public LevelMode
 	{
 	public:
 		enum
@@ -92,7 +94,7 @@ namespace Tetris
 
 		void        setupScene( unsigned flag );
 		void        setupSingleGame( MyController& controller );
-		void        onLevelEvent( LevelData& lvData , LevelEvent const& event );
+		void        onLevelEvent( LevelData& lvData , Event const& event );
 		void        onGameOver(){}
 
 		bool        onWidgetEvent( int event , int id , GWidget* ui );
@@ -113,11 +115,11 @@ namespace Tetris
 		int  numAddLayer;
 		int  numWinRound;
 
-		void reset( Mode* mode , LevelData& lvData , bool beInit );
+		void reset( LevelMode* mode , LevelData& lvData , bool beInit );
 		void checkAddLayer( Level* level );
 	};
 
-	class BattleMode : public Mode
+	class BattleMode : public LevelMode
 	{
 	public:
 		ModeID      getModeID(){ return MODE_TS_BATTLE; } 
@@ -129,7 +131,7 @@ namespace Tetris
 		void        setupSingleGame( MyController& controller );
 		bool        checkOver();
 		void        renderStats( GWidget* ui );
-		void        onLevelEvent( LevelData& lvData , LevelEvent const& event );
+		void        onLevelEvent( LevelData& lvData , Event const& event );
 	};
 
 }//namespace Tetris

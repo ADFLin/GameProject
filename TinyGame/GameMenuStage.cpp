@@ -97,7 +97,9 @@ void GameMenuStage::onTaskMessage( TaskBase* task , TaskMsg const& msg )
 {
 	if ( msg.onEnd() && !msg.checkFlag( TF_NOT_COMPLETE ) )
 	{
-		mSkipTasks.remove( task );
+		auto iter = std::find(mSkipTasks.begin(), mSkipTasks.end(), task);
+		if ( iter != mSkipTasks.end() )
+			mSkipTasks.erase( iter );
 	}
 }
 

@@ -157,17 +157,18 @@ namespace TripleTown
 	};
 
 
-	class AnimManager
+	class LevelListener
 	{
 	public:
-		virtual void addBasicObject( TilePos const& pos , ObjectId id ){}
-		virtual void removeObject( TilePos const& pos , ObjectId id ){}
-		virtual void addActor( TilePos const& pos , ObjectId id ){}
-		virtual void prevRemoveActor( Tile const& tile , ActorData const& actor ){}
-		virtual void removeActor( TilePos const& pos , ObjectId id ){}
-		virtual void moveActor( ObjectId id , TilePos const& posFrom , TilePos const& posTo ){}
+		virtual void notifyBasicObjectAdded( TilePos const& pos , ObjectId id ){}
+		virtual void notifyObjectRemoved( TilePos const& pos , ObjectId id ){}
+		virtual void nodifyActorAdded( TilePos const& pos , ObjectId id ){}
 
-		virtual void prevCreateLand(){}
+		virtual void notifyActorMoved( ObjectId id , TilePos const& posFrom , TilePos const& posTo ){}
+
+		virtual void prevRemoveActor(Tile const& tile, ActorData const& actor) {}
+		virtual void postRemoveActor(TilePos const& pos, ObjectId id) {}
+		virtual void prevPrevCreateLand(){}
 		virtual void postCreateLand(){}
 
 	};
@@ -196,8 +197,8 @@ namespace TripleTown
 		void         create( LandType type );
 		void         restart();
 		
-		AnimManager& getAnimManager(){ return *mAnimMgr; }
-		void         setAnimManager( AnimManager* manager );
+		LevelListener& getListener(){ return *mAnimMgr; }
+		void           setListener( LevelListener* manager );
 
 		int          getUpgradeNum( ObjectId id );
 		ObjectId     getUpgradeId( ObjectId id );
@@ -300,7 +301,7 @@ namespace TripleTown
 		ObjectId  mObjQueue[ ObjQueueSize ];
 		int       mIdxNextUse;
 
-		AnimManager* mAnimMgr;
+		LevelListener* mAnimMgr;
 
 		
 		void    removeActor( Tile& tile );

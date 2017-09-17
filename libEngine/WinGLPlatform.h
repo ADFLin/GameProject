@@ -215,7 +215,7 @@ protected:
 	void   destoryWindow()
 	{
 		OpenGLSupport::cleanup();
-		WindowsPlatform<T>::destoryWindow();
+		WindowsPlatform::destoryWindow();
 	}
 	bool   setupWindow( bool fullscreen , unsigned colorBit )
 	{

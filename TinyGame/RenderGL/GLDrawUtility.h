@@ -20,7 +20,7 @@ namespace RenderGL
 				Vector3(0,0,0),Vector3(1,0,0),Vector3(0,1,0),Vector3(1,1,0),
 				Vector3(0,1,1),Vector3(1,1,1),Vector3(0,0,1),Vector3(1,0,1),
 			};
-			RenderRT::draw< RenderRT::eXYZ >( GL_LINES , v , 4 * 6 , sizeof( Vector3 ) );
+			RenderRT::Draw< RenderRT::eXYZ >( GL_LINES , v , 4 * 6 , sizeof( Vector3 ) );
 		}
 
 		//draw (0,0,0) - (1,1,1) cube
@@ -47,7 +47,7 @@ namespace RenderGL
 				Vector3(1,0,0),Vector3(0,0,-1),Vector3(0,0,0),Vector3(0,0,-1),
 				Vector3(0,1,0),Vector3(0,0,-1),Vector3(1,1,0),Vector3(0,0,-1),
 			};
-			RenderRT::draw< RenderRT::eXYZ_N >( GL_QUADS , v , 4 * 6 , 2 * sizeof( Vector3 ) );
+			RenderRT::Draw< RenderRT::eXYZ_N >( GL_QUADS , v , 4 * 6 , 2 * sizeof( Vector3 ) );
 		}
 
 		static void AixsLine()
@@ -58,7 +58,7 @@ namespace RenderGL
 				Vector3(0,0,0),Vector3(0,1,0), Vector3(0,1,0),Vector3(0,1,0),
 				Vector3(0,0,0),Vector3(0,0,1), Vector3(0,0,1),Vector3(0,0,1),
 			};
-			RenderRT::draw< RenderRT::eXYZ_C >( GL_LINES , v , 6 , 2 * sizeof( Vector3 ) );
+			RenderRT::Draw< RenderRT::eXYZ_C >( GL_LINES , v , 6 , 2 * sizeof( Vector3 ) );
 		}
 		static void Rect(int x , int y , int width, int height)
 		{

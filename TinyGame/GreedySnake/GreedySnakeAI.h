@@ -24,7 +24,7 @@ namespace GreedySnake
 		DirType mMoveDir;
 
 		int   calcBoundedCount( Vec2i const& pos , DirType dir );
-		void  incTestCount();
+		void  incrTestCount();
 
 		static unsigned const ColMask = Level::eTERRAIN_MASK | Level::eSNAKE_MASK;
 

@@ -197,7 +197,7 @@ struct PointerType
 
 
 template< class T , class HookTraits , template< class > class TypePolicy = DefaultType >
-class IntrList
+class TIntrList
 {
 	typedef typename HookTraits::NodeType   NodeType;
 	typedef typename HookTraits::NodeTraits NodeTraits;
@@ -208,12 +208,12 @@ class IntrList
 	typedef typename TP::InType InType;
 	typedef typename TP::Type   BaseType;
 public:
-	IntrList()
+	TIntrList()
 	{
 		Algorithm::initHeader( &mHeader );
 	}
 
-	~IntrList()
+	~TIntrList()
 	{
 		clear();
 	}
@@ -317,7 +317,7 @@ private:
 		bool operator == ( Iterator other ) const { return mNode == other.mNode; }
 		bool operator != ( Iterator other ) const { return mNode != other.mNode; }
 	private:
-		friend class IntrList;
+		friend class TIntrList;
 		NodePtr mNode;
 	};
 
@@ -340,7 +340,7 @@ private:
 		bool operator == (ReverseIterator other) const { return mNode == other.mNode; }
 		bool operator != (ReverseIterator other) const { return mNode != other.mNode; }
 	private:
-		friend class IntrList;
+		friend class TIntrList;
 		NodePtr mNode;
 	};
 public:
@@ -361,8 +361,8 @@ public:
 
 private:
 
-	IntrList( IntrList const& );
-	IntrList& operator = ( IntrList const& other );
+	TIntrList( TIntrList const& );
+	TIntrList& operator = ( TIntrList const& other );
 
 	void insertBefore( T& value , NodeType& nodeWhere )
 	{

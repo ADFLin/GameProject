@@ -5,7 +5,7 @@
 #include <algorithm>
 
 template< class T , class CmpFun = std::less< T >  >
-class VectorSet
+class TVectorSet
 {
 	typedef std::vector< T > ImplType;
 public:

@@ -17,10 +17,10 @@ namespace Rich
 	typedef unsigned ActorId;
 	typedef unsigned RoleId;
 	typedef intptr_t DataType;
-	typedef unsigned short CellId;
+	typedef unsigned short AreaId;
 	typedef unsigned int   TileId;
 	typedef unsigned int   CardId;
-	typedef int CellType;
+	typedef int AreaType;
 	typedef std::string String;
 
 	namespace stdex = std::tr1;
@@ -38,8 +38,8 @@ namespace Rich
 	class Player;
 	class World;
 	class PlayerTurn;
-	class Cell;
-	class LandCell;
+	class Area;
+	class LandArea;
 
 	class IRandom
 	{
@@ -50,6 +50,7 @@ namespace Rich
 	enum CompType
 	{
 		COMP_RENDER ,
+		COMP_ACTOR ,
 
 		NUM_COMP ,
 	};
@@ -95,15 +96,18 @@ namespace Rich
 		IComponent* mComps[ NUM_COMP ];
 	};
 
-	class Actor : public Entity
+	class ActorComp : public IComponent
+		           //: public Entity 
 	{
 	public:
-		Actor( ActorId id ):mId(id){}
+		ActorComp( ActorId id ):mId(id){}
 
 		virtual void tick(){}
 		virtual void turnTick(){}
-		virtual void onMeet( Actor const& other , bool beStay ){}
+		virtual void onMeet( ActorComp const& other , bool beStay ){}
 
+
+		virtual void destroy() { delete this; }
 
 		MapCoord const& getPos() const { return mPos; }
 		MapCoord const& getPrevPos() const { return mPosPrev; }
@@ -121,38 +125,33 @@ namespace Rich
 		MapCoord   mPosPrev;
 	};
 
-	class CellVisitor;
-	class CellRegister
+	class AreaVisitor;
+	class AreaRegister
 	{
 	public:
-		virtual void addCellType( Cell* cell , CellType type ){}
+		virtual void addAreaType( Area* area , AreaType type ){}
 	};
-	class Cell
+	class Area
 	{
 	public:
-		Cell();
-		CellId getId() const { return mId; }
-		void   setId( CellId id ){ mId = id; }
+		Area();
+		AreaId getId() const { return mId; }
+		void   setId( AreaId id ){ mId = id; }
 
 		MapCoord const& getPos() const { return mPos; }
 		void            setPos( MapCoord const& pos ){ mPos = pos; }
 
-		virtual void install( CellRegister& reg ){}
-		virtual void uninstall( CellRegister& reg ){}
+		virtual void install( AreaRegister& reg ){}
+		virtual void uninstall( AreaRegister& reg ){}
 
 		virtual void onPlayerPass( PlayerTurn& turn ){}
 		virtual void onPlayerStay( PlayerTurn& turn ){}
-		virtual void accept( CellVisitor& visitor ) = 0;
+		virtual void accept( AreaVisitor& visitor ) = 0;
 
 	private:
 		MapCoord  mPos;
-		CellId    mId;
+		AreaId    mId;
 	};
-
-#define ACCEPT_VISIT()\
-	void accept( CellVisitor& visitor ){ visitor.visit( *this ); }
-
-
 
 }//namespace Rich
 

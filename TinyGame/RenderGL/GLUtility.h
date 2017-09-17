@@ -22,8 +22,8 @@ namespace RenderGL
 	public:
 		LookAtMatrix( Vector3 const& eyePos , Vector3 const& lookDir , Vector3 const& upDir )
 		{
-			Vector3 zAxis = -normalize( lookDir );
-			Vector3 xAxis = normalize( upDir.cross( zAxis ) );
+			Vector3 zAxis = -Normalize( lookDir );
+			Vector3 xAxis = Normalize( upDir.cross( zAxis ) );
 			Vector3 yAxis = zAxis.cross( xAxis );
 			setValue( 
 				xAxis.x , yAxis.x , zAxis.x ,
@@ -385,7 +385,7 @@ namespace RenderGL
 
 
 		template < uint32 VF >
-		inline static void draw( GLuint type , void const* vtx , int nV , int vertexStride )
+		inline static void Draw( GLuint type , void const* vtx , int nV , int vertexStride )
 		{
 			bindArray< VF >( (float const*)vtx , vertexStride );
 			glDrawArrays( type , 0 , nV );
@@ -393,9 +393,9 @@ namespace RenderGL
 		}
 
 		template < uint32 VF >
-		inline static void draw( GLuint type , void const* vtx , int nV )
+		inline static void Draw( GLuint type , void const* vtx , int nV )
 		{
-			draw< VF >( type , vtx , nV , (int) CountSize< VF >::Result * sizeof( float) );
+			Draw< VF >( type , vtx , nV , (int) CountSize< VF >::Result * sizeof( float) );
 		}
 
 		template< uint32 BIT >

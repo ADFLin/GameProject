@@ -10,7 +10,7 @@ namespace BT
 	{
 	public:
 		template< class NodeExpr >
-		static BTNode* generate( NodeExpr const& expr )
+		FORCEINLINE static BTNode* generate( NodeExpr const& expr )
 		{
 			BuildDecNode root;
 			BTNode* node =  expr.build( &root );
@@ -24,108 +24,111 @@ namespace BT
 		};
 	};
 
-	template< class Node >
-	NodeBuilder< Node >
-	node()
+	template< class BTNode >
+	FORCEINLINE NodeBuilder< BTNode >
+	Node()
 	{
-		return NodeBuilder< Node >( new Node );
+		return NodeBuilder< BTNode >( new BTNode );
 	}
 
 	template< class T , class Base >
-	ContextMemFunRef< T, Base >  memberFun( T (Base::*fun)() ){ return ContextMemFunRef< T , Base >( fun );  }
+	FORCEINLINE ContextMemFunRef< T, Base >  
+	MemberFun( T (Base::*fun)() ){ return ContextMemFunRef< T , Base >( fun );  }
 
 	template< class T , class Base >
-	ContextMemberRef< T , Base > member( T Base::*m ){ return ContextMemberRef< T , Base >( m ); }
+	FORCEINLINE ContextMemberRef< T , Base > 
+	MemberPtr( T Base::*m ){ return ContextMemberRef< T , Base >( m ); }
 
 	template< class T >
-	GlobalVarRef< T >     varPtr( T* ptr ){ return GlobalVarRef< T >( ptr ); }
+	FORCEINLINE GlobalVarRef< T >  
+	VarPtr( T* ptr ){ return GlobalVarRef< T >( ptr ); }
 
 	template< class T >
-	GlobalFunRef< T >     FunPtr( T (*fun)() ){ return GlobalFunRef< T >( fun ); }
-
+	FORCEINLINE GlobalFunRef< T >     
+	FunPtr( T (*fun)() ){ return GlobalFunRef< T >( fun ); }
 
 	template< class CmpOp , class Var , Var* VAR >
-	NodeBuilder< typename ConditionTransform< ConstVarRef< Var , VAR > , CmpOp  >::NodeType >
-	condition()
+	FORCEINLINE NodeBuilder< typename TConditionTransform< ConstVarRef< Var , VAR > , CmpOp  >::NodeType >
+	Condition()
 	{
-		typedef typename ConditionTransform< ConstVarRef< Var , VAR > , CmpOp  >::NodeType Node;
+		typedef typename TConditionTransform< ConstVarRef< Var , VAR > , CmpOp  >::NodeType Node;
 		return NodeBuilder< Node >( new Node );
 	}
 
 	template< class CmpOp  , class Var , Var (*FUN)() >
-	NodeBuilder< typename ConditionTransform< ConstFunRef< Var , FUN > , CmpOp  >::NodeType >
-	condition()
+	FORCEINLINE NodeBuilder< typename TConditionTransform< ConstFunRef< Var , FUN > , CmpOp  >::NodeType >
+	Condition()
 	{
-		typedef typename ConditionTransform< ConstFunRef< Var , FUN > , CmpOp  >::NodeType Node;
+		typedef typename TConditionTransform< ConstFunRef< Var , FUN > , CmpOp  >::NodeType Node;
 		return NodeBuilder< Node >( new Node );
 	}
 
 	template< class CmpOp  , class Var >
-	NodeBuilder< typename ConditionTransform< ContextVarRef< Var > , CmpOp  >::NodeType >
-	condition()
+	FORCEINLINE NodeBuilder< typename TConditionTransform< ContextVarRef< Var > , CmpOp  >::NodeType >
+	Condition()
 	{
-		typedef typename ConditionTransform< ContextVarRef< Var > , CmpOp  >::NodeType Node;
+		typedef typename TConditionTransform< ContextVarRef< Var > , CmpOp  >::NodeType Node;
 		return NodeBuilder< Node >( new Node );
 	}
 
 	template< class CmpOp , class Var >
-	NodeBuilder< typename ConditionTransform< ContextFunRef< Var > , CmpOp  >::NodeType >
-	conditionFun()
+	FORCEINLINE NodeBuilder< typename TConditionTransform< ContextFunRef< Var > , CmpOp  >::NodeType >
+	ConditionFun()
 	{
-		typedef typename ConditionTransform< ContextFunRef< Var > , CmpOp  >::NodeType Node;
+		typedef typename TConditionTransform< ContextFunRef< Var > , CmpOp  >::NodeType Node;
 		return NodeBuilder< Node >( new Node );
 	}
 
 	template< class CmpOp , class RefType >
-	NodeBuilder< typename ConditionTransform< RefType , CmpOp  >::NodeType >
-	condition( RefType const& ref )
+	FORCEINLINE NodeBuilder< typename TConditionTransform< RefType , CmpOp  >::NodeType >
+	Condition( RefType const& ref )
 	{
-		typedef typename ConditionTransform< RefType , CmpOp >::NodeType  Node;
+		typedef typename TConditionTransform< RefType , CmpOp >::NodeType  Node;
 		return NodeBuilder< Node >( new Node( ref ) );
 	}
 
 	template< class CmpOp , class RefType >
-	NodeBuilder< typename FilterTransform< RefType , CmpOp >::NodeType >
-	filter( RefType const& ref )
+	FORCEINLINE NodeBuilder< typename TFilterTransform< RefType , CmpOp >::NodeType >
+	Filter( RefType const& ref )
 	{
-		typedef typename FilterTransform< RefType , CmpOp >::NodeType  Node;
+		typedef typename TFilterTransform< RefType , CmpOp >::NodeType  Node;
 		return NodeBuilder< Node >( new Node( ref ) );
 	}
 
 
 	template< class CmpOp , class Var , Var* VAR  >
-	NodeBuilder< typename FilterTransform< ConstVarRef< Var , VAR > , CmpOp  >::NodeType >
-	filter()
+	FORCEINLINE NodeBuilder< typename TFilterTransform< ConstVarRef< Var , VAR > , CmpOp  >::NodeType >
+	Filter()
 	{
-		typedef typename FilterTransform< ConstVarRef< Var , VAR > , CmpOp  >::NodeType Node;
+		typedef typename TFilterTransform< ConstVarRef< Var , VAR > , CmpOp  >::NodeType Node;
 		return NodeBuilder< Node >( new Node );
 	}
 
 	template< class CmpOp , class Var , Var (*FUN)() >
-	NodeBuilder< typename FilterTransform< ConstFunRef< Var , FUN > , CmpOp  >::NodeType >
-	filter()
+	FORCEINLINE NodeBuilder< typename TFilterTransform< ConstFunRef< Var , FUN > , CmpOp  >::NodeType >
+	Filter()
 	{
-		typedef typename FilterTransform< ConstFunRef< Var , FUN > , CmpOp  >::NodeType Node;
+		typedef typename TFilterTransform< ConstFunRef< Var , FUN > , CmpOp  >::NodeType Node;
 		return NodeBuilder< Node >( new Node );
 	}
 
 	template< class CmpOp , class Var >
-	NodeBuilder< typename FilterTransform< ContextVarRef< Var > , CmpOp  >::NodeType >
-	filter()
+	FORCEINLINE NodeBuilder< typename TFilterTransform< ContextVarRef< Var > , CmpOp  >::NodeType >
+	Filter()
 	{
-		typedef typename FilterTransform< ContextVarRef< Var > , CmpOp  >::NodeType Node;
+		typedef typename TFilterTransform< ContextVarRef< Var > , CmpOp  >::NodeType Node;
 		return NodeBuilder< Node >( new Node );
 	}
 
 	template< class CmpOp , class Var >
-	NodeBuilder< typename FilterTransform< ContextFunRef< Var > , CmpOp  >::NodeType >
-	filter()
+	FORCEINLINE NodeBuilder< typename TFilterTransform< ContextFunRef< Var > , CmpOp  >::NodeType >
+	Filter()
 	{
-		typedef typename FilterTransform< ContextFunRef< Var > , CmpOp  >::NodeType Node;
+		typedef typename TFilterTransform< ContextFunRef< Var > , CmpOp  >::NodeType Node;
 		return NodeBuilder< Node >( new Node );
 	}
 
 
 
-}//namespace ntu
+}//namespace BT
 #endif // TreeBuilder_h__

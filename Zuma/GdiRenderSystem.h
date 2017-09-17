@@ -13,11 +13,11 @@ namespace Zuma
 		//                          unsigned flag );
 		//virtual void  drawBitmap( ITexture2D& tex , ITexture2D& mask , unsigned flag );
 		virtual void  drawBitmap( ITexture2D const& tex , unsigned flag = 0 ) = 0;
-		virtual void  drawBitmap( ITexture2D const& tex , Vec2D const& texPos , Vec2D const& texSize, unsigned flag = 0 ) = 0;
-		virtual void  drawBitmapWithinMask( ITexture2D const& tex , ITexture2D const& mask , Vec2D const& pos , unsigned flag = 0 ) = 0;
-		virtual void  drawPolygon( Vec2D const pos[] , int num ) = 0;
+		virtual void  drawBitmap( ITexture2D const& tex , Vec2f const& texPos , Vec2f const& texSize, unsigned flag = 0 ) = 0;
+		virtual void  drawBitmapWithinMask( ITexture2D const& tex , ITexture2D const& mask , Vec2f const& pos , unsigned flag = 0 ) = 0;
+		virtual void  drawPolygon( Vec2f const pos[] , int num ) = 0;
 
-		virtual void  loadWorldMatrix( Vec2D const& pos , Vec2D const& dir )
+		virtual void  loadWorldMatrix( Vec2f const& pos , Vec2f const& dir )
 		{
 
 		}

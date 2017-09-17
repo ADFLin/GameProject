@@ -151,12 +151,12 @@ class GamePacket : public IComPacket
 public:
 	enum { PID = ID , };
 	GamePacket():IComPacket( ID ){}
-	void doTake( SocketBuffer& buffer )
+	void doRead( SocketBuffer& buffer )
 	{  
 		AllocTake takeOp( buffer ); 
 		static_cast<T*>( this )->operateBuffer( takeOp );      
 	}
-	void doFill( SocketBuffer& buffer )
+	void doWrite( SocketBuffer& buffer )
 	{  
 		SocketBuffer::Fill fillOp( buffer );
 		static_cast<T*>( this )->operateBuffer( fillOp ); 
@@ -179,13 +179,13 @@ public:
 	enum { PID = ID , };
 	GameFramePacket():FramePacket( ID ){}
 
-	void doTake( SocketBuffer& buffer )
+	void doRead( SocketBuffer& buffer )
 	{  
 		buffer.take( frame ); 
 		AllocTake takeOp( buffer ); 
 		static_cast<T*>( this )->operateBuffer( takeOp );      
 	}
-	void doFill( SocketBuffer& buffer )
+	void doWrite( SocketBuffer& buffer )
 	{  
 		buffer.fill( frame ); 
 		SocketBuffer::Fill fillOp( buffer );

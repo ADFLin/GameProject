@@ -4,7 +4,7 @@
 #include "DrawEngine.h"
 #include "GameGUISystem.h"
 
-#include "THolder.h"
+#include "Holder.h"
 #include "IntegerType.h"
 #include "CppVersion.h"
 #include "Random.h"

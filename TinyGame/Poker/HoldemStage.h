@@ -4,7 +4,8 @@
 #include "GameStage.h"
 #include "HoldemLevel.h"
 
-#include "THolder.h"
+#include "Holder.h"
+
 namespace Poker { namespace Holdem {
 
 	class Scene;

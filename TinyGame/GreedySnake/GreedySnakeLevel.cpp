@@ -36,8 +36,7 @@ namespace GreedySnake
 		Element newBody = Elements[ mIdxTail ];
 		Elements.insert( Elements.begin() + mIdxTail , num , newBody );
 
-		//solve this case
-		//[ Tail ] [][]....[][ Head ]
+		//resolve case : [ Tail ] [][]....[][ Head ]
 		if ( mIdxTail <= mIdxHead )
 			mIdxHead += num;
 	}
@@ -133,11 +132,11 @@ namespace GreedySnake
 		return eNO_HIT_MASK;
 	}
 
-	void Level::setupMap( int w , int h , MapBoundType type )
+	void Level::setupMap( Vec2i const& size , MapBoundType type )
 	{
 		assert( mNumSnakePlay == 0 );
 		mMapBoundType = type;
-		mMap.resize( w , h );
+		mMap.resize( size.x , size.y );
 		MapTileData tile;
 		tile.snakeMask = 0;
 		tile.terrain = 0;
@@ -223,44 +222,16 @@ namespace GreedySnake
 			{
 				Snake& snake = *moveableSnake[i];
 
-				//Maybe change state after collision
+				//Maybe change state after other snake collision
 				if( snake.canMove() )
 				{
 					snake.moveCountAcc -= MoveCount;
-
 					assert(snake.moveCountAcc >= 0);
 
 					Vec2i tailPos = snake.getBody().getTail().pos;
-
 					snake.getBody().moveStep(snake.getMoveDir());
 
-					Vec2i headPos = snake.getBody().getHead().pos;
-					switch( mMapBoundType )
-					{
-					case MapBoundType::Cliff:
-						if( !mMap.checkRange(headPos.x, headPos.y) )
-						{
-							mListener->onCollideTerrain(snake, TT_SIDE);
-						}
-						break;
-					case MapBoundType::WarpXY:
-						snake.getBody().warpHeadPos(mMap.getSizeX(), mMap.getSizeY());
-						break;
-					case MapBoundType::WarpX:
-						snake.getBody().warpHeadPos(mMap.getSizeX(), 0);
-						if( !mMap.checkRange(headPos.x, headPos.y) )
-						{
-							mListener->onCollideTerrain(snake, TT_SIDE);
-						}
-						break;
-					case MapBoundType::WarpY:
-						snake.getBody().warpHeadPos(0, mMap.getSizeY());
-						if( !mMap.checkRange(headPos.x, headPos.y) )
-						{
-							mListener->onCollideTerrain(snake, TT_SIDE);
-						}
-						break;
-					}
+					checkMapBoundCondition(snake);
 
 					//Element of body can locate in same pos
 					if( tailPos != snake.getBody().getTail().pos )
@@ -273,9 +244,7 @@ namespace GreedySnake
 					{
 						detectMoveSnakeCollision(snake);
 					}
-					
 				}
-
 
 				if( snake.moveCountAcc < MoveCount || !snake.canMove() )
 				{
@@ -287,7 +256,39 @@ namespace GreedySnake
 		}
 	}
 
-	void Level::addFood( Vec2i const& pos , int type )
+	void Level::checkMapBoundCondition(Snake &snake)
+	{
+		Vec2i headPos = snake.getBody().getHead().pos;
+
+		switch( mMapBoundType )
+		{
+		case MapBoundType::Cliff:
+			if( !mMap.checkRange(headPos.x, headPos.y) )
+			{
+				mListener->onCollideTerrain(snake, TT_SIDE);
+			}
+			break;
+		case MapBoundType::WarpXY:
+			snake.getBody().warpHeadPos(mMap.getSizeX(), mMap.getSizeY());
+			break;
+		case MapBoundType::WarpX:
+			snake.getBody().warpHeadPos(mMap.getSizeX(), 0);
+			if( !mMap.checkRange(headPos.x, headPos.y) )
+			{
+				mListener->onCollideTerrain(snake, TT_SIDE);
+			}
+			break;
+		case MapBoundType::WarpY:
+			snake.getBody().warpHeadPos(0, mMap.getSizeY());
+			if( !mMap.checkRange(headPos.x, headPos.y) )
+			{
+				mListener->onCollideTerrain(snake, TT_SIDE);
+			}
+			break;
+		}
+	}
+
+	void Level::addFood(Vec2i const& pos, int type)
 	{
 		FoodInfo info;
 		info.pos  = pos;

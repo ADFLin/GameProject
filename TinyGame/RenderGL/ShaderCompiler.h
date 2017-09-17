@@ -108,7 +108,7 @@ namespace RenderGL
 	class ShaderCompiler
 	{
 	public:
-		bool compileSource( RHIShader::Type type , RHIShader& shader , char const* path, char const* def = nullptr );
+		bool compileCode( RHIShader::Type type , RHIShader& shader , char const* path, char const* def = nullptr );
 
 		bool bRecompile = true;
 		bool bUsePreprocess = true;

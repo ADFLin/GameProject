@@ -166,9 +166,6 @@
     <ClCompile Include="NetSocket.cpp">
       <Filter>Net</Filter>
     </ClCompile>
-    <ClCompile Include="BehaviorTree\BehaviorTree.cpp">
-      <Filter>AI</Filter>
-    </ClCompile>
     <ClCompile Include="BehaviorTree\BTNode.cpp">
       <Filter>AI</Filter>
     </ClCompile>
@@ -195,6 +192,18 @@
     </ClCompile>
     <ClCompile Include="Math\Transform.cpp">
       <Filter>Math</Filter>
+    </ClCompile>
+    <ClCompile Include="FlowSystem.cpp">
+      <Filter>原始程式檔</Filter>
+    </ClCompile>
+    <ClCompile Include="Math\Math2D.cpp">
+      <Filter>Math</Filter>
+    </ClCompile>
+    <ClCompile Include="AsyncWork.cpp">
+      <Filter>Utility</Filter>
+    </ClCompile>
+    <ClCompile Include="SystemPlatform.cpp">
+      <Filter>Platform</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -271,9 +280,6 @@
       <Filter>Utility</Filter>
     </ClInclude>
     <ClInclude Include="TGrid2D.h">
-      <Filter>Utility</Filter>
-    </ClInclude>
-    <ClInclude Include="THolder.h">
       <Filter>Utility</Filter>
     </ClInclude>
     <ClInclude Include="Tween.h">
@@ -591,11 +597,28 @@
     <ClInclude Include="WindowsPlatform.h">
       <Filter>Platform</Filter>
     </ClInclude>
+    <ClInclude Include="Holder.h">
+      <Filter>Utility</Filter>
+    </ClInclude>
+    <ClInclude Include="Math\DualQuat.h">
+      <Filter>Math</Filter>
+    </ClInclude>
+    <ClInclude Include="AsyncWork.h">
+      <Filter>Utility</Filter>
+    </ClInclude>
+    <ClInclude Include="SystemPlatform.h">
+      <Filter>Platform</Filter>
+    </ClInclude>
+    <ClInclude Include="TemplateMisc.h">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="CString.h">
+      <Filter>Utility</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="CHandle.cpp_temp">
       <Filter>temp</Filter>
     </None>
-    <None Include="TypeFactory" />
   </ItemGroup>
 </Project>

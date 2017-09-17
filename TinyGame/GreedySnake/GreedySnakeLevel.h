@@ -2,9 +2,10 @@
 #define GreedySnakeLevel_h__
 
 #include "TVector2.h"
+#include "TGrid2D.h"
+
 #include <vector>
 #include <list>
-#include "TGrid2D.h"
 
 typedef TVector2< int > Vec2i;
 
@@ -120,10 +121,10 @@ namespace GreedySnake
 
 	enum TerrainType
 	{
+		TT_NONE  ,
 		TT_BLOCK ,
 		TT_SLOW  ,
 		TT_SIDE  ,
-
 	};
 
 	class Snake
@@ -156,6 +157,14 @@ namespace GreedySnake
 		unsigned snakeMask;
 	};
 
+	enum class MapBoundType
+	{
+		WarpXY,
+		WarpX,
+		WarpY,
+		Cliff,
+	};
+
 	class Level
 	{
 	public:
@@ -170,15 +179,9 @@ namespace GreedySnake
 		};
 
 		Level( Listener* listener );
-		enum MapBoundType
-		{
-			WarpXY ,
-			WarpX  ,
-			WarpY  ,
-			Cliff  ,
-		};
+
 		bool       isVaildMapRange( Vec2i const& pos ){ return mMap.checkRange( pos.x , pos.y ); }
-		void       setupMap( int w , int h , MapBoundType type );
+		void       setupMap( Vec2i const& size , MapBoundType type );
 		void       setTerrain( Vec2i const& pos , int type ){ mMap.getData( pos.x , pos.y ).terrain = type;  }
 		int        getTerrain( Vec2i const& pos ){ return mMap.getData( pos.x , pos.y ).terrain;  }
 		Vec2i      getMapSize(){ return Vec2i( mMap.getSizeX() , mMap.getSizeY() );  }
@@ -212,6 +215,8 @@ namespace GreedySnake
 		HitMask   hitTest( Vec2i const& pos , unsigned mask , int& hitResult );
 		void      tick();
 
+		
+
 		template< class Visitor >
 		void      visitFood( Visitor& visitor )
 		{
@@ -228,6 +233,7 @@ namespace GreedySnake
 
 
 	private:
+		void      checkMapBoundCondition(Snake& snake);
 		void      detectMoveSnakeCollision( Snake& snake );
 		void      addSnakeMark( Snake& snake);
 		void      addSnakeBodyElementMark( unsigned id , Vec2i const& pos );

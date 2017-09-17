@@ -6,7 +6,7 @@
 #include "CFBase.h"
 #include "CFMaterial.h"
 #include "CFVertexDecl.h"
-#include "THolder.h"
+#include "Holder.h"
 
 char*  AllocFileData( char const* path );
 void   FreeFileData( char* data );

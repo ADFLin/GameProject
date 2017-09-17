@@ -1,6 +1,6 @@
 #include "RichPCH.h"
 #include "RichLevel.h"
-#include "RichCell.h"
+#include "RichArea.h"
 #include "RichPlayer.h"
 
 #include <algorithm>
@@ -47,13 +47,10 @@ namespace Rich
 
 	void Level::tick()
 	{
-		for( PlayerVec::iterator iter = mPlayerVec.begin()  , end = mPlayerVec.end() ;
-			 iter != end ; ++iter )
+		for( auto actor : mActors )
 		{
-			Player* player = *iter;
-			player->tick();
+			actor->tick();
 		}
-
 		updateTurn();
 	}
 
@@ -70,16 +67,13 @@ namespace Rich
 	void Level::nextActivePlayer()
 	{
 		++mIdxActive;
-		if ( mIdxActive == mPlayerVec.size() )
+		if( mIdxActive == mPlayerVec.size() )
 			mIdxActive = 0;
+		Player* player = mPlayerVec[mIdxActive];
+		mTurn.beginTurn(*player);
 
-		Player* player = mPlayerVec[ mIdxActive ];
-		mTurn.beginTurn( *player );
-
-		for( ActorList::iterator iter = mActors.begin() , itEnd = mActors.end();
-			 iter != itEnd ; ++iter )
+		for( ActorComp* actor : mActors )
 		{
-			Actor* actor = *iter;
 			actor->turnTick();
 		}
 	}

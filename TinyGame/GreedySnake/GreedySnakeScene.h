@@ -58,7 +58,7 @@ namespace GreedySnake
 
 	struct GameInfo
 	{
-		Level::MapBoundType mapType;
+		MapBoundType   mapBoundType;
 		GameMode       mode;
 		size_t         numPlayer;
 	};
@@ -87,14 +87,12 @@ namespace GreedySnake
 		void onEatFood( Snake& snake , FoodInfo& food );
 		void onCollideSnake( Snake& snake , Snake& colSnake );
 		void onCollideTerrain( Snake& snake , int type );
+		//~Level::Listener
 
-
-		
 		void  fireSnakeAction(ActionTrigger& trigger);
 		void  fireAction( ActionTrigger& trigger );
 
 		void  killSnake( unsigned id );
-		void  changeSnakeMoveDir(Snake& snake, DirEnum dir);
 
 		static int const BlockSize  = 20;
 		static int const SnakeWidth = 14;

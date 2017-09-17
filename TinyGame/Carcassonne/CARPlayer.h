@@ -7,7 +7,7 @@
 
 namespace CAR
 {
-	class GameSetting;
+	class GameplaySetting;
 
 	class PlayerBase
 	{
@@ -24,7 +24,7 @@ namespace CAR
 
 		int  getId(){ return mId; }
 
-		void setupSetting( GameSetting& setting );
+		void setupSetting( GameplaySetting& setting );
 
 		unsigned getUsageActorMask()
 		{
@@ -59,7 +59,7 @@ namespace CAR
 		int mScore;
 		std::vector< int > mFieldValues;
 
-		GameSetting* mSetting;
+		GameplaySetting* mSetting;
 	};
 
 }//namespace CAR

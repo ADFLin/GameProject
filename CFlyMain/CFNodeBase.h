@@ -85,7 +85,7 @@ namespace CFly
 
 	protected:
 		typedef MemberHook< NodeHookData , &NodeHookData::mChildHook > ChildHook;
-		typedef IntrList< NodeBase , ChildHook , PointerType > NodeList;
+		typedef TIntrList< NodeBase , ChildHook , PointerType > NodeList;
 		//typedef std::list< NodeBase* > NodeList;
 		NodeManager*  getManager(){ return mManager; }
 		void          init();

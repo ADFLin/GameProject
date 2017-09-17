@@ -2,6 +2,7 @@
 
 #include "GameLoop.h"
 #include "WindowsPlatform.h"
+#include "SystemPlatform.h"
 #include "WindowsMessageHander.h"
 #include "ProfileSystem.h"
 
@@ -271,7 +272,7 @@ public:  //GameCore
 	void onIdle( long time )
 	{  
 		PROFILE_ENTRY( "Game::onIdle" )
-		::Sleep( time );  
+		SystemPlatform::Sleep( time );  
 	}
 
 

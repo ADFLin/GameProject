@@ -27,18 +27,18 @@ enum
 class TaskMsg
 {
 public:
-	TaskMsg( int _id , unsigned _flag ):id(_id),flag(_flag){}
-	int   getID()     const { return id; }
+	TaskMsg( int inGroup , unsigned inFlag ):groupId(inGroup),flag(inFlag){}
+	int   getGroup()     const { return groupId; }
 	bool  onStart()   const { return ( flag & TF_STEP_MASK ) == TF_STEP_START; }
 	bool  onEnd()     const { return ( flag & TF_STEP_MASK ) == TF_STEP_END; }
 	bool  onDestroy() const { return ( flag & TF_STEP_MASK ) == TF_STEP_DESTROY; }
 	bool  checkFlag( unsigned bit ) const { return ( flag & bit ) != 0; }
 private:
-	int      id;
+	int      groupId;
 	unsigned flag;
 };
 
-#define  DEFAULT_TASK_ID 0
+#define  DEFAULT_TASK_GROUP 0
 
 class TaskListener
 {
@@ -64,7 +64,7 @@ public:
 
 	void    clearTask();
 	void    runTask( long time , unsigned updateMask = TUP_ALL_MASK );
-	void    addTask( TaskBase* task , TaskListener* listener = NULL , int taskID = DEFAULT_TASK_ID );
+	void    addTask( TaskBase* task , TaskListener* listener = NULL , int taskGroup = DEFAULT_TASK_GROUP );
 	void    removeTask( int id );
 	bool    removeTask( TaskBase* task , bool beAll = false );
 	void    setDefaultUpdatePolicy( TaskUpdatePolicy policy ){ mDefaultPolicy = policy; }
@@ -73,7 +73,7 @@ protected:
 
 	struct TaskNode
 	{
-		int           id;
+		int           groupId;
 		TaskBase*     task;
 		TaskListener* listenser;
 	};
@@ -85,11 +85,11 @@ protected:
         TaskBase* task;
     };
 
-    struct FindTaskByID
+    struct FindTaskByGroup
     {
-        FindTaskByID( int _id): id(_id){}
-        bool operator()( TaskNode const& node ) const { return node.id == id; }
-        int id;
+        FindTaskByGroup( int inId): groupId(inId){}
+        bool operator()( TaskNode const& node ) const { return node.groupId == groupId; }
+        int groupId;
     };
 
 	void   startNode( TaskNode& node );

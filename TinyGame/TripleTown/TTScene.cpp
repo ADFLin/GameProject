@@ -133,7 +133,7 @@ namespace TripleTown
 	void Scene::setupLevel( Level& level )
 	{
 		mLevel = &level;
-		mLevel->setAnimManager( this );
+		mLevel->setListener( this );
 
 	}
 
@@ -877,7 +877,7 @@ namespace TripleTown
 		}
 		
 	};
-	void Scene::moveActor( ObjectId id , TilePos const& posFrom , TilePos const& posTo )
+	void Scene::notifyActorMoved( ObjectId id , TilePos const& posFrom , TilePos const& posTo )
 	{
 		TileData& data = mMap.getData( posTo.x , posTo.y );
 
@@ -903,7 +903,7 @@ namespace TripleTown
 	Scene::~Scene()
 	{
 		if ( mLevel )
-			mLevel->setAnimManager( NULL );
+			mLevel->setListener( NULL );
 
 		releaseResource();
 	}

@@ -223,7 +223,7 @@ namespace Zen
 
 			while( ZenIsThinking() )
 			{
-				Sleep(1);
+				SystemPlatform::Sleep(1);
 				//std::cout << ZenGetBestMoveRate() << std::endl;
 			}
 			ZenReadGeneratedMove(result.x, result.y, result.bPass, result.bResign);

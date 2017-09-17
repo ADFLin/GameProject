@@ -2,7 +2,7 @@
 #define CARExpansion_h__
 
 #include "CARDefine.h"
-#include "CARGameSetting.h"
+#include "CARGameplaySetting.h"
 
 namespace CAR
 {
@@ -57,8 +57,8 @@ namespace CAR
 
 	extern ExpansionContent gAllExpansionTileContents[];
 
-	class GameSetting;
-	void AddExpansionRule(GameSetting& gameSetting, Expansion exp);
+	class GameplaySetting;
+	void AddExpansionRule(GameplaySetting& setting, Expansion exp);
 
 }//namespace CAR
 

@@ -54,7 +54,7 @@ namespace CAR
 
 		void  addExpansion(Expansion exp);
 
-		bool  haveUse(Expansion exp) const { return (mUseExpansionMask & BIT(exp)) != 0; }
+		bool  haveUse(Expansion exp) const { return (mUsageExpansionMask & BIT(exp)) != 0; }
 		void  import( ExpansionContent const& content );
 		
 		TileSet const& getTileSet( TileId tileId ) const {  return mTileMap[ tileId ];  }
@@ -78,7 +78,7 @@ namespace CAR
 		TileIdVec mSetMap[ TileSet::NumGroup ];
 		std::vector< TileSet > mTileMap;
 
-		unsigned mUseExpansionMask;
+		unsigned mUsageExpansionMask;
 	};
 
 

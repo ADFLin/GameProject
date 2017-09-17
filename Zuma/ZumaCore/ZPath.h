@@ -12,7 +12,7 @@ namespace Zuma
 		{
 			eMask = BIT(1),
 		};
-		Vec2D    pos;
+		Vec2f    pos;
 		unsigned flag;
 	};
 
@@ -24,31 +24,31 @@ namespace Zuma
 	{
 	public:
 		virtual float  getPathLength() const = 0;
-		virtual Vec2D  getEndLocation() const = 0;
-		virtual Vec2D  getLocation( float s ) const = 0;
+		virtual Vec2f  getEndLocation() const = 0;
+		virtual Vec2f  getLocation( float s ) const = 0;
 		virtual bool   haveMask( float s ) const = 0;
 	};
 
 	class ZCurvePath : public ZPath
 	{
 	public:
-		Vec2D  getEndLocation() const { return mEndPos; }
+		Vec2f  getEndLocation() const { return mEndPos; }
 		float  getPathLength() const;
-		Vec2D  getLocation( float s ) const;
+		Vec2f  getLocation( float s ) const;
 		bool   haveMask( float s ) const;
 		void   buildSpline( CVDataVec const& vtxVec , float step );
 	protected:
-		void   buildSplinePath( CRSpline2D& spline , Vec2D const& startPos , Vec2D& endPos , float delta );
+		void   buildSplinePath( CRSpline2D& spline , Vec2f const& startPos , Vec2f& endPos , float delta );
 
 		struct Range
 		{
 			float from ,  to;
 		};
 		typedef std::vector< Range > RangeVec;
-		typedef std::vector< Vec2D > VertexVec;
+		typedef std::vector< Vec2f > VertexVec;
 
 		RangeVec  mMaskRanges;
-		Vec2D     mEndPos;
+		Vec2f     mEndPos;
 		VertexVec mPath;
 		VertexVec mDirs;
 		float     mStepOffset;
@@ -57,17 +57,17 @@ namespace Zuma
 	class ZLinePath : public ZPath
 	{
 	public:
-		ZLinePath( Vec2D const& from , Vec2D const& to);
-		Vec2D  getEndLocation() const { return mTo; }
-		Vec2D  getLocation( float s ) const;
-		Vec2D  getDir() const { return mDir; }
+		ZLinePath( Vec2f const& from , Vec2f const& to);
+		Vec2f  getEndLocation() const { return mTo; }
+		Vec2f  getLocation( float s ) const;
+		Vec2f  getDir() const { return mDir; }
 		bool   haveMask( float s ) const  {  return false;  }
 	protected:
 
-		Vec2D calcDir();
-		Vec2D mDir;
-		Vec2D mFrom;
-		Vec2D mTo;
+		Vec2f calcDir();
+		Vec2f mDir;
+		Vec2f mFrom;
+		Vec2f mTo;
 	};
 
 }//namespace Zuma

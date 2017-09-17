@@ -13,6 +13,7 @@
 #		define CPP_CX11_KEYWORD_SUPPORT 1
 #       define CPP_TR1_SUPPORT 1
 #       define CPP_TYPE_TRAITS_SUPPORT 1
+#       define CPP_FUNCTION_DELETE_SUPPORT 1
 #	elif ( _MSC_VER >= 1600 ) 
 #		define CPP_CX11_KEYWORD_SUPPORT 1
 #		define CPP_TR1_SUPPORT 1
@@ -49,18 +50,27 @@
 #   define CPP_TYPE_TRAITS_SUPPORT 0
 #endif
 
+#ifndef CPP_FUNCTION_DELETE_SUPPORT
+#	define CPP_FUNCTION_DELETE_SUPPORT 0
+#endif
+
 #if !CPP_CX11_KEYWORD_SUPPORT
 #	define override
 #	define final
 #	define nullptr 0
 #endif
 
-
 #ifdef CPP_COMPILER_MSVC
 # define ANONYMOUS_VARIABLE(str) MARCO_NAME_COMBINE_2(str, __COUNTER__)
 #else
 # define ANONYMOUS_VARIABLE(str) MARCO_NAME_COMBINE_2(str, __LINE__)
 #endif 
+
+#if CPP_FUNCTION_DELETE_SUPPORT
+#	define FUNCTION_DELETE( FUN ) FUN = delete;
+#else
+#	define FUNCTION_DELETE( FUN ) private: FUN {}
+#endif
 
 namespace CppVerPriv
 {

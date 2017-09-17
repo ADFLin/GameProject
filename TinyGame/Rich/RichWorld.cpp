@@ -1,26 +1,26 @@
 #include "RichPCH.h"
 #include "RichWorld.h"
 
-#include "RichCell.h"
+#include "RichArea.h"
 
 #include <algorithm>
 
 namespace Rich
 {
 
-	EmptyCell gEmptyCell( EMPTY_CELL_ID );
+	EmptyArea gEmptyArea( EMPTY_AREA_ID );
 
 	World::World( IObjectQuery* query )
 		:mQuery( query )
 	{
-		restCellMap();	
+		restAreaMap();	
 	}
 
-	int World::getMoveDir( MapCoord const& posCur , MapCoord const& posPrev , DirType dir[] )
+	int World::getMovableLinks( MapCoord const& posCur , MapCoord const& posPrev , LinkHandle outLinks[] )
 	{
 		int result = 0;
 
-		DirType dirPrev = NoDir;
+		LinkHandle dirPrev = EmptyLinkHandle;
 		for( int i = 0 ; i < DirNum ; ++i )
 		{
 			MapCoord nextPos = posCur + dirOffset( i );
@@ -32,80 +32,80 @@ namespace Rich
 			}
 			if ( getTile( nextPos ) )
 			{
-				dir[ result ] = i;
+				outLinks[ result ] = i;
 				++result;
 			}
 		}
 
-		dir[ result ] = dirPrev;
+		outLinks[ result ] = dirPrev;
 		return result;
 	}
 
-	void World::clearCell( bool beDelete )
+	void World::clearArea( bool beDelete )
 	{
 		if ( beDelete )
 		{
-			int idx = mIdxFreeCellId;
-			while( mIdxFreeCellId != -1 )
+			int idx = mIdxFreeAreaId;
+			while( mIdxFreeAreaId != -1 )
 			{
-				int next = intptr_t( mCellMap[ mIdxFreeCellId ] );
-				mCellMap[ mIdxFreeCellId ] = nullptr;
+				int next = intptr_t( mAreaMap[ mIdxFreeAreaId ] );
+				mAreaMap[ mIdxFreeAreaId ] = nullptr;
 			}
-			for( int i = 1 ; i < mIdxLastCell; ++i )
+			for( int i = 1 ; i < mIdxLastArea; ++i )
 			{
-				delete mCellMap[ i ];
+				delete mAreaMap[ i ];
 			}
 		}
-		restCellMap();
+		restAreaMap();
 	}
 
-	void World::restCellMap()
+	void World::restAreaMap()
 	{
-		std::fill_n( mCellMap , MaxCellNum , static_cast< Cell* >( 0 ) );
-		mIdxLastCell = 1;
-		mCellMap[ EMPTY_CELL_ID ] = &gEmptyCell;
-		mIdxFreeCellId = -1;
+		std::fill_n( mAreaMap , MaxAreaNum , static_cast< Area* >( 0 ) );
+		mIdxLastArea = 1;
+		mAreaMap[ EMPTY_AREA_ID ] = &gEmptyArea;
+		mIdxFreeAreaId = -1;
 	}
 
-	Rich::CellId World::registerCell( Cell* cell , CellId idReg /*= BLOCK_CELL_ID */ )
+	Rich::AreaId World::registerArea( Area* area , AreaId idReg /*= BLOCK_AREA_ID */ )
 	{
-		assert( cell );
-		assert( mIdxLastCell < MaxCellNum );
+		assert( area );
+		assert( mIdxLastArea < MaxAreaNum );
 
-		CellId id;
-		if ( idReg != ERROR_CELL_ID )
+		AreaId id;
+		if ( idReg != ERROR_AREA_ID )
 		{
 			id = idReg;
 		}
-		else if ( mIdxFreeCellId != -1 )
+		else if ( mIdxFreeAreaId != -1 )
 		{
-			id = CellId( mIdxFreeCellId );
-			mIdxFreeCellId = intptr_t( mCellMap[ mIdxFreeCellId ] );
+			id = AreaId( mIdxFreeAreaId );
+			mIdxFreeAreaId = intptr_t( mAreaMap[ mIdxFreeAreaId ] );
 		}
 		else
 		{
-			id = CellId( mIdxLastCell );
+			id = AreaId( mIdxLastArea );
 		}
 
-		if ( mIdxLastCell == id )
-			++mIdxLastCell;
+		if ( mIdxLastArea == id )
+			++mIdxLastArea;
 
-		mCellMap[ id ]= cell;
+		mAreaMap[ id ]= area;
 		
-		cell->setId( id );
-		cell->install( *this );
+		area->setId( id );
+		area->install( *this );
 
 		return id;
 	}
 
-	void World::unregisterCell( Cell* cell )
+	void World::unregisterArea( Area* area )
 	{
-		CellId id = cell->getId();
-		assert( mCellMap[ id ] == cell );
-		cell->uninstall( *this );
-		mCellMap[ id ] = reinterpret_cast< Cell* >( mIdxFreeCellId );
-		mIdxFreeCellId = id;
-		cell->setId( ERROR_CELL_ID );
+		AreaId id = area->getId();
+		assert( mAreaMap[ id ] == area );
+		area->uninstall( *this );
+		mAreaMap[ id ] = reinterpret_cast< Area* >( mIdxFreeAreaId );
+		mIdxFreeAreaId = id;
+		area->setId( ERROR_AREA_ID );
 	}
 
 	void World::setupMap( int w , int h )
@@ -126,7 +126,7 @@ namespace Rich
 	}
 
 
-	bool World::addTile( MapCoord const& pos , CellId id )
+	bool World::addTile( MapCoord const& pos , AreaId id )
 	{
 		if ( !mMapData.checkRange( pos.x , pos.y ) )
 			return false;
@@ -134,7 +134,7 @@ namespace Rich
 			return false;
 
 		Tile* tile = new Tile;
-		tile->cell = id;
+		tile->areaId = id;
 		tile->pos  = pos;
 
 		mMapData( pos.x , pos.y ) = ( TileId )mTileMap.size();
@@ -194,23 +194,21 @@ namespace Rich
 		return gRandom;
 	}
 
-	void World::sendMsg( WorldMsg const& event )
+	void World::dispatchMessage( WorldMsg const& msg )
 	{
-		for( EventListerVec::iterator iter = mEvtListers.begin() , itEnd = mEvtListers.end() ;
-			 iter != itEnd ; ++iter )
+		for( IWorldMessageListener* listener : mEvtListers )
 		{
-			IMsgListener* listener = *iter;
-			listener->onWorldMsg( event );
+			listener->onWorldMsg( msg );
 		}
 	}
 
-	void World::addMsgListener( IMsgListener& listener )
+	void World::addMsgListener( IWorldMessageListener& listener )
 	{
 		assert( std::find( mEvtListers.begin() , mEvtListers.end() , &listener ) == mEvtListers.end() );
 		mEvtListers.push_back( &listener );
 	}
 
-	void World::removeMsgListener( IMsgListener& listener )
+	void World::removeMsgListener( IWorldMessageListener& listener )
 	{
 		EventListerVec::iterator iter = std::find( mEvtListers.begin() , mEvtListers.end() , &listener );
 		if ( iter == mEvtListers.end() )
@@ -218,7 +216,7 @@ namespace Rich
 		mEvtListers.erase( iter );
 	}
 
-	int World::findCell( MapCoord const& pos , DistType dist , Cell* cellFound[] )
+	int World::findAreas( MapCoord const& pos , DistType dist , Area* outAreasFound[] )
 	{
 		Vec2i min = pos - Vec2i( dist , dist );
 		Vec2i max = pos + Vec2i( dist , dist );
@@ -237,19 +235,19 @@ namespace Rich
 					continue;
 				Tile* tile = mTileMap[ id ];
 
-				if ( tile->cell == ERROR_CELL_ID )
+				if ( tile->areaId == ERROR_AREA_ID )
 					continue;
 
-				Cell* cell = mCellMap[ tile->cell ];
+				Area* area = mAreaMap[ tile->areaId ];
 				int n = 0;
 				for ( ; i < numOut ; ++n )
 				{
-					if ( cellFound[n] == cell )
+					if ( outAreasFound[n] == area )
 						break;
 				}
 				if ( n == numOut )
 				{
-					cellFound[ numOut ] = cell;
+					outAreasFound[ numOut ] = area;
 					++numOut;
 				}
 			}

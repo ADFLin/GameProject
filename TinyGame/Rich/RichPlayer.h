@@ -11,10 +11,10 @@
 namespace Rich
 {
 	class Player;
-	class LandCell;
+	class LandArea;
 	class IController;
 
-	class Player : public Actor
+	class Player : public ActorComp
 	{
 	public:
 
@@ -26,11 +26,11 @@ namespace Rich
 			eGAME_OVER ,
 		};
 		Player( World& world , ActorId id );
-		void initPos(MapCoord const& pos, MapCoord const& prevPos);
+		void   initPos(MapCoord const& pos, MapCoord const& prevPos);
 
-		bool updateTile(MapCoord const& pos);
+		bool   updateTile(MapCoord const& pos);
 
-		World& getWorld(){ return *mWorld; }
+		World& getWorld(){ return *mOwnedWorld; }
 		bool   changePos( MapCoord const& pos );
 
 		void    setRole( RoleId id ){ mRoleId = id; }
@@ -38,8 +38,8 @@ namespace Rich
 
 		int     getMovePower();
 
-		int            getMoney() const { return mMoney; }
-		void           modifyMoney( int delta )
+		int     getTotalMoney() const { return mMoney; }
+		void    modifyMoney( int delta )
 		{
 			mMoney += delta;
 		}
@@ -59,7 +59,7 @@ namespace Rich
 	public:
 
 		int          mMovePower;
-		World*       mWorld;
+		World*       mOwnedWorld;
 		RoleId       mRoleId;
 		State        mState;
 		int          mMoney;

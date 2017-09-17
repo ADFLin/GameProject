@@ -25,7 +25,7 @@ class StageBase;
 class NetWorker;
 class ServerWorker;
 class ClientWorker;
-class Mode;
+class LevelMode;
 enum  StageID;
 
 class GameStageMode;

@@ -1,5 +1,5 @@
 #include "RichPCH.h"
-#include "RichCell.h"
+#include "RichArea.h"
 
 #include "RichPlayer.h"
 #include "RichPlayerTurn.h"
@@ -7,7 +7,7 @@
 namespace Rich
 {
 
-	void LandCell::onPlayerStay( PlayerTurn& turn )
+	void LandArea::onPlayerStay( PlayerTurn& turn )
 	{
 		Player* player = turn.getPlayer();
 		if ( mOwner )
@@ -15,9 +15,9 @@ namespace Rich
 			if ( mOwner == player )
 			{
 				int cost = calcUpdateCost( *player );
-				if ( cost > player->getMoney() )
+				if ( cost > player->getTotalMoney() )
 				{
-					ReqData data;
+					ActionReqestData data;
 					data.land  = this;
 					data.money = cost;
 					turn.queryAction( REQ_UPGRADE_LAND , data );
@@ -27,15 +27,15 @@ namespace Rich
 			{
 				int toll = calcToll( *player );
 
-				if ( toll < player->getMoney() )
+				if ( toll < player->getTotalMoney() )
 				{
 					player->modifyMoney( -toll );
 					mOwner->modifyMoney( toll );
 
-					WorldMsg event;
-					event.id     = MSG_PAY_PASS_TOLL;
-					event.intVal = toll;
-					player->getWorld().sendMsg( event );
+					WorldMsg msg;
+					msg.id     = MSG_PAY_PASS_TOLL;
+					msg.addParam(toll);
+					player->getWorld().dispatchMessage( msg );
 				}
 				else
 				{
@@ -47,9 +47,9 @@ namespace Rich
 		else
 		{
 			int price = calcPrice( *player );
-			if ( price > player->getMoney() )
+			if ( price > player->getTotalMoney() )
 			{
-				ReqData data;
+				ActionReqestData data;
 				data.land  = this;
 				data.money = price;
 				turn.queryAction( REQ_BUY_LAND , data );
@@ -58,28 +58,28 @@ namespace Rich
 	}
 
 
-	void StartCell::giveMoney( Player& player )
+	void StartArea::giveMoney( Player& player )
 	{
 		player.modifyMoney( money );
 	}
 
-	void StartCell::onPlayerPass( PlayerTurn& turn )
+	void StartArea::onPlayerPass( PlayerTurn& turn )
 	{
 		giveMoney( *turn.getPlayer() );
 	}
 
-	void StartCell::onPlayerStay( PlayerTurn& turn )
+	void StartArea::onPlayerStay( PlayerTurn& turn )
 	{
 		giveMoney( *turn.getPlayer() );
 	}
 
 
-	void StoreCell::onPlayerStay( PlayerTurn& turn )
+	void StoreArea::onPlayerStay( PlayerTurn& turn )
 	{
-		WorldMsg event;
-		event.id = MSG_ENTER_STORE;
-		event.intVal = mType;
-		turn.getPlayer()->getWorld().sendMsg( event );
+		WorldMsg msg;
+		msg.id = MSG_ENTER_STORE;
+		msg.addParam((int)mType);
+		turn.sendTurnMsg(msg);
 	}
 
 }//namespace Rich

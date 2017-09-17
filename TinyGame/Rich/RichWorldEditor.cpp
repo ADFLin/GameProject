@@ -16,7 +16,7 @@ namespace Rich
 	{
 		mEditType = ET_TILE;
 		mMode     = MODE_SELECT;
-		mCellEdit = nullptr;
+		mAreaEdit = nullptr;
 	}
 
 	bool WorldEditor::onMouse( MouseMsg const& msg )
@@ -31,7 +31,7 @@ namespace Rich
 					if ( mSelect->calcCoord( msg.getPos() , coord ) )
 					{
 						if ( mMode == MODE_ADD )
-							mWorld->addTile( coord , EMPTY_CELL_ID );
+							mWorld->addTile( coord , EMPTY_AREA_ID );
 						else if ( mMode == MODE_REMOVE )
 							mWorld->removeTile( coord );
 						return false;
@@ -43,7 +43,7 @@ namespace Rich
 					MapCoord coord;
 					if ( mSelect->calcCoord( msg.getPos() , coord ) )
 					{
-						LandCell* land = new LandCell();
+						LandArea* land = new LandArea();
 						land->setPos( coord );
 					}
 

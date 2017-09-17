@@ -42,8 +42,8 @@ namespace RenderGL
 
 		float factor = 1.0f / (  s[0] * t[1] - s[1] * t[0] );
 
-		tangent = normalize( factor * ( t[1] * d1 - t[0] * d2 ) );
-		binormal = normalize( factor * ( s[0] * d2 - s[1] * d1 ) );
+		tangent = Normalize( factor * ( t[1] * d1 - t[0] * d2 ) );
+		binormal = Normalize( factor * ( s[0] * d2 - s[1] * d1 ) );
 	}
 
 	void fillNormal_TriangleList(VertexDecl const& decl, void* pVertex, int nV, int* idx, int nIdx)
@@ -677,7 +677,7 @@ namespace RenderGL
 		mesh.mDecl.addElement( Vertex::eTexcoord , Vertex::eFloat2 , 0 );
 		mesh.mDecl.addElement( Vertex::eTangent , Vertex::eFloat4 );
 
-		Vector3 n = normalize( normal );
+		Vector3 n = Normalize( normal );
 		Vector3 f = dir - n * ( n.dot( dir ) );
 		f.normalize();
 		Vector3 r = n.cross( f );
@@ -1157,7 +1157,7 @@ namespace RenderGL
 	static int const IcoVertexNum = ARRAY_SIZE( IcoVertex ) / 3;
 
 	template< class VertexTraits >
-	class IcoSphereBuilder
+	class TIcoSphereBuilder
 	{
 	public:
 		typedef typename VertexTraits::Type VertexType;
@@ -1255,12 +1255,12 @@ namespace RenderGL
 			};
 			static void SetVertex(Type& vtx, float radius, Vector3 const& pos)
 			{
-				vtx.n = normalize(pos);
+				vtx.n = Normalize(pos);
 				vtx.v = radius * vtx.n;
 			}
 		};
 
-		IcoSphereBuilder< VertexTraits > builder;
+		TIcoSphereBuilder< VertexTraits > builder;
 		return builder.build(mesh, radius, numDiv);
 	}
 
@@ -1275,10 +1275,10 @@ namespace RenderGL
 			};
 			static void SetVertex(Type& vtx, float radius, Vector3 const& pos)
 			{
-				vtx.v = radius * normalize(pos);
+				vtx.v = radius * Normalize(pos);
 			}
 		};
-		IcoSphereBuilder< VertexTraits > builder;
+		TIcoSphereBuilder< VertexTraits > builder;
 		return builder.build(mesh, 1.00 , 4 );
 	}
 

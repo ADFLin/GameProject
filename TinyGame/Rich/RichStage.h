@@ -1,7 +1,8 @@
 #ifndef RichStage_h__
 #define RichStage_h__
 
-#include "StageBase.h"
+#include "GameStage.h"
+//#include "StageBase.h"
 
 
 #include "RichLevel.h"
@@ -10,6 +11,8 @@
 #include "RichEditInterface.h"
 #include "RichWorld.h"
 #include "RichPlayer.h"
+
+#include "DataTransfer.h"
 
 
 
@@ -54,8 +57,8 @@ namespace Rich
 				return false;
 			case UI_OK:
 				{
-					ReplyData data;
-					data.intVal = mValue;
+					ActionReplyData data;
+					data.addParam( mValue );
 					mTurn->replyAction( data );
 					destroy();
 				}
@@ -117,15 +120,25 @@ namespace Rich
 		int         movePower;
 	};
 
-	class UserController : public IController
-		                 , public IMsgListener
+	class GameInputController : public IController
+		                      , public IWorldMessageListener
 	{
 	public:
-		virtual void queryAction( RequestID id , PlayerTurn& turn , ReqData const& data );
+		virtual void queryAction( ActionRequestID id , PlayerTurn& turn , ActionReqestData const& data );
 		virtual bool onWidgetEvent( int event , int id , GWidget* widget );
 		virtual void onWorldMsg( WorldMsg const& msg );
 
+		void setupClientNetwork( Player* player )
+		{
+#if 0
+			NetWorker* worker = ::Global::GameNet().getNetWorker();
+			assert(!worker->isServer());
+
+			mNetDataTranslater = new CWorkerDataTransfer(worker, player->g);
+#endif
+		}
 		Level* mLevel;
+		IDataTransfer* mNetDataTranslater;
 	};
 
 	
@@ -136,8 +149,9 @@ namespace Rich
 		SS_STORE ,
 	};
 
-	class LevelStage : public StageBase
-		             , public IMsgListener
+	class LevelStage : //public StageBase
+		               public GameStageBase
+		             , public IWorldMessageListener
 					 , public ITurnControl
 	{
 		typedef StageBase BaseClass;
@@ -212,11 +226,15 @@ namespace Rich
 		}
 		virtual bool onKey( unsigned key , bool isDown ){  return true;  }
 
-		UserController mUserCtrler;
+		GameInputController mUserController;
 
+		IDataTransfer* mSeverDataTransfer;
 		IEditor*   mEditor;
 		Scene      mScene;
 		Level      mLevel;
+
+		virtual void setupScene(IPlayerManager& playerManager) override;
+
 	};
 
 

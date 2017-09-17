@@ -13,7 +13,7 @@
 
 namespace CAR
 {
-	class GameSetting;
+	class GameplaySetting;
 	class FeatureBase;
 	class IGameInput;
 	struct GameActionData;
@@ -62,8 +62,10 @@ namespace CAR
 	public:
 		GameModule();
 
-		void   setupSetting( GameSetting& setting );
+		void   setupSetting( GameplaySetting& setting );
 		void   restart( bool bInit );
+
+		GameplaySetting&  getSetting() { return *mSetting; }
 		WorldTileManager& getWorld(){ return mWorld; }
 		void   runLogic( IGameInput& input );
 
@@ -75,7 +77,7 @@ namespace CAR
 
 		
 		void   loadSetting( bool bInit );
-		void   calcPlayerDeployActorPos(PlayerBase& player, MapTile* deplyMapTiles[], int numDeployTile, unsigned actorMask, bool bUsageMagicPortal);
+		void   calcPlayerDeployActorPos(PlayerBase& player, MapTile* deplyMapTiles[], int numDeployTile, unsigned actorMask, bool haveUsePortal);
 		int    getRemainingTileNum();
 		TileId drawPlayTile();
 
@@ -86,7 +88,7 @@ namespace CAR
 		TileId generatePlayTile();
 
 		void   addFeaturePoints( FeatureBase& build , std::vector< FeatureScoreInfo >& featureControls , int numPlayer );
-		int    addPlayerScore( int id , int value );
+		int    modifyPlayerScore( int id , int value );
 		void   calcFinalScore();
 
 		struct TrunContext
@@ -185,7 +187,7 @@ namespace CAR
 		//
 		GamePlayerManager* mPlayerManager;
 		TileSetManager     mTileSetManager;
-		GameSetting*       mSetting;
+		GameplaySetting*       mSetting;
 		GameRandom         mRandom;
 		WorldTileManager   mWorld;
 		
@@ -275,7 +277,7 @@ namespace CAR
 			Vec2i max;
 			std::vector< CastleScoreInfo > featureScores;
 		};
-		typedef IntrList< 
+		typedef TIntrList< 
 			CastleInfo , 
 			MemberHook< CastleInfo , &CastleInfo::node > , 
 			PointerType 

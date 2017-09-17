@@ -149,7 +149,7 @@ namespace Poker { namespace Big2 {
 	{
 		level.setListener( *this );
 
-		mCardDraw = ICardDraw::create( ICardDraw::eWin7 );
+		mCardDraw = ICardDraw::Create( ICardDraw::eWin7 );
 		mCardSize = mCardDraw->getSize();
 
 		mShowCardBmp.create( ::Global::getGraphics2D().getTargetDC() , 600 , 400 );

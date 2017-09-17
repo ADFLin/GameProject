@@ -93,12 +93,12 @@ namespace Chromatron
 		choice->appendItem( "Create Mode" );
 
 		GPanel* statusPanel = new GPanel( UI_ANY , Vec2i( 10 , 120 ) , Vec2i( 150 , 300 ) , NULL );
-		statusPanel->setRenderCallback( RenderCallBack::create( this , &LevelStage::drawStatusPanel ) );
+		statusPanel->setRenderCallback( RenderCallBack::Create( this , &LevelStage::drawStatusPanel ) );
 		::Global::GUI().addWidget( statusPanel );
 
 		mScene.setWorldPos( Vec2i( 190 , 80 ) );
 
-		int idxPackage = Global::GameSetting().getIntValue( "LastPlayPackage" , CHROMATRON_NAME , 0 );
+		int idxPackage = Global::GameConfig().getIntValue( "LastPlayPackage" , CHROMATRON_NAME , 0 );
 		if ( !loadGameData( idxPackage , true ) )
 		{
 			if ( !loadGameData( 0 , true ) )
@@ -110,7 +110,7 @@ namespace Chromatron
 		else
 			choice->setSelection( choice->getItemNum() - 1 );
 
-		int level = Global::GameSetting().getIntValue( "LastPlayLevel" , CHROMATRON_NAME , 0 );
+		int level = Global::GameConfig().getIntValue( "LastPlayLevel" , CHROMATRON_NAME , 0 );
 		changeLevel( level );
 
 
@@ -119,8 +119,8 @@ namespace Chromatron
 
 	void LevelStage::onEnd()
 	{
-		Global::GameSetting().setKeyValue( "LastPlayLevel" , CHROMATRON_NAME , mIndexLevel );
-		Global::GameSetting().setKeyValue( "LastPlayPackage" , CHROMATRON_NAME , mIndexGamePackage );
+		Global::GameConfig().setKeyValue( "LastPlayLevel" , CHROMATRON_NAME , mIndexLevel );
+		Global::GameConfig().setKeyValue( "LastPlayPackage" , CHROMATRON_NAME , mIndexGamePackage );
 		saveGameLevelState();
 		cleanupGameData();
 	}
@@ -384,7 +384,7 @@ namespace Chromatron
 
 			FixString< 32 > str;
 			str.format( "SaveData%d", mIndexGamePackage );
-			Global::GameSetting().setKeyValue( str , CHROMATRON_NAME , code.c_str() );
+			Global::GameConfig().setKeyValue( str , CHROMATRON_NAME , code.c_str() );
 		}
 		return true;
 	}
@@ -396,7 +396,7 @@ namespace Chromatron
 			FixString< 32 > str;
 			str.format( "SaveData%d", mIndexGamePackage );
 			char const* code;
-			if ( !Global::GameSetting().tryGetStringValue( str ,  CHROMATRON_NAME ,  code ) )
+			if ( !Global::GameConfig().tryGetStringValue( str ,  CHROMATRON_NAME ,  code ) )
 				return false;
 
 			int maxLen = strlen( code );

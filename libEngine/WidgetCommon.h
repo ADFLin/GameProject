@@ -401,7 +401,7 @@ protected:
 	void destroyMenu( Menu* menu )
 	{
 		menu->destroy();
-		_removeFlag( UF_HITTEST_CHILDREN );
+		_removeFlag( WIF_HITTEST_CHILDREN );
 	}
 	void _onRenderMenu( Menu* menu );
 	bool _onMenuMouseMsg( Menu* menu , MouseMsg const& msg );

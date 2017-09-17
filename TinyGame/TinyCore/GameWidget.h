@@ -34,6 +34,8 @@ enum
 	EVT_BOX_NO  ,
 	EVT_BOX_OK  ,
 
+	EVT_FRAME_FOCUS ,
+
 	EVT_EXTERN_EVENT_ID ,
 };
 
@@ -158,7 +160,10 @@ public:
 	virtual void release(){}
 
 	template < class T , class MemFun >
-	static RenderCallBack* create( T* ptr , MemFun fun );
+	static RenderCallBack* Create( T* ptr , MemFun fun );
+
+	template< class Fun >
+	static RenderCallBack* Create(Fun fun);
 
 };
 
@@ -175,22 +180,38 @@ class UIMotionTask;
 namespace Private{
 
 	template < class T , class MemFun >
-	class MemberRenderCallBack : public RenderCallBack
+	class TMemberRenderCallBack : public RenderCallBack
 	{
 		MemFun mFun;
 		T*     mPtr;
 	public:
-		MemberRenderCallBack( T* ptr , MemFun fun )
+		TMemberRenderCallBack( T* ptr , MemFun fun )
 			:mPtr(ptr), mFun( fun ){}
 		virtual void postRender( GWidget* ui ){  (mPtr->*mFun)( ui );  }
 		virtual void release(){ delete this; }
 	};
+
+	template< class Fun >
+	class TFunctionRenderCallBack : public RenderCallBack
+	{
+	public:
+		TFunctionRenderCallBack( Fun fun ):fun(fun){}
+		Fun fun;
+		virtual void postRender(GWidget* ui) { fun(ui); }
+		virtual void release() { delete this; }
+	};
 }
 
 template < class T , class MemFun >
-RenderCallBack* RenderCallBack::create( T* ptr , MemFun fun )
+RenderCallBack* RenderCallBack::Create( T* ptr , MemFun fun )
 {
-	return new Private::MemberRenderCallBack< T , MemFun >( ptr , fun );
+	return new Private::TMemberRenderCallBack< T , MemFun >( ptr , fun );
+}
+
+template < class Fun >
+RenderCallBack* RenderCallBack::Create(Fun fun)
+{
+	return new Private::TFunctionRenderCallBack< Fun >(fun);
 }
 
 
@@ -267,6 +288,7 @@ public:
 	GAME_API GFrame( int id , Vec2i const& pos , Vec2i const& size , GWidget* parent );
 protected:
 	GAME_API bool onMouseMsg( MouseMsg const& msg );
+	virtual void onFocus(bool beF) { if( beF ) sendEvent(EVT_FRAME_FOCUS); }
 };
 
 

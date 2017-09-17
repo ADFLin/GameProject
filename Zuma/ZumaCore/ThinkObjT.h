@@ -3,6 +3,8 @@
 
 #include "ZBase.h"
 
+#include <functional>
+
 #define NEVER_THINK -1
 
 struct ThinkData
@@ -57,7 +59,10 @@ private:
 		}
 		~ThinkContent()
 		{
-			delete data;
+			if( data )
+			{
+				data->release();
+			}
 		}
 
 		ThinkData*  data;

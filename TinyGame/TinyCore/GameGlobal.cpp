@@ -28,7 +28,7 @@ uint64 generateRandSeed()
 	{
 		rdtsc;
 		mov dword ptr result , eax;
-		mov dword ptr result + 4, eax;
+		mov dword ptr result + 4, edx;
 	}
 	return result;
 }
@@ -73,7 +73,7 @@ void Global::RandSeed(unsigned seed )
 }
 
 
-PropertyKey& Global::GameSetting()
+PropertyKey& Global::GameConfig()
 {
 	static PropertyKey settingKey;
 	return settingKey;

@@ -133,7 +133,7 @@ namespace Tetris
 					continue;
 
 				Vec2i bPos = calcBlockPos( uPos , i , layer );
-				int color = Piece::getColor( data );
+				int color = Piece::Color( data );
 
 				int dataR = getLevel()->getBlock( i + 1 , layer );
 				int dataT = ( layer == extendMapSizeY  - 1 ) ? 0 : getLevel()->getBlock(  i , layer + 1 );
@@ -142,7 +142,7 @@ namespace Tetris
 
 				RenderUtility::setPen( g , Color::eNull );
 
-				if ( color == Piece::getColor( dataR ) && i != mapSizeX - 1 )
+				if ( color == Piece::Color( dataR ) && i != mapSizeX - 1 )
 				{
 					RenderUtility::setBrush( g , color , COLOR_DEEP );
 					g.drawRect( 
@@ -157,7 +157,7 @@ namespace Tetris
 				}
 
 
-				if ( color == Piece::getColor( dataT ) && layer != extendMapSizeY  - 1 && checkTop )
+				if ( color == Piece::Color( dataT ) && layer != extendMapSizeY  - 1 && checkTop )
 				{
 					RenderUtility::setBrush( g , color , COLOR_DEEP );
 					g.drawRect( 
@@ -197,7 +197,7 @@ namespace Tetris
 		BlockType const* layerData = getLevel()->getLayer(j);
 		for(int i = 0 ; i < mLevel->getBlockStorage().getSizeX() ; ++i )
 		{
-			short color = Piece::getColor( layerData[i] );
+			short color = Piece::Color( layerData[i] );
 			if (color)
 			{
 				Vec2i const& bPos  = calcBlockPos( pos , i , j );
@@ -215,9 +215,9 @@ namespace Tetris
 	{
 		for( int i = 0 ; i < piece.getBlockNum(); ++i )
 		{
-			Block const& block = piece.getBlock(i);
+			PieceBlock const& block = piece.getBlock(i);
 			Vec2i bPos = pos + BlockSize * Vec2i( block.getX() , - block.getY() );
-			RenderUtility::drawBlock( g , bPos , Piece::getColor( block.getType() ) );
+			RenderUtility::drawBlock( g , bPos , Piece::Color( block.getType() ) );
 		}
 	}
 
@@ -225,9 +225,9 @@ namespace Tetris
 	{
 		for( int i = 0 ; i < piece.getBlockNum(); ++i )
 		{
-			Block const& block = piece.getBlock(i);
+			PieceBlock const& block = piece.getBlock(i);
 			Vec2i bPos = calcBlockPos( pos , block.getX() + nx , block.getY() + ny );
-			RenderUtility::drawBlock( g , bPos , Piece::getColor( block.getType() ) );
+			RenderUtility::drawBlock( g , bPos , Piece::Color( block.getType() ) );
 		}
 	}
 
@@ -261,7 +261,7 @@ namespace Tetris
 	}
 
 
-	void Scene::render( Graphics2D& g , Mode* levelMode )
+	void Scene::render( Graphics2D& g , LevelMode* levelMode )
 	{
 		Vec2i mapPos = Vec2i( BlockSize , BlockSize );
 
@@ -464,7 +464,7 @@ namespace Tetris
 		min =  10;
 		for( int i = 0 ; i < piece.getBlockNum() ; ++i )
 		{
-			Block const& block = piece.getBlock(i);
+			PieceBlock const& block = piece.getBlock(i);
 			if ( block.getY() > max )
 				max = block.getY();
 			if ( block.getY() < min )
@@ -491,7 +491,7 @@ namespace Tetris
 
 	void Scene::notifyRotatePiece(int orgDir , bool beCW)
 	{
-		int dDir = getLevel()->getMovePiece().getDir() - orgDir;
+		int dDir = getLevel()->getMovePiece().getDirection() - orgDir;
 
 		if ( dDir >= 3 )
 			dDir -= 4;
@@ -501,7 +501,7 @@ namespace Tetris
 		mAngle = 90.0f * dDir;
 
 		//FIXME
-		if ( getLevel()->getMovePiece().getMapSize() == 4 )
+		if ( getLevel()->getMovePiece().getRotationSize() == 4 )
 			mAngle = -mAngle;
 
 		if ( mShowFallPosition )

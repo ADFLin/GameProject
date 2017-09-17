@@ -7,6 +7,7 @@
 #include "HashString.h"
 #include "GL/glew.h"
 #include "WinGLPlatform.h"
+#include "SystemPlatform.h"
 #include "Asset.h"
 #include "LazyObject.h"
 #include "CommonMarco.h"
@@ -639,7 +640,7 @@ namespace RenderGL
 		{
 			while( !mGpuSync.pervLoading() )
 			{
-				::Sleep(1);
+				SystemPlatform::Sleep(1);
 			}
 		}
 		void postLoading()

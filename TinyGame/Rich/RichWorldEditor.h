@@ -4,7 +4,7 @@
 #include "RichBase.h"
 
 #include "RichEditInterface.h"
-#include "RichCell.h"
+#include "RichArea.h"
 
 #include "GameWidget.h"
 
@@ -16,15 +16,15 @@ namespace Rich
 	};
 
 
-	class EDCellPropEnumer
+	class EDAreaPropEnumer
 	{
 
 	};
 
-	class CellPropVisitor : public CellVisitor
+	class AreaPropVisitor : public AreaVisitor
 	{
 
-		EDCellPropEnumer* mEnumer;
+		EDAreaPropEnumer* mEnumer;
 	};
 
 	class WorldEditFrame : public GFrame
@@ -39,7 +39,7 @@ namespace Rich
 		MODE_SELECT ,
 		MODE_ADD ,
 		MODE_REMOVE ,
-		MODE_LINK_CELL ,
+		MODE_LINK_AREA ,
 	};
 
 
@@ -76,7 +76,7 @@ namespace Rich
 
 		EditType     mEditType;
 		EditMode     mMode;
-		Cell*        mCellEdit;
+		Area*        mAreaEdit;
 		IViewSelect* mSelect;
 		World*       mWorld;
 		WorldEditFrame* mFrame;

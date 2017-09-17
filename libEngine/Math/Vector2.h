@@ -10,7 +10,8 @@ namespace Math
 	{
 	public:
 		Vector2D() {}
-		Vector2D(TVector2< float > const& rhs) :TVector2<float>(rhs) {}
+		template< class T >
+		Vector2D(TVector2< T > const& rhs) :TVector2<float>(rhs) {}
 		Vector2D(float x, float y) :TVector2<float>(x, y) {}
 		float normalize()
 		{
@@ -36,15 +37,19 @@ namespace Math
 		}
 	};
 
-	inline Vector2D normalize(Vector2D const& v)
+	inline Vector2D Normalize(Vector2D const& v)
 	{
 		Vector2D result = v;
 		result.normalize();
 		return result;
 	}
 
+	inline float Distance(Vector2D const& a, Vector2D const& b)
+	{
+		return Vector2D(a-b).length();
+	}
 	// ( a x b ) x c = (a.c)b - (b.c) a
-	inline Vector2D tripleProduct(Vector2D const& a, Vector2D const& b, Vector2D const& c)
+	inline Vector2D TripleProduct(Vector2D const& a, Vector2D const& b, Vector2D const& c)
 	{
 		return a.dot(c) * b - b.dot(c) * a;
 	}

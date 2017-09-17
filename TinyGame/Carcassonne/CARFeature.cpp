@@ -2,7 +2,7 @@
 #include "CARFeature.h"
 
 #include "CARPlayer.h"
-#include "CARGameSetting.h"
+#include "CARGameplaySetting.h"
 #include "CARParamValue.h"
 #include "CARLevelActor.h"
 #include "CARWorldTileManager.h"
@@ -421,7 +421,7 @@ namespace CAR
 	{
 		BaseClass::addNode( mapData , dirMask , linkNode );
 
-		if ( mSetting->haveRule( Rule::eInn ) )
+		if ( mSetting->have( Rule::eInn ) )
 		{
 			unsigned mask = dirMask;
 			int dir;
@@ -445,17 +445,17 @@ namespace CAR
 	{
 		int numTile = mapTiles.size();
 
-		int factor = CAR_PARAM_VALUE(mSetting, NonCompleteFactor);
-		if ( mSetting->haveRule( Rule::eInn ) && haveInn )
+		int factor = CAR_PARAM_VALUE(NonCompleteFactor);
+		if ( getSetting().have( Rule::eInn ) && haveInn )
 		{
 			if ( checkComplete() )
-				factor += CAR_PARAM_VALUE(mSetting, InnAddtitionFactor);
+				factor += CAR_PARAM_VALUE(InnAddtitionFactor);
 			else
 				factor = 0;
 		}
 		else if ( checkComplete() )
 		{
-			factor = CAR_PARAM_VALUE(mSetting, RoadFactor);
+			factor = CAR_PARAM_VALUE(RoadFactor);
 		}
 		return numTile * factor;
 	}
@@ -492,9 +492,9 @@ namespace CAR
 	{
 		BaseClass::addNode( mapData , dirMask , linkNode );
 
-		if ( mSetting->haveRule( Rule::eCathedral ) )
+		if ( mSetting->have( Rule::eCathedral ) )
 		{
-			if ( mapData.getTileContent() & TileContent::eCathedral )
+			if ( mapData.have( TileContent::eCathedral ) )
 			{
 				haveCathedral = true;
 			}
@@ -509,14 +509,14 @@ namespace CAR
 	int CityFeature::calcPlayerScore( int playerId )
 	{
 		int numTile = mapTiles.size();
-		int factor = CAR_PARAM_VALUE(mSetting, NonCompleteFactor);
-		int pennatFactor = CAR_PARAM_VALUE(mSetting, PennatNonCompletFactor);
-		if ( mSetting->haveRule(Rule::eCathedral) && haveCathedral )
+		int factor = CAR_PARAM_VALUE(NonCompleteFactor);
+		int pennatFactor = CAR_PARAM_VALUE(PennatNonCompletFactor);
+		if ( getSetting().have(Rule::eCathedral) && haveCathedral )
 		{
 			if ( checkComplete() )
 			{
-				factor = CAR_PARAM_VALUE(mSetting, CityFactor) + CAR_PARAM_VALUE(mSetting, CathedralAdditionFactor);
-				pennatFactor = CAR_PARAM_VALUE(mSetting, PennatFactor) + CAR_PARAM_VALUE(mSetting, CathedralAdditionFactor);
+				factor = CAR_PARAM_VALUE(CityFactor) + CAR_PARAM_VALUE(CathedralAdditionFactor);
+				pennatFactor = CAR_PARAM_VALUE(PennatFactor) + CAR_PARAM_VALUE(CathedralAdditionFactor);
 			}
 			else
 			{
@@ -526,8 +526,8 @@ namespace CAR
 		}
 		else if ( checkComplete() )
 		{
-			factor = CAR_PARAM_VALUE(mSetting, CityFactor);
-			pennatFactor = CAR_PARAM_VALUE(mSetting, PennatFactor);
+			factor = CAR_PARAM_VALUE(CityFactor);
+			pennatFactor = CAR_PARAM_VALUE(PennatFactor);
 		}
 
 		int numPennats = getSideContentNum( SideContent::ePennant );
@@ -608,16 +608,16 @@ namespace CAR
 
 	int FarmFeature::calcPlayerScore( int playerId )
 	{
-		int factor = CAR_PARAM_VALUE(mSetting, FarmFactorV3);
+		int factor = CAR_PARAM_VALUE(FarmFactorV3);
 		switch ( mSetting->getFarmScoreVersion() )
 		{
-		case 1: factor = CAR_PARAM_VALUE(mSetting, FarmFactorV1); break;
-		case 2: factor = CAR_PARAM_VALUE(mSetting, FarmFactorV2); break;
-		case 3: factor = CAR_PARAM_VALUE(mSetting, FarmFactorV3); break;
+		case 1: factor = CAR_PARAM_VALUE(FarmFactorV1); break;
+		case 2: factor = CAR_PARAM_VALUE(FarmFactorV2); break;
+		case 3: factor = CAR_PARAM_VALUE(FarmFactorV3); break;
 		}
 
 		if ( haveBarn )
-			factor += CAR_PARAM_VALUE(mSetting, BarnAddtionFactor);
+			factor += CAR_PARAM_VALUE(BarnAddtionFactor);
 
 		return calcPlayerScoreInternal(playerId, factor);
 
@@ -657,10 +657,10 @@ namespace CAR
 			}
 		}
 
-		if ( mSetting->haveRule(Rule::ePig) )
+		if ( mSetting->have(Rule::ePig) )
 		{
 			if ( havePlayerActor( playerId , ActorType::ePig ) )
-				factor += CAR_PARAM_VALUE(mSetting, PigAdditionFactor);
+				factor += CAR_PARAM_VALUE(PigAdditionFactor);
 		}
 
 		return numCityFinish * factor + numCastle;
@@ -668,7 +668,7 @@ namespace CAR
 
 	int FarmFeature::calcPlayerScoreByBarnRemoveFarmer(int playerId)
 	{
-		return calcPlayerScoreInternal( playerId , (haveBarn)?(CAR_PARAM_VALUE(mSetting, BarnRemoveFarmerFactor) ):(CAR_PARAM_VALUE(mSetting, FarmFactorV3) ) );
+		return calcPlayerScoreInternal( playerId , (haveBarn)?(CAR_PARAM_VALUE(BarnRemoveFarmerFactor) ):(CAR_PARAM_VALUE(FarmFactorV3) ) );
 	}
 
 	CloisterFeature::CloisterFeature()
@@ -689,17 +689,17 @@ namespace CAR
 
 	int CloisterFeature::calcPlayerScore( int playerId )
 	{
-		int result = ( neighborTiles.size() + 1 ) * CAR_PARAM_VALUE( mSetting , CloisterFactor );
+		int result = ( neighborTiles.size() + 1 ) * CAR_PARAM_VALUE( CloisterFactor );
 		if ( checkComplete() )
 		{
-			if ( mSetting->haveRule( Rule::eUseVineyard) )
+			if ( mSetting->have( Rule::eUseVineyard) )
 			{
 				for( int i = 0; i < neighborTiles.size(); ++i )
 				{
 					MapTile* mapTile = neighborTiles[i];
-					if( mapTile->getTileContent() & TileContent::eVineyard )
+					if( mapTile->have( TileContent::eVineyard ) )
 					{
-						result += CAR_PARAM_VALUE(mSetting, VineyardAdditionScore);
+						result += CAR_PARAM_VALUE(VineyardAdditionScore);
 					}
 				}
 			}
@@ -788,17 +788,17 @@ namespace CAR
 
 	int GermanCastleFeature::calcPlayerScore( int playerId )
 	{
-		int result = ( neighborTiles.size() + 1 ) * CAR_PARAM_VALUE(mSetting, CloisterFactor);
+		int result = ( neighborTiles.size() + 1 ) * CAR_PARAM_VALUE(CloisterFactor);
 		if ( checkComplete() )
 		{
-			if( mSetting->haveRule(Rule::eUseVineyard) )
+			if( mSetting->have(Rule::eUseVineyard) )
 			{
 				for( int i = 0; i < neighborTiles.size(); ++i )
 				{
 					MapTile* mapTile = neighborTiles[i];
-					if( mapTile->getTileContent() & TileContent::eVineyard )
+					if( mapTile->have( TileContent::eVineyard ) )
 					{
-						result += CAR_PARAM_VALUE(mSetting, VineyardAdditionScore);
+						result += CAR_PARAM_VALUE(VineyardAdditionScore);
 					}
 				}
 			}

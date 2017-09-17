@@ -84,7 +84,7 @@ namespace CFly
 		};
 
 		typedef std::map< char const* , AnimationState* , StrCmp > AnimationStateMap;
-		typedef IntrList< 
+		typedef TIntrList< 
 			AnimationState , 
 			MemberHook< AnimationState , &AnimationState::mActiveHook > ,
 			PointerType

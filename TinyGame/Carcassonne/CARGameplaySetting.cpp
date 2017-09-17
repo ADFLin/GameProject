@@ -1,9 +1,9 @@
-#include "CARGameSetting.h"
+#include "CARGameplaySetting.h"
 
 namespace CAR
 {
 
-	GameSetting::GameSetting()
+	GameplaySetting::GameplaySetting()
 	{
 		mExpansionMask = 0;
 		mNumField = 0;
@@ -16,18 +16,18 @@ namespace CAR
 
 	}
 
-	bool GameSetting::haveRule(Rule ruleFunc) const
+	bool GameplaySetting::have(Rule ruleFunc) const
 	{
 
 		return mRuleFlags.check((unsigned)ruleFunc);
 	}
 
-	void GameSetting::addRule(Rule ruleFunc)
+	void GameplaySetting::addRule(Rule ruleFunc)
 	{
 		mRuleFlags.add((unsigned)ruleFunc);
 	}
 
-	unsigned GameSetting::getFollowerMask()
+	unsigned GameplaySetting::getFollowerMask()
 	{
 		unsigned const BaseFollowrMask =
 			BIT(ActorType::eMeeple) | BIT(ActorType::eBigMeeple) |

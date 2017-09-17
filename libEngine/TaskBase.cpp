@@ -39,10 +39,10 @@ void TaskHandler::runTask( long time , unsigned updateMask )
 	}
 }
 
-void TaskHandler::addTask( TaskBase* task , TaskListener* listener  , int taskID  )
+void TaskHandler::addTask( TaskBase* task , TaskListener* listener  , int taskGroup  )
 {
 	TaskNode node;
-	node.id = taskID;
+	node.groupId = taskGroup;
 	node.listenser = listener;
 	node.task = task;
 
@@ -86,7 +86,7 @@ void TaskHandler::removeTask( int id  )
 
 	while ( 1 )
 	{
-		TaskList::iterator iter = std::find_if( start , mRunList.end() , FindTaskByID(id) );
+		TaskList::iterator iter = std::find_if( start , mRunList.end() , FindTaskByGroup(id) );
 
 		if ( iter == mRunList.end() )
 			break;
@@ -146,7 +146,7 @@ void TaskHandler::sendMessage( TaskNode const& node , unsigned flag )
 	if ( node.task->mNextTask )
 		flag |= TF_HAVE_NEXT_TASK;
 
-	TaskMsg msg( node.id , flag );
+	TaskMsg msg( node.groupId , flag );
 	if ( node.listenser )
 		node.listenser->onTaskMessage( node.task , msg );
 }

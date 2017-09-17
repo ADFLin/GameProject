@@ -121,14 +121,14 @@ namespace Zuma
 		virtual bool onMouse( MouseMsg const& msg );
 
 		void clearPoint();
-		void movePoint( int idx , Vec2D const& dest );
-		void addPoint( Vec2D const& pos );
-		int  getPoint( Vec2D const& pos );
-		void togglePointMask( Vec2D const& pos );
+		void movePoint( int idx , Vec2f const& dest );
+		void addPoint( Vec2f const& pos );
+		int  getPoint( Vec2f const& pos );
+		void togglePointMask( Vec2f const& pos );
 
 		void buildSpline( CRSpline2D& spline , int idxVtx );
 
-		Vec2D mousePos;
+		Vec2f mousePos;
 		int   mvIdx;
 		int   curCurveIndex;
 
@@ -209,7 +209,7 @@ namespace Zuma
 
 		float      angleSunGlow;
 		//ZStarPS*   starPS;
-		Vec2D      aimPos;
+		Vec2f      aimPos;
 		ZConBall*  aimBall;
 	};
 

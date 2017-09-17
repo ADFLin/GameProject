@@ -378,7 +378,7 @@ ComMsgPanel::ComMsgPanel( int _id , Vec2i const& pos , Vec2i const& size , GWidg
 	button->setTitle( "Send" );
 	//GSlider*   slider   = new GSlider( UI_MSG_SLIDER , TVec2D( size.x - 10  , 0 ) , size.y - btnSize.y - 5  , false , this  );
 
-	setRenderCallback( RenderCallBack::create( this , &ComMsgPanel::renderText ) );
+	setRenderCallback( RenderCallBack::Create( this , &ComMsgPanel::renderText ) );
 }
 
 bool ComMsgPanel::onChildEvent( int event , int id , GWidget* ui )

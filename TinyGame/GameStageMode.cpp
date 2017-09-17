@@ -66,15 +66,16 @@ bool LevelStageMode::saveReplay(char const* name)
 		return false;
 
 	mReplayRecorder->stop();
-	std::string path = std::string(REPLAY_DIR) + "/" + name;
-
 	AttribValue attrInfo(ATTR_REPLAY_INFO, &mReplayRecorder->getReplay().getInfo());
-
 	if( !getStage()->getAttribValue(attrInfo) )
 	{
 		return false;
 	}
-	return mReplayRecorder->save(path.c_str());
+
+	FixString< 512 > path;
+	path.format("%s/%s", REPLAY_DIR, name);
+	//std::string path = std::string(REPLAY_DIR) + "/" + name;
+	return mReplayRecorder->save(path);
 }
 
 void LevelStageMode::onRestart(uint64& seed)

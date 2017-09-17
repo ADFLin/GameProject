@@ -2,7 +2,7 @@
 
 #include "CommonMarco.h"
 #include "FileSystem.h"
-#include "THolder.h"
+#include "Holder.h"
 
 #define SYNTAX_ERROR( MSG ) throw SyntaxError( MSG );
 #define FUNCTION_CHECK( fun ) fun
@@ -249,7 +249,7 @@ namespace CPP
 
 	bool Preprocessor::findFile(std::string const& name, std::string& fullPath)
 	{
-		if( FileSystem::isExist(name.c_str()) )
+		if( FileSystem::IsExist(name.c_str()) )
 		{
 			fullPath = name;
 			return true;
@@ -257,7 +257,7 @@ namespace CPP
 		for( int i = 0; i < mFileSreachDirs.size(); ++i )
 		{
 			fullPath = mFileSreachDirs[i] + name;
-			if( FileSystem::isExist(fullPath.c_str()) )
+			if( FileSystem::IsExist(fullPath.c_str()) )
 				return true;
 		}
 		return false;

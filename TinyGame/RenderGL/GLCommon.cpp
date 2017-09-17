@@ -43,7 +43,7 @@ namespace RenderGL
 		src[num] = &codeBuffer[0];
 		++num;
 
-		bool result = compileSource( type , src , num );
+		bool result = compileCode( type , src , num );
 		return result;
 
 	}
@@ -57,12 +57,15 @@ namespace RenderGL
 			case GL_VERTEX_SHADER:   return eVertex;
 			case GL_FRAGMENT_SHADER: return ePixel;
 			case GL_GEOMETRY_SHADER: return eGeometry;
+			case GL_COMPUTE_SHADER:  return eCompute;
+			case GL_TESS_CONTROL_SHADER: return eHull;
+			case GL_TESS_EVALUATION_SHADER: return eDomain;
 			}
 		}
 		return eUnknown;
 	}
 
-	bool RHIShader::compileSource( Type type , char const* src[] , int num )
+	bool RHIShader::compileCode( Type type , char const* src[] , int num )
 	{
 		if ( !create( type ) )
 			return false;
@@ -90,7 +93,9 @@ namespace RenderGL
 		case eVertex:   mHandle = glCreateShader( GL_VERTEX_SHADER ); break;
 		case ePixel:    mHandle = glCreateShader( GL_FRAGMENT_SHADER ); break;
 		case eGeometry: mHandle = glCreateShader( GL_GEOMETRY_SHADER ); break;
-		case eCompute:  mHandle = glCreateShader(GL_COMPUTE_SHADER); break;
+		case eCompute:  mHandle = glCreateShader( GL_COMPUTE_SHADER ); break;
+		case eHull:     mHandle = glCreateShader( GL_TESS_CONTROL_SHADER ); break;
+		case eDomain:   mHandle = glCreateShader( GL_TESS_EVALUATION_SHADER ); break;
 		}
 		return mHandle != 0;
 	}

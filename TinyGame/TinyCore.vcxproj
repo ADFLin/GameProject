@@ -151,7 +151,7 @@
   <ItemGroup>
     <ClInclude Include="GameMenuStage.h" />
     <ClInclude Include="GameStageMode.h" />
-    <ClInclude Include="GameRecord.h" />
+    <None Include="TinyCore\ColorName.h" />
     <ClInclude Include="TinyCore\DataStream.h" />
     <ClInclude Include="TinyCore\DataSteamBuffer.h" />
     <ClInclude Include="TinyCore\DataTransfer.h" />
@@ -174,7 +174,6 @@
   <ItemGroup>
     <ClCompile Include="GameMenuStage.cpp" />
     <ClCompile Include="GameStageMode.cpp" />
-    <ClCompile Include="GameRecord.cpp" />
     <ClCompile Include="TinyCore\DataSteamBuffer.cpp" />
     <ClCompile Include="TinyCore\DataTransferImpl.cpp" />
     <ClCompile Include="TinyCore\GameInstance.cpp" />

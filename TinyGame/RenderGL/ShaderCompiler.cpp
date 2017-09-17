@@ -201,13 +201,13 @@ namespace RenderGL
 			if( shader == nullptr )
 			{
 				shader = new RHIShader;
-				if( !mCompiler.compileSource(RHIShader::Type(i), *shader, path, info.headCodes[i].c_str()) )
+				if( !mCompiler.compileCode(RHIShader::Type(i), *shader, path, info.headCodes[i].c_str()) )
 					return false;
 				shaderProgram.attachShader(*shader);
 			}
 			else
 			{
-				if( !mCompiler.compileSource(RHIShader::Type(i), *shader, path, info.headCodes[i].c_str()) )
+				if( !mCompiler.compileCode(RHIShader::Type(i), *shader, path, info.headCodes[i].c_str()) )
 					return false;
 			}
 		}
@@ -215,7 +215,7 @@ namespace RenderGL
 		return true;
 	}
 
-	bool ShaderCompiler::compileSource(RHIShader::Type type , RHIShader& shader, char const* path, char const* def)
+	bool ShaderCompiler::compileCode(RHIShader::Type type , RHIShader& shader, char const* path, char const* def)
 	{
 		bool bSuccess;
 		do
@@ -285,7 +285,7 @@ namespace RenderGL
 				++numSourceCodes;
 			}
 
-			bSuccess = shader.compileSource(type, sourceCodes, numSourceCodes);
+			bSuccess = shader.compileCode(type, sourceCodes, numSourceCodes);
 
 			if( !bSuccess && bUsePreprocess )
 			{

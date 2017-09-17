@@ -35,9 +35,6 @@
     <ClInclude Include="TinyCore\GameDefines.h">
       <Filter>Common</Filter>
     </ClInclude>
-    <ClInclude Include="GameRecord.h">
-      <Filter>Common</Filter>
-    </ClInclude>
     <ClInclude Include="TinyCore\PropertyKey.h">
       <Filter>Common</Filter>
     </ClInclude>
@@ -85,9 +82,6 @@
     <ClCompile Include="TinyCore\DataTransferImpl.cpp">
       <Filter>Common</Filter>
     </ClCompile>
-    <ClCompile Include="GameRecord.cpp">
-      <Filter>Common</Filter>
-    </ClCompile>
     <ClCompile Include="TinyCore\PropertyKey.cpp">
       <Filter>Common</Filter>
     </ClCompile>
@@ -121,5 +115,10 @@
     <ClCompile Include="Widget\OptionNoteBook.cpp">
       <Filter>GUI</Filter>
     </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="TinyCore\ColorName.h">
+      <Filter>Common</Filter>
+    </None>
   </ItemGroup>
 </Project>

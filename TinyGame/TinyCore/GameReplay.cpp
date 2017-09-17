@@ -114,7 +114,7 @@ public:
 
 	OStreamOpteraion& operator & ( ReplayInfo const& info )
 	{
-		mFS.write( (char*) info.name , sizeof( info.name ) );
+		mFS.write( (char const*) info.name , sizeof( info.name ) );
 
 		(*this) & info.gameVersion & info.templateVersion;
 
@@ -156,7 +156,7 @@ bool ReplayBase::loadReplayInfo( char const* path , ReplayHeader& header , Repla
 		ReplayInfoV0_0_1 oldInfo;
 
 		op & oldInfo;
-		strcpy_s( info.name , oldInfo.name );
+		info.name = oldInfo.name;
 		info.gameInfoData    = oldInfo.gameInfoData;
 		info.dataSize        = oldInfo.dataSize;
 		info.gameVersion     = oldInfo.gameVersion;
@@ -173,7 +173,7 @@ bool ReplayBase::loadReplayInfo( char const* path , ReplayHeader& header , Repla
 
 bool ReplayTemplate::getReplayInfo( ReplayInfo& info )
 {
-	strcpy_s( info.name , "NO_GAME" );
+	info.name = "NO_GAME";
 	info.dataSize = 0;
 	info.gameInfoData = 0;
 	info.gameVersion = 0;
@@ -418,7 +418,7 @@ namespace OldVersion
 					ReplayInfoV0_0_1 oldInfo;
 					op & oldInfo;
 
-					strcpy_s( mInfo.name , oldInfo.name );
+					mInfo.name = oldInfo.name;
 					mInfo.gameInfoData    = oldInfo.gameInfoData;
 					mInfo.dataSize        = oldInfo.dataSize;
 					mInfo.gameVersion     = oldInfo.gameVersion;

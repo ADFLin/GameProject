@@ -2,7 +2,7 @@
 #define SortFunction_h__
 
 template < class Iter , class Cmp >
-void insertSort( Iter begin , Iter end , Cmp cmp = Cmp() )
+void InsertSort( Iter begin , Iter end , Cmp cmp = Cmp() )
 {
 #if 0
 	Iter it = begin;
@@ -31,6 +31,52 @@ void insertSort( Iter begin , Iter end , Cmp cmp = Cmp() )
 		}
 	}
 #endif
+}
+
+
+namespace SortImpl
+{
+	int GetChildIndex(int index)
+	{
+		return 2 * index;
+	}
+
+	int GetParentIndex(int index)
+	{
+		return index / 2;
+	}
+		
+
+	template < class Iter , class Cmp >
+	void HeapFilterDown(Iter iter, int index , int indexMax )
+	{
+		while( index <= indexMax )
+		{
+			Iter child = std::next(iter, GetChildIndex(index) - index );
+			if( Cmp()(*iter , *child) )
+			{
+				return;
+			}
+			std::swap(*iter, *child);
+			Iter child2 = std::next(child, 1);
+
+			if (  )
+
+		}
+	}
+
+	template < class Iter  , class Cmp >
+	void HeapFilterUp( Iter iter, int index, int indexMax)
+	{
+
+	}
+}
+
+template< class Iter >
+void HeapSort( Iter begin , Iter end )
+{
+
+
 }
 
 #endif // SortFunction_h__

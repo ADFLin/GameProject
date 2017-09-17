@@ -69,8 +69,8 @@ namespace Zuma
 
 
 		ColorKey       color;
-		Vec2D          pos;
-		Vec2D          speed;
+		Vec2f          pos;
+		Vec2f          speed;
 		std::string    str;
 		ResID          fontType;
 

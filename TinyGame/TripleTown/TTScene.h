@@ -30,7 +30,7 @@ namespace TripleTown
 
 	};
 
-	class Scene : public AnimManager
+	class Scene : public LevelListener
 	{
 	public:
 		Scene();
@@ -59,7 +59,7 @@ namespace TripleTown
 		void  renderTile( Graphics2D& g , Vec2i const& pos , ObjectId id , int meta = 0 );
 
 		//AnimManager
-		void  moveActor( ObjectId id , TilePos const& posFrom , TilePos const& posTo );
+		void  notifyActorMoved( ObjectId id , TilePos const& posFrom , TilePos const& posTo );
 		void  postCreateLand();
 
 		bool  loadFile( char const* name , GLuint& tex , unsigned& w , unsigned& h );

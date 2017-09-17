@@ -650,6 +650,7 @@ bool GFrame::onMouseMsg( MouseMsg const& msg )
 	{
 		getManager()->releaseMouse();
 	}
+
 	if ( msg.isLeftDown() && msg.isDraging() )
 	{
 		Vec2i pos = getPos() +Vec2i( msg.x() - x , msg.y() - y );
@@ -657,6 +658,7 @@ bool GFrame::onMouseMsg( MouseMsg const& msg )
 		x = msg.x();
 		y = msg.y();
 	}
+
 	return false;
 }
 
@@ -681,7 +683,7 @@ void GSlider::renderValue( GWidget* widget )
 
 void GSlider::showValue()
 {
-	setRenderCallback( RenderCallBack::create( this , &GSlider::renderValue ) );
+	setRenderCallback( RenderCallBack::Create( this , &GSlider::renderValue ) );
 }
 
 void GSlider::onRender()

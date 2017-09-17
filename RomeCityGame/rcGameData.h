@@ -2,7 +2,7 @@
 #define rcGameData_h__
 
 #include "rcBase.h"
-#include "THolder.h"
+#include "Holder.h"
 #include "SgxFileLoader.h"
 
 

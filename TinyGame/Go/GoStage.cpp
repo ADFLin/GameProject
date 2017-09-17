@@ -3,6 +3,7 @@
 
 #include "RenderUtility.h"
 #include "Thread.h"
+#include "SystemPlatform.h"
 #include "ZenBot.h"
 #include "FixString.h"
 
@@ -25,7 +26,7 @@ namespace Go
 				{
 					while( bot->mCore->isThinking() )
 					{
-						::Sleep(0);
+						SystemPlatform::Sleep(0);
 					}
 					bThinkComplete = true;
 				}
@@ -185,9 +186,7 @@ namespace Go
 
 	bool BotTestMode::init()
 	{
-		SYSTEM_INFO sysinfo;
-		GetSystemInfo(&sysinfo);
-		int numCPU = sysinfo.dwNumberOfProcessors;
+		int numCPU = SystemPlatform::GetProcessorNumber();
 
 		Zen::CoreSetting setting;
 		setting.numThreads = numCPU - 1;

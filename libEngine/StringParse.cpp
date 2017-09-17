@@ -68,7 +68,7 @@ void Tokenizer::skipDropDelims()
 	}
 }
 
-int Tokenizer::take(TokenString& str)
+Tokenizer::TokenType Tokenizer::take(TokenString& str)
 {
 	return ParseUtility::StringToken(mPtr, *this, str);
 }

@@ -112,7 +112,7 @@ namespace RenderGL
 		FixString< 256 > name;
 		va_list argptr;
 		va_start(argptr, format);
-		name.formatV(format, argptr);
+		name.formatVA(format, argptr);
 		va_end(argptr);
 		sample = GpuProfiler::getInstance().startSample(name);
 	}

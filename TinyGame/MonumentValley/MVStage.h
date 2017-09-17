@@ -170,8 +170,8 @@ namespace MV
 		}
 
 
-
-		VectorSet< Block* > mSelectBlocks;
+		typedef TVectorSet< Block* > BlockSet;
+		BlockSet mSelectBlocks;
 
 		enum ViewMode
 		{

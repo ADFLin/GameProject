@@ -6,11 +6,13 @@
 
 #define TETRIS_NAME "Tetris"
 
-class RecordManager;
+
 
 namespace Tetris
 {
+	class RecordManager;
 	RecordManager& getRecordManager();
+
 	union GameInfoData;	
 	typedef SimpleController MyController;
 

@@ -24,14 +24,14 @@ namespace Tetris
 		mModeData  = NULL;
 	}
 
-	void LevelData::build( Mode* mode , bool bNeedScene )
+	void LevelData::build( LevelMode* mode , bool bNeedScene )
 	{
 		if ( !mModeData )
 			mModeData = mode->createModeData();
 
 		if ( !mLevel )
 		{
-			mLevel = new Level( mode->getLevelManager() );
+			mLevel = new Level( mode->getWorld() );
 			mLevel->setUserData( this );
 		}
 
@@ -90,14 +90,14 @@ namespace Tetris
 
 			if( trigger.detect( ACT_ROTATE_CCW ) )
 			{
-				int orgDir = level->getMovePiece().getDir();
+				int orgDir = level->getMovePiece().getDirection();
 				level->rotatePiece( true );
 				if ( scene )
 					scene->notifyRotatePiece( orgDir , true );
 			}
 			else if( trigger.detect( ACT_ROTATE_CW ) )
 			{
-				int orgDir = level->getMovePiece().getDir();
+				int orgDir = level->getMovePiece().getDirection();
 				level->rotatePiece( false );
 				if ( scene )
 					scene->notifyRotatePiece( orgDir , false );
@@ -121,7 +121,7 @@ namespace Tetris
 		}
 	}
 
-	void GameWorld::init( Mode* mode )
+	void GameWorld::init( LevelMode* mode )
 	{
 		mNumLevel = 0;
 		for( int i = 0; i < gTetrisMaxPlayerNum; ++i )
@@ -131,11 +131,11 @@ namespace Tetris
 			mDataStorage[i].idxUse = -1;
 		}
 
-		mNeedScene = true;
+		mbNeedScene = true;
 
-		mLevelMode = mode;
-		mLevelMode->mLevelManager = this;
-		mLevelMode->init();
+		mModePlaying = mode;
+		mModePlaying->mWorld = this;
+		mModePlaying->init();
 	}
 
 	bool GameWorld::removePlayer( unsigned id )
@@ -169,14 +169,14 @@ namespace Tetris
 			{
 				data = mDataStorage + i;
 
-				info.actionPort = data->getID();
+				info.actionPort = data->getId();
 				data->mPlayerID  = player->getId();
 
 				data->idxUse = mNumLevel;
 				mUsingData[ mNumLevel ] = data;
 				++mNumLevel;
 
-				data->build( mLevelMode , mNeedScene );
+				data->build( mModePlaying , mbNeedScene );
 				return data;
 			}
 		}
@@ -197,7 +197,7 @@ namespace Tetris
 
 	void GameWorld::render( Graphics2D& g )
 	{
-		if ( !mNeedScene )
+		if ( !mbNeedScene )
 			return;
 
 		for ( int i = 0; i < mNumLevel ; ++ i )
@@ -216,7 +216,7 @@ namespace Tetris
 
 	GameWorld::~GameWorld()
 	{
-		delete mLevelMode;
+		delete mModePlaying;
 		for( int i = 0; i < gTetrisMaxPlayerNum ; ++i )
 			mDataStorage[i].cleanup();
 	}
@@ -227,14 +227,14 @@ namespace Tetris
 		if ( mbGameEnd )
 			return;
 
-		if ( mNumLevelOver == mNumLevel || mLevelMode->checkOver() )
+		if ( mNumLevelOver == mNumLevel || mModePlaying->checkOver() )
 		{
 			mbGameEnd = true;
-			mLevelMode->onGameOver();
+			mModePlaying->onGameOver();
 			return;
 		}
 
-		mLevelMode->tick();
+		mModePlaying->tick();
 
 		for( int i = 0 ; i < mNumLevel ; ++i )
 		{
@@ -250,9 +250,9 @@ namespace Tetris
 				{
 				case LVS_OVER:
 					{
-						Mode::LevelEvent event;
-						event.id = Mode::eLEVEL_OVER;
-						mLevelMode->onLevelEvent( data , event );
+						LevelMode::Event event;
+						event.id = LevelMode::eLEVEL_OVER;
+						mModePlaying->onLevelEvent( data , event );
 						++mNumLevelOver;
 					}
 					break;
@@ -274,14 +274,14 @@ namespace Tetris
 
 	void GameWorld::restart(  bool beInit )
 	{
-		mLevelMode->restart( beInit );
+		mModePlaying->restart( beInit );
 
 		for ( int i = 0 ; i < mNumLevel ; ++i )
 		{
 			LevelData& data = getUsingData(i);
-			data.getModeData()->reset( mLevelMode , data , beInit );
+			data.getModeData()->reset( mModePlaying , data , beInit );
 			data.getLevel()->restart();
-			if ( mNeedScene )
+			if ( mbNeedScene )
 				data.getScene()->restart();
 			data.lastState = LVS_NORMAL;
 		}
@@ -293,13 +293,13 @@ namespace Tetris
 
 	void GameWorld::fireAction( ActionTrigger& trigger )
 	{
-		assert( mLevelMode );
+		assert( mModePlaying );
 
 		for( int i = 0 ; i < mNumLevel ; ++ i )
 		{
 			LevelData& data = getUsingData( i );
-			trigger.setPort( data.getID() );
-			mLevelMode->fireAction( data , trigger  );
+			trigger.setPort( data.getId() );
+			mModePlaying->fireAction( data , trigger  );
 		}
 	}
 
@@ -307,11 +307,11 @@ namespace Tetris
 	void GameWorld::fireLevelAction( ActionTrigger& trigger )
 	{
 		LevelData& data = *getLevelData( trigger.getPort() );
-		mLevelMode->fireAction( data , trigger );
+		mModePlaying->fireAction( data , trigger );
 	}
 
 
-	void GameWorld::setLevelMode( Mode* mode )
+	void GameWorld::setLevelMode( LevelMode* mode )
 	{
 
 
@@ -354,36 +354,36 @@ namespace Tetris
 	void GameWorld::onRemoveLayer( Level* level , int layer[] , int numLayer )
 	{
 		LevelData* data = static_cast< LevelData* >( level->getUserData() );
-		if ( mNeedScene )
+		if ( mbNeedScene )
 			data->getScene()->notifyRemoveLayer( layer , numLayer );
-		Mode::LevelEvent event;
-		event.id       = Mode::eREMOVE_LAYER;
+		LevelMode::Event event;
+		event.id       = LevelMode::eREMOVE_LAYER;
 		event.layer    = layer;
 		event.numLayer = numLayer;
-		mLevelMode->onLevelEvent( *data , event );
+		mModePlaying->onLevelEvent( *data , event );
 	}
 
 	void GameWorld::onMarkPiece( Level* level , int layer[] , int numLayer )
 	{
 		LevelData* data = static_cast< LevelData* >( level->getUserData() );
-		if ( mNeedScene )
+		if ( mbNeedScene )
 			data->getScene()->notifyMarkPiece( layer , numLayer );
-		Mode::LevelEvent event;
-		event.id       = Mode::eMARK_PIECE;
+		LevelMode::Event event;
+		event.id       = LevelMode::eMARK_PIECE;
 		event.layer    = layer;
 		event.numLayer = numLayer;
-		mLevelMode->onLevelEvent( *data , event );
+		mModePlaying->onLevelEvent( *data , event );
 	}
 
 
 	void GameWorld::onChangePiece( Level* level )
 	{
 		LevelData* data = static_cast< LevelData* >( level->getUserData() );
-		if ( mNeedScene )
+		if ( mbNeedScene )
 			data->getScene()->notifyChangePiece();
-		Mode::LevelEvent event;
-		event.id    = Mode::eCHANGE_PIECE;
-		mLevelMode->onLevelEvent( *data , event );
+		LevelMode::Event event;
+		event.id    = LevelMode::eCHANGE_PIECE;
+		mModePlaying->onLevelEvent( *data , event );
 	}
 
 	void GameWorld::setupScene( unsigned mainID , unsigned flag )
@@ -395,7 +395,7 @@ namespace Tetris
 		Vec2i pos = levelData[0]->getScene()->getSurfacePos() - Vec2i( 140 , 0 );
 
 		addBaseUI( *levelData[0] , pos , 
-			RenderCallBack::create( mLevelMode , &Mode::renderStats ) );
+			RenderCallBack::Create( mModePlaying , &LevelMode::renderStats ) );
 
 		switch( getLevelNum() )
 		{
@@ -404,12 +404,12 @@ namespace Tetris
 				LevelData* lvData = levelData[1];
 				pos = lvData->getScene()->getSurfacePos() + Vec2i( 250 , 0 );
 				addBaseUI( *lvData , pos , 
-					RenderCallBack::create( mLevelMode , &Mode::renderStats ) );
+					RenderCallBack::Create( mModePlaying , &LevelMode::renderStats ) );
 			}
 			break;
 		}
 
-		mLevelMode->setupScene( flag );
+		mModePlaying->setupScene( flag );
 	}
 
 	void GameWorld::calcScenePos( unsigned mainID )
@@ -479,7 +479,7 @@ namespace Tetris
 		panel = new GPanel( UI_PANEL , pos , Vec2i( 130 , ppHeight )  ,  NULL );
 
 		panel->setRenderCallback( 
-			RenderCallBack::create( lvData.getScene() ,  &Scene::renderPieceStorage ) );
+			RenderCallBack::Create( lvData.getScene() ,  &Scene::renderPieceStorage ) );
 		::Global::GUI().addWidget( panel );
 		pos += Vec2i( 0 , ppHeight + 10 );
 
@@ -491,7 +491,7 @@ namespace Tetris
 	}
 
 
-	int Mode::getMaxPlayerNumber( ModeID mode )
+	int LevelMode::getMaxPlayerNumber( ModeID mode )
 	{
 		switch( mode )
 		{
@@ -501,7 +501,7 @@ namespace Tetris
 	}
 
 
-	void Mode::restart( bool beInit )
+	void LevelMode::restart( bool beInit )
 	{
 		mGameTime = 0;
 		doRestart( beInit );

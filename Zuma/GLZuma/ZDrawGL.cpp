@@ -31,14 +31,14 @@ namespace Zuma
 		{
 			CRSpline2D& spline = splineVec[i];
 
-			Vec2D pos = spline.getPoint( 0 );
+			Vec2f pos = spline.getPoint( 0 );
 
 			glBegin( GL_LINE_STRIP );
 			glVertex3f( pos.x , pos.y  , 0 );
 
 			for ( int i = 1 ; i <= 20 ; ++i )
 			{
-				Vec2D pos = spline.getPoint( 0.05f * i );
+				Vec2f pos = spline.getPoint( 0.05f * i );
 				glVertex3f( pos.x , pos.y  , 0 );
 			}
 			glEnd();
@@ -48,7 +48,7 @@ namespace Zuma
 
 		for( int i = 0; i < vtxVec.size(); ++i )
 		{
-			Vec2D& pt = vtxVec[i].pos;
+			Vec2f& pt = vtxVec[i].pos;
 			ball.setPos( pt );
 
 			if ( vtxVec[i].flag &  CVData::eMask )

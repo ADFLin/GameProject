@@ -173,7 +173,7 @@ namespace CAR
 		mCurMapPos = Vec2i(0,0);
 		mIdxShowFeature = 0;
 
-		mMoudule.mDebug = ::Global::GameSetting().getIntValue( "Debug" , "CAR" , 0 ) != 0;
+		mMoudule.mDebug = ::Global::GameConfig().getIntValue( "Debug" , "CAR" , 0 ) != 0;
 		mMoudule.mListener = this;
 		
 		mInput.onAction = std::bind( &LevelStage::onGameAction , this , std::placeholders::_1 , std::placeholders::_2 );
@@ -214,9 +214,9 @@ namespace CAR
 		}
 
 		mMoudule.restart( bInit );
-		if ( ::Global::GameSetting().getIntValue( "LoadGame" , "CAR" , 1 )  )
+		if ( ::Global::GameConfig().getIntValue( "LoadGame" , "CAR" , 1 )  )
 		{
-			char const* file = ::Global::GameSetting().getStringValue( "LoadGameName" , "CAR" , "car_record2" ) ;
+			char const* file = ::Global::GameConfig().getStringValue( "LoadGameName" , "CAR" , "car_record2" ) ;
 			mInput.loadReplay(file);
 		}
 		

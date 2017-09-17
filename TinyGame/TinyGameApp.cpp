@@ -30,6 +30,7 @@
 #include "ReplayStageMode.h"
 
 #include "Thread.h"
+#include "SystemPlatform.h"
 #include "RenderGL/GLUtility.h"
 
 #define GAME_SETTING_PATH "Game.ini"
@@ -40,12 +41,12 @@ GAME_API IGameNetInterface* gGameNetInterfaceImpl;
 GAME_API IDebugInterface*   gDebugInterfaceImpl;
 GAME_API uint32 gGameThreadId;
 
-class GMsgListener : public ILogListener
+class GameLogPrinter : public ILogListener
 	               , public IDebugInterface
 {
 public:
 
-	GMsgListener()
+	GameLogPrinter()
 	{
 
 	}
@@ -53,7 +54,7 @@ public:
 	{
 
 	}
-	static int const MaxLineNum = 60;
+	static int const MaxLineNum = 20;
 
 	virtual void receiveLog( LogChannel channel , char const* str ) override
 	{
@@ -117,7 +118,7 @@ public:
 	StringList mMsgList;
 };
 
-static GMsgListener gMsgListener;
+static GameLogPrinter gLogPrinter;
 
 
 TinyGameApp::TinyGameApp()
@@ -129,7 +130,7 @@ TinyGameApp::TinyGameApp()
 	mbLockFPS = false;
 
 	gGameNetInterfaceImpl = this;
-	gDebugInterfaceImpl = &gMsgListener;
+	gDebugInterfaceImpl = &gLogPrinter;
 }
 
 TinyGameApp::~TinyGameApp()
@@ -143,18 +144,18 @@ bool TinyGameApp::onInit()
 
 	GameLoop::setUpdateTime( gDefaultTickTime );
 
-	if ( !Global::GameSetting().loadFile( GAME_SETTING_PATH ) )
+	if ( !Global::GameConfig().loadFile( GAME_SETTING_PATH ) )
 	{
 
 	}
 
 	exportUserProfile();
 
-	mbLockFPS = ::Global::GameSetting().getIntValue("bLockFPS", nullptr, 0);
+	mbLockFPS = ::Global::GameConfig().getIntValue("bLockFPS", nullptr, 0);
 
-	gMsgListener.addChannel( LOG_DEV );
-	gMsgListener.addChannel( LOG_MSG );
-	gMsgListener.addChannel( LOG_ERROR  );
+	gLogPrinter.addChannel( LOG_DEV );
+	gLogPrinter.addChannel( LOG_MSG );
+	gLogPrinter.addChannel( LOG_ERROR  );
 
 	if ( !mGameWindow.create( TEXT("Tiny Game") , gDefaultScreenWidth , gDefaultScreenHeight , WindowsMessageHandler::MsgProc  ) )
 		return false;
@@ -170,7 +171,7 @@ bool TinyGameApp::onInit()
 
 	bool havePlayGame = false;
 	char const* gameName;
-	if ( ::Global::GameSetting().tryGetStringValue( "DefaultGame" , nullptr , gameName ) )
+	if ( ::Global::GameConfig().tryGetStringValue( "DefaultGame" , nullptr , gameName ) )
 	{
 		IGameInstance* game = ::Global::GameManager().changeGame( gameName );
 		if ( game )
@@ -212,7 +213,7 @@ void TinyGameApp::cleanup()
 
 	importUserProfile();
 
-	Global::GameSetting().saveFile(GAME_SETTING_PATH);
+	Global::GameConfig().saveFile(GAME_SETTING_PATH);
 
 	extern void saveTranslateAsset(char const* path);
 	saveTranslateAsset("tt.txt");
@@ -240,7 +241,7 @@ long TinyGameApp::onUpdate( long shouldTime )
 			game->getController().clearFrameInput();
 	}
 
-	gMsgListener.update( updateTime );
+	gLogPrinter.update( updateTime );
 	return updateTime;
 }
 
@@ -248,7 +249,7 @@ long TinyGameApp::onUpdate( long shouldTime )
 void TinyGameApp::onIdle(long time)
 {
 	if ( mbLockFPS )
-		::Sleep(time);
+		SystemPlatform::Sleep(time);
 	else
 		render( 0.0f );
 }
@@ -262,7 +263,7 @@ void TinyGameApp::onRender()
 void TinyGameApp::loadGamePackage()
 {
 	FileIterator fileIter;
-	if ( FileSystem::findFile( "" , ".dll" , fileIter ) )
+	if ( FileSystem::FindFile( "" , ".dll" , fileIter ) )
 	{
 		for ( ; fileIter.haveMore() ; fileIter.goNext() )
 		{
@@ -315,12 +316,12 @@ ClientWorker* TinyGameApp::createClinet()
 	closeNetwork();
 
 	ClientWorker* worker;
-	if ( ::Global::GameSetting().getIntValue("SimNetLog", nullptr, 0) )
+	if ( ::Global::GameConfig().getIntValue("SimNetLog", nullptr, 0) )
 	{
 		DelayClientWorker* delayWorker = new DelayClientWorker();
 		delayWorker->setDelay(
-			::Global::GameSetting().getIntValue("SimNetLagDelay", nullptr, 30),
-			::Global::GameSetting().getIntValue("SimNetLagDelayRand", nullptr, 0));
+			::Global::GameConfig().getIntValue("SimNetLagDelay", nullptr, 30),
+			::Global::GameConfig().getIntValue("SimNetLagDelayRand", nullptr, 0));
 		worker = delayWorker;
 	}
 	else
@@ -450,7 +451,7 @@ void TinyGameApp::render( float dframe )
 			::Global::getGLGraphics2D().beginRender();
 	}
 
-	gMsgListener.render(Vec2i(5, 25));
+	gLogPrinter.render(Vec2i(5, 25));
 
 	mFPSCalc.increaseFrame(getMillionSecond());
 	IGraphics2D& g = ::Global::getIGraphics2D();
@@ -466,7 +467,7 @@ void TinyGameApp::render( float dframe )
 
 void TinyGameApp::exportUserProfile()
 {
-	PropertyKey& setting = Global::GameSetting();
+	PropertyKey& setting = Global::GameConfig();
 	UserProfile& userPorfile = Global::getUserProfile();
 
 	userPorfile.name = setting.getStringValue( "Name" , "Player" , "Player" );
@@ -489,7 +490,7 @@ void TinyGameApp::exportUserProfile()
 
 void TinyGameApp::importUserProfile()
 {
-	PropertyKey& setting = Global::GameSetting();
+	PropertyKey& setting = Global::GameConfig();
 
 	UserProfile& userPorfile = Global::getUserProfile();
 

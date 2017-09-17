@@ -167,7 +167,7 @@ namespace Poker { namespace Holdem {
 		,mPanel( NULL )
 	{
 		mLevel->setListener( this );
-		mCardDraw = ICardDraw::create( ICardDraw::eWin7 );
+		mCardDraw = ICardDraw::Create( ICardDraw::eWin7 );
 		mCardSize = mCardDraw->getSize();
 	}
 
@@ -289,7 +289,7 @@ namespace Poker { namespace Holdem {
 		{
 			SlotPanel* panel = new SlotPanel( UI_ANY , tableCenterPos + SlotOffset[i] + Vec2i( 0 , 50 ) - SlotPanel::Size / 2 , NULL );
 			panel->slotPos = i;
-			panel->setRenderCallback( RenderCallBack::create( this , &Scene::drawSlotPanel ) );
+			panel->setRenderCallback( RenderCallBack::Create( this , &Scene::drawSlotPanel ) );
 			::Global::GUI().addWidget( panel );
 		}
 		::Global::GUI().addWidget( mPanel );

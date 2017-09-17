@@ -5,7 +5,7 @@
 
 #include "GameObjectComponent.h"
 #include "Thinkable.h"
-#include "THolder.h"
+#include "Holder.h"
 
 #include "TAblilityProp.h"
 #include "TItemSystem.h"

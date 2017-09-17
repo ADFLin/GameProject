@@ -12,7 +12,7 @@ class  Graphics2D;
 
 namespace Tetris
 {
-	class  Mode;
+	class  LevelMode;
 	class  LevelData;
 
 	class Scene : public RenderSurface
@@ -23,7 +23,7 @@ namespace Tetris
 		Level* getLevel(){ return mLevel; }
 		void   restart();
 		void   updateFrame( int frame );
-		void   render( Graphics2D& g , Mode* levelMode );
+		void   render( Graphics2D& g , LevelMode* levelMode );
 
 		void   showFallPosition( bool beS ){  mShowFallPosition = beS;  }
 

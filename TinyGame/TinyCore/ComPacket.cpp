@@ -4,7 +4,7 @@
 #include "GameShare.h"
 #include "SocketBuffer.h"
 
-#include "THolder.h"
+#include "Holder.h"
 
 struct PacketHeader
 {
@@ -45,7 +45,7 @@ bool ComEvaluator::evalCommand( SocketBuffer& buffer , int group , void* userDat
 		cp->mGroup = group;
 		cp->mUserData = userData;
 
-		if ( !TakeBuffer( buffer , cp.get() )  )
+		if ( !ReadBuffer( buffer , cp.get() )  )
 			return false;
 
 		if ( factory->workerFunSocket )
@@ -114,7 +114,7 @@ ComEvaluator::ICPFactory* ComEvaluator::findFactory( ComID com )
 	return NULL;
 }
 
-unsigned ComEvaluator::FillBuffer( SocketBuffer& buffer , IComPacket* cp )
+unsigned ComEvaluator::WriteBuffer( SocketBuffer& buffer , IComPacket* cp )
 {
 	size_t oldSize = buffer.getFillSize();	
 	unsigned size = 0;
@@ -123,7 +123,7 @@ unsigned ComEvaluator::FillBuffer( SocketBuffer& buffer , IComPacket* cp )
 		buffer.fill( cp->mId );
 		buffer.fill( size );
 
-		cp->fillBuffer( buffer );
+		cp->writeBuffer( buffer );
 	}
 	catch ( BufferException& e )
 	{
@@ -139,7 +139,7 @@ unsigned ComEvaluator::FillBuffer( SocketBuffer& buffer , IComPacket* cp )
 	return size;
 }
 
-bool ComEvaluator::TakeBuffer( SocketBuffer& buffer , IComPacket* cp )
+bool ComEvaluator::ReadBuffer( SocketBuffer& buffer , IComPacket* cp )
 {
 	unsigned takeSize;
 	buffer.take( takeSize );
@@ -153,7 +153,7 @@ bool ComEvaluator::TakeBuffer( SocketBuffer& buffer , IComPacket* cp )
 	}
 
 	unsigned oldSize = (unsigned)buffer.getAvailableSize();
-	cp->takeBuffer( buffer );
+	cp->readBuffer( buffer );
 
 	if ( takeSize != oldSize - buffer.getAvailableSize() )
 		throw ComException( "Error packet format" );
@@ -239,12 +239,12 @@ void ComEvaluator::removeProcesserFun( void* processer )
 	}
 }
 
-void IComPacket::fillBuffer( SocketBuffer& buffer )
+void IComPacket::writeBuffer( SocketBuffer& buffer )
 {
-	doFill( buffer );
+	doWrite( buffer );
 }
 
-void IComPacket::takeBuffer( SocketBuffer& buffer )
+void IComPacket::readBuffer( SocketBuffer& buffer )
 {
-	doTake( buffer );
+	doRead( buffer );
 }

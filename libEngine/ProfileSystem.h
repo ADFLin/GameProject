@@ -12,7 +12,7 @@
 #endif //USE_PROFILE
 
 
-#include "THolder.h"
+#include "Holder.h"
 #include "Singleton.h"
 
 #define  CLOCK_EPSILON 1e-6

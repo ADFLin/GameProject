@@ -47,6 +47,11 @@ namespace Math
 		float      normalize();
 
 		Quaternion& operator *= ( Quaternion const& rhs );
+		Quaternion& operator *= (float scale)
+		{
+			x *= scale; y *= scale; z *= scale; w *= scale;
+			return *this;
+		}
 
 		operator       float* ()       { return &x; }
 		operator const float* () const { return &x; }
@@ -66,7 +71,7 @@ namespace Math
 	}
 	inline Quaternion operator * ( Quaternion const& a, Quaternion const& b )
 	{
-		// a * b = ( va.cross( vb ) + wa * vb + wb * va , wa & wb - va.dor( vb ) )
+		// a * b = ( va.cross( vb ) + wa * vb + wb * va , wa & wb - va.dot( vb ) )
 		return Quaternion(
 			a.y*b.z - a.z*b.y + a.x*b.w + a.w*b.x  ,
 			a.z*b.x - a.x*b.z + a.y*b.w + a.w*b.y  ,

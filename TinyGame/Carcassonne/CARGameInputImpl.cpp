@@ -186,9 +186,9 @@ namespace CAR
 			}
 		}
 
-		if ( ::Global::GameSetting().getIntValue( "AutoSaveGame" , "CAR" , 1 ) )
+		if ( ::Global::GameConfig().getIntValue( "AutoSaveGame" , "CAR" , 1 ) )
 		{
-			saveReplay( ::Global::GameSetting().getStringValue( "AutoSaveGameName" , "CAR" , "car_record_temp" ) );
+			saveReplay( ::Global::GameConfig().getStringValue( "AutoSaveGameName" , "CAR" , "car_record_temp" ) );
 		}
 
 		if ( com == nullptr || com->bReply == true )

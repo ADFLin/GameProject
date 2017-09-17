@@ -6,10 +6,11 @@
 #include "CARLevelActor.h"
 
 #include <set>
+#include <unordered_set>
 
 namespace CAR
 {
-	class GameSetting;
+	class GameplaySetting;
 	class PlayerBase;
 	class WorldTileManager;
 
@@ -49,8 +50,8 @@ namespace CAR
 		int  hillFollowerCount;
 	};
 
-	typedef std::set< MapTile* > MapTileSet;
-	typedef std::set< unsigned > GroupSet;
+	typedef std::unordered_set< MapTile* > MapTileSet;
+	typedef std::unordered_set< unsigned > GroupSet;
 
 	class  FeatureBase : public ActorContainer
 	{
@@ -101,6 +102,12 @@ namespace CAR
 			to.insert( src.begin() , src.end() );
 		}
 
+		template< class T >
+		static void MergeData(std::unordered_set< T >& to, std::unordered_set< T > const& src)
+		{
+			to.insert(src.begin(), src.end());
+		}
+
 		int getDefaultActorPutInfo( int playerId , ActorPos const& actorPos , MapTile& mapTile, unsigned actorMasks[] , std::vector< ActorPosInfo >& outInfo );
 		int getActorPutInfoInternal( int playerId , ActorPos const& actorPos , MapTile& mapTile, unsigned actorMasks[] , int numMask , std::vector< ActorPosInfo >& outInfo);
 
@@ -109,7 +116,8 @@ namespace CAR
 		//	return mSetting->haveRule(ruleFunc);
 		//}
 
-		GameSetting* mSetting;
+		GameplaySetting& getSetting() { return *mSetting; }
+		GameplaySetting* mSetting;
 	};
 
 	class SideFeature : public FeatureBase

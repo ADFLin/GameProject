@@ -37,6 +37,9 @@ public:
 
 	void pushGroup( StageGroupID group )
 	{
+		if( group == mCurGroup )
+			return;
+
 		mGroupStack.push_back( mCurGroup );
 		mCurGroup = group;
 		doChangeGroup( group );
@@ -59,8 +62,8 @@ public:
 	void onTaskMessage( TaskBase* task , TaskMsg const& msg );
 
 protected:
-	typedef std::list< TaskBase* > TaskList;
-	typedef std::list< GWidget* > UIList;
+	typedef std::vector< TaskBase* > TaskList;
+	typedef std::vector< GWidget* > UIList;
 
 	TaskList      mSkipTasks;
 	UIList        mGroupUI;

@@ -131,7 +131,7 @@ namespace Phy2D
 	};
 
 
-	typedef IntrList< ProxyPair , MemberHook< ProxyPair , &ProxyPair::hook > , PointerType > ProxyPairList;
+	typedef TIntrList< ProxyPair , MemberHook< ProxyPair , &ProxyPair::hook > , PointerType > ProxyPairList;
 
 	class ContactManager
 	{
@@ -171,7 +171,7 @@ namespace Phy2D
 		void process( ContactManager& pairManager , float dt );
 		float mContactBreakThreshold;
 	
-		typedef IntrList< 
+		typedef TIntrList< 
 			CollisionProxy , 
 			MemberHook< CollisionProxy , &CollisionProxy::hook > , 
 			PointerType 

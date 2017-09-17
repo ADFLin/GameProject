@@ -1,5 +1,6 @@
 #include "GreedySnakePCH.h"
 #include "GreedySnakeMode.h"
+#include "GreedySnakeLevel.h"
 
 #include "GamePlayer.h"
 
@@ -10,7 +11,7 @@ namespace GreedySnake
 		Level& level = getScene().getLevel();
 		if ( beInit )
 		{
-			level.setupMap( 21 , 21 , Level::Cliff );
+			level.setupMap( Vec2i( 21 , 21 ) , MapBoundType::Cliff );
 		}
 		else
 		{
@@ -59,7 +60,7 @@ namespace GreedySnake
 		Level& level = getScene().getLevel();
 		if ( beInit )
 		{
-			level.setupMap( 21 , 21 , Level::WarpXY);
+			level.setupMap( Vec2i( 21 , 21 ) , MapBoundType::WarpXY);
 			std::fill_n( mWinRound , gMaxPlayerNum , 0 );
 		}
 		else

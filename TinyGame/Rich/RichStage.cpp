@@ -1,6 +1,8 @@
 #include "RichPCH.h"
 #include "RichStage.h"
 
+#include "GameStageMode.h"
+
 #include "RichWorldEditor.h"
 
 #include "GameGUISystem.h"
@@ -35,7 +37,7 @@ namespace Rich
 	{
 		::Global::GUI().cleanupWidget();
 
-		mUserCtrler.mLevel = &mLevel;
+		mUserController.mLevel = &mLevel;
 		mLevel.mTurn.mControl = this;
 
 		srand( 12313 );
@@ -43,9 +45,9 @@ namespace Rich
 		mScene.setupLevel( mLevel );
 
 		mLevel.getWorld().addMsgListener( *this );
-		mLevel.getWorld().addMsgListener( mUserCtrler );
+		mLevel.getWorld().addMsgListener( mUserController );
 
-		Cell* cell = new LandCell;
+		Area* area = new LandArea;
 
 		int idx = 0;
 		for( int j = 0 ; j < SimpleMap::SizeY ; ++j )
@@ -55,7 +57,7 @@ namespace Rich
 				switch( SimpleMap::Data[idx] )
 				{
 				case SimpleMap::TE:
-					mLevel.getWorld().addTile(MapCoord(i, j), EMPTY_CELL_ID);
+					mLevel.getWorld().addTile(MapCoord(i, j), EMPTY_AREA_ID);
 					break;
 				}
 				++idx;
@@ -85,7 +87,7 @@ namespace Rich
 		if ( mEditor && !mEditor->onWidgetEvent( event , id , widget ) )
 			return false;
 
-		if ( !mUserCtrler.onWidgetEvent( event , id , widget ) )
+		if ( !mUserController.onWidgetEvent( event , id , widget ) )
 			return false;
 
 		switch( id )
@@ -103,15 +105,29 @@ namespace Rich
 		return true;
 	}
 
+	void LevelStage::setupScene(IPlayerManager& playerManager)
+	{
+	
+		switch( getStageMode()->getModeType() )
+		{
+		case SMT_SINGLE_GAME:
+		case SMT_NET_GAME:
+
+			break;
+		}
+	}
+
 	Player* LevelStage::createUserPlayer()
 	{
+		Entity* entity = new Entity;
 		Player* player = mLevel.createPlayer();
-		PlayerRenderComp* comp = mScene.createComponentT< PlayerRenderComp >( player );
-		player->setController( mUserCtrler );
+		entity->addComponent(COMP_ACTOR, player);
+		player->setController(mUserController);
+		PlayerRenderComp* comp = mScene.createComponentT< PlayerRenderComp >(entity);
 		return player;
 	}
 
-	void UserController::queryAction( RequestID id , PlayerTurn& turn , ReqData const& data )
+	void GameInputController::queryAction( ActionRequestID id , PlayerTurn& turn , ActionReqestData const& data )
 	{
 		switch( id )
 		{
@@ -123,7 +139,7 @@ namespace Rich
 			break;
 		case REQ_UPGRADE_LAND:
 			{
-				GWidget* widget = ::Global::GUI().showMessageBox( UI_BUY_LAND , "Upgrade Land?" );
+				GWidget* widget = ::Global::GUI().showMessageBox( UI_UPGRADE_LAND, "Upgrade Land?" );
 				widget->setUserData( intptr_t( &turn ) );
 			}
 			break;
@@ -138,7 +154,7 @@ namespace Rich
 		}
 	}
 
-	bool UserController::onWidgetEvent( int event , int id , GWidget* widget )
+	bool GameInputController::onWidgetEvent( int event , int id , GWidget* widget )
 	{
 		switch( id )
 		{
@@ -146,8 +162,8 @@ namespace Rich
 		case UI_UPGRADE_LAND:
 			{
 				PlayerTurn* turn = reinterpret_cast< PlayerTurn* >( widget->getUserData() );
-				ReplyData data;
-				data.intVal = ( event == EVT_BOX_YES ) ? 1 : 0;
+				ActionReplyData data;
+				data.addParam( ( event == EVT_BOX_YES ) ? 1 : 0 );
 				turn->replyAction( data );
 				widget->destroy();
 			}
@@ -156,7 +172,7 @@ namespace Rich
 		return true;
 	}
 
-	void UserController::onWorldMsg( WorldMsg const& msg )
+	void GameInputController::onWorldMsg( WorldMsg const& msg )
 	{
 		switch ( msg.id )
 		{
@@ -164,7 +180,7 @@ namespace Rich
 			{
 				MoveFrame* frame = new MoveFrame( UI_ANY , Vec2i( 100 , 100 ) , nullptr );
 				frame->mLevel    = mLevel;
-				frame->mTurn     = msg.turn;
+				frame->mTurn     = msg.getParam<PlayerTurn*>();
 				frame->setMaxPower( mLevel->getActivePlayer()->getMovePower() );
 				::Global::GUI().addWidget( frame );
 			}

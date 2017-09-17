@@ -27,18 +27,18 @@
 
 
 
-enum UIFlag
+enum WidgetInternalFlag
 {
-	UF_STAY_TOP            = BIT(1) ,
-	UF_WORLD_POS_VAILD     = BIT(2) ,
-	UF_DISABLE             = BIT(3) ,
-	UF_BE_HIDDEN           = BIT(4) ,
-	UF_HITTEST_CHILDREN    = BIT(5) ,
-	UF_BLOCK_DESTROY       = BIT(6) ,
-	UF_PARENT_MOUSE_EVENT  = BIT(7) ,
-	UF_MARK_DESTROY        = BIT(8) ,
-	UF_INTERNAL_USE        = BIT(9) ,
-	UF_EFFECT_DISABLE_CHILD= BIT(10),
+	WIF_STAY_TOP            = BIT(1) ,
+	WIF_WORLD_POS_VAILD     = BIT(2) ,
+	WIF_DISABLE             = BIT(3) ,
+	WIF_BE_HIDDEN           = BIT(4) ,
+	WIF_HITTEST_CHILDREN    = BIT(5) ,
+	WIF_BLOCK_DESTROY       = BIT(6) ,
+	WIF_PARENT_MOUSE_EVENT  = BIT(7) ,
+	WIF_MARK_DESTROY        = BIT(8) ,
+	WIF_EFFECT_DISABLE_CHILD= BIT(9) ,
+	WIF_MANAGER_REF         = BIT(10),
 };
 
 #ifdef max
@@ -102,8 +102,8 @@ public:
 	Rect const&   getBoundRect() const { return mBoundRect; }
 
 	bool           isFocus();
-	bool           isEnable() const { return !checkFlag( UF_DISABLE ); }
-	bool           isShow() const { return !checkFlag( UF_BE_HIDDEN ); }
+	bool           isEnable() const { return !checkFlag( WIF_DISABLE ); }
+	bool           isShow() const { return !checkFlag( WIF_BE_HIDDEN ); }
 	bool           isTop();
 
 	T&             setPos( Vec2i const& pos );
@@ -114,7 +114,7 @@ public:
 	T&             enable( bool beE = true );
 
 	T&             addChild( WidgetCoreT* ui );
-	void           destroy(){  assert( getManager() ); getManager()->destroyWidget( this );  }
+	void           destroy();
 
 public:
 	void          _unlinkInternal(bool bRemove);
@@ -172,9 +172,9 @@ private:
 	WidgetCoreT*  hitTestChildren(Vec2i const& testPos);
 
 protected:
-	void          skipMouseMsg(){ _addFlag( UF_PARENT_MOUSE_EVENT ); }
-	void          lockDestroy()   { _addFlag( UF_BLOCK_DESTROY );  }
-	void          unlockDestroy() { _removeFlag( UF_BLOCK_DESTROY ); }
+	void          skipMouseMsg(){ _addFlag( WIF_PARENT_MOUSE_EVENT ); }
+	void          lockDestroy()   { _addFlag( WIF_BLOCK_DESTROY );  }
+	void          unlockDestroy() { _removeFlag( WIF_BLOCK_DESTROY ); }
 
 
 
@@ -203,7 +203,7 @@ private:
 protected:
 
 #if UI_CORE_USE_INTRLIST
-	typedef IntrList< T, MemberHook< WidgetCoreBase, &WidgetCoreBase::mLinkHook > > WidgetList;
+	typedef TIntrList< T, MemberHook< WidgetCoreBase, &WidgetCoreBase::mLinkHook > > WidgetList;
 	static WidgetCoreT*  hitTestInternal(Vec2i const& testPos, WidgetList& Widgetlist);
 	WidgetList        mChildren;
 #else
@@ -221,6 +221,7 @@ protected:
 	int            mNumChild;
 	Rect           mBoundRect;
 };
+
 
 template < class T >
 class TWidgetManager
@@ -243,10 +244,10 @@ public:
 	T*        hitTest( Vec2i const& testPos );
 
 public:
-	T*        getModalWidget()       { return static_cast< T* >( mNamedWidgets[ EWidgetName::Modal ] ); }
-	T*        getFocusWidget()       { return static_cast< T* >( mNamedWidgets[ EWidgetName::Focus ]); }
-	T*        getLastMouseMsgWidget(){ return static_cast< T* >( mNamedWidgets[ EWidgetName::LastMouseMsg ] ); }
-	T*        getMouseWidget()       { return static_cast< T* >( mNamedWidgets[ EWidgetName::Mouse ]); }
+	T*        getModalWidget()       { return static_cast< T* >( mNamedSlots[ ESlotName::Modal ] ); }
+	T*        getFocusWidget()       { return static_cast< T* >( mNamedSlots[ ESlotName::Focus ]); }
+	T*        getLastMouseMsgWidget(){ return static_cast< T* >( mNamedSlots[ ESlotName::LastMouseMsg ] ); }
+	T*        getMouseWidget()       { return static_cast< T* >( mNamedSlots[ ESlotName::Mouse ]); }
 
 	auto      createTopWidgetIterator()
 	{
@@ -265,8 +266,8 @@ public:
 
 	void      focusWidget(WidgetCore* ui );
 
-	void      captureMouse(WidgetCore* ui){ mNamedWidgets[EWidgetName::Capture] = ui;}
-	void      releaseMouse(){ mNamedWidgets[EWidgetName::Capture] = NULL; }
+	void      captureMouse(WidgetCore* ui){ mNamedSlots[ESlotName::Capture] = ui;}
+	void      releaseMouse(){ mNamedSlots[ESlotName::Capture] = NULL; }
 
 	void      cleanupPaddingKillWidgets();
 
@@ -284,8 +285,8 @@ protected:
 	void        prevProcMsg();
 	void        postProcMsg();
 
-
-	enum EWidgetName
+private:
+	enum ESlotName
 	{
 		LastMouseMsg,
 		Capture,
@@ -294,7 +295,21 @@ protected:
 		Mouse,
 		Num,
 	};
-	WidgetCore*   mNamedWidgets[(int)EWidgetName::Num];
+	WidgetCore*   mNamedSlots[(int)ESlotName::Num];
+	void      setNamedSlot(ESlotName name, WidgetCore& ui)
+	{
+		assert( mNamedSlots[name] == nullptr );
+		mNamedSlots[name] = &ui;
+		mNamedSlots[name]->_addFlag(WIF_MANAGER_REF);
+	}
+	void      clearNamedSlot(ESlotName name)
+	{
+		assert(mNamedSlots[name]);
+		//mNamedSlots[name]->_removeFlag(UF_MANAGER_REF);
+		mNamedSlots[name] = nullptr;
+	}
+
+	
 	WidgetCore*    getKeyInputWidget();
 
 #if UI_CORE_USE_INTRLIST

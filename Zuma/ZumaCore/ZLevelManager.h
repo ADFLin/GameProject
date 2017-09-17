@@ -38,7 +38,7 @@ namespace Zuma
 
 	struct ZLvTPoint
 	{
-		Vec2D pos;
+		Vec2f pos;
 		float dist[2];
 		int   idxDist;
 	};
@@ -46,15 +46,15 @@ namespace Zuma
 	struct ZLvCutout
 	{
 		ITexture2DRef image;
-		Vec2D pos;
+		Vec2f pos;
 		int   pri;
 	};
 
 	struct ZBGAlpha
 	{
 		ITexture2DRef image;
-		Vec2D pos;
-		Vec2D vel;
+		Vec2f pos;
+		Vec2f vel;
 	};
 
 
@@ -74,7 +74,7 @@ namespace Zuma
 		ZLvCutout cutout[ MAX_CUTOUT_NUM ];
 		ZLvTPoint tPoint[ MAX_TPOINT_NUM ];
 
-		Vec2D frogPos;
+		Vec2f frogPos;
 
 		int numStartBall;
 		int numColor;

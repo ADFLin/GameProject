@@ -1,11 +1,11 @@
 #include "CAR_PCH.h"
 #include "CARPlayer.h"
 
-#include "CARGameSetting.h"
+#include "CARGameplaySetting.h"
 
 namespace CAR
 {
-	void PlayerBase::setupSetting(GameSetting& setting)
+	void PlayerBase::setupSetting(GameplaySetting& setting)
 	{
 		mSetting = &setting;
 		mFieldValues.resize( setting.getTotalFieldValueNum() , 0 );

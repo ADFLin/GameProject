@@ -124,7 +124,7 @@ class UdpChain
 public:
 	UdpChain();
 	bool sendPacket( long time , NetSocket& socket , SocketBuffer& buffer , NetAddress& addr );
-	bool readPacket( SocketBuffer& buffer , unsigned& readSize );
+	bool readPacket( SocketBuffer& buffer , uint32& readSize );
 
 private:
 	UdpChain( UdpChain const& );

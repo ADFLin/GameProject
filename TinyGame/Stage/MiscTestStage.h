@@ -1,10 +1,10 @@
 #ifndef TestStage_h__
 #define TestStage_h__
 
+#include "TestStageHeader.h"
+
 #include "StageBase.h"
 #include "TaskBase.h"
-
-#include "Tetris/TetrisLevel.h"
 
 #include "GameControl.h"
 #include "GameReplay.h"
@@ -35,81 +35,6 @@ class GButton;
 class GSlider;
 struct Record;
 class TaskBase;
-
-class TestStage : public StageBase
-{
-	typedef StageBase BaseClass;
-public:
-	TestStage() {}
-
-	virtual bool onInit()
-	{
-		if( !BaseClass::onInit() )
-			return false;
-		::Global::GUI().cleanupWidget();
-		restart();
-		return true;
-	}
-
-	virtual void onEnd()
-	{
-		BaseClass::onEnd();
-	}
-
-	virtual void onUpdate(long time)
-	{
-		BaseClass::onUpdate(time);
-
-		int frame = time / gDefaultTickTime;
-		for( int i = 0; i < frame; ++i )
-			tick();
-
-		updateFrame(frame);
-	}
-
-	void onRender(float dFrame)
-	{
-		Graphics2D& g = Global::getGraphics2D();
-	}
-
-	void restart()
-	{
-
-	}
-
-
-	void tick()
-	{
-
-	}
-
-	void updateFrame(int frame)
-	{
-
-	}
-
-	bool onMouse(MouseMsg const& msg)
-	{
-		if( !BaseClass::onMouse(msg) )
-			return false;
-		return true;
-	}
-
-	bool onKey(unsigned key, bool isDown)
-	{
-		if( !isDown )
-			return false;
-
-		switch( key )
-		{
-		case Keyboard::eR: restart(); break;
-		}
-		return false;
-	}
-
-protected:
-
-};
 
 
 class MiscTestStage : public StageBase
@@ -331,7 +256,6 @@ public:
 
 	int mPosY;
 
-	void testHeap();
 	void printBits( uint32 num )
 	{
 		FixString< 128 > str;
@@ -373,6 +297,12 @@ public:
 		}	
 	}
 #if 0
+
+	//0x0 = 0000, 0x1 = 0001, 0x2 = 0010, 0x3 = 0011, 
+	//0x4 = 0100, 0x5 = 0101, 0x6 = 0110, 0x7 = 0111, 
+	//0x8 = 1000, 0x9 = 1001, 0xa = 1010, 0xb = 1011, 
+	//0xc = 1100, 0xd = 1101, 0xe = 1110, 0xf = 1111,
+
 	uint32 bitIndex( uint32 num )
 	{
 		BINARY32( 00000000 , 00000000 , 00010000 , 00000000 )
@@ -382,7 +312,6 @@ public:
 						( num & BINARY32( 00000000 , 00000000 , 00000000 , 00001100 ) ) ? 1 : 0 +
 							( num & 0x1 );
 	}
-
 
 	uint32 opBit( uint32 num )
 	{
@@ -395,23 +324,6 @@ public:
 		//                  0xcccccccc                                                         0x33333333
 		num = ( ( num & BINARY32(10101010,10101010,10101010,10101010) ) >> 1 ) | ( num & BINARY32(01010101,01010101,01010101,01010101) ) << 1 );
 		//                  0xaaaaaaaa                                                         0x55555555
-
-
-//		0x1  0001
-//		0x2  0010
-//		0x3  0011
-//		  4  0100
-//		5 0101
-//	6	 0110
-//	7		 0111
-//	8		 1000
-//9 1001
-//a 1010
-//b 1011
-//c 1100
-//d 1101
-//e 1110
-//f 1111
 	}
 #endif
 	void prase( char const* str , int len )
@@ -574,8 +486,6 @@ public:
 
 	void restart()
 	{
-		testHeap();
-
 		char const testStr[] =
 			"xx"
 			TAG_VALUE( 1 )
@@ -640,250 +550,212 @@ protected:
 };
 
 
-#include "xmmintrin.h"
-#include "smmintrin.h"
-
-namespace SIMD
-{
-	struct VecF
-	{
-		VecF(){}
-		VecF( float x , float y , float z , float w )
-		{
-			mVal.m128_f32[0] = x;
-			mVal.m128_f32[1] = y;
-			mVal.m128_f32[2] = z;
-			mVal.m128_f32[3] = w;
-		}
-
-		VecF( __m128 val ):mVal(val){}
-
-		float x() const { return mVal.m128_f32[0]; }
-		float y() const { return mVal.m128_f32[1]; }
-		float z() const { return mVal.m128_f32[2]; }
-		float w() const { return mVal.m128_f32[3]; }
-
-		float dot( VecF const& rhs ) const 
-		{
-			//FIXME
-			return 0;
-		}
-		VecF operator * ( VecF const& rhs ) const {  return _mm_mul_ps( mVal , rhs.mVal );  }
-		VecF operator + ( VecF const& rhs ) const {  return _mm_add_ps( mVal , rhs.mVal );  }
-		VecF operator - ( VecF const& rhs ) const {  return _mm_sub_ps( mVal , rhs.mVal );  }
-		VecF operator / ( VecF const& rhs ) const {  return _mm_div_ps( mVal , rhs.mVal );  }
-	private:
-		__m128 mVal;
-	};
-
-	class TestStage : public StageBase
-	{
-		typedef StageBase BaseClass;
-	public:
-		TestStage(){}
-
-		VecF d;
-		virtual bool onInit()
-		{
-			::Global::GUI().cleanupWidget();
-			restart();
-
-			VecF a(1,2,1,13);
-			VecF b(2,3,6,2);
-			VecF c(3,4,5,3);
-			VecF e = a + b;
-			d = a * e + c * b;
-
-			int aa = 3;
-			return true;
-		}
-
-		virtual void onEnd()
-		{
-
-		}
-
-		virtual void onUpdate( long time )
-		{
-			BaseClass::onUpdate( time );
-
-			int frame = time / gDefaultTickTime;
-			for( int i = 0 ; i < frame ; ++i )
-				tick();
-
-			updateFrame( frame );
-		}
-
-		void onRender( float dFrame )
-		{
-			Graphics2D& g = Global::getGraphics2D();
-		}
-
-		void restart()
-		{
-
-		}
-
-
-		void tick()
-		{
-
-		}
-
-		void updateFrame( int frame )
-		{
-
-		}
-
-		bool onMouse( MouseMsg const& msg )
-		{
-			if ( !BaseClass::onMouse( msg ) )
-				return false;
-			return true;
-		}
-
-		bool onKey( unsigned key , bool isDown )
-		{
-			if ( !isDown )
-				return false;
-
-			switch( key )
-			{
-			case Keyboard::eR: restart(); break;
-			}
-			return false;
-		}
-
-	protected:
-
-	};
-}
 
 
 #include <vector>
 #include <string>
+#include <sstream>
+#include <unordered_map>
 #include "Heap.h"
 #include <boost/heap/binomial_heap.hpp>
 
 namespace MRT
 {
-
+	struct Station;
+	struct LinkInfo;
+	struct StationCmp;
+	typedef TFibonaccilHeap< Station*, StationCmp > StationHeap;
 	struct Station
 	{
 		std::string name;
-		std::vector< int > links;
+		std::vector< LinkInfo* > links;
+
+		GWidget* visual;
 
 		float    totalDistance;
 		Station* minLink;
 		bool     inQueue;
+		StationHeap::NodeHandle nodeHandle;
+		
+	};
+
+	struct StationCmp
+	{
+		bool operator()(Station const* a, Station const* b) const
+		{
+			return a->totalDistance < b->totalDistance;
+		}
 	};
 
 	struct LinkInfo
 	{
-		Station* station[2];
+		Station* stations[2];
 		float    distance;
 
 		Station* getDestStation( Station* srcStation )
 		{
-			return ( srcStation == station[0] ) ? station[1] : station[0]; 
+			return ( srcStation == stations[0] ) ? stations[1] : stations[0]; 
 		}
+	};
+
+	struct StationPath
+	{
+		Station* station;
+		float    totalDistance;
+		Station* minLink;
+		StationHeap::NodeHandle nodeHandle;
 	};
 
 
 	struct  Network
 	{
 		std::vector< Station* >  stations;
-		std::vector< LinkInfo* > links; 
-	};
+		std::vector< LinkInfo* > links;
+
+		LinkInfo* findLink(Station* a, Station* b)
+		{
+			for( auto& link : links )
+			{
+				if( link->stations[0] == a && link->stations[1] == b )
+					return link;
+				if( link->stations[0] == b && link->stations[1] == a )
+					return link;
+			}
+			return nullptr;
+		}
+
+		LinkInfo* addStationLink(Station* a, Station* b)
+		{
+			LinkInfo* link = findLink(a, b);
+
+			if( link )
+			{
+				return link;
+			}
+			link = new LinkInfo;
+			link->stations[0] = a;
+			link->stations[1] = b;
+			link->distance = 0;
+			a->links.push_back(link);
+			b->links.push_back(link);
+			links.push_back(link);
+			return link;
+		}
 
 
-	template< class T , class CmpFun >
-	class PriorityQueue
-	{
-		
+		void removeStationLink(Station* station)
+		{
+			for( int i = 0; i < links.size(); ++i )
+			{
+				LinkInfo* link = links[i];
+				if( link->stations[0] == station || link->stations[1] == station )
+				{
+					if( i != links.size() - 1 )
+					{
+						links[i] = links.back();
+					}
+					links.pop_back();
 
-		
+					auto otherStation = link->getDestStation(station);
 
+					otherStation->links.erase(std::find(otherStation->links.begin(), otherStation->links.end(), link));
+					delete link;
+					--i;
+				}
+			}
+		}
 
+		Station* createNewStation()
+		{
+			Station* station = new Station;
+			stations.push_back(station);
+			return station;
+		}
+		void destroyStation(Station* station)
+		{
+			removeStationLink(station);
+			stations.erase(std::find(stations.begin(), stations.end(), station));
+			delete station;
+		}
+
+		void cleanup()
+		{
+			for( auto station : stations )
+			{
+				delete station;
+			}
+			stations.clear();
+			for( auto link : links )
+			{
+				delete link;
+			}
+			links.clear();
+
+		}
 	};
 
 	class Algo
 	{
+	public:
+		void run();
 
-		void run()
-		{
-			for( int i = 0 ; i < network->stations.size() ; ++i )
-			{
-				Station* st = network->stations[i];
-				st->minLink = nullptr;
-				st->totalDistance = -1;
-				st->inQueue = false;
-			}
-
-			startStation->totalDistance = 0;
-
-
-			struct StationCmp
-			{
-				bool operator()( Station const* a , Station const* b ) const
-				{
-					return a->totalDistance < b->totalDistance;
-				}
-			};
-			std::priority_queue< Station* , std::vector< Station* > , StationCmp > queue;
-
-			while( !queue.empty() )
-			{
-				Station* st = queue.top();
-				queue.pop();
-				st->inQueue = false;
-
-				for( int i = 0; i < st->links.size() ; ++i )
-				{
-					LinkInfo* link = network->links[ st->links[i] ];
-
-					Station* dest = link->getDestStation( st );
-					float dist = st->totalDistance + link->distance;
-					if ( dest->minLink == nullptr || dest->totalDistance > dist )
-					{
-						dest->minLink = st;
-						dest->totalDistance = dist;
-						if ( !dest->inQueue )
-						{
-							dest->inQueue = true;
-							queue.push( dest );
-						}
-						else
-						{
-
-
-						}
-					}
-				}
-			}
-		}
 		Network* network;
 		Station* startStation;
 	};
+
+	class GStationInfoFrame : public GFrame 
+	{
+		typedef GFrame BaseClass;
+	public:
+		GStationInfoFrame(int id, Vec2i const& pos, GWidget* parent)
+			:BaseClass(id, pos, Vec2i(100,100) , parent )
+		{
+
+		}
+		Station* mShowStation;
+		LinkInfo* mShowLinkInfo;
+	};
+
+
 
 	class TestStage : public StageBase
 	{
 		typedef StageBase BaseClass;
 	public:
+
+		enum
+		{
+			UI_STATION = BaseClass::NEXT_UI_ID,
+
+
+			UI_NEW_STATION,
+			UI_LINK_STATION,
+			UI_REMOVE_STATION ,
+			UI_CALC_PATH ,
+		};
+
 		TestStage(){}
 
-		virtual bool onInit()
-		{
-			::Global::GUI().cleanupWidget();
-			restart();
-			return true;
-		}
+		bool loadData(char const* data);
+
+		virtual bool onInit();
 
 		virtual void onEnd()
 		{
-
+			cleanupData();
 		}
 
+		void cleanupData()
+		{
+			mStationSelected = nullptr;
+
+			for( auto station : mNetwork.stations )
+			{
+				station->visual->destroy();
+			}
+			mNetwork.cleanup();
+			mStationSelected = nullptr;
+		}
 		virtual void onUpdate( long time )
 		{
 			BaseClass::onUpdate( time );
@@ -895,10 +767,7 @@ namespace MRT
 			updateFrame( frame );
 		}
 
-		void onRender( float dFrame )
-		{
-			Graphics2D& g = Global::getGraphics2D();
-		}
+		void onRender( float dFrame );
 
 		void restart()
 		{
@@ -916,6 +785,13 @@ namespace MRT
 
 		}
 
+		LinkInfo* linkStation(Station* a, Station* b)
+		{
+			LinkInfo* link = mNetwork.addStationLink(a, b);
+			return link;
+		}
+
+		bool onWidgetEvent(int event, int id, GWidget* ui);
 		bool onMouse( MouseMsg const& msg )
 		{
 			if ( !BaseClass::onMouse( msg ) )
@@ -935,12 +811,25 @@ namespace MRT
 			return false;
 		}
 
+
+		Station* createNewStation();
+
+		void destroyStation(Station* station );
+
 	protected:
+
+		Station* mStationSelected = nullptr;
+		Network  mNetwork;
+		bool     mbLinkMode = false;
+
 
 	};
 
 
 }
+
+
+
 #include "GLGraphics2D.h"
 
 class GLGraphics2DTestStage : public StageBase
@@ -2630,7 +2519,7 @@ public:
 	{
 		UI_NUMBER_TEXT = BaseClass::NEXT_UI_ID,
 	};
-	typedef RedBlackTree< int , Data > MyTree;
+	typedef TRedBlackTree< int , Data > MyTree;
 	typedef MyTree::Node Node;
 
 	class DataUpdateVisitor

@@ -1,5 +1,5 @@
-#ifndef CARGameSetting_h__85a4781f_a1e7_4eeb_a352_d8c9ee34798a
-#define CARGameSetting_h__85a4781f_a1e7_4eeb_a352_d8c9ee34798a
+#ifndef CARGameplaySetting_h__85a4781f_a1e7_4eeb_a352_d8c9ee34798a
+#define CARGameplaySetting_h__85a4781f_a1e7_4eeb_a352_d8c9ee34798a
 
 #include <algorithm>
 #include "Flag.h"
@@ -61,12 +61,12 @@ namespace CAR
 		TotalNum,
 	};
 
-	class GameSetting : public GameParamCollection
+	class GameplaySetting : public GameParamCollection
 	{
 	public:
-		GameSetting();
+		GameplaySetting();
 
-		bool haveRule( Rule ruleFunc ) const;
+		bool have( Rule ruleFunc ) const;
 		void addRule( Rule ruleFunc );
 		int  getFarmScoreVersion(){ return mFarmScoreVersion; }
 
@@ -118,4 +118,4 @@ namespace CAR
 
 }//namespace CAR
 
-#endif // CARGameSetting_h__85a4781f_a1e7_4eeb_a352_d8c9ee34798a
+#endif // CARGameplaySetting_h__85a4781f_a1e7_4eeb_a352_d8c9ee34798a

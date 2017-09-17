@@ -23,7 +23,7 @@ namespace Poker
 			eWin7 ,
 			eDebug  ,
 		};
-		static ICardDraw* create( StyleType type );
+		static ICardDraw* Create( StyleType type );
 	};
 
 }//namespace Poker

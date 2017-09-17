@@ -55,7 +55,10 @@ namespace GreedySnake
 	{
 
 	public:
-		virtual void clearUserUI(){}
+		virtual void clearUserUI()
+		{
+
+		}
 		virtual void doSetupSetting( bool beServer )
 		{
 			setMaxPlayerNum( BattleMode::MaxPlayerNum );

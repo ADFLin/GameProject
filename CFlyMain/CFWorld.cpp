@@ -58,7 +58,7 @@ namespace CFly
 		strcpy( buffer , path );
 		strcat( buffer , subFileName );
 
-		if ( FileSystem::isExist( buffer ) )
+		if ( FileSystem::IsExist( buffer ) )
 			return buffer;
 
 		return nullptr;
@@ -223,7 +223,7 @@ namespace CFly
 		{
 			while ( appendDir( path , fileName , dirBit , idxDir ) )
 			{
-				if ( FileSystem::isExist( path ))
+				if ( FileSystem::IsExist( path ))
 				{
 					strcpy( pathBuffer , path );
 					return pathBuffer;
@@ -250,7 +250,7 @@ namespace CFly
 		int idxDir = 0;
 		while ( appendDir( pathBuffer , fileName , mUseDirBit , idxDir ) )
 		{
-			if ( FileSystem::isExist( pathBuffer ) )
+			if ( FileSystem::IsExist( pathBuffer ) )
 				return pathBuffer;
 		}
 		return NULL;

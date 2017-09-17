@@ -5,7 +5,7 @@
 #include "GameGUISystem.h"
 #include "GameWidgetID.h"
 #include "GameClient.h"
-#include "GameRecord.h"
+#include "TetrisRecord.h"
 
 #include "RenderUtility.h"
 #include "TetrisGame.h"
@@ -28,7 +28,7 @@ namespace Tetris
 			{ 220 ,  32 },{ 230 ,  64 },{ 233 ,  96 },{ 236 , 128 },{ 239 , 160 },
 			{ 243 , 192 },{ 247 , 224 },{ 251 , 256 },{ 300 , 512 },{ 330 , 768 },
 			{ 360 ,1024 },{ 400 ,1280 },{ 420 ,1024 },{ 450 , 768 },{ 500 ,5120 },
-			{ 999 ,5120 },
+			{ 9999999 ,5120 },
 		};
 
 		int gPracticeGravityValue[] =
@@ -71,7 +71,7 @@ namespace Tetris
 		score += (( gravityLevel + numLayer ) / 4 ) * scoreCombo * numLayer;
 	}
 
-	void ChallengeModeData::reset( Mode* mode , LevelData& lvData , bool beInit )
+	void ChallengeModeData::reset( LevelMode* mode , LevelData& lvData , bool beInit )
 	{
 		gravityLevel = static_cast< ChallengeMode* >( mode )->mInfo.startGravityLevel;
 		score = 0;
@@ -105,7 +105,7 @@ namespace Tetris
 		controller.setPortControl( 0 , 0 );
 	}
 
-	void ChallengeMode::onLevelEvent( LevelData& lvData , LevelEvent const& event )
+	void ChallengeMode::onLevelEvent( LevelData& lvData , Event const& event )
 	{
 		ChallengeModeData* modeData = static_cast< ChallengeModeData* >( lvData.getModeData() );
 
@@ -127,9 +127,9 @@ namespace Tetris
 		}
 	}
 
-	int ChallengeMode::markRecord( GamePlayer* player , RecordManager& manager )
+	int ChallengeMode::markRecord( RecordManager& manager, GamePlayer* player )
 	{
-		LevelData* lvData = mLevelManager->getLevelData( player->getInfo().actionPort );
+		LevelData* lvData = getWorld()->getLevelData( player->getInfo().actionPort );
 		if ( !lvData )
 			return -1;
 
@@ -192,7 +192,7 @@ namespace Tetris
 	}
 
 
-	void BattleModeData::reset( Mode* mode , LevelData& lvData , bool beInit )
+	void BattleModeData::reset( LevelMode* mode , LevelData& lvData , bool beInit )
 	{
 		if ( beInit )
 		{
@@ -251,7 +251,7 @@ namespace Tetris
 
 	bool BattleMode::checkOver()
 	{
-		int num = mLevelManager->getLevelNum() - mLevelManager->getLevelOverNum();
+		int num = getWorld()->getLevelNum() - getWorld()->getLevelOverNum();
 
 		if ( num > 1 )
 			return false;
@@ -277,13 +277,13 @@ namespace Tetris
 		}
 	}
 
-	void BattleMode::onLevelEvent( LevelData& lvData , LevelEvent const& event )
+	void BattleMode::onLevelEvent( LevelData& lvData , Event const& event )
 	{
 		switch( event.id )
 		{
 		case eREMOVE_LAYER:
 			{
-				LevelData* other = getLevelManager()->getLevelData( ( lvData.getID() + 1 )  % 2 );
+				LevelData* other = getWorld()->getLevelData( ( lvData.getId() + 1 ) % 2 );
 				BattleModeData* otherData = static_cast< BattleModeData* >( other->getModeData() );
 				otherData->numAddLayer += event.numLayer;
 				otherData->checkAddLayer( other->getLevel());
@@ -300,7 +300,7 @@ namespace Tetris
 	}
 
 
-	void PracticeModeData::reset( Mode* mode , LevelData& data , bool beInit )
+	void PracticeModeData::reset( LevelMode* mode , LevelData& data , bool beInit )
 	{
 		data.getLevel()->setGravityValue( static_cast< PracticeMode* >( mode )->mGravityValue );
 	}
@@ -327,14 +327,14 @@ namespace Tetris
 	void PracticeMode::setupScene( unsigned flag )
 	{
 		
-		LevelData* lvData = getLevelManager()->findPlayerData( 0 );
+		LevelData* lvData = getWorld()->findPlayerData( 0 );
 
 		Vec2i const uiSize( 140 , 20 );
 		int offset = uiSize.y + 8;
 
 
 		GPanel* panel = new GPanel( UI_PANEL , lvData->getScene()->getSurfacePos() + Vec2i( 250 , 10 ) , Vec2i( uiSize.x + 20 , 350 ) , NULL );
-		panel->setRenderCallback( RenderCallBack::create( this , &PracticeMode::renderControl ) );
+		panel->setRenderCallback( RenderCallBack::Create( this , &PracticeMode::renderControl ) );
 		panel->setUserData( intptr_t(lvData) );
 		::Global::GUI().addWidget( panel );
 
@@ -375,7 +375,7 @@ namespace Tetris
 
 	bool PracticeMode::onWidgetEvent( int event , int id , GWidget* ui )
 	{
-		LevelData* lvData = mLevelManager->getLevelData( 0 );
+		LevelData* lvData = getWorld()->getLevelData( 0 );
 		switch( id )
 		{
 		case UI_GRAVITY_VALUE_SLIDER:
@@ -398,14 +398,16 @@ namespace Tetris
 		case UI_MAP_SIZE_X_SLIDER:
 			{
 				int sizeX = GUI::CastFast< GSlider >( ui )->getValue();
-				lvData->getLevel()->resetMap( sizeX , lvData->getLevel()->getBlockStorage().getSizeY() );
+				int sizeY = lvData->getLevel()->getBlockStorage().getSizeY();
+				lvData->getLevel()->resetMap( sizeX , sizeY );
 				mMaxClearLayerNum = 0;
 			}
 			return false;
 		case UI_MAP_SIZE_Y_SLIDER:
 			{
+				int sizeX = lvData->getLevel()->getBlockStorage().getSizeX();
 				int sizeY = GUI::CastFast< GSlider >( ui )->getValue();
-				lvData->getLevel()->resetMap( lvData->getLevel()->getBlockStorage().getSizeX() , sizeY );
+				lvData->getLevel()->resetMap( sizeX , sizeY );
 				mMaxClearLayerNum = 0;
 			}
 			return false;
@@ -426,7 +428,7 @@ namespace Tetris
 
 		Graphics2D& g = Global::getGraphics2D();
 
-		Level* level = mLevelManager->getLevelData(0)->getLevel();
+		Level* level = getWorld()->getLevelData(0)->getLevel();
 
 		FixString< 256 > str;
 		RenderUtility::setFont( g , FONT_S10 );
@@ -505,7 +507,7 @@ namespace Tetris
 		}
 	}
 
-	void PracticeMode::onLevelEvent( LevelData& lvData , LevelEvent const& event )
+	void PracticeMode::onLevelEvent( LevelData& lvData , Event const& event )
 	{
 		switch( event.id )
 		{

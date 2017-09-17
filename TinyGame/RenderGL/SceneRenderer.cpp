@@ -83,7 +83,7 @@ namespace RenderGL
 		shader.setParam(SHADER_PARAM(GLight.color), intensity * color);
 		shader.setParam(SHADER_PARAM(GLight.type), int(type));
 		shader.setParam(SHADER_PARAM(GLight.bCastShadow), int(bCastShadow));
-		shader.setParam(SHADER_PARAM(GLight.dir), normalize(dir));
+		shader.setParam(SHADER_PARAM(GLight.dir), Normalize(dir));
 
 		Vector3 spotParam;
 		float angleInner = Math::Min(spotAngle.x, spotAngle.y);
@@ -444,7 +444,7 @@ namespace RenderGL
 				}
 			}
 		}
-		Vector3 zAxis = normalize(-light.dir);
+		Vector3 zAxis = Normalize(-light.dir);
 		Vector3 viewDir = view.getViewForwardDir();
 		Vector3 xAxis = viewDir.cross(zAxis);
 		if( xAxis.length2() < 1e-4 )

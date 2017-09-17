@@ -93,8 +93,8 @@ namespace Zuma
 					finalPathPos = getPathPos();
 				}
 
-				Vec2D  destPos = info.path->getLocation( finalPathPos );
-				Vec2D  offset  = destPos - getPos();
+				Vec2f  destPos = info.path->getLocation( finalPathPos );
+				Vec2f  offset  = destPos - getPos();
 
 				if ( mTimerCon < time )
 				{
@@ -134,9 +134,9 @@ namespace Zuma
 
 	void ZConBall::updatePathPos( float pos , ZPath& path )
 	{	
-		Vec2D newPos = path.getLocation( pos );
+		Vec2f newPos = path.getLocation( pos );
 
-		Vec2D newDir;
+		Vec2f newDir;
 		float len;
 		if ( pos - getPathPos() > 1e-2 )
 		{

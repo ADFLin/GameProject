@@ -55,7 +55,6 @@ namespace CFly
 		static void rotate( Matrix4& self , AxisEnum axis , float angle , TransOp op);
 		static void rotate( Matrix4& self , Vector3 const& axis , float angle  , TransOp op );
 		static void rotate( Matrix4& self , Quaternion const& q , TransOp op );
-		static void inverse( Matrix4 const& trans , Matrix4& result );
 
 		static void translateGlobal( Matrix4& self , Vector3 const& offset );
 		static void translateLocal( Matrix4& self , Vector3 const& offset );

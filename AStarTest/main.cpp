@@ -3,6 +3,7 @@
 #include "WindowsPlatform.h"
 
 #include "ProfileSystem.h"
+#include "SystemPlatform.h"
 #include "WindowsPlatform.h"
 
 #include "WindowsMessageHander.h"
@@ -10,7 +11,7 @@
 
 #include "TQTPortalAStar.h"
 
-#include "THolder.h"
+#include "Holder.h"
 
 RegionManager g_RegionMgr( Vec2i( 64 , 64 ) );
 
@@ -63,7 +64,7 @@ class AStartTest : public GameLoopT< AStartTest , WindowsPlatform >
 	             , public WindowsMessageHandlerT< AStartTest >
 {
 public:
-	void onIdle( long time ){ ::Sleep( time / 2 ); }
+	void onIdle( long time ){ SystemPlatform::Sleep( time / 2 ); }
 	bool onInit()
 	{ 
 		if ( !WinFrame::create( TEXT("Test") , 800 , 800 , WindowsMessageHandler::MsgProc ) )

@@ -10,14 +10,14 @@ class  GWidget;
 class  RenderCallBack;
 class  IPlayerManager;
 class  CLPlayerManager;
-class  RecordManager;
+
 class  SimpleController;
 struct PlayerInfo;
 class  GamePlayer;
 
 namespace Tetris
 {
-
+	class  RecordManager;
 	static float const PieceRotateSpeed = 0.1f;
 
 	typedef SimpleController MyController;
@@ -26,7 +26,7 @@ namespace Tetris
 	class Scene;
 	class EventListener;
 	class GameWorld;
-	class Mode;
+	class LevelMode;
 	class ModeData;
 
 	typedef unsigned ModeID;
@@ -36,8 +36,8 @@ namespace Tetris
 	public:
 		LevelData();
 
-		void          build( Mode* mode , bool bNeedScene );
-		unsigned      getID() const { return id; }
+		void          build( LevelMode* mode , bool bNeedScene );
+		unsigned      getId() const { return id; }
 		unsigned      getPlayerID() const { return mPlayerID; }
 		Scene*        getScene() { return mScene; }
 		Level*        getLevel() { return mLevel; }
@@ -62,10 +62,10 @@ namespace Tetris
 	{
 	public:
 		virtual ~ModeData(){}
-		virtual void reset( Mode* mode , LevelData& data , bool beInit ) = 0;
+		virtual void reset( LevelMode* mode , LevelData& data , bool beInit ) = 0;
 	};
 
-	class Mode
+	class LevelMode
 	{
 	public:
 		void  restart( bool beInit );
@@ -78,7 +78,7 @@ namespace Tetris
 			eSpectator = BIT(2) ,
 			eOwnServer = BIT(3) ,
 		};
-		GameWorld* getLevelManager() {  return mLevelManager;  }
+		GameWorld* getWorld() {  return mWorld;  }
 
 		static int getMaxPlayerNumber( ModeID mode );
 
@@ -87,7 +87,7 @@ namespace Tetris
 	public:
 		virtual ModeData* createModeData(){ return NULL ; }
 		virtual void fireAction( LevelData& lvData , ActionTrigger& trigger ) = 0;
-		virtual void  getGameInfo( GameInfo& info ){}
+		virtual void getGameInfo( GameInfo& info ){}
 
 	public:
 		virtual void init() = 0;
@@ -97,7 +97,7 @@ namespace Tetris
 		virtual void render( Scene* scene ){}
 		virtual void setupScene( unsigned flag ){}
 		virtual void setupSingleGame( MyController& controller ) = 0;
-		virtual int  markRecord( GamePlayer* player , RecordManager& manager ){ return -1; }
+		virtual int  markRecord( RecordManager& manager, GamePlayer* player ){ return -1; }
 		virtual bool checkOver(){ return false; }
 
 		enum EventID
@@ -108,7 +108,7 @@ namespace Tetris
 			eLEVEL_OVER   ,
 		};
 
-		struct LevelEvent
+		struct Event
 		{
 			int id;
 
@@ -123,27 +123,23 @@ namespace Tetris
 
 		};
 
-		virtual void onLevelEvent( LevelData& lvData , LevelEvent const& event ){}
+		virtual void onLevelEvent( LevelData& lvData , Event const& event ){}
 		virtual void onGameOver(){}
 		virtual void renderStats( GWidget* ui ){}
 
 	protected:
 		virtual void doRestart( bool beInit ){}
 		friend class GameWorld;
-		long          mGameTime;
-		GameWorld* mLevelManager;
+		long       mGameTime;
+		GameWorld* mWorld;
 	};
-
-
-	class  Mode;
-
 
 	class GameWorld : public Level::EventListener
 		            , public IActionLanucher
-		            , public Uncopiable
+		            , public Noncopyable
 	{
 	public:
-		GameWorld( Mode* mode ){  init( mode ); }
+		GameWorld( LevelMode* mode ){  init( mode ); }
 		~GameWorld();
 
 		void         restart( bool beInit );
@@ -164,8 +160,8 @@ namespace Tetris
 		void         fireAction( ActionTrigger& trigger );
 		void         fireLevelAction( ActionTrigger& trigger );
 
-		Mode*        getLevelMode() { return mLevelMode; }
-		void         setLevelMode( Mode* mode );
+		LevelMode*   getLevelMode() { return mModePlaying; }
+		void         setLevelMode( LevelMode* mode );
 		void         setupScene( unsigned mainID , unsigned flag );
 
 		LevelData* getLevelData( int lvID )
@@ -188,7 +184,7 @@ namespace Tetris
 			assert( mUsingData[idx] );
 			return *mUsingData[idx];
 		}
-		void  init( Mode* mode );
+		void  init( LevelMode* mode );
 		void  addBaseUI( LevelData& lvData , Vec2i& pos , RenderCallBack* statsCallback );
 
 		bool  mbGameEnd;
@@ -198,8 +194,8 @@ namespace Tetris
 
 		LevelData  mDataStorage[ gTetrisMaxPlayerNum ];
 		LevelData* mUsingData[ gTetrisMaxPlayerNum ];
-		Mode*      mLevelMode;
-		bool       mNeedScene;
+		LevelMode* mModePlaying;
+		bool       mbNeedScene;
 
 	};
 

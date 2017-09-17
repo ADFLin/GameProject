@@ -35,13 +35,13 @@ namespace Phy2D
 
 		CollisionManager mColManager;
 
-		typedef IntrList< 
+		typedef TIntrList< 
 			CollideObject , 
 			MemberHook< CollideObject , &CollideObject::hook > , 
 			PointerType
 		>  ColObjectList;
 
-		typedef IntrList< 
+		typedef TIntrList< 
 			RigidBody, 
 			MemberHook< CollideObject, &CollideObject::hook > , 
 			PointerType

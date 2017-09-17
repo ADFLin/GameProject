@@ -5,7 +5,7 @@
 #include "GameStage.h"
 
 #include "CARWorldTileManager.h"
-#include "CARGameSetting.h"
+#include "CARGameplaySetting.h"
 #include "CARGameModule.h"
 #include "CARDebug.h"
 #include "CARGameInputImpl.h"
@@ -199,7 +199,7 @@ namespace CAR
 		int  getActionPlayerId();
 		void onRecvDataSV( int slot , int dataId , void* data , int dataSize );
 
-		GameSetting& getSetting(){ return mSetting; }
+		GameplaySetting& getSetting(){ return mSetting; }
 		
 		void cleanupGameData( bool bEndStage );
 
@@ -213,7 +213,7 @@ namespace CAR
 		CGameInput        mInput;
 		GameModule        mMoudule;
 		GamePlayerManager mPlayerManager;
-		GameSetting       mSetting;
+		GameplaySetting       mSetting;
 
 		IDataTransfer*    mServerDataTranfser;
 

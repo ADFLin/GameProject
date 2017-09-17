@@ -237,7 +237,7 @@ namespace Zuma
 		return true;
 	}
 
-	void ZLevel::applyBomb( Vec2D const& pos )
+	void ZLevel::applyBomb( Vec2f const& pos )
 	{
 		for ( int i = 0 ; i < getBallGroupNum(); ++i )
 		{
@@ -366,7 +366,7 @@ namespace Zuma
 
 			if ( minR2 < g_ZBallConDist * g_ZBallConDist )
 			{
-				Vec2D offset = ball->getPos() - findBall->getPos();
+				Vec2f offset = ball->getPos() - findBall->getPos();
 
 				bool beNext = offset.dot( findBall->getDir() ) > 0;
 
@@ -396,7 +396,7 @@ namespace Zuma
 			}
 			else
 			{ 
-				Vec2D const& pos = ball->getPos();
+				Vec2f const& pos = ball->getPos();
 				if ( !isInScreenRange( pos ) )
 				{
 					delete ball;
@@ -408,7 +408,7 @@ namespace Zuma
 
 	}
 
-	ZConBall* ZLevel::calcFrogAimBall( Vec2D& aimPos )
+	ZConBall* ZLevel::calcFrogAimBall( Vec2f& aimPos )
 	{
 		float tMin = 1e8;
 		ZConBall* result = NULL;
@@ -511,7 +511,7 @@ namespace Zuma
 		mShootBallList.clear();
 	}
 
-	bool ZLevel::isInScreenRange( Vec2D const& pos )
+	bool ZLevel::isInScreenRange( Vec2f const& pos )
 	{
 		return pos.x + g_ZBallRaidus > 0 && 
 			pos.y + g_ZBallRaidus > 0 &&
@@ -530,10 +530,10 @@ namespace Zuma
 				CVData data;
 				data.flag = 0;
 				posVec.reserve( 4 );
-				data.pos = 0.8f * Vec2D(150,120); posVec.push_back( data );
-				data.pos = 0.8f * Vec2D(290,50) ; posVec.push_back( data );
-				data.pos = 0.8f * Vec2D(580,55) ; posVec.push_back( data );
-				data.pos = 0.8f * Vec2D(725,175); posVec.push_back( data );
+				data.pos = 0.8f * Vec2f(150,120); posVec.push_back( data );
+				data.pos = 0.8f * Vec2f(290,50) ; posVec.push_back( data );
+				data.pos = 0.8f * Vec2f(580,55) ; posVec.push_back( data );
+				data.pos = 0.8f * Vec2f(725,175); posVec.push_back( data );
 			}
 
 			ZCurvePath* sPath = new ZCurvePath;

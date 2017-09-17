@@ -181,7 +181,7 @@ namespace Phy2D
 				RenderUtility::setPen(g, Color::eCyan);
 				g.drawRect(edge.sv->v - size / 2, size);
 				RenderUtility::setPen(g, Color::eCyan);
-				g.drawLine(edge.sv->v, edge.sv->v + normalize(edge.sv->d));
+				g.drawLine(edge.sv->v, edge.sv->v + Normalize(edge.sv->d));
 			}
 #endif
 #if PHY2D_DEBUG	
@@ -193,7 +193,7 @@ namespace Phy2D
 				RenderUtility::setPen(g, Color::eGreen);
 				g.drawRect(pos - size / 2, size);
 				RenderUtility::setPen(g, Color::eGreen);
-				g.drawLine(pos, pos + 0.5 * normalize(sv.d));
+				g.drawLine(pos, pos + 0.5 * Normalize(sv.d));
 			}
 
 #endif //PHY2D_DEBUG

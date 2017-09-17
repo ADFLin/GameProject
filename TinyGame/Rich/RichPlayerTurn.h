@@ -9,7 +9,7 @@
 namespace Rich
 {
 
-	enum RequestID
+	enum ActionRequestID
 	{
 		REQ_NONE ,
 		REQ_ROMATE_DICE_VALUE ,
@@ -18,41 +18,37 @@ namespace Rich
 		REQ_MOVE_DIR ,
 	};
 
-	union ReqData
+	struct ActionReqestData
 	{
-		int numDice;
+		union
+		{
+			int numDice;
 
-		struct 
-		{
-			LandCell* land;
-			int   money;
-		};
-		struct
-		{
-			int      numDir;
-			DirType* dir;
+			struct
+			{
+				LandArea* land;
+				int   money;
+			};
+			struct
+			{
+				int         numLink;
+				LinkHandle* links;
+			};
 		};
 	};
 
 	class IController
 	{
 	public:
-		virtual void queryAction( RequestID id , PlayerTurn& turn , ReqData const& data ) = 0;
+		virtual void queryAction( ActionRequestID id , PlayerTurn& turn , ActionReqestData const& data ) = 0;
 	};
 
-
-
-
-	union ReplyData
+	struct ActionReplyData : ParamCollection<2>
 	{
-		int intVal;
+
 	};
 
-	typedef stdex::function< void ( ReplyData const& ) > ReqCallback;
-
-
-
-
+	typedef stdex::function< void ( ActionReplyData const& ) > ReqCallback;
 
 	class ITurnControl
 	{
@@ -73,19 +69,20 @@ namespace Rich
 			STEP_MOVE_START ,
 			STEP_MOVE_DIR ,
 			STEP_MOVE_EVENT ,
-			STEP_PROCESS_CELL ,
+			STEP_PROCESS_AREA ,
 			STEP_MOVE_END ,
 			STEP_END ,
 		};
 
 		enum TurnState
 		{
+			TURN_KEEP,
+			TURN_WAIT,
 			TURN_END  ,
-			TURN_KEEP ,
-			TURN_WAIT ,
 		};
 
 		Player*  getPlayer(){ return mPlayer; }
+		World&   getWorld();
 
 		void     beginTurn( Player& player );
 		bool     update();
@@ -93,36 +90,33 @@ namespace Rich
 
 		void     goMoveByPower( int movePower );
 		void     goMoveByStep( int numStep );
+		void     obtainMoney(int money);
 
-		
+		void     loseMoney(int money);
 
-		void replyBuyLand( ReplyData const& answer , LandCell* land , int piece );
-		void replyUpgradeLevel( ReplyData const& answer , LandCell* land , int cost );
-		void replyRomateDiceValue( ReplyData const& answer );
+		void     calcRomateDiceValue( int totalStep , int numDice , int value[] );
+		void     replyAction( ActionReplyData const& answer );
 
-		void calcRomateDiceValue( int totalStep , int numDice , int value[] );
-		void replyAction( ReplyData const& answer );
-
-		bool waitQuery()
+		bool     isWaitingQuery()
 		{
 			return mReqInfo.id != REQ_NONE;
 		}
 
 		struct RequestInfo
 		{
-			RequestID   id;
+			ActionRequestID   id;
 			ReqCallback callback;
 		};
 
 		bool     sendTurnMsg( WorldMsg const& event );
-		void     queryAction( RequestID id, ReqData const& data );
+		void     queryAction( ActionRequestID id, ActionReqestData const& data );
 		bool     checkKeepRun();
 		void     updateTurnStep();
 
 		void     useTool( ToolType type )
 		{
 			Tool* tool = Tool::FromType( type );
-
+			tool->use(*this);
 		}
 
 		TurnStep     mStep;
@@ -130,11 +124,11 @@ namespace Rich
 		
 		bool         mUseRomateDice;
 		RequestInfo  mReqInfo;
-		RequestID    mLastAnswerReq;
+		ActionRequestID    mLastAnswerReq;
 
 		ITurnControl* mControl;
 
-		DirType      mMoveDir;
+		LinkHandle   mMoveLinkHandle;
 		Tile*        mTile;
 		int          mNumDice;
 

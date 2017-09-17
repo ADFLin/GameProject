@@ -11,29 +11,30 @@ namespace LordMonarch
 		virtual void tick() = 0;
 	};
 
-	enum MapID
+	enum TerrainID
 	{
-		MID_DIRT  = 0 ,
+		TID_DIRT  = 0 ,
 
-		MID_VILLAGE   ,
-		MID_TERRITORY ,
-		MID_GRASS     ,
-		MID_CAVE      ,
-		MID_CAVE_BLOCKED ,
+		TID_VILLAGE   ,
+		TID_TERRITORY ,
+		TID_GRASS     ,
+		TID_CAVE      ,
+		TID_CAVE_BLOCKED ,
+		TID_BRIDGE ,
 
-		MID_FOREST ,
-		MID_RIVER  ,
-		MID_HILL   ,
+		TID_FOREST ,
+		TID_RIVER  ,
+		TID_HILL   ,
 	};
 
-	bool isBlocked( MapID id )
+	bool isBlocked( TerrainID id )
 	{
 		switch( id )
 		{
-		case MID_CAVE_BLOCKED:
-		case MID_RIVER:
-		case MID_FOREST:
-		case MID_HILL:
+		case TID_CAVE_BLOCKED:
+		case TID_RIVER:
+		case TID_FOREST:
+		case TID_HILL:
 			return true;
 		}
 		return false;
@@ -58,7 +59,7 @@ namespace LordMonarch
 	{
 	public:
 		virtual IPath* findPath( Vec2i const& start , Vec2i const& goal ) = 0;
-		virtual IPath* findTile( Vec2i const& pos , MapID id , int maxDist ) = 0;
+		virtual IPath* findTile( Vec2i const& pos , TerrainID id , int maxDist ) = 0;
 	};
 
 	class CPathFinder
@@ -68,7 +69,7 @@ namespace LordMonarch
 		{
 
 		}
-		virtual IPath* findTile( Vec2i const& start , MapID id , int maxDist )
+		virtual IPath* findTile( Vec2i const& start , TerrainID id , int maxDist )
 		{
 
 
@@ -109,9 +110,11 @@ namespace LordMonarch
 	};
 
 	template< class T >
-	class ArrayListT
+	class TArrayList
 	{
 		typedef int IndexType;
+
+		
 
 		void      remove( IndexType idx )
 		{
@@ -206,31 +209,31 @@ namespace LordMonarch
 
 		void addTerritory( Tile& tile )
 		{
-			assert( tile.id == MID_DIRT );
-			tile.id   = MID_TERRITORY;
+			assert( tile.id == TID_DIRT );
+			tile.id   = TID_TERRITORY;
 			tile.meta = getId(); 
 			getStatus().countTerritory += 1;
 		}
 
 		void removeTerritory( Tile& tile )
 		{
-			assert( tile.id == MID_TERRITORY );
-			tile.id  = MID_DIRT;
+			assert( tile.id == TID_TERRITORY );
+			tile.id  = TID_DIRT;
 			getStatus().countTerritory -= 1;
 		}
 
 		void addVillage( Tile& tile )
 		{
-			assert( tile.id == MID_DIRT );
-			tile.id = MID_VILLAGE;
+			assert( tile.id == TID_DIRT );
+			tile.id = TID_VILLAGE;
 			tile.meta = getId();
 			getStatus().countVillege += 1;
 		}
 
 		void removeVillage( Tile& tile )
 		{
-			assert( tile.id == MID_VILLAGE );
-			tile.id  = MID_DIRT;
+			assert( tile.id == TID_VILLAGE );
+			tile.id  = TID_DIRT;
 			getStatus().countVillege -= 1;
 		}
 
@@ -262,12 +265,12 @@ namespace LordMonarch
 
 		bool  canBuildVillage( Vec2i const& pos )
 		{
-			if ( getTile( pos ).id != MID_DIRT )
+			if ( getTile( pos ).id != TID_DIRT )
 				return false;
 
 			for( int i = 0 ; i < 8 ; ++i )
 			{
-				if ( getTile( pos + linkOffset( i ) ).id == MID_VILLAGE )
+				if ( getTile( pos + linkOffset( i ) ).id == TID_VILLAGE )
 					return false;
 			}
 			return true;
@@ -275,7 +278,7 @@ namespace LordMonarch
 		void  updateUnit( ActorData& actorData )
 		{
 			Tile& curTile = getTile( actorData.pos );
-			if ( curTile.id != MID_VILLAGE )
+			if ( curTile.id != TID_VILLAGE )
 			{
 				if ( actorData.score >= 128 )
 				{
@@ -304,14 +307,14 @@ namespace LordMonarch
 			Tile& tile = getTile( actorData.pos );
 			switch( tile.id )
 			{
-			case MID_TERRITORY:
+			case TID_TERRITORY:
 				if ( tile.meta != actorData.owner &&
 					 !isAllies( tile.meta , actorData.owner ) )
 				{
 					Kingdom& other = getPlayer( tile.meta );
 					other.removeTerritory( tile );
 				}
-			case MID_VILLAGE:
+			case TID_VILLAGE:
 				{
 					UnitData& villageData = getUnitData( tile.meta );
 					if ( actorData.score > villageData.score )
@@ -363,7 +366,7 @@ namespace LordMonarch
 
 		void  updateVillage( Tile& tile , UnitData& unitData )
 		{
-			assert( tile.id == MID_VILLAGE );
+			assert( tile.id == TID_VILLAGE );
 
 			Kingdom& player = getPlayer( unitData.owner );
 
@@ -373,7 +376,7 @@ namespace LordMonarch
 			{
 				Vec2i pos = unitData.pos + linkOffset( i );
 				tileId[i] = getTile( pos ).id;
-				if ( getTile( pos ).id == MID_TERRITORY )
+				if ( getTile( pos ).id == TID_TERRITORY )
 					++numTerritory;
 			}
 			
@@ -388,7 +391,7 @@ namespace LordMonarch
 				int idx = 0;
 				for( ; idx < 8 ; ++idx )
 				{
-					if ( tileId[ TerritoryDirMap[idx] ] == MID_DIRT )
+					if ( tileId[ TerritoryDirMap[idx] ] == TID_DIRT )
 						break;
 				}
 				if ( idx != 8 )

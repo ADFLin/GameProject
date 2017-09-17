@@ -3,6 +3,7 @@
 
 #include "RichBase.h"
 
+#include "ParamCollection.h"
 #include "TGrid2D.h"
 
 #include <vector>
@@ -11,11 +12,11 @@ namespace Rich
 {
 	typedef TVector2< int > Vec2i;
 
-	CellId const ERROR_CELL_ID = CellId( 0xff );
-	CellId const EMPTY_CELL_ID = CellId( 0 );
+	AreaId const ERROR_AREA_ID = AreaId( 0xff );
+	AreaId const EMPTY_AREA_ID = AreaId( 0 );
 
-	typedef int DirType;
-	DirType const NoDir = DirType( -1 );
+	typedef int LinkHandle;
+	LinkHandle const EmptyLinkHandle = LinkHandle( -1 );
 	int const MAX_DIR_NUM = 16;
 	typedef int DistType;
 
@@ -33,25 +34,13 @@ namespace Rich
 		MSG_MOVE_STEP ,
 	};
 
-	struct WorldMsg
+
+	struct WorldMsg : ParamCollection< 4 >
 	{
 		MsgId id;
-		union
-		{
-			int         intVal;
-			Player*     player;
-			LandCell*   land;
-			PlayerTurn* turn;
-
-			struct  
-			{
-				int  numDice;
-				int* diceValue;
-			};
-		};
 	};
 
-	class IMsgListener
+	class IWorldMessageListener
 	{
 	public:
 		virtual void onWorldMsg( WorldMsg const& msg ) = 0;
@@ -68,8 +57,8 @@ namespace Rich
 	{
 	public:
 		MapCoord   pos;
-		CellId      cell;
-		typedef IntrList< Actor , MemberHook< Actor , &Actor::tileHook > > ActorList;
+		AreaId      areaId;
+		typedef TIntrList< ActorComp , MemberHook< ActorComp , &ActorComp::tileHook > > ActorList;
 		ActorList   actors;
 	};
 
@@ -90,7 +79,7 @@ namespace Rich
 
 	};
 
-	class World : public CellRegister
+	class World : public AreaRegister
 	{
 
 		typedef unsigned short TileId;
@@ -99,74 +88,80 @@ namespace Rich
 
 		World( IObjectQuery* query );
 
-		void addMsgListener( IMsgListener& listener );
-		void removeMsgListener( IMsgListener& lister );
-		void sendMsg( WorldMsg const& event );
+		void     setupMap(int w, int h);
+		void     clearMap();
+
+		void     addMsgListener( IWorldMessageListener& listener );
+		void     removeMsgListener( IWorldMessageListener& lister );
+		void     dispatchMessage( WorldMsg const& msg );
 
 
-		void restCellMap();
+		void     restAreaMap();
 
-		static int const DirNum = 4;
-		MapCoord dirOffset( int dir )
-		{
-			Vec2i const offset[ DirNum ] = { Vec2i( 1 , 0 ) , Vec2i( 0 , 1 ) , Vec2i( -1 , 0 ) , Vec2i( 0 , -1 ) };
-			return offset[ dir ];
-		}
 
 		IRandom& getRandom();
-		void     setupMap( int w , int h );
-		void     clearMap();
-		bool     addTile( MapCoord const& pos , CellId id );
+
+		bool     addTile( MapCoord const& pos , AreaId id );
 		bool     removeTile( MapCoord const& pos );
 
-		int      getMoveDir( MapCoord const& posCur , MapCoord const& posPrev , DirType dir[] );
+		int      getMovableLinks( MapCoord const& posCur , MapCoord const& posPrev , LinkHandle outLinks[] );
 
-		int      findCell( MapCoord const& pos , DistType dist , Cell* cellFound[] );
+		int      findAreas( MapCoord const& pos , DistType dist , Area* outAreasFound[] );
 
-		CellId   getCellId( MapCoord const& pos )
+		AreaId   getAreaId( MapCoord const& pos )
 		{
 			Tile* tile = getTile( pos );
 			if ( !tile )
-				return ERROR_CELL_ID;
-			return tile->cell;
+				return ERROR_AREA_ID;
+			return tile->areaId;
 		}
 
 		Tile*  getTile( MapCoord const& pos );
-		Cell*  getCell( MapCoord const& pos )
+		Area*  getArea( MapCoord const& pos )
 		{
-			CellId id = getCellId( pos );
-			if ( id == ERROR_CELL_ID )
+			AreaId id = getAreaId( pos );
+			if ( id == ERROR_AREA_ID )
 				return nullptr;
-			return mCellMap[ id ];
+			return mAreaMap[ id ];
 		}
-		Vec2i  getConPos( Vec2i const& pos , int dir )
+		MapCoord getLinkCoord( MapCoord const& pos , LinkHandle linkHandle )
 		{
-			return pos + dirOffset( dir );
+			return pos + dirOffset( linkHandle );
 		}
 
-		Cell*  getCell( CellId id ){ return mCellMap[ id ]; }
-		CellId registerCell( Cell* cell , CellId idReg = ERROR_CELL_ID );
-		void   unregisterCell( Cell* cell );
+		Area*  getArea( AreaId id ){ return mAreaMap[ id ]; }
+		AreaId  registerArea( Area* area , AreaId idReg = ERROR_AREA_ID );
+		void   unregisterArea( Area* area );
 
-		void   clearCell( bool beDelete );
+		void   clearArea( bool beDelete );
 
-		IObjectQuery& getQuery(){ return *mQuery; }
+		IObjectQuery& getObjectQuery(){ return *mQuery; }
+
+	private:
 		
+		static int const DirNum = 4;
+		MapCoord dirOffset(int dir)
+		{
+			Vec2i const offset[DirNum] = { Vec2i(1 , 0) , Vec2i(0 , 1) , Vec2i(-1 , 0) , Vec2i(0 , -1) };
+			return offset[dir];
+		}
+
+
 		typedef TGrid2D< TileId > MapDataType;
 		typedef std::vector< Tile* > TileVec;
 
 		friend class WorldBuilder;
 		friend class Scene;
 		MapDataType mMapData;
-		static int const MaxCellNum = 255;
-		Cell*   mCellMap[ MaxCellNum ];
+		static int const MaxAreaNum = 255;
+		Area*   mAreaMap[ MaxAreaNum ];
 		
 		TileVec mTileMap;
 
-		int     mIdxLastCell;
-		int     mIdxFreeCellId;
+		int     mIdxLastArea;
+		int     mIdxFreeAreaId;
 
-		typedef std::vector< IMsgListener* > EventListerVec;
+		typedef std::vector< IWorldMessageListener* > EventListerVec;
 		EventListerVec mEvtListers;
 		IObjectQuery*  mQuery;
 

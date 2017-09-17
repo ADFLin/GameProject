@@ -40,6 +40,15 @@ struct TokenString
 	bool operator != (char const* other) const { return !operator == (other); }
 	int  compareInternal(char const* other, int numOhter) const;
 
+	bool toFloat(float& value)
+	{
+		//TODO : optimize
+		std::string temp = toStdString();
+		char* endPtr;
+		value = strtof(temp.c_str(), &endPtr);
+		return endPtr == &temp.back() + 1;
+	}
+
 	std::string toStdString() const
 	{
 		return std::string(ptr, num);
@@ -126,13 +135,15 @@ class Tokenizer : public DelimsTable
 public:
 	Tokenizer(char const* str, char const* dropDelims, char const* stopDelims = "");
 
+	typedef ParseUtility::TokenType TokenType;
+
 	void        reset(char const* str);
 	char const* next() { return mPtr; }
 	void        offset(int off) { mPtr += off; }
 	void        skipDropDelims();
 
 
-	int  take(TokenString& str);
+	TokenType  take(TokenString& str);
 
 	char const* mPtr;
 };

@@ -21,7 +21,7 @@ void OptionNoteBook::init( GameController& controller )
 	Vec2i pageSize = getPageSize();
 	Page* page;
 	page = addPage( LAN("Control") );
-	page->setRenderCallback( RenderCallBack::create( this , &OptionNoteBook::renderControl ) );
+	page->setRenderCallback( RenderCallBack::Create( this , &OptionNoteBook::renderControl ) );
 	{
 		Vec2i buttonPos( 130 , 20 );
 		Vec2i bPosOff( 0 , 25 );
@@ -47,14 +47,14 @@ void OptionNoteBook::init( GameController& controller )
 	}
 
 	page = addPage( "User");
-	page->setRenderCallback( RenderCallBack::create( this , &OptionNoteBook::renderUser ) );
+	page->setRenderCallback( RenderCallBack::Create( this , &OptionNoteBook::renderUser ) );
 }
 
 KeyButton* OptionNoteBook::createKeyButton( Vec2i const& pos , ControlAction action , GWidget* parent )
 {
 	KeyButton* button;
 	button = new KeyButton( UI_SET_KEY , pos, action, parent );
-	button->setRenderCallback( RenderCallBack::create( this , &OptionNoteBook::renderKeyTitle ) );
+	button->setRenderCallback( RenderCallBack::Create( this , &OptionNoteBook::renderKeyTitle ) );
 	button->setColor( Color::eRed );
 	return button;
 }

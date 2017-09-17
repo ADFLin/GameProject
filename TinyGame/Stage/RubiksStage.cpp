@@ -42,7 +42,7 @@ namespace Rubiks
 			StateNode* node = nullptr;
 			{
 				Mutex::Locker locker( mUncheckMutex );
-				mUncheckCond.waitUntil( locker , fastdelegate::FastDelegate< bool () >( this , &Solver::haveUncheck ) );
+				mUncheckCond.wait( locker , fastdelegate::FastDelegate< bool () >( this , &Solver::haveUncheck ) );
 
 				if ( mbRunning == false )
 					break;
@@ -95,7 +95,7 @@ namespace Rubiks
 			StateNode* node;
 			{
 				Mutex::Locker locker( mRequestFindMutex );
-				mRequestFindCond.waitUntil( locker , fastdelegate::FastDelegate< bool () >( this , &Solver::haveReauestFind ) );
+				mRequestFindCond.wait( locker , fastdelegate::FastDelegate< bool () >( this , &Solver::haveReauestFind ) );
 
 				if ( mbRunning == false )
 				{

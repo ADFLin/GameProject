@@ -10,7 +10,7 @@
 
 namespace MV
 {
-	typedef IntrList< 
+	typedef TIntrList< 
 		ObjectGroup , 
 		MemberHook< ObjectGroup , &ObjectGroup::spaceHook > , 
 		PointerType 

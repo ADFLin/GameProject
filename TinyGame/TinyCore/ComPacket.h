@@ -35,8 +35,8 @@ public:
 	}
 	virtual ~IComPacket(){}
 
-	GAME_API void fillBuffer( SocketBuffer& buffer );
-	GAME_API void takeBuffer( SocketBuffer& buffer );
+	GAME_API void writeBuffer( SocketBuffer& buffer );
+	GAME_API void readBuffer( SocketBuffer& buffer );
 
 	ComID  getID(){ return mId; }
 	int    getGroup() { return mGroup; }
@@ -59,8 +59,8 @@ public:
 
 protected:
 	friend class ComEvaluator;
-	virtual void doFill( SocketBuffer& buffer ) = 0;
-	virtual void doTake( SocketBuffer& buffer ) = 0;
+	virtual void doWrite( SocketBuffer& buffer ) = 0;
+	virtual void doRead( SocketBuffer& buffer ) = 0;
 
 	ComID   mId;
 	void*   mUserData;
@@ -102,8 +102,8 @@ public:
 	GAME_API ComEvaluator();
 	GAME_API ~ComEvaluator();
 
-	GAME_API static unsigned FillBuffer( SocketBuffer& buffer , IComPacket* cp );
-	GAME_API static bool     TakeBuffer( SocketBuffer& buffer , IComPacket* cp );
+	GAME_API static unsigned WriteBuffer( SocketBuffer& buffer , IComPacket* cp );
+	GAME_API static bool     ReadBuffer( SocketBuffer& buffer , IComPacket* cp );
 
 	template< class GamePacket , class T , class Fun >
 	bool setWorkerFun( T* processer, Fun fun , Fun funSocket );

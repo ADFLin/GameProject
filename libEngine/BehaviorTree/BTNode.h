@@ -59,6 +59,7 @@ namespace BT
 		};
 
 		void setInitializer( TreeInitializer* init ){ mInitializer = init;  }
+
 		template< class Transform >
 		Transform* createTransform()
 		{
@@ -70,6 +71,7 @@ namespace BT
 		{
 			delete transform;
 		}
+
 		void  dispatchState( BTTransform* transform , TaskState state );
 		typedef std::list< Entry > EntryQueue;
 		TreeInitializer* mInitializer;
@@ -130,7 +132,7 @@ namespace BT
 
 
 	template< class NodeType , class Transform >
-	class BaseCompositeNode : public CompositeNode
+	class BaseCompositeNodeT : public CompositeNode
 	{
 	public:
 		typedef Transform TransformType;
@@ -156,7 +158,7 @@ namespace BT
 		NodeList::iterator mNodeIter;
 	};
 
-	class SelectorNode : public BaseCompositeNode< SelectorNode , SelectorTransform >
+	class SelectorNode : public BaseCompositeNodeT< SelectorNode , SelectorTransform >
 	{
 	public:
 		void setupTransform( TransformType* transform );
@@ -166,6 +168,7 @@ namespace BT
 	{
 
 	};
+
 	class ProbabilityIterator
 	{
 
@@ -181,7 +184,7 @@ namespace BT
 
 
 
-	class SequenceNode : public BaseCompositeNode< SequenceNode , SequenceTransform >
+	class SequenceNode : public BaseCompositeNodeT< SequenceNode , SequenceTransform >
 	{
 	public:
 		typedef SequenceTransform TransformType;
@@ -219,7 +222,7 @@ namespace BT
 
 
 	template< class Transform >
-	class BaseDecTransform : public BTTransform
+	class BaseDecTransformT : public BTTransform
 	{
 	public:
 		class Node : public DecoratorNode
@@ -245,7 +248,7 @@ namespace BT
 		}
 	};
 
-	class NotDecTransform : public BaseDecTransform< NotDecTransform >
+	class NotDecTransform : public BaseDecTransformT< NotDecTransform >
 	{
 	public:
 		bool onRecvChildState( BTTransform* child , TaskState& state )
@@ -267,7 +270,7 @@ namespace BT
 	};
 
 	template< class Transform >
-	class BaseLeafNode : public BTLeafNode
+	class TBaseLeafNode : public BTLeafNode
 	{
 	public:
 		BTTransform* buildTransform( TreeWalker* walker )
@@ -278,7 +281,7 @@ namespace BT
 
 
 	template< class Transform >
-	class BaseConditionNode : public BaseLeafNode< Transform >
+	class TBaseConditionNode : public TBaseLeafNode< Transform >
 	{
 
 	};
@@ -301,7 +304,7 @@ namespace BT
 #undef DEFINE_COMP_OP
 
 	template< class Var , class CmpOp >
-	class ConditionTransform;
+	class TConditionTransform;
 
 	template< class T , T* VAR >
 	struct ConstVarRef
@@ -424,7 +427,7 @@ namespace BT
 	};
 
 	template< class RefType >
-	class BaseBlackBoardTransform : public ContextTransform< typename RefType::Context >
+	class TBaseBlackBoardTransform : public ContextTransform< typename RefType::Context >
 	{
 	public:
 		typedef typename RefType::RetType   VarType;
@@ -462,10 +465,10 @@ namespace BT
 	};
 
 	template< class RefType , class CmpOp  >
-	class ConditionTransform : public BaseBlackBoardTransform< RefType >
+	class TConditionTransform : public TBaseBlackBoardTransform< RefType >
 	{
 	public:
-		class Node : public  BaseConditionNode< ConditionTransform< RefType , CmpOp > >
+		class Node : public  TBaseConditionNode< TConditionTransform< RefType , CmpOp > >
 				   , public  NodeData< Node >
 		{
 		public:
@@ -487,7 +490,7 @@ namespace BT
 	};
 
 	template< class RefType , class CmpOp >
-	class FilterTransform : public BaseBlackBoardTransform< RefType >
+	class TFilterTransform : public TBaseBlackBoardTransform< RefType >
 	{
 	public:
 		class Node : public  DecoratorNode
@@ -498,7 +501,7 @@ namespace BT
 			Node( RefHolder const& holder ):NodeData< Node >( holder ){}
 			BTTransform* buildTransform( TreeWalker* walker )
 			{
-				return walker->createTransform< FilterTransform >();
+				return walker->createTransform< TFilterTransform >();
 			}
 		};
 
@@ -522,11 +525,11 @@ namespace BT
 		}
 	};
 
-	class CountDecTransform : public BaseDecTransform< CountDecTransform >
+	class CountDecTransform : public BaseDecTransformT< CountDecTransform >
 	{
 		typedef int   CountType;
 	public:
-		class Node : public BaseDecTransform< CountDecTransform >::Node
+		class Node : public BaseDecTransformT< CountDecTransform >::Node
 		{
 			typedef int  CountType;
 			typedef Node ThisClass;
@@ -555,7 +558,7 @@ namespace BT
 	typedef CountDecTransform::NodeType CountDecNode;
 
 
-	class LoopDecTransform : public BaseDecTransform< LoopDecTransform >
+	class LoopDecTransform : public BaseDecTransformT< LoopDecTransform >
 	{
 		typedef int         CountType;
 	public:
@@ -564,7 +567,7 @@ namespace BT
 			mExecCount = 0;
 		}
 
-		class Node : public BaseDecTransform< LoopDecTransform >::Node
+		class Node : public BaseDecTransformT< LoopDecTransform >::Node
 		{
 			typedef Node ThisClass;
 			typedef int  CountType;
@@ -586,10 +589,10 @@ namespace BT
 
 
 	template< class Node ,class ActionData >
-	class BaseActionNode;
+	class BaseActionNodeT;
 
 	template< class Node , class ActionData >
-	class ActionTransform : public BTTransform
+	class TActionTransform : public BTTransform
 		                  , public ActionData
 	{
 	public:
@@ -598,10 +601,10 @@ namespace BT
 
 
 	template< class Node , class ActionData = EmptyType >
-	class BaseActionNode : public BTLeafNode
+	class BaseActionNodeT : public BTLeafNode
 	{
 	public:
-		typedef ActionTransform< Node , ActionData > TransformType;
+		typedef TActionTransform< Node , ActionData > TransformType;
 		BTTransform* buildTransform( TreeWalker* walker )
 		{
 			return walker->createTransform< TransformType >();

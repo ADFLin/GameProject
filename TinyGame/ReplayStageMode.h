@@ -22,7 +22,7 @@ public:
 
 	String   getFilePath();
 	void     loadDir( char const* dir );
-	void     deleteCurFile();
+	void     deleteSelectedFile();
 protected:
 	bool     onChildEvent( int event , int id , GWidget* ui );
 

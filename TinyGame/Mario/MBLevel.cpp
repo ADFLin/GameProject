@@ -24,20 +24,20 @@ namespace Mario
 		return gBlockMap[ type ];
 	}
 
-	bool Block::checkCollision( Tile const& tile , Vec2f const& pos , Vec2f const& size )
+	bool Block::checkCollision( Tile const& tile , Vector2 const& pos , Vector2 const& size )
 	{
-		Vec2f dif = pos - TileLength * tile.pos;
+		Vector2 dif = pos - TileLength * tile.pos;
 		return true;
 	}
 
-	float Block::calcFixPosX( Tile const& tile , Vec2f const& pos , Vec2f const& size , float offset )
+	float Block::calcFixPosX( Tile const& tile , Vector2 const& pos , Vector2 const& size , float offset )
 	{
 		if ( offset > 0 )
 			return TileLength * tile.pos.x - size.x;
 		return TileLength * ( tile.pos.x + 1 );
 	}
 
-	float Block::calcFixPosY( Tile const& tile , Vec2f const& pos , Vec2f const& size , float offset )
+	float Block::calcFixPosY( Tile const& tile , Vector2 const& pos , Vector2 const& size , float offset )
 	{
 		if ( offset > 0 )
 			return TileLength * tile.pos.y - size.y;
@@ -209,7 +209,7 @@ namespace Mario
 					float yTile = ( tile->pos.y + 1 ) * TileLength;
 					if ( pos.y + 1 > yTile )
 					{
-						Vec2f testPos;
+						Vector2 testPos;
 						testPos.x = pos.x;
 						testPos.y = yTile;
 
@@ -266,15 +266,15 @@ namespace Mario
 	void Player::reset()
 	{
 		moveType = eRUN;
-		vel  = Vec2f(0,0);
-		size = Vec2f( 14 , 27 );
+		vel  = Vector2(0,0);
+		size = Vector2( 14 , 27 );
 		onGround = false;
 	}
 
 
-	bool BlockSlope::checkCollision( Tile const& tile , Vec2f const& pos , Vec2f const& size )
+	bool BlockSlope::checkCollision( Tile const& tile , Vector2 const& pos , Vector2 const& size )
 	{
-		Vec2f dif = pos - TileLength * tile.pos;
+		Vector2 dif = pos - TileLength * tile.pos;
 
 		switch ( tile.block )
 		{
@@ -301,10 +301,10 @@ namespace Mario
 		return true;
 	}
 
-	float BlockSlope::calcFixPosX( Tile const& tile , Vec2f const& pos , Vec2f const& size , float offset )
+	float BlockSlope::calcFixPosX( Tile const& tile , Vector2 const& pos , Vector2 const& size , float offset )
 	{
-		Vec2f tilePos = TileLength * tile.pos;
-		Vec2f dif = pos - tilePos;
+		Vector2 tilePos = TileLength * tile.pos;
+		Vector2 dif = pos - tilePos;
 
 		switch ( tile.block )
 		{
@@ -335,10 +335,10 @@ namespace Mario
 		return pos.x;
 	}
 
-	float BlockSlope::calcFixPosY( Tile const& tile , Vec2f const& pos , Vec2f const& size , float offset )
+	float BlockSlope::calcFixPosY( Tile const& tile , Vector2 const& pos , Vector2 const& size , float offset )
 	{
-		Vec2f tilePos = TileLength * tile.pos;
-		Vec2f dif = pos - tilePos;
+		Vector2 tilePos = TileLength * tile.pos;
+		Vector2 dif = pos - tilePos;
 
 
 		switch ( tile.block )
@@ -374,7 +374,7 @@ namespace Mario
 
 	
 
-	Tile* World::testTileCollision( Vec2f const& pos , Vec2f const& size )
+	Tile* World::testTileCollision( Vector2 const& pos , Vector2 const& size )
 	{
 		Vec2i start = Vec2i( int( ( pos.x + gTileMargin )/ TileLength ) , int( ( pos.y + gTileMargin ) / TileLength ) );
 		Vec2i end   = Vec2i( int( ( pos.x + size.x - gTileMargin ) / TileLength ) , int( ( pos.y + size.y - gTileMargin ) / TileLength ) );
@@ -404,9 +404,9 @@ namespace Mario
 	}
 
 
-	bool BlockCloud::checkCollision( Tile const& tile , Vec2f const& pos , Vec2f const& size )
+	bool BlockCloud::checkCollision( Tile const& tile , Vector2 const& pos , Vector2 const& size )
 	{
-		Vec2f dif = pos - tile.pos * TileLength;
+		Vector2 dif = pos - tile.pos * TileLength;
 		switch( tile.meta )
 		{
 		case DIR_TOP:

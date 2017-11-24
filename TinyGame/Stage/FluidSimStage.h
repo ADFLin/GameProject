@@ -13,10 +13,10 @@ namespace Phy2D
 	//d(E)/dt + div(v ( E + P ) ) = 0
 	struct FluildGridData
 	{
-		Vec2f Loc;
+		Vector2 Loc;
 		float P;
 		float T;
-		Vec2f vel;
+		Vector2 vel;
 	};
 	class FluidSimStage : public StageBase
 	{

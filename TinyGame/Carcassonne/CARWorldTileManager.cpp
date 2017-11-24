@@ -558,11 +558,9 @@ namespace CAR
 		assert(!haveUse(exp));
 		mUsageExpansionMask |= BIT(exp);
 
-		for( int idx = 0; ; ++idx )
+		for( int idx = 0; idx < gAllExpansionTileContents.size() ; ++idx )
 		{
 			ExpansionContent const& content = gAllExpansionTileContents[idx];
-			if( content.exp == EXP_NULL )
-				break;
 			if( content.exp == exp )
 			{
 				import(content);

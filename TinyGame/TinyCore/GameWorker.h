@@ -48,7 +48,7 @@ enum NetActionState
 enum LoginResult
 {
 	LOGIN_SUCCESS    =  1 ,
-	LOGIN_INVAILD_PW = -1 ,
+	LOGIN_IN_PW = -1 ,
 	LOGIN_BAN        = -2 ,
 	LOGIN_GAME_VERSION_ERROR = -3 ,
 };

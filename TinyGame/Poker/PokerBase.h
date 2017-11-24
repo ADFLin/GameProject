@@ -4,7 +4,7 @@
 #include <iostream>
 #include <cassert>
 
-#include "IntegerType.h"
+#include "Core/IntegerType.h"
 
 namespace Poker
 {

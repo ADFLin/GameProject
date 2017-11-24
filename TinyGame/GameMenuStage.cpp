@@ -24,11 +24,10 @@ bool GameMenuStage::onInit()
 	return true;
 }
 
-
 GWidget* GameMenuStage::createButton( int delay , int id , char const* title , Vec2i const& pos , Vec2i const& size )
 {
 	GButton* button;
-	button = new GButton( id , pos - Vec2i( 500 , 0 ), size , NULL );
+	button = new GButton( id , Vec2i( -150 , pos.y ), size , NULL );
 	button->setTitle( title );
 
 	::Global::GUI().addWidget( button );

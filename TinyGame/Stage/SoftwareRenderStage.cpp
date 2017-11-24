@@ -1,348 +1,121 @@
-#include "TestStageHeader.h"
+#include "SoftwareRenderStage.h"
 
-#include "WindowsHeader.h"
-#include "WidgetUtility.h"
-#include "Math/Base.h"
+#define USE_OMP 1
 
-#include "stb/stb_image.h"
-
-#include "Math/Matrix4.h"
-#include "Math/Vector3.h"
-#include "Math/Vector4.h"
-
-#include "RenderGL/GLUtility.h"
+#if USE_OMP
+#include "omp.h"
+#endif
 
 namespace SR
 {
-	using namespace RenderGL;
-	struct Color
-	{
-		union
-		{
-			struct
-			{
-				uint8 b, g, r, a;
-			};
-			uint32 word;
-		};
-		
-		operator uint32() const{  return word;  }
 
-		Color(){}
-		Color( uint8 r , uint8 g , uint8 b , uint8 a = 255 )
-			:r(r),g(g),b(b),a(a){}
-		Color( Color const& other ):word(other.word){}
-	};
-
-	struct LinearColor
-	{
-		float r, g, b, a;
-
-		operator Color() const
-		{
-			uint8 byteR = uint8(255 * Math::Clamp<float>(r, 0, 1));
-			uint8 byteG = uint8(255 * Math::Clamp<float>(g, 0, 1));
-			uint8 byteB = uint8(255 * Math::Clamp<float>(b, 0, 1));
-			uint8 byteA = uint8(255 * Math::Clamp<float>(a, 0, 1));
-			return Color(byteR, byteG, byteB, byteA);
-		}
-		LinearColor operator + (LinearColor const& rhs) const
-		{
-			return LinearColor(r + rhs.r, g + rhs.g, b + rhs.b, a + rhs.a);
-		}
-		LinearColor operator * (LinearColor const& rhs) const
-		{
-			return LinearColor(r * rhs.r, g * rhs.g, b * rhs.b, a * rhs.a);
-		}
-		LinearColor() {}
-		LinearColor(float r, float g, float b, float a = 1.0f)
-			:r(r), g(g), b(b), a(a)
-		{
-		}
-		LinearColor(Color const& rhs)
-			:r(float(rhs.r)/255.0f), g(float(rhs.g) / 255.0f), b(float(rhs.b) / 255.0f), a(float(rhs.a) / 255.0f)
-		{
-		}
-	};
-
-	LinearColor operator * (float s, LinearColor const& rhs) { return LinearColor(s * rhs.r, s * rhs.g, s * rhs.b, s * rhs.a); }
-
-
-	
-	class ColorBuffer
-	{
-	public:
-		bool create( Vec2i const& size)
-		{
-			int const alignedSize = 4;
-			mSize = size;
-			mRowStride = alignedSize * ( (size.x + alignedSize - 1 ) / alignedSize );
-
-			BITMAPINFO bmpInfo;
-			bmpInfo.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
-			bmpInfo.bmiHeader.biWidth  = mRowStride;
-			bmpInfo.bmiHeader.biHeight = mSize.y;
-			bmpInfo.bmiHeader.biPlanes = 1;
-			bmpInfo.bmiHeader.biBitCount = 32;
-			bmpInfo.bmiHeader.biCompression = BI_RGB;
-			bmpInfo.bmiHeader.biXPelsPerMeter = 0;
-			bmpInfo.bmiHeader.biYPelsPerMeter = 0;
-			bmpInfo.bmiHeader.biSizeImage = 0;
-			if( !mBufferDC.create( NULL , &bmpInfo, (void**)&mData) )
-				return false;
-			return true;
-		}
-
-		void clear( Color const& color )
-		{
-			std::fill_n(mData, mSize.y * mRowStride, uint32(color));
-		}
-
-		Color getPixel(uint32 x, uint32 y)
-		{
-			Color result;
-			result.word = mData[(x + mRowStride * y)];
-			return result;
-		}
-
-		void setPixel(uint32 x, uint32 y , Color color )
-		{
-			uint32* pData = mData + (x + mRowStride * y);
-			*pData = color;
-		}
-		void setPixelCheck(uint32 x, uint32 y, Color color)
-		{
-			if( 0 <= x && x < mSize.x &&
-			   0 <= y && y < mSize.y )
-				setPixel(x, y, color);
-		}
-
-		void draw( Graphics2D& g )
-		{
-			mBufferDC.bitBlt( g.getRenderDC() , 0 , 0 );
-		}
-
-		Vec2i const& getSize() const { return mSize;  }
-
-		Vec2i    mSize;
-		uint32   mRowStride;
-		uint32*  mData;
-		BitmapDC mBufferDC;
-	};
-
-	struct PixelShaderType
-	{
-
-
-	};
-
-	class Texture
-	{
-	public:
-		bool load(char const* path)
-		{
-			int w;
-			int h;
-			int comp;
-			unsigned char* image = stbi_load(path, &w, &h, &comp, STBI_default);
-
-			if( !image )
-				return false;
-
-			mSize.x = w;
-			mSize.y = h;
-
-			
-			//#TODO
-			switch( comp )
-			{
-			case 3:
-				{
-					mData.resize(w * h);
-					unsigned char* pPixel = image;
-					for( int i = 0; i < mData.size(); ++i )
-					{
-						mData[i] = Color(pPixel[0], pPixel[1], pPixel[2], 0xff);
-						pPixel += 3;
-					}
-				}
-				break;
-			case 4:
-				{
-					mData.resize(w * h);
-					unsigned char* pPixel = image;
-					for( int i = 0; i < mData.size(); ++i )
-					{
-						mData[i] = Color(pPixel[0], pPixel[1], pPixel[2], pPixel[3]);
-						pPixel += 4;
-					}
-				}
-				break;
-			}
-			//glGenerateMipmap( texType);
-			stbi_image_free(image);
-			return mData.empty() == false;
-		}
-
-		Color getColor(Vec2i const& pos) const
-		{
-			assert(0 <= pos.x && pos.x < mSize.x);
-			assert(0 <= pos.y && pos.y < mSize.y);
-			return mData[pos.x + pos.y * mSize.x];
-		}
-
-		LinearColor sample(Vec2f const& UV) const
-		{
-			Vec2f pos = UV.max( Vec2f(0, 0) ).min( Vec2f(1, 1) ).mul( mSize - Vec2i(1,1));
-			int x0 = Math::FloorToInt(pos.x);
-			int y0 = Math::FloorToInt(pos.y);
-
-			int x1 = std::min(x0 + 1, mSize.x - 1);
-			int y1 = std::min(y0 + 1, mSize.y - 1);
-			float dx = pos.x - x0;
-			float dy = pos.y - y0;
-
-			assert(0 <= x0 && x0 < mSize.x);
-			assert(0 <= y0 && y0 < mSize.y);
-			assert(0 <= x1 && x1 < mSize.x);
-			assert(0 <= y1 && y1 < mSize.y);
-
-#if 0
-			LinearColor c00 = mData[x0 + y0* mSize.x];
-			LinearColor c10 = mData[x1 + y0* mSize.x];
-			LinearColor c01 = mData[x0 + y1* mSize.x];
-			LinearColor c11 = mData[x1 + y1* mSize.x];
-			return Math::LinearLerp(Math::LinearLerp(c00, c01, dy), Math::LinearLerp(c10, c11, dy), dx);
-#else
-
-
-			LinearColor c = mData[x1 + y1* mSize.x];
-
-			return c;
-#endif
-		}
-
-		Vec2i mSize;
-		std::vector< Color > mData;
-
-	};
-
-
-	void GenerateDistanceFieldTexture( Texture const& texture )
-	{
-		Vec2i size = texture.mSize;
-		std::vector< Vec2i > countMap(size.x * size.y, Vec2i(0, 0));
-
-		{
-			{
-				uint32 c = texture.getColor(Vec2i(0, 0));
-				Vec2i& count = countMap[0 + size.x * 0];
-				if( c & 0x00ffffff )
-				{
-					count.x += 1;
-				}
-				else
-				{
-					count.y += 1;
-				}
-			}
-			for( int i = 1; i < size.x; ++i )
-			{
-				uint32 c = texture.getColor(Vec2i(i, 0));
-				Vec2i& count = countMap[i + size.x * 0];
-				Vec2i& countLeft = countMap[i - 1 + size.x * 0];
-
-				count = countLeft;
-				if( c & 0x00ffffff )
-				{
-					count.x += 1;
-				}
-				else
-				{
-					count.y += 1;
-				}
-			}
-		}
-		
-		for( int j = 1; j < size.y; ++j )
-		{
-			{
-				uint32 c = texture.getColor(Vec2i(0, j));
-				Vec2i& countDown = countMap[0 + size.x * (j - 1)];
-				Vec2i& count = countMap[0 + size.x * j];
-
-				count = countDown;
-				if( c & 0x00ffffff )
-				{
-					count.x += 1;
-				}
-				else
-				{
-					count.y += 1;
-				}
-			}
-			for( int i = 1; i < size.x; ++i )
-			{
-				uint32 c = texture.getColor(Vec2i(i, j));
-				Vec2i& count = countMap[i + size.x * 0];
-				Vec2i& countLeft = countMap[i - 1 + size.x * j];
-				Vec2i& countDown = countMap[i + size.x * (j - 1)];
-				count = countLeft + countDown;
-				if( c & 0x00ffffff )
-				{
-					count.x += 1;
-				}
-				else
-				{
-					count.y += 1;
-				}
-			}
-		}
-
-		for( int j = 0; j < size.y; ++j )
-		{
-			for( int i = 0; i < size.x; ++i )
-			{
-				uint32 c = texture.getColor(Vec2i(i, j));
-
-
-			}
-		}
-	}
 	Texture SimpleTexture;
 
 
-	int PixelCut(float value)
+	bool ColorBuffer::create(Vec2i const& size)
 	{
-		return Math::FloorToInt(value + 0.5f);
+		int const alignedSize = 4;
+		mSize = size;
+		mRowStride = alignedSize * ((size.x + alignedSize - 1) / alignedSize);
+
+		BITMAPINFO bmpInfo;
+		bmpInfo.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
+		bmpInfo.bmiHeader.biWidth = mRowStride;
+		bmpInfo.bmiHeader.biHeight = mSize.y;
+		bmpInfo.bmiHeader.biPlanes = 1;
+		bmpInfo.bmiHeader.biBitCount = 32;
+		bmpInfo.bmiHeader.biCompression = BI_RGB;
+		bmpInfo.bmiHeader.biXPelsPerMeter = 0;
+		bmpInfo.bmiHeader.biYPelsPerMeter = 0;
+		bmpInfo.bmiHeader.biSizeImage = 0;
+		if( !mBufferDC.create(NULL, &bmpInfo, (void**)&mData) )
+			return false;
+		return true;
 	}
 
-	struct VertexData
+	bool Texture::load(char const* path)
 	{
-		float  w;
-		Vec2f  uv;
-		LinearColor color;
-	};
+		int w;
+		int h;
+		int comp;
+		unsigned char* image = stbi_load(path, &w, &h, &comp, STBI_default);
 
-	// 1/z = 1/z0 * ( 1- a ) + 1 / z1 * a
-	// v = v0 * ( z / z0 ) * ( 1 - a ) + v1 * ( z / z1 ) * a
+		if( !image )
+			return false;
 
-	// w = w0 * ( 1- a ) + w1 * a => Dw = ( w1 - w0 ) / D
-	// v = v0 * ( w0 / w ) * ( 1 - a ) + v1 * ( w1 / w ) * a
-	template< class T >
-	T PerspectiveLerp(T const& v0, T const& v1, float w0, float w1, float w , float alpha)
-	{
-		return  (w0 / w) * (1 - alpha) * v0 + (w1 / w) * alpha * v1;
+		mSize.x = w;
+		mSize.y = h;
+
+
+		//#TODO
+		switch( comp )
+		{
+		case 3:
+			{
+				mData.resize(w * h);
+				unsigned char* pPixel = image;
+				for( int i = 0; i < mData.size(); ++i )
+				{
+					mData[i] = Color(pPixel[0], pPixel[1], pPixel[2], 0xff);
+					pPixel += 3;
+				}
+			}
+			break;
+		case 4:
+			{
+				mData.resize(w * h);
+				unsigned char* pPixel = image;
+				for( int i = 0; i < mData.size(); ++i )
+				{
+					mData[i] = Color(pPixel[0], pPixel[1], pPixel[2], pPixel[3]);
+					pPixel += 4;
+				}
+			}
+			break;
+		}
+		//glGenerateMipmap( texType);
+		stbi_image_free(image);
+		return mData.empty() == false;
 	}
 
-	VertexData PerspectiveLerp(VertexData const& v0, VertexData const& v1, float alpha)
+	Color Texture::getColor(Vec2i const& pos) const
 	{
-		VertexData result;
-		result.w = Math::Lerp(v0.w, v1.w, alpha);
-		result.uv = PerspectiveLerp(v0.uv, v1.uv, v0.w, v1.w, result.w, alpha);
-		result.color = PerspectiveLerp(v0.color, v1.color, v0.w, v1.w, result.w, alpha);
-		return result;
+		assert(0 <= pos.x && pos.x < mSize.x);
+		assert(0 <= pos.y && pos.y < mSize.y);
+		return mData[pos.x + pos.y * mSize.x];
 	}
+
+	LinearColor Texture::sample(Vector2 const& UV) const
+	{
+		Vector2 pos = UV.max(Vector2(0, 0)).min(Vector2(1, 1)).mul(mSize - Vec2i(1, 1));
+		int x0 = Math::FloorToInt(pos.x);
+		int y0 = Math::FloorToInt(pos.y);
+
+		int x1 = std::min(x0 + 1, mSize.x - 1);
+		int y1 = std::min(y0 + 1, mSize.y - 1);
+		float dx = pos.x - x0;
+		float dy = pos.y - y0;
+
+		assert(0 <= x0 && x0 < mSize.x);
+		assert(0 <= y0 && y0 < mSize.y);
+		assert(0 <= x1 && x1 < mSize.x);
+		assert(0 <= y1 && y1 < mSize.y);
+
+#if 0
+		LinearColor c00 = mData[x0 + y0* mSize.x];
+		LinearColor c10 = mData[x1 + y0* mSize.x];
+		LinearColor c01 = mData[x0 + y1* mSize.x];
+		LinearColor c11 = mData[x1 + y1* mSize.x];
+		return Math::LinearLerp(Math::LinearLerp(c00, c01, dy), Math::LinearLerp(c10, c11, dy), dx);
+#else
+
+
+		LinearColor c = mData[x1 + y1* mSize.x];
+
+		return c;
+#endif
+	}
+
 
 	struct ScanLineIterator
 	{
@@ -361,7 +134,42 @@ namespace SR
 		}
 	};
 
-	void ClipAndInterpolantColor(ColorBuffer& buffer, ScanLineIterator& lineIter, VertexData const& vL , VertexData const& vR , VertexData const& vS , bool bInverse )
+	struct VertexData
+	{
+		float  w;
+		Vector2  uv;
+		LinearColor color;
+	};
+
+
+
+	int PixelCut(float value)
+	{
+		return Math::FloorToInt(value + 0.5f);
+	}
+
+
+	// 1/z = 1/z0 * ( 1- a ) + 1 / z1 * a
+	// v = v0 * ( z / z0 ) * ( 1 - a ) + v1 * ( z / z1 ) * a
+
+	// w = w0 * ( 1- a ) + w1 * a => Dw = ( w1 - w0 ) / D
+	// v = v0 * ( w0 / w ) * ( 1 - a ) + v1 * ( w1 / w ) * a
+	template< class T >
+	T PerspectiveLerp(T const& v0, T const& v1, float w0, float w1, float w, float alpha)
+	{
+		return  (w0 / w) * (1 - alpha) * v0 + (w1 / w) * alpha * v1;
+	}
+
+	VertexData PerspectiveLerp(VertexData const& v0, VertexData const& v1, float alpha)
+	{
+		VertexData result;
+		result.w = Math::Lerp(v0.w, v1.w, alpha);
+		result.uv = PerspectiveLerp(v0.uv, v1.uv, v0.w, v1.w, result.w, alpha);
+		result.color = PerspectiveLerp(v0.color, v1.color, v0.w, v1.w, result.w, alpha);
+		return result;
+	}
+
+	void ClipAndInterpolantColor(ColorBuffer& buffer, ScanLineIterator& lineIter, VertexData const& vL, VertexData const& vR, VertexData const& vS, bool bInverse)
 	{
 		Vec2i size = buffer.getSize();
 
@@ -372,8 +180,9 @@ namespace SR
 
 		if( lineIter.yStart < lineIter.yEnd )
 		{
-			float day = 1 / ( lineIter.yMax - lineIter.yMin );
+			float day = 1 / (lineIter.yMax - lineIter.yMin);
 			float ay = 0;
+
 			for( int y = lineIter.yStart; y < lineIter.yEnd; ++y )
 			{
 				float temp = ay;
@@ -392,20 +201,20 @@ namespace SR
 					VertexData vMin = PerspectiveLerp(vL, vS, temp);
 					VertexData vMax = PerspectiveLerp(vR, vS, temp);
 
-					float dax = 1 / ( lineIter.xMax - lineIter.xMin );
+					float dax = 1 / (lineIter.xMax - lineIter.xMin);
 					float ax = 0;
 					for( int x = xStart; x < xEnd; ++x )
 					{
 						VertexData v = PerspectiveLerp(vMin, vMax, ax);
 #if 0
-						
-						if ( Math::Fmod( 10 * v.uv.x , 1.0 ) > 0.5 &&
-							 Math::Fmod(10 * v.uv.y, 1.0) > 0.5 )
-							buffer.setPixel(x, y, LinearColor(1,1,1,1));
+
+						if( Math::Fmod(10 * v.uv.x, 1.0) > 0.5 &&
+						   Math::Fmod(10 * v.uv.y, 1.0) > 0.5 )
+							buffer.setPixel(x, y, LinearColor(1, 1, 1, 1));
 #else
 						LinearColor destC = buffer.getPixel(x, y);
-						buffer.setPixel( x , y , Math::LinearLerp( destC,  v.color * SimpleTexture.sample(v.uv)  , 0.8 ) );
-	
+						buffer.setPixel(x, y, Math::LinearLerp(destC, v.color * SimpleTexture.sample(v.uv), 0.8));
+
 #endif
 						ax += dax;
 					}
@@ -416,10 +225,13 @@ namespace SR
 		}
 	}
 
-	void DrawTriangle(ColorBuffer& buffer, Vec2f const& v0, Vec2f const& v1, Vec2f const& v2, 
-					  VertexData const& vd0 , VertexData const& vd1  , VertexData const& vd2)
+
+
+
+	void DrawTriangle(ColorBuffer& buffer, Vector2 const& v0, Vector2 const& v1, Vector2 const& v2,
+					  VertexData const& vd0, VertexData const& vd1, VertexData const& vd2)
 	{
-		Vec2f maxV, minV, midV;
+		Vector2 maxV, minV, midV;
 		VertexData const* maxVD;
 		VertexData const* minVD;
 		VertexData const* midVD;
@@ -449,7 +261,7 @@ namespace SR
 			midVD = &vd2;
 		}
 
-		Vec2f delta = maxV - minV;
+		Vector2 delta = maxV - minV;
 
 		if( Math::Abs(delta.y) < 1 )
 		{
@@ -459,8 +271,8 @@ namespace SR
 		float dxdy = delta.x / delta.y;
 		int yMid = PixelCut(midV.y);
 
-		Vec2f deltaB = midV - minV;
-		VertexData pVD = PerspectiveLerp(*minVD, *maxVD, deltaB.y / delta.y );
+		Vector2 deltaB = midV - minV;
+		VertexData pVD = PerspectiveLerp(*minVD, *maxVD, deltaB.y / delta.y);
 		if( Math::Abs(deltaB.y) > 1 )
 		{
 			ScanLineIterator lineIter;
@@ -475,7 +287,7 @@ namespace SR
 			{
 				lineIter.dxdyMin = deltaB.x / deltaB.y;
 				lineIter.dxdyMax = dxdy;
-				ClipAndInterpolantColor(buffer, lineIter, *midVD , pVD , *minVD , true);
+				ClipAndInterpolantColor(buffer, lineIter, *midVD, pVD, *minVD, true);
 			}
 			else
 			{
@@ -483,10 +295,10 @@ namespace SR
 				lineIter.dxdyMin = dxdy;
 				ClipAndInterpolantColor(buffer, lineIter, pVD, *midVD, *minVD, true);
 			}
-			
+
 		}
 
-		Vec2f deltaT = maxV - midV;
+		Vector2 deltaT = maxV - midV;
 		if( Math::Abs(deltaT.y) > 1 )
 		{
 			ScanLineIterator lineIter;
@@ -546,9 +358,9 @@ namespace SR
 		}
 	}
 
-	void DrawTriangle(ColorBuffer& buffer, Vec2f const& v0, Vec2f const& v1, Vec2f const& v2, Color const& color)
+	void DrawTriangle(ColorBuffer& buffer, Vector2 const& v0, Vector2 const& v1, Vector2 const& v2, Color const& color)
 	{
-		Vec2f maxV, minV, midV;
+		Vector2 maxV, minV, midV;
 		if( v0.y > v1.y )
 		{
 			minV = v1; maxV = v0;
@@ -570,7 +382,7 @@ namespace SR
 			midV = v2;
 		}
 
-		Vec2f delta = maxV - minV;
+		Vector2 delta = maxV - minV;
 
 		if( Math::Abs(delta.y) < 1 )
 		{
@@ -580,7 +392,7 @@ namespace SR
 		float dxdy = delta.x / delta.y;
 		int yMid = PixelCut(midV.y);
 
-		Vec2f deltaB = midV - minV;
+		Vector2 deltaB = midV - minV;
 		if( Math::Abs(deltaB.y) > 1 )
 		{
 			ScanLineIterator lineIter;
@@ -604,7 +416,7 @@ namespace SR
 			ClipAndFillColor(buffer, lineIter, color);
 		}
 
-		Vec2f deltaT = maxV - midV;
+		Vector2 deltaT = maxV - midV;
 		if( Math::Abs(deltaT.y) > 1 )
 		{
 			ScanLineIterator lineIter;
@@ -631,11 +443,11 @@ namespace SR
 		}
 	}
 
-	void DrawLine(ColorBuffer& buffer, Vec2f const& from, Vec2f const& to , Color const& color )
+	void DrawLine(ColorBuffer& buffer, Vector2 const& from, Vector2 const& to, Color const& color)
 	{
 		Vec2i bufferSize = buffer.getSize();
-		Vec2f delta = to - from;
-		Vec2f deltaAbs = Vec2f(Math::Abs(delta.x), Math::Abs(delta.y));
+		Vector2 delta = to - from;
+		Vector2 deltaAbs = Vector2(Math::Abs(delta.x), Math::Abs(delta.y));
 
 		if( deltaAbs.x < 1 && deltaAbs.y < 1 )
 		{
@@ -691,208 +503,237 @@ namespace SR
 			for( int i = start; i <= end; ++i )
 			{
 				int vi = Math::FloorToInt(v);
-				buffer.setPixelCheck(vi, i , color);
+				buffer.setPixelCheck(vi, i, color);
 				v += dDelta;
 			}
 		}
 	}
 
-	class Renderer
+
+
+	void RasterizedRenderer::drawTriangle(Vector3 v0, LinearColor color0, Vector2 uv0, Vector3 v1, LinearColor color1, Vector2 uv1, Vector3 v2, LinearColor color2, Vector2 uv2)
 	{
-	public:
+		Vector4 clip0 = Vector4(v0, 1) * worldToClip;
+		Vector4 clip1 = Vector4(v1, 1) * worldToClip;
+		Vector4 clip2 = Vector4(v2, 1) * worldToClip;
+		VertexData vd0;
+		vd0.uv = uv0;
+		vd0.w = 1.0 / clip0.w;
+		vd0.color = color0;
 
-		bool init( Vec2i const& size )
-		{
-			if( !mColorBuffer.create( size ) )
-				return false;
+		VertexData vd1;
+		vd1.uv = uv1;
+		vd1.w = 1.0 / clip1.w;
+		vd1.color = color1;
 
-			return true;
-		}
-		void clearBuffer(LinearColor const& color)
-		{
-			mColorBuffer.clear(color);
-		}
+		VertexData vd2;
+		vd2.uv = uv2;
+		vd2.w = 1.0 / clip2.w;
+		vd2.color = color2;
 
+		DrawTriangle(*mRenderTarget.colorBuffer, toScreenPos(clip0), toScreenPos(clip1), toScreenPos(clip2),
+					 vd0, vd1, vd2);
+	}
 
-		Vec2f viewportOrg;
-		Vec2f viewportSize;
-		Matrix4 worldToClip;
-
-		Vec2f toScreenPos(Vector4 clipPos)
-		{
-			return viewportOrg + viewportSize.mul(0.5 *Vec2f(clipPos.x / clipPos.w, clipPos.y / clipPos.w ) + Vec2f(0.5,0.5) );
-		}
-
-		void drawTriangle(Vector3 v0, LinearColor color0, Vec2f uv0,
-						  Vector3 v1, LinearColor color1, Vec2f uv1,
-						  Vector3 v2, LinearColor color2, Vec2f uv2)
-		{
-			Vector4 clip0 = Vector4(v0, 1) * worldToClip;
-			Vector4 clip1 = Vector4(v1, 1) * worldToClip;
-			Vector4 clip2 = Vector4(v2, 1) * worldToClip;
-			VertexData vd0;
-			vd0.uv = uv0;
-			vd0.w = 1.0 / clip0.w;
-			vd0.color = color0;
-
-			VertexData vd1;
-			vd1.uv = uv1;
-			vd1.w = 1.0 / clip1.w;
-			vd1.color = color1;
-
-			VertexData vd2;
-			vd2.uv = uv2;
-			vd2.w = 1.0 / clip2.w;
-			vd2.color = color2;
-
-			DrawTriangle(mColorBuffer, toScreenPos(clip0), toScreenPos(clip1), toScreenPos(clip2),
-						 vd0, vd1, vd2);
-		}
-
-		void draw(Graphics2D& g)
-		{
-			mColorBuffer.draw(g);
-		}
-
-
-		ColorBuffer mColorBuffer;
-	};
-
-	class TestStage : public StageBase
+	bool TestStage::onInit()
 	{
-		typedef StageBase BaseClass;
-	public:
-
-		Renderer mRenderer;
-		virtual bool onInit()
-		{
-			if( !BaseClass::onInit() )
-				return false;
-
-			if( !mRenderer.init(::Global::getDrawEngine()->getScreenSize()) )
-				return false;
-
-			if( !SimpleTexture.load(
-#if 0
-				"Texture/tile1.tga"
-#else
-				"Texture/Gird.png"
-#endif
-			) )
-				return false;
-
-			::Global::GUI().cleanupWidget();
-
-			DevFrame* frame = WidgetUtility::CreateDevFrame();
-			frame->addButton(UI_RESTART_GAME, "Restart");
-
-			restart();
-			return true;
-		}
-
-
-		virtual void onEnd()
-		{
-
-			BaseClass::onEnd();
-		}
-
-		virtual void onUpdate(long time)
-		{
-			BaseClass::onUpdate(time);
-
-			int frame = time / gDefaultTickTime;
-			if ( !bPause )
-			{
-				for( int i = 0; i < frame; ++i )
-					tick();
-			}
-
-			updateFrame(frame);
-		}
-
-		void onRender(float dFrame)
-		{
-			Graphics2D& g = Global::getGraphics2D();
-			mRenderer.clearBuffer(LinearColor(0.2, 0.2 , 0.2, 0));
-
-			DrawLine(mRenderer.mColorBuffer, Vec2f(0, 0), Vec2f(100, 200), LinearColor(1, 0, 0));
-			DrawTriangle(mRenderer.mColorBuffer, Vec2f(123, 100), Vec2f(400, 200), Vec2f(200, 300), LinearColor(1, 1, 0));
-			DrawTriangle(mRenderer.mColorBuffer, Vec2f(400, 200), Vec2f(200, 300), Vec2f(400, 300), LinearColor(0, 1, 1));
-
-			{
-				VertexData vd0 = { 1 , Vec2f(0,0) , LinearColor(1,0,0) };
-				VertexData vd1 = { 1 , Vec2f(1,0) ,LinearColor(0,1,0) };
-				VertexData vd2 = { 1 , Vec2f(1,1) ,LinearColor(0,0,1) };
-				DrawTriangle(mRenderer.mColorBuffer, Vec2f(100, 400), Vec2f(200, 500), Vec2f(400, 300), vd0, vd1, vd2);
-			}
-
-			{
-				VertexData vd0 = { 1 , Vec2f(0,0) ,LinearColor(1,0,0) };
-				VertexData vd1 = { 0.5 , Vec2f(1,0) ,LinearColor(0,1,0) };
-				VertexData vd2 = { 0.4 , Vec2f(1,1) ,LinearColor(0,0,1) };
-				DrawTriangle(mRenderer.mColorBuffer, Vec2f(300, 400), Vec2f(400, 500), Vec2f(600, 300), vd0, vd1, vd2);
-			}
-			using namespace RenderGL;
-			Vec2i screenSize = ::Global::getDrawEngine()->getScreenSize();
-			float aspect = float(screenSize.x) / screenSize.y;
-			mRenderer.worldToClip = Matrix4::Rotate( Vector3(0,1,0) , angle ) * LookAtMatrix( Vector3(0,0,20) , Vector3(0,0,-1), Vector3(0,1,0) ) * PerspectiveMatrix(Math::Deg2Rad(90), aspect, 0.01, 500);
-			mRenderer.viewportOrg = Vec2f(0, 0);
-			mRenderer.viewportSize = Vec2f(::Global::getDrawEngine()->getScreenSize());
-
-			mRenderer.drawTriangle(Vector3(-10,-10, 0), LinearColor(1, 0, 0), Vec2f(0, 0) ,
-								   Vector3( 10,-10, 0), LinearColor(1, 0, 0), Vec2f(1, 0) ,
-								   Vector3( 10, 10, 0), LinearColor(1, 0, 0), Vec2f(1, 1));
-			mRenderer.drawTriangle(Vector3(-10,-10, 0), LinearColor(0, 1, 0), Vec2f(0, 0),
-								   Vector3( 10, 10, 0), LinearColor(0, 1, 0), Vec2f(1, 1),
-								   Vector3(-10, 10, 0), LinearColor(0, 1, 0), Vec2f(0, 1));
-
-			mRenderer.draw(g);
-		}
-
-		void restart()
-		{
-
-		}
-
-		bool bPause = false;
-		float angle = 0;
-
-		void tick()
-		{
-
-			angle += float( gDefaultTickTime ) / 1000.0;
-		}
-
-		void updateFrame(int frame)
-		{
-
-		}
-
-		bool onMouse(MouseMsg const& msg)
-		{
-			if( !BaseClass::onMouse(msg) )
-				return false;
-			return true;
-		}
-
-		bool onKey(unsigned key, bool isDown)
-		{
-			if( !isDown )
-				return false;
-
-			switch( key )
-			{
-			case Keyboard::eR: restart(); break;
-			case Keyboard::eP: bPause = !bPause; break;
-			}
+		if( !BaseClass::onInit() )
 			return false;
+
+		if( !mColorBuffer.create(::Global::getDrawEngine()->getScreenSize()) )
+			return false;
+
+		if( !mRenderer.init() )
+			return false;
+
+		if( !mRTRenderer.init() )
+			return false;
+
+		if( !SimpleTexture.load(
+#if 0
+			"Texture/tile1.tga"
+#else
+			"Texture/Gird.png"
+#endif
+		) )
+			return false;
+
+		setupScene();
+
+		::Global::GUI().cleanupWidget();
+
+		DevFrame* frame = WidgetUtility::CreateDevFrame();
+		frame->addButton(UI_RESTART_GAME, "Restart");
+
+
+		restart();
+		return true;
+	}
+
+	void TestStage::renderTest1()
+	{
+		Graphics2D& g = Global::getGraphics2D();
+
+		RenderTarget renderTarget;
+		renderTarget.colorBuffer = &mColorBuffer;
+		mRenderer.setRenderTarget(renderTarget);
+		mRenderer.clearBuffer(LinearColor(0.2, 0.2, 0.2, 0));
+
+		DrawLine(mColorBuffer, Vector2(0, 0), Vector2(100, 200), LinearColor(1, 0, 0));
+		DrawTriangle(mColorBuffer, Vector2(123, 100), Vector2(400, 200), Vector2(200, 300), LinearColor(1, 1, 0));
+		DrawTriangle(mColorBuffer, Vector2(400, 200), Vector2(200, 300), Vector2(400, 300), LinearColor(0, 1, 1));
+
+		{
+			VertexData vd0 = { 1 , Vector2(0,0) , LinearColor(1,0,0) };
+			VertexData vd1 = { 1 , Vector2(1,0) ,LinearColor(0,1,0) };
+			VertexData vd2 = { 1 , Vector2(1,1) ,LinearColor(0,0,1) };
+			DrawTriangle(mColorBuffer, Vector2(100, 400), Vector2(200, 500), Vector2(400, 300), vd0, vd1, vd2);
 		}
 
+		{
+			VertexData vd0 = { 1 , Vector2(0,0) ,LinearColor(1,0,0) };
+			VertexData vd1 = { 0.5 , Vector2(1,0) ,LinearColor(0,1,0) };
+			VertexData vd2 = { 0.4 , Vector2(1,1) ,LinearColor(0,0,1) };
+			DrawTriangle(mColorBuffer, Vector2(300, 400), Vector2(400, 500), Vector2(600, 300), vd0, vd1, vd2);
+		}
+		using namespace RenderGL;
+		Vec2i screenSize = ::Global::getDrawEngine()->getScreenSize();
+		float aspect = float(screenSize.x) / screenSize.y;
+		mRenderer.worldToClip = Matrix4::Rotate(Vector3(0, 1, 0), angle) * LookAtMatrix(Vector3(0, 0, 20), Vector3(0, 0, -1), Vector3(0, 1, 0)) * PerspectiveMatrix(Math::Deg2Rad(90), aspect, 0.01, 500);
+		mRenderer.viewportOrg = Vector2(0, 0);
+		mRenderer.viewportSize = Vector2(::Global::getDrawEngine()->getScreenSize());
 
-	};
+		mRenderer.drawTriangle(Vector3(-10, -10, 0), LinearColor(1, 0, 0), Vector2(0, 0),
+							   Vector3(10, -10, 0), LinearColor(1, 0, 0), Vector2(1, 0),
+							   Vector3(10, 10, 0), LinearColor(1, 0, 0), Vector2(1, 1));
+		mRenderer.drawTriangle(Vector3(-10, -10, 0), LinearColor(0, 1, 0), Vector2(0, 0),
+							   Vector3(10, 10, 0), LinearColor(0, 1, 0), Vector2(1, 1),
+							   Vector3(-10, 10, 0), LinearColor(0, 1, 0), Vector2(0, 1));
 
-}//namespace SWR
+
+		mColorBuffer.draw(g);
+	}
+
+	void TestStage::setupScene()
+	{
+		mCamera.lookAt(Vector3(0, 5, 1), Vector3(0, 0, 0.5), Vector3(0, 0, 1));
+		mCamera.fov = Math::Deg2Rad(70);
+		mCamera.aspect = float(mColorBuffer.getSize().x) / mColorBuffer.getSize().y;
 
 
-REGISTER_STAGE("Software Render", SR::TestStage, StageRegisterGroup::GraphicsTest);
+		TRefCountPtr< PlaneShape > plane = new PlaneShape;
+
+		TRefCountPtr< SphereShape > sphere = new SphereShape;
+		sphere->radius = 0.5;
+
+		MaterialPtr mat[3];
+		mat[0] = new Material;
+		mat[0]->emissiveColor = LinearColor(1, 0, 0);
+		mat[1] = new Material;
+		mat[1]->emissiveColor = LinearColor(0, 1, 0);
+		mat[2] = new Material;
+		mat[2]->emissiveColor = LinearColor(0, 0, 1);
+		{
+			PrimitiveObjectPtr obj = new PrimitiveObject;
+			obj->shape = plane;
+			obj->material = new Material;
+			obj->material->emissiveColor = LinearColor(0.5, 0.5, 0.5);
+			mScene.addPrimitive(obj);
+		}
+
+		if( 1 )
+		{
+			PrimitiveObjectPtr obj = new PrimitiveObject;
+			obj->shape = plane;
+			obj->transform.location = Vector3(0, 0, 20);
+			obj->transform.rotation = Quaternion::Rotate( Vector3(1,0,0) , Math::Deg2Rad(180) );
+			obj->material = new Material;
+			obj->material->emissiveColor = LinearColor(0.5, 0.5, 0.8);
+			mScene.addPrimitive(obj);
+		}
+
+		for( int i = 0; i < 10; ++i )
+		{
+			PrimitiveObjectPtr obj = new PrimitiveObject;
+			obj->shape = sphere;
+			obj->transform.location = Vector3(1.5 * (i - 5), 0, 0.5);
+			obj->material = mat[i % 3];
+			mScene.addPrimitive(obj);
+		}
+	}
+
+	bool RayTraceRenderer::init()
+	{
+#if USE_OMP
+		omp_set_num_threads(10);
+#endif
+		return true;
+	}
+
+	void RayTraceRenderer::render(Scene& scene, Camera& camera)
+	{
+		Vector3 lookDir = camera.transform.transformVectorNoScale(Vector3(0, 0, -1));
+		Vector3 axisX = camera.transform.transformVectorNoScale(Vector3(1, 0, 0));
+		Vector3 axisY = camera.transform.transformVectorNoScale(Vector3(0, 1, 0));
+
+
+		Vec2i screenSize = mRenderTarget.colorBuffer->getSize();
+
+		
+		Vector3 const pixelOffsetX = ( 2 * Math::Tan(0.5 * camera.fov) * camera.aspect / screenSize.x ) * axisX;
+		Vector3 const pixelOffsetY = ( 2 * Math::Tan(0.5 * camera.fov) / screenSize.y ) * axisY;
+
+		float const centerPixelPosX = 0.5 * screenSize.x + 0.5;
+		float const centerPixelPosY = 0.5 * screenSize.y + 0.5;
+#if USE_OMP
+#pragma omp parallel for
+#endif
+		for( int j = 0; j < screenSize.y; ++j )
+		{
+			Vector3 offsetY = ( float(j) - centerPixelPosY) * pixelOffsetY;
+
+			for( int i = 0; i < screenSize.x; ++i )
+			{
+				Vector3 offsetX = ( float(i) - centerPixelPosX ) * pixelOffsetX;
+
+				RayTrace trace;
+				trace.pos = camera.transform.location;
+				trace.dir = Math::Normalize(lookDir + offsetX + offsetY);
+
+				RayResult result;
+				if( !scene.raycast(trace, result) )
+					continue;
+				
+				if( result.material )
+				{
+					float attenuation = Math::Clamp< float >(-result.normal.dot(trace.dir), 0, 1) /*/ Math::Squre(result.distance)*/;
+					LinearColor c = result.material->emissiveColor;
+
+					RayTrace reflectTrace;
+					reflectTrace.dir = Math::Normalize(trace.dir - 2 * trace.dir.projectNormal(result.normal));
+					reflectTrace.pos = trace.pos + result.distance * trace.dir;
+
+					RayResult reflectResult;
+					if( scene.raycast(reflectTrace, reflectResult) )
+					{
+						if( reflectResult.material )
+						{
+							c += reflectResult.material->emissiveColor;
+							c *= attenuation;
+						}
+
+					}
+
+					mRenderTarget.colorBuffer->setPixel(i, j, c);
+				}
+				else
+				{
+					Vector3 c = 0.5 * (result.normal + Vector3(1));
+					mRenderTarget.colorBuffer->setPixel(i, j, LinearColor(c));
+				}
+
+			}
+		}
+	}
+
+}

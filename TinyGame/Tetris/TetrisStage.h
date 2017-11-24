@@ -2,7 +2,7 @@
 #define TetrisStage_h__
 
 #include "GameStage.h"
-#include "GameInstance.h"
+#include "GameModule.h"
 #include "GameMenuStage.h"
 
 #include "TetrisAction.h"
@@ -123,8 +123,8 @@ namespace Tetris
 			Piece piece;
 			float angle;
 			float angleVel;
-			Vec2f pos;
-			Vec2f vel;
+			Vector2 pos;
+			Vector2 vel;
 
 			void render();
 			void update( float dt );

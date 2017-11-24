@@ -168,13 +168,13 @@ namespace RenderGL
 		switch( type )
 		{
 		case LightType::Spot:
-			ShaderHelper::drawTexture(*mShadowMap2, pos, Vec2i(length, length));
+			ShaderHelper::DrawTexture(*mShadowMap2, pos, Vec2i(length, length));
 			break;
 		case LightType::Directional:
-			ShaderHelper::drawTexture(*mCascadeTexture, pos, Vec2i(length * CascadedShadowNum, length));
+			ShaderHelper::DrawTexture(*mCascadeTexture, pos, Vec2i(length * CascadedShadowNum, length));
 			break;
 		case LightType::Point:
-			ShaderHelper::drawCubeTexture(*mShadowMap, pos, length / 2);
+			ShaderHelper::DrawCubeTexture(*mShadowMap, pos, length / 2);
 			//ShaderHelper::drawCubeTexture(GWhiteTextureCube, Vec2i(0, 0), length / 2);
 		default:
 			break;
@@ -598,9 +598,9 @@ namespace RenderGL
 	void DefferredShadingTech::renderLight(ViewInfo& view, LightInfo const& light, ShadowProjectParam const& shadowProjectParam)
 	{
 
-		auto const BindShaderParam = [this , &view , &light , &shadowProjectParam](ShaderProgram& program)
+		auto const BindShaderParam = [this , &view , &light , &shadowProjectParam](DefferredLightingProgram& program)
 		{
-			mSceneRenderTargets->setupShaderGBuffer(program, true);
+			program.setParamters(*mSceneRenderTargets);
 			shadowProjectParam.setupShader(program);
 			view.setupShader(program);
 			light.setupShaderGlobalParam(program);
@@ -608,7 +608,7 @@ namespace RenderGL
 
 		if( boundMethod != LBM_SCREEN_RECT && light.type != LightType::Directional )
 		{
-			ShaderProgram& lightShader = (debugMode == DebugMode::eNone) ? mProgLighting[ (int)light.type ] : mProgLightingShowBound;
+			DefferredLightingProgram& lightShader = (debugMode == DebugMode::eNone) ? mProgLighting[ (int)light.type ] : mProgLightingShowBound;
 
 			mLightBuffer.setTexture(0, mSceneRenderTargets->getRenderFrameTexture());
 
@@ -719,7 +719,7 @@ namespace RenderGL
 			{
 				GL_BIND_LOCK_OBJECT(mSceneRenderTargets->getFrameBuffer());
 				//MatrixSaveScope matrixScope(Matrix4::Identity());
-				ShaderProgram& program = mProgLightingScreenRect[(int)light.type];
+				DefferredLightingProgram& program = mProgLightingScreenRect[(int)light.type];
 				GL_BIND_LOCK_OBJECT(program);
 				BindShaderParam(program);
 				DrawUtiltiy::ScreenRect();
@@ -804,7 +804,7 @@ namespace RenderGL
 
 	void GBufferParamData::drawTexture(int x, int y, int width, int height, int idxBuffer)
 	{
-		ShaderHelper::drawTexture(*textures[idxBuffer], Vec2i(x, y), Vec2i(width, height));
+		ShaderHelper::DrawTexture(*textures[idxBuffer], Vec2i(x, y), Vec2i(width, height));
 	}
 
 	void GBufferParamData::drawTexture(int x, int y, int width, int height, int idxBuffer, Vector4 const& colorMask)
@@ -875,10 +875,7 @@ namespace RenderGL
 			GL_BIND_LOCK_OBJECT(mFrameBuffer);
 			GL_BIND_LOCK_OBJECT(mSSAOShader);
 			view.setupShader(mSSAOShader);
-			sceneRenderTargets.setupShaderGBuffer(mSSAOShader, true);
-			mSSAOShader.setParam(SHADER_PARAM(KernelNum), (int)mKernelVectors.size());
-			mSSAOShader.setParam(SHADER_PARAM(KernelVectors), &mKernelVectors[0], mKernelVectors.size());
-			mSSAOShader.setParam(SHADER_PARAM(OcclusionRadius), 0.5f);
+			mSSAOShader.setParameters( sceneRenderTargets , &mKernelVectors[0], mKernelVectors.size());
 			DrawUtiltiy::ScreenRect();
 		}
 
@@ -888,7 +885,7 @@ namespace RenderGL
 			mFrameBuffer.setTexture(0, *mSSAOTextureBlur);
 			GL_BIND_LOCK_OBJECT(mFrameBuffer);
 			GL_BIND_LOCK_OBJECT(mSSAOBlurShader);
-			mSSAOBlurShader.setTexture(SHADER_PARAM(TextureSSAO), *mSSAOTexture);
+			mSSAOBlurShader.setParameters(*mSSAOTexture);
 			DrawUtiltiy::ScreenRect();
 		}
 
@@ -899,8 +896,7 @@ namespace RenderGL
 			glBlendFunc(GL_ONE, GL_ONE);
 			GL_BIND_LOCK_OBJECT(sceneRenderTargets.getFrameBuffer());
 			GL_BIND_LOCK_OBJECT(mAmbientShader);
-			mAmbientShader.setTexture(SHADER_PARAM(TextureSSAO), *mSSAOTextureBlur);
-			sceneRenderTargets.setupShaderGBuffer(mAmbientShader, false);
+			mAmbientShader.setParameters(sceneRenderTargets, *mSSAOTextureBlur);
 			DrawUtiltiy::ScreenRect();
 			glDisable(GL_BLEND);
 		}
@@ -1006,7 +1002,7 @@ namespace RenderGL
 		glDisable(GL_TEXTURE_2D);
 	}
 
-	bool OITTech::init(Vec2i const& size)
+	bool OITTechique::init(Vec2i const& size)
 	{
 		mColorStorageTexture = new RHITexture2D;
 		if( !mColorStorageTexture->create(Texture::eRGBA16F, OIT_StorageSize, OIT_StorageSize) )
@@ -1029,21 +1025,22 @@ namespace RenderGL
 		mMeshScreenTri.createBuffer(v, 3);
 		mMeshScreenTri.mType = PrimitiveType::eTriangleList;
 
-		
-		FixString< 512 > define;
-		define.format(
-			"#version 430 compatibility\n"
-			"#define OIT_STORAGE_SIZE %d\n", OIT_StorageSize );
-		if( !ShaderManager::getInstance().loadFile(
-			mShaderBassPassTest,"Shader/OITRender", 
-			SHADER_ENTRY(BassPassVS), SHADER_ENTRY(BassPassPS),
-			define , nullptr) )
-			return false;
-		if( !ShaderManager::getInstance().loadFile(
-			mShaderResolve, "Shader/OITRender",
-			SHADER_ENTRY(ScreenVS), SHADER_ENTRY(ResolvePS),
-			define , nullptr) )
-			return false;
+
+		{
+			ShaderCompileOption option;
+			option.version = 430;
+			option.addDefine(SHADER_PARAM(OIT_STORAGE_SIZE), OIT_StorageSize);
+			if( !ShaderManager::getInstance().loadFile(
+				mShaderBassPassTest, "Shader/OITRender",
+				SHADER_ENTRY(BassPassVS), SHADER_ENTRY(BassPassPS),
+				option, nullptr) )
+				return false;
+			if( !ShaderManager::getInstance().loadFile(
+				mShaderResolve, "Shader/OITRender",
+				SHADER_ENTRY(ScreenVS), SHADER_ENTRY(ResolvePS),
+				option, nullptr) )
+				return false;
+		}
 
 		BMA_InternalValMin[NumBMALevel - 1] = 1;
 		for( int i = 0; i < NumBMALevel; ++i )
@@ -1051,14 +1048,14 @@ namespace RenderGL
 			if ( i != NumBMALevel - 1 )
 				BMA_InternalValMin[i] = BMA_MaxPixelCounts[i + 1] + 1;
 
-			define.format(
-				"#version 430 compatibility\n"
-				"#define OIT_STORAGE_SIZE %d\n"
-				"#define OIT_MAX_PIXEL_COUNT %d\n" , OIT_StorageSize , BMA_MaxPixelCounts[i]);
+			ShaderCompileOption option;
+			option.version = 430;
+			option.addDefine(SHADER_PARAM(OIT_STORAGE_SIZE), OIT_StorageSize);
+			option.addDefine(SHADER_PARAM(OIT_MAX_PIXEL_COUNT) , BMA_MaxPixelCounts[i]);
 			if( !ShaderManager::getInstance().loadFile(
 				mShaderBMAResolves[i], "Shader/OITRender",
 				SHADER_ENTRY(ScreenVS), SHADER_ENTRY(ResolvePS),
-				define, nullptr) )
+				option , nullptr) )
 				return false;
 		}
 
@@ -1081,7 +1078,7 @@ namespace RenderGL
 		return true;
 	}
 
-	void OITTech::render(ViewInfo& view, SceneInterface& scnenRender, SceneRenderTargets* sceneRenderTargets)
+	void OITTechique::render(ViewInfo& view, SceneInterface& scnenRender, SceneRenderTargets* sceneRenderTargets)
 	{
 		auto DrawFun = [this, &view, &scnenRender]()
 		{
@@ -1099,14 +1096,14 @@ namespace RenderGL
 			MatrixSaveScope matScope(matProj);
 
 			glDisable(GL_DEPTH_TEST);
-			ShaderHelper::drawTexture(*mColorStorageTexture, Vec2i(0, 0), Vec2i(200, 200));
+			ShaderHelper::DrawTexture(*mColorStorageTexture, Vec2i(0, 0), Vec2i(200, 200));
 			glEnable(GL_DEPTH_TEST);
 			glMemoryBarrier(GL_ALL_BARRIER_BITS);
 
 		}
 	}
 
-	void OITTech::renderTest(ViewInfo& view, SceneRenderTargets& sceneRenderTargets, Mesh& mesh, Material* material)
+	void OITTechique::renderTest(ViewInfo& view, SceneRenderTargets& sceneRenderTargets, Mesh& mesh, Material* material)
 	{
 		auto DrawFun = [this , &view , &mesh , material ]()
 		{
@@ -1158,7 +1155,7 @@ namespace RenderGL
 			MatrixSaveScope matScope(matProj);
 
 			glDisable(GL_DEPTH_TEST);
-			ShaderHelper::drawTexture(*mColorStorageTexture, Vec2i(0, 0), Vec2i(200,200));
+			ShaderHelper::DrawTexture(*mColorStorageTexture, Vec2i(0, 0), Vec2i(200,200));
 			glEnable(GL_DEPTH_TEST);
 			glMemoryBarrier(GL_ALL_BARRIER_BITS);
 
@@ -1166,7 +1163,7 @@ namespace RenderGL
 
 	}
 
-	void OITTech::reload()
+	void OITTechique::reload()
 	{
 		ShaderManager::getInstance().reloadShader(mShaderBassPassTest);
 		ShaderManager::getInstance().reloadShader(mShaderResolve);
@@ -1174,7 +1171,7 @@ namespace RenderGL
 			ShaderManager::getInstance().reloadShader(mShaderBMAResolves[i]);
 	}
 
-	void OITTech::renderInternal(ViewInfo& view, std::function< void() > drawFuncion , SceneRenderTargets* sceneRenderTargets )
+	void OITTechique::renderInternal(ViewInfo& view, std::function< void() > drawFuncion , SceneRenderTargets* sceneRenderTargets )
 	{
 		GPU_PROFILE("OIT");
 		
@@ -1266,22 +1263,18 @@ namespace RenderGL
 					GPU_PROFILE_VA("BMA=%d", BMA_MaxPixelCounts[i]);
 					glStencilFunc(GL_LEQUAL, BMA_InternalValMin[i], 0xff);
 					glStencilOp(GL_KEEP, GL_ZERO, GL_ZERO);
-					ShaderProgram& shaderprogram = mShaderBMAResolves[i];
+					BMAResolveProgram& shaderprogram = mShaderBMAResolves[i];
 					GL_BIND_LOCK_OBJECT(shaderprogram);
-					shaderprogram.setRWTexture(SHADER_PARAM(ColorStorageTexture), *mColorStorageTexture, AO_READ_AND_WRITE);
-					shaderprogram.setRWTexture(SHADER_PARAM(NodeAndDepthStorageTexture), *mNodeAndDepthStorageTexture, AO_READ_AND_WRITE);
-					shaderprogram.setRWTexture(SHADER_PARAM(NodeHeadTexture), *mNodeHeadTexture, AO_READ_AND_WRITE);
+					shaderprogram.setParameters(*mColorStorageTexture, *mNodeAndDepthStorageTexture, *mNodeHeadTexture);
 					mScreenMesh.draw(true);
 				}
 
 			}
 			else
 			{
-				ShaderProgram& shaderprogram = mShaderBMAResolves[0];
+				BMAResolveProgram& shaderprogram = mShaderBMAResolves[0];
 				GL_BIND_LOCK_OBJECT(shaderprogram);
-				shaderprogram.setRWTexture(SHADER_PARAM(ColorStorageTexture), *mColorStorageTexture, AO_READ_AND_WRITE);
-				shaderprogram.setRWTexture(SHADER_PARAM(NodeAndDepthStorageTexture), *mNodeAndDepthStorageTexture, AO_READ_AND_WRITE);
-				shaderprogram.setRWTexture(SHADER_PARAM(NodeHeadTexture), *mNodeHeadTexture, AO_READ_AND_WRITE);
+				shaderprogram.setParameters(*mColorStorageTexture, *mNodeAndDepthStorageTexture, *mNodeHeadTexture);
 				mScreenMesh.draw(true);
 			}
 
@@ -1302,16 +1295,101 @@ namespace RenderGL
 		glEnable(GL_CULL_FACE);
 	}
 
-	ShaderProgram* OITTech::getMaterialShader(RenderContext& context, MaterialMaster& material , VertexFactory* vertexFactory)
+	MaterialShaderProgram* OITTechique::getMaterialShader(RenderContext& context, MaterialMaster& material , VertexFactory* vertexFactory)
 	{
 		return material.getShader(RenderTechiqueUsage::OIT , vertexFactory);
 	}
 
-	void OITTech::setupMaterialShader(RenderContext& context, ShaderProgram& shader)
+	void OITTechique::setupMaterialShader(RenderContext& context, ShaderProgram& shader)
 	{
 		shader.setRWTexture(SHADER_PARAM(ColorStorageRWTexture), *mColorStorageTexture, AO_WRITE_ONLY);
 		shader.setRWTexture(SHADER_PARAM(NodeAndDepthStorageRWTexture), *mNodeAndDepthStorageTexture, AO_READ_AND_WRITE);
 		shader.setRWTexture(SHADER_PARAM(NodeHeadRWTexture), *mNodeHeadTexture, AO_READ_AND_WRITE);
+	}
+
+	void BMAResolveProgram::bindParameters()
+	{
+		mParamColorStorageTexture.bind(*this, SHADER_PARAM(ColorStorageTexture));
+		mParamNodeAndDepthStorageTexture.bind(*this, SHADER_PARAM(NodeAndDepthStorageTexture));
+		mParamNodeHeadTexture.bind(*this, SHADER_PARAM(NodeHeadTexture));
+	}
+
+	void BMAResolveProgram::setParameters(RHITexture2D& ColorStorageTexture, RHITexture2D& NodeAndDepthStorageTexture, RHITexture2D& NodeHeadTexture)
+	{
+		setRWTexture(mParamColorStorageTexture, ColorStorageTexture, AO_READ_AND_WRITE);
+		setRWTexture(mParamNodeAndDepthStorageTexture, NodeAndDepthStorageTexture, AO_READ_AND_WRITE);
+		setRWTexture(mParamNodeHeadTexture, NodeHeadTexture, AO_READ_AND_WRITE);
+	}
+
+	void SSAOGenerateProgram::bindParameters()
+	{
+		mParamGBuffer.bindParameters(*this , true);
+		mParamKernelNum.bind(*this, SHADER_PARAM(KernelNum));
+		mParamKernelVectors.bind(*this, SHADER_PARAM(KernelVectors));
+		mParamOcclusionRadius.bind(*this, SHADER_PARAM(OcclusionRadius));
+	}
+
+	void SSAOGenerateProgram::setParameters(SceneRenderTargets& sceneRenderTargets, Vector3 kernelVectors[], int numKernelVector)
+	{
+		mParamGBuffer.setParameters(*this, sceneRenderTargets);
+		setParam(mParamKernelNum, (int)numKernelVector);
+		setParam(mParamKernelVectors, &kernelVectors[0], numKernelVector);
+		setParam(mParamOcclusionRadius, 0.5f);
+	}
+
+	void SSAOBlurProgram::bindParameters()
+	{
+		mParamTextureSSAO.bind(*this, SHADER_PARAM(TextureSSAO));
+	}
+
+	void SSAOBlurProgram::setParameters(RHITexture2D& SSAOTexture)
+	{
+		setTexture(mParamTextureSSAO, SSAOTexture);
+	}
+
+	void SSAOAmbientProgram::bindParameters()
+	{
+		mParamGBuffer.bindParameters(*this);
+		mParamTextureSSAO.bind(*this, SHADER_PARAM(TextureSSAO));
+	}
+
+	void SSAOAmbientProgram::setParameters(SceneRenderTargets& sceneRenderTargets, RHITexture2D& SSAOTexture)
+	{
+		mParamGBuffer.setParameters(*this, sceneRenderTargets.getGBuffer());
+		setTexture(SHADER_PARAM(TextureSSAO), SSAOTexture);
+	}
+
+	void GBufferShaderParameters::bindParameters(ShaderProgram& program, bool bUseDepth /*= false */)
+	{
+		mParamGBufferTextureA.bind(program, SHADER_PARAM(GBufferTextureA));
+		mParamGBufferTextureB.bind(program, SHADER_PARAM(GBufferTextureB));
+		mParamGBufferTextureC.bind(program, SHADER_PARAM(GBufferTextureC));
+		mParamGBufferTextureD.bind(program, SHADER_PARAM(GBufferTextureD));
+		if( bUseDepth )
+		{
+			mParamFrameDepthTexture.bind(program, SHADER_PARAM(FrameDepthTexture));
+		}
+	}
+
+	void GBufferShaderParameters::setParameters(ShaderProgram& program, GBufferParamData& GBufferData)
+	{
+		if( mParamGBufferTextureA.isBound() )
+			program.setTexture(mParamGBufferTextureA, *GBufferData.textures[GBufferParamData::BufferA]);
+		if( mParamGBufferTextureB.isBound() )
+			program.setTexture(mParamGBufferTextureB, *GBufferData.textures[GBufferParamData::BufferB]);
+		if( mParamGBufferTextureC.isBound() )
+			program.setTexture(mParamGBufferTextureC, *GBufferData.textures[GBufferParamData::BufferC]);
+		if( mParamGBufferTextureD.isBound() )
+			program.setTexture(mParamGBufferTextureD, *GBufferData.textures[GBufferParamData::BufferD]);
+	}
+
+	void GBufferShaderParameters::setParameters(ShaderProgram& program, SceneRenderTargets& sceneRenderTargets)
+	{
+		setParameters(program, sceneRenderTargets.getGBuffer());
+		if( mParamFrameDepthTexture.isBound() )
+		{
+			program.setTexture(mParamFrameDepthTexture, sceneRenderTargets.getDepthTexture());
+		}
 	}
 
 }//namespace RenderGL

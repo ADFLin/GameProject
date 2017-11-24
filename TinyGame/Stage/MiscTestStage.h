@@ -15,7 +15,7 @@
 #include "DrawEngine.h"
 #include "INetEngine.h"
 #include "RenderUtility.h"
-#include "GameInstance.h"
+#include "GameModule.h"
 
 #include "GameStage.h"
 
@@ -139,11 +139,11 @@ class BSplineTestStage : public StageBase
 public:
 	BSplineTestStage(){}
 
-	typedef TQBezierSpline< Vec2f > MySpline;
+	typedef TQBezierSpline< Vector2 > MySpline;
 
 	MySpline mSpline;
 
-	std::vector< Vec2f > mSplineLine;
+	std::vector< Vector2 > mSplineLine;
 	void constructSpline()
 	{
 		int num = 100;
@@ -182,7 +182,7 @@ public:
 	{
 		Graphics2D& g = Global::getGraphics2D();
 
-		RenderUtility::setPen( g , Color::eRed );
+		RenderUtility::SetPen( g , Color::eRed );
 		int num = mSplineLine.size() - 1;
 		for( int i = 0 ; i < num ; ++i )
 		{
@@ -192,9 +192,9 @@ public:
 
 	void restart()
 	{
-		mSpline.mA = Vec2f( 20 , 20 );
-		mSpline.mB = Vec2f( 40 , 40 );
-		mSpline.mC = Vec2f( 200 , 100 );
+		mSpline.mA = Vector2( 20 , 20 );
+		mSpline.mB = Vector2( 40 , 40 );
+		mSpline.mC = Vector2( 200 , 100 );
 		constructSpline();
 	}
 
@@ -947,7 +947,7 @@ public:
 		};
 		mMap.resize( 10 , 10 );
 		std::copy( &mapData[0][0] , &mapData[0][0] + mMap.getRawDataSize() , mMap.getRawData() );
-		mSize = Vec2f( 20 , 20 );
+		mSize = Vector2( 20 , 20 );
 
 
 		restart();
@@ -969,30 +969,30 @@ public:
 	{
 		Graphics2D& g = Global::getGraphics2D();
 
-		RenderUtility::setPen( g , Color::eGray );
+		RenderUtility::SetPen( g , Color::eGray );
 		for( int i = 0 ; i < mMap.getSizeX() ; ++i )
 		for( int j = 0 ; j < mMap.getSizeY() ; ++j )
 		{
 			switch( mMap.getData(i,j) )
 			{
-			case 1: RenderUtility::setBrush( g , Color::eYellow ); break;
-			case 0: RenderUtility::setBrush( g , Color::eWhite );  break;
+			case 1: RenderUtility::SetBrush( g , Color::eYellow ); break;
+			case 0: RenderUtility::SetBrush( g , Color::eWhite );  break;
 			}
 			g.drawRect( TileLength * Vec2i( i , j ) , Vec2i( TileLength , TileLength ) );
 		}
 
-		RenderUtility::setBrush( g , Color::eRed );
-		RenderUtility::setPen( g , Color::eRed );
+		RenderUtility::SetBrush( g , Color::eRed );
+		RenderUtility::SetPen( g , Color::eRed );
 		g.drawRect( mPos , mSize );
 	}
 
 
 	void restart()
 	{
-		mPos = TileLength * Vec2f( 5 , 5 );
+		mPos = TileLength * Vector2( 5 , 5 );
 	}
 
-	int getMapData( Vec2f const& pos )
+	int getMapData( Vector2 const& pos )
 	{
 		int x = int( pos.x / TileLength );
 		int y = int( pos.y / TileLength );
@@ -1000,17 +1000,17 @@ public:
 			return 0;
 		return mMap.getData( x , y );
 	}
-	bool checkCollision( Vec2f const& pos , Vec2f const& size )
+	bool checkCollision( Vector2 const& pos , Vector2 const& size )
 	{
 		return getMapData( pos ) != 0 ||
-			   getMapData( pos + Vec2f( size.x , 0 ) ) != 0 || 
-			   getMapData( pos + Vec2f( 0 , size.y )) != 0 || 
+			   getMapData( pos + Vector2( size.x , 0 ) ) != 0 || 
+			   getMapData( pos + Vector2( 0 , size.y )) != 0 || 
 			   getMapData( pos + size ) != 0 ; 
 	}
 
 	void tick()
 	{
-		Vec2f dir = Vec2f(0,0);
+		Vector2 dir = Vector2(0,0);
 		InputManager& input = InputManager::getInstance();
 		if ( input.isKeyDown( Keyboard::eA ) )
 			dir.x -= 1;
@@ -1023,13 +1023,13 @@ public:
 
 		if ( dir.length2() > 0 )
 		{
-			Vec2f offset = 3.0 * dir;
-			Vec2f newPos = mPos + offset;
+			Vector2 offset = 3.0 * dir;
+			Vector2 newPos = mPos + offset;
 
 			bool haveCol = checkCollision( newPos , mSize );
 			if ( haveCol )
 			{
-				Vec2f testPos = newPos;
+				Vector2 testPos = newPos;
 				offset /= 2;
 				testPos -= offset;
 				for( int i = 0 ; i < 10 ; ++i )
@@ -1079,8 +1079,8 @@ protected:
 
 	TGrid2D< int > mMap;
 	static int const TileLength = 30;
-	Vec2f  mPos;
-	Vec2f  mSize;
+	Vector2  mPos;
+	Vector2  mSize;
 
 };
 
@@ -1155,7 +1155,7 @@ namespace Mario
 
 			player.reset();
 			player.world = &mWorld;
-			player.pos = Vec2f( 200 , 200 );	
+			player.pos = Vector2( 200 , 200 );	
 		}
 
 
@@ -1187,12 +1187,12 @@ namespace Mario
 			Graphics2D& g = Global::getGraphics2D();
 
 
-			//Vec2f posCam = player.pos;
+			//Vector2 posCam = player.pos;
 
 			TileMap& terrain = mWorld.getTerrain();
 
-			RenderUtility::setBrush( g , Color::eYellow );
-			RenderUtility::setPen( g , Color::eYellow );
+			RenderUtility::SetBrush( g , Color::eYellow );
+			RenderUtility::SetPen( g , Color::eYellow );
 
 			for( int i = 0 ; i < terrain.getSizeX() ; ++i )
 			for( int j = 0 ; j < terrain.getSizeY() ; ++j )
@@ -1207,37 +1207,37 @@ namespace Mario
 				case BLOCK_SLOPE_11:
 					if ( BlockSlope::getDir( tile.meta ) == 0 )
 					{
-						Vec2f v = tile.pos * TileLength;
-						drawTriangle( g , v , v + Vec2f( TileLength , 0 ) , v + Vec2f( 0 , TileLength ) );
+						Vector2 v = tile.pos * TileLength;
+						drawTriangle( g , v , v + Vector2( TileLength , 0 ) , v + Vector2( 0 , TileLength ) );
 					}
 					else
 					{
-						Vec2f v = tile.pos * TileLength;
-						drawTriangle( g , v , v + Vec2f( TileLength , 0 ) , v + Vec2f( TileLength , TileLength ) );
+						Vector2 v = tile.pos * TileLength;
+						drawTriangle( g , v , v + Vector2( TileLength , 0 ) , v + Vector2( TileLength , TileLength ) );
 					}
 					break;
 				case BLOCK_SLOPE_21:
 					if ( BlockSlope::getDir( tile.meta ) == 0 )
 					{
-						Vec2f v = tile.pos * TileLength;
-						drawTriangle( g , v , v + Vec2f( TileLength , 0 ) , v + Vec2f( 0 , TileLength ) );
+						Vector2 v = tile.pos * TileLength;
+						drawTriangle( g , v , v + Vector2( TileLength , 0 ) , v + Vector2( 0 , TileLength ) );
 					}
 					else
 					{
-						Vec2f v = tile.pos * TileLength;
-						drawTriangle( g , v , v + Vec2f( TileLength , 0 ) , v + Vec2f( TileLength , TileLength ) );
+						Vector2 v = tile.pos * TileLength;
+						drawTriangle( g , v , v + Vector2( TileLength , 0 ) , v + Vector2( TileLength , TileLength ) );
 					}
 				default:
 					drawRect( g , tile.pos * TileLength , Vec2i( TileLength , TileLength ) );
 				}
 			}
 
-			RenderUtility::setBrush( g , Color::eRed );
-			RenderUtility::setPen( g , Color::eRed );
+			RenderUtility::SetBrush( g , Color::eRed );
+			RenderUtility::SetPen( g , Color::eRed );
 			drawRect( g , player.pos , player.size );
 		}
 
-		void drawTriangle( Graphics2D& g , Vec2f const& p1 , Vec2f const& p2 , Vec2f const& p3 )
+		void drawTriangle( Graphics2D& g , Vector2 const& p1 , Vector2 const& p2 , Vector2 const& p3 )
 		{
 			int frameHeight = ::Global::getDrawEngine()->getScreenHeight();
 
@@ -1248,10 +1248,10 @@ namespace Mario
 			g.drawPolygon( v , 3 );
 		}
 
-		void drawRect( Graphics2D& g , Vec2f const& pos , Vec2f const& size )
+		void drawRect( Graphics2D& g , Vector2 const& pos , Vector2 const& size )
 		{
 			int frameHeight = ::Global::getDrawEngine()->getScreenHeight();
-			Vec2f rPos;
+			Vector2 rPos;
 			rPos.x = pos.x;
 			rPos.y = frameHeight - pos.y - size.y;
 			g.drawRect( rPos , size );
@@ -1288,7 +1288,7 @@ namespace Mario
 
 namespace TankGame
 {
-	typedef TVector2< float > Vec2f;
+	typedef TVector2< float > Vector2;
 
 
 	class Rotation
@@ -1296,7 +1296,7 @@ namespace TankGame
 	public:
 		Rotation():mAngle(0),mCacheDir(1,0){}
 		float getAngle(){ return mAngle; }
-		Vec2f getDir(){ return mCacheDir; }
+		Vector2 getDir(){ return mCacheDir; }
 		void rotate( float theta )
 		{
 
@@ -1308,13 +1308,13 @@ namespace TankGame
 
 		}
 		float mAngle;
-		mutable Vec2f mCacheDir;
+		mutable Vector2 mCacheDir;
 	};
 
 	class Tank
 	{
 	public:
-		Tank( Vec2f const& pos )
+		Tank( Vector2 const& pos )
 		{
 			mMoveSpeed   = DefaultMoveSpeed();
 			mRotateSpeed = DefaultRotateSpeed();
@@ -1324,8 +1324,8 @@ namespace TankGame
 		Rotation&    getFireRotation(){ return mFireRotation; }
 
 
-		Vec2f const& getPos() const { return mPos; }
-		void         setPos( Vec2f const& pos ) { mPos = pos; }
+		Vector2 const& getPos() const { return mPos; }
+		void         setPos( Vector2 const& pos ) { mPos = pos; }
 		float        getMoveSpeed() const { return mMoveSpeed; }
 		void         setMoveSpeed( float speed ) { mMoveSpeed = speed; }
 		float        getRotateSpeed() const { return mRotateSpeed; }
@@ -1336,7 +1336,7 @@ namespace TankGame
 
 		float    mMoveSpeed;
 		float    mRotateSpeed;
-		Vec2f    mPos;
+		Vector2    mPos;
 		Rotation mFireRotation;
 		Rotation mBodyRotation;
 
@@ -1446,24 +1446,24 @@ public:
 	SimpleRenderer()
 	{
 		mScale = 10.0f;
-		mOffset = Vec2f(0,0);
+		mOffset = Vector2(0,0);
 	}
-	Vec2f convertToWorld( Vec2i const& pos )
+	Vector2 convertToWorld( Vec2i const& pos )
 	{
-		return Vec2f( float(pos.x) / mScale , float( pos.y ) / mScale ) + mOffset;
+		return Vector2( float(pos.x) / mScale , float( pos.y ) / mScale ) + mOffset;
 	}
-	Vec2f convertToScreen( Vec2f const& pos )
+	Vector2 convertToScreen( Vector2 const& pos )
 	{
 		return Vec2i( mScale * ( pos - mOffset ) );
 	}
 
-	void drawCircle( Graphics2D& g , Vec2f const& pos , float radius )
+	void drawCircle( Graphics2D& g , Vector2 const& pos , float radius )
 	{
 		Vec2i rPos = convertToScreen( pos );
 		g.drawCircle( rPos , int( mScale * radius ) );
 	}
 
-	void drawRect( Graphics2D& g , Vec2f const& pos , Vec2f const& size )
+	void drawRect( Graphics2D& g , Vector2 const& pos , Vector2 const& size )
 	{
 		Vec2i rSize = Vec2i( size * mScale );
 		Vec2i rPos = convertToScreen( pos );
@@ -1471,21 +1471,21 @@ public:
 
 	}
 
-	void drawLine( Graphics2D& g , Vec2f const& v1 , Vec2f const& v2 )
+	void drawLine( Graphics2D& g , Vector2 const& v1 , Vector2 const& v2 )
 	{
 		Vec2i buf[2];
 		drawLine( g , v1 , v2 , buf );
 	}
 
 
-	void drawPoly( Graphics2D& g , Vec2f const vertices[] , int num )
+	void drawPoly( Graphics2D& g , Vector2 const vertices[] , int num )
 	{
 		Vec2i buf[ 128 ];
 		assert(  num <= ARRAY_SIZE( buf ) );
 		drawPoly( g , vertices , num , buf );
 	}
 
-	void drawPoly( Graphics2D& g ,Vec2f const vertices[] , int num , Vec2i buf[] )
+	void drawPoly( Graphics2D& g ,Vector2 const vertices[] , int num , Vec2i buf[] )
 	{
 		for( int i = 0 ; i < num ; ++i )
 		{
@@ -1494,7 +1494,7 @@ public:
 		g.drawPolygon( buf , num );
 	}
 
-	void drawLine( Graphics2D& g , Vec2f const& v1 , Vec2f const& v2 , Vec2i buf[] )
+	void drawLine( Graphics2D& g , Vector2 const& v1 , Vector2 const& v2 , Vec2i buf[] )
 	{
 		buf[0] = convertToScreen( v1 );
 		buf[1] = convertToScreen( v2 );
@@ -1502,7 +1502,7 @@ public:
 	}
 
 	float mScale;
-	Vec2f mOffset;
+	Vector2 mOffset;
 };
 
 #include "Bsp2D.h"
@@ -1568,29 +1568,29 @@ namespace Bsp2D
 		PolyAreaVec mPolyAreaMap;
 		Tree     mTree;
 		bool     mDrawTree;
-		Vec2f    mSegment[2];
+		Vector2    mSegment[2];
 		bool     mHaveCol;
-		Vec2f    mPosCol;
+		Vector2    mPosCol;
 
 
 		struct Actor
 		{
-			Vec2f pos;
-			Vec2f size;
+			Vector2 pos;
+			Vector2 size;
 		};
 		Actor       mActor;
 
 		TestStage();
 
 
-		void moveActor( Actor& actor , Vec2f const& offset );
+		void moveActor( Actor& actor , Vector2 const& offset );
 
 		void testPlane()
 		{
 
 			Plane plane;
-			plane.init( Vec2f( 0 , 1 ) , Vec2f( 1 , 1 ) );
-			float dist = plane.calcDistance( Vec2f(0,0) );
+			plane.init( Vector2( 0 , 1 ) , Vector2( 1 , 1 ) );
+			float dist = plane.calcDistance( Vector2(0,0) );
 
 			int i = 1;
 		}
@@ -1598,12 +1598,12 @@ namespace Bsp2D
 		void testTree()
 		{
 			Tree tree;
-			PolyArea poly( Vec2f( 0 , 0 ) );
-			poly.pushVertex( Vec2f( 1 , 0 ) );
-			poly.pushVertex( Vec2f( 0 , 1 ) );
+			PolyArea poly( Vector2( 0 , 0 ) );
+			poly.pushVertex( Vector2( 1 , 0 ) );
+			poly.pushVertex( Vector2( 0 , 1 ) );
 
 			PolyArea* list[] = { &poly };
-			tree.build( list , 1 , Vec2f( -1000 , -1000 ) , Vec2f(1000, 1000 ) );
+			tree.build( list , 1 , Vector2( -1000 , -1000 ) , Vector2(1000, 1000 ) );
 		}
 
 		virtual bool onInit();
@@ -1644,21 +1644,23 @@ namespace Bsp2D
 #include "TVector2.h"
 #include <limits>
 #include "Geometry2d.h"
+#include "Math/Math2D.h"
+#include "Collision2D/SATSolver.h"
 
 namespace G2D
 {
-	typedef TVector2< float > Vec2f;
-	typedef std::vector< Vec2f > Vertices;
-	inline Vec2f normalize( Vec2f const& v )
+	typedef Vector2 Vector2;
+	typedef std::vector< Vector2 > Vertices;
+	inline Vector2 normalize( Vector2 const& v )
 	{
 		float len = sqrt( v.length2() );
 		if ( len < 1e-5 )
-			return Vec2f::Zero();
+			return Vector2::Zero();
 		return ( 1 / len ) * v;
 
 	}
 }
-namespace Geom2d
+namespace Geom2D
 {
 	template<>
 	struct PolyProperty< ::G2D::Vertices >
@@ -1666,8 +1668,8 @@ namespace Geom2d
 		typedef ::G2D::Vertices PolyType;
 		static void  Setup( PolyType& p , int size ){ p.resize( size ); }
 		static int   Size( PolyType const& p ){ return p.size(); }
-		static Vec2f const& Vertex( PolyType const& p , int idx ){ return p[idx]; }
-		static void  UpdateVertex( PolyType& p , int idx , Vec2f const& value ){ p[idx] = value; }
+		static Vector2 const& Vertex( PolyType const& p , int idx ){ return p[idx]; }
+		static void  UpdateVertex( PolyType& p , int idx , Vector2 const& value ){ p[idx] = value; }
 	};
 }
 namespace G2D
@@ -1687,7 +1689,7 @@ namespace G2D
 		Vertices mHullPoly;
 		std::vector< int >   mIndexHull;
 
-		Vec2f mTestPos;
+		Vector2 mTestPos;
 		bool  bInside;
 
 
@@ -1700,7 +1702,7 @@ namespace G2D
 
 			mIndexHull.resize( mVertices.size() );
 
-			int num = Geom2d::QuickHull( mVertices , &mIndexHull[0] );
+			int num = Geom2D::QuickHull( mVertices , &mIndexHull[0] );
 			mIndexHull.resize( num );
 			for( int i = 0 ; i < num ; ++i )
 			{
@@ -1735,27 +1737,27 @@ namespace G2D
 		{
 			Graphics2D& g = Global::getGraphics2D();
 
-			RenderUtility::setPen( g , Color::eGray );
-			RenderUtility::setBrush( g, Color::eGray );
+			RenderUtility::SetPen( g , Color::eGray );
+			RenderUtility::SetBrush( g, Color::eGray );
 			g.drawRect( Vec2i(0,0) , Global::getDrawEngine()->getScreenSize() );
 
 
-			RenderUtility::setPen( g , Color::eYellow );
-			RenderUtility::setBrush( g, Color::eNull );
+			RenderUtility::SetPen( g , Color::eYellow );
+			RenderUtility::SetBrush( g, Color::eNull );
 			if ( !mHullPoly.empty() )
 			{
 				mRenderer.drawPoly( g , &mHullPoly[0] , mHullPoly.size() );
 			}
 
-			RenderUtility::setPen( g , Color::eGreen );
-			RenderUtility::setBrush( g, Color::eNull );
+			RenderUtility::SetPen( g , Color::eGreen );
+			RenderUtility::SetBrush( g, Color::eNull );
 			if ( !mVertices.empty() )
 			{
 				mRenderer.drawPoly( g , &mVertices[0] , mVertices.size() );
 			}
 
 
-			RenderUtility::setBrush( g , Color::eRed );
+			RenderUtility::SetBrush( g , Color::eRed );
 			if ( !mVertices.empty() )
 			{
 				for( int i = 0 ; i < mVertices.size(); ++i )
@@ -1764,14 +1766,14 @@ namespace G2D
 				}
 			}
 
-			RenderUtility::setBrush( g , bInside ? Color::eRed  : Color::eYellow );
+			RenderUtility::SetBrush( g , bInside ? Color::eRed  : Color::eYellow );
 			mRenderer.drawCircle( g , mTestPos , 0.5 );
 
 		}
 
 		void restart()
 		{
-			updateTestPos( Vec2f(0,0) );
+			updateTestPos( Vector2(0,0) );
 		}
 
 
@@ -1792,7 +1794,7 @@ namespace G2D
 
 			if ( msg.onLeftDown() )
 			{
-				Vec2f wPos = mRenderer.convertToWorld( msg.getPos() );
+				Vector2 wPos = mRenderer.convertToWorld( msg.getPos() );
 				if ( InputManager::getInstance().isKeyDown( Keyboard::eCONTROL ) )
 				{
 					updateTestPos(wPos);
@@ -1815,11 +1817,11 @@ namespace G2D
 			return true;
 		}
 
-		void updateTestPos(Vec2f const& pos)
+		void updateTestPos(Vector2 const& pos)
 		{
 			mTestPos = pos;
 			if ( mVertices.size() > 3 )
-				bInside = Geom2d::TestInSide( mVertices , mTestPos );
+				bInside = Geom2D::TestInSide( mVertices , mTestPos );
 		}
 
 		bool onKey( unsigned key , bool isDown )
@@ -1842,202 +1844,13 @@ namespace G2D
 	struct PolyShape
 	{
 		int    numEdge;
-		Vec2f* normal;
-		Vec2f* vertex;
+		Vector2* normal;
+		Vector2* vertex;
 	};
 	struct CircleShape
 	{
 		float radius;
 	};
-
-	class Solver
-	{
-	public:
-		bool  haveSA;
-		Vec2f vResult;
-		float fResult;
-
-		bool test( Vec2f const& pA , Vec2f vA[] , int nA , Vec2f const& pB , float radius )
-		{
-			Vec2f posRel = pA - pB;
-			float rangeB[2] = { -radius , radius };
-			float depthMin = std::numeric_limits< float >::max();
-			int   idx = -1;
-			for( int i = 0 , prev = nA - 1 ; i < nA; ++i )
-			{
-				{
-					Vec2f edge = vA[i] - vA[ prev ];
-					Vec2f axis = Vec2f( edge.y , -edge.x );
-
-					float len = sqrt( axis.length2() );
-					axis /= len;
-
-					float rangeA[2];
-					calcRange( rangeA , axis , vA , nA );
-					float offset = axis.dot( posRel );
-					rangeA[0] += offset;
-					rangeA[1] += offset;
-
-					if ( !isOverlap( rangeA , rangeB ) )
-					{
-						fResult = calcDistance( rangeA , rangeB );
-						vResult = axis;
-						return haveSA = true;
-					}
-
-					float depth = calcOverlapDepth( rangeA , rangeB );
-					if ( depth < depthMin )
-					{
-						depthMin = depth;
-						idx = i;
-					}
-				}
-
-				{
-					Vec2f axis = vA[i] + posRel;
-
-					float len = sqrt( axis.length2() );
-					axis /= len;
-
-					float rangeA[2];
-					calcRange( rangeA , axis , vA , nA );
-					float offset = axis.dot( posRel );
-					rangeA[0] += offset;
-					rangeA[1] += offset;
-
-					if ( !isOverlap( rangeA , rangeB ) )
-					{
-						fResult = calcDistance( rangeA , rangeB );
-						vResult = axis;
-						return haveSA = true;
-					}
-
-					float depth = calcOverlapDepth( rangeA , rangeB );
-					if ( depth < depthMin )
-					{
-						depthMin = depth;
-						idx = i;
-					}
-				}
-				prev = i;
-			}
-
-			fResult = depthMin;
-			return haveSA = false;
-		}
-
-
-		bool test( Vec2f const& pA , Vec2f vA[] , int nA , Vec2f const& pB , Vec2f vB[] , int nB )
-		{
-			Vec2f posRel = pB - pA;
-
-			float depthMin = std::numeric_limits< float >::max();
-			int   idx = -1;
-			for( int i = 0 , prev = nA - 1 ; i < nA; ++i )
-			{
-				Vec2f edge = vA[i] - vA[ prev ];
-				Vec2f axis = Vec2f( edge.y , -edge.x );
-
-				float rangeA[2];
-				calcRange( rangeA , axis , vA , nA );
-				float rangeB[2];
-				calcRange( rangeB , axis , vB , nB );
-
-				float offset = axis.dot( posRel );
-				rangeB[0] += offset;
-				rangeB[1] += offset;
-
-				if ( !isOverlap( rangeA , rangeB ) )
-				{
-					fResult = calcDistance( rangeA , rangeB );
-					vResult = axis;
-					return haveSA = true;
-				}
-
-				float depth = calcOverlapDepth( rangeA , rangeB ) / sqrt( axis.length2() );
-				if ( depth < depthMin )
-				{
-					depthMin = depth;
-					idx = i;
-				}
-				prev = i;
-			}
-
-			for( int i = 0 , prev = nB - 1 ; i < nB; ++i )
-			{
-				Vec2f edge = vB[i] - vB[ prev ];
-				Vec2f axis = Vec2f( edge.y , -edge.x );
-
-				float rangeA[2];
-				calcRange( rangeA , axis , vA , nA );
-				float rangeB[2];
-				calcRange( rangeB , axis , vB , nB );
-
-
-				float offset = axis.dot( posRel );
-				rangeB[0] += offset;
-				rangeB[1] += offset;
-
-				if ( !isOverlap( rangeA , rangeB ) )
-				{
-					fResult = calcDistance( rangeA , rangeB );
-					vResult = axis;
-					return haveSA = true;
-				}
-
-				float depth = calcOverlapDepth( rangeA , rangeB ) / sqrt( axis.length2() );
-				if ( depth < depthMin )
-				{
-					depthMin = depth;
-					idx = -i;
-				}
-				prev = i;
-			}
-
-			fResult = depthMin;
-			return haveSA = false;
-		}
-
-		static bool isOverlap( float rangeA[] , float rangeB[] )
-		{
-			return ( rangeA[0] <= rangeB[1] ) && 
-				   ( rangeB[0] <= rangeA[1] );
-		}
-
-		static float calcOverlapDepth( float rangeA[] , float rangeB[] )
-		{
-			assert( isOverlap( rangeA , rangeB ) );
-			float vMin = std::max( rangeA[0] , rangeB[0] );
-			float vMax = std::min( rangeA[1] , rangeB[1] );
-			return vMax - vMin;
-		}
-
-		static float calcDistance( float rangeA[] , float rangeB[] )
-		{
-			assert( !isOverlap( rangeA , rangeB ) );
-			float vMin = std::max( rangeA[0] , rangeB[0] );
-			float vMax = std::min( rangeA[1] , rangeB[1] );
-			return vMin - vMax;
-		}
-
-		static void calcRange( float range[] , Vec2f const& axis , Vec2f v[] , int num )
-		{
-			float vMax , vMin;
-			vMax = vMin = axis.dot( v[0] );
-			for( int i = 1 ; i < num ; ++i )
-			{
-				float value = axis.dot( v[i] );
-				if ( value < range[0] )
-					vMin = value;
-				else if ( value > range[1] )
-					vMax = value;
-			}
-			range[0] = vMin;
-			range[1] = vMax;
-		}
-
-	};
-
 
 
 	static float const gRenderScale = 10.0f;
@@ -2062,22 +1875,22 @@ namespace G2D
 		{
 			mMode = MODE_CIRCLE;
 			mR = 10.0f;
-			mPA = Vec2f(10,10);
+			mPA = Vector2(10,10);
 			float const len1 = 10;
-			mVA.push_back( Vec2f( len1 , 0 ) );
-			mVA.push_back( Vec2f( 0 , len1 ) );
-			mVA.push_back( Vec2f( -len1 , 0 ) );
-			mVA.push_back( Vec2f( 0 , -len1 ) );
+			mVA.push_back( Vector2( len1 , 0 ) );
+			mVA.push_back( Vector2( 0 , len1 ) );
+			mVA.push_back( Vector2( -len1 , 0 ) );
+			mVA.push_back( Vector2( 0 , -len1 ) );
 
-			mPB = Vec2f(20,20);
+			mPB = Vector2(20,20);
 			float const len2 = 7;
-			mVB.push_back( Vec2f( len2 , len2 ) );
-			mVB.push_back( Vec2f( -len2 , len2 ) );
-			mVB.push_back( Vec2f( -len2 , -len2 ) );
-			mVB.push_back( Vec2f( len2 , -len2 ) );
+			mVB.push_back( Vector2( len2 , len2 ) );
+			mVB.push_back( Vector2( -len2 , len2 ) );
+			mVB.push_back( Vector2( -len2 , -len2 ) );
+			mVB.push_back( Vector2( len2 , -len2 ) );
 
 			
-			Geom2d::MinkowskiSum( mVA , mVB , mPoly );
+			Geom2D::MinkowskiSum( mVA , mVB , mPoly );
 
 			updateCollision();
 
@@ -2092,7 +1905,7 @@ namespace G2D
 		void drawTest( Graphics2D& g )
 		{
 			FixString< 256 > str;
-			Vec2i pos = Vec2f(200,200);
+			Vec2i pos = Vector2(200,200);
 			for( int i = 0 ; i < mPoly.size() ; ++i )
 			{
 				Vec2i p2 = pos + Vec2i( 10 * mPoly[i] );
@@ -2106,15 +1919,15 @@ namespace G2D
 			switch( mMode )
 			{
 			case MODE_POLY:
-				mSAT.test( mPB , &mVB[0] , mVB.size() , mPA , &mVA[0] , mVA.size() );
+				mSAT.testIntersect( mPB , &mVB[0] , mVB.size() , mPA , &mVA[0] , mVA.size() );
 				break;
 			case MODE_CIRCLE:
-				mSAT.test( mPB , &mVB[0] , mVB.size() , mPA , mR );
+				mSAT.testIntersect( mPB , &mVB[0] , mVB.size() , mPA , mR );
 				break;
 			}
 		}
 
-		void drawPolygon( Graphics2D& g , Vec2f const& pos , Vec2f v[] , int num )
+		void drawPolygon( Graphics2D& g , Vector2 const& pos , Vector2 v[] , int num )
 		{
 			Vec2i buf[ 32 ];
 			assert( num <= ARRAY_SIZE( buf ) );
@@ -2140,19 +1953,19 @@ namespace G2D
 		{
 			Graphics2D& g = Global::getGraphics2D();
 
-			RenderUtility::setBrush( g , Color::eGray );
-			RenderUtility::setPen( g , Color::eGray );
+			RenderUtility::SetBrush( g , Color::eGray );
+			RenderUtility::SetPen( g , Color::eGray );
 			g.drawRect( Vec2i(0,0) , ::Global::getDrawEngine()->getScreenSize() );
 
 			if ( mSAT.haveSA )
 			{
-				RenderUtility::setBrush( g , Color::eWhite );
-				RenderUtility::setPen( g , Color::eBlack );
+				RenderUtility::SetBrush( g , Color::eWhite );
+				RenderUtility::SetPen( g , Color::eBlack );
 			}
 			else
 			{
-				RenderUtility::setBrush( g , Color::eRed );
-				RenderUtility::setPen( g , Color::eYellow );
+				RenderUtility::SetBrush( g , Color::eRed );
+				RenderUtility::SetPen( g , Color::eYellow );
 			}
 
 			switch( mMode )
@@ -2167,7 +1980,7 @@ namespace G2D
 			
 			drawPolygon( g , mPB , &mVB[0] , mVB.size() );
 
-			drawPolygon( g , Vec2f(30,30) , &mPoly[0] , mPoly.size() );
+			drawPolygon( g , Vector2(30,30) , &mPoly[0] , mPoly.size() );
 			//drawTest( g );
 			FixString< 64 > str;
 			if ( mSAT.haveSA )
@@ -2211,7 +2024,7 @@ namespace G2D
 				if ( msg.isLeftDown() )
 				{
 					Vec2i offset = msg.getPos() - oldPos;
-					mPA += ( 1.0f / gRenderScale ) * Vec2f( offset );
+					mPA += ( 1.0f / gRenderScale ) * Vector2( offset );
 					updateCollision();
 					oldPos = msg.getPos();
 				}
@@ -2235,12 +2048,12 @@ namespace G2D
 	protected:
 		
 
-		Solver      mSAT;
-		Vertices mVA;
-		float    mR;
-		Vec2f    mPA;
-		Vec2f    mPB;
-		Vertices mVB;
+		SATSolver mSAT;
+		Vertices  mVA;
+		float     mR;
+		Vector2     mPA;
+		Vector2     mPB;
+		Vertices  mVB;
 
 	};
 }
@@ -2280,20 +2093,20 @@ public:
 	{
 		Graphics2D& g = Global::getGraphics2D();
 
-		RenderUtility::setBrush( g, Color::eRed );
-		RenderUtility::setPen( g , Color::eBlack );
+		RenderUtility::SetBrush( g, Color::eRed );
+		RenderUtility::SetPen( g , Color::eBlack );
 		g.drawCircle( Vec2i( mPos ) , radius );
 	}
 
 	void restart()
 	{
-		mPos = Vec2f( 0 , 0 );
+		mPos = Vector2( 0 , 0 );
 		radius = 10;
 		mTweener.clear();
 		Tween::Build( mTweener )
 			.sequence().cycle()
-				.tweenValue< Easing::Linear >( mPos , Vec2f( 0 , 0 ) , Vec2f( 100 , 100 ) , 1 ).delay(0.5).end()
-				.tweenValue< Easing::Linear >( mPos , Vec2f( 100 , 100 ) , Vec2f( 0 , 0 ) , 1 ).end()
+				.tweenValue< Easing::Linear >( mPos , Vector2( 0 , 0 ) , Vector2( 100 , 100 ) , 1 ).delay(0.5).end()
+				.tweenValue< Easing::Linear >( mPos , Vector2( 100 , 100 ) , Vector2( 0 , 0 ) , 1 ).end()
 			.end()
 			.sequence().cycle()
 				.tweenValue< Easing::OQuad >( radius , 10.0f , 20.0f , 1 ).end()
@@ -2338,164 +2151,14 @@ public:
 	}
 
 
-	Vec2f mPos;
+	Vector2 mPos;
 	float radius;
 
 	typedef Tween::GroupTweener< float > MyTweener;
 	MyTweener mTweener;
 };
 
-namespace TMechine
-{
-	enum OpCode
-	{
-		OP_MOVE	  ,
-		OP_ADD    ,
-		OP_ASSIGN ,
-		OP_JMP    ,
-		OP_CMP    ,
-	};
 
-	struct Operator
-	{
-		OpCode code;
-		int    num;
-	};
-	class Mechine
-	{
-	public:
-		void set()
-		{
-			opPos[0] = 0;
-			opPos[1] = 0;
-		}
-		bool runStep()
-		{
-			if ( opPos[0] == numRowOp )
-				return false;
-
-			Operator& op = program[ numRowOp * opPos[1] + opPos[0] ];
-
-			if ( doOperation( op ) )
-			{
-				opPos[0] += 1;
-			}
-			return true;
-
-			
-		}
-
-		bool doOperation( Operator const& op )
-		{
-			switch( op.code )
-			{
-			case OP_MOVE: 
-				dataPtr += op.num;
-				return true;
-			case OP_CMP:
-				if ( *dataPtr != ( op.num >> 1 ) )
-					return true;
-				opPos[1] += ( op.num & 0x01 ) ? 1 : -1;
-				return false;
-			case OP_ASSIGN: 
-				*dataPtr = op.num;
-				return true;
-			case OP_ADD:
-				*dataPtr += op.num;
-				return true;
-			case OP_JMP:
-				opPos[0] = op.num;
-				return false;
-			}
-
-			return true;
-		}
-
-		Operator* program;
-		int       numRowOp;
-		int       opPos[2];
-		int*      dataPtr;
-	};
-
-#define opLM              { OP_MOVE , -1 }
-#define opRM              { OP_MOVE , 1 }
-#define opCMP_UP( num )   { OP_CMP , ( num ) << 1 }
-#define opCMP_DOWN( num ) { OP_CMP , ( num ) << 1 | 0x01 }
-
-	class TestStage : public StageBase
-	{
-		typedef StageBase BaseClass;
-	public:
-		TestStage(){}
-
-		Mechine mechine;
-		int     memory[ 128 ];
-
-		virtual bool onInit()
-		{
-			::Global::GUI().cleanupWidget();
-			restart();
-			return true;
-		}
-
-		virtual void onUpdate( long time )
-		{
-			BaseClass::onUpdate( time );
-
-			int frame = time / gDefaultTickTime;
-			for( int i = 0 ; i < frame ; ++i )
-				tick();
-
-			updateFrame( frame );
-		}
-
-		void onRender( float dFrame )
-		{
-			Graphics2D& g = Global::getGraphics2D();
-		}
-
-
-		void restart()
-		{
-
-		}
-
-
-		void tick()
-		{
-
-		}
-
-		void updateFrame( int frame )
-		{
-
-		}
-
-		bool onMouse( MouseMsg const& msg )
-		{
-			if ( !BaseClass::onMouse( msg ) )
-				return false;
-
-			return true;
-		}
-
-		bool onKey( unsigned key , bool isDown )
-		{
-			if ( !isDown )
-				return false;
-
-			switch( key )
-			{
-			case Keyboard::eR: restart(); break;
-			}
-			return false;
-		}
-	protected:
-
-	};
-
-
-}
 
 #include "RedBlackTree.h"
 
@@ -2586,8 +2249,8 @@ public:
 			Vec2i pos = rootPos + Vec2i( 20 * data.pos , 20 * data.depth );
 
 			Vec2i rectSize( 15 , 15 );
-			RenderUtility::setBrush( g , node.bBlack ? Color::eBlack : Color::eRed );
-			RenderUtility::setPen( g , Color::eWhite );
+			RenderUtility::SetBrush( g , node.bBlack ? Color::eBlack : Color::eRed );
+			RenderUtility::SetPen( g , Color::eWhite );
 			g.drawRect( pos , rectSize );
 
 			FixString< 64 > str;
@@ -2750,7 +2413,7 @@ protected:
 
 namespace Net
 {
-	class TestPackage : public IGameInstance
+	class TestPackage : public IGameModule
 	{
 
 	};
@@ -2845,7 +2508,7 @@ namespace Net
 
 	struct TestObj : public INetObject
 	{
-		Vec2f pos;
+		Vector2 pos;
 	};
 
 	class TestStage : public GameStageBase
@@ -2882,7 +2545,7 @@ namespace Net
 				{
 					player->getInfo().actionPort = mDataMap.size();
 					mDataMap.push_back( TestObj() );
-					mDataMap.back().pos = Vec2f( 0 , 0 );
+					mDataMap.back().pos = Vector2( 0 , 0 );
 				}
 			}
 		}
@@ -2897,7 +2560,7 @@ namespace Net
 		{
 			Graphics2D& g = Global::getGraphics2D();
 
-			RenderUtility::setBrush( g , Color::eYellow );
+			RenderUtility::SetBrush( g , Color::eYellow );
 			for( int i = 0 ; i < (int)mDataMap.size() ; ++i )
 			{
 				TestObj& data = mDataMap[i];

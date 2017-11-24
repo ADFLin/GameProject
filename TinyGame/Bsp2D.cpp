@@ -7,7 +7,7 @@ namespace Bsp2D
 {
 	float const WallThin = 1e-3f;
 
-	bool SegmentInterection( Vec2f const& a1 , Vec2f const& a2 , Vec2f const& b1 , Vec2f const& b2 , float& fracA )
+	bool SegmentInterection( Vector2 const& a1 , Vector2 const& a2 , Vector2 const& b1 , Vector2 const& b2 , float& fracA )
 	{
 		float x1 = a1.x, x2 = a2.x, x3 = b1.x, x4 = b2.x;
 		float y1 = a1.y, y2 = a2.y, y3 = b1.y, y4 = b2.y;
@@ -33,16 +33,16 @@ namespace Bsp2D
 		return true;
 	}
 
-	void Plane::init( Vec2f const& v1 , Vec2f const& v2 )
+	void Plane::init( Vector2 const& v1 , Vector2 const& v2 )
 	{
-		Vec2f offset = v2 - v1;
+		Vector2 offset = v2 - v1;
 		float len = sqrt( offset.length2() );
 		normal.x = offset.y / len;
 		normal.y = -offset.x / len;
 		d = -normal.dot( v1 );
 	}
 
-	Side Plane::splice( Vec2f v[2] , Vec2f vSplit[2] )
+	Side Plane::splice( Vector2 v[2] , Vector2 vSplit[2] )
 	{
 		float dist;
 		Side s0 = testSide( v[0] , dist );
@@ -53,11 +53,11 @@ namespace Bsp2D
 		if ( s0 == SIDE_IN )
 			return SIDE_IN;
 
-		Vec2f dir = v[0] - v[1];
+		Vector2 dir = v[0] - v[1];
 
 		//plane.normal( v[1] + dir * t ) + d = 0;
 		float t = - dist / normal.dot( dir );
-		Vec2f p = v[1] + t * dir;
+		Vector2 p = v[1] + t * dir;
 
 		if ( s0 == SIDE_FRONT )
 		{
@@ -75,7 +75,7 @@ namespace Bsp2D
 		return SIDE_SPLIT;
 	}
 
-	Side Plane::testSide( Vec2f const& p , float& dist )
+	Side Plane::testSide( Vector2 const& p , float& dist )
 	{
 		dist = calcDistance( p );
 		if ( dist > WallThin )
@@ -85,7 +85,7 @@ namespace Bsp2D
 		return SIDE_IN;
 	}
 
-	Bsp2D::Side Plane::testSegment( Vec2f const& v0 , Vec2f const& v1 )
+	Bsp2D::Side Plane::testSegment( Vector2 const& v0 , Vector2 const& v1 )
 	{
 		float dist;
 		Side s0 = testSide( v0 , dist );
@@ -102,7 +102,7 @@ namespace Bsp2D
 
 
 
-	bool Plane::getInteractPos( Vec2f const& v1 , Vec2f const& v2 , Vec2f& out )
+	bool Plane::getIntersectPos( Vector2 const& v1 , Vector2 const& v2 , Vector2& out )
 	{
 
 
@@ -128,7 +128,7 @@ namespace Bsp2D
 		mLeaves.clear();
 	}
 
-	void Tree::build( PolyArea* polys[] , int num , Vec2f const& bbMin , Vec2f const& bbMax )
+	void Tree::build( PolyArea* polys[] , int num , Vector2 const& bbMin , Vector2 const& bbMax )
 	{
 		clear();
 
@@ -152,7 +152,7 @@ namespace Bsp2D
 		}
 
 
-		Vec2f edgeBB[2] = { Vec2f( bbMin.x , bbMax.y ) , Vec2f( bbMax.x , bbMin.y ) };
+		Vector2 edgeBB[2] = { Vector2( bbMin.x , bbMax.y ) , Vector2( bbMax.x , bbMin.y ) };
 
 		addEdge( bbMin , edgeBB[0] , -1 );
 		addEdge( edgeBB[0] , bbMax , -1 );
@@ -217,7 +217,7 @@ namespace Bsp2D
 			int idxTest = *iter;
 			Edge& edgeTest = mEdges[ idxTest ];
 
-			Vec2f vSplit[2];
+			Vector2 vSplit[2];
 			switch ( plane.splice( edgeTest.v , vSplit ) )
 			{
 			case SIDE_FRONT:
@@ -302,7 +302,7 @@ namespace Bsp2D
 	class Tree::SegmentColSolver
 	{
 	public:
-		bool solve( Tree& tree , Vec2f const& start , Vec2f const& end , ColInfo& info )
+		bool solve( Tree& tree , Vector2 const& start , Vector2 const& end , ColInfo& info )
 		{
 			if ( !tree.getRoot() )
 				return false;
@@ -387,18 +387,18 @@ namespace Bsp2D
 
 		Tree::ColInfo* mInfo;
 		Tree*  mTree;
-		Vec2f  mStart;
-		Vec2f  mEnd;
+		Vector2  mStart;
+		Vector2  mEnd;
 	};
 
-	bool Tree::segmentTest( Vec2f const& start , Vec2f const& end , ColInfo& info )
+	bool Tree::segmentTest( Vector2 const& start , Vector2 const& end , ColInfo& info )
 	{
 		SegmentColSolver solver;
 		return solver.solve( *this , start , end , info );
 	}
 
 
-	void Tree::PortalBuilder::build( Vec2f const& max , Vec2f const& min )
+	void Tree::PortalBuilder::build( Vector2 const& max , Vector2 const& min )
 	{
 		int numNodes = mTree->mNodes.size();
 		for( int i = 0 ; i < numNodes ; ++i )
@@ -413,7 +413,7 @@ namespace Bsp2D
 		}
 	}
 
-	Tree::PortalBuilder::SuperPlane* Tree::PortalBuilder::createSuperPlane( Node* node , Vec2f const& max , Vec2f const& min )
+	Tree::PortalBuilder::SuperPlane* Tree::PortalBuilder::createSuperPlane( Node* node , Vector2 const& max , Vector2 const& min )
 	{
 		assert( !node->isLeaf() );
 
@@ -426,15 +426,15 @@ namespace Bsp2D
 		portal.con[0] = 0;
 		portal.con[1] = 0;
 
-		Vec2f v[4] = { max , Vec2f( min.x , max.y ) , min , Vec2f( max.x , min.y ) };
+		Vector2 v[4] = { max , Vector2( min.x , max.y ) , min , Vector2( max.x , min.y ) };
 		for( int i = 0 , prev = 3 ; i < 4 ; prev = i++ )
 		{
-			Vec2f dir = v[ i ] - v[ prev ];
+			Vector2 dir = v[ i ] - v[ prev ];
 			float dot = dir.dot( splane->plane.normal );
 			if ( abs( dot ) < FLOAT_EPSILON )
 				continue;
 			float t = ( v[i].dot( splane->plane.normal ) + splane->plane.d ) / dot;
-			Vec2f p = v[i] + t * dir;
+			Vector2 p = v[i] + t * dir;
 		}
 	
 

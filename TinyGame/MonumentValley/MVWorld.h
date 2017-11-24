@@ -38,7 +38,7 @@ namespace MV
 
 		Block* getBlock( int id ){ return mBlocks[id]; }
 
-		bool checkPosVaild( Vec3i const& pos )
+		bool checkPos( Vec3i const& pos )
 		{
 			return mMapOffset.x <= pos.x && pos.x < mMapSize.x + mMapOffset.x &&
 				mMapOffset.y <= pos.y && pos.y < mMapSize.y + mMapOffset.y &&
@@ -47,14 +47,14 @@ namespace MV
 
 		int  getBlockCheck( Vec3i const& pos )
 		{
-			if ( !checkPosVaild( pos ) )
+			if ( !checkPos( pos ) )
 				return 0;
 			return getBlock( pos );
 		}
 
 		int getBlockIndex( Vec3i const & pos )
 		{
-			assert( checkPosVaild( pos ) );
+			assert( checkPos( pos ) );
 			Vec3i temp = pos - mMapOffset;
 			return ( temp.z  * mMapSize.y + temp.y ) * mMapSize.x + temp.x ;
 		}

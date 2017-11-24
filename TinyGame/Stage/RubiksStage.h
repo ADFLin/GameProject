@@ -1,7 +1,7 @@
 #ifndef RubiksStage_h__c781c03d_43f7_4882_b367_96b003d27fbb
 #define RubiksStage_h__c781c03d_43f7_4882_b367_96b003d27fbb
 
-#include "IntegerType.h"
+#include "Core/IntegerType.h"
 
 #include "StageBase.h"
 #include "GameGlobal.h"
@@ -417,10 +417,10 @@ namespace Rubiks
 		}
 		void drawFace( Graphics2D& g , Vec2i const& pos , CubeState const& state , FaceDir dir )
 		{
-			RenderUtility::setPen( g , Color::eBlack );
+			RenderUtility::SetPen( g , Color::eBlack );
 			for(int i = 0 ; i < CubeBlockSize * CubeBlockSize ; ++i )
 			{
-				RenderUtility::setBrush( g , BlockColor[ state.getBlockValue( dir , i ) ] );
+				RenderUtility::SetBrush( g , BlockColor[ state.getBlockValue( dir , i ) ] );
 				g.drawRect( pos + BlockLen* BlockOffset[i] , BlockSize );
 			}
 		}

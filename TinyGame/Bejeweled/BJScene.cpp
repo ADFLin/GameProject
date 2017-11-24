@@ -28,12 +28,12 @@ namespace Bejeweled
 		case 1:
 			{
 				int len = CellLength - 15;
-				RenderUtility::setPen( g , Color::eBlack );
-				RenderUtility::setBrush( g , gemColor[ type ] , COLOR_DEEP );
+				RenderUtility::SetPen( g , Color::eBlack );
+				RenderUtility::SetBrush( g , gemColor[ type ] , COLOR_DEEP );
 				g.drawRoundRect( pos - Vec2i( len / 2 , len / 2 ) , 
 					Vec2i( len , len ) , Vec2i( 10 , 10 ) );
-				RenderUtility::setPen( g , Color::eWhite );
-				RenderUtility::setBrush( g , gemColor[ type ] );
+				RenderUtility::SetPen( g , Color::eWhite );
+				RenderUtility::SetBrush( g , gemColor[ type ] );
 				len -= 8;
 				g.drawRoundRect( pos - Vec2i( len / 2 , len / 2 ) , 
 					Vec2i( len , len ) , Vec2i( 6 , 6 ) );
@@ -42,11 +42,11 @@ namespace Bejeweled
 		case 2:
 			{
 				int radius = ( CellLength - 12 ) / 2 ;
-				RenderUtility::setPen( g , Color::eBlack );
-				RenderUtility::setBrush( g , gemColor[ type ] , COLOR_DEEP );
+				RenderUtility::SetPen( g , Color::eBlack );
+				RenderUtility::SetBrush( g , gemColor[ type ] , COLOR_DEEP );
 				g.drawCircle( pos , radius );
-				RenderUtility::setPen( g , Color::eWhite );
-				RenderUtility::setBrush( g , gemColor[ type ] );
+				RenderUtility::SetPen( g , Color::eWhite );
+				RenderUtility::SetBrush( g , gemColor[ type ] );
 				g.drawCircle( pos , radius - 4 );
 			}
 			break;
@@ -71,13 +71,13 @@ namespace Bejeweled
 				};
 				Vec2i rPos[8];
 
-				RenderUtility::setPen( g , Color::eBlack );
-				RenderUtility::setBrush( g , gemColor[ type ] , COLOR_DEEP );
+				RenderUtility::SetPen( g , Color::eBlack );
+				RenderUtility::SetBrush( g , gemColor[ type ] , COLOR_DEEP );
 				for( int i = 0 ; i < 8 ; ++i )
 					rPos[i] = pos + ( len * vtx[i] ) / factor;
 				g.drawPolygon( rPos , 8 );
-				RenderUtility::setPen( g , Color::eWhite );
-				RenderUtility::setBrush( g , gemColor[ type ] );
+				RenderUtility::SetPen( g , Color::eWhite );
+				RenderUtility::SetBrush( g , gemColor[ type ] );
 				len -= 6;
 				for( int i = 0 ; i < 8 ; ++i )
 					rPos[i] = pos + ( len * vtx[i] ) / factor;
@@ -92,12 +92,12 @@ namespace Bejeweled
 		{
 			Vec2i renderPos = mBoardPos + CellLength * Vec2i( i % BoardSize , i / BoardSize );
 
-			RenderUtility::drawBlock( g , renderPos , Vec2i( CellLength , CellLength ) , Color::eGray );
+			RenderUtility::DrawBlock( g , renderPos , Vec2i( CellLength , CellLength ) , Color::eGray );
 
 			if ( mState == eChoiceSwapGem && ( mGemRenderFlag[i] & RF_POSIBLE_SWAP ) )
 			{
 				g.beginBlend( renderPos , Vec2i( CellLength , CellLength ) , mFadeOutAlpha );
-				RenderUtility::drawBlock( g , renderPos , Vec2i( CellLength , CellLength ) , Color::eRed );
+				RenderUtility::DrawBlock( g , renderPos , Vec2i( CellLength , CellLength ) , Color::eRed );
 				g.endBlend();
 			}
 		}
@@ -106,7 +106,7 @@ namespace Bejeweled
 			int idx = mIndexSwapCell[0];
 			Vec2i renderPos = mBoardPos + CellLength * Vec2i( idx % BoardSize , idx / BoardSize );
 			g.beginBlend( renderPos , Vec2i( CellLength , CellLength ) , mFadeOutAlpha );
-			RenderUtility::drawBlock( g , renderPos , Vec2i( CellLength , CellLength ) , Color::eWhite );
+			RenderUtility::DrawBlock( g , renderPos , Vec2i( CellLength , CellLength ) , Color::eWhite );
 			g.endBlend();
 		}
 
@@ -152,7 +152,7 @@ namespace Bejeweled
 			g.endBlend();
 		}
 
-		RenderUtility::setFont( g , FONT_S8 );
+		RenderUtility::SetFont( g , FONT_S8 );
 		FixString< 128 > str;
 		Vec2i texPos( Global::getDrawEngine()->getScreenWidth() - 100 , 10 );
 		str.format( "CtrlMode = %d" , (int)mCtrlMode );
@@ -309,7 +309,7 @@ namespace Bejeweled
 		mGemMoveVec.push_back( GemMove() );
 		GemMove& move = mGemMoveVec.back();
 		move.index = idx;
-		mTweener.tweenValue< Easing::OCubic >( move.pos , Vec2f( from ) , Vec2f( to ) , (float)time );
+		mTweener.tweenValue< Easing::OCubic >( move.pos , Vector2( from ) , Vector2( to ) , (float)time );
 
 		mGemRenderFlag[ idx ] |= RF_RENDER_ANIM;
 	}

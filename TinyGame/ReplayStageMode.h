@@ -8,7 +8,9 @@
 
 
 class ReplayEditStage;
-typedef std::string String;
+
+
+
 
 class ReplayListPanel : public GPanel
 {
@@ -30,9 +32,7 @@ private:
 	
 	typedef std::vector< String > StringVec;
 	String     mCurDir;
-	StringVec  replayFileVec;
-
-	GListCtrl* mFileListCtrl;
+	GFileListCtrl* mFileListCtrl;
 };
 
 
@@ -51,7 +51,7 @@ public:
 
 	 ReplayEditStage()
 	 {
-		 mIsVaildReplay = false;
+		 mIsReplay = false;
 	 }
 
 
@@ -66,7 +66,7 @@ protected:
 
 	void renderReplayInfo( GWidget* ui );
 
-	bool             mIsVaildReplay;
+	bool             mIsReplay;
 	ReplayHeader     mReplayHeader;
 	ReplayInfo       mGameInfo;
 	std::string      mReplayFilePath;

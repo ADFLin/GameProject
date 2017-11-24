@@ -5,8 +5,8 @@
 #include "GameWidgetID.h"
 
 #include "GameRoomUI.h"
-#include "GameInstance.h"
-#include "GameInstanceManager.h"
+#include "GameModule.h"
+#include "GameModuleManager.h"
 
 #include "NetGameStage.h"
 
@@ -32,7 +32,6 @@ GameStageInfo gSingleDev[] =
 	{ "Bubble Test" , "Bubble" } ,
 	{ "CubeWorld Test" , "CubeWorld" } ,
 };
-
 
 
 bool MainMenuStage::onInit()
@@ -86,7 +85,7 @@ MainOptionBook::MainOptionBook( int id , Vec2i const& pos , GWidget* parent )
 {
 	Vec2i pageSize = getPageSize();
 	Page* page;
-	page = addPage( LAN("User") );
+	page = addPage( LOCTEXT("User") );
 	page->setRenderCallback( RenderCallBack::Create( this , &MainOptionBook::renderUser ) );
 	{
 		UserProfile& profile = ::Global::getUserProfile();
@@ -115,9 +114,9 @@ MainOptionBook::MainOptionBook( int id , Vec2i const& pos , GWidget* parent )
 
 		GButton* button; 
 		button = new GButton( UI_YES        , buttonPos , buttonSize , page );
-		button->setTitle( LAN("Accept") );
+		button->setTitle( LOCTEXT("Accept") );
 		button = new GButton( UI_SET_DEFULT , buttonPos += bPosOff  , buttonSize , page );
-		button->setTitle( LAN("Set Default") );
+		button->setTitle( LOCTEXT("Set Default") );
 	}
 }
 
@@ -141,10 +140,10 @@ void MainOptionBook::renderUser( GWidget* ui )
 	Vec2i pos = ui->getWorldPos() + Vec2i( 20 , 20 );
 
 	Graphics2D& g = Global::getGraphics2D();
-	RenderUtility::setFont( g , FONT_S12 );
-	g.drawText( pos , LAN("Player Name") );
+	RenderUtility::SetFont( g , FONT_S12 );
+	g.drawText( pos , LOCTEXT("Player Name") );
 	pos.y += 35;
-	g.drawText( pos , LAN("Language") );
+	g.drawText( pos , LOCTEXT("Language") );
 }
 
 Vec2i const MenuBtnSize(120, 25);
@@ -154,9 +153,11 @@ int const MenuYOffset = 30;
 #define CREATE_BUTTON( ID , NAME )\
 	createButton( delay += MenuDeltaDelay , ID  , NAME  , Vec2i( xUI , yUI += MenuYOffset  ) , MenuBtnSize )
 
+#define CREATE_BUTTON_POS_DELAY( ID , NAME , X , Y , DELAY )\
+	createButton( DELAY  , ID  , NAME  , Vec2i( X , Y ) , MenuBtnSize )
+
 void MainMenuStage::doChangeGroup( StageGroupID group )
 {
-	
 	int xUI = ( Global::getDrawEngine()->getScreenWidth() - MenuBtnSize.x ) / 2 ;
 	int yUI = 200;
 	int offset = 30;
@@ -175,75 +176,82 @@ void MainMenuStage::doChangeGroup( StageGroupID group )
 		CREATE_BUTTON( UI_GAME_DEV4_GROUP  , "Dev Test"   );
 		CREATE_BUTTON( UI_GRAPHIC_TEST_GROUP , "Graphic Test" );
 		CREATE_BUTTON( UI_TEST_GROUP      , "Test" );
-		CREATE_BUTTON( UI_SINGLEPLAYER  , LAN("SinglePlayer")  );
-		CREATE_BUTTON( UI_MULTIPLAYER   , LAN("MultiPlayer")   );
-		CREATE_BUTTON( UI_VIEW_REPLAY   , LAN("View Replay")   );
+		CREATE_BUTTON(UI_FEATURE_DEV_GROUP, "Feature Dev");
+		CREATE_BUTTON( UI_SINGLEPLAYER  , LOCTEXT("SinglePlayer")  );
+		CREATE_BUTTON( UI_MULTIPLAYER   , LOCTEXT("MultiPlayer")   );
+		CREATE_BUTTON( UI_VIEW_REPLAY   , LOCTEXT("View Replay")   );
 		//CREATE_BUTTON( UI_ABOUT_GAME    , LAN("About Game")    );
-		CREATE_BUTTON( UI_GAME_OPTION   , LAN("Option")        );
-		CREATE_BUTTON( UI_EXIT_GAME     , LAN("Exit")          );
+		CREATE_BUTTON( UI_GAME_OPTION   , LOCTEXT("Option")        );
+		CREATE_BUTTON( UI_EXIT_GAME     , LOCTEXT("Exit")          );
 		break;
 	case UI_MULTIPLAYER:
-		CREATE_BUTTON( UI_CREATE_SERVER , LAN("Create Server") );
-		CREATE_BUTTON( UI_BUILD_CLIENT  , LAN("Connect Server"));
-		CREATE_BUTTON( UI_BACK_GROUP    , LAN("Back")          );
+		CREATE_BUTTON( UI_CREATE_SERVER , LOCTEXT("Create Server") );
+		CREATE_BUTTON( UI_BUILD_CLIENT  , LOCTEXT("Connect Server"));
+		CREATE_BUTTON( UI_BACK_GROUP    , LOCTEXT("Back")          );
 		break;
 	case UI_GRAPHIC_TEST_GROUP:
-		changeStageGroup(StageRegisterGroup::GraphicsTest);
+		changeStageGroup(EStageGroup::GraphicsTest);
 		createStageGroupButton(delay, xUI, yUI);
-		CREATE_BUTTON( UI_BACK_GROUP     , LAN("Back")          );
+		CREATE_BUTTON( UI_BACK_GROUP     , LOCTEXT("Back")          );
 		break;
 	case UI_TEST_GROUP:
-		changeStageGroup(StageRegisterGroup::Test);
+		changeStageGroup(EStageGroup::Test);
 		createStageGroupButton(delay, xUI, yUI);
-		CREATE_BUTTON( UI_BACK_GROUP  , LAN("Back")          );
+		CREATE_BUTTON( UI_BACK_GROUP  , LOCTEXT("Back")          );
 		break;
 	case UI_GAME_DEV_GROUP:
-		changeStageGroup(StageRegisterGroup::Dev);
+		changeStageGroup(EStageGroup::Dev);
 		createStageGroupButton(delay, xUI, yUI);
 		CREATE_BUTTON( UI_CARD_GAME_DEV_GROUP  , "Card Game.." );
 #if 1
-		CREATE_BUTTON(UI_NET_TEST_SV, LAN("Net Test( Server )"));
-		CREATE_BUTTON(UI_NET_TEST_CL, LAN("Net Test( Client )"));
+		CREATE_BUTTON(UI_NET_TEST_SV, LOCTEXT("Net Test( Server )"));
+		CREATE_BUTTON(UI_NET_TEST_CL, LOCTEXT("Net Test( Client )"));
 #endif
-		CREATE_BUTTON( UI_BACK_GROUP     , LAN("Back")          );
+		CREATE_BUTTON( UI_BACK_GROUP     , LOCTEXT("Back")          );
 		break;
 	case UI_GAME_DEV3_GROUP:
-		changeStageGroup(StageRegisterGroup::PhyDev);
+		changeStageGroup(EStageGroup::PhyDev);
 		createStageGroupButton(delay, xUI, yUI);
-		CREATE_BUTTON(UI_BACK_GROUP, LAN("Back"));
+		CREATE_BUTTON(UI_BACK_GROUP, LOCTEXT("Back"));
 		break;
 	case UI_GAME_DEV4_GROUP:
-		changeStageGroup(StageRegisterGroup::Dev4);
+		changeStageGroup(EStageGroup::Dev4);
 		createStageGroupButton(delay, xUI, yUI);
-		CREATE_BUTTON(UI_BACK_GROUP, LAN("Back"));
+		CREATE_BUTTON(UI_BACK_GROUP, LOCTEXT("Back"));
+		break;
+	case UI_FEATURE_DEV_GROUP:
+		changeStageGroup(EStageGroup::FeatureDev);
+		createStageGroupButton(delay, xUI, yUI);
+		CREATE_BUTTON(UI_BACK_GROUP, LOCTEXT("Back"));
 		break;
 	case UI_GAME_DEV2_GROUP:
 		for( int i = 0 ; i < ARRAY_SIZE( gSingleDev ) ; ++i )
 		{
-			CREATE_BUTTON( UI_SINGLE_DEV_INDEX + i , LAN( gSingleDev[i].decl ) );
+			CREATE_BUTTON( UI_SINGLE_DEV_INDEX + i , LOCTEXT( gSingleDev[i].decl ) );
 		}
-		CREATE_BUTTON( UI_BACK_GROUP     , LAN("Back")          );
+		CREATE_BUTTON( UI_BACK_GROUP     , LOCTEXT("Back")          );
 		break;
+
 
 	case UI_CARD_GAME_DEV_GROUP:
 		CREATE_BUTTON( UI_BIG2_TEST      , "Big2 Test" );
 		CREATE_BUTTON( UI_HOLDEM_TEST    , "Holdem Test" );
 		CREATE_BUTTON( UI_FREECELL_TEST  , "FreeCell Test" );
-		CREATE_BUTTON( UI_BACK_GROUP  , LAN("Back")          );
+		CREATE_BUTTON( UI_BACK_GROUP  , LOCTEXT("Back")          );
 		break;
 	case UI_SINGLEPLAYER:
 		{
-			GameInstanceVec games;
+			GameModuleVec games;
 			Global::GameManager().classifyGame( ATTR_SINGLE_SUPPORT , games );
 
-			for( GameInstanceVec::iterator iter = games.begin() ; 
+			for( GameModuleVec::iterator iter = games.begin() ; 
 				 iter != games.end() ; ++iter )
 			{
-				IGameInstance* g = *iter;
+				IGameModule* g = *iter;
 				GWidget* widget = CREATE_BUTTON( UI_GAME_BUTTON , g->getName() );
 				widget->setUserData( intptr_t(g) );
 			}
-			CREATE_BUTTON( UI_BACK_GROUP    , LAN("Back")          );
+			CREATE_BUTTON( UI_BACK_GROUP    , LOCTEXT("Back")          );
 		}
 		break;
 	}
@@ -253,15 +261,35 @@ void MainMenuStage::doChangeGroup( StageGroupID group )
 void MainMenuStage::createStageGroupButton( int& delay , int& xUI , int& yUI )
 {
 	int idx = 0;
-	for( auto info : gStageRegisterCollection.getGroupStage( mCurGroup ) )
+	int numStage = StageRegisterCollection::Get().getGroupStage(mCurGroup).size();
+
+	if( numStage > 10 )
 	{
-		CREATE_BUTTON( UI_GROUP_STAGE_INDEX + idx , info.decl );
-		++idx;
+		int PosLX = xUI - (MenuBtnSize.x + 6) / 2;
+		int PosRX = xUI + (MenuBtnSize.x + 6) / 2;
+		for( auto info : StageRegisterCollection::Get().getGroupStage(mCurGroup) )
+		{
+			CREATE_BUTTON_POS_DELAY(UI_GROUP_STAGE_INDEX + idx, info.decl , (idx % 2 ) ?PosRX : PosLX , yUI , delay );
+			++idx;
+			if( (idx % 2) == 0 )
+			{
+				yUI += MenuYOffset;
+				delay += MenuDeltaDelay;
+			}
+		}
+	}
+	else
+	{
+		for( auto info : StageRegisterCollection::Get().getGroupStage(mCurGroup) )
+		{
+			CREATE_BUTTON(UI_GROUP_STAGE_INDEX + idx, info.decl);
+			++idx;
+		}
 	}
 }
 #undef  CREATE_BUTTON
 
-void MainMenuStage::changeStageGroup(StageRegisterGroup group)
+void MainMenuStage::changeStageGroup(EStageGroup group)
 {
 	mCurGroup = group;
 }
@@ -299,7 +327,7 @@ bool MainMenuStage::onWidgetEvent( int event , int id , GWidget* ui )
 		case UI_FREECELL_TEST:
 		case UI_BIG2_TEST:
 			{
-				IGameInstance* game = Global::GameManager().changeGame( "Poker" );
+				IGameModule* game = Global::GameManager().changeGame( "Poker" );
 				if ( !game )
 					return false;
 				Poker::GameRule rule;
@@ -309,7 +337,7 @@ bool MainMenuStage::onWidgetEvent( int event , int id , GWidget* ui )
 				case UI_FREECELL_TEST: rule = Poker::RULE_FREECELL; break;
 				case UI_HOLDEM_TEST:   rule = Poker::RULE_HOLDEM; break;
 				}
-				static_cast< Poker::GameInstance* >( game )->setRule( rule );
+				static_cast< Poker::GameModule* >( game )->setRule( rule );
 				getManager()->changeStage( STAGE_SINGLE_GAME );
 			}
 			return false;
@@ -322,17 +350,18 @@ bool MainMenuStage::onWidgetEvent( int event , int id , GWidget* ui )
 		case UI_GAME_DEV4_GROUP:
 		case UI_TEST_GROUP:
 		case UI_GRAPHIC_TEST_GROUP:
+		case UI_FEATURE_DEV_GROUP:
 			pushGroup( id );
-			return false;
-		case UI_VIEW_REPLAY:
-			getManager()->changeStage( STAGE_REPLAY_EDIT );
 			return false;
 		case UI_BACK_GROUP:
 			popGroup();
 			return false;
+		case UI_VIEW_REPLAY:
+			getManager()->changeStage( STAGE_REPLAY_EDIT );
+			return false;
 		case UI_GAME_BUTTON:
 			{
-				IGameInstance* game = reinterpret_cast< IGameInstance* >( ui->getUserData() );
+				IGameModule* game = reinterpret_cast< IGameModule* >( ui->getUserData() );
 				Global::GameManager().changeGame( game->getName() );
 				game->beginPlay( SMT_SINGLE_GAME , *getManager() );
 			}
@@ -350,7 +379,7 @@ bool MainMenuStage::onWidgetEvent( int event , int id , GWidget* ui )
 	}
 	else if ( id < UI_SINGLE_DEV_INDEX + MAX_NUM_GROUP )
 	{
-		IGameInstance* game = Global::GameManager().changeGame( gSingleDev[ id - UI_SINGLE_DEV_INDEX ].game );
+		IGameModule* game = Global::GameManager().changeGame( gSingleDev[ id - UI_SINGLE_DEV_INDEX ].game );
 		if ( !game )
 			return false;
 		game->beginPlay( SMT_SINGLE_GAME , *getManager() );
@@ -362,7 +391,7 @@ bool MainMenuStage::onWidgetEvent( int event , int id , GWidget* ui )
 
 		if( id < UI_GROUP_STAGE_INDEX + MAX_NUM_GROUP )
 		{
-			info = &gStageRegisterCollection.getGroupStage(mCurGroup)[id - UI_GROUP_STAGE_INDEX];
+			info = &StageRegisterCollection::Get().getGroupStage(mCurGroup)[id - UI_GROUP_STAGE_INDEX];
 		}
 
 		if ( info )

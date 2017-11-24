@@ -63,7 +63,7 @@ namespace Phy2D
 		{
 		case Shape::eBox:
 		{
-			Vec2f ext = static_cast<BoxShape*>(shape)->mHalfExt;
+			Vector2 ext = static_cast<BoxShape*>(shape)->mHalfExt;
 			g.drawRect(obj.getPos() - ext, Vec2i(2 * ext));
 		}
 		break;
@@ -89,17 +89,17 @@ namespace Phy2D
 		mShapes[0] = &mShape1;
 		mShapes[1] = &mShape2;
 		mShapes[2] = &mShape3;
-		mShape3.mVertices.push_back(Vec2f(2, 0));
-		mShape3.mVertices.push_back(Vec2f(1, 3));
-		mShape3.mVertices.push_back(Vec2f(-2, 0));
-		mShape3.mVertices.push_back(Vec2f(-1, -2));
-		mShape1.mHalfExt = Vec2f(1, 1);
+		mShape3.mVertices.push_back(Vector2(2, 0));
+		mShape3.mVertices.push_back(Vector2(1, 3));
+		mShape3.mVertices.push_back(Vector2(-2, 0));
+		mShape3.mVertices.push_back(Vector2(-1, -2));
+		mShape1.mHalfExt = Vector2(1, 1);
 		mShape2.setRadius(1);
 		mObjects[0].mShape = &mShape1;
-		mObjects[0].mXForm.setTranslation(Vec2f(0, 0));
+		mObjects[0].mXForm.setTranslation(Vector2(0, 0));
 		mObjects[1].mShape = &mShape2;
 		//mObjects[1].mXForm.setRoatation( Math::Deg2Rad( 45 ) );
-		mObjects[1].mXForm.setTranslation(Vec2f(1, 1));
+		mObjects[1].mXForm.setTranslation(Vector2(1, 1));
 
 
 		restart();
@@ -114,21 +114,21 @@ namespace Phy2D
 		g.beginRender();
 
 		float scale = 50;
-		Vec2f offset = Vec2f(300, 300);
+		Vector2 offset = Vector2(300, 300);
 
 		glPushMatrix();
 		glTranslatef(offset.x, offset.y, 0);
 		glScalef(scale, scale, scale);
 
 
-		RenderUtility::setPen(g, Color::eRed);
-		g.drawLine(Vec2f(-100, 0), Vec2f(100, 0));
-		RenderUtility::setPen(g, Color::eGreen);
-		g.drawLine(Vec2f(0, -100), Vec2f(0, 100));
+		RenderUtility::SetPen(g, Color::eRed);
+		g.drawLine(Vector2(-100, 0), Vector2(100, 0));
+		RenderUtility::SetPen(g, Color::eGreen);
+		g.drawLine(Vector2(0, -100), Vector2(0, 100));
 
 
-		RenderUtility::setPen(g, (mIsCollided) ? Color::eWhite : Color::eGray);
-		RenderUtility::setBrush(g, Color::eNull);
+		RenderUtility::SetPen(g, (mIsCollided) ? Color::eWhite : Color::eGray);
+		RenderUtility::SetBrush(g, Color::eNull);
 		for( int i = 0; i < 2; ++i )
 		{
 			CollideObject& obj = mObjects[i];
@@ -139,12 +139,12 @@ namespace Phy2D
 
 		//if ( mIsCollided )
 		{
-			RenderUtility::setPen(g, Color::eGreen);
+			RenderUtility::SetPen(g, Color::eGreen);
 			g.drawLine(mContact.pos[0], mObjects[0].getPos());
 			g.drawLine(mContact.pos[1], mObjects[1].getPos());
-			RenderUtility::setPen(g, Color::eYellow);
+			RenderUtility::SetPen(g, Color::eYellow);
 			g.drawLine(mObjects[0].getPos() + mContact.normal * mContact.depth, mObjects[0].getPos());
-			RenderUtility::setPen(g, Color::ePurple);
+			RenderUtility::SetPen(g, Color::ePurple);
 			g.drawLine(mObjects[0].getPos() - mContact.normal, mObjects[0].getPos());
 
 
@@ -160,7 +160,7 @@ namespace Phy2D
 			RenderUtility::setPen(g, Color::eOrange);
 			for( int n = 0; n < 3; ++n )
 			{
-				Vec2f size = Vec2f(0.1, 0.1);
+				Vector2 size = Vector2(0.1, 0.1);
 				g.drawRect(gGJK.mSv[n]->vObj[0] - size / 2, size);
 			}
 #endif
@@ -169,7 +169,7 @@ namespace Phy2D
 			RenderUtility::setPen(g, Color::eBlue);
 			for( int n = 0; n < 3; ++n )
 			{
-				Vec2f size = Vec2f(0.1, 0.1);
+				Vector2 size = Vector2(0.1, 0.1);
 				g.drawRect(gGJK.mSv[n]->v - size / 2, size);
 			}
 #endif
@@ -177,10 +177,10 @@ namespace Phy2D
 			for( int n = 0; n < gGJK.mNumEdge; ++n )
 			{
 				GJK::Edge& edge = gGJK.mEdges[n];
-				Vec2f size = Vec2f(0.05, 0.05);
-				RenderUtility::setPen(g, Color::eCyan);
+				Vector2 size = Vector2(0.05, 0.05);
+				RenderUtility::SetPen(g, Color::eCyan);
 				g.drawRect(edge.sv->v - size / 2, size);
-				RenderUtility::setPen(g, Color::eCyan);
+				RenderUtility::SetPen(g, Color::eCyan);
 				g.drawLine(edge.sv->v, edge.sv->v + Normalize(edge.sv->d));
 			}
 #endif
@@ -188,11 +188,11 @@ namespace Phy2D
 			for( int n = 0; n < gGJK.mDBG.size(); ++n )
 			{
 				GJK::Simplex& sv = gGJK.mDBG[n];
-				Vec2f pos = mObjects[0].mXForm.transformPosition(sv.v);
-				Vec2f size = Vec2f(0.05, 0.05);
-				RenderUtility::setPen(g, Color::eGreen);
+				Vector2 pos = mObjects[0].mXForm.transformPosition(sv.v);
+				Vector2 size = Vector2(0.05, 0.05);
+				RenderUtility::SetPen(g, Color::eGreen);
 				g.drawRect(pos - size / 2, size);
-				RenderUtility::setPen(g, Color::eGreen);
+				RenderUtility::SetPen(g, Color::eGreen);
 				g.drawLine(pos, pos + 0.5 * Normalize(sv.d));
 			}
 
@@ -221,10 +221,10 @@ namespace Phy2D
 		switch( key )
 		{
 		case Keyboard::eR: restart(); break;
-		case 'D': moveObject(Vec2f(speed, 0)); break;
-		case 'A': moveObject(Vec2f(-speed, 0)); break;
-		case 'W': moveObject(Vec2f(0, speed)); break;
-		case 'S': moveObject(Vec2f(0, -speed)); break;
+		case 'D': moveObject(Vector2(speed, 0)); break;
+		case 'A': moveObject(Vector2(-speed, 0)); break;
+		case 'W': moveObject(Vector2(0, speed)); break;
+		case 'S': moveObject(Vector2(0, -speed)); break;
 		case Keyboard::eLEFT:
 			mObjects[1].mXForm.rotate(0.01); break;
 		case Keyboard::eRIGHT:
@@ -257,13 +257,13 @@ namespace Phy2D
 		if( !BaseClass::onInit() )
 			return false;
 
-		mShape3.mVertices.push_back(Vec2f(2, 0));
-		mShape3.mVertices.push_back(Vec2f(1, 3));
-		mShape3.mVertices.push_back(Vec2f(-2, 0));
-		mShape3.mVertices.push_back(Vec2f(-1, -2));
-		mBoxShape[0].mHalfExt = Vec2f(20, 5);
-		mBoxShape[1].mHalfExt = Vec2f(5, 20);
-		mBoxShape2.mHalfExt = Vec2f(4, 4);
+		mShape3.mVertices.push_back(Vector2(2, 0));
+		mShape3.mVertices.push_back(Vector2(1, 3));
+		mShape3.mVertices.push_back(Vector2(-2, 0));
+		mShape3.mVertices.push_back(Vector2(-1, -2));
+		mBoxShape[0].mHalfExt = Vector2(20, 5);
+		mBoxShape[1].mHalfExt = Vector2(5, 20);
+		mBoxShape2.mHalfExt = Vector2(4, 4);
 		mCircleShape.setRadius(1);
 
 		BodyInfo info;
@@ -271,33 +271,33 @@ namespace Phy2D
 		RigidBody* body;
 		body = mWorld.createRigidBody(&mBoxShape[0], info);
 		body->setMotionType(BodyMotion::eStatic);
-		body->setPos(Vec2f(0, 0));
+		body->setPos(Vector2(0, 0));
 
 		body = mWorld.createRigidBody(&mBoxShape[0], info);
 		body->setMotionType(BodyMotion::eStatic);
-		body->setPos(Vec2f(0, 40));
+		body->setPos(Vector2(0, 40));
 
 		body = mWorld.createRigidBody(&mBoxShape[1], info);
 		body->setMotionType(BodyMotion::eStatic);
-		body->setPos(Vec2f(-10, 20));
+		body->setPos(Vector2(-10, 20));
 
 		body = mWorld.createRigidBody(&mBoxShape[1], info);
 		body->setMotionType(BodyMotion::eStatic);
-		body->setPos(Vec2f(10, 20));
+		body->setPos(Vector2(10, 20));
 
 
 		body = mWorld.createRigidBody(&mCircleShape, info);
-		body->setPos(Vec2f(0, 6));
+		body->setPos(Vector2(0, 6));
 		mBody[0] = body;
 
 		body = mWorld.createRigidBody(&mCircleShape, info);
-		body->setPos(Vec2f(0, 8));
+		body->setPos(Vector2(0, 8));
 		mBody[1] = body;
 
 
 
 		//body = mWorld.createRigidBody( &mCircleShape , info );
-		//body->setPos( Vec2f( 0 , 20 ) );
+		//body->setPos( Vector2( 0 , 20 ) );
 
 
 		std::function< void() > fun = std::bind(&WorldTestStage::debugEntry, this);
@@ -315,40 +315,40 @@ namespace Phy2D
 		g.beginRender();
 
 		float scale = 10;
-		Vec2f offset = Vec2f(300, 500);
+		Vector2 offset = Vector2(300, 500);
 
 		glPushMatrix();
 		glTranslatef(offset.x, offset.y, 0);
 		glScalef(scale, -scale, scale);
 
 
-		RenderUtility::setPen(g, Color::eRed);
-		g.drawLine(Vec2f(-100, 0), Vec2f(100, 0));
-		RenderUtility::setPen(g, Color::eGreen);
-		g.drawLine(Vec2f(0, -100), Vec2f(0, 100));
+		RenderUtility::SetPen(g, Color::eRed);
+		g.drawLine(Vector2(-100, 0), Vector2(100, 0));
+		RenderUtility::SetPen(g, Color::eGreen);
+		g.drawLine(Vector2(0, -100), Vector2(0, 100));
 
 
-		RenderUtility::setBrush(g, Color::eNull);
+		RenderUtility::SetBrush(g, Color::eNull);
 		for( World::RigidBodyList::iterator iter = mWorld.mRigidBodies.begin(), itEnd = mWorld.mRigidBodies.end();
 			iter != itEnd; ++iter )
 		{
 			RigidBody* body = *iter;
-			RenderUtility::setPen(g, Color::eWhite);
+			RenderUtility::SetPen(g, Color::eWhite);
 			renderObject(g, *body);
 			CollisionProxy* proxy = body->mProxy;
 
-			RenderUtility::setPen(g, Color::eYellow);
+			RenderUtility::SetPen(g, Color::eYellow);
 			g.drawRect(proxy->aabb.min, proxy->aabb.max - proxy->aabb.min);
 
-			RenderUtility::setPen(g, Color::eRed);
-			Vec2f const xDir = body->mXForm.getRotation().getXDir();
-			Vec2f const yDir = body->mXForm.getRotation().getYDir();
-			RenderUtility::setPen(g, Color::eRed);
+			RenderUtility::SetPen(g, Color::eRed);
+			Vector2 const xDir = body->mXForm.getRotation().getXDir();
+			Vector2 const yDir = body->mXForm.getRotation().getYDir();
+			RenderUtility::SetPen(g, Color::eRed);
 			g.drawLine(body->getPos(), body->getPos() + 0.5 * xDir);
-			RenderUtility::setPen(g, Color::eGreen);
+			RenderUtility::SetPen(g, Color::eGreen);
 			g.drawLine(body->getPos(), body->getPos() + 0.5 * yDir);
 
-			RenderUtility::setPen(g, Color::eOrange);
+			RenderUtility::SetPen(g, Color::eOrange);
 			g.drawLine(body->getPos(), body->getPos() + body->mLinearVel);
 
 		}
@@ -365,17 +365,17 @@ namespace Phy2D
 			RigidBody* bodyA = static_cast<RigidBody*>(c.object[0]);
 			RigidBody* bodyB = static_cast<RigidBody*>(c.object[1]);
 
-			Vec2f cp = 0.5 * (c.pos[0] + c.pos[1]);
+			Vector2 cp = 0.5 * (c.pos[0] + c.pos[1]);
 
-			Vec2f vA = bodyA->getVelFromWorldPos(cp);
-			Vec2f vB = bodyB->getVelFromWorldPos(cp);
-			Vec2f rA = cp - bodyA->mPosCenter;
-			Vec2f rB = cp - bodyB->mPosCenter;
-			Vec2f vrel = vB - vA;
+			Vector2 vA = bodyA->getVelFromWorldPos(cp);
+			Vector2 vB = bodyB->getVelFromWorldPos(cp);
+			Vector2 rA = cp - bodyA->mPosCenter;
+			Vector2 rB = cp - bodyB->mPosCenter;
+			Vector2 vrel = vB - vA;
 			float vn = vrel.dot(c.normal);
 
-			Vec2f cpA = bodyA->mXForm.transformPosition(c.posLocal[0]);
-			Vec2f cpB = bodyB->mXForm.transformPosition(c.posLocal[1]);
+			Vector2 cpA = bodyA->mXForm.transformPosition(c.posLocal[0]);
+			Vector2 cpB = bodyB->mXForm.transformPosition(c.posLocal[1]);
 
 			//#TODO: normal change need concerned
 			float depth2 = c.normal.dot(cpA - cpB);
@@ -410,7 +410,7 @@ namespace Phy2D
 		{
 			BodyInfo info;
 			RigidBody* body = mWorld.createRigidBody(&mCircleShape, info);
-			body->setPos(Vec2f(0, 30));
+			body->setPos(Vector2(0, 30));
 		}
 		break;
 		case Keyboard::eF2:

@@ -77,7 +77,7 @@ namespace RenderGL
 					FixString< 256 > path = textureDir;
 					path += noramlTexture;
 					RHITexture2D* tex = RHICreateTexture2D();
-					tex->loadFile(path);
+					tex->loadFromFile(path);
 					mat->setParameter(SHADER_PARAM(TextureB), *tex);
 				}
 				else
@@ -90,7 +90,7 @@ namespace RenderGL
 					FixString< 256 > path = textureDir;
 					path += matInfo->diffuseTextureName;
 					RHITexture2D* tex = RHICreateTexture2D();
-					tex->loadFile(path);
+					tex->loadFromFile(path);
 					mat->setParameter(SHADER_PARAM(TextureBase), *tex);
 				}
 				return mat;

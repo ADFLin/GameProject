@@ -1,8 +1,8 @@
 #include "GLCommon.h"
 
 #include "GpuProfiler.h"
-#include "CommonMarco.h"
-#include "IntegerType.h"
+#include "MarcoCommon.h"
+#include "Core/IntegerType.h"
 #include "FileSystem.h"
 
 #include "stb/stb_image.h"
@@ -176,6 +176,8 @@ namespace RenderGL
 			checkProgramStatus();
 			mNeedLink = false;
 		}
+
+		bindParameters();
 	}
 
 	void ShaderProgram::checkProgramStatus()
@@ -656,7 +658,7 @@ namespace RenderGL
 		return true;
 	}
 
-	bool RHITexture2D::loadFile(char const* path)
+	bool RHITexture2D::loadFromFile(char const* path)
 	{
 		if ( !fetchHandle() )
 			return false;
@@ -1181,6 +1183,12 @@ namespace RenderGL
 			return GL_UNSIGNED_INT_IMAGE_2D;
 		}
 		return 0;
+	}
+
+	bool ShaderParameter::bind(ShaderProgram& program, char const* name)
+	{
+		mLoc = program.getParamLoc(name);
+		return mLoc != -1;
 	}
 
 }//namespace GL

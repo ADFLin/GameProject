@@ -71,7 +71,7 @@ namespace GreedySnake
 	{
 		Level& level = mScene.getLevel();
 
-		assert( level.isVaildMapRange( pos ) );
+		assert( level.isMapRange( pos ) );
 		int hitResult = 0;
 		switch( level.hitTest( pos , ColMask , hitResult ) )
 		{

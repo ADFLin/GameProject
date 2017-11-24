@@ -125,14 +125,14 @@ namespace Poker { namespace Big2 {
 		int               mStateTime;
 		RenderState       mState;
 		BitmapDC          mShowCardBmp;
-		Vec2f             mShowCardOffset[4];
+		Vector2             mShowCardOffset[4];
 		struct CardTrans
 		{
 			Vec2i offset;
 		};
 		CardTrans         mShowCardTrans[5];
 		int               mDealCardNum;
-		Vec2f             mDealCardPos[4];
+		Vector2             mDealCardPos[4];
 
 		int               mIdxCard[4];
 		char              mCards[52];

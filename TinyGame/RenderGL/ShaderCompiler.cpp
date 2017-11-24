@@ -44,6 +44,7 @@ namespace RenderGL
 
 	bool ShaderManager::loadFile(ShaderProgram& shaderProgram, char const* fileName, char const* vertexEntryName, char const* pixelEntryName, char const* def, char const* additionalCode)
 	{
+		assert(vertexEntryName && pixelEntryName);
 		char const* entryNames[] = { vertexEntryName , pixelEntryName };
 		uint8 shaderMask = BIT(RHIShader::eVertex) | BIT(RHIShader::ePixel);
 		return loadFile(shaderProgram, fileName, shaderMask, entryNames, def, additionalCode);
@@ -112,12 +113,21 @@ namespace RenderGL
 		info->bSingle = bSingle;
 		info->fileName = fileName;
 
+		int indexNameUsed = 0;
 		for( int i = 0; i < RHIShader::NUM_SHADER_TYPE; ++i )
 		{
 			if( (info->shaderMask & BIT(i)) == 0 )
 				continue;
 
 			std::string headCode;
+
+			{
+				headCode += "#version ";
+				FixString<128> str;
+				headCode += str.format("%u", mDefaultVersion);
+				headCode += " compatibility\n";
+			}
+
 			if( def )
 			{
 				headCode += def;
@@ -128,8 +138,9 @@ namespace RenderGL
 			if( entryNames )
 			{
 				headCode += "#define ";
-				headCode += entryNames[i];
+				headCode += entryNames[indexNameUsed];
 				headCode += " main\n";
+				++indexNameUsed;
 			}
 
 			if( additionalCode )
@@ -176,12 +187,13 @@ namespace RenderGL
 
 	bool ShaderManager::updateShaderInternal(ShaderProgram& shaderProgram, ShaderCompileInfo& info)
 	{
-		if( !shaderProgram.isVaildate() )
+		if( !shaderProgram.isate() )
 		{
 			if( !shaderProgram.create() )
 				return false;
 		}
 
+		int indexCode = 0;
 		for( int i = 0; i < RHIShader::NUM_SHADER_TYPE; ++i )
 		{
 			if ( ( info.shaderMask & BIT(i) ) == 0 )
@@ -201,17 +213,19 @@ namespace RenderGL
 			if( shader == nullptr )
 			{
 				shader = new RHIShader;
-				if( !mCompiler.compileCode(RHIShader::Type(i), *shader, path, info.headCodes[i].c_str()) )
+				if( !mCompiler.compileCode(RHIShader::Type(i), *shader, path, info.headCodes[indexCode].c_str()) )
 					return false;
 				shaderProgram.attachShader(*shader);
 			}
 			else
 			{
-				if( !mCompiler.compileCode(RHIShader::Type(i), *shader, path, info.headCodes[i].c_str()) )
+				if( !mCompiler.compileCode(RHIShader::Type(i), *shader, path, info.headCodes[indexCode].c_str()) )
 					return false;
 			}
+			++indexCode;
 		}
 		shaderProgram.updateShader(true);
+
 		return true;
 	}
 
@@ -248,7 +262,7 @@ namespace RenderGL
 				char const* DefaultDir = "Shader";
 				preporcessor.setOutput(codeOutput);
 				preporcessor.addSreachDir(DefaultDir);
-				char const* dirPathEnd = FileUtility::getDirPathPos(path);
+				char const* dirPathEnd = FileUtility::GetDirPathPos(path);
 				if( strncmp(DefaultDir, path, dirPathEnd - path) != 0 )
 				{
 					std::string dir(path, dirPathEnd);
@@ -337,6 +351,51 @@ namespace RenderGL
 	{
 		if ( action == FileAction::Modify )
 			ShaderManager::getInstance().updateShaderInternal(*shaderProgram, *this);
+	}
+
+	std::string ShaderCompileOption::getCode(char const* defCode /*= nullptr */, char const* addionalCode /*= nullptr */) const
+	{
+		std::string result;
+		if( version )
+		{
+			result += "#version ";
+			FixString<128> str;
+			result += str.format("%u", version);
+			result += " compatibility\n";
+		}
+
+		if( defCode )
+		{
+			result += defCode;
+		}
+
+		for( auto const& var : mConfigVars )
+		{
+			result += "#define ";
+			result += var.name;
+			if( var.name.length() )
+			{
+				result += " ";
+				result += var.value;
+			}
+			result += "\n";
+		}
+
+		if( addionalCode )
+		{
+			result += addionalCode;
+			result += '\n';
+		}
+
+		for( auto& name : mIncludeFiles )
+		{
+			result += "#include \"";
+			result += name;
+			result += SHADER_FILE_SUBNAME;
+			result += "\"\n";
+		}
+
+		return result;
 	}
 
 }//namespace GL

@@ -72,7 +72,7 @@ namespace Chromatron
 		bool     tryToggleDeivceAccess( Device& dc );
 
 		bool     isGoal() const { return mIsGoal; }
-		bool     isVaildRange( const Vec2D& pos , bool inWorld );
+		bool     isRange( const Vec2D& pos , bool inWorld );
 
 		World const&  getWorld() const { return mWorld;  }
 		void     restart();

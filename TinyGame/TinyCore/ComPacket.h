@@ -2,7 +2,7 @@
 #define ComPacket_h__
 
 #include "CppVersion.h"
-#include "IntegerType.h"
+#include "Core/IntegerType.h"
 
 #include "Thread.h"
 #include "FastDelegate/FastDelegate.h"

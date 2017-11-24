@@ -9,7 +9,7 @@ namespace TowerDefend
 	{
 	public:
 		virtual Actor* getActor() const = 0;
-		virtual Vec2f    getPos() const = 0;
+		virtual Vector2    getPos() const = 0;
 	};
 
 	struct SelectVisitor 
@@ -39,8 +39,8 @@ namespace TowerDefend
 			if ( Unit* unit = actor->cast< Unit >() )
 			{
 				float radius = unit->getColRadius();
-				Vec2f offset( radius , radius );
-				Vec2f const& pos = unit->getPos();
+				Vector2 offset( radius , radius );
+				Vector2 const& pos = unit->getPos();
 				if ( !rectSelector.test( pos - offset , pos + offset ) )
 					return true;
 
@@ -65,8 +65,8 @@ namespace TowerDefend
 					return true;
 
 				Vec2i blgSize = building->getBuildingInfo().blgSize;
-				Vec2f min = building->getPos() - Vec2f( blgSize / 2 ) * gMapCellLength;
-				Vec2f max = min + Vec2f( blgSize ) * gMapCellLength;
+				Vector2 min = building->getPos() - Vector2( blgSize / 2 ) * gMapCellLength;
+				Vector2 max = min + Vector2( blgSize ) * gMapCellLength;
 
 				if ( !rectSelector.test( min , max ) )
 					return true;
@@ -87,7 +87,7 @@ namespace TowerDefend
 			}
 			//else
 			//{
-			//	Vec2f const& pos = actor->getPos();
+			//	Vector2 const& pos = actor->getPos();
 			//	if ( !rectSelector.test( pos , pos ) )
 			//		return true;
 
@@ -109,7 +109,7 @@ namespace TowerDefend
 			}
 
 			//float radius = unit->getColRadius();
-			//Vec2f const& pos = unit->getPos();
+			//Vector2 const& pos = unit->getPos();
 			//if ( !rectSelector.test( pos - offset , pos + offset ) )
 			//	return true;
 			if ( canControl )
@@ -158,7 +158,7 @@ namespace TowerDefend
 				mVPCtrl.setCenterViewPos( vpMoveInfo.offset );
 		}
 
-		removeInvaildSelectActor();
+		removeInSelectActor();
 
 		CIMouse mouseInfo;
 		CISelectRange srInfo;
@@ -188,7 +188,7 @@ namespace TowerDefend
 					{
 						mComActorID = ActorId( comInfo.chioceID );
 
-						Actor* actor = evalGroupActorCom( groupActorID , Vec2f(0,0) , 0 );
+						Actor* actor = evalGroupActorCom( groupActorID , Vector2(0,0) , 0 );
 						if ( actor )
 						{
 
@@ -240,7 +240,7 @@ namespace TowerDefend
 		case SM_NORMAL:
 			if ( trigger.detect( ACT_TD_SELECT_UNIT_GROUP , &mouseInfo ) )
 			{
-				Vec2f wPos = getCtrlViewport().convertToWorldPos( mouseInfo.pos );
+				Vector2 wPos = getCtrlViewport().convertToWorldPos( mouseInfo.pos );
 
 				Actor* actor = getTargetActor( wPos );
 
@@ -271,7 +271,7 @@ namespace TowerDefend
 
 				if ( trigger.detect( ACT_TD_MOUSE_COM , &mouseInfo )  )
 				{
-					Vec2f wPos = getCtrlViewport().convertToWorldPos( mouseInfo.pos );
+					Vector2 wPos = getCtrlViewport().convertToWorldPos( mouseInfo.pos );
 					Actor* target = getTargetActor( wPos );
 
 					for( ActorVec::iterator iter = mSelectActors.begin();
@@ -289,7 +289,7 @@ namespace TowerDefend
 		case SM_LOCK_POS:
 			if ( trigger.detect( ACT_TD_TARGET_CHOICE , &mouseInfo )  )
 			{
-				Vec2f wPos = getCtrlViewport().convertToWorldPos( mouseInfo.pos );
+				Vector2 wPos = getCtrlViewport().convertToWorldPos( mouseInfo.pos );
 				switch( mComID )
 				{
 				case CID_BUILD:
@@ -317,7 +317,7 @@ namespace TowerDefend
 			{
 				assert( mComID != CID_NULL );
 
-				Vec2f wPos = getCtrlViewport().convertToWorldPos( mouseInfo.pos );
+				Vector2 wPos = getCtrlViewport().convertToWorldPos( mouseInfo.pos );
 				Actor* target = getTargetActor( wPos );
 
 				switch( mComID )
@@ -357,7 +357,7 @@ namespace TowerDefend
 		}
 	}
 
-	Actor* Level::evalGroupActorCom( ActorId groupActorID , Vec2f wPos , unsigned flag )
+	Actor* Level::evalGroupActorCom( ActorId groupActorID , Vector2 wPos , unsigned flag )
 	{
 		ActorVecIter iter = getGroupIteraotr( groupActorID );
 
@@ -402,7 +402,7 @@ namespace TowerDefend
 		changeComMap( cmID );
 	}
 
-	void Level::removeInvaildSelectActor()
+	void Level::removeInSelectActor()
 	{
 		for( ActorVec::iterator iter = mSelectActors.begin();
 			iter != mSelectActors.end() ; )
@@ -421,8 +421,8 @@ namespace TowerDefend
 		visitor.level   = this;
 		visitor.actorID = actorID;
 
-		//Vec2f min = getCtrlViewport().convertToWorldPos( rect.start );
-		//Vec2f max = getCtrlViewport().convertToWorldPos( rect.end );
+		//Vector2 min = getCtrlViewport().convertToWorldPos( rect.start );
+		//Vector2 max = getCtrlViewport().convertToWorldPos( rect.end );
 
 		//getColManager().testCollision( min , max , CollisionCallback( &visitor , &SelectVisitor::checkUnitSelect ) );
 		//if ( visitor.selectType == SelectVisitor::eUnit )
@@ -440,7 +440,7 @@ namespace TowerDefend
 		mEntityMgr.visitEntity( visitor , filter );
 	}
 
-	Actor* Level::getTargetActor( Vec2f const& wPos )
+	Actor* Level::getTargetActor( Vector2 const& wPos )
 	{
 		ColObject* obj = getCollisionMgr().getObject( wPos );
 
@@ -513,7 +513,7 @@ namespace TowerDefend
 	}
 
 
-	void ActComMessage::haveGoalPos( Vec2f const& pos )
+	void ActComMessage::haveGoalPos( Vector2 const& pos )
 	{
 		Msg msg;
 		msg.pos   = pos;

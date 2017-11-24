@@ -926,13 +926,13 @@ namespace Poker { namespace Big2 {
 	{
 		mHelper = NULL;
 		mGroup  = CG_NONE;
-		mbeVaild = false;
+		mbe = false;
 	}
 
 	void TrickIterator::goNext()
 	{
-		mbeVaild = mHelper->nextIterator( mGroup , mIterData );
-		if ( mbeVaild )
+		mbe = mHelper->nextIterator( mGroup , mIterData );
+		if ( mbe )
 			mHelper->valueIterator( mGroup , mIterData , mIndex , NULL );
 	}
 
@@ -940,8 +940,8 @@ namespace Poker { namespace Big2 {
 	{
 		while( 1 )
 		{
-			mbeVaild = mHelper->nextIterator( mGroup , mIterData );
-			if ( !mbeVaild )
+			mbe = mHelper->nextIterator( mGroup , mIterData );
+			if ( !mbe )
 				break;
 
 			int curPower;
@@ -953,15 +953,15 @@ namespace Poker { namespace Big2 {
 
 	void TrickIterator::reset()
 	{
-		mbeVaild = mHelper->initIterator( mGroup , mIterData );
-		if ( mbeVaild )
+		mbe = mHelper->initIterator( mGroup , mIterData );
+		if ( mbe )
 			mHelper->valueIterator( mGroup , mIterData , mIndex , NULL );
 	}
 
 	bool TrickIterator::reset( int power )
 	{
-		mbeVaild = mHelper->initIterator( mGroup , mIterData );
-		if ( !mbeVaild )
+		mbe = mHelper->initIterator( mGroup , mIterData );
+		if ( !mbe )
 			return false;
 
 		while( 1 )
@@ -970,8 +970,8 @@ namespace Poker { namespace Big2 {
 			mHelper->valueIterator( mGroup , mIterData , mIndex , &curPower );
 			if ( curPower > power )
 				break;
-			mbeVaild = mHelper->nextIterator( mGroup , mIterData );
-			if ( !mbeVaild )
+			mbe = mHelper->nextIterator( mGroup , mIterData );
+			if ( !mbe )
 				break;
 		}
 
@@ -1070,7 +1070,7 @@ namespace Poker { namespace Big2 {
 		return 0;
 	}
 
-	bool TrickUtility::checkCardVaild5( TrickInfo& info )
+	bool TrickUtility::checkCard5( TrickInfo& info )
 	{
 		int groupIndex[5];
 		int groupNum[5];
@@ -1217,7 +1217,7 @@ namespace Poker { namespace Big2 {
 		return false;
 	}
 
-	bool TrickUtility::checkCardVaild( Card const cards[] , int numCard , int index[] , int num , TrickInfo& info )
+	bool TrickUtility::checkCard( Card const cards[] , int numCard , int index[] , int num , TrickInfo& info )
 	{
 		if ( num > numCard )
 			return false;
@@ -1277,7 +1277,7 @@ namespace Poker { namespace Big2 {
 				for( int i = 0 ; i < 5 ; ++i )
 					info.card[i] = cards[ index[i] ];
 				std::sort( info.card , info.card + 5 , CardSortCmp() );
-				if( checkCardVaild5( info ) )
+				if( checkCard5( info ) )
 					return true;
 			}
 			break;

@@ -5,16 +5,18 @@
 #include "GameShare.h"
 
 #include "TVector2.h"
+#include "Math/Vector2.h"
 #include "FixString.h"
-#include "IntegerType.h"
-#include "CommonMarco.h"
+#include "Core/IntegerType.h"
+#include "MarcoCommon.h"
 #include "TemplateMisc.h"
 
 #define USE_TRANSLATE
 #include "Localization.h"
 
 typedef TVector2< int >  Vec2i;
-typedef TVector2< float >  Vec2f;
+
+using ::Math::Vector2;
 
 int const MAX_PLAYER_NUM   = 32;
 int const gDefaultTickTime = 15;
@@ -51,7 +53,8 @@ class Graphics2D;
 class IGraphics2D;
 class GLGraphics2D;
 
-class GameInstanceManager;
+class GameModuleManager;
+class IGameInstance;
 class PropertyKey;
 class GUISystem;
 struct UserProfile;
@@ -86,7 +89,9 @@ public:
 	static GAME_API int  Random();
 	static GAME_API void RandSeed(unsigned seed );
 
-	static GAME_API GameInstanceManager& GameManager();
+	static GAME_API GameModuleManager& GameManager();
+	static GAME_API IGameInstance*     GameInstacne();
+
 	static GAME_API IGameNetInterface&   GameNet();
 	static GAME_API IDebugInterface&     Debug();
 	static GAME_API PropertyKey&         GameConfig();
@@ -98,6 +103,7 @@ public:
 	static GAME_API IGraphics2D&  getIGraphics2D();
 
 	static GAME_API UserProfile&  getUserProfile();
+
 
 };
 

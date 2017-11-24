@@ -57,7 +57,7 @@ namespace Chromatron
 
 		buttonSize.x = 100;
 		mNextLevelButton = new GButton( UI_RESTART_LEVEL , pos , buttonSize , panel );
-		mNextLevelButton->setTitle( LAN("Restart" ) );
+		mNextLevelButton->setTitle( LOCTEXT("Restart" ) );
 		pos.x += buttonSize.x;
 
 		buttonSize.x = 60;
@@ -74,13 +74,13 @@ namespace Chromatron
 
 		buttonSize.x = 100;
 		mNextLevelButton = new GButton( UI_GO_UNSOLVED_LEVEL_BUTTON , pos , buttonSize , panel );
-		mNextLevelButton->setTitle( LAN("Go Unsolved" ) );
+		mNextLevelButton->setTitle( LOCTEXT("Go Unsolved" ) );
 		pos.x += buttonSize.x;
 
 		buttonSize.x = 100;
 		pos.x =  screenWidth - buttonSize.x - 5;
 		GButton* button = new GButton( UI_MAIN_MENU , pos , buttonSize , panel );
-		button->setTitle( LAN( "Main Menu" ) );
+		button->setTitle( LOCTEXT( "Main Menu" ) );
 
 		pos.x = 5;
 		GChoice* choice = new GChoice( UI_GAME_PACKAGE_CHOICE , pos , Vec2i( 100 , 25 ) , panel );
@@ -422,7 +422,7 @@ namespace Chromatron
 		Vec2i size = Vec2i( widget->getSize().x , 20 );
 		Graphics2D& g = Global::getGraphics2D();
 
-		RenderUtility::setFont( g , FONT_S12 );
+		RenderUtility::SetFont( g , FONT_S12 );
 		Vec2i offset( 0 , 30 );
 
 		g.setTextColor( 255 , 255 , 0 );
@@ -439,7 +439,7 @@ namespace Chromatron
 		pos += offset;
 
 
-		RenderUtility::setFont( g , FONT_S16 );
+		RenderUtility::SetFont( g , FONT_S16 );
 		g.setTextColor( 255 , 0 , 0 );
 		pos = widget->getWorldPos() + Vec2i( 0 , widget->getSize().y - 30 );
 		if ( mLevelState[ mIndexLevel ] == eSOLVED )

@@ -1,7 +1,7 @@
 #ifndef BMGame_h__
 #define BMGame_h__
 
-#include "GameInstance.h"
+#include "GameModule.h"
 #include "GameControl.h"
 
 #define BOMBER_MAN_NAME "BomberMan"
@@ -9,7 +9,7 @@
 namespace BomberMan
 {
 
-	class GameInstance : public IGameInstance
+	class GameModule : public IGameModule
 	{
 	public:
 		virtual bool  initialize(){ return true; }

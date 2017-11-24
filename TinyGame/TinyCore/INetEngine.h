@@ -5,7 +5,7 @@ class NetWorker;
 class ComWorker;
 class ActionProcessor;
 class IPlayerManager;
-class IGameInstance;
+class IGameModule;
 
 class IFrameUpdater
 {
@@ -23,7 +23,7 @@ public:
 		NetWorker*       netWorker;
 		ComWorker*       worker;
 		ActionProcessor* processor;
-		IGameInstance*    game;
+		IGameModule*    game;
 		long             tickTime;
 	};
 	virtual bool build( BuildParam& buildParam ) = 0;

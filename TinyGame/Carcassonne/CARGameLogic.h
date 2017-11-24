@@ -1,5 +1,6 @@
-#ifndef CARGameModule_h__d9620f2c_1cee_4ed1_9a0e_f89f5a952f42
-#define CARGameModule_h__d9620f2c_1cee_4ed1_9a0e_f89f5a952f42
+#pragma once
+#ifndef CARGameLogic_h__d9620f2c_1cee_4ed1_9a0e_f89f5a952f42
+#define CARGameLogic_h__d9620f2c_1cee_4ed1_9a0e_f89f5a952f42
 
 #include "CARCommon.h"
 
@@ -57,23 +58,22 @@ namespace CAR
 		eExitGame    ,
 	};
 
-	class GameModule
+	class GameLogic
 	{
 	public:
-		GameModule();
+		GameLogic();
 
 		void   setupSetting( GameplaySetting& setting );
 		void   restart( bool bInit );
+		void   run(IGameInput& input);
 
 		GameplaySetting&  getSetting() { return *mSetting; }
 		WorldTileManager& getWorld(){ return mWorld; }
-		void   runLogic( IGameInput& input );
 
+		
 		bool   buildBridge( Vec2i const& pos , int dir );
 		bool   buyBackPrisoner( int ownerId , ActorType type );
 		bool   changePlaceTile( TileId id );
-
-		void   doRunLogic( IGameInput& input );
 
 		
 		void   loadSetting( bool bInit );
@@ -300,4 +300,4 @@ namespace CAR
 
 }//namespace CAR
 
-#endif // CARGameModule_h__d9620f2c_1cee_4ed1_9a0e_f89f5a952f42
+#endif // CARGameLogic_h__d9620f2c_1cee_4ed1_9a0e_f89f5a952f42

@@ -280,7 +280,7 @@ namespace MV
 					if ( msg.onMoving() && msg.isMiddleDown() )
 					{
 						float rotateSpeed = 0.01;
-						Vec2f off = rotateSpeed * Vec2f( msg.getPos() - oldPos );
+						Vector2 off = rotateSpeed * Vector2( msg.getPos() - oldPos );
 						mCamera.rotateByMouse( off.x , off.y );
 						oldPos = msg.getPos();
 					}
@@ -491,7 +491,7 @@ namespace MV
 			world.createGroup( getUseGroup() );
 			break;
 		case 'K': case 'L':
-			if ( world.checkPosVaild( editPos ) )
+			if ( world.checkPos( editPos ) )
 			{
 				Dir axis = ( key == 'L') ? eDirZ : eDirX;
 				int id =  world.getBlock( editPos );
@@ -505,7 +505,7 @@ namespace MV
 			}
 			break;
 		case 'E':
-			if ( world.checkPosVaild( editPos ) &&
+			if ( world.checkPos( editPos ) &&
 				world.getBlock( editPos ) == 0 )
 			{
 				createBlock( editPos , editModelId );
@@ -691,7 +691,7 @@ namespace MV
 
 		g.beginRender();
 
-		RenderUtility::setFont( g , FONT_S8 );
+		RenderUtility::SetFont( g , FONT_S8 );
 		FixString< 256 > str;
 		Vec2i pos = Vec2i( 10 , 10 );
 		glColor3f(1,0,0.0f);

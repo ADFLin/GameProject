@@ -18,9 +18,9 @@ namespace TowerDefend
 	}
 
 
-	bool testCollisionOffset( Vec2f const& tPos , float tR , Vec2f const& pos , float r  , Vec2f const& dir , float offset[] )
+	bool testCollisionOffset( Vector2 const& tPos , float tR , Vector2 const& pos , float r  , Vector2 const& dir , float offset[] )
 	{
-		Vec2f L = tPos - pos;
+		Vector2 L = tPos - pos;
 
 		float radius = tR + r;
 		float radiusSqure = radius * radius; 
@@ -43,9 +43,9 @@ namespace TowerDefend
 		return true;
 	}
 
-	bool testCollisionFrac( Vec2f const& tPos , float tR , Vec2f const& pos , float r  , Vec2f const& offset , float frac[] )
+	bool testCollisionFrac( Vector2 const& tPos , float tR , Vector2 const& pos , float r  , Vector2 const& offset , float frac[] )
 	{
-		Vec2f L = tPos - pos;
+		Vector2 L = tPos - pos;
 
 		float radius = tR + r;
 		float radiusSqure = radius * radius; 
@@ -54,7 +54,7 @@ namespace TowerDefend
 		if ( LSqure > radiusSqure )
 			return false;
 
-		Vec2f dir = offset;
+		Vector2 dir = offset;
 		float offsetDist = normalize( dir );
 
 		float Ldir = L.dot( dir );
@@ -71,9 +71,9 @@ namespace TowerDefend
 		return true;
 	}
 
-	bool testCollision( Vec2f const& tPos , float tRadius , Vec2f const& pos , float radius  , Vec2f& offset )
+	bool testCollision( Vector2 const& tPos , float tRadius , Vector2 const& pos , float radius  , Vector2& offset )
 	{
-		Vec2f L = tPos - ( pos + offset );
+		Vector2 L = tPos - ( pos + offset );
 
 		float sumRadius = tRadius + radius;
 		float sumRadiusSqure = sumRadius * sumRadius; 
@@ -82,7 +82,7 @@ namespace TowerDefend
 		if ( LSqure > sumRadiusSqure )
 			return false;
 
-		Vec2f dir = offset;
+		Vector2 dir = offset;
 		float offsetDist = normalize( dir );
 
 		float Ldir = L.dot( dir );
@@ -102,12 +102,12 @@ namespace TowerDefend
 		return true;
 	}
 
-	ColObject* CollisionManager::testCollision( Vec2f const& pos , float radius , ColObject* skip , Vec2f& offset )
+	ColObject* CollisionManager::testCollision( Vector2 const& pos , float radius , ColObject* skip , Vector2& offset )
 	{
-		Vec2f offR( radius , radius );
+		Vector2 offR( radius , radius );
 
-		Vec2f min = pos - offR;
-		Vec2f max = pos + offR;
+		Vector2 min = pos - offR;
+		Vector2 max = pos + offR;
 
 		if ( offset.x > 0 )
 			max.x += offset.x;
@@ -155,12 +155,12 @@ namespace TowerDefend
 		return colObj;
 	}
 
-	ColObject* CollisionManager::testCollision( ColObject& obj , Vec2f& offset )
+	ColObject* CollisionManager::testCollision( ColObject& obj , Vector2& offset )
 	{
 		return testCollision( obj.getOwner().getPos() , obj.getBoundRadius() , &obj , offset );
 	}
 
-	void CollisionManager::testCollision( Vec2f const& min , Vec2f const& max , CollisionCallback const& callback )
+	void CollisionManager::testCollision( Vector2 const& min , Vector2 const& max , CollisionCallback const& callback )
 	{
 		unsigned hashValue[4];
 		calcHashValue( min , max , hashValue );
@@ -182,7 +182,7 @@ namespace TowerDefend
 
 				ColObject* tObj = *iter;
 
-				Vec2f const& pos = tObj->getOwner().getPos();
+				Vector2 const& pos = tObj->getOwner().getPos();
 				float radius = tObj->getBoundRadius();
 
 				if ( pos.x + radius < min.x || pos.x - radius > max.x || 
@@ -197,7 +197,7 @@ namespace TowerDefend
 		}
 	}
 
-	ColObject* CollisionManager::getObject( Vec2f const& pos )
+	ColObject* CollisionManager::getObject( Vector2 const& pos )
 	{
 		unsigned hashValue = getHash( pos.x , pos.y );
 
@@ -212,17 +212,17 @@ namespace TowerDefend
 			if ( !addTestedObj( obj ) )
 				continue;
 
-			Vec2f dif = obj->getOwner().getPos() - pos;
+			Vector2 dif = obj->getOwner().getPos() - pos;
 			if ( dif.length2() < obj->getBoundRadius() * obj->getBoundRadius() )
 				return obj;
 		}
 		return NULL;
 	}
 
-	bool CollisionManager::tryPlaceObject( ColObject& obj , Vec2f const& offsetDir , Vec2f& pos , float& totalOffset  )
+	bool CollisionManager::tryPlaceObject( ColObject& obj , Vector2 const& offsetDir , Vector2& pos , float& totalOffset  )
 	{
-		Vec2f min = pos;
-		Vec2f max = pos + Vec2f( gColCellLength , gColCellLength );
+		Vector2 min = pos;
+		Vector2 max = pos + Vector2( gColCellLength , gColCellLength );
 		unsigned hashValue[4];
 		calcHashValue( min , max , hashValue );
 
@@ -276,8 +276,8 @@ namespace TowerDefend
 
 	void CollisionManager::addObject( ColObject& obj )
 	{
-		Vec2f const& pos = obj.getOwner().getPos();
-		Vec2f offR( obj.getBoundRadius() , obj.getBoundRadius() );
+		Vector2 const& pos = obj.getOwner().getPos();
+		Vector2 offR( obj.getBoundRadius() , obj.getBoundRadius() );
 
 		calcHashValue( pos - offR , pos + offR , obj.mColHashValue );
 
@@ -296,8 +296,8 @@ namespace TowerDefend
 	{
 		unsigned newHash[4];
 
-		Vec2f const& pos = obj.getOwner().getPos();
-		Vec2f offR( obj.getBoundRadius() , obj.getBoundRadius() );
+		Vector2 const& pos = obj.getOwner().getPos();
+		Vector2 offR( obj.getBoundRadius() , obj.getBoundRadius() );
 		calcHashValue( pos - offR , pos + offR , newHash );
 
 		for( int i = 0 ; i < 4 ; ++i )
@@ -322,7 +322,7 @@ namespace TowerDefend
 		}
 	}
 
-	void CollisionManager::calcHashValue( Vec2f const& min , Vec2f const& max , unsigned value[] )
+	void CollisionManager::calcHashValue( Vector2 const& min , Vector2 const& max , unsigned value[] )
 	{
 		assert( max.x - min.x <= gColCellLength &&
 			max.y - min.y <= gColCellLength );

@@ -1,6 +1,6 @@
 #include "TinyGamePCH.h"
 #include "GameReplay.h"
-#include "GameInstance.h"
+#include "GameModule.h"
 #include "GameAction.h"
 
 #include <fstream>
@@ -292,7 +292,7 @@ void Replay::resetTrackPos()
 	mNextNodePos = 0;
 }
 
-bool Replay::isVaild()
+bool Replay::is()
 {
 	return mFrameNodeVec.size() != 0;
 }
@@ -387,9 +387,9 @@ bool ReplayInput::isPlayEnd()
 	return totalFrame < mGameFrame;
 }
 
-bool ReplayInput::isVaild()
+bool ReplayInput::is()
 {
-	return mReplay.isVaild();
+	return mReplay.is();
 }
 
 void ReplayInput::restart()
@@ -505,7 +505,7 @@ namespace OldVersion
 		mHeader.clear( LastVersion );
 	}
 
-	bool Replay::isVaild()
+	bool Replay::is()
 	{
 		return mNodeHeaders.size() != 0;
 	}
@@ -610,9 +610,9 @@ namespace OldVersion
 		return true;
 	}
 
-	bool ReplayInput::isVaild()
+	bool ReplayInput::is()
 	{
-		return mTemplate && mReplay.isVaild();
+		return mTemplate && mReplay.is();
 	}
 
 	bool ReplayInput::isPlayEnd()

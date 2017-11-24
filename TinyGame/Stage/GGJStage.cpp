@@ -201,7 +201,7 @@ namespace GGJ
 		return ColorId::White;
 	}
 
-	bool WorldCondition::checkWallCondVaild(WallName a , WallName b , CondDir dir)
+	bool WorldCondition::checkWallCond(WallName a , WallName b , CondDir dir)
 	{
 		int idxA = getWallIndex(a);
 		int idxB = getWallIndex(b);
@@ -292,7 +292,7 @@ namespace GGJ
 		}
 	}
 
-	void WallDirCondExpression::generateVaild(Random& rand , WorldCondition& worldCond)
+	void WallDirCondExpression::generate(Random& rand , WorldCondition& worldCond)
 	{
 		mIdxContent = rand.nextInt() % 2;
 		if (mIdxContent == 0)
@@ -317,11 +317,11 @@ namespace GGJ
 		}
 	}
 
-	bool WallDirCondExpression::testVaild(WorldCondition& worldCond)
+	bool WallDirCondExpression::test(WorldCondition& worldCond)
 	{
 		if (mIdxContent == 0)
 		{
-			return worldCond.checkWallCondVaild( mElements[0] , mElements[1] , mElements[2] );
+			return worldCond.checkWallCond( mElements[0] , mElements[1] , mElements[2] );
 		}
 		else
 		{
@@ -371,7 +371,7 @@ namespace GGJ
 		}
 	}
 
-	void TopLightCondExpression::generateVaild(Random& rand, WorldCondition& worldCond)
+	void TopLightCondExpression::generate(Random& rand, WorldCondition& worldCond)
 	{
 		mIdxContent = rand.nextInt() % 2;
 
@@ -400,7 +400,7 @@ namespace GGJ
 		}
 	}
 
-	bool TopLightCondExpression::testVaild(WorldCondition& worldCond)
+	bool TopLightCondExpression::test(WorldCondition& worldCond)
 	{
 		if( mIdxContent == 0 )
 		{
@@ -451,7 +451,7 @@ namespace GGJ
 		}
 	}
 
-	void WallColorCondExpression::generateVaild(Random& rand, WorldCondition& worldCond)
+	void WallColorCondExpression::generate(Random& rand, WorldCondition& worldCond)
 	{
 		//IdxContent = rand.Next() % 2;
 		mIdxContent = 0;
@@ -484,7 +484,7 @@ namespace GGJ
 		}
 	}
 
-	bool WallColorCondExpression::testVaild(WorldCondition& worldCond)
+	bool WallColorCondExpression::test(WorldCondition& worldCond)
 	{
 		if (mIdxContent == 0)
 		{
@@ -517,14 +517,14 @@ namespace GGJ
 		mElements[1].set( rand.nextInt() % 10 );
 	}
 
-	void ObjectNumCondExpression::generateVaild(Random& rand, WorldCondition& worldCond)
+	void ObjectNumCondExpression::generate(Random& rand, WorldCondition& worldCond)
 	{
 		mElements.resize(2);
 		mElements[0].set(ObjectId(rand.nextInt() % (int)ObjectId::NumCondObject));
 		mElements[1].set( worldCond.getObjectNum(mElements[0]) );
 	}
 
-	bool ObjectNumCondExpression::testVaild(WorldCondition& worldCond)
+	bool ObjectNumCondExpression::test(WorldCondition& worldCond)
 	{
 		return (int)mElements[1] == worldCond.getObjectNum(mElements[0]);
 	}
@@ -544,14 +544,14 @@ namespace GGJ
 		mElements[1].set( ColorId( rand.nextInt() % (int)ColorId::Num ) );
 	}
 
-	void ObjectColorCondExpression::generateVaild(Random& rand, WorldCondition& worldCond)
+	void ObjectColorCondExpression::generate(Random& rand, WorldCondition& worldCond)
 	{
 		mElements.resize(2);
 		mElements[0].set( rand.nextInt() % ARRAY_SIZE(ObjectColorCond_objectMap) );
 		mElements[1].set( worldCond.getObjectColor(ObjectColorCond_objectMap[ (int)mElements[0] ]) );
 	}
 
-	bool ObjectColorCondExpression::testVaild(WorldCondition& worldCond)
+	bool ObjectColorCondExpression::test(WorldCondition& worldCond)
 	{
 		return worldCond.getObjectColor(ObjectColorCond_objectMap[(int)mElements[0]]) == mElements[1];
 	}
@@ -575,7 +575,7 @@ namespace GGJ
 		mElements[0].set( rand.nextInt() % (int)ValueProperty::NumProp );
 	}
 
-	void WallNumberValueCondExpression::generateVaild(Random& rand, WorldCondition& worldCond)
+	void WallNumberValueCondExpression::generate(Random& rand, WorldCondition& worldCond)
 	{
 		std::vector<int> props;
 		for (int i = 0; i < (int)ValueProperty::NumProp; ++i )
@@ -587,7 +587,7 @@ namespace GGJ
 		mElements[0].set( props[ rand.nextInt() % props.size() ] );
 	}
 
-	bool WallNumberValueCondExpression::testVaild(WorldCondition& worldCond)
+	bool WallNumberValueCondExpression::test(WorldCondition& worldCond)
 	{
 		return !!( ( 1 << (int)mElements[0] ) & worldCond.valuePropertyFlags );
 	}
@@ -653,7 +653,7 @@ namespace GGJ
 		}
 	}
 
-	void Condition::generateVaild(Random& rand, WorldCondition& worldCond, int numExpr)
+	void Condition::generate(Random& rand, WorldCondition& worldCond, int numExpr)
 	{
 		cleanup();
 		mExprList.resize(numExpr);
@@ -661,81 +661,81 @@ namespace GGJ
 		for( int i = 0 ; i < numExpr; ++i )
 		{
 			CondExpression* expr = mExprList[i];
-			expr->generateVaild(rand, worldCond);
-			assert(expr->testVaild(worldCond));
+			expr->generate(rand, worldCond);
+			assert(expr->test(worldCond));
 		}
-		bVaild = true;
+		b = true;
 	}
 
-	void Condition::generateRandom(Random& rand, WorldCondition& worldCond, int numExpr, int numInvaild)
+	void Condition::generateRandom(Random& rand, WorldCondition& worldCond, int numExpr, int numIn)
 	{
 		assert(numExpr <= TotalExprNum);
 		cleanup();
 		mExprList.resize(numExpr);
 		GenerateRandExprssion(rand, numExpr, &mExprList[0]);
 
-		TArrayHolder< bool > bufInvaildMap(new bool[numExpr]);
-		bool* invaildMap = Utility::makeRandBool(rand, numExpr, numInvaild, bufInvaildMap.get());
+		TArrayHolder< bool > bufInMap(new bool[numExpr]);
+		bool* inMap = Utility::makeRandBool(rand, numExpr, numIn, bufInMap.get());
 		for( int i = 0; i < numExpr; ++i )
 		{
 			CondExpression* expr = mExprList[i];
-			if( invaildMap[i] )
+			if( inMap[i] )
 			{
 				do
 				{
 					expr->generate(rand);
 				} 
-				while( expr->testVaild(worldCond) );
+				while( expr->test(worldCond) );
 			}
 			else
 			{
-				expr->generateVaild(rand, worldCond);
-				assert(expr->testVaild(worldCond));
+				expr->generate(rand, worldCond);
+				assert(expr->test(worldCond));
 			}
 		}
 
-		bVaild = false;
+		b = false;
 	}
 
 
-	void ConditionTable::generate(Random& rand , WorldCondition& worldCond , int numSel , int numExpr , int numVaild)
+	void ConditionTable::generate(Random& rand , WorldCondition& worldCond , int numSel , int numExpr , int num)
 	{
 		numSelection = numSel;
-		numConditionVaild = numVaild;
+		numCondition = num;
 
 		conditions.resize( numSelection );
 
 		int const MaxObjectId = 6;
 		int bufObjectIdMap[MaxObjectId];
 		int* objectIdMap = Utility::makeRandSeq( rand , MaxObjectId , 0 , bufObjectIdMap );
-		TArrayHolder< bool > bufVaildMap( new bool[ numSelection ] );
-		bool* vaildMap = Utility::makeRandBool( rand , numSelection , numConditionVaild , bufVaildMap.get() );
+		TArrayHolder< bool > bufMap( new bool[ numSelection ] );
+		bool* Map = Utility::makeRandBool( rand , numSelection , numCondition , bufMap.get() );
 		for( int i = 0 ; i < numSelection ; ++i )
 		{
-			if ( vaildMap[i] )
+			if ( Map[i] )
 			{
-				conditions[i].generateVaild( rand , worldCond , numExpr );
+				conditions[i].generate( rand , worldCond , numExpr );
 			}
 			else
 			{
-				int numInvaild = 1;
-				int additionInvaild = numExpr - 1;
-				if (additionInvaild > 0)
-					numInvaild += rand.nextInt() % additionInvaild;
-				conditions[i].generateRandom(rand, worldCond, numExpr, numInvaild );
+				int numIn = 1;
+				int additionIn = numExpr - 1;
+				if (additionIn > 0)
+					numIn += rand.nextInt() % additionIn;
+				conditions[i].generateRandom(rand, worldCond, numExpr, numIn );
 			}
 
 			conditions[i].targetId = (ObjectId)objectIdMap[i];
 		}
 	}
 
-	bool ConditionTable::isVaildObject(ObjectId id)
+	bool ConditionTable::isObject(ObjectId id)
 	{
 		for( int i = 0 ; i < numSelection ; ++i )
 		{
 			if (conditions[i].targetId == id )
 			{
-				return conditions[i].bVaild;
+				return conditions[i].b;
 			}
 		}
 		return false;
@@ -744,7 +744,7 @@ namespace GGJ
 	void ConditionTable::cleanup()
 	{
 		conditions.clear();
-		numConditionVaild = 0;
+		numCondition = 0;
 		numSelection = 0;
 	}
 
@@ -854,7 +854,7 @@ namespace GGJ
 		{
 			Condition& cond = condTable.getCondition(i);
 			FixString<128> str;
-			str.format("Cond %d %s" , i , ( cond.bVaild ) ? "True" : "False" );
+			str.format("Cond %d %s" , i , ( cond.b ) ? "True" : "False" );
 			g.drawText( pos , str.c_str() );
 			pos.y += 15;
 
@@ -862,7 +862,7 @@ namespace GGJ
 			{
 				String str = cond.getExpression( n )->getContent();
 				str += "(";
-				str += cond.getExpression( n )->testVaild( worldCond ) ? "True" : "False";
+				str += cond.getExpression( n )->test( worldCond ) ? "True" : "False";
 				str += ")";
 				g.drawText( pos , str.c_str() );
 				pos.y += 15;

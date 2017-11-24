@@ -19,7 +19,7 @@ namespace Poker { namespace Big2 {
 
 	bool LevelBase::checkShowCard( CardDeck& cards , int pIndex[] , int num ,  TrickInfo& info )
 	{
-		if ( !TrickUtility::checkCardVaild( &cards[0] , (int)cards.size() , pIndex , num , info ) )
+		if ( !TrickUtility::checkCard( &cards[0] , (int)cards.size() , pIndex , num , info ) )
 			return false;
 
 		info.num   = num;

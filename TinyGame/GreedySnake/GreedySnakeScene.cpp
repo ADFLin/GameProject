@@ -90,8 +90,8 @@ namespace GreedySnake
 		//   | |_____| |
 		//   |_________|
 
-		RenderUtility::setBrush( g , color );
-		RenderUtility::setPen( g , color );
+		RenderUtility::SetBrush( g , color );
+		RenderUtility::SetPen( g , color );
 
 		SnakeBody::Iterator iter = snakeBody.createIterator();
 
@@ -169,16 +169,16 @@ namespace GreedySnake
 			switch( info.type )
 			{
 			case FOOD_GROW:
-				RenderUtility::setBrush(g, Color::eRed);
+				RenderUtility::SetBrush(g, Color::eRed);
 				break;
 			case FOOD_SPEED_UP:
-				RenderUtility::setBrush(g, Color::eGreen);
+				RenderUtility::SetBrush(g, Color::eGreen);
 				break;
 			case FOOD_SPEED_SLOW:
-				RenderUtility::setBrush(g, Color::ePurple);
+				RenderUtility::SetBrush(g, Color::ePurple);
 				break;
 			case FOOD_CONFUSED:
-				RenderUtility::setBrush(g, Color::eGray);
+				RenderUtility::SetBrush(g, Color::eGray);
 				break;
 			}
 			g.drawCircle(BlockSize * info.pos + Vec2i(BlockSize / 2, BlockSize / 2), SnakeWidth / 2);
@@ -196,8 +196,8 @@ namespace GreedySnake
 		g.pushXForm();
 
 		g.translateXForm( offset.x , offset.y );
-		RenderUtility::setBrush( g , Color::eBlue );
-		RenderUtility::setPen( g , Color::eBlue );
+		RenderUtility::SetBrush( g , Color::eBlue );
+		RenderUtility::SetPen( g , Color::eBlue );
 		g.drawRect( Vec2i(0,0) , rectSize );
 
 		drawFood( g );

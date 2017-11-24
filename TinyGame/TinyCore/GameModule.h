@@ -1,9 +1,11 @@
-#ifndef GamePackage_h__
-#define GamePackage_h__
+#pragma once
+#ifndef GameModule_H_5E5B32B4_50E2_43F3_B7AB_58F84870E299
+#define GameModule_H_5E5B32B4_50E2_43F3_B7AB_58F84870E299
 
 #include "GameDefines.h"
 #include "CppVersion.h"
 #include "DataStream.h"
+#include "MarcoCommon.h"
 #include "FastDelegate/FastDelegate.h"
 
 class GWidget;
@@ -40,7 +42,7 @@ public:
 	}
 	virtual ~SettingHepler(){}
 	virtual void  addGUIControl( GWidget* ui ) = 0;
-	virtual bool  checkSettingVaildSV(){ return true;  }
+	virtual bool  checkSettingSV(){ return true;  }
 
 	void modifyCallback( GWidget* ui )
 	{
@@ -63,8 +65,14 @@ class IGameInstance
 {
 public:
 	virtual ~IGameInstance(){}
-	virtual bool  initialize(){ return true; }
-	virtual void  cleanup(){}
+};
+
+class IGameModule
+{
+public:
+	virtual ~IGameModule(){}
+	virtual bool initialize(){ return true; }
+	virtual void cleanup(){}
 
 	virtual void enter(){}
 	virtual void exit(){} 
@@ -73,6 +81,8 @@ public:
 	virtual void endPlay(){}
 
 	virtual void  deleteThis() = 0;
+
+	virtual IGameInstance*        createInstance() { return nullptr; }
 public:
 	virtual char const*           getName() = 0;
 	virtual GameController&       getController() = 0;
@@ -84,14 +94,17 @@ public:
 	virtual ReplayTemplate*       createReplayTemplate( unsigned version ){ return nullptr; }
 };
 
-typedef IGameInstance* (*CreateGameFun)();
-#define GAME_CREATE_FUN_NAME "CreateGame"
+typedef IGameModule* (*CreateGameModuleFun)();
 
-#define EXPORT_GAME( CLASS )\
-	extern "C" __declspec(dllexport) IGameInstance* CreateGame()\
+#define CREATE_GAME_MODULE CreateGameModule
+#define CREATE_GAME_MODULE_STR MAKE_STRING(CREATE_GAME_MODULE)
+
+#define EXPORT_GAME_MODULE( CLASS )\
+	extern "C" __declspec(dllexport) IGameModule* CREATE_GAME_MODULE()\
 	{\
 		return new CLASS; \
 	}\
 
+#endif // GameModule_H_5E5B32B4_50E2_43F3_B7AB_58F84870E299
 
-#endif // GamePackage_h__
+

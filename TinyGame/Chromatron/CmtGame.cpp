@@ -5,9 +5,9 @@
 
 namespace Chromatron
 {
-	EXPORT_GAME(GameInstance)
+	EXPORT_GAME_MODULE(GameModule)
 
-	bool GameInstance::getAttribValue( AttribValue& value )
+	bool GameModule::getAttribValue( AttribValue& value )
 	{
 		switch( value.id )
 		{
@@ -24,12 +24,12 @@ namespace Chromatron
 		return false;
 	}
 
-	void GameInstance::beginPlay( StageModeType type, StageManager& manger )
+	void GameModule::beginPlay( StageModeType type, StageManager& manger )
 	{
-		IGameInstance::beginPlay( type , manger );
+		IGameModule::beginPlay( type , manger );
 	}
 
-	StageBase* GameInstance::createStage( unsigned id )
+	StageBase* GameModule::createStage( unsigned id )
 	{
 		switch( id )
 		{

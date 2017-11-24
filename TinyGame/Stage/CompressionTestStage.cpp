@@ -348,7 +348,10 @@ namespace Compression
 			std::vector< uint8 > decompressBuffer;
 			{
 				FileStream fileStream;
-				fileStream.open("testcpr.cpr");
+				if( !fileStream.open("testcpr.cpr") )
+				{
+					return;
+				}
 
 				DataSerializer serializer(fileStream);
 				DataSerializer::ReadOp readOp(serializer);
@@ -448,7 +451,7 @@ namespace Compression
 
 	};
 
-	REGISTER_STAGE("HuffmanTest", TestStage, StageRegisterGroup::PhyDev);
+	REGISTER_STAGE("HuffmanTest", TestStage, EStageGroup::PhyDev);
 
 
 

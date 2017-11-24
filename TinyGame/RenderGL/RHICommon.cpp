@@ -18,7 +18,7 @@ namespace RenderGL
 
 	MaterialMaster* GDefalutMaterial = nullptr;
 
-	ShaderProgram GSimpleBasePass;
+	MaterialShaderProgram GSimpleBasePass;
 
 	bool InitGlobalRHIResource()
 	{
@@ -55,11 +55,13 @@ namespace RenderGL
 			return false;
 
 		GDefaultMaterialTexture2D = new RHITexture2D;
-		if( !GDefaultMaterialTexture2D->loadFile("Texture/Gird.png") )
+		if( !GDefaultMaterialTexture2D->loadFromFile("Texture/Gird.png") )
 			return false;
 
 		ShaderCompileOption option;
-		VertexFarcoryType::DefaultType->GetCompileOption(option);
+		option.version = 430;
+		VertexFarcoryType::DefaultType->getCompileOption(option);
+
 		if( !ShaderManager::getInstance().loadFile( 
 			GSimpleBasePass ,
 			"Shader/SimpleBasePass",
@@ -84,32 +86,32 @@ namespace RenderGL
 
 	bool ShaderHelper::init()
 	{
+		ShaderCompileOption option;
+		option.version = 430;
+
 		if( !ShaderManager::getInstance().loadFile(
-			mProgCopyTexture ,
-			"Shader/CopyTexture",
-			SHADER_ENTRY(CopyTextureVS), SHADER_ENTRY(CopyTexturePS)) )
+			mProgCopyTexture, "Shader/CopyTexture",
+			SHADER_ENTRY(CopyTextureVS), SHADER_ENTRY(CopyTexturePS), option) )
 			return false;
 
 		if( !ShaderManager::getInstance().loadFile(
-			mProgCopyTextureMask ,
-			"Shader/CopyTexture",
-			SHADER_ENTRY(CopyTextureVS), SHADER_ENTRY(CopyTextureMaskPS)) )
+			mProgCopyTextureMask,"Shader/CopyTexture",
+			SHADER_ENTRY(CopyTextureVS), SHADER_ENTRY(CopyTextureMaskPS), option) )
 			return false;
 
 		if( !ShaderManager::getInstance().loadFile(
-			mProgCopyTextureBias ,
-			"Shader/CopyTexture",
-			SHADER_ENTRY(CopyTextureVS), SHADER_ENTRY(CopyTextureBaisPS)) )
+			mProgCopyTextureBias, "Shader/CopyTexture",
+			SHADER_ENTRY(CopyTextureVS), SHADER_ENTRY(CopyTextureBaisPS), option) )
 			return false;
 
 		if( !ShaderManager::getInstance().loadFile(
-			mProgMappingTextureColor ,
-			"Shader/CopyTexture",
-			SHADER_ENTRY(CopyTextureVS), SHADER_ENTRY(MappingTextureColorPS)) )
+			mProgMappingTextureColor, "Shader/CopyTexture",
+			SHADER_ENTRY(CopyTextureVS), SHADER_ENTRY(MappingTextureColorPS), option) )
 			return false;
 
 		if( !mFrameBuffer.create() )
 			return false;
+
 		mFrameBuffer.addTexture(*GWhiteTexture2D);
 		return true;
 	}
@@ -117,28 +119,25 @@ namespace RenderGL
 	void ShaderHelper::clearBuffer(RHITexture2D& texture, float clearValue[])
 	{
 		mFrameBuffer.setTexture(0, texture);
-		mFrameBuffer.bind();
+		GL_BIND_LOCK_OBJECT(mFrameBuffer);
 		glClearBufferfv(GL_COLOR, 0, (float const*)clearValue);
-		mFrameBuffer.unbind();
 	}
 
 	void ShaderHelper::clearBuffer(RHITexture2D& texture, uint32 clearValue[])
 	{
 		mFrameBuffer.setTexture(0, texture);
-		mFrameBuffer.bind();
+		GL_BIND_LOCK_OBJECT(mFrameBuffer);
 		glClearBufferuiv(GL_COLOR, 0, clearValue);
-		mFrameBuffer.unbind();
 	}
 
 	void ShaderHelper::clearBuffer(RHITexture2D& texture, int32 clearValue[])
 	{
 		mFrameBuffer.setTexture(0, texture);
-		mFrameBuffer.bind();
+		GL_BIND_LOCK_OBJECT( mFrameBuffer );
 		glClearBufferiv(GL_COLOR, 0, clearValue);
-		mFrameBuffer.unbind();
 	}
 
-	void ShaderHelper::drawCubeTexture(RHITextureCube& texCube, Vec2i const& pos, int length)
+	void ShaderHelper::DrawCubeTexture(RHITextureCube& texCube, Vec2i const& pos, int length)
 	{
 		glEnable(GL_TEXTURE_CUBE_MAP);
 		GL_BIND_LOCK_OBJECT(texCube);
@@ -199,7 +198,7 @@ namespace RenderGL
 	}
 
 
-	void ShaderHelper::drawTexture(RHITexture2D& texture, Vec2i const& pos, Vec2i const& size)
+	void ShaderHelper::DrawTexture(RHITexture2D& texture, Vec2i const& pos, Vec2i const& size)
 	{
 		glLoadIdentity();
 		glEnable(GL_TEXTURE_2D);
@@ -213,32 +212,28 @@ namespace RenderGL
 	void ShaderHelper::copyTextureToBuffer(RHITexture2D& copyTexture)
 	{
 		GL_BIND_LOCK_OBJECT(mProgCopyTexture);
-		mProgCopyTexture.setTexture(SHADER_PARAM(CopyTexture), copyTexture);
+		mProgCopyTexture.setParameters(copyTexture);
 		DrawUtiltiy::ScreenRect();
 	}
 
 	void ShaderHelper::copyTextureMaskToBuffer(RHITexture2D& copyTexture, Vector4 const& colorMask)
 	{
 		GL_BIND_LOCK_OBJECT(mProgCopyTextureMask);
-		mProgCopyTextureMask.setTexture(SHADER_PARAM(CopyTexture), copyTexture);
-		mProgCopyTextureMask.setParam(SHADER_PARAM(ColorMask), colorMask);
+		mProgCopyTextureMask.setParameters( copyTexture , colorMask );
 		DrawUtiltiy::ScreenRect();
 	}
 
 	void ShaderHelper::copyTextureBiasToBuffer(RHITexture2D& copyTexture, float colorBais[2])
 	{
 		GL_BIND_LOCK_OBJECT(mProgCopyTextureBias);
-		mProgCopyTextureBias.setTexture(SHADER_PARAM(CopyTexture), copyTexture);
-		mProgCopyTextureBias.setParam(SHADER_PARAM(ColorBais), colorBais[0] , colorBais[1] );
+		mProgCopyTextureBias.setParameters(copyTexture, colorBais);
 		DrawUtiltiy::ScreenRect();
 	}
 
 	void ShaderHelper::mapTextureColorToBuffer(RHITexture2D& copyTexture, Vector4 const& colorMask, float valueFactor[2])
 	{
 		GL_BIND_LOCK_OBJECT(mProgMappingTextureColor);
-		mProgMappingTextureColor.setTexture(SHADER_PARAM(CopyTexture), copyTexture);
-		mProgMappingTextureColor.setParam(SHADER_PARAM(ColorMask), colorMask);
-		mProgMappingTextureColor.setParam(SHADER_PARAM(ValueFactor), valueFactor[0], valueFactor[1]);
+		mProgMappingTextureColor.setParameters(copyTexture, colorMask, valueFactor);
 		DrawUtiltiy::ScreenRect();
 	}
 
@@ -258,5 +253,54 @@ namespace RenderGL
 		ShaderManager::getInstance().reloadShader(mProgCopyTextureBias);
 	}
 
+
+	void CopyTextureMaskProgram::bindParameters()
+	{
+		mParamCopyTexture.bind(*this, SHADER_PARAM(CopyTexture));
+		mParamColorMask.bind(*this, SHADER_PARAM(ColorMask));
+	}
+
+	void CopyTextureMaskProgram::setParameters(RHITexture2D& copyTexture, Vector4 const& colorMask)
+	{
+		setTexture(mParamCopyTexture, copyTexture);
+		setParam(mParamColorMask, colorMask);
+	}
+
+	void CopyTextureProgram::bindParameters()
+	{
+		mParamCopyTexture.bind(*this, SHADER_PARAM(CopyTexture));
+	}
+
+	void CopyTextureProgram::setParameters(RHITexture2D& copyTexture)
+	{
+		setTexture(mParamCopyTexture, copyTexture);
+	}
+
+
+	void CopyTextureBiasProgram::bindParameters()
+	{
+		mParamCopyTexture.bind(*this, SHADER_PARAM(CopyTexture));
+		mParamColorBais.bind(*this, SHADER_PARAM(ColorBais));
+	}
+
+	void CopyTextureBiasProgram::setParameters(RHITexture2D& copyTexture, float colorBais[2])
+	{
+		setTexture(mParamCopyTexture, copyTexture);
+		setParam(mParamColorBais, colorBais[0], colorBais[1]);
+	}
+
+	void MappingTextureColorProgram::bindParameters()
+	{
+		mParamCopyTexture.bind(*this, SHADER_PARAM(CopyTexture));
+		mParamColorMask.bind(*this, SHADER_PARAM(ColorMask));
+		mParamValueFactor.bind(*this, SHADER_PARAM(ValueFactor));
+	}
+
+	void MappingTextureColorProgram::setParameters(RHITexture2D& copyTexture, Vector4 const& colorMask, float valueFactor[2])
+	{
+		setTexture(mParamCopyTexture, copyTexture);
+		setParam(mParamColorMask, colorMask);
+		setParam(mParamValueFactor, valueFactor[0], valueFactor[1]);
+	}
 
 }//namespace RenderGL

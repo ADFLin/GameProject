@@ -95,7 +95,7 @@ void BaseSettingPanel::renderTitle( GWidget* ui )
 	int borderX = 4;
 	Graphics2D& g = Global::getGraphics2D();
 
-	RenderUtility::setFont( g , FONT_S10 );
+	RenderUtility::SetFont( g , FONT_S10 );
 	g.setTextColor(255 , 200 , 100 );
 
 	for( SettingInfoVec::iterator iter = mSettingInfoVec.begin();
@@ -163,10 +163,10 @@ void GameSettingPanel::renderTitle(GWidget* ui)
 
 	BaseClass::renderTitle(ui);
 	Vec2i uiPos(borderX + 5, 5 + 3);
-	g.drawText(getWorldPos() + uiPos, LAN("Game Name"));
+	g.drawText(getWorldPos() + uiPos, LOCTEXT("Game Name"));
 }
 
-void GameSettingPanel::addGame(IGameInstance* game)
+void GameSettingPanel::addGame(IGameModule* game)
 {
 	unsigned id = mGameChoice->appendItem(game->getName());
 	mGameChoice->setItemData(id, game);

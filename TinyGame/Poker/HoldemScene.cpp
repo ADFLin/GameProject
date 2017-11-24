@@ -187,8 +187,8 @@ namespace Poker { namespace Holdem {
 
 			if( info.pos == mLevel->getCurBetPos() )
 			{
-				RenderUtility::setPen(g, Color::eBlack);
-				RenderUtility::setBrush(g, Color::eRed);
+				RenderUtility::SetPen(g, Color::eBlack);
+				RenderUtility::SetBrush(g, Color::eRed);
 				g.drawCircle(tableCenterPos + SlotOffset[i] , 10);
 			}
 		}

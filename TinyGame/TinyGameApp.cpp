@@ -93,7 +93,7 @@ public:
 		IGraphics2D& g = Global::getIGraphics2D();
 
 		Vec2i pos = a_pos;
-		RenderUtility::setFont( g , FONT_S8 );
+		RenderUtility::SetFont( g , FONT_S8 );
 		g.setTextColor(255 , 255 , 0 );
 		Mutex::Locker locker( mMutex );
 		for( StringList::iterator iter = mMsgList.begin();
@@ -173,7 +173,7 @@ bool TinyGameApp::onInit()
 	char const* gameName;
 	if ( ::Global::GameConfig().tryGetStringValue( "DefaultGame" , nullptr , gameName ) )
 	{
-		IGameInstance* game = ::Global::GameManager().changeGame( gameName );
+		IGameModule* game = ::Global::GameManager().changeGame( gameName );
 		if ( game )
 		{
 			game->beginPlay( SMT_SINGLE_GAME , *this );
@@ -215,8 +215,7 @@ void TinyGameApp::cleanup()
 
 	Global::GameConfig().saveFile(GAME_SETTING_PATH);
 
-	extern void saveTranslateAsset(char const* path);
-	saveTranslateAsset("tt.txt");
+	ILocalization::Get().saveTranslateAsset("tt.txt");
 }
 
 long TinyGameApp::onUpdate( long shouldTime )
@@ -236,7 +235,7 @@ long TinyGameApp::onUpdate( long shouldTime )
 
 		::Global::GUI().update();
 
-		IGameInstance* game = Global::GameManager().getRunningGame();
+		IGameModule* game = Global::GameManager().getRunningGame();
 		if ( game )
 			game->getController().clearFrameInput();
 	}
@@ -302,7 +301,7 @@ ServerWorker* TinyGameApp::createServer()
 	if ( !server->startNetwork() )
 	{
 		::Global::GUI().showMessageBox( 
-			UI_ANY , LAN("Can't Create Server") );
+			UI_ANY , LOCTEXT("Can't Create Server") );
 		delete server;
 		return NULL;
 	}
@@ -332,7 +331,7 @@ ClientWorker* TinyGameApp::createClinet()
 	if ( !worker->startNetwork() )
 	{
 		delete worker;
-		::Global::GUI().showMessageBox( UI_ANY , LAN("Can't Create Client") );
+		::Global::GUI().showMessageBox( UI_ANY , LOCTEXT("Can't Create Client") );
 		return NULL;
 	}
 
@@ -344,7 +343,7 @@ bool TinyGameApp::onMouse( MouseMsg const& msg )
 {
 	bool result = true;
 
-	IGameInstance* game = Global::GameManager().getRunningGame();
+	IGameModule* game = Global::GameManager().getRunningGame();
 	if ( game )
 	{
 		GameController& controller = game->getController();
@@ -485,7 +484,7 @@ void TinyGameApp::exportUserProfile()
 		userPorfile.language = LAN_CHINESE_T;
 	}
 
-	initLanguage( ( Language )userPorfile.language );
+	ILocalization::Get().initialize( ( Language )userPorfile.language );
 }
 
 void TinyGameApp::importUserProfile()
@@ -512,7 +511,7 @@ StageBase* TinyGameApp::createStage( StageID stageId )
 {
 	StageBase* newStage = NULL;
 
-	IGameInstance* curGame = Global::GameManager().getRunningGame();
+	IGameModule* curGame = Global::GameManager().getRunningGame();
 
 	if ( curGame )
 	{
@@ -607,8 +606,8 @@ void TinyGameApp::prevStageChange()
 	Graphics2D& g = ::Global::getGraphics2D();
 	if ( de->beginRender() )
 	{
-		RenderUtility::setBrush( g , Color::eBlack );
-		RenderUtility::setPen( g , Color::eBlack );
+		RenderUtility::SetBrush( g , Color::eBlack );
+		RenderUtility::SetPen( g , Color::eBlack );
 		g.drawRect( Vec2i(0,0) , ::Global::getDrawEngine()->getScreenSize() );
 		de->endRender();
 	}
@@ -684,7 +683,7 @@ void TinyGameApp::dispatchWidgetEvent( int event , int id , GWidget* ui )
 		else
 		{
 			::Global::GUI().showMessageBox( 
-				UI_EXIT_GAME , LAN("Be Sure To Exit The Game?") );
+				UI_EXIT_GAME , LOCTEXT("Be Sure To Exit The Game?") );
 		}
 		break;
 	case UI_MAIN_MENU:
@@ -699,7 +698,7 @@ void TinyGameApp::dispatchWidgetEvent( int event , int id , GWidget* ui )
 		else
 		{
 			::Global::GUI().showMessageBox( 
-				UI_MAIN_MENU , LAN("Be Sure Back To Main Menu?") );
+				UI_MAIN_MENU , LOCTEXT("Be Sure Back To Main Menu?") );
 		}
 
 		break;
@@ -760,7 +759,7 @@ void FadeInEffect::onRender( long dt )
 
 	g.beginBlend( Vec2i(0,0) , size , float( getLifeTime() - dt ) / totalTime  ); 
 
-	RenderUtility::setBrush( g , color );
+	RenderUtility::SetBrush( g , color );
 	g.drawRect( Vec2i(0,0) , size );
 
 	g.endBlend();

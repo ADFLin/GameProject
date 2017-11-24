@@ -52,7 +52,7 @@ namespace TowerDefend
 	{
 	public:
 		virtual ~ActEnumer(){}
-		virtual void haveGoalPos( Vec2f const& pos ) = 0;
+		virtual void haveGoalPos( Vector2 const& pos ) = 0;
 		virtual void haveTarget ( Entity* entity ) = 0;
 	};
 	class ActCommand
@@ -79,7 +79,7 @@ namespace TowerDefend
 
 		bool testFilter( EntityFilter const& filter ) override;
 
-		virtual bool attack( Actor* entity , Vec2f const& pos ){ return true; }
+		virtual bool attack( Actor* entity , Vector2 const& pos ){ return true; }
 
 		ActCommand* getCurActCommand(){ return mCurAct; }
 		void        changeAction( ActCommand* act , bool beRemoveQueue );
@@ -98,9 +98,9 @@ namespace TowerDefend
 		virtual void  onTakeDamage( DamageInfo const& info , float damageValue ){}
 		virtual void  onKilled(){ destroy(); }
 
-		virtual bool evalCommand        ( ComID comID , Actor* target , Vec2f const& pos , unsigned flag ){  return false;  }
-		virtual bool evalDefaultCommand ( Actor* target , Vec2f const& pos , unsigned flag ){ return false; }
-		virtual bool evalActorCommand   ( ComID comID , ActorId aID , Vec2f const& pos , unsigned flag ){ return false; }
+		virtual bool evalCommand        ( ComID comID , Actor* target , Vector2 const& pos , unsigned flag ){  return false;  }
+		virtual bool evalDefaultCommand ( Actor* target , Vector2 const& pos , unsigned flag ){ return false; }
+		virtual bool evalActorCommand   ( ComID comID , ActorId aID , Vector2 const& pos , unsigned flag ){ return false; }
 
 
 		unsigned      getOwnerID() const { return mOwner->id; }
@@ -136,18 +136,18 @@ namespace TowerDefend
 		float     getMoveSpeed() const { return getUnitInfo().moveSpeed;  }
 		void      onChangePos();
 
-		virtual bool evalCommand( ComID comID , Actor* target , Vec2f const& pos , unsigned flag );
-		virtual bool evalDefaultCommand( Actor* target , Vec2f const& pos , unsigned flag );
+		virtual bool evalCommand( ComID comID , Actor* target , Vector2 const& pos , unsigned flag );
+		virtual bool evalDefaultCommand( Actor* target , Vector2 const& pos , unsigned flag );
 
-		virtual void addMoveActionCom( Vec2f const& pos , unsigned flag );
-		virtual void addAttackCom( Vec2f const& pos , Actor* target , unsigned flag ){}
+		virtual void addMoveActionCom( Vector2 const& pos , unsigned flag );
+		virtual void addAttackCom( Vector2 const& pos , Actor* target , unsigned flag ){}
 
 		class MoveAirAct : public ActCommand
 		{
 		public:
 			bool onTick( Actor* actor ) override;
 			void describe( ActEnumer& enumer ) override;
-			Vec2f   destPos;
+			Vector2   destPos;
 		};
 		class MoveLandAct : public ActCommand
 		{
@@ -157,7 +157,7 @@ namespace TowerDefend
 				mMode = TM_NONE;
 			}
 			bool onTick( Actor* actor );
-			Vec2f   destPos;
+			Vector2   destPos;
 		private:
 			enum MoveMode
 			{
@@ -198,11 +198,11 @@ namespace TowerDefend
 	public:
 		Building( ActorId aID );
 
-		virtual bool evalDefaultCommand( Actor* target , Vec2f const& pos , unsigned flag )
+		virtual bool evalDefaultCommand( Actor* target , Vector2 const& pos , unsigned flag )
 		{
 			return false;
 		}
-		virtual bool evalActorCommand( ComID comID , ActorId aID , Vec2f const& pos , unsigned flag );
+		virtual bool evalActorCommand( ComID comID , ActorId aID , Vector2 const& pos , unsigned flag );
 		void doRender( Renderer& renderer );
 
 		BuildingInfo const& getBuildingInfo(){ return getBuildingInfo( getActorID() ); }
@@ -212,7 +212,7 @@ namespace TowerDefend
 		struct UnitActTarget
 		{
 			ActorPtr actor;
-			Vec2f      pos;
+			Vector2      pos;
 		};
 
 
@@ -269,7 +269,7 @@ namespace TowerDefend
 
 		HitFun     mHitFun;
 		MoveFun    mMoveFun;
-		Vec2f      mLocationParam;
+		Vector2      mLocationParam;
 		ActorPtr   mTarget;
 	};
 
@@ -280,12 +280,12 @@ namespace TowerDefend
 	public:
 		Builder( ActorId aID );
 
-		bool  evalActorCommand( ComID comID , ActorId aID , Vec2f const& pos , unsigned flag ) override;
-		bool  evalDefaultCommand( Actor* target , Vec2f const& pos , unsigned flag ) override;
+		bool  evalActorCommand( ComID comID , ActorId aID , Vector2 const& pos , unsigned flag ) override;
+		bool  evalDefaultCommand( Actor* target , Vector2 const& pos , unsigned flag ) override;
 
 
 
-		void  addMoveActionCom( Vec2f const& pos , unsigned flag );
+		void  addMoveActionCom( Vector2 const& pos , unsigned flag );
 
 		class BuildAct : public ActCommand
 		{
@@ -295,7 +295,7 @@ namespace TowerDefend
 			bool onTick( Actor* actor ) override;
 			void onEnd( Actor* actor , bool beCompelete ) override;
 			ActorId      blgID;
-			Vec2f          destPos;
+			Vector2          destPos;
 			BuildingPtr  building;
 			ConstructAct*  constructAct;
 		};
@@ -311,11 +311,11 @@ namespace TowerDefend
 	public:
 		Tower( ActorId type );
 
-		bool attack( Actor* entity , Vec2f const& pos );
+		bool attack( Actor* entity , Vector2 const& pos );
 
 
 
-		virtual bool evalDefaultCommand( Actor* target , Vec2f const& pos , unsigned flag );
+		virtual bool evalDefaultCommand( Actor* target , Vector2 const& pos , unsigned flag );
 
 		void bulletNormalHit( Bullet& bullet );
 		bool bulletNormalMove( Bullet& bullet );

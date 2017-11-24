@@ -111,7 +111,7 @@ namespace Chromatron
 
 		Tile const& getMapData( Vec2D const& pos ) const;
 		Tile&       getMapData( Vec2D const& pos );
-		bool        isVaildRange( Vec2D const& pos ) const;
+		bool        isRange( Vec2D const& pos ) const;
 		int         getMapSizeX() const { return mTileMap.getSizeX(); }
 		int         getMapSizeY() const { return mTileMap.getSizeY(); }
 		void        clearDevice();

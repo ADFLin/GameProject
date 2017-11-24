@@ -188,6 +188,8 @@ namespace MRT
 				break;
 			}
 		}
+
+		return true;
 	}
 
 	bool TestStage::onInit()
@@ -214,11 +216,11 @@ namespace MRT
 			Vec2i pos = mStationSelected->visual->getPos();
 			Vec2i size = mStationSelected->visual->getSize();
 
-			RenderUtility::setBrush(g, Color::eRed);
+			RenderUtility::SetBrush(g, Color::eRed);
 			g.drawRect(pos, size);
 		}
 
-		RenderUtility::setPen(g, Color::eYellow);
+		RenderUtility::SetPen(g, Color::eYellow);
 		for( auto const& link : mNetwork.links )
 		{
 			Vec2i posA = link->stations[0]->visual->getPos();
@@ -279,6 +281,8 @@ namespace MRT
 			}
 			return false;
 		}
+
+		return true;
 	}
 
 	MRT::Station* TestStage::createNewStation()
@@ -308,7 +312,7 @@ namespace MRT
 
 }
 
-REGISTER_STAGE("MRT Test", MRT::TestStage, StageRegisterGroup::Dev);
+REGISTER_STAGE("MRT Test", MRT::TestStage, EStageGroup::Dev);
 
 struct MoneyInfo
 {
@@ -445,8 +449,8 @@ namespace Bsp2D
 	{
 		mCtrlMode = CMOD_NONE;
 		mDrawTree = false;
-		mActor.pos = Vec2f( 10 , 10 );
-		mActor.size = Vec2f( 5 , 5 );
+		mActor.pos = Vector2( 10 , 10 );
+		mActor.size = Vector2( 5 , 5 );
 	}
 
 	bool TestStage::onInit()
@@ -472,8 +476,8 @@ namespace Bsp2D
 		mPolyEdit.clear();
 		mHaveCol  = false;
 
-		mSegment[0] = Vec2f( 0 , 0 );
-		mSegment[1] = Vec2f( 10 , 10 );
+		mSegment[0] = Vector2( 0 , 0 );
+		mSegment[1] = Vector2( 10 , 10 );
 
 		for( PolyAreaVec::iterator iter = mPolyAreaMap.begin() , itEnd = mPolyAreaMap.end();
 			 iter != itEnd ; ++iter )
@@ -493,17 +497,17 @@ namespace Bsp2D
 		{
 
 			float speed = 0.4f;
-			Vec2f offset = Vec2f(0,0);
+			Vector2 offset = Vector2(0,0);
 
 			if ( im.isKeyDown( 'W' ) )
-				offset += Vec2f(0,-1);
+				offset += Vector2(0,-1);
 			else if ( im.isKeyDown( 'S' ) )
-				offset += Vec2f(0,1);
+				offset += Vector2(0,1);
 
 			if ( im.isKeyDown( 'A' ) )
-				offset += Vec2f(-1,0);
+				offset += Vector2(-1,0);
 			else if ( im.isKeyDown( 'D' ) )
-				offset += Vec2f(1,0);
+				offset += Vector2(1,0);
 
 			float len = offset.length2();
 			if ( len > 0 )
@@ -519,7 +523,7 @@ namespace Bsp2D
 	int gIdxNode = 0;
 	struct MoveDBG
 	{
-		Vec2f outOffset;
+		Vector2 outOffset;
 		float frac;
 	} gMoveDBG;
 	void TreeDrawVisitor::visit( Tree::Node& node )
@@ -529,7 +533,7 @@ namespace Bsp2D
 			return;
 #endif
 		Tree::Edge& edge = tree.mEdges[ node.idxEdge ];
-		Vec2f mid = renderer.convertToScreen( ( edge.v[0] + edge.v[1] ) / 2 );
+		Vector2 mid = renderer.convertToScreen( ( edge.v[0] + edge.v[1] ) / 2 );
 		FixString< 32 > str;
 		str.format( "%u" , node.tag );
 		g.setTextColor( 0 , 255 , 125 );
@@ -543,7 +547,7 @@ namespace Bsp2D
 			Tree::Edge& edge = tree.mEdges[ leaf.edges[i] ];
 
 			Vec2i pos[2];
-			RenderUtility::setPen( g , Color::eBlue );
+			RenderUtility::SetPen( g , Color::eBlue );
 			renderer.drawLine( g , edge.v[0] , edge.v[1] , pos );
 
 			Vec2i const rectSize = Vec2i( 6 , 6 );
@@ -552,9 +556,9 @@ namespace Bsp2D
 			g.drawRect( pos[0] - offset , rectSize );
 			g.drawRect( pos[1] - offset , rectSize );
 
-			Vec2f v1 = ( edge.v[0] + edge.v[1] ) / 2;
-			Vec2f v2 = v1 + 0.8 * edge.plane.normal;
-			RenderUtility::setPen( g , Color::eGreen );
+			Vector2 v1 = ( edge.v[0] + edge.v[1] ) / 2;
+			Vector2 v2 = v1 + 0.8 * edge.plane.normal;
+			RenderUtility::SetPen( g , Color::eGreen );
 			renderer.drawLine( g , v1 , v2 , pos );
 		}
 	}
@@ -563,12 +567,12 @@ namespace Bsp2D
 	{
 		Graphics2D& g = Global::getGraphics2D();
 
-		RenderUtility::setBrush( g , Color::eGray );
-		RenderUtility::setPen( g , Color::eGray );
+		RenderUtility::SetBrush( g , Color::eGray );
+		RenderUtility::SetPen( g , Color::eGray );
 		g.drawRect( Vec2i(0,0) , ::Global::getDrawEngine()->getScreenSize() );
 
-		RenderUtility::setPen( g , Color::eBlack );
-		RenderUtility::setBrush( g , Color::eYellow );
+		RenderUtility::SetPen( g , Color::eBlack );
+		RenderUtility::SetBrush( g , Color::eYellow );
 
 		Vec2i sizeRect = Vec2i( 6 , 6 );
 		Vec2i offsetRect = sizeRect / 2;
@@ -587,12 +591,12 @@ namespace Bsp2D
 
 			if ( gShowEdgeNormal )
 			{
-				RenderUtility::setPen( g , Color::eBlue );
+				RenderUtility::SetPen( g , Color::eBlue );
 
 				for( int i = 0 ; i < mTree.mEdges.size() ; ++i )
 				{
 					Tree::Edge& edge = mTree.mEdges[i];
-					Vec2f mid = ( edge.v[0] + edge.v[1] ) / 2;
+					Vector2 mid = ( edge.v[0] + edge.v[1] ) / 2;
 					drawLine( g , mid , mid + 0.5 * edge.plane.normal );
 				}
 			}
@@ -606,7 +610,7 @@ namespace Bsp2D
 				Vec2i buf[32];
 				drawPolyInternal( g , *mPolyEdit , buf );
 				int const lenRect = 6;
-				RenderUtility::setBrush( g , Color::eWhite );
+				RenderUtility::SetBrush( g , Color::eWhite );
 				for( int i = 0 ; i < mPolyEdit->getVertexNum() ; ++i )
 				{
 					g.drawRect( buf[i] - offsetRect , sizeRect );
@@ -615,17 +619,17 @@ namespace Bsp2D
 			break;
 		case CMOD_TEST_INTERACTION:
 			{
-				RenderUtility::setPen( g , Color::eRed );
+				RenderUtility::SetPen( g , Color::eRed );
 
 				Vec2i pos[2];
 				drawLine( g , mSegment[0] , mSegment[1] , pos );
-				RenderUtility::setBrush( g , Color::eGreen );
+				RenderUtility::SetBrush( g , Color::eGreen );
 				g.drawRect( pos[0] - offsetRect , sizeRect );
-				RenderUtility::setBrush( g , Color::eBlue );
+				RenderUtility::SetBrush( g , Color::eBlue );
 				g.drawRect( pos[1] - offsetRect , sizeRect );
 				if ( mHaveCol )
 				{
-					RenderUtility::setBrush( g , Color::eRed );
+					RenderUtility::SetBrush( g , Color::eRed );
 					g.drawRect( convertToScreen( mPosCol ) - offsetRect , sizeRect );
 				}	
 			}
@@ -648,17 +652,17 @@ namespace Bsp2D
 
 	}
 
-	void TestStage::moveActor( Actor& actor , Vec2f const& offset )
+	void TestStage::moveActor( Actor& actor , Vector2 const& offset )
 	{
-		Vec2f half = actor.size / 2;
+		Vector2 half = actor.size / 2;
 
-		Vec2f corner[4];
-		corner[0] = actor.pos + Vec2f( half.x , half.y );
-		corner[1] = actor.pos + Vec2f( -half.x , half.y );
-		corner[2] = actor.pos + Vec2f( -half.x , -half.y );
-		corner[3] = actor.pos + Vec2f( half.x , -half.y );
+		Vector2 corner[4];
+		corner[0] = actor.pos + Vector2( half.x , half.y );
+		corner[1] = actor.pos + Vector2( -half.x , half.y );
+		corner[2] = actor.pos + Vector2( -half.x , -half.y );
+		corner[3] = actor.pos + Vector2( half.x , -half.y );
 
-		Vec2f outOffset = offset;
+		Vector2 outOffset = offset;
 
 		int idxCol = -1;
 		int idxHitEdge = -1;
@@ -689,8 +693,8 @@ namespace Bsp2D
 		frac = 1.0f;
 		for( int i = 0 , prev = 3; i < 4 ; prev = i++ )
 		{
-			Vec2f& p1 = corner[prev];
-			Vec2f& p2 = corner[i];
+			Vector2& p1 = corner[prev];
+			Vector2& p2 = corner[i];
 
 			Plane plane;
 			plane.init( p1 , p2 );
@@ -747,7 +751,7 @@ namespace Bsp2D
 			{
 				Vec2i size = ::Global::getDrawEngine()->getScreenSize();
 				mTree.build( &mPolyAreaMap[0] , (int)mPolyAreaMap.size() , 
-					Vec2f( 1 , 1 ) , Vec2f( size.x / 10 - 1, size.y / 10 - 1 ));
+					Vector2( 1 , 1 ) , Vector2( size.x / 10 - 1, size.y / 10 - 1 ));
 			}
 			return false;
 		case UI_TEST_INTERATION:
@@ -768,7 +772,7 @@ namespace Bsp2D
 		case CMOD_CREATE_POLYAREA:
 			if ( msg.onLeftDown() )
 			{
-				Vec2f pos = convertToWorld( msg.getPos() );
+				Vector2 pos = convertToWorld( msg.getPos() );
 				if ( mPolyEdit )
 				{
 					mPolyEdit->pushVertex( pos );
@@ -848,7 +852,7 @@ void GLGraphics2DTestStage::onRender(float dFrame)
 	glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
 	g.beginRender();
 
-	g.setPen( ColorKey3(255,0,0) );
+	g.setPen( Color3ub(255,0,0) );
 	g.enableBrush( false );
 	g.enablePen( true );
 	//g.setBrush( ColorKey3( 0 , 255, 0) );
@@ -861,7 +865,7 @@ void GLGraphics2DTestStage::onRender(float dFrame)
 	g.drawRect( Vec2i(200,200) , Vec2i( 100 , 100 ) );
 	g.drawRoundRect( Vec2i(200,200) , Vec2i( 100 , 100 ) , Vec2i(20, 30 ) );
 
-	RenderUtility::setFont( g , FONT_S8 );
+	RenderUtility::SetFont( g , FONT_S8 );
 	g.drawText( Vec2i( 10 , 10 ) , "aa");
 
 	g.endRender();
@@ -1128,13 +1132,13 @@ public:
 
 private:
 	void unregisterAllNode_R( ClassTreeNode* node );
-	bool vaildate()
+	bool ate()
 	{
 		int numTotalChildren;
-		return vaildateChild_R(&mRoot , numTotalChildren );
+		return ateChild_R(&mRoot , numTotalChildren );
 	}
 
-	bool vaildateChild_R( ClassTreeNode* parent , int& numTotalChildren )
+	bool ateChild_R( ClassTreeNode* parent , int& numTotalChildren )
 	{
 		numTotalChildren = 0;
 		for (int i = 0;i< parent->children.size();++i )
@@ -1145,7 +1149,7 @@ private:
 			if ( node->indexQuery != numTotalChildren + parent->indexQuery + 1 )
 				return false;
 			int num;
-			if ( !vaildateChild_R( node , num ) )
+			if ( !ateChild_R( node , num ) )
 				return false;
 			numTotalChildren += num + 1;
 		}
@@ -1285,7 +1289,7 @@ void ClassTree::registerClass(ClassTreeNode* node)
 		}
 	}
 
-	assert( vaildate() );
+	assert( ate() );
 }
 
 void ClassTree::unregisterClass( ClassTreeNode* node , bool bReregister )
@@ -1322,7 +1326,7 @@ void ClassTree::unregisterClass( ClassTreeNode* node , bool bReregister )
 		}
 	}
 
-	assert( vaildate() );
+	assert( ate() );
 	
 	if ( !bReregister )
 	{
@@ -1509,49 +1513,42 @@ bool MiscTestStage::onWidgetEvent(int event , int id , GWidget* ui)
 
 
 
-#include "xmmintrin.h"
-#include "smmintrin.h"
+#include "Math/SIMD.h"
+#include "Math/Vector3.h"
+#include "Math/Vector2.h"
 
 namespace SIMD
 {
-	struct VecF
-	{
-		VecF() {}
-		VecF(float x, float y, float z, float w)
-		{
-			mVal.m128_f32[0] = x;
-			mVal.m128_f32[1] = y;
-			mVal.m128_f32[2] = z;
-			mVal.m128_f32[3] = w;
-		}
-
-		VecF(__m128 val) :mVal(val) {}
-
-		float x() const { return mVal.m128_f32[0]; }
-		float y() const { return mVal.m128_f32[1]; }
-		float z() const { return mVal.m128_f32[2]; }
-		float w() const { return mVal.m128_f32[3]; }
-
-		float dot(VecF const& rhs) const
-		{
-			//FIXME
-			return 0;
-		}
-		VecF operator * (VecF const& rhs) const { return _mm_mul_ps(mVal, rhs.mVal); }
-		VecF operator + (VecF const& rhs) const { return _mm_add_ps(mVal, rhs.mVal); }
-		VecF operator - (VecF const& rhs) const { return _mm_sub_ps(mVal, rhs.mVal); }
-		VecF operator / (VecF const& rhs) const { return _mm_div_ps(mVal, rhs.mVal); }
-	private:
-		__m128 mVal;
-	};
-
+	typedef Math::Vector3 Vector3;
+	SVector4 gTemp;
+	Vector3 gTemp3;
+	Vector2 gTemp2;
+	float gTempV;
 	void TestFun()
 	{
-		VecF a(1, 2, 1, 13);
-		VecF b(2, 3, 6, 2);
-		VecF c(3, 4, 5, 3);
-		VecF e = a + b;
-		VecF d = a * e + c * b;
+		SVector4 v1(1, 2, 3, 4);
+		SVector4 v2(1, 2, 3, 4);
+		gTempV = v1.dot(v2);
+		{
+			SVector4 a(gTempV, rand(), rand(), rand());
+			SVector4 b(gTempV, rand(), rand(), rand());
+			SVector4 c(rand(), rand(), rand(), rand());
+			gTemp = a * b + a * c;
+		}
+
+		{
+			Vector3 a(rand(), rand(), rand() );
+			Vector3 b(rand(), rand(), rand());
+			Vector3 c(rand(), rand(), rand());
+			gTemp3 = a * b + a * c;
+		}
+
+		{
+			Vector2 a(rand(), rand());
+			Vector2 b(rand(), rand());
+			Vector2 c(rand(), rand());
+			gTemp2 = a * b + a * c;
+		}
 		int aa = 3;
 	}
 }

@@ -1,9 +1,9 @@
 #include "TinyGamePCH.h"
-#include "GameInstanceManager.h"
+#include "GameModuleManager.h"
 #include "GameControl.h"
 #include "WindowsHeader.h"
 
-bool GameInstanceManager::registerGame( IGameInstance* game , HMODULE hModule )
+bool GameModuleManager::registerGame( IGameModule* game , HMODULE hModule )
 {
 	assert( game );
 
@@ -25,7 +25,7 @@ bool GameInstanceManager::registerGame( IGameInstance* game , HMODULE hModule )
 	return true;
 }
 
-void GameInstanceManager::cleanup()
+void GameModuleManager::cleanup()
 {
 	if ( mGameRunning )
 		mGameRunning->exit();
@@ -43,7 +43,7 @@ void GameInstanceManager::cleanup()
 	mGameInfos.clear();
 }
 
-void GameInstanceManager::classifyGame( int attrID , GameInstanceVec& games )
+void GameModuleManager::classifyGame( int attrID , GameModuleVec& games )
 {
 	visitInternal( [ attrID , &games ](GameInfo& info)-> bool
 	{
@@ -59,7 +59,7 @@ void GameInstanceManager::classifyGame( int attrID , GameInstanceVec& games )
 	});
 }
 
-IGameInstance* GameInstanceManager::findGame( char const* name )
+IGameModule* GameModuleManager::findGame( char const* name )
 {
 	PackageMap::iterator iter = mPackageMap.find( name );
 	if ( iter != mPackageMap.end() )
@@ -67,9 +67,9 @@ IGameInstance* GameInstanceManager::findGame( char const* name )
 	return NULL;
 }
 
-IGameInstance* GameInstanceManager::changeGame( char const* name )
+IGameModule* GameModuleManager::changeGame( char const* name )
 {
-	IGameInstance* game = findGame( name );
+	IGameModule* game = findGame( name );
 
 	if( changeGame(game) )
 		return game;
@@ -77,7 +77,7 @@ IGameInstance* GameInstanceManager::changeGame( char const* name )
 	return nullptr;
 }
 
-bool GameInstanceManager::changeGame(IGameInstance* game)
+bool GameModuleManager::changeGame(IGameModule* game)
 {
 	if( !game )
 		return false;
@@ -103,12 +103,12 @@ bool GameInstanceManager::changeGame(IGameInstance* game)
 	return true;
 }
 
-GameInstanceManager::GameInstanceManager()
+GameModuleManager::GameModuleManager()
 {
 	mGameRunning = NULL;
 }
 
-GameInstanceManager::~GameInstanceManager()
+GameModuleManager::~GameModuleManager()
 {
 	cleanup();
 }
@@ -141,7 +141,7 @@ public:
 
 
 
-bool GameInstanceManager::loadGame( char const* path )
+bool GameModuleManager::loadGame( char const* path )
 {
 #if SYS_PLATFORM_WIN
 	HMODULE hModule = ::LoadLibrary( path );
@@ -155,12 +155,13 @@ bool GameInstanceManager::loadGame( char const* path )
 
 	TScopeRelease< HMODULE, ModouleReleasePolicy > scopeRelease( hModule );
 
-	CreateGameFun createFun = (CreateGameFun)GetProcAddress(hModule, GAME_CREATE_FUN_NAME);
+	char const* funName = CREATE_GAME_MODULE_STR;
+	CreateGameModuleFun createFun = (CreateGameModuleFun)GetProcAddress(hModule, CREATE_GAME_MODULE_STR);
 
 	if( !createFun )
 		return false;
 
-	IGameInstance* game = (*createFun)();
+	IGameModule* game = (*createFun)();
 	if( !game )
 		return false;
 

@@ -10,9 +10,9 @@
 namespace StickMove
 {
 
-	static bool RayCircleTest(Vec2f pos, Vec2f offset, Vec2f center, float radius, float t[2])
+	static bool RayCircleTest(Vector2 pos, Vector2 offset, Vector2 center, float radius, float t[2])
 	{
-		Vec2f d = center - pos;
+		Vector2 d = center - pos;
 		float a = offset.length2();
 		float b = offset.dot(d) / a;
 		float c = ( d.length2() - radius * radius ) / a;
@@ -27,14 +27,14 @@ namespace StickMove
 		return true;
 	}
 
-	static Vec2f RotateVector(Vec2f const& v, float theta)
+	static Vector2 RotateVector(Vector2 const& v, float theta)
 	{
 		Rotation rotation(theta);
 		return rotation.mul(v);
 	}
 
 
-	void Stick::init(MoveBound& moveBound , Vec2f const& pivotPos , Vec2f const& endpointPos )
+	void Stick::init(MoveBound& moveBound , Vector2 const& pivotPos , Vector2 const& endpointPos )
 	{
 		mMoveBound = &moveBound;
 		moveSpeed = DefaultMoveSpeed();
@@ -66,7 +66,7 @@ namespace StickMove
 			auto& pivot = getPivot();
 			auto& endpoint = getEndpoint();
 
-			Vector2D dir = RotateVector(mDir, mMoveAngle * mMoveTime / mMoveDurtion);
+			Vector2 dir = RotateVector(mDir, mMoveAngle * mMoveTime / mMoveDurtion);
 			endpoint.pos = pivot.pos + dir * mLength;
 		}
 	}
@@ -134,27 +134,27 @@ namespace StickMove
 		mDir.normalize();
 	}
 
-	void MoveBound::initRect(Vec2f const& size)
+	void MoveBound::initRect(Vector2 const& size)
 	{
 		mEdges.resize(4);
-		mEdges[0].pos = Vec2f(0, 0);
-		mEdges[0].offset = Vec2f(size.x, 0);
-		mEdges[0].normal = Vec2f(0, 1);
+		mEdges[0].pos = Vector2(0, 0);
+		mEdges[0].offset = Vector2(size.x, 0);
+		mEdges[0].normal = Vector2(0, 1);
 
-		mEdges[1].pos = Vec2f(0, 0);
-		mEdges[1].offset = Vec2f(0, size.y);
-		mEdges[1].normal = Vec2f(1, 0);
+		mEdges[1].pos = Vector2(0, 0);
+		mEdges[1].offset = Vector2(0, size.y);
+		mEdges[1].normal = Vector2(1, 0);
 
-		mEdges[2].pos = Vec2f(0, size.y);
-		mEdges[2].offset = Vec2f(size.x, 0);
-		mEdges[2].normal = Vec2f(0, -1);
+		mEdges[2].pos = Vector2(0, size.y);
+		mEdges[2].offset = Vector2(size.x, 0);
+		mEdges[2].normal = Vector2(0, -1);
 
-		mEdges[3].pos = Vec2f(size.x, 0);
-		mEdges[3].offset = Vec2f(0, size.y);
-		mEdges[3].normal = Vec2f(-1, 0);
+		mEdges[3].pos = Vector2(size.x, 0);
+		mEdges[3].offset = Vector2(0, size.y);
+		mEdges[3].normal = Vector2(-1, 0);
 	}
 
-	void MoveBound::initPolygon(Vec2f vertices[], int numVertices)
+	void MoveBound::initPolygon(Vector2 vertices[], int numVertices)
 	{
 		mEdges.resize(numVertices);
 		int prevIndex = numVertices - 1;
@@ -163,22 +163,22 @@ namespace StickMove
 			auto& edge = mEdges[prevIndex];
 			edge.pos = vertices[prevIndex];
 			edge.offset = vertices[i] - vertices[prevIndex];
-			edge.normal = Vec2f(edge.offset.y, -edge.offset.x);
+			edge.normal = Vector2(edge.offset.y, -edge.offset.x);
 			edge.normal.normalize();
 		}
 	}
 
-	int MoveBound::findTouchEdge(Vec2f const& pos)
+	int MoveBound::findTouchEdge(Vector2 const& pos)
 	{
 		for( int idx = 0; idx < mEdges.size(); ++idx )
 		{
 			auto const& edge = mEdges[idx];
-			Vec2f d = pos - edge.pos;
+			Vector2 d = pos - edge.pos;
 
 			float t = d.dot(edge.offset) / edge.offset.length2();
 			if( 0 <= t && t <= 1 )
 			{
-				Vec2f dp = d - t * edge.offset;
+				Vector2 dp = d - t * edge.offset;
 				if( dp.length2() < 1e-5 )
 					return idx;
 			}
@@ -187,9 +187,9 @@ namespace StickMove
 		return -1;
 	}
 
-	int MoveBound::calcMovePoint(Vec2f const& pivot, Vec2f const& dir, float length, int idxEdgeContact, MoveResult& outResult)
+	int MoveBound::calcMovePoint(Vector2 const& pivot, Vector2 const& dir, float length, int idxEdgeContact, MoveResult& outResult)
 	{
-		std::vector< Vec2f >  colPosVec;
+		std::vector< Vector2 >  colPosVec;
 
 		float const NoValue = -100;
 		float candidateC = NoValue;
@@ -211,8 +211,8 @@ namespace StickMove
 					continue;
 
 				++count;
-				Vec2f pos = edge.pos + t[i] * edge.offset;
-				Vec2f d = pos - pivot;
+				Vector2 pos = edge.pos + t[i] * edge.offset;
+				Vector2 d = pos - pivot;
 				d.normalize();
 
 				float c = dir.dot(d);
@@ -358,18 +358,18 @@ namespace StickMove
 		{
 			Graphics2D& g = Global::getGraphics2D();
 
-			Vec2f screenOffset = Vec2f(50, 50);
+			Vector2 screenOffset = Vector2(50, 50);
 			float renderScale = 2;
 
-			RenderUtility::setPen(g, Color::eBlack);
-			RenderUtility::setBrush(g, Color::eGray);
+			RenderUtility::SetPen(g, Color::eBlack);
+			RenderUtility::SetBrush(g, Color::eGray);
 			g.drawRect(screenOffset, renderScale * mBoundRectSize);
 
-			g.setPen(ColorKey3(255, 0, 0), 2);
+			g.setPen(Color3ub(255, 0, 0), 2);
 			for( auto& stick : mSticks )
 			{
-				Vec2f p0 = screenOffset + renderScale * stick.getPivot().pos;
-				Vec2f p1 = screenOffset + renderScale * stick.getEndpoint().pos;
+				Vector2 p0 = screenOffset + renderScale * stick.getPivot().pos;
+				Vector2 p1 = screenOffset + renderScale * stick.getEndpoint().pos;
 				g.drawLine(p0, p1);
 			}
 		}
@@ -377,10 +377,10 @@ namespace StickMove
 		void restart()
 		{
 			mSticks.clear();
-			mBoundRectSize = Vec2f(200, 100);
+			mBoundRectSize = Vector2(200, 100);
 			mMoveBound.initRect(mBoundRectSize);
 			Stick stick;
-			stick.init(mMoveBound, Vec2f(150, 100), Vec2f(100, 0));
+			stick.init(mMoveBound, Vector2(150, 100), Vector2(100, 0));
 			mSticks.push_back(stick);
 			updateGUI();
 		}
@@ -419,7 +419,7 @@ namespace StickMove
 			case Keyboard::eT:
 				{
 					Stick stick;
-					stick.init(mMoveBound , Vec2f(0,0) , Vec2f( Global::Random() % 100 , 0 ) );
+					stick.init(mMoveBound , Vector2(0,0) , Vector2( Global::Random() % 100 , 0 ) );
 					mSticks.push_back(stick);
 				}
 				break;
@@ -429,7 +429,7 @@ namespace StickMove
 
 		std::vector< Stick > mSticks;
 		MoveBound mMoveBound;
-		Vec2f     mBoundRectSize;
+		Vector2     mBoundRectSize;
 
 	};
 
@@ -438,4 +438,4 @@ namespace StickMove
 
 
 
-REGISTER_STAGE("Stick Move", StickMove::TestStage, StageRegisterGroup::Test );
+REGISTER_STAGE("Stick Move", StickMove::TestStage, EStageGroup::Test );

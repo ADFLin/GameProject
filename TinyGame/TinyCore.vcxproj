@@ -159,7 +159,7 @@
     <ClInclude Include="TinyCore\GameAction.h" />
     <ClInclude Include="TinyCore\GameConfig.h" />
     <ClInclude Include="TinyCore\GameDefines.h" />
-    <ClInclude Include="TinyCore\GameInstance.h" />
+    <ClInclude Include="TinyCore\GameModule.h" />
     <ClInclude Include="TinyCore\GameStage.h" />
     <ClInclude Include="TinyCore\GameWidgetID.h" />
     <ClInclude Include="TinyCore\PropertyKey.h" />
@@ -175,8 +175,9 @@
     <ClCompile Include="GameMenuStage.cpp" />
     <ClCompile Include="GameStageMode.cpp" />
     <ClCompile Include="TinyCore\DataSteamBuffer.cpp" />
+    <ClCompile Include="TinyCore\DataStream.cpp" />
     <ClCompile Include="TinyCore\DataTransferImpl.cpp" />
-    <ClCompile Include="TinyCore\GameInstance.cpp" />
+    <ClCompile Include="TinyCore\GameModule.cpp" />
     <ClCompile Include="TinyCore\GameStage.cpp" />
     <ClCompile Include="TinyCore\PropertyKey.cpp" />
     <ClCompile Include="TinyCore\StageBase.cpp" />

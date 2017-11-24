@@ -3,7 +3,7 @@
 
 #include "BMAction.h"
 
-#include "GameInstance.h"
+#include "GameModule.h"
 #include "RenderUtility.h"
 
 #include "GameGUISystem.h"
@@ -70,13 +70,13 @@ namespace BomberMan
 		case STEP_READY:
 			if ( mNextStepTime - mGameTime > TimeReadyWait / 2 )
 			{
-				RenderUtility::setFont( g , FONT_S24 );
+				RenderUtility::SetFont( g , FONT_S24 );
 				g.setTextColor( 255 , 255 , 255 );
 				g.drawText( Vec2i(0,0) , Global::getDrawEngine()->getScreenSize() , "Ready" );
 			}
 			else
 			{
-				RenderUtility::setFont( g , FONT_S24 );
+				RenderUtility::SetFont( g , FONT_S24 );
 				g.setTextColor( 255 , 0 , 0  );
 				g.drawText( Vec2i(0,0) , Global::getDrawEngine()->getScreenSize() , "Go!" );
 			}

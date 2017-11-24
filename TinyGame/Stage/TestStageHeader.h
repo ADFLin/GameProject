@@ -6,9 +6,9 @@
 #include "GameGUISystem.h"
 #include "DrawEngine.h"
 #include "RenderUtility.h"
-#include "GameInstance.h"
+#include "GameModule.h"
 
-#include "IntegerType.h"
+#include "Core/IntegerType.h"
 
 class MiscTestRegister
 {
@@ -41,6 +41,10 @@ public:
 		BaseClass::onEnd();
 	}
 
+	void restart() {}
+	void tick() {}
+	void updateFrame(int frame) {}
+
 	virtual void onUpdate(long time)
 	{
 		BaseClass::onUpdate(time);
@@ -57,15 +61,13 @@ public:
 		Graphics2D& g = Global::getGraphics2D();
 	}
 
-	void restart(){}
-	void tick(){}
-	void updateFrame(int frame){}
 	bool onMouse(MouseMsg const& msg)
 	{
 		if( !BaseClass::onMouse(msg) )
 			return false;
 		return true;
 	}
+
 	bool onKey(unsigned key, bool isDown)
 	{
 		if( !isDown )
@@ -75,6 +77,17 @@ public:
 		case Keyboard::eR: restart(); break;
 		}
 		return false;
+	}
+
+	virtual bool onWidgetEvent(int event, int id, GWidget* ui) override
+	{
+		switch( id )
+		{
+		default:
+			break;
+		}
+
+		return BaseClass::onWidgetEvent(event, id, ui);
 	}
 protected:
 };

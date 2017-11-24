@@ -55,50 +55,7 @@ namespace RenderGL
 			std::string value;
 		};
 
-		std::string getCode( char const* defCode = nullptr , char const* addionalCode = nullptr ) const
-		{
-			std::string result;
-			if( version )
-			{
-				result += "#version ";
-				FixString<128> str;
-				result += str.format("%u", version);
-				result += " compatibility\n";
-			}
-
-			if( defCode )
-			{
-				result += defCode;
-			}
-
-			for( auto const& var : mConfigVars )
-			{
-				result += "#define ";
-				result += var.name;
-				if ( var.name.length() )
-				{
-					result += " ";
-					result += var.value;
-				}
-				result += "\n";
-			}
-
-			if( addionalCode )
-			{
-				result += addionalCode;
-				result += '\n';
-			}
-
-			for( auto& name : mIncludeFiles )
-			{
-				result += "#include \"";
-				result += name;
-				result += SHADER_FILE_SUBNAME;
-				result += "\"\n";
-			}
-
-			return result;
-		}
+		std::string getCode( char const* defCode = nullptr , char const* addionalCode = nullptr ) const;
 
 		unsigned version;
 		std::vector< ConfigVar >   mConfigVars;
@@ -121,11 +78,22 @@ namespace RenderGL
 
 		~ShaderManager();
 		bool loadFileSimple(ShaderProgram& shaderProgram, char const* fileName, char const* def = nullptr, char const* additionalCode = nullptr);
-		bool loadFile(ShaderProgram& shaderProgram, char const* fileName, char const* vertexEntryName, char const* pixelEntryName, char const* def = nullptr, char const* additionalCode = nullptr );
-		bool loadFile(ShaderProgram& shaderProgram, char const* fileName, uint8 shaderMask, char const* entryNames[], char const* def = nullptr, char const* additionalCode = nullptr);
 
-		bool loadFile(ShaderProgram& shaderProgram, char const* fileName, char const* vertexEntryName, char const* pixelEntryName, ShaderCompileOption const& option, char const* additionalCode = nullptr);
-		bool loadFile(ShaderProgram& shaderProgram, char const* fileName, uint8 shaderMask, char const* entryNames[], ShaderCompileOption const& option, char const* additionalCode = nullptr);
+		bool loadFile(ShaderProgram& shaderProgram, char const* fileName, 
+					  char const* vertexEntryName, char const* pixelEntryName, 
+					  char const* def = nullptr, char const* additionalCode = nullptr );
+
+		bool loadFile(ShaderProgram& shaderProgram, char const* fileName, 
+					  uint8 shaderMask, char const* entryNames[], 
+					  char const* def = nullptr, char const* additionalCode = nullptr);
+
+		bool loadFile(ShaderProgram& shaderProgram, char const* fileName, 
+					  char const* vertexEntryName, char const* pixelEntryName, 
+					  ShaderCompileOption const& option, char const* additionalCode = nullptr);
+
+		bool loadFile(ShaderProgram& shaderProgram, char const* fileName, 
+					  uint8 shaderMask, char const* entryNames[], 
+					  ShaderCompileOption const& option, char const* additionalCode = nullptr);
 
 		bool loadMultiFile(ShaderProgram& shaderProgram, char const* fileName, char const* def = nullptr, char const* additionalCode = nullptr);
 		bool reloadShader(ShaderProgram& shaderProgram);
@@ -166,6 +134,8 @@ namespace RenderGL
 			virtual void getDependentFilePaths(std::vector<std::wstring>& paths) override;
 			virtual void postFileModify(FileAction action) override;
 		};
+
+		uint32         mDefaultVersion = 430;
 
 		ShaderCompiler mCompiler;
 		std::unordered_map< ShaderProgram*, ShaderCompileInfo* > mShaderCompileMap;

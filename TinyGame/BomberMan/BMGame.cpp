@@ -10,9 +10,9 @@
 
 namespace BomberMan
 {
-	EXPORT_GAME(GameInstance)
+	EXPORT_GAME_MODULE(GameModule)
 
-	StageBase* GameInstance::createStage( unsigned id )
+	StageBase* GameModule::createStage( unsigned id )
 	{
 		switch( id )
 		{
@@ -24,7 +24,7 @@ namespace BomberMan
 		return NULL;
 	}
 
-	bool GameInstance::getAttribValue( AttribValue& value )
+	bool GameModule::getAttribValue( AttribValue& value )
 	{
 		switch( value.id )
 		{
@@ -46,9 +46,9 @@ namespace BomberMan
 		return false;
 	}
 
-	void GameInstance::beginPlay( StageModeType type, StageManager& manger )
+	void GameModule::beginPlay( StageModeType type, StageManager& manger )
 	{
-		IGameInstance::beginPlay( type , manger );
+		IGameModule::beginPlay( type , manger );
 	}
 
 	class CNetRoomSettingHelper : public NetRoomSettingHelper
@@ -166,7 +166,7 @@ namespace BomberMan
 
 	};
 
-	SettingHepler* GameInstance::createSettingHelper( SettingHelperType type )
+	SettingHepler* GameModule::createSettingHelper( SettingHelperType type )
 	{
 		switch( type )
 		{

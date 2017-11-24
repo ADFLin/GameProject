@@ -1,6 +1,6 @@
 #include "CantanLevel.h"
 
-#include "IntegerType.h"
+#include "Core/IntegerType.h"
 
 #include <limits>
 #include <algorithm>

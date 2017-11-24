@@ -1,5 +1,5 @@
 #include "TinyGamePCH.h"
-#include "GameInstance.h"
+#include "GameModule.h"
 
 #include "GameControl.h"
 #include "StageBase.h"
@@ -26,12 +26,12 @@ namespace
 {
 	EmptyController gEmptyController;
 }
-GameController& IGameInstance::getController()
+GameController& IGameModule::getController()
 {
 	return gEmptyController;
 }
 
-void IGameInstance::beginPlay( StageModeType type, StageManager& manger )
+void IGameModule::beginPlay( StageModeType type, StageManager& manger )
 {
 	switch( type )
 	{

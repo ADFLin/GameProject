@@ -60,7 +60,7 @@ namespace Rich
 			Player* owner = area.getOwner();
 			if ( owner )
 			{
-				RenderUtility::setBrush( g , gRoleColor[ owner->getRoleId() ] , COLOR_LIGHT );
+				RenderUtility::SetBrush( g , gRoleColor[ owner->getRoleId() ] , COLOR_LIGHT );
 				g.drawRect( rPos , TileVisualSize );
 			}
 		}
@@ -95,8 +95,8 @@ namespace Rich
 		World& world = getLevel().getWorld();
 		World::MapDataType& map = world.mMapData;
 
-		RenderUtility::setPen( g , Color::eGray );
-		RenderUtility::setBrush( g , Color::eGray );
+		RenderUtility::SetPen( g , Color::eGray );
+		RenderUtility::SetBrush( g , Color::eGray );
 		g.drawRect( Vec2i(0,0) , ::Global::getDrawEngine()->getScreenSize() );
 		
 
@@ -108,8 +108,8 @@ namespace Rich
 				Area* area = world.getArea( MapCoord(i,j) );
 				if ( area )
 				{
-					RenderUtility::setPen( g , Color::eBlack );
-					RenderUtility::setBrush( g , Color::eWhite );
+					RenderUtility::SetPen( g , Color::eBlack );
+					RenderUtility::SetBrush( g , Color::eWhite );
 					g.drawRect( MapPos + TileVisualLength * Vec2i( i , j ) , TileVisualSize );
 					drawer.rPos = MapPos + TileVisualLength * Vec2i( i , j );
 					area->accept( drawer );
@@ -213,9 +213,9 @@ namespace Rich
 
 		void drawDice( Graphics2D& g , Vec2i const& pos , int value )
 		{
-			RenderUtility::setPen( g , Color::eBlack );
-			RenderUtility::setBrush( g , Color::eWhite );
-			RenderUtility::setFont( g , FONT_S24 );
+			RenderUtility::SetPen( g , Color::eBlack );
+			RenderUtility::SetBrush( g , Color::eWhite );
+			RenderUtility::SetFont( g , FONT_S24 );
 
 			g.drawRoundRect( pos , Vec2i( 80 , 80 ) , Vec2i( 10 , 10 ) );
 			g.setTextColor( 0 , 0 , 0 );
@@ -270,8 +270,8 @@ namespace Rich
 		ActorRenderComp* comp;
 		long      timeTotal;
 		long      timeCur;
-		Vec2f     from;
-		Vec2f     dif;
+		Vector2     from;
+		Vector2     dif;
 	};
 
 
@@ -326,8 +326,8 @@ namespace Rich
 
 	void ActorRenderComp::render( Graphics2D& g )
 	{
-		RenderUtility::setPen( g , Color::eBlack );
-		RenderUtility::setBrush( g , Color::eRed );
+		RenderUtility::SetPen( g , Color::eBlack );
+		RenderUtility::SetBrush( g , Color::eRed );
 		Vec2i rPos = Vec2i( TileVisualLength * pos ) + TileVisualSize / 2;
 		g.drawCircle( rPos  , 10 );
 	}
@@ -342,8 +342,8 @@ namespace Rich
 	void PlayerRenderComp::render( Graphics2D& g )
 	{
 		Player* player = getOwner()->getComponentT< Player >(COMP_ACTOR);
-		RenderUtility::setPen( g , Color::eBlack );
-		RenderUtility::setBrush( g , gRoleColor[ player->getRoleId() ] );
+		RenderUtility::SetPen( g , Color::eBlack );
+		RenderUtility::SetBrush( g , gRoleColor[ player->getRoleId() ] );
 		Vec2i rPos = Vec2i( TileVisualLength * pos ) + TileVisualSize / 2;
 		g.drawCircle( rPos  , 10 );
 	}

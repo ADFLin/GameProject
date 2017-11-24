@@ -43,7 +43,7 @@ namespace TowerDefend
 		}
 
 		bool         result;
-		Vec2f        max , min;
+		Vector2        max , min;
 		PlayerInfo*  pInfo;
 		Unit*        builder;
 		World*       world;
@@ -57,7 +57,7 @@ namespace TowerDefend
 	}
 
 
-	bool World::canBuild( ActorId type , Unit* builder , Vec2f const& pos , Vec2i& mapPos , PlayerInfo* pInfo , bool needSolve )
+	bool World::canBuild( ActorId type , Unit* builder , Vector2 const& pos , Vec2i& mapPos , PlayerInfo* pInfo , bool needSolve )
 	{
 		if ( ! getMap().canBuild( type, pos , mapPos ) )
 			return NULL;
@@ -68,8 +68,8 @@ namespace TowerDefend
 		solver.world   = this;
 		solver.pInfo   = pInfo;
 		solver.builder = builder;
-		solver.min     = gMapCellLength * Vec2f( mapPos - size / 2 );
-		solver.max     = solver.min + gMapCellLength * Vec2f( size );
+		solver.min     = gMapCellLength * Vector2( mapPos - size / 2 );
+		solver.max     = solver.min + gMapCellLength * Vector2( size );
 
 		if ( needSolve )
 			getCollisionMgr().testCollision( solver.min , solver.max , CollisionCallback( &solver , &BlockUnitSolver::trySolve ) );
@@ -79,48 +79,48 @@ namespace TowerDefend
 		return solver.result;
 	}
 
-	bool World::tryPlaceUnit( Unit* unit , Building* building , Vec2f const& targetPos )
+	bool World::tryPlaceUnit( Unit* unit , Building* building , Vector2 const& targetPos )
 	{
 		BuildingInfo const& info = building->getBuildingInfo();
 
-		Vec2f blgPos = building->getPos() - Vec2f( info.blgSize / 2 ) * gMapCellLength;
+		Vector2 blgPos = building->getPos() - Vector2( info.blgSize / 2 ) * gMapCellLength;
 		float radius = unit->getColRadius();
 
 		{
 			float maxOffset = info.blgSize.x * gMapCellLength + radius;
-			Vec2f startPos = blgPos + Vec2f( radius , info.blgSize.y * gMapCellLength + radius );
-			if ( tryPlaceUnitInternal( unit , startPos , Vec2f(1,0) , maxOffset ) )
+			Vector2 startPos = blgPos + Vector2( radius , info.blgSize.y * gMapCellLength + radius );
+			if ( tryPlaceUnitInternal( unit , startPos , Vector2(1,0) , maxOffset ) )
 				return true;
 		}
 
 		{
 			float maxOffset = info.blgSize.y * gMapCellLength + radius;
-			Vec2f startPos = blgPos + Vec2f( info.blgSize.x * gMapCellLength + radius , info.blgSize.y * gMapCellLength - radius );
-			if ( tryPlaceUnitInternal( unit , startPos , Vec2f(0,-1) , maxOffset ) )
+			Vector2 startPos = blgPos + Vector2( info.blgSize.x * gMapCellLength + radius , info.blgSize.y * gMapCellLength - radius );
+			if ( tryPlaceUnitInternal( unit , startPos , Vector2(0,-1) , maxOffset ) )
 				return true;
 		}
 
 		{
 			float maxOffset = info.blgSize.x * gMapCellLength + radius;
-			Vec2f startPos = blgPos + Vec2f( info.blgSize.x * gMapCellLength - radius , -radius );
-			if ( tryPlaceUnitInternal( unit , startPos , Vec2f(-1,0) ,  maxOffset ) )
+			Vector2 startPos = blgPos + Vector2( info.blgSize.x * gMapCellLength - radius , -radius );
+			if ( tryPlaceUnitInternal( unit , startPos , Vector2(-1,0) ,  maxOffset ) )
 				return true;
 		}
 
 		{
 			float maxOffset = info.blgSize.y * gMapCellLength + radius;
-			Vec2f startPos = blgPos + Vec2f( -radius , radius );
-			if ( tryPlaceUnitInternal( unit , startPos , Vec2f(0,1) , maxOffset ) )
+			Vector2 startPos = blgPos + Vector2( -radius , radius );
+			if ( tryPlaceUnitInternal( unit , startPos , Vector2(0,1) , maxOffset ) )
 				return true;
 		}
 
 		return false;
 	}
 
-	bool World::tryPlaceUnitInternal( Unit* unit , Vec2f const& startPos, Vec2f const& offsetDir, float maxOffset )
+	bool World::tryPlaceUnitInternal( Unit* unit , Vector2 const& startPos, Vector2 const& offsetDir, float maxOffset )
 	{
 		float totalOffset = 0;
-		Vec2f testPos = startPos;
+		Vector2 testPos = startPos;
 		float radius  = unit->getColRadius();
 
 		CollisionLayer layer = unit->checkFlag( EF_FLY ) ? CL_FLY : CL_WALK;
@@ -149,7 +149,7 @@ namespace TowerDefend
 
 
 
-	Building* World::constructBuilding( ActorId type , Unit* builder  , Vec2f const& pos , bool useRes )
+	Building* World::constructBuilding( ActorId type , Unit* builder  , Vector2 const& pos , bool useRes )
 	{
 		BuildingInfo const& info = Building::getBuildingInfo( type );
 
@@ -227,7 +227,7 @@ namespace TowerDefend
 		return PR_EMPTY;
 	}
 
-	bool WorldMap::testCollisionX( Vec2f const& mapPos , float colRadius , CollisionLayer layer , float& offset )
+	bool WorldMap::testCollisionX( Vector2 const& mapPos , float colRadius , CollisionLayer layer , float& offset )
 	{
 		float testPos = mapPos.x;
 		float otherPos = mapPos.y;
@@ -290,7 +290,7 @@ namespace TowerDefend
 		return true;
 	}
 
-	bool WorldMap::testCollisionY( Vec2f const& mapPos , float colRadius , CollisionLayer layer , float& offset  )
+	bool WorldMap::testCollisionY( Vector2 const& mapPos , float colRadius , CollisionLayer layer , float& offset  )
 	{
 		float testPos = mapPos.y;
 		float otherPos = mapPos.x;
@@ -351,7 +351,7 @@ namespace TowerDefend
 		return true;
 	}
 
-	bool WorldMap::canBuild( ActorId type , Vec2f const& pos , Vec2i& mapPos )
+	bool WorldMap::canBuild( ActorId type , Vector2 const& pos , Vec2i& mapPos )
 	{
 		mapPos.setValue( int( pos.x / gMapCellLength ) , int( pos.y / gMapCellLength ) );
 
@@ -383,7 +383,7 @@ namespace TowerDefend
 	{
 		assert( mMapData.checkRange( mapPos.x , mapPos.y ) ) ;
 
-		building->setPos( gMapCellLength * Vec2f( mapPos ) );
+		building->setPos( gMapCellLength * Vector2( mapPos ) );
 
 		Vec2i size = building->getBuildingInfo().blgSize;
 		Vec2i start = mapPos - size / 2;
@@ -436,9 +436,9 @@ namespace TowerDefend
 		return checkCollision( unit->getPos() , unit->getColRadius() , CL_WALK );
 	}
 
-	bool WorldMap::checkCollision( Vec2f const& pos , float radius , CollisionLayer layer )
+	bool WorldMap::checkCollision( Vector2 const& pos , float radius , CollisionLayer layer )
 	{
-		Vec2f mapPos = pos / gMapCellLength;
+		Vector2 mapPos = pos / gMapCellLength;
 		float checkLen = radius / gMapCellLength ;
 		Vec2i start( (int)floor( mapPos.x - checkLen ) , (int)floor( mapPos.y - checkLen ) );
 		Vec2i end  ( (int)ceil( mapPos.x + checkLen ) , (int)ceil( mapPos.y + checkLen ) );
@@ -459,7 +459,7 @@ namespace TowerDefend
 		return true;
 	}
 
-	Building* WorldMap::getBuilding( Vec2f const& wPos )
+	Building* WorldMap::getBuilding( Vector2 const& wPos )
 	{
 		Vec2i mapPos = Vec2i( wPos / gMapCellLength );
 

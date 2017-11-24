@@ -96,7 +96,7 @@ namespace Tetris
 
 	}
 
-	bool CNetRoomSettingHelper::checkSettingVaildSV()
+	bool CNetRoomSettingHelper::checkSettingSV()
 	{
 		if( mInfo.mode == MODE_TS_BATTLE )
 		{
@@ -123,9 +123,9 @@ namespace Tetris
 	void CNetRoomSettingHelper::setupBaseUI()
 	{
 		{
-			GChoice* choice = mSettingPanel->addChoice( UI_MODE_CHOICE , LAN("Game Mode") , MASK_BASE );
-			choice->appendItem( LAN("Challenge Mode") );
-			choice->appendItem( LAN("Battle Mode") );
+			GChoice* choice = mSettingPanel->addChoice( UI_MODE_CHOICE , LOCTEXT("Game Mode") , MASK_BASE );
+			choice->appendItem( LOCTEXT("Challenge Mode") );
+			choice->appendItem( LOCTEXT("Battle Mode") );
 			switch( mInfo.mode )
 			{
 			case MODE_TS_CHALLENGE: choice->setSelection(0); break;
@@ -133,7 +133,7 @@ namespace Tetris
 			}
 		}
 		{
-			GChoice* choice = mSettingPanel->addChoice( UI_PLAYER_NUMBER_CHOICE , LAN("Player Number") , MASK_BASE );
+			GChoice* choice = mSettingPanel->addChoice( UI_PLAYER_NUMBER_CHOICE , LOCTEXT("Player Number") , MASK_BASE );
 			setupMaxPlayerNumUI( mMaxPlayerNum );
 			choice->setSelection( mMaxPlayerNum - 1 );
 			setMaxPlayerNum( mMaxPlayerNum );
@@ -142,7 +142,7 @@ namespace Tetris
 
 	void CNetRoomSettingHelper::setupNormalModeUI()
 	{
-		GSlider* slider = mSettingPanel->addSlider( UI_GRAVITY_LEVEL_SLIDER , LAN("Gravity Level") , MASK_MODE );
+		GSlider* slider = mSettingPanel->addSlider( UI_GRAVITY_LEVEL_SLIDER , LOCTEXT("Gravity Level") , MASK_MODE );
 		slider->setRange( 0 , 500 );
 		slider->setValue( mInfo.modeNormal.startGravityLevel );
 	}

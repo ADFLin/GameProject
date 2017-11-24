@@ -4,9 +4,11 @@
 #include "GameGUISystem.h"
 #include "GameGlobal.h"
 #include "StageBase.h"
-#include <cmath>
 #include "RenderUtility.h"
 
+#include "FileSystem.h"
+
+#include <cmath>
 
 WidgetRenderer  gRenderer;
 
@@ -31,20 +33,20 @@ void WidgetRenderer::drawButton( IGraphics2D& g , Vec2i const& pos , Vec2i const
 		renderPos += Vec2i( 1 , 1 );
 
 	if ( state == BS_HIGHLIGHT )
-		RenderUtility::setPen( g , Color::eWhite );
+		RenderUtility::SetPen( g , Color::eWhite );
 	else
-		RenderUtility::setPen( g , Color::eBlack );
+		RenderUtility::SetPen( g , Color::eBlack );
 
-	RenderUtility::setBrush( g , (beEnable) ? color : Color::eGray , COLOR_NORMAL );
-	RenderUtility::drawCapsuleX( g , renderPos , size );
+	RenderUtility::SetBrush( g , (beEnable) ? color : Color::eGray , COLOR_NORMAL );
+	RenderUtility::DrawCapsuleX( g , renderPos , size );
 
-	RenderUtility::setPen( g , Color::eNull );
+	RenderUtility::SetPen( g , Color::eNull );
 
-	RenderUtility::setBrush( g ,  Color::eWhite , COLOR_NORMAL );
-	RenderUtility::drawCapsuleX( g , renderPos + Vec2i( 3 , 2 ) , size - Vec2i( 4 , 6 ) );
+	RenderUtility::SetBrush( g ,  Color::eWhite , COLOR_NORMAL );
+	RenderUtility::DrawCapsuleX( g , renderPos + Vec2i( 3 , 2 ) , size - Vec2i( 4 , 6 ) );
 
-	RenderUtility::setBrush( g , (beEnable) ? color : Color::eWhite , COLOR_DEEP );
-	RenderUtility::drawCapsuleX( g , renderPos + Vec2i( 3 , 4  ) , size - Vec2i( 4 , 6 ) );
+	RenderUtility::SetBrush( g , (beEnable) ? color : Color::eWhite , COLOR_DEEP );
+	RenderUtility::DrawCapsuleX( g , renderPos + Vec2i( 3 , 4  ) , size - Vec2i( 4 , 6 ) );
 }
 
 void WidgetRenderer::drawButton2( IGraphics2D& g , Vec2i const& pos , Vec2i const& size , ButtonState state , int color , bool beEnable /*= true */ )
@@ -54,28 +56,28 @@ void WidgetRenderer::drawButton2( IGraphics2D& g , Vec2i const& pos , Vec2i cons
 
 
 
-void WidgetRenderer::drawPanel( IGraphics2D& g , Vec2i const& pos , Vec2i const& size , ColorKey3 const& color )
+void WidgetRenderer::drawPanel( IGraphics2D& g , Vec2i const& pos , Vec2i const& size , Color3ub const& color )
 {
-	RenderUtility::setBrush( g ,  Color::eWhite  );
-	RenderUtility::setPen( g , Color::eBlack );
+	RenderUtility::SetBrush( g ,  Color::eWhite  );
+	RenderUtility::SetPen( g , Color::eBlack );
 	g.drawRoundRect( pos , size , Vec2i( 10 , 10 ) );
 	g.setBrush( color );
 	g.drawRoundRect( pos + Vec2i( 2 , 2 ) ,size - Vec2i( 4, 4 ) , Vec2i( 20 , 20 ) );
 
 }
 
-void WidgetRenderer::drawPanel( IGraphics2D& g , Vec2i const& pos , Vec2i const& size , ColorKey3 const& color , float alpha )
+void WidgetRenderer::drawPanel( IGraphics2D& g , Vec2i const& pos , Vec2i const& size , Color3ub const& color , float alpha )
 {
 	g.beginBlend( pos , size , alpha );
 	drawPanel( g , pos , size , color );
 	g.endBlend();
 }
 
-void WidgetRenderer::drawPanel2( IGraphics2D& g , Vec2i const& pos , Vec2i const& size  , ColorKey3 const& color  )
+void WidgetRenderer::drawPanel2( IGraphics2D& g , Vec2i const& pos , Vec2i const& size  , Color3ub const& color  )
 {
 	int border = 2;
-	RenderUtility::setPen( g , Color::eBlack );
-	RenderUtility::setBrush( g , Color::eWhite );
+	RenderUtility::SetPen( g , Color::eBlack );
+	RenderUtility::SetBrush( g , Color::eWhite );
 	g.drawRect( pos , size );
 	g.setBrush( color );
 	g.drawRect( pos + Vec2i( border ,border) , size - 2 * Vec2i( border , border ) );
@@ -83,12 +85,12 @@ void WidgetRenderer::drawPanel2( IGraphics2D& g , Vec2i const& pos , Vec2i const
 
 void WidgetRenderer::drawSilder( IGraphics2D& g , Vec2i const& pos , Vec2i const& size , Vec2i const& tipPos , Vec2i const& tipSize )
 {
-	RenderUtility::setPen(g, Color::eBlack);
-	RenderUtility::setBrush( g , Color::eBlue );
+	RenderUtility::SetPen(g, Color::eBlack);
+	RenderUtility::SetBrush( g , Color::eBlue );
 	g.drawRoundRect( pos ,size , Vec2i( 3 , 3 ) );
-	RenderUtility::setBrush( g , Color::eYellow , COLOR_DEEP );
+	RenderUtility::SetBrush( g , Color::eYellow , COLOR_DEEP );
 	g.drawRoundRect( tipPos , tipSize , Vec2i( 3 , 3 ) );
-	RenderUtility::setBrush( g , Color::eYellow );
+	RenderUtility::SetBrush( g , Color::eYellow );
 	g.drawRoundRect( tipPos + Vec2i( 2 , 2 ) , tipSize - Vec2i( 4 , 4 ) , Vec2i( 1 , 1 ) );
 }
 
@@ -190,15 +192,15 @@ GMsgBox::GMsgBox( int _id , Vec2i const& pos , GWidget* parent , unsigned flag )
 	{
 	case GMB_YESNO:
 		button = new GButton( UI_NO , BoxSize - Vec2i( 50 , 30 ) , Vec2i( 40 , 20 ) , this );
-		button->setTitle( LAN("No") );
+		button->setTitle( LOCTEXT("No") );
 		button->setHotkey( ACT_BUTTON0 );
 		button = new GButton( UI_YES , BoxSize - Vec2i( 100 , 30 ) , Vec2i( 40 , 20 ) , this );
-		button->setTitle( LAN("Yes") );
+		button->setTitle( LOCTEXT("Yes") );
 		button->setHotkey( ACT_BUTTON1 );
 		break;
 	case GMB_OK :
 		button = new GButton( UI_OK , BoxSize - Vec2i( 100 , 30 ) , Vec2i( 40 , 20 ) , this );
-		button->setTitle( LAN("OK") );
+		button->setTitle( LOCTEXT("OK") );
 		button->setHotkey( ACT_BUTTON0 );
 		break;
 	}
@@ -226,7 +228,7 @@ void GMsgBox::onRender()
 	IGraphics2D& g = Global::getIGraphics2D();
 
 	Vec2i pos = getWorldPos();
-	RenderUtility::setFont( g , FONT_S12 );
+	RenderUtility::SetFont( g , FONT_S12 );
 	g.setTextColor(255 , 255 , 0 );
 	g.drawText( pos , Vec2i( BoxSize.x , BoxSize.y - 30 ) , mTitle.c_str() );
 }
@@ -347,7 +349,7 @@ void GButton::onRender()
 
 	if ( !mTitle.empty() )
 	{
-		RenderUtility::setFont( g , mFontType );
+		RenderUtility::SetFont( g , mFontType );
 
 		if ( getButtonState() == BS_PRESS )
 		{
@@ -377,12 +379,12 @@ void GNoteBook::doRenderButton( PageButton* button )
 	//g.drawRect( pos , button->getSize() );
 
 	int color = button->page == getCurPage() ? ( Color::eGreen ) : ( Color::eBlue );
-	RenderUtility::drawBlock( g , pos , button->getSize() , color );
+	RenderUtility::DrawBlock( g , pos , button->getSize() , color );
 	//uiSys._drawButton( pos , button->getSize()  , button->getButtonState() , color );
 
 	if ( !button->title.empty() )
 	{
-		RenderUtility::setFont( g , FONT_S8 );
+		RenderUtility::SetFont( g , FONT_S8 );
 
 		if ( button->page == getCurPage() )
 		{
@@ -406,8 +408,8 @@ void GNoteBook::doRenderPage( Page* page )
 
 	//g.beginBlend( pos , size  , 0.6 );
 	{
-		RenderUtility::setBrush( g , Color::eNull );
-		g.setPen( ColorKey3(255,255,255) , 0 );
+		RenderUtility::SetBrush( g , Color::eNull );
+		g.setPen( Color3ub(255,255,255) , 0 );
 		g.drawLine( pos , pos + Vec2i( size.x - 1, 0 ) );
 		//g.drawRect( pos  , size  );
 	}
@@ -419,7 +421,7 @@ void GNoteBook::doRenderPage( Page* page )
 void GNoteBook::doRenderBackground()
 {
 	IGraphics2D& g = Global::getIGraphics2D();
-	gRenderer.drawPanel( g , getWorldPos() , getSize() , ColorKey3( 50 , 100 , 150 ) , 0.9f );
+	gRenderer.drawPanel( g , getWorldPos() , getSize() , Color3ub( 50 , 100 , 150 ) , 0.9f );
 }
 
 GTextCtrl::GTextCtrl( int id , Vec2i const& pos , int length , GWidget* parent ) 
@@ -435,9 +437,9 @@ void GTextCtrl::onRender()
 	IGraphics2D& g = Global::getIGraphics2D();
 
 	Vec2i size = getSize();
-	RenderUtility::setBrush( g , Color::eGray  );
+	RenderUtility::SetBrush( g , Color::eGray  );
 	g.drawRect( pos , size );
-	RenderUtility::setBrush( g , Color::eGray , COLOR_LIGHT );
+	RenderUtility::SetBrush( g , Color::eGray , COLOR_LIGHT );
 
 	Vec2i inPos = pos + Vec2i( 2 , 2 );
 	Vec2i inSize = size - Vec2i( 4 , 4 );
@@ -448,7 +450,7 @@ void GTextCtrl::onRender()
 	else
 		g.setTextColor(125 , 125 , 125 );
 
-	RenderUtility::setFont( g , FONT_S10 );
+	RenderUtility::SetFont( g , FONT_S10 );
 
 	Vec2i textPos = pos + Vec2i( 6 , 3 );
 	g.drawText( textPos , getValue() );
@@ -496,16 +498,16 @@ void GChoice::onRender()
 	//assert( !useColorKey );
 
 	int border = 2;
-	RenderUtility::setPen( g , Color::eBlack );
-	RenderUtility::setBrush( g , Color::eWhite );
+	RenderUtility::SetPen( g , Color::eBlack );
+	RenderUtility::SetBrush( g , Color::eWhite );
 	g.drawRoundRect( pos , size ,Vec2i( 5 , 5 ) );
-	RenderUtility::setBrush( g , mColor ,  COLOR_DEEP );
+	RenderUtility::SetBrush( g , mColor ,  COLOR_DEEP );
 	g.drawRoundRect( pos + Vec2i( border ,border) , size - 2 * Vec2i( border , border ) , Vec2i( 2 , 2 ) );
 
 	//::Global::getGUI()._drawPanel( g , pos , size , BS_NORMAL , mColor , true );
 	if ( getSelectValue() )
 	{
-		RenderUtility::setFont( g , FONT_S8 );
+		RenderUtility::SetFont( g , FONT_S8 );
 		g.setTextColor(255 , 255 , 0 );
 		g.drawText( pos , size , getSelectValue() );
 	}
@@ -518,8 +520,8 @@ void GChoice::doRenderItem( Vec2i const& pos , Item& item , bool beLight )
 	Vec2i size( getSize().x , getMenuItemHeight() );
 
 	g.beginBlend( pos , size , 0.8f );
-	RenderUtility::setPen( g , Color::eBlack );
-	RenderUtility::setBrush( g , Color::eBlue , COLOR_LIGHT );
+	RenderUtility::SetPen( g , Color::eBlack );
+	RenderUtility::SetBrush( g , Color::eBlue , COLOR_LIGHT );
 	g.drawRoundRect( pos + Vec2i(4,1), size - Vec2i(8,2) , Vec2i( 5 , 5 ) );
 	g.endBlend();
 
@@ -528,7 +530,7 @@ void GChoice::doRenderItem( Vec2i const& pos , Item& item , bool beLight )
 	else
 		g.setTextColor(0, 0 , 0 );
 
-	RenderUtility::setFont( g , FONT_S8 );
+	RenderUtility::SetFont( g , FONT_S8 );
 	g.drawText( pos , size , item.value.c_str() );
 }
 
@@ -539,8 +541,8 @@ void GChoice::doRenderMenuBG( Menu* menu )
 	Vec2i pos =  menu->getWorldPos();
 	Vec2i size = menu->getSize();
 	g.beginBlend( pos , size , 0.8f );
-	RenderUtility::setPen( g , Color::eBlack );
-	RenderUtility::setBrush( g , Color::eBlue  );
+	RenderUtility::SetPen( g , Color::eBlack );
+	RenderUtility::SetBrush( g , Color::eBlue  );
 	g.drawRoundRect( pos + Vec2i(2,1), size - Vec2i(4,2) , Vec2i( 5 , 5 ) );
 	g.endBlend();
 }
@@ -557,7 +559,7 @@ GPanel::GPanel( int id , Vec2i const& pos , Vec2i const& size , GWidget* parent 
 	,mRenderType( eRoundRectType )
 {
 	mID = id;
-	setColorKey( ColorKey3( 50 , 100 , 150 ) );
+	setColorKey( Color3ub( 50 , 100 , 150 ) );
 }
 
 GPanel::~GPanel()
@@ -605,8 +607,8 @@ void GListCtrl::doRenderItem( Vec2i const& pos , Item& item , bool beSelected )
 	if ( beSelected )
 	{
 		g.beginBlend( pos , size , 0.8f );
-		RenderUtility::setPen( g , Color::eBlack );
-		RenderUtility::setBrush( g , mColor , COLOR_NORMAL );
+		RenderUtility::SetPen( g , Color::eBlack );
+		RenderUtility::SetBrush( g , mColor , COLOR_NORMAL );
 		g.drawRoundRect( pos + Vec2i(4,1), size - Vec2i(8,2) , Vec2i( 5 , 5 ) );
 		g.endBlend();
 
@@ -615,15 +617,15 @@ void GListCtrl::doRenderItem( Vec2i const& pos , Item& item , bool beSelected )
 	else
 		g.setTextColor(255 , 255 , 0 );
 
-	RenderUtility::setFont( g , FONT_S10 );
+	RenderUtility::SetFont( g , FONT_S10 );
 	g.drawText( pos , size , item.value.c_str() );
 }
 
 void GListCtrl::doRenderBackground( Vec2i const& pos , Vec2i const& size )
 {
 	IGraphics2D& g = Global::getIGraphics2D();
-	RenderUtility::setPen( g , Color::eBlack );
-	RenderUtility::setBrush( g , mColor , COLOR_LIGHT );
+	RenderUtility::SetPen( g , Color::eBlack );
+	RenderUtility::SetBrush( g , mColor , COLOR_LIGHT );
 	g.drawRoundRect( pos , size , Vec2i( 12 , 12 ) );
 }
 
@@ -677,7 +679,7 @@ void GSlider::renderValue( GWidget* widget )
 
 	FixString< 256 > str;
 	str.format( "%d" , getValue() );
-	RenderUtility::setFont( g , FONT_S10 );
+	RenderUtility::SetFont( g , FONT_S10 );
 	g.drawText( Vec2i( pos.x + getSize().x + 3 , pos.y ) , str );
 }
 
@@ -707,18 +709,80 @@ void GCheckBox::onRender()
 
 	if ( isCheck )
 	{
-		RenderUtility::setBrush( g , Color::eRed );
-		RenderUtility::setPen( g , Color::eWhite );
+		RenderUtility::SetBrush( g , Color::eRed );
+		RenderUtility::SetPen( g , Color::eWhite );
 	}
 	else
 	{
-		RenderUtility::setBrush( g , Color::eBlue );
-		RenderUtility::setPen( g , Color::eBlack );
+		RenderUtility::SetBrush( g , Color::eBlue );
+		RenderUtility::SetPen( g , Color::eBlack );
 	}
 
 	g.drawRect( pos , size );
 
-	RenderUtility::setFont( g , FONT_S12 );
+	RenderUtility::SetFont( g , FONT_S12 );
 	g.setTextColor(255 , 255 , 0 );
 	g.drawText( pos , size , mTitle.c_str() );
+}
+
+GFileListCtrl::GFileListCtrl(int id, Vec2i const& pos, Vec2i const& size, GWidget* parent) 
+	:BaseClass(id, pos, size, parent)
+{
+
+}
+
+String GFileListCtrl::getSelectedFilePath() const
+{
+	char const* name = getSelectValue();
+	if( name )
+		return mCurDir + "/" + name;
+
+	return String();
+}
+
+void GFileListCtrl::deleteSelectdFile()
+{
+	if( getSelection() == -1 )
+		return;
+	String path = getSelectedFilePath();
+	FileSystem::DeleteFile(path.c_str());
+	removeItem(getSelection());
+}
+
+void GFileListCtrl::setDir(char const* dir)
+{
+	mCurDir = dir;
+	refreshFiles();
+}
+
+void GFileListCtrl::refreshFiles()
+{
+	removeAllItem();
+
+	FileIterator fileIter;
+	if( !FileSystem::FindFile(mCurDir.c_str(), mSubFileName.c_str(), fileIter) )
+		return;
+
+	for( ; fileIter.haveMore(); fileIter.goNext() )
+	{
+		appendItem(fileIter.getFileName());
+	}
+}
+
+GText::GText( Vec2i const& pos, Vec2i const& size, GWidget* parent) 
+	:BaseClass(  pos, size, parent)
+{
+	mID = UI_ANY;
+	skipMouseMsg();
+}
+
+void GText::onRender()
+{
+	IGraphics2D& g = Global::getIGraphics2D();
+	Vec2i pos = getWorldPos();
+	Vec2i size = getSize();
+
+	RenderUtility::SetFont(g, FONT_S8);
+	g.setTextColor(255, 255, 0);
+	g.drawText(pos, size, mText.c_str());
 }

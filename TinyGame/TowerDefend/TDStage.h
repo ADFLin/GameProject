@@ -3,7 +3,7 @@
 
 #include "GameStage.h"
 
-#include "GameInstance.h"
+#include "GameModule.h"
 #include "GameControl.h"
 #include "GameGUISystem.h"
 

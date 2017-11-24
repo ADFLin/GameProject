@@ -20,7 +20,7 @@ void OptionNoteBook::init( GameController& controller )
 
 	Vec2i pageSize = getPageSize();
 	Page* page;
-	page = addPage( LAN("Control") );
+	page = addPage( LOCTEXT("Control") );
 	page->setRenderCallback( RenderCallBack::Create( this , &OptionNoteBook::renderControl ) );
 	{
 		Vec2i buttonPos( 130 , 20 );
@@ -41,9 +41,9 @@ void OptionNoteBook::init( GameController& controller )
 
 		GButton* button; 
 		button = new GButton( UI_YES        , buttonPos , buttonSize , page );
-		button->setTitle( LAN("Accept") );
+		button->setTitle( LOCTEXT("Accept") );
 		button = new GButton( UI_SET_DEFULT , buttonPos += bPosOff  , buttonSize , page );
-		button->setTitle( LAN("Set Default") );
+		button->setTitle( LOCTEXT("Set Default") );
 	}
 
 	page = addPage( "User");
@@ -67,8 +67,8 @@ void OptionNoteBook::renderControl( GWidget* ui )
 
 	Graphics2D& g = Global::getGraphics2D();
 
-	RenderUtility::setFont( g , FONT_S16 );
-	g.drawText( pos , size , LAN("Keyborad") );
+	RenderUtility::SetFont( g , FONT_S16 );
+	g.drawText( pos , size , LOCTEXT("Keyborad") );
 }
 
 void OptionNoteBook::renderKeyTitle( GWidget* ui )
@@ -93,7 +93,7 @@ void OptionNoteBook::renderKeyTitle( GWidget* ui )
 
 	Vec2i pos = ui->getWorldPos();
 
-	RenderUtility::setFont( g , FONT_S12 );
+	RenderUtility::SetFont( g , FONT_S12 );
 	if ( button == KeyButton::sInputButton )
 		g.setTextColor(255 , 255 , 255 );
 	else
@@ -144,7 +144,7 @@ void KeyButton::onClick()
 			sInputButton->cancelInput();
 		sInputButton = this;
 
-		setTitle( LAN("Input Key") );
+		setTitle( LOCTEXT("Input Key") );
 	}
 	else
 	{

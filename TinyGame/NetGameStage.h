@@ -2,7 +2,7 @@
 #define NetGameStage_h__
 
 #include "GameStageMode.h"
-#include "GameInstance.h"
+#include "GameModule.h"
 #include "GameWorker.h"
 #include "GameServer.h"
 #include "GameClient.h"

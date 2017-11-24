@@ -10,7 +10,7 @@ struct SphereGeomInfo
 {
 	float3 pos;
 	float3 normal;
-	bool   isVaild;
+	bool   is;
 };
 void CalcPixelSphereGeom( float3 viewPos , float3 viewVector , float3 sphereCenter , float radius , out SphereGeomInfo outInfo )
 {

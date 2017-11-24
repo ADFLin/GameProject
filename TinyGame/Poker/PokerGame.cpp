@@ -17,19 +17,19 @@
 
 namespace Poker
 {
-	EXPORT_GAME(GameInstance)
+	EXPORT_GAME_MODULE(GameModule)
 
-	GameInstance::GameInstance()
+	GameModule::GameModule()
 	{
 		mRule = RULE_BIG2;
 	}
 
-	GameInstance::~GameInstance()
+	GameModule::~GameModule()
 	{
 
 	}
 
-	StageBase* GameInstance::createStage( unsigned id )
+	StageBase* GameModule::createStage( unsigned id )
 	{
 		switch( mRule )
 		{
@@ -55,7 +55,7 @@ namespace Poker
 		return NULL;
 	}
 
-	bool GameInstance::getAttribValue( AttribValue& value )
+	bool GameModule::getAttribValue( AttribValue& value )
 	{
 		switch( value.id )
 		{
@@ -69,15 +69,15 @@ namespace Poker
 		return false;
 	}
 
-	void GameInstance::beginPlay( StageModeType type, StageManager& manger )
+	void GameModule::beginPlay( StageModeType type, StageManager& manger )
 	{
-		IGameInstance::beginPlay( type , manger );
+		IGameModule::beginPlay( type , manger );
 	}
 
 	class CNetRoomSettingHelper : public NetRoomSettingHelper
 	{
 	public:
-		CNetRoomSettingHelper( GameInstance* game )
+		CNetRoomSettingHelper( GameModule* game )
 			:mGame( game ){}
 
 		enum
@@ -90,7 +90,7 @@ namespace Poker
 			MASK_BASE = BIT(1) ,
 			MASK_RULE = BIT(2) ,
 		};
-		virtual bool checkSettingVaildSV()
+		virtual bool checkSettingSV()
 		{
 			SVPlayerManager* playerMgr = static_cast< SVPlayerManager* >( getPlayerListPanel()->getPlayerManager() );
 			switch( mGame->getRule() )
@@ -127,9 +127,9 @@ namespace Poker
 
 		void setupBaseUI()
 		{
-			GChoice* choice = mSettingPanel->addChoice( UI_RULE_CHOICE , LAN("Game Rule") , MASK_BASE );
-			choice->appendItem( LAN("Big2") );
-			choice->appendItem( LAN("Holdem") );
+			GChoice* choice = mSettingPanel->addChoice( UI_RULE_CHOICE , LOCTEXT("Game Rule") , MASK_BASE );
+			choice->appendItem( LOCTEXT("Big2") );
+			choice->appendItem( LOCTEXT("Holdem") );
 			switch( mGame->getRule() )
 			{
 			case RULE_BIG2:   
@@ -194,10 +194,10 @@ namespace Poker
 			mGame->setRule( GameRule( rule) );
 			setupBaseUI();
 		}
-		GameInstance* mGame;
+		GameModule* mGame;
 	};
 
-	SettingHepler* GameInstance::createSettingHelper( SettingHelperType type )
+	SettingHepler* GameModule::createSettingHelper( SettingHelperType type )
 	{
 		switch( type )
 		{

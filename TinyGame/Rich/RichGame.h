@@ -1,12 +1,12 @@
 #ifndef RichGame_h__
 #define RichGame_h__
 
-#include "GameInstance.h"
+#include "GameModule.h"
 
 namespace Rich
 {
 
-	class GameInstance : public IGameInstance
+	class GameModule : public IGameModule
 	{
 	public:
 		virtual bool  initialize(){ return true; }
@@ -18,7 +18,7 @@ namespace Rich
 		virtual void beginPlay( StageModeType type, StageManager& manger );
 	public:
 		virtual char const*           getName(){ return "Rich"; }
-		virtual GameController&       getController(){ return IGameInstance::getController(); }
+		virtual GameController&       getController(){ return IGameModule::getController(); }
 		virtual StageBase*            createStage( unsigned id );
 		virtual SettingHepler*        createSettingHelper( SettingHelperType type ){ return nullptr; }
 

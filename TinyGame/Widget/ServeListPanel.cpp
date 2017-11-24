@@ -16,20 +16,20 @@ ServerListPanel::ServerListPanel( ClientWorker* worker, Vec2i const& pos , GWidg
 	mServerListCtrl = new GListCtrl( UI_SERVER_LISTCTRL , Vec2i( 10 , 10 ) , Vec2i( 210 , 200 ) , this );
 
 	button= new GButton( UI_REFRESH_SERVER_LIST ,  Vec2i( 10  , 215 ) , Vec2i( 100 , 20 ) , this );
-	button->setTitle( LAN("Refresh Server") );
+	button->setTitle( LOCTEXT("Refresh Server") );
 
 	mConButton = new GButton( UI_CONNECT_SERVER ,  Vec2i( 10 + 110 , 215 ) , Vec2i( 100 , 20 ) , this );
-	mConButton->setTitle( LAN("Connect") );
+	mConButton->setTitle( LOCTEXT("Connect") );
 	mConButton->enable( false );
 
 	mIPTextCtrl = new GTextCtrl( UI_ANY , Vec2i( 10 , 240 ) , 120 , this );
 	mIPTextCtrl->setValue( Global::GameConfig().getStringValue( "LastConServer" , "Net" , "0.0.0.0" ) );
 
 	button= new GButton( UI_ADD_SERVER ,  Vec2i( 135 , 240 - 1 ) , Vec2i( 80 , 20 ) , this );
-	button->setTitle( LAN("Add") );
+	button->setTitle( LOCTEXT("Add") );
 
 	button= new GButton( UI_MAIN_MENU ,  Vec2i ( 10 , 265 ) , Vec2i( 210 , 20 ) , this );
-	button->setTitle( LAN("Exit") );
+	button->setTitle( LOCTEXT("Exit") );
 
 	mWorker->getEvaluator().setUserFun< SPServerInfo >( this , &ServerListPanel::procServerInfo );
 }
@@ -102,7 +102,7 @@ bool ServerListPanel::connectServer( char const* hostName )
 		return false;
 	}
 	mConButton->enable( false );
-	mConButton->setTitle( LAN("Connecting ...") );
+	mConButton->setTitle( LOCTEXT("Connecting ...") );
 	++mConCount;
 	return true;
 }
@@ -120,7 +120,7 @@ void ServerListPanel::onServerEvent( ClientListener::EventID event , unsigned ms
 		else
 		{
 			mConButton->enable( true );
-			mConButton->setTitle( LAN("Connect") );
+			mConButton->setTitle( LOCTEXT("Connect") );
 		}
 		break;
 	}

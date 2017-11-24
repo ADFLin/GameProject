@@ -214,7 +214,7 @@
     <ClInclude Include="TinyCore\GameGUISystem.h" />
     <ClInclude Include="TinyCore\GameNetConnect.h" />
     <ClInclude Include="TinyCore\GameNetPacket.h" />
-    <ClInclude Include="TinyCore\GameInstanceManager.h" />
+    <ClInclude Include="TinyCore\GameModuleManager.h" />
     <ClInclude Include="TinyCore\GamePlayer.h" />
     <ClInclude Include="TinyCore\GameReplay.h" />
     <ClInclude Include="TinyCore\GameServer.h" />
@@ -257,7 +257,7 @@
     <ClCompile Include="TinyCore\GameGlobal.cpp" />
     <ClCompile Include="TinyCore\GameGUISystem.cpp" />
     <ClCompile Include="TinyCore\GameNetConnect.cpp" />
-    <ClCompile Include="TinyCore\GameInstanceManager.cpp" />
+    <ClCompile Include="TinyCore\GameModuleManager.cpp" />
     <ClCompile Include="TinyCore\GamePlayer.cpp" />
     <ClCompile Include="TinyCore\GameReplay.cpp" />
     <ClCompile Include="TinyCore\GameServer.cpp" />

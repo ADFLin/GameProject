@@ -12,7 +12,7 @@
 
 
 
-class  IGameInstance;
+class  IGameModule;
 class  IReplayRecorder;
 class  IPlayerManager;
 class  GameStageBase;
@@ -47,7 +47,7 @@ public:
 	bool  togglePause();
 
 	GameStageBase* getStage() { return mCurStage; }
-	IGameInstance* getGame() { return mCurStage->getGame(); }
+	IGameModule* getGame() { return mCurStage->getGame(); }
 	GameState      getGameState() { return mGameState; }
 	StageManager*  getManager() { return mCurStage->getManager();  }
 

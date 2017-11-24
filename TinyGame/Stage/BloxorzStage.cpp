@@ -522,7 +522,7 @@ namespace Bloxorz
 		return is;
 	}
 
-	std::istream& operator >> ( std::istream& is , Vec2f& vec )
+	std::istream& operator >> ( std::istream& is , Vector2& vec )
 	{
 		is >> vec.x >> vec.y;
 		return is;
@@ -559,7 +559,7 @@ namespace Bloxorz
 			}
 			else if ( decr == "vt" )
 			{
-				Vec2f v;
+				Vector2 v;
 				ss >> v;
 				UVs.push_back( v );
 			}

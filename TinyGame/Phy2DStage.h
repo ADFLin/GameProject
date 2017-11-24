@@ -68,7 +68,7 @@ namespace Phy2D
 				return false;
 			return true;
 		}
-		void moveObject( Vec2f const& offset )
+		void moveObject( Vector2 const& offset )
 		{
 			mObjects[1].mXForm.translate( offset );
 			mIsCollided = mCollision.test( &mObjects[0] , &mObjects[1] , mContact );

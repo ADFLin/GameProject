@@ -51,7 +51,7 @@ static void AsyncWorkTest()
 
 	::Msg("%d work in queue", gPool->getQueuedWorkNum());
 
-#if 0
+#if 1
 	SystemPlatform::Sleep(1000);
 
 	delete gPool;

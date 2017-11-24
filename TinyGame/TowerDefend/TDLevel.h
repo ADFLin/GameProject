@@ -29,21 +29,21 @@ namespace TowerDefend
 		Viewport():mOrg(0,0){ setScreenRange( Vec2i(0,0) ); }
 
 
-		Vec2i convertToScreenPos( Vec2f const& wPos )
+		Vec2i convertToScreenPos( Vector2 const& wPos )
 		{
 			return Vec2i( wPos - mOrg );
 		}
-		Vec2f convertToWorldPos( Vec2i const& sPos )
+		Vector2 convertToWorldPos( Vec2i const& sPos )
 		{
-			return Vec2f( sPos ) + mOrg;
+			return Vector2( sPos ) + mOrg;
 		}
-		void  setCenterViewPos( Vec2f const& pos )
+		void  setCenterViewPos( Vector2 const& pos )
 		{
-			mOrg = pos - 0.5f * Vec2f( mScreenSize );
+			mOrg = pos - 0.5f * Vector2( mScreenSize );
 		}
-		Vec2f getCenterViewPos()
+		Vector2 getCenterViewPos()
 		{ 
-			return mOrg + 0.5f * Vec2f( mScreenSize );
+			return mOrg + 0.5f * Vector2( mScreenSize );
 		}
 
 		void  setScreenRange( Vec2i const& size )
@@ -63,20 +63,20 @@ namespace TowerDefend
 				mRectMapMax = viewport.convertToWorldPos( rect.end );
 			}
 
-			bool  test( Vec2f const& bMin , Vec2f const& bMax )
+			bool  test( Vector2 const& bMin , Vector2 const& bMax )
 			{
 				return  mRectMapMax.x >= bMin.x && mRectMapMin.x <= bMax.x && 
 					mRectMapMax.y >= bMin.y && mRectMapMin.y <= bMax.y ; 
 			}
 
-			Vec2f mRectMapMin;
-			Vec2f mRectMapMax;
+			Vector2 mRectMapMin;
+			Vector2 mRectMapMax;
 
 		};
 
 	private:
 		Vec2i mScreenSize;
-		Vec2f mOrg;
+		Vector2 mOrg;
 	};
 
 	class TeamGroup
@@ -87,7 +87,7 @@ namespace TowerDefend
 
 		void  classifyActor()
 		{
-			removeInvaildActor();
+			removeInActor();
 
 			struct ComFun
 			{
@@ -100,7 +100,7 @@ namespace TowerDefend
 		}
 
 
-		void removeInvaildActor() 
+		void removeInActor() 
 		{
 			for( ActorVec::iterator iter = mActors.begin();
 				iter != mActors.end() ; )
@@ -128,7 +128,7 @@ namespace TowerDefend
 	class ActComMessage : public ActEnumer
 	{
 	public:
-		void haveGoalPos( Vec2f const& pos ) override;
+		void haveGoalPos( Vector2 const& pos ) override;
 		void haveTarget( Entity* entity ) override;
 
 		void render( Renderer& renderer );
@@ -138,7 +138,7 @@ namespace TowerDefend
 		static int const NumFrameShow = 20;
 		struct Msg
 		{
-			Vec2f pos;
+			Vector2 pos;
 			int   frame;
 		};
 		typedef std::list< Msg > MsgList;
@@ -196,9 +196,9 @@ namespace TowerDefend
 		void setControlUI( IControlUI* controlUI ){ mControlUI = controlUI; }
 
 		bool  testHaveCol;
-		Vec2f testPos;
+		Vector2 testPos;
 		float testR;
-		Vec2f testOffset;
+		Vector2 testOffset;
 
 		void restart()
 		{
@@ -214,14 +214,14 @@ namespace TowerDefend
 			mPlayerInfo.curPopulation = 0;
 
 			Builder* builder = new Builder( AID_UT_BUILDER_1 );
-			builder->setPos( Vec2f( 50 , 100 ) );
+			builder->setPos( Vector2( 50 , 100 ) );
 			builder->setOwner( &mPlayerInfo );
 			getEntityMgr().addEntity( builder );
 			mBuiler = builder;
 			{
 
 				Builder* builder = new Builder( AID_UT_BUILDER_1 );
-				builder->setPos( Vec2f( 100 , 100 ) );
+				builder->setPos( Vector2( 100 , 100 ) );
 				builder->setOwner( &mPlayerInfo );
 				getEntityMgr().addEntity( builder );
 			}
@@ -229,12 +229,12 @@ namespace TowerDefend
 
 			{
 				//TDUnit* monster = new TDUnit( AID_UT_MOUSTER_1 );
-				//monster->setPos( Vec2f( 150 , 150 ) );
+				//monster->setPos( Vector2( 150 , 150 ) );
 				//monster->setOwner( &mMonsterPlayerInfo );
 
 
 				//TDUnit::MoveLandAct* act = new TDUnit::MoveLandAct;
-				//act->destPos = Vec2f( 200 , 200 );
+				//act->destPos = Vector2( 200 , 200 );
 				//monster->addAction( act );
 
 				//mEntityMgr.addEntity( monster );
@@ -242,7 +242,7 @@ namespace TowerDefend
 
 
 
-			//constructBuilding( AID_BT_TOWER_CUBE , gMapCellLength * Vec2f(10,10) , &mPlayerInfo );
+			//constructBuilding( AID_BT_TOWER_CUBE , gMapCellLength * Vector2(10,10) , &mPlayerInfo );
 
 			//spawnCount = 100;
 		}
@@ -261,22 +261,22 @@ namespace TowerDefend
 			{
 				{
 					Unit* monster = new Unit( AID_UT_MOUSTER_1 );
-					monster->setPos( Vec2f( 10 , 10 ) );
+					monster->setPos( Vector2( 10 , 10 ) );
 					monster->setOwner( &mPlayerInfo );
 
 					Unit::MoveLandAct* act = new Unit::MoveLandAct;
-					act->destPos = Vec2f( 400 , 400 );
+					act->destPos = Vector2( 400 , 400 );
 					monster->pushAction( act );
 
 					mEntityMgr.addEntity( monster );
 				}
 				//{
 				//	TDUnit* monster = new TDUnit( AID_UT_MOUSTER_1 );
-				//	monster->setPos( Vec2f( 800 , 800 ) );
+				//	monster->setPos( Vector2( 800 , 800 ) );
 				//	monster->setOwner( &mPlayerInfo );
 
 				//	TDUnit::MoveLandAct* act = new TDUnit::MoveLandAct;
-				//	act->destPos = Vec2f( 400 , 400 );
+				//	act->destPos = Vector2( 400 , 400 );
 				//	monster->pushAction( act );
 
 				//	mEntityMgr.addEntity( monster );
@@ -307,8 +307,8 @@ namespace TowerDefend
 		void     fireAction( ActionTrigger& trigger );
 
 		void     changeBaseComMap( ActorId aID );
-		Actor*   evalGroupActorCom( ActorId groupActorID , Vec2f wPos , unsigned flag );
-		void     removeInvaildSelectActor();
+		Actor*   evalGroupActorCom( ActorId groupActorID , Vector2 wPos , unsigned flag );
+		void     removeInSelectActor();
 
 		void selectActor( Actor* actor )
 		{
@@ -317,9 +317,9 @@ namespace TowerDefend
 			actor->addFlag( EF_SELECTED );
 		}
 
-		bool tryPlaceUnit( Unit* unit , Building* building , Vec2f const& targetPos );
+		bool tryPlaceUnit( Unit* unit , Building* building , Vector2 const& targetPos );
 
-		bool tryPlaceUnitInternal( Unit* unit , Vec2f const& startPos, Vec2f const& offsetDir, float maxOffset );
+		bool tryPlaceUnitInternal( Unit* unit , Vector2 const& startPos, Vector2 const& offsetDir, float maxOffset );
 
 		void removeAllSelect()
 		{
@@ -393,10 +393,10 @@ namespace TowerDefend
 		}
 
 
-		Building*   constructBuilding( ActorId type , Unit* builder , Vec2f const& pos );
+		Building*   constructBuilding( ActorId type , Unit* builder , Vector2 const& pos );
 		
 		void        selectActorInRange( TDRect const& rect , ActorId actorID  );
-		Actor*      getTargetActor( Vec2f const& wPos );
+		Actor*      getTargetActor( Vector2 const& wPos );
 		unsigned    getActorBaseComMapID( ActorId aID );
 		void        selectActorInRange( TDRect const& rect , EntityFilter const& filter );
 		

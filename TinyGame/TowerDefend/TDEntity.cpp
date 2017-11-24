@@ -99,7 +99,7 @@ namespace TowerDefend
 		}
 	}
 
-	Entity* EntityManager::findEntity( Vec2f const& pos , float radius , bool beMinRadius , EntityFilter& filter )
+	Entity* EntityManager::findEntity( Vector2 const& pos , float radius , bool beMinRadius , EntityFilter& filter )
 	{
 		Entity* result = NULL;
 		for( EntityList::iterator iter = mEntities.begin();
@@ -109,7 +109,7 @@ namespace TowerDefend
 			if ( !(*iter)->testFilter( filter ) )
 				continue;
 
-			Vec2f offset = (*iter)->getPos() - pos;
+			Vector2 offset = (*iter)->getPos() - pos;
 			float dist = sqrt( offset.length2() );
 
 			if ( dist < radius )

@@ -77,7 +77,7 @@ namespace CAR
 	public:
 		CGameInput();
 
-		void runLogic( GameModule& module );
+		void runLogic( GameLogic& gameLogic );
 		void setDataTransfer( IDataTransfer* transfer );
 
 		void reset();
@@ -89,8 +89,8 @@ namespace CAR
 		GameActionData* getReplyData(){ return mActionData; }
 		void clearReplyAction();
 
-		std::function< void ( GameModule& , CGameInput& ) > onAction;
-		std::function< void ( GameModule& , CGameInput& ) > onPrevAction;
+		std::function< void ( GameLogic& , CGameInput& ) > onAction;
+		std::function< void ( GameLogic& , CGameInput& ) > onPrevAction;
 		void waitReply();
 
 		void replyPlaceTile( Vec2i const& pos , int rotation );
@@ -154,7 +154,7 @@ namespace CAR
 
 		bool             mbWaitReply;
 		int              mNumActionInput;
-		GameModule*      mModule;
+		GameLogic*      mGameLogic;
 		PlayerAction     mAction;
 		GameActionData*  mActionData;
 		ExecType         mExec;

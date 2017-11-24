@@ -13,9 +13,9 @@ namespace TowerDefend
 
 #define INVALID_HASH_VALUE unsigned(-1)
 
-	bool testCollision( Vec2f const& tPos , float tRadius , Vec2f const& pos , float radius , Vec2f& offset );
-	bool testCollisionFrac( Vec2f const& tPos , float tR , Vec2f const& pos , float r , Vec2f const& offset , float frac[] );
-	bool testCollisionOffset( Vec2f const& tPos , float tR , Vec2f const& pos , float r , Vec2f const& dir , float offset[] );
+	bool testCollision( Vector2 const& tPos , float tRadius , Vector2 const& pos , float radius , Vector2& offset );
+	bool testCollisionFrac( Vector2 const& tPos , float tR , Vector2 const& pos , float r , Vector2 const& offset , float frac[] );
+	bool testCollisionOffset( Vector2 const& tPos , float tR , Vector2 const& pos , float r , Vector2 const& dir , float offset[] );
 
 	class ColObject
 	{
@@ -42,11 +42,11 @@ namespace TowerDefend
 		CollisionManager();
 		void    init( Vec2i const& size );
 
-		void         testCollision( Vec2f const& min , Vec2f const& max , CollisionCallback const& callback );
-		ColObject*   testCollision( Vec2f const& pos , float radius , ColObject* skip , Vec2f& offset );
-		ColObject*   testCollision( ColObject& obj , Vec2f& offset );
-		ColObject*   getObject( Vec2f const& pos );
-		bool         tryPlaceObject( ColObject& obj , Vec2f const& offsetDir , Vec2f& pos , float& totalOffset );
+		void         testCollision( Vector2 const& min , Vector2 const& max , CollisionCallback const& callback );
+		ColObject*   testCollision( Vector2 const& pos , float radius , ColObject* skip , Vector2& offset );
+		ColObject*   testCollision( ColObject& obj , Vector2& offset );
+		ColObject*   getObject( Vector2 const& pos );
+		bool         tryPlaceObject( ColObject& obj , Vector2 const& offsetDir , Vector2& pos , float& totalOffset );
 
 		void         addObject( ColObject& obj );
 		void         removeObject( ColObject& obj );
@@ -54,7 +54,7 @@ namespace TowerDefend
 
 	private:
 
-		void         calcHashValue( Vec2f const& min , Vec2f const& max , unsigned value[] );
+		void         calcHashValue( Vector2 const& min , Vector2 const& max , unsigned value[] );
 		unsigned     getHash( float x , float y );
 
 		typedef std::list< ColObject* > ColObjList;

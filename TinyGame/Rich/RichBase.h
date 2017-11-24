@@ -1,10 +1,10 @@
 #ifndef RichBase_h__
 #define RichBase_h__
 
-#include "TVector2.h"
+#include "Math/Vector2.h"
 #include "CppVersion.h"
 #include "IntrList.h"
-#include "CommonMarco.h"
+#include "MarcoCommon.h"
 
 #include <functional>
 #include <string>
@@ -12,7 +12,7 @@
 namespace Rich
 {
 	typedef TVector2< int > Vec2i;
-	typedef TVector2< float > Vec2f;
+	typedef ::Math::Vector2 Vector2;
 
 	typedef unsigned ActorId;
 	typedef unsigned RoleId;

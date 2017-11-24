@@ -4,7 +4,7 @@
 #include "GameStage.h"
 #include "GameWorker.h"
 #include "GameClient.h"
-#include "GameInstanceManager.h"
+#include "GameModuleManager.h"
 
 #include "CSyncFrameManager.h"
 #include "RenderUtility.h"
@@ -116,7 +116,7 @@ bool NetRoomStage::onInit()
 			mPlayerPanel->addPlayer( player->getInfo() );
 		}
 
-		IGameInstance* curGame = Global::GameManager().getRunningGame();
+		IGameModule* curGame = Global::GameManager().getRunningGame();
 		mSettingPanel->setGame( curGame ? curGame->getName() : NULL );
 
 		mHelper->sendSlotStateSV();
@@ -158,7 +158,7 @@ void NetRoomStage::onEnd()
 bool NetRoomStage::setupUI()
 {
 
-	GameInstanceVec gameVec;
+	GameModuleVec gameVec;
 	Global::GameManager().classifyGame( ATTR_NET_SUPPORT , gameVec );
 	if ( gameVec.empty() )
 	{
@@ -196,7 +196,7 @@ bool NetRoomStage::setupUI()
 
 		::Global::GUI().addWidget( panel );
 		mSettingPanel = panel;
-		for( GameInstanceVec::iterator iter = gameVec.begin();
+		for( GameModuleVec::iterator iter = gameVec.begin();
 			iter != gameVec.end() ; ++iter )
 		{
 			panel->addGame( *iter );
@@ -225,13 +225,13 @@ bool NetRoomStage::setupUI()
 	if ( haveServer() )
 	{	
 		button = new GButton( UI_NET_ROOM_START , btnPos , btnSize , NULL );
-		button->setTitle( LAN("Start Game") );
+		button->setTitle( LOCTEXT("Start Game") );
 		//button->enable( false );
 	}
 	else
 	{
 		button = new GButton( UI_NET_ROOM_READY , btnPos , btnSize , NULL );
-		button->setTitle( LAN("Ready" ) );
+		button->setTitle( LOCTEXT("Ready" ) );
 	}
 
 	{
@@ -246,7 +246,7 @@ bool NetRoomStage::setupUI()
 	btnPos += Vec2i( 0 , btnSize.y + 5 );
 	button = new GButton( UI_MAIN_MENU , btnPos , btnSize , NULL );
 	button->setFontType( FONT_S10 );
-	button->setTitle( LAN("Exit") );
+	button->setTitle( LOCTEXT("Exit") );
 	::Global::GUI().addWidget( button );
 	mExitButton = button;
 	{
@@ -345,7 +345,7 @@ bool NetRoomStage::onWidgetEvent( int event , int id , GWidget* ui )
 		}
 		break;
 	case UI_NET_ROOM_START: // Server
-		if ( mHelper->checkSettingVaildSV() )
+		if ( mHelper->checkSettingSV() )
 		{
 			assert( haveServer() );
 
@@ -370,12 +370,12 @@ bool NetRoomStage::onWidgetEvent( int event , int id , GWidget* ui )
 			if ( mWorker->getActionState() != NAS_ROOM_READY )
 			{
 				mWorker->changeState( NAS_ROOM_READY );
-				button->setTitle( LAN("Cancel Ready") );
+				button->setTitle( LOCTEXT("Cancel Ready") );
 			}
 			else
 			{
 				mWorker->changeState( NAS_ROOM_WAIT );
-				button->setTitle( LAN("Ready") );
+				button->setTitle( LOCTEXT("Ready") );
 			}	
 		}
 		return false;
@@ -497,7 +497,7 @@ void NetRoomStage::procPlayerState( IComPacket* cp )
 		{
 			GamePlayer* player = mWorker->getPlayerManager()->getPlayer( com->playerID );
 			FixString< 64 > str;
-			str.format( LAN("== %s Inter Room =="), player->getName() );
+			str.format( LOCTEXT("== %s Inter Room =="), player->getName() );
 			mMsgPanel->addMessage( str , RGB( 255 , 125 , 0 ) );
 		}
 		break;
@@ -506,13 +506,13 @@ void NetRoomStage::procPlayerState( IComPacket* cp )
 		{
 			::Global::GUI().showMessageBox( 
 				UI_DISCONNECT_MSGBOX , 
-				LAN("Server shout down") , GMB_OK );
+				LOCTEXT("Server shout down") , GMB_OK );
 		}
 		else if ( mWorker->getPlayerManager()->getUserID() == com->playerID )
 		{
 			::Global::GUI().showMessageBox( 
 				UI_DISCONNECT_MSGBOX , 
-				LAN("You are kicked by Server") , GMB_OK );
+				LOCTEXT("You are kicked by Server") , GMB_OK );
 		}
 		else
 		{
@@ -523,7 +523,7 @@ void NetRoomStage::procPlayerState( IComPacket* cp )
 				slot.choice->setColor( Color::eBlue );
 
 				FixString< 64 > str;
-				str.format( LAN("== %s Leave Room =="), player->getName() );
+				str.format( LOCTEXT("== %s Leave Room =="), player->getName() );
 				mMsgPanel->addMessage( str , RGB( 255 , 125 , 0 ) );
 			}
 		}
@@ -553,7 +553,7 @@ void NetRoomStage::procPlayerStateSv( IComPacket* cp)
 		if ( playerMgr->checkPlayerFlag( ServerPlayer::eReady , true )  )
 		{
 			mReadyButton->enable( true );
-			mReadyButton->setTitle( LAN("Start Game") );
+			mReadyButton->setTitle( LOCTEXT("Start Game") );
 		}
 		break;
 	}
@@ -647,7 +647,7 @@ void NetRoomStage::generateSetting( CSPRawData& com )
 
 void NetRoomStage::setupGame( char const* name )
 {
-	IGameInstance* game = Global::GameManager().changeGame( name );
+	IGameModule* game = Global::GameManager().changeGame( name );
 
 	SettingHepler* helper = game->createSettingHelper( SHT_NET_ROOM_HELPER );
 	assert( dynamic_cast< NetRoomSettingHelper* >( helper ) );
@@ -751,7 +751,7 @@ bool GameStartTask::onUpdate( long time )
 	{
 		CSPMsg com;
 		com.type = CSPMsg::eSERVER;
-		com.content.format( LAN("Game will start after %d sec..") , MaxSec - nextMsgSec );
+		com.content.format( LOCTEXT("Game will start after %d sec..") , MaxSec - nextMsgSec );
 		server->sendTcpCommand( &com );
 		++nextMsgSec;
 	}
@@ -945,7 +945,7 @@ bool NetLevelStageMode::onWidgetEvent(int event, int id, GWidget* ui)
 				else
 				{
 					::Global::GUI().showMessageBox(
-						UI_RESTART_GAME, LAN("Do you Want to Stop Current Game?"), GMB_YESNO);
+						UI_RESTART_GAME, LOCTEXT("Do you Want to Stop Current Game?"), GMB_YESNO);
 				}
 			}
 			return false;
@@ -967,7 +967,7 @@ bool NetLevelStageMode::onWidgetEvent(int event, int id, GWidget* ui)
 		}
 		else
 		{
-			::Global::GUI().showMessageBox(id, LAN("Be Sure Exit Game"), GMB_YESNO);
+			::Global::GUI().showMessageBox(id, LOCTEXT("Be Sure Exit Game"), GMB_YESNO);
 			return false;
 		}
 		break;
@@ -1100,13 +1100,13 @@ void NetLevelStageMode::procPlayerState(IComPacket* cp)
 			if( haveServer() || com->playerID == mWorker->getPlayerManager()->getUserID() )
 			{
 				::Global::GUI().showMessageBox(
-					UI_UNPAUSE_GAME, LAN("Stop Game. Click OK to Continue Game."), GMB_OK);
+					UI_UNPAUSE_GAME, LOCTEXT("Stop Game. Click OK to Continue Game."), GMB_OK);
 			}
 			else
 			{
 				GamePlayer* player = mWorker->getPlayerManager()->getPlayer(com->playerID);
 				FixString< 256 > str;
-				str.format(LAN("%s Puase Game"), player->getName());
+				str.format(LOCTEXT("%s Puase Game"), player->getName());
 				::Global::GUI().showMessageBox(
 					UI_UNPAUSE_GAME, str, GMB_NONE);
 			}

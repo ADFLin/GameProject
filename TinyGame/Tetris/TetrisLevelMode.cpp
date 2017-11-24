@@ -165,7 +165,7 @@ namespace Tetris
 		int x = x0;
 		int y = y0 - d;
 
-		RenderUtility::setFont( g , FONT_S12 );
+		RenderUtility::SetFont( g , FONT_S12 );
 		g.setTextColor(255 , 255 , 0 );
 
 		g.drawText( x , y += d , "Level:"  );
@@ -431,7 +431,7 @@ namespace Tetris
 		Level* level = getWorld()->getLevelData(0)->getLevel();
 
 		FixString< 256 > str;
-		RenderUtility::setFont( g , FONT_S10 );
+		RenderUtility::SetFont( g , FONT_S10 );
 		g.setTextColor(255 , 255 , 0 );
 
 		str.format( "Gravity Value = %3d" , mGravityValue );
@@ -475,7 +475,7 @@ namespace Tetris
 		int x = x0;
 		int y = y0 - d;
 
-		RenderUtility::setFont( g , FONT_S12 );
+		RenderUtility::SetFont( g , FONT_S12 );
 		g.setTextColor(255 , 255 , 0 );
 
 		g.drawText( x , y += d , "Piece:" );

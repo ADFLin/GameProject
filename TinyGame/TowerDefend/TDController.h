@@ -60,7 +60,7 @@ namespace TowerDefend
 			eABS_MOVE ,
 		};
 		MoveMode mode;
-		Vec2f    offset;
+		Vector2    offset;
 	};
 	struct CIMouse
 	{

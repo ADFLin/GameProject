@@ -1,18 +1,19 @@
 #ifndef StageRegister_h__
 #define StageRegister_h__
 
-#include "CommonMarco.h"
+#include "MarcoCommon.h"
 
 #include <map>
 #include <vector>
 
-enum class StageRegisterGroup
+enum class EStageGroup
 {
 	GraphicsTest ,
 	Test ,
 	PhyDev ,
 	Dev ,
 	Dev4 ,
+	FeatureDev,
 
 	NumGroup ,
 };
@@ -25,12 +26,13 @@ public:
 
 struct StageInfo
 {
-	char const*    decl;
-	IStageFactory* factory;
-	StageRegisterGroup group;
+	char const*        decl;
+	IStageFactory*     factory;
+	EStageGroup group;
+	int                priority;
 
-	StageInfo(char const* decl, IStageFactory* factory, StageRegisterGroup group)
-		:decl(decl), factory(factory), group(group)
+	StageInfo(char const* inDecl, IStageFactory* inFactory, EStageGroup inGroup , int inPriority = 0)
+		:decl(inDecl), factory(inFactory), group(inGroup) , priority(inPriority)
 	{
 	}
 };
@@ -53,7 +55,7 @@ struct GameStageInfo
 {
 	char const* decl;
 	char const* game;
-	StageRegisterGroup group;
+	EStageGroup group;
 };
 
 class StageRegisterCollection
@@ -61,18 +63,16 @@ class StageRegisterCollection
 public:
 	StageRegisterCollection();
 	~StageRegisterCollection();
+
 	GAME_API void registerStage(StageInfo const& info);
-	void registerGameStage()
-	{
 
-	}
+	GAME_API static StageRegisterCollection& Get();
 
-	std::vector< StageInfo > const& getGroupStage(StageRegisterGroup group) { return mStageGroupMap[group]; }
+	std::vector< StageInfo > const& getGroupStage(EStageGroup group) { return mStageGroupMap[group]; }
 private:
-	std::map< StageRegisterGroup, std::vector< StageInfo > > mStageGroupMap;
+	std::map< EStageGroup, std::vector< StageInfo > > mStageGroupMap;
 };
 
-GAME_API extern StageRegisterCollection gStageRegisterCollection;
 
 struct StageRegisterHelper
 {

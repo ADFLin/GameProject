@@ -5,7 +5,7 @@
 #include "Big2Utility.h"
 
 #include "FixVector.h"
-#include "IntegerType.h"
+#include "Core/IntegerType.h"
 #include "DataTransfer.h"
 
 #include <algorithm>

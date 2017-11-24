@@ -4,7 +4,7 @@
 #include "Thread.h"
 #include "NetSocket.h"
 #include "SocketBuffer.h"
-#include "IntegerType.h"
+#include "Core/IntegerType.h"
 #include <deque>
 
 class NetConnection;

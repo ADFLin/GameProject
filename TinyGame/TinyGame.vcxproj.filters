@@ -1,14 +1,6 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <Filter Include="Source">
-      <UniqueIdentifier>{37e3c69f-7c44-482a-818b-6e3e25c01b1e}</UniqueIdentifier>
-      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
-    </Filter>
-    <Filter Include="Include">
-      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
-      <Extensions>h;hpp;hxx;hm;inl;inc;xsd</Extensions>
-    </Filter>
     <Filter Include="資源檔">
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav</Extensions>
@@ -82,25 +74,20 @@
     <Filter Include="Shader\Game">
       <UniqueIdentifier>{ee644861-e77a-4284-98fc-54cb6cbc000b}</UniqueIdentifier>
     </Filter>
-    <Filter Include="ECS">
+    <Filter Include="GameFlappyBird">
+      <UniqueIdentifier>{a78aeadd-3e03-4b7c-93fc-f730a7ca5cec}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ECSModel">
       <UniqueIdentifier>{b1ec9003-b01e-4075-9e33-6214e9ca409f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Common">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hpp;hxx;hm;inl;inc;xsd;cpp;c;cxx;</Extensions>
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Bsp2D.cpp">
-      <Filter>Source</Filter>
-    </ClCompile>
-    <ClCompile Include="main.cpp">
-      <Filter>Source</Filter>
-    </ClCompile>
-    <ClCompile Include="TinyGameApp.cpp">
-      <Filter>Source</Filter>
-    </ClCompile>
-    <ClCompile Include="TinyGamePCH.cpp">
-      <Filter>Source</Filter>
-    </ClCompile>
     <ClCompile Include="Voronoi.cpp">
-      <Filter>Include</Filter>
+      <Filter>Common</Filter>
     </ClCompile>
     <ClCompile Include="NetGameStage.cpp">
       <Filter>Stage</Filter>
@@ -222,13 +209,7 @@
     <ClCompile Include="Stage\BloxorzStage.cpp">
       <Filter>Stage</Filter>
     </ClCompile>
-    <ClCompile Include="Stage\FBirdStage.cpp">
-      <Filter>Stage</Filter>
-    </ClCompile>
     <ClCompile Include="Stage\GGJStage.cpp">
-      <Filter>Stage</Filter>
-    </ClCompile>
-    <ClCompile Include="Stage\LightingStage.cpp">
       <Filter>Stage</Filter>
     </ClCompile>
     <ClCompile Include="Stage\RubiksStage.cpp">
@@ -312,28 +293,76 @@
     <ClCompile Include="MiscTest\BehaviorTreeTest.cpp">
       <Filter>MiscTest</Filter>
     </ClCompile>
+    <ClCompile Include="AlarmClockTest.cpp">
+      <Filter>MiscTest</Filter>
+    </ClCompile>
+    <ClCompile Include="FlappyBird\FBLevel.cpp">
+      <Filter>GameFlappyBird</Filter>
+    </ClCompile>
+    <ClCompile Include="FlappyBird\FBStage.cpp">
+      <Filter>GameFlappyBird</Filter>
+    </ClCompile>
+    <ClCompile Include="FlappyBird\TrainManager.cpp">
+      <Filter>GameFlappyBird</Filter>
+    </ClCompile>
+    <ClCompile Include="Stage\TMechineStage.cpp">
+      <Filter>Stage</Filter>
+    </ClCompile>
+    <ClCompile Include="Stage\SpatialIndexTest.cpp">
+      <Filter>Stage</Filter>
+    </ClCompile>
+    <ClCompile Include="Stage\LightingStage2D.cpp">
+      <Filter>Stage</Filter>
+    </ClCompile>
+    <ClCompile Include="RenderGL\GLDrawUtility.cpp">
+      <Filter>RenderGL</Filter>
+    </ClCompile>
+    <ClCompile Include="Bsp2D.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
+    <ClCompile Include="main.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
+    <ClCompile Include="TinyGameApp.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
+    <ClCompile Include="TinyGamePCH.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
+    <ClCompile Include="NesEmulator.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
+    <ClCompile Include="Stage\NesEmulatorStage.cpp">
+      <Filter>Stage</Filter>
+    </ClCompile>
+    <ClCompile Include="Stage\AudioTestStage.cpp">
+      <Filter>Stage</Filter>
+    </ClCompile>
+    <ClCompile Include="Stage\LeelaZeroLearningStage.cpp">
+      <Filter>Stage</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Bsp2D.h">
-      <Filter>Include</Filter>
+      <Filter>Common</Filter>
     </ClInclude>
     <ClInclude Include="CellWalker.h">
-      <Filter>Include</Filter>
+      <Filter>Common</Filter>
     </ClInclude>
     <ClInclude Include="Geometry2d.h">
-      <Filter>Include</Filter>
+      <Filter>Common</Filter>
     </ClInclude>
     <ClInclude Include="resource.h">
-      <Filter>Include</Filter>
+      <Filter>Common</Filter>
     </ClInclude>
     <ClInclude Include="TinyGameApp.h">
-      <Filter>Include</Filter>
+      <Filter>Common</Filter>
     </ClInclude>
     <ClInclude Include="TinyGamePCH.h">
-      <Filter>Include</Filter>
+      <Filter>Common</Filter>
     </ClInclude>
     <ClInclude Include="Voronoi.h">
-      <Filter>Include</Filter>
+      <Filter>Common</Filter>
     </ClInclude>
     <ClInclude Include="NetGameStage.h">
       <Filter>Stage</Filter>
@@ -495,7 +524,7 @@
       <Filter>StageMode</Filter>
     </ClInclude>
     <ClInclude Include="..\va_stdafx.h">
-      <Filter>Include</Filter>
+      <Filter>Common</Filter>
     </ClInclude>
     <ClInclude Include="Stage\AgarStage.h">
       <Filter>Stage</Filter>
@@ -506,13 +535,7 @@
     <ClInclude Include="Stage\BloxorzStage.h">
       <Filter>Stage</Filter>
     </ClInclude>
-    <ClInclude Include="Stage\FBirdStage.h">
-      <Filter>Stage</Filter>
-    </ClInclude>
     <ClInclude Include="Stage\GGJStage.h">
-      <Filter>Stage</Filter>
-    </ClInclude>
-    <ClInclude Include="Stage\LightingStage.h">
       <Filter>Stage</Filter>
     </ClInclude>
     <ClInclude Include="Stage\RubiksStage.h">
@@ -722,8 +745,35 @@
     <ClInclude Include="Stage\FluidSimStage.h">
       <Filter>Stage</Filter>
     </ClInclude>
-    <ClInclude Include="ECS\ECSBase.h">
-      <Filter>ECS</Filter>
+    <ClInclude Include="FlappyBird\FBLevel.h">
+      <Filter>GameFlappyBird</Filter>
+    </ClInclude>
+    <ClInclude Include="FlappyBird\FBStage.h">
+      <Filter>GameFlappyBird</Filter>
+    </ClInclude>
+    <ClInclude Include="FlappyBird\TrainManager.h">
+      <Filter>GameFlappyBird</Filter>
+    </ClInclude>
+    <ClInclude Include="ECSModel\ECSBase.h">
+      <Filter>ECSModel</Filter>
+    </ClInclude>
+    <ClInclude Include="Stage\TMechineStage.h">
+      <Filter>Stage</Filter>
+    </ClInclude>
+    <ClInclude Include="Stage\SoftwareRenderStage.h">
+      <Filter>Stage</Filter>
+    </ClInclude>
+    <ClInclude Include="Stage\SpatialIndexTest.h">
+      <Filter>Stage</Filter>
+    </ClInclude>
+    <ClInclude Include="Stage\LightingStage2D.h">
+      <Filter>Stage</Filter>
+    </ClInclude>
+    <ClInclude Include="NesEmulator.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="Stage\AudioTestStage.h">
+      <Filter>Stage</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -873,9 +923,6 @@
     <None Include="out\Shader\Game\FS.glsl">
       <Filter>Shader\Game</Filter>
     </None>
-    <None Include="out\Shader\Game\Light.glsl">
-      <Filter>Shader\Game</Filter>
-    </None>
     <None Include="out\Shader\Game\MVPiece.glsl">
       <Filter>Shader\Game</Filter>
     </None>
@@ -905,6 +952,9 @@
     </None>
     <None Include="out\Shader\GPUSkinVertexFactory.glsl">
       <Filter>Shader</Filter>
+    </None>
+    <None Include="out\Shader\Game\Lighting2D.glsl">
+      <Filter>Shader\Game</Filter>
     </None>
   </ItemGroup>
 </Project>

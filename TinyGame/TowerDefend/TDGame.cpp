@@ -5,9 +5,9 @@
 
 namespace TowerDefend
 {
-	EXPORT_GAME(GameInstance)
+	EXPORT_GAME_MODULE(GameModule)
 
-	StageBase* GameInstance::createStage( unsigned id )
+	StageBase* GameModule::createStage( unsigned id )
 	{
 		switch( id )
 		{
@@ -18,7 +18,7 @@ namespace TowerDefend
 		return NULL;
 	}
 
-	void GameInstance::beginPlay( StageModeType type, StageManager& manger )
+	void GameModule::beginPlay( StageModeType type, StageManager& manger )
 	{
 		manger.changeStage( STAGE_SINGLE_GAME );
 	}

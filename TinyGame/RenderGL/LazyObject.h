@@ -3,7 +3,7 @@
 #define LazyObject_H_F54F230F_D87C_4DC1_8B4C_F91175F696A9
 
 #include "Singleton.h"
-#include "IntegerType.h"
+#include "Core/IntegerType.h"
 
 #include <unordered_map>
 #include <typeindex>

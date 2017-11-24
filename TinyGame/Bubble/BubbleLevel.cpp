@@ -13,7 +13,7 @@ namespace Bubble
 
 	struct PosCache
 	{
-		Vec2f* data;
+		Vector2* data;
 		int    refCount;
 		int    numCellLayer;
 	};
@@ -74,7 +74,7 @@ namespace Bubble
 			gCurPosCache = new PosCache;
 			gCurPosCache->numCellLayer = mNumCellLayer;
 			gCurPosCache->refCount     = 0;
-			gCurPosCache->data     = new Vec2f[ mNumCellData ];
+			gCurPosCache->data     = new Vector2[ mNumCellData ];
 
 			for( int i = 0 ; i < mNumCellData ; ++i )
 			{
@@ -118,22 +118,22 @@ namespace Bubble
 	}
 
 
-	Vec2f LevelCore::calcCellCenterPos( int layer , int nx )
+	Vector2 LevelCore::calcCellCenterPos( int layer , int nx )
 	{
 		return calcCellCenterPos( layer * mNumCellLayer + nx );
-		//return Vec2f( nx * g_BubbleDiameter - (layer % 2) * g_BubbleRadius ,
+		//return Vector2( nx * g_BubbleDiameter - (layer % 2) * g_BubbleRadius ,
 		//	SIN_60 * float( layer - 1 ) * g_BubbleDiameter + g_BubbleRadius + mTopOffset );
 	}
 
-	Vec2f LevelCore::calcCellCenterPos( int index )
+	Vector2 LevelCore::calcCellCenterPos( int index )
 	{
-		Vec2f out = mPosCache->data[index];
+		Vector2 out = mPosCache->data[index];
 		out.y += mTopOffset;
 		return out;
 		//return calcCellCenterPos( index / mNumCellLayer , index % mNumCellLayer );
 	}
 
-	int LevelCore::calcCellIndex( Vec2f const& pos  , int& layer , int& nx )
+	int LevelCore::calcCellIndex( Vector2 const& pos  , int& layer , int& nx )
 	{
 		assert( 0 <= pos.x && pos.x < mNumFreeCellLayer * g_BubbleDiameter );
 		assert( 0 <= pos.y && pos.y < mNumLayer * g_BubbleDiameter );
@@ -149,7 +149,7 @@ namespace Bubble
 		return layer * mNumCellLayer + nx;
 	}
 
-	int LevelCore::processCollision( Vec2f const& pos , Vec2f const& vel , int color )
+	int LevelCore::processCollision( Vector2 const& pos , Vector2 const& vel , int color )
 	{
 		int layer,nx;
 		int index = calcCellIndex( pos , layer , nx );
@@ -169,12 +169,12 @@ namespace Bubble
 			return -1;
 
 
-		Vec2f cellPos = calcCellCenterPos( layer , nx );
+		Vector2 cellPos = calcCellCenterPos( layer , nx );
 
 		if ( layer == 1  )
 		{
 			float const g_MinTopLayerLockDistance = 0.5f * g_BubbleRadius;
-			Vec2f offset = pos - cellPos;
+			Vector2 offset = pos - cellPos;
 			if ( offset.length2() <  g_MinTopLayerLockDistance * g_MinTopLayerLockDistance ||
 				vel.y > 0 )
 				return index;
@@ -193,7 +193,7 @@ namespace Bubble
 			if ( linkCell.isEmpty() || linkCell.isBlock() )
 				continue;
 
-			Vec2f linkCellPos = calcCellCenterPos( linkIdx );
+			Vector2 linkCellPos = calcCellCenterPos( linkIdx );
 
 			float dist2 = ( linkCellPos - pos ).length2();
 			
@@ -345,7 +345,7 @@ namespace Bubble
 		mListener->mLevel = this;
 
 		int num = 10;
-		mLauncherPos = Vec2f( num * g_BubbleDiameter / 2 , 15 * g_BubbleDiameter );
+		mLauncherPos = Vector2( num * g_BubbleDiameter / 2 , 15 * g_BubbleDiameter );
 
 		mShootBubbleColor = Global::RandomNet() % g_BubbleColorNum + 1;
 		mShootBubbleSpeed = 800.0f;

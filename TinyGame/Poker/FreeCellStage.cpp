@@ -113,8 +113,8 @@ namespace Poker
 	{
 		Graphics2D& g = Global::getGraphics2D(); 
 
-		g.setBrush( ColorKey3( 0 , 125 , 0 ) );
-		g.setPen( ColorKey3( 0 , 125 , 0 ) );
+		g.setBrush( Color3ub( 0 , 125 , 0 ) );
+		g.setPen( Color3ub( 0 , 125 , 0 ) );
 		g.drawRect( Vec2i(0,0) , Global::getDrawEngine()->getScreenSize() );
 
 		mNumAnim = 0;
@@ -178,8 +178,8 @@ namespace Poker
 		if ( isStackCell( *mSelectCell ) )
 			pos.y -= SCellCardOffsetY;
 
-		g.setBrush( ColorKey3( 255 , 255 , 0 ) );
-		RenderUtility::setPen( g , Color::eNull );
+		g.setBrush( Color3ub( 255 , 255 , 0 ) );
+		RenderUtility::SetPen( g , Color::eNull );
 		Vec2i bSize( 3 , 3 );
 		g.drawRoundRect( pos - bSize  , mCardSize + 2 * bSize + Vec2i( 1 , 1 ) , Vec2i( 5 , 5 ) );
 	}
@@ -309,7 +309,7 @@ namespace Poker
 				for( int i = mIdxCardLook + 1 ; i < lookCell.getCardNum() ; ++i )
 				{
 					Card const& card = lookCell.getCard( i );
-					playAnim( card , mSprites[ card.getIndex() ].pos - Vec2f( 0 , 10 ) );
+					playAnim( card , mSprites[ card.getIndex() ].pos - Vector2( 0 , 10 ) );
 				}
 				mIdxCellLook = -1;
 				mIdxCardLook = -1;
@@ -327,7 +327,7 @@ namespace Poker
 					for( int i = idx + 1 ; i < lookCell.getCardNum() ; ++i )
 					{
 						Card const& card = lookCell.getCard( i );
-						playAnim( card , mSprites[ card.getIndex() ].pos + Vec2f( 0 , 15 ) , 0 , ANIM_LOOK );
+						playAnim( card , mSprites[ card.getIndex() ].pos + Vector2( 0 , 15 ) , 0 , ANIM_LOOK );
 					}
 					//mIdxCellLook = cell->getIndex();
 					//mIdxCardLook = idx;
@@ -344,8 +344,8 @@ namespace Poker
 
 	void FreeCellStage::drawCell( Graphics2D& g , Vec2i const& pos )
 	{
-		RenderUtility::setPen( g , Color::eBlack );
-		RenderUtility::setBrush( g , Color::eNull );
+		RenderUtility::SetPen( g , Color::eBlack );
+		RenderUtility::SetBrush( g , Color::eNull );
 
 		Vec2i border( 3 , 3 );
 		g.drawRoundRect( pos - border , mCardSize + 2 * border , Vec2i( 8 , 8 ) );
@@ -525,15 +525,15 @@ namespace Poker
 				if ( mbUndoMove )
 					time = 300;
 				else
-					time = 150 + 0.4 * sqrt( ( spr.pos - Vec2f( to ) ).length2() );
+					time = 150 + 0.4 * sqrt( ( spr.pos - Vector2( to ) ).length2() );
 
-				mTweener.tweenValue< MyFun >( spr.pos , spr.pos , Vec2f( to ) ,  time )
+				mTweener.tweenValue< MyFun >( spr.pos , spr.pos , Vector2( to ) ,  time )
 					.delay( delay ).finishCallback( std::tr1::bind( &FreeCellStage::onAnimFinish , this , idx , mbUndoMove ) );
 			}
 			break;
 		case ANIM_LOOK:
 			{
-				mTweener.tweenValue< Easing::COCubic >( spr.pos , spr.pos , Vec2f( to ) ,  300 )
+				mTweener.tweenValue< Easing::COCubic >( spr.pos , spr.pos , Vector2( to ) ,  300 )
 					.delay( delay ).finishCallback( std::tr1::bind( &FreeCellStage::onAnimFinish , this , idx , true ) );
 			}
 			break;

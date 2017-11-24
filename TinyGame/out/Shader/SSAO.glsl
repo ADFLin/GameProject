@@ -38,8 +38,8 @@ void GeneratePS()
 
 	mat3 tangentToView= mat3(tangentX, tangentY, tangentZ);
 
-	float3 viewPos = View.worldToView * float4( GBuffer.worldPos , 1 );
-	OcclusionRadius = 1;
+	float3 viewPos = float3( View.worldToView * float4( GBuffer.worldPos , 1 ) );
+	//OcclusionRadius = 1;
 	float occlusion = 0;
 	for( int i = 0; i < KernelNum; ++i )
 	{
@@ -61,7 +61,7 @@ void GeneratePS()
 
 }
 
-static const float Weight[] =
+const float Weight[] =
 {
 	0.1 , 0.1 ,0.6 , 0.1 , 0.1
 };
@@ -70,11 +70,11 @@ void BlurPS()
 {
 	float2 texSizeInv = 1.0 / float2(textureSize(TextureSSAO, 0));
 
-	float3 color = 0;
+	float3 color = float3(0);
 #if 0
 	for( int i = -2; i <= 2; ++i )
 	{
-		float3 cy = 0;
+		float3 cy = float3(0);
 		for( int j = -2; j <= 2; ++j )
 		{
 			float3 c = texture2D(TextureSSAO, vsOutput.UVs + float2(float(i), float(j)) * texSizeInv ).rgb;
@@ -85,7 +85,7 @@ void BlurPS()
 #else
 	for( int i = -2; i <= 2; ++i )
 	{
-		float3 cy = 0;
+		float3 cy = float3(0);
 		cy += Weight[0] * texture2D(TextureSSAO, vsOutput.UVs + float2(float(i), float(-2)) * texSizeInv).rgb;
 		cy += Weight[1] * texture2D(TextureSSAO, vsOutput.UVs + float2(float(i), float(-1)) * texSizeInv).rgb;
 		cy += Weight[2] * texture2D(TextureSSAO, vsOutput.UVs + float2(float(i), float(-0)) * texSizeInv).rgb;

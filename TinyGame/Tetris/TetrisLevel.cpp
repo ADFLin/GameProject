@@ -252,7 +252,7 @@ namespace Tetris
 			int xPos = x + block.getX();
 			int yPos = y + block.getY();
 
-			if ( isVaildRange( xPos , yPos ) )
+			if ( isRange( xPos , yPos ) )
 			{
 				setBlock( xPos , yPos , block.getType() );
 			}

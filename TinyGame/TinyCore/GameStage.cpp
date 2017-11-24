@@ -1,8 +1,8 @@
 #include "TinyGamePCH.h"
 #include "GameStage.h"
 
-#include "GameInstance.h"
-#include "GameInstanceManager.h"
+#include "GameModule.h"
+#include "GameModuleManager.h"
 #include "GameReplay.h"
 #include "GameAction.h"
 #include "GameStageMode.h"

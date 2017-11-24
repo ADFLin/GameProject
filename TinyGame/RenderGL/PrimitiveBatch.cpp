@@ -92,8 +92,7 @@ namespace RenderGL
 
 		if( !ShaderManager::getInstance().loadFile(
 			mShader, "Shader/SimpleElement",
-			SHADER_ENTRY(MainVS), SHADER_ENTRY(MainPS) ,
-			"#version 430 compatibility\n") )
+			SHADER_ENTRY(MainVS), SHADER_ENTRY(MainPS) ) )
 			return false;
 
 		return true;

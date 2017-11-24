@@ -30,7 +30,7 @@ namespace Tetris
 		void          doExportSetting( DataSteamBuffer& buffer );
 		void          doImportSetting( DataSteamBuffer& buffer );
 
-		virtual bool  checkSettingVaildSV();
+		virtual bool  checkSettingSV();
 
 		enum 
 		{

@@ -15,7 +15,7 @@ class Graphics2D;
 
 namespace TripleTown
 {
-	typedef TVector2< float > Vec2f;
+	typedef TVector2< float > Vector2;
 
 	class Texture
 	{
@@ -87,7 +87,7 @@ namespace TripleTown
 		
 		struct TileData
 		{
-			Vec2f pos;
+			Vector2 pos;
 			float scale;
 			unsigned char con[4];
 		};

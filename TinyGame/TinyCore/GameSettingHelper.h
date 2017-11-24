@@ -1,7 +1,7 @@
 #ifndef GameSettingHelper_h__
 #define GameSettingHelper_h__
 
-#include "GameInstance.h"
+#include "GameModule.h"
 #include "GamePlayer.h"
 
 #include "GameRoomUI.h"

@@ -9,7 +9,7 @@
 #include "GameGUISystem.h"
 #include "GameClient.h"
 #include "GameReplay.h"
-#include "GameInstanceManager.h"
+#include "GameModuleManager.h"
 #include "GameWidgetID.h"
 
 #include "GameServer.h"
@@ -120,19 +120,19 @@ namespace Tetris
 		Vec2i pos( Global::getDrawEngine()->getScreenWidth() - ( UI_ButtonSize.x + 10 ) , 5 );
 
 		button = new GButton( ( flag & LevelMode::eNetGame ) ? UI_MAIN_MENU : UI_GAME_MENU , pos , UI_ButtonSize  , panel );
-		button->setTitle( LAN("Exit Game") );
+		button->setTitle( LOCTEXT("Exit Game") );
 
 		if ( !( flag & LevelMode::eReplay ) )
 		{
 			pos += offset;
 			button = new GButton( UI_PAUSE_GAME , pos , UI_ButtonSize  , panel );
-			button->setTitle( LAN("Pause Game") );
+			button->setTitle( LOCTEXT("Pause Game") );
 
 			if ( !( flag & LevelMode::eNetGame ) || ( flag & LevelMode::eOwnServer ) )
 			{
 				pos += offset;
 				button = new GButton( UI_RESTART_GAME , pos , UI_ButtonSize , panel );
-				button->setTitle( LAN("Restart Game") );
+				button->setTitle( LOCTEXT("Restart Game") );
 			}
 		}
 
@@ -271,7 +271,7 @@ namespace Tetris
 
 		if ( getGameState() == GS_START )
 		{
-			RenderUtility::setFont( g , FONT_S24 );
+			RenderUtility::SetFont( g , FONT_S24 );
 			Vec2i pos( de->getScreenWidth() / 2 , de->getScreenHeight() / 2 );
 			Vec2i size( 100 , 50 );
 			pos -= size / 2;
@@ -476,7 +476,7 @@ namespace Tetris
 				Vec2i pos( ( i -1 )* 6 * BlockSize + offsetBG.x / 2 , 
 					( j- 1 )* 6 * BlockSize + offsetBG.y / 2 );
 				int color = gBGColor[ ( i + ix + j + iy ) % ARRAYSIZE( gBGColor ) ];
-				RenderUtility::drawBlock( g , pos , 6 , 6 , color );
+				RenderUtility::DrawBlock( g , pos , 6 , 6 , color );
 			}
 		}
 
@@ -494,7 +494,7 @@ namespace Tetris
 			for ( unsigned bit = 0x80000000 ; bit > ( 1 << 8 ) ; bit >>= 1 )
 			{
 				if ( titleMap[i] & bit )
-					RenderUtility::drawBlock( g , blockPos , color[ ci / 3 ] );
+					RenderUtility::DrawBlock( g , blockPos , color[ ci / 3 ] );
 
 				blockPos.x += BlockSize;
 				++ci;
@@ -628,13 +628,13 @@ namespace Tetris
 		switch( group )
 		{
 		case eMainGroup:
-			CREATE_BUTTON( UI_CHALLENGE_MODE, LAN("Challenge Mode"));
-			CREATE_BUTTON( UI_BATTLE_MODE   , LAN("Battle Mode")   );
-			CREATE_BUTTON( UI_PRACTICE_MODE , LAN("Practice Mode") );
+			CREATE_BUTTON( UI_CHALLENGE_MODE, LOCTEXT("Challenge Mode"));
+			CREATE_BUTTON( UI_BATTLE_MODE   , LOCTEXT("Battle Mode")   );
+			CREATE_BUTTON( UI_PRACTICE_MODE , LOCTEXT("Practice Mode") );
 			//CREATE_BUTTON( UI_TIME_MODE     , LAN("Time Mode")     );
-			CREATE_BUTTON( UI_SHOW_SCORE    , LAN("Show Score")    );
-			CREATE_BUTTON( UI_GAME_OPTION   , LAN("Option")        );
-			CREATE_BUTTON( UI_MAIN_MENU     , LAN("Back Main Menu"));
+			CREATE_BUTTON( UI_SHOW_SCORE    , LOCTEXT("Show Score")    );
+			CREATE_BUTTON( UI_GAME_OPTION   , LOCTEXT("Option")        );
+			CREATE_BUTTON( UI_MAIN_MENU     , LOCTEXT("Back Main Menu"));
 			break;
 		}
 #undef CREATE_BUTTON
@@ -659,13 +659,13 @@ namespace Tetris
 		Level* mLevel;
 	};
 
-	static void  renderVortex( Graphics2D& g , Vec2f const& center )
+	static void  renderVortex( Graphics2D& g , Vector2 const& center )
 	{
 		static float angle = 0;
 		angle += 0.01f;
 
 		g.beginXForm();
-		g.setPen( ColorKey3(0,0,0));
+		g.setPen( Color3ub(0,0,0));
 
 		for( int i = 0; i < 20 ; ++ i )
 		{
@@ -741,8 +741,8 @@ namespace Tetris
 		spr.piece.rotate( spr.piece.getDirectionNum() % Global::Random() );
 		spr.angle    = RandomFloat() * 2 * PI;
 		spr.angleVel = RandomFloat( -1 , 1 ) * 5;
-		spr.vel   =  500 * Vec2f( RandomFloat( -1 , 1 )  , RandomFloat( -1 , 1 ) );
-		spr.pos   =  Vec2f( 400 , 300 ) + 50 * Vec2f( RandomFloat( -1 , 1 )  , RandomFloat( -1 , 1 ) );
+		spr.vel   =  500 * Vector2( RandomFloat( -1 , 1 )  , RandomFloat( -1 , 1 ) );
+		spr.pos   =  Vector2( 400 , 300 ) + 50 * Vector2( RandomFloat( -1 , 1 )  , RandomFloat( -1 , 1 ) );
 	}
 
 	void AboutGameStage::PieceSprite::render()
@@ -756,7 +756,7 @@ namespace Tetris
 		{
 			Tetris::PieceBlock const& block = piece.getBlock(i);
 			Vec2i bPos = BlockSize * Vec2i( block.getX() , - block.getY() );
-			RenderUtility::drawBlock( g , bPos , Tetris::Piece::Color( block.getType() ) );
+			RenderUtility::DrawBlock( g , bPos , Tetris::Piece::Color( block.getType() ) );
 		}
 		g.finishXForm();
 	}
@@ -791,7 +791,7 @@ namespace Tetris
 
 		GButton* button;
 		button = new GButton( UI_GAME_MENU , Vec2i( (panelSize.x - btnSize.x) / 2 ,panelSize.y - 30 ) , btnSize , panel );
-		button->setTitle( LAN("Menu") );
+		button->setTitle( LOCTEXT("Menu") );
 
 		lightBlink = 0;
 		return true;
@@ -894,7 +894,7 @@ namespace Tetris
 		};
 
 		//de->setTextMode();
-		RenderUtility::setFont( g , FONT_S16 );
+		RenderUtility::SetFont( g , FONT_S16 );
 		g.setTextColor(255 , 255 , 0 );
 
 		for( int i = 0 ; i < ARRAY_SIZE( propList ); ++i )
@@ -936,15 +936,15 @@ namespace Tetris
 
 			switch ( i )
 			{
-			case 0 : g.setBrush( ColorKey3( 255 , 215, 0 ) ); break;
-			case 1 : g.setBrush( ColorKey3( 192,192,192 ) ); break;
-			case 2 : g.setBrush( ColorKey3( 184, 115, 51 ) ); break;
-			default: g.setBrush( ColorKey3( 0 , 255 , 255 ) ); break;
+			case 0 : g.setBrush( Color3ub( 255 , 215, 0 ) ); break;
+			case 1 : g.setBrush( Color3ub( 192,192,192 ) ); break;
+			case 2 : g.setBrush( Color3ub( 184, 115, 51 ) ); break;
+			default: g.setBrush( Color3ub( 0 , 255 , 255 ) ); break;
 			}
 
 			if ( i == highLightRecordOrder && lightBlink > 0 )
 			{
-				RenderUtility::setBrush( g, Color::eRed );
+				RenderUtility::SetBrush( g, Color::eRed );
 			}
 
 			g.beginBlend( Vec2i(0,y) , Vec2i( Global::getDrawEngine()->getScreenWidth() , 22 ), 0.5f );

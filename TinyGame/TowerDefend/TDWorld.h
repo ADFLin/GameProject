@@ -43,15 +43,15 @@ namespace TowerDefend
 		void        setup( int cx , int cy );
 		TileData&   getTile( Vec2i const& mapPos ){  return mMapData.getData( mapPos.x , mapPos.y ); }
 
-		Building*   getBuilding( Vec2f const& wPos );
-		bool        canBuild( ActorId type , Vec2f const& pos , Vec2i& mapPos );
+		Building*   getBuilding( Vector2 const& wPos );
+		bool        canBuild( ActorId type , Vector2 const& pos , Vec2i& mapPos );
 		void        addBuiding( Building* building , Vec2i const& mapPos );
 		void        removeBuilding( Building* building );
 
-		bool        testCollisionX( Vec2f const& mapPos , float colRadius , CollisionLayer layer , float& offset );
-		bool        testCollisionY( Vec2f const& mapPos , float colRadius , CollisionLayer layer , float& offset );
+		bool        testCollisionX( Vector2 const& mapPos , float colRadius , CollisionLayer layer , float& offset );
+		bool        testCollisionY( Vector2 const& mapPos , float colRadius , CollisionLayer layer , float& offset );
 		bool        checkCollision( Unit* unit );
-		bool        checkCollision( Vec2f const& pos , float radius , CollisionLayer layer );
+		bool        checkCollision( Vector2 const& pos , float radius , CollisionLayer layer );
 		TGrid2D< TileData > mMapData;
 	};
 
@@ -88,12 +88,12 @@ namespace TowerDefend
 
 		bool        canControl( PlayerInfo* player , Actor* actor );
 		bool        produceUnit( ActorId type , PlayerInfo* pInfo , bool useRes );
-		bool        tryPlaceUnit( Unit* unit , Building* building , Vec2f const& targetPos );
-		Building*   constructBuilding( ActorId type , Unit* builder , Vec2f const& pos , bool useRes );
+		bool        tryPlaceUnit( Unit* unit , Building* building , Vector2 const& targetPos );
+		Building*   constructBuilding( ActorId type , Unit* builder , Vector2 const& pos , bool useRes );
 	protected:
 
-		bool tryPlaceUnitInternal( Unit* unit , Vec2f const& startPos, Vec2f const& offsetDir, float maxOffset );
-		bool canBuild( ActorId type , Unit* builder , Vec2f const& pos , Vec2i& mapPos , PlayerInfo* pInfo , bool needSolve );
+		bool tryPlaceUnitInternal( Unit* unit , Vector2 const& startPos, Vector2 const& offsetDir, float maxOffset );
+		bool canBuild( ActorId type , Unit* builder , Vector2 const& pos , Vec2i& mapPos , PlayerInfo* pInfo , bool needSolve );
 
 		CollisionManager  mCollisionMgr;
 		WorldMap          mMap;

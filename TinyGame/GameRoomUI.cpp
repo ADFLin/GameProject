@@ -18,8 +18,8 @@ SlotFrame::SlotFrame( Slot& slot , Vec2i const& pos , Vec2i const& size , Player
 
 	mStateChoice = new GChoice( UI_PLAYER_SLOT ,  Vec2i( 30 , 2 ) , Vec2i( 100 , 25 ) , this );
 	mStateChoice->setUserData( intptr_t(&slot) );
-	mStateChoice->appendItem( LAN("Open") ); //0
-	mStateChoice->appendItem( LAN("Close") );//1
+	mStateChoice->appendItem( LOCTEXT("Open") ); //0
+	mStateChoice->appendItem( LOCTEXT("Close") );//1
 	mStateChoice->setSelection( 0 );
 
 	slot.frame = this;
@@ -420,7 +420,7 @@ void ComMsgPanel::renderText( GWidget* ui )
 	Graphics2D& g = Global::getGraphics2D();
 
 	Vec2i pos = ui->getWorldPos() + Vec2i( 10 , 10 );
-	RenderUtility::setFont( g , FONT_S8 );
+	RenderUtility::SetFont( g , FONT_S8 );
 	for( MsgList::iterator iter = mMsgList.begin();
 		iter != mMsgList.end() ; ++ iter )
 	{

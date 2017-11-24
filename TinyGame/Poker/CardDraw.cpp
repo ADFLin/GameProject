@@ -148,8 +148,8 @@ namespace Poker {
 			if( card == Card::None() )
 				return;
 
-			RenderUtility::setPen(g, Color::eBlack);
-			RenderUtility::setBrush(g, Color::eWhite);
+			RenderUtility::SetPen(g, Color::eBlack);
+			RenderUtility::SetBrush(g, Color::eWhite);
 			g.drawRoundRect( pos , CardSize , Vec2i(RoundSize, RoundSize));
 			if( Card::isBlackSuit(card) )
 				g.setTextColor(0, 0, 0);
@@ -163,10 +163,10 @@ namespace Poker {
 		}
 		void drawCardBack( Graphics2D& g , Vec2i const& pos )
 		{
-			RenderUtility::setPen(g, Color::eBlack);
-			RenderUtility::setBrush(g, Color::eWhite);
+			RenderUtility::SetPen(g, Color::eBlack);
+			RenderUtility::SetBrush(g, Color::eWhite);
 			g.drawRoundRect( pos , CardSize , Vec2i(RoundSize, RoundSize));
-			RenderUtility::setBrush(g, Color::eRed);
+			RenderUtility::SetBrush(g, Color::eRed);
 			Vec2i border = Vec2i(4, 4);
 			g.drawRoundRect(pos +border , CardSize - 2 * border , Vec2i(RoundSize, RoundSize));
 		}

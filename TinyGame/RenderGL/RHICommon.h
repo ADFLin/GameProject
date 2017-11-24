@@ -12,6 +12,9 @@ namespace RenderGL
 	using namespace RenderGL;
 	typedef TVector2<int> Vec2i;
 
+	class ShaderCompileOption;
+	class MaterialShaderProgram;
+
 	extern RHITexture2DRef  GDefaultMaterialTexture2D;
 	extern RHITexture2DRef  GWhiteTexture2D;
 	extern RHITexture2DRef  GBlackTexture2D;
@@ -19,15 +22,53 @@ namespace RenderGL
 	extern RHITextureCubeRef  GBlackTextureCube;
 	extern class MaterialMaster* GDefalutMaterial;
 
-	extern ShaderProgram GSimpleBasePass;
+	extern MaterialShaderProgram GSimpleBasePass;
 
 	bool InitGlobalRHIResource();
 	void ReleaseGlobalRHIResource();
 
 
-	struct ShaderParameter
+	class CopyTextureProgram : public ShaderProgram
 	{
-		uint8 Index;
+	public:
+		void bindParameters();
+		void setParameters(RHITexture2D& copyTexture);
+
+		ShaderParameter mParamCopyTexture;
+
+	};
+
+	class CopyTextureMaskProgram : public ShaderProgram
+	{
+	public:
+		void bindParameters();
+		void setParameters(RHITexture2D& copyTexture, Vector4 const& colorMask);
+
+		ShaderParameter mParamColorMask;
+		ShaderParameter mParamCopyTexture;
+	};
+
+
+	class CopyTextureBiasProgram : public ShaderProgram
+	{
+	public:
+		void bindParameters();
+		void setParameters(RHITexture2D& copyTexture, float colorBais[2]);
+
+		ShaderParameter mParamColorBais;
+		ShaderParameter mParamCopyTexture;
+
+	};
+
+	class MappingTextureColorProgram : public ShaderProgram
+	{
+	public:
+		void bindParameters();
+		void setParameters(RHITexture2D& copyTexture, Vector4 const& colorMask, float valueFactor[2]);
+
+		ShaderParameter mParamCopyTexture;
+		ShaderParameter mParamColorMask;
+		ShaderParameter mParamValueFactor;
 	};
 
 	class ShaderHelper : public SingletonT< ShaderHelper >
@@ -45,15 +86,18 @@ namespace RenderGL
 		void clearBuffer(RHITexture2D& texture, uint32 clearValue[]);
 		void clearBuffer(RHITexture2D& texture, int32 clearValue[]);
 
-		static void drawCubeTexture(RHITextureCube& texCube, Vec2i const& pos, int length);
-		static void drawTexture(RHITexture2D& texture, Vec2i const& pos, Vec2i const& size);
+		static void DrawCubeTexture(RHITextureCube& texCube, Vec2i const& pos, int length);
+		static void DrawTexture(RHITexture2D& texture, Vec2i const& pos, Vec2i const& size);
 
 		void reload();
-		ShaderProgram mProgCopyTexture;
-		ShaderProgram mProgCopyTextureMask;
-		ShaderProgram mProgCopyTextureBias;
-		ShaderProgram mProgMappingTextureColor;
+
+		CopyTextureProgram mProgCopyTexture;
+		CopyTextureMaskProgram mProgCopyTextureMask;
+		CopyTextureBiasProgram mProgCopyTextureBias;
+		MappingTextureColorProgram mProgMappingTextureColor;
 		FrameBuffer mFrameBuffer;
+
+
 	};
 
 }//namespace RenderGL

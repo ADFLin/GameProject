@@ -70,7 +70,7 @@ namespace Chromatron
 
 	Device const* Level::getWorldDevice( Vec2D const& pos) const
 	{
-		if( mWorld.isVaildRange(pos) )
+		if( mWorld.isRange(pos) )
 			return mWorld.getMapData(pos).getDevice();
 
 		return NULL;
@@ -117,7 +117,7 @@ namespace Chromatron
 
 		if ( inWorld )
 		{
-			if ( !mWorld.isVaildRange(pos) ||
+			if ( !mWorld.isRange(pos) ||
 				!mWorld.canSetup( pos ) ) 
 				return false;
 		}
@@ -267,7 +267,7 @@ namespace Chromatron
 
 	Device* Level::createDevice( DeviceId id , Vec2D const& pos , Dir dir ,Color color , bool beUserDC ,bool inWorld  )
 	{
-		if ( !isVaildRange( pos , inWorld ) )
+		if ( !isRange( pos , inWorld ) )
 			return NULL;
 
 		if ( inWorld )
@@ -296,7 +296,7 @@ namespace Chromatron
 
 	void Level::setMapType( Vec2D const& pos , MapType type )
 	{
-		assert( isVaildRange( pos , true ) );
+		assert( isRange( pos , true ) );
 
 		Tile& data = mWorld.getMapData( pos );
 
@@ -742,10 +742,10 @@ namespace Chromatron
 		return true;
 	}
 
-	bool Level::isVaildRange( const Vec2D& pos , bool inWorld )
+	bool Level::isRange( const Vec2D& pos , bool inWorld )
 	{
 		if ( inWorld )
-			return mWorld.isVaildRange( pos );
+			return mWorld.isRange( pos );
 		else
 			return 0 <= pos.x && pos.x < MaxNumUserDC;
 	}

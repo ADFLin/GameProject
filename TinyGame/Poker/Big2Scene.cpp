@@ -135,7 +135,7 @@ namespace Poker { namespace Big2 {
 			case ePASS:           str = "Pass";   break;
 			case eCLEAR_SELECT:   str = "Clear";  break;
 			}
-			RenderUtility::setFont( g , FONT_S8 );
+			RenderUtility::SetFont( g , FONT_S8 );
 			g.drawText( pos , size , str );
 		}
 	};
@@ -230,13 +230,13 @@ namespace Poker { namespace Big2 {
 
 		int yOffset = 50;
 		Vec2i gap( 8 , 8 );
-		RenderUtility::setPen( g , Color::eBlack );
-		g.setBrush( ColorKey3( 100 , 100 , 100 ) );
+		RenderUtility::SetPen( g , Color::eBlack );
+		g.setBrush( Color3ub( 100 , 100 , 100 ) );
 		g.drawRect( Vec2i(0,0) , sSize );
-		g.setBrush( ColorKey3( 128 , 64 , 64 ) );
+		g.setBrush( Color3ub( 128 , 64 , 64 ) );
 		g.drawRoundRect( gap , sSize - 2 * gap - Vec2i( 0 , yOffset ) , Vec2i( 50 , 50 ) );
 		Vec2i gap2( 30 , 30 );
-		g.setBrush( ColorKey3( 0 , 180 , 10 ) );
+		g.setBrush( Color3ub( 0 , 180 , 10 ) );
 		g.drawRoundRect( gap + gap2 , sSize - 2 * ( gap + gap2 ) - Vec2i( 0 , yOffset ) , Vec2i( 70 , 70 ) );
 
 		switch( mState )
@@ -313,7 +313,7 @@ namespace Poker { namespace Big2 {
 				}
 
 				{
-					RenderUtility::setBrush( g , Color::eRed );
+					RenderUtility::SetBrush( g , Color::eRed );
 
 					TablePos tPos = getLevel().getTablePos( getLevel().getNextShowSlot() );
 					g.drawCircle( ( sSize - Vec2i( 0 , yOffset ) ) / 2 + 14 * gTablePosOffset[ tPos ]  , 10 );
@@ -423,8 +423,8 @@ namespace Poker { namespace Big2 {
 
 		if ( beFoucs )
 		{
-			g.setBrush( ColorKey3( 255 , 255 , 100 ) );
-			g.setPen( ColorKey3( 255 , 255 , 100 ) );
+			g.setBrush( Color3ub( 255 , 255 , 100 ) );
+			g.setPen( Color3ub( 255 , 255 , 100 ) );
 		}
 
 		g.beginXForm();
@@ -463,7 +463,7 @@ namespace Poker { namespace Big2 {
 		mRestIterator = true;
 
 		Graphics2D g( mShowCardBmp.getDC() );
-		g.setBrush( ColorKey3( 0 , 255 , 0 ) );
+		g.setBrush( Color3ub( 0 , 255 , 0 ) );
 		g.drawRect( Vec2i(-1,-1) , Vec2i( mShowCardBmp.getWidth() + 2 , mShowCardBmp.getHeight() + 2 ) );
 
 		refreshUI( true );
@@ -494,10 +494,10 @@ namespace Poker { namespace Big2 {
 			case TPOS_LEFT : from = Vec2i( -200 , 0 ); break;
 			case TPOS_RIGHT: from = Vec2i( 200 , 0 ); break;
 			}
-			Vec2f to;
+			Vector2 to;
 			to.x = ( ::Global::Random() % 50 ) - 25;
 			to.y = ( ::Global::Random() % 50 ) - 25;
-			mTweener.tweenValue< Easing::OExpo >( mShowCardOffset[ tPos ] , Vec2f( from ) , to , 500 )
+			mTweener.tweenValue< Easing::OExpo >( mShowCardOffset[ tPos ] , Vector2( from ) , to , 500 )
 				.finishCallback( std::tr1::bind( &Scene::drawLastCardOnBitmap , this ) );
 			for( int i = 0 ; i < info->num ; ++i )
 			{
@@ -554,7 +554,7 @@ namespace Poker { namespace Big2 {
 		TrickInfo info;
 		CardDeck& ownCards = getLevel().getOwnCards();
 		mButton[ ActionButton::eSHOW_CARD ]->enable( 
-			TrickUtility::checkCardVaild( &ownCards[0] , ownCards.size() , index , num , info ) );
+			TrickUtility::checkCard( &ownCards[0] , ownCards.size() , index , num , info ) );
 	}
 
 	void Scene::nextCombination( CardGroup group )
@@ -563,17 +563,17 @@ namespace Poker { namespace Big2 {
 		if ( mRestIterator || mIterator.getGroup() != group )
 		{
 			mIterator = mHelper.getIterator( group );
-			haveIter = mIterator.isVaild();
+			haveIter = mIterator.is();
 			mRestIterator = false;
 		}
 		else if ( haveIter )
 		{
 			mIterator.goNext();
-			if ( !mIterator.isVaild() )
+			if ( !mIterator.is() )
 				mIterator.reset();
 
 		}
-		if ( haveIter && mIterator.isVaild() )
+		if ( haveIter && mIterator.is() )
 		{
 			int  num;
 			int* pIndex = mIterator.getIndex( num );
@@ -618,7 +618,7 @@ namespace Poker { namespace Big2 {
 		GamePlayer* player = mPlayerManager->getPlayer( status.playerId );
 
 		FixString< 128 > str;
-		RenderUtility::setFont( g , FONT_S10 );
+		RenderUtility::SetFont( g , FONT_S10 );
 		g.drawText( renderPos , player->getName() );
 		renderPos.y += 12;
 		str.format( "Money = %d" , status.money );

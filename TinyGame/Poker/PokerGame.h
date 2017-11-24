@@ -1,7 +1,7 @@
 #ifndef PokerGame_h__
 #define PokerGame_h__
 
-#include "GameInstance.h"
+#include "GameModule.h"
 
 
 #define POKER_GAME_NAME "Poker"
@@ -16,11 +16,11 @@ namespace Poker
 
 	};
 
-	class GameInstance : public IGameInstance
+	class GameModule : public IGameModule
 	{
 	public:
-		GameInstance();
-		virtual ~GameInstance();
+		GameModule();
+		virtual ~GameModule();
 		virtual bool  initialize(){ return true; }
 		virtual void  cleanup(){}
 		virtual void  enter(){}
@@ -30,7 +30,7 @@ namespace Poker
 		virtual void beginPlay( StageModeType type, StageManager& manger );
 	public:
 		virtual char const*           getName(){ return POKER_GAME_NAME; }
-		virtual GameController&       getController(){ return IGameInstance::getController(); }
+		virtual GameController&       getController(){ return IGameModule::getController(); }
 		virtual StageBase*            createStage( unsigned id );
 		virtual SettingHepler*        createSettingHelper( SettingHelperType type );
 		virtual bool                  getAttribValue( AttribValue& value );

@@ -22,7 +22,7 @@ namespace RenderGL
 		ModifyCompilationOptionFun ModifyCompilationOption;
 		CreateShaderDataFun CreateShaderData;
 
-		void GetCompileOption(ShaderCompileOption& option);
+		void getCompileOption(ShaderCompileOption& option);
 		
 		static VertexFarcoryType* DefaultType;
 		static std::vector< VertexFarcoryType* > TypeList;

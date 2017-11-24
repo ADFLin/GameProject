@@ -5,9 +5,9 @@
 
 namespace Cube
 {
-	EXPORT_GAME(GameInstance)
+	EXPORT_GAME_MODULE(GameModule)
 
-	StageBase* GameInstance::createStage( unsigned id )
+	StageBase* GameModule::createStage( unsigned id )
 	{
 		switch( id )
 		{
@@ -17,17 +17,17 @@ namespace Cube
 		return nullptr;
 	}
 
-	void GameInstance::beginPlay( StageModeType type, StageManager& manger )
+	void GameModule::beginPlay( StageModeType type, StageManager& manger )
 	{
-		IGameInstance::beginPlay( type , manger );
+		IGameModule::beginPlay( type , manger );
 	}
 
-	void GameInstance::enter()
+	void GameModule::enter()
 	{
 
 	}
 
-	void GameInstance::exit()
+	void GameModule::exit()
 	{
 
 	}

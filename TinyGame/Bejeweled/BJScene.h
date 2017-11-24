@@ -66,12 +66,12 @@ namespace Bejeweled
 			int  index;
 		};
 
-		typedef TVector2< float > Vec2f;
+		typedef TVector2< float > Vector2;
 		struct GemMove
 		{
 			int   index;
-			Vec2f pos;
-			Vec2f vel;
+			Vector2 pos;
+			Vector2 vel;
 			long  time;
 		};
 

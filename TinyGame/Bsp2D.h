@@ -2,7 +2,8 @@
 #define Bsp2D_h__
 
 #include "TVector2.h"
-#include "IntegerType.h"
+#include "Math/Vector2.h"
+#include "Core/IntegerType.h"
 #include "CppVersion.h"
 
 #include <algorithm>
@@ -11,29 +12,29 @@ namespace Bsp2D
 {
 	float const FLOAT_EPSILON = 1e-5f;
 
-	typedef TVector2< float > Vec2f;
+	typedef ::Math::Vector2 Vector2;
 
 	class PolyArea
 	{
 	public:
-		PolyArea( Vec2f const& v0 )
+		PolyArea( Vector2 const& v0 )
 		{
 			mVtx.reserve( 4 );
 			mVtx.push_back( v0 );
 		}
 
-		void         shift( Vec2f const& offset )
+		void         shift( Vector2 const& offset )
 		{
 			for( int i = 0 ; i < mVtx.size() ; ++i )
 				mVtx[i] += offset;
 		}
 		int          getVertexNum() const { return (int)mVtx.size(); }
-		Vec2f const& getVertex( int idx ) const { return mVtx[ idx ]; }
-		//void insertVertex( int idx , Vec2f const& v );
-		void         pushVertex( Vec2f const& v ){ mVtx.push_back( v ); }
+		Vector2 const& getVertex( int idx ) const { return mVtx[ idx ]; }
+		//void insertVertex( int idx , Vector2 const& v );
+		void         pushVertex( Vector2 const& v ){ mVtx.push_back( v ); }
 
 
-		std::vector< Vec2f > mVtx;
+		std::vector< Vector2 > mVtx;
 		//int mSolidType;
 	};
 
@@ -47,16 +48,16 @@ namespace Bsp2D
 
 	struct Plane
 	{
-		Vec2f normal;
+		Vector2 normal;
 		float d;
 
-		void  init( Vec2f const& v1 , Vec2f const& v2 );
-		float calcDistance( Vec2f const& p ){  return normal.dot( p ) + d;  }
-		bool  getInteractPos( Vec2f const& v1 , Vec2f const& v2 , Vec2f& out );
-		Side  testSide( Vec2f const& p , float& dist );
-		Side  testSegment( Vec2f const& v0 , Vec2f const& v1 );
-		Side  testSegment( Vec2f const v[2] ){  return testSegment( v[0] , v[1] );  }
-		Side  splice( Vec2f v[2] , Vec2f vSplit[2] );
+		void  init( Vector2 const& v1 , Vector2 const& v2 );
+		float calcDistance( Vector2 const& p ){  return normal.dot( p ) + d;  }
+		bool  getIntersectPos( Vector2 const& v1 , Vector2 const& v2 , Vector2& out );
+		Side  testSide( Vector2 const& p , float& dist );
+		Side  testSegment( Vector2 const& v0 , Vector2 const& v1 );
+		Side  testSegment( Vector2 const v[2] ){  return testSegment( v[0] , v[1] );  }
+		Side  splice( Vector2 v[2] , Vector2 vSplit[2] );
 	};
 
 
@@ -67,7 +68,7 @@ namespace Bsp2D
 		struct Edge
 		{
 			int   idx;
-			Vec2f v[2];
+			Vector2 v[2];
 			Plane plane;
 		};
 
@@ -95,7 +96,7 @@ namespace Bsp2D
 
 		struct Portal
 		{
-			Vec2f  v[2];
+			Vector2  v[2];
 			uint32 con[2];
 		};
 
@@ -142,15 +143,15 @@ namespace Bsp2D
 			int   indexEdge;
 		};
 
-		bool segmentTest( Vec2f const& start , Vec2f const& end , ColInfo& info );
+		bool segmentTest( Vector2 const& start , Vector2 const& end , ColInfo& info );
 
 
 
 		template < class Visitor >
-		void treasure( Vec2f const& pos , Visitor& visitor ){ treasure_R( mRoot , pos , visitor ); }
+		void treasure( Vector2 const& pos , Visitor& visitor ){ treasure_R( mRoot , pos , visitor ); }
 
 		template < class Visitor >
-		void treasure_R( Node* node , Vec2f const& pos , Visitor& visitor )
+		void treasure_R( Node* node , Vector2 const& pos , Visitor& visitor )
 		{
 			if ( !node )
 				return;
@@ -208,13 +209,13 @@ namespace Bsp2D
 			delete node;
 		}
 
-		static bool isInRect( Vec2f const& p , Vec2f const& min , Vec2f const& max )
+		static bool isInRect( Vector2 const& p , Vector2 const& min , Vector2 const& max )
 		{
 			return min.x <= p.x && p.x < max.x &&
 				min.y <= p.y && p.y < max.y;
 		}
 
-		void addEdge( Vec2f const& from , Vec2f const& to , int idx )
+		void addEdge( Vector2 const& from , Vector2 const& to , int idx )
 		{
 			Edge edge;
 			edge.v[0] = from;
@@ -223,7 +224,7 @@ namespace Bsp2D
 			edge.idx  = idx;
 			mEdges.push_back( edge );
 		}
-		void  build( PolyArea* polys[] , int num , Vec2f const& bbMin , Vec2f const& bbMax );
+		void  build( PolyArea* polys[] , int num , Vector2 const& bbMin , Vector2 const& bbMax );
 
 		
 		
@@ -250,9 +251,9 @@ namespace Bsp2D
 
 			SPlaneVec mSPlanes;
 
-			void build( Vec2f const& max , Vec2f const& min );
+			void build( Vector2 const& max , Vector2 const& min );
 
-			SuperPlane* createSuperPlane( Node* node , Vec2f const& max , Vec2f const& min );
+			SuperPlane* createSuperPlane( Node* node , Vector2 const& max , Vector2 const& min );
 
 
 			void generatePortal_R( Node* node , SuperPlane* splane )

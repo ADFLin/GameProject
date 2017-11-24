@@ -4,7 +4,7 @@
 namespace RenderGL
 {
 
-	void VertexFarcoryType::GetCompileOption(ShaderCompileOption& opation)
+	void VertexFarcoryType::getCompileOption(ShaderCompileOption& opation)
 	{
 		opation.addInclude(fileName);
 		ModifyCompilationOption(opation);

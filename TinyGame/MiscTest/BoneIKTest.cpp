@@ -8,16 +8,16 @@ namespace BoneIK
 {
 	using namespace Math2D;
 
-	typedef Vector2D Vec2f;
+	typedef Vector2 Vector2;
 	struct BoneState
 	{
-		Vec2f pos;
+		Vector2 pos;
 		float rotation;
 	};
 
 	struct Bone
 	{
-		Vec2f pos;
+		Vector2 pos;
 		float angles[2];
 	};
 	struct BoneContraint
@@ -46,15 +46,15 @@ namespace BoneIK
 			if( !BaseClass::onInit() )
 				return false;
 
-			Vec2f v1(1, 0);
-			Vec2f v2 = Normalize(Vec2f(1,-1));
+			Vector2 v1(1, 0);
+			Vector2 v2 = Normalize(Vector2(1,-1));
 
 			Rotation rotation = Rotation::Make(v1, v2);
 
 
-			Vec2f v3 = rotation.rotate(v1);
+			Vector2 v3 = rotation.rotate(v1);
 
-			initBones({ Vec2f(0,0) , Vec2f(0,10) , Vec2f(0,30) , Vec2f(0,35) , Vec2f(0,50) });
+			initBones({ Vector2(0,0) , Vector2(0,10) , Vector2(0,30) , Vector2(0,35) , Vector2(0,50) });
 			::Global::GUI().cleanupWidget();
 			auto frame = WidgetUtility::CreateDevFrame();
 			restart();
@@ -83,8 +83,8 @@ namespace BoneIK
 
 			bool haveIKState = mBoneState.empty() == false;
 
-			RenderUtility::setPen(g, haveIKState ? Color::eGray : Color::eGreen);
-			RenderUtility::setBrush(g, Color::eNull);
+			RenderUtility::SetPen(g, haveIKState ? Color::eGray : Color::eGreen);
+			RenderUtility::SetBrush(g, Color::eNull);
 
 			Vec2i const RectSize(8, 8);
 			for( int i = 0; i < mBones.size(); ++i )
@@ -97,8 +97,8 @@ namespace BoneIK
 
 			if( haveIKState )
 			{
-				RenderUtility::setPen(g, Color::eGreen);
-				RenderUtility::setBrush(g, Color::eNull);
+				RenderUtility::SetPen(g, Color::eGreen);
+				RenderUtility::SetBrush(g, Color::eNull);
 
 				for( int i = 0; i < mLinks.size(); ++i )
 				{
@@ -116,13 +116,13 @@ namespace BoneIK
 			}
 		}
 
-		Vec2f ToScreenPos(Vec2f const& pos)
+		Vector2 ToScreenPos(Vector2 const& pos)
 		{
-			return 4 * pos + Vec2f(400, 300);
+			return 4 * pos + Vector2(400, 300);
 		}
-		Vec2f ToWorldPos(Vec2f const& sPos)
+		Vector2 ToWorldPos(Vector2 const& sPos)
 		{
-			return (sPos - Vec2f(400, 300)) / 4;
+			return (sPos - Vector2(400, 300)) / 4;
 		}
 		void restart() {}
 		void tick() {}
@@ -195,7 +195,7 @@ namespace BoneIK
 
 
 
-		void initBones(std::vector< Vec2f > const& positions)
+		void initBones(std::vector< Vector2 > const& positions)
 		{
 			mBones.resize(positions.size());
 			for( int i = 0; i < positions.size(); ++i )
@@ -218,9 +218,9 @@ namespace BoneIK
 		std::vector< BoneLink > mLinks;
 		std::vector< BoneState > mBoneState;
 
-		Vec2f mLastTargetPos;
+		Vector2 mLastTargetPos;
 
-		void solveFabrik(std::vector< BoneState >& inoutState , Vec2f const& targetPos , float targetRotation )
+		void solveFabrik(std::vector< BoneState >& inoutState , Vector2 const& targetPos , float targetRotation )
 		{
 			assert(mBones.size() <= inoutState.size());
 
@@ -232,7 +232,7 @@ namespace BoneIK
 				maxDistance += link.dist;
 			}
 
-			Vec2f targetOffset = targetPos - inoutState[0].pos;
+			Vector2 targetOffset = targetPos - inoutState[0].pos;
 			if( targetOffset.length2() > maxDistance * maxDistance )
 			{
 				for( int i = 0; i < indexEffector; ++i )
@@ -244,7 +244,7 @@ namespace BoneIK
 			else
 			{
 				int numIterator = 0;
-				Vec2f startPos = inoutState[0].pos;
+				Vector2 startPos = inoutState[0].pos;
 				float tol = 1e-2;
 				float dist = Distance(inoutState[indexEffector].pos, targetPos);
 				while( dist > tol )
@@ -253,7 +253,7 @@ namespace BoneIK
 					inoutState[indexEffector].rotation = targetRotation;
 					for( int i = indexEffector - 1; i >= 0; --i )
 					{
-						Vec2f dir = Normalize(inoutState[i + 1].pos - inoutState[i].pos);
+						Vector2 dir = Math::Normalize(inoutState[i + 1].pos - inoutState[i].pos);
 						inoutState[i].pos = inoutState[i+1].pos -  mLinks[i].dist * dir;
 						float rotation = Math::ATan2(dir.y, dir.x);
 					}
@@ -261,7 +261,7 @@ namespace BoneIK
 					inoutState[0].pos = startPos;
 					for( int i = 0; i < indexEffector; ++i )
 					{
-						Vec2f dir = Normalize(inoutState[i + 1].pos - inoutState[i].pos);
+						Vector2 dir = Math::Normalize(inoutState[i + 1].pos - inoutState[i].pos);
 						inoutState[i+1].pos = inoutState[i].pos + mLinks[i].dist * dir;
 					}
 
@@ -274,7 +274,7 @@ namespace BoneIK
 			} 
 		}
 
-		void solveCCD(std::vector< BoneState >& inoutState, Vec2f const& targetPos, float targetRotation)
+		void solveCCD(std::vector< BoneState >& inoutState, Vector2 const& targetPos, float targetRotation)
 		{
 
 			assert(mBones.size() <= inoutState.size());
@@ -287,7 +287,7 @@ namespace BoneIK
 				maxDistance += link.dist;
 			}
 
-			Vec2f targetOffset = targetPos - inoutState[0].pos;
+			Vector2 targetOffset = targetPos - inoutState[0].pos;
 			if( targetOffset.length2() > maxDistance * maxDistance )
 			{
 				for( int i = 0; i < indexEffector; ++i )
@@ -299,15 +299,15 @@ namespace BoneIK
 			else
 			{
 				int numIterator = 0;
-				Vec2f startPos = inoutState[0].pos;
+				Vector2 startPos = inoutState[0].pos;
 				float tol = 1e-2;
 				float dist = Distance(inoutState[indexEffector].pos, targetPos);
 				while( dist > tol )
 				{
 					for( int i = indexEffector - 1; i >= 0; --i )
 					{
-						Vec2f dirA = Normalize(inoutState[indexEffector].pos - inoutState[i].pos);
-						Vec2f dirB = Normalize(targetPos - inoutState[i].pos);
+						Vector2 dirA = Math::Normalize(inoutState[indexEffector].pos - inoutState[i].pos);
+						Vector2 dirB = Math::Normalize(targetPos - inoutState[i].pos);
 						Rotation rotation = Rotation::Make(dirA, dirB);
 						for( int n = indexEffector ; n != i; --n )
 						{
@@ -329,7 +329,7 @@ namespace BoneIK
 
 
 
-	REGISTER_STAGE("Bone IK", TestStage, StageRegisterGroup::PhyDev);
+	REGISTER_STAGE("Bone IK", TestStage, EStageGroup::PhyDev);
 
 }
 

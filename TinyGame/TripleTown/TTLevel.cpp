@@ -324,7 +324,7 @@ namespace TripleTown
 					{
 						TilePos nPos = getNeighborPos( e.pos , dir );
 
-						if ( !level.isVaildMapRange( nPos ) )
+						if ( !level.isMapRange( nPos ) )
 							continue;
 
 						Tile const& nTile = level.getTile( nPos );
@@ -366,7 +366,7 @@ namespace TripleTown
 
 		static bool checkBearAlive_R( Level& level , TilePos const& pos )
 		{
-			if ( !level.isVaildMapRange( pos ) )
+			if ( !level.isMapRange( pos ) )
 				return false;
 
 			Tile& tile = level.getTile( pos );
@@ -463,7 +463,7 @@ namespace TripleTown
 
 				TilePos nPos = getNeighborPos( pos , dir );
 
-				if ( !level.isVaildMapRange( nPos ) )
+				if ( !level.isMapRange( nPos ) )
 					continue;
 
 				Tile& nTile = level.getTile( nPos );
@@ -625,7 +625,7 @@ namespace TripleTown
 
 	void Level::setTerrain( TilePos const& pos , TerrainType type )
 	{
-		assert( isVaildMapRange( pos ) );
+		assert( isMapRange( pos ) );
 		Tile& tile = getTile( pos );
 		assert( tile.isEmpty() );
 		tile.terrainBase = type;
@@ -715,7 +715,7 @@ namespace TripleTown
 
 	bool Level::useObject( TilePos const& pos , ObjectId id )
 	{
-		assert( isVaildMapRange( pos ) );
+		assert( isMapRange( pos ) );
 		Tile& tile = getTile( pos );
 		return useObjectImpl( tile , pos , id );
 	}
@@ -732,7 +732,7 @@ namespace TripleTown
 			    getInfo( id ).typeClass->getType() == OT_FUN_LAND ||
 			    getInfo( id ).typeClass->getType() == OT_ACTOR );
 
-		assert( isVaildMapRange( pos ) );
+		assert( isMapRange( pos ) );
 		Tile& tile = getTile( pos );
 		getInfo( id ).typeClass->setup( *this , tile , pos , id );
 
@@ -747,7 +747,7 @@ namespace TripleTown
 		for( int dir = 0 ; dir < DirNum ; ++dir )
 		{
 			TilePos nPos = getNeighborPos( pos , dir );
-			if ( !isVaildMapRange( nPos ) )
+			if ( !isMapRange( nPos ) )
 				continue;
 			checkEffect( nPos );
 		}
@@ -805,7 +805,7 @@ namespace TripleTown
 
 	int Level::peekObject( TilePos const& pos , ObjectId id , TilePos posRemove[] )
 	{
-		if ( !isVaildMapRange( pos ) )
+		if ( !isMapRange( pos ) )
 			return 0;
 
 		Tile& tile = getTile( pos );
@@ -822,7 +822,7 @@ namespace TripleTown
 
 	void Level::removeConnectObject_R( TilePos const& pos , ObjectId id )
 	{
-		if ( !isVaildMapRange( pos ) )
+		if ( !isMapRange( pos ) )
 			return;
 		Tile& tile = getTile( pos );
 		if ( tile.id != id )
@@ -885,7 +885,7 @@ namespace TripleTown
 			TilePos nPos = getNeighborPos( pos , dir );
 
 
-			if ( !isVaildMapRange( nPos ) )
+			if ( !isMapRange( nPos ) )
 				continue;
 			Tile& tileCon = getTile( nPos );
 			if ( tileCon.id != id )
@@ -925,7 +925,7 @@ namespace TripleTown
 
 	int Level::getLinkRoot( TilePos const& pos )
 	{
-		assert( isVaildMapRange( pos ) );
+		assert( isMapRange( pos ) );
 		int idx = mMap.toIndex( pos.x , pos.y );
 		for( ;; )
 		{
@@ -940,7 +940,7 @@ namespace TripleTown
 	Tile* Level::getConnectTile( TilePos const& pos , int dir )
 	{
 		TilePos nPos = getNeighborPos( pos , dir );
-		if ( !isVaildMapRange( nPos ) )
+		if ( !isMapRange( nPos ) )
 			return NULL;
 		return &getTile( nPos );
 	}
@@ -976,7 +976,7 @@ namespace TripleTown
 
 	int Level::linkTile( TilePos const& pos , ObjectId id  , int& idxRoot )
 	{
-		if ( !isVaildMapRange( pos ) )
+		if ( !isMapRange( pos ) )
 			return 0;
 		Tile& tile = getTile( pos );
 		if ( tile.id != id )
@@ -1006,7 +1006,7 @@ namespace TripleTown
 
 	void Level::rebuildLink( TilePos const& pos , ObjectId id )
 	{
-		if ( !isVaildMapRange( pos ) )
+		if ( !isMapRange( pos ) )
 			return;
 
 		Tile& tile = getTile( pos );
@@ -1025,7 +1025,7 @@ namespace TripleTown
 
 	int Level::getLinkNum( TilePos const& pos )
 	{
-		assert( isVaildMapRange( pos ) );
+		assert( isMapRange( pos ) );
 
 		int idx = getLinkRoot( pos );
 		return -mMap[ idx ].link;
@@ -1033,7 +1033,7 @@ namespace TripleTown
 
 	int Level::relink_R( TilePos const& pos , ObjectId id , int idxRoot )
 	{
-		if ( !isVaildMapRange( pos ) )
+		if ( !isMapRange( pos ) )
 			return 0;
 
 		Tile& tile = getTile( pos );
@@ -1088,7 +1088,7 @@ namespace TripleTown
 
 	int Level::getConnectObjectPos( TilePos const& pos , ObjectId id , TilePos posConnect[] )
 	{
-		assert( isVaildMapRange( pos ) );
+		assert( isMapRange( pos ) );
 
 		Tile& tile = getTile( pos );
 
@@ -1109,7 +1109,7 @@ namespace TripleTown
 
 	int Level::getConnectObjectPos_R( TilePos const& pos , ObjectId id , TilePos posConnect[] )
 	{
-		if ( !isVaildMapRange( pos ) )
+		if ( !isMapRange( pos ) )
 			return 0;
 
 		Tile& tile = getTile( pos );
@@ -1202,7 +1202,7 @@ namespace TripleTown
 	void Level::moveActor( Tile& tile , ActorData& e , TilePos const& posTo )
 	{
 		assert( &getActor( tile ) == &e );
-		assert( isVaildMapRange( posTo ) );
+		assert( isMapRange( posTo ) );
 
 		Tile& tileNew = getTile( posTo );
 		assert( tileNew.isEmpty() );
@@ -1261,7 +1261,7 @@ namespace TripleTown
 
 	int Level::killConnectActor_R( TilePos const& pos , unsigned bitMask , KillInfo& info )
 	{
-		if ( !isVaildMapRange( pos ) )
+		if ( !isMapRange( pos ) )
 			return 0;
 		Tile& tile = getTile( pos );
 
@@ -1295,7 +1295,7 @@ namespace TripleTown
 
 	bool Level::checkEffect( TilePos const& pos )
 	{
-		assert( isVaildMapRange( pos ) );
+		assert( isMapRange( pos ) );
 		Tile& tile = getTile( pos );
 		ObjectId id = getObjectId( tile );
 		if ( id == OBJ_NULL )

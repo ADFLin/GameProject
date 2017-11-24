@@ -1,10 +1,11 @@
 #ifndef Localization_h__
 #define Localization_h__
 
-
 #include <string>
 #include <map>
 #include <list>
+
+#include "HashString.h"
 
 enum Language
 {
@@ -14,15 +15,23 @@ enum Language
 	LANGUAGE_NUM ,
 };
 
-GAME_API void initLanguage( Language lan );
-GAME_API void setLanguage( Language lan );
-GAME_API char const* translateString( char const* str );
-GAME_API void saveTranslateAsset( char const* path );
+typedef HashString LocName;
+
+class ILocalization
+{
+public:
+	virtual void initialize(Language lan) = 0;
+	virtual void changeLanguage(Language lan) = 0;
+	virtual char const* translateString(char const* str) = 0;
+	virtual bool saveTranslateAsset(char const* path) = 0;
+
+	GAME_API static ILocalization& Get();
+};
 
 #ifdef USE_TRANSLATE
-#	define LAN( str ) ( translateString( str ) )
+#	define LOCTEXT( str ) ( ILocalization::Get().translateString( str ) )
 #else
-#	define LAN( str ) ( str )
+#	define LOCTEXT( str ) ( str )
 #endif
 
 

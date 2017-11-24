@@ -1,7 +1,7 @@
 #include "TinyGamePCH.h"
 #include "CFrameActionNetEngine.h"
 
-#include "GameInstance.h"
+#include "GameModule.h"
 #include "GamePlayer.h"
 
 CFrameActionEngine::CFrameActionEngine( INetFrameManager* netFrameMgr )

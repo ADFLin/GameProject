@@ -1,8 +1,8 @@
 #include "TinyGamePCH.h"
 #include "ReplayStageMode.h"
 
-#include "GameInstance.h"
-#include "GameInstanceManager.h"
+#include "GameModule.h"
+#include "GameModuleManager.h"
 
 #include "GameReplay.h"
 #include "GameAction.h"
@@ -50,20 +50,18 @@ ReplayListPanel::ReplayListPanel( int id , Vec2i const& pos , Vec2i const& size 
 	mCurDir    = REPLAY_DIR;
 
 	int  broader = 10;
-	mFileListCtrl = new GListCtrl( 
+	mFileListCtrl = new GFileListCtrl( 
 		ReplayEditStage::UI_REPLAY_LIST , 
 		Vec2i( broader , broader ) , 
 		size - Vec2i( 2 * broader , 2 * broader ) , this );
+	mFileListCtrl->mSubFileName = REPLAY_SUB_FILE_NAME;
+	mFileListCtrl->setDir(REPLAY_DIR);
 }
 
 
 String ReplayListPanel::getFilePath()
 {
-	char const* name = mFileListCtrl->getSelectValue();
-	if ( name )
-		return mCurDir + "/" + name;
-
-	return String();
+	return mFileListCtrl->getSelectedFilePath();
 }
 
 bool ReplayListPanel::onChildEvent( int event , int id , GWidget* ui )
@@ -74,27 +72,12 @@ bool ReplayListPanel::onChildEvent( int event , int id , GWidget* ui )
 
 void ReplayListPanel::loadDir( char const* dir )
 {
-	mCurDir = dir;
-	mFileListCtrl->removeAllItem();
-
-	FileIterator fileIter;
-	if ( !FileSystem::FindFile( dir , REPLAY_SUB_FILE_NAME , fileIter ) )
-		return;
-
-	for( ; fileIter.haveMore() ; fileIter.goNext() )
-	{
-		mFileListCtrl->appendItem( fileIter.getFileName() );
-	}
+	mFileListCtrl->setDir(dir);
 }
 
 void ReplayListPanel::deleteSelectedFile()
 {
-	if ( mFileListCtrl->getSelection() == -1 )
-		return;
-	String path = getFilePath();
-	FileSystem::DeleteFile(path.c_str());
-
-	mFileListCtrl->removeItem( mFileListCtrl->getSelection() );
+	mFileListCtrl->deleteSelectdFile();
 }
 
 bool ReplayEditStage::onInit()
@@ -120,21 +103,21 @@ bool ReplayEditStage::onInit()
 	Vec2i buttonSize( 200 , 25 );
 	int offset = buttonSize.y + 8;
 	button = new GButton( UI_VIEW_REPLAY , buttonPos , buttonSize , NULL );
-	button->setTitle( LAN( "View Replay" ) );
+	button->setTitle( LOCTEXT( "View Replay" ) );
 	::Global::GUI().addWidget( button );
 	mViewButton = button;
 	mViewButton->enable( false );
 	buttonPos.y += offset;
 
 	button = new GButton( UI_DELETE_REPLAY , buttonPos , buttonSize , NULL );
-	button->setTitle( LAN( "Delete Replay" ) );
+	button->setTitle( LOCTEXT( "Delete Replay" ) );
 	::Global::GUI().addWidget( button );
 	mDelButton = button;
 	mDelButton->enable( false );
 	buttonPos.y += offset;
 
 	button = new GButton( UI_MAIN_MENU , buttonPos , buttonSize , NULL );
-	button->setTitle( LAN( "Back Main Menu" ) );
+	button->setTitle( LOCTEXT( "Back Main Menu" ) );
 	::Global::GUI().addWidget( button );
 	buttonPos.y += offset;
 
@@ -153,8 +136,8 @@ bool ReplayEditStage::onWidgetEvent( int event , int id , GWidget* ui )
 			break;
 		case EVT_LISTCTRL_SELECT:
 			mReplayFilePath = mRLPanel->getFilePath();
-			mIsVaildReplay = Replay::loadReplayInfo( mReplayFilePath.c_str() , mReplayHeader , mGameInfo );
-			mViewButton->enable( mIsVaildReplay );
+			mIsReplay = Replay::loadReplayInfo( mReplayFilePath.c_str() , mReplayHeader , mGameInfo );
+			mViewButton->enable( mIsReplay );
 			mDelButton->enable( true );
 			break;
 		}
@@ -178,7 +161,7 @@ bool ReplayEditStage::onWidgetEvent( int event , int id , GWidget* ui )
 
 void ReplayEditStage::renderReplayInfo( GWidget* ui )
 {
-	if ( !mIsVaildReplay )
+	if ( !mIsReplay )
 		return;
 
 	Vec2i pos = ui->getWorldPos();
@@ -204,10 +187,10 @@ void ReplayEditStage::renderReplayInfo( GWidget* ui )
 
 void ReplayEditStage::viewReplay()
 {
-	if ( !mIsVaildReplay )
+	if ( !mIsReplay )
 		return;
 
-	IGameInstance* game = Global::GameManager().changeGame( mGameInfo.name );
+	IGameModule* game = Global::GameManager().changeGame( mGameInfo.name );
 	if ( game )
 	{
 		game->beginPlay( SMT_REPLAY , *getManager() );
@@ -366,7 +349,7 @@ void ReplayStageMode::onEnd()
 
 void ReplayStageMode::updateTime(long time)
 {
-	if( !mReplayInput->isVaild() )
+	if( !mReplayInput->is() )
 		return;
 
 	if( mReplayInput->isPlayEnd() )
@@ -442,7 +425,7 @@ bool ReplayStageMode::onWidgetEvent(int event, int id, GWidget* ui)
 		return false;
 	case UI_GAME_MENU:
 		togglePause();
-		::Global::GUI().showMessageBox(UI_MAIN_MENU, LAN("back Main Menu?"));
+		::Global::GUI().showMessageBox(UI_MAIN_MENU, LOCTEXT("back Main Menu?"));
 		return false;
 
 	case UI_MAIN_MENU:
@@ -459,7 +442,7 @@ bool ReplayStageMode::onWidgetEvent(int event, int id, GWidget* ui)
 		else
 		{
 			togglePause();
-			::Global::GUI().showMessageBox(UI_MAIN_MENU, LAN("back Main Menu?"));
+			::Global::GUI().showMessageBox(UI_MAIN_MENU, LOCTEXT("back Main Menu?"));
 			return false;
 		}
 		break;

@@ -200,7 +200,7 @@ namespace MV
 
 	bool World::destroyBlock( Vec3i const& pos )
 	{
-		if ( !checkPosVaild( pos ) )
+		if ( !checkPos( pos ) )
 			return false;
 
 		int idx = getBlockIndex( pos );
@@ -514,7 +514,7 @@ namespace MV
 			while( 1 )
 			{
 				tempPos -= mParallaxOffset;
-				if ( !checkPosVaild( tempPos ) )
+				if ( !checkPos( tempPos ) )
 					break;
 				int id = getBlock( tempPos );
 				if ( id )
@@ -837,7 +837,7 @@ namespace MV
 
 		for(;;)
 		{
-			if ( !checkPosVaild( testPos ) )
+			if ( !checkPos( testPos ) )
 				break;
 
 			int blockId = getBlock( testPos ); 

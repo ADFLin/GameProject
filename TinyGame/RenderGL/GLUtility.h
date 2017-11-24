@@ -2,12 +2,9 @@
 #define GLUtility_h__
 
 #include "GLCommon.h"
-#include "CommonMarco.h"
+#include "MarcoCommon.h"
 #include <string>
 
-#ifndef BIT
-#define BIT( n ) ( 1 << ( n ) )
-#endif
 
 namespace RenderGL
 {
@@ -358,116 +355,6 @@ namespace RenderGL
 	private:
 		void buildFontImage( int size , HDC hDC );
 		GLuint	base;
-	};
-
-	class RenderRT
-	{
-	public:
-		enum 
-		{
-			USAGE_P = BIT(0) ,
-			USAGE_N = BIT(1) ,
-			USAGE_C = BIT(2) ,
-			USAGE_TEX0 = BIT(3) ,
-		};
-
-		enum VertexFormat
-		{
-			eXYZ = USAGE_P  ,
-			eXYZ_C = USAGE_P | USAGE_C ,
-			eXYZ_N_C = USAGE_P | USAGE_N | USAGE_C ,
-			eXYZ_N_C_T2 = USAGE_P | USAGE_N | USAGE_C | USAGE_TEX0 ,
-			eXYZ_C_T2 = USAGE_P | USAGE_C | USAGE_TEX0,
-			eXYZ_N = USAGE_P | USAGE_N ,
-			eXYZ_N_T2 = USAGE_P | USAGE_N | USAGE_TEX0 ,
-			eXYZ_T2 = USAGE_P | USAGE_TEX0 ,
-		};
-
-
-		template < uint32 VF >
-		inline static void Draw( GLuint type , void const* vtx , int nV , int vertexStride )
-		{
-			bindArray< VF >( (float const*)vtx , vertexStride );
-			glDrawArrays( type , 0 , nV );
-			unbindArray< VF >();
-		}
-
-		template < uint32 VF >
-		inline static void Draw( GLuint type , void const* vtx , int nV )
-		{
-			Draw< VF >( type , vtx , nV , (int) CountSize< VF >::Result * sizeof( float) );
-		}
-
-		template< uint32 BIT >
-		struct MaskSize { enum { Result = 3 }; };
-		template<>
-		struct MaskSize< 0 > { enum { Result = 0 }; };
-		template<>
-		struct MaskSize< USAGE_TEX0 > { enum { Result = 2 }; };
-
-		template< uint32 BITS >
-		struct CountSize
-		{
-			enum { Result = MaskSize<( BITS & 0x1 )>::Result + CountSize< ( BITS >> 1 ) >::Result  };
-		};
-		template<>
-		struct CountSize< 0 >
-		{
-			enum { Result = 0 };
-		};
-
-		template< uint32 VF > 
-		inline static void bindArray( float const* v , int vertexStride )
-		{
-#define COUNT_MASK( V ) ( V - 1 )
-			if ( VF & USAGE_P )
-			{
-				glEnableClientState( GL_VERTEX_ARRAY );
-				glVertexPointer( 3 , GL_FLOAT , vertexStride , v + CountSize< VF & COUNT_MASK( USAGE_P ) >::Result );
-			}
-			if ( VF & USAGE_N )
-			{
-				glEnableClientState( GL_NORMAL_ARRAY );
-				glNormalPointer( GL_FLOAT , vertexStride, v + CountSize< VF & COUNT_MASK( USAGE_N ) >::Result );
-			}
-			if ( VF & USAGE_C )
-			{
-				glEnableClientState( GL_COLOR_ARRAY );
-				int offset = CountSize< VF & COUNT_MASK( USAGE_C ) >::Result;
-				glColorPointer( 3 , GL_FLOAT , vertexStride , v + offset );
-			}
-
-			if ( VF & USAGE_TEX0 )
-			{
-				glClientActiveTexture( GL_TEXTURE0 );
-				glEnableClientState( GL_TEXTURE_COORD_ARRAY );
-				glTexCoordPointer( 2 , GL_FLOAT , vertexStride , v + CountSize< VF & COUNT_MASK( USAGE_TEX0 ) >::Result );
-			}
-#undef COUNT_MASK
-		}
-
-		template< uint32 VF > 
-		inline static void unbindArray()
-		{
-			if ( VF & USAGE_P )
-			{
-				glDisableClientState( GL_VERTEX_ARRAY );
-			}
-			if ( VF & USAGE_N )
-			{
-				glDisableClientState( GL_NORMAL_ARRAY );
-			}
-			if ( VF & USAGE_C )
-			{
-				glDisableClientState( GL_COLOR_ARRAY );
-
-			}
-			if ( VF & USAGE_TEX0 )
-			{
-				glClientActiveTexture( GL_TEXTURE0 );
-				glDisableClientState( GL_TEXTURE_COORD_ARRAY );
-			}
-		}
 	};
 
 

@@ -44,7 +44,7 @@ namespace Poker
 		Vec2i calcCardPos( Cell& cell );
 		struct Sprite
 		{
-			Vec2f pos;
+			Vector2 pos;
 			bool  beAnim;
 		};
 

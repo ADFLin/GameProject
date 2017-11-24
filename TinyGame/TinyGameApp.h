@@ -9,7 +9,7 @@
 #include "StageBase.h"
 #include "TaskBase.h"
 
-#include "GameInstanceManager.h"
+#include "GameModuleManager.h"
 #include "GameControl.h"
 #include "GameGUISystem.h"
 #include "GameWidget.h"

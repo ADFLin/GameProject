@@ -132,7 +132,7 @@ namespace RenderGL
 	class RenderTechique
 	{
 	public:
-		virtual ShaderProgram* getMaterialShader(RenderContext& context, MaterialMaster& material , VertexFactory* vertexFactory ) { return nullptr; }
+		virtual MaterialShaderProgram* getMaterialShader(RenderContext& context, MaterialMaster& material , VertexFactory* vertexFactory ) { return nullptr; }
 		virtual void setupMaterialShader(RenderContext& context, ShaderProgram& shader) {}
 		virtual void setupWorld(RenderContext& context, Matrix4 const& mat);
 		virtual bool needUseVAO() { return false; }
@@ -166,6 +166,7 @@ namespace RenderGL
 		void beginRender()
 		{
 			mUsageShader = nullptr;
+			mbUseMaterialShader = false;
 		}
 		void endRender()
 		{
@@ -205,6 +206,7 @@ namespace RenderGL
 		ViewInfo*       mCurView;
 		VertexFactory*  mUsageVertexFactory;
 		ShaderProgram*  mUsageShader;
+		bool            mbUseMaterialShader;
 		bool            mbUseVAO;
 	};
 

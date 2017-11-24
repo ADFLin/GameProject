@@ -26,6 +26,7 @@ public:
 		UI_GAME_DEV3_GROUP ,
 		UI_GAME_DEV4_GROUP ,
 		UI_CARD_GAME_DEV_GROUP ,
+		UI_FEATURE_DEV_GROUP,
 
 		UI_NET_TEST_SV  ,
 		UI_NET_TEST_CL  ,
@@ -45,10 +46,10 @@ public:
 	bool onWidgetEvent( int event , int id , GWidget* ui );
 	void doChangeGroup( StageGroupID group );
 
-	void changeStageGroup(StageRegisterGroup group);
+	void changeStageGroup(EStageGroup group);
 	void createStageGroupButton(int& delay, int& xUI, int& yUI);
 
-	StageRegisterGroup mCurGroup;
+	EStageGroup mCurGroup;
 };
 
 

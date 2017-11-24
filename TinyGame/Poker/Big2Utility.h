@@ -49,10 +49,10 @@ namespace Poker { namespace Big2 {
 		static int     getRankPower( int rank );
 		static int     calcPower( Card const& card );
 		static int     calcPower( CardGroup group , Card cards[] );
-		static bool    checkCardVaild( Card const cards[] , int numCard , int index[] , int num ,  TrickInfo& info );
+		static bool    checkCard( Card const cards[] , int numCard , int index[] , int num ,  TrickInfo& info );
 
 	private:
-		static bool    checkCardVaild5( TrickInfo& info );
+		static bool    checkCard5( TrickInfo& info );
 	};
 
 	class TrickIterator;
@@ -170,7 +170,7 @@ namespace Poker { namespace Big2 {
 	public:
 		TrickIterator();
 		int*      getIndex( int& num );
-		bool      isVaild(){ return mbeVaild; }
+		bool      is(){ return mbe; }
 		void      goNext();
 		void      goNext( int power );
 		void      reset();
@@ -181,7 +181,7 @@ namespace Poker { namespace Big2 {
 		friend class TrickHelper;
 		TrickIterator( TrickHelper& helper , CardGroup group );
 		CardGroup    mGroup;
-		bool         mbeVaild;
+		bool         mbe;
 		int          mIndex[ 5 ];
 		int          mPower;
 		IterData     mIterData;

@@ -1,7 +1,7 @@
 #ifndef TDGame_h__
 #define TDGame_h__
 
-#include "GameInstance.h"
+#include "GameModule.h"
 #include "TDController.h"
 
 
@@ -9,7 +9,7 @@
 
 namespace TowerDefend
 {
-	class GameInstance : public IGameInstance
+	class GameModule : public IGameModule
 	{
 	public:
 		char const*     getName()      {  return TOWER_DEFEND_NAME;  }

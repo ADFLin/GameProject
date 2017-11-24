@@ -42,15 +42,15 @@ namespace CAR
 #endif
 
 
-	static Vec2f const SidePos[] = { Vec2f(0.5,0) , Vec2f(0,0.5) , Vec2f(-0.5,0) , Vec2f(0,-0.5) };
-	static Vec2f const CornerPos[] = { Vec2f(0.5,0.5) , Vec2f(-0.5,0.5) , Vec2f(-0.5,-0.5) , Vec2f(0.5,-0.5) };
+	static Vector2 const SidePos[] = { Vector2(0.5,0) , Vector2(0,0.5) , Vector2(-0.5,0) , Vector2(0,-0.5) };
+	static Vector2 const CornerPos[] = { Vector2(0.5,0.5) , Vector2(-0.5,0.5) , Vector2(-0.5,-0.5) , Vector2(0.5,-0.5) };
 	float const farmOffset = 0.425;
 	float const farmOffset2 = 0.25;
 
-	static Vec2f const FarmPos[] = 
+	static Vector2 const FarmPos[] = 
 	{ 
-		Vec2f( farmOffset ,-farmOffset2 ) , Vec2f( farmOffset , farmOffset2 ) , Vec2f( farmOffset2 , farmOffset ) , Vec2f( -farmOffset2 , farmOffset ) , 
-		Vec2f( -farmOffset , farmOffset2 ) , Vec2f( -farmOffset , -farmOffset2 ) , Vec2f( -farmOffset2 , -farmOffset ) , Vec2f( farmOffset2 , -farmOffset ) , 
+		Vector2( farmOffset ,-farmOffset2 ) , Vector2( farmOffset , farmOffset2 ) , Vector2( farmOffset2 , farmOffset ) , Vector2( -farmOffset2 , farmOffset ) , 
+		Vector2( -farmOffset , farmOffset2 ) , Vector2( -farmOffset , -farmOffset2 ) , Vector2( -farmOffset2 , -farmOffset ) , Vector2( farmOffset2 , -farmOffset ) , 
 	};
 
 	int ColorMap[] = { Color::eBlack , Color::eRed , Color::eYellow , Color::eGreen , Color::eBlue , Color::eGray };
@@ -108,7 +108,7 @@ namespace CAR
 			}
 
 			mb2DView = true;
-			mRenderOffset = Vec2f(0,0);
+			mRenderOffset = Vector2(0,0);
 
 
 			mViewport = mWorld->createViewport( 0 , 0 , window.getWidth() , window.getHeight() );
@@ -134,7 +134,7 @@ namespace CAR
 				//mCamera->setNear(0.1f);
 				//mCamera->setFar(1000.0f);
 				setRenderScale( 60 );
-				setRenderOffset( Vec2f(0,0));
+				setRenderOffset( Vector2(0,0));
 			}
 
 			{
@@ -173,8 +173,8 @@ namespace CAR
 		mCurMapPos = Vec2i(0,0);
 		mIdxShowFeature = 0;
 
-		mMoudule.mDebug = ::Global::GameConfig().getIntValue( "Debug" , "CAR" , 0 ) != 0;
-		mMoudule.mListener = this;
+		mGameLogic.mDebug = ::Global::GameConfig().getIntValue( "Debug" , "CAR" , 0 ) != 0;
+		mGameLogic.mListener = this;
 		
 		mInput.onAction = std::bind( &LevelStage::onGameAction , this , std::placeholders::_1 , std::placeholders::_2 );
 		mInput.onPrevAction = std::bind( &LevelStage::onGamePrevAction , this , std::placeholders::_1 , std::placeholders::_2 );
@@ -213,14 +213,14 @@ namespace CAR
 			cleanupGameData(false);
 		}
 
-		mMoudule.restart( bInit );
+		mGameLogic.restart( bInit );
 		if ( ::Global::GameConfig().getIntValue( "LoadGame" , "CAR" , 1 )  )
 		{
 			char const* file = ::Global::GameConfig().getStringValue( "LoadGameName" , "CAR" , "car_record2" ) ;
 			mInput.loadReplay(file);
 		}
 		
-		CAR_INPUT_COMMAND({ mInput.runLogic(mMoudule); }, this);
+		CAR_INPUT_COMMAND({ mInput.runLogic(mGameLogic); }, this);
 	}
 
 	void LevelStage::tick()
@@ -260,11 +260,11 @@ namespace CAR
 			mSurfaceBufferTake->ReleaseDC(hDC);
 		}
 
-		WorldTileManager& world = mMoudule.getWorld();
+		WorldTileManager& world = mGameLogic.getWorld();
 		for ( auto iter = world.createWorldTileIterator() ; iter ; ++iter )
 		{
-			RenderUtility::setBrush( g , Color::eNull );
-			RenderUtility::setPen( g , Color::eGray );
+			RenderUtility::SetBrush( g , Color::eNull );
+			RenderUtility::SetPen( g , Color::eGray );
 
 			MapTile const& mapData = iter->second;
 
@@ -272,11 +272,11 @@ namespace CAR
 			drawMapData( g , mapData.pos , mapData );
 		}
 
-		if ( mMoudule.mIsStartGame )
+		if ( mGameLogic.mIsStartGame )
 		{
 			FixString< 512 > str;
-			g.drawText( 10 , 200 , str.format( "pID = %d tileId = %d , rotation = %d , pos = %d , %d " , mMoudule.getTurnPlayer()->getId() ,
-				mMoudule.mUseTileId , mRotation , mCurMapPos.x , mCurMapPos.y ) );
+			g.drawText( 10 , 200 , str.format( "pID = %d tileId = %d , rotation = %d , pos = %d , %d " , mGameLogic.getTurnPlayer()->getId() ,
+				mGameLogic.mUseTileId , mRotation , mCurMapPos.x , mCurMapPos.y ) );
 		}
 
 		{
@@ -320,9 +320,9 @@ namespace CAR
 			}
 #endif
 
-			if ( !mMoudule.mFeatureMap.empty() )
+			if ( !mGameLogic.mFeatureMap.empty() )
 			{
-				FeatureBase* feature = mMoudule.mFeatureMap[ mIdxShowFeature ];
+				FeatureBase* feature = mGameLogic.mFeatureMap[ mIdxShowFeature ];
 
 				Vec2i pos = Vec2i( 300 , 20 );
 				showFeatureInfo( g , pos , feature , 12 );
@@ -332,8 +332,8 @@ namespace CAR
 					for( MapTileSet::iterator iter = feature->mapTiles.begin() , itEnd = feature->mapTiles.end() ;
 						iter != itEnd ; ++iter )
 					{
-						RenderUtility::setBrush( g , Color::eNull );
-						RenderUtility::setPen( g , Color::eRed );
+						RenderUtility::SetBrush( g , Color::eNull );
+						RenderUtility::SetPen( g , Color::eRed );
 						drawTileRect( g , (*iter)->pos );
 					}
 
@@ -342,29 +342,29 @@ namespace CAR
 					case FeatureType::eCity:
 					case FeatureType::eRoad:
 						{
-							RenderUtility::setBrush( g , Color::eRed );
-							RenderUtility::setPen( g , Color::eRed );
+							RenderUtility::SetBrush( g , Color::eRed );
+							RenderUtility::SetPen( g , Color::eRed );
 							SideFeature* sideFeature = static_cast< SideFeature* >( feature );
 							for( std::vector< SideNode* >::iterator iter = sideFeature->nodes.begin() , itEnd = sideFeature->nodes.end();
 								iter != itEnd ; ++iter )
 							{
 								SideNode* node = *iter;
 								Vec2i size( 4 , 4 );
-								g.drawRect( convertToScreenPos( Vec2f( node->getMapTile()->pos ) + SidePos[ node->index ] ) - size / 2 , size );
+								g.drawRect( convertToScreenPos( Vector2( node->getMapTile()->pos ) + SidePos[ node->index ] ) - size / 2 , size );
 							}
 						}
 						break;
 					case FeatureType::eFarm:
 						{
-							RenderUtility::setBrush( g , Color::eRed );
-							RenderUtility::setPen( g , Color::eRed );
+							RenderUtility::SetBrush( g , Color::eRed );
+							RenderUtility::SetPen( g , Color::eRed );
 							FarmFeature* farm = static_cast< FarmFeature* >( feature );
 							for( std::vector< FarmNode* >::iterator iter = farm->nodes.begin() , itEnd = farm->nodes.end();
 								iter != itEnd ; ++iter )
 							{
 								FarmNode* node = *iter;
 								Vec2i size( 4 ,4 );
-								g.drawRect( convertToScreenPos( Vec2f(  node->getMapTile()->pos ) + FarmPos[ node->index ] ) - size / 2 , size );
+								g.drawRect( convertToScreenPos( Vector2(  node->getMapTile()->pos ) + FarmPos[ node->index ] ) - size / 2 , size );
 							}
 						}
 						break;
@@ -374,14 +374,14 @@ namespace CAR
 
 		}
 
-		for( int i = 0 ; i < mMoudule.mActorList.size() ; ++i )
+		for( int i = 0 ; i < mGameLogic.mActorList.size() ; ++i )
 		{
-			LevelActor* actor = mMoudule.mActorList[i];
+			LevelActor* actor = mGameLogic.mActorList[i];
 
 			if ( actor->mapTile == nullptr )
 				continue;
 
-			Vec2f mapPos = Vec2f( actor->mapTile->pos );
+			Vector2 mapPos = Vector2( actor->mapTile->pos );
 			if ( actor->feature )
 			{
 				switch( actor->pos.type )
@@ -398,11 +398,11 @@ namespace CAR
 				}
 			}
 
-			RenderUtility::setBrush( g , Color::eWhite );
-			RenderUtility::setPen( g , Color::eWhite );
+			RenderUtility::SetBrush( g , Color::eWhite );
+			RenderUtility::SetPen( g , Color::eWhite );
 
 			FixString< 128 > str;
-			Vec2f screenPos = convertToScreenPos( mapPos );
+			Vector2 screenPos = convertToScreenPos( mapPos );
 			switch( actor->type )
 			{
 			case ActorType::eMeeple:
@@ -414,7 +414,7 @@ namespace CAR
 
 			case ActorType::eDragon:
 				{
-					Vec2f size( 20 , 20 );
+					Vector2 size( 20 , 20 );
 					g.drawRect( screenPos - size / 2 ,  size );
 					g.setTextColor( 255 , 0 , 0 );
 					g.drawText( screenPos - Vec2i( 20 , 20 ) / 2 , Vec2i( 20 , 20 ) , "D" );
@@ -422,7 +422,7 @@ namespace CAR
 				break;
 			case ActorType::eFariy:
 				{
-					Vec2f size( 20 , 20 );
+					Vector2 size( 20 , 20 );
 					g.drawRect( screenPos - size / 2 ,  size );
 					g.setTextColor( 255 , 0 , 0 );
 					g.drawText( screenPos - Vec2i( 20 , 20 ) / 2 , Vec2i( 20 , 20 ) , "F" );
@@ -430,13 +430,13 @@ namespace CAR
 				break;
 			case ActorType::eBuilder:
 				{
-					Vec2f size( 10 , 20 );
+					Vector2 size( 10 , 20 );
 					g.drawRect( screenPos - size / 2 ,  size );
 				}
 				break;
 			case ActorType::ePig:
 				{
-					Vec2f size( 20 , 20 );
+					Vector2 size( 20 , 20 );
 					g.drawRect( screenPos - size / 2 ,  size );
 				}
 				break;
@@ -459,26 +459,26 @@ namespace CAR
 
 			if ( actor->owner )
 			{
-				RenderUtility::setFontColor( g , ColorMap[actor->owner->getId()] , COLOR_DEEP );
+				RenderUtility::SetFontColor( g , ColorMap[actor->owner->getId()] , COLOR_DEEP );
 				g.drawText( screenPos - Vec2i( 20 , 20 ) / 2 , Vec2i( 20 , 20 ) , gActorShortNames[ actor->type ] );
 			}
 		}
 
 		if ( mInput.getReplyAction() == ACTION_PLACE_TILE )
 		{
-			RenderUtility::setBrush( g , Color::eNull );
-			RenderUtility::setPen( g , Color::eWhite );
+			RenderUtility::SetBrush( g , Color::eNull );
+			RenderUtility::SetPen( g , Color::eWhite );
 			drawTileRect( g , mCurMapPos );
 			if ( world.findMapTile( mCurMapPos ) == nullptr )
 			{
-				drawTile( g , Vec2f(mCurMapPos) , world.getTile( mMoudule.mUseTileId ) , mRotation );
+				drawTile( g , Vector2(mCurMapPos) , world.getTile( mGameLogic.mUseTileId ) , mRotation );
 			}
 
-			for( int i = 0  ; i < mMoudule.mPlaceTilePosList.size() ; ++i )
+			for( int i = 0  ; i < mGameLogic.mPlaceTilePosList.size() ; ++i )
 			{
-				Vec2i pos = mMoudule.mPlaceTilePosList[i];
-				RenderUtility::setBrush( g , Color::eNull );
-				RenderUtility::setPen( g , Color::eGreen );
+				Vec2i pos = mGameLogic.mPlaceTilePosList[i];
+				RenderUtility::SetBrush( g , Color::eNull );
+				RenderUtility::SetPen( g , Color::eGreen );
 				drawTileRect( g , pos );
 			}
 		}
@@ -518,8 +518,8 @@ namespace CAR
 					actionStr = "Deploy Actor";
 					GameDeployActorData* myData = static_cast< GameDeployActorData* >( mInput.getReplyData() );
 
-					RenderUtility::setBrush( g , Color::eNull );
-					RenderUtility::setPen( g , Color::eWhite );
+					RenderUtility::SetBrush( g , Color::eNull );
+					RenderUtility::SetPen( g , Color::eWhite );
 					for( int i = 0 ; i < mGameActionUI.size() ; ++i )
 					{
 						GWidget* widget = mGameActionUI[i];
@@ -527,8 +527,8 @@ namespace CAR
 						if ( widget->getID() == UI_ACTOR_POS_BUTTON )
 						{
 							ActorPosButton* button = widget->cast< ActorPosButton >();
-							ActorPosInfo& info = mMoudule.mActorDeployPosList[ button->indexPos ];
-							Vec2f posNode = calcActorMapPos( info.pos , *info.mapTile );
+							ActorPosInfo& info = mGameLogic.mActorDeployPosList[ button->indexPos ];
+							Vector2 posNode = calcActorMapPos( info.pos , *info.mapTile );
 							//posBase + getActorPosMapOffset( info.pos );
 							g.drawLine( button->getPos() + button->getSize() / 2 , convertToScreenPos( posNode ) );
 
@@ -549,7 +549,7 @@ namespace CAR
 		}
 	}
 
-	void LevelStage::drawMapData( Graphics2D& g , Vec2f const& mapPos , MapTile const& mapData)
+	void LevelStage::drawMapData( Graphics2D& g , Vector2 const& mapPos , MapTile const& mapData)
 	{
 
 		if ( gDrawFarmLink )
@@ -563,7 +563,7 @@ namespace CAR
 
 				if ( node.outConnect )
 				{
-					RenderUtility::setPen( g , color , COLOR_DEEP );
+					RenderUtility::SetPen( g , color , COLOR_DEEP );
 					g.drawLine( convertToScreenPos( mapPos + FarmPos[i] + ( 0.5 - farmOffset ) * SidePos[ TilePiece::FarmSideDir( i ) ]  ) ,
 						        convertToScreenPos( mapPos + FarmPos[i] )  );
 				}
@@ -578,13 +578,13 @@ namespace CAR
 					{
 						unsigned bit = FBit::Extract( mask );
 						int idx = FBit::ToIndex8( bit );
-						RenderUtility::setPen( g , color , COLOR_DEEP );
+						RenderUtility::SetPen( g , color , COLOR_DEEP );
 						g.drawLine( convertToScreenPos( mapPos + FarmPos[indexPrev] ) , convertToScreenPos( mapPos + FarmPos[idx] ) );
 						mask &= ~bit;
 						indexPrev = idx;
 					}
 
-					RenderUtility::setPen( g , color , COLOR_DEEP );
+					RenderUtility::SetPen( g , color , COLOR_DEEP );
 					g.drawLine( convertToScreenPos( mapPos + FarmPos[indexPrev] ) , convertToScreenPos( mapPos + FarmPos[i] ) );
 				}
 			}
@@ -593,7 +593,7 @@ namespace CAR
 		drawTile( g , mapPos , *mapData.mTile , mapData.rotation , &mapData );
 	}
 
-	void LevelStage::drawTile(Graphics2D& g , Vec2f const& mapPos , TilePiece const& tile , int rotation , MapTile const* mapTile )
+	void LevelStage::drawTile(Graphics2D& g , Vector2 const& mapPos , TilePiece const& tile , int rotation , MapTile const* mapTile )
 	{
 
 		if ( gDrawSideLink )
@@ -617,8 +617,8 @@ namespace CAR
 					case SideType::eRoad:   color = Color::eYellow; break;
 					}
 
-					RenderUtility::setBrush(g, color, COLOR_NORMAL);
-					RenderUtility::setPen(g, color, COLOR_NORMAL);
+					RenderUtility::SetBrush(g, color, COLOR_NORMAL);
+					RenderUtility::SetPen(g, color, COLOR_NORMAL);
 					Vec2i size(6, 6);
 					g.drawRect(convertToScreenPos(mapPos + SidePos[dir]) - size / 2, size);
 
@@ -629,7 +629,7 @@ namespace CAR
 						{
 							unsigned bit = FBit::Extract(mask);
 							int idx = FBit::ToIndex4(bit);
-							RenderUtility::setPen(g, color, COLOR_LIGHT);
+							RenderUtility::SetPen(g, color, COLOR_LIGHT);
 							g.drawLine(convertToScreenPos(mapPos + SidePos[dir]),
 									   convertToScreenPos(mapPos + SidePos[idx]));
 							mask &= ~bit;
@@ -642,7 +642,7 @@ namespace CAR
 						{
 							unsigned bit = FBit::Extract(mask);
 							int idx = FBit::ToIndex4(bit);
-							RenderUtility::setPen(g, color, COLOR_LIGHT);
+							RenderUtility::SetPen(g, color, COLOR_LIGHT);
 							g.drawLine(convertToScreenPos(mapPos + SidePos[dir]),
 									   convertToScreenPos(mapPos + SidePos[FDir::ToWorld(idx, rotation)]));
 							mask &= ~bit;
@@ -653,8 +653,8 @@ namespace CAR
 
 			if ( tile.contentFlag & TileContent::eCloister )
 			{
-				RenderUtility::setBrush( g , Color::ePurple , COLOR_NORMAL );
-				RenderUtility::setPen( g , Color::ePurple , COLOR_NORMAL );
+				RenderUtility::SetBrush( g , Color::ePurple , COLOR_NORMAL );
+				RenderUtility::SetPen( g , Color::ePurple , COLOR_NORMAL );
 				Vec2i size( 4 ,4 );
 				g.drawRect( convertToScreenPos( mapPos ) - size / 2 , size );
 			}
@@ -750,8 +750,8 @@ namespace CAR
 		case Keyboard::eE: 
 			if ( canInput() )
 			{
-				TileId id = mMoudule.mUseTileId + 1;
-				if ( id == mMoudule.mTileSetManager.getRegisterTileNum() ) 
+				TileId id = mGameLogic.mUseTileId + 1;
+				if ( id == mGameLogic.mTileSetManager.getRegisterTileNum() ) 
 					id = 0;
 
 				mInput.changePlaceTile( id );
@@ -761,9 +761,9 @@ namespace CAR
 		case Keyboard::eW: 
 			if ( canInput() )
 			{
-				TileId id = mMoudule.mUseTileId;
+				TileId id = mGameLogic.mUseTileId;
 				if ( id == 0 ) 
-					id = mMoudule.mTileSetManager.getRegisterTileNum() - 1;
+					id = mGameLogic.mTileSetManager.getRegisterTileNum() - 1;
 				else
 					id -= 1;
 
@@ -773,19 +773,19 @@ namespace CAR
 			break;
 		case Keyboard::eO: 
 			++mIdxShowFeature; 
-			if ( mIdxShowFeature == mMoudule.mFeatureMap.size() ) 
+			if ( mIdxShowFeature == mGameLogic.mFeatureMap.size() ) 
 				mIdxShowFeature = 0;
 			break;
 		case Keyboard::eP: 
 			if ( mIdxShowFeature == 0 ) 
-				mIdxShowFeature = mMoudule.mFeatureMap.size() - 1;
+				mIdxShowFeature = mGameLogic.mFeatureMap.size() - 1;
 			else
 				--mIdxShowFeature;
 			break;
-		case Keyboard::eUP:    setRenderOffset( mRenderOffset - Vec2f( 0,offset ) ); break;
-		case Keyboard::eDOWN:  setRenderOffset( mRenderOffset + Vec2f( 0,offset ) ); break;
-		case Keyboard::eLEFT:  setRenderOffset( mRenderOffset + Vec2f( offset , 0 ) ); break;
-		case Keyboard::eRIGHT: setRenderOffset( mRenderOffset - Vec2f( offset , 0 ) ); break;
+		case Keyboard::eUP:    setRenderOffset( mRenderOffset - Vector2( 0,offset ) ); break;
+		case Keyboard::eDOWN:  setRenderOffset( mRenderOffset + Vector2( 0,offset ) ); break;
+		case Keyboard::eLEFT:  setRenderOffset( mRenderOffset + Vector2( offset , 0 ) ); break;
+		case Keyboard::eRIGHT: setRenderOffset( mRenderOffset - Vector2( offset , 0 ) ); break;
 		}
 		return false;
 	}
@@ -795,7 +795,7 @@ namespace CAR
 		if ( !BaseClass::onMouse( msg ) )
 			return false;
 
-		WorldTileManager& level = mMoudule.getWorld();
+		WorldTileManager& level = mGameLogic.getWorld();
 
 		if ( msg.onLeftDown() )
 		{
@@ -820,7 +820,7 @@ namespace CAR
 					switch( mInput.getReplyAction() )
 					{
 					case ACTION_PLACE_TILE:
-						if ( level.isLinkTilePosible( pos , mMoudule.mUseTileId ) )
+						if ( level.isLinkTilePosible( pos , mGameLogic.mUseTileId ) )
 						{
 							int dir = 0;
 							for(  ; dir < FDir::TotalNum ; ++dir )
@@ -829,7 +829,7 @@ namespace CAR
 								PutTileParam param;
 								param.checkRiverConnect = 1;
 								param.usageBridge = 0;
-								if ( mMoudule.getWorld().canPlaceTile( mMoudule.mUseTileId , mCurMapPos , rotation , param ) )
+								if ( mGameLogic.getWorld().canPlaceTile( mGameLogic.mUseTileId , mCurMapPos , rotation , param ) )
 								{
 									mRotation = rotation;
 									break;
@@ -852,7 +852,7 @@ namespace CAR
 				{
 				case ACTION_PLACE_TILE:
 					Vec2i pos = convertToMapTilePos( msg.getPos() );
-					if ( level.isLinkTilePosible( pos , mMoudule.mUseTileId ) )
+					if ( level.isLinkTilePosible( pos , mGameLogic.mUseTileId ) )
 					{
 						for( int dir = 0 ; dir < FDir::TotalNum ; ++dir )
 						{
@@ -860,7 +860,7 @@ namespace CAR
 							PutTileParam param;
 							param.checkRiverConnect = 1;
 							param.usageBridge = 0;
-							if ( mMoudule.getWorld().canPlaceTile( mMoudule.mUseTileId , mCurMapPos , mRotation , param ) )
+							if ( mGameLogic.getWorld().canPlaceTile( mGameLogic.mUseTileId , mCurMapPos , mRotation , param ) )
 								break;
 						}
 					}
@@ -880,7 +880,7 @@ namespace CAR
 	void LevelStage::setRenderScale(float scale)
 	{
 		mRenderScale = scale;
-		mRenderTileSize = mRenderScale * Vec2f(1,1);
+		mRenderTileSize = mRenderScale * Vector2(1,1);
 
 		int w = ::Global::getDrawEngine()->getScreenWidth();
 		int h = ::Global::getDrawEngine()->getScreenHeight();
@@ -889,7 +889,7 @@ namespace CAR
 		mCamera->setScreenRange( -len , len , -len / factor , len / factor );
 	}
 
-	void LevelStage::setRenderOffset(Vec2f const& a_offset)
+	void LevelStage::setRenderOffset(Vector2 const& a_offset)
 	{
 		mRenderOffset = a_offset;
 
@@ -930,7 +930,7 @@ namespace CAR
 		}
 	}
 
-	Vec2f LevelStage::convertToMapPos(Vec2i const& sPos)
+	Vector2 LevelStage::convertToMapPos(Vec2i const& sPos)
 	{
 		using namespace CFly;
 
@@ -939,7 +939,7 @@ namespace CAR
 
 		if ( mb2DView )
 		{
-			return ( Vec2f( sPos.x - w / 2 , h / 2 - sPos.y ) / mRenderScale - mRenderOffset );
+			return ( Vector2( sPos.x - w / 2 , h / 2 - sPos.y ) / mRenderScale - mRenderOffset );
 		}
 
 		float x = float( 2 * sPos.x ) / w - 1;
@@ -948,17 +948,17 @@ namespace CAR
 		Vector3 rayEnd = TransformPosition( Vector3( x , y , 1 ) , mMatInvVP );
 		Vector3 dir = rayEnd - rayStart;
 		Vector3 temp = rayStart - ( rayStart.z / dir.z ) * ( dir );
-		return Vec2f( temp.x , temp.y );
+		return Vector2( temp.x , temp.y );
 	}
 
 	Vec2i LevelStage::convertToMapTilePos(Vec2i const& sPos)
 	{
 		using namespace CFly;
-		Vec2f mapPos = convertToMapPos( sPos );
+		Vector2 mapPos = convertToMapPos( sPos );
 		return Vec2i( Math::Floor( mapPos.x + 0.5f ) , Math::Floor( mapPos.y + 0.5f ) );
 	}
 
-	Vec2f LevelStage::convertToScreenPos( Vec2f const& posMap )
+	Vector2 LevelStage::convertToScreenPos( Vector2 const& posMap )
 	{
 		using namespace CFly;
 
@@ -966,8 +966,8 @@ namespace CAR
 		int w = ::Global::getDrawEngine()->getScreenWidth();
 		if ( mb2DView )
 		{
-			Vec2f pos = mRenderScale * ( mRenderOffset + posMap );
-			return Vec2f( w / 2 + pos.x , h / 2 - pos.y );
+			Vector2 pos = mRenderScale * ( mRenderOffset + posMap );
+			return Vector2( w / 2 + pos.x , h / 2 - pos.y );
 		}
 		Vector3 pos;
 		pos.x = posMap.x;
@@ -975,10 +975,10 @@ namespace CAR
 		pos.z = 0;
 		pos = TransformPosition( pos , mMatVP );
 
-		return  0.5f * Vec2f( ( 1 + pos.x ) * w , ( 1 - pos.y ) * h );
+		return  0.5f * Vector2( ( 1 + pos.x ) * w , ( 1 - pos.y ) * h );
 	}
 
-	void LevelStage::drawTileRect(Graphics2D& g , Vec2f const& mapPos)
+	void LevelStage::drawTileRect(Graphics2D& g , Vector2 const& mapPos)
 	{
 		if ( mb2DView )
 		{
@@ -1056,7 +1056,7 @@ namespace CAR
 		return true;
 	}
 
-	void LevelStage::onGamePrevAction( GameModule& moudule , CGameInput& input )
+	void LevelStage::onGamePrevAction( GameLogic& gameLogic , CGameInput& input )
 	{
 		if ( input.isReplayMode() && input.getReplyAction() == ACTION_TRUN_OVER )
 		{
@@ -1067,7 +1067,7 @@ namespace CAR
 		}
 	}
 
-	void LevelStage::onGameAction( GameModule& moudule , CGameInput& input )
+	void LevelStage::onGameAction( GameLogic& gameLogic, CGameInput& input )
 	{
 		PlayerAction action = input.getReplyAction();
 		GameActionData* data = input.getReplyData();
@@ -1079,7 +1079,7 @@ namespace CAR
 			return;
 		}
 
-		PlayerBase* player = moudule.getTurnPlayer();
+		PlayerBase* player = gameLogic.getTurnPlayer();
 
 		int offset = 30;
 		switch ( action )
@@ -1099,7 +1099,7 @@ namespace CAR
 				
 				int const offsetX = size.x + 5;
 				int const offsetY = size.y + 5;
-				std::vector< ActorPosInfo >& posList = moudule.mActorDeployPosList;
+				std::vector< ActorPosInfo >& posList = gameLogic.mActorDeployPosList;
 				{
 					GButton* button = new GButton( UI_ACTION_SKIP , Vec2i( 20 , 270 ) , Vec2i( 50 , 20 ) , nullptr );
 					button->setTitle( "Skip" );
@@ -1109,12 +1109,12 @@ namespace CAR
 				{
 					ActorPosInfo& info = posList[i];
 
-					Vec2f offset = getActorPosMapOffset( info.pos );
-					Vec2f basePos = info.mapTile->pos;
-					Vec2f pos = basePos + 1.5 * offset;
+					Vector2 offset = getActorPosMapOffset( info.pos );
+					Vector2 basePos = info.mapTile->pos;
+					Vector2 pos = basePos + 1.5 * offset;
 					if ( info.pos.type == ActorPos::eTile )
 					{
-						offset = Vec2f(0,0.5);
+						offset = Vector2(0,0.5);
 					}
 					unsigned mask = info.actorTypeMask;
 					int type;
@@ -1144,7 +1144,7 @@ namespace CAR
 				for( int i = 0 ; i < myData->numSelection ; ++i )
 				{
 					LevelActor* actor = myData->actors[i];
-					Vec2f pos = getActorPosMapOffset( actor->pos );
+					Vector2 pos = getActorPosMapOffset( actor->pos );
 					if ( actor->mapTile )
 						pos += actor->mapTile->pos;
 					SelectButton* button = new SelectButton( UI_ACTOR_BUTTON , convertToScreenPos( pos ) , Vec2i(20,20) , nullptr );
@@ -1200,7 +1200,7 @@ namespace CAR
 							MapTile* mapTile = selectData->mapTiles[ idx ];
 							ActorPos actorPos;
 							info.feature->getActorPos( *mapTile , actorPos );
-							Vec2f pos = calcActorMapPos( actorPos , *mapTile );
+							Vector2 pos = calcActorMapPos( actorPos , *mapTile );
 							SelectButton* button = new SelectButton( UI_MAP_TILE_BUTTON , convertToScreenPos( pos ) , Vec2i(20,20) , nullptr );
 							button->index   = idx;
 							button->mapTile = mapTile;
@@ -1214,7 +1214,7 @@ namespace CAR
 					for( int i = 0 ; i < myData->numSelection ; ++i )
 					{
 						MapTile* mapTile = myData->mapTiles[i];
-						Vec2f pos = mapTile->pos;
+						Vector2 pos = mapTile->pos;
 						SelectButton* button = new SelectButton( UI_MAP_TILE_BUTTON , convertToScreenPos( pos ) , Vec2i(20,20) , nullptr );
 						button->index = i;
 						button->mapTile = mapTile;
@@ -1260,9 +1260,9 @@ namespace CAR
 		input.waitReply();
 	}
 
-	Vec2f LevelStage::calcActorMapPos(ActorPos const& pos , MapTile const& mapTile)
+	Vector2 LevelStage::calcActorMapPos(ActorPos const& pos , MapTile const& mapTile)
 	{
-		Vec2f result = mapTile.pos;
+		Vector2 result = mapTile.pos;
 		switch( pos.type )
 		{
 		case ActorPos::eTileCorner:
@@ -1270,7 +1270,7 @@ namespace CAR
 			break;
 		case ActorPos::eFarmNode:
 			{
-				Vec2f offset = Vec2f(0,0);
+				Vector2 offset = Vector2(0,0);
 				unsigned mask = mapTile.getFarmLinkMask( pos.meta );
 				int idx;
 				int count = 0;
@@ -1287,7 +1287,7 @@ namespace CAR
 			{
 			case SideType::eCity:
 				{
-					Vec2f offset = Vec2f(0,0);
+					Vector2 offset = Vector2(0,0);
 					unsigned mask = mapTile.getSideLinkMask( pos.meta );
 					int idx;
 					int count = 0;
@@ -1308,7 +1308,7 @@ namespace CAR
 		return result;
 	}
 
-	Vec2f LevelStage::getActorPosMapOffset( ActorPos const& pos )
+	Vector2 LevelStage::getActorPosMapOffset( ActorPos const& pos )
 	{
 		switch( pos.type )
 		{
@@ -1319,7 +1319,7 @@ namespace CAR
 		case ActorPos::eTileCorner:
 			return CornerPos[ pos.meta ];
 		}
-		return Vec2f(0,0);
+		return Vector2(0,0);
 	}
 
 	void LevelStage::onPutTile( TileId id , MapTile* mapTiles[] , int numMapTile )
@@ -1414,7 +1414,7 @@ namespace CAR
 		{
 			meshInfo.pIndex = indicesQuad;
 			meshInfo.numIndices = 6;
-			TileSet const& tileSet = mMoudule.mTileSetManager.getTileSet(id);
+			TileSet const& tileSet = mGameLogic.mTileSetManager.getTileSet(id);
 			meshInfo.pVertex = (tileSet.type == TileType::eDouble) ? (void*)vtxDouble : (void*)vtxSingle;
 			meshInfo.numVertices = 4;
 
@@ -1441,8 +1441,8 @@ namespace CAR
 		assert(newId != TEMP_TILE_ID && oldId != TEMP_TILE_ID);
 		if ( oldId != FAIL_TILE_ID )
 		{
-			TileSet const& tileSetOld = mMoudule.mTileSetManager.getTileSet( oldId );
-			TileSet const& tileSetNew = mMoudule.mTileSetManager.getTileSet( newId );
+			TileSet const& tileSetOld = mGameLogic.mTileSetManager.getTileSet( oldId );
+			TileSet const& tileSetNew = mGameLogic.mTileSetManager.getTileSet( newId );
 			if ( tileSetNew.type != tileSetOld.type )
 			{
 				obj->removeAllElement();
@@ -1515,8 +1515,8 @@ namespace CAR
 			}
 		}
 
-		mMoudule.mPlayerManager = &mPlayerManager;
-		mMoudule.setupSetting( mSetting );
+		mGameLogic.mPlayerManager = &mPlayerManager;
+		mGameLogic.setupSetting( mSetting );
 
 		for( int i = 0 ; i < FieldType::NUM ; ++i )
 		{
@@ -1547,7 +1547,7 @@ namespace CAR
 		if ( mInput.getReplyAction() != ACTION_NONE && mInput.getReplyData()->playerId != -1 )
 			return mInput.getReplyData()->playerId;
 
-		return mMoudule.getTurnPlayer()->getId();
+		return mGameLogic.getTurnPlayer()->getId();
 	}
 	void LevelStage::onRecvDataSV( int slot , int dataId , void* data , int dataSize )
 	{
@@ -1558,12 +1558,12 @@ namespace CAR
 
 	bool LevelStage::isUserTrun()
 	{
-		return getStageMode()->getPlayerManager()->getUser()->getActionPort() == mMoudule.getTurnPlayer()->getId();
+		return getStageMode()->getPlayerManager()->getUser()->getActionPort() == mGameLogic.getTurnPlayer()->getId();
 	}
 
 	bool LevelStage::canInput()
 	{
-		if ( mMoudule.mIsStartGame )
+		if ( mGameLogic.mIsStartGame )
 		{
 			if( getModeType() == SMT_SINGLE_GAME )
 				return true;
@@ -1589,7 +1589,7 @@ namespace CAR
 
 	void LevelStage::getTileTexturePath(TileId id, FixString< 512 > &texName)
 	{
-		TileSet const& tileSet = mMoudule.mTileSetManager.getTileSet( id );
+		TileSet const& tileSet = mGameLogic.mTileSetManager.getTileSet( id );
 		char const* dir = nullptr;
 		switch( tileSet.expansions )
 		{
@@ -1635,18 +1635,18 @@ namespace CAR
 		//assert( !useColorKey );
 
 		if ( getButtonState() == BS_PRESS )
-			RenderUtility::setPen( g , Color::eBlack );
+			RenderUtility::SetPen( g , Color::eBlack );
 		else
-			RenderUtility::setPen( g , Color::eWhite );
+			RenderUtility::SetPen( g , Color::eWhite );
 
 		switch( info->pos.type )
 		{
-		case ActorPos::eSideNode:    RenderUtility::setBrush( g , Color::eYellow , COLOR_DEEP );  break;
-		case ActorPos::eFarmNode:    RenderUtility::setBrush( g , Color::eGreen , COLOR_LIGHT ); break;
-		case ActorPos::eTile:        RenderUtility::setBrush( g , Color::eOrange , COLOR_LIGHT ); break;
-		case ActorPos::eTileCorner:  RenderUtility::setBrush( g , Color::eYellow  , COLOR_LIGHT ); break;
+		case ActorPos::eSideNode:    RenderUtility::SetBrush( g , Color::eYellow , COLOR_DEEP );  break;
+		case ActorPos::eFarmNode:    RenderUtility::SetBrush( g , Color::eGreen , COLOR_LIGHT ); break;
+		case ActorPos::eTile:        RenderUtility::SetBrush( g , Color::eOrange , COLOR_LIGHT ); break;
+		case ActorPos::eTileCorner:  RenderUtility::SetBrush( g , Color::eYellow  , COLOR_LIGHT ); break;
 		default:
-			RenderUtility::setBrush( g , Color::eGray );
+			RenderUtility::SetBrush( g , Color::eGray );
 		}
 		g.drawRect( pos , size );
 
@@ -1665,11 +1665,11 @@ namespace CAR
 		//assert( !useColorKey );
 
 		if ( getButtonState() == BS_PRESS )
-			RenderUtility::setPen( g , Color::eBlack );
+			RenderUtility::SetPen( g , Color::eBlack );
 		else
-			RenderUtility::setPen( g , Color::eWhite );
+			RenderUtility::SetPen( g , Color::eWhite );
 
-		RenderUtility::setBrush( g , Color::eYellow , COLOR_DEEP );
+		RenderUtility::SetBrush( g , Color::eYellow , COLOR_DEEP );
 		g.drawRect( pos , size );
 
 		//g.setTextColor( 0 , 0 , 0 );
@@ -1748,7 +1748,7 @@ namespace CAR
 
 		FixString< 512 > str;
 		g.setTextColor( 255 , 255 , 0 );
-		RenderUtility::setFont( g , FONT_S12 );
+		RenderUtility::SetFont( g , FONT_S12 );
 		g.drawText( pos + Vec2i(10,10) , str.format( "Round = %d , PlayerId = %d" , mData->pIdRound , mData->playerId ) );
 		if ( mData->playerId == mData->pIdRound )
 		{

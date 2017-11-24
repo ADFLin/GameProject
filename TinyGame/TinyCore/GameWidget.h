@@ -16,6 +16,8 @@ class StageManager;
 class GameController;
 struct UserProfile;
 
+typedef std::string String;
+
 enum
 {
 	EVT_BUTTON_CLICK    ,
@@ -98,7 +100,7 @@ public:
 	GAME_API bool doClipTest();
 	static GAME_API WidgetRenderer& getRenderer();
 
-	void setColorKey( ColorKey3 const& color ){  useColorKey = true; mColorKey = color;  }
+	void setColorKey( Color3ub const& color ){  useColorKey = true; mColorKey = color;  }
 	void setColor( int color ){  useColorKey = false; mColor = color;  }
 	GAME_API GWidget*  findChild( int id , GWidget* start = NULL );
 
@@ -124,7 +126,7 @@ protected:
 
 	bool      useColorKey;
 	int       mColor;
-	ColorKey3 mColorKey;
+	Color3ub mColorKey;
 
 	RenderCallBack* callback;
 	friend  class UIMotionTask;
@@ -137,7 +139,7 @@ class WidgetPos
 {
 public:
 	typedef GWidget DataType;
-	typedef Vec2f   ValueType;
+	typedef Vector2   ValueType;
 	void operator()( DataType& data , ValueType const& value ){ data.setPos( value ); }
 };
 
@@ -145,7 +147,7 @@ class WidgetSize
 {
 public:
 	typedef GWidget DataType;
-	typedef Vec2f   ValueType;
+	typedef Vector2   ValueType;
 	void operator()( DataType& data , ValueType const& value ){ data.setSize( value ); }
 };
 
@@ -215,11 +217,6 @@ RenderCallBack* RenderCallBack::Create(Fun fun)
 }
 
 
-
-
-#include <string>
-
-
 class  GButtonBase : public GUI::ButtonT< GButtonBase >
 {
 	typedef GUI::ButtonT< GButtonBase > BaseClass;
@@ -242,7 +239,7 @@ public:
 	void setTitle( char const* str ){ mTitle = str; }
 	virtual void onMouse( bool beInside );
 	GAME_API void onRender();
-	std::string mTitle;
+	String mTitle;
 };
 
 class GCheckBox : public GButtonBase
@@ -255,7 +252,7 @@ public:
 	GAME_API void onRender();
 	void setTitle( char const* str ){ mTitle = str; }
 	bool isCheck;
-	std::string mTitle;
+	String mTitle;
 };
 
 class  GPanel : public GUI::PanelT< GPanel >
@@ -278,7 +275,7 @@ public:
 private:
 	RenderType  mRenderType;
 	float       mAlpha;
-	ColorKey3   mColor;
+	Color3ub   mColor;
 };
 
 class  GFrame : public GPanel
@@ -333,7 +330,7 @@ public:
 	bool onChildEvent( int event , int id , GWidget* ui );
 	GAME_API void onRender();
 
-	std::string     mTitle;
+	String    mTitle;
 };
 
 
@@ -347,6 +344,17 @@ public:
 	void onEditText(){ sendEvent( EVT_TEXTCTRL_CHANGE ); }
 	void onPressEnter(){ sendEvent( EVT_TEXTCTRL_ENTER ); }
 	GAME_API void onRender();
+};
+
+class GText : public GUI::Widget
+{
+	typedef GUI::Widget BaseClass;
+public:
+	GAME_API GText( Vec2i const& pos, Vec2i const& size, GWidget* parent);
+	GAME_API void onRender();
+
+	GText& setText(char const* pText) { mText = pText; return *this; }
+	String mText;
 };
 
 class  GChoice : public GUI::ChoiceT< GChoice >
@@ -376,6 +384,22 @@ public:
 	void doRenderItem( Vec2i const& pos , Item& item , bool beSelected );
 	void doRenderBackground( Vec2i const& pos , Vec2i const& size );
 	int  getItemHeight(){ return 20; }
+};
+
+class GFileListCtrl : public GListCtrl
+{
+	typedef GListCtrl BaseClass;
+public:
+	GAME_API GFileListCtrl(int id, Vec2i const& pos, Vec2i const& size, GWidget* parent);
+
+	GAME_API String getSelectedFilePath() const;
+	GAME_API void deleteSelectdFile();
+	GAME_API void setDir(char const* dir);
+	GAME_API void refreshFiles();
+
+	String mSubFileName;
+	String mCurDir;
+
 };
 
 template< class Fun >
@@ -435,9 +459,9 @@ class WidgetRenderer
 public:
 	GAME_API void  drawButton( IGraphics2D& g , Vec2i const& pos , Vec2i const& size , ButtonState state , int color , bool beEnable = true );
 	GAME_API void  drawButton2( IGraphics2D& g , Vec2i const& pos , Vec2i const& size , ButtonState state , int color , bool beEnable = true );
-	GAME_API void  drawPanel( IGraphics2D& g ,Vec2i const& pos , Vec2i const& size , ColorKey3 const& color , float alpha );
-	GAME_API void  drawPanel( IGraphics2D& g ,Vec2i const& pos , Vec2i const& size , ColorKey3 const& color );
-	GAME_API void  drawPanel2( IGraphics2D& g , Vec2i const& pos , Vec2i const& size , ColorKey3 const& color );
+	GAME_API void  drawPanel( IGraphics2D& g ,Vec2i const& pos , Vec2i const& size , Color3ub const& color , float alpha );
+	GAME_API void  drawPanel( IGraphics2D& g ,Vec2i const& pos , Vec2i const& size , Color3ub const& color );
+	GAME_API void  drawPanel2( IGraphics2D& g , Vec2i const& pos , Vec2i const& size , Color3ub const& color );
 	GAME_API void  drawSilder( IGraphics2D& g ,Vec2i const& pos , Vec2i const& size , Vec2i const& tipPos , Vec2i const& tipSize );
 };
 

@@ -2,7 +2,7 @@
 #include "GameStageMode.h"
 
 #include "GameReplay.h"
-#include "GameInstance.h"
+#include "GameModule.h"
 #include "GameAction.h"
 
 GameStageMode::GameStageMode(StageModeType mode) 
@@ -87,7 +87,7 @@ void LevelStageMode::onRestart(uint64& seed)
 
 bool LevelStageMode::buildReplayRecorder()
 {
-	IGameInstance* game = getGame();
+	IGameModule* game = getGame();
 	if( !game )
 		return false;
 

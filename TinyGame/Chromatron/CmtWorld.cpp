@@ -24,7 +24,7 @@ namespace Chromatron
 		mTileMap.resize( sx , sy );
 	}
 
-	bool World::isVaildRange(Vec2D const& pos) const
+	bool World::isRange(Vec2D const& pos) const
 	{
 		return mTileMap.checkRange( pos.x , pos.y );
 	}
@@ -51,13 +51,13 @@ namespace Chromatron
 		if ( light.getDir() % 2 == 1 )
 		{
 			Vec2D testPos = light.getEndPos() + gTestOffset[ light.getDir() / 2 ];
-			if ( isVaildRange( testPos ) && getMapData( testPos ).blockRBConcerLight() )
+			if ( isRange( testPos ) && getMapData( testPos ).blockRBConcerLight() )
 				return false;
 		}
 
 		light.advance();
 
-		if ( !isVaildRange( light.getEndPos() ) ) 
+		if ( !isRange( light.getEndPos() ) ) 
 		{
 			*curData = NULL;
 			return false;
@@ -130,7 +130,7 @@ namespace Chromatron
 
 						Vec2D const& pos = light.getEndPos();
 
-						assert( isVaildRange( pos ) );
+						assert( isRange( pos ) );
 
 						Tile& mapData = getMapData( pos );
 						Device* dc = mapData.getDevice();
@@ -218,7 +218,7 @@ SyncEnd:
 
 	int World::countSameLighPathColortStepNum(Vec2D const& pos, Dir dir) const
 	{
-		assert(isVaildRange(pos));
+		assert(isRange(pos));
 		Color color = getMapData(pos).getLightPathColor(dir);
 		if ( color == COLOR_NULL )
 			return 0;
@@ -228,7 +228,7 @@ SyncEnd:
 		for (;;)
 		{
 			testPos += LightTrace::GetDirOffset(dir);
-			if (isVaildRange(testPos) == false)
+			if (isRange(testPos) == false)
 				break;
 
 			Tile const& tile = getMapData(testPos);
@@ -255,7 +255,7 @@ SyncEnd:
 
 	bool World::isLightPathEndpoint(Vec2D const& pos, Dir dir) const
 	{
-		assert(isVaildRange(pos));
+		assert(isRange(pos));
 
 		Tile const& tile = getMapData(pos);
 		if (tile.getDevice() == nullptr)
@@ -267,7 +267,7 @@ SyncEnd:
 			if (color == tile.getLightPathColor(invDir))
 			{
 				Vec2D invPos = pos + LightTrace::GetDirOffset(invDir);
-				if ( isVaildRange( invPos ) && 
+				if ( isRange( invPos ) && 
 					 getMapData( invPos ).getLightPathColor( dir ) == color )
 					return false;
 			}
@@ -327,7 +327,7 @@ SyncEnd:
 		for(;;)
 		{
 			curPos += LightTrace::GetDirOffset( dir );
-			if( !isVaildRange( curPos ) )  
+			if( !isRange( curPos ) )  
 				break;
 
 			Device* pDC = getMapData( curPos ).getDevice();

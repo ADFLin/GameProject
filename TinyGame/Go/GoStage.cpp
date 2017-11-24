@@ -51,14 +51,14 @@ namespace Go
 
 		int border = 40;
 		int boardSize = length + 2 * border;
-		RenderUtility::setPen( g , Color::eBlack );
-		RenderUtility::setBrush( g , Color::eOrange );
+		RenderUtility::SetPen( g , Color::eBlack );
+		RenderUtility::SetBrush( g , Color::eOrange );
 		g.drawRect( BoardPos - Vec2i( border , border ) , Vec2i( boardSize , boardSize ) );
 
 		Vec2i posV = BoardPos;
 		Vec2i posH = BoardPos;
 		
-		RenderUtility::setFont( g , FONT_S12 );
+		RenderUtility::SetFont( g , FONT_S12 );
 		g.setTextColor( 0 , 0 , 0 );
 		for( int i = 0 ; i < size ; ++i )
 		{
@@ -78,8 +78,8 @@ namespace Go
 			posH.y += CellSize;
 		}
 
-		RenderUtility::setPen( g , Color::eBlack );
-		RenderUtility::setBrush( g , Color::eBlack );
+		RenderUtility::SetPen( g , Color::eBlack );
+		RenderUtility::SetBrush( g , Color::eBlack );
 
 		int const starRadius = 5;
 		switch( size )
@@ -129,7 +129,7 @@ namespace Go
 			}
 		}
 
-		RenderUtility::setFont( g , FONT_S8 );
+		RenderUtility::SetFont( g , FONT_S8 );
 		g.setTextColor( 255 , 255 , 0 );
 		FixString< 64 > str;
 		str.format( "life = %d" , mLifeParam );
@@ -174,12 +174,12 @@ namespace Go
 
 	void Stage::drawStone( Graphics2D& g , Vec2i const& pos , int color )
 	{
-		RenderUtility::setPen( g , Color::eBlack );
-		RenderUtility::setBrush( g ,( color == Board::eBlack ) ? Color::eBlack : Color::eWhite );
+		RenderUtility::SetPen( g , Color::eBlack );
+		RenderUtility::SetBrush( g ,( color == Board::eBlack ) ? Color::eBlack : Color::eWhite );
 		g.drawCircle( pos ,  CellSize / 2  );
 		if ( color == Board::eBlack )
 		{
-			RenderUtility::setBrush( g ,Color::eWhite );
+			RenderUtility::SetBrush( g ,Color::eWhite );
 			g.drawCircle( pos + Vec2i( 5 , -5 ) , 3 );
 		}
 	}
@@ -294,7 +294,7 @@ namespace Go
 				      value < 0 && mGame->getBoard().getData(x, y) == Board::eWhite ) )
 				{
 					int size = 18 * value / 1000;
-					RenderUtility::setBrush(g, color);
+					RenderUtility::SetBrush(g, color);
 					g.drawRect(pos - Vec2i(size, size) / 2, Vec2i(size, size));
 				}
 			}
@@ -313,7 +313,7 @@ namespace Go
 					//int color = value > 0 ? Color::eRed : Color::eBlue;
 
 					int size = 18 * value / 1000;
-					RenderUtility::setBrush(g, Color::eGreen);
+					RenderUtility::SetBrush(g, Color::eGreen);
 					g.drawRect(pos - Vec2i(size, size) / 2, Vec2i(size, size));
 				}
 
@@ -323,13 +323,13 @@ namespace Go
 				if( value > 0 )
 				{
 					int size = 18 * value / 1000;
-					RenderUtility::setBrush(g, Color::eGreen);
+					RenderUtility::SetBrush(g, Color::eGreen);
 					g.drawRect(pos - Vec2i(size, size) / 2, Vec2i(size, size));
 				}
 			}
 #if 1
-			RenderUtility::setFontColor(g, Color::ePurple);
-			RenderUtility::setFont(g, FONT_S8);
+			RenderUtility::SetFontColor(g, Color::ePurple);
+			RenderUtility::SetFont(g, FONT_S8);
 			FixString< 128 > str;
 			g.drawText(pos, str.format("%d", value));
 #endif

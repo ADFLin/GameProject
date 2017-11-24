@@ -5,6 +5,7 @@
 #include "BitmapDC.h"
 
 #include "glew/GL/glew.h"
+
 #include "WinGLPlatform.h"
 #include "WinGDIRenderSystem.h"
 #include "WGLContext.h"
@@ -27,15 +28,16 @@ class IGraphics2D
 public:
 	virtual void  beginBlend( Vec2i const& pos , Vec2i const& size , float alpha ) = 0;
 	virtual void  endBlend() = 0;
-	virtual void  setPen( ColorKey3 const& color ) = 0;
-	virtual void  setBrush( ColorKey3 const& color ) = 0;
-	virtual void  drawPixel  ( Vec2i const& p , ColorKey3 const& color )= 0;
+	virtual void  setPen( Color3ub const& color ) = 0;
+	virtual void  setBrush( Color3ub const& color ) = 0;
+	virtual void  drawPixel  ( Vec2i const& p , Color3ub const& color )= 0;
 	virtual void  drawLine   ( Vec2i const& p1 , Vec2i const& p2 ) = 0;
 	virtual void  drawRect   ( int left , int top , int right , int bottom )= 0;
 	virtual void  drawRect   ( Vec2i const& pos , Vec2i const& size ) = 0;
 	virtual void  drawCircle ( Vec2i const& center , int r ) = 0;
 	virtual void  drawEllipse( Vec2i const& pos , Vec2i const& size ) = 0;
 	virtual void  drawRoundRect( Vec2i const& pos , Vec2i const& rectSize , Vec2i const& circleSize ) = 0;
+	virtual void  drawPolygon(Vec2i pos[], int num) = 0;
 	virtual void  setTextColor( uint8 r , uint8 g, uint8 b ) = 0;
 	virtual void  drawText( Vec2i const& pos , char const* str ) = 0;
 	virtual void  drawText( Vec2i const& pos , Vec2i const& size , char const* str , bool beClip = false ) = 0;

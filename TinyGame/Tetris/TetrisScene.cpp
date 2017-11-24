@@ -60,7 +60,7 @@ namespace Tetris
 
 	void Scene::renderConMapMask( Graphics2D& g , Vec2i const& pos )
 	{
-		g.setBrush( ColorKey3(0,0,0) );
+		g.setBrush( Color3ub(0,0,0) );
 
 		BlockStorage& strage = getLevel()->getBlockStorage();
 
@@ -140,16 +140,16 @@ namespace Tetris
 
 				bool beCon = false;
 
-				RenderUtility::setPen( g , Color::eNull );
+				RenderUtility::SetPen( g , Color::eNull );
 
 				if ( color == Piece::Color( dataR ) && i != mapSizeX - 1 )
 				{
-					RenderUtility::setBrush( g , color , COLOR_DEEP );
+					RenderUtility::SetBrush( g , color , COLOR_DEEP );
 					g.drawRect( 
 						bPos + Vec2i( BlockSize - 5 , 1 )  , 
 						Vec2i( 10 , BlockSize - 1) );
 
-					RenderUtility::setBrush( g , color );
+					RenderUtility::SetBrush( g , color );
 					g.drawRect( 
 						bPos + Vec2i( BlockSize - 5 , 3 ), 
 						Vec2i( 10 , BlockSize - 5 ) );
@@ -159,12 +159,12 @@ namespace Tetris
 
 				if ( color == Piece::Color( dataT ) && layer != extendMapSizeY  - 1 && checkTop )
 				{
-					RenderUtility::setBrush( g , color , COLOR_DEEP );
+					RenderUtility::SetBrush( g , color , COLOR_DEEP );
 					g.drawRect( 
 						bPos + Vec2i( 1, - 5 ) , 
 						Vec2i( BlockSize - 1 , 10 ) );
 
-					RenderUtility::setBrush( g , color );
+					RenderUtility::SetBrush( g , color );
 					g.drawRect( 
 						bPos + Vec2i( 3, - 5 ) , 
 						Vec2i( BlockSize - 5 , 10 ) );
@@ -174,7 +174,7 @@ namespace Tetris
 
 				if ( !beCon )
 				{
-					RenderUtility::setBrush( g , color , COLOR_LIGHT );
+					RenderUtility::SetBrush( g , color , COLOR_LIGHT );
 					g.drawRoundRect( bPos + Vec2i( 9 + 1, 9 - 4 )  , Vec2i( 4 , 4 ) , Vec2i(3 , 3 ) );
 				}
 			}
@@ -201,7 +201,7 @@ namespace Tetris
 			if (color)
 			{
 				Vec2i const& bPos  = calcBlockPos( pos , i , j );
-				RenderUtility::drawBlock( g , bPos , color );
+				RenderUtility::DrawBlock( g , bPos , color );
 			}
 		}
 	}
@@ -217,7 +217,7 @@ namespace Tetris
 		{
 			PieceBlock const& block = piece.getBlock(i);
 			Vec2i bPos = pos + BlockSize * Vec2i( block.getX() , - block.getY() );
-			RenderUtility::drawBlock( g , bPos , Piece::Color( block.getType() ) );
+			RenderUtility::DrawBlock( g , bPos , Piece::Color( block.getType() ) );
 		}
 	}
 
@@ -227,7 +227,7 @@ namespace Tetris
 		{
 			PieceBlock const& block = piece.getBlock(i);
 			Vec2i bPos = calcBlockPos( pos , block.getX() + nx , block.getY() + ny );
-			RenderUtility::drawBlock( g , bPos , Piece::Color( block.getType() ) );
+			RenderUtility::DrawBlock( g , bPos , Piece::Color( block.getType() ) );
 		}
 	}
 
@@ -236,7 +236,7 @@ namespace Tetris
 		Vec2i pos = ui->getWorldPos();
 		Graphics2D& g = Global::getGraphics2D();
 
-		RenderUtility::setFont( g , FONT_S12 );
+		RenderUtility::SetFont( g , FONT_S12 );
 		g.setTextColor(255 , 255 , 0 );
 		g.drawText( pos.x + 16 , pos.y + 10 , "Next:" );
 
@@ -249,7 +249,7 @@ namespace Tetris
 		Vec2i pos = ui->getWorldPos();
 		Graphics2D& g = Global::getGraphics2D();
 
-		RenderUtility::setFont( g , FONT_S10 );
+		RenderUtility::SetFont( g , FONT_S10 );
 		g.setTextColor( 255 , 255 , 0 );
 
 		g.drawText( pos.x + 16 , pos.y + 10 , "Next:" );
@@ -365,14 +365,14 @@ namespace Tetris
 
 	void Scene::renderBackground( Graphics2D& g , Vec2i const& pos )
 	{
-		RenderUtility::setPen( g , Color::eBlack );
+		RenderUtility::SetPen( g , Color::eBlack );
 
 		int sizeX = mLevel->getBlockStorage().getSizeX();
 		int sizeY = mLevel->getBlockStorage().getSizeY();
 
-		RenderUtility::drawBlock( g , pos , 1 , sizeY + 1 , Color::eGray );
-		RenderUtility::drawBlock( g , pos + Vec2i( BlockSize , BlockSize * sizeY ) , sizeX , 1  , Color::eGray );
-		RenderUtility::drawBlock( g , pos + Vec2i( BlockSize * ( sizeX + 1 ) ,0 ) , 1 , sizeY + 1 , Color::eGray );
+		RenderUtility::DrawBlock( g , pos , 1 , sizeY + 1 , Color::eGray );
+		RenderUtility::DrawBlock( g , pos + Vec2i( BlockSize , BlockSize * sizeY ) , sizeX , 1  , Color::eGray );
+		RenderUtility::DrawBlock( g , pos + Vec2i( BlockSize * ( sizeX + 1 ) ,0 ) , 1 , sizeY + 1 , Color::eGray );
 	}
 
 	void Scene::renderCurPiece( Graphics2D& g , Vec2i const& mapPos )

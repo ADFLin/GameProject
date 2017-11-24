@@ -4,7 +4,7 @@
 #include "PropertyKey.h"
 #include "DrawEngine.h"
 #include "Random.h"
-#include "GameInstanceManager.h"
+#include "GameModuleManager.h"
 #include "GameGUISystem.h"
 #include "UserProfile.h"
 
@@ -52,7 +52,7 @@ void Global::RandSeedNet( uint64 seed )
 {
 	::srand( (unsigned)seed );
 
-	Well512::uint32 s[ 16 ];
+	uint32 s[ 16 ];
 	for( int i = 0 ; i < 16 ; ++i )
 		s[i] = rand();
 
@@ -90,10 +90,15 @@ Graphics2D& Global::getGraphics2D()
 	return getDrawEngine()->getScreenGraphics();
 }
 
-GameInstanceManager& Global::GameManager()
+GameModuleManager& Global::GameManager()
 {
-	static GameInstanceManager manager;
+	static GameModuleManager manager;
 	return manager;
+}
+
+IGameInstance* Global::GameInstacne()
+{
+	return nullptr;
 }
 
 IGameNetInterface& Global::GameNet()

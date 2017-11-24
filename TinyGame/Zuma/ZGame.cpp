@@ -16,7 +16,7 @@
 
 namespace Zuma
 {
-	EXPORT_GAME(GameInstance)
+	EXPORT_GAME_MODULE(GameModule)
 
 	void ZDevStage::onRender( IRenderSystem& RDSystem )
 	{
@@ -33,14 +33,14 @@ namespace Zuma
 		{
 			CRSpline2D& spline = splineVec[i];
 
-			Vec2f pos = spline.getPoint( 0 );
+			Vector2 pos = spline.getPoint( 0 );
 
 			glBegin( GL_LINE_STRIP );
 			glVertex3f( pos.x , pos.y  , 0 );
 
 			for ( int i = 1 ; i <= 20 ; ++i )
 			{
-				Vec2f pos = spline.getPoint( 0.05f * i );
+				Vector2 pos = spline.getPoint( 0.05f * i );
 				glVertex3f( pos.x , pos.y  , 0 );
 			}
 			glEnd();
@@ -50,7 +50,7 @@ namespace Zuma
 
 		for( int i = 0; i < vtxVec.size(); ++i )
 		{
-			Vec2f& pt = vtxVec[i].pos;
+			Vector2& pt = vtxVec[i].pos;
 			ball.setPos( pt );
 
 			if ( vtxVec[i].flag &  CVData::eMask )
@@ -162,7 +162,7 @@ namespace Zuma
 		GameCore* mGameCore;
 	};
 
-	bool GameInstance::getAttribValue( AttribValue& value )
+	bool GameModule::getAttribValue( AttribValue& value )
 	{ 
 		switch ( value.id )
 		{
@@ -183,7 +183,7 @@ namespace Zuma
 		return false;
 	}
 
-	StageBase* GameInstance::createStage( unsigned id )
+	StageBase* GameModule::createStage( unsigned id )
 	{
 		switch( id )
 		{
@@ -199,24 +199,24 @@ namespace Zuma
 		return NULL;
 	}
 
-	GameInstance::GameInstance()
+	GameModule::GameModule()
 	{
 		mCore = NULL;
 	}
 
-	void GameInstance::beginPlay( StageModeType type, StageManager& manger )
+	void GameModule::beginPlay( StageModeType type, StageManager& manger )
 	{		
 		if ( mCore == NULL )
 			mCore = new GameCore;
-		IGameInstance::beginPlay( type , manger );
+		IGameModule::beginPlay( type , manger );
 	}
 
-	void GameInstance::enter()
+	void GameModule::enter()
     {
 
 	}
 
-	void GameInstance::exit()
+	void GameModule::exit()
 	{
 		delete mCore;
 		mCore = NULL;

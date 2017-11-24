@@ -15,15 +15,17 @@ public:
 
 	virtual void beginBlend( Vec2i const& pos , Vec2i const& size , float alpha ){ mImpl.beginBlend( pos , size , alpha ); }
 	virtual void endBlend(){ mImpl.endBlend(); }
-	virtual void setPen( ColorKey3 const& color ){ mImpl.setPen( color ); }
-	virtual void setBrush( ColorKey3 const& color ){ mImpl.setBrush( color ); }
-	virtual void drawPixel  ( Vec2i const& p , ColorKey3 const& color ){ mImpl.drawPixel( p , color ); }
+	virtual void setPen( Color3ub const& color ){ mImpl.setPen( color ); }
+	virtual void setBrush( Color3ub const& color ){ mImpl.setBrush( color ); }
+	virtual void drawPixel  ( Vec2i const& p , Color3ub const& color ){ mImpl.drawPixel( p , color ); }
 	virtual void drawLine   ( Vec2i const& p1 , Vec2i const& p2 ){ mImpl.drawLine( p1 , p2 ); }
 	virtual void drawRect   ( int left , int top , int right , int bottom ){ mImpl.drawRect( left , top , right , bottom ); }
 	virtual void drawRect   ( Vec2i const& pos , Vec2i const& size ) { mImpl.drawRect( pos , size ); }
 	virtual void drawCircle ( Vec2i const& center , int r ) { mImpl.drawCircle( center ,  r ); }
 	virtual void drawEllipse( Vec2i const& pos , Vec2i const& size ) { mImpl.drawEllipse(  pos ,  size ); }
 	virtual void drawRoundRect( Vec2i const& pos , Vec2i const& rectSize , Vec2i const& circleSize ) { mImpl.drawRoundRect( pos , rectSize , circleSize ); }
+	virtual void drawPolygon(Vec2i pos[], int num) { mImpl.drawPolygon(pos, num); }
+
 	virtual void setTextColor( uint8 r , uint8 g, uint8 b ) { mImpl.setTextColor(  r ,  g,  b );  }
 	virtual void drawText( Vec2i const& pos , char const* str ) { mImpl.drawText( pos , str ); }
 	virtual void drawText( Vec2i const& pos , Vec2i const& size , char const* str , bool beClip ) { mImpl.drawText( pos , size , str , beClip  ); }
@@ -67,7 +69,7 @@ void DrawEngine::init( GameWindow& window )
 	mScreenGraphics = new Graphics2D( mBufferDC->getDC() );
 	mGLGraphics = new GLGraphics2D;
 	mGLGraphics->init( mGameWindow->getWidth() , mGameWindow->getHeight() );
-	RenderUtility::init();
+	RenderUtility::Initialize();
 
 	mbInitialized = true;
 }
@@ -78,7 +80,7 @@ void DrawEngine::release()
 		stopOpenGL();
 	else
 		cleanupGLContextDeferred();
-	RenderUtility::release();
+	RenderUtility::Finalize();
 }
 
 bool DrawEngine::startOpenGL( bool useGLEW )
@@ -95,7 +97,7 @@ bool DrawEngine::startOpenGL( bool useGLEW )
 		if ( glewInit() != GLEW_OK )
 			return false;
 	}
-	RenderUtility::startOpenGL();
+	RenderUtility::StartOpenGL();
 	mbGLEnabled = true;
 
 	return true;
@@ -108,7 +110,7 @@ void DrawEngine::stopOpenGL(bool bDeferred)
 
 	mbGLEnabled = false;
 
-	RenderUtility::stopOpenGL();
+	RenderUtility::StopOpenGL();
 	if( bDeferred == false )
 	{
 		mGLContext.cleanup();
@@ -246,7 +248,7 @@ GAME_API void DrawEngine::enableSweepBuffer(bool beS)
 
 GAME_API bool DrawEngine::cleanupGLContextDeferred()
 {
-	if( mbGLEnabled == false && mGLContext.isVaild() )
+	if( mbGLEnabled == false && mGLContext.is() )
 	{
 		mGLContext.cleanup();
 		return true;

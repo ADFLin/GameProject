@@ -1,7 +1,7 @@
 #ifndef TetrisCore_h__
 #define TetrisCore_h__
 
-#include "IntegerType.h"
+#include "Core/IntegerType.h"
 #include "Holder.h"
 
 #include <cassert>
@@ -153,7 +153,7 @@ namespace Tetris
 		int              scanConnectRecursive( int cx , int cy , short color );
 		int              scanFilledLayer( int yMax , int yMin , int removeLayer[] );
 
-		inline bool isVaildRange(int cx,int cy)
+		inline bool isRange(int cx,int cy)
 		{
 			return 0 <= cx && cx < mSizeX &&
 				   0 <= cy && cy < getExtendSizeY();

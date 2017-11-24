@@ -17,20 +17,9 @@ public:
 class InputFileStream : public DataStream
 {
 public:
-	bool open( char const* path )
-	{
-		using namespace std;
-		mFS.open( path , ios::binary );
-		return mFS.is_open();
-	}
-	virtual void read( void* ptr , size_t num )
-	{
-		mFS.read( (char*)ptr , ( std::streamsize ) num );
-	}
-	virtual void write( void const* ptr , size_t num )
-	{
-
-	}
+	bool open( char const* path );
+	virtual void read( void* ptr , size_t num ) override;
+	virtual void write( void const* ptr , size_t num ) override;
 protected:
 	std::ifstream mFS;
 };
@@ -38,20 +27,9 @@ protected:
 class OutputFileStream : public DataStream
 {
 public:
-	bool open( char const* path )
-	{
-		using namespace std;
-		mFS.open( path , ios::binary );
-		return mFS.is_open();
-	}
-	virtual void read( void* ptr , size_t num )
-	{
-		
-	}
-	virtual void write( void const* ptr , size_t num )
-	{
-		mFS.write( (char const*)ptr , ( std::streamsize ) num );
-	}
+	bool open( char const* path );
+	virtual void read( void* ptr , size_t num ) override;
+	virtual void write( void const* ptr , size_t num ) override;
 protected:
 	std::ofstream mFS;
 };
@@ -59,29 +37,11 @@ protected:
 class FileStream : public DataStream
 {
 public:
-	bool open( char const* path )
-	{
-		using namespace std;
-		mFS.open( path , ios::binary | ios::out | ios::in );
-		return mFS.is_open();
-	}
-	virtual void read( void* ptr , size_t num )
-	{
-		mFS.read( (char*)ptr , ( std::streamsize ) num );
-	}
-	virtual void write( void const* ptr , size_t num )
-	{
-		mFS.write( (char const*)ptr , ( std::streamsize ) num );
-	}
+	bool open( char const* path , bool bRemoveOldData = false );
+	virtual void read( void* ptr , size_t num );
+	virtual void write( void const* ptr , size_t num );
 
-	size_t getSize()
-	{
-		std::ios::pos_type cur = mFS.tellg();
-		mFS.seekg(0, mFS.end);
-		std::ios::pos_type result = mFS.tellg();
-		mFS.seekg(cur, mFS.beg);
-		return result;
-	}
+	size_t getSize();
 protected:
 	std::fstream mFS;
 };

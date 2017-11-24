@@ -82,7 +82,7 @@ public:
 	GameStageMode*   getStageMode() { return mStageMode; }
 
 	ActionProcessor& getActionProcessor() { return mProcessor; }
-	IGameInstance*   getGame() { return mGame; }
+	IGameModule*   getGame() { return mGame; }
 	long             getTickTime() { return mTickTime; }
 
 	bool             changeState(GameState state);
@@ -91,7 +91,7 @@ public:
 
 	GameStageMode*   mStageMode;
 	ActionProcessor  mProcessor;
-	IGameInstance*   mGame;
+	IGameModule*   mGame;
 	long             mTickTime;
 };
 

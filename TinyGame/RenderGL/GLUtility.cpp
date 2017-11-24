@@ -1,7 +1,7 @@
 #include "GLUtility.h"
 
 #include "WindowsHeader.h"
-#include "CommonMarco.h"
+#include "MarcoCommon.h"
 #include "FixString.h"
 #include "FileSystem.h"
 
@@ -844,7 +844,7 @@ namespace RenderGL
 		std::vector<tinyobj::shape_t> shapes;
 		std::vector<tinyobj::material_t> materials;
 
-		char const* dirPos = FileUtility::getDirPathPos(path);
+		char const* dirPos = FileUtility::GetDirPathPos(path);
 
 		std::string dir = std::string(path, dirPos - path + 1);
 

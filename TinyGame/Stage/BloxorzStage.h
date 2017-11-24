@@ -5,7 +5,7 @@
 
 #include "TVector3.h"
 #include "TVector2.h"
-#include "IntegerType.h"
+#include "Core/IntegerType.h"
 
 #include "WinGLPlatform.h"
 #include "TGrid2D.h"
@@ -15,7 +15,7 @@ namespace Bloxorz
 {
 
 	typedef TVector2< int > Vec2i;
-	typedef TVector2< float > Vec2f;
+	typedef TVector2< float > Vector2;
 	typedef TVector3< int > Vec3i;
 	typedef TVector3< float > Vec3f;
 
@@ -64,7 +64,7 @@ namespace Bloxorz
 		
 		std::vector< Vec3f > vertices;
 		std::vector< Vec3f > normals;
-		std::vector< Vec2f > UVs;
+		std::vector< Vector2 > UVs;
 		std::vector< int >   indices;
 		std::vector< GroupInfo* > groups;
 		std::vector< MatInfo > materials;

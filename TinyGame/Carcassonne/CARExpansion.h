@@ -4,6 +4,8 @@
 #include "CARDefine.h"
 #include "CARGameplaySetting.h"
 
+#include "Template/ArrayView.h"
+
 namespace CAR
 {
 
@@ -31,7 +33,6 @@ namespace CAR
 		EXP_BASIC,
 		EXP_TEST,
 		NUM_EXPANSIONS,
-		EXP_NULL,
 	};
 
 
@@ -52,10 +53,10 @@ namespace CAR
 	{
 		Expansion   exp;
 		TileDefine* defines;
-		int         numDefines;
+		size_t      numDefines;
 	};
 
-	extern ExpansionContent gAllExpansionTileContents[];
+	extern TArrayView< ExpansionContent const > gAllExpansionTileContents;
 
 	class GameplaySetting;
 	void AddExpansionRule(GameplaySetting& setting, Expansion exp);

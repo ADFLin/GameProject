@@ -22,7 +22,7 @@ static HBRUSH getColorBrush( int color , int type = COLOR_NORMAL )
 	return hBrush[type][color];
 }
 
-void RenderUtility::init()
+void RenderUtility::Initialize()
 {
 	using std::min;
 
@@ -77,7 +77,7 @@ void RenderUtility::init()
 }
 
 
-void RenderUtility::release()
+void RenderUtility::Finalize()
 {
 	for(int i= 1 ; i < Color::Number ;++i)
 	{
@@ -96,22 +96,22 @@ void RenderUtility::release()
 	}
 }
 
-void RenderUtility::setPen( Graphics2D& g , int color , int type )
+void RenderUtility::SetPen( Graphics2D& g , int color , int type )
 {
 	g.setPen( hCPen[type][ color ] );
 }
 
-void RenderUtility::setBrush( Graphics2D& g , int color , int type )
+void RenderUtility::SetBrush( Graphics2D& g , int color , int type )
 {
 	g.setBrush( getColorBrush( color , type ) );
 }
 
-void RenderUtility::setFont( Graphics2D& g , int fontID )
+void RenderUtility::SetFont( Graphics2D& g , int fontID )
 {
 	g.setFont( hFont[fontID] );
 }
 
-void RenderUtility::setPen( GLGraphics2D& g , int color , int type )
+void RenderUtility::SetPen( GLGraphics2D& g , int color , int type )
 {
 	if ( color == Color::eNull )
 	{
@@ -121,11 +121,11 @@ void RenderUtility::setPen( GLGraphics2D& g , int color , int type )
 	{
 		COLORREF const& c = gColorMap[type][color];
 		g.enablePen( true );
-		g.setPen( ColorKey3( GetRValue( c ) , GetGValue( c )  , GetBValue( c ) ) );
+		g.setPen( Color3ub( GetRValue( c ) , GetGValue( c )  , GetBValue( c ) ) );
 	}
 }
 
-void RenderUtility::setBrush(GLGraphics2D& g , int color , int type /*= COLOR_NORMAL */)
+void RenderUtility::SetBrush(GLGraphics2D& g , int color , int type /*= COLOR_NORMAL */)
 {
 	if ( color == Color::eNull )
 	{
@@ -135,23 +135,23 @@ void RenderUtility::setBrush(GLGraphics2D& g , int color , int type /*= COLOR_NO
 	{
 		COLORREF const& c = gColorMap[type][color];
 		g.enableBrush( true );
-		g.setBrush( ColorKey3( GetRValue( c ) , GetGValue( c )  , GetBValue( c ) ) );
+		g.setBrush( Color3ub( GetRValue( c ) , GetGValue( c )  , GetBValue( c ) ) );
 	}
 }
 
-void RenderUtility::setFont(GLGraphics2D& g , int fontID)
+void RenderUtility::SetFont(GLGraphics2D& g , int fontID)
 {
 	//#TODO
 	g.setFont( FontGL[ fontID ] );
 
 }
 
-void RenderUtility::setPen(IGraphics2D& g , int color , int type )
+void RenderUtility::SetPen(IGraphics2D& g , int color , int type )
 {
 	struct MyVisistor : IGraphics2D::Visitor
 	{
-		virtual void visit(Graphics2D& g){  RenderUtility::setPen(  g , color );  }
-		virtual void visit(GLGraphics2D& g){  RenderUtility::setPen(  g , color );  }
+		virtual void visit(Graphics2D& g){  RenderUtility::SetPen(  g , color );  }
+		virtual void visit(GLGraphics2D& g){  RenderUtility::SetPen(  g , color );  }
 		int color;
 		int type;
 	} visitor;
@@ -160,12 +160,12 @@ void RenderUtility::setPen(IGraphics2D& g , int color , int type )
 	g.accept( visitor );
 }
 
-void RenderUtility::setBrush(IGraphics2D& g , int color , int type /*= COLOR_NORMAL */)
+void RenderUtility::SetBrush(IGraphics2D& g , int color , int type /*= COLOR_NORMAL */)
 {
 	struct MyVisistor : IGraphics2D::Visitor
 	{
-		virtual void visit(Graphics2D& g){  RenderUtility::setBrush(  g , color , type  );  }
-		virtual void visit(GLGraphics2D& g){  RenderUtility::setBrush(  g , color , type );  }
+		virtual void visit(Graphics2D& g){  RenderUtility::SetBrush(  g , color , type  );  }
+		virtual void visit(GLGraphics2D& g){  RenderUtility::SetBrush(  g , color , type );  }
 		int color;
 		int type;
 	} visitor;
@@ -174,12 +174,12 @@ void RenderUtility::setBrush(IGraphics2D& g , int color , int type /*= COLOR_NOR
 	g.accept( visitor );
 }
 
-void RenderUtility::setFont(IGraphics2D& g , int fontID )
+void RenderUtility::SetFont(IGraphics2D& g , int fontID )
 {
 	struct MyVisistor : IGraphics2D::Visitor
 	{
-		virtual void visit(Graphics2D& g){  RenderUtility::setFont(  g , fontID );  }
-		virtual void visit(GLGraphics2D& g){  RenderUtility::setFont(  g , fontID );  }
+		virtual void visit(Graphics2D& g){  RenderUtility::SetFont(  g , fontID );  }
+		virtual void visit(GLGraphics2D& g){  RenderUtility::SetFont(  g , fontID );  }
 		int fontID;
 	} visitor;
 	visitor.fontID = fontID;
@@ -187,7 +187,7 @@ void RenderUtility::setFont(IGraphics2D& g , int fontID )
 
 }
 
-void RenderUtility::startOpenGL()
+void RenderUtility::StartOpenGL()
 {
 	HDC hDC = ::Global::getDrawEngine()->getWindow().getHDC();
 	char const* faceName = "·s²Ó©úÅé";
@@ -198,25 +198,25 @@ void RenderUtility::startOpenGL()
 	FontGL[ FONT_S24 ].create( 24 , faceName , hDC );
 }
 
-void RenderUtility::stopOpenGL()
+void RenderUtility::StopOpenGL()
 {
 	for( int i = 0 ; i < FONT_NUM ; ++i)
 		FontGL[i].release();
 }
 
-void RenderUtility::setFontColor(Graphics2D& g , int color , int type /*= COLOR_NORMAL */)
+void RenderUtility::SetFontColor(Graphics2D& g , int color , int type /*= COLOR_NORMAL */)
 {
 	COLORREF const& c = gColorMap[type][color];
 	g.setTextColor( GetRValue( c ) , GetGValue( c )  , GetBValue( c ) );
 }
 
-void RenderUtility::setFontColor(GLGraphics2D& g , int color , int type /*= COLOR_NORMAL */)
+void RenderUtility::SetFontColor(GLGraphics2D& g , int color , int type /*= COLOR_NORMAL */)
 {
 	COLORREF const& c = gColorMap[type][color];
 	g.setTextColor( GetRValue( c ) , GetGValue( c )  , GetBValue( c ) );
 }
 
-void RenderUtility::setFontColor(IGraphics2D& g , int color , int type /*= COLOR_NORMAL */)
+void RenderUtility::SetFontColor(IGraphics2D& g , int color , int type /*= COLOR_NORMAL */)
 {
 	COLORREF const& c = gColorMap[type][color];
 	g.setTextColor( GetRValue( c ) , GetGValue( c )  , GetBValue( c ) );

@@ -180,7 +180,7 @@ namespace GreedySnake
 
 		Level( Listener* listener );
 
-		bool       isVaildMapRange( Vec2i const& pos ){ return mMap.checkRange( pos.x , pos.y ); }
+		bool       isMapRange( Vec2i const& pos ){ return mMap.checkRange( pos.x , pos.y ); }
 		void       setupMap( Vec2i const& size , MapBoundType type );
 		void       setTerrain( Vec2i const& pos , int type ){ mMap.getData( pos.x , pos.y ).terrain = type;  }
 		int        getTerrain( Vec2i const& pos ){ return mMap.getData( pos.x , pos.y ).terrain;  }

@@ -120,7 +120,7 @@ namespace Voronoi
 			queue.pop();
 			mSweepY = e->point->y;
 
-			if ( e->isVaild() )
+			if ( e->is() )
 			{
 				if(e->pe) 
 					InsertParabola(e->point);
@@ -175,7 +175,7 @@ namespace Voronoi
 
 		if(par->cEvent)
 		{
-			par->cEvent->invaildate();
+			par->cEvent->inate();
 			par->cEvent = 0;
 		}
 
@@ -219,8 +219,8 @@ namespace Voronoi
 
 		// 	if(p0 == p2) std::cout << "chyba - prav?a lev?parabola m?stejn?ohnisko!\n";
 
-		if(pCL->cEvent){ pCL->cEvent->invaildate(); pCL->cEvent = 0; }
-		if(pCR->cEvent){ pCR->cEvent->invaildate(); pCR->cEvent = 0; }
+		if(pCL->cEvent){ pCL->cEvent->inate(); pCL->cEvent = 0; }
+		if(pCR->cEvent){ pCR->cEvent->inate(); pCR->cEvent = 0; }
 
 		VPoint * p = createPoint(e->point->x, GetY(p1->site, e->point->x));
 	

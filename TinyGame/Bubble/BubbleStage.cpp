@@ -95,7 +95,7 @@ namespace Bubble
 
 	void LevelStage::onRender( float dFrame )
 	{
-		Vec2f pos = Vec2f( 100 , 100 );
+		Vector2 pos = Vector2( 100 , 100 );
 
 		Graphics2D& g = Global::getGraphics2D();
 
@@ -115,7 +115,7 @@ namespace Bubble
 			if ( getGameState() != GS_END )
 			{
 				::Global::GUI().showMessageBox( 
-					UI_RESTART_GAME , LAN("Do you Want to Stop Current Game?") );
+					UI_RESTART_GAME , LOCTEXT("Do you Want to Stop Current Game?") );
 			}
 			else
 			{

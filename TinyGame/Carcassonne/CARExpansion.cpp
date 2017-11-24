@@ -3,6 +3,8 @@
 #include "CARDefine.h"
 #include "CARGameplaySetting.h"
 
+#include "Template/ArrayView.h"
+
 #pragma warning( disable : 4482 ; error : 4002 )
 namespace CAR
 {
@@ -56,8 +58,6 @@ namespace CAR
 		case EXP_THE_RIVER:
 			break;
 		case EXP_THE_RIVER_II:
-			break;
-		case EXP_NULL:
 			break;
 		}
 	}
@@ -345,10 +345,10 @@ namespace CAR
 /*04*/ 	{ 1, { LC,LC,LF,LR }, SL2(0,1)     , SL3(0,1,3)   , 0, { 0 , 0 , 0 , 0 }, 0, { FL_RE } , 0 } ,
 /*00*/ 	{ 1, { LC,LC,LR,LC }, SL_NONE      , SL_NONE      , 0, { 0 , 0 , 0 , 0 }, 0, { FL_RE } , 0 } ,
 	};
-
-	ExpansionContent gAllExpansionTileContents[] =
-	{
 #define EXPDATA( NAME , DATA ) { NAME , DATA , ARRAY_SIZE( DATA ) } ,
+	TArrayView< ExpansionContent const > gAllExpansionTileContents =
+	ARRAY_VIEW_REAONLY_DATA(ExpansionContent ,
+
 		EXPDATA(EXP_BASIC , DataBasic)
 		EXPDATA(EXP_INNS_AND_CATHEDRALS , DataInnCathedral)
 		EXPDATA(EXP_TRADERS_AND_BUILDERS , DataTraderBuilder)
@@ -365,9 +365,8 @@ namespace CAR
 		EXPDATA(EXP_HALFLINGS_I , DataHalflings1 )
 
 		EXPDATA(EXP_TEST , DataTest)
+	);
 #undef EXPDATA
-		{  EXP_NULL , 0 , 0  }
-	};
 
 #undef LF 
 #undef LC

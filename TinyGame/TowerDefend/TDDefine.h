@@ -5,6 +5,7 @@
 #include "FastDelegate/FastDelegate.h"
 
 #include "TVector2.h"
+#include "Math/Vector2.h"
 
 #include <cmath>
 #include <cassert>
@@ -12,12 +13,12 @@
 namespace TowerDefend
 {
 	typedef TVector2< int >   Vec2i;
-	typedef TVector2< float > Vec2f;
+	typedef ::Math::Vector2   Vector2;
 
 	typedef unsigned char uint8;
 	float const gTowerDefendFPS = 30;
 
-	inline float normalize( Vec2f& vec )
+	inline float normalize( Vector2& vec )
 	{
 		float len = sqrt( vec.length2() );
 		if ( len > 1e-5f )

@@ -2,7 +2,7 @@
 #define BubbleStage_h__
 
 #include "GameStage.h"
-#include "GameInstance.h"
+#include "GameModule.h"
 
 #include "BubbleMode.h"
 

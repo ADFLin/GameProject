@@ -49,9 +49,9 @@ namespace TowerDefend
 		unsigned     getType(){ return mType;  }
 		void         destroy(){  addFlag( EF_DESTROY );  }
 
-		Vec2f const& getPos(){ return mPos; }
-		void         shiftPos( Vec2f const& offset){ mPos += offset; onChangePos(); }
-		void         setPos( Vec2f const& pos ){  mPos = pos;  onChangePos(); }
+		Vector2 const& getPos(){ return mPos; }
+		void         shiftPos( Vector2 const& offset){ mPos += offset; onChangePos(); }
+		void         setPos( Vector2 const& pos ){  mPos = pos;  onChangePos(); }
 
 		void         addFlag( unsigned bits )   { mFlag |= bits; }
 		void         removeFlag( unsigned bits ){ mFlag &= ~bits;  }
@@ -113,8 +113,8 @@ namespace TowerDefend
 		UIDType    mUID;
 		unsigned   mType;
 		unsigned   mFlag;
-		Vec2f      mPos;
-		Vec2f      mPrevPos;
+		Vector2      mPos;
+		Vector2      mPrevPos;
 		World*     mWorld;
 	};
 
@@ -214,7 +214,7 @@ protected:\
 
 		void  addEntity( Entity* entity );
 
-		Entity* findEntity( Vec2f const& pos , float radius , bool beMinRadius , EntityFilter& filter );
+		Entity* findEntity( Vector2 const& pos , float radius , bool beMinRadius , EntityFilter& filter );
 
 		template< class Visitor >
 		void  visitEntity( Visitor& visitor )

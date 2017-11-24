@@ -42,6 +42,17 @@ namespace RenderGL
 		RHITexture2D* mRHI;
 	};
 
+	class MaterialShaderProgram : public ShaderProgram
+	{
+	public:
+
+		struct ShaderParamBind
+		{
+			ShaderParameter parameter;
+		};
+
+	};
+
 	class Material
 	{
 	public:
@@ -61,7 +72,7 @@ namespace RenderGL
 
 		virtual MaterialMaster* getMaster() = 0;
 
-		void setupShader(ShaderProgram& shader) { doSetupShader(shader, 0); }
+		void setupShader(MaterialShaderProgram& shader) { doSetupShader(shader, 0); }
 
 	protected:
 
@@ -114,11 +125,11 @@ namespace RenderGL
 		}
 
 
-		virtual void doSetupShader(ShaderProgram& shader, uint32 skipMask) = 0;
+		virtual void doSetupShader(MaterialShaderProgram& shader, uint32 skipMask) = 0;
 
 
 		friend class MaterialInstance;
-		void bindShaderParamInternal(ShaderProgram& shader, uint32 skipMask);
+		void bindShaderParamInternal(MaterialShaderProgram& shader, uint32 skipMask);
 		ParamSlot& fetchParam(char const* name, ParamType type);
 
 		int        findParam(ParamSlot const& slot);
@@ -162,11 +173,12 @@ namespace RenderGL
 	};
 
 
+
 	class MaterialShaderMap
 	{
 	public:
 		~MaterialShaderMap();
-		ShaderProgram*  getShader(RenderTechiqueUsage shaderUsage , VertexFactory* vertexFactory );
+		MaterialShaderProgram*  getShader(RenderTechiqueUsage shaderUsage , VertexFactory* vertexFactory );
 
 
 		void releaseRHI();
@@ -176,11 +188,12 @@ namespace RenderGL
 
 		struct ShaderCache
 		{
-			ShaderProgram shaders[(int)RenderTechiqueUsage::Count];
+			MaterialShaderProgram shaders[(int)RenderTechiqueUsage::Count];
 		};
 
 		std::unordered_map< VertexFarcoryType*, ShaderCache* > mShaderCacheMap;
 	};
+
 
 	class MaterialMaster : public Material
 	{
@@ -197,7 +210,7 @@ namespace RenderGL
 		}
 
 
-		void doSetupShader(ShaderProgram& shader, uint32 skipMask) override { bindShaderParamInternal(shader, 0); }
+		void doSetupShader(MaterialShaderProgram& shader, uint32 skipMask) override { bindShaderParamInternal(shader, 0); }
 
 		void releaseRHI()
 		{
@@ -206,7 +219,7 @@ namespace RenderGL
 
 		MaterialMaster* getMaster() override { return this; }
 		MaterialShaderMap& getShaderMap() { return mShaderMap; }
-		ShaderProgram*  getShader(RenderTechiqueUsage shaderUsage , VertexFactory* vertexFactory )
+		MaterialShaderProgram*  getShader(RenderTechiqueUsage shaderUsage , VertexFactory* vertexFactory )
 		{
 			return mShaderMap.getShader(shaderUsage , vertexFactory);
 		}
@@ -242,7 +255,7 @@ namespace RenderGL
 		}
 
 
-		void doSetupShader(ShaderProgram& shader, uint32 skipMask) override
+		void doSetupShader(MaterialShaderProgram& shader, uint32 skipMask) override
 		{
 			bindShaderParamInternal(shader, skipMask);
 			mParent->bindShaderParamInternal(shader, mOverwriteMask);

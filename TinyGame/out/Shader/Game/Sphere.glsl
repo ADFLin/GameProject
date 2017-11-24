@@ -79,7 +79,7 @@ vec4 VSOutputMain( out VSOutput outVS )
 		calcOffset( vec2( spherePosV.x , -spherePosV.z ) , Sphere.radius , gl_Vertex.x ),
 		calcOffset( vec2( spherePosV.y , -spherePosV.z ) , Sphere.radius , gl_Vertex.y ), 
 		-Sphere.radius );
-	outVS.viewOffsetL = Sphere.localPos + ( gl_ModelViewMatrixInverse * vec4( offsetV , 0 ) ) - camPosL;
+	outVS.viewOffsetL = Sphere.localPos + ( gl_ModelViewMatrixInverse * vec4( offsetV , 0 ) ).xyz - camPosL;
 #ifdef USE_SHADOW_MAP
 	outVS.viewOffsetV = offsetV;
 #endif

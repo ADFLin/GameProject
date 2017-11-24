@@ -46,7 +46,7 @@ namespace Bubble
 		mTimeCount = 0;
 	}
 
-	void Scene::render( Graphics2D& g , Vec2f const& pos )
+	void Scene::render( Graphics2D& g , Vector2 const& pos )
 	{
 		for ( int i = 0 ; i < mLevel.mNumCellData ; ++i )
 		{
@@ -55,7 +55,7 @@ namespace Bubble
 			if ( cell.isBlock() || cell.isEmpty() )
 				continue;
 
-			Vec2f cPos = mLevel.calcCellCenterPos( i );
+			Vector2 cPos = mLevel.calcCellCenterPos( i );
 
 			//if ( cell.isBlock() )
 			//{
@@ -97,20 +97,20 @@ namespace Bubble
 		}
 	}
 
-	void Scene::renderDbg( Graphics2D& g , Vec2f const& pos , int index )
+	void Scene::renderDbg( Graphics2D& g , Vector2 const& pos , int index )
 	{
 		bool isEven = mLevel.isEvenLayer( index );
 
-		Vec2f cPos = mLevel.calcCellCenterPos( index );
-		g.setBrush( ColorKey3( 0 , 0 , 255 ) );
+		Vector2 cPos = mLevel.calcCellCenterPos( index );
+		g.setBrush( Color3ub( 0 , 0 , 255 ) );
 		g.drawCircle( pos + cPos , int( g_BubbleRadius - 10) );
-		g.setBrush( ColorKey3( 255 , 255 , 0 ) );
+		g.setBrush( Color3ub( 255 , 255 , 0 ) );
 
 		for( int i = 0 ; i < NUM_LINK_DIR ; ++i )
 		{
 			int linkIdx = mLevel.getLinkCellIndex( index , LinkDir(i) , isEven );
 			//BubbleCell& linkCell = mLevel.getCell( linkIdx );
-			Vec2f cPos = mLevel.calcCellCenterPos( linkIdx );
+			Vector2 cPos = mLevel.calcCellCenterPos( linkIdx );
 
 			g.drawCircle( pos + cPos , int( g_BubbleRadius -10) );
 		}
@@ -119,23 +119,23 @@ namespace Bubble
 		//g.setBrush( ColorKey3( 255 , 0 , 0 ) );
 		//for( int i = 0 ; i < mLevel.mNumFallCell ; ++i )
 		//{
-		//	Vec2f cPos = mLevel.calcCellCenterPos( mLevel.mIndexFallCell[i] );
+		//	Vector2 cPos = mLevel.calcCellCenterPos( mLevel.mIndexFallCell[i] );
 		//	g.drawCircle( pos + cPos , g_BubbleRadius - 5 );
 		//}
 	}
 
-	void Scene::renderBubbleList( Graphics2D& g , Vec2f const& pos , BubbleList& bList )
+	void Scene::renderBubbleList( Graphics2D& g , Vector2 const& pos , BubbleList& bList )
 	{
 		for( BubbleList::iterator iter = bList.begin() ,iterEnd = bList.end() ;
 			iter != iterEnd ; ++iter )
 		{
 			SceneBubble* bubble = *iter;
-			Vec2f bPos = pos + bubble->pos;
+			Vector2 bPos = pos + bubble->pos;
 
 			if ( bubble->alpha != 1.0f )
 			{
-				g.beginBlend( bPos - Vec2f( g_BubbleRadius , g_BubbleRadius ) , 
-					Vec2f( g_BubbleDiameter , g_BubbleDiameter ) , bubble->alpha );
+				g.beginBlend( bPos - Vector2( g_BubbleRadius , g_BubbleRadius ) , 
+					Vector2( g_BubbleDiameter , g_BubbleDiameter ) , bubble->alpha );
 
 				renderBubble( g , pos + bubble->pos , bubble->color );
 
@@ -149,43 +149,43 @@ namespace Bubble
 
 	}
 
-	void Scene::renderBubble( Graphics2D& g , Vec2f const& pos , int color )
+	void Scene::renderBubble( Graphics2D& g , Vector2 const& pos , int color )
 	{
-		RenderUtility::setPen( g , Color::eBlack );
-		RenderUtility::setBrush( g , color , COLOR_NORMAL);
+		RenderUtility::SetPen( g , Color::eBlack );
+		RenderUtility::SetBrush( g , color , COLOR_NORMAL);
 		g.drawCircle( pos , int( g_BubbleRadius )  );
 
-		RenderUtility::setBrush( g ,  color , COLOR_DEEP );
-		RenderUtility::setPen( g , Color::eNull );
+		RenderUtility::SetBrush( g ,  color , COLOR_DEEP );
+		RenderUtility::SetPen( g , Color::eNull );
 		g.drawCircle( pos , int( g_BubbleRadius - 5.0 ) );
 
-		RenderUtility::setBrush( g ,  color , COLOR_LIGHT );
-		g.drawCircle( pos + Vec2f( 5 , -5 ) , 5 );
+		RenderUtility::SetBrush( g ,  color , COLOR_LIGHT );
+		g.drawCircle( pos + Vector2( 5 , -5 ) , 5 );
 	}
 
-	void Scene::renderBackground( Graphics2D& g , Vec2f const& pos )
+	void Scene::renderBackground( Graphics2D& g , Vector2 const& pos )
 	{
 		int width  = int( mLevel.mNumFreeCellLayer * g_BubbleDiameter );
-		RenderUtility::drawBlock( g , pos - Vec2f( (float)BlockSize , (float)BlockSize ) , 
+		RenderUtility::DrawBlock( g , pos - Vector2( (float)BlockSize , (float)BlockSize ) , 
 			Vec2i(   width + 2 * BlockSize , BlockSize ) , Color::eGray );
 
-		RenderUtility::drawBlock( g , pos - Vec2f( (float)BlockSize , 0 ) , 
+		RenderUtility::DrawBlock( g , pos - Vector2( (float)BlockSize , 0 ) , 
 			Vec2i( BlockSize , (int)mLevel.mMaxDepth ) , Color::eGray );
 
-		RenderUtility::drawBlock( g , pos + Vec2f( (float)width , 0 ) , 
+		RenderUtility::DrawBlock( g , pos + Vector2( (float)width , 0 ) , 
 			Vec2i( BlockSize , (int)mLevel.mMaxDepth ) , Color::eGray );
 
 	}
 
-	void Scene::renderLauncher( Graphics2D& g , Vec2f const& pos )
+	void Scene::renderLauncher( Graphics2D& g , Vector2 const& pos )
 	{
-		RenderUtility::setBrush( g ,  mLevel.mShootBubbleColor );
-		RenderUtility::setPen( g ,  mLevel.mShootBubbleColor );
+		RenderUtility::SetBrush( g ,  mLevel.mShootBubbleColor );
+		RenderUtility::SetPen( g ,  mLevel.mShootBubbleColor );
 
-		Vec2f bPos = pos + mLevel.mLauncherPos;
+		Vector2 bPos = pos + mLevel.mLauncherPos;
 
-		Vec2f startPos = bPos + 10 * mLevel.mLauncherDir;
-		Vec2f offset = 15 * mLevel.mLauncherDir;
+		Vector2 startPos = bPos + 10 * mLevel.mLauncherDir;
+		Vector2 offset = 15 * mLevel.mLauncherDir;
 		int idx = ( mTimeCount / 120 ) % 13 - 4;
 		for( int i = 0 ; i < 5 ; ++ i )
 		{

@@ -24,8 +24,8 @@ namespace BomberMan
 
 	float const gTileLength = 1.0f;
 	float const gTileHalfLength = 0.5f * gTileLength;
-	Vec2f const gTileCenterOffset = Vec2f( gTileHalfLength , gTileHalfLength );
-	Vec2f const gTileSize = Vec2f( gTileLength , gTileLength );
+	Vector2 const gTileCenterOffset = Vector2( gTileHalfLength , gTileHalfLength );
+	Vector2 const gTileSize = Vector2( gTileLength , gTileLength );
 
 	unsigned gTypeMask[ NumObjectType ];
 
@@ -39,7 +39,7 @@ namespace BomberMan
 	}
 
 
-	static bool testIntersect( Vec2f const& aMin , Vec2f const& aMax , Vec2f const& bMin , Vec2f const& bMax )
+	static bool testIntersect( Vector2 const& aMin , Vector2 const& aMax , Vector2 const& bMin , Vector2 const& bMax )
 	{
 		if ( aMax.x <= bMin.x || bMax.x <= aMin.x )
 			return false;
@@ -48,7 +48,7 @@ namespace BomberMan
 		return true;
 	}
 
-	static Dir calcIntersectInfo( Vec2f const& aMin , Vec2f const& aMax , Vec2f const& bMin , Vec2f const& bMax , float& depth )
+	static Dir calcIntersectInfo( Vector2 const& aMin , Vector2 const& aMax , Vector2 const& bMin , Vector2 const& bMax , float& depth )
 	{
 		assert( testIntersect( aMin, aMax, bMin, bMax ) );
 
@@ -73,12 +73,12 @@ namespace BomberMan
 	}
 
 
-	Vec2f TileToPos( Vec2i const& pos )
+	Vector2 TileToPos( Vec2i const& pos )
 	{
-		return Vec2f( gTileLength * pos.x , gTileLength * pos.y );
+		return Vector2( gTileLength * pos.x , gTileLength * pos.y );
 	}
 
-	Vec2i PosToTile( Vec2f const& pos )
+	Vec2i PosToTile( Vector2 const& pos )
 	{
 		return Vec2i( int( pos.x / gTileLength ) , int ( pos.y / gTileLength ) );
 	}
@@ -570,20 +570,20 @@ namespace BomberMan
 		for( int dir = 0 ; dir < 4 ; ++dir )
 			fireLen[dir] = bomb.getFireLength( Dir(dir) );
 
-		Vec2f bombPos   = TileToPos( bomb.pos );
+		Vector2 bombPos   = TileToPos( bomb.pos );
 		float const fireGap  = 0.1f;
 
-		Vec2f minFire[4];
-		Vec2f maxFire[4];
+		Vector2 minFire[4];
+		Vector2 maxFire[4];
 
-		minFire[DIR_EAST ] = Vec2f( 0 , fireGap );
-		maxFire[DIR_EAST ] = Vec2f( fireLen[DIR_EAST] + 1.0f , 1.0f - fireGap );
-		minFire[DIR_SOUTH] = Vec2f( fireGap , 0 );
-		maxFire[DIR_SOUTH] = Vec2f( 1.0f - fireGap , fireLen[DIR_SOUTH] + 1.0f );
-		minFire[DIR_WEST ] = Vec2f( -fireLen[DIR_WEST] , fireGap );
-		maxFire[DIR_WEST ] = Vec2f( 1.0f , 1.0f - fireGap );
-		minFire[DIR_NORTH] = Vec2f( fireGap , -fireLen[ DIR_NORTH ] );
-		maxFire[DIR_NORTH] = Vec2f( 1.0f -fireGap , 1.0f );
+		minFire[DIR_EAST ] = Vector2( 0 , fireGap );
+		maxFire[DIR_EAST ] = Vector2( fireLen[DIR_EAST] + 1.0f , 1.0f - fireGap );
+		minFire[DIR_SOUTH] = Vector2( fireGap , 0 );
+		maxFire[DIR_SOUTH] = Vector2( 1.0f - fireGap , fireLen[DIR_SOUTH] + 1.0f );
+		minFire[DIR_WEST ] = Vector2( -fireLen[DIR_WEST] , fireGap );
+		maxFire[DIR_WEST ] = Vector2( 1.0f , 1.0f - fireGap );
+		minFire[DIR_NORTH] = Vector2( fireGap , -fireLen[ DIR_NORTH ] );
+		maxFire[DIR_NORTH] = Vector2( 1.0f -fireGap , 1.0f );
 
 		CollisionInfo info;
 		info.type = COL_FIRE;
@@ -596,8 +596,8 @@ namespace BomberMan
 
 			if ( data.obj->getColMask() & CMB_FIRE )
 			{
-				Vec2f minObj = data.bMin - bombPos; 
-				Vec2f maxObj = data.bMax - bombPos;
+				Vector2 minObj = data.bMin - bombPos; 
+				Vector2 maxObj = data.bMax - bombPos;
 
 				for( int i = 0 ; i < 4 ; ++i )
 				{
@@ -626,8 +626,8 @@ namespace BomberMan
 		float depth;
 		Dir dir = calcIntersectInfo( data1.bMin , data1.bMax , data2.bMin , data2.bMax , depth );
 
-		Vec2f posA = playerA->getPos();
-		Vec2f posB = playerB->getPos();
+		Vector2 posA = playerA->getPos();
+		Vector2 posB = playerB->getPos();
 
 		int idx = dir % 2;
 		if ( playerA->getFaceDir() == dir )
@@ -777,7 +777,7 @@ namespace BomberMan
 		return getTile( warpPos );
 	}
 
-	TileData* World::getTileWithPos( Vec2f const& pos , Vec2i& tPos )
+	TileData* World::getTileWithPos( Vector2 const& pos , Vec2i& tPos )
 	{
 		if ( 0 > pos.x || pos.x > (float) gTileLength * mMap.getSizeX() )
 			return NULL;
@@ -895,24 +895,24 @@ namespace BomberMan
 	}
 
 
-	bool Actor::moveOnTile( Dir moveDir , float offset , Vec2f& goalPos , TileData* colTile[] , float margin )
+	bool Actor::moveOnTile( Dir moveDir , float offset , Vector2& goalPos , TileData* colTile[] , float margin )
 	{
 		assert( offset > 0 );
 		assert( getHalfBoundSize().x + margin  < gTileHalfLength && getHalfBoundSize().y + margin < gTileHalfLength );
 
 		float const MaxDiff = 0.40f;
 
-		Vec2f const& pos = getPrevPos();
+		Vector2 const& pos = getPrevPos();
 
 		int idxMove = moveDir % 2;
 		int idxFix  = ( idxMove + 1 ) % 2;
 
-		Vec2f cp = pos;
+		Vector2 cp = pos;
 		float testLen = getHalfBoundSize()[ idxMove ];
 		cp[ idxMove ] += ( testLen + offset + margin ) * gDirFactor[ moveDir ];
 
-		Vec2f p1 = cp; p1[ idxFix ] -= testLen;
-		Vec2f p2 = cp; p2[ idxFix ] += testLen;
+		Vector2 p1 = cp; p1[ idxFix ] -= testLen;
+		Vector2 p2 = cp; p2[ idxFix ] += testLen;
 
 		colTile[0] = testBlocked( p1 );
 		colTile[1] = testBlocked( p2 );
@@ -969,7 +969,7 @@ namespace BomberMan
 	}
 
 
-	TileData* Actor::testBlocked( Vec2f const& pos )
+	TileData* Actor::testBlocked( Vector2 const& pos )
 	{
 		Vec2i tPos;
 		TileData* tile = getWorld()->getTileWithPos( pos , tPos );
@@ -987,7 +987,7 @@ namespace BomberMan
 		:BaseClass( OT_PLAYER )
 		,mId( id )
 	{
-		setHalfBoundSize( gTileLength * Vec2f( 0.475f , 0.475f ) );
+		setHalfBoundSize( gTileLength * Vector2( 0.475f , 0.475f ) );
 	}
 
 	void Player::reset()
@@ -1037,7 +1037,7 @@ namespace BomberMan
 
 	void Player::update()
 	{
-		Vec2f nextPos = getPos(); 
+		Vector2 nextPos = getPos(); 
 
 		mTimeState += 1;
 
@@ -1051,12 +1051,12 @@ namespace BomberMan
 			{
 				TileData* tiles[4] = { NULL };
 
-				Vec2f const& bSize = getHalfBoundSize();
+				Vector2 const& bSize = getHalfBoundSize();
 				int numTile = 0;
-				numTile = checkTouchTileInternal( getPos() + Vec2f( bSize.x ,  bSize.y ) , tiles , numTile );
-				numTile = checkTouchTileInternal( getPos() + Vec2f( -bSize.x , -bSize.y ) , tiles , numTile );
-				numTile = checkTouchTileInternal( getPos() + Vec2f( bSize.x , -bSize.y ) , tiles , numTile );
-				numTile = checkTouchTileInternal( getPos() + Vec2f( -bSize.x ,  bSize.y ) , tiles , numTile );
+				numTile = checkTouchTileInternal( getPos() + Vector2( bSize.x ,  bSize.y ) , tiles , numTile );
+				numTile = checkTouchTileInternal( getPos() + Vector2( -bSize.x , -bSize.y ) , tiles , numTile );
+				numTile = checkTouchTileInternal( getPos() + Vector2( bSize.x , -bSize.y ) , tiles , numTile );
+				numTile = checkTouchTileInternal( getPos() + Vector2( -bSize.x ,  bSize.y ) , tiles , numTile );
 
 				updateAction( nextPos );
 			}
@@ -1065,7 +1065,7 @@ namespace BomberMan
 			if ( mTimeState > 100 && getWorld()->getRule().haveGhost )
 			{
 				changeState( STATE_GHOST );
-				nextPos =  Vec2f( gTileHalfLength , 1.5 * gTileLength );
+				nextPos =  Vector2( gTileHalfLength , 1.5 * gTileLength );
 				setFaceDir( DIR_EAST );
 			}
 			break;
@@ -1081,7 +1081,7 @@ namespace BomberMan
 
 				if ( checkActionKey( Actor::ACT_MOVE ) )
 				{
-					nextPos = getPos() + gGhostMoveSpeed * gTileLength * Vec2f( getDirOffset( MoveDirMap[ getFaceDir() ] ) );
+					nextPos = getPos() + gGhostMoveSpeed * gTileLength * Vector2( getDirOffset( MoveDirMap[ getFaceDir() ] ) );
 					
 					switch( getFaceDir() )
 					{
@@ -1117,7 +1117,7 @@ namespace BomberMan
 				}
 				else if ( checkActionKey( Actor::ACT_MOVE_INV ))
 				{
-					 nextPos = getPos() + gGhostMoveSpeed * gTileLength * Vec2f( getDirOffset( InvMoveDirMap[ getFaceDir() ] ) );
+					 nextPos = getPos() + gGhostMoveSpeed * gTileLength * Vector2( getDirOffset( InvMoveDirMap[ getFaceDir() ] ) );
 
 					switch( getFaceDir() )
 					{
@@ -1194,7 +1194,7 @@ namespace BomberMan
 		BaseClass::postUpdate();
 	}
 
-	int Player::checkTouchTileInternal( Vec2f const& pos , TileData* tiles[] , int numTile )
+	int Player::checkTouchTileInternal( Vector2 const& pos , TileData* tiles[] , int numTile )
 	{
 		Vec2i tPos;
 		TileData* tile = getWorld()->getTileWithPos( pos , tPos );
@@ -1336,7 +1336,7 @@ namespace BomberMan
 		}
 	}
 
-	TileData* Player::testBlocked( Vec2f const& pos )
+	TileData* Player::testBlocked( Vector2 const& pos )
 	{
 		TileData* tile = BaseClass::testBlocked( pos );
 
@@ -1412,7 +1412,7 @@ namespace BomberMan
 
 	}
 
-	void Player::updateAction( Vec2f& nextPos )
+	void Player::updateAction( Vector2& nextPos )
 	{
 		mTimeAction += 1;
 
@@ -1542,7 +1542,7 @@ namespace BomberMan
 				case RT_GYAROOEY:
 					{
 						float gRange = 0.3 * gTileLength;
-						Vec2f testPos = getPos() + gRange * Vec2f( getDirOffset( getFaceDir()) );
+						Vector2 testPos = getPos() + gRange * Vector2( getDirOffset( getFaceDir()) );
 						Vec2i tPos = PosToTile( testPos );
 
 						if ( tPos != PosToTile( getPos() ) )
@@ -1584,7 +1584,7 @@ namespace BomberMan
 		mStopReady = false;
 		setColMask( CMB_SOILD | CMB_FIRE );
 
-		Vec2f bSize( gTileHalfLength , gTileHalfLength );
+		Vector2 bSize( gTileHalfLength , gTileHalfLength );
 		mTrigger.setHalfBoundSize( bSize );
 		mTrigger.setColMask( CMB_SOILD );
 		mTrigger.collisionFun = Trigger::CollisionFun( this , &MoveBomb::onTiggerCollision );
@@ -1598,7 +1598,7 @@ namespace BomberMan
 	{
 		Bomb& bomb = getData();
 
-		Vec2f offset = mMoveSpeed * gTileLength * Vec2f( getDirOffset( mMoveDir ) );
+		Vector2 offset = mMoveSpeed * gTileLength * Vector2( getDirOffset( mMoveDir ) );
 
 		if ( ( bomb.flag & BF_CONTROLLABLE ) &&
 			   bomb.owner->checkActionKey( Player::ACT_FUN ) )
@@ -1650,7 +1650,7 @@ namespace BomberMan
 			}
 		}
 
-		Vec2f testPos = getPos() + offset + gTileHalfLength * Vec2f( getDirOffset( mMoveDir ) );
+		Vector2 testPos = getPos() + offset + gTileHalfLength * Vector2( getDirOffset( mMoveDir ) );
 	
 		Vec2i tTestPos;
 		TileData* tile = getWorld()->getTileWithPos( testPos , tTestPos );
@@ -1664,7 +1664,7 @@ namespace BomberMan
 					{
 						mMoveDir = getInvDir( mMoveDir );
 						setPos( TileToPos( tTestPos + getDirOffset( mMoveDir ) ) + gTileCenterOffset );
-						mTrigger.setPos( getPos() + gTileLength * Vec2f( getDirOffset( mMoveDir ) ) );
+						mTrigger.setPos( getPos() + gTileLength * Vector2( getDirOffset( mMoveDir ) ) );
 						return;
 					}
 				}
@@ -1680,7 +1680,7 @@ namespace BomberMan
 		}
 
 		setPos( getPrevPos() + offset );
-		mTrigger.setPos( getPos() + gTileLength * Vec2f( getDirOffset( mMoveDir ) ) );
+		mTrigger.setPos( getPos() + gTileLength * Vector2( getDirOffset( mMoveDir ) ) );
 	}
 
 	void MoveBomb::postUpdate()
@@ -1722,7 +1722,7 @@ namespace BomberMan
 					Bomb& otherBomb = static_cast< BombObject* >( info.obj )->getData();
 					if ( bomb.state == Bomb::eMOVE && otherBomb.state == Bomb::eMOVE )
 					{
-						Vec2f offset = getPos() - info.obj->getClient()->getPos();
+						Vector2 offset = getPos() - info.obj->getClient()->getPos();
 						float const gBombMergeDist = 0.3;
 						if (  offset.length2() < gBombMergeDist * gBombMergeDist )
 						{
@@ -1785,7 +1785,7 @@ namespace BomberMan
 		:BaseClass( idx )
 	{
 		setPos( TileToPos(pos) + gTileCenterOffset );
-		setHalfBoundSize( Vec2f( gTileHalfLength , gTileHalfLength ) );
+		setHalfBoundSize( Vector2( gTileHalfLength , gTileHalfLength ) );
 		mCurTilePos = pos;
 		mMoveDir    = dir;
 		mJumpDist   = jumpDist;
@@ -1808,7 +1808,7 @@ namespace BomberMan
 			mHaveBlocked = false;
 		}
 
-		setPos( TileToPos( mCurTilePos ) + ( float( mTimer ) / float(AdvanceTime) ) * gTileLength * Vec2f( getDirOffset( mMoveDir ) ) + gTileCenterOffset );
+		setPos( TileToPos( mCurTilePos ) + ( float( mTimer ) / float(AdvanceTime) ) * gTileLength * Vector2( getDirOffset( mMoveDir ) ) + gTileCenterOffset );
 	}
 
 	void JumpBomb::postUpdate()
@@ -1920,7 +1920,7 @@ namespace BomberMan
 	}
 
 
-	MoveItem::MoveItem( Item item , Vec2f const& from , Vec2f const& to ) 
+	MoveItem::MoveItem( Item item , Vector2 const& from , Vector2 const& to ) 
 		:BaseClass( OT_ITEM )
 		,mItem( item )
 		,mDest( to )
@@ -1932,7 +1932,7 @@ namespace BomberMan
 	{
 		float const moveSpeed = 0.01;
 
-		Vec2f offset = mDest - getPrevPos();
+		Vector2 offset = mDest - getPrevPos();
 		float len2 = offset.length2();
 
 		if ( len2 < moveSpeed * moveSpeed )
@@ -1994,7 +1994,7 @@ namespace BomberMan
 		switch ( mState )
 		{
 		case eWAIT_IN:
-			mRider->setPos( getPos() - mOffset * ( 1.0 - float( mRider->getActionTime() ) / gWaitTime ) * Vec2f( getDirOffset( mRider->getFaceDir() ) )  );
+			mRider->setPos( getPos() - mOffset * ( 1.0 - float( mRider->getActionTime() ) / gWaitTime ) * Vector2( getDirOffset( mRider->getFaceDir() ) )  );
 			if ( mRider->getActionTime() >= gWaitTime )
 			{
 				Vec2i tPos;
@@ -2031,7 +2031,7 @@ namespace BomberMan
 				float const gMineCarMoveSpeed = 0.12;
 				mOffset -= gMineCarMoveSpeed;
 
-				Vec2f nextPos;
+				Vector2 nextPos;
 
 				if ( mOffset <= 0 )
 				{
@@ -2048,7 +2048,7 @@ namespace BomberMan
 						mOffset += gTileLength;
 
 						mRider->setFaceDir( mMoveDir );
-						nextPos = TileToPos( mGoalTilePos ) + gTileCenterOffset + mOffset * Vec2f( getDirOffset( getInvDir( mMoveDir ) ) );
+						nextPos = TileToPos( mGoalTilePos ) + gTileCenterOffset + mOffset * Vector2( getDirOffset( getInvDir( mMoveDir ) ) );
 					}
 					else
 					{
@@ -2071,7 +2071,7 @@ namespace BomberMan
 				}
 				else
 				{
-					nextPos = TileToPos( mGoalTilePos ) + gTileCenterOffset + mOffset * Vec2f( getDirOffset( getInvDir( mMoveDir ) ) );
+					nextPos = TileToPos( mGoalTilePos ) + gTileCenterOffset + mOffset * Vector2( getDirOffset( getInvDir( mMoveDir ) ) );
 				}
 
 				setPos( nextPos );
@@ -2088,7 +2088,7 @@ namespace BomberMan
 			}
 			else
 			{
-				mRider->setPos( getPos() + gTileLength * ( float( mRider->getActionTime() ) / gWaitTime ) * Vec2f( getDirOffset( mMoveDir ) ) );
+				mRider->setPos( getPos() + gTileLength * ( float( mRider->getActionTime() ) / gWaitTime ) * Vector2( getDirOffset( mMoveDir ) ) );
 			}
 			break;
 		}

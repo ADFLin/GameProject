@@ -5,7 +5,7 @@
 
 #include "GIFLoader.h"
 #include "BitmapDC.h"
-#include "CommonMarco.h"
+#include "MarcoCommon.h"
 
 #include "BMRender.h"
 
@@ -18,8 +18,8 @@ namespace BomberMan
 	class Texture : public GdiTexture
 	{
 	public:
-		ColorKey3 getTransColor(){ return mTransColor; }
-		void      setTransColor( ColorKey3 color ){ mTransColor = color; }
+		Color3ub getTransColor(){ return mTransColor; }
+		void      setTransColor( Color3ub color ){ mTransColor = color; }
 
 		bool load( HDC hDC , char const* path )
 		{
@@ -75,7 +75,7 @@ namespace BomberMan
 				return false;
 			}
 
-			ColorKey3   transColor;
+			Color3ub   transColor;
 			HDC         hDC;
 			GdiTexture* tex;
 		};
@@ -91,7 +91,7 @@ namespace BomberMan
 			return true;
 		}
 
-		ColorKey3 mTransColor;
+		Color3ub mTransColor;
 	};
 
 
@@ -133,7 +133,7 @@ namespace BomberMan
 			Vec2i    pos;
 		};
 
-		ColorKey3  mTransColor;
+		Color3ub  mTransColor;
 		Texture*   mTex;
 		std::vector< AnimKey > mAnimKeys;
 		struct AnimDesc
@@ -357,13 +357,13 @@ namespace BomberMan
 			GIFLoader gifLoader;
 
 			baseTex.load( hDC , "Bomberman/playerBase.bmp" );
-			baseTex.setTransColor( ColorKey3( 3 , 227 , 19 ) );
+			baseTex.setTransColor( Color3ub( 3 , 227 , 19 ) );
 
 			itemTex.load( hDC , "Bomberman/item.bmp");
-			itemTex.setTransColor( ColorKey3( 0 , 255 , 0 ) );
+			itemTex.setTransColor( Color3ub( 0 , 255 , 0 ) );
 
 			levelTex.load( hDC , "Bomberman/lvClassical.bmp" );
-			levelTex.setTransColor( ColorKey3( 0 , 255 , 0 ) );
+			levelTex.setTransColor( Color3ub( 0 , 255 , 0 ) );
 
 
 			{
@@ -621,8 +621,8 @@ namespace BomberMan
 		case MO_WALL:
 			if ( mDrawDebug )
 			{
-				RenderUtility::setPen( g , Color::eBlack );
-				RenderUtility::setBrush( g , Color::eYellow );
+				RenderUtility::SetPen( g , Color::eBlack );
+				RenderUtility::SetBrush( g , Color::eYellow );
 				g.drawRect( pos , TileSize );
 			}
 			lvSpr.render( g , pos , ANIM_TILE_WALL_STAND , mCurFrame );
@@ -646,7 +646,7 @@ namespace BomberMan
 		case MO_BLOCK:
 			if ( mDrawDebug )
 			{
-				RenderUtility::setBrush( g , Color::eRed );
+				RenderUtility::SetBrush( g , Color::eRed );
 				g.drawRoundRect( pos , TileSize , Vec2i( 3 , 3 ) );
 			}
 
@@ -674,8 +674,8 @@ namespace BomberMan
 					default:
 						text = "?"; 
 					}
-					RenderUtility::setPen( g , Color::eBlack );
-					RenderUtility::setBrush( g , color );
+					RenderUtility::SetPen( g , Color::eBlack );
+					RenderUtility::SetBrush( g , color );
 					g.drawRoundRect( pos + Vec2i( gap , gap ) , TileSize - 2 * Vec2i( gap , gap ) , Vec2i( 5 , 5 ) );
 
 					g.setTextColor( 0 , 0 , 0 );
@@ -719,7 +719,7 @@ namespace BomberMan
 			if ( mDrawDebug )
 			{
 				MineCar& car = static_cast< MineCar& >( entity );
-				RenderUtility::setBrush( g , Color::eYellow );
+				RenderUtility::SetBrush( g , Color::eYellow );
 				g.drawRoundRect( renderPos - TileSize / 2 , TileSize , Vec2i( 3 , 3 ) );
 			}
 			break;
@@ -731,7 +731,7 @@ namespace BomberMan
 	{
 		if ( mDrawDebug )
 		{
-			RenderUtility::setBrush( g , Color::eCyan );
+			RenderUtility::SetBrush( g , Color::eCyan );
 			g.drawCircle( pos , TileLength / 2 - 2 );
 		}
 		SpriteAnim& spr = gResManager->bombSpr;
@@ -747,11 +747,11 @@ namespace BomberMan
 		if ( mDrawDebug )
 		{
 			bool bTakeBomb = player.getTakeBombIndex() != -1 ;
-			RenderUtility::setBrush( g , Color::eBlue );
+			RenderUtility::SetBrush( g , Color::eBlue );
 			g.drawRect( pos - TileSize / 2 , TileSize );
-			RenderUtility::setPen( g , Color::eYellow );
+			RenderUtility::SetPen( g , Color::eYellow );
 			g.drawLine( pos , pos + ( TileLength / 2 ) * getDirOffset( player.getFaceDir() ) );
-			RenderUtility::setPen( g , Color::eBlack );
+			RenderUtility::SetPen( g , Color::eBlack );
 			if (  bTakeBomb )
 			{
 				drawBomb( g , pos - Vec2i( 0 , 5 ) , getWorld().getBomb( player.getTakeBombIndex() ));
@@ -844,8 +844,8 @@ namespace BomberMan
 			if ( mDrawDebug )
 			{
 				Vec2i renderPos = pos - TileSize / 2;
-				RenderUtility::setBrush( g , Color::eRed );
-				RenderUtility::setPen( g , Color::eNull );
+				RenderUtility::SetBrush( g , Color::eRed );
+				RenderUtility::SetPen( g , Color::eNull );
 
 				g.drawRect( renderPos + Vec2i( 0 , fireCap ) , TileSize - Vec2i( 0 , 2 * fireCap ) );
 				g.drawRect( renderPos + Vec2i( fireCap , 0 ) , TileSize - Vec2i( 2 * fireCap , 0 ) );
@@ -875,7 +875,7 @@ namespace BomberMan
 					}
 				}
 
-				RenderUtility::setPen( g , Color::eBlack );
+				RenderUtility::SetPen( g , Color::eBlack );
 			}
 			SpriteAnim& spr = gResManager->bombSpr;
 			

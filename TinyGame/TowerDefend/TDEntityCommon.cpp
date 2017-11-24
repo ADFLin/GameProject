@@ -23,9 +23,9 @@ namespace TowerDefend
 	class TDMoveHelper
 	{
 	public:
-		void setGoalPos( Vec2f const& pos )
+		void setGoalPos( Vector2 const& pos )
 		{
-			Vec2f offset = pos - mOwner->getPos();
+			Vector2 offset = pos - mOwner->getPos();
 			float dist = normalize( offset );
 		}
 
@@ -56,7 +56,7 @@ namespace TowerDefend
 			SOLVE_TERRAIN ,
 		};
 
-		Vec2f        mGoalPos;
+		Vector2        mGoalPos;
 		MoveStrategy mCurStragegy;
 		MoveStrategy mSolveStragegy;
 		Actor*       mOwner;
@@ -178,15 +178,15 @@ namespace TowerDefend
 	{
 		float const MinDistance = 0.1f;
 		Unit* unit = actor->castFast< Unit >();
-		Vec2f delta = destPos - unit->getPos();
+		Vector2 delta = destPos - unit->getPos();
 
-		Vec2f dir = delta;
+		Vector2 dir = delta;
 		float dist = normalize( dir );
 
 		if ( dist < MinDistance )
 			return false;
 
-		Vec2f offset = std::min( unit->getMoveSpeed() , dist ) * dir;
+		Vector2 offset = std::min( unit->getMoveSpeed() , dist ) * dir;
 		unit->shiftPos( offset );
 
 		return true;
@@ -201,9 +201,9 @@ namespace TowerDefend
 	{
 		float const MinDistance = 0.1f;
 		Unit* unit = actor->castFast< Unit >();
-		Vec2f delta = destPos - unit->getPos();
+		Vector2 delta = destPos - unit->getPos();
 
-		Vec2f dir = delta;
+		Vector2 dir = delta;
 		float dist = normalize( dir );
 
 		if ( dist < MinDistance )
@@ -214,7 +214,7 @@ namespace TowerDefend
 
 		if ( mColEntity )
 		{
-			Vec2f temp = mColEntity->getPos() - actor->getPos();
+			Vector2 temp = mColEntity->getPos() - actor->getPos();
 			float cross = dir.x * temp.y - dir.y * temp.x; 
 
 			if ( fabs( cross ) < 1e-4 )
@@ -244,11 +244,11 @@ namespace TowerDefend
 			normalize( dir );
 		}
 
-		Vec2f offset = std::min( unit->getMoveSpeed() , dist ) * dir;
+		Vector2 offset = std::min( unit->getMoveSpeed() , dist ) * dir;
 
 		float maxOffsetSqure = unit->getMoveSpeed() * unit->getMoveSpeed();
 
-		Vec2f mapPos = unit->getPos() / gMapCellLength;
+		Vector2 mapPos = unit->getPos() / gMapCellLength;
 
 
 		WorldMap& map = actor->getWorld()->getMap();
@@ -379,7 +379,7 @@ namespace TowerDefend
 			getWorld()->getCollisionMgr().updateColObject( mColBody );
 	}
 
-	bool Unit::evalDefaultCommand( Actor* target , Vec2f const& pos , unsigned flag )
+	bool Unit::evalDefaultCommand( Actor* target , Vector2 const& pos , unsigned flag )
 	{
 		if ( BaseClass::evalDefaultCommand( target , pos , flag ) )
 			return true;
@@ -404,7 +404,7 @@ namespace TowerDefend
 		return false;
 	}
 
-	void Unit::addMoveActionCom( Vec2f const& pos , unsigned flag )
+	void Unit::addMoveActionCom( Vector2 const& pos , unsigned flag )
 	{
 		ActCommand* act;
 		if ( checkFlag( EF_FLY ) )
@@ -422,7 +422,7 @@ namespace TowerDefend
 		addAction( act , flag );
 	}
 
-	bool Unit::evalCommand( ComID comID , Actor* target , Vec2f const& pos , unsigned flag )
+	bool Unit::evalCommand( ComID comID , Actor* target , Vector2 const& pos , unsigned flag )
 	{
 		switch( comID )
 		{
@@ -444,7 +444,7 @@ namespace TowerDefend
 		return false;
 	}
 
-	bool Building::evalActorCommand( ComID comID , ActorId aID , Vec2f const& pos , unsigned flag )
+	bool Building::evalActorCommand( ComID comID , ActorId aID , Vector2 const& pos , unsigned flag )
 	{
 		switch( comID )
 		{
@@ -507,7 +507,7 @@ namespace TowerDefend
 		case ePutUnit:
 			{
 				Building* building = actor->castFast< Building >();
-				if ( !actor->getWorld()->tryPlaceUnit( mUnit , building , Vec2f(0,0) ) )
+				if ( !actor->getWorld()->tryPlaceUnit( mUnit , building , Vector2(0,0) ) )
 					return true;
 			}
 		}
@@ -557,7 +557,7 @@ namespace TowerDefend
 
 		float const MinMoveDist = 100;
 
-		Vec2f dir = ptr->getPos() - actor->getPos();
+		Vector2 dir = ptr->getPos() - actor->getPos();
 		float dist = normalize( dir );
 
 		if ( dist > MinMoveDist )
@@ -608,7 +608,7 @@ namespace TowerDefend
 			return false;
 
 		Tower* tower = actor->castFast< Tower >();
-		Vec2f offset = tower->getPos() - target->getPos();
+		Vector2 offset = tower->getPos() - target->getPos();
 
 		float dist = normalize( offset );
 		if ( dist > tower->getAttackRange() )
@@ -656,7 +656,7 @@ namespace TowerDefend
 		}
 	}
 
-	bool Tower::attack( Actor* entity , Vec2f const& pos )
+	bool Tower::attack( Actor* entity , Vector2 const& pos )
 	{
 		switch( getActorID() )
 		{
@@ -697,7 +697,7 @@ namespace TowerDefend
 		}
 	}
 
-	bool Tower::evalDefaultCommand( Actor* target , Vec2f const& pos , unsigned flag )
+	bool Tower::evalDefaultCommand( Actor* target , Vector2 const& pos , unsigned flag )
 	{
 		//FIXME
 		if ( target && target != this )
@@ -721,7 +721,7 @@ namespace TowerDefend
 		if ( bullet.mTarget )
 			bullet.mLocationParam = bullet.mTarget->getPos();
 
-		Vec2f dir = bullet.mLocationParam  - bullet.getPos();
+		Vector2 dir = bullet.mLocationParam  - bullet.getPos();
 		float dist = normalize( dir );
 
 		float const MinHitDist = 5.0f;
@@ -774,7 +774,7 @@ namespace TowerDefend
 		ADD_ENTITY_TYPE()
 	}
 
-	bool Builder::evalActorCommand( ComID comID , ActorId aID , Vec2f const& pos , unsigned flag )
+	bool Builder::evalActorCommand( ComID comID , ActorId aID , Vector2 const& pos , unsigned flag )
 	{
 		switch( comID )
 		{
@@ -792,7 +792,7 @@ namespace TowerDefend
 		return false;
 	}
 
-	bool Builder::evalDefaultCommand( Actor* target , Vec2f const& pos , unsigned flag )
+	bool Builder::evalDefaultCommand( Actor* target , Vector2 const& pos , unsigned flag )
 	{
 		if ( BaseClass::evalDefaultCommand( target , pos , flag ) )
 			return true;
@@ -806,7 +806,7 @@ namespace TowerDefend
 		return false;
 	}
 
-	void Builder::addMoveActionCom( Vec2f const& pos , unsigned flag )
+	void Builder::addMoveActionCom( Vector2 const& pos , unsigned flag )
 	{
 		MoveAirAct* act = new MoveAirAct;
 		act->destPos = pos;

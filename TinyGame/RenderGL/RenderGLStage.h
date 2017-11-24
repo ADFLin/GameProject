@@ -10,7 +10,7 @@
 #include "SystemPlatform.h"
 #include "Asset.h"
 #include "LazyObject.h"
-#include "CommonMarco.h"
+#include "MarcoCommon.h"
 #include "TVector3.h"
 #include "FastDelegate/FastDelegate.h"
 
@@ -782,7 +782,7 @@ namespace RenderGL
 		
 		DefferredShadingTech mDefferredShadingTech;
 		ShadowDepthTech      mShadowTech;
-		OITTech              mOITTech;
+		OITTechique              mOITTech;
 
 		PostProcessSSAO      mSSAO;
 

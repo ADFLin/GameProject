@@ -2,11 +2,12 @@
 #define MBLevel_h__
 
 #include "TVector2.h"
+#include "Math/Vector2.h"
 #include "TGrid2D.h"
 
 namespace Mario
 {
-	typedef TVector2< float > Vec2f;
+	typedef ::Math::Vector2 Vector2;
 	typedef TVector2< int > Vec2i;
 
 	int const TileLength = 16;
@@ -52,9 +53,9 @@ namespace Mario
 	{
 	public:
 
-		virtual bool  checkCollision( Tile const& tile , Vec2f const& pos , Vec2f const& size );
-		virtual float calcFixPosX(  Tile const& tile , Vec2f const& pos , Vec2f const& size , float offset );
-		virtual float calcFixPosY(  Tile const& tile , Vec2f const& pos , Vec2f const& size , float offset );
+		virtual bool  checkCollision( Tile const& tile , Vector2 const& pos , Vector2 const& size );
+		virtual float calcFixPosX(  Tile const& tile , Vector2 const& pos , Vector2 const& size , float offset );
+		virtual float calcFixPosY(  Tile const& tile , Vector2 const& pos , Vector2 const& size , float offset );
 		
 		virtual bool  update( Tile& tile , World& world ){ return false; }
 
@@ -66,10 +67,10 @@ namespace Mario
 	class BlockSlope : public Block
 	{
 	public:
-		virtual bool checkCollision( Tile const& tile , Vec2f const& pos , Vec2f const& size );
+		virtual bool checkCollision( Tile const& tile , Vector2 const& pos , Vector2 const& size );
 
-		virtual float calcFixPosX(  Tile const& tile , Vec2f const& pos , Vec2f const& size , float offset );
-		virtual float calcFixPosY(  Tile const& tile , Vec2f const& pos , Vec2f const& size , float offset );
+		virtual float calcFixPosX(  Tile const& tile , Vector2 const& pos , Vector2 const& size , float offset );
+		virtual float calcFixPosY(  Tile const& tile , Vector2 const& pos , Vector2 const& size , float offset );
 
 		static int  getDir( int meta )
 		{
@@ -97,10 +98,10 @@ namespace Mario
 	class BlockCloud : public Block
 	{
 	public:
-		virtual bool checkCollision( Tile const& tile , Vec2f const& pos , Vec2f const& size );
+		virtual bool checkCollision( Tile const& tile , Vector2 const& pos , Vector2 const& size );
 
-		virtual float calcFixPosX(  Tile const& tile , Vec2f const& pos , Vec2f const& size , float offset );
-		virtual float calcFixPosY(  Tile const& tile , Vec2f const& pos , Vec2f const& size , float offset );
+		virtual float calcFixPosX(  Tile const& tile , Vector2 const& pos , Vector2 const& size , float offset );
+		virtual float calcFixPosY(  Tile const& tile , Vector2 const& pos , Vector2 const& size , float offset );
 
 
 
@@ -145,7 +146,7 @@ namespace Mario
 			}
 		}
 
-		Tile*    testTileCollision( Vec2f const& pos , Vec2f const& size );
+		Tile*    testTileCollision( Vector2 const& pos , Vector2 const& size );
 		TileMap& getTerrain(){ return mTileMap; }
 
 		TileMap mTileMap;
@@ -187,9 +188,9 @@ namespace Mario
 		bool     onGround;
 		unsigned button;
 		MoveType moveType;
-		Vec2f    vel;
-		Vec2f    pos;
-		Vec2f    size;
+		Vector2    vel;
+		Vector2    pos;
+		Vector2    size;
 		World*   world;
 	};
 

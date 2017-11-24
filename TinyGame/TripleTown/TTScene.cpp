@@ -8,7 +8,7 @@
 #include "EasingFun.h"
 
 #include "lodepng/lodepng.h"
-#include "IntegerType.h"
+#include "Core/IntegerType.h"
 #include <fstream>
 
 #include "TextureId.h"
@@ -69,7 +69,7 @@ namespace TripleTown
 	int const TileLength = 80;
 	Vec2i const TileSize = Vec2i( TileLength , TileLength );
 
-	ColorKey3 const MASK_KEY( 255 , 255 , 255 );
+	Color3ub const MASK_KEY( 255 , 255 , 255 );
 	struct ImageInfo
 	{
 		int id;
@@ -155,13 +155,13 @@ namespace TripleTown
 					switch( e.id )
 					{
 					case OBJ_NINJA:
-						RenderUtility::setBrush( g , Color::eRed );
-						RenderUtility::setPen( g , Color::eBlack );
+						RenderUtility::SetBrush( g , Color::eRed );
+						RenderUtility::SetPen( g , Color::eBlack );
 						g.drawCircle( pos + TileSize / 2 , 10 );
 						break;
 					case OBJ_BEAR:
-						RenderUtility::setBrush( g , Color::eYellow );
-						RenderUtility::setPen( g , Color::eBlack );
+						RenderUtility::SetBrush( g , Color::eYellow );
+						RenderUtility::SetPen( g , Color::eBlack );
 						g.drawCircle( pos + TileSize / 2 , 10 );
 						break;
 					}
@@ -176,8 +176,8 @@ namespace TripleTown
 			}
 		}
 
-		RenderUtility::setPen( g , Color::eRed );
-		RenderUtility::setBrush( g , Color::eNull );
+		RenderUtility::SetPen( g , Color::eRed );
+		RenderUtility::SetBrush( g , Color::eNull );
 		for( int i = 0 ; i < mNumPosRemove ; ++i )
 		{
 			Vec2i pos = mMapOffset + TileLength * Vec2i( mRemovePos[i].x , mRemovePos[i].y );
@@ -187,45 +187,45 @@ namespace TripleTown
 
 	void Scene::renderTile( Graphics2D& g , Vec2i const& pos , ObjectId id , int meta /*= 0 */ )
 	{
-		RenderUtility::setPen( g , Color::eNull );
+		RenderUtility::SetPen( g , Color::eNull );
 
 		switch( id )
 		{
 		case OBJ_NULL:
-			RenderUtility::setBrush( g , Color::eYellow , COLOR_DEEP );
+			RenderUtility::SetBrush( g , Color::eYellow , COLOR_DEEP );
 			g.drawRect( pos , TileSize );
 			break;
 		case OBJ_GRASS:
 			{
 				Vec2i const border = Vec2i( 4 , 4 );
-				RenderUtility::setBrush( g , Color::eGreen , COLOR_LIGHT );
+				RenderUtility::SetBrush( g , Color::eGreen , COLOR_LIGHT );
 				g.drawRect( pos , TileSize );
-				RenderUtility::setBrush( g , Color::eGreen );
+				RenderUtility::SetBrush( g , Color::eGreen );
 				g.drawRect( pos + border , TileSize - 2 * border );
 			}
 			break;
 		case OBJ_BUSH:
 			{
-				RenderUtility::setBrush( g , Color::eGreen , COLOR_LIGHT );
+				RenderUtility::SetBrush( g , Color::eGreen , COLOR_LIGHT );
 				g.drawRect( pos , TileSize );
-				RenderUtility::setBrush( g , Color::eGreen );
+				RenderUtility::SetBrush( g , Color::eGreen );
 				g.drawCircle( pos + TileSize / 2 , TileLength / 2 - 10 );
 			}
 			break;
 		case OBJ_TREE:
 			{
 				Vec2i bSize( 10 , 20 );
-				RenderUtility::setBrush( g , Color::eGreen , COLOR_LIGHT );
+				RenderUtility::SetBrush( g , Color::eGreen , COLOR_LIGHT );
 				g.drawRect( pos , TileSize );
-				RenderUtility::setBrush( g , Color::eCyan );
+				RenderUtility::SetBrush( g , Color::eCyan );
 				g.drawRect( pos + TileSize / 2 - bSize / 2 , bSize );
-				RenderUtility::setBrush( g , Color::eGreen );
+				RenderUtility::SetBrush( g , Color::eGreen );
 				g.drawCircle( pos + TileSize / 2 , TileLength / 2 - 12 );
 			}
 			break;
 		case OBJ_STOREHOUSE:
 			{
-				RenderUtility::setBrush( g , Color::eRed );
+				RenderUtility::SetBrush( g , Color::eRed );
 				g.drawRect( pos , TileSize );
 
 				if ( meta )
@@ -237,7 +237,7 @@ namespace TripleTown
 		default:
 			{
 				Vec2i bSize( TileLength - 16  , TileLength - 16 );
-				RenderUtility::setBrush( g , Color::eRed );
+				RenderUtility::SetBrush( g , Color::eRed );
 				g.drawRect( pos + TileSize / 2 - bSize / 2 , bSize );
 				FixString< 32 > str;
 				str.format( "%d" , id );
@@ -269,7 +269,7 @@ namespace TripleTown
 	{
 		TilePos tPos = calcTilePos( pos );
 
-		if ( !mLevel->isVaildMapRange( tPos ) )
+		if ( !mLevel->isMapRange( tPos ) )
 			return;
 		mLevel->clickTile( tPos );
 	}
@@ -281,7 +281,7 @@ namespace TripleTown
 		if ( mPosPeek == tPos )
 			return;
 
-		if ( !mLevel->isVaildMapRange( tPos ) )
+		if ( !mLevel->isMapRange( tPos ) )
 			return;
 
 		if ( mMouseAnim )
@@ -292,7 +292,7 @@ namespace TripleTown
 			{
 				TilePos& pos = mRemovePos[i];
 				TileData& tile = mMap.getData( pos.x , pos.y );
-				tile.pos = float( TileImageLength ) * Vec2f( pos );
+				tile.pos = float( TileImageLength ) * Vector2( pos );
 			}
 		}
 
@@ -307,10 +307,10 @@ namespace TripleTown
 			{
 				TilePos& pos = mRemovePos[i];
 				TileData& tile = mMap.getData( pos.x , pos.y );
-				Vec2f from = float( TileImageLength ) * Vec2f( pos );
-				Vec2f offset = Vec2f( mPosPeek - pos );
+				Vector2 from = float( TileImageLength ) * Vector2( pos );
+				Vector2 offset = Vector2( mPosPeek - pos );
 				offset *= ( 0.15f * TileImageLength );
-				Vec2f to = from + offset;
+				Vector2 to = from + offset;
 				tween.addValue< Easing::CLinear >( tile.pos , from , to );
 			}
 			mMouseAnim = &tween;
@@ -471,7 +471,7 @@ namespace TripleTown
 		
 		if ( renderQueue )
 		{
-			if ( mLevel->isVaildMapRange( posTileMouse ) )
+			if ( mLevel->isMapRange( posTileMouse ) )
 			{
 				glPushMatrix();
 				glLoadIdentity();
@@ -867,13 +867,13 @@ namespace TripleTown
 	class MoveFun
 	{
 	public:
-		Vec2f operator()(float t, Vec2f const& b, Vec2f const& c, float const& d ) 
+		Vector2 operator()(float t, Vector2 const& b, Vector2 const& c, float const& d ) 
 		{
 			float const height = 1500;
 			float const dest = d / 2;
 			if ( t < dest )
-				return Fun()( t , b , Vec2f( 0, -height ) , dest );
-			return Fun()( t - dest , b + c - Vec2f( 0, height ) , Vec2f( 0, height ) , dest );
+				return Fun()( t , b , Vector2( 0, -height ) , dest );
+			return Fun()( t - dest , b + c - Vector2( 0, height ) , Vector2( 0, height ) , dest );
 		}
 		
 	};
@@ -881,8 +881,8 @@ namespace TripleTown
 	{
 		TileData& data = mMap.getData( posTo.x , posTo.y );
 
-		Vec2f posRFrom = TileImageLength * Vec2f( posFrom );
-		Vec2f posRTo = TileImageLength * Vec2f( posTo );
+		Vector2 posRFrom = TileImageLength * Vector2( posFrom );
+		Vector2 posRTo = TileImageLength * Vector2( posTo );
 		switch( id )
 		{
 		case OBJ_BEAR:

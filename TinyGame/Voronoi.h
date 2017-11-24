@@ -12,7 +12,7 @@
 
 namespace Voronoi
 {
-	typedef TVector2<float> Vec2f;
+	typedef TVector2<float> Vector2;
 
 	template< class T >
 	struct BTreeNode
@@ -102,12 +102,12 @@ namespace Voronoi
 			outX[1] = p.x + delta;
 			return 2;
 		}
-		int getInteract( Para const& rhs , float d , float outX[] )
+		int getIntersect( Para const& rhs , float d , float outX[] )
 		{
-			return getInteract( p , rhs.p , d , outX );
+			return getIntersect( p , rhs.p , d , outX );
 		}
 
-		static int getInteract( Vec2f const& p1 , Vec2f const& p2 , float d , float outX[] )
+		static int getIntersect( Vector2 const& p1 , Vector2 const& p2 , float d , float outX[] )
 		{
 			// qi = yi - d
 			// ( 1/q1 - 1/q2 ) x^2 - 2 ( x1/q1 - x2/q2 )x + y1 - y2 + x1^2/q1 - x2^2/q2 = 0
@@ -134,7 +134,7 @@ namespace Voronoi
 			outX[1] = b_N2 + delta;
 			return 2;
 		}
-		Vec2f p;
+		Vector2 p;
 		
 	};
 
@@ -275,8 +275,8 @@ namespace Voronoi
 			arch	= 0;
 		}
 
-		void invaildate(){ point = NULL; }
-		bool isVaild() const { return point != NULL; }
+		void inate(){ point = NULL; }
+		bool is() const { return point != NULL; }
 		/*
 		function for comparing two events (by "y" property)
 		*/

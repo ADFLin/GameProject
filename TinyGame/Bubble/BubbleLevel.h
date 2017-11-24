@@ -2,7 +2,9 @@
 #define BubbleLevel_h__
 
 #include "TVector2.h"
-typedef TVector2< float > Vec2f;
+#include "Math/Vector2.h"
+
+using ::Math::Vector2;
 
 #include <list>
 #include <cassert>
@@ -83,12 +85,12 @@ namespace Bubble
 		BubbleCell& getCell( int layer , int nx ){ return mCellData[ layer * mNumCellLayer + nx ];}
 		BubbleCell& getCell( int idx ){  return mCellData[idx];  }
 
-		int   calcCellIndex( Vec2f const& pos , int& layer , int& nx );
+		int   calcCellIndex( Vector2 const& pos , int& layer , int& nx );
 		int   getLinkCellIndex( int idx , LinkDir dir , bool isEven );
 		bool  isEvenLayer( int index ){  return ( index / mNumCellLayer ) % 2 == 0;  }
 
-		Vec2f calcCellCenterPos( int index );
-		Vec2f calcCellCenterPos( int layer , int nx );
+		Vector2 calcCellCenterPos( int index );
+		Vector2 calcCellCenterPos( int layer , int nx );
 
 		short const* getLastPopCellIndex() const { return mIndexPopCell; }
 		int          getLastPopCellNum()   const { return mNumPopCell; }
@@ -99,7 +101,7 @@ namespace Bubble
 		void         setTopOffset( float offset ){ mTopOffset = offset;  }
 	protected:
 		void        setupCell( int width , int layer );
-		int         processCollision( Vec2f const& pos , Vec2f const& vel , int color );
+		int         processCollision( Vector2 const& pos , Vector2 const& vel , int color );
 		unsigned    lockBubble( int index , int color );
 		bool        testFallBubble_R( int index );
 
@@ -146,8 +148,8 @@ namespace Bubble
 
 		struct Bubble
 		{
-			Vec2f pos;
-			Vec2f vel;
+			Vector2 pos;
+			Vector2 vel;
 			int   color;
 			void  update( float dt ){  pos += dt * vel; }
 		};
@@ -174,8 +176,8 @@ namespace Bubble
 		float mShootBubbleTimeStep;
 
 		float mLauncherAngle;
-		Vec2f mLauncherDir;
-		Vec2f mLauncherPos;
+		Vector2 mLauncherDir;
+		Vector2 mLauncherPos;
 
 		LevelListener* mListener;
 		friend class Scene;

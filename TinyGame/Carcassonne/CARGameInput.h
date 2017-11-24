@@ -101,7 +101,7 @@ namespace CAR
 			return true;
 		}
 
-		bool checkResultVaild() const
+		bool checkResult() const
 		{
 			return resultIndex < numSelection;
 		}
@@ -175,7 +175,7 @@ namespace CAR
 		CityFeature* city;
 	};
 
-	class GameModule;
+	class GameLogic;
 
 	class IGameInput
 	{

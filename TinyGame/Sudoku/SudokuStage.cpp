@@ -34,7 +34,7 @@ public:
 	}
 	void onPostEvalMethod(Method method, Group group, int idx, unsigned numBit) 
 	{
-		if( !checkStateVaild() )
+		if( !checkState() )
 		{
 			::Msg("error method");
 		}
@@ -137,7 +137,7 @@ public:
 
 		Vec2i org(20, 20);
 
-		RenderUtility::setPen(g, Color::eRed , COLOR_LIGHT );
+		RenderUtility::SetPen(g, Color::eRed , COLOR_LIGHT );
 		for( int i = 0; i < SudokuSolver::NumberNum; ++i )
 		{
 			Vec2i p1 = org + Vec2i(i * CellSize, 0);
@@ -147,7 +147,7 @@ public:
 			g.drawLine(p2, p2 + Vec2i(TotalSize, 0));
 		}
 
-		RenderUtility::setPen(g, Color::eRed);
+		RenderUtility::SetPen(g, Color::eRed);
 		for( int i = 0; i <= SudokuSolver::BoxSize; ++i )
 		{
 			Vec2i p1 = org + Vec2i(3 * i * CellSize, 0);
@@ -166,7 +166,7 @@ public:
 			if( mSolver.bRelatedCell[i] )
 			{
 				Vec2i pos = org + Vec2i((i % 9) * CellSize, (i / 9) * CellSize);
-				RenderUtility::setBrush(g, Color::eOrange);
+				RenderUtility::SetBrush(g, Color::eOrange);
 				g.drawRect(pos, Vec2i(CellSize, CellSize));
 			}
 			int sol = mSolver.getSolution(i);
@@ -182,12 +182,12 @@ public:
 				else
 					g.setTextColor(255, 255, 55);
 
-				RenderUtility::setFont(g, FONT_S24);
+				RenderUtility::SetFont(g, FONT_S24);
 				g.drawText(ptBox, str.format("%d", SudokuSolver::Bit2Num(sol)));
 			}
 			else
 			{
-				RenderUtility::setFont(g, FONT_S12);
+				RenderUtility::SetFont(g, FONT_S12);
 				unsigned posible = mSolver.getIdxPosible(i);
 
 				Vec2i ptBox(CellSize * (i % SudokuSolver::NumberNum) + 7,
@@ -214,7 +214,7 @@ public:
 		}
 
 
-		RenderUtility::setFont(g, FONT_S12);
+		RenderUtility::SetFont(g, FONT_S12);
 		char const* groupStr[] = { "Col" , "Row" , "Cell" , "None" };
 		//dc.SelectFont(fontPsb);
 		g.setTextColor(0, 0, 255);
@@ -287,4 +287,4 @@ protected:
 };
 
 
-REGISTER_STAGE("Sudoku Test Stage", SudokuStage, StageRegisterGroup::Test);
+REGISTER_STAGE("Sudoku Test Stage", SudokuStage, EStageGroup::Test);

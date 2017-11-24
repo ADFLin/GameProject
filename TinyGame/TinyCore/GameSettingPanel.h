@@ -2,7 +2,7 @@
 #define GameSettingPanel_h__
 
 #include "GameWidget.h"
-#include "GameInstance.h"
+#include "GameModule.h"
 
 class DataSteamBuffer;
 
@@ -58,7 +58,7 @@ class  GameSettingPanel : public BaseSettingPanel
 public:
 	GAME_API GameSettingPanel( int id , Vec2i const& pos , Vec2i const& size , GWidget* parent );
 
-	GAME_API void      addGame( IGameInstance* game );
+	GAME_API void      addGame( IGameModule* game );
 	GAME_API void      setGame(char const* name);
 
 	void renderTitle(GWidget* ui);

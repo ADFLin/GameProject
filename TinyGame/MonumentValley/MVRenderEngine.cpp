@@ -1,7 +1,7 @@
 #include "MVRenderEngine.h"
 
 #include "RenderGL/GLCommon.h"
-#include "RenderGL/GLUtility.h"
+#include "RenderGL/GLDrawUtility.h"
 #include "RenderGL/ShaderCompiler.h"
 
 #include "FixString.h"

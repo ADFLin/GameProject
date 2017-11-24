@@ -1,7 +1,7 @@
 #ifndef GameConfig_h__
 #define GameConfig_h__
 
-#include "CommonMarco.h"
+#include "MarcoCommon.h"
 #include "CoreShare.h"
 #include "CompilerConfig.h"
 

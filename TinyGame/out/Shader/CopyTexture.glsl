@@ -1,6 +1,8 @@
+#include "Common.glsl"
+
 struct VSOutput
 {
-	vec2 UVs;
+	float2 UVs;
 };
 
 #if VERTEX_SHADER
@@ -22,7 +24,7 @@ in VSOutput vsOutput;
 uniform sampler2D CopyTexture;
 void CopyTexturePS()
 {
-	vec2 UVs = vsOutput.UVs;
+	float2 UVs = vsOutput.UVs;
 	gl_FragColor = texture2D(CopyTexture, UVs);
 }
 
@@ -30,7 +32,7 @@ void CopyTexturePS()
 uniform float4 ColorMask;
 void CopyTextureMaskPS()
 {
-	vec2 UVs = vsOutput.UVs;
+	float2 UVs = vsOutput.UVs;
 	float c = dot(texture2D(CopyTexture, UVs), ColorMask);
 	gl_FragColor = float4( c , c , c , 1 );
 }
@@ -39,7 +41,7 @@ void CopyTextureMaskPS()
 uniform float2 ColorBais;
 void CopyTextureBaisPS()
 {
-	vec2 UVs = vsOutput.UVs;
+	float2 UVs = vsOutput.UVs;
 	float3 color = ColorBais.x * texture2D(CopyTexture, UVs).rgb + ColorBais.y;
 	//color = texture2D(CopyTexture, UVs).rgb;
 	gl_FragColor = float4(color, 1);
@@ -47,7 +49,7 @@ void CopyTextureBaisPS()
 
 uniform float2 ValueFactor;
 
-static const float3 Color[] =
+const float3 Color[] =
 {
 	float3(0,0,0),
 	float3(1,0,0),
@@ -60,6 +62,7 @@ static const float3 Color[] =
 	float3(0.5,1,0.5),
 	float3(0.5,0.5,1),
 };
+
 void MappingTextureColorPS()
 {
 	vec2 UVs = vsOutput.UVs;

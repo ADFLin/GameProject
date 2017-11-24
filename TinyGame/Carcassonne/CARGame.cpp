@@ -15,19 +15,19 @@
 
 namespace CAR
 {
-	EXPORT_GAME(GameInstance)
+	EXPORT_GAME_MODULE(GameModule)
 
-	GameInstance::GameInstance()
+	GameModule::GameModule()
 	{
 		
 	}
 
-	GameInstance::~GameInstance()
+	GameModule::~GameModule()
 	{
 
 	}
 
-	StageBase* GameInstance::createStage( unsigned id )
+	StageBase* GameModule::createStage( unsigned id )
 	{
 		if( id == STAGE_NET_GAME || id == STAGE_SINGLE_GAME )
 		{
@@ -36,7 +36,7 @@ namespace CAR
 		return NULL;
 	}
 
-	bool GameInstance::getAttribValue( AttribValue& value )
+	bool GameModule::getAttribValue( AttribValue& value )
 	{
 		switch( value.id )
 		{
@@ -50,9 +50,9 @@ namespace CAR
 		return false;
 	}
 
-	void GameInstance::beginPlay( StageModeType type, StageManager& manger )
+	void GameModule::beginPlay( StageModeType type, StageManager& manger )
 	{
-		IGameInstance::beginPlay( type , manger );
+		IGameModule::beginPlay( type , manger );
 	}
 
 	struct ExpInfo
@@ -77,7 +77,7 @@ namespace CAR
 	class CNetRoomSettingHelper : public NetRoomSettingHelper
 	{
 	public:
-		CNetRoomSettingHelper( GameInstance* game )
+		CNetRoomSettingHelper( GameModule* game )
 			:mGame( game )
 		{
 			mExpMask = 0;
@@ -96,7 +96,7 @@ namespace CAR
 			MASK_BASE = BIT(1) ,
 			MASK_RULE = BIT(2) ,
 		};
-		virtual bool checkSettingVaildSV()
+		virtual bool checkSettingSV()
 		{
 			SVPlayerManager* playerMgr = static_cast< SVPlayerManager* >( getPlayerListPanel()->getPlayerManager() );
 			return true;
@@ -158,11 +158,11 @@ namespace CAR
 			buffer.take( mExpMask );
 			setupBaseUI();
 		}
-		uint32        mExpMask;
-		GameInstance* mGame;
+		uint32       mExpMask;
+		GameModule* mGame;
 	};
 
-	SettingHepler* GameInstance::createSettingHelper( SettingHelperType type )
+	SettingHepler* GameModule::createSettingHelper( SettingHelperType type )
 	{
 		switch( type )
 		{

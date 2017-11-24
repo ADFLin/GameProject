@@ -33,11 +33,11 @@ namespace RenderGL
 
 	void RenderContext::setupShader( Material* material , VertexFactory* vertexFactory )
 	{
-		ShaderProgram* shader;
+		MaterialShaderProgram* shader;
 		if( material )
 		{
 			shader = mTechique->getMaterialShader(*this,*material->getMaster() , vertexFactory );
-			if( shader == nullptr || !shader->isVaildate() )
+			if( shader == nullptr || !shader->isate() )
 			{
 				material = nullptr;
 			}
@@ -59,11 +59,12 @@ namespace RenderGL
 				mUsageShader->unbind();
 			}
 			mUsageShader = shader;
+			mbUseMaterialShader = true;
 			mUsageShader->bind();
 			mCurView->setupShader(*mUsageShader);
 			mTechique->setupMaterialShader(*this, *mUsageShader);
 		}
-		material->setupShader(*mUsageShader);
+		material->setupShader(*shader);
 	}
 
 

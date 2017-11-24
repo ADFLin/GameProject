@@ -46,12 +46,12 @@ namespace Bubble
 		BubbleList mFallList;
 		float      mFallBubbleAcc;
 
-		void render( Graphics2D& g , Vec2f const& pos );
-		void renderBubbleList( Graphics2D& g , Vec2f const& pos , BubbleList& bList );
-		void renderBubble( Graphics2D& g , Vec2f const& pos , int color );
-		void renderDbg( Graphics2D& g , Vec2f const& pos , int index );
-		void renderBackground( Graphics2D& g , Vec2f const& pos );
-		void renderLauncher( Graphics2D& g , Vec2f const& pos );
+		void render( Graphics2D& g , Vector2 const& pos );
+		void renderBubbleList( Graphics2D& g , Vector2 const& pos , BubbleList& bList );
+		void renderBubble( Graphics2D& g , Vector2 const& pos , int color );
+		void renderDbg( Graphics2D& g , Vector2 const& pos , int index );
+		void renderBackground( Graphics2D& g , Vector2 const& pos );
+		void renderLauncher( Graphics2D& g , Vector2 const& pos );
 
 
 		Level     mLevel;

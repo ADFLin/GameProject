@@ -38,7 +38,7 @@ namespace RenderGL
 
 
 
-	void Material::bindShaderParamInternal(ShaderProgram& shader, uint32 skipMask)
+	void Material::bindShaderParamInternal(MaterialShaderProgram& shader, uint32 skipMask)
 	{
 		for( int i = 0; i < (int)mParams.size(); ++i )
 		{
@@ -164,7 +164,7 @@ namespace RenderGL
 		}
 	}
 
-	RenderGL::ShaderProgram* MaterialShaderMap::getShader(RenderTechiqueUsage shaderUsage, VertexFactory* vertexFactory)
+	MaterialShaderProgram* MaterialShaderMap::getShader(RenderTechiqueUsage shaderUsage, VertexFactory* vertexFactory)
 	{
 		VertexFarcoryType* VFType = VertexFarcoryType::DefaultType;
 		if( vertexFactory )
@@ -212,7 +212,8 @@ namespace RenderGL
 			ShaderCache* shaderCache = new ShaderCache;
 
 			ShaderCompileOption option;
-			VFType->GetCompileOption(option);
+			option.version = 430;
+			VFType->getCompileOption(option);
 
 			if( !ShaderManager::getInstance().loadFile(
 				shaderCache->shaders[(int)RenderTechiqueUsage::BasePass],
@@ -233,13 +234,6 @@ namespace RenderGL
 			option.addDefine(SHADER_PARAM(OIT_USE_MATERIAL) , true);
 			option.addDefine(SHADER_PARAM(OIT_STORAGE_SIZE), OIT_StorageSize);
 
-#if 0
-			FixString< 512 > define;
-			define.format(
-				"#version 430 compatibility\n"
-				"#define OIT_USE_MATERIAL 1\n"
-				"#define OIT_STORAGE_SIZE %d\n", OIT_StorageSize);
-#endif
 			if( !ShaderManager::getInstance().loadFile(
 				shaderCache->shaders[(int)RenderTechiqueUsage::OIT],
 				"Shader/OITRender",

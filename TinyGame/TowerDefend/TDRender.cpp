@@ -20,10 +20,10 @@ namespace TowerDefend
 	void Renderer::drawHealthBar( Vec2i const& sPos , int len , float ratio )
 	{
 		Graphics2D& g = getGraphics();
-		RenderUtility::setPen( g , Color::eNull );
-		RenderUtility::setBrush( g , Color::eGreen , COLOR_DEEP );
+		RenderUtility::SetPen( g , Color::eNull );
+		RenderUtility::SetBrush( g , Color::eGreen , COLOR_DEEP );
 		g.drawRect( sPos , Vec2i( len , 5 ) );
-		RenderUtility::setBrush( g , Color::eGreen , COLOR_NORMAL );
+		RenderUtility::SetBrush( g , Color::eGreen , COLOR_NORMAL );
 		g.drawRect( sPos , Vec2i( int( len*ratio ) , 5 ) );
 	}
 
@@ -36,11 +36,11 @@ namespace TowerDefend
 
 		Viewport& vp = getViewport();
 
-		Vec2i offset = vp.convertToScreenPos( Vec2f(0,0) );
+		Vec2i offset = vp.convertToScreenPos( Vector2(0,0) );
 		offset.x %= (int)gMapCellLength;
 		offset.y %= (int)gMapCellLength;
 
-		RenderUtility::setPen( g , Color::eWhite );
+		RenderUtility::SetPen( g , Color::eWhite );
 		for( int n = 0 ; n <= nSize.x ; ++n )
 		{
 			int x = int ( n * gMapCellLength );
@@ -53,7 +53,7 @@ namespace TowerDefend
 		}
 	}
 
-	void Renderer::drawBuilding( ActorId blgID , Vec2f const& pos , bool beSelected )
+	void Renderer::drawBuilding( ActorId blgID , Vector2 const& pos , bool beSelected )
 	{
 		assert( isBuilding( blgID ) );
 
@@ -64,11 +64,11 @@ namespace TowerDefend
 		Graphics2D& g = getGraphics();
 
 		if ( beSelected )
-			RenderUtility::setPen( g , Color::eWhite );
+			RenderUtility::SetPen( g , Color::eWhite );
 		else
-			RenderUtility::setPen( g , Color::eNull );
+			RenderUtility::SetPen( g , Color::eNull );
 
-		RenderUtility::setBrush( g , Color::eRed );
+		RenderUtility::SetBrush( g , Color::eRed );
 
 		g.drawRect( renderPos , gMapCellLength * size - 2 * broader );
 	}
@@ -89,8 +89,8 @@ namespace TowerDefend
 
 			Vec2i size = rect.end - rect.start;
 
-			g.setPen( ColorKey3( 80 , 200 , 80 ) );
-			g.setBrush( ColorKey3( 80 , 200 , 80 ) );
+			g.setPen( Color3ub( 80 , 200 , 80 ) );
+			g.setBrush( Color3ub( 80 , 200 , 80 ) );
 
 			g.beginBlend( rect.start , size , 0.3f );
 			g.drawRect( rect.start , size );
@@ -99,7 +99,7 @@ namespace TowerDefend
 			Vec2i m1( rect.end.x , rect.start.y );
 			Vec2i m2( rect.start.x , rect.end.y );
 
-			g.setPen( ColorKey3( 0 , 255 , 0 ) );
+			g.setPen( Color3ub( 0 , 255 , 0 ) );
 			g.drawLine( rect.start , m1 );
 			g.drawLine(  m1 , rect.end );
 			g.drawLine( rect.end , m2 );
@@ -132,7 +132,7 @@ namespace TowerDefend
 				Vec2i mapPos;
 				if ( canBuild( mComActorID , NULL , pos , mapPos , &mPlayerInfo , false ) )
 				{
-					renderer.drawBuilding( mComActorID , Vec2f( mapPos ) * gMapCellLength , false  );
+					renderer.drawBuilding( mComActorID , Vector2( mapPos ) * gMapCellLength , false  );
 				}
 			}
 		}
@@ -190,16 +190,16 @@ namespace TowerDefend
 		Graphics2D& g = renderer.getGraphics();
 
 		if ( checkFlag( EF_SELECTED ) )
-			RenderUtility::setPen( g , Color::eWhite );
+			RenderUtility::SetPen( g , Color::eWhite );
 		else
-			RenderUtility::setPen( g , Color::eNull );
+			RenderUtility::SetPen( g , Color::eNull );
 		switch ( getActorID() )
 		{
 		case AID_UT_BUILDER_1:
-			RenderUtility::setBrush( g , Color::eRed );
+			RenderUtility::SetBrush( g , Color::eRed );
 			break;
 		case AID_UT_MOUSTER_1:
-			RenderUtility::setBrush( g , Color::eGreen );
+			RenderUtility::SetBrush( g , Color::eGreen );
 			break;
 		}
 
@@ -221,8 +221,8 @@ namespace TowerDefend
 	{
 		Graphics2D& g = renderer.getGraphics();
 
-		RenderUtility::setPen( g , Color::eNull );
-		RenderUtility::setBrush( g , Color::eBlue );
+		RenderUtility::SetPen( g , Color::eNull );
+		RenderUtility::SetBrush( g , Color::eBlue );
 		g.drawCircle( getPos() , 5 );
 	}
 
@@ -231,14 +231,14 @@ namespace TowerDefend
 	{
 		Graphics2D& g = renderer.getGraphics();
 
-		RenderUtility::setBrush( g , Color::eNull );
-		RenderUtility::setPen( g , Color::eGreen );
+		RenderUtility::SetBrush( g , Color::eNull );
+		RenderUtility::SetPen( g , Color::eGreen );
 		for ( MsgList::iterator iter = msgList.begin();
 			iter != msgList.end(); ++iter )
 		{
 			Vec2i pos = renderer.getViewport().convertToScreenPos( iter->pos );
 			g.drawCircle( pos , 15 * ( NumFrameShow - iter->frame ) / NumFrameShow );
-			g.drawPixel( pos , ColorKey3( 0 , 255 ,0 ) );
+			g.drawPixel( pos , Color3ub( 0 , 255 ,0 ) );
 		}
 	}
 

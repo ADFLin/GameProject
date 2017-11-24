@@ -5,7 +5,7 @@
 #include "GameGUISystem.h"
 
 #include "Holder.h"
-#include "IntegerType.h"
+#include "Core/IntegerType.h"
 #include "CppVersion.h"
 #include "Random.h"
 
@@ -122,7 +122,7 @@ namespace GGJ
 			return getRelDirIndex(idx, dir, false);
 		}
 
-		bool checkWallCondVaild( WallName a , WallName b , CondDir dir );
+		bool checkWallCond( WallName a , WallName b , CondDir dir );
 		int  getWallIndex(WallName name);
 		WallName getRelDirWall( WallName name , CondDir dir );
 
@@ -215,8 +215,8 @@ namespace GGJ
 		String toString( int idx ){ return mElements[idx].toString(); }
 
 		virtual void generate(Random& rand) = 0;
-		virtual void generateVaild(Random& rand, WorldCondition& worldCond) = 0;
-		virtual bool testVaild(WorldCondition& worldCond) = 0;
+		virtual void generate(Random& rand, WorldCondition& worldCond) = 0;
+		virtual bool test(WorldCondition& worldCond) = 0;
 		virtual String getContent() = 0;
 	protected:
 		std::vector< CondExprElement > mElements;
@@ -227,8 +227,8 @@ namespace GGJ
 	{
 	public:
 		void generate(Random& rand) override;
-		void generateVaild(Random& rand ,  WorldCondition& worldCond ) override;
-		bool testVaild(WorldCondition& worldCond) override;
+		void generate(Random& rand ,  WorldCondition& worldCond ) override;
+		bool test(WorldCondition& worldCond) override;
 		String getContent() override;
 
 	};
@@ -238,8 +238,8 @@ namespace GGJ
 	public:
 		
 		void generate(Random& rand) override;
-		void generateVaild(Random& rand, WorldCondition& worldCond) override;
-		bool testVaild(WorldCondition& worldCond) override;
+		void generate(Random& rand, WorldCondition& worldCond) override;
+		bool test(WorldCondition& worldCond) override;
 		String getContent() override;
 	};
 
@@ -247,17 +247,17 @@ namespace GGJ
 	{
 	public:
 		void generate(Random& rand) override;
-		void generateVaild(Random& rand, WorldCondition& worldCond) override;
-		bool testVaild(WorldCondition& worldCond) override;
+		void generate(Random& rand, WorldCondition& worldCond) override;
+		bool test(WorldCondition& worldCond) override;
 		String getContent() override;
 	};
 	
 	class ObjectNumCondExpression : public CondExpression
 	{
 	public:
-		bool testVaild(WorldCondition& worldCond) override;
+		bool test(WorldCondition& worldCond) override;
 		void generate(Random& rand) override;
-		void generateVaild(Random& rand, WorldCondition& worldCond) override;
+		void generate(Random& rand, WorldCondition& worldCond) override;
 		String getContent() override;
 	};
 
@@ -265,8 +265,8 @@ namespace GGJ
 	{
 	public:
 		void generate(Random& rand) override;
-		void generateVaild(Random& rand, WorldCondition& worldCond) override;
-		bool testVaild(WorldCondition& worldCond) override;
+		void generate(Random& rand, WorldCondition& worldCond) override;
+		bool test(WorldCondition& worldCond) override;
 		String getContent() override;
 	};
 
@@ -274,8 +274,8 @@ namespace GGJ
 	{
 	public:
 		void generate(Random& rand) override;
-		void generateVaild(Random& rand, WorldCondition& worldCond) override;
-		bool testVaild(WorldCondition& worldCond) override;
+		void generate(Random& rand, WorldCondition& worldCond) override;
+		bool test(WorldCondition& worldCond) override;
 		String getContent() override;
 	};
 
@@ -290,11 +290,11 @@ namespace GGJ
 		CondExpression* getExpression( int idx ) { return mExprList[idx]; }
 		String getTarget() { return CondExprElement::toString(targetId); }
 
-		void generateVaild(Random& rand, WorldCondition& worldCond, int numExpr);
-		void generateRandom(Random& rand, WorldCondition& worldCond, int numExpr, int numInvaild);
+		void generate(Random& rand, WorldCondition& worldCond, int numExpr);
+		void generateRandom(Random& rand, WorldCondition& worldCond, int numExpr, int numIn);
 
 		ObjectId targetId;
-		bool     bVaild;
+		bool     b;
 
 	private:
 		void cleanup();
@@ -306,15 +306,15 @@ namespace GGJ
 	public:
 		void cleanup();
 
-		void generate( Random& rand , WorldCondition& worldCond , int numSel , int numExpr , int numVaild );
-		bool isVaildObject( ObjectId id );
+		void generate( Random& rand , WorldCondition& worldCond , int numSel , int numExpr , int num );
+		bool isObject( ObjectId id );
 		Condition& getCondition(int idx) { return conditions[idx]; }
-		bool isVaildCondition(int idx)
+		bool isCondition(int idx)
 		{
-			return conditions[idx].bVaild;
+			return conditions[idx].b;
 		}
 
-		int numConditionVaild;
+		int numCondition;
 		int numSelection;
 		std::vector< Condition > conditions;
 	};

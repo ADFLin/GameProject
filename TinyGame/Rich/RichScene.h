@@ -93,7 +93,7 @@ namespace Rich
 		virtual void update( long time ){}
 		virtual void destroy(){ delete this; }
 
-		Vec2f    pos;
+		Vector2    pos;
 		HookNode hook;
 	};
 

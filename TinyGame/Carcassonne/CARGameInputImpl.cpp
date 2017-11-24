@@ -1,7 +1,7 @@
 #include "CARGameInputImpl.h"
 
 #include "CARDebug.h"
-#include "CARGameModule.h"
+#include "CARGameLogic.h"
 
 #include "GameGlobal.h"
 #include "PropertyKey.h"
@@ -36,7 +36,7 @@ namespace CAR
 		mAction = ACTION_NONE;
 		mActionData = nullptr;
 		mDataTransfer = nullptr;
-		mModule = nullptr;
+		mGameLogic = nullptr;
 		mNumActionInput = 0;
 	}
 
@@ -46,9 +46,9 @@ namespace CAR
 		mActionData = nullptr;
 	}
 
-	void CGameInput::runLogic(GameModule& module)
+	void CGameInput::runLogic(GameLogic& gameLogic)
 	{
-		mModule = &module;
+		mGameLogic = &gameLogic;
 		mExec = ExecType( std::bind( &CGameInput::execEntry , this , std::placeholders::_1 ) );
 	}
 
@@ -57,7 +57,7 @@ namespace CAR
 		try 
 		{
 			mYeild = &yeild;
-			mModule->runLogic( *this );
+			mGameLogic->run( *this );
 			mYeild = nullptr;
 		} 
 		catch(const boost::coroutines::detail::forced_unwind&) 
@@ -83,7 +83,7 @@ namespace CAR
 		}
 
 		if ( onPrevAction )
-			onPrevAction( *mModule , *this );
+			onPrevAction( *mGameLogic , *this );
 
 		if ( mbReplayMode )
 		{
@@ -135,7 +135,7 @@ namespace CAR
 		if ( mbReplayMode == false )
 		{
 			mbWaitReply = false;
-			onAction( *mModule , *this );
+			onAction( *mGameLogic , *this );
 			if ( mbWaitReply == false )
 			{
 				ActionHeader header;
@@ -360,7 +360,7 @@ namespace CAR
 				pos.y = com.params[1].iValue;
 				int dir = com.params[2].iValue;
 
-				if ( mModule->buildBridge( pos , dir ) == false )
+				if ( mGameLogic->buildBridge( pos , dir ) == false )
 					return;
 			}
 		case ACTION_CHANGE_TILE:
@@ -369,7 +369,7 @@ namespace CAR
 					return;
 
 				TileId id = (TileId)com.params[0].iValue;
-				if ( mModule->changePlaceTile( id ) == false )
+				if ( mGameLogic->changePlaceTile( id ) == false )
 					return;
 			}
 			break;
@@ -480,7 +480,7 @@ namespace CAR
 	{
 		if ( mActionData )
 		{
-			mModule->mbNeedShutdown = true;
+			mGameLogic->mbNeedShutdown = true;
 			returnGame();
 		}
 	}

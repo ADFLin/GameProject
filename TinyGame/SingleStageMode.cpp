@@ -1,7 +1,7 @@
 #include "TinyGamePCH.h"
 #include "SingleStageMode.h"
 
-#include "GameInstance.h"
+#include "GameModule.h"
 #include "GameGUISystem.h"
 #include "GameWidgetID.h"
 #include "GameStage.h"
@@ -101,7 +101,7 @@ bool SingleStageMode::onWidgetEvent(int event, int id, GWidget* ui)
 		else
 		{
 			togglePause();
-			::Global::GUI().showMessageBox(UI_GAME_MENU, LAN("Back Game Menu?"));
+			::Global::GUI().showMessageBox(UI_GAME_MENU, LOCTEXT("Back Game Menu?"));
 			return false;
 		}
 		break;
@@ -121,7 +121,7 @@ bool SingleStageMode::onWidgetEvent(int event, int id, GWidget* ui)
 			if( getGameState() != GS_END )
 			{
 				::Global::GUI().showMessageBox(
-					UI_RESTART_GAME, LAN("Do you Want to Stop Current Game?"));
+					UI_RESTART_GAME, LOCTEXT("Do you Want to Stop Current Game?"));
 			}
 			else
 			{

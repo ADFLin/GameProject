@@ -42,10 +42,10 @@ void BasePassPS()
 
 	float4 GBufferA, GBufferB, GBufferC, GBufferD;
 
-	GBufferA = 0;
-	GBufferB = 0;
-	GBufferC = 0;
-	GBufferD = 0;
+	GBufferA = float4(0);
+	GBufferB = float4(0);
+	GBufferC = float4(0);
+	GBufferD = float4(0);
 
 	GBufferA = float4(GBuffer.worldPos, GBuffer.depth);
 	GBufferB = float4(GBuffer.normal, GBuffer.depth);

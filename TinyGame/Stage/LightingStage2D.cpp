@@ -1,12 +1,14 @@
 #include "TinyGamePCH.h"
-#include "LightingStage.h"
+#include "LightingStage2D.h"
 
 #include "GameGUISystem.h"
 #include "WidgetUtility.h"
 #include "RenderUtility.h"
 #include "GLGraphics2D.h"
 
-namespace Lighting
+#include "RenderGL/ShaderCompiler.h"
+
+namespace Lighting2D
 {
 	bool TestStage::onInit()
 	{
@@ -15,25 +17,11 @@ namespace Lighting
 
 		GameWindow& window = Global::getDrawEngine()->getWindow();
 
-		program    = glCreateProgram();
-		fragShader = glCreateShader( GL_FRAGMENT_SHADER );
-
-		char const* strFrag = readFile( "Shader/Game/light.glsl" );
-
-		if ( strFrag == NULL )
+		char const* entryNames[] = { SHADER_ENTRY(LightingPS) };
+		if( !ShaderManager::getInstance().loadFile(
+			mProgram, "Shader/Game/lighting2D", 
+			BIT(RHIShader::ePixel), entryNames ) )
 			return false;
-
-		glShaderSource( fragShader , 1 , &strFrag , 0);
-		glCompileShader( fragShader );
-		glAttachShader( program , fragShader );
-		glLinkProgram( program );
-
-		loc_lightLocation = glGetUniformLocation( program , "LightLocation" );
-		loc_lightColor = glGetUniformLocation( program , "LightColor" );
-		loc_lightAttenuation = glGetUniformLocation( program , "LightAttenuation" );
-
-
-		free( (void*)strFrag );
 
 		glClearColor( 0 , 0 , 0 , 0 );
 
@@ -50,7 +38,6 @@ namespace Lighting
 
 	void TestStage::onEnd()
 	{
-		glDeleteProgram( program );
 		Global::getDrawEngine()->stopOpenGL();
 	}
 
@@ -136,20 +123,17 @@ namespace Lighting
 			glEnable(GL_BLEND);
 			glBlendFunc(GL_ONE, GL_ONE);
 
-			glUseProgram(program);
+			{
+				GL_BIND_LOCK_OBJECT(mProgram);
 
-			glUniform2f( loc_lightLocation , light.pos.x , light.pos.y );
-			glUniform3f( loc_lightColor , light.color.x , light.color.y , light.color.z );
-			glUniform3f( loc_lightAttenuation , 0 , 1 / 5.0 , 0 );
-
-			glBegin( GL_QUADS );
-			glVertex2i( 0 , 0 );
-			glVertex2i( w , 0 );
-			glVertex2i( w , h );
-			glVertex2i( 0 , h );
-			glEnd();
-
-			glUseProgram(0);
+				mProgram.setParameters(light.pos, light.color);
+				glBegin(GL_QUADS);
+				glVertex2i(0, 0);
+				glVertex2i(w, 0);
+				glVertex2i(w, h);
+				glVertex2i(0, h);
+				glEnd();
+			}
 			glDisable(GL_BLEND);
 			glClear(GL_STENCIL_BUFFER_BIT);
 		}
@@ -161,7 +145,7 @@ namespace Lighting
 
 		g.beginRender();
 
-		RenderUtility::setFont( g , FONT_S8 );
+		RenderUtility::SetFont( g , FONT_S8 );
 		FixString< 256 > str;
 		Vec2i pos = Vec2i( 10 , 10 );
 		g.drawText( pos , str.format( "Lights Num = %u" , lights.size() ) );
@@ -169,22 +153,22 @@ namespace Lighting
 		g.endRender();
 	}
 
-	void TestStage::renderPolyShadow( Light const& light , Vec2f const& pos , Vec2f const* vertices , int numVertex  )
+	void TestStage::renderPolyShadow( Light const& light , Vector2 const& pos , Vector2 const* vertices , int numVertex  )
 	{
 		int idxPrev = numVertex - 1;
 		for( int idxCur = 0 ; idxCur < numVertex ; idxPrev = idxCur , ++idxCur )
 		{
-			Vec2f const& cur  = pos + vertices[ idxCur ];
-			Vec2f const& prev = pos + vertices[ idxPrev ];
-			Vec2f edge = cur - prev;
+			Vector2 const& cur  = pos + vertices[ idxCur ];
+			Vector2 const& prev = pos + vertices[ idxPrev ];
+			Vector2 edge = cur - prev;
 
-			Vec2f dirCur = cur - light.pos;
-			Vec2f dirPrev = prev - light.pos;
+			Vector2 dirCur = cur - light.pos;
+			Vector2 dirPrev = prev - light.pos;
 
 			if ( dirCur.x * edge.y - dirCur.y * edge.x < 0 )
 			{
-				Vec2f v1 = prev + 1000 * dirPrev;
-				Vec2f v2 = cur + 1000 * dirCur;
+				Vector2 v1 = prev + 1000 * dirPrev;
+				Vector2 v2 = cur + 1000 * dirCur;
 
 				glBegin( GL_QUADS );
 				glVertex2f( prev.x , prev.y );
@@ -203,7 +187,7 @@ namespace Lighting
 
 		GameWindow& window = Global::getDrawEngine()->getWindow();
 
-		Vec2f worldPos = Vec2f(msg.getPos().x, window.getHeight() - msg.getPos().y);
+		Vector2 worldPos = Vector2(msg.getPos().x, window.getHeight() - msg.getPos().y);
 		if ( msg.onLeftDown() )
 		{
 			Light light;
@@ -217,7 +201,7 @@ namespace Lighting
 		{
 			Block block;
 			//#TODO
-			block.setBox(worldPos, Vec2f( 50 , 50 ) );
+			block.setBox(worldPos, Vector2( 50 , 50 ) );
 			blocks.push_back( block );
 		}
 		else if ( msg.onMoving() )

@@ -49,8 +49,8 @@ class PASet
 {
 public:
 	void clear(){ mNumberBit = 0; }
-	int  getNumber(){ assert( size() == 1 ); return BitUtility::toNumber( mNumberBit ); }
-	int  size(){ return BitUtility::count( mNumberBit ); }
+	int  getNumber(){ assert( size() == 1 ); return BitUtility::CountLeadingZeros(mNumberBit); }
+	int  size(){ return BitUtility::CountSet( mNumberBit ); }
 	void add( int number ){ mNumberBit |= BIT( number ); }
 	void sub( int number ){ mNumberBit &= ~BIT( number ); }
 
@@ -170,7 +170,7 @@ public:
 
 
 
-	bool checkGroupVaild( Group group ,  int idxGroup )
+	bool checkGroup( Group group ,  int idxGroup )
 	{
 		unsigned checkNum = 0;
 		for( Iterator iter = Iterator::FromGroupIndex(group, idxGroup); iter.haveMore(); ++iter )
@@ -191,13 +191,13 @@ public:
 		return true;
 	}
 
-	bool  checkStateVaild()
+	bool  checkState()
 	{
 		for( int i = 0; i < 3; ++i )
 		{
 			for( int n = 0; n < NumberNum; ++n )
 			{
-				if( !checkGroupVaild(Group(i), n) )
+				if( !checkGroup(Group(i), n) )
 					return false;
 			}
 		}

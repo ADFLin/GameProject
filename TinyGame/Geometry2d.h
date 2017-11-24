@@ -3,9 +3,9 @@
 
 #include "TVector2.h"
 
-namespace Geom2d
+namespace Geom2D
 {
-	typedef TVector2< float > Vec2f;
+	typedef TVector2< float > Vector2;
 
 	template< class T >
 	struct PolyProperty
@@ -13,8 +13,8 @@ namespace Geom2d
 		typedef T PolyType;
 		static void  Setup( PolyType& p, int size );
 		static int   Size( PolyType const& p);
-		static Vec2f const& Vertex( PolyType const& p, int idx );
-		static void  UpdateVertex( PolyType& p, int idx , Vec2f const& value );
+		static Vector2 const& Vertex( PolyType const& p, int idx );
+		static void  UpdateVertex( PolyType& p, int idx , Vector2 const& value );
 	};
 
 	namespace Poly
@@ -24,22 +24,22 @@ namespace Geom2d
 		template< class T >
 		int  Size( T const& p ){ return PolyProperty< T >::Size( p ); }
 		template< class T >
-		Vec2f const& Vertex( T const& p , int idx ){ return PolyProperty< T >::Vertex( p , idx ); }
+		Vector2 const& Vertex( T const& p , int idx ){ return PolyProperty< T >::Vertex( p , idx ); }
 		template< class T >
-		void UpdateVertex( T& p , int idx , Vec2f const& value ){ return PolyProperty< T >::UpdateVertex( p , idx , value ); }
+		void UpdateVertex( T& p , int idx , Vector2 const& value ){ return PolyProperty< T >::UpdateVertex( p , idx , value ); }
 
 	}
 
 	template< class T1 >
-	bool TestInSide( T1 const& poly , Vec2f const& pos )
+	bool TestInSide( T1 const& poly , Vector2 const& pos )
 	{
 		int num = Poly::Size( poly );
 		int idxPrev = num - 1;
 		unsigned count = 0;
 		for( int i = 0 ; i < num ; idxPrev = i , ++i )
 		{
-			Vec2f const& prev = Poly::Vertex( poly , idxPrev );
-			Vec2f const& cur = Poly::Vertex( poly , i );
+			Vector2 const& prev = Poly::Vertex( poly , idxPrev );
+			Vector2 const& cur = Poly::Vertex( poly , i );
 			if ( ( cur.y < pos.y && pos.y <= prev.y ) ||
 				( prev.y < pos.y && pos.y <= cur.y ) )
 			{
@@ -62,7 +62,7 @@ namespace Geom2d
 		int numB = Poly::Size( polyB );
 		assert( numA >= 2 && numB >= 2 );
 
-		std::vector< Vec2f > offsets;
+		std::vector< Vector2 > offsets;
 		int num = numA + numB;
 		offsets.resize( num );
 
@@ -83,12 +83,12 @@ namespace Geom2d
 
 		int idxAStart;
 		{
-			Vec2f const& offset = offsets[ num - 1 ];
-			Vec2f const& offsetNext = offsets[ numA ];
+			Vector2 const& offset = offsets[ num - 1 ];
+			Vector2 const& offsetNext = offsets[ numA ];
 
 			for( idxAStart = 0 ; idxAStart < numA ; ++idxAStart )
 			{
-				Vec2f const& offsetTest = offsets[idxAStart];
+				Vector2 const& offsetTest = offsets[idxAStart];
 				if ( offset.cross( offsetTest ) * offsetTest.cross( offsetNext ) > 0 )
 					break;
 			}
@@ -122,7 +122,7 @@ namespace Geom2d
 		assert( n == num );
 
 		Poly::Setup( result , num );
-		Vec2f v = Poly::Vertex( polyA , idxAStart );
+		Vector2 v = Poly::Vertex( polyA , idxAStart );
 		for( int i = 0 ; i < num ; ++i )
 		{
 			v += offsets[ idxVertex[i] ];
@@ -137,7 +137,7 @@ namespace Geom2d
 	private:
 		T*     mPoly;
 		int*   mOut;
-		Vec2f const& getVertex( int idx ){ return Poly::Vertex( *mPoly , idx ); }
+		Vector2 const& getVertex( int idx ){ return Poly::Vertex( *mPoly , idx ); }
 	public:
 		int solve( T& poly , int outIndex[] )
 		{
@@ -151,14 +151,14 @@ namespace Geom2d
 
 			assert( numV > 3 );
 
-			Vec2f v0 = Poly::Vertex( poly , 0 );
+			Vector2 v0 = Poly::Vertex( poly , 0 );
 			float xP[2] = { v0.x , v0.x };
 			float yP[2] = { v0.y , v0.y };
 			int xI[2] = { 0 , 0 };
 			int yI[2] = { 0 , 0 };
 			for( int i = 1 ; i < numV ; ++i )
 			{
-				Vec2f const v = Poly::Vertex( poly , i );
+				Vector2 const v = Poly::Vertex( poly , i );
 				float x = v.x;
 				float y = v.y;
 				if ( xP[0] > x ){ xI[0] = i; xP[0] = x; }
@@ -233,8 +233,8 @@ namespace Geom2d
 		{
 			assert( i1 != i2 );
 
-			Vec2f const& v2 = getVertex(i2); 
-			Vec2f d = getVertex(i1) - v2;
+			Vector2 const& v2 = getVertex(i2); 
+			Vector2 d = getVertex(i1) - v2;
 
 			float valMax = 0;
 			int*  itMax = 0;

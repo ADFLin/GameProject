@@ -10,7 +10,8 @@
 
 namespace StickMove
 {
-	typedef Math::Vector2D Vec2f;
+	typedef Vector2 Vector2;
+
 	using namespace Math2D;
 
 	enum
@@ -22,7 +23,7 @@ namespace StickMove
 
 	struct ContactPoint
 	{
-		Vec2f pos;
+		Vector2 pos;
 		int   indexEdge;
 	};
 
@@ -35,16 +36,16 @@ namespace StickMove
 	class MoveBound
 	{
 	public:
-		void initRect(Vec2f const& size);
-		void initPolygon(Vec2f vertices[], int numVertices);
-		int findTouchEdge(Vec2f const& pos);
-		int calcMovePoint(Vec2f const& pivot, Vec2f const& dir, float length, int idxEdgeStart, MoveResult& outResult);
+		void initRect(Vector2 const& size);
+		void initPolygon(Vector2 vertices[], int numVertices);
+		int findTouchEdge(Vector2 const& pos);
+		int calcMovePoint(Vector2 const& pivot, Vector2 const& dir, float length, int idxEdgeStart, MoveResult& outResult);
 
 		struct Edge
 		{
-			Vec2f pos;
-			Vec2f offset;
-			Vec2f normal;
+			Vector2 pos;
+			Vector2 offset;
+			Vector2 normal;
 		};
 		std::vector< Edge > mEdges;
 	};
@@ -55,7 +56,7 @@ namespace StickMove
 
 		float moveSpeed;
 
-		void init(MoveBound& moveBound, Vec2f const& pivotPos, Vec2f const& endpointPos);
+		void init(MoveBound& moveBound, Vector2 const& pivotPos, Vector2 const& endpointPos);
 		void tick(float dt);
 
 		ContactPoint& getPivot() { return mEndpoints[mIndexPivot]; }
@@ -81,7 +82,7 @@ namespace StickMove
 		ContactPoint mMovePoint;
 		int mIndexPivot = 0;
 
-		Vec2f mDir;
+		Vector2 mDir;
 		float mLength;
 
 		float mMoveTime;

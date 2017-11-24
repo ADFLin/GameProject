@@ -16,7 +16,7 @@ namespace TowerDefend
 	public:
 		Renderer();
 
-		void drawBuilding( ActorId blgID , Vec2f const& pos , bool beSelected );
+		void drawBuilding( ActorId blgID , Vector2 const& pos , bool beSelected );
 		void drawHealthBar( Vec2i const& sPos , int len , float ratio );
 		void drawGrid();
 		void setViewport( Viewport* viewport ){ mVPRender = viewport;  }

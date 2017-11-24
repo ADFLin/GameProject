@@ -212,7 +212,7 @@ namespace TripleTown
 		bool         useObject( TilePos const& pos , ObjectId id );
 		int          peekObject( TilePos const& pos , ObjectId id , TilePos posRemove[] );
 		void         addObject( TilePos const& pos , ObjectId id );
-		bool         isVaildMapRange( TilePos const& pos ) const {  return mMap.checkRange( pos.x , pos.y );  }
+		bool         isMapRange( TilePos const& pos ) const {  return mMap.checkRange( pos.x , pos.y );  }
 
 		int          getEmptyTileNum() const { return mNumEmptyTile; }
 
@@ -269,7 +269,7 @@ namespace TripleTown
 
 		TerrainType getTerrain( TilePos const& pos )
 		{
-			if ( !isVaildMapRange( pos ) )
+			if ( !isMapRange( pos ) )
 				return mBGTerrain;
 			return getTile( pos ).getTerrain();
 		}

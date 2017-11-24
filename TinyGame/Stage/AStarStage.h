@@ -355,7 +355,7 @@ namespace AStar
 
 			MyAStar::TileMap& map = mAStar.mMap;
 
-			RenderUtility::setPen( g , Color::eBlack );
+			RenderUtility::SetPen( g , Color::eBlack );
 
 			g.setTextColor( 125 , 125 , 0 );
 			for( int i = 0 ; i < map.getSizeX(); ++i )
@@ -367,11 +367,11 @@ namespace AStar
 
 				if ( tile.terrain )
 				{
-					RenderUtility::setBrush( g , Color::eGray );
+					RenderUtility::SetBrush( g , Color::eGray );
 				}
 				else
 				{
-					RenderUtility::setBrush( g , Color::eWhite );
+					RenderUtility::SetBrush( g , Color::eWhite );
 				}
 
 				g.drawRect( renderPos , Vec2i( TileLen , TileLen ) );
@@ -399,21 +399,21 @@ namespace AStar
 
 					if ( !node->isClose() )
 					{
-						RenderUtility::setPen( g , Color::eGreen );
+						RenderUtility::SetPen( g , Color::eGreen );
 						Vec2i p1 = convertToScreen( node->state ) + Vec2i( TileLen , TileLen ) / 2;
 						Vec2i p2 = convertToScreen( node->parent->state ) + Vec2i( TileLen , TileLen ) / 2;
 						g.drawLine( p1 , p2 );
 					}
 					else if ( !node->isPath() )
 					{
-						RenderUtility::setPen( g , Color::eBlue );
+						RenderUtility::SetPen( g , Color::eBlue );
 						Vec2i p1 = convertToScreen( node->state ) + Vec2i( TileLen , TileLen ) / 2;
 						Vec2i p2 = convertToScreen( node->parent->state ) + Vec2i( TileLen , TileLen ) / 2;
 						g.drawLine( p1 , p2 );
 					}
 				}
 
-				RenderUtility::setPen( g , Color::eRed );
+				RenderUtility::SetPen( g , Color::eRed );
 
 				MyAStar::NodeType* node = mPath;
 				Vec2i prevPos = convertToScreen( mStartPos ) + Vec2i( TileLen , TileLen ) / 2;

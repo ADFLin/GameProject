@@ -417,7 +417,7 @@ namespace GreedySnake
 				result.y -= mMap.getSizeY();
 			break;
 		case MapBoundType::Cliff:
-			if ( !isVaildMapRange( result ) )
+			if ( !isMapRange( result ) )
 				return false;
 			break;
 		}

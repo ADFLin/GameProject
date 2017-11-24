@@ -1,6 +1,6 @@
 #include "StageRegister.h"
 
-GAME_API StageRegisterCollection gStageRegisterCollection;
+#include <algorithm>
 
 StageRegisterCollection::StageRegisterCollection()
 {
@@ -14,10 +14,23 @@ StageRegisterCollection::~StageRegisterCollection()
 
 void StageRegisterCollection::registerStage(StageInfo const& info)
 {
-	mStageGroupMap[info.group].push_back(info);
+	auto& stageInfoList = mStageGroupMap[info.group];
+
+	auto iter = std::upper_bound(stageInfoList.begin(), stageInfoList.end(), info, 
+		[](StageInfo const& lhs, StageInfo const& rhs) -> bool
+		{
+			return lhs.priority > rhs.priority;
+		});
+	mStageGroupMap[info.group].insert(iter, info);
+}
+
+StageRegisterCollection& StageRegisterCollection::Get()
+{
+	static StageRegisterCollection instance;
+	return instance;
 }
 
 StageRegisterHelper::StageRegisterHelper(StageInfo const& info)
 {
-	gStageRegisterCollection.registerStage(info);
+	StageRegisterCollection::Get().registerStage(info);
 }

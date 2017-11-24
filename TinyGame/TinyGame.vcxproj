@@ -88,7 +88,7 @@
     <ClCompile>
       <AdditionalOptions>/MP %(AdditionalOptions)</AdditionalOptions>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>.;TinyCore;../libEngine;../OtherLib;../CFlyMain;../Zuma;../OtherLib/boost;../OtherLib/glew;../OtherLib/Dx9/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>.;TinyCore;../libEngine;../OtherLib;../CFlyMain;../Zuma;../OtherLib/boost;../OtherLib/glew;../OtherLib/DirectX/Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;_WINDOWS;DEBUG;TG_DLL;CORE_SHARE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MinimalRebuild>false</MinimalRebuild>
       <BasicRuntimeChecks>Default</BasicRuntimeChecks>
@@ -100,10 +100,11 @@
       <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
       <ForcedIncludeFiles>TinyGamePCH.h;%(ForcedIncludeFiles)</ForcedIncludeFiles>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <OpenMPSupport>false</OpenMPSupport>
     </ClCompile>
     <Link>
       <AdditionalDependencies>Msimg32.lib;d3d9.lib;d3dx9d.lib;dsound.lib;dinput8.lib;dxguid.lib;winmm.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>../OtherLib/Boost/lib;../OtherLib/Dx9/lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>../OtherLib/Boost/lib;../OtherLib/DirectX/Lib/x86;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <GenerateDebugInformation>DebugFastLink</GenerateDebugInformation>
       <SubSystem>Windows</SubSystem>
       <RandomizedBaseAddress>false</RandomizedBaseAddress>
@@ -162,7 +163,7 @@
       <AdditionalOptions>/MP %(AdditionalOptions)</AdditionalOptions>
       <Optimization>MaxSpeed</Optimization>
       <EnableFiberSafeOptimizations>true</EnableFiberSafeOptimizations>
-      <AdditionalIncludeDirectories>.;TinyCore;../libEngine;../OtherLib;../Zuma;../OtherLib/boost;../OtherLib/glew;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>.;TinyCore;../libEngine;../OtherLib;../Zuma;../OtherLib/boost;../OtherLib/glew;../OtherLib/DirectX/Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>_SECURE_SCL=0;WIN32;_WINDOWS;NDEBUG;TG_DLL;CORE_SHARE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <StringPooling>true</StringPooling>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
@@ -173,10 +174,11 @@
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <ForcedIncludeFiles>TinyGamePCH.h;%(ForcedIncludeFiles)</ForcedIncludeFiles>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <OpenMPSupport>false</OpenMPSupport>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>Msimg32.lib;fmodex_vc.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>../OtherLib/FMOD/lib;../OtherLib/Boost/lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>Msimg32.lib;Xaudio2.lib;fmodex_vc.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>../OtherLib/FMOD/lib;../OtherLib/Boost/lib;../OtherLib/DirectX/Lib/x86;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Windows</SubSystem>
       <OptimizeReferences />
@@ -246,15 +248,23 @@
       <Optimization Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">MaxSpeed</Optimization>
       <Optimization Condition="'$(Configuration)|$(Platform)'=='Debug|VisualGDB'">MaxSpeed</Optimization>
     </ClCompile>
+    <ClCompile Include="AlarmClockTest.cpp" />
     <ClCompile Include="Bejeweled\BJLevel.cpp" />
     <ClCompile Include="Bejeweled\BJScene.cpp" />
     <ClCompile Include="Bejeweled\BJStage.cpp" />
     <ClCompile Include="Bsp2D.cpp" />
     <ClCompile Include="Cantan\CantanLevel.cpp" />
+    <ClCompile Include="FlappyBird\FBLevel.cpp" />
+    <ClCompile Include="FlappyBird\FBStage.cpp" />
+    <ClCompile Include="FlappyBird\TrainManager.cpp" />
     <ClCompile Include="MiscTest\BehaviorTreeTest.cpp" />
     <ClCompile Include="MiscTest\BoneIKTest.cpp" />
     <ClCompile Include="MiscTest\MatrixTest.cpp" />
+    <ClCompile Include="NesEmulator.cpp">
+      <Optimization Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">MaxSpeed</Optimization>
+    </ClCompile>
     <ClCompile Include="RenderGL\GLCommon.cpp" />
+    <ClCompile Include="RenderGL\GLDrawUtility.cpp" />
     <ClCompile Include="RenderGL\GLUtility.cpp" />
     <ClCompile Include="RenderGL\GpuProfiler.cpp" />
     <ClCompile Include="RenderGL\LazyObject.cpp" />
@@ -280,6 +290,10 @@
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Stage\AsyncWokTestStage.cpp" />
     <ClCompile Include="Stage\FluidSimStage.cpp" />
+    <ClCompile Include="Stage\LeelaZeroLearningStage.cpp" />
+    <ClCompile Include="Stage\NesEmulatorStage.cpp" />
+    <ClCompile Include="Stage\AudioTestStage.cpp" />
+    <ClCompile Include="Stage\SpatialIndexTest.cpp" />
     <ClCompile Include="Stage\StageRegister.cpp" />
     <ClCompile Include="Stage\StickMoveStage.cpp" />
     <ClCompile Include="Stage\MainMenuStage.cpp" />
@@ -408,11 +422,14 @@
     </ClCompile>
     <ClCompile Include="Stage\BloxorzStage.cpp" />
     <ClCompile Include="Stage\CompressionTestStage.cpp" />
-    <ClCompile Include="Stage\FBirdStage.cpp" />
     <ClCompile Include="Stage\GGJStage.cpp" />
-    <ClCompile Include="Stage\LightingStage.cpp" />
+    <ClCompile Include="Stage\LightingStage2D.cpp" />
     <ClCompile Include="Stage\RubiksStage.cpp" />
-    <ClCompile Include="Stage\SoftwareRenderStage.cpp" />
+    <ClCompile Include="Stage\SoftwareRenderStage.cpp">
+      <OpenMPSupport Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</OpenMPSupport>
+      <OpenMPSupport Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</OpenMPSupport>
+    </ClCompile>
+    <ClCompile Include="Stage\TMechineStage.cpp" />
     <ClCompile Include="stb_image.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
       </PrecompiledHeader>
@@ -498,8 +515,12 @@
     <ClInclude Include="CellWalker.h" />
     <ClInclude Include="Civ\CvCity.h" />
     <ClInclude Include="Civ\CvMap.h" />
-    <ClInclude Include="ECS\ECSBase.h" />
+    <ClInclude Include="ECSModel\ECSBase.h" />
     <ClInclude Include="Fight\FightLevel.h" />
+    <ClInclude Include="FlappyBird\FBLevel.h" />
+    <ClInclude Include="FlappyBird\FBStage.h" />
+    <ClInclude Include="FlappyBird\TrainManager.h" />
+    <ClInclude Include="NesEmulator.h" />
     <ClInclude Include="RenderGL\BaseType.h" />
     <ClInclude Include="RenderGL\FrameGraph.h" />
     <ClInclude Include="RenderGL\GLCommon.h" />
@@ -525,6 +546,8 @@
     <ClInclude Include="Go\ZenBot.h" />
     <ClInclude Include="LordMonarch\LmLevel.h" />
     <ClInclude Include="Stage\FluidSimStage.h" />
+    <ClInclude Include="Stage\AudioTestStage.h" />
+    <ClInclude Include="Stage\SpatialIndexTest.h" />
     <ClInclude Include="Stage\MainMenuStage.h" />
     <ClInclude Include="Mario\MBLevel.h" />
     <ClInclude Include="MonumentValley\MVCommon.h" />
@@ -558,12 +581,13 @@
     <ClInclude Include="Stage\AgarStage.h" />
     <ClInclude Include="Stage\AStarStage.h" />
     <ClInclude Include="Stage\BloxorzStage.h" />
-    <ClInclude Include="Stage\FBirdStage.h" />
     <ClInclude Include="Stage\GGJStage.h" />
-    <ClInclude Include="Stage\LightingStage.h" />
+    <ClInclude Include="Stage\LightingStage2D.h" />
     <ClInclude Include="Stage\RubiksStage.h" />
+    <ClInclude Include="Stage\SoftwareRenderStage.h" />
     <ClInclude Include="Stage\StickMoveStage.h" />
     <ClInclude Include="Stage\TestStageHeader.h" />
+    <ClInclude Include="Stage\TMechineStage.h" />
     <ClInclude Include="Sudoku\SamplerTest.h" />
     <ClInclude Include="Sudoku\SudokuSolver.h" />
     <ClInclude Include="Sudoku\SudokuSolver.hpp" />
@@ -594,7 +618,7 @@
     <None Include="out\Shader\Game\BumpPS.glsl" />
     <None Include="out\Shader\Game\BumpVS.glsl" />
     <None Include="out\Shader\Game\FS.glsl" />
-    <None Include="out\Shader\Game\Light.glsl" />
+    <None Include="out\Shader\Game\Lighting2D.glsl" />
     <None Include="out\Shader\Game\MVPiece.glsl" />
     <None Include="out\Shader\Game\Parallax.glsl" />
     <None Include="out\Shader\Game\PlanetSurface.glsl" />

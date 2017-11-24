@@ -6,7 +6,7 @@
 #include "Flag.h"
 
 #include "FastDelegate/FastDelegate.h"
-#include "IntegerType.h"
+#include "Core/IntegerType.h"
 
 #include <vector>
 #include <list>
@@ -20,7 +20,7 @@ namespace BomberMan
 	class IAnimManager;
 
 	typedef TVector2< int >   Vec2i;
-	typedef TVector2< float > Vec2f;
+	typedef TVector2< float > Vector2;
 
 	struct CollisionInfo;
 
@@ -263,9 +263,9 @@ namespace BomberMan
 		virtual void onDestroy(){}
 		virtual void onCollision( ColObject* objPart , CollisionInfo const& info ){}
 
-		Vec2f const& getPos()  const { return mPos; }
-		Vec2f const& getPrevPos() const { return mPrevPos; }
-		void         setPos( Vec2f const& pos ){ mPos = pos; }
+		Vector2 const& getPos()  const { return mPos; }
+		Vector2 const& getPrevPos() const { return mPrevPos; }
+		void         setPos( Vector2 const& pos ){ mPos = pos; }
 		void         setPosWithTile( Vec2i const& tPos );
 		World*       getWorld(){ return mWorld; }
 
@@ -275,8 +275,8 @@ namespace BomberMan
 		bool       mNeedRemove;
 		World*     mWorld;
 		ObjectType mType;
-		Vec2f      mPos;
-		Vec2f      mPrevPos;
+		Vector2      mPos;
+		Vector2      mPrevPos;
 	};
 
 	struct TileData;
@@ -316,8 +316,8 @@ namespace BomberMan
 		{
 
 		}
-		Vec2f const& getHalfBoundSize() const { return mHalfBSize; }
-		void         setHalfBoundSize( Vec2f const& size ){ mHalfBSize = size; }
+		Vector2 const& getHalfBoundSize() const { return mHalfBSize; }
+		void         setHalfBoundSize( Vector2 const& size ){ mHalfBSize = size; }
 		unsigned     getColMask() const { return mColMask; }
 		void         setColMask( unsigned mask ){ mColMask = mask; }
 		void         notifyCollision( CollisionInfo const& info )
@@ -328,7 +328,7 @@ namespace BomberMan
 
 	private:
 		Entity*    mClient;
-		Vec2f      mHalfBSize;
+		Vector2      mHalfBSize;
 		unsigned   mColMask;
 		friend class World;
 	};
@@ -443,8 +443,8 @@ namespace BomberMan
 
 	protected:
 		
-		bool    moveOnTile( Dir moveDir , float offset , Vec2f& goalPos , TileData* colTile[] , float margin );
-		virtual TileData* testBlocked( Vec2f const& pos );
+		bool    moveOnTile( Dir moveDir , float offset , Vector2& goalPos , TileData* colTile[] , float margin );
+		virtual TileData* testBlocked( Vector2 const& pos );
 		FlagValue< unsigned > mActionFlag;
 	};
 
@@ -505,7 +505,7 @@ namespace BomberMan
 		void     reset();
 		void     update();
 
-		void     updateAction( Vec2f& nextPos );
+		void     updateAction( Vector2& nextPos );
 
 		void     postUpdate();
 		void     addItem( Item tool );
@@ -536,7 +536,7 @@ namespace BomberMan
 		void     catchDisease( SkullType disease );
 		int      getTakeBombIndex(){ return mIdxBombTake; }
 		//virtual 
-		TileData* testBlocked( Vec2f const& pos );
+		TileData* testBlocked( Vector2 const& pos );
 		SkullType getDisease(){ return mDisease; }
 
 		enum State
@@ -580,7 +580,7 @@ namespace BomberMan
 		int       mIdxBombTake;
 		unsigned  mId;
 	private:
-		int       checkTouchTileInternal( Vec2f const& pos , TileData* tiles[] , int numTile );
+		int       checkTouchTileInternal( Vector2 const& pos , TileData* tiles[] , int numTile );
 
 		unsigned  mPlayerColBit;
 		unsigned  mPrevPlayerColBit;
@@ -645,12 +645,12 @@ namespace BomberMan
 	{
 		typedef Entity BaseClass;
 	public:
-		MoveItem( Item item , Vec2f const& from , Vec2f const& to );
+		MoveItem( Item item , Vector2 const& from , Vector2 const& to );
 
 		void update();
 
 	private:
-		Vec2f mDest;
+		Vector2 mDest;
 		Item  mItem;
 	};
 
@@ -685,7 +685,7 @@ namespace BomberMan
 
 		void           breakTileObj( Vec2i const& pos );
 		TileData&      getTileWarp( Vec2i const& pos );
-		TileData*      getTileWithPos( Vec2f const& pos , Vec2i& tPos );
+		TileData*      getTileWithPos( Vector2 const& pos , Vec2i& tPos );
 		class BombIterator
 		{
 		public:
@@ -736,8 +736,8 @@ namespace BomberMan
 		struct ColObjectData
 		{
 			ColObject* obj;
-			Vec2f      bMin;
-			Vec2f      bMax;
+			Vector2      bMin;
+			Vector2      bMax;
 		};
 		typedef std::list< ColObjectData > ColObjectList;
 		ColObjectList mColObjList;

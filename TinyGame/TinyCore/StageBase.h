@@ -6,8 +6,8 @@
 #include "GameWidget.h"
 
 class StageManager;
-class IGameInstance;
-class GameInstanceManager;
+class IGameModule;
+class GameModuleManager;
 class MouseMsg;
 class NetWorker;
 class GWidget;

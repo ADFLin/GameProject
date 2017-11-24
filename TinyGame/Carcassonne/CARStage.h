@@ -6,7 +6,7 @@
 
 #include "CARWorldTileManager.h"
 #include "CARGameplaySetting.h"
-#include "CARGameModule.h"
+#include "CARGameLogic.h"
 #include "CARDebug.h"
 #include "CARGameInputImpl.h"
 
@@ -37,7 +37,7 @@ namespace CAR
 		ActorPosInfo* info;
 		ActorType type;
 		int       indexPos;
-		Vec2f     mapPos;
+		Vector2     mapPos;
 	};
 
 	class SelectButton : public GButtonBase
@@ -56,7 +56,7 @@ namespace CAR
 			ActorInfo*  actorInfo;
 		};
 		int       index;
-		Vec2f     mapPos;
+		Vector2     mapPos;
 	};
 
 	class TileButton : public GButtonBase
@@ -166,21 +166,21 @@ namespace CAR
 		
 		Vec2i showPlayerInfo( Graphics2D& g, Vec2i const& pos , PlayerBase* player , int offsetY );
 		Vec2i showFeatureInfo( Graphics2D& g, Vec2i const& pos , FeatureBase* build , int offsetY );
-		void  drawMapData( Graphics2D& g , Vec2f const& pos , MapTile const& mapData );
-		void  drawTileRect( Graphics2D& g , Vec2f const& mapPos );
-		void  drawTile( Graphics2D& g , Vec2f const& pos , TilePiece const& tile , int rotation , MapTile const* mapTile = nullptr );
+		void  drawMapData( Graphics2D& g , Vector2 const& pos , MapTile const& mapData );
+		void  drawTileRect( Graphics2D& g , Vector2 const& mapPos );
+		void  drawTile( Graphics2D& g , Vector2 const& pos , TilePiece const& tile , int rotation , MapTile const* mapTile = nullptr );
 
-		void  setRenderOffset( Vec2f const& a_offset );
+		void  setRenderOffset( Vector2 const& a_offset );
 		void  setRenderScale( float scale );
-		Vec2f calcActorMapPos( ActorPos const& pos , MapTile const& mapTile );
+		Vector2 calcActorMapPos( ActorPos const& pos , MapTile const& mapTile );
 		Vec2i convertToMapTilePos( Vec2i const& sPos );
-		Vec2f convertToMapPos(Vec2i const& sPos);
-		Vec2f convertToScreenPos(Vec2f const& pos);
+		Vector2 convertToMapPos(Vec2i const& sPos);
+		Vector2 convertToScreenPos(Vector2 const& pos);
 
-		void  onGamePrevAction( GameModule& moudule , CGameInput& input );
-		void  onGameAction( GameModule& moudule , CGameInput& input );
+		void  onGamePrevAction( GameLogic& gameLogic, CGameInput& input );
+		void  onGameAction( GameLogic& gameLogic, CGameInput& input );
 		void  removeGameActionUI();
-		Vec2f getActorPosMapOffset( ActorPos const& pos );
+		Vector2 getActorPosMapOffset( ActorPos const& pos );
 
 		//IGameEventListener
 		virtual void onPutTile( TileId id , MapTile* mapTiles[] , int numMapTile );
@@ -211,17 +211,17 @@ namespace CAR
 		typedef MapTile::FarmNode FarmNode;
 
 		CGameInput        mInput;
-		GameModule        mMoudule;
+		GameLogic         mGameLogic;
 		GamePlayerManager mPlayerManager;
-		GameplaySetting       mSetting;
+		GameplaySetting   mSetting;
 
 		IDataTransfer*    mServerDataTranfser;
 
 		std::vector< GWidget* > mGameActionUI;
 
 		float   mRenderScale;
-		Vec2f   mRenderTileSize;
-		Vec2f   mRenderOffset;
+		Vector2   mRenderTileSize;
+		Vector2   mRenderOffset;
 		Matrix4 mMatVP;
 		Matrix4 mMatInvVP;
 		bool    mb2DView;

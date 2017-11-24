@@ -45,6 +45,7 @@ namespace RenderGL
 		void drawTexture(int x, int y, int width, int height, int idxBuffer, Vector4 const& colorMask);
 	};
 
+
 	class SceneRenderTargets
 	{
 	public:
@@ -61,14 +62,6 @@ namespace RenderGL
 		GBufferParamData&   getGBuffer() { return mGBuffer; }
 		RHITextureDepth&    getDepthTexture() { return *mDepthTexture; }
 
-		void setupShaderGBuffer(ShaderProgram& program, bool bUseDepth)
-		{
-			if( bUseDepth )
-				program.setTexture(SHADER_PARAM(FrameDepthTexture), *mDepthTexture);
-
-			mGBuffer.setupShader(program);
-		}
-
 		FrameBuffer& getFrameBuffer() { return mFrameBuffer; }
 
 		void drawDepthTexture(int x, int y, int width, int height);
@@ -78,6 +71,23 @@ namespace RenderGL
 		int              mIdxRenderFrameTexture;
 		FrameBuffer      mFrameBuffer;
 		RHITextureDepthRef mDepthTexture;
+	};
+
+
+	class GBufferShaderParameters
+	{
+	public:
+		void bindParameters(ShaderProgram& program, bool bUseDepth = false);
+
+		void setParameters(ShaderProgram& program, GBufferParamData& GBufferData);
+		void setParameters(ShaderProgram& program, SceneRenderTargets& sceneRenderTargets);
+
+		ShaderParameter mParamGBufferTextureA;
+		ShaderParameter mParamGBufferTextureB;
+		ShaderParameter mParamGBufferTextureC;
+		ShaderParameter mParamGBufferTextureD;
+
+		ShaderParameter mParamFrameDepthTexture;
 	};
 
 	struct ShadowProjectParam
@@ -94,6 +104,15 @@ namespace RenderGL
 		void setupLight(LightInfo const& inLight);
 
 		void setupShader(ShaderProgram& program) const;
+	};
+
+
+
+	class ShadowProjectShaderParameters
+	{
+
+
+
 	};
 
 	class ForwardShadingTech : public RenderTechique
@@ -135,7 +154,7 @@ namespace RenderGL
 			}
 		}
 
-		virtual ShaderProgram* getMaterialShader(RenderContext& context,  MaterialMaster& material , VertexFactory* vertexFactory ) override
+		virtual MaterialShaderProgram* getMaterialShader(RenderContext& context,  MaterialMaster& material , VertexFactory* vertexFactory ) override
 		{
 #if USE_MATERIAL_SHADOW
 			if( mEffectCur == &mProgLighting )
@@ -186,6 +205,37 @@ namespace RenderGL
 
 	};
 
+	class SSAOGenerateProgram : public ShaderProgram
+	{
+	public:
+		void bindParameters();
+		void setParameters(SceneRenderTargets& sceneRenderTargets , Vector3 kernelVectors[], int numKernelVector );
+
+		GBufferShaderParameters mParamGBuffer;
+		ShaderParameter mParamKernelNum;
+		ShaderParameter mParamKernelVectors;
+		ShaderParameter mParamOcclusionRadius;
+	};
+
+	class SSAOBlurProgram : public ShaderProgram
+	{
+	public:
+		void bindParameters();
+		void setParameters(RHITexture2D& SSAOTexture);
+
+		ShaderParameter mParamTextureSSAO;
+	};
+
+	class SSAOAmbientProgram : public ShaderProgram
+	{
+	public:
+		void bindParameters();
+		void setParameters(SceneRenderTargets& sceneRenderTargets, RHITexture2D& SSAOTexture);
+
+		GBufferShaderParameters mParamGBuffer;
+		ShaderParameter mParamTextureSSAO;
+	};
+
 
 	class PostProcessSSAO : public PostProcess
 	{
@@ -197,7 +247,7 @@ namespace RenderGL
 		void render(ViewInfo& view, SceneRenderTargets& sceneRenderTargets);
 		void drawSSAOTexture( Vec2i const& pos , Vec2i const& size )
 		{
-			ShaderHelper::drawTexture(*mSSAOTextureBlur, pos , size );
+			ShaderHelper::DrawTexture(*mSSAOTextureBlur, pos , size );
 		}
 
 		void reload();
@@ -227,9 +277,10 @@ namespace RenderGL
 		FrameBuffer  mFrameBuffer;
 		RHITexture2DRef mSSAOTextureBlur;
 		RHITexture2DRef mSSAOTexture;
-		ShaderProgram mSSAOShader;
-		ShaderProgram mSSAOBlurShader;
-		ShaderProgram mAmbientShader;
+		SSAOGenerateProgram mSSAOShader;
+		SSAOBlurProgram mSSAOBlurShader;
+		SSAOAmbientProgram mAmbientShader;
+
 	};
 	inline float normalizePlane(Vector4& plane)
 	{
@@ -247,6 +298,20 @@ namespace RenderGL
 		LBM_GEMO_BOUND_SHAPE_WITH_STENCIL,
 
 		NumLightBoundMethod,
+	};
+
+	class DefferredLightingProgram : public ShaderProgram
+	{
+	public:
+		void bindParameters()
+		{
+			mParamGBuffer.bindParameters(*this , true);
+		}
+		void setParamters(SceneRenderTargets& sceneRenderTargets)
+		{
+			mParamGBuffer.setParameters(*this, sceneRenderTargets);
+		}
+		GBufferShaderParameters mParamGBuffer;
 	};
 
 	class DefferredShadingTech : public RenderTechique
@@ -275,17 +340,16 @@ namespace RenderGL
 
 		FrameBuffer   mBassPassBuffer;
 		FrameBuffer   mLightBuffer;
-		ShaderProgram mProgLightingScreenRect[3];
-		ShaderProgram mProgLighting[3];
-		ShaderProgram mProgLightingShowBound;
+		DefferredLightingProgram mProgLightingScreenRect[3];
+		DefferredLightingProgram mProgLighting[3];
+		DefferredLightingProgram mProgLightingShowBound;
 
 		SceneRenderTargets* mSceneRenderTargets;
-		GBufferParamData*   mGBufferParamData;
 
 		Mesh mSphereMesh;
 		Mesh mConeMesh;
 
-		virtual ShaderProgram* getMaterialShader(RenderContext& context, MaterialMaster& material , VertexFactory* vertexFactory)
+		virtual MaterialShaderProgram* getMaterialShader(RenderContext& context, MaterialMaster& material , VertexFactory* vertexFactory)
 		{
 			//return &GSimpleBasePass;
 
@@ -295,8 +359,20 @@ namespace RenderGL
 		void reload();
 	};
 
+	class BMAResolveProgram : public ShaderProgram
+	{
+	public:
+		void bindParameters();
 
-	class OITTech :  public RenderTechique
+		void setParameters( RHITexture2D& ColorStorageTexture , RHITexture2D& NodeAndDepthStorageTexture , RHITexture2D& NodeHeadTexture);
+
+		ShaderParameter mParamColorStorageTexture;
+		ShaderParameter mParamNodeAndDepthStorageTexture;
+		ShaderParameter mParamNodeHeadTexture;
+	};
+
+
+	class OITTechique :  public RenderTechique
 	{
 
 	public:
@@ -326,7 +402,8 @@ namespace RenderGL
 
 		ShaderProgram mShaderBassPassTest;
 		ShaderProgram mShaderResolve;
-		ShaderProgram mShaderBMAResolves[NumBMALevel];
+		BMAResolveProgram mShaderBMAResolves[NumBMALevel];
+
 		RHITexture2DRef mColorStorageTexture;
 		RHITexture2DRef mNodeAndDepthStorageTexture;
 		RHITexture2DRef mNodeHeadTexture;
@@ -338,7 +415,7 @@ namespace RenderGL
 
 		FrameBuffer mFrameBuffer;
 
-		virtual ShaderProgram* getMaterialShader( RenderContext& context , MaterialMaster& material , VertexFactory* vertexFactory) override;
+		virtual MaterialShaderProgram* getMaterialShader( RenderContext& context , MaterialMaster& material , VertexFactory* vertexFactory) override;
 		virtual void setupMaterialShader(RenderContext& context, ShaderProgram& shader) override;
 
 	};

@@ -2,7 +2,7 @@
 #include "TVector2.h"
 
 #include "CppVersion.h"
-#include "IntegerType.h"
+#include "Core/IntegerType.h"
 
 #include <algorithm>
 #include <cassert>

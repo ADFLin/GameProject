@@ -115,7 +115,7 @@
     <ClInclude Include="GameShare.h">
       <Filter>Common</Filter>
     </ClInclude>
-    <ClInclude Include="TinyCore\GameInstanceManager.h">
+    <ClInclude Include="TinyCore\GameModuleManager.h">
       <Filter>Common</Filter>
     </ClInclude>
   </ItemGroup>
@@ -198,7 +198,7 @@
     <ClCompile Include="TinyCore\StageRegister.cpp">
       <Filter>Common</Filter>
     </ClCompile>
-    <ClCompile Include="TinyCore\GameInstanceManager.cpp">
+    <ClCompile Include="TinyCore\GameModuleManager.cpp">
       <Filter>Common</Filter>
     </ClCompile>
   </ItemGroup>

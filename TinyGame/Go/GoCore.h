@@ -8,6 +8,23 @@ class SocketBuffer;
 
 namespace Go
 {
+	inline void ReadCoord( char const* coord , int outPos[2] )
+	{
+		int x = coord[0] - 'A';
+		if( coord[0] > 'I' )
+		{
+			--x;
+		}
+		int y = coord[1] - '0';
+		if( '0' <= coord[2] && coord[2] <= '9' )
+		{
+			y = 10 * y + (coord[2] - '0');
+		}
+		--y;
+
+		outPos[0] = x;
+		outPos[1] = y;
+	}
 	class Board
 	{
 	public:
@@ -50,8 +67,13 @@ namespace Go
 
 		Pos      getPos( int x , int y ) const { assert( checkRange( x, y ) ); return Pos( getDataIndex( x , y ) );}
 		Pos      getPos( int idx ) const { return Pos( idx ); }
+		void     getPosCoord(int idx, int outCoord[2]) const
+		{
+			outCoord[0] = idx % getDataSizeX();
+			outCoord[1] = idx / getDataSizeX() - 1;
+		}
 
-		bool     getConPos( Pos const& pos , int dir , Pos& result );
+		bool     getConPos( Pos const& pos , int dir , Pos& result ) const;
 
 		DataType getData( int x , int y ) const;
 		DataType getData( Pos const& p ) const { return DataType( getData( p.toIndex() ) ); }
@@ -63,6 +85,8 @@ namespace Go
 		int      fillStone( Pos const& p , DataType color );
 		void     removeStone( Pos const& p );
 		int      captureStone( Pos const& p );
+
+		int      peekCaptureStone( Pos const& p , unsigned& bitDir) const;
 
 	private:
 		typedef short LinkType;
@@ -88,12 +112,15 @@ namespace Go
 		int      relink_R( int idx );
 		int      fillStone_R( int idx );
 		int      captureStone_R( int idx );
+		int      peekCaptureStoneDir(Pos const& p) const;
+		int      peekCaptureStoneDir_R( int idx ) const;
+
 
 		void     removeVisitedMark_R( int idx );
 
 
 		int       mIndexOffset[ NumDir ];
-		DataType  mColorR;
+		mutable DataType mColorR;
 		int       mIdxConRoot;
 
 		int       mSize;
@@ -117,6 +144,7 @@ namespace Go
 
 		void    setup( int size );
 		void    restart();
+		bool    canPlay(int x, int y) const;
 		bool    play( int x , int y );
 		bool    play( Pos const & pos );
 		void    pass();
@@ -133,12 +161,15 @@ namespace Go
 
 		bool    save( char const* path );
 
+		int     getStepNum() const { return mStepVec.size(); }
+		bool    getLastStepPos(int outPos[2]) const;
+
 	private:
 
 		void     doRestart( bool beClearBoard );
 		
 
-		Pos      getFristConPos( Board::Pos const& pos , unsigned bitDir );
+		Pos      getFristConPos( Board::Pos const& pos , unsigned bitDir ) const;
 
 		int      captureStone( Board::Pos const& pos , unsigned& bitDir );
 
@@ -146,7 +177,7 @@ namespace Go
 		int       mCurHand;
 		int       mNumBlackRemoved;
 		int       mNumWhiteRemoved;
-		Board     mBoard;
+		mutable Board mBoard;
 		int       mIdxKoPos;
 		DataType  mFristPlayColor;
 		DataType  mNextPlayColor;

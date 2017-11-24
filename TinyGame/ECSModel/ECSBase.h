@@ -2,7 +2,7 @@
 #ifndef ECSBase_H_6465714A_7ACE_4CF3_89D6_FE84F26B6074
 #define ECSBase_H_6465714A_7ACE_4CF3_89D6_FE84F26B6074
 
-#include "IntegerType.h"
+#include "Core/IntegerType.h"
 namespace ECS
 {
 

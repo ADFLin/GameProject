@@ -3,7 +3,7 @@
 
 // BSP30.H
 // Defines data structures for loading a BSP-30 (Quake 1 / Half-Life 1) file
-#include "IntegerType.h"
+#include "Core/IntegerType.h"
 
 namespace BspV30 
 {

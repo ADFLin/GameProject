@@ -29,7 +29,7 @@ namespace Zuma
 
 	struct ZComboInfo
 	{
-		Vec2f    pos;
+		Vector2    pos;
 		ZColor   color;
 		int      numBall;
 		int      score;
@@ -60,7 +60,7 @@ namespace Zuma
 		//destroy [start , end]
 		ZConBall* destroyBall( ZBallNode start , ZBallNode end );
 
-		void      applyBomb( Vec2f const& pos , float radius );
+		void      applyBomb( Vector2 const& pos , float radius );
 		//ZConBall* destroySameColorBall( ZConBall* ball );
 
 		ZConBall* doInsertBall( ZBallNode where ,  ZColor color );
@@ -69,7 +69,7 @@ namespace Zuma
 		ZConBall* addBall( ZColor color );
 		ZPath*    getFollowPath() const { return mFollowPath; }
 
-		ZConBall* findNearestBall( Vec2f const& pos , float& minR2 , bool checkMask = false );
+		ZConBall* findNearestBall( Vector2 const& pos , float& minR2 , bool checkMask = false );
 		void      render( IRenderSystem& RDSystem , bool beMask );
 		void      destroyBall( ZConBall* ball );
 		int       getBallNum() const { return mBallList.size(); }
@@ -77,10 +77,10 @@ namespace Zuma
 		float     getFinishPathPos(){ return mPathPosFinish; }
 		void      reset();
 		//tMin > 0
-		ZConBall* rayTest( Vec2f const& rPos , Vec2f const& rDir , float& tMin );
+		ZConBall* rayTest( Vector2 const& rPos , Vector2 const& rDir , float& tMin );
 
 	private:
-		bool      checkBallMask( ZConBall& ball , Vec2f const pos );
+		bool      checkBallMask( ZConBall& ball , Vector2 const pos );
 		void      updateBallGroup( long time , unsigned flag );
 		void      updateBall( ZConBall* cur );
 		void      updateCheckBall();

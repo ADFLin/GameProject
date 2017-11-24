@@ -38,14 +38,14 @@ void QueueThreadPool::init(int numThread, uint32 stackSize)
 
 	for( int i = 0; i < numThread; ++i )
 	{
-		PoolRunableThread* thread = new PoolRunableThread;
-		thread->mOwningPool = this;
+		PoolRunableThread* runThread = new PoolRunableThread;
+		runThread->mOwningPool = this;
 
 		FixString< 128 > name;
-		thread->start(stackSize);
-		thread->setDisplayName(name.format("QueuedWorker%d", i + 1));
-		mAllThreads.push_back(thread);
-		mQueuedThreads.push_back(thread);
+		runThread->start(stackSize);
+		runThread->setDisplayName(name.format("QueuedWorker%d", i + 1));
+		mAllThreads.push_back(runThread);
+		mQueuedThreads.push_back(runThread);
 	}
 }
 
@@ -74,10 +74,10 @@ void QueueThreadPool::cleanup()
 
 	{
 		Mutex::Locker locker(mQueueMutex);
-		for( PoolRunableThread* thread : mAllThreads )
+		for( PoolRunableThread* runThread : mAllThreads )
 		{
-			thread->waitTokill();
-			delete thread;
+			runThread->waitTokill();
+			delete runThread;
 		}
 		mAllThreads.clear();
 		mQueuedThreads.clear();
@@ -87,6 +87,7 @@ void QueueThreadPool::cleanup()
 
 void QueueThreadPool::addWork(IQueuedWork* work)
 {
+	assert(work);
 	Mutex::Locker locker(mQueueMutex);
 
 	if( mQueuedThreads.empty() )
@@ -95,10 +96,10 @@ void QueueThreadPool::addWork(IQueuedWork* work)
 		return;
 	}
 
-	PoolRunableThread* thread = mQueuedThreads.back();
+	PoolRunableThread* runThread = mQueuedThreads.back();
 	mQueuedThreads.pop_back();
 
-	thread->doWork(work);
+	runThread->doWork(work);
 }
 
 bool QueueThreadPool::retractWork(IQueuedWork* work)
@@ -111,13 +112,13 @@ bool QueueThreadPool::retractWork(IQueuedWork* work)
 	return true;
 }
 
-IQueuedWork* QueueThreadPool::doWorkCompleted(PoolRunableThread* thread)
+IQueuedWork* QueueThreadPool::doWorkCompleted(PoolRunableThread* runThread)
 {
 	Mutex::Locker locker(mQueueMutex);
 
 	if( mQueuedWorks.empty() )
 	{
-		mQueuedThreads.push_back(thread);
+		mQueuedThreads.push_back(runThread);
 		return nullptr;
 	}
 
@@ -140,7 +141,7 @@ unsigned PoolRunableThread::run()
 	{
 		{
 			Mutex::Locker locker(mWaitWorkMutex);
-			mWaitWorkCondition.wait(locker, [=]()->bool { return mWork != nullptr || mWantDie; });
+			mWaitWorkCondition.wait(locker, [this]()->bool { return mWork != nullptr || mWantDie; });
 		}
 
 		IQueuedWork* currentWork = mWork;

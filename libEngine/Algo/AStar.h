@@ -3,7 +3,7 @@
 
 #include <cassert>
 #include "AStarDefultPolicy.h"
-#include "IntegerType.h"
+#include "Core/IntegerType.h"
 
 #if 1
 #	include "ProfileSystem.h"
@@ -12,7 +12,7 @@
 #   define  ASTAR_PROFILE( name )
 #endif
 
-#define NEVER_REACH( STR ) assert( !STR )
+
 
 #include "AStarDefultPolicy.h"
 

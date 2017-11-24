@@ -8,11 +8,12 @@ template< int N , class T = char >
 class FixString
 {
 	typedef T CharT;
-	typedef TCString< CharT > CStringFun;
-	typedef typename CStringFun::StdString StdString;
+	typedef TCString< CharT > FCString;
+	typedef typename FCString::StdString StdString;
 public:
 	FixString(){ mStr[0] = 0; }
-	FixString( CharT const* str ){  assign( str ); }
+	explicit FixString( CharT const* str ){ assign( str ); }
+	explicit FixString(CharT const* str, int num) { FCString::CopyN(mStr, str, num); }
 	template< int M >
 	FixString( FixString< M , CharT > const& other ){ assign( other.mStr );  }
 	FixString( StdString const& str ){ assign( str.c_str() ); }
@@ -26,8 +27,8 @@ public:
 	bool operator == ( CharT const* str ) const { return compare( str ) == 0; }
 	bool operator != ( CharT const* str ) const { return compare( str ) != 0; }
 
-	FixString& operator += ( CharT const* str ){ CStringFun::Cat( mStr , str ); return *this; }
-	FixString& operator += ( StdString const& str ){ CStringFun::Cat( mStr , str.c_str() ); return *this; }
+	FixString& operator += ( CharT const* str ){ FCString::Cat( mStr , str ); return *this; }
+	FixString& operator += ( StdString const& str ){ FCString::Cat( mStr , str.c_str() ); return *this; }
 
 
 	void       clear(){ mStr[0] = 0; }
@@ -35,14 +36,14 @@ public:
 	{
 		va_list argptr;
 		va_start( argptr, fmt );
-		CStringFun::PrintfV( mStr , fmt , argptr );
+		FCString::PrintfV( mStr , fmt , argptr );
 		va_end( argptr );
 		return *this;
 	}
 
 	FixString& formatVA( CharT const* fmt , va_list arg )
 	{
-		CStringFun::PrintfV( mStr , fmt , arg );
+		FCString::PrintfV( mStr , fmt , arg );
 		return *this;
 	}
 
@@ -53,11 +54,11 @@ public:
 	operator CharT const*( ) const { return mStr; }
 	operator CharT*      ( )       { return mStr; }
 
-	int   compare(CharT const* str) const { return CStringFun::Compare(mStr, str); }
+	int   compare(CharT const* str) const { return FCString::Compare(mStr, str); }
 
 private:
 	
-	void  assign( CharT const* str ){ CStringFun::Copy( mStr , str );  }
+	void  assign( CharT const* str ){ FCString::Copy( mStr , str );  }
 
 	template< int M , class T >
 	friend  class FixString;

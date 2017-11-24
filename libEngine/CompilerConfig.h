@@ -3,15 +3,8 @@
 
 #if defined ( _MSC_VER )
 #define CPP_COMPILER_MSVC 1
-#define FORCEINLINE __forceinline 
-#define DLLEXPORT __declspec( dllexport )
-#define DLLIMPORT __declspec( dllimport )
-
 #elif defined ( __GNUC__ )
 #define CPP_COMPILER_GCC 1
-#define FORCEINLINE __attribute__((always_inline))
-#define DLLEXPORT __attribute__((visibility("default")))
-#define DLLIMPORT
 #else
 #error "unknown compiler"
 #endif
@@ -25,9 +18,21 @@
 #endif
 
 #if CPP_COMPILER_MSVC
+
+#define FORCEINLINE __forceinline 
+#define DLLEXPORT __declspec( dllexport )
+#define DLLIMPORT __declspec( dllimport )
+#define RESTRICT __restrict
+
 #define STD_EXCEPTION_CONSTRUCTOR_WITH_WHAT( CLASSNAME )\
 	CLASSNAME(char const* what) :std::exception(what) {}
 #elif CPP_COMPILER_GCC
+
+#define FORCEINLINE __attribute__((always_inline))
+#define DLLEXPORT __attribute__((visibility("default")))
+#define DLLIMPORT
+#define RESTRICT __restrict__
+
 #define STD_EXCEPTION_CONSTRUCTOR_WITH_WHAT( CLASSNAME )\
 	CLASSNAME(char const* what) :mWhat(what) {}\
 	virtual char const* what() const { return mWhat; }\

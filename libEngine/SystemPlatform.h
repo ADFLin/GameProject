@@ -3,10 +3,80 @@
 #define SystemPlatform_H_8E107E72_296E_43B2_AAF2_09A1A3C6D4AB
 
 #include "PlatformConfig.h"
-#include "IntegerType.h"
+#include "Core/IntegerType.h"
 
 #undef InterlockedExchange
 
+enum class EDateMonth
+{
+	Junuary ,
+	February ,
+	March ,
+	April ,
+	May ,
+	June ,
+	July ,
+	August ,
+	September ,
+	October,
+	November ,
+	December ,
+};
+
+enum class EDateWeekOfDay
+{
+	Sunday ,
+	Monday ,
+	Tuesday ,
+	Wednesday ,
+	Thursday ,
+	Friday ,
+	Saturday ,
+};
+
+
+struct DateTime
+{
+public:
+	DateTime(int32 year, int32 month, int32 day, int32 hour, int32 minute, int32 sec, int32 millisecond)
+	{
+		mYear = year;
+		mMonth = month;
+		mDay = day;
+		mMinute = minute;
+		mSecond = sec;
+		mMillisecond = mMillisecond;
+	}
+	int32 getYear() const { return mYear; }
+	int32 getMonth() const { return mMonth; }
+	int32 getDay() const { return mDay; }
+	int32 getDayOfWeek() const{ return mDayOfWeek; }
+	int32 getHour() const { return mHour; }
+	int32 getMinute() const { return mMinute; }
+	int32 getSecond() const { return mSecond; }
+	int32 getMillisecond() const { return mMillisecond; }
+
+	bool operator == (DateTime const& rhs)
+	{
+		return mYear == rhs.mYear &&
+			mMonth == rhs.mMonth &&
+			mDay == rhs.mDay &&
+			mHour == rhs.mHour &&
+			mMinute == rhs.mMinute &&
+			mSecond == rhs.mSecond &&
+			mMillisecond == rhs.mMillisecond;
+
+	}
+private:
+	int32 mYear;
+	int32 mMonth;
+	int32 mDayOfWeek;
+	int32 mDay;
+	int32 mHour;
+	int32 mMinute;
+	int32 mSecond;
+	int32 mMillisecond;
+};
 class SystemPlatform
 {
 public:
@@ -14,7 +84,11 @@ public:
 	static void   MemoryBarrier();
 	static void   Sleep( uint32 millionSecond );
 
-	static int32  InterlockedExchange(volatile int32* value, int32 exchange);
+	static double  GetHighResolutionTime();
 
+	static int32    InterlockedExchange(volatile int32* value, int32 exchange);
+
+	static DateTime GetUTCTime();
+	static DateTime GetLocalTime();
 };
 #endif // SystemPlatform_H_8E107E72_296E_43B2_AAF2_09A1A3C6D4AB

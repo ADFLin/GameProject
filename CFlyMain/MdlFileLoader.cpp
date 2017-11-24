@@ -404,7 +404,7 @@ namespace CFly
 		for( int i = 0 ; i < texArea ; ++i )
 		{
 			uint8* palC = pal + 3 * data[i];
-			pColor[i] = Color::toARGB( palC[0] , palC[1], palC[2] , 255 );
+			pColor[i] = FColor::ToARGB( palC[0] , palC[1], palC[2] , 255 );
 		}
 
 		MaterialManager* manager = mScene->getWorld()->_getMaterialManager();
@@ -525,8 +525,8 @@ namespace CFly
 
 		for ( int i = 0; i < mStudioHeader->numbones; i++)
 		{
-			q1[i]   = slerp( q1[1] , q2[i] , s );
-			pos1[i] = lerp( pos1[i] , pos2[i] , s );
+			q1[i]   = Math::Slerp( q1[1] , q2[i] , s );
+			pos1[i] = Math::Lerp( pos1[i] , pos2[i] , s );
 		}
 	}
 

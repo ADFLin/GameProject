@@ -37,10 +37,10 @@ void TNavigator::performMovement()
 	switch( goalInfo.navType )
 	{
 	case NG_ENTITY:
-		goalDist = Math::distance( goalInfo.spatialComp->getPosition() , curPos );
+		goalDist = Math::Distance( goalInfo.spatialComp->getPosition() , curPos );
 		break;
 	case NG_LOCATION:
-		goalDist = Math::distance( goalInfo.pos , curPos );
+		goalDist = Math::Distance( goalInfo.pos , curPos );
 		break;
 	default:
 		goalDist = 0;
@@ -166,7 +166,7 @@ void TNavigator::updateEntityPos( Vec3D const& pos )
 	if ( !goal )
 		return;
 
-	float dist = Math::distance2( goalInfo.pos , pos );
+	float dist = Math::DistanceSqure( goalInfo.pos , pos );
 
 	float const minRebulidPathDist = 20;
 

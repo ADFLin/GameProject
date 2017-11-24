@@ -13,16 +13,16 @@ namespace Zuma
 		//                          unsigned flag );
 		//virtual void  drawBitmap( ITexture2D& tex , ITexture2D& mask , unsigned flag );
 		virtual void  drawBitmap( ITexture2D const& tex , unsigned flag = 0 ) = 0;
-		virtual void  drawBitmap( ITexture2D const& tex , Vec2f const& texPos , Vec2f const& texSize, unsigned flag = 0 ) = 0;
-		virtual void  drawBitmapWithinMask( ITexture2D const& tex , ITexture2D const& mask , Vec2f const& pos , unsigned flag = 0 ) = 0;
-		virtual void  drawPolygon( Vec2f const pos[] , int num ) = 0;
+		virtual void  drawBitmap( ITexture2D const& tex , Vector2 const& texPos , Vector2 const& texSize, unsigned flag = 0 ) = 0;
+		virtual void  drawBitmapWithinMask( ITexture2D const& tex , ITexture2D const& mask , Vector2 const& pos , unsigned flag = 0 ) = 0;
+		virtual void  drawPolygon( Vector2 const pos[] , int num ) = 0;
 
-		virtual void  loadWorldMatrix( Vec2f const& pos , Vec2f const& dir )
+		virtual void  loadWorldMatrix( Vector2 const& pos , Vector2 const& dir )
 		{
 
 		}
 
-		virtual void  translateWorld( float x , float y ){  getGraphics().translateXForm( Vec2f( x , y ) );  }
+		virtual void  translateWorld( float x , float y ){  getGraphics().translateXForm( Vector2( x , y ) );  }
 		virtual void  rotateWorld( float angle ){  getGraphics().rotateXForm( angle );  }
 		virtual void  scaleWorld( float sx , float sy ){  getGraphics().scaleXForm( sx , sy );  }
 		virtual void  setWorldIdentity()  {  getGraphics().identityXForm();  }

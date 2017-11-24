@@ -205,7 +205,7 @@ bool RegionManager::split( Region& oldRegion , rect_t& splitRect , Region* newRe
 	rect_t& outerRect = oldRegion.getRect();
 
 	rect_t innerRect;
-	if ( !getInteractionRect( outerRect , splitRect , innerRect ) )
+	if ( !getCrossRect( outerRect , splitRect , innerRect ) )
 		return false;
 
 	int dx = outerRect.xRange.length() - innerRect.xRange.length();
@@ -262,7 +262,7 @@ void RegionManager::mergeRegion( Region& region , RegionList* rlist , int maxRep
 		}
 	}
 
-	checkPortalVaild( region );
+	checkPortal( region );
 }
 
 bool RegionManager::tryMergeBarRegion( Region& region1 , Region& region2 , Portal& portal , int idxRange )
@@ -426,7 +426,7 @@ void RegionManager::doMergeRegion( Region& region , Region* other , Portal* port
 	destoryPortal( portal );
 }
 
-void RegionManager::checkPortalVaild( Region& region )
+void RegionManager::checkPortal( Region& region )
 {
 	for( Region::PortalList::iterator iter = region.portals.begin();
 		iter != region.portals.end(); ++iter )
@@ -524,7 +524,7 @@ void RegionManager::updatePortal( Region& origin , Region& to , unsigned dirBit 
 
 	}
 
-	//checkPortalVaild( to );
+	//checkPortal( to );
 }
 
 Portal* RegionManager::buildPortal( Region& bP , Region& sP , DirType dir )

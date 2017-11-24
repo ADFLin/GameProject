@@ -12,7 +12,7 @@ public:
 
 	template < class T >
 	Any( T const& val )
-		:mContent( new CClientType<T>( val ) )
+		:mContent( new TTypedValue<T>( val ) )
 	{
 
 	}
@@ -52,21 +52,21 @@ public:
 
 private:
 
-	class IClientType
+	class IClientValue
 	{
 	public:
 		virtual std::type_info const& getTypeInfo() = 0;
-		virtual IClientType* clone() = 0;
+		virtual IClientValue* clone() = 0;
 	};
 
 	template < class T >
-	class CClientType : public IClientType
+	class TTypedValue : public IClientValue
 	{
 	public:
-		CClientType ( T const& v ): val( v ){}
+		TTypedValue ( T const& v ): val( v ){}
 		T  val;
 		std::type_info const& getTypeInfo(){ return typeid( T ); }
-		CClientType*          clone()      { return new CClientType( val );  }
+		TTypedValue*          clone()      { return new TTypedValue( val );  }
 	};
 
 	template < class T >
@@ -76,13 +76,13 @@ private:
 			return 0;
 		if ( mContent->getTypeInfo() != typeid( T ) )
 			return 0;
-		return &( static_cast< CClientType< T >* >( mContent )->val );
+		return &( static_cast< TTypedValue< T >* >( mContent )->val );
 	}
 
 	union
 	{
-		char         mStorage[ 4 ];
-		IClientType* mContent;
+		char          mStorage[ 8 ];
+		IClientValue* mContent;
 	};
 
 	template < class T >

@@ -265,7 +265,7 @@ public:
 			if ( curNode.parent && curNode.parent->state == pos )
 				continue;
 
-			if ( !mLevelMap->isVaildRange( pos.x , pos.y ) )
+			if ( !mLevelMap->isRange( pos.x , pos.y ) )
 				continue;
 
 			rcMapData& data = mLevelMap->getData( pos );

@@ -1,6 +1,6 @@
 #include "CPreprocessor.h"
 
-#include "CommonMarco.h"
+#include "MarcoCommon.h"
 #include "FileSystem.h"
 #include "Holder.h"
 
@@ -120,8 +120,22 @@ namespace CPP
 			includeInput->mFileName = path.toStdString();
 			includeInput->reset();
 
+			if( bCommentIncludeFileName )
+			{
+				mOutput->push("//Include ");
+				mOutput->push( path.ptr , path.num );
+				mOutput->pushNewline();
+			}
+
 			translate(*includeInput);
 			mOutput->pushNewline();
+
+			if( bCommentIncludeFileName )
+			{
+				mOutput->push("//~Include ");
+				mOutput->push(path.ptr, path.num);
+				mOutput->pushNewline();
+			}
 			mLoadedInput.push_back(includeInput.release());
 		}
 

@@ -45,8 +45,8 @@ namespace CFly
 		}
 		else
 		{
-			pos    = lerp( frame0.pos , frame1.pos , t );
-			rotate = slerp( frame0.rotation , frame1.rotation , t );
+			pos    = Math::Lerp( frame0.pos , frame1.pos , t );
+			rotate = Math::Slerp( frame0.rotation , frame1.rotation , t );
 		}
 	}
 
@@ -63,8 +63,8 @@ namespace CFly
 		MotionKeyFrame& keyFrame0 = keyFrames[ frame0 ];
 		MotionKeyFrame& keyFrame1 = keyFrames[ frame1 ];
 
-		Quaternion q = slerp( keyFrame0.rotation , keyFrame1.rotation , t );
-		Vector3    pos = lerp( keyFrame0.pos , keyFrame1.pos , t );
+		Quaternion q = Math::Slerp( keyFrame0.rotation , keyFrame1.rotation , t );
+		Vector3    pos = Math::Lerp( keyFrame0.pos , keyFrame1.pos , t );
 
 		result.setTransform( pos , q );
 	}
@@ -90,8 +90,8 @@ namespace CFly
 
 			accWeight += weights[i];
 			float t = weights[i] / accWeight;
-			accRotation = slerp( accRotation , rotate , t  );
-			accPos    = lerp( accPos , pos , t );
+			accRotation = Math::Slerp( accRotation , rotate , t  );
+			accPos    = Math::Lerp( accPos , pos , t );
 		}
 
 		result.setTransform( accPos , accRotation );

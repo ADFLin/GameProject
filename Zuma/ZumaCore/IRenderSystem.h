@@ -125,11 +125,11 @@ namespace Zuma
 		//                          unsigned flag );
 		//virtual void  drawBitmap( ITexture2D& tex , ITexture2D& mask , unsigned flag );
 		virtual void  drawBitmap( ITexture2D const& tex , unsigned flag = 0 ) = 0;
-		virtual void  drawBitmap( ITexture2D const& tex , Vec2f const& texPos , Vec2f const& texSize, unsigned flag = 0 ) = 0;
-		virtual void  drawBitmapWithinMask( ITexture2D const& tex , ITexture2D const& mask , Vec2f const& pos , unsigned flag = 0 ) = 0;
-		virtual void  drawPolygon( Vec2f const pos[] , int num ) = 0;
+		virtual void  drawBitmap( ITexture2D const& tex , Vector2 const& texPos , Vector2 const& texSize, unsigned flag = 0 ) = 0;
+		virtual void  drawBitmapWithinMask( ITexture2D const& tex , ITexture2D const& mask , Vector2 const& pos , unsigned flag = 0 ) = 0;
+		virtual void  drawPolygon( Vector2 const pos[] , int num ) = 0;
 
-		virtual void  loadWorldMatrix( Vec2f const& pos , Vec2f const& dir ) = 0;
+		virtual void  loadWorldMatrix( Vector2 const& pos , Vector2 const& dir ) = 0;
 		virtual void  translateWorld( float x , float y ) = 0;
 
 		virtual void  rotateWorld( float angle ) = 0;
@@ -156,8 +156,8 @@ namespace Zuma
 		ITexture2D*   getTexture( ResID id );
 		ZFont*        getFontRes( ResID id );
 		void          setColor( ColorKey const& key ){ setColor( key.r , key.g , key.b , key.a ); }
-		void          translateWorld( Vec2f const& offset ){ translateWorld( offset.x , offset.y ); }
-		void          scaleWorld    ( Vec2f const& s )     { scaleWorld( s.x , s.y ); }
+		void          translateWorld( Vector2 const& offset ){ translateWorld( offset.x , offset.y ); }
+		void          scaleWorld    ( Vector2 const& s )     { scaleWorld( s.x , s.y ); }
 
 
 		void          enableBlend( bool beE );

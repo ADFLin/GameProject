@@ -92,14 +92,14 @@ public:
 		assert( 0 <= dir && dir < 4 );
 
 		Vec2i linkPos = pos + g_OffsetDir[ dir ];
-		if ( isVaildRange( linkPos ) )
+		if ( isRange( linkPos ) )
 			return &getData( linkPos );
 		return NULL;
 	}
 
 
-	bool isVaildRange( int i , int j )    const { return mMapData.checkRange( i , j ); }
-	bool isVaildRange( Vec2i const& pos ) const { return mMapData.checkRange( pos.x , pos.y ); }
+	bool isRange( int i , int j )    const { return mMapData.checkRange( i , j ); }
+	bool isRange( Vec2i const& pos ) const { return mMapData.checkRange( pos.x , pos.y ); }
 
 	rcMapData*       getDataSafely( Vec2i const& pos );
 	rcMapData const* getDataSafely( Vec2i const& pos ) const;

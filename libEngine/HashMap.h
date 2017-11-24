@@ -2,7 +2,7 @@
 #ifndef HashMap_H_6B89800E_5677_46BF_9058_F923AFFE8A74
 #define HashMap_H_6B89800E_5677_46BF_9058_F923AFFE8A74
 
-#include "IntegerType.h"
+#include "Core/IntegerType.h"
 
 typedef uint32 HashValueType;
 

@@ -2,7 +2,7 @@
 #define CppVersion_h__
 
 #include "CompilerConfig.h"
-#include "CommonMarco.h"
+#include "MarcoCommon.h"
 
 #ifdef CPP_COMPILER_MSVC
 #	if ( _MSC_VER >= 1700 ) 
@@ -59,12 +59,6 @@
 #	define final
 #	define nullptr 0
 #endif
-
-#ifdef CPP_COMPILER_MSVC
-# define ANONYMOUS_VARIABLE(str) MARCO_NAME_COMBINE_2(str, __COUNTER__)
-#else
-# define ANONYMOUS_VARIABLE(str) MARCO_NAME_COMBINE_2(str, __LINE__)
-#endif 
 
 #if CPP_FUNCTION_DELETE_SUPPORT
 #	define FUNCTION_DELETE( FUN ) FUN = delete;

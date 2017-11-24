@@ -80,6 +80,24 @@
     <Filter Include="Compiler">
       <UniqueIdentifier>{3d52d85a-20f4-4166-8ea6-9248666a8d99}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Core\Hash">
+      <UniqueIdentifier>{41941ad9-3862-4459-af28-48c3236430c4}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Collision">
+      <UniqueIdentifier>{236072c0-bed9-4689-99d6-25f33fc3ab1f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Template">
+      <UniqueIdentifier>{17090015-7411-4592-9185-e9065a73e922}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Audio">
+      <UniqueIdentifier>{81a86599-69e8-4c31-81e5-fb96d432d55c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Audio\XAudio2">
+      <UniqueIdentifier>{669c7248-9656-412c-becb-af4bf6fcabea}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Platform\Windows">
+      <UniqueIdentifier>{911b5144-c38c-4d57-93fe-1aa913fe5a69}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="AppEntry.cpp">
@@ -205,6 +223,27 @@
     <ClCompile Include="SystemPlatform.cpp">
       <Filter>Platform</Filter>
     </ClCompile>
+    <ClCompile Include="AI\NeuralNetwork.cpp">
+      <Filter>AI</Filter>
+    </ClCompile>
+    <ClCompile Include="AI\GeneticAlgorithm.cpp">
+      <Filter>AI</Filter>
+    </ClCompile>
+    <ClCompile Include="Collision2D\SATSolver.cpp">
+      <Filter>Collision</Filter>
+    </ClCompile>
+    <ClCompile Include="Math\PrimitiveTest2D.cpp">
+      <Filter>原始程式檔</Filter>
+    </ClCompile>
+    <ClCompile Include="Audio\AudioDevice.cpp">
+      <Filter>Audio</Filter>
+    </ClCompile>
+    <ClCompile Include="Audio\XAudio2\XAudio2Device.cpp">
+      <Filter>Audio\XAudio2</Filter>
+    </ClCompile>
+    <ClCompile Include="BitUtility.cpp">
+      <Filter>原始程式檔</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ConsoleSystem.h">
@@ -226,9 +265,6 @@
       <Filter>標頭檔</Filter>
     </ClInclude>
     <ClInclude Include="GameLoop.h">
-      <Filter>標頭檔</Filter>
-    </ClInclude>
-    <ClInclude Include="IntegerType.h">
       <Filter>標頭檔</Filter>
     </ClInclude>
     <ClInclude Include="ProfileSystem.h">
@@ -270,9 +306,6 @@
     <ClInclude Include="Singleton.h">
       <Filter>Utility</Filter>
     </ClInclude>
-    <ClInclude Include="SortFunction.h">
-      <Filter>Utility</Filter>
-    </ClInclude>
     <ClInclude Include="StackParam.h">
       <Filter>Utility</Filter>
     </ClInclude>
@@ -287,9 +320,6 @@
     </ClInclude>
     <ClInclude Include="SocketBuffer.h">
       <Filter>Net</Filter>
-    </ClInclude>
-    <ClInclude Include="CHandle.h">
-      <Filter>temp</Filter>
     </ClInclude>
     <ClInclude Include="BitmapDC.h">
       <Filter>Platform</Filter>
@@ -432,9 +462,6 @@
     <ClInclude Include="Algo\IDAStar.h">
       <Filter>Algo</Filter>
     </ClInclude>
-    <ClInclude Include="SortAlgo.h">
-      <Filter>Algo</Filter>
-    </ClInclude>
     <ClInclude Include="Algo\AStar.h">
       <Filter>Algo\AStar</Filter>
     </ClInclude>
@@ -473,9 +500,6 @@
     </ClInclude>
     <ClInclude Include="FrameAllocator.h">
       <Filter>Memory</Filter>
-    </ClInclude>
-    <ClInclude Include="CommonMarco.h">
-      <Filter>Config</Filter>
     </ClInclude>
     <ClInclude Include="WidgetCore.h">
       <Filter>GUI</Filter>
@@ -615,9 +639,63 @@
     <ClInclude Include="CString.h">
       <Filter>Utility</Filter>
     </ClInclude>
+    <ClInclude Include="SortFunction.h">
+      <Filter>Algo</Filter>
+    </ClInclude>
+    <ClInclude Include="Alloc.h">
+      <Filter>Memory</Filter>
+    </ClInclude>
+    <ClInclude Include="ObjectHandle.h">
+      <Filter>temp</Filter>
+    </ClInclude>
+    <ClInclude Include="AI\NeuralNetwork.h">
+      <Filter>AI</Filter>
+    </ClInclude>
+    <ClInclude Include="Delegate.h">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="AI\GeneticAlgorithm.h">
+      <Filter>AI</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\IntegerType.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\FNV1a.h">
+      <Filter>Core\Hash</Filter>
+    </ClInclude>
+    <ClInclude Include="Collision2D\SATSolver.h">
+      <Filter>Collision</Filter>
+    </ClInclude>
+    <ClInclude Include="Template\ArrayView.h">
+      <Filter>Template</Filter>
+    </ClInclude>
+    <ClInclude Include="MarcoCommon.h">
+      <Filter>Config</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Color.h">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Math\PrimitiveTest2D.h">
+      <Filter>Math</Filter>
+    </ClInclude>
+    <ClInclude Include="Audio\AudioDevice.h">
+      <Filter>Audio</Filter>
+    </ClInclude>
+    <ClInclude Include="Audio\XAudio2\XAudio2Device.h">
+      <Filter>Audio\XAudio2</Filter>
+    </ClInclude>
+    <ClInclude Include="Platform\Windows\MediaFoundationHeader.h">
+      <Filter>Platform\Windows</Filter>
+    </ClInclude>
+    <ClInclude Include="Math\SIMD.h">
+      <Filter>Math</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\ScopeExit.h">
+      <Filter>Core</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <None Include="CHandle.cpp_temp">
+    <None Include="ObjectHandle.cpp">
       <Filter>temp</Filter>
     </None>
   </ItemGroup>

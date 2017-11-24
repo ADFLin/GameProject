@@ -8,17 +8,17 @@
 #define ERROR_ID           0xffffffff
 
 
-class TRefObj;
+class HandledObject;
 
 template< class T >
-class CHandle
+class TObjectHandle
 {
 public:
-	typedef CHandle< TRefObj >    RefHandle;
+	typedef TObjectHandle< HandledObject >    RefHandle;
 
-	CHandle(){  m_ID = ERROR_ID; }
-	CHandle( unsigned id ){	 m_ID = id;  }
-	CHandle( unsigned index , unsigned serial )
+	TObjectHandle(){  m_ID = ERROR_ID; }
+	TObjectHandle( unsigned id ){	 m_ID = id;  }
+	TObjectHandle( unsigned index , unsigned serial )
 	{
 		m_ID = ( serial << MAX_ENTITY_NUM_BIT ) + index;  
 	}
@@ -27,8 +27,8 @@ public:
 	unsigned getSerialNum(){ return m_ID >> MAX_ENTITY_NUM_BIT; }
 	unsigned getID(){ return m_ID; }
 
-	CHandle& operator=( T* entity ){  return set( entity);	 }
-	CHandle& operator=( CHandle& handle ){	m_ID = handle.m_ID;  return *this;	}
+	TObjectHandle& operator=( T* entity ){  return set( entity);	 }
+	TObjectHandle& operator=( TObjectHandle& handle ){	m_ID = handle.m_ID;  return *this;	}
 	bool     operator==( T*  entity ){	return  get() == entity;  }
 	bool     operator!=( T*  entity ){	return  get() != entity;  }
 
@@ -37,15 +37,15 @@ public:
 	T* operator->(){ return get(); }
 	
 	T*       get();
-	CHandle& set( T* entity );
+	TObjectHandle& set( T* entity );
 
 	void setID( unsigned id ){ m_ID = id; }
 
 
 	template< class T2 >
-	bool operator ==( CHandle<T2>& handle ){  return  m_ID == handle.m_ID;  }
+	bool operator ==( TObjectHandle<T2>& handle ){  return  m_ID == handle.m_ID;  }
 	template< class T2 >
-	bool operator !=( CHandle<T2>& handle ){  return  m_ID != handle.m_ID;  }
+	bool operator !=( TObjectHandle<T2>& handle ){  return  m_ID != handle.m_ID;  }
 	template< class T2 >
 	bool operator ==( T2*  entity ){	return  get() == entity;  }
 	template< class T2 >
@@ -59,21 +59,21 @@ protected:
 	unsigned m_ID;
 };
 
-typedef CHandle< TRefObj >    RefHandle;
+typedef TObjectHandle< HandledObject >    RefHandle;
 
 struct TEvent;
 enum   EventType;
-typedef void (TRefObj::*FnMemEvent)();
+typedef void (HandledObject::*FnMemEvent)();
 typedef void (*FnEvent)();
 
 class SlotFunBase;
 
-class TRefObj
+class HandledObject
 {
 public:
-	TRefObj(){}
+	HandledObject(){}
 	//cast type need
-	virtual ~TRefObj();
+	virtual ~HandledObject();
 	RefHandle    getRefHandle(){ return m_refHandle; }
 	void         setRefHandle(RefHandle val) { m_refHandle = val; }
 	unsigned int getRefID();
@@ -98,19 +98,19 @@ public:
 #include "Singleton.h"
 #include <vector>
 
-class THandleManager : public SingletonT< THandleManager >
+class HandleManager : public SingletonT< HandleManager >
 {
 public:
-	TRefObj*     extractHandle( RefHandle handle );
-	unsigned     markRefHandle( TRefObj* entity );
-	void         unMarkRefHandle( TRefObj* entity );
+	HandledObject*     extractHandle( RefHandle handle );
+	unsigned     markRefHandle( HandledObject* entity );
+	void         unMarkRefHandle( HandledObject* entity );
 
 protected:
 
 	static unsigned s_CurSerialNum;
 	struct Slot_t
 	{
-		TRefObj*   entity;
+		HandledObject*   entity;
 		unsigned   serialNum;
 	};
 	std::vector< Slot_t >    m_SoltVec;
@@ -120,19 +120,19 @@ protected:
 
 #define DEFINE_HANDLE( type ) \
 	template<>\
-	type* CHandle< type >::get()\
+	type* TObjectHandle< type >::get()\
 	{\
-		return static_cast< type* >( THandleManager::getInstance().extractHandle( *this ) );\
+		return static_cast< type* >( HandleManager::getInstance().extractHandle( *this ) );\
 	}\
 	template<>\
-	CHandle<type>& CHandle<type>::set( type* entity )\
+	TObjectHandle<type>& TObjectHandle<type>::set( type* entity )\
 	{\
 		if ( entity )\
 		{\
 			unsigned ID = entity->getRefHandle().getID();\
 			if ( ID == ERROR_ID )\
 			{\
-				ID = THandleManager::getInstance().markRefHandle( entity );\
+				ID = HandleManager::getInstance().markRefHandle( entity );\
 			}\
 			m_ID = ID;\
 		}\

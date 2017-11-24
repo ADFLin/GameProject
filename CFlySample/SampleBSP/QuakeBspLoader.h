@@ -2,7 +2,7 @@
 #define QuakeBspLoader_h__
 
 #include "BspV30.h"
-#include "IntegerType.h"
+#include "Core/IntegerType.h"
 #include "CFBase.h"
 #include "CFMaterial.h"
 #include "CFVertexDecl.h"

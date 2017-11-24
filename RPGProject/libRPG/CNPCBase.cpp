@@ -239,7 +239,7 @@ void CNPCBase::getherEmptyCondition()
 	Vec3D p1 = getPosition();
 	Vec3D p2 = m_hEmpty->getPosition();
 
-	float dist = Math::distance( p1 , p2 );
+	float dist = Math::Distance( p1 , p2 );
 	if ( dist <= mAbilityProp->getPropValue( PROP_AT_RANGE ) + getNavigator()->getOuterOffset() )
 	{
 		addCondition( CDT_EMPTY_IN_ATTACK_RANGE );

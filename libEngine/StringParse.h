@@ -7,7 +7,7 @@
 #include <cstring>
 #include <cstdlib>
 
-#include "IntegerType.h"
+#include "Core/IntegerType.h"
 #include "EnumCommon.h"
 #include "MemorySecurity.h"
 
@@ -90,6 +90,7 @@ public:
 
 	static char const* SkipChar(char const* str, char const* skipChars);
 	static char const* SkipSpace(char const* str);
+	static char const* SkipToNextLine(char const* str);
 
 	static char const* SkipToChar(char const* str, char c, bool bCheckComment, bool bCheckString);
 	static char const* SkipToChar(char const* str, char c, char cPair, bool bCheckComment, bool bCheckString);

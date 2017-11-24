@@ -5,7 +5,7 @@
 #include <vector>
 
 #include "PlatformConfig.h"
-#include "IntegerType.h"
+#include "Core/IntegerType.h"
 
 
 #ifdef SYS_PLATFORM_WIN
@@ -15,9 +15,9 @@
 class FileUtility
 {
 public:
-	static char const* getSubName( char const* fileName );
-	static char const*    getDirPathPos(char const* filePath);
-	static wchar_t const* getDirPathPos(wchar_t const* filePath);
+	static char const*    GetSubName( char const* fileName );
+	static char const*    GetDirPathPos(char const* filePath);
+	static wchar_t const* GetDirPathPos(wchar_t const* filePath);
 	static bool LoadToBuffer(char const* path, std::vector< char >& outBuffer);
 };
 

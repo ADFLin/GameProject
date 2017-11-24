@@ -24,7 +24,7 @@ static btVector3 getNormalizedVector(const btVector3& v)
 }
 
 
-///@todo Interact with dynamic objects,
+///@todo Intersect with dynamic objects,
 ///Ride kinematicly animated platforms properly
 ///More realistic (or maybe just a config option) falling
 /// -> Should integrate falling velocity manually and use that in stepDown()

@@ -8,6 +8,8 @@
 #include <cassert>
 #include <type_traits>
 
+#include "Core/FNV1a.h"
+
 struct FString
 {
 	static void Stricpy( char * dest , char const* src )

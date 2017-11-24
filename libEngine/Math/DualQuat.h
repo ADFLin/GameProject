@@ -5,6 +5,7 @@
 #include "Math/Quaternion.h"
 
 namespace Math
+
 {
 	template< class T >
 	class TDualValue

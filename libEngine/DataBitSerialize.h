@@ -3,7 +3,7 @@
 #ifndef DataBitSerialize_h__
 #define DataBitSerialize_h__
 
-#include "IntegerType.h"
+#include "Core/IntegerType.h"
 #include "MetaBase.h"
 
 #include <cassert>

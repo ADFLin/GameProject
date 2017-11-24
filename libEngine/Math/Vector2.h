@@ -6,13 +6,13 @@
 
 namespace Math
 {
-	class Vector2D : public TVector2< float >
+	class Vector2 : public TVector2< float >
 	{
 	public:
-		Vector2D() {}
+		Vector2() {}
 		template< class T >
-		Vector2D(TVector2< T > const& rhs) :TVector2<float>(rhs) {}
-		Vector2D(float x, float y) :TVector2<float>(x, y) {}
+		Vector2(TVector2< T > const& rhs) :TVector2<float>(rhs) {}
+		Vector2(float x, float y) :TVector2<float>(x, y) {}
 		float normalize()
 		{
 			float len = Math::Sqrt(length2());
@@ -31,28 +31,30 @@ namespace Math
 		}
 
 
-		static inline Vector2D Cross(float value, Vector2D const& v)
+		static inline Vector2 Cross(float value, Vector2 const& v)
 		{
-			return Vector2D(-value * v.y, value * v.x);
+			return Vector2(-value * v.y, value * v.x);
 		}
 	};
 
-	inline Vector2D Normalize(Vector2D const& v)
+	inline Vector2 Normalize(Vector2 const& v)
 	{
-		Vector2D result = v;
+		Vector2 result = v;
 		result.normalize();
 		return result;
 	}
 
-	inline float Distance(Vector2D const& a, Vector2D const& b)
+	inline float Distance(Vector2 const& a, Vector2 const& b)
 	{
-		return Vector2D(a-b).length();
+		return Vector2(a - b).length();
 	}
 	// ( a x b ) x c = (a.c)b - (b.c) a
-	inline Vector2D TripleProduct(Vector2D const& a, Vector2D const& b, Vector2D const& c)
+	inline Vector2 TripleProduct(Vector2 const& a, Vector2 const& b, Vector2 const& c)
 	{
 		return a.dot(c) * b - b.dot(c) * a;
 	}
+
+
 }
 
 #endif // Vector2_h__

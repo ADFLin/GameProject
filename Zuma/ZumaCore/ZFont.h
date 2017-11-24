@@ -17,9 +17,9 @@ namespace Zuma
 	struct ZCharData
 	{
 		int    width;
-		Vec2f  offset;
-		Vec2f  rectPos;
-		Vec2f  rectSize;
+		Vector2  offset;
+		Vector2  rectPos;
+		Vector2  rectSize;
 
 		ZCharData()
 			:width(0)
@@ -62,7 +62,7 @@ namespace Zuma
 		virtual void release();
 
 		int  calcStringWidth( char const* str );
-		int  print( Vec2f const& pos ,char const* str , unsigned flag = 0 );
+		int  print( Vector2 const& pos ,char const* str , unsigned flag = 0 );
 
 	protected:
 		static int const MAX_FONTLAYER_NUM = 6;

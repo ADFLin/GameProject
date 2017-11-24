@@ -1,7 +1,7 @@
 #ifndef BigUint_h__9a27ca99_d140_44ca_a443_886396289370
 #define BigUint_h__9a27ca99_d140_44ca_a443_886396289370
 
-#include "IntegerType.h"
+#include "Core/IntegerType.h"
 
 #include <limits>
 #include <string>

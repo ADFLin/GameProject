@@ -20,10 +20,10 @@ CVitalStateUI::CVitalStateUI( Vec2i const& pos ,Thinkable* thinkable , AbilityPr
 	mSprite->setRenderOption( CFly::CFRO_ALPHA_BLENGING , TRUE );
 	mSprite->setRenderOption( CFly::CFRO_CULL_FACE , CFly::CF_CULL_NONE );
 
-	m_HPBar = new CBloodBar( thinkable , mSprite , mPropComp->getPropValue( PROP_MAX_HP ), Vec3D( 98 - 12 , 54  , 0.01 ) , Vec2i( BloodBarLength + 18 , 15 ), CFly::Color4f(1,0,0) );
+	m_HPBar = new CBloodBar( thinkable , mSprite , mPropComp->getPropValue( PROP_MAX_HP ), Vec3D( 98 - 12 , 54  , 0.01 ) , Vec2i( BloodBarLength + 18 , 15 ), Color4f(1,0,0) );
 	m_HPBar->setLife( mPropComp->getHP() , false );
 
-	m_MPBar = new CBloodBar( thinkable,  mSprite , mPropComp->getPropValue( PROP_MAX_MP ), Vec3D(97, 43 , 0.01 ) , Vec2i( BloodBarLength  , 10 ), CFly::Color4f(0.1,0.1,1) );
+	m_MPBar = new CBloodBar( thinkable,  mSprite , mPropComp->getPropValue( PROP_MAX_MP ), Vec3D(97, 43 , 0.01 ) , Vec2i( BloodBarLength  , 10 ), Color4f(0.1,0.1,1) );
 	m_MPBar->setLife( mPropComp->getMP() , false );
 
 	shufa = CUISystem::getInstance().getCFWorld()->createShuFa( "·s²Ó©úÅé" , 12 , true , false );

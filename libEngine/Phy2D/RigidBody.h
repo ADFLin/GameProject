@@ -65,13 +65,13 @@ namespace Phy2D
 			mPosCenter = mXForm.transformPosition( mPosCenterLocal );
 		}
 
-		Vec2f getVelFromLocalPos( Vec2f const& posLocal ) const
+		Vector2 getVelFromLocalPos( Vector2 const& posLocal ) const
 		{
-			return mLinearVel + mXForm.transformVector( Vec2f::Cross( mAngularVel , ( posLocal - mPosCenterLocal ) ) );
+			return mLinearVel + mXForm.transformVector( Vector2::Cross( mAngularVel , ( posLocal - mPosCenterLocal ) ) );
 		}
-		Vec2f getVelFromWorldPos( Vec2f const& pos ) const
+		Vector2 getVelFromWorldPos( Vector2 const& pos ) const
 		{
-			return mLinearVel + Vec2f::Cross( mAngularVel , ( pos - mPosCenter ) );
+			return mLinearVel + Vector2::Cross( mAngularVel , ( pos - mPosCenter ) );
 		}
 
 		void setupDefaultMass();
@@ -84,13 +84,13 @@ namespace Phy2D
 			mRotationAngle = mXForm.getRotation().getAngle();
 		}
 
-		void addImpulse( Vec2f const& pos , Vec2f const& impulse )
+		void addImpulse( Vector2 const& pos , Vector2 const& impulse )
 		{
 			mLinearImpulse += impulse;
 			mAngularImpulse += ( pos - mPosCenter ).cross( impulse );
 		}
 
-		void addLinearImpulse( Vec2f const& impulse )
+		void addLinearImpulse( Vector2 const& impulse )
 		{
 			mLinearImpulse += impulse;
 		}
@@ -107,25 +107,25 @@ namespace Phy2D
 				mLinearVel += mInvMass * mLinearImpulse;
 				mAngularVel += mInvI * mAngularVel;
 			}
-			mLinearImpulse = Vec2f::Zero();
+			mLinearImpulse = Vector2::Zero();
 			mAngularImpulse = 0;
 		}
 
 		struct State
 		{
 			XForm xform;
-			Vec2f linearVel;
+			Vector2 linearVel;
 			float angularVel;
 		};
 
-		Vec2f  mPosCenter;
+		Vector2  mPosCenter;
 		float  mRotationAngle;
 
-		Vec2f  mPosCenterLocal;
+		Vector2  mPosCenterLocal;
 
 		State  mSaveState;
 
-		Vec2f  mLinearImpulse;
+		Vector2  mLinearImpulse;
 		float  mAngularImpulse;
 
 		float  mLinearDamping;
@@ -133,7 +133,7 @@ namespace Phy2D
 
 
 		BodyMotion::Type mMotionType;
-		Vec2f  mLinearVel;
+		Vector2  mLinearVel;
 		float  mAngularVel;
 		float  mDensity;
 		float  mMass , mInvMass;

@@ -4,6 +4,7 @@
 #include "CompilerConfig.h"
 
 typedef unsigned char byte;
+typedef unsigned int  uint;
 
 #if CPP_COMPILER_MSVC
 
@@ -24,7 +25,7 @@ typedef unsigned __int8  uint8;
 typedef int64_t  int64;
 typedef int32_t  int32;
 typedef int16_t  int16;
-//typedef int8_t   int8;
+typedef int8_t   int8;
 
 typedef uint64_t uint64;
 typedef uint32_t uint32;

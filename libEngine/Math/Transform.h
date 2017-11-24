@@ -13,11 +13,11 @@ namespace Math
 	{
 	public:
 		Transform(){}
-		Transform(EForceInit) :translation(0,0,0), rotation(ForceInit), scale(1,1,1) {}
+		Transform(EForceInit) :location(0,0,0), rotation(ForceInit), scale(1,1,1) {}
 		Transform( Vector3 const& inT , Quaternion const& inR = Quaternion::Identity() , Vector3 const& inS = Vector3(1,1,1) )
-			:translation( inT ) , rotation( inR ) , scale( inS ){ }
+			:location( inT ) , rotation( inR ) , scale( inS ){ }
 
-		Vector3    translation;
+		Vector3    location;
 		Quaternion rotation;
 
 		//NOTE: scale always effect in local first
@@ -34,14 +34,14 @@ namespace Math
 			Transform result;
 			result.scale = scale * rhs.scale;
 			result.rotation = rhs.rotation * rotation;
-			result.translation = rhs.rotation.rotate(rhs.scale * translation) + rhs.translation;
+			result.location = rhs.rotation.rotate(rhs.scale * location) + rhs.location;
 
 			return result;
 		}
 
 		Vector3   transformPosition( Vector3 const& v ) const
 		{
-			return translation + rotation.rotate(scale * v);
+			return location + rotation.rotate(scale * v);
 		}
 
 		Vector3   transformVector(Vector3 const& v) const
@@ -49,14 +49,24 @@ namespace Math
 			return rotation.rotate(scale * v);
 		}
 
+		Vector3   transformVectorNoScale(Vector3 const& v) const
+		{
+			return rotation.rotate(v);
+		}
+
 		Vector3   transformPositionInverse(Vector3 const& v) const
 		{
-			return rotation.rotateInverse( v - translation ) / scale;
+			return rotation.rotateInverse( v - location ) / scale;
 		}
 
 		Vector3   transformVectorInverse(Vector3 const& v) const
 		{
 			return rotation.rotateInverse( v ) / scale;
+		}
+
+		Vector3   transformVectorInverseNoScale(Vector3 const& v) const
+		{
+			return rotation.rotateInverse(v);
 		}
 
 		Transform inverse() const;

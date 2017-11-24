@@ -2,7 +2,7 @@
 #define WGLContext_h__
 
 #include "GLConfig.h"
-#include "IntegerType.h"
+#include "Core/IntegerType.h"
 
 class WGLContext
 {
@@ -27,7 +27,7 @@ public:
 	void  cleanup();
 	bool  makeCurrent( HDC hDC );
 
-	bool  isVaild() { return mhRC != NULL; }
+	bool  is() { return mhRC != NULL; }
 	HGLRC getHandle(){ return mhRC; }
 
 private:

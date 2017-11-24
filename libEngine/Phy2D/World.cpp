@@ -66,13 +66,13 @@ namespace Phy2D
 			ContactManifold& cm = *sortedContact[i];
 			Contact& c = cm.mContect;
 
-			Vec2f cp = 0.5 * ( c.pos[0] + c.pos[1] );
+			Vector2 cp = 0.5 * ( c.pos[0] + c.pos[1] );
 
 			RigidBody* bodyA = static_cast< RigidBody* >( c.object[0] );
 			RigidBody* bodyB = static_cast< RigidBody* >( c.object[1] );
 
-			Vec2f vA = bodyA->getVelFromWorldPos( cp );
-			Vec2f vB = bodyB->getVelFromWorldPos( cp );
+			Vector2 vA = bodyA->getVelFromWorldPos( cp );
+			Vector2 vB = bodyB->getVelFromWorldPos( cp );
 			float vrel = c.normal.dot( vB - vA );
 			float relectParam = 1.0f;
 			cm.velParam = 0;
@@ -85,9 +85,9 @@ namespace Phy2D
 			//cm.impulse = 0;
 
 			////warm start
-			Vec2f rA = cp - bodyA->mPosCenter;
-			Vec2f rB = cp - bodyB->mPosCenter;
-			Vec2f dp = cm.impulse * c.normal;
+			Vector2 rA = cp - bodyA->mPosCenter;
+			Vector2 rB = cp - bodyB->mPosCenter;
+			Vector2 dp = cm.impulse * c.normal;
 
 			bodyA->mLinearVel -= dp * bodyA->mInvMass;
 			//bodyA->mAngularVel -= rA.cross( dp ) * bodyA->mInvI;
@@ -109,13 +109,13 @@ namespace Phy2D
 				RigidBody* bodyA = static_cast< RigidBody* >( c.object[0] );
 				RigidBody* bodyB = static_cast< RigidBody* >( c.object[1] );
 
-				Vec2f cp = 0.5 * ( c.pos[0] + c.pos[1] );
+				Vector2 cp = 0.5 * ( c.pos[0] + c.pos[1] );
 
-				Vec2f vA = bodyA->getVelFromWorldPos( cp );
-				Vec2f vB = bodyB->getVelFromWorldPos( cp );
-				Vec2f rA = cp - bodyA->mPosCenter;
-				Vec2f rB = cp - bodyB->mPosCenter;
-				Vec2f vrel = vB - vA;
+				Vector2 vA = bodyA->getVelFromWorldPos( cp );
+				Vector2 vB = bodyB->getVelFromWorldPos( cp );
+				Vector2 rA = cp - bodyA->mPosCenter;
+				Vector2 rB = cp - bodyB->mPosCenter;
+				Vector2 vrel = vB - vA;
 				float vn = vrel.dot( c.normal );
 				float nrA = rA.cross( c.normal );
 				float nrB = rB.cross( c.normal );
@@ -179,18 +179,18 @@ namespace Phy2D
 					 bodyB->getMotionType() != BodyMotion::eDynamic )
 					 continue;
 
-				Vec2f cpA = bodyA->mXForm.transformPosition( c.posLocal[0] );
-				Vec2f cpB = bodyB->mXForm.transformPosition( c.posLocal[1] );
+				Vector2 cpA = bodyA->mXForm.transformPosition( c.posLocal[0] );
+				Vector2 cpB = bodyB->mXForm.transformPosition( c.posLocal[1] );
 				//#TODO: normal change need concerned
-				Vec2f normal = c.normal;
+				Vector2 normal = c.normal;
 
 				float depth = normal.dot( cpA - cpB ) + 0.001;
 				if ( depth <= 0 )
 					continue;
 
-				Vec2f cp = 0.5 * ( cpA + cpB );
-				Vec2f rA = cp - bodyA->mPosCenter;
-				Vec2f rB = cp - bodyB->mPosCenter;
+				Vector2 cp = 0.5 * ( cpA + cpB );
+				Vector2 rA = cp - bodyA->mPosCenter;
+				Vector2 rB = cp - bodyB->mPosCenter;
 
 
 				float nrA = rA.cross( normal );
@@ -217,8 +217,8 @@ namespace Phy2D
 				}
 
 				{
-					Vec2f cpA = bodyA->mXForm.transformPosition( c.posLocal[0] );
-					Vec2f cpB = bodyB->mXForm.transformPosition( c.posLocal[1] );
+					Vector2 cpA = bodyA->mXForm.transformPosition( c.posLocal[0] );
+					Vector2 cpB = bodyB->mXForm.transformPosition( c.posLocal[1] );
 
 					//#TODO: normal change need concerned
 					float depth2 = normal.dot( cpA - cpB );

@@ -122,13 +122,13 @@ public:
 
 		RegionList& regionList = mRegionMgr->mRegionList;
 
-		g.setBrush( ColorKey3( 255 , 255 , 255 ) );
+		g.setBrush( Color3ub( 255 , 255 , 255 ) );
 		g.drawRect( Vec2i(0,0) , mRenderSystem->getClientSize() );
 
 
-		g.setPen( ColorKey3( 0 , 0 , 0 ) );
+		g.setPen( Color3ub( 0 , 0 , 0 ) );
 
-		g.setBrush( ColorKey3( 255 , 255 , 0 ) );
+		g.setBrush( Color3ub( 255 , 255 , 0 ) );
 
 		for( RegionList::iterator iter = regionList.begin();
 			 iter != regionList.end() ; ++iter )
@@ -138,7 +138,7 @@ public:
 		}
 
 
-		g.setPen( ColorKey3( 255 , 0 , 0 ), 2 );
+		g.setPen( Color3ub( 255 , 0 , 0 ), 2 );
 		PortalList& pList = mRegionMgr->mProtalList;
 		for( PortalList::iterator iter = pList.begin() ;
 			  iter != pList.end() ; ++iter )
@@ -156,7 +156,7 @@ public:
 		{
 			Portal* portal = *curPortal;
 
-			g.setBrush( ColorKey3(0 , 255, 255) );
+			g.setBrush( Color3ub(0 , 255, 255) );
 
 			{
 				rect_t& rect = portal->con[0]->getRect();
@@ -169,7 +169,7 @@ public:
 			}
 
 
-			g.setPen( ColorKey3( 0 , 0 , 255 ), 2 );
+			g.setPen( Color3ub( 0 , 0 , 255 ), 2 );
 			if ( portal->dir % 2 )
 				g.drawLine( CellLength * Vec2i( portal->range.min , portal->value )+ MapOffset, 
 				CellLength * Vec2i( portal->range.max , portal->value )+ MapOffset);
@@ -178,7 +178,7 @@ public:
 				CellLength * Vec2i( portal->value , portal->range.max )+ MapOffset);
 		}
 
-		g.setBrush( ColorKey3(0 , 255, 125 ) );
+		g.setBrush( Color3ub(0 , 255, 125 ) );
 		for( std::list< AStar::FindState >::iterator iter = path.begin();
 			 iter != path.end() ; ++iter )
 		{
@@ -205,11 +205,11 @@ public:
 
 					pos1[idx] += ( conDir / 2  == 0 ) ? CellLength : -CellLength;
 
-					g.setPen( ColorKey3( 255 , 0 , 0 ) , 3 );
+					g.setPen( Color3ub( 255 , 0 , 0 ) , 3 );
 					g.drawLine( prevPos , pos1 );
 					
 
-					g.setPen( ColorKey3( 255 , 255 , 0 ) , 3 );
+					g.setPen( Color3ub( 255 , 255 , 0 ) , 3 );
 					g.drawLine( pos1 , pos2 );
 				}
 				prevPos = pos2;

@@ -41,7 +41,7 @@ void TEventSystem::addEvent( TEvent& event )
 	//process( event );
 }
 
-int TEventSystem::checkEvent( EvtCallBack const& callback , TRefObj* holder , EventType type ,int id , EvtRegList** regList 
+int TEventSystem::checkEvent( EvtCallBack const& callback , HandledObject* holder , EventType type ,int id , EvtRegList** regList 
 							/*, TRefObj* sender , SlotFunBase* slot*/ )
 {
 	EvtTypeDataMap::iterator evtIter = m_evtTypeMap.find( type );
@@ -119,7 +119,7 @@ void TEventSystem::processInternal( TEvent& event )
 			{
 				if ( iter->flag & EVRF_USAGE_REF )
 				{
-					TRefObj* holder = iter->holder;
+					HandledObject* holder = iter->holder;
 					if ( !holder )
 					{
 						iter = evtRegList.erase( iter );
@@ -145,7 +145,7 @@ void TEventSystem::processInternal( TEvent& event )
 //		     m_curEventReg->memfun == fun );
 //}
 
-void TEventSystem::disconnectEvent( EventType type , EvtCallBack const& callback , TRefObj* holder  )
+void TEventSystem::disconnectEvent( EventType type , EvtCallBack const& callback , HandledObject* holder  )
 {
 	TEventReg  evtReg;
 	evtReg.type   = type;
@@ -246,7 +246,7 @@ void TEventSystem::processDisconnect()
 	mDisConEvtList.clear();
 }
 
-int TEventSystem::connectEvent( EventType type ,int id , EvtCallBack const& callback , TRefObj* holder )
+int TEventSystem::connectEvent( EventType type ,int id , EvtCallBack const& callback , HandledObject* holder )
 {
 	EvtRegList* regList = NULL;
 	int result = checkEvent( callback , holder , type , id , &regList );
@@ -287,11 +287,11 @@ void UG_ProcessEvent( TEvent& event )
 	TEventSystem::getInstance().process( event );
 }
 
-void  UG_ConnectEvent( EventType type , int id , EvtCallBack const& callback , TRefObj* holder )
+void  UG_ConnectEvent( EventType type , int id , EvtCallBack const& callback , HandledObject* holder )
 {
 	TEventSystem::getInstance().connectEvent( type , id , callback , holder );
 }
-void  UG_DisconnectEvent( EventType type , EvtCallBack const& callback , TRefObj* holder )
+void  UG_DisconnectEvent( EventType type , EvtCallBack const& callback , HandledObject* holder )
 {
 	TEventSystem::getInstance().disconnectEvent( type , callback , holder );
 }

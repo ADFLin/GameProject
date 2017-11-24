@@ -124,7 +124,7 @@ ILevelObject* CSceneLevel::findObject( Cookie& cookie , Vec3D const& pos , float
 
 		Vec3D const& ePos = comp->getPosition();
 
-		if ( Math::distance2( pos , ePos ) < radiusSqure )
+		if ( Math::DistanceSqure( pos , ePos ) < radiusSqure )
 			return comp;
 	}
 	return nullptr;

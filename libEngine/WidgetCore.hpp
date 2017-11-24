@@ -233,7 +233,7 @@ T& WidgetCoreT<T>::addChild( WidgetCoreT* ui )
 
 	linkChildInternal( ui );
 
-	ui->removeChildFlag( WIF_WORLD_POS_VAILD );
+	ui->removeChildFlag( WIF_WORLD_POS_ );
 
 	static_cast< T* >( ui )->onLink();
 
@@ -314,14 +314,14 @@ int WidgetCoreT<T>::getOrder()
 template< class T >
 Vec2i const& WidgetCoreT<T>::getWorldPos()
 {
-	if ( !checkFlag( WIF_WORLD_POS_VAILD ) )
+	if ( !checkFlag( WIF_WORLD_POS_ ) )
 	{
 		mCacheWorldPos = getPos();
 
 		if ( !isTop() )
 			mCacheWorldPos += mParent->getWorldPos();
 
-		_addFlag( WIF_WORLD_POS_VAILD );
+		_addFlag( WIF_WORLD_POS_ );
 	}
 	return mCacheWorldPos;
 }
@@ -334,8 +334,8 @@ T& WidgetCoreT<T>::setPos( Vec2i const& pos )
 	mBoundRect.min = pos;
 	mBoundRect.max += offset;
 
-	_removeFlag( WIF_WORLD_POS_VAILD );
-	removeChildFlag( WIF_WORLD_POS_VAILD );
+	_removeFlag( WIF_WORLD_POS_ );
+	removeChildFlag( WIF_WORLD_POS_ );
 	_this()->onChangePos( pos , true );
 
 	return *_this();

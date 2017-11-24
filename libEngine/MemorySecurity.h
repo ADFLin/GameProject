@@ -39,4 +39,14 @@ char *strtok_r(char *str, const char *delim, char **save)
     }
     return res;
 }
+
+errno_t gmtime_s(time_t const* const _Time , struct tm* const _Tm )
+{
+	return gmtime_r( _Time , __Tm );
+}
+errno_t localtime_s(struct tm* const _Tm, time_t const* const _Time)
+{
+	return localtime_r(_Time, _Tm);
+}
+
 #endif // CPP_COMPILER_GCC

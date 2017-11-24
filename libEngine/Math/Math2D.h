@@ -6,7 +6,7 @@
 
 namespace Math2D
 {
-	using namespace Math;
+	using ::Math::Vector2;
 
 	class Rotation
 	{
@@ -16,24 +16,24 @@ namespace Math2D
 
 
 		static Rotation Identity() { return Rotation(1, 0); }
-		static Rotation Make( Vector2D const& from , Vector2D const& to );
+		static Rotation Make( Vector2 const& from , Vector2 const& to );
 
-		Vector2D getXDir() const { return Vector2D(c, s); }
-		Vector2D getYDir() const { return Vector2D(-s, c); }
+		Vector2  getXDir() const { return Vector2(c, s); }
+		Vector2  getYDir() const { return Vector2(-s, c); }
 		void     setAngle(float angle) { Math::SinCos(angle, s, c); }
 		float    getAngle() const { return Math::ATan2(s, c); }
 
-		Vector2D rotate(Vector2D const& v) { return mul(v); }
+		Vector2  rotate(Vector2 const& v) { return mul(v); }
 		Rotation inverse() const { return Rotation(c, -s); }
 
-		Vector2D mul(Vector2D const& v) const
+		Vector2 mul(Vector2 const& v) const
 		{
-			return Vector2D(v.x * c - v.y * s, v.x * s + v.y * c);
+			return Vector2(v.x * c - v.y * s, v.x * s + v.y * c);
 		}
 
-		Vector2D mulInv(Vector2D const& v) const
+		Vector2 mulInv(Vector2 const& v) const
 		{
-			return Vector2D(v.x * c + v.y * s, -v.x * s + v.y * c);
+			return Vector2(v.x * c + v.y * s, -v.x * s + v.y * c);
 		}
 
 		Rotation mul(Rotation const& rhs) const
@@ -77,27 +77,27 @@ namespace Math2D
 	{
 	public:
 		XForm()
-			:mP(Vector2D::Zero()), mR(Rotation::Identity())
+			:mP(Vector2::Zero()), mR(Rotation::Identity())
 		{
 
 		}
-		XForm(Vector2D const& p)
+		XForm(Vector2 const& p)
 			:mP(p), mR(Rotation::Identity())
 		{
 
 		}
-		XForm(Vector2D const& p, float angle)
+		XForm(Vector2 const& p, float angle)
 			:mP(p), mR(angle)
 		{
 
 		}
-		XForm(Vector2D const& p, Rotation const& r)
+		XForm(Vector2 const& p, Rotation const& r)
 			:mP(p), mR(r)
 		{
 		}
 
 
-		Vector2D const& getPos() const { return mP; }
+		Vector2 const& getPos() const { return mP; }
 		Rotation const& getRotation() const { return mR; }
 
 		XForm mul(XForm const& rhs) const
@@ -121,32 +121,32 @@ namespace Math2D
 			return XForm(mP - mR.mulInv(rhs.mP), mR.mulRightInv(rhs.mR));
 		}
 
-		Vector2D transformPosition(Vector2D const& v) const 
+		Vector2 transformPosition(Vector2 const& v) const 
 		{ 
 			//  T = [ R  P ]   Vw = T v = R V + P;
 			//      [ 0  1 ]
 			return mP + mR.mul(v); 
 		}
 		
-		Vector2D transformPositionInv(Vector2D const& v) const 
+		Vector2 transformPositionInv(Vector2 const& v) const 
 		{ 
 			//  Tinv = [ Rt  -Rt * P ]   VL = Tinv V = Rt * ( V - P );
 			//         [ 0    1      ]
 			return mR.mulInv(v - mP); 
 		}
 		
-		Vector2D transformVector(Vector2D const& v) const { return mR.mul(v); }
-		Vector2D transformVectorInv(Vector2D const& v) const { return mR.mulInv(v); }
+		Vector2 transformVector(Vector2 const& v) const { return mR.mul(v); }
+		Vector2 transformVectorInv(Vector2 const& v) const { return mR.mulInv(v); }
 
-		void  translate(Vector2D const& offset) { mP += offset; }
-		//void translateLocal( Vec2f const& offset ){ mP += offset; }
+		void  translate(Vector2 const& offset) { mP += offset; }
+		//void translateLocal( Vector2 const& offset ){ mP += offset; }
 		void  rotate(float angle) { mR = mR.mul(Rotation(angle)); }
-		void  setTranslation(Vector2D const& p) { mP = p; }
+		void  setTranslation(Vector2 const& p) { mP = p; }
 		void  setRoatation(float angle) { mR.setAngle(angle); }
 		float getRotateAngle() const { return mR.getAngle(); }
 
 	private:
-		Vector2D mP;
+		Vector2 mP;
 		Rotation mR;
 
 	};

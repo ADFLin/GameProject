@@ -297,7 +297,7 @@ bool AssetManager::registerAsset(AssetBase* asset)
 		assert(std::find(assetList.begin(), assetList.end(), asset) == assetList.end());
 		assetList.push_back(asset);
 #if SYS_PLATFORM_WIN
-		std::wstring dir = std::wstring(path.c_str(),FileUtility::getDirPathPos(path.c_str()) - path.c_str());
+		std::wstring dir = std::wstring(path.c_str(),FileUtility::GetDirPathPos(path.c_str()) - path.c_str());
 		mFileModifyMonitor.addDirectoryPath(dir.c_str(), false);
 #endif
 	}

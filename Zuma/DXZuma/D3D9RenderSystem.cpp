@@ -304,7 +304,7 @@ void D3D9RenderSystem::pushWorldTransform()
 	mWorldMatStack->Push();
 }
 
-void D3D9RenderSystem::loadWorldMatrix( Vec2f const& pos , Vec2f const& dir )
+void D3D9RenderSystem::loadWorldMatrix( Vector2 const& pos , Vector2 const& dir )
 {
 	static float m[16] =
 	{
@@ -349,7 +349,7 @@ void D3D9RenderSystem::drawBitmap( ITexture2D const& tex , unsigned flag  )
 
 }
 
-void D3D9RenderSystem::drawBitmap( ITexture2D const& tex , Vec2f const& texPos , Vec2f const& texSize, unsigned flag /*= 0 */ )
+void D3D9RenderSystem::drawBitmap( ITexture2D const& tex , Vector2 const& texPos , Vector2 const& texSize, unsigned flag /*= 0 */ )
 {
 	DXTexture2D const& texture = DXTexture2D::castImpl( tex  );
 
@@ -380,7 +380,7 @@ void D3D9RenderSystem::drawBitmap( ITexture2D const& tex , Vec2f const& texPos ,
 
 }
 
-void D3D9RenderSystem::drawBitmapWithinMask( ITexture2D const& tex , ITexture2D const& mask , Vec2f const& pos , unsigned flag /*= 0 */ )
+void D3D9RenderSystem::drawBitmapWithinMask( ITexture2D const& tex , ITexture2D const& mask , Vector2 const& pos , unsigned flag /*= 0 */ )
 {
 
 	DXTexture2D const& texDX = DXTexture2D::castImpl( tex );
@@ -528,7 +528,7 @@ ITexture2D* D3D9RenderSystem::createFontTexture( ZFontLayer& layer )
 	return createTexture( layer.imagePath.c_str() ,layer.alhpaPath.c_str() );
 }
 
-void D3D9RenderSystem::drawPolygon( Vec2f const pos[] , int num )
+void D3D9RenderSystem::drawPolygon( Vector2 const pos[] , int num )
 {
 	assert( num <= MaxPolygonSize );
 

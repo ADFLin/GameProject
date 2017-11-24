@@ -1,6 +1,7 @@
 #include "Collision.h"
 
 #include "Phy2D/RigidBody.h"
+#include "Collision2D/SATSolver.h"
 
 namespace Phy2D
 {
@@ -26,7 +27,7 @@ namespace Phy2D
 	{
 	public:
 		virtual bool test( CollideObject* objA , CollideObject* objB , Contact& c );
-
+		SATSolver mSolver;
 	};
 
 
@@ -89,7 +90,7 @@ namespace Phy2D
 			CollisionProxy* proxy = *iter;
 			CollideObject* object = proxy->object;
 			object->mShape->calcAABB( object->mXForm , proxy->aabb );
-			Vec2f dp = Vec2f( mContactBreakThreshold + 0.5  , mContactBreakThreshold + 0.5 );
+			Vector2 dp = Vector2( mContactBreakThreshold + 0.5  , mContactBreakThreshold + 0.5 );
 			proxy->aabb.min -= dp;
 			proxy->aabb.max += dp;
 		}
@@ -184,10 +185,10 @@ namespace Phy2D
 #endif
 	}
 
-	bool GJK::test(Vec2f const& initDir)
+	bool GJK::test(Vector2 const& initDir)
 	{
-		Vec2f dir = initDir;
-		Vec2f d;
+		Vector2 dir = initDir;
+		Vector2 d;
 		Simplex* sv = calcSupport( mSv[0] , dir );
 #if PHY2D_DEBUG
 		mDBG.push_back( *sv );
@@ -218,11 +219,11 @@ namespace Phy2D
 				return false;
 			}
 
-			Vec2f d0 = mSv[0]->v - sv->v;
-			Vec2f d1 = mSv[1]->v - sv->v;
+			Vector2 d0 = mSv[0]->v - sv->v;
+			Vector2 d1 = mSv[1]->v - sv->v;
 
-			Vec2f d0Prep = TripleProduct( d1 , d0 , d0 );
-			Vec2f d1Prep = TripleProduct( d0 , d1 , d1 );
+			Vector2 d0Prep = TripleProduct( d1 , d0 , d0 );
+			Vector2 d1Prep = TripleProduct( d0 , d1 , d1 );
 
 			if ( d0Prep.dot( sv->v ) <= 0 )
 			{
@@ -274,7 +275,7 @@ namespace Phy2D
 	{
 		Edge* next = e->next;
 
-		Vec2f d = e->depth * e->normal;
+		Vector2 d = e->depth * e->normal;
 		float p[2];
 		p[1] = e->sv->v.cross( e->normal );
 		p[0] = e->normal.cross( next->sv->v );
@@ -301,7 +302,7 @@ namespace Phy2D
 		c.pos[1] = mObj[1]->mXForm.transformPosition( c.posLocal[1] );
 	}
 
-	GJK::Edge* GJK::addEdge( Simplex* sv , Vec2f const& b )
+	GJK::Edge* GJK::addEdge( Simplex* sv , Vector2 const& b )
 	{
 		Edge* e = mEdges + mNumEdge;
 		++mNumEdge;
@@ -310,11 +311,11 @@ namespace Phy2D
 		return e;
 	}
 
-	void GJK::updateEdge( Edge* e ,Vec2f const& b )
+	void GJK::updateEdge( Edge* e ,Vector2 const& b )
 	{
 		assert( e );
 		Simplex* sv = e->sv;
-		Vec2f d = b - sv->v;
+		Vector2 d = b - sv->v;
 		e->normal = TripleProduct( d , sv->v , d );
 		e->normal.normalize();
 		e->depth = e->normal.dot( sv->v );
@@ -347,11 +348,11 @@ namespace Phy2D
 		return edge;
 	}
 
-	GJK::Simplex* GJK::calcSupport(Simplex* sv , Vec2f const& dir)
+	GJK::Simplex* GJK::calcSupport(Simplex* sv , Vector2 const& dir)
 	{
 		assert( sv );
-		Vec2f v0 = mObj[0]->mShape->getSupport( dir );
-		Vec2f v1 = mObj[1]->mShape->getSupport( mBToALocal.transformVectorInv(-dir) );
+		Vector2 v0 = mObj[0]->mShape->getSupport( dir );
+		Vector2 v1 = mObj[1]->mShape->getSupport( mBToALocal.transformVectorInv(-dir) );
 #if PHY2D_DEBUG
 		sv->vObj[0] = v0;
 		sv->vObj[1] = v1;
@@ -364,7 +365,7 @@ namespace Phy2D
 	bool GJKColAlgo::test(CollideObject* objA , CollideObject* objB , Contact& c )
 	{
 		gGJK.init( objA , objB );
-		Vec2f dir = objB->getPos() - objA->getPos();
+		Vector2 dir = objB->getPos() - objA->getPos();
 		if ( gGJK.test( objA->mXForm.transformVectorInv( dir ) ) )
 		{
 			gGJK.generateContact( c );
@@ -381,7 +382,7 @@ namespace Phy2D
 		CircleShape* ca = static_cast< CircleShape* >( objA->mShape );
 		CircleShape* cb = static_cast< CircleShape* >( objA->mShape );
 
-		Vec2f offset = objB->getPos() - objA->getPos();
+		Vector2 offset = objB->getPos() - objA->getPos();
 		float r = ca->getRadius() + cb->getRadius();
 		float len2 = offset.length2();
 		if ( len2 > r * r )
@@ -391,7 +392,7 @@ namespace Phy2D
 		if ( len < FLT_DIV_ZERO_EPSILON )
 		{
 			c.depth = r;
-			c.normal = Vec2f(1,0);
+			c.normal = Vector2(1,0);
 		}
 		else
 		{
@@ -415,8 +416,8 @@ namespace Phy2D
 
 		assert( objA->mShape->getType() == Shape::eBox && objB->mShape->getType() == Shape::eCircle );
 
-		Vec2f offset = objA->mXForm.transformVector( objB->getPos() - objA->getPos() );
-		Vec2f const& half  = static_cast< BoxShape* >( objA->mShape )->mHalfExt;
+		Vector2 offset = objA->mXForm.transformVector( objB->getPos() - objA->getPos() );
+		Vector2 const& half  = static_cast< BoxShape* >( objA->mShape )->mHalfExt;
 		float radius = static_cast< CircleShape* >( objB->mShape )->getRadius();
 
 		int idx = 0;
@@ -431,7 +432,7 @@ namespace Phy2D
 			idx -= 3;
 
 		bool isEdge = true;
-		Vec2f vCol;
+		Vector2 vCol;
 		if ( idx == 0 )
 		{
 			float ox = Math::Abs( offset.x );
@@ -439,7 +440,7 @@ namespace Phy2D
 #if 0
 			if ( Math::Abs( ox - oy ) < FLT_ZERO_EPSILON )
 			{
-				c.normal = normalize( Vec2f( offset.x > 0 ? 1 : -1 , offset.y > 0 ? 1 : -1 ) );
+				c.normal = normalize( Vector2( offset.x > 0 ? 1 : -1 , offset.y > 0 ? 1 : -1 ) );
 				c.depth  = Sqrt( )
 
 				isEdge = false;
@@ -451,12 +452,12 @@ namespace Phy2D
 				if ( offset.x > 0 )
 				{
 					c.depth = radius + half.x - offset.x; 
-					c.normal = Vec2f::PositiveX(); 
+					c.normal = Vector2::PositiveX(); 
 				}
 				else
 				{
 					c.depth = radius + half.x + offset.x; 
-					c.normal = Vec2f::NegativeX();
+					c.normal = Vector2::NegativeX();
 				}
 			}
 			else // half.x - ox > half.y - oy 
@@ -464,12 +465,12 @@ namespace Phy2D
 				if ( offset.y > 0 )
 				{
 					c.depth = radius + half.y - offset.y; 
-					c.normal = Vec2f::PositiveY(); 
+					c.normal = Vector2::PositiveY(); 
 				}
 				else
 				{
 					c.depth = radius + half.y + offset.y; 
-					c.normal = Vec2f::NegativeY();
+					c.normal = Vector2::NegativeY();
 				}
 			}
 		}
@@ -478,12 +479,12 @@ namespace Phy2D
 			switch ( idx )
 			{
 			case  4: vCol = half; break;
-			case  2: vCol = Vec2f( -half.x , half.y ); break;
-			case -2: vCol = Vec2f( half.x , -half.y ); break;
+			case  2: vCol = Vector2( -half.x , half.y ); break;
+			case -2: vCol = Vector2( half.x , -half.y ); break;
 			case -4: vCol = -half; break;
 			}
 
-			Vec2f diff = offset - vCol;
+			Vector2 diff = offset - vCol;
 			float len = diff.length2();
 			if ( len > radius * radius )
 				return false;
@@ -491,7 +492,7 @@ namespace Phy2D
 			c.depth = radius - len;
 			if ( len < FLT_DIV_ZERO_EPSILON )
 			{
-				c.normal = Normalize( Vec2f( vCol.x > 0 ? 1 : -1 , vCol.y > 0 ? 1 : -1 ) );
+				c.normal = Normalize( Vector2( vCol.x > 0 ? 1 : -1 , vCol.y > 0 ? 1 : -1 ) );
 			}
 			else
 			{
@@ -508,25 +509,25 @@ namespace Phy2D
 				if ( offset.x > half.x + radius ) 
 					return false; 
 				c.depth = ( half.x + radius ) - offset.x; 
-				c.normal = Vec2f::PositiveX(); 
+				c.normal = Vector2::PositiveX(); 
 				break;
 			case -1: 
 				if ( -offset.x > ( half.x + radius ) ) 
 					return false;
 				c.depth = ( half.x + radius ) + offset.x; 
-				c.normal = Vec2f::NegativeX();
+				c.normal = Vector2::NegativeX();
 				break;
 			case  3: 
 				if ( offset.y > half.y + radius ) 
 					return false; 
 				c.depth = ( half.y + radius ) - offset.y; 
-				c.normal = Vec2f::PositiveY();
+				c.normal = Vector2::PositiveY();
 				break;
 			case -3: 
 				if ( -offset.y > ( half.y + radius ) ) 
 					return false;
 				c.depth = ( half.y + radius ) + offset.y; 
-				c.normal = Vec2f::NegativeY(); 
+				c.normal = Vector2::NegativeY(); 
 				break;
 			}	
 		}
@@ -535,7 +536,7 @@ namespace Phy2D
 		c.object[1] = objB;
 		if ( isEdge )
 		{
-			Vec2f pB = offset - radius * c.normal; 
+			Vector2 pB = offset - radius * c.normal; 
 			c.posLocal[0] = pB + c.depth * c.normal;
 			c.pos[1] = objA->mXForm.transformPosition( pB );
 		}
@@ -551,6 +552,10 @@ namespace Phy2D
 
 	bool BoxBoxAlgo::test( CollideObject* objA , CollideObject* objB , Contact& c)
 	{
+
+
+
+
 
 		return false;
 		

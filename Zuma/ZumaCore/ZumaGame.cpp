@@ -149,11 +149,11 @@ namespace Zuma
 			renderSys.setColor( 255 , 255 , 125 , 255 );
 
 			sprintf( str , "FPS=%.2f" , showFPS );
-			font->print( Vec2f( g_ScreenWidth - 100 , 10 ) ,
+			font->print( Vector2( g_ScreenWidth - 100 , 10 ) ,
 				str , FF_ALIGN_VCENTER | FF_ALIGN_HCENTER );
 
 			sprintf( str , "x:%d,y:%d" , DBG_X , DBG_Y );
-			font->print( Vec2f( g_ScreenWidth - 100 , 35 ) ,
+			font->print( Vector2( g_ScreenWidth - 100 , 35 ) ,
 				str , FF_ALIGN_VCENTER | FF_ALIGN_HCENTER );
 
 			renderSys.setColor( 255 , 255 , 255 , 255 );
@@ -415,13 +415,13 @@ namespace Zuma
 			++numTask;
 		}
 
-		Vec2f textPos = info.pos;
+		Vector2 textPos = info.pos;
 
 		for ( int i = 0 ; i < numTask ; ++i )
 		{
-			textPos += Vec2f( 0 , 20 );
+			textPos += Vector2( 0 , 20 );
 			task[i]->pos   = textPos;
-			task[i]->speed = Vec2f( 0 , -20.0f / 1000.0f );
+			task[i]->speed = Vector2( 0 , -20.0f / 1000.0f );
 			task[i]->color.value = color;
 			task[i]->setOrder( LRO_TEXT );
 

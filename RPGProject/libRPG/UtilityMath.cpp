@@ -34,7 +34,7 @@ void UM_VecToYawPitch( Vec3D const& dir , float& yaw , float& pitch )
 
 Quat UM_Slerp( Quat const& from , Quat const& to , float t )
 {
-	return Math::slerp( from , to , t );
+	return Math::Slerp( from , to , t );
 }
 
 

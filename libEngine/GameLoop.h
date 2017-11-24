@@ -22,9 +22,11 @@ public:
 		mIsOver = false;
 		mFrameTime  = 0;
 		mUpdateTime = 15;
+		mBusyTime = 2000;
 	}
 
 	void setUpdateTime( long  time ){ mUpdateTime = time; }
+	void setBusyTime(long time) { mBusyTime = time; }
 	long getUpdateTime(){ return mUpdateTime; }
 	void setLoopOver( bool beOver ){ mIsOver = beOver; }
 
@@ -36,11 +38,12 @@ protected:
 	void onEnd()                    {}
 	long onUpdate( long shouldTime ){ return shouldTime; }
 	void onRender()                 {}
-
+	void onLoopBusy( long deltaTime ){}
 
 private:
 	long  mFrameTime;
 	long  mUpdateTime;
+	long  mBusyTime;
 	bool  mIsOver;
 	//long m_MaxLoops;
 };
@@ -62,6 +65,11 @@ void GameLoopT< T , PP >::run()
 		{
 			_this()->onIdle( mUpdateTime - intervalTime );
 		}
+		else if( intervalTime > mBusyTime )
+		{
+			_this()->onLoopBusy(intervalTime);
+			beforeTime = presentTime;
+		}
 		else
 		{
 			if ( !Platform::updateSystem() )
@@ -79,10 +87,6 @@ void GameLoopT< T , PP >::run()
 			mFrameTime += updateTime;
 			++numLoops;
 		}
-
-		//if ( presentTime - beforeTime > m_updateTime )
-		//	beforeTime = presentTime - m_updateTime;
-
 	}
 
 	_this()->onEnd();

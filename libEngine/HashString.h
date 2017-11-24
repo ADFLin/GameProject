@@ -3,7 +3,7 @@
 #define HashString_h__
 
 #include "CoreShare.h"
-#include "IntegerType.h"
+#include "Core/IntegerType.h"
 
 enum class EName : uint8
 {

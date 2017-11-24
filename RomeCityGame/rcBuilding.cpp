@@ -1050,7 +1050,7 @@ void rcBasicBuilding::onDestory( rcCityInfo& cInfo )
 			for( int i = 0 ; i < 4 ; ++i )
 			{
 				Vec2i pos = centerPos + 2 * g_OffsetDir[i];
-				if ( !cInfo.levelMap->isVaildRange( pos ) )
+				if ( !cInfo.levelMap->isRange( pos ) )
 					continue;
 
 				cInfo.updateWaterSource( pos , false , i == 0 );

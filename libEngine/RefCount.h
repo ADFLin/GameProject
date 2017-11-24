@@ -2,6 +2,8 @@
 #ifndef RefCount_H_AE7BB79E_FF29_450C_9F52_A7F3B2CF78A2
 #define RefCount_H_AE7BB79E_FF29_450C_9F52_A7F3B2CF78A2
 
+#include "MetaBase.h"
+
 template < class T >
 class TRefCountPtr;
 
@@ -58,7 +60,7 @@ public:
 	T*       get()       { return mPtr; }
 	T const* get() const { return mPtr; }
 
-	bool     isVaild() const { return mPtr != nullptr; }
+	bool     is() const { return mPtr != nullptr; }
 	void     release() 
 	{ 
 		cleanup();
@@ -66,6 +68,9 @@ public:
 	}
 
 	TRefCountPtr& operator = ( TRefCountPtr const& rcPtr ){  assign( rcPtr.mPtr ); return *this;  }
+	template< class Q >
+	TRefCountPtr& operator = ( TRefCountPtr< Q > const& rcPtr) { assign(rcPtr.mPtr); return *this; }
+
 	TRefCountPtr& operator = ( T* ptr ){  assign( ptr ); return *this;  }
 private:
 	void init( T* ptr ){ mPtr = ptr; if ( mPtr ) mPtr->incRef(); }

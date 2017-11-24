@@ -97,7 +97,7 @@ void rcLevelCity::render()
 
 bool rcLevelCity::buildContruction( Vec2i const& pos , unsigned tagID , int idxModel , bool swapAxis )
 {
-	if ( !mLevelMap->isVaildRange( pos ) )
+	if ( !mLevelMap->isRange( pos ) )
 		return false;
 
 	rcBuildingInfo const& info = 
@@ -173,7 +173,7 @@ bool rcLevelCity::buildContruction( Vec2i const& pos , unsigned tagID , int idxM
 			for( int i = 0 ; i < 4 ; ++i )
 			{
 				Vec2i destPos = pos + g_OffsetDir[i];
-				if ( !mLevelMap->isVaildRange( destPos ) )
+				if ( !mLevelMap->isRange( destPos ) )
 					continue;
 				updateRoadLink( destPos );
 			}
@@ -212,7 +212,7 @@ bool rcLevelCity::buildContruction( Vec2i const& pos , unsigned tagID , int idxM
 			for( int i = 0 ; i < 4 ; ++i )
 			{
 				Vec2i destPos = pos + g_OffsetDir[i];
-				if ( !mLevelMap->isVaildRange( destPos ) )
+				if ( !mLevelMap->isRange( destPos ) )
 					continue;
 				updateAquaductLink( destPos );
 			}
@@ -227,7 +227,7 @@ bool rcLevelCity::buildContruction( Vec2i const& pos , unsigned tagID , int idxM
 
 void rcLevelCity::destoryContruction( Vec2i const& pos )
 {
-	if ( !mLevelMap->isVaildRange( pos ) )
+	if ( !mLevelMap->isRange( pos ) )
 		return;
 
 	rcMapData& data = mLevelMap->getData( pos );
@@ -262,7 +262,7 @@ void rcLevelCity::destoryContruction( Vec2i const& pos )
 					for( int i = 0 ; i < 4 ; ++i )
 					{
 						Vec2i destPos = pos + g_OffsetDir[i];
-						if ( !mLevelMap->isVaildRange( destPos ) )
+						if ( !mLevelMap->isRange( destPos ) )
 							continue;
 						if ( updateRoad )
 							updateRoadLink( destPos );
@@ -461,7 +461,7 @@ rcBuilding* rcLevelCity::getBuilding( unsigned blgID )
 
 rcBuilding* rcLevelCity::getBuilding( Vec2i const& pos )
 {
-	if ( !mLevelMap->isVaildRange( pos ) )
+	if ( !mLevelMap->isRange( pos ) )
 		return NULL;
 
 	rcMapData const& data = mLevelMap->getData( pos );
@@ -509,7 +509,7 @@ int rcLevelCity::obtainLabor( Vec2i const& pos , int wantNum )
 
 bool rcLevelCity::checkRoadAquaductConnect( Vec2i const& pos , unsigned tagID , int& allowDir )
 {
-	if ( !mLevelMap->isVaildRange( pos ) )
+	if ( !mLevelMap->isRange( pos ) )
 		return false;
 	assert( tagID == BT_AQUADUCT || tagID == BT_ROAD );
 	ConnectType checkType = ( tagID == BT_AQUADUCT ) ? CT_ROAD : CT_WATER_WAY;

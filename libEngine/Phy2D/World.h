@@ -20,7 +20,7 @@ namespace Phy2D
 		World()
 			:mAllocator( 1024 )
 		{
-			mGrivaty = Vec2f(0,-9.8);
+			mGrivaty = Vector2(0,-9.8);
 		}
 		
 		CollideObject* createCollideObject( Shape* shape );
@@ -48,7 +48,7 @@ namespace Phy2D
 		>  RigidBodyList;
 		ColObjectList  mColObjects;
 		RigidBodyList  mRigidBodies;
-		Vec2f          mGrivaty;
+		Vector2          mGrivaty;
 		FrameAllocator mAllocator;
 
 	};

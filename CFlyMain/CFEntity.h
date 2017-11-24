@@ -4,7 +4,7 @@
 #include "CFBase.h"
 
 #include "Singleton.h"
-#include "IntegerType.h"
+#include "Core/IntegerType.h"
 
 #include <vector>
 

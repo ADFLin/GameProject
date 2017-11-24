@@ -82,7 +82,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>../OtherLib/boost;../OtherLib/glew;../OtherLib;.;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../OtherLib/DirectX/Include;../OtherLib/boost;../OtherLib/glew;../OtherLib;.;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;_LIB;DEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MinimalRebuild>false</MinimalRebuild>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
@@ -124,7 +124,7 @@
       <AdditionalOptions>/MP %(AdditionalOptions)</AdditionalOptions>
       <Optimization>MaxSpeed</Optimization>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <AdditionalIncludeDirectories>../OtherLib/boost;../OtherLib/glew;../OtherLib;.;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../OtherLib/DirectX/Include;../OtherLib/boost;../OtherLib/glew;../OtherLib;.;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>_SECURE_SCL=0;WIN32;_LIB;NDEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <FunctionLevelLinking>true</FunctionLevelLinking>
@@ -156,14 +156,20 @@
     </ProjectReference>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="AI\GeneticAlgorithm.cpp" />
+    <ClCompile Include="AI\NeuralNetwork.cpp" />
     <ClCompile Include="AppEntry.cpp" />
     <ClCompile Include="Asset.cpp" />
     <ClCompile Include="AsyncWork.cpp" />
+    <ClCompile Include="Audio\AudioDevice.cpp" />
+    <ClCompile Include="Audio\XAudio2\XAudio2Device.cpp" />
     <ClCompile Include="BehaviorTree\BTNode.cpp" />
     <ClCompile Include="BehaviorTree\TreeBuilder.cpp" />
     <ClCompile Include="BitmapDC.cpp" />
     <ClCompile Include="Bitset.cpp" />
+    <ClCompile Include="BitUtility.cpp" />
     <ClCompile Include="Clock.cpp" />
+    <ClCompile Include="Collision2D\SATSolver.cpp" />
     <ClCompile Include="ConsoleSystem.cpp" />
     <ClCompile Include="CoreShare.cpp" />
     <ClCompile Include="CPreprocessor.cpp" />
@@ -178,6 +184,7 @@
     <ClCompile Include="Math\Math2D.cpp" />
     <ClCompile Include="Math\Matrix3.cpp" />
     <ClCompile Include="Math\Matrix4.cpp" />
+    <ClCompile Include="Math\PrimitiveTest2D.cpp" />
     <ClCompile Include="Math\Quaternion.cpp" />
     <ClCompile Include="Math\Transform.cpp" />
     <ClCompile Include="Phy2D\Collision.cpp" />
@@ -199,14 +206,19 @@
     <ClCompile Include="WinGDIRenderSystem.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="AI\GeneticAlgorithm.h" />
+    <ClInclude Include="AI\NeuralNetwork.h" />
     <ClInclude Include="Algo\AStar.h" />
     <ClInclude Include="Algo\AStarDefultPolicy.h" />
     <ClInclude Include="Algo\IDAStar.h" />
+    <ClInclude Include="Alloc.h" />
     <ClInclude Include="AllocFIFO.h" />
     <ClInclude Include="Any.h" />
     <ClInclude Include="Asset.h" />
     <ClInclude Include="AStarTile2D.h" />
     <ClInclude Include="AsyncWork.h" />
+    <ClInclude Include="Audio\AudioDevice.h" />
+    <ClInclude Include="Audio\XAudio2\XAudio2Device.h" />
     <ClInclude Include="AVLTree.h" />
     <ClInclude Include="BehaviorTree\BTNode.h" />
     <ClInclude Include="BehaviorTree\delegateN.hxx" />
@@ -215,6 +227,10 @@
     <ClInclude Include="BehaviorTree\NodeExpression.h" />
     <ClInclude Include="BehaviorTree\TreeBuilder.h" />
     <ClInclude Include="BehaviorTree\Visitor.h" />
+    <ClInclude Include="Collision2D\SATSolver.h" />
+    <ClInclude Include="Core\Color.h" />
+    <ClInclude Include="Core\FNV1a.h" />
+    <ClInclude Include="Core\ScopeExit.h" />
     <ClInclude Include="CPreprocessor.h" />
     <ClInclude Include="CString.h" />
     <ClInclude Include="CycleQueue.h" />
@@ -223,9 +239,12 @@
     <ClInclude Include="Bitset.h" />
     <ClInclude Include="BitUtility.h" />
     <ClInclude Include="CacheAllocator.h" />
-    <ClInclude Include="CHandle.h" />
+    <ClInclude Include="Delegate.h" />
+    <ClInclude Include="Math\PrimitiveTest2D.h" />
+    <ClInclude Include="Math\SIMD.h" />
+    <ClInclude Include="ObjectHandle.h" />
     <ClInclude Include="Clock.h" />
-    <ClInclude Include="CommonMarco.h" />
+    <ClInclude Include="MarcoCommon.h" />
     <ClInclude Include="CompilerConfig.h" />
     <ClInclude Include="ConsoleSystem.h" />
     <ClInclude Include="Coroutine.h" />
@@ -252,7 +271,7 @@
     <ClInclude Include="HashString.h" />
     <ClInclude Include="Heap.h" />
     <ClInclude Include="CompressAlgo.h" />
-    <ClInclude Include="IntegerType.h" />
+    <ClInclude Include="Core\IntegerType.h" />
     <ClInclude Include="IntrList.h" />
     <ClInclude Include="Math\Base.h" />
     <ClInclude Include="Math\BigFloat.h" />
@@ -280,6 +299,7 @@
     <ClInclude Include="Phy2D\Shape.h" />
     <ClInclude Include="Phy2D\World.h" />
     <ClInclude Include="PlatformConfig.h" />
+    <ClInclude Include="Platform\Windows\MediaFoundationHeader.h" />
     <ClInclude Include="ProfileSystem.h" />
     <ClInclude Include="Random.h" />
     <ClInclude Include="RedBlackTree.h" />
@@ -290,7 +310,6 @@
     <ClInclude Include="Singleton.h" />
     <ClInclude Include="SList.h" />
     <ClInclude Include="SocketBuffer.h" />
-    <ClInclude Include="SortAlgo.h" />
     <ClInclude Include="SortFunction.h" />
     <ClInclude Include="StackParam.h" />
     <ClInclude Include="StdUtility.h" />
@@ -299,6 +318,7 @@
     <ClInclude Include="SystemMessage.h" />
     <ClInclude Include="SystemPlatform.h" />
     <ClInclude Include="TemplateMisc.h" />
+    <ClInclude Include="Template\ArrayView.h" />
     <ClInclude Include="WindowsMessageHander.h" />
     <ClInclude Include="TaskBase.h" />
     <ClInclude Include="TCycleNumber.h" />
@@ -337,7 +357,7 @@
     <ClInclude Include="WinGLPlatform.h" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="CHandle.cpp_temp" />
+    <None Include="ObjectHandle.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

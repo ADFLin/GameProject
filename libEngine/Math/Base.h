@@ -3,15 +3,19 @@
 
 #include <cmath>
 #include <cassert>
+#include <cfloat>
 
+#include "CompilerConfig.h"
 #include "EnumCommon.h"
 
-float const FLT_DIV_ZERO_EPSILON = 1e-6f;
-
+float constexpr FLT_DIV_ZERO_EPSILON = 1e-6f;
 
 namespace Math
 {
-	float const PI = 3.141592654f;
+	float constexpr MaxFloat = FLT_MAX;
+	float constexpr MinFloat = FLT_MIN;
+	float constexpr PI = 3.141592654f;
+
 	inline int FloorToInt(float val) { return (int)::floor(val); }
 	inline float Floor( float val ){ return ::floor( val ); }
 	inline float Sqrt( float val ){ return ::sqrt( val ); }
@@ -25,6 +29,12 @@ namespace Math
 	inline float ATan( float val ){ return ::atan( val ); }
 	inline float Abs( float val ){ return ::fabs( val ); }
 	inline float ATan2( float y , float x ){ return ::atan2( y ,x ); }
+	inline float Frac(float val) { float temp; return ::modf(val, &temp); }
+
+
+	inline double Abs(double val) { return ::abs(val); }
+	inline double Tanh(double val) { return ::tanh(val); }
+	inline double Exp(double val) { return ::exp(val); }
 
 
 	inline float Round( float value ){ return ::floor( value + 0.5f ); }
@@ -33,6 +43,9 @@ namespace Math
 	inline float Rad2Deg( float val ){ return val * 180.0f / Math::PI; }
 	inline float Pow(float base, float exp) { return ::pow(base, exp); }
 	inline float Lerp(float form, float to, float alpha) { return form * (1 - alpha) + to * alpha;  }
+
+	template< class T >
+	inline T Squre(T val) { return val * val; }
 
 	template< class T >
 	inline T Min(T v1, T v2) { return (v1 < v2) ? v1 : v2; }

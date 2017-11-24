@@ -10,7 +10,7 @@
 #include "ProfileSystem.h"
 #include "LogSystem.h"
 #include "CppVersion.h"
-#include "IntegerType.h"
+#include "Core/IntegerType.h"
 #include "HashString.h"
 
 #define	CF_PROFILE( name ) PROFILE_ENTRY( name )

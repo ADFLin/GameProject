@@ -28,7 +28,7 @@ bool rcLevelMap::checkCanBuild( rcBuildingInfo const& info ,Vec2i const pos , Ve
 		{
 			Vec2i destPos = pos + Vec2i(i,j);
 
-			if ( !isVaildRange( destPos ) )
+			if ( !isRange( destPos ) )
 				return false;
 
 			if ( !getData( destPos ).canBuild() )
@@ -86,7 +86,7 @@ void rcLevelMap::visitMapData( rcLevelMap::Visitor& visitor , Vec2i const& pos ,
 	{
 		for( int j = std::max( pos.y , 0 ); j < endPos.y ; ++j )
 		{
-			if ( !isVaildRange(i,j) )
+			if ( !isRange(i,j) )
 				continue;
 
 			if ( !visitor.visit( getData(i,j) ) )
@@ -123,7 +123,7 @@ void rcLevelMap::updateAquaductType( Vec2i const& pos , int forceDir )
 	for( int i = 0 ; i < 4 ; ++i )
 	{
 		Vec2i destPos = pos + g_OffsetDir[i];
-		if ( !isVaildRange( destPos ) )
+		if ( !isRange( destPos ) )
 			continue;
 
 		if ( getData( destPos ).haveConnect( CT_WATER_WAY )  )
@@ -198,7 +198,7 @@ void rcLevelMap::updateRoadType( Vec2i const& pos )
 	for( int i = 0 ; i < 4 ; ++i )
 	{
 		Vec2i destPos = pos + g_OffsetDir[i];
-		if ( !isVaildRange( destPos ) )
+		if ( !isRange( destPos ) )
 			continue;
 
 		if ( getData( destPos ).haveRoad()  )
@@ -248,7 +248,7 @@ bool rcLevelMap::calcBuildingEntry( Vec2i const& pos , Vec2i const& size , Vec2i
 	for( int n = 0 ; n < size.x ; ++n )
 	{
 		entryPos = pos + Vec2i( n , -1 );
-		if ( !isVaildRange( entryPos ) )
+		if ( !isRange( entryPos ) )
 			continue;
 		if ( getData( entryPos ).haveRoad() )
 			return true;
@@ -257,7 +257,7 @@ bool rcLevelMap::calcBuildingEntry( Vec2i const& pos , Vec2i const& size , Vec2i
 	for( int n = 0 ; n < size.y ; ++n )
 	{
 		entryPos = pos + Vec2i( size.x , n );
-		if ( !isVaildRange( entryPos ) )
+		if ( !isRange( entryPos ) )
 			continue;
 		if ( getData( entryPos ).haveRoad()  )
 			return true;
@@ -266,7 +266,7 @@ bool rcLevelMap::calcBuildingEntry( Vec2i const& pos , Vec2i const& size , Vec2i
 	for( int n = 0 ; n < size.y ; ++n )
 	{
 		entryPos = pos + Vec2i( -1 , n );
-		if ( !isVaildRange( entryPos ) )
+		if ( !isRange( entryPos ) )
 			continue;
 		if ( getData( entryPos ).haveRoad()  )
 			return true;
@@ -275,7 +275,7 @@ bool rcLevelMap::calcBuildingEntry( Vec2i const& pos , Vec2i const& size , Vec2i
 	for( int n = 0 ; n < size.x ; ++n )
 	{
 		entryPos = pos + Vec2i( n , size.y );
-		if ( !isVaildRange( entryPos ) )
+		if ( !isRange( entryPos ) )
 			continue;
 		if ( getData( entryPos ).haveRoad()  )
 			return true;
@@ -286,7 +286,7 @@ bool rcLevelMap::calcBuildingEntry( Vec2i const& pos , Vec2i const& size , Vec2i
 
 rcMapData* rcLevelMap::getDataSafely( Vec2i const& pos )
 {
-	if ( !isVaildRange( pos ) )
+	if ( !isRange( pos ) )
 		return NULL;
 	return &mMapData.getData( pos.x , pos.y );
 }

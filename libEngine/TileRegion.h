@@ -216,7 +216,7 @@ public:
 	friend class Region;
 };
 
-inline bool getInteractionRect( rect_t const & r1 , rect_t const & r2 , rect_t& rt )
+inline bool getCrossRect( rect_t const & r1 , rect_t const & r2 , rect_t& rt )
 {
 	if ( !calcCrossRange( r1.xRange , r2.xRange , rt.xRange ) )
 		return false;
@@ -369,7 +369,7 @@ public:
 		}
 		return NULL;
 	}
-	void checkPortalVaild( Region& region );
+	void checkPortal( Region& region );
 	bool tryMergeBarRegion( Region& region1 , Region& region2 , Portal& portal , int idxRange );
 	//private:
 

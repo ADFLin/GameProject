@@ -19,6 +19,8 @@ public:
 	template< int N >
 	static void   Copy(CharT(&dst)[N], CharT const* src) { ::strcpy_s(dst, src); }
 	template< int N >
+	static void   CopyN(CharT(&dst)[N], CharT const* src , int num ) { ::strncpy_s(dst, src , num ); }
+	template< int N > 
 	static void   Cat(CharT(&dst)[N], CharT const* src) { ::strcat_s(dst, src); }
 	static int    Compare(CharT const* s1, CharT const* s2) { return ::strcmp(s1, s2); }
 
@@ -34,6 +36,8 @@ struct TCString< wchar_t >
 	static void   PrintfV(CharT(&str)[N], CharT const* fmt, va_list al) { ::vswprintf_s(str, fmt, al); }
 	template< int N >
 	static void   Copy(CharT(&dst)[N], CharT const* src) { ::wcscpy_s(dst, src); }
+	template< int N >
+	static void   CopyN(CharT(&dst)[N], CharT const* src, int num) { ::wcsncpy_s(dst, src, num); }
 	template< int N >
 	static void   Cat(CharT(&dst)[N], CharT const* src) { ::wcscat_s(dst, src); }
 	static int    Compare(CharT const* s1, CharT const* s2) { return ::wcscmp(s1, s2); }

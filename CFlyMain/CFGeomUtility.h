@@ -6,6 +6,8 @@
 namespace CFly
 {
 
+
+
 	class  Plane
 	{
 	public:
@@ -51,8 +53,6 @@ namespace CFly
 		Vector3 mNormal;
 		float   mDistance;
 	};
-
-
 
 
 	class BoundSphere

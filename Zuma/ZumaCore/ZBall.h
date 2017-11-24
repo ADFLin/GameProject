@@ -20,15 +20,15 @@ namespace Zuma
 		ZObject( ZColor color = zRed );
 
 		ZColor        getColor() const { return mColor; }
-		Vec2f const&  getPos()   const { return mPos; }
-		Vec2f const&  getDir()   const { return mDir; }
+		Vector2 const&  getPos()   const { return mPos; }
+		Vector2 const&  getDir()   const { return mDir; }
 		void          setColor( ZColor color ){ mColor = color; }
-		void          setPos(Vec2f const& val) { mPos = val; }
-		void          setDir(Vec2f const& val) { mDir = val; }
+		void          setPos(Vector2 const& val) { mPos = val; }
+		void          setDir(Vector2 const& val) { mDir = val; }
 
 	protected:
-		Vec2f   mDir;
-		Vec2f   mPos;
+		Vector2   mDir;
+		Vector2   mPos;
 		ZColor  mColor;
 	};
 

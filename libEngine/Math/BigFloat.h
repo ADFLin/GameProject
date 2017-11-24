@@ -117,7 +117,7 @@ public:
 
 	void inverse();
 
-	unsigned getMantissaVaildBitNum();
+	unsigned getMantissaBitNum();
 
 	bool convertMantissaToUInt();
 
@@ -189,7 +189,7 @@ void TBigFloat<MantNum, ExpNum>::inverse()
 }
 
 template < int MantNum , int ExpNum >
-unsigned TBigFloat<MantNum, ExpNum>::getMantissaVaildBitNum()
+unsigned TBigFloat<MantNum, ExpNum>::getMantissaBitNum()
 {
 	if ( isZero() )
 		return 0;
@@ -1148,7 +1148,7 @@ bool TBigFloat<MantNum, ExpNum>::isInteger()
 	if ( isNan() )
 		return false;
 
-	unsigned num = getMantissaVaildBitNum();
+	unsigned num = getMantissaBitNum();
 
 	if ( num == 0 ) //isZero()
 		return true;
@@ -1249,7 +1249,7 @@ bool TBigFloat<MantNum, ExpNum>::convertMantissaToUInt()
 {
 	assert( isInteger() );
 
-	unsigned num = getMantissaVaildBitNum();
+	unsigned num = getMantissaBitNum();
 
 	if ( num == 0 )
 	{

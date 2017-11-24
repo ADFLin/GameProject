@@ -3,7 +3,7 @@
 #define FlowSystem_H_EA29D857_5728_49E1_88F6_999CBE31DB15
 
 #include "MetaTypeList.h"
-#include "IntegerType.h"
+#include "Core/IntegerType.h"
 
 #include <cassert>
 #include <memory>
@@ -104,7 +104,7 @@ public:
 	virtual uint32 getInstanceDataSize();
 	virtual void   initInstanceData(void* data);
 
-	int nextVaildFlow(int indexStart = 0);
+	int nextFlow(int indexStart = 0);
 };
 
 class FlowNodeSelect : public FlowNodeArrayComposite

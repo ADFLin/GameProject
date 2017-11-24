@@ -21,7 +21,7 @@ namespace Phy2D
 			assert( count >= 2 );
 		}
 
-		void add( Vec2f const& p )
+		void add( Vector2 const& p )
 		{
 			if ( aabb.min.x > p.x )
 				aabb.min.x = p.x;
@@ -45,8 +45,8 @@ namespace Phy2D
 
 	void BoxShape::calcAABB(XForm const& xform , AABB& aabb)
 	{
-		Vec2f len = xform.transformVector( mHalfExt );
-		Vec2f dir = xform.getRotation().getXDir();
+		Vector2 len = xform.transformVector( mHalfExt );
+		Vector2 dir = xform.getRotation().getXDir();
 		dir.x = Math::Abs( dir.x );
 		dir.y = Math::Abs( dir.y );
 		len.x = mHalfExt.x * dir.x + mHalfExt.y * dir.y;
@@ -65,26 +65,26 @@ namespace Phy2D
 	{
 		info.m =  mHalfExt.x * mHalfExt.y * 4;
 		info.I = ( 4 / 12.0f ) * info.m * ( mHalfExt.length2() );
-		info.center = Vec2f(0,0);
+		info.center = Vector2(0,0);
 	}
 
-	Vec2f BoxShape::getSupport(Vec2f const& dir)
+	Vector2 BoxShape::getSupport(Vector2 const& dir)
 	{
-		return Vec2f(
+		return Vector2(
 			( dir.x >= 0 ) ? mHalfExt.x : -mHalfExt.x ,
 			( dir.y >= 0 ) ? mHalfExt.y : -mHalfExt.y );
 	}
 
 	void CircleShape::calcAABB(XForm const& xform , AABB& aabb)
 	{
-		aabb.min = xform.getPos() - Vec2f( mRadius , mRadius );
-		aabb.max = xform.getPos() + Vec2f( mRadius , mRadius );
+		aabb.min = xform.getPos() - Vector2( mRadius , mRadius );
+		aabb.max = xform.getPos() + Vector2( mRadius , mRadius );
 	}
 
 	void CircleShape::calcAABB(AABB& aabb)
 	{
-		aabb.min = Vec2f( -mRadius , -mRadius );
-		aabb.max = Vec2f( mRadius , mRadius );
+		aabb.min = Vector2( -mRadius , -mRadius );
+		aabb.max = Vector2( mRadius , mRadius );
 	}
 
 	void CircleShape::calcMass(MassInfo& info)
@@ -92,12 +92,12 @@ namespace Phy2D
 		float r2 = mRadius * mRadius;
 		info.m = Math::PI * r2;
 		info.I = ( 1 / 2.0f ) * info.m * r2;
-		info.center = Vec2f(0,0);
+		info.center = Vector2(0,0);
 	}
 
-	Vec2f CircleShape::getSupport(Vec2f const& dir)
+	Vector2 CircleShape::getSupport(Vector2 const& dir)
 	{
-		Vec2f d = dir;
+		Vector2 d = dir;
 		d.normalize();
 		return mRadius * d;	
 	}
@@ -108,7 +108,7 @@ namespace Phy2D
 		AABBUpdater updater( aabb );
 		for( int i = 0 ; i < getVertexNum() ; ++i )
 		{
-			Vec2f v = xform.transformPosition( mVertices[i] );
+			Vector2 v = xform.transformPosition( mVertices[i] );
 			updater.add( v );
 		}
 	}
@@ -122,7 +122,7 @@ namespace Phy2D
 		}
 	}
 
-	Vec2f PolygonShape::getSupport(Vec2f const& dir)
+	Vector2 PolygonShape::getSupport(Vector2 const& dir)
 	{
 		float vMax = dir.dot( mVertices[0] );
 		int idx = 0;
@@ -144,11 +144,11 @@ namespace Phy2D
 		int prev = getVertexNum();
 		info.I = 0;
 		info.m = 0;
-		info.center = Vec2f::Zero();
+		info.center = Vector2::Zero();
 		for( int i = 0 ; i < getVertexNum() ; prev = i++ )
 		{
-			Vec2f const& v = mVertices[i];
-			Vec2f const& vP = mVertices[ prev ];
+			Vector2 const& v = mVertices[i];
+			Vector2 const& vP = mVertices[ prev ];
 
 			float area = 0.5f * vP.cross( v );
 			float b2 = vP.length2();
@@ -170,28 +170,28 @@ namespace Phy2D
 
 	void CapsuleShape::calcAABB(XForm const& xform , AABB& aabb)
 	{
-		Vec2f offset = mHalfExt.y * xform.getRotation().getYDir() + Vec2f( getRadius() , getRadius() );
+		Vector2 offset = mHalfExt.y * xform.getRotation().getYDir() + Vector2( getRadius() , getRadius() );
 		aabb.min = -offset;
 		aabb.max = offset; 
 	}
 
 	void CapsuleShape::calcMass(MassInfo& info )
 	{
-		info.center = Vec2f(0,0);
+		info.center = Vector2::Zero();
 		info.m      = ( 4 * mHalfExt.x * mHalfExt.y + Math::PI * getRadius() );
 		//FIXME
 		info.I      = info.m * mHalfExt.x;
 	}
 
-	Vec2f CapsuleShape::getSupport(Vec2f const& dir)
+	Vector2 CapsuleShape::getSupport(Vector2 const& dir)
 	{
 		if ( Math::Abs( mHalfExt.y * dir.x ) < Math::Abs( mHalfExt.x * dir.y ) )
 		{
-			return Vec2f( dir.x >= 0 ? mHalfExt.x : -mHalfExt.x ,
+			return Vector2( dir.x >= 0 ? mHalfExt.x : -mHalfExt.x ,
 				          dir.y >= 0 ? mHalfExt.y : -mHalfExt.y );
 		}
 
-		Vec2f result = getRadius() * dir / dir.length(); 
+		Vector2 result = getRadius() * dir / dir.length();
 		result.y += ( dir.y > 0 ) ? mHalfExt.y : -mHalfExt.y;
 		return result;
 	}

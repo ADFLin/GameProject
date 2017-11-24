@@ -147,6 +147,7 @@ namespace CPP
 
 		bool bSupportMarcoArg = false;
 		bool bCanRedefineMarco = false;
+		bool bCommentIncludeFileName = true;
 
 	private:
 

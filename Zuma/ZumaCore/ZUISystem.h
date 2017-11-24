@@ -95,7 +95,7 @@ namespace Zuma
 		bool            init( IRenderSystem& RDSystem );
 		ITexture2D*     getTexture( ResID idTex );
 		void            drawUI( ZWidget* ui , int frame = -1);
-		void            drawTex( ResID idTex , Vec2f const& pos , int frame = -1);
+		void            drawTex( ResID idTex , Vector2 const& pos , int frame = -1);
 		ZWidget*        findUI( int idUI , WidgetCoreT<ZWidget>* parent = NULL );
 		IRenderSystem&  getRenderSystem(){ return *mRDSystem; }
 

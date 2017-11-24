@@ -15,7 +15,7 @@ rcCityInfo::rcCityInfo()
 
 rcBuilding* rcCityInfo::getBuilding( Vec2i const& pos )
 {
-	if ( !levelMap->isVaildRange( pos ) )
+	if ( !levelMap->isRange( pos ) )
 		return NULL;
 
 	rcMapData const& data = levelMap->getData( pos );
@@ -70,7 +70,7 @@ void rcCityInfo::updateWaterSource( Vec2i const& pos , bool waterState , bool re
 	if ( reset )
 		mCheckData.fillValue( 0 );
 
-	assert ( levelMap->isVaildRange( pos ) );
+	assert ( levelMap->isRange( pos ) );
 
 	rcMapData& data = levelMap->getData( pos );
 
@@ -92,7 +92,7 @@ void rcCityInfo::updateWaterSource( Vec2i const& pos , bool waterState , bool re
 
 void rcCityInfo::updateWaterSourceRecursive( int x , int y , int count , bool waterState )
 {
-	if( !levelMap->isVaildRange( x , y ) )
+	if( !levelMap->isRange( x , y ) )
 		return;
 
 	rcMapData& data = levelMap->getData( x , y );

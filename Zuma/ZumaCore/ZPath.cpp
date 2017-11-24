@@ -10,7 +10,7 @@ namespace Zuma
 		return mStepOffset * ( mPath.size() - 1 );
 	}
 
-	Vec2f ZCurvePath::getLocation( float s ) const
+	Vector2 ZCurvePath::getLocation( float s ) const
 	{
 		if ( s < 0 )
 		{
@@ -36,8 +36,8 @@ namespace Zuma
 
 		assert( vtxVec.size() >= 4 );
 
-		Vec2f startPos = vtxVec[1].pos; 
-		Vec2f endPos;
+		Vector2 startPos = vtxVec[1].pos; 
+		Vector2 endPos;
 
 		bool  haveMask = false;
 		Range range;
@@ -71,12 +71,12 @@ namespace Zuma
 		mDirs.resize( num );
 		for( int i = 0 ; i < num ; ++i )
 		{
-			Vec2f offset = mPath[ i + 1 ] - mPath[ i ];
+			Vector2 offset = mPath[ i + 1 ] - mPath[ i ];
 			mDirs[ i ] = offset / sqrt( offset.length2() );
 		}
 	}
 
-	void ZCurvePath::buildSplinePath( CRSpline2D& spline , Vec2f const& startPos , Vec2f& endPos , float delta )
+	void ZCurvePath::buildSplinePath( CRSpline2D& spline , Vector2 const& startPos , Vector2& endPos , float delta )
 	{
 		float t = 0;
 		endPos = startPos;
@@ -84,7 +84,7 @@ namespace Zuma
 		unsigned loop = 0;
 		while( t < 1 )
 		{
-			Vec2f pos = spline.getPoint( t + delta );
+			Vector2 pos = spline.getPoint( t + delta );
 
 			float len = sqrt( ( pos - endPos ).length2() );
 			float err  = mStepOffset - len;
@@ -119,20 +119,20 @@ namespace Zuma
 		return s < mMaskRanges[i].to;
 	}
 
-	ZLinePath::ZLinePath( Vec2f const& from , Vec2f const& to ) 
+	ZLinePath::ZLinePath( Vector2 const& from , Vector2 const& to ) 
 		:mFrom(from),mTo(to)
 	{
 		mDir = calcDir();
 	}
 
-	Vec2f ZLinePath::getLocation( float s ) const
+	Vector2 ZLinePath::getLocation( float s ) const
 	{
 		return mFrom + s * getDir();
 	}
 
-	Vec2f ZLinePath::calcDir()
+	Vector2 ZLinePath::calcDir()
 	{
-		Vec2f offset =  mTo - mFrom;
+		Vector2 offset =  mTo - mFrom;
 		float len2 = offset.length2();
 		return offset / sqrt(len2);
 	}

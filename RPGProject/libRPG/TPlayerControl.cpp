@@ -265,7 +265,7 @@ void PlayerControl::updateCamera()
 		Vec3D goalCamPos = playerPos - 50 * dir + 
 			               mPlayer->getBodyHalfHeigh() * Vec3D(0,0,1);
 
-		if ( distance2( mCamera->getPosition() , goalCamPos ) > 1 )
+		if ( DistanceSqure( mCamera->getPosition() , goalCamPos ) > 1 )
 			mCamControl.move( playerPos , goalCamPos , dir );
 		return;
 	}
@@ -308,7 +308,7 @@ void PlayerControl::updateCamera()
 		 playerPos , goalCamPos , COF_TERRAIN | COF_WATER , 
 		 mPlayer->getEntity()->getComponentT< PhyCollision >( COMP_PHYSICAL ) , result ) )
 	{
-		goalCamPos = Math::lerp( playerPos , goalCamPos , result.hitFraction );
+		goalCamPos = Math::Lerp( playerPos , goalCamPos , result.hitFraction );
 	}
 
 	Vec3D distDir = goalCamPos - playerPos;

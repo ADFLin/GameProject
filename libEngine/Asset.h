@@ -2,7 +2,7 @@
 #define Asset_h__
 
 #include "PlatformConfig.h"
-#include "IntegerType.h"
+#include "Core/IntegerType.h"
 #include "FastDelegate/FastDelegate.h"
 
 #include <set>

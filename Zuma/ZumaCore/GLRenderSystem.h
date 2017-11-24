@@ -26,7 +26,7 @@ namespace Zuma
 		bool createFromRawData( unsigned char* data , int w , int h , bool beAlpha );
 	};
 
-	inline void glVertexVec2D( Vec2f const& v ){  glVertex3f( v.x , v.y , 0.0f ); }
+	inline void glVertexVec2D( Vector2 const& v ){  glVertex3f( v.x , v.y , 0.0f ); }
 
 
 	class GLRenderSystem : public IRenderSystem
@@ -39,7 +39,7 @@ namespace Zuma
 		bool init( HWND hWnd , HDC hDC , HGLRC hRC );
 
 		virtual void  setColor( uint8 r , uint8 g , uint8 b , uint8 a );
-		virtual void  loadWorldMatrix( Vec2f const& pos , Vec2f const& dir ){  setMatrix( pos , dir.x , dir.y );  }
+		virtual void  loadWorldMatrix( Vector2 const& pos , Vector2 const& dir ){  setMatrix( pos , dir.x , dir.y );  }
 		virtual void  translateWorld( float x , float y ){  glTranslatef( x , y , 0.0f );  }
 		virtual void  rotateWorld( float angle ){  glRotatef( angle , 0.0f , 0.0f , 1.0f );  }
 		virtual void  scaleWorld( float sx , float sy ){  glScalef( sx , sy , 1.0f );  }
@@ -48,15 +48,15 @@ namespace Zuma
 		virtual void  popWorldTransform(){  glPopMatrix();  }
 
 		virtual void  drawBitmap( ITexture2D const& tex , unsigned flag );
-		virtual void  drawBitmap( ITexture2D const& tex ,Vec2f const& texPos , Vec2f const& texSize , unsigned flag = 0 );
-		virtual void  drawBitmapWithinMask( ITexture2D const& tex , ITexture2D const& mask , Vec2f const& pos , unsigned flag = 0 );
+		virtual void  drawBitmap( ITexture2D const& tex ,Vector2 const& texPos , Vector2 const& texSize , unsigned flag = 0 );
+		virtual void  drawBitmapWithinMask( ITexture2D const& tex , ITexture2D const& mask , Vector2 const& pos , unsigned flag = 0 );
 
 
-		virtual void  drawPolygon( Vec2f const pos[] , int num );
+		virtual void  drawPolygon( Vector2 const pos[] , int num );
 
 		void   drawBitmap( GLTexture const& tex , GLTexture const& mask );
-		void   drawBitmap( GLTexture const& tex , Vec2f const& texPos , Vec2f const& texSize , 
-			GLTexture const& mask , Vec2f const& maskPos , Vec2f const& maskSize );
+		void   drawBitmap( GLTexture const& tex , Vector2 const& texPos , Vector2 const& texSize , 
+			GLTexture const& mask , Vector2 const& maskPos , Vector2 const& maskSize );
 
 		virtual ITexture2D* createEmptyTexture(){ return new GLTexture; } 
 		virtual bool  loadTexture( ITexture2D& texture , char const* path , char const* alphaPath );
@@ -70,7 +70,7 @@ namespace Zuma
 		static GLenum convBlendValue( BlendEnum value );
 		void  enableBlendImpl( bool beB );
 		void  setupBlendFun( BlendEnum src , BlendEnum dst );
-		void  setMatrix( Vec2f const& pos , float c , float s );
+		void  setMatrix( Vector2 const& pos , float c , float s );
 
 	public:
 		bool setContext( HGLRC hRC );

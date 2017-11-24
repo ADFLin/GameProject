@@ -30,7 +30,7 @@
 enum WidgetInternalFlag
 {
 	WIF_STAY_TOP            = BIT(1) ,
-	WIF_WORLD_POS_VAILD     = BIT(2) ,
+	WIF_WORLD_POS_     = BIT(2) ,
 	WIF_DISABLE             = BIT(3) ,
 	WIF_BE_HIDDEN           = BIT(4) ,
 	WIF_HITTEST_CHILDREN    = BIT(5) ,

@@ -327,7 +327,7 @@ public:// System Message
 
 			//if ( !start.getValue() )
 			//{
-			//	if ( mLevelMap->isVaildRange( mapPos ) )
+			//	if ( mLevelMap->isRange( mapPos ) )
 			//	{
 
 			//		start+= 1;
@@ -335,7 +335,7 @@ public:// System Message
 			//}
 			//else
 			//{
-			//	if ( mLevelMap->isVaildRange( mapPos ) )
+			//	if ( mLevelMap->isRange( mapPos ) )
 			//	{
 			//		if( mPathFinder.sreach( mapPos ) )
 			//		{
@@ -365,7 +365,7 @@ public:// System Message
 	{
 		Graphics2D& g = getRenderSystem()->getGraphics2D();
 
-		g.setBrush( ColorKey3( 255 , 0 , 0 ) );
+		g.setBrush( Color3ub( 255 , 0 , 0 ) );
 		for( PathType::iterator iter = mPath.begin();
 			  iter != mPath.end(); ++iter )
 		{

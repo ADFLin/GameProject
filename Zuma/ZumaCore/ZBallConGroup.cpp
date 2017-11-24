@@ -4,6 +4,7 @@
 #include "ZBall.h"
 #include "ZEvent.h"
 
+#include "Math/PrimitiveTest2D.h"
 
 #include <list>
 #include <cassert>
@@ -22,10 +23,10 @@ namespace Zuma
 		mSpeedCur = 0.0f;
 	}
 
-	bool testRayCircle( Vec2f const& rPos , Vec2f const& rDir , 
-		Vec2f const& cPos , float r2 , float t[] )
+	bool LineCircleTest( Vector2 const& rPos , Vector2 const& rDir , 
+		Vector2 const& cPos , float r2 , float t[] )
 	{
-		Vec2f offset = cPos - rPos;
+		Vector2 offset = cPos - rPos;
 		float B = offset.dot( rDir );
 		float C = offset.length2() - r2;
 
@@ -42,7 +43,7 @@ namespace Zuma
 		return  true;
 	}
 
-	ZConBall* ZConBallGroup::rayTest( Vec2f const& rPos , Vec2f const& rDir , float& tMin )
+	ZConBall* ZConBallGroup::rayTest( Vector2 const& rPos , Vector2 const& rDir , float& tMin )
 	{
 
 		ZConBall* result = NULL ;
@@ -59,7 +60,7 @@ namespace Zuma
 
 			float t[2];
 
-			if ( !testRayCircle( rPos , rDir , ball->getPos() , r2 , t ) )
+			if ( !Math2D::LineCircleTest( rPos , rDir , ball->getPos() , g_ZBallRaidus , t ) )
 				continue;
 
 			if ( t[0] > 0 )
@@ -180,7 +181,7 @@ namespace Zuma
 		processEvent( EVT_BALL_CON_DESTROY , ball );
 	}
 
-	void ZConBallGroup::applyBomb( Vec2f const& pos , float radius )
+	void ZConBallGroup::applyBomb( Vector2 const& pos , float radius )
 	{
 
 		float r2 = radius  * radius ;
@@ -477,7 +478,7 @@ namespace Zuma
 		processEvent( EVT_UPDATE_CON_BALL , cur );
 	}
 
-	ZConBall* ZConBallGroup::findNearestBall( Vec2f const& pos , float& minR2 , bool checkMask /*= false */ )
+	ZConBall* ZConBallGroup::findNearestBall( Vector2 const& pos , float& minR2 , bool checkMask /*= false */ )
 	{
 		minR2 = 1e8f;
 		ZConBall* result = NULL;
@@ -502,7 +503,7 @@ namespace Zuma
 		return result;
 	}
 
-	bool ZConBallGroup::checkBallMask( ZConBall& ball , Vec2f const pos )
+	bool ZConBallGroup::checkBallMask( ZConBall& ball , Vector2 const pos )
 	{
 		return ball.isMask();
 	}

@@ -2,7 +2,7 @@
 #define RenderSystemWinGDI_h__
 
 #include "WindowsHeader.h"
-#include "IntegerType.h"
+#include "Core/IntegerType.h"
 
 #include "Graphics2DBase.h"
 #include "BitmapDC.h"
@@ -45,9 +45,9 @@ public:
 	void  rotateXForm( float angle );
 	void  scaleXForm( float sx , float sy  );
 
-	void  setPen( ColorKey3 const& color , int width = 1 )  {  _setPenImpl( ::CreatePen( PS_SOLID , width , color) , true );  }
+	void  setPen( Color3ub const& color , int width = 1 )  {  _setPenImpl( ::CreatePen( PS_SOLID , width , color.toXBGR()) , true );  }
 	void  setPen( HPEN hPen , bool beManaged = false )      {  _setPenImpl( hPen , beManaged ); }
-	void  setBrush( ColorKey3 const& color )                {  _setBrushImpl( ::CreateSolidBrush( color ) , true );  }
+	void  setBrush( Color3ub const& color )                {  _setBrushImpl( ::CreateSolidBrush( color.toXBGR() ) , true );  }
 	void  setBrush( HBRUSH hBrush , bool beManaged = false ){  _setBrushImpl( hBrush , beManaged ); }
 	void  setFont( HFONT hFont , bool beManaged = false )   {  _setFontImpl( hFont , beManaged );  }
 
@@ -55,7 +55,7 @@ public:
 	void  beginBlend( Vec2i const& pos , Vec2i const& size , float alpha );
 	void  endBlend();
 
-	void  drawPixel  ( Vec2i const& p , ColorKey3 const& color ){  ::SetPixel( mhDCRender , p.x , p.y , color ); }
+	void  drawPixel  ( Vec2i const& p , Color3ub const& color ){  ::SetPixel( mhDCRender , p.x , p.y , color.toXBGR() ); }
 	void  drawLine   ( Vec2i const& p1 , Vec2i const& p2 )    {  ::MoveToEx( mhDCRender ,p1.x ,p1.y , NULL ); ::LineTo( mhDCRender,p2.x ,p2.y); }
 	void  drawRect   ( int left , int top , int right , int bottom ){ ::Rectangle( mhDCRender , left , top , right , bottom );  }
 	void  drawRect   ( Vec2i const& pos , Vec2i const& size ) {  ::Rectangle( mhDCRender , pos.x , pos.y , pos.x + size.x , pos.y + size.y );  }
@@ -70,9 +70,10 @@ public:
 	HDC   getTargetDC(){ return mhDCTarget; }
 
 	void  drawTexture( GdiTexture& texture , Vec2i const& pos );
-	void  drawTexture( GdiTexture& texture , Vec2i const& pos , ColorKey3 const& color );
+	void  drawTexture( GdiTexture& texture, Vec2i const& pos, Vec2i const& size);
+	void  drawTexture( GdiTexture& texture , Vec2i const& pos , Color3ub const& color );
 	void  drawTexture( GdiTexture& texture , Vec2i const& pos , Vec2i const& texPos , Vec2i const& texSize );
-	void  drawTexture( GdiTexture& texture , Vec2i const& pos , Vec2i const& texPos , Vec2i const& texSize , ColorKey3 const& color );
+	void  drawTexture( GdiTexture& texture , Vec2i const& pos , Vec2i const& texPos , Vec2i const& texSize , Color3ub const& color );
 	
 	void  setTextColor( uint8 r , uint8 g, uint8 b );
 	void  drawText( Vec2i const& pos , char const* str );

@@ -100,7 +100,7 @@ void FollowCamControl::move( Vec3D const& entityPos , Vec3D const& goalCamPos , 
 	Vec3D goalLookPos = entityPos + ObjLookDir *  m_objLookDist + m_lookHeight * Vec3D(0,0,1);
 	Vec3D camPos;
 
-	if ( distance2( goalCamPos ,mCamera->getPosition() ) < 5 * 5 )
+	if ( DistanceSqure( goalCamPos ,mCamera->getPosition() ) < 5 * 5 )
 	{
 		camPos = goalCamPos;
 	}

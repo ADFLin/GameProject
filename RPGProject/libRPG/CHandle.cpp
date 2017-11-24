@@ -5,19 +5,19 @@
 
 #include <cassert>
 
-unsigned THandleManager::s_CurSerialNum = 0;
+unsigned HandleManager::s_CurSerialNum = 0;
 
-DEFINE_HANDLE( TRefObj )
+DEFINE_HANDLE( HandledObject )
 
-TRefObj::~TRefObj()
+HandledObject::~HandledObject()
 {
-	THandleManager::getInstance().unMarkRefHandle( this );
+	HandleManager::getInstance().unMarkRefHandle( this );
 }
 
-unsigned int TRefObj::getRefID()
+unsigned int HandledObject::getRefID()
 {
 	if ( m_refHandle.getID() == ERROR_ID )
-		return THandleManager::getInstance().markRefHandle( this );
+		return HandleManager::getInstance().markRefHandle( this );
 	return m_refHandle.getID();
 }
 
@@ -43,7 +43,7 @@ unsigned int TRefObj::getRefID()
 //}
 
 
-unsigned THandleManager::markRefHandle( TRefObj* entity )
+unsigned HandleManager::markRefHandle( HandledObject* entity )
 {
 	unsigned slotIndex;
 	Slot_t* pSlot;
@@ -79,7 +79,7 @@ unsigned THandleManager::markRefHandle( TRefObj* entity )
 	return handle.getID();
 }
 
-TRefObj* THandleManager::extractHandle( RefHandle handle )
+HandledObject* HandleManager::extractHandle( RefHandle handle )
 {
 	if ( ERROR_ID == handle.getID() )
 		return NULL;
@@ -98,7 +98,7 @@ TRefObj* THandleManager::extractHandle( RefHandle handle )
 	}
 }
 
-void THandleManager::unMarkRefHandle( TRefObj* entity )
+void HandleManager::unMarkRefHandle( HandledObject* entity )
 {
 	RefHandle handle = entity->getRefHandle();
 

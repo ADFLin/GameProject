@@ -2,7 +2,7 @@
 
 namespace Math2D
 {
-	Rotation Rotation::Make(Vector2D const& from, Vector2D const& to)
+	Rotation Rotation::Make(Vector2 const& from, Vector2 const& to)
 	{
 		assert(from.isNormalize() && to.isNormalize());
 

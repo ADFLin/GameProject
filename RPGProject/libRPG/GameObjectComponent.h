@@ -39,7 +39,7 @@ enum LevelEvent
 };
 
 class ILevelObject : public IGameObjectExtension
-	               , public TRefObj
+	               , public HandledObject
 				   , public Thinkable
 {
 	DESCRIBLE_CLASS( ILevelObject , IGameObjectExtension )
@@ -105,8 +105,8 @@ private:
 	}\
 
 class ILevelObject;
-typedef CHandle< ILevelObject > EHandle;
+typedef TObjectHandle< ILevelObject > EHandle;
 class CActor;
-typedef CHandle< CActor >  AHandle;
+typedef TObjectHandle< CActor >  AHandle;
 
 #endif // GameObjectComponent_h__

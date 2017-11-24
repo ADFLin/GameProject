@@ -3,7 +3,7 @@
 
 #include "Math/Base.h"
 #include "TVector2.h"
-#include "IntegerType.h"
+#include "Core/IntegerType.h"
 #include <limits>
 #include "Math/Math2D.h"
 
@@ -15,16 +15,17 @@
 
 namespace Phy2D
 {
-	typedef Math::Vector2D Vec2f;
+	typedef Math::Vector2 Vector2;
+
 	using namespace Math2D;
 
 	class AABB
 	{
 	public:
-		Vector2D min;
-		Vector2D max;
+		Vector2 min;
+		Vector2 max;
 
-		void  expend(Vec2f const& offset)
+		void  expend(Vector2 const& offset)
 		{
 			if( offset.x > 0 )
 				max.x += offset.x;

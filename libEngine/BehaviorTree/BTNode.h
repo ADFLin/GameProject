@@ -401,7 +401,7 @@ namespace BT
 	public:
 		ContextHolder(){ mHolder = NULL; }
 		void  setHolder( Context* ptr ){ mHolder = ptr; }
-		bool  isVaild(){ return mHolder != 0; }
+		bool  is(){ return mHolder != 0; }
 		template< class RetType , class RefType >
 		RetType _evalValue( RefType const& ref ) {  return ref( mHolder );  }
 	protected:
@@ -412,7 +412,7 @@ namespace BT
 	class ContextHolder< EmptyType >
 	{
 	public:
-		bool  isVaild(){ return true; }
+		bool  is(){ return true; }
 		template< class RetType , class RefType >
 		RetType _evalValue( RefType const& ref ){  return ref();  }
 	protected:
@@ -480,7 +480,7 @@ namespace BT
 	protected:
 		TaskState execute()
 		{
-			if ( !ContextHolder< Context >::isVaild() )
+			if ( !ContextHolder< Context >::is() )
 				return TS_SUCCESS;
 			if ( CmpOp()( Eval< RefHolder >::evalValue( *this , *getNode< NodeType >() ) ,
 					      getNode< NodeType >()->getValue() ) )
@@ -510,7 +510,7 @@ namespace BT
 	protected:
 		TaskState execute()
 		{
-			if ( ContextHolder< Context >::isVaild() && 
+			if ( ContextHolder< Context >::is() && 
 				 !CmpOp()( Eval< RefHolder >::evalValue( *this , *getNode< NodeType >() ) ,
 				           getNode< NodeType >()->getValue() ) )
 				return TS_FAILED;

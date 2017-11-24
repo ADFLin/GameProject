@@ -101,7 +101,7 @@ namespace Math
 		w = Math::Cos(k);
 	}
 
-	Quaternion slerp( Quaternion const& from , Quaternion const& to , float t )
+	Quaternion Slerp( Quaternion const& from , Quaternion const& to , float t )
 	{
 
 #define  THRESHOLD  1e-3

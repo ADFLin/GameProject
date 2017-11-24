@@ -277,14 +277,14 @@ public:
 		return NULL;
 	}
 
-	int      getSelection(){ return mCurSelect; }
+	int      getSelection() const { return mCurSelect; }
 	void     setSelection( unsigned select )
 	{ 
 		assert( select < mItemList.size() );
 		mCurSelect = select; 
 	}
 
-	int     findItem( char const* value )
+	int     findItem( char const* value ) const
 	{
 		for( int i = 0 ; i < (int)mItemList.size() ; ++i )
 		{
@@ -300,7 +300,7 @@ public:
 			return;
 		mItemList[pos].userData = data;
 	}
-	void*   getItemData( unsigned pos )
+	void*   getItemData( unsigned pos ) const
 	{
 		return mItemList[pos].userData;
 	}
@@ -311,7 +311,7 @@ public:
 		_this()->onAddItem( mItemList[pos] );
 	}
 
-	char const* getSelectValue()
+	char const* getSelectValue() const
 	{ 
 		if ( mCurSelect == -1 )
 			return NULL;

@@ -8,7 +8,7 @@
 #include <algorithm>
 
 #define MAKE_( a , b ) ( ( a << 8 ) | b )
-#define MAKE_ID( a , b , c , d ) ( (uint32) MAKE_( MAKE_( MAKE_( uint8( d ) , uint8( c ) ) , uint8( b ) ) , uint8( a )) )
+#define MAKE_MAGIC_ID( a , b , c , d ) ( (uint32) MAKE_( MAKE_( MAKE_( uint8( d ) , uint8( c ) ) , uint8( b ) ) , uint8( a )) )
 
 char* AllocFileData( char const* path )
 {
@@ -161,7 +161,7 @@ bool Wad3FileData::load( char const* path )
 
 	WAD3::Header* header = getHeader();
 
-	if ( header->identification != MAKE_ID('W','A','D','3' ) )
+	if ( header->identification != MAKE_MAGIC_ID('W','A','D','3' ) )
 		return false;
 
 	mLumps = reinterpret_cast< WAD3::LumpInfo* >( mData + header->infoTableOffset );

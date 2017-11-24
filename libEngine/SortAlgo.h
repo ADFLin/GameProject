@@ -1,5 +1,0 @@
-#ifndef SortAlgo_h__a2f269cf_38cc_465a_8ebc_71ce1dfb8a0d
-#define SortAlgo_h__a2f269cf_38cc_465a_8ebc_71ce1dfb8a0d
-
-
-#endif // SortAlgo_h__a2f269cf_38cc_465a_8ebc_71ce1dfb8a0d

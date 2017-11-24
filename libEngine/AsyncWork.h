@@ -3,7 +3,7 @@
 #define AsyncWork_H_A8DF845F_D24D_4A7E_AA91_4093CD084011
 
 #include "Thread.h"
-#include "IntegerType.h"
+#include "Core/IntegerType.h"
 
 #include <vector>
 
@@ -23,7 +23,7 @@ public:
 	QueueThreadPool();
 	~QueueThreadPool();
 
-	void  init(int numThread , uint32 stackSize );
+	void  init(int numThread , uint32 stackSize = 0);
 	void  addWork(IQueuedWork* work);
 	bool  retractWork(IQueuedWork* work);
 
@@ -35,7 +35,7 @@ public:
 private:
 	void  cleanup();
 	friend class PoolRunableThread;
-	IQueuedWork* doWorkCompleted(PoolRunableThread* thread);
+	IQueuedWork* doWorkCompleted(PoolRunableThread* runThread);
 
 	Mutex        mQueueMutex;
 	std::vector< IQueuedWork* >       mQueuedWorks;

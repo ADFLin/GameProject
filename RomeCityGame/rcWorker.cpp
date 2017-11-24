@@ -403,7 +403,7 @@ int RandMoveNavigator::evalNextDir()
 	for( int i = 0 ; i < 4 ; ++i )
 	{
 		Vec2i pos = mWorker->getMapPos() + g_OffsetDir[i];
-		if ( !levelMap->isVaildRange( pos ) )
+		if ( !levelMap->isRange( pos ) )
 			continue;
 
 		rcMapData& data = levelMap->getData( pos );

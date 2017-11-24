@@ -32,6 +32,7 @@ public:
 	TVector2& operator += ( TVector2 const& v ){  x += v.x;  y += v.y;  return *this;  }
 	TVector2& operator -= ( TVector2 const& v ){  x -= v.x;  y -= v.y;  return *this;  }
 
+
 	TVector2 const operator - ( void ) const { return  TVector2( -x , -y );  }
 
 	operator T*(){ return &x; }
@@ -48,9 +49,18 @@ public:
 
 	TVector2 const operator * ( RefConstType s ) const {	return TVector2( x * s, y * s );  }
 	TVector2 const operator / ( RefConstType s ) const {	return TVector2( x / s, y / s );  }
-	
+
+	TVector2 operator * (TVector2 const& v1) const {  return mul(v1);  }
+	TVector2 operator / (TVector2 const& v1) const {  return div(v1);  }
+
+
 	bool operator == (TVector2 const& v) const {  return x == v.x  && y == v.y;  }
 	bool operator != (TVector2 const& v) const {  return ! (*this == v ); }
+
+	bool     operator < (TVector2 const& rhs) const { return x < rhs.x && y < rhs.y; }
+	bool     operator > (TVector2 const& rhs) const { return rhs < *this ; }
+	bool     operator <= (TVector2 const& rhs) const { return x <= rhs.x && y <= rhs.y; }
+	bool     operator >= (TVector2 const& rhs) const { return rhs <= *this; }
 
 	friend TVector2 const operator * ( RefConstType s,TVector2 const& v){  return TVector2(s*v.x,s*v.y);	}
 

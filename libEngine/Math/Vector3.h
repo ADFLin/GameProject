@@ -1,6 +1,7 @@
 #ifndef Vector3_h__
 #define Vector3_h__
 
+
 #include "Math/Base.h"
 
 namespace Math
@@ -13,6 +14,8 @@ namespace Math
 		Vector3(float sx,float sy,float sz);
 		Vector3(float value):x(value),y(value),z(value){}
 
+		Vector3 getNormal() const;
+
 		float normalize()
 		{  
 			float length = length2();
@@ -21,6 +24,17 @@ namespace Math
 			length =  Math::Sqrt(length);
 			this->operator /= (length );
 			return length;
+		}
+
+		bool isNormalize() const
+		{
+			float lengthSqr = length2();
+			return Math::Abs(lengthSqr - 1) < 1e-6;
+		}
+
+		bool isUniform() const
+		{
+			return x == y && x == z;
 		}
 
 		void setValue(float sx,float sy,float sz)
@@ -63,6 +77,8 @@ namespace Math
 			if ( z > rhs.z ) z = rhs.z;
 		}
 
+		Vector3 projectNormal(Vector3 const& dir) const;
+
 		static Vector3 Zero(){ return Vector3(0,0,0); }
 	public:
 		float x,y,z;
@@ -74,117 +90,125 @@ namespace Math
 		void operator -=( int ) const;
 	};
 
+	FORCEINLINE Vector3 operator + (Vector3 const& a, Vector3 const& b)
+	{
+		return Vector3(a.x + b.x, a.y + b.y, a.z + b.z);
+	}
 
-	inline float  dot( Vector3 const& a, Vector3 const& b )
+	FORCEINLINE Vector3 operator-(Vector3 const& a, Vector3 const& b)
+	{
+		return Vector3(a.x - b.x, a.y - b.y, a.z - b.z);
+	}
+
+	FORCEINLINE Vector3 operator*(Vector3 const& v1, Vector3 const& v2)
+	{
+		return v1.mul(v2);
+	}
+
+	FORCEINLINE Vector3 operator/(Vector3 const& v1, Vector3 const& v2)
+	{
+		return v1.div(v2);
+	}
+
+	FORCEINLINE Vector3 operator*(float a, Vector3 const& b)
+	{
+		return Vector3(a*b.x, a*b.y, a*b.z);
+	}
+
+	FORCEINLINE Vector3 operator*(Vector3 const& b, float a)
+	{
+		return Vector3(a*b.x, a*b.y, a*b.z);
+	}
+
+	FORCEINLINE Vector3 operator / (Vector3 const& b, float a)
+	{
+		return (1.0f / a) * b;
+	}
+
+	FORCEINLINE Vector3 operator-(Vector3 const& a)
+	{
+		return Vector3(-a.x, -a.y, -a.z);
+	}
+
+	FORCEINLINE  float  Dot( Vector3 const& a, Vector3 const& b )
 	{ 
 		return a.dot( b ); 
 	}
 
-	inline Vector3 cross( Vector3 const& a, Vector3 const& b )
+	FORCEINLINE  Vector3 Cross( Vector3 const& a, Vector3 const& b )
 	{
 		return a.cross( b );
 	}
 
 
-	inline Vector3::Vector3( float sx , float sy , float sz ) 
+	FORCEINLINE  Vector3::Vector3( float sx , float sy , float sz ) 
 		:x(sx),y(sy),z(sz)
 	{
 
 	}
 
-	inline float Vector3::dot( Vector3 const& b ) const
+	FORCEINLINE  float Vector3::dot( Vector3 const& b ) const
 	{
 		return x*b.x + y*b.y + z*b.z;
 	}
 
-	inline Vector3 Vector3::cross( Vector3 const& b ) const
+	FORCEINLINE  Vector3 Vector3::cross( Vector3 const& b ) const
 	{
 		return Vector3( y*b.z - z*b.y, z*b.x - x*b.z, x*b.y - y*b.x );
 	}
 
-	inline Vector3& Vector3::operator += ( Vector3 const& v )
+	FORCEINLINE Vector3& Vector3::operator += ( Vector3 const& v )
 	{
 		x += v.x; y += v.y; z += v.z;
 		return *this;
 	}
 
-	inline Vector3& Vector3::operator -= ( Vector3 const& v )
+	FORCEINLINE Vector3& Vector3::operator -= ( Vector3 const& v )
 	{
 		x -= v.x; y -= v.y; z -= v.z;
 		return *this;
 	}
 
-	inline Vector3& Vector3::operator *= ( float s )
+	FORCEINLINE Vector3& Vector3::operator *= ( float s )
 	{
 		x *= s; y *= s; z *= s;
 		return *this;
 	}
 
-	inline Vector3& Vector3::operator /= (float s)
+	FORCEINLINE Vector3& Vector3::operator /= (float s)
 	{
 		x /= s; y /= s; z /= s;
 		return *this;
 	}
 
-	inline Vector3 operator + ( Vector3 const& a , Vector3 const& b )
+	FORCEINLINE Vector3 Vector3::getNormal() const
 	{
-		return Vector3(a.x+b.x,a.y+b.y,a.z+b.z);
+		return Math::InvSqrt(length2()) * (*this);
 	}
 
-	inline Vector3 operator-(Vector3 const& a,Vector3 const& b)
+	FORCEINLINE Vector3 Vector3::projectNormal(Vector3 const& dir) const
 	{
-		return Vector3(a.x-b.x,a.y-b.y,a.z-b.z);
+		assert(dir.isNormalize());
+		return dot(dir) * dir;
 	}
-
-	inline Vector3 operator*(Vector3 const& v1, Vector3 const& v2)
-	{
-		return v1.mul(v2);
-	}
-
-	inline Vector3 operator/(Vector3 const& v1, Vector3 const& v2)
-	{
-		return v1.div(v2);
-	}
-
-	inline Vector3 operator*( float a, Vector3 const& b )
-	{
-		return Vector3(a*b.x,a*b.y,a*b.z);
-	}
-
-	inline Vector3 operator*( Vector3 const& b , float a )
-	{
-		return Vector3(a*b.x,a*b.y,a*b.z);
-	}
-
-	inline Vector3 operator / (Vector3 const& b, float a)
-	{
-		return ( 1.0f / a ) * b;
-	}
-
-	inline Vector3 operator-( Vector3 const& a )
-	{
-		return Vector3(-a.x,-a.y,-a.z);
-	}
-
-
-	inline float distance2( Vector3 const& v1 , Vector3 const& v2 )
+	FORCEINLINE float DistanceSqure( Vector3 const& v1 , Vector3 const& v2 )
 	{ 
 		Vector3 diff = v1 - v2;
 		return diff.length2();
 	}
 
-	inline float distance( Vector3 const& v1 , Vector3 const& v2 )
+	FORCEINLINE float Distance( Vector3 const& v1 , Vector3 const& v2 )
 	{ 
 		Vector3 diff = v1 - v2;
 		return diff.length();
 	}
 
-	inline Vector3 lerp( Vector3 const& a , Vector3 const& b , float t )
+	FORCEINLINE  Vector3 Lerp( Vector3 const& a , Vector3 const& b , float t )
 	{
 		return ( 1.0f - t ) * a + t * b; 
 	}
 
-	inline Vector3 Normalize( Vector3 const& v )
+	FORCEINLINE  Vector3 Normalize( Vector3 const& v )
 	{
 		float len = v.length();
 		if ( len < 1e-5 )

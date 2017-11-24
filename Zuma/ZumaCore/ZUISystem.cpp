@@ -209,7 +209,7 @@ namespace Zuma
 	}
 
 	ZPanel::ZPanel( int idUI , Vec2i const& pos , Vec2i const& size , ZWidget* parent )
-		:GameUI::PanelT< ZPanel >(  pos , Vec2f(1,1) , parent )
+		:GameUI::PanelT< ZPanel >(  pos , Vector2(1,1) , parent )
 	{
 		m_idUI  = idUI;
 		m_idTex = IMAGE_DIALOG_BACK;

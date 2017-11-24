@@ -43,7 +43,7 @@ void rcWorkerManager::removeWorkerLink( rcWorker* worker , Vec2i const& mapPos )
 {
 	if ( worker->getPrevLink() == NULL )
 	{
-		if ( !getLevelMap()->isVaildRange( mapPos.x , mapPos.y ) )
+		if ( !getLevelMap()->isRange( mapPos.x , mapPos.y ) )
 		{
 			mOutMapWorkerList = worker->getNextLink();
 		}
@@ -92,7 +92,7 @@ void rcWorkerManager::updateWorkerPos( rcWorker* worker , Vec2i const& newMapPos
 	{
 		removeWorkerLink( worker , mapPos );
 
-		if ( !getLevelMap()->isVaildRange( newMapPos.x , newMapPos.y ) )
+		if ( !getLevelMap()->isRange( newMapPos.x , newMapPos.y ) )
 		{
 			if ( mOutMapWorkerList )
 				worker->insertFront( mOutMapWorkerList );

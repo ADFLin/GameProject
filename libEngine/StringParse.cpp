@@ -1,6 +1,6 @@
 #include "StringParse.h"
 
-#include "CommonMarco.h"
+#include "MarcoCommon.h"
 
 static int CountCharReverse(char const* str , char const* last , char c )
 {
@@ -295,6 +295,14 @@ char const* ParseUtility::SkipSpace(char const* str)
 	char const* p = str;
 	while( ::isspace(*p) ) { ++p; }
 	return p;
+}
+
+char const* ParseUtility::SkipToNextLine(char const* str)
+{
+	char const* nextLine = FindChar(str, '\n');
+	if( *nextLine != 0 )
+		++nextLine;
+	return nextLine;
 }
 
 char const* ParseUtility::SkipToChar(char const* str, char c, char cPair, bool bCheckComment, bool bCheckString)

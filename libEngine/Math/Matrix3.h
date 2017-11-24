@@ -25,6 +25,18 @@ namespace Math
 			setValue( a0 , a1 , a2 , a3 ,a4 , a5 , a6 , a7 , a8 );
 		}
 
+		Matrix3(Vector3 const& axisX, Vector3 const& axisY, Vector3 const& axisZ)
+		{
+			setBasis(axisX, axisY, axisZ);
+		}
+
+		void setBasis(Vector3 const& axisX, Vector3 const& axisY, Vector3 const& axisZ)
+		{
+			m_val[0] = axisX.x; m_val[1] = axisX.y; m_val[2] = axisX.z;
+			m_val[3] = axisY.x; m_val[4] = axisY.y; m_val[5] = axisY.z;
+			m_val[6] = axisZ.x; m_val[7] = axisZ.y; m_val[8] = axisZ.z;
+		}
+
 
 		void setValue( float a0 , float a1 , float a2 , 
 			           float a3 , float a4 , float a5 ,
@@ -55,6 +67,11 @@ namespace Math
 		void setRotationZ( float angle ){  MatrixUtility::setRotationZ( *this , angle );  }
 
 		void setQuaternion( Quaternion const& q ){ MatrixUtility::modifyOrientation( *this , q ); }
+
+		Quaternion toQuatNoScale() const
+		{
+			return Quaternion(*this);
+		}
 
 		void setIdentity(){  setValue( 1, 0, 0,  0, 1, 0,  0, 0, 1);  }
 

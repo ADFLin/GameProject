@@ -1,7 +1,7 @@
 #ifndef FrameAllocator_h__
 #define FrameAllocator_h__
 
-#include "IntegerType.h"
+#include "Core/IntegerType.h"
 #include <new>
 
 class FrameAllocator

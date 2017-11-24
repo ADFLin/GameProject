@@ -19,7 +19,7 @@ FlowExecuteResult FlowNodeSequence::execExitChild(FlowExecuteContext& context, F
 FlowExecuteResult FlowNodeSequence::execNextChild(FlowExecuteContext& context, int idxStart)
 {
 	int& indexExecuting = context.getInstanceDataT<int32>();
-	indexExecuting = nextVaildFlow(idxStart);
+	indexExecuting = nextFlow(idxStart);
 	if( indexExecuting == INDEX_NONE )
 	{
 		return FlowExecuteResult::Sucess;
@@ -40,7 +40,7 @@ void FlowNodeSequence::initInstanceData(void* data)
 	*static_cast<int32*>(data) = 0;
 }
 
-int FlowNodeSequence::nextVaildFlow(int indexStart /*= 0*/)
+int FlowNodeSequence::nextFlow(int indexStart /*= 0*/)
 {
 	for( int i = indexStart; i < mNodes.size(); ++i )
 	{

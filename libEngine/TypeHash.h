@@ -3,7 +3,7 @@
 #ifndef TypeHash_h__
 #define TypeHash_h__
 
-#include "IntegerType.h"
+#include "Core/IntegerType.h"
 
 namespace Type
 {

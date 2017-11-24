@@ -2,7 +2,7 @@
 #define TypeCast_h__
 
 #include "CompilerConfig.h"
-#include "IntegerType.h"
+#include "Core/IntegerType.h"
 #include <cstddef>
 
 class TypeCast

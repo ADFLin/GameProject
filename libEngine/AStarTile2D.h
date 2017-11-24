@@ -5,7 +5,7 @@
 
 #include "TGrid2D.h"
 #include "TVector2.h"
-#include "IntegerType.h"
+#include "Core/IntegerType.h"
 
 #include <iterator>
 #include <list>

@@ -118,7 +118,7 @@ void FileIterator::goNext()
 }
 #endif
 
-char const* FileUtility::getSubName( char const* fileName )
+char const* FileUtility::GetSubName( char const* fileName )
 {
 	char const* pos = TCString<char>::Strrchr( fileName , '.' );
 	if ( pos )
@@ -130,7 +130,7 @@ char const* FileUtility::getSubName( char const* fileName )
 	return "";
 }
 
-char const* FileUtility::getDirPathPos( char const* filePath )
+char const* FileUtility::GetDirPathPos( char const* filePath )
 {
 	char const* pos = TCString<char>::Strrchr( filePath , '\\' );
 	if ( !pos )
@@ -138,7 +138,7 @@ char const* FileUtility::getDirPathPos( char const* filePath )
 	return pos;
 }
 
-wchar_t const* FileUtility::getDirPathPos(wchar_t const* filePath)
+wchar_t const* FileUtility::GetDirPathPos(wchar_t const* filePath)
 {
 	wchar_t const* pos = TCString<wchar_t>::Strrchr(filePath, L'\\');
 	if( !pos )

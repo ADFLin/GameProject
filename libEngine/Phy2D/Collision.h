@@ -35,13 +35,13 @@ namespace Phy2D
 			mProxy = NULL;
 		}
 		virtual PhyType getType() const { return PhyObject::eCollideType; }
-		Vec2f const& getPos() const { return mXForm.getPos(); }
-		void         setPos( Vec2f const& p ){ mXForm.setTranslation( p ); }
+		Vector2 const& getPos() const { return mXForm.getPos(); }
+		void         setPos( Vector2 const& p ){ mXForm.setTranslation( p ); }
 
 
-		Vec2f getSupport( Vec2f const& dir ) const
+		Vector2 getSupport( Vector2 const& dir ) const
 		{
-			Vec2f pos = mShape->getSupport( mXForm.transformVectorInv( dir ) );
+			Vector2 pos = mShape->getSupport( mXForm.transformVectorInv( dir ) );
 			return mXForm.transformPosition( pos );
 		}
 
@@ -56,9 +56,9 @@ namespace Phy2D
 	struct Contact
 	{
 		CollideObject* object[2];
-		Vec2f posLocal[2];
-		Vec2f pos[2];
-		Vec2f normal;
+		Vector2 posLocal[2];
+		Vector2 pos[2];
+		Vector2 normal;
 		float depth;
 		
 	};
@@ -222,28 +222,28 @@ namespace Phy2D
 
 		struct Simplex
 		{
-			Vec2f v;
-			Vec2f d;
+			Vector2 v;
+			Vector2 d;
 #if PHY2D_DEBUG
-			Vec2f vObj[2];
+			Vector2 vObj[2];
 #endif
 		};
 		struct Edge
 		{
-			Vec2f    normal;
+			Vector2    normal;
 			float    depth;
 			Edge*    next;
 			Simplex* sv;
 		};
 
 
-		Simplex* calcSupport( Simplex* sv , Vec2f const& dir );
+		Simplex* calcSupport( Simplex* sv , Vector2 const& dir );
 
-		bool     test( Vec2f const& initDir );
+		bool     test( Vector2 const& initDir );
 		void     generateContact( Contact& c );
 
-		Edge*    addEdge( Simplex* sv , Vec2f const& b );
-		void     updateEdge( Edge* e ,Vec2f const& b );
+		Edge*    addEdge( Simplex* sv , Vector2 const& b );
+		void     updateEdge( Edge* e ,Vector2 const& b );
 		Edge*    insertEdge( Edge* cur , Simplex* sv );
 		void     buildContact( Edge* e, Contact &c );
 		Edge*    getClosetEdge();

@@ -1,6 +1,8 @@
 #ifndef Random_h__
 #define Random_h__
 
+#include "Core/IntegerType.h"
+
 namespace Random
 {
 
@@ -8,7 +10,6 @@ namespace Random
 	class Well512
 	{
 	public:
-		typedef unsigned __int32 uint32;
 		Well512()
 		{
 			for( int i = 0 ; i < 16 ; ++i )
@@ -44,14 +45,13 @@ namespace Random
 	class LFSR113
 	{
 	public:
-		typedef unsigned __int32 uint32;
 
 		void init( uint32 s[4] )
 		{
-			z1 = s[0] + ( s[0] > 1 ) ? 0 : ( 1 + 1 );
-			z2 = s[1] + ( s[1] > 7 ) ? 0 : ( 7 + 1 );
-			z3 = s[2] + ( s[2] > 15 ) ? 0 : ( 15 + 1 );
-			z4 = s[3] + ( s[3] > 127 ) ? 0 : ( 127 + 1 );
+			z1 = s[0] + (( s[0] > 1 ) ? 0 : ( 1 + 1 ));
+			z2 = s[1] + (( s[1] > 7 ) ? 0 : ( 7 + 1 ));
+			z3 = s[2] + (( s[2] > 15 ) ? 0 : ( 15 + 1 ));
+			z4 = s[3] + (( s[3] > 127 ) ? 0 : ( 127 + 1 ));
 		}
 
 		uint32 rand() 

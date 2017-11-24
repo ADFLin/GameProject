@@ -49,7 +49,7 @@ void rcViewport::render( rcLevelMap& levelMap , rcLevelScene& scene )
 		{
 			calcCoord( coord , xScan , yScan );
 
-			if ( levelMap.isVaildRange( coord.map.x , coord.map.y ) )
+			if ( levelMap.isRange( coord.map.x , coord.map.y ) )
 			{
 				scene.renderTile( coord , levelMap.getData( coord.map ));
 				++g_dbgRenderCount;
@@ -60,7 +60,7 @@ void rcViewport::render( rcLevelMap& levelMap , rcLevelScene& scene )
 		{
 			calcCoord( coord , xScan + 0.5f , yScan + 0.5f );
 		
-			if ( levelMap.isVaildRange( coord.map.x , coord.map.y ) )
+			if ( levelMap.isRange( coord.map.x , coord.map.y ) )
 			{
 				scene.renderTile( coord , levelMap.getData( coord.map ) );
 				++g_dbgRenderCount;
@@ -198,7 +198,7 @@ static Vec2i calcTileOffset( rcTexture* tex )
 	return Vec2i( -tex->getWidth() / 2 , /*( tileHeight / 2 ) */- tex->getHeight() );
 }
 
-ColorKey3 const BaseMaskColor( 255 , 255 , 255 );
+Color3ub const BaseMaskColor( 255 , 255 , 255 );
 
 
 void rcLevelScene::init()
@@ -647,7 +647,7 @@ void rcLevelScene::renderWorkerList(  Vec2i const& screenPos , rcWorker* workerL
 			}
 			break;
 		default:
-			graphics.setBrush( ColorKey3( 255 , 255 , 0 ) );
+			graphics.setBrush( Color3ub( 255 , 255 , 0 ) );
 			graphics.drawCircle( screenPos + Vec2i( 0 , -tileHeight / 2 ) + offPos , 5 );
 
 
@@ -721,7 +721,7 @@ void rcLevelScene::renderFlatTerrain( RenderCoord const& coord , float dx, float
 {
 	Vec2i mapPos = getViewPort().transScanPosToMapPos( coord.xScan + dx , coord.yScan + dy );
 
-	if ( !mLevelMap->isVaildRange( mapPos ) )
+	if ( !mLevelMap->isRange( mapPos ) )
 		return;
 	Vec2i screenPos = coord.screen + getViewPort().calcScanOffsetToScreenOffset( dx , dy );
 	renderTerrain( screenPos , mLevelMap->getData( mapPos ) , true );

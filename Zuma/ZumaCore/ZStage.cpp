@@ -85,7 +85,7 @@ namespace Zuma
 
 	bool ZDevStage::onMouse( MouseMsg const& msg  )
 	{
-		mousePos = Vec2f( msg.getPos() );
+		mousePos = Vector2( msg.getPos() );
 
 		if ( msg.onLeftDown() )
 		{
@@ -109,7 +109,7 @@ namespace Zuma
 		vtxVec.erase( vtxVec.begin() + 2 , vtxVec.end() );
 	}
 
-	void ZDevStage::movePoint( int idx , Vec2f const& dest )
+	void ZDevStage::movePoint( int idx , Vector2 const& dest )
 	{
 		assert( 0 <= idx && idx < vtxVec.size() );
 
@@ -128,7 +128,7 @@ namespace Zuma
 		}
 	}
 
-	void ZDevStage::addPoint( Vec2f const& pos )
+	void ZDevStage::addPoint( Vector2 const& pos )
 	{
 
 		CVData data;
@@ -146,7 +146,7 @@ namespace Zuma
 		buildSpline( splineVec.back() , idx );
 	}
 
-	int ZDevStage::getPoint( Vec2f const& pos )
+	int ZDevStage::getPoint( Vector2 const& pos )
 	{
 		for( int i = 0 ; i < vtxVec.size() ; ++i )
 		{
@@ -157,7 +157,7 @@ namespace Zuma
 		return -1;
 	}
 
-	void ZDevStage::togglePointMask( Vec2f const& pos )
+	void ZDevStage::togglePointMask( Vector2 const& pos )
 	{
 		int idx = getPoint( pos );
 		if ( idx != -1 )
@@ -188,10 +188,10 @@ namespace Zuma
 		if ( !loadPathVertex( lvInfo.pathCurve[idx].c_str() , vtxVec ))
 		{
 			vtxVec.reserve( 16 );
-			addPoint( 0.8f * Vec2f(150,120) );
-			addPoint( 0.8f * Vec2f(290,50) );
-			addPoint( 0.8f * Vec2f(580,55) );
-			addPoint( 0.8f * Vec2f(725,175) );
+			addPoint( 0.8f * Vector2(150,120) );
+			addPoint( 0.8f * Vector2(290,50) );
+			addPoint( 0.8f * Vector2(580,55) );
+			addPoint( 0.8f * Vector2(725,175) );
 		}
 		else
 		{

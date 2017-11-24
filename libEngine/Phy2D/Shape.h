@@ -11,10 +11,8 @@ namespace Phy2D
 	{
 		float m;
 		float I;
-		Vec2f center;
+		Vector2 center;
 	};
-
-
 
 	class Shape
 	{
@@ -32,7 +30,7 @@ namespace Phy2D
 		virtual void  calcAABB( XForm const& xform , AABB& aabb ) = 0;
 		virtual void  calcAABB( AABB& aabb ) = 0;
 		virtual void  calcMass( MassInfo& info ) = 0;
-		virtual Vec2f getSupport( Vec2f const& dir ) = 0;
+		virtual Vector2 getSupport(Vector2 const& dir ) = 0;
 		virtual bool  isConvex() const = 0;
 	};
 
@@ -43,9 +41,9 @@ namespace Phy2D
 		virtual void  calcAABB( XForm const& xform , AABB& aabb );
 		virtual void  calcAABB( AABB& aabb );
 		virtual void  calcMass( MassInfo& info );
-		virtual Vec2f getSupport( Vec2f const& dir );
+		virtual Vector2 getSupport(Vector2 const& dir );
 		virtual bool isConvex() const{ return true; }
-		Vec2f mHalfExt;
+		Vector2 mHalfExt;
 	};
 
 	class CircleShape : public Shape
@@ -55,7 +53,7 @@ namespace Phy2D
 		virtual void  calcAABB( XForm const& xform , AABB& aabb );
 		virtual void  calcAABB( AABB& aabb );
 		virtual void calcMass( MassInfo& info );
-		virtual Vec2f getSupport(Vec2f const& dir);
+		virtual Vector2 getSupport(Vector2 const& dir);
 		virtual bool isConvex() const{ return true; }
 
 		float getRadius() const { return mRadius; }
@@ -72,7 +70,7 @@ namespace Phy2D
 		virtual void calcAABB( XForm const& xform , AABB& aabb );
 		virtual void calcAABB( AABB& aabb );
 		virtual void calcMass( MassInfo& info );
-		virtual Vec2f getSupport( Vec2f const& dir );
+		virtual Vector2 getSupport(Vector2 const& dir );
 		bool isConvex() const
 		{
 			//#TODO
@@ -80,7 +78,7 @@ namespace Phy2D
 		}
 
 		int getVertexNum() const { return (int)mVertices.size(); }
-		std::vector< Vec2f > mVertices;
+		std::vector< Vector2 > mVertices;
 	};
 
 
@@ -92,11 +90,11 @@ namespace Phy2D
 		virtual void calcAABB(XForm const& xform , AABB& aabb);
 		virtual void calcAABB(AABB& aabb);
 		virtual void calcMass(MassInfo& info);
-		virtual Vec2f getSupport(Vec2f const& dir);
+		virtual Vector2 getSupport(Vector2 const& dir);
 
 		float getRadius() const { return mHalfExt.x; }
 
-		Vec2f mHalfExt;
+		Vector2 mHalfExt;
 	};
 
 	

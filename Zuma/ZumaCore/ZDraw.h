@@ -22,8 +22,8 @@ namespace Zuma
 	{
 	public:
 		static bool init();
-		static void drawAimArrow ( IRenderSystem& RDSystem , ZFrog const& frog , Vec2f const& aimPos , ZColor aimColor );
-		static void drawQuakeMap ( IRenderSystem& RDSystem , ZQuakeMap& map , ITexture2D* texLvBG , Vec2f const pos[] );
+		static void drawAimArrow ( IRenderSystem& RDSystem , ZFrog const& frog , Vector2 const& aimPos , ZColor aimColor );
+		static void drawQuakeMap ( IRenderSystem& RDSystem , ZQuakeMap& map , ITexture2D* texLvBG , Vector2 const pos[] );
 		static void drawLevelMask( IRenderSystem& RDSystem , ZLevelInfo const& info );
 		static void drawLevelBG  ( IRenderSystem& RDSystem , ZLevelInfo& info );
 		static void drawPath     ( IRenderSystem& RDSystem , ZPath& path , float head , float step );

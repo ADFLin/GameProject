@@ -179,10 +179,10 @@ void WinGdiGraphics2D::drawTexture( GdiTexture& texture , Vec2i const& pos )
 	texture.mImpl.bitBlt( getRenderDC() , pos.x , pos.y );
 }
 
-void WinGdiGraphics2D::drawTexture( GdiTexture& texture , Vec2i const& pos , ColorKey3 const& color )
+void WinGdiGraphics2D::drawTexture( GdiTexture& texture , Vec2i const& pos , Color3ub const& color )
 {
 	GDI_PROFILE( "WinGdiGraphics2D::drawTexture" )
-	texture.mImpl.bitBltTransparent( getRenderDC() , color , pos.x , pos.y );
+	texture.mImpl.bitBltTransparent( getRenderDC() , color.toXBGR() , pos.x , pos.y );
 }
 
 void WinGdiGraphics2D::drawTexture( GdiTexture& texture , Vec2i const& pos , Vec2i const& texPos , Vec2i const& texSize )
@@ -192,11 +192,18 @@ void WinGdiGraphics2D::drawTexture( GdiTexture& texture , Vec2i const& pos , Vec
 		texture.mImpl.getDC() , texPos.x , texPos.y , SRCCOPY );
 }
 
-void WinGdiGraphics2D::drawTexture( GdiTexture& texture , Vec2i const& pos , Vec2i const& texPos , Vec2i const& texSize , ColorKey3 const& color )
+void WinGdiGraphics2D::drawTexture( GdiTexture& texture , Vec2i const& pos , Vec2i const& texPos , Vec2i const& texSize , Color3ub const& color )
 {
 	GDI_PROFILE( "WinGdiGraphics2D::drawTexture" )
 	::TransparentBlt( getRenderDC() , pos.x , pos.y , texSize.x , texSize.y , 
-		texture.mImpl.getDC() , texPos.x , texPos.y , texSize.x , texSize.y , color  );
+		texture.mImpl.getDC() , texPos.x , texPos.y , texSize.x , texSize.y , color.toXBGR()  );
+}
+
+void WinGdiGraphics2D::drawTexture(GdiTexture& texture, Vec2i const& pos, Vec2i const& size)
+{
+	GDI_PROFILE("WinGdiGraphics2D::drawTexture")
+	::StretchBlt( getRenderDC(), pos.x, pos.y, size.x , size.y ,
+				 texture.mImpl.getDC(), 0, 0, texture.getWidth(), texture.getHeight(), SRCCOPY);
 }
 
 void WinGdiGraphics2D::drawText( Vec2i const& pos , char const* str )

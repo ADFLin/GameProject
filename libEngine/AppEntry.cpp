@@ -12,6 +12,7 @@ int WINAPI WinMain ( HINSTANCE hInstance , HINSTANCE hPrevInstance , LPSTR lpCmd
 {
 	lpCmdLine = GetCommandLineA();
 
+
 	char* argv[ 128 ];
 	int   argc = 0;
 

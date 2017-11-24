@@ -4,9 +4,17 @@
 #include "PlatformConfig.h"
 #include "CompilerConfig.h"
 
-#include "IntegerType.h"
+#include "Core/IntegerType.h"
 
 uint32 const WAIT_TIME_INFINITE = 0xffffffff;
+
+#if SYS_PLATFORM_LINUX
+#define SYS_SUPPORT_POSIX_THREAD 1
+#endif
+
+#ifndef SYS_SUPPORT_POSIX_THREAD
+#define SYS_SUPPORT_POSIX_THREAD 0
+#endif
 
 #if SYS_PLATFORM_WIN
 #include "WindowsHeader.h"
@@ -17,31 +25,18 @@ class WinThread
 public:
 	typedef unsigned (_stdcall *ThreadFunc)(void*);
 
-	WinThread()
-		:mPriorityLevel( THREAD_PRIORITY_NORMAL )
-		,mhThread(0),mbRunning(false){}
-	~WinThread(){  detach(); }
+	WinThread();
+	~WinThread();
 
-	static uint32 GetCurrentThreadId()
-	{
-		return ::GetCurrentThreadId();
-	}
+	static uint32 GetCurrentThreadId();
 
 	bool create( ThreadFunc fun , void* ptr , uint32 stackSize = 0 );
-	void detach()
-	{
-		if ( mhThread )
-		{
-			CloseHandle(mhThread);
-			mhThread = NULL;
-			mbRunning = false;
-		}
-	}
+	void detach();
 
 	bool     kill();
 	bool     suspend();
 	bool     resume();
-	void     join(){ ::WaitForSingleObject( mhThread , INFINITE ); }
+	void     join();
 
 	DWORD    getPriorityLevel() { return mPriorityLevel; }
 	bool     setPriorityLevel( DWORD level);
@@ -53,40 +48,7 @@ public:
 		SetThreadName(mThreadID, name);
 	}
 
-	static void SetThreadName(uint32 ThreadID, LPCSTR ThreadName)
-	{
-		/**
-		* Code setting the thread name for use in the debugger.
-		*
-		* http://msdn.microsoft.com/en-us/library/xcb2z8hs.aspx
-		*/
-		const uint32 MS_VC_EXCEPTION = 0x406D1388;
-
-		struct THREADNAME_INFO
-		{
-			uint32 dwType;		// Must be 0x1000.
-			LPCSTR szName;		// Pointer to name (in user addr space).
-			uint32 dwThreadID;	// Thread ID (-1=caller thread).
-			uint32 dwFlags;		// Reserved for future use, must be zero.
-		};
-
-		// on the xbox setting thread names messes up the XDK COM API that UnrealConsole uses so check to see if they have been
-		// explicitly enabled
-		Sleep(10);
-		THREADNAME_INFO ThreadNameInfo;
-		ThreadNameInfo.dwType = 0x1000;
-		ThreadNameInfo.szName = ThreadName;
-		ThreadNameInfo.dwThreadID = ThreadID;
-		ThreadNameInfo.dwFlags = 0;
-
-		__try
-		{
-			RaiseException(MS_VC_EXCEPTION, 0, sizeof(ThreadNameInfo) / sizeof(ULONG_PTR), (ULONG_PTR*)&ThreadNameInfo);
-		}
-		__except( EXCEPTION_EXECUTE_HANDLER )
-		{
-		}
-	}
+	static void SetThreadName(uint32 ThreadID, LPCSTR ThreadName);
 protected:
 	template< class T >
 	static unsigned _stdcall RunnableProcess( void* t )
@@ -165,38 +127,31 @@ typedef WinThread PlatformThread;
 typedef WinMutex PlatformMutex;
 typedef WinCondition PlatformCondition;
 
-
-#elif SYS_PLATFORM_LINUX 
+#elif SYS_SUPPORT_POSIX_THREAD
 
 class PosixThread
 {
 public:
 	typedef void* (*ThreadFunc)(void*);
 
-	static uint32 GetCurrentThreadId()
-	{
-		static_assert(sizeof(uint32) == sizeof(pthread_t), "pthread_t cannot be converted to uint32 one to one");
-		return static_cast<uint32>(pthread_self());
-	}
+	static uint32 GetCurrentThreadId();
 
-	bool create( ThreadFunc fun , void* ptr , uint32 stackSize)
-	{
-		if ( pthread_create(&mHandle,NULL,fun,ptr) == 0 )
-			return true;
-
-		return false;
-	}
+	bool create( ThreadFunc fun , void* ptr , uint32 stackSize);
 	void detach()
 	{
+		
 	}
 
-	bool     kill()
+	bool     kill();
+	bool     suspend()
 	{
-		pthread_cancel(mHandle);
+
 	}
-	bool     suspend();
-	bool     resume();
-	void     join(){ pthread_join(mHandle,0); }
+	bool     resume()
+	{
+
+	}
+	void     join();
 
 
 	template< class T >

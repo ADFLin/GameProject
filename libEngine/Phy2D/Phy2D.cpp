@@ -29,12 +29,12 @@ namespace Phy2D
 		return true;
 	}
 
-	inline bool isInside( Vec2f const& min , Vec2f const& max , Vec2f const& p )
+	inline bool isInside( Vector2 const& min , Vector2 const& max , Vector2 const& p )
 	{
 		return min.x < p.x && p.x < max.x &&
 			   min.y < p.y && p.y < max.y ;
 	}
-	static bool raycastAABB( Vec2f const& org , Vec2f const& dir , Vec2f const& min , Vec2f const& max , float& outT )
+	static bool raycastAABB( Vector2 const& org , Vector2 const& dir , Vector2 const& min , Vector2 const& max , float& outT )
 	{
 		if ( isInside( min , max , org ) )
 		{
@@ -63,7 +63,7 @@ namespace Phy2D
 		if ( factor[idx] < 0 )
 			return false;
 
-		Vec2f p = org + dir * factor[idx];
+		Vector2 p = org + dir * factor[idx];
 		int idx1 = ( idx + 1 ) % 2;
 		if ( min[idx1] > p[idx1] || p[idx1] > max[idx1] )
 		{

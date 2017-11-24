@@ -187,7 +187,7 @@ void CVillager::runTask( AITask const& task )
 		}
 		else if ( haveCondition( CDT_TRADE_END ) )
 		{
-			float dist2 = Math::distance2( getPosition(), m_targetPE->getPosition() );
+			float dist2 = Math::DistanceSqure( getPosition(), m_targetPE->getPosition() );
 
 			if ( dist2 > tradeExitDist * tradeExitDist )
 			{

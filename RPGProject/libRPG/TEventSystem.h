@@ -47,13 +47,13 @@ public:
 	void  updateFrame();
 	void  addEvent( TEvent& event );
 
-	int   connectEvent(  EventType type ,int id , EvtCallBack const& callback , TRefObj* holder );
+	int   connectEvent(  EventType type ,int id , EvtCallBack const& callback , HandledObject* holder );
 
 
 	//int   connectSignal( TRefObj* holder , int type , TRefObj* sender , int signalID , SlotFunBase* slot );
 	//void  disconnectSignal( TRefObj* holder , int type , TRefObj* sender , int signalID , SlotFunBase* slot );
 
-	void  disconnectEvent( EventType type , EvtCallBack const& callback , TRefObj* holder  = nullptr );
+	void  disconnectEvent( EventType type , EvtCallBack const& callback , HandledObject* holder  = nullptr );
 	
 	//void addSignal( int slotType , int id ,TRefObj* obj , void* data );
 
@@ -80,14 +80,14 @@ protected:
 	struct EvtRemove
 	{
 		EventType     type;
-		TRefObj*      holder;
+		HandledObject*      holder;
 		EvtCallBack   callBack;
 	};
 	typedef std::list< EvtRemove > EvtRemoveList;
 	EvtRemoveList mDisConEvtList;
 
 	typedef std::list< TEventReg > EvtRegList;
-	int  checkEvent( EvtCallBack const& callback , TRefObj* holder , EventType type ,int id , EvtRegList** regList 
+	int  checkEvent( EvtCallBack const& callback , HandledObject* holder , EventType type ,int id , EvtRegList** regList 
 		            /*, TRefObj* sender , SlotFunBase* slot*/ );
 	void removeEvent( EvtRemove const& er );
 

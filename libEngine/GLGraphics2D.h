@@ -2,15 +2,15 @@
 #define GLGraphics2D_h__
 
 #include "GLConfig.h"
-
+#include "Math/Vector2.h"
 #include "Graphics2DBase.h"
-#include "IntegerType.h"
+#include "Core/IntegerType.h"
 
 #include <algorithm>
 #include <cmath>
 #include <vector>
 
-typedef TVector2<float> Vec2f;
+typedef Math::Vector2 Vector2;
 
 class GLTexture
 {
@@ -64,11 +64,11 @@ public:
 	void  enablePen( bool beE ){ mDrawPen = beE; }
 	void  enableBrush( bool beE ){ mDrawBrush = beE; }
 
-	void  setPen( ColorKey3 const& color )  
+	void  setPen( Color3ub const& color )  
 	{
 		mColorPen = color;
 	}
-	void  setPen( ColorKey3 const& color , int width  )  
+	void  setPen( Color3ub const& color , int width  )  
 	{
 		mColorPen = color;
 		if ( mWidthPen != width )
@@ -77,60 +77,63 @@ public:
 			mWidthPen = width;
 		}
 	}
-	void  setBrush( ColorKey3 const& color )                
+	void  setBrush( Color3ub const& color )                
 	{  
 		mColorBrush = color;
 	}
 
-	void  beginBlend( Vec2f const& pos , Vec2f const& size , float alpha );
+	void  beginBlend( Vector2 const& pos , Vector2 const& size , float alpha );
 	void  endBlend();
 
-	void  drawPixel  ( Vec2f const& p , ColorKey3 const& color );
-	void  drawLine   ( Vec2f const& p1 , Vec2f const& p2 );
+	void  drawPixel  ( Vector2 const& p , Color3ub const& color );
+	void  drawLine   ( Vector2 const& p1 , Vector2 const& p2 );
 
 	
 
 	void  drawRect   ( int left , int top , int right , int bottom );
-	void  drawRect   ( Vec2f const& pos , Vec2f const& size );
-	void  drawCircle ( Vec2f const& center , int r );
-	void  drawEllipse( Vec2f const& center , Vec2f const& size );
-	void  drawPolygon( Vec2f pos[] , int num );
+	void  drawRect   ( Vector2 const& pos , Vector2 const& size );
+	void  drawCircle ( Vector2 const& center , int r );
+	void  drawEllipse( Vector2 const& center , Vector2 const& size );
+	void  drawPolygon( Vector2 pos[] , int num );
 	void  drawPolygon( Vec2i pos[] , int num );
-	void  drawRoundRect( Vec2f const& pos , Vec2f const& rectSize , Vec2f const& circleSize );
+	void  drawRoundRect( Vector2 const& pos , Vector2 const& rectSize , Vector2 const& circleSize );
 
-	void  drawTexture( GLTexture& texture , Vec2f const& pos );
-	void  drawTexture( GLTexture& texture , Vec2f const& pos , ColorKey3 const& color );
-	void  drawTexture( GLTexture& texture , Vec2f const& pos , Vec2f const& texPos , Vec2f const& texSize );
-	void  drawTexture( GLTexture& texture , Vec2f const& pos , Vec2f const& texPos , Vec2f const& texSize , ColorKey3 const& color );
+	void  drawTexture( GLTexture& texture , Vector2 const& pos );
+	void  drawTexture( GLTexture& texture , Vector2 const& pos , Color3ub const& color );
+	void  drawTexture( GLTexture& texture , Vector2 const& pos , Vector2 const& texPos , Vector2 const& texSize );
+	void  drawTexture( GLTexture& texture , Vector2 const& pos , Vector2 const& texPos , Vector2 const& texSize , Color3ub const& color );
 
 	void  setFont( GLFont& font )
 	{
 		mFont = &font;
 	}
 	void  setTextColor( uint8 r , uint8 g, uint8 b );
-	void  drawText( Vec2f const& pos , char const* str );
-	void  drawText( Vec2f const& pos , Vec2f const& size , char const* str , bool beClip = false );
-	void  drawText( float x , float y , char const* str ){ drawText( Vec2f(x,y) , str ); }
+	void  drawText( Vector2 const& pos , char const* str );
+	void  drawText( Vector2 const& pos , Vector2 const& size , char const* str , bool beClip = false );
+	void  drawText( float x , float y , char const* str ){ drawText( Vector2(x,y) , str ); }
 
 	
 
 private:
-	void emitLineVertex(Vec2f const &p1, Vec2f const &p2);
-	void emintRectVertex( Vec2f const& p1 , Vec2f const& p2 );
-	void emitPolygonVertex( Vec2f pos[] , int num );
+	void emitLineVertex(Vector2 const &p1, Vector2 const &p2);
+	void emintRectVertex( Vector2 const& p1 , Vector2 const& p2 );
+	void emitPolygonVertex( Vector2 pos[] , int num );
 	void emitPolygonVertex(Vec2i pos[] , int num);
 	void emitCircleVertex(float cx, float cy, float r, int numSegment);
 	void emitEllipseVertex(float cx, float cy, float r , float yFactor , int numSegment);
-	void emitRoundRectVertex( Vec2f const& pos , Vec2f const& rectSize , Vec2f const& circleSize );
+	void emitRoundRectVertex( Vector2 const& pos , Vector2 const& rectSize , Vector2 const& circleSize );
 	void emitVertex( float x , float y );
 	void emitVertex( float v[] );
 	void drawTextImpl(float ox, float oy, char const* str);
+
+	void drawPolygonBuffer();
+	void drawLineBuffer();
 	int       mWidth;
 	int       mHeight;
 
-	ColorKey3 mColorPen;
-	ColorKey3 mColorBrush;
-	ColorKey3 mColorFont;
+	Color3ub mColorPen;
+	Color3ub mColorBrush;
+	Color3ub mColorFont;
 	uint8     mAlpha;
 	unsigned  mWidthPen;
 	bool      mDrawBrush;

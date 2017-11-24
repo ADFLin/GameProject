@@ -62,12 +62,12 @@ namespace Zuma
 		return true;
 	}
 
-	void ZRenderUtility::drawAimArrow( IRenderSystem& RDSystem , ZFrog const& frog , Vec2f const& aimPos , ZColor aimColor )
+	void ZRenderUtility::drawAimArrow( IRenderSystem& RDSystem , ZFrog const& frog , Vector2 const& aimPos , ZColor aimColor )
 	{
-		Vec2f normal( frog.getDir().y , -frog.getDir().x );
+		Vector2 normal( frog.getDir().y , -frog.getDir().x );
 
 		normal *= 10;
-		Vec2f pos = frog.getPos() + 50 * frog.getDir();
+		Vector2 pos = frog.getPos() + 50 * frog.getDir();
 
 		RDSystem.setBlendFun( BLEND_SRCALPHA , BLEND_INV_SRCALPHA );
 		RDSystem.enableBlend( true );
@@ -85,7 +85,7 @@ namespace Zuma
 			RDSystem.setColor( 255 , 255 , 255 , 100 ); break;
 		}
 
-		Vec2f v[3];
+		Vector2 v[3];
 		v[0] = pos + normal;
 		v[1] = pos - normal;
 		v[2] = aimPos;
@@ -94,7 +94,7 @@ namespace Zuma
 		RDSystem.enableBlend( false );
 	}
 
-	void ZRenderUtility::drawQuakeMap( IRenderSystem& RDSystem , ZQuakeMap& map , ITexture2D* texLvBG , Vec2f const pos[] )
+	void ZRenderUtility::drawQuakeMap( IRenderSystem& RDSystem , ZQuakeMap& map , ITexture2D* texLvBG , Vector2 const pos[] )
 	{
 		for( int i = 0 ; i < map.numBGAlapha ; ++i )
 		{
@@ -111,7 +111,7 @@ namespace Zuma
 		for( int i = 0 ; i < info.numCutout ;++i )
 		{
 			ITexture2D const* tex = info.cutout[i].image.get();
-			Vec2f const& pos = info.cutout[i].pos;
+			Vector2 const& pos = info.cutout[i].pos;
 
 			RDSystem.setWorldIdentity();
 			RDSystem.translateWorld( pos );
@@ -140,13 +140,13 @@ namespace Zuma
 			if ( head > path.getPathLength() )
 				break;
 
-			Vec2f const& pos = path.getLocation( head );
+			Vector2 const& pos = path.getLocation( head );
 
 			RDSystem.setWorldIdentity();
 			RDSystem.translateWorld( pos );
 
 			RDSystem.drawBitmap( *texSparkle , 
-				Vec2f( w * i  , 0 ) , Vec2f( w , texSparkle->getHeight() ) ,
+				Vector2( w * i  , 0 ) , Vector2( w , texSparkle->getHeight() ) ,
 				TBF_OFFSET_CENTER | TBF_USE_BLEND_PARAM | TBF_ENABLE_ALPHA_BLEND );
 
 			head -= step;
@@ -164,8 +164,8 @@ namespace Zuma
 		RDSystem.popWorldTransform();
 
 		RDSystem.drawBitmap( *texHoleCover , 
-			Vec2f( 0 ,  frame * texHoleCover->getWidth() ), 
-			Vec2f( texHoleCover->getWidth() , texHoleCover->getWidth() ) , 
+			Vector2( 0 ,  frame * texHoleCover->getWidth() ), 
+			Vector2( texHoleCover->getWidth() , texHoleCover->getWidth() ) , 
 			TBF_OFFSET_CENTER );
 	}
 
@@ -193,8 +193,8 @@ namespace Zuma
 		}
 
 
-		Vec2f const& pos = ball.getPos();
-		Vec2f gBallShadowOffset( -3 , 4 );
+		Vector2 const& pos = ball.getPos();
+		Vector2 gBallShadowOffset( -3 , 4 );
 
 		RDSystem.setWorldIdentity();
 		RDSystem.translateWorld( pos.x - 3 , pos.y + 4 );
@@ -215,14 +215,14 @@ namespace Zuma
 
 		int h = tex->getHeight() / tex->row;
 
-		RDSystem.drawBitmap( *tex , Vec2f(0 , frame * h ) , 
-			Vec2f( tex->getWidth() , h ) , TBF_OFFSET_CENTER );
+		RDSystem.drawBitmap( *tex , Vector2(0 , frame * h ) , 
+			Vector2( tex->getWidth() , h ) , TBF_OFFSET_CENTER );
 	}
 
 	void ZRenderUtility::drawBall( IRenderSystem& RDSystem , ZObject& ball , int frame , ToolProp prop /*= TOOL_NORMAL */ )
 	{
-		Vec2f const& pos = ball.getPos();
-		Vec2f const& dir = ball.getDir();
+		Vector2 const& pos = ball.getPos();
+		Vector2 const& dir = ball.getDir();
 
 		RDSystem.loadWorldMatrix( pos , dir );
 		RDSystem.rotateWorld( -90 );
@@ -275,7 +275,7 @@ namespace Zuma
 				ZConBall* prev = getPrevConBall( *ball );
 				if (  prev && ( prev->getPos() - ball->getPos() ).length2() > 3000 )
 				{
-					ball->setDir( Vec2f(1,0));
+					ball->setDir( Vector2(1,0));
 				}
 			}
 
@@ -310,8 +310,8 @@ namespace Zuma
 			{
 				RDSystem.translateWorld( 0 , - 25 - mBallOffset );
 				RDSystem.drawBitmap( *tex , 
-					Vec2f(  w * getNextColor() , 0) , 
-					Vec2f(  w , tex->getHeight() ) , TBF_OFFSET_CENTER );
+					Vector2(  w * getNextColor() , 0) , 
+					Vector2(  w , tex->getHeight() ) , TBF_OFFSET_CENTER );
 			}
 			RDSystem.popWorldTransform();
 		}
@@ -343,7 +343,7 @@ namespace Zuma
 		{
 			RDSystem.translateWorld( 0 , -22 + 12 );
 			RDSystem.drawBitmapWithinMask( *texFrog , *tex ,
-				Vec2f( (texFrog->getWidth() - tex->getWidth() ) /2.0 , 12 ) , 
+				Vector2( (texFrog->getWidth() - tex->getWidth() ) /2.0 , 12 ) , 
 				TBF_OFFSET_CENTER );
 		}
 		RDSystem.popWorldTransform();
@@ -356,8 +356,8 @@ namespace Zuma
 			{
 				RDSystem.translateWorld( 0 , 0 );
 				RDSystem.drawBitmap(  *tex , 
-					Vec2f( 0 , ( mFrameEye - 1 ) * h) , 
-					Vec2f( tex->getWidth() , h ) , TBF_OFFSET_CENTER  );
+					Vector2( 0 , ( mFrameEye - 1 ) * h) , 
+					Vector2( tex->getWidth() , h ) , TBF_OFFSET_CENTER  );
 			}
 			RDSystem.popWorldTransform();
 		}
@@ -393,8 +393,8 @@ namespace Zuma
 		tex = RDSystem.getTexture( IMAGE_LOADERBAR );
 
 		RDSystem.translateWorld( 128 , 350 );
-		RDSystem.drawBitmap( *tex , Vec2f( 0 , 0 ) , 
-			Vec2f( persent * tex->getWidth()  , tex->getHeight() ) );
+		RDSystem.drawBitmap( *tex , Vector2( 0 , 0 ) , 
+			Vector2( persent * tex->getWidth()  , tex->getHeight() ) );
 	}
 
 	void ZLevel::render( IRenderSystem& RDSystem , RenderParam const& param )
@@ -599,7 +599,7 @@ namespace Zuma
 
 #include "ZUISystem.h"
 
-	void ZUISystem::drawTex( ResID idTex , Vec2f const& pos , int frame )
+	void ZUISystem::drawTex( ResID idTex , Vector2 const& pos , int frame )
 	{
 		IRenderSystem& GLSystem = *mRDSystem;
 
@@ -615,7 +615,7 @@ namespace Zuma
 		else
 		{
 			int w = tex->getWidth() / tex->col;
-			GLSystem.drawBitmap( *tex , Vec2f( frame * w , 0 ) , Vec2f( w , tex->getHeight() ) );
+			GLSystem.drawBitmap( *tex , Vector2( frame * w , 0 ) , Vector2( w , tex->getHeight() ) );
 		}
 
 	}
@@ -654,23 +654,23 @@ namespace Zuma
 		}
 
 		int tw = headSize + frontGap;
-		RDSystem.drawBitmap( *tex , Vec2f( x , 0 ), Vec2f(tw  , tex->getHeight()) );
+		RDSystem.drawBitmap( *tex , Vector2( x , 0 ), Vector2(tw  , tex->getHeight()) );
 
 		RDSystem.translateWorld( tw , 0 );
 		x+= tw ;
 
 		for(;bodySize > wBody ; bodySize-=wBody )
 		{
-			RDSystem.drawBitmap( *tex , Vec2f(x , 0) , Vec2f(wBody , tex->getHeight()) );
+			RDSystem.drawBitmap( *tex , Vector2(x , 0) , Vector2(wBody , tex->getHeight()) );
 			RDSystem.translateWorld(  wBody ,0 );
 		}
 
-		RDSystem.drawBitmap( *tex , Vec2f(x , 0) , Vec2f(bodySize , tex->getHeight()) );
+		RDSystem.drawBitmap( *tex , Vector2(x , 0) , Vector2(bodySize , tex->getHeight()) );
 
 		RDSystem.translateWorld(  bodySize  ,0 );
 		x += wBody;
 
-		RDSystem.drawBitmap( *tex , Vec2f(x, 0) , Vec2f(headSize + backGap , tex->getHeight()) );
+		RDSystem.drawBitmap( *tex , Vector2(x, 0) , Vector2(headSize + backGap , tex->getHeight()) );
 
 		ZFont* font = RDSystem.getFontRes( FONT_MAIN10 );
 
@@ -724,8 +724,8 @@ namespace Zuma
 		RDSystem.pushWorldTransform();
 		RDSystem.translateWorld( -frontGap , 0 );
 		RDSystem.drawBitmap( *tex , 
-			Vec2f( isCheck()? 0 : w , 0 ),
-			Vec2f( w , tex->getHeight() ) );
+			Vector2( isCheck()? 0 : w , 0 ),
+			Vector2( w , tex->getHeight() ) );
 		RDSystem.popWorldTransform();
 
 
@@ -733,8 +733,8 @@ namespace Zuma
 		int lineLen = titleLen - size.x - 10;
 		RDSystem.pushWorldTransform();
 		RDSystem.translateWorld( size.x , size.y - 9 );
-		RDSystem.drawBitmap( *tex , Vec2f(0 , 0 ) , 
-			Vec2f( lineLen , tex->getHeight() ) );
+		RDSystem.drawBitmap( *tex , Vector2(0 , 0 ) , 
+			Vector2( lineLen , tex->getHeight() ) );
 
 		RDSystem.translateWorld( lineLen , 0 );
 		tex = getUISystem()->getTexture( IMAGE_DIALOG_CHECKBOXCAP );
@@ -784,16 +784,16 @@ namespace Zuma
 		RDSystem.translateWorld( pos );
 
 		RDSystem.pushWorldTransform();
-		RDSystem.drawBitmap( *tex , Vec2f(lx , ty) , Vec2f(cornerLen , cornerLen) );
+		RDSystem.drawBitmap( *tex , Vector2(lx , ty) , Vector2(cornerLen , cornerLen) );
 		RDSystem.translateWorld( 0 , offsetY );
-		RDSystem.drawBitmap( *tex , Vec2f(lx , by) , Vec2f(cornerLen , cornerLen) );
+		RDSystem.drawBitmap( *tex , Vector2(lx , by) , Vector2(cornerLen , cornerLen) );
 		RDSystem.popWorldTransform();
 
 		RDSystem.pushWorldTransform();
 		RDSystem.translateWorld( offsetX , 0 );
-		RDSystem.drawBitmap( *tex , Vec2f(rx , ty) , Vec2f(cornerLen , cornerLen) );
+		RDSystem.drawBitmap( *tex , Vector2(rx , ty) , Vector2(cornerLen , cornerLen) );
 		RDSystem.translateWorld( 0 , offsetY );
-		RDSystem.drawBitmap( *tex , Vec2f(rx , by) , Vec2f(cornerLen , cornerLen) );
+		RDSystem.drawBitmap( *tex , Vector2(rx , by) , Vector2(cornerLen , cornerLen) );
 		RDSystem.popWorldTransform();
 
 		int body;
@@ -803,15 +803,15 @@ namespace Zuma
 		for( ;body > wSide ; body-=wSide )
 		{
 			RDSystem.pushWorldTransform();
-			RDSystem.drawBitmap( *tex , Vec2f(mx , ty) , Vec2f(wSide , cornerLen) );
+			RDSystem.drawBitmap( *tex , Vector2(mx , ty) , Vector2(wSide , cornerLen) );
 			RDSystem.translateWorld( 0 , offsetY );
-			RDSystem.drawBitmap( *tex , Vec2f(mx , by) , Vec2f(wSide , cornerLen) );
+			RDSystem.drawBitmap( *tex , Vector2(mx , by) , Vector2(wSide , cornerLen) );
 			RDSystem.popWorldTransform();
 			RDSystem.translateWorld( wSide , 0 );
 		}
-		RDSystem.drawBitmap( *tex , Vec2f(mx , ty) , Vec2f(body , cornerLen) );
+		RDSystem.drawBitmap( *tex , Vector2(mx , ty) , Vector2(body , cornerLen) );
 		RDSystem.translateWorld( 0 , offsetY );
-		RDSystem.drawBitmap( *tex , Vec2f(mx , by) , Vec2f(body , cornerLen) );
+		RDSystem.drawBitmap( *tex , Vector2(mx , by) , Vector2(body , cornerLen) );
 		RDSystem.popWorldTransform();
 
 
@@ -821,15 +821,15 @@ namespace Zuma
 		for( ;body > hSide ; body-= hSide )
 		{
 			RDSystem.pushWorldTransform();
-			RDSystem.drawBitmap( *tex , Vec2f(lx , my) , Vec2f(cornerLen , hSide) );
+			RDSystem.drawBitmap( *tex , Vector2(lx , my) , Vector2(cornerLen , hSide) );
 			RDSystem.translateWorld( offsetX , 0 );
-			RDSystem.drawBitmap( *tex , Vec2f(rx , my) , Vec2f(cornerLen , hSide) );
+			RDSystem.drawBitmap( *tex , Vector2(rx , my) , Vector2(cornerLen , hSide) );
 			RDSystem.popWorldTransform();
 			RDSystem.translateWorld( 0 , hSide );
 		}
-		RDSystem.drawBitmap( *tex , Vec2f(lx , my), Vec2f(cornerLen , body) );
+		RDSystem.drawBitmap( *tex , Vector2(lx , my), Vector2(cornerLen , body) );
 		RDSystem.translateWorld( offsetX , 0 );
-		RDSystem.drawBitmap( *tex , Vec2f(rx , my) , Vec2f(cornerLen , body) );
+		RDSystem.drawBitmap( *tex , Vector2(rx , my) , Vector2(cornerLen , body) );
 		RDSystem.popWorldTransform();
 
 
@@ -841,21 +841,21 @@ namespace Zuma
 			RDSystem.pushWorldTransform();
 			for( yBody = hBody ; yBody > hSide ; yBody-= hSide )
 			{
-				RDSystem.drawBitmap( *tex , Vec2f(mx , my ), Vec2f(wSide , hSide) );
+				RDSystem.drawBitmap( *tex , Vector2(mx , my ), Vector2(wSide , hSide) );
 				RDSystem.translateWorld( 0 , hSide );
 			}
 
-			RDSystem.drawBitmap( *tex , Vec2f( mx , my ) , Vec2f(wSide , yBody) );
+			RDSystem.drawBitmap( *tex , Vector2( mx , my ) , Vector2(wSide , yBody) );
 			RDSystem.popWorldTransform();
 			RDSystem.translateWorld( wSide , 0  );
 		}
 
 		for( yBody = hBody ; yBody > hSide ; yBody-= hSide )
 		{
-			RDSystem.drawBitmap( *tex , Vec2f( mx , my ) , Vec2f(body , hSide) );
+			RDSystem.drawBitmap( *tex , Vector2( mx , my ) , Vector2(body , hSide) );
 			RDSystem.translateWorld( 0 , body );
 		}
-		RDSystem.drawBitmap( *tex , Vec2f( mx , my ) , Vec2f( body , yBody ) );
+		RDSystem.drawBitmap( *tex , Vector2( mx , my ) , Vector2( body , yBody ) );
 		RDSystem.popWorldTransform();
 
 	}
@@ -875,7 +875,7 @@ namespace Zuma
 		RDSystem.setWorldIdentity();
 		RDSystem.translateWorld( g_ScreenWidth - 20 - w / 2, g_ScreenHeight - 100 );
 		RDSystem.scaleWorld( scaleFontT , scaleFontT );
-		font->print( Vec2f( 0 , 0 ) , mLevelStage->getLevelTitle().c_str() , 
+		font->print( Vector2( 0 , 0 ) , mLevelStage->getLevelTitle().c_str() , 
 			FF_ALIGN_VCENTER | FF_ALIGN_HCENTER | FF_LOCAL_POS );
 
 		font = RDSystem.getFontRes( FONT_BROWNTITLE );
@@ -885,7 +885,7 @@ namespace Zuma
 		RDSystem.translateWorld( g_ScreenWidth - 25 - w / 2, g_ScreenHeight - 50  );
 		RDSystem.scaleWorld( scaleFontB , scaleFontB );
 
-		font->print( Vec2f( 0 , 0 ) , info.nameDisp.c_str() , 
+		font->print( Vector2( 0 , 0 ) , info.nameDisp.c_str() , 
 			FF_ALIGN_VCENTER | FF_ALIGN_HCENTER | FF_LOCAL_POS );
 	}
 

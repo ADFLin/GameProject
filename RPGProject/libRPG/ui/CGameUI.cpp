@@ -16,7 +16,7 @@
 
 #include "CHero.h"
 #include "TSkillBook.h"
-#include "CHandle.h"
+#include "ObjectHandle.h"
 #include "EventType.h"
 #include "UtilityGlobal.h"
 

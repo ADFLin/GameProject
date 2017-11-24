@@ -10,7 +10,7 @@ typedef TVector2< int > Vec2i;
 
 #include "CppVersion.h"
 #include "LogSystem.h"
-#include "CommonMarco.h"
+#include "MarcoCommon.h"
 #include "FastDelegate/FastDelegate.h"
 
 #include <vector>
@@ -43,10 +43,6 @@ typedef CFly::Object CFObject;
 typedef CFly::Actor  CFActor;
 typedef CFly::Camera CFCamera;
 
-using CFly::Color3ub;
-using CFly::Color3f;
-using CFly::Color4ub;
-using CFly::Color4f;
 
 typedef CFly::Vector3    Vec3D;
 typedef CFly::Matrix4  Mat4x4;

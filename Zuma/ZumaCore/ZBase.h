@@ -2,6 +2,7 @@
 #define ZBase_h__
 
 #include "TVector2.h"
+#include "Math/Vector2.h"
 #include "LogSystem.h"
 #include "FixString.h"
 
@@ -11,7 +12,7 @@ namespace Zuma
 {
 	//using std::tr1::shared_ptr;
 
-	typedef TVector2< float > Vec2f;
+	typedef ::Math::Vector2 Vector2;
 
 
 	class IRenderSystem;

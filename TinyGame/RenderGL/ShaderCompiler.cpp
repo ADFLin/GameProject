@@ -46,7 +46,7 @@ namespace RenderGL
 	{
 		assert(vertexEntryName && pixelEntryName);
 		char const* entryNames[] = { vertexEntryName , pixelEntryName };
-		uint8 shaderMask = BIT(RHIShader::eVertex) | BIT(RHIShader::ePixel);
+		uint8 shaderMask = BIT(Shader::eVertex) | BIT(Shader::ePixel);
 		return loadFile(shaderProgram, fileName, shaderMask, entryNames, def, additionalCode);
 	}
 
@@ -63,7 +63,7 @@ namespace RenderGL
 	bool ShaderManager::loadFile(ShaderProgram& shaderProgram, char const* fileName, char const* vertexEntryName, char const* pixelEntryName, ShaderCompileOption const& option, char const* additionalCode /*= nullptr*/)
 	{
 		char const* entryNames[] = { vertexEntryName , pixelEntryName };
-		uint8 shaderMask = BIT(RHIShader::eVertex) | BIT(RHIShader::ePixel);
+		uint8 shaderMask = BIT(Shader::eVertex) | BIT(Shader::ePixel);
 		return loadFile(shaderProgram, fileName, shaderMask, entryNames, option, additionalCode);
 	}
 
@@ -76,7 +76,7 @@ namespace RenderGL
 		info->bSingle = bSingle;
 		info->fileName = fileName;
 
-		for( int i = 0; i < RHIShader::NUM_SHADER_TYPE; ++i )
+		for( int i = 0; i < Shader::NUM_SHADER_TYPE; ++i )
 		{
 			if( (info->shaderMask & BIT(i)) == 0 )
 				continue;
@@ -114,7 +114,7 @@ namespace RenderGL
 		info->fileName = fileName;
 
 		int indexNameUsed = 0;
-		for( int i = 0; i < RHIShader::NUM_SHADER_TYPE; ++i )
+		for( int i = 0; i < Shader::NUM_SHADER_TYPE; ++i )
 		{
 			if( (info->shaderMask & BIT(i)) == 0 )
 				continue;
@@ -164,7 +164,7 @@ namespace RenderGL
 
 	bool ShaderManager::loadMultiFile(ShaderProgram& shaderProgram, char const* fileName, char const* def, char const* additionalCode)
 	{
-		return loadInternal(shaderProgram, fileName, BIT(RHIShader::eVertex) | BIT(RHIShader::ePixel), nullptr, def, additionalCode, false);
+		return loadInternal(shaderProgram, fileName, BIT(Shader::eVertex) | BIT(Shader::ePixel), nullptr, def, additionalCode, false);
 	}
 
 	bool ShaderManager::reloadShader(ShaderProgram& shaderProgram)
@@ -187,14 +187,14 @@ namespace RenderGL
 
 	bool ShaderManager::updateShaderInternal(ShaderProgram& shaderProgram, ShaderCompileInfo& info)
 	{
-		if( !shaderProgram.isate() )
+		if( !shaderProgram.isValid() )
 		{
 			if( !shaderProgram.create() )
 				return false;
 		}
 
 		int indexCode = 0;
-		for( int i = 0; i < RHIShader::NUM_SHADER_TYPE; ++i )
+		for( int i = 0; i < Shader::NUM_SHADER_TYPE; ++i )
 		{
 			if ( ( info.shaderMask & BIT(i) ) == 0 )
 				continue;
@@ -213,13 +213,13 @@ namespace RenderGL
 			if( shader == nullptr )
 			{
 				shader = new RHIShader;
-				if( !mCompiler.compileCode(RHIShader::Type(i), *shader, path, info.headCodes[indexCode].c_str()) )
+				if( !mCompiler.compileCode(Shader::Type(i), *shader, path, info.headCodes[indexCode].c_str()) )
 					return false;
 				shaderProgram.attachShader(*shader);
 			}
 			else
 			{
-				if( !mCompiler.compileCode(RHIShader::Type(i), *shader, path, info.headCodes[indexCode].c_str()) )
+				if( !mCompiler.compileCode(Shader::Type(i), *shader, path, info.headCodes[indexCode].c_str()) )
 					return false;
 			}
 			++indexCode;
@@ -229,16 +229,15 @@ namespace RenderGL
 		return true;
 	}
 
-	bool ShaderCompiler::compileCode(RHIShader::Type type , RHIShader& shader, char const* path, char const* def)
+	bool ShaderCompiler::compileCode(Shader::Type type , RHIShader& shader, char const* path, char const* def)
 	{
 		bool bSuccess;
 		do
 		{
 			bSuccess = false;
 			std::vector< char > codeBuffer;
-			if( !FileUtility::LoadToBuffer(path, codeBuffer) )
+			if( !FileUtility::LoadToBuffer(path, codeBuffer, true) )
 				return false;
-
 			int numSourceCodes = 0;
 			char const* sourceCodes[2];
 
@@ -337,7 +336,7 @@ namespace RenderGL
 		}
 		else
 		{
-			for( int i = 0; i < RHIShader::NUM_SHADER_TYPE; ++i )
+			for( int i = 0; i < Shader::NUM_SHADER_TYPE; ++i )
 			{
 				if( ( shaderMask & BIT(i)) == 0 )
 					continue;

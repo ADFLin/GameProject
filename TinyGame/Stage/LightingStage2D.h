@@ -83,7 +83,6 @@ namespace Lighting2D
 		virtual bool onInit();
 		virtual void onEnd();
 
-		char* readFile(char const* file);
 		virtual void onUpdate( long time );
 
 		void onRender( float dFrame );

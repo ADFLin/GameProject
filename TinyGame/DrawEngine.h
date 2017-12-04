@@ -10,6 +10,7 @@
 #include "WinGDIRenderSystem.h"
 #include "WGLContext.h"
 
+
 #define OPENGL_RENDER_DIB 0
 
 class Graphics2D : public WinGdiGraphics2D
@@ -26,6 +27,8 @@ class GLGraphics2D;
 class IGraphics2D
 {
 public:
+	virtual void  beginRender() = 0;
+	virtual void  endRender() = 0;
 	virtual void  beginBlend( Vec2i const& pos , Vec2i const& size , float alpha ) = 0;
 	virtual void  endBlend() = 0;
 	virtual void  setPen( Color3ub const& color ) = 0;
@@ -78,10 +81,11 @@ public:
 	HDC   mhDC;
 };
 
-class GameWindow : public WinFrameT< GameWindow >
+class GAME_API GameWindow : public WinFrameT< GameWindow >
 {
 public:
-
+	WORD   getIcon();
+	WORD   getSmallIcon();
 };
 
 class DrawEngine
@@ -103,14 +107,15 @@ public:
 	GAME_API IGraphics2D&  getIGraphics();
 
 	HFONT       createFont( int size , char const* faceName , bool beBold , bool beItalic );
-	WGLContext& getGLContext(){ return mGLContext; }
+	WindowsGLContext& getGLContext(){ return mGLContext; }
 	
 	GameWindow& getWindow(){ return *mGameWindow; }
+
 
 	bool isOpenGLEnabled(){ return mbGLEnabled; }
 	bool isInitialized() { return mbInitialized; }
 
-	GAME_API bool  startOpenGL( bool useGLEW = true );
+	GAME_API bool  startOpenGL( bool useGLEW = true , int numSample = 1);
 	GAME_API void  stopOpenGL(bool bDeferred = false);
 	GAME_API bool  beginRender();
 	GAME_API void  endRender();
@@ -122,13 +127,14 @@ private:
 	bool        mbInitialized;
 	bool        mbGLEnabled;
 	bool        mbSweepBuffer;
+	bool        mbCleaupGLDefferred;
 	
 	GameWindow* mGameWindow;
 	BitmapDC*   mBufferDC;
 	Graphics2D* mScreenGraphics;
 
 
-	WGLContext    mGLContext;
+	WindowsGLContext    mGLContext;
 	GLGraphics2D* mGLGraphics;
 
 };

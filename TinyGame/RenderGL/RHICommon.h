@@ -15,9 +15,9 @@ namespace RenderGL
 	class ShaderCompileOption;
 	class MaterialShaderProgram;
 
-	extern RHITexture2DRef  GDefaultMaterialTexture2D;
-	extern RHITexture2DRef  GWhiteTexture2D;
-	extern RHITexture2DRef  GBlackTexture2D;
+	extern RHITexture2DRef    GDefaultMaterialTexture2D;
+	extern RHITexture2DRef    GWhiteTexture2D;
+	extern RHITexture2DRef    GBlackTexture2D;
 	extern RHITextureCubeRef  GWhiteTextureCube;
 	extern RHITextureCubeRef  GBlackTextureCube;
 	extern class MaterialMaster* GDefalutMaterial;

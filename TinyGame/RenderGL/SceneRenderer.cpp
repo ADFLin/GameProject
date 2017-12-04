@@ -499,8 +499,8 @@ namespace RenderGL
 		mLightBuffer.setDepth( sceneRenderTargets.getDepthTexture() );
 
 
-		if( !MeshUtility::createLightSphere(mSphereMesh) ||
-		    !MeshUtility::createLightCone(mConeMesh) )
+		if( !MeshBuild::LightSphere(mSphereMesh) ||
+		    !MeshBuild::LightCone(mConeMesh) )
 			return false;
 
 		if( !ShaderManager::getInstance().loadFile( 
@@ -969,7 +969,7 @@ namespace RenderGL
 
 		if( !mGBuffer.init(size) )
 			return false;
-
+		
 		mDepthTexture = new RHITextureDepth;
 		if( !mDepthTexture->create(Texture::eD32FS8, size.x, size.y) )
 			return false;

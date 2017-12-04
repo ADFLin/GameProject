@@ -1,4 +1,4 @@
-#include "TinyGamePCH.h"
+﻿#include "TinyGamePCH.h"
 #include "DrawEngine.h"
 
 #include "GLGraphics2D.h"
@@ -7,28 +7,52 @@
 #include <algorithm>
 #include <cmath>
 
+#include "resource.h"
+
+WORD GameWindow::getIcon()
+{
+	return IDI_ICON1;
+}
+
+WORD GameWindow::getSmallIcon()
+{
+	return IDI_ICON1;
+}
+
+
+void WINAPI GLDebugCallback(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar* message, GLvoid* userParam)
+{
+	if( type == GL_DEBUG_TYPE_OTHER )
+		return;
+
+	::Msg(message);
+}
+
+
 template< class T >
 class TGraphics2DProxy : public IGraphics2D
 {
 public:
 	TGraphics2DProxy( T& g ):mImpl(g){}
 
-	virtual void beginBlend( Vec2i const& pos , Vec2i const& size , float alpha ){ mImpl.beginBlend( pos , size , alpha ); }
-	virtual void endBlend(){ mImpl.endBlend(); }
-	virtual void setPen( Color3ub const& color ){ mImpl.setPen( color ); }
-	virtual void setBrush( Color3ub const& color ){ mImpl.setBrush( color ); }
-	virtual void drawPixel  ( Vec2i const& p , Color3ub const& color ){ mImpl.drawPixel( p , color ); }
-	virtual void drawLine   ( Vec2i const& p1 , Vec2i const& p2 ){ mImpl.drawLine( p1 , p2 ); }
-	virtual void drawRect   ( int left , int top , int right , int bottom ){ mImpl.drawRect( left , top , right , bottom ); }
-	virtual void drawRect   ( Vec2i const& pos , Vec2i const& size ) { mImpl.drawRect( pos , size ); }
-	virtual void drawCircle ( Vec2i const& center , int r ) { mImpl.drawCircle( center ,  r ); }
-	virtual void drawEllipse( Vec2i const& pos , Vec2i const& size ) { mImpl.drawEllipse(  pos ,  size ); }
-	virtual void drawRoundRect( Vec2i const& pos , Vec2i const& rectSize , Vec2i const& circleSize ) { mImpl.drawRoundRect( pos , rectSize , circleSize ); }
-	virtual void drawPolygon(Vec2i pos[], int num) { mImpl.drawPolygon(pos, num); }
+	virtual void beginRender() override { mImpl.beginRender(); }
+	virtual void endRender() override { mImpl.endRender(); }
+	virtual void beginBlend( Vec2i const& pos , Vec2i const& size , float alpha )  override { mImpl.beginBlend( pos , size , alpha ); }
+	virtual void endBlend() override { mImpl.endBlend(); }
+	virtual void setPen( Color3ub const& color ) override { mImpl.setPen( color ); }
+	virtual void setBrush( Color3ub const& color ) override { mImpl.setBrush( color ); }
+	virtual void drawPixel  ( Vec2i const& p , Color3ub const& color ) override { mImpl.drawPixel( p , color ); }
+	virtual void drawLine   ( Vec2i const& p1 , Vec2i const& p2 ) override { mImpl.drawLine( p1 , p2 ); }
+	virtual void drawRect   ( int left , int top , int right , int bottom ) override { mImpl.drawRect( left , top , right , bottom ); }
+	virtual void drawRect   ( Vec2i const& pos , Vec2i const& size ) override { mImpl.drawRect( pos , size ); }
+	virtual void drawCircle ( Vec2i const& center , int r ) override { mImpl.drawCircle( center ,  r ); }
+	virtual void drawEllipse( Vec2i const& pos , Vec2i const& size ) override { mImpl.drawEllipse(  pos ,  size ); }
+	virtual void drawRoundRect( Vec2i const& pos , Vec2i const& rectSize , Vec2i const& circleSize ) override { mImpl.drawRoundRect( pos , rectSize , circleSize ); }
+	virtual void drawPolygon(Vec2i pos[], int num) override { mImpl.drawPolygon(pos, num); }
 
-	virtual void setTextColor( uint8 r , uint8 g, uint8 b ) { mImpl.setTextColor(  r ,  g,  b );  }
-	virtual void drawText( Vec2i const& pos , char const* str ) { mImpl.drawText( pos , str ); }
-	virtual void drawText( Vec2i const& pos , Vec2i const& size , char const* str , bool beClip ) { mImpl.drawText( pos , size , str , beClip  ); }
+	virtual void setTextColor( uint8 r , uint8 g, uint8 b ) override { mImpl.setTextColor(  r ,  g,  b );  }
+	virtual void drawText( Vec2i const& pos , char const* str ) override { mImpl.drawText( pos , str ); }
+	virtual void drawText( Vec2i const& pos , Vec2i const& size , char const* str , bool beClip ) override { mImpl.drawText( pos , size , str , beClip  ); }
 
 	virtual void accept( Visitor& visitor ) { visitor.visit( mImpl ); }
 	T& mImpl;
@@ -48,6 +72,7 @@ DrawEngine::DrawEngine()
 	mbGLEnabled = false;
 	mbInitialized = false;
 	mbSweepBuffer = true;
+	mbCleaupGLDefferred = false;
 	mBufferDC = NULL;
 	mScreenGraphics = NULL;
 	mGLGraphics = NULL;
@@ -83,19 +108,29 @@ void DrawEngine::release()
 	RenderUtility::Finalize();
 }
 
-bool DrawEngine::startOpenGL( bool useGLEW )
+bool DrawEngine::startOpenGL( bool useGLEW , int numSample )
 {
 	if ( mbGLEnabled )
 		return true;
 
 	setupBuffer( getScreenWidth() , getScreenHeight() );
-	if ( !mGLContext.init( getWindow().getHDC() , WGLContext::InitSetting() ) )
+	WGLSetupSetting setting;
+	setting.numSamples = numSample;
+	if ( !mGLContext.init( getWindow().getHDC() , setting ) )
 		return false;
 
 	if ( useGLEW )
 	{
 		if ( glewInit() != GLEW_OK )
 			return false;
+
+		if( 1 )
+		{
+			//glDebugMessageCallback( NULL ​,  NULL );
+			glDebugMessageCallback(GLDebugCallback, nullptr);
+			glEnable(GL_DEBUG_OUTPUT);
+			glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
+		}
 	}
 	RenderUtility::StartOpenGL();
 	mbGLEnabled = true;
@@ -114,7 +149,11 @@ void DrawEngine::stopOpenGL(bool bDeferred)
 	if( bDeferred == false )
 	{
 		mGLContext.cleanup();
-	}	
+	}
+	else
+	{
+		mbCleaupGLDefferred = true;
+	}
 
 	setupBuffer(getScreenWidth(), getScreenHeight());
 }
@@ -131,6 +170,11 @@ bool DrawEngine::beginRender()
 	else
 #endif
 	{
+		if( mbCleaupGLDefferred )
+		{
+			mbCleaupGLDefferred = false;
+			mGLContext.cleanup();
+		}
 		mBufferDC->clear();
 		mScreenGraphics->beginRender();
 	}
@@ -179,6 +223,7 @@ HFONT DrawEngine::createFont( int size , char const* faceName , bool beBold , bo
 
 	return CreateFontIndirect( &lf );
 }
+
 
 void DrawEngine::changeScreenSize( int w , int h )
 {
@@ -248,7 +293,7 @@ GAME_API void DrawEngine::enableSweepBuffer(bool beS)
 
 GAME_API bool DrawEngine::cleanupGLContextDeferred()
 {
-	if( mbGLEnabled == false && mGLContext.is() )
+	if( mbGLEnabled == false && mGLContext.isValid() )
 	{
 		mGLContext.cleanup();
 		return true;

@@ -301,25 +301,24 @@ namespace RenderGL
 		virtual void build(int idxSection, OBJMaterialInfo const* mat) = 0;
 	};
 
-	class MeshUtility
+	class MeshBuild
 	{
 	public:
-		static bool createTile( Mesh& mesh , int tileSize , float len );
-		static bool createUVSphere( Mesh& mesh , float radius , int rings, int sectors);
-		static bool createIcoSphere( Mesh& mesh , float radius , int numDiv );
-		static bool createSkyBox( Mesh& mesh );
-		static bool createCube( Mesh& mesh , float halfLen = 1.0f );
+		static bool Tile( Mesh& mesh , int tileSize , float len , bool bHaveSkirt = true );
+		static bool UVSphere( Mesh& mesh , float radius , int rings, int sectors);
+		static bool IcoSphere( Mesh& mesh , float radius , int numDiv );
+		static bool SkyBox( Mesh& mesh );
+		static bool Cube( Mesh& mesh , float halfLen = 1.0f );
 		
-		static bool createCone(Mesh& mesh, float height, int numSide);
-		static bool createDoughnut(Mesh& mesh , float radius , float ringRadius , int rings , int sectors);
-		static bool createPlaneZ( Mesh& mesh , float len, float texFactor );
-		static bool createPlane( Mesh& mesh , Vector3 const& offset , Vector3 const& normal , Vector3 const& dir , float len , float texFactor);
+		static bool Cone(Mesh& mesh, float height, int numSide);
+		static bool Doughnut(Mesh& mesh , float radius , float ringRadius , int rings , int sectors);
+		static bool PlaneZ( Mesh& mesh , float len, float texFactor );
+		static bool Plane( Mesh& mesh , Vector3 const& offset , Vector3 const& normal , Vector3 const& dir , float len , float texFactor);
 
+		static bool SimpleSkin(Mesh& mesh, float width, float height, int nx, int ny);
 
-		static bool createSimpleSkin(Mesh& mesh, float width, float height, int nx, int ny);
-
-		static bool createLightSphere(Mesh& mesh);
-		static bool createLightCone(Mesh& mesh);
+		static bool LightSphere(Mesh& mesh);
+		static bool LightCone(Mesh& mesh);
 
 		struct MeshData
 		{
@@ -330,11 +329,11 @@ namespace RenderGL
 			int*   indices;
 			int    numIndex;
 		};
-		static bool createMesh(Mesh& mesh, MeshData& data);
+		static bool TriangleMesh(Mesh& mesh, MeshData& data);
 
 
 
-		static bool createFromObjectFile(
+		static bool LoadObjectFile(
 			Mesh& mesh, char const* path , 
 			Matrix4* pTransform = nullptr , 
 			OBJMaterialBuildListener* listener = nullptr ,

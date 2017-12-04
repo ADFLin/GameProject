@@ -13,6 +13,7 @@
 #include "MarcoCommon.h"
 #include "TVector3.h"
 #include "FastDelegate/FastDelegate.h"
+#include "RandomUtility.h"
 
 #include "GLCommon.h"
 #include "GLUtility.h"
@@ -31,9 +32,14 @@
 #include <memory>
 #include <typeindex>
 
+class Thread;
+
 namespace RenderGL
 {
 	float const FLT_DIV_ZERO_EPSILON = 1e-6;
+
+	//#MOVE
+
 
 	class MaterialMaster;
 
@@ -247,40 +253,14 @@ namespace RenderGL
 		GLsync loadingSync;
 	};
 
-	//#MOVE
-	inline float RandFloat()
-	{
-		return float(::rand()) / RAND_MAX;
-	}
-	inline float RandFloat(float min, float max)
-	{
-		return min + (max - min) * float(::rand()) / RAND_MAX;
-	}
-	inline Vector3 RandVector(Vector3 const& min, Vector3 const& max)
-	{
-		return Vector3(RandFloat(min.x, max.x), RandFloat(min.y, max.y), RandFloat(min.z, max.z));
-	}
-	inline Vector3 RandVector()
-	{
-		return Vector3(RandFloat(), RandFloat(), RandFloat());
-	}
 
-	inline Vector3 RandDirection()
-	{
-		float s1, c1;
-		Math::SinCos(Math::PI * RandFloat(), s1, c1);
-		float s2, c2;
-		Math::SinCos(2 * Math::PI * RandFloat(), s2, c2);
-		return Vector3(s1 * c2, s1 * s2, c1);
-	}
-
-	inline bool isInside( Vector3 const& min , Vector3 const& max , Vector3 const& p )
+	inline bool IsInside( Vector3 const& min , Vector3 const& max , Vector3 const& p )
 	{
 		return min.x < p.x && p.x < max.x &&
 			   min.y < p.y && p.y < max.y && 
 			   min.z < p.z && p.z < max.z ;
 	}
-	inline bool testRayTriangle( Vector3 const& org , Vector3 const& dir , Vector3 const& p0 , Vector3 const& p1 , Vector3 const& p2 , float& t )
+	inline bool TestRayTriangle( Vector3 const& org , Vector3 const& dir , Vector3 const& p0 , Vector3 const& p1 , Vector3 const& p2 , float& t )
 	{
 		Vector3 v0 = p1 - p0;
 		Vector3 v1 = p2 - p0;
@@ -315,9 +295,9 @@ namespace RenderGL
 		return ( u >= 0 || v >= 0 || u + v <= 1 );
 	}
 
-	inline bool testRayAABB( Vector3 const& org , Vector3 const& dir , Vector3 const& min , Vector3 const& max , float&  t )
+	inline bool TestRayAABB( Vector3 const& org , Vector3 const& dir , Vector3 const& min , Vector3 const& max , float&  t )
 	{
-		if ( isInside( min , max , org ) )
+		if ( IsInside( min , max , org ) )
 		{
 			t = 0;
 			return true;
@@ -414,8 +394,6 @@ namespace RenderGL
 	{
 		Vector3 min, max;
 	};
-
-
 
 
 	class DualQuat
@@ -566,10 +544,7 @@ namespace RenderGL
 		void renderTest4( ViewInfo& view );
 		void renderTest5( ViewInfo& view );
 		void renderTest6( ViewInfo& view );
-		void renderTest7( ViewInfo& view )
-		{
-
-		}
+		void renderTerrain( ViewInfo& view );
 
 		void renderScene(RenderContext& param);
 
@@ -657,6 +632,8 @@ namespace RenderGL
 
 		ShaderProgram mProgSimpleSprite;
 
+		ShaderProgram mProgTerrain;
+
 		AssetManager  mAssetManager;
 
 		struct SimpleMeshId
@@ -672,6 +649,7 @@ namespace RenderGL
 				Doughnut,
 				SkyBox ,
 				SimpleSkin ,
+				Terrain ,
 				NumSimpleMesh,
 			};
 		};
@@ -701,6 +679,7 @@ namespace RenderGL
 			return result;
 		}
 
+		Thread* mLoadingThread = nullptr;
 
 		int  mNumLightDraw = 4;
 		std::vector< LightInfo > mLights;
@@ -748,17 +727,23 @@ namespace RenderGL
 		typedef std::shared_ptr< RHITexture2D > Texture2DPtr;
 		std::vector< Texture2D > mTextures; 
 		std::vector< TLazyObjectGuid< StaticMesh > > mMeshs;
-
-		virtual TLazyObjectGuid< Material >&  getMaterial(int idx) final
+		Texture2D mEmptyTeture;
+		virtual TLazyObjectGuid< Material >  getMaterial(int idx) final
 		{ 
+			if( mMaterialAssets.empty() )
+				return TLazyObjectGuid<Material>(GDefalutMaterial);
 			return mMaterialAssets[idx].materialId;
 		}
 		virtual Texture2D& getTexture(int idx) final
 		{ 
+			if ( mTextures.empty() )
+				return mEmptyTeture;
 			return mTextures[idx];
 		}
-		virtual TLazyObjectGuid< StaticMesh >& getMesh(int idx)  final
+		virtual TLazyObjectGuid< StaticMesh > getMesh(int idx)  final
 		{ 
+			if( mMeshs.empty() )
+				return TLazyObjectGuid<StaticMesh>(&mEmptyMesh);
 			return mMeshs[idx];
 		}
 		virtual Mesh& getSimpleMesh(int idx) final
@@ -782,7 +767,7 @@ namespace RenderGL
 		
 		DefferredShadingTech mDefferredShadingTech;
 		ShadowDepthTech      mShadowTech;
-		OITTechique              mOITTech;
+		OITTechique          mOITTech;
 
 		PostProcessSSAO      mSSAO;
 
@@ -795,6 +780,9 @@ namespace RenderGL
 		
 		RHITexture2DRef mTexBase;
 		RHITexture2DRef mTexNormal;
+
+
+		RHITexture2DRef mTexTerrainHeight;
 
 		bool   mPause;
 		float  mTime;

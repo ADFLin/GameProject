@@ -1,0 +1,342 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|VisualGDB">
+      <Configuration>Debug</Configuration>
+      <Platform>VisualGDB</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|VisualGDB">
+      <Configuration>Release</Configuration>
+      <Platform>VisualGDB</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{157FDB21-AC42-4791-9C3B-310D3C6E7BA0}</ProjectGuid>
+    <RootNamespace>QuadAssault</RootNamespace>
+    <WindowsTargetPlatformVersion>8.1</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <PlatformToolset>v140</PlatformToolset>
+    <CharacterSet>NotSet</CharacterSet>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|VisualGDB'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <PlatformToolset>v140</PlatformToolset>
+    <CharacterSet>NotSet</CharacterSet>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <PlatformToolset>v140</PlatformToolset>
+    <CharacterSet>NotSet</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|VisualGDB'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <PlatformToolset>v140</PlatformToolset>
+    <CharacterSet>NotSet</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|VisualGDB'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|VisualGDB'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup>
+    <_ProjectFileVersion>14.0.25431.1</_ProjectFileVersion>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <OutDir>$(SolutionDir)$(Configuration)\</OutDir>
+    <IntDir>$(Configuration)\$(ProjectName)\</IntDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|VisualGDB'" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <OutDir>$(SolutionDir)$(Configuration)\</OutDir>
+    <IntDir>$(Configuration)\$(ProjectName)\</IntDir>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <Optimization>Disabled</Optimization>
+      <AdditionalIncludeDirectories>.;TinyCore;../libEngine;../OtherLib;../OtherLib/glew;../QuadAssault;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN32;_WINDOWS;DEBUG;TG_DLL;CORE_SHARE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <MinimalRebuild>false</MinimalRebuild>
+      <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeaderFile>QuadAssaultPCH.h</PrecompiledHeaderFile>
+      <ProgramDataBaseFileName>$(IntDir)vc$(PlatformToolsetVersion).pdb</ProgramDataBaseFileName>
+      <WarningLevel>Level3</WarningLevel>
+      <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <ForcedIncludeFiles>QuadAssaultPCH.h;%(ForcedIncludeFiles)</ForcedIncludeFiles>
+    </ClCompile>
+    <Link>
+      <AdditionalDependencies>Msimg32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <OutputFile>$(OutDir)$(ProjectName)D.dll</OutputFile>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <TargetMachine>MachineX86</TargetMachine>
+    </Link>
+    <PostBuildEvent>
+      <Command>copy $(TargetDir)$(TargetName)D.dll $(ProjectDir)out\</Command>
+    </PostBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|VisualGDB'">
+    <ClCompile>
+      <Optimization>Disabled</Optimization>
+      <AdditionalIncludeDirectories>.;TinyCore;../libEngine;../OtherLib;../QuadAssault;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN32;_WINDOWS;DEBUG;TG_DLL;CORE_SHARE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <MinimalRebuild>false</MinimalRebuild>
+      <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeaderFile>QuadAssaultPCH.h</PrecompiledHeaderFile>
+      <ProgramDataBaseFileName>$(IntDir)vc$(PlatformToolsetVersion).pdb</ProgramDataBaseFileName>
+      <WarningLevel>Level3</WarningLevel>
+      <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+    </ClCompile>
+    <Link>
+      <AdditionalDependencies>Msimg32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <OutputFile>$(OutDir)$(ProjectName)D.dll</OutputFile>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+    <PostBuildEvent>
+      <Command>copy $(TargetDir)$(TargetName)D.dll $(ProjectDir)out\</Command>
+    </PostBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <Optimization>MaxSpeed</Optimization>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <AdditionalIncludeDirectories>.;TinyCore;../libEngine;../OtherLib;../OtherLib/glew;../QuadAssault;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>_SECURE_SCL=0;WIN32;_WINDOWS;NDEBUG;TG_DLL;CORE_SHARE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <StringPooling>true</StringPooling>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeaderFile>QuadAssaultPCH.h</PrecompiledHeaderFile>
+      <ProgramDataBaseFileName>$(IntDir)vc$(PlatformToolsetVersion).pdb</ProgramDataBaseFileName>
+      <WarningLevel>Level3</WarningLevel>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <ForcedIncludeFiles>QuadAssaultPCH.h;%(ForcedIncludeFiles)</ForcedIncludeFiles>
+    </ClCompile>
+    <Link>
+      <AdditionalDependencies>Msimg32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <OutputFile>$(OutDir)$(ProjectName).dll</OutputFile>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <OptimizeReferences>true</OptimizeReferences>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <TargetMachine>MachineX86</TargetMachine>
+    </Link>
+    <PostBuildEvent>
+      <Command>copy $(TargetPath) $(ProjectDir)out\</Command>
+    </PostBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|VisualGDB'">
+    <ClCompile>
+      <Optimization>MaxSpeed</Optimization>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <AdditionalIncludeDirectories>.;TinyCore;../libEngine;../OtherLib;../QuadAssault;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>_SECURE_SCL=0;WIN32;_WINDOWS;NDEBUG;TG_DLL;CORE_SHARE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <StringPooling>true</StringPooling>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeaderFile>QuadAssaultPCH.h</PrecompiledHeaderFile>
+      <ProgramDataBaseFileName>$(IntDir)vc$(PlatformToolsetVersion).pdb</ProgramDataBaseFileName>
+      <WarningLevel>Level3</WarningLevel>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+    </ClCompile>
+    <Link>
+      <AdditionalDependencies>Msimg32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <OutputFile>$(OutDir)$(ProjectName).dll</OutputFile>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <OptimizeReferences>true</OptimizeReferences>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+    </Link>
+    <PostBuildEvent>
+      <Command>copy $(TargetPath) $(ProjectDir)out\</Command>
+    </PostBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\libEngine\EngineShare.vcxproj">
+      <Project>{061a25a9-fc8b-4fe1-915f-ec50c0ea354b}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\libEngine\libEngine.vcxproj">
+      <Project>{c1b32c2b-9a40-4874-869f-fcc57bb1d93f}</Project>
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+    </ProjectReference>
+    <ProjectReference Include="TinyCore.vcxproj">
+      <Project>{686cc0bf-4f6b-454a-8d74-3d2ca3a230e0}</Project>
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+    </ProjectReference>
+    <ProjectReference Include="TinyShare.vcxproj">
+      <Project>{f3b972df-7aed-4d2e-99af-5ad3bc736f61}</Project>
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+    </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="QuadAssault\Actor.cpp" />
+    <ClCompile Include="QuadAssault\Block.cpp" />
+    <ClCompile Include="QuadAssault\Bullet.cpp" />
+    <ClCompile Include="QuadAssault\Collision.cpp" />
+    <ClCompile Include="QuadAssault\DebrisParticle.cpp" />
+    <ClCompile Include="QuadAssault\DebrisPickup.cpp" />
+    <ClCompile Include="QuadAssault\DevStage.cpp" />
+    <ClCompile Include="QuadAssault\EditorWidget.cpp" />
+    <ClCompile Include="QuadAssault\Explosion.cpp" />
+    <ClCompile Include="QuadAssault\Game.cpp" />
+    <ClCompile Include="QuadAssault\GameEdit.cpp" />
+    <ClCompile Include="QuadAssault\GameInput.cpp" />
+    <ClCompile Include="QuadAssault\GameStage.cpp" />
+    <ClCompile Include="QuadAssault\GBuffer.cpp" />
+    <ClCompile Include="QuadAssault\GlobalVariable.cpp" />
+    <ClCompile Include="QuadAssault\GUISystem.cpp" />
+    <ClCompile Include="QuadAssault\ItemPickup.cpp" />
+    <ClCompile Include="QuadAssault\KeyPickup.cpp" />
+    <ClCompile Include="QuadAssault\Laser.cpp" />
+    <ClCompile Include="QuadAssault\LaserBullet.cpp" />
+    <ClCompile Include="QuadAssault\LaserMob.cpp" />
+    <ClCompile Include="QuadAssault\Level.cpp" />
+    <ClCompile Include="QuadAssault\LevelEditStage.cpp" />
+    <ClCompile Include="QuadAssault\LevelStage.cpp" />
+    <ClCompile Include="QuadAssault\LightObject.cpp" />
+    <ClCompile Include="QuadAssault\main.cpp" />
+    <ClCompile Include="QuadAssault\MathCore.cpp" />
+    <ClCompile Include="QuadAssault\MenuStage.cpp" />
+    <ClCompile Include="QuadAssault\Message.cpp" />
+    <ClCompile Include="QuadAssault\Minigun.cpp" />
+    <ClCompile Include="QuadAssault\MinigunBullet.cpp" />
+    <ClCompile Include="QuadAssault\MinigunMob.cpp" />
+    <ClCompile Include="QuadAssault\Mob.cpp" />
+    <ClCompile Include="QuadAssault\Object.cpp" />
+    <ClCompile Include="QuadAssault\ObjectRenderer.cpp" />
+    <ClCompile Include="QuadAssault\Particle.cpp" />
+    <ClCompile Include="QuadAssault\Plasma.cpp" />
+    <ClCompile Include="QuadAssault\PlasmaBullet.cpp" />
+    <ClCompile Include="QuadAssault\PlasmaMob.cpp" />
+    <ClCompile Include="QuadAssault\PlatformSFML.cpp" />
+    <ClCompile Include="QuadAssault\PlatformWin.cpp" />
+    <ClCompile Include="QuadAssault\Player.cpp" />
+    <ClCompile Include="QuadAssault\QAGame.cpp" />
+    <ClCompile Include="QuadAssault\QuadAssaultPCH.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="QuadAssault\RenderEngine.cpp" />
+    <ClCompile Include="QuadAssault\Renderer.cpp" />
+    <ClCompile Include="QuadAssault\RenderSystem.cpp" />
+    <ClCompile Include="QuadAssault\RenderUtility.cpp" />
+    <ClCompile Include="QuadAssault\Shader.cpp" />
+    <ClCompile Include="QuadAssault\SmokeParticle.cpp" />
+    <ClCompile Include="QuadAssault\SoundManager.cpp" />
+    <ClCompile Include="QuadAssault\TextureManager.cpp" />
+    <ClCompile Include="QuadAssault\Trigger.cpp" />
+    <ClCompile Include="QuadAssault\Weapon.cpp" />
+    <ClCompile Include="QuadAssault\WeaponPickup.cpp" />
+    <ClCompile Include="QuadAssault\WeaponRenderer.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="QuadAssault\Actor.h" />
+    <ClInclude Include="QuadAssault\Base.h" />
+    <ClInclude Include="QuadAssault\Block.h" />
+    <ClInclude Include="QuadAssault\BlockType.h" />
+    <ClInclude Include="QuadAssault\Bullet.h" />
+    <ClInclude Include="QuadAssault\ClassReflection.h" />
+    <ClInclude Include="QuadAssault\ColBody.h" />
+    <ClInclude Include="QuadAssault\Collision.h" />
+    <ClInclude Include="QuadAssault\DataPath.h" />
+    <ClInclude Include="QuadAssault\DebrisParticle.h" />
+    <ClInclude Include="QuadAssault\DebrisPickup.h" />
+    <ClInclude Include="QuadAssault\Dependence.h" />
+    <ClInclude Include="QuadAssault\DevStage.h" />
+    <ClInclude Include="QuadAssault\EditorWidget.h" />
+    <ClInclude Include="QuadAssault\Explosion.h" />
+    <ClInclude Include="QuadAssault\Game.h" />
+    <ClInclude Include="QuadAssault\GameEdit.h" />
+    <ClInclude Include="QuadAssault\GameInput.h" />
+    <ClInclude Include="QuadAssault\GameInterface.h" />
+    <ClInclude Include="QuadAssault\GameStage.h" />
+    <ClInclude Include="QuadAssault\GBuffer.h" />
+    <ClInclude Include="QuadAssault\GlobalVariable.h" />
+    <ClInclude Include="QuadAssault\GUISystem.h" />
+    <ClInclude Include="QuadAssault\ItemPickup.h" />
+    <ClInclude Include="QuadAssault\KeyPickup.h" />
+    <ClInclude Include="QuadAssault\Laser.h" />
+    <ClInclude Include="QuadAssault\LaserBullet.h" />
+    <ClInclude Include="QuadAssault\LaserMob.h" />
+    <ClInclude Include="QuadAssault\Level.h" />
+    <ClInclude Include="QuadAssault\LevelEditor.h" />
+    <ClInclude Include="QuadAssault\LevelEditStage.h" />
+    <ClInclude Include="QuadAssault\LevelFile.h" />
+    <ClInclude Include="QuadAssault\LevelStage.h" />
+    <ClInclude Include="QuadAssault\Light.h" />
+    <ClInclude Include="QuadAssault\LightObject.h" />
+    <ClInclude Include="QuadAssault\MathCore.h" />
+    <ClInclude Include="QuadAssault\MenuStage.h" />
+    <ClInclude Include="QuadAssault\Message.h" />
+    <ClInclude Include="QuadAssault\Minigun.h" />
+    <ClInclude Include="QuadAssault\MinigunBullet.h" />
+    <ClInclude Include="QuadAssault\MinigunMob.h" />
+    <ClInclude Include="QuadAssault\Mob.h" />
+    <ClInclude Include="QuadAssault\Movement.h" />
+    <ClInclude Include="QuadAssault\Object.h" />
+    <ClInclude Include="QuadAssault\ObjectFactory.h" />
+    <ClInclude Include="QuadAssault\ObjectRenderer.h" />
+    <ClInclude Include="QuadAssault\Particle.h" />
+    <ClInclude Include="QuadAssault\Plasma.h" />
+    <ClInclude Include="QuadAssault\PlasmaBullet.h" />
+    <ClInclude Include="QuadAssault\PlasmaMob.h" />
+    <ClInclude Include="QuadAssault\Platform.h" />
+    <ClInclude Include="QuadAssault\PlatformBase.h" />
+    <ClInclude Include="QuadAssault\PlatformSFML.h" />
+    <ClInclude Include="QuadAssault\PlatformWin.h" />
+    <ClInclude Include="QuadAssault\Player.h" />
+    <ClInclude Include="QuadAssault\PlayerSetting.h" />
+    <ClInclude Include="QuadAssault\QAGame.h" />
+    <ClInclude Include="QuadAssault\QuadAssaultPCH.h" />
+    <ClInclude Include="QuadAssault\Renderable.h" />
+    <ClInclude Include="QuadAssault\RenderEngine.h" />
+    <ClInclude Include="QuadAssault\Renderer.h" />
+    <ClInclude Include="QuadAssault\RenderSystem.h" />
+    <ClInclude Include="QuadAssault\RenderUtility.h" />
+    <ClInclude Include="QuadAssault\Shader.h" />
+    <ClInclude Include="QuadAssault\SmokeParticle.h" />
+    <ClInclude Include="QuadAssault\SoundManager.h" />
+    <ClInclude Include="QuadAssault\Texture.h" />
+    <ClInclude Include="QuadAssault\TextureManager.h" />
+    <ClInclude Include="QuadAssault\Trigger.h" />
+    <ClInclude Include="QuadAssault\Weapon.h" />
+    <ClInclude Include="QuadAssault\WeaponPickup.h" />
+    <ClInclude Include="QuadAssault\WeaponRenderer.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="QuadAssault\GPL.txt" />
+    <Text Include="QuadAssault\Readme.txt" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

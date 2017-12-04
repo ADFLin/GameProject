@@ -37,7 +37,7 @@ namespace RenderGL
 		if( material )
 		{
 			shader = mTechique->getMaterialShader(*this,*material->getMaster() , vertexFactory );
-			if( shader == nullptr || !shader->isate() )
+			if( shader == nullptr || !shader->isValid() )
 			{
 				material = nullptr;
 			}

@@ -188,7 +188,11 @@ class SpatialIndexTestStage : public StageBase
 {
 	typedef StageBase BaseClass;
 public:
-
+	enum
+	{
+		UI_PAUSE_LEARNING = BaseClass::NEXT_UI_ID,
+		NEXT_UI_ID,
+	};
 	KDTree    mTree;
 
 	Ray       mTestRay;

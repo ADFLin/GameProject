@@ -1,0 +1,93 @@
+#include "Common.glsl"
+#include "ViewParam.glsl"
+
+struct OutputVSParam
+{
+	float2 UV;
+	float3 normal;
+	float3 data;
+};
+
+#if VERTEX_SHADER
+
+uniform float4x4 LocalToWorld;
+uniform sampler2D TextureHeight;
+
+uniform float3 TerrainScale;
+
+
+float  GetTerrainHeight(float2 uv)
+{
+	return texture2D(TextureHeight, uv).r * TerrainScale.z;
+}
+float3 GetTerrainLocalPos(float2 uv)
+{
+	return float3(uv, texture2D(TextureHeight, uv).r) * TerrainScale;
+}
+float3 CalcTerrainNormal(float2 uv)
+{
+	int2 texSize = textureSize(TextureHeight, 0);
+	float3 dtex = float3( float2(1.0) / float2(texSize) , 0 );
+
+#if 1
+
+	float3 result;
+	result.x = (GetTerrainHeight(uv - dtex.xz) - GetTerrainHeight(uv + dtex.xz));
+	result.y = (GetTerrainHeight(uv - dtex.zy) - GetTerrainHeight(uv + dtex.zy));
+	result.xy = result.xy / (TerrainScale.xy * dtex.xy);
+	result.z = 2;
+
+	return normalize(result);
+#else
+
+	float3 offset = float3(TerrainScale.xy * dtex.xy, 0);
+	float h = GetTerrainHeight(uv);
+	float hnx = GetTerrainHeight(uv - dtex.xz);
+	float hpx = GetTerrainHeight(uv + dtex.xz);
+	float hny = GetTerrainHeight(uv - dtex.zy);
+	float hpy = GetTerrainHeight(uv + dtex.zy);
+
+	float3 dnx = float3(-offset.xz, hnx - h);
+	float3 dpx = float3(offset.xz, hpx - h);
+	float3 dny = float3(-offset.zy, hny - h);
+	float3 dpy = float3(offset.zy, hpy - h);
+
+	return normalize(normalize(cross(dpx, dpy)) + normalize(cross(dpy, dnx)) + normalize(cross(dnx, dny)) + normalize(cross(dny, dpx)));
+#endif
+}
+
+
+layout(location = ATTRIBUTE_POSITION) in float4 InPos;
+
+out OutputVSParam OutputVS;
+void MainVS()
+{
+	float height = GetTerrainHeight(InPos.xy);
+	gl_Position = View.worldToClip * LocalToWorld * float4( GetTerrainLocalPos(InPos.xy) , 1 );
+	OutputVS.UV = float2(InPos.x, InPos.y);
+	OutputVS.normal = CalcTerrainNormal(InPos.xy);
+	OutputVS.data = float3(InPos.x, InPos.y, texture2D(TextureHeight, InPos.xy).r);
+}
+
+#endif //VERTEX_SHADER
+
+uniform sampler2D TextureBaseColor;
+
+#if PIXEL_SHADER
+
+layout(location = 0) out vec4 OutColor;
+in OutputVSParam OutputVS;
+void MainPS()
+{
+	float3 normal = normalize(OutputVS.normal);
+	float b = OutputVS.data.b;
+	float3 c = texture2D(TextureBaseColor, OutputVS.UV).rgb;
+	float shade = clamp(dot(normal, normalize(float3(1, 1, 1))), 0, 1);
+	c = c * shade;
+	OutColor = float4(c, 1);
+	//OutColor = float4(shade, shade, shade, 1);
+	//OutColor = float4(0.5 * normal + 0.5, 1);
+	//OutColor = float4(b,b,b,1);
+}
+
+#endif //PIXEL_SHADER

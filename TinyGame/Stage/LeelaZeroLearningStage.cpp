@@ -7,8 +7,53 @@
 
 #include "Thread.h"
 #include "StringParse.h"
+#include "RandomUtility.h"
+#include "WidgetUtility.h"
 
 #include "Go/GoCore.h"
+#include "Go/GoRenderer.h"
+
+#include "GLGraphics2D.h"
+#include "RenderGL/GLCommon.h"
+#include "RenderGL/GLDrawUtility.h"
+#include "RenderGL/GpuProfiler.h"
+
+#include <winternl.h>
+
+
+#define DETECT_LEELA_PROCESS 1
+
+using namespace RenderGL;
+using namespace Go;
+
+
+
+BOOL SuspendProcess(HANDLE ProcessHandle)
+{
+	typedef NTSTATUS (NTAPI *FnNtSuspendProcess)(HANDLE ProcessHandle);
+	// we need to get the address of the two ntapi functions
+	FARPROC fpNtSuspendProcess = GetProcAddress(GetModuleHandle("ntdll"), "NtSuspendProcess");
+	FnNtSuspendProcess NtSuspendProcess = (FnNtSuspendProcess)fpNtSuspendProcess; // add a check if the address is 0 or not before doing this..
+	if( !NT_SUCCESS(NtSuspendProcess(ProcessHandle)) ) // call ntsuspendprocess
+	{
+		return FALSE; // failed
+	}
+	return TRUE; // success
+}
+
+BOOL ResumeProcess(HANDLE ProcessHandle)
+{
+	typedef NTSTATUS (NTAPI *FnNtResumeProcess)(HANDLE ProcessHandle);
+	FARPROC fpNtResumeProcess = GetProcAddress(GetModuleHandle("ntdll"), "NtResumeProcess");
+	FnNtResumeProcess NtResumeProcess = (FnNtResumeProcess)fpNtResumeProcess;
+	if( !NT_SUCCESS(NtResumeProcess(ProcessHandle)) )
+	{
+		return FALSE;
+	}
+	return TRUE;
+}
+
+
 
 DWORD FindPIDByName(TCHAR const* name)
 {
@@ -119,19 +164,24 @@ public:
 	Mutex mComMutex;
 };
 
+class IGameProcessThread : public RunnableThreadT< IGameProcessThread >
+{
+public:
+	virtual ~IGameProcessThread(){}
+	virtual unsigned run() = 0;
+};
 
-class GameListenThread : public RunnableThreadT< GameListenThread >
+class GameLearningThread : public IGameProcessThread 
 {
 public:
 
 	unsigned run()
 	{
-		mGame->setup(19);
 		for( ;;)
 		{
 			DWORD numRead;
-			CHAR buffer[1024];
-			BOOL bSuccess = ::ReadFile(mExecuteOutRead, buffer, ARRAY_SIZE(buffer), &numRead, NULL);
+			CHAR buffer[1024 + 1];
+			BOOL bSuccess = ::ReadFile(mExecuteOutRead, buffer, ARRAY_SIZE(buffer) - 1, &numRead, NULL);
 			if( !bSuccess || numRead == 0 )
 				break;
 			buffer[numRead] = 0;
@@ -188,9 +238,13 @@ public:
 			else
 			{
 				char const* next = ParseUtility::SkipToNextLine(cur);
-				FixString< 512 > str{ cur , next - cur };
-				::Msg("%s", str.c_str() );
-				cur = next;
+				int num = next - cur;
+				if( num )
+				{
+					FixString< 512 > str{ cur , num };
+					::Msg("%s", str.c_str());
+					cur = next;
+				}
 			}
 		}
 	}
@@ -202,7 +256,93 @@ public:
 
 };
 
-#define DETECT_LEELA_PROCESS 0
+
+class GamePlayingThread : public IGameProcessThread
+{
+public:
+
+	unsigned run()
+	{
+		for( ;;)
+		{
+			DWORD numRead;
+			CHAR buffer[2048 + 1];
+			BOOL bSuccess = ::ReadFile(mExecuteOutRead, buffer, ARRAY_SIZE(buffer) - 1, &numRead, NULL);
+			if( !bSuccess || numRead == 0 )
+				break;
+			buffer[numRead] = 0;
+			parseOutput(buffer, numRead);
+		}
+		return 0;
+	}
+
+	void parseOutput(char* buffer, int num)
+	{
+		char const* cur = buffer;
+		while( *cur != 0 )
+		{
+			int step;
+			char coord[32];
+			int numRead;
+			cur = ParseUtility::SkipSpace(cur);
+			//if( sscanf(cur, "%d%s%n", &step, coord, &numRead) == 2 && coord[0] == '(' )
+			//{
+			//	if( step == 1 )
+			//	{
+			//		MyGame::Com com;
+			//		com.pos[0] = -2;
+			//		com.pos[1] = -1;
+			//		mGame->addCom(com);
+			//		curStep = 1;
+			//	}
+
+			//	if( curStep != step )
+			//	{
+			//		::Msg("Warning:Error Step");
+			//	}
+			//	if( strcmp("(pass)", coord) == 0 )
+			//	{
+			//		MyGame::Com com;
+			//		com.pos[0] = -1;
+			//		com.pos[1] = -1;
+			//		mGame->addCom(com);
+
+			//	}
+			//	else
+			//	{
+			//		int pos[2];
+			//		Go::ReadCoord(coord + 1, pos);
+			//		MyGame::Com com;
+			//		com.pos[0] = pos[0];
+			//		com.pos[1] = pos[1];
+			//		mGame->addCom(com);
+
+			//	}
+			//	++curStep;
+			//	cur += numRead;
+			//}
+			//else
+			{
+				char const* next = ParseUtility::SkipToNextLine(cur);
+				int num = next - cur;
+				if( num )
+				{
+					FixString< 512 > str{ cur , num };
+					::Msg("%s", str.c_str());
+					cur = next;
+				}
+			}
+		}
+	}
+
+	int curStep = 0;
+
+	HANDLE  mExecuteOutRead;
+	MyGame* mGame;
+
+};
+
+
 
 class LeelaZeroLearningStage : public StageBase
 {
@@ -210,12 +350,18 @@ class LeelaZeroLearningStage : public StageBase
 public:
 	LeelaZeroLearningStage() {}
 
-	HANDLE mGTPProcess = NULL;
+	enum
+	{
+		UI_TOGGLE_PAUSE_GAME = BaseClass::NEXT_UI_ID,
+		NEXT_UI_ID ,
+	};
+	HANDLE mProcess = NULL;
 	
 	HANDLE mExecuteOutRead = NULL;
 	HANDLE mExecuteOutWrite = NULL;
-	GameListenThread* outputThread = nullptr;
+	IGameProcessThread* processThread = nullptr;
 
+	bool bPauseProcess = false;
 
 	MyGame mGame;
 
@@ -226,91 +372,82 @@ public:
 	long   mRestartTimer = RestartTime;
 #endif
 
-	void cleanupProcessData()
-	{
-		if( mExecuteOutRead )
-		{
-			CloseHandle(mExecuteOutRead);
-			mExecuteOutRead = NULL;
-		}
-		if( mExecuteOutWrite )
-		{
-			CloseHandle(mExecuteOutWrite);
-			mExecuteOutWrite = NULL;
-		}
-		if( outputThread )
-		{
-			delete outputThread;
-			outputThread = nullptr;
-		}
-		if( mGTPProcess )
-		{
-			TerminateProcess(mGTPProcess, -1);
-			mGTPProcess = NULL;
-		}
-	}
+	GameRenderer mGameRenderer;
 
-	HANDLE CreateChildProcess(TCHAR const* path , TCHAR* commandLine )
-	{
-		PROCESS_INFORMATION piProcInfo;
-		STARTUPINFO siStartInfo;
-		BOOL bSuccess = FALSE;
-
-		
-		TCHAR workDir[MAX_PATH];
-
-		TCString<TCHAR>::CopyN(workDir, path, FileUtility::GetDirPathPos(path) - path);
-		// Set up members of the PROCESS_INFORMATION structure. 
-
-		ZeroMemory(&piProcInfo, sizeof(PROCESS_INFORMATION));
-
-		// Set up members of the STARTUPINFO structure. 
-		// This structure specifies the STDIN and STDOUT handles for redirection.
-
-		ZeroMemory(&siStartInfo, sizeof(STARTUPINFO));
-		siStartInfo.cb = sizeof(STARTUPINFO);
-		siStartInfo.dwFlags |= STARTF_USESTDHANDLES | STARTF_USESHOWWINDOW;
-		
-		siStartInfo.hStdOutput = mExecuteOutWrite;
-		siStartInfo.hStdError  = mExecuteOutWrite;
-		siStartInfo.hStdInput = NULL;
-		siStartInfo.wShowWindow = SW_HIDE;
-
-		// Create the child process. 
-
-		bSuccess = CreateProcess(
-			path,
-			commandLine ,  // command line 
-			NULL,          // process security attributes 
-			NULL,          // primary thread security attributes 
-			TRUE,          // handles are inherited 
-			0,             // creation flags 
-			NULL,          // use parent's environment 
-			workDir,
-			&siStartInfo,  // STARTUPINFO pointer 
-			&piProcInfo);  // receives PROCESS_INFORMATION 
-
-						   // If an error occurs, exit the application. 
-		if( !bSuccess )
-			return NULL;
-
-		CloseHandle(piProcInfo.hThread);
-		return piProcInfo.hProcess;
-	}
 
 	virtual bool onInit()
 	{
 		if( !BaseClass::onInit() )
 			return false;
-		::Global::GUI().cleanupWidget();
 
-		if( !createProcess() )
+		if( !::Global::getDrawEngine()->startOpenGL( true ) )
 			return false;
 
+		if( !mGameRenderer.initializeRHI() )
+			return false;
+
+		::Global::GUI().cleanupWidget();
+
+		mGame.setup(19);
+		mGameRenderer.generateNoiseOffset( mGame.getBoard().getSize() );
+
+#if 1
+		if( !createLearningProcess() )
+			return false;
+#else
+		if( !createPlayProcess() )
+			return false;
+#endif
+
+		auto devFrame = WidgetUtility::CreateDevFrame();
+		devFrame->addButton(UI_TOGGLE_PAUSE_GAME, "Pause Process");
 		return true;
 	}
 
-	bool createProcess()
+	char const* mLeelaZeroDir = "E:/Desktop/LeelaZero";
+
+	bool createLearningProcess()
+	{
+		FixString<256> path;
+		path.format("%s/%s", mLeelaZeroDir, "/autogtp.exe");
+
+		if( !createChildPorcessWithIO(path) )
+			return false;
+
+		auto myThread = new GameLearningThread;
+		myThread->mExecuteOutRead = mExecuteOutRead;
+		myThread->mGame = &mGame;
+		myThread->start();
+		myThread->setDisplayName("Output Thread");
+		processThread = myThread;
+
+#if DETECT_LEELA_PROCESS
+		mPIDLeela = -1;
+		mRestartTimer = RestartTime;
+#endif
+		return true;
+	}
+
+	bool createPlayProcess()
+	{
+		FixString<256> path;
+		path.format("%s/%s", mLeelaZeroDir, "/leelaz.exe");
+		FixString<512> command;
+		char const* weightName = "223737476718d58a4a5b0f317a1eeeb4b38f0c06af5ab65cb9d76d68d9abadb6";
+		command.format(" --w %s", weightName );
+		if( !createChildPorcessWithIO(path , command) )
+			return false;
+
+		auto myThread = new GamePlayingThread;
+		myThread->mExecuteOutRead = mExecuteOutRead;
+		myThread->mGame = &mGame;
+		myThread->start();
+		myThread->setDisplayName("Output Thread");
+		processThread = myThread;
+		return true;
+	}
+
+	bool createChildPorcessWithIO( char const* path , char const* command = nullptr)
 	{
 		SECURITY_ATTRIBUTES saAttr;
 		saAttr.nLength = sizeof(SECURITY_ATTRIBUTES);
@@ -322,25 +459,21 @@ public:
 		if( !SetHandleInformation(mExecuteOutRead, HANDLE_FLAG_INHERIT, 0) )
 			return false;
 
-		TCHAR const* path = "E:/Desktop/LeelaZero/autogtp.exe";
-		mGTPProcess = CreateChildProcess(path , nullptr);
-		if( mGTPProcess == NULL )
+
+		mProcess = CreateChildProcess(path, command);
+		if( mProcess == NULL )
 			return false;
 
-		outputThread = new GameListenThread;
-		outputThread->mExecuteOutRead = mExecuteOutRead;
-		outputThread->mGame = &mGame;
-		outputThread->start();
-		outputThread->setDisplayName("Output Thread");
-#if DETECT_LEELA_PROCESS
-		mPIDLeela = -1;
-		mRestartTimer = RestartTime;
-#endif
 		return true;
 	}
 
 	virtual void onEnd()
 	{
+		::Global::getDrawEngine()->stopOpenGL(true);
+		if( processThread )
+		{
+			processThread->kill();
+		}
 		cleanupProcessData();
 		BaseClass::onEnd();
 	}
@@ -351,6 +484,15 @@ public:
 	void tick() 
 	{
 		
+
+	}
+	void updateFrame(int frame) {}
+
+	virtual void onUpdate(long time)
+	{
+		BaseClass::onUpdate(time);
+
+
 		{
 			Mutex::Locker locker(mGame.mComMutex);
 			for( MyGame::Com com : mGame.mComs )
@@ -358,7 +500,11 @@ public:
 				if( com.pos[0] == -2 )
 				{
 					mGame.restart();
-					mGame.bNextGame = true;
+					mGameRenderer.generateNoiseOffset(mGame.getBoard().getSize());
+#if DETECT_LEELA_PROCESS
+					mPIDLeela = -1;
+					mRestartTimer = RestartTime;
+#endif
 				}
 				else if( com.pos[0] == -1 )
 				{
@@ -378,32 +524,22 @@ public:
 #if DETECT_LEELA_PROCESS
 		if( mPIDLeela == -1 )
 		{
-			mPIDLeela = FindPIDByNameAndParentPID(TEXT("leelaz.exe") , GetProcessId(mGTPProcess) );
+			mPIDLeela = FindPIDByNameAndParentPID(TEXT("leelaz.exe"), GetProcessId(mProcess));
 			if( mPIDLeela == -1 )
 			{
-				mRestartTimer -= gDefaultTickTime;
+				mRestartTimer -= time;
 			}
 		}
 		else
 		{
 
-			if(  !IsProcessRunning(mPIDLeela) )
+			if( !IsProcessRunning(mPIDLeela) )
 			{
-				
-				if( mGame.bNextGame == true )
-				{
-					mGame.bNextGame = false;
-					mPIDLeela = -1;
-					mRestartTimer = 20000;
-				}
-				else
-				{
-					mRestartTimer -= gDefaultTickTime;
-				}
+				mRestartTimer -= time;
 			}
 			else
 			{
-				mRestartTimer = 20000;
+				mRestartTimer = RestartTime;
 			}
 		}
 
@@ -411,17 +547,11 @@ public:
 		{
 			static int tickCount = 0;
 			++tickCount;
-			outputThread->kill();
+			processThread->kill();
 			cleanupProcessData();
-			createProcess();
+			createLearningProcess();
 		}
 #endif
-	}
-	void updateFrame(int frame) {}
-
-	virtual void onUpdate(long time)
-	{
-		BaseClass::onUpdate(time);
 
 		int frame = time / gDefaultTickTime;
 		for( int i = 0; i < frame; ++i )
@@ -430,127 +560,49 @@ public:
 		updateFrame(frame);
 	}
 
-	int const CellSize = 28;
-	int const StoneSize = (CellSize / 2) * 9 / 10;
+
 
 	void onRender(float dFrame)
 	{
+		using namespace RenderGL;
 
 		Vec2i const BoardPos = Vec2i(50, 50);
-		char* CoordStr = "ABCDEFGHJKLMNOPQRSTQV";
-		int const StarMarkPos[3] = { 3 , 9 , 15 };
 
 		using namespace Go;
 
-		Graphics2D& g = ::Global::getGraphics2D();
+		GLGraphics2D& g = ::Global::getGLGraphics2D();
+		g.beginRender();
 
-		Go::Board const& board = mGame.getBoard();
+		GpuProfiler::getInstance().beginFrame();
 
-		int size = board.getSize();
-		int length = (size - 1) * CellSize;
+		glClear(GL_COLOR_BUFFER_BIT);
 
-		int border = 40;
-		int boardSize = length + 2 * border;
-		RenderUtility::SetPen(g, Color::eBlack);
-		RenderUtility::SetBrush(g, Color::eOrange);
-		g.drawRect(BoardPos - Vec2i(border, border), Vec2i(boardSize, boardSize));
+		mGameRenderer.draw( BoardPos , mGame);
 
-		Vec2i posV = BoardPos;
-		Vec2i posH = BoardPos;
+		GpuProfiler::getInstance().endFrame();
 
-		RenderUtility::SetFont(g, FONT_S12);
-		g.setTextColor(0, 0, 0);
-		for( int i = 0; i < size; ++i )
+		g.endRender();
+
+		g.beginRender();
+
+		g.setTextColor(255, 0, 0);
+		RenderUtility::SetFont(g, FONT_S10);
+		int const offset = 15;
+		int textX = 300;
+		int y = 10;
+		FixString< 512 > str;
+		str.format("bUseBatchedRender = %s" , mGameRenderer.bUseBatchedRender ? "true" : "false" );
+		g.drawText(textX , y += offset, str);
+		for( int i = 0; i < GpuProfiler::getInstance().getSampleNum(); ++i )
 		{
-			g.drawLine(posV, posV + Vec2i(0, length));
-			g.drawLine(posH, posH + Vec2i(length, 0));
+			GpuProfileSample* sample = GpuProfiler::getInstance().getSample(i);
+			str.format("%.8lf => %s", sample->time, sample->name.c_str());
+			g.drawText(textX + 10 * sample->level, y += offset, str);
 
-			FixString< 64 > str;
-			str.format("%2d", i + 1);
-			g.drawText(posH - Vec2i(30, 8), str);
-			g.drawText(posH + Vec2i(12 + length, -8), str);
-
-			str.format("%c", CoordStr[i]);
-			g.drawText(posV - Vec2i(5, 30), str);
-			g.drawText(posV + Vec2i(-5, 15 + length), str);
-
-			posV.x += CellSize;
-			posH.y += CellSize;
 		}
-
-		RenderUtility::SetPen(g, Color::eBlack);
-		RenderUtility::SetBrush(g, Color::eBlack);
-
-		int const starRadius = 5;
-		switch( size )
-		{
-		case 19:
-			{
-				Vec2i pos;
-				for( int i = 0; i < 3; ++i )
-				{
-					pos.x = BoardPos.x + StarMarkPos[i] * CellSize;
-					for( int j = 0; j < 3; ++j )
-					{
-						pos.y = BoardPos.y + StarMarkPos[j] * CellSize;
-						g.drawCircle(pos, starRadius);
-					}
-				}
-			}
-			break;
-		case 13:
-			{
-				Vec2i pos;
-				for( int i = 0; i < 2; ++i )
-				{
-					pos.x = BoardPos.x + StarMarkPos[i] * CellSize;
-					for( int j = 0; j < 2; ++j )
-					{
-						pos.y = BoardPos.y + StarMarkPos[j] * CellSize;
-						g.drawCircle(pos, starRadius);
-					}
-				}
-				g.drawCircle(BoardPos + CellSize * Vec2i(6, 6), starRadius);
-			}
-			break;
-		}
-
-		int lastPlayPos[2] = { -1,-1 };
-		mGame.getLastStepPos(lastPlayPos);
-		for( int i = 0; i < size; ++i )
-		{
-			for( int j = 0; j < size; ++j )
-			{
-				int data = board.getData(i, j);
-				Vec2i pos = BoardPos + CellSize * Vec2i(i, j);
-				if( data )
-				{
-					drawStone(g, pos, data);
-				}
-
-				if( i == lastPlayPos[0] && j == lastPlayPos[1] )
-				{
-					RenderUtility::SetPen(g, Color::eRed);
-					RenderUtility::SetBrush(g, Color::eRed);
-					g.drawCircle(pos, StoneSize / 2);
-
-				}
-			}
-		}
+		g.endRender();
 	}
-	void drawStone(Graphics2D& g, Vec2i const& pos, int color)
-	{
-		using namespace Go;
 
-		RenderUtility::SetPen(g, Color::eBlack);
-		RenderUtility::SetBrush(g, (color == Board::eBlack) ? Color::eBlack : Color::eWhite);
-		g.drawCircle(pos, StoneSize);
-		if( color == Board::eBlack )
-		{
-			RenderUtility::SetBrush(g, Color::eWhite);
-			g.drawCircle(pos + Vec2i(5, -5), 3);
-		}
-	}
 
 	bool onMouse(MouseMsg const& msg)
 	{
@@ -566,6 +618,7 @@ public:
 		switch( key )
 		{
 		case Keyboard::eR: restart(); break;
+		case Keyboard::eZ: mGameRenderer.bUseBatchedRender = !mGameRenderer.bUseBatchedRender; break;
 		}
 		return false;
 	}
@@ -574,13 +627,116 @@ public:
 	{
 		switch( id )
 		{
+		case UI_TOGGLE_PAUSE_GAME:
+			if( bPauseProcess )
+			{
+				if( ResumeProcess(mProcess) )
+				{
+					GUI::CastFast<GButton>(ui)->setTitle("Pause Process");
+					bPauseProcess = false;
+				}
+			}
+			else
+			{
+				if( SuspendProcess(mProcess) )
+				{
+					GUI::CastFast<GButton>(ui)->setTitle("Resume Process");
+					bPauseProcess = true;
+				}
+			}
+			break;
 		default:
 			break;
 		}
 
 		return BaseClass::onWidgetEvent(event, id, ui);
 	}
-protected:
+
+
+	void cleanupProcessData()
+	{
+		bPauseProcess = false;
+
+		if( mExecuteOutRead )
+		{
+			CloseHandle(mExecuteOutRead);
+			mExecuteOutRead = NULL;
+		}
+		if( mExecuteOutWrite )
+		{
+			CloseHandle(mExecuteOutWrite);
+			mExecuteOutWrite = NULL;
+		}
+		if( processThread )
+		{
+			delete processThread;
+			processThread = nullptr;
+		}
+		if( mProcess )
+		{
+			TerminateProcess(mProcess, -1);
+			mProcess = NULL;
+		}
+	}
+
+	HANDLE CreateChildProcess(TCHAR const* path, TCHAR const* commandLine)
+	{
+		PROCESS_INFORMATION piProcInfo;
+		STARTUPINFO siStartInfo;
+		BOOL bSuccess = FALSE;
+
+
+		TCHAR workDir[MAX_PATH];
+
+		TCString<TCHAR>::CopyN(workDir, path, FileUtility::GetDirPathPos(path) - path);
+		// Set up members of the PROCESS_INFORMATION structure. 
+
+		TCHAR command[MAX_PATH];
+		if( commandLine )
+		{
+			TCString<TCHAR>::Copy(command, commandLine);
+		}
+		else
+		{
+			command[0] = 0;
+		}
+
+
+		ZeroMemory(&piProcInfo, sizeof(PROCESS_INFORMATION));
+
+		// Set up members of the STARTUPINFO structure. 
+		// This structure specifies the STDIN and STDOUT handles for redirection.
+
+		ZeroMemory(&siStartInfo, sizeof(STARTUPINFO));
+		siStartInfo.cb = sizeof(STARTUPINFO);
+		siStartInfo.dwFlags |= STARTF_USESTDHANDLES | STARTF_USESHOWWINDOW;
+
+		siStartInfo.hStdOutput = mExecuteOutWrite;
+		siStartInfo.hStdError = mExecuteOutWrite;
+		siStartInfo.hStdInput = NULL;
+		siStartInfo.wShowWindow = SW_HIDE;
+
+		// Create the child process. 
+
+		bSuccess = CreateProcess(
+			path,
+			command,  // command line 
+			NULL,          // process security attributes 
+			NULL,          // primary thread security attributes 
+			TRUE,          // handles are inherited 
+			0,             // creation flags 
+			NULL,          // use parent's environment 
+			workDir,
+			&siStartInfo,  // STARTUPINFO pointer 
+			&piProcInfo);  // receives PROCESS_INFORMATION 
+
+						   // If an error occurs, exit the application. 
+		if( !bSuccess )
+			return NULL;
+
+		CloseHandle(piProcInfo.hThread);
+		return piProcInfo.hProcess;
+	}
 };
 
 REGISTER_STAGE("LeelaZero Learning", LeelaZeroLearningStage, EStageGroup::Test);

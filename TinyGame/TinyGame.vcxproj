@@ -257,6 +257,7 @@
     <ClCompile Include="FlappyBird\FBLevel.cpp" />
     <ClCompile Include="FlappyBird\FBStage.cpp" />
     <ClCompile Include="FlappyBird\TrainManager.cpp" />
+    <ClCompile Include="Go\GoRenderer.cpp" />
     <ClCompile Include="MiscTest\BehaviorTreeTest.cpp" />
     <ClCompile Include="MiscTest\BoneIKTest.cpp" />
     <ClCompile Include="MiscTest\MatrixTest.cpp" />
@@ -282,6 +283,7 @@
       <Optimization Condition="'$(Configuration)|$(Platform)'=='Debug|VisualGDB'">MaxSpeed</Optimization>
     </ClCompile>
     <ClCompile Include="RenderGL\ShaderCompiler.cpp" />
+    <ClCompile Include="RenderGL\TextureAtlas.cpp" />
     <ClCompile Include="RenderGL\VertexFactory.cpp" />
     <ClCompile Include="SingleStageMode.cpp" />
     <ClCompile Include="Go\GoCore.cpp" />
@@ -520,7 +522,9 @@
     <ClInclude Include="FlappyBird\FBLevel.h" />
     <ClInclude Include="FlappyBird\FBStage.h" />
     <ClInclude Include="FlappyBird\TrainManager.h" />
+    <ClInclude Include="Go\GoRenderer.h" />
     <ClInclude Include="NesEmulator.h" />
+    <ClInclude Include="RandomUtility.h" />
     <ClInclude Include="RenderGL\BaseType.h" />
     <ClInclude Include="RenderGL\FrameGraph.h" />
     <ClInclude Include="RenderGL\GLCommon.h" />
@@ -537,6 +541,7 @@
     <ClInclude Include="RenderGL\SceneRenderer.h" />
     <ClInclude Include="RenderGL\SceneScript.h" />
     <ClInclude Include="RenderGL\ShaderCompiler.h" />
+    <ClInclude Include="RenderGL\TextureAtlas.h" />
     <ClInclude Include="RenderGL\VertexFactory.h" />
     <ClInclude Include="SingleStageMode.h" />
     <ClInclude Include="Geometry2d.h" />
@@ -603,6 +608,7 @@
   </ItemGroup>
   <ItemGroup>
     <Image Include="Poker\cards.bmp" />
+    <Image Include="Resource\GameIcon.ico" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="TinyGame.rc" />
@@ -659,6 +665,7 @@
     <None Include="out\Shader\ShadowDepthRender.glsl" />
     <None Include="out\Shader\SphereCommon.glsl" />
     <None Include="out\Shader\SSAO.glsl" />
+    <None Include="out\Shader\Terrain.glsl" />
     <None Include="out\Shader\Tonemap.glsl" />
     <None Include="out\Shader\VertexProcess.glsl" />
     <None Include="out\Shader\ViewParam.glsl" />

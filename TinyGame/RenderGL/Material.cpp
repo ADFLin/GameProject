@@ -14,9 +14,9 @@ namespace RenderGL
 		int w;
 		int h;
 		int comp;
-		unsigned char* image = stbi_load(path, &w, &h, &comp, STBI_default);
+		uint8* imageData = stbi_load(path, &w, &h, &comp, STBI_default);
 
-		if( !image )
+		if( !imageData )
 			return false;
 
 		assert(mRHI == nullptr);
@@ -25,14 +25,14 @@ namespace RenderGL
 		switch( comp )
 		{
 		case 3:
-			mRHI->create(Texture::eRGB8, w, h, image);
+			mRHI->create(Texture::eRGB8, w, h, imageData , 1);
 			break;
 		case 4:
-			mRHI->create(Texture::eRGBA8, w, h, image);
+			mRHI->create(Texture::eRGBA8, w, h, imageData);
 			break;
 		}
 		//glGenerateMipmap( texType);
-		stbi_image_free(image);
+		stbi_image_free(imageData);
 		return true;
 	}
 
@@ -204,7 +204,7 @@ namespace RenderGL
 		std::string path = GetFilePath(name);
 
 		std::vector< char > materialCode;
-		if( !FileUtility::LoadToBuffer(path.c_str(), materialCode) )
+		if( !FileUtility::LoadToBuffer(path.c_str(), materialCode, true) )
 			return false;
 
 		for( auto VFType : VertexFarcoryType::TypeList )

@@ -61,9 +61,9 @@ namespace MV
 		locLocalScale = mEffect.getParamLoc( "localScale" );
 
 		{
-			if ( !MeshUtility::createCube( mMesh[ MESH_BOX ] , 0.5f ) ||
-				!MeshUtility::createUVSphere( mMesh[ MESH_SPHERE ] , 0.3 , 10 , 10 ) ||
-				!MeshUtility::createPlane( mMesh[ MESH_PLANE ] , Vector3(0.5,0,0) ,Vector3(1,0,0) , Vector3(0,1,0) , 0.5 , 1 ) )
+			if ( !MeshBuild::Cube( mMesh[ MESH_BOX ] , 0.5f ) ||
+				!MeshBuild::UVSphere( mMesh[ MESH_SPHERE ] , 0.3 , 10 , 10 ) ||
+				!MeshBuild::Plane( mMesh[ MESH_PLANE ] , Vector3(0.5,0,0) ,Vector3(1,0,0) , Vector3(0,1,0) , 0.5 , 1 ) )
 				return false;
 
 			for( int i = 0 ; i < ARRAY_SIZE( gMeshInfo ) ; ++i )
@@ -72,7 +72,7 @@ namespace MV
 				FixString< 256 > path = "Mesh/";
 				path += info.name; 
 				path += ".obj";
-				if ( !MeshUtility::createFromObjectFile( mMesh[ info.id ] , path ) )
+				if ( !MeshBuild::LoadObjectFile( mMesh[ info.id ] , path ) )
 					return false;
 			}
 		}
@@ -136,7 +136,7 @@ namespace MV
 	void RenderEngine::renderPath( Path& path , PointVec& points)
 	{
 		if ( !points.empty() )
-			RenderRT::Draw< RenderRT::eXYZ >( GL_LINE_STRIP , &points[0] , points.size() , sizeof( Vec3f ) );
+			RenderRT::Draw< RenderRT::eXYZ >( PrimitiveType::eLineStrip , &points[0] , points.size() , sizeof( Vec3f ) );
 	}
 
 	void RenderEngine::renderMesh(int idMesh , Vec3f const& pos , Vec3f const& rotation)
@@ -309,7 +309,7 @@ namespace MV
 				}
 			}
 		}
-		RenderRT::Draw< RenderRT::eXYZ_C >( GL_LINES , buffer , nV  );
+		RenderRT::Draw< RenderRT::eXYZ_C >( PrimitiveType::eLineList, buffer , nV  );
 		mEffect.bind();
 	}
 

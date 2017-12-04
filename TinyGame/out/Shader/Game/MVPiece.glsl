@@ -39,7 +39,7 @@ void MainVS()
 		float4( localScale.z * axisZ , 0 ) , 
 		float4( 0,0,0,1) );
 
-	normal = matWorld * matDir * float4( gl_Normal , 0 );
+	normal = ( matWorld * ( matDir * float4( gl_Normal , 0 ) ) ).xyz;
 	outColor = abs( dot( normal , normalize(lightDir) ) ) * gl_Color.rgb;
 	gl_Position = gl_ModelViewProjectionMatrix * matDir * gl_Vertex;
 }

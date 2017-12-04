@@ -237,25 +237,41 @@ namespace RenderGL
 
 
 
-	bool MeshUtility::createTile(Mesh& mesh , int tileSize , float len )
+	bool MeshBuild::Tile(Mesh& mesh , int tileSize , float len , bool bHaveSkirt)
 	{
 		int const vLen = ( tileSize + 1 );
-		int const nV = vLen * vLen  + 4 * vLen;
-		int const nI = 6 * tileSize * tileSize + 4 * 6 * tileSize;
+		int const nV = (bHaveSkirt) ? ( vLen * vLen  + 4 * vLen ) : ( vLen * vLen );
+		int const nI = (bHaveSkirt) ? ( 6 * tileSize * tileSize + 4 * 6 * tileSize ) : (6 * tileSize * tileSize );
 
 		float d = len / tileSize;
 
-		mesh.mDecl.addElement( Vertex::ePosition , Vertex::eFloat3 );
+		//need texcoord?
+#define TILE_NEED_TEXCOORD 0
 
-		std::vector< Vector3 > v( nV );
-		Vector3* pV = &v[0];
+		mesh.mDecl.addElement( Vertex::ePosition , Vertex::eFloat3 );
+#if TILE_NEED_TEXCOORD
+		mesh.mDecl.addElement( Vertex::eTexcoord , Vertex::eFloat2, 0);
+#endif
+		
+		struct MyVertex
+		{
+			Vector3 pos;
+#if TILE_NEED_TEXCOORD
+			Vector2 uv;
+#endif
+		};
+
+		std::vector< MyVertex > v( nV );
+		MyVertex* pV = &v[0];
+		float const dtex = 1.0 / tileSize;
 		for( int j = 0 ; j < vLen ; ++j )
 		{
 			for( int i = 0 ; i < vLen ; ++i )
 			{
-				pV->x = i * d;
-				pV->y = j * d;
-				pV->z = 0;
+				pV->pos = Vector3( i * d , j * d , 0 );
+#if TILE_NEED_TEXCOORD
+				pV->uv = Vector2(i * dtex, j * dtex);
+#endif
 				++pV;
 			}
 		}
@@ -279,61 +295,78 @@ namespace RenderGL
 		}
 
 		//fill skirt
-		Vector3* pV0 = pV + 0 * vLen;
-		Vector3* pV1 = pV + 1 * vLen;
-		Vector3* pV2 = pV + 2 * vLen;
-		Vector3* pV3 = pV + 3 * vLen;
-		for( int i = 0 ; i < vLen ; ++i )
+		if ( bHaveSkirt )
 		{
-			pV0->x = i * d; pV0->y = 0; pV0->z = -1;
-			++pV0;
+			MyVertex* pV0 = pV + 0 * vLen;
+			MyVertex* pV1 = pV + 1 * vLen;
+			MyVertex* pV2 = pV + 2 * vLen;
+			MyVertex* pV3 = pV + 3 * vLen;
+			for( int i = 0; i < vLen; ++i )
+			{
+				pV0->pos = Vector3(i * d, 0, -1);
+#if TILE_NEED_TEXCOORD
+				pV0->uv = Vector2(i * dtex, 0);
+#endif
+				++pV0;
 
-			pV1->x = i * d; pV1->y = 1; pV1->z = -1;
-			++pV1;
+				pV1->pos = Vector3(i * d, len, -1);
+#if TILE_NEED_TEXCOORD
+				pV1->uv = Vector2(i * dtex, 1);
+#endif
+				++pV1;
 
-			pV2->x = 0; pV2->y = i * d; pV2->z = -1;
-			++pV2;
+				pV2->pos = Vector3(0, i * d , -1);
+#if TILE_NEED_TEXCOORD
+				pV2->uv = Vector2(0 , i * dtex);
+#endif
+				++pV2;
 
-			pV3->x = 1; pV3->y = i * d; pV3->z = -1;
-			++pV3;
-		}
+				pV3->pos = Vector3(len, i * d, -1);
+#if TILE_NEED_TEXCOORD
+				pV3->uv = Vector2(1 , i * dtex);
+#endif
+				++pV3;
+			}
 
-		//[(vLen-1)*vLen] [(vLen-1)*vLen + i] 
-		//      y _______________________ [vLen*vLen-1]
-		//        |        |             |
-		//[i*vLen]|_                    _|[(i+1)*vLen-1]
-		//        |                      |
-		//        |________|_____________| x
-		//       [0]      [i]             [vLen-1]
-		int* p0 = pIdx + 0 * ( 6 * tileSize );
-		int* p1 = pIdx + 1 * ( 6 * tileSize );
-		int* p2 = pIdx + 2 * ( 6 * tileSize );
-		int* p3 = pIdx + 3 * ( 6 * tileSize );
-		for( int i = 0 ; i < tileSize ; ++i )
-		{
-			int vi = vLen * vLen + i;
-			int vn = i;
-			p0[0] = vi; p0[1] = vi+1; p0[2] = vn+1;
-			p0[3] = vi; p0[4] = vn+1; p0[5] = vn;
-			p0 += 6;
+#undef TILE_NEED_TEXCOORD
 
-			vi += vLen; 
-			vn = (vLen-1) * vLen + i;
-			p1[0] = vn; p1[1] = vn+1; p1[2] = vi+1;
-			p1[3] = vn; p1[4] = vi+1; p1[5] = vi;
-			p1 += 6;
+			//[(vLen-1)*vLen] [(vLen-1)*vLen + i] 
+			//      y _______________________ [vLen*vLen-1]
+			//        |        |             |
+			//[i*vLen]|_                    _|[(i+1)*vLen-1]
+			//        |                      |
+			//        |________|_____________| x
+			//       [0]      [i]             [vLen-1]
+			int* p0 = pIdx + 0 * (6 * tileSize);
+			int* p1 = pIdx + 1 * (6 * tileSize);
+			int* p2 = pIdx + 2 * (6 * tileSize);
+			int* p3 = pIdx + 3 * (6 * tileSize);
+			for( int i = 0; i < tileSize; ++i )
+			{
+				int vi = vLen * vLen + i;
+				int vn = i;
+				p0[0] = vi; p0[1] = vi + 1; p0[2] = vn + 1;
+				p0[3] = vi; p0[4] = vn + 1; p0[5] = vn;
+				p0 += 6;
 
-			vi += vLen;
-			vn = i * vLen;
-			p2[0] = vi; p2[1] = vn; p2[2] = vn+vLen;
-			p2[3] = vi; p2[4] = vn+vLen; p2[5] = vi+1;
-			p2 += 6;
+				vi += vLen;
+				vn = (vLen - 1) * vLen + i;
+				p1[0] = vn; p1[1] = vn + 1; p1[2] = vi + 1;
+				p1[3] = vn; p1[4] = vi + 1; p1[5] = vi;
+				p1 += 6;
 
-			vi += vLen;
-			vn = ( 1 + i ) * vLen - 1;
-			p3[0] = vn; p3[1] = vi; p3[2] = vi+1;
-			p3[3] = vn; p3[4] = vi+1; p3[5] = vn+vLen;
-			p3 += 6;
+				vi += vLen;
+				vn = i * vLen;
+				p2[0] = vi; p2[1] = vn; p2[2] = vn + vLen;
+				p2[3] = vi; p2[4] = vn + vLen; p2[5] = vi + 1;
+				p2 += 6;
+
+				vi += vLen;
+				vn = (1 + i) * vLen - 1;
+				p3[0] = vn; p3[1] = vi; p3[2] = vi + 1;
+				p3[3] = vn; p3[4] = vi + 1; p3[5] = vn + vLen;
+				p3 += 6;
+			}
 		}
 
 		if ( !mesh.createBuffer( &v[0] , nV , &idx[0] , nI , true ) )
@@ -342,7 +375,7 @@ namespace RenderGL
 		return true;
 	}
 
-	bool MeshUtility::createUVSphere(Mesh& mesh, float radius, int rings, int sectors)
+	bool MeshBuild::UVSphere(Mesh& mesh, float radius, int rings, int sectors)
 	{ 
 		assert(rings > 1);
 		assert(sectors > 0);
@@ -474,7 +507,7 @@ namespace RenderGL
 		return true;
 	}
 
-	bool MeshUtility::createSkyBox(Mesh& mesh)
+	bool MeshBuild::SkyBox(Mesh& mesh)
 	{
 		mesh.mDecl.addElement( Vertex::ePosition , Vertex::eFloat3 );
 		mesh.mDecl.addElement( Vertex::eTexcoord , Vertex::eFloat3 , 0 );
@@ -505,7 +538,7 @@ namespace RenderGL
 		return true;
 	}
 
-	bool MeshUtility::createCube( Mesh& mesh , float halfLen )
+	bool MeshBuild::Cube( Mesh& mesh , float halfLen )
 	{
 		mesh.mDecl.addElement( Vertex::ePosition , Vertex::eFloat3 );
 		mesh.mDecl.addElement( Vertex::eNormal , Vertex::eFloat3 );
@@ -571,7 +604,7 @@ namespace RenderGL
 	}
 
 
-	bool MeshUtility::createDoughnut(Mesh& mesh, float radius, float ringRadius, int rings, int sectors)
+	bool MeshBuild::Doughnut(Mesh& mesh, float radius, float ringRadius, int rings, int sectors)
 	{
 		mesh.mDecl.addElement( Vertex::ePosition , Vertex::eFloat3 );
 		mesh.mDecl.addElement( Vertex::eNormal , Vertex::eFloat3 );
@@ -670,7 +703,7 @@ namespace RenderGL
 		return true;
 	}
 
-	bool MeshUtility::createPlane(Mesh& mesh , Vector3 const& offset , Vector3 const& normal , Vector3 const& dir , float len, float texFactor)
+	bool MeshBuild::Plane(Mesh& mesh , Vector3 const& offset , Vector3 const& normal , Vector3 const& dir , float len, float texFactor)
 	{
 		mesh.mDecl.addElement( Vertex::ePosition , Vertex::eFloat3 );
 		mesh.mDecl.addElement( Vertex::eNormal   , Vertex::eFloat3 );
@@ -710,7 +743,7 @@ namespace RenderGL
 	}
 
 
-	bool MeshUtility::createSimpleSkin(Mesh& mesh, float width, float height, int nx, int ny)
+	bool MeshBuild::SimpleSkin(Mesh& mesh, float width, float height, int nx, int ny)
 	{
 		struct FVertex
 		{
@@ -781,7 +814,7 @@ namespace RenderGL
 		return true;
 	}
 
-	bool MeshUtility::createMesh(Mesh& mesh, MeshData& data)
+	bool MeshBuild::TriangleMesh(Mesh& mesh, MeshData& data)
 	{
 		int maxNumVertex = data.numPosition * data.numNormal;
 		std::vector< int > idxMap(maxNumVertex, -1);
@@ -834,7 +867,7 @@ namespace RenderGL
 		}
 	};
 
-	bool MeshUtility::createFromObjectFile(Mesh& mesh, char const* path , Matrix4* pTransform , OBJMaterialBuildListener* listener, int* skip )
+	bool MeshBuild::LoadObjectFile(Mesh& mesh, char const* path , Matrix4* pTransform , OBJMaterialBuildListener* listener, int* skip )
 	{
 		//std::ifstream objStream(path);
 		//if( !objStream.is_open() )
@@ -1106,7 +1139,7 @@ namespace RenderGL
 		return true;
 	}
 
-	bool MeshUtility::createPlaneZ(Mesh& mesh, float len, float texFactor)
+	bool MeshBuild::PlaneZ(Mesh& mesh, float len, float texFactor)
 	{
 		mesh.mDecl.addElement( Vertex::ePosition , Vertex::eFloat3 );
 		mesh.mDecl.addElement( Vertex::eNormal   , Vertex::eFloat3 );
@@ -1241,7 +1274,7 @@ namespace RenderGL
 		KeyMap  mKeyMap;
 	};
 
-	bool MeshUtility::createIcoSphere(Mesh& mesh , float radius , int numDiv )
+	bool MeshBuild::IcoSphere(Mesh& mesh , float radius , int numDiv )
 	{
 		mesh.mDecl.addElement( Vertex::ePosition , Vertex::eFloat3 );
 		mesh.mDecl.addElement( Vertex::eNormal   , Vertex::eFloat3 );
@@ -1264,7 +1297,7 @@ namespace RenderGL
 		return builder.build(mesh, radius, numDiv);
 	}
 
-	bool MeshUtility::createLightSphere(Mesh& mesh)
+	bool MeshBuild::LightSphere(Mesh& mesh)
 	{
 		mesh.mDecl.addElement(Vertex::ePosition, Vertex::eFloat3);
 		struct VertexTraits
@@ -1282,7 +1315,7 @@ namespace RenderGL
 		return builder.build(mesh, 1.00 , 4 );
 	}
 
-	bool MeshUtility::createLightCone(Mesh& mesh)
+	bool MeshBuild::LightCone(Mesh& mesh)
 	{
 		int numSide = 96;
 		mesh.mDecl.addElement(Vertex::ePosition, Vertex::eFloat3);

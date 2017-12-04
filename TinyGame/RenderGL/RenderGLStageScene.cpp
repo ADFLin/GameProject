@@ -172,6 +172,10 @@ namespace RenderGL
 			for( int i = 0; i < ARRAY_SIZE(gTextureLists); ++i )
 			{
 				prevLoading();
+				if( i == TextureId::Terrain )
+				{
+					int j = 1;
+				}
 				if( mTextures[i].loadFile(gTextureLists[i].name) )
 				{
 				}
@@ -220,7 +224,7 @@ namespace RenderGL
 				StaticMesh* mesh{ new StaticMesh };
 				materialBuilder.id = i;
 				materialBuilder.mesh = mesh;
-				if( MeshUtility::createFromObjectFile(*mesh, gMeshLists[i].name, &MeshTransform[i], &materialBuilder, MeshSkip[i]) )
+				if( MeshBuild::LoadObjectFile(*mesh, gMeshLists[i].name, &MeshTransform[i], &materialBuilder, MeshSkip[i]) )
 				{
 					mesh->postLoad();
 					mesh->name = gMeshLists[i].name;
@@ -238,9 +242,11 @@ namespace RenderGL
 		{
 			ShaderManager::getInstance().registerShaderAssets(mAssetManager);
 			mGpuSync.bUseFence = false;
+			mLoadingThread = nullptr;
 		};
 		loadingTask->hDC = de->getWindow().getHDC();
 		loadingTask->hLoadRC = hLoadRC;
+		mLoadingThread = loadingTask;
 		loadingTask->start();
 
 

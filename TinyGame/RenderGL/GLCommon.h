@@ -40,7 +40,7 @@ namespace RenderGL
 			destroy();
 		}
 
-		bool isate() { return mHandle != 0; }
+		bool isValid() { return mHandle != 0; }
 
 		void release()
 		{
@@ -51,7 +51,7 @@ namespace RenderGL
 		{
 			if( mHandle )
 			{
-				RMPolicy::destroy(mHandle);
+				RMPolicy::Destroy(mHandle);
 				GLenum error = glGetError();
 				if( error != GL_NO_ERROR )
 				{
@@ -69,7 +69,7 @@ namespace RenderGL
 		bool fetchHandle(Args ...args)
 		{
 			if( !mHandle )
-				RMPolicy::create(mHandle, args...);
+				RMPolicy::Create(mHandle, args...);
 			return mHandle != 0;
 		}
 
@@ -77,7 +77,7 @@ namespace RenderGL
 		bool fetchHandle()
 		{
 			if( !mHandle )
-				RMPolicy::create(mHandle);
+				RMPolicy::Create(mHandle);
 			return mHandle != 0;
 		}
 
@@ -85,7 +85,7 @@ namespace RenderGL
 		bool fetchHandle(P1 p1)
 		{
 			if( !mHandle )
-				RMPolicy::create(mHandle, p1);
+				RMPolicy::Create(mHandle, p1);
 			return mHandle != 0;
 		}
 
@@ -95,33 +95,33 @@ namespace RenderGL
 
 	struct RMPTexture
 	{
-		static void create(GLuint& handle) { glGenTextures(1, &handle); }
-		static void destroy(GLuint& handle) { glDeleteTextures(1, &handle); }
+		static void Create(GLuint& handle) { glGenTextures(1, &handle); }
+		static void Destroy(GLuint& handle) { glDeleteTextures(1, &handle); }
 	};
 	
 	struct RMPShader
 	{
-		static void create(GLuint& handle, GLenum type) { handle = glCreateShader(type); }
-		static void destroy(GLuint& handle) { glDeleteShader(handle); }
+		static void Create(GLuint& handle, GLenum type) { handle = glCreateShader(type); }
+		static void Destroy(GLuint& handle) { glDeleteShader(handle); }
 	};	
 	
 	struct RMPShaderProgram
 	{
-		static void create(GLuint& handle) { handle = glCreateProgram(); }
-		static void destroy(GLuint& handle) { glDeleteProgram(handle); }
+		static void Create(GLuint& handle) { handle = glCreateProgram(); }
+		static void Destroy(GLuint& handle) { glDeleteProgram(handle); }
 	};
 	
 	struct RMPRenderBuffer
 	{
-		static void create(GLuint& handle) { glGenRenderbuffers(1, &handle); }
-		static void destroy(GLuint& handle) { glDeleteRenderbuffers(1, &handle); }
+		static void Create(GLuint& handle) { glGenRenderbuffers(1, &handle); }
+		static void Destroy(GLuint& handle) { glDeleteRenderbuffers(1, &handle); }
 	};
 
 	
 	struct RMPBufferObject
 	{
-		static void create(GLuint& handle) { glGenBuffers(1, &handle); }
-		static void destroy(GLuint& handle) { glDeleteBuffers(1, &handle); }
+		static void Create(GLuint& handle) { glGenBuffers(1, &handle); }
+		static void Destroy(GLuint& handle) { glDeleteBuffers(1, &handle); }
 	};
 
 	class RHIResource : public RefCountedObjectT< RHIResource >
@@ -164,6 +164,10 @@ namespace RenderGL
 		{
 			eRGBA8 ,
 			eRGB8  ,
+
+			eR16,
+			eR8,
+
 			eR32F ,
 			eRGB32F ,
 			eRGBA32F ,
@@ -212,9 +216,11 @@ namespace RenderGL
 		};
 
 		static GLenum GetBaseFormat(Format format);
-		static GLenum GetFormatType(Format format);
+		static GLenum GetPixelFormat(Format format);
+		static GLenum GetComponentType(Format format);
 		static GLenum GetImage2DType(Format format);
-
+		static uint32 GetFormatSize(Format format);
+		
 		enum DepthFormat
 		{
 			eDepth16 ,
@@ -251,7 +257,7 @@ namespace RenderGL
 	public:
 		virtual ~RHITextureBase() {}
 	protected:
-		bool loadFileInternal(char const* path, GLenum texType, Vec2i& outSize);
+		bool loadFileInternal(char const* path, GLenum texType, GLenum texImageType, Vec2i& outSize , Texture::Format& outFormat);
 	};
 
 	class RenderTarget
@@ -263,11 +269,13 @@ namespace RenderGL
 	{
 	public:
 		bool loadFromFile( char const* path );
-		bool create( Texture::Format format, int width, int height , void* data = nullptr );
+		bool create( Texture::Format format, int width, int height , void* data = nullptr , int alignment = 0);
 		int  getSizeX() { return mSizeX; }
 		int  getSizeY() { return mSizeY; }
 		void bind();
 		void unbind();
+
+		bool update(int ox, int oy, int w, int h , Texture::Format format , void* data , int level = 0 );
 		Texture::Format getFormat() { return mFormat; }
 	private:
 		Texture::Format mFormat;
@@ -318,27 +326,30 @@ namespace RenderGL
 	};
 	typedef TRefCountPtr< RHITextureDepth > RHITextureDepthRef;
 
-
-	class RHIShader : public TRHIResource< RMPShader >
+	class Shader
 	{
 	public:
 		enum Type
 		{
-			eUnknown  = -1,
-			eVertex   = 0,
-			ePixel    = 1,
+			eVertex = 0,
+			ePixel = 1,
 			eGeometry = 2,
-			eCompute  = 3,
-			eHull     = 4,
-			eDomain   = 5,
-			NUM_SHADER_TYPE ,
+			eCompute = 3,
+			eHull = 4,
+			eDomain = 5,
+
+			NUM_SHADER_TYPE,
+			eUnknown = -1,
 		};
+	};
 
-
-		bool loadFile( Type type , char const* path , char const* def = NULL );
-		Type getType();
-		bool compileCode( Type type , char const* src[] , int num );
-		bool create( Type type );
+	class RHIShader : public TRHIResource< RMPShader >
+	{
+	public:
+		bool loadFile(Shader::Type type , char const* path , char const* def = NULL );
+		Shader::Type getType();
+		bool compileCode(Shader::Type type , char const* src[] , int num );
+		bool create(Shader::Type type );
 		void destroy();
 
 		GLuint getParam( GLuint val );
@@ -361,6 +372,7 @@ namespace RenderGL
 		eTriangleStrip,
 		eTriangleFan,
 		eLineList,
+		eLineStrip ,
 		eQuad,
 		ePoints,
 	};
@@ -382,6 +394,7 @@ namespace RenderGL
 		static GLenum To(AccessOperator op);
 		static GLenum To(Texture::Format format);
 		static GLenum To(PrimitiveType type);
+		static GLenum To(Shader::Type type);
 	};
 
 
@@ -456,7 +469,7 @@ namespace RenderGL
 
 		bool create();
 
-		RHIShader* removeShader( RHIShader::Type type );
+		RHIShader* removeShader( Shader::Type type );
 		void    attachShader( RHIShader& shader );
 		void    updateShader(bool bForce = false);
 
@@ -865,7 +878,15 @@ namespace RenderGL
 	};
 
 
-
+	struct VertexElement
+	{
+		uint8 attribute;
+		uint8 format;
+		uint8 offset;
+		uint8 semantic;
+		uint8 idx;
+		bool  bNormalize;
+	};
 	class VertexDecl
 	{
 	public:
@@ -888,22 +909,14 @@ namespace RenderGL
 
 		void setupVAO();
 		void setupVAOEnd();
-		struct Info
-		{
-			uint8 attribute;
-			uint8 format;
-			uint8 offset;
-			uint8 semantic;
-			uint8 idx;
-			bool  bNormalize;
-		};
+
 
 		static uint8  getFormatSize( uint8 format );
 		static GLenum getFormatType( uint8 format );
 		static int    getElementSize( uint8 format );
-		Info const*   findBySematic( Vertex::Semantic s , int idx ) const;
-		Info const*   findBySematic( Vertex::Semantic s ) const;
-		typedef std::vector< Info > InfoVec;
+		VertexElement const*   findBySematic( Vertex::Semantic s , int idx ) const;
+		VertexElement const*   findBySematic( Vertex::Semantic s ) const;
+		typedef std::vector< VertexElement > InfoVec;
 		InfoVec mInfoVec;
 		uint8   mVertexSize;
 	};

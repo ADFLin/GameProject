@@ -9,22 +9,42 @@
 
 namespace RenderGL
 {
+	enum RenderRTSemantic
+	{
+		RTS_Position = 0,
+		RTS_Normal ,
+		RTS_Color ,
+		RTS_Texcoord ,
+
+		RTS_MAX ,
+	};
+
+#define RTS_ELEMENT( S , SIZE )\
+	( uint32( (SIZE) & 0x7 ) << ( 3 * S ) )
+
+	template < uint32 value >
+	class TRenderRTVertexDecl
+	{
+	};
 	class RenderRT
 	{
 	public:
-		enum
+
+		enum 
 		{
-			USAGE_XYZ = BIT(0),
-			USAGE_W = BIT(1),
-			USAGE_N = BIT(2),
-			USAGE_C = BIT(3),
-			USAGE_TEX_UV = BIT(4),
-			USAGE_TEX_W  = BIT(5),
+			USAGE_XY   = RTS_ELEMENT(RTS_Position, 2),
+			USAGE_XYZ  = RTS_ELEMENT(RTS_Position, 3),
+			USAGE_XYZW = RTS_ELEMENT(RTS_Position, 4),
+			USAGE_N    = RTS_ELEMENT(RTS_Normal, 3),
+			USAGE_C    = RTS_ELEMENT(RTS_Color, 3),
+			USAGE_CA   = RTS_ELEMENT(RTS_Color, 4),
+			USAGE_TEX_UV  = RTS_ELEMENT(RTS_Texcoord, 2),
+			USAGE_TEX_UVW = RTS_ELEMENT(RTS_Texcoord, 3),
 		};
 
 		enum VertexFormat
 		{
-			eXYZ = USAGE_XYZ,
+			eXYZ   = USAGE_XYZ,
 			eXYZ_C = USAGE_XYZ | USAGE_C,
 			eXYZ_N_C = USAGE_XYZ | USAGE_N | USAGE_C,
 			eXYZ_N_C_T2 = USAGE_XYZ | USAGE_N | USAGE_C | USAGE_TEX_UV,
@@ -33,44 +53,38 @@ namespace RenderGL
 			eXYZ_N_T2 = USAGE_XYZ | USAGE_N | USAGE_TEX_UV,
 			eXYZ_T2 = USAGE_XYZ | USAGE_TEX_UV,
 
-			eXYZW_T2 = USAGE_XYZ | USAGE_W | USAGE_TEX_UV,
+			eXYZW_T2 = USAGE_XYZW | USAGE_TEX_UV,
+			eXY_T2 = USAGE_XY | USAGE_TEX_UV,
+			eXY_CA_T2 = USAGE_XY | USAGE_CA | USAGE_TEX_UV,
 		};
 
 
 		template < uint32 VF >
-		FORCEINLINE static void Draw(GLuint type, void const* vtx, int nV, int vertexStride)
+		FORCEINLINE static void Draw(PrimitiveType type, void const* vtx, int nV, int vertexStride)
 		{
 			bindArray< VF >((float const*)vtx, vertexStride);
-			glDrawArrays(type, 0, nV);
+			glDrawArrays( GLConvert::To(type), 0, nV);
 			unbindArray< VF >();
 		}
 
 		template < uint32 VF >
-		FORCEINLINE static void Draw(GLuint type, void const* vtx, int nV)
+		FORCEINLINE static void Draw(PrimitiveType type, void const* vtx, int nV)
 		{
-			Draw< VF >(type, vtx, nV, (int)CountSize< VF >::Result * sizeof(float));
+			Draw< VF >(type, vtx, nV, (int)VertexElementOffset< VF , RTS_MAX >::Result * sizeof(float));
 		}
 
-		template< uint32 BIT >
-		struct MaskSize { enum { Result = 3 }; };
-		template<>
-		struct MaskSize< 0 > { enum { Result = 0 }; };
-		template<>
-		struct MaskSize< USAGE_TEX_UV > { enum { Result = 2 }; };
-		template<>
-		struct MaskSize< USAGE_W > { enum { Result = 1 }; };
-		template<>
-		struct MaskSize< USAGE_TEX_W > { enum { Result = 1 }; };
+#define USE_SEMANTIC( VF , S ) ( ( VF ) & RTS_ELEMENT( S , 0x7 ) )
+#define VERTEX_ELEMENT_SIZE( VF , S ) ( USE_SEMANTIC( VF , S ) >> ( 3 * S ) )
 
-		template< uint32 MASK >
-		struct CountSize
+
+		template< uint32 VF, uint32 SEMANTIC >
+		struct VertexElementOffset
 		{
-			enum { ExtrctBit = MASK & -MASK };
-			enum { Result = MaskSize<ExtrctBit>::Result + CountSize< MASK & (~ExtrctBit) >::Result };
+			enum { Result = (VF & 0x7) + VertexElementOffset< (VF >> 3), SEMANTIC - 1 >::Result };
 		};
 
-		template< >
-		struct CountSize< 0 >
+		template< uint32 VF >
+		struct VertexElementOffset< VF, 0 >
 		{
 			enum { Result = 0 };
 		};
@@ -79,56 +93,62 @@ namespace RenderGL
 		FORCEINLINE static void bindArray(float const* v, uint32 vertexStride)
 		{
 
-#define VEXTER_OFFSET( VMASK , MASK ) CountSize< VMASK & ((MASK) - 1 )>::Result
-			if( VF & USAGE_XYZ )
+#define VETEX_ELEMENT_OFFSET( VF , S ) VertexElementOffset< VF , S >::Result
+
+			if( USE_SEMANTIC( VF , RTS_Position) )
 			{
 				glEnableClientState(GL_VERTEX_ARRAY);
-				glVertexPointer((VF & USAGE_W) ? 4 : 3, GL_FLOAT, vertexStride, v + VEXTER_OFFSET( VF , USAGE_XYZ));
+				glVertexPointer( VERTEX_ELEMENT_SIZE( VF , RTS_Position ) , GL_FLOAT, vertexStride, v + VETEX_ELEMENT_OFFSET( VF , RTS_Position ));
 			}
-			if( VF & USAGE_N )
+			if( USE_SEMANTIC(VF, RTS_Normal) )
 			{
+				assert(VERTEX_ELEMENT_SIZE(VF, RTS_Normal) == 3);
 				glEnableClientState(GL_NORMAL_ARRAY);
-				glNormalPointer(GL_FLOAT, vertexStride, v + VEXTER_OFFSET(VF , USAGE_N ));
+				glNormalPointer( GL_FLOAT , vertexStride, v + VETEX_ELEMENT_OFFSET(VF , RTS_Normal ));
 			}
-			if( VF & USAGE_C )
+			if( USE_SEMANTIC(VF, RTS_Color) )
 			{
 				glEnableClientState(GL_COLOR_ARRAY);
-				glColorPointer(3, GL_FLOAT, vertexStride, v + VEXTER_OFFSET(VF , USAGE_C));
+				glColorPointer( VERTEX_ELEMENT_SIZE(VF, RTS_Color) , GL_FLOAT, vertexStride, v + VETEX_ELEMENT_OFFSET(VF , RTS_Color));
 			}
 
-			if( VF & USAGE_TEX_UV )
+			if( USE_SEMANTIC(VF, RTS_Texcoord) )
 			{
 				glClientActiveTexture(GL_TEXTURE0);
 				glEnableClientState(GL_TEXTURE_COORD_ARRAY);
-				glTexCoordPointer(( VF & USAGE_TEX_W )?3:2, GL_FLOAT, vertexStride, v + VEXTER_OFFSET(VF , USAGE_TEX_UV));
+				glTexCoordPointer(VERTEX_ELEMENT_SIZE(VF, RTS_Texcoord), GL_FLOAT, vertexStride, v + VETEX_ELEMENT_OFFSET(VF , RTS_Texcoord));
 			}
-#undef VEXTER_OFFSET
+
+
 		}
+
 
 		template< uint32 VF >
 		FORCEINLINE static void unbindArray()
 		{
-			if( VF & USAGE_XYZ )
+			if( USE_SEMANTIC(VF, RTS_Position) )
 			{
 				glDisableClientState(GL_VERTEX_ARRAY);
 			}
-			if( VF & USAGE_N )
+			if( USE_SEMANTIC(VF, RTS_Normal) )
 			{
 				glDisableClientState(GL_NORMAL_ARRAY);
 			}
-			if( VF & USAGE_C )
+			if( USE_SEMANTIC(VF, RTS_Color) )
 			{
 				glDisableClientState(GL_COLOR_ARRAY);
 
 			}
-			if( VF & USAGE_TEX_UV )
+			if( USE_SEMANTIC(VF, RTS_Texcoord) )
 			{
 				glClientActiveTexture(GL_TEXTURE0);
 				glDisableClientState(GL_TEXTURE_COORD_ARRAY);
 			}
 		}
 	};
-
+#undef VETEX_ELEMENT_OFFSET
+#undef VERTEX_ELEMENT_SIZE
+#undef USE_SEMANTIC
 	class DrawUtiltiy
 	{
 	public:
@@ -142,6 +162,11 @@ namespace RenderGL
 		static void Rect(int x , int y , int width, int height);
 		static void Rect( int width, int height );
 		static void ScreenRect();
+
+
+		static void Sprite(RHITexture2D& texture, Vector2 const& pos, Vector2 const& size, Vector2 const& pivot);
+		static void Sprite(RHITexture2D& texture, Vector2 const& pos, Vector2 const& size, Vector2 const& pivot, Vec2i const& framePos, Vec2i const& frameDim);
+		static void Sprite(RHITexture2D& texture, Vector2 const& pos, Vector2 const& size, Vector2 const& pivot, Vector2 const& texPos, Vector2 const& texSize);
 
 	};
 

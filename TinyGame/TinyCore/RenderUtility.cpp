@@ -201,7 +201,7 @@ void RenderUtility::StartOpenGL()
 void RenderUtility::StopOpenGL()
 {
 	for( int i = 0 ; i < FONT_NUM ; ++i)
-		FontGL[i].release();
+		FontGL[i].cleanup();
 }
 
 void RenderUtility::SetFontColor(Graphics2D& g , int color , int type /*= COLOR_NORMAL */)

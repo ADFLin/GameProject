@@ -20,7 +20,7 @@ namespace Lighting2D
 		char const* entryNames[] = { SHADER_ENTRY(LightingPS) };
 		if( !ShaderManager::getInstance().loadFile(
 			mProgram, "Shader/Game/lighting2D", 
-			BIT(RHIShader::ePixel), entryNames ) )
+			BIT(Shader::ePixel), entryNames ) )
 			return false;
 
 		glClearColor( 0 , 0 , 0 , 0 );
@@ -56,26 +56,6 @@ namespace Lighting2D
 			tick();
 
 		updateFrame( frame );
-	}
-
-	char* TestStage::readFile( char const* file )
-	{
-		FILE* f= fopen(file,"rt");
-
-		if ( !f )
-			return NULL;
-
-		fseek(f,0,SEEK_END);
-		int broj=ftell(f);
-		rewind(f);
-
-		char* output=(char*)malloc(sizeof(char)*(broj+1));
-		broj=fread(output,sizeof(char),broj,f);
-		output[broj]='\0';
-
-		fclose(f);
-
-		return output;
 	}
 
 	void TestStage::onRender( float dFrame )

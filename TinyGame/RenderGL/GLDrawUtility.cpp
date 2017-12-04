@@ -14,6 +14,12 @@ namespace RenderGL
 		Vector2 uv;
 	};
 
+	struct VertexXY_T1
+	{
+		Vector2 pos;
+		Vector2 tex;
+	};
+
 	static const VertexXYZW_T1 GScreenVertices[] =
 	{
 		{ Vector4(-1 , -1 , 0 , 1) , Vector2(0,0) },
@@ -34,7 +40,7 @@ namespace RenderGL
 			Vector3(0,0,0),Vector3(1,0,0),Vector3(0,1,0),Vector3(1,1,0),
 			Vector3(0,1,1),Vector3(1,1,1),Vector3(0,0,1),Vector3(1,0,1),
 		};
-		RenderRT::Draw< RenderRT::eXYZ >(GL_LINES, v, 4 * 6, sizeof(Vector3));
+		RenderRT::Draw< RenderRT::eXYZ >(PrimitiveType::eLineList, v, 4 * 6, sizeof(Vector3));
 	}
 
 	void RenderGL::DrawUtiltiy::CubeMesh()
@@ -60,7 +66,7 @@ namespace RenderGL
 			Vector3(1,0,0),Vector3(0,0,-1),Vector3(0,0,0),Vector3(0,0,-1),
 			Vector3(0,1,0),Vector3(0,0,-1),Vector3(1,1,0),Vector3(0,0,-1),
 		};
-		RenderRT::Draw< RenderRT::eXYZ_N >(GL_QUADS, v, 4 * 6, 2 * sizeof(Vector3));
+		RenderRT::Draw< RenderRT::eXYZ_N >(PrimitiveType::eQuad, v, 4 * 6, 2 * sizeof(Vector3));
 	}
 
 	void RenderGL::DrawUtiltiy::AixsLine()
@@ -71,39 +77,77 @@ namespace RenderGL
 			Vector3(0,0,0),Vector3(0,1,0), Vector3(0,1,0),Vector3(0,1,0),
 			Vector3(0,0,0),Vector3(0,0,1), Vector3(0,0,1),Vector3(0,0,1),
 		};
-		RenderRT::Draw< RenderRT::eXYZ_C >(GL_LINES, v, 6, 2 * sizeof(Vector3));
+		RenderRT::Draw< RenderRT::eXYZ_C >(PrimitiveType::eLineList, v, 6, 2 * sizeof(Vector3));
 	}
 
 	void RenderGL::DrawUtiltiy::Rect(int x, int y, int width, int height)
 	{
 		float x2 = x + width;
 		float y2 = y + height;
-		VertexXYZ_T1 vertices[] =
+		VertexXY_T1 vertices[] =
 		{
-			{ Vector3(x , y , 0) , Vector2(0,0) },
-			{ Vector3(x2 , y , 0) , Vector2(1,0) },
-			{ Vector3(x2 , y2 , 0) , Vector2(1,1) },
-			{ Vector3(x , y2 , 0) , Vector2(0,1) },
+			{ Vector2(x , y ) , Vector2(0,0) },
+			{ Vector2(x2 , y ) , Vector2(1,0) },
+			{ Vector2(x2 , y2 ) , Vector2(1,1) },
+			{ Vector2(x , y2 ) , Vector2(0,1) },
 		};
 
-		RenderRT::Draw< RenderRT::eXYZ_T2 >(GL_QUADS, vertices, 4);
+		RenderRT::Draw< RenderRT::eXY_T2 >(PrimitiveType::eQuad, vertices, 4);
 	}
 
 	void RenderGL::DrawUtiltiy::Rect(int width, int height)
 	{
-		VertexXYZ_T1 vertices[] =
+		VertexXY_T1 vertices[] =
 		{
-			{ Vector3(0 , 0 , 0) , Vector2(0,0) },
-			{ Vector3(width , 0 , 0) , Vector2(1,0) },
-			{ Vector3(width , height , 0) , Vector2(1,1) },
-			{ Vector3(0 , height , 0) , Vector2(0,1) },
+			{ Vector2(0 , 0 ) , Vector2(0,0) },
+			{ Vector2(width , 0 ) , Vector2(1,0) },
+			{ Vector2(width , height ) , Vector2(1,1) },
+			{ Vector2(0 , height ) , Vector2(0,1) },
 		};
-		RenderRT::Draw< RenderRT::eXYZ_T2 >(GL_QUADS, vertices, 4);
+		RenderRT::Draw< RenderRT::eXY_T2 >(PrimitiveType::eQuad, vertices, 4);
 	}
 
 	void DrawUtiltiy::ScreenRect()
 	{
-		RenderRT::Draw< RenderRT::eXYZW_T2 >(GL_QUADS, GScreenVertices, 4);
+		RenderRT::Draw< RenderRT::eXYZW_T2 >(PrimitiveType::eQuad, GScreenVertices, 4);
+	}
+
+	void DrawUtiltiy::Sprite(RHITexture2D& texture, Vector2 const& pos, Vector2 const& size, Vector2 const& pivot)
+	{
+		Sprite(texture, pos, size, pivot, Vector2(0, 0), Vector2(1, 1));
+	}
+
+	void DrawUtiltiy::Sprite(RHITexture2D& texture, Vector2 const& pos, Vector2 const& size, Vector2 const& pivot, Vec2i const& framePos, Vec2i const& frameDim)
+	{
+		Vector2 dtex = Vector2(1.0 / frameDim.x, 1.0 / frameDim.y);
+		Vector2 texLT = Vector2(framePos).mul(dtex);
+
+		Sprite(texture, pos, size, pivot, texLT, dtex);
+	}
+
+	void DrawUtiltiy::Sprite(RHITexture2D& texture, Vector2 const& pos, Vector2 const& size, Vector2 const& pivot, Vector2 const& texPos, Vector2 const& texSize)
+	{
+		Vector2 posLT = pos - size.mul(pivot);
+		Vector2 posRB = posLT + size;
+
+		Vector2 texLT = texPos;
+		Vector2 texRB = texLT + texSize;
+
+		glEnable(GL_TEXTURE_2D);
+		glActiveTexture(GL_TEXTURE0);
+		GL_BIND_LOCK_OBJECT(texture);
+
+		VertexXY_T1 vertices[4] =
+		{
+			{ posLT , texLT },
+			{ Vector2(posRB.x, posLT.y) , Vector2(texRB.x, texLT.y) },
+			{ posRB , texRB },
+			{ Vector2(posLT.x, posRB.y) , Vector2(texLT.x, texRB.y) },
+		};
+
+		RenderRT::Draw< RenderRT::eXY_T2 >(PrimitiveType::eQuad, vertices, 4);
+
+		glDisable(GL_TEXTURE_2D);
 	}
 
 }

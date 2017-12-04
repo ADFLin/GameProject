@@ -290,39 +290,19 @@ namespace FlappyBird
 		getLevel().removeAllBird();
 	}
 
-	void LevelStage::drawTexture(int id, Vector2 const& pos, Vector2 const& size, Vector2 const& piovt, Vec2i const& framePos, Vec2i const& frameDim)
+	void LevelStage::drawTexture(int id, Vector2 const& pos, Vector2 const& size, Vector2 const& pivot, Vec2i const& framePos, Vec2i const& frameDim)
 	{
-		Vector2 dtex = Vector2(1.0 / frameDim.x, 1.0 / frameDim.y);
-		Vector2 texLT = Vector2(framePos).mul(dtex);
-
-		drawTexture(id, pos , size, piovt, texLT, dtex);
+		DrawUtiltiy::Sprite(mTextures[id], pos, size, pivot, framePos , frameDim );
 	}
 
-	void LevelStage::drawTexture(int id, Vector2 const& pos, Vector2 const& size, Vector2 const& piovt, Vector2 const& texPos, Vector2 const& texSize)
+	void LevelStage::drawTexture(int id, Vector2 const& pos, Vector2 const& size, Vector2 const& pivot, Vector2 const& texPos, Vector2 const& texSize)
 	{
-		Vector2 posLT = pos -size.mul(piovt);
-		Vector2 posRB = posLT + size;
-
-		Vector2 texLT = texPos;
-		Vector2 texRB = texLT + texSize;
-
-		glEnable(GL_TEXTURE_2D);
-		glActiveTexture(GL_TEXTURE0);
-		GL_BIND_LOCK_OBJECT(mTextures[id]);
-
-		glBegin(GL_QUADS);
-		glTexCoord2f(texLT.x, texLT.y); glVertex2f(posLT.x, posLT.y);
-		glTexCoord2f(texRB.x, texLT.y); glVertex2f(posRB.x, posLT.y);
-		glTexCoord2f(texRB.x, texRB.y); glVertex2f(posRB.x, posRB.y);
-		glTexCoord2f(texLT.x, texRB.y); glVertex2f(posLT.x, posRB.y);
-		glEnd();
-
-		glDisable(GL_TEXTURE_2D);
+		DrawUtiltiy::Sprite(mTextures[id], pos, size, pivot, texPos , texSize);
 	}
 
-	void LevelStage::drawTexture(int id, Vector2 const& pos, Vector2 const& size, Vector2 const& piovt)
+	void LevelStage::drawTexture(int id, Vector2 const& pos, Vector2 const& size, Vector2 const& pivot)
 	{
-		drawTexture(id, pos, size, piovt, Vector2(0, 0), Vector2(1, 1));
+		DrawUtiltiy::Sprite(mTextures[id], pos, size, pivot, Vector2(0, 0), Vector2(1, 1));
 	}
 
 	void LevelStage::onRender(float dFrame)

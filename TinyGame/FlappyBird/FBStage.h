@@ -5,10 +5,13 @@
 #include "FBLevel.h"
 
 #include "RenderGL/GLCommon.h"
+#include "RenderGL/GLDrawUtility.h"
 
 
 namespace FlappyBird
 {
+	using RenderGL::RHITexture2D;
+	using RenderGL::DrawUtiltiy;
 
 	class TrainManager;
 	class TrainData;
@@ -96,13 +99,12 @@ namespace FlappyBird
 
 		bool loadResource();
 
-		typedef RenderGL::RHITexture2D Texture2D;
-		Texture2D mTextures[ TextureID::Count ];
+		RHITexture2D mTextures[ TextureID::Count ];
 		bool mbDebugDraw = false;
 
-		void drawTexture(int id, Vector2 const& pos, Vector2 const& size, Vector2 const& piovt);
-		void drawTexture(int id, Vector2 const& pos, Vector2 const& size, Vector2 const& piovt, Vec2i const& framePos , Vec2i const& frameDim );
-		void drawTexture(int id, Vector2 const& pos, Vector2 const& size, Vector2 const& piovt, Vector2 const& texPos, Vector2 const& texSize);
+		void drawTexture(int id, Vector2 const& pos, Vector2 const& size, Vector2 const& pivot);
+		void drawTexture(int id, Vector2 const& pos, Vector2 const& size, Vector2 const& pivot, Vec2i const& framePos , Vec2i const& frameDim );
+		void drawTexture(int id, Vector2 const& pos, Vector2 const& size, Vector2 const& pivot, Vector2 const& texPos, Vector2 const& texSize);
 
 		int blockType = 0;
 		int backgroundType = 0;

@@ -38,6 +38,8 @@ namespace RenderGL
 	op(Metel , "Model/Metel.tga")\
 	op(MarioD, "Model/marioD.png")\
 	op(MarioS, "Model/marioS.png")\
+	\
+	op(Terrain , "Terrain/colormap.bmp")\
 
 
 #define EnumOp( NAME , PATH ) NAME ,

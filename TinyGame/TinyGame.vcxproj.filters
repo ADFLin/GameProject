@@ -1,10 +1,6 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <Filter Include="資源檔">
-      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
-      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav</Extensions>
-    </Filter>
     <Filter Include="Stage">
       <UniqueIdentifier>{b9218adf-4ea7-4099-919e-f9bc016bbb48}</UniqueIdentifier>
     </Filter>
@@ -83,6 +79,10 @@
     <Filter Include="Common">
       <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
       <Extensions>h;hpp;hxx;hm;inl;inc;xsd;cpp;c;cxx;</Extensions>
+    </Filter>
+    <Filter Include="Resource">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav</Extensions>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -341,6 +341,12 @@
     <ClCompile Include="Stage\LeelaZeroLearningStage.cpp">
       <Filter>Stage</Filter>
     </ClCompile>
+    <ClCompile Include="RenderGL\TextureAtlas.cpp">
+      <Filter>RenderGL</Filter>
+    </ClCompile>
+    <ClCompile Include="Go\GoRenderer.cpp">
+      <Filter>GameGo</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Bsp2D.h">
@@ -350,9 +356,6 @@
       <Filter>Common</Filter>
     </ClInclude>
     <ClInclude Include="Geometry2d.h">
-      <Filter>Common</Filter>
-    </ClInclude>
-    <ClInclude Include="resource.h">
       <Filter>Common</Filter>
     </ClInclude>
     <ClInclude Include="TinyGameApp.h">
@@ -775,15 +778,30 @@
     <ClInclude Include="Stage\AudioTestStage.h">
       <Filter>Stage</Filter>
     </ClInclude>
+    <ClInclude Include="RandomUtility.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="resource.h">
+      <Filter>Resource</Filter>
+    </ClInclude>
+    <ClInclude Include="Go\GoRenderer.h">
+      <Filter>GameGo</Filter>
+    </ClInclude>
+    <ClInclude Include="RenderGL\TextureAtlas.h">
+      <Filter>RenderGL</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Image Include="Poker\cards.bmp">
-      <Filter>資源檔</Filter>
+      <Filter>Resource</Filter>
+    </Image>
+    <Image Include="Resource\GameIcon.ico">
+      <Filter>Resource</Filter>
     </Image>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="TinyGame.rc">
-      <Filter>資源檔</Filter>
+      <Filter>Resource</Filter>
     </ResourceCompile>
   </ItemGroup>
   <ItemGroup>
@@ -955,6 +973,9 @@
     </None>
     <None Include="out\Shader\Game\Lighting2D.glsl">
       <Filter>Shader\Game</Filter>
+    </None>
+    <None Include="out\Shader\Terrain.glsl">
+      <Filter>Shader</Filter>
     </None>
   </ItemGroup>
 </Project>

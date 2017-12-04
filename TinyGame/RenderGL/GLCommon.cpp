@@ -12,6 +12,8 @@
 
 namespace RenderGL
 {
+	int const GLDefalutUnpackAlignment = 4;
+
 	static bool checkGLError()
 	{
 		GLenum error = glGetError();
@@ -24,15 +26,11 @@ namespace RenderGL
 		return true;
 	}
 
-
-
-	bool RHIShader::loadFile( Type type , char const* path , char const* def )
+	bool RHIShader::loadFile( Shader::Type type , char const* path , char const* def )
 	{
-
 		std::vector< char > codeBuffer;
-		if( !FileUtility::LoadToBuffer(path, codeBuffer) )
+		if( !FileUtility::LoadToBuffer(path, codeBuffer, true) )
 			return false;
-
 		int num = 0;
 		char const* src[2];
 		if ( def )
@@ -48,24 +46,24 @@ namespace RenderGL
 
 	}
 
-	RHIShader::Type RHIShader::getType()
+	Shader::Type RHIShader::getType()
 	{
 		if ( mHandle )
 		{
 			switch( getParam( GL_SHADER_TYPE ) )
 			{
-			case GL_VERTEX_SHADER:   return eVertex;
-			case GL_FRAGMENT_SHADER: return ePixel;
-			case GL_GEOMETRY_SHADER: return eGeometry;
-			case GL_COMPUTE_SHADER:  return eCompute;
-			case GL_TESS_CONTROL_SHADER: return eHull;
-			case GL_TESS_EVALUATION_SHADER: return eDomain;
+			case GL_VERTEX_SHADER:   return Shader::eVertex;
+			case GL_FRAGMENT_SHADER: return Shader::ePixel;
+			case GL_GEOMETRY_SHADER: return Shader::eGeometry;
+			case GL_COMPUTE_SHADER:  return Shader::eCompute;
+			case GL_TESS_CONTROL_SHADER: return Shader::eHull;
+			case GL_TESS_EVALUATION_SHADER: return Shader::eDomain;
 			}
 		}
-		return eUnknown;
+		return Shader::eUnknown;
 	}
 
-	bool RHIShader::compileCode( Type type , char const* src[] , int num )
+	bool RHIShader::compileCode(Shader::Type type , char const* src[] , int num )
 	{
 		if ( !create( type ) )
 			return false;
@@ -80,7 +78,7 @@ namespace RenderGL
 		return true;
 	}
 
-	bool RHIShader::create(Type type)
+	bool RHIShader::create(Shader::Type type)
 	{
 		if ( mHandle )
 		{
@@ -88,15 +86,8 @@ namespace RenderGL
 				return true;
 			destroy();
 		}
-		switch( type )
-		{
-		case eVertex:   mHandle = glCreateShader( GL_VERTEX_SHADER ); break;
-		case ePixel:    mHandle = glCreateShader( GL_FRAGMENT_SHADER ); break;
-		case eGeometry: mHandle = glCreateShader( GL_GEOMETRY_SHADER ); break;
-		case eCompute:  mHandle = glCreateShader( GL_COMPUTE_SHADER ); break;
-		case eHull:     mHandle = glCreateShader( GL_TESS_CONTROL_SHADER ); break;
-		case eDomain:   mHandle = glCreateShader( GL_TESS_EVALUATION_SHADER ); break;
-		}
+
+		mHandle = glCreateShader(GLConvert::To(type));
 		return mHandle != 0;
 	}
 
@@ -133,7 +124,7 @@ namespace RenderGL
 		return fetchHandle();
 	}
 
-	RHIShader* ShaderProgram::removeShader( RHIShader::Type type )
+	RHIShader* ShaderProgram::removeShader( Shader::Type type )
 	{
 		RHIShader* out = mShaders[ type ];
 		if ( mShaders[ type ] )
@@ -147,7 +138,7 @@ namespace RenderGL
 
 	void ShaderProgram::attachShader(RHIShader& shader)
 	{
-		RHIShader::Type type = shader.getType();
+		Shader::Type type = shader.getType();
 		if ( mShaders[ type ] )
 			glDetachShader( mHandle , mShaders[ type ]->mHandle );
 		glAttachShader( mHandle , shader.mHandle );
@@ -333,7 +324,7 @@ namespace RenderGL
 	void VertexDecl::bind()
 	{
 		bool haveTex = false;
-		for( Info& info : mInfoVec )
+		for( VertexElement& info : mInfoVec )
 		{
 			switch( info.semantic )
 			{
@@ -377,7 +368,7 @@ namespace RenderGL
 	void VertexDecl::unbind()
 	{
 		bool haveTex = false;
-		for( Info& info : mInfoVec )
+		for( VertexElement& info : mInfoVec )
 		{
 			switch( info.semantic )
 			{
@@ -408,7 +399,7 @@ namespace RenderGL
 
 	void VertexDecl::setupVAO()
 	{
-		for( Info& info : mInfoVec )
+		for( VertexElement& info : mInfoVec )
 		{
 			glEnableVertexAttribArray(info.semantic);
 			glVertexAttribPointer(info.semantic, getElementSize(info.format), getFormatType(info.format), GL_FALSE, mVertexSize, (void*)info.offset);
@@ -417,7 +408,7 @@ namespace RenderGL
 
 	void VertexDecl::setupVAOEnd()
 	{
-		for( Info& info : mInfoVec )
+		for( VertexElement& info : mInfoVec )
 		{
 			glDisableVertexAttribArray(info.attribute);
 		}
@@ -443,7 +434,7 @@ namespace RenderGL
 
 	VertexDecl& VertexDecl::addElement(Vertex::Semantic s, Vertex::Format f, uint8 idx /*= 0 */)
 	{
-		Info info;
+		VertexElement info;
 		info.attribute = SemanticToAttribute(s, idx);
 		info.format   = f;
 		info.offset   = mVertexSize;
@@ -457,7 +448,7 @@ namespace RenderGL
 
 	VertexDecl& VertexDecl::addElement(uint8 attribute, Vertex::Format f, bool bNormailze)
 	{
-		Info info;
+		VertexElement info;
 		info.attribute = attribute;
 		info.format = f;
 		info.offset = mVertexSize;
@@ -561,24 +552,24 @@ namespace RenderGL
 		return 0;
 	}
 
-	VertexDecl::Info const* VertexDecl::findBySematic(Vertex::Semantic s , int idx) const
+	VertexElement const* VertexDecl::findBySematic(Vertex::Semantic s , int idx) const
 	{
 		for( InfoVec::const_iterator iter = mInfoVec.begin(),itEnd = mInfoVec.end() ;
 			iter != itEnd ; ++iter )
 		{
-			Info const& info = *iter;
+			VertexElement const& info = *iter;
 			if ( iter->semantic == s && iter->idx == idx )
 				return &info;
 		}
 		return NULL;
 	}
 
-	VertexDecl::Info const* VertexDecl::findBySematic(Vertex::Semantic s) const
+	VertexElement const* VertexDecl::findBySematic(Vertex::Semantic s) const
 	{
 		for( InfoVec::const_iterator iter = mInfoVec.begin(),itEnd = mInfoVec.end() ;
 			iter != itEnd ; ++iter )
 		{
-			Info const& info = *iter;
+			VertexElement const& info = *iter;
 			if ( iter->semantic == s )
 				return &info;
 		}
@@ -587,29 +578,31 @@ namespace RenderGL
 
 	int VertexDecl::getSematicOffset(Vertex::Semantic s) const
 	{
-		Info const* info = findBySematic( s );
+		VertexElement const* info = findBySematic( s );
 		return ( info ) ? info->offset : -1;
 	}
 
 	int VertexDecl::getSematicOffset(Vertex::Semantic s , int idx) const
 	{
-		Info const* info = findBySematic( s ,idx );
+		VertexElement const* info = findBySematic( s ,idx );
 		return ( info ) ? info->offset : -1;
 	}
 
 	Vertex::Format VertexDecl::getSematicFormat(Vertex::Semantic s) const
 	{
-		Info const* info = findBySematic( s );
+		VertexElement const* info = findBySematic( s );
 		return ( info ) ? Vertex::Format( info->format ) : Vertex::eUnknowFormat;
 	}
 
 	Vertex::Format VertexDecl::getSematicFormat(Vertex::Semantic s , int idx) const
 	{
-		Info const* info = findBySematic( s , idx );
+		VertexElement const* info = findBySematic( s , idx );
 		return ( info ) ? Vertex::Format( info->format ) : Vertex::eUnknowFormat;
 	}
 
-	bool RHITextureBase::loadFileInternal(char const* path, GLenum texType, Vec2i& outSize)
+
+
+	bool RHITextureBase::loadFileInternal(char const* path, GLenum texType , GLenum texImageType, Vec2i& outSize , Texture::Format& outFormat)
 	{
 		int w;
 		int h;
@@ -624,14 +617,19 @@ namespace RenderGL
 
 		glTexParameteri( texType, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
 		glTexParameteri( texType, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
+
 		//#TODO
 		switch( comp )
 		{
 		case 3:
-			glTexImage2D(texType, 0, GL_RGB8, w, h, 0, GL_RGB, GL_UNSIGNED_BYTE, image); 
+			glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+			glTexImage2D(texImageType, 0, GL_RGB8, w, h, 0, GL_RGB, GL_UNSIGNED_BYTE, image);
+			glPixelStorei(GL_UNPACK_ALIGNMENT, GLDefalutUnpackAlignment);
+			outFormat = Texture::eRGB8;
 			break;
 		case 4:
-			glTexImage2D(texType, 0, GL_RGBA8, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, image);
+			glTexImage2D(texImageType, 0, GL_RGBA8, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, image);
+			outFormat = Texture::eRGBA8;
 			break;
 		}
 		//glGenerateMipmap( texType);
@@ -640,7 +638,7 @@ namespace RenderGL
 	}
 
 
-	bool RHITexture2D::create(Texture::Format format, int width, int height, void* data)
+	bool RHITexture2D::create(Texture::Format format, int width, int height, void* data , int alignment )
 	{
 		if( !fetchHandle() )
 			return false;
@@ -651,8 +649,19 @@ namespace RenderGL
 		glBindTexture(GL_TEXTURE_2D, mHandle);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-		glTexImage2D(GL_TEXTURE_2D, 0, GLConvert::To(format), width, height, 0, 
-					 Texture::GetBaseFormat(format) , Texture::GetFormatType(format), data );
+
+		if ( alignment && alignment != GLDefalutUnpackAlignment )
+		{
+			glPixelStorei(GL_UNPACK_ALIGNMENT, alignment);
+			glTexImage2D(GL_TEXTURE_2D, 0, GLConvert::To(format), width, height, 0,
+						 Texture::GetBaseFormat(format), Texture::GetComponentType(format), data);
+			glPixelStorei(GL_UNPACK_ALIGNMENT, GLDefalutUnpackAlignment);
+		}
+		else
+		{
+			glTexImage2D(GL_TEXTURE_2D, 0, GLConvert::To(format), width, height, 0,
+						 Texture::GetBaseFormat(format), Texture::GetComponentType(format), data);
+		}
 		checkGLError();
 		glBindTexture(GL_TEXTURE_2D, 0);
 		return true;
@@ -665,7 +674,7 @@ namespace RenderGL
 
 		glBindTexture( GL_TEXTURE_2D , mHandle );
 		Vec2i size;
-		bool result = loadFileInternal( path , GL_TEXTURE_2D , size );
+		bool result = loadFileInternal( path , GL_TEXTURE_2D , GL_TEXTURE_2D , size , mFormat );
 		if( result )
 		{
 			mSizeX = size.x;
@@ -685,7 +694,16 @@ namespace RenderGL
 		glBindTexture( GL_TEXTURE_2D , 0 );
 	}
 
-	bool RHITexture3D::create(Texture::Format format, int sizeX , int sizeY , int sizeZ )
+	bool RHITexture2D::update(int ox, int oy, int w, int h, Texture::Format format , void* data , int level )
+	{
+		bind();
+		glTexSubImage2D(GL_TEXTURE_2D, level, ox, oy, w, h, Texture::GetPixelFormat(format) , Texture::GetComponentType(format), data);
+		bool result = checkGLError();
+		unbind();
+		return result;
+	}
+
+	bool RHITexture3D::create(Texture::Format format, int sizeX, int sizeY, int sizeZ)
 	{
 		if( !fetchHandle() )
 			return false;
@@ -693,12 +711,12 @@ namespace RenderGL
 		mSizeY = sizeY;
 		mSizeZ = sizeZ;
 
-		glBindTexture(GL_TEXTURE_2D, mHandle);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-		glTexImage3D(GL_TEXTURE_2D, 0, GLConvert::To(format), sizeX, sizeY , sizeZ, 0, 
-					 Texture::GetBaseFormat(format), Texture::GetFormatType(format), NULL);
-		glBindTexture(GL_TEXTURE_2D, 0);
+		glBindTexture(GL_TEXTURE_3D, mHandle);
+		glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		glTexImage3D(GL_TEXTURE_3D, 0, GLConvert::To(format), sizeX, sizeY , sizeZ, 0, 
+					 Texture::GetBaseFormat(format), Texture::GetComponentType(format), NULL);
+		glBindTexture(GL_TEXTURE_3D, 0);
 		return true;
 	}
 
@@ -721,11 +739,11 @@ namespace RenderGL
 		glBindTexture(GL_TEXTURE_CUBE_MAP, mHandle);
 		for( int i = 0; i < 6; ++i )
 		{
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+			glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+			glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 			glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, 
 						 GLConvert::To(format), width, height, 0,
-						 Texture::GetBaseFormat(format), Texture::GetFormatType(format), data );
+						 Texture::GetBaseFormat(format), Texture::GetComponentType(format), data );
 		}
 		glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
 		return true;
@@ -736,19 +754,20 @@ namespace RenderGL
 		if ( !fetchHandle() )
 			return false;
 
-		glBindTexture( GL_TEXTURE_2D , mHandle );
+		glBindTexture(GL_TEXTURE_CUBE_MAP, mHandle );
 
 		bool result = true; 
 		for( int i = 0 ; i < 6 ; ++i )
 		{
 			Vec2i size;
-			if ( !loadFileInternal( path[i] , GL_TEXTURE_CUBE_MAP_POSITIVE_X + i , size ) )
+			Texture::Format format;
+			if ( !loadFileInternal( path[i] , GL_TEXTURE_CUBE_MAP , GL_TEXTURE_CUBE_MAP_POSITIVE_X + i , size , format) )
 			{
 				result = false;
 			}
 		}
 
-		glBindTexture(GL_TEXTURE_2D, 0);
+		glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
 		return result;
 	}
 
@@ -770,8 +789,8 @@ namespace RenderGL
 		mFromat = format;
 
 		glBindTexture(GL_TEXTURE_2D, mHandle);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_POINT);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_POINT);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 		glTexImage2D(GL_TEXTURE_2D, 0,  Texture::Convert(format), width, height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
 
 		GLenum error = glGetError();
@@ -1016,46 +1035,214 @@ namespace RenderGL
 
 		return true;
 	}
+	struct TextureConvInfo
+	{
+#if _DEBUG
+		Texture::Format formatCheck;
+#endif
+		GLenum foramt;
+		int    compNum;
+		GLenum compType;
+		
+		//GLenum GLBaseFormat;
+	};
 
+	constexpr TextureConvInfo gTexConvMap[] =
+	{
+#if _DEBUG
+#define TEXTURE_INFO( FORMAT_CHECK , FORMAT , COMP_NUM , COMP_TYPE )\
+	{ FORMAT_CHECK , FORMAT , COMP_NUM , COMP_TYPE},
+#else
+#define TEXTURE_INFO( FORMAT_CHECK , FORMAT , COMP_TYPE )\
+	{ FORMAT , COMP_NUM ,COMP_TYPE},
+#endif
+		TEXTURE_INFO(Texture::eRGBA8   ,GL_RGBA8   ,4,GL_UNSIGNED_BYTE)
+		TEXTURE_INFO(Texture::eRGB8    ,GL_RGB8    ,3,GL_UNSIGNED_BYTE)
 
-	GLenum GLConvert::To(Texture::Format format)
+		TEXTURE_INFO(Texture::eR16     ,GL_R16     ,1,GL_UNSIGNED_SHORT)
+		TEXTURE_INFO(Texture::eR8      ,GL_R8      ,1,GL_UNSIGNED_BYTE)
+		
+		TEXTURE_INFO(Texture::eR32F    ,GL_R32F    ,1,GL_FLOAT)
+		TEXTURE_INFO(Texture::eRGB32F  ,GL_RGB32F  ,3,GL_FLOAT)
+		TEXTURE_INFO(Texture::eRGBA32F ,GL_RGBA32F ,4,GL_FLOAT)
+		TEXTURE_INFO(Texture::eRGB16F  ,GL_RGB16F  ,3,GL_FLOAT)
+		TEXTURE_INFO(Texture::eRGBA16F ,GL_RGBA16F ,4,GL_FLOAT)
+
+		TEXTURE_INFO(Texture::eR32I    ,GL_R32I    ,1,GL_INT)
+		TEXTURE_INFO(Texture::eR16I    ,GL_R16I    ,1,GL_SHORT)
+		TEXTURE_INFO(Texture::eR8I     ,GL_R8I     ,1,GL_BYTE)
+		TEXTURE_INFO(Texture::eR32U    ,GL_R32UI   ,1,GL_UNSIGNED_INT)
+		TEXTURE_INFO(Texture::eR16U    ,GL_R16UI   ,1,GL_UNSIGNED_SHORT)
+		TEXTURE_INFO(Texture::eR8U     ,GL_R8UI    ,1,GL_UNSIGNED_BYTE)
+		
+		TEXTURE_INFO(Texture::eRG32I   ,GL_RG32I   ,2,GL_INT)
+		TEXTURE_INFO(Texture::eRG16I   ,GL_RG16I   ,2,GL_SHORT)
+		TEXTURE_INFO(Texture::eRG8I    ,GL_RG8I    ,2,GL_BYTE)
+		TEXTURE_INFO(Texture::eRG32U   ,GL_RG32UI  ,2,GL_UNSIGNED_INT)
+		TEXTURE_INFO(Texture::eRG16U   ,GL_RG16UI  ,2,GL_UNSIGNED_SHORT)
+		TEXTURE_INFO(Texture::eRG8U    ,GL_RG8UI   ,2,GL_UNSIGNED_BYTE)
+		
+		TEXTURE_INFO(Texture::eRGB32I  ,GL_RGB32I  ,3,GL_INT)
+		TEXTURE_INFO(Texture::eRGB16I  ,GL_RGB16I  ,3,GL_SHORT)
+		TEXTURE_INFO(Texture::eRGB8I   ,GL_RGB8I   ,3,GL_BYTE)
+		TEXTURE_INFO(Texture::eRGB32U  ,GL_RGB32UI ,3,GL_UNSIGNED_INT)
+		TEXTURE_INFO(Texture::eRGB16U  ,GL_RGB16UI ,3,GL_UNSIGNED_SHORT)
+		TEXTURE_INFO(Texture::eRGB8U   ,GL_RGB8UI  ,3,GL_UNSIGNED_BYTE)
+		
+		TEXTURE_INFO(Texture::eRGBA32I ,GL_RGBA32I ,4,GL_INT)
+		TEXTURE_INFO(Texture::eRGBA16I ,GL_RGBA16I ,4,GL_SHORT)
+		TEXTURE_INFO(Texture::eRGBA8I  ,GL_RGBA8I  ,4,GL_BYTE)
+		TEXTURE_INFO(Texture::eRGBA32U ,GL_RGBA32UI,4,GL_UNSIGNED_INT)
+		TEXTURE_INFO(Texture::eRGBA16U ,GL_RGBA16UI,4,GL_UNSIGNED_SHORT)
+		TEXTURE_INFO(Texture::eRGBA8U  ,GL_RGBA8UI ,4,GL_UNSIGNED_BYTE)
+			
+		
+#undef TEXTURE_INFO
+	};
+#if _DEBUG
+	constexpr bool CheckTexConvMapValid_R(int i, int size)
+	{
+		return (i == size) ? true : ((i == (int)gTexConvMap[i].formatCheck) && CheckTexConvMapValid_R(i + 1, size));
+	}
+	constexpr bool CheckTexConvMapValid()
+	{
+		return CheckTexConvMapValid_R(0, sizeof(gTexConvMap) / sizeof(gTexConvMap[0]));
+	}
+	static_assert(CheckTexConvMapValid(), "CheckTexConvMapValid Error");
+#endif
+
+	GLenum Texture::Convert(DepthFormat format)
 	{
 		switch( format )
 		{
-		case Texture::eRGBA8:   return GL_RGBA8;
-		case Texture::eRGB8:    return GL_RGB8;
-		case Texture::eR32F:    return GL_R32F;
-		case Texture::eRGB32F:  return GL_RGB32F;
-		case Texture::eRGBA32F: return GL_RGBA32F;
-		case Texture::eRGB16F:  return GL_RGB16F;
-		case Texture::eRGBA16F:  return GL_RGBA16F;
-		case Texture::eR8I: return GL_R8I;
-		case Texture::eR16I:  return GL_R16I;
-		case Texture::eR32I:  return GL_R32I;
-		case Texture::eR8U: return GL_R8UI;
-		case Texture::eR16U: return GL_R16UI;
-		case Texture::eR32U: return GL_R32UI;
-		case Texture::eRG8I: return GL_RG8I;
-		case Texture::eRG16I:  return GL_RG16I;
-		case Texture::eRG32I:  return GL_RG32I;
-		case Texture::eRG8U: return GL_RG8UI;
-		case Texture::eRG16U: return GL_RG16UI;
-		case Texture::eRG32U: return GL_RG32UI;
-		case Texture::eRGB8I: return GL_RGB8I;
-		case Texture::eRGB16I:  return GL_RGB16I;
-		case Texture::eRGB32I:  return GL_RGB32I;
-		case Texture::eRGB8U: return GL_RGB8UI;
-		case Texture::eRGB16U: return GL_RGB16UI;
-		case Texture::eRGB32U: return GL_RGB32UI;
-		case Texture::eRGBA8I: return GL_RGBA8I;
-		case Texture::eRGBA16I:  return GL_RGBA16I;
-		case Texture::eRGBA32I:  return GL_RGBA32I;
-		case Texture::eRGBA8U: return GL_RGBA8UI;
-		case Texture::eRGBA16U: return GL_RGBA16UI;
-		case Texture::eRGBA32U: return GL_RGBA32UI;
+		case eDepth16: return GL_DEPTH_COMPONENT16;
+		case eDepth24: return GL_DEPTH_COMPONENT24;
+		case eDepth32: return GL_DEPTH_COMPONENT32;
+		case eDepth32F:return GL_DEPTH_COMPONENT32F;
+		case eD24S8:   return GL_DEPTH24_STENCIL8;
+		case eD32FS8:  return GL_DEPTH32F_STENCIL8;
+		case eStencil1: return GL_STENCIL_INDEX1;
+		case eStencil4: return GL_STENCIL_INDEX4;
+		case eStencil8: return GL_STENCIL_INDEX8;
+		case eStencil16: return GL_STENCIL_INDEX16;
 		}
 		return 0;
 	}
+
+	GLenum GLConvert::To(Texture::Format format)
+	{
+		return gTexConvMap[(int)format].foramt;
+	}
+
+	GLenum Texture::GetComponentType(Format format)
+	{
+		return gTexConvMap[format].compType;
+	}
+
+	GLenum Texture::GetPixelFormat(Format format)
+	{
+		switch( format )
+		{
+		case eR32F: case eR16: case eR8:
+		case eR8I:case eR16I:case eR32I:
+		case eR8U:case eR16U:case eR32U:
+			return GL_RED;
+		case eRG8I:case eRG16I:case eRG32I:
+		case eRG8U:case eRG16U:case eRG32U:
+			return GL_RG;
+		case eRGB8:
+		case eRGB32F:case eRGB16F:
+		case eRGB8I:case eRGB16I:case eRGB32I:
+		case eRGB8U:case eRGB16U:case eRGB32U:
+			return GL_RGB;
+		case eRGBA8:
+		case eRGBA32F:case eRGBA16F:
+		case eRGBA8I:case eRGBA16I:case eRGBA32I:
+		case eRGBA8U:case eRGBA16U:case eRGBA32U:
+			return GL_RGBA;
+		}
+		return 0;
+	}
+
+	GLenum Texture::GetBaseFormat(Format format)
+	{
+		switch( format )
+		{
+		case eRGB8: case eRGB32F:case eRGB16F:
+			return GL_RGB;
+		case eRGBA8:case eRGBA32F:case eRGBA16F:
+			return GL_RGBA;
+		case eR32F: case eR16: case eR8:
+			return GL_RED;
+		case eR8I:case eR16I:case eR32I:
+		case eR8U:case eR16U:case eR32U:
+			return GL_RED_INTEGER;
+		case eRG8I:case eRG16I:case eRG32I:
+		case eRG8U:case eRG16U:case eRG32U:
+			return GL_RG_INTEGER;
+		case eRGB8I:case eRGB16I:case eRGB32I:
+		case eRGB8U:case eRGB16U:case eRGB32U:
+			return GL_RGB_INTEGER;
+		case eRGBA8I:case eRGBA16I:case eRGBA32I:
+		case eRGBA8U:case eRGBA16U:case eRGBA32U:
+			return GL_RGBA_INTEGER;
+		}
+		return 0;
+
+	}
+
+	GLenum Texture::GetImage2DType(Format format)
+	{
+		switch( format )
+		{
+		case eRGBA8:
+		case eRGB8:
+		case eR32F:case eR16:case eR8:
+		case eRGB32F:
+		case eRGBA32F:
+		case eRGB16F:
+		case eRGBA16F:
+			return GL_IMAGE_2D;
+		case eR8I:case eR16I:case eR32I:
+		case eRG8I:case eRG16I:case eRG32I:
+		case eRGB8I:case eRGB16I:case eRGB32I:
+		case eRGBA8I:case eRGBA16I:case eRGBA32I:
+			return GL_INT_IMAGE_2D;
+		case eR8U:case eR16U:case eR32U:
+		case eRG8U:case eRG16U:case eRG32U:
+		case eRGB8U:case eRGB16U:case eRGB32U:
+		case eRGBA8U:case eRGBA16U:case eRGBA32U:
+			return GL_UNSIGNED_INT_IMAGE_2D;
+		}
+		return 0;
+	}
+
+	uint32 Texture::GetFormatSize(Format format)
+	{
+		uint32 result = 0;
+		switch( gTexConvMap[format].compType )
+		{
+		case GL_FLOAT:
+		case GL_INT:
+		case GL_UNSIGNED_INT:
+			result = 4;
+			break;
+		case GL_HALF_FLOAT:
+		case GL_SHORT:
+		case GL_UNSIGNED_SHORT:
+			result = 2;
+			break;
+		case GL_BYTE:
+		case GL_UNSIGNED_BYTE:
+			result = 1;
+			break;
+		}
+
+		result *= gTexConvMap[format].compNum;
+		return result;
+	}
+
+
 
 	GLenum GLConvert::To(AccessOperator op)
 	{
@@ -1077,110 +1264,23 @@ namespace RenderGL
 		case PrimitiveType::eTriangleStrip: return GL_TRIANGLE_STRIP;
 		case PrimitiveType::eTriangleFan:   return GL_TRIANGLE_FAN;
 		case PrimitiveType::eLineList:      return GL_LINES;
+		case PrimitiveType::eLineStrip:     return GL_LINE_STRIP;
 		case PrimitiveType::eQuad:          return GL_QUADS;
 		case PrimitiveType::ePoints:        return GL_POINTS;
 		}
 		return GL_POINTS;
 	}
 
-	GLenum Texture::Convert(DepthFormat format)
+	GLenum GLConvert::To(Shader::Type type)
 	{
-		switch( format )
+		switch( type )
 		{
-		case eDepth16: return GL_DEPTH_COMPONENT16;
-		case eDepth24: return GL_DEPTH_COMPONENT24;
-		case eDepth32: return GL_DEPTH_COMPONENT32;
-		case eDepth32F:return GL_DEPTH_COMPONENT32F;
-		case eD24S8:   return GL_DEPTH24_STENCIL8;
-		case eD32FS8:  return GL_DEPTH32F_STENCIL8;
-		case eStencil1: return GL_STENCIL_INDEX1;
-		case eStencil4: return GL_STENCIL_INDEX4;
-		case eStencil8: return GL_STENCIL_INDEX8;
-		case eStencil16: return GL_STENCIL_INDEX16;
-		}
-		return 0;
-	}
-
-	GLenum Texture::GetBaseFormat(Format format)
-	{
-		switch( format )
-		{
-		case eRGB8:
-		case eRGB32F:
-		case eRGB16F:
-			return GL_RGB;
-		case eRGBA8:
-		case eRGBA32F:
-		case eRGBA16F:
-			return GL_RGBA;
-		case eR32F:
-			return GL_RED;
-		case eR8I:case eR16I:case eR32I:
-		case eR8U:case eR16U:case eR32U:
-			return GL_RED_INTEGER;
-		case eRG8I:case eRG16I:case eRG32I:
-		case eRG8U:case eRG16U:case eRG32U:
-			return GL_RG_INTEGER;
-		case eRGB8I:case eRGB16I:case eRGB32I:
-		case eRGB8U:case eRGB16U:case eRGB32U:
-			return GL_RGB_INTEGER;
-		case eRGBA8I:case eRGBA16I:case eRGBA32I:
-		case eRGBA8U:case eRGBA16U:case eRGBA32U:
-			return GL_RGBA_INTEGER;
-		}
-		return 0;
-	}
-
-	GLenum Texture::GetFormatType(Format format)
-	{
-		switch( format )
-		{
-		case eR16I:case eRG16I:case eRGB16I:case eRGBA16I:
-			return GL_SHORT;
-		case eR32I:case eRG32I:case eRGB32I:case eRGBA32I:
-			return GL_INT;
-		case eR16U:case eRG16U:case eRGB16U:case eRGBA16U:
-			return GL_UNSIGNED_SHORT;
-		case eR32U:case eRG32U:case eRGB32U:case eRGBA32U:
-			return GL_UNSIGNED_INT;
-		case eR8I:
-			return GL_BYTE;
-		case eR8U:
-		case eRGB8:
-		case eRGBA8:
-			return GL_UNSIGNED_BYTE;
-		case eRGB32F:
-		case eRGB16F:
-		case eRGBA32F:
-		case eRGBA16F:
-		case eR32F:
-			return GL_FLOAT;
-		}
-		return 0;
-	}
-
-	GLenum Texture::GetImage2DType(Format format)
-	{
-		switch( format )
-		{
-		case eRGBA8:
-		case eRGB8:
-		case eR32F:
-		case eRGB32F:
-		case eRGBA32F:
-		case eRGB16F:
-		case eRGBA16F:
-			return GL_IMAGE_2D;
-		case eR8I:case eR16I:case eR32I:
-		case eRG8I:case eRG16I:case eRG32I:
-		case eRGB8I:case eRGB16I:case eRGB32I:
-		case eRGBA8I:case eRGBA16I:case eRGBA32I:
-			return GL_INT_IMAGE_2D;
-		case eR8U:case eR16U:case eR32U:
-		case eRG8U:case eRG16U:case eRG32U:
-		case eRGB8U:case eRGB16U:case eRGB32U:
-		case eRGBA8U:case eRGBA16U:case eRGBA32U:
-			return GL_UNSIGNED_INT_IMAGE_2D;
+		case Shader::eVertex:   return GL_VERTEX_SHADER;
+		case Shader::ePixel:    return GL_FRAGMENT_SHADER;
+		case Shader::eGeometry: return GL_GEOMETRY_SHADER;
+		case Shader::eCompute:  return GL_COMPUTE_SHADER;
+		case Shader::eHull:     return GL_TESS_CONTROL_SHADER;
+		case Shader::eDomain:   return GL_TESS_EVALUATION_SHADER;
 		}
 		return 0;
 	}

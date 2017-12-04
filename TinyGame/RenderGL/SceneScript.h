@@ -21,8 +21,8 @@ namespace RenderGL
 	{
 	public:
 		virtual ~IAssetProvider(){}
-		virtual TLazyObjectGuid< Material >&  getMaterial(int idx) = 0;
-		virtual TLazyObjectGuid< StaticMesh >& getMesh(int idx) = 0;
+		virtual TLazyObjectGuid< Material >   getMaterial(int idx) = 0;
+		virtual TLazyObjectGuid< StaticMesh > getMesh(int idx) = 0;
 		virtual Mesh&       getSimpleMesh(int idx) = 0;
 		virtual Texture2D&  getTexture(int idx) = 0;
 		virtual CycleTrack* addCycleTrack(Vector3& value) { return nullptr; }

@@ -35,8 +35,8 @@ public:
 	}
 	virtual ~IComPacket(){}
 
-	GAME_API void writeBuffer( SocketBuffer& buffer );
-	GAME_API void readBuffer( SocketBuffer& buffer );
+	TINY_API void writeBuffer( SocketBuffer& buffer );
+	TINY_API void readBuffer( SocketBuffer& buffer );
 
 	ComID  getID(){ return mId; }
 	int    getGroup() { return mGroup; }
@@ -99,11 +99,11 @@ class  ComEvaluator : public ComLibrary
 public:
 	typedef ComProcFun ProcFun;
 
-	GAME_API ComEvaluator();
-	GAME_API ~ComEvaluator();
+	TINY_API ComEvaluator();
+	TINY_API ~ComEvaluator();
 
-	GAME_API static unsigned WriteBuffer( SocketBuffer& buffer , IComPacket* cp );
-	GAME_API static bool     ReadBuffer( SocketBuffer& buffer , IComPacket* cp );
+	TINY_API static unsigned WriteBuffer( SocketBuffer& buffer , IComPacket* cp );
+	TINY_API static bool     ReadBuffer( SocketBuffer& buffer , IComPacket* cp );
 
 	template< class GamePacket , class T , class Fun >
 	bool setWorkerFun( T* processer, Fun fun , Fun funSocket );
@@ -112,12 +112,12 @@ public:
 	template< class GamePacket , class T , class Fun >
 	bool setUserFun( T* processer , Fun fun );
 
-	GAME_API void  removeProcesserFun( void* processer );
-	GAME_API void  procCommand( ComVisitor& visitor );
-	GAME_API void  procCommand();
+	TINY_API void  removeProcesserFun( void* processer );
+	TINY_API void  procCommand( ComVisitor& visitor );
+	TINY_API void  procCommand();
 
-	GAME_API bool  evalCommand( SocketBuffer& buffer, int group = -1, void* userData = nullptr );
-	GAME_API void  execCommand( IComPacket* cp , int group = -1 , void* userData = nullptr );
+	TINY_API bool  evalCommand( SocketBuffer& buffer, int group = -1, void* userData = nullptr );
+	TINY_API void  execCommand( IComPacket* cp , int group = -1 , void* userData = nullptr );
 
 private:
 	struct ICPFactory
@@ -145,7 +145,7 @@ private:
 
 	template< class GamePacket > 
 	ICPFactory* addFactory();
-	GAME_API ICPFactory* findFactory( ComID com );
+	TINY_API ICPFactory* findFactory( ComID com );
 
 	typedef std::map< ComID , ICPFactory* > CPFactoryMap;
 	struct UserCom 

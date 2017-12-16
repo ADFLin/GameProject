@@ -8,7 +8,7 @@
 #include "Core/IntegerType.h"
 
 #include "WinGLPlatform.h"
-#include "TGrid2D.h"
+#include "DataStructure/Grid2D.h"
 #include "Tween.h"
 
 namespace Bloxorz

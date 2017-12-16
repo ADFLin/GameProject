@@ -3,7 +3,7 @@
 
 #include "Base.h"
 
-class GWidget;
+class QWidget;
 class GameStage;
 class RenderEngine;
 class SoundManager;
@@ -26,7 +26,7 @@ public:
 	virtual void  stopPlay() = 0;
 
 
-	virtual void  procWidgetEvent( int event , int id , GWidget* sender ) = 0;
+	virtual void  procWidgetEvent( int event , int id , QWidget* sender ) = 0;
 	virtual void  procSystemEvent() = 0;
 
 	virtual IFont* getFont( int idx ) = 0;

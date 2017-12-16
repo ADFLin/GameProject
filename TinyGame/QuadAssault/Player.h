@@ -31,7 +31,7 @@ public:
 
 	void  shoot( Vec2f const& posTaget );
 	void  addWeapon(Weapon* o);
-	void  addHP(float kolicina);
+	void  addHP(float quantity);
 	void  loseEnergy(float e);
 
 	bool  isDead();
@@ -60,7 +60,7 @@ private:
 
 	bool  mIsDead;
 
-	float akceleracija;
+	float acceleration;
 
 	float rotationAim;
 

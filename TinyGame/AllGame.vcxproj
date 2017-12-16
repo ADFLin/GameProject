@@ -18,6 +18,44 @@
       <Platform>Win32</Platform>
     </ProjectConfiguration>
   </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="GameBomberMan.vcxproj">
+      <Project>{03b12fb6-53ee-4cf9-820b-0b9196e1acba}</Project>
+    </ProjectReference>
+    <ProjectReference Include="GameBubble.vcxproj">
+      <Project>{80a582ab-6663-463b-b8f2-9f8e5ed6519c}</Project>
+    </ProjectReference>
+    <ProjectReference Include="GameCarcassonne.vcxproj">
+      <Project>{3e831092-4348-48af-821a-9caf0eea86e1}</Project>
+    </ProjectReference>
+    <ProjectReference Include="GameChromatron.vcxproj">
+      <Project>{cb655cb7-1b1b-4e96-bb3b-55b7159cde41}</Project>
+    </ProjectReference>
+    <ProjectReference Include="GameCube.vcxproj">
+      <Project>{298d3652-c4fb-4880-a431-8fb106f441f8}</Project>
+    </ProjectReference>
+    <ProjectReference Include="GameGreedySnake.vcxproj">
+      <Project>{8ac389e4-51da-4ae8-bb83-43e5aa6c9e1d}</Project>
+    </ProjectReference>
+    <ProjectReference Include="GamePoker.vcxproj">
+      <Project>{ef8127d3-b6a4-4d4c-a4b5-93383d26f387}</Project>
+    </ProjectReference>
+    <ProjectReference Include="GameQuadAssault.vcxproj">
+      <Project>{157fdb21-ac42-4791-9c3b-310d3c6e7ba0}</Project>
+    </ProjectReference>
+    <ProjectReference Include="GameRich.vcxproj">
+      <Project>{0fc31442-0344-4df8-93d8-69d5c658d040}</Project>
+    </ProjectReference>
+    <ProjectReference Include="GameTetris.vcxproj">
+      <Project>{4ac73004-2006-4e49-b4e7-bcd8ed430927}</Project>
+    </ProjectReference>
+    <ProjectReference Include="GameTowerDefend.vcxproj">
+      <Project>{74e0ae02-1ebd-48c0-bb89-c5153eb9cbaf}</Project>
+    </ProjectReference>
+    <ProjectReference Include="GameZuma.vcxproj">
+      <Project>{bae631bc-abee-40a7-9e56-c21d1b72058c}</Project>
+    </ProjectReference>
+  </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{7E445617-BA57-48B1-8C08-52BA40C53663}</ProjectGuid>
     <RootNamespace>AllGame</RootNamespace>

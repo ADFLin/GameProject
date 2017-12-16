@@ -3,7 +3,7 @@
 
 #include "GamePlayer.h"
 
-#include "TGrid2D.h"
+#include "DataStructure/Grid2D.h"
 #include "GreedySnakeScene.h"
 
 namespace GreedySnake

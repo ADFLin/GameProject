@@ -5,7 +5,7 @@
 #include "ColBody.h"
 #include "Block.h"
 
-#include "IntrList.h"
+#include "DataStructure/IntrList.h"
 
 #include <vector>
 

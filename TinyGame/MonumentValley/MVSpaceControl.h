@@ -4,7 +4,7 @@
 #include "MVCommon.h"
 #include "MVObject.h"
 
-#include "IntrList.h"
+#include "DataStructure/IntrList.h"
 
 #include <vector>
 

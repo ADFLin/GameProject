@@ -7,8 +7,8 @@
 #include "Object.h"
 #include "Light.h"
 
-#include "TGrid2D.h"
-#include "IntrList.h"
+#include "DataStructure/Grid2D.h"
+#include "DataStructure/IntrList.h"
 
 #include <list>
 #include <vector>

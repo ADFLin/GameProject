@@ -2,8 +2,9 @@
 
 #include "GpuProfiler.h"
 
-#include "GLDrawUtility.h"
+#include "DrawUtility.h"
 #include "ShaderCompiler.h"
+#include "RHICommand.h"
 
 #include "Scene.h"
 
@@ -83,7 +84,7 @@ namespace RenderGL
 		shader.setParam(SHADER_PARAM(GLight.color), intensity * color);
 		shader.setParam(SHADER_PARAM(GLight.type), int(type));
 		shader.setParam(SHADER_PARAM(GLight.bCastShadow), int(bCastShadow));
-		shader.setParam(SHADER_PARAM(GLight.dir), Normalize(dir));
+		shader.setParam(SHADER_PARAM(GLight.dir), Math::GetNormal(dir));
 
 		Vector3 spotParam;
 		float angleInner = Math::Min(spotAngle.x, spotAngle.y);
@@ -110,11 +111,11 @@ namespace RenderGL
 		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
 		mShadowMap->unbind();
 
-		mShadowMap2 = new RHITexture2D;
+		mShadowMap2 = RHICreateTexture2D();
 		if( !mShadowMap2->create(Texture::eFloatRGBA, ShadowTextureSize, ShadowTextureSize) )
 			return false;
 
-		mCascadeTexture = new RHITexture2D;
+		mCascadeTexture = RHICreateTexture2D();
 		if( !mCascadeTexture->create(Texture::eFloatRGBA, CascadeTextureSize * CascadedShadowNum, CascadeTextureSize) )
 			return false;
 
@@ -444,7 +445,7 @@ namespace RenderGL
 				}
 			}
 		}
-		Vector3 zAxis = Normalize(-light.dir);
+		Vector3 zAxis = Math::GetNormal(-light.dir);
 		Vector3 viewDir = view.getViewForwardDir();
 		Vector3 xAxis = viewDir.cross(zAxis);
 		if( xAxis.length2() < 1e-4 )
@@ -1004,13 +1005,13 @@ namespace RenderGL
 
 	bool OITTechique::init(Vec2i const& size)
 	{
-		mColorStorageTexture = new RHITexture2D;
+		mColorStorageTexture = RHICreateTexture2D();
 		if( !mColorStorageTexture->create(Texture::eRGBA16F, OIT_StorageSize, OIT_StorageSize) )
 			return false;
-		mNodeAndDepthStorageTexture = new RHITexture2D;
+		mNodeAndDepthStorageTexture = RHICreateTexture2D();
 		if( !mNodeAndDepthStorageTexture->create(Texture::eRGBA32I, OIT_StorageSize, OIT_StorageSize) )
 			return false;
-		mNodeHeadTexture = new RHITexture2D;
+		mNodeHeadTexture = RHICreateTexture2D();
 		if( !mNodeHeadTexture->create(Texture::eR32U, size.x, size.y) )
 			return false;
 

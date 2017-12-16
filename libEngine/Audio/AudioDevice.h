@@ -62,6 +62,22 @@ struct ActiveSound
 	}
 };
 
+struct SoundWaveStreamingData
+{
+
+
+	struct LoadedChunk
+	{
+		uint32 size;
+		uint32 dataPos;
+		uint32 samplePos;
+	};
+
+	std::vector< LoadedChunk > loadedChunks;
+	uint32 dataPos;
+	std::vector< uint8 > buffer;
+};
+
 struct SoundInstance
 {
 	int  sourceId;
@@ -163,6 +179,13 @@ public:
 		return float( PCMData.size() ) / format.byteRate;
 	}
 
+
+	void fillStreamingData()
+	{
+
+
+
+	}
 	bool bStreaming = false;
 
 	WaveFormatInfo format;

@@ -60,12 +60,12 @@ void ScissorClipStack::pop()
 	}
 }
 
-void GUISystem::sendMessage( int event , int id , GWidget* sender )
+void GUISystem::sendMessage( int event , int id , QWidget* sender )
 {
 	getGame()->procWidgetEvent( event , id , sender );
 }
 
-GWidget* GUISystem::findTopWidget( int id , GWidget* start )
+QWidget* GUISystem::findTopWidget( int id , QWidget* start )
 {
 	for( auto iter = mManager.createTopWidgetIterator(); iter; ++iter )
 	{
@@ -81,7 +81,7 @@ void GUISystem::render()
 	mManager.render();
 }
 
-void GUISystem::addWidget( GWidget* widget )
+void GUISystem::addWidget( QWidget* widget )
 {
 	mManager.addWidget( widget );
 }
@@ -91,57 +91,48 @@ void GUISystem::cleanupWidget()
 	mManager.cleanupWidgets();
 }
 
-GWidget::GWidget( Vec2i const& pos , Vec2i const& size , GWidget* parent ) 
-	:WidgetCoreT< GWidget >( pos , size , parent )
+QWidget::QWidget( Vec2i const& pos , Vec2i const& size , QWidget* parent ) 
+	:WidgetCoreT< QWidget >( pos , size , parent )
 {
 	mId = UI_ANY;
 	mClipEnable = false;
 	mUserData = 0;
 }
 
-GWidget::~GWidget()
+QWidget::~QWidget()
 {
 
 }
 
-void GWidget::sendEvent( int eventID )
+void QWidget::sendEvent( int eventID )
 {
-#if 0 //#FIXME
-	GUI::Core* root = getManager()->getRoot(); 
-	GUI::Core* ui   = this;
-	while ( ui != root )
+	GUI::Core* ui = this;
+	while( ui != nullptr )
 	{
-		if ( ui->isTopUI())
+		if( ui->isTop() )
 			break;
 
 		ui = ui->getParent();
-		GWidget* widget = static_cast< GWidget* > ( ui );
-
-		if ( !widget->onChildEvent( eventID, mId , this ) )
+		QWidget* widget = static_cast<QWidget*> (ui);
+		if( !widget->onChildEvent(eventID, mId, this) )
 			return;
 	}
 	GUISystem::getInstance().sendMessage( eventID , mId , this );
-#endif
 }
 
-GWidget* GWidget::findChild( int id , GWidget* start )
+QWidget* QWidget::findChild( int id , QWidget* start )
 {
-#if 0 //#FIXME
-	GWidget* child = ( start ) ? nextChild( start ) : getChild();
 
-	while( child )
+	for( auto child = createChildrenIterator(); child; ++child )
 	{
-		if ( child->getID() == id )
-			return child;
-		child = nextChild( child );
+		if( child->mId == id )
+			return &(*child);
 	}
-#endif
 	return NULL;
 }
 
-void GWidget::doRenderAll()
+void QWidget::doRenderAll()
 {
-#if 0 //#FIXME
 	if ( mClipEnable )
 	{
 		Vec2i pos  = getWorldPos();
@@ -150,34 +141,33 @@ void GWidget::doRenderAll()
 		gClipStack.push( pos , size , true );
 	}
 
-	WidgetCoreT< GWidget >::doRenderAll();
-	GWidget* ui = getChild();
-	while( ui )
+	WidgetCoreT< QWidget >::doRenderAll();
+	QWidget* ui = getChild();
+
+	for( auto child = createChildrenIterator(); child; ++child )
 	{
-		ui->onRenderSiblingsEnd();
-		ui = nextChild( ui );
+		child->onRenderSiblingsEnd();
 	}
 
 	if ( mClipEnable )
 	{
 		gClipStack.pop();
 	}
-#endif
 }
 
 
-GTextButton::GTextButton( int id , Vec2i const& pos , Vec2i const& size , GWidget* parent ) 
+QTextButton::QTextButton( int id , Vec2i const& pos , Vec2i const& size , QWidget* parent ) 
 	:BaseClass( id , pos , size , parent )
 {
 	text.reset( IText::create( getGame()->getFont(0) , 24 , Color( 255 , 255 , 0 ) ) );
 }
 
-GTextButton::~GTextButton()
+QTextButton::~QTextButton()
 {
 
 }
 
-void GTextButton::onRender()
+void QTextButton::onRender()
 {
 	Vec2i const& pos  = getWorldPos();
 	Vec2i const& size = getSize();
@@ -226,7 +216,7 @@ void GTextButton::onRender()
 }
 
 int const TopSideHeight = 16;
-GFrame::GFrame( int id , Vec2i const& pos , Vec2i const& size , GWidget* parent ) 
+QFrame::QFrame( int id , Vec2i const& pos , Vec2i const& size , QWidget* parent ) 
 	:BaseClass( pos , size , parent )
 {
 	mId = id;
@@ -234,13 +224,13 @@ GFrame::GFrame( int id , Vec2i const& pos , Vec2i const& size , GWidget* parent 
 	mbMiniSize = false;
 }
 
-GFrame::~GFrame()
+QFrame::~QFrame()
 {
 	if ( mTile )
 		mTile->release();
 }
 
-bool GFrame::onMouseMsg( MouseMsg const& msg )
+bool QFrame::onMouseMsg( MouseMsg const& msg )
 {
 	BaseClass::onMouseMsg( msg );
 
@@ -299,7 +289,7 @@ bool GFrame::onMouseMsg( MouseMsg const& msg )
 	return false;
 }
 
-void GFrame::onRender()
+void QFrame::onRender()
 {
 	Vec2i pos = getWorldPos();
 	Vec2i size = getSize();
@@ -325,7 +315,7 @@ void GFrame::onRender()
 	}
 }
 
-void GFrame::setTile( char const* name )
+void QFrame::setTile( char const* name )
 {
 	if ( !mTile )
 	{
@@ -334,7 +324,7 @@ void GFrame::setTile( char const* name )
 	mTile->setString( name );
 }
 
-void GPanel::onRender()
+void QPanel::onRender()
 {
 	Vec2i pos = getWorldPos();
 	Vec2i size = getSize();
@@ -346,25 +336,25 @@ void GPanel::onRender()
 	glDisable(GL_BLEND);
 }
 
-GPanel::GPanel( int id , Vec2i const& pos , Vec2i const& size , GWidget* parent ) 
+QPanel::QPanel( int id , Vec2i const& pos , Vec2i const& size , QWidget* parent ) 
 	:BaseClass( pos , size , parent )
 {
 	mId = id;
 }
 
-GImageButton::GImageButton( int id , Vec2i const& pos , Vec2i const& size , GWidget* parent ) 
+QImageButton::QImageButton( int id , Vec2i const& pos , Vec2i const& size , QWidget* parent ) 
 	:BaseClass( id , pos , size , parent )
 {
 	mHelpText = NULL;
 }
 
-GImageButton::~GImageButton()
+QImageButton::~QImageButton()
 {
 	if ( mHelpText )
 		mHelpText->release();
 }
 
-void GImageButton::onRender()
+void QImageButton::onRender()
 {
 	if( getButtonState() == BS_HIGHLIGHT )
 		glColor3f(0.25, 0.25, 0.25);
@@ -383,7 +373,7 @@ void GImageButton::onRender()
 
 }
 
-void GImageButton::setHelpText( char const* str )
+void QImageButton::setHelpText( char const* str )
 {
 	if ( !mHelpText )
 	{
@@ -392,7 +382,7 @@ void GImageButton::setHelpText( char const* str )
 	mHelpText->setString( str );
 }
 
-void GImageButton::onRenderSiblingsEnd()
+void QImageButton::onRenderSiblingsEnd()
 {
 	if( getButtonState() == BS_HIGHLIGHT && mHelpText )
 	{
@@ -408,7 +398,7 @@ void GImageButton::onRenderSiblingsEnd()
 	}
 }
 
-GTextCtrl::GTextCtrl( int id , Vec2i const& pos , Vec2i const& size , GWidget* parent ) 
+QTextCtrl::QTextCtrl( int id , Vec2i const& pos , Vec2i const& size , QWidget* parent ) 
 	:BaseClass( pos , size , parent )
 {
 	mId = id;
@@ -417,12 +407,12 @@ GTextCtrl::GTextCtrl( int id , Vec2i const& pos , Vec2i const& size , GWidget* p
 }
 
 
-GTextCtrl::~GTextCtrl()
+QTextCtrl::~QTextCtrl()
 {
 	text->release();
 }
 
-void GTextCtrl::onRender()
+void QTextCtrl::onRender()
 {
 	Vec2i pos = getWorldPos();
 	Vec2i size = getSize();
@@ -443,45 +433,45 @@ void GTextCtrl::onRender()
 	getRenderSystem()->drawText( text , pos + size / 2 );
 }
 
-void GTextCtrl::setFontSize( unsigned size )
+void QTextCtrl::setFontSize( unsigned size )
 {
 	text->setCharSize( size );
 }
 
-void GTextCtrl::onModifyValue()
+void QTextCtrl::onModifyValue()
 {
 	text->setString( getValue() );
 }
 
-void GTextCtrl::onEditText()
+void QTextCtrl::onEditText()
 {
 	text->setString( getValue() );
 	sendEvent( EVT_TEXTCTRL_CHANGE );
 }
 
-void GTextCtrl::onFocus( bool beF )
+void QTextCtrl::onFocus( bool beF )
 {
 	Input::sKeyBlocked = beF;
 }
 
-GChoice::GChoice( int id , Vec2i const& pos , Vec2i const& size , GWidget* parent ) 
+QChoice::QChoice( int id , Vec2i const& pos , Vec2i const& size , QWidget* parent ) 
 	:BaseClass(  pos , size , parent )
 {
 	mId = id;
 }
 
-void GChoice::onAddItem( Item& item )
+void QChoice::onAddItem( Item& item )
 {
 	item.text = IText::create( getGame()->getFont( 0 ) , 20 , Color( 150,150,150 ) );
 	item.text->setString( item.value.c_str() );
 }
 
-void GChoice::onRemoveItem( Item& item )
+void QChoice::onRemoveItem( Item& item )
 {
 	item.text->release();
 }
 
-void GChoice::doRenderItem( Vec2i const& pos , Item& item , bool beLight )
+void QChoice::doRenderItem( Vec2i const& pos , Item& item , bool beLight )
 {
 	Vec2i size( getSize().x , getMenuItemHeight() );
 	if ( beLight )
@@ -496,7 +486,7 @@ void GChoice::doRenderItem( Vec2i const& pos , Item& item , bool beLight )
 	getRenderSystem()->drawText( item.text , pos + size / 2 );
 }
 
-void GChoice::onRender()
+void QChoice::onRender()
 {
 	Vec2i pos = getWorldPos();
 	Vec2i size = getSize();
@@ -515,7 +505,7 @@ void GChoice::onRender()
 	}
 }
 
-void GChoice::doRenderMenuBG( Menu* menu )
+void QChoice::doRenderMenuBG( Menu* menu )
 {
 	Vec2i pos =  menu->getWorldPos();
 	Vec2i size = menu->getSize();
@@ -528,25 +518,25 @@ void GChoice::doRenderMenuBG( Menu* menu )
 	glDisable(GL_BLEND);
 }
 
-GListCtrl::GListCtrl( int id , Vec2i const& pos , Vec2i const& size , GWidget* parent ) 
+QListCtrl::QListCtrl( int id , Vec2i const& pos , Vec2i const& size , QWidget* parent ) 
 	:BaseClass(  pos , size , parent )
 {
 	mId = id;
 }
 
 
-void GListCtrl::onAddItem( Item& item )
+void QListCtrl::onAddItem( Item& item )
 {
 	item.text = IText::create( getGame()->getFont( 0 ) , 20 , Color( 255 , 255 , 255 ) );
 	item.text->setString( item.value.c_str() );
 }
 
-void GListCtrl::onRemoveItem( Item& item )
+void QListCtrl::onRemoveItem( Item& item )
 {
 	item.text->release();
 }
 
-void GListCtrl::doRenderItem( Vec2i const& pos , Item& item , bool beSelected )
+void QListCtrl::doRenderItem( Vec2i const& pos , Item& item , bool beSelected )
 {
 	Vec2i size( getSize().x , getItemHeight() );
 	if ( beSelected )
@@ -561,7 +551,7 @@ void GListCtrl::doRenderItem( Vec2i const& pos , Item& item , bool beSelected )
 	getRenderSystem()->drawText( item.text , pos + size / 2 );
 }
 
-void GListCtrl::doRenderBackground( Vec2i const& pos , Vec2i const& size )
+void QListCtrl::doRenderBackground( Vec2i const& pos , Vec2i const& size )
 {
 	glEnable(GL_BLEND);
 	glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );

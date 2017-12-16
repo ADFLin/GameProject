@@ -3,7 +3,7 @@
 #include "WindowsPlatform.h"
 #include "WindowsMessageHander.h"
 
-#include "IntrList.h"
+#include "DataStructure/IntrList.h"
 
 class AStartTest : public GameLoopT< AStartTest , WindowsPlatform >
 	             , public WinFrameT< AStartTest >

@@ -65,9 +65,9 @@ int32 SystemPlatform::InterlockedExchange(volatile int32* value, int32 exchange)
 DateTime SystemPlatform::GetUTCTime()
 {
 #if SYS_PLATFORM_WIN
-	SYSTEMTIME WinSysTime;
-	::GetSystemTime(&WinSysTime);
-	return DateTime(WinSysTime.wYear, WinSysTime.wMonth, WinSysTime.wDay, WinSysTime.wHour, WinSysTime.wMinute, WinSysTime.wSecond, WinSysTime.wMilliseconds);
+	SYSTEMTIME systemTime;
+	::GetSystemTime(&systemTime);
+	return DateTime(systemTime.wYear, systemTime.wMonth, systemTime.wDay, systemTime.wHour, systemTime.wMinute, systemTime.wSecond, systemTime.wMilliseconds);
 #else
 	struct timeval time;
 	gettimeofday(&time, nullptr);

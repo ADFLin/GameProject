@@ -1,7 +1,6 @@
 #ifndef Vector3_h__
 #define Vector3_h__
 
-
 #include "Math/Base.h"
 
 namespace Math
@@ -208,7 +207,7 @@ namespace Math
 		return ( 1.0f - t ) * a + t * b; 
 	}
 
-	FORCEINLINE  Vector3 Normalize( Vector3 const& v )
+	FORCEINLINE  Vector3 GetNormal( Vector3 const& v )
 	{
 		float len = v.length();
 		if ( len < 1e-5 )

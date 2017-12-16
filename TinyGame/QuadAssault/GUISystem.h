@@ -36,15 +36,15 @@ enum
 };
 
 
-class  GWidget : public WidgetCoreT< GWidget >
+class  QWidget : public WidgetCoreT< QWidget >
 {
 public:
-	GWidget( Vec2i const& pos , Vec2i const& size , GWidget* parent );
-	~GWidget();
+	QWidget( Vec2i const& pos , Vec2i const& size , QWidget* parent );
+	~QWidget();
 
 	int  getID(){ return mId; }
 
-	virtual bool onChildEvent( int event , int id , GWidget* ui ){  return true; }
+	virtual bool onChildEvent( int event , int id , QWidget* ui ){  return true; }
 
 
 	void* getUserData(){ return mUserData; }
@@ -70,7 +70,7 @@ public:
 	virtual void  onRenderSiblingsEnd(){}
 	//bool doClipTest();
 
-	GWidget*  findChild( int id , GWidget* start = NULL );
+	QWidget*  findChild( int id , QWidget* start = NULL );
 
 	void doModal(){  getManager()->startModal( this );  }
 
@@ -83,7 +83,7 @@ protected:
 	int    mId;
 };
 
-typedef TWidgetLibrary< GWidget > GUI;
+typedef TWidgetLibrary< QWidget > GUI;
 typedef GUI::Manager  WidgetManager;
 
 class GUISystem : public SingletonT< GUISystem >
@@ -91,9 +91,9 @@ class GUISystem : public SingletonT< GUISystem >
 public:
 
 	void     render();
-	void     sendMessage( int event , int id , GWidget* sender );
-	GWidget* findTopWidget( int id , GWidget* start = NULL );
-	void     addWidget( GWidget* widget );
+	void     sendMessage( int event , int id , QWidget* sender );
+	QWidget* findTopWidget( int id , QWidget* start = NULL );
+	void     addWidget( QWidget* widget );
 	void     cleanupWidget();
 
 
@@ -101,20 +101,20 @@ public:
 };
 
 
-class  GPanel : public GUI::PanelT< GPanel >
+class  QPanel : public GUI::PanelT< QPanel >
 {
-	typedef GUI::PanelT< GPanel > BaseClass;
+	typedef GUI::PanelT< QPanel > BaseClass;
 public:
-	GPanel( int id , Vec2i const& pos , Vec2i const& size , GWidget* parent );
+	QPanel( int id , Vec2i const& pos , Vec2i const& size , QWidget* parent );
 protected:
 	void onRender();
 };
 
-class  GButtonBase : public GUI::ButtonT< GButtonBase >
+class  QButtonBase : public GUI::ButtonT< QButtonBase >
 {
-	typedef GUI::ButtonT< GButtonBase > BaseClass;
+	typedef GUI::ButtonT< QButtonBase > BaseClass;
 public:
-	GButtonBase( int id , Vec2i const& pos , Vec2i const& size  , GWidget* parent )
+	QButtonBase( int id , Vec2i const& pos , Vec2i const& size  , QWidget* parent )
 		:BaseClass( pos , size , parent )
 	{
 		mId = id;
@@ -122,22 +122,22 @@ public:
 	virtual void onClick(){  sendEvent( EVT_BUTTON_CLICK );  }
 };
 
-class GTextButton : public GButtonBase
+class QTextButton : public QButtonBase
 {
-	typedef GButtonBase BaseClass;
+	typedef QButtonBase BaseClass;
 public:
-	GTextButton( int id , Vec2i const& pos , Vec2i const& size  , GWidget* parent );
-	~GTextButton();
+	QTextButton( int id , Vec2i const& pos , Vec2i const& size  , QWidget* parent );
+	~QTextButton();
 	void   onRender();
 	FObjectPtr< IText > text;
 };
 
-class GImageButton : public GButtonBase
+class QImageButton : public QButtonBase
 {
-	typedef GButtonBase BaseClass;
+	typedef QButtonBase BaseClass;
 public:
-	GImageButton( int id , Vec2i const& pos , Vec2i const& size  , GWidget* parent );
-	~GImageButton();
+	QImageButton( int id , Vec2i const& pos , Vec2i const& size  , QWidget* parent );
+	~QImageButton();
 
 	void onRender();
 	void setHelpText( char const* str );
@@ -146,12 +146,12 @@ public:
 	IText*   mHelpText;
 };
 
-class  GFrame : public GUI::PanelT< GFrame >
+class  QFrame : public GUI::PanelT< QFrame >
 {
-	typedef GUI::PanelT< GFrame > BaseClass;
+	typedef GUI::PanelT< QFrame > BaseClass;
 public:
-	GFrame( int id , Vec2i const& pos , Vec2i const& size , GWidget* parent );
-	~GFrame();
+	QFrame( int id , Vec2i const& pos , Vec2i const& size , QWidget* parent );
+	~QFrame();
 	static int const TopSideHeight = 20;
 	void setTile( char const* name );
 
@@ -166,12 +166,12 @@ protected:
 };
 
 
-class GTextCtrl : public GUI::TextCtrlT< GTextCtrl >
+class QTextCtrl : public GUI::TextCtrlT< QTextCtrl >
 {
-	typedef GUI::TextCtrlT< GTextCtrl > BaseClass;
+	typedef GUI::TextCtrlT< QTextCtrl > BaseClass;
 public:
-	GTextCtrl( int id , Vec2i const& pos , Vec2i const& size , GWidget* parent );
-	~GTextCtrl();
+	QTextCtrl( int id , Vec2i const& pos , Vec2i const& size , QWidget* parent );
+	~QTextCtrl();
 
 	void setFontSize( unsigned size );
 
@@ -184,12 +184,12 @@ public:
 	IText* text;
 };
 
-class GChoice : public GUI::ChoiceT< GChoice >
+class QChoice : public GUI::ChoiceT< QChoice >
 {
-	typedef GUI::ChoiceT< GChoice > BaseClass;
+	typedef GUI::ChoiceT< QChoice > BaseClass;
 public:
 
-	GChoice( int id , Vec2i const& pos , Vec2i const& size , GWidget* parent );
+	QChoice( int id , Vec2i const& pos , Vec2i const& size , QWidget* parent );
 
 	struct MyData 
 	{
@@ -208,12 +208,12 @@ public:
 	void doRenderMenuBG( Menu* menu );
 };
 
-class GListCtrl : public GUI::ListCtrlT< GListCtrl >
+class QListCtrl : public GUI::ListCtrlT< QListCtrl >
 {
-	typedef GUI::ListCtrlT< GListCtrl > BaseClass;
+	typedef GUI::ListCtrlT< QListCtrl > BaseClass;
 public:
 
-	GListCtrl( int id , Vec2i const& pos , Vec2i const& size , GWidget* parent );
+	QListCtrl( int id , Vec2i const& pos , Vec2i const& size , QWidget* parent );
 
 	struct MyData 
 	{

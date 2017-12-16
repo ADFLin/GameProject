@@ -11,7 +11,7 @@
 #include "GLGraphics2D.h"
 
 #include <limits>
-#include "RenderGL/GLDrawUtility.h"
+#include "RenderGL/DrawUtility.h"
 #include "RenderGL/ShaderCompiler.h"
 
 namespace MV
@@ -808,7 +808,7 @@ namespace MV
 					glEnable( GL_BLEND );
 					glBlendFunc( GL_SRC_ALPHA , GL_ONE_MINUS_SRC_ALPHA );
 					glColor4f( 1 , 1 , 1 , 0.75 );
-					mRenderEngine.renderMesh( model.mesh , editPos , Roataion::Identity() );
+					mRenderEngine.renderMesh( model.mesh , editPos , AxisRoataion::Identity() );
 					glDisable( GL_BLEND );
 
 					glColor3f(1,0,1);
@@ -1129,7 +1129,7 @@ namespace MV
 	}
 	void TestStage::testRotation()
 	{
-		Roataion r;
+		AxisRoataion r;
 		r.set( eDirX , eDirZ );
 
 		Dir d1 = r.toLocal( eDirX );

@@ -5,11 +5,14 @@
 #include "StageBase.h"
 #include "GL/glew.h"
 #include "WinGLPlatform.h"
-#include "TGrid2D.h"
+#include "DataStructure/Grid2D.h"
 #include "CppVersion.h"
 #include "Math/Vector2.h"
 #include "Math/Vector3.h"
 #include "RenderGL/GLCommon.h"
+
+#define SHADOW_USE_GEOMETRY_SHADER 1
+
 
 namespace Lighting2D
 {
@@ -65,6 +68,24 @@ namespace Lighting2D
 		ShaderParameter mParamLightAttenuation;
 	};
 
+
+	class LightingShadowProgram : public ShaderProgram
+	{
+	public:
+		void bindParameters()
+		{
+			mParamLightLocation.bind(*this, SHADER_PARAM(LightLocation));
+		}
+
+		void setParameters(Vector2 const& lightPos)
+		{
+			setParam(mParamLightLocation, lightPos);
+		}
+
+		ShaderParameter mParamLightLocation;
+	};
+
+
 	class TestStage : public StageBase
 	{
 		typedef StageBase BaseClass;
@@ -73,19 +94,29 @@ namespace Lighting2D
 		typedef std::vector< Block > BlockList;
 	public:
 
+		enum
+		{
+			UI_RUN_BENCHMARK = BaseClass::NEXT_UI_ID ,
+
+			NEXT_UI_ID,
+		};
 		LightList lights;
 		BlockList blocks;
 
-		LightingProgram mProgram;
-
+		LightingProgram mProgLighting;
+		LightingShadowProgram mProgShadow;
 		TestStage(){}
+
+		std::vector< Vector2 > mBuffers;
 
 		virtual bool onInit();
 		virtual void onEnd();
 
 		virtual void onUpdate( long time );
 
+		virtual bool onWidgetEvent(int event, int id, GWidget* ui) override;
 		void onRender( float dFrame );
+
 
 		void renderPolyShadow( Light const& light , Vector2 const& pos , Vector2 const* vertices , int numVertex );
 

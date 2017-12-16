@@ -26,19 +26,19 @@ class WidgetTest : public TestBase
 		frame->addProp( "a2" , val2 );
 		GUISystem::getInstance().addWidget( frame );
 
-		GTextButton* button;
-		button = new GTextButton( UI_ANY , Vec2i( 100 , 100 ) , Vec2i(128, 64) , NULL );
+		QTextButton* button;
+		button = new QTextButton( UI_ANY , Vec2i( 100 , 100 ) , Vec2i(128, 64) , NULL );
 		button->text->setFont( getGame()->getFont(0) );
 		button->text->setString( "Start" );
 		GUISystem::getInstance().addWidget( button );
 
-		GChoice* chioce = new GChoice( UI_ANY , Vec2i( 200 , 200 ) , Vec2i( 200 , 30 ) , NULL );
+		QChoice* chioce = new QChoice( UI_ANY , Vec2i( 200 , 200 ) , Vec2i( 200 , 30 ) , NULL );
 		chioce->appendItem( "Hello" );
 		chioce->appendItem( "Good" );
 		chioce->appendItem( "Test" );
 		GUISystem::getInstance().addWidget( chioce );
 
-		GListCtrl* listCtrl = new GListCtrl( UI_ANY , Vec2i( 500 , 200 ) , Vec2i( 100 , 200 ) , NULL );
+		QListCtrl* listCtrl = new QListCtrl( UI_ANY , Vec2i( 500 , 200 ) , Vec2i( 100 , 200 ) , NULL );
 		listCtrl->appendItem( "Hello" );
 		listCtrl->appendItem( "Good" );
 		listCtrl->appendItem( "Test" );

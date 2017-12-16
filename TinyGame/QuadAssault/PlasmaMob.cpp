@@ -15,7 +15,7 @@ void PlasmaMob::init()
 	
 	mSpeed=75;
 	mMaxSpeed=75;
-	brzinaPunjenja=50;	
+	chargingRate=50;	
 	domet=512;
 	mHP=60;
 

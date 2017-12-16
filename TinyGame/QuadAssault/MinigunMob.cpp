@@ -15,7 +15,7 @@ void MinigunMob::init()
 	mSize.y=64;
 	
 	mMaxSpeed=250;	
-	brzinaPunjenja=750;	
+	chargingRate=750;	
 	domet=512;
 
 	mHP=35;

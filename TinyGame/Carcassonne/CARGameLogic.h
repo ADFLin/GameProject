@@ -8,7 +8,7 @@
 #include "CARFeature.h"
 
 #include "Random.h"
-#include "IntrList.h"
+#include "DataStructure/IntrList.h"
 
 #include <algorithm>
 

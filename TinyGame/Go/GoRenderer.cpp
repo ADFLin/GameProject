@@ -5,7 +5,7 @@
 #include "RenderUtility.h"
 #include "GLGraphics2D.h"
 
-#include "RenderGL/GLDrawUtility.h"
+#include "RenderGL/DrawUtility.h"
 #include "RenderGL/GpuProfiler.h"
 
 namespace Go
@@ -99,9 +99,16 @@ namespace Go
 
 #if DRAW_TEXTURE
 		glColor3f(1, 1, 1);
-		DrawUtiltiy::Sprite(
-			mTextures[TextureId::eBoardA], renderPos - Vec2i(border, border), Vec2i(boardSize, boardSize), Vector2(0, 0),
-			Vector2(0, 0), 2 * Vector2(1, 1));
+
+		glEnable(GL_TEXTURE_2D);
+		glActiveTexture(GL_TEXTURE0);
+		{
+			GL_BIND_LOCK_OBJECT(mTextures[TextureId::eBoardA]);
+			DrawUtiltiy::Sprite(
+				renderPos - Vec2i(border, border), Vec2i(boardSize, boardSize), Vector2(0, 0),
+				Vector2(0, 0), 2 * Vector2(1, 1));
+		}
+		glDisable(GL_TEXTURE_2D);
 #else
 		RenderUtility::SetPen(g, Color::eBlack);
 		RenderUtility::SetBrush(g, Color::eOrange);
@@ -206,6 +213,49 @@ namespace Go
 
 			glDisable(GL_BLEND);
 		}
+
+
+		{
+
+			Vector2 halfCellSize = 0.5 * Vector2(CellSize, CellSize);
+
+			for( int i = 0; i < size; ++i )
+			{
+				for( int j = 0; j < size; ++j )
+				{
+					int data = board.getData(i, j);
+					if( data )
+					{
+						Vector2 pos = renderPos + CellSize * Vector2(i, j);
+						//Vector2 pos = getStonePos(renderPos, board, i, j);
+						FixString<128> str;
+
+						Board::Pos posBoard = board.getPos(i, j);
+						
+						if( bDrawLinkInfo )
+						{
+							int dist = board.getLinkToRootDist(posBoard);
+							if( dist )
+							{
+								g.setTextColor(0, 255, 255);
+								str.format("%d", dist);
+							}
+							else
+							{
+								g.setTextColor(255, 125, 0);
+								str.format("%d", board.getCaptureCount(posBoard));
+							}
+							g.drawText(pos - halfCellSize, Vector2(CellSize, CellSize), str );
+						}
+
+						if( bDrawStepNum )
+						{
+
+						}
+					}
+				}
+			}
+		}
 	}
 
 	void GameRenderer::addBatchedSprite(int id, Vector2 pos, Vector2 size, Vector2 pivot, Vector4 color)
@@ -233,12 +283,20 @@ namespace Go
 		{
 			int id = (color == Board::eBlack) ? TextureId::eBlockStone : TextureId::eWhiteStone;
 
-			glColor4f(0, 0, 0, 0.2);
-			DrawUtiltiy::Sprite(mTextures[id], pos + Vector2(2, 2), 2 * Vector2(StoneRadius, StoneRadius), Vector2(0.5, 0.5));
+			glEnable(GL_TEXTURE_2D);
+			glActiveTexture(GL_TEXTURE0);
+			
+			{
+				GL_BIND_LOCK_OBJECT(mTextures[id]);
 
-			glColor3f(1, 1, 1);
-			DrawUtiltiy::Sprite(mTextures[id], pos, 2 * Vector2(StoneRadius, StoneRadius), Vector2(0.5, 0.5));
+				glColor4f(0, 0, 0, 0.2);
+				DrawUtiltiy::Sprite(pos + Vector2(2, 2), 2 * Vector2(StoneRadius, StoneRadius), Vector2(0.5, 0.5));
 
+				glColor3f(1, 1, 1);
+				DrawUtiltiy::Sprite(pos, 2 * Vector2(StoneRadius, StoneRadius), Vector2(0.5, 0.5));
+
+			}
+			glDisable(GL_TEXTURE_2D);
 		}
 #else
 		RenderUtility::SetPen(g, Color::eBlack);

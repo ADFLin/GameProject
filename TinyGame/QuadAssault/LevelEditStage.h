@@ -6,7 +6,7 @@
 #include "Singleton.h"
 
 class IText;
-class GFrame;
+class QFrame;
 class PropFrame;
 
 class ActionEditFrame;
@@ -17,7 +17,7 @@ class EditWorldData : public WorldData
 {
 public:
 	PropFrame* mPropFrame;
-	GFrame*    mEditToolFrame;
+	QFrame*    mEditToolFrame;
 };
 
 
@@ -30,7 +30,7 @@ public:
 
 	virtual bool onKey( unsigned key , bool isDown ){ return true; }
 	virtual bool onMouse( MouseMsg const& msg ){ return true; }
-	virtual void onWidgetEvent( int event , int id , GWidget* sender ){}
+	virtual void onWidgetEvent( int event , int id , QWidget* sender ){}
 	virtual void render(){}
 
 	EditWorldData& getWorld(){ return *mWorldData; }
@@ -56,7 +56,7 @@ public:
 	virtual void cleanup();
 
 	virtual bool onMouse( MouseMsg const& msg );
-	virtual void onWidgetEvent( int event , int id , GWidget* sender );
+	virtual void onWidgetEvent( int event , int id , QWidget* sender );
 	virtual void render();
 
 	void changeObject( LevelObject* object );
@@ -89,7 +89,7 @@ public:
 	virtual void cleanup();
 	virtual bool onKey( unsigned key , bool isDown );
 	virtual bool onMouse( MouseMsg const& msg );
-	virtual void onWidgetEvent( int event , int id , GWidget* sender );
+	virtual void onWidgetEvent( int event , int id , QWidget* sender );
 	virtual void render();
 	virtual void enumProp( IPropEditor& editor );
 
@@ -115,7 +115,7 @@ public:
 
 	virtual void onUpdate( float deltaT );
 	virtual void onRender();
-	virtual void onWidgetEvent( int event , int id , GWidget* sender );
+	virtual void onWidgetEvent( int event , int id , QWidget* sender );
 	virtual bool onMouse( MouseMsg const& msg );
 	virtual bool onKey( unsigned key , bool isDown );
 

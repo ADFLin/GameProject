@@ -1,7 +1,7 @@
 #ifndef Light_h__
 #define Light_h__
 
-#include "IntrList.h"
+#include "DataStructure/IntrList.h"
 
 enum LightingModel
 {

@@ -6,6 +6,8 @@
 #include "omp.h"
 #endif
 
+REGISTER_STAGE("Software Renderer", SR::TestStage, EStageGroup::GraphicsTest);
+
 namespace SR
 {
 
@@ -698,7 +700,7 @@ namespace SR
 
 				RayTrace trace;
 				trace.pos = camera.transform.location;
-				trace.dir = Math::Normalize(lookDir + offsetX + offsetY);
+				trace.dir = Math::GetNormal(lookDir + offsetX + offsetY);
 
 				RayResult result;
 				if( !scene.raycast(trace, result) )
@@ -710,7 +712,7 @@ namespace SR
 					LinearColor c = result.material->emissiveColor;
 
 					RayTrace reflectTrace;
-					reflectTrace.dir = Math::Normalize(trace.dir - 2 * trace.dir.projectNormal(result.normal));
+					reflectTrace.dir = Math::GetNormal(trace.dir - 2 * trace.dir.projectNormal(result.normal));
 					reflectTrace.pos = trace.pos + result.distance * trace.dir;
 
 					RayResult reflectResult;

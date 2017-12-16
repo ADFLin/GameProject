@@ -27,8 +27,8 @@ public:
 class  CFrameActionEngine : public INetEngine
 {
 public:
-	GAME_API CFrameActionEngine( INetFrameManager* netFrameMgr );
-	GAME_API ~CFrameActionEngine();
+	TINY_API CFrameActionEngine( INetFrameManager* netFrameMgr );
+	TINY_API ~CFrameActionEngine();
 
 	bool build( BuildParam& buildParam );
 	void update( IFrameUpdater& updater , long time );

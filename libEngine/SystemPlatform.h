@@ -34,15 +34,23 @@ enum class EDateWeekOfDay
 	Saturday ,
 };
 
-
+struct TimeSpan
+{
+	uint64 usec;
+};
 struct DateTime
 {
 public:
+	DateTime()
+	{
+
+	}
 	DateTime(int32 year, int32 month, int32 day, int32 hour, int32 minute, int32 sec, int32 millisecond)
 	{
 		mYear = year;
 		mMonth = month;
 		mDay = day;
+		mHour = hour;
 		mMinute = minute;
 		mSecond = sec;
 		mMillisecond = mMillisecond;
@@ -56,18 +64,60 @@ public:
 	int32 getSecond() const { return mSecond; }
 	int32 getMillisecond() const { return mMillisecond; }
 
-	bool operator == (DateTime const& rhs)
+	bool operator == (DateTime const& rhs) const
 	{
 		return mYear == rhs.mYear &&
-			mMonth == rhs.mMonth &&
-			mDay == rhs.mDay &&
-			mHour == rhs.mHour &&
-			mMinute == rhs.mMinute &&
-			mSecond == rhs.mSecond &&
-			mMillisecond == rhs.mMillisecond;
-
+		   mMonth == rhs.mMonth &&
+		   mDay == rhs.mDay &&
+		   mHour == rhs.mHour &&
+		   mMinute == rhs.mMinute &&
+		   mSecond == rhs.mSecond &&
+		   mMillisecond == rhs.mMillisecond;
 	}
+
+
+
+	bool operator < (DateTime const& rhs) const
+	{
+#define CMP( VAR )\
+	if ( VAR < rhs.VAR ) return true;\
+	if ( rhs.VAR < VAR ) return false;
+
+		CMP(mYear);
+		CMP(mMonth);
+		CMP(mDay);
+		CMP(mHour);
+		CMP(mMinute);
+		CMP(mSecond);
+
+#undef CMP
+		return mMillisecond < rhs.mMillisecond;
+	}
+
+	bool operator <= (DateTime const& rhs) const
+	{
+#define CMP( VAR )\
+	if ( VAR < rhs.VAR ) return true;\
+	if ( rhs.VAR < VAR ) return false;
+
+		CMP(mYear);
+		CMP(mMonth);
+		CMP(mDay);
+		CMP(mHour);
+		CMP(mMinute);
+		CMP(mSecond);
+
+#undef CMP
+		return mMillisecond <= rhs.mMillisecond;
+	}
+
+
+	bool operator != (DateTime const& rhs) const { return !(*this == rhs); }
+	bool operator >= (DateTime const& rhs) const { return !(*this < rhs); }
+	bool operator > (DateTime const& rhs) const { return !(*this <= rhs); }
+
 private:
+
 	int32 mYear;
 	int32 mMonth;
 	int32 mDayOfWeek;

@@ -25,6 +25,7 @@ namespace Go
 		outPos[0] = x;
 		outPos[1] = y;
 	}
+
 	class Board
 	{
 	public:
@@ -77,9 +78,15 @@ namespace Go
 
 		DataType getData( int x , int y ) const;
 		DataType getData( Pos const& p ) const { return DataType( getData( p.toIndex() ) ); }
+
+		int      getLiberty(Pos const& p) const
+		{
+
+
+		}
 		
-		int      getLife( Pos const& p ) const { return getLife( p.toIndex() ); }
-		int      getLife( int x , int y ) const;
+		int      getCaptureCount( Pos const& p ) const { return getCaptureCount( p.toIndex() ); }
+		int      getCaptureCount( int x , int y ) const;
 
 		void     putStone( Pos const& p , DataType color ){ putStone( p.toIndex()  , color ); }
 		int      fillStone( Pos const& p , DataType color );
@@ -88,6 +95,7 @@ namespace Go
 
 		int      peekCaptureStone( Pos const& p , unsigned& bitDir) const;
 
+		int      getLinkToRootDist(Pos const& p) const {  return getLinkToRootDist(p.toIndex());  }
 	private:
 		typedef short LinkType;
 
@@ -102,29 +110,40 @@ namespace Go
 
 		void     putStone( int idx, DataType color );
 
-		int      getLife( int index ) const;
-		void     addRootLife( int idxRoot , int val );
+		int      getCaptureCount( int index ) const;
+		void     addRootCaptureCount( int idxRoot , int val );
+		int      getLiberty_R(int idx) const;
 
 		int      relink( int idx );
 		void     linkRoot( int idxRoot );
 		int      getLinkRoot( int idx ) const;
+		int      getLinkToRootDist(int idx) const;
 
 		int      relink_R( int idx );
 		int      fillStone_R( int idx );
 		int      captureStone_R( int idx );
 		int      peekCaptureStoneDir(Pos const& p) const;
 		int      peekCaptureStoneDir_R( int idx ) const;
-
+   
 
 		void     removeVisitedMark_R( int idx );
 
+
+		struct IntersceionData
+		{
+			char     data;
+			uint8    checkCount;
+			LinkType link;
+		};
+
+	   //< IntersceionData > mData;
 
 		int       mIndexOffset[ NumDir ];
 		mutable DataType mColorR;
 		int       mIdxConRoot;
 
 		int       mSize;
-		LinkType* mLinkIndex;
+		mutable LinkType* mLinkIndex;
 		char*     mData;
 	};
 
@@ -161,8 +180,14 @@ namespace Go
 
 		bool    save( char const* path );
 
-		int     getStepNum() const { return mStepVec.size(); }
+		int     getStepNum() const { return mStepHistory.size(); }
 		bool    getLastStepPos(int outPos[2]) const;
+
+		int     getHistoryStepNum() const
+		{
+			return mStepHistory.size();
+		}
+		bool    getStepPos(int step, int outPos[2]) const;
 
 	private:
 
@@ -190,7 +215,7 @@ namespace Go
 		};
 
 		typedef std::vector< StepInfo > StepVec;
-		StepVec   mStepVec;
+		StepVec   mStepHistory;
 
 		void takeData( SocketBuffer& buffer );
 		bool restoreData( SocketBuffer& buffer );

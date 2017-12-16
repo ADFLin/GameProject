@@ -1,4 +1,4 @@
-#include "GLDrawUtility.h"
+#include "DrawUtility.h"
 
 namespace RenderGL
 {
@@ -112,30 +112,26 @@ namespace RenderGL
 		RenderRT::Draw< RenderRT::eXYZW_T2 >(PrimitiveType::eQuad, GScreenVertices, 4);
 	}
 
-	void DrawUtiltiy::Sprite(RHITexture2D& texture, Vector2 const& pos, Vector2 const& size, Vector2 const& pivot)
+	void DrawUtiltiy::Sprite(Vector2 const& pos, Vector2 const& size, Vector2 const& pivot)
 	{
-		Sprite(texture, pos, size, pivot, Vector2(0, 0), Vector2(1, 1));
+		Sprite( pos, size, pivot, Vector2(0, 0), Vector2(1, 1));
 	}
 
-	void DrawUtiltiy::Sprite(RHITexture2D& texture, Vector2 const& pos, Vector2 const& size, Vector2 const& pivot, Vec2i const& framePos, Vec2i const& frameDim)
+	void DrawUtiltiy::Sprite(Vector2 const& pos, Vector2 const& size, Vector2 const& pivot, Vec2i const& framePos, Vec2i const& frameDim)
 	{
 		Vector2 dtex = Vector2(1.0 / frameDim.x, 1.0 / frameDim.y);
 		Vector2 texLT = Vector2(framePos).mul(dtex);
 
-		Sprite(texture, pos, size, pivot, texLT, dtex);
+		Sprite( pos, size, pivot, texLT, dtex);
 	}
 
-	void DrawUtiltiy::Sprite(RHITexture2D& texture, Vector2 const& pos, Vector2 const& size, Vector2 const& pivot, Vector2 const& texPos, Vector2 const& texSize)
+	void DrawUtiltiy::Sprite(Vector2 const& pos, Vector2 const& size, Vector2 const& pivot, Vector2 const& texPos, Vector2 const& texSize)
 	{
 		Vector2 posLT = pos - size.mul(pivot);
 		Vector2 posRB = posLT + size;
 
 		Vector2 texLT = texPos;
 		Vector2 texRB = texLT + texSize;
-
-		glEnable(GL_TEXTURE_2D);
-		glActiveTexture(GL_TEXTURE0);
-		GL_BIND_LOCK_OBJECT(texture);
 
 		VertexXY_T1 vertices[4] =
 		{
@@ -147,7 +143,7 @@ namespace RenderGL
 
 		RenderRT::Draw< RenderRT::eXY_T2 >(PrimitiveType::eQuad, vertices, 4);
 
-		glDisable(GL_TEXTURE_2D);
+
 	}
 
 }

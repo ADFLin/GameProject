@@ -45,6 +45,7 @@ class ITextRenderer
 public:
 	virtual ~ITextRenderer(){}
 	virtual void draw(IText* text, Vec2f const& pos, unsigned sideFlag ) = 0;
+	static ITextRenderer& Get();
 };
 
 
@@ -54,13 +55,14 @@ public:
 	RenderSystem();
 	~RenderSystem();
 
-	bool init( PlatformWindow& window );
+	bool init( PlatformWindow* window );
 	void cleanup();
 	bool prevRender();
 	void postRender();
 
 	Shader* createShader( char const* vsName , char const* fsName );
 	void    removeShader( Shader* shader );
+
 
 	TextureManager* getTextureMgr(){ return mTextureMgr; }
 	void drawText(  IText* text , Vec2f const& pos ,unsigned sideFlag = 0 );
@@ -75,7 +77,7 @@ private:
 #if USE_SFML_WINDOW
 	sf::RenderWindow* mRenderWindow;
 #else
-	PlatformWindow* mRenderWindow;
+	PlatformWindow*   mRenderWindow;
 #endif
 	PlatformGLContext*  mContext;
 };

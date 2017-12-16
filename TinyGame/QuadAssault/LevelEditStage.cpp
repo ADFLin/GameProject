@@ -44,7 +44,7 @@ bool LevelEditStage::onInit()
 	mSDFlagPrev = getLevel()->setSpwanDestroyFlag( EDIT_SPAWNDESTROY_FLAG );
 
 	{
-		GFrame* frame = new GFrame( UI_EDIT_TOOL , Vec2i( 10 , 30 ), Vec2i( 320 , GFrame::TopSideHeight + 32 + 8 ) , NULL );
+		QFrame* frame = new QFrame( UI_EDIT_TOOL , Vec2i( 10 , 30 ), Vec2i( 320 , QFrame::TopSideHeight + 32 + 8 ) , NULL );
 		frame->setTile( "Tool" );
 		//"Tools"
 
@@ -52,18 +52,18 @@ bool LevelEditStage::onInit()
 		GUISystem::getInstance().addWidget( frame );
 
 
-		Vec2i pos = Vec2i( 4 , GFrame::TopSideHeight + 4 );
+		Vec2i pos = Vec2i( 4 , QFrame::TopSideHeight + 4 );
 		{
 			Vec2i size = Vec2i( 32 , 32 );
 			int offset = size.x + 4;
 
-			GImageButton* button;
-			button = new GImageButton( UI_NEW_MAP  , pos , size  , frame );
+			QImageButton* button;
+			button = new QImageButton( UI_NEW_MAP  , pos , size  , frame );
 			button->setHelpText( "New Map" );
 			button->texImag = getRenderSystem()->getTextureMgr()->getTexture("button_gen.tga");
 			pos.x += offset;
 
-			button = new GImageButton( UI_SAVE_MAP , pos , size  , frame );
+			button = new QImageButton( UI_SAVE_MAP , pos , size  , frame );
 			button->setHelpText( "Save Map" );
 			button->texImag = getRenderSystem()->getTextureMgr()->getTexture("button_save.tga");
 			pos.x += offset;
@@ -86,13 +86,13 @@ bool LevelEditStage::onInit()
 			Vec2i size = Vec2i( 64 , 32 );
 			int offset = size.x + 4;
 
-			GTextButton* button;
-			button = new GTextButton( UI_TILE_EDIT , pos , size  , frame );
+			QTextButton* button;
+			button = new QTextButton( UI_TILE_EDIT , pos , size  , frame );
 			button->text->setFont( getGame()->getFont(0) );
 			button->text->setCharSize( 20 );
 			button->text->setString( "Tile" );
 			pos.x += offset;
-			button = new GTextButton( UI_OBJECT_EDIT , pos , size  , frame );
+			button = new QTextButton( UI_OBJECT_EDIT , pos , size  , frame );
 			button->text->setFont( getGame()->getFont(0) );
 			button->text->setCharSize( 20 );
 			button->text->setString( "Object" );
@@ -249,7 +249,7 @@ bool LevelEditStage::onKey( unsigned key , bool isDown )
 	return BaseClass::onKey( key , isDown );
 }
 
-void LevelEditStage::onWidgetEvent( int event , int id , GWidget* sender )
+void LevelEditStage::onWidgetEvent( int event , int id , QWidget* sender )
 {
 	if ( id >= UI_EDIT_ID )
 		mMode->onWidgetEvent( event , id , sender );
@@ -356,8 +356,7 @@ bool LevelEditStage::saveLevel( char const* path )
 
 	of.close();
 
-	std::cout << "Map Saved." << std::endl;
-
+	QA_LOG("Map Saved.");
 	return true;
 }
 
@@ -527,7 +526,7 @@ bool TileEditMode::onMouse( MouseMsg const& msg )
 	return true;
 }
 
-void TileEditMode::onWidgetEvent( int event , int id , GWidget* sender )
+void TileEditMode::onWidgetEvent( int event , int id , QWidget* sender )
 {
 	switch( id )
 	{
@@ -646,7 +645,7 @@ bool ObjectEditMode::onMouse( MouseMsg const& msg )
 
 }
 
-void ObjectEditMode::onWidgetEvent( int event , int id , GWidget* sender )
+void ObjectEditMode::onWidgetEvent( int event , int id , QWidget* sender )
 {
 	switch( id )
 	{
@@ -664,7 +663,7 @@ void ObjectEditMode::onWidgetEvent( int event , int id , GWidget* sender )
 	case UI_OBJECT_LISTCTRL:
 		if ( event == EVT_LISTCTRL_SELECT )
 		{
-			GListCtrl* listCtrl = static_cast< GListCtrl* >( sender );
+			QListCtrl* listCtrl = static_cast< QListCtrl* >( sender );
 			mObjectName = static_cast< char const* >( listCtrl->getSelectedItemData() );
 		}
 		break;
@@ -681,7 +680,7 @@ void ObjectEditMode::onWidgetEvent( int event , int id , GWidget* sender )
 	case UI_ACTION_LISTCTRL:
 		if ( event == EVT_LISTCTRL_SELECT )
 		{
-			GListCtrl* listCtrl = static_cast< GListCtrl* >( sender );
+			QListCtrl* listCtrl = static_cast< QListCtrl* >( sender );
 
 			Action* action = static_cast< Action* >( listCtrl->getSelectedItemData() );
 			if ( action )

@@ -2,7 +2,7 @@
 #define CFNodeBase_h__
 
 #include "CFBase.h"
-#include "IntrList.h"
+#include "DataStructure/IntrList.h"
 
 namespace CFly
 {

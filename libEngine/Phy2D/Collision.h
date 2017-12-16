@@ -4,7 +4,7 @@
 #include "Phy2D/Base.h"
 #include "Phy2D/Shape.h"
 
-#include "IntrList.h"
+#include "DataStructure/IntrList.h"
 
 #include <algorithm>
 

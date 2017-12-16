@@ -2,7 +2,7 @@
 #define BLOK_H
 
 #include "Base.h"
-#include "TGrid2D.h"
+#include "DataStructure/Grid2D.h"
 #include "BlockType.h"
 
 Vec2f const gSimpleBlockSize = Vec2f( BLOCK_SIZE , BLOCK_SIZE );

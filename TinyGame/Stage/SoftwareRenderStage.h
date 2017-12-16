@@ -497,8 +497,8 @@ namespace SR
 		void lookAt(Vector3 pos, Vector3 lookPos, Vector3 upDir)
 		{
 			transform.location = pos;
-			Vector3 axisZ = Math::Normalize(pos - lookPos);
-			Vector3 axisY = Math::Normalize(upDir - upDir.projectNormal(axisZ));
+			Vector3 axisZ = Math::GetNormal(pos - lookPos);
+			Vector3 axisY = Math::GetNormal(upDir - upDir.projectNormal(axisZ));
 			Vector3 axisX = axisY.cross(axisZ);
 			transform.rotation = Matrix3(axisX, axisY, axisZ).toQuatNoScale();
 		}
@@ -679,7 +679,7 @@ namespace SR
 }//namespace SWR
 
 
-REGISTER_STAGE("Software Renderer", SR::TestStage, EStageGroup::GraphicsTest);
+
 #endif // SoftwareRenderStage_H_6E10EA7D_C3B2_4E62_B6A5_67718B8C304F
 
 

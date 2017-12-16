@@ -30,7 +30,8 @@ public:
 	FixString& operator += ( CharT const* str ){ FCString::Cat( mStr , str ); return *this; }
 	FixString& operator += ( StdString const& str ){ FCString::Cat( mStr , str.c_str() ); return *this; }
 
-
+	void  assign(CharT const* str) { FCString::Copy(mStr, str); }
+	void  assign(CharT const* str, int num){  FCString::CopyN(mStr, str, num);  }
 	void       clear(){ mStr[0] = 0; }
 	FixString& format( CharT const* fmt , ... )
 	{
@@ -58,7 +59,7 @@ public:
 
 private:
 	
-	void  assign( CharT const* str ){ FCString::Copy( mStr , str );  }
+	
 
 	template< int M , class T >
 	friend  class FixString;

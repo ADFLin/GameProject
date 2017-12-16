@@ -12,9 +12,9 @@
 
 #include <cstdlib>
 
-GAME_API IGameNetInterface* gGameNetInterfaceImpl = nullptr;
-GAME_API IDebugInterface* gDebugInterfaceImpl = nullptr;
-GAME_API uint32 gGameThreadId = 0;
+TINY_API IGameNetInterface* gGameNetInterfaceImpl = nullptr;
+TINY_API IDebugInterface* gDebugInterfaceImpl = nullptr;
+TINY_API uint32 gGameThreadId = 0;
 
 bool IsInGameThead()
 {

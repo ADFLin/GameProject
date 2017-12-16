@@ -4,34 +4,38 @@
 #include "GLConfig.h"
 #include "Core/IntegerType.h"
 
-class WGLContext
+struct WGLSetupSetting
+{
+	WGLSetupSetting()
+	{
+		colorBits  = 24;
+		alpahaBits = 8;
+		depthBits = 24;
+		stencilBits = 8;
+		numSamples = 1;
+	}
+	uint8 colorBits;
+	uint8 alpahaBits;
+	uint8 depthBits;
+	uint8 stencilBits;
+	uint8 numSamples;
+};
+
+class WindowsGLContext
 {
 public:
-	WGLContext();
-	~WGLContext();
+	WindowsGLContext();
+	~WindowsGLContext();
 
-	struct InitSetting
-	{
-		InitSetting()
-		{
-			colorBits   = 32;
-			depthBits   = 24;
-			stencilBits = 8;
-		}
-		uint8 colorBits;
-		uint8 depthBits;
-		uint8 stencilBits;
-	};
 
-	bool  init( HDC hDC , InitSetting const& setting , bool beWindow = true );
+	bool  init( HDC hDC , WGLSetupSetting const& setting , bool beWindow = true );
 	void  cleanup();
 	bool  makeCurrent( HDC hDC );
 
-	bool  is() { return mhRC != NULL; }
+	bool  isValid() { return mhRC != NULL; }
 	HGLRC getHandle(){ return mhRC; }
 
 private:
-	bool  choosePixelFormat( HDC hDC , InitSetting const& setting );
 	HGLRC mhRC;
 };
 

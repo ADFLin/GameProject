@@ -47,7 +47,7 @@ namespace BoneIK
 				return false;
 
 			Vector2 v1(1, 0);
-			Vector2 v2 = Normalize(Vector2(1,-1));
+			Vector2 v2 = Math::GetNormal(Vector2(1,-1));
 
 			Rotation rotation = Rotation::Make(v1, v2);
 
@@ -253,7 +253,7 @@ namespace BoneIK
 					inoutState[indexEffector].rotation = targetRotation;
 					for( int i = indexEffector - 1; i >= 0; --i )
 					{
-						Vector2 dir = Math::Normalize(inoutState[i + 1].pos - inoutState[i].pos);
+						Vector2 dir = Math::GetNormal(inoutState[i + 1].pos - inoutState[i].pos);
 						inoutState[i].pos = inoutState[i+1].pos -  mLinks[i].dist * dir;
 						float rotation = Math::ATan2(dir.y, dir.x);
 					}
@@ -261,7 +261,7 @@ namespace BoneIK
 					inoutState[0].pos = startPos;
 					for( int i = 0; i < indexEffector; ++i )
 					{
-						Vector2 dir = Math::Normalize(inoutState[i + 1].pos - inoutState[i].pos);
+						Vector2 dir = Math::GetNormal(inoutState[i + 1].pos - inoutState[i].pos);
 						inoutState[i+1].pos = inoutState[i].pos + mLinks[i].dist * dir;
 					}
 
@@ -306,8 +306,8 @@ namespace BoneIK
 				{
 					for( int i = indexEffector - 1; i >= 0; --i )
 					{
-						Vector2 dirA = Math::Normalize(inoutState[indexEffector].pos - inoutState[i].pos);
-						Vector2 dirB = Math::Normalize(targetPos - inoutState[i].pos);
+						Vector2 dirA = Math::GetNormal(inoutState[indexEffector].pos - inoutState[i].pos);
+						Vector2 dirB = Math::GetNormal(targetPos - inoutState[i].pos);
 						Rotation rotation = Rotation::Make(dirA, dirB);
 						for( int n = indexEffector ; n != i; --n )
 						{

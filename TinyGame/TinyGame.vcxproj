@@ -264,27 +264,8 @@
     <ClCompile Include="NesEmulator.cpp">
       <Optimization Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">MaxSpeed</Optimization>
     </ClCompile>
-    <ClCompile Include="RenderGL\GLCommon.cpp" />
-    <ClCompile Include="RenderGL\GLDrawUtility.cpp" />
-    <ClCompile Include="RenderGL\GLUtility.cpp" />
-    <ClCompile Include="RenderGL\GpuProfiler.cpp" />
-    <ClCompile Include="RenderGL\LazyObject.cpp" />
-    <ClCompile Include="RenderGL\Material.cpp" />
-    <ClCompile Include="RenderGL\PrimitiveBatch.cpp" />
-    <ClCompile Include="RenderGL\RenderContext.cpp" />
     <ClCompile Include="RenderGL\RenderGLStage.cpp" />
     <ClCompile Include="RenderGL\RenderGLStageScene.cpp" />
-    <ClCompile Include="RenderGL\RHICommon.cpp" />
-    <ClCompile Include="RenderGL\Scene.cpp" />
-    <ClCompile Include="RenderGL\SceneObject.cpp" />
-    <ClCompile Include="RenderGL\SceneRenderer.cpp" />
-    <ClCompile Include="RenderGL\SceneScript.cpp">
-      <Optimization Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">MaxSpeed</Optimization>
-      <Optimization Condition="'$(Configuration)|$(Platform)'=='Debug|VisualGDB'">MaxSpeed</Optimization>
-    </ClCompile>
-    <ClCompile Include="RenderGL\ShaderCompiler.cpp" />
-    <ClCompile Include="RenderGL\TextureAtlas.cpp" />
-    <ClCompile Include="RenderGL\VertexFactory.cpp" />
     <ClCompile Include="SingleStageMode.cpp" />
     <ClCompile Include="Go\GoCore.cpp" />
     <ClCompile Include="Go\GoStage.cpp" />
@@ -296,7 +277,7 @@
     <ClCompile Include="Stage\NesEmulatorStage.cpp" />
     <ClCompile Include="Stage\AudioTestStage.cpp" />
     <ClCompile Include="Stage\SpatialIndexTest.cpp" />
-    <ClCompile Include="Stage\StageRegister.cpp" />
+    <ClCompile Include="Stage\GlobalStageRegister.cpp" />
     <ClCompile Include="Stage\StickMoveStage.cpp" />
     <ClCompile Include="Stage\MainMenuStage.cpp" />
     <ClCompile Include="Mario\MBLevel.cpp" />
@@ -432,18 +413,6 @@
       <OpenMPSupport Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</OpenMPSupport>
     </ClCompile>
     <ClCompile Include="Stage\TMechineStage.cpp" />
-    <ClCompile Include="stb_image.cpp">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-      </PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|VisualGDB'">
-      </PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-      </PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|VisualGDB'">
-      </PrecompiledHeader>
-      <Optimization Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">MaxSpeed</Optimization>
-      <Optimization Condition="'$(Configuration)|$(Platform)'=='Debug|VisualGDB'">MaxSpeed</Optimization>
-    </ClCompile>
     <ClCompile Include="Stage\MiscTestStage.cpp" />
     <ClCompile Include="Sudoku\SudokuStage.cpp" />
     <ClCompile Include="TinyGameApp.cpp" />
@@ -525,24 +494,8 @@
     <ClInclude Include="Go\GoRenderer.h" />
     <ClInclude Include="NesEmulator.h" />
     <ClInclude Include="RandomUtility.h" />
-    <ClInclude Include="RenderGL\BaseType.h" />
-    <ClInclude Include="RenderGL\FrameGraph.h" />
-    <ClInclude Include="RenderGL\GLCommon.h" />
-    <ClInclude Include="RenderGL\GLDrawUtility.h" />
-    <ClInclude Include="RenderGL\GLUtility.h" />
-    <ClInclude Include="RenderGL\GpuProfiler.h" />
-    <ClInclude Include="RenderGL\Material.h" />
-    <ClInclude Include="RenderGL\RenderContext.h" />
     <ClInclude Include="RenderGL\RenderGLStage.h" />
     <ClInclude Include="RenderGL\RenderGLStageAssetID.h" />
-    <ClInclude Include="RenderGL\RHICommon.h" />
-    <ClInclude Include="RenderGL\Scene.h" />
-    <ClInclude Include="RenderGL\SceneObject.h" />
-    <ClInclude Include="RenderGL\SceneRenderer.h" />
-    <ClInclude Include="RenderGL\SceneScript.h" />
-    <ClInclude Include="RenderGL\ShaderCompiler.h" />
-    <ClInclude Include="RenderGL\TextureAtlas.h" />
-    <ClInclude Include="RenderGL\VertexFactory.h" />
     <ClInclude Include="SingleStageMode.h" />
     <ClInclude Include="Geometry2d.h" />
     <ClInclude Include="Go\GoCore.h" />
@@ -552,6 +505,7 @@
     <ClInclude Include="LordMonarch\LmLevel.h" />
     <ClInclude Include="Stage\FluidSimStage.h" />
     <ClInclude Include="Stage\AudioTestStage.h" />
+    <ClInclude Include="Stage\LeelaZeroLearningStage.h" />
     <ClInclude Include="Stage\SpatialIndexTest.h" />
     <ClInclude Include="Stage\MainMenuStage.h" />
     <ClInclude Include="Mario\MBLevel.h" />
@@ -625,6 +579,7 @@
     <None Include="out\Shader\Game\BumpVS.glsl" />
     <None Include="out\Shader\Game\FS.glsl" />
     <None Include="out\Shader\Game\Lighting2D.glsl" />
+    <None Include="out\Shader\Game\Lighting2DShadow.glsl" />
     <None Include="out\Shader\Game\MVPiece.glsl" />
     <None Include="out\Shader\Game\Parallax.glsl" />
     <None Include="out\Shader\Game\PlanetSurface.glsl" />
@@ -670,8 +625,6 @@
     <None Include="out\Shader\VertexProcess.glsl" />
     <None Include="out\Shader\ViewParam.glsl" />
     <None Include="out\Shader\Water.glsl" />
-    <None Include="RenderGL\LazyObject.h" />
-    <None Include="RenderGL\PrimitiveBatch.h" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\libEngine\EngineShare.vcxproj">

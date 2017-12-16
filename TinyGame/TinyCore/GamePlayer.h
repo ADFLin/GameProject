@@ -2,7 +2,7 @@
 #define GamePlayer_h__
 
 #include "GameControl.h"
-#include "TTable.h"
+#include "DataStructure/TTable.h"
 #include "UserProfile.h"
 
 #include <map>
@@ -82,7 +82,7 @@ public:
 	public:
 		bool          haveMore() const { return mPlayer != nullptr; }
 		GamePlayer*   getElement(){ return mPlayer; }
-		GAME_API void goNext();
+		TINY_API void goNext();
 
 		operator bool() const { return haveMore(); }
 
@@ -90,7 +90,7 @@ public:
 		Iterator  operator++(int) { Iterator temp = *this; goNext(); return temp; }
 
 	private:
-		GAME_API Iterator( IPlayerManager* inManager );
+		TINY_API Iterator( IPlayerManager* inManager );
 		GamePlayer*     mPlayer;
 		IPlayerManager* mManager;
 		int             mPlayerCount;

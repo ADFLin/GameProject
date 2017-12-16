@@ -492,7 +492,7 @@ namespace Phy2D
 			c.depth = radius - len;
 			if ( len < FLT_DIV_ZERO_EPSILON )
 			{
-				c.normal = Normalize( Vector2( vCol.x > 0 ? 1 : -1 , vCol.y > 0 ? 1 : -1 ) );
+				c.normal = GetNormal( Vector2( vCol.x > 0 ? 1 : -1 , vCol.y > 0 ? 1 : -1 ) );
 			}
 			else
 			{

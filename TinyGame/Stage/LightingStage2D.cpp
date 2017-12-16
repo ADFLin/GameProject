@@ -4,9 +4,14 @@
 #include "GameGUISystem.h"
 #include "WidgetUtility.h"
 #include "RenderUtility.h"
+
 #include "GLGraphics2D.h"
 
 #include "RenderGL/ShaderCompiler.h"
+#include "RenderGL/DrawUtility.h"
+
+
+#include "GL/wglew.h"
 
 namespace Lighting2D
 {
@@ -15,13 +20,28 @@ namespace Lighting2D
 		if ( !Global::getDrawEngine()->startOpenGL() )
 			return false;
 
+		wglSwapIntervalEXT(0);
+
 		GameWindow& window = Global::getDrawEngine()->getWindow();
 
-		char const* entryNames[] = { SHADER_ENTRY(LightingPS) };
-		if( !ShaderManager::getInstance().loadFile(
-			mProgram, "Shader/Game/lighting2D", 
-			BIT(Shader::ePixel), entryNames ) )
-			return false;
+		{
+			char const* entryNames[] = { SHADER_ENTRY(LightingPS) };
+			if( !ShaderManager::getInstance().loadFile(
+				mProgLighting, "Shader/Game/lighting2D",
+				BIT(Shader::ePixel), entryNames) )
+				return false;
+		}
+
+		{
+			FixString< 128 > defineStr;
+			ShaderCompileOption option;
+			option.version = 430;
+			char const* entryNames[] = { SHADER_ENTRY(MainVS) , SHADER_ENTRY(MainPS) , SHADER_ENTRY(MainGS) };
+			if( !ShaderManager::getInstance().loadFile(
+				mProgShadow, "Shader/Game/Lighting2DShadow", 
+				BIT(Shader::eVertex)| BIT(Shader::ePixel) | BIT(Shader::eGeometry), entryNames , option ) )
+				return false;
+		}
 
 		glClearColor( 0 , 0 , 0 , 0 );
 
@@ -31,8 +51,10 @@ namespace Lighting2D
 		glMatrixMode(GL_MODELVIEW);
 
 		::Global::GUI().cleanupWidget();
-		WidgetUtility::CreateDevFrame();
+		auto frame = WidgetUtility::CreateDevFrame();
+		frame->addButton(UI_RUN_BENCHMARK, "Run Benchmark");
 		restart();
+
 		return true;
 	}
 
@@ -58,7 +80,48 @@ namespace Lighting2D
 		updateFrame( frame );
 	}
 
-	void TestStage::onRender( float dFrame )
+	bool TestStage::onWidgetEvent(int event, int id, GWidget* ui)
+	{
+		switch( id )
+		{
+		case UI_RUN_BENCHMARK:
+			{
+				int lightNum = 100;
+				int blockNum = 500;
+				GameWindow& window = Global::getDrawEngine()->getWindow();
+
+				int w = window.getWidth();
+				int h = window.getHeight();
+
+				for( int i = 0; i < lightNum; ++i )
+				{
+					Light light;
+					light.pos.x = ::Global::Random() % w;
+					light.pos.y = ::Global::Random() % h;
+					light.color = Color(float(::Global::Random()) / RAND_MAX,
+										float(::Global::Random()) / RAND_MAX,
+										float(::Global::Random()) / RAND_MAX);
+					lights.push_back(light);
+				}
+				for( int i = 0; i < blockNum; ++i )
+				{
+					Block block;
+					Vector2 pos;
+					pos.x = ::Global::Random() % w;
+					pos.y = ::Global::Random() % h;
+					block.setBox(pos, Vector2(25, 25));
+					blocks.push_back(std::move(block));
+
+				}
+			}
+			return false;
+
+
+		}
+		return BaseClass::onWidgetEvent(event, id, ui);
+	}
+
+	void TestStage::onRender(float dFrame)
 	{
 		GameWindow& window = Global::getDrawEngine()->getWindow();
 
@@ -77,42 +140,55 @@ namespace Lighting2D
 		int w = window.getWidth();
 		int h = window.getHeight();
 
-	
-		for ( LightList::iterator iter = lights.begin(), itEnd = lights.end();
-			  iter != itEnd ; ++iter )
+#if SHADOW_USE_GEOMETRY_SHADER
+		mBuffers.clear();
+		for( Block& block : blocks )
 		{
-			Light& light = *iter;
-
-#if 1
+			renderPolyShadow(Light(), block.pos, block.getVertices(), block.getVertexNum());
+		}
+#endif
+		for ( Light& light : lights )
+		{
 			glColorMask(false, false, false, false);
 			glStencilFunc(GL_ALWAYS, 1, 1);
 			glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
 
-			for( BlockList::iterator iter = blocks.begin(), itEnd = blocks.end();
-				 iter != itEnd ; ++iter )
 			{
-				Block& block = *iter;
-				renderPolyShadow( light , block.pos , block.getVertices() , block.getVertexNum() );
+
+#if SHADOW_USE_GEOMETRY_SHADER
+				GL_BIND_LOCK_OBJECT(mProgShadow);
+				mProgShadow.setParameters(light.pos);
+#endif
+
+#if !SHADOW_USE_GEOMETRY_SHADER
+				mBuffers.clear();
+				for( Block& block : blocks )
+				{
+					renderPolyShadow(light, block.pos, block.getVertices(), block.getVertexNum());
+				}
+#endif
+
+				if( !mBuffers.empty() )
+				{
+#if SHADOW_USE_GEOMETRY_SHADER
+					RenderRT::Draw< RenderRT::eXY >(PrimitiveType::eLineList, &mBuffers[0], mBuffers.size());
+#else
+					RenderRT::Draw< RenderRT::eXY >(PrimitiveType::eQuad, &mBuffers[0], mBuffers.size());
+#endif
+				}
 			}
 			
 			glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
 			glStencilFunc(GL_EQUAL, 0, 1);
 			glColorMask(true, true, true, true);
-#endif
 
 			glEnable(GL_BLEND);
 			glBlendFunc(GL_ONE, GL_ONE);
 
 			{
-				GL_BIND_LOCK_OBJECT(mProgram);
-
-				mProgram.setParameters(light.pos, light.color);
-				glBegin(GL_QUADS);
-				glVertex2i(0, 0);
-				glVertex2i(w, 0);
-				glVertex2i(w, h);
-				glVertex2i(0, h);
-				glEnd();
+				GL_BIND_LOCK_OBJECT(mProgLighting);
+				mProgLighting.setParameters(light.pos, light.color);
+				DrawUtiltiy::Rect(w, h);
 			}
 			glDisable(GL_BLEND);
 			glClear(GL_STENCIL_BUFFER_BIT);
@@ -135,11 +211,23 @@ namespace Lighting2D
 
 	void TestStage::renderPolyShadow( Light const& light , Vector2 const& pos , Vector2 const* vertices , int numVertex  )
 	{
+#if SHADOW_USE_GEOMETRY_SHADER
+
+		int idxPrev = numVertex - 1;
+		for( int idxCur = 0; idxCur < numVertex; idxPrev = idxCur, ++idxCur )
+		{
+			Vector2 const& prev = pos + vertices[idxPrev];
+			Vector2 const& cur = pos + vertices[idxCur];
+			mBuffers.push_back(prev);
+			mBuffers.push_back(cur);
+		}
+
+#else
 		int idxPrev = numVertex - 1;
 		for( int idxCur = 0 ; idxCur < numVertex ; idxPrev = idxCur , ++idxCur )
 		{
-			Vector2 const& cur  = pos + vertices[ idxCur ];
 			Vector2 const& prev = pos + vertices[ idxPrev ];
+			Vector2 const& cur = pos + vertices[idxCur];
 			Vector2 edge = cur - prev;
 
 			Vector2 dirCur = cur - light.pos;
@@ -150,14 +238,14 @@ namespace Lighting2D
 				Vector2 v1 = prev + 1000 * dirPrev;
 				Vector2 v2 = cur + 1000 * dirCur;
 
-				glBegin( GL_QUADS );
-				glVertex2f( prev.x , prev.y );
-				glVertex2f( v1.x , v1.y );
-				glVertex2f( v2.x , v2.y  );
-				glVertex2f( cur.x , cur.y );
-				glEnd();
+				mBuffers.push_back(prev);
+				mBuffers.push_back(v1);
+				mBuffers.push_back(v2);
+				mBuffers.push_back(cur);
 			}
 		}
+
+#endif
 	}
 
 	bool TestStage::onMouse( MouseMsg const& msg )

@@ -31,25 +31,25 @@ enum
 class RenderUtility
 {
 public:
-	static GAME_API void Initialize();
-	static GAME_API void Finalize();
+	static TINY_API void Initialize();
+	static TINY_API void Finalize();
 
-	static GAME_API void SetPen( Graphics2D& g , int color , int type = COLOR_NORMAL );
-	static GAME_API void SetBrush( Graphics2D& g , int color , int type = COLOR_NORMAL );
-	static GAME_API void SetFont( Graphics2D& g , int fontID );
-	static GAME_API void SetFontColor( Graphics2D& g , int color , int type = COLOR_NORMAL );
+	static TINY_API void SetPen( Graphics2D& g , int color , int type = COLOR_NORMAL );
+	static TINY_API void SetBrush( Graphics2D& g , int color , int type = COLOR_NORMAL );
+	static TINY_API void SetFont( Graphics2D& g , int fontID );
+	static TINY_API void SetFontColor( Graphics2D& g , int color , int type = COLOR_NORMAL );
 
-	static GAME_API void StartOpenGL();
-	static GAME_API void StopOpenGL();
-	static GAME_API void SetPen( GLGraphics2D& g , int color , int type = COLOR_NORMAL );
-	static GAME_API void SetBrush( GLGraphics2D& g , int color , int type = COLOR_NORMAL );
-	static GAME_API void SetFont( GLGraphics2D& g , int fontID );
-	static GAME_API void SetFontColor( GLGraphics2D& g , int color , int type = COLOR_NORMAL );
+	static TINY_API void StartOpenGL();
+	static TINY_API void StopOpenGL();
+	static TINY_API void SetPen( GLGraphics2D& g , int color , int type = COLOR_NORMAL );
+	static TINY_API void SetBrush( GLGraphics2D& g , int color , int type = COLOR_NORMAL );
+	static TINY_API void SetFont( GLGraphics2D& g , int fontID );
+	static TINY_API void SetFontColor( GLGraphics2D& g , int color , int type = COLOR_NORMAL );
 
-	static GAME_API void SetPen( IGraphics2D& g , int color , int type = COLOR_NORMAL );
-	static GAME_API void SetBrush( IGraphics2D& g , int color , int type = COLOR_NORMAL );
-	static GAME_API void SetFont( IGraphics2D& g , int fontID );
-	static GAME_API void SetFontColor( IGraphics2D& g , int color , int type = COLOR_NORMAL );
+	static TINY_API void SetPen( IGraphics2D& g , int color , int type = COLOR_NORMAL );
+	static TINY_API void SetBrush( IGraphics2D& g , int color , int type = COLOR_NORMAL );
+	static TINY_API void SetFont( IGraphics2D& g , int fontID );
+	static TINY_API void SetFontColor( IGraphics2D& g , int color , int type = COLOR_NORMAL );
 
 	template< class Graphics2D >
 	static void DrawBlock( Graphics2D& g , Vec2i const& pos , Vec2i const& size , int color )

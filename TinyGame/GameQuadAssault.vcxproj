@@ -83,12 +83,12 @@
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
       <PrecompiledHeader>Use</PrecompiledHeader>
-      <PrecompiledHeaderFile>QuadAssaultPCH.h</PrecompiledHeaderFile>
+      <PrecompiledHeaderFile>QA_PCH.h</PrecompiledHeaderFile>
       <ProgramDataBaseFileName>$(IntDir)vc$(PlatformToolsetVersion).pdb</ProgramDataBaseFileName>
       <WarningLevel>Level3</WarningLevel>
       <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
-      <ForcedIncludeFiles>QuadAssaultPCH.h;%(ForcedIncludeFiles)</ForcedIncludeFiles>
+      <ForcedIncludeFiles>QA_PCH.h;%(ForcedIncludeFiles)</ForcedIncludeFiles>
     </ClCompile>
     <Link>
       <AdditionalDependencies>Msimg32.lib;%(AdditionalDependencies)</AdditionalDependencies>
@@ -134,12 +134,12 @@
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <PrecompiledHeader>Use</PrecompiledHeader>
-      <PrecompiledHeaderFile>QuadAssaultPCH.h</PrecompiledHeaderFile>
+      <PrecompiledHeaderFile>QA_PCH.h</PrecompiledHeaderFile>
       <ProgramDataBaseFileName>$(IntDir)vc$(PlatformToolsetVersion).pdb</ProgramDataBaseFileName>
       <WarningLevel>Level3</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
-      <ForcedIncludeFiles>QuadAssaultPCH.h;%(ForcedIncludeFiles)</ForcedIncludeFiles>
+      <ForcedIncludeFiles>QA_PCH.h;%(ForcedIncludeFiles)</ForcedIncludeFiles>
     </ClCompile>
     <Link>
       <AdditionalDependencies>Msimg32.lib;%(AdditionalDependencies)</AdditionalDependencies>
@@ -241,7 +241,7 @@
     <ClCompile Include="QuadAssault\PlatformWin.cpp" />
     <ClCompile Include="QuadAssault\Player.cpp" />
     <ClCompile Include="QuadAssault\QAGame.cpp" />
-    <ClCompile Include="QuadAssault\QuadAssaultPCH.cpp">
+    <ClCompile Include="QuadAssault\QA_PCH.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
     </ClCompile>
@@ -316,7 +316,7 @@
     <ClInclude Include="QuadAssault\Player.h" />
     <ClInclude Include="QuadAssault\PlayerSetting.h" />
     <ClInclude Include="QuadAssault\QAGame.h" />
-    <ClInclude Include="QuadAssault\QuadAssaultPCH.h" />
+    <ClInclude Include="QuadAssault\QA_PCH.h" />
     <ClInclude Include="QuadAssault\Renderable.h" />
     <ClInclude Include="QuadAssault\RenderEngine.h" />
     <ClInclude Include="QuadAssault\Renderer.h" />
@@ -333,8 +333,24 @@
     <ClInclude Include="QuadAssault\WeaponRenderer.h" />
   </ItemGroup>
   <ItemGroup>
+    <Text Include="out\QuadAssault\shader\NormalFS.txt" />
+    <Text Include="out\QuadAssault\shader\NormalVS.txt" />
     <Text Include="QuadAssault\GPL.txt" />
     <Text Include="QuadAssault\Readme.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="out\QuadAssault\shader\GeomDefaultFS.glsl" />
+    <None Include="out\QuadAssault\shader\GeomDefaultVS.glsl" />
+    <None Include="out\QuadAssault\shader\LightFS.glsl" />
+    <None Include="out\QuadAssault\shader\LightingGlowFS.glsl" />
+    <None Include="out\QuadAssault\shader\LightingGlowVS.glsl" />
+    <None Include="out\QuadAssault\shader\LightingPointFS.glsl" />
+    <None Include="out\QuadAssault\shader\LightingPointVS.glsl" />
+    <None Include="out\QuadAssault\shader\LightVS.glsl" />
+    <None Include="out\QuadAssault\shader\SceneFS.glsl" />
+    <None Include="out\QuadAssault\shader\SceneGeometryFS.glsl" />
+    <None Include="out\QuadAssault\shader\SceneLightingFS.glsl" />
+    <None Include="out\QuadAssault\shader\SceneVS.glsl" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

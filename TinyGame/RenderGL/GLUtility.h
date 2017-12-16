@@ -19,8 +19,8 @@ namespace RenderGL
 	public:
 		LookAtMatrix( Vector3 const& eyePos , Vector3 const& lookDir , Vector3 const& upDir )
 		{
-			Vector3 zAxis = -Normalize( lookDir );
-			Vector3 xAxis = Normalize( upDir.cross( zAxis ) );
+			Vector3 zAxis = -Math::GetNormal( lookDir );
+			Vector3 xAxis = Math::GetNormal( upDir.cross( zAxis ) );
 			Vector3 yAxis = zAxis.cross( xAxis );
 			setValue( 
 				xAxis.x , yAxis.x , zAxis.x ,

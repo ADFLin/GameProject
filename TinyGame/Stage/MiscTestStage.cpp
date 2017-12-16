@@ -1387,7 +1387,7 @@ static void TestClassTree()
 	e.clear();
 }
 
-#include "CycleQueue.h"
+#include "DataStructure/CycleQueue.h"
 
 void TestCycleQueue()
 {

@@ -3,9 +3,10 @@
 //#TODO : remove
 #include "Material.h"
 
-#include "GLDrawUtility.h"
+#include "DrawUtility.h"
 #include "ShaderCompiler.h"
 #include "VertexFactory.h"
+#include "RHICommand.h"
 
 namespace RenderGL
 {
@@ -25,10 +26,10 @@ namespace RenderGL
 		uint32 colorW[4] = { 0xffffffff , 0xffffffff , 0xffffffff , 0xffffffff };
 		uint32 colorB[4] = { 0, 0 , 0 , 0 };
 
-		GWhiteTexture2D = new RHITexture2D;
-		GWhiteTexture2D = new RHITexture2D;
-		GWhiteTextureCube = new RHITextureCube;
-		GBlackTextureCube = new RHITextureCube;
+		GWhiteTexture2D = RHICreateTexture2D();
+		GWhiteTexture2D = RHICreateTexture2D();
+		GWhiteTextureCube = RHICreateTextureCube();
+		GBlackTextureCube = RHICreateTextureCube();
 		if( !GWhiteTexture2D->create(Texture::eRGBA8, 2, 2, colorW) ||
 		   !GWhiteTexture2D->create(Texture::eRGBA8, 2, 2, colorB) ||
 		   !GWhiteTextureCube->create(Texture::eRGBA8, 2, 2, colorW) ||
@@ -54,7 +55,7 @@ namespace RenderGL
 		if( !GDefalutMaterial->loadFile("EmptyMaterial") )
 			return false;
 
-		GDefaultMaterialTexture2D = new RHITexture2D;
+		GDefaultMaterialTexture2D = RHICreateTexture2D();
 		if( !GDefaultMaterialTexture2D->loadFromFile("Texture/Gird.png") )
 			return false;
 

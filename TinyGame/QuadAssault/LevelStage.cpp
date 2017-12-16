@@ -111,7 +111,7 @@ void LevelStageBase::onExit()
 	mDevMsg.clear();
 }
 
-void LevelStageBase::onWidgetEvent( int event , int id , GWidget* sender )
+void LevelStageBase::onWidgetEvent( int event , int id , QWidget* sender )
 {
 
 }
@@ -160,7 +160,7 @@ bool LevelStage::onInit()
 		panelPos.x = ( screenWidth - panelSize.x ) / 2;
 		panelPos.y = ( screenHeight - panelSize.y ) / 2;
 		Vec2i buttonSize( 128 , 32 );
-		GPanel* panel = new GPanel( UI_MENU_PANEL , panelPos , panelSize , NULL );
+		QPanel* panel = new QPanel( UI_MENU_PANEL , panelPos , panelSize , NULL );
 		panel->show( false );
 
 		GUISystem::getInstance().addWidget( panel );
@@ -170,20 +170,20 @@ bool LevelStage::onInit()
 		Vec2i pos;
 		pos.x = ( panelSize.x - buttonSize.x ) / 2;
 		pos.y = 10;
-		GTextButton* button;
-		button = new GTextButton( UI_BACK_GAME , pos , buttonSize , panel );
+		QTextButton* button;
+		button = new QTextButton( UI_BACK_GAME , pos , buttonSize , panel );
 		button->text->setFont( font );
 		button->text->setCharSize( 24 );
 		button->text->setString( "Back" );
 
 		pos.y += 40;
-		button = new GTextButton( UI_EXIT_GAME , pos , buttonSize , panel );
+		button = new QTextButton( UI_EXIT_GAME , pos , buttonSize , panel );
 		button->text->setFont( font );
 		button->text->setCharSize( 24 );
 		button->text->setString( "Exit Game" );
 
 		pos.y += 40;
-		button = new GTextButton( UI_GO_MENU , pos , buttonSize , panel );
+		button = new QTextButton( UI_GO_MENU , pos , buttonSize , panel );
 		button->text->setFont( font );
 		button->text->setCharSize( 24 );
 		button->text->setString( "Menu" );
@@ -205,7 +205,7 @@ bool LevelStage::onInit()
 	player->addWeapon(new Minigun());
 	player->addWeapon(new Minigun());
 
-#if 1
+#if 0
 	for ( int i = 0 ; i < 20 ; ++i )
 	{
 		mLevel->spawnObjectByName( "Mob.Laser" , Vec2f( 300 + i * 100 , 1000 ) );
@@ -467,7 +467,7 @@ bool LevelStage::onKey( unsigned key , bool isDown )
 }
 
 
-void LevelStage::onWidgetEvent( int event , int id , GWidget* sender )
+void LevelStage::onWidgetEvent( int event , int id , QWidget* sender )
 {
 	switch( id )
 	{

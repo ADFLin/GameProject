@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Core/IntegerType.h"
-#include "Heap.h"
+#include "DataStructure/Heap.h"
 
 
 #include <vector>

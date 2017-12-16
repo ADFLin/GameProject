@@ -3,7 +3,7 @@
 
 #include "ZBase.h"
 #include "RefCount.h"
-#include "TLinkable.h"
+#include "DataStructure/TLinkable.h"
 
 #define ZUSE_LINKABLE 0
 

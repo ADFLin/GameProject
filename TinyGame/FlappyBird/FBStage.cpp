@@ -292,17 +292,30 @@ namespace FlappyBird
 
 	void LevelStage::drawTexture(int id, Vector2 const& pos, Vector2 const& size, Vector2 const& pivot, Vec2i const& framePos, Vec2i const& frameDim)
 	{
-		DrawUtiltiy::Sprite(mTextures[id], pos, size, pivot, framePos , frameDim );
+		glEnable(GL_TEXTURE_2D);
+		glActiveTexture(GL_TEXTURE0);
+		{
+			GL_BIND_LOCK_OBJECT(mTextures[id]);
+			DrawUtiltiy::Sprite(pos, size, pivot, framePos, frameDim);
+		}
+		glDisable(GL_TEXTURE_2D);
 	}
 
 	void LevelStage::drawTexture(int id, Vector2 const& pos, Vector2 const& size, Vector2 const& pivot, Vector2 const& texPos, Vector2 const& texSize)
 	{
-		DrawUtiltiy::Sprite(mTextures[id], pos, size, pivot, texPos , texSize);
+		glEnable(GL_TEXTURE_2D);
+		glActiveTexture(GL_TEXTURE0);
+		{
+			GL_BIND_LOCK_OBJECT(mTextures[id]);
+			DrawUtiltiy::Sprite(pos, size, pivot, texPos, texSize);
+		}
+		glDisable(GL_TEXTURE_2D);
+		
 	}
 
 	void LevelStage::drawTexture(int id, Vector2 const& pos, Vector2 const& size, Vector2 const& pivot)
 	{
-		DrawUtiltiy::Sprite(mTextures[id], pos, size, pivot, Vector2(0, 0), Vector2(1, 1));
+		drawTexture(id, pos, size, pivot, Vector2(0, 0), Vector2(1, 1));
 	}
 
 	void LevelStage::onRender(float dFrame)

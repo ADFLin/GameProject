@@ -1,5 +1,6 @@
-#ifndef Base_h__
-#define Base_h__
+#pragma once
+#ifndef Base_H_B94F26D1_65CF_41DC_8CED_C603C6AB1349
+#define Base_H_B94F26D1_65CF_41DC_8CED_C603C6AB1349
 
 #include <cmath>
 #include <cassert>
@@ -80,4 +81,5 @@ namespace Math
 	}
 }//namespace Math
 
-#endif // Base_h__
+
+#endif // Base_H_B94F26D1_65CF_41DC_8CED_C603C6AB1349

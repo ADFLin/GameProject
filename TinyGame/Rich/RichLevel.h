@@ -6,7 +6,7 @@
 #include "RichWorld.h"
 #include "RichPlayerTurn.h"
 
-#include "IntrList.h"
+#include "DataStructure/IntrList.h"
 
 
 

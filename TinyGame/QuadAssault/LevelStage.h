@@ -62,7 +62,7 @@ public:
 	~LevelStageBase();
 	virtual bool onInit();
 	virtual void onExit();
-	virtual void onWidgetEvent( int event , int id , GWidget* sender );
+	virtual void onWidgetEvent( int event , int id , QWidget* sender );
 	virtual bool onMouse( MouseMsg const& msg );
 	virtual bool onKey( unsigned key , bool isDown );
 
@@ -102,7 +102,7 @@ public:
 	virtual void onUpdate(float deltaT);	
 	virtual void onRender();
 
-	virtual void onWidgetEvent( int event , int id , GWidget* sender );
+	virtual void onWidgetEvent( int event , int id , QWidget* sender );
 	virtual void onLevelEvent( LevelEvent const& event );
 	virtual bool onMouse( MouseMsg const& msg );
 	virtual bool onKey( unsigned key , bool isDown );

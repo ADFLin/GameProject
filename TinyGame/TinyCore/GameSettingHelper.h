@@ -16,7 +16,7 @@ class GameStageBase;
 class  NetRoomSettingHelper : public SettingHepler
 {
 public:
-	GAME_API NetRoomSettingHelper();
+	TINY_API NetRoomSettingHelper();
 
 	
 
@@ -33,13 +33,13 @@ public:
 		doSetupSetting( mServer != NULL );
 	}
 
-	GAME_API void importSetting( DataSteamBuffer& buffer );
-	GAME_API void exportSetting( DataSteamBuffer& buffer );
+	TINY_API void importSetting( DataSteamBuffer& buffer );
+	TINY_API void exportSetting( DataSteamBuffer& buffer );
 
-	GAME_API void sendSlotStateSV();
-	GAME_API bool addPlayerSV( PlayerId id );
-	GAME_API void emptySlotSV( SlotId id , SlotState state );
-	GAME_API void sendPlayerStatusSV();
+	TINY_API void sendSlotStateSV();
+	TINY_API bool addPlayerSV( PlayerId id );
+	TINY_API void emptySlotSV( SlotId id , SlotState state );
+	TINY_API void sendPlayerStatusSV();
 
 	virtual void clearUserUI() = 0;
 	virtual void setupGame( StageManager& manager, StageBase* gameStage ){}
@@ -49,11 +49,11 @@ public:
 
 	virtual bool onWidgetEvent( int event ,int id , GWidget* widget ){ return true; }
 
-	GAME_API void   addGUIControl( GWidget* ui );
+	TINY_API void   addGUIControl( GWidget* ui );
 
 	PlayerListPanel*  getPlayerListPanel(){ return mPlayerListPanel; }
 	GameSettingPanel* getSettingPanel(){ return mSettingPanel; }
-	GAME_API void              setMaxPlayerNum( int num );
+	TINY_API void              setMaxPlayerNum( int num );
 protected:
 
 	ServerWorker*     mServer;

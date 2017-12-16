@@ -4,7 +4,7 @@
 #include "rcBase.h"
 #include "rcCityInfo.h"
 
-#include "TGrid2D.h"
+#include "DataStructure/Grid2D.h"
 
 class RegionManager;
 

@@ -3,7 +3,7 @@
 
 #include "rcBase.h"
 
-#include "TTable.h"
+#include "DataStructure/TTable.h"
 
 class rcPath;
 class rcLevelCity;

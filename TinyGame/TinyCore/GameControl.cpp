@@ -57,7 +57,7 @@ void ActionProcessor::scanControl( IActionLanucher& lanucher , unsigned flag )
 	}
 }
 
-bool ActionProcessor::_checkAction( ActionParam& param )
+bool ActionProcessor::checkActionPrivate( ActionParam& param )
 {
 	bool result = false;
 	for( InputList::iterator iter = mActiveInputs.begin();
@@ -86,7 +86,7 @@ bool ActionProcessor::removeInput( IActionInput& input )
 	return true;
 }
 
-void ActionProcessor::_prevFireAction( ActionParam& param )
+void ActionProcessor::prevFireActionPrivate( ActionParam& param )
 {
 	for( auto listener : mListeners )
 	{
@@ -131,10 +131,10 @@ bool ActionTrigger::detect( ControlAction action )
 {
 	mParam.act    = action;
 	mParam.bePeek = false;
-	if ( !mProcessor->_checkAction( mParam ) )
+	if ( !mProcessor->checkActionPrivate( mParam ) )
 		return false;
 	
-	mProcessor->_prevFireAction( mParam );
+	mProcessor->prevFireActionPrivate( mParam );
 	return mbAcceptFireAction;
 }
 
@@ -142,7 +142,7 @@ bool ActionTrigger::peek( ControlAction action )
 {
 	mParam.act    = action;
 	mParam.bePeek = true;
-	return mProcessor->_checkAction( mParam );
+	return mProcessor->checkActionPrivate( mParam );
 }
 
 SimpleController::SimpleController()

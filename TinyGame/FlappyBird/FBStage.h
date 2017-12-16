@@ -5,7 +5,7 @@
 #include "FBLevel.h"
 
 #include "RenderGL/GLCommon.h"
-#include "RenderGL/GLDrawUtility.h"
+#include "RenderGL/DrawUtility.h"
 
 
 namespace FlappyBird

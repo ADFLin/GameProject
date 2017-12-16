@@ -10,14 +10,14 @@
 
 #ifdef TG_DLL
 #	ifdef TG_EXPORT
-#		define GAME_API DLLEXPORT
+#		define TINY_API DLLEXPORT
 #	else
-#		define GAME_API DLLIMPORT
+#		define TINY_API DLLIMPORT
 #	endif
 #endif //TG_DLL
 
-#ifndef GAME_API
-#	define GAME_API
+#ifndef TINY_API
+#	define TINY_API
 #endif
 
 #define HAVE_NET_THREAD 1

@@ -5,7 +5,7 @@
 #include "TDCollision.h"
 #include "TDEntity.h"
 
-#include "TGrid2D.h"
+#include "DataStructure/Grid2D.h"
 
 namespace TowerDefend
 {

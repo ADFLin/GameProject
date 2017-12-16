@@ -15,6 +15,12 @@
     <Filter Include="GUI">
       <UniqueIdentifier>{37e7dfa7-8176-44ad-a709-abdc413b710a}</UniqueIdentifier>
     </Filter>
+    <Filter Include="OtherLib">
+      <UniqueIdentifier>{93c4576b-2e27-412a-bdfa-de37e92b5a57}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="RenderGL">
+      <UniqueIdentifier>{835c6deb-602b-4a51-8a3d-9ae725681b64}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="TinyCore\DataStream.h">
@@ -77,6 +83,57 @@
     <ClInclude Include="TinyCore\GameModule.h">
       <Filter>Common</Filter>
     </ClInclude>
+    <ClInclude Include="RenderGL\BaseType.h">
+      <Filter>RenderGL</Filter>
+    </ClInclude>
+    <ClInclude Include="RenderGL\FrameGraph.h">
+      <Filter>RenderGL</Filter>
+    </ClInclude>
+    <ClInclude Include="RenderGL\GLCommon.h">
+      <Filter>RenderGL</Filter>
+    </ClInclude>
+    <ClInclude Include="RenderGL\DrawUtility.h">
+      <Filter>RenderGL</Filter>
+    </ClInclude>
+    <ClInclude Include="RenderGL\GLUtility.h">
+      <Filter>RenderGL</Filter>
+    </ClInclude>
+    <ClInclude Include="RenderGL\GpuProfiler.h">
+      <Filter>RenderGL</Filter>
+    </ClInclude>
+    <ClInclude Include="RenderGL\Material.h">
+      <Filter>RenderGL</Filter>
+    </ClInclude>
+    <ClInclude Include="RenderGL\RenderContext.h">
+      <Filter>RenderGL</Filter>
+    </ClInclude>
+    <ClInclude Include="RenderGL\RHICommon.h">
+      <Filter>RenderGL</Filter>
+    </ClInclude>
+    <ClInclude Include="RenderGL\Scene.h">
+      <Filter>RenderGL</Filter>
+    </ClInclude>
+    <ClInclude Include="RenderGL\SceneObject.h">
+      <Filter>RenderGL</Filter>
+    </ClInclude>
+    <ClInclude Include="RenderGL\SceneRenderer.h">
+      <Filter>RenderGL</Filter>
+    </ClInclude>
+    <ClInclude Include="RenderGL\SceneScript.h">
+      <Filter>RenderGL</Filter>
+    </ClInclude>
+    <ClInclude Include="RenderGL\ShaderCompiler.h">
+      <Filter>RenderGL</Filter>
+    </ClInclude>
+    <ClInclude Include="RenderGL\TextureAtlas.h">
+      <Filter>RenderGL</Filter>
+    </ClInclude>
+    <ClInclude Include="RenderGL\VertexFactory.h">
+      <Filter>RenderGL</Filter>
+    </ClInclude>
+    <ClInclude Include="RenderGL\RHICommand.h">
+      <Filter>RenderGL</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="TinyCore\DataTransferImpl.cpp">
@@ -118,10 +175,70 @@
     <ClCompile Include="TinyCore\GameModule.cpp">
       <Filter>Common</Filter>
     </ClCompile>
+    <ClCompile Include="stb_image.cpp">
+      <Filter>OtherLib</Filter>
+    </ClCompile>
+    <ClCompile Include="RenderGL\GLCommon.cpp">
+      <Filter>RenderGL</Filter>
+    </ClCompile>
+    <ClCompile Include="RenderGL\DrawUtility.cpp">
+      <Filter>RenderGL</Filter>
+    </ClCompile>
+    <ClCompile Include="RenderGL\GLUtility.cpp">
+      <Filter>RenderGL</Filter>
+    </ClCompile>
+    <ClCompile Include="RenderGL\GpuProfiler.cpp">
+      <Filter>RenderGL</Filter>
+    </ClCompile>
+    <ClCompile Include="RenderGL\LazyObject.cpp">
+      <Filter>RenderGL</Filter>
+    </ClCompile>
+    <ClCompile Include="RenderGL\Material.cpp">
+      <Filter>RenderGL</Filter>
+    </ClCompile>
+    <ClCompile Include="RenderGL\PrimitiveBatch.cpp">
+      <Filter>RenderGL</Filter>
+    </ClCompile>
+    <ClCompile Include="RenderGL\RenderContext.cpp">
+      <Filter>RenderGL</Filter>
+    </ClCompile>
+    <ClCompile Include="RenderGL\RHICommon.cpp">
+      <Filter>RenderGL</Filter>
+    </ClCompile>
+    <ClCompile Include="RenderGL\Scene.cpp">
+      <Filter>RenderGL</Filter>
+    </ClCompile>
+    <ClCompile Include="RenderGL\SceneObject.cpp">
+      <Filter>RenderGL</Filter>
+    </ClCompile>
+    <ClCompile Include="RenderGL\SceneRenderer.cpp">
+      <Filter>RenderGL</Filter>
+    </ClCompile>
+    <ClCompile Include="RenderGL\SceneScript.cpp">
+      <Filter>RenderGL</Filter>
+    </ClCompile>
+    <ClCompile Include="RenderGL\ShaderCompiler.cpp">
+      <Filter>RenderGL</Filter>
+    </ClCompile>
+    <ClCompile Include="RenderGL\TextureAtlas.cpp">
+      <Filter>RenderGL</Filter>
+    </ClCompile>
+    <ClCompile Include="RenderGL\VertexFactory.cpp">
+      <Filter>RenderGL</Filter>
+    </ClCompile>
+    <ClCompile Include="RenderGL\RHICommand.cpp">
+      <Filter>RenderGL</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="TinyCore\ColorName.h">
       <Filter>Common</Filter>
+    </None>
+    <None Include="RenderGL\LazyObject.h">
+      <Filter>RenderGL</Filter>
+    </None>
+    <None Include="RenderGL\PrimitiveBatch.h">
+      <Filter>RenderGL</Filter>
     </None>
   </ItemGroup>
 </Project>

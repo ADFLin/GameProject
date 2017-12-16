@@ -51,14 +51,14 @@ public:
 	void      setPort( unsigned port ){ mParam.port = port;  }
 	unsigned  getPort() const { return  mParam.port;  }
 
-	GAME_API bool      peek( ControlAction action );
+	TINY_API bool      peek( ControlAction action );
 	template < class T >
 	bool      peek( ControlAction action , T* result )
 	{
 		mParam.setResult( result );
 		return peek( action );
 	}
-	GAME_API bool      detect( ControlAction action );
+	TINY_API bool      detect( ControlAction action );
 	template < class T >
 	bool      detect( ControlAction action , T* result )
 	{
@@ -109,24 +109,24 @@ enum ControlFlag
 class  ActionProcessor
 {
 public:
-	GAME_API ActionProcessor();
+	TINY_API ActionProcessor();
 
-	GAME_API void beginAction( unsigned flag = 0 );
-	GAME_API void endAction();
+	TINY_API void beginAction( unsigned flag = 0 );
+	TINY_API void endAction();
 
-	GAME_API void setLanucher( IActionLanucher* lanucher );
-	GAME_API void addListener( IActionListener& listener );
-	GAME_API bool removeListener(IActionListener& listener);
+	TINY_API void setLanucher( IActionLanucher* lanucher );
+	TINY_API void addListener( IActionListener& listener );
+	TINY_API bool removeListener(IActionListener& listener);
 	
-	GAME_API void addInput   ( IActionInput& input , unsigned targetPort = ERROR_ACTION_PORT );
-	GAME_API bool removeInput( IActionInput& input );
+	TINY_API void addInput   ( IActionInput& input , unsigned targetPort = ERROR_ACTION_PORT );
+	TINY_API bool removeInput( IActionInput& input );
 
 public:
-	GAME_API void _prevFireAction( ActionParam& param );
-	GAME_API bool _checkAction( ActionParam& param );
+	void prevFireActionPrivate( ActionParam& param );
+	bool checkActionPrivate( ActionParam& param );
 protected:
-	GAME_API void scanControl( unsigned flag = 0 );
-	GAME_API void scanControl( IActionLanucher& lanucher , unsigned flag = 0 );
+	TINY_API void scanControl( unsigned flag = 0 );
+	TINY_API void scanControl( IActionLanucher& lanucher , unsigned flag = 0 );
 private:
 	typedef std::vector< IActionListener*> ListenerList;
 	typedef std::vector< IActionInput* >   InputList;
@@ -179,24 +179,24 @@ public:
 class  SimpleController : public GameController
 {
 public:
-	GAME_API SimpleController();
+	TINY_API SimpleController();
 
 	
-	GAME_API void  clearAllKey();
-	GAME_API void  initKey( ControlAction act , int sen , uint8 key0 , uint8 key1 = 0xff );
-	GAME_API void  setKey( unsigned cID , ControlAction action , unsigned key );
-	GAME_API char  getKey( unsigned cID , ControlAction action );
-	GAME_API bool  checkKey( unsigned cID , ControlAction action );
-	GAME_API void  setPortControl( unsigned port , unsigned cID );
+	TINY_API void  clearAllKey();
+	TINY_API void  initKey( ControlAction act , int sen , uint8 key0 , uint8 key1 = 0xff );
+	TINY_API void  setKey( unsigned cID , ControlAction action , unsigned key );
+	TINY_API char  getKey( unsigned cID , ControlAction action );
+	TINY_API bool  checkKey( unsigned cID , ControlAction action );
+	TINY_API void  setPortControl( unsigned port , unsigned cID );
 
-	GAME_API bool  checkKey( unsigned key );
-	GAME_API bool  checkKey( unsigned key , uint8 sen );
-	GAME_API void  recvMouseMsg( MouseMsg const& msg );
+	TINY_API bool  checkKey( unsigned key );
+	TINY_API bool  checkKey( unsigned key , uint8 sen );
+	TINY_API void  recvMouseMsg( MouseMsg const& msg );
 
 	void  blockKeyEvent( bool beB ){ mKeyBlocked = beB;  }
 	
-	GAME_API void  clearFrameInput();
-	GAME_API Vec2i const& getLastMosuePos(){ return mLastMousePos;  }
+	TINY_API void  clearFrameInput();
+	TINY_API Vec2i const& getLastMosuePos(){ return mLastMousePos;  }
 
 protected:
 
@@ -208,11 +208,11 @@ protected:
 		MOVING ,
 	};
 
-	GAME_API MouseMsg* getMouseEvent( int evt );
-	GAME_API void      removeMouseEvent( int evt );
-	GAME_API bool      checkActionKey( ActionParam& param );
-	GAME_API virtual bool checkAction( ActionParam& param ){ return checkActionKey( param ); }
-	GAME_API virtual bool scanInput( bool beUpdateFrame );
+	TINY_API MouseMsg* getMouseEvent( int evt );
+	TINY_API void      removeMouseEvent( int evt );
+	TINY_API bool      checkActionKey( ActionParam& param );
+	TINY_API virtual bool checkAction( ActionParam& param ){ return checkActionKey( param ); }
+	TINY_API virtual bool scanInput( bool beUpdateFrame );
 
 private:	
 

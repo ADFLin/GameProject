@@ -614,7 +614,7 @@ public:
 	StroageCell mStroageCell[ 8 ];
 };
 
-#include "TTable.h"
+#include "DataStructure/TTable.h"
 #include <list>
 
 class rcBuildingQuery

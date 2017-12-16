@@ -1,5 +1,6 @@
-#ifndef TGrid2D_h__
-#define TGrid2D_h__
+#pragma once
+#ifndef Grid2D_H_758B1030_6F18_46B7_9EA5_9E7974186B6E
+#define Grid2D_H_758B1030_6F18_46B7_9EA5_9E7974186B6E
 
 #include <cassert>
 #include "CppVersion.h"
@@ -198,4 +199,5 @@ private:
 	int  mSizeY;
 };
 
-#endif // TGrid2D_h__
+
+#endif // Grid2D_H_758B1030_6F18_46B7_9EA5_9E7974186B6E

@@ -17,10 +17,10 @@ namespace RenderGL
 				glGenVertexArrays(1, &VAOHandle);
 				glBindVertexArray(VAOHandle);
 				vertexBuffer->bind();
-				vertexDecl->setupVAO();
+				vertexDecl->beginVAOSetup();
 				glBindVertexArray(0);
 				vertexBuffer->unbind();
-				vertexDecl->setupVAOEnd();
+				vertexDecl->endVAOSetup();
 			}
 
 			glBindVertexArray(VAOHandle);
@@ -84,11 +84,10 @@ namespace RenderGL
 		glGenVertexArrays(1, &mVAO);
 		glBindVertexArray(mVAO);
 		mVertexBuffer->bind();
-		mDecl.setupVAO();
-
+		mDecl.beginVAOSetup();
 		glBindVertexArray(0);
 		mVertexBuffer->unbind();
-		mDecl.setupVAOEnd();
+		mDecl.endVAOSetup();
 
 		if( !ShaderManager::getInstance().loadFile(
 			mShader, "Shader/SimpleElement",

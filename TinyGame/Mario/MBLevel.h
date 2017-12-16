@@ -3,7 +3,7 @@
 
 #include "TVector2.h"
 #include "Math/Vector2.h"
-#include "TGrid2D.h"
+#include "DataStructure/Grid2D.h"
 
 namespace Mario
 {

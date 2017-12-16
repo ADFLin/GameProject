@@ -3,7 +3,7 @@
 
 #include "PokerBase.h"
 #include "DataTransfer.h"
-#include "FixVector.h"
+#include "DataStructure/FixVector.h"
 
 namespace Poker { namespace Holdem {
 

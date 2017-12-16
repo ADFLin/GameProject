@@ -1,5 +1,7 @@
 #pragma once
 
+#include "GameConfig.h"
+
 #include "StageBase.h"
 #include "StageRegister.h"
 
@@ -13,11 +15,14 @@
 class MiscTestRegister
 {
 public:
-	GAME_API MiscTestRegister(char const* name, std::function< void() > const& fun);
+	TINY_API MiscTestRegister(char const* name, std::function< void() > const& fun);
 };
 
+#define  REGISTER_MISC_TEST_INNER( name , fun )\
+	static MiscTestRegister ANONYMOUS_VARIABLE( MARCO_NAME_COMBINE_2( g_MiscTest , __LINE__ ) )( name , fun );
+
 #define  REGISTER_MISC_TEST( name , fun )\
-	static MiscTestRegister ANONYMOUS_VARIABLE( gMiscTestREgister )( name , fun );
+	REGISTER_MISC_TEST_INNER( name , fun )
 
 
 #if 0

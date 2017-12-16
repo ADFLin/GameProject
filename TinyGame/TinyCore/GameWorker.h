@@ -91,11 +91,11 @@ enum DefaultChannel
 class  ComWorker
 {
 public:
-	GAME_API ComWorker();
-	GAME_API virtual ~ComWorker(){}
+	TINY_API ComWorker();
+	TINY_API virtual ~ComWorker(){}
 
-	GAME_API void   update( long time );
-	GAME_API void   changeState( NetActionState state );
+	TINY_API void   update( long time );
+	TINY_API void   changeState( NetActionState state );
 
 	NetActionState  getActionState(){ return mNAState; }
 	void            setComListener( ComListener* listener ){  mComListener = listener; }
@@ -148,16 +148,16 @@ class Channel
 	Type getType();
 };
 
-GAME_API bool IsInSocketThread();
+TINY_API bool IsInSocketThread();
 class  NetWorker : public ComWorker
 {
 public:
-	GAME_API NetWorker();
-	GAME_API ~NetWorker();
+	TINY_API NetWorker();
+	TINY_API ~NetWorker();
 
-	GAME_API bool  startNetwork();
-	GAME_API void  closeNetwork();
-	GAME_API bool  addUdpCom( IComPacket* cp , NetAddress const& addr );
+	TINY_API bool  startNetwork();
+	TINY_API void  closeNetwork();
+	TINY_API bool  addUdpCom( IComPacket* cp , NetAddress const& addr );
 
 	void  setNetListener( INetStateListener* listener ){ mNetListener = listener;  }
 	virtual bool  isServer() = 0;
@@ -173,7 +173,7 @@ protected:
 protected:
 	typedef fastdelegate::FastDelegate< void ( )> SocketFun;
 	typedef TFunctionThread< SocketFun > SocketThread;
-	GAME_API void sendUdpCom( NetSocket& socket );
+	TINY_API void sendUdpCom( NetSocket& socket );
 
 	typedef std::vector< INetStateListener* > NetMsgListenerVec;
 	INetStateListener* mNetListener;

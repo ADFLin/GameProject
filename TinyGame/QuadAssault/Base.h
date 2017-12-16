@@ -2,6 +2,14 @@
 #ifndef Base_H_6E7C17E3_03D8_4D00_9413_F9F44FFB3DB6
 #define Base_H_6E7C17E3_03D8_4D00_9413_F9F44FFB3DB6
 
+#if 1
+#include "LogSystem.h"
+#define QA_LOG( ... ) ::Msg( __VA_ARGS__ )
+#define QA_ERROR( ... ) ::Msg( __VA_ARGS__ )
+#else
+#define QA_LOG( ... )
+#define QA_ERROR( ... )
+#endif
 
 #include "MathCore.h"
 #include "Core/IntegerType.h"
@@ -95,5 +103,6 @@ enum
 	COL_OBJECT    = COL_PLAYER | COL_SOILD | COL_FLY_SOILD | COL_TRIGGER | COL_BULLET | COL_ITEM ,
 	COL_ALL       = 0xffffffff ,
 };
+
 
 #endif // Base_H_6E7C17E3_03D8_4D00_9413_F9F44FFB3DB6

@@ -3,7 +3,7 @@
 
 #include "MVCommon.h"
 
-#include "IntrList.h"
+#include "DataStructure/IntrList.h"
 
 namespace MV
 {
@@ -60,8 +60,8 @@ namespace MV
 		NUM_NODE_TYPE ,
 	};
 
-	int const NUM_BLOCK_FACE = 6;
-	int const NUM_FACE_NAV_LINK = 4;
+	int const BLOCK_FACE_NUM = 6;
+	int const FACE_NAV_LINK_NUM = 4;
 
 	struct NavSurfInfo
 	{
@@ -106,7 +106,7 @@ namespace MV
 	public:
 		BlockSurface()
 		{
-			for( int i = 0 ; i < NUM_FACE_NAV_LINK ; ++i )
+			for( int i = 0 ; i < FACE_NAV_LINK_NUM ; ++i )
 			{
 				NavSurfInfo* info = surfInfo + i;
 				info->idxDir = i;
@@ -116,9 +116,9 @@ namespace MV
 			}
 		}
 		Block*      block;
-		NavNode     nodes[ NUM_NODE_TYPE ][ NUM_FACE_NAV_LINK ];
+		NavNode     nodes[ NUM_NODE_TYPE ][ FACE_NAV_LINK_NUM ];
 	private:
-		NavSurfInfo surfInfo[ NUM_FACE_NAV_LINK ];
+		NavSurfInfo surfInfo[ FACE_NAV_LINK_NUM ];
 	};
 
 	struct Object
@@ -141,15 +141,15 @@ namespace MV
 	public:
 		Block()
 		{
-			for( int i = 0 ; i < NUM_BLOCK_FACE; ++i )
+			for( int i = 0 ; i < BLOCK_FACE_NUM; ++i )
 				surfaces[i].block = this;
 		}
 		int          id;
 		int          idMesh;
 		Vec3i        pos;
-		Roataion     rotation;
+		AxisRoataion rotation;
 		ObjectGroup* group;
-		BlockSurface surfaces[ NUM_BLOCK_FACE ];
+		BlockSurface surfaces[ BLOCK_FACE_NUM ];
 		HookNode     mapHook;
 		uint32       updateCount;
 
@@ -169,6 +169,8 @@ namespace MV
 		}
 		static Dir LocalDir( BlockSurface& surface )
 		{
+			assert( 0 <= (&surface - surface.block->surfaces) && 
+				    ( &surface - surface.block->surfaces) < BLOCK_FACE_NUM );
 			return Dir( &surface - surface.block->surfaces );
 		}
 
@@ -192,7 +194,7 @@ namespace MV
 		}
 
 		Vec3i    pos;
-		Roataion rotation;
+		AxisRoataion rotation;
 
 		//
 		Vec3f   renderPos;

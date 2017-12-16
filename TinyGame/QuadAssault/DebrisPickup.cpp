@@ -34,7 +34,7 @@ void DebrisPickup::onSpawn( unsigned flag )
 	dir.x/=5;
 	dir.y=getLevel()->random(1,10)-5;
 	dir.y/=5;
-	Math::Normalize( dir );
+	dir = Math::GetNormal( dir );
 
 	mLight.host = this;
 	mLight.isExplosion = true;

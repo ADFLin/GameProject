@@ -189,9 +189,13 @@ typedef PosixCondition PlatformCondition;
 #error "Thread Not Support!"
 #endif
 
+class Thread : public PlatformThread
+{
+
+};
 
 template< class T >
-class RunnableThreadT : public PlatformThread
+class RunnableThreadT : public Thread
 {
 	T* _this(){ return static_cast< T* >( this ); }
 	typedef RunnableThreadT< T > RannableThread;
@@ -207,7 +211,7 @@ public:
 	{ 
 		if ( !_this()->init() )
 			return false;
-		return create( PlatformThread::RunnableProcess< T > , this , stackSize );
+		return create( Thread::RunnableProcess< T > , _this() , stackSize );
 	}
 	void stop()
 	{

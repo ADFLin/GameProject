@@ -97,8 +97,8 @@ class SVSyncFrameManager : public CSyncFrameManager
 {
 	typedef CSyncFrameManager BaseClass;
 public:
-	GAME_API SVSyncFrameManager( NetWorker* worker , IFrameActionTemplate* actionTemp , INetFrameGenerator* frameGenerator );
-	GAME_API ~SVSyncFrameManager();
+	TINY_API SVSyncFrameManager( NetWorker* worker , IFrameActionTemplate* actionTemp , INetFrameGenerator* frameGenerator );
+	TINY_API ~SVSyncFrameManager();
 
 	bool     sendFrameData();
 	void     refreshPlayerState();
@@ -139,8 +139,8 @@ private:
 class  CLSyncFrameManager : public CSyncFrameManager
 {
 public:
-	GAME_API CLSyncFrameManager( NetWorker* worker , IFrameActionTemplate* actionTemp , INetFrameGenerator* frameGenerator );
-	GAME_API ~CLSyncFrameManager();
+	TINY_API CLSyncFrameManager( NetWorker* worker , IFrameActionTemplate* actionTemp , INetFrameGenerator* frameGenerator );
+	TINY_API ~CLSyncFrameManager();
 
 	bool sendFrameData();
 	void fireAction( ActionTrigger& trigger );

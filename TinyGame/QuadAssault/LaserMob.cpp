@@ -14,7 +14,7 @@ void LaserMob::init()
 	mSize.y=64;
 	
 	mMaxSpeed=150;	
-	brzinaPunjenja=250;	
+	chargingRate=250;	
 	domet=512;
 
 	mHP=40;

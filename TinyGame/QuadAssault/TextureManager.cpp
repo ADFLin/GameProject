@@ -8,6 +8,11 @@
 
 Texture gEmptyTexture( "EMPTY" , 0 );
 
+#if USE_SFML
+#else
+#include "stb/stb_image.h"
+#endif
+
 Texture::Texture()
 {
 	//file = NULL;
@@ -108,7 +113,7 @@ Texture* TextureManager::loadTexture(char const* name)
 
 	//gluBuild2DMipmaps(GL_TEXTURE_2D, GL_RGBA, image.getSize().x , image.getSize().y , GL_RGBA, GL_UNSIGNED_BYTE, image.getPixelsPtr());			
 	//glTexParameteri(GL_TEXTURE_2D, GL_GENERATE_MIPMAP, GL_TRUE);
-	glTexImage2D( GL_TEXTURE_2D, 0, 4, image.getSize().x , image.getSize().y , 0,
+	glTexImage2D( GL_TEXTURE_2D, 0, GL_RGBA, image.getSize().x , image.getSize().y , 0,
 		GL_RGBA, GL_UNSIGNED_BYTE, image.getPixelsPtr() );
 
 
@@ -119,16 +124,46 @@ Texture* TextureManager::loadTexture(char const* name)
 	//glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
 
 
-	Texture* tex = new Texture(name,id);
-	mTextures.push_back( tex );
-	std::cout << "Textura loaded : " << name << std::endl;
-	return tex;
 
 #else
 
-	return &gEmptyTexture;
+	int w;
+	int h;
+	int comp;
+
+	String path = TEXTURE_DIR;
+	path += name;
+	unsigned char* image = stbi_load(path.c_str(), &w, &h, &comp, STBI_default);
+
+	if( !image )
+		return &gEmptyTexture;
+
+	glGenTextures(1, &id);
+	glBindTexture(GL_TEXTURE_2D, id);
+
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+
+	//#TODO
+	switch( comp )
+	{
+	case 3:
+		glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8, w, h, 0, GL_RGB, GL_UNSIGNED_BYTE, image);
+		glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
+		break;
+	case 4:
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, image);
+		break;
+	}
+	stbi_image_free(image);
 
 #endif
+
+	Texture* tex = new Texture(name, id);
+	mTextures.push_back(tex);
+	QA_LOG( "Textura loaded : %s" ,  name );
+	return tex;
 }
 
 Texture* TextureManager::getEmptyTexture()

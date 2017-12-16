@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "PlatformConfig.h"
+#include "SystemPlatform.h"
 #include "Core/IntegerType.h"
 
 
@@ -18,7 +19,7 @@ public:
 	static char const*    GetSubName( char const* fileName );
 	static char const*    GetDirPathPos(char const* filePath);
 	static wchar_t const* GetDirPathPos(wchar_t const* filePath);
-	static bool LoadToBuffer(char const* path, std::vector< char >& outBuffer);
+	static bool LoadToBuffer(char const* path, std::vector< char >& outBuffer , bool bAppendZeroAfterEnd = false);
 };
 
 class FilePath
@@ -43,6 +44,12 @@ public:
 	~FileIterator();
 
 	char const* getFileName() const { return mFindData.cFileName; }
+	DateTime getLastModifyDate() const
+	{
+		SYSTEMTIME systemTime;
+		::FileTimeToSystemTime(&mFindData.ftLastWriteTime, &systemTime);
+		return DateTime(systemTime.wYear, systemTime.wMonth, systemTime.wDay, systemTime.wHour, systemTime.wMinute, systemTime.wSecond, systemTime.wMilliseconds);
+	}
 	bool   isDirectory() const;
 	bool   haveMore(){ return mHaveMore; }
 	void   goNext();

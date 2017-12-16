@@ -188,25 +188,25 @@ public:
 	SVPlayerManager();
 	~SVPlayerManager();
 
-	GAME_API size_t          getPlayerNum();
-	GAME_API ServerPlayer*   getPlayer( PlayerId id );
+	TINY_API size_t          getPlayerNum();
+	TINY_API ServerPlayer*   getPlayer( PlayerId id );
 	PlayerId       getUserID(){  return mUserID;  }
 
-	GAME_API SNetPlayer*    createNetPlayer( ServerWorker* server , char const* name , NetClientData* client );
-	GAME_API SUserPlayer*   createUserPlayer( LocalWorker* worker , char const* name );
-	GAME_API SLocalPlayer*  createAIPlayer();
+	TINY_API SNetPlayer*    createNetPlayer( ServerWorker* server , char const* name , NetClientData* client );
+	TINY_API SUserPlayer*   createUserPlayer( LocalWorker* worker , char const* name );
+	TINY_API SLocalPlayer*  createAIPlayer();
 	SLocalPlayer*  swepNetPlayerToLocal( SNetPlayer* player );
 	
-	GAME_API bool  removePlayer( PlayerId id );
-	GAME_API void  getPlayerInfo( PlayerInfo* info[] );
-	GAME_API void  removePlayerFlag( unsigned bitPos );
-	GAME_API bool  checkPlayerFlag( unsigned bitPos , bool beNet );
-	GAME_API void  getPlayerFlag( int flags[] );
-	GAME_API void  cleanup();
+	TINY_API bool  removePlayer( PlayerId id );
+	TINY_API void  getPlayerInfo( PlayerInfo* info[] );
+	TINY_API void  removePlayerFlag( unsigned bitPos );
+	TINY_API bool  checkPlayerFlag( unsigned bitPos , bool beNet );
+	TINY_API void  getPlayerFlag( int flags[] );
+	TINY_API void  cleanup();
 
-	GAME_API void sendTcpCommand( IComPacket* cp );
-	GAME_API void sendCommand( int channel , IComPacket* cp , unsigned flag );
-	GAME_API void sendUdpCommand( IComPacket* cp );
+	TINY_API void sendTcpCommand( IComPacket* cp );
+	TINY_API void sendCommand( int channel , IComPacket* cp , unsigned flag );
+	TINY_API void sendUdpCommand( IComPacket* cp );
 	void setListener( ServerPlayerListener* listener ){ mListener = listener; }
 
 	auto Lock() { return MakeLockedObjectHandle(*this, &mMutexPlayerTable); }
@@ -245,14 +245,14 @@ class  ServerWorker : public NetWorker, public INetConnectListener
 {
 	typedef NetWorker BaseClass;
 public:
-	GAME_API ServerWorker();
-	GAME_API ~ServerWorker();
+	TINY_API ServerWorker();
+	TINY_API ~ServerWorker();
 
 	bool  isServer(){   return true;  }
 	//NetWorker
 	void  sendCommand( int channel , IComPacket* cp , unsigned flag );
 
-	GAME_API LocalWorker* createLocalWorker(char const* userName);
+	TINY_API LocalWorker* createLocalWorker(char const* userName);
 
 	void sendClientTcpCommand( NetClientData& client , IComPacket* cp );
 	void setEventResolver(ServerEventResolver* resolver) { mEventResolver = resolver;  }
@@ -274,7 +274,7 @@ protected:
 	virtual void onConnectClose( NetConnection* con , NetCloseReason reason );
 
 public:
-	GAME_API bool kickPlayer( unsigned id );
+	TINY_API bool kickPlayer( unsigned id );
 	void removeConnect( NetClientData* client, bool bRMPlayer = true );
 
 	SVPlayerManager* getPlayerManager(){ return mPlayerManager; }

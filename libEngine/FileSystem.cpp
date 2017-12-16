@@ -127,7 +127,7 @@ char const* FileUtility::GetSubName( char const* fileName )
 		if ( *pos != '/' || *pos != '\\' )
 			return pos;
 	}
-	return "";
+	return nullptr;
 }
 
 char const* FileUtility::GetDirPathPos( char const* filePath )
@@ -146,9 +146,10 @@ wchar_t const* FileUtility::GetDirPathPos(wchar_t const* filePath)
 	return pos;
 }
 
-bool FileUtility::LoadToBuffer(char const* path, std::vector< char >& outBuffer)
+
+bool FileUtility::LoadToBuffer(char const* path, std::vector< char >& outBuffer , bool bAppendZeroAfterEnd)
 {
-	std::ifstream fs(path);
+	std::ifstream fs(path , std::ios::binary);
 
 	if( !fs.is_open() )
 		return false;
@@ -160,10 +161,11 @@ bool FileUtility::LoadToBuffer(char const* path, std::vector< char >& outBuffer)
 	fs.seekg(0, std::ios::beg);
 	size -= fs.tellg();
 
-	outBuffer.resize(size + 1);
+	outBuffer.resize( bAppendZeroAfterEnd ? (size + 1) : size);
 	fs.read(&outBuffer[0], size);
+	if( bAppendZeroAfterEnd )
+		outBuffer[size] = '\0';
 
-	outBuffer[size] = '\0';
 	fs.close();
 	return true;
 }

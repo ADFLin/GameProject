@@ -164,7 +164,7 @@ namespace Go
 			{
 				if ( mGame.getBoard().getData( bPos ) )
 				{
-					mLifeParam = mGame.getBoard().getLife( bPos );
+					mLifeParam = mGame.getBoard().getCaptureCount( bPos );
 				}
 			}
 		}

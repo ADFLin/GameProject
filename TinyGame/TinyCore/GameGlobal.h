@@ -60,10 +60,9 @@ class GUISystem;
 struct UserProfile;
 class NetWorker;
 
-GAME_API uint64 generateRandSeed();
+TINY_API uint64 generateRandSeed();
 
-extern GAME_API uint32 gGameThreadId;
-GAME_API bool IsInGameThead();
+TINY_API bool IsInGameThead();
 
 class IGameNetInterface
 {
@@ -84,25 +83,25 @@ public:
 class Global
 {
 public:
-	static GAME_API int  RandomNet();
-	static GAME_API void RandSeedNet( uint64 seed );
-	static GAME_API int  Random();
-	static GAME_API void RandSeed(unsigned seed );
+	static TINY_API int  RandomNet();
+	static TINY_API void RandSeedNet( uint64 seed );
+	static TINY_API int  Random();
+	static TINY_API void RandSeed(unsigned seed );
 
-	static GAME_API GameModuleManager& GameManager();
-	static GAME_API IGameInstance*     GameInstacne();
+	static TINY_API GameModuleManager& GameManager();
+	static TINY_API IGameInstance*     GameInstacne();
 
-	static GAME_API IGameNetInterface&   GameNet();
-	static GAME_API IDebugInterface&     Debug();
-	static GAME_API PropertyKey&         GameConfig();
-	static GAME_API GUISystem&           GUI();
+	static TINY_API IGameNetInterface&   GameNet();
+	static TINY_API IDebugInterface&     Debug();
+	static TINY_API PropertyKey&         GameConfig();
+	static TINY_API GUISystem&           GUI();
 	
-	static GAME_API DrawEngine*   getDrawEngine();
-	static GAME_API Graphics2D&   getGraphics2D();
-	static GAME_API GLGraphics2D& getGLGraphics2D();
-	static GAME_API IGraphics2D&  getIGraphics2D();
+	static TINY_API DrawEngine*   getDrawEngine();
+	static TINY_API Graphics2D&   getGraphics2D();
+	static TINY_API GLGraphics2D& getGLGraphics2D();
+	static TINY_API IGraphics2D&  getIGraphics2D();
 
-	static GAME_API UserProfile&  getUserProfile();
+	static TINY_API UserProfile&  getUserProfile();
 
 
 };

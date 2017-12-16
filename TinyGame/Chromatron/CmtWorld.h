@@ -4,7 +4,7 @@
 #include "CmtBase.h"
 #include "CmtLightTrace.h"
 
-#include "TGrid2D.h"
+#include "DataStructure/Grid2D.h"
 #include <list>
 
 namespace Chromatron

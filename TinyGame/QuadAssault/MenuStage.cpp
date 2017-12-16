@@ -38,32 +38,32 @@ bool MenuStage::onInit()
 	poz.x = getGame()->getScreenSize().x/2 - 224;
 	poz.y = getGame()->getScreenSize().y/2 + getGame()->getScreenSize().y/8;
 
-	GTextButton* button;
-	button = new GTextButton( UI_START , Vec2i( poz.x , poz.y ) , Vec2i(128, 64) , NULL );
+	QTextButton* button;
+	button = new QTextButton( UI_START , Vec2i( poz.x , poz.y ) , Vec2i(128, 64) , NULL );
 	button->text->setFont( font );
 	button->text->setString( "Start" );
 	button->show( false );
 	GUISystem::getInstance().addWidget( button );
 
-	button = new GTextButton( UI_ABOUT , Vec2i( poz.x +128+32 , poz.y ) , Vec2i(128, 64) , NULL );
+	button = new QTextButton( UI_ABOUT , Vec2i( poz.x +128+32 , poz.y ) , Vec2i(128, 64) , NULL );
 	button->text->setFont( font );
 	button->text->setString( "About" );
 	button->show( false );
 	GUISystem::getInstance().addWidget( button );
 
-	button = new GTextButton( UI_DEV_TEST , Vec2i( poz.x +128+32 , poz.y + 80 ) , Vec2i(128, 64) , NULL );
+	button = new QTextButton( UI_DEV_TEST , Vec2i( poz.x +128+32 , poz.y + 80 ) , Vec2i(128, 64) , NULL );
 	button->text->setFont( font );
 	button->text->setString( "Dev Test" );
 	button->show( false );
 	GUISystem::getInstance().addWidget( button );
 
-	button = new GTextButton( UI_EXIT , Vec2i( poz.x +256+64, poz.y ) , Vec2i(128, 64) , NULL );
+	button = new QTextButton( UI_EXIT , Vec2i( poz.x +256+64, poz.y ) , Vec2i(128, 64) , NULL );
 	button->text->setFont( font );
 	button->text->setString( "Exit" );
 	button->show( false );
 	GUISystem::getInstance().addWidget( button );
 
-	button = new GTextButton( UI_BACK , Vec2i( 32 , getGame()->getScreenSize().y-96 ) , Vec2i(128, 64) , NULL );
+	button = new QTextButton( UI_BACK , Vec2i( 32 , getGame()->getScreenSize().y-96 ) , Vec2i(128, 64) , NULL );
 	button->text->setFont( font );
 	button->text->setString( "Back" );
 	button->show( false );
@@ -135,7 +135,7 @@ bool MenuStage::onInit()
 		FixString< 256 > str;
 		str.format( "Level %d" , i + 1 );
 
-		button = new GTextButton( UI_LEVEL , Vec2i( getGame()->getScreenSize().x/2-64, 64+i*96 ) , Vec2i(128, 64) , NULL );
+		button = new QTextButton( UI_LEVEL , Vec2i( getGame()->getScreenSize().x/2-64, 64+i*96 ) , Vec2i(128, 64) , NULL );
 		button->text->setFont( font );
 		button->text->setString( str );
 		button->setUserData( &mLevels[i] );
@@ -173,7 +173,7 @@ void MenuStage::onUpdate(float deltaT)
 }
 
 
-void MenuStage::onWidgetEvent( int event , int id , GWidget* sender )
+void MenuStage::onWidgetEvent( int event , int id , QWidget* sender )
 {
 	switch( id )
 	{

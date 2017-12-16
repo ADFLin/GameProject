@@ -245,7 +245,8 @@ protected:
 #define TAG_SIZE( TAG ) ( sizeof( TAG ) / sizeof( TAG[0] ) - 1 )
 
 #include "BitUtility.h"
-#include "Heap.h"
+#include "DataStructure/Heap.h"
+
 class XMLPraseTestStage : public StageBase
 {
 	typedef StageBase BaseClass;
@@ -556,7 +557,8 @@ protected:
 #include <string>
 #include <sstream>
 #include <unordered_map>
-#include "Heap.h"
+#include "DataStructure/Heap.h"
+
 #include <boost/heap/binomial_heap.hpp>
 
 namespace MRT
@@ -917,7 +919,7 @@ protected:
 
 
 
-#include "TGrid2D.h"
+#include "DataStructure/Grid2D.h"
 
 class TileMapTestStage : public StageBase
 {
@@ -2160,7 +2162,7 @@ public:
 
 
 
-#include "RedBlackTree.h"
+#include "DataStructure/RedBlackTree.h"
 
 class TreeTestStage : public StageBase
 {

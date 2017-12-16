@@ -42,8 +42,8 @@ namespace RenderGL
 
 		float factor = 1.0f / (  s[0] * t[1] - s[1] * t[0] );
 
-		tangent = Normalize( factor * ( t[1] * d1 - t[0] * d2 ) );
-		binormal = Normalize( factor * ( s[0] * d2 - s[1] * d1 ) );
+		tangent = Math::GetNormal( factor * ( t[1] * d1 - t[0] * d2 ) );
+		binormal = Math::GetNormal( factor * ( s[0] * d2 - s[1] * d1 ) );
 	}
 
 	void fillNormal_TriangleList(VertexDecl const& decl, void* pVertex, int nV, int* idx, int nIdx)
@@ -710,7 +710,7 @@ namespace RenderGL
 		mesh.mDecl.addElement( Vertex::eTexcoord , Vertex::eFloat2 , 0 );
 		mesh.mDecl.addElement( Vertex::eTangent , Vertex::eFloat4 );
 
-		Vector3 n = Normalize( normal );
+		Vector3 n = Math::GetNormal( normal );
 		Vector3 f = dir - n * ( n.dot( dir ) );
 		f.normalize();
 		Vector3 r = n.cross( f );
@@ -1288,7 +1288,7 @@ namespace RenderGL
 			};
 			static void SetVertex(Type& vtx, float radius, Vector3 const& pos)
 			{
-				vtx.n = Normalize(pos);
+				vtx.n = Math::GetNormal(pos);
 				vtx.v = radius * vtx.n;
 			}
 		};
@@ -1308,7 +1308,7 @@ namespace RenderGL
 			};
 			static void SetVertex(Type& vtx, float radius, Vector3 const& pos)
 			{
-				vtx.v = radius * Normalize(pos);
+				vtx.v = radius * Math::GetNormal(pos);
 			}
 		};
 		TIcoSphereBuilder< VertexTraits > builder;

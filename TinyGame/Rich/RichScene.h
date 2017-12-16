@@ -4,7 +4,7 @@
 #include "RichEditInterface.h"
 
 #include "DrawEngine.h"
-#include "IntrList.h"
+#include "DataStructure/IntrList.h"
 #include "Tween.h"
 
 

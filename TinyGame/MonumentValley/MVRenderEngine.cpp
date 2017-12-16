@@ -1,7 +1,7 @@
 #include "MVRenderEngine.h"
 
 #include "RenderGL/GLCommon.h"
-#include "RenderGL/GLDrawUtility.h"
+#include "RenderGL/DrawUtility.h"
 #include "RenderGL/ShaderCompiler.h"
 
 #include "FixString.h"
@@ -43,6 +43,22 @@ namespace MV
 		{ 0.5 , 1 , 1 },
 	};
 	static RenderEngine* gRE = NULL;
+
+
+	Matrix4 ToMatrix(AxisRoataion const& rotation)
+	{
+		Vec3f xAxis = FDir::OffsetF(rotation[0]);
+		Vec3f yAxis = FDir::OffsetF(rotation[1]);
+		Vec3f zAxis = FDir::OffsetF(rotation[2]);
+		return Matrix4::Basis(xAxis, yAxis, zAxis);
+	}
+	Matrix4 ToMatrix(AxisRoataion const& rotation , Vec3f scale)
+	{
+		Vec3f xAxis = scale.x * FDir::OffsetF(rotation[0]);
+		Vec3f yAxis = scale.y * FDir::OffsetF(rotation[1]);
+		Vec3f zAxis = scale.z * FDir::OffsetF(rotation[2]);
+		return Matrix4::Basis(xAxis, yAxis, zAxis);
+	}
 
 	RenderEngine& getRenderEngine(){ return *gRE; }
 
@@ -151,7 +167,7 @@ namespace MV
 		glPopMatrix();
 	}
 
-	void RenderEngine::renderMesh(int idMesh , Vec3f const& pos , Roataion const& rotation)
+	void RenderEngine::renderMesh(int idMesh , Vec3f const& pos , AxisRoataion const& rotation)
 	{
 		glPushMatrix();
 		glTranslatef( pos.x , pos.y , pos.z );
@@ -281,7 +297,7 @@ namespace MV
 
 				Vec3f p1 = Vec3f( block->pos ) + 0.55 * FDir::OffsetF( faceDir );
 
-				for( int idx = 0 ; idx < NUM_FACE_NAV_LINK ; ++idx )
+				for( int idx = 0 ; idx < FACE_NAV_LINK_NUM ; ++idx )
 				{
 					NavNode& node = surface.nodes[ NODE_DIRECT ][idx];
 					if ( !node.link )
@@ -295,7 +311,7 @@ namespace MV
 				}
 
 				p1 += 0.02 * FDir::OffsetF( faceDir );
-				for( int idx = 0 ; idx < NUM_FACE_NAV_LINK ; ++idx )
+				for( int idx = 0 ; idx < FACE_NAV_LINK_NUM ; ++idx )
 				{
 					NavNode& node = surface.nodes[ NODE_PARALLAX ][idx];
 					if ( !node.link )

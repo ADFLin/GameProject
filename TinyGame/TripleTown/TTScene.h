@@ -2,12 +2,12 @@
 #define TTScene_h__
 
 #include "TTLevel.h"
-#include "TGrid2D.h"
 
 #include "Tween.h"
 #include "TVector2.h"
 
-#include "TTable.h"
+#include "DataStructure/Grid2D.h"
+#include "DataStructure/TTable.h"
 #include "DrawEngine.h"
 
 #include <gl/GL.h>

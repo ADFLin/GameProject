@@ -10,7 +10,10 @@ namespace CFly
 	public:
 
 		AABBox(){}
-		static AABBox Empty(){ return AABBox( Vector3(0,0) , Vector3(0,0) ); }
+		AABBox( Vector3 const& min , Vector3 const& max)
+			:mMin(min),mMax(max){ }
+
+		static AABBox Empty(){ return AABBox( Vector3::Zero(), Vector3::Zero() ); }
 
 		void addPoint(Vector3 const& v)
 		{
@@ -59,7 +62,7 @@ namespace CFly
 		if ( out.makeInteration( b ) )
 			return out;
 
-		return AABBox::empty();
+		return AABBox::Empty();
 	}
 
 	AABBox makeUnion( AABBox const& a , AABBox const& b )

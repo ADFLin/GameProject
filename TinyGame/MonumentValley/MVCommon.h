@@ -131,11 +131,11 @@ namespace MV
 	Vec3f roatePos( Vec3i const& pos , Dir dir , Vec3f const& inPos );
 	Vec3f roatePos( Vec3i const& pos , Dir dir , Vec3f const& inPos , int factor );
 
-	class Roataion
+	class AxisRoataion
 	{
 	public:
-		Roataion(){}
-		Roataion( Dir dirX , Dir dirZ ){ set( dirX , dirZ ); }
+		AxisRoataion(){}
+		AxisRoataion( Dir dirX , Dir dirZ ){ set( dirX , dirZ ); }
 
 		void  set( Dir dirX , Dir dirZ );
 
@@ -148,7 +148,7 @@ namespace MV
 		Dir   operator[] ( int idx ) const { return mDir[idx]; }
 		Dir&  operator[] ( int idx ) { return mDir[idx]; }
   
-		static Roataion Identity(){ return Roataion( eDirX , eDirZ ); }
+		static AxisRoataion Identity(){ return AxisRoataion( eDirX , eDirZ ); }
 	private:
 		Dir   mDir[3];
 	};

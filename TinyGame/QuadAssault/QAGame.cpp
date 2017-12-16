@@ -4,22 +4,35 @@
 #include "MenuStage.h"
 
 #include "StageBase.h"
+#include "GameGUISystem.h"
+#include "WidgetUtility.h"
 
 EXPORT_GAME_MODULE( QuadAssaultModule )
 
 
 class ProxyStage : public StageBase
 {
+	typedef StageBase BaseClass;
 public:
 
 	Game* mGame;
 
 	virtual bool onInit() override
 	{
-		mGame = new Game();
-		if( !mGame->init("config.txt") )
+		if( !BaseClass::onInit() )
 			return false;
+		if (!::Global::getDrawEngine()->startOpenGL(true) )
+			return false;
+
+		::Global::GUI().cleanupWidget();
+
+		Vec2i screenSize = ::Global::getDrawEngine()->getScreenSize();
+		mGame = new Game();
+		if( !mGame->init("config.txt" , screenSize , false ) )
+			return false;
+
 		mGame->addStage(new MenuStage(), false);
+
 		return true;
 	}
 
@@ -30,7 +43,7 @@ public:
 
 	virtual void onUpdate(long time) override
 	{
-		mGame->tick(float(time) / gDefaultTickTime);
+		mGame->tick(float(time) / 1000);
 	}
 
 
@@ -39,7 +52,26 @@ public:
 		mGame->render();
 	}
 
+	virtual bool onChar(unsigned code) override
+	{
+		return mGame->onChar(code);
+	}
+
+
+	virtual bool onMouse(MouseMsg const& msg) override
+	{
+		return mGame->onMouse(msg);
+	}
+
+
+	virtual bool onKey(unsigned key, bool isDown) override
+	{
+		return mGame->onKey(key, isDown);
+	}
+
 };
+
+
 void QuadAssaultModule::deleteThis()
 {
 	delete this;

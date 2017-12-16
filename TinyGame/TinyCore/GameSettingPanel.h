@@ -10,16 +10,16 @@ class  BaseSettingPanel : public GPanel
 {
 	typedef GPanel BaseClass;
 public:
-	GAME_API BaseSettingPanel(int id, Vec2i const& pos, Vec2i const& size, GWidget* parent);
+	TINY_API BaseSettingPanel(int id, Vec2i const& pos, Vec2i const& size, GWidget* parent);
 
 	virtual bool  onChildEvent(int event, int id, GWidget* ui);
 
-	GAME_API void      removeGui(unsigned mask);
-	GAME_API void      adjustGuiLocation();
-	GAME_API GChoice*   addChoice(int id, char const* title, unsigned groupMask = -1);
-	GAME_API GButton*   addButton(int id, char const* title, unsigned groupMask = -1);
-	GAME_API GCheckBox* addCheckBox(int id, char const* title, unsigned groupMask = -1);
-	GAME_API GSlider*   addSlider(int id, char const* title, unsigned groupMask = -1);
+	TINY_API void      removeGui(unsigned mask);
+	TINY_API void      adjustGuiLocation();
+	TINY_API GChoice*   addChoice(int id, char const* title, unsigned groupMask = -1);
+	TINY_API GButton*   addButton(int id, char const* title, unsigned groupMask = -1);
+	TINY_API GCheckBox* addCheckBox(int id, char const* title, unsigned groupMask = -1);
+	TINY_API GSlider*   addSlider(int id, char const* title, unsigned groupMask = -1);
 
 	void      setEventCallback(EvtCallBack callback) { mCallback = callback; }
 
@@ -34,7 +34,7 @@ protected:
 		addWidgetInternal(ui, title, groupMask);
 		return ui;
 	}
-	GAME_API void   addWidgetInternal(GWidget* ui, char const* title, unsigned groupMask);
+	TINY_API void   addWidgetInternal(GWidget* ui, char const* title, unsigned groupMask);
 	struct SettingInfo
 	{
 		std::string   title;
@@ -56,10 +56,10 @@ class  GameSettingPanel : public BaseSettingPanel
 {
 	typedef BaseSettingPanel BaseClass;
 public:
-	GAME_API GameSettingPanel( int id , Vec2i const& pos , Vec2i const& size , GWidget* parent );
+	TINY_API GameSettingPanel( int id , Vec2i const& pos , Vec2i const& size , GWidget* parent );
 
-	GAME_API void      addGame( IGameModule* game );
-	GAME_API void      setGame(char const* name);
+	TINY_API void      addGame( IGameModule* game );
+	TINY_API void      setGame(char const* name);
 
 	void renderTitle(GWidget* ui);
 private:

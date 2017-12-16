@@ -17,7 +17,7 @@
 
 #include "GLCommon.h"
 #include "GLUtility.h"
-#include "GLDrawUtility.h"
+#include "DrawUtility.h"
 #include "GpuProfiler.h"
 
 
@@ -731,7 +731,7 @@ namespace RenderGL
 		virtual TLazyObjectGuid< Material >  getMaterial(int idx) final
 		{ 
 			if( mMaterialAssets.empty() )
-				return TLazyObjectGuid<Material>(GDefalutMaterial);
+				return TLazyObjectGuid<Material>();
 			return mMaterialAssets[idx].materialId;
 		}
 		virtual Texture2D& getTexture(int idx) final
@@ -743,7 +743,7 @@ namespace RenderGL
 		virtual TLazyObjectGuid< StaticMesh > getMesh(int idx)  final
 		{ 
 			if( mMeshs.empty() )
-				return TLazyObjectGuid<StaticMesh>(&mEmptyMesh);
+				return TLazyObjectGuid<StaticMesh>();
 			return mMeshs[idx];
 		}
 		virtual Mesh& getSimpleMesh(int idx) final
@@ -756,10 +756,6 @@ namespace RenderGL
 		}
 
 		DebugGeometryObject* mDebugGeometryObject = nullptr;
-		RHITexture2D* RHICreateTexture2D()
-		{
-			return new RHITexture2D;
-		}
 
 		bool  mLineMode;
 

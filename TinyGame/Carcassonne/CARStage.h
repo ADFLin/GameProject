@@ -10,7 +10,7 @@
 #include "CARDebug.h"
 #include "CARGameInputImpl.h"
 
-#include "FixVector.h"
+#include "DataStructure/FixVector.h"
 
 #include <fstream>
 #include <sstream>

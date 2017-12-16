@@ -102,6 +102,10 @@ namespace Math
 		{
 			Matrix4 m; m.setScale( scale ); return m;
 		}
+		static Matrix4 Basis(Vector3 const& axisX, Vector3 const& axisY, Vector3 const& axisZ)
+		{
+			Matrix4 m; m.setBasis(axisX,axisY,axisZ); return m;
+		}
 
 		operator       float* ()       { return m_val; }
 		operator const float* () const { return m_val; }
@@ -124,6 +128,20 @@ namespace Math
 		{
 			setValue( 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0,
 				pos.x , pos.y , pos.z , 1 );
+		}
+
+		void setBasis(Vector3 const& axisX, Vector3 const& axisY, Vector3 const& axisZ)
+		{
+			m_val[0] = axisX.x; m_val[1] = axisX.y; m_val[2] = axisX.z; m_val[3] = 0;
+			m_val[4] = axisY.x; m_val[5] = axisY.y; m_val[6] = axisY.z; m_val[7] = 0;
+			m_val[8] = axisZ.x; m_val[9] = axisZ.y; m_val[10] = axisZ.z; m_val[11] = 0;
+			m_val[12] = 0; m_val[13] = 0; m_val[14] = 0; m_val[15] = 1;
+		}
+		void modifyBasis(Vector3 const& axisX, Vector3 const& axisY, Vector3 const& axisZ)
+		{
+			m_val[0] = axisX.x; m_val[1] = axisX.y; m_val[2] = axisX.z;
+			m_val[4] = axisY.x; m_val[5] = axisY.y; m_val[6] = axisY.z;
+			m_val[8] = axisZ.x; m_val[9] = axisZ.y; m_val[7] = axisZ.z;
 		}
 
 		void setIdentity(){  setValue( 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1 );  }

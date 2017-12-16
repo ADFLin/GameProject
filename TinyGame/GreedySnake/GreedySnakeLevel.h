@@ -2,7 +2,7 @@
 #define GreedySnakeLevel_h__
 
 #include "TVector2.h"
-#include "TGrid2D.h"
+#include "DataStructure/Grid2D.h"
 
 #include <vector>
 #include <list>

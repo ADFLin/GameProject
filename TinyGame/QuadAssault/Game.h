@@ -22,15 +22,15 @@ class Game : public IGame
 {
 public:
 	Game();
-	bool init( char const* pathConfig );
-	void tick(float deltaT);
+	bool init( char const* pathConfig , Vec2i const& screenSize = Vec2i(0,0), bool bCreateWindow = true );
+	void tick( float deltaT );
 	void render();
 	void run();
 	void exit();
 
 	virtual void  addStage( GameStage* stage, bool removePrev );
 	virtual void  stopPlay(){ mNeedEnd = true; }
-	virtual void  procWidgetEvent( int event , int id , GWidget* sender );
+	virtual void  procWidgetEvent( int event , int id , QWidget* sender );
 	virtual void  procSystemEvent();
 
 	IFont*        getFont( int idx ){  return mFonts[idx]; }

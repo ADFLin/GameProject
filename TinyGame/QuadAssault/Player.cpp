@@ -24,6 +24,7 @@ Vec2f const gWeaponSlotOffset[] =
 };
 
 
+
 Player::Player()
 {
 	mPlayerId = -1;
@@ -34,7 +35,7 @@ void Player::init()
 {
 	setSize( Vec2f(64,64) );
 
-	akceleracija = 0;
+	acceleration = 0;
 
 	for(int i=0; i<4; i++)
 		mWeaponSlot[i]=NULL;
@@ -79,10 +80,7 @@ void Player::update( Vec2f const& aimPos )
 {
 	if( !mIsDead )
 	{
-		Vec2f moment;
-		float rad = rotation - Math::Deg2Rad( 90 );
-		moment.x=cos(rad)*akceleracija;
-		moment.y=sin(rad)*akceleracija;	
+		Vec2f moment = acceleration * GetDirection( rotation - Math::Deg2Rad(90) );
 
 		Vec2f off = ( brzina * TICK_TIME ) * moment;
 
@@ -99,7 +97,7 @@ void Player::update( Vec2f const& aimPos )
 
 		if(moment.x!=0 || moment.y!=0)
 		{
-			if(akceleracija>0)
+			if(acceleration>0)
 				shiftTrack += TICK_TIME;
 			else
 				shiftTrack -= TICK_TIME;
@@ -108,7 +106,7 @@ void Player::update( Vec2f const& aimPos )
 			if(shiftTrack<0.0)
 				shiftTrack=1.0;
 		}
-		akceleracija=0;
+		acceleration=0;
 
 		Vec2f dir = aimPos - getPos();
 		rotationAim = Math::ATan2( dir.y , dir.x );
@@ -172,21 +170,17 @@ void Player::onBodyCollision( ColBody& self , ColBody& other )
 
 void Player::updateHeadlight()
 {
-	Vec2f dir;
 	float angle = rotationAim + Math::Deg2Rad(180);
-	dir.x = cos( angle );
-	dir.y = sin( angle );
-	Math::Normalize( dir );	
+	Vec2f dir = GetDirection( angle );
 	mHeadLight.dir = dir;
 
 	float dist = 34;
-	mHeadLight.offset.x = dist * cos( rotationAim );
-	mHeadLight.offset.y = dist * sin( rotationAim );
+	mHeadLight.offset = dist * GetDirection( rotationAim );
 }
 
 void Player::addMoment(float x)
 {
-	akceleracija=x;
+	acceleration=x;
 }
 
 
@@ -195,10 +189,9 @@ void Player::shoot( Vec2f const& posTaget )
 	if( mIsDead )
 		return;
 
-	Vec2f dir = posTaget - getPos();
-	Math::Normalize( dir );
+	Vec2f dir = Math::GetNormal( posTaget - getPos() );
 
-	for(int i=0; i<4; i++)
+	for(int i=0; i< NUM_WEAPON_SLOT; i++)
 	{		
 		if( !mWeaponSlot[i] )
 			continue;
@@ -209,10 +202,8 @@ void Player::shoot( Vec2f const& posTaget )
 
 			float angle = rotationAim + Math::ATan2(offset.y,offset.x) + Math::Deg2Rad( 90 );
 
-			Vec2f slotDir;
-			slotDir.x = cos( angle );
-			slotDir.y = sin( angle );
-			mWeaponSlot[i]->fire( getPos() + sqrt( offset.length2() ) * slotDir , dir , TEAM_PLAYER );
+			Vec2f slotDir = GetDirection( angle );
+			mWeaponSlot[i]->fire( getPos() + offset.length() * slotDir , dir , TEAM_PLAYER );
 			haveShoot=true;
 		}
 	}
@@ -264,9 +255,9 @@ void Player::loseEnergy(float e)
 	if(mEnergy<0.0)
 		mEnergy=0.0;
 }
-void Player::addHP(float kolicina)
+void Player::addHP(float quantity)
 {
-	mHP+=kolicina;
+	mHP += quantity;
 	if(mHP>100.0)
 		mHP=100.0;
 }

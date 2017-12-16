@@ -16,34 +16,34 @@ class  GUISystem
 public:
 	GUISystem();
 
-	GAME_API bool         initialize(IGUIDelegate&  guiDelegate);
-	GAME_API void         finalize();
+	TINY_API bool         initialize(IGUIDelegate&  guiDelegate);
+	TINY_API void         finalize();
 
-	GAME_API int          getModalID();
-	GAME_API GWidget*     showMessageBox( int id , char const* msg , unsigned flag = GMB_YESNO );
-	GAME_API void         hideWidgets( bool bHide ){ mHideWidgets = bHide; }
-	GAME_API void         update();
-	GAME_API void         render();
+	TINY_API int          getModalID();
+	TINY_API GWidget*     showMessageBox( int id , char const* msg , unsigned flag = GMB_YESNO );
+	TINY_API void         hideWidgets( bool bHide ){ mHideWidgets = bHide; }
+	TINY_API void         update();
+	TINY_API void         render();
 
-	GAME_API void         sendMessage( int event , int id , GWidget* ui );
-	GAME_API void         addTask( TaskBase* task , bool beGlobal = false );
+	TINY_API void         sendMessage( int event , int id , GWidget* ui );
+	TINY_API void         addTask( TaskBase* task , bool beGlobal = false );
 
-	GAME_API void         addWidget( GWidget* widget );
-	GAME_API void         cleanupWidget(bool bForceCleanup = false );
+	TINY_API void         addWidget( GWidget* widget );
+	TINY_API void         cleanupWidget(bool bForceCleanup = false );
 
 	UIManager&   getManager(){ return mUIManager; }
 
-	GAME_API void         addHotkey( GWidget* ui , ControlAction key );
-	GAME_API void         removeHotkey( GWidget* ui );
-	GAME_API void         scanHotkey( GameController& controller );
+	TINY_API void         addHotkey( GWidget* ui , ControlAction key );
+	TINY_API void         removeHotkey( GWidget* ui );
+	TINY_API void         scanHotkey( GameController& controller );
 
 	int          getUpdateFrameNum(){ return mCurUpdateFrame; }
 
-	GAME_API void         updateFrame( int frame , long tickTime );
+	TINY_API void         updateFrame( int frame , long tickTime );
 
-	GAME_API bool         procMouseMsg(MouseMsg const& msg);
-	GAME_API bool         procKeyMsg(unsigned key, bool isDown);
-	GAME_API bool         procCharMsg(unsigned code);
+	TINY_API bool         procMouseMsg(MouseMsg const& msg);
+	TINY_API bool         procKeyMsg(unsigned key, bool isDown);
+	TINY_API bool         procCharMsg(unsigned code);
 
 	typedef Tween::GroupTweener< float > Tweener;
 	Tweener&     getTweener(){ return mTweener; }
@@ -53,8 +53,8 @@ public:
 		mTweener.tween< Fun , WidgetPos >( *widget , from , to , time , delay ).finishCallback( cb );
 	}
 
-	GAME_API GWidget* findTopWidget( int id );
-	GAME_API static Vec2i  calcScreenCenterPos( Vec2i const& size );
+	TINY_API GWidget* findTopWidget( int id );
+	TINY_API static Vec2i  calcScreenCenterPos( Vec2i const& size );
 
 	void  skipMouseEvent(bool bSkip) { mbSkipMouseEvent = bSkip;  }
 	void  skipKeyEvent(bool bSkip) { mbSkipKeyEvent = bSkip; }

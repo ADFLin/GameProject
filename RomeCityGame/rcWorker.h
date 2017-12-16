@@ -3,8 +3,8 @@
 
 #include "rcBase.h"
 
-#include "TLinkable.h"
-#include "TTable.h"
+#include "DataStructure/TLinkable.h"
+#include "DataStructure/TTable.h"
 
 
 class rcLevelMap;

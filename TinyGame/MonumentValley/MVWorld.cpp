@@ -174,7 +174,7 @@ namespace MV
 		block->rotation.set( dirX , dirZ );
 		block->pos = pos;
 
-		for( int i = 0 ; i < 6 ; ++i )
+		for( int i = 0 ; i < BLOCK_FACE_NUM ; ++i )
 		{
 			block->surfaces[i].fun  = surfaceDef[i].fun;
 			block->surfaces[i].meta = surfaceDef[i].meta;
@@ -519,10 +519,10 @@ namespace MV
 				int id = getBlock( tempPos );
 				if ( id )
 				{
-					for( int i = 0 ; i < NUM_BLOCK_FACE ; ++i )
+					for( int i = 0 ; i < BLOCK_FACE_NUM ; ++i )
 					{
 						BlockSurface& surface = mBlocks[id]->surfaces[i];
-						for( int idx = 0 ; idx < NUM_FACE_NAV_LINK ; ++idx )
+						for( int idx = 0 ; idx < FACE_NAV_LINK_NUM ; ++idx )
 						{
 							if ( surface.nodes[ NODE_PARALLAX ][idx].link )
 								surface.nodes[ NODE_PARALLAX ][idx].disconnect();
@@ -533,7 +533,7 @@ namespace MV
 			}
 		}
 
-		for( int i = 0 ; i < 6 ; ++i )
+		for( int i = 0 ; i < BLOCK_FACE_NUM ; ++i )
 		{
 			updateSurfaceNavNode( block , Dir(i) , testParallax );
 		}
@@ -871,10 +871,10 @@ namespace MV
 		{
 			Block* block = *iter;
 
-			for( int i = 0 ; i < NUM_BLOCK_FACE ; ++i )
+			for( int i = 0 ; i < BLOCK_FACE_NUM ; ++i )
 			{
 				BlockSurface& surface = block->getLocalFace( Dir(i) );
-				for( int n = 0 ; n < NUM_FACE_NAV_LINK ; ++n )
+				for( int n = 0 ; n < FACE_NAV_LINK_NUM ; ++n )
 				{
 					if ( surface.nodes[ NODE_DIRECT ][n].link && ( surface.nodes[ NODE_DIRECT ][n].flag & NavNode::eStatic ) == 0 )
 						surface.nodes[ NODE_DIRECT ][n].disconnect();
@@ -899,10 +899,10 @@ namespace MV
 		{
 			Block* block = *iter;
 
-			for( int i = 0 ; i < NUM_BLOCK_FACE ; ++i )
+			for( int i = 0 ; i < BLOCK_FACE_NUM ; ++i )
 			{
 				BlockSurface& surface = block->getLocalFace( Dir(i) );
-				for( int n = 0 ; n < NUM_FACE_NAV_LINK ; ++n )
+				for( int n = 0 ; n < FACE_NAV_LINK_NUM ; ++n )
 				{
 					if ( surface.nodes[ NODE_PARALLAX ][n].link )
 					{
@@ -944,10 +944,10 @@ namespace MV
 
 	void World::removeNavNode(Block& block)
 	{
-		for( int i = 0 ; i < NUM_BLOCK_FACE ; ++i )
+		for( int i = 0 ; i < BLOCK_FACE_NUM ; ++i )
 		{
 			BlockSurface& surface = block.surfaces[i];
-			for( int idx = 0 ; idx < NUM_FACE_NAV_LINK ; ++idx )
+			for( int idx = 0 ; idx < FACE_NAV_LINK_NUM ; ++idx )
 			{
 				if ( surface.nodes[ NODE_DIRECT ][idx].link )
 					surface.nodes[ NODE_DIRECT ][idx].disconnect();

@@ -304,14 +304,14 @@ namespace RenderGL
 			glBindVertexArray(mVAO);
 
 			mVertexBuffer->bind();
-			mDecl.setupVAO();
+			mDecl.beginVAOSetup();
 			if( mIndexBuffer )
 				mIndexBuffer->bind();
 			glBindVertexArray(0);
 			mVertexBuffer->unbind();
 			if( mIndexBuffer )
 				mIndexBuffer->unbind();
-			mDecl.setupVAOEnd();
+			mDecl.endVAOSetup();
 		}
 		glBindVertexArray(mVAO);
 	}
@@ -330,35 +330,35 @@ namespace RenderGL
 			{
 			case Vertex::ePosition:
 				glEnableClientState( GL_VERTEX_ARRAY );
-				glVertexPointer( getElementSize( info.format ) , getFormatType( info.format ) , mVertexSize , (void*)info.offset );
+				glVertexPointer( Vertex::GetComponentNum( info.format ) , Vertex::GetComponentType( info.format ) , mVertexSize , (void*)info.offset );
 				break;
 			case Vertex::eNormal:
-				assert( getElementSize( info.format ) == 3 );
+				assert( Vertex::GetComponentNum( info.format ) == 3 );
 				glEnableClientState( GL_NORMAL_ARRAY );
-				glNormalPointer( getFormatType( info.format ) , mVertexSize , (void*)info.offset );
+				glNormalPointer(Vertex::GetComponentType(info.format ) , mVertexSize , (void*)info.offset );
 				break;
 			case Vertex::eColor:
 				if ( info.idx == 0 )
 				{
 					glEnableClientState( GL_COLOR_ARRAY );
-					glColorPointer( getElementSize( info.format ) , getFormatType( info.format ) , mVertexSize , (void*)info.offset );
+					glColorPointer( Vertex::GetComponentNum( info.format ) , Vertex::GetComponentType( info.format ) , mVertexSize , (void*)info.offset );
 				}
 				else
 				{
 					glEnableClientState( GL_SECONDARY_COLOR_ARRAY );
-					glSecondaryColorPointer( getElementSize( info.format ) , getFormatType( info.format ) , mVertexSize , (void*)info.offset );
+					glSecondaryColorPointer( Vertex::GetComponentNum( info.format ) , Vertex::GetComponentType( info.format ) , mVertexSize , (void*)info.offset );
 				}
 				break;
 			case Vertex::eTangent:
 				glClientActiveTexture(GL_TEXTURE5);
 				glEnableClientState(GL_TEXTURE_COORD_ARRAY);
-				glTexCoordPointer(getElementSize(info.format), getFormatType(info.format), mVertexSize, (void*)info.offset);
+				glTexCoordPointer(Vertex::GetComponentNum(info.format), Vertex::GetComponentType( info.format), mVertexSize, (void*)info.offset);
 				haveTex = true;
 				break;
 			case Vertex::eTexcoord:
 				glClientActiveTexture( GL_TEXTURE0 + info.idx );
 				glEnableClientState( GL_TEXTURE_COORD_ARRAY );
-				glTexCoordPointer( getElementSize( info.format ) , getFormatType( info.format ) , mVertexSize , (void*)info.offset );
+				glTexCoordPointer( Vertex::GetComponentNum( info.format ) , Vertex::GetComponentType( info.format ) , mVertexSize , (void*)info.offset );
 				haveTex = true;
 				break;
 			}
@@ -397,16 +397,16 @@ namespace RenderGL
 			glClientActiveTexture( GL_TEXTURE0 );
 	}
 
-	void VertexDecl::setupVAO()
+	void VertexDecl::beginVAOSetup()
 	{
 		for( VertexElement& info : mInfoVec )
 		{
 			glEnableVertexAttribArray(info.semantic);
-			glVertexAttribPointer(info.semantic, getElementSize(info.format), getFormatType(info.format), GL_FALSE, mVertexSize, (void*)info.offset);
+			glVertexAttribPointer(info.semantic, Vertex::GetComponentNum(info.format), Vertex::GetComponentType(info.format), GL_FALSE, mVertexSize, (void*)info.offset);
 		}
 	}
 
-	void VertexDecl::setupVAOEnd()
+	void VertexDecl::endVAOSetup()
 	{
 		for( VertexElement& info : mInfoVec )
 		{
@@ -442,7 +442,7 @@ namespace RenderGL
 		info.idx      = idx;
 		info.bNormalize = false;
 		mInfoVec.push_back( info );
-		mVertexSize += getFormatSize( f );
+		mVertexSize += Vertex::GetFormatSize( f );
 		return *this;
 	}
 
@@ -455,102 +455,10 @@ namespace RenderGL
 		info.semantic = AttributeToSemantic(attribute, info.idx);
 		info.bNormalize = bNormailze;
 		mInfoVec.push_back(info);
-		mVertexSize += getFormatSize(f);
+		mVertexSize += Vertex::GetFormatSize(f);
 		return *this;
 	}
 
-	uint8 VertexDecl::getFormatSize(uint8 format)
-	{
-		switch( format )
-		{
-		case Vertex::eFloat1: return 1 * sizeof( float );
-		case Vertex::eFloat2: return 2 * sizeof( float );
-		case Vertex::eFloat3: return 3 * sizeof( float );
-		case Vertex::eFloat4: return 4 * sizeof( float );
-		case Vertex::eUInt1: return 1 * sizeof( uint32 );
-		case Vertex::eUInt2: return 2 * sizeof( uint32 );
-		case Vertex::eUInt3: return 3 * sizeof( uint32 );
-		case Vertex::eUInt4: return 4 * sizeof( uint32 );
-		case Vertex::eInt1: return 1 * sizeof(int32);
-		case Vertex::eInt2: return 2 * sizeof(int32);
-		case Vertex::eInt3: return 3 * sizeof(int32);
-		case Vertex::eInt4: return 4 * sizeof(int32);
-		case Vertex::eUShort1: return 1 * sizeof(uint16);
-		case Vertex::eUShort2: return 2 * sizeof(uint16);
-		case Vertex::eUShort3: return 3 * sizeof(uint16);
-		case Vertex::eUShort4: return 4 * sizeof(uint16);
-		case Vertex::eShort1: return 1 * sizeof(int16);
-		case Vertex::eShort2: return 2 * sizeof(int16);
-		case Vertex::eShort3: return 3 * sizeof(int16);
-		case Vertex::eShort4: return 4 * sizeof(int16);
-		case Vertex::eUByte1: return 1 * sizeof(uint8);
-		case Vertex::eUByte2: return 2 * sizeof(uint8);
-		case Vertex::eUByte3: return 3 * sizeof(uint8);
-		case Vertex::eUByte4: return 4 * sizeof(uint8);
-		case Vertex::eByte1: return 1 * sizeof(int8);
-		case Vertex::eByte2: return 2 * sizeof(int8);
-		case Vertex::eByte3: return 3 * sizeof(int8);
-		case Vertex::eByte4: return 4 * sizeof(int8);
-		}
-		return 0;
-	}
-
-	GLenum VertexDecl::getFormatType(uint8 format)
-	{
-		switch( format )
-		{
-		case Vertex::eFloat1:case Vertex::eFloat2:
-		case Vertex::eFloat3:case Vertex::eFloat4:
-			return GL_FLOAT;
-		case Vertex::eUInt1:case Vertex::eUInt2:
-		case Vertex::eUInt3:case Vertex::eUInt4:
-			return GL_UNSIGNED_INT;
-		case Vertex::eInt1:case Vertex::eInt2:
-		case Vertex::eInt3:case Vertex::eInt4:
-			return GL_INT;
-		case Vertex::eUShort1:case Vertex::eUShort2:
-		case Vertex::eUShort3:case Vertex::eUShort4:
-			return GL_UNSIGNED_SHORT;
-		case Vertex::eShort1:case Vertex::eShort2:
-		case Vertex::eShort3:case Vertex::eShort4:
-			return GL_SHORT;
-		case Vertex::eUByte1:case Vertex::eUByte2:
-		case Vertex::eUByte3:case Vertex::eUByte4:
-			return GL_UNSIGNED_BYTE;
-		case Vertex::eByte1:case Vertex::eByte2:
-		case Vertex::eByte3:case Vertex::eByte4:
-			return GL_BYTE;
-		}
-		return GL_FLOAT;
-	}
-
-	int VertexDecl::getElementSize(uint8 format)
-	{
-		switch( format )
-		{
-		case Vertex::eFloat1: 
-		case Vertex::eUInt1: case Vertex::eInt1: 
-		case Vertex::eUShort1: case Vertex::eShort1:
-		case Vertex::eUByte1: case Vertex::eByte1:
-			return 1;
-		case Vertex::eFloat2: 
-		case Vertex::eUInt2: case Vertex::eInt2:
-		case Vertex::eUShort2: case Vertex::eShort2:
-		case Vertex::eUByte2: case Vertex::eByte2:
-			return 2;
-		case Vertex::eFloat3:
-		case Vertex::eUInt3: case Vertex::eInt3:
-		case Vertex::eUShort3: case Vertex::eShort3:
-		case Vertex::eUByte3: case Vertex::eByte3:
-			return 3;
-		case Vertex::eFloat4: 
-		case Vertex::eUInt4: case Vertex::eInt4:
-		case Vertex::eUShort4: case Vertex::eShort4:
-		case Vertex::eUByte4: case Vertex::eByte4:
-			return 4;
-		}
-		return 0;
-	}
 
 	VertexElement const* VertexDecl::findBySematic(Vertex::Semantic s , int idx) const
 	{
@@ -1053,8 +961,8 @@ namespace RenderGL
 #define TEXTURE_INFO( FORMAT_CHECK , FORMAT , COMP_NUM , COMP_TYPE )\
 	{ FORMAT_CHECK , FORMAT , COMP_NUM , COMP_TYPE},
 #else
-#define TEXTURE_INFO( FORMAT_CHECK , FORMAT , COMP_TYPE )\
-	{ FORMAT , COMP_NUM ,COMP_TYPE},
+#define TEXTURE_INFO( FORMAT_CHECK , FORMAT , COMP_NUM ,COMP_TYPE )\
+	{ FORMAT , COMP_NUM , COMP_TYPE },
 #endif
 		TEXTURE_INFO(Texture::eRGBA8   ,GL_RGBA8   ,4,GL_UNSIGNED_BYTE)
 		TEXTURE_INFO(Texture::eRGB8    ,GL_RGB8    ,3,GL_UNSIGNED_BYTE)
@@ -1265,6 +1173,7 @@ namespace RenderGL
 		case PrimitiveType::eTriangleFan:   return GL_TRIANGLE_FAN;
 		case PrimitiveType::eLineList:      return GL_LINES;
 		case PrimitiveType::eLineStrip:     return GL_LINE_STRIP;
+		case PrimitiveType::eLineLoop:      return GL_LINE_LOOP;
 		case PrimitiveType::eQuad:          return GL_QUADS;
 		case PrimitiveType::ePoints:        return GL_POINTS;
 		}
@@ -1289,6 +1198,39 @@ namespace RenderGL
 	{
 		mLoc = program.getParamLoc(name);
 		return mLoc != -1;
+	}
+
+	GLenum Vertex::GetComponentType(uint8 format)
+	{
+		switch( Vertex::GetVectorComponentType(Vertex::Format(format)) )
+		{
+		case VCT_Float:  return GL_FLOAT;
+		case VCT_Half:   return GL_HALF_FLOAT;
+		case VCT_UInt:  return GL_UNSIGNED_INT;
+		case VCT_Int:    return GL_INT;
+		case VCT_UShort: return GL_UNSIGNED_SHORT;
+		case VCT_Short:  return GL_SHORT;
+		case VCT_UByte:  return GL_UNSIGNED_BYTE;
+		case VCT_Byte:   return GL_BYTE;
+		}
+		return 0;
+	}
+
+	int Vertex::GetFormatSize(uint8 format)
+	{
+		int num = Vertex::GetComponentNum(format);
+		switch( Vertex::GetVectorComponentType(Vertex::Format(format)) )
+		{
+		case VCT_Float:  return sizeof(float) * num;
+		case VCT_Half:   return sizeof(float)/2 * num;
+		case VCT_UInt:   return sizeof(uint32) * num;
+		case VCT_Int:    return sizeof(int) * num;
+		case VCT_UShort: return sizeof(uint16) * num;
+		case VCT_Short:  return sizeof(int16) * num;
+		case VCT_UByte:  return sizeof(uint8) * num;
+		case VCT_Byte:   return sizeof(int8) * num;
+		}
+		return 0;
 	}
 
 }//namespace GL

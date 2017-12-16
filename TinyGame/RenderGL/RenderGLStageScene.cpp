@@ -4,7 +4,7 @@
 
 #include "Thread.h"
 #include "ShaderCompiler.h"
-
+#include "RHICommand.h"
 #include "SceneScript.h"
 
 namespace RenderGL

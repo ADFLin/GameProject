@@ -47,9 +47,6 @@
     <Filter Include="Image">
       <UniqueIdentifier>{d7a8b0d1-8914-412d-a73a-341e8f5fa5d2}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Game">
-      <UniqueIdentifier>{9e425877-efb6-4cf3-a37d-a12f5a8f9efa}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Core">
       <UniqueIdentifier>{e32d06ff-488f-4fe0-a5d2-1ea8492918fb}</UniqueIdentifier>
     </Filter>
@@ -97,6 +94,12 @@
     </Filter>
     <Filter Include="Platform\Windows">
       <UniqueIdentifier>{911b5144-c38c-4d57-93fe-1aa913fe5a69}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Misc">
+      <UniqueIdentifier>{4c504094-adcf-4436-a3bc-22735d3c6bee}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="GameFramework">
+      <UniqueIdentifier>{9e425877-efb6-4cf3-a37d-a12f5a8f9efa}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -244,6 +247,12 @@
     <ClCompile Include="BitUtility.cpp">
       <Filter>原始程式檔</Filter>
     </ClCompile>
+    <ClCompile Include="Misc\ImageMergeHelper.cpp">
+      <Filter>Misc</Filter>
+    </ClCompile>
+    <ClCompile Include="Platform\Windows\WindowsProcess.cpp">
+      <Filter>Platform\Windows</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ConsoleSystem.h">
@@ -372,33 +381,6 @@
     <ClInclude Include="Math\Vector4.h">
       <Filter>Math</Filter>
     </ClInclude>
-    <ClInclude Include="FixVector.h">
-      <Filter>DataStructure</Filter>
-    </ClInclude>
-    <ClInclude Include="Heap.h">
-      <Filter>DataStructure</Filter>
-    </ClInclude>
-    <ClInclude Include="IntrList.h">
-      <Filter>DataStructure</Filter>
-    </ClInclude>
-    <ClInclude Include="RedBlackTree.h">
-      <Filter>DataStructure</Filter>
-    </ClInclude>
-    <ClInclude Include="SList.h">
-      <Filter>DataStructure</Filter>
-    </ClInclude>
-    <ClInclude Include="TLinkable.h">
-      <Filter>DataStructure</Filter>
-    </ClInclude>
-    <ClInclude Include="TTable.h">
-      <Filter>DataStructure</Filter>
-    </ClInclude>
-    <ClInclude Include="TUnsignedHash.h">
-      <Filter>DataStructure</Filter>
-    </ClInclude>
-    <ClInclude Include="VertorSet.h">
-      <Filter>DataStructure</Filter>
-    </ClInclude>
     <ClInclude Include="CompilerConfig.h">
       <Filter>Config</Filter>
     </ClInclude>
@@ -427,7 +409,7 @@
       <Filter>Image</Filter>
     </ClInclude>
     <ClInclude Include="Game\Entity.h">
-      <Filter>Game</Filter>
+      <Filter>GameFramework</Filter>
     </ClInclude>
     <ClInclude Include="Any.h">
       <Filter>Core</Filter>
@@ -513,9 +495,6 @@
     <ClInclude Include="WidgetCommon.hpp">
       <Filter>GUI</Filter>
     </ClInclude>
-    <ClInclude Include="AVLTree.h">
-      <Filter>DataStructure</Filter>
-    </ClInclude>
     <ClInclude Include="BehaviorTree\BTNode.h">
       <Filter>AI</Filter>
     </ClInclude>
@@ -561,9 +540,6 @@
     <ClInclude Include="CoreShare.h">
       <Filter>Config</Filter>
     </ClInclude>
-    <ClInclude Include="HashString.h">
-      <Filter>DataStructure</Filter>
-    </ClInclude>
     <ClInclude Include="TVector3.h">
       <Filter>Math</Filter>
     </ClInclude>
@@ -579,9 +555,6 @@
     <ClInclude Include="RefCount.h">
       <Filter>標頭檔</Filter>
     </ClInclude>
-    <ClInclude Include="CycleQueue.h">
-      <Filter>DataStructure</Filter>
-    </ClInclude>
     <ClInclude Include="TypeConstruct.h">
       <Filter>Core</Filter>
     </ClInclude>
@@ -593,9 +566,6 @@
     </ClInclude>
     <ClInclude Include="EnumCommon.h">
       <Filter>標頭檔</Filter>
-    </ClInclude>
-    <ClInclude Include="HashMap.h">
-      <Filter>DataStructure</Filter>
     </ClInclude>
     <ClInclude Include="Math\Math2D.h">
       <Filter>Math</Filter>
@@ -692,6 +662,51 @@
     </ClInclude>
     <ClInclude Include="Core\ScopeExit.h">
       <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Misc\ImageMergeHelper.h">
+      <Filter>Misc</Filter>
+    </ClInclude>
+    <ClInclude Include="Platform\Windows\WindowsProcess.h">
+      <Filter>Platform\Windows</Filter>
+    </ClInclude>
+    <ClInclude Include="DataStructure\Heap.h">
+      <Filter>DataStructure</Filter>
+    </ClInclude>
+    <ClInclude Include="DataStructure\IntrList.h">
+      <Filter>DataStructure</Filter>
+    </ClInclude>
+    <ClInclude Include="DataStructure\RedBlackTree.h">
+      <Filter>DataStructure</Filter>
+    </ClInclude>
+    <ClInclude Include="DataStructure\SList.h">
+      <Filter>DataStructure</Filter>
+    </ClInclude>
+    <ClInclude Include="DataStructure\TLinkable.h">
+      <Filter>DataStructure</Filter>
+    </ClInclude>
+    <ClInclude Include="DataStructure\TUnsignedHash.h">
+      <Filter>DataStructure</Filter>
+    </ClInclude>
+    <ClInclude Include="DataStructure\VertorSet.h">
+      <Filter>DataStructure</Filter>
+    </ClInclude>
+    <ClInclude Include="DataStructure\CycleQueue.h">
+      <Filter>DataStructure</Filter>
+    </ClInclude>
+    <ClInclude Include="DataStructure\FixVector.h">
+      <Filter>DataStructure</Filter>
+    </ClInclude>
+    <ClInclude Include="DataStructure\HashMap.h">
+      <Filter>DataStructure</Filter>
+    </ClInclude>
+    <ClInclude Include="DataStructure\TTable.h">
+      <Filter>DataStructure</Filter>
+    </ClInclude>
+    <ClInclude Include="DataStructure\AVLTree.h">
+      <Filter>DataStructure</Filter>
+    </ClInclude>
+    <ClInclude Include="DataStructure\Grid2D.h">
+      <Filter>DataStructure</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

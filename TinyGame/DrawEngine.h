@@ -81,7 +81,7 @@ public:
 	HDC   mhDC;
 };
 
-class GAME_API GameWindow : public WinFrameT< GameWindow >
+class TINY_API GameWindow : public WinFrameT< GameWindow >
 {
 public:
 	WORD   getIcon();
@@ -91,12 +91,12 @@ public:
 class DrawEngine
 {
 public:
-	GAME_API DrawEngine();
-	GAME_API ~DrawEngine();
+	TINY_API DrawEngine();
+	TINY_API ~DrawEngine();
 
-	GAME_API void  init( GameWindow& window );
-	GAME_API void  release();
-	GAME_API void  changeScreenSize( int w , int h );
+	TINY_API void  init( GameWindow& window );
+	TINY_API void  release();
+	TINY_API void  changeScreenSize( int w , int h );
 	
 	Vec2i         getScreenSize(){ return Vec2i( mBufferDC->getWidth() , mBufferDC->getHeight() ); }
 	int           getScreenWidth(){ return mBufferDC->getWidth(); }
@@ -104,7 +104,7 @@ public:
 	Graphics2D&   getScreenGraphics(){ return *mScreenGraphics; }
 	GLGraphics2D& getGLGraphics(){ return *mGLGraphics; }
 
-	GAME_API IGraphics2D&  getIGraphics();
+	TINY_API IGraphics2D&  getIGraphics();
 
 	HFONT       createFont( int size , char const* faceName , bool beBold , bool beItalic );
 	WindowsGLContext& getGLContext(){ return mGLContext; }
@@ -115,12 +115,12 @@ public:
 	bool isOpenGLEnabled(){ return mbGLEnabled; }
 	bool isInitialized() { return mbInitialized; }
 
-	GAME_API bool  startOpenGL( bool useGLEW = true , int numSample = 1);
-	GAME_API void  stopOpenGL(bool bDeferred = false);
-	GAME_API bool  beginRender();
-	GAME_API void  endRender();
-	GAME_API void  enableSweepBuffer( bool beS );
-	GAME_API bool  cleanupGLContextDeferred();
+	TINY_API bool  startOpenGL( bool useGLEW = true , int numSample = 1);
+	TINY_API void  stopOpenGL(bool bDeferred = false);
+	TINY_API bool  beginRender();
+	TINY_API void  endRender();
+	TINY_API void  enableSweepBuffer( bool beS );
+	TINY_API bool  cleanupGLContextDeferred();
 private:
 	void        setupBuffer( int w , int h );
 

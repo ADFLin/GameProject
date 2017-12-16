@@ -3,9 +3,9 @@
 
 #include "Algo/AStar.h"
 
-#include "TGrid2D.h"
-#include "TVector2.h"
 #include "Core/IntegerType.h"
+#include "DataStructure/Grid2D.h"
+#include "TVector2.h"
 
 #include <iterator>
 #include <list>

@@ -40,7 +40,7 @@ namespace MV
 			
 			re.beginRender( matView );
 			glColor3f(1,1,1);
-			re.renderMesh( idMesh , Vec3f(0,0,0) , Roataion::Identity() );
+			re.renderMesh( idMesh , Vec3f(0,0,0) , AxisRoataion::Identity() );
 			re.endRender();
 		}
 		glDisable( GL_DEPTH_TEST );

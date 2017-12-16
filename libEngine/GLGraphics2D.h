@@ -22,7 +22,7 @@ class GLTexture
 class GLFont
 {	
 public:
-	GLFont(){  mSize = 0; mIdBaseList = 0;  }
+	GLFont();
 	~GLFont();
 #ifdef SYS_PLATFORM_WIN
 	explicit GLFont( int size , char const* faceName , HDC hDC ){ buildBaseImage( size , faceName , hDC ); }
@@ -31,11 +31,15 @@ private:
 	void buildBaseImage( int size , char const* faceName , HDC hDC );
 #endif
 public:
-	void release();
+	void cleanup();
 	void printf( char const* fmt, ...);
 	void print( char const* str );
 	int  getSize() const{ return mSize; }
 private:
+
+#ifdef SYS_PLATFORM_WIN
+	HFONT   mhFont;
+#endif
 	GLuint	mIdBaseList;
 	int     mSize;
 };
@@ -140,7 +144,6 @@ private:
 	bool      mDrawPen;
 	GLuint    mColorKeyShader;
 	GLFont*   mFont;
-	int       mSavedViewport[4];
 	std::vector< float > mBuffer;
 };
 

@@ -25,7 +25,7 @@ public:
 	virtual char const* translateString(char const* str) = 0;
 	virtual bool saveTranslateAsset(char const* path) = 0;
 
-	GAME_API static ILocalization& Get();
+	TINY_API static ILocalization& Get();
 };
 
 #ifdef USE_TRANSLATE

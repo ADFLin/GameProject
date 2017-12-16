@@ -8,7 +8,7 @@
 #include "MathCore.h"
 
 class IText;
-class GTextButton;
+class QTextButton;
 
 
 class MenuStage : public GameStage
@@ -30,7 +30,7 @@ public:
 	virtual void onExit();
 	virtual bool onMouse( MouseMsg const& msg );
 	virtual bool onKey( unsigned key , bool isDown );
-	virtual void onWidgetEvent( int event , int id , GWidget* sender );
+	virtual void onWidgetEvent( int event , int id , QWidget* sender );
 
 private:
 
@@ -58,7 +58,7 @@ private:
 		int      index;
 		String   levelFile;
 		String   mapFile;
-		GTextButton* button;
+		QTextButton* button;
 	};
 
 

@@ -37,9 +37,9 @@
 
 int g_DevMsgLevel = 10;
 
-GAME_API IGameNetInterface* gGameNetInterfaceImpl;
-GAME_API IDebugInterface*   gDebugInterfaceImpl;
-GAME_API uint32 gGameThreadId;
+TINY_API IGameNetInterface* gGameNetInterfaceImpl;
+TINY_API IDebugInterface*   gDebugInterfaceImpl;
+TINY_API uint32 gGameThreadId;
 
 class GameLogPrinter : public ILogListener
 	               , public IDebugInterface

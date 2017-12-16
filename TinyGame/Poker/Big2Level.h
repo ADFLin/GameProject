@@ -4,7 +4,7 @@
 #include "PokerBase.h"
 #include "Big2Utility.h"
 
-#include "FixVector.h"
+#include "DataStructure/FixVector.h"
 #include "Core/IntegerType.h"
 #include "DataTransfer.h"
 

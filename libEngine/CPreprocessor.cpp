@@ -502,7 +502,7 @@ namespace CPP
 
 	bool CodeInput::loadFile(char const* path)
 	{
-		if( !FileUtility::LoadToBuffer(path , mBuffer ) )
+		if( !FileUtility::LoadToBuffer(path , mBuffer , true) )
 			return false;
 		reset();
 		return true;

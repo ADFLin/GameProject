@@ -58,19 +58,19 @@ class  PlayerListPanel : public GPanel
 {
 	typedef GPanel BaseClass;
 public:
-	static GAME_API Vec2i const WidgetSize;
+	static TINY_API Vec2i const WidgetSize;
 	static int const NoGroup = 0;
 
 	typedef SlotFrame::Slot Slot;
 
-	GAME_API PlayerListPanel( IPlayerManager* manager , int _id , Vec2i const& pos , GWidget* parent );
-	GAME_API void init( bool haveServer );
+	TINY_API PlayerListPanel( IPlayerManager* manager , int _id , Vec2i const& pos , GWidget* parent );
+	TINY_API void init( bool haveServer );
 	
 
-	GAME_API void    setupPlayerList( SPPlayerStatus& status );
-	GAME_API void    refreshPlayerList( int* idx , int* state );
+	TINY_API void    setupPlayerList( SPPlayerStatus& status );
+	TINY_API void    refreshPlayerList( int* idx , int* state );
 
-	GAME_API SlotId  addPlayer( PlayerInfo const& info );
+	TINY_API SlotId  addPlayer( PlayerInfo const& info );
 
 	Slot&    getSlot( SlotId id ){ return *mPlayerSlots[ id ];  }
 	void     swapSlot( SlotId s1 , SlotId s2 );
@@ -131,10 +131,10 @@ public:
 		NEXT_UI_ID ,
 	};
 
-	GAME_API ComMsgPanel( int _id , Vec2i const& pos , Vec2i const& size , GWidget* parent );
+	TINY_API ComMsgPanel( int _id , Vec2i const& pos , Vec2i const& size , GWidget* parent );
 
 	void setWorker( ComWorker* worker ){ mWorker = worker; }
-	GAME_API void addMessage( char const* str , unsigned long color );
+	TINY_API void addMessage( char const* str , unsigned long color );
 
 	void renderText( GWidget* ui );
 	bool onChildEvent( int event , int id , GWidget* ui );

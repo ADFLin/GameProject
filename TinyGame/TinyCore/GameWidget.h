@@ -70,18 +70,18 @@ public:
 	{
 		NEXT_UI_ID = UI_WEIGET_ID ,
 	};
-	GAME_API GWidget( Vec2i const& pos , Vec2i const& size , GWidget* parent );
-	GAME_API ~GWidget();
+	TINY_API GWidget( Vec2i const& pos , Vec2i const& size , GWidget* parent );
+	TINY_API ~GWidget();
 	int  getID(){ return mID; }
 
 	virtual bool onChildEvent( int event , int id , GWidget* ui ){  return true; }
 
-	GAME_API void  setRenderCallback( RenderCallBack* cb );
+	TINY_API void  setRenderCallback( RenderCallBack* cb );
 
 	intptr_t getUserData(){ return userData; }
 	void     setUserData( intptr_t data ) { userData = data; }
 	void     setFontType( int fontType ){ mFontType = fontType; }
-	GAME_API void  setHotkey( ControlAction key );
+	TINY_API void  setHotkey( ControlAction key );
 
 	virtual void onMouse( bool beIn ){  /*sendEvent( ( beIn ) ? EVT_ENTER_UI : EVT_EXIT_UI );*/  }
 	virtual void onRender(){}
@@ -96,13 +96,13 @@ public:
 
 	void onPrevRender(){}
 	void onPostRenderChildren(){}
-	GAME_API void onPostRender();
-	GAME_API bool doClipTest();
-	static GAME_API WidgetRenderer& getRenderer();
+	TINY_API void onPostRender();
+	TINY_API bool doClipTest();
+	static TINY_API WidgetRenderer& getRenderer();
 
 	void setColorKey( Color3ub const& color ){  useColorKey = true; mColorKey = color;  }
 	void setColor( int color ){  useColorKey = false; mColor = color;  }
-	GAME_API GWidget*  findChild( int id , GWidget* start = NULL );
+	TINY_API GWidget*  findChild( int id , GWidget* start = NULL );
 
 	void doModal(){  getManager()->startModal( this );  }
 
@@ -118,8 +118,8 @@ public:
 
 protected:
 
-	GAME_API void sendEvent( int eventID );
-	GAME_API void removeMotionTask();
+	TINY_API void sendEvent( int eventID );
+	TINY_API void removeMotionTask();
 
 	bool      useHotKey;
 	intptr_t  userData;
@@ -221,7 +221,7 @@ class  GButtonBase : public GUI::ButtonT< GButtonBase >
 {
 	typedef GUI::ButtonT< GButtonBase > BaseClass;
 public:
-	GAME_API GButtonBase( int id , Vec2i const& pos , Vec2i const& size  , GWidget* parent )
+	TINY_API GButtonBase( int id , Vec2i const& pos , Vec2i const& size  , GWidget* parent )
 		:BaseClass( pos , size , parent )
 	{
 		mID = id;
@@ -234,11 +234,11 @@ class  GButton : public GButtonBase
 {
 	typedef GButtonBase BaseClass;
 public:
-	GAME_API GButton( int id , Vec2i const& pos , Vec2i const& size  , GWidget* parent );
+	TINY_API GButton( int id , Vec2i const& pos , Vec2i const& size  , GWidget* parent );
 
 	void setTitle( char const* str ){ mTitle = str; }
 	virtual void onMouse( bool beInside );
-	GAME_API void onRender();
+	TINY_API void onRender();
 	String mTitle;
 };
 
@@ -246,10 +246,10 @@ class GCheckBox : public GButtonBase
 {
 	typedef GButtonBase BaseClass;
 public:
-	GAME_API GCheckBox( int id , Vec2i const& pos , Vec2i const& size  , GWidget* parent );
+	TINY_API GCheckBox( int id , Vec2i const& pos , Vec2i const& size  , GWidget* parent );
 	virtual void onHotkey( unsigned key ){ onClick();  }
 	virtual void onClick(){  isCheck = !isCheck; sendEvent( EVT_CHECK_BOX_CHANGE );   }
-	GAME_API void onRender();
+	TINY_API void onRender();
 	void setTitle( char const* str ){ mTitle = str; }
 	bool isCheck;
 	String mTitle;
@@ -265,10 +265,10 @@ public:
 		eRectType ,
 	};
 
-	GAME_API GPanel( int id , Vec2i const& pos , Vec2i const& size  , GWidget* parent );
-	GAME_API ~GPanel();
+	TINY_API GPanel( int id , Vec2i const& pos , Vec2i const& size  , GWidget* parent );
+	TINY_API ~GPanel();
 
-	GAME_API void onRender();
+	TINY_API void onRender();
 	void setAlpha( float alpha ){  mAlpha = alpha; }
 	void setRenderType( RenderType type ){ mRenderType = type; }
 
@@ -282,9 +282,9 @@ class  GFrame : public GPanel
 {
 	typedef GPanel BaseClass;
 public:
-	GAME_API GFrame( int id , Vec2i const& pos , Vec2i const& size , GWidget* parent );
+	TINY_API GFrame( int id , Vec2i const& pos , Vec2i const& size , GWidget* parent );
 protected:
-	GAME_API bool onMouseMsg( MouseMsg const& msg );
+	TINY_API bool onMouseMsg( MouseMsg const& msg );
 	virtual void onFocus(bool beF) { if( beF ) sendEvent(EVT_FRAME_FOCUS); }
 };
 
@@ -292,11 +292,11 @@ protected:
 class  GNoteBook : public GUI::NoteBookT< GNoteBook >
 {
 public:
-	GAME_API GNoteBook( int id , Vec2i const& pos , Vec2i const& size  , GWidget* parent );
+	TINY_API GNoteBook( int id , Vec2i const& pos , Vec2i const& size  , GWidget* parent );
 
-	GAME_API void doRenderButton( PageButton* button );
-	GAME_API void doRenderPage( Page* page );
-	GAME_API void doRenderBackground();
+	TINY_API void doRenderButton( PageButton* button );
+	TINY_API void doRenderPage( Page* page );
+	TINY_API void doRenderBackground();
 
 	Vec2i getButtonSize(){ return Vec2i( 100 , 20 ); }
 	Vec2i getButtonOffset(){ return Vec2i( getButtonSize().x + 5 , 0 ); }
@@ -308,11 +308,11 @@ class  GSlider : public GUI::SliderT< GSlider >
 {
 	typedef GUI::SliderT< GSlider > BaseClass;
 public:
-	GAME_API GSlider( int id , Vec2i const& pos , int length , bool beH , GWidget* parent );
+	TINY_API GSlider( int id , Vec2i const& pos , int length , bool beH , GWidget* parent );
 	static Vec2i TipSize;
 
 	void onScrollChange( int value ){ sendEvent( EVT_SLIDER_CHANGE ); }
-	GAME_API void showValue();
+	TINY_API void showValue();
 
 	void renderValue( GWidget* widget );
 
@@ -324,11 +324,11 @@ class  GMsgBox : public GPanel
 public:
 	static Vec2i const BoxSize;
 
-	GAME_API GMsgBox( int _id , Vec2i const& size  , GWidget* parent ,unsigned flag = GMB_YESNO);
+	TINY_API GMsgBox( int _id , Vec2i const& size  , GWidget* parent ,unsigned flag = GMB_YESNO);
 
 	void setTitle( char const* str ){ mTitle = str; }
 	bool onChildEvent( int event , int id , GWidget* ui );
-	GAME_API void onRender();
+	TINY_API void onRender();
 
 	String    mTitle;
 };
@@ -339,19 +339,19 @@ class  GTextCtrl : public GUI::TextCtrlT< GTextCtrl >
 	typedef GUI::TextCtrlT< GTextCtrl > BaseClass;
 public:
 	static const int UI_Height = 20;
-	GAME_API GTextCtrl( int id , Vec2i const& pos , int length , GWidget* parent );
+	TINY_API GTextCtrl( int id , Vec2i const& pos , int length , GWidget* parent );
 
 	void onEditText(){ sendEvent( EVT_TEXTCTRL_CHANGE ); }
 	void onPressEnter(){ sendEvent( EVT_TEXTCTRL_ENTER ); }
-	GAME_API void onRender();
+	TINY_API void onRender();
 };
 
 class GText : public GUI::Widget
 {
 	typedef GUI::Widget BaseClass;
 public:
-	GAME_API GText( Vec2i const& pos, Vec2i const& size, GWidget* parent);
-	GAME_API void onRender();
+	TINY_API GText( Vec2i const& pos, Vec2i const& size, GWidget* parent);
+	TINY_API void onRender();
 
 	GText& setText(char const* pText) { mText = pText; return *this; }
 	String mText;
@@ -362,9 +362,9 @@ class  GChoice : public GUI::ChoiceT< GChoice >
 	typedef GUI::ChoiceT< GChoice > BaseClass;
 
 public:
-	GAME_API GChoice( int id , Vec2i const& pos , Vec2i const& size , GWidget* parent );
+	TINY_API GChoice( int id , Vec2i const& pos , Vec2i const& size , GWidget* parent );
 
-	GAME_API void onRender();
+	TINY_API void onRender();
 
 	void onItemSelect( unsigned select ){  sendEvent( EVT_CHOICE_SELECT );  }
 	void doRenderItem( Vec2i const& pos , Item& item , bool beLight );
@@ -377,7 +377,7 @@ class  GListCtrl : public GUI::ListCtrlT< GListCtrl >
 {
 	typedef GUI::ListCtrlT< GListCtrl > BaseClass;
 public:
-	GAME_API GListCtrl( int id , Vec2i const& pos , Vec2i const& size , GWidget* parent );
+	TINY_API GListCtrl( int id , Vec2i const& pos , Vec2i const& size , GWidget* parent );
 
 	void onItemSelect( unsigned pos ){ ensureVisible(pos); sendEvent( EVT_LISTCTRL_SELECT ); }
 	void onItemLDClick( unsigned pos ){ sendEvent( EVT_LISTCTRL_DCLICK ); }
@@ -390,12 +390,12 @@ class GFileListCtrl : public GListCtrl
 {
 	typedef GListCtrl BaseClass;
 public:
-	GAME_API GFileListCtrl(int id, Vec2i const& pos, Vec2i const& size, GWidget* parent);
+	TINY_API GFileListCtrl(int id, Vec2i const& pos, Vec2i const& size, GWidget* parent);
 
-	GAME_API String getSelectedFilePath() const;
-	GAME_API void deleteSelectdFile();
-	GAME_API void setDir(char const* dir);
-	GAME_API void refreshFiles();
+	TINY_API String getSelectedFilePath() const;
+	TINY_API void deleteSelectdFile();
+	TINY_API void setDir(char const* dir);
+	TINY_API void refreshFiles();
 
 	String mSubFileName;
 	String mCurDir;
@@ -437,7 +437,7 @@ class UIMotionTask : public LifeTimeTask
 public:
 	typedef void (UIMotionTask ::*MotionFun)();
 
-	GAME_API UIMotionTask( GWidget* _ui , Vec2i const& _ePos , long time , WidgetMotionType type );
+	TINY_API UIMotionTask( GWidget* _ui , Vec2i const& _ePos , long time , WidgetMotionType type );
 	void   release();
 	
 	GWidget*  ui;
@@ -457,12 +457,12 @@ public:
 class WidgetRenderer
 {
 public:
-	GAME_API void  drawButton( IGraphics2D& g , Vec2i const& pos , Vec2i const& size , ButtonState state , int color , bool beEnable = true );
-	GAME_API void  drawButton2( IGraphics2D& g , Vec2i const& pos , Vec2i const& size , ButtonState state , int color , bool beEnable = true );
-	GAME_API void  drawPanel( IGraphics2D& g ,Vec2i const& pos , Vec2i const& size , Color3ub const& color , float alpha );
-	GAME_API void  drawPanel( IGraphics2D& g ,Vec2i const& pos , Vec2i const& size , Color3ub const& color );
-	GAME_API void  drawPanel2( IGraphics2D& g , Vec2i const& pos , Vec2i const& size , Color3ub const& color );
-	GAME_API void  drawSilder( IGraphics2D& g ,Vec2i const& pos , Vec2i const& size , Vec2i const& tipPos , Vec2i const& tipSize );
+	TINY_API void  drawButton( IGraphics2D& g , Vec2i const& pos , Vec2i const& size , ButtonState state , int color , bool beEnable = true );
+	TINY_API void  drawButton2( IGraphics2D& g , Vec2i const& pos , Vec2i const& size , ButtonState state , int color , bool beEnable = true );
+	TINY_API void  drawPanel( IGraphics2D& g ,Vec2i const& pos , Vec2i const& size , Color3ub const& color , float alpha );
+	TINY_API void  drawPanel( IGraphics2D& g ,Vec2i const& pos , Vec2i const& size , Color3ub const& color );
+	TINY_API void  drawPanel2( IGraphics2D& g , Vec2i const& pos , Vec2i const& size , Color3ub const& color );
+	TINY_API void  drawSilder( IGraphics2D& g ,Vec2i const& pos , Vec2i const& size , Vec2i const& tipPos , Vec2i const& tipSize );
 };
 
 #endif // GameWidget_h__

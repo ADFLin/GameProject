@@ -62,7 +62,7 @@ public:
 	ReplayHeader&       getHeader()       { return mHeader;  }
 	ReplayInfo&         getInfo()         { return mInfo;    }
 
-	static GAME_API bool loadReplayInfo( char const* path , ReplayHeader& header , ReplayInfo& info  );
+	static TINY_API bool loadReplayInfo( char const* path , ReplayHeader& header , ReplayInfo& info  );
 protected:
 
 	union
@@ -136,8 +136,8 @@ protected:
 class  ReplayRecorder : public IReplayRecorder
 {
 public:
-	GAME_API ReplayRecorder( IFrameActionTemplate* actionTemp  , long& gameFrame );
-	GAME_API ~ReplayRecorder();
+	TINY_API ReplayRecorder( IFrameActionTemplate* actionTemp  , long& gameFrame );
+	TINY_API ~ReplayRecorder();
 
 	virtual void start( uint64 seed );
 	virtual void stop();
@@ -159,8 +159,8 @@ protected:
 class  ReplayInput : public IReplayInput
 {
 public:
-	GAME_API ReplayInput( IFrameActionTemplate* actionTemp , long& gameFrame );
-	GAME_API ~ReplayInput();
+	TINY_API ReplayInput( IFrameActionTemplate* actionTemp , long& gameFrame );
+	TINY_API ~ReplayInput();
 
 	void    restart();
 	bool    is();
@@ -187,15 +187,15 @@ namespace OldVersion
 	{
 	public:
 		static uint32 const LastVersion = MAKE_VERSION(0,0,2);
-		GAME_API Replay();
+		TINY_API Replay();
 
 		bool   is();
 		bool   save( char const* path );
 		bool   load( char const* path );
 
 		void   registerNode( unsigned id , unsigned size ){   mNodeFixSize[id] = size;  }
-		GAME_API void  addNode( unsigned frame , unsigned id , void* data );
-		GAME_API void  addNode( unsigned frame , unsigned id , void* data , size_t size );
+		TINY_API void  addNode( unsigned frame , unsigned id , void* data );
+		TINY_API void  addNode( unsigned frame , unsigned id , void* data , size_t size );
 		void   clear();
 
 	private:
@@ -228,8 +228,8 @@ namespace OldVersion
 	class  ReplayRecorder : public IReplayRecorder
 	{
 	public:
-		GAME_API ReplayRecorder( ReplayTemplate* temp , long& gameTime );
-		GAME_API ~ReplayRecorder();
+		TINY_API ReplayRecorder( ReplayTemplate* temp , long& gameTime );
+		TINY_API ~ReplayRecorder();
 		Replay& getReplay(){ return mReplay; }
 
 		void start( uint64 seed );
@@ -253,8 +253,8 @@ namespace OldVersion
 	class  ReplayInput : public IReplayInput
 	{
 	public:
-		GAME_API ReplayInput( ReplayTemplate* replayTemp , long& gameFrame );
-		GAME_API ~ReplayInput();
+		TINY_API ReplayInput( ReplayTemplate* replayTemp , long& gameFrame );
+		TINY_API ~ReplayInput();
 		void     restart();
 		bool     isPlayEnd();
 		bool     load( char const* path );
@@ -280,7 +280,7 @@ namespace OldVersion
 class ReplayTemplate
 {
 public:
-	virtual GAME_API bool  getReplayInfo( ReplayInfo& info );
+	virtual TINY_API bool  getReplayInfo( ReplayInfo& info );
 
 	virtual void   registerNode( OldVersion::Replay& replay ) = 0;
 	virtual void   startFrame() = 0;

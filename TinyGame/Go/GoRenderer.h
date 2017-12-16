@@ -24,7 +24,8 @@ namespace Go
 		bool bUseBatchedRender = true;
 		bool bDrawStar = true;
 		bool bUseNoiseOffset = true;
-
+		bool bDrawLinkInfo = false;
+		bool bDrawStepNum = true;
 
 		bool initializeRHI();
 

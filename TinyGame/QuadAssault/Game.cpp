@@ -35,56 +35,65 @@ Game::Game()
 	mMouseState = 0;
 }
 
-bool Game::init( char const* pathConfig )
+bool Game::init( char const* pathConfig , Vec2i const& screenSize , bool bCreateWindow )
 {
-	using std::cout;
-	using std::endl;
-
 	 // This falls under the config ***
 	int width=800;
 	int height=600;
 	//width=1024;
 	//height=800;
 
-	cout << "----QuadAssault----" << endl;
-	cout << "*******************" << endl;		
-
-	cout << "Setting Window..." << endl;
+	if( screenSize.x != 0 && screenSize.y != 0 )
+	{
+		width = screenSize.x;
+		height = screenSize.y;
+	}
 
 	mScreenSize.x = width;
 	mScreenSize.y = height;
 
-	char const* tile ="QuadAssault";
-	mWindow.reset( Platform::CreateWindow( tile , mScreenSize , 32 , false ) );
-	if ( !mWindow  )
-	{
-		std::cerr << "ERROR: Can't create window !" << endl;
-		return false;
-	}
-	mWindow->setSystemListener( *this );
-	mWindow->showCursor( false );
+	QA_LOG("----QuadAssault----");
+	QA_LOG("*******************");
 
-	cout << "Build Render System..." << endl;
+	if( bCreateWindow )
+	{
+		QA_LOG("Setting Window...");
+	
+		char const* tile = "QuadAssault";
+
+		mWindow.reset(Platform::CreateWindow(tile, mScreenSize, 32, false));
+		if( !mWindow )
+		{
+			QA_ERROR("ERROR: Can't create window !");
+			return false;
+		}
+
+		mWindow->setSystemListener(*this);
+		mWindow->showCursor(false);
+	}
+
+	QA_LOG("Build Render System...");
 	mRenderSystem.reset( new RenderSystem );
-	if ( !mRenderSystem->init( *mWindow ) )
+	if ( !mRenderSystem->init( mWindow ) )
 	{
 		return false;
 	}
 
 	IFont* font = IFont::loadFont( DATA_DIR"DialogueFont.TTF" );
 	//IFont* font = NULL;
-	mFonts.push_back( font );
+	if ( font )
+		mFonts.push_back( font );
 
 	mSoundMgr.reset( new SoundManager );
 	mRenderEngine.reset( new RenderEngine );
 
-	cout << "Initialize Render Engine..." << endl;
+	QA_LOG("Initialize Render Engine...");
 	mRenderEngine->init( width , height );
 		
 	mNeedEnd=false;
 	srand(time(NULL));
 		
-	cout << "Setting OpenGL..." << endl;
+	QA_LOG("Setting OpenGL...");
 	glViewport(0,0,(GLsizei)width,(GLsizei)height);
 	glMatrixMode(GL_PROJECTION);
 	glPushMatrix();
@@ -97,16 +106,13 @@ bool Game::init( char const* pathConfig )
 	glDisable( GL_LIGHTING );	
 	
 
-	cout << "Game Init!" << endl;
+	QA_LOG("Game Init!");
 	return true;
 }
 
 
 void Game::exit()
 {
-	using std::cout;
-	using std::endl;
-
 	for(int i= mStageStack.size() - 1 ; i > 0 ; --i )
 	{
 		mStageStack[i]->onExit();
@@ -126,16 +132,13 @@ void Game::exit()
 
 	mWindow.clear();
 
-	cout << "Game End !!" << endl;
-	cout << "*******************" << endl;	
+	QA_LOG( "Game End !!" );
+	QA_LOG( "*******************" );
 
 }
 
 void Game::tick(float deltaT)
 {
-	using std::cout;
-	using std::endl;
-
 	while( mStageAdd )
 	{
 		if( mbRemovePrevStage )
@@ -143,18 +146,18 @@ void Game::tick(float deltaT)
 			mStageStack.back()->onExit();
 			delete mStageStack.back();
 			mStageStack.pop_back();
-			cout << "Old stage deleted." << endl;
+			QA_LOG("Old stage deleted.");
 		}
 
 		GameStage* stage = mStageAdd;
 		mStageAdd = NULL;
 		mStageStack.push_back(stage);
-		cout << "Setup new state..." << endl;
+		QA_LOG("Setup new state...");
 		if( !stage->onInit() )
 		{
-			cout << "Stage Can't Init !" << endl;
+			QA_LOG("Stage Can't Init !" );
 		}
-		cout << "Stage Init !" << endl;
+		QA_LOG("Stage Init !");
 	}
 
 	mRunningStage = mStageStack.back();
@@ -167,7 +170,8 @@ void Game::tick(float deltaT)
 		mStageStack.pop_back();
 		mRunningStage->onExit();
 		delete mRunningStage;
-		cout << "Stage Exit !" << endl;
+		mRunningStage = nullptr;
+		QA_LOG("Stage Exit !");
 	}
 	if( mStageStack.empty() )
 		mNeedEnd = true;
@@ -182,7 +186,8 @@ void Game::render()
 	if ( !mRenderSystem->prevRender() )
 		return;
 
-	mRunningStage->onRender();
+	if ( mRunningStage )
+		mRunningStage->onRender();
 
 	++frameCount;
 	if( frameCount > NumFramePerSample )
@@ -223,9 +228,6 @@ void Game::render()
 
 void Game::run()
 {
-	using std::cout;
-	using std::endl;
-
 	int64 prevTime = Platform::GetTickCount();
 	
 	timeFrame = Platform::GetTickCount();
@@ -249,13 +251,10 @@ void Game::run()
 
 void Game::addStage( GameStage* stage, bool removePrev )
 {	
-	using std::cout;
-	using std::endl;
-
 	if ( mStageAdd )
 	{
 		delete stage;
-		std::cerr << "Add Stage Error" << std::endl;
+		QA_ERROR("Add Stage Error");
 		return;
 	}
 	if ( mStageAdd )
@@ -266,14 +265,15 @@ void Game::addStage( GameStage* stage, bool removePrev )
 
 }
 
-void Game::procWidgetEvent( int event , int id , GWidget* sender )
+void Game::procWidgetEvent( int event , int id , QWidget* sender )
 {
 	mStageStack.back()->onWidgetEvent( event , id , sender );
 }
 
 void Game::procSystemEvent()
 {
-	mWindow->procSystemMessage();
+	if ( mWindow )
+		mWindow->procSystemMessage();
 }
 
 bool Game::onMouse( MouseMsg const& msg )

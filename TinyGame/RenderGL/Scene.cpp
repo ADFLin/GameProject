@@ -57,7 +57,7 @@ namespace RenderGL
 		case LightType::Spot:
 			{
 				float d = 0.5 * radius / Math::Cos(Math::Deg2Rad(spotAngle.y));
-				return view.frustumTest(pos + d * Normalize(dir), d);
+				return view.frustumTest(pos + d * Math::GetNormal(dir), d);
 			}
 			break;
 		case LightType::Point:

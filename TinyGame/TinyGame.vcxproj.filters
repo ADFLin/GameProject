@@ -55,14 +55,8 @@
     <Filter Include="Shader\Material">
       <UniqueIdentifier>{203377aa-53e1-4229-a2bf-843c1d2331f3}</UniqueIdentifier>
     </Filter>
-    <Filter Include="RenderGL">
-      <UniqueIdentifier>{a66ac7cc-a22f-4d19-b682-c9e03b251cf5}</UniqueIdentifier>
-    </Filter>
     <Filter Include="OtherLib\Chaiscript">
       <UniqueIdentifier>{cfa139e1-645b-45db-b326-fc4e88816b02}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="RenderGL\Script">
-      <UniqueIdentifier>{198e4d1a-e8db-4058-8af1-8c13e3d0a4db}</UniqueIdentifier>
     </Filter>
     <Filter Include="MiscTest">
       <UniqueIdentifier>{2ea4ee9d-b0aa-40ed-b988-80bd4e6bc739}</UniqueIdentifier>
@@ -83,6 +77,12 @@
     <Filter Include="Resource">
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav</Extensions>
+    </Filter>
+    <Filter Include="RenderGL">
+      <UniqueIdentifier>{1f4dd839-e2de-44c2-a969-e3f99c0c7be0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="RenderGL\Script">
+      <UniqueIdentifier>{ad403451-aa16-4da2-a8e0-a95bfaef33a1}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -152,9 +152,6 @@
     <ClCompile Include="..\OtherLib\lodepng\lodepng.cpp">
       <Filter>OtherLib</Filter>
     </ClCompile>
-    <ClCompile Include="stb_image.cpp">
-      <Filter>OtherLib</Filter>
-    </ClCompile>
     <ClCompile Include="..\OtherLib\tinyobjloader\tiny_obj_loader.cc">
       <Filter>OtherLib</Filter>
     </ClCompile>
@@ -215,62 +212,14 @@
     <ClCompile Include="Stage\RubiksStage.cpp">
       <Filter>Stage</Filter>
     </ClCompile>
-    <ClCompile Include="RenderGL\RenderGLStageScene.cpp">
-      <Filter>RenderGL</Filter>
-    </ClCompile>
-    <ClCompile Include="RenderGL\RenderGLStage.cpp">
-      <Filter>RenderGL</Filter>
-    </ClCompile>
     <ClCompile Include="Stage\MainMenuStage.cpp">
       <Filter>Stage</Filter>
     </ClCompile>
     <ClCompile Include="Stage\MiscTestStage.cpp">
       <Filter>Stage</Filter>
     </ClCompile>
-    <ClCompile Include="RenderGL\Material.cpp">
-      <Filter>RenderGL</Filter>
-    </ClCompile>
-    <ClCompile Include="RenderGL\RHICommon.cpp">
-      <Filter>RenderGL</Filter>
-    </ClCompile>
-    <ClCompile Include="RenderGL\GpuProfiler.cpp">
-      <Filter>RenderGL</Filter>
-    </ClCompile>
-    <ClCompile Include="RenderGL\SceneRenderer.cpp">
-      <Filter>RenderGL</Filter>
-    </ClCompile>
-    <ClCompile Include="RenderGL\GLCommon.cpp">
-      <Filter>RenderGL</Filter>
-    </ClCompile>
-    <ClCompile Include="RenderGL\GLUtility.cpp">
-      <Filter>RenderGL</Filter>
-    </ClCompile>
-    <ClCompile Include="RenderGL\ShaderCompiler.cpp">
-      <Filter>RenderGL</Filter>
-    </ClCompile>
-    <ClCompile Include="RenderGL\Scene.cpp">
-      <Filter>RenderGL</Filter>
-    </ClCompile>
-    <ClCompile Include="RenderGL\RenderContext.cpp">
-      <Filter>RenderGL</Filter>
-    </ClCompile>
-    <ClCompile Include="RenderGL\PrimitiveBatch.cpp">
-      <Filter>RenderGL</Filter>
-    </ClCompile>
-    <ClCompile Include="RenderGL\LazyObject.cpp">
-      <Filter>RenderGL</Filter>
-    </ClCompile>
-    <ClCompile Include="RenderGL\SceneScript.cpp">
-      <Filter>RenderGL</Filter>
-    </ClCompile>
-    <ClCompile Include="RenderGL\SceneObject.cpp">
-      <Filter>RenderGL</Filter>
-    </ClCompile>
     <ClCompile Include="MiscTest\MatrixTest.cpp">
       <Filter>MiscTest</Filter>
-    </ClCompile>
-    <ClCompile Include="RenderGL\VertexFactory.cpp">
-      <Filter>RenderGL</Filter>
     </ClCompile>
     <ClCompile Include="Stage\SoftwareRenderStage.cpp">
       <Filter>Stage</Filter>
@@ -279,9 +228,6 @@
       <Filter>Stage</Filter>
     </ClCompile>
     <ClCompile Include="Stage\FluidSimStage.cpp">
-      <Filter>Stage</Filter>
-    </ClCompile>
-    <ClCompile Include="Stage\StageRegister.cpp">
       <Filter>Stage</Filter>
     </ClCompile>
     <ClCompile Include="MiscTest\BoneIKTest.cpp">
@@ -314,9 +260,6 @@
     <ClCompile Include="Stage\LightingStage2D.cpp">
       <Filter>Stage</Filter>
     </ClCompile>
-    <ClCompile Include="RenderGL\GLDrawUtility.cpp">
-      <Filter>RenderGL</Filter>
-    </ClCompile>
     <ClCompile Include="Bsp2D.cpp">
       <Filter>Common</Filter>
     </ClCompile>
@@ -341,11 +284,17 @@
     <ClCompile Include="Stage\LeelaZeroLearningStage.cpp">
       <Filter>Stage</Filter>
     </ClCompile>
-    <ClCompile Include="RenderGL\TextureAtlas.cpp">
-      <Filter>RenderGL</Filter>
-    </ClCompile>
     <ClCompile Include="Go\GoRenderer.cpp">
       <Filter>GameGo</Filter>
+    </ClCompile>
+    <ClCompile Include="RenderGL\RenderGLStage.cpp">
+      <Filter>RenderGL</Filter>
+    </ClCompile>
+    <ClCompile Include="RenderGL\RenderGLStageScene.cpp">
+      <Filter>RenderGL</Filter>
+    </ClCompile>
+    <ClCompile Include="Stage\GlobalStageRegister.cpp">
+      <Filter>Stage</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -544,47 +493,11 @@
     <ClInclude Include="Stage\RubiksStage.h">
       <Filter>Stage</Filter>
     </ClInclude>
-    <ClInclude Include="RenderGL\RenderGLStageAssetID.h">
-      <Filter>RenderGL</Filter>
-    </ClInclude>
-    <ClInclude Include="RenderGL\RenderGLStage.h">
-      <Filter>RenderGL</Filter>
-    </ClInclude>
     <ClInclude Include="Stage\MainMenuStage.h">
       <Filter>Stage</Filter>
     </ClInclude>
     <ClInclude Include="Stage\MiscTestStage.h">
       <Filter>Stage</Filter>
-    </ClInclude>
-    <ClInclude Include="RenderGL\ShaderCompiler.h">
-      <Filter>RenderGL</Filter>
-    </ClInclude>
-    <ClInclude Include="RenderGL\Material.h">
-      <Filter>RenderGL</Filter>
-    </ClInclude>
-    <ClInclude Include="RenderGL\RHICommon.h">
-      <Filter>RenderGL</Filter>
-    </ClInclude>
-    <ClInclude Include="RenderGL\Scene.h">
-      <Filter>RenderGL</Filter>
-    </ClInclude>
-    <ClInclude Include="RenderGL\SceneRenderer.h">
-      <Filter>RenderGL</Filter>
-    </ClInclude>
-    <ClInclude Include="RenderGL\GpuProfiler.h">
-      <Filter>RenderGL</Filter>
-    </ClInclude>
-    <ClInclude Include="RenderGL\GLCommon.h">
-      <Filter>RenderGL</Filter>
-    </ClInclude>
-    <ClInclude Include="RenderGL\GLUtility.h">
-      <Filter>RenderGL</Filter>
-    </ClInclude>
-    <ClInclude Include="RenderGL\GLDrawUtility.h">
-      <Filter>RenderGL</Filter>
-    </ClInclude>
-    <ClInclude Include="RenderGL\RenderContext.h">
-      <Filter>RenderGL</Filter>
     </ClInclude>
     <ClInclude Include="..\OtherLib\chaiscript\dispatchkit\any.hpp">
       <Filter>OtherLib\Chaiscript</Filter>
@@ -727,21 +640,6 @@
     <ClInclude Include="..\OtherLib\chaiscript\dispatchkit\type_conversions.hpp">
       <Filter>OtherLib\Chaiscript</Filter>
     </ClInclude>
-    <ClInclude Include="RenderGL\SceneScript.h">
-      <Filter>RenderGL</Filter>
-    </ClInclude>
-    <ClInclude Include="RenderGL\SceneObject.h">
-      <Filter>RenderGL</Filter>
-    </ClInclude>
-    <ClInclude Include="RenderGL\BaseType.h">
-      <Filter>RenderGL</Filter>
-    </ClInclude>
-    <ClInclude Include="RenderGL\VertexFactory.h">
-      <Filter>RenderGL</Filter>
-    </ClInclude>
-    <ClInclude Include="RenderGL\FrameGraph.h">
-      <Filter>RenderGL</Filter>
-    </ClInclude>
     <ClInclude Include="Stage\StickMoveStage.h">
       <Filter>Stage</Filter>
     </ClInclude>
@@ -787,8 +685,14 @@
     <ClInclude Include="Go\GoRenderer.h">
       <Filter>GameGo</Filter>
     </ClInclude>
-    <ClInclude Include="RenderGL\TextureAtlas.h">
+    <ClInclude Include="RenderGL\RenderGLStage.h">
       <Filter>RenderGL</Filter>
+    </ClInclude>
+    <ClInclude Include="RenderGL\RenderGLStageAssetID.h">
+      <Filter>RenderGL</Filter>
+    </ClInclude>
+    <ClInclude Include="Stage\LeelaZeroLearningStage.h">
+      <Filter>Stage</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -917,15 +821,6 @@
     <None Include="out\Shader\ShaderDefine.glsl">
       <Filter>Shader</Filter>
     </None>
-    <None Include="RenderGL\PrimitiveBatch.h">
-      <Filter>RenderGL</Filter>
-    </None>
-    <None Include="RenderGL\LazyObject.h">
-      <Filter>RenderGL</Filter>
-    </None>
-    <None Include="out\Script\SceneA.chai">
-      <Filter>RenderGL\Script</Filter>
-    </None>
     <None Include="out\Shader\SimpleElement.glsl">
       <Filter>Shader</Filter>
     </None>
@@ -976,6 +871,12 @@
     </None>
     <None Include="out\Shader\Terrain.glsl">
       <Filter>Shader</Filter>
+    </None>
+    <None Include="out\Shader\Game\Lighting2DShadow.glsl">
+      <Filter>Shader\Game</Filter>
+    </None>
+    <None Include="out\Script\SceneA.chai">
+      <Filter>RenderGL\Script</Filter>
     </None>
   </ItemGroup>
 </Project>

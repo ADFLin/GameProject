@@ -3,39 +3,13 @@
 #include "CFlyHeader.h"
 
 #include "FileSystem.h"
+#include "BitUtility.h"
 
 #include <fstream>
 #include <algorithm>
 
 #define MAKE_( a , b ) ( ( a << 8 ) | b )
 #define MAKE_MAGIC_ID( a , b , c , d ) ( (uint32) MAKE_( MAKE_( MAKE_( uint8( d ) , uint8( c ) ) , uint8( b ) ) , uint8( a )) )
-
-char* AllocFileData( char const* path )
-{
-	using namespace std;
-
-	ifstream fs( path , ios::binary );
-	if ( !fs.is_open() )
-		return nullptr;
-
-	fs.seekg( 0 , ios::beg );
-	unsigned size = fs.tellg();
-	fs.seekg( 0 , ios::end );
-	size = (unsigned) fs.tellg() - size;
-
-	char* data = new char[ size ];
-
-	fs.seekg( 0 , ios::beg );
-	fs.read( data  , size  );
-
-	return data;
-}
-
-void FreeFileData( char* data )
-{
-	if ( data )
-		delete [] data;
-}
 
 int nextNumberOfPow2( int n )
 {
@@ -51,112 +25,20 @@ int nextNumberOfPow2( int n )
 	return n;
 }
 
-bool ImageMergeHelper::addImage( int id , int w , int h )
-{
-	mRect.w = w;
-	mRect.h = h;
-	mRect.x = 0;
-	mRect.y = 0;
-
-	Node* node = insertNode( mRoot );
-	if ( !node )
-		return false;
-
-	if ( id >= mImageNodeMap.size() )
-		mImageNodeMap.resize( id + 1 , nullptr );
-
-	assert( node->imageID == ErrorImageID );
-	node->imageID = id;
-	mImageNodeMap[ id ] = node;
-	return true;
-}
-
-ImageMergeHelper::Node* ImageMergeHelper::insertNode( Node* curNode )
-{
-	assert( curNode );
-
-	if ( curNode->imageID != ErrorImageID )
-		return nullptr;
-
-	if ( !curNode->isLeaf() )
-	{
-		Node* newNode = insertNode( curNode->children[0]  );
-		if ( !newNode )
-			newNode = insertNode( curNode->children[1] );
-		return newNode;
-	}
-
-	Rect& curRect = curNode->rect;
-
-	if ( mRect.w == curRect.w && mRect.h == curRect.h )
-		return curNode;
-
-	if ( mRect.w > curRect.w || mRect.h > curRect.h )
-		return nullptr;
-
-	int dw = curRect.w - mRect.w ;
-	int dh = curRect.h - mRect.h ;
-
-	if ( dw > dh )
-	{
-		curNode->children[0] = createNode( curRect.x , curRect.y , mRect.w , curRect.h );
-		curNode->children[1] = createNode( curRect.x + mRect.w , curRect.y , dw , curRect.h);
-	}
-	else
-	{
-		curNode->children[0] = createNode( curRect.x , curRect.y , curRect.w , mRect.h );
-		curNode->children[1] = createNode( curRect.x , curRect.y + mRect.h , curRect.w , dh );
-	}
-
-	return insertNode( curNode->children[0] );
-}
-
-ImageMergeHelper::Node* ImageMergeHelper::createNode( int x , int y , int w , int h )
-{
-	Node* node = new Node;
-	node->children[0] = node->children[1] = nullptr;
-	node->rect.x = x;
-	node->rect.y = y;
-	node->rect.w = w;
-	node->rect.h = h;
-	node->imageID = ErrorImageID;
-	return node;
-}
-
-ImageMergeHelper::ImageMergeHelper( int w , int h )
-{
-	mRoot = createNode( 0 , 0 , w , h );
-}
-
-ImageMergeHelper::~ImageMergeHelper()
-{
-	destoryNode( mRoot );
-}
-
-void ImageMergeHelper::destoryNode( Node* node )
-{
-	if ( node->children[0] )
-		destoryNode( node->children[0] );
-	if ( node->children[1] )
-		destoryNode( node->children[1] );
-	delete node;
-}
 
 Wad3FileData::Wad3FileData()
 {
-	mData = nullptr;
+
 }
 
 Wad3FileData::~Wad3FileData()
 {
-	FreeFileData( mData );
+
 }
 
 bool Wad3FileData::load( char const* path )
 {
-	mData = AllocFileData( path );
-
-	if ( !mData )
+	if( !FileUtility::LoadToBuffer(path, mData) )
 		return false;
 
 	WAD3::Header* header = getHeader();
@@ -164,7 +46,7 @@ bool Wad3FileData::load( char const* path )
 	if ( header->identification != MAKE_MAGIC_ID('W','A','D','3' ) )
 		return false;
 
-	mLumps = reinterpret_cast< WAD3::LumpInfo* >( mData + header->infoTableOffset );
+	mLumps = reinterpret_cast< WAD3::LumpInfo* >( &mData[0] + header->infoTableOffset );
 	return true;
 }
 
@@ -185,7 +67,7 @@ Texture* Wad3FileData::createTexture( World* world , WAD3::LumpInfo* lumpInfo )
 	{
 	case WAD3::TYP_MIPTEX:
 		{
-			WAD3::MipTexInfo* texInfo = reinterpret_cast< WAD3::MipTexInfo* >( mData + lumpInfo->fileOffset );
+			WAD3::MipTexInfo* texInfo = reinterpret_cast< WAD3::MipTexInfo* >( &mData[0] + lumpInfo->fileOffset );
 			int const minMapLevel = 0;
 
 			if ( !texInfo->mipMapOffset[0] )
@@ -289,8 +171,7 @@ bool Wad3FileData::fillImageDataARGB( unsigned char* data , unsigned length , un
 
 void HLBspFileDataV30::cleanup()
 {
-	FreeFileData( mData );
-	mData = nullptr;
+	mData.clear();
 
 	for( Wad3FileList::iterator iter = mWadLoader.begin();
 		iter != mWadLoader.end() ; ++iter )
@@ -309,9 +190,7 @@ bool HLBspFileDataV30::load( char const* path )
 {
 	assert( mScene );
 
-	mData = AllocFileData( path );
-
-	if ( !mData )
+	if( !FileUtility::LoadToBuffer(path, mData) )
 		return false;
 
 	if ( getHeader()->version != 30 )
@@ -373,7 +252,7 @@ void HLBspFileDataV30::buildLightMap()
 {
 	int lightMapLen = getLumpDataLength( BspV30::LUMP_LIGHTING ) / 3;
 
-	int mapSize = nextNumberOfPow2( (int)Math::Sqrt( lightMapLen  ) );
+	int mapSize = BitUtility::NextNumberOfPow2( (int)Math::Sqrt( lightMapLen  ) );
 
 	mHelper = new BspLightMapMergeHelper( mapSize ,  mapSize );
 

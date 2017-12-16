@@ -2,7 +2,7 @@
 #define BMLevel_h__
 
 #include "TVector2.h"
-#include "TGrid2D.h"
+#include "DataStructure/Grid2D.h"
 #include "Flag.h"
 
 #include "FastDelegate/FastDelegate.h"

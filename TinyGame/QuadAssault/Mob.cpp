@@ -19,12 +19,12 @@ void Mob::init()
 	mSize.y=64;
 
 	rotation=0;
-	akceleracija=0;
+	acceleration=0;
 	mSpeed = 100;
 	mMaxSpeed=100;	
 
-	brzinaPunjenja=250;
-	punjenje=0;
+	chargingRate=250;
+	charging=0;
 	domet=512;
 
 	mHP=100;	
@@ -85,21 +85,19 @@ void Mob::tick()
 			mTarget = NULL;
 	}
 
-	akceleracija=1;
+	acceleration = 1;
 
 	if ( mTarget )
 	{
 		Vec2f dir;
 		dir = mPosLastView - getPos();
-		Math::Normalize( dir );
+		dir = Math::GetNormal( dir );
 
 		rotation = atan2(dir.y, dir.x) + Math::Deg2Rad(90);
 
-		Vec2f monent;
 		float angle = rotation - Math::Deg2Rad( 90 );
-		monent.x = cos( angle ) * akceleracija;
-		monent.y = sin( angle ) * akceleracija;
 
+		Vec2f monent = acceleration *  GetDirection(angle);
 		Vec2f off = ( mSpeed * TICK_TIME ) * dir;
 
 		Vec2f offset = Vec2f( 0 , 0 );
@@ -114,9 +112,9 @@ void Mob::tick()
 		mPos += offset;
 	}
 
-	if( punjenje < 100 )
+	if( charging < 100 )
 	{
-		punjenje += brzinaPunjenja * TICK_TIME;
+		charging += chargingRate * TICK_TIME;
 	}
 
 	if( mHP<=0 )
@@ -124,7 +122,7 @@ void Mob::tick()
 		destroy();
 	}
 
-	akceleracija=0;
+	acceleration=0;
 
 }
 
@@ -155,18 +153,18 @@ void Mob::shoot( IBulletFactory const& creator )
 	if( mTarget->isDead() )
 		return;
 
-	if( punjenje >= 100 )
+	if( charging >= 100 )
 	{
 		Vec2f offset= mPosLastView - getPos();
 		if( offset.length2() < domet * domet )
 		{
-			Math::Normalize( offset );
+			offset = Math::GetNormal( offset );
 			Bullet* p = creator.create();
 			p->init();
 			p->setup( getPos() ,offset , TEAM_EMPTY );	
 			getLevel()->addBullet(p);
 		}	
-		punjenje = 0;
+		charging = 0;
 	}
 }
 

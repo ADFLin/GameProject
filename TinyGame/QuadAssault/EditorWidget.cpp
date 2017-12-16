@@ -7,8 +7,8 @@
 #include "FixString.h"
 #include "BlockType.h"
 
-PorpTextCtrl::PorpTextCtrl( int id , Vec2i const& pos , Vec2i const& size , GWidget* parent ) 
-	:GTextCtrl( id , pos , size , parent )
+PorpTextCtrl::PorpTextCtrl( int id , Vec2i const& pos , Vec2i const& size , QWidget* parent ) 
+	:QTextCtrl( id , pos , size , parent )
 {
 	text->setCharSize( 20 );
 	text->setFont( getGame()->getFont(0) );
@@ -32,7 +32,7 @@ void PorpTextCtrl::outputData()
 	mPorpData.setValue( getValue() );
 }
 
-IntPropChioce::IntPropChioce( int id , Vec2i const& pos , Vec2i const& size , GWidget* parent ) 
+IntPropChioce::IntPropChioce( int id , Vec2i const& pos , Vec2i const& size , QWidget* parent ) 
 	:BaseClass( id , pos , size , parent )
 {
 	mDataSize = 0;
@@ -89,13 +89,13 @@ void IntPropChioce::outputData()
 	}
 }
 
-PropFrame::PropFrame( int id , Vec2i const& pos , GWidget* parent ) 
+PropFrame::PropFrame( int id , Vec2i const& pos , QWidget* parent ) 
 	:BaseClass( id , pos , Vec2f( 250 , 400 ) , parent )
 {
 	mEditObj = NULL;
 }
 
-void PropFrame::addPorpWidget( char const* name , GWidget* widget )
+void PropFrame::addPorpWidget( char const* name , QWidget* widget )
 {
 	PropInfo data;
 	data.widget = widget;
@@ -104,7 +104,7 @@ void PropFrame::addPorpWidget( char const* name , GWidget* widget )
 	mPorps.push_back( data );
 }
 
-bool PropFrame::onChildEvent( int event , int id , GWidget* ui )
+bool PropFrame::onChildEvent( int event , int id , QWidget* ui )
 {
 	switch( id )
 	{
@@ -262,7 +262,7 @@ void PropFrame::removeEdit()
 	}
 }
 
-TileEditFrame::TileEditFrame( int id , Vec2f const& pos , GWidget* parent ) 
+TileEditFrame::TileEditFrame( int id , Vec2f const& pos , QWidget* parent ) 
 	:BaseClass( id , pos , Vec2f(  4 + 2 * ButtonLength + 2 ,  4 + NUM_BLOCK_TYPE * ( ButtonLength + 2 ) + TopSideHeight ) , parent )
 {
 
@@ -278,26 +278,26 @@ TileEditFrame::TileEditFrame( int id , Vec2f const& pos , GWidget* parent )
 		Vec2i pos;
 		pos.x = ( i % 2 ) * ( ButtonLength + 2 ) + 2;
 		pos.y = ( i / 2 ) * ( ButtonLength + 2 ) + TopSideHeight + 2;
-		GImageButton* button = new GImageButton( UI_TILE_SELECT , pos , Vec2i( ButtonLength , ButtonLength ) , this );
+		QImageButton* button = new QImageButton( UI_TILE_SELECT , pos , Vec2i( ButtonLength , ButtonLength ) , this );
 		button->texImag = Block::FromType( i )->getTexture( 0 );
 		button->setHelpText( blockName[i] );
 		button->setUserData( (void*)i );
 	}
 }
 
-ObjectEditFrame::ObjectEditFrame( int id , Vec2f const& pos , GWidget* parent ) 
+ObjectEditFrame::ObjectEditFrame( int id , Vec2f const& pos , QWidget* parent ) 
 	:BaseClass( id , pos , Vec2i( 4 , 4 ) + Vec2i( 0 , 0 ) , parent )
 {
 
 	Vec2i posCur = Vec2i( 2 , 2 + TopSideHeight );
 
-	GTextButton* button = new GTextButton( UI_OBJECT_DESTROY , posCur , ButtonSize() , this );
+	QTextButton* button = new QTextButton( UI_OBJECT_DESTROY , posCur , ButtonSize() , this );
 	button->text->setFont( getGame()->getFont(0) );
 	button->text->setCharSize( 20 );
 	button->text->setString( "Destroy" );
 	posCur.y += ButtonSize().y + 2;
 
-	mObjectListCtrl = new GListCtrl( UI_OBJECT_LISTCTRL , posCur , Vec2i(0,0) , this );
+	mObjectListCtrl = new QListCtrl( UI_OBJECT_LISTCTRL , posCur , Vec2i(0,0) , this );
 }
 
 void ObjectEditFrame::setupObjectList( ObjectCreator& creator )
@@ -327,10 +327,10 @@ void ObjectEditFrame::setupObjectList( ObjectCreator& creator )
 
 }
 
-ActionEditFrame::ActionEditFrame( int id , Vec2i const& pos , GWidget* widget ) 
+ActionEditFrame::ActionEditFrame( int id , Vec2i const& pos , QWidget* widget ) 
 	:BaseClass( id , pos , Vec2i( ListCtrlWidth + ButtonSize().x + 4 + 3 , 200 ) , widget )
 {
-	mListCtrl = new GListCtrl( UI_ACTION_LISTCTRL , Vec2i( 2 , TopSideHeight + 2 ) , Vec2i( 100 , 100 ) , this );
+	mListCtrl = new QListCtrl( UI_ACTION_LISTCTRL , Vec2i( 2 , TopSideHeight + 2 ) , Vec2i( 100 , 100 ) , this );
 	mTrigger = NULL;
 }
 
@@ -344,7 +344,7 @@ void ActionEditFrame::setupActionList( ActionCreator& creator )
 	{
 		Vec2i pos = basePos;
 		pos.y += num  * ( ButtonSize().y + 2 );
-		GTextButton* button = new GTextButton( UI_ACTION_SELECT , pos , ButtonSize() , this );
+		QTextButton* button = new QTextButton( UI_ACTION_SELECT , pos , ButtonSize() , this );
 		button->text->setFont( getGame()->getFont(0) );
 		button->text->setCharSize( 20 );
 		button->text->setString( iter->first );

@@ -4,7 +4,7 @@
 #include "rcBase.h"
 
 #include "WinGDIRenderSystem.h"
-#include "TTable.h"
+#include "DataStructure/TTable.h"
 
 typedef WinGdiGraphics2D Graphics2D;
 

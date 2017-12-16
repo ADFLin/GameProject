@@ -37,7 +37,7 @@ namespace Math
 		}
 	};
 
-	inline Vector2 Normalize(Vector2 const& v)
+	inline Vector2 GetNormal(Vector2 const& v)
 	{
 		Vector2 result = v;
 		result.normalize();

@@ -35,15 +35,15 @@ protected:
 	bool testCollision( Vec2f const& offset );
 
 	ColBody mBody;
-	float   akceleracija;
+	float   acceleration;
 
-	float punjenje;
+	float charging;
 
 	//NASLIJED:
 	float   mSpeed;
 	float   mMaxSpeed;
 	float   mHP;
-	float   brzinaPunjenja;
+	float   chargingRate;
 	float   domet;
 	Player* mTarget;
 	float   mTimeCantView;

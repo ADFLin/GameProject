@@ -9,7 +9,7 @@ namespace Phy2D
 {
 	void jumpDebug();
 
-	class GAME_API Phy2DStageBase : public StageBase
+	class TINY_API Phy2DStageBase : public StageBase
 	{
 		typedef StageBase BaseClass;
 	public:
@@ -28,7 +28,7 @@ namespace Phy2D
 
 
 	};
-	class GAME_API CollideTestStage : public Phy2DStageBase
+	class TINY_API CollideTestStage : public Phy2DStageBase
 	{
 		typedef Phy2DStageBase BaseClass;
 	public:
@@ -88,7 +88,7 @@ namespace Phy2D
 	};
 
 
-	class GAME_API WorldTestStage : public Phy2DStageBase
+	class TINY_API WorldTestStage : public Phy2DStageBase
 	{
 		typedef Phy2DStageBase BaseClass;
 	public:

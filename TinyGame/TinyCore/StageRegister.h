@@ -1,7 +1,7 @@
 #ifndef StageRegister_h__
 #define StageRegister_h__
 
-#include "MarcoCommon.h"
+#include "GameConfig.h"
 
 #include <map>
 #include <vector>
@@ -64,9 +64,9 @@ public:
 	StageRegisterCollection();
 	~StageRegisterCollection();
 
-	GAME_API void registerStage(StageInfo const& info);
+	TINY_API void registerStage(StageInfo const& info);
 
-	GAME_API static StageRegisterCollection& Get();
+	TINY_API static StageRegisterCollection& Get();
 
 	std::vector< StageInfo > const& getGroupStage(EStageGroup group) { return mStageGroupMap[group]; }
 private:
@@ -76,7 +76,7 @@ private:
 
 struct StageRegisterHelper
 {
-	GAME_API StageRegisterHelper(StageInfo const& info);
+	TINY_API StageRegisterHelper(StageInfo const& info);
 };
 
 

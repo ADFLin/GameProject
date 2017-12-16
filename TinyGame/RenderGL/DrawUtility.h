@@ -54,6 +54,7 @@ namespace RenderGL
 			eXYZ_T2 = USAGE_XYZ | USAGE_TEX_UV,
 
 			eXYZW_T2 = USAGE_XYZW | USAGE_TEX_UV,
+			eXY = USAGE_XY ,
 			eXY_T2 = USAGE_XY | USAGE_TEX_UV,
 			eXY_CA_T2 = USAGE_XY | USAGE_CA | USAGE_TEX_UV,
 		};
@@ -164,9 +165,9 @@ namespace RenderGL
 		static void ScreenRect();
 
 
-		static void Sprite(RHITexture2D& texture, Vector2 const& pos, Vector2 const& size, Vector2 const& pivot);
-		static void Sprite(RHITexture2D& texture, Vector2 const& pos, Vector2 const& size, Vector2 const& pivot, Vec2i const& framePos, Vec2i const& frameDim);
-		static void Sprite(RHITexture2D& texture, Vector2 const& pos, Vector2 const& size, Vector2 const& pivot, Vector2 const& texPos, Vector2 const& texSize);
+		static void Sprite(Vector2 const& pos, Vector2 const& size, Vector2 const& pivot);
+		static void Sprite(Vector2 const& pos, Vector2 const& size, Vector2 const& pivot, Vec2i const& framePos, Vec2i const& frameDim);
+		static void Sprite(Vector2 const& pos, Vector2 const& size, Vector2 const& pivot, Vector2 const& texPos, Vector2 const& texSize);
 
 	};
 

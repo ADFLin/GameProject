@@ -154,7 +154,7 @@ namespace MV
 		void renderBlock(Block& block , Vec3i const& pos );
 		void renderPath( Path& path , PointVec& points );
 		void renderMesh(int idMesh , Vec3f const& pos , Vec3f const& rotation );
-		void renderMesh(int idMesh , Vec3f const& pos , Roataion const& rotation );
+		void renderMesh(int idMesh , Vec3f const& pos , AxisRoataion const& rotation );
 		void renderGroup(ObjectGroup& group);
 		void renderActor(Actor& actor);
 		void renderNav(ObjectGroup &group);

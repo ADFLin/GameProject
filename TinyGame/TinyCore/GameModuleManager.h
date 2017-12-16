@@ -13,11 +13,11 @@ public:
 	GameModuleManager();
 	~GameModuleManager();
 
-	GAME_API bool            loadGame( char const* path );
-	GAME_API void            cleanup();
-	GAME_API void            classifyGame( int attrID , GameModuleVec& games );
-	GAME_API IGameModule*  changeGame( char const* name );
-	GAME_API bool            changeGame(IGameModule* game);
+	TINY_API bool            loadGame( char const* path );
+	TINY_API void            cleanup();
+	TINY_API void            classifyGame( int attrID , GameModuleVec& games );
+	TINY_API IGameModule*  changeGame( char const* name );
+	TINY_API bool            changeGame(IGameModule* game);
 
 	IGameModule*  getRunningGame(){ return mGameRunning; }
 

@@ -291,8 +291,7 @@ public:
 				break;
 			}
 		}
-
-		return value;
+		return;
 	}
 
 

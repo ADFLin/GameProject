@@ -11,7 +11,7 @@
 #define UI_CORE_USE_INTRLIST 1
 
 #if UI_CORE_USE_INTRLIST
-#include "IntrList.h"
+#include "DataStructure/IntrList.h"
 #include "StdUtility.h"
 #endif
 

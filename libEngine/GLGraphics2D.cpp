@@ -136,10 +136,10 @@ void GLGraphics2D::finishXForm()
 
 void GLGraphics2D::beginRender()
 {
+	glPushAttrib(GL_ENABLE_BIT | GL_VIEWPORT_BIT);
 	glDisable( GL_DEPTH_TEST );
 	glDisable( GL_CULL_FACE );
 
-	glGetIntegerv(GL_VIEWPORT, mSavedViewport );
 	glViewport(0, 0, mWidth, mHeight);
 	glMatrixMode( GL_PROJECTION );
 	glPushMatrix();
@@ -153,17 +153,13 @@ void GLGraphics2D::beginRender()
 void GLGraphics2D::endRender()
 {
 	glFlush();
-
 	glMatrixMode(GL_MODELVIEW);
 	glPopMatrix();
 	glMatrixMode(GL_PROJECTION);
 	glPopMatrix();
 	glMatrixMode(GL_MODELVIEW);
-	glViewport(mSavedViewport[0], mSavedViewport[1], mSavedViewport[2], mSavedViewport[3]);
 
-	glEnable(GL_CULL_FACE);
-	glEnable(GL_DEPTH_TEST);
-
+	glPopAttrib();
 }
 
 void GLGraphics2D::emitPolygonVertex(Vector2 pos[] , int num)
@@ -454,20 +450,30 @@ void GLGraphics2D::endBlend()
 	mAlpha = 255;
 }
 
+GLFont::GLFont()
+{
+#ifdef SYS_PLATFORM_WIN
+	mhFont = NULL;
+#endif
+	mSize = 0;
+	mIdBaseList = 0;
+}
+
+
+GLFont::~GLFont()
+{
+	cleanup();
+}
+
 #ifdef SYS_PLATFORM_WIN
 void GLFont::buildBaseImage( int size , char const* faceName , HDC hDC )
 {
 	mSize = size;
-
-	HFONT	font;										// Windows Font ID
-	HFONT	oldfont;									// Used For Good House Keeping
-
 	mIdBaseList = glGenLists(96);								// Storage For 96 Characters
 
 	int height = -(int)(fabs( ( float)10 * size *GetDeviceCaps( hDC ,LOGPIXELSY)/72)/10.0+0.5);
-	
 
-	font = CreateFontA(	
+	mhFont = CreateFontA(	
 		height ,					    // Height Of Font
 		0,								// Width Of Font
 		0,								// Angle Of Escapement
@@ -484,10 +490,10 @@ void GLFont::buildBaseImage( int size , char const* faceName , HDC hDC )
 		faceName );			    // Font Name
 
 	
-	oldfont = (HFONT)SelectObject(hDC, font);           // Selects The Font We Want
+	HFONT oldFont = (HFONT)SelectObject(hDC, mhFont);           // Selects The Font We Want
 	wglUseFontBitmaps(hDC, 32, 96, mIdBaseList);	    // Builds 96 Characters Starting At Character 32
-	SelectObject(hDC, oldfont);							// Selects The Font We Want
-	DeleteObject(font);									// Delete The Font
+	SelectObject(hDC, oldFont);							// Selects The Font We Want
+	DeleteObject(oldFont);									// Delete The Font
 }
 #endif
 void GLFont::printf(const char *fmt, ...)
@@ -522,17 +528,13 @@ void GLFont::print( char const* str )
 }
 
 
-GLFont::~GLFont()
-{
-	release();
-}
 
 void GLFont::create( int size , char const* faceName , HDC hDC)
 {
 	buildBaseImage( size , faceName , hDC );
 }
 
-void GLFont::release()
+void GLFont::cleanup()
 {
 	if ( mIdBaseList )
 	{

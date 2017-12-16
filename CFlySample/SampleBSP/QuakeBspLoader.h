@@ -3,14 +3,13 @@
 
 #include "BspV30.h"
 #include "Core/IntegerType.h"
+#include "Misc/ImageMergeHelper.h"
+
 #include "CFBase.h"
 #include "CFMaterial.h"
 #include "CFVertexDecl.h"
 #include "Holder.h"
 
-char*  AllocFileData( char const* path );
-void   FreeFileData( char* data );
-int    nextNumberOfPow2( int n );
 
 namespace CFly
 {
@@ -54,43 +53,7 @@ struct BspLeaf
 	}
 };
 
-class ImageMergeHelper
-{
-public:
 
-	static int const ErrorImageID = -1;
-
-	ImageMergeHelper( int w , int h );
-	~ImageMergeHelper();
-
-	struct Rect 
-	{
-		int x,y;
-		int w,h;
-	};
-
-	struct Node
-	{
-		Node* children[2];
-		Rect  rect;
-		int   imageID;
-		bool isLeaf(){  return children[0] == nullptr; }
-	};
-
-	bool addImage( int id , int w , int h  );
-
-protected:
-
-	typedef std::vector< Node* > NodeMap;
-	NodeMap mImageNodeMap;
-	Node*   mRoot;
-
-private:
-	Rect  mRect;
-	Node* insertNode( Node* curNode );
-	void  destoryNode( Node* node );
-	Node* createNode( int x , int y  , int w , int h );
-};
 
 class BspLightMapMergeHelper : public ImageMergeHelper
 {
@@ -192,10 +155,10 @@ public:
 
 	Texture* createTexture( World* world , WAD3::LumpInfo* lumpInfo );
 
-	WAD3::Header* getHeader(){ return reinterpret_cast< WAD3::Header*>( mData ); }
+	WAD3::Header* getHeader(){ return reinterpret_cast< WAD3::Header*>( &mData[0] ); }
 
 	WAD3::LumpInfo* mLumps;
-	char* mData;
+	std::vector< char > mData;
 };
 
 
@@ -204,7 +167,6 @@ class HLBspFileDataV30
 public:
 	HLBspFileDataV30()
 	{
-		mData = nullptr;
 		mHelper = nullptr;
 
 		mScene = nullptr;
@@ -265,11 +227,14 @@ public:
 
 	void buildLightMap();
 
-	BspV30::header* getHeader(){ return reinterpret_cast< BspV30::header* >( mData ); }
+	BspV30::header* getHeader()
+	{
+		return reinterpret_cast<BspV30::header*>(&mData[0]);
+	}
 
 	char* getLumpData( int lumpID )
 	{
-		return mData + getHeader()->directory[ lumpID ].offset;
+		return &mData[0] + getHeader()->directory[ lumpID ].offset;
 	}
 	unsigned getLumpDataLength( int lumpID )
 	{
@@ -301,7 +266,8 @@ public:
 	void     loadFace( int idxFace, MeshBuilder& builder , Object* obj );
 
 	std::map< uint32 , Material* > mMatMap;
-	char*    mData;
+	std::vector< char > mData;
+
 	BspV30::texture_lump_header* mTexLumpHeader;
 	BspV30::header*    mHeader;
 	BspV30::face_t*    mFaces;

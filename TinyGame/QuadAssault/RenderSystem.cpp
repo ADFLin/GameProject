@@ -589,6 +589,7 @@ RenderSystem::RenderSystem()
 	assert( gSystem == NULL );
 	gSystem = this;
 	mTextureMgr = NULL;
+	mContext = nullptr;
 }
 
 RenderSystem::~RenderSystem()
@@ -596,31 +597,34 @@ RenderSystem::~RenderSystem()
 	delete mTextureMgr;
 }
 
-bool RenderSystem::init( PlatformWindow& window )
+bool RenderSystem::init( PlatformWindow* window )
 {
-	GLConfig config;
-	config.colorBits = 32;
-	mContext = Platform::CreateGLContext( window , config );
-
-	if ( !mContext )
-		return false;
-
-	std::cout << "Initilize glew..." << std::endl;
-	GLenum result = glewInit();
-	if(result != GLEW_OK )
+	if ( window )
 	{
-		std::cerr << "ERROR: Impossible to initialize Glew. Your graphics card probably does not support Shader Model 2.0." << std::endl;
-		return false;
-	}
+		GLConfig config;
+		config.colorBits = 32;
+		mContext = Platform::CreateGLContext(*window, config);
+
+		if( !mContext )
+			return false;
+
+		QA_LOG("Initilize glew...");
+		GLenum result = glewInit();
+		if( result != GLEW_OK )
+		{
+			QA_ERROR("ERROR: Impossible to initialize Glew. Your graphics card probably does not support Shader Model 2.0.");
+			return false;
+		}
 
 #if USE_SFML_WINDOW
-	mRenderWindow = &window.mImpl;
+		mRenderWindow = &window->mImpl;
 #elif USE_FREETYPE
-	CFont::initilize();
-	mRenderWindow = &window;
+		CFont::initilize();
+		mRenderWindow = &window;
 #else
-	mRenderWindow = &window;
+		mRenderWindow = window;
 #endif
+	}
 
 	mTextureMgr   = new TextureManager;
 
@@ -653,9 +657,12 @@ void RenderSystem::drawText( IText* text , Vec2f const& pos , unsigned sideFlag 
 	}
 	textImpl.setPosition( rPos.x , rPos.y ); 
 
-	mRenderWindow->pushGLStates();
-	mRenderWindow->draw( textImpl );
-	mRenderWindow->popGLStates();
+	if ( mRenderWindow )
+	{
+		mRenderWindow->pushGLStates();
+		mRenderWindow->draw(textImpl);
+		mRenderWindow->popGLStates();
+	}
 #elif USE_FREETYPE
 	static_cast< CText* >( text )->print( pos.x , pos.y );
 #else
@@ -665,7 +672,7 @@ void RenderSystem::drawText( IText* text , Vec2f const& pos , unsigned sideFlag 
 
 bool RenderSystem::prevRender()
 {
-	if ( !mContext->setCurrent() )
+	if ( mContext && !mContext->setCurrent() )
 		return false;
 
 	return true;
@@ -673,7 +680,8 @@ bool RenderSystem::prevRender()
 
 void RenderSystem::postRender()
 {
-	mContext->swapBuffers();
+	if ( mContext )
+		mContext->swapBuffers();
 }
 
 void RenderSystem::cleanup()
@@ -687,7 +695,8 @@ void RenderSystem::cleanup()
 
 	mTextureMgr->cleanup();
 
-	mContext->release();
+	if ( mContext )
+		mContext->release();
 }
 
 Shader* RenderSystem::createShader( char const* vsName , char const* fsName )

@@ -18,9 +18,10 @@ SoundManager::~SoundManager()
 
 SoundData* SoundManager::getData(char const* ime)
 {
+	HashString findName = ime;
 	for(int i=0; i<mDataStorage.size(); i++)
 	{
-		if(mDataStorage[i].name==ime)
+		if(mDataStorage[i].name== findName )
 		{
 			return &mDataStorage[i];
 		}
@@ -48,9 +49,12 @@ bool SoundManager::loadSound(char const* name)
 	z.name   = name;
 	z.buffer = buffer;	
 	mDataStorage.push_back(z);
-	std::cout << "Sound loaded : " << name << std::endl;
-#endif
+	QA_LOG("Sound loaded : %s", name);
 	return true;
+#else
+	return false;
+#endif
+
 }
 void SoundManager::cleanup()
 {

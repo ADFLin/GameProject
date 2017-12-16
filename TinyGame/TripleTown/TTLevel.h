@@ -1,10 +1,10 @@
 #ifndef TTLevel_h__
 #define TTLevel_h__
 
-#include "TGrid2D.h"
 #include "TVector2.h"
-#include "TTable.h"
-#include "IntrList.h"
+#include "DataStructure/Grid2D.h"
+#include "DataStructure/TTable.h"
+#include "DataStructure/IntrList.h"
 
 namespace TripleTown
 {

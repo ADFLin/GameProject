@@ -3,10 +3,10 @@
 
 #include "Dependence.h"
 
-
+#include "HashString.h"
 struct SoundData
 {
-	char const* name;
+	HashString name;
 #if USE_SFML
 	sf::SoundBuffer buffer;
 #endif

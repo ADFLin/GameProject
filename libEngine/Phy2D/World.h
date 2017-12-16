@@ -5,7 +5,7 @@
 
 #include "Phy2D/Collision.h"
 
-#include "IntrList.h"
+#include "DataStructure/IntrList.h"
 #include "FrameAllocator.h"
 
 

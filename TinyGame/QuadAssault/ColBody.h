@@ -2,7 +2,7 @@
 #define ColBody_h__
 
 #include "Base.h"
-#include "IntrList.h"
+#include "DataStructure/IntrList.h"
 
 class LevelObject;
 

@@ -1,0 +1,59 @@
+#include "Common.glsl"
+
+#if VERTEX_SHADER
+void MainVS()
+{
+	gl_Position = gl_Vertex;
+}
+#endif //VERTEX_SHADER
+
+#if GEOMETRY_SHADER
+
+uniform float2 LightLocation;
+uniform float2 ObjectLocation;
+uniform float2 ScreenSize = float2(800, 600);
+
+float4 TransformToNDC(float2 pos)
+{
+	return float4(2 * (pos / ScreenSize) - 1, 0, 1);
+}
+
+layout(lines, invocations = 1) in;
+layout(triangle_strip, max_vertices = 4) out;
+void MainGS()
+{
+
+	float2 cur = gl_in[1].gl_Position.xy;
+	float2 prev = gl_in[0].gl_Position.xy;
+	float2 edge = cur - prev;
+
+	float2 dirCur = cur - LightLocation;
+	float2 dirPrev = prev - LightLocation;
+
+	if( dirCur.x * edge.y - dirCur.y * edge.x < 0 )
+	{
+		gl_Position = TransformToNDC(prev);
+		EmitVertex();
+		gl_Position = TransformToNDC(cur);
+		EmitVertex();
+		gl_Position = TransformToNDC(prev + 1000 * dirPrev);
+		EmitVertex();
+		gl_Position = TransformToNDC(cur + 1000 * dirCur);
+		EmitVertex();
+
+		EndPrimitive();
+	}
+}
+
+#endif //GEOMETRY_SHADER
+
+
+#if PIXEL_SHADER
+
+layout(location = 0) out float4 OutColor;
+void MainPS()
+{
+	OutColor = float4(1);
+}
+
+#endif //PIXEL_SHADER

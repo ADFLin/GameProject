@@ -63,7 +63,7 @@ namespace MV
 	Vec3f roatePos( Vec3i const& pos , Dir dir , Vec3f const& inPos ){ return roatePosT( pos , dir , inPos ); }
 	Vec3f roatePos( Vec3i const& pos , Dir dir , Vec3f const& inPos , int factor ){ return roatePosT( pos , dir , inPos , factor ); }
 
-	void Roataion::rotate( Dir axis , int factor )
+	void AxisRoataion::rotate( Dir axis , int factor )
 	{
 		mDir[0] = FDir::Rotate( axis , mDir[0] , factor );
 		mDir[1] = FDir::Rotate( axis , mDir[1] , factor );
@@ -72,7 +72,7 @@ namespace MV
 
 	}
 
-	void Roataion::rotate( Dir axis )
+	void AxisRoataion::rotate( Dir axis )
 	{
 		mDir[0] = FDir::Rotate( axis , mDir[0] );
 		mDir[1] = FDir::Rotate( axis , mDir[1] );
@@ -80,7 +80,7 @@ namespace MV
 		assert( mDir[2] != -1 );
 	}
 
-	void Roataion::set(Dir dirX , Dir dirZ)
+	void AxisRoataion::set(Dir dirX , Dir dirZ)
 	{
 		int dirCross = FDir::Cross( dirZ , dirX );
 		assert( dirCross != -1 );
@@ -89,7 +89,7 @@ namespace MV
 		mDir[2] = dirZ;
 	}
 
-	Dir Roataion::toWorld(Dir dir)
+	Dir AxisRoataion::toWorld(Dir dir)
 	{
 		Dir outDir = mDir[ dir / 2 ];
 		if ( !FDir::IsPositive( dir ) )
@@ -97,7 +97,7 @@ namespace MV
 		return outDir;
 	}
 
-	Dir Roataion::toLocal(Dir dir)
+	Dir AxisRoataion::toLocal(Dir dir)
 	{
 		//#TODO: improve
 		int axis = FDir::Axis( dir );

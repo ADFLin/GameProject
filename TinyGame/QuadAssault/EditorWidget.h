@@ -33,10 +33,10 @@ enum
 
 
 
-class PorpTextCtrl : public GTextCtrl
+class PorpTextCtrl : public QTextCtrl
 {
 public:
-	PorpTextCtrl( int id , Vec2i const& pos , Vec2i const& size , GWidget* parent );
+	PorpTextCtrl( int id , Vec2i const& pos , Vec2i const& size , QWidget* parent );
 	~PorpTextCtrl();
 	void      inputData();
 	void      outputData();
@@ -45,11 +45,11 @@ private:
 	PropData mPorpData;
 };
 
-class IntPropChioce : public GChoice
+class IntPropChioce : public QChoice
 {
-	typedef GChoice BaseClass;
+	typedef QChoice BaseClass;
 public:
-	IntPropChioce( int id , Vec2i const& pos , Vec2i const& size , GWidget* parent );
+	IntPropChioce( int id , Vec2i const& pos , Vec2i const& size , QWidget* parent );
 
 	void     init( int numSet , int const valueSet[] , char const* strSet[] );
 	void     inputData();
@@ -60,13 +60,13 @@ public:
 	int      mDataSize;
 };
 
-class PropFrame : public GFrame
+class PropFrame : public QFrame
 	            , public IPropEditor
 {
-	typedef GFrame BaseClass;
+	typedef QFrame BaseClass;
 public:
 
-	PropFrame( int id , Vec2i const& pos , GWidget* parent );
+	PropFrame( int id , Vec2i const& pos , QWidget* parent );
 
 	enum 
 	{
@@ -84,12 +84,12 @@ public:
 	virtual void addPropData( char const* name , PropData const& data , unsigned flag );
 	virtual void addProp( char const* name , void* value , int sizeValue , int numSet , int const valueSet[] , char const* strSet[] , unsigned flag );
 
-	void addPorpWidget( char const* name , GWidget* widget );
+	void addPorpWidget( char const* name , QWidget* widget );
 
 	Vec2i getWidgetSize(){ return Vec2i( 130 , 20 ); }
 	Vec2i calcWidgetPos();
 
-	virtual bool onChildEvent( int event , int id , GWidget* ui );
+	virtual bool onChildEvent( int event , int id , QWidget* ui );
 	virtual void onRender();
 
 private:
@@ -98,7 +98,7 @@ private:
 	struct PropInfo
 	{
 		IText*    name;
-		GWidget*  widget;
+		QWidget*  widget;
 	};
 	typedef std::vector< PropInfo >  PropInfoVec;
 	PropInfoVec mPorps;
@@ -108,42 +108,42 @@ private:
 
 
 //TODO : IMPL
-class TileButton : public GButtonBase
+class TileButton : public QButtonBase
 {
-	typedef GButtonBase BaseClass;
+	typedef QButtonBase BaseClass;
 
 
 
 
 };
 
-class TileEditFrame : public GFrame
+class TileEditFrame : public QFrame
 {
-	typedef GFrame BaseClass;
+	typedef QFrame BaseClass;
 public:
-	TileEditFrame( int id , Vec2f const& pos , GWidget* parent );
+	TileEditFrame( int id , Vec2f const& pos , QWidget* parent );
 	static int const ButtonLength = 40;
 };
 
-class ObjectEditFrame : public GFrame
+class ObjectEditFrame : public QFrame
 {
-	typedef GFrame BaseClass;
+	typedef QFrame BaseClass;
 public:
-	ObjectEditFrame( int id , Vec2f const& pos , GWidget* parent );
+	ObjectEditFrame( int id , Vec2f const& pos , QWidget* parent );
 	static Vec2i ButtonSize(){ return Vec2i( 90 , 20 ); }
 	void setupObjectList( ObjectCreator& creator );
 
-	GListCtrl* mObjectListCtrl;
+	QListCtrl* mObjectListCtrl;
 };
 
 
-class ActionEditFrame : public GFrame
+class ActionEditFrame : public QFrame
 {
-	typedef GFrame BaseClass;
+	typedef QFrame BaseClass;
 
 public:
 
-	ActionEditFrame( int id , Vec2i const& pos , GWidget* widget );
+	ActionEditFrame( int id , Vec2i const& pos , QWidget* widget );
 
 	void setTrigger( TriggerBase* trigger );
 
@@ -154,7 +154,7 @@ public:
 
 
 	TriggerBase*  mTrigger;
-	GListCtrl*    mListCtrl;
+	QListCtrl*    mListCtrl;
 };
 
 

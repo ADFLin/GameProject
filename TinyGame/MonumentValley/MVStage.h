@@ -10,10 +10,14 @@
 #include "MVRenderEngine.h"
 
 
-#include "VertorSet.h"
+#include "DataStructure/VertorSet.h"
 
 #define DEV_MAP_NAME "test.map"
 #define DEV_SAVE_NAME "save.map"
+
+//TODO
+//GUI interface editor
+//remove glPush/PopMatrix 
 
 namespace MV
 {
@@ -50,6 +54,8 @@ namespace MV
 			UI_LOAD_LEVEL ,
 
 			UI_MESH_VIEW_PANEL ,
+
+			NEXT_UI_ID ,
 
 		};
 		bool onInit();

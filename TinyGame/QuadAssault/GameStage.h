@@ -5,7 +5,7 @@
 #include <functional>
 
 class Game;
-class GWidget;
+class QWidget;
 class MouseMsg;
 
 enum StateTransition
@@ -52,7 +52,7 @@ public:
 
 	virtual bool onMouse( MouseMsg const& msg ){ return true; }
 	virtual bool onKey( unsigned key , bool isDown ){ return true; }
-	virtual void onWidgetEvent( int event , int id , GWidget* sender ){}
+	virtual void onWidgetEvent( int event , int id , QWidget* sender ){}
 
 	void  stop(){ mNeedStop = true; }
 	bool  needStop(){ return mNeedStop; }

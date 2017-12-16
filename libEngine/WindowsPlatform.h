@@ -39,7 +39,7 @@ public:
 	~WinFrameT();
 
 	bool      create( LPTSTR szTitle, int iWidth , int iHeight,
-		               WNDPROC wndProc = DefultProc ,
+		               WNDPROC wndProc = DefaultProc ,
 				       bool fullscreen = false , 
 					   unsigned colorBits = 32 );
 	HDC       getHDC() const { return m_hDC; }
@@ -85,7 +85,7 @@ protected:
 	/////
 
 protected:
-	static LRESULT CALLBACK DefultProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam );
+	static LRESULT CALLBACK DefaultProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam );
 	bool      setFullScreen( unsigned bits );
 
 private:
@@ -199,7 +199,7 @@ bool WinFrameT<T>::setFullScreen( unsigned bits )
 }
 
 template< class T >
-LRESULT CALLBACK WinFrameT<T>::DefultProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam )
+LRESULT CALLBACK WinFrameT<T>::DefaultProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam )
 {
 	HDC hDC;
 	switch (message)                  /* handle the messages */

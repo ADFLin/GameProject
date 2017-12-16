@@ -20,11 +20,6 @@
 
 namespace RenderGL
 {
-	template< class T >
-	class TGLDataMove
-	{
-
-	};
 
 	template< class RMPolicy >
 	class TGLObjectBase
@@ -128,11 +123,11 @@ namespace RenderGL
 	{
 	public:
 		virtual ~RHIResource(){}
-		virtual void destoryResource(){ }
+		virtual void releaseRHI(){ }
 
 		void destroyThis()
 		{
-			destoryResource();
+			releaseRHI();
 			delete this;
 		}
 	};
@@ -145,10 +140,26 @@ namespace RenderGL
 		               , public TGLObjectBase< RMPolicy >
 	{
 	public:
-		virtual void destoryResource() { TGLObjectBase< RMPolicy >::destroy();  }
+		virtual void releaseRHI() { TGLObjectBase< RMPolicy >::destroy();  }
 	};
 
 
+	enum VectorComponentType
+	{
+		VCT_Float,
+		VCT_Half,
+		VCT_UInt,
+		VCT_Int,
+		VCT_UShort,
+		VCT_Short,
+		VCT_UByte,
+		VCT_Byte,
+
+		//
+		VCT_NInt8,
+		VCT_NInt16,
+
+	};
 
 	struct Texture
 	{
@@ -373,6 +384,7 @@ namespace RenderGL
 		eTriangleFan,
 		eLineList,
 		eLineStrip ,
+		eLineLoop ,
 		eQuad,
 		ePoints,
 	};
@@ -797,39 +809,59 @@ namespace RenderGL
 
 	struct Vertex
 	{
+		static int GetComponentNum(uint8 format)
+		{
+			return (format & 0x3) + 1;
+		}
+		static VectorComponentType GetVectorComponentType(uint8 format)
+		{
+			return VectorComponentType(format >> 2);
+		}
+
 		enum Format
 		{
-			eFloat1 ,
-			eFloat2 ,
-			eFloat3 ,
-			eFloat4 ,
-			eUInt1 ,
-			eUInt2 ,
-			eUInt3 ,
-			eUInt4 ,
-			eInt1 ,
-			eInt2 ,
-			eInt3 ,
-			eInt4 ,
-			eUShort1,
-			eUShort2,
-			eUShort3,
-			eUShort4,
-			eShort1,
-			eShort2,
-			eShort3,
-			eShort4,
-			eUByte1,
-			eUByte2,
-			eUByte3,
-			eUByte4,
-			eByte1,
-			eByte2,
-			eByte3,
-			eByte4,
+#define  ENCODE_VECTOR_FORAMT( TYPE , NUM ) (( TYPE << 2 ) | ( NUM - 1 ) )
 
+			eFloat1 = ENCODE_VECTOR_FORAMT(VCT_Float,1),
+			eFloat2 = ENCODE_VECTOR_FORAMT(VCT_Float,2),
+			eFloat3 = ENCODE_VECTOR_FORAMT(VCT_Float,3),
+			eFloat4 = ENCODE_VECTOR_FORAMT(VCT_Float,4),
+			eHalf1 = ENCODE_VECTOR_FORAMT(VCT_Half, 1),
+			eHalf2 = ENCODE_VECTOR_FORAMT(VCT_Half, 2),
+			eHalf3 = ENCODE_VECTOR_FORAMT(VCT_Half, 3),
+			eHalf4 = ENCODE_VECTOR_FORAMT(VCT_Half, 4),
+			eUInt1  = ENCODE_VECTOR_FORAMT(VCT_UInt,1),
+			eUInt2  = ENCODE_VECTOR_FORAMT(VCT_UInt,2),
+			eUInt3  = ENCODE_VECTOR_FORAMT(VCT_UInt,3),
+			eUInt4  = ENCODE_VECTOR_FORAMT(VCT_UInt,4),
+			eInt1 = ENCODE_VECTOR_FORAMT(VCT_Int, 1),
+			eInt2 = ENCODE_VECTOR_FORAMT(VCT_Int, 2),
+			eInt3 = ENCODE_VECTOR_FORAMT(VCT_Int, 3),
+			eInt4 = ENCODE_VECTOR_FORAMT(VCT_Int, 4),
+			eUShort1 = ENCODE_VECTOR_FORAMT(VCT_UShort, 1),
+			eUShort2 = ENCODE_VECTOR_FORAMT(VCT_UShort, 2),
+			eUShort3 = ENCODE_VECTOR_FORAMT(VCT_UShort, 3),
+			eUShort4 = ENCODE_VECTOR_FORAMT(VCT_UShort, 4),
+			eShort1 = ENCODE_VECTOR_FORAMT(VCT_Short, 1),
+			eShort2 = ENCODE_VECTOR_FORAMT(VCT_Short, 2),
+			eShort3 = ENCODE_VECTOR_FORAMT(VCT_Short, 3),
+			eShort4 = ENCODE_VECTOR_FORAMT(VCT_Short, 4),
+			eUByte1 = ENCODE_VECTOR_FORAMT(VCT_UByte, 1),
+			eUByte2 = ENCODE_VECTOR_FORAMT(VCT_UByte, 2),
+			eUByte3 = ENCODE_VECTOR_FORAMT(VCT_UByte, 3),
+			eUByte4 = ENCODE_VECTOR_FORAMT(VCT_UByte, 4),
+			eByte1 = ENCODE_VECTOR_FORAMT(VCT_Byte, 1),
+			eByte2 = ENCODE_VECTOR_FORAMT(VCT_Byte, 2),
+			eByte3 = ENCODE_VECTOR_FORAMT(VCT_Byte, 3),
+			eByte4 = ENCODE_VECTOR_FORAMT(VCT_Byte, 4),
+
+#undef ENCODE_VECTOR_FORAMT
 			eUnknowFormat ,
 		};
+
+
+		static GLenum GetComponentType(uint8 format);
+		static int    GetFormatSize(uint8 format);
 		enum Semantic
 		{
 			ePosition ,
@@ -907,13 +939,9 @@ namespace RenderGL
 		void bind();
 		void unbind();
 
-		void setupVAO();
-		void setupVAOEnd();
+		void beginVAOSetup();
+		void endVAOSetup();
 
-
-		static uint8  getFormatSize( uint8 format );
-		static GLenum getFormatType( uint8 format );
-		static int    getElementSize( uint8 format );
 		VertexElement const*   findBySematic( Vertex::Semantic s , int idx ) const;
 		VertexElement const*   findBySematic( Vertex::Semantic s ) const;
 		typedef std::vector< VertexElement > InfoVec;

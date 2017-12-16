@@ -2,9 +2,16 @@
 #define Object_h__
 
 #include "Base.h"
-#include "IntrList.h"
+#include "DataStructure/IntrList.h"
 #include "GameEdit.h"
 #include "ClassReflection.h"
+
+inline Vec2f GetDirection(float angle)
+{
+	Vec2f dir;
+	Math::SinCos(angle, dir.y, dir.x);
+	return dir;
+}
 
 class Object : public CRObject
 {

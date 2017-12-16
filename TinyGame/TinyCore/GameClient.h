@@ -27,11 +27,11 @@ class  ClientWorker : public NetWorker, public INetConnectListener
 {
 	typedef NetWorker BaseClass;
 public:
-	GAME_API ClientWorker();
-	GAME_API ~ClientWorker();
+	TINY_API ClientWorker();
+	TINY_API ~ClientWorker();
 
-	GAME_API void connect(char const* hostName, char const* loginName);
-	GAME_API void  sreachLanServer();
+	TINY_API void connect(char const* hostName, char const* loginName);
+	TINY_API void  sreachLanServer();
 
 	//NetWorker
 	bool  isServer(){   return false;  }
@@ -145,10 +145,10 @@ class DelayClientWorker : public ClientWorker
 {
 	typedef ClientWorker BaseClass;
 public:
-	GAME_API DelayClientWorker();
-	GAME_API ~DelayClientWorker();
+	TINY_API DelayClientWorker();
+	TINY_API ~DelayClientWorker();
 
-	GAME_API void setDelay(long delay, long delayRand = 0);
+	TINY_API void setDelay(long delay, long delayRand = 0);
 	bool updateSocket(long time);
 	virtual bool  onRecvData( NetConnection* connection , SocketBuffer& buffer , NetAddress* clientAddr );
 	virtual void  sendCommand( int channel , IComPacket* cp , unsigned flag );

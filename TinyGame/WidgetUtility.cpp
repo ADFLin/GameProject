@@ -12,15 +12,29 @@ DevFrame::DevFrame( int id , Vec2i const& pos , Vec2i const& size , GWidget* par
 	mNextWidgetPosY = 10;
 }
 
-GButton* DevFrame::addButton( int id , char const* tile )
+GButton* DevFrame::addButton( int id , char const* title )
 {
 	Vec2i widgetSize = Vec2i( getSize().x - 2 * WidgetPosOffset, 20 );
 	Vec2i widgetPos( 6 , mNextWidgetPosY );
 	
 	GButton* widget = new GButton( id , widgetPos , widgetSize , this );
-	widget->setTitle( tile );
+	widget->setTitle( title );
 
 	mNextWidgetPosY += widget->getSize().y + WidgetGapY;
+	return widget;
+}
+
+GButton* DevFrame::addButton(char const* title, WidgetEventDelegate delegate)
+{
+	Vec2i widgetSize = Vec2i(getSize().x - 2 * WidgetPosOffset, 20);
+	Vec2i widgetPos(6, mNextWidgetPosY);
+
+	GButton* widget = new GButton(UI_ANY, widgetPos, widgetSize, this);
+	widget->setTitle(title);
+	widget->onEvent = delegate;
+
+	mNextWidgetPosY += widget->getSize().y + WidgetGapY;
+
 	return widget;
 }
 

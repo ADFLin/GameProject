@@ -88,9 +88,9 @@ namespace Chromatron
 		{
 			FixString< 32 > str;
 			str.format( "Chromatron %d" , i + 1 );
-			unsigned id = choice->appendItem( str );
+			unsigned id = choice->addItem( str );
 		}
-		choice->appendItem( "Create Mode" );
+		choice->addItem( "Create Mode" );
 
 		GPanel* statusPanel = new GPanel( UI_ANY , Vec2i( 10 , 120 ) , Vec2i( 150 , 300 ) , NULL );
 		statusPanel->setRenderCallback( RenderCallBack::Create( this , &LevelStage::drawStatusPanel ) );
@@ -354,7 +354,7 @@ namespace Chromatron
 			int idx = mMinChoiceLevel + i;
 			str.format( "Level %d %s" , idx + 1 , 
 				idx != mIndexLevel && ( mLevelState[idx] == eSOLVED ) ? "(O)" : "" );
-			mLevelChoice->appendItem( str );
+			mLevelChoice->addItem( str );
 		}
 		mLevelChoice->setSelection( level - mMinChoiceLevel );
 		return true;

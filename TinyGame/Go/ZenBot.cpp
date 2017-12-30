@@ -53,24 +53,36 @@ namespace Zen
 		ZenFunLoad(ZenPass, "?ZenPass@@YAXH@Z");
 		ZenFunLoad(ZenPlay, "?ZenPlay@@YA_NHHH@Z");
 		ZenFunLoad(ZenReadGeneratedMove, "?ZenReadGeneratedMove@@YAXAAH0AA_N1@Z");
-		ZenFunLoad(ZenSetAmafWeightFactor, "?ZenSetAmafWeightFactor@@YAXM@Z");
+		
 		ZenFunLoad(ZenSetBoardSize, "?ZenSetBoardSize@@YAXH@Z");
 		ZenFunLoad(ZenSetKomi, "?ZenSetKomi@@YAXM@Z");
 		ZenFunLoad(ZenSetMaxTime, "?ZenSetMaxTime@@YAXM@Z");
 		ZenFunLoad(ZenSetNextColor, "?ZenSetNextColor@@YAXH@Z");
 		ZenFunLoad(ZenSetNumberOfSimulations, "?ZenSetNumberOfSimulations@@YAXH@Z");
 		ZenFunLoad(ZenSetNumberOfThreads, "?ZenSetNumberOfThreads@@YAXH@Z");
-		ZenFunLoad(ZenSetPriorWeightFactor, "?ZenSetPriorWeightFactor@@YAXM@Z");
+
 		ZenFunLoad(ZenStartThinking, "?ZenStartThinking@@YAXH@Z");
 		ZenFunLoad(ZenStopThinking, "?ZenStopThinking@@YAXXZ");
 		ZenFunLoad(ZenTimeLeft, "?ZenTimeLeft@@YAXHHH@Z");
 		ZenFunLoad(ZenTimeSettings, "?ZenTimeSettings@@YAXHHH@Z");
 		ZenFunLoad(ZenUndo, "?ZenUndo@@YA_NH@Z");
 
-		if( version >= 6 )
+		if( version <= 6 )
+		{
+			ZenFunLoad(ZenSetAmafWeightFactor, "?ZenSetAmafWeightFactor@@YAXM@Z");
+			ZenFunLoad(ZenSetPriorWeightFactor, "?ZenSetPriorWeightFactor@@YAXM@Z");
+		}
+		if( version == 6 )
 		{
 			ZenFunLoad(ZenSetDCNN, "?ZenSetDCNN@@YAX_N@Z");
 			ZenFunLoad(ZenGetPriorKnowledge, "?ZenGetPriorKnowledge@@YAXQAY0BD@H@Z");
+		}
+		else if( version == 7 )
+		{
+			ZenFunLoad(ZenGetPolicyKnowledge,"?ZenGetPolicyKnowledge@@YAXQAY0BD@H@Z");
+			ZenFunLoad(ZenSetPnLevel,"?ZenSetPnLevel@@YAXH@Z");
+			ZenFunLoad(ZenSetPnWeight,"?ZenSetPnWeight@@YAXM@Z");
+			ZenFunLoad(ZenSetVnMixRate, "?ZenSetVnMixRate@@YAXM@Z");
 		}
 
 #undef ZenFunLoad
@@ -105,16 +117,16 @@ namespace Zen
 		mCore->think(result);
 	}
 
-	bool Bot::play(int x, int y, Color color)
+	bool Bot::playStone(int x, int y, Color color)
 	{
 		assert(mCore);
-		return mCore->play(x, y, color);
+		return mCore->playStone(x, y, color);
 	}
 
-	void Bot::pass(Color color)
+	void Bot::playPass(Color color)
 	{
 		assert(mCore);
-		return mCore->pass(color);
+		return mCore->playPass(color);
 	}
 
 	void Bot::startGame(GameSetting const& gameSetting)
@@ -178,7 +190,7 @@ namespace Zen
 		//	if( !mBoard.checkRange(nx, ny) )
 		//		continue;
 		//	DataType nType = mBoard.getData(nx, ny);
-		//	if( nType == Board::eEmpty )
+		//	if( nType == StoneColor::eEmpty )
 		//		continue;
 		//	int life = mBoard.getLife(nx, ny);
 		//	std::cout << "dir =" << dir << " life = " << life << std::endl;
@@ -240,7 +252,7 @@ int runBotTest()
 	{
 		return -1;
 	}
-	ZenCoreV4::Get().setSetting(setting);
+	ZenCoreV4::Get().setCoreSetting(setting);
 	typedef Zen::TBotCore< Zen::DynamicLibrary , 6 > ZenCoreV6;
 
 	if( !ZenCoreV6::Get().initialize(TEXT("Zen.dll")) )
@@ -248,7 +260,7 @@ int runBotTest()
 		return -1;
 	}
 	setting.maxTime /= 2;
-	ZenCoreV6::Get().setSetting(setting);
+	ZenCoreV6::Get().setCoreSetting(setting);
 
 	int MaxRound = 100;
 	int curRound = 0;
@@ -284,16 +296,16 @@ int runBotTest()
 
 			if( thinkStep.bPass )
 			{
-				botA.pass(color);
-				botB.pass(color);
+				botA.playPass(color);
+				botB.playPass(color);
 				++passCount;
 				if( passCount == 2 )
 					break;
 			}
 			else
 			{
-				if( !botA.play(thinkStep.x, thinkStep.y, color) ||
-				   !botB.play(thinkStep.x, thinkStep.y, color) )
+				if( !botA.playStone(thinkStep.x, thinkStep.y, color) ||
+				   !botB.playStone(thinkStep.x, thinkStep.y, color) )
 					break;
 
 				passCount = 0;

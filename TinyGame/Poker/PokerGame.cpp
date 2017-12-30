@@ -108,7 +108,7 @@ namespace Poker
 		}
 		virtual void clearUserUI()
 		{
-			getSettingPanel()->removeGui( MASK_BASE | MASK_RULE );
+			getSettingPanel()->removeChildWithMask( MASK_BASE | MASK_RULE );
 		}
 		virtual void doSetupSetting( bool beServer )
 		{
@@ -128,8 +128,8 @@ namespace Poker
 		void setupBaseUI()
 		{
 			GChoice* choice = mSettingPanel->addChoice( UI_RULE_CHOICE , LOCTEXT("Game Rule") , MASK_BASE );
-			choice->appendItem( LOCTEXT("Big2") );
-			choice->appendItem( LOCTEXT("Holdem") );
+			choice->addItem( LOCTEXT("Big2") );
+			choice->addItem( LOCTEXT("Holdem") );
 			switch( mGame->getRule() )
 			{
 			case RULE_BIG2:   
@@ -146,8 +146,8 @@ namespace Poker
 			switch( id )
 			{
 			case UI_RULE_CHOICE:
-				getSettingPanel()->removeGui( MASK_RULE );
-				getSettingPanel()->adjustGuiLocation();
+				getSettingPanel()->removeChildWithMask( MASK_RULE );
+				getSettingPanel()->adjustChildLayout();
 				switch( GUI::CastFast< GChoice >( widget )->getSelection() )
 				{
 				case 0:
@@ -186,8 +186,8 @@ namespace Poker
 		}
 		virtual void doImportSetting( DataSteamBuffer& buffer )
 		{
-			getSettingPanel()->removeGui( MASK_BASE | MASK_RULE );
-			getSettingPanel()->adjustGuiLocation();
+			getSettingPanel()->removeChildWithMask( MASK_BASE | MASK_RULE );
+			getSettingPanel()->adjustChildLayout();
 
 			int rule;
 			buffer.take( rule );

@@ -95,7 +95,7 @@ GWidget* GUISystem::showMessageBox( int id , char const* msg , unsigned flag /*=
 	Vec2i pos = calcScreenCenterPos( GMsgBox::BoxSize );
 	GMsgBox* box = new GMsgBox( id , pos , NULL , flag );
 	box->setTitle( msg );
-	box->setAlpha( 0.9f );
+	box->setAlpha( 0.8f );
 	addWidget( box );
 	box->doModal();
 

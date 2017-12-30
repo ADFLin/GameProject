@@ -116,20 +116,29 @@ GWidget::~GWidget()
 
 void GWidget::sendEvent( int eventID )
 {
-	GUI::Core* ui = this;
-	while ( ui != nullptr )
+	bool bKeep = true;
+	if( onEvent )
 	{
-		if ( ui->isTop())
-			break;
-
-		ui = ui->getParent();
-		GWidget* widget = static_cast< GWidget* > ( ui );
-		if ( !widget->onChildEvent( eventID, mID , this ) )
-			return;
+		bKeep = onEvent(eventID, this);
 	}
 
-	if ( mID < UI_WEIGET_ID )
-		::Global::GUI().sendMessage( eventID , mID , this );
+	if ( mID != UI_ANY && bKeep )
+	{
+		GUI::Core* ui = this;
+		while( ui != nullptr )
+		{
+			if( ui->isTop() )
+				break;
+
+			ui = ui->getParent();
+			GWidget* widget = static_cast<GWidget*> (ui);
+			if( !widget->onChildEvent(eventID, mID, this) )
+				return;
+		}
+
+		if( mID < UI_WIDGET_ID )
+			::Global::GUI().sendMessage(eventID, mID, this);
+	}
 
 }
 
@@ -199,7 +208,7 @@ GMsgBox::GMsgBox( int _id , Vec2i const& pos , GWidget* parent , unsigned flag )
 		button->setHotkey( ACT_BUTTON1 );
 		break;
 	case GMB_OK :
-		button = new GButton( UI_OK , BoxSize - Vec2i( 100 , 30 ) , Vec2i( 40 , 20 ) , this );
+		button = new GButton( UI_OK , BoxSize - Vec2i( 50 , 30 ) , Vec2i( 40 , 20 ) , this );
 		button->setTitle( LOCTEXT("OK") );
 		button->setHotkey( ACT_BUTTON0 );
 		break;
@@ -490,7 +499,7 @@ void GTextCtrl::onRender()
 
 void GChoice::onRender()
 {
-	Graphics2D& g = Global::getGraphics2D();
+	IGraphics2D& g = Global::getIGraphics2D();
 
 	Vec2i pos = getWorldPos();
 	Vec2i size = getSize();
@@ -515,7 +524,7 @@ void GChoice::onRender()
 
 void GChoice::doRenderItem( Vec2i const& pos , Item& item , bool beLight )
 {
-	Graphics2D& g = Global::getGraphics2D();
+	IGraphics2D& g = Global::getIGraphics2D();
 
 	Vec2i size( getSize().x , getMenuItemHeight() );
 
@@ -536,7 +545,7 @@ void GChoice::doRenderItem( Vec2i const& pos , Item& item , bool beLight )
 
 void GChoice::doRenderMenuBG( Menu* menu )
 {
-	Graphics2D& g = Global::getGraphics2D();
+	IGraphics2D& g = Global::getIGraphics2D();
 
 	Vec2i pos =  menu->getWorldPos();
 	Vec2i size = menu->getSize();
@@ -589,6 +598,15 @@ void GPanel::onRender()
 		g.endBlend();
 		break;
 	}
+}
+
+bool GPanel::onMouseMsg(MouseMsg const& msg)
+{
+	if( msg.onLeftDown() )
+	{
+		setTop();
+	}
+	return BaseClass::onMouseMsg(msg);
 }
 
 GListCtrl::GListCtrl( int id , Vec2i const& pos , Vec2i const& size , GWidget* parent ) 
@@ -765,7 +783,7 @@ void GFileListCtrl::refreshFiles()
 
 	for( ; fileIter.haveMore(); fileIter.goNext() )
 	{
-		appendItem(fileIter.getFileName());
+		addItem(fileIter.getFileName());
 	}
 }
 

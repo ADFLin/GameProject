@@ -70,7 +70,7 @@ struct VertexFactoryOutputVSToPS
 //in VertexFactoryInput
 //{
 
-layout(location = 0) in float4 VertexInput_vertex;
+layout(location = ATTRIBUTE0) in float4 VertexInput_position;
 layout(location = ATTRIBUTE1) in float4 VertexInput_color;
 layout(location = ATTRIBUTE2) in float3 VertexInput_normal;
 layout(location = ATTRIBUTE3) in float4 VertexInput_tangent;
@@ -111,7 +111,7 @@ VertexFactoryIntermediatesVS GetVertexFactoryIntermediatesVS()
 	intermediates.normal = noramlFactor * float4(VertexInput_normal, 0) * Primitive.worldToLocal;
 	intermediates.tangent = noramlFactor * float4(VertexInput_tangent.xyz, 0) * Primitive.worldToLocal;
 	intermediates.tangent.w = VertexInput_tangent.w;
-	intermediates.worldPos = Primitive.localToWorld * VertexInput_vertex;
+	intermediates.worldPos = Primitive.localToWorld * VertexInput_position;
 	intermediates.vertexColor = VertexInput_color;
 #else //USE_VERTEX_ATTRIBUTE_INDEX
 	intermediates.normal = noramlFactor * float4(gl_Normal, 0) * Primitive.worldToLocal;
@@ -133,7 +133,7 @@ MaterialParametersVS GetMaterialParameterVS(in VertexFactoryIntermediatesVS inte
 	parameters.vectexColor = intermediates.vertexColor;
 
 #if VETEX_FACTORY_USE_VERTEX_ATTRIBUTE
-	parameters.vertexPos = VertexInput_vertex;
+	parameters.vertexPos = VertexInput_position;
 
 #if MATERIAL_TEXCOORD_NUM > 0
 	parameters.texCoords[0] = VertexInput_texCoord0.xy;

@@ -22,7 +22,7 @@ BaseSettingPanel::BaseSettingPanel( int id , Vec2i const& pos , Vec2i const& siz
 	setRenderCallback( RenderCallBack::Create( this , &BaseSettingPanel::renderTitle ) );
 }
 
-void  BaseSettingPanel::removeGui( unsigned mask )
+void  BaseSettingPanel::removeChildWithMask( unsigned mask )
 {
 	for( SettingInfoVec::iterator iter = mSettingInfoVec.begin();
 		iter != mSettingInfoVec.end() ;  )
@@ -39,8 +39,13 @@ void  BaseSettingPanel::removeGui( unsigned mask )
 	}
 }
 
-void BaseSettingPanel::adjustGuiLocation()
+void BaseSettingPanel::adjustChildLayout()
 {
+	std::sort(mSettingInfoVec.begin(), mSettingInfoVec.end(),
+		[](SettingInfo const& lhs, SettingInfo const& rhs) ->bool
+		{
+			return lhs.sortOrder < rhs.sortOrder;
+		});
 	int borderX = 4;
 
 	Vec2i uiPos( borderX + TitleLength , 5 );
@@ -59,7 +64,7 @@ void BaseSettingPanel::adjustGuiLocation()
 	}
 }
 
-void BaseSettingPanel::addWidgetInternal( GWidget* ui , char const* title , unsigned groupMask )
+void BaseSettingPanel::addWidgetInternal( GWidget* ui , char const* title , unsigned groupMask , int sortorder )
 {
 	//if ( !mSetInfoVec.empty() )
 	//{
@@ -76,7 +81,7 @@ void BaseSettingPanel::addWidgetInternal( GWidget* ui , char const* title , unsi
 	info.ui    = ui;
 	info.mask  = groupMask;
 	info.titlePos = mCurPos - Vec2i( TitleLength , 0 );
-
+	info.sortOrder = sortorder;
 	mCurPos += Vec2i( 0 , mUISize.y + 3 );
 
 	mSettingInfoVec.push_back( info );
@@ -93,7 +98,7 @@ bool BaseSettingPanel::onChildEvent( int event , int id , GWidget* ui )
 void BaseSettingPanel::renderTitle( GWidget* ui )
 {
 	int borderX = 4;
-	Graphics2D& g = Global::getGraphics2D();
+	IGraphics2D& g = Global::getIGraphics2D();
 
 	RenderUtility::SetFont( g , FONT_S10 );
 	g.setTextColor(255 , 200 , 100 );
@@ -106,30 +111,30 @@ void BaseSettingPanel::renderTitle( GWidget* ui )
 	}
 }
 
-GCheckBox* BaseSettingPanel::addCheckBox(int id , char const* title , unsigned groupMask)
+GCheckBox* BaseSettingPanel::addCheckBox(int id , char const* title , unsigned groupMask , int sortOrder)
 {
 	Vec2i size( mUISize.y , mUISize.y );
 	GCheckBox* ui = new GCheckBox( id , mCurPos + Vec2i( mUISize.x - size.x  , 0 ) , size , this );
-	addWidgetInternal( ui , title , groupMask );
+	addWidgetInternal( ui , title , groupMask , sortOrder );
 	return ui;
 }
 
-GSlider* BaseSettingPanel::addSlider(int id , char const* title , unsigned groupMask)
+GSlider* BaseSettingPanel::addSlider(int id , char const* title , unsigned groupMask, int sortOrder)
 {
 	GSlider* ui = new GSlider( id , mCurPos + Vec2i( 5 , 5 ) , mUISize.x - 10 - 30 ,  true  , this );
 	ui->showValue();
-	addWidgetInternal( ui , title , groupMask );
+	addWidgetInternal( ui , title , groupMask , sortOrder);
 	return ui;
 }
 
-GChoice* BaseSettingPanel::addChoice(int id , char const* title , unsigned groupMask)
+GChoice* BaseSettingPanel::addChoice(int id , char const* title , unsigned groupMask, int sortOrder)
 {
-	return addWidget< GChoice >( id , title , groupMask );
+	return addWidget< GChoice >( id , title , groupMask , sortOrder);
 }
 
-GButton* BaseSettingPanel::addButton(int id , char const* title , unsigned groupMask)
+GButton* BaseSettingPanel::addButton(int id , char const* title , unsigned groupMask, int sortOrder)
 {
-	return addWidget< GButton >( id , title , groupMask );
+	return addWidget< GButton >( id , title , groupMask , sortOrder);
 }
 
 GameSettingPanel::GameSettingPanel(int id, Vec2i const& pos, Vec2i const& size, GWidget* parent)
@@ -168,6 +173,6 @@ void GameSettingPanel::renderTitle(GWidget* ui)
 
 void GameSettingPanel::addGame(IGameModule* game)
 {
-	unsigned id = mGameChoice->appendItem(game->getName());
+	unsigned id = mGameChoice->addItem(game->getName());
 	mGameChoice->setItemData(id, game);
 }

@@ -12,35 +12,36 @@ class  BaseSettingPanel : public GPanel
 public:
 	TINY_API BaseSettingPanel(int id, Vec2i const& pos, Vec2i const& size, GWidget* parent);
 
-	virtual bool  onChildEvent(int event, int id, GWidget* ui);
+	TINY_API virtual bool  onChildEvent(int event, int id, GWidget* ui);
 
-	TINY_API void      removeGui(unsigned mask);
-	TINY_API void      adjustGuiLocation();
-	TINY_API GChoice*   addChoice(int id, char const* title, unsigned groupMask = -1);
-	TINY_API GButton*   addButton(int id, char const* title, unsigned groupMask = -1);
-	TINY_API GCheckBox* addCheckBox(int id, char const* title, unsigned groupMask = -1);
-	TINY_API GSlider*   addSlider(int id, char const* title, unsigned groupMask = -1);
+	TINY_API void       removeChildWithMask(unsigned mask);
+	TINY_API void       adjustChildLayout();
+	TINY_API GChoice*   addChoice(int id, char const* title, unsigned groupMask = -1 , int sortOrder = 0);
+	TINY_API GButton*   addButton(int id, char const* title, unsigned groupMask = -1, int sortOrder = 0);
+	TINY_API GCheckBox* addCheckBox(int id, char const* title, unsigned groupMask = -1, int sortOrder = 0);
+	TINY_API GSlider*   addSlider(int id, char const* title, unsigned groupMask = -1, int sortOrder = 0);
 
 	void      setEventCallback(EvtCallBack callback) { mCallback = callback; }
 
 protected:
 
-	virtual void renderTitle(GWidget* ui);
+	TINY_API virtual void renderTitle(GWidget* ui);
 	//GListCtrl* addListCtrl( int id , char const* title ){ return addWidget< GListCtrl >( id , title ); }
 	template< class Widget >
-	Widget* addWidget(int id, char const* title, unsigned groupMask)
+	Widget* addWidget(int id, char const* title, unsigned groupMask, int sortGroup)
 	{
 		Widget* ui = new Widget(id, mCurPos, mUISize, this);
-		addWidgetInternal(ui, title, groupMask);
+		addWidgetInternal(ui, title, groupMask, sortGroup);
 		return ui;
 	}
-	TINY_API void   addWidgetInternal(GWidget* ui, char const* title, unsigned groupMask);
+	TINY_API void   addWidgetInternal(GWidget* ui, char const* title, unsigned groupMask, int sortOrder);
 	struct SettingInfo
 	{
 		std::string   title;
 		Vec2i         titlePos;
 		EvtCallBack   callback;
 		unsigned      mask;
+		int           sortOrder;
 		GWidget*      ui;
 	};
 

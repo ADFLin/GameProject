@@ -141,7 +141,7 @@ void ServerListPanel::procServerInfo( IComPacket* cp )
 	info.ip   = com->ip;
 	info.name = com->name;
 	mServerList.push_back( info );
-	unsigned pos = mServerListCtrl->appendItem( com->name );
+	unsigned pos = mServerListCtrl->addItem( com->name );
 	mServerListCtrl->setItemData( pos , &mServerList.back() );
 }
 

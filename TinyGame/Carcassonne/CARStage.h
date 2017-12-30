@@ -83,7 +83,7 @@ namespace CAR
 
 		enum
 		{
-			UI_TILE_ID_SELECT = UI_WEIGET_ID ,
+			UI_TILE_ID_SELECT = UI_WIDGET_ID ,
 			UI_SCORE ,
 		};
 

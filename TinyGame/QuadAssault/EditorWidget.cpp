@@ -44,7 +44,7 @@ void IntPropChioce::init( int numSet , int const valueSet[] , char const* strSet
 {
 	for( int i = 0 ; i < numSet ; ++i )
 	{
-		unsigned pos = appendItem( strSet[i] );
+		unsigned pos = addItem( strSet[i] );
 		setItemData( pos , (void*)valueSet[i] );
 	}
 }
@@ -310,7 +310,7 @@ void ObjectEditFrame::setupObjectList( ObjectCreator& creator )
 		iter != itEnd ; ++iter )
 	{
 
-		unsigned idx = mObjectListCtrl->appendItem( iter->first );
+		unsigned idx = mObjectListCtrl->addItem( iter->first );
 		mObjectListCtrl->setItemData( idx , (void*)iter->first );
 		++num;
 	}
@@ -363,7 +363,7 @@ void ActionEditFrame::refreshList()
 			iter != itEnd; ++iter )
 		{
 			Action* act = *iter;
-			unsigned idx = mListCtrl->appendItem( act->getName() );
+			unsigned idx = mListCtrl->addItem( act->getName() );
 			mListCtrl->setItemData( idx , (void*) act );
 		}
 	}

@@ -33,7 +33,7 @@ public:
 
 	enum
 	{
-		UI_SET_KEY = UI_WEIGET_ID ,
+		UI_SET_KEY = UI_WIDGET_ID ,
 	};
 
 	static Vec2i UI_Size;

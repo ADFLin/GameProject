@@ -280,7 +280,7 @@ void DrawEngine::setupBuffer( int w , int h )
 	mScreenGraphics->setTargetDC( mBufferDC->getDC() );
 }
 
-TINY_API void DrawEngine::enableSweepBuffer(bool beS)
+void DrawEngine::enableSweepBuffer(bool beS)
 {
 	if ( mbSweepBuffer == beS )
 		return;
@@ -291,7 +291,7 @@ TINY_API void DrawEngine::enableSweepBuffer(bool beS)
 		mScreenGraphics->setTargetDC( mBufferDC->getDC() );
 }
 
-TINY_API bool DrawEngine::cleanupGLContextDeferred()
+bool DrawEngine::cleanupGLContextDeferred()
 {
 	if( mbGLEnabled == false && mGLContext.isValid() )
 	{

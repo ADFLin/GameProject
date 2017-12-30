@@ -1,7 +1,7 @@
 #include "TinyGamePCH.h"
 #include "Bsp2D.h"
 
-#include "FixVector.h"
+#include "DataStructure/FixVector.h"
 
 namespace Bsp2D
 {

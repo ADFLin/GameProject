@@ -1693,7 +1693,7 @@ namespace CAR
 			for( int i = 0 ; i < mData->auctionTiles.size() ; ++i )
 			{
 				str.format( "%d" , i );
-				choice->appendItem( str );
+				choice->addItem( str );
 
 				stage.getTileTexturePath( mData->auctionTiles[i] , str );
 				mSprite->createRectArea( pos.x + i * ( tileSize + 2 ) , pos.y , tileSize , tileSize , str );

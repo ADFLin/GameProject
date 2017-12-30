@@ -664,7 +664,7 @@ namespace GGJ
 			expr->generate(rand, worldCond);
 			assert(expr->test(worldCond));
 		}
-		b = true;
+		bValid = true;
 	}
 
 	void Condition::generateRandom(Random& rand, WorldCondition& worldCond, int numExpr, int numIn)
@@ -694,7 +694,7 @@ namespace GGJ
 			}
 		}
 
-		b = false;
+		bValid = false;
 	}
 
 
@@ -735,7 +735,7 @@ namespace GGJ
 		{
 			if (conditions[i].targetId == id )
 			{
-				return conditions[i].b;
+				return conditions[i].bValid;
 			}
 		}
 		return false;
@@ -854,7 +854,7 @@ namespace GGJ
 		{
 			Condition& cond = condTable.getCondition(i);
 			FixString<128> str;
-			str.format("Cond %d %s" , i , ( cond.b ) ? "True" : "False" );
+			str.format("Cond %d %s" , i , ( cond.bValid ) ? "True" : "False" );
 			g.drawText( pos , str.c_str() );
 			pos.y += 15;
 

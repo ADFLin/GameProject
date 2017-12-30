@@ -656,7 +656,7 @@ void NetRoomStage::setupGame( char const* name )
 		if ( mHelper )
 		{
 			mHelper->clearUserUI();
-			mSettingPanel->adjustGuiLocation();
+			mSettingPanel->adjustChildLayout();
 		}
 
 		mHelper.reset( static_cast< NetRoomSettingHelper* >( helper ) );

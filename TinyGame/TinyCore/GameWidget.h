@@ -28,6 +28,7 @@ enum
 	EVT_LISTCTRL_SELECT ,
 	EVT_SLIDER_CHANGE ,
 	EVT_CHECK_BOX_CHANGE ,
+	EVT_DIALOG_CLOSE,
 
 	EVT_ENTER_UI ,
 	EVT_EXIT_UI  ,
@@ -54,7 +55,7 @@ enum
 	UI_SUB_STAGE_ID       = 1200 ,
 	UI_GAME_ID            = 1600 ,
 	UI_LEVEL_MODE_ID      = 2000 ,
-	UI_WEIGET_ID          = 2400 ,
+	UI_WIDGET_ID          = 2400 ,
 	UI_EDITOR_ID          = 2800 ,
 };
 
@@ -62,13 +63,16 @@ enum
 class RenderCallBack ;
 class UIMotionTask;
 class WidgetRenderer;
+class GWidget;
+
+typedef std::function< bool (int event  , GWidget* ) > WidgetEventDelegate;
 
 class  GWidget : public WidgetCoreT< GWidget >
 {
 public:
 	enum
 	{
-		NEXT_UI_ID = UI_WEIGET_ID ,
+		NEXT_UI_ID = UI_WIDGET_ID ,
 	};
 	TINY_API GWidget( Vec2i const& pos , Vec2i const& size , GWidget* parent );
 	TINY_API ~GWidget();
@@ -76,6 +80,7 @@ public:
 
 	virtual bool onChildEvent( int event , int id , GWidget* ui ){  return true; }
 
+	WidgetEventDelegate onEvent;
 	TINY_API void  setRenderCallback( RenderCallBack* cb );
 
 	intptr_t getUserData(){ return userData; }
@@ -103,23 +108,27 @@ public:
 	void setColorKey( Color3ub const& color ){  useColorKey = true; mColorKey = color;  }
 	void setColor( int color ){  useColorKey = false; mColor = color;  }
 	TINY_API GWidget*  findChild( int id , GWidget* start = NULL );
+	template< class T >
+	T* findChildT(int id, GWidget* start = nullptr)
+	{
+		return GUI::CastFast<T>(findChild(id, start));
+	}
 
 	void doModal(){  getManager()->startModal( this );  }
 
 	template< class T >
 	T* cast()
 	{ 
-#if _DEBUG
-		return dynamic_cast< T* >( this );
-#else
-		return static_cast< T* >( this );
-#endif
+		return GUI::CastFast<T>( this );
 	}
+
+
 
 protected:
 
 	TINY_API void sendEvent( int eventID );
 	TINY_API void removeMotionTask();
+
 
 	bool      useHotKey;
 	intptr_t  userData;
@@ -269,6 +278,7 @@ public:
 	TINY_API ~GPanel();
 
 	TINY_API void onRender();
+	TINY_API bool onMouseMsg(MouseMsg const& msg);
 	void setAlpha( float alpha ){  mAlpha = alpha; }
 	void setRenderType( RenderType type ){ mRenderType = type; }
 

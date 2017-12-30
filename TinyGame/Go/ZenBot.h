@@ -6,6 +6,7 @@
 //#include "zen.h"
 
 #include <cassert>
+#include "GoBot.h"
 
 namespace Zen
 {
@@ -15,6 +16,8 @@ namespace Zen
 		Black = 2,
 		White = 1,
 	};
+
+
 
 	struct ThinkResult
 	{
@@ -32,6 +35,11 @@ namespace Zen
 		float maxTime;
 		//V6
 		bool  bUseDCNN;
+		//v7
+		int   PnLevel;
+		float PnWeight;
+		float VnMixRate;
+
 		CoreSetting()
 		{
 			numThreads = 1;
@@ -41,23 +49,16 @@ namespace Zen
 			priorWightFactor = 1.0f;
 			maxTime = 60.0f;
 			bUseDCNN = true;
+
+			PnLevel = 3;
+			PnWeight = 1.0f;
+			VnMixRate = 0.75;
+
 		}
 	};
 
-	struct GameSetting
-	{
-		int   boardSize;
-		int   fixHandicap;
-		float komi;
-		bool  bBlackFrist;
-		GameSetting()
-		{
-			boardSize = 19;
-			fixHandicap = 0;
-			komi = 6.5;
-			bBlackFrist = true;
-		}
-	};
+	using Go::GameSetting;
+
 
 	class IBotCore
 	{
@@ -84,18 +85,21 @@ namespace Zen
 		bool isCaptured() { return mbCaputured; }
 		bool mbCaputured;
 
+		virtual ~IBotCore(){}
+		virtual void     setCoreSetting(CoreSetting const& setting) = 0;
 		virtual void     startGame(GameSetting const& setting) = 0;
 		virtual void     doInitializeResource() = 0;
 		virtual void     doReleaseResource() = 0;
-		virtual void     think(ThinkResult& result) = 0;
-		virtual bool     play(int x, int y, Color color) = 0;
-		virtual void     pass(Color color) = 0;
+		virtual void     think(ThinkResult& result, Color color = Color::Empty) = 0;
+		virtual bool     playStone(int x, int y, Color color) = 0;
+		virtual void     playPass(Color color = Color::Empty) = 0;
+		virtual bool     undo() = 0;
 		virtual Color    getBoardColor(int x, int y) = 0;
 		virtual void     getTerritoryStatictics(int territoryStatictics[19][19]) = 0;
 		virtual int      getBlackPrisonerNum() = 0;
 		virtual int      getWhitePrisonerNum() = 0;
 		virtual Color    getNextColor() = 0;
-		virtual void     startThink() = 0;
+		virtual void     startThink(Color color = Color::Empty) = 0;
 		virtual void     stopThink() = 0;
 		virtual bool     isThinking() = 0;
 		virtual void     getThinkResult(ThinkResult& result) = 0;
@@ -105,6 +109,8 @@ namespace Zen
 	class StaticLibrary
 	{
 	public:
+		enum { IsSingleton = 1, };
+
 		bool initialize(TCHAR const* name, int version)
 		{
 			return true;
@@ -113,12 +119,19 @@ namespace Zen
 		{
 
 		}
+
+		bool isInitialized() const
+		{
+			return true;
+		}
 	};
 
 	class DynamicLibrary
 	{
 	public:
 		DynamicLibrary();
+
+		enum { IsSingleton = 0, };
 
 		bool initialize(TCHAR const* name, int version);
 		void release()
@@ -128,6 +141,11 @@ namespace Zen
 				FreeLibrary(mhModule);
 				mhModule = NULL;
 			}
+		}
+
+		bool isInitialized() const
+		{
+			return mhModule != NULL;
 		}
 
 		HMODULE mhModule;
@@ -140,7 +158,7 @@ namespace Zen
 		int(__cdecl *ZenGetNextColor)(void);
 		int(__cdecl *ZenGetNumBlackPrisoners)(void);
 		int(__cdecl *ZenGetNumWhitePrisoners)(void);
-		void(__cdecl *ZenGetPriorKnowledge)(int(*const)[19]);
+
 		void(__cdecl *ZenGetTerritoryStatictics)(int(*const)[19]);
 		void(__cdecl *ZenGetTopMoveInfo)(int, int &, int &, int &, float &, char *, int);
 		void(__cdecl *ZenInitialize)(char const *);
@@ -152,20 +170,32 @@ namespace Zen
 		void(__cdecl *ZenPass)(int);
 		bool(__cdecl *ZenPlay)(int, int, int);
 		void(__cdecl *ZenReadGeneratedMove)(int &, int &, bool &, bool &);
-		void(__cdecl *ZenSetAmafWeightFactor)(float);
+		
 		void(__cdecl *ZenSetBoardSize)(int);
-		void(__cdecl *ZenSetDCNN)(bool);
+
 		void(__cdecl *ZenSetKomi)(float);
 		void(__cdecl *ZenSetMaxTime)(float);
 		void(__cdecl *ZenSetNextColor)(int);
 		void(__cdecl *ZenSetNumberOfSimulations)(int);
 		void(__cdecl *ZenSetNumberOfThreads)(int);
-		void(__cdecl *ZenSetPriorWeightFactor)(float);
+		
 		void(__cdecl *ZenStartThinking)(int);
 		void(__cdecl *ZenStopThinking)(void);
 		void(__cdecl *ZenTimeLeft)(int, int, int);
 		void(__cdecl *ZenTimeSettings)(int, int, int);
 		bool(__cdecl *ZenUndo)(int);
+
+
+		void(__cdecl *ZenSetAmafWeightFactor)(float);
+		void(__cdecl *ZenSetPriorWeightFactor)(float);
+		//v6
+		void(__cdecl *ZenSetDCNN)(bool);
+		void(__cdecl *ZenGetPriorKnowledge)(int(*const)[19]);
+		//v7
+		void( __cdecl *ZenGetPolicyKnowledge)(int(*const)[19]);
+		void( __cdecl *ZenSetPnLevel)(int);
+		void( __cdecl *ZenSetPnWeight)(float);
+		void( __cdecl *ZenSetVnMixRate)(float);
 	};
 
 	template< class Lib, int Version >
@@ -173,17 +203,47 @@ namespace Zen
 	{
 		typedef Lib ZenLibrary;
 	public:
+
+		bool caputureResource()
+		{
+			if( mbCaputured )
+				return false;
+
+			mbCaputured = true;
+			doInitializeResource();
+			return true;
+		}
+		void releaseResource()
+		{
+			doReleaseResource();
+			mbCaputured = false;
+		}
+
+		bool isCaptured() { return mbCaputured; }
+		bool mbCaputured;
+
+
+		static typename std::enable_if< !Lib::IsSingleton , TBotCore* >::type
+		Create()
+		{
+			return new TBotCore;
+		}
+
 		static TBotCore& Get()
 		{
 			static TBotCore instance;
 			return instance;
 		}
 
+		bool isInitialized() const { return ZenLibrary::isInitialized(); }
+
 		bool initialize(TCHAR const* dllName = nullptr)
 		{
 			if( !ZenLibrary::initialize(dllName, Version) )
 				return false;
 			ZenInitialize(nullptr);
+
+
 			return true;
 		}
 
@@ -196,13 +256,14 @@ namespace Zen
 		{
 			ZenClearBoard();
 			ZenSetBoardSize(setting.boardSize);
-			ZenFixedHandicap(setting.fixHandicap);
+			ZenFixedHandicap(setting.fixedHandicap);
 			ZenSetKomi(setting.komi);
 			ZenSetNextColor(setting.bBlackFrist ? (int)Color::Black : (int)Color::White);
-			if( Version >= 6 )
+			if( Version == 6 )
 			{
 				ZenSetDCNN(true);
 			}
+
 		}
 
 		void doInitializeResource()
@@ -216,10 +277,11 @@ namespace Zen
 
 		}
 
-		void think(ThinkResult& result)
+		void think(ThinkResult& result , Color color )
 		{
-			int color = ZenGetNextColor();
-			ZenStartThinking(color);
+			if( color == Color::Empty )
+				color = (Color)ZenGetNextColor();
+			ZenStartThinking((int)color);
 
 			while( ZenIsThinking() )
 			{
@@ -229,10 +291,11 @@ namespace Zen
 			ZenReadGeneratedMove(result.x, result.y, result.bPass, result.bResign);
 		}
 
-		void startThink()
+		void startThink(Color color) override
 		{
-			int color = ZenGetNextColor();
-			ZenStartThinking(color);
+			if ( color == Color::Empty )
+				color = (Color)ZenGetNextColor();
+			ZenStartThinking((int)color);
 		}
 		void stopThink()
 		{
@@ -244,26 +307,39 @@ namespace Zen
 			ZenReadGeneratedMove(result.x, result.y, result.bPass, result.bResign);
 		}
 
-		bool play(int x, int y, Color color)
+		bool playStone(int x, int y, Color color)
 		{
 			return ZenPlay(x, y, (int)color);
 		}
-		void     pass(Color color)
+		void playPass(Color color)
 		{
 			ZenPass((int)color);
 		}
+		bool undo()
+		{
+			return ZenUndo(ZenGetNextColor() == (int)Color::Black ? (int)Color::White : (int)Color::Black);
+		}
 
-		void setSetting(CoreSetting const& setting)
+		void setCoreSetting(CoreSetting const& setting)
 		{
 			ZenSetNumberOfThreads(setting.numThreads);
 			ZenSetNumberOfSimulations(setting.numSimulations);
-			ZenSetAmafWeightFactor(setting.amafWightFactor);
-			ZenSetPriorWeightFactor(setting.priorWightFactor);
+			if( Version <= 6 )
+			{
+				ZenSetAmafWeightFactor(setting.amafWightFactor);
+				ZenSetPriorWeightFactor(setting.priorWightFactor);
+			}
+			else if( Version == 7 )
+			{
+				ZenSetPnLevel(setting.PnLevel);
+				ZenSetPnWeight(setting.PnWeight);
+				ZenSetVnMixRate(setting.VnMixRate);
+			}
 			ZenSetMaxTime(setting.maxTime);
 		}
 
 		Color getBoardColor(int x, int y) { return (Color)ZenGetBoardColor(x, y); }
-		void     getTerritoryStatictics(int territoryStatictics[19][19]) override
+		void  getTerritoryStatictics(int territoryStatictics[19][19]) override
 		{
 			ZenGetTerritoryStatictics(territoryStatictics);
 		}
@@ -294,8 +370,8 @@ namespace Zen
 		GameSetting const & getGameSetting() { return mGameSetting; }
 
 		void think(ThinkResult& result);
-		bool play(int x, int y, Color color);
-		void pass(Color color);
+		bool playStone(int x, int y, Color color);
+		void playPass(Color color);
 		void startGame(GameSetting const& gameSetting);
 		void printBoard(int x, int y);
 		void calcTerritoryStatictics(int threshold, int& numB, int& numW);
@@ -303,6 +379,178 @@ namespace Zen
 		IBotCore*   mCore;
 		GameSetting mGameSetting;
 	};
+
+
+}
+
+#include "SystemPlatform.h"
+
+namespace Go
+{
+
+	class ZenBot : public IBotInterface
+	{
+
+	public:
+
+		ZenBot(int version = 6)
+			:mCoreVersion( version )
+		{
+
+		}
+
+		template< int Version >
+		Zen::IBotCore* buildCoreT()
+		{
+			typedef Zen::TBotCore< Zen::DynamicLibrary, Version > ZenCore;
+
+			Zen::IBotCore* core = ZenCore::Create();
+
+			if( !static_cast<ZenCore*>( core )->initialize(
+					(Version == 4) ? TEXT("Go/Zen4/Zen.dll") : 
+				    (Version == 6) ? TEXT("Go/Zen6/Zen.dll") : 
+				    TEXT("Go/Zen7/Zen.dll")) )
+				return nullptr;
+			return core;
+		}
+
+
+
+		virtual bool initilize(void* settingData) override
+		{
+
+			switch(  mCoreVersion )
+			{
+			case 4: mCore.reset( buildCoreT< 4 >() ); break;
+			case 6: mCore.reset( buildCoreT< 6 >() ); break;
+			case 7: mCore.reset( buildCoreT< 7 >() ); break;
+			default:
+				break;
+			}
+
+			if( mCore == nullptr )
+				return false;
+
+			mCore->caputureResource();
+
+			if( settingData )
+			{
+				mCore->setCoreSetting(*static_cast<Zen::CoreSetting*>(settingData));
+			}
+			else
+			{
+				Zen::CoreSetting setting;
+				int numCPU = SystemPlatform::GetProcessorNumber();
+				setting.numThreads = numCPU - 2;
+				setting.numSimulations = 10000000;
+				setting.maxTime = 6;
+				mCore->setCoreSetting(setting);
+			}
+
+
+			return true;
+		}
+
+		virtual void destroy() override
+		{
+			mCore->stopThink();
+			mCore->releaseResource();
+
+			switch( mCoreVersion )
+			{
+			case 4: static_cast< Zen::TBotCore< Zen::DynamicLibrary, 4 >* >(mCore.get())->release(); break;
+			case 6: static_cast< Zen::TBotCore< Zen::DynamicLibrary, 6 >* >(mCore.get())->release(); break;
+			case 7: static_cast< Zen::TBotCore< Zen::DynamicLibrary, 7 >* >(mCore.get())->release(); break;
+			}
+			mCore.release();
+		}
+		virtual bool setupGame(GameSetting const& setting) override
+		{
+			mCore->startGame(setting);
+			bWaitResult = false;
+			return true;
+		}
+
+
+		virtual bool playStone(Vec2i const& pos, int color) override
+		{
+			return mCore->playStone(pos.x, pos.y, ToZColor(color));
+
+		}
+
+		virtual bool playPass(int color) override
+		{
+			mCore->playPass(ToZColor(color));
+			return true;
+		}
+		virtual bool undo() override
+		{
+			return mCore->undo();
+		}
+		virtual bool thinkNextMove(int color) override
+		{
+			mCore->startThink();
+			bWaitResult = true;
+			requestColor = color;
+			return true;
+		}
+		virtual bool isThinking() override
+		{
+			return mCore->isThinking();
+		}
+
+		virtual void update(IGameCommandListener& listener) override
+		{
+			if( !bWaitResult )
+				return;
+
+			if( mCore->isThinking() )
+				return;
+
+			Zen::ThinkResult thinkStep;
+			mCore->getThinkResult(thinkStep);
+
+			GameCommand com;
+			if( thinkStep.bPass )
+			{
+				com.id = GameCommand::ePass;
+				listener.notifyCommand(com);
+			}
+			else if( thinkStep.bResign )
+			{
+				com.id = GameCommand::eResign;
+				listener.notifyCommand(com);
+			}
+			else
+			{
+				mCore->playStone(thinkStep.x, thinkStep.y, ToZColor(requestColor));
+				com.pos[0] = thinkStep.x;
+				com.pos[1] = thinkStep.y;
+				listener.notifyCommand(com);
+			}
+			bWaitResult = false;
+		}
+
+		static Zen::Color ToZColor(int color)
+		{
+			switch( color )
+			{
+			case StoneColor::eBlack: return Zen::Color::Black;
+			case StoneColor::eWhite: return Zen::Color::White;
+			case StoneColor::eEmpty: return Zen::Color::Empty;
+			}
+
+			assert(0);
+			return Zen::Color::Empty;
+		}
+
+
+		int  mCoreVersion = 6;
+		std::unique_ptr< Zen::IBotCore > mCore;
+		int  requestColor;
+		bool bWaitResult;
+	};
+
 
 
 }

@@ -351,12 +351,21 @@ void WidgetCoreT<T>::setManager( TWidgetManager<T>* mgr )
 	}
 }
 
+#if UI_CORE_USE_INTRLIST
+template< class T >
+void WidgetCoreT<T>::SetTopInternal(WidgetList& list, WidgetCoreT* ui, bool bAlwaysTop)
+{
+	//TODO
+	ui->mLinkHook.unlink();
+	list.push_back(*static_cast<T*>(ui));
+}
+#endif
+
 template< class T >
 void WidgetCoreT<T>::setTopChild( WidgetCoreT* ui , bool beAlways )
 {
 #if UI_CORE_USE_INTRLIST
-	ui->mLinkHook.unlink();
-	mChildren.push_front( *static_cast<T*>(ui) );
+	SetTopInternal(mChildren, ui, beAlways);
 #else
 	assert( ui->mNext );
 
@@ -392,12 +401,20 @@ void WidgetCoreT<T>::setTopChild( WidgetCoreT* ui , bool beAlways )
 template< class T >
 T& WidgetCoreT<T>::setTop( bool beAlways )
 {
-	return *_this();
+	//return *_this();
 	if ( beAlways )
 		_addFlag( WIF_STAY_TOP );
 
 #if UI_CORE_USE_INTRLIST
-	getParent()->setTopChild(this, beAlways);
+	if( getParent() )
+	{
+		getParent()->setTopChild(this, beAlways);
+
+	}
+	else
+	{
+		SetTopInternal(getManager()->mTopWidgetList ,  this, beAlways);
+	}
 	_this()->onChangeOrder();
 #else
 	if ( mNext )

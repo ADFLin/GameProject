@@ -110,7 +110,7 @@ public:
 	T&             setSize( Vec2i const& size ){  mBoundRect.max = mBoundRect.min + size;  return *_this(); }
 	T&             setTop( bool beAlways = false );
 	T&             makeFocus();
-	T&             show( bool beS );
+	T&             show( bool beS = true );
 	T&             enable( bool beE = true );
 
 	T&             addChild( WidgetCoreT* ui );
@@ -204,6 +204,8 @@ protected:
 
 #if UI_CORE_USE_INTRLIST
 	typedef TIntrList< T, MemberHook< WidgetCoreBase, &WidgetCoreBase::mLinkHook > > WidgetList;
+	static void SetTopInternal(WidgetList& list, WidgetCoreT* ui , bool bAlwaysTop );
+
 	static WidgetCoreT*  hitTestInternal(Vec2i const& testPos, WidgetList& Widgetlist);
 	WidgetList        mChildren;
 #else
@@ -221,6 +223,7 @@ protected:
 	int            mNumChild;
 	Rect           mBoundRect;
 };
+
 
 
 template < class T >

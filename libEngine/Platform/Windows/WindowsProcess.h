@@ -75,7 +75,7 @@ public:
 		return !!FPlatformProcess::SuspendProcess(mProcess);
 	}
 
-	bool createWithIO(char const* path, char const* command = nullptr);
+	bool create(char const* path, char const* command = nullptr);
 
 	bool writeInputStream(void const* buffer, int maxSize, int& outWriteSize)
 	{

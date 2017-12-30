@@ -264,7 +264,7 @@ public:
 		removeAllItem();
 	}
 
-	unsigned appendItem( char const* str );
+	unsigned addItem( char const* str );
 	void     removeItem( char const* str );
 	void     removeItem( unsigned pos );
 	void     removeAllItem();

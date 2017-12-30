@@ -8,6 +8,17 @@ class SocketBuffer;
 
 namespace Go
 {
+
+	namespace StoneColor
+	{
+		enum Enum
+		{
+			eEmpty = 0,
+			eBlack = 1,
+			eWhite = 2,
+		};
+	}
+
 	inline void ReadCoord( char const* coord , int outPos[2] )
 	{
 		int x = coord[0] - 'A';
@@ -26,6 +37,22 @@ namespace Go
 		outPos[1] = y;
 	}
 
+	inline int WriteCoord(int const pos[2], char coord[3])
+	{
+		coord[0] = 'A' + pos[0];
+		if( coord[0] >= 'I' )
+			++coord[0];
+		if( pos[1] > 9 )
+		{
+			coord[1] = '0' + ( pos[1] + 1 ) / 10;
+			coord[2] = '0' + ( pos[1] + 1 ) % 10;
+			return 3;
+		}
+
+		coord[1] = '0' + (pos[1] + 1);
+		return 2;
+	}
+
 	class Board
 	{
 	public:
@@ -39,12 +66,8 @@ namespace Go
 			friend class Board;
 			int index;
 		};
-		enum DataType
-		{
-			eEmpty = 0,
-			eBlack = 1,
-			eWhite = 2,
-		};
+
+		typedef char DataType;
 		enum Dir
 		{
 			eLeft  = 0,
@@ -59,7 +82,8 @@ namespace Go
 		~Board();
 
 
-		void     setup( int size );
+		void     copy(Board const& other);
+		void     setup( int size , bool bClear = true);
 		void     clear();
 
 
@@ -82,7 +106,7 @@ namespace Go
 		int      getLiberty(Pos const& p) const
 		{
 
-
+			return 0;
 		}
 		
 		int      getCaptureCount( Pos const& p ) const { return getCaptureCount( p.toIndex() ); }
@@ -136,11 +160,11 @@ namespace Go
 			LinkType link;
 		};
 
-	   //< IntersceionData > mData;
+		//IntersceionData* mData;
 
 		int       mIndexOffset[ NumDir ];
-		mutable DataType mColorR;
-		int       mIdxConRoot;
+		mutable DataType mCacheColorR;
+		int       mCacheIdxConRoot;
 
 		int       mSize;
 		mutable LinkType* mLinkIndex;
@@ -153,6 +177,23 @@ namespace Go
 		int   komi; //¶K¥Ø
 		float handicapNum;
 	};
+
+	struct GameSetting
+	{
+		int   boardSize;
+		int   fixedHandicap;
+		float komi;
+		bool  bBlackFrist;
+		GameSetting()
+		{
+			boardSize = 19;
+			fixedHandicap = 0;
+			komi = 6.5;
+			bBlackFrist = true;
+		}
+	};
+
+
 	class Game
 	{
 	public:
@@ -162,15 +203,18 @@ namespace Go
 		Game();
 
 		void    setup( int size );
+		void    setSetting(GameSetting const& setting) { mSetting = setting; }
 		void    restart();
 		bool    canPlay(int x, int y) const;
-		bool    play( int x , int y );
-		bool    play( Pos const & pos );
-		void    pass();
+		bool    playStone( int x , int y );
+		bool    playStone( Pos const & pos );
+		void    playPass();
 		void    undo();
+
+		void    copy(Game const& other);
 		
 		DataType getNextPlayColor() { return mNextPlayColor; }
-		DataType getFristPlayColor() { return mNextPlayColor; }
+		DataType getFristPlayColor() { return mFristPlayColor; }
 		Board const& getBoard() const { return mBoard; }
 
 		int     getBlackRemovedNum() const { return mNumBlackRemoved; }
@@ -188,6 +232,7 @@ namespace Go
 			return mStepHistory.size();
 		}
 		bool    getStepPos(int step, int outPos[2]) const;
+		int     getLastPassCount();
 
 	private:
 
@@ -198,7 +243,7 @@ namespace Go
 
 		int      captureStone( Board::Pos const& pos , unsigned& bitDir );
 
-		
+		GameSetting mSetting;
 		int       mCurHand;
 		int       mNumBlackRemoved;
 		int       mNumWhiteRemoved;

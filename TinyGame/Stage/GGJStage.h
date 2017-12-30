@@ -294,7 +294,7 @@ namespace GGJ
 		void generateRandom(Random& rand, WorldCondition& worldCond, int numExpr, int numIn);
 
 		ObjectId targetId;
-		bool     b;
+		bool     bValid;
 
 	private:
 		void cleanup();
@@ -311,7 +311,7 @@ namespace GGJ
 		Condition& getCondition(int idx) { return conditions[idx]; }
 		bool isCondition(int idx)
 		{
-			return conditions[idx].b;
+			return conditions[idx].bValid;
 		}
 
 		int numCondition;

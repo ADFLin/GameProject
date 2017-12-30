@@ -25,8 +25,8 @@ namespace Tetris
 				mMaxPlayerNum = num;
 				getWidget< GChoice >( UI_PLAYER_NUMBER_CHOICE )->setSelection( mMaxPlayerNum - 1 );
 			}
-			mSettingPanel->removeGui( MASK_MODE );
-			mSettingPanel->adjustGuiLocation();
+			mSettingPanel->removeChildWithMask( MASK_MODE );
+			mSettingPanel->adjustChildLayout();
 			switch( GUI::CastFast< GChoice >( widget )->getSelection() )
 			{
 			case 0:  
@@ -77,8 +77,8 @@ namespace Tetris
 
 	void CNetRoomSettingHelper::doImportSetting( DataSteamBuffer& buffer )
 	{
-		mSettingPanel->removeGui( MASK_BASE | MASK_MODE );
-		mSettingPanel->adjustGuiLocation();
+		mSettingPanel->removeChildWithMask( MASK_BASE | MASK_MODE );
+		mSettingPanel->adjustChildLayout();
 
 		buffer.take( mInfo.mode );
 		buffer.take( mMaxPlayerNum );
@@ -124,8 +124,8 @@ namespace Tetris
 	{
 		{
 			GChoice* choice = mSettingPanel->addChoice( UI_MODE_CHOICE , LOCTEXT("Game Mode") , MASK_BASE );
-			choice->appendItem( LOCTEXT("Challenge Mode") );
-			choice->appendItem( LOCTEXT("Battle Mode") );
+			choice->addItem( LOCTEXT("Challenge Mode") );
+			choice->addItem( LOCTEXT("Battle Mode") );
 			switch( mInfo.mode )
 			{
 			case MODE_TS_CHALLENGE: choice->setSelection(0); break;
@@ -149,7 +149,7 @@ namespace Tetris
 
 	void CNetRoomSettingHelper::clearUserUI()
 	{
-		mSettingPanel->removeGui( MASK_BASE | MASK_MODE );
+		mSettingPanel->removeChildWithMask( MASK_BASE | MASK_MODE );
 	}
 
 	void CNetRoomSettingHelper::setupMaxPlayerNumUI( int num )
@@ -160,7 +160,7 @@ namespace Tetris
 		{
 			char str[16];
 			sprintf_s( str , "%d" , i + 1 );
-			choice->appendItem( str );
+			choice->addItem( str );
 		}
 	}
 

@@ -67,7 +67,7 @@ namespace BomberMan
 		};
 		virtual void clearUserUI()
 		{
-			getSettingPanel()->removeGui( MASK_BASE );
+			getSettingPanel()->removeChildWithMask( MASK_BASE );
 		}
 		virtual void doSetupSetting( bool beServer )
 		{
@@ -99,7 +99,7 @@ namespace BomberMan
 		}
 		virtual void doImportSetting( DataSteamBuffer& buffer )
 		{
-			getSettingPanel()->removeGui( MASK_BASE );
+			getSettingPanel()->removeChildWithMask( MASK_BASE );
 
 			int id;
 			buffer.take( id );

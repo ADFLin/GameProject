@@ -18,8 +18,8 @@ SlotFrame::SlotFrame( Slot& slot , Vec2i const& pos , Vec2i const& size , Player
 
 	mStateChoice = new GChoice( UI_PLAYER_SLOT ,  Vec2i( 30 , 2 ) , Vec2i( 100 , 25 ) , this );
 	mStateChoice->setUserData( intptr_t(&slot) );
-	mStateChoice->appendItem( LOCTEXT("Open") ); //0
-	mStateChoice->appendItem( LOCTEXT("Close") );//1
+	mStateChoice->addItem( LOCTEXT("Open") ); //0
+	mStateChoice->addItem( LOCTEXT("Close") );//1
 	mStateChoice->setSelection( 0 );
 
 	slot.frame = this;
@@ -109,7 +109,7 @@ SlotId PlayerListPanel::addPlayer( PlayerInfo const& info )
 		Slot& slot = getSlot( result );
 		slot.info  = &info;
 		slot.state = SLOT_PLAYER;
-		unsigned p = slot.frame->getStateChioce()->appendItem( info.name );
+		unsigned p = slot.frame->getStateChioce()->addItem( info.name );
 		slot.choice->setSelection( p );
 	}
 
@@ -155,7 +155,7 @@ void PlayerListPanel::refreshPlayerList( int* idx , int* state )
 				GamePlayer* player = mManager->getPlayer( PlayerId( state[i]) );
 				slot.state = SLOT_PLAYER;
 				slot.info  = &player->getInfo();
-				slot.choice->appendItem( slot.info->name );
+				slot.choice->addItem( slot.info->name );
 			}
 
 			slot.frame->getStateChioce()->setSelection( 2 );

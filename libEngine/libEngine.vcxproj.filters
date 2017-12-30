@@ -253,6 +253,9 @@
     <ClCompile Include="Platform\Windows\WindowsProcess.cpp">
       <Filter>Platform\Windows</Filter>
     </ClCompile>
+    <ClCompile Include="Core\MD5.cpp">
+      <Filter>原始程式檔</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ConsoleSystem.h">
@@ -707,6 +710,12 @@
     </ClInclude>
     <ClInclude Include="DataStructure\Grid2D.h">
       <Filter>DataStructure</Filter>
+    </ClInclude>
+    <ClInclude Include="DataStructure\Array.h">
+      <Filter>DataStructure</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\MD5.h">
+      <Filter>Core\Hash</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

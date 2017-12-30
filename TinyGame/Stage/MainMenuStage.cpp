@@ -98,8 +98,8 @@ MainOptionBook::MainOptionBook( int id , Vec2i const& pos , GWidget* parent )
 
 		uiPos += off;
 		GChoice* choice = new GChoice( UI_LAN_CHHICE , uiPos , uiSize , page );
-		choice->appendItem( "繁體中文" );
-		choice->appendItem( "English" );
+		choice->addItem( "繁體中文" );
+		choice->addItem( "English" );
 		switch( profile.language )
 		{
 		case LAN_CHINESE_T: choice->setSelection(0); break;
@@ -127,7 +127,7 @@ bool MainOptionBook::onChildEvent( int event , int id , GWidget* ui )
 	case UI_YES:
 		{
 			UserProfile& profile = ::Global::getUserProfile();
-			profile.name = static_cast< GTextCtrl* >( getCurPage()->findChild( UI_USER_NAME ) )->getValue();
+			profile.name = getCurPage()->findChildT<GTextCtrl>( UI_USER_NAME )->getValue();
 			::Global::GUI().getManager().getModalWidget()->destroy();
 		}
 		return false;

@@ -275,13 +275,13 @@ namespace Go
 #if DRAW_TEXTURE
 		if( bUseBatchedRender )
 		{
-			int id = (color == Board::eBlack) ? 0 : 1;
+			int id = (color == StoneColor::eBlack) ? 0 : 1;
 			addBatchedSprite(id, pos + Vector2(2, 2), 2 * Vector2(StoneRadius, StoneRadius), Vector2(0.5, 0.5), Vector4(0, 0, 0, 0.2));
 			addBatchedSprite(id, pos, 2 * Vector2(StoneRadius, StoneRadius), Vector2(0.5, 0.5), Vector4(1, 1, 1, 1));
 		}
 		else
 		{
-			int id = (color == Board::eBlack) ? TextureId::eBlockStone : TextureId::eWhiteStone;
+			int id = (color == StoneColor::eBlack) ? TextureId::eBlockStone : TextureId::eWhiteStone;
 
 			glEnable(GL_TEXTURE_2D);
 			glActiveTexture(GL_TEXTURE0);
@@ -300,9 +300,9 @@ namespace Go
 		}
 #else
 		RenderUtility::SetPen(g, Color::eBlack);
-		RenderUtility::SetBrush(g, (color == Board::eBlack) ? Color::eBlack : Color::eWhite);
+		RenderUtility::SetBrush(g, (color == StoneColor::eBlack) ? Color::eBlack : Color::eWhite);
 		g.drawCircle(pos, StoneRadius);
-		if( color == Board::eBlack )
+		if( color == StoneColor::eBlack )
 		{
 			RenderUtility::SetBrush(g, Color::eWhite);
 			g.drawCircle(pos + Vec2i(5, -5), 3);

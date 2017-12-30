@@ -103,7 +103,7 @@ namespace CAR
 		}
 		virtual void clearUserUI()
 		{
-			getSettingPanel()->removeGui( MASK_BASE | MASK_RULE );
+			getSettingPanel()->removeChildWithMask( MASK_BASE | MASK_RULE );
 		}
 		virtual void doSetupSetting( bool beServer )
 		{
@@ -152,8 +152,8 @@ namespace CAR
 		}
 		virtual void doImportSetting( DataSteamBuffer& buffer )
 		{
-			getSettingPanel()->removeGui( MASK_BASE | MASK_RULE );
-			getSettingPanel()->adjustGuiLocation();
+			getSettingPanel()->removeChildWithMask( MASK_BASE | MASK_RULE );
+			getSettingPanel()->adjustChildLayout();
 
 			buffer.take( mExpMask );
 			setupBaseUI();

@@ -33,15 +33,15 @@ class WidgetTest : public TestBase
 		GUISystem::getInstance().addWidget( button );
 
 		QChoice* chioce = new QChoice( UI_ANY , Vec2i( 200 , 200 ) , Vec2i( 200 , 30 ) , NULL );
-		chioce->appendItem( "Hello" );
-		chioce->appendItem( "Good" );
-		chioce->appendItem( "Test" );
+		chioce->addItem( "Hello" );
+		chioce->addItem( "Good" );
+		chioce->addItem( "Test" );
 		GUISystem::getInstance().addWidget( chioce );
 
 		QListCtrl* listCtrl = new QListCtrl( UI_ANY , Vec2i( 500 , 200 ) , Vec2i( 100 , 200 ) , NULL );
-		listCtrl->appendItem( "Hello" );
-		listCtrl->appendItem( "Good" );
-		listCtrl->appendItem( "Test" );
+		listCtrl->addItem( "Hello" );
+		listCtrl->addItem( "Good" );
+		listCtrl->addItem( "Test" );
 		GUISystem::getInstance().addWidget( listCtrl );
 
 		frame->inputData();

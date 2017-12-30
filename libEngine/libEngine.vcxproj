@@ -172,6 +172,7 @@
     <ClCompile Include="Collision2D\SATSolver.cpp" />
     <ClCompile Include="ConsoleSystem.cpp" />
     <ClCompile Include="CoreShare.cpp" />
+    <ClCompile Include="Core\MD5.cpp" />
     <ClCompile Include="CPreprocessor.cpp" />
     <ClCompile Include="FlowSystem.cpp" />
     <ClCompile Include="LogSystem.cpp" />
@@ -231,6 +232,7 @@
     <ClInclude Include="Collision2D\SATSolver.h" />
     <ClInclude Include="Core\Color.h" />
     <ClInclude Include="Core\FNV1a.h" />
+    <ClInclude Include="Core\MD5.h" />
     <ClInclude Include="Core\ScopeExit.h" />
     <ClInclude Include="CPreprocessor.h" />
     <ClInclude Include="CString.h" />
@@ -239,6 +241,7 @@
     <ClInclude Include="Bitset.h" />
     <ClInclude Include="BitUtility.h" />
     <ClInclude Include="CacheAllocator.h" />
+    <ClInclude Include="DataStructure\Array.h" />
     <ClInclude Include="DataStructure\AVLTree.h" />
     <ClInclude Include="DataStructure\CycleQueue.h" />
     <ClInclude Include="DataStructure\FixVector.h" />

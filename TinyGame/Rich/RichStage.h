@@ -78,7 +78,7 @@ namespace Rich
 	public:
 		enum
 		{
-			UI_EVAL_MOVESTEP_BUTTON = UI_WEIGET_ID ,
+			UI_EVAL_MOVESTEP_BUTTON = UI_WIDGET_ID ,
 			UI_POWER_BUTTON ,
 		};
 

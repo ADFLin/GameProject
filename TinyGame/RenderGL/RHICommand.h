@@ -2,13 +2,8 @@
 
 namespace RenderGL
 {
-	RHITexture2DRef    RHICreateTexture2D();
-	RHITextureDepthRef RHICreateTextureDepth();
-	RHITextureCubeRef  RHICreateTextureCube();
+	RHITexture2D*    RHICreateTexture2D();
+	RHITextureDepth* RHICreateTextureDepth();
+	RHITextureCube*  RHICreateTextureCube();
 
-
-
-
-
-
-}
+}//namespace RenderGL

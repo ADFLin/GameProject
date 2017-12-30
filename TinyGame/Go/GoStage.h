@@ -41,11 +41,11 @@ namespace Go
 			CSPPlay* com = cp->cast< CSPPlay >();
 
 			if ( com->idxPos == -1 )
-				getGame().pass();
+				getGame().playPass();
 			else
 			{
 				Board::Pos pos = getGame().getBoard().getPos( com->idxPos );
-				getGame().play( pos );
+				getGame().playStone( pos );
 			}
 		}
 
@@ -115,6 +115,8 @@ namespace Go
 		Zen::Bot botB;
 	};
 
+
+
 	class Stage : public StageBase
 	{
 	public:
@@ -124,7 +126,7 @@ namespace Go
 				return false;
 
 			mGame.setup(13);
-			mLifeParam = 0;
+			mCaptureCount = 0;
 			mMode.setupGame(mGame);
 
 			::Global::GUI().cleanupWidget();
@@ -155,7 +157,7 @@ namespace Go
 		}
 		BotTestMode mMode;
 		Game        mGame;
-		int         mLifeParam;
+		int         mCaptureCount;
 	};
 
 

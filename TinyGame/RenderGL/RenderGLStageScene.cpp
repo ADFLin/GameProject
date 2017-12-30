@@ -76,7 +76,7 @@ namespace RenderGL
 					mat = new MaterialInstance(getMaterial(MaterialId::Lightning));
 					FixString< 256 > path = textureDir;
 					path += noramlTexture;
-					RHITexture2D* tex = RHICreateTexture2D();
+					RHITexture2DRef tex = RHICreateTexture2D();
 					tex->loadFromFile(path);
 					mat->setParameter(SHADER_PARAM(TextureB), *tex);
 				}
@@ -89,7 +89,7 @@ namespace RenderGL
 				{
 					FixString< 256 > path = textureDir;
 					path += matInfo->diffuseTextureName;
-					RHITexture2D* tex = RHICreateTexture2D();
+					RHITexture2DRef tex = RHICreateTexture2D();
 					tex->loadFromFile(path);
 					mat->setParameter(SHADER_PARAM(TextureBase), *tex);
 				}

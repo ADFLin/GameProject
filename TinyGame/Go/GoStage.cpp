@@ -132,7 +132,7 @@ namespace Go
 		RenderUtility::SetFont( g , FONT_S8 );
 		g.setTextColor( 255 , 255 , 0 );
 		FixString< 64 > str;
-		str.format( "life = %d" , mLifeParam );
+		str.format( "life = %d" , mCaptureCount );
 		g.drawText( Vec2i( 5 , 5 ) , str );
 		str.format( "B = %d | W = %d" , mGame.getWhiteRemovedNum() , mGame.getBlackRemovedNum() );
 		g.drawText( Vec2i( 5 , 5 + 15 ) , str );
@@ -150,11 +150,11 @@ namespace Go
 			Board::Pos bPos = mGame.getBoard().getPos( lPos.x , lPos.y );
 			if ( msg.onLeftDown() )
 			{
-				mGame.play( bPos );
+				mGame.playStone( bPos );
 			}
 			else if ( msg.onMiddleDown() )
 			{
-				const_cast< Board& >( mGame.getBoard() ).fillStone(  bPos , Board::eBlack );
+				const_cast< Board& >( mGame.getBoard() ).fillStone(  bPos , StoneColor::eBlack );
 			}
 			else if ( msg.onRightDown() || msg.onRightDClick() )
 			{
@@ -164,7 +164,7 @@ namespace Go
 			{
 				if ( mGame.getBoard().getData( bPos ) )
 				{
-					mLifeParam = mGame.getBoard().getCaptureCount( bPos );
+					mCaptureCount = mGame.getBoard().getCaptureCount( bPos );
 				}
 			}
 		}
@@ -175,9 +175,9 @@ namespace Go
 	void Stage::drawStone( Graphics2D& g , Vec2i const& pos , int color )
 	{
 		RenderUtility::SetPen( g , Color::eBlack );
-		RenderUtility::SetBrush( g ,( color == Board::eBlack ) ? Color::eBlack : Color::eWhite );
+		RenderUtility::SetBrush( g ,( color == StoneColor::eBlack ) ? Color::eBlack : Color::eWhite );
 		g.drawCircle( pos ,  CellSize / 2  );
-		if ( color == Board::eBlack )
+		if ( color == StoneColor::eBlack )
 		{
 			RenderUtility::SetBrush( g ,Color::eWhite );
 			g.drawCircle( pos + Vec2i( 5 , -5 ) , 3 );
@@ -196,12 +196,12 @@ namespace Go
 
 		if( !ZenCoreV4::Get().initialize(TEXT("ZenV4.dll")) )
 			return false;
-		ZenCoreV4::Get().setSetting(setting);
+		ZenCoreV4::Get().setCoreSetting(setting);
 
 		if( !ZenCoreV6::Get().initialize(TEXT("Zen.dll")) )
 			return false;
 		setting.maxTime /= 2;
-		ZenCoreV6::Get().setSetting(setting);
+		ZenCoreV6::Get().setCoreSetting(setting);
 
 		botA.setup(ZenCoreV4::Get());
 		botB.setup(ZenCoreV6::Get());
@@ -214,7 +214,7 @@ namespace Go
 
 		Zen::GameSetting gameSetting;
 		gameSetting.boardSize = game.getBoard().getSize();
-		gameSetting.bBlackFrist = game.getFristPlayColor();
+		gameSetting.bBlackFrist = game.getFristPlayColor() == StoneColor::eBlack;
 
 		botA.startGame(gameSetting);
 		botB.startGame(gameSetting);
@@ -254,9 +254,9 @@ namespace Go
 
 		if( thinkStep.bPass )
 		{
-			botA.pass(color);
-			botB.pass(color);
-			mGame->pass();
+			botA.playPass(color);
+			botB.playPass(color);
+			mGame->playPass();
 			++passCount;
 			if( passCount == 2 )
 			{
@@ -266,9 +266,9 @@ namespace Go
 		}
 		else
 		{
-			if( !botA.play(thinkStep.x, thinkStep.y, color) ||
-			   !botB.play(thinkStep.x, thinkStep.y, color) ||
-			   !mGame->play(thinkStep.x, thinkStep.y) )
+			if( !botA.playStone(thinkStep.x, thinkStep.y, color) ||
+			   !botB.playStone(thinkStep.x, thinkStep.y, color) ||
+			   !mGame->playStone(thinkStep.x, thinkStep.y) )
 			{
 				bGameEnd = true;
 				return;
@@ -290,8 +290,8 @@ namespace Go
 			{
 				int color = value > 0 ? Color::eRed : Color::eBlue;
 
-				if( !( value > 0 && mGame->getBoard().getData(x, y) == Board::eBlack ||
-				      value < 0 && mGame->getBoard().getData(x, y) == Board::eWhite ) )
+				if( !( value > 0 && mGame->getBoard().getData(x, y) == StoneColor::eBlack ||
+				      value < 0 && mGame->getBoard().getData(x, y) == StoneColor::eWhite ) )
 				{
 					int size = 18 * value / 1000;
 					RenderUtility::SetBrush(g, color);
@@ -305,7 +305,7 @@ namespace Go
 			int value = priorKnowledge[y][x] - territoryStatictics[y][x];
 
 			int threshold = 500;
-			if( mGame->getNextPlayColor() == Board::eBlack )
+			if( mGame->getNextPlayColor() == StoneColor::eBlack )
 			{
 				if( value > 0 )
 				{

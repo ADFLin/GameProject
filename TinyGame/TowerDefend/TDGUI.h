@@ -43,7 +43,7 @@ namespace TowerDefend
 	{
 		enum
 		{
-			UI_COM_BUTTON = UI_WEIGET_ID ,
+			UI_COM_BUTTON = UI_WIDGET_ID ,
 		};
 		typedef GPanel BaseClass;
 	public:

@@ -310,10 +310,10 @@ namespace StickMove
 
 		void updateGUI()
 		{
-			mPanel->findChild(UI_BoundSizeX)->cast<GSlider>()->setValue(mBoundRectSize.x);
-			mPanel->findChild(UI_BoundSizeY)->cast<GSlider>()->setValue(mBoundRectSize.y);
-			mPanel->findChild(UI_Radius)->cast<GSlider>()->setValue(mSticks[0].getLength());
-			mPanel->findChild(UI_MoveSpeedFactor)->cast<GSlider>()->setValue( 100.0 * mSticks[0].moveSpeed / Stick::DefaultMoveSpeed() );
+			mPanel->findChildT<GSlider>(UI_BoundSizeX)->setValue(mBoundRectSize.x);
+			mPanel->findChildT<GSlider>(UI_BoundSizeY)->setValue(mBoundRectSize.y);
+			mPanel->findChildT<GSlider>(UI_Radius)->setValue(mSticks[0].getLength());
+			mPanel->findChildT<GSlider>(UI_MoveSpeedFactor)->setValue( 100.0 * mSticks[0].moveSpeed / Stick::DefaultMoveSpeed() );
 		}
 
 		bool notifySettingEvent(int event, int id, GWidget* ui)

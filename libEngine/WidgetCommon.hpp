@@ -50,7 +50,7 @@ void WButtonT< Impl , CoreImpl >::setButtonState( ButtonState state )
 }
 
 template < class Impl, class CoreImpl >
-unsigned TItemOwnerUI<Impl, CoreImpl>::appendItem( char const* str )
+unsigned TItemOwnerUI<Impl, CoreImpl>::addItem( char const* str )
 { 
 	mItemList.push_back( Item( str ) );
 	unsigned pos = unsigned( mItemList.size() - 1 );

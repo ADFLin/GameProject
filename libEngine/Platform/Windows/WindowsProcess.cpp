@@ -25,7 +25,7 @@ void ChildProcess::cleanup()
 #undef SAFE_RELEASE_HANDLE
 }
 
-bool ChildProcess::createWithIO(char const* path, char const* command /*= nullptr*/)
+bool ChildProcess::create(char const* path, char const* command /*= nullptr*/)
 {
 	SECURITY_ATTRIBUTES saAttr;
 	saAttr.nLength = sizeof(SECURITY_ATTRIBUTES);

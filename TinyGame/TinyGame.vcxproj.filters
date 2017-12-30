@@ -281,9 +281,6 @@
     <ClCompile Include="Stage\AudioTestStage.cpp">
       <Filter>Stage</Filter>
     </ClCompile>
-    <ClCompile Include="Stage\LeelaZeroLearningStage.cpp">
-      <Filter>Stage</Filter>
-    </ClCompile>
     <ClCompile Include="Go\GoRenderer.cpp">
       <Filter>GameGo</Filter>
     </ClCompile>
@@ -295,6 +292,12 @@
     </ClCompile>
     <ClCompile Include="Stage\GlobalStageRegister.cpp">
       <Filter>Stage</Filter>
+    </ClCompile>
+    <ClCompile Include="Go\LeelaZeroGoStage.cpp">
+      <Filter>GameGo</Filter>
+    </ClCompile>
+    <ClCompile Include="Go\LeelaBot.cpp">
+      <Filter>GameGo</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -691,8 +694,14 @@
     <ClInclude Include="RenderGL\RenderGLStageAssetID.h">
       <Filter>RenderGL</Filter>
     </ClInclude>
-    <ClInclude Include="Stage\LeelaZeroLearningStage.h">
-      <Filter>Stage</Filter>
+    <ClInclude Include="Go\LeelaZeroGoStage.h">
+      <Filter>GameGo</Filter>
+    </ClInclude>
+    <ClInclude Include="Go\GoBot.h">
+      <Filter>GameGo</Filter>
+    </ClInclude>
+    <ClInclude Include="Go\LeelaBot.h">
+      <Filter>GameGo</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

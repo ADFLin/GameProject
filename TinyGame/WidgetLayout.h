@@ -19,8 +19,21 @@ enum
 
 class VerticalLayout
 {
-	template< class T >
-	void AddSlot( T widget ){}
+
+	template< class T , ... >
+	T* addSlot( )
+	{
+
+
+
+	}
+
+	void finalize()
+	{
+
+
+
+	}
 
 
 	Vec2i pos;

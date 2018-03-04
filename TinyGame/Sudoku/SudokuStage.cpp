@@ -36,7 +36,7 @@ public:
 	{
 		if( !checkState() )
 		{
-			::Msg("error method");
+			::LogMsg("error method");
 		}
 		//Jumper.jump();
 	}
@@ -52,7 +52,7 @@ public:
 	{
 		if( !setupProblem(prob) )
 		{
-			::Msg("Can't init problem");
+			::LogMsg("Can't init problem");
 			return;
 		}
 

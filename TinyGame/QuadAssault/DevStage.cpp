@@ -24,25 +24,25 @@ class WidgetTest : public TestBase
 
 		frame->addProp( "a1" , val );
 		frame->addProp( "a2" , val2 );
-		GUISystem::getInstance().addWidget( frame );
+		GUISystem::Get().addWidget( frame );
 
 		QTextButton* button;
 		button = new QTextButton( UI_ANY , Vec2i( 100 , 100 ) , Vec2i(128, 64) , NULL );
 		button->text->setFont( getGame()->getFont(0) );
 		button->text->setString( "Start" );
-		GUISystem::getInstance().addWidget( button );
+		GUISystem::Get().addWidget( button );
 
 		QChoice* chioce = new QChoice( UI_ANY , Vec2i( 200 , 200 ) , Vec2i( 200 , 30 ) , NULL );
 		chioce->addItem( "Hello" );
 		chioce->addItem( "Good" );
 		chioce->addItem( "Test" );
-		GUISystem::getInstance().addWidget( chioce );
+		GUISystem::Get().addWidget( chioce );
 
 		QListCtrl* listCtrl = new QListCtrl( UI_ANY , Vec2i( 500 , 200 ) , Vec2i( 100 , 200 ) , NULL );
 		listCtrl->addItem( "Hello" );
 		listCtrl->addItem( "Good" );
 		listCtrl->addItem( "Test" );
-		GUISystem::getInstance().addWidget( listCtrl );
+		GUISystem::Get().addWidget( listCtrl );
 
 		frame->inputData();
 		return true;
@@ -460,7 +460,7 @@ bool DevStage::onInit()
 	mTexCursor = getRenderSystem()->getTextureMgr()->getTexture("cursor.tga");
 	mDevMsg.reset( IText::create( getGame()->getFont( 0 ) , 18 , Color(50,255,50) ) );
 
-	GUISystem::getInstance().cleanupWidget();
+	GUISystem::Get().cleanupWidget();
 
 	if ( !mTest->onInit() )
 		return false;
@@ -486,7 +486,7 @@ void DevStage::onRender()
 
 	mTest->onRender();
 
-	GUISystem::getInstance().render();
+	GUISystem::Get().render();
 
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_ONE, GL_ONE);

@@ -23,14 +23,14 @@ namespace MV
 		Block* createBlock( 
 			Vec3i const& pos , int idMesh , 
 			SurfaceDef surfaceDef[] , bool updateNav = true , 
-			ObjectGroup* group = NULL , Dir dirZ = eDirZ , Dir dirX = eDirX );
+			ObjectGroup* group = NULL , Dir dirZ = Dir::Z , Dir dirX = Dir::X );
 		void   destroyBlock( Block* block );
 		bool   destroyBlock( Vec3i const& pos );
 
 		ObjectGroup* createGroup( ObjectGroup* parent = NULL );
 		void         destroyGroup( ObjectGroup* group , bool bDeleteObj );
 
-		bool putActor( Actor& actor , Vec3i const& pos , Dir faceDir = eDirZ );
+		bool putActor( Actor& actor , Vec3i const& pos , Dir faceDir = Dir::Z );
 		void removeActor( Actor& actor );
 
 		void action( Actor& actor , int idxNode );

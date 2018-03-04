@@ -8,6 +8,8 @@
 
 #include "TrainManager.h"
 
+#include "SystemPlatform.h"
+
 namespace FlappyBird
 {
 
@@ -30,7 +32,7 @@ namespace FlappyBird
 		if( !loadResource() )
 			return false;
 
-		::srand(::GetTickCount());
+		::srand( SystemPlatform::GetTickCount() );
 		getLevel().onBirdCollsion = CollisionDelegate(this, &LevelStage::notifyBridCollsion);
 		getLevel().onGameOver = LevelOverDelegate(this, &LevelStage::notifyGameOver);
 
@@ -226,15 +228,16 @@ namespace FlappyBird
 		if( mbTrainMode )
 		{
 			{
-				DWORD time = ::GetTickCount();
-				TLockedObject< GenePool > genePool = mTrainManager->lockPool();
-				mTrainData->runEvolution(genePool);
-				if( !genePool->mStorage.empty() )
-					mTrainManager->topFitness = (*genePool)[0]->fitness;
+				int64 time;
+				{
+					ScopeTickCount scope(time);
+					TLockedObject< GenePool > genePool = mTrainManager->lockPool();
+					mTrainData->runEvolution(genePool);
+					if( !genePool->mStorage.empty() )
+						mTrainManager->topFitness = (*genePool)[0]->fitness;
+				}
 
-				time = ::GetTickCount() - time;
-
-				::Msg("lock time = %d", time);
+				::LogMsgF("lock time = %ld", time);
 			}
 
 			restart();
@@ -296,7 +299,7 @@ namespace FlappyBird
 		glActiveTexture(GL_TEXTURE0);
 		{
 			GL_BIND_LOCK_OBJECT(mTextures[id]);
-			DrawUtiltiy::Sprite(pos, size, pivot, framePos, frameDim);
+			DrawUtility::Sprite(pos, size, pivot, framePos, frameDim);
 		}
 		glDisable(GL_TEXTURE_2D);
 	}
@@ -307,7 +310,7 @@ namespace FlappyBird
 		glActiveTexture(GL_TEXTURE0);
 		{
 			GL_BIND_LOCK_OBJECT(mTextures[id]);
-			DrawUtiltiy::Sprite(pos, size, pivot, texPos, texSize);
+			DrawUtility::Sprite(pos, size, pivot, texPos, texSize);
 		}
 		glDisable(GL_TEXTURE_2D);
 		

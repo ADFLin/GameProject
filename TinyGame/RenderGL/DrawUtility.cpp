@@ -29,7 +29,7 @@ namespace RenderGL
 	};
 
 
-	void RenderGL::DrawUtiltiy::CubeLine()
+	void RenderGL::DrawUtility::CubeLine()
 	{
 		static Vector3 const v[] =
 		{
@@ -43,7 +43,7 @@ namespace RenderGL
 		RenderRT::Draw< RenderRT::eXYZ >(PrimitiveType::eLineList, v, 4 * 6, sizeof(Vector3));
 	}
 
-	void RenderGL::DrawUtiltiy::CubeMesh()
+	void RenderGL::DrawUtility::CubeMesh()
 	{
 		static Vector3 const v[] =
 		{
@@ -69,7 +69,7 @@ namespace RenderGL
 		RenderRT::Draw< RenderRT::eXYZ_N >(PrimitiveType::eQuad, v, 4 * 6, 2 * sizeof(Vector3));
 	}
 
-	void RenderGL::DrawUtiltiy::AixsLine()
+	void RenderGL::DrawUtility::AixsLine()
 	{
 		static Vector3 const v[12] =
 		{
@@ -80,7 +80,7 @@ namespace RenderGL
 		RenderRT::Draw< RenderRT::eXYZ_C >(PrimitiveType::eLineList, v, 6, 2 * sizeof(Vector3));
 	}
 
-	void RenderGL::DrawUtiltiy::Rect(int x, int y, int width, int height)
+	void RenderGL::DrawUtility::Rect(int x, int y, int width, int height)
 	{
 		float x2 = x + width;
 		float y2 = y + height;
@@ -95,7 +95,7 @@ namespace RenderGL
 		RenderRT::Draw< RenderRT::eXY_T2 >(PrimitiveType::eQuad, vertices, 4);
 	}
 
-	void RenderGL::DrawUtiltiy::Rect(int width, int height)
+	void RenderGL::DrawUtility::Rect(int width, int height)
 	{
 		VertexXY_T1 vertices[] =
 		{
@@ -107,17 +107,17 @@ namespace RenderGL
 		RenderRT::Draw< RenderRT::eXY_T2 >(PrimitiveType::eQuad, vertices, 4);
 	}
 
-	void DrawUtiltiy::ScreenRect()
+	void DrawUtility::ScreenRect()
 	{
 		RenderRT::Draw< RenderRT::eXYZW_T2 >(PrimitiveType::eQuad, GScreenVertices, 4);
 	}
 
-	void DrawUtiltiy::Sprite(Vector2 const& pos, Vector2 const& size, Vector2 const& pivot)
+	void DrawUtility::Sprite(Vector2 const& pos, Vector2 const& size, Vector2 const& pivot)
 	{
 		Sprite( pos, size, pivot, Vector2(0, 0), Vector2(1, 1));
 	}
 
-	void DrawUtiltiy::Sprite(Vector2 const& pos, Vector2 const& size, Vector2 const& pivot, Vec2i const& framePos, Vec2i const& frameDim)
+	void DrawUtility::Sprite(Vector2 const& pos, Vector2 const& size, Vector2 const& pivot, Vec2i const& framePos, Vec2i const& frameDim)
 	{
 		Vector2 dtex = Vector2(1.0 / frameDim.x, 1.0 / frameDim.y);
 		Vector2 texLT = Vector2(framePos).mul(dtex);
@@ -125,7 +125,7 @@ namespace RenderGL
 		Sprite( pos, size, pivot, texLT, dtex);
 	}
 
-	void DrawUtiltiy::Sprite(Vector2 const& pos, Vector2 const& size, Vector2 const& pivot, Vector2 const& texPos, Vector2 const& texSize)
+	void DrawUtility::Sprite(Vector2 const& pos, Vector2 const& size, Vector2 const& pivot, Vector2 const& texPos, Vector2 const& texSize)
 	{
 		Vector2 posLT = pos - size.mul(pivot);
 		Vector2 posRB = posLT + size;

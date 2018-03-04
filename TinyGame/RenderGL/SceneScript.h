@@ -34,10 +34,11 @@ namespace RenderGL
 	{
 	public:
 		virtual ~ISceneScript(){}
-		virtual std::string getFilePath(char const* fileName) = 0;
 		virtual bool setup( Scene& scene, IAssetProvider& assetProvider , char const* fileName ) = 0;
 		virtual void release() = 0;
 
+
+		static std::string   GetFilePath(char const* fileName);
 		static ISceneScript* Create();
 	};
 

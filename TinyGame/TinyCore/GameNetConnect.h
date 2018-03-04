@@ -5,6 +5,8 @@
 #include "NetSocket.h"
 #include "SocketBuffer.h"
 #include "Core/IntegerType.h"
+#include "SystemPlatform.h"
+
 #include <deque>
 
 class NetConnection;
@@ -324,7 +326,12 @@ public:
 		mSample[ mCount ] = ( getSystemTime() - mLastRequst )/2;
 		++mCount;
 	}
-	uint32 getSystemTime(){ return ::GetTickCount(); }
+
+	int64 getSystemTime()
+	{
+		return SystemPlatform::GetTickCount();
+	}
+
 	int    getSampleNum(){ return mCount; }
 
 	uint32 calcResult()

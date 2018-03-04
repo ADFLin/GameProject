@@ -12,7 +12,7 @@ namespace Shoot2D
 
 	ObjModel const& getModel( Object& obj )
 	{
-		return ObjModelManger::getInstance().getModel( obj.getModelId() );
+		return ObjModelManger::Get().getModel( obj.getModelId() );
 	}
 
 

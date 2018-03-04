@@ -406,7 +406,7 @@ namespace Chromatron
 
 				if ( len == 0 )
 				{
-					::Msg( "Level %d load State Faild" , i );
+					::LogMsgF( "Level %d load State Faild" , i );
 					return false;
 				}
 				code += len;

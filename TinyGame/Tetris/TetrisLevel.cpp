@@ -213,7 +213,7 @@ namespace Tetris
 		}
 	}
 
-	int BlockStorage::testCollision( Piece& piece , int cx, int cy )
+	unsigned BlockStorage::testCollision( Piece& piece , int cx, int cy )
 	{
 		int result = 0;
 
@@ -224,7 +224,7 @@ namespace Tetris
 			int xPos = cx + block.getX();
 			int yPos = cy + block.getY();
 
-			int hitFlag = 0;
+			unsigned hitFlag = 0;
 
 			if ( xPos < 0 )
 				hitFlag |= HIT_LEFT_SIDE;
@@ -264,7 +264,7 @@ namespace Tetris
 		int xPosNew = x + ox;
 		int yPosNew = y + oy;
 
-		int hit = testCollision( piece , xPosNew , yPosNew );
+		unsigned hit = testCollision( piece , xPosNew , yPosNew );
 
 		if ( !hit )
 		{
@@ -356,7 +356,7 @@ namespace Tetris
 	{
 		piece.rotate( beCW ? -1 : 1 );
 
-		int hit = testCollision( piece , x , y );
+		unsigned hit = testCollision( piece , x , y );
 
 		if ( !hit )
 			return hit;

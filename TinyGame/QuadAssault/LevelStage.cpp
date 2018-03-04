@@ -132,7 +132,7 @@ bool LevelStageBase::onKey( unsigned key , bool isDown )
 	case Keyboard::eF2:
 		break;
 	case Keyboard::eESCAPE:
-		GUISystem::getInstance().findTopWidget( UI_MENU_PANEL )->show( true );
+		GUISystem::Get().findTopWidget( UI_MENU_PANEL )->show( true );
 		mPause = true;
 		break;
 	}
@@ -151,7 +151,7 @@ bool LevelStage::onInit()
 
 	getRenderSystem()->getTextureMgr()->loadTexture("backgroundUniverse.tga");
 
-	GUISystem::getInstance().cleanupWidget();
+	GUISystem::Get().cleanupWidget();
 
 	{
 		Vec2i panelSize( 150 , 200 );
@@ -163,7 +163,7 @@ bool LevelStage::onInit()
 		QPanel* panel = new QPanel( UI_MENU_PANEL , panelPos , panelSize , NULL );
 		panel->show( false );
 
-		GUISystem::getInstance().addWidget( panel );
+		GUISystem::Get().addWidget( panel );
 
 		IFont* font = getGame()->getFont( 0 );
 
@@ -404,7 +404,7 @@ void LevelStage::onRender()
 		glDisable(GL_BLEND);
 	}
 
-	GUISystem::getInstance().render();
+	GUISystem::Get().render();
 
 
 	mScreenFade.render();
@@ -472,7 +472,7 @@ void LevelStage::onWidgetEvent( int event , int id , QWidget* sender )
 	switch( id )
 	{
 	case UI_BACK_GAME:
-		GUISystem::getInstance().findTopWidget( UI_MENU_PANEL )->show( false );
+		GUISystem::Get().findTopWidget( UI_MENU_PANEL )->show( false );
 		mPause = false;
 		break;
 	case UI_GO_MENU:

@@ -115,7 +115,7 @@ protected:
 
 
 	ServerListPanel*    mConnectPanel;
-	long                mLastSendSetting;
+	int64               mLastSendSetting;
 	GameSettingPanel*   mSettingPanel;
 	PlayerListPanel*    mPlayerPanel;
 	ComMsgPanel*        mMsgPanel;

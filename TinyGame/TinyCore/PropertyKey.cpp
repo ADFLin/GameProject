@@ -48,10 +48,10 @@ KeyValue* PropertyKey::getKeyValue( char const* group, char const* keyName )
 }
 
 template< class T > struct KeyOp {};
-template<>  struct KeyOp< int >  { int   get( KeyValue* value ){ return value->getInt(); }  }; 
-template<>  struct KeyOp< float >{ float get( KeyValue* value ){ return value->getFloat(); }  }; 
-template<>  struct KeyOp< char > { char  get( KeyValue* value ){ return value->getChar(); }  }; 
-template<>  struct KeyOp< char const* >{ char const* get( KeyValue* value ){ return value->getString(); } };
+template<>  struct KeyOp< int >  { static int   Get( KeyValue* value ){ return value->getInt(); }  }; 
+template<>  struct KeyOp< float >{ static  float Get( KeyValue* value ){ return value->getFloat(); }  };
+template<>  struct KeyOp< char > { static  char  Get( KeyValue* value ){ return value->getChar(); }  };
+template<>  struct KeyOp< char const* >{ static char const* Get( KeyValue* value ){ return value->getString(); } };
 
 template< class T >
 bool PropertyKey::tryGetValueT( char const* keyName , char const* group , T& value )
@@ -60,8 +60,7 @@ bool PropertyKey::tryGetValueT( char const* keyName , char const* group , T& val
 	if ( !keyValue )
 		return false;
 
-	KeyOp< T > op;
-	value = op.get( keyValue );
+	value = KeyOp<T>::Get( keyValue );
 	return true;
 }
 
@@ -74,8 +73,7 @@ T PropertyKey::getValueT( char const* keyName , char const* group , T defaultVal
 	KeyValue* keyValue = getKeyValue( group, keyName );
 	if ( keyValue )
 	{
-		KeyOp< T > op;
-		return op.get( keyValue );
+		return KeyOp<T>::Get( keyValue );
 	}
 	setKeyValue( keyName , group , defaultValue );
 	return defaultValue;
@@ -130,8 +128,11 @@ bool PropertyKey::saveFile( char const* path )
 
 	KeySectionMap::iterator globalIter = mGourpMap.find( GLOBAL_SECTION );
 
-	if ( globalIter != mGourpMap.end() )
-		globalIter->second.serializtion( fs );
+	if( globalIter != mGourpMap.end() )
+	{
+		globalIter->second.serializtion(fs);
+		fs << "\n";
+	}
 
 	for( KeySectionMap::iterator iter = mGourpMap.begin();
 		iter != mGourpMap.end() ; ++iter )

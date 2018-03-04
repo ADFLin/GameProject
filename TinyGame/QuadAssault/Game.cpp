@@ -280,7 +280,7 @@ bool Game::onMouse( MouseMsg const& msg )
 {
 	mMousePos = msg.getPos();
 
-	if ( !GUISystem::getInstance().mManager.procMouseMsg( msg ) )
+	if ( !GUISystem::Get().mManager.procMouseMsg( msg ) )
 	{
 		if ( !msg.onMoving() )
 			return true;
@@ -291,7 +291,7 @@ bool Game::onMouse( MouseMsg const& msg )
 
 bool Game::onKey( unsigned key , bool isDown )
 {
-	if ( !GUISystem::getInstance().mManager.procKeyMsg( key , isDown ) )
+	if ( !GUISystem::Get().mManager.procKeyMsg( key , isDown ) )
 		return true;
 
 	mStageStack.back()->onKey( key , isDown );
@@ -300,7 +300,7 @@ bool Game::onKey( unsigned key , bool isDown )
 
 bool Game::onChar( unsigned code )
 {
-	if ( !GUISystem::getInstance().mManager.procCharMsg( code ) )
+	if ( !GUISystem::Get().mManager.procCharMsg( code ) )
 		return true;
 
 	return true;

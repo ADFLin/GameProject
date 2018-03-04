@@ -64,11 +64,11 @@ void NetWorker::procSocketThread()
 	gSocketThreadId = PlatformThread::GetCurrentThreadId();
 
 	mNetRunningTime = 0;
-	long beforeTime = ::GetTickCount();
+	int64 beforeTime = SystemPlatform::GetTickCount();
 
 	while( 1 )
 	{
-		long intervalTime = ::GetTickCount() - beforeTime;
+		int64 intervalTime = SystemPlatform::GetTickCount() - beforeTime;
 
 		mNetRunningTime += intervalTime;
 		beforeTime += intervalTime;
@@ -82,19 +82,19 @@ void NetWorker::procSocketThread()
 		}
 		catch( ComException& e )
 		{
-			Msg( e.what() );
+			LogMsg( e.what() );
 		}
 		catch( SocketException& e )
 		{
-			Msg( e.what() );
+			LogMsg( e.what() );
 		}
 		catch( BufferException& e )
 		{
-			Msg( e.what() );
+			LogMsg( e.what() );
 		}
 		catch( std::exception& e )
 		{
-			Msg( e.what() );
+			LogMsg( e.what() );
 		}
 	}
 }
@@ -115,7 +115,7 @@ bool NetWorker::startNetwork()
 	}
 	catch ( std::exception& e )
 	{
-		ErrorMsg( e.what() );
+		LogError( e.what() );
 		return false;
 	}
 
@@ -146,14 +146,14 @@ void NetWorker::sendUdpCom( NetSocket& socket )
 
 			if ( numSend != uc.dataSize )
 			{
-				::Msg("Udp can't send full Data");
+				::LogWarning(0 , "Udp can't send full Data");
 				mUdpSendBuffer.shiftUseSize( -numSend );
 				break;
 			}
 		}
 		catch ( BufferException& /*e*/ )
 		{
-			::Msg("Send Udp Com Error" );
+			::LogError("Send Udp Com Error" );
 			mUdpSendBuffer.clear();
 			mUdpComList.clear();
 			return;
@@ -199,7 +199,7 @@ bool EvalCommand( UdpChain& chain , ComEvaluator& evaluator , SocketBuffer& buff
 		{
 			if ( !evaluator.evalCommand( buffer , group , userData ) )
 			{
-				::Msg( "readPacket Error Need Fix" );
+				::LogMsgF( "readPacket Error Need Fix" );
 				return false;
 			}
 		}
@@ -235,11 +235,11 @@ unsigned WriteComToBuffer( SocketBuffer& buffer , IComPacket* cp )
 		catch ( BufferException& e )
 		{
 			buffer.grow( ( buffer.getMaxSize() * 3 ) / 2 );
-			Msg( e.what() );
+			LogMsgF( e.what() );
 		}
 		catch ( ComException& e )
 		{
-			Msg( e.what() );
+			LogMsgF( e.what() );
 			return 0;
 		}
 		++count;

@@ -1013,7 +1013,7 @@ public:
 	void tick()
 	{
 		Vector2 dir = Vector2(0,0);
-		InputManager& input = InputManager::getInstance();
+		InputManager& input = InputManager::Get();
 		if ( input.isKeyDown( Keyboard::eA ) )
 			dir.x -= 1;
 		else if ( input.isKeyDown( Keyboard::eD ) )
@@ -1163,7 +1163,7 @@ namespace Mario
 
 		void tick()
 		{
-			InputManager& input = InputManager::getInstance();
+			InputManager& input = InputManager::Get();
 			if ( input.isKeyDown( 'D' ) )
 				player.button |= ACB_RIGHT;
 			if ( input.isKeyDown( 'A' ) )
@@ -1797,7 +1797,7 @@ namespace G2D
 			if ( msg.onLeftDown() )
 			{
 				Vector2 wPos = mRenderer.convertToWorld( msg.getPos() );
-				if ( InputManager::getInstance().isKeyDown( Keyboard::eCONTROL ) )
+				if ( InputManager::Get().isKeyDown( Keyboard::eCONTROL ) )
 				{
 					updateTestPos(wPos);
 

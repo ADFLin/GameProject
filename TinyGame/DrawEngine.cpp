@@ -25,7 +25,7 @@ void WINAPI GLDebugCallback(GLenum source, GLenum type, GLuint id, GLenum severi
 	if( type == GL_DEBUG_TYPE_OTHER )
 		return;
 
-	::Msg(message);
+	::LogMsgF(message);
 }
 
 

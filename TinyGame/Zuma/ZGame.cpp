@@ -65,12 +65,12 @@ namespace Zuma
 
 	class ProxyStage : public StageBase
 		             , public ZEventHandler
-					 , public GameInitialer
+					 , public GameInitializer
 	{
 		typedef StageBase BaseClass;
 	public:
 		
-
+		//GameInitializer
 		virtual bool           setupWindow( char const* title , int w , int h )
 		{
 			DrawEngine* drawEngine = ::Global::getDrawEngine();
@@ -96,6 +96,7 @@ namespace Zuma
 
 			return renderSys;
 		}
+		//~GameInitializer
 
 		virtual bool onInit()
 		{ 

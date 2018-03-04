@@ -76,7 +76,7 @@ BEGIN
         BLOCK "040404b0"
         BEGIN
             VALUE "CompanyName", "HiggsLin"
-            VALUE "FileDescription", "Game"
+            VALUE "FileDescription", "Tiny Game"
             VALUE "FileVersion", "1.0.0.1"
             VALUE "InternalName", "TinyGame.exe"
             VALUE "LegalCopyright", "Copyright (C) 2017"

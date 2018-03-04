@@ -49,7 +49,7 @@ bool LevelEditStage::onInit()
 		//"Tools"
 
 		mEditToolFrame = frame;
-		GUISystem::getInstance().addWidget( frame );
+		GUISystem::Get().addWidget( frame );
 
 
 		Vec2i pos = Vec2i( 4 , QFrame::TopSideHeight + 4 );
@@ -104,9 +104,9 @@ bool LevelEditStage::onInit()
 
 	mPropFrame = new PropFrame( UI_PROP_FRAME , Vec2i( 10 , 120 ) , NULL );
 	mPropFrame->setTile( "Property" );
-	GUISystem::getInstance().addWidget( mPropFrame );
+	GUISystem::Get().addWidget( mPropFrame );
 
-	changeMode( TileEditMode::getInstance() );
+	changeMode( TileEditMode::Get() );
 	return true;
 }
 
@@ -181,7 +181,7 @@ void LevelEditStage::onRender()
 	}
 
 
-	GUISystem::getInstance().render();
+	GUISystem::Get().render();
 
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_ONE, GL_ONE);
@@ -267,7 +267,7 @@ void LevelEditStage::onWidgetEvent( int event , int id , QWidget* sender )
 		{
 			cleanupEditMode();
 			mMode = NULL;
-			changeMode( TileEditMode::getInstance() );
+			changeMode( TileEditMode::Get() );
 			mPropFrame->removeEdit();
 			
 			generateEmptyLevel();
@@ -278,10 +278,10 @@ void LevelEditStage::onWidgetEvent( int event , int id , QWidget* sender )
 	case UI_CREATE_LIGHT:
 		break;
 	case UI_OBJECT_EDIT:
-		changeMode( ObjectEditMode::getInstance() );
+		changeMode( ObjectEditMode::Get() );
 		break;
 	case UI_TILE_EDIT:
-		changeMode( TileEditMode::getInstance() );
+		changeMode( TileEditMode::Get() );
 		break;
 	}
 }
@@ -392,8 +392,8 @@ void LevelEditStage::changeMode( EditMode& mode )
 
 void LevelEditStage::cleanupEditMode()
 {
-	ObjectEditMode::getInstance().cleanup();
-	TileEditMode::getInstance().cleanup();
+	ObjectEditMode::Get().cleanup();
+	TileEditMode::Get().cleanup();
 }
 
 
@@ -412,7 +412,7 @@ void TileEditMode::onEnable()
 		mFrame = new TileEditFrame( UI_ANY , Vec2i( 10 , 10 ) , NULL );
 		mFrame->setTile( "Block" );
 		mFrame->setPos( getModeWidgetPos( mFrame->getSize() ) );
-		GUISystem::getInstance().addWidget( mFrame );
+		GUISystem::Get().addWidget( mFrame );
 	}
 	mFrame->show( true );
 	if ( mTile )
@@ -570,7 +570,7 @@ void ObjectEditMode::onEnable()
 		mObjFrame->setupObjectList( *getWorld().getObjectCreator() );
 		Vec2i pos = getModeWidgetPos( mObjFrame->getSize() );
 		mObjFrame->setPos( pos );
-		GUISystem::getInstance().addWidget( mObjFrame );
+		GUISystem::Get().addWidget( mObjFrame );
 
 		
 		mActFrame = new ActionEditFrame( UI_ANY , Vec2i( 0 , 0 ) , NULL );
@@ -579,7 +579,7 @@ void ObjectEditMode::onEnable()
 		mActFrame->show( false );
 		pos.x -= mActFrame->getSize().x + 4;
 		mActFrame->setPos( pos );
-		GUISystem::getInstance().addWidget( mActFrame );
+		GUISystem::Get().addWidget( mActFrame );
 	}
 
 	mObjFrame->show( true );

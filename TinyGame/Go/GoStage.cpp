@@ -134,7 +134,7 @@ namespace Go
 		FixString< 64 > str;
 		str.format( "life = %d" , mCaptureCount );
 		g.drawText( Vec2i( 5 , 5 ) , str );
-		str.format( "B = %d | W = %d" , mGame.getWhiteRemovedNum() , mGame.getBlackRemovedNum() );
+		str.format( "B = %d | W = %d" , mGame.getWhiteCapturedNum() , mGame.getBlackCapturedNum() );
 		g.drawText( Vec2i( 5 , 5 + 15 ) , str );
 	}
 
@@ -194,11 +194,11 @@ namespace Go
 		setting.maxTime = 20;
 
 
-		if( !ZenCoreV4::Get().initialize(TEXT("ZenV4.dll")) )
+		if( !ZenCoreV4::Get().initialize() )
 			return false;
 		ZenCoreV4::Get().setCoreSetting(setting);
 
-		if( !ZenCoreV6::Get().initialize(TEXT("Zen.dll")) )
+		if( !ZenCoreV6::Get().initialize() )
 			return false;
 		setting.maxTime /= 2;
 		ZenCoreV6::Get().setCoreSetting(setting);

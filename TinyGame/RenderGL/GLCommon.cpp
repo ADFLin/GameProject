@@ -245,7 +245,18 @@ namespace RenderGL
 	}
 
 
-	void Mesh::drawSection( int idx , bool bUseVAO )
+	void Mesh::draw(Matrix4 const& transform, bool bUseVAO)
+	{
+		if( mVertexBuffer == nullptr )
+			return;
+
+		glPushMatrix();
+		glLoadMatrixf(transform);
+		drawInternal(0, (mIndexBuffer) ? mIndexBuffer->mNumIndices : mVertexBuffer->mNumVertices, bUseVAO);
+		glPopMatrix();
+	}
+
+	void Mesh::drawSection(int idx, bool bUseVAO)
 	{
 		if( mVertexBuffer == nullptr )
 			return;
@@ -787,7 +798,7 @@ namespace RenderGL
 		GLenum Status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
 		if( Status != GL_FRAMEBUFFER_COMPLETE )
 		{
-			::Msg("Texture Can't Attach to FrameBuffer");
+			::LogWarning(0,"Texture Can't Attach to FrameBuffer");
 		}
 		glBindFramebuffer(GL_FRAMEBUFFER, 0 );
 	}
@@ -840,7 +851,7 @@ namespace RenderGL
 		GLenum Status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
 		if( Status != GL_FRAMEBUFFER_COMPLETE )
 		{
-			::Msg("Texture Can't Attach to FrameBuffer");
+			::LogWarning(0,"Texture Can't Attach to FrameBuffer");
 		}
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 		return idx;
@@ -896,7 +907,7 @@ namespace RenderGL
 			GLenum status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
 			if( status != GL_FRAMEBUFFER_COMPLETE )
 			{
-				::Msg("DepthBuffer Can't Attach to FrameBuffer");
+				::LogWarning(0,"DepthBuffer Can't Attach to FrameBuffer");
 			}
 			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
 		}

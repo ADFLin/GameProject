@@ -414,7 +414,7 @@ void NetRoomStage::onServerEvent( EventID event , unsigned msg )
 void NetRoomStage::onUpdate( long time )
 {
 	BaseClass::onUpdate( time );
-	if ( mNeedSendSetting && ::GetTickCount() - mLastSendSetting > 500 )
+	if ( mNeedSendSetting && SystemPlatform::GetTickCount() - mLastSendSetting > 500 )
 	{
 		sendGameSetting();
 		mNeedSendSetting = false;
@@ -468,7 +468,7 @@ void NetRoomStage::procPlayerState( IComPacket* cp )
 			}
 			else
 			{
-				Msg("No NetLevel!");
+				LogMsgF("No NetLevel!");
 			}
 		}
 		break;
@@ -673,8 +673,8 @@ void NetRoomStage::onModify( GWidget* ui )
 {
 	if ( ui->getID() == UI_GAME_SETTING_PANEL )
 	{
-		long const MinSendSettingTime = 250;
-		if ( haveServer() && mLastSendSetting - ::GetTickCount() > MinSendSettingTime )
+		int64 const MinSendSettingTime = 250;
+		if ( haveServer() && mLastSendSetting - SystemPlatform::GetTickCount() > MinSendSettingTime )
 		{
 			sendGameSetting();
 		}
@@ -692,7 +692,7 @@ void NetRoomStage::sendGameSetting( unsigned pID )
 	if ( pID == ERROR_PLAYER_ID )
 	{
 		mServer->sendTcpCommand( &com );
-		mLastSendSetting = ::GetTickCount();
+		mLastSendSetting = SystemPlatform::GetTickCount();
 	}
 	else
 	{

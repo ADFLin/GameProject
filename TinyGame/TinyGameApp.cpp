@@ -215,7 +215,7 @@ void TinyGameApp::cleanup()
 
 	Global::GameConfig().saveFile(GAME_SETTING_PATH);
 
-	ILocalization::Get().saveTranslateAsset("tt.txt");
+	ILocalization::Get().saveTranslateAsset("LocText.txt");
 }
 
 long TinyGameApp::onUpdate( long shouldTime )
@@ -262,7 +262,7 @@ void TinyGameApp::onRender()
 void TinyGameApp::loadGamePackage()
 {
 	FileIterator fileIter;
-	if ( FileSystem::FindFile( "" , ".dll" , fileIter ) )
+	if ( FileSystem::FindFiles( "" , ".dll" , fileIter ) )
 	{
 		for ( ; fileIter.haveMore() ; fileIter.goNext() )
 		{
@@ -364,7 +364,7 @@ bool TinyGameApp::onMouse( MouseMsg const& msg )
 	if ( result )
 	{
 		result = getCurStage()->onMouse( msg );
-		InputManager::getInstance().procMouseEvent( msg );
+		InputManager::Get().procMouseEvent( msg );
 	}
 	return result;
 }
@@ -537,7 +537,7 @@ StageBase* TinyGameApp::createStage( StageID stageId )
 		CASE_STAGE( STAGE_REPLAY_EDIT , ReplayEditStage )
 #undef CASE_STAGE
 		default:
-			ErrorMsg( "Can't find Stage %d " , stageId );
+			LogErrorF( "Can't find Stage %d " , stageId );
 			return NULL;
 		}
 	}

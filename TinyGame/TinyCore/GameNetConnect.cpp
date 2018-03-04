@@ -22,7 +22,7 @@ void NetConnection::recvData( NetBufferOperator& bufCtrl , int len , NetAddress*
 	catch( std::exception& e )
 	{
 		bufCtrl.clear();
-		ErrorMsg( e.what() );
+		LogError( e.what() );
 		//cout << e.what() << endl;
 	}
 }
@@ -79,7 +79,7 @@ void UdpClient::init()
 
 	if ( !mSocket.setBroadcast() )
 	{
-		Msg( "Socket can't broadcast");
+		LogWarning( 0 , "Socket can't broadcast");
 	}
 }
 void UdpClient::setServerAddr( char const* addrName , unsigned port )
@@ -92,7 +92,7 @@ void UdpClient::setServerAddr( char const* addrName , unsigned port )
 
 	if ( !mSocket.setBroadcast() )
 	{
-		Msg( "Socket can't broadcast");
+		LogWarning( 0 , "Socket can't broadcast");
 	}
 }
 
@@ -138,7 +138,7 @@ void UdpServer::run( unsigned port )
 
 	if ( !mSocket.setBroadcast() )
 	{
-		Msg( "Socket can't broadcast");
+		LogWarning(0, "Socket can't broadcast");
 	}
 }
 
@@ -179,25 +179,25 @@ void TcpClient::onSendable( NetSocket& socket )
 
 void TcpClient::onConnectFailed( NetSocket& socket )
 {
-	Msg( "Connect Failed" );
+	LogMsg( "Connect Failed" );
 	mListener->onConnectFail( this );
 }
 
 void TcpClient::onConnect( NetSocket& socket )
 {
-	Msg( "Connect success" );
+	LogMsg( "Connect success" );
 	mListener->onConnectOpen( this );
 }
 
 void TcpClient::onClose( NetSocket& socket , bool beGraceful )
 {
-	Msg( "Connection close" );
+	LogMsg( "Connection close" );
 	mListener->onConnectClose( this , NetCloseReason::ShutDown );
 }
 
 void TcpServer::onAcceptable( NetSocket& socket )
 {
-	Msg( "Client Connection" );
+	LogMsg( "Client Connection" );
 	mListener->onConnectAccpet( this );
 }
 
@@ -218,7 +218,7 @@ void NetBufferOperator::fillBuffer( SocketBuffer& buffer , unsigned num )
 		catch ( BufferException& e )
 		{
 			mBuffer.grow( ( mBuffer.getMaxSize() * 3 ) / 2 );
-			Msg( "%s(%d)" , e.what() ,count );
+			LogMsgF( "%s(%d)" , e.what() ,count );
 		}
 		++count;
 	}
@@ -251,7 +251,7 @@ bool NetBufferOperator::sendData( NetSocket& socket , NetAddress* addr )
 			++count;
 			if ( count > 10 )
 			{
-				Msg( "Send Buffer: %d data no send" , mBuffer.getAvailableSize() );
+				LogMsgF( "Send Buffer: %d data no send" , mBuffer.getAvailableSize() );
 			}
 			return false;
 		}
@@ -286,8 +286,8 @@ bool NetBufferOperator::recvData( NetSocket& socket , int len , NetAddress* addr
 	catch( std::exception& e )
 	{
 		mBuffer.clear();
-		Msg( "%s(%d) : %s" , __FILE__ , __LINE__ ,e.what() );
-		ErrorMsg( e.what() );
+		LogMsgF( "%s(%d) : %s" , __FILE__ , __LINE__ ,e.what() );
+		LogError( e.what() );
 		return false;
 		//cout << e.what() << endl;
 	}
@@ -361,7 +361,7 @@ bool UdpChain::sendPacket( long time , NetSocket& socket , SocketBuffer& buffer 
 		if ( mBufferRel.getFreeSize() < bufSize )
 		{
 			mBufferRel.grow( mBufferRel.getMaxSize() * 2 );
-			Msg( "UDPChain::sendPacket : ReliableBuffer too small" );
+			LogMsgF( "UDPChain::sendPacket : ReliableBuffer too small" );
 		}
 
 		size_t oldSize = mBufferRel.getFillSize();
@@ -446,7 +446,7 @@ bool UdpChain::readPacket( SocketBuffer& buffer , uint32& readSize )
 
 			if ( readSize > buffer.getAvailableSize() )
 			{
-				::Msg( "UdpChain::error incoming data" );
+				::LogMsg( "UdpChain::error incoming data" );
 				return false;
 			}
 

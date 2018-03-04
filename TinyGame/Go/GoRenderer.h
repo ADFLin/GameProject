@@ -50,8 +50,8 @@ namespace Go
 		void drawStone(GLGraphics2D& g, Vector2 const& pos, int color);
 
 
-		float const CellSize = 28;
-		float const StoneRadius = (CellSize / 2) * 9 / 10;
+		float const CellLength = 28;
+		float const StoneRadius = (CellLength / 2) * 9 / 10;
 		float const StarRadius = 5;
 
 		TextureAtlas mTextureAtlas;

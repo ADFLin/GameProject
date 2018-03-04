@@ -32,37 +32,37 @@ namespace MV
 
 	enum Dir
 	{
-		eDirX    = 0,
-		eDirInvX = 1,
-		eDirY    = 2,
-		eDirInvY = 3,
-		eDirZ    = 4,
-		eDirInvZ = 5,
+		X    = 0,
+		InvX = 1,
+		Y    = 2,
+		InvY = 3,
+		Z    = 4,
+		InvZ = 5,
 	};
 
 	Dir const gDirInvertMap[6] = 
 	{ 
-		eDirInvX , eDirX , eDirInvY , eDirY , eDirInvZ , eDirZ 
+		Dir::InvX , Dir::X , Dir::InvY , Dir::Y , Dir::InvZ , Dir::Z 
 	};
 
 	Dir const gDirRotateMap[6][6] =
 	{
-		{ eDirX , eDirInvX , eDirZ , eDirInvZ , eDirInvY , eDirY } ,
-		{ eDirX , eDirInvX , eDirInvZ , eDirZ , eDirY , eDirInvY } ,
-		{ eDirInvZ , eDirZ , eDirY , eDirInvY , eDirX , eDirInvX } ,
-		{ eDirZ , eDirInvZ , eDirY , eDirInvY , eDirInvX , eDirX } ,
-		{ eDirY , eDirInvY , eDirInvX , eDirX , eDirZ , eDirInvZ } ,
-		{ eDirInvY , eDirY , eDirX , eDirInvX , eDirZ , eDirInvZ } ,
+		{ Dir::X , Dir::InvX , Dir::Z , Dir::InvZ , Dir::InvY , Dir::Y } ,
+		{ Dir::X , Dir::InvX , Dir::InvZ , Dir::Z , Dir::Y , Dir::InvY } ,
+		{ Dir::InvZ , Dir::Z , Dir::Y , Dir::InvY , Dir::X , Dir::InvX } ,
+		{ Dir::Z , Dir::InvZ , Dir::Y , Dir::InvY , Dir::InvX , Dir::X } ,
+		{ Dir::Y , Dir::InvY , Dir::InvX , Dir::X , Dir::Z , Dir::InvZ } ,
+		{ Dir::InvY , Dir::Y , Dir::X , Dir::InvX , Dir::Z , Dir::InvZ } ,
 	};
 
 	int const gDirCrossMap[6][6] =
 	{
-		{ -1 , -1 , eDirZ , eDirInvZ , eDirInvY , eDirY } ,
-		{ -1 , -1 , eDirInvZ , eDirZ , eDirY , eDirInvY } ,
-		{ eDirInvZ , eDirZ , -1 , -1 , eDirX , eDirInvX } ,
-		{ eDirZ , eDirInvZ , -1 , -1 , eDirInvX , eDirX } ,
-		{ eDirY , eDirInvY , eDirInvX , eDirX , -1 , -1 } ,
-		{ eDirInvY , eDirY , eDirX , eDirInvX , -1 , -1 } ,
+		{ -1 , -1 , Dir::Z , Dir::InvZ , Dir::InvY , Dir::Y } ,
+		{ -1 , -1 , Dir::InvZ , Dir::Z , Dir::Y , Dir::InvY } ,
+		{ Dir::InvZ , Dir::Z , -1 , -1 , Dir::X , Dir::InvX } ,
+		{ Dir::Z , Dir::InvZ , -1 , -1 , Dir::InvX , Dir::X } ,
+		{ Dir::Y , Dir::InvY , Dir::InvX , Dir::X , -1 , -1 } ,
+		{ Dir::InvY , Dir::Y , Dir::X , Dir::InvX , -1 , -1 } ,
 	};
 
 	int const gDirDotMap[6][6] =
@@ -77,9 +77,9 @@ namespace MV
 
 	Dir const gDirNeighborMap[3][4] =
 	{
-		{ eDirY , eDirInvY , eDirZ , eDirInvZ } ,
-		{ eDirZ , eDirInvZ , eDirX , eDirInvX } ,
-		{ eDirX , eDirInvX , eDirY , eDirInvY } ,
+		{ Dir::Y , Dir::InvY , Dir::Z , Dir::InvZ } ,
+		{ Dir::Z , Dir::InvZ , Dir::X , Dir::InvX } ,
+		{ Dir::X , Dir::InvX , Dir::Y , Dir::InvY } ,
 	};
 
 	int const gDirNeighborIndexMap[3][6] = 
@@ -148,7 +148,7 @@ namespace MV
 		Dir   operator[] ( int idx ) const { return mDir[idx]; }
 		Dir&  operator[] ( int idx ) { return mDir[idx]; }
   
-		static AxisRoataion Identity(){ return AxisRoataion( eDirX , eDirZ ); }
+		static AxisRoataion Identity(){ return AxisRoataion( Dir::X , Dir::Z ); }
 	private:
 		Dir   mDir[3];
 	};

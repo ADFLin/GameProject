@@ -11,7 +11,7 @@
 namespace FlappyBird
 {
 	using RenderGL::RHITexture2D;
-	using RenderGL::DrawUtiltiy;
+	using RenderGL::DrawUtility;
 
 	class TrainManager;
 	class TrainData;

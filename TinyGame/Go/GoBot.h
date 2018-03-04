@@ -12,16 +12,46 @@ namespace Go
 	{
 		enum
 		{
-			eStart = -1,
-			ePass = -2,
-			eResign = -3,
-			eUndo = -4 ,
+			eStart  ,
+			ePass   ,
+			eResign ,
+			eUndo  ,
+			ePlay  ,
+			eEnd   ,
+			eParam ,
 		};
+		int   id;
 		union
 		{
-			int id;
-			int pos[2];
+			int   color;
+			struct
+			{
+				uint8 paramId;
+				union 
+				{
+					int   intParam;
+					float floatParam;
+				};
+			};
+			struct  
+			{
+				uint8  winner;
+				float  winNum;
+			};
+
+			struct
+			{
+				uint8 playColor;
+				uint8 pos[2];
+			};
 		};
+
+		void setParam(uint8 inParamId , int param)
+		{
+			id = GameCommand::eParam;
+			paramId = inParamId;
+			intParam = param;
+		}
 	};
 
 	class IGameCommandListener
@@ -37,13 +67,13 @@ namespace Go
 		virtual bool initilize(void* settingData) = 0;
 		virtual void destroy() = 0;
 		virtual bool setupGame(GameSetting const& setting) = 0;
-		virtual bool playStone(Vec2i const& pos, int color) = 0;
+		virtual bool playStone(int x , int y , int color) = 0;
 		virtual bool playPass(int color) = 0;
 		virtual bool undo() = 0;
 		virtual bool thinkNextMove(int color) = 0;
 		virtual bool isThinking() = 0;
 		virtual void update(IGameCommandListener& listener) = 0;
-
+		virtual bool getMetaData(int id , int dataBuffer[] , int size) { return false; }
 	};
 
 

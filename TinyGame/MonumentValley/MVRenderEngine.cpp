@@ -69,7 +69,7 @@ namespace MV
 
 	bool RenderEngine::init()
 	{
-		if ( !ShaderManager::getInstance().loadFileSimple(mEffect , "Shader/Game/MVPiece") )
+		if ( !ShaderManager::Get().loadFileSimple(mEffect , "Shader/Game/MVPiece") )
 			return false;
 
 		locDirX = mEffect.getParamLoc( "dirX" );
@@ -159,8 +159,8 @@ namespace MV
 	{
 		glPushMatrix();
 		glTranslatef( pos.x , pos.y , pos.z );
-		mEffect.setParam( locDirX , (int)eDirX );
-		mEffect.setParam( locDirZ , (int)eDirZ );
+		mEffect.setParam( locDirX , (int)Dir::X );
+		mEffect.setParam( locDirZ , (int)Dir::Z );
 		Quat q; q.setEulerZYX( rotation.z , rotation.y , rotation.x );
 		glMultMatrixf( Matrix4::Rotate( q ) );
 		mMesh[ idMesh ].draw();

@@ -1,7 +1,7 @@
 #ifndef GoCore_h__
 #define GoCore_h__
 
-#include <list>
+#include <memory>
 #include <vector>
 
 class SocketBuffer;
@@ -19,22 +19,32 @@ namespace Go
 		};
 	}
 
-	inline void ReadCoord( char const* coord , int outPos[2] )
+	inline int ReadCoord( char const* coord , uint8 outPos[2] )
 	{
-		int x = coord[0] - 'A';
+		if( !('A' <= coord[0] && coord[0] <= 'Z') )
+			return 0;
+
+		uint8 x = coord[0] - 'A';
 		if( coord[0] > 'I' )
 		{
 			--x;
 		}
-		int y = coord[1] - '0';
-		if( '0' <= coord[2] && coord[2] <= '9' )
+
+		if( !('0' <= coord[1] && coord[1] <= '9') )
+			return 0;
+
+		int result = 2;
+		uint8 y = coord[1] - '0';
+		if( ('0' <= coord[2] && coord[2] <= '9') )
 		{
 			y = 10 * y + (coord[2] - '0');
+			++result;
 		}
-		--y;
 
+		--y;
 		outPos[0] = x;
 		outPos[1] = y;
+		return result;
 	}
 
 	inline int WriteCoord(int const pos[2], char coord[3])
@@ -120,6 +130,32 @@ namespace Go
 		int      peekCaptureStone( Pos const& p , unsigned& bitDir) const;
 
 		int      getLinkToRootDist(Pos const& p) const {  return getLinkToRootDist(p.toIndex());  }
+
+		void     calcScore(int outScores[2])
+		{
+			for( int i = 0; i < getSize(); ++i )
+			{
+
+				outScores[0] = outScores[1] = 0;
+				for( int j = 0; j < getSize(); ++j )
+				{
+					char data = getData(i, j);
+					switch( data )
+					{
+					case StoneColor::eBlack:
+						outScores[0] += 1;
+						break;
+					case StoneColor::eWhite:
+						outScores[1] += 1;
+						break;
+					case StoneColor::eEmpty:
+						break;
+					}
+				}
+			}
+
+
+		}
 	private:
 		typedef short LinkType;
 
@@ -167,8 +203,8 @@ namespace Go
 		int       mCacheIdxConRoot;
 
 		int       mSize;
-		mutable LinkType* mLinkIndex;
-		char*     mData;
+		mutable std::unique_ptr< LinkType[] > mLinkIndex;
+		std::unique_ptr< char[] > mData;
 	};
 
 	struct GameRule
@@ -207,49 +243,66 @@ namespace Go
 		void    restart();
 		bool    canPlay(int x, int y) const;
 		bool    playStone( int x , int y );
-		bool    playStone( Pos const & pos );
-		void    playPass();
-		void    undo();
+		bool    playStone(Pos const & pos) { assert(!isReviewing()); return playStoneInternal(pos, false); }
+		
+		void    playPass() { assert(!isReviewing()); return playPassInternal(false); }
+		bool    undo() { assert(!isReviewing()); return undoInternal(false); }
 
 		void    copy(Game const& other);
-		
+		void    updateHistory(Game const& other)
+		{
+			if( mStepHistory.size() != other.mStepHistory.size() )
+				mStepHistory.insert(mStepHistory.end(), other.mStepHistory.begin() + mStepHistory.size(), other.mStepHistory.end());
+		}
+		void    removeUnplayedHistory()
+		{
+			if( mStepHistory.size() > mCurrentStep )
+			{
+				mStepHistory.resize( mCurrentStep );
+			}
+		}
 		DataType getNextPlayColor() { return mNextPlayColor; }
-		DataType getFristPlayColor() { return mFristPlayColor; }
+		DataType getFristPlayColor() { return mSetting.bBlackFrist ? StoneColor::eBlack : StoneColor::eWhite; }
 		Board const& getBoard() const { return mBoard; }
 
-		int     getBlackRemovedNum() const { return mNumBlackRemoved; }
-		int     getWhiteRemovedNum() const { return mNumWhiteRemoved; }
+		int     getBlackCapturedNum() const { return mNumBlackCaptured; }
+		int     getWhiteCapturedNum() const { return mNumWhiteCaptured; }
 
 		void    print( int x , int y );
 
 		bool    save( char const* path );
 
-		int     getStepNum() const { return mStepHistory.size(); }
-		bool    getLastStepPos(int outPos[2]) const;
-
-		int     getHistoryStepNum() const
-		{
-			return mStepHistory.size();
-		}
+		int     getCurrentStep() const	{  return mCurrentStep; }
+		int     getLastStep() const  {  return mStepHistory.size() - 1;  }
 		bool    getStepPos(int step, int outPos[2]) const;
+		bool    getCurrentStepPos(int outPos[2]) const { return getStepPos(getCurrentStep() - 1, outPos); }
+
 		int     getLastPassCount();
 
+		//review
+		bool    isReviewing() const;
+		void    reviewBeginStep();
+		void    reviewPrevSetp(int numStep = 1);
+		void    reviewNextStep(int numStep = 1);
+		void    reviewLastStep();
 	private:
 
-		void     doRestart( bool beClearBoard );
+		void     doRestart( bool beClearBoard , bool bClearStepHistory = true);
+		bool     playStoneInternal(Pos const& pos, bool bReviewing);
+		void     playPassInternal(bool bReviewing);
+		bool     undoInternal(bool bReviewing);
+
+		Pos      getFristConPos(Board::Pos const& pos, unsigned bitDir) const;
+
 		
-
-		Pos      getFristConPos( Board::Pos const& pos , unsigned bitDir ) const;
-
-		int      captureStone( Board::Pos const& pos , unsigned& bitDir );
+		int      captureStone(Board::Pos const& pos, unsigned& bitDir);
 
 		GameSetting mSetting;
-		int       mCurHand;
-		int       mNumBlackRemoved;
-		int       mNumWhiteRemoved;
+		int       mCurrentStep;
+		int       mNumBlackCaptured;
+		int       mNumWhiteCaptured;
 		mutable Board mBoard;
 		int       mIdxKoPos;
-		DataType  mFristPlayColor;
 		DataType  mNextPlayColor;
 
 		struct StepInfo

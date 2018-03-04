@@ -131,10 +131,7 @@ namespace MV
 		HookNode     groupHook;
 	};
 
-	class WorldCell
-	{
-	public:
-	};
+
 
 	class Block : public Object
 	{
@@ -176,6 +173,12 @@ namespace MV
 
 	};
 
+	class WorldCell
+	{
+	public:
+	};
+
+
 	struct MeshObject : public Object
 	{
 		int      idMesh;
@@ -188,7 +191,7 @@ namespace MV
 		Actor()
 		{
 			actBlockId = 0;
-			rotation.set( eDirX , eDirZ );
+			rotation.set( Dir::X , Dir::Z );
 			actState = eActMove;
 			moveOffset = 0;
 		}

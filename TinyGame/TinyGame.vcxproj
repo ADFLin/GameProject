@@ -101,11 +101,12 @@
       <ForcedIncludeFiles>TinyGamePCH.h;%(ForcedIncludeFiles)</ForcedIncludeFiles>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <OpenMPSupport>false</OpenMPSupport>
+      <BrowseInformation>true</BrowseInformation>
     </ClCompile>
     <Link>
       <AdditionalDependencies>Msimg32.lib;d3d9.lib;d3dx9d.lib;dsound.lib;dinput8.lib;dxguid.lib;winmm.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>../OtherLib/Boost/lib;../OtherLib/DirectX/Lib/x86;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <GenerateDebugInformation>DebugFastLink</GenerateDebugInformation>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Windows</SubSystem>
       <RandomizedBaseAddress>false</RandomizedBaseAddress>
       <DataExecutionPrevention>false</DataExecutionPrevention>
@@ -117,10 +118,15 @@
       </IgnoreSpecificDefaultLibraries>
       <IgnoreAllDefaultLibraries>
       </IgnoreAllDefaultLibraries>
+      <LinkTimeCodeGeneration>Default</LinkTimeCodeGeneration>
     </Link>
     <PostBuildEvent>
-      <Command>copy $(TargetPath) $(ProjectDir)out\</Command>
+      <Command>copy $(TargetPath) $(ProjectDir)out\
+copy $(TargetDir)EngineShare.dll $(ProjectDir)out\</Command>
     </PostBuildEvent>
+    <Bscmake>
+      <PreserveSbr>true</PreserveSbr>
+    </Bscmake>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|VisualGDB'">
     <ClCompile>
@@ -268,6 +274,12 @@
     </ClCompile>
     <ClCompile Include="RenderGL\RenderGLStage.cpp" />
     <ClCompile Include="RenderGL\RenderGLStageScene.cpp" />
+    <ClCompile Include="RenderGL\SceneScript.cpp">
+      <Optimization Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">MaxSpeed</Optimization>
+      <Optimization Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">MaxSpeed</Optimization>
+      <Optimization Condition="'$(Configuration)|$(Platform)'=='Release|VisualGDB'">MaxSpeed</Optimization>
+      <Optimization Condition="'$(Configuration)|$(Platform)'=='Debug|VisualGDB'">MaxSpeed</Optimization>
+    </ClCompile>
     <ClCompile Include="SingleStageMode.cpp" />
     <ClCompile Include="Go\GoCore.cpp" />
     <ClCompile Include="Go\GoStage.cpp" />
@@ -500,6 +512,7 @@
     <ClInclude Include="RandomUtility.h" />
     <ClInclude Include="RenderGL\RenderGLStage.h" />
     <ClInclude Include="RenderGL\RenderGLStageAssetID.h" />
+    <ClInclude Include="RenderGL\SceneScript.h" />
     <ClInclude Include="SingleStageMode.h" />
     <ClInclude Include="Geometry2d.h" />
     <ClInclude Include="Go\GoCore.h" />

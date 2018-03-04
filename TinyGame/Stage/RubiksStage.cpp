@@ -33,7 +33,7 @@ namespace Rubiks
 			node->parent = nullptr;
 			Mutex::Locker locker( mRequestFindMutex );
 			mRequestFindNodes.push_back( node );
-			mRequestFindCond.notifyAll();
+			mRequestFindCond.notify();
 		}
 
 
@@ -41,8 +41,8 @@ namespace Rubiks
 		{
 			StateNode* node = nullptr;
 			{
-				Mutex::Locker locker( mUncheckMutex );
-				mUncheckCond.wait( locker , fastdelegate::FastDelegate< bool () >( this , &Solver::haveUncheck ) );
+				Mutex::Locker locker(mUncheckMutex);
+				mUncheckCond.wait(locker , fastdelegate::FastDelegate< bool () >( this , &Solver::haveUncheck ) );
 
 				if ( mbRunning == false )
 					break;
@@ -65,7 +65,7 @@ namespace Rubiks
 				{
 					Mutex::Locker locker( mRequestFindMutex );
 					mRequestFindNodes.push_back( node );
-					mRequestFindCond.notifyAll();
+					mRequestFindCond.notify();
 				}
 			}
 			else
@@ -94,8 +94,8 @@ namespace Rubiks
 		{
 			StateNode* node;
 			{
-				Mutex::Locker locker( mRequestFindMutex );
-				mRequestFindCond.wait( locker , fastdelegate::FastDelegate< bool () >( this , &Solver::haveReauestFind ) );
+				Mutex::Locker locker(mRequestFindMutex);
+				mRequestFindCond.wait(locker, fastdelegate::FastDelegate< bool () >( this , &Solver::haveReauestFind ) );
 
 				if ( mbRunning == false )
 				{
@@ -115,8 +115,9 @@ namespace Rubiks
 			}
 			generateNextNodes( node , newStates );
 			{
-				Mutex::Locker locker( mUncheckMutex );
-				mUncheckNodes.insert( mUncheckNodes.end() , newStates , newStates + NewStateNum );
+
+				Mutex::Locker locker(mUncheckMutex);
+				mUncheckNodes.insert(mUncheckNodes.end(), newStates, newStates + NewStateNum);
 				mUncheckCond.notify();
 			}
 		}

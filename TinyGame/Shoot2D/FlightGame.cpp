@@ -12,6 +12,8 @@
 
 #include "GameGUISystem.h"
 
+#include "SystemPlatform.h"
+
 namespace Shoot2D
 {
 
@@ -28,14 +30,14 @@ namespace Shoot2D
 
 		::Global::GUI().cleanupWidget();
 
-		srand( GetTickCount() );
+		srand( SystemPlatform::GetTickCount() );
 
-		m_frameCount = 0;
-		m_fps   = 0;
+		mFrameCount = 0;
+		mFPS   = 0;
 		GameWindow& window = ::Global::getDrawEngine()->getWindow();
 
-		ResourcesLoader::getInstance().setDC( window.getHDC() );
-		ResourcesLoader::getInstance().load();
+		ResourcesLoader::Get().setDC( window.getHDC() );
+		ResourcesLoader::Get().load();
 
 		de = new RenderEngine( ::Global::getGraphics2D().getRenderDC() );
 
@@ -121,18 +123,18 @@ namespace Shoot2D
 
 
 		FixString< 32 > buf;
-		buf.format( "ObjNum = %d   fps = %.1f" , objManger->getObjNum() , m_fps );
+		buf.format( "ObjNum = %d   fps = %.1f" , objManger->getObjNum() , mFPS );
 
 		de->drawText( 10 , 10 , buf );
 		de->endRender();
 
-		++m_frameCount;
-		long dt = GetTickCount() - m_tempTime;
-		if ( m_frameCount > 200 || dt > 2000 )
+		++mFrameCount;
+		int64 dt = SystemPlatform::GetTickCount() - mTempTime;
+		if ( mFrameCount > 200 || dt > 2000 )
 		{
-			m_fps = float( m_frameCount )  /  dt * 1000;
-			m_frameCount = 0;
-			m_tempTime = GetTickCount();
+			mFPS = float( mFrameCount )  /  dt * 1000;
+			mFrameCount = 0;
+			mTempTime = SystemPlatform::GetTickCount();
 		}
 	}
 

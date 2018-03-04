@@ -237,13 +237,13 @@ namespace Bloxorz
 	{
 		if ( mMoveCur == DIR_NONE )
 		{
-			if ( InputManager::getInstance().isKeyDown( Keyboard::eA ) )
+			if ( InputManager::Get().isKeyDown( Keyboard::eA ) )
 				requestMove( DIR_NX );
-			else if ( InputManager::getInstance().isKeyDown( Keyboard::eD ) )
+			else if ( InputManager::Get().isKeyDown( Keyboard::eD ) )
 				requestMove( DIR_X ); 
-			else if ( InputManager::getInstance().isKeyDown( Keyboard::eS ) )
+			else if ( InputManager::Get().isKeyDown( Keyboard::eS ) )
 				requestMove( DIR_NY );
-			else if ( InputManager::getInstance().isKeyDown( Keyboard::eW ) )
+			else if ( InputManager::Get().isKeyDown( Keyboard::eW ) )
 				requestMove( DIR_Y );
 		}
 	}

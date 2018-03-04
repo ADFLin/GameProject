@@ -20,7 +20,7 @@ public:
 		SystemPlatform::Sleep(waitTime);
 		{
 			//Mutex::Locker locker(gMutex);
-			::Msg("%d work is complete! sum = %lld", idx , sum);
+			::LogMsgF("%d work is complete! sum = %lld", idx , sum);
 		}
 		
 	}
@@ -49,9 +49,9 @@ static void AsyncWorkTest()
 		gPool->addWork(work);
 	}
 
-	::Msg("%d work in queue", gPool->getQueuedWorkNum());
+	::LogMsgF("%d work in queue", gPool->getQueuedWorkNum());
 
-#if 1
+#if 0
 	SystemPlatform::Sleep(1000);
 
 	delete gPool;

@@ -186,9 +186,9 @@ namespace RenderGL
 	{
 		for( int i = 0; i < 3; ++i )
 		{
-			ShaderManager::getInstance().reloadShader(mProgShadowDepth[i]);
+			ShaderManager::Get().reloadShader(mProgShadowDepth[i]);
 		}
-		ShaderManager::getInstance().reloadShader(mProgLighting);
+		ShaderManager::Get().reloadShader(mProgLighting);
 	}
 
 	void ShadowDepthTech::renderLighting(ViewInfo& view, SceneInterface& scene, LightInfo const& light, bool bMultiple)
@@ -311,14 +311,14 @@ namespace RenderGL
 
 				lightView.setupTransform(worldToLight, shadowProject);
 
-				Matrix4 corpMatrx = Matrix4(
+				Matrix4 corpMatrix = Matrix4(
 					delata, 0, 0, 0,
 					0, 1, 0, 0,
 					0, 0, 1, 0,
 					i * delata, 0, 0, 1);
 				mShadowMatrix = worldToLight * shadowProject * biasMatrix;
 
-				shadowProjectParam.shadowMatrix[i] = mShadowMatrix * corpMatrx;
+				shadowProjectParam.shadowMatrix[i] = mShadowMatrix * corpMatrix;
 
 				glLoadMatrixf(worldToLight);
 
@@ -504,28 +504,28 @@ namespace RenderGL
 		    !MeshBuild::LightCone(mConeMesh) )
 			return false;
 
-		if( !ShaderManager::getInstance().loadFile( 
+		if( !ShaderManager::Get().loadFile( 
 			 mProgLightingScreenRect[(int)LightType::Point] ,
 			"Shader/DeferredLighting",
 			SHADER_ENTRY(ScreenVS), SHADER_ENTRY(LightingPassPS),
 			"#define DEFERRED_LIGHT_TYPE LIGHTTYPE_POINT") )
 			return false;
 
-		if( !ShaderManager::getInstance().loadFile(
+		if( !ShaderManager::Get().loadFile(
 			mProgLightingScreenRect[(int)LightType::Spot] ,
 			"Shader/DeferredLighting",
 			SHADER_ENTRY(ScreenVS), SHADER_ENTRY(LightingPassPS),
 			"#define DEFERRED_LIGHT_TYPE LIGHTTYPE_SPOT \n") )
 			return false;
 
-		if( !ShaderManager::getInstance().loadFile(
+		if( !ShaderManager::Get().loadFile(
 			mProgLightingScreenRect[(int)LightType::Directional] ,
 			"Shader/DeferredLighting",
 			SHADER_ENTRY(ScreenVS), SHADER_ENTRY(LightingPassPS),
 			"#define DEFERRED_LIGHT_TYPE LIGHTTYPE_DIRECTIONAL\n") )
 			return false;
 
-		if( !ShaderManager::getInstance().loadFile(
+		if( !ShaderManager::Get().loadFile(
 			mProgLighting[(int)LightType::Point],
 			"Shader/DeferredLighting",
 			SHADER_ENTRY(LightingPassVS), SHADER_ENTRY(LightingPassPS),
@@ -533,7 +533,7 @@ namespace RenderGL
 			"#define DEFERRED_SHADING_USE_BOUND_SHAPE 1 \n") )
 			return false;
 
-		if( !ShaderManager::getInstance().loadFile(
+		if( !ShaderManager::Get().loadFile(
 			mProgLighting[(int)LightType::Spot],
 			"Shader/DeferredLighting",
 			SHADER_ENTRY(LightingPassVS), SHADER_ENTRY(LightingPassPS),
@@ -541,7 +541,7 @@ namespace RenderGL
 			"#define DEFERRED_SHADING_USE_BOUND_SHAPE 1 \n") )
 			return false;
 
-		if( !ShaderManager::getInstance().loadFile(
+		if( !ShaderManager::Get().loadFile(
 			mProgLighting[(int)LightType::Directional],
 			"Shader/DeferredLighting",
 			SHADER_ENTRY(LightingPassVS), SHADER_ENTRY(LightingPassPS),
@@ -549,7 +549,7 @@ namespace RenderGL
 			"#define DEFERRED_SHADING_USE_BOUND_SHAPE 1 \n") )
 			return false;
 
-		if( !ShaderManager::getInstance().loadFile(
+		if( !ShaderManager::Get().loadFile(
 			mProgLightingShowBound,
 			"Shader/DeferredLighting",
 			SHADER_ENTRY(LightingPassVS), SHADER_ENTRY(ShowBoundPS),
@@ -723,7 +723,7 @@ namespace RenderGL
 				DefferredLightingProgram& program = mProgLightingScreenRect[(int)light.type];
 				GL_BIND_LOCK_OBJECT(program);
 				BindShaderParam(program);
-				DrawUtiltiy::ScreenRect();
+				DrawUtility::ScreenRect();
 
 				glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
 			}
@@ -736,10 +736,10 @@ namespace RenderGL
 	{
 		for( int i = 0; i < 3; ++i )
 		{
-			ShaderManager::getInstance().reloadShader(mProgLightingScreenRect[i]);
-			ShaderManager::getInstance().reloadShader(mProgLighting[i]);
+			ShaderManager::Get().reloadShader(mProgLightingScreenRect[i]);
+			ShaderManager::Get().reloadShader(mProgLighting[i]);
 		}
-		ShaderManager::getInstance().reloadShader(mProgLightingShowBound);
+		ShaderManager::Get().reloadShader(mProgLightingShowBound);
 	}
 
 	bool GBufferParamData::init(Vec2i const& size)
@@ -786,7 +786,7 @@ namespace RenderGL
 			ViewportSaveScope vpScope;
 			glViewport(1 * width + gapX, 0 * height + gapY, drawWidth, drawHeight);
 			float colorBias[2] = { 0.5 , 0.5 };
-			ShaderHelper::getInstance().copyTextureBiasToBuffer(*textures[BufferB], colorBias);
+			ShaderHelper::Get().copyTextureBiasToBuffer(*textures[BufferB], colorBias);
 
 		}
 		//drawTexture(1 * width + gapX, 0 * height + gapY, drawWidth, drawHeight, BufferB);
@@ -798,7 +798,7 @@ namespace RenderGL
 			ViewportSaveScope vpScope;
 			glViewport(3 * width + gapX, 0 * height + gapY, drawWidth, drawHeight);
 			float valueFactor[2] = { 255 , 0 };
-			ShaderHelper::getInstance().mapTextureColorToBuffer(*textures[BufferD], Vector4(0, 0, 0, 1), valueFactor);
+			ShaderHelper::Get().mapTextureColorToBuffer(*textures[BufferD], Vector4(0, 0, 0, 1), valueFactor);
 		}
 		//renderDepthTexture(width , 3 * height, width, height);
 	}
@@ -812,7 +812,7 @@ namespace RenderGL
 	{
 		ViewportSaveScope vpScope;
 		glViewport(x, y, width, height);
-		ShaderHelper::getInstance().copyTextureMaskToBuffer(*textures[idxBuffer], colorMask);
+		ShaderHelper::Get().copyTextureMaskToBuffer(*textures[idxBuffer], colorMask);
 	}
 
 
@@ -847,17 +847,17 @@ namespace RenderGL
 
 		mFrameBuffer.addTexture(*mSSAOTexture);
 
-		if( !ShaderManager::getInstance().loadFile(
+		if( !ShaderManager::Get().loadFile(
 			mSSAOShader ,"Shader/SSAO",
 			SHADER_ENTRY(ScreenVS), SHADER_ENTRY(GeneratePS)) )
 			return false;
 
-		if( !ShaderManager::getInstance().loadFile(
+		if( !ShaderManager::Get().loadFile(
 			mSSAOBlurShader ,"Shader/SSAO",
 			SHADER_ENTRY(ScreenVS), SHADER_ENTRY(BlurPS)) )
 			return false;
 
-		if( !ShaderManager::getInstance().loadFile(
+		if( !ShaderManager::Get().loadFile(
 			mAmbientShader ,"Shader/SSAO",
 			SHADER_ENTRY(ScreenVS), SHADER_ENTRY(AmbientPS)) )
 			return false;
@@ -877,7 +877,7 @@ namespace RenderGL
 			GL_BIND_LOCK_OBJECT(mSSAOShader);
 			view.setupShader(mSSAOShader);
 			mSSAOShader.setParameters( sceneRenderTargets , &mKernelVectors[0], mKernelVectors.size());
-			DrawUtiltiy::ScreenRect();
+			DrawUtility::ScreenRect();
 		}
 
 
@@ -887,7 +887,7 @@ namespace RenderGL
 			GL_BIND_LOCK_OBJECT(mFrameBuffer);
 			GL_BIND_LOCK_OBJECT(mSSAOBlurShader);
 			mSSAOBlurShader.setParameters(*mSSAOTexture);
-			DrawUtiltiy::ScreenRect();
+			DrawUtility::ScreenRect();
 		}
 
 		{
@@ -898,7 +898,7 @@ namespace RenderGL
 			GL_BIND_LOCK_OBJECT(sceneRenderTargets.getFrameBuffer());
 			GL_BIND_LOCK_OBJECT(mAmbientShader);
 			mAmbientShader.setParameters(sceneRenderTargets, *mSSAOTextureBlur);
-			DrawUtiltiy::ScreenRect();
+			DrawUtility::ScreenRect();
 			glDisable(GL_BLEND);
 		}
 		glEnable(GL_DEPTH_TEST);
@@ -906,9 +906,9 @@ namespace RenderGL
 
 	void PostProcessSSAO::reload()
 	{
-		ShaderManager::getInstance().reloadShader(mSSAOShader);
-		ShaderManager::getInstance().reloadShader(mSSAOBlurShader);
-		ShaderManager::getInstance().reloadShader(mAmbientShader);
+		ShaderManager::Get().reloadShader(mSSAOShader);
+		ShaderManager::Get().reloadShader(mSSAOBlurShader);
+		ShaderManager::Get().reloadShader(mAmbientShader);
 	}
 
 	void ShadowProjectParam::setupLight(LightInfo const& inLight)
@@ -998,7 +998,7 @@ namespace RenderGL
 		glEnable(GL_TEXTURE_2D);
 		glBindTexture(GL_TEXTURE_2D, mDepthTexture->mHandle);
 		glColor3f(1, 1, 1);
-		DrawUtiltiy::Rect(x, y, width, height);
+		DrawUtility::Rect(x, y, width, height);
 		glBindTexture(GL_TEXTURE_2D, 0);
 		glDisable(GL_TEXTURE_2D);
 	}
@@ -1031,12 +1031,12 @@ namespace RenderGL
 			ShaderCompileOption option;
 			option.version = 430;
 			option.addDefine(SHADER_PARAM(OIT_STORAGE_SIZE), OIT_StorageSize);
-			if( !ShaderManager::getInstance().loadFile(
+			if( !ShaderManager::Get().loadFile(
 				mShaderBassPassTest, "Shader/OITRender",
 				SHADER_ENTRY(BassPassVS), SHADER_ENTRY(BassPassPS),
 				option, nullptr) )
 				return false;
-			if( !ShaderManager::getInstance().loadFile(
+			if( !ShaderManager::Get().loadFile(
 				mShaderResolve, "Shader/OITRender",
 				SHADER_ENTRY(ScreenVS), SHADER_ENTRY(ResolvePS),
 				option, nullptr) )
@@ -1053,7 +1053,7 @@ namespace RenderGL
 			option.version = 430;
 			option.addDefine(SHADER_PARAM(OIT_STORAGE_SIZE), OIT_StorageSize);
 			option.addDefine(SHADER_PARAM(OIT_MAX_PIXEL_COUNT) , BMA_MaxPixelCounts[i]);
-			if( !ShaderManager::getInstance().loadFile(
+			if( !ShaderManager::Get().loadFile(
 				mShaderBMAResolves[i], "Shader/OITRender",
 				SHADER_ENTRY(ScreenVS), SHADER_ENTRY(ResolvePS),
 				option , nullptr) )
@@ -1166,10 +1166,10 @@ namespace RenderGL
 
 	void OITTechique::reload()
 	{
-		ShaderManager::getInstance().reloadShader(mShaderBassPassTest);
-		ShaderManager::getInstance().reloadShader(mShaderResolve);
+		ShaderManager::Get().reloadShader(mShaderBassPassTest);
+		ShaderManager::Get().reloadShader(mShaderResolve);
 		for( int i = 0; i < NumBMALevel; ++i )
-			ShaderManager::getInstance().reloadShader(mShaderBMAResolves[i]);
+			ShaderManager::Get().reloadShader(mShaderBMAResolves[i]);
 	}
 
 	void OITTechique::renderInternal(ViewInfo& view, std::function< void() > drawFuncion , SceneRenderTargets* sceneRenderTargets )
@@ -1190,8 +1190,8 @@ namespace RenderGL
 			{
 				if( 1 )
 				{
-					ShaderHelper::getInstance().clearBuffer(*mColorStorageTexture, clearValueA);
-					ShaderHelper::getInstance().clearBuffer(*mNodeAndDepthStorageTexture, clearValueB);
+					ShaderHelper::Get().clearBuffer(*mColorStorageTexture, clearValueA);
+					ShaderHelper::Get().clearBuffer(*mNodeAndDepthStorageTexture, clearValueB);
 				}
 				else
 				{
@@ -1204,7 +1204,7 @@ namespace RenderGL
 				}
 			}
 
-			ShaderHelper::getInstance().clearBuffer(*mNodeHeadTexture, clearValueC);
+			ShaderHelper::Get().clearBuffer(*mNodeHeadTexture, clearValueC);
 			glMemoryBarrier(GL_ALL_BARRIER_BITS);
 		}
 
@@ -1357,7 +1357,7 @@ namespace RenderGL
 	void SSAOAmbientProgram::setParameters(SceneRenderTargets& sceneRenderTargets, RHITexture2D& SSAOTexture)
 	{
 		mParamGBuffer.setParameters(*this, sceneRenderTargets.getGBuffer());
-		setTexture(SHADER_PARAM(TextureSSAO), SSAOTexture);
+		setTexture(mParamTextureSSAO, SSAOTexture);
 	}
 
 	void GBufferShaderParameters::bindParameters(ShaderProgram& program, bool bUseDepth /*= false */)

@@ -84,15 +84,15 @@ public:
 			object.mPtr = mObject;
 			return;
 		}
-		LazyObjectManager::getInstance().registerObject(mId, object);
-		object.mPtr = LazyObjectManager::getInstance().getDefaultObject< T >();
+		LazyObjectManager::Get().registerObject(mId, object);
+		object.mPtr = LazyObjectManager::Get().getDefaultObject< T >();
 	}
 	TLazyObjectGuid& operator = (T* obj)
 	{
 		mObject = obj;
 		if( mId != -1 )
 		{
-			LazyObjectManager::getInstance().resolveObject(mId, mObject);
+			LazyObjectManager::Get().resolveObject(mId, mObject);
 			mId = -1;
 		}
 		return *this;
@@ -103,7 +103,7 @@ public:
 	{
 		if( mObject )
 			return mObject;
-		return LazyObjectManager::getInstance().getDefaultObject< T >();
+		return LazyObjectManager::Get().getDefaultObject< T >();
 	}
 
 	mutable uint64 mId;

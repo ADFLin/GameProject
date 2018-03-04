@@ -9,6 +9,15 @@
 namespace RenderGL
 {
 
+	class FrameRenderNode
+	{
+	public:
+
+
+
+
+
+	};
 	class RenderContext;
 	struct LightInfo;
 

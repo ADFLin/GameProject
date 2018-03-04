@@ -558,7 +558,7 @@ bool RecvDelayCtrl::add( SocketBuffer& buffer , bool isUdpPacket )
 		catch ( BufferException& e )
 		{
 			mBuffer.grow( ( mBuffer.getMaxSize() * 3 ) / 2 );
-			Msg( e.what() );
+			LogWarning(  0 , e.what() );
 		}
 		++count;
 	}

@@ -96,7 +96,7 @@ namespace MRT
 
 		std::unordered_map< std::string, int > nameMap;
 		std::vector< Station* > stationVec;
-		auto createfun = [&](TokenString const& str) -> Station*
+		auto createfun = [&](StringView const& str) -> Station*
 		{
 			auto iter = nameMap.find(str.toStdString());
 			if( iter != nameMap.end() )
@@ -121,13 +121,13 @@ namespace MRT
 
 		while( bKeep )
 		{
-			TokenString str;
+			StringView str;
 			switch( tokenizer.take(str) )
 			{
-			case ParseUtility::eNoToken:
+			case FStringParse::eNoToken:
 				bKeep = false;
 				break;
-			case ParseUtility::eDelimsType:
+			case FStringParse::eDelimsType:
 				if( str[0] == '=' )
 				{
 					if( mode != Mode::None )
@@ -148,7 +148,7 @@ namespace MRT
 					bGetDistance = false;
 				}
 				break;
-			case ParseUtility::eStringType:
+			case FStringParse::eStringType:
 				if( mode == Mode::None )
 				{
 					prevStation = createfun(str);
@@ -336,7 +336,7 @@ void CalcMoney()
 	{
 		money += info.count * info.value;
 	}
-	::Msg("Money = %d", money);
+	::LogMsgF("Money = %d", money);
 }
 
 REGISTER_MISC_TEST("Calc Money", CalcMoney);
@@ -491,7 +491,7 @@ namespace Bsp2D
 
 	void TestStage::tick()
 	{
-		InputManager& im = InputManager::getInstance();
+		InputManager& im = InputManager::Get();
 
 		if ( mCtrlMode == CMOD_ACTOR_MOVE )
 		{
@@ -645,7 +645,7 @@ namespace Bsp2D
 			
 				g.drawText( Vec2i( 20 , 20 ) , str );
 
-				::Msg( str );
+				::LogMsg( str );
 			}
 			break;
 		}
@@ -890,12 +890,12 @@ void MyMethod()
 		if ( count == 30 )
 		{
 			count = 0;
-			::Msg( "%s" , str.c_str() );
+			::LogMsgF( "%s" , str.c_str() );
 			str.clear();
 		}
 		heap.pop();
 	}
-	::Msg( "%s" , str.c_str() );
+	::LogMsgF( "%s" , str.c_str() );
 }
 
 void TestHeap()
@@ -907,13 +907,13 @@ void TestHeap()
 	heap.push(7);
 	MyHeap::NodeHandle handle = heap.push(10);
 	heap.update(handle, 1);
-	::Msg( "%d" , heap.top() );
+	::LogMsgF( "%d" , heap.top() );
 	heap.pop();
-	::Msg("%d", heap.top());
+	::LogMsgF("%d", heap.top());
 	heap.pop();
-	::Msg("%d", heap.top());
+	::LogMsgF("%d", heap.top());
 	heap.pop();
-	::Msg("%d", heap.top());
+	::LogMsgF("%d", heap.top());
 
 #if 1
 	MyMethod< TFibonaccilHeap< int > >();
@@ -942,10 +942,10 @@ static void PrintMsg(std::string &str)
 	for( int i = 0 ; i < numLine ; ++i )
 	{
 		std::string temp( pStr , pStr + MaxLen );
-		Msg( temp.c_str() );
+		LogMsg( temp.c_str() );
 		pStr += MaxLen;
 	}
-	Msg( pStr );
+	LogMsg( pStr );
 }
 
 static void TestBigNumber()
@@ -1049,18 +1049,20 @@ static void TestBigNumber()
 
 	int nt;
 	std::cin >> nt;
-	long time;
+	int64 time;
 	{
 		FloatType f1 = "1.00000000000001";
 
-		time = GetTickCount() ;
-		for( int i = 1 ; i <= nt ; ++i )
 		{
-			f1 = 1.0000000001;
-			FloatType a = double(i) + 0.1;
-			f1.pow( a );
+			ScopeTickCount scope(time);
+			for( int i = 1; i <= nt; ++i )
+			{
+				f1 = 1.0000000001;
+				FloatType a = double(i) + 0.1;
+				f1.pow(a);
+			}
 		}
-		std::cout << GetTickCount() - time << std::endl;
+		std::cout << time << std::endl;
 
 		f1.convertToDouble( df1 );
 		//cout << n2 << endl; 
@@ -1399,7 +1401,7 @@ void TestCycleQueue()
 
 	for( auto val : queue )
 	{
-		::Msg("%d", val);
+		::LogMsgF("%d", val);
 	}
 
 	int value = queue.front();

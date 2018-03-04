@@ -299,6 +299,9 @@
     <ClCompile Include="Go\LeelaBot.cpp">
       <Filter>GameGo</Filter>
     </ClCompile>
+    <ClCompile Include="RenderGL\SceneScript.cpp">
+      <Filter>RenderGL</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Bsp2D.h">
@@ -702,6 +705,9 @@
     </ClInclude>
     <ClInclude Include="Go\LeelaBot.h">
       <Filter>GameGo</Filter>
+    </ClInclude>
+    <ClInclude Include="RenderGL\SceneScript.h">
+      <Filter>RenderGL</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

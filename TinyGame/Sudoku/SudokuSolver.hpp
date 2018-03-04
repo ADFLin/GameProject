@@ -1129,9 +1129,9 @@ void SudokuSolverT<T,BS>::InitIterator()
 	}
 
 #ifdef _DEBUG
-	PrintInterator( sGroupNextIndex[ROW] );
-	PrintInterator( sGroupNextIndex[COL] );
-	PrintInterator( sGroupNextIndex[BOX] );
+	PrintIterator( sGroupNextIndex[ROW] );
+	PrintIterator( sGroupNextIndex[COL] );
+	PrintIterator( sGroupNextIndex[BOX] );
 
 	for ( int group = 0 ; group < 3 ; ++group )
 	{

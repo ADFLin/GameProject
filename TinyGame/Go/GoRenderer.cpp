@@ -45,7 +45,7 @@ namespace Go
 	void GameRenderer::generateNoiseOffset(int boradSize)
 	{
 		int size = boradSize * boradSize;
-		float maxOffset = 2.3;
+		float maxOffset = 2.1;
 		mNoiseOffsets.resize(size);
 		for( int i = 0; i < size; ++i )
 		{
@@ -63,7 +63,7 @@ namespace Go
 		drawBorad(renderPos, board);
 
 		int lastPlayPos[2] = { -1,-1 };
-		game.getLastStepPos(lastPlayPos);
+		game.getCurrentStepPos(lastPlayPos);
 		if( lastPlayPos[0] != -1 && lastPlayPos[1] != -1 )
 		{
 			Vector2 pos = getStonePos(renderPos, board, lastPlayPos[0], lastPlayPos[1]);
@@ -75,7 +75,7 @@ namespace Go
 
 	Vector2 GameRenderer::getStonePos(Vector2 const& renderPos, Board const& board, int i, int j)
 	{
-		Vector2 pos = renderPos + CellSize * Vector2(i, j);
+		Vector2 pos = renderPos + CellLength * Vector2(i, j);
 		if( bUseNoiseOffset )
 			pos += getNoiseOffset(i, j, board.getSize());
 		return pos;
@@ -92,7 +92,7 @@ namespace Go
 		int const StarMarkPos[3] = { 3 , 9 , 15 };
 
 		int size = board.getSize();
-		int length = (size - 1) * CellSize;
+		int length = (size - 1) * CellLength;
 
 		int const border = 40;
 		int const boardSize = length + 2 * border;
@@ -104,7 +104,7 @@ namespace Go
 		glActiveTexture(GL_TEXTURE0);
 		{
 			GL_BIND_LOCK_OBJECT(mTextures[TextureId::eBoardA]);
-			DrawUtiltiy::Sprite(
+			DrawUtility::Sprite(
 				renderPos - Vec2i(border, border), Vec2i(boardSize, boardSize), Vector2(0, 0),
 				Vector2(0, 0), 2 * Vector2(1, 1));
 		}
@@ -134,8 +134,8 @@ namespace Go
 			g.drawText(posV - Vector2(5, 30), str);
 			g.drawText(posV + Vector2(-5, 15 + length), str);
 
-			posV.x += CellSize;
-			posH.y += CellSize;
+			posV.x += CellLength;
+			posH.y += CellLength;
 		}
 
 		RenderUtility::SetPen(g, Color::eBlack);
@@ -150,10 +150,10 @@ namespace Go
 					Vector2 pos;
 					for( int i = 0; i < 3; ++i )
 					{
-						pos.x = renderPos.x + StarMarkPos[i] * CellSize;
+						pos.x = renderPos.x + StarMarkPos[i] * CellLength;
 						for( int j = 0; j < 3; ++j )
 						{
-							pos.y = renderPos.y + StarMarkPos[j] * CellSize;
+							pos.y = renderPos.y + StarMarkPos[j] * CellLength;
 							g.drawCircle(pos, StarRadius);
 						}
 					}
@@ -164,14 +164,14 @@ namespace Go
 					Vector2 pos;
 					for( int i = 0; i < 2; ++i )
 					{
-						pos.x = renderPos.x + StarMarkPos[i] * CellSize;
+						pos.x = renderPos.x + StarMarkPos[i] * CellLength;
 						for( int j = 0; j < 2; ++j )
 						{
-							pos.y = renderPos.y + StarMarkPos[j] * CellSize;
+							pos.y = renderPos.y + StarMarkPos[j] * CellLength;
 							g.drawCircle(pos, StarRadius);
 						}
 					}
-					g.drawCircle(renderPos + CellSize * Vec2i(6, 6), StarRadius);
+					g.drawCircle(renderPos + CellLength * Vec2i(6, 6), StarRadius);
 				}
 				break;
 			}
@@ -180,8 +180,12 @@ namespace Go
 		{
 			GPU_PROFILE("Draw Stone");
 
+#if DRAW_TEXTURE
 			glEnable(GL_BLEND);
 			glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+			glEnable(GL_TEXTURE_2D);
+			glActiveTexture(GL_TEXTURE0);
+#endif
 			for( int i = 0; i < size; ++i )
 			{
 				for( int j = 0; j < size; ++j )
@@ -195,29 +199,26 @@ namespace Go
 				}
 			}
 
+#if DRAW_TEXTURE
 			if( bUseBatchedRender )
 			{
 				if( !mSpriteVertices.empty() )
 				{
-					glEnable(GL_TEXTURE_2D);
-					glActiveTexture(GL_TEXTURE0);
-					{
-						GL_BIND_LOCK_OBJECT(mTextureAtlas.getTexture());
-
-						RenderRT::Draw< RenderRT::eXY_CA_T2 >(PrimitiveType::eQuad, &mSpriteVertices[0], mSpriteVertices.size());
-						mSpriteVertices.clear();
-					}
-					glDisable(GL_TEXTURE_2D);
+					GL_BIND_LOCK_OBJECT(mTextureAtlas.getTexture());
+					RenderRT::Draw< RenderRT::eXY_CA_T2 >(PrimitiveType::eQuad, &mSpriteVertices[0], mSpriteVertices.size());
+					mSpriteVertices.clear();
 				}
 			}
 
+			glDisable(GL_TEXTURE_2D);
 			glDisable(GL_BLEND);
+#endif
 		}
 
 
 		{
 
-			Vector2 halfCellSize = 0.5 * Vector2(CellSize, CellSize);
+			Vector2 halfCellSize = 0.5 * Vector2(CellLength, CellLength);
 
 			for( int i = 0; i < size; ++i )
 			{
@@ -226,7 +227,7 @@ namespace Go
 					int data = board.getData(i, j);
 					if( data )
 					{
-						Vector2 pos = renderPos + CellSize * Vector2(i, j);
+						Vector2 pos = renderPos + CellLength * Vector2(i, j);
 						//Vector2 pos = getStonePos(renderPos, board, i, j);
 						FixString<128> str;
 
@@ -245,7 +246,7 @@ namespace Go
 								g.setTextColor(255, 125, 0);
 								str.format("%d", board.getCaptureCount(posBoard));
 							}
-							g.drawText(pos - halfCellSize, Vector2(CellSize, CellSize), str );
+							g.drawText(pos - halfCellSize, Vector2(CellLength, CellLength), str );
 						}
 
 						if( bDrawStepNum )
@@ -281,22 +282,17 @@ namespace Go
 		}
 		else
 		{
-			int id = (color == StoneColor::eBlack) ? TextureId::eBlockStone : TextureId::eWhiteStone;
-
-			glEnable(GL_TEXTURE_2D);
-			glActiveTexture(GL_TEXTURE0);
-			
+			int id = (color == StoneColor::eBlack) ? TextureId::eBlockStone : TextureId::eWhiteStone;	
 			{
 				GL_BIND_LOCK_OBJECT(mTextures[id]);
 
 				glColor4f(0, 0, 0, 0.2);
-				DrawUtiltiy::Sprite(pos + Vector2(2, 2), 2 * Vector2(StoneRadius, StoneRadius), Vector2(0.5, 0.5));
+				DrawUtility::Sprite(pos + Vector2(2, 2), 2 * Vector2(StoneRadius, StoneRadius), Vector2(0.5, 0.5));
 
 				glColor3f(1, 1, 1);
-				DrawUtiltiy::Sprite(pos, 2 * Vector2(StoneRadius, StoneRadius), Vector2(0.5, 0.5));
+				DrawUtility::Sprite(pos, 2 * Vector2(StoneRadius, StoneRadius), Vector2(0.5, 0.5));
 
 			}
-			glDisable(GL_TEXTURE_2D);
 		}
 #else
 		RenderUtility::SetPen(g, Color::eBlack);

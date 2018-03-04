@@ -153,7 +153,7 @@ bool ServerWorker::onRecvData( NetConnection* connection , SocketBuffer& buffer 
 		//maybe broadcast
 		if( client == nullptr )
 		{
-			::Msg("ip = %lu , port = %u", clientAddr->get().sin_addr.s_addr, clientAddr->get().sin_port);
+			::LogMsgF("ip = %lu , port = %u", clientAddr->get().sin_addr.s_addr, clientAddr->get().sin_port);
 
 			while( buffer.getAvailableSize() )
 			{
@@ -217,7 +217,7 @@ void ServerWorker::onConnectAccpet( NetConnection* con )
 	if ( !mTcpServer.getSocket().accept( conSocket , hostAddr ) )
 		return;
 
-	::Msg( "Accpet ip = %lu port = %u" , hostAddr.get().sin_addr.s_addr , hostAddr.get().sin_port );
+	::LogMsgF( "Accpet ip = %lu port = %u" , hostAddr.get().sin_addr.s_addr , hostAddr.get().sin_port );
 
 	NetClientData* client = mClientManager.findClient(hostAddr);
 	if( client )
@@ -417,7 +417,7 @@ void ServerWorker::procClockSynd( IComPacket* cp )
 		break;
 	case CSPClockSynd::eDONE:
 		{
-			Msg( "Player %d synd done , ping = %u" , player->getId() , com->latency );
+			LogMsgF( "Player %d synd done , ping = %u" , player->getId() , com->latency );
 			player->getStateFlag().add( ServerPlayer::eSyndDone );
 			player->latency = com->latency;
 		}
@@ -452,7 +452,7 @@ void ServerWorker::procPlayerState( IComPacket* cp )
 		break;
 	case NAS_ROOM_WAIT:
 		{
-			DevMsg( 5, "Plyer %d not Ready" , player->getId() );
+			LogDevMsgF( 5, "Plyer %d not Ready" , player->getId() );
 			player->getStateFlag().remove( ServerPlayer::eReady );
 			sendTcpCommand( cp );
 		}
@@ -465,7 +465,7 @@ void ServerWorker::procPlayerState( IComPacket* cp )
 		break;
 	case NAS_ROOM_READY:
 		{
-			DevMsg( 5, "Plyer %d Ready" , player->getId() );
+			LogDevMsgF( 5, "Plyer %d Ready" , player->getId() );
 			player->getStateFlag().add( ServerPlayer::eReady );
 			sendTcpCommand( cp );
 		}
@@ -760,7 +760,7 @@ SUserPlayer* SVPlayerManager::createUserPlayer( LocalWorker* worker , char const
 
 	if ( mUserID != ERROR_PLAYER_ID )
 	{	
-		Msg("Bug !! Can't Create 2 User Player" );
+		LogMsg("Bug !! Can't Create 2 User Player" );
 		return NULL;
 	}
 

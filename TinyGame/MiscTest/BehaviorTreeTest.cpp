@@ -47,7 +47,7 @@ namespace BT
 #if 0
 			std::cout << mMsg << std::endl;
 #else
-			::Msg(mMsg.c_str());
+			::LogMsgF(mMsg.c_str());
 #endif
 			return mResultState;
 		}

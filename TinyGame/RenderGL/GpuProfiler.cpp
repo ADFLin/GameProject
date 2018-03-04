@@ -104,7 +104,7 @@ namespace RenderGL
 
 	GpuProfileScope::GpuProfileScope(NoVA, char const* name)
 	{
-		sample = GpuProfiler::getInstance().startSample(name);
+		sample = GpuProfiler::Get().startSample(name);
 	}
 
 	GpuProfileScope::GpuProfileScope(char const* format, ...)
@@ -114,12 +114,12 @@ namespace RenderGL
 		va_start(argptr, format);
 		name.formatVA(format, argptr);
 		va_end(argptr);
-		sample = GpuProfiler::getInstance().startSample(name);
+		sample = GpuProfiler::Get().startSample(name);
 	}
 
 	GpuProfileScope::~GpuProfileScope()
 	{
-		GpuProfiler::getInstance().endSample(sample);
+		GpuProfiler::Get().endSample(sample);
 	}
 
 }//namespace RenderGL

@@ -26,7 +26,7 @@ namespace Lighting2D
 
 		{
 			char const* entryNames[] = { SHADER_ENTRY(LightingPS) };
-			if( !ShaderManager::getInstance().loadFile(
+			if( !ShaderManager::Get().loadFile(
 				mProgLighting, "Shader/Game/lighting2D",
 				BIT(Shader::ePixel), entryNames) )
 				return false;
@@ -37,7 +37,7 @@ namespace Lighting2D
 			ShaderCompileOption option;
 			option.version = 430;
 			char const* entryNames[] = { SHADER_ENTRY(MainVS) , SHADER_ENTRY(MainPS) , SHADER_ENTRY(MainGS) };
-			if( !ShaderManager::getInstance().loadFile(
+			if( !ShaderManager::Get().loadFile(
 				mProgShadow, "Shader/Game/Lighting2DShadow", 
 				BIT(Shader::eVertex)| BIT(Shader::ePixel) | BIT(Shader::eGeometry), entryNames , option ) )
 				return false;
@@ -188,7 +188,7 @@ namespace Lighting2D
 			{
 				GL_BIND_LOCK_OBJECT(mProgLighting);
 				mProgLighting.setParameters(light.pos, light.color);
-				DrawUtiltiy::Rect(w, h);
+				DrawUtility::Rect(w, h);
 			}
 			glDisable(GL_BLEND);
 			glClear(GL_STENCIL_BUFFER_BIT);

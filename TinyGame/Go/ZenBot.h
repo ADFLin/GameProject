@@ -10,14 +10,13 @@
 
 namespace Zen
 {
+
 	enum class Color
 	{
 		Empty = 0,
 		Black = 2,
 		White = 1,
 	};
-
-
 
 	struct ThinkResult
 	{
@@ -33,6 +32,7 @@ namespace Zen
 		float amafWightFactor;
 		float priorWightFactor;
 		float maxTime;
+
 		//V6
 		bool  bUseDCNN;
 		//v7
@@ -133,7 +133,7 @@ namespace Zen
 
 		enum { IsSingleton = 0, };
 
-		bool initialize(TCHAR const* name, int version);
+		bool initialize(int version);
 		void release()
 		{
 			if( mhModule )
@@ -198,7 +198,7 @@ namespace Zen
 		void( __cdecl *ZenSetVnMixRate)(float);
 	};
 
-	template< class Lib, int Version >
+	template< int Version , class Lib = DynamicLibrary >
 	class TBotCore : public IBotCore , public Lib
 	{
 		typedef Lib ZenLibrary;
@@ -237,13 +237,12 @@ namespace Zen
 
 		bool isInitialized() const { return ZenLibrary::isInitialized(); }
 
-		bool initialize(TCHAR const* dllName = nullptr)
+		bool initialize()
 		{
-			if( !ZenLibrary::initialize(dllName, Version) )
+			if( !ZenLibrary::initialize(Version) )
 				return false;
+
 			ZenInitialize(nullptr);
-
-
 			return true;
 		}
 
@@ -293,7 +292,7 @@ namespace Zen
 
 		void startThink(Color color) override
 		{
-			if ( color == Color::Empty )
+			if( color == Color::Empty )
 				color = (Color)ZenGetNextColor();
 			ZenStartThinking((int)color);
 		}
@@ -348,7 +347,7 @@ namespace Zen
 			if( Version >= 6 )
 			{
 				ZenGetPriorKnowledge(PriorKnowledge);
-			}	
+			}
 		}
 		int getBlackPrisonerNum() { return ZenGetNumBlackPrisoners(); }
 		int getWhitePrisonerNum() { return ZenGetNumWhitePrisoners(); }
@@ -402,19 +401,13 @@ namespace Go
 		template< int Version >
 		Zen::IBotCore* buildCoreT()
 		{
-			typedef Zen::TBotCore< Zen::DynamicLibrary, Version > ZenCore;
+			typedef Zen::TBotCore< Version > ZenCore;
 
-			Zen::IBotCore* core = ZenCore::Create();
-
-			if( !static_cast<ZenCore*>( core )->initialize(
-					(Version == 4) ? TEXT("Go/Zen4/Zen.dll") : 
-				    (Version == 6) ? TEXT("Go/Zen6/Zen.dll") : 
-				    TEXT("Go/Zen7/Zen.dll")) )
+			ZenCore* core = ZenCore::Create();
+			if( !core->initialize() )
 				return nullptr;
 			return core;
 		}
-
-
 
 		virtual bool initilize(void* settingData) override
 		{
@@ -458,9 +451,9 @@ namespace Go
 
 			switch( mCoreVersion )
 			{
-			case 4: static_cast< Zen::TBotCore< Zen::DynamicLibrary, 4 >* >(mCore.get())->release(); break;
-			case 6: static_cast< Zen::TBotCore< Zen::DynamicLibrary, 6 >* >(mCore.get())->release(); break;
-			case 7: static_cast< Zen::TBotCore< Zen::DynamicLibrary, 7 >* >(mCore.get())->release(); break;
+			case 4: static_cast< Zen::TBotCore< 4 >* >(mCore.get())->release(); break;
+			case 6: static_cast< Zen::TBotCore< 6 >* >(mCore.get())->release(); break;
+			case 7: static_cast< Zen::TBotCore< 7 >* >(mCore.get())->release(); break;
 			}
 			mCore.release();
 		}
@@ -472,10 +465,9 @@ namespace Go
 		}
 
 
-		virtual bool playStone(Vec2i const& pos, int color) override
+		virtual bool playStone(int x, int y, int color) override
 		{
-			return mCore->playStone(pos.x, pos.y, ToZColor(color));
-
+			return mCore->playStone(x, y, ToZColor(color));
 		}
 
 		virtual bool playPass(int color) override
@@ -524,6 +516,8 @@ namespace Go
 			else
 			{
 				mCore->playStone(thinkStep.x, thinkStep.y, ToZColor(requestColor));
+				com.id = GameCommand::ePlay;
+				com.playColor = requestColor;
 				com.pos[0] = thinkStep.x;
 				com.pos[1] = thinkStep.y;
 				listener.notifyCommand(com);

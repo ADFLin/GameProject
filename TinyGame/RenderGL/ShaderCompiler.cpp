@@ -251,7 +251,7 @@ namespace RenderGL
 				}
 				sourceInput.appendString(&codeBuffer[0]);
 
-				sourceInput.reset();
+				sourceInput.resetSeek();
 
 				CPP::Preprocessor preporcessor;
 
@@ -349,7 +349,7 @@ namespace RenderGL
 	void ShaderManager::ShaderCompileInfo::postFileModify(FileAction action)
 	{
 		if ( action == FileAction::Modify )
-			ShaderManager::getInstance().updateShaderInternal(*shaderProgram, *this);
+			ShaderManager::Get().updateShaderInternal(*shaderProgram, *this);
 	}
 
 	std::string ShaderCompileOption::getCode(char const* defCode /*= nullptr */, char const* addionalCode /*= nullptr */) const

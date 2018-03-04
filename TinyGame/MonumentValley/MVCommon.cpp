@@ -23,12 +23,12 @@ namespace MV
 		T offset = inPos - T(pos);
 		switch( dir )
 		{
-		case eDirX:    std::swap( offset.y , offset.z ); offset.y *= -1; break;
-		case eDirInvX: std::swap( offset.y , offset.z ); offset.z *= -1; break;
-		case eDirY:    std::swap( offset.z , offset.x ); offset.z *= -1; break;
-		case eDirInvY: std::swap( offset.z , offset.x ); offset.x *= -1; break;
-		case eDirZ:    std::swap( offset.x , offset.y ); offset.x *= -1; break;
-		case eDirInvZ: std::swap( offset.x , offset.y ); offset.y *= -1; break;
+		case Dir::X:    std::swap( offset.y , offset.z ); offset.y *= -1; break;
+		case Dir::InvX: std::swap( offset.y , offset.z ); offset.z *= -1; break;
+		case Dir::Y:    std::swap( offset.z , offset.x ); offset.z *= -1; break;
+		case Dir::InvY: std::swap( offset.z , offset.x ); offset.x *= -1; break;
+		case Dir::Z:    std::swap( offset.x , offset.y ); offset.x *= -1; break;
+		case Dir::InvZ: std::swap( offset.x , offset.y ); offset.y *= -1; break;
 		}
 		return T(pos) + offset;
 	}
@@ -45,9 +45,9 @@ namespace MV
 			T offset = inPos - T(pos);
 			switch( dir )
 			{
-			case eDirX: case eDirInvX: offset.y = -offset.y; offset.z = -offset.z; break;
-			case eDirY: case eDirInvY: offset.z = -offset.z; offset.x = -offset.x; break;
-			case eDirZ: case eDirInvZ: offset.x = -offset.x; offset.y = -offset.y; break;
+			case Dir::X: case Dir::InvX: offset.y = -offset.y; offset.z = -offset.z; break;
+			case Dir::Y: case Dir::InvY: offset.z = -offset.z; offset.x = -offset.x; break;
+			case Dir::Z: case Dir::InvZ: offset.x = -offset.x; offset.y = -offset.y; break;
 			}
 			return T(pos) + offset;
 		}

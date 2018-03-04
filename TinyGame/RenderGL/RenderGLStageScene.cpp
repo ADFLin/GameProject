@@ -240,7 +240,7 @@ namespace RenderGL
 		};
 		loadingTask->exitFun = [this]()
 		{
-			ShaderManager::getInstance().registerShaderAssets(mAssetManager);
+			ShaderManager::Get().registerShaderAssets(mAssetManager);
 			mGpuSync.bUseFence = false;
 			mLoadingThread = nullptr;
 		};

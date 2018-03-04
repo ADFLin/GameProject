@@ -23,9 +23,9 @@ namespace MV
 		              //       x                 -x                y               -y              z                   -z
 		{ MESH_BOX , { { NFT_PLANE  , 0 }     , { NFT_PLANE , 0 } ,{ NFT_PLANE , 0 } ,{ NFT_PLANE , 0 } ,{ NFT_PLANE , 0 } ,{ NFT_PLANE , 0 } }  } ,
 		//{ MESH_BOX , { { NFT_BLOCK  , 0 }     , { NFT_BLOCK , 0 } ,{ NFT_BLOCK , 0 } ,{ NFT_BLOCK , 0 } ,{ NFT_PLANE , 0 } ,{ NFT_BLOCK , 0 } }  } ,
-		{ MESH_STAIR , { { NFT_STAIR, eDirZ } , { NFT_NULL , 0 } ,{ NFT_BLOCK , 0 } ,{ NFT_BLOCK , 0 } ,{ NFT_STAIR, eDirX } ,{ NFT_NULL , 0 } }  } ,
-		{ MESH_ROTATOR_C , { { NFT_ROTATOR_C , eDirZ } , { NFT_NULL , 0 } ,{ NFT_NULL , 0 } ,{ NFT_NULL , 0 } ,{ NFT_ROTATOR_C , eDirX } ,{ NFT_NULL , 0 } }  } ,
-		{ MESH_ROTATOR_NC , { { NFT_ROTATOR_NC , eDirZ } , { NFT_NULL , 0 } ,{ NFT_BLOCK , 0 } ,{ NFT_BLOCK , 0 } ,{ NFT_ROTATOR_NC , eDirX } ,{ NFT_BLOCK , 0 } }  } ,
+		{ MESH_STAIR , { { NFT_STAIR, Dir::Z } , { NFT_NULL , 0 } ,{ NFT_BLOCK , 0 } ,{ NFT_BLOCK , 0 } ,{ NFT_STAIR, Dir::X } ,{ NFT_NULL , 0 } }  } ,
+		{ MESH_ROTATOR_C , { { NFT_ROTATOR_C , Dir::Z } , { NFT_NULL , 0 } ,{ NFT_NULL , 0 } ,{ NFT_NULL , 0 } ,{ NFT_ROTATOR_C , Dir::X } ,{ NFT_NULL , 0 } }  } ,
+		{ MESH_ROTATOR_NC , { { NFT_ROTATOR_NC , Dir::Z } , { NFT_NULL , 0 } ,{ NFT_BLOCK , 0 } ,{ NFT_BLOCK , 0 } ,{ NFT_ROTATOR_NC , Dir::X } ,{ NFT_BLOCK , 0 } }  } ,
 		{ MESH_BOX , { { NFT_LADDER , 1 }  , { NFT_PLANE , 0 } ,{ NFT_PLANE , 0 } ,{ NFT_PLANE , 0 } ,{ NFT_PLANE , 0 } ,{ NFT_PLANE , 0 } }  } ,
 		{ MESH_TRIANGLE , { { NFT_PASS_VIEW , 0 }  , { NFT_PLANE , 0 } ,{ NFT_BLOCK , 0 } ,{ NFT_BLOCK , 0 } ,{ NFT_PASS_VIEW , 0 } ,{ NFT_PLANE , 0 } }  } ,
 	};
@@ -212,7 +212,7 @@ namespace MV
 							editPos = mWorld.mBlocks[ id ]->pos;
 							if ( mEditType == eEditBlock )
 							{
-								if ( !InputManager::getInstance().isKeyDown( Keyboard::eCONTROL ) )
+								if ( !InputManager::Get().isKeyDown( Keyboard::eCONTROL ) )
 									mSelectBlocks.clear();
 								mSelectBlocks.insert( mWorld.mBlocks[id] );
 							}
@@ -367,7 +367,7 @@ namespace MV
 		switch( key )
 		{
 		case Keyboard::eF2:
-			ShaderManager::getInstance().reloadShader(mRenderEngine.mEffect);
+			ShaderManager::Get().reloadShader(mRenderEngine.mEffect);
 			break;
 		case Keyboard::eF3:
 			isEditMode = !isEditMode;
@@ -493,7 +493,7 @@ namespace MV
 		case 'K': case 'L':
 			if ( world.checkPos( editPos ) )
 			{
-				Dir axis = ( key == 'L') ? eDirZ : eDirX;
+				Dir axis = ( key == 'L') ? Dir::Z : Dir::X;
 				int id =  world.getBlock( editPos );
 				if ( id )
 				{
@@ -547,7 +547,7 @@ namespace MV
 				if ( modifier && modifier->getType() == SNT_ROTATOR )
 				{
 					IRotator* rotator = static_cast< IRotator* >( modifier );
-					Dir axis = ( key == 'L') ? eDirZ : eDirX;
+					Dir axis = ( key == 'L') ? Dir::Z : Dir::X;
 					rotator->mDir = FDir::Rotate( axis , rotator->mDir );
 				}
 			}
@@ -559,7 +559,7 @@ namespace MV
 			break;
 		case 'R': 
 			{
-				IRotator* rotator = Level::createRotator( editPos , eDirZ );
+				IRotator* rotator = Level::createRotator( editPos , Dir::Z );
 			}
 			break;
 		case 'G':
@@ -765,7 +765,7 @@ namespace MV
 			else
 				glTranslatef( editPos.x - 0.5 , editPos.y - 0.5 , editPos.z - 0.5 );
 			glColor3f(1,1,1);
-			DrawUtiltiy::CubeLine();
+			DrawUtility::CubeLine();
 			glPopMatrix();
 
 			//glDisable( GL_POLYGON_OFFSET_LINE );
@@ -796,7 +796,7 @@ namespace MV
 			{
 				glPushMatrix();
 				glScalef( len , len , len );
-				DrawUtiltiy::AixsLine();
+				DrawUtility::AixsLine();
 				glPopMatrix();
 			}
 
@@ -820,7 +820,7 @@ namespace MV
 							Block* block = *iter;
 							glPushMatrix();
 							glTranslatef( block->pos.x - 0.5 , block->pos.y - 0.5 , block->pos.z - 0.5 );
-							DrawUtiltiy::CubeLine();
+							DrawUtility::CubeLine();
 							glPopMatrix();
 						}
 					}
@@ -839,7 +839,7 @@ namespace MV
 						MeshObject* mesh = Level::mMeshVec[ editIdxMeshSelect ];
 						glPushMatrix();
 						glTranslatef( mesh->pos.x - 0.5 , mesh->pos.y - 0.5 , mesh->pos.z - 0.5 );
-						DrawUtiltiy::CubeLine();
+						DrawUtility::CubeLine();
 						glPopMatrix();
 					}
 				}
@@ -861,7 +861,7 @@ namespace MV
 								glPushMatrix();
 								glTranslatef( rotator->mPos.x - 0.5 , rotator->mPos.y - 0.5 , rotator->mPos.z - 0.5 );
 								glScalef( 1.3 , 1.3 , 1.3 );
-								DrawUtiltiy::CubeLine();
+								DrawUtility::CubeLine();
 								glPopMatrix();
 							}
 							break;
@@ -968,29 +968,29 @@ namespace MV
 
 		static const Dir OffsetDirMap[] = 
 		{
-			eDirY , eDirX , eDirInvY , eDirInvX , eDirY
+			Dir::Y , Dir::X , Dir::InvY , Dir::InvX , Dir::Y
 		};
 		Dir dir[3];
 		dir[0] = OffsetDirMap[ idxParallaxDir + (( d > 0 )? 0 : 1 ) ];
 		dir[1] = OffsetDirMap[ idxParallaxDir + (( d > 0 )? 1 : 0 ) ];
-		dir[2] = eDirZ;
+		dir[2] = Dir::Z;
 		id[0] = mWorld.getTopParallaxBlock( pos , findPos[0] );
 		id[1] = mWorld.getTopParallaxBlock( pos + FDir::Offset( dir[0] ) , findPos[1] );
 		id[2] = mWorld.getTopParallaxBlock( pos + Vec3i( parallaxOffset.x ,parallaxOffset.y,0) , findPos[2] );
 
-		Dir dirCheck[2] = { ( d > 0 ) ? dir[0] : eDirInvZ , dir[1] };
+		Dir dirCheck[2] = { ( d > 0 ) ? dir[0] : Dir::InvZ , dir[1] };
 		if ( id[0] )
 		{
 			Block* block = mWorld.getBlock( id[0] );
 			if ( block->getFace( dir[0] ).fun == NFT_PASS_VIEW ||
-				 block->getFace( eDirInvZ ).fun == NFT_PASS_VIEW )
+				 block->getFace( Dir::InvZ ).fun == NFT_PASS_VIEW )
 				id[0] = 0;
 		}
 		if ( id[1] )
 		{
 			Block* block = mWorld.getBlock( id[1] );
 			if ( block->getFace( FDir::Inverse( dir[0] ) ).fun == NFT_PASS_VIEW ||
-				 block->getFace( eDirZ ).fun == NFT_PASS_VIEW )
+				 block->getFace( Dir::Z ).fun == NFT_PASS_VIEW )
 				id[1] = 0;
 		}
 
@@ -1095,7 +1095,7 @@ namespace MV
 			pos.z += 1; createBlock( pos , 0 , false);
 		}
 
-		IGroupModifier* node = createRotator( pos , eDirZ );
+		IGroupModifier* node = createRotator( pos , Dir::Z );
 		ObjectGroup* group = mWorld.createGroup();
 		node->addGroup( *group );
 		pos.z += 1;
@@ -1130,13 +1130,13 @@ namespace MV
 	void TestStage::testRotation()
 	{
 		AxisRoataion r;
-		r.set( eDirX , eDirZ );
+		r.set( Dir::X , Dir::Z );
 
-		Dir d1 = r.toLocal( eDirX );
-		r.rotate( eDirZ );
-		Dir d2 = r.toLocal( eDirY );
-		r.rotate( eDirY );
-		Dir d3 = r.toLocal( eDirZ );
+		Dir d1 = r.toLocal( Dir::X );
+		r.rotate( Dir::Z );
+		Dir d2 = r.toLocal( Dir::Y );
+		r.rotate( Dir::Y );
+		Dir d3 = r.toLocal( Dir::Z );
 	}
 
 }//namespace MV

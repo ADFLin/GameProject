@@ -88,7 +88,7 @@ namespace Shoot2D
 
 	bool CollisionSystem::testCollision( Object& obj1 , Object& obj2 )
 	{
-		ObjModelManger& manger = ObjModelManger::getInstance();
+		ObjModelManger& manger = ObjModelManger::Get();
 
 		ObjModel const& md1 = manger.getModel(obj1.getModelId());
 		ObjModel const& md2 = manger.getModel(obj2.getModelId());

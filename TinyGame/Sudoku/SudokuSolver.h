@@ -817,7 +817,7 @@ protected:
 	static int  GetIteratorBeginFromCellIndex(Group group, int idxCell );
 	static int  GetIteratorBeginFromGroupIndex( Group group , int idxGroup );
 	static void InitIterator();
-	static void PrintInterator( int* iter )
+	static void PrintIterator( int* iter )
 	{
 		for ( int i = 0 ; i < MaxIndex ; ++i )
 		{

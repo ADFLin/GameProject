@@ -210,7 +210,7 @@ namespace MV
 			else
 			{
 				nextState = NULL;
-				dir = eDirX;
+				dir = Dir::X;
 			}
 			addPathNode( path.mNodes , points , state , nextState , dir , dir , false );
 			
@@ -247,7 +247,7 @@ namespace MV
 
 			if ( needAddNode )
 			{
-				dir = ( nextState ) ? block->rotation.toWorld( FDir::Neighbor( state.faceDirL , nextState->prevBlockNode->getDirIndex() ) ) : eDirX;
+				dir = ( nextState ) ? block->rotation.toWorld( FDir::Neighbor( state.faceDirL , nextState->prevBlockNode->getDirIndex() ) ) : Dir::X;
 				addPathNode( path.mNodes , points , state , nextState , prevDir , dir , ( nextState ) ? nextState->isPrevParallax : false );
 			}
 		}

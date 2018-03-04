@@ -94,7 +94,7 @@ namespace RenderGL
 			}
 			catch( const std::exception& e )
 			{
-				::Msg("Load Scene Fail!! : %s" , e.what() );
+				::LogMsgF("Load Scene Fail!! : %s" , e.what() );
 				return false;
 			}
 			return true;
@@ -104,13 +104,6 @@ namespace RenderGL
 		virtual void release() override
 		{
 			delete this;
-		}
-
-		virtual std::string getFilePath(char const* fileName) override
-		{
-			FixString< 512 > path;
-			path.format("Script/%s.chai", fileName);
-			return path;
 		}
 
 		static void registerSceneObject(Chai::Module& module)
@@ -250,6 +243,13 @@ namespace RenderGL
 		}
 
 	};
+
+	std::string ISceneScript::GetFilePath(char const* fileName)
+	{
+		FixString< 512 > path;
+		path.format("Script/%s.chai", fileName);
+		return path;
+	}
 
 	ISceneScript* ISceneScript::Create()
 	{

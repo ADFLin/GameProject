@@ -152,11 +152,10 @@ namespace RenderGL
 	protected:
 		virtual void getDependentFilePaths(std::vector<std::wstring>& paths) override
 		{
-			auto script = ISceneScript::Create();
-			std::string cPath = script->getFilePath( mName.c_str() );
+			std::string cPath = ISceneScript::GetFilePath( mName.c_str() );
 			paths.push_back(CharToWChar(cPath.c_str()));
-			script->release();
 		}
+
 		virtual void postFileModify(FileAction action) override
 		{
 			if( action == FileAction::Modify )
@@ -165,6 +164,7 @@ namespace RenderGL
 				loadInternal();
 			}
 		}
+		
 		bool loadInternal()
 		{
 			if( setupDelegate )

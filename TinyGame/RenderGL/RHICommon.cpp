@@ -63,7 +63,7 @@ namespace RenderGL
 		option.version = 430;
 		VertexFarcoryType::DefaultType->getCompileOption(option);
 
-		if( !ShaderManager::getInstance().loadFile( 
+		if( !ShaderManager::Get().loadFile( 
 			GSimpleBasePass ,
 			"Shader/SimpleBasePass",
 			SHADER_ENTRY(BassPassVS), SHADER_ENTRY(BasePassPS), option , nullptr) )
@@ -90,22 +90,22 @@ namespace RenderGL
 		ShaderCompileOption option;
 		option.version = 430;
 
-		if( !ShaderManager::getInstance().loadFile(
+		if( !ShaderManager::Get().loadFile(
 			mProgCopyTexture, "Shader/CopyTexture",
 			SHADER_ENTRY(CopyTextureVS), SHADER_ENTRY(CopyTexturePS), option) )
 			return false;
 
-		if( !ShaderManager::getInstance().loadFile(
+		if( !ShaderManager::Get().loadFile(
 			mProgCopyTextureMask,"Shader/CopyTexture",
 			SHADER_ENTRY(CopyTextureVS), SHADER_ENTRY(CopyTextureMaskPS), option) )
 			return false;
 
-		if( !ShaderManager::getInstance().loadFile(
+		if( !ShaderManager::Get().loadFile(
 			mProgCopyTextureBias, "Shader/CopyTexture",
 			SHADER_ENTRY(CopyTextureVS), SHADER_ENTRY(CopyTextureBaisPS), option) )
 			return false;
 
-		if( !ShaderManager::getInstance().loadFile(
+		if( !ShaderManager::Get().loadFile(
 			mProgMappingTextureColor, "Shader/CopyTexture",
 			SHADER_ENTRY(CopyTextureVS), SHADER_ENTRY(MappingTextureColorPS), option) )
 			return false;
@@ -205,7 +205,7 @@ namespace RenderGL
 		glEnable(GL_TEXTURE_2D);
 		texture.bind();
 		glColor3f(1, 1, 1);
-		DrawUtiltiy::Rect(pos.x, pos.y, size.x, size.y);
+		DrawUtility::Rect(pos.x, pos.y, size.x, size.y);
 		texture.unbind();
 		glDisable(GL_TEXTURE_2D);
 	}
@@ -214,28 +214,28 @@ namespace RenderGL
 	{
 		GL_BIND_LOCK_OBJECT(mProgCopyTexture);
 		mProgCopyTexture.setParameters(copyTexture);
-		DrawUtiltiy::ScreenRect();
+		DrawUtility::ScreenRect();
 	}
 
 	void ShaderHelper::copyTextureMaskToBuffer(RHITexture2D& copyTexture, Vector4 const& colorMask)
 	{
 		GL_BIND_LOCK_OBJECT(mProgCopyTextureMask);
 		mProgCopyTextureMask.setParameters( copyTexture , colorMask );
-		DrawUtiltiy::ScreenRect();
+		DrawUtility::ScreenRect();
 	}
 
 	void ShaderHelper::copyTextureBiasToBuffer(RHITexture2D& copyTexture, float colorBais[2])
 	{
 		GL_BIND_LOCK_OBJECT(mProgCopyTextureBias);
 		mProgCopyTextureBias.setParameters(copyTexture, colorBais);
-		DrawUtiltiy::ScreenRect();
+		DrawUtility::ScreenRect();
 	}
 
 	void ShaderHelper::mapTextureColorToBuffer(RHITexture2D& copyTexture, Vector4 const& colorMask, float valueFactor[2])
 	{
 		GL_BIND_LOCK_OBJECT(mProgMappingTextureColor);
 		mProgMappingTextureColor.setParameters(copyTexture, colorMask, valueFactor);
-		DrawUtiltiy::ScreenRect();
+		DrawUtility::ScreenRect();
 	}
 
 	void ShaderHelper::copyTexture(RHITexture2D& destTexture, RHITexture2D& srcTexture)
@@ -248,10 +248,10 @@ namespace RenderGL
 
 	void ShaderHelper::reload()
 	{
-		ShaderManager::getInstance().reloadShader(mProgCopyTexture);
-		ShaderManager::getInstance().reloadShader(mProgCopyTextureMask);
-		ShaderManager::getInstance().reloadShader(mProgMappingTextureColor);
-		ShaderManager::getInstance().reloadShader(mProgCopyTextureBias);
+		ShaderManager::Get().reloadShader(mProgCopyTexture);
+		ShaderManager::Get().reloadShader(mProgCopyTextureMask);
+		ShaderManager::Get().reloadShader(mProgMappingTextureColor);
+		ShaderManager::Get().reloadShader(mProgCopyTextureBias);
 	}
 
 

@@ -10,7 +10,7 @@ LazyObjectPtrBase::~LazyObjectPtrBase()
 {
 	if( mId != -1 )
 	{
-		LazyObjectManager::getInstance().unregisterObject(*this);
+		LazyObjectManager::Get().unregisterObject(*this);
 	}
 }
 

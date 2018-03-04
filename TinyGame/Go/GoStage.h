@@ -80,8 +80,8 @@ namespace Go
 			bDrawPriorKnowledge = true;
 			bDrawTerritoryStatictics = true;
 		}
-		typedef Zen::TBotCore< Zen::DynamicLibrary, 4 > ZenCoreV4;
-		typedef Zen::TBotCore< Zen::DynamicLibrary, 6 > ZenCoreV6;
+		typedef Zen::TBotCore< 4 > ZenCoreV4;
+		typedef Zen::TBotCore< 6 > ZenCoreV6;
 		bool init();
 
 		void setupGame(Game& game);

@@ -117,7 +117,7 @@ void QWidget::sendEvent( int eventID )
 		if( !widget->onChildEvent(eventID, mId, this) )
 			return;
 	}
-	GUISystem::getInstance().sendMessage( eventID , mId , this );
+	GUISystem::Get().sendMessage( eventID , mId , this );
 }
 
 QWidget* QWidget::findChild( int id , QWidget* start )

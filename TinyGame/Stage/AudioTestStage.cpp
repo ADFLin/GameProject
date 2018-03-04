@@ -40,7 +40,7 @@ void CalcFreq(SoundWave& sound, float t, float dt, int freqOffset , std::vector<
 	DFFT::Transform(&data[0], numData, &outFeq[0]);
 	time = SystemPlatform::GetHighResolutionTime() - time;
 	GTime = time;
-	::Msg("FFT = %lf", time);
+	::LogMsgF("FFT = %lf", time);
 
 	int numGroup = ( numData - 1 )/ freqOffset + 1;
 	outValues.resize(numGroup , 0.0f );
@@ -317,14 +317,33 @@ public:
 		//frame->addButton(UI_RESTART_GAME, "Restart");
 		GSlider* slider;
 		frame->addText("Volume");
-		slider =frame->addSlider(UI_AUDIO_VOLUME);
+		slider = frame->addSlider(UI_AUDIO_VOLUME);
 		slider->setRange(0, 500);
 		slider->setValue(100);
+		slider->onEvent = [&](int event, GWidget* ui)-> bool
+		{
+			int value = GUI::CastFast<GSlider>(ui)->getValue();
+			mAudioDevice->setAudioVolumeMultiplier(mAudioHandle, float(value) / 100);
+			return false;
+		};
 
 		frame->addText("Pitch");
-		slider = frame->addSlider(UI_AUDIO_PITCH);
-		slider->setRange(0, 200);
-		slider->setValue(100);
+		auto sliderPitch = frame->addSlider(UI_AUDIO_PITCH);
+		sliderPitch->setRange(0, 200);
+		sliderPitch->setValue(100);
+		sliderPitch->onEvent = [&](int event, GWidget* ui)-> bool
+		{
+			int value = GUI::CastFast<GSlider>(ui)->getValue();
+			mAudioDevice->setAudioPitchMultiplier(mAudioHandle, float(value) / 100);
+			return false;
+		};
+
+		frame->addButton("Reset pitch", [&,sliderPitch](int event, GWidget* ui)-> bool
+		{
+			sliderPitch->setValue(100);
+			mAudioDevice->setAudioPitchMultiplier(mAudioHandle, 1);
+			return false;
+		});
 		restart();
 		return true;
 	}
@@ -410,18 +429,6 @@ public:
 	{
 		switch( id )
 		{
-		case UI_AUDIO_VOLUME:
-			{
-				int value = GUI::CastFast<GSlider>(ui)->getValue();
-				mAudioDevice->setAudioVolumeMultiplier(mAudioHandle, float(value) / 100);
-			}
-			return false;
-		case UI_AUDIO_PITCH:
-			{
-				int value = GUI::CastFast<GSlider>(ui)->getValue();
-				mAudioDevice->setAudioPitchMultiplier(mAudioHandle, float(value) / 100);
-			}
-			return false;
 		case UI_RESTART_GAME:
 			{
 				restart();

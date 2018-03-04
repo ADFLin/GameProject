@@ -150,7 +150,7 @@ namespace RenderGL
 #undef VETEX_ELEMENT_OFFSET
 #undef VERTEX_ELEMENT_SIZE
 #undef USE_SEMANTIC
-	class DrawUtiltiy
+	class DrawUtility
 	{
 	public:
 		//draw (0,0,0) - (1,1,1) cube

@@ -215,14 +215,14 @@ namespace RenderGL
 			option.version = 430;
 			VFType->getCompileOption(option);
 
-			if( !ShaderManager::getInstance().loadFile(
+			if( !ShaderManager::Get().loadFile(
 				shaderCache->shaders[(int)RenderTechiqueUsage::BasePass],
 				"Shader/DeferredBasePass",
 				SHADER_ENTRY(BassPassVS), SHADER_ENTRY(BasePassPS),
 				option , &materialCode[0]) )
 				return false;
 
-			if( !ShaderManager::getInstance().loadFile(
+			if( !ShaderManager::Get().loadFile(
 				shaderCache->shaders[(int)RenderTechiqueUsage::Shadow],
 				"Shader/ShadowDepthRender",
 				SHADER_ENTRY(MainVS), SHADER_ENTRY(MainPS), 
@@ -234,7 +234,7 @@ namespace RenderGL
 			option.addDefine(SHADER_PARAM(OIT_USE_MATERIAL) , true);
 			option.addDefine(SHADER_PARAM(OIT_STORAGE_SIZE), OIT_StorageSize);
 
-			if( !ShaderManager::getInstance().loadFile(
+			if( !ShaderManager::Get().loadFile(
 				shaderCache->shaders[(int)RenderTechiqueUsage::OIT],
 				"Shader/OITRender",
 				SHADER_ENTRY(BassPassVS), SHADER_ENTRY(BassPassPS),

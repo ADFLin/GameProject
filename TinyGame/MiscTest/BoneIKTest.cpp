@@ -270,7 +270,7 @@ namespace BoneIK
 					++numIterator;
 				}
 
-				::Msg("FABRIK IterNum = %d", numIterator);
+				::LogMsgF("FABRIK IterNum = %d", numIterator);
 			} 
 		}
 
@@ -320,7 +320,7 @@ namespace BoneIK
 					++numIterator;
 				}
 
-				::Msg("CCD IterNum = %d", numIterator);
+				::LogMsgF("CCD IterNum = %d", numIterator);
 			}
 
 		}

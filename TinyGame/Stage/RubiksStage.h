@@ -259,8 +259,8 @@ namespace Rubiks
 
 
 		bool mbRunning;
-		Condition mRequestFindCond;
-		Condition mUncheckCond;
+		ConditionVariable mRequestFindCond;
+		ConditionVariable mUncheckCond;
 		Mutex mRequestFindMutex;
 		Mutex mUncheckMutex;
 		std::deque< StateNode* > mRequestFindNodes;

@@ -93,6 +93,7 @@ float UnpackAlpha(int value)
 {
 	return float(value ) / ( 255.0 * 255.0 );
 }
+
 #if OIT_USE_MATERIAL
 #define VFInputPS VFOutputVS
 in VertexFactoryIutputPS VFOutputVS;
@@ -195,6 +196,7 @@ void InsertSortPixel(float4 color, int value)
 		sortedColors[j + 1] = color;
 	}
 }
+
 void ResolvePS()
 {
 	uint index = imageLoad(NodeHeadTexture, int2(gl_FragCoord.xy)).x;

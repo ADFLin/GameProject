@@ -225,7 +225,7 @@ namespace Poker { namespace Big2 {
 	void LevelStage::updateTestUI()
 	{
 		static bool canPass = true;
-		InputManager& manager = InputManager::getInstance();
+		InputManager& manager = InputManager::Get();
 		if ( mServerLevel )
 		{
 			if (  manager.isKeyDown( 'R' ) )

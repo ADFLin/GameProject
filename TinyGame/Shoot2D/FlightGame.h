@@ -23,9 +23,9 @@ namespace Shoot2D
 		friend void spawnObject(Object* obj);
 
 	protected:
-		int      m_frameCount;
-		long     m_tempTime;
-		float    m_fps;
+		int      mFrameCount;
+		long     mTempTime;
+		float    mFPS;
 		BYTE     key[256];
 		static RenderEngine* de;
 		static AxisSweepDetector* objManger;

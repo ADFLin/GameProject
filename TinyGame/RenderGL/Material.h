@@ -243,7 +243,7 @@ namespace RenderGL
 		MaterialInstance( TLazyObjectGuid< Material > const& parent )
 			:mParent(parent)
 		{
-			LazyObjectManager::getInstance().registerResolveCallback(mParent, std::bind( &MaterialInstance::refreshOverwriteParam , this ));
+			LazyObjectManager::Get().registerResolveCallback(mParent, std::bind( &MaterialInstance::refreshOverwriteParam , this ));
 			mOverwriteMask = 0;
 		}
 

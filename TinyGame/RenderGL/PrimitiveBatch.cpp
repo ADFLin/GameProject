@@ -89,7 +89,7 @@ namespace RenderGL
 		mVertexBuffer->unbind();
 		mDecl.endVAOSetup();
 
-		if( !ShaderManager::getInstance().loadFile(
+		if( !ShaderManager::Get().loadFile(
 			mShader, "Shader/SimpleElement",
 			SHADER_ENTRY(MainVS), SHADER_ENTRY(MainPS) ) )
 			return false;

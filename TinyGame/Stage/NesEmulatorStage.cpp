@@ -74,14 +74,14 @@ public:
 	{
 		ButtonState p1;
 		p1.value = 0;
-		p1.left = InputManager::getInstance().isKeyDown(Keyboard::eD);
-		p1.right = InputManager::getInstance().isKeyDown(Keyboard::eA);
-		p1.up = InputManager::getInstance().isKeyDown(Keyboard::eW);
-		p1.down = InputManager::getInstance().isKeyDown(Keyboard::eS);
-		p1.a = InputManager::getInstance().isKeyDown(Keyboard::eK);
-		p1.b = InputManager::getInstance().isKeyDown(Keyboard::eL);
-		p1.start = InputManager::getInstance().isKeyDown(Keyboard::eN);
-		p1.select = InputManager::getInstance().isKeyDown(Keyboard::eB);
+		p1.left = InputManager::Get().isKeyDown(Keyboard::eD);
+		p1.right = InputManager::Get().isKeyDown(Keyboard::eA);
+		p1.up = InputManager::Get().isKeyDown(Keyboard::eW);
+		p1.down = InputManager::Get().isKeyDown(Keyboard::eS);
+		p1.a = InputManager::Get().isKeyDown(Keyboard::eK);
+		p1.b = InputManager::Get().isKeyDown(Keyboard::eL);
+		p1.start = InputManager::Get().isKeyDown(Keyboard::eN);
+		p1.select = InputManager::Get().isKeyDown(Keyboard::eB);
 
 		input[0] = p1.value;
 		input[1] = 0;

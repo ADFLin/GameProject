@@ -3,7 +3,7 @@
 #include "DataStream.h"
 
 #include <cmath>
-#include <map>
+#include <unordered_map>
 
 namespace MV
 {
@@ -24,7 +24,7 @@ namespace MV
 		num = mWorld.mGroups.size();
 		op & num;
 
-		std::map< void* , uint16 > groupPtrMap;
+		std::unordered_map< void* , uint16 > groupPtrMap;
 		groupPtrMap[ &mWorld.mRootGroup ] = ptrId++; 
 		for( int i = 0 ; i < mWorld.mGroups.size() ; ++i )
 		{
@@ -64,7 +64,7 @@ namespace MV
 		num = mModifiers.size();
 		op & num;
 
-		std::map< void* , uint16 > modifierPtrMap;
+		std::unordered_map< void* , uint16 > modifierPtrMap;
 		for( int i = 0 ; i < num ; ++i )
 		{
 			ISpaceModifier* modifier = mModifiers[i];

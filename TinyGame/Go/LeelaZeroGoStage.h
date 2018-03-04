@@ -9,6 +9,9 @@
 #include "Go/GoBot.h"
 #include "ZenBot.h"
 #include "LeelaBot.h"
+#include "WidgetUtility.h"
+
+#include "Misc/Guid.h"
 
 #include "GameSettingPanel.h"
 
@@ -32,57 +35,129 @@ namespace Go
 	{
 		ePlayer   = 0,
 		eLeelaZero ,
-		
+		eAQ ,
+		eZenV7,
+		eZenV6,
 		eZenV4 ,
-		eZenV6 ,
-		eZenV7 ,
 	};
 
-	struct MatchGameData
+	class MyGame : public Go::Game
 	{
 
-		struct PlayerData
+	public:
+		void restart()
 		{
-			ControllerType type;
-			std::unique_ptr< IBotInterface > bot;
+			Go::Game::restart();
+			guid = Guid::New();
+		}
+		Guid guid;
+	};
 
-			bool isBot() const { return type != ControllerType::ePlayer; }
-		};
-		PlayerData mPlayers[2];
-		int mIdxPlayerTurn = 0;
+	struct MatchPlayer
+	{
+		ControllerType type;
+		std::unique_ptr< IBotInterface > bot;
 
+		bool isBot() const { return type != ControllerType::ePlayer; }
 
-		static bool buildPlayerBot(PlayerData& playerData, void* botSetting = nullptr)
+		bool initialize(ControllerType inType , void* botSetting = nullptr)
 		{
-			switch( playerData.type )
+			type = inType;
+
+			bot.release();
+			switch( type )
 			{
-			case ControllerType::eLeelaZero:
-				playerData.bot.reset(new LeelaBot());
-				break;
-			case ControllerType::eZenV4:
-				playerData.bot.reset(new ZenBot(4));
-				break;
-			case ControllerType::eZenV6:
-				playerData.bot.reset(new ZenBot(6));
-				break;
-			case ControllerType::eZenV7:
-				playerData.bot.reset(new ZenBot(7));
-				break;
 			case ControllerType::ePlayer:
 				return true;
+			case ControllerType::eLeelaZero:
+				bot.reset(new LeelaBot());
+				break;
+			case ControllerType::eAQ:
+				bot.reset(new AQBot());
+				break;
+			case ControllerType::eZenV7:
+				bot.reset(new ZenBot(7));
+				break;
+			case ControllerType::eZenV6:
+				bot.reset(new ZenBot(6));
+				break;
+			case ControllerType::eZenV4:
+				bot.reset(new ZenBot(4));
+				break;
 			}
 
-			if( !playerData.bot )
+			if( !bot )
 				return false;
 
-			if( !playerData.bot->initilize(botSetting) )
+			if( !bot->initilize(botSetting) )
 			{
-				playerData.bot.release();
+				bot.release();
 				return false;
 			}
 			return true;
 		}
 
+	};
+
+	class GFilePicker : public GWidget
+	{
+		typedef GWidget BaseClass;
+	public:
+		GFilePicker(int id, Vec2i const& pos, Vec2i const& size, GWidget* parent)
+			:BaseClass(pos, size, parent)
+		{
+			mID = id;
+			GButton* button = new GButton(UI_ANY, pos, Vec2i(200, size.y), this);
+			button->setTitle("..");
+			button->onEvent = [this](int event, GWidget*) -> bool
+			{
+				SystemPlatform::OpenFileName(filePath, filePath.max_size(), nullptr);
+				return false;
+			};
+		}
+
+		FixString<512> filePath;
+
+		virtual void onRender() override
+		{
+			IGraphics2D& g = ::Global::getIGraphics2D();
+
+			Vec2i pos = getWorldPos();
+			Vec2i size;
+			g.drawText(pos, filePath);
+		}
+
+	};
+
+
+
+	struct MatchGameData
+	{
+		MatchPlayer players[2];
+		int         idxPlayerTurn = 0;
+
+		void advanceTurn()
+		{
+			idxPlayerTurn = 1 - idxPlayerTurn;
+		}
+
+		void cleanup()
+		{
+			for( int i = 0; i < 2; ++i )
+			{
+				auto& bot = players[i].bot;
+				if( bot )
+				{
+					bot->destroy();
+					bot.release();
+				}
+			}
+		}
+
+		IBotInterface* getCurTurnBot()
+		{
+			return players[idxPlayerTurn].bot.get();
+		}
 	};
 
 	class MatchSettingPanel : public BaseSettingPanel
@@ -99,7 +174,7 @@ namespace Go
 		{
 			UI_FIXED_HANDICAP = UI_WIDGET_ID,
 			UI_PLAY,
-
+			UI_CANCEL ,
 			UI_CONTROLLER_TYPE_A ,
 			UI_CONTROLLER_TYPE_B ,
 
@@ -127,9 +202,12 @@ namespace Go
 
 			adjustChildLayout();
 
-			Vec2i buttonSize = Vec2i(200, 20);
-			GButton* button = new GButton(UI_PLAY , Vec2i( ( getSize().x - buttonSize.x ) / 2 , getSize().y - buttonSize.y - 5 ) , buttonSize , this );
+			Vec2i buttonSize = Vec2i(100, 20);
+			GButton* button;
+			button = new GButton(UI_PLAY, Vec2i(getSize().x /2 - buttonSize.x , getSize().y - buttonSize.y - 5), buttonSize, this);
 			button->setTitle("Play");
+			button = new GButton(UI_CANCEL, Vec2i((getSize().x)/ 2, getSize().y - buttonSize.y - 5), buttonSize, this);
+			button->setTitle("Cancel");
 		}
 
 		GChoice* addPlayerChoice(int id, char const* title)
@@ -137,9 +215,10 @@ namespace Go
 			GChoice* choice = addChoice(id , title);
 			choice->addItem("Player");
 			choice->addItem("LeelaZero");
-			choice->addItem("Zen 4");
-			choice->addItem("Zen 6");
+			choice->addItem("AQ");
 			choice->addItem("Zen 7");
+			choice->addItem("Zen 6");
+			choice->addItem("Zen 4");
 			return choice;
 		}
 
@@ -151,6 +230,9 @@ namespace Go
 				sendEvent(EVT_DIALOG_CLOSE);
 				this->destroy();
 				return false;
+			case UI_CANCEL:
+				this->destroy();
+				return false;
 			case UI_CONTROLLER_TYPE_A:
 			case UI_CONTROLLER_TYPE_B:
 				return false;
@@ -159,28 +241,29 @@ namespace Go
 			return BaseClass::onChildEvent(event, id, ui);
 		}
 
-		bool buildMatchSetting(MatchGameData& matchData , GameSetting& setting)
+		bool setupMatchSetting(MatchGameData& matchData , GameSetting& setting)
 		{
-			setting.fixedHandicap = findChildT<GChoice>(UI_FIXED_HANDICAP)->getSelection();
-			setting.bBlackFrist = setting.fixedHandicap == 0;
-			setting.boardSize = 19;
-			setting.komi = (setting.fixedHandicap) ? 0.5 : 6.5;
+			ControllerType types[2] =
+			{
+				(ControllerType)findChildT<GChoice>(UI_CONTROLLER_TYPE_A)->getSelection(),
+				(ControllerType)findChildT<GChoice>(UI_CONTROLLER_TYPE_B)->getSelection()
+			};
 
-			matchData.mPlayers[0].type = (ControllerType)findChildT<GChoice>(UI_CONTROLLER_TYPE_A)->getSelection();
-			matchData.mPlayers[1].type = (ControllerType)findChildT<GChoice>(UI_CONTROLLER_TYPE_B)->getSelection();
 			for( int i = 0; i < 2; ++i )
 			{
-				if( !matchData.buildPlayerBot(matchData.mPlayers[i]) )
+				if( !matchData.players[i].initialize(types[i]) )
 					return false;
 			}
 
+			setting.fixedHandicap = findChildT<GChoice>(UI_FIXED_HANDICAP)->getSelection();
+			setting.bBlackFrist = setting.fixedHandicap == 0;
+			setting.boardSize = 19;
+			setting.komi = (setting.fixedHandicap) ? 0.5 : 7.5;
 			return true;
 		}
 	};
 
-
 	class LeelaZeroGoStage : public StageBase
-		                   , public MatchGameData
 		                   , public IGameCommandListener
 	{
 		typedef StageBase BaseClass;
@@ -202,18 +285,45 @@ namespace Go
 			None ,
 		};
 
-		LeelaAIRun  mLearningAIRun;
+		LeelaAppRun   mLearningAIRun;
 
 		bool bProcessPaused = false;
-		int  NumLearnedGame = 0;
+		int  numGameCompleted = 0;
+		bool bMatchJob = false;
 #if DETECT_LEELA_PROCESS
 		DWORD  mPIDLeela = -1;
-		static long const RestartTime = 20000;
-		long   mRestartTimer = RestartTime;
+		static long const LeelaRebootTime = 20000;
+		static long const LeelaRebootStartTime = 40 * LeelaRebootTime;
+		long   mLeelaRebootTimer = LeelaRebootTime;
 #endif
 
-		Go::Game mGame;
+		MyGame mGame;
+
+		bool bDrawDebugMsg = false;
 		GameRenderer mGameRenderer;
+
+		GameMode mGameMode;
+		MatchGameData mMatchData;
+		FixString<32> mLastGameResult;
+
+		
+		
+		bool    bReviewingGame = false;
+		MyGame  mReviewGame;
+		bool    bTryPlayingGame = false;
+		MyGame  mTryPlayGame;
+
+		GWidget* mGamePlayWidget = nullptr;
+
+
+		MyGame& getViewingGame()
+		{
+			if( bTryPlayingGame )
+				return mTryPlayGame;
+			else if( bReviewingGame )
+				return mReviewGame;
+			return mGame;
+		}
 
 
 		virtual bool onInit();
@@ -232,7 +342,6 @@ namespace Go
 		virtual bool onKey(unsigned key, bool isDown) override;
 
 
-		void restart() {}
 		void tick() {}
 		void updateFrame(int frame) {}
 
@@ -243,12 +352,6 @@ namespace Go
 		void processLearningCommand();
 		virtual void notifyCommand(GameCommand const& com) override;
 
-		GameMode mGameMode;
-
-		bool bViewReplay = false;
-		Game mReplayGame;
-
-		GWidget* mGamePlayWidget = nullptr;
 
 
 		bool buildLearningMode();
@@ -276,7 +379,7 @@ namespace Go
 
 		bool isPlayerControl(int color)
 		{
-			return !mPlayers[color - 1].isBot();
+			return !mMatchData.players[color - 1].isBot();
 		}
 	};
 

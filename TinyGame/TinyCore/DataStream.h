@@ -62,11 +62,11 @@ public:
 	struct StreamDataPolicy
 	{
 		typedef DataStream DataType;
-		static void fill(DataType& buffer, uint8 value)
+		static void Fill(DataType& buffer, uint8 value)
 		{
 			buffer.write(&value, 1);
 		}
-		static void take(DataType& buffer, uint8& value)
+		static void Take(DataType& buffer, uint8& value)
 		{
 			buffer.read(&value, 1);
 		}

@@ -9,74 +9,138 @@
 
 namespace Go
 {
+
+	namespace LeelaGameParam
+	{
+		enum
+		{
+			eJobMode,
+		};
+	}
+
+	enum class GTPCommand
+	{
+		eNone ,
+		eKomi,
+		eHandicap,
+		ePlay,
+		eGenmove,
+		ePass,
+		eUndo,
+		eQuit,
+	};
+
 	class IGameOutputThread : public RunnableThreadT< IGameOutputThread >
 	{
 	public:
 		virtual ~IGameOutputThread() {}
 		virtual unsigned run() = 0;
+		virtual void update() {};
 
 
 		ChildProcess* process = nullptr;
 		void addCommand(GameCommand const& com)
 		{
-			Mutex::Locker lock(mComMutex);
-			mCommands.push_back(com);
+			mOutputCommands.push_back(com);
 		}
 		template< class T >
 		void procCommand(T fun)
 		{
-			Mutex::Locker lock(mComMutex);
-			for( GameCommand& com : mCommands )
+			for( GameCommand& com : mOutputCommands )
 			{
 				fun(com);
 			}
-			mCommands.clear();
+			mOutputCommands.clear();
 		}
-		std::vector< GameCommand > mCommands;
-		Mutex mComMutex;
+
+		void addInputProcCom(GTPCommand id)
+		{
+			mProcQueue.push_back(id);
+		}
+		std::vector< GameCommand > mOutputCommands;
+		std::vector< GTPCommand > mProcQueue;
+	};
+
+	class GTPLikeAppRun
+	{
+	public:
+		ChildProcess        process;
+		IGameOutputThread*  outputThread = nullptr;
+
+		~GTPLikeAppRun();
+
+		void update()
+		{
+			if (outputThread )
+				outputThread->update();
+		}
+
+		void stop();
+		bool playStone(int x , int y, int color);
+		bool playPass();
+		bool thinkNextMove(int color);
+		bool undo();
+		bool setupGame(GameSetting const& setting);
+		bool inputCommand(GTPCommand id, char const* command)
+		{
+			if( !inputProcessStream(command) )
+				return false;
+			outputThread->addInputProcCom(id);
+			return true;
+		}
+		bool inputProcessStream(char const* command, int length = 0);
+
+		template< class T >
+		bool buildProcessT(char const* appPath, char const* command)
+		{
+			if( !process.create(appPath, command) )
+				return false;
+
+			auto myThread = new T;
+			myThread->process = &process;
+			myThread->start();
+			myThread->setDisplayName("Output Thread");
+			outputThread = myThread;
+			return true;
+		}
 	};
 
 	struct LeelaAISetting
 	{
 		char const* weightName = nullptr;
+		uint64 seed = 0;
+		//Weaken engine by limiting the number of playouts. Requires --noponder.
 		int playouts = 5000;//1600;
+		//Play more randomly the first x moves.
 		int randomcnt = 0;//30;
+		//Number of threads to use.
 		int numThread = 8;
+		//Resign when winrate is less than x%. -1 uses 10% but scales for handicap
 		int resignpct = 10;
+		//Don't use heuristics for smarter passing.
+		bool bDumbPass = true; 
+		//Enable policy network randomization.
+		bool bNoise = true;
+		//Disable all diagnostic output.
+		bool bQuiet = false;
+		//Disable thinking on opponent's time.
+		bool bNoPonder = true;
 	};
 
-	struct LeelaAIRun
+	struct LeelaAppRun : public GTPLikeAppRun
 	{
-		ChildProcess        process;
-		IGameOutputThread*  outputThread = nullptr;
-
-		~LeelaAIRun();
-
-		static char const* LeelaZeroDir;
+		static char const* InstallDir;
 
 		static std::string GetBestWeightName();
-		void stop();
 		bool buildLearningGame();
 		bool buildPlayGame(LeelaAISetting const& setting);
-		bool playStone(Vec2i const& pos, int color);
-		bool playPass();
-
-		bool thinkNextMove(int color);
-
-		bool undo();
-
-		bool setupGame(GameSetting const& setting);
-
-		bool inputProcessStream(char const* command, int length = 0);
-
-
 	};
 
-	class LeelaBot : public IBotInterface
+
+	template< class T >
+	class TGTPLikeBot : public IBotInterface
 	{
 	public:
-
-		virtual bool initilize(void* settingData) override;
 		virtual void destroy()
 		{
 			mAI.stop();
@@ -85,9 +149,9 @@ namespace Go
 		{
 			return mAI.setupGame(setting);
 		}
-		virtual bool playStone(Vec2i const& pos, int color) override
+		virtual bool playStone(int x, int y, int color) override
 		{
-			return mAI.playStone(pos, color);
+			return mAI.playStone(x , y, color);
 		}
 		virtual bool playPass(int color) override
 		{
@@ -108,6 +172,7 @@ namespace Go
 		}
 		virtual void update(IGameCommandListener& listener) override
 		{
+			mAI.update();
 			auto MyFun = [&](GameCommand const& com)
 			{
 				listener.notifyCommand(com);
@@ -120,9 +185,30 @@ namespace Go
 			int numWrite = 0;
 			return mAI.process.writeInputStream(command, strlen(command), numWrite);
 		}
+		T mAI;
+	};
+
+	class LeelaBot : public TGTPLikeBot< LeelaAppRun >
+	{
+	public:
+		virtual bool initilize(void* settingData) override;
+
+	};
+
+	struct AQAppRun : public GTPLikeAppRun
+	{
+	public:
+		static char const* InstallDir;
+
+		bool buildPlayGame();
+
+	};
 
 
-		LeelaAIRun  mAI;
+	class AQBot : public TGTPLikeBot< AQAppRun >
+	{
+	public:
+		virtual bool initilize(void* settingData) override;
 	};
 
 }//namespace Go

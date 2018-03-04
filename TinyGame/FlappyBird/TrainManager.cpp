@@ -331,7 +331,7 @@ namespace FlappyBird
 		trainData.runEvolution(&genePool);
 
 		bool const bRestData = maxGeneration && ( trainData.generation > maxGeneration );
-		bool bSendData = bRestData || (GetTickCount() - lastUpdateTime > 10000);
+		bool bSendData = bRestData || (SystemPlatform::GetTickCount() - lastUpdateTime > 10000);
 		
 		if( bSendData )
 		{
@@ -347,10 +347,10 @@ namespace FlappyBird
 				if( !masterPool->mStorage.empty() )
 					Manager->topFitness = (*masterPool)[0]->fitness;
 
-				lastUpdateTime = GetTickCount();
+				lastUpdateTime = SystemPlatform::GetTickCount();
 			}
 		
-			::Msg("Num %d genotype add to master Pool : index = %d ,genteration = %d , topFitness = %f", 
+			::LogMsgF("Num %d genotype add to master Pool : index = %d ,genteration = %d , topFitness = %f", 
 				  numAdded , index , trainData.generation , genePool[0]->fitness);
 
 		}

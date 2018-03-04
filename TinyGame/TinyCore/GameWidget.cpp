@@ -778,7 +778,7 @@ void GFileListCtrl::refreshFiles()
 	removeAllItem();
 
 	FileIterator fileIter;
-	if( !FileSystem::FindFile(mCurDir.c_str(), mSubFileName.c_str(), fileIter) )
+	if( !FileSystem::FindFiles(mCurDir.c_str(), mSubFileName.c_str(), fileIter) )
 		return;
 
 	for( ; fileIter.haveMore(); fileIter.goNext() )

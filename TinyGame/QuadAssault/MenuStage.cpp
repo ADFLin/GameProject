@@ -32,7 +32,7 @@ bool MenuStage::onInit()
 
 	IFont* font = getGame()->getFont( 0 );
 
-	GUISystem::getInstance().cleanupWidget();
+	GUISystem::Get().cleanupWidget();
 
 	Vec2f poz;
 	poz.x = getGame()->getScreenSize().x/2 - 224;
@@ -43,31 +43,31 @@ bool MenuStage::onInit()
 	button->text->setFont( font );
 	button->text->setString( "Start" );
 	button->show( false );
-	GUISystem::getInstance().addWidget( button );
+	GUISystem::Get().addWidget( button );
 
 	button = new QTextButton( UI_ABOUT , Vec2i( poz.x +128+32 , poz.y ) , Vec2i(128, 64) , NULL );
 	button->text->setFont( font );
 	button->text->setString( "About" );
 	button->show( false );
-	GUISystem::getInstance().addWidget( button );
+	GUISystem::Get().addWidget( button );
 
 	button = new QTextButton( UI_DEV_TEST , Vec2i( poz.x +128+32 , poz.y + 80 ) , Vec2i(128, 64) , NULL );
 	button->text->setFont( font );
 	button->text->setString( "Dev Test" );
 	button->show( false );
-	GUISystem::getInstance().addWidget( button );
+	GUISystem::Get().addWidget( button );
 
 	button = new QTextButton( UI_EXIT , Vec2i( poz.x +256+64, poz.y ) , Vec2i(128, 64) , NULL );
 	button->text->setFont( font );
 	button->text->setString( "Exit" );
 	button->show( false );
-	GUISystem::getInstance().addWidget( button );
+	GUISystem::Get().addWidget( button );
 
 	button = new QTextButton( UI_BACK , Vec2i( 32 , getGame()->getScreenSize().y-96 ) , Vec2i(128, 64) , NULL );
 	button->text->setFont( font );
 	button->text->setString( "Back" );
 	button->show( false );
-	GUISystem::getInstance().addWidget( button );
+	GUISystem::Get().addWidget( button );
 
 	char const* text =
 		"QuadAssault v1.0\n"
@@ -140,7 +140,7 @@ bool MenuStage::onInit()
 		button->text->setString( str );
 		button->setUserData( &mLevels[i] );
 		button->show( false );
-		GUISystem::getInstance().addWidget( button );
+		GUISystem::Get().addWidget( button );
 
 	
 		mLevels[i].button = button;
@@ -221,18 +221,18 @@ void MenuStage::showStateWidget( State state , bool beShow )
 	switch( state )
 	{
 	case MS_ABOUT:
-		GUISystem::getInstance().findTopWidget( UI_BACK )->show( beShow );
+		GUISystem::Get().findTopWidget( UI_BACK )->show( beShow );
 		break;
 	case MS_SELECT_LEVEL:
-		GUISystem::getInstance().findTopWidget( UI_BACK )->show( beShow );
+		GUISystem::Get().findTopWidget( UI_BACK )->show( beShow );
 		for(int i=0; i<mLevels.size(); ++i)
 			mLevels[i].button->show( beShow );
 		break;
 	case MS_SELECT_MENU:
-		GUISystem::getInstance().findTopWidget( UI_START )->show( beShow );
-		GUISystem::getInstance().findTopWidget( UI_ABOUT )->show( beShow );
-		GUISystem::getInstance().findTopWidget( UI_EXIT  )->show( beShow );
-		GUISystem::getInstance().findTopWidget( UI_DEV_TEST )->show( beShow );
+		GUISystem::Get().findTopWidget( UI_START )->show( beShow );
+		GUISystem::Get().findTopWidget( UI_ABOUT )->show( beShow );
+		GUISystem::Get().findTopWidget( UI_EXIT  )->show( beShow );
+		GUISystem::Get().findTopWidget( UI_DEV_TEST )->show( beShow );
 		break;
 	}
 }
@@ -257,7 +257,7 @@ void MenuStage::onRender()
 		break;
 	}
 
-	GUISystem::getInstance().render();
+	GUISystem::Get().render();
 
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_ONE, GL_ONE);

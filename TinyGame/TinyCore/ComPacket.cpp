@@ -66,7 +66,7 @@ bool ComEvaluator::evalCommand( SocketBuffer& buffer , int group , void* userDat
 	}
 	catch ( ComException& e )
 	{
-		Msg( "%s (id =%u)" ,  e.what() , comID );
+		LogMsgF( "%s (id =%u)" ,  e.what() , comID );
 		if ( cp.get() )
 			e.com = cp->getID();
 		buffer.setUseSize( oldUseSize );
@@ -128,7 +128,7 @@ unsigned ComEvaluator::WriteBuffer( SocketBuffer& buffer , IComPacket* cp )
 	catch ( BufferException& e )
 	{
 		buffer.setFillSize( oldSize );
-		Msg( "%s(%d) : %s" , __FILE__ , __LINE__ ,e.what() );
+		LogMsgF( "%s(%d) : %s" , __FILE__ , __LINE__ ,e.what() );
 		throw BufferException( "Can't fill buffer: Buffer has not space" );
 	}
 
@@ -147,7 +147,7 @@ bool ComEvaluator::ReadBuffer( SocketBuffer& buffer , IComPacket* cp )
 	takeSize -= ComPacketHeaderSize;
 	if ( takeSize > buffer.getAvailableSize() )
 	{
-		::Msg( "Error packet format : size isn't enough" );
+		::LogMsgF( "Error packet format : size isn't enough" );
 		buffer.shiftUseSize( -int(ComPacketHeaderSize) );
 		return false;
 	}

@@ -22,9 +22,18 @@ namespace Zen
 		return fun != nullptr;
 	}
 
-	bool DynamicLibrary::initialize(TCHAR const* name, int version)
+	bool DynamicLibrary::initialize(int version)
 	{
-		assert(name);
+		TCHAR const* name;
+		switch( version )
+		{
+		case 4: name = TEXT("Go/Zen4/Zen.dll"); break;
+		case 6: name = TEXT("Go/Zen6/Zen.dll"); break;
+		case 7: name = TEXT("Go/Zen7/Zen.dll"); break;
+		default:
+			::LogError("Zen Version No Dll");
+			return false;
+		}
 
 		mhModule = LoadLibrary(name);
 		if( mhModule == NULL )
@@ -247,15 +256,15 @@ int runBotTest()
 	setting.numThreads = numCPU - 1;
 	setting.numSimulations = 10000000;
 	setting.maxTime = 20;
-	typedef Zen::TBotCore< Zen::DynamicLibrary , 4 > ZenCoreV4;
-	if( !ZenCoreV4::Get().initialize(TEXT("ZenV4.dll")) )
+	typedef Zen::TBotCore< 4 > ZenCoreV4;
+	if( !ZenCoreV4::Get().initialize() )
 	{
 		return -1;
 	}
 	ZenCoreV4::Get().setCoreSetting(setting);
-	typedef Zen::TBotCore< Zen::DynamicLibrary , 6 > ZenCoreV6;
+	typedef Zen::TBotCore< 6 > ZenCoreV6;
 
-	if( !ZenCoreV6::Get().initialize(TEXT("Zen.dll")) )
+	if( !ZenCoreV6::Get().initialize() )
 	{
 		return -1;
 	}

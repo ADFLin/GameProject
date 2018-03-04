@@ -119,9 +119,6 @@
     <ClInclude Include="RenderGL\SceneRenderer.h">
       <Filter>RenderGL</Filter>
     </ClInclude>
-    <ClInclude Include="RenderGL\SceneScript.h">
-      <Filter>RenderGL</Filter>
-    </ClInclude>
     <ClInclude Include="RenderGL\ShaderCompiler.h">
       <Filter>RenderGL</Filter>
     </ClInclude>
@@ -212,9 +209,6 @@
       <Filter>RenderGL</Filter>
     </ClCompile>
     <ClCompile Include="RenderGL\SceneRenderer.cpp">
-      <Filter>RenderGL</Filter>
-    </ClCompile>
-    <ClCompile Include="RenderGL\SceneScript.cpp">
       <Filter>RenderGL</Filter>
     </ClCompile>
     <ClCompile Include="RenderGL\ShaderCompiler.cpp">

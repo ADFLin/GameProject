@@ -51,7 +51,7 @@ namespace RenderGL
 				if( error != GL_NO_ERROR )
 				{
 					//#TODO
-					::Msg("Can't Destory GL Object");
+					::LogError("Can't Destory GL Object");
 				}
 			}
 			mHandle = 0;
@@ -1037,6 +1037,7 @@ namespace RenderGL
 
 		bool createBuffer( void* pVertex  , int nV , void* pIdx = nullptr , int nIndices = 0 , bool bIntIndex = false );
 		void draw(bool bUseVAO = false);
+		void draw(Matrix4 const& transform, bool bUseVAO);
 		void drawSection(int idx , bool bUseVAO = false);
 
 		void drawInternal(int idxStart , int num , bool bUseVAO);

@@ -128,7 +128,7 @@ namespace Tetris
 			HIT_BOTTOM_SIDE= 1 << 2,
 			HIT_BLOCK      = 1 << 3,
 		};
-		int              testCollision( Piece& piece , int cx, int cy );
+		unsigned         testCollision( Piece& piece , int cx, int cy );
 
 		int              getSizeX() const { return mSizeX; }
 		int              getSizeY() const { return mSizeY; }

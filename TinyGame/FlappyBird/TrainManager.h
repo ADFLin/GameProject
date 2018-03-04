@@ -130,7 +130,7 @@ namespace FlappyBird
 		}
 		//~IQueuedWork
 		int  index = 0;
-		uint32 lastUpdateTime = 0;
+		int64 lastUpdateTime = 0;
 		volatile int32 bNeedStop = 0;
 		TrainData  trainData;
 		GenePool genePool;

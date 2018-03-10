@@ -126,7 +126,7 @@ namespace CFly
 
 	Entity::~Entity()
 	{
-		EntityManager::getInstance().removeEntity( this );
+		EntityManager::Get().removeEntity( this );
 	}
 
 }//namespace CFly

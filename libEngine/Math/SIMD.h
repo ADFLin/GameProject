@@ -153,6 +153,15 @@ namespace SIMD
 		SVector4 Basis[4];
 	};
 
+
+	template< int ChannelNum >
+	struct LaneScale
+	{
+
+
+
+	};
+
 }//namespace SIMD
 
 #endif // SIMD_H_A48E9490_F46C_48AF_8AB6_98AE7574890B

@@ -279,20 +279,20 @@ void TEventSystem::process( TEvent& event )
 
 void UG_SendEvent( TEvent& event )
 {
-	TEventSystem::getInstance().addEvent( event );
+	TEventSystem::Get().addEvent( event );
 }
 
 void UG_ProcessEvent( TEvent& event )
 {
-	TEventSystem::getInstance().process( event );
+	TEventSystem::Get().process( event );
 }
 
 void  UG_ConnectEvent( EventType type , int id , EvtCallBack const& callback , HandledObject* holder )
 {
-	TEventSystem::getInstance().connectEvent( type , id , callback , holder );
+	TEventSystem::Get().connectEvent( type , id , callback , holder );
 }
 void  UG_DisconnectEvent( EventType type , EvtCallBack const& callback , HandledObject* holder )
 {
-	TEventSystem::getInstance().disconnectEvent( type , callback , holder );
+	TEventSystem::Get().disconnectEvent( type , callback , holder );
 }
 

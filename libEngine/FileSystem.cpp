@@ -25,7 +25,7 @@ bool FileSystem::IsExist( char const* path )
 #endif
 }
 
-bool FileSystem::FindFile( char const* dir , char const* subName , FileIterator& iter )
+bool FileSystem::FindFiles( char const* dir , char const* subName , FileIterator& iter )
 {
 	char szDir[MAX_PATH];
 
@@ -120,7 +120,7 @@ void FileIterator::goNext()
 
 char const* FileUtility::GetSubName( char const* fileName )
 {
-	char const* pos = TCString<char>::Strrchr( fileName , '.' );
+	char const* pos = FCString::Strrchr( fileName , '.' );
 	if ( pos )
 	{
 		++pos;
@@ -132,17 +132,17 @@ char const* FileUtility::GetSubName( char const* fileName )
 
 char const* FileUtility::GetDirPathPos( char const* filePath )
 {
-	char const* pos = TCString<char>::Strrchr( filePath , '\\' );
+	char const* pos = FCString::Strrchr( filePath , '\\' );
 	if ( !pos )
-		pos = TCString<char>::Strrchr( filePath , '/' );
+		pos = FCString::Strrchr( filePath , '/' );
 	return pos;
 }
 
 wchar_t const* FileUtility::GetDirPathPos(wchar_t const* filePath)
 {
-	wchar_t const* pos = TCString<wchar_t>::Strrchr(filePath, L'\\');
+	wchar_t const* pos = FCString::Strrchr(filePath, L'\\');
 	if( !pos )
-		pos = TCString<wchar_t>::Strrchr(filePath, L'/');
+		pos = FCString::Strrchr(filePath, L'/');
 	return pos;
 }
 

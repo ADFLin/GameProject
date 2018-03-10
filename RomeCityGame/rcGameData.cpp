@@ -270,7 +270,7 @@ void rcDataManager::bitBlt( char* srcBuf , Vec2i const& srcSize, char* destBuf ,
 
 void rcDataManager::loadTexture( char* destBuf , Vec2i const& size , int index )
 {
-	SgxImageInfo const* info = rcDataManager::getInstance().getImageInfo( index );
+	SgxImageInfo const* info = rcDataManager::Get().getImageInfo( index );
 
 	assert( size.x == info->width && size.y == info->height );
 

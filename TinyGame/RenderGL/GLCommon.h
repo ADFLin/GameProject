@@ -51,7 +51,7 @@ namespace RenderGL
 				if( error != GL_NO_ERROR )
 				{
 					//#TODO
-					::LogError("Can't Destory GL Object");
+					LogError("Can't Destory GL Object");
 				}
 			}
 			mHandle = 0;
@@ -61,10 +61,10 @@ namespace RenderGL
 
 #if CPP_VARIADIC_TEMPLATE_SUPPORT
 		template< class ...Args >
-		bool fetchHandle(Args ...args)
+		bool fetchHandle(Args&& ...args)
 		{
 			if( !mHandle )
-				RMPolicy::Create(mHandle, args...);
+				RMPolicy::Create(mHandle, std::forward(args)...);
 			return mHandle != 0;
 		}
 

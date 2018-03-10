@@ -380,7 +380,7 @@ namespace Compression
 				}
 				catch( const std::exception& )
 				{
-					::LogMsg("decompress fail");
+					LogMsg("decompress fail");
 				}
 			}
 

@@ -10,9 +10,9 @@
 
 #define EXPORT_FUN(fun) static auto MARCO_NAME_COMBINE_2( GExportFun , __LINE__ ) = &fun;
 
-EXPORT_FUN( ILogListener::addChannel );
+EXPORT_FUN( LogOutput::addChannel );
 EXPORT_FUN( UnitTest::Component::RunTest );
-EXPORT_FUN( static_cast< void (*)(char const*, ...) >( &Msg ));
+//EXPORT_FUN( static_cast< void (*)(char const*, ...) >( &LogMsgF ));
 
 #undef EXPORT_FUN
 

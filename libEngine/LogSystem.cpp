@@ -7,141 +7,173 @@
 
 #include <vector>
 
-
+#if USE_LOG
 
 class LogManager : public SingletonT< LogManager >
 {
 public:
 
-	typedef std::vector< ILogListener* > MsgListenerList;
-	MsgListenerList chanelListenerList[ NUM_DEFAULT_LOG_CHANNEL ];
+	typedef std::vector< LogOutput* > LogOutputList;
+	LogOutputList chanelListenerList[ NUM_DEFAULT_LOG_CHANNEL ];
 	
 
-	void   addListener( LogChannel channel , ILogListener* listener )
+	void   addListener( LogChannel channel , LogOutput* listener )
 	{
-		MsgListenerList& listenList = chanelListenerList[ channel ];
-		MsgListenerList::iterator iter = std::find( 
-			listenList.begin() , listenList.end() , listener );
+		LogOutputList& outputList = chanelListenerList[ channel ];
+		LogOutputList::iterator iter = std::find( 
+			outputList.begin() , outputList.end() , listener );
 
-		if ( iter != listenList.end() )
+		if ( iter != outputList.end() )
 			return;
 
-		listenList.push_back( listener );
+		outputList.push_back( listener );
 	}
 
-	void   removeListener( LogChannel channel , ILogListener* listener )
+	void   removeListener( LogChannel channel , LogOutput* listener )
 	{
-		MsgListenerList& listenList = chanelListenerList[ channel ];
-		if( listenList.empty() ) 
+		LogOutputList& outputList = chanelListenerList[ channel ];
+		if( outputList.empty() ) 
 			return;
 
-		MsgListenerList::iterator iter = std::find( 
-			listenList.begin() , listenList.end() , listener );
+		LogOutputList::iterator iter = std::find( 
+			outputList.begin() , outputList.end() , listener );
 
-		if ( iter != listenList.end() )
-			listenList.erase( iter );
+		if ( iter != outputList.end() )
+			outputList.erase( iter );
 	}
 
 
-	void   sendMessage( LogChannel channel , char const* format , va_list argptr , int level )
+	void   sendMessage(LogChannel channel, int level , char const* str)
 	{
-		MsgListenerList& listenList = chanelListenerList[ channel ];
+		LogOutputList& outputList = chanelListenerList[channel];
 
-		char buffer[10240];
-		vsprintf_s( buffer , format , argptr );
-
-		MsgListenerList::iterator itEnd = listenList.end();
-		for( MsgListenerList::iterator iter = listenList.begin() ; 
-			iter != itEnd ; ++iter )
+		LogOutputList::iterator itEnd = outputList.end();
+		for( LogOutputList::iterator iter = outputList.begin();
+			iter != itEnd; ++iter )
 		{
-			ILogListener* listener = *iter;
-			if ( !listener->filterLog( channel , level ) )
+			LogOutput* output = *iter;
+			if( !output->filterLog(channel, level) )
 				continue;
 
-			listener->receiveLog( channel , buffer );
+			output->receiveLog(channel, str);
 		}
+	}
+
+	void   sendMessageV( LogChannel channel , char const* format, int level , va_list argptr  )
+	{
+		char buffer[10240];
+		vsprintf_s( buffer , format , argptr );
+		sendMessage(channel, level , buffer);
 	}
 };
 
-
-ILogListener::~ILogListener()
+void LogAddListenChannel(LogOutput& listener, LogChannel channel)
 {
-	for( int i = 0 ; i < NUM_DEFAULT_LOG_CHANNEL ; ++i )
-		removeChannel( LogChannel(i) );
+	LogManager::Get().addListener(channel, &listener);
 }
 
-void ILogListener::addChannel( LogChannel channel )
+void LogRemoveListenLogChannel(LogOutput& listener, LogChannel channel)
 {
-	LogManager::getInstance().addListener( channel , this );
+	LogManager::Get().addListener(channel, &listener);
 }
 
-void ILogListener::removeChannel( LogChannel channel )
+void LogMsg(char const* str)
 {
-	LogManager::getInstance().removeListener( channel , this );
+	LogManager::Get().sendMessage(LOG_MSG, 0, str);
+}
+
+void LogError(char const* str)
+{
+	LogManager::Get().sendMessage(LOG_ERROR, 0, str);
+}
+
+void LogDevMsg(int level, char const* str)
+{
+	LogManager::Get().sendMessage(LOG_DEV, level, str);
+}
+
+void LogWarning(int level, char const* str)
+{
+	LogManager::Get().sendMessage(LOG_WARNING, level, str);
 }
 
 
-void Msg(char const* format , ... )
+void LogMsgF(char const* format, ...)
 {
 	va_list argptr;
-	va_start( argptr, format );
-	LogManager::getInstance().sendMessage( LOG_MSG , format , argptr , 0 );
-	va_end( argptr );
+	va_start(argptr, format);
+	LogManager::Get().sendMessageV(LOG_MSG, format, 0, argptr);
+	va_end(argptr);
 }
 
-void DevMsg( int level , char const* format , ... )
+void LogDevMsgF(int level, char const* format, ...)
 {
 	//#ifdef _DEBUG
 	va_list argptr;
-	va_start( argptr, format );
-	LogManager::getInstance().sendMessage( LOG_DEV , format , argptr , level );
-	va_end( argptr );
+	va_start(argptr, format);
+	LogManager::Get().sendMessageV(LOG_DEV, format, level, argptr);
+	va_end(argptr);
 	//#endif
 }
 
-void WarmingMsg( int level , char const* format , ... )
+void LogWarningF(int level, char const* format, ...)
 {
 	va_list argptr;
-	va_start( argptr, format );
-	LogManager::getInstance().sendMessage( LOG_WARNING , format , argptr , level );
-	va_end( argptr );
+	va_start(argptr, format);
+	LogManager::Get().sendMessageV(LOG_WARNING, format, level, argptr);
+	va_end(argptr);
 
 }
 
-void LogAddListenChannel(ILogListener& listener, LogChannel channel)
-{
-	LogManager::getInstance().addListener(channel, &listener);
-}
-
-void LogRemoveListenLogChannel(ILogListener& listener, LogChannel channel)
-{
-	LogManager::getInstance().addListener(channel, &listener);
-}
-
-void ErrorMsg( char const* format , ... )
+void LogErrorF(char const* format, ...)
 {
 	va_list argptr;
-	va_start( argptr, format );
-	LogManager::getInstance().sendMessage( LOG_ERROR , format , argptr , 0 );
-	va_end( argptr );
+	va_start(argptr, format);
+	LogManager::Get().sendMessageV(LOG_ERROR, format, 0, argptr);
+	va_end(argptr);
 }
 
-void Msg       ( char const* format , va_list argptr )
+void LogMsgV(char const* format, va_list argptr)
 {
-	LogManager::getInstance().sendMessage( LOG_MSG , format , argptr , 0 );
+	LogManager::Get().sendMessageV(LOG_MSG, format, 0, argptr);
 }
 
-void ErrorMsg  ( char const* format , va_list argptr )
+void LogErrorV(char const* format, va_list argptr)
 {
-	LogManager::getInstance().sendMessage( LOG_ERROR , format , argptr , 0 );
+	LogManager::Get().sendMessageV(LOG_ERROR, format, 0, argptr);
 }
 
-void DevMsg    ( int level , char const* format , va_list argptr )
+void LogDevMsgV(int level, char const* format, va_list argptr)
 {
-	LogManager::getInstance().sendMessage( LOG_DEV , format , argptr , level );
+	LogManager::Get().sendMessageV(LOG_DEV, format, level, argptr);
 }
 
-void WarmingMsg( int level , char const* format , va_list argptr )
+void LogWarningV(int level, char const* format, va_list argptr)
 {
-	LogManager::getInstance().sendMessage( LOG_WARNING , format , argptr , level );
+	LogManager::Get().sendMessageV(LOG_WARNING, format, level, argptr);
 }
+
+
+LogOutput::~LogOutput()
+{
+	for( int i = 0; i < NUM_DEFAULT_LOG_CHANNEL; ++i )
+		removeChannel(LogChannel(i));
+}
+
+void LogOutput::addChannel(LogChannel channel)
+{
+	LogManager::Get().addListener(channel, this);
+}
+
+void LogOutput::removeChannel(LogChannel channel)
+{
+	LogManager::Get().removeListener(channel, this);
+}
+
+#else
+
+LogOutput::~LogOutput(){}
+void LogOutput::addChannel(LogChannel channel){}
+void LogOutput::removeChannel(LogChannel channel){}
+
+#endif

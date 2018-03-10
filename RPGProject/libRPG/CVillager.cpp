@@ -171,7 +171,7 @@ void CVillager::runTask( AITask const& task )
 	{
 	case TASK_TALK:
 		clearCondition( CDT_TALK_END );
-		if ( TTalkSystem::getInstance().speak( this , task.IntVal ) )
+		if ( TTalkSystem::Get().speak( this , task.IntVal ) )
 		{
 			taskFinish( );
 		}

@@ -42,7 +42,7 @@ class CameraController
 class SampleBase : public GameLoopT< SampleBase , WindowsPlatform > 
 	             , public WinFrameT< SampleBase >
 	             , public WindowsMessageHandlerT< SampleBase >
-				 , public ILogListener
+				 , public LogOutput
 {
 public:
 	virtual bool onSetupSample(){ return true; }

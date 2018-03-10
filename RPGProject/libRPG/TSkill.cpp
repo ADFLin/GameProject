@@ -89,7 +89,7 @@ void TSkillLibrary::init()
 
 	if ( !loadIconName( SKILL_DATA_PATCH ) )
 	{
-		ErrorMsg("Can't Load Skill Data : %s" , SKILL_DATA_PATCH );
+		LogErrorF("Can't Load Skill Data : %s" , SKILL_DATA_PATCH );
 	}
 }
 
@@ -317,5 +317,5 @@ TSkill::TSkill()
 
 SkillInfo const* UG_QuerySkill( char const* name , int level )
 {
-	return TSkillLibrary::getInstance().querySkill( name , level );
+	return TSkillLibrary::Get().querySkill( name , level );
 }

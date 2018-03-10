@@ -12,14 +12,14 @@ IRenderEntity* CRenderComponent::createRenderEntity( unsigned slot /*= 0 */, SRe
 	{
 	case RES_ACTOR_MODEL:
 		{
-			ActorModelRes* modelRes = TResManager::getInstance().getActorModel( params.name );
+			ActorModelRes* modelRes = TResManager::Get().getActorModel( params.name );
 			CActorModel* model = modelRes->createModel( params.scene );
 			result = model;
 		}
 		break;
 	case RES_OBJ_MODEL:
 		{
-			ObjectModelRes* modelRes = TResManager::getInstance().getObjectModel( params.name );
+			ObjectModelRes* modelRes = TResManager::Get().getObjectModel( params.name );
 			CObjectModel* model = modelRes->createModel( params.scene );
 			result = model;
 		}

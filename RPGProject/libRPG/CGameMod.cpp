@@ -35,16 +35,16 @@ bool CGameMod::init( GameFramework* gameFramework )
 {
 	mFramework = gameFramework;
 
-	TResManager::getInstance().init();
+	TResManager::Get().init();
 
-	if ( !TResManager::getInstance().loadRes( RES_DATA_PATH ) )
+	if ( !TResManager::Get().loadRes( RES_DATA_PATH ) )
 	{
-		ErrorMsg( "can't load Res" );
-		TResManager::getInstance().addDefultData();
-		TResManager::getInstance().saveRes( RES_DATA_PATH );
+		LogErrorF( "can't load Res" );
+		TResManager::Get().addDefultData();
+		TResManager::Get().saveRes( RES_DATA_PATH );
 	}
 
-	if ( !TItemManager::getInstance().loadItemData( ITEM_DATA_PATH ) )
+	if ( !TItemManager::Get().loadItemData( ITEM_DATA_PATH ) )
 		return false;
 
 
@@ -73,8 +73,8 @@ void CGameMod::registerFactory()
 
 int CGameMod::update( long time )
 {
-	TEventSystem::getInstance().updateFrame();
-	CUISystem::getInstance().updateFrame();
+	TEventSystem::Get().updateFrame();
+	CUISystem::Get().updateFrame();
 	mFramework->update( time );
 	return 1;
 }

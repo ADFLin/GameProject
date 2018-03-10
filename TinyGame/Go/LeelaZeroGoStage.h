@@ -59,44 +59,7 @@ namespace Go
 		std::unique_ptr< IBotInterface > bot;
 
 		bool isBot() const { return type != ControllerType::ePlayer; }
-
-		bool initialize(ControllerType inType , void* botSetting = nullptr)
-		{
-			type = inType;
-
-			bot.release();
-			switch( type )
-			{
-			case ControllerType::ePlayer:
-				return true;
-			case ControllerType::eLeelaZero:
-				bot.reset(new LeelaBot());
-				break;
-			case ControllerType::eAQ:
-				bot.reset(new AQBot());
-				break;
-			case ControllerType::eZenV7:
-				bot.reset(new ZenBot(7));
-				break;
-			case ControllerType::eZenV6:
-				bot.reset(new ZenBot(6));
-				break;
-			case ControllerType::eZenV4:
-				bot.reset(new ZenBot(4));
-				break;
-			}
-
-			if( !bot )
-				return false;
-
-			if( !bot->initilize(botSetting) )
-			{
-				bot.release();
-				return false;
-			}
-			return true;
-		}
-
+		bool initialize(ControllerType inType , void* botSetting = nullptr);
 	};
 
 	class GFilePicker : public GWidget
@@ -135,6 +98,7 @@ namespace Go
 	{
 		MatchPlayer players[2];
 		int         idxPlayerTurn = 0;
+		bool        bSwapColor = false;
 
 		void advanceTurn()
 		{

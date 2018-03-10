@@ -56,7 +56,7 @@ namespace Zuma
 
 	protected:
 		unsigned m_chFlag;
-		ZStage*  m_nextStage;
+		ZStage*  mNextStage;
 		ZStage*  mCurStage;
 	};
 
@@ -77,13 +77,13 @@ namespace Zuma
 		virtual void onStart(){}
 		virtual bool onEvent( int evtID , ZEventData const& data , ZEventHandler* sender ){ return true; }
 
-		void    sendEvent( int evtID  , ZEventData const& data){  m_controller->processEvent( evtID , data );  }
+		void    sendEvent( int evtID  , ZEventData const& data){  mController->processEvent( evtID , data );  }
 		int     getStageID() const { return m_stageID; }
 
 	private:
 		int  m_stageID;
 		friend class ZStageController;
-		ZStageController* m_controller;
+		ZStageController* mController;
 	};
 
 	enum
@@ -133,7 +133,7 @@ namespace Zuma
 		int   curCurveIndex;
 
 		ZLevelInfo& lvInfo;
-		CVDataVec   vtxVec;
+		CurveVertexVector   vtxVec;
 		std::vector< CRSpline2D > splineVec;
 	};
 

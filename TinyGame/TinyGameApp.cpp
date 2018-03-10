@@ -41,8 +41,8 @@ TINY_API IGameNetInterface* gGameNetInterfaceImpl;
 TINY_API IDebugInterface*   gDebugInterfaceImpl;
 TINY_API uint32 gGameThreadId;
 
-class GameLogPrinter : public ILogListener
-	               , public IDebugInterface
+class GameLogPrinter : public LogOutput
+	                 , public IDebugInterface
 {
 public:
 

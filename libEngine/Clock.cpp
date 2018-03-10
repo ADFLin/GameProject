@@ -2,13 +2,13 @@
 
 #include <algorithm>
 
-TClock::TClock()
+HighResClock::HighResClock()
 {
 	QueryPerformanceFrequency(&mClockFrequency);
 	reset();
 }
 
-unsigned long int TClock::getTimeMicroseconds()
+unsigned long int HighResClock::getTimeMicroseconds()
 {
 	LARGE_INTEGER currentTime;
 	QueryPerformanceCounter(&currentTime);
@@ -44,7 +44,7 @@ unsigned long int TClock::getTimeMicroseconds()
 	return usecTicks;
 }
 
-void TClock::reset()
+void HighResClock::reset()
 {
 	QueryPerformanceCounter(&mStartTime);
 	mStartTick = GetTickCount();

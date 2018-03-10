@@ -153,7 +153,7 @@ bool ServerWorker::onRecvData( NetConnection* connection , SocketBuffer& buffer 
 		//maybe broadcast
 		if( client == nullptr )
 		{
-			::LogMsgF("ip = %lu , port = %u", clientAddr->get().sin_addr.s_addr, clientAddr->get().sin_port);
+			LogMsgF("ip = %lu , port = %u", clientAddr->get().sin_addr.s_addr, clientAddr->get().sin_port);
 
 			while( buffer.getAvailableSize() )
 			{
@@ -217,7 +217,7 @@ void ServerWorker::onConnectAccpet( NetConnection* con )
 	if ( !mTcpServer.getSocket().accept( conSocket , hostAddr ) )
 		return;
 
-	::LogMsgF( "Accpet ip = %lu port = %u" , hostAddr.get().sin_addr.s_addr , hostAddr.get().sin_port );
+	LogMsgF( "Accpet ip = %lu port = %u" , hostAddr.get().sin_addr.s_addr , hostAddr.get().sin_port );
 
 	NetClientData* client = mClientManager.findClient(hostAddr);
 	if( client )

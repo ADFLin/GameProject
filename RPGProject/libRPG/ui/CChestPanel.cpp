@@ -16,8 +16,8 @@ CChestPanel::CChestPanel( CActor* actor , Vec2i const& pos )
 	int d1 = ( CellSize - BoardSize )/2;
 	int d2 = ( CellSize - ItemSize )/2;
 
-	CUISystem::getInstance().setTextureDir( "Data/UI" );
-	Texture* tex = CUISystem::getInstance().fetchTexture( "slot_traits" );
+	CUISystem::Get().setTextureDir( "Data/UI" );
+	Texture* tex = CUISystem::Get().fetchTexture( "slot_traits" );
 
 	for ( int i = 0 ; i < MaxItemNum ; ++i )
 	{

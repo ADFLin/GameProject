@@ -14,6 +14,8 @@
 
 REGISTER_STAGE("LeelaZero Learning", Go::LeelaZeroGoStage, EStageGroup::Test);
 
+#define DERAULT_LEELA_WEIGHT_NAME "6615567eaa3adc8ea695682fcfbd7eaa3bb557d3720d2b61610b66006104050e"
+
 #include <Dbghelp.h>
 #pragma comment (lib,"Dbghelp.lib")
 
@@ -427,7 +429,7 @@ namespace Go
 		if( bestWeigetName != "" )
 			weightName = bestWeigetName.c_str();
 		else
-			weightName = Global::GameConfig().getStringValue("WeightData", "LeelaZero", "e671af6f29f0acce07405b51d946e1e69a3249f24194a052cd2da2325fa8a332");
+			weightName = Global::GameConfig().getStringValue("WeightData", "LeelaZero", DERAULT_LEELA_WEIGHT_NAME );
 
 		{
 			if( !mMatchData.players[0].initialize(ControllerType::ePlayer) )
@@ -450,8 +452,7 @@ namespace Go
 
 	bool LeelaZeroGoStage::buildLeelaMatchMode()
 	{
-		//char const* weigthNameA = "eebb910dc02d50437b8fe78c43e4f77b3428b092e9477163aa16403238cea918";
-		char const* weightNameA = ::Global::GameConfig().getStringValue( "LeelaLastOpenWeight" , "Go" , "aaa33e89d06aeeb2e2dca276f2e19e5cdd0d5a3d761d7638eedde11c62125003" );
+		char const* weightNameA = ::Global::GameConfig().getStringValue( "LeelaLastOpenWeight" , "Go" , DERAULT_LEELA_WEIGHT_NAME );
 
 		FixString<256> path;
 		path.format("%s/%s" , LeelaAppRun::InstallDir , weightNameA );
@@ -498,19 +499,42 @@ namespace Go
 		{
 			LeelaAISetting setting;
 			std::string bestWeigetName = LeelaAppRun::GetBestWeightName();
-			setting.weightName = bestWeigetName.c_str();
+			FixString<256> path;
+			path.format("%s/%s", LeelaAppRun::InstallDir, bestWeigetName.c_str());
+			path.replace('/', '\\');
+
+			if( SystemPlatform::OpenFileName(path, path.max_size(), nullptr) )
+			{
+				setting.weightName = FileUtility::GetDirPathPos(path) + 1;
+			}
+			else
+			{
+				setting.weightName = bestWeigetName.c_str();
+			}
+
+			
 			setting.seed = generateRandSeed();
+			setting.bNoise = true;
+			setting.numThread = 4;
+			setting.playouts = 10000;
 			if( !mMatchData.players[0].initialize(ControllerType::eLeelaZero, &setting) )
 				return false;
 		}
 
 		{
-			if( !mMatchData.players[1].initialize(ControllerType::eZenV7 , nullptr) )
+			Zen::CoreSetting setting;
+			int numCPU = SystemPlatform::GetProcessorNumber();
+			setting.numThreads = numCPU - 2;
+			setting.numSimulations = 10000000;
+			setting.maxTime = 15;
+			if( !mMatchData.players[1].initialize(ControllerType::eZenV7 , &setting) )
 				return false;
 		}
 
+		//mMatchData.bSwapColor = true;
+
 		GameSetting setting;
-		setting.fixedHandicap = 0;
+		setting.fixedHandicap = 4;
 		if( setting.fixedHandicap )
 			setting.bBlackFrist = false;
 
@@ -529,6 +553,12 @@ namespace Go
 		mGame.setSetting(setting);
 		mGame.restart();
 		mGameRenderer.generateNoiseOffset(mGame.getBoard().getSize());
+
+		mMatchData.idxPlayerTurn = (setting.bBlackFrist) ? 0 : 1;
+		if( mMatchData.bSwapColor )
+			mMatchData.idxPlayerTurn = 1 - mMatchData.idxPlayerTurn;
+
+		int indexBlack = (mMatchData.bSwapColor) ? 1 : 0;
 
 		bool bHavePlayerController = false;
 		for( int i = 0; i < 2; ++i )
@@ -550,7 +580,6 @@ namespace Go
 			createPlayWidget();
 		}
 
-		mMatchData.idxPlayerTurn = (setting.bBlackFrist) ? 0 : 1;
 		IBotInterface* bot = mMatchData.getCurTurnBot();
 		if( bot )
 		{
@@ -628,7 +657,7 @@ namespace Go
 			{
 			case GameCommand::eStart:
 				{
-					::LogMsg("GameStart");
+					LogMsg("GameStart");
 					mGame.restart();
 					mGameRenderer.generateNoiseOffset(mGame.getBoard().getSize());
 #if DETECT_LEELA_PROCESS
@@ -639,19 +668,19 @@ namespace Go
 				break;
 			case GameCommand::ePass:
 				{
-					::LogMsg("Pass");
+					LogMsg("Pass");
 					mGame.playPass();
 				}
 				break;
 			case GameCommand::eResign:
 				{
 					char const* name = (color == StoneColor::eBlack) ? "Black" : "White";
-					::LogMsgF("%s Resigned", name);
+					LogMsgF("%s Resigned", name);
 				}
 				break;
 			case GameCommand::eEnd:
 				{
-					::LogMsg("Game End");
+					LogMsg("Game End");
 					++numGameCompleted;
 					bMatchJob = false;
 
@@ -684,7 +713,7 @@ namespace Go
 					}
 					else
 					{
-						::LogMsgF("Warning:Can't Play step : [%d,%d]", com.pos[0], com.pos[1]);
+						LogMsgF("Warning:Can't Play step : [%d,%d]", com.pos[0], com.pos[1]);
 					}
 
 				}
@@ -703,12 +732,12 @@ namespace Go
 		{
 		case GameCommand::ePass:
 			{
-				::LogMsg("Pass");
+				LogMsg("Pass");
 				mGame.playPass();
 
 				if( mGame.getLastPassCount() >= 2 )
 				{
-					::LogMsg("GameEnd");
+					LogMsg("GameEnd");
 					if( mMatchData.players[0].type == ControllerType::eLeelaZero ||
 					    mMatchData.players[1].type == ControllerType::eLeelaZero )
 					{
@@ -763,7 +792,7 @@ namespace Go
 				}
 				else
 				{
-					::LogMsgF("Warning:Can't Play step : [%d,%d]", com.pos[0], com.pos[1]);
+					LogMsgF("Warning:Can't Play step : [%d,%d]", com.pos[0], com.pos[1]);
 				}
 
 			}
@@ -837,5 +866,42 @@ namespace Go
 		notifyCommand(com);
 	}
 
+
+	bool MatchPlayer::initialize(ControllerType inType, void* botSetting /*= nullptr*/)
+	{
+		type = inType;
+
+		bot.release();
+		switch( type )
+		{
+		case ControllerType::ePlayer:
+			return true;
+		case ControllerType::eLeelaZero:
+			bot.reset(new LeelaBot());
+			break;
+		case ControllerType::eAQ:
+			bot.reset(new AQBot());
+			break;
+		case ControllerType::eZenV7:
+			bot.reset(new ZenBot(7));
+			break;
+		case ControllerType::eZenV6:
+			bot.reset(new ZenBot(6));
+			break;
+		case ControllerType::eZenV4:
+			bot.reset(new ZenBot(4));
+			break;
+		}
+
+		if( !bot )
+			return false;
+
+		if( !bot->initilize(botSetting) )
+		{
+			bot.release();
+			return false;
+		}
+		return true;
+	}
 
 }//namespace Go

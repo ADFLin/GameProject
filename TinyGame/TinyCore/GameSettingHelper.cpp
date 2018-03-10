@@ -39,7 +39,7 @@ void NetRoomSettingHelper::setMaxPlayerNum( int num )
 	typedef PlayerListPanel::Slot Slot;
 	if ( num > MAX_PLAYER_NUM )
 	{
-		::LogMsgF( "( %s %s )Number of Slots are less than Max Player Number" , __FILE__ , __LINE__ );
+		LogMsgF( "( %s %s )Number of Slots are less than Max Player Number" , __FILE__ , __LINE__ );
 	}
 
 	int numPlayer = 0;

@@ -60,7 +60,7 @@ void CItemBagFrame::Button::onUpdateUI()
 void CItemBagFrame::Button::onRender()
 {
 	BaseClass::onRender();
-	renderText( CUISystem::getInstance().getDefultFont() );
+	renderText( CUISystem::Get().getDefultFont() );
 }
 
 TItemStorage& CItemBagFrame::Button::getItemStorage()
@@ -179,8 +179,8 @@ CItemBagFrame::CItemBagFrame( CActor* actor , Vec2i const& pos )
 	int d1 = ( CellSize - BoardSize )/2;
 	int d2 = ( CellSize - ItemSize )/2;
 
-	CUISystem::getInstance().setTextureDir( "Data/UI" );
-	Texture* tex = CUISystem::getInstance().fetchTexture( "slot_traits" );
+	CUISystem::Get().setTextureDir( "Data/UI" );
+	Texture* tex = CUISystem::Get().fetchTexture( "slot_traits" );
 
 
 	mSlotBKSpr->setRenderOption( CFly::CFRO_ALPHA_BLENGING , true );

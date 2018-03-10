@@ -24,7 +24,7 @@ bool RenderSystem::init( SSystemInitParams& params )
 	if ( !CFly::initSystem() )
 		return false;
 
-	CFly::PluginManager::getInstance().registerLinker( "CW3" , new CFly::Cw3FileLinker );
+	CFly::PluginManager::Get().registerLinker( "CW3" , new CFly::Cw3FileLinker );
 
 	mCFWorld = CFly::createWorld( 
 		params.hWnd , params.bufferWidth , params.bufferHeight , 32 , false );

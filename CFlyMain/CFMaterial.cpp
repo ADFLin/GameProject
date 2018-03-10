@@ -12,13 +12,13 @@ namespace CFly
 	{
 		Material* material = new Material( amb , dif , spe , shine , emi );
 		material->mMamager = this;
-		EntityManager::getInstance().registerEntity( material );
+		EntityManager::Get().registerEntity( material );
 		return material;
 	}
 
 	void MaterialManager::destoryMaterial( Material* material )
 	{
-		if ( !EntityManager::getInstance().removeEntity( material ) )
+		if ( !EntityManager::Get().removeEntity( material ) )
 			return;
 
 		delete material;
@@ -99,7 +99,7 @@ namespace CFly
 
 		if ( !texture )
 		{
-			ErrorMsg( "Can't Load Texture File ! \n"
+			LogErrorF( "Can't Load Texture File ! \n"
 				      "Path = %s Error Code = %d",  
 				      path , hr );
 			return nullptr;
@@ -108,7 +108,7 @@ namespace CFly
 		unsigned flag = ( colorKey ) ? Texture::TF_USAGE_COLOR_KEY : 0;
 
 		texture->_setupAttribute( type , flag );
-		EntityManager::getInstance().registerEntity( texture );
+		EntityManager::Get().registerEntity( texture );
 		return texture;
 	}
 
@@ -206,7 +206,7 @@ namespace CFly
 
 		Texture* texture = new Texture( d3dTexture , this );
 		texture->_setupAttribute( CFT_TEXTURE_2D , flag );
-		EntityManager::getInstance().registerEntity( texture );
+		EntityManager::Get().registerEntity( texture );
 		return texture;
 	}
 
@@ -281,7 +281,7 @@ namespace CFly
 		if ( hr != D3D_OK )
 		{
 			char const* error = (char const*)buffer->GetBufferPointer();
-			ErrorMsg( "Compile Shader file Error : \n"
+			LogErrorF( "Compile Shader file Error : \n"
 				       "path = %s \n"
 					   "ErrorMsg = %s ",
 					   path , error  );

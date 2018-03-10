@@ -85,8 +85,8 @@ CStoreFrame::CStoreFrame( Vec2i const& pos )
 	int d1 = ( CellSize - BoardSize )/2;
 	int d2 = ( CellSize - ItemSize )/2;
 
-	CUISystem::getInstance().setTextureDir( "Data/UI" );
-	Texture* tex = CUISystem::getInstance().fetchTexture( "slot_traits" );
+	CUISystem::Get().setTextureDir( "Data/UI" );
+	Texture* tex = CUISystem::Get().fetchTexture( "slot_traits" );
 
 	mSlotBKSpr->setRenderOption( CFly::CFRO_ALPHA_BLENGING , true );
 
@@ -221,7 +221,7 @@ void CStoreFrame::onRender()
 	int x = pos.x + 70;
 	int y = pos.y + getSize().y - CellSize ;
 
-	CFont& font = CUISystem::getInstance().getDefultFont();
+	CFont& font = CUISystem::Get().getDefultFont();
 
 	setupUITextDepth();
 

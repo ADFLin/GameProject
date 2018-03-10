@@ -10,50 +10,8 @@
 #include "Core/IntegerType.h"
 #include "EnumCommon.h"
 #include "MemorySecurity.h"
+#include "Template/StringView.h"
 
-struct TokenString
-{
-	char const* ptr;
-	int num;
-
-
-	TokenString() {}
-	TokenString(char const* ptr)
-		:ptr(ptr), num(strlen(ptr))
-	{
-	}
-	TokenString(EForceInit) :ptr(nullptr), num(0) {}
-
-	int  compare(TokenString const& other) const;
-	int  compare(char const* other) const;
-
-	char operator[](int idx) const { assert(idx < num); return ptr[idx]; }
-	bool operator == (TokenString const& other) const
-	{
-		return !compare(other);
-	}
-	bool operator == (char const* other) const
-	{
-		return !compare(other);
-	}
-
-	bool operator != (char const* other) const { return !operator == (other); }
-	int  compareInternal(char const* other, int numOhter) const;
-
-	bool toFloat(float& value)
-	{
-		//TODO : optimize
-		std::string temp = toStdString();
-		char* endPtr;
-		value = strtof(temp.c_str(), &endPtr);
-		return endPtr == &temp.back() + 1;
-	}
-
-	std::string toStdString() const
-	{
-		return std::string(ptr, num);
-	}
-};
 
 class DelimsTable
 {
@@ -70,10 +28,11 @@ public:
 	bool isStopDelims(char c) const;
 	bool isDropDelims(char c) const;
 private:
+	//TODO:
 	uint8 mDelimsMap[256];
 };
 
-class ParseUtility
+class FStringParse
 {
 public:
 	static char const* FindLastChar(char const* str, int num, char c);
@@ -102,11 +61,11 @@ public:
 		eStringType = 1,
 		eDelimsType = 2,
 	};
-	static TokenType StringToken(char const*& inoutStr, DelimsTable const& table, TokenString& outToken);
+	static TokenType StringToken(char const*& inoutStr, DelimsTable const& table, StringView& outToken);
 
-	static TokenType StringToken(char const*& inoutStr, char const* dropDelims, char const* stopDelims, TokenString& outToken);
-	static bool      StringToken(char const*& inoutStr, char const* dropDelims, TokenString& outToken);
-	static TokenString StringTokenLine(char const*& inoutStr);
+	static TokenType StringToken(char const*& inoutStr, char const* dropDelims, char const* stopDelims, StringView& outToken);
+	static bool      StringToken(char const*& inoutStr, char const* dropDelims, StringView& outToken);
+	static StringView StringTokenLine(char const*& inoutStr);
 
 	enum
 	{
@@ -136,7 +95,7 @@ class Tokenizer : public DelimsTable
 public:
 	Tokenizer(char const* str, char const* dropDelims, char const* stopDelims = "");
 
-	typedef ParseUtility::TokenType TokenType;
+	typedef FStringParse::TokenType TokenType;
 
 	void        reset(char const* str);
 	char const* next() { return mPtr; }
@@ -144,7 +103,7 @@ public:
 	void        skipDropDelims();
 
 
-	TokenType  take(TokenString& str);
+	TokenType  take(StringView& str);
 
 	char const* mPtr;
 };

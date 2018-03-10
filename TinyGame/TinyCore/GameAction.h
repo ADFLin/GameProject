@@ -199,7 +199,7 @@ public:
 		}
 		if( count )
 		{
-			::LogMsg( msg );
+			LogMsg( msg );
 		}
 	}
 

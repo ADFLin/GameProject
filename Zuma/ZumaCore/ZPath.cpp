@@ -30,7 +30,7 @@ namespace Zuma
 
 	}
 
-	void ZCurvePath::buildSpline( CVDataVec const& vtxVec , float step  )
+	void ZCurvePath::buildSpline( CurveVertexVector const& vtxVec , float step  )
 	{
 		mStepOffset = step;
 
@@ -44,14 +44,14 @@ namespace Zuma
 
 		for( int i = 3 ; i < vtxVec.size() ; ++i )
 		{
-			CVData const& data = vtxVec[i-2];
-			if ( haveMask && ( data.flag & CVData::eMask )== 0 )
+			CurveVertex const& data = vtxVec[i-2];
+			if ( haveMask && ( data.flag & CurveVertex::eMask )== 0 )
 			{
 				range.to = mPath.size() * step;
 				mMaskRanges.push_back( range );
 				haveMask = false;
 			}
-			else if ( !haveMask && ( data.flag & CVData::eMask )!= 0 )
+			else if ( !haveMask && ( data.flag & CurveVertex::eMask )!= 0 )
 			{
 				range.from = mPath.size() * step;
 				haveMask = true;

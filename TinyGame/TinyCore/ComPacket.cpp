@@ -147,7 +147,7 @@ bool ComEvaluator::ReadBuffer( SocketBuffer& buffer , IComPacket* cp )
 	takeSize -= ComPacketHeaderSize;
 	if ( takeSize > buffer.getAvailableSize() )
 	{
-		::LogMsgF( "Error packet format : size isn't enough" );
+		LogMsgF( "Error packet format : size isn't enough" );
 		buffer.shiftUseSize( -int(ComPacketHeaderSize) );
 		return false;
 	}

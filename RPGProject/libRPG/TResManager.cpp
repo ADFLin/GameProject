@@ -72,7 +72,7 @@ void serializeColShape( Archive & ar , PhyShapeHandle& shape , true_type )
 	PhyShapeParams info;
 	boost::serialization::serialize( ar , info );
 	if ( info.type != CSHAPE_TRIANGLE_MESH )
-		shape = PhysicsSystem::getInstance().createShape( info );
+		shape = PhysicsSystem::Get().createShape( info );
 	else
 		shape = 0;
 }
@@ -81,7 +81,7 @@ template < class Archive >
 void serializeColShape( Archive & ar , PhyShapeHandle& shape , false_type )
 {
 	PhyShapeParams info;
-	PhysicsSystem::getInstance().getShapeParamInfo( shape , info );
+	PhysicsSystem::Get().getShapeParamInfo( shape , info );
 	boost::serialization::serialize( ar , info );
 }
 
@@ -278,7 +278,7 @@ bool TResManager::checkResLoaded( IResBase* resData , bool beWait )
 			}
 			else
 			{
-				ErrorMsg("Can't load Res : type = %s , name = %s" , 
+				LogErrorF("Can't load Res : type = %s , name = %s" , 
 					ResTypStr[ resData->resType ] , 
 					resData->resName.c_str() );
 			}
@@ -438,7 +438,7 @@ void TResManager::addDefultData()
 	res = new ActorModelRes;                                 \
 	res->resName = name;                                     \
 	res->phyData.mass = 0;                                   \
-	res->phyData.shape = PhysicsSystem::getInstance().createShape( info );\
+	res->phyData.shape = PhysicsSystem::Get().createShape( info );\
 	res->modelOffset = offset;                                 \
 	for( int i = 0 ; i < ActorModelRes::MAX_POSTABLE_NUM; ++i )\
 	res->animTable[i] = table[i];                          \
@@ -471,7 +471,7 @@ void TResManager::addDefultData()
 	res = new ObjectModelRes;                                 \
 	res->resName = NAME;                                      \
 	res->phyData.mass = MASS;                                 \
-	res->phyData.shape = PhysicsSystem::getInstance().createShape( info );\
+	res->phyData.shape = PhysicsSystem::Get().createShape( info );\
 	resigterRes( RES_OBJ_MODEL , res );                       \
 
 		{
@@ -525,8 +525,8 @@ void TResManager::addDefultData()
 
 bool EquipModelRes::load()
 {
-	CFWorld* world = TResManager::getInstance().getWorld();
-	CFScene* scene = TResManager::getInstance().getBGScene();
+	CFWorld* world = TResManager::Get().getWorld();
+	CFScene* scene = TResManager::Get().getBGScene();
 
 	world->setDir( CFly::DIR_OBJECT , ITEM_DATA_DIR );
 	world->setDir( CFly::DIR_TEXTURE , ITEM_DATA_DIR );
@@ -549,8 +549,8 @@ void EquipModelRes::release()
 
 bool ObjectModelRes::load()
 {
-	CFWorld* world = TResManager::getInstance().getWorld();
-	CFScene* scene = TResManager::getInstance().getBGScene();
+	CFWorld* world = TResManager::Get().getWorld();
+	CFScene* scene = TResManager::Get().getBGScene();
 
 	world->setDir( CFly::DIR_OBJECT , OBJECT_DATA_DIR );
 	//world->setDir( CFly::DIR_TEXTURE , ITEM_DATA_DIR );
@@ -587,8 +587,8 @@ CObjectModel* ObjectModelRes::createModel( CFScene* scene )
 
 bool ActorModelRes::load()
 {
-	CFWorld* world = TResManager::getInstance().getWorld();
-	CFScene* scene = TResManager::getInstance().getBGScene();
+	CFWorld* world = TResManager::Get().getWorld();
+	CFScene* scene = TResManager::Get().getBGScene();
 
 	String path = ACTOR_DATA_DIR + resName;
 	world->setDir( CFly::DIR_ACTOR , path.c_str() );
@@ -654,7 +654,7 @@ CActorModel* ActorModelRes::createModel( CFScene* scene )
 bool SceneMapRes::load()
 {
 	String mapDir = String( MAP_DATA_DIR ) + resName;
-	CFWorld* world = TResManager::getInstance().getWorld();
+	CFWorld* world = TResManager::Get().getWorld();
 
 	scene = world->createScene( 5 );
 
@@ -672,18 +672,18 @@ bool SceneMapRes::load()
 	fileName = mapDir + "/" + resName + ".ter";
 	if ( !terrainMesh->load( fileName.c_str() ) )
 	{
-		ErrorMsg( "cant Load TerrainData! , map = %s" , resName.c_str() );
+		LogErrorF( "cant Load TerrainData! , map = %s" , resName.c_str() );
 		goto load_fail;
 	}
 
 	PhyShapeParams info;
 	terrainMesh->fillShapeParams( info );
-	terrainShape = PhysicsSystem::getInstance().createShape( info );
+	terrainShape = PhysicsSystem::Get().createShape( info );
 
 	fileName = mapDir + "/" + resName + ".nav";
 	if ( !navMesh.load( fileName.c_str() ) )
 	{
-		ErrorMsg( "cant Load NavMesh! , map = %s" , resName.c_str() ); 
+		LogErrorF( "cant Load NavMesh! , map = %s" , resName.c_str() ); 
 		goto load_fail;
 	}
 
@@ -699,7 +699,7 @@ void SceneMapRes::releaseInternal()
 	if ( scene )
 		scene->release();
 	delete terrainMesh;
-	PhysicsSystem::getInstance().destroyShape( terrainShape );
+	PhysicsSystem::Get().destroyShape( terrainShape );
 	navMesh.releaseData();
 
 	scene = nullptr;

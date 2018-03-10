@@ -32,7 +32,7 @@ rcBuilding::rcBuilding()
 
 ModelInfo const& rcBuilding::getModel()
 {
-	return rcDataManager::getInstance().getBuildingModel( mModelID );
+	return rcDataManager::Get().getBuildingModel( mModelID );
 }
 
 Vec2i const& rcBuilding::getSize()
@@ -73,7 +73,7 @@ void rcBuilding::updateState()
 
 void rcBuilding::setModelID( unsigned id )
 {
-	ModelInfo& info = rcDataManager::getInstance().getBuildingModel( id );
+	ModelInfo& info = rcDataManager::Get().getBuildingModel( id );
 
 	mSize.x = info.xSize;
 	mSize.y = info.ySize;
@@ -745,7 +745,7 @@ void rcWorkerBuilding::onFindLabor( rcWorker* worker )
 void rcWorkerBuilding::createLaborFindingWorker( rcCityInfo& cInfo )
 {
 	WorkerSlot* slot = createWorker( cInfo , FIND_HOUSE_SLOT , WT_FIND_MAN );
-	WorkerInfo& info = rcDataManager::getInstance().getWorkerInfo( slot->worker->getType() );
+	WorkerInfo& info = rcDataManager::Get().getWorkerInfo( slot->worker->getType() );
 	RandomMoveMission* mission =  new RandomMoveMission( info.randMoveDist );
 	mission->setOnTileCallback( this , &rcWorkerBuilding::onFindLabor );
 	slot->worker->changeMission( mission );
@@ -989,7 +989,7 @@ void rcServiceBuilding::onCreate( rcCityInfo& cInfo )
 
 	if ( slot )
 	{
-		WorkerInfo& info = rcDataManager::getInstance().getWorkerInfo( slot->worker->getType() );
+		WorkerInfo& info = rcDataManager::Get().getWorkerInfo( slot->worker->getType() );
 		RandomMoveMission* mission =  new RandomMoveMission( info.randMoveDist );
 		mission->setOnTileCallback( this , &rcWorkerBuilding::onService );
 
@@ -1174,7 +1174,7 @@ void rcMarket::onCreate( rcCityInfo& cInfo )
 
 	slot = createWorker( cInfo , SERVICE_SLOT , WT_MARKET_TRADER );
 
-	WorkerInfo& info = rcDataManager::getInstance().getWorkerInfo( slot->worker->getType() );
+	WorkerInfo& info = rcDataManager::Get().getWorkerInfo( slot->worker->getType() );
 	RandomMoveMission* mission =  new RandomMoveMission( info.randMoveDist );
 	mission->setOnTileCallback( this , &rcMarket::onMarketService );
 

@@ -13,6 +13,8 @@
 #include <fstream>
 #include <sstream>
 
+#include "SystemPlatform.h"
+
 #define RES_XML_PATH    "properties/resources.xml"
 #define LEVEL_XML_PATH "levels/levels.xml"
 
@@ -60,7 +62,7 @@ namespace Zuma
 		}
 	}
 
-	bool GameCore::init( GameInitialer& initilizer )
+	bool GameCore::init( GameInitializer& initilizer )
 	{
 		if ( !initilizer.setupWindow( "Zuma Clone" , g_ScreenWidth , g_ScreenHeight ) )
 			return false;
@@ -87,7 +89,7 @@ namespace Zuma
 		resManager.setResLoader( RES_FONT  , sRenderSystem );
 		resManager.setResLoader( RES_SOUND , &audioPlayer );
 
-		if ( !ZLevelManager::getInstance().init( LEVEL_XML_PATH ) )
+		if ( !ZLevelManager::Get().init( LEVEL_XML_PATH ) )
 			return false;
 
 		mSetting.setDefault();
@@ -125,13 +127,13 @@ namespace Zuma
 
 		uiSystem.render();
 
-		static long beTime = GetTickCount();
+		static int64 beTime = SystemPlatform::GetTickCount();
 
 		if ( renderFrame > 1000 )
 		{
-			showFPS = 1000.0f *float( renderFrame ) / ( GetTickCount() - beTime );
+			showFPS = 1000.0f *float( renderFrame ) / ( SystemPlatform::GetTickCount() - beTime );
 
-			beTime = GetTickCount();
+			beTime = SystemPlatform::GetTickCount();
 			renderFrame = 0;
 		}
 
@@ -458,13 +460,13 @@ namespace Zuma
 	{
 		if ( mIdStage != idStage )
 		{
-			ZLevelManager::getInstance().loadStage( idStage , mLvList );
+			ZLevelManager::Get().loadStage( idStage , mLvList );
 		}
 
 		if ( idxLv >= getLevelNum() )
 		{
 			++idStage;
-			ZLevelManager::getInstance().loadStage( idStage , mLvList );
+			ZLevelManager::Get().loadStage( idStage , mLvList );
 			idxLv = 0;
 		}
 
@@ -490,7 +492,7 @@ namespace Zuma
 
 	ZAdventureMode::ZAdventureMode( unsigned idStage , int idxLv )
 	{
-		ZLevelManager::getInstance().loadStage( idStage , mLvList );
+		ZLevelManager::Get().loadStage( idStage , mLvList );
 		mIdStage = idStage;
 		mIdxLv   = idxLv;
 	}

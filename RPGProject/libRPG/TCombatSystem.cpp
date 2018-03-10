@@ -117,5 +117,5 @@ void CombatSystem::inputDamage( DamageInfo& info )
 
 void UG_InputDamage( DamageInfo& info )
 {
-	CombatSystem::getInstance().inputDamage( info );
+	CombatSystem::Get().inputDamage( info );
 }

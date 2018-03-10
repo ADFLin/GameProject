@@ -66,7 +66,7 @@ namespace Go
 	public:
 		virtual bool initilize(void* settingData) = 0;
 		virtual void destroy() = 0;
-		virtual bool setupGame(GameSetting const& setting) = 0;
+		virtual bool setupGame(GameSetting const& setting ) = 0;
 		virtual bool playStone(int x , int y , int color) = 0;
 		virtual bool playPass(int color) = 0;
 		virtual bool undo() = 0;

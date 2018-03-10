@@ -71,6 +71,7 @@ bool ChildProcess::create(char const* path, char const* command /*= nullptr*/)
 
 	// Create the child process. 
 
+
 	bSuccess = ::CreateProcess(
 		path,
 		commandLine,  // command line 
@@ -130,7 +131,7 @@ DWORD FPlatformProcess::FindPIDByName(TCHAR const* name)
 	{
 		while( Process32Next(hSnapshot, &entry) == TRUE )
 		{
-			if( TCString<TCHAR>::Compare(entry.szExeFile, name) == 0 )
+			if( FCString::Compare(entry.szExeFile, name) == 0 )
 			{
 				result = entry.th32ProcessID;
 				break;
@@ -178,7 +179,7 @@ DWORD FPlatformProcess::FindPIDByNameAndParentPID(TCHAR const* name, DWORD paren
 	{
 		while( Process32Next(hSnapshot, &entry) == TRUE )
 		{
-			if( TCString<TCHAR>::Compare(entry.szExeFile, name) == 0 &&
+			if( FCString::Compare(entry.szExeFile, name) == 0 &&
 			   entry.th32ParentProcessID == parentID )
 			{
 				result = entry.th32ProcessID;

@@ -1,10 +1,5 @@
 #include "common.h"
 
-#include "GameLoop.h"
-#include "WindowsPlatform.h"
-#include "WindowsMessageHander.h"
-#include "LogSystem.h"
-
 #include "CFlyHeader.h"
 #include "PhysicsSystem.h"
 #include "CUISystem.h"
@@ -48,6 +43,12 @@
 #include "GameFramework.h"
 #include "CGameMod.h"
 
+#include "GameLoop.h"
+#include "WindowsPlatform.h"
+#include "WindowsMessageHander.h"
+#include "LogSystem.h"
+#include "SystemPlatform.h"
+
 
 ConsoleSystem gConsoleSystem;
 
@@ -65,7 +66,7 @@ class EntityTemplateManager
 class ControlComponent;
 
 
-class DebugMsgListener : public ILogListener
+class DebugMsgOutput : public LogOutput
 {
 
 
@@ -85,14 +86,14 @@ public:
 
 	void onRoot     ( SampleNode* node )
 	{
-		double time_since_reset = ProfileSystem::getInstance().getTimeSinceReset();
+		double time_since_reset = ProfileSystem::Get().getTimeSinceReset();
 		msgShow.push( "--- Profiling: %s (total running time: %.3f ms) ---" , 
 			node->getName() , time_since_reset );
 	}
 
 	void onNode     ( SampleNode* node , double parentTime )
 	{
-		float tf = node->getTotalTime()  / (double)ProfileSystem::getInstance().getFrameCountSinceReset();
+		float tf = node->getTotalTime()  / (double)ProfileSystem::Get().getFrameCountSinceReset();
 		msgShow.push( "|-> %d -- %s (%.2f %%) :: %.3f ms / frame  (%.3f (1e-5ms/call) (%d calls)",
 			++mIdxChild , node->getName() ,
 			parentTime > CLOCK_EPSILON ? ( node->getTotalTime()  / parentTime ) * 100 : 0.f ,
@@ -116,13 +117,13 @@ public:
 			if ( node->getParent() != NULL )
 				time = node->getTotalTime();
 			else
-				time = ProfileSystem::getInstance().getTimeSinceReset();
+				time = ProfileSystem::Get().getTimeSinceReset();
 
 			double delta = time - accTime;
 			msgShow.push( "|-> %s (%.3f %%) :: %.3f ms / frame", "Other",
 				// (min(0, time_since_reset - totalTime) / time_since_reset) * 100);
 				( time > CLOCK_EPSILON ) ? ( delta / time * 100 ) : 0.f  , 
-				delta / (double)ProfileSystem::getInstance().getFrameCountSinceReset() );
+				delta / (double)ProfileSystem::Get().getFrameCountSinceReset() );
 			msgShow.push( "-------------------------------------------------" );
 		}
 
@@ -241,7 +242,7 @@ public:
 		mSceneLevel->active();
 
 		mCFScene = mSceneLevel->getRenderScene();
-		TResManager::getInstance().setCurScene( mCFScene );
+		TResManager::Get().setCurScene( mCFScene );
 
 		mCFCamera = mCFScene->createCamera();
 		mCFCamera->setAspect( float(  w ) / h );
@@ -409,7 +410,7 @@ public:
 	typedef std::vector< CEntity* > EntityList;
 	long onUpdate( long shouldTime )
 	{ 
-		ProfileSystem::getInstance().incrementFrameCount();
+		ProfileSystem::Get().incrementFrameCount();
 
 		if ( mCDMask )
 			mCDMask->update();
@@ -482,28 +483,28 @@ public:
 		{
 			PROFILE_ENTRY("RenderScene");
 			mCFScene->render( mCFCamera , mViewport );
-			CUISystem::getInstance().render();
+			CUISystem::Get().render();
 		}
 
 		{
 			PROFILE_ENTRY("drawText");
 			//g_ProfileViewer.showText();
 
-			static int   m_frameCount = 0;
-			static float time = GetTickCount();
-			static float m_fps = 0;
-			++m_frameCount;
-			if ( m_frameCount > 100 )
+			static int   mFrameCount = 0;
+			static int64 time = SystemPlatform::GetTickCount();
+			static float mFPS = 0;
+			++mFrameCount;
+			if ( mFrameCount > 100 )
 			{
-				m_fps = 1000.0f * ( m_frameCount ) / ( GetTickCount() - time );
-				time = GetTickCount();
-				m_frameCount = 0;
+				mFPS = 1000.0f * ( mFrameCount ) / (SystemPlatform::GetTickCount() - time );
+				time = SystemPlatform::GetTickCount();
+				mFrameCount = 0;
 			}
 			mCFWorld->beginMessage();
 			Vec3D front = mPlayer->getFaceDir();
 			Vec3D pos   = mPlayer->getPosition();
 			Vec3D moveDir = mPlayerControl->moveDir;
-			drawText( 10 , 10 , "fps = %f " , m_fps );
+			drawText( 10 , 10 , "fps = %f " , mFPS );
 			drawText( 10 , 25 , "PP = (%f %f %f)" , pos.x , pos.y , pos.z );
 			drawText( 10 , 40 , "PF = (%f %f %f)" , front.x , front.y , front.z );
 			drawText( 10 , 55 , "MD = (%f %f %f)" , dbgMoveDir.x , dbgMoveDir.y , dbgMoveDir.z );
@@ -532,7 +533,7 @@ public:
 	{
 		static Vec2i pos;
 
-		if ( !CUISystem::getInstance().processMouseEvent( msg ) )
+		if ( !CUISystem::Get().processMouseEvent( msg ) )
 			return false;
 
 		if ( msg.onLeftDown() )

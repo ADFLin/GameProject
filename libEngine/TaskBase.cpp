@@ -86,7 +86,9 @@ void TaskHandler::removeTask( int id  )
 
 	while ( 1 )
 	{
-		TaskList::iterator iter = std::find_if( start , mRunList.end() , FindTaskByGroup(id) );
+		TaskList::iterator iter = std::find_if( 
+			start , mRunList.end() , 
+			[id](TaskNode const& node) -> bool { return node.groupId == id; });
 
 		if ( iter == mRunList.end() )
 			break;
@@ -137,7 +139,9 @@ bool TaskHandler::removeTaskInternal( TaskList::iterator  iter , bool beAll  )
 
 bool TaskHandler::removeTask( TaskBase* task , bool beAll )
 {
-	TaskList::iterator iter = std::find_if( mRunList.begin() , mRunList.end() , FindTask(task) );
+	TaskList::iterator iter = std::find_if(
+		mRunList.begin() , mRunList.end() , 
+		[task](TaskNode const& node)-> bool { return node.task == task; });
 	return removeTaskInternal( iter , beAll );
 }
 

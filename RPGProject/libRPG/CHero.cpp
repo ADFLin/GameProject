@@ -289,7 +289,7 @@ void CHero::onKillActor( CActor* actor )
 
 	while ( curExp > nextLevelExp )
 	{
-		TRoleManager::getInstance().getRoleInfo( m_roleID )->levelUp();
+		TRoleManager::Get().getRoleInfo( m_roleID )->levelUp();
 		computeAbilityProp();
 
 		nextLevelExp = nextLevelExp + nextLevelExp * 1.5;

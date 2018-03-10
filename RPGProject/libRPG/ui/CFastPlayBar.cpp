@@ -73,7 +73,7 @@ void CFastPlayBar::Button::onMouse( bool beIn )
 	{
 		Vec2i pos = getWorldPos();
 
-		CToolTipUI*  tooltip = CUISystem::getInstance().getHelpTip();
+		CToolTipUI*  tooltip = CUISystem::Get().getHelpTip();
 		tooltip->setPos( Vec2i( pos.x, pos.y + getSize().y ) );
 
 	}
@@ -81,7 +81,7 @@ void CFastPlayBar::Button::onMouse( bool beIn )
 
 void CFastPlayBar::Button::onRender()
 {
-	CFont& font = CUISystem::getInstance().getDefultFont(); 
+	CFont& font = CUISystem::Get().getDefultFont(); 
 
 	Vec2i pos = getWorldPos();
 	setupUITextDepth();
@@ -97,8 +97,8 @@ CFastPlayBar::CFastPlayBar( Vec2i const& pos , CWidget* parent )
 	int d1 = ( CellSize - BoardSize )/2;
 	int d2 = ( CellSize - ItemSize )/2;
 
-	CUISystem::getInstance().setTextureDir( "Data/UI" );
-	Texture* tex = CUISystem::getInstance().fetchTexture( "inventory" );
+	CUISystem::Get().setTextureDir( "Data/UI" );
+	Texture* tex = CUISystem::Get().fetchTexture( "inventory" );
 
 	mSprite->setRenderOption( CFly::CFRO_ALPHA_BLENGING , true );
 

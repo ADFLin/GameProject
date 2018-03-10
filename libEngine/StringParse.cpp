@@ -15,43 +15,6 @@ static int CountCharReverse(char const* str , char const* last , char c )
 	return result;
 }
 
-int TokenString::compare(TokenString const& other) const
-{
-	if( other.num < num )
-		return -other.compareInternal(ptr, num);
-	return compareInternal(other.ptr, other.num);
-}
-
-int TokenString::compare(char const* other) const
-{
-	char const* p1 = ptr;
-	char const* p2 = other;
-	for( int i = num; i ; --i, ++p1, ++p2 )
-	{
-		assert(*p1 != 0);
-		if ( *p2 == 0 )
-			return 1;
-		if( *p1 != *p2 )
-			return (*p1 > *p2) ? 1 : -1;
-	}
-
-	return (*p2 == 0) ? 0 : -1;
-}
-
-int TokenString::compareInternal(char const* other, int numOhter) const
-{
-	assert(num <= numOhter);
-	char const* p1 = ptr;
-	char const* p2 = other;
-	for( int i = 0; i < num; ++i, ++p1, ++p2 )
-	{
-		assert(*p1 != 0 && *p2 != 0);
-		if( *p1 != *p2 )
-			return (*p1 > *p2) ? 1 : -1;
-	}
-	return (num == numOhter) ? 0 : -1;
-}
-
 Tokenizer::Tokenizer(char const* str, char const* dropDelims, char const* stopDelims /*= ""*/) 
 	:mPtr(str)
 {
@@ -68,9 +31,9 @@ void Tokenizer::skipDropDelims()
 	}
 }
 
-Tokenizer::TokenType Tokenizer::take(TokenString& str)
+Tokenizer::TokenType Tokenizer::take(StringView& str)
 {
-	return ParseUtility::StringToken(mPtr, *this, str);
+	return FStringParse::StringToken(mPtr, *this, str);
 }
 
 void Tokenizer::reset(char const* str)
@@ -78,7 +41,7 @@ void Tokenizer::reset(char const* str)
 	mPtr = str;
 }
 
-int ParseUtility::ParseNumber(char const* str, int& num)
+int FStringParse::ParseNumber(char const* str, int& num)
 {
 	//#TODO : hexInt support
 	char const* cur = str;
@@ -129,7 +92,7 @@ int ParseUtility::ParseNumber(char const* str, int& num)
 	return result;
 }
 
-int ParseUtility::ParseIntNumber(char const* str, int& num)
+int FStringParse::ParseIntNumber(char const* str, int& num)
 {
 	char const* cur = str;
 	int base = 10;
@@ -152,7 +115,7 @@ int ParseUtility::ParseIntNumber(char const* str, int& num)
 	return result;
 }
 
-char const* ParseUtility::FindLastChar(char const* str, int num, char c)
+char const* FStringParse::FindLastChar(char const* str, int num, char c)
 {
 	char const* ptr = str + (num - 1);
 	while( num )
@@ -165,7 +128,7 @@ char const* ParseUtility::FindLastChar(char const* str, int num, char c)
 	return nullptr;
 }
 
-char const* ParseUtility::FindChar(char const* str, char c)
+char const* FStringParse::FindChar(char const* str, char c)
 {
 	while( *str != 0 )
 	{
@@ -176,7 +139,7 @@ char const* ParseUtility::FindChar(char const* str, char c)
 	return str;
 }
 
-char const* ParseUtility::FindChar(char const* str, char c1, char c2)
+char const* FStringParse::FindChar(char const* str, char c1, char c2)
 {
 	while( *str != 0 )
 	{
@@ -187,7 +150,7 @@ char const* ParseUtility::FindChar(char const* str, char c1, char c2)
 	return str;
 }
 
-char const* ParseUtility::FindChar(char const* str, char c1, char c2, char c3)
+char const* FStringParse::FindChar(char const* str, char c1, char c2, char c3)
 {
 	while( *str != 0 )
 	{
@@ -198,7 +161,7 @@ char const* ParseUtility::FindChar(char const* str, char c1, char c2, char c3)
 	return str;
 }
 
-char const* ParseUtility::FindChar(char const* str, char c1, char c2, char c3, char c4)
+char const* FStringParse::FindChar(char const* str, char c1, char c2, char c3, char c4)
 {
 	while( *str != 0 )
 	{
@@ -209,7 +172,7 @@ char const* ParseUtility::FindChar(char const* str, char c1, char c2, char c3, c
 	return str;
 }
 
-char const* ParseUtility::FindChar(char const* str, char const* findChars)
+char const* FStringParse::FindChar(char const* str, char const* findChars)
 {
 	assert(str && findChars);
 	while( *str != 0 )
@@ -222,7 +185,7 @@ char const* ParseUtility::FindChar(char const* str, char const* findChars)
 }
 
 
-char const* ParseUtility::TrySkipToSectionEnd(char const* str, char c)
+char const* FStringParse::TrySkipToSectionEnd(char const* str, char c)
 {
 	assert(str && *str == c);
 
@@ -250,7 +213,7 @@ char const* ParseUtility::TrySkipToSectionEnd(char const* str, char c)
 	return ptr;
 }
 
-char const* ParseUtility::CheckAndSkipToCommentSectionEnd(char const* str)
+char const* FStringParse::CheckAndSkipToCommentSectionEnd(char const* str)
 {
 	assert(str && *str == '/');
 
@@ -278,7 +241,7 @@ char const* ParseUtility::CheckAndSkipToCommentSectionEnd(char const* str)
 	return str;
 }
 
-char const* ParseUtility::SkipChar(char const* str, char const* skipChars)
+char const* FStringParse::SkipChar(char const* str, char const* skipChars)
 {
 	assert(str && skipChars);
 	while( *str != 0 )
@@ -290,14 +253,19 @@ char const* ParseUtility::SkipChar(char const* str, char const* skipChars)
 	return str;
 }
 
-char const* ParseUtility::SkipSpace(char const* str)
+char const* FStringParse::SkipSpace(char const* str)
 {
 	char const* p = str;
-	while( ::isspace(*p) ) { ++p; }
+	while( *p ) 
+	{
+		if ( !::isspace(*p) )
+			break;
+		++p; 
+	}
 	return p;
 }
 
-char const* ParseUtility::SkipToNextLine(char const* str)
+char const* FStringParse::SkipToNextLine(char const* str)
 {
 	char const* nextLine = FindChar(str, '\n');
 	if( *nextLine != 0 )
@@ -305,7 +273,7 @@ char const* ParseUtility::SkipToNextLine(char const* str)
 	return nextLine;
 }
 
-char const* ParseUtility::SkipToChar(char const* str, char c, char cPair, bool bCheckComment, bool bCheckString)
+char const* FStringParse::SkipToChar(char const* str, char c, char cPair, bool bCheckComment, bool bCheckString)
 {
 	int countPair = 0;
 	if( bCheckString )
@@ -424,7 +392,7 @@ char const* ParseUtility::SkipToChar(char const* str, char c, char cPair, bool b
 	return str;
 }
 
-char const* ParseUtility::SkipToChar(char const* str, char c, bool bCheckComment, bool bCheckString)
+char const* FStringParse::SkipToChar(char const* str, char c, bool bCheckComment, bool bCheckString)
 {
 	if( bCheckString )
 	{
@@ -506,7 +474,7 @@ char const* ParseUtility::SkipToChar(char const* str, char c, bool bCheckComment
 	return str;
 }
 
-void ParseUtility::ReplaceChar(char* str, char c, char replace)
+void FStringParse::ReplaceChar(char* str, char c, char replace)
 {
 	char* ptr = str;
 	while( *ptr != 0 )
@@ -517,14 +485,14 @@ void ParseUtility::ReplaceChar(char* str, char c, char replace)
 	}
 }
 
-ParseUtility::TokenType ParseUtility::StringToken(char const*& inoutStr, DelimsTable const& table, TokenString& outToken)
+FStringParse::TokenType FStringParse::StringToken(char const*& inoutStr, DelimsTable const& table, StringView& outToken)
 {
 	char cur = *(inoutStr++);
 	for( ;; )
 	{
 		if( cur == '\0' )
 		{
-			return ParseUtility::eNoToken;
+			return FStringParse::eNoToken;
 		}
 		if( !table.isDropDelims(cur) )
 			break;
@@ -532,11 +500,11 @@ ParseUtility::TokenType ParseUtility::StringToken(char const*& inoutStr, DelimsT
 		cur = *(inoutStr++);
 	}
 
-	outToken.ptr = inoutStr - 1;
+	char const* ptr = inoutStr - 1;
 	if( table.isStopDelims(cur) )
 	{
-		outToken.num = 1;
-		return ParseUtility::eDelimsType;
+		outToken = StringView(ptr, 1);
+		return FStringParse::eDelimsType;
 	}
 
 	for( ;;)
@@ -546,18 +514,18 @@ ParseUtility::TokenType ParseUtility::StringToken(char const*& inoutStr, DelimsT
 			break;
 		++inoutStr;
 	}
-	outToken.num = inoutStr - outToken.ptr;
-	return ParseUtility::eStringType;
+	outToken = StringView(ptr, inoutStr - ptr);
+	return FStringParse::eStringType;
 }
 
-ParseUtility::TokenType ParseUtility::StringToken(char const*& inoutStr, char const* dropDelims, char const* stopDelims, TokenString& outToken)
+FStringParse::TokenType FStringParse::StringToken(char const*& inoutStr, char const* dropDelims, char const* stopDelims, StringView& outToken)
 {
 	char cur = *(inoutStr++);
 	for( ;; )
 	{
 		if( cur == '\0' )
 		{
-			return ParseUtility::eNoToken;
+			return FStringParse::eNoToken;
 		}
 		if( *FindChar( dropDelims , cur ) )
 			break;
@@ -565,11 +533,11 @@ ParseUtility::TokenType ParseUtility::StringToken(char const*& inoutStr, char co
 		cur = *(inoutStr++);
 	}
 
-	outToken.ptr = inoutStr - 1;
+	char const* ptr = inoutStr - 1;
 	if( *FindChar(stopDelims, cur) != 0 )
 	{
-		outToken.num = 1;
-		return ParseUtility::eDelimsType;
+		outToken = StringView(ptr, 1);
+		return FStringParse::eDelimsType;
 	}
 
 	for( ;;)
@@ -579,13 +547,12 @@ ParseUtility::TokenType ParseUtility::StringToken(char const*& inoutStr, char co
 			break;
 		++inoutStr;
 	}
-	outToken.num = inoutStr - outToken.ptr;
-	return ParseUtility::eStringType;
 
-
+	outToken = StringView(ptr, inoutStr - ptr);
+	return FStringParse::eStringType;
 }
 
-bool ParseUtility::StringToken(char const*& inoutStr, char const* dropDelims, TokenString& outToken)
+bool FStringParse::StringToken(char const*& inoutStr, char const* dropDelims, StringView& outToken)
 {
 	char cur = *(inoutStr++);
 	inoutStr = SkipChar(inoutStr, dropDelims);
@@ -594,13 +561,13 @@ bool ParseUtility::StringToken(char const*& inoutStr, char const* dropDelims, To
 		return false;
 	}
 
-	outToken.ptr = inoutStr;
+	char const* ptr = inoutStr;
 	inoutStr = FindChar(inoutStr, dropDelims);
-	outToken.num = inoutStr - outToken.ptr;
+	outToken = StringView(ptr, inoutStr - ptr);
 	return true;
 }
 
-TokenString ParseUtility::StringTokenLine(char const*& inoutStr)
+StringView FStringParse::StringTokenLine(char const*& inoutStr)
 {
 	char const* start = inoutStr;
 	inoutStr = FindChar(inoutStr, '\n');
@@ -616,10 +583,7 @@ TokenString ParseUtility::StringTokenLine(char const*& inoutStr)
 			}
 		}
 	}
-	TokenString result;
-	result.ptr = start;
-	result.num = end - start;
-	return result;
+	return StringView( start , end - start );
 }
 
 DelimsTable::DelimsTable()

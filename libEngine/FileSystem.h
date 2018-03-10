@@ -70,7 +70,7 @@ private:
 class FileSystem
 {
 public:
-	static bool FindFile( char const* dir , char const* subName , FileIterator& iterator );
+	static bool FindFiles( char const* dir , char const* subName , FileIterator& iterator );
 	static bool IsExist( FilePath const& path ){ return IsExist( path.getString() ); }
 	static bool IsExist( char const* path );
 	static bool GetFileSize( char const* path , int64& size );

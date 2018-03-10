@@ -33,7 +33,7 @@ namespace Rubiks
 			node->parent = nullptr;
 			Mutex::Locker locker( mRequestFindMutex );
 			mRequestFindNodes.push_back( node );
-			mRequestFindCond.notify();
+			mRequestFindCond.notifyOne();
 		}
 
 
@@ -65,7 +65,7 @@ namespace Rubiks
 				{
 					Mutex::Locker locker( mRequestFindMutex );
 					mRequestFindNodes.push_back( node );
-					mRequestFindCond.notify();
+					mRequestFindCond.notifyOne();
 				}
 			}
 			else
@@ -118,7 +118,7 @@ namespace Rubiks
 
 				Mutex::Locker locker(mUncheckMutex);
 				mUncheckNodes.insert(mUncheckNodes.end(), newStates, newStates + NewStateNum);
-				mUncheckCond.notify();
+				mUncheckCond.notifyOne();
 			}
 		}
 	}

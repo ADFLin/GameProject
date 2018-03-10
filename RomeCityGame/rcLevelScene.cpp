@@ -414,7 +414,7 @@ void rcLevelScene::renderWareHouse( RenderCoord const& coord , rcBuilding* build
 	else
 	{
 		rcStorageHouse::StroageCell& cell = sHouse->mStroageCell[ index - 1 ];
-		unsigned* tIDList = rcDataManager::getInstance().getWareHouseProductTexture( cell.productTag );
+		unsigned* tIDList = rcDataManager::Get().getWareHouseProductTexture( cell.productTag );
 
 		int frame = 0;
 		if ( cell.productTag != PT_NULL_PRODUCT )
@@ -457,14 +457,14 @@ void rcLevelScene::renderFarm( RenderCoord const& coord , rcBuilding* building )
 
 		ModelInfo const* model = &farm->getModel();
 		if ( model->texBase == RC_ERROR_TEXTURE_ID )
-			model = &rcDataManager::getInstance().getBuildingModel( BT_FARM_START );
+			model = &rcDataManager::Get().getBuildingModel( BT_FARM_START );
 		
 		renderMuitiTileTexture( model->texBase , coord , renderCoord );
 
 	}
 	else
 	{
-		unsigned* texList = rcDataManager::getInstance().getFarmTexture( farm->getTypeTag() );
+		unsigned* texList = rcDataManager::Get().getFarmTexture( farm->getTypeTag() );
 
 		int frame = 5 * farm->mProgressProduct / rcFarm::MaxProgressFinish;
 		renderTileTexture( texList[ frame ] , coord.screen );
@@ -482,7 +482,7 @@ void rcLevelScene::updateBuildingRenderPos( rcBuilding* building )
 
 	building->getRenderData().updatePosCount = mUpdatePosCount;
 
-	rcBuildingInfo const& bInfo = rcDataManager::getInstance().getBuildingInfo( building->getTypeTag() );
+	rcBuildingInfo const& bInfo = rcDataManager::Get().getBuildingInfo( building->getTypeTag() );
 
 	RenderCoord& coord = building->getRenderData().coord;
 	Vec2i& renderPos = coord.map;
@@ -520,9 +520,9 @@ void rcLevelScene::renderAquaduct( Vec2i const& pos , rcMapData const& data )
 
 	unsigned* texList;
 	if ( data.haveConnect( CT_LINK_WATER ) )
-		texList = rcDataManager::getInstance().getAquaductTexture( info.type );
+		texList = rcDataManager::Get().getAquaductTexture( info.type );
 	else
-		texList = rcDataManager::getInstance().getAquaductTexture( 6 + info.type );
+		texList = rcDataManager::Get().getAquaductTexture( 6 + info.type );
 
 	unsigned texID;
 	switch( info.type )
@@ -547,14 +547,14 @@ void rcLevelScene::renderAquaduct( Vec2i const& pos , rcMapData const& data )
 void rcLevelScene::renderRoad( Vec2i const& pos , rcMapData const& data )
 {
 	rcMapData::ConnectInfo const& info = data.conInfo[ CT_ROAD ];
-	unsigned texID = rcDataManager::getInstance().getRoadTexture( info.type );
+	unsigned texID = rcDataManager::Get().getRoadTexture( info.type );
 
 	Vec2i rPos;
 	if ( info.type == 0 || info.type == 5 )
 		renderTileTexture( texID , pos );
 	else
 	{
-		unsigned texID2 = rcDataManager::getInstance().getRoadTexture( 0 );
+		unsigned texID2 = rcDataManager::Get().getRoadTexture( 0 );
 		rPos = pos + calcTileOffset( getRenderSystem()->getTexture( texID2 ) );
 		renderTexture( texID ,rPos , 4 , ( info.dir + 4 - getViewPort().getDir() ) % 4 );
 	}
@@ -592,7 +592,7 @@ void rcLevelScene::renderWorkerList(  Vec2i const& screenPos , rcWorker* workerL
 
 		Vec2i renderPos = screenPos + offPos + baseOffset;
 
-		WorkerInfo& texInfo = rcDataManager::getInstance().getWorkerInfo( worker->getType() );
+		WorkerInfo& texInfo = rcDataManager::Get().getWorkerInfo( worker->getType() );
 
 		int fixDir = ( dir + 8 - 2 * getViewPort().getDir() ) % 8;
 		//FIXME
@@ -611,7 +611,7 @@ void rcLevelScene::renderWorkerList(  Vec2i const& screenPos , rcWorker* workerL
 		case WT_DELIVERY_MAN:
 			{
 				rcWorker::TransportInfo& info = worker->getBuildingVar().infoTP;
-				unsigned tIDCart = rcDataManager::getInstance().getCartProductTexture( info.pTag );
+				unsigned tIDCart = rcDataManager::Get().getCartProductTexture( info.pTag );
 				rcTexture* texCart = getRenderSystem()->getTexture( tIDCart );
 
 				Vec2i delPos = renderPos - 7 * SrceenDirOffset[ fixDir ];
@@ -630,7 +630,7 @@ void rcLevelScene::renderWorkerList(  Vec2i const& screenPos , rcWorker* workerL
 			break;
 		case WT_SETTLER:
 			{
-				unsigned texIDCart = rcDataManager::getInstance().getSettlerCart();
+				unsigned texIDCart = rcDataManager::Get().getSettlerCart();
 
 				Vec2i cartPos = renderPos - 5 * SrceenDirOffset[ fixDir ];
 
@@ -707,7 +707,7 @@ bool rcLevelScene::renderTerrain( Vec2i const& screenPos , rcMapData& data , boo
 		else
 		{
 
-			unsigned id = rcDataManager::getInstance().getTerrainTexture( TT_GRASS , 0 );
+			unsigned id = rcDataManager::Get().getTerrainTexture( TT_GRASS , 0 );
 			renderTileTexture( id , screenPos );
 		}
 	}

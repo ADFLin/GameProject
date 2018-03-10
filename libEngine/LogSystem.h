@@ -6,16 +6,45 @@
 
 #include "CoreShare.h"
 
+#ifndef USE_LOG
+#define USE_LOG 1
+#endif
 
-CORE_API void Msg       ( char const* format , ... );
-CORE_API void ErrorMsg  ( char const* format , ... );
-CORE_API void DevMsg    ( int level , char const* format , ... );
-CORE_API void WarmingMsg( int level , char const* format , ... );
+#if USE_LOG
 
-CORE_API void Msg       ( char const* format , va_list argptr );
-CORE_API void ErrorMsg  ( char const* format , va_list argptr );
-CORE_API void DevMsg    ( int level , char const* format , va_list argptr );
-CORE_API void WarmingMsg( int level , char const* format , va_list argptr );
+CORE_API void LogMsg    (char const* str);
+CORE_API void LogError  (char const* str);
+CORE_API void LogDevMsg (int level, char const* str);
+CORE_API void LogWarning(int level, char const* str);
+
+CORE_API void LogMsgF    ( char const* format , ... );
+CORE_API void LogErrorF  ( char const* format , ... );
+CORE_API void LogDevMsgF ( int level , char const* format , ... );
+CORE_API void LogWarningF( int level , char const* format , ... );
+
+CORE_API void LogMsgV    ( char const* format , va_list argptr );
+CORE_API void LogErrorV  ( char const* format , va_list argptr );
+CORE_API void LogDevMsgV ( int level , char const* format , va_list argptr );
+CORE_API void LogWarningV( int level , char const* format , va_list argptr );
+
+#else
+
+#define  LogMsg(...)
+#define  LogError(...) 
+#define  LogDevMsg(...)
+#define  LogWarning(...) 
+
+#define  LogMsgF(...) 
+#define  LogErrorF(...) 
+#define  LogDevMsgF(...) 
+#define  LogWarningF(...) 
+
+#define  LogMsgV(...) 
+#define  LogErrorV(...) 
+#define  LogDevMsgV(...) 
+#define  LogWarningV(...) 
+
+#endif
 
 enum LogChannel
 {
@@ -26,10 +55,10 @@ enum LogChannel
 	NUM_DEFAULT_LOG_CHANNEL ,
 };
 
-class ILogListener
+class LogOutput
 {
 public:
-	CORE_API virtual ~ILogListener();
+	CORE_API virtual ~LogOutput();
 	CORE_API void addChannel(LogChannel channel);
 	CORE_API void removeChannel(LogChannel channel);
 

@@ -70,30 +70,31 @@ protected:
 class WinMutex
 {
 public:
-	WinMutex()   { ::InitializeCriticalSection( &mCS ); }
-	~WinMutex()  { ::DeleteCriticalSection( &mCS ); }
-	void lock()  { ::EnterCriticalSection( &mCS ); }
-	void unlock(){ ::LeaveCriticalSection( &mCS ); }
+	WinMutex()     { ::InitializeCriticalSection( &mCS ); }
+	~WinMutex()    { ::DeleteCriticalSection( &mCS ); }
+	void lock()    { ::EnterCriticalSection( &mCS ); }
+	void unlock()  { ::LeaveCriticalSection( &mCS ); }
+	bool tryLock() { return !!::TryEnterCriticalSection(&mCS); }
 private: 
-	friend class WinCondition;
+	friend class WinConditionVariable;
 	CRITICAL_SECTION mCS;
 };
 
 
-class WinCondition
+class WinConditionVariable
 {
 public:
-	WinCondition()
+	WinConditionVariable()
 	{
 		InitializeConditionVariable( &mCV );
 	}
 
-	~WinCondition()
+	~WinConditionVariable()
 	{
 
 
 	}
-	void notify()
+	void notifyOne()
 	{
 		WakeConditionVariable( &mCV );
 	}
@@ -103,6 +104,12 @@ public:
 		WakeAllConditionVariable( &mCV );
 	}
 protected:
+
+	bool doWait(WinMutex& mutex)
+	{
+		bool result = SleepConditionVariableCS(&mCV, &mutex.mCS, INFINITE) != 0;
+		return result;
+	}
 
 	template< class Fun >
 	bool doWait( WinMutex& mutex , Fun fun )
@@ -125,7 +132,7 @@ private:
 
 typedef WinThread PlatformThread;
 typedef WinMutex PlatformMutex;
-typedef WinCondition PlatformCondition;
+typedef WinConditionVariable PlatformConditionVariable;
 
 #elif SYS_SUPPORT_POSIX_THREAD
 
@@ -171,11 +178,11 @@ public:
 	void lock()  { ::pthread_mutex_lock(&mMutex); }
 	void unlock(){ ::pthread_mutex_unlock(&mMutex); }
 private: 
-	friend class Condition;
+	friend class ConditionVariable;
 	pthread_mutex_t mMutex;
 };
 
-class PosixCondition
+class PosixConditionVariable
 {
 
 
@@ -183,7 +190,7 @@ class PosixCondition
 
 typedef PosixThread PlatformThread;
 typedef PosixMutex PlatformMutex;
-typedef PosixCondition PlatformCondition;
+typedef PosixConditionVariable PlatformConditionVariable;
 
 #else
 #error "Thread Not Support!"
@@ -249,27 +256,32 @@ public:
 		Locker( Mutex& mutex ):mMutex( mutex ){ mMutex.lock(); }
 		~Locker(){ mMutex.unlock(); }
 	private:
-		friend class Condition;
+		friend class ConditionVariable;
 		Mutex& mMutex;
 	};
 private: 
-	friend class Condition;
+	friend class ConditionVariable;
 };
 
-class Condition : public PlatformCondition
+class ConditionVariable : public PlatformConditionVariable
 {
 public:
-	Condition(){}
-	~Condition(){}
+	ConditionVariable(){}
+	~ConditionVariable(){}
+
+	bool wait(Mutex::Locker& locker)
+	{
+		return PlatformConditionVariable::doWait(locker.mMutex);
+	}
 
 	template< class Fun >
-	bool wait( Mutex::Locker& locker , Fun fun )
+	bool wait(Mutex::Locker& locker, Fun fun )
 	{
-		return PlatformCondition::doWait( locker.mMutex , fun );
+		return PlatformConditionVariable::doWait(locker.mMutex, fun );
 	}
-	bool waitTime( Mutex::Locker& locker , uint32 time = WAIT_TIME_INFINITE )
+	bool waitTime(Mutex::Locker& locker, uint32 time = WAIT_TIME_INFINITE )
 	{ 
-		return PlatformCondition::doWaitTime( locker.mMutex , time );
+		return PlatformConditionVariable::doWaitTime(locker.mMutex, time );
 	}
 };
 

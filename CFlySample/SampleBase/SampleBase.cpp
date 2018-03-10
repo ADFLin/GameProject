@@ -39,7 +39,7 @@ bool SampleBase::onInit()
 		return  false;
 	mWorld =  CFly::createWorld( getHWnd() , g_ScreenWidth , g_ScreenHeight , 32 , false );
 
-	CFly::PluginManager::getInstance().registerLinker( "CW3" , new Cw3FileLinker );
+	CFly::PluginManager::Get().registerLinker( "CW3" , new Cw3FileLinker );
 
 	if ( !mWorld )
 		return false;

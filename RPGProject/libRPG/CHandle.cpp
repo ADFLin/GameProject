@@ -11,13 +11,13 @@ DEFINE_HANDLE( HandledObject )
 
 HandledObject::~HandledObject()
 {
-	HandleManager::getInstance().unMarkRefHandle( this );
+	HandleManager::Get().unMarkRefHandle( this );
 }
 
 unsigned int HandledObject::getRefID()
 {
 	if ( m_refHandle.getID() == ERROR_ID )
-		return HandleManager::getInstance().markRefHandle( this );
+		return HandleManager::Get().markRefHandle( this );
 	return m_refHandle.getID();
 }
 

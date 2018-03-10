@@ -571,7 +571,7 @@ cleanup:
 
 		if ( !loadTexture( *tex , imgInfo ) )
 		{
-			WarmingMsg( 0 , "Can't create GL Texture" );
+			LogWarningF( 0 , "Can't create GL Texture" );
 			delete tex;
 			return NULL;
 		}

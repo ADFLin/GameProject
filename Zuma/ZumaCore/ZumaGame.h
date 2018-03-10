@@ -22,7 +22,7 @@ namespace Zuma
 	class LevelStage;
 	struct ZComboInfo;
 
-	class LogRecorder : public ILogListener
+	class LogRecorder : public LogOutput
 	{
 	public:
 		LogRecorder( char const* logPath )
@@ -101,7 +101,7 @@ namespace Zuma
 	};
 
 
-	class GameInitialer
+	class GameInitializer
 	{
 	public:
 		virtual bool           setupWindow( char const* title , int w , int h ) = 0;
@@ -114,7 +114,7 @@ namespace Zuma
 	public:
 		GameCore();
 		~GameCore();
-		bool   init( GameInitialer& initilizer );
+		bool   init( GameInitializer& initilizer );
 		void   update( long time );
 		void   render( float dFrame );
 		void   cleanup();
@@ -153,7 +153,7 @@ namespace Zuma
 	class ZumaGame : public GameCore
 		           , public GameLoopT< ZumaGame , WindowsPlatform >
 		           , public WindowsMessageHandlerT< ZumaGame , MSG_ZUMA >
-				   , public GameInitialer
+				   , public GameInitializer
 	{
 	public:
 		ZumaGame(){}

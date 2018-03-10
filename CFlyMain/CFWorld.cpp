@@ -19,7 +19,7 @@ namespace CFly
 		if ( !RenderSystem::initSystem() )
 			return false;
 
-		if ( !WorldManager::getInstance().init() )
+		if ( !WorldManager::Get().init() )
 			return false;
 
 		return true;
@@ -27,21 +27,21 @@ namespace CFly
 
 	void   cleanupSystem()
 	{
-		WorldManager::getInstance().cleanup();
-		WorldManager::releaseInstance();
+		WorldManager::Get().cleanup();
+		WorldManager::ReleaseInstance();
 
-		EntityManager::releaseInstance();
+		EntityManager::ReleaseInstance();
 	}
 
 	World* createWorld( HWND hWnd , int w, int h , int cDepth , bool fullscreen , TextureFormat backBufferFormat)
 	{
-		return WorldManager::getInstance().createWorld( hWnd , w , h , cDepth , fullscreen , backBufferFormat );
+		return WorldManager::Get().createWorld( hWnd , w , h , cDepth , fullscreen , backBufferFormat );
 	}
 
-	class MsgBoxListener : public ILogListener
+	class MsgBoxOutput : public LogOutput
 	{
 	public:
-		MsgBoxListener( HWND hWnd )
+		MsgBoxOutput( HWND hWnd )
 		{
 			m_hWnd = hWnd;
 		}
@@ -70,7 +70,7 @@ namespace CFly
 		,mD3dDevice( NULL )
 		,mFont( nullptr )
 	{
-		mErrorMsgListener = new MsgBoxListener( hWnd );
+		mErrorMsgListener = new MsgBoxOutput( hWnd );
 		mErrorMsgListener->addChannel( LOG_ERROR );
 		mErrorMsgListener->addChannel( LOG_WARNING );
 
@@ -100,13 +100,13 @@ namespace CFly
 
 	void World::release()
 	{
-		WorldManager::getInstance().destroyWorld( this );
+		WorldManager::Get().destroyWorld( this );
 	}
 
 	Scene* World::createScene( int numGroup )
 	{
 		Scene* scene = new Scene( this , numGroup );
-		EntityManager::getInstance().registerEntity( scene );
+		EntityManager::Get().registerEntity( scene );
 		mScenes.push_back( scene );
 
 		return scene;
@@ -115,7 +115,7 @@ namespace CFly
 	Viewport* World::createViewport( int x , int y , int w , int h )
 	{
 		Viewport* viewport = new Viewport( mRenderWindow , x , y , w , h );
-		EntityManager::getInstance().registerEntity( viewport );
+		EntityManager::Get().registerEntity( viewport );
 		mViewports.push_back( viewport );
 
 		return viewport;
@@ -363,7 +363,7 @@ namespace CFly
 
 	bool WorldManager::init()
 	{
-		::Msg("World Init");
+		LogDevMsg(0 , "World Init");
 		return true;
 	}
 
@@ -373,7 +373,7 @@ namespace CFly
 		try
 		{
 			world = new World( hWnd , w , h , cDepth , fullscreen , backBufferFormat );
-			EntityManager::getInstance().registerEntity( world );
+			EntityManager::Get().registerEntity( world );
 		}
 		catch ( CFException& e )
 		{
@@ -390,7 +390,7 @@ namespace CFly
 
 	void WorldManager::destroyWorld( World* world )
 	{
-		if ( !EntityManager::getInstance().removeEntity( world ) )
+		if ( !EntityManager::Get().removeEntity( world ) )
 			return;
 
 		delete world;

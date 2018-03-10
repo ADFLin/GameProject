@@ -36,7 +36,7 @@ CPlayButton::CPlayButton( CBType type , Vec2i const& pos , Vec2i const& size , C
 
 	if ( !sDragIcon )
 	{
-		sDragIcon = CUISystem::getInstance().createSprite();
+		sDragIcon = CUISystem::Get().createSprite();
 		sDragIcon->setRenderOption( CFly::CFRO_ALPHA_BLENGING , true );
 	}
 
@@ -84,14 +84,14 @@ bool CPlayButton::onMouseMsg( MouseMsg const& msg )
 		pos[2] = -8000;
 		sDragIcon->setWorldPosition( pos );
 
-		CUISystem::getInstance().captureMouse( this );
+		CUISystem::Get().captureMouse( this );
 	}
 	else if ( msg.onLeftUp() )
 	{
-		CUISystem::getInstance().releaseMouse();
+		CUISystem::Get().releaseMouse();
 		sDragIcon->show( false );
 
-		CWidget* ui = CUISystem::getInstance().hitTest( msg.getPos() );
+		CWidget* ui = CUISystem::Get().hitTest( msg.getPos() );
 
 		if ( ui != this )
 		{
@@ -116,7 +116,7 @@ bool CPlayButton::onMouseMsg( MouseMsg const& msg )
 		if ( sDragIcon->isShow() )
 		{
 			Vec2i const& size = getSize();
-			MouseMsg const& msg = CUISystem::getInstance().getLastMouseMsg();
+			MouseMsg const& msg = CUISystem::Get().getLastMouseMsg();
 			sDragIcon->setWorldPosition( Vec3D( msg.x() - size.x/2 , msg.y() - size.y/2 , -8000 ) );
 		}
 	}
@@ -216,14 +216,14 @@ int CPlayButton::setupPlayIcon( Sprite* spr )
 			TItemBase* item = UG_GetItem( m_playInfo.name );
 			if ( !item )
 				return CF_FAIL_ID;
-			texName = TItemManager::getInstance().getIconName( item->getIconID() );
-			CUISystem::getInstance().setTextureDir( ITEM_ICON_DIR );
+			texName = TItemManager::Get().getIconName( item->getIconID() );
+			CUISystem::Get().setTextureDir( ITEM_ICON_DIR );
 		}
 		break;
 	case PT_SKILL:
 		{
-			texName = TSkillLibrary::getInstance().getIconName( m_playInfo.name );
-			CUISystem::getInstance().setTextureDir( SKILL_ICON_DIR );
+			texName = TSkillLibrary::Get().getIconName( m_playInfo.name );
+			CUISystem::Get().setTextureDir( SKILL_ICON_DIR );
 		}
 	}
 
@@ -231,7 +231,7 @@ int CPlayButton::setupPlayIcon( Sprite* spr )
 		return CF_FAIL_ID;
 
 	Texture* tex[1];
-	tex[0] = CUISystem::getInstance().fetchTexture( texName , nullptr );
+	tex[0] = CUISystem::Get().fetchTexture( texName , nullptr );
 
 	if ( !tex[0] )
 		return CF_FAIL_ID;

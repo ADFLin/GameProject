@@ -44,7 +44,7 @@ namespace CPP
 		{
 			for( int i = 0; i < ARRAY_SIZE(gCommandList); ++i )
 			{
-				sCommandMap.insert(std::make_pair(TokenString(gCommandList[i].name), gCommandList[i].com));
+				sCommandMap.insert(std::make_pair(StringView(gCommandList[i].name), gCommandList[i].com));
 			}
 		}
 	}
@@ -62,17 +62,17 @@ namespace CPP
 	{
 		TokenInfo result;
 
-		TokenString str;
-		switch( ParseUtility::StringToken(input.mCur, mDelimsTable, str) )
+		StringView str;
+		switch( FStringParse::StringToken(input.mCur, mDelimsTable, str) )
 		{
-		case ParseUtility::eDelimsType:
+		case FStringParse::eDelimsType:
 
 			break;
-		case ParseUtility::eStringType:
+		case FStringParse::eStringType:
 			result.type = Token_String;
 			result.str = str;
 			break;
-		case ParseUtility::eNoToken:
+		case FStringParse::eNoToken:
 			result.type = Token_Eof;
 			break;
 		};
@@ -85,26 +85,24 @@ namespace CPP
 		if( token.type != Token_String )
 			SYNTAX_ERROR("Error include Format");
 
-		if( token.str.num < 2 )
+		if( token.str.size() < 2 )
 			SYNTAX_ERROR("Error include Format");
 
 		bool bSystemPath = false;
 		if( token.str[1] == '\"' )
 		{
-			if( token.str[token.str.num - 1] != '\"' )
+			if( token.str[token.str.size() - 1] != '\"' )
 				SYNTAX_ERROR("Error include Format");
 		}
 		else if( token.str[0] == '<' )
 		{
-			if( token.str[token.str.num - 1] != '>' )
+			if( token.str[token.str.size() - 1] != '>' )
 				SYNTAX_ERROR("Error include Format");
 
 			bSystemPath = true;
 		}
 
-		TokenString path;
-		path.ptr = token.str.ptr + 1;
-		path.num = token.str.num - 2;
+		StringView path{ token.str.data() + 1 , token.str.size() - 2 };
 
 		if( mParamOnceSet.find(path.toStdString()) == mParamOnceSet.end() )
 		{
@@ -118,12 +116,12 @@ namespace CPP
 				SYNTAX_ERROR("Can't open include file");
 			}
 			includeInput->mFileName = path.toStdString();
-			includeInput->reset();
+			includeInput->resetSeek();
 
 			if( bCommentIncludeFileName )
 			{
 				mOutput->push("//Include ");
-				mOutput->push( path.ptr , path.num );
+				mOutput->push( path );
 				mOutput->pushNewline();
 			}
 
@@ -133,7 +131,7 @@ namespace CPP
 			if( bCommentIncludeFileName )
 			{
 				mOutput->push("//~Include ");
-				mOutput->push(path.ptr, path.num);
+				mOutput->push( path );
 				mOutput->pushNewline();
 			}
 			mLoadedInput.push_back(includeInput.release());
@@ -187,12 +185,12 @@ namespace CPP
 		}
 
 		input.skipSpace();
-		TokenString expr = ParseUtility::StringTokenLine(input.mCur);
+		StringView expr = FStringParse::StringTokenLine(input.mCur);
 
 
 	}
 
-	std::map< TokenString, Command, Preprocessor::StrCmp > Preprocessor::sCommandMap;
+	std::map< StringView, Command, Preprocessor::StrCmp > Preprocessor::sCommandMap;
 
 	Command Preprocessor::nextCommand( CodeInput& input, bool bOutString , char const*& comStart )
 	{
@@ -203,7 +201,7 @@ namespace CPP
 		Command result = Command::None;
 		for( ;;)
 		{
-			str = ParseUtility::SkipChar(str, " \r");
+			str = FStringParse::SkipChar(str, " \r");
 			if( *str == 0 )
 			{
 				end = str;
@@ -212,7 +210,7 @@ namespace CPP
 
 			if( *str != '#' )
 			{
-				str = ParseUtility::FindChar(str, '\n');
+				str = FStringParse::FindChar(str, '\n');
 				if( *str != 0 )
 				{
 					++str;
@@ -222,15 +220,15 @@ namespace CPP
 			{
 				comStart = str;
 				end = str;
-				TokenString strCom;
 				//#TODO skip space char
 				if( !isalpha(*(str + 1)) )
 				{
 
 				}
-				strCom.ptr = str + 1;
-				str = ParseUtility::FindChar(str, " \r\n");
-				strCom.num = str - strCom.ptr;
+
+				char const* ptr = str + 1;
+				str = FStringParse::FindChar(str, " \r\n");
+				StringView strCom{ ptr , size_t(str - ptr) };
 
 				auto iter = sCommandMap.find(strCom);
 				if( iter != sCommandMap.end() )
@@ -252,10 +250,8 @@ namespace CPP
 		{
 			if ( start != end )
 			{
-				TokenString tokenOut;
-				tokenOut.ptr = start;
-				tokenOut.num = end - start;
-				mOutput->push(tokenOut);
+				StringView tokenOut;
+				mOutput->push(start , end - start);
 			}
 		}
 		return result;
@@ -280,8 +276,8 @@ namespace CPP
 	Preprocessor::ExprToken Preprocessor::nextExprToken(CodeInput& input)
 	{
 		//TODO : Skip Comment
-		TokenString str;
-		if( !ParseUtility::StringToken(input.mCur, mExprDelimsTable, str) )
+		StringView str;
+		if( !FStringParse::StringToken(input.mCur, mExprDelimsTable, str) )
 			return ExprToken(ExprToken::eEof);
 
 		if( isalpha(str[0]) )
@@ -290,8 +286,8 @@ namespace CPP
 		if( '0' <= str[0] && str[0] <= '9' )
 		{
 			int numEval = 0;
-			int value = ParseUtility::ParseIntNumber(str.ptr, numEval);
-			if ( numEval != str.num )
+			int value = FStringParse::ParseIntNumber(str.data(), numEval);
+			if ( numEval != str.size() )
 				SYNTAX_ERROR("Unknow Token");
 
 			return ExprToken(ExprToken::eNumber, value);
@@ -504,7 +500,7 @@ namespace CPP
 	{
 		if( !FileUtility::LoadToBuffer(path , mBuffer , true) )
 			return false;
-		reset();
+		resetSeek();
 		return true;
 	}
 

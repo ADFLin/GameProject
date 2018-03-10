@@ -126,7 +126,7 @@ int g_dbgNumChest = 0;
 void CNPCBase::productChestThink( ThinkContent& content )
 {
 	++g_dbgNumChest;
-	DevMsg( 5, "g_dbgNumChest = %d" , g_dbgNumChest );
+	LogDevMsgF( 5, "g_dbgNumChest = %d" , g_dbgNumChest );
 
 	//TChestTrigger* trigger  = new TChestTrigger;
 	//Vec3D pos = mSpatialComp->getPosition();
@@ -554,7 +554,7 @@ AIActionSchedule* CNPCBase::getScheduleByType( int sche )
 			return &GET_SCHEDULE_DATA( ThisClass )[i];
 	}
 
-	Msg("No Schedule Define %d" , sche );
+	LogMsgF("No Schedule Define %d" , sche );
 	return NULL;
 }
 
@@ -592,13 +592,13 @@ void CNPCBase::maintainSchedule()
 			changeSchedule( newSche );
 			
 			++g_useScheduleNum;
-			DevMsg( 5 , "%d , change Schedule = %s" , 
+			LogDevMsgF( 5 , "%d , change Schedule = %s" , 
 				g_useScheduleNum ,  getCurSchedule()->name );
 		}
 
 		if ( !getCurSchedule() )
 		{
-			DevMsg( 5 , "No Schedule run" );
+			LogDevMsgF( 5 , "No Schedule run" );
 			break;
 		}
 
@@ -606,7 +606,7 @@ void CNPCBase::maintainSchedule()
 
 		if ( getCurTaskState() == TKS_NEW )
 		{
-			DevMsg( 5 , "new Task  = %s" , curTask->name );
+			LogDevMsgF( 5 , "new Task  = %s" , curTask->name );
 			startTask( *curTask );
 
 			if ( getCurTaskState() == TKS_NEW )
@@ -627,7 +627,7 @@ void CNPCBase::maintainSchedule()
 			changeNextTask();
 			break;
 		case TKS_FAIL:    
-			DevMsg( 5 , "Task Fail : %s " , curTask->name );
+			LogDevMsgF( 5 , "Task Fail : %s " , curTask->name );
 			done = true;
 			break;
 		case TKS_RUNNING:
@@ -640,7 +640,7 @@ void CNPCBase::maintainSchedule()
 
 		if ( loop == MAX_TASK_LOOP )
 		{
-			Msg( "%Max Task Loop : %s" , getCurSchedule()->name );
+			LogMsgF( "%Max Task Loop : %s" , getCurSchedule()->name );
 		}
 	}
 }

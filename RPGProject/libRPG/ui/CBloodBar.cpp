@@ -23,7 +23,7 @@ CBloodBar::CBloodBar( Thinkable* thinkObj , CFObject* obj , float maxValue , Vec
 
 	mLength = size.x;
 
-	CUISystem::getInstance().setTextureDir( "Data\\UI" );
+	CUISystem::Get().setTextureDir( "Data\\UI" );
 
 	Material* mat = gEnv->renderSystem->createEmptyMaterial();
 	mat->addTexture( 0 , 0 , BLOOD_BAR_TEX_NAME );

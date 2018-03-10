@@ -546,7 +546,7 @@ namespace Homework
 		SparseMatrix< float > m3 = m1 * m2;
 		//SparseMatrix< float > m3 = m1 + m2;
 
-		::LogMsgF("%f", m3(1, 2));
+		LogMsgF("%f", m3(1, 2));
 
 
 	}

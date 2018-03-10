@@ -51,7 +51,7 @@ namespace Zuma
 			Vector2& pt = vtxVec[i].pos;
 			ball.setPos( pt );
 
-			if ( vtxVec[i].flag &  CVData::eMask )
+			if ( vtxVec[i].flag &  CurveVertex::eMask )
 				ball.setColor( zRed );
 			else
 				ball.setColor( zWhite );

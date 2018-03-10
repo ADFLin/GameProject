@@ -288,6 +288,20 @@ protected:
 	void        prevProcMsg();
 	void        postProcMsg();
 
+	struct ProcMsgScope
+	{
+		ProcMsgScope( TWidgetManager* inManager )
+			:manager(inManager)
+		{
+			manager->prevProcMsg();
+		}
+		~ProcMsgScope()
+		{
+			manager->postProcMsg();
+		}
+		TWidgetManager* manager;
+	};
+
 private:
 	enum ESlotName
 	{

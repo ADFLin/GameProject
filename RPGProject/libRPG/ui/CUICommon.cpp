@@ -50,11 +50,11 @@ CWidget::CWidget( Vec2i const& pos , Vec2i const& size , CWidget* parent )
 {
 	if ( parent )
 	{
-		mSprite = CUISystem::getInstance().createSprite( parent->getSprite() );
+		mSprite = CUISystem::Get().createSprite( parent->getSprite() );
 	}
 	else
 	{
-		mSprite = CUISystem::getInstance().createSprite( nullptr );
+		mSprite = CUISystem::Get().createSprite( nullptr );
 	}
 
 	mSprite->setUserData( this );
@@ -196,10 +196,10 @@ CSimpleButton::CSimpleButton( char const* dir , char const** picName , Vec2i con
 {
 	Texture* tex[ BS_NUM_STATE ];
 
-	CUISystem::getInstance().setTextureDir( dir );
+	CUISystem::Get().setTextureDir( dir );
 	for( int i = 0 ; i < BS_NUM_STATE ; ++ i )
 	{
-		tex[i] = CUISystem::getInstance().fetchTexture( picName[i] );
+		tex[i] = CUISystem::Get().fetchTexture( picName[i] );
 	}
 	mIdButtonRect = mSprite->createRectArea( 0 , 0 , size.x , size.y , tex , BS_NUM_STATE );
 	mSprite->setRenderOption( CFly::CFRO_ALPHA_BLENGING , TRUE );
@@ -214,7 +214,7 @@ void CSimpleButton::onChangeState( ButtonState state )
 CCloseButton::CCloseButton( Vec2i const& pos , CWidget* parent ) 
 	:CButtonUI( pos , Vec2i( closeSize , closeSize ) , parent )
 {
-	Texture* tex = CUISystem::getInstance().fetchTexture( "PANEL_X" );
+	Texture* tex = CUISystem::Get().fetchTexture( "PANEL_X" );
 	mSprite->createRectArea( 0 , 0 ,closeSize , closeSize , &tex , 1 );
 
 	mSprite->setRenderOption( CFly::CFRO_ALPHA_BLENGING , TRUE );
@@ -285,12 +285,12 @@ CPanelUI::CPanelUI( PanelTemplateInfo& info , Vec2i const& pos , Vec2i const& si
 void CPanelUI::initTemplate( PanelTemplateInfo& info )
 {
 	Vec2i const& size = getSize();
-	CUISystem::getInstance().setTextureDir( info.path );
+	CUISystem::Get().setTextureDir( info.path );
 
 	Texture* tex[1];
 
 #define SET_PANEL_BK( pos  , ox , oy , w , h )\
-	tex[0] = CUISystem::getInstance().fetchTexture( info.texName[ pos ] );\
+	tex[0] = CUISystem::Get().fetchTexture( info.texName[ pos ] );\
 	mIdBKSprRect[ pos ] = mSprite->createRectArea( ox , oy , w , h , tex , 1  );
 
 	SET_PANEL_BK( PANEL_LB_CORNER , 
@@ -375,7 +375,7 @@ PanelTemplateInfo CToolTipUI::DefultTemplate =
 void CToolTipUI::drawText()
 {
 	Vec3D pos = mSprite->getWorldPosition();
-	CFont& font = CUISystem::getInstance().getDefultFont();
+	CFont& font = CUISystem::Get().getDefultFont();
 
 	font.setColor( Color4ub( 255  , 255 , 0 , 255 ) );
 	font.write( 
@@ -422,7 +422,7 @@ void CToolTipUI::resize( Vec2i const& size )
 
 void CToolTipUI::fitSize()
 {
-	CFont& font = CUISystem::getInstance().getDefultFont();
+	CFont& font = CUISystem::Get().getDefultFont();
 
 	int sx = maxLineFontNum * font.width + 30;
 	int sy = lineNum * font.height + 20;
@@ -441,7 +441,7 @@ void CToolTipUI::clearString()
 CSlotFrameUI::CSlotFrameUI( Vec2i const& pos , Vec2i const& size , CWidget* parent ) 
 	:CFrameUI( pos , size, parent )
 {
-	mSlotBKSpr = CUISystem::getInstance().createSprite( mSprite );
+	mSlotBKSpr = CUISystem::Get().createSprite( mSprite );
 	mSlotBKSpr->setLocalPosition( Vec3D(0,0,-0.01) );
 	mSlotBKSpr->setParent( mSprite );
 }

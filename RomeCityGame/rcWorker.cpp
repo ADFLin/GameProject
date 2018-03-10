@@ -547,6 +547,6 @@ bool RandomMoveMission::onStart()
 void Navigator::setWorker( rcWorker* worker )
 {
 	mWorker = worker;
-	WorkerInfo& info = rcDataManager::getInstance().getWorkerInfo( worker->getType() );
+	WorkerInfo& info = rcDataManager::Get().getWorkerInfo( worker->getType() );
 	mSpeed = 1.0f / info.moveSpeed;
 }

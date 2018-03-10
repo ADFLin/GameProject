@@ -64,11 +64,11 @@ bool GameFramework::init( SSystemInitParams& params )
 
 	gEnv->framework = this;
 
-	if ( !ConsoleSystem::getInstance().init() )
+	if ( !ConsoleSystem::Get().init() )
 		return false;
-	if ( !PhysicsSystem::getInstance().initSystem() )
+	if ( !PhysicsSystem::Get().initSystem() )
 		return false;
-	if ( !CUISystem::getInstance().initSystem() )
+	if ( !CUISystem::Get().initSystem() )
 		return false;
 
 	mLevelManager.reset( new LevelManager );

@@ -113,7 +113,7 @@ public:
 
 	void onRoot     ( SampleNode* node )
 	{
-		double time_since_reset = ProfileSystem::getInstance().getTimeSinceReset();
+		double time_since_reset = ProfileSystem::Get().getTimeSinceReset();
 		msgShow.push( "--- Profiling: %s (total running time: %.3f ms) ---" , 
 			node->getName() , time_since_reset );
 	}
@@ -123,7 +123,7 @@ public:
 		msgShow.push( "|-> %d -- %s (%.2f %%) :: %.3f ms / frame (%d calls)",
 			++mIdxChild , node->getName() ,
 			parentTime > CLOCK_EPSILON ? ( node->getTotalTime()  / parentTime ) * 100 : 0.f ,
-			node->getTotalTime()  / (double)ProfileSystem::getInstance().getFrameCountSinceReset() ,
+			node->getTotalTime()  / (double)ProfileSystem::Get().getFrameCountSinceReset() ,
 			node->getTotalCalls() );
 	}
 
@@ -144,13 +144,13 @@ public:
 			if ( node->getParent() != NULL )
 				time = node->getTotalTime();
 			else
-				time = ProfileSystem::getInstance().getTimeSinceReset();
+				time = ProfileSystem::Get().getTimeSinceReset();
 
 			double delta = time - accTime;
 			msgShow.push( "|-> %s (%.3f %%) :: %.3f ms / frame", "Other",
 				// (min(0, time_since_reset - totalTime) / time_since_reset) * 100);
 				( time > CLOCK_EPSILON ) ? ( delta / time * 100 ) : 0.f  , 
-				delta / (double)ProfileSystem::getInstance().getFrameCountSinceReset() );
+				delta / (double)ProfileSystem::Get().getFrameCountSinceReset() );
 			msgShow.push( "-------------------------------------------------" );
 		}
 
@@ -197,9 +197,9 @@ public:  //GameCore
 		
 
 		//mRenderSystem->createFont( 12 , TEXT("µØ±d¤¤¶êÅé") );
-		rcDataManager::getInstance().init();
+		rcDataManager::Get().init();
 
-		rcGUISystem::getInstance().setControl( mControl );
+		rcGUISystem::Get().setControl( mControl );
 		if ( !initTestVariable() )
 			return false;
 
@@ -211,13 +211,13 @@ public:  //GameCore
 
 	void onEnd()
 	{
-		rcDataManager::releaseInstance();
+		rcDataManager::ReleaseInstance();
 
 		mRenderSystem.reset( NULL );
 	}
 	long onUpdate( long shouldTime )
 	{ 
-		ProfileSystem::getInstance().incrementFrameCount();
+		ProfileSystem::Get().incrementFrameCount();
 
 		PROFILE_ENTRY( "Game::Update" )
 
@@ -228,7 +228,7 @@ public:  //GameCore
 
 
 		mLevelCity->update( time );
-		rcGUISystem::getInstance().update( time );
+		rcGUISystem::Get().update( time );
 
 		return shouldTime; 
 	}
@@ -253,14 +253,14 @@ public:  //GameCore
 
 			for( int i = 0 ; i < 1 ; ++i )
 			{
-				WorkerInfo& info = rcDataManager::getInstance().getWorkerInfo( WT_MARKET_TRADER );
+				WorkerInfo& info = rcDataManager::Get().getWorkerInfo( WT_MARKET_TRADER );
 				//unsigned texID = rcDataManager::getInstance().getRoadTexture( i );
 				//unsigned texID = rcDataManager::getInstance().getWareHouseProductTexture( i );
 
 				//mLevelScene->renderTexture( info.texAnim[ WKA_WALK ] , Vec2i( 70 * i + 10 , 30 ) );
 			}
 
-			rcGUISystem::getInstance().render();
+			rcGUISystem::Get().render();
 
 			mProfileViewer->showText();
 
@@ -303,7 +303,7 @@ public:  //GameCore
 public:// System Message
 	bool  onMouse( MouseMsg& msg )
 	{
-		if ( !rcGUISystem::getInstance().procMouse( msg ) )
+		if ( !rcGUISystem::Get().procMouse( msg ) )
 			return true;
 
 		if ( msg.onLeftDown() )
@@ -418,7 +418,7 @@ public:// System Message
 			mLevelScene->getViewPort().setDir( rcViewport::ViewDir( dir.getValue() ) );
 			break;
 		case VK_F2:
-			ProfileSystem::getInstance().cleanup();
+			ProfileSystem::Get().cleanup();
 			break;
 		}
 
@@ -524,10 +524,10 @@ public:// System Message
 		//}
 
 		rcWidget* widget;
-		widget = rcGUISystem::getInstance().loadUI( UI_CTRL_PANEL );
-		rcGUISystem::getInstance().loadUI( UI_BLD_HOUSE_BTN , widget );
-		rcGUISystem::getInstance().loadUI( UI_BLD_ROAD_BTN , widget );
-		rcGUISystem::getInstance().loadUI( UI_BLD_CLEAR_BTN , widget );
+		widget = rcGUISystem::Get().loadUI( UI_CTRL_PANEL );
+		rcGUISystem::Get().loadUI( UI_BLD_HOUSE_BTN , widget );
+		rcGUISystem::Get().loadUI( UI_BLD_ROAD_BTN , widget );
+		rcGUISystem::Get().loadUI( UI_BLD_CLEAR_BTN , widget );
 
 		return true;
 	}

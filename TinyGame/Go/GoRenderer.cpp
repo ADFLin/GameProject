@@ -45,7 +45,7 @@ namespace Go
 	void GameRenderer::generateNoiseOffset(int boradSize)
 	{
 		int size = boradSize * boradSize;
-		float maxOffset = 2.1;
+		float maxOffset = 1.6;
 		mNoiseOffsets.resize(size);
 		for( int i = 0; i < size; ++i )
 		{

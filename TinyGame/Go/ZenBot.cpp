@@ -31,7 +31,7 @@ namespace Zen
 		case 6: name = TEXT("Go/Zen6/Zen.dll"); break;
 		case 7: name = TEXT("Go/Zen7/Zen.dll"); break;
 		default:
-			::LogError("Zen Version No Dll");
+			LogError("Zen Version No Dll");
 			return false;
 		}
 
@@ -39,59 +39,62 @@ namespace Zen
 		if( mhModule == NULL )
 			return false;
 
-#define ZenFunLoad( FN , NAME )\
+#define LoadZenFun( FN , NAME )\
 		if ( !readProcAddress(mhModule,  FN, NAME ) )\
-			return false;
+		{\
+			LogErrorF("Can't Load %s!!" , #FN );\
+			return false;\
+		}
 
-		ZenFunLoad(ZenAddStone, "?ZenAddStone@@YA_NHHH@Z");
-		ZenFunLoad(ZenClearBoard, "?ZenClearBoard@@YAXXZ");
-		ZenFunLoad(ZenFixedHandicap, "?ZenFixedHandicap@@YAXH@Z");
-		ZenFunLoad(ZenGetBestMoveRate, "?ZenGetBestMoveRate@@YAHXZ");
-		ZenFunLoad(ZenGetBoardColor, "?ZenGetBoardColor@@YAHHH@Z");
-		ZenFunLoad(ZenGetHistorySize, "?ZenGetHistorySize@@YAHXZ");
-		ZenFunLoad(ZenGetNextColor, "?ZenGetNextColor@@YAHXZ");
-		ZenFunLoad(ZenGetNumBlackPrisoners, "?ZenGetNumBlackPrisoners@@YAHXZ");
-		ZenFunLoad(ZenGetNumWhitePrisoners, "?ZenGetNumWhitePrisoners@@YAHXZ");
-		ZenFunLoad(ZenGetTerritoryStatictics, "?ZenGetTerritoryStatictics@@YAXQAY0BD@H@Z");
-		ZenFunLoad(ZenGetTopMoveInfo, "?ZenGetTopMoveInfo@@YAXHAAH00AAMPADH@Z");
-		ZenFunLoad(ZenInitialize, "?ZenInitialize@@YAXPBD@Z");
-		ZenFunLoad(ZenIsLegal, "?ZenIsLegal@@YA_NHHH@Z");
-		ZenFunLoad(ZenIsSuicide, "?ZenIsSuicide@@YA_NHHH@Z");
-		ZenFunLoad(ZenIsThinking, "?ZenIsThinking@@YA_NXZ");
-		ZenFunLoad(ZenMakeShapeName, "?ZenMakeShapeName@@YAXHHHPADH@Z");
-		ZenFunLoad(ZenPass, "?ZenPass@@YAXH@Z");
-		ZenFunLoad(ZenPlay, "?ZenPlay@@YA_NHHH@Z");
-		ZenFunLoad(ZenReadGeneratedMove, "?ZenReadGeneratedMove@@YAXAAH0AA_N1@Z");
+		LoadZenFun(ZenAddStone, "?ZenAddStone@@YA_NHHH@Z");
+		LoadZenFun(ZenClearBoard, "?ZenClearBoard@@YAXXZ");
+		LoadZenFun(ZenFixedHandicap, "?ZenFixedHandicap@@YAXH@Z");
+		LoadZenFun(ZenGetBestMoveRate, "?ZenGetBestMoveRate@@YAHXZ");
+		LoadZenFun(ZenGetBoardColor, "?ZenGetBoardColor@@YAHHH@Z");
+		LoadZenFun(ZenGetHistorySize, "?ZenGetHistorySize@@YAHXZ");
+		LoadZenFun(ZenGetNextColor, "?ZenGetNextColor@@YAHXZ");
+		LoadZenFun(ZenGetNumBlackPrisoners, "?ZenGetNumBlackPrisoners@@YAHXZ");
+		LoadZenFun(ZenGetNumWhitePrisoners, "?ZenGetNumWhitePrisoners@@YAHXZ");
+		LoadZenFun(ZenGetTerritoryStatictics, "?ZenGetTerritoryStatictics@@YAXQAY0BD@H@Z");
+		LoadZenFun(ZenGetTopMoveInfo, "?ZenGetTopMoveInfo@@YAXHAAH00AAMPADH@Z");
+		LoadZenFun(ZenInitialize, "?ZenInitialize@@YAXPBD@Z");
+		LoadZenFun(ZenIsLegal, "?ZenIsLegal@@YA_NHHH@Z");
+		LoadZenFun(ZenIsSuicide, "?ZenIsSuicide@@YA_NHHH@Z");
+		LoadZenFun(ZenIsThinking, "?ZenIsThinking@@YA_NXZ");
+		LoadZenFun(ZenMakeShapeName, "?ZenMakeShapeName@@YAXHHHPADH@Z");
+		LoadZenFun(ZenPass, "?ZenPass@@YAXH@Z");
+		LoadZenFun(ZenPlay, "?ZenPlay@@YA_NHHH@Z");
+		LoadZenFun(ZenReadGeneratedMove, "?ZenReadGeneratedMove@@YAXAAH0AA_N1@Z");
 		
-		ZenFunLoad(ZenSetBoardSize, "?ZenSetBoardSize@@YAXH@Z");
-		ZenFunLoad(ZenSetKomi, "?ZenSetKomi@@YAXM@Z");
-		ZenFunLoad(ZenSetMaxTime, "?ZenSetMaxTime@@YAXM@Z");
-		ZenFunLoad(ZenSetNextColor, "?ZenSetNextColor@@YAXH@Z");
-		ZenFunLoad(ZenSetNumberOfSimulations, "?ZenSetNumberOfSimulations@@YAXH@Z");
-		ZenFunLoad(ZenSetNumberOfThreads, "?ZenSetNumberOfThreads@@YAXH@Z");
+		LoadZenFun(ZenSetBoardSize, "?ZenSetBoardSize@@YAXH@Z");
+		LoadZenFun(ZenSetKomi, "?ZenSetKomi@@YAXM@Z");
+		LoadZenFun(ZenSetMaxTime, "?ZenSetMaxTime@@YAXM@Z");
+		LoadZenFun(ZenSetNextColor, "?ZenSetNextColor@@YAXH@Z");
+		LoadZenFun(ZenSetNumberOfSimulations, "?ZenSetNumberOfSimulations@@YAXH@Z");
+		LoadZenFun(ZenSetNumberOfThreads, "?ZenSetNumberOfThreads@@YAXH@Z");
 
-		ZenFunLoad(ZenStartThinking, "?ZenStartThinking@@YAXH@Z");
-		ZenFunLoad(ZenStopThinking, "?ZenStopThinking@@YAXXZ");
-		ZenFunLoad(ZenTimeLeft, "?ZenTimeLeft@@YAXHHH@Z");
-		ZenFunLoad(ZenTimeSettings, "?ZenTimeSettings@@YAXHHH@Z");
-		ZenFunLoad(ZenUndo, "?ZenUndo@@YA_NH@Z");
+		LoadZenFun(ZenStartThinking, "?ZenStartThinking@@YAXH@Z");
+		LoadZenFun(ZenStopThinking, "?ZenStopThinking@@YAXXZ");
+		LoadZenFun(ZenTimeLeft, "?ZenTimeLeft@@YAXHHH@Z");
+		LoadZenFun(ZenTimeSettings, "?ZenTimeSettings@@YAXHHH@Z");
+		LoadZenFun(ZenUndo, "?ZenUndo@@YA_NH@Z");
 
 		if( version <= 6 )
 		{
-			ZenFunLoad(ZenSetAmafWeightFactor, "?ZenSetAmafWeightFactor@@YAXM@Z");
-			ZenFunLoad(ZenSetPriorWeightFactor, "?ZenSetPriorWeightFactor@@YAXM@Z");
+			LoadZenFun(ZenSetAmafWeightFactor, "?ZenSetAmafWeightFactor@@YAXM@Z");
+			LoadZenFun(ZenSetPriorWeightFactor, "?ZenSetPriorWeightFactor@@YAXM@Z");
 		}
 		if( version == 6 )
 		{
-			ZenFunLoad(ZenSetDCNN, "?ZenSetDCNN@@YAX_N@Z");
-			ZenFunLoad(ZenGetPriorKnowledge, "?ZenGetPriorKnowledge@@YAXQAY0BD@H@Z");
+			LoadZenFun(ZenSetDCNN, "?ZenSetDCNN@@YAX_N@Z");
+			LoadZenFun(ZenGetPriorKnowledge, "?ZenGetPriorKnowledge@@YAXQAY0BD@H@Z");
 		}
 		else if( version == 7 )
 		{
-			ZenFunLoad(ZenGetPolicyKnowledge,"?ZenGetPolicyKnowledge@@YAXQAY0BD@H@Z");
-			ZenFunLoad(ZenSetPnLevel,"?ZenSetPnLevel@@YAXH@Z");
-			ZenFunLoad(ZenSetPnWeight,"?ZenSetPnWeight@@YAXM@Z");
-			ZenFunLoad(ZenSetVnMixRate, "?ZenSetVnMixRate@@YAXM@Z");
+			LoadZenFun(ZenGetPolicyKnowledge,"?ZenGetPolicyKnowledge@@YAXQAY0BD@H@Z");
+			LoadZenFun(ZenSetPnLevel,"?ZenSetPnLevel@@YAXH@Z");
+			LoadZenFun(ZenSetPnWeight,"?ZenSetPnWeight@@YAXM@Z");
+			LoadZenFun(ZenSetVnMixRate, "?ZenSetVnMixRate@@YAXM@Z");
 		}
 
 #undef ZenFunLoad

@@ -94,7 +94,7 @@ namespace RenderGL
 			}
 			catch( const std::exception& e )
 			{
-				::LogMsgF("Load Scene Fail!! : %s" , e.what() );
+				LogMsgF("Load Scene Fail!! : %s" , e.what() );
 				return false;
 			}
 			return true;

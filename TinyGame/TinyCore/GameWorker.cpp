@@ -146,14 +146,14 @@ void NetWorker::sendUdpCom( NetSocket& socket )
 
 			if ( numSend != uc.dataSize )
 			{
-				::LogWarning(0 , "Udp can't send full Data");
+				LogWarning(0 , "Udp can't send full Data");
 				mUdpSendBuffer.shiftUseSize( -numSend );
 				break;
 			}
 		}
 		catch ( BufferException& /*e*/ )
 		{
-			::LogError("Send Udp Com Error" );
+			LogError("Send Udp Com Error" );
 			mUdpSendBuffer.clear();
 			mUdpComList.clear();
 			return;
@@ -199,7 +199,7 @@ bool EvalCommand( UdpChain& chain , ComEvaluator& evaluator , SocketBuffer& buff
 		{
 			if ( !evaluator.evalCommand( buffer , group , userData ) )
 			{
-				::LogMsgF( "readPacket Error Need Fix" );
+				LogMsgF( "readPacket Error Need Fix" );
 				return false;
 			}
 		}

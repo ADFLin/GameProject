@@ -46,7 +46,7 @@ public:
 	T*     data() { return mData; }
 	size_t size() const { return mNum; }
 
-private:
+protected:
 	T*     mData;
 	size_t mNum;
 };

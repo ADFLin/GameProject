@@ -78,20 +78,6 @@ protected:
 		TaskListener* listenser;
 	};
 
-    struct FindTask
-    {
-        FindTask( TaskBase* _task): task(_task){}
-        bool operator()( TaskNode const& node ) const { return node.task == task; }
-        TaskBase* task;
-    };
-
-    struct FindTaskByGroup
-    {
-        FindTaskByGroup( int inId): groupId(inId){}
-        bool operator()( TaskNode const& node ) const { return node.groupId == groupId; }
-        int groupId;
-    };
-
 	void   startNode( TaskNode& node );
 
 	typedef std::list< TaskNode > TaskList;

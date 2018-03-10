@@ -5,7 +5,7 @@
 #include "PlatformConfig.h"
 #include "Core/IntegerType.h"
 
-#undef InterlockedExchange
+
 
 enum class EDateMonth
 {
@@ -136,9 +136,31 @@ public:
 
 	static double  GetHighResolutionTime();
 
-	static int32    InterlockedExchange(volatile int32* value, int32 exchange);
+	static int32    InterlockedExchange(volatile int32* ptr, int32 value);
+	static int32    InterlockedExchangeAdd(volatile int32* ptr, int32 value);
+	static int32    InterlockedAdd(volatile int32* ptr, int32 value);
+	static int32    AtomicRead(volatile int32* ptr);
 
 	static DateTime GetUTCTime();
 	static DateTime GetLocalTime();
+
+	static bool OpenFileName(char inoutPath[] , int pathSize, char const* initDir = nullptr);
+
+	static int64 GetTickCount();
+};
+
+
+struct ScopeTickCount
+{
+	ScopeTickCount(int64& time):mTime(time)
+	{
+		mTime = SystemPlatform::GetTickCount();
+	}
+	~ScopeTickCount()
+	{
+		mTime = SystemPlatform::GetTickCount() - mTime;
+	}
+
+	int64& mTime;
 };
 #endif // SystemPlatform_H_8E107E72_296E_43B2_AAF2_09A1A3C6D4AB

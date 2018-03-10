@@ -142,7 +142,7 @@ struct PhysicsData
 
 	~PhysicsData()
 	{
-		PhysicsSystem::getInstance().destroyShape( shape );
+		PhysicsSystem::Get().destroyShape( shape );
 	}
 
 	void setDefult()
@@ -150,8 +150,8 @@ struct PhysicsData
 		mass = 1.0;
 		PhyShapeParams info;
 		info.setBoxShape( Vec3D( 50 , 50 , 50 ) );
-		PhysicsSystem::getInstance().destroyShape( shape );
-		shape = PhysicsSystem::getInstance().createShape( info );
+		PhysicsSystem::Get().destroyShape( shape );
+		shape = PhysicsSystem::Get().createShape( info );
 	}
 
 	float   mass;

@@ -58,7 +58,7 @@ bool CActor::init( GameObject* gameObject , GameObjectInitHelper const& helper )
 	if ( !scriptTable->getValue( "roleID" , m_roleID ) )
 		return false;
 
-	SRoleInfo* roleData = TRoleManager::getInstance().getRoleInfo( m_roleID );
+	SRoleInfo* roleData = TRoleManager::Get().getRoleInfo( m_roleID );
 	if ( !roleData )
 		return false;
 
@@ -72,7 +72,7 @@ bool CActor::init( GameObject* gameObject , GameObjectInitHelper const& helper )
 	params.scene   = helper.sceneLevel->getRenderScene();
 	mModel         = static_cast< CActorModel* >( renderComponent->createRenderEntity( RS_MODEL_SLOT , params ) );
 
-	ActorModelRes* modelRes = TResManager::getInstance().getActorModel( roleData->modelName.c_str() );
+	ActorModelRes* modelRes = TResManager::Get().getActorModel( roleData->modelName.c_str() );
 	PhyCollision* phyicalComp = getEntity()->getComponentT< PhyCollision >( COMP_PHYSICAL ) ;
 
 	SNSpatialComponent* spatialComp = new SNSpatialComponent( mModel->getCFActor() , phyicalComp );
@@ -328,11 +328,11 @@ void CActor::onAnimationFinish( AnimationType finishPose )
 	case ANIM_DYING :
 		if ( ( getStateBit() & AS_DIE ) == 0 )
 		{
-			DevMsg( 5 , "Dying" );
+			LogDevMsgF( 5 , "Dying" );
 			addStateBit( AS_DIE );
 			onDead();
 		}
-		else DevMsg( 5 , "Double Dying" );
+		else LogDevMsgF( 5 , "Double Dying" );
 		break;
 	}
 }
@@ -423,7 +423,7 @@ bool CActor::useItem( unsigned itemID )
 
 	if ( !item )
 	{
-		DevMsg( 1 , "Use unknown ItemID = %d" , itemID );
+		LogDevMsgF( 1 , "Use unknown ItemID = %d" , itemID );
 		return false;
 	}
 
@@ -443,7 +443,7 @@ bool CActor::useItem( char const* itemName )
 	unsigned itemID = UG_GetItemID( itemName );
 	if ( itemID == ITEM_ERROR_ID  )
 	{
-		DevMsg( 1 , "use unknown Item = %s" , itemName );
+		LogDevMsgF( 1 , "use unknown Item = %s" , itemName );
 		return false;
 	}
 	return useItem( itemID );
@@ -474,7 +474,7 @@ bool CActor::equip( char const* itemName )
 	unsigned itemID = UG_GetItemID( itemName );
 	if ( itemID == ITEM_ERROR_ID  )
 	{
-		DevMsg( 1 , "equip unknown Item = %s" , itemName );
+		LogDevMsgF( 1 , "equip unknown Item = %s" , itemName );
 		return false;
 	}
 
@@ -487,7 +487,7 @@ bool CActor::equip( unsigned itemID )
 
 	if ( !equipItem )
 	{
-		DevMsg( 1 , "equip unknown ItemID = %d" , itemID );
+		LogDevMsgF( 1 , "equip unknown ItemID = %d" , itemID );
 		return false;
 	}
 
@@ -724,7 +724,7 @@ void CActor::castSkill( char const* name )
 	if ( m_curSkill )
 		cancelSkill();
 
-	TSkill* curSkill = TSkillLibrary::getInstance().createSkill( name );
+	TSkill* curSkill = TSkillLibrary::Get().createSkill( name );
 	if ( curSkill != NULL )
 	{
 		if ( getMP() < curSkill->getInfo().castMP )
@@ -742,7 +742,7 @@ void CActor::castSkill( char const* name )
 	}
 	else
 	{
-		DevMsg( 1 ,"cant find skill: %s" , name );
+		LogDevMsgF( 1 ,"cant find skill: %s" , name );
 	}
 }
 
@@ -928,9 +928,9 @@ void CActorScript::createComponent( CEntity& entity , EntitySpawnParams& params 
 	unsigned roleID = 0;
 	IScriptTable* scriptTable = entity.getScriptTable();
 	scriptTable->getValue( "roleID" , roleID );
-	SRoleInfo* roleData = TRoleManager::getInstance().getRoleInfo( roleID );
+	SRoleInfo* roleData = TRoleManager::Get().getRoleInfo( roleID );
 
-	ActorModelRes* modelRes = TResManager::getInstance().getActorModel( roleData->modelName.c_str() );
+	ActorModelRes* modelRes = TResManager::Get().getActorModel( roleData->modelName.c_str() );
 
 	CRenderComponent* renderComp = new CRenderComponent;
 	entity.addComponent( renderComp );

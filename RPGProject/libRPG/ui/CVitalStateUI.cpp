@@ -14,7 +14,7 @@ CVitalStateUI::CVitalStateUI( Vec2i const& pos ,Thinkable* thinkable , AbilityPr
 {
 	mPropComp = comp;
 
-	CUISystem::getInstance().setTextureDir( "Data/UI" );
+	CUISystem::Get().setTextureDir( "Data/UI" );
 
 	mSprite->createRectArea( 0 , 0, 273 , 104 , "player_vitals" , 1 , 0 );
 	mSprite->setRenderOption( CFly::CFRO_ALPHA_BLENGING , TRUE );
@@ -26,7 +26,7 @@ CVitalStateUI::CVitalStateUI( Vec2i const& pos ,Thinkable* thinkable , AbilityPr
 	m_MPBar = new CBloodBar( thinkable,  mSprite , mPropComp->getPropValue( PROP_MAX_MP ), Vec3D(97, 43 , 0.01 ) , Vec2i( BloodBarLength  , 10 ), Color4f(0.1,0.1,1) );
 	m_MPBar->setLife( mPropComp->getMP() , false );
 
-	shufa = CUISystem::getInstance().getCFWorld()->createShuFa( "新細明體" , 12 , true , false );
+	shufa = CUISystem::Get().getCFWorld()->createShuFa( "新細明體" , 12 , true , false );
 
 }
 

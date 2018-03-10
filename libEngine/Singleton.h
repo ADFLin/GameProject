@@ -7,14 +7,14 @@ template< class T >
 class SingletonT
 {
 public:
-	static T& getInstance()
+	static T& Get()
 	{
 		if ( !_instance )
 			_instance = new T;
 		return *_instance;
 	}
 
-	static void releaseInstance()
+	static void ReleaseInstance()
 	{
 		if ( _instance )
 		{

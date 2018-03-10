@@ -10,13 +10,15 @@
 
 #include "Thread.h"
 #include "SystemMessage.h"
+#include "SystemPlatform.h"
 #include <fstream>
 
-long loadingTime = 0;
+static int64 gLoadingTime = 0;
+
 namespace Zuma
 {
 
-	bool savePathVertex( char const* path , CVDataVec& vtxVec )
+	bool savePathVertex( char const* path , CurveVertexVector& vtxVec )
 	{
 		std::ofstream stream( path , std::ios::binary );
 
@@ -29,13 +31,13 @@ namespace Zuma
 
 		for( unsigned i = 0 ; i < num  ;++i )
 		{
-			CVData const& data = vtxVec[i];
+			CurveVertex const& data = vtxVec[i];
 			stream.write( (char*) &data , sizeof( data ) );
 		}
 		return true;
 	}
 
-	bool loadPathVertex( char const* path , CVDataVec& vtxVec )
+	bool loadPathVertex( char const* path , CurveVertexVector& vtxVec )
 	{
 		std::ifstream stream( path , std::ios::binary );
 
@@ -49,7 +51,7 @@ namespace Zuma
 
 		for( unsigned i = 0 ; i < num  ;++i )
 		{
-			CVData data;
+			CurveVertex data;
 			stream.read( (char*) &data , sizeof( data ) );
 			vtxVec.push_back( data );
 		}	
@@ -69,9 +71,7 @@ namespace Zuma
 		switch( key )
 		{
 		case 'S': 
-			savePathVertex( 
-				lvInfo.pathCurve[curCurveIndex].c_str() , vtxVec 
-				); 
+			savePathVertex( lvInfo.pathCurve[curCurveIndex].c_str() , vtxVec ); 
 			break;
 		case 'A': addPoint( mousePos ); break;
 		case 'C': clearPoint(); break;
@@ -131,7 +131,7 @@ namespace Zuma
 	void ZDevStage::addPoint( Vector2 const& pos )
 	{
 
-		CVData data;
+		CurveVertex data;
 
 		data.pos  = pos;
 		data.flag = 0;
@@ -150,7 +150,7 @@ namespace Zuma
 	{
 		for( int i = 0 ; i < vtxVec.size() ; ++i )
 		{
-			CVData& vtx = vtxVec[i];
+			CurveVertex& vtx = vtxVec[i];
 			if ( (pos - vtx.pos ).length2() < 100 )
 				return i;
 		}
@@ -162,10 +162,10 @@ namespace Zuma
 		int idx = getPoint( pos );
 		if ( idx != -1 )
 		{
-			if ( vtxVec[idx].flag & CVData::eMask )
-				vtxVec[idx].flag &= ~CVData::eMask;
+			if ( vtxVec[idx].flag & CurveVertex::eMask )
+				vtxVec[idx].flag &= ~CurveVertex::eMask;
 			else
-				vtxVec[idx].flag |= CVData::eMask;
+				vtxVec[idx].flag |= CurveVertex::eMask;
 		}
 	}
 
@@ -220,13 +220,10 @@ namespace Zuma
 
 	void LoadingStage::loadResFun()
 	{
-		loadingTime = ::GetTickCount();
-
+		ScopeTickCount scope(gLoadingTime);
 		Global::getRenderSystem().prevLoadResource();
 		Global::getResManager().load( loadID );
 		Global::getRenderSystem().postLoadResource();
-
-		loadingTime = ::GetTickCount() - loadingTime;
 	}
 
 	void LoadingStage::onUpdate( long time )
@@ -244,42 +241,42 @@ namespace Zuma
 	ZStageController::~ZStageController()
 	{
 		delete mCurStage;
-		delete m_nextStage;
+		delete mNextStage;
 	}
 
 	ZStageController::ZStageController()
 	{
 		mCurStage = new EmptyStage;
-		mCurStage->m_controller = this;
-		m_nextStage = NULL;
+		mCurStage->mController = this;
+		mNextStage = NULL;
 	}
 
 	void ZStageController::update( unsigned time )
 	{
-		if ( m_nextStage )
+		if ( mNextStage )
 		{
 			mCurStage->onEnd();
 			onStageEnd( mCurStage , m_chFlag );
 
 			delete mCurStage;
 
-			m_nextStage->onStart();
-			mCurStage = m_nextStage;
+			mNextStage->onStart();
+			mCurStage = mNextStage;
 
-			m_nextStage = NULL;
+			mNextStage = NULL;
 		}
 		mCurStage->onUpdate( time );
 	}
 
 	void ZStageController::changeStage( ZStage* stage , unsigned flag )
 	{
-		if ( m_nextStage )
-			delete m_nextStage;
+		if ( mNextStage )
+			delete mNextStage;
 
 		m_chFlag    = flag;
-		m_nextStage = stage;
-		m_nextStage->m_controller = this;
-		m_nextStage->setParentHandler( this );
+		mNextStage = stage;
+		mNextStage->mController = this;
+		mNextStage->setParentHandler( this );
 	}
 
 	ZMainMenuStage::ZMainMenuStage()

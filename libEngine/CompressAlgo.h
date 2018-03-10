@@ -12,11 +12,11 @@ struct TBufferPolicy
 {
 	typedef BufferType DataType;
 
-	static void fill(DataType& buffer, uint8 value)
+	static void Fill(DataType& buffer, uint8 value)
 	{
 		buffer.fill(value);
 	}
-	static void take(DataType& buffer, uint8& value)
+	static void Take(DataType& buffer, uint8& value)
 	{
 		buffer.take(value);
 	}

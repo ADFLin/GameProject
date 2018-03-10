@@ -433,7 +433,7 @@ namespace Poker { namespace Big2 {
 				break;
 			if ( loopCount > 10 )
 			{
-				::LogMsg("Poker Bot Error");
+				LogMsg("Poker Bot Error");
 				return false;
 			}
 		}

@@ -33,7 +33,7 @@ CMiniMapUI::CMiniMapUI( Vec2i const& pos )
 {
 	Vec2i size( Length , Length );
 
-	CUISystem::getInstance().setTextureDir("Data/UI/");
+	CUISystem::Get().setTextureDir("Data/UI/");
 
 	mSprite->createRectArea( 0 , 0, size.x , size.y , "minimap" , 0 , 0.0f , nullptr , &Color3ub(255,255,255)  );
 	mSprite->setRenderOption( CFly::CFRO_ALPHA_BLENGING , true );
@@ -252,11 +252,11 @@ Vec3D CMiniMapUI::transWorldPos( Vec2i const& dPos )
 void CMiniMapUI::createMapObject()
 {
 
-	mMapViewport = CUISystem::getInstance().getCFWorld()->createViewport( 0, 0 , gMapTextureSize , gMapTextureSize );
+	mMapViewport = CUISystem::Get().getCFWorld()->createViewport( 0, 0 , gMapTextureSize , gMapTextureSize );
 	mMapViewport->setBackgroundColor( 0.01 , 0.01 , 0.01 );
 
-	Material* mapMat = CUISystem::getInstance().getCFWorld()->createMaterial();
-	CUISystem::getInstance().setTextureDir( "Data/UI/" );
+	Material* mapMat = CUISystem::Get().getCFWorld()->createMaterial();
+	CUISystem::Get().setTextureDir( "Data/UI/" );
 
 	mapMat->addRenderTarget( 0 , 0 , "mini_map" , CFly::CF_TEX_FMT_RGB32 , mMapViewport , true );
 	mapMat->addTexture( 0 , 1 , "mask" );

@@ -291,7 +291,7 @@ void PlayerListPanel::procSlotFrameMouseMsg( SlotFrame* frame , MouseMsg const& 
 	}
 	else if ( msg.isLeftDown() && msg.onMoving() )
 	{
-		::LogMsgF("mouse Pos = %d %d", msg.getPos().x, msg.getPos().y);
+		LogMsgF("mouse Pos = %d %d", msg.getPos().x, msg.getPos().y);
 		SlotId swapId = calcSoltId( frame->getPos().y );
 
 		if ( swapId != ERROR_SLOT_ID )

@@ -94,10 +94,14 @@
       <ProgramDataBaseFileName>$(IntDir)vc$(PlatformToolsetVersion).pdb</ProgramDataBaseFileName>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <RemoveUnreferencedCodeData>false</RemoveUnreferencedCodeData>
+      <BrowseInformation>true</BrowseInformation>
     </ClCompile>
     <ProjectReference>
       <LinkLibraryDependencies>true</LinkLibraryDependencies>
     </ProjectReference>
+    <Bscmake>
+      <PreserveSbr>true</PreserveSbr>
+    </Bscmake>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|VisualGDB'">
     <ClCompile>
@@ -188,6 +192,7 @@
     <ClCompile Include="Math\PrimitiveTest2D.cpp" />
     <ClCompile Include="Math\Quaternion.cpp" />
     <ClCompile Include="Math\Transform.cpp" />
+    <ClCompile Include="Misc\Guid.cpp" />
     <ClCompile Include="Misc\ImageMergeHelper.cpp" />
     <ClCompile Include="Phy2D\Collision.cpp" />
     <ClCompile Include="Phy2D\Phy2D.cpp" />
@@ -234,6 +239,7 @@
     <ClInclude Include="Core\FNV1a.h" />
     <ClInclude Include="Core\MD5.h" />
     <ClInclude Include="Core\ScopeExit.h" />
+    <ClInclude Include="Core\ThreadSafeCounter.h" />
     <ClInclude Include="CPreprocessor.h" />
     <ClInclude Include="CString.h" />
     <ClInclude Include="DataBitSerialize.h" />
@@ -258,6 +264,7 @@
     <ClInclude Include="Delegate.h" />
     <ClInclude Include="Math\PrimitiveTest2D.h" />
     <ClInclude Include="Math\SIMD.h" />
+    <ClInclude Include="Misc\Guid.h" />
     <ClInclude Include="Misc\ImageMergeHelper.h" />
     <ClInclude Include="ObjectHandle.h" />
     <ClInclude Include="Clock.h" />
@@ -330,6 +337,7 @@
     <ClInclude Include="SystemPlatform.h" />
     <ClInclude Include="TemplateMisc.h" />
     <ClInclude Include="Template\ArrayView.h" />
+    <ClInclude Include="Template\StringView.h" />
     <ClInclude Include="WindowsMessageHander.h" />
     <ClInclude Include="TaskBase.h" />
     <ClInclude Include="TCycleNumber.h" />

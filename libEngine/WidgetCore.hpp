@@ -562,8 +562,10 @@ template< class T >
 bool TWidgetManager<T>::procMouseMsg( MouseMsg const& msg )
 {
 	PROFILE_ENTRY("UI System");
+
+	ProcMsgScope scope(this);
+
 	bool result = true;
-	prevProcMsg();
 
 	mMouseMsg = msg;
 
@@ -666,7 +668,6 @@ bool TWidgetManager<T>::procMouseMsg( MouseMsg const& msg )
 		}
 	}
 
-	postProcMsg();
 	return result;
 }
 
@@ -687,28 +688,28 @@ WidgetCoreT<T>* TWidgetManager<T>::getKeyInputWidget()
 template< class T >
 bool TWidgetManager<T>::procCharMsg( unsigned code )
 {
+	ProcMsgScope scope(this);
+
 	bool result = true;
-	prevProcMsg();
 	WidgetCore* ui = getKeyInputWidget();
 	if( ui )
 	{
 		result = ui->onCharMsg(code);
 	}
-	postProcMsg();
 	return result;
 }
 
 template< class T >
 bool TWidgetManager<T>::procKeyMsg( unsigned key , bool isDown )
 {
+	ProcMsgScope scope(this);
+
 	bool result = true;
-	prevProcMsg();
 	WidgetCore* ui = getKeyInputWidget();
 	if( ui )
 	{
 		result = ui->onKeyMsg(key, isDown);
 	}
-	postProcMsg();
 	return result;
 }
 

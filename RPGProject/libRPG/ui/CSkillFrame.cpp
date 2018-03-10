@@ -36,8 +36,8 @@ CSkillFrame::CSkillFrame( CActor* actor , Vec2i const& pos )
 	int d1 = ( CellSize - BoardSize )/2;
 	int d2 = ( CellSize - ItemSize )/2;
 
-	CUISystem::getInstance().setTextureDir( "Data/UI" );
-	Texture* tex = CUISystem::getInstance().fetchTexture( "inventory" );
+	CUISystem::Get().setTextureDir( "Data/UI" );
+	Texture* tex = CUISystem::Get().fetchTexture( "inventory" );
 
 	mSlotBKSpr->setRenderOption( CFly::CFRO_ALPHA_BLENGING , true );
 	
@@ -71,7 +71,7 @@ void CSkillFrame::onRender()
 	int x = pos.x + 70;
 	int y = pos.y + getSize().y - CellSize ;
 
-	CFont& font = CUISystem::getInstance().getDefultFont();
+	CFont& font = CUISystem::Get().getDefultFont();
 
 	setupUITextDepth();
 
@@ -79,7 +79,7 @@ void CSkillFrame::onRender()
 	for ( int i = 0 ; i < skButtonVec.size() ; ++i )
 	{
 		CPlayButton* button = skButtonVec[i];
-		char const* fullName = TSkillLibrary::getInstance().getFullName( button->getPlayName() );
+		char const* fullName = TSkillLibrary::Get().getFullName( button->getPlayName() );
 		font.write( x , y - i * CellSize ,  fullName );
 	}
 	font.end();

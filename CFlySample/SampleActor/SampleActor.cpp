@@ -51,7 +51,7 @@ public:
 	};
 	bool onSetupSample()
 	{
-		PluginManager::getInstance().registerLinker( "LoL" , new LoLFileLinker );
+		PluginManager::Get().registerLinker( "LoL" , new LoLFileLinker );
 		AnimationState* state;
 
 		mMainViewport->setBackgroundColor( 0.5 , 0.5 , 0.5 );
@@ -154,7 +154,7 @@ public:
 
 		{
 			mWorld->setDir( DIR_ACTOR , "../Data/LoL" );
-			PluginManager::getInstance().setLoaderMeta( DATA_LOL_INDEX_MODEL_SKIN , 0 );
+			PluginManager::Get().setLoaderMeta( DATA_LOL_INDEX_MODEL_SKIN , 0 );
 			Actor* actor = mMainScene->createActorFromFile( "Sona" );
 
 			if ( actor )

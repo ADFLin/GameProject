@@ -521,13 +521,13 @@ namespace Zuma
 
 	void ZLevel::createConGroup()
 	{
-		CVDataVec posVec;
+		CurveVertexVector posVec;
 		for ( int i = 0 ; i < mLvInfo.numCurve ; ++i )
 		{
 			posVec.clear();
 			if ( !loadPathVertex( mLvInfo.pathCurve[i].c_str() ,posVec ) )
 			{
-				CVData data;
+				CurveVertex data;
 				data.flag = 0;
 				posVec.reserve( 4 );
 				data.pos = 0.8f * Vector2(150,120); posVec.push_back( data );

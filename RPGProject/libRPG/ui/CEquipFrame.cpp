@@ -107,8 +107,8 @@ CEquipFrame::CEquipFrame( CActor* actor , Vec2i const& pos )
 		
 	};
 
-	CUISystem::getInstance().setTextureDir( "Data/UI" );
-	Texture* tex = CUISystem::getInstance().fetchTexture( "slot_traits" );
+	CUISystem::Get().setTextureDir( "Data/UI" );
+	Texture* tex = CUISystem::Get().fetchTexture( "slot_traits" );
 
 	mSlotBKSpr->setRenderOption( CFly::CFRO_ALPHA_BLENGING , true );
 
@@ -140,7 +140,7 @@ void CEquipFrame::drawText()
 	static int lineOffset = 20;
 	Vec2i pos = getWorldPos();
 
-	CFont& font = CUISystem::getInstance().getDefultFont();
+	CFont& font = CUISystem::Get().getDefultFont();
 
 	setupUITextDepth();
 
@@ -184,7 +184,7 @@ CModelShowPanel::CModelShowPanel( IRenderEntity* comp , Vec2i const& pos , Vec2i
 	:BaseClass( pos , size , parent )
 	,mModel( comp )
 {
-	CFWorld* world = CUISystem::getInstance().getCFWorld();
+	CFWorld* world = CUISystem::Get().getCFWorld();
 	mViewport = world->createViewport( 0 , 0 , size.x , size.y );
 	Material* mat = world->createMaterial();
 	mat->addRenderTarget( 0 , 0 , "modelViewTex" , CFly::CF_TEX_FMT_RGB32 , mViewport , false );

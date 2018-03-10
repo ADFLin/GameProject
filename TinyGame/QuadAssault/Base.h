@@ -4,8 +4,8 @@
 
 #if 1
 #include "LogSystem.h"
-#define QA_LOG( ... ) ::LogMsgF( __VA_ARGS__ )
-#define QA_ERROR( ... ) ::LogMsgF( __VA_ARGS__ )
+#define QA_LOG( ... ) LogMsgF( __VA_ARGS__ )
+#define QA_ERROR( ... ) LogMsgF( __VA_ARGS__ )
 #else
 #define QA_LOG( ... )
 #define QA_ERROR( ... )

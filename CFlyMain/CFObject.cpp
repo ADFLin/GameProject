@@ -89,7 +89,7 @@ namespace CFly
 			Camera* camera = getScene()->_getRenderCamera();
 			if ( !camera->testVisible( trans , mBoundSphere ) )
 			{
-				DevMsg( 1 , "RenderNode isn't visible %d" , getEntityID() );
+				LogDevMsgF( 1 , "RenderNode isn't visible %d" , getEntityID() );
 				return false;
 			}
 		}
@@ -430,7 +430,7 @@ namespace CFly
 
 	bool Object::load( char const* fileName , char const* loaderName )
 	{
-		return PluginManager::getInstance().load( getScene()->getWorld() , this , fileName , loaderName );
+		return PluginManager::Get().load( getScene()->getWorld() , this , fileName , loaderName );
 	}
 
 	SkyBox::SkyBox( Scene* scene ) 

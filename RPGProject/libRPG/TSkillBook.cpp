@@ -30,14 +30,14 @@ bool TSkillBook::learnSkill( char const* name , int level )
 		if ( state->info->level >= level  )
 			return false;
 
-		state->info = TSkillLibrary::getInstance().querySkill( name , level );
+		state->info = TSkillLibrary::Get().querySkill( name , level );
 		
 		TEvent event( EVT_SKILL_LEARN , m_casterID , this , state );
 		UG_SendEvent( event );
 
 		return true;
 	}
-	else if ( SkillInfo const* info = TSkillLibrary::getInstance().querySkill( name , level ) )
+	else if ( SkillInfo const* info = TSkillLibrary::Get().querySkill( name , level ) )
 	{
 		SkillState state;
 		state.info  = info;

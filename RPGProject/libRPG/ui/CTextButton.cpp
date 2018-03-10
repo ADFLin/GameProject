@@ -33,13 +33,13 @@ CTextButton::CTextButton( char const* text , int width , Vec2i const& pos , CWid
 	Texture* texMid[4];
 	Texture* texRight[4];
 
-	CUISystem::getInstance().setTextureDir("Data/UI/Textbutton");
+	CUISystem::Get().setTextureDir("Data/UI/Textbutton");
 
 	for( int i = 0 ; i < BS_NUM_STATE + 1; ++i )
 	{
-		texLeft[i] = CUISystem::getInstance().fetchTexture( DefultTemplate[i].left );
-		texMid[i] = CUISystem::getInstance().fetchTexture( DefultTemplate[i].middle );
-		texRight[i] = CUISystem::getInstance().fetchTexture( DefultTemplate[i].right );
+		texLeft[i] = CUISystem::Get().fetchTexture( DefultTemplate[i].left );
+		texMid[i] = CUISystem::Get().fetchTexture( DefultTemplate[i].middle );
+		texRight[i] = CUISystem::Get().fetchTexture( DefultTemplate[i].right );
 	}
 
 	
@@ -68,7 +68,7 @@ void CTextButton::onRender()
 
 	Vec3D pos = mSprite->getWorldPosition();
 
-	CFont& font = CUISystem::getInstance().getDefultFont();
+	CFont& font = CUISystem::Get().getDefultFont();
 
 	int offset = ( getSize().x - m_text.length() * 6 )/ 2;
 

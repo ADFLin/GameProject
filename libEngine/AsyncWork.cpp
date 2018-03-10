@@ -15,11 +15,11 @@ public:
 	void     doWork(IQueuedWork* work);
 	void     waitTokill();
 
-	QueueThreadPool* mOwningPool;
-	IQueuedWork*     mWork;
-	Condition        mWaitWorkCondition;
-	Mutex            mWaitWorkMutex;
-	volatile int32   mWantDie;
+	QueueThreadPool*  mOwningPool;
+	IQueuedWork*      mWork;
+	ConditionVariable mWaitWorkCV;
+	Mutex             mWaitWorkMutex;
+	volatile int32    mWantDie;
 };
 
 QueueThreadPool::QueueThreadPool()
@@ -141,7 +141,7 @@ unsigned PoolRunableThread::run()
 	{
 		{
 			Mutex::Locker locker(mWaitWorkMutex);
-			mWaitWorkCondition.wait(locker, [this]()->bool { return mWork != nullptr || mWantDie; });
+			mWaitWorkCV.wait(locker, [this]()->bool { return mWork != nullptr || mWantDie; });
 		}
 
 		IQueuedWork* currentWork = mWork;
@@ -164,7 +164,7 @@ void PoolRunableThread::doWork(IQueuedWork* work)
 	mWork = work;
 	SystemPlatform::MemoryBarrier();
 
-	mWaitWorkCondition.notify();
+	mWaitWorkCV.notifyOne();
 }
 
 void PoolRunableThread::waitTokill()
@@ -172,7 +172,8 @@ void PoolRunableThread::waitTokill()
 	{
 		Mutex::Locker locker(mWaitWorkMutex);
 		SystemPlatform::InterlockedExchange(&mWantDie, 1);
-		mWaitWorkCondition.notify();
+		mWaitWorkCV.notifyOne();
 	}
+	
 	this->join();
 }

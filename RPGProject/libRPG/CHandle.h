@@ -122,7 +122,7 @@ protected:
 	template<>\
 	type* TObjectHandle< type >::get()\
 	{\
-		return static_cast< type* >( HandleManager::getInstance().extractHandle( *this ) );\
+		return static_cast< type* >( HandleManager::Get().extractHandle( *this ) );\
 	}\
 	template<>\
 	TObjectHandle<type>& TObjectHandle<type>::set( type* entity )\
@@ -132,7 +132,7 @@ protected:
 			unsigned ID = entity->getRefHandle().getID();\
 			if ( ID == ERROR_ID )\
 			{\
-				ID = HandleManager::getInstance().markRefHandle( entity );\
+				ID = HandleManager::Get().markRefHandle( entity );\
 			}\
 			m_ID = ID;\
 		}\

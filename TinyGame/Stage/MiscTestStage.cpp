@@ -336,7 +336,7 @@ void CalcMoney()
 	{
 		money += info.count * info.value;
 	}
-	::LogMsgF("Money = %d", money);
+	LogMsgF("Money = %d", money);
 }
 
 REGISTER_MISC_TEST("Calc Money", CalcMoney);
@@ -645,7 +645,7 @@ namespace Bsp2D
 			
 				g.drawText( Vec2i( 20 , 20 ) , str );
 
-				::LogMsg( str );
+				LogMsg( str );
 			}
 			break;
 		}
@@ -890,12 +890,12 @@ void MyMethod()
 		if ( count == 30 )
 		{
 			count = 0;
-			::LogMsgF( "%s" , str.c_str() );
+			LogMsgF( "%s" , str.c_str() );
 			str.clear();
 		}
 		heap.pop();
 	}
-	::LogMsgF( "%s" , str.c_str() );
+	LogMsgF( "%s" , str.c_str() );
 }
 
 void TestHeap()
@@ -907,13 +907,13 @@ void TestHeap()
 	heap.push(7);
 	MyHeap::NodeHandle handle = heap.push(10);
 	heap.update(handle, 1);
-	::LogMsgF( "%d" , heap.top() );
+	LogMsgF( "%d" , heap.top() );
 	heap.pop();
-	::LogMsgF("%d", heap.top());
+	LogMsgF("%d", heap.top());
 	heap.pop();
-	::LogMsgF("%d", heap.top());
+	LogMsgF("%d", heap.top());
 	heap.pop();
-	::LogMsgF("%d", heap.top());
+	LogMsgF("%d", heap.top());
 
 #if 1
 	MyMethod< TFibonaccilHeap< int > >();
@@ -1401,7 +1401,7 @@ void TestCycleQueue()
 
 	for( auto val : queue )
 	{
-		::LogMsgF("%d", val);
+		LogMsgF("%d", val);
 	}
 
 	int value = queue.front();

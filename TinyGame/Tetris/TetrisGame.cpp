@@ -177,7 +177,7 @@ namespace Tetris
 
 	void GameModule::beginPlay( StageModeType type, StageManager& manger )
 	{
-		::LogMsg( "Run Tetris!!!" );
+		LogMsg( "Run Tetris!!!" );
 		if ( type == SMT_SINGLE_GAME )
 			manger.changeStage( STAGE_GAME_MENU );
 		else

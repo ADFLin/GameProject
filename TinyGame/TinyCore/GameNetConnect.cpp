@@ -446,7 +446,7 @@ bool UdpChain::readPacket( SocketBuffer& buffer , uint32& readSize )
 
 			if ( readSize > buffer.getAvailableSize() )
 			{
-				::LogMsg( "UdpChain::error incoming data" );
+				LogMsg( "UdpChain::error incoming data" );
 				return false;
 			}
 

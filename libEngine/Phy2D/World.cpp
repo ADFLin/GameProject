@@ -13,7 +13,7 @@ namespace Phy2D
 
 	void World::simulate(float dt)
 	{
-		::Msg("World::sim");
+		LogDevMsg(0,"World::sim");
 		mAllocator.clearFrame();
 
 		int vIterNum = 50;
@@ -224,7 +224,7 @@ namespace Phy2D
 					float depth2 = normal.dot( cpA - cpB );
 
 					float dp = depth - depth2;
-					::Msg( "dp = %f " , dp );
+					LogMsgF( "dp = %f " , dp );
 
 					int i = 1;
 				}

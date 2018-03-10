@@ -830,7 +830,7 @@ namespace CFly
 			ANMMap anms;
 			String dir  = baseDir + "Animations/";
 			FileIterator fileIter;
-			if ( FileSystem::FindFile( dir.c_str() , ".anm" , fileIter ) )
+			if ( FileSystem::FindFiles( dir.c_str() , ".anm" , fileIter ) )
 			{
 				for( ;fileIter.haveMore();fileIter.goNext() )
 				{
@@ -1061,7 +1061,7 @@ namespace CFly
 		String dir( path , pStr );
 		String name( pStr + 1 );
 
-		int indexModelSkin = (int)PluginManager::getInstance().getLoaderMeta( DATA_LOL_INDEX_MODEL_SKIN );
+		int indexModelSkin = (int)PluginManager::Get().getLoaderMeta( DATA_LOL_INDEX_MODEL_SKIN );
 
 		return loadActor( actor , dir.c_str() , name.c_str() , indexModelSkin );
 	}

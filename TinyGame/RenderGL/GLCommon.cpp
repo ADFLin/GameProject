@@ -798,7 +798,7 @@ namespace RenderGL
 		GLenum Status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
 		if( Status != GL_FRAMEBUFFER_COMPLETE )
 		{
-			::LogWarning(0,"Texture Can't Attach to FrameBuffer");
+			LogWarning(0,"Texture Can't Attach to FrameBuffer");
 		}
 		glBindFramebuffer(GL_FRAMEBUFFER, 0 );
 	}
@@ -851,7 +851,7 @@ namespace RenderGL
 		GLenum Status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
 		if( Status != GL_FRAMEBUFFER_COMPLETE )
 		{
-			::LogWarning(0,"Texture Can't Attach to FrameBuffer");
+			LogWarning(0,"Texture Can't Attach to FrameBuffer");
 		}
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 		return idx;
@@ -907,7 +907,7 @@ namespace RenderGL
 			GLenum status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
 			if( status != GL_FRAMEBUFFER_COMPLETE )
 			{
-				::LogWarning(0,"DepthBuffer Can't Attach to FrameBuffer");
+				LogWarning(0,"DepthBuffer Can't Attach to FrameBuffer");
 			}
 			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
 		}

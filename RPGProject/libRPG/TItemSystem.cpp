@@ -427,7 +427,7 @@ int TItemStorage::removeItemInSlotPos( int soltPos , int maxNum /*= 1 */ )
 
 bool TItemStorage::addItem( unsigned itemID )
 {
-	TItemBase* item = TItemManager::getInstance().getItem( itemID );
+	TItemBase* item = TItemManager::Get().getItem( itemID );
 	int maxNum = item->getMaxNumInSlot();
 	for( ItemSoltIter iter = m_ISStorage.begin();
 		iter != m_ISStorage.end(); ++iter )
@@ -459,7 +459,7 @@ bool TItemStorage::addItem( unsigned itemID )
 
 int TItemStorage::addItem( unsigned itemID , int maxNum )
 {
-	TItemBase* item = TItemManager::getInstance().getItem( itemID );
+	TItemBase* item = TItemManager::Get().getItem( itemID );
 	int maxItemNum = item->getMaxNumInSlot();
 
 	ItemSoltIter iter = m_ISStorage.begin();
@@ -562,7 +562,7 @@ TItemBase* TItemStorage::getItem( int slotPos )
 {
 	if ( ItemSlot* slot = getItemSlot( slotPos ) )
 	{
-		return TItemManager::getInstance().getItem( slot->itemID );
+		return TItemManager::Get().getItem( slot->itemID );
 	}
 	return NULL;
 }
@@ -670,14 +670,14 @@ TEquipTable::TEquipTable()
 
 TEquipment* TEquipTable::getEquipment( EquipSlot slot )
 {
-	return  static_cast< TEquipment* >( TItemManager::getInstance().getItem( m_EquipSlots[ slot ] ) );
+	return  static_cast< TEquipment* >( TItemManager::Get().getItem( m_EquipSlots[ slot ] ) );
 }
 
 int TEquipTable::queryRemoveEquip( unsigned itemID , EquipSlot *removeSlot)
 {
 	int numRemoveItem = 0;
 	TEquipment* equipment = TEquipment::downCast( 
-		TItemManager::getInstance().getItem( itemID ) );
+		TItemManager::Get().getItem( itemID ) );
 
 	assert( equipment );
 
@@ -751,7 +751,7 @@ EquipSlot TEquipTable::equip( unsigned itemID )
 	EquipSlot resultSlot =  EQS_NO_SLOT;
 
 	TEquipment* equipment = TEquipment::downCast( 
-		TItemManager::getInstance().getItem(itemID) );
+		TItemManager::Get().getItem(itemID) );
 
 	if ( !equipment )
 		return resultSlot;
@@ -833,20 +833,20 @@ unsigned TEquipTable::removeEquip( EquipSlot slot )
 
 TItemBase* UG_GetItem( unsigned itemID )
 {
-	return TItemManager::getInstance().getItem( itemID );
+	return TItemManager::Get().getItem( itemID );
 }
 
 TItemBase* UG_GetItem( char const* itemName )
 {
-	unsigned id = TItemManager::getInstance().getItemID( itemName );
+	unsigned id = TItemManager::Get().getItemID( itemName );
 	if ( id == ITEM_ERROR_ID )
 		return nullptr;
-	return TItemManager::getInstance().getItem( id );
+	return TItemManager::Get().getItem( id );
 }
 
 unsigned   UG_GetItemID( char const* itemName )
 {
-	return TItemManager::getInstance().getItemID( itemName );
+	return TItemManager::Get().getItemID( itemName );
 }
 
 
@@ -952,7 +952,7 @@ size_t TArmour::createModel( CFObject* objList[] )
 		return num;
 
 	EquipModelRes* res = static_cast< EquipModelRes* >( 
-		TResManager::getInstance().getResData( RES_EQUIP_MODEL , getModelName() ) );
+		TResManager::Get().getResData( RES_EQUIP_MODEL , getModelName() ) );
 
 	CFObject* obj = res->model->instance( true );
 
@@ -975,7 +975,7 @@ size_t TEquipment::createModel( CFObject* objList[] )
 		return 0;
 
 	EquipModelRes* res = static_cast< EquipModelRes* >( 
-		TResManager::getInstance().getResData( RES_EQUIP_MODEL , getModelName() ) );
+		TResManager::Get().getResData( RES_EQUIP_MODEL , getModelName() ) );
 
 	if ( !res )
 		return 0;

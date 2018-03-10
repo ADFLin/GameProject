@@ -17,7 +17,7 @@ void rcWidget::procEvent( int evtID , void* data )
 	{
 		if ( cur->isTop() )
 		{
-			rcGUISystem::getInstance().procUIEvent( this , evtID , data );
+			rcGUISystem::Get().procUIEvent( this , evtID , data );
 			break;
 		}
 		rcWidget* parent = static_cast< rcWidget* >(cur->getParent());
@@ -30,7 +30,7 @@ void rcWidget::procEvent( int evtID , void* data )
 
 rcWidgetInfo const& rcWidget::getWidgetInfo()
 {
-	return rcDataManager::getInstance().getWidgetInfo( mID );
+	return rcDataManager::Get().getWidgetInfo( mID );
 }
 
 Vec2i rcWidget::calcUISize( unsigned texID , int yNum )
@@ -83,7 +83,7 @@ void rcButtonTex4::onRender()
 
 rcWidget* rcGUISystem::loadUI( int uiID , rcWidget* parent )
 {
-	rcWidgetInfo const& info = rcDataManager::getInstance().getWidgetInfo( uiID );
+	rcWidgetInfo const& info = rcDataManager::Get().getWidgetInfo( uiID );
 
 	rcWidget* widget = NULL;
 	switch( info.group )

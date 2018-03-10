@@ -29,7 +29,7 @@ CSceneLevel::CSceneLevel( char const* name , unsigned flag )
 CSceneLevel::~CSceneLevel()
 {
 	_loseSceneMap();
-	PhysicsSystem::getInstance().destroyWorld( mPhyWorld );
+	PhysicsSystem::Get().destroyWorld( mPhyWorld );
 
 	if ( !useSceneMap() )
 		mRenderScene->release();
@@ -43,7 +43,7 @@ void CSceneLevel::init()
 	mNavMesh = NULL;
 	mCGFContent.reset( new CGFContent );
 
-	mPhyWorld = PhysicsSystem::getInstance().createWorld();
+	mPhyWorld = PhysicsSystem::Get().createWorld();
 	mPhyWorld->setGravity( Vec3D(0,0,-98) );
 
 	if ( sSaveModelScene == NULL )
@@ -188,7 +188,7 @@ void CSceneLevel::enableFlag( SceneLevelFlag flag , bool enable )
 bool CSceneMap::load( char const* name )
 {
 	mMapRes = static_cast< SceneMapRes* >(
-		TResManager::getInstance().getResData( RES_SCENE_MAP , name ) );
+		TResManager::Get().getResData( RES_SCENE_MAP , name ) );
 
 	if ( !mMapRes )
 		return false;
@@ -203,7 +203,7 @@ bool CSceneMap::prepare( CSceneLevel* level )
 	if ( !mMapRes )
 		return true;
 
-	if ( !TResManager::getInstance().checkResLoaded( mMapRes ) )
+	if ( !TResManager::Get().checkResLoaded( mMapRes ) )
 		return false;
 
 	return true;

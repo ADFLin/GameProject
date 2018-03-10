@@ -3,7 +3,7 @@
 //#include "TMessageShow.h"
 
 #include "Clock.h"
-TClock   g_profileClock;
+HighResClock   g_profileClock;
 
 inline void Profile_Get_Ticks(unsigned long int * ticks)
 {
@@ -400,10 +400,10 @@ ProfileSystem::SampleNode* ProfileSystem::createSampleNode( char const* name , S
 
 ProfileSample::ProfileSample( const char * name , unsigned flag )
 {
-	ProfileSystem::getInstance().startProfile( name , flag );
+	ProfileSystem::Get().startProfile( name , flag );
 }
 
 ProfileSample::~ProfileSample( void )
 {
-	ProfileSystem::getInstance().stopProfile();
+	ProfileSystem::Get().stopProfile();
 }

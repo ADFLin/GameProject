@@ -32,7 +32,7 @@ CGameUI::CGameUI( CHero* player )
 
 	Vec2i resizePos(0,0);
 
-	CUISystem& uiSystem = CUISystem::getInstance();
+	CUISystem& uiSystem = CUISystem::Get();
 
 	equipPanel   = new CEquipFrame( player , Vec2i( 100 , 100 ) );
 	equipPanel->show( false );
@@ -79,11 +79,11 @@ CGameUI::CGameUI( CHero* player )
 	UG_ConnectEvent( EVT_UI_BUTTON_CLICK , showButton[ SB_EQUIP ]->getID() , callback );
 	UG_ConnectEvent( EVT_UI_BUTTON_CLICK , showButton[ SB_SKILL ]->getID() , callback );
 
-	CTalkWidget::sTextFont.init( CUISystem::getInstance().getCFWorld() , TSTR("新細明體") , 24 , true , false );
+	CTalkWidget::sTextFont.init( CUISystem::Get().getCFWorld() , TSTR("新細明體") , 24 , true , false );
 
 	
 	miniMap  = new CMiniMapUI( resizePos );
-	CUISystem::getInstance().addWidget( miniMap );
+	CUISystem::Get().addWidget( miniMap );
 	miniMap->setFollowActor( player );
 
 	//TSkillBook& book = player->getSkillBook();

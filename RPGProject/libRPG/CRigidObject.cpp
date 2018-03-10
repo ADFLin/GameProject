@@ -15,7 +15,7 @@ bool CRigidObject::init( GameObject* gameObj , GameObjectInitHelper const& helpe
 
 	char const* modelName;
 	scriptTable->getValue( "modelName" , modelName );
-	ObjectModelRes* modelRes = TResManager::getInstance().getObjectModel( modelName );
+	ObjectModelRes* modelRes = TResManager::Get().getObjectModel( modelName );
 
 	CRenderComponent* renderComp = getEntity()->getComponentT< CRenderComponent >( COMP_RENDER );
 
@@ -42,7 +42,7 @@ void CRigidScript::createComponent( CEntity& entity , EntitySpawnParams& params 
 
 	char const* modelName;
 	scriptTable->getValue( "modelName" , modelName );
-	ObjectModelRes* modelRes = TResManager::getInstance().getObjectModel( modelName );
+	ObjectModelRes* modelRes = TResManager::Get().getObjectModel( modelName );
 
 	CRenderComponent* renderComp = new CRenderComponent;
 	entity.addComponent( renderComp );

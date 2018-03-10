@@ -4,6 +4,8 @@
 
 #include "TypeConstruct.h"
 
+#include <algorithm>
+
 template< class T >
 class TCycleQueue
 {

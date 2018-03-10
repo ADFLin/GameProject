@@ -43,8 +43,8 @@ namespace Zen
 		CoreSetting()
 		{
 			numThreads = 1;
-			//numSimulations = 1000000;
-			numSimulations = 100000;
+			numSimulations = 1000000;
+			//numSimulations = 100000;
 			amafWightFactor = 1.0f;
 			priorWightFactor = 1.0f;
 			maxTime = 60.0f;
@@ -433,10 +433,6 @@ namespace Go
 			else
 			{
 				Zen::CoreSetting setting;
-				int numCPU = SystemPlatform::GetProcessorNumber();
-				setting.numThreads = numCPU - 2;
-				setting.numSimulations = 10000000;
-				setting.maxTime = 6;
 				mCore->setCoreSetting(setting);
 			}
 
@@ -457,6 +453,7 @@ namespace Go
 			}
 			mCore.release();
 		}
+
 		virtual bool setupGame(GameSetting const& setting) override
 		{
 			mCore->startGame(setting);

@@ -2,8 +2,11 @@
 
 #include "StringParse.h"
 #include "FileSystem.h"
-
+#include "DataStructure/CycleQueue.h"
 #include "Template/StringView.h"
+
+#include <mutex>
+#include <condition_variable>
 
 namespace Go
 {
@@ -26,76 +29,80 @@ namespace Go
 	class CGameOutputThread : public IGameOutputThread
 	{
 	public:
-		int  mNumUsed = 0;
-		char mBuffer[1024];
+		int32 mNumNewRead = 0;
+		int   mNumUsed = 0;
+		char  mBuffer[1024];
+
+		bool  bNeedRead = true;
 
 		Mutex mMutexBuffer;
 		ConditionVariable mBufferProcessedCV;
-		volatile int32 mNumNewRead = 0;
 
-
+		
 #if AUTO_GTP_DEBUG
 		std::vector< char > debugString;
 #endif
 
-		
+
 		unsigned run()
 		{
 			SystemPlatform::Sleep(gStartSleepMillionSecond);
 			for( ;;)
 			{
-				{
-					Mutex::Locker locker(mMutexBuffer);
-					if( mNumUsed )
-					{
-						mBufferProcessedCV.wait(locker);
-					}
-					SystemPlatform::InterlockedExchange(&mNumNewRead, 0);
-					int numRead;
-					char* pData = mBuffer + mNumUsed;
 
-					bool bSuccess = process->readOutputStream(pData, ARRAY_SIZE(mBuffer) - 1 - mNumUsed, numRead);
-					if( !bSuccess || numRead == 0 )
-					{
-						::LogMsgF("AutoGTPOutputThread can't read");
-						break;
-					}
+				Mutex::Locker locker(mMutexBuffer);
+				mBufferProcessedCV.wait(locker, [this] { return bNeedRead; });
+				mNumNewRead = 0;
+
+				int numRead;
+				char* pData = mBuffer + mNumUsed;
+
+				bool bSuccess = process->readOutputStream(pData, ARRAY_SIZE(mBuffer) - 1 - mNumUsed, numRead);
+				if( !bSuccess || ( numRead == 0 && mNumUsed != (ARRAY_SIZE(mBuffer) - 1) ) )
+				{
+					LogMsg("OutputThread can't read");
+					break;
+				}
 
 #if AUTO_GTP_DEBUG
-					debugString.insert(debugString.end(), pData, pData + numRead);
+				debugString.insert(debugString.end(), pData, pData + numRead);
 #endif
-					mNumUsed += numRead;
-					mBuffer[mNumUsed] = 0;
-					SystemPlatform::InterlockedExchange(&mNumNewRead, numRead);
-				}
+
+				mNumNewRead = numRead;
+				mNumUsed += numRead;
+				mBuffer[mNumUsed] = 0;
+
+				bNeedRead = false;
 			}
 
 			return 0;
 		}
 
+		void update()
+		{
+			if( mMutexBuffer.tryLock() )
+			{
+				processBuffer();
+				mNumNewRead = 0;
+				bNeedRead = true;
+
+				mBufferProcessedCV.notifyOne();
+				mMutexBuffer.unlock();
+			}
+		}
+
+		virtual void processBuffer(){}
 	};
 
 	class AutoGTPOutputThread : public CGameOutputThread
 	{
 	public:
-
 		bool bEngineStart = false;
 		int  curStep = 0;
 
 		std::string learnedNetworkName;
 		std::string blackNetworkName;
 		std::string whiteNetworkName;
-		void update()
-		{
-			if( mNumNewRead )
-			{
-				{
-					Mutex::Locker locker(mMutexBuffer);
-					processBuffer();
-				}
-				mBufferProcessedCV.notify();
-			}
-		}
 
 		void processBuffer()
 		{
@@ -141,7 +148,7 @@ namespace Go
 #define STR_SCORE "Score:"
 #define STR_GOT_NEW_JOB "Got new job:"
 #define STR_NET_FILENAME "Net fileName:"
-#define STR_1ST_NETWORK  "net:"
+#define STR_NET          "net:"
 #define STR_1ST_NETWORK  "first network:"
 #define STR_2ND_NETWORK  "second network"
 
@@ -169,7 +176,7 @@ namespace Go
 
 						if( curStep != step )
 						{
-							::LogMsgF("Warning:Error Step");
+							LogMsgF("Warning:Error Step");
 						}
 						if( StartWith(coord, "pass") )
 						{
@@ -194,21 +201,21 @@ namespace Go
 							}
 							else
 							{
-								::LogWarningF(0 , "Unknown color : %s" , color);
+								LogWarningF(0 , "Unknown color : %s" , color);
 								com.playColor = StoneColor::eEmpty;
 							}
 							addCommand(com);
 						}
 						else
 						{
-							::LogMsgF("Unknown Com = %s", coord);
+							LogMsgF("Unknown Com = %s", coord);
 						}
 						++curStep;
 						cur += numRead;
 					}
 					else if( sscanf(cur, "%d(", &step, &numRead) == 1 )
 					{
-						//::LogMsgF("==comand not complete : %s ==", cur);
+						//LogMsgF("==comand not complete : %s ==", cur);
 						return bufferSize - (cur - buffer);
 					}
 					else
@@ -218,7 +225,7 @@ namespace Go
 						if( num )
 						{
 							FixString< 512 > str{ cur , num };
-							::LogMsgF("%s", str.c_str());
+							LogMsgF("%s", str.c_str());
 							if( StartWith(str , STR_SCORE) )
 							{
 								char const* strResult = FStringParse::SkipSpace(str.c_str() + StrLen(STR_SCORE) );
@@ -244,7 +251,7 @@ namespace Go
 					if( num )
 					{
 						FixString< 512 > str{ cur , num };
-						::LogMsgF(str.c_str());
+						LogMsgF(str.c_str());
 
 						if( StartWith(str, STR_GOT_NEW_JOB) )
 						{
@@ -291,23 +298,19 @@ namespace Go
 	{
 	public:
 		int  mColor;
+		bool bThinking;
 
-		virtual void procDumpLineMsg(GTPCommand com , char* buffer, int num ){}
+		//TCycleQueue<GTPCommand> mProcQueue;
+		std::vector< GTPCommand > mProcQueue;
 
-		void update()
-		{
-			if( mNumNewRead )
-			{
-				{
-					Mutex::Locker locker(mMutexBuffer);
-					processBuffer();
-				}
-				mBufferProcessedCV.notify();
-			}
-		}
+		virtual void dumpCommandMsgBegin(GTPCommand com){}
+		virtual void procDumpCommandMsg(GTPCommand com , char* buffer, int num ){}
+		virtual void dumpCommandMsgEnd(GTPCommand com){}
 
 		void processBuffer()
 		{
+			assert(mNumUsed >= mNumNewRead);
+
 			char* pData = mBuffer;
 
 			char* pDataEnd = mBuffer + mNumUsed;
@@ -326,7 +329,7 @@ namespace Go
 				*pLineEnd = 0;
 				if( pData != pLineEnd )
 				{
-					::LogMsg(pData);
+					LogMsgF( "GTP: %s " , pData );
 					parseLine(pData, pLineEnd - pData);
 				}
 
@@ -352,50 +355,55 @@ namespace Go
 		GTPCommand getHeadRequest()
 		{
 			if( mProcQueue.empty() )
-				return GTPCommand::eNone;
+				return{ GTPCommand::eNone , 0 };
 			return mProcQueue.front();
 		}
 
-		int parsePlayResult( char const* str )
+		int parsePlayResult( char const* str , int color )
 		{
+#define STR_RESIGN "resign"
+#define STR_PASS "pass"
 			int numRead;
 			GameCommand com;
-			if( StartWith(str, "resign") )
+			if( StartWith(str, STR_RESIGN) )
 			{
 				com.id = GameCommand::eResign;
 				addCommand(com);
-				return StrLen("resign");
+				return StrLen(STR_RESIGN);
 			}
-			else if( StartWith(str, "pass") )
+			else if( StartWith(str, STR_PASS) )
 			{
 				com.id = GameCommand::ePass;
 				addCommand(com);
-				return StrLen("pass");
+				return StrLen(STR_PASS);
 			}
 			else if( numRead = Go::ReadCoord(str, com.pos) )
 			{
 				com.id = GameCommand::ePlay;
-				//FIXME
-				com.playColor = StoneColor::eEmpty;
+				com.playColor = color;
 				addCommand(com);
 				return numRead;
 			}
 
-			::LogWarning( 0 , str );
+			LogWarningF( 0 , "ParsePlayError : %s" , str );
 			return 0;
 		}
 
+
+		bool bDumping = false;
 		bool parseLine(char* buffer, int num)
 		{
-			//::LogMsgF("%s", buffer);
+			//LogMsgF("%s", buffer);
 			char const* cur = buffer;
 			if( *cur == '=' )
 			{
 				cur = FStringParse::SkipSpace(cur + 1);
-				switch( getHeadRequest() )
+
+				GTPCommand com = getHeadRequest();
+				switch( com.id )
 				{
 				case GTPCommand::eGenmove:
-					if( parsePlayResult(cur) != 0 )
+					if( parsePlayResult(cur , com.meta) == 0 )
 						return false;
 					break;
 				case GTPCommand::ePlay:
@@ -406,7 +414,7 @@ namespace Go
 						if ( *cur == 0 )
 							break;
 
-						int numRead = parsePlayResult(cur);
+						int numRead = parsePlayResult(cur, StoneColor::eBlack);
 						if( numRead == 0 )
 							return false;
 						cur = FStringParse::SkipSpace(cur + numRead);
@@ -416,18 +424,38 @@ namespace Go
 					break;
 				}
 
+				//mProcQueue.pop_front();
 				mProcQueue.erase(mProcQueue.begin());
+
+				if( com.id != GTPCommand::eNone )
+				{
+					bDumping = false;
+					dumpCommandMsgEnd(com);
+				}
 			}
 			else if( *cur == '?' )
 			{
+				GTPCommand com = getHeadRequest();
 				cur = FStringParse::SkipSpace(cur);
 				//error operator handled
 
+				//mProcQueue.pop_front(); 
 				mProcQueue.erase(mProcQueue.begin());
+				if( com.id != GTPCommand::eNone )
+				{
+					bDumping = false;
+					dumpCommandMsgEnd(com);
+				}
 			}
 			else
 			{
-				procDumpLineMsg(getHeadRequest() , buffer , num );
+				GTPCommand com = getHeadRequest();
+				if( bDumping == false )
+				{
+					bDumping = true;
+					dumpCommandMsgBegin(com);
+				}
+				procDumpCommandMsg( com , buffer , num );
 			}
 
 			return true;
@@ -452,9 +480,35 @@ namespace Go
 
 		std::vector< ThinkInfo > thinkResults;
 
-		virtual void procDumpLineMsg(GTPCommand com, char* buffer, int num)
+		virtual void dumpCommandMsgBegin(GTPCommand com) 
 		{
-			switch( com )
+			switch( com.id )
+			{
+			case Go::GTPCommand::eKomi:
+				break;
+			case Go::GTPCommand::eHandicap:
+				break;
+			case Go::GTPCommand::ePlay:
+				break;
+			case Go::GTPCommand::eGenmove:
+				thinkResults.clear();
+				break;
+			case Go::GTPCommand::ePass:
+				break;
+			case Go::GTPCommand::eUndo:
+				break;
+			case Go::GTPCommand::eQuit:
+				break;
+			default:
+				break;
+			}
+		}
+
+		virtual void dumpCommandMsgEnd(GTPCommand com) {}
+
+		virtual void procDumpCommandMsg(GTPCommand com, char* buffer, int num)
+		{
+			switch( com.id )
 			{
 			case GTPCommand::eGenmove:
 				{
@@ -481,7 +535,7 @@ namespace Go
 						}
 						else
 						{
-							::LogWarningF(0, "Error Think Str = %s", buffer);
+							LogWarningF(0, "Error Think Str = %s", buffer);
 							return;
 						}
 
@@ -529,7 +583,7 @@ namespace Go
 		if( coord >= 'I' )
 			++coord;
 		com.format("play %c %c%d\n", (color == StoneColor::eBlack ? 'b' : 'w'), coord, y + 1);
-		return inputCommand(GTPCommand::ePlay , com);
+		return inputCommand(com, { GTPCommand::ePlay , color });
 	}
 
 	bool GTPLikeAppRun::playPass()
@@ -543,26 +597,34 @@ namespace Go
 	{
 		FixString<128> com;
 		com.format("genmove %s\n", ((color == StoneColor::eBlack) ? "b" : "w"));
-		return inputCommand(GTPCommand::eGenmove, com);
+		return inputCommand(com , { GTPCommand::eGenmove , color });
 	}
 
 	bool GTPLikeAppRun::undo()
 	{
-		return inputCommand( GTPCommand::eUndo , "undo\n");
+		return inputCommand("undo\n", { GTPCommand::eUndo , 0 });
 	}
 
-	bool GTPLikeAppRun::setupGame(GameSetting const& setting)
+	bool GTPLikeAppRun::setupGame(GameSetting const& setting )
 	{
 		FixString<128> com;
 		com.format("komi %.1f\n", setting.komi);
-		inputCommand( GTPCommand::eKomi , com);
+		inputCommand( com , { GTPCommand::eKomi , 0 } );
 		if( setting.fixedHandicap )
 		{
 			com.format("fixed_handicap %d\n", setting.fixedHandicap);
-			inputCommand(GTPCommand::eHandicap, com);
+			inputCommand( com , { GTPCommand::eHandicap , 0 });
 		}
 		//com.format()
 
+		return true;
+	}
+
+	bool GTPLikeAppRun::inputCommand(char const* command , GTPCommand com)
+	{
+		if( !inputProcessStream(command) )
+			return false;
+		static_cast<GTPOutputThread*>(outputThread)->mProcQueue.push_back(com);
 		return true;
 	}
 
@@ -620,7 +682,7 @@ namespace Go
 		FixString<256> path;
 		path.format("%s/%s", InstallDir, "/leelaz.exe");
 		FixString<512> command;
-		::LogMsgF("Play weight = %s", setting.weightName);
+		LogMsgF("Play weight = %s", setting.weightName);
 
 		FixString<512> opitions;
 		if( setting.bQuiet )
@@ -632,11 +694,35 @@ namespace Go
 		if( setting.bNoPonder )
 			opitions += " --noponder";
 
-		command.format(" -r %d -g -t %d -s %lld -w %s -m %d -p %d%s",
-					   setting.resignpct, setting.numThread, setting.seed ,
-					   setting.weightName, setting.randomcnt, setting.playouts , opitions.c_str());
+		if( setting.visits )
+		{
+			command.format(" -r %d -g -t %d -s %lld -w %s -m %d -p %d -v %d%s",
+						   setting.resignpct, setting.numThread, setting.seed,
+						   setting.weightName, setting.randomcnt, setting.playouts, 
+						   setting.visits , opitions.c_str());
+		}
+		else
+		{
+			command.format(" -r %d -g -t %d -s %lld -w %s -m %d -p %d%s",
+						   setting.resignpct, setting.numThread, setting.seed,
+						   setting.weightName, setting.randomcnt, setting.playouts, opitions.c_str());
+		}
 
 		return buildProcessT< LeelaOutputThread >(path, command);
+	}
+
+	bool LeelaAppRun::buildAnalysisGame()
+	{
+		LeelaAISetting setting;
+		std::string weightName = LeelaAppRun::GetBestWeightName();
+		setting.weightName = weightName.c_str();
+		setting.seed = generateRandSeed();
+		setting.bNoPonder = false;
+		setting.playouts = 0;
+		setting.visits = 0;
+		setting.randomcnt = 0;
+		setting.resignpct = 0;
+		return buildPlayGame(setting);
 	}
 
 	bool LeelaBot::initilize(void* settingData)

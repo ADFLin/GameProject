@@ -486,7 +486,7 @@ namespace Zuma
 
 		if ( loader == NULL )
 		{
-			ErrorMsg("Res Type %d don't have loader" , info.type );
+			LogErrorF("Res Type %d don't have loader" , info.type );
 			return;
 		}
 
@@ -507,7 +507,7 @@ namespace Zuma
 
 		if ( mResVec[ id ] == NULL )
 		{
-			::WarmingMsg( 0 , "Can't load Resource : %d %s" , id , idName.c_str() );
+			LogWarningF( 0 , "Can't load Resource : %d %s" , id , idName.c_str() );
 		}
 
 	}

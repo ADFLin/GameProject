@@ -139,7 +139,7 @@ namespace CFly
 		if ( !entity )
 			return nullptr;
 	
-		if ( !EntityManager::getInstance().checkType( 
+		if ( !EntityManager::Get().checkType( 
 				entity ,
 				EntityTypeMap< T >::value ) )
 			return nullptr;

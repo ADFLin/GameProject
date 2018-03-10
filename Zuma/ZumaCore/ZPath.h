@@ -6,19 +6,19 @@ class CRSpline2D;
 
 namespace Zuma
 {
-	struct CVData
+	struct CurveVertex
 	{
 		enum
 		{
 			eMask = BIT(1),
 		};
-		Vector2    pos;
+		Vector2  pos;
 		unsigned flag;
 	};
 
-	typedef std::vector< CVData > CVDataVec;
-	bool savePathVertex( char const* path , CVDataVec& vtxVec );
-	bool loadPathVertex( char const* path , CVDataVec& vtxVec );
+	typedef std::vector< CurveVertex > CurveVertexVector;
+	bool savePathVertex( char const* path , CurveVertexVector& vtxVec );
+	bool loadPathVertex( char const* path , CurveVertexVector& vtxVec );
 
 	class ZPath
 	{
@@ -36,7 +36,7 @@ namespace Zuma
 		float  getPathLength() const;
 		Vector2  getLocation( float s ) const;
 		bool   haveMask( float s ) const;
-		void   buildSpline( CVDataVec const& vtxVec , float step );
+		void   buildSpline( CurveVertexVector const& vtxVec , float step );
 	protected:
 		void   buildSplinePath( CRSpline2D& spline , Vector2 const& startPos , Vector2& endPos , float delta );
 
@@ -48,7 +48,7 @@ namespace Zuma
 		typedef std::vector< Vector2 > VertexVec;
 
 		RangeVec  mMaskRanges;
-		Vector2     mEndPos;
+		Vector2   mEndPos;
 		VertexVec mPath;
 		VertexVec mDirs;
 		float     mStepOffset;

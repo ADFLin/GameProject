@@ -51,7 +51,7 @@ namespace Go
 
 
 		float const CellLength = 28;
-		float const StoneRadius = (CellLength / 2) * 9 / 10;
+		float const StoneRadius = (CellLength / 2) * 11 / 12;
 		float const StarRadius = 5;
 
 		TextureAtlas mTextureAtlas;

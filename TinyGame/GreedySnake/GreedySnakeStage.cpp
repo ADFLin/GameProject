@@ -52,7 +52,7 @@ namespace GreedySnake
 	{
 		if( beInit )
 		{
-			::LogMsgF("Seed = %ld", seed);
+			LogMsgF("Seed = %ld", seed);
 			Global::RandSeedNet(seed);
 		}
 		mScene->restart( beInit );

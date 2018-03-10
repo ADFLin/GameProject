@@ -101,7 +101,7 @@ bool rcLevelCity::buildContruction( Vec2i const& pos , unsigned tagID , int idxM
 		return false;
 
 	rcBuildingInfo const& info = 
-		rcDataManager::getInstance().getBuildingInfo( tagID );
+		rcDataManager::Get().getBuildingInfo( tagID );
 
 	int forceDir;
 	Vec2i size;
@@ -125,7 +125,7 @@ bool rcLevelCity::buildContruction( Vec2i const& pos , unsigned tagID , int idxM
 	}
 	else
 	{
-		ModelInfo const& infoModel = rcDataManager::getInstance().getBuildingModel( modelID );
+		ModelInfo const& infoModel = rcDataManager::Get().getBuildingModel( modelID );
 
 		assert( infoModel.xSize !=0 && infoModel.ySize != 0 );
 		if ( swapAxis ) 

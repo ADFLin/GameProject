@@ -18,16 +18,22 @@ namespace Go
 		};
 	}
 
-	enum class GTPCommand
+	struct GTPCommand
 	{
-		eNone ,
-		eKomi,
-		eHandicap,
-		ePlay,
-		eGenmove,
-		ePass,
-		eUndo,
-		eQuit,
+		enum Id
+		{
+			eNone,
+			eKomi,
+			eHandicap,
+			ePlay,
+			eGenmove,
+			ePass,
+			eUndo,
+			eQuit,
+		};
+
+		Id  id;
+		int meta;
 	};
 
 	class IGameOutputThread : public RunnableThreadT< IGameOutputThread >
@@ -53,12 +59,8 @@ namespace Go
 			mOutputCommands.clear();
 		}
 
-		void addInputProcCom(GTPCommand id)
-		{
-			mProcQueue.push_back(id);
-		}
 		std::vector< GameCommand > mOutputCommands;
-		std::vector< GTPCommand > mProcQueue;
+		
 	};
 
 	class GTPLikeAppRun
@@ -81,13 +83,8 @@ namespace Go
 		bool thinkNextMove(int color);
 		bool undo();
 		bool setupGame(GameSetting const& setting);
-		bool inputCommand(GTPCommand id, char const* command)
-		{
-			if( !inputProcessStream(command) )
-				return false;
-			outputThread->addInputProcCom(id);
-			return true;
-		}
+
+		bool inputCommand(char const* command, GTPCommand com);
 		bool inputProcessStream(char const* command, int length = 0);
 
 		template< class T >
@@ -110,13 +107,15 @@ namespace Go
 		char const* weightName = nullptr;
 		uint64 seed = 0;
 		//Weaken engine by limiting the number of playouts. Requires --noponder.
-		int playouts = 5000;//1600;
+		int playouts = 6400;//1600;
 		//Play more randomly the first x moves.
 		int randomcnt = 0;//30;
 		//Number of threads to use.
 		int numThread = 8;
 		//Resign when winrate is less than x%. -1 uses 10% but scales for handicap
 		int resignpct = 10;
+		//Weaken engine by limiting the number of visits.
+		int visits = 0;
 		//Don't use heuristics for smarter passing.
 		bool bDumbPass = true; 
 		//Enable policy network randomization.
@@ -134,6 +133,7 @@ namespace Go
 		static std::string GetBestWeightName();
 		bool buildLearningGame();
 		bool buildPlayGame(LeelaAISetting const& setting);
+		bool buildAnalysisGame();
 	};
 
 
@@ -145,7 +145,7 @@ namespace Go
 		{
 			mAI.stop();
 		}
-		virtual bool setupGame(GameSetting const& setting) override
+		virtual bool setupGame(GameSetting const& setting ) override
 		{
 			return mAI.setupGame(setting);
 		}

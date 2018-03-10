@@ -118,7 +118,7 @@ SRoleInfo* TRoleManager::getRoleInfo( unsigned roleID )
 
 unsigned TRoleManager::getModelID( unsigned roleID )
 {
-	return TResManager::getInstance().getActorModelID( 
+	return TResManager::Get().getActorModelID( 
 		getRoleInfo( roleID )->modelName.c_str() );
 }
 

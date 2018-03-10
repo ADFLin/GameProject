@@ -179,7 +179,7 @@ public:
 
 	void visit()
 	{
-		SampleIterator iter = ProfileSystem::getInstance().getSampleIterator();
+		SampleIterator iter = ProfileSystem::Get().getSampleIterator();
 		visitRecursive( &iter );
 	}
 
@@ -194,7 +194,7 @@ public:
 		if ( parent->getParent() != 0 )
 			parentTime = parent->getTotalTime();
 		else
-			parentTime = ProfileSystem::getInstance().getTimeSinceReset();
+			parentTime = ProfileSystem::Get().getTimeSinceReset();
 
 		if ( profIter->isRoot() )
 		{

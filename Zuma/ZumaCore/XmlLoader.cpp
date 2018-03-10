@@ -413,7 +413,7 @@ IXmlDocumentPtr IXmlDocument::CreateFromFile( char const* path )
 	}
 	catch (boost::property_tree::xml_parser_error& e)
 	{
-		::ErrorMsg( e.what() );
+		LogError( e.what() );
 		return NULL;
 	}
 }
@@ -428,7 +428,7 @@ bool XmlLoader::loadFile( char const* path )
 	}
 	catch (boost::property_tree::xml_parser_error& e)
 	{
-		::ErrorMsg( e.what() );
+		LogError( e.what() );
 		return false;
 	}
 	return true;

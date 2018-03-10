@@ -90,7 +90,7 @@ void rcBuildingManager::update( rcCityInfo& cInfo , long time )
 
 rcBuilding* rcBuildingManager::findStorage( FindCookie& cookie , unsigned pTag )
 {
-	ProductStorage& ps = rcDataManager::getInstance().getProductStorage( pTag );
+	ProductStorage& ps = rcDataManager::Get().getProductStorage( pTag );
 
 	BuildingList* curBList;
 	if ( cookie.var == -1 )

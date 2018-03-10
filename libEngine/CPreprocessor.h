@@ -26,7 +26,7 @@ namespace CPP
 			for( int i = 0; i < num; ++i )
 				push(' ');
 		}
-		void push(TokenString const& str) { push(str.ptr, str.num); }
+		void push(StringView const& str) { push(str.data(), str.size()); }
 		void push(char const* str)
 		{
 			push(str, strlen(str));
@@ -57,19 +57,19 @@ namespace CPP
 			mBuffer.push_back(0);
 		}
 		bool loadFile(char const* path);
-		void reset()
+		void resetSeek()
 		{
 			mCur = &mBuffer[0];
 		}
 		void skipLine()
 		{
-			mCur = ParseUtility::FindChar(mCur, '\n');
+			mCur = FStringParse::FindChar(mCur, '\n');
 			if( *mCur != 0 )
 				++mCur;
 		}
 		void skipSpace()
 		{
-			mCur = ParseUtility::SkipSpace(mCur);
+			mCur = FStringParse::SkipSpace(mCur);
 		}
 
 		std::vector< char > mBuffer;
@@ -87,7 +87,7 @@ namespace CPP
 	struct TokenInfo
 	{
 		TokenInfo(){}
-		TokenInfo(TokenString inStr)
+		TokenInfo(StringView inStr)
 		{
 			type = Token_String;
 			str = inStr;
@@ -98,7 +98,7 @@ namespace CPP
 		union
 		{
 			char delimChar;
-			TokenString str;
+			StringView str;
 		};
 
 	};
@@ -126,7 +126,7 @@ namespace CPP
 
 	struct MarcoSymbol
 	{
-		TokenString name;
+		StringView name;
 		std::string expr;
 		std::vector< uint8 > paramEntry;
 		int cacheEvalValue;
@@ -301,12 +301,12 @@ namespace CPP
 
 		struct StrCmp
 		{
-			bool operator()(TokenString const& lhs, TokenString const& rhs) const
+			bool operator()(StringView const& lhs, StringView const& rhs) const
 			{
 				return lhs.compare(rhs) < 0;
 			}
 		};
-		static std::map< TokenString, Command , StrCmp > sCommandMap;
+		static std::map< StringView, Command , StrCmp > sCommandMap;
 
 		Command nextCommand(CodeInput& input, bool bOutString, char const*& comStart);
 
@@ -322,9 +322,9 @@ namespace CPP
 		DelimsTable mExprDelimsTable;
 		CodeOutput* mOutput;
 
-		std::map< TokenString , MarcoSymbol , StrCmp > mMarcoSymbolMap;
+		std::map< StringView , MarcoSymbol , StrCmp > mMarcoSymbolMap;
 
-		MarcoSymbol* findMarco(TokenString token)
+		MarcoSymbol* findMarco(StringView token)
 		{
 			auto iter = mMarcoSymbolMap.find(token);
 			if( iter == mMarcoSymbolMap.end() )
@@ -359,12 +359,12 @@ namespace CPP
 
 			union
 			{
-				TokenString string;
+				StringView string;
 				int value;
 			};
 
 			ExprToken(Type inType,int inValue = 0):type(inType),value(inValue){}
-			ExprToken(TokenString inString):type(eString),string(inString){}
+			ExprToken(StringView inString):type(eString),string(inString){}
 
 
 		};

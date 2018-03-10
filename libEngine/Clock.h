@@ -3,12 +3,12 @@
 
 #include "WindowsHeader.h"
 
-class TClock
+class HighResClock
 {
 public:
-	TClock();
+	HighResClock();
 
-	~TClock()
+	~HighResClock()
 	{
 	}
 

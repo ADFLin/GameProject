@@ -318,9 +318,9 @@ void GLGraphics2D::drawRect(Vector2 const& pos , Vector2 const& size)
 	DRAW_IMPL( emintRectVertex( pos , p2 ) );
 }
 
-void GLGraphics2D::drawCircle(Vector2 const& center , int r)
+void GLGraphics2D::drawCircle(Vector2 const& center , float r)
 {
-	int numSeg = std::max( 2 * r * r , 4 );
+	int numSeg = std::max( 2 * r * r , 4.0f );
 	DRAW_IMPL( emitCircleVertex( center.x , center.y , r , calcCircleSemgmentNum( r ) ) );
 }
 

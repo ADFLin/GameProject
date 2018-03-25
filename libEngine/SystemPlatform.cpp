@@ -1,5 +1,7 @@
 #include "SystemPlatform.h"
 
+#include "MarcoCommon.h"
+
 #if SYS_PLATFORM_WIN
 #include "WindowsHeader.h"
 #include <Commdlg.h>
@@ -141,8 +143,8 @@ bool SystemPlatform::OpenFileName(char inoutPath[], int pathSize, char const* in
 	ofn.lpstrInitialDir = initDir;
 	if( inoutPath )
 		ofn.nFileOffset = FileUtility::GetDirPathPos(inoutPath) - inoutPath + 1;
-	ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST;
-
+	ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST | OFN_NOCHANGEDIR;
+	
 	if( !GetOpenFileNameA(&ofn) )
 	{
 		DWORD error = CommDlgExtendedError();

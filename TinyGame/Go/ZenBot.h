@@ -25,6 +25,12 @@ namespace Zen
 		bool bPass;
 	};
 
+	struct BestThinkInfo
+	{
+		int   x, y;
+		float winRate;
+	};
+
 	struct CoreSetting
 	{
 		int   numThreads;
@@ -88,6 +94,7 @@ namespace Zen
 		virtual ~IBotCore(){}
 		virtual void     setCoreSetting(CoreSetting const& setting) = 0;
 		virtual void     startGame(GameSetting const& setting) = 0;
+		virtual void     restart() = 0;
 		virtual void     doInitializeResource() = 0;
 		virtual void     doReleaseResource() = 0;
 		virtual void     think(ThinkResult& result, Color color = Color::Empty) = 0;
@@ -103,6 +110,7 @@ namespace Zen
 		virtual void     stopThink() = 0;
 		virtual bool     isThinking() = 0;
 		virtual void     getThinkResult(ThinkResult& result) = 0;
+		virtual void     getBestThinkMove(BestThinkInfo info[], int num) = 0;
 
 	};
 
@@ -255,7 +263,7 @@ namespace Zen
 		{
 			ZenClearBoard();
 			ZenSetBoardSize(setting.boardSize);
-			ZenFixedHandicap(setting.fixedHandicap);
+			ZenFixedHandicap(setting.numHandicap);
 			ZenSetKomi(setting.komi);
 			ZenSetNextColor(setting.bBlackFrist ? (int)Color::Black : (int)Color::White);
 			if( Version == 6 )
@@ -267,13 +275,18 @@ namespace Zen
 
 		void doInitializeResource()
 		{
-
 			ZenClearBoard();
 		}
 
 		void doReleaseResource()
 		{
 
+		}
+
+		void restart()
+		{
+			ZenStopThinking();
+			ZenClearBoard();
 		}
 
 		void think(ThinkResult& result , Color color )
@@ -288,6 +301,17 @@ namespace Zen
 				//std::cout << ZenGetBestMoveRate() << std::endl;
 			}
 			ZenReadGeneratedMove(result.x, result.y, result.bPass, result.bResign);
+		}
+
+		void getBestThinkMove( BestThinkInfo infoList[] , int num )
+		{
+			for( int i = 0; i < num ; ++i )
+			{
+				auto& info = infoList[i];
+				int c;
+				char buf[256];
+				ZenGetTopMoveInfo(i, info.x , info.y , c, info.winRate, buf, ARRAY_SIZE(buf));
+			}
 		}
 
 		void startThink(Color color) override
@@ -353,6 +377,7 @@ namespace Zen
 		int getWhitePrisonerNum() { return ZenGetNumWhitePrisoners(); }
 		Color getNextColor() { return Color(ZenGetNextColor()); }
 
+
 	private:
 		TBotCore() {}
 
@@ -386,17 +411,20 @@ namespace Zen
 
 namespace Go
 {
+	namespace ZenGameParam
+	{
+		enum
+		{
+			eBestMoveVertex = 200,
+		};
+	}
 
 	class ZenBot : public IBotInterface
 	{
 
 	public:
 
-		ZenBot(int version = 6)
-			:mCoreVersion( version )
-		{
-
-		}
+		ZenBot(int version = 7);
 
 		template< int Version >
 		Zen::IBotCore* buildCoreT()
@@ -409,118 +437,17 @@ namespace Go
 			return core;
 		}
 
-		virtual bool initilize(void* settingData) override
-		{
+		virtual bool initilize(void* settingData) override;
+		virtual void destroy() override;
+		virtual bool setupGame(GameSetting const& setting) override;
+		virtual bool restart() override;
+		virtual bool playStone(int x, int y, int color) override;
+		virtual bool playPass(int color) override;
+		virtual bool undo() override;
+		virtual bool thinkNextMove(int color) override;
+		virtual bool isThinking() override;
 
-			switch(  mCoreVersion )
-			{
-			case 4: mCore.reset( buildCoreT< 4 >() ); break;
-			case 6: mCore.reset( buildCoreT< 6 >() ); break;
-			case 7: mCore.reset( buildCoreT< 7 >() ); break;
-			default:
-				break;
-			}
-
-			if( mCore == nullptr )
-				return false;
-
-			mCore->caputureResource();
-
-			if( settingData )
-			{
-				mCore->setCoreSetting(*static_cast<Zen::CoreSetting*>(settingData));
-			}
-			else
-			{
-				Zen::CoreSetting setting;
-				mCore->setCoreSetting(setting);
-			}
-
-
-			return true;
-		}
-
-		virtual void destroy() override
-		{
-			mCore->stopThink();
-			mCore->releaseResource();
-
-			switch( mCoreVersion )
-			{
-			case 4: static_cast< Zen::TBotCore< 4 >* >(mCore.get())->release(); break;
-			case 6: static_cast< Zen::TBotCore< 6 >* >(mCore.get())->release(); break;
-			case 7: static_cast< Zen::TBotCore< 7 >* >(mCore.get())->release(); break;
-			}
-			mCore.release();
-		}
-
-		virtual bool setupGame(GameSetting const& setting) override
-		{
-			mCore->startGame(setting);
-			bWaitResult = false;
-			return true;
-		}
-
-
-		virtual bool playStone(int x, int y, int color) override
-		{
-			return mCore->playStone(x, y, ToZColor(color));
-		}
-
-		virtual bool playPass(int color) override
-		{
-			mCore->playPass(ToZColor(color));
-			return true;
-		}
-		virtual bool undo() override
-		{
-			return mCore->undo();
-		}
-		virtual bool thinkNextMove(int color) override
-		{
-			mCore->startThink();
-			bWaitResult = true;
-			requestColor = color;
-			return true;
-		}
-		virtual bool isThinking() override
-		{
-			return mCore->isThinking();
-		}
-
-		virtual void update(IGameCommandListener& listener) override
-		{
-			if( !bWaitResult )
-				return;
-
-			if( mCore->isThinking() )
-				return;
-
-			Zen::ThinkResult thinkStep;
-			mCore->getThinkResult(thinkStep);
-
-			GameCommand com;
-			if( thinkStep.bPass )
-			{
-				com.id = GameCommand::ePass;
-				listener.notifyCommand(com);
-			}
-			else if( thinkStep.bResign )
-			{
-				com.id = GameCommand::eResign;
-				listener.notifyCommand(com);
-			}
-			else
-			{
-				mCore->playStone(thinkStep.x, thinkStep.y, ToZColor(requestColor));
-				com.id = GameCommand::ePlay;
-				com.playColor = requestColor;
-				com.pos[0] = thinkStep.x;
-				com.pos[1] = thinkStep.y;
-				listener.notifyCommand(com);
-			}
-			bWaitResult = false;
-		}
+		virtual void update(IGameCommandListener& listener) override;
 
 		static Zen::Color ToZColor(int color)
 		{

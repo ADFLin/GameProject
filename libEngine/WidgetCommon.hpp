@@ -175,7 +175,7 @@ bool WChoiceT<Impl, CoreImpl>::onMouseMsg( MouseMsg const& msg )
 
 		Menu* menu = new Menu( pos , size , this );
 		getManager()->addWidget( menu );
-		//_addFlag( UF_HITTEST_CHILDREN );
+		//addFlagInternal( WIF_HITTEST_CHILDREN );
 		menu->setTop();
 		menu->makeFocus();
 	}
@@ -183,7 +183,7 @@ bool WChoiceT<Impl, CoreImpl>::onMouseMsg( MouseMsg const& msg )
 }
 
 template < class Impl, class CoreImpl >
-bool WChoiceT<Impl, CoreImpl>::_onMenuMouseMsg( Menu* menu , MouseMsg const& msg )
+bool WChoiceT<Impl, CoreImpl>::notifyMenuMouseMsg( Menu* menu , MouseMsg const& msg )
 {
 	Vec2i menuSize = menu->getSize();
 	int posSelect = ( msg.getPos().y - menu->getWorldPos().y ) / _this()->getMenuItemHeight();
@@ -207,7 +207,7 @@ bool WChoiceT<Impl, CoreImpl>::_onMenuMouseMsg( Menu* menu , MouseMsg const& msg
 }
 
 template < class Impl, class CoreImpl >
-void WChoiceT<Impl, CoreImpl>::_onRenderMenu( Menu* menu )
+void WChoiceT<Impl, CoreImpl>::notifyRenderMenu( Menu* menu )
 {
 	_this()->doRenderMenuBG( menu );
 	Vec2i pos = menu->getWorldPos();

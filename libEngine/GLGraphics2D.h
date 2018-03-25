@@ -96,7 +96,7 @@ public:
 
 	void  drawRect   ( int left , int top , int right , int bottom );
 	void  drawRect   ( Vector2 const& pos , Vector2 const& size );
-	void  drawCircle ( Vector2 const& center , int r );
+	void  drawCircle ( Vector2 const& center , float r );
 	void  drawEllipse( Vector2 const& center , Vector2 const& size );
 	void  drawPolygon( Vector2 pos[] , int num );
 	void  drawPolygon( Vec2i pos[] , int num );

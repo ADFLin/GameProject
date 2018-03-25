@@ -30,7 +30,7 @@
 enum WidgetInternalFlag
 {
 	WIF_STAY_TOP            = BIT(1) ,
-	WIF_WORLD_POS_     = BIT(2) ,
+	WIF_WORLD_POS_CACHED    = BIT(2) ,
 	WIF_DISABLE             = BIT(3) ,
 	WIF_BE_HIDDEN           = BIT(4) ,
 	WIF_HITTEST_CHILDREN    = BIT(5) ,
@@ -155,12 +155,12 @@ private:
 
 
 	void          setTopChild( WidgetCoreT* ui , bool beAlways );
-	void          _destroyChildren();
+	void          destroyChildren_R();
 
 	void          setFlag( unsigned flag ){	mFlag = flag;	}
 	unsigned      getFlag(){ return mFlag; }
 
-	bool          checkFlag( unsigned flag ) const { return ( mFlag & flag ) != 0; }
+	bool          checkFlag( unsigned flag ) const { return !!( mFlag & flag ); }
 
 	void          addChildFlag( unsigned flag );
 	void          removeChildFlag( unsigned flag );
@@ -172,14 +172,14 @@ private:
 	WidgetCoreT*  hitTestChildren(Vec2i const& testPos);
 
 protected:
-	void          skipMouseMsg(){ _addFlag( WIF_PARENT_MOUSE_EVENT ); }
-	void          lockDestroy()   { _addFlag( WIF_BLOCK_DESTROY );  }
-	void          unlockDestroy() { _removeFlag( WIF_BLOCK_DESTROY ); }
+	void          skipMouseMsg(){ addFlagInternal( WIF_PARENT_MOUSE_EVENT ); }
+	void          lockDestroy()   { addFlagInternal( WIF_BLOCK_DESTROY );  }
+	void          unlockDestroy() { removeFlagInternal( WIF_BLOCK_DESTROY ); }
 
 
 
-	void          _addFlag( unsigned flag ){ mFlag |= flag; }
-	void          _removeFlag( unsigned flag ){ mFlag &= ~flag; }
+	void          addFlagInternal( unsigned flag ){ mFlag |= flag; }
+	void          removeFlagInternal( unsigned flag ){ mFlag &= ~flag; }
 
 	virtual void  mouseOverlap( bool beOverlap ){  _this()->onMouse( beOverlap ); }
 	virtual void  render(){  _this()->onRender();  }
@@ -317,12 +317,12 @@ private:
 	{
 		assert( mNamedSlots[name] == nullptr );
 		mNamedSlots[name] = &ui;
-		mNamedSlots[name]->_addFlag(WIF_MANAGER_REF);
+		mNamedSlots[name]->addFlagInternal(WIF_MANAGER_REF);
 	}
 	void      clearNamedSlot(ESlotName name)
 	{
 		assert(mNamedSlots[name]);
-		//mNamedSlots[name]->_removeFlag(UF_MANAGER_REF);
+		//mNamedSlots[name]->removeFlagInternal(UF_MANAGER_REF);
 		mNamedSlots[name] = nullptr;
 	}
 

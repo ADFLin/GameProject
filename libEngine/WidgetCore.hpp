@@ -233,7 +233,7 @@ T& WidgetCoreT<T>::addChild( WidgetCoreT* ui )
 
 	linkChildInternal( ui );
 
-	ui->removeChildFlag( WIF_WORLD_POS_ );
+	ui->removeChildFlag( WIF_WORLD_POS_CACHED);
 
 	static_cast< T* >( ui )->onLink();
 
@@ -253,9 +253,9 @@ T&  WidgetCoreT<T>::show( bool beS )
 	if ( isShow() != beS )
 	{
 		if ( beS )
-			_removeFlag( WIF_BE_HIDDEN );
+			removeFlagInternal( WIF_BE_HIDDEN );
 		else
-			_addFlag( WIF_BE_HIDDEN );
+			addFlagInternal( WIF_BE_HIDDEN );
 
 		_this()->onShow( beS );
 
@@ -273,9 +273,9 @@ T&  WidgetCoreT<T>::enable( bool beE = true )
 	if ( isEnable() != beE )
 	{
 		if ( beE )
-			_removeFlag( WIF_DISABLE );
+			removeFlagInternal( WIF_DISABLE );
 		else
-			_addFlag( WIF_DISABLE );
+			addFlagInternal( WIF_DISABLE );
 
 		_this()->onEnable( beE );
 	}
@@ -314,14 +314,14 @@ int WidgetCoreT<T>::getOrder()
 template< class T >
 Vec2i const& WidgetCoreT<T>::getWorldPos()
 {
-	if ( !checkFlag( WIF_WORLD_POS_ ) )
+	if ( !checkFlag( WIF_WORLD_POS_CACHED ) )
 	{
 		mCacheWorldPos = getPos();
 
 		if ( !isTop() )
 			mCacheWorldPos += mParent->getWorldPos();
 
-		_addFlag( WIF_WORLD_POS_ );
+		addFlagInternal( WIF_WORLD_POS_CACHED );
 	}
 	return mCacheWorldPos;
 }
@@ -334,8 +334,8 @@ T& WidgetCoreT<T>::setPos( Vec2i const& pos )
 	mBoundRect.min = pos;
 	mBoundRect.max += offset;
 
-	_removeFlag( WIF_WORLD_POS_ );
-	removeChildFlag( WIF_WORLD_POS_ );
+	removeFlagInternal( WIF_WORLD_POS_CACHED );
+	removeChildFlag( WIF_WORLD_POS_CACHED);
 	_this()->onChangePos( pos , true );
 
 	return *_this();
@@ -403,7 +403,7 @@ T& WidgetCoreT<T>::setTop( bool beAlways )
 {
 	//return *_this();
 	if ( beAlways )
-		_addFlag( WIF_STAY_TOP );
+		addFlagInternal( WIF_STAY_TOP );
 
 #if UI_CORE_USE_INTRLIST
 	if( getParent() )
@@ -438,7 +438,7 @@ void WidgetCoreT<T>::addChildFlag( unsigned flag )
 {
 	for( auto child = createChildrenIterator(); child; ++child )
 	{
-		child->_addFlag( flag );
+		child->addFlagInternal( flag );
 		child->addChildFlag( flag );
 	}
 }
@@ -448,7 +448,7 @@ void WidgetCoreT<T>::removeChildFlag( unsigned flag )
 {
 	for( auto child = createChildrenIterator(); child; ++child )
 	{
-		child->_removeFlag( flag );
+		child->removeFlagInternal( flag );
 		child->removeChildFlag( flag );
 	}
 }
@@ -462,13 +462,13 @@ T& WidgetCoreT<T>::makeFocus()
 }
 
 template< class T >
-void WidgetCoreT<T>::_destroyChildren()
+void WidgetCoreT<T>::destroyChildren_R()
 {
 	auto childIter = createChildrenIterator();
 	while( childIter )
 	{
 		WidgetCoreT* ui = &(*childIter);
-		ui->_destroyChildren();
+		ui->destroyChildren_R();
 
 		if ( getManager() )
 			getManager()->removeWidgetReference( ui );
@@ -519,7 +519,7 @@ void WidgetCoreT<T>::destroy()
 	}
 	else
 	{
-		_destroyChildren();
+		destroyChildren_R();
 		deleteThis();
 	}
 }
@@ -647,7 +647,7 @@ bool TWidgetManager<T>::procMouseMsg( MouseMsg const& msg )
 				{
 					if ( ui->isTop() )
 						break;
-					ui->_removeFlag( WIF_PARENT_MOUSE_EVENT );
+					ui->removeFlagInternal( WIF_PARENT_MOUSE_EVENT );
 
 					ui = static_cast< T* >( ui->getParent() );
 					result = ui->onMouseMsg( mMouseMsg );
@@ -836,7 +836,7 @@ void TWidgetManager<T>::destroyWidget( WidgetCore* ui )
 	if ( ui == NULL || ui->checkFlag( WIF_MARK_DESTROY ) )
 		return;
 
-	ui->_addFlag(WIF_MARK_DESTROY);
+	ui->addFlagInternal(WIF_MARK_DESTROY);
 	if ( mProcessingMsg || ui->checkFlag( WIF_BLOCK_DESTROY ))
 	{
 		ui->_unlinkInternal(false);
@@ -875,7 +875,7 @@ template< class T >
 void TWidgetManager<T>::destroyNoCheck( WidgetCore* ui )
 {
 	removeWidgetReference( ui );
-	ui->_destroyChildren();
+	ui->destroyChildren_R();
 	ui->_unlinkInternal(true);
 	ui->deleteThis();
 }

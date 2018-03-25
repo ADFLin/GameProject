@@ -17,6 +17,7 @@ namespace Go
 			eBlack = 1,
 			eWhite = 2,
 		};
+
 	}
 
 	inline int ReadCoord( char const* coord , uint8 outPos[2] )
@@ -189,14 +190,14 @@ namespace Go
 		void     removeVisitedMark_R( int idx );
 
 
-		struct IntersceionData
+		struct IntersectionData
 		{
 			char     data;
 			uint8    checkCount;
 			LinkType link;
 		};
 
-		//IntersceionData* mData;
+		//IntersectionData* mData;
 
 		int       mIndexOffset[ NumDir ];
 		mutable DataType mCacheColorR;
@@ -217,18 +218,27 @@ namespace Go
 	struct GameSetting
 	{
 		int   boardSize;
-		int   fixedHandicap;
+		int   numHandicap;
 		float komi;
 		bool  bBlackFrist;
+		bool  bFixedHandicap;
 		GameSetting()
 		{
 			boardSize = 19;
-			fixedHandicap = 0;
+			numHandicap = 0;
+			bFixedHandicap = true;
 			komi = 6.5;
 			bBlackFrist = true;
 		}
 	};
 
+
+	struct GameDescription
+	{
+		std::string blackName;
+		std::string whiteName;
+		std::string date;
+	};
 
 	class Game
 	{
@@ -239,6 +249,7 @@ namespace Go
 		Game();
 
 		void    setup( int size );
+		GameSetting const& getSetting() { return mSetting; }
 		void    setSetting(GameSetting const& setting) { mSetting = setting; }
 		void    restart();
 		bool    canPlay(int x, int y) const;
@@ -270,7 +281,7 @@ namespace Go
 
 		void    print( int x , int y );
 
-		bool    save( char const* path );
+		bool    saveSGF( char const* path , GameDescription const* description = nullptr );
 
 		int     getCurrentStep() const	{  return mCurrentStep; }
 		int     getLastStep() const  {  return mStepHistory.size() - 1;  }
@@ -307,9 +318,9 @@ namespace Go
 
 		struct StepInfo
 		{
-			int       idxPlay;
-			int       idxKO;
-			unsigned  bitCaptureDir;
+			int16  idxPlay;
+			int16  idxKO;
+		    uint8  bitCaptureDir;
 		};
 
 		typedef std::vector< StepInfo > StepVec;

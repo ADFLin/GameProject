@@ -7,14 +7,21 @@
 #include "Thread.h"
 #include "Platform/Windows/WindowsProcess.h"
 
+#define LEELA_NET_DIR "networks/"
+
 namespace Go
 {
+	int constexpr LeelaGoSize = 19;
 
 	namespace LeelaGameParam
 	{
 		enum
 		{
 			eJobMode,
+			eLastNetWeight ,
+			eMatchChallengerColor ,
+
+			eBestMoveVertex ,
 		};
 	}
 
@@ -25,10 +32,12 @@ namespace Go
 			eNone,
 			eKomi,
 			eHandicap,
+			eRestart ,
 			ePlay,
 			eGenmove,
 			ePass,
 			eUndo,
+			eFinalScore ,
 			eQuit,
 		};
 
@@ -41,24 +50,34 @@ namespace Go
 	public:
 		virtual ~IGameOutputThread() {}
 		virtual unsigned run() = 0;
-		virtual void update() {};
+		virtual void update() {}
+		virtual void restart()
+		{
+			bRequestRestart = true;
+			mOutputCommands.clear();
+		}
 
 
 		ChildProcess* process = nullptr;
-		void addCommand(GameCommand const& com)
+		void addOutputCommand(GameCommand const& com)
 		{
 			mOutputCommands.push_back(com);
 		}
 		template< class T >
-		void procCommand(T fun)
+		void procOutputCommand(T fun)
 		{
+			bRequestRestart = false;
 			for( GameCommand& com : mOutputCommands )
 			{
 				fun(com);
+				if ( bRequestRestart )
+					break;
 			}
 			mOutputCommands.clear();
 		}
 
+
+		bool bRequestRestart = false;
 		std::vector< GameCommand > mOutputCommands;
 		
 	};
@@ -68,6 +87,7 @@ namespace Go
 	public:
 		ChildProcess        process;
 		IGameOutputThread*  outputThread = nullptr;
+		bool  bThinking = false;
 
 		~GTPLikeAppRun();
 
@@ -78,11 +98,14 @@ namespace Go
 		}
 
 		void stop();
+
+		bool restart();
 		bool playStone(int x , int y, int color);
 		bool playPass();
 		bool thinkNextMove(int color);
 		bool undo();
 		bool setupGame(GameSetting const& setting);
+		bool showResult();
 
 		bool inputCommand(char const* command, GTPCommand com);
 		bool inputProcessStream(char const* command, int length = 0);
@@ -98,6 +121,7 @@ namespace Go
 			myThread->start();
 			myThread->setDisplayName("Output Thread");
 			outputThread = myThread;
+			
 			return true;
 		}
 	};
@@ -124,13 +148,57 @@ namespace Go
 		bool bQuiet = false;
 		//Disable thinking on opponent's time.
 		bool bNoPonder = true;
+
+		bool bGTPMode = true;
+
+		static LeelaAISetting GetDefalut();
+
+		std::string toString() const
+		{
+			std::string result;
+
+#define  AddCom( NAME , VALUE )\
+			if( VALUE )\
+			{\
+				result += NAME;\
+			}\
+
+#define  AddComValue( NAME , VALUE )\
+			if( VALUE )\
+			{\
+				result += NAME;\
+				result += std::to_string(VALUE);\
+			}\
+
+			AddComValue(" -r ", resignpct);
+			AddComValue(" -t ", numThread);
+			AddComValue(" -p ", playouts);
+			AddComValue(" -v ", visits);
+			AddComValue(" -m ", randomcnt);
+			AddComValue(" -s ", seed );
+			if( weightName )
+			{
+				result += " -w " LEELA_NET_DIR;
+				result += weightName;
+			}
+			AddCom(" -q", bQuiet);
+			AddCom(" -d", bDumbPass);
+			AddCom(" -n", bNoise);
+			AddCom(" -g", bGTPMode);
+			AddCom(" --noponder", bNoPonder);
+			AddCom(" -q", bQuiet);
+#undef AddCom
+#undef AddComValue
+			return result;
+		}
 	};
 
 	struct LeelaAppRun : public GTPLikeAppRun
 	{
 		static char const* InstallDir;
 
-		static std::string GetBestWeightName();
+		static std::string GetLastWeightName();
+		static std::string GetDesiredWeightName();
 		bool buildLearningGame();
 		bool buildPlayGame(LeelaAISetting const& setting);
 		bool buildAnalysisGame();
@@ -148,6 +216,10 @@ namespace Go
 		virtual bool setupGame(GameSetting const& setting ) override
 		{
 			return mAI.setupGame(setting);
+		}
+		virtual bool restart() override
+		{
+			return mAI.restart();
 		}
 		virtual bool playStone(int x, int y, int color) override
 		{
@@ -177,7 +249,7 @@ namespace Go
 			{
 				listener.notifyCommand(com);
 			};
-			mAI.outputThread->procCommand(MyFun);
+			mAI.outputThread->procOutputCommand(MyFun);
 		}
 
 		bool inputProcessStream(char const* command)

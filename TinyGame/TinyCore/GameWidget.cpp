@@ -715,8 +715,21 @@ void GSlider::onRender()
 GCheckBox::GCheckBox(int id , Vec2i const& pos , Vec2i const& size , GWidget* parent) 
 	:BaseClass( id , pos , size , parent )
 {
-	isCheck = false;
+	bChecked = false;
 	mID = id;
+}
+
+void GCheckBox::onClick()
+{
+	bChecked = !bChecked; 
+	sendEvent(EVT_CHECK_BOX_CHANGE);
+	updateMotionState(true);
+}
+
+void GCheckBox::onMouse(bool beInside)
+{
+	BaseClass::onMouse(beInside);
+	updateMotionState(beInside);
 }
 
 void GCheckBox::onRender()
@@ -725,22 +738,55 @@ void GCheckBox::onRender()
 	Vec2i pos  = getWorldPos();
 	Vec2i size = getSize();
 
-	if ( isCheck )
+	int brushColor;
+	int colorType[2];
+	if ( bChecked )
 	{
-		RenderUtility::SetBrush( g , Color::eRed );
-		RenderUtility::SetPen( g , Color::eWhite );
+		brushColor = Color::eRed;
+		colorType[0] = COLOR_NORMAL;
+		colorType[1] = COLOR_DEEP;
+		RenderUtility::SetPen( g , (getButtonState() == BS_HIGHLIGHT) ?  Color::eYellow : Color::eWhite );
 	}
 	else
 	{
-		RenderUtility::SetBrush( g , Color::eBlue );
-		RenderUtility::SetPen( g , Color::eBlack );
+		brushColor = Color::eBlue;
+		colorType[0] = COLOR_NORMAL;
+		colorType[1] = COLOR_DEEP;
+		RenderUtility::SetPen( g , (getButtonState() == BS_HIGHLIGHT) ? Color::eYellow : Color::eBlack );
 	}
-
+	RenderUtility::SetBrush(g, brushColor, colorType[0]);
 	g.drawRect( pos , size );
 
-	RenderUtility::SetFont( g , FONT_S12 );
+	RenderUtility::SetBrush(g, brushColor, colorType[1]);
+	RenderUtility::SetPen(g, brushColor);
+	g.drawRect(pos + Vec2i(3, 3), size - 2 * Vec2i(3, 3));
+
+	RenderUtility::SetFont( g , FONT_S8 );
 	g.setTextColor(255 , 255 , 0 );
-	g.drawText( pos , size , mTitle.c_str() );
+	g.drawText((bChecked) ? pos : pos + Vec2i(1,1) , size , mTitle.c_str() );
+}
+
+
+
+void GCheckBox::updateMotionState( bool bInside )
+{
+	if( bInside && bChecked == false )
+	{
+		if( !motionTask )
+		{
+			TaskBase* task = new UIMotionTask(this, getPos() + Vec2i(0, 2), 500, WMT_SHAKE_MOTION);
+			::Global::GUI().addTask(task);
+		}
+	}
+	else
+	{
+		UIMotionTask* task = dynamic_cast<UIMotionTask*>(motionTask);
+		if( task  && task->mType == WMT_SHAKE_MOTION )
+		{
+			motionTask->stop();
+			motionTask = NULL;
+		}
+	}
 }
 
 GFileListCtrl::GFileListCtrl(int id, Vec2i const& pos, Vec2i const& size, GWidget* parent) 

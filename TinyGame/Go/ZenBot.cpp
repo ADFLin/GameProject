@@ -3,9 +3,10 @@
 
 #include "SystemPlatform.h"
 
-//#include <sysinfoapi.h>
-//#include <process.h>
 #include <iostream>
+
+#include "GameGlobal.h"
+#include "PropertyKey.h"
 
 namespace Zen
 {
@@ -385,4 +386,153 @@ int runBotTest()
 	
 
     return 0;
+}
+
+namespace Go
+{
+
+	ZenBot::ZenBot(int version /*= 6*/) 
+		:mCoreVersion(version)
+	{
+
+	}
+
+	bool ZenBot::initilize(void* settingData)
+	{
+		switch( mCoreVersion )
+		{
+		case 4: mCore.reset(buildCoreT< 4 >()); break;
+		case 6: mCore.reset(buildCoreT< 6 >()); break;
+		case 7: mCore.reset(buildCoreT< 7 >()); break;
+		default:
+			break;
+		}
+
+		if( mCore == nullptr )
+			return false;
+
+		mCore->caputureResource();
+
+		if( settingData )
+		{
+			mCore->setCoreSetting(*static_cast<Zen::CoreSetting*>(settingData));
+		}
+		else
+		{
+			Zen::CoreSetting setting;
+			int numCPU = SystemPlatform::GetProcessorNumber();
+			setting.numThreads = numCPU - 2;
+			setting.numSimulations = ::Global::GameConfig().getIntValue("numSimulations", "ZenSetting", 20000000);
+			setting.maxTime = ::Global::GameConfig().getFloatValue("maxTime", "ZenSetting", 25);
+			mCore->setCoreSetting(setting);
+		}
+		return true;
+	}
+
+	void ZenBot::destroy()
+	{
+		mCore->stopThink();
+		mCore->releaseResource();
+
+		switch( mCoreVersion )
+		{
+		case 4: static_cast<Zen::TBotCore< 4 >*>(mCore.get())->release(); break;
+		case 6: static_cast<Zen::TBotCore< 6 >*>(mCore.get())->release(); break;
+		case 7: static_cast<Zen::TBotCore< 7 >*>(mCore.get())->release(); break;
+		}
+		mCore.release();
+	}
+
+	bool ZenBot::setupGame(GameSetting const& setting)
+	{
+		mCore->startGame(setting);
+		bWaitResult = false;
+		return true;
+	}
+
+	bool ZenBot::restart()
+	{
+		mCore->restart();
+		bWaitResult = false;
+		return true;
+	}
+
+	bool ZenBot::playStone(int x, int y, int color)
+	{
+		return mCore->playStone(x, y, ToZColor(color));
+	}
+
+	bool ZenBot::playPass(int color)
+	{
+		mCore->playPass(ToZColor(color));
+		return true;
+	}
+
+	bool ZenBot::undo()
+	{
+		return mCore->undo();
+	}
+
+	bool ZenBot::thinkNextMove(int color)
+	{
+		mCore->startThink(ToZColor(color));
+		bWaitResult = true;
+		requestColor = color;
+		return true;
+	}
+
+	bool ZenBot::isThinking()
+	{
+		return mCore->isThinking();
+	}
+
+	void ZenBot::update(IGameCommandListener& listener)
+	{
+		if( bWaitResult )
+		{
+			if( !mCore->isThinking() )
+			{
+				bWaitResult = false;
+
+				Zen::ThinkResult thinkStep;
+				mCore->getThinkResult(thinkStep);
+
+				GameCommand com;
+				if( thinkStep.bPass )
+				{
+					com.id = GameCommand::ePass;
+				}
+				else if( thinkStep.bResign )
+				{
+					com.id = GameCommand::eResign;
+				}
+				else
+				{
+					mCore->playStone(thinkStep.x, thinkStep.y, ToZColor(requestColor));
+					com.id = GameCommand::ePlay;
+					com.playColor = requestColor;
+					com.pos[0] = thinkStep.x;
+					com.pos[1] = thinkStep.y;
+				}
+				listener.notifyCommand(com);
+			}
+			else
+			{
+				Zen::BestThinkInfo infoList[5];
+				mCore->getBestThinkMove( infoList , 5 );
+
+				std::sort(infoList, infoList + 5, [](auto& lhs, auto &rhs)
+				{
+					return lhs.winRate > rhs.winRate;
+				});
+
+				auto& bestInfo = infoList[0];
+				int vertex = bestInfo.y * 19 + bestInfo.x;
+				GameCommand com;
+				com.setParam(ZenGameParam::eBestMoveVertex, vertex);
+				listener.notifyCommand(com);
+			}
+		}
+	}
+
 }

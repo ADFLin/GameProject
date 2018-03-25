@@ -257,10 +257,16 @@ class GCheckBox : public GButtonBase
 public:
 	TINY_API GCheckBox( int id , Vec2i const& pos , Vec2i const& size  , GWidget* parent );
 	virtual void onHotkey( unsigned key ){ onClick();  }
-	virtual void onClick(){  isCheck = !isCheck; sendEvent( EVT_CHECK_BOX_CHANGE );   }
+	TINY_API virtual void onClick();
+	TINY_API virtual void onMouse(bool beInside) override;
 	TINY_API void onRender();
+	
 	void setTitle( char const* str ){ mTitle = str; }
-	bool isCheck;
+	bool bChecked;
+
+protected:
+
+	TINY_API void updateMotionState( bool bInside );
 	String mTitle;
 };
 

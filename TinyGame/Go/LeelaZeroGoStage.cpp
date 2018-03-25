@@ -75,7 +75,7 @@ namespace Go
 		AQAppRun::InstallDir = ::Global::GameConfig().getStringValue("AQInstallDir", "Go", "E:/Desktop/AQ");
 
 		FixString<256> path;
-		path.format("%s/%s", LeelaAppRun::InstallDir, LeelaAppRun::GetBestWeightName().c_str());
+		path.format("%s/" LEELA_NET_DIR "%s", LeelaAppRun::InstallDir, LeelaAppRun::GetLastWeightName().c_str());
 		path.replace('/', '\\');
 		//if( SystemPlatform::OpenFileName(path, path.max_size(), nullptr) )
 		{
@@ -92,30 +92,14 @@ namespace Go
 			return false;
 #endif
 
-		auto devFrame = WidgetUtility::CreateDevFrame( Vec2i(150, 200 + 30) );
-		devFrame->addButton("Pause Process", [&](int eventId, GWidget* widget) -> bool
+		auto devFrame = WidgetUtility::CreateDevFrame( Vec2i(150, 200 + 55) );
+
+		devFrame->addButton("Save SGF", [&](int eventId, GWidget* widget) -> bool
 		{
-			if ( mGameMode == GameMode::Learning )
-			{
-				if( bProcessPaused )
-				{
-					if( mLearningAIRun.process.resume() )
-					{
-						GUI::CastFast<GButton>(widget)->setTitle("Pause Process");
-						bProcessPaused = false;
-					}
-				}
-				else
-				{
-					if( mLearningAIRun.process.suspend() )
-					{
-						GUI::CastFast<GButton>(widget)->setTitle("Resume Process");
-						bProcessPaused = true;
-					}
-				}
-			}
+			mGame.saveSGF("Game.sgf");
 			return false;
 		});
+
 		devFrame->addButton("Play Game", [&](int eventId, GWidget* widget) -> bool
 		{
 			cleanupModeData();
@@ -162,7 +146,35 @@ namespace Go
 			::Global::GUI().addWidget(panel);
 			return false;
 		});
-		devFrame->addButton("Review Game", [&](int eventId, GWidget* widget) ->bool
+
+		devFrame->addCheckBox("Pause Game", [&](int eventId, GWidget* widget) -> bool
+		{
+			if( mGameMode == GameMode::Learning )
+			{
+				if( bPauseGame )
+				{
+					if( mLearningAIRun.process.resume() )
+					{
+						widget->cast<GCheckBox>()->setTitle("Pause Game");
+						bPauseGame = false;
+					}
+				}
+				else
+				{
+					if( mLearningAIRun.process.suspend() )
+					{
+						widget->cast<GCheckBox>()->setTitle("Resume Game");
+						bPauseGame = true;
+					}
+				}
+			}
+			else
+			{
+				bPauseGame = !bPauseGame;
+			}
+			return false;
+		});
+		devFrame->addCheckBox("Review Game", [&](int eventId, GWidget* widget) ->bool
 		{
 			bReviewingGame = !bReviewingGame;
 
@@ -170,7 +182,7 @@ namespace Go
 			{
 				mReviewGame.guid = mGame.guid;
 				mReviewGame.copy(mGame);
-				widget->cast<GButton>()->setTitle("Close Review");
+				widget->cast<GCheckBox>()->setTitle("Close Review");
 				Vec2i screenSize = ::Global::getDrawEngine()->getScreenSize();
 				Vec2i widgetSize = Vec2i(100, 300);
 				auto frame = new DevFrame(UI_REPLAY_FRAME, Vec2i(screenSize.x - widgetSize.x - 5, 300) , widgetSize , nullptr);
@@ -227,12 +239,12 @@ namespace Go
 			else
 			{
 				::Global::GUI().findTopWidget(UI_REPLAY_FRAME)->destroy();
-				widget->cast<GButton>()->setTitle("Review Game");
+				widget->cast<GCheckBox>()->setTitle("Review Game");
 			}
 			return false;
 		});
 
-		devFrame->addButton("Try Play", [&](int eventId, GWidget* widget) ->bool
+		devFrame->addCheckBox("Try Play", [&](int eventId, GWidget* widget) ->bool
 		{
 			bTryPlayingGame = !bTryPlayingGame;
 
@@ -242,11 +254,11 @@ namespace Go
 				mTryPlayGame.guid = Gamelooking.guid;
 				mTryPlayGame.copy(Gamelooking);
 				mTryPlayGame.removeUnplayedHistory();
-				widget->cast<GButton>()->setTitle("End Play");
+				widget->cast<GCheckBox>()->setTitle("End Play");
 			}
 			else
 			{
-				widget->cast<GButton>()->setTitle("Try Play");
+				widget->cast<GCheckBox>()->setTitle("Try Play");
 			}
 
 			return false;
@@ -269,10 +281,13 @@ namespace Go
 
 		if( mGameMode == GameMode::Match )
 		{
-			IBotInterface* bot = mMatchData.getCurTurnBot();
-			if( bot )
+			if ( !bPauseGame )
 			{
-				bot->update(*this);
+				IBotInterface* bot = mMatchData.getCurTurnBot();
+				if( bot )
+				{
+					bot->update(*this);
+				}
 			}
 		}
 		else if( mGameMode == GameMode::Learning )
@@ -304,7 +319,21 @@ namespace Go
 
 		glClear(GL_COLOR_BUFFER_BIT);
 
-		mGameRenderer.draw(BoardPos, getViewingGame() );
+
+		auto& viewingGame = getViewingGame();
+
+		mGameRenderer.draw(BoardPos, viewingGame );
+
+		if( bestMoveVertex >= 0 )
+		{
+			int x = bestMoveVertex % LeelaGoSize;
+			int y = bestMoveVertex / LeelaGoSize;
+			Vector2 pos = mGameRenderer.getIntersectionPos(BoardPos, viewingGame.getBoard(), x, y);
+
+			RenderUtility::SetPen(g, Color::eRed);
+			RenderUtility::SetBrush(g, Color::eRed);
+			g.drawCircle(pos, 8);
+		}
 
 		GpuProfiler::Get().endFrame();
 
@@ -319,11 +348,43 @@ namespace Go
 		if( mGameMode == GameMode::Learning )
 		{
 			g.drawText(200, 20, str.format("Num Game Completed = %d", numGameCompleted));
-			g.drawText(200, 35, str.format("Job Type = %s", bMatchJob ? "Match" : "Self Play") );
+			if ( bMatchJob )
+			{
+				if ( matchChallenger != StoneColor::eEmpty )
+				{
+					str.format("Job Type = Match , Challenger = %s",
+							   matchChallenger == StoneColor::eBlack ? "B" : "W");
+				}
+				else
+				{
+					str.format("Job Type = Match");
+				}
+			}
+			else
+			{
+				str.format("Job Type = Self Play");
+			}
+			g.drawText(200, 35, str);
 
 			if( !mLastGameResult.empty() )
 			{
 				g.drawText(200, 50, str.format( "Last Game Result : %s" , mLastGameResult.c_str() ) );
+			}
+		}
+		else
+		{
+			if( mMatchData.bAutoRun )
+			{
+				int y = 20;
+				for( int i = 0; i < 2; ++i )
+				{
+					auto const& player = mMatchData.players[i];
+					str.format("%s (%s) = %d" , GetControllerName(player.type) , mMatchData.getPlayerColor(i) == StoneColor::eBlack ? "B" : "W" ,  player.winCount );
+					g.drawText(200, y , str);
+					y += 15;
+				}
+				str.format( "Unknown = %d" ,unknownWinerCount );
+				g.drawText( 200, y , str );
 			}
 		}
 
@@ -400,6 +461,8 @@ namespace Go
 		case Keyboard::eL: mGameRenderer.bDrawLinkInfo = !mGameRenderer.bDrawLinkInfo; break;
 		case Keyboard::eZ: mGameRenderer.bUseBatchedRender = !mGameRenderer.bUseBatchedRender; break;
 		case Keyboard::eF2: bDrawDebugMsg = !bDrawDebugMsg; break;
+		case Keyboard::eF5: saveMatchGameSGF(); break;
+		case Keyboard::eF6: restartAutoMatch(); break;
 		}
 		return false;
 	}
@@ -424,13 +487,17 @@ namespace Go
 
 	bool LeelaZeroGoStage::buildPlayMode()
 	{
-		std::string bestWeigetName = LeelaAppRun::GetBestWeightName();
+		std::string bestWeigetName = LeelaAppRun::GetDesiredWeightName();
 		char const* weightName = nullptr;
 		if( bestWeigetName != "" )
+		{
 			weightName = bestWeigetName.c_str();
+			::Global::GameConfig().setKeyValue("LeelaLastMatchWeight", "Go", weightName);
+		}
 		else
-			weightName = Global::GameConfig().getStringValue("WeightData", "LeelaZero", DERAULT_LEELA_WEIGHT_NAME );
-
+		{
+			weightName = Global::GameConfig().getStringValue("LeelaLastMatchWeight", "Go", DERAULT_LEELA_WEIGHT_NAME);
+		}
 		{
 			if( !mMatchData.players[0].initialize(ControllerType::ePlayer) )
 				return false;
@@ -455,7 +522,7 @@ namespace Go
 		char const* weightNameA = ::Global::GameConfig().getStringValue( "LeelaLastOpenWeight" , "Go" , DERAULT_LEELA_WEIGHT_NAME );
 
 		FixString<256> path;
-		path.format("%s/%s" , LeelaAppRun::InstallDir , weightNameA );
+		path.format("%s/" LEELA_NET_DIR "%s" , LeelaAppRun::InstallDir , weightNameA );
 		path.replace('/', '\\');
 		if( SystemPlatform::OpenFileName(path, path.max_size(), nullptr) )
 		{
@@ -463,13 +530,15 @@ namespace Go
 			::Global::GameConfig().setKeyValue("LeelaLastOpenWeight", "Go", weightNameA);
 		}
 
-		std::string bestWeigetName = LeelaAppRun::GetBestWeightName();
+		std::string bestWeigetName = LeelaAppRun::GetDesiredWeightName();
 
 		{
 			LeelaAISetting setting;
 			setting.weightName = weightNameA;
 			setting.seed = generateRandSeed();
-			setting.playouts = 4000;
+			setting.visits = 6000;
+			setting.playouts = 0;
+			setting.bNoise = true;
 			if( !mMatchData.players[0].initialize(ControllerType::eLeelaZero, &setting) )
 				return false;
 		}
@@ -478,14 +547,19 @@ namespace Go
 			LeelaAISetting setting;
 			setting.weightName = bestWeigetName.c_str();
 			setting.seed = generateRandSeed();
-			setting.playouts = 4000;
+			setting.visits = 6000;
+			setting.playouts = 0;
+			setting.bNoise = true;
 			if( !mMatchData.players[1].initialize(ControllerType::eLeelaZero, &setting) )
 				return false;
 		}
 
+
+		mMatchData.bSwapColor = true;
+
 		GameSetting setting;
-		setting.fixedHandicap = 0;
-		if ( setting.fixedHandicap )
+		setting.numHandicap = 0;
+		if ( setting.numHandicap )
 			setting.bBlackFrist = false;
 		
 		if( !startMatchGame(setting) )
@@ -497,11 +571,12 @@ namespace Go
 	bool LeelaZeroGoStage::buildLeelaZenMatchMode()
 	{
 		{
-			LeelaAISetting setting;
-			std::string bestWeigetName = LeelaAppRun::GetBestWeightName();
+			LeelaAISetting setting = LeelaAISetting::GetDefalut();
+			std::string bestWeigetName = LeelaAppRun::GetDesiredWeightName();
 			FixString<256> path;
-			path.format("%s/%s", LeelaAppRun::InstallDir, bestWeigetName.c_str());
+			path.format("%s/" LEELA_NET_DIR "%s", LeelaAppRun::InstallDir, bestWeigetName.c_str());
 			path.replace('/', '\\');
+
 
 			if( SystemPlatform::OpenFileName(path, path.max_size(), nullptr) )
 			{
@@ -512,11 +587,6 @@ namespace Go
 				setting.weightName = bestWeigetName.c_str();
 			}
 
-			
-			setting.seed = generateRandSeed();
-			setting.bNoise = true;
-			setting.numThread = 4;
-			setting.playouts = 10000;
 			if( !mMatchData.players[0].initialize(ControllerType::eLeelaZero, &setting) )
 				return false;
 		}
@@ -525,17 +595,17 @@ namespace Go
 			Zen::CoreSetting setting;
 			int numCPU = SystemPlatform::GetProcessorNumber();
 			setting.numThreads = numCPU - 2;
-			setting.numSimulations = 10000000;
-			setting.maxTime = 15;
+			setting.numSimulations = 20000000;
+			setting.maxTime = 25;
 			if( !mMatchData.players[1].initialize(ControllerType::eZenV7 , &setting) )
 				return false;
 		}
 
-		//mMatchData.bSwapColor = true;
+		mMatchData.bSwapColor = true;
 
 		GameSetting setting;
-		setting.fixedHandicap = 4;
-		if( setting.fixedHandicap )
+		setting.numHandicap = 0;
+		if( setting.numHandicap )
 			setting.bBlackFrist = false;
 
 		if( !startMatchGame(setting) )
@@ -550,16 +620,22 @@ namespace Go
 	{
 		mGameMode = GameMode::Match;
 
-		mGame.setSetting(setting);
-		mGame.restart();
-		mGameRenderer.generateNoiseOffset(mGame.getBoard().getSize());
+		unknownWinerCount = 0;
 
-		mMatchData.idxPlayerTurn = (setting.bBlackFrist) ? 0 : 1;
-		if( mMatchData.bSwapColor )
-			mMatchData.idxPlayerTurn = 1 - mMatchData.idxPlayerTurn;
+		bool haveBot = mMatchData.players[0].type != ControllerType::ePlayer ||
+			           mMatchData.players[1].type != ControllerType::ePlayer;
+		if( haveBot && setting.numHandicap )
+		{
+			GameSetting tempSetting = setting;
+			tempSetting.numHandicap = 0;
+		}
+		else
+		{
+			mGame.setSetting(setting);
+		}
 
+		
 		int indexBlack = (mMatchData.bSwapColor) ? 1 : 0;
-
 		bool bHavePlayerController = false;
 		for( int i = 0; i < 2; ++i )
 		{
@@ -580,6 +656,15 @@ namespace Go
 			createPlayWidget();
 		}
 
+
+		resetParam();
+		mGame.restart();
+		mGameRenderer.generateNoiseOffset(mGame.getBoard().getSize());
+
+		mMatchData.idxPlayerTurn = (setting.bBlackFrist) ? 0 : 1;
+		if( mMatchData.bSwapColor )
+			mMatchData.idxPlayerTurn = 1 - mMatchData.idxPlayerTurn;
+
 		IBotInterface* bot = mMatchData.getCurTurnBot();
 		if( bot )
 		{
@@ -595,7 +680,7 @@ namespace Go
 		{
 			mGamePlayWidget->show(false);
 		}
-		bProcessPaused = false;
+		bPauseGame = false;
 
 		switch( mGameMode )
 		{
@@ -701,6 +786,14 @@ namespace Go
 					case LeelaGameParam::eJobMode:
 						bMatchJob = com.intParam;
 						break;
+					case LeelaGameParam::eMatchChallengerColor:
+						matchChallenger = com.intParam;
+						break;
+					case LeelaGameParam::eLastNetWeight:
+						{
+							::Global::GameConfig().setKeyValue("LeelaLastNetWeight", "Go", com.strParam);
+						}
+						break;
 					}
 				}
 				break;
@@ -721,7 +814,7 @@ namespace Go
 			}
 		};
 
-		mLearningAIRun.outputThread->procCommand(ProcFun);
+		mLearningAIRun.outputThread->procOutputCommand(ProcFun);
 	}
 
 
@@ -732,17 +825,31 @@ namespace Go
 		{
 		case GameCommand::ePass:
 			{
+				resetParam();
+
 				LogMsg("Pass");
 				mGame.playPass();
 
 				if( mGame.getLastPassCount() >= 2 )
 				{
 					LogMsg("GameEnd");
+					
+					if( bAutoSaveMatchSGF )
+						saveMatchGameSGF();
+
 					if( mMatchData.players[0].type == ControllerType::eLeelaZero ||
 					    mMatchData.players[1].type == ControllerType::eLeelaZero )
 					{
 						LeelaBot* bot = static_cast< LeelaBot* >( (mMatchData.players[0].type == ControllerType::eLeelaZero ) ? mMatchData.players[0].bot.get() : mMatchData.players[1].bot.get());
-						bot->mAI.inputProcessStream("final_score\n");
+						bot->mAI.showResult();
+					}
+					else
+					{
+						if( mMatchData.bAutoRun )
+						{
+							unknownWinerCount += 1;
+							restartAutoMatch();
+						}
 					}
 				}
 				else
@@ -757,13 +864,51 @@ namespace Go
 				}
 			}
 			break;
+		case GameCommand::eEnd:
+			{
+				if( mMatchData.bAutoRun )
+				{
+					mMatchData.getPlayer(com.winner).winCount += 1;
+					restartAutoMatch();
+				}
+				else
+				{
+					char const* name = (com.winner == StoneColor::eBlack) ? "Black" : "White";
+					FixString< 128 > str;
+
+					str.format("%s Win", name);
+					::Global::GUI().showMessageBox(UI_ANY, str, GMB_OK);
+				}
+			}
+			break;
 		case GameCommand::eResign:
 			{
-				char const* name = (color == StoneColor::eBlack) ? "Black" : "White";
-				FixString< 128 > str;
+				LogMsg("GameEnd");
 
-				str.format("%s Resigned", name);
-				::Global::GUI().showMessageBox(UI_ANY, str , GMB_OK);
+				if( bAutoSaveMatchSGF )
+					saveMatchGameSGF();
+
+				if( mMatchData.bAutoRun )
+				{
+					if( color == StoneColor::eBlack )
+					{
+						mMatchData.getPlayer(StoneColor::eWhite).winCount += 1;
+					}
+					else
+					{
+						mMatchData.getPlayer(StoneColor::eBlack).winCount += 1;
+					}
+
+					restartAutoMatch();
+				}
+				else
+				{
+					char const* name = (color == StoneColor::eBlack) ? "Black" : "White";
+					FixString< 128 > str;
+
+					str.format("%s Resigned", name);
+					::Global::GUI().showMessageBox(UI_ANY, str, GMB_OK);
+				}
 			}
 			break;
 		case GameCommand::eUndo:
@@ -777,11 +922,23 @@ namespace Go
 				}
 			}
 			break;
+
+		case GameCommand::eParam:
+			switch( com.paramId )
+			{
+			case LeelaGameParam::eBestMoveVertex:
+			case ZenGameParam::eBestMoveVertex:
+				bestMoveVertex = com.intParam;
+				break;
+			}
+			break;
 		case GameCommand::ePlay:
 		default:
 			{
 				if( mGame.playStone(com.pos[0], com.pos[1]) )
 				{
+					resetParam();
+
 					mMatchData.advanceTurn();
 					IBotInterface* bot = mMatchData.getCurTurnBot();
 					if( bot )
@@ -797,6 +954,60 @@ namespace Go
 
 			}
 			break;
+		}
+	}
+
+	bool LeelaZeroGoStage::saveMatchGameSGF()
+	{
+		DateTime date = SystemPlatform::GetLocalTime();
+
+		FixString< 512 > path;
+		path.format("Go/Save/%04d-%02d-%02d-%02d-%02d-%02d.sgf", date.getYear(), date.getMonth(), date.getDay(), date.getHour(), date.getMinute(), date.getSecond());
+
+		FixString< 512 > dateString;
+		dateString.format("%d-%d-%d", date.getYear(), date.getMonth(), date.getDay());
+		GameDescription description;
+		description.blackName = GetControllerName(mMatchData.getPlayer(StoneColor::eBlack).type);
+		description.whiteName = GetControllerName(mMatchData.getPlayer(StoneColor::eWhite).type);
+		description.date = dateString.c_str();
+
+		return mGame.saveSGF(path, &description);
+	}
+
+	void LeelaZeroGoStage::restartAutoMatch()
+	{
+		LogMsg("==Restart Auto Match==");
+		if( bSwapEveryMatch )
+		{
+			mMatchData.bSwapColor = !mMatchData.bSwapColor;
+		}
+
+
+		mMatchData.idxPlayerTurn = (mGame.getSetting().bBlackFrist) ? 0 : 1;
+		if( mMatchData.bSwapColor )
+			mMatchData.idxPlayerTurn = 1 - mMatchData.idxPlayerTurn;
+
+
+		resetParam();
+
+		mGame.restart();
+		mGameRenderer.generateNoiseOffset(mGame.getBoard().getSize());
+
+		for( int i = 0; i < 2; ++i )
+		{
+			if( mMatchData.players[i].bot )
+			{
+				mMatchData.players[i].bot->restart();
+			}
+		}
+
+
+		
+		IBotInterface* bot = mMatchData.getCurTurnBot();
+		if( bot )
+		{
+			LogMsgF("==%s Start Think==" , GetControllerName( mMatchData.players[mMatchData.idxPlayerTurn].type) );
+			bot->thinkNextMove(mGame.getNextPlayColor());
 		}
 	}
 
@@ -870,6 +1081,7 @@ namespace Go
 	bool MatchPlayer::initialize(ControllerType inType, void* botSetting /*= nullptr*/)
 	{
 		type = inType;
+		winCount = 0;
 
 		bot.release();
 		switch( type )

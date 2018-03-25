@@ -287,6 +287,7 @@ copy $(TargetDir)EngineShare.dll $(ProjectDir)out\</Command>
     <ClCompile Include="Go\ZenBot.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Stage\AsyncWokTestStage.cpp" />
+    <ClCompile Include="Stage\FlowGameStage.cpp" />
     <ClCompile Include="Stage\FluidSimStage.cpp" />
     <ClCompile Include="Stage\NesEmulatorStage.cpp" />
     <ClCompile Include="Stage\AudioTestStage.cpp" />
@@ -521,6 +522,7 @@ copy $(TargetDir)EngineShare.dll $(ProjectDir)out\</Command>
     <ClInclude Include="Go\zen.h" />
     <ClInclude Include="Go\ZenBot.h" />
     <ClInclude Include="LordMonarch\LmLevel.h" />
+    <ClInclude Include="Stage\FlowGameStage.h" />
     <ClInclude Include="Stage\FluidSimStage.h" />
     <ClInclude Include="Stage\AudioTestStage.h" />
     <ClInclude Include="Stage\SpatialIndexTest.h" />

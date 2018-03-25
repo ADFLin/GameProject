@@ -274,7 +274,7 @@ public:
 	{ 
 		if ( mCurSelect != -1 ) 
 			return getItemData( mCurSelect );
-		return NULL;
+		return nullptr;
 	}
 
 	int      getSelection() const { return mCurSelect; }
@@ -300,7 +300,7 @@ public:
 			return;
 		mItemList[pos].userData = data;
 	}
-	void*   getItemData( unsigned pos ) const
+	void*  getItemData( unsigned pos ) const
 	{
 		return mItemList[pos].userData;
 	}
@@ -330,7 +330,7 @@ protected:
 	struct Item : public Impl::ExtraData
 	{
 		Item( char const* val )
-			:value( val ),userData( NULL ){}
+			:value( val ),userData( 0 ){}
 		std::string value;
 		void*       userData;
 	};
@@ -379,11 +379,11 @@ public:
 		{
 			CoreImpl::focus( beF ); 
 			if (!beF) 
-				_getOwner()->destroyMenu( this );
+				getOwner()->destroyMenu( this );
 		}
-		WChoiceT* _getOwner(){ return mOwner; }
-		virtual void render(){  _getOwner()->_onRenderMenu( this );  }
-		virtual bool onMouseMsg( MouseMsg const& msg ){  return _getOwner()->_onMenuMouseMsg( this , msg ); }
+		WChoiceT* getOwner(){ return mOwner; }
+		virtual void render(){  getOwner()->notifyRenderMenu( this );  }
+		virtual bool onMouseMsg( MouseMsg const& msg ){  return getOwner()->notifyMenuMouseMsg( this , msg ); }
 
 	private:
 		WChoiceT* mOwner;
@@ -401,10 +401,10 @@ protected:
 	void destroyMenu( Menu* menu )
 	{
 		menu->destroy();
-		_removeFlag( WIF_HITTEST_CHILDREN );
+		removeFlagInternal( WIF_HITTEST_CHILDREN );
 	}
-	void _onRenderMenu( Menu* menu );
-	bool _onMenuMouseMsg( Menu* menu , MouseMsg const& msg );
+	void notifyRenderMenu( Menu* menu );
+	bool notifyMenuMouseMsg( Menu* menu , MouseMsg const& msg );
 
 	int        mLightSelect;
 };
@@ -447,14 +447,15 @@ public:
 	typedef WidgetCoreT< CoreImpl >     Core;
 	typedef TWidgetManager< CoreImpl >  Manager;  
 
-	template < class Impl >
-	class SliderT : public WSliderT< Impl , CoreImpl >
-	{
-	public:
-		SliderT( Vec2i const& pos , int length , Vec2i const& sizeTip  ,
-			bool beH  , int minRange , int maxRange , CoreImpl* parent )
-			:WSliderT< Impl , CoreImpl >( pos , length , sizeTip  , beH  , minRange , maxRange ,  parent ){}
-	};
+#if CPP_USING_TYPE_ALIAS_SUPPORT
+
+#define DEFINE_UI_CLASS( Class , BaseClass )\
+	template< class Impl >\
+	using Class = BaseClass< Impl , CoreImpl >;
+
+	DEFINE_UI_CLASS(SliderT, WSliderT)
+
+#else
 
 #define DEFINE_UI_CLASS( Class , BaseClass )\
 	template < class Impl >\
@@ -465,13 +466,23 @@ public:
 			: BaseClass < Impl , CoreImpl >( pos ,size ,node ){}\
 	};
 
+	template < class Impl >
+	class SliderT : public WSliderT< Impl , CoreImpl >
+	{
+	public:
+		SliderT( Vec2i const& pos , int length , Vec2i const& sizeTip  ,
+			bool beH  , int minRange , int maxRange , CoreImpl* parent )
+			:WSliderT< Impl , CoreImpl >( pos , length , sizeTip  , beH  , minRange , maxRange ,  parent ){}
+	};
 
-	DEFINE_UI_CLASS( PanelT    , WPanelT )
-	DEFINE_UI_CLASS( ButtonT   , WButtonT )
-	DEFINE_UI_CLASS( TextCtrlT , WTextCtrlT )
-	DEFINE_UI_CLASS( ChoiceT   , WChoiceT   )
-	DEFINE_UI_CLASS( NoteBookT , WNoteBookT )
-	DEFINE_UI_CLASS( ListCtrlT , WListCtrlT )
+#endif
+
+	DEFINE_UI_CLASS(PanelT, WPanelT)
+	DEFINE_UI_CLASS(ButtonT, WButtonT)
+	DEFINE_UI_CLASS(TextCtrlT, WTextCtrlT)
+	DEFINE_UI_CLASS(ChoiceT, WChoiceT)
+	DEFINE_UI_CLASS(NoteBookT, WNoteBookT)
+	DEFINE_UI_CLASS(ListCtrlT, WListCtrlT)
 
 #undef DEFINE_UI_CLASS
 

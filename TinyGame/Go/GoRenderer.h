@@ -42,6 +42,7 @@ namespace Go
 		void draw(Vector2 const& renderPos, Game const& game);
 
 		Vector2 getStonePos(Vector2 const& renderPos, Board const& board, int i, int j);
+		Vector2 getIntersectionPos(Vector2 const& renderPos, Board const& board, int i, int j);
 		void drawBorad(Vector2 const& renderPos, Board const& board);
 
 

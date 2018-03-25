@@ -39,7 +39,32 @@ namespace Go
 		eZenV7,
 		eZenV6,
 		eZenV4 ,
+
+
+		Count ,
 	};
+
+	char const* GetControllerName(ControllerType type)
+	{
+		switch( type )
+		{
+
+		case Go::ControllerType::ePlayer:
+			return "Player";
+		case Go::ControllerType::eLeelaZero:
+			return "LeelaZero";
+		case Go::ControllerType::eAQ:
+			return "AQ";
+		case Go::ControllerType::eZenV7:
+			return "Zen7";
+		case Go::ControllerType::eZenV6:
+			return "Zen6";
+		case Go::ControllerType::eZenV4:
+			return "Zen4";
+		}
+
+		return "Unknown";
+	}
 
 	class MyGame : public Go::Game
 	{
@@ -57,6 +82,7 @@ namespace Go
 	{
 		ControllerType type;
 		std::unique_ptr< IBotInterface > bot;
+		int winCount;
 
 		bool isBot() const { return type != ControllerType::ePlayer; }
 		bool initialize(ControllerType inType , void* botSetting = nullptr);
@@ -99,6 +125,24 @@ namespace Go
 		MatchPlayer players[2];
 		int         idxPlayerTurn = 0;
 		bool        bSwapColor = false;
+		bool        bAutoRun = false;
+
+		MatchPlayer& getPlayer(int color)
+		{
+			int idx = (color == StoneColor::eBlack) ? 0 : 1;
+			if( bSwapColor )
+				idx = 1 - idx;
+			return players[idx];
+		}
+
+		int  getPlayerColor(int idx)
+		{
+			if( bSwapColor )
+			{
+				return (idx == 1) ? StoneColor::eBlack : StoneColor::eWhite;
+			}
+			return (idx == 0) ? StoneColor::eBlack : StoneColor::eWhite;
+		}
 
 		void advanceTurn()
 		{
@@ -141,6 +185,7 @@ namespace Go
 			UI_CANCEL ,
 			UI_CONTROLLER_TYPE_A ,
 			UI_CONTROLLER_TYPE_B ,
+			UI_AUTO_RUN ,
 
 		};
 		MatchSettingPanel(int id, Vec2i const& pos, Vec2i const& size, GWidget* parent)
@@ -164,6 +209,8 @@ namespace Go
 			choice = addPlayerChoice(UI_CONTROLLER_TYPE_B, "Player B");
 			choice->setSelection(1);
 
+			addCheckBox(UI_AUTO_RUN, "Auto Run");
+
 			adjustChildLayout();
 
 			Vec2i buttonSize = Vec2i(100, 20);
@@ -177,12 +224,11 @@ namespace Go
 		GChoice* addPlayerChoice(int id, char const* title)
 		{
 			GChoice* choice = addChoice(id , title);
-			choice->addItem("Player");
-			choice->addItem("LeelaZero");
-			choice->addItem("AQ");
-			choice->addItem("Zen 7");
-			choice->addItem("Zen 6");
-			choice->addItem("Zen 4");
+			for( int i = 0; i < (int)ControllerType::Count; ++i )
+			{
+				uint slot = choice->addItem( GetControllerName(ControllerType(i)) );
+				choice->setItemData(slot, (void*)i);
+			}
 			return choice;
 		}
 
@@ -209,20 +255,21 @@ namespace Go
 		{
 			ControllerType types[2] =
 			{
-				(ControllerType)findChildT<GChoice>(UI_CONTROLLER_TYPE_A)->getSelection(),
-				(ControllerType)findChildT<GChoice>(UI_CONTROLLER_TYPE_B)->getSelection()
+				(ControllerType)(intptr_t)findChildT<GChoice>(UI_CONTROLLER_TYPE_A)->getSelectedItemData(),
+				(ControllerType)(intptr_t)findChildT<GChoice>(UI_CONTROLLER_TYPE_B)->getSelectedItemData()
 			};
 
+			matchData.bAutoRun = findChildT<GCheckBox>(UI_AUTO_RUN)->bChecked;
 			for( int i = 0; i < 2; ++i )
 			{
 				if( !matchData.players[i].initialize(types[i]) )
 					return false;
 			}
 
-			setting.fixedHandicap = findChildT<GChoice>(UI_FIXED_HANDICAP)->getSelection();
-			setting.bBlackFrist = setting.fixedHandicap == 0;
+			setting.numHandicap = findChildT<GChoice>(UI_FIXED_HANDICAP)->getSelection();
+			setting.bBlackFrist = setting.numHandicap == 0;
 			setting.boardSize = 19;
-			setting.komi = (setting.fixedHandicap) ? 0.5 : 7.5;
+			setting.komi = (setting.numHandicap) ? 0.5 : 7.5;
 			return true;
 		}
 	};
@@ -251,9 +298,10 @@ namespace Go
 
 		LeelaAppRun   mLearningAIRun;
 
-		bool bProcessPaused = false;
+		bool bPauseGame = false;
 		int  numGameCompleted = 0;
 		bool bMatchJob = false;
+		int  matchChallenger = StoneColor::eEmpty;
 #if DETECT_LEELA_PROCESS
 		DWORD  mPIDLeela = -1;
 		static long const LeelaRebootTime = 20000;
@@ -267,10 +315,15 @@ namespace Go
 		GameRenderer mGameRenderer;
 
 		GameMode mGameMode;
+
+		bool bSwapEveryMatch = true;
+		bool bAutoSaveMatchSGF = true;
+		int  unknownWinerCount = 0;
 		MatchGameData mMatchData;
 		FixString<32> mLastGameResult;
 
 		
+		int     bestMoveVertex;
 		
 		bool    bReviewingGame = false;
 		MyGame  mReviewGame;
@@ -288,6 +341,8 @@ namespace Go
 				return mReviewGame;
 			return mGame;
 		}
+
+		bool saveMatchGameSGF();
 
 
 		virtual bool onInit();
@@ -317,6 +372,11 @@ namespace Go
 		virtual void notifyCommand(GameCommand const& com) override;
 
 
+		void resetParam()
+		{
+			bestMoveVertex = -3;
+		}
+		void restartAutoMatch();
 
 		bool buildLearningMode();
 		bool buildPlayMode();

@@ -6,36 +6,61 @@
 
 int const WidgetPosOffset = 6;
 int const WidgetGapY = 4;
+
+
 DevFrame::DevFrame( int id , Vec2i const& pos , Vec2i const& size , GWidget* parent ) 
 	:GFrame( id , pos , size , parent )
 {
 	mNextWidgetPosY = 10;
 }
 
-GButton* DevFrame::addButton( int id , char const* title )
+
+template< class T >
+T* DevFrame::addWidget(int id, char const* title)
 {
-	Vec2i widgetSize = Vec2i( getSize().x - 2 * WidgetPosOffset, 20 );
-	Vec2i widgetPos( 6 , mNextWidgetPosY );
-	
-	GButton* widget = new GButton( id , widgetPos , widgetSize , this );
-	widget->setTitle( title );
+	Vec2i widgetSize = Vec2i(getSize().x - 2 * WidgetPosOffset, 20);
+	Vec2i widgetPos(6, mNextWidgetPosY);
+
+	T* widget = new T(id, widgetPos, widgetSize, this);
+	widget->setTitle(title);
 
 	mNextWidgetPosY += widget->getSize().y + WidgetGapY;
 	return widget;
 }
 
-GButton* DevFrame::addButton(char const* title, WidgetEventDelegate delegate)
+GButton* DevFrame::addButton( int id , char const* title )
+{
+	return addWidget<GButton>(id, title);
+}
+
+GCheckBox* DevFrame::addCheckBox(int id, char const* title)
+{
+	return addWidget<GCheckBox>(id, title);
+}
+
+template< class T >
+T* DevFrame::addWidget(char const* title, WidgetEventDelegate delegate)
 {
 	Vec2i widgetSize = Vec2i(getSize().x - 2 * WidgetPosOffset, 20);
 	Vec2i widgetPos(6, mNextWidgetPosY);
 
-	GButton* widget = new GButton(UI_ANY, widgetPos, widgetSize, this);
+	T* widget = new T(UI_ANY, widgetPos, widgetSize, this);
 	widget->setTitle(title);
 	widget->onEvent = delegate;
 
 	mNextWidgetPosY += widget->getSize().y + WidgetGapY;
 
 	return widget;
+}
+
+GButton* DevFrame::addButton(char const* title, WidgetEventDelegate delegate)
+{
+	return addWidget<GButton>( title , delegate );
+}
+
+GCheckBox* DevFrame::addCheckBox(char const* title, WidgetEventDelegate delegate)
+{
+	return addWidget<GCheckBox>(title, delegate);
 }
 
 GSlider* DevFrame::addSlider(int id)

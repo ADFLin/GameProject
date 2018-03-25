@@ -116,7 +116,7 @@ namespace CAR
 		{
 			if ( UI_EXP <= id && id < UI_EXP_END )
 			{
-				if ( widget->cast< GCheckBox >()->isCheck )
+				if ( widget->cast< GCheckBox >()->bChecked )
 				{
 					mExpMask |= BIT( id - UI_EXP );
 				}
@@ -137,7 +137,7 @@ namespace CAR
 			for( int i = 0 ; i < ARRAY_SIZE( UsageExp ) ; ++i )
 			{
 				checkBox = mSettingPanel->addCheckBox( UI_EXP + UsageExp[i].exp , UsageExp[i].name , MASK_BASE );
-				checkBox->isCheck = ( mExpMask & BIT( UsageExp[i].exp ) ) != 0;
+				checkBox->bChecked = ( mExpMask & BIT( UsageExp[i].exp ) ) != 0;
 			}
 		}
 

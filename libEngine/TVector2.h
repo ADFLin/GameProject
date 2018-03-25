@@ -1,6 +1,8 @@
 #ifndef TVector2_h__
 #define TVector2_h__
 
+#include <algorithm>
+
 template<class T>
 class TVector2
 {
@@ -64,6 +66,10 @@ public:
 
 	friend TVector2 const operator * ( RefConstType s,TVector2 const& v){  return TVector2(s*v.x,s*v.y);	}
 
+	friend TVector2 Abs(TVector2 const& v)
+	{
+		return TVector2(std::abs(v.x), std::abs(v.y));
+	}
 public:
 	T x,y;
 
@@ -75,6 +81,13 @@ private:
 
 };
 
+
+template< class T >
+T  TaxicabDistance(TVector2<T> const& v1 , TVector2<T> const& v2)
+{
+	TVector2<T> dAbs = Abs(v2 - v1);
+	return dAbs.x + dAbs.y;
+}
 
 #endif // TVector2_h__
 

@@ -81,6 +81,11 @@ namespace Go
 		return pos;
 	}
 
+	Vector2 GameRenderer::getIntersectionPos(Vector2 const& renderPos, Board const& board, int i, int j)
+	{
+		return renderPos + CellLength * Vector2(i, j);
+	}
+
 	void GameRenderer::drawBorad(Vector2 const& renderPos, Board const& board)
 	{
 		using namespace RenderGL;

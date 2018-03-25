@@ -302,6 +302,9 @@
     <ClCompile Include="RenderGL\SceneScript.cpp">
       <Filter>RenderGL</Filter>
     </ClCompile>
+    <ClCompile Include="Stage\FlowGameStage.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Bsp2D.h">
@@ -708,6 +711,9 @@
     </ClInclude>
     <ClInclude Include="RenderGL\SceneScript.h">
       <Filter>RenderGL</Filter>
+    </ClInclude>
+    <ClInclude Include="Stage\FlowGameStage.h">
+      <Filter>Stage</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

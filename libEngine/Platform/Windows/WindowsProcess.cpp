@@ -71,7 +71,6 @@ bool ChildProcess::create(char const* path, char const* command /*= nullptr*/)
 
 	// Create the child process. 
 
-
 	bSuccess = ::CreateProcess(
 		path,
 		commandLine,  // command line 
@@ -90,6 +89,7 @@ bool ChildProcess::create(char const* path, char const* command /*= nullptr*/)
 
 	CloseHandle(procInfo.hThread);
 	mProcess = procInfo.hProcess;
+
 	return true;
 }
 

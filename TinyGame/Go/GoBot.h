@@ -16,7 +16,8 @@ namespace Go
 			ePass   ,
 			eResign ,
 			eUndo  ,
-			ePlay  ,
+			ePlayStone ,
+			eAddStone  ,
 			eEnd   ,
 			eParam ,
 		};
@@ -59,6 +60,13 @@ namespace Go
 			id = GameCommand::eParam;
 			paramId = inParamId;
 			strParam = param;
+		}
+
+		void setParam(uint8 inParamId, float param)
+		{
+			id = GameCommand::eParam;
+			paramId = inParamId;
+			floatParam = param;
 		}
 	};
 

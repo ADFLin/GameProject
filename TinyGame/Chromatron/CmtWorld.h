@@ -4,6 +4,7 @@
 #include "CmtBase.h"
 #include "CmtLightTrace.h"
 
+
 #include "DataStructure/Grid2D.h"
 #include <list>
 
@@ -26,44 +27,45 @@ namespace Chromatron
 		MT_MAP_TYPE_NUM ,
 	};
 
+	struct DeviceTileData
+	{
+		Device*  dc;
+		unsigned emittedColor;
+		unsigned receivedColor;
+		unsigned lazyColor;
+	};
+
 
 	class Tile
 	{
 	public:
 
 		Tile( MapType typeID = MT_EMPTY )
-			:mType(typeID),mDCInfo( 0 ),mLightPathColor(0){}
+			:mType(typeID),mDCData( 0 ),mLightPathColor(0){}
 		~Tile(){}
 
-		struct DeviceInfo
-		{
-			Device*  dc;
-			unsigned emittedColor;
-			unsigned receivedColor;
-			unsigned lazyColor;
-		};
 
 		MapType       getType()   const { return mType; }
-		Device const* getDevice() const { return ( mDCInfo ) ? mDCInfo->dc : NULL ; }
-		Device*       getDevice()       { return ( mDCInfo ) ? mDCInfo->dc : NULL ; }
+		Device const* getDevice() const { return ( mDCData ) ? mDCData->dc : NULL ; }
+		Device*       getDevice()       { return ( mDCData ) ? mDCData->dc : NULL ; }
 
 		bool    canSetup()            const {  return ( mType & MT_CANT_SETUP ) == 0 && getDevice() == NULL; }
 		bool    blockLight()          const {  return ( mType & MT_BLOCK_LIGHT ) != 0; }
 		bool    blockRBConcerLight()  const {  return ( mType & MT_BLOCK_RB_CORNER_LIGHT ) != 0; }
 
-		void    setDevice( DeviceInfo* dcInfo ){ mDCInfo = dcInfo ; }
+		void    setDeviceData( DeviceTileData* data ){ mDCData = data ; }
 		void    setType( MapType type ){ mType = type; }
 
 		void    clearLight();
 		Color   getLightPathColor    ( Dir dir )  const {  return getLightColor( mLightPathColor , dir );  }
-		Color   getEmittedLightColor ( Dir dir )  const {  assert( mDCInfo ); return getLightColor( mDCInfo->emittedColor , dir ); }
-		Color   getReceivedLightColor( Dir dir )  const {  assert( mDCInfo ); return getLightColor( mDCInfo->receivedColor , dir ); }
-		Color   getLazyLightColor    ( Dir dir )  const {  assert( mDCInfo ); return getLightColor( mDCInfo->lazyColor , dir ); }
+		Color   getEmittedLightColor ( Dir dir )  const {  assert( mDCData ); return getLightColor( mDCData->emittedColor , dir ); }
+		Color   getReceivedLightColor( Dir dir )  const {  assert( mDCData ); return getLightColor( mDCData->receivedColor , dir ); }
+		Color   getLazyLightColor    ( Dir dir )  const {  assert( mDCData ); return getLightColor( mDCData->lazyColor , dir ); }
 
 		void    addLightPathColor    ( Dir dir , Color color ){  addLightColor( mLightPathColor , color , dir );  }
-		void    addEmittedLightColor ( Dir dir , Color color ){  assert( mDCInfo ); addLightColor( mDCInfo->emittedColor , color , dir );  }
-		void    addReceivedLightColor( Dir dir , Color color ){  assert( mDCInfo ); addLightColor( mDCInfo->receivedColor , color , dir );  }
-		void    setLazyLightColor    ( Dir dir , Color color ){  assert( mDCInfo ); setLightColor( mDCInfo->lazyColor , color , dir ); }
+		void    addEmittedLightColor ( Dir dir , Color color ){  assert( mDCData ); addLightColor( mDCData->emittedColor , color , dir );  }
+		void    addReceivedLightColor( Dir dir , Color color ){  assert( mDCData ); addLightColor( mDCData->receivedColor , color , dir );  }
+		void    setLazyLightColor    ( Dir dir , Color color ){  assert( mDCData ); setLightColor( mDCData->lazyColor , color , dir ); }
 	private:
 		static void  setLightColor( unsigned& destColor , Color  srcColor , Dir dir )
 		{
@@ -86,9 +88,9 @@ namespace Chromatron
 			return  out;
 		}
 
-		unsigned    mLightPathColor;
-		MapType     mType;
-		DeviceInfo* mDCInfo;
+		uint32          mLightPathColor;
+		MapType         mType;
+		DeviceTileData* mDCData;
 
 	};
 
@@ -103,31 +105,33 @@ namespace Chromatron
 	typedef  std::list< LightTrace > LightList;
 	class WorldUpdateContext;
 
+	class LightSyncProcessor
+	{
+	public:
+		virtual bool prevEffectDevice(Device& dc, LightTrace const& light, int pass) = 0;
+		virtual bool prevAddLight(Vec2D const& pos, Color color, Dir dir, int param, int age) = 0;
+	};
+
 	class World
 	{
 	public:
 		World(int sx ,int sy);
 		~World();
 
-		Tile const& getMapData( Vec2D const& pos ) const;
-		Tile&       getMapData( Vec2D const& pos );
-		bool        isRange( Vec2D const& pos ) const;
+		Tile const& getTile( Vec2D const& pos ) const;
+		Tile&       getTile( Vec2D const& pos );
+		bool        isValidRange( Vec2D const& pos ) const;
 		int         getMapSizeX() const { return mTileMap.getSizeX(); }
 		int         getMapSizeY() const { return mTileMap.getSizeY(); }
 		void        clearDevice();
 		void        fillMap( MapType type );
 		
-		bool        canSetup( Vec2D const& pos )   const  { return getMapData( pos ).canSetup(); }
+		bool        canSetup( Vec2D const& pos )   const  { return getTile( pos ).canSetup(); }
 		Device*     goNextDevice( Dir dir , Vec2D& curPos );
 	public:
 
-		class SyncProcessor
-		{
-		public:
-			virtual bool prevEffectDevice( Device& dc  , LightTrace const& light , int pass ) = 0;
-			virtual bool prevAddLight( Vec2D const& pos , Color color , Dir dir , int param , int age ) = 0;
-		};
-		TransmitStatus transmitLightSync( WorldUpdateContext& context , SyncProcessor& processor , LightList& transmitLights );
+
+		TransmitStatus transmitLightSync( WorldUpdateContext& context , LightSyncProcessor& processor , LightList& transmitLights );
 		TransmitStatus transmitLight( WorldUpdateContext& context );
 		void           clearLight();
 
@@ -139,7 +143,7 @@ namespace Chromatron
 		bool            transmitLightStep( LightTrace& light , Tile** curData );
 		
 		void            initData( int sx , int sy );
-		TransmitStatus  procDeviceEffect( WorldUpdateContext& context , Device& dc , LightTrace const& light );
+		TransmitStatus  evalDeviceEffect( WorldUpdateContext& context , Device& dc , LightTrace const& light );
 
 		TGrid2D< Tile >  mTileMap;
 	};
@@ -150,16 +154,22 @@ namespace Chromatron
 		WorldUpdateContext( World& world );
 
 		World& getWorld(){ return mWorld; }
+
+		TransmitStatus transmitLightSync( LightSyncProcessor& processor,LightList& transmitLights)
+		{
+			return mWorld.transmitLightSync(*this, processor, transmitLights);
+		}
+		Tile&  getTile(Vec2D const& pos) { return mWorld.getTile(pos); }
 		void   addLight( Vec2D const& pos , Color color , Dir dir );
 		void   prevUpdate();
 
-		void           setLightParam( int param ){ mLightParam = param; }
-		void           setSyncMode( bool beS ){ mIsSyncMode = beS; }
-		bool           isSyncMode(){ return mIsSyncMode; }
-		void           notifyStatus( TransmitStatus status ){ mStatus = status;  }
-		int            getLightCount() const { return mLightCount; }
+		void   setLightParam( int param ){ mLightParam = param; }
+		void   setSyncMode( bool beS ){ mIsSyncMode = beS; }
+		bool   isSyncMode(){ return mIsSyncMode; }
+		void   notifyStatus( TransmitStatus status ){ mStatus = status;  }
+		int    getLightCount() const { return mLightCount; }
 
-		World::SyncProcessor*   mSyncProcessor;
+		LightSyncProcessor*  mSyncProcessor;
 		LightList*       mSyncLights;
 		LightList        mNormalLights;
 		int              mLightCount;

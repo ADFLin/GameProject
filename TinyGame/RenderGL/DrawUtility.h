@@ -2,6 +2,7 @@
 #define GLDrawUtility_h__
 
 #include "GLUtility.h"
+#include "GLCommon.h"
 
 #ifndef BIT
 #define BIT( n ) ( 1 << ( n ) )
@@ -19,69 +20,86 @@ namespace RenderGL
 		RTS_MAX ,
 	};
 
+#define RTS_ELEMENT_MASK 0x7
+#define RTS_ELEMENT_BIT_OFFSET 3
 #define RTS_ELEMENT( S , SIZE )\
-	( uint32( (SIZE) & 0x7 ) << ( 3 * S ) )
+	( uint32( (SIZE) & RTS_ELEMENT_MASK ) << ( RTS_ELEMENT_BIT_OFFSET * S ) )
 
+	static_assert(RTS_ELEMENT_BIT_OFFSET * (RTS_MAX - 1) <= sizeof(uint32) * 8, "RenderRTSemantic Can't Support ");
+
+	enum RenderRTElementUsage
+	{
+		RTEU_XY = RTS_ELEMENT(RTS_Position, 2),
+		RTEU_XYZ = RTS_ELEMENT(RTS_Position, 3),
+		RTEU_XYZW = RTS_ELEMENT(RTS_Position, 4),
+		RTEU_N = RTS_ELEMENT(RTS_Normal, 3),
+		RTEU_C = RTS_ELEMENT(RTS_Color, 3),
+		RTEU_CA = RTS_ELEMENT(RTS_Color, 4),
+		RTEU_TEX_UV = RTS_ELEMENT(RTS_Texcoord, 2),
+		RTEU_TEX_UVW = RTS_ELEMENT(RTS_Texcoord, 3),
+	};
+
+	enum RenderRTVertexFormat
+	{
+		RTVF_XYZ = RTEU_XYZ,
+		RTVF_XYZ_C = RTEU_XYZ | RTEU_C,
+		RTVF_XYZ_N_C = RTEU_XYZ | RTEU_N | RTEU_C,
+		RTVF_XYZ_N_C_T2 = RTEU_XYZ | RTEU_N | RTEU_C | RTEU_TEX_UV,
+		RTVF_XYZ_C_T2 = RTEU_XYZ | RTEU_C | RTEU_TEX_UV,
+		RTVF_XYZ_N = RTEU_XYZ | RTEU_N,
+		RTVF_XYZ_N_T2 = RTEU_XYZ | RTEU_N | RTEU_TEX_UV,
+		RTVF_XYZ_T2 = RTEU_XYZ | RTEU_TEX_UV,
+
+		RTVF_XYZW_T2 = RTEU_XYZW | RTEU_TEX_UV,
+		RTVF_XY = RTEU_XY,
+		RTVF_XY_T2 = RTEU_XY | RTEU_TEX_UV,
+		RTVF_XY_CA_T2 = RTEU_XY | RTEU_CA | RTEU_TEX_UV,
+	};
+
+ 
 	template < uint32 value >
 	class TRenderRTVertexDecl
 	{
 	};
-	class RenderRT
+
+	template < uint32 VertexFormat >
+	class TRenderRT
 	{
 	public:
-
-		enum 
-		{
-			USAGE_XY   = RTS_ELEMENT(RTS_Position, 2),
-			USAGE_XYZ  = RTS_ELEMENT(RTS_Position, 3),
-			USAGE_XYZW = RTS_ELEMENT(RTS_Position, 4),
-			USAGE_N    = RTS_ELEMENT(RTS_Normal, 3),
-			USAGE_C    = RTS_ELEMENT(RTS_Color, 3),
-			USAGE_CA   = RTS_ELEMENT(RTS_Color, 4),
-			USAGE_TEX_UV  = RTS_ELEMENT(RTS_Texcoord, 2),
-			USAGE_TEX_UVW = RTS_ELEMENT(RTS_Texcoord, 3),
-		};
-
-		enum VertexFormat
-		{
-			eXYZ   = USAGE_XYZ,
-			eXYZ_C = USAGE_XYZ | USAGE_C,
-			eXYZ_N_C = USAGE_XYZ | USAGE_N | USAGE_C,
-			eXYZ_N_C_T2 = USAGE_XYZ | USAGE_N | USAGE_C | USAGE_TEX_UV,
-			eXYZ_C_T2 = USAGE_XYZ | USAGE_C | USAGE_TEX_UV,
-			eXYZ_N = USAGE_XYZ | USAGE_N,
-			eXYZ_N_T2 = USAGE_XYZ | USAGE_N | USAGE_TEX_UV,
-			eXYZ_T2 = USAGE_XYZ | USAGE_TEX_UV,
-
-			eXYZW_T2 = USAGE_XYZW | USAGE_TEX_UV,
-			eXY = USAGE_XY ,
-			eXY_T2 = USAGE_XY | USAGE_TEX_UV,
-			eXY_CA_T2 = USAGE_XY | USAGE_CA | USAGE_TEX_UV,
-		};
-
-
-		template < uint32 VF >
 		FORCEINLINE static void Draw(PrimitiveType type, void const* vtx, int nV, int vertexStride)
 		{
-			bindArray< VF >((float const*)vtx, vertexStride);
+			BindVertexArray((float const*)vtx, vertexStride);
 			glDrawArrays( GLConvert::To(type), 0, nV);
-			unbindArray< VF >();
+			UnbindVertexArray();
 		}
 
-		template < uint32 VF >
 		FORCEINLINE static void Draw(PrimitiveType type, void const* vtx, int nV)
 		{
-			Draw< VF >(type, vtx, nV, (int)VertexElementOffset< VF , RTS_MAX >::Result * sizeof(float));
+			Draw(type, vtx, nV, GetVertexSize());
 		}
 
-#define USE_SEMANTIC( VF , S ) ( ( VF ) & RTS_ELEMENT( S , 0x7 ) )
-#define VERTEX_ELEMENT_SIZE( VF , S ) ( USE_SEMANTIC( VF , S ) >> ( 3 * S ) )
+		FORCEINLINE static void DrawShader(PrimitiveType type, void const* vtx, int nV, int vertexStride)
+		{
+			BindVertexAttrib((float const*)vtx, vertexStride);
+			glDrawArrays(GLConvert::To(type), 0, nV);
+			UnbindVertexAttrib();
+		}
 
+		FORCEINLINE static void DrawShader(PrimitiveType type, void const* vtx, int nV)
+		{
+			DrawShader(type, vtx, nV, GetVertexSize());
+		}
 
+		FORCEINLINE static int GetVertexSize()
+		{
+			return (int)VertexElementOffset< VertexFormat , RTS_MAX >::Result * sizeof(float);
+		}
+
+	private:
 		template< uint32 VF, uint32 SEMANTIC >
 		struct VertexElementOffset
 		{
-			enum { Result = (VF & 0x7) + VertexElementOffset< (VF >> 3), SEMANTIC - 1 >::Result };
+			enum { Result = (VF & RTS_ELEMENT_MASK) + VertexElementOffset< (VF >> RTS_ELEMENT_BIT_OFFSET), SEMANTIC - 1 >::Result };
 		};
 
 		template< uint32 VF >
@@ -90,66 +108,98 @@ namespace RenderGL
 			enum { Result = 0 };
 		};
 
-		template< uint32 VF >
-		FORCEINLINE static void bindArray(float const* v, uint32 vertexStride)
+#define USE_SEMANTIC( S ) ( ( VertexFormat ) & RTS_ELEMENT( S , RTS_ELEMENT_MASK ) )
+#define VERTEX_ELEMENT_SIZE( S ) ( USE_SEMANTIC( S ) >> ( RTS_ELEMENT_BIT_OFFSET * S ) )
+#define VETEX_ELEMENT_OFFSET( S ) VertexElementOffset< VertexFormat , S >::Result
+
+		FORCEINLINE static void BindVertexArray(float const* v, uint32 vertexStride)
 		{
-
-#define VETEX_ELEMENT_OFFSET( VF , S ) VertexElementOffset< VF , S >::Result
-
-			if( USE_SEMANTIC( VF , RTS_Position) )
+			if( USE_SEMANTIC( RTS_Position) )
 			{
 				glEnableClientState(GL_VERTEX_ARRAY);
-				glVertexPointer( VERTEX_ELEMENT_SIZE( VF , RTS_Position ) , GL_FLOAT, vertexStride, v + VETEX_ELEMENT_OFFSET( VF , RTS_Position ));
+				glVertexPointer( VERTEX_ELEMENT_SIZE(RTS_Position ) , GL_FLOAT, vertexStride, v + VETEX_ELEMENT_OFFSET( RTS_Position ));
 			}
-			if( USE_SEMANTIC(VF, RTS_Normal) )
+			if( USE_SEMANTIC( RTS_Normal) )
 			{
-				assert(VERTEX_ELEMENT_SIZE(VF, RTS_Normal) == 3);
+				static_assert( !USE_SEMANTIC(RTS_Normal) || VERTEX_ELEMENT_SIZE(RTS_Normal) == 3 , "normal size need equal 3" );
 				glEnableClientState(GL_NORMAL_ARRAY);
-				glNormalPointer( GL_FLOAT , vertexStride, v + VETEX_ELEMENT_OFFSET(VF , RTS_Normal ));
+				glNormalPointer( GL_FLOAT , vertexStride, v + VETEX_ELEMENT_OFFSET(RTS_Normal));
 			}
-			if( USE_SEMANTIC(VF, RTS_Color) )
+			if( USE_SEMANTIC(RTS_Color) )
 			{
 				glEnableClientState(GL_COLOR_ARRAY);
-				glColorPointer( VERTEX_ELEMENT_SIZE(VF, RTS_Color) , GL_FLOAT, vertexStride, v + VETEX_ELEMENT_OFFSET(VF , RTS_Color));
+				glColorPointer( VERTEX_ELEMENT_SIZE(RTS_Color) , GL_FLOAT, vertexStride, v + VETEX_ELEMENT_OFFSET(RTS_Color));
 			}
 
-			if( USE_SEMANTIC(VF, RTS_Texcoord) )
+			if( USE_SEMANTIC( RTS_Texcoord) )
 			{
 				glClientActiveTexture(GL_TEXTURE0);
 				glEnableClientState(GL_TEXTURE_COORD_ARRAY);
-				glTexCoordPointer(VERTEX_ELEMENT_SIZE(VF, RTS_Texcoord), GL_FLOAT, vertexStride, v + VETEX_ELEMENT_OFFSET(VF , RTS_Texcoord));
+				glTexCoordPointer(VERTEX_ELEMENT_SIZE(RTS_Texcoord), GL_FLOAT, vertexStride, v + VETEX_ELEMENT_OFFSET(RTS_Texcoord));
 			}
-
-
 		}
 
-
-		template< uint32 VF >
-		FORCEINLINE static void unbindArray()
+		FORCEINLINE static void UnbindVertexArray()
 		{
-			if( USE_SEMANTIC(VF, RTS_Position) )
+			if( USE_SEMANTIC(RTS_Position) )
 			{
 				glDisableClientState(GL_VERTEX_ARRAY);
 			}
-			if( USE_SEMANTIC(VF, RTS_Normal) )
+			if( USE_SEMANTIC(RTS_Normal) )
 			{
 				glDisableClientState(GL_NORMAL_ARRAY);
 			}
-			if( USE_SEMANTIC(VF, RTS_Color) )
+			if( USE_SEMANTIC(RTS_Color) )
 			{
 				glDisableClientState(GL_COLOR_ARRAY);
 
 			}
-			if( USE_SEMANTIC(VF, RTS_Texcoord) )
+			if( USE_SEMANTIC(RTS_Texcoord) )
 			{
 				glClientActiveTexture(GL_TEXTURE0);
 				glDisableClientState(GL_TEXTURE_COORD_ARRAY);
 			}
 		}
-	};
+
+		FORCEINLINE static void BindVertexAttrib(float const* v, uint32 vertexStride)
+		{
+#define VERTEX_ATTRIB_BIND( ATTR , RTS )\
+			if( USE_SEMANTIC(RTS ) )\
+			{\
+				glEnableVertexAttribArray(Vertex::ATTR);\
+				glVertexAttribPointer(Vertex::ATTR, VERTEX_ELEMENT_SIZE(RTS), GL_FLOAT, GL_FALSE, vertexStride, v + VETEX_ELEMENT_OFFSET(RTS));\
+			}
+
+			VERTEX_ATTRIB_BIND(ATTRIBUTE_POSITION, RTS_Position);
+			VERTEX_ATTRIB_BIND(ATTRIBUTE_NORMAL, RTS_Normal);
+			VERTEX_ATTRIB_BIND(ATTRIBUTE_COLOR, RTS_Color);
+			VERTEX_ATTRIB_BIND(ATTRIBUTE_TEXCOORD, RTS_Texcoord);
+
+#undef VERTEX_ATTRIB_BIND
+		}
+
+		FORCEINLINE static void UnbindVertexAttrib()
+		{
+#define VERTEX_ATTRIB_UNBIND( ATTR , RTS )\
+			if( USE_SEMANTIC(RTS) )\
+			{\
+				glDisableVertexAttribArray(Vertex::ATTR);\
+			}
+
+			VERTEX_ATTRIB_UNBIND(ATTRIBUTE_POSITION, RTS_Position);
+			VERTEX_ATTRIB_UNBIND(ATTRIBUTE_NORMAL, RTS_Normal);
+			VERTEX_ATTRIB_UNBIND(ATTRIBUTE_COLOR, RTS_Color);
+			VERTEX_ATTRIB_UNBIND(ATTRIBUTE_TEXCOORD, RTS_Texcoord);
+
+#undef VERTEX_ATTRIB_UNBIND
+		}
+
 #undef VETEX_ELEMENT_OFFSET
 #undef VERTEX_ELEMENT_SIZE
 #undef USE_SEMANTIC
+
+	};
+
 	class DrawUtility
 	{
 	public:
@@ -163,7 +213,7 @@ namespace RenderGL
 		static void Rect(int x , int y , int width, int height);
 		static void Rect( int width, int height );
 		static void ScreenRect();
-
+		static void ScreenRectShader();
 
 		static void Sprite(Vector2 const& pos, Vector2 const& size, Vector2 const& pivot);
 		static void Sprite(Vector2 const& pos, Vector2 const& size, Vector2 const& pivot, Vec2i const& framePos, Vec2i const& frameDim);

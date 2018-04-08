@@ -11,6 +11,7 @@
 #include "RenderGL/GLCommon.h"
 #include "RenderGL/DrawUtility.h"
 #include "RenderGL/GpuProfiler.h"
+#include "RenderGL/ShaderCompiler.h"
 
 REGISTER_STAGE("LeelaZero Learning", Go::LeelaZeroGoStage, EStageGroup::Test);
 
@@ -21,6 +22,47 @@ REGISTER_STAGE("LeelaZero Learning", Go::LeelaZeroGoStage, EStageGroup::Test);
 
 namespace Go
 {
+	class UnderCurveAreaShaderProgram : public RenderGL::GlobalShaderProgram
+	{
+		DECLARE_GLOBAL_SHADER(UnderCurveAreaShaderProgram)
+
+		static void SetupShaderCompileOption(ShaderCompileOption&) {}
+		static char const* GetShaderFileName()
+		{
+			return "Shader/Game/UnderCurveArea";
+		}
+		static ShaderEntryInfo const* GetShaderEntries()
+		{
+			static ShaderEntryInfo const enties[] =
+			{
+				{ Shader::eVertex ,  SHADER_ENTRY(MainVS) },
+				{ Shader::ePixel ,  SHADER_ENTRY(MainPS) },
+				{ Shader::eGeometry ,  SHADER_ENTRY(MainGS) },
+				{ Shader::eEmpty ,  nullptr },
+			};
+			return enties;
+		}
+		void bindParameters()
+		{
+			mParamAxisValue.bind(*this, SHADER_PARAM(AxisValue));
+			mParamProjMatrix.bind(*this, SHADER_PARAM(ProjMatrix));
+			mParamUpperColor.bind(*this, SHADER_PARAM(UpperColor));
+			mParamLowerColor.bind(*this, SHADER_PARAM(LowerColor));
+		}
+		void setParameters(float axisValue, Matrix4 const& projMatrix, Vector4 const& upperColor, Vector4 const& lowerColor)
+		{
+			setParam(mParamAxisValue, axisValue);
+			setParam(mParamProjMatrix, projMatrix);
+			setParam(mParamUpperColor, upperColor);
+			setParam(mParamLowerColor, lowerColor);
+		}
+		ShaderParameter mParamAxisValue;
+		ShaderParameter mParamProjMatrix;
+		ShaderParameter mParamUpperColor;
+		ShaderParameter mParamLowerColor;
+	};
+
+	IMPLEMENT_GLOBAL_SHADER( UnderCurveAreaShaderProgram )
 
 	bool DumpFunSymbol( char const* path , char const* outPath )
 	{
@@ -66,21 +108,19 @@ namespace Go
 
 		ILocalization::Get().changeLanguage(LAN_ENGLISH);
 
+		using namespace RenderGL;
 #if 0
 		if( !DumpFunSymbol("Zen7.dump", "aa.txt") )
 			return false;
 #endif
 		
+		mShaderUnderCurveArea = ShaderManager::Get().getGlobalShaderT< UnderCurveAreaShaderProgram >( true );
+		if( mShaderUnderCurveArea == nullptr )
+			return false;
+
 		LeelaAppRun::InstallDir = ::Global::GameConfig().getStringValue("LeelaZeroInstallDir", "Go" , "E:/Desktop/LeelaZero");
 		AQAppRun::InstallDir = ::Global::GameConfig().getStringValue("AQInstallDir", "Go", "E:/Desktop/AQ");
 
-		FixString<256> path;
-		path.format("%s/" LEELA_NET_DIR "%s", LeelaAppRun::InstallDir, LeelaAppRun::GetLastWeightName().c_str());
-		path.replace('/', '\\');
-		//if( SystemPlatform::OpenFileName(path, path.max_size(), nullptr) )
-		{
-			
-		}
 		::Global::GUI().cleanupWidget();
 
 		mGame.setup(19);
@@ -271,6 +311,7 @@ namespace Go
 	{
 		cleanupModeData();
 		mGameRenderer.releaseRHI();
+		ShaderManager::Get().clearnupRHIResouse();
 		::Global::getDrawEngine()->stopOpenGL(true);
 		BaseClass::onEnd();
 	}
@@ -284,9 +325,26 @@ namespace Go
 			if ( !bPauseGame )
 			{
 				IBotInterface* bot = mMatchData.getCurTurnBot();
-				if( bot )
+				for( int i = 0; i < 2; ++i )
 				{
-					bot->update(*this);
+					IBotInterface* bot = mMatchData.players[i].bot.get();
+
+					if( bot )
+					{
+						struct MyListener : IGameCommandListener
+						{
+							LeelaZeroGoStage* me;
+							int  indexPlayer;
+							virtual void notifyCommand(GameCommand const& com) override
+							{
+								me->notifyPlayerCommand(indexPlayer, com);
+							}
+						};
+						MyListener listener;
+						listener.me = this;
+						listener.indexPlayer = mMatchData.idxPlayerTurn;
+						bot->update(listener);
+					}
 				}
 			}
 		}
@@ -296,6 +354,8 @@ namespace Go
 			processLearningCommand();
 			keepLeelaProcessRunning(time);
 		}
+
+		bPrevGameCom = false;
 
 		int frame = time / gDefaultTickTime;
 		for( int i = 0; i < frame; ++i )
@@ -319,7 +379,6 @@ namespace Go
 
 		glClear(GL_COLOR_BUFFER_BIT);
 
-
 		auto& viewingGame = getViewingGame();
 
 		mGameRenderer.draw(BoardPos, viewingGame );
@@ -335,8 +394,89 @@ namespace Go
 			g.drawCircle(pos, 8);
 		}
 
-		GpuProfiler::Get().endFrame();
 
+		if( mWinRateHistory[0].size() > 1 || mWinRateHistory[1].size() > 1 )
+		{
+			GPU_PROFILE("Draw WinRate Graph");
+			ViewportSaveScope viewportSave;
+			glViewport(610, 10, 175, 250);
+			MatrixSaveScope matrixSaveScope;
+			glMatrixMode(GL_PROJECTION);
+
+			float const xMin = 0;
+			float const xMax = (mGame.getCurrentStep() + 1) / 2 + 1;
+			float const yMin = 0;
+			float const yMax = 100;
+			Matrix4 matProj = OrthoMatrix(xMin-1, xMax, yMin-5, yMax + 5 , -1, 1);
+
+			glLoadMatrixf(matProj);
+			glMatrixMode(GL_MODELVIEW);
+			glLoadIdentity();
+			static std::vector<Vector2> buffer;
+
+			buffer.clear();
+			float offset = 25;
+			for( float y = 10; y < yMax; y += 10 )
+			{
+				buffer.push_back(Vector2(xMin, y));
+				buffer.push_back(Vector2(xMax, y));
+			}
+			for( float x = offset; x < xMax; x += offset )
+			{
+				buffer.push_back(Vector2(x, yMin));
+				buffer.push_back(Vector2(x, yMax));
+			}
+
+			if( !buffer.empty() )
+			{
+				glColor3f(0.3, 0.3, 0.3);
+				TRenderRT< RTVF_XY >::Draw(PrimitiveType::eLineList, &buffer[0], buffer.size());
+			}
+
+			Vector3 colors[2] = { Vector3(1,0,0) , Vector3(0,1,0) };
+			float alpha[2] = { 0.6 , 0.6 };
+			for( int i = 0; i < 2; ++i )
+			{
+				auto& winRateHistory = mWinRateHistory[i];
+				if( winRateHistory.empty() )
+					continue;
+				{
+					glEnable(GL_BLEND);
+					if( i == 0 )
+						glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+					else
+						glBlendFunc(GL_SRC_ALPHA, GL_ONE);
+
+					GL_BIND_LOCK_OBJECT(mShaderUnderCurveArea);
+
+					mShaderUnderCurveArea->setParameters(
+						float(50), matProj, 
+						Vector4(colors[i], alpha[i]),
+						Vector4(0.3 * colors[i], alpha[i]));
+
+					TRenderRT< RTVF_XY >::DrawShader(PrimitiveType::eLineStrip, &winRateHistory[0], winRateHistory.size());
+
+					glDisable(GL_BLEND);
+				}
+
+				glColor3fv(colors[i]);
+				TRenderRT< RTVF_XY >::Draw(PrimitiveType::eLineStrip, &winRateHistory[0], winRateHistory.size());
+			}
+
+
+			Vector2 const lines[] =
+			{
+				Vector2(0,50), Vector2(xMax,50),
+				Vector2(0,yMin) , Vector2(0,yMax),
+				Vector2(0,yMin) , Vector2(xMax,yMin),
+				Vector2(0,yMax) , Vector2(xMax,yMax),
+			};
+
+			glColor3f(0, 0, 1);
+			TRenderRT< RTVF_XY >::Draw(PrimitiveType::eLineList, &lines[0], ARRAY_SIZE(lines));
+		}
+
+		GpuProfiler::Get().endFrame();
 		g.endRender();
 
 		g.beginRender();
@@ -391,7 +531,7 @@ namespace Go
 		g.setTextColor(255, 0, 0);
 		RenderUtility::SetFont(g, FONT_S10);
 		int const offset = 15;
-		int textX = 300;
+		int textX = 350;
 		int y = 10;
 
 		if ( bDrawDebugMsg )
@@ -463,19 +603,23 @@ namespace Go
 		case Keyboard::eF2: bDrawDebugMsg = !bDrawDebugMsg; break;
 		case Keyboard::eF5: saveMatchGameSGF(); break;
 		case Keyboard::eF6: restartAutoMatch(); break;
+		case Keyboard::eF9: ShaderManager::Get().reloadShader( *mShaderUnderCurveArea ); break;
 		}
 		return false;
 	}
 
 	bool LeelaZeroGoStage::buildLearningMode()
 	{
+
 		if( !mLearningAIRun.buildLearningGame() )
 			return false;
 
 		mGameMode = GameMode::Learning;
-		mGame.setSetting(GameSetting());
-		mGame.restart();
-		mGameRenderer.generateNoiseOffset(mGame.getBoard().getSize());
+		GameSetting setting;
+		setting.komi = 7.5;
+		mGame.setSetting(setting);
+		
+		resetGameParam();
 
 		bMatchJob = false;
 #if DETECT_LEELA_PROCESS
@@ -511,6 +655,7 @@ namespace Go
 		}
 
 		GameSetting setting;
+		setting.komi = 7.5;
 		if( !startMatchGame(setting) )
 			return false;
 
@@ -559,8 +704,16 @@ namespace Go
 
 		GameSetting setting;
 		setting.numHandicap = 0;
-		if ( setting.numHandicap )
+		if( setting.numHandicap )
+		{
 			setting.bBlackFrist = false;
+			setting.komi = 0.5;
+		}
+		else
+		{
+			setting.bBlackFrist = true;
+			setting.komi = 7.5;
+		}
 		
 		if( !startMatchGame(setting) )
 			return false;
@@ -627,7 +780,9 @@ namespace Go
 		if( haveBot && setting.numHandicap )
 		{
 			GameSetting tempSetting = setting;
-			tempSetting.numHandicap = 0;
+			//tempSetting.numHandicap = 0;
+
+			mGame.setSetting(tempSetting);
 		}
 		else
 		{
@@ -656,10 +811,7 @@ namespace Go
 			createPlayWidget();
 		}
 
-
-		resetParam();
-		mGame.restart();
-		mGameRenderer.generateNoiseOffset(mGame.getBoard().getSize());
+		resetGameParam();
 
 		mMatchData.idxPlayerTurn = (setting.bBlackFrist) ? 0 : 1;
 		if( mMatchData.bSwapColor )
@@ -797,7 +949,7 @@ namespace Go
 					}
 				}
 				break;
-			case GameCommand::ePlay:
+			case GameCommand::ePlayStone:
 			default:
 				{
 					if( mGame.playStone(com.pos[0], com.pos[1]) )
@@ -818,14 +970,14 @@ namespace Go
 	}
 
 
-	void LeelaZeroGoStage::notifyCommand(GameCommand const& com)
+	void LeelaZeroGoStage::notifyPlayerCommand(int indexPlayer , GameCommand const& com)
 	{
 		int color = mGame.getNextPlayColor();
 		switch( com.id )
 		{
 		case GameCommand::ePass:
 			{
-				resetParam();
+				resetTurnParam();
 
 				LogMsg("Pass");
 				mGame.playPass();
@@ -843,13 +995,10 @@ namespace Go
 						LeelaBot* bot = static_cast< LeelaBot* >( (mMatchData.players[0].type == ControllerType::eLeelaZero ) ? mMatchData.players[0].bot.get() : mMatchData.players[1].bot.get());
 						bot->mAI.showResult();
 					}
-					else
+					else if( mMatchData.bAutoRun )
 					{
-						if( mMatchData.bAutoRun )
-						{
-							unknownWinerCount += 1;
-							restartAutoMatch();
-						}
+						unknownWinerCount += 1;
+						restartAutoMatch();
 					}
 				}
 				else
@@ -930,14 +1079,28 @@ namespace Go
 			case ZenGameParam::eBestMoveVertex:
 				bestMoveVertex = com.intParam;
 				break;
+			case LeelaGameParam::eWinRate:
+			case ZenGameParam::eWinRate:
+				if ( !bPrevGameCom )
+				{
+					Vector2 v;
+					v.x = ( mGame.getCurrentStep() + 1 ) / 2;
+					v.y = com.floatParam;
+					mWinRateHistory[indexPlayer].push_back(v);
+					//LogMsgF("Win rate = %.2f", com.floatParam);
+				}
+				break;
 			}
 			break;
-		case GameCommand::ePlay:
+		case GameCommand::eAddStone:
+
+			break;
+		case GameCommand::ePlayStone:
 		default:
 			{
 				if( mGame.playStone(com.pos[0], com.pos[1]) )
 				{
-					resetParam();
+					resetTurnParam();
 
 					mMatchData.advanceTurn();
 					IBotInterface* bot = mMatchData.getCurTurnBot();
@@ -987,11 +1150,8 @@ namespace Go
 		if( mMatchData.bSwapColor )
 			mMatchData.idxPlayerTurn = 1 - mMatchData.idxPlayerTurn;
 
+		resetGameParam();
 
-		resetParam();
-
-		mGame.restart();
-		mGameRenderer.generateNoiseOffset(mGame.getBoard().getSize());
 
 		for( int i = 0; i < 2; ++i )
 		{
@@ -1001,12 +1161,9 @@ namespace Go
 			}
 		}
 
-
-		
 		IBotInterface* bot = mMatchData.getCurTurnBot();
 		if( bot )
 		{
-			LogMsgF("==%s Start Think==" , GetControllerName( mMatchData.players[mMatchData.idxPlayerTurn].type) );
 			bot->thinkNextMove(mGame.getNextPlayColor());
 		}
 	}
@@ -1052,11 +1209,11 @@ namespace Go
 		assert(isPlayerControl(color));
 
 		GameCommand com;
-		com.id = GameCommand::ePlay;
+		com.id = GameCommand::ePlayStone;
 		com.playColor = color;
 		com.pos[0] = pos.x;
 		com.pos[1] = pos.y;
-		notifyCommand(com);
+		notifyPlayerCommand( mMatchData.idxPlayerTurn , com);
 	}
 
 	void LeelaZeroGoStage::execPassCommand()
@@ -1065,7 +1222,7 @@ namespace Go
 		assert(isPlayerControl(color));
 		GameCommand com;
 		com.id = GameCommand::ePass;
-		notifyCommand(com);
+		notifyPlayerCommand(mMatchData.idxPlayerTurn, com);
 	}
 
 	void LeelaZeroGoStage::execUndoCommand()
@@ -1074,7 +1231,7 @@ namespace Go
 		//assert(isPlayerControl(color));
 		GameCommand com;
 		com.id = GameCommand::eUndo;
-		notifyCommand(com);
+		notifyPlayerCommand(mMatchData.idxPlayerTurn, com);
 	}
 
 
@@ -1112,6 +1269,72 @@ namespace Go
 		{
 			bot.release();
 			return false;
+		}
+		return true;
+	}
+
+	void MatchSettingPanel::addLeelaParamWidget(int id, int idxPlayer)
+	{
+		LeelaAISetting setting = LeelaAISetting::GetDefalut();
+		GTextCtrl* textCtrl = addTextCtrl(id + UPARAM_VISITS, "Visit Num", BIT(idxPlayer), idxPlayer);
+		textCtrl->setValue(std::to_string(setting.visits).c_str());
+		GFilePicker*  filePicker = addWidget< GFilePicker >(id + UPARAM_WEIGHT_NAME, "Weight Name", BIT(idxPlayer), idxPlayer);
+		filePicker->filePath.format("%s/" LEELA_NET_DIR "%s", LeelaAppRun::InstallDir, LeelaAppRun::GetDesiredWeightName().c_str());
+		filePicker->filePath.replace('/', '\\');
+	}
+
+	bool MatchSettingPanel::setupMatchSetting(MatchGameData& matchData, GameSetting& setting)
+	{
+		ControllerType types[2] =
+		{
+			(ControllerType)(intptr_t)findChildT<GChoice>(UI_CONTROLLER_TYPE_A)->getSelectedItemData(),
+			(ControllerType)(intptr_t)findChildT<GChoice>(UI_CONTROLLER_TYPE_B)->getSelectedItemData()
+		};
+
+		matchData.bAutoRun = findChildT<GCheckBox>(UI_AUTO_RUN)->bChecked;
+		for( int i = 0; i < 2; ++i )
+		{
+			int id = (i) ? UI_CONTROLLER_TYPE_B : UI_CONTROLLER_TYPE_A;
+			switch( types[i] )
+			{
+			case ControllerType::eLeelaZero:
+				{
+					LeelaAISetting setting = LeelaAISetting::GetDefalut();
+					std::string weightName = findChildT<GFilePicker>(id + UPARAM_WEIGHT_NAME)->filePath.c_str();
+					setting.weightName = FileUtility::GetDirPathPos(weightName.c_str()) + 1;
+					setting.visits = atoi(findChildT<GTextCtrl>(id + UPARAM_VISITS)->getValue());
+					if( !matchData.players[i].initialize(types[i], &setting) )
+						return false;
+				}
+				break;
+			case ControllerType::eZenV4:
+			case ControllerType::eZenV6:
+			case ControllerType::eZenV7:
+				{
+					Zen::CoreSetting setting = ZenBot::GetCoreConfigSetting();
+					setting.numSimulations = atoi(findChildT<GTextCtrl>(id + UPARAM_SIMULATIONS_NUM)->getValue());
+					setting.maxTime = atof(findChildT<GTextCtrl>(id + UPARAM_MAX_TIME)->getValue());
+					if( !matchData.players[i].initialize(types[i], &setting) )
+						return false;
+				}
+				break;
+			default:
+				if( !matchData.players[i].initialize(types[i]) )
+					return false;
+				break;
+			}
+		}
+
+		setting.numHandicap = findChildT<GChoice>(UI_FIXED_HANDICAP)->getSelection();
+		if( setting.numHandicap )
+		{
+			setting.bBlackFrist = false;
+			setting.komi = 0.5;
+		}
+		else
+		{
+			setting.bBlackFrist = true;
+			setting.komi = 7.5;
 		}
 		return true;
 	}

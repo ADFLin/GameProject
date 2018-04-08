@@ -127,6 +127,13 @@ GSlider* BaseSettingPanel::addSlider(int id , char const* title , unsigned group
 	return ui;
 }
 
+GTextCtrl* BaseSettingPanel::addTextCtrl(int id, char const* title, unsigned groupMask, int sortOrder)
+{
+	GTextCtrl* ui = new GTextCtrl(id, mCurPos, mUISize.x, this);
+	addWidgetInternal(ui, title, groupMask, sortOrder);
+	return ui;
+}
+
 GChoice* BaseSettingPanel::addChoice(int id , char const* title , unsigned groupMask, int sortOrder)
 {
 	return addWidget< GChoice >( id , title , groupMask , sortOrder);

@@ -171,9 +171,9 @@ namespace Lighting2D
 				if( !mBuffers.empty() )
 				{
 #if SHADOW_USE_GEOMETRY_SHADER
-					RenderRT::Draw< RenderRT::eXY >(PrimitiveType::eLineList, &mBuffers[0], mBuffers.size());
+					TRenderRT< RTVF_XY >::DrawShader(PrimitiveType::eLineList, &mBuffers[0], mBuffers.size());
 #else
-					RenderRT::Draw< RenderRT::eXY >(PrimitiveType::eQuad, &mBuffers[0], mBuffers.size());
+					TRenderRT< RTVF_XY >::DrawShader(PrimitiveType::eQuad, &mBuffers[0], mBuffers.size());
 #endif
 				}
 			}

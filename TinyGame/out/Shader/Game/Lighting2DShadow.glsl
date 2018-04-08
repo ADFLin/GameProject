@@ -1,9 +1,12 @@
 #include "Common.glsl"
 
 #if VERTEX_SHADER
+
+layout(location = ATTRIBUTE_POSITION) in float2 InPos;
+
 void MainVS()
 {
-	gl_Position = gl_Vertex;
+	gl_Position = float4(InPos, 0, 1.0);
 }
 #endif //VERTEX_SHADER
 

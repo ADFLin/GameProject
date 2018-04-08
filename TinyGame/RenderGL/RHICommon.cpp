@@ -85,29 +85,174 @@ namespace RenderGL
 		delete GDefalutMaterial;
 	}
 
+	class CopyTextureProgram : public GlobalShaderProgram
+	{
+		DECLARE_GLOBAL_SHADER(CopyTextureProgram)
+
+		static void SetupShaderCompileOption(ShaderCompileOption&) {}
+		static char const* GetShaderFileName()
+		{
+			return "Shader/CopyTexture";
+		}
+		static ShaderEntryInfo const* GetShaderEntries()
+		{
+			static ShaderEntryInfo const entries[] =
+			{
+				{ Shader::eVertex , SHADER_ENTRY(ScreenVS) },
+				{ Shader::ePixel  , SHADER_ENTRY(CopyTexturePS) },
+				{ Shader::eEmpty  , nullptr },
+			};
+			return entries;
+		}
+	public:
+		void bindParameters()
+		{
+			mParamCopyTexture.bind(*this, SHADER_PARAM(CopyTexture));
+		}
+
+		void setParameters(RHITexture2D& copyTexture)
+		{
+			setTexture(mParamCopyTexture, copyTexture);
+		}
+
+		ShaderParameter mParamCopyTexture;
+
+	};
+
+
+	class CopyTextureMaskProgram : public GlobalShaderProgram
+	{
+		DECLARE_GLOBAL_SHADER(CopyTextureMaskProgram)
+		static void SetupShaderCompileOption(ShaderCompileOption&) {}
+		static char const* GetShaderFileName()
+		{
+			return "Shader/CopyTexture";
+		}
+		static ShaderEntryInfo const* GetShaderEntries()
+		{
+			static ShaderEntryInfo const entries[] =
+			{
+				{ Shader::eVertex , SHADER_ENTRY(ScreenVS) },
+				{ Shader::ePixel  , SHADER_ENTRY(CopyTextureMaskPS) },
+				{ Shader::eEmpty  , nullptr },
+			};
+			return entries;
+		}
+	public:
+		void bindParameters()
+		{
+			mParamCopyTexture.bind(*this, SHADER_PARAM(CopyTexture));
+			mParamColorMask.bind(*this, SHADER_PARAM(ColorMask));
+		}
+		void setParameters(RHITexture2D& copyTexture, Vector4 const& colorMask)
+		{
+			setTexture(mParamCopyTexture, copyTexture);
+			setParam(mParamColorMask, colorMask);
+		}
+
+		ShaderParameter mParamColorMask;
+		ShaderParameter mParamCopyTexture;
+	};
+
+
+	class CopyTextureBiasProgram : public GlobalShaderProgram
+	{
+		DECLARE_GLOBAL_SHADER(CopyTextureBiasProgram)
+
+		static void SetupShaderCompileOption(ShaderCompileOption&) {}
+		static char const* GetShaderFileName()
+		{
+			return "Shader/CopyTexture";
+		}
+		static ShaderEntryInfo const* GetShaderEntries()
+		{
+			static ShaderEntryInfo const entries[] =
+			{
+				{ Shader::eVertex , SHADER_ENTRY(ScreenVS) },
+				{ Shader::ePixel  , SHADER_ENTRY(CopyTextureBaisPS) },
+				{ Shader::eEmpty  , nullptr },
+			};
+			return entries;
+		}
+	public:
+
+
+		void bindParameters()
+		{
+			mParamCopyTexture.bind(*this, SHADER_PARAM(CopyTexture));
+			mParamColorBais.bind(*this, SHADER_PARAM(ColorBais));
+		}
+		void setParameters(RHITexture2D& copyTexture, float colorBais[2])
+		{
+			setTexture(mParamCopyTexture, copyTexture);
+			setParam(mParamColorBais, colorBais[0], colorBais[1]);
+		}
+
+		ShaderParameter mParamColorBais;
+		ShaderParameter mParamCopyTexture;
+
+	};
+
+	class MappingTextureColorProgram : public GlobalShaderProgram
+	{
+		DECLARE_GLOBAL_SHADER(MappingTextureColorProgram)
+
+		static void SetupShaderCompileOption(ShaderCompileOption&) {}
+		static char const* GetShaderFileName()
+		{
+			return "Shader/CopyTexture";
+		}
+		static ShaderEntryInfo const* GetShaderEntries()
+		{
+			static ShaderEntryInfo const entries[] =
+			{
+				{ Shader::eVertex , SHADER_ENTRY(ScreenVS) },
+				{ Shader::ePixel  , SHADER_ENTRY(MappingTextureColorPS) },
+				{ Shader::eEmpty  , nullptr },
+			};
+			return entries;
+		}
+	public:
+		void bindParameters()
+		{
+			mParamCopyTexture.bind(*this, SHADER_PARAM(CopyTexture));
+			mParamColorMask.bind(*this, SHADER_PARAM(ColorMask));
+			mParamValueFactor.bind(*this, SHADER_PARAM(ValueFactor));
+		}
+
+		void setParameters(RHITexture2D& copyTexture, Vector4 const& colorMask, float valueFactor[2])
+		{
+			setTexture(mParamCopyTexture, copyTexture);
+			setParam(mParamColorMask, colorMask);
+			setParam(mParamValueFactor, valueFactor[0], valueFactor[1]);
+		}
+
+		ShaderParameter mParamCopyTexture;
+		ShaderParameter mParamColorMask;
+		ShaderParameter mParamValueFactor;
+	};
+
+	IMPLEMENT_GLOBAL_SHADER(CopyTextureProgram)
+	IMPLEMENT_GLOBAL_SHADER(CopyTextureMaskProgram)
+	IMPLEMENT_GLOBAL_SHADER(CopyTextureBiasProgram)
+	IMPLEMENT_GLOBAL_SHADER(MappingTextureColorProgram)
+
 	bool ShaderHelper::init()
 	{
 		ShaderCompileOption option;
 		option.version = 430;
 
-		if( !ShaderManager::Get().loadFile(
-			mProgCopyTexture, "Shader/CopyTexture",
-			SHADER_ENTRY(CopyTextureVS), SHADER_ENTRY(CopyTexturePS), option) )
+		mProgCopyTexture = ShaderManager::Get().getGlobalShaderT<CopyTextureProgram>(true);
+		if( mProgCopyTexture == nullptr )
 			return false;
-
-		if( !ShaderManager::Get().loadFile(
-			mProgCopyTextureMask,"Shader/CopyTexture",
-			SHADER_ENTRY(CopyTextureVS), SHADER_ENTRY(CopyTextureMaskPS), option) )
+		mProgCopyTextureMask = ShaderManager::Get().getGlobalShaderT<CopyTextureMaskProgram>(true);
+		if( mProgCopyTextureMask == nullptr )
 			return false;
-
-		if( !ShaderManager::Get().loadFile(
-			mProgCopyTextureBias, "Shader/CopyTexture",
-			SHADER_ENTRY(CopyTextureVS), SHADER_ENTRY(CopyTextureBaisPS), option) )
+		mProgCopyTextureBias = ShaderManager::Get().getGlobalShaderT<CopyTextureBiasProgram>(true);
+		if( mProgCopyTextureBias == nullptr )
 			return false;
-
-		if( !ShaderManager::Get().loadFile(
-			mProgMappingTextureColor, "Shader/CopyTexture",
-			SHADER_ENTRY(CopyTextureVS), SHADER_ENTRY(MappingTextureColorPS), option) )
+		mProgMappingTextureColor = ShaderManager::Get().getGlobalShaderT<MappingTextureColorProgram>(true);
+		if( mProgMappingTextureColor == nullptr )
 			return false;
 
 		if( !mFrameBuffer.create() )
@@ -213,29 +358,29 @@ namespace RenderGL
 	void ShaderHelper::copyTextureToBuffer(RHITexture2D& copyTexture)
 	{
 		GL_BIND_LOCK_OBJECT(mProgCopyTexture);
-		mProgCopyTexture.setParameters(copyTexture);
-		DrawUtility::ScreenRect();
+		mProgCopyTexture->setParameters(copyTexture);
+		DrawUtility::ScreenRectShader();
 	}
 
 	void ShaderHelper::copyTextureMaskToBuffer(RHITexture2D& copyTexture, Vector4 const& colorMask)
 	{
 		GL_BIND_LOCK_OBJECT(mProgCopyTextureMask);
-		mProgCopyTextureMask.setParameters( copyTexture , colorMask );
-		DrawUtility::ScreenRect();
+		mProgCopyTextureMask->setParameters( copyTexture , colorMask );
+		DrawUtility::ScreenRectShader();
 	}
 
 	void ShaderHelper::copyTextureBiasToBuffer(RHITexture2D& copyTexture, float colorBais[2])
 	{
 		GL_BIND_LOCK_OBJECT(mProgCopyTextureBias);
-		mProgCopyTextureBias.setParameters(copyTexture, colorBais);
-		DrawUtility::ScreenRect();
+		mProgCopyTextureBias->setParameters(copyTexture, colorBais);
+		DrawUtility::ScreenRectShader();
 	}
 
 	void ShaderHelper::mapTextureColorToBuffer(RHITexture2D& copyTexture, Vector4 const& colorMask, float valueFactor[2])
 	{
 		GL_BIND_LOCK_OBJECT(mProgMappingTextureColor);
-		mProgMappingTextureColor.setParameters(copyTexture, colorMask, valueFactor);
-		DrawUtility::ScreenRect();
+		mProgMappingTextureColor->setParameters(copyTexture, colorMask, valueFactor);
+		DrawUtility::ScreenRectShader();
 	}
 
 	void ShaderHelper::copyTexture(RHITexture2D& destTexture, RHITexture2D& srcTexture)
@@ -248,60 +393,13 @@ namespace RenderGL
 
 	void ShaderHelper::reload()
 	{
-		ShaderManager::Get().reloadShader(mProgCopyTexture);
-		ShaderManager::Get().reloadShader(mProgCopyTextureMask);
-		ShaderManager::Get().reloadShader(mProgMappingTextureColor);
-		ShaderManager::Get().reloadShader(mProgCopyTextureBias);
+		ShaderManager::Get().reloadShader(*mProgCopyTexture);
+		ShaderManager::Get().reloadShader(*mProgCopyTextureMask);
+		ShaderManager::Get().reloadShader(*mProgMappingTextureColor);
+		ShaderManager::Get().reloadShader(*mProgCopyTextureBias);
 	}
 
 
-	void CopyTextureMaskProgram::bindParameters()
-	{
-		mParamCopyTexture.bind(*this, SHADER_PARAM(CopyTexture));
-		mParamColorMask.bind(*this, SHADER_PARAM(ColorMask));
-	}
 
-	void CopyTextureMaskProgram::setParameters(RHITexture2D& copyTexture, Vector4 const& colorMask)
-	{
-		setTexture(mParamCopyTexture, copyTexture);
-		setParam(mParamColorMask, colorMask);
-	}
-
-	void CopyTextureProgram::bindParameters()
-	{
-		mParamCopyTexture.bind(*this, SHADER_PARAM(CopyTexture));
-	}
-
-	void CopyTextureProgram::setParameters(RHITexture2D& copyTexture)
-	{
-		setTexture(mParamCopyTexture, copyTexture);
-	}
-
-
-	void CopyTextureBiasProgram::bindParameters()
-	{
-		mParamCopyTexture.bind(*this, SHADER_PARAM(CopyTexture));
-		mParamColorBais.bind(*this, SHADER_PARAM(ColorBais));
-	}
-
-	void CopyTextureBiasProgram::setParameters(RHITexture2D& copyTexture, float colorBais[2])
-	{
-		setTexture(mParamCopyTexture, copyTexture);
-		setParam(mParamColorBais, colorBais[0], colorBais[1]);
-	}
-
-	void MappingTextureColorProgram::bindParameters()
-	{
-		mParamCopyTexture.bind(*this, SHADER_PARAM(CopyTexture));
-		mParamColorMask.bind(*this, SHADER_PARAM(ColorMask));
-		mParamValueFactor.bind(*this, SHADER_PARAM(ValueFactor));
-	}
-
-	void MappingTextureColorProgram::setParameters(RHITexture2D& copyTexture, Vector4 const& colorMask, float valueFactor[2])
-	{
-		setTexture(mParamCopyTexture, copyTexture);
-		setParam(mParamColorMask, colorMask);
-		setParam(mParamValueFactor, valueFactor[0], valueFactor[1]);
-	}
 
 }//namespace RenderGL

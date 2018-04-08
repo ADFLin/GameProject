@@ -96,7 +96,7 @@ namespace Go
 			:BaseClass(pos, size, parent)
 		{
 			mID = id;
-			GButton* button = new GButton(UI_ANY, pos, Vec2i(200, size.y), this);
+			GButton* button = new GButton(UI_ANY, Vec2i(size.x - 20 ,0), Vec2i(20, size.y), this);
 			button->setTitle("..");
 			button->onEvent = [this](int event, GWidget*) -> bool
 			{
@@ -183,11 +183,22 @@ namespace Go
 			UI_FIXED_HANDICAP = UI_WIDGET_ID,
 			UI_PLAY,
 			UI_CANCEL ,
-			UI_CONTROLLER_TYPE_A ,
-			UI_CONTROLLER_TYPE_B ,
 			UI_AUTO_RUN ,
 
+
+			UI_CONTROLLER_TYPE_A = UI_WIDGET_ID + 100,
+			UI_CONTROLLER_TYPE_B = UI_WIDGET_ID + 200,
 		};
+
+		enum 
+		{
+			UPARAM_VISITS = 1,
+			UPARAM_WEIGHT_NAME,
+			UPARAM_MAX_TIME , 
+			UPARAM_SIMULATIONS_NUM ,
+		};
+
+
 		MatchSettingPanel(int id, Vec2i const& pos, Vec2i const& size, GWidget* parent)
 			:BaseClass(id , pos , size , parent)
 		{
@@ -197,19 +208,22 @@ namespace Go
 		void init()
 		{
 			GChoice* choice;
-			choice = addChoice(UI_FIXED_HANDICAP, "Fixed Handicap");
+			choice = addPlayerChoice(0, "Player A");
+			choice->modifySelection(0);
+			choice = addPlayerChoice(1, "Player B");
+			choice->modifySelection(1);
+
+			int sortOrder = 5;
+			choice = addChoice(UI_FIXED_HANDICAP, "Fixed Handicap", 0, sortOrder);
 			for( int i = 0; i <= 9; ++i )
 			{
 				FixString<128> str;
-				choice->addItem( str.format("%d" , i )  );
+				choice->addItem(str.format("%d", i));
 			}
 			choice->setSelection(0);
-			choice = addPlayerChoice(UI_CONTROLLER_TYPE_A, "Player A");
-			choice->setSelection(0);
-			choice = addPlayerChoice(UI_CONTROLLER_TYPE_B, "Player B");
-			choice->setSelection(1);
 
-			addCheckBox(UI_AUTO_RUN, "Auto Run");
+
+			addCheckBox(UI_AUTO_RUN, "Auto Run", 0 , sortOrder);
 
 			adjustChildLayout();
 
@@ -221,14 +235,47 @@ namespace Go
 			button->setTitle("Cancel");
 		}
 
-		GChoice* addPlayerChoice(int id, char const* title)
+		void addLeelaParamWidget(int id , int idxPlayer );
+
+		void addZenParamWidget(int id, int idxPlayer)
 		{
-			GChoice* choice = addChoice(id , title);
+			Zen::CoreSetting setting = ZenBot::GetCoreConfigSetting();
+			GTextCtrl* textCtrl;
+			textCtrl = addTextCtrl(id + UPARAM_SIMULATIONS_NUM, "Num Simulations", BIT(idxPlayer), idxPlayer);
+			textCtrl->setValue(std::to_string(setting.numSimulations).c_str());
+			textCtrl = addTextCtrl(id + UPARAM_MAX_TIME, "Max Time", BIT(idxPlayer), idxPlayer);
+			FixString<512> valueStr;
+			textCtrl->setValue( valueStr.format( "%g" , setting.maxTime) );
+		}
+
+		GChoice* addPlayerChoice(int idxPlayer, char const* title)
+		{
+			int id = idxPlayer ? UI_CONTROLLER_TYPE_B : UI_CONTROLLER_TYPE_A;
+			GChoice* choice = addChoice( id , title , 0 , idxPlayer );
 			for( int i = 0; i < (int)ControllerType::Count; ++i )
 			{
 				uint slot = choice->addItem( GetControllerName(ControllerType(i)) );
 				choice->setItemData(slot, (void*)i);
 			}
+
+			choice->onEvent = [this,idxPlayer](int event, GWidget* ui)
+			{
+				removeChildWithMask(BIT(idxPlayer));
+				switch( (ControllerType)(intptr_t)ui->cast< GChoice >()->getSelectedItemData() )
+				{
+				case ControllerType::eLeelaZero:
+					addLeelaParamWidget( ui->getID() , idxPlayer );
+					break;
+				case ControllerType::eZenV7:
+				case ControllerType::eZenV6:
+				case ControllerType::eZenV4:
+					addZenParamWidget( ui->getID() , idxPlayer);
+				default:
+					break;
+				}
+				adjustChildLayout();
+				return false;
+			};
 			return choice;
 		}
 
@@ -251,31 +298,11 @@ namespace Go
 			return BaseClass::onChildEvent(event, id, ui);
 		}
 
-		bool setupMatchSetting(MatchGameData& matchData , GameSetting& setting)
-		{
-			ControllerType types[2] =
-			{
-				(ControllerType)(intptr_t)findChildT<GChoice>(UI_CONTROLLER_TYPE_A)->getSelectedItemData(),
-				(ControllerType)(intptr_t)findChildT<GChoice>(UI_CONTROLLER_TYPE_B)->getSelectedItemData()
-			};
-
-			matchData.bAutoRun = findChildT<GCheckBox>(UI_AUTO_RUN)->bChecked;
-			for( int i = 0; i < 2; ++i )
-			{
-				if( !matchData.players[i].initialize(types[i]) )
-					return false;
-			}
-
-			setting.numHandicap = findChildT<GChoice>(UI_FIXED_HANDICAP)->getSelection();
-			setting.bBlackFrist = setting.numHandicap == 0;
-			setting.boardSize = 19;
-			setting.komi = (setting.numHandicap) ? 0.5 : 7.5;
-			return true;
-		}
+		bool setupMatchSetting(MatchGameData& matchData , GameSetting& setting);
 	};
 
+
 	class LeelaZeroGoStage : public StageBase
-		                   , public IGameCommandListener
 	{
 		typedef StageBase BaseClass;
 	public:
@@ -304,7 +331,7 @@ namespace Go
 		int  matchChallenger = StoneColor::eEmpty;
 #if DETECT_LEELA_PROCESS
 		DWORD  mPIDLeela = -1;
-		static long const LeelaRebootTime = 20000;
+		static long const LeelaRebootTime = 40000;
 		static long const LeelaRebootStartTime = 40 * LeelaRebootTime;
 		long   mLeelaRebootTimer = LeelaRebootTime;
 #endif
@@ -315,6 +342,7 @@ namespace Go
 		GameRenderer mGameRenderer;
 
 		GameMode mGameMode;
+		class UnderCurveAreaShaderProgram* mShaderUnderCurveArea;
 
 		bool bSwapEveryMatch = true;
 		bool bAutoSaveMatchSGF = true;
@@ -322,6 +350,7 @@ namespace Go
 		MatchGameData mMatchData;
 		FixString<32> mLastGameResult;
 
+		std::vector< Vector2 > mWinRateHistory[2];
 		
 		int     bestMoveVertex;
 		
@@ -369,12 +398,26 @@ namespace Go
 		void keepLeelaProcessRunning(long time);
 
 		void processLearningCommand();
-		virtual void notifyCommand(GameCommand const& com) override;
+		void notifyPlayerCommand(int indexPlayer, GameCommand const& com);
 
+		bool bPrevGameCom = false;
+		void resetGameParam()
+		{
+			bPrevGameCom = true;
+			mGame.restart();
+			mGameRenderer.generateNoiseOffset(mGame.getBoard().getSize());
 
-		void resetParam()
+			resetTurnParam();
+			for( int i = 0 ; i < 2 ; ++i )
+			{
+				mWinRateHistory[i].clear();
+				mWinRateHistory[i].push_back(Vector2(0, 50));
+			}
+		}
+		void resetTurnParam()
 		{
 			bestMoveVertex = -3;
+			
 		}
 		void restartAutoMatch();
 

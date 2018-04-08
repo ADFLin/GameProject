@@ -7,12 +7,15 @@ struct VSOutput
 
 #if VERTEX_SHADER
 
+layout(location = ATTRIBUTE_POSITION) in float4 InPosition;
+layout(location = ATTRIBUTE_TEXCOORD) in float2 InUV;
+
 out VSOutput vsOutput;
 
 void ScreenVS()
 {
-	gl_Position = gl_Vertex;
-	vsOutput.UVs = gl_MultiTexCoord0.xy;
+	gl_Position = InPosition;
+	vsOutput.UVs = InUV;
 }
 
 #endif

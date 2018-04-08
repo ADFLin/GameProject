@@ -70,8 +70,8 @@ namespace Chromatron
 
 	Device const* Level::getWorldDevice( Vec2D const& pos) const
 	{
-		if( mWorld.isRange(pos) )
-			return mWorld.getMapData(pos).getDevice();
+		if( mWorld.isValidRange(pos) )
+			return mWorld.getTile(pos).getDevice();
 
 		return NULL;
 	}
@@ -117,7 +117,7 @@ namespace Chromatron
 
 		if ( inWorld )
 		{
-			if ( !mWorld.isRange(pos) ||
+			if ( !mWorld.isValidRange(pos) ||
 				!mWorld.canSetup( pos ) ) 
 				return false;
 		}
@@ -234,21 +234,10 @@ namespace Chromatron
 
 	void Level::destoryAllDevice()
 	{
-		for( MapDCInfoList::iterator iter = mMapDCList.begin(); 
-			iter != mMapDCList.end() ;++iter )
+		visitAllDevice([](Device* dc)
 		{
-			Device* dc = iter->dc;
-			if ( dc->isStatic() )
-				DeviceFactory::Destroy( dc );
-		}
-
-		for( DeviceVec::iterator iter = mUserDC.begin(); 
-			iter != mUserDC.end() ;++iter )
-		{
-			Device* dc = *iter;
-			DeviceFactory::Destroy( dc );
-		}
-
+			DeviceFactory::Destroy(dc);
+		});
 
 		mUserDC.clear();
 		mWorld.clearDevice();
@@ -267,7 +256,7 @@ namespace Chromatron
 
 	Device* Level::createDevice( DeviceId id , Vec2D const& pos , Dir dir ,Color color , bool beUserDC ,bool inWorld  )
 	{
-		if ( !isRange( pos , inWorld ) )
+		if ( !isValidRange( pos , inWorld ) )
 			return NULL;
 
 		if ( inWorld )
@@ -296,14 +285,14 @@ namespace Chromatron
 
 	void Level::setMapType( Vec2D const& pos , MapType type )
 	{
-		assert( isRange( pos , true ) );
+		assert( isValidRange( pos , true ) );
 
-		Tile& data = mWorld.getMapData( pos );
+		Tile& tile = mWorld.getTile( pos );
 
-		if ( data.getDevice() && ( data.getType() & MT_CANT_SETUP ) != 0 )
+		if ( tile.getDevice() && ( tile.getType() & MT_CANT_SETUP ) != 0 )
 			return;
 
-		data.setType( type );
+		tile.setType( type );
 	}
 
 	void Level::loadWorld( LevelInfoHeader& header , std::istream& stream , unsigned version)
@@ -353,7 +342,7 @@ namespace Chromatron
 				for( unsigned i = 0 ; i < num ; ++i )
 				{
 					Vec2D pos( idx % getMapSize() , idx / getMapSize() );
-					mWorld.getMapData( pos ).setType( type ); 
+					mWorld.getTile( pos ).setType( type ); 
 					++idx;
 				}
 
@@ -411,12 +400,12 @@ namespace Chromatron
 		{
 			for( int i = 0; i < getMapSize() ; ++i )
 			{
-				Tile& data = mWorld.getMapData( Vec2D(i,j) );
+				Tile& tile = mWorld.getTile( Vec2D(i,j) );
 
-				Device* dc = data.getDevice();
+				Device* dc = tile.getDevice();
 
 				Device* curDC = ( dc && dc->isStatic() ) ? dc : NULL ;
-				int     curID  = ( curDC ) ? dc->getId() : data.getType();
+				int     curID  = ( curDC ) ? dc->getId() : tile.getType();
 
 				if ( prevID == -1 )
 				{
@@ -742,10 +731,10 @@ namespace Chromatron
 		return true;
 	}
 
-	bool Level::isRange( const Vec2D& pos , bool inWorld )
+	bool Level::isValidRange( const Vec2D& pos , bool inWorld )
 	{
 		if ( inWorld )
-			return mWorld.isRange( pos );
+			return mWorld.isValidRange( pos );
 		else
 			return 0 <= pos.x && pos.x < MaxNumUserDC;
 	}
@@ -771,10 +760,10 @@ namespace Chromatron
 
 		if ( inWorld )
 		{
-			Tile::DeviceInfo info;
+			DeviceTileData info;
 			info.dc = &dc;
 			mMapDCList.push_back( info );
-			mWorld.getMapData( pos ).setDevice( &mMapDCList.back() );
+			mWorld.getTile( pos ).setDeviceData( &mMapDCList.back() );
 			dc.getFlag().addBits( DFB_IN_WORLD );
 		}
 		else
@@ -790,7 +779,7 @@ namespace Chromatron
 
 		if ( dc.isInWorld() )
 		{
-			mWorld.getMapData( dc.getPos() ).setDevice( NULL );
+			mWorld.getTile( dc.getPos() ).setDeviceData( NULL );
 
 			for( MapDCInfoList::iterator iter = mMapDCList.begin();
 				 iter != mMapDCList.end() ; ++iter )

@@ -397,6 +397,16 @@ namespace Go
 
 	}
 
+	Zen::CoreSetting ZenBot::GetCoreConfigSetting()
+	{
+		Zen::CoreSetting setting;
+		int numCPU = SystemPlatform::GetProcessorNumber();
+		setting.numThreads = numCPU - 2;
+		setting.numSimulations = ::Global::GameConfig().getIntValue("numSimulations", "ZenSetting", 20000000);
+		setting.maxTime = ::Global::GameConfig().getFloatValue("maxTime", "ZenSetting", 25);
+		return setting;
+	}
+
 	bool ZenBot::initilize(void* settingData)
 	{
 		switch( mCoreVersion )
@@ -419,11 +429,7 @@ namespace Go
 		}
 		else
 		{
-			Zen::CoreSetting setting;
-			int numCPU = SystemPlatform::GetProcessorNumber();
-			setting.numThreads = numCPU - 2;
-			setting.numSimulations = ::Global::GameConfig().getIntValue("numSimulations", "ZenSetting", 20000000);
-			setting.maxTime = ::Global::GameConfig().getFloatValue("maxTime", "ZenSetting", 25);
+			Zen::CoreSetting setting = GetCoreConfigSetting();
 			mCore->setCoreSetting(setting);
 		}
 		return true;
@@ -509,28 +515,37 @@ namespace Go
 				else
 				{
 					mCore->playStone(thinkStep.x, thinkStep.y, ToZColor(requestColor));
-					com.id = GameCommand::ePlay;
+					com.id = GameCommand::ePlayStone;
 					com.playColor = requestColor;
 					com.pos[0] = thinkStep.x;
 					com.pos[1] = thinkStep.y;
 				}
 				listener.notifyCommand(com);
+
+				{
+					GameCommand winRateCom;
+					winRateCom.setParam(ZenGameParam::eWinRate, (float)thinkStep.winRate);
+					listener.notifyCommand(winRateCom);
+				}
 			}
 			else
 			{
 				Zen::BestThinkInfo infoList[5];
-				mCore->getBestThinkMove( infoList , 5 );
-
-				std::sort(infoList, infoList + 5, [](auto& lhs, auto &rhs)
+				if ( mCore->getBestThinkMove(infoList, ARRAY_SIZE(infoList)) )
 				{
-					return lhs.winRate > rhs.winRate;
-				});
+					std::sort(infoList, infoList + ARRAY_SIZE(infoList),
+							  [](auto& lhs, auto &rhs)
+					{
+						return lhs.winRate > rhs.winRate;
+					}
+					);
 
-				auto& bestInfo = infoList[0];
-				int vertex = bestInfo.y * 19 + bestInfo.x;
-				GameCommand com;
-				com.setParam(ZenGameParam::eBestMoveVertex, vertex);
-				listener.notifyCommand(com);
+					auto& bestInfo = infoList[0];
+					int vertex = bestInfo.y * 19 + bestInfo.x;
+					GameCommand com;
+					com.setParam(ZenGameParam::eBestMoveVertex, vertex);
+					listener.notifyCommand(com);
+				}
 			}
 		}
 	}

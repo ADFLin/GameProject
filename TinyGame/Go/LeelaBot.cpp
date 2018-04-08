@@ -121,6 +121,32 @@ namespace Go
 			return color;
 		}
 
+
+		int parsePlayResult(char const* str, int color , GameCommand& outCom )
+		{
+#define STR_RESIGN "resign"
+#define STR_PASS "pass"
+			int numRead;
+			if( StartWith(str, STR_RESIGN) )
+			{
+				outCom.id = GameCommand::eResign;
+				return StrLen(STR_RESIGN);
+			}
+			else if( StartWith(str, STR_PASS) )
+			{
+				outCom.id = GameCommand::ePass;
+				return StrLen(STR_PASS);
+			}
+			else if( numRead = Go::ReadCoord(str, outCom.pos) )
+			{
+				outCom.id = GameCommand::ePlayStone;
+				outCom.playColor = color;
+				return numRead;
+			}
+			LogWarningF(0, "ParsePlayError : %s", str);
+			return 0;
+		}
+
 		int parsePlayResult(char const* str, int color)
 		{
 #define STR_RESIGN "resign"
@@ -141,7 +167,7 @@ namespace Go
 			}
 			else if( numRead = Go::ReadCoord(str, com.pos) )
 			{
-				com.id = GameCommand::ePlay;
+				com.id = GameCommand::ePlayStone;
 				com.playColor = color;
 				addOutputCommand(com);
 				return numRead;
@@ -225,7 +251,7 @@ namespace Go
 						}
 						else if ( Go::ReadCoord(coord, com.pos) )
 						{
-							com.id = GameCommand::ePlay;
+							com.id = GameCommand::ePlayStone;
 							if( color[1] == 'B' || color[1] == 'b' )
 							{
 								com.playColor = StoneColor::eBlack;
@@ -240,6 +266,7 @@ namespace Go
 								com.playColor = StoneColor::eEmpty;
 							}
 							addOutputCommand(com);
+							
 						}
 						else
 						{
@@ -381,6 +408,7 @@ namespace Go
 		virtual void dumpCommandMsgBegin(GTPCommand com){}
 		virtual void procDumpCommandMsg(GTPCommand com , char* buffer, int num ){}
 		virtual void dumpCommandMsgEnd(GTPCommand com){}
+		virtual void onOutputCommand(GTPCommand com , GameCommand const& outCom){}
 
 		void processBuffer()
 		{
@@ -450,8 +478,13 @@ namespace Go
 				switch( com.id )
 				{
 				case GTPCommand::eGenmove:
-					if( parsePlayResult(cur , com.meta) == 0 )
-						return false;
+					{
+						GameCommand gameCom;
+						if( !parsePlayResult(cur, com.meta , gameCom ) )
+							return false;
+						addOutputCommand(gameCom);
+						onOutputCommand(com, gameCom);
+					}
 					break;
 				case GTPCommand::ePlay:
 					break;
@@ -460,10 +493,14 @@ namespace Go
 					{
 						if ( *cur == 0 )
 							break;
-
-						int numRead = parsePlayResult(cur, StoneColor::eBlack);
-						if( numRead == 0 )
+						GameCommand gameCom;
+						int numRead = parsePlayResult(cur, StoneColor::eBlack , gameCom);
+						if( numRead == 0 || gameCom.id != GameCommand::ePlayStone )
 							return false;
+
+						gameCom.id = GameCommand::eAddStone;
+						addOutputCommand(gameCom);
+						onOutputCommand(com, gameCom);
 						cur = FStringParse::SkipSpace(cur + numRead);
 					}
 					break;
@@ -632,6 +669,23 @@ namespace Go
 			}
 		}
 
+		virtual void onOutputCommand(GTPCommand com, GameCommand const& outCom) override
+		{
+			switch( com.id )
+			{
+			case GTPCommand::eGenmove:
+				auto iter = std::max_element(thinkResults.begin(), thinkResults.end(), 
+					[](auto const& a, auto const& b) { return a.winRate < b.winRate; });
+
+				if ( iter != thinkResults.end() )
+				{
+					GameCommand paramCom;
+					paramCom.setParam(LeelaGameParam::eWinRate, iter->winRate);
+					addOutputCommand(paramCom);
+				}
+			}
+
+		}
 
 	};
 

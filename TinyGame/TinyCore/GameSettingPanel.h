@@ -20,12 +20,12 @@ public:
 	TINY_API GButton*   addButton(int id, char const* title, unsigned groupMask = -1, int sortOrder = 0);
 	TINY_API GCheckBox* addCheckBox(int id, char const* title, unsigned groupMask = -1, int sortOrder = 0);
 	TINY_API GSlider*   addSlider(int id, char const* title, unsigned groupMask = -1, int sortOrder = 0);
-
+	TINY_API GTextCtrl* addTextCtrl(int id, char const* title, unsigned groupMask = -1, int sortOrder = 0);
 	template< class Widget >
-	Widget* addWidget(int id, char const* title, unsigned groupMask, int sortGroup)
+	Widget* addWidget(int id, char const* title, unsigned groupMask, int sortOrder)
 	{
 		Widget* ui = new Widget(id, mCurPos, mUISize, this);
-		addWidgetInternal(ui, title, groupMask, sortGroup);
+		addWidgetInternal(ui, title, groupMask, sortOrder);
 		return ui;
 	}
 

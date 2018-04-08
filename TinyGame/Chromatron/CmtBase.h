@@ -2,6 +2,9 @@
 #define CmtBase_h__
 
 #include <cassert>
+
+#include "Core/IntegerType.h"
+
 #include "TVector2.h"
 #include "TCycleNumber.h"
 #ifndef BIT

@@ -152,7 +152,7 @@ namespace MV
 	void RenderEngine::renderPath( Path& path , PointVec& points)
 	{
 		if ( !points.empty() )
-			RenderRT::Draw< RenderRT::eXYZ >( PrimitiveType::eLineStrip , &points[0] , points.size() , sizeof( Vec3f ) );
+			TRenderRT< RTVF_XYZ >::Draw( PrimitiveType::eLineStrip , &points[0] , points.size() , sizeof( Vec3f ) );
 	}
 
 	void RenderEngine::renderMesh(int idMesh , Vec3f const& pos , Vec3f const& rotation)
@@ -325,7 +325,7 @@ namespace MV
 				}
 			}
 		}
-		RenderRT::Draw< RenderRT::eXYZ_C >( PrimitiveType::eLineList, buffer , nV  );
+		TRenderRT< RTVF_XYZ_C >::Draw( PrimitiveType::eLineList, buffer , nV  );
 		mEffect.bind();
 	}
 

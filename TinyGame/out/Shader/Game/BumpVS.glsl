@@ -1,3 +1,4 @@
+#include "Common.glsl"
 
 uniform vec3 LightPos = vec3( 0 , -10 , 5 );
 

@@ -18,8 +18,9 @@ namespace Go
 		enum
 		{
 			eJobMode,
-			eLastNetWeight ,
-			eMatchChallengerColor ,
+			eLastNetWeight,
+			eMatchChallengerColor,
+			eWinRate ,
 
 			eBestMoveVertex ,
 		};

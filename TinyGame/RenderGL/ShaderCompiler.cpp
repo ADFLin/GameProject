@@ -37,17 +37,97 @@ namespace RenderGL
 		}
 	}
 
-	bool ShaderManager::loadFileSimple(ShaderProgram& shaderProgram, char const* fileName, char const* def , char const* additionalCode )
+
+
+	void ShaderManager::clearnupRHIResouse()
+	{
+		cleanupGlobalShader();
+	}
+
+	GlobalShaderProgram* ShaderManager::getGlobalShader(GlobalShaderProgramClass& shaderClass, bool bForceLoad)
+	{
+		GlobalShaderProgram* result = mGlobalShaderMap[&shaderClass];
+		if( result == nullptr && bForceLoad )
+		{
+			result = constructGlobalShader(shaderClass);
+			if( result )
+			{
+				mGlobalShaderMap[&shaderClass] = result;
+			}
+		}
+		return result;
+	}
+
+	bool ShaderManager::registerGlobalShader(GlobalShaderProgramClass& shaderClass)
+	{
+		mGlobalShaderMap.insert({ &shaderClass , nullptr });
+		return true;
+	}
+
+	int ShaderManager::loadAllGlobalShaders()
+	{
+		int numFailLoad = 0;
+		for( auto& pair : mGlobalShaderMap )
+		{
+			GlobalShaderProgram* program = pair.second;
+			GlobalShaderProgramClass* shaderClass = pair.first;
+			if( program == nullptr )
+			{
+				program = constructGlobalShader(*shaderClass);
+				mGlobalShaderMap[shaderClass] = program;
+			}
+			if( program == nullptr )
+			{
+				++numFailLoad;
+			}
+		}
+		return numFailLoad;
+	}
+
+	GlobalShaderProgram* ShaderManager::constructGlobalShader(GlobalShaderProgramClass& shaderClass)
+	{
+		GlobalShaderProgram* result = (*shaderClass.funCreateShader)();
+		if( result )
+		{
+			ShaderCompileOption option;
+			option.version = mDefaultVersion;
+			(*shaderClass.funSetupShaderCompileOption)(option);
+
+			if( !loadInternal(*result, (*shaderClass.funGetShaderFileName)(), (*shaderClass.funGetShaderEntries)(), option, nullptr, true) )
+			{
+				LogWarningF(0, "Can't Load Global Shader %s", (*shaderClass.funGetShaderFileName)());
+
+				delete result;
+				result = nullptr;
+			}
+		}
+
+		return result;
+	}
+
+	void ShaderManager::cleanupGlobalShader()
+	{
+		for( auto& pair : mGlobalShaderMap )
+		{
+			delete pair.second;
+			pair.second = nullptr;
+		}
+	}
+
+	bool ShaderManager::loadFileSimple(ShaderProgram& shaderProgram, char const* fileName, char const* def, char const* additionalCode)
 	{
 		return loadFile(shaderProgram , fileName, SHADER_ENTRY(MainVS), SHADER_ENTRY(MainPS), def, additionalCode);
 	}
 
 	bool ShaderManager::loadFile(ShaderProgram& shaderProgram, char const* fileName, char const* vertexEntryName, char const* pixelEntryName, char const* def, char const* additionalCode)
 	{
-		assert(vertexEntryName && pixelEntryName);
-		char const* entryNames[] = { vertexEntryName , pixelEntryName };
-		uint8 shaderMask = BIT(Shader::eVertex) | BIT(Shader::ePixel);
-		return loadFile(shaderProgram, fileName, shaderMask, entryNames, def, additionalCode);
+		ShaderEntryInfo entries[] =
+		{
+			{ Shader::eVertex , vertexEntryName } ,
+			{ Shader::ePixel , pixelEntryName } ,
+			{ Shader::eEmpty , nullptr } ,
+		};
+		return loadFile(shaderProgram, fileName, entries, def, additionalCode);
 	}
 
 	bool ShaderManager::loadFile(ShaderProgram& shaderProgram, char const* fileName, uint8 shaderMask, char const* entryNames[], char const* def, char const* additionalCode)
@@ -62,36 +142,53 @@ namespace RenderGL
 
 	bool ShaderManager::loadFile(ShaderProgram& shaderProgram, char const* fileName, char const* vertexEntryName, char const* pixelEntryName, ShaderCompileOption const& option, char const* additionalCode /*= nullptr*/)
 	{
-		char const* entryNames[] = { vertexEntryName , pixelEntryName };
-		uint8 shaderMask = BIT(Shader::eVertex) | BIT(Shader::ePixel);
-		return loadFile(shaderProgram, fileName, shaderMask, entryNames, option, additionalCode);
+		ShaderEntryInfo entries[] =
+		{
+			{ Shader::eVertex , vertexEntryName } ,
+			{ Shader::ePixel , pixelEntryName } ,
+			{ Shader::eEmpty , nullptr } ,
+		};
+		return loadFile(shaderProgram, fileName, entries, option, additionalCode);
+	}
+
+	bool ShaderManager::loadFile(ShaderProgram& shaderProgram, char const* fileName, ShaderEntryInfo const entries[], char const* def /*= nullptr*/, char const* additionalCode /*= nullptr*/)
+	{
+		return loadInternal(shaderProgram, fileName, entries, def, additionalCode, true);
+	}
+
+	bool ShaderManager::loadFile(ShaderProgram& shaderProgram, char const* fileName, ShaderEntryInfo const entries[], ShaderCompileOption const& option, char const* additionalCode /*= nullptr*/)
+	{
+		return loadInternal(shaderProgram, fileName, entries, option, additionalCode, true);
 	}
 
 	bool ShaderManager::loadInternal(ShaderProgram& shaderProgram, char const* fileName, uint8 shaderMask, char const* entryNames[], ShaderCompileOption const& option, char const* additionalCode, bool bSingle)
 	{
-		ShaderCompileInfo* info = new ShaderCompileInfo;
+		ShaderEntryInfo entries[Shader::NUM_SHADER_TYPE];
+		MakeEntryInfos(entries, shaderMask, entryNames);
+		return loadInternal(shaderProgram, fileName, entries, option, additionalCode, bSingle);
+	}
+
+	bool ShaderManager::loadInternal(ShaderProgram& shaderProgram, char const* fileName, ShaderEntryInfo const entries[] , ShaderCompileOption const& option, char const* additionalCode, bool bSingle)
+	{
+		ShaderProgramCompileInfo* info = new ShaderProgramCompileInfo;
 
 		info->shaderProgram = &shaderProgram;
-		info->shaderMask = shaderMask;
-		info->bSingle = bSingle;
+		info->bSingleFile = bSingle;
 		info->fileName = fileName;
 
-		for( int i = 0; i < Shader::NUM_SHADER_TYPE; ++i )
+		for( int i = 0; entries[i].type != Shader::eEmpty ; ++i )
 		{
-			if( (info->shaderMask & BIT(i)) == 0 )
-				continue;
-
 			std::string defCode;
 			defCode += shaderDefines[i];
-			if( entryNames )
+			if( entries[i].name )
 			{
 				defCode += "#define ";
-				defCode += entryNames[i];
+				defCode += entries[i].name;
 				defCode += " main\n";
 			}
 
 			std::string headCode = option.getCode(defCode.c_str(), additionalCode);
-			info->headCodes.push_back(std::move(headCode));
+			info->shaders.push_back({ Shader::Type(i) , std::move(headCode) });
 		}
 
 		if( !updateShaderInternal(shaderProgram, *info) )
@@ -106,19 +203,22 @@ namespace RenderGL
 
 	bool ShaderManager::loadInternal(ShaderProgram& shaderProgram, char const* fileName, uint8 shaderMask, char const* entryNames[], char const* def , char const* additionalCode, bool bSingle )
 	{
-		ShaderCompileInfo* info = new ShaderCompileInfo;
+		ShaderEntryInfo enties[Shader::NUM_SHADER_TYPE];
+		MakeEntryInfos(enties, shaderMask, entryNames);
+		return loadInternal(shaderProgram, fileName, enties, def, additionalCode, bSingle);
+	}
+
+	bool ShaderManager::loadInternal(ShaderProgram& shaderProgram, char const* fileName, ShaderEntryInfo const entries[], char const* def, char const* additionalCode, bool bSingle)
+	{
+		ShaderProgramCompileInfo* info = new ShaderProgramCompileInfo;
 
 		info->shaderProgram = &shaderProgram;
-		info->shaderMask = shaderMask;
-		info->bSingle = bSingle;
+		info->bSingleFile = bSingle;
 		info->fileName = fileName;
 
 		int indexNameUsed = 0;
-		for( int i = 0; i < Shader::NUM_SHADER_TYPE; ++i )
+		for( int i = 0; entries[i].type != Shader::eEmpty; ++i )
 		{
-			if( (info->shaderMask & BIT(i)) == 0 )
-				continue;
-
 			std::string headCode;
 
 			{
@@ -135,10 +235,10 @@ namespace RenderGL
 			}
 
 			headCode += shaderDefines[i];
-			if( entryNames )
+			if( entries[i].name )
 			{
 				headCode += "#define ";
-				headCode += entryNames[indexNameUsed];
+				headCode += entries[i].name;
 				headCode += " main\n";
 				++indexNameUsed;
 			}
@@ -149,7 +249,7 @@ namespace RenderGL
 				headCode += '\n';
 			}
 
-			info->headCodes.push_back(std::move(headCode));
+			info->shaders.push_back({ Shader::Type(i), std::move(headCode) });
 		}
 
 		if( !updateShaderInternal(shaderProgram, *info) )
@@ -185,7 +285,7 @@ namespace RenderGL
 		}
 	}
 
-	bool ShaderManager::updateShaderInternal(ShaderProgram& shaderProgram, ShaderCompileInfo& info)
+	bool ShaderManager::updateShaderInternal(ShaderProgram& shaderProgram, ShaderProgramCompileInfo& info)
 	{
 		if( !shaderProgram.isValid() )
 		{
@@ -194,32 +294,30 @@ namespace RenderGL
 		}
 
 		int indexCode = 0;
-		for( int i = 0; i < Shader::NUM_SHADER_TYPE; ++i )
+		for( ShaderCompileInfo const& shaderInfo : info.shaders )
 		{
-			if ( ( info.shaderMask & BIT(i) ) == 0 )
-				continue;
 
 			FixString< 256 > path;
-			if( info.bSingle )
+			if( info.bSingleFile )
 			{
 				path.format("%s%s", info.fileName.c_str(), SHADER_FILE_SUBNAME );
 			}
 			else
 			{
-				path.format("%s%s", info.fileName.c_str(), ShaderPosfixNames[i]);
+				path.format("%s%s", info.fileName.c_str(), ShaderPosfixNames[shaderInfo.type]);
 			}
 			
-			RHIShaderRef shader = shaderProgram.mShaders[i];
+			RHIShaderRef shader = shaderProgram.mShaders[shaderInfo.type];
 			if( shader == nullptr )
 			{
 				shader = new RHIShader;
-				if( !mCompiler.compileCode(Shader::Type(i), *shader, path, info.headCodes[indexCode].c_str()) )
+				if( !mCompiler.compileCode(shaderInfo.type, *shader, path, shaderInfo.headCode.c_str()) )
 					return false;
 				shaderProgram.attachShader(*shader);
 			}
 			else
 			{
-				if( !mCompiler.compileCode(Shader::Type(i), *shader, path, info.headCodes[indexCode].c_str()) )
+				if( !mCompiler.compileCode(shaderInfo.type, *shader, path, shaderInfo.headCode.c_str()) )
 					return false;
 			}
 			++indexCode;
@@ -326,27 +424,25 @@ namespace RenderGL
 
 
 
-	void ShaderManager::ShaderCompileInfo::getDependentFilePaths(std::vector<std::wstring>& paths)
+	void ShaderManager::ShaderProgramCompileInfo::getDependentFilePaths(std::vector<std::wstring>& paths)
 	{
 		FixString< 256 > path;
-		if( bSingle )
+		if( bSingleFile )
 		{
 			path.format("%s%s", fileName.c_str(), SHADER_FILE_SUBNAME);
 			paths.push_back(CharToWChar(path));
 		}
 		else
 		{
-			for( int i = 0; i < Shader::NUM_SHADER_TYPE; ++i )
+			for( ShaderCompileInfo const& shaderInfo  : shaders )
 			{
-				if( ( shaderMask & BIT(i)) == 0 )
-					continue;
-				path.format("%s%s", fileName.c_str(), ShaderPosfixNames[i]);
+				path.format("%s%s", fileName.c_str(), ShaderPosfixNames[shaderInfo.type]);
 				paths.push_back(CharToWChar(path));
 			}
 		}
 	}
 
-	void ShaderManager::ShaderCompileInfo::postFileModify(FileAction action)
+	void ShaderManager::ShaderProgramCompileInfo::postFileModify(FileAction action)
 	{
 		if ( action == FileAction::Modify )
 			ShaderManager::Get().updateShaderInternal(*shaderProgram, *this);
@@ -397,5 +493,19 @@ namespace RenderGL
 		return result;
 	}
 
+	GlobalShaderProgramClass::GlobalShaderProgramClass(
+		FunCreateShader inFunCreateShader ,
+		FunSetupShaderCompileOption inFunSetupShaderCompileOption, 
+		FunGetShaderFileName inFunGetShaderFileName, 
+		FunGetShaderEntries inFunGetShaderEntries) 
+		:funCreateShader(inFunCreateShader)
+		,funSetupShaderCompileOption(inFunSetupShaderCompileOption)
+		,funGetShaderFileName(inFunGetShaderFileName)
+		,funGetShaderEntries(inFunGetShaderEntries)
+	{
+		ShaderManager::Get().registerGlobalShader(*this);
+	}
+
 }//namespace GL
+
 

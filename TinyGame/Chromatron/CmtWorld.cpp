@@ -24,17 +24,17 @@ namespace Chromatron
 		mTileMap.resize( sx , sy );
 	}
 
-	bool World::isRange(Vec2D const& pos) const
+	bool World::isValidRange(Vec2D const& pos) const
 	{
 		return mTileMap.checkRange( pos.x , pos.y );
 	}
 
-	Tile const& World::getMapData(Vec2D const& pos) const
+	Tile const& World::getTile(Vec2D const& pos) const
 	{
 		return mTileMap.getData( pos.x , pos.y );
 	}
 
-	Tile& World::getMapData( Vec2D const& pos )
+	Tile& World::getTile( Vec2D const& pos )
 	{
 		return mTileMap.getData( pos.x , pos.y );
 	}
@@ -42,47 +42,47 @@ namespace Chromatron
 
 	static Vec2D const gTestOffset[] = { Vec2D(0,-1) , Vec2D(-1,-1) , Vec2D(-1,0) , Vec2D(0,0) };
 
-	bool World::transmitLightStep( LightTrace& light , Tile** curData )
+	bool World::transmitLightStep( LightTrace& light , Tile** curTile )
 	{
-		assert( &getMapData( light.getEndPos()  ) == *curData );
+		assert( &getTile( light.getEndPos()  ) == *curTile );
 
-		(*curData)->addLightPathColor( light.getDir(),light.getColor() );
+		(*curTile)->addLightPathColor( light.getDir(),light.getColor() );
 
 		if ( light.getDir() % 2 == 1 )
 		{
 			Vec2D testPos = light.getEndPos() + gTestOffset[ light.getDir() / 2 ];
-			if ( isRange( testPos ) && getMapData( testPos ).blockRBConcerLight() )
+			if ( isValidRange( testPos ) && getTile( testPos ).blockRBConcerLight() )
 				return false;
 		}
 
 		light.advance();
 
-		if ( !isRange( light.getEndPos() ) ) 
+		if ( !isValidRange( light.getEndPos() ) ) 
 		{
-			*curData = NULL;
+			*curTile = NULL;
 			return false;
 		}
 
-		Tile& mapData = getMapData( light.getEndPos() );
-		*curData = &mapData;
+		Tile& tile = getTile( light.getEndPos() );
+		*curTile = &tile;
 
-		if ( mapData.blockLight() )
+		if ( tile.blockLight() )
 			return false;
 
-		mapData.addLightPathColor( light.getDir().inverse() , light.getColor() );
+		tile.addLightPathColor( light.getDir().inverse() , light.getColor() );
 
-		if ( mapData.getDevice() )
+		if ( tile.getDevice() )
 			return false;
 
 		return true;
 	}
 
-	TransmitStatus World::transmitLightSync( WorldUpdateContext& context , SyncProcessor& processor , LightList& transmitLights )
+	TransmitStatus World::transmitLightSync( WorldUpdateContext& context , LightSyncProcessor& processor , LightList& transmitLights )
 	{
 		bool prevMode = context.isSyncMode();
 		context.setSyncMode( true );
 
-		SyncProcessor* prevProvider  = context.mSyncProcessor;
+		LightSyncProcessor* prevProvider  = context.mSyncProcessor;
 		LightList*     prevLightList = context.mSyncLights;
 
 		context.mSyncProcessor = &processor;
@@ -101,10 +101,10 @@ namespace Chromatron
 
 				LightTrace& curLight = (*iter);
 
-				Tile* mapData = &getMapData( curLight.getEndPos() );
-				bool canKeep = transmitLightStep( curLight , &mapData );
+				Tile* pTile = &getTile( curLight.getEndPos() );
+				bool canKeep = transmitLightStep( curLight , &pTile );
 
-				Device* pDC = ( mapData ) ? ( mapData->getDevice() ) : NULL;
+				Device* pDC = ( pTile ) ? ( pTile->getDevice() ) : NULL;
 
 				if ( pDC )
 					eraseIters.push_back( iter );
@@ -130,15 +130,15 @@ namespace Chromatron
 
 						Vec2D const& pos = light.getEndPos();
 
-						assert( isRange( pos ) );
+						assert( isValidRange( pos ) );
 
-						Tile& mapData = getMapData( pos );
-						Device* dc = mapData.getDevice();
+						Tile& tile = getTile( pos );
+						Device* dc = tile.getDevice();
 						assert( dc );
 
 						if ( processor.prevEffectDevice( *dc , light , pass ) )
 						{
-							if ( procDeviceEffect( context , *dc , light ) != TSS_OK )
+							if ( evalDeviceEffect( context , *dc , light ) != TSS_OK )
 								goto SyncEnd;
 
 							transmitLights.erase( lightIter );
@@ -179,20 +179,20 @@ SyncEnd:
 		{
 			LightTrace& light = context.mNormalLights.front();
 			
-			Tile* mapData = &getMapData( light.getEndPos() );
+			Tile* pTile = &getTile( light.getEndPos() );
 
 			for(;;)
 			{
-				if ( !transmitLightStep( light , &mapData ) )
+				if ( !transmitLightStep( light , &pTile ) )
 					break;
 			}
 
-			if ( mapData )
+			if ( pTile )
 			{
-				Device* dc = mapData->getDevice();
+				Device* dc = pTile->getDevice();
 				if ( dc )
 				{
-					TransmitStatus status = procDeviceEffect( context , *dc , light );
+					TransmitStatus status = evalDeviceEffect( context , *dc , light );
 					if ( status != TSS_OK )
 						return status;
 				}
@@ -218,8 +218,8 @@ SyncEnd:
 
 	int World::countSameLighPathColortStepNum(Vec2D const& pos, Dir dir) const
 	{
-		assert(isRange(pos));
-		Color color = getMapData(pos).getLightPathColor(dir);
+		assert(isValidRange(pos));
+		Color color = getTile(pos).getLightPathColor(dir);
 		if ( color == COLOR_NULL )
 			return 0;
 		int result = 1;
@@ -228,10 +228,10 @@ SyncEnd:
 		for (;;)
 		{
 			testPos += LightTrace::GetDirOffset(dir);
-			if (isRange(testPos) == false)
+			if (isValidRange(testPos) == false)
 				break;
 
-			Tile const& tile = getMapData(testPos);
+			Tile const& tile = getTile(testPos);
 			if ( tile.blockLight() )
 				break;
 
@@ -255,9 +255,9 @@ SyncEnd:
 
 	bool World::isLightPathEndpoint(Vec2D const& pos, Dir dir) const
 	{
-		assert(isRange(pos));
+		assert(isValidRange(pos));
 
-		Tile const& tile = getMapData(pos);
+		Tile const& tile = getTile(pos);
 		if (tile.getDevice() == nullptr)
 		{
 			Color color = tile.getLightPathColor(dir);
@@ -267,8 +267,8 @@ SyncEnd:
 			if (color == tile.getLightPathColor(invDir))
 			{
 				Vec2D invPos = pos + LightTrace::GetDirOffset(invDir);
-				if ( isRange( invPos ) && 
-					 getMapData( invPos ).getLightPathColor( dir ) == color )
+				if ( isValidRange( invPos ) && 
+					 getTile( invPos ).getLightPathColor( dir ) == color )
 					return false;
 			}
 				
@@ -282,7 +282,7 @@ SyncEnd:
 		int length = getMapSizeX() * getMapSizeY();
 		for (int i=0;i<length ; ++i )
 		{
-			mTileMap[i].setDevice( NULL );
+			mTileMap[i].setDeviceData( NULL );
 		}
 	}
 
@@ -295,20 +295,20 @@ SyncEnd:
 		}
 	}
 
-	TransmitStatus World::procDeviceEffect( WorldUpdateContext& context , Device& dc , LightTrace const& light )
+	TransmitStatus World::evalDeviceEffect( WorldUpdateContext& context , Device& dc , LightTrace const& light )
 	{
-		Tile& mapData = getMapData( dc.getPos() );
+		Tile& tile = getTile( dc.getPos() );
 
 		Dir invDir = light.getDir().inverse();
-		mapData.addReceivedLightColor( invDir , light.getColor() );
+		tile.addReceivedLightColor( invDir , light.getColor() );
 
 		if ( dc.getFlag() & DFB_SHOT_DOWN )
 			return TSS_OK;
 
 		if ( dc.getFlag() & DFB_LAZY_EFFECT )
 		{
-			Color lazyColor = mapData.getLazyLightColor( invDir );
-			if ( lazyColor &&  mapData.getReceivedLightColor( invDir ) != lazyColor )
+			Color lazyColor = tile.getLazyLightColor( invDir );
+			if ( lazyColor && tile.getReceivedLightColor( invDir ) != lazyColor )
 				return TSS_OK;
 		}
 
@@ -327,10 +327,10 @@ SyncEnd:
 		for(;;)
 		{
 			curPos += LightTrace::GetDirOffset( dir );
-			if( !isRange( curPos ) )  
+			if( !isValidRange( curPos ) )  
 				break;
 
-			Device* pDC = getMapData( curPos ).getDevice();
+			Device* pDC = getTile( curPos ).getDevice();
 
 			if ( pDC )
 				return pDC;
@@ -366,12 +366,12 @@ SyncEnd:
 		if ( color == COLOR_NULL )
 			return;
 
-		Tile& mapData = mWorld.getMapData( pos );
+		Tile& tile = mWorld.getTile( pos );
 
 		if ( isSyncMode() )
 		{
 			assert( mSyncProcessor );
-			mapData.addEmittedLightColor( dir , color );
+			tile.addEmittedLightColor( dir , color );
 
 			if ( !mSyncProcessor->prevAddLight(  pos , color , dir , mLightParam , mLightAge ) )
 				return;
@@ -381,10 +381,10 @@ SyncEnd:
 		}
 		else
 		{
-			if ( ( color & mapData.getEmittedLightColor( dir ) ) == color )
+			if ( ( color & tile.getEmittedLightColor( dir ) ) == color )
 				return;
 
-			mapData.addEmittedLightColor( dir , color );
+			tile.addEmittedLightColor( dir , color );
 			LightTrace light( pos , color , dir , mLightParam , mLightAge );
 			mNormalLights.push_back( light );
 		}

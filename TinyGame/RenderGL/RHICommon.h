@@ -27,50 +27,6 @@ namespace RenderGL
 	bool InitGlobalRHIResource();
 	void ReleaseGlobalRHIResource();
 
-
-	class CopyTextureProgram : public ShaderProgram
-	{
-	public:
-		void bindParameters();
-		void setParameters(RHITexture2D& copyTexture);
-
-		ShaderParameter mParamCopyTexture;
-
-	};
-
-	class CopyTextureMaskProgram : public ShaderProgram
-	{
-	public:
-		void bindParameters();
-		void setParameters(RHITexture2D& copyTexture, Vector4 const& colorMask);
-
-		ShaderParameter mParamColorMask;
-		ShaderParameter mParamCopyTexture;
-	};
-
-
-	class CopyTextureBiasProgram : public ShaderProgram
-	{
-	public:
-		void bindParameters();
-		void setParameters(RHITexture2D& copyTexture, float colorBais[2]);
-
-		ShaderParameter mParamColorBais;
-		ShaderParameter mParamCopyTexture;
-
-	};
-
-	class MappingTextureColorProgram : public ShaderProgram
-	{
-	public:
-		void bindParameters();
-		void setParameters(RHITexture2D& copyTexture, Vector4 const& colorMask, float valueFactor[2]);
-
-		ShaderParameter mParamCopyTexture;
-		ShaderParameter mParamColorMask;
-		ShaderParameter mParamValueFactor;
-	};
-
 	class ShaderHelper : public SingletonT< ShaderHelper >
 	{
 	public:
@@ -91,10 +47,10 @@ namespace RenderGL
 
 		void reload();
 
-		CopyTextureProgram mProgCopyTexture;
-		CopyTextureMaskProgram mProgCopyTextureMask;
-		CopyTextureBiasProgram mProgCopyTextureBias;
-		MappingTextureColorProgram mProgMappingTextureColor;
+		class CopyTextureProgram* mProgCopyTexture;
+		class CopyTextureMaskProgram* mProgCopyTextureMask;
+		class CopyTextureBiasProgram* mProgCopyTextureBias;
+		class MappingTextureColorProgram* mProgMappingTextureColor;
 		FrameBuffer mFrameBuffer;
 
 

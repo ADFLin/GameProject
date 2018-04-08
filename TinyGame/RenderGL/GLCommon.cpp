@@ -60,7 +60,7 @@ namespace RenderGL
 			case GL_TESS_EVALUATION_SHADER: return Shader::eDomain;
 			}
 		}
-		return Shader::eUnknown;
+		return Shader::eEmpty;
 	}
 
 	bool RHIShader::compileCode(Shader::Type type , char const* src[] , int num )
@@ -361,7 +361,7 @@ namespace RenderGL
 				}
 				break;
 			case Vertex::eTangent:
-				glClientActiveTexture(GL_TEXTURE5);
+				glClientActiveTexture(GL_TEXTURE0 + (Vertex::ATTRIBUTE_TANGENT - Vertex::ATTRIBUTE_TEXCOORD));
 				glEnableClientState(GL_TEXTURE_COORD_ARRAY);
 				glTexCoordPointer(Vertex::GetComponentNum(info.format), Vertex::GetComponentType( info.format), mVertexSize, (void*)info.offset);
 				haveTex = true;
@@ -394,7 +394,7 @@ namespace RenderGL
 				break;
 			case Vertex::eTangent:
 				haveTex = true;
-				glClientActiveTexture(GL_TEXTURE0);
+				glClientActiveTexture(GL_TEXTURE0 + (Vertex::ATTRIBUTE_TANGENT - Vertex::ATTRIBUTE_TEXCOORD));
 				glDisableClientState(GL_TEXTURE_COORD_ARRAY);
 				break;
 			case Vertex::eTexcoord:
@@ -412,8 +412,8 @@ namespace RenderGL
 	{
 		for( VertexElement& info : mInfoVec )
 		{
-			glEnableVertexAttribArray(info.semantic);
-			glVertexAttribPointer(info.semantic, Vertex::GetComponentNum(info.format), Vertex::GetComponentType(info.format), GL_FALSE, mVertexSize, (void*)info.offset);
+			glEnableVertexAttribArray(info.attribute);
+			glVertexAttribPointer(info.attribute, Vertex::GetComponentNum(info.format), Vertex::GetComponentType(info.format), GL_FALSE, mVertexSize, (void*)info.offset);
 		}
 	}
 
@@ -430,6 +430,7 @@ namespace RenderGL
 		{
 		case Vertex::ATTRIBUTE_POSITION: idx = 0; return Vertex::ePosition;
 		case Vertex::ATTRIBUTE_COLOR: idx = 0; return Vertex::eColor;
+		case Vertex::ATTRIBUTE_COLOR2: idx = 1; return Vertex::eColor;
 		case Vertex::ATTRIBUTE_NORMAL: idx = 0; return Vertex::eNormal;
 		case Vertex::ATTRIBUTE_TANGENT: idx = 0; return Vertex::eTangent;
 		}
@@ -440,7 +441,15 @@ namespace RenderGL
 
 	static uint8 SemanticToAttribute(Vertex::Semantic s , uint8 idx)
 	{
-		return uint8(s) + idx;
+		switch( s )
+		{
+		case Vertex::ePosition: return Vertex::ATTRIBUTE_POSITION;
+		case Vertex::eColor:    assert(idx < 2); return Vertex::ATTRIBUTE_COLOR + idx;
+		case Vertex::eNormal:   return Vertex::ATTRIBUTE_NORMAL;
+		case Vertex::eTangent:  return Vertex::ATTRIBUTE_TANGENT;
+		case Vertex::eTexcoord: assert(idx < 7); return Vertex::ATTRIBUTE_TEXCOORD + idx;
+		}
+		return 0;
 	}
 
 	VertexDecl& VertexDecl::addElement(Vertex::Semantic s, Vertex::Format f, uint8 idx /*= 0 */)
@@ -518,8 +527,6 @@ namespace RenderGL
 		VertexElement const* info = findBySematic( s , idx );
 		return ( info ) ? Vertex::Format( info->format ) : Vertex::eUnknowFormat;
 	}
-
-
 
 	bool RHITextureBase::loadFileInternal(char const* path, GLenum texType , GLenum texImageType, Vec2i& outSize , Texture::Format& outFormat)
 	{

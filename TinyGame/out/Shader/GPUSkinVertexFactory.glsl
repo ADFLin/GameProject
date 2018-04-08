@@ -70,10 +70,10 @@ struct VertexFactoryOutputVSToPS
 //in VertexFactoryInput
 //{
 
-layout(location = ATTRIBUTE0) in float4 VertexInput_position;
-layout(location = ATTRIBUTE1) in float4 VertexInput_color;
-layout(location = ATTRIBUTE2) in float3 VertexInput_normal;
-layout(location = ATTRIBUTE3) in float4 VertexInput_tangent;
+layout(location = ATTRIBUTE_POSITION) in float4 VertexInput_position;
+layout(location = ATTRIBUTE_NORMAL) in float3 VertexInput_normal;
+layout(location = ATTRIBUTE_COLOR) in float4 VertexInput_color;
+layout(location = ATTRIBUTE_TANGENT) in float4 VertexInput_tangent;
 
 #if MATERIAL_TEXCOORD_NUM
 #if MATERIAL_TEXCOORD_NUM > 0
@@ -116,7 +116,7 @@ VertexFactoryIntermediatesVS GetVertexFactoryIntermediatesVS()
 #else //USE_VERTEX_ATTRIBUTE_INDEX
 	intermediates.normal = noramlFactor * float4(gl_Normal, 0) * Primitive.worldToLocal;
 	intermediates.tangent = noramlFactor * float4(gl_MultiTexCoord5.xyz, 0) * Primitive.worldToLocal;
-	intermediates.tangent.w = gl_MultiTexCoord5.w;
+	intermediates.tangent.w = gl_Tangent.w;
 	intermediates.worldPos = Primitive.localToWorld * gl_Vertex;
 	intermediates.vertexColor = gl_Color;
 #endif //USE_VERTEX_ATTRIBUTE_INDEX

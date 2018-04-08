@@ -40,7 +40,7 @@ namespace RenderGL
 			Vector3(0,0,0),Vector3(1,0,0),Vector3(0,1,0),Vector3(1,1,0),
 			Vector3(0,1,1),Vector3(1,1,1),Vector3(0,0,1),Vector3(1,0,1),
 		};
-		RenderRT::Draw< RenderRT::eXYZ >(PrimitiveType::eLineList, v, 4 * 6, sizeof(Vector3));
+		TRenderRT< RTVF_XYZ >::Draw(PrimitiveType::eLineList, v, 4 * 6, sizeof(Vector3));
 	}
 
 	void RenderGL::DrawUtility::CubeMesh()
@@ -66,7 +66,7 @@ namespace RenderGL
 			Vector3(1,0,0),Vector3(0,0,-1),Vector3(0,0,0),Vector3(0,0,-1),
 			Vector3(0,1,0),Vector3(0,0,-1),Vector3(1,1,0),Vector3(0,0,-1),
 		};
-		RenderRT::Draw< RenderRT::eXYZ_N >(PrimitiveType::eQuad, v, 4 * 6, 2 * sizeof(Vector3));
+		TRenderRT< RTVF_XYZ_N >::Draw(PrimitiveType::eQuad, v, 4 * 6, 2 * sizeof(Vector3));
 	}
 
 	void RenderGL::DrawUtility::AixsLine()
@@ -77,7 +77,7 @@ namespace RenderGL
 			Vector3(0,0,0),Vector3(0,1,0), Vector3(0,1,0),Vector3(0,1,0),
 			Vector3(0,0,0),Vector3(0,0,1), Vector3(0,0,1),Vector3(0,0,1),
 		};
-		RenderRT::Draw< RenderRT::eXYZ_C >(PrimitiveType::eLineList, v, 6, 2 * sizeof(Vector3));
+		TRenderRT< RTVF_XYZ_C >::Draw(PrimitiveType::eLineList, v, 6, 2 * sizeof(Vector3));
 	}
 
 	void RenderGL::DrawUtility::Rect(int x, int y, int width, int height)
@@ -92,7 +92,7 @@ namespace RenderGL
 			{ Vector2(x , y2 ) , Vector2(0,1) },
 		};
 
-		RenderRT::Draw< RenderRT::eXY_T2 >(PrimitiveType::eQuad, vertices, 4);
+		TRenderRT< RTVF_XY_T2 >::Draw(PrimitiveType::eQuad, vertices, 4);
 	}
 
 	void RenderGL::DrawUtility::Rect(int width, int height)
@@ -104,12 +104,17 @@ namespace RenderGL
 			{ Vector2(width , height ) , Vector2(1,1) },
 			{ Vector2(0 , height ) , Vector2(0,1) },
 		};
-		RenderRT::Draw< RenderRT::eXY_T2 >(PrimitiveType::eQuad, vertices, 4);
+		TRenderRT< RTVF_XY_T2 >::Draw(PrimitiveType::eQuad, vertices, 4);
 	}
 
 	void DrawUtility::ScreenRect()
 	{
-		RenderRT::Draw< RenderRT::eXYZW_T2 >(PrimitiveType::eQuad, GScreenVertices, 4);
+		TRenderRT< RTVF_XYZW_T2 >::Draw(PrimitiveType::eQuad, GScreenVertices, 4);
+	}
+
+	void DrawUtility::ScreenRectShader()
+	{
+		TRenderRT< RTVF_XYZW_T2 >::DrawShader(PrimitiveType::eQuad, GScreenVertices, 4);
 	}
 
 	void DrawUtility::Sprite(Vector2 const& pos, Vector2 const& size, Vector2 const& pivot)
@@ -141,9 +146,7 @@ namespace RenderGL
 			{ Vector2(posLT.x, posRB.y) , Vector2(texLT.x, texRB.y) },
 		};
 
-		RenderRT::Draw< RenderRT::eXY_T2 >(PrimitiveType::eQuad, vertices, 4);
-
-
+		TRenderRT< RTVF_XY_T2 >::Draw(PrimitiveType::eQuad, vertices, 4);
 	}
 
 }

@@ -899,5 +899,11 @@
     <None Include="out\Script\SceneA.chai">
       <Filter>RenderGL\Script</Filter>
     </None>
+    <None Include="out\Shader\ScreenVertexShader.glsl">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="out\Shader\Game\UnderCurveArea.glsl">
+      <Filter>Shader\Game</Filter>
+    </None>
   </ItemGroup>
 </Project>

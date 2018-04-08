@@ -222,6 +222,7 @@ namespace Go
 		float komi;
 		bool  bBlackFrist;
 		bool  bFixedHandicap;
+
 		GameSetting()
 		{
 			boardSize = 19;
@@ -253,7 +254,9 @@ namespace Go
 		void    setSetting(GameSetting const& setting) { mSetting = setting; }
 		void    restart();
 		bool    canPlay(int x, int y) const;
-		bool    playStone( int x , int y );
+		bool    addStone(int x, int y, DataType color);
+		void    addStone(Pos const& pos, DataType color){  assert(!isReviewing()); addStoneInternal(pos, color, false);  }
+		bool    playStone(int x, int y);
 		bool    playStone(Pos const & pos) { assert(!isReviewing()); return playStoneInternal(pos, false); }
 		
 		void    playPass() { assert(!isReviewing()); return playPassInternal(false); }
@@ -301,6 +304,8 @@ namespace Go
 		void     doRestart( bool beClearBoard , bool bClearStepHistory = true);
 		bool     playStoneInternal(Pos const& pos, bool bReviewing);
 		void     playPassInternal(bool bReviewing);
+		void     addStoneInternal(Pos const& pos, DataType color, bool bReviewing);
+
 		bool     undoInternal(bool bReviewing);
 
 		Pos      getFristConPos(Board::Pos const& pos, unsigned bitDir) const;
@@ -318,9 +323,14 @@ namespace Go
 
 		struct StepInfo
 		{
-			int16  idxPlay;
+			int16  idxPos;
 			int16  idxKO;
-		    uint8  bitCaptureDir;
+			union
+			{
+				uint8    bitCaptureDir;
+				DataType color;
+			};
+			uint8  bPlay;
 		};
 
 		typedef std::vector< StepInfo > StepVec;

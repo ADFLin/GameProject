@@ -350,7 +350,7 @@ namespace RenderGL
 			eDomain = 5,
 
 			NUM_SHADER_TYPE,
-			eUnknown = -1,
+			eEmpty = -1,
 		};
 	};
 
@@ -865,9 +865,9 @@ namespace RenderGL
 		enum Semantic
 		{
 			ePosition ,
-			eColor,
-			eNormal ,
-			eTangent ,
+			eTangent,
+			eNormal,
+			eColor ,
 			eTexcoord ,
 		};
 
@@ -890,22 +890,36 @@ namespace RenderGL
 			ATTRIBUTE14,
 			ATTRIBUTE15,
 
-			ATTRIBUTE_POSITION = ATTRIBUTE0,
-			ATTRIBUTE_COLOR = ATTRIBUTE1,
-			ATTRIBUTE_NORMAL = ATTRIBUTE2,
-			ATTRIBUTE_TANGENT = ATTRIBUTE3,
-			ATTRIBUTE_TEXCOORD = ATTRIBUTE4,
-			ATTRIBUTE_TEXCOORD1 = ATTRIBUTE5,
-			ATTRIBUTE_TEXCOORD2 = ATTRIBUTE6,
-			ATTRIBUTE_TEXCOORD3 = ATTRIBUTE7,
-			ATTRIBUTE_TEXCOORD4 = ATTRIBUTE8,
-			ATTRIBUTE_TEXCOORD5 = ATTRIBUTE9,
-			ATTRIBUTE_TEXCOORD6 = ATTRIBUTE10,
-			ATTRIBUTE_TEXCOORD7 = ATTRIBUTE11,
 
-
-			ATTRIBUTE_BONEINDEX = ATTRIBUTE14,
-			ATTRIBUTE_BLENDWEIGHT = ATTRIBUTE15,
+			// for NVidia
+			//gl_Vertex	0
+			//gl_Normal	2
+			//gl_Color	3
+			//gl_SecondaryColor	4
+			//gl_FogCoord	5
+			//gl_MultiTexCoord0	8
+			//gl_MultiTexCoord1	9
+			//gl_MultiTexCoord2	10
+			//gl_MultiTexCoord3	11
+			//gl_MultiTexCoord4	12
+			//gl_MultiTexCoord5	13
+			//gl_MultiTexCoord6	14
+			//gl_MultiTexCoord7	15
+			ATTRIBUTE_POSITION  = ATTRIBUTE0,
+			ATTRIBUTE_TANGENT   = ATTRIBUTE15,
+			ATTRIBUTE_NORMAL    = ATTRIBUTE2,
+			ATTRIBUTE_COLOR     = ATTRIBUTE3,
+			ATTRIBUTE_COLOR2    = ATTRIBUTE4,
+			ATTRIBUTE_BONEINDEX = ATTRIBUTE6,
+			ATTRIBUTE_BLENDWEIGHT = ATTRIBUTE7,
+			ATTRIBUTE_TEXCOORD  = ATTRIBUTE8,
+			ATTRIBUTE_TEXCOORD1 = ATTRIBUTE9,
+			ATTRIBUTE_TEXCOORD2 = ATTRIBUTE10,
+			ATTRIBUTE_TEXCOORD3 = ATTRIBUTE11,
+			ATTRIBUTE_TEXCOORD4 = ATTRIBUTE12,
+			ATTRIBUTE_TEXCOORD5 = ATTRIBUTE13,
+			ATTRIBUTE_TEXCOORD6 = ATTRIBUTE14,
+			//ATTRIBUTE_TEXCOORD7 = ATTRIBUTE15,
 		};
 	};
 
@@ -1080,6 +1094,25 @@ namespace RenderGL
 		}
 
 		T& mObj;
+	};
+
+
+	template< class T >
+	struct TBindLockScope< T* >
+	{
+		TBindLockScope(T* obj)
+			:mObj(obj)
+		{
+			assert(mObj);
+			mObj->bind();
+		}
+
+		~TBindLockScope()
+		{
+			mObj->unbind();
+		}
+
+		T* mObj;
 	};
 
 	template< class T >

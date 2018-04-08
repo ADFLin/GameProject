@@ -39,7 +39,7 @@ namespace Chromatron
 		void   drawDevice ( Graphics2D& g , Vec2i const& pos , Device const& dc );
 		void   drawDevice ( Graphics2D& g , Vec2i const& pos , DeviceId id , Dir dir , Color color , unsigned flag );
 		void   drawWorld  ( Graphics2D& g , Vec2i const& pos , World const& world);
-		void   drawLight  ( Graphics2D& g , Vec2i const& pos , Tile const& data );
+		void   drawLight  ( Graphics2D& g , Vec2i const& pos , Tile const& tile );
 
 		DeviceId  getToolDevice( Vec2i const& pos );
 		Color     getEditColor( Vec2i const& pos );

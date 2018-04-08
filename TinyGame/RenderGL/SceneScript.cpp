@@ -70,10 +70,11 @@ namespace RenderGL
 
 		virtual bool setup(Scene& scene, IAssetProvider& assetProvider, char const* fileName ) override
 		{
+
 			static bool bInitModule = false;
 			if( !bInitModule )
 			{
-				CommonModule.reset( new Chai::Module );
+				CommonModule.reset(new Chai::Module);
 				Common::RegisterMath(*CommonModule);
 				registerAssetId(*CommonModule);
 				registerSceneObject(*CommonModule);
@@ -94,9 +95,11 @@ namespace RenderGL
 			}
 			catch( const std::exception& e )
 			{
-				LogMsgF("Load Scene Fail!! : %s" , e.what() );
+				LogMsgF("Load Scene Fail!! : %s", e.what());
 				return false;
 			}
+
+
 			return true;
 		}
 
@@ -142,7 +145,7 @@ namespace RenderGL
 			
 			Chai::utility::add_class< MaterialId::Enum >( module, SCRIPT_NAME(MaterialId),
 			{
-#define LIST_OP( NAME ) { MaterialId::NAME , SCRIPT_NAME( Material_##NAME ) } ,
+#define LIST_OP( NAME ) { MaterialId::NAME , SCRIPT_NAME( MaterialId_##NAME ) } ,
 				MATERIAL_LIST(LIST_OP)
 #undef LIST_OP
 			});
@@ -151,7 +154,7 @@ namespace RenderGL
 			
 			Chai::utility::add_class< MeshId::Enum >(module, SCRIPT_NAME(MeshId),
 			{
-#define LIST_OP( NAME , PATH ) { MeshId::NAME , SCRIPT_NAME( Mesh_##NAME ) } ,
+#define LIST_OP( NAME , PATH ) { MeshId::NAME , SCRIPT_NAME( MeshId_##NAME ) } ,
 				MESH_LIST(LIST_OP)
 #undef LIST_OP
 			});
@@ -159,7 +162,7 @@ namespace RenderGL
 			
 			Chai::utility::add_class< TextureId::Enum >(module, SCRIPT_NAME(TextureId),
 			{
-#define LIST_OP( NAME , PATH ) { TextureId::NAME , SCRIPT_NAME( Texture_##NAME ) } ,
+#define LIST_OP( NAME , PATH ) { TextureId::NAME , SCRIPT_NAME( TextureId_##NAME ) } ,
 				TEXTURE_LIST(LIST_OP)
 #undef LIST_OP
 			});

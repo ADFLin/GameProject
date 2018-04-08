@@ -18,13 +18,12 @@ namespace Chromatron
 		DFB_REMOVE_QE         = BIT(4),
 		DFB_DRAW_FRIST        = BIT(6),
 		DFB_CLOCKWISE         = BIT(7),
-
 		//runtime flag
-		DFB_GOAL              = BIT(8),
-		DFB_IS_USING          = BIT(9),
-		DFB_IN_WORLD          = BIT(10),
-		DFB_SHOT_DOWN         = BIT(11),
-		DFB_LAZY_EFFECT       = BIT(12),
+		DFB_GOAL              = BIT(12),
+		DFB_IS_USING          = BIT(13),
+		DFB_IN_WORLD          = BIT(14),
+		DFB_SHOT_DOWN         = BIT(15),
+		DFB_LAZY_EFFECT       = BIT(16),
 	};
 
 	class World;

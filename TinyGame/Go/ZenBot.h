@@ -23,12 +23,18 @@ namespace Zen
 		int x, y;
 		bool bResign;
 		bool bPass;
+		int  winRate;
 	};
 
 	struct BestThinkInfo
 	{
 		int   x, y;
 		float winRate;
+	};
+
+	struct TerritoryInfo
+	{
+		int map[19][19];
 	};
 
 	struct CoreSetting
@@ -110,7 +116,8 @@ namespace Zen
 		virtual void     stopThink() = 0;
 		virtual bool     isThinking() = 0;
 		virtual void     getThinkResult(ThinkResult& result) = 0;
-		virtual void     getBestThinkMove(BestThinkInfo info[], int num) = 0;
+		virtual bool     getBestThinkMove(BestThinkInfo info[], int num) = 0;
+		virtual void     getTerritoryStatictics( TerritoryInfo& info ) = 0;
 
 	};
 
@@ -303,7 +310,7 @@ namespace Zen
 			ZenReadGeneratedMove(result.x, result.y, result.bPass, result.bResign);
 		}
 
-		void getBestThinkMove( BestThinkInfo infoList[] , int num )
+		bool getBestThinkMove( BestThinkInfo infoList[] , int num )
 		{
 			for( int i = 0; i < num ; ++i )
 			{
@@ -311,9 +318,22 @@ namespace Zen
 				int c;
 				char buf[256];
 				ZenGetTopMoveInfo(i, info.x , info.y , c, info.winRate, buf, ARRAY_SIZE(buf));
+				if( info.x == -4 )
+					return false;
+			}
+			return true;
+		}
+		void  getTerritoryStatictics(TerritoryInfo& info)
+		{
+			ZenGetTerritoryStatictics(info.map);
+			for( int i = 0; i < 19; ++i )
+			{
+				for( int j = 0; j < 19; ++j )
+				{
+
+				}
 			}
 		}
-
 		void startThink(Color color) override
 		{
 			if( color == Color::Empty )
@@ -328,6 +348,7 @@ namespace Zen
 		void getThinkResult(ThinkResult& result)
 		{
 			ZenReadGeneratedMove(result.x, result.y, result.bPass, result.bResign);
+			result.winRate = ZenGetBestMoveRate();
 		}
 
 		bool playStone(int x, int y, Color color)
@@ -416,6 +437,7 @@ namespace Go
 		enum
 		{
 			eBestMoveVertex = 200,
+			eWinRate ,
 		};
 	}
 
@@ -436,6 +458,8 @@ namespace Go
 				return nullptr;
 			return core;
 		}
+
+		static Zen::CoreSetting GetCoreConfigSetting();
 
 		virtual bool initilize(void* settingData) override;
 		virtual void destroy() override;

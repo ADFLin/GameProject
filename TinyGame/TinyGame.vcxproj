@@ -107,7 +107,7 @@
     <Link>
       <AdditionalDependencies>Msimg32.lib;d3d9.lib;d3dx9d.lib;dsound.lib;dinput8.lib;dxguid.lib;winmm.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>../OtherLib/Boost/lib;../OtherLib/DirectX/Lib/x86;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <GenerateDebugInformation>DebugFastLink</GenerateDebugInformation>
       <SubSystem>Windows</SubSystem>
       <RandomizedBaseAddress>false</RandomizedBaseAddress>
       <DataExecutionPrevention>false</DataExecutionPrevention>
@@ -597,6 +597,7 @@ copy $(TargetDir)EngineShare.dll $(ProjectDir)out\</Command>
     <None Include="out\Shader\Game\BumpPS.glsl" />
     <None Include="out\Shader\Game\BumpVS.glsl" />
     <None Include="out\Shader\Game\FS.glsl" />
+    <None Include="out\Shader\Game\UnderCurveArea.glsl" />
     <None Include="out\Shader\Game\Lighting2D.glsl" />
     <None Include="out\Shader\Game\Lighting2DShadow.glsl" />
     <None Include="out\Shader\Game\MVPiece.glsl" />
@@ -628,6 +629,7 @@ copy $(TargetDir)EngineShare.dll $(ProjectDir)out\</Command>
     <None Include="out\Shader\PrimitiveParam.glsl" />
     <None Include="out\Shader\Reflection.glsl" />
     <None Include="out\Shader\ScreenSpaceReflection.glsl" />
+    <None Include="out\Shader\ScreenVertexShader.glsl" />
     <None Include="out\Shader\ShaderDefine.glsl" />
     <None Include="out\Shader\ShadowCommon.glsl" />
     <None Include="out\Shader\ShadowLighting.glsl" />

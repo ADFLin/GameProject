@@ -173,7 +173,6 @@ namespace RenderGL
 	};
 
 
-
 	class MaterialShaderMap
 	{
 	public:

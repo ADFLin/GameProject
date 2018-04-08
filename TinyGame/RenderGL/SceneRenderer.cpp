@@ -723,7 +723,7 @@ namespace RenderGL
 				DefferredLightingProgram& program = mProgLightingScreenRect[(int)light.type];
 				GL_BIND_LOCK_OBJECT(program);
 				BindShaderParam(program);
-				DrawUtility::ScreenRect();
+				DrawUtility::ScreenRectShader();
 
 				glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
 			}
@@ -877,7 +877,7 @@ namespace RenderGL
 			GL_BIND_LOCK_OBJECT(mSSAOShader);
 			view.setupShader(mSSAOShader);
 			mSSAOShader.setParameters( sceneRenderTargets , &mKernelVectors[0], mKernelVectors.size());
-			DrawUtility::ScreenRect();
+			DrawUtility::ScreenRectShader();
 		}
 
 
@@ -887,7 +887,7 @@ namespace RenderGL
 			GL_BIND_LOCK_OBJECT(mFrameBuffer);
 			GL_BIND_LOCK_OBJECT(mSSAOBlurShader);
 			mSSAOBlurShader.setParameters(*mSSAOTexture);
-			DrawUtility::ScreenRect();
+			DrawUtility::ScreenRectShader();
 		}
 
 		{
@@ -898,7 +898,7 @@ namespace RenderGL
 			GL_BIND_LOCK_OBJECT(sceneRenderTargets.getFrameBuffer());
 			GL_BIND_LOCK_OBJECT(mAmbientShader);
 			mAmbientShader.setParameters(sceneRenderTargets, *mSSAOTextureBlur);
-			DrawUtility::ScreenRect();
+			DrawUtility::ScreenRectShader();
 			glDisable(GL_BLEND);
 		}
 		glEnable(GL_DEPTH_TEST);

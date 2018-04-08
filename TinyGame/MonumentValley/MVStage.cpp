@@ -790,7 +790,7 @@ namespace MV
 					v[0] = -len; v[1] = p; v[2] = z; v += 3;
 					v[0] =  len; v[1] = p; v[2] = z; v += 3;
 				}
-				RenderRT::Draw< RenderRT::eXYZ >( PrimitiveType::eLineList , buffer , size / 3 );
+				TRenderRT< RTVF_XYZ >::Draw( PrimitiveType::eLineList , buffer , size / 3 );
 			}
 
 			{

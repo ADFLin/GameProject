@@ -523,11 +523,11 @@ namespace Chromatron
 		{
 			for (int j = 0; j<world.getMapSizeY(); ++j )
 			{
-				Tile const& data = world.getMapData( Vec2D(i,j) );
+				Tile const& tile = world.getTile( Vec2D(i,j) );
 
 				Vec2i cellPos = pos + CellLength * Vec2i( i , j );
 
-				switch( data.getType() )
+				switch( tile.getType() )
 				{
 				case MT_EMPTY:
 					RenderUtility::SetPen( g , Color::eBlack );
@@ -541,7 +541,7 @@ namespace Chromatron
 					break;
 				}
 
-				Device const* dc = data.getDevice();
+				Device const* dc = tile.getDevice();
 
 
 				Vec2D centerPos  = cellPos + CellSize / 2;
@@ -551,17 +551,17 @@ namespace Chromatron
 					if ( dc->getFlag().checkBits( DFB_DRAW_FRIST )  )
 					{
 						drawDevice( g , centerPos , *dc );
-						drawLight( g , centerPos ,data );
+						drawLight( g , centerPos ,tile );
 					}
 					else
 					{
-						drawLight( g , centerPos ,data );
+						drawLight( g , centerPos ,tile );
 						drawDevice( g , centerPos , *dc );
 					}
 				}
 				else
 				{
-					drawLight( g , centerPos , data );
+					drawLight( g , centerPos , tile );
 				}
 			}
 		}
@@ -589,12 +589,12 @@ namespace Chromatron
 		}
 	}
 
-	void Scene::drawLight( Graphics2D& g , Vec2i const& pos , Tile const& data )
+	void Scene::drawLight( Graphics2D& g , Vec2i const& pos , Tile const& tile )
 	{
 		for(int i = 0; i < Dir::RestNumber ; ++i)
 		{
 			Dir dir = Dir::ValueNoCheck( i );
-			int color = data.getLightPathColor( dir );
+			int color = tile.getLightPathColor( dir );
 
 			if ( color == COLOR_NULL ) 
 				continue;

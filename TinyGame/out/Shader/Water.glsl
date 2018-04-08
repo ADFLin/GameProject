@@ -28,7 +28,7 @@ vec4 VSOutputMain( out VSOutput outVS )
 	vec3 cCamPos = vec3( gl_ModelViewMatrix * vec4( View.worldPos , 1.0 ) );
 	vec3 cLightPos =  vec3( gl_ModelViewMatrix * vec4( LightPos , 1.0 ) );
 #else
-	vec3 tangent  = normalize( gl_MultiTexCoord5.xyz );
+	vec3 tangent  = normalize(gl_Tangent.xyz );
 	vec3 normal   = normalize( gl_Normal );
 
 	vec3 cPos  = vec3( gl_Vertex );

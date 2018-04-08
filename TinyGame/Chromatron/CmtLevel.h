@@ -72,7 +72,7 @@ namespace Chromatron
 		bool     tryToggleDeivceAccess( Device& dc );
 
 		bool     isGoal() const { return mIsGoal; }
-		bool     isRange( const Vec2D& pos , bool inWorld );
+		bool     isValidRange( const Vec2D& pos , bool inWorld );
 
 		World const&  getWorld() const { return mWorld;  }
 		void     restart();
@@ -122,7 +122,7 @@ namespace Chromatron
 
 		static int const MaxNumMapDC  = 15 * 15;
 
-		typedef std::list< Tile::DeviceInfo > MapDCInfoList;
+		typedef std::list< DeviceTileData > MapDCInfoList;
 		MapDCInfoList mMapDCList;
 
 		bool        mIsGoal;

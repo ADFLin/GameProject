@@ -210,7 +210,7 @@ namespace Go
 				if( !mSpriteVertices.empty() )
 				{
 					GL_BIND_LOCK_OBJECT(mTextureAtlas.getTexture());
-					RenderRT::Draw< RenderRT::eXY_CA_T2 >(PrimitiveType::eQuad, &mSpriteVertices[0], mSpriteVertices.size());
+					TRenderRT< RTVF_XY_CA_T2 >::Draw(PrimitiveType::eQuad, &mSpriteVertices[0], mSpriteVertices.size());
 					mSpriteVertices.clear();
 				}
 			}

@@ -280,13 +280,14 @@ namespace RenderGL
 	{
 	public:
 		bool loadFromFile( char const* path );
-		bool create( Texture::Format format, int width, int height , void* data = nullptr , int alignment = 0);
+		bool create( Texture::Format format, int width, int height , int numMipLevel = 0 ,void* data = nullptr , int alignment = 0);
 		int  getSizeX() { return mSizeX; }
 		int  getSizeY() { return mSizeY; }
 		void bind();
 		void unbind();
 
 		bool update(int ox, int oy, int w, int h , Texture::Format format , void* data , int level = 0 );
+		bool update(int ox, int oy, int w, int h, Texture::Format format, int pixelStride, void* data, int level = 0);
 		Texture::Format getFormat() { return mFormat; }
 	private:
 		Texture::Format mFormat;
@@ -953,8 +954,8 @@ namespace RenderGL
 		void bind();
 		void unbind();
 
-		void beginVAOSetup();
-		void endVAOSetup();
+		void bindAttrib();
+		void unbindAttrib();
 
 		VertexElement const*   findBySematic( Vertex::Semantic s , int idx ) const;
 		VertexElement const*   findBySematic( Vertex::Semantic s ) const;

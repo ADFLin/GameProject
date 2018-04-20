@@ -18,6 +18,11 @@ namespace Go
 			eWhite = 2,
 		};
 
+		inline int Opposite( int color )
+		{
+			assert(color == eBlack || color == eWhite);
+			return (color == eBlack) ? eWhite : eBlack;
+		}
 	}
 
 	inline int ReadCoord( char const* coord , uint8 outPos[2] )
@@ -241,6 +246,15 @@ namespace Go
 		std::string date;
 	};
 
+	class IGameCopier
+	{
+	public:
+		virtual void setup(GameSetting const& setting) = 0;
+		virtual void playStone(int x, int y , int color ) = 0;
+		virtual void addStone(int x, int y, int color) = 0;
+		virtual void playPass() = 0;
+	};
+
 	class Game
 	{
 	public:
@@ -263,6 +277,8 @@ namespace Go
 		bool    undo() { assert(!isReviewing()); return undoInternal(false); }
 
 		void    copy(Game const& other);
+		void    copyTo(IGameCopier& copier);
+
 		void    updateHistory(Game const& other)
 		{
 			if( mStepHistory.size() != other.mStepHistory.size() )
@@ -275,6 +291,20 @@ namespace Go
 				mStepHistory.resize( mCurrentStep );
 			}
 		}
+
+		struct StepInfo
+		{
+			int16  idxPos;
+			int16  idxKO;
+			union
+			{
+				uint8    captureDirMask;
+				DataType colorAdded;
+			};
+			uint8  bPlay;
+		};
+		std::vector< StepInfo > const& getStepHistory() const { return mStepHistory; }
+
 		DataType getNextPlayColor() { return mNextPlayColor; }
 		DataType getFristPlayColor() { return mSetting.bBlackFrist ? StoneColor::eBlack : StoneColor::eWhite; }
 		Board const& getBoard() const { return mBoard; }
@@ -299,6 +329,9 @@ namespace Go
 		void    reviewPrevSetp(int numStep = 1);
 		void    reviewNextStep(int numStep = 1);
 		void    reviewLastStep();
+
+
+
 	private:
 
 		void     doRestart( bool beClearBoard , bool bClearStepHistory = true);
@@ -321,17 +354,7 @@ namespace Go
 		int       mIdxKoPos;
 		DataType  mNextPlayColor;
 
-		struct StepInfo
-		{
-			int16  idxPos;
-			int16  idxKO;
-			union
-			{
-				uint8    bitCaptureDir;
-				DataType color;
-			};
-			uint8  bPlay;
-		};
+
 
 		typedef std::vector< StepInfo > StepVec;
 		StepVec   mStepHistory;

@@ -16,17 +16,16 @@ namespace RenderGL
 
 		bool create(Texture::Format format, int w, int h, int border = 0);
 
-		int addImageFile(char const* path);
-		int addImage(int w, int h, Texture::Format format, void* data);
+		int  addImageFile(char const* path);
+		int  addImage(int w, int h, Texture::Format format, void* data, int pixelStride = 0);
+		void getRectUV(int id, Vector2& outMin, Vector2& outMax) const;
 
-		void getRectUV(int id, Vector2& outMin, Vector2& outMax);
-
-		RHITexture2D& getTexture() { return mTexture; }
-		int getTextureNum() { return mNextImageId; }
+		RHITexture2D& getTexture() { return *mTexture; }
+		int getTextureNum() const { return mNextImageId; }
 
 		int              mBorder;
 		int              mNextImageId;
-		RHITexture2D     mTexture;
+		RHITexture2DRef  mTexture;
 		ImageMergeHelper mHelper;
 	};
 

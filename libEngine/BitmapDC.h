@@ -13,11 +13,11 @@ public:
 	BitmapDC( HDC hDC, LPSTR file );
 	~BitmapDC();
 
-	bool    create( HDC hDC , LPSTR file );
-	bool    create( HDC hDC , HWND hWnd );
-	bool    create( HDC hDC , int w , int h );
-	bool    create( HDC hDC , BITMAPINFO* info , void** data = 0 );
-
+	bool    Initialize( HDC hDC , LPSTR file );
+	bool    Initialize( HDC hDC , HWND hWnd );
+	bool    Initialize( HDC hDC , int w , int h );
+	bool    Initialize( HDC hDC , BITMAPINFO* info , void** data = 0 );
+	void    release();
 
 
 	void    bitBlt( HDC hdc, int x = 0,int y = 0 );
@@ -29,9 +29,11 @@ public:
 	int     getWidth() const { return mWidth; }
 	int     getHeight()const { return mHeight; }
 
+	operator HDC() { return mhDC; }
+
 private:
 
-	bool    buildBitmap(HDC hdc , int w , int h );
+	bool    constructBitmap(HDC hdc , int w , int h );
 	void    cleanup();
 	int     mWidth;
 	int     mHeight;

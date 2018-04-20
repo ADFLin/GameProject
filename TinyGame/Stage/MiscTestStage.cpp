@@ -871,6 +871,94 @@ void GLGraphics2DTestStage::onRender(float dFrame)
 	g.endRender();
 }
 
+namespace Meta
+{
+	template< class T , T ...Args >
+	struct TValueList 
+	{
+		typedef T ValueType;
+	};
+
+	template< uint32 ...Args >
+	struct TUint32List {};
+
+	template< class ValueList >
+	struct GetDimension {};
+
+	template< uint32 Value, uint32 ...Args >
+	struct GetDimension< TUint32List< Value, Args... > >
+	{
+		static constexpr uint32 Result = 1 + GetDimension< TUint32List< Args...> >::Result;
+	};
+
+	template<>
+	struct GetDimension< TUint32List<> >
+	{
+		static constexpr uint32 Result = 0;
+	};
+
+	template< int Index , class ValueList >
+	struct GetValue {};
+
+	template< int Index , uint32 Value, uint32 ...Args >
+	struct GetValue< Index , TUint32List< Value, Args... > >
+	{
+		static constexpr uint32 Result = GetValue< Index - 1, TUint32List< Args...> >::Result;
+	};
+
+	template< uint32 Value, uint32 ...Args >
+	struct GetValue< 0, TUint32List< Value, Args... > >
+	{
+		static constexpr uint32 Result = Value;
+	};
+
+	template< uint32 Mask, uint32 FindValue, int Index, class ValueList >
+	struct FindValueWithMaskImpl
+	{
+		static constexpr bool   Result = false;
+		static constexpr uint32 ResultValue = 0;
+		static constexpr int32  ResultIndex = -1;
+	};
+
+	template< uint32 Mask, uint32 FindValue, int Index, uint32 Value, uint32 ...Args >
+	struct FindValueWithMaskImpl< Mask, FindValue, Index , TUint32List< Value, Args... > >
+	{
+		struct FoundResultType
+		{
+			static constexpr bool   Result = true;
+			static constexpr uint32 ResultValue = Value;
+			static constexpr int32  ResultIndex = Index;
+		};
+		typedef FindValueWithMaskImpl< Mask, FindValue, Index + 1, TUint32List< Args... > > NextFindType;
+		static constexpr bool   IsFound = ((Value & Mask) == FindValue);
+		typedef typename Select< IsFound, FoundResultType, NextFindType >::ResultType FindResultType;
+		
+		static constexpr bool   Result = FindResultType::Result;
+		static constexpr uint32 ResultValue = FindResultType::ResultValue;
+		static constexpr int32  ResultIndex = FindResultType::ResultIndex;
+	};
+
+	template< uint32 Mask , uint32 FindValue, class ValueList >
+	struct FindValueWithMask : FindValueWithMaskImpl< Mask , FindValue , 0 , ValueList >
+	{
+
+	};
+
+#if 1
+	typedef TUint32List< 0,1, 2, 3> TestList;
+	static_assert(GetDimension< TestList >::Result == 4, "Test GetDimension Fail");
+	static_assert(GetValue< 0, TestList >::Result == 0, "Test GetValue Fail");
+	static_assert(GetValue< 1, TestList >::Result == 1, "Test GetValue Fail");
+	static_assert(GetValue< 2, TestList >::Result == 2, "Test GetValue Fail");
+	static_assert(GetValue< 3, TestList >::Result == 3 , "Test GetValue Fail" );
+	static_assert(FindValueWithMask< 0xff, 2 ,TestList >::Result == true , "Test FindValueWithMask Fail" );
+	static_assert(FindValueWithMask< 0xff, 2, TestList >::ResultIndex == 2, "Test FindValueWithMask Fail");
+	static_assert(FindValueWithMask< 0xff, 4, TestList >::Result == false, "Test FindValueWithMask Fail");
+#endif
+
+}
+
+
 
 template< class THeap >
 void MyMethod()

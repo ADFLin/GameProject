@@ -154,10 +154,12 @@ int ChoiceMultiSamplePixeFormat(HDC hDC, WGLSetupSetting const& setting, bool be
 	float fAttributes[] = { 0,0 };
 	int iAttributes[] =
 	{
-		WGL_DRAW_TO_WINDOW_ARB, beWindow ? FALSE : TRUE ,
+		WGL_DRAW_TO_WINDOW_ARB, beWindow ? GL_TRUE : GL_FALSE ,
 		WGL_SUPPORT_OPENGL_ARB,GL_TRUE,
-		WGL_SUPPORT_GDI_ARB , GL_TRUE,
+		//WGL_SUPPORT_GDI_ARB , GL_TRUE,
 		WGL_ACCELERATION_ARB , WGL_FULL_ACCELERATION_ARB,
+		WGL_DOUBLE_BUFFER_ARB, GL_TRUE,
+		WGL_PIXEL_TYPE_ARB, WGL_TYPE_RGBA_ARB,
 		WGL_COLOR_BITS_ARB,setting.colorBits,
 		WGL_ALPHA_BITS_ARB,setting.alpahaBits,
 		WGL_DEPTH_BITS_ARB,setting.depthBits,
@@ -198,7 +200,7 @@ int ChooseFullscreenPixelFormat(HDC hDC, WGLSetupSetting const& setting, PIXELFO
 	int nBestFormat = 0;
 	int nPixelFormat = 1;
 	PIXELFORMATDESCRIPTOR pfdDesc;
-	DWORD dwRequiredFlags = PFD_DRAW_TO_BITMAP | PFD_GENERIC_FORMAT | PFD_SUPPORT_OPENGL | PFD_SUPPORT_GDI;
+	DWORD dwRequiredFlags = PFD_GENERIC_FORMAT | PFD_SUPPORT_OPENGL;
 	DWORD dwRejectedFlags = PFD_GENERIC_ACCELERATED;
 	while( DescribePixelFormat(hDC, nPixelFormat, sizeof(PIXELFORMATDESCRIPTOR), &pfdDesc) )
 	{
@@ -221,7 +223,7 @@ int ChooseFullscreenPixelFormat(HDC hDC, WGLSetupSetting const& setting, PIXELFO
 	return false;
 #endif
 
-	pfd.dwFlags    = PFD_SUPPORT_OPENGL | PFD_DOUBLEBUFFER | PFD_DRAW_TO_BITMAP | PFD_SUPPORT_GDI;
+	pfd.dwFlags    = PFD_SUPPORT_OPENGL | PFD_DOUBLEBUFFER;
 	pfd.iPixelType = PFD_TYPE_RGBA;
 	pfd.iLayerType = PFD_MAIN_PLANE;
 	pfd.cColorBits = GetDeviceCaps(hDC, BITSPIXEL);
@@ -252,7 +254,7 @@ bool WindowsGLContext::init(HDC hDC , WGLSetupSetting const& setting , bool beWi
 		{
 			pfd.nSize = sizeof(pfd);
 			pfd.nVersion = 1;
-			pfd.dwFlags = PFD_SUPPORT_OPENGL | PFD_DOUBLEBUFFER | PFD_DRAW_TO_WINDOW | PFD_DRAW_TO_BITMAP;
+			pfd.dwFlags = PFD_SUPPORT_OPENGL | PFD_DOUBLEBUFFER | PFD_DRAW_TO_WINDOW;
 			pfd.iPixelType = PFD_TYPE_RGBA;
 			pfd.iLayerType = PFD_MAIN_PLANE;
 

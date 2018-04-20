@@ -29,7 +29,6 @@ StageInfo gPreRegisterStageGroup[] =
 	STAGE_INFO("Cantan Test" , Cantan::LevelStage , EStageGroup::GraphicsTest) ,
 	STAGE_INFO("GGJ Test" , GGJ::TestStage , EStageGroup::GraphicsTest) ,
 	STAGE_INFO("2D Lighting Test"     , Lighting2D::TestStage , EStageGroup::GraphicsTest) ,
-	STAGE_INFO("Shader Test"  , RenderGL::SampleStage , EStageGroup::GraphicsTest),
 	STAGE_INFO("GLGraphics2D Test"   , GLGraphics2DTestStage , EStageGroup::GraphicsTest) ,
 	STAGE_INFO("B-Spline Test"   , BSplineTestStage , EStageGroup::GraphicsTest) ,
 
@@ -60,6 +59,8 @@ StageInfo gPreRegisterStageGroup[] =
 	STAGE_INFO("Mario Test"        , Mario::TestStage , EStageGroup::Dev4) ,
 	STAGE_INFO("Shoot2D Test"      , Shoot2D::TestStage , EStageGroup::Dev4) ,
 	STAGE_INFO("Go Test"           , Go::Stage , EStageGroup::Dev4) ,
+
+	STAGE_INFO("Shader Test"  , RenderGL::SampleStage , EStageGroup::FeatureDev,10),
 };
 
 #undef INFO

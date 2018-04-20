@@ -72,6 +72,10 @@ public:
 	{
 		mColorPen = color;
 	}
+	void  setPen(Color3f const& color)
+	{
+		mColorPen = color;
+	}
 	void  setPen( Color3ub const& color , int width  )  
 	{
 		mColorPen = color;
@@ -85,7 +89,10 @@ public:
 	{  
 		mColorBrush = color;
 	}
-
+	void  setBrush(Color3f const& color)
+	{
+		mColorBrush = color;
+	}
 	void  beginBlend( Vector2 const& pos , Vector2 const& size , float alpha );
 	void  endBlend();
 
@@ -135,10 +142,11 @@ private:
 	int       mWidth;
 	int       mHeight;
 
-	Color3ub mColorPen;
-	Color3ub mColorBrush;
-	Color3ub mColorFont;
-	uint8     mAlpha;
+	Color3f   mColorPen;
+	Color3f   mColorBrush;
+	Color3f   mColorFont;
+	float     mAlpha;
+
 	unsigned  mWidthPen;
 	bool      mDrawBrush;
 	bool      mDrawPen;

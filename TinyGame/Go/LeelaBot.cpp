@@ -34,10 +34,10 @@ namespace Go
 	public:
 		int32 mNumNewRead = 0;
 		int   mNumUsed = 0;
-		char  mBuffer[1024];
+		char  mBuffer[2048];
 
 		bool  bNeedRead = true;
-
+		bool  bLogMsg = true;
 		Mutex mMutexBuffer;
 		ConditionVariable mBufferProcessedCV;
 
@@ -184,7 +184,6 @@ namespace Go
 		bool bEngineStart = false;
 		int  curStep = 0;
 
-
 		std::string lastNetworkName;
 		std::string blackNetworkName;
 		std::string whiteNetworkName;
@@ -287,7 +286,11 @@ namespace Go
 						if( num )
 						{
 							FixString< 512 > str{ cur , num };
-							LogMsgF("%s", str.c_str());
+							if( bLogMsg )
+							{
+								LogMsgF("%s", str.c_str());
+							}
+
 							if( StartWith(str , STR_SCORE) )
 							{
 								char const* strResult = FStringParse::SkipSpace(str.c_str() + StrLen(STR_SCORE) );
@@ -322,7 +325,10 @@ namespace Go
 							--num;
 						}
 						FixString< 512 > str{ cur , num };
-						LogMsgF(str.c_str());
+						if( bLogMsg )
+						{
+							LogMsgF(str.c_str());
+						}
 
 						if( StartWith(str, STR_NET) )
 						{
@@ -432,7 +438,7 @@ namespace Go
 				*pLineEnd = 0;
 				if( pData != pLineEnd )
 				{
-					if( bShowDiagnosticOutput )
+					if( bLogMsg )
 					{
 						LogMsgF("GTP: %s ", pData);
 					}
@@ -469,12 +475,19 @@ namespace Go
 		bool parseLine(char* buffer, int num)
 		{
 			//LogMsgF("%s", buffer);
+
+			GTPCommand com = getHeadRequest();
+			if( com.id != GTPCommand::eNone && bDumping == false )
+			{
+				bDumping = true;
+				dumpCommandMsgBegin(com);
+			}
+
 			char const* cur = buffer;
 			if( *cur == '=' )
 			{
 				cur = FStringParse::SkipSpace(cur + 1);
 
-				GTPCommand com = getHeadRequest();
 				switch( com.id )
 				{
 				case GTPCommand::eGenmove:
@@ -487,6 +500,14 @@ namespace Go
 					}
 					break;
 				case GTPCommand::ePlay:
+					break;
+				case GTPCommand::eUndo:
+					if( com.meta )
+					{
+						GameCommand gameCom;
+						gameCom.id = GameCommand::eUndo;
+						addOutputCommand(gameCom);
+					}
 					break;
 				case GTPCommand::eHandicap:
 					for( ;;)
@@ -526,7 +547,6 @@ namespace Go
 			}
 			else if( *cur == '?' )
 			{
-				GTPCommand com = getHeadRequest();
 				cur = FStringParse::SkipSpace(cur + 1);
 				//error operator handled
 
@@ -541,12 +561,6 @@ namespace Go
 			}
 			else
 			{
-				GTPCommand com = getHeadRequest();
-				if( bDumping == false )
-				{
-					bDumping = true;
-					dumpCommandMsgBegin(com);
-				}
 				procDumpCommandMsg( com , buffer , num );
 			}
 
@@ -557,51 +571,57 @@ namespace Go
 	};
 
 
-	
 	class LeelaOutputThread : public GTPOutputThread
 	{
 	public:
 
-		struct ThinkInfo
-		{
-			int   v;
-			int   nodeVisited;
-			float winRate;
-			float evalValue;
-			std::vector< int > vSeq;
-		};
 
-
-		std::vector< ThinkInfo > thinkResults;
+		LeelaThinkInfoVec thinkResults[2];
+		int  indexResultWrite = 0;
 
 		virtual void dumpCommandMsgBegin(GTPCommand com) 
 		{
 			switch( com.id )
 			{
-			case Go::GTPCommand::eKomi:
+			case GTPCommand::eKomi:
 				break;
-			case Go::GTPCommand::eHandicap:
+			case GTPCommand::eHandicap:
 				break;
-			case Go::GTPCommand::ePlay:
+			case GTPCommand::ePlay:
 				break;
-			case Go::GTPCommand::eGenmove:
-				thinkResults.clear();
+			case GTPCommand::eGenmove:
+			case GTPCommand::eStopPonder:
+				//LogMsg("Clear Think Result");
+				indexResultWrite = 1 - indexResultWrite;
+				thinkResults[indexResultWrite].clear();
 				break;
-			case Go::GTPCommand::ePass:
+			case GTPCommand::ePass:
 				break;
-			case Go::GTPCommand::eUndo:
+			case GTPCommand::eUndo:
 				break;
-			case Go::GTPCommand::eQuit:
+			case GTPCommand::eQuit:
 				break;
+
 			default:
 				break;
 			}
 		}
 
-		virtual void dumpCommandMsgEnd(GTPCommand com) {}
+		virtual void dumpCommandMsgEnd(GTPCommand com) 
+		{
+			switch( com.id )
+			{
+			case GTPCommand::eStopPonder:
+				{
+					//LogMsg("Send Think Result");
+					sendUsageThinkResult();
+				}
+				break;
+			}
+		}
 
 
-		static int GetVertex(FixString<128>  const& coord)
+		static int GetVertex(FixString<128> const& coord)
 		{
 			int vertex = -3;
 
@@ -621,10 +641,112 @@ namespace Go
 			return vertex;
 		}
 
+		static int ReadVertex(char const* buffer , int& outRead)
+		{
+			int vertex = -3;
+
+			uint8 pos[2];
+			if( strcmp( buffer , "Pass" ) ==  0 )
+			{
+				outRead = 4;
+				vertex = -1;
+			}
+			else if( strcmp( buffer , "Resign") == 0 )
+			{
+				outRead = 6;
+				vertex = -2;
+			}
+			outRead = Go::ReadCoord(buffer, pos);
+			if ( outRead )
+			{
+				vertex = LeelaGoSize * pos[1] + pos[0];
+			}
+			return vertex;
+		}
+
+		bool readThinkInfo(char* buffer, int num)
+		{
+			FixString<128>  coord;
+			int   nodeVisited;
+			float winRate;
+			float evalValue;
+			int   playout;
+			int numRead;
+
+			if( sscanf(buffer, "%s -> %d (V: %f%%) (N: %f%%)%n", coord.data(), &nodeVisited, &winRate, &evalValue, &numRead) != 4 )
+				return false;
+
+			int vertex = GetVertex(coord);
+			if( vertex == -3 )
+			{
+				//LogWarningF(0, "Error Think Str = %s", buffer);
+				//return;
+			}
+
+			LeelaThinkInfo info;
+			info.v = vertex;
+			info.nodeVisited = nodeVisited;
+			info.winRate = winRate;
+			info.evalValue = evalValue;
+			char const* vBuffer = buffer + numRead + StrLen(" PV:");
+			vBuffer = FStringParse::SkipSpace(vBuffer);
+
+			while( *vBuffer != 0 )
+			{
+				int v = ReadVertex(vBuffer, numRead);
+				if( numRead == 0 )
+					break;
+
+				info.vSeq.push_back(v);
+				vBuffer = FStringParse::SkipSpace(vBuffer + numRead);
+			}
+			thinkResults[indexResultWrite].push_back(info);
+			return true;
+		}
+
+		void sendUsageThinkResult()
+		{
+			LeelaThinkInfoVec* ptr = &thinkResults[indexResultWrite];
+			GameCommand paramCom;
+			paramCom.setParam(LeelaGameParam::eThinkResult, ptr);
+			addOutputCommand(paramCom);
+		}
+
+#if USE_MODIFY_LEELA_PROGRAM
+		bool bRecvThinkInfo = false;
+#endif
 		virtual void procDumpCommandMsg(GTPCommand com, char* buffer, int num)
 		{
 			switch( com.id )
 			{
+#if USE_MODIFY_LEELA_PROGRAM
+			case GTPCommand::eNone:
+				{
+					if( bRecvThinkInfo )
+					{
+						if( strcmp(buffer, "~end") == 0 )
+						{
+							sendUsageThinkResult();
+							bRecvThinkInfo = false;
+						}
+						else if( readThinkInfo(buffer, num) )
+						{
+
+						}
+					}
+					else 
+					{
+						if( strcmp(buffer, "~begin") == 0 )
+						{
+							indexResultWrite = 1 - indexResultWrite;
+							thinkResults[indexResultWrite].clear();
+							bRecvThinkInfo = true;
+						}
+					}
+				}
+				break;
+#endif
+			case GTPCommand::eStopPonder:
 			case GTPCommand::eGenmove:
 				{
 					FixString<128>  coord;
@@ -632,6 +754,7 @@ namespace Go
 					float winRate;
 					float evalValue;
 					int   playout;
+					int numRead;
 					if( sscanf( buffer , "Playouts: %d, Win: %f%% , PV: %s" , &playout , &winRate , coord.data() ) == 3 )
 					{
 						int vertex = GetVertex(coord);
@@ -646,24 +769,10 @@ namespace Go
 						addOutputCommand(com);
 
 					}
-					else if( sscanf(buffer, "%s -> %d (V: %f%%) (N: %f%%)", coord.data() , &nodeVisited , &winRate , &evalValue ) == 4 )
+					else if( readThinkInfo( buffer , num ) )
 					{
-						int vertex = GetVertex( coord );
-						if ( vertex == -3 )
-						{
-							LogWarningF(0, "Error Think Str = %s", buffer);
-							return;
-						}
 
-						ThinkInfo info;
-						info.v = vertex;
-						info.nodeVisited = nodeVisited;
-						info.winRate = winRate;
-						info.evalValue = evalValue;
-						thinkResults.push_back(info);
 					}
-
-
 				}
 				break;
 			}
@@ -673,16 +782,26 @@ namespace Go
 		{
 			switch( com.id )
 			{
+			case GTPCommand::eStopPonder:
 			case GTPCommand::eGenmove:
-				auto iter = std::max_element(thinkResults.begin(), thinkResults.end(), 
+				auto iter = std::max_element(
+					thinkResults[ indexResultWrite ].begin(), 
+					thinkResults[ indexResultWrite ].end(), 
 					[](auto const& a, auto const& b) { return a.winRate < b.winRate; });
 
-				if ( iter != thinkResults.end() )
+				if ( iter != thinkResults[ indexResultWrite ].end() )
 				{
 					GameCommand paramCom;
 					paramCom.setParam(LeelaGameParam::eWinRate, iter->winRate);
 					addOutputCommand(paramCom);
 				}
+
+				{
+					GameCommand paramCom;
+					paramCom.setParam(LeelaGameParam::eThinkResult, &thinkResults[indexResultWrite]);
+					addOutputCommand(paramCom);
+				}
+				break;
 			}
 
 		}
@@ -727,6 +846,16 @@ namespace Go
 		return inputCommand(com, { GTPCommand::ePlay , color });
 	}
 
+	bool GTPLikeAppRun::addStone(int x, int y, int color)
+	{
+		FixString<128> com;
+		char coord = 'A' + x;
+		if( coord >= 'I' )
+			++coord;
+		com.format("play %c %c%d\n", (color == StoneColor::eBlack ? 'b' : 'w'), coord, y + 1);
+		return inputCommand(com, { GTPCommand::eAdd , color });
+	}
+
 	bool GTPLikeAppRun::playPass()
 	{
 		FixString<128> com;
@@ -746,7 +875,12 @@ namespace Go
 		return inputCommand("undo\n", { GTPCommand::eUndo , 0 });
 	}
 
-	bool GTPLikeAppRun::setupGame(GameSetting const& setting )
+	bool GTPLikeAppRun::requestUndo()
+	{
+		return inputCommand("undo\n", { GTPCommand::eUndo , 1 });
+	}
+
+	bool GTPLikeAppRun::setupGame(GameSetting const& setting)
 	{
 		FixString<128> com;
 		com.format("komi %.1f\n", setting.komi);
@@ -830,7 +964,7 @@ namespace Go
 		return result;
 	}
 
-	std::string LeelaAppRun::GetDesiredWeightName()
+	std::string LeelaAppRun::GetBestWeightName()
 	{
 		char const* name;
 		if( ::Global::GameConfig().tryGetStringValue("LeelaLastNetWeight", "Go", name) )
@@ -866,16 +1000,36 @@ namespace Go
 	bool LeelaAppRun::buildAnalysisGame()
 	{
 		LeelaAISetting setting;
-		std::string weightName = LeelaAppRun::GetLastWeightName();
+		std::string weightName = LeelaAppRun::GetBestWeightName();
 		setting.weightName = weightName.c_str();
+		setting.bNoise = false;
 		setting.seed = generateRandSeed();
 		setting.bNoPonder = false;
 		setting.playouts = 0;
 		setting.visits = 0;
 		setting.randomcnt = 0;
 		setting.resignpct = 0;
-		return buildPlayGame(setting);
+		bool result = buildPlayGame(setting);
+		if( result )
+		{
+			static_cast<LeelaOutputThread*>(outputThread)->bLogMsg = false;
+		}
+
+		return result;
 	}
+
+	void LeelaAppRun::startPonder(int color )
+	{
+		FixString<128> com;
+		com.format("time_left %c 0 0\n", color == StoneColor::eBlack ? 'b' : 'w');
+		inputCommand(com, { GTPCommand::eStartPonder , 0 });
+	}
+
+	void LeelaAppRun::stopPonder()
+	{
+		inputCommand("name\n", { GTPCommand::eStopPonder , 0 });
+	}
+
 
 	bool LeelaBot::initilize(void* settingData)
 	{
@@ -887,7 +1041,7 @@ namespace Go
 		else
 		{
 			LeelaAISetting setting = LeelaAISetting::GetDefalut();
-			std::string weightName = LeelaAppRun::GetLastWeightName();
+			std::string weightName = LeelaAppRun::GetBestWeightName();
 			setting.weightName = weightName.c_str();
 			if( !mAI.buildPlayGame(setting) )
 				return false;
@@ -910,7 +1064,7 @@ namespace Go
 		if( !mAI.buildPlayGame() )
 			return false;
 
-		static_cast<GTPOutputThread*>(mAI.outputThread)->bShowDiagnosticOutput = false;
+		static_cast<GTPOutputThread*>(mAI.outputThread)->bLogMsg = false;
 		return true;
 	}
 

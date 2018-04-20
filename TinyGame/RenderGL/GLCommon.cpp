@@ -315,14 +315,14 @@ namespace RenderGL
 			glBindVertexArray(mVAO);
 
 			mVertexBuffer->bind();
-			mDecl.beginVAOSetup();
+			mDecl.bindAttrib();
 			if( mIndexBuffer )
 				mIndexBuffer->bind();
 			glBindVertexArray(0);
 			mVertexBuffer->unbind();
 			if( mIndexBuffer )
 				mIndexBuffer->unbind();
-			mDecl.endVAOSetup();
+			mDecl.unbindAttrib();
 		}
 		glBindVertexArray(mVAO);
 	}
@@ -408,7 +408,7 @@ namespace RenderGL
 			glClientActiveTexture( GL_TEXTURE0 );
 	}
 
-	void VertexDecl::beginVAOSetup()
+	void VertexDecl::bindAttrib()
 	{
 		for( VertexElement& info : mInfoVec )
 		{
@@ -417,7 +417,7 @@ namespace RenderGL
 		}
 	}
 
-	void VertexDecl::endVAOSetup()
+	void VertexDecl::unbindAttrib()
 	{
 		for( VertexElement& info : mInfoVec )
 		{
@@ -564,7 +564,7 @@ namespace RenderGL
 	}
 
 
-	bool RHITexture2D::create(Texture::Format format, int width, int height, void* data , int alignment )
+	bool RHITexture2D::create(Texture::Format format, int width, int height, int numMipLevel, void* data , int alignment )
 	{
 		if( !fetchHandle() )
 			return false;
@@ -575,7 +575,8 @@ namespace RenderGL
 		glBindTexture(GL_TEXTURE_2D, mHandle);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
+		if ( numMipLevel )
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, numMipLevel - 1);
 		if ( alignment && alignment != GLDefalutUnpackAlignment )
 		{
 			glPixelStorei(GL_UNPACK_ALIGNMENT, alignment);
@@ -623,8 +624,32 @@ namespace RenderGL
 	bool RHITexture2D::update(int ox, int oy, int w, int h, Texture::Format format , void* data , int level )
 	{
 		bind();
-		glTexSubImage2D(GL_TEXTURE_2D, level, ox, oy, w, h, Texture::GetPixelFormat(format) , Texture::GetComponentType(format), data);
+		glTexSubImage2D(GL_TEXTURE_2D, level, ox, oy, w, h, Texture::GetPixelFormat(format), Texture::GetComponentType(format), data);
 		bool result = checkGLError();
+		unbind();
+		return result;
+	}
+
+	bool RHITexture2D::update(int ox, int oy, int w, int h, Texture::Format format, int pixelStride, void* data, int level /*= 0 */)
+	{
+		bind();
+#if 1
+		::glPixelStorei(GL_UNPACK_ROW_LENGTH, pixelStride);
+		glTexSubImage2D(GL_TEXTURE_2D, level, ox, oy, w, h, Texture::GetPixelFormat(format), Texture::GetComponentType(format), data);
+		bool result = checkGLError();
+		::glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
+#else
+		GLenum formatGL = Texture::GetPixelFormat(format);
+		GLenum typeGL = Texture::GetComponentType(format);
+		uint8* pData = (uint8*)data;
+		int dataStride = pixelStride * Texture::GetFormatSize(format);
+		for( int dy = 0; dy < h; ++dy )
+		{
+			glTexSubImage2D(GL_TEXTURE_2D, level, ox, oy+dy , w, 1, formatGL , typeGL,pData);
+			pData += dataStride;
+		}
+		bool result = checkGLError();
+#endif
 		unbind();
 		return result;
 	}

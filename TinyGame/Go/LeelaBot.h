@@ -9,6 +9,8 @@
 
 #define LEELA_NET_DIR "networks/"
 
+#define USE_MODIFY_LEELA_PROGRAM 1
+
 namespace Go
 {
 	int constexpr LeelaGoSize = 19;
@@ -20,9 +22,10 @@ namespace Go
 			eJobMode,
 			eLastNetWeight,
 			eMatchChallengerColor,
-			eWinRate ,
+			eWinRate,
 
-			eBestMoveVertex ,
+			eBestMoveVertex,
+			eThinkResult ,
 		};
 	}
 
@@ -35,11 +38,15 @@ namespace Go
 			eHandicap,
 			eRestart ,
 			ePlay,
+			eAdd ,
 			eGenmove,
 			ePass,
 			eUndo,
 			eFinalScore ,
 			eQuit,
+
+			eStartPonder ,
+			eStopPonder ,
 		};
 
 		Id  id;
@@ -102,9 +109,11 @@ namespace Go
 
 		bool restart();
 		bool playStone(int x , int y, int color);
+		bool addStone(int x, int y, int color);
 		bool playPass();
 		bool thinkNextMove(int color);
 		bool undo();
+		bool requestUndo();
 		bool setupGame(GameSetting const& setting);
 		bool showResult();
 
@@ -194,15 +203,33 @@ namespace Go
 		}
 	};
 
+
+
+	struct LeelaThinkInfo
+	{
+		int   v;
+		int   nodeVisited;
+		float winRate;
+		float evalValue;
+		std::vector< int > vSeq;
+	};
+
+	typedef std::vector< LeelaThinkInfo >  LeelaThinkInfoVec;
+
 	struct LeelaAppRun : public GTPLikeAppRun
 	{
 		static char const* InstallDir;
 
 		static std::string GetLastWeightName();
-		static std::string GetDesiredWeightName();
+		static std::string GetBestWeightName();
+
 		bool buildLearningGame();
 		bool buildPlayGame(LeelaAISetting const& setting);
 		bool buildAnalysisGame();
+
+		void startPonder(int color);
+		void stopPonder();
+
 	};
 
 
@@ -233,6 +260,10 @@ namespace Go
 		virtual bool undo() override
 		{
 			return mAI.undo();
+		}
+		virtual bool requestUndo() override
+		{
+			return mAI.requestUndo();
 		}
 		virtual bool thinkNextMove(int color) override
 		{
@@ -265,6 +296,7 @@ namespace Go
 	{
 	public:
 		virtual bool initilize(void* settingData) override;
+		virtual bool isGPUBased() const override { return true; }
 
 	};
 
@@ -282,6 +314,7 @@ namespace Go
 	{
 	public:
 		virtual bool initilize(void* settingData) override;
+		virtual bool isGPUBased() const override { return true; }
 	};
 
 }//namespace Go

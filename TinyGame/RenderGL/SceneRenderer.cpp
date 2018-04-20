@@ -111,12 +111,12 @@ namespace RenderGL
 		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
 		mShadowMap->unbind();
 
-		mShadowMap2 = RHICreateTexture2D();
-		if( !mShadowMap2->create(Texture::eFloatRGBA, ShadowTextureSize, ShadowTextureSize) )
+		mShadowMap2 = RHICreateTexture2D(Texture::eFloatRGBA, ShadowTextureSize, ShadowTextureSize);
+		if( !mShadowMap2.isValid() )
 			return false;
 
-		mCascadeTexture = RHICreateTexture2D();
-		if( !mCascadeTexture->create(Texture::eFloatRGBA, CascadeTextureSize * CascadedShadowNum, CascadeTextureSize) )
+		mCascadeTexture = RHICreateTexture2D(Texture::eFloatRGBA, CascadeTextureSize * CascadedShadowNum, CascadeTextureSize);
+		if( !mCascadeTexture.isValid() )
 			return false;
 
 		int sizeX = Math::Max(CascadedShadowNum * CascadeTextureSize, ShadowTextureSize);
@@ -169,13 +169,13 @@ namespace RenderGL
 		switch( type )
 		{
 		case LightType::Spot:
-			ShaderHelper::DrawTexture(*mShadowMap2, pos, Vec2i(length, length));
+			DrawUtility::DrawTexture(*mShadowMap2, pos, Vec2i(length, length));
 			break;
 		case LightType::Directional:
-			ShaderHelper::DrawTexture(*mCascadeTexture, pos, Vec2i(length * CascadedShadowNum, length));
+			DrawUtility::DrawTexture(*mCascadeTexture, pos, Vec2i(length * CascadedShadowNum, length));
 			break;
 		case LightType::Point:
-			ShaderHelper::DrawCubeTexture(*mShadowMap, pos, length / 2);
+			DrawUtility::DrawCubeTexture(*mShadowMap, pos, length / 2);
 			//ShaderHelper::drawCubeTexture(GWhiteTextureCube, Vec2i(0, 0), length / 2);
 		default:
 			break;
@@ -805,7 +805,7 @@ namespace RenderGL
 
 	void GBufferParamData::drawTexture(int x, int y, int width, int height, int idxBuffer)
 	{
-		ShaderHelper::DrawTexture(*textures[idxBuffer], Vec2i(x, y), Vec2i(width, height));
+		DrawUtility::DrawTexture(*textures[idxBuffer], Vec2i(x, y), Vec2i(width, height));
 	}
 
 	void GBufferParamData::drawTexture(int x, int y, int width, int height, int idxBuffer, Vector4 const& colorMask)
@@ -815,6 +815,92 @@ namespace RenderGL
 		ShaderHelper::Get().copyTextureMaskToBuffer(*textures[idxBuffer], colorMask);
 	}
 
+	class SSAOGenerateProgram : public GlobalShaderProgram
+	{
+		DECLARE_GLOBAL_SHADER(SSAOGenerateProgram)
+
+		static void SetupShaderCompileOption(ShaderCompileOption&) {}
+		static char const* GetShaderFileName()
+		{
+			return "Shader/SSAO";
+		}
+		static ShaderEntryInfo const* GetShaderEntries()
+		{
+			static ShaderEntryInfo const entries[] =
+			{
+				{ Shader::eVertex , SHADER_ENTRY(ScreenVS) },
+				{ Shader::ePixel  , SHADER_ENTRY(GeneratePS) },
+				{ Shader::eEmpty  , nullptr },
+			};
+			return entries;
+		}
+	public:
+		void bindParameters();
+		void setParameters(SceneRenderTargets& sceneRenderTargets, Vector3 kernelVectors[], int numKernelVector);
+
+		GBufferShaderParameters mParamGBuffer;
+		ShaderParameter mParamKernelNum;
+		ShaderParameter mParamKernelVectors;
+		ShaderParameter mParamOcclusionRadius;
+	};
+
+	IMPLEMENT_GLOBAL_SHADER(SSAOGenerateProgram)
+
+	class SSAOBlurProgram : public GlobalShaderProgram
+	{
+		DECLARE_GLOBAL_SHADER(SSAOBlurProgram)
+
+		static void SetupShaderCompileOption(ShaderCompileOption&) {}
+		static char const* GetShaderFileName()
+		{
+			return "Shader/SSAO";
+		}
+		static ShaderEntryInfo const* GetShaderEntries()
+		{
+			static ShaderEntryInfo const entries[] =
+			{
+				{ Shader::eVertex , SHADER_ENTRY(ScreenVS) },
+				{ Shader::ePixel  , SHADER_ENTRY(BlurPS) },
+				{ Shader::eEmpty  , nullptr },
+			};
+			return entries;
+		}
+	public:
+		void bindParameters();
+		void setParameters(RHITexture2D& SSAOTexture);
+
+		ShaderParameter mParamTextureSSAO;
+	};
+
+	IMPLEMENT_GLOBAL_SHADER(SSAOBlurProgram)
+
+	class SSAOAmbientProgram : public GlobalShaderProgram
+	{
+		DECLARE_GLOBAL_SHADER(SSAOAmbientProgram)
+		static void SetupShaderCompileOption(ShaderCompileOption&) {}
+		static char const* GetShaderFileName()
+		{
+			return "Shader/SSAO";
+		}
+		static ShaderEntryInfo const* GetShaderEntries()
+		{
+			static ShaderEntryInfo const entries[] =
+			{
+				{ Shader::eVertex , SHADER_ENTRY(ScreenVS) },
+				{ Shader::ePixel  , SHADER_ENTRY(AmbientPS) },
+				{ Shader::eEmpty  , nullptr },
+			};
+			return entries;
+		}
+	public:
+		void bindParameters();
+		void setParameters(SceneRenderTargets& sceneRenderTargets, RHITexture2D& SSAOTexture);
+
+		GBufferShaderParameters mParamGBuffer;
+		ShaderParameter mParamTextureSSAO;
+	};
+
+	IMPLEMENT_GLOBAL_SHADER(SSAOAmbientProgram)
 
 	bool PostProcessSSAO::init(Vec2i const& size)
 	{
@@ -847,19 +933,14 @@ namespace RenderGL
 
 		mFrameBuffer.addTexture(*mSSAOTexture);
 
-		if( !ShaderManager::Get().loadFile(
-			mSSAOShader ,"Shader/SSAO",
-			SHADER_ENTRY(ScreenVS), SHADER_ENTRY(GeneratePS)) )
+		mProgSSAOGenerate = ShaderManager::Get().getGlobalShaderT< SSAOGenerateProgram >(true);
+		if( mProgSSAOGenerate == nullptr )
 			return false;
-
-		if( !ShaderManager::Get().loadFile(
-			mSSAOBlurShader ,"Shader/SSAO",
-			SHADER_ENTRY(ScreenVS), SHADER_ENTRY(BlurPS)) )
+		mProgSSAOBlur = ShaderManager::Get().getGlobalShaderT< SSAOBlurProgram >(true);
+		if( mProgSSAOBlur == nullptr )
 			return false;
-
-		if( !ShaderManager::Get().loadFile(
-			mAmbientShader ,"Shader/SSAO",
-			SHADER_ENTRY(ScreenVS), SHADER_ENTRY(AmbientPS)) )
+		mProgAmbient = ShaderManager::Get().getGlobalShaderT< SSAOAmbientProgram >(true);
+		if( mProgAmbient == nullptr )
 			return false;
 
 		generateKernelVectors(NumDefaultKernel);
@@ -874,9 +955,9 @@ namespace RenderGL
 			GPU_PROFILE("SSAO-Generate");
 			mFrameBuffer.setTexture(0, *mSSAOTexture);
 			GL_BIND_LOCK_OBJECT(mFrameBuffer);
-			GL_BIND_LOCK_OBJECT(mSSAOShader);
-			view.setupShader(mSSAOShader);
-			mSSAOShader.setParameters( sceneRenderTargets , &mKernelVectors[0], mKernelVectors.size());
+			GL_BIND_LOCK_OBJECT(mProgSSAOGenerate);
+			view.setupShader(*mProgSSAOGenerate);
+			mProgSSAOGenerate->setParameters( sceneRenderTargets , &mKernelVectors[0], mKernelVectors.size());
 			DrawUtility::ScreenRectShader();
 		}
 
@@ -885,8 +966,8 @@ namespace RenderGL
 			GPU_PROFILE("SSAO-Blur");
 			mFrameBuffer.setTexture(0, *mSSAOTextureBlur);
 			GL_BIND_LOCK_OBJECT(mFrameBuffer);
-			GL_BIND_LOCK_OBJECT(mSSAOBlurShader);
-			mSSAOBlurShader.setParameters(*mSSAOTexture);
+			GL_BIND_LOCK_OBJECT(mProgSSAOBlur);
+			mProgSSAOBlur->setParameters(*mSSAOTexture);
 			DrawUtility::ScreenRectShader();
 		}
 
@@ -896,19 +977,24 @@ namespace RenderGL
 			glEnable(GL_BLEND);
 			glBlendFunc(GL_ONE, GL_ONE);
 			GL_BIND_LOCK_OBJECT(sceneRenderTargets.getFrameBuffer());
-			GL_BIND_LOCK_OBJECT(mAmbientShader);
-			mAmbientShader.setParameters(sceneRenderTargets, *mSSAOTextureBlur);
+			GL_BIND_LOCK_OBJECT(mProgAmbient);
+			mProgAmbient->setParameters(sceneRenderTargets, *mSSAOTextureBlur);
 			DrawUtility::ScreenRectShader();
 			glDisable(GL_BLEND);
 		}
 		glEnable(GL_DEPTH_TEST);
 	}
 
+	void PostProcessSSAO::drawSSAOTexture(Vec2i const& pos, Vec2i const& size)
+	{
+		DrawUtility::DrawTexture(*mSSAOTextureBlur, pos, size);
+	}
+
 	void PostProcessSSAO::reload()
 	{
-		ShaderManager::Get().reloadShader(mSSAOShader);
-		ShaderManager::Get().reloadShader(mSSAOBlurShader);
-		ShaderManager::Get().reloadShader(mAmbientShader);
+		ShaderManager::Get().reloadShader(*mProgSSAOGenerate);
+		ShaderManager::Get().reloadShader(*mProgSSAOBlur);
+		ShaderManager::Get().reloadShader(*mProgAmbient);
 	}
 
 	void ShadowProjectParam::setupLight(LightInfo const& inLight)
@@ -1097,7 +1183,7 @@ namespace RenderGL
 			MatrixSaveScope matScope(matProj);
 
 			glDisable(GL_DEPTH_TEST);
-			ShaderHelper::DrawTexture(*mColorStorageTexture, Vec2i(0, 0), Vec2i(200, 200));
+			DrawUtility::DrawTexture(*mColorStorageTexture, Vec2i(0, 0), Vec2i(200, 200));
 			glEnable(GL_DEPTH_TEST);
 			glMemoryBarrier(GL_ALL_BARRIER_BITS);
 
@@ -1156,7 +1242,7 @@ namespace RenderGL
 			MatrixSaveScope matScope(matProj);
 
 			glDisable(GL_DEPTH_TEST);
-			ShaderHelper::DrawTexture(*mColorStorageTexture, Vec2i(0, 0), Vec2i(200,200));
+			DrawUtility::DrawTexture(*mColorStorageTexture, Vec2i(0, 0), Vec2i(200,200));
 			glEnable(GL_DEPTH_TEST);
 			glMemoryBarrier(GL_ALL_BARRIER_BITS);
 

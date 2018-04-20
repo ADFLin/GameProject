@@ -269,12 +269,12 @@ void DrawEngine::setupBuffer( int w , int h )
 		bmpInfo.bmiHeader.biYPelsPerMeter = 0;
 		bmpInfo.bmiHeader.biSizeImage = 0;
 
-		if ( !mBufferDC->create( getWindow().getHDC() , &bmpInfo ) )
+		if ( !mBufferDC->Initialize( getWindow().getHDC() , &bmpInfo ) )
 			return;
 	}
 	else
 	{
-		mBufferDC->create( getWindow().getHDC() , w , h );
+		mBufferDC->Initialize( getWindow().getHDC() , w , h );
 	}
 
 	mScreenGraphics->setTargetDC( mBufferDC->getDC() );

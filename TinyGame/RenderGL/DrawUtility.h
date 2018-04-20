@@ -27,36 +27,30 @@ namespace RenderGL
 
 	static_assert(RTS_ELEMENT_BIT_OFFSET * (RTS_MAX - 1) <= sizeof(uint32) * 8, "RenderRTSemantic Can't Support ");
 
-	enum RenderRTElementUsage
-	{
-		RTEU_XY = RTS_ELEMENT(RTS_Position, 2),
-		RTEU_XYZ = RTS_ELEMENT(RTS_Position, 3),
-		RTEU_XYZW = RTS_ELEMENT(RTS_Position, 4),
-		RTEU_N = RTS_ELEMENT(RTS_Normal, 3),
-		RTEU_C = RTS_ELEMENT(RTS_Color, 3),
-		RTEU_CA = RTS_ELEMENT(RTS_Color, 4),
-		RTEU_TEX_UV = RTS_ELEMENT(RTS_Texcoord, 2),
-		RTEU_TEX_UVW = RTS_ELEMENT(RTS_Texcoord, 3),
-	};
-
 	enum RenderRTVertexFormat
 	{
-		RTVF_XYZ = RTEU_XYZ,
-		RTVF_XYZ_C = RTEU_XYZ | RTEU_C,
-		RTVF_XYZ_N_C = RTEU_XYZ | RTEU_N | RTEU_C,
-		RTVF_XYZ_N_C_T2 = RTEU_XYZ | RTEU_N | RTEU_C | RTEU_TEX_UV,
-		RTVF_XYZ_C_T2 = RTEU_XYZ | RTEU_C | RTEU_TEX_UV,
-		RTVF_XYZ_N = RTEU_XYZ | RTEU_N,
-		RTVF_XYZ_N_T2 = RTEU_XYZ | RTEU_N | RTEU_TEX_UV,
-		RTVF_XYZ_T2 = RTEU_XYZ | RTEU_TEX_UV,
+		RTVF_XY = RTS_ELEMENT(RTS_Position, 2),
+		RTVF_XYZ = RTS_ELEMENT(RTS_Position, 3),
+		RTVF_XYZW = RTS_ELEMENT(RTS_Position, 4),
+		RTVF_N = RTS_ELEMENT(RTS_Normal, 3),
+		RTVF_C = RTS_ELEMENT(RTS_Color, 3),
+		RTVF_CA = RTS_ELEMENT(RTS_Color, 4),
+		RTVF_TEX_UV = RTS_ELEMENT(RTS_Texcoord, 2),
+		RTVF_TEX_UVW = RTS_ELEMENT(RTS_Texcoord, 3),
 
-		RTVF_XYZW_T2 = RTEU_XYZW | RTEU_TEX_UV,
-		RTVF_XY = RTEU_XY,
-		RTVF_XY_T2 = RTEU_XY | RTEU_TEX_UV,
-		RTVF_XY_CA_T2 = RTEU_XY | RTEU_CA | RTEU_TEX_UV,
+		RTVF_XYZ_C = RTVF_XYZ | RTVF_C,
+		RTVF_XYZ_N_C = RTVF_XYZ | RTVF_N | RTVF_C,
+		RTVF_XYZ_N_C_T2 = RTVF_XYZ | RTVF_N | RTVF_C | RTVF_TEX_UV,
+		RTVF_XYZ_C_T2 = RTVF_XYZ | RTVF_C | RTVF_TEX_UV,
+		RTVF_XYZ_N = RTVF_XYZ | RTVF_N,
+		RTVF_XYZ_N_T2 = RTVF_XYZ | RTVF_N | RTVF_TEX_UV,
+		RTVF_XYZ_T2 = RTVF_XYZ | RTVF_TEX_UV,
+
+		RTVF_XYZW_T2 = RTVF_XYZW | RTVF_TEX_UV,
+		RTVF_XY_T2 = RTVF_XY | RTVF_TEX_UV,
+		RTVF_XY_CA_T2 = RTVF_XY | RTVF_CA | RTVF_TEX_UV,
 	};
 
- 
 	template < uint32 value >
 	class TRenderRTVertexDecl
 	{
@@ -66,28 +60,32 @@ namespace RenderGL
 	class TRenderRT
 	{
 	public:
-		FORCEINLINE static void Draw(PrimitiveType type, void const* vtx, int nV, int vertexStride)
+		FORCEINLINE static void Draw(PrimitiveType type, void const* vetrices, int nV, int vertexStride = GetVertexSize())
 		{
-			BindVertexArray((float const*)vtx, vertexStride);
+			BindVertexArray((float const*)vetrices, vertexStride);
 			glDrawArrays( GLConvert::To(type), 0, nV);
 			UnbindVertexArray();
 		}
 
-		FORCEINLINE static void Draw(PrimitiveType type, void const* vtx, int nV)
+		FORCEINLINE static void DrawShader(PrimitiveType type, void const* vetrices, int nV, int vertexStride = GetVertexSize())
 		{
-			Draw(type, vtx, nV, GetVertexSize());
-		}
-
-		FORCEINLINE static void DrawShader(PrimitiveType type, void const* vtx, int nV, int vertexStride)
-		{
-			BindVertexAttrib((float const*)vtx, vertexStride);
+			BindVertexAttrib((float const*)vetrices, vertexStride);
 			glDrawArrays(GLConvert::To(type), 0, nV);
 			UnbindVertexAttrib();
 		}
 
-		FORCEINLINE static void DrawShader(PrimitiveType type, void const* vtx, int nV)
+		FORCEINLINE static void DrawIndexed(PrimitiveType type, void const* vetrices, int nV, int const* indices, int nIndex, int vertexStride = GetVertexSize())
 		{
-			DrawShader(type, vtx, nV, GetVertexSize());
+			BindVertexArray((float const*)vetrices, vertexStride);
+			glDrawElements(GLConvert::To(type), nIndex, GL_UNSIGNED_INT, indices);
+			UnbindVertexArray();
+		}
+
+		FORCEINLINE static void DrawIndexedShader(PrimitiveType type, void const* vetrices, int nV, int const* indices, int nIndex, int vertexStride = GetVertexSize())
+		{
+			BindVertexAttrib((float const*)vetrices, vertexStride);
+			glDrawElements(GLConvert::To(type), nIndex, GL_UNSIGNED_INT, indices);
+			UnbindVertexAttrib();
 		}
 
 		FORCEINLINE static int GetVertexSize()
@@ -212,12 +210,16 @@ namespace RenderGL
 
 		static void Rect(int x , int y , int width, int height);
 		static void Rect( int width, int height );
+		static void RectShader(int width, int height);
 		static void ScreenRect();
 		static void ScreenRectShader();
 
 		static void Sprite(Vector2 const& pos, Vector2 const& size, Vector2 const& pivot);
 		static void Sprite(Vector2 const& pos, Vector2 const& size, Vector2 const& pivot, Vec2i const& framePos, Vec2i const& frameDim);
 		static void Sprite(Vector2 const& pos, Vector2 const& size, Vector2 const& pivot, Vector2 const& texPos, Vector2 const& texSize);
+
+		static void DrawTexture(RHITexture2D& texture, Vec2i const& pos, Vec2i const& size);
+		static void DrawCubeTexture(RHITextureCube& texCube, Vec2i const& pos, int length);
 
 	};
 

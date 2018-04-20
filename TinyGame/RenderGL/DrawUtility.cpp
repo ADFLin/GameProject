@@ -107,6 +107,18 @@ namespace RenderGL
 		TRenderRT< RTVF_XY_T2 >::Draw(PrimitiveType::eQuad, vertices, 4);
 	}
 
+	void DrawUtility::RectShader(int width, int height)
+	{
+		VertexXY_T1 vertices[] =
+		{
+			{ Vector2(0 , 0) , Vector2(0,0) },
+			{ Vector2(width , 0) , Vector2(1,0) },
+			{ Vector2(width , height) , Vector2(1,1) },
+			{ Vector2(0 , height) , Vector2(0,1) },
+		};
+		TRenderRT< RTVF_XY_T2 >::DrawShader(PrimitiveType::eQuad, vertices, 4);
+	}
+
 	void DrawUtility::ScreenRect()
 	{
 		TRenderRT< RTVF_XYZW_T2 >::Draw(PrimitiveType::eQuad, GScreenVertices, 4);
@@ -147,6 +159,93 @@ namespace RenderGL
 		};
 
 		TRenderRT< RTVF_XY_T2 >::Draw(PrimitiveType::eQuad, vertices, 4);
+	}
+
+	void DrawUtility::DrawTexture(RHITexture2D& texture, Vec2i const& pos, Vec2i const& size)
+	{
+		glEnable(GL_TEXTURE_2D);
+		{
+			GL_BIND_LOCK_OBJECT(texture);
+			glColor3f(1, 1, 1);
+			DrawUtility::Rect(pos.x, pos.y, size.x, size.y);
+		}
+		glDisable(GL_TEXTURE_2D);
+	}
+
+	void DrawUtility::DrawCubeTexture(RHITextureCube& texCube, Vec2i const& pos, int length)
+	{
+		int offset = 10;
+
+		if( length == 0 )
+			length = 100;
+
+		struct MyVertex
+		{
+			Vector2 pos;
+			Vector3 uvw;
+		};
+
+		static Vector2 const posOffset[] =
+		{
+			Vector2(1 , 1),
+			Vector2(2 , 0),
+			Vector2(-1 ,0),
+			Vector2(-2 ,0),
+			Vector2(1 , 1),
+			Vector2(0 ,-2),
+		};
+		MyVertex vertices[] =
+		{
+			//x
+			{ Vector2(0,0) , Vector3(1,-1,-1) },
+			{ Vector2(1,0) , Vector3(1,1,-1) },
+			{ Vector2(1,1) , Vector3(1,1,1) },
+			{ Vector2(0,1) , Vector3(1,-1,1) },
+			//-x
+			{ Vector2(0,0) , Vector3(-1,1,-1) },
+			{ Vector2(1,0) , Vector3(-1,-1,-1) },
+			{ Vector2(1,1) , Vector3(-1,-1,1) },
+			{ Vector2(0,1) , Vector3(-1,1,1) },
+			//y
+			{ Vector2(0,0) , Vector3(1, 1, -1) },
+			{ Vector2(1,0) , Vector3(-1, 1, -1) },
+			{ Vector2(1,1) , Vector3(-1, 1, 1) },
+			{ Vector2(0,1) , Vector3(1, 1, 1) },
+			//-y
+			{ Vector2(0,0) , Vector3(-1, -1, -1) },
+			{ Vector2(1,0) , Vector3(1, -1, -1) },
+			{ Vector2(1,1) , Vector3(1, -1, 1) },
+			{ Vector2(0,1) , Vector3(-1, -1, 1) },
+			//z
+			{ Vector2(0,0) , Vector3(1, -1, 1) },
+			{ Vector2(1,0) , Vector3(1, 1, 1) },
+			{ Vector2(1,1) , Vector3(-1, 1, 1) },
+			{ Vector2(0,1) , Vector3(-1, -1, 1) },
+			//-z
+			{ Vector2(0,0) , Vector3(-1, -1, -1) },
+			{ Vector2(1,0) , Vector3(-1, 1, -1) },
+			{ Vector2(1,1) , Vector3(1, 1, -1) },
+			{ Vector2(0,1) , Vector3(1, -1, -1) },
+		};
+
+		Vector2 curPos = pos;
+		for( int i = 0; i < 6; ++i )
+		{
+			curPos += length * posOffset[i];
+			MyVertex* v = vertices + 4 * i;
+			for( int j = 0; j < 4; ++j )
+			{
+				v[j].pos = curPos + length * v[j].pos;
+			}
+		}
+
+		glEnable(GL_TEXTURE_CUBE_MAP);
+		{
+			GL_BIND_LOCK_OBJECT(texCube);
+			glColor3f(1, 1, 1);
+			TRenderRT< RTVF_XY | RTVF_TEX_UVW >::Draw(PrimitiveType::eQuad, vertices, ARRAY_SIZE(vertices));
+		}
+		glDisable(GL_TEXTURE_CUBE_MAP);
 	}
 
 }

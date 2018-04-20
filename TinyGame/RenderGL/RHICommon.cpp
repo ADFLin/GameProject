@@ -26,14 +26,17 @@ namespace RenderGL
 		uint32 colorW[4] = { 0xffffffff , 0xffffffff , 0xffffffff , 0xffffffff };
 		uint32 colorB[4] = { 0, 0 , 0 , 0 };
 
-		GWhiteTexture2D = RHICreateTexture2D();
-		GWhiteTexture2D = RHICreateTexture2D();
+		GWhiteTexture2D = RHICreateTexture2D(Texture::eRGBA8, 2, 2, 0, colorW);
+		if( !GWhiteTexture2D.isValid() )
+			return false;
+		GBlackTexture2D = RHICreateTexture2D(Texture::eRGBA8, 2, 2, 0, colorB);
+		if( !GBlackTexture2D.isValid() )
+			return false;
 		GWhiteTextureCube = RHICreateTextureCube();
+		if( !GWhiteTextureCube->create(Texture::eRGBA8, 2, 2, colorW) )
+			return false;
 		GBlackTextureCube = RHICreateTextureCube();
-		if( !GWhiteTexture2D->create(Texture::eRGBA8, 2, 2, colorW) ||
-		   !GWhiteTexture2D->create(Texture::eRGBA8, 2, 2, colorB) ||
-		   !GWhiteTextureCube->create(Texture::eRGBA8, 2, 2, colorW) ||
-		   !GBlackTextureCube->create(Texture::eRGBA8, 2, 2, colorB) )
+		if( !GBlackTextureCube->create(Texture::eRGBA8, 2, 2, colorB) )
 			return false;
 
 		GWhiteTextureCube->bind();
@@ -283,77 +286,6 @@ namespace RenderGL
 		glClearBufferiv(GL_COLOR, 0, clearValue);
 	}
 
-	void ShaderHelper::DrawCubeTexture(RHITextureCube& texCube, Vec2i const& pos, int length)
-	{
-		glEnable(GL_TEXTURE_CUBE_MAP);
-		GL_BIND_LOCK_OBJECT(texCube);
-		glColor3f(1, 1, 1);
-		int offset = 10;
-
-		if( length == 0 )
-			length = 100;
-
-		glPushMatrix();
-
-		glTranslatef(pos.x, pos.y, 0);
-		glTranslatef(1 * length, 1 * length, 0);
-		glBegin(GL_QUADS); //x
-		glTexCoord3f(1, -1, -1); glVertex2f(0, 0);
-		glTexCoord3f(1, 1, -1);  glVertex2f(length, 0);
-		glTexCoord3f(1, 1, 1);  glVertex2f(length, length);
-		glTexCoord3f(1, -1, 1);  glVertex2f(0, length);
-		glEnd();
-		glTranslatef(2 * length, 0, 0);
-		glBegin(GL_QUADS); //-x
-		glTexCoord3f(-1, 1, -1); glVertex2f(0, 0);
-		glTexCoord3f(-1, -1, -1);  glVertex2f(length, 0);
-		glTexCoord3f(-1, -1, 1); glVertex2f(length, length);
-		glTexCoord3f(-1, 1, 1);  glVertex2f(0, length);
-		glEnd();
-		glTranslatef(-1 * length, 0, 0);
-		glBegin(GL_QUADS); //y
-		glTexCoord3f(1, 1, -1); glVertex2f(0, 0);
-		glTexCoord3f(-1, 1, -1); glVertex2f(length, 0);
-		glTexCoord3f(-1, 1, 1); glVertex2f(length, length);
-		glTexCoord3f(1, 1, 1);  glVertex2f(0, length);
-		glEnd();
-		glTranslatef(-2 * length, 0, 0);
-		glBegin(GL_QUADS); //-y
-		glTexCoord3f(-1, -1, -1); glVertex2f(0, 0);
-		glTexCoord3f(1, -1, -1); glVertex2f(length, 0);
-		glTexCoord3f(1, -1, 1); glVertex2f(length, length);
-		glTexCoord3f(-1, -1, 1); glVertex2f(0, length);
-		glEnd();
-		glTranslatef(1 * length, 1 * length, 0);
-		glBegin(GL_QUADS); //z
-		glTexCoord3f(1, -1, 1); glVertex2f(0, 0);
-		glTexCoord3f(1, 1, 1); glVertex2f(length, 0);
-		glTexCoord3f(-1, 1, 1);  glVertex2f(length, length);
-		glTexCoord3f(-1, -1, 1);  glVertex2f(0, length);
-		glEnd();
-		glTranslatef(0 * length, -2 * length, 0);
-		glBegin(GL_QUADS); //-z
-		glTexCoord3f(-1, -1, -1);  glVertex2f(0, 0);
-		glTexCoord3f(-1, 1, -1);  glVertex2f(length, 0);
-		glTexCoord3f(1, 1, -1);  glVertex2f(length, length);
-		glTexCoord3f(1, -1, -1); glVertex2f(0, length);
-		glEnd();
-
-		glPopMatrix();
-		glDisable(GL_TEXTURE_CUBE_MAP);
-	}
-
-
-	void ShaderHelper::DrawTexture(RHITexture2D& texture, Vec2i const& pos, Vec2i const& size)
-	{
-		glLoadIdentity();
-		glEnable(GL_TEXTURE_2D);
-		texture.bind();
-		glColor3f(1, 1, 1);
-		DrawUtility::Rect(pos.x, pos.y, size.x, size.y);
-		texture.unbind();
-		glDisable(GL_TEXTURE_2D);
-	}
 
 	void ShaderHelper::copyTextureToBuffer(RHITexture2D& copyTexture)
 	{

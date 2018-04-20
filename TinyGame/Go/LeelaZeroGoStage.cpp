@@ -6,6 +6,7 @@
 #include "GameGlobal.h"
 #include "PropertyKey.h"
 #include "FileSystem.h"
+#include "InputManager.h"
 
 #include "GLGraphics2D.h"
 #include "RenderGL/GLCommon.h"
@@ -20,11 +21,13 @@ REGISTER_STAGE("LeelaZero Learning", Go::LeelaZeroGoStage, EStageGroup::Test);
 #include <Dbghelp.h>
 #pragma comment (lib,"Dbghelp.lib")
 
+
+
 namespace Go
 {
-	class UnderCurveAreaShaderProgram : public RenderGL::GlobalShaderProgram
+	class UnderCurveAreaProgram : public RenderGL::GlobalShaderProgram
 	{
-		DECLARE_GLOBAL_SHADER(UnderCurveAreaShaderProgram)
+		DECLARE_GLOBAL_SHADER(UnderCurveAreaProgram)
 
 		static void SetupShaderCompileOption(ShaderCompileOption&) {}
 		static char const* GetShaderFileName()
@@ -62,7 +65,7 @@ namespace Go
 		ShaderParameter mParamLowerColor;
 	};
 
-	IMPLEMENT_GLOBAL_SHADER( UnderCurveAreaShaderProgram )
+	IMPLEMENT_GLOBAL_SHADER( UnderCurveAreaProgram )
 
 	bool DumpFunSymbol( char const* path , char const* outPath )
 	{
@@ -92,18 +95,49 @@ namespace Go
 		
 		return true;
 	}
-	
+
+
+	HWND GetProcessWindow(DWORD processId)
+	{
+		struct FindData
+		{
+			DWORD  processId;
+			HWND   result;
+
+
+			static BOOL CALLBACK Callback(HWND hWnd, LPARAM param)
+			{
+				auto myData = (FindData*)param;
+				DWORD processId = -1;
+				::GetWindowThreadProcessId(hWnd, &processId);
+				if( processId == myData->processId )
+				{
+					myData->result = hWnd;
+					return FALSE;
+				}
+				return TRUE;
+			}
+		};
+
+		FindData findData;
+		findData.processId = processId;
+		findData.result = NULL;
+		::EnumWindows(FindData::Callback, (LPARAM)&findData);
+		return findData.result;
+	}
+
 
 	bool LeelaZeroGoStage::onInit()
 	{
-
 		if( !BaseClass::onInit() )
 			return false;
 
-		if( !::Global::getDrawEngine()->startOpenGL(true) )
+		::Global::getDrawEngine()->changeScreenSize(1080, 720);
+
+		if( !::Global::getDrawEngine()->startOpenGL(true , 4) )
 			return false;
 
-		if( !mGameRenderer.initializeRHI() )
+		if( !mBoardRenderer.initializeRHI() )
 			return false;
 
 		ILocalization::Get().changeLanguage(LAN_ENGLISH);
@@ -113,9 +147,9 @@ namespace Go
 		if( !DumpFunSymbol("Zen7.dump", "aa.txt") )
 			return false;
 #endif
-		
-		mShaderUnderCurveArea = ShaderManager::Get().getGlobalShaderT< UnderCurveAreaShaderProgram >( true );
-		if( mShaderUnderCurveArea == nullptr )
+
+		mProgUnderCurveArea = ShaderManager::Get().getGlobalShaderT< UnderCurveAreaProgram >( true );
+		if( mProgUnderCurveArea == nullptr )
 			return false;
 
 		LeelaAppRun::InstallDir = ::Global::GameConfig().getStringValue("LeelaZeroInstallDir", "Go" , "E:/Desktop/LeelaZero");
@@ -155,18 +189,29 @@ namespace Go
 			}
 			return false;
 		});
+		devFrame->addButton("Run Analysis", [&](int eventId, GWidget* widget) -> bool
+		{
+			if ( mGameMode != GameMode::Analysis )
+			{
+				cleanupModeData();
+				buildAnalysisMode();
+			}
+			return false;
+		});
 		devFrame->addButton("Run Leela/Leela Match", [&](int eventId, GWidget* widget) -> bool
 		{
 			cleanupModeData();
 			buildLeelaMatchMode();
 			return false;
 		});
+#if 0
 		devFrame->addButton("Run Leela/Zen Match", [&](int eventId, GWidget* widget) -> bool
 		{
 			cleanupModeData();
 			buildLeelaZenMatchMode();
 			return false;
 		});
+#endif
 		devFrame->addButton("Run Custom Match", [&](int eventId, GWidget* widget) ->bool 
 		{
 			MatchSettingPanel* panel = new MatchSettingPanel( UI_ANY , Vec2i( 100 , 100 ) , Vec2i(300 , 400 ) , nullptr );
@@ -193,7 +238,7 @@ namespace Go
 			{
 				if( bPauseGame )
 				{
-					if( mLearningAIRun.process.resume() )
+					if( mLeelaAIRun.process.resume() )
 					{
 						widget->cast<GCheckBox>()->setTitle("Pause Game");
 						bPauseGame = false;
@@ -201,7 +246,7 @@ namespace Go
 				}
 				else
 				{
-					if( mLearningAIRun.process.suspend() )
+					if( mLeelaAIRun.process.suspend() )
 					{
 						widget->cast<GCheckBox>()->setTitle("Resume Game");
 						bPauseGame = true;
@@ -309,8 +354,8 @@ namespace Go
 
 	void LeelaZeroGoStage::onEnd()
 	{
-		cleanupModeData();
-		mGameRenderer.releaseRHI();
+		cleanupModeData( true );
+		mBoardRenderer.releaseRHI();
 		ShaderManager::Get().clearnupRHIResouse();
 		::Global::getDrawEngine()->stopOpenGL(true);
 		BaseClass::onEnd();
@@ -318,6 +363,30 @@ namespace Go
 
 	void LeelaZeroGoStage::onUpdate(long time)
 	{
+#if 0
+		DWORD pId = FPlatformProcess::FindPIDByName(TEXT("foxwq.exe"));
+		if( pId != -1 )
+		{
+			HWND hWnd = GetProcessWindow(pId);
+
+			char const* BoardPanelClass = "#32770";
+			char const* BoardPaenlTitle = "CChessboardPanel";
+			HWND hBoardWnd = FindWindowExA(NULL, NULL, BoardPanelClass, NULL);
+
+			if ( hBoardWnd )
+			{
+				HDC hDC = GetDC(hBoardWnd);
+
+				if( hDC )
+				{
+					::Rectangle(hDC, 0, 0, 100, 100);
+				}
+
+				::ReleaseDC(hBoardWnd, hDC);
+			}
+		}
+#endif
+
 		BaseClass::onUpdate(time);
 
 		if( mGameMode == GameMode::Match )
@@ -350,9 +419,58 @@ namespace Go
 		}
 		else if( mGameMode == GameMode::Learning )
 		{
-			mLearningAIRun.update();
+			mLeelaAIRun.update();
 			processLearningCommand();
 			keepLeelaProcessRunning(time);
+		}
+
+		if( bAnalysisEnabled )
+		{
+#if !USE_MODIFY_LEELA_PROGRAM
+			if( bAnalysisPondering )
+			{
+				remainingAnalysisTime -= time;
+				if( remainingAnalysisTime < 0 )
+				{
+					mLeelaAIRun.stopPonder();
+					mLeelaAIRun.startPonder(analysisPonderColor);
+					remainingAnalysisTime = timeOutputAnalysisResult;
+				}
+			}
+#endif
+			mLeelaAIRun.update();
+			auto ProcFun = [&](GameCommand& com)
+			{
+				int color = mGame.getNextPlayColor();
+				switch( com.id )
+				{
+				case GameCommand::eParam:
+					{
+						switch( com.paramId )
+						{
+						case LeelaGameParam::eThinkResult:
+							if ( !static_cast< LeelaThinkInfoVec* >(com.ptrParam )->empty() )
+								analysisResult = *static_cast< LeelaThinkInfoVec* >(com.ptrParam);
+							break;
+						}
+					}
+					break;
+				case GameCommand::ePlayStone:
+					if ( mGameMode == GameMode::Analysis )
+					{
+						if( mGame.playStone(com.pos[0], com.pos[1]) )
+						{
+
+						}
+						else
+						{
+							LogMsgF("Warning:Can't Play step : [%d,%d]", com.pos[0], com.pos[1]);
+						}
+					}
+					break;
+				}
+			};
+			mLeelaAIRun.outputThread->procOutputCommand(ProcFun);
 		}
 
 		bPrevGameCom = false;
@@ -381,13 +499,114 @@ namespace Go
 
 		auto& viewingGame = getViewingGame();
 
-		mGameRenderer.draw(BoardPos, viewingGame );
+		RenderContext context( viewingGame.getBoard() , BoardPos , RenderBoardScale );
+
+		mBoardRenderer.drawBorad( g , context );
+
+		int lastPlayPos[2] = { -1,-1 };
+		viewingGame.getCurrentStepPos(lastPlayPos);
+		if( lastPlayPos[0] != -1 && lastPlayPos[1] != -1 )
+		{
+			Vector2 pos = mBoardRenderer.getStonePos(context, lastPlayPos[0], lastPlayPos[1]);
+			RenderUtility::SetPen(g, Color::eRed);
+			RenderUtility::SetBrush(g, Color::eRed);
+			g.drawCircle(pos, context.stoneRadius / 2);
+		}
+
+		if( bAnalysisEnabled && bAnalysisPondering && analysisPonderColor == mGame.getNextPlayColor() )
+		{
+			auto iter = analysisResult.end();
+			
+			if ( showBranchVertex != -1 )
+			{
+				iter = std::find_if(analysisResult.begin(), analysisResult.end(),
+									[this](auto const& info) { return info.v == showBranchVertex; });
+			}
+			if( iter != analysisResult.end() )
+			{
+				mBoardRenderer.drawStoneSequence(context, iter->vSeq, mGame.getNextPlayColor(), 0.7);
+			}
+			else
+			{
+				int maxVisited = 0;
+				for( auto const& info : analysisResult )
+				{
+					if( info.nodeVisited > maxVisited )
+						maxVisited = info.nodeVisited;
+				}
+
+				float const MIN_ALPHA = 32 / 255.0;
+				float const MIN_ALPHA_TO_DISPLAY_TEXT = 64 / 255.0;
+				float const MAX_ALPHA = 240 / 255.0;
+				float const HUE_SCALING_FACTOR = 3.0;
+				float const ALPHA_SCALING_FACTOR = 5.0;
+
+
+				RenderUtility::SetFont(g, FONT_S8);
+				for( auto const& info : analysisResult )
+				{
+					if ( info.nodeVisited == 0 )
+						continue;
+
+					int x = info.v % LeelaGoSize;
+					int y = info.v / LeelaGoSize;
+
+					float percentVsisted = float(info.nodeVisited) / maxVisited;
+					float hue = (float)(120 * std::max(0.0f , Math::Log(percentVsisted) / HUE_SCALING_FACTOR + 1));
+					float saturation = 0.75f; //saturation
+					float brightness = 0.85f; //brightness
+					float alpha = MIN_ALPHA + (MAX_ALPHA - MIN_ALPHA) * std::max(0.0f, Math::Log(percentVsisted) /
+																					 ALPHA_SCALING_FACTOR + 1);
+
+					Vector3 color = FColorConv::HSVToRGB(Vector3(hue, saturation, brightness));
+
+					Vector2 pos = context.getIntersectionPos(x, y);
+					g.beginBlend(Vector2(0, 0), Vector2(0, 0), alpha);
+
+					g.setPen(Color3f(color));
+					g.setBrush(Color3f(color));
+					g.drawCircle(pos, context.stoneRadius);
+					g.endBlend();
+
+					if ( alpha > MIN_ALPHA_TO_DISPLAY_TEXT )
+					{
+						FixString<128> str;
+						str.format("%g", info.winRate);
+						float len = context.cellLength;
+						g.drawText(pos - 0.5 * Vector2(len, len), Vector2(len, 0.5 * len), str);
+
+						if( info.nodeVisited >= 1000000 )
+						{
+							float fVisited = float(info.nodeVisited) / 100000; // 1234567 -> 12.34567
+							str.format("%gm", Math::Round(fVisited) / 10.0);
+						}
+						else if( info.nodeVisited >= 10000 )
+						{
+							float fVisited = float(info.nodeVisited) / 1000; // 13265 -> 13.265
+							str.format("%gk", Math::Round(fVisited) );
+						}
+						else if( info.nodeVisited >= 1000 )
+						{
+							float fVisited = float(info.nodeVisited) / 100; // 1265 -> 12.65
+							str.format("%gk", Math::Round(fVisited) / 10.0);
+						}
+						else
+						{
+							str.format("%d", info.nodeVisited);
+						}
+
+						g.drawText(pos - 0.5 * Vector2(len, 0), Vector2(len, 0.5 * len), str);
+					}
+				}
+			}
+
+		}
 
 		if( bestMoveVertex >= 0 )
 		{
 			int x = bestMoveVertex % LeelaGoSize;
 			int y = bestMoveVertex / LeelaGoSize;
-			Vector2 pos = mGameRenderer.getIntersectionPos(BoardPos, viewingGame.getBoard(), x, y);
+			Vector2 pos = context.getIntersectionPos(x, y);
 
 			RenderUtility::SetPen(g, Color::eRed);
 			RenderUtility::SetBrush(g, Color::eRed);
@@ -398,8 +617,11 @@ namespace Go
 		if( mWinRateHistory[0].size() > 1 || mWinRateHistory[1].size() > 1 )
 		{
 			GPU_PROFILE("Draw WinRate Graph");
+			Vec2i screenSize = ::Global::getDrawEngine()->getScreenSize();
 			ViewportSaveScope viewportSave;
-			glViewport(610, 10, 175, 250);
+			int renderWidth = 250;
+			int renderHeight = 300;
+			glViewport( screenSize.x - (renderWidth + 10 ), 10, renderWidth, renderHeight);
 			MatrixSaveScope matrixSaveScope;
 			glMatrixMode(GL_PROJECTION);
 
@@ -447,9 +669,9 @@ namespace Go
 					else
 						glBlendFunc(GL_SRC_ALPHA, GL_ONE);
 
-					GL_BIND_LOCK_OBJECT(mShaderUnderCurveArea);
+					GL_BIND_LOCK_OBJECT(mProgUnderCurveArea);
 
-					mShaderUnderCurveArea->setParameters(
+					mProgUnderCurveArea->setParameters(
 						float(50), matProj, 
 						Vector4(colors[i], alpha[i]),
 						Vector4(0.3 * colors[i], alpha[i]));
@@ -536,7 +758,7 @@ namespace Go
 
 		if ( bDrawDebugMsg )
 		{
-			str.format("bUseBatchedRender = %s", mGameRenderer.bUseBatchedRender ? "true" : "false");
+			str.format("bUseBatchedRender = %s", mBoardRenderer.bUseBatchedRender ? "true" : "false");
 			g.drawText(textX, y += offset, str);
 			for( int i = 0; i < GpuProfiler::Get().getSampleNum(); ++i )
 			{
@@ -568,8 +790,27 @@ namespace Go
 
 		if( msg.onLeftDown() )
 		{
-			Vec2i pos = (msg.getPos() - BoardPos + Vec2i(mGameRenderer.CellLength, mGameRenderer.CellLength) / 2) / mGameRenderer.CellLength;
-			
+			RenderContext context(getViewingGame().getBoard(), BoardPos , RenderBoardScale );
+			Vec2i pos = context.getCoord(msg.getPos());
+
+			if( mGameMode == GameMode::Analysis )
+			{
+				int color = mGame.getNextPlayColor();
+				if( InputManager::Get().isKeyDown(Keyboard::eCONTROL) )
+				{
+					if ( mGame.addStone(pos.x , pos.y, color) )
+					{
+						executeAnalysisAICommand([this, pos, color] {  mLeelaAIRun.addStone(pos.x, pos.y, color); });
+					}
+				}
+				else
+				{
+					if( mGame.playStone(pos.x, pos.y) )
+					{
+						executeAnalysisAICommand([this ,pos, color]{  mLeelaAIRun.playStone(pos.x, pos.y, color); });
+					}
+				}
+			}
 			if( bTryPlayingGame )
 			{
 				mTryPlayGame.playStone(pos.x, pos.y);
@@ -584,9 +825,30 @@ namespace Go
 		}
 		else if( msg.onRightDown() )
 		{
+			if( mGameMode == GameMode::Analysis )
+			{
+				if( mGame.undo() )
+				{
+					executeAnalysisAICommand([this] { mLeelaAIRun.undo(); });
+				}
+			}
 			if( bTryPlayingGame )
 			{
 				mTryPlayGame.undo();
+			}
+		}
+		else if( msg.onMoving() )
+		{
+
+			RenderContext context(getViewingGame().getBoard(), BoardPos , RenderBoardScale );
+			Vec2i pos = context.getCoord(msg.getPos());
+			if( mGame.getBoard().checkRange(pos.x, pos.y) )
+			{
+				showBranchVertex = mGame.getBoard().getSize() * pos.y + pos.x;
+			}
+			else
+			{
+				showBranchVertex = -1;
 			}
 		}
 		return true;
@@ -598,12 +860,33 @@ namespace Go
 			return false;
 		switch( key )
 		{
-		case Keyboard::eL: mGameRenderer.bDrawLinkInfo = !mGameRenderer.bDrawLinkInfo; break;
-		case Keyboard::eZ: mGameRenderer.bUseBatchedRender = !mGameRenderer.bUseBatchedRender; break;
+		case Keyboard::eL: mBoardRenderer.bDrawLinkInfo = !mBoardRenderer.bDrawLinkInfo; break;
+		case Keyboard::eZ: mBoardRenderer.bUseBatchedRender = !mBoardRenderer.bUseBatchedRender; break;
 		case Keyboard::eF2: bDrawDebugMsg = !bDrawDebugMsg; break;
 		case Keyboard::eF5: saveMatchGameSGF(); break;
 		case Keyboard::eF6: restartAutoMatch(); break;
-		case Keyboard::eF9: ShaderManager::Get().reloadShader( *mShaderUnderCurveArea ); break;
+		case Keyboard::eF9: ShaderManager::Get().reloadShader( *mProgUnderCurveArea ); break;
+		case Keyboard::eX:
+			if( !bAnalysisEnabled && mGameMode == GameMode::Match )
+			{
+				tryEnableAnalysis();
+			}
+			if( bAnalysisEnabled )
+			{
+				toggleAnalysisPonder();
+			}
+			break;
+		case Keyboard::eC:
+			if ( mGameMode == GameMode::Match )
+			{
+				if( mMatchData.players[0].type == ControllerType::eLeelaZero ||
+				    mMatchData.players[1].type == ControllerType::eLeelaZero )
+				{
+					LeelaBot* bot = static_cast<LeelaBot*>((mMatchData.players[0].type == ControllerType::eLeelaZero) ? mMatchData.players[0].bot.get() : mMatchData.players[1].bot.get());
+					bot->mAI.inputCommand("showboard\n", { GTPCommand::eNone , 0 });
+				}
+			}
+			break;
 		}
 		return false;
 	}
@@ -611,7 +894,7 @@ namespace Go
 	bool LeelaZeroGoStage::buildLearningMode()
 	{
 
-		if( !mLearningAIRun.buildLearningGame() )
+		if( !mLeelaAIRun.buildLearningGame() )
 			return false;
 
 		mGameMode = GameMode::Learning;
@@ -629,9 +912,22 @@ namespace Go
 		return true;
 	}
 
+	bool LeelaZeroGoStage::buildAnalysisMode()
+	{
+		if( !tryEnableAnalysis() )
+			return false;
+
+		mGameMode = GameMode::Analysis;
+		GameSetting setting;
+		setting.komi = 7.5;
+		mGame.setSetting(setting);
+		resetGameParam();
+		return true;
+	}
+
 	bool LeelaZeroGoStage::buildPlayMode()
 	{
-		std::string bestWeigetName = LeelaAppRun::GetDesiredWeightName();
+		std::string bestWeigetName = LeelaAppRun::GetBestWeightName();
 		char const* weightName = nullptr;
 		if( bestWeigetName != "" )
 		{
@@ -675,7 +971,7 @@ namespace Go
 			::Global::GameConfig().setKeyValue("LeelaLastOpenWeight", "Go", weightNameA);
 		}
 
-		std::string bestWeigetName = LeelaAppRun::GetDesiredWeightName();
+		std::string bestWeigetName = LeelaAppRun::GetBestWeightName();
 
 		{
 			LeelaAISetting setting;
@@ -725,7 +1021,7 @@ namespace Go
 	{
 		{
 			LeelaAISetting setting = LeelaAISetting::GetDefalut();
-			std::string bestWeigetName = LeelaAppRun::GetDesiredWeightName();
+			std::string bestWeigetName = LeelaAppRun::GetBestWeightName();
 			FixString<256> path;
 			path.format("%s/" LEELA_NET_DIR "%s", LeelaAppRun::InstallDir, bestWeigetName.c_str());
 			path.replace('/', '\\');
@@ -826,22 +1122,31 @@ namespace Go
 		return true;
 	}
 
-	void LeelaZeroGoStage::cleanupModeData()
+	void LeelaZeroGoStage::cleanupModeData(bool bEndStage)
 	{
 		if( mGamePlayWidget )
 		{
-			mGamePlayWidget->show(false);
+			if( bEndStage )
+				mGamePlayWidget->destroy();
+			else
+				mGamePlayWidget->show(false);
 		}
 		bPauseGame = false;
 
 		switch( mGameMode )
 		{
 		case GameMode::Learning:
-			mLearningAIRun.stop();
+			mLeelaAIRun.stop();
 			break;
 		case GameMode::Match:
 			mMatchData.cleanup();
 			break;
+		}
+
+		if( bAnalysisEnabled )
+		{
+			bAnalysisEnabled = false;
+			mLeelaAIRun.stop();
 		}
 
 		mGameMode = GameMode::None;
@@ -856,7 +1161,7 @@ namespace Go
 #if DETECT_LEELA_PROCESS
 		if( mPIDLeela == -1 )
 		{
-			mPIDLeela = FPlatformProcess::FindPIDByNameAndParentPID(TEXT("leelaz.exe"), GetProcessId(mLearningAIRun.process.getHandle()));
+			mPIDLeela = FPlatformProcess::FindPIDByNameAndParentPID(TEXT("leelaz.exe"), GetProcessId(mLeelaAIRun.process.getHandle()));
 			if( mPIDLeela == -1 )
 			{
 				mLeelaRebootTimer -= time;
@@ -896,7 +1201,7 @@ namespace Go
 				{
 					LogMsg("GameStart");
 					mGame.restart();
-					mGameRenderer.generateNoiseOffset(mGame.getBoard().getSize());
+					mBoardRenderer.generateNoiseOffset(mGame.getBoard().getSize());
 #if DETECT_LEELA_PROCESS
 					mPIDLeela = -1;
 					mLeelaRebootTimer = LeelaRebootStartTime;
@@ -966,7 +1271,7 @@ namespace Go
 			}
 		};
 
-		mLearningAIRun.outputThread->procOutputCommand(ProcFun);
+		mLeelaAIRun.outputThread->procOutputCommand(ProcFun);
 	}
 
 
@@ -1009,6 +1314,10 @@ namespace Go
 					{
 						bot->playPass(color);
 						bot->thinkNextMove(mGame.getNextPlayColor());
+					}
+					if( bAnalysisEnabled )
+					{
+						executeAnalysisAICommand([this] { mLeelaAIRun.playPass(); }, canAnalysisPonder( mMatchData.getCurTurnPlayer() ));
 					}
 				}
 			}
@@ -1063,11 +1372,20 @@ namespace Go
 		case GameCommand::eUndo:
 			{
 				mGame.undo();
+
+				if( !mWinRateHistory[indexPlayer].empty() )
+				{
+					mWinRateHistory[indexPlayer].pop_back();
+				}
 				mMatchData.advanceTurn();
 				IBotInterface* bot = mMatchData.getCurTurnBot();
 				if( bot )
 				{
 					bot->undo();
+				}
+				if( bAnalysisEnabled )
+				{
+					executeAnalysisAICommand([this] { mLeelaAIRun.undo(); }, canAnalysisPonder(mMatchData.getCurTurnPlayer()));
 				}
 			}
 			break;
@@ -1109,6 +1427,12 @@ namespace Go
 						bot->playStone(com.pos[0], com.pos[1], color);
 						bot->thinkNextMove(mGame.getNextPlayColor());
 					}
+					if( bAnalysisEnabled )
+					{
+						int x = com.pos[0];
+						int y = com.pos[1];
+						executeAnalysisAICommand( [this,x,y,color] { mLeelaAIRun.playStone(x,y,color); }, canAnalysisPonder(mMatchData.getCurTurnPlayer()));
+					}
 				}
 				else
 				{
@@ -1117,6 +1441,70 @@ namespace Go
 
 			}
 			break;
+		}
+	}
+
+	bool LeelaZeroGoStage::tryEnableAnalysis()
+	{
+		if( mGameMode == GameMode::Learning )
+			return false;
+		if( bAnalysisEnabled )
+			return true;
+
+		if( !mLeelaAIRun.buildAnalysisGame() )
+			return false;
+
+		bAnalysisPondering = false;
+		analysisResult.clear();
+		bAnalysisEnabled = true;
+
+		class MyCopier : public IGameCopier
+		{
+		public:
+			MyCopier(LeelaAppRun& AI) :AI(AI) {}
+
+			virtual void setup(GameSetting const& setting) override
+			{
+				AI.setupGame(setting);
+			}
+			virtual void playStone(int x, int y, int color) override
+			{
+				AI.playStone(x, y, color);
+			}
+			virtual void addStone(int x, int y, int color) override
+			{
+				AI.addStone(x, y, color);
+			}
+			virtual void playPass() override
+			{
+				AI.playPass();
+			}
+
+			LeelaAppRun& AI;
+		};
+		MyCopier copier( mLeelaAIRun );
+		mGame.copyTo( copier );
+
+		return true;
+	}
+
+
+	void LeelaZeroGoStage::toggleAnalysisPonder()
+	{
+		assert(bAnalysisEnabled);
+		bAnalysisPondering = !bAnalysisPondering;
+
+		if( bAnalysisPondering )
+		{
+#if !USE_MODIFY_LEELA_PROGRAM
+			remainingAnalysisTime = timeOutputAnalysisResult;
+#endif
+			analysisPonderColor = mGame.getNextPlayColor();
+			mLeelaAIRun.startPonder(analysisPonderColor);
+		}
+		else
+		{
+			mLeelaAIRun.stopPonder();
 		}
 	}
 
@@ -1140,7 +1528,7 @@ namespace Go
 	void LeelaZeroGoStage::restartAutoMatch()
 	{
 		LogMsg("==Restart Auto Match==");
-		if( bSwapEveryMatch )
+		if( bSwapEachMatch )
 		{
 			mMatchData.bSwapColor = !mMatchData.bSwapColor;
 		}
@@ -1189,9 +1577,14 @@ namespace Go
 			devFrame->addButton("Undo", [&](int eventId, GWidget* widget) -> bool
 			{
 				int color = mGame.getNextPlayColor();
-				if( canPlay() || ( isBotTurn() && !mMatchData.getCurTurnBot()->isThinking() ) )
+				if( canPlay() )
 				{
 					execUndoCommand();
+				}
+				else if( isBotTurn()  )
+				{
+					//FIXME
+					mMatchData.getCurTurnBot()->requestUndo();
 				}
 				return false;
 			});
@@ -1279,7 +1672,7 @@ namespace Go
 		GTextCtrl* textCtrl = addTextCtrl(id + UPARAM_VISITS, "Visit Num", BIT(idxPlayer), idxPlayer);
 		textCtrl->setValue(std::to_string(setting.visits).c_str());
 		GFilePicker*  filePicker = addWidget< GFilePicker >(id + UPARAM_WEIGHT_NAME, "Weight Name", BIT(idxPlayer), idxPlayer);
-		filePicker->filePath.format("%s/" LEELA_NET_DIR "%s", LeelaAppRun::InstallDir, LeelaAppRun::GetDesiredWeightName().c_str());
+		filePicker->filePath.format("%s/" LEELA_NET_DIR "%s", LeelaAppRun::InstallDir, LeelaAppRun::GetBestWeightName().c_str());
 		filePicker->filePath.replace('/', '\\');
 	}
 

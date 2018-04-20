@@ -42,9 +42,6 @@ namespace RenderGL
 		void clearBuffer(RHITexture2D& texture, uint32 clearValue[]);
 		void clearBuffer(RHITexture2D& texture, int32 clearValue[]);
 
-		static void DrawCubeTexture(RHITextureCube& texCube, Vec2i const& pos, int length);
-		static void DrawTexture(RHITexture2D& texture, Vec2i const& pos, Vec2i const& size);
-
 		void reload();
 
 		class CopyTextureProgram* mProgCopyTexture;

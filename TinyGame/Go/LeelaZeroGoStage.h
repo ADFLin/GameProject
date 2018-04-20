@@ -18,7 +18,7 @@
 
 using namespace RenderGL;
 
-#define DETECT_LEELA_PROCESS 1
+#define DETECT_LEELA_PROCESS 0
 
 namespace Go
 {
@@ -162,6 +162,10 @@ namespace Go
 			}
 		}
 
+		MatchPlayer&    getCurTurnPlayer()
+		{
+			return players[idxPlayerTurn];
+		}
 		IBotInterface* getCurTurnBot()
 		{
 			return players[idxPlayerTurn].bot.get();
@@ -320,10 +324,11 @@ namespace Go
 		{
 			Learning,
 			Match ,
+			Analysis ,
 			None ,
 		};
 
-		LeelaAppRun   mLearningAIRun;
+		LeelaAppRun   mLeelaAIRun;
 
 		bool bPauseGame = false;
 		int  numGameCompleted = 0;
@@ -339,16 +344,61 @@ namespace Go
 		MyGame mGame;
 
 		bool bDrawDebugMsg = false;
-		GameRenderer mGameRenderer;
+		BoardRenderer mBoardRenderer;
+		float const RenderBoardScale = 1.2;
+		Vector2 const BoardPos = Vector2(50, 50);
 
 		GameMode mGameMode;
-		class UnderCurveAreaShaderProgram* mShaderUnderCurveArea;
+		class UnderCurveAreaProgram* mProgUnderCurveArea;
 
-		bool bSwapEveryMatch = true;
+
+		void toggleAnalysisPonder();
+		bool tryEnableAnalysis();
+		bool canAnalysisPonder(MatchPlayer& player)
+		{
+			if( player.type == ControllerType::ePlayer )
+				return true;
+			if( player.bot && !player.bot->isGPUBased() )
+				return true;
+			return false;
+		}
+		template< class Fun >
+		void executeAnalysisAICommand(Fun fun, bool bKeepPonder = true)
+		{
+			assert(bAnalysisEnabled);
+
+			if( bAnalysisPondering )
+				mLeelaAIRun.stopPonder();
+
+			fun();
+
+			analysisResult.clear();
+			if( bAnalysisPondering && bKeepPonder )
+			{
+				analysisPonderColor = mGame.getNextPlayColor();
+				mLeelaAIRun.startPonder(analysisPonderColor);
+			}
+			
+		}
+
+		bool bAnalysisEnabled = false;
+		bool bAnalysisPondering;
+		LeelaThinkInfoVec analysisResult;
+#if !USE_MODIFY_LEELA_PROGRAM
+		long timeOutputAnalysisResult = 200;
+		long remainingAnalysisTime;
+#endif
+		int  analysisPonderColor = 0;
+		int  showBranchVertex = -1;
+
+
+		bool bSwapEachMatch = true;
 		bool bAutoSaveMatchSGF = true;
 		int  unknownWinerCount = 0;
 		MatchGameData mMatchData;
 		FixString<32> mLastGameResult;
+
+
 
 		std::vector< Vector2 > mWinRateHistory[2];
 		
@@ -372,10 +422,9 @@ namespace Go
 		}
 
 		bool saveMatchGameSGF();
-
+	
 
 		virtual bool onInit();
-
 		virtual void onEnd();
 		virtual void onUpdate(long time);
 
@@ -393,8 +442,7 @@ namespace Go
 		void tick() {}
 		void updateFrame(int frame) {}
 
-		void cleanupModeData();
-
+		void cleanupModeData(bool bEndStage = false);
 		void keepLeelaProcessRunning(long time);
 
 		void processLearningCommand();
@@ -405,7 +453,7 @@ namespace Go
 		{
 			bPrevGameCom = true;
 			mGame.restart();
-			mGameRenderer.generateNoiseOffset(mGame.getBoard().getSize());
+			mBoardRenderer.generateNoiseOffset(mGame.getBoard().getSize());
 
 			resetTurnParam();
 			for( int i = 0 ; i < 2 ; ++i )
@@ -422,6 +470,7 @@ namespace Go
 		void restartAutoMatch();
 
 		bool buildLearningMode();
+		bool buildAnalysisMode();
 		bool buildPlayMode();
 		bool buildLeelaMatchMode();
 		bool buildLeelaZenMatchMode();
@@ -429,8 +478,6 @@ namespace Go
 		bool startMatchGame(GameSetting const& setting);
 
 		void createPlayWidget();
-
-		Vec2i const BoardPos = Vec2i(50, 50);
 
 		bool canPlay()
 		{

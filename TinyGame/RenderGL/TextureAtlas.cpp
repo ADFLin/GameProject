@@ -2,6 +2,8 @@
 
 #include "stb/stb_image.h"
 
+#include "RHICommand.h"
+
 namespace RenderGL
 {
 
@@ -14,7 +16,8 @@ namespace RenderGL
 	bool TextureAtlas::create(Texture::Format format, int w, int h, int border /*= 0*/)
 	{
 		mBorder = border;
-		if( !mTexture.create(format, w, h) )
+		mTexture = RHICreateTexture2D( format , w , h );
+		if( !mTexture.isValid() )
 			return false;
 		mHelper.init(w, h);
 		return true;
@@ -47,24 +50,34 @@ namespace RenderGL
 		return result;
 	}
 
-	int TextureAtlas::addImage(int w, int h, Texture::Format format, void* data)
+	int TextureAtlas::addImage(int w, int h, Texture::Format format, void* data, int pixelStride)
 	{
 		if( !mHelper.addImage(mNextImageId, w + 2 * mBorder, h + 2 * mBorder) )
 			return -1;
+
 		auto rect = mHelper.getNode(mNextImageId)->rect;
-		mTexture.update(rect.x + mBorder, rect.y + mBorder, w, h, format, data);
+
+		if( pixelStride )
+		{
+			mTexture->update(rect.x + mBorder, rect.y + mBorder, w, h, format, pixelStride, data);
+		}
+		else
+		{
+			mTexture->update(rect.x + mBorder, rect.y + mBorder, w, h, format, data);
+		}
+		
 		int result = mNextImageId;
 		++mNextImageId;
 		return result;
 	}
 
-	void TextureAtlas::getRectUV(int id, Vector2& outMin, Vector2& outMax)
+	void TextureAtlas::getRectUV(int id, Vector2& outMin, Vector2& outMax) const
 	{
 		auto rect = mHelper.getNode(id)->rect;
-		outMin.x = float(rect.x + mBorder) / mTexture.getSizeX();
-		outMin.y = float(rect.y + mBorder) / mTexture.getSizeY();
-		outMax.x = float(rect.x + rect.w - mBorder) / mTexture.getSizeX();
-		outMax.y = float(rect.y + rect.h - mBorder) / mTexture.getSizeY();
+		outMin.x = float(rect.x + mBorder) / mTexture->getSizeX();
+		outMin.y = float(rect.y + mBorder) / mTexture->getSizeY();
+		outMax.x = float(rect.x + rect.w - mBorder) / mTexture->getSizeX();
+		outMax.y = float(rect.y + rect.h - mBorder) / mTexture->getSizeY();
 	}
 
 }//namespace RenderGL

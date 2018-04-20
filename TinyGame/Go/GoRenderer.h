@@ -18,7 +18,40 @@ namespace Go
 	class Board;
 	class Game;
 
-	class GameRenderer
+	struct RenderContext
+	{
+		Vector2 renderPos;
+		float   scale;
+		Board const&  board;
+		float   cellLength;
+		float   stoneRadius;
+		float   starRadius;
+
+		RenderContext( Board const& inBoard , Vector2 inRenderPos = Vector2(0,0) , float inScale = 1.0f )
+			:board(inBoard)
+			,renderPos( inRenderPos )
+			,scale(inScale)
+		{
+			cellLength = DefalutCellLength * scale;
+			stoneRadius = DefalutStoneRadius * scale;
+			starRadius = DefalutStarRadius * scale;
+		}
+
+		float const DefalutCellLength = 28;
+		float const DefalutStoneRadius = (DefalutCellLength / 2) * 11 / 12;
+		float const DefalutStarRadius = 5;
+
+		Vector2 getIntersectionPos(int i, int j) const
+		{
+			return renderPos + cellLength * Vector2(i, j);
+		}
+		Vec2i getCoord( Vector2 const& pos ) const
+		{
+			return (pos - renderPos + 0.5 * Vector2(cellLength, cellLength) ) / cellLength;
+		}
+	};
+
+	class BoardRenderer
 	{
 	public:
 		bool bUseBatchedRender = true;
@@ -39,21 +72,22 @@ namespace Go
 			return mNoiseOffsets[(i * boradSize + j) % mNoiseOffsets.size()];
 		}
 
-		void draw(Vector2 const& renderPos, Game const& game);
+		void drawStoneSequence(RenderContext const& context, std::vector<int> const& vertices , int colorStart , float opacity);
+		void drawStoneNumber(RenderContext const& context, int number)
+		{
 
-		Vector2 getStonePos(Vector2 const& renderPos, Board const& board, int i, int j);
-		Vector2 getIntersectionPos(Vector2 const& renderPos, Board const& board, int i, int j);
-		void drawBorad(Vector2 const& renderPos, Board const& board);
+		}
 
+		Vector2 getStonePos(RenderContext const& context, int i, int j);
+		Vector2 getIntersectionPos(RenderContext const& context, int i, int j);
+		void drawBorad(GLGraphics2D& g, RenderContext const& context);
 
 		void addBatchedSprite(int id, Vector2 pos, Vector2 size, Vector2 pivot, Vector4 color);
 
-		void drawStone(GLGraphics2D& g, Vector2 const& pos, int color);
+		void drawStone(GLGraphics2D& g ,Vector2 const& pos, int color , float stoneRadius , float opacity = 1.0f);
 
 
-		float const CellLength = 28;
-		float const StoneRadius = (CellLength / 2) * 11 / 12;
-		float const StarRadius = 5;
+
 
 		TextureAtlas mTextureAtlas;
 

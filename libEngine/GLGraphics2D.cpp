@@ -109,10 +109,11 @@ GLGraphics2D::GLGraphics2D()
 	mWidthPen = 1;
 	mDrawBrush = true;
 	mDrawPen   = true;
-	mAlpha    = 255;
+	mAlpha     = 1.0;
 	mColorKeyShader = 0;
-	mColorBrush = Color3ub( 0 , 0 , 0 );
-	mColorPen = Color3ub( 0 , 0 , 0 );
+	mColorBrush = Color3f( 0 , 0 , 0 );
+	mColorPen = Color3f( 0 , 0 , 0 );
+	mColorFont = Color3f(0, 0, 0);
 }
 
 void GLGraphics2D::init( int w , int h )
@@ -379,7 +380,7 @@ void GLGraphics2D::drawText(Vector2 const& pos , Vector2 const& size , char cons
 void GLGraphics2D::drawTextImpl(float  ox, float  oy, char const* str)
 {
 	assert( mFont );
-	glColor4ub( mColorFont.r , mColorFont.g , mColorFont.b , mAlpha );
+	glColor4f( mColorFont.r , mColorFont.g , mColorFont.b , mAlpha );
 	glRasterPos2i(0, 0);
 	glBitmap(0, 0, 0, 0, ox , -oy , NULL);
 	mFont->print( str );
@@ -392,12 +393,12 @@ void GLGraphics2D::drawPolygonBuffer()
 	glVertexPointer(2, GL_FLOAT, 0, &mBuffer[0]);
 	if( mDrawBrush )
 	{
-		glColor4ub(mColorBrush.r, mColorBrush.g, mColorBrush.b, mAlpha);
+		glColor4f(mColorBrush.r, mColorBrush.g, mColorBrush.b, mAlpha);
 		glDrawArrays(GL_POLYGON, 0, mBuffer.size() / 2);
 	}
 	if( mDrawPen )
 	{
-		glColor4ub(mColorPen.r, mColorPen.g, mColorPen.b, mAlpha);
+		glColor4f(mColorPen.r, mColorPen.g, mColorPen.b, mAlpha);
 		glDrawArrays(GL_LINE_LOOP, 0, mBuffer.size() / 2);
 	}
 	glDisableClientState(GL_VERTEX_ARRAY);
@@ -410,7 +411,7 @@ void GLGraphics2D::drawLineBuffer()
 		glEnableClientState(GL_VERTEX_ARRAY);
 		glVertexPointer(2, GL_FLOAT, 0, &mBuffer[0]);
 
-		glColor4ub(mColorPen.r, mColorPen.g, mColorPen.b, mAlpha);
+		glColor4f(mColorPen.r, mColorPen.g, mColorPen.b, mAlpha);
 		glDrawArrays(GL_LINE_LOOP, 0, mBuffer.size() / 2);
 
 		glDisableClientState(GL_VERTEX_ARRAY);
@@ -441,13 +442,13 @@ void GLGraphics2D::beginBlend(Vector2 const& pos , Vector2 const& size , float a
 {
 	glEnable( GL_BLEND );
 	glBlendFunc( GL_SRC_ALPHA , GL_ONE_MINUS_SRC_ALPHA );
-	mAlpha = std::min( 255u , unsigned( alpha * 255 ) );
+	mAlpha = alpha;
 }
 
 void GLGraphics2D::endBlend()
 {
 	glDisable( GL_BLEND );
-	mAlpha = 255;
+	mAlpha = 1.0f;
 }
 
 GLFont::GLFont()

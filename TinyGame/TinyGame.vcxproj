@@ -289,6 +289,7 @@ copy $(TargetDir)EngineShare.dll $(ProjectDir)out\</Command>
     <ClCompile Include="Stage\AsyncWokTestStage.cpp" />
     <ClCompile Include="Stage\FlowGameStage.cpp" />
     <ClCompile Include="Stage\FluidSimStage.cpp" />
+    <ClCompile Include="Stage\FontDrawStage.cpp" />
     <ClCompile Include="Stage\NesEmulatorStage.cpp" />
     <ClCompile Include="Stage\AudioTestStage.cpp" />
     <ClCompile Include="Stage\SpatialIndexTest.cpp" />

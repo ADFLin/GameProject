@@ -18,6 +18,8 @@ namespace RenderGL
 		"PS" SHADER_FILE_SUBNAME ,
 		"GS" SHADER_FILE_SUBNAME ,
 		"CS" SHADER_FILE_SUBNAME ,
+		"HS" SHADER_FILE_SUBNAME ,
+		"DS" SHADER_FILE_SUBNAME ,
 	};
 
 	char const* shaderDefines[] =
@@ -26,6 +28,8 @@ namespace RenderGL
 		"#define PIXEL_SHADER 1\n" ,
 		"#define GEOMETRY_SHADER 1\n" ,
 		"#define COMPUTE_SHADER 1\n" ,
+		"#define HULL_SHADER 1\n" ,
+		"#define DOMAIN_SHADER 1\n" ,
 	};
 
 
@@ -178,17 +182,18 @@ namespace RenderGL
 
 		for( int i = 0; entries[i].type != Shader::eEmpty ; ++i )
 		{
+			auto const& entry = entries[i];
 			std::string defCode;
-			defCode += shaderDefines[i];
-			if( entries[i].name )
+			defCode += shaderDefines[entry.type];
+			if( entry.name )
 			{
 				defCode += "#define ";
-				defCode += entries[i].name;
+				defCode += entry.name;
 				defCode += " main\n";
 			}
 
 			std::string headCode = option.getCode(defCode.c_str(), additionalCode);
-			info->shaders.push_back({ Shader::Type(i) , std::move(headCode) });
+			info->shaders.push_back({ entry.type , std::move(headCode) });
 		}
 
 		if( !updateShaderInternal(shaderProgram, *info) )
@@ -219,8 +224,9 @@ namespace RenderGL
 		int indexNameUsed = 0;
 		for( int i = 0; entries[i].type != Shader::eEmpty; ++i )
 		{
-			std::string headCode;
+			auto const& entry = entries[i];
 
+			std::string headCode;
 			{
 				headCode += "#version ";
 				FixString<128> str;
@@ -234,11 +240,11 @@ namespace RenderGL
 				headCode += '\n';
 			}
 
-			headCode += shaderDefines[i];
-			if( entries[i].name )
+			headCode += shaderDefines[entry.type];
+			if( entry.name )
 			{
 				headCode += "#define ";
-				headCode += entries[i].name;
+				headCode += entry.name;
 				headCode += " main\n";
 				++indexNameUsed;
 			}
@@ -249,7 +255,7 @@ namespace RenderGL
 				headCode += '\n';
 			}
 
-			info->shaders.push_back({ Shader::Type(i), std::move(headCode) });
+			info->shaders.push_back({ entry.type, std::move(headCode) });
 		}
 
 		if( !updateShaderInternal(shaderProgram, *info) )

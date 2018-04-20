@@ -31,15 +31,15 @@ namespace RenderGL
 			}
 		}
 
-		bool loadFile(char const* path);
+		bool loadFile(char const* path, int numMipLevel = 0);
 
 		RHITexture2D* getRHI() 
 		{
 			if ( mRHI )
-				return mRHI;
+				return mRHI.get();
 			return GDefaultMaterialTexture2D;
 		}
-		RHITexture2D* mRHI;
+		RHITexture2DRef mRHI;
 	};
 
 	class MaterialShaderProgram : public ShaderProgram

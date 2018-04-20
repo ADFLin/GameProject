@@ -16,7 +16,7 @@ namespace Poker {
 	public:
 		CCardDraw()
 		{
-			mBugFixDC.create( ::Global::getGraphics2D().getTargetDC() , CardLib::CardSizeX , CardLib::CardSizeY );
+			mBugFixDC.Initialize( ::Global::getGraphics2D().getTargetDC() , CardLib::CardSizeX , CardLib::CardSizeY );
 		}
 		Vec2i getSize()
 		{

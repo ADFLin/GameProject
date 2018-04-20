@@ -453,6 +453,7 @@ namespace Go
 	{
 		mCore->startGame(setting);
 		bWaitResult = false;
+		bRequestUndoDone = false;
 		return true;
 	}
 
@@ -460,6 +461,7 @@ namespace Go
 	{
 		mCore->restart();
 		bWaitResult = false;
+		bRequestUndoDone = false;
 		return true;
 	}
 
@@ -479,6 +481,21 @@ namespace Go
 		return mCore->undo();
 	}
 
+	bool ZenBot::requestUndo()
+	{
+		if( bWaitResult )
+		{
+			bWaitResult = false;
+			mCore->stopThink();
+		}
+		else
+		{
+			mCore->undo();
+		}
+		bRequestUndoDone = true;
+		return true;
+	}
+
 	bool ZenBot::thinkNextMove(int color)
 	{
 		mCore->startThink(ToZColor(color));
@@ -494,6 +511,12 @@ namespace Go
 
 	void ZenBot::update(IGameCommandListener& listener)
 	{
+		if( bRequestUndoDone )
+		{
+			GameCommand com;
+			com.id = GameCommand::eUndo;
+			listener.notifyCommand(com);
+		}
 		if( bWaitResult )
 		{
 			if( !mCore->isThinking() )

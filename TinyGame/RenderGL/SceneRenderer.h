@@ -214,37 +214,6 @@ namespace RenderGL
 
 	};
 
-	class SSAOGenerateProgram : public ShaderProgram
-	{
-	public:
-		void bindParameters();
-		void setParameters(SceneRenderTargets& sceneRenderTargets , Vector3 kernelVectors[], int numKernelVector );
-
-		GBufferShaderParameters mParamGBuffer;
-		ShaderParameter mParamKernelNum;
-		ShaderParameter mParamKernelVectors;
-		ShaderParameter mParamOcclusionRadius;
-	};
-
-	class SSAOBlurProgram : public ShaderProgram
-	{
-	public:
-		void bindParameters();
-		void setParameters(RHITexture2D& SSAOTexture);
-
-		ShaderParameter mParamTextureSSAO;
-	};
-
-	class SSAOAmbientProgram : public ShaderProgram
-	{
-	public:
-		void bindParameters();
-		void setParameters(SceneRenderTargets& sceneRenderTargets, RHITexture2D& SSAOTexture);
-
-		GBufferShaderParameters mParamGBuffer;
-		ShaderParameter mParamTextureSSAO;
-	};
-
 
 	class PostProcessSSAO : public PostProcess
 	{
@@ -254,10 +223,7 @@ namespace RenderGL
 		bool init(Vec2i const& size);
 
 		void render(ViewInfo& view, SceneRenderTargets& sceneRenderTargets);
-		void drawSSAOTexture( Vec2i const& pos , Vec2i const& size )
-		{
-			ShaderHelper::DrawTexture(*mSSAOTextureBlur, pos , size );
-		}
+		void drawSSAOTexture( Vec2i const& pos , Vec2i const& size );
 
 		void reload();
 	private:
@@ -286,9 +252,9 @@ namespace RenderGL
 		FrameBuffer  mFrameBuffer;
 		RHITexture2DRef mSSAOTextureBlur;
 		RHITexture2DRef mSSAOTexture;
-		SSAOGenerateProgram mSSAOShader;
-		SSAOBlurProgram mSSAOBlurShader;
-		SSAOAmbientProgram mAmbientShader;
+		class SSAOGenerateProgram* mProgSSAOGenerate;
+		class SSAOBlurProgram*     mProgSSAOBlur;
+		class SSAOAmbientProgram*  mProgAmbient;
 
 	};
 	inline float normalizePlane(Vector4& plane)

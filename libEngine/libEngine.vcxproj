@@ -176,6 +176,7 @@
     <ClCompile Include="Collision2D\SATSolver.cpp" />
     <ClCompile Include="ConsoleSystem.cpp" />
     <ClCompile Include="CoreShare.cpp" />
+    <ClCompile Include="Core\Color.cpp" />
     <ClCompile Include="Core\MD5.cpp" />
     <ClCompile Include="CPreprocessor.cpp" />
     <ClCompile Include="FlowSystem.cpp" />

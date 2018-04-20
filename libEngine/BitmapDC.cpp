@@ -1,15 +1,18 @@
 #include "BitmapDC.h"
 
+#include <algorithm>
+#include <cassert>
+
 BitmapDC::BitmapDC(HDC hDC, HWND hWnd)
 {
 	RECT rect;
 	::GetClientRect(hWnd,&rect);
-	buildBitmap(hDC , rect.right - rect.left , rect.bottom - rect.top );
+	constructBitmap(hDC , rect.right - rect.left , rect.bottom - rect.top );
 }
 
 BitmapDC::BitmapDC(HDC hDC, int w, int h )
 {
-	buildBitmap( hDC, w, h);
+	constructBitmap( hDC, w, h);
 }
 
 BitmapDC::BitmapDC( HDC hDC,WORD resID )
@@ -62,7 +65,7 @@ BitmapDC::~BitmapDC()
 		::DeleteDC(mhDC);
 }
 
-bool BitmapDC::buildBitmap(HDC hdc , int w , int h)
+bool BitmapDC::constructBitmap(HDC hdc , int w , int h)
 {
 	mWidth  = w;
 	mHeight = h;
@@ -97,37 +100,37 @@ void BitmapDC::bitBlt( HDC hdc, int x ,int y , int sx , int sy , int w , int h )
 	::BitBlt( hdc , x, y , w , h , mhDC, sx , sy ,SRCCOPY );
 }
 
-bool BitmapDC::create( HDC hDC , int w , int h )
+bool BitmapDC::Initialize( HDC hDC , int w , int h )
 {
 	if ( mhBmp )
 		::DeleteObject(mhBmp);
 	if ( mhDC )
 		::DeleteDC(mhDC);
 
-	if ( !buildBitmap( hDC , w , h ) )
+	if ( !constructBitmap( hDC , w , h ) )
 		return false;
 
 	return true;
 }
 
-bool BitmapDC::create( HDC hDC, HWND hWnd )
+bool BitmapDC::Initialize( HDC hDC, HWND hWnd )
 {
+	assert(mhDC == NULL);
 	RECT rect;
 	::GetClientRect(hWnd,&rect);
-	return create( hDC , rect.right - rect.left , rect.bottom - rect.top );
+	return Initialize( hDC , rect.right - rect.left , rect.bottom - rect.top );
 }
 
-bool BitmapDC::create( HDC hDC , BITMAPINFO* info , void** data )
+bool BitmapDC::Initialize( HDC hDC , BITMAPINFO* info , void** data )
 {
-	cleanup();
-
+	assert(mhDC == NULL);
 	mhDC = ::CreateCompatibleDC( hDC );
 
 	if ( mhDC == NULL )
 		return false;
 
 	mWidth  = info->bmiHeader.biWidth;
-	mHeight = info->bmiHeader.biHeight;
+	mHeight = std::abs( info->bmiHeader.biHeight );
 
 	void* pixel;
 	mhBmp = ::CreateDIBSection( hDC , info , DIB_RGB_COLORS , (void**)&pixel , NULL , 0 );
@@ -146,10 +149,9 @@ bool BitmapDC::create( HDC hDC , BITMAPINFO* info , void** data )
 	return true;
 }
 
-bool BitmapDC::create( HDC hDC, LPSTR file )
+bool BitmapDC::Initialize( HDC hDC, LPSTR file )
 {
-	cleanup();
-
+	assert(mhDC == NULL);
 	mhDC = ::CreateCompatibleDC( hDC );
 	if ( mhDC == NULL )
 		return false;
@@ -169,6 +171,11 @@ bool BitmapDC::create( HDC hDC, LPSTR file )
 	mWidth  = bmp.bmWidth;
 	mHeight = bmp.bmHeight;
 	return true;
+}
+
+void BitmapDC::release()
+{
+	cleanup();
 }
 
 void BitmapDC::bitBltTransparent( HDC hdc , COLORREF color , int x /*= 0*/,int y /*= 0 */ )

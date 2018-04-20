@@ -110,8 +110,8 @@ namespace Lighting2D
 		std::vector< Vector2 > mBuffers;
 
 		virtual bool onInit();
+		virtual void onInitFail() override;
 		virtual void onEnd();
-
 		virtual void onUpdate( long time );
 
 		virtual bool onWidgetEvent(int event, int id, GWidget* ui) override;
@@ -146,6 +146,9 @@ namespace Lighting2D
 			}
 			return false;
 		}
+
+
+
 	protected:
 
 	};

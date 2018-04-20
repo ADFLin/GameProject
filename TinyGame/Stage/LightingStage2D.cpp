@@ -25,10 +25,13 @@ namespace Lighting2D
 		GameWindow& window = Global::getDrawEngine()->getWindow();
 
 		{
-			char const* entryNames[] = { SHADER_ENTRY(LightingPS) };
+			ShaderEntryInfo entries[] =
+			{
+				{ Shader::ePixel , SHADER_ENTRY(LightingPS) } ,
+				{ Shader::eEmpty , nullptr },
+			};
 			if( !ShaderManager::Get().loadFile(
-				mProgLighting, "Shader/Game/lighting2D",
-				BIT(Shader::ePixel), entryNames) )
+				mProgLighting, "Shader/Game/lighting2D", entries ) )
 				return false;
 		}
 
@@ -36,19 +39,17 @@ namespace Lighting2D
 			FixString< 128 > defineStr;
 			ShaderCompileOption option;
 			option.version = 430;
-			char const* entryNames[] = { SHADER_ENTRY(MainVS) , SHADER_ENTRY(MainPS) , SHADER_ENTRY(MainGS) };
+			ShaderEntryInfo entries[] =
+			{ 
+				{ Shader::eVertex , SHADER_ENTRY(MainVS) },
+				{ Shader::ePixel , SHADER_ENTRY(MainPS) } ,
+				{ Shader::eGeometry , SHADER_ENTRY(MainGS) },
+				{ Shader::eEmpty , nullptr },
+			};
 			if( !ShaderManager::Get().loadFile(
-				mProgShadow, "Shader/Game/Lighting2DShadow", 
-				BIT(Shader::eVertex)| BIT(Shader::ePixel) | BIT(Shader::eGeometry), entryNames , option ) )
+				mProgShadow, "Shader/Game/Lighting2DShadow", entries, option ) )
 				return false;
 		}
-
-		glClearColor( 0 , 0 , 0 , 0 );
-
-		glMatrixMode(GL_PROJECTION);
-		glLoadIdentity();
-		glOrtho(0, window.getWidth() , window.getHeight() , 0 , 1, -1);
-		glMatrixMode(GL_MODELVIEW);
 
 		::Global::GUI().cleanupWidget();
 		auto frame = WidgetUtility::CreateDevFrame();
@@ -58,9 +59,14 @@ namespace Lighting2D
 		return true;
 	}
 
+	void TestStage::onInitFail()
+	{
+		Global::getDrawEngine()->stopOpenGL(true);
+	}
+
 	void TestStage::onEnd()
 	{
-		Global::getDrawEngine()->stopOpenGL();
+		Global::getDrawEngine()->stopOpenGL(true);
 	}
 
 	void TestStage::restart()
@@ -188,7 +194,7 @@ namespace Lighting2D
 			{
 				GL_BIND_LOCK_OBJECT(mProgLighting);
 				mProgLighting.setParameters(light.pos, light.color);
-				DrawUtility::Rect(w, h);
+				DrawUtility::RectShader(w, h);
 			}
 			glDisable(GL_BLEND);
 			glClear(GL_STENCIL_BUFFER_BIT);
@@ -196,6 +202,22 @@ namespace Lighting2D
 
 		glDisable( GL_STENCIL_TEST );
 
+
+#if 0
+		glColor3f(1, 0, 0);
+		Vector2 vertices[] =
+		{
+			Vector2(100 , 100),
+			Vector2(200 , 100),
+			Vector2(200 , 200),
+			Vector2(100 , 200),
+		};
+		int indices[] =
+		{
+			0,1,2,0,2,3,
+		};
+		TRenderRT<RTVF_XY>::DrawIndexed(PrimitiveType::eTriangleList, vertices, 4, indices, 6);
+#endif
 
 		GLGraphics2D& g = ::Global::getDrawEngine()->getGLGraphics();
 

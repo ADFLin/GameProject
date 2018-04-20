@@ -10,17 +10,17 @@ namespace RenderGL
 		GLenum primitivTypeGL = GLConvert::To(primitiveType);
 
 		context.setupShader(material);
-		if( context.mbUseVAO )
+		if( context.bBindAttrib )
 		{
 			if( VAOHandle == 0 )
 			{
 				glGenVertexArrays(1, &VAOHandle);
 				glBindVertexArray(VAOHandle);
 				vertexBuffer->bind();
-				vertexDecl->beginVAOSetup();
+				vertexDecl->bindAttrib();
 				glBindVertexArray(0);
 				vertexBuffer->unbind();
-				vertexDecl->endVAOSetup();
+				vertexDecl->unbindAttrib();
 			}
 
 			glBindVertexArray(VAOHandle);
@@ -84,10 +84,10 @@ namespace RenderGL
 		glGenVertexArrays(1, &mVAO);
 		glBindVertexArray(mVAO);
 		mVertexBuffer->bind();
-		mDecl.beginVAOSetup();
+		mDecl.bindAttrib();
 		glBindVertexArray(0);
 		mVertexBuffer->unbind();
-		mDecl.endVAOSetup();
+		mDecl.unbindAttrib();
 
 		if( !ShaderManager::Get().loadFile(
 			mShader, "Shader/SimpleElement",

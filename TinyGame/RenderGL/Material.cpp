@@ -5,11 +5,11 @@
 #include "FileSystem.h"
 
 #include "stb/stb_image.h"
-
+#include "RHICommand.h"
 
 namespace RenderGL
 {
-	bool Texture2D::loadFile(char const* path)
+	bool Texture2D::loadFile(char const* path , int numMipLevel )
 	{
 		int w;
 		int h;
@@ -20,15 +20,14 @@ namespace RenderGL
 			return false;
 
 		assert(mRHI == nullptr);
-		mRHI = new RHITexture2D;
 		//#TODO
 		switch( comp )
 		{
 		case 3:
-			mRHI->create(Texture::eRGB8, w, h, imageData , 1);
+			mRHI = RHICreateTexture2D(Texture::eRGB8, w, h, numMipLevel, imageData, 1);
 			break;
 		case 4:
-			mRHI->create(Texture::eRGBA8, w, h, imageData);
+			mRHI = RHICreateTexture2D(Texture::eRGBA8, w, h, numMipLevel, imageData, 1);
 			break;
 		}
 		//glGenerateMipmap( texType);

@@ -69,7 +69,7 @@ void WinGdiGraphics2D::beginBlend( Vec2i const& pos , Vec2i const& size , float 
 	if ( mBlendDC.getWidth() < size.x ||
 		 mBlendDC.getHeight() < size.y )
 	{
-		mBlendDC.create( mhDCTarget , size.x , size.y );
+		mBlendDC.Initialize( mhDCTarget , size.x , size.y );
 	}
 
 	mBlendPos   = pos;
@@ -256,12 +256,12 @@ bool GdiTexture::create( HDC hDC , int width , int height , void** data )
 	bmpInfo.bmiHeader.biBitCount = 32;
 	bmpInfo.bmiHeader.biCompression = BI_RGB;
 
-	return mImpl.create( hDC , &bmpInfo , data );
+	return mImpl.Initialize( hDC , &bmpInfo , data );
 }
 
 bool GdiTexture::createFromFile( HDC hDC , char const* path )
 {
-	return mImpl.create( hDC , (LPSTR)path );
+	return mImpl.Initialize( hDC , (LPSTR)path );
 }
 
 uint8* GdiTexture::getRawData()

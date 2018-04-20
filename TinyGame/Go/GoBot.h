@@ -33,6 +33,7 @@ namespace Go
 					int   intParam;
 					float floatParam;
 					char const* strParam;
+					void* ptrParam;
 				};
 			};
 			struct  
@@ -68,6 +69,13 @@ namespace Go
 			paramId = inParamId;
 			floatParam = param;
 		}
+
+		void setParam(uint8 inParamId, void* param)
+		{
+			id = GameCommand::eParam;
+			paramId = inParamId;
+			ptrParam = param;
+		}
 	};
 
 	class IGameCommandListener
@@ -87,10 +95,12 @@ namespace Go
 		virtual bool playStone(int x , int y , int color) = 0;
 		virtual bool playPass(int color) = 0;
 		virtual bool undo() = 0;
+		virtual bool requestUndo() = 0;
 		virtual bool thinkNextMove(int color) = 0;
 		virtual bool isThinking() = 0;
 		virtual void update(IGameCommandListener& listener) = 0;
 		virtual bool getMetaData(int id , int dataBuffer[] , int size) { return false; }
+		virtual bool isGPUBased() const { return false; }
 	};
 
 

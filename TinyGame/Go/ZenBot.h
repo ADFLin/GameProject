@@ -468,8 +468,10 @@ namespace Go
 		virtual bool playStone(int x, int y, int color) override;
 		virtual bool playPass(int color) override;
 		virtual bool undo() override;
+		virtual bool requestUndo() override;
 		virtual bool thinkNextMove(int color) override;
 		virtual bool isThinking() override;
+		virtual bool isGPUBased() const override { return false; }
 
 		virtual void update(IGameCommandListener& listener) override;
 
@@ -487,10 +489,11 @@ namespace Go
 		}
 
 
-		int  mCoreVersion = 6;
+		int  mCoreVersion = 0;
 		std::unique_ptr< Zen::IBotCore > mCore;
 		int  requestColor;
 		bool bWaitResult;
+		bool bRequestUndoDone;
 	};
 
 

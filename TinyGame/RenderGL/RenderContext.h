@@ -145,9 +145,9 @@ namespace RenderGL
 			:mTechique(&techique)
 			,mCurView( &view )
 		{
-			mbUseVAO = techique.needUseVAO();
+			bBindAttrib = techique.needUseVAO();
 			mUsageShader = nullptr;
-			mbUseVAO = false;
+			bBindAttrib = false;
 		}
 
 		ViewInfo& getView() { return *mCurView; }
@@ -207,7 +207,7 @@ namespace RenderGL
 		VertexFactory*  mUsageVertexFactory;
 		ShaderProgram*  mUsageShader;
 		bool            mbUseMaterialShader;
-		bool            mbUseVAO;
+		bool            bBindAttrib;
 	};
 
 }//namespace RenderGL

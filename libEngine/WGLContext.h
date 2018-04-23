@@ -4,9 +4,9 @@
 #include "GLConfig.h"
 #include "Core/IntegerType.h"
 
-struct WGLSetupSetting
+struct WGLPixelFormat
 {
-	WGLSetupSetting()
+	WGLPixelFormat()
 	{
 		colorBits  = 24;
 		alpahaBits = 8;
@@ -28,13 +28,13 @@ public:
 	~WindowsGLContext();
 
 
-	bool  init( HDC hDC , WGLSetupSetting const& setting , bool beWindow = true );
+	bool  init( HDC hDC , WGLPixelFormat const& format , bool bWindowed = true );
 	void  cleanup();
 	bool  makeCurrent( HDC hDC );
 
 	bool  isValid() { return mhRC != NULL; }
 	HGLRC getHandle(){ return mhRC; }
-
+	bool  setupPixelFormat(HDC hDC, WGLPixelFormat const& format , bool bWindowed);
 private:
 	HGLRC mhRC;
 };

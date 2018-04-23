@@ -2256,7 +2256,7 @@ public:
 			g.drawRect( pos , rectSize );
 
 			FixString< 64 > str;
-			g.setTextColor( 255 , 255 , 255 );
+			g.setTextColor(Color3ub(255 , 255 , 255) );
 			str.format( "%d" , node.key );
 			g.drawText( pos , rectSize , str );
 		}

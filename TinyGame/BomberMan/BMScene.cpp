@@ -678,7 +678,7 @@ namespace BomberMan
 					RenderUtility::SetBrush( g , color );
 					g.drawRoundRect( pos + Vec2i( gap , gap ) , TileSize - 2 * Vec2i( gap , gap ) , Vec2i( 5 , 5 ) );
 
-					g.setTextColor( 0 , 0 , 0 );
+					g.setTextColor( Color3ub(0 , 0 , 0) );
 					g.drawText( pos , TileSize , text );
 				}
 

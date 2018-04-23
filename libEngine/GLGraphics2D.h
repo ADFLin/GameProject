@@ -93,6 +93,17 @@ public:
 	{
 		mColorBrush = color;
 	}
+
+	void  beginClip(Vec2i const& pos, Vec2i const& size)
+	{
+		glEnable(GL_SCISSOR_TEST);
+		glScissor(pos.x, mHeight - pos.y - size.y , size.x,  size.y);
+	}
+	void  endClip()
+	{
+		glDisable(GL_SCISSOR_TEST);
+	}
+
 	void  beginBlend( Vector2 const& pos , Vector2 const& size , float alpha );
 	void  endBlend();
 
@@ -118,7 +129,7 @@ public:
 	{
 		mFont = &font;
 	}
-	void  setTextColor( uint8 r , uint8 g, uint8 b );
+	void  setTextColor(Color3ub const& color);
 	void  drawText( Vector2 const& pos , char const* str );
 	void  drawText( Vector2 const& pos , Vector2 const& size , char const* str , bool beClip = false );
 	void  drawText( float x , float y , char const* str ){ drawText( Vector2(x,y) , str ); }

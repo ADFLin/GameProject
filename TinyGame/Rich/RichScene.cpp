@@ -218,7 +218,7 @@ namespace Rich
 			RenderUtility::SetFont( g , FONT_S24 );
 
 			g.drawRoundRect( pos , Vec2i( 80 , 80 ) , Vec2i( 10 , 10 ) );
-			g.setTextColor( 0 , 0 , 0 );
+			g.setTextColor(Color3ub(0 , 0 , 0) );
 			FixString< 32 > str;
 			if ( curTime < durtion / 2 )
 				str.format( "%d" , ::Global::Random() % 6 + 1 );

@@ -22,7 +22,7 @@ public:
 		mIsOver = false;
 		mFrameTime  = 0;
 		mUpdateTime = 15;
-		mBusyTime = 2000;
+		mBusyTime = 200;
 	}
 
 	void setUpdateTime( long  time ){ mUpdateTime = time; }

@@ -30,7 +30,7 @@ namespace Zuma
 		void   release(){ delete this; }
 		virtual void onStart()
 		{
-			setOrder( 3 );
+			setRenderOrder( 3 );
 			mRenderSys.addRenderable( this );
 		}
 		virtual bool onUpdate( long time )

@@ -62,6 +62,19 @@ void WinGdiGraphics2D::_setFontImpl( HFONT hFont , bool beManaged )
 }
 
 
+void WinGdiGraphics2D::beginClip(Vec2i const& pos, Vec2i const& size)
+{
+	mhClipRegion = CreateRectRgn(pos.x, pos.y, pos.x + size.x, pos.y + size.y);
+	::SelectClipRgn(getRenderDC(), mhClipRegion);
+}
+
+void WinGdiGraphics2D::endClip()
+{
+	::SelectClipRgn(getRenderDC(), NULL);
+	::DeleteObject(mhClipRegion);
+	mhClipRegion = NULL;
+}
+
 void WinGdiGraphics2D::beginBlend( Vec2i const& pos , Vec2i const& size , float alpha )
 {
 	assert( mBlendCount == 0 );
@@ -69,7 +82,7 @@ void WinGdiGraphics2D::beginBlend( Vec2i const& pos , Vec2i const& size , float 
 	if ( mBlendDC.getWidth() < size.x ||
 		 mBlendDC.getHeight() < size.y )
 	{
-		mBlendDC.Initialize( mhDCTarget , size.x , size.y );
+		mBlendDC.initialize( mhDCTarget , size.x , size.y );
 	}
 
 	mBlendPos   = pos;
@@ -225,9 +238,9 @@ void WinGdiGraphics2D::drawText( Vec2i const& pos , Vec2i const& size , char con
 	::DrawText( getRenderDC() , str , (int)strlen( str ), &rect , format  );
 }
 
-void WinGdiGraphics2D::setTextColor( uint8 r , uint8 g, uint8 b )
+void WinGdiGraphics2D::setTextColor(Color3ub const& color)
 {
-	::SetTextColor( getRenderDC(), RGB( r , g , b ) );
+	::SetTextColor( getRenderDC(), color.toXBGR() );
 }
 
 Vec2i WinGdiGraphics2D::calcTextExtentSize( char const* str , int num )
@@ -256,12 +269,12 @@ bool GdiTexture::create( HDC hDC , int width , int height , void** data )
 	bmpInfo.bmiHeader.biBitCount = 32;
 	bmpInfo.bmiHeader.biCompression = BI_RGB;
 
-	return mImpl.Initialize( hDC , &bmpInfo , data );
+	return mImpl.initialize( hDC , &bmpInfo , data );
 }
 
 bool GdiTexture::createFromFile( HDC hDC , char const* path )
 {
-	return mImpl.Initialize( hDC , (LPSTR)path );
+	return mImpl.initialize( hDC , (LPSTR)path );
 }
 
 uint8* GdiTexture::getRawData()

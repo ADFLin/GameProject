@@ -8,6 +8,8 @@
 #include "PropertyKey.h"
 #include "InputManager.h"
 #include "FileSystem.h"
+#include "ProfileSystem.h"
+
 
 #include "GameGUISystem.h"
 #include "GameStage.h"
@@ -94,7 +96,7 @@ public:
 
 		Vec2i pos = a_pos;
 		RenderUtility::SetFont( g , FONT_S8 );
-		g.setTextColor(255 , 255 , 0 );
+		g.setTextColor(Color3ub(255 , 255 , 0));
 		Mutex::Locker locker( mMutex );
 		for( StringList::iterator iter = mMsgList.begin();
 			iter != mMsgList.end() ; ++ iter )
@@ -225,6 +227,8 @@ long TinyGameApp::onUpdate( long shouldTime )
 
 	for( int i = 0 ; i < numFrame ; ++i )
 	{
+		ProfileSystem::Get().incrementFrameCount();
+
 		if ( mNetWorker )
 			mNetWorker->update( getUpdateTime() );
 
@@ -455,7 +459,7 @@ void TinyGameApp::render( float dframe )
 	mFPSCalc.increaseFrame(getMillionSecond());
 	IGraphics2D& g = ::Global::getIGraphics2D();
 	FixString< 256 > str;
-	g.setTextColor(255, 255, 0);
+	g.setTextColor(Color3ub(255, 255, 0));
 	g.drawText(Vec2i(5, 5), str.format("FPS = %f", mFPSCalc.getFPS()));
 
 	if( de->isOpenGLEnabled() )

@@ -71,13 +71,13 @@ namespace BomberMan
 			if ( mNextStepTime - mGameTime > TimeReadyWait / 2 )
 			{
 				RenderUtility::SetFont( g , FONT_S24 );
-				g.setTextColor( 255 , 255 , 255 );
+				g.setTextColor(Color3ub(255 , 255 , 255) );
 				g.drawText( Vec2i(0,0) , Global::getDrawEngine()->getScreenSize() , "Ready" );
 			}
 			else
 			{
 				RenderUtility::SetFont( g , FONT_S24 );
-				g.setTextColor( 255 , 0 , 0  );
+				g.setTextColor(Color3ub(255 , 0 , 0 ));
 				g.drawText( Vec2i(0,0) , Global::getDrawEngine()->getScreenSize() , "Go!" );
 			}
 		}

@@ -59,7 +59,7 @@ namespace Go
 		Vec2i posH = BoardPos;
 		
 		RenderUtility::SetFont( g , FONT_S12 );
-		g.setTextColor( 0 , 0 , 0 );
+		g.setTextColor(Color3ub(0 , 0 , 0) );
 		for( int i = 0 ; i < size ; ++i )
 		{
 			g.drawLine( posV , posV + Vec2i( 0 , length ) );
@@ -130,7 +130,7 @@ namespace Go
 		}
 
 		RenderUtility::SetFont( g , FONT_S8 );
-		g.setTextColor( 255 , 255 , 0 );
+		g.setTextColor(Color3ub(255 , 255 , 0) );
 		FixString< 64 > str;
 		str.format( "life = %d" , mCaptureCount );
 		g.drawText( Vec2i( 5 , 5 ) , str );

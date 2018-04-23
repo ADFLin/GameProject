@@ -28,9 +28,7 @@ void Win32ProfileViewer::onNode( SampleNode* node , double parentTime )
 bool Win32ProfileViewer::onEnterChild( SampleNode* node )
 {
 	mIdxChild = 0;
-
 	msgShow.shiftPos( 20 , 0 );
-
 	return true;
 }
 
@@ -59,7 +57,7 @@ void Win32ProfileViewer::showText( int x , int y )
 {
 	msgShow.setPos( x , y );
 	msgShow.start();
-	visit();
+	visitNodes();
 	msgShow.finish();
 }
 

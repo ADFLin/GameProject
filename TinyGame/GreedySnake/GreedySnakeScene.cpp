@@ -211,7 +211,7 @@ namespace GreedySnake
 		g.popXForm();
 		g.finishXForm();
 
-		g.setTextColor( 0 , 255 , 125 );
+		g.setTextColor(Color3ub(0 , 255 , 125) );
 
 		for( int i = 0 ; i < mapSize.x ; ++i )
 		{

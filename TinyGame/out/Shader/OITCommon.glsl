@@ -1,0 +1,49 @@
+#pragma once
+#include "Common.glsl"
+
+#if PIXEL_SHADER
+
+layout(rgba16f) uniform restrict image2D ColorStorageRWTexture;
+layout(rgba32i) uniform restrict iimage2D NodeAndDepthStorageRWTexture;
+layout(r32ui) uniform coherent uimage2D NodeHeadRWTexture;
+layout(offset = 0, binding = 0) uniform atomic_uint NextIndex;
+
+#ifndef OIT_STORAGE_SIZE
+#define OIT_STORAGE_SIZE 4096
+#endif
+
+const uint MaxStoragePixelCount = OIT_STORAGE_SIZE * OIT_STORAGE_SIZE;
+
+int2 IndexToStoragePos(uint index)
+{
+	return int2(index % OIT_STORAGE_SIZE, index / OIT_STORAGE_SIZE);
+}
+
+int PackAlpha(float value)
+{
+	return int(value * 255.0 * 255.0);
+}
+
+float UnpackAlpha(int value)
+{
+	return float(value) / (255.0 * 255.0);
+}
+
+void OITProcessPS(in float4 pixelColor, in float pixelDepth)
+{
+	if( pixelColor.a < 0.01 )
+		discard;
+
+	uint index = atomicCounterIncrement(NextIndex) + 1;
+	if( index < MaxStoragePixelCount )
+	{
+		int2 screenPos = int2(gl_FragCoord.xy);
+		uint indexPrev = imageAtomicExchange(NodeHeadRWTexture, screenPos, index);
+
+		int2 storagePos = IndexToStoragePos(index);
+		imageStore(ColorStorageRWTexture, storagePos, float4(pixelColor.rgb, pixelDepth));
+		imageStore(NodeAndDepthStorageRWTexture, storagePos, int4(indexPrev, PackAlpha(pixelColor.a), 0, 0));
+	}
+}
+
+#endif //PIXEL_SHADER

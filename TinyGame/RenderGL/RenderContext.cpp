@@ -4,7 +4,7 @@
 
 namespace RenderGL
 {
-	void RenderTechique::setupWorld(RenderContext& context, Matrix4 const& mat)
+	void RenderTechnique::setupWorld(RenderContext& context, Matrix4 const& mat)
 	{
 		//#TODO : Remove GL Matrix fun
 		glMultMatrixf(mat);

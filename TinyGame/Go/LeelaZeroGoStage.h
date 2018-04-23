@@ -12,6 +12,7 @@
 #include "WidgetUtility.h"
 
 #include "Misc/Guid.h"
+#include "FileSystem.h"
 
 #include "GameSettingPanel.h"
 
@@ -106,6 +107,7 @@ namespace Go
 		}
 
 		FixString<512> filePath;
+		bool bShowFileNameOnly = true;
 
 		virtual void onRender() override
 		{
@@ -113,7 +115,17 @@ namespace Go
 
 			Vec2i pos = getWorldPos();
 			Vec2i size;
-			g.drawText(pos, filePath);
+			g.beginClip( pos , getSize() - Vec2i(20,0) );
+			if( bShowFileNameOnly )
+			{
+				char const* fileName = FileUtility::GetDirPathPos(filePath) + 1;
+				g.drawText(pos, fileName);
+			}
+			else
+			{
+				g.drawText(pos, filePath);
+			}
+			g.endClip();
 		}
 
 	};
@@ -346,7 +358,7 @@ namespace Go
 		bool bDrawDebugMsg = false;
 		BoardRenderer mBoardRenderer;
 		float const RenderBoardScale = 1.2;
-		Vector2 const BoardPos = Vector2(50, 50);
+		Vector2 const BoardPos = Vector2(50.5, 50.5);
 
 		GameMode mGameMode;
 		class UnderCurveAreaProgram* mProgUnderCurveArea;

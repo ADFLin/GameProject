@@ -501,7 +501,7 @@ namespace Chromatron
 				g.finishXForm();
 				FixString< 32 > str;
 				RenderUtility::SetFont( g , FONT_S12 );
-				g.setTextColor( 255 , 255 , 255 );
+				g.setTextColor( Color3ub(255 , 255 , 255) );
 				str.format( "%d" , id );
 				g.drawText( pos - CellSize / 2 , CellSize , str );
 				g.beginXForm();

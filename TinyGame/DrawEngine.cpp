@@ -1,6 +1,8 @@
 ﻿#include "TinyGamePCH.h"
 #include "DrawEngine.h"
 
+#include "ProfileSystem.h"
+
 #include "GLGraphics2D.h"
 #include "GameGlobal.h"
 #include "RenderUtility.h"
@@ -37,6 +39,8 @@ public:
 
 	virtual void beginRender() override { mImpl.beginRender(); }
 	virtual void endRender() override { mImpl.endRender(); }
+	virtual void beginClip(Vec2i const& pos, Vec2i const& size) { mImpl.beginClip(pos, size); }
+	virtual void endClip() { mImpl.endClip(); }
 	virtual void beginBlend( Vec2i const& pos , Vec2i const& size , float alpha )  override { mImpl.beginBlend( pos , size , alpha ); }
 	virtual void endBlend() override { mImpl.endBlend(); }
 	virtual void setPen( Color3ub const& color ) override { mImpl.setPen( color ); }
@@ -50,7 +54,7 @@ public:
 	virtual void drawRoundRect( Vec2i const& pos , Vec2i const& rectSize , Vec2i const& circleSize ) override { mImpl.drawRoundRect( pos , rectSize , circleSize ); }
 	virtual void drawPolygon(Vec2i pos[], int num) override { mImpl.drawPolygon(pos, num); }
 
-	virtual void setTextColor( uint8 r , uint8 g, uint8 b ) override { mImpl.setTextColor(  r ,  g,  b );  }
+	virtual void setTextColor(Color3ub const& color) override { mImpl.setTextColor(color);  }
 	virtual void drawText( Vec2i const& pos , char const* str ) override { mImpl.drawText( pos , str ); }
 	virtual void drawText( Vec2i const& pos , Vec2i const& size , char const* str , bool beClip ) override { mImpl.drawText( pos , size , str , beClip  ); }
 
@@ -73,7 +77,6 @@ DrawEngine::DrawEngine()
 	mbInitialized = false;
 	mbSweepBuffer = true;
 	mbCleaupGLDefferred = false;
-	mBufferDC = NULL;
 	mScreenGraphics = NULL;
 	mGLGraphics = NULL;
 
@@ -81,7 +84,7 @@ DrawEngine::DrawEngine()
 
 DrawEngine::~DrawEngine()
 {
-	delete mBufferDC;
+	mBufferDC.release();
 	delete mScreenGraphics;
 	delete mGLGraphics;
 
@@ -90,8 +93,8 @@ DrawEngine::~DrawEngine()
 void DrawEngine::init( GameWindow& window )
 {
 	mGameWindow = &window;
-	mBufferDC = new BitmapDC( window.getHDC() , window.getHWnd() );
-	mScreenGraphics = new Graphics2D( mBufferDC->getDC() );
+	mBufferDC.initialize( window.getHDC() , window.getHWnd() );
+	mScreenGraphics = new Graphics2D( mBufferDC.getDC() );
 	mGLGraphics = new GLGraphics2D;
 	mGLGraphics->init( mGameWindow->getWidth() , mGameWindow->getHeight() );
 	RenderUtility::Initialize();
@@ -108,15 +111,15 @@ void DrawEngine::release()
 	RenderUtility::Finalize();
 }
 
-bool DrawEngine::startOpenGL( bool useGLEW , int numSample )
+bool DrawEngine::startOpenGL( bool useGLEW , int numSamples )
 {
 	if ( mbGLEnabled )
 		return true;
 
 	setupBuffer( getScreenWidth() , getScreenHeight() );
-	WGLSetupSetting setting;
-	setting.numSamples = numSample;
-	if ( !mGLContext.init( getWindow().getHDC() , setting ) )
+	WGLPixelFormat format;
+	format.numSamples = numSamples;
+	if ( !mGLContext.init( getWindow().getHDC() , format ) )
 		return false;
 
 	if ( useGLEW )
@@ -175,7 +178,7 @@ bool DrawEngine::beginRender()
 			mbCleaupGLDefferred = false;
 			mGLContext.cleanup();
 		}
-		mBufferDC->clear();
+		mBufferDC.clear();
 		mScreenGraphics->beginRender();
 	}
 	return true;
@@ -198,7 +201,7 @@ void DrawEngine::endRender()
 	{
 		mScreenGraphics->endRender();
 		if ( mbSweepBuffer )
-			mBufferDC->bitBlt( getWindow().getHDC() );
+			mBufferDC.bitBlt( getWindow().getHDC() );
 	}
 }
 
@@ -225,10 +228,86 @@ HFONT DrawEngine::createFont( int size , char const* faceName , bool beBold , bo
 }
 
 
+void DrawEngine::changePixelSample(int numSamples)
+{
+	WGLPixelFormat format;
+	format.numSamples = numSamples;
+	mGLContext.setupPixelFormat(getWindow().getHDC(), format, true);
+}
+
+
+class ProfileTextDraw : public ProfileNodeVisitorT< ProfileTextDraw >
+{
+public:
+	ProfileTextDraw(IGraphics2D& g, Vec2i const& pos)
+		:mGraphics2D(g), mTextPos(pos)
+	{
+
+	}
+	static int const OffsetY = 15;
+	void onRoot(SampleNode* node) 
+	{
+		FixString<512> str;
+		double time_since_reset = ProfileSystem::Get().getTimeSinceReset();
+		str.format("--- Profiling: %s (total running time: %.3f ms) ---",
+					 node->getName(), time_since_reset);
+		mGraphics2D.drawText(mTextPos, str);
+		mTextPos.y += OffsetY;
+	}
+	void onNode(SampleNode* node, double parentTime) 
+	{
+		FixString<512> str;
+		str.format("|-> %s (%.2f %%) :: %.3f ms / frame (%d calls)",
+					 node->getName(),
+					 parentTime > CLOCK_EPSILON ? (node->getTotalTime() / parentTime) * 100 : 0.f,
+					 node->getTotalTime() / (double)ProfileSystem::Get().getFrameCountSinceReset(),
+					 node->getTotalCalls());
+		mGraphics2D.drawText(mTextPos, str);
+		mTextPos.y += OffsetY;
+	}
+	bool onEnterChild(SampleNode* node) 
+	{ 
+		mTextPos += Vec2i(20, 0);
+		return true; 
+	}
+	void onEnterParent(SampleNode* node, int numChildren, double accTime) 
+	{
+		if( numChildren )
+		{
+			FixString<512> str;
+			double time;
+			if( node->getParent() != NULL )
+				time = node->getTotalTime();
+			else
+				time = ProfileSystem::Get().getTimeSinceReset();
+
+			double delta = time - accTime;
+			str.format("|-> %s (%.3f %%) :: %.3f ms / frame", "Other",
+						 // (min(0, time_since_reset - totalTime) / time_since_reset) * 100);
+				(time > CLOCK_EPSILON) ? (delta / time * 100) : 0.f,
+						 delta / (double)ProfileSystem::Get().getFrameCountSinceReset());
+			mGraphics2D.drawText(mTextPos, str);
+			mTextPos.y += OffsetY;
+			mGraphics2D.drawText(mTextPos, "-------------------------------------------------");
+			mTextPos.y += OffsetY;
+		}
+
+		mTextPos += Vec2i(-20, 0);
+	}
+	Vec2i        mTextPos;
+	IGraphics2D& mGraphics2D;
+};
+
+void DrawEngine::drawProfile(Vec2i const& pos)
+{
+	ProfileTextDraw textDraw( getIGraphics() , pos );
+	textDraw.visitNodes();
+}
+
 void DrawEngine::changeScreenSize( int w , int h )
 {
 	getWindow().resize( w , h );
-	if ( mBufferDC->getWidth() != w || mBufferDC->getHeight() != h )
+	if ( mBufferDC.getWidth() != w || mBufferDC.getHeight() != h )
 	{
 		setupBuffer( w , h );
 		mGLGraphics->init( w , h );
@@ -269,15 +348,15 @@ void DrawEngine::setupBuffer( int w , int h )
 		bmpInfo.bmiHeader.biYPelsPerMeter = 0;
 		bmpInfo.bmiHeader.biSizeImage = 0;
 
-		if ( !mBufferDC->Initialize( getWindow().getHDC() , &bmpInfo ) )
+		if ( !mBufferDC.initialize( getWindow().getHDC() , &bmpInfo ) )
 			return;
 	}
 	else
 	{
-		mBufferDC->Initialize( getWindow().getHDC() , w , h );
+		mBufferDC.initialize( getWindow().getHDC() , w , h );
 	}
 
-	mScreenGraphics->setTargetDC( mBufferDC->getDC() );
+	mScreenGraphics->setTargetDC( mBufferDC.getDC() );
 }
 
 void DrawEngine::enableSweepBuffer(bool beS)
@@ -288,7 +367,7 @@ void DrawEngine::enableSweepBuffer(bool beS)
 	if ( !mbSweepBuffer )
 		mScreenGraphics->setTargetDC( mGameWindow->getHDC() );
 	else
-		mScreenGraphics->setTargetDC( mBufferDC->getDC() );
+		mScreenGraphics->setTargetDC( mBufferDC.getDC() );
 }
 
 bool DrawEngine::cleanupGLContextDeferred()

@@ -281,8 +281,8 @@ namespace RenderGL
 	public:
 		bool loadFromFile( char const* path );
 		bool create( Texture::Format format, int width, int height , int numMipLevel = 0 ,void* data = nullptr , int alignment = 0);
-		int  getSizeX() { return mSizeX; }
-		int  getSizeY() { return mSizeY; }
+		int  getSizeX() const { return mSizeX; }
+		int  getSizeY() const { return mSizeY; }
 		void bind();
 		void unbind();
 
@@ -364,7 +364,7 @@ namespace RenderGL
 		bool create(Shader::Type type );
 		void destroy();
 
-		GLuint getParam( GLuint val );
+		GLuint getGLParam( GLuint val );
 		friend class ShaderProgram;
 	};
 
@@ -400,6 +400,13 @@ namespace RenderGL
 		};
 	};
 
+	enum class ELockAccess
+	{
+		ReadOnly,
+		ReadWrite,
+		WriteOnly,
+	};
+
 
 	class GLConvert
 	{
@@ -408,6 +415,7 @@ namespace RenderGL
 		static GLenum To(Texture::Format format);
 		static GLenum To(PrimitiveType type);
 		static GLenum To(Shader::Type type);
+		static GLenum To(ELockAccess access);
 	};
 
 
@@ -484,7 +492,7 @@ namespace RenderGL
 
 		RHIShader* removeShader( Shader::Type type );
 		void    attachShader( RHIShader& shader );
-		void    updateShader(bool bForce = false);
+		bool    updateShader(bool bForce = false);
 
 		void checkProgramStatus();
 
@@ -964,8 +972,51 @@ namespace RenderGL
 		uint8   mVertexSize;
 	};
 
+	template< uint32 GLBufferType >
+	class TRHIBufferBase : public TRHIResource< RMPBufferObject >
+	{
+	public:
+		void  bind() { glBindBuffer(GLBufferType, mHandle); }
+		void  unbind() { glBindBuffer(GLBufferType, 0); }
 
-	class RHIVertexBuffer : public TRHIResource< RMPBufferObject >
+		void* lock(ELockAccess access)
+		{
+			glBindBuffer(GLBufferType, mHandle);
+			void* result = glMapBuffer(GLBufferType, GLConvert::To(access));
+			glBindBuffer(GLBufferType, 0);
+			return result;
+		}
+		void* lock(ELockAccess access, uint32 offset, uint32 length)
+		{
+			glBindBuffer(GLBufferType, mHandle);
+
+			GLbitfield accessBits = 0;
+			switch( access )
+			{
+			case ELockAccess::ReadOnly:
+				accessBits = GL_MAP_READ_BIT;
+				break;
+			case ELockAccess::ReadWrite:
+				accessBits = GL_MAP_READ_BIT | GL_MAP_WRITE_BIT;
+				break;
+			case ELockAccess::WriteOnly:
+				accessBits = GL_MAP_WRITE_BIT;
+				break;
+			}
+			void* result = glMapBufferRange(GLBufferType, offset, length, accessBits);
+			glBindBuffer(GLBufferType, 0);
+			return result;
+		}
+
+		void unlock()
+		{
+			glBindBuffer(GLBufferType, mHandle);
+			glUnmapBuffer(GLBufferType);
+			glBindBuffer(GLBufferType, 0);
+		}
+	};
+
+	class RHIVertexBuffer : public TRHIBufferBase< GL_ARRAY_BUFFER >
 	{
 	public:
 		RHIVertexBuffer()
@@ -973,38 +1024,14 @@ namespace RenderGL
 			mBufferSize = 0;
 			mNumVertices = 0;
 		}
-		bool create( uint32 vertexSize,  uint32 numVertices , void* data , Buffer::Usage usage = Buffer::eStatic )
-		{
-			if( !fetchHandle() )
-				return false;
-			glBindBuffer(GL_ARRAY_BUFFER, mHandle);
-			glBufferData(GL_ARRAY_BUFFER, vertexSize * numVertices , data , usage == Buffer::eStatic ? GL_STATIC_DRAW : GL_DYNAMIC_DRAW );
-			glBindBuffer(GL_ARRAY_BUFFER, 0);
-
-			mBufferSize = vertexSize * numVertices;
-			mNumVertices = numVertices;
-			return true;
-		}
-
-		void updateData(uint32 vertexSize, uint32 numVertices, void* data )
-		{
-			glBindBuffer(GL_ARRAY_BUFFER, mHandle);
-			glBufferSubData(GL_ARRAY_BUFFER, 0, vertexSize*numVertices, data);
-			glBindBuffer(GL_ARRAY_BUFFER, 0);
-
-			mBufferSize = vertexSize * numVertices;
-			mNumVertices = numVertices;
-		}
-		void bind() { glBindBuffer(GL_ARRAY_BUFFER, mHandle); }
-		void unbind(){ glBindBuffer(GL_ARRAY_BUFFER, 0); }
+		bool  create( uint32 vertexSize,  uint32 numVertices , void* data = nullptr , Buffer::Usage usage = Buffer::eStatic );
+		void  updateData(uint32 vertexSize, uint32 numVertices, void* data );
 
 		uint32 mBufferSize;
 		uint32 mNumVertices;
-
 	};
 
-	
-	class RHIIndexBuffer : public TRHIResource< RMPBufferObject >
+	class RHIIndexBuffer : public TRHIBufferBase< GL_ELEMENT_ARRAY_BUFFER >
 	{
 	public:
 		RHIIndexBuffer()
@@ -1025,11 +1052,16 @@ namespace RenderGL
 			mbIntIndex = bIntIndex;
 			return true;
 		}
-		void bind() { glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mHandle); }
-		void unbind() { glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0); }
 
 		bool   mbIntIndex;
 		uint32 mNumIndices;
+	};
+
+	class RHIUniformBuffer : public TRHIBufferBase< GL_UNIFORM_BUFFER >
+	{
+
+
+
 	};
 
 	typedef TRefCountPtr< RHIVertexBuffer > RHIVertexBufferRef;

@@ -107,7 +107,7 @@ public:
 };
 
 
-class CProfileViewer : public TProfileViewer< CProfileViewer >
+class CProfileViewer : public ProfileNodeVisitorT< CProfileViewer >
 {
 public:
 
@@ -163,7 +163,7 @@ public:
 		msgShow.setPos( 20 , 10 );
 		msgShow.start();
 
-		visit();
+		visitNodes();
 		msgShow.finish();
 	}
 
@@ -241,7 +241,7 @@ public:  //GameCore
 			mLevelCity->render();
 
 			Graphics2D& g = getRenderSystem()->getGraphics2D();
-			g.setTextColor( 255 , 0 , 0 );
+			g.setTextColor( Color3ub(255 , 0 , 0) );
 
 
 			char str[256];

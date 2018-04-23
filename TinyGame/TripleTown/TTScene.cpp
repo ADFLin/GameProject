@@ -170,7 +170,7 @@ namespace TripleTown
 				{
 					FixString< 32 > str;
 					str.format( "%d" , mLevel->getLinkNum( TilePos( i , j ) ) );
-					g.setTextColor( 100 , 0 , 255 );
+					g.setTextColor(Color3ub(100 , 0 , 255) );
 					g.drawText( pos , str );
 				}
 			}

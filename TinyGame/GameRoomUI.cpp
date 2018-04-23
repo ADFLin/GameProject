@@ -424,16 +424,13 @@ void ComMsgPanel::renderText( GWidget* ui )
 	for( MsgList::iterator iter = mMsgList.begin();
 		iter != mMsgList.end() ; ++ iter )
 	{
-		g.setTextColor(
-			GetRValue( iter->color ) , 
-			GetGValue( iter->color ) , 
-			GetBValue( iter->color ) );
+		g.setTextColor(iter->color);
 		g.drawText( pos , iter->msg.c_str() );
 		pos.y += 15;
 	}
 }
 
-void ComMsgPanel::addMessage( char const* str , unsigned long color )
+void ComMsgPanel::addMessage( char const* str , Color3ub color )
 {
 	if ( mMsgList.size() > 11 )
 		mMsgList.pop_front();

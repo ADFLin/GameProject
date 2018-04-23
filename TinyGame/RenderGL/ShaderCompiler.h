@@ -131,6 +131,20 @@ namespace RenderGL
 		return staticClass;\
 	}
 
+#define IMPLEMENT_GLOBAL_SHADER_T( TEMPLATE_ARGS , CLASS )\
+	TEMPLATE_ARGS\
+	RenderGL::GlobalShaderProgramClass& CLASS::GetShaderClass()\
+	{\
+		static GlobalShaderProgramClass staticClass\
+		{\
+			CLASS::CreateShader,\
+			CLASS::SetupShaderCompileOption,\
+			CLASS::GetShaderFileName,\
+			CLASS::GetShaderEntries,\
+		};\
+		return staticClass;\
+	}
+
 	class ShaderManager : public SingletonT< ShaderManager >
 	{
 	public:

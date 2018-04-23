@@ -95,9 +95,9 @@ void OptionNoteBook::renderKeyTitle( GWidget* ui )
 
 	RenderUtility::SetFont( g , FONT_S12 );
 	if ( button == KeyButton::sInputButton )
-		g.setTextColor(255 , 255 , 255 );
+		g.setTextColor( Color3ub(255, 255 , 255) );
 	else
-		g.setTextColor(255 , 255 , 0 );
+		g.setTextColor( Color3ub(255 , 255 , 0) );
 
 	g.drawText( pos + Vec2i( -80 , 0 ) , str );
 }

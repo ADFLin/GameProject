@@ -1,0 +1,407 @@
+#include "CurveRenderer.h"
+
+#include "Surface.h"
+#include "RenderData.h"
+
+#include <Windows.h>
+#include <gl/GL.h>
+#include <gl/GLU.h>
+
+
+#include "RenderGL/DrawUtility.h"
+#include "RenderGL/ShaderCompiler.h"
+
+namespace CB
+{
+	using namespace RenderGL;
+
+	class CurveMeshProgram : public GlobalShaderProgram
+	{
+		DECLARE_GLOBAL_SHADER(CurveMeshProgram)
+
+		static void SetupShaderCompileOption(ShaderCompileOption&) {}
+		static char const* GetShaderFileName()
+		{
+			return "Shader/Game/CurveMesh";
+		}
+		static ShaderEntryInfo const* GetShaderEntries()
+		{
+			static ShaderEntryInfo const enties[] =
+			{
+				{ Shader::eVertex ,  SHADER_ENTRY(MainVS) },
+				{ Shader::ePixel ,  SHADER_ENTRY(MainPS) },
+				{ Shader::eEmpty ,  nullptr },
+			};
+			return enties;
+		}
+		void bindParameters()
+		{
+
+		}
+		void setParameters()
+		{
+
+		}
+		ShaderParameter mParamAxisValue;
+		ShaderParameter mParamProjMatrix;
+		ShaderParameter mParamUpperColor;
+		ShaderParameter mParamLowerColor;
+	};
+
+	template< bool bUseOIT >
+	class TCurveMeshProgram : public CurveMeshProgram
+	{
+		DECLARE_GLOBAL_SHADER(TCurveMeshProgram)
+
+		static void SetupShaderCompileOption(ShaderCompileOption& option) 
+		{
+			option.addDefine(SHADER_PARAM(USE_OIT), bUseOIT );
+		}
+	};
+
+
+	IMPLEMENT_GLOBAL_SHADER_T( template<>, TCurveMeshProgram<false> )
+	IMPLEMENT_GLOBAL_SHADER_T( template<>, TCurveMeshProgram<true> )
+
+	CurveRenderer::CurveRenderer()
+		//:m_Font("C:/WINDOWS/Fonts/arial.ttf")
+	{
+
+		//m_Font.FaceSize(12);
+
+		setAxisRange(0, Range(-10, 10));
+		setAxisRange(1, Range(-10, 10));
+		setAxisRange(2, Range(-10, 10));
+
+		mAxis[0].numData = 10;
+		mAxis[1].numData = 10;
+		mAxis[2].numData = 10;
+	}
+
+	bool CurveRenderer::initialize( Vec2i const& screenSize )
+	{
+		mProgCurveMesh = ShaderManager::Get().getGlobalShaderT< TCurveMeshProgram<false> >(true);
+		if( mProgCurveMesh == nullptr )
+			return false;
+		mProgCurveMeshOIT = ShaderManager::Get().getGlobalShaderT< TCurveMeshProgram<true> >(true);
+		if( mProgCurveMeshOIT == nullptr )
+			return false;
+		if( !mOITTech.init(screenSize) )
+			return false;
+		return true;
+	}
+
+	void CurveRenderer::drawSurface(Surface3D& surface)
+	{
+		if( !surface.getFunction()->isParsed() )
+			return;
+
+		if( surface.needDrawLine() )
+		{
+			glEnable(GL_POLYGON_OFFSET_FILL);
+			glPolygonOffset(1, 1);
+
+			glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+
+			Color4f const& color = surface.getColor();
+			glColor4f(1 - color.r, 1 - color.g, 1 - color.b, 1.0f);
+			drawMeshLine(surface);
+
+			glDisable(GL_POLYGON_OFFSET_FILL);
+		}
+
+		if( surface.needDrawMesh() )
+		{
+			glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+#if 0
+			GL_BIND_LOCK_OBJECT(*mProgCurveMesh);
+			mViewInfo.setupShader(*mProgCurveMesh);
+			drawMesh(surface);
+#else
+			auto DrawFun = [this , &surface]()
+			{
+				GL_BIND_LOCK_OBJECT(*mProgCurveMeshOIT);
+				mViewInfo.setupShader(*mProgCurveMeshOIT);
+				mOITTech.setupShader(*mProgCurveMeshOIT);
+				drawMesh(surface);
+			};
+
+			mOITTech.renderInternal(mViewInfo, DrawFun, nullptr);
+#endif
+		}
+		if( surface.needDrawNormal() )
+		{
+			drawMeshNormal(surface, 1.0);
+		}
+	}
+
+	void CurveRenderer::drawMeshLine(Surface3D& surface)
+	{
+		if( surface.getMeshLineDensity() < 1e-6 )
+			return;
+
+		RenderData* data = surface.getRenderData();
+		assert(data);
+
+		Vector3* pPositionData = (Vector3*)( data->getVertexData() + data->getPositionOffset());
+
+		int    numDataU = surface.getParamU().getNumData();
+		int    numDataV = surface.getParamV().getNumData();
+
+		int d = int(1.0f / surface.getMeshLineDensity());
+		int nx = numDataU / d;
+		int ny = numDataV / d;
+		glEnableClientState(GL_VERTEX_ARRAY);
+		glVertexPointer(3, GL_FLOAT, data->getVertexSize() , pPositionData);
+		for( int n = 0; n < nx; ++n )
+			glDrawArrays(GL_LINE_STRIP, numDataV * n * d, numDataV);
+		for( int n = 0; n < ny; ++n )
+		{
+			glBegin(GL_LINE_STRIP);
+			for( int i = 0; i < numDataU; ++i )
+				glArrayElement(numDataV * i + n * d);
+			glEnd();
+		}
+		glDisableClientState(GL_VERTEX_ARRAY);
+	}
+
+	void CurveRenderer::drawMesh(Surface3D& surface)
+	{
+		RenderData* data = surface.getRenderData();
+		assert(data);
+
+		uint8* vertexData = data->getVertexData();
+		assert(vertexData);
+
+		int const stride = data->getVertexSize();
+		if( data->getNormalOffset() != -1 )
+		{
+			TRenderRT< RTVF_XYZ_CA_N >::DrawIndexedShader(PrimitiveType::eTriangleList, vertexData, data->getVertexNum(), data->getIndexData(), data->getIndexNum() , data->getVertexSize());
+		}
+		else
+		{
+			TRenderRT< RTVF_XYZ_CA >::DrawIndexedShader(PrimitiveType::eTriangleList, vertexData, data->getVertexNum(), data->getIndexData(), data->getIndexNum(), data->getVertexSize());
+		}
+	}
+
+
+	void CurveRenderer::drawAxis()
+	{
+		glDisable(GL_LIGHTING);
+		glBegin(GL_LINES);
+
+		glColor3f(1, 0, 0);
+		glVertex3f(mAxis[0].range.Min, mAxis[1].range.Min, mAxis[2].range.Min);
+		glVertex3f(mAxis[0].range.Max, mAxis[1].range.Min, mAxis[2].range.Min);
+
+		glColor3f(0, 1, 0);
+		glVertex3f(mAxis[0].range.Min, mAxis[1].range.Min, mAxis[2].range.Min);
+		glVertex3f(mAxis[0].range.Min, mAxis[1].range.Max, mAxis[2].range.Min);
+
+		glColor3f(0, 0, 1);
+		glVertex3f(mAxis[0].range.Min, mAxis[1].range.Min, mAxis[2].range.Min);
+		glVertex3f(mAxis[0].range.Min, mAxis[1].range.Min, mAxis[2].range.Max);
+
+		glEnd();
+		glBegin(GL_LINES);
+
+		glColor3f(1, 0, 0);
+		glVertex3f(mAxis[0].range.Min, 0, 0);
+		glVertex3f(mAxis[0].range.Max, 0, 0);
+
+		glColor3f(0, 1, 0);
+		glVertex3f(0, mAxis[1].range.Min, 0);
+		glVertex3f(0, mAxis[1].range.Max, 0);
+
+		glColor3f(0, 0, 1);
+		glVertex3f(0, 0, mAxis[2].range.Min);
+		glVertex3f(0, 0, mAxis[2].range.Max);
+
+		glEnd();
+
+		glEnable(GL_LINE_STIPPLE);
+		glLineStipple(1, 0xAAAA);  /*  dotted  */
+		glColor3f(0, 0, 0);
+
+		glPushMatrix();
+		glTranslatef(0, 0, mAxis[2].getRangeMin());
+		drawCoordText(mAxis[0], DRAW_MAX, 0.5, mAxis[1], DRAW_MAX, 1);
+		drawCoordinates(mAxis[0], mAxis[1]);
+		glPopMatrix();
+
+		glPushMatrix();
+		glTranslatef(mAxis[0].getRangeMin(), 0, 0);
+		glRotatef(-90, 0, 1, 0);
+		drawCoordText(mAxis[2], DRAW_MAX, 0.5, mAxis[1], DRAW_MAX, 0.5);
+		drawCoordinates(mAxis[2], mAxis[1]);
+		glPopMatrix();
+
+		glPushMatrix();
+		glTranslatef(0, mAxis[1].getRangeMin(), 0);
+		glRotatef(90, 1, 0, 0);
+		drawCoordText(mAxis[0], DRAW_MAX, 0.5, mAxis[2], DRAW_MAX, 1);
+		drawCoordinates(mAxis[0], mAxis[2]);
+		glPopMatrix();
+
+		glDisable(GL_LINE_STIPPLE);
+
+	}
+
+	void CurveRenderer::showData(int nx, int ny)
+	{
+		//nx=min(m_NumAxisData+1,max(0,nx));
+		//ny=min(m_NumAxisData+1,max(0,ny));
+		//float x=m_MinX+nx*dx;
+		//float y=m_MinY+ny*dy;
+		//float z=data[nx+(m_NumAxisData+1)*ny];
+		//glColor3f(0,0,0);
+		//glPointSize(5);
+		//glDisable(GL_DEPTH_TEST);
+		//glBegin(GL_POINTS);
+		//glVertex3f(x,y,z);
+		//glEnd();
+		//glRasterPos3f(x,y,z);
+		//font.print(" <-(%3.3f,%3.3f,%3.3f)",x,y,z);
+		//glEnable(GL_DEPTH_TEST);
+	}
+
+
+
+	void CurveRenderer::drawVertexPoint(ShapeBase& shape)
+	{
+		RenderData* data = shape.getRenderData();
+		assert(data);
+		TRenderRT< RTVF_XYZ_CA >::Draw(PrimitiveType::ePoints, data->getVertexData(), data->getVertexNum(), data->getVertexSize());
+	}
+
+
+	void CurveRenderer::drawMeshNormal(Surface3D& surface , float length )
+	{
+		RenderData* data = surface.getRenderData();
+		assert(data);
+
+
+		if( data->getNormalOffset() == -1 )
+			return;
+
+		Vector3* pPositionData = (Vector3*)(data->getVertexData() + data->getPositionOffset());
+		Vector3* pNormalData = (Vector3*)(data->getVertexData() + data->getNormalOffset());
+
+		int    NumDataU = surface.getParamU().getNumData();
+		int    NumDataV = surface.getParamV().getNumData();
+
+		if( surface.getMeshLineDensity() < 1e-6 ) return;
+		int d = int(1.0f / surface.getMeshLineDensity());
+
+
+		glColor3f(0, 0, 0);
+		glBegin(GL_LINES);
+		for( int i = 0; i < NumDataU; i += d )
+		{
+			for( int j = 0; j < NumDataV; j += d )
+			{
+				int index = NumDataV*i + j;
+				Vector3* pPos = (Vector3*)(pPositionData + index * data->getVertexSize());
+				Vector3* pNormal = (Vector3*)(pNormalData + index * data->getVertexSize());
+				glVertex3fv(*pPos);
+				glVertex3fv(*pPos + length * (*pNormal));
+			}
+		}
+		glEnd();
+
+	}
+
+	void CurveRenderer::drawCoordinates(SampleParam const& axis1, SampleParam const& axis2)
+	{
+		float d1 = axis1.getIncrement();
+		float d2 = axis2.getIncrement();
+
+		glBegin(GL_LINES);
+		float x1 = axis1.getRangeMin();
+		for( int i = 0; i < axis1.getNumData(); ++i )
+		{
+			x1 += d1;
+			glVertex2f(x1, axis2.getRangeMin());
+			glVertex2f(x1, axis2.getRangeMax());
+		}
+
+		float x2 = axis2.getRangeMin();
+		for( int i = 0; i < axis2.getNumData(); ++i )
+		{
+			x2 += d2;
+			glVertex2f(axis1.getRangeMin(), x2);
+			glVertex2f(axis1.getRangeMax(), x2);
+		}
+		glEnd();
+	}
+
+	void CurveRenderer::drawCoordText(SampleParam const& axis1, int drawMode1, float offest1,
+								   SampleParam const& axis2, int drawMode2, float offest2)
+	{
+		char temp[32];
+		if( drawMode1 != DRAW_NONE )
+		{
+			float d1 = axis1.getIncrement();
+			float u1 = axis2.getRangeMax();
+			if( drawMode1 == DRAW_MIN ) u1 = axis2.getRangeMin();
+
+			float x1 = axis1.getRangeMin();
+			for( int i = 0; i < axis1.getNumData() + 1; ++i )
+			{
+				sprintf(temp, "%.2f", x1);
+				glRasterPos2f(x1, u1 + offest1);
+				//m_Font.Render(temp);
+				x1 += d1;
+			}
+
+		}
+
+		if( drawMode2 != DRAW_NONE )
+		{
+			float d2 = axis2.getIncrement();
+			float u2 = axis1.getRangeMax();
+			if( drawMode2 == DRAW_MIN ) u2 = axis1.getRangeMin();
+
+			float x2 = axis2.getRangeMin();
+			for( int i = 0; i < axis2.getNumData() + 1; ++i )
+			{
+				sprintf(temp, "%.2f", x2);
+				glRasterPos2f(u2 + offest2, x2);
+				//m_Font.Render(temp);
+				x2 += d2;
+			}
+		}
+
+	}
+
+	void CurveRenderer::reloadShaer()
+	{
+		ShaderManager::Get().reloadShader(*mProgCurveMesh);
+		ShaderManager::Get().reloadShader(*mProgCurveMeshOIT);
+	}
+
+	void CurveRenderer::drawShape(ShapeBase& shape)
+	{
+		class DarwShapeVisitor : public ShapeVisitor
+		{
+		public:
+			CurveRenderer& drawer;
+			DarwShapeVisitor(CurveRenderer& drawer_) :drawer(drawer_) {}
+			void visit(Surface3D& surface) { drawer.drawSurface(surface); }
+			void visit(Curve3D& curve) { drawer.drawCurve3D(curve); }
+		};
+
+		DarwShapeVisitor visitor(*this);
+		shape.acceptVisit(visitor);
+	}
+
+	void CurveRenderer::drawCurve3D(Curve3D& curve)
+	{
+		RenderData* data = curve.getRenderData();
+		assert(data);
+		glLineWidth(2);
+		TRenderRT< RTVF_XYZ_CA >::Draw(PrimitiveType::eLineStrip, data->getVertexData(), data->getVertexNum(), data->getVertexSize());
+		glLineWidth(1);
+	}
+
+}//namespace CB

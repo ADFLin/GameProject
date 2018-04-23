@@ -33,7 +33,7 @@ public:
 	};
 
 	bool  addImage(int id, int w, int h);
-	Node* getNode(int id) { return mImageNodeMap[id]; }
+	Node const* getNode(int id) const { return mImageNodeMap[id]; }
 
 protected:
 

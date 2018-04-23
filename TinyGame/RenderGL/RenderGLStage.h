@@ -504,6 +504,34 @@ namespace RenderGL
 		RHITexture2DRef mRefractMap;
 		FrameBuffer  mBuffer;
 	};
+	class FDistanceField
+	{
+		static void CalcAABB(uint8* pData, int dataStride, int numVertex, Vector3& outMin, Vector3& outMax)
+		{
+			assert(numVertex >= 1);
+
+			uint8* pCur = pData;
+
+			outMin = *(Vector3*)(pData);
+			outMax = *(Vector3*)(pData);
+			for( int i = 1; i < numVertex; ++i )
+			{
+				Vector3 const& pos = *(Vector3*)(pData);
+				pData += dataStride;
+				outMax.max(pos);
+				outMin.min(pos);
+			}
+		}
+
+		static void BuildDistanceField(Mesh& mesh, float cellSize)
+		{
+			Vector3* pPos = (Vector3*)((uint8*)(mesh.mVertexBuffer->lock(ELockAccess::ReadOnly)) + mesh.mDecl.getSematicOffset(Vertex::ePosition));
+
+
+		}
+
+	};
+
 
 
 	class SampleStage : public StageBase
@@ -763,7 +791,7 @@ namespace RenderGL
 		
 		DefferredShadingTech mDefferredShadingTech;
 		ShadowDepthTech      mShadowTech;
-		OITTechique          mOITTech;
+		OITTechnique          mOITTech;
 
 		PostProcessSSAO      mSSAO;
 

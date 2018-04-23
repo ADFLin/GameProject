@@ -172,7 +172,7 @@ void ReplayEditStage::renderReplayInfo( GWidget* ui )
 	int py = pos.y + 10;
 	int d = 20;
 
-	g.setTextColor(255 , 255 , 255 );
+	g.setTextColor(Color3ub(255 , 255 , 255) );
 
 	FixString< 256 > str;
 	str.format( "Game Name : %s" , mGameInfo.name.c_str() );

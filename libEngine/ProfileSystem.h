@@ -2,10 +2,16 @@
 #define ProfileSystem_h__
 
 #include "CoreShare.h"
+#include "MarcoCommon.h"
 
-#ifdef USE_PROFILE
-#	define	PROFILE_ENTRY( name )         ProfileSample __profile_##__LINE__( name );
-#	define	PROFILE_ENTRY2( name , flag ) ProfileSample __profile_##__LINE__( name , flag );
+#ifndef USE_PROFILE
+#define USE_PROFILE 1
+#endif
+
+
+#if USE_PROFILE
+#	define	PROFILE_ENTRY( name )         ProfileSample ANONYMOUS_VARIABLE(Proflie)( name );
+#	define	PROFILE_ENTRY2( name , flag ) ProfileSample ANONYMOUS_VARIABLE(Proflie)( name , flag );
 #else
 #	define	PROFILE_ENTRY( name )
 #	define	PROFILE_ENTRY2( name , flag )
@@ -28,7 +34,7 @@ enum ProfileFlag
 	PROF_FORCCE_ENABLE    = 8,
 };
 
-class ProfileSystem : public SingletonT< ProfileSystem >
+class ProfileSystem
 {
 public:
 	~ProfileSystem ();
@@ -37,6 +43,9 @@ public:
 	class SampleNode;
 
 	ProfileSystem ( char const* rootName = "Root" );
+
+
+	CORE_API static ProfileSystem& Get();
 
 	CORE_API void startProfile( const char * name , unsigned flag = 0 );
 	CORE_API void stopProfile();
@@ -163,7 +172,7 @@ protected:
 
 
 template < class T >
-class TProfileViewer
+class ProfileNodeVisitorT
 {
 	T* _this(){ return static_cast< T* >( this ); }
 public:
@@ -177,7 +186,7 @@ public:
 	void onEnterParent( SampleNode* node , int numChildren , double accTime ){}
 
 
-	void visit()
+	void visitNodes()
 	{
 		SampleIterator iter = ProfileSystem::Get().getSampleIterator();
 		visitRecursive( &iter );

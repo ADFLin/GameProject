@@ -9,9 +9,6 @@
 
 namespace RenderGL
 {
-	using namespace RenderGL;
-	typedef TVector2<int> Vec2i;
-
 	class ShaderCompileOption;
 	class MaterialShaderProgram;
 
@@ -49,6 +46,8 @@ namespace RenderGL
 		class CopyTextureBiasProgram* mProgCopyTextureBias;
 		class MappingTextureColorProgram* mProgMappingTextureColor;
 		FrameBuffer mFrameBuffer;
+
+		bool bInitialized = false;
 
 
 	};

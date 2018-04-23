@@ -152,7 +152,7 @@ namespace Poker { namespace Big2 {
 		mCardDraw = ICardDraw::Create( ICardDraw::eWin7 );
 		mCardSize = mCardDraw->getSize();
 
-		mShowCardBmp.Initialize( ::Global::getGraphics2D().getTargetDC() , 600 , 400 );
+		mShowCardBmp.initialize( ::Global::getGraphics2D().getTargetDC() , 600 , 400 );
 	}
 
 	Scene::~Scene()

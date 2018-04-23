@@ -29,6 +29,8 @@ class IGraphics2D
 public:
 	virtual void  beginRender() = 0;
 	virtual void  endRender() = 0;
+	virtual void  beginClip(Vec2i const& pos, Vec2i const& size) = 0;
+	virtual void  endClip() = 0;
 	virtual void  beginBlend( Vec2i const& pos , Vec2i const& size , float alpha ) = 0;
 	virtual void  endBlend() = 0;
 	virtual void  setPen( Color3ub const& color ) = 0;
@@ -41,7 +43,7 @@ public:
 	virtual void  drawEllipse( Vec2i const& pos , Vec2i const& size ) = 0;
 	virtual void  drawRoundRect( Vec2i const& pos , Vec2i const& rectSize , Vec2i const& circleSize ) = 0;
 	virtual void  drawPolygon(Vec2i pos[], int num) = 0;
-	virtual void  setTextColor( uint8 r , uint8 g, uint8 b ) = 0;
+	virtual void  setTextColor(Color3ub const& color) = 0;
 	virtual void  drawText( Vec2i const& pos , char const* str ) = 0;
 	virtual void  drawText( Vec2i const& pos , Vec2i const& size , char const* str , bool beClip = false ) = 0;
 
@@ -98,9 +100,9 @@ public:
 	TINY_API void  release();
 	TINY_API void  changeScreenSize( int w , int h );
 	
-	Vec2i         getScreenSize(){ return Vec2i( mBufferDC->getWidth() , mBufferDC->getHeight() ); }
-	int           getScreenWidth(){ return mBufferDC->getWidth(); }
-	int           getScreenHeight(){ return mBufferDC->getHeight(); }
+	Vec2i         getScreenSize(){ return Vec2i( mBufferDC.getWidth() , mBufferDC.getHeight() ); }
+	int           getScreenWidth(){ return mBufferDC.getWidth(); }
+	int           getScreenHeight(){ return mBufferDC.getHeight(); }
 	Graphics2D&   getScreenGraphics(){ return *mScreenGraphics; }
 	GLGraphics2D& getGLGraphics(){ return *mGLGraphics; }
 
@@ -111,11 +113,15 @@ public:
 	
 	GameWindow& getWindow(){ return *mGameWindow; }
 
+	TINY_API void changePixelSample(int numSamples);
+
+	TINY_API void drawProfile(Vec2i const& pos);
+
 
 	bool isOpenGLEnabled(){ return mbGLEnabled; }
 	bool isInitialized() { return mbInitialized; }
 
-	TINY_API bool  startOpenGL( bool useGLEW = true , int numSample = 1);
+	TINY_API bool  startOpenGL( bool useGLEW = true , int numSamples = 1 );
 	TINY_API void  stopOpenGL(bool bDeferred = false);
 	TINY_API bool  beginRender();
 	TINY_API void  endRender();
@@ -130,7 +136,7 @@ private:
 	bool        mbCleaupGLDefferred;
 	
 	GameWindow* mGameWindow;
-	BitmapDC*   mBufferDC;
+	BitmapDC    mBufferDC;
 	Graphics2D* mScreenGraphics;
 
 

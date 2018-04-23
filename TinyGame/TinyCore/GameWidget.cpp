@@ -238,7 +238,7 @@ void GMsgBox::onRender()
 
 	Vec2i pos = getWorldPos();
 	RenderUtility::SetFont( g , FONT_S12 );
-	g.setTextColor(255 , 255 , 0 );
+	g.setTextColor( Color3ub(255 , 255 , 0) );
 	g.drawText( pos , Vec2i( BoxSize.x , BoxSize.y - 30 ) , mTitle.c_str() );
 }
 
@@ -362,13 +362,13 @@ void GButton::onRender()
 
 		if ( getButtonState() == BS_PRESS )
 		{
-			g.setTextColor(255 , 0 , 0 );
+			g.setTextColor( Color3ub(255 , 0 , 0) );
 			pos.x += 2;
 			pos.y += 2;
 		}
 		else
 		{
-			g.setTextColor(255 , 255 , 0 );
+			g.setTextColor( Color3ub(255 , 255 , 0) );
 		}
 		g.drawText( pos , size , mTitle.c_str() , true );
 	}
@@ -397,11 +397,11 @@ void GNoteBook::doRenderButton( PageButton* button )
 
 		if ( button->page == getCurPage() )
 		{
-			g.setTextColor(255 , 255 , 255 );
+			g.setTextColor(Color3ub(255 , 255 , 255) );
 		}
 		else
 		{
-			g.setTextColor(255 , 255 , 0 );
+			g.setTextColor(Color3ub(255 , 255 , 0) );
 		}
 
 		g.drawText( pos , button->getSize() , button->title.c_str() );
@@ -455,9 +455,9 @@ void GTextCtrl::onRender()
 	g.drawRect( inPos , inSize );
 
 	if ( isEnable() )
-		g.setTextColor(0 , 0 , 0 );
+		g.setTextColor( Color3ub(0 , 0 , 0) );
 	else
-		g.setTextColor(125 , 125 , 125 );
+		g.setTextColor( Color3ub(125 , 125 , 125) );
 
 	RenderUtility::SetFont( g , FONT_S10 );
 
@@ -517,7 +517,7 @@ void GChoice::onRender()
 	if ( getSelectValue() )
 	{
 		RenderUtility::SetFont( g , FONT_S8 );
-		g.setTextColor(255 , 255 , 0 );
+		g.setTextColor( Color3ub(255 , 255 , 0) );
 		g.drawText( pos , size , getSelectValue() );
 	}
 }
@@ -535,9 +535,9 @@ void GChoice::doRenderItem( Vec2i const& pos , Item& item , bool beLight )
 	g.endBlend();
 
 	if ( beLight )
-		g.setTextColor(255 , 255 , 255 );
+		g.setTextColor(Color3ub(255 , 255 , 255) );
 	else
-		g.setTextColor(0, 0 , 0 );
+		g.setTextColor(Color3ub(0, 0 , 0) );
 
 	RenderUtility::SetFont( g , FONT_S8 );
 	g.drawText( pos , size , item.value.c_str() );
@@ -630,10 +630,10 @@ void GListCtrl::doRenderItem( Vec2i const& pos , Item& item , bool beSelected )
 		g.drawRoundRect( pos + Vec2i(4,1), size - Vec2i(8,2) , Vec2i( 5 , 5 ) );
 		g.endBlend();
 
-		g.setTextColor(255 , 255 , 255 );
+		g.setTextColor(Color3ub(255 , 255 , 255) );
 	}
 	else
-		g.setTextColor(255 , 255 , 0 );
+		g.setTextColor(Color3ub(255 , 255 , 0) );
 
 	RenderUtility::SetFont( g , FONT_S10 );
 	g.drawText( pos , size , item.value.c_str() );
@@ -762,7 +762,7 @@ void GCheckBox::onRender()
 	g.drawRect(pos + Vec2i(3, 3), size - 2 * Vec2i(3, 3));
 
 	RenderUtility::SetFont( g , FONT_S8 );
-	g.setTextColor(255 , 255 , 0 );
+	g.setTextColor(Color3ub(255 , 255 , 0) );
 	g.drawText((bChecked) ? pos : pos + Vec2i(1,1) , size , mTitle.c_str() );
 }
 
@@ -847,6 +847,6 @@ void GText::onRender()
 	Vec2i size = getSize();
 
 	RenderUtility::SetFont(g, FONT_S8);
-	g.setTextColor(255, 255, 0);
+	g.setTextColor(Color3ub(255, 255, 0));
 	g.drawText(pos, size, mText.c_str());
 }

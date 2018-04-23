@@ -41,7 +41,7 @@ namespace Cantan
 			Graphics2D& g = Global::getGraphics2D();
 
 			bool drawCoord = false;
-			g.setTextColor(0,0,255);
+			g.setTextColor(Color3ub(0,0,255));
 			FixString< 256 > str;
 			RenderUtility::SetBrush( g , Color::eYellow );
 			for( MapCellManager::CellVec::iterator iter = mCellManager.mCells.begin() , itEnd = mCellManager.mCells.end();

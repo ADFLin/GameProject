@@ -149,7 +149,7 @@ namespace Go
 		Vector2 posH = context.renderPos;
 		RenderUtility::SetPen(g, Color::eBlack);
 		RenderUtility::SetFont(g, FONT_S12);
-		g.setTextColor(0, 0, 0);
+		g.setTextColor(Color3ub(0, 0, 0));
 		for( int i = 0; i < boardSize; ++i )
 		{
 			g.drawLine(posV, posV + Vector2(0, length));
@@ -268,12 +268,12 @@ namespace Go
 							int dist = context.board.getLinkToRootDist(posBoard);
 							if( dist )
 							{
-								g.setTextColor(0, 255, 255);
+								g.setTextColor(Color3ub(0, 255, 255));
 								str.format("%d", dist);
 							}
 							else
 							{
-								g.setTextColor(255, 125, 0);
+								g.setTextColor(Color3ub(255, 125, 0));
 								str.format("%d", context.board.getCaptureCount(posBoard));
 							}
 							g.drawText(pos - halfCellSize, Vector2(context.cellLength, context.cellLength), str );
@@ -307,7 +307,7 @@ namespace Go
 		if( bUseBatchedRender )
 		{
 			int id = (color == StoneColor::eBlack) ? 0 : 1;
-			addBatchedSprite(id, pos + Vector2(2, 2), 2 * Vector2(stoneRadius, stoneRadius), Vector2(0.5, 0.5), Vector4(0, 0, 0, 0.2 * opaticy));
+			addBatchedSprite(id, pos + Vector2(2, 2), 2.1 * Vector2(stoneRadius, stoneRadius), Vector2(0.5, 0.5), Vector4(0, 0, 0, 0.2 * opaticy));
 			addBatchedSprite(id, pos, 2 * Vector2(stoneRadius, stoneRadius), Vector2(0.5, 0.5), Vector4(1, 1, 1, opaticy));
 		}
 		else
@@ -317,7 +317,7 @@ namespace Go
 				GL_BIND_LOCK_OBJECT(mTextures[id]);
 
 				glColor4f(0, 0, 0, 0.2 * opaticy);
-				DrawUtility::Sprite(pos + Vector2(2, 2), 2 * Vector2(stoneRadius, stoneRadius), Vector2(0.5, 0.5));
+				DrawUtility::Sprite(pos + Vector2(2, 2), 2.1 * Vector2(stoneRadius, stoneRadius), Vector2(0.5, 0.5));
 
 				glColor4f(1, 1, 1 , opaticy);
 				DrawUtility::Sprite(pos, 2 * Vector2(stoneRadius, stoneRadius), Vector2(0.5, 0.5));

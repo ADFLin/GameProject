@@ -237,7 +237,7 @@ namespace Tetris
 		Graphics2D& g = Global::getGraphics2D();
 
 		RenderUtility::SetFont( g , FONT_S12 );
-		g.setTextColor(255 , 255 , 0 );
+		g.setTextColor( Color3ub(255 , 255 , 0) );
 		g.drawText( pos.x + 16 , pos.y + 10 , "Next:" );
 
 		renderPiece( g , getLevel()->getHoldPiece() , pos + Vec2i( 40 , 80 ) );
@@ -250,7 +250,7 @@ namespace Tetris
 		Graphics2D& g = Global::getGraphics2D();
 
 		RenderUtility::SetFont( g , FONT_S10 );
-		g.setTextColor( 255 , 255 , 0 );
+		g.setTextColor( Color3ub(255 , 255 , 0) );
 
 		g.drawText( pos.x + 16 , pos.y + 10 , "Next:" );
 		renderNextPieceInternal( g , pos + Vec2i( 40 , 70 ) );

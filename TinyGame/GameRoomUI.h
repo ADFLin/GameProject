@@ -134,7 +134,7 @@ public:
 	TINY_API ComMsgPanel( int _id , Vec2i const& pos , Vec2i const& size , GWidget* parent );
 
 	void setWorker( ComWorker* worker ){ mWorker = worker; }
-	TINY_API void addMessage( char const* str , unsigned long color );
+	TINY_API void addMessage( char const* str , Color3ub color );
 
 	void renderText( GWidget* ui );
 	bool onChildEvent( int event , int id , GWidget* ui );
@@ -155,8 +155,8 @@ public:
 
 	struct  MsgInfo
 	{
-		MsgInfo( char const* s , unsigned long c ):msg( s ) ,color( c ){}
-		unsigned long  color;
+		MsgInfo( char const* s , Color3ub c ):msg( s ) ,color( c ){}
+		Color3ub  color;
 		std::string    msg;
 	};
 	typedef  std::list< MsgInfo > MsgList;

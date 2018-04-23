@@ -178,9 +178,9 @@ public:
 				ptBox += org;
 
 				if( prob[i] )
-					g.setTextColor(255, 255, 255);
+					g.setTextColor(Color3ub(255, 255, 255));
 				else
-					g.setTextColor(255, 255, 55);
+					g.setTextColor(Color3ub(255, 255, 55));
 
 				RenderUtility::SetFont(g, FONT_S24);
 				g.drawText(ptBox, str.format("%d", SudokuSolver::Bit2Num(sol)));
@@ -204,9 +204,9 @@ public:
 					Vec2i pt = ptBox + of;
 
 					if( mSolver.lastIndex == i )
-						g.setTextColor(0, 255, 255);
+						g.setTextColor(Color3ub(0, 255, 255));
 					else
-						g.setTextColor(255, 255, 255);
+						g.setTextColor(Color3ub(255, 255, 255));
 
 					g.drawText( pt , str.format("%d", n + 1));
 				}
@@ -217,7 +217,7 @@ public:
 		RenderUtility::SetFont(g, FONT_S12);
 		char const* groupStr[] = { "Col" , "Row" , "Cell" , "None" };
 		//dc.SelectFont(fontPsb);
-		g.setTextColor(0, 0, 255);
+		g.setTextColor(Color3ub(0, 0, 255));
 		g.drawText(50, 0, groupStr[mSolver.lastGroup]);
 
 

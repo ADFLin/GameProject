@@ -282,7 +282,7 @@ namespace Zuma
 		curPath = level.getBallGroup( idxCurPath )->getFollowPath();
 		level.setMoveSpeed( 0.0f , true );
 
-		setOrder( LRO_TEXT );
+		setRenderOrder( LRO_TEXT );
 		Global::getRenderSystem().addRenderable( this );
 
 		scaleFontB = 0;
@@ -432,7 +432,7 @@ namespace Zuma
 			task->speed       = Vector2(0,-20.0f / 1000.0f);
 			task->pos         = curPath->getLocation( pathPos );
 			task->color.value = 0xff00ffff;
-			task->setOrder( LRO_TEXT );
+			task->setRenderOrder( LRO_TEXT );
 
 			getHandler()->addTask( task );
 			playSound( SOUND_TRAIL_LIGHT , 1.0f , false  );
@@ -469,7 +469,7 @@ namespace Zuma
 	{
 		mQMap.loadTexture() ;
 
-		setOrder( LRO_QUAKE_MAP );
+		setRenderOrder( LRO_QUAKE_MAP );
 		Global::getRenderSystem().addRenderable( this );
 
 		for ( int i = 0 ; i < mQMap.numBGAlapha ; ++i )

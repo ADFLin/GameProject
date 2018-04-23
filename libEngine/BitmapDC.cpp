@@ -100,7 +100,7 @@ void BitmapDC::bitBlt( HDC hdc, int x ,int y , int sx , int sy , int w , int h )
 	::BitBlt( hdc , x, y , w , h , mhDC, sx , sy ,SRCCOPY );
 }
 
-bool BitmapDC::Initialize( HDC hDC , int w , int h )
+bool BitmapDC::initialize( HDC hDC , int w , int h )
 {
 	if ( mhBmp )
 		::DeleteObject(mhBmp);
@@ -113,15 +113,15 @@ bool BitmapDC::Initialize( HDC hDC , int w , int h )
 	return true;
 }
 
-bool BitmapDC::Initialize( HDC hDC, HWND hWnd )
+bool BitmapDC::initialize( HDC hDC, HWND hWnd )
 {
 	assert(mhDC == NULL);
 	RECT rect;
 	::GetClientRect(hWnd,&rect);
-	return Initialize( hDC , rect.right - rect.left , rect.bottom - rect.top );
+	return initialize( hDC , rect.right - rect.left , rect.bottom - rect.top );
 }
 
-bool BitmapDC::Initialize( HDC hDC , BITMAPINFO* info , void** data )
+bool BitmapDC::initialize( HDC hDC , BITMAPINFO* info , void** data )
 {
 	assert(mhDC == NULL);
 	mhDC = ::CreateCompatibleDC( hDC );
@@ -149,7 +149,7 @@ bool BitmapDC::Initialize( HDC hDC , BITMAPINFO* info , void** data )
 	return true;
 }
 
-bool BitmapDC::Initialize( HDC hDC, LPSTR file )
+bool BitmapDC::initialize( HDC hDC, LPSTR file )
 {
 	assert(mhDC == NULL);
 	mhDC = ::CreateCompatibleDC( hDC );

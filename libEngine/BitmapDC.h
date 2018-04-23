@@ -13,10 +13,10 @@ public:
 	BitmapDC( HDC hDC, LPSTR file );
 	~BitmapDC();
 
-	bool    Initialize( HDC hDC , LPSTR file );
-	bool    Initialize( HDC hDC , HWND hWnd );
-	bool    Initialize( HDC hDC , int w , int h );
-	bool    Initialize( HDC hDC , BITMAPINFO* info , void** data = 0 );
+	bool    initialize( HDC hDC , LPSTR file );
+	bool    initialize( HDC hDC , HWND hWnd );
+	bool    initialize( HDC hDC , int w , int h );
+	bool    initialize( HDC hDC , BITMAPINFO* info , void** data = 0 );
 	void    release();
 
 

@@ -16,7 +16,7 @@ namespace Poker {
 	public:
 		CCardDraw()
 		{
-			mBugFixDC.Initialize( ::Global::getGraphics2D().getTargetDC() , CardLib::CardSizeX , CardLib::CardSizeY );
+			mBugFixDC.initialize( ::Global::getGraphics2D().getTargetDC() , CardLib::CardSizeX , CardLib::CardSizeY );
 		}
 		Vec2i getSize()
 		{
@@ -152,9 +152,9 @@ namespace Poker {
 			RenderUtility::SetBrush(g, Color::eWhite);
 			g.drawRoundRect( pos , CardSize , Vec2i(RoundSize, RoundSize));
 			if( Card::isBlackSuit(card) )
-				g.setTextColor(0, 0, 0);
+				g.setTextColor(Color3ub(0, 0, 0));
 			else
-				g.setTextColor(255, 0, 0);
+				g.setTextColor(Color3ub(255, 0, 0));
 			char const* suitStr[] = { "C" , "D" , "H" , "S" };
 			FixString< 128 > str;
 			str.format("%s%s", suitStr[card.getSuit()], Card::ToString(card.getFace()) );

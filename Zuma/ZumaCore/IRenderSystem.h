@@ -73,8 +73,8 @@ namespace Zuma
 		virtual void onRender( IRenderSystem& RDSystem ) = 0;
 		virtual void setTransform( IRenderSystem& RDSystem ){}
 
-		void setOrder( int order ){ assert( !mbManaged ); mOrder = order; }
-		int  getOrder() const { return mOrder;  }
+		void setRenderOrder( int order ){ assert( !mbManaged ); mOrder = order; }
+		int  getRenderOrder() const { return mOrder;  }
 	private:
 		friend class IRenderSystem;
 #ifdef _DEBUG
@@ -204,7 +204,7 @@ namespace Zuma
 		{
 			bool operator()( RNODE const& n1 , RNODE const& n2 )
 			{
-				return n1.obj->getOrder() < n2.obj->getOrder();
+				return n1.obj->getRenderOrder() < n2.obj->getRenderOrder();
 			}
 		};
 

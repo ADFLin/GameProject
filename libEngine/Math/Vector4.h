@@ -26,6 +26,8 @@ namespace Math
 
 		Vector4& operator *= ( float v ){ x *= v ; y *= v; z *= v; w *= v; return *this;}
 
+		operator float const*() const { return &x; }
+
 		float x , y , z , w;
 	};
 

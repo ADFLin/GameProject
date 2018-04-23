@@ -195,6 +195,12 @@ ProfileSystem::ProfileSystem( char const* rootName )
 	mCurSample = mRootSample.get();
 }
 
+ProfileSystem& ProfileSystem::Get()
+{
+	static ProfileSystem sInstance;
+	return sInstance;
+}
+
 ProfileSystem::~ProfileSystem()
 {
 	cleanup();

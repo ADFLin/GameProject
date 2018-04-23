@@ -129,7 +129,7 @@ namespace RenderGL
 
 	
 
-	class RenderTechique
+	class RenderTechnique
 	{
 	public:
 		virtual MaterialShaderProgram* getMaterialShader(RenderContext& context, MaterialMaster& material , VertexFactory* vertexFactory ) { return nullptr; }
@@ -141,7 +141,7 @@ namespace RenderGL
 	class RenderContext
 	{
 	public:
-		RenderContext( ViewInfo& view , RenderTechique& techique)
+		RenderContext( ViewInfo& view , RenderTechnique& techique)
 			:mTechique(&techique)
 			,mCurView( &view )
 		{
@@ -152,7 +152,7 @@ namespace RenderGL
 
 		ViewInfo& getView() { return *mCurView; }
 
-		void setTechique(RenderTechique& techique)
+		void setTechique(RenderTechnique& techique)
 		{
 			mTechique = &techique;
 		}
@@ -202,7 +202,7 @@ namespace RenderGL
 			}
 		}
 
-		RenderTechique* mTechique;
+		RenderTechnique* mTechique;
 		ViewInfo*       mCurView;
 		VertexFactory*  mUsageVertexFactory;
 		ShaderProgram*  mUsageShader;

@@ -425,7 +425,7 @@ namespace Chromatron
 		RenderUtility::SetFont( g , FONT_S12 );
 		Vec2i offset( 0 , 30 );
 
-		g.setTextColor( 255 , 255 , 0 );
+		g.setTextColor(Color3ub(255 , 255 , 0) );
 		FixString< 128 > str;
 		g.drawText( pos , size , "-Total Level-" );
 		pos += offset;
@@ -440,7 +440,7 @@ namespace Chromatron
 
 
 		RenderUtility::SetFont( g , FONT_S16 );
-		g.setTextColor( 255 , 0 , 0 );
+		g.setTextColor(Color3ub(255 , 0 , 0) );
 		pos = widget->getWorldPos() + Vec2i( 0 , widget->getSize().y - 30 );
 		if ( mLevelState[ mIndexLevel ] == eSOLVED )
 		{

@@ -34,7 +34,7 @@ private:
 	int      startX , startY;
 };
 
-class Win32ProfileViewer : public TProfileViewer< Win32ProfileViewer >
+class Win32ProfileViewer : public ProfileNodeVisitorT< Win32ProfileViewer >
 {
 public:
 	Win32ProfileViewer( HDC hDC );

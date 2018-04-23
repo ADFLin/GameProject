@@ -357,7 +357,7 @@ namespace AStar
 
 			RenderUtility::SetPen( g , Color::eBlack );
 
-			g.setTextColor( 125 , 125 , 0 );
+			g.setTextColor(Color3ub(125 , 125 , 0) );
 			for( int i = 0 ; i < map.getSizeX(); ++i )
 			for( int j = 0 ; j < map.getSizeY(); ++j )
 			{

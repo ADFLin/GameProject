@@ -124,7 +124,7 @@ namespace RenderGL
 
 	};
 
-	class ForwardShadingTech : public RenderTechique
+	class ForwardShadingTech : public RenderTechnique
 	{
 
 
@@ -132,7 +132,7 @@ namespace RenderGL
 	};
 
 #define USE_MATERIAL_SHADOW 1
-	class ShadowDepthTech : public RenderTechique
+	class ShadowDepthTech : public RenderTechnique
 	{
 	public:
 		static int const ShadowTextureSize = 2048;
@@ -153,10 +153,10 @@ namespace RenderGL
 		void drawShadowTexture(LightType type, Vec2i const& pos, int length);
 		void reload();
 
-		//RenderTechique
+		//RenderTechnique
 		virtual void setupWorld(RenderContext& context , Matrix4 const& mat) override
 		{
-			RenderTechique::setupWorld( context , mat);
+			RenderTechnique::setupWorld( context , mat);
 			if( mEffectCur == &mProgLighting )
 			{
 				mEffectCur->setParam(SHADER_PARAM(Primitive.localToWorld), mat);
@@ -289,7 +289,7 @@ namespace RenderGL
 		GBufferShaderParameters mParamGBuffer;
 	};
 
-	class DefferredShadingTech : public RenderTechique
+	class DefferredShadingTech : public RenderTechnique
 	{
 	public:
 
@@ -347,14 +347,14 @@ namespace RenderGL
 	};
 
 
-	class OITTechique :  public RenderTechique
+	class OITTechnique :  public RenderTechnique
 	{
 
 	public:
 		//backwards memory allocation
 		bool bUseBMA = true;
 
-		bool init(Vec2i const& size);
+		bool init(Vec2i const& screenSize);
 
 		void render(ViewInfo& view, SceneInterface& scnenRender , SceneRenderTargets* sceneRenderTargets );
 		void renderTest(ViewInfo& view, SceneRenderTargets& sceneRenderTargets, Mesh& mesh , Material* material );
@@ -376,7 +376,7 @@ namespace RenderGL
 		int BMA_InternalValMin[NumBMALevel];
 
 		ShaderProgram mShaderBassPassTest;
-		ShaderProgram mShaderResolve;
+		BMAResolveProgram mShaderResolve;
 		BMAResolveProgram mShaderBMAResolves[NumBMALevel];
 
 		RHITexture2DRef mColorStorageTexture;
@@ -390,6 +390,7 @@ namespace RenderGL
 
 		FrameBuffer mFrameBuffer;
 
+		void setupShader(ShaderProgram& shader);
 		virtual MaterialShaderProgram* getMaterialShader( RenderContext& context , MaterialMaster& material , VertexFactory* vertexFactory) override;
 		virtual void setupMaterialShader(RenderContext& context, ShaderProgram& shader) override;
 

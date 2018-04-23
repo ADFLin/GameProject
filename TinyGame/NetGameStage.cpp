@@ -498,7 +498,7 @@ void NetRoomStage::procPlayerState( IComPacket* cp )
 			GamePlayer* player = mWorker->getPlayerManager()->getPlayer( com->playerID );
 			FixString< 64 > str;
 			str.format( LOCTEXT("== %s Inter Room =="), player->getName() );
-			mMsgPanel->addMessage( str , RGB( 255 , 125 , 0 ) );
+			mMsgPanel->addMessage( str , Color3ub( 255 , 125 , 0 ) );
 		}
 		break;
 	case NAS_DISSCONNECT:
@@ -524,7 +524,7 @@ void NetRoomStage::procPlayerState( IComPacket* cp )
 
 				FixString< 64 > str;
 				str.format( LOCTEXT("== %s Leave Room =="), player->getName() );
-				mMsgPanel->addMessage( str , RGB( 255 , 125 , 0 ) );
+				mMsgPanel->addMessage( str , Color3ub( 255 , 125 , 0 ) );
 			}
 		}
 		break;
@@ -569,7 +569,7 @@ void NetRoomStage::procMsg( IComPacket* cp)
 	{
 	case  CSPMsg::eSERVER:
 		str.format( "## %s ##" , com->content.c_str() );
-		mMsgPanel->addMessage( str , RGB( 255 , 0 , 255 ) );
+		mMsgPanel->addMessage( str , Color3ub( 255 , 0 , 255 ) );
 		//CFly::Msg(  "server :" , com->str );
 		break;
 	case  CSPMsg::ePLAYER:
@@ -579,7 +579,7 @@ void NetRoomStage::procMsg( IComPacket* cp)
 			if ( !player )
 				return;
 			str.format( "%s : %s " , player->getName() , com->content.c_str() );
-			mMsgPanel->addMessage( str , RGB( 255 , 255 , 0 ) );
+			mMsgPanel->addMessage( str , Color3ub( 255 , 255 , 0 ) );
 			//CFly::Msg( "( ID = %d ):%s" , com->playerID , com->str );
 		}
 		break;
@@ -1191,7 +1191,7 @@ void NetLevelStageMode::procMsg(IComPacket* cp)
 	{
 	case CSPMsg::eSERVER:
 		str.format("## %s ##", com->content.c_str());
-		mMsgPanel->addMessage(str, RGB(255, 0, 255));
+		mMsgPanel->addMessage(str, Color3ub(255, 0, 255));
 		//::Msg(  "server :" , com->str );
 		break;
 	case CSPMsg::ePLAYER:
@@ -1201,7 +1201,7 @@ void NetLevelStageMode::procMsg(IComPacket* cp)
 			if( !player )
 				return;
 			str.format("%s : %s ", player->getName(), com->content.c_str());
-			mMsgPanel->addMessage(str, RGB(255, 255, 0));
+			mMsgPanel->addMessage(str, Color3ub(255, 255, 0));
 			//::Msg( "( ID = %d ):%s" , com->playerID , com->str );
 		}
 		break;

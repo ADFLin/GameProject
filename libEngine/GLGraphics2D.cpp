@@ -351,9 +351,9 @@ void GLGraphics2D::drawRoundRect(Vector2 const& pos , Vector2 const& rectSize , 
 	DRAW_IMPL( emitRoundRectVertex( pos , rectSize , circleSize / 2 ) );
 }
 
-void GLGraphics2D::setTextColor(uint8 r , uint8 g, uint8 b)
+void GLGraphics2D::setTextColor(Color3ub const& color)
 {
-	mColorFont = Color3ub( r , g , b );
+	mColorFont = color;
 }
 
 void GLGraphics2D::drawText(Vector2 const& pos , char const* str)

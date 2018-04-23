@@ -242,6 +242,9 @@ namespace RenderGL
 
 	bool ShaderHelper::init()
 	{
+		if( bInitialized )
+			return true;
+
 		ShaderCompileOption option;
 		option.version = 430;
 
@@ -262,6 +265,8 @@ namespace RenderGL
 			return false;
 
 		mFrameBuffer.addTexture(*GWhiteTexture2D);
+
+		bInitialized = true;
 		return true;
 	}
 

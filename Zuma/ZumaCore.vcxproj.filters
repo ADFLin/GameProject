@@ -21,9 +21,6 @@
     <ClCompile Include="ZumaCore\AudioPlayer.cpp">
       <Filter>原始程式檔</Filter>
     </ClCompile>
-    <ClCompile Include="ZumaCore\CRSpline.cpp">
-      <Filter>原始程式檔</Filter>
-    </ClCompile>
     <ClCompile Include="ZumaCore\glexten.cpp">
       <Filter>原始程式檔</Filter>
     </ClCompile>
@@ -102,9 +99,6 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ZumaCore\AudioPlayer.h">
-      <Filter>標頭檔</Filter>
-    </ClInclude>
-    <ClInclude Include="ZumaCore\CRSpline.h">
       <Filter>標頭檔</Filter>
     </ClInclude>
     <ClInclude Include="GdiRenderSystem.h">

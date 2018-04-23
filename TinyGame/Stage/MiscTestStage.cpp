@@ -536,7 +536,7 @@ namespace Bsp2D
 		Vector2 mid = renderer.convertToScreen( ( edge.v[0] + edge.v[1] ) / 2 );
 		FixString< 32 > str;
 		str.format( "%u" , node.tag );
-		g.setTextColor( 0 , 255 , 125 );
+		g.setTextColor(Color3ub(0 , 255 , 125) );
 		g.drawText( mid , str );
 	}
 

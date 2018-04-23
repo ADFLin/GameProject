@@ -179,6 +179,7 @@
     <ClCompile Include="Core\Color.cpp" />
     <ClCompile Include="Core\MD5.cpp" />
     <ClCompile Include="CPreprocessor.cpp" />
+    <ClCompile Include="CRSpline.cpp" />
     <ClCompile Include="FlowSystem.cpp" />
     <ClCompile Include="LogSystem.cpp" />
     <ClCompile Include="FileSystem.cpp" />
@@ -242,6 +243,7 @@
     <ClInclude Include="Core\ScopeExit.h" />
     <ClInclude Include="Core\ThreadSafeCounter.h" />
     <ClInclude Include="CPreprocessor.h" />
+    <ClInclude Include="CRSpline.h" />
     <ClInclude Include="CString.h" />
     <ClInclude Include="DataBitSerialize.h" />
     <ClInclude Include="BitmapDC.h" />

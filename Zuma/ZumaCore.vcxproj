@@ -220,7 +220,6 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|VisualGDB'">
       </PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="ZumaCore\CRSpline.cpp" />
     <ClCompile Include="ZumaCore\glexten.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
       </PrecompiledHeader>
@@ -267,7 +266,6 @@
     <ClInclude Include="ZumaCore\CometParticle.h" />
     <ClInclude Include="ZumaCore\CometRandom.h" />
     <ClInclude Include="ZumaCore\CometZone.h" />
-    <ClInclude Include="ZumaCore\CRSpline.h" />
     <ClInclude Include="ZumaCore\glexten.h" />
     <ClInclude Include="ZumaCore\GLRenderSystem.h" />
     <ClInclude Include="ZumaCore\IRenderSystem.h" />

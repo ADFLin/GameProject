@@ -416,7 +416,7 @@ namespace CAR
 				{
 					Vector2 size( 20 , 20 );
 					g.drawRect( screenPos - size / 2 ,  size );
-					g.setTextColor( 255 , 0 , 0 );
+					g.setTextColor(Color3ub(255 , 0 , 0) );
 					g.drawText( screenPos - Vec2i( 20 , 20 ) / 2 , Vec2i( 20 , 20 ) , "D" );
 				}
 				break;
@@ -424,7 +424,7 @@ namespace CAR
 				{
 					Vector2 size( 20 , 20 );
 					g.drawRect( screenPos - size / 2 ,  size );
-					g.setTextColor( 255 , 0 , 0 );
+					g.setTextColor(Color3ub(255 , 0 , 0) );
 					g.drawText( screenPos - Vec2i( 20 , 20 ) / 2 , Vec2i( 20 , 20 ) , "F" );
 				}
 				break;
@@ -544,7 +544,7 @@ namespace CAR
 				break;
 			}
 
-			g.setTextColor( 255 , 0 , 0 );
+			g.setTextColor(Color3ub(255 , 0 , 0) );
 			g.drawText( 400 , 10  , actionStr );
 		}
 	}
@@ -1650,7 +1650,7 @@ namespace CAR
 		}
 		g.drawRect( pos , size );
 
-		g.setTextColor( 0 , 0 , 0 );
+		g.setTextColor(Color3ub(0 , 0 , 0) );
 		FixString< 128 > str;
 		g.drawText( pos , size , str.format( "%s" , gActorShortNames[ type ] ) , true );
 	}
@@ -1747,7 +1747,7 @@ namespace CAR
 		Vec2i size = getSize();
 
 		FixString< 512 > str;
-		g.setTextColor( 255 , 255 , 0 );
+		g.setTextColor(Color3ub(255 , 255 , 0) );
 		RenderUtility::SetFont( g , FONT_S12 );
 		g.drawText( pos + Vec2i(10,10) , str.format( "Round = %d , PlayerId = %d" , mData->pIdRound , mData->playerId ) );
 		if ( mData->playerId == mData->pIdRound )

@@ -103,6 +103,7 @@
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <OpenMPSupport>false</OpenMPSupport>
       <BrowseInformation>true</BrowseInformation>
+      <EnableEnhancedInstructionSet>NoExtensions</EnableEnhancedInstructionSet>
     </ClCompile>
     <Link>
       <AdditionalDependencies>Msimg32.lib;d3d9.lib;d3dx9d.lib;dsound.lib;dinput8.lib;dxguid.lib;winmm.lib;%(AdditionalDependencies)</AdditionalDependencies>
@@ -119,7 +120,7 @@
       </IgnoreSpecificDefaultLibraries>
       <IgnoreAllDefaultLibraries>
       </IgnoreAllDefaultLibraries>
-      <LinkTimeCodeGeneration>Default</LinkTimeCodeGeneration>
+      <LinkTimeCodeGeneration>UseFastLinkTimeCodeGeneration</LinkTimeCodeGeneration>
     </Link>
     <PostBuildEvent>
       <Command>copy $(TargetPath) $(ProjectDir)out\
@@ -261,6 +262,20 @@ copy $(TargetDir)EngineShare.dll $(ProjectDir)out\</Command>
     <ClCompile Include="Bejeweled\BJStage.cpp" />
     <ClCompile Include="Bsp2D.cpp" />
     <ClCompile Include="Cantan\CantanLevel.cpp" />
+    <ClCompile Include="CurveBuilder\ColorMap.cpp" />
+    <ClCompile Include="CurveBuilder\DifferentialParser.cpp" />
+    <ClCompile Include="CurveBuilder\Expression.cpp" />
+    <ClCompile Include="CurveBuilder\ExpressionParser.cpp" />
+    <ClCompile Include="CurveBuilder\FPUCompiler.cpp" />
+    <ClCompile Include="CurveBuilder\FunctionParser.cpp" />
+    <ClCompile Include="CurveBuilder\CurveRenderer.cpp" />
+    <ClCompile Include="CurveBuilder\RenderData.cpp" />
+    <ClCompile Include="CurveBuilder\ShapeFun.cpp" />
+    <ClCompile Include="CurveBuilder\ShapeMaker.cpp">
+      <OpenMPSupport Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</OpenMPSupport>
+      <OpenMPSupport Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</OpenMPSupport>
+    </ClCompile>
+    <ClCompile Include="CurveBuilder\Surface.cpp" />
     <ClCompile Include="FlappyBird\FBLevel.cpp" />
     <ClCompile Include="FlappyBird\FBStage.cpp" />
     <ClCompile Include="FlappyBird\TrainManager.cpp" />
@@ -287,6 +302,7 @@ copy $(TargetDir)EngineShare.dll $(ProjectDir)out\</Command>
     <ClCompile Include="Go\ZenBot.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Stage\AsyncWokTestStage.cpp" />
+    <ClCompile Include="Stage\CurveBuilderStage.cpp" />
     <ClCompile Include="Stage\FlowGameStage.cpp" />
     <ClCompile Include="Stage\FluidSimStage.cpp" />
     <ClCompile Include="Stage\FontDrawStage.cpp" />
@@ -502,6 +518,21 @@ copy $(TargetDir)EngineShare.dll $(ProjectDir)out\</Command>
     <ClInclude Include="CellWalker.h" />
     <ClInclude Include="Civ\CvCity.h" />
     <ClInclude Include="Civ\CvMap.h" />
+    <ClInclude Include="CurveBuilder\AsmetaBase.h" />
+    <ClInclude Include="CurveBuilder\Assembler.h" />
+    <ClInclude Include="CurveBuilder\ColorMap.h" />
+    <ClInclude Include="CurveBuilder\DifferentialParser.h" />
+    <ClInclude Include="CurveBuilder\Expression.h" />
+    <ClInclude Include="CurveBuilder\ExpressionParser.h" />
+    <ClInclude Include="CurveBuilder\FPUCompiler.h" />
+    <ClInclude Include="CurveBuilder\FunctionParser.h" />
+    <ClInclude Include="CurveBuilder\CurveRenderer.h" />
+    <ClInclude Include="CurveBuilder\Base.h" />
+    <ClInclude Include="CurveBuilder\RenderData.h" />
+    <ClInclude Include="CurveBuilder\ShapeCommon.h" />
+    <ClInclude Include="CurveBuilder\ShapeFun.h" />
+    <ClInclude Include="CurveBuilder\ShapeMaker.h" />
+    <ClInclude Include="CurveBuilder\Surface.h" />
     <ClInclude Include="ECSModel\ECSBase.h" />
     <ClInclude Include="Fight\FightLevel.h" />
     <ClInclude Include="FlappyBird\FBLevel.h" />
@@ -597,6 +628,7 @@ copy $(TargetDir)EngineShare.dll $(ProjectDir)out\</Command>
     <None Include="out\Shader\DeferredShadingCommon.glsl" />
     <None Include="out\Shader\Game\BumpPS.glsl" />
     <None Include="out\Shader\Game\BumpVS.glsl" />
+    <None Include="out\Shader\Game\CurveMesh.glsl" />
     <None Include="out\Shader\Game\FS.glsl" />
     <None Include="out\Shader\Game\UnderCurveArea.glsl" />
     <None Include="out\Shader\Game\Lighting2D.glsl" />
@@ -625,7 +657,9 @@ copy $(TargetDir)EngineShare.dll $(ProjectDir)out\</Command>
     <None Include="out\Shader\Material\Simple1.glsl" />
     <None Include="out\Shader\Material\Simple2.glsl" />
     <None Include="out\Shader\Material\Sphere.glsl" />
+    <None Include="out\Shader\OITCommon.glsl" />
     <None Include="out\Shader\OITRender.glsl" />
+    <None Include="out\Shader\OITResolve.glsl" />
     <None Include="out\Shader\ParallaxOcclusionCommon.glsl" />
     <None Include="out\Shader\PrimitiveParam.glsl" />
     <None Include="out\Shader\Reflection.glsl" />

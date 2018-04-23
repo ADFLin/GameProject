@@ -80,7 +80,7 @@ class DebugMsgOutput : public LogOutput
 
 #include <memory>
 
-class CProfileViewer : public TProfileViewer< CProfileViewer >
+class CProfileViewer : public ProfileNodeVisitorT< CProfileViewer >
 {
 public:
 
@@ -136,7 +136,7 @@ public:
 		msgShow.setPos( 10 , 40 );
 		msgShow.start();
 
-		visit();
+		visitNodes();
 		msgShow.finish();
 	}
 

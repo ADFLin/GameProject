@@ -277,12 +277,12 @@ namespace Tetris
 			pos -= size / 2;
 			if ( mGameTime > 1000 )
 			{
-				g.setTextColor( 255 , 0 , 0 );
+				g.setTextColor(Color3ub(255 , 0 , 0) );
 				g.drawText( pos , size , "Go!" );
 			}
 			else
 			{
-				g.setTextColor(255 , 255 , 255 );
+				g.setTextColor(Color3ub(255 , 255 , 255) );
 				g.drawText( pos , size , "Ready!" );
 			}
 		}
@@ -895,14 +895,14 @@ namespace Tetris
 
 		//de->setTextMode();
 		RenderUtility::SetFont( g , FONT_S16 );
-		g.setTextColor(255 , 255 , 0 );
+		g.setTextColor(Color3ub(255 , 255 , 0) );
 
 		for( int i = 0 ; i < ARRAY_SIZE( propList ); ++i )
 		{
 			g.drawText( x +  propList[i].titlePos , y , propList[i].name );
 		}
 
-		g.setTextColor(255 , 255 , 255 );
+		g.setTextColor(Color3ub(255 , 255 , 255) );
 
 		auto recordIter = Tetris::getRecordManager().getRecords();
 		for( int i = 0 ; i < RecordManager::NumMaxRecord; ++i  )

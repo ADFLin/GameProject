@@ -30,7 +30,7 @@ namespace SR
 		bmpInfo.bmiHeader.biXPelsPerMeter = 0;
 		bmpInfo.bmiHeader.biYPelsPerMeter = 0;
 		bmpInfo.bmiHeader.biSizeImage = 0;
-		if( !mBufferDC.Initialize(NULL, &bmpInfo, (void**)&mData) )
+		if( !mBufferDC.initialize(NULL, &bmpInfo, (void**)&mData) )
 			return false;
 		return true;
 	}

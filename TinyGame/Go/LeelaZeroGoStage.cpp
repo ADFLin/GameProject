@@ -134,7 +134,7 @@ namespace Go
 
 		::Global::getDrawEngine()->changeScreenSize(1080, 720);
 
-		if( !::Global::getDrawEngine()->startOpenGL(true , 4) )
+		if( !::Global::getDrawEngine()->startOpenGL(true,8) )
 			return false;
 
 		if( !mBoardRenderer.initializeRHI() )
@@ -705,7 +705,7 @@ namespace Go
 
 		FixString< 512 > str;
 
-		g.setTextColor(255, 0, 0);
+		g.setTextColor(Color3ub(255, 0, 0));
 		RenderUtility::SetFont(g, FONT_S10);
 		if( mGameMode == GameMode::Learning )
 		{
@@ -750,7 +750,7 @@ namespace Go
 			}
 		}
 
-		g.setTextColor(255, 0, 0);
+		g.setTextColor(Color3ub(255, 0, 0));
 		RenderUtility::SetFont(g, FONT_S10);
 		int const offset = 15;
 		int textX = 350;
@@ -887,6 +887,8 @@ namespace Go
 				}
 			}
 			break;
+		case Keyboard::eV: glEnable(GL_MULTISAMPLE); break;
+		case Keyboard::eB: glDisable(GL_MULTISAMPLE); break;
 		}
 		return false;
 	}

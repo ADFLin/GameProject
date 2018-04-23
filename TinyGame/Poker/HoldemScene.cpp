@@ -245,7 +245,7 @@ namespace Poker { namespace Holdem {
 	{
 		FixString<64> str;
 
-		g.setTextColor( 255 , 0 , 0 );
+		g.setTextColor(Color3ub(255 , 0 , 0) );
 		switch( info.state )
 		{
 		case SLOT_WAIT_NEXT:
@@ -313,7 +313,7 @@ namespace Poker { namespace Holdem {
 		SlotInfo& info = getLevel().getSlotInfo( panel->slotPos );
 		Vec2i worldPos = widget->getWorldPos();
 
-		g.setTextColor(255, 255, 0);
+		g.setTextColor(Color3ub(255, 255, 0));
 		if ( info.state != SLOT_EMPTY )
 		{
 			GamePlayer* player = mPlayerMgr->getPlayer( info.playerId );

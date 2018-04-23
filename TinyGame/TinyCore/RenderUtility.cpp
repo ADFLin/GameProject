@@ -207,17 +207,17 @@ void RenderUtility::StopOpenGL()
 void RenderUtility::SetFontColor(Graphics2D& g , int color , int type /*= COLOR_NORMAL */)
 {
 	COLORREF const& c = gColorMap[type][color];
-	g.setTextColor( GetRValue( c ) , GetGValue( c )  , GetBValue( c ) );
+	g.setTextColor(Color3ub( GetRValue( c ) , GetGValue( c )  , GetBValue( c )) );
 }
 
 void RenderUtility::SetFontColor(GLGraphics2D& g , int color , int type /*= COLOR_NORMAL */)
 {
 	COLORREF const& c = gColorMap[type][color];
-	g.setTextColor( GetRValue( c ) , GetGValue( c )  , GetBValue( c ) );
+	g.setTextColor(Color3ub(GetRValue( c ) , GetGValue( c )  , GetBValue( c )) );
 }
 
 void RenderUtility::SetFontColor(IGraphics2D& g , int color , int type /*= COLOR_NORMAL */)
 {
 	COLORREF const& c = gColorMap[type][color];
-	g.setTextColor( GetRValue( c ) , GetGValue( c )  , GetBValue( c ) );
+	g.setTextColor(Color3ub(GetRValue( c ) , GetGValue( c )  , GetBValue( c )) );
 }

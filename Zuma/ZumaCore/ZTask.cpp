@@ -19,7 +19,7 @@ namespace Zuma
 		,str(_str )
 		,fontType(_fontType )
 	{
-		setOrder( RO_UI );
+		setRenderOrder( RO_UI );
 	}
 
 	void ShowTextTask::onStart()

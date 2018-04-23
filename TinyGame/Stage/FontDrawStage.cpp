@@ -133,7 +133,7 @@ namespace RenderGL
 			bmpInfo.bmiHeader.biXPelsPerMeter = 0;
 			bmpInfo.bmiHeader.biYPelsPerMeter = 0;
 			bmpInfo.bmiHeader.biSizeImage = 0;
-			if( !textureDC.Initialize(NULL, &bmpInfo, (void**)&pDataTexture) )
+			if( !textureDC.initialize(NULL, &bmpInfo, (void**)&pDataTexture) )
 				return false;
 
 
@@ -377,6 +377,12 @@ public:
 			0,1,2,0,2,3,
 		};
 		TRenderRT<RTVF_XY>::DrawIndexed(PrimitiveType::eTriangleList, vertices, 4, indices, 6);
+
+
+		g.beginClip(Vec2i(50, 50), Vec2i(100, 100));
+		g.setBrush(Color3f(1, 0, 0));
+		g.drawRect(Vec2i(0, 0), Global::getDrawEngine()->getScreenSize());
+		g.endClip();
 
 		g.endRender();
 

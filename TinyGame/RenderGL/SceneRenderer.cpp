@@ -1089,7 +1089,7 @@ namespace RenderGL
 		glDisable(GL_TEXTURE_2D);
 	}
 
-	bool OITTechique::init(Vec2i const& size)
+	bool OITTechnique::init(Vec2i const& screenSize)
 	{
 		mColorStorageTexture = RHICreateTexture2D();
 		if( !mColorStorageTexture->create(Texture::eRGBA16F, OIT_StorageSize, OIT_StorageSize) )
@@ -1098,7 +1098,7 @@ namespace RenderGL
 		if( !mNodeAndDepthStorageTexture->create(Texture::eRGBA32I, OIT_StorageSize, OIT_StorageSize) )
 			return false;
 		mNodeHeadTexture = RHICreateTexture2D();
-		if( !mNodeHeadTexture->create(Texture::eR32U, size.x, size.y) )
+		if( !mNodeHeadTexture->create(Texture::eR32U, screenSize.x, screenSize.y) )
 			return false;
 
 		if( !mStorageUsageCounter.create() )
@@ -1122,8 +1122,9 @@ namespace RenderGL
 				SHADER_ENTRY(BassPassVS), SHADER_ENTRY(BassPassPS),
 				option, nullptr) )
 				return false;
+
 			if( !ShaderManager::Get().loadFile(
-				mShaderResolve, "Shader/OITRender",
+				mShaderResolve, "Shader/OITResolve",
 				SHADER_ENTRY(ScreenVS), SHADER_ENTRY(ResolvePS),
 				option, nullptr) )
 				return false;
@@ -1140,7 +1141,7 @@ namespace RenderGL
 			option.addDefine(SHADER_PARAM(OIT_STORAGE_SIZE), OIT_StorageSize);
 			option.addDefine(SHADER_PARAM(OIT_MAX_PIXEL_COUNT) , BMA_MaxPixelCounts[i]);
 			if( !ShaderManager::Get().loadFile(
-				mShaderBMAResolves[i], "Shader/OITRender",
+				mShaderBMAResolves[i], "Shader/OITResolve",
 				SHADER_ENTRY(ScreenVS), SHADER_ENTRY(ResolvePS),
 				option , nullptr) )
 				return false;
@@ -1165,7 +1166,7 @@ namespace RenderGL
 		return true;
 	}
 
-	void OITTechique::render(ViewInfo& view, SceneInterface& scnenRender, SceneRenderTargets* sceneRenderTargets)
+	void OITTechnique::render(ViewInfo& view, SceneInterface& scnenRender, SceneRenderTargets* sceneRenderTargets)
 	{
 		auto DrawFun = [this, &view, &scnenRender]()
 		{
@@ -1190,7 +1191,7 @@ namespace RenderGL
 		}
 	}
 
-	void OITTechique::renderTest(ViewInfo& view, SceneRenderTargets& sceneRenderTargets, Mesh& mesh, Material* material)
+	void OITTechnique::renderTest(ViewInfo& view, SceneRenderTargets& sceneRenderTargets, Mesh& mesh, Material* material)
 	{
 		auto DrawFun = [this , &view , &mesh , material ]()
 		{
@@ -1250,7 +1251,7 @@ namespace RenderGL
 
 	}
 
-	void OITTechique::reload()
+	void OITTechnique::reload()
 	{
 		ShaderManager::Get().reloadShader(mShaderBassPassTest);
 		ShaderManager::Get().reloadShader(mShaderResolve);
@@ -1258,7 +1259,7 @@ namespace RenderGL
 			ShaderManager::Get().reloadShader(mShaderBMAResolves[i]);
 	}
 
-	void OITTechique::renderInternal(ViewInfo& view, std::function< void() > drawFuncion , SceneRenderTargets* sceneRenderTargets )
+	void OITTechnique::renderInternal(ViewInfo& view, std::function< void() > drawFuncion , SceneRenderTargets* sceneRenderTargets )
 	{
 		GPU_PROFILE("OIT");
 		
@@ -1382,16 +1383,21 @@ namespace RenderGL
 		glEnable(GL_CULL_FACE);
 	}
 
-	MaterialShaderProgram* OITTechique::getMaterialShader(RenderContext& context, MaterialMaster& material , VertexFactory* vertexFactory)
-	{
-		return material.getShader(RenderTechiqueUsage::OIT , vertexFactory);
-	}
-
-	void OITTechique::setupMaterialShader(RenderContext& context, ShaderProgram& shader)
+	void OITTechnique::setupShader(ShaderProgram& shader)
 	{
 		shader.setRWTexture(SHADER_PARAM(ColorStorageRWTexture), *mColorStorageTexture, AO_WRITE_ONLY);
 		shader.setRWTexture(SHADER_PARAM(NodeAndDepthStorageRWTexture), *mNodeAndDepthStorageTexture, AO_READ_AND_WRITE);
 		shader.setRWTexture(SHADER_PARAM(NodeHeadRWTexture), *mNodeHeadTexture, AO_READ_AND_WRITE);
+	}
+
+	MaterialShaderProgram* OITTechnique::getMaterialShader(RenderContext& context, MaterialMaster& material, VertexFactory* vertexFactory)
+	{
+		return material.getShader(RenderTechiqueUsage::OIT , vertexFactory);
+	}
+
+	void OITTechnique::setupMaterialShader(RenderContext& context, ShaderProgram& shader)
+	{
+		setupShader(shader);
 	}
 
 	void BMAResolveProgram::bindParameters()

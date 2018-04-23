@@ -166,7 +166,7 @@ namespace Tetris
 		int y = y0 - d;
 
 		RenderUtility::SetFont( g , FONT_S12 );
-		g.setTextColor(255 , 255 , 0 );
+		g.setTextColor(Color3ub(255, 255 , 0) );
 
 		g.drawText( x , y += d , "Level:"  );
 		str.format( "             %3d" , modeData->gravityLevel );
@@ -432,7 +432,7 @@ namespace Tetris
 
 		FixString< 256 > str;
 		RenderUtility::SetFont( g , FONT_S10 );
-		g.setTextColor(255 , 255 , 0 );
+		g.setTextColor(Color3ub(255 , 255 , 0) );
 
 		str.format( "Gravity Value = %3d" , mGravityValue );
 		g.drawText( x , y += d , str );
@@ -476,7 +476,7 @@ namespace Tetris
 		int y = y0 - d;
 
 		RenderUtility::SetFont( g , FONT_S12 );
-		g.setTextColor(255 , 255 , 0 );
+		g.setTextColor(Color3ub(255 , 255 , 0));
 
 		g.drawText( x , y += d , "Piece:" );
 		str.format( "             %3d" , level->getUsePieceNum() );

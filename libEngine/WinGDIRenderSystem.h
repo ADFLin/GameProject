@@ -51,7 +51,8 @@ public:
 	void  setBrush( HBRUSH hBrush , bool beManaged = false ){  _setBrushImpl( hBrush , beManaged ); }
 	void  setFont( HFONT hFont , bool beManaged = false )   {  _setFontImpl( hFont , beManaged );  }
 
-
+	void  beginClip(Vec2i const& pos, Vec2i const& size);
+	void  endClip();
 	void  beginBlend( Vec2i const& pos , Vec2i const& size , float alpha );
 	void  endBlend();
 
@@ -75,7 +76,7 @@ public:
 	void  drawTexture( GdiTexture& texture , Vec2i const& pos , Vec2i const& texPos , Vec2i const& texSize );
 	void  drawTexture( GdiTexture& texture , Vec2i const& pos , Vec2i const& texPos , Vec2i const& texSize , Color3ub const& color );
 	
-	void  setTextColor( uint8 r , uint8 g, uint8 b );
+	void  setTextColor(Color3ub const& color);
 	void  drawText( Vec2i const& pos , char const* str );
 	void  drawText( int x , int y , char const* str ){ drawText( Vec2i(x,y) , str ); }
 	void  drawText( Vec2i const& pos , Vec2i const& size , char const* str , bool beClip = false );
@@ -117,6 +118,7 @@ private:
 
 	HDC      mhDCTarget;
 	HDC      mhDCRender;
+	HRGN     mhClipRegion;
 
 };
 

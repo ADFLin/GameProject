@@ -50,7 +50,7 @@ namespace RenderGL
 	{
 		if ( mHandle )
 		{
-			switch( getParam( GL_SHADER_TYPE ) )
+			switch( getGLParam( GL_SHADER_TYPE ) )
 			{
 			case GL_VERTEX_SHADER:   return Shader::eVertex;
 			case GL_FRAGMENT_SHADER: return Shader::ePixel;
@@ -71,7 +71,7 @@ namespace RenderGL
 		glShaderSource(mHandle, num, src, 0);
 		glCompileShader(mHandle);
 
-		if( getParam(GL_COMPILE_STATUS) == GL_FALSE )
+		if( getGLParam(GL_COMPILE_STATUS) == GL_FALSE )
 		{
 			return false;
 		}
@@ -100,7 +100,7 @@ namespace RenderGL
 		}
 	}
 
-	GLuint RHIShader::getParam(GLuint val)
+	GLuint RHIShader::getGLParam(GLuint val)
 	{
 		GLint status;
 		glGetShaderiv( mHandle , val , &status );
@@ -146,7 +146,7 @@ namespace RenderGL
 		mNeedLink = true;
 	}
 
-	void ShaderProgram::updateShader(bool bForce)
+	bool ShaderProgram::updateShader(bool bForce)
 	{
 		if ( mNeedLink || bForce )
 		{
@@ -156,19 +156,15 @@ namespace RenderGL
 			glGetProgramiv(mHandle, GL_LINK_STATUS, &value);
 			if( value != GL_TRUE )
 			{
-				GLchar buffer[40960];
-				GLsizei size;
-				glGetProgramInfoLog(mHandle, ARRAY_SIZE(buffer), &size, buffer);
-				//::Msg("Can't Link Program : %s", buffer);
-				int i = 1;
+				return false;
 			}
-
 			glValidateProgram(mHandle);
 			checkProgramStatus();
 			mNeedLink = false;
 		}
 
 		bindParameters();
+		return true;
 	}
 
 	void ShaderProgram::checkProgramStatus()
@@ -1237,6 +1233,20 @@ namespace RenderGL
 		return 0;
 	}
 
+	GLenum GLConvert::To(ELockAccess access)
+	{
+		switch( access )
+		{
+		case ELockAccess::ReadOnly:
+			return GL_READ_ONLY;
+		case ELockAccess::ReadWrite:
+			return GL_READ_WRITE;
+		case ELockAccess::WriteOnly:
+			return GL_WRITE_ONLY;
+		}
+		return GL_READ_ONLY;
+	}
+
 	bool ShaderParameter::bind(ShaderProgram& program, char const* name)
 	{
 		mLoc = program.getParamLoc(name);
@@ -1275,5 +1285,29 @@ namespace RenderGL
 		}
 		return 0;
 	}
+
+	bool RHIVertexBuffer::create(uint32 vertexSize, uint32 numVertices, void* data, Buffer::Usage usage /*= Buffer::eStatic */)
+	{
+		if( !fetchHandle() )
+			return false;
+		glBindBuffer(GL_ARRAY_BUFFER, mHandle);
+		glBufferData(GL_ARRAY_BUFFER, vertexSize * numVertices, data, usage == Buffer::eStatic ? GL_STATIC_DRAW : GL_DYNAMIC_DRAW);
+		glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+		mBufferSize = vertexSize * numVertices;
+		mNumVertices = numVertices;
+		return true;
+	}
+
+	void RHIVertexBuffer::updateData(uint32 vertexSize, uint32 numVertices, void* data)
+	{
+		glBindBuffer(GL_ARRAY_BUFFER, mHandle);
+		glBufferSubData(GL_ARRAY_BUFFER, 0, vertexSize*numVertices, data);
+		glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+		mBufferSize = vertexSize * numVertices;
+		mNumVertices = numVertices;
+	}
+
 
 }//namespace GL

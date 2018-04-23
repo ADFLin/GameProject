@@ -16,7 +16,7 @@
 #endif
 
 //#include "ProfileSystem.h"
-#define  PROFILE_ENTRY(...)
+#define  WIDGET_PROFILE_ENTRY(...)
 
 
 #ifndef BIT

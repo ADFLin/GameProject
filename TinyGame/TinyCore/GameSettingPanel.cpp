@@ -101,7 +101,7 @@ void BaseSettingPanel::renderTitle( GWidget* ui )
 	IGraphics2D& g = Global::getIGraphics2D();
 
 	RenderUtility::SetFont( g , FONT_S10 );
-	g.setTextColor(255 , 200 , 100 );
+	g.setTextColor(Color3ub(255 , 200 , 100) );
 
 	for( SettingInfoVec::iterator iter = mSettingInfoVec.begin();
 		iter != mSettingInfoVec.end() ; ++iter )

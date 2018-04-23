@@ -561,7 +561,7 @@ void TWidgetManager<T>::postProcMsg()
 template< class T >
 bool TWidgetManager<T>::procMouseMsg( MouseMsg const& msg )
 {
-	PROFILE_ENTRY("UI System");
+	WIDGET_PROFILE_ENTRY("UI System");
 
 	ProcMsgScope scope(this);
 
@@ -592,7 +592,7 @@ bool TWidgetManager<T>::procMouseMsg( MouseMsg const& msg )
 		setNamedSlot(ESlotName::LastMouseMsg , *ui);
 
 	{
-		PROFILE_ENTRY("Msg Process");
+		WIDGET_PROFILE_ENTRY("Msg Process");
 
 		if (  msg.onLeftDown() )
 		{
@@ -716,7 +716,7 @@ bool TWidgetManager<T>::procKeyMsg( unsigned key , bool isDown )
 template< class T >
 T* TWidgetManager<T>::hitTest( Vec2i const& testPos )
 {
-	PROFILE_ENTRY("UI Hit Test");
+	WIDGET_PROFILE_ENTRY("UI Hit Test");
 #if UI_CORE_USE_INTRLIST
 	return static_cast< T*>( WidgetCore::hitTestInternal( testPos , mTopWidgetList ) );
 #else
@@ -728,10 +728,10 @@ T* TWidgetManager<T>::hitTest( Vec2i const& testPos )
 template< class T >
 void TWidgetManager<T>::update()
 {
-	PROFILE_ENTRY("UI System");
+	WIDGET_PROFILE_ENTRY("UI System");
 
 	{
-		PROFILE_ENTRY("UpdateUI");
+		WIDGET_PROFILE_ENTRY("UpdateUI");
 #if UI_CORE_USE_INTRLIST
 		for( auto ui = createTopWidgetIterator(); ui; ++ui )
 #else
@@ -780,9 +780,9 @@ template< class T >
 template< class Visitor >
 void  TWidgetManager<T>::visitWidgets( Visitor visitor )
 {
-	PROFILE_ENTRY("UI System");
+	WIDGET_PROFILE_ENTRY("UI System");
 	{
-		PROFILE_ENTRY("visitUI");
+		WIDGET_PROFILE_ENTRY("visitUI");
 #if UI_CORE_USE_INTRLIST
 		for( auto ui = createTopWidgetIterator(); ui; ++ui )
 #else

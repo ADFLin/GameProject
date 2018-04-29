@@ -11,6 +11,7 @@
 
 #include "RenderGL/GLCommon.h"
 #include "RenderGL/GLUtility.h"
+#include "RenderGL/ShaderCore.h"
 
 
 

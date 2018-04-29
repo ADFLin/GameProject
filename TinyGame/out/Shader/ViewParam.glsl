@@ -3,6 +3,8 @@
 
 struct ViewParameters
 {
+
+
 	mat4   worldToView;
 	mat4   worldToClip;
 	mat4   viewToWorld;  
@@ -10,14 +12,23 @@ struct ViewParameters
 	mat4   clipToView;
 	mat4   clipToWorld;
 
-	float3 direction;
-	float3 worldPos;
 	float4 viewportPosAndSizeInv;
-	float  gameTime;
+	float3 worldPos;
 	float  realTime;
+
+	float3 direction;
+	float  gameTime;
+
 };
 
-uniform ViewParameters View;
+
+layout(std140) uniform ViewBlock
+{
+	uniform ViewParameters View;
+};
+
+//uniform ViewParameters View;
+
 uniform sampler2D FrameDepthTexture;
 
 

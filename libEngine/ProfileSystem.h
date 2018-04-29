@@ -1,8 +1,13 @@
-#ifndef ProfileSystem_h__
-#define ProfileSystem_h__
+#pragma once
+#ifndef ProfileSystem_H_246AD834_B5C3_4C3C_B24C_D6ECCC926F75
+#define ProfileSystem_H_246AD834_B5C3_4C3C_B24C_D6ECCC926F75
 
 #include "CoreShare.h"
+
+#include "Core/IntegerType.h"
 #include "MarcoCommon.h"
+
+#include <unordered_map>
 
 #ifndef USE_PROFILE
 #define USE_PROFILE 1
@@ -10,8 +15,8 @@
 
 
 #if USE_PROFILE
-#	define	PROFILE_ENTRY( name )         ProfileSample ANONYMOUS_VARIABLE(Proflie)( name );
-#	define	PROFILE_ENTRY2( name , flag ) ProfileSample ANONYMOUS_VARIABLE(Proflie)( name , flag );
+#	define	PROFILE_ENTRY( name )         ProfileSampleScope ANONYMOUS_VARIABLE(Proflie)( name );
+#	define	PROFILE_ENTRY2( name , flag ) ProfileSampleScope ANONYMOUS_VARIABLE(Proflie)( name , flag );
 #else
 #	define	PROFILE_ENTRY( name )
 #	define	PROFILE_ENTRY2( name , flag )
@@ -34,86 +39,38 @@ enum ProfileFlag
 	PROF_FORCCE_ENABLE    = 8,
 };
 
-class ProfileSystem
+class	ProfileSampleNode
 {
 public:
-	~ProfileSystem ();
+	ProfileSampleNode(const char * name, ProfileSampleNode * parent);
+	~ProfileSampleNode();
 
-	class SampleIterator;
-	class SampleNode;
+	ProfileSampleNode*    getSubNode(const char * name);
+	ProfileSampleNode*    getParent() { return mParent; }
+	ProfileSampleNode*    getSibling() { return mSibling; }
+	ProfileSampleNode*    getChild() { return mChild; }
 
-	ProfileSystem ( char const* rootName = "Root" );
-
-
-	CORE_API static ProfileSystem& Get();
-
-	CORE_API void startProfile( const char * name , unsigned flag = 0 );
-	CORE_API void stopProfile();
-
-	SampleNode* getRootSample(){ return mRootSample; }
-	CORE_API void cleanup();
-
-	CORE_API void	reset();
-	CORE_API void	incrementFrameCount();
-	int		getFrameCountSinceReset( )		{ return mFrameCounter; }
-	CORE_API float   getTimeSinceReset( );
-
-	CORE_API SampleIterator  getSampleIterator( );
-
-	CORE_API void    dumpRecursive( SampleIterator* profileIterator, int spacing );
-	CORE_API void    dumpAll();
-
-private:
-
-	SampleNode* createSampleNode(char const* name, SampleNode* parent);
-	void        destorySampleNode(SampleNode* node);
-
-	void cleanup( SampleNode* node );
-
-	unsigned              mCurFlag;
-
-	unsigned              mCurStackNum;
-
-	bool                  mResetIterator;
-	TPtrHolder< SampleNode > mRootSample;
-	SampleNode*	          mCurSample;
-	int				      mFrameCounter;
-	unsigned long int     ResetTime;
-};
-
-class	ProfileSystem::SampleNode 
-{
-
-public:
-	SampleNode( const char * name, SampleNode * parent );
-	~SampleNode();
-
-	SampleNode*    getSubNode( const char * name );
-	SampleNode*    getParent()	   { return mParent; }
-	SampleNode*    getSibling()    { return mSibling; }
-	SampleNode*    getChild()	   { return mChild; }
-
-	char const*    getName()	   { return mName; }
+	char const*    getName() { return mName; }
 	int	           getTotalCalls() { return TotalCalls; }
-	float          getTotalTime()  { return TotalTime; }
+	float          getTotalTime() { return TotalTime; }
 
-	void           showChild(bool beShow )  { mIsShowChild = beShow; }
-	bool           isShowChild() const      {  return mIsShowChild; }
-	void           showAllChild( bool beShow );
+	void           showChild(bool beShow) { mIsShowChild = beShow; }
+	bool           isShowChild() const { return mIsShowChild; }
+	void           showAllChild(bool beShow);
 
 protected:
 
-	void                addSubNode( SampleNode* node )
+	void                addSubNode(ProfileSampleNode* node)
 	{
 		node->mSibling = mChild;
 		mChild = node;
 	}
 
 
-	void				cleanup();
-	void				reset( void );
-	void				onCall( void );
-	bool				onReturn( void );
+	void				unlink();
+	void				reset(void);
+	void				onCall(void);
+	bool				onReturn(void);
 
 
 	const char *	    mName;
@@ -126,18 +83,20 @@ protected:
 	unsigned            mPrevFlag;
 	unsigned            mStackNum;
 
-	SampleNode*	        mParent;
-	SampleNode*	        mChild;
-	SampleNode*	        mSibling;
+	ProfileSampleNode*	mParent;
+	ProfileSampleNode*	mChild;
+	ProfileSampleNode*	mSibling;
 
-	friend class ProfileSystem;
+
+	friend class ThreadProfileData;
 };
 
-class ProfileSystem::SampleIterator
+
+class ProfileSampleIterator
 {
-	typedef ProfileSystem::SampleNode SampleNode;
 public:
-	SampleIterator( ProfileSystem::SampleNode * start );
+	ProfileSampleIterator(){}
+	ProfileSampleIterator(ProfileSampleNode * start);
 
 	void		    first();
 	void			next();
@@ -147,28 +106,109 @@ public:
 	bool            isRoot(void) { return (parent->getParent() == 0); }
 
 	void            enterChild();
-	void			enterChild( int index );
+	void			enterChild(int index);
 	void			enterParent();
 
 	// Access the current child
-	const char*	    getCurrentName()       { return curNode->getName(); }
+	const char*	    getCurrentName() { return curNode->getName(); }
 	int				getCurrentTotalCalls() { return curNode->getTotalCalls(); }
-	float			getCurrentTotalTime()  { return curNode->getTotalTime(); }
+	float			getCurrentTotalTime() { return curNode->getTotalTime(); }
 
 	// Access the current parent
-	const char *	getCurrentParentName()	    { return parent->getName(); }
-	float			getCurrentParentTotalTime()	{ return parent->getTotalTime(); }
+	const char *	getCurrentParentName() { return parent->getName(); }
+	float			getCurrentParentTotalTime() { return parent->getTotalTime(); }
 
-	SampleNode*  getCurNode(){ return curNode; }
-	SampleNode*  getParent() { return parent; }
-	SampleNode*  getChild(){ return curNode->getChild(); }
+	ProfileSampleNode*  getCurNode() { return curNode; }
+	ProfileSampleNode*  getParent() { return parent; }
+	ProfileSampleNode*  getChild() { return curNode->getChild(); }
 
 protected:
-	SampleNode*	parent;
-	SampleNode*	curNode;
+	ProfileSampleNode*	parent;
+	ProfileSampleNode*	curNode;
 
 	friend	class	 ProfileSystem;
 };
+
+class ThreadProfileData
+{
+public:
+	ThreadProfileData(char const* rootName);
+	
+	
+	uint32                    mThreadId;
+	ProfileSampleNode*	      mCurSample;
+	unsigned                  mCurFlag;
+	unsigned                  mCurStackNum;
+	TPtrHolder< ProfileSampleNode >  mRootSample;
+
+
+	void resetSample();
+	void tryStartTiming(const char * name, unsigned flag);
+	void stopTiming();
+
+	void cleanup();
+
+
+	ProfileSampleIterator getSampleIterator()
+	{
+		return ProfileSampleIterator(mRootSample.get());
+	}
+
+	static void cleanupNode(ProfileSampleNode* node)
+	{
+		if( node->mChild )
+			cleanupNode(node->mChild);
+
+		if( node->mSibling )
+			cleanupNode(node->mSibling);
+
+		node->unlink();
+		DestoryNode(node);
+	}
+
+	static ProfileSampleNode* CreateNode(char const* name, ProfileSampleNode* parent)
+	{
+		return new ProfileSampleNode(name, parent);
+	}
+	static void               DestoryNode(ProfileSampleNode* node)
+	{
+		delete node;
+	}
+};
+
+class ProfileSystem
+{
+public:
+
+
+	CORE_API static ProfileSystem& Get();
+
+	CORE_API void  cleanup();
+	CORE_API void  resetSample();
+
+	CORE_API void  incrementFrameCount();
+	int		getFrameCountSinceReset()		{ return mFrameCounter; }
+	CORE_API float  getTimeSinceReset();
+
+	CORE_API ProfileSampleIterator getSampleIterator(uint32 ThreadId = 0);
+
+#if 0
+	CORE_API void   dumpRecursive(ProfileSampleIterator* profileIterator, int spacing );
+	CORE_API void   dumpAll(uint32 ThreadId);
+#endif
+
+	static ThreadProfileData* GetThreadData();
+private:
+
+	ProfileSystem(char const* rootName = "Root");
+	~ProfileSystem();
+
+	int				         mFrameCounter;
+	unsigned long int        ResetTime;
+};
+
+
+
 
 
 template < class T >
@@ -177,8 +217,8 @@ class ProfileNodeVisitorT
 	T* _this(){ return static_cast< T* >( this ); }
 public:
 
-	typedef ProfileSystem::SampleIterator SampleIterator;
-	typedef ProfileSystem::SampleNode     SampleNode;
+	typedef ProfileSampleIterator SampleIterator;
+	typedef ProfileSampleNode     SampleNode;
 
 	void onRoot      ( SampleNode* node ){}
 	void onNode      ( SampleNode* node , double parentTime ){}
@@ -186,9 +226,9 @@ public:
 	void onEnterParent( SampleNode* node , int numChildren , double accTime ){}
 
 
-	void visitNodes()
+	void visitNodes( uint32 threadId = 0)
 	{
-		SampleIterator iter = ProfileSystem::Get().getSampleIterator();
+		SampleIterator iter = ProfileSystem::Get().getSampleIterator(threadId);
 		visitRecursive( &iter );
 	}
 
@@ -237,13 +277,12 @@ public:
 };
 
 
-class CORE_API ProfileSample
+class CORE_API ProfileSampleScope
 {
 public:
-	ProfileSample( const char * name , unsigned flag = 0 );
-	~ProfileSample( void );
+	ProfileSampleScope( const char * name , unsigned flag = 0 );
+	~ProfileSampleScope( void );
 };
 
 
-
-#endif // ProfileSystem_h__
+#endif // ProfileSystem_H_246AD834_B5C3_4C3C_B24C_D6ECCC926F75

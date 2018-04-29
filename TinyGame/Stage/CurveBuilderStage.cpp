@@ -39,7 +39,8 @@ namespace CB
 		{
 			if( !BaseClass::onInit() )
 				return false;
-			if( !::Global::getDrawEngine()->startOpenGL(true, 4) )
+
+			if( !::Global::getDrawEngine()->startOpenGL(true,4) )
 				return false;
 
 			if( !InitGlobalRHIResource() )
@@ -64,31 +65,12 @@ namespace CB
 			::Global::GUI().cleanupWidget();
 
 			{
-				Surface3D* surface = new Surface3D;
-				surface->setFunction(new SurfaceXYFun);
-				SurfaceXYFun* fun = (SurfaceXYFun*)surface->getFunction();
-				fun->setExpr( "sin(0.1*(x*x+y*y) + 0.01*t)" );
-
-				double Max = 10, Min = -10;
-				surface->setRangeU(Range(Min, Max));
-				surface->setRangeV(Range(Min, Max));
-
-#if _DEBUG
-				int NumX = 100, NumY = 100;
-#else
-				int NumX = 300, NumY = 300;
-#endif
-				
-				surface->setDataSampleNum(NumX, NumY);
-
-				Color4f color( 0.2 , 0.6, 0.1 , 0.3 );
-				surface->setColor(color);
-				surface->visible(true);
-				surface->addUpdateBit(RUB_ALL_UPDATE_BIT);
-				mSurfaceList.push_back(surface);
+				Surface3D* surface = createSurfaceXY("cos(0.1*(x*x+y*y) + 0.01*t)", Color4f(0.2, 0.6, 0.4, 0.3));
+				surface = createSurfaceXY("sin(x)*cos(y+0.01*t)", Color4f(0.2, 0.6, 0.4, 0.5));
+				surface = createSurfaceXY("sin(0.1*(x*x+y*y) + 0.01*t)", Color4f(0.2, 0.6, 0.1, 0.3) );
 
 				GTextCtrl* textCtrl = new GTextCtrl(UI_ANY, Vec2i(100, 100), 200, nullptr);
-				textCtrl->setValue(fun->getExprString().c_str());
+				textCtrl->setValue( static_cast<SurfaceXYFun*>( surface->getFunction() )->getExprString().c_str());
 				textCtrl->onEvent = [surface,this](int event, GWidget* widget)
 				{
 					if ( event == EVT_TEXTCTRL_ENTER )
@@ -103,9 +85,35 @@ namespace CB
 				::Global::GUI().addWidget(textCtrl);
 			}
 
-			ProfileSystem::Get().reset();
+			//ProfileSystem::Get().reset();
 			restart();
 			return true;
+		}
+
+		Surface3D* createSurfaceXY(char const* expr , Color4f const& color )
+		{
+			Surface3D* surface = new Surface3D;
+			SurfaceXYFun* fun = new SurfaceXYFun;
+			surface->setFunction(fun);
+			fun->setExpr(expr);
+
+			double Max = 10, Min = -10;
+			surface->setRangeU(Range(Min, Max));
+			surface->setRangeV(Range(Min, Max));
+
+#if _DEBUG
+			int NumX = 100, NumY = 100;
+#else
+			int NumX = 300, NumY = 300;
+#endif
+
+			surface->setDataSampleNum(NumX, NumY);
+			surface->setColor(color);
+			surface->visible(true);
+			surface->addUpdateBit(RUB_ALL_UPDATE_BIT);
+			mSurfaceList.push_back(surface);
+
+			return surface;
 		}
 
 		virtual void onEnd()
@@ -119,9 +127,25 @@ namespace CB
 			static float t = 0;
 			t += 1;
 			mSurfaceMaker->setTime(t);
-			for( ShapeBase* current : mSurfaceList )
+
 			{
-				current->update(*mSurfaceMaker);
+				PROFILE_ENTRY("Update Surface");
+
+#if USE_PARALLEL_UPDATE
+				for( ShapeBase* current : mSurfaceList )
+				{
+					mSurfaceMaker->addUpdateWork([&,current]
+					{
+						current->update(*mSurfaceMaker);
+					});
+				}
+				mSurfaceMaker->waitUpdateDone();
+#else
+				for( ShapeBase* current : mSurfaceList )
+				{
+					current->update(*mSurfaceMaker);
+				}
+#endif
 			}
 
 		}
@@ -129,7 +153,6 @@ namespace CB
 
 		virtual void onUpdate(long time)
 		{
-
 			BaseClass::onUpdate(time);
 
 			int frame = time / gDefaultTickTime;
@@ -168,21 +191,21 @@ namespace CB
 			glLoadMatrixf(matView);
 
 			mRenderer->getViewInfo().setupTransform(matView, matProj);
-
+			mRenderer->beginRender();
 			{
+				mRenderer->drawAxis();
 				for( ShapeBase* current : mSurfaceList )
 				{
 					if( current->isVisible() )
 						mRenderer->drawShape( *current);
-				}
-				mRenderer->drawAxis();
+				}		
 			}
+			mRenderer->endRender();
 
 			g.beginRender();
 
 			::Global::getDrawEngine()->drawProfile(Vec2i(400, 20));
 			g.endRender();
-			//tech.endRender();
 		}
 
 		bool onMouse(MouseMsg const& msg)

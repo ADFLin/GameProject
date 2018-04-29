@@ -188,7 +188,7 @@ namespace RenderGL
 		void setParameters(RHITexture2D& copyTexture, float colorBais[2])
 		{
 			setTexture(mParamCopyTexture, copyTexture);
-			setParam(mParamColorBais, colorBais[0], colorBais[1]);
+			setParam(mParamColorBais, Vector2( colorBais[0], colorBais[1] ));
 		}
 
 		ShaderParameter mParamColorBais;
@@ -227,7 +227,7 @@ namespace RenderGL
 		{
 			setTexture(mParamCopyTexture, copyTexture);
 			setParam(mParamColorMask, colorMask);
-			setParam(mParamValueFactor, valueFactor[0], valueFactor[1]);
+			setParam(mParamValueFactor, Vector2( valueFactor[0], valueFactor[1] ));
 		}
 
 		ShaderParameter mParamCopyTexture;
@@ -242,9 +242,6 @@ namespace RenderGL
 
 	bool ShaderHelper::init()
 	{
-		if( bInitialized )
-			return true;
-
 		ShaderCompileOption option;
 		option.version = 430;
 
@@ -265,8 +262,6 @@ namespace RenderGL
 			return false;
 
 		mFrameBuffer.addTexture(*GWhiteTexture2D);
-
-		bInitialized = true;
 		return true;
 	}
 

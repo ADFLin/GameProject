@@ -7,7 +7,7 @@
 #include <iostream>
 
 
-void ExprParse::print(  Unit const& unit , DefineTable const& table )
+void ExprParse::print(  Unit const& unit , SymbolTable const& table )
 {
 	using std::cout;
 
@@ -33,7 +33,7 @@ void ExprParse::print(  Unit const& unit , DefineTable const& table )
 	case VALUE_CONST: cout <<unit.constValue ; break;
 	case FUN_DEF:
 		{
-			char const* name = table.getFunName( unit.funInfo );
+			char const* name = table.getFunName( unit.symbol->funInfo );
 			if ( name )
 				cout << name;
 			else
@@ -42,7 +42,7 @@ void ExprParse::print(  Unit const& unit , DefineTable const& table )
 		break;
 	case VALUE_VARIABLE:
 		{
-			char const* name = table.getVarName( unit.varPtr );
+			char const* name = table.getVarName( unit.symbol->varPtr );
 			if ( name )
 				cout << name;
 			else
@@ -52,7 +52,7 @@ void ExprParse::print(  Unit const& unit , DefineTable const& table )
 	}
 }
 
-void ExprParse::print( UnitCodes const& codes , DefineTable const& table , bool haveBracket )
+void ExprParse::print( UnitCodes const& codes , SymbolTable const& table , bool haveBracket )
 {
 	if (!haveBracket) 
 	{
@@ -77,7 +77,7 @@ void ExprParse::print( UnitCodes const& codes , DefineTable const& table , bool 
 }
 
 
-bool ExpressionParser::analyzeTokenUnit( char const* expr , DefineTable const& table , UnitCodes& infixCode )
+bool ExpressionParser::analyzeTokenUnit( char const* expr , SymbolTable const& table , UnitCodes& infixCode )
 {
 	infixCode.clear();
 
@@ -183,44 +183,47 @@ bool ExpressionParser::analyzeTokenUnit( char const* expr , DefineTable const& t
 
 		if ( type == TOKEN_TYPE_ERROR )
 		{
-
 			std::string buffer = token.toStdString();
+			SymbolEntry const* symbol = table.findSymbol(buffer);
 
-			FunInfo const* fun;
-			ValueType* pVar;
-			ValueType  val;
-			int inputIndex;
-			if( ( inputIndex = table.findInput(buffer) ) != -1 )
+			if ( symbol )
 			{
-				type = VALUE_INPUT;
-				Unit unit;
-				unit.type = VALUE_INPUT;
-				unit.inputIndex = inputIndex;
-				infixCode.push_back(unit);
-			}
-			else if ( pVar = table.findVar( buffer ) )
-			{
-				type = VALUE_VARIABLE;
-				infixCode.push_back(Unit(type,pVar));
-			}
-			else if ( fun = table.findFun( buffer) )
-			{
-				type = FUN_DEF;
-				infixCode.push_back( Unit(type,fun) );
-			}
-			else if( table.findConst( buffer , val ) )
-			{
-				type = VALUE_CONST;
-				infixCode.push_back(Unit(type,val));
+				switch( symbol->type )
+				{
+				case SymbolEntry::eFun:
+					{
+						type = FUN_DEF;
+						infixCode.push_back(Unit(type, symbol));
+					}
+					break;
+				case SymbolEntry::eConstValue:
+					{
+						type = VALUE_CONST;
+						infixCode.push_back(Unit(type, symbol->constValue));
+					}
+					break;
+				case SymbolEntry::eVar:
+					{
+						type = VALUE_VARIABLE;
+						infixCode.push_back(Unit(type, symbol));
+					}
+					break;
+				case SymbolEntry::eInputVar:
+					{
+						type = VALUE_INPUT;
+						infixCode.push_back(Unit(type, symbol));
+					}
+					break;
+				}
 			}
 			else
 			{
 				char* ptrEnd;
-				ValueType val= ValueType ( strtod( buffer.c_str() , &ptrEnd ) );
-				if ( *ptrEnd == '\0' )
+				ValueType val = ValueType(strtod(buffer.c_str(), &ptrEnd));
+				if( *ptrEnd == '\0' )
 				{
 					type = VALUE_CONST;
-					infixCode.push_back(Unit(type,val));
+					infixCode.push_back(Unit(type, val));
 				}
 			}
 		}
@@ -256,7 +259,7 @@ bool ExpressionParser::checkExprValid( UnitCodes const& infixCode )
 
 		if ( IsFunction( cToken ) )
 		{
-			int numParam = infixCode[i].funInfo->numParam;
+			int numParam = infixCode[i].symbol->funInfo.numParam;
 			int numBarInFun = 0;
 			int numDot = 0;
 			for(int n = i+1 ; n < infixCode.size() ; ++n)
@@ -401,7 +404,7 @@ bool ExpressionParser::testTokenValid( int bToken,int cToken )
 	return validMap[bToken >> 16 ][cToken >> 16 ];
 }
 
-bool ExpressionParser::parse( char const* expr , DefineTable const& table )
+bool ExpressionParser::parse( char const* expr , SymbolTable const& table )
 {
 	UnitCodes infixCode;
 	if ( !analyzeTokenUnit( expr , table , infixCode ) ) 
@@ -412,10 +415,10 @@ bool ExpressionParser::parse( char const* expr , DefineTable const& table )
 	return true;
 }
 
-bool ExpressionParser::parse( char const* expr , DefineTable const& table , ParseResult& result )
+bool ExpressionParser::parse( char const* expr , SymbolTable const& table , ParseResult& result )
 {
 
-	result.mDefineTable = &table;
+	result.mSymbolDefine = &table;
 
 	if ( !analyzeTokenUnit( expr , table , result.mIFCodes ) ) 
 		return false;
@@ -476,14 +479,17 @@ bool ExpressionParser::parse( char const* expr , DefineTable const& table , Pars
 
 bool ParseResult::isUsingVar( char const* name )
 {
-	assert( mDefineTable );
+	if( mSymbolDefine == nullptr )
+		return false;
 
-	ValueType* varPtr = mDefineTable->findVar(name);
-	if ( varPtr == 0 ) return false;
+	SymbolEntry const* symbol = mSymbolDefine->findSymbol(name);
+	if ( symbol == nullptr ) 
+		return false;
+
 	for ( int i = 0;i<mPFCodes.size();++i)
 	{
 		if ( mPFCodes[i].type == VALUE_VARIABLE && 
-			mPFCodes[i].varPtr == varPtr)
+			 mPFCodes[i].symbol == symbol )
 			return true;
 	}
 	return false;
@@ -543,7 +549,7 @@ bool ParseResult::optimizeValueOrder( int index )
 			}
 			else if( IsFunction( elem2.type ) )
 			{
-				num -= (elem2.funInfo->numParam -1 );
+				num -= (elem2.symbol->funInfo.numParam -1 );
 			}
 
 		} while ( num > 0 );
@@ -810,8 +816,8 @@ bool ParseResult::optimizeConstValue( int index )
 	else if ( IsFunction( elem.type ) )
 	{
 		ValueType val[5];
-		int num = elem.funInfo->numParam;
-		void* funPtr = elem.funInfo->ptrFun;
+		int num = elem.symbol->funInfo.numParam;
+		void* funPtr = elem.symbol->funInfo.ptrFun;
 		bool testOk =true;
 		for ( int j = 0 ; j < num ;++j)
 		{
@@ -1206,7 +1212,7 @@ int ExprTreeBuilder::checkTreeError_R( int idxNode )
 			++numVar;
 		}
 
-		if ( numVar != unit.funInfo->numParam )
+		if ( numVar != unit.symbol->funInfo.numParam )
 			return TREE_FUN_PARAM_NUM_NO_MATCH;
 	}
 
@@ -1303,8 +1309,8 @@ bool ExprTreeBuilder::optimizeNodeConstValue( int idxNode )
 	else if ( ExprParse::IsFunction( unit.type ) )
 	{
 		ValueType params[5];
-		int   numParam = unit.funInfo->numParam;
-		void* ptrFun = unit.funInfo->ptrFun;
+		int   numParam = unit.symbol->funInfo.numParam;
+		void* ptrFun = unit.symbol->funInfo.ptrFun;
 
 		if ( numParam )
 		{
@@ -1422,7 +1428,7 @@ void ExprTreeBuilder::printSpace( int num )
 	}
 }
 
-void ExprTreeBuilder::printTree( DefineTable const& table )
+void ExprTreeBuilder::printTree( SymbolTable const& table )
 {
 	mTable = &table;
 	if ( mNumNodes != 0 )
@@ -1432,68 +1438,80 @@ void ExprTreeBuilder::printTree( DefineTable const& table )
 	}
 }
 
-char const* DefineTable::getFunName( FunInfo const* info ) const
+char const* SymbolTable::getFunName( FunInfo const& info ) const
 {
-	FunMap::const_iterator iter = mFunMap.begin();
-	for (;iter != mFunMap.end();++iter)
+	for( auto const& pair : mNameToEntryMap )
 	{
-		if( &((*iter).second) == info )
-			return (*iter).first.c_str();
+		if( pair.second.type == SymbolEntry::eFun &&
+		    pair.second.funInfo == info )
+			return pair.first.c_str();
 	}
-	return NULL;
+	return nullptr;
 }
 
-char const* DefineTable::getVarName( ValueType* var ) const
+char const* SymbolTable::getVarName( ValueType* var ) const
 {
-	VarMap::const_iterator iter = mVarMap.begin();
-	for (;iter != mVarMap.end();++iter)
+	for( auto const& pair : mNameToEntryMap )
 	{
-		if( (*iter).second == var )
-			return (*iter).first.c_str();
+		if( pair.second.type == SymbolEntry::eVar &&
+		    pair.second.varPtr == var )
+			return pair.first.c_str();
 	}
-	return NULL;
+	return nullptr;
 }
 
-ValueType* DefineTable::findVar( std::string const& name ) const
+ValueType* SymbolTable::findVar( std::string const& name ) const
 {
-	VarMap::const_iterator iter = mVarMap.find(name);
-	if ( iter == mVarMap.end() )
-		return NULL;
-	return iter->second;
-}
-
-int DefineTable::findInput(std::string const& name) const
-{
-	auto iter = mVarInputMap.find(name);
-	if( iter == mVarInputMap.end() )
-		return -1;
-	return iter->second;
-}
-
-FunInfo const* DefineTable::findFun(std::string const& name ) const
-{
-	auto  iter = mFunMap.find(name);
-	if ( iter == mFunMap.end() )
-		return NULL;
-	return &iter->second;
-}
-
-bool DefineTable::findConst(std::string const& name , ValueType& val ) const
-{
-	auto  iter = mConstMap.find(name);
-	if ( iter == mConstMap.end() )
-		return false;
-	val = iter->second;
-	return true;
-}
-
-int DefineTable::getVarTable( char const* varStr[],double varVal[] )
-{
-	VarMap::iterator iter = mVarMap.begin();
-	for(int i =0;iter != mVarMap.end(); ++iter ,++i)
+	auto entry = findSymbol(name, SymbolEntry::eVar);
+	if( entry )
 	{
-		if ( varStr ) varStr[i] = (*iter).first.c_str(); 
-		if ( varVal ) varVal[i] = *(*iter).second;
+		return entry->varPtr;
 	}
-	return mVarMap.size();
+	return nullptr;
+}
+
+int SymbolTable::findInput(std::string const& name) const
+{
+	auto entry = findSymbol(name, SymbolEntry::eInputVar);
+	if( entry )
+	{
+		return entry->inputIndex;
+	}
+	return -1;
+}
+
+FunInfo const* SymbolTable::findFun(std::string const& name ) const
+{
+	auto entry = findSymbol(name, SymbolEntry::eFun);
+	if( entry )
+	{
+		return &entry->funInfo;
+	}
+	return nullptr;
+}
+
+bool SymbolTable::findConst(std::string const& name , ValueType& val ) const
+{
+	auto entry = findSymbol(name, SymbolEntry::eConstValue);
+	if( entry )
+	{
+		val = entry->constValue;
+		return true;
+	}
+	return false;
+}
+
+int SymbolTable::getVarTable( char const* varStr[],double varVal[] ) const
+{;
+	int index = 0;
+	for( auto iter = mNameToEntryMap.begin(); iter != mNameToEntryMap.end(); ++iter )
+	{
+		if ( iter->second.type != SymbolEntry::eVar )
+			continue;
+
+		if ( varStr ) varStr[index] = iter->first.c_str();
+		if( varVal ) varVal[index] = *iter->second.varPtr;
+		++index;
+	}
+	return index;
 }

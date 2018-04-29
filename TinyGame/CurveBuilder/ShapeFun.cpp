@@ -13,7 +13,7 @@ namespace CB
 
 	bool SurfaceXYFun::parseExpression(FunctionParser& parser)
 	{
-		DefineTable& table = parser.getDefineTable();
+		SymbolTable& table = parser.getSymbolDefine();
 		if( parser.parse(mExpr , 2) )
 		{
 			setDynamic(parser.isUsingVar("t"));
@@ -40,7 +40,7 @@ namespace CB
 
 	bool SurfaceUVFun::parseExpression(FunctionParser& parser)
 	{
-		DefineTable& table = parser.getDefineTable();
+		SymbolTable& table = parser.getSymbolDefine();
 		bool beDynamic = false;
 
 		for( int i = 0; i < 3; ++i )
@@ -83,7 +83,7 @@ namespace CB
 	bool Curve3DFun::parseExpression(FunctionParser& parser)
 	{
 		bool beDynamic = false;
-		DefineTable& table = parser.getDefineTable();
+		SymbolTable& table = parser.getSymbolDefine();
 
 		for( int i = 0; i < 3; ++i )
 		{

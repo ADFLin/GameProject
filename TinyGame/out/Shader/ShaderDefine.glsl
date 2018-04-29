@@ -302,29 +302,69 @@ struct gl_LightProductParams
 uniform gl_LightProductParams gl_FrontLightProduct[gl_MaxLights];
 uniform gl_LightProductParams gl_BackLightProduct[gl_MaxLights];
 
-//Geometry Shader
+//Vertex Shader
+in int gl_VertexID;
+in int gl_InstanceID;
+in int gl_DrawID; // Requires GLSL 4.60 or ARB_shader_draw_parameters
+in int gl_BaseVertex; // Requires GLSL 4.60 or ARB_shader_draw_parameters
+in int gl_BaseInstance; // Requires GLSL 4.60 or ARB_shader_draw_parameters
 
-in gl_PerVertex
+out gl_PerVertex
 {
 	vec4 gl_Position;
-float gl_PointSize;
-float gl_ClipDistance[];
-} gl_in[];
+	float gl_PointSize;
+	float gl_ClipDistance[];
+};
+
+//Tessellation control shader 
+in int gl_PatchVerticesIn;
+in int gl_PrimitiveID;
+in int gl_InvocationID;
+
+in gl_PerVertex gl_in[gl_MaxPatchVertices];
+
+/*patch*/ out float gl_TessLevelOuter[4];
+/*patch*/ out float gl_TessLevelInner[2];
+
+out gl_PerVertex gl_out[];
 
 
-//layout(points, invocations = 1) in;
-//layout(line_strip, max_vertices = 2) out;
+//Tessellation evaluation shader
 
-int max_vertices;
-int invocations;
+in vec3 gl_TessCoord;
+in int gl_PatchVerticesIn;
+in int gl_PrimitiveID;
+
+/*patch*/ in float gl_TessLevelOuter[4];
+/*patch*/ in float gl_TessLevelInner[2];
+
+in gl_PerVertex gl_in[gl_MaxPatchVertices];
+
+out gl_PerVertex
+{
+	vec4 gl_Position;
+	float gl_PointSize;
+	float gl_ClipDistance[];
+};
+
+//Geometry Shader
+
+in gl_PerVertex gl_in[];
 
 in int gl_PrimitiveIDIn;
 in int gl_InvocationID;  //Requires GLSL 4.0 or ARB_gpu_shader5
 
-						 //Layered rendering
+
+out int gl_PrimitiveID;
 out int gl_Layer;
 out int gl_ViewportIndex; //Requires GL 4.1 or ARB_viewport_array.
 
+ //Layered rendering
+ //layout(points, invocations = 1) in;
+ //layout(line_strip, max_vertices = 2) out;
+ //key
+int max_vertices;
+int invocations;
 enum
 {
 	points,
@@ -346,6 +386,30 @@ enum
 void EmitVertex();
 void EndPrimitive();
 
+//Pixel Shader
+in vec4 gl_FragCoord;
+in bool gl_FrontFacing;
+in vec2 gl_PointCoord;
+in int gl_SampleID; //OpenGL 4.0
+in vec2 gl_SamplePosition; //OpenGL 4.0
+in int gl_SampleMaskIn[]; //OpenGL 4.0
+in int gl_Layer; //OpenGL 4.3
+in int gl_ViewportIndex; //OpenGL 4.3
+
+
+//layout (depth_<condition>) out float gl_FragDepth;
+out float gl_FragDepth;
+
+enum
+{
+	any ,
+	greater ,
+	less ,
+	unchanged ,
+};
+
+out int gl_SampleMask[];
+
 //Compute Shader
 
 //layout(local_size_x = X​, local_size_y = Y​, local_size_z = Z​) in;
@@ -360,7 +424,7 @@ in uvec3 gl_LocalInvocationID;
 in uvec3 gl_GlobalInvocationID;
 in uint  gl_LocalInvocationIndex;
 
-
+const uvec3 gl_WorkGroupSize;   // GLSL ≥ 4.30
 
 //
 class image1D;

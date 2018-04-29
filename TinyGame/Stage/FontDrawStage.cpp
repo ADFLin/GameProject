@@ -4,6 +4,7 @@
 
 #include "GLGraphics2D.h"
 
+#include "RenderGL/RHICommand.h"
 #include "RenderGL/TextureAtlas.h"
 #include "RenderGL/DrawUtility.h"
 #include <unordered_map>
@@ -219,6 +220,9 @@ public:
 
 		if( !mFontTextureAtlas.create(Texture::eRGB8, 1024, 1024, 1) )
 			return false;
+		mFontTextureAtlas.getTexture().bind();
+		glTexParameteri(GL_TEXTURE_2D , GL_TEXTURE_SWIZZLE_A , GL_RED );
+		mFontTextureAtlas.getTexture().unbind();
 
 		mCharDataSet.mUsedTextAtlas = &mFontTextureAtlas;
 
@@ -278,17 +282,14 @@ public:
 		}
 		if( !mBuffer.empty() )
 		{
-			glEnable(GL_TEXTURE_2D);
-			glEnable(GL_BLEND);
-			glBlendFunc(GL_SRC_COLOR, GL_ONE_MINUS_SRC_COLOR);
+			RHISetBlendState(TStaticBlendState< CWM_RGBA , Blend::eSrcAlpha, Blend::eOneMinusSrcAlpha >::GetRHI());
 			{
+				glEnable(GL_TEXTURE_2D);
 				GL_BIND_LOCK_OBJECT(mFontTextureAtlas.getTexture());
-				glColor3f(1, 1, 1);
 				TRenderRT< RTVF_XY_T2 >::Draw(PrimitiveType::eQuad, &mBuffer[0], mBuffer.size());
+				glDisable(GL_TEXTURE_2D);
 			}
-			glDisable(GL_BLEND);
-			glDisable(GL_TEXTURE_2D);
-
+			RHISetBlendState(TStaticBlendState<>::GetRHI());
 		}
 			
 	}
@@ -362,6 +363,7 @@ public:
 			"承諾要灰飛煙滅　誰還能被愛紀念\n"
 			"凋謝最紅的玫瑰　眼淚化作塞納河水\n";
 
+		glColor3f(1, 0, 0);
 		drawText(Vec2i(100, 50), str);
 
 		glColor3f(1, 0, 0);

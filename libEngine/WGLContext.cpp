@@ -268,7 +268,7 @@ bool WindowsGLContext::makeCurrent(HDC hDC)
 bool WindowsGLContext::setupPixelFormat( HDC hDC , WGLPixelFormat const& setting , bool bWindowed )
 {
 	PIXELFORMATDESCRIPTOR pfd;
-	::ZeroMemory(&pfd, sizeof(pfd));
+	::ZeroMemory( &pfd , sizeof( pfd ) );
 
 	int pixelFormat = 0;
 #if 1
@@ -278,7 +278,7 @@ bool WindowsGLContext::setupPixelFormat( HDC hDC , WGLPixelFormat const& setting
 
 	}
 #endif
-	if( pixelFormat == 0 )
+	if ( pixelFormat == 0 )
 	{
 		if( bWindowed )
 		{
@@ -296,7 +296,7 @@ bool WindowsGLContext::setupPixelFormat( HDC hDC , WGLPixelFormat const& setting
 		}
 		else
 		{
-			pixelFormat = ChooseFullscreenPixelFormat(hDC, setting, pfd);
+			pixelFormat = ChooseFullscreenPixelFormat(hDC, setting , pfd );
 		}
 	}
 
@@ -312,4 +312,15 @@ bool WindowsGLContext::setupPixelFormat( HDC hDC , WGLPixelFormat const& setting
 						 MB_ICONERROR | MB_OK);
 		return false;
 	}
+
+	mhRC = ::wglCreateContext( hDC );
+
+	if ( mhRC == NULL )
+		return false;
+
+	if ( !::wglMakeCurrent( hDC , mhRC )  )
+		return false;
+
+	return true;
 }
+

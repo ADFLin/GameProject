@@ -24,6 +24,24 @@ namespace CB
 		{
 			return "Shader/Game/CurveMesh";
 		}
+
+
+		void bindParameters()
+		{
+
+		}
+
+		void setParameters()
+		{
+
+		}
+	};
+
+	template< bool bUseOIT >
+	class TCurveMeshProgram : public CurveMeshProgram
+	{
+		DECLARE_GLOBAL_SHADER(TCurveMeshProgram)
+
 		static ShaderEntryInfo const* GetShaderEntries()
 		{
 			static ShaderEntryInfo const enties[] =
@@ -34,24 +52,6 @@ namespace CB
 			};
 			return enties;
 		}
-		void bindParameters()
-		{
-
-		}
-		void setParameters()
-		{
-
-		}
-		ShaderParameter mParamAxisValue;
-		ShaderParameter mParamProjMatrix;
-		ShaderParameter mParamUpperColor;
-		ShaderParameter mParamLowerColor;
-	};
-
-	template< bool bUseOIT >
-	class TCurveMeshProgram : public CurveMeshProgram
-	{
-		DECLARE_GLOBAL_SHADER(TCurveMeshProgram)
 
 		static void SetupShaderCompileOption(ShaderCompileOption& option) 
 		{
@@ -59,15 +59,54 @@ namespace CB
 		}
 	};
 
+	class MeshNormalVisualizeProgram : public CurveMeshProgram
+	{
+		DECLARE_GLOBAL_SHADER(MeshNormalVisualizeProgram)
 
-	IMPLEMENT_GLOBAL_SHADER_T( template<>, TCurveMeshProgram<false> )
-	IMPLEMENT_GLOBAL_SHADER_T( template<>, TCurveMeshProgram<true> )
+		static void SetupShaderCompileOption(ShaderCompileOption&) {}
+		static char const* GetShaderFileName()
+		{
+			return "Shader/Game/MeshNormalVisualize";
+		}
+		static ShaderEntryInfo const* GetShaderEntries()
+		{
+			static ShaderEntryInfo const enties[] =
+			{
+				{ Shader::eVertex ,  SHADER_ENTRY(MainVS) },
+				{ Shader::eGeometry ,  SHADER_ENTRY(MainGS) },
+				{ Shader::ePixel ,  SHADER_ENTRY(MainPS) },
+				{ Shader::eEmpty ,  nullptr },
+			};
+			return enties;
+		}
+
+		void bindParameters()
+		{
+			mParamNormalLength.bind(*this, SHADER_PARAM(NormalLength));
+			mParamNormalColor.bind(*this, SHADER_PARAM(NormalColor));
+			mParamDensityAndSize.bind(*this, SHADER_PARAM(DensityAndSize));
+		}
+
+		void setParameters( Vector4 const& inColor , float inNormalLength , int inDensity , int inSize )
+		{
+			setParam(mParamNormalLength, inNormalLength);
+			if ( mParamNormalColor.isBound() )
+				setParam(mParamNormalColor, inColor);
+			setParam(mParamDensityAndSize, IntVector2( inDensity , inSize ) );
+		}
+
+		ShaderParameter mParamDensityAndSize;
+		ShaderParameter mParamNormalLength;
+		ShaderParameter mParamNormalColor;
+	};
+
+
+	IMPLEMENT_GLOBAL_SHADER_T(template<>, TCurveMeshProgram<false>);
+	IMPLEMENT_GLOBAL_SHADER_T(template<>, TCurveMeshProgram<true>);
+	IMPLEMENT_GLOBAL_SHADER(MeshNormalVisualizeProgram);
 
 	CurveRenderer::CurveRenderer()
-		//:m_Font("C:/WINDOWS/Fonts/arial.ttf")
 	{
-
-		//m_Font.FaceSize(12);
 
 		setAxisRange(0, Range(-10, 10));
 		setAxisRange(1, Range(-10, 10));
@@ -86,9 +125,33 @@ namespace CB
 		mProgCurveMeshOIT = ShaderManager::Get().getGlobalShaderT< TCurveMeshProgram<true> >(true);
 		if( mProgCurveMeshOIT == nullptr )
 			return false;
+		mProgMeshNormalVisualize = ShaderManager::Get().getGlobalShaderT< MeshNormalVisualizeProgram >(true);
+		if( mProgMeshNormalVisualize == nullptr )
+			return false;
 		if( !mOITTech.init(screenSize) )
 			return false;
 		return true;
+	}
+
+	void CurveRenderer::beginRender()
+	{
+		mTranslucentDraw.clear();
+
+	}
+
+	void CurveRenderer::endRender()
+	{
+		if( !mTranslucentDraw.empty() )
+		{
+			auto DrawFun = [this]()
+			{
+				for( auto& fun : mTranslucentDraw )
+				{
+					fun();
+				}
+			};
+			mOITTech.renderInternal(mViewInfo, DrawFun, nullptr);
+		}
 	}
 
 	void CurveRenderer::drawSurface(Surface3D& surface)
@@ -101,8 +164,6 @@ namespace CB
 			glEnable(GL_POLYGON_OFFSET_FILL);
 			glPolygonOffset(1, 1);
 
-			glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-
 			Color4f const& color = surface.getColor();
 			glColor4f(1 - color.r, 1 - color.g, 1 - color.b, 1.0f);
 			drawMeshLine(surface);
@@ -112,28 +173,55 @@ namespace CB
 
 		if( surface.needDrawMesh() )
 		{
-			glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-#if 0
-			GL_BIND_LOCK_OBJECT(*mProgCurveMesh);
-			mViewInfo.setupShader(*mProgCurveMesh);
-			drawMesh(surface);
-#else
-			auto DrawFun = [this , &surface]()
+			if( surface.getColor().a < 1.0 )
 			{
-				GL_BIND_LOCK_OBJECT(*mProgCurveMeshOIT);
-				mViewInfo.setupShader(*mProgCurveMeshOIT);
-				mOITTech.setupShader(*mProgCurveMeshOIT);
-				drawMesh(surface);
-			};
+				auto DrawFun = [this, &surface]()
+				{
+					GL_BIND_LOCK_OBJECT(*mProgCurveMeshOIT);
+					mViewInfo.setupShader(*mProgCurveMeshOIT);
+					mOITTech.setupShader(*mProgCurveMeshOIT);
+					drawMesh(surface);
+				};
+				mTranslucentDraw.push_back(DrawFun);
 
-			mOITTech.renderInternal(mViewInfo, DrawFun, nullptr);
-#endif
+			}
+			else
+			{
+				GL_BIND_LOCK_OBJECT(*mProgCurveMesh);
+				mViewInfo.setupShader(*mProgCurveMesh);
+				drawMesh(surface);
+			}
 		}
-		if( surface.needDrawNormal() )
+		if( surface.needDrawNormal() || 1)
 		{
-			drawMeshNormal(surface, 1.0);
+			drawMeshNormal(surface, 0.1);
 		}
 	}
+	template< bool bHaveNormal >
+	struct LineDrawer
+	{
+		typedef TRenderRT< bHaveNormal ? RTVF_XYZ_CA_N : RTVF_XYZ_CA > MyRender;
+
+		static void Draw(Surface3D& surface)
+		{
+
+			RenderData* data = surface.getRenderData();
+			assert(data);
+			int    numDataU = surface.getParamU().getNumData();
+			int    numDataV = surface.getParamV().getNumData();
+
+			int d = int(1.0f / surface.getMeshLineDensity());
+			d = 1;
+			int nx = numDataU / d;
+			int ny = numDataV / d;
+			MyRender::BindVertexArray(data->getVertexData(), data->getVertexSize());
+			for( int i = 0; i < ny; ++i )
+			{
+				glDrawArrays(GL_LINE_STRIP, numDataU * i, numDataU);
+			}
+			MyRender::UnbindVertexArray();
+		}
+	};
 
 	void CurveRenderer::drawMeshLine(Surface3D& surface)
 	{
@@ -142,6 +230,18 @@ namespace CB
 
 		RenderData* data = surface.getRenderData();
 		assert(data);
+#if 0
+		if( data->getNormalOffset() != -1 )
+		{
+			LineDrawer<true>::Draw(surface);
+		}
+		else
+		{
+			LineDrawer<false>::Draw(surface);
+		}
+
+
+#else
 
 		Vector3* pPositionData = (Vector3*)( data->getVertexData() + data->getPositionOffset());
 
@@ -151,6 +251,8 @@ namespace CB
 		int d = int(1.0f / surface.getMeshLineDensity());
 		int nx = numDataU / d;
 		int ny = numDataV / d;
+
+
 		glEnableClientState(GL_VERTEX_ARRAY);
 		glVertexPointer(3, GL_FLOAT, data->getVertexSize() , pPositionData);
 		for( int n = 0; n < nx; ++n )
@@ -163,6 +265,7 @@ namespace CB
 			glEnd();
 		}
 		glDisableClientState(GL_VERTEX_ARRAY);
+#endif
 	}
 
 	void CurveRenderer::drawMesh(Surface3D& surface)
@@ -280,34 +383,14 @@ namespace CB
 		RenderData* data = surface.getRenderData();
 		assert(data);
 
-
 		if( data->getNormalOffset() == -1 )
 			return;
 
-		Vector3* pPositionData = (Vector3*)(data->getVertexData() + data->getPositionOffset());
-		Vector3* pNormalData = (Vector3*)(data->getVertexData() + data->getNormalOffset());
-
-		int    NumDataU = surface.getParamU().getNumData();
-		int    NumDataV = surface.getParamV().getNumData();
-
-		if( surface.getMeshLineDensity() < 1e-6 ) return;
-		int d = int(1.0f / surface.getMeshLineDensity());
-
-
-		glColor3f(0, 0, 0);
-		glBegin(GL_LINES);
-		for( int i = 0; i < NumDataU; i += d )
-		{
-			for( int j = 0; j < NumDataV; j += d )
-			{
-				int index = NumDataV*i + j;
-				Vector3* pPos = (Vector3*)(pPositionData + index * data->getVertexSize());
-				Vector3* pNormal = (Vector3*)(pNormalData + index * data->getVertexSize());
-				glVertex3fv(*pPos);
-				glVertex3fv(*pPos + length * (*pNormal));
-			}
-		}
-		glEnd();
+		int d = std::max(1, int(1.0f / surface.getMeshLineDensity()));
+		GL_BIND_LOCK_OBJECT(*mProgMeshNormalVisualize);
+		mProgMeshNormalVisualize->setParameters( Vector4(1,0,0,1) , length , d , surface.getParamU().getNumData());
+		mViewInfo.setupShader(*mProgMeshNormalVisualize);
+		TRenderRT< RTVF_XYZ_CA_N >::DrawShader(PrimitiveType::ePoints, data->getVertexData(), data->getVertexNum(), data->getVertexSize());
 
 	}
 
@@ -378,6 +461,7 @@ namespace CB
 	{
 		ShaderManager::Get().reloadShader(*mProgCurveMesh);
 		ShaderManager::Get().reloadShader(*mProgCurveMeshOIT);
+		ShaderManager::Get().reloadShader(*mProgMeshNormalVisualize);
 	}
 
 	void CurveRenderer::drawShape(ShapeBase& shape)

@@ -7,6 +7,7 @@
 
 #include "RenderGL/DrawUtility.h"
 #include "RenderGL/GpuProfiler.h"
+#include "RenderGL/RHICommand.h"
 
 namespace Go
 {
@@ -54,6 +55,10 @@ namespace Go
 		}
 	}
 
+
+
+
+
 	void BoardRenderer::drawStoneSequence(RenderContext const& context, std::vector<int> const& vertices, int colorStart, float opacity)
 	{
 		using namespace RenderGL;
@@ -65,8 +70,8 @@ namespace Go
 			GPU_PROFILE("Draw Stone");
 
 #if DRAW_TEXTURE
-			glEnable(GL_BLEND);
-			glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+			RHISetBlendState(TStaticBlendState< CWM_RGBA, Blend::eSrcAlpha, Blend::eOneMinusSrcAlpha >::GetRHI());
+
 			glEnable(GL_TEXTURE_2D);
 			glActiveTexture(GL_TEXTURE0);
 #endif
@@ -94,7 +99,8 @@ namespace Go
 			}
 
 			glDisable(GL_TEXTURE_2D);
-			glDisable(GL_BLEND);
+
+			RHISetBlendState( TStaticBlendState<>::GetRHI() );
 #endif
 		}
 	}
@@ -211,8 +217,8 @@ namespace Go
 			GPU_PROFILE("Draw Stone");
 
 #if DRAW_TEXTURE
-			glEnable(GL_BLEND);
-			glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+			RHISetBlendState(TStaticBlendState< CWM_RGBA, Blend::eSrcAlpha, Blend::eOneMinusSrcAlpha >::GetRHI());
+
 			glEnable(GL_TEXTURE_2D);
 			glActiveTexture(GL_TEXTURE0);
 #endif
@@ -241,7 +247,7 @@ namespace Go
 			}
 
 			glDisable(GL_TEXTURE_2D);
-			glDisable(GL_BLEND);
+			RHISetBlendState(TStaticBlendState<>::GetRHI());
 #endif
 		}
 

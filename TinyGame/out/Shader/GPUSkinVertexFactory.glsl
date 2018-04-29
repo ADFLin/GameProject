@@ -67,32 +67,32 @@ struct VertexFactoryOutputVSToPS
 
 #if VETEX_FACTORY_USE_VERTEX_ATTRIBUTE
 
-//in VertexFactoryInput
-//{
+in VertexFactoryInputParameters
+{
 
-layout(location = ATTRIBUTE_POSITION) in float4 VertexInput_position;
-layout(location = ATTRIBUTE_NORMAL) in float3 VertexInput_normal;
-layout(location = ATTRIBUTE_COLOR) in float4 VertexInput_color;
-layout(location = ATTRIBUTE_TANGENT) in float4 VertexInput_tangent;
+	layout(location = ATTRIBUTE_POSITION) float4 VertexInput_position;
+	layout(location = ATTRIBUTE_NORMAL) float3 VertexInput_normal;
+	layout(location = ATTRIBUTE_COLOR) float4 VertexInput_color;
+	layout(location = ATTRIBUTE_TANGENT) float4 VertexInput_tangent;
 
 #if MATERIAL_TEXCOORD_NUM
-#if MATERIAL_TEXCOORD_NUM > 0
-layout(location = ATTRIBUTE4) in float2 VertexInput_texCoord0;
-#endif
-#if MATERIAL_TEXCOORD_NUM > 1
-layout(location = ATTRIBUTE5) in float2 VertexInput_texCoord1;
-#endif
-#if MATERIAL_TEXCOORD_NUM > 2
-layout(location = ATTRIBUTE6) in float2 VertexInput_texCoord2;
-#endif
-#if MATERIAL_TEXCOORD_NUM > 3
-layout(location = ATTRIBUTE7) in float2 VertexInput_texCoord3;
-#endif
+	#if MATERIAL_TEXCOORD_NUM > 0
+	layout(location = ATTRIBUTE4) float2 VertexInput_texCoord0;
+	#endif
+	#if MATERIAL_TEXCOORD_NUM > 1
+	layout(location = ATTRIBUTE5) float2 VertexInput_texCoord1;
+	#endif
+	#if MATERIAL_TEXCOORD_NUM > 2
+	layout(location = ATTRIBUTE6) float2 VertexInput_texCoord2;
+	#endif
+	#if MATERIAL_TEXCOORD_NUM > 3
+	layout(location = ATTRIBUTE7) float2 VertexInput_texCoord3;
+	#endif
 #endif//MATERIAL_TEXCOORD_NUM
 
-//} VertexInput;
+} VertexInput;
 
-#endif //USE_VERTEX_ATTRIBUTE_INDEX
+#endif //VETEX_FACTORY_USE_VERTEX_ATTRIBUTE
 
 struct VertexFactoryIntermediatesVS
 {
@@ -108,11 +108,11 @@ VertexFactoryIntermediatesVS GetVertexFactoryIntermediatesVS()
 	VertexFactoryIntermediatesVS intermediates;
 	float noramlFactor = 1;// gl_FrontFacing ? 1 : -1;
 #if VETEX_FACTORY_USE_VERTEX_ATTRIBUTE
-	intermediates.normal = noramlFactor * float4(VertexInput_normal, 0) * Primitive.worldToLocal;
-	intermediates.tangent = noramlFactor * float4(VertexInput_tangent.xyz, 0) * Primitive.worldToLocal;
-	intermediates.tangent.w = VertexInput_tangent.w;
-	intermediates.worldPos = Primitive.localToWorld * VertexInput_position;
-	intermediates.vertexColor = VertexInput_color;
+	intermediates.normal = noramlFactor * float4(VertexInput.normal, 0) * Primitive.worldToLocal;
+	intermediates.tangent = noramlFactor * float4(VertexInput.tangent.xyz, 0) * Primitive.worldToLocal;
+	intermediates.tangent.w = VertexInputtangent.w;
+	intermediates.worldPos = Primitive.localToWorld * VertexInput.position;
+	intermediates.vertexColor = VertexInput.color;
 #else //USE_VERTEX_ATTRIBUTE_INDEX
 	intermediates.normal = noramlFactor * float4(gl_Normal, 0) * Primitive.worldToLocal;
 	intermediates.tangent = noramlFactor * float4(gl_MultiTexCoord5.xyz, 0) * Primitive.worldToLocal;
@@ -136,16 +136,16 @@ MaterialParametersVS GetMaterialParameterVS(in VertexFactoryIntermediatesVS inte
 	parameters.vertexPos = VertexInput_position;
 
 #if MATERIAL_TEXCOORD_NUM > 0
-	parameters.texCoords[0] = VertexInput_texCoord0.xy;
+	parameters.texCoords[0] = VertexInput.texCoord0.xy;
 #endif
 #if MATERIAL_TEXCOORD_NUM > 1
-	parameters.texCoords[1] = VertexInput_texCoord1.xy;
+	parameters.texCoords[1] = VertexInput.texCoord1.xy;
 #endif
 #if MATERIAL_TEXCOORD_NUM > 2
-	parameters.texCoords[2] = VertexInput_texCoord2.xy;
+	parameters.texCoords[2] = VertexInput.texCoord2.xy;
 #endif
 #if MATERIAL_TEXCOORD_NUM > 3
-	parameters.texCoords[3] = VertexInput_texCoord3.xy;
+	parameters.texCoords[3] = VertexInput.texCoord3.xy;
 #endif
 
 #else //USE_VERTEX_ATTRIBUTE_INDEX

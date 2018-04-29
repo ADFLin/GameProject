@@ -6,12 +6,7 @@
 #include "ShapeFun.h"
 
 #include "ProfileSystem.h"
-
-#define USE_OMP 0
-
-#if USE_OMP
-#include "omp.h"
-#endif
+#include "SystemPlatform.h"
 
 namespace CB
 {
@@ -27,9 +22,6 @@ namespace CB
 		:mColorMap(1000)
 		,mParser()
 	{
-#if USE_OMP
-		omp_set_num_threads(10);
-#endif
 
 		mColorMap.addColorPoint(0, 0, 7, 100);
 		mColorMap.addColorPoint(640 / 4, 32, 107, 203);
@@ -40,7 +32,7 @@ namespace CB
 		mColorMap.computeColorMap();
 		mColorMap.setRotion(150);
 
-		DefineTable& table = mParser.getDefineTable();
+		SymbolTable& table = mParser.getSymbolDefine();
 		table.defineVar("t", &mVarTime);
 
 	}
@@ -164,9 +156,6 @@ namespace CB
 
 				float du = paramU.getIncrement();
 				float dv = paramV.getIncrement();
-#if USE_OMP
-#pragma omp parallel for
-#endif
 				for( int j = 0; j < paramV.numData; ++j )
 				{
 					for( int i = 0; i < paramU.numData; ++i )
@@ -203,6 +192,9 @@ namespace CB
 
 			if( data->getNormalOffset() != -1 )
 			{
+				std::vector< Vector3 > mCacheNormal;
+				std::vector< int >     mCacheCount;
+
 				mCacheCount.clear();
 				mCacheNormal.clear();
 				mCacheCount.resize(vertexNum, 0);
@@ -260,6 +252,26 @@ namespace CB
 		}
 	}
 
+#if USE_PARALLEL_UPDATE
+	void ShapeMaker::addUpdateWork(std::function<void()> fun)
+	{
+		if( mUpdateThreadPool == nullptr )
+		{
+			int numThread = SystemPlatform::GetProcessorNumber();
+			mUpdateThreadPool.reset( new QueueThreadPool );
+			mUpdateThreadPool->init(numThread);
+		}
+		mUpdateThreadPool->addFunctionWork(fun);
+	}
+
+	void ShapeMaker::waitUpdateDone()
+	{
+		if( mUpdateThreadPool )
+		{
+			mUpdateThreadPool->waitAllThreadIdle();
+		}
+	}
+#endif
 
 	static bool calcDiv(float v, float v0, float v1, float& out) // throw( RealNanException )
 	{
@@ -269,22 +281,5 @@ namespace CB
 		out = (v - v0) / dv;
 		return true;
 	}
-
-
-	struct ContourPoint
-	{
-		ContourPoint()
-		{
-			conIndex[0] = -1;
-			conIndex[1] = -1;
-			haveTest = false;
-		}
-		Vector3    vertex;
-		float      index[2];
-		int        conIndex[2];
-		bool       haveTest;
-	};
-	typedef std::vector< ContourPoint > CPVec;
-
 
 }//namespace CB

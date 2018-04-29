@@ -328,19 +328,7 @@ namespace RenderGL
 			}
 			++indexCode;
 		}
-		
-		if( !shaderProgram.updateShader(true) )
-		{
-			int maxLength;
-			glGetProgramiv(shaderProgram.mHandle, GL_INFO_LOG_LENGTH, &maxLength);
-			std::vector< char > buf(maxLength);
-			int logLength = 0;
-			glGetProgramInfoLog(shaderProgram.mHandle, maxLength, &logLength, &buf[0]);
-			//::MessageBoxA(NULL, &buf[0], "ShaderProgram Link Error", 0);
-
-			//Some Warning cause Link status False
-			return true;
-		}
+		shaderProgram.updateShader(true);
 
 		return true;
 	}

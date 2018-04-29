@@ -27,6 +27,8 @@ namespace RenderGL
 		direction = TransformVector(Vector3(0, 0, -1), viewToWorld);
 
 		updateFrustumPlanes();
+
+		mbDataDirty = true;
 	}
 
 	Vec2i ViewInfo::getViewportSize() const
@@ -38,25 +40,60 @@ namespace RenderGL
 
 	void ViewInfo::setupShader(ShaderProgram& program)
 	{
-		program.setParam(SHADER_PARAM(View.worldPos), worldPos);
-		program.setParam(SHADER_PARAM(View.direction), direction);
-		program.setParam(SHADER_PARAM(View.worldToView), worldToView);
-		program.setParam(SHADER_PARAM(View.worldToClip), worldToClip);
-		program.setParam(SHADER_PARAM(View.viewToWorld), viewToWorld);
-		program.setParam(SHADER_PARAM(View.viewToClip), viewToClip);
-		program.setParam(SHADER_PARAM(View.clipToView), clipToView);
-		program.setParam(SHADER_PARAM(View.clipToWorld), clipToWorld);
-		program.setParam(SHADER_PARAM(View.gameTime), gameTime);
-		program.setParam(SHADER_PARAM(View.realTime), realTime);
+		static RHIUniformBuffer buffer;
+		//ref ViewParam.glsl
+		struct ViewBufferData
+		{
+			DECLARE_UNIFORM_STRUCT("ViewBlock");
 
-		int values[4];
-		glGetIntegerv(GL_VIEWPORT, values);
-		Vector4 viewportParam;
-		viewportParam.x = values[0];
-		viewportParam.y = values[1];
-		viewportParam.z = 1.0 / values[2];
-		viewportParam.w = 1.0 / values[3];
-		program.setParam(SHADER_PARAM(View.viewportPosAndSizeInv), viewportParam);
+			Matrix4  worldToView;
+			Matrix4  worldToClip;
+			Matrix4  viewToWorld;
+			Matrix4  viewToClip;
+			Matrix4  clipToView;
+			Matrix4  clipToWorld;
+			Vector4 viewportPosAndSizeInv;
+			Vector3 worldPos;
+			float  realTime;
+			Vector3 direction;
+			float  gameTime;
+		};
+
+		if( !mUniformBuffer.isValid() )
+		{
+			mUniformBuffer = RHICreateUniformBuffer(sizeof(ViewBufferData));
+		}
+
+		if ( mbDataDirty )
+		{
+			mbDataDirty = false;
+
+			void* ptr = mUniformBuffer->lock(ELockAccess::WriteOnly);
+			ViewBufferData& data = *(ViewBufferData*)ptr;
+			data.worldPos = worldPos;
+			data.direction = direction;
+			data.worldToView = worldToView;
+			data.worldToClip = worldToClip;
+			data.viewToWorld = viewToWorld;
+			data.viewToClip = viewToClip;
+			data.clipToView = clipToView;
+			data.clipToWorld = clipToWorld;
+			data.gameTime = gameTime;
+			data.realTime = realTime;
+
+			int values[4];
+			glGetIntegerv(GL_VIEWPORT, values);
+			Vector4 viewportParam;
+			viewportParam.x = values[0];
+			viewportParam.y = values[1];
+			viewportParam.z = 1.0 / values[2];
+			viewportParam.w = 1.0 / values[3];
+			data.viewportPosAndSizeInv = viewportParam;
+			mUniformBuffer->unlock();
+		}
+
+		program.setUniformBuffer<ViewBufferData>(*mUniformBuffer);
+
 	}
 
 	void ViewInfo::updateFrustumPlanes()
@@ -213,11 +250,10 @@ namespace RenderGL
 		if( bMultiple )
 		{
 			glDepthFunc(GL_EQUAL);
-			glEnable(GL_BLEND);
-			glBlendFunc(GL_ONE, GL_ONE);
+			RHISetBlendState(TStaticBlendState< CWM_RGBA , Blend::eOne, Blend::eOne >::GetRHI());
 			RenderContext context(view, *this);
 			scene.render( context);
-			glDisable(GL_BLEND);
+			RHISetBlendState(TStaticBlendState<>::GetRHI());
 			glDepthFunc(GL_LESS);
 		}
 		else
@@ -640,30 +676,41 @@ namespace RenderGL
 				glPopMatrix();
 			};
 
-			glEnable(GL_DEPTH_TEST);
 			glEnable(GL_CULL_FACE);
 
+			glEnable(GL_DEPTH_TEST);
 			glDepthMask(GL_FALSE);
 
+			constexpr bool bWriteDepth = false;
 
-			if( boundMethod == LBM_GEMO_BOUND_SHAPE_WITH_STENCIL )
+			if( 0 && boundMethod == LBM_GEMO_BOUND_SHAPE_WITH_STENCIL )
 			{
 				glEnable(GL_STENCIL_TEST);
 
+				constexpr bool bEnableStencilTest = true;
 				mLightBuffer.bindDepthOnly();
 				glClearStencil(1);
 				glClear(GL_STENCIL_BUFFER_BIT);
 				mLightBuffer.unbind();
 
-				glColorMask( GL_FALSE , GL_FALSE, GL_FALSE, GL_FALSE);
-
+				RHISetBlendState(TStaticBlendState< CWM_NONE >::GetRHI());
 				//if ( debugMode != DebugMode::eShowVolume )
 				{
 					
 					glCullFace(GL_BACK);
+
+#if 0
+					RHISetDepthStencilState(
+						TStaticDepthStencilState<
+							bWriteDepth, ECompareFun::Greater,
+							bEnableStencilTest, ECompareFun::Always,
+							Stencil::eKeep, Stencil::eKeep, Stencil::eDecr, 0x0 
+						>::GetRHI(), 0x0);
+#else
 					glDepthFunc(GL_GREATER);
 					glStencilFunc(GL_ALWAYS, 0, 0);
-					glStencilOp(GL_KEEP, GL_KEEP , GL_DECR);
+					glStencilOp(GL_KEEP, GL_KEEP, GL_DECR);
+#endif
 
 					mLightBuffer.bindDepthOnly();
 					DrawBoundShape(false);
@@ -671,18 +718,62 @@ namespace RenderGL
 
 				}
 
-				glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
-				glStencilFunc(GL_EQUAL, 1, 1);
-				glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
+				RHISetBlendState(TStaticBlendState< CWM_RGBA >::GetRHI());
+				if( debugMode == DebugMode::eShowVolume )
+				{
+#if 0
+					RHISetDepthStencilState(
+						TStaticDepthStencilState<
+							bWriteDepth, ECompareFun::Always,
+							bEnableStencilTest, ECompareFun::Equal,
+							Stencil::eKeep, Stencil::eKeep, Stencil::eKeep, 0x1
+						>::GetRHI(), 0x1);
+#else
+					glStencilFunc(GL_EQUAL, 1, 1);
+					glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
+					glDisable(GL_DEPTH_TEST);
+#endif
+				}
+				else
+				{
+#if 0
+					RHISetDepthStencilState(
+						TStaticDepthStencilState<
+							bWriteDepth, ECompareFun::GeraterEqual,
+							bEnableStencilTest, ECompareFun::Equal,
+							Stencil::eKeep, Stencil::eKeep, Stencil::eKeep, 0x1
+						>::GetRHI(), 0x1);
+#else
 
+					glStencilFunc(GL_EQUAL, 1, 1);
+					glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
+					glDepthFunc(GL_GEQUAL);
+#endif
+				}
+			}
+			else
+			{
+				if( debugMode == DebugMode::eShowVolume )
+				{
+#if 0
+					RHISetDepthStencilState(TStaticDepthStencilState<bWriteDepth, ECompareFun::Always >::GetRHI());
+#else
+					glDisable(GL_DEPTH_TEST);
+#endif
+				}
+				else
+				{
+#if 0
+					RHISetDepthStencilState(TStaticDepthStencilState<bWriteDepth, ECompareFun::GeraterEqual >::GetRHI());
+#else
+					glDepthFunc(GL_GEQUAL);
+#endif
+				}
 			}
 
-			if( debugMode == DebugMode::eShowVolume )
-				glDisable(GL_DEPTH_TEST);
-
+			//RHISetBlendState(TStaticBlendState< CWM_RGBA , Blend::eOne, Blend::eOne >::GetRHI());
 			glBlendFunc(GL_ONE, GL_ONE);
 			glEnable(GL_BLEND);
-
 			glCullFace(GL_FRONT);
 			glDepthFunc(GL_GEQUAL);
 
@@ -696,27 +787,24 @@ namespace RenderGL
 				lightShader.setParam(SHADER_PARAM(BoundTransform), lightXForm);
 				DrawBoundShape(true);
 			}
-
-			glDepthFunc(GL_LESS);
 			glCullFace(GL_BACK);
 
+			glDepthFunc(GL_LESS);
 			glDisable(GL_BLEND);
 
 			if( debugMode == DebugMode::eShowVolume )
 				glEnable(GL_DEPTH_TEST);
-
 			if( boundMethod == LBM_GEMO_BOUND_SHAPE_WITH_STENCIL )
 			{
 				glDisable(GL_STENCIL_TEST);
 			}
 
-			glDepthMask( GL_TRUE );
+			glDepthMask(GL_TRUE);
 		}
 		else
 		{
-			glBlendFunc(GL_ONE, GL_ONE);
-			glEnable(GL_BLEND);
-			glDisable(GL_DEPTH_TEST);
+			RHISetDepthStencilState( TStaticDepthStencilState<false, ECompareFun::Always >::GetRHI());
+			RHISetBlendState(TStaticBlendState< CWM_RGBA, Blend::eOne, Blend::eOne >::GetRHI());
 			{
 				GL_BIND_LOCK_OBJECT(mSceneRenderTargets->getFrameBuffer());
 				//MatrixSaveScope matrixScope(Matrix4::Identity());
@@ -725,10 +813,10 @@ namespace RenderGL
 				BindShaderParam(program);
 				DrawUtility::ScreenRectShader();
 
-				glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
+				//glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
 			}
-			glEnable(GL_DEPTH_TEST);
-			glDisable(GL_BLEND);
+			RHISetBlendState(TStaticBlendState<>::GetRHI());
+			RHISetDepthStencilState(TStaticDepthStencilState<>::GetRHI());
 		}
 	}
 
@@ -974,13 +1062,13 @@ namespace RenderGL
 		{
 			GPU_PROFILE("SSAO-Ambient");
 				//sceneRenderTargets.swapFrameBufferTexture();
-			glEnable(GL_BLEND);
-			glBlendFunc(GL_ONE, GL_ONE);
+
+			RHISetBlendState(TStaticBlendState< CWM_RGBA , Blend::eOne, Blend::eOne >::GetRHI());
 			GL_BIND_LOCK_OBJECT(sceneRenderTargets.getFrameBuffer());
 			GL_BIND_LOCK_OBJECT(mProgAmbient);
 			mProgAmbient->setParameters(sceneRenderTargets, *mSSAOTextureBlur);
 			DrawUtility::ScreenRectShader();
-			glDisable(GL_BLEND);
+			RHISetBlendState(TStaticBlendState<>::GetRHI());
 		}
 		glEnable(GL_DEPTH_TEST);
 	}
@@ -1089,7 +1177,7 @@ namespace RenderGL
 		glDisable(GL_TEXTURE_2D);
 	}
 
-	bool OITTechnique::init(Vec2i const& screenSize)
+	bool OITTechnique::init(Vec2i const& size)
 	{
 		mColorStorageTexture = RHICreateTexture2D();
 		if( !mColorStorageTexture->create(Texture::eRGBA16F, OIT_StorageSize, OIT_StorageSize) )
@@ -1098,7 +1186,7 @@ namespace RenderGL
 		if( !mNodeAndDepthStorageTexture->create(Texture::eRGBA32I, OIT_StorageSize, OIT_StorageSize) )
 			return false;
 		mNodeHeadTexture = RHICreateTexture2D();
-		if( !mNodeHeadTexture->create(Texture::eR32U, screenSize.x, screenSize.y) )
+		if( !mNodeHeadTexture->create(Texture::eR32U, size.x, size.y) )
 			return false;
 
 		if( !mStorageUsageCounter.create() )
@@ -1122,9 +1210,8 @@ namespace RenderGL
 				SHADER_ENTRY(BassPassVS), SHADER_ENTRY(BassPassPS),
 				option, nullptr) )
 				return false;
-
 			if( !ShaderManager::Get().loadFile(
-				mShaderResolve, "Shader/OITResolve",
+				mShaderResolve, "Shader/OITRender",
 				SHADER_ENTRY(ScreenVS), SHADER_ENTRY(ResolvePS),
 				option, nullptr) )
 				return false;
@@ -1141,7 +1228,7 @@ namespace RenderGL
 			option.addDefine(SHADER_PARAM(OIT_STORAGE_SIZE), OIT_StorageSize);
 			option.addDefine(SHADER_PARAM(OIT_MAX_PIXEL_COUNT) , BMA_MaxPixelCounts[i]);
 			if( !ShaderManager::Get().loadFile(
-				mShaderBMAResolves[i], "Shader/OITResolve",
+				mShaderBMAResolves[i], "Shader/OITRender",
 				SHADER_ENTRY(ScreenVS), SHADER_ENTRY(ResolvePS),
 				option , nullptr) )
 				return false;
@@ -1168,6 +1255,8 @@ namespace RenderGL
 
 	void OITTechnique::render(ViewInfo& view, SceneInterface& scnenRender, SceneRenderTargets* sceneRenderTargets)
 	{
+		return;
+
 		auto DrawFun = [this, &view, &scnenRender]()
 		{
 			RenderContext context(view, *this);
@@ -1261,6 +1350,7 @@ namespace RenderGL
 
 	void OITTechnique::renderInternal(ViewInfo& view, std::function< void() > drawFuncion , SceneRenderTargets* sceneRenderTargets )
 	{
+
 		GPU_PROFILE("OIT");
 		
 		glDisable(GL_CULL_FACE);
@@ -1312,21 +1402,17 @@ namespace RenderGL
 		if( 1 )
 		{
 			GPU_PROFILE("BasePass");
-			glColorMask(false, false, false, false);
-
+			RHISetBlendState(TStaticBlendState<CWM_NONE>::GetRHI());
 			mStorageUsageCounter.setValue(0);
 			glMemoryBarrier(GL_ALL_BARRIER_BITS);
 
 			mStorageUsageCounter.bind();
 
 			//GL_BIND_LOCK_OBJECT(sceneRenderTargets.getFrameBuffer());
-
 			drawFuncion();
-			
 
 			mStorageUsageCounter.unbind();
-			glColorMask(true, true, true, true);
-
+			RHISetBlendState(TStaticBlendState<>::GetRHI());
 			glFlush();
 			glMemoryBarrier(GL_ALL_BARRIER_BITS);
 
@@ -1336,9 +1422,8 @@ namespace RenderGL
 		//if(0 )
 		{
 			GPU_PROFILE("Resolve");
-			glEnable(GL_BLEND);
-			glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
+			RHISetBlendState(TStaticBlendState<CWM_RGBA, Blend::eSrcAlpha, Blend::eOneMinusSrcAlpha >::GetRHI());
 			ViewportSaveScope vpScope;
 			OrthoMatrix matProj(0, vpScope[2], 0, vpScope[3], -1, 1);
 			MatrixSaveScope matScope(matProj);
@@ -1366,8 +1451,7 @@ namespace RenderGL
 				mScreenMesh.draw(true);
 			}
 
-
-			glDisable(GL_BLEND);
+			RHISetBlendState(TStaticBlendState<>::GetRHI());
 		}
 
 		if( sceneRenderTargets )

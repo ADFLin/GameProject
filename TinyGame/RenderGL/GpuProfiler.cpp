@@ -52,12 +52,14 @@ namespace RenderGL
 	GpuProfiler::GpuProfiler()
 	{
 		numSampleUsed = 0;
+		bFrameStarted = false;
 	}
 
 	void GpuProfiler::beginFrame()
 	{
 		numSampleUsed = 0;
 		mCurLevel = 0;
+		bFrameStarted = true;
 	}
 
 	void GpuProfiler::endFrame()
@@ -73,10 +75,13 @@ namespace RenderGL
 			}
 			sample->time = time / 1000000.0;
 		}
+		bFrameStarted = false;
 	}
 
 	GpuProfileSample* GpuProfiler::startSample(char const* name)
 	{
+		if( !bFrameStarted )
+			return nullptr;
 		GpuProfileSample* sample;
 		if( numSampleUsed >= mSamples.size() )
 		{
@@ -98,8 +103,11 @@ namespace RenderGL
 
 	void GpuProfiler::endSample(GpuProfileSample* sample)
 	{
-		sample->timing.end();
-		--mCurLevel;
+		if ( sample )
+		{
+			sample->timing.end();
+			--mCurLevel;
+		}
 	}
 
 	GpuProfileScope::GpuProfileScope(NoVA, char const* name)

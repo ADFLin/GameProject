@@ -170,10 +170,12 @@
     <ClInclude Include="RenderGL\RenderContext.h" />
     <ClInclude Include="RenderGL\RHICommand.h" />
     <ClInclude Include="RenderGL\RHICommon.h" />
+    <ClInclude Include="RenderGL\RHIDefine.h" />
     <ClInclude Include="RenderGL\Scene.h" />
     <ClInclude Include="RenderGL\SceneObject.h" />
     <ClInclude Include="RenderGL\SceneRenderer.h" />
     <ClInclude Include="RenderGL\ShaderCompiler.h" />
+    <ClInclude Include="RenderGL\ShaderCore.h" />
     <ClInclude Include="RenderGL\TextureAtlas.h" />
     <ClInclude Include="RenderGL\VertexFactory.h" />
     <ClInclude Include="TinyCore\DataStream.h" />
@@ -212,6 +214,7 @@
     <ClCompile Include="RenderGL\SceneObject.cpp" />
     <ClCompile Include="RenderGL\SceneRenderer.cpp" />
     <ClCompile Include="RenderGL\ShaderCompiler.cpp" />
+    <ClCompile Include="RenderGL\ShaderCore.cpp" />
     <ClCompile Include="RenderGL\TextureAtlas.cpp" />
     <ClCompile Include="RenderGL\VertexFactory.cpp" />
     <ClCompile Include="stb_image.cpp">

@@ -59,7 +59,7 @@ class FPUCompiler
 {
 public:
 	FPUCompiler();
-	bool compile( char const* expr , DefineTable const& table , FPUCodeData& data , int numInput = 0);
+	bool compile( char const* expr , SymbolTable const& table , FPUCodeData& data , int numInput = 0);
 	void enableOpimization(bool enable = true){	mOptimization = enable;	}
 
 	bool isUsingVar( char const* varName )

@@ -54,9 +54,16 @@ namespace CB
 
 			if( !getFunction()->isParsed() )
 			{
+#if USE_PARALLEL_UPDATE
+				{
+					TLockedObject< FunctionParser > parserLocked = surfaceMaker.lockParser();
+					if( !parseFunction(*parserLocked) )
+						return false;
+				}
+#else
 				if( !parseFunction(surfaceMaker.getParser()) )
 					return false;
-
+#endif
 				mUpdateBit |= RUF_GEOM;
 			}
 		}

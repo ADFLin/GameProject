@@ -9,6 +9,7 @@
 
 #include "RenderGL/ShaderCompiler.h"
 #include "RenderGL/DrawUtility.h"
+#include "RenderGL/RHICommand.h"
 
 
 #include "GL/wglew.h"
@@ -137,11 +138,9 @@ namespace Lighting2D
 		glMatrixMode(GL_MODELVIEW);
 		glLoadIdentity();
 
-		glDisable( GL_DEPTH_TEST );
+		
 		glDisable( GL_CULL_FACE );
 		glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT );
-		glEnable( GL_STENCIL_TEST );
-
 
 		int w = window.getWidth();
 		int h = window.getHeight();
@@ -155,9 +154,14 @@ namespace Lighting2D
 #endif
 		for ( Light& light : lights )
 		{
-			glColorMask(false, false, false, false);
-			glStencilFunc(GL_ALWAYS, 1, 1);
-			glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
+
+			RHISetDepthStencilState( TStaticDepthStencilState<
+				 true , ECompareFun::Always ,
+				 true , ECompareFun::Always , 
+				 Stencil::eKeep , Stencil::eKeep , Stencil::eReplace ,
+				 0x1 >::GetRHI(), 0x1 );
+			
+			RHISetBlendState(TStaticBlendState< CWM_NONE >::GetRHI());
 
 			{
 
@@ -184,24 +188,26 @@ namespace Lighting2D
 				}
 			}
 			
-			glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
-			glStencilFunc(GL_EQUAL, 0, 1);
-			glColorMask(true, true, true, true);
+			RHISetDepthStencilState(TStaticDepthStencilState<
+				true, ECompareFun::Always,
+				true, ECompareFun::Equal,
+				Stencil::eKeep, Stencil::eKeep, Stencil::eKeep,
+				0x1 >::GetRHI(), 0x0);
 
-			glEnable(GL_BLEND);
-			glBlendFunc(GL_ONE, GL_ONE);
-
+			RHISetBlendState(TStaticBlendState< CWM_RGBA, Blend::eOne, Blend::eOne >::GetRHI());
 			{
 				GL_BIND_LOCK_OBJECT(mProgLighting);
 				mProgLighting.setParameters(light.pos, light.color);
 				DrawUtility::RectShader(w, h);
 			}
-			glDisable(GL_BLEND);
+			
+			
+
 			glClear(GL_STENCIL_BUFFER_BIT);
 		}
 
-		glDisable( GL_STENCIL_TEST );
-
+		RHISetDepthStencilState(TStaticDepthStencilState< false , ECompareFun::Always >::GetRHI());
+		RHISetBlendState(TStaticBlendState<>::GetRHI());
 
 #if 0
 		glColor3f(1, 0, 0);

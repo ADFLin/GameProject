@@ -24,21 +24,21 @@ public:
 
 	static uint32 ToARGB(uint8 r, uint8 g, uint8 b, uint8 a)
 	{
-		return (uint32(a) << 24) | (uint32(r) << 16) | (uint32(g) << 8) | uint32(b);
+		return (a << 24) | (r << 16) | (g << 8) | b;
 	}
 	static uint32 ToXRGB(uint8 r, uint8 g, uint8 b)
 	{
-		return (uint32(r) << 16) | (uint32(g) << 8) | uint32(b);
+		return (r << 16) | (g << 8) | b;
 	}
 
 	static uint32 ToXBGR(uint8 r, uint8 g, uint8 b)
 	{
-		return (uint32(b) << 16) | (uint32(g) << 8) | uint32(r);
+		return (b << 16) | (g << 8) | r;
 	}
 
 	static uint32 ToRGBA(uint8 r, uint8 g, uint8 b, uint8 a)
 	{
-		return (uint32(r) << 24) | (uint32(g) << 16) | (uint32(b) << 8) | uint32(a);
+		return (r << 24) | (g << 16) | (b << 8) | a;
 	}
 };
 

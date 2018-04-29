@@ -62,15 +62,7 @@ void QueueThreadPool::cleanup()
 		mQueuedWorks.clear();
 	}
 
-	while( 1 )
-	{
-		{
-			Mutex::Locker locker(mQueueMutex);
-			if ( mAllThreads.size() == mQueuedThreads.size() )
-				break;
-		}
-		SystemPlatform::Sleep(0);
-	}
+	waitAllThreadIdle();
 
 	{
 		Mutex::Locker locker(mQueueMutex);
@@ -110,6 +102,19 @@ bool QueueThreadPool::retractWork(IQueuedWork* work)
 		return false;
 	mQueuedWorks.erase(iter);
 	return true;
+}
+
+void QueueThreadPool::waitAllThreadIdle()
+{
+	while( 1 )
+	{
+		{
+			Mutex::Locker locker(mQueueMutex);
+			if( mAllThreads.size() == mQueuedThreads.size() )
+				break;
+		}
+		SystemPlatform::Sleep(0);
+	}
 }
 
 IQueuedWork* QueueThreadPool::doWorkCompleted(PoolRunableThread* runThread)

@@ -10,11 +10,16 @@
 #include "Math/Matrix3.h"
 #include "Math/Quaternion.h"
 #include "Math/Transform.h"
-
+#include "TVector2.h"
+#include "TVector3.h"
 #include "ReflectionCollect.h"
 
 namespace RenderGL
 {
+	using IntVector2 = TVector2<int>;
+	using IntVector3 = TVector3<int>;
+
+
 	using ::Math::Vector2;
 	using ::Math::Vector3;
 	using ::Math::Vector4;

@@ -8,10 +8,6 @@
 #include <cmath>
 #include <vector>
 
-#include "gl/glew.h"
-//#include <gl/wglew.h>
-//#include "FTGL/FTGLPixmapFont.h"
-
 #include "RenderGL/GLCommon.h"
 #include "RenderGL/RenderContext.h"
 #include "RenderGL/SceneRenderer.h"
@@ -37,6 +33,9 @@ namespace CB
 		CurveRenderer();
 
 		bool initialize( Vec2i const& screenSize );
+
+		void beginRender();
+		void endRender();
 
 		void drawVertexPoint(ShapeBase& shape);
 		void drawShape( ShapeBase& shape);
@@ -77,9 +76,9 @@ namespace CB
 		ViewInfo mViewInfo;
 		class CurveMeshProgram* mProgCurveMesh;
 		class CurveMeshProgram* mProgCurveMeshOIT;
-
+		class MeshNormalVisualizeProgram* mProgMeshNormalVisualize;
+		std::vector< std::function< void() > > mTranslucentDraw;
 		OITTechnique mOITTech;
-		//FTGLPixmapFont m_Font;
 	};
 
 }//namespace CB

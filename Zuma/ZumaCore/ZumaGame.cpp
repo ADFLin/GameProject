@@ -425,7 +425,7 @@ namespace Zuma
 			task[i]->pos   = textPos;
 			task[i]->speed = Vector2( 0 , -20.0f / 1000.0f );
 			task[i]->color.value = color;
-			task[i]->setRenderOrder( LRO_TEXT );
+			task[i]->setOrder( LRO_TEXT );
 
 			addTask( task[i] );
 		}

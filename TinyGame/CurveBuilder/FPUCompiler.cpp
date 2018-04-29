@@ -42,7 +42,7 @@ public:
 	void codeInit();
 	void codeConstValue(ValueType const&val);
 	void codeVar(ValueType* varPtr);
-	void codeInput(int inputIndex);
+	void codeInput(uint8 inputIndex);
 	void codeFunction(FunInfo const& info);
 	void codeBinaryOp(TokenType type,bool isReverse);
 	void codeUnaryOp(TokenType type);
@@ -105,7 +105,7 @@ public:
 
 	double*       mPrevVarPtr;
 	int           mPrevIdxCV;
-	int           mPrevInputIndex;
+	uint8         mPrevInputIndex;
 };
 
 FPUCompiler::FPUCompiler()
@@ -152,7 +152,7 @@ __declspec(noinline) static void foo()
 	gc = ga * ga * ga;
 }
 
-bool FPUCompiler::compile( char const* expr , DefineTable const& table , FPUCodeData& data , int numInput )
+bool FPUCompiler::compile( char const* expr , SymbolTable const& table , FPUCodeData& data , int numInput )
 {
 #if 0
 	ga = 1.2f;
@@ -276,7 +276,7 @@ void FPUCodeTemplate::codeVar( ValueType* varPtr )
 	mPrevType   = VALUE_VARIABLE;
 }
 
-void FPUCodeTemplate::codeInput(int inputIndex)
+void FPUCodeTemplate::codeInput(uint8 inputIndex)
 {
 	checkStackPrevValPtr();
 	mPrevInputIndex = inputIndex;

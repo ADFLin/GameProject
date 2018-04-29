@@ -11,6 +11,7 @@
 #include "GLGraphics2D.h"
 
 #include <limits>
+#include "RenderGL/RHICommand.h"
 #include "RenderGL/DrawUtility.h"
 #include "RenderGL/ShaderCompiler.h"
 

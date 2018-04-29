@@ -83,9 +83,6 @@
     <ClInclude Include="TinyCore\GameModule.h">
       <Filter>Common</Filter>
     </ClInclude>
-    <ClInclude Include="RenderGL\BaseType.h">
-      <Filter>RenderGL</Filter>
-    </ClInclude>
     <ClInclude Include="RenderGL\FrameGraph.h">
       <Filter>RenderGL</Filter>
     </ClInclude>
@@ -129,6 +126,15 @@
       <Filter>RenderGL</Filter>
     </ClInclude>
     <ClInclude Include="RenderGL\RHICommand.h">
+      <Filter>RenderGL</Filter>
+    </ClInclude>
+    <ClInclude Include="RenderGL\ShaderCore.h">
+      <Filter>RenderGL</Filter>
+    </ClInclude>
+    <ClInclude Include="RenderGL\RHIDefine.h">
+      <Filter>RenderGL</Filter>
+    </ClInclude>
+    <ClInclude Include="RenderGL\BaseType.h">
       <Filter>RenderGL</Filter>
     </ClInclude>
   </ItemGroup>
@@ -221,6 +227,9 @@
       <Filter>RenderGL</Filter>
     </ClCompile>
     <ClCompile Include="RenderGL\RHICommand.cpp">
+      <Filter>RenderGL</Filter>
+    </ClCompile>
+    <ClCompile Include="RenderGL\ShaderCore.cpp">
       <Filter>RenderGL</Filter>
     </ClCompile>
   </ItemGroup>

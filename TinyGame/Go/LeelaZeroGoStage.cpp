@@ -9,7 +9,7 @@
 #include "InputManager.h"
 
 #include "GLGraphics2D.h"
-#include "RenderGL/GLCommon.h"
+#include "RenderGL/RHICommand.h"
 #include "RenderGL/DrawUtility.h"
 #include "RenderGL/GpuProfiler.h"
 #include "RenderGL/ShaderCompiler.h"
@@ -663,11 +663,14 @@ namespace Go
 				if( winRateHistory.empty() )
 					continue;
 				{
-					glEnable(GL_BLEND);
 					if( i == 0 )
-						glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+					{
+						RHISetBlendState(TStaticBlendState< CWM_RGBA, Blend::eSrcAlpha, Blend::eOneMinusSrcAlpha >::GetRHI());
+					}
 					else
-						glBlendFunc(GL_SRC_ALPHA, GL_ONE);
+					{
+						RHISetBlendState(TStaticBlendState< CWM_RGBA, Blend::eSrcAlpha, Blend::eOne >::GetRHI());
+					}
 
 					GL_BIND_LOCK_OBJECT(mProgUnderCurveArea);
 
@@ -678,7 +681,7 @@ namespace Go
 
 					TRenderRT< RTVF_XY >::DrawShader(PrimitiveType::eLineStrip, &winRateHistory[0], winRateHistory.size());
 
-					glDisable(GL_BLEND);
+					RHISetBlendState(TStaticBlendState<>::GetRHI());
 				}
 
 				glColor3fv(colors[i]);

@@ -27,6 +27,24 @@ public:
 	void  addWork(IQueuedWork* work);
 	bool  retractWork(IQueuedWork* work);
 
+	template< class Fun >
+	void  addFunctionWork(Fun fun)
+	{
+		class FunWork : public IQueuedWork
+		{
+		public:
+			FunWork(Fun fun):mFun(fun){}
+			virtual void executeWork() override { mFun(); }
+			virtual void release() override { delete this; }
+			Fun mFun;
+		};
+
+		FunWork* work = new FunWork(fun);
+		addWork(work);
+	}
+
+	void  waitAllThreadIdle();
+
 	int   getQueuedWorkNum() { return (int)mQueuedWorks.size(); }
 	int   getAllThreadNum() { return (int)mAllThreads.size(); }
 	int   getIdleThreadNum() { return (int)mQueuedThreads.size();  }

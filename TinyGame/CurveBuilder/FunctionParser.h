@@ -11,12 +11,12 @@ namespace CB
 	{
 	public:
 		FunctionParser();
-		DefineTable& getDefineTable() { return mDefineTable; }
+		SymbolTable& getSymbolDefine() { return mSymbolDefine; }
 		bool         checkVaild(char const* expr);
 		bool         parse(Expression& expr , int numInput = 0);
 
 	private:
-		DefineTable  mDefineTable;
+		SymbolTable  mSymbolDefine;
 	};
 }//namespace CB
 

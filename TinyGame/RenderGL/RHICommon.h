@@ -3,12 +3,15 @@
 #define RHICommon_H_F71942CB_2583_4990_B63B_D7B4FC78E1DB
 
 #include "GLCommon.h"
+#include "ShaderCore.h"
 #include "GLUtility.h"
 #include "TVector2.h"
 #include "Singleton.h"
 
 namespace RenderGL
 {
+	using namespace RenderGL;
+
 	class ShaderCompileOption;
 	class MaterialShaderProgram;
 
@@ -46,8 +49,6 @@ namespace RenderGL
 		class CopyTextureBiasProgram* mProgCopyTextureBias;
 		class MappingTextureColorProgram* mProgMappingTextureColor;
 		FrameBuffer mFrameBuffer;
-
-		bool bInitialized = false;
 
 
 	};

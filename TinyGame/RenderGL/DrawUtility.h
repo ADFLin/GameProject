@@ -117,7 +117,7 @@ namespace RenderGL
 			return (int)VertexElementOffset< VertexFormat , RTS_MAX >::Result;
 		}
 
-	private:
+	//private:
 		template< uint32 VF, uint32 SEMANTIC >
 		struct VertexElementOffset
 		{

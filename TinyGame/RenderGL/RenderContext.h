@@ -80,8 +80,6 @@ namespace RenderGL
 
 	struct ViewInfo
 	{
-		Vector3 worldPos;
-		Vector3 direction;
 		Matrix4 worldToClip;
 		Matrix4 worldToView;
 		Matrix4 viewToWorld;
@@ -89,11 +87,16 @@ namespace RenderGL
 		Matrix4 clipToWorld;
 		Matrix4 clipToView;
 
+		Vector3 worldPos;
+		Vector3 direction;
 		float   gameTime;
 		float   realTime;
 
 
 		Plane frustumPlanes[6];
+
+		RHIUniformBufferRef mUniformBuffer;
+		bool   mbDataDirty = true;
 
 		bool frustumTest(Vector3 const& pos, float radius) const
 		{

@@ -2,6 +2,7 @@
 #include "DrawEngine.h"
 
 #include "ProfileSystem.h"
+#include "Thread.h"
 
 #include "GLGraphics2D.h"
 #include "GameGlobal.h"

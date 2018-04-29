@@ -1,5 +1,3 @@
-
-#include "ZumaPCH.h"
 #include "CRSpline.h"
 
 void CRSpline2D::getValue( int numPoint,float* pXVal ,float* pYVal ,int numData )

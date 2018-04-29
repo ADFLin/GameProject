@@ -10,12 +10,18 @@
 using std::string;
 
 class CodeTemplate;
-class DefineTable;
+class SymbolTable;
+struct SymbolEntry;
 
 struct FunInfo
 {
 	void* ptrFun;
 	int   numParam;
+
+	bool operator == ( FunInfo const& rhs ) const
+	{
+		return ptrFun == rhs.ptrFun && numParam == rhs.numParam;
+	}
 };
 
 typedef double ValueType;
@@ -30,11 +36,12 @@ typedef ValueType (__cdecl *FunType5)(ValueType,ValueType,ValueType,ValueType,Va
 class ExprParse
 {
 public:
-	static unsigned const TOKEN_MASK       = 0xff0000;
-	static unsigned const PRECEDENCE_MASK  = 0x001f00;
-	static unsigned const REVERSE_BIT      = 0x002000;
-	static unsigned const ASSOC_LR_BIT     = 0x004000;
-	static unsigned const EXCHANGE_BIT     = 0x008000;
+	static unsigned const TOKEN_MASK        = 0xff0000;
+	static unsigned const SYMBOL_FLAG_BIT   = 0x800000;
+	static unsigned const PRECEDENCE_MASK   = 0x001f00;
+	static unsigned const REVERSE_BIT       = 0x002000;
+	static unsigned const ASSOC_LR_BIT      = 0x004000;
+	static unsigned const EXCHANGE_BIT      = 0x008000;
 
 	enum TokenType
 	{
@@ -43,6 +50,7 @@ public:
 		TOKEN_LBAR       = 0x010000 ,
 		TOKEN_RBAR       = 0x020000 ,
 		TOKEN_BINARY_OP  = 0x030000 ,
+
 		TOKEN_FUN        = 0x040000 ,
 		TOKEN_VALUE      = 0x050000 ,
 		TOKEN_UNARY_OP   = 0x060000 ,
@@ -82,10 +90,10 @@ public:
 	inline static bool IsUnaryOperator(TokenType token){ return ( token & TOKEN_MASK ) == TOKEN_UNARY_OP; }
 	inline static bool IsOperator(TokenType token){ return IsUnaryOperator(token) || IsBinaryOperator(token); }
 
-
 	inline static bool CanReverse( TokenType token ){ assert( IsBinaryOperator( token ) ); return !!( token & REVERSE_BIT ); }
 	inline static bool CanExchange( TokenType token ){ assert( IsBinaryOperator( token ) ); return !!( token & EXCHANGE_BIT ); }
 	inline static bool IsAssocLR( TokenType token ){ assert( IsOperator( token ) ); return !!( token & ASSOC_LR_BIT ); }
+	
 	struct Unit
 	{
 		Unit(){}
@@ -93,26 +101,23 @@ public:
 			:type(type),isReverse(false){}
 		Unit(TokenType type,ValueType val)
 			:type(type),constValue(val){}
-		Unit(TokenType type,ValueType* pVar)
-			:type(type),varPtr(pVar){}
-		Unit(TokenType type,FunInfo const* info)
-			:type(type),funInfo(info){}
+		Unit(TokenType type,SymbolEntry const* symbol)
+			:type(type), symbol(symbol){}
 
-		TokenType type;
+
+		TokenType    type;
 		union
 		{
-			FunInfo const*  funInfo;
+			SymbolEntry const* symbol;
 			ValueType       constValue;
-			ValueType*      varPtr;
 			bool            isReverse;
-			int             inputIndex;
 		};
 	};
 
 	
 	typedef std::vector<Unit> UnitCodes;
-	static void print( Unit const& unit , DefineTable const& table );
-	static void print( UnitCodes const& codes , DefineTable const& table , bool haveBracket );
+	static void print( Unit const& unit , SymbolTable const& table );
+	static void print( UnitCodes const& codes , SymbolTable const& table , bool haveBracket );
 
 
 	enum
@@ -138,20 +143,63 @@ public:
 	typedef std::vector< Node > NodeVec;
 };
 
+struct SymbolEntry
+{
+	enum Type
+	{
+		eFun,
+		eConstValue,
+		eVar,
+		eInputVar,
+	};
+	Type type;
 
-class DefineTable
+	
+
+	union
+	{
+		double  constValue;
+		double* varPtr;
+		uint8   inputIndex;
+		FunInfo funInfo;
+		struct
+		{
+			void* funPtr;
+			uint8 funParamNum;
+		};
+	};
+
+	SymbolEntry() {}
+	SymbolEntry(FunInfo const& funInfo)
+		:type(eFun)
+		,funInfo(funInfo)
+	{
+	}
+
+	SymbolEntry(ValueType value)
+		:type(eConstValue)
+		, constValue(value)
+	{
+	}
+	SymbolEntry(ValueType* ptr)
+		:type(eVar)
+		, varPtr(ptr)
+	{
+	}
+	SymbolEntry(uint8 index)
+		:type(eInputVar)
+		, inputIndex(index)
+	{
+	}
+};
+
+class SymbolTable
 {
 public:
-
-	typedef std::map<string,FunInfo>      FunMap;
-	typedef std::map<string,ValueType>    ConstMap;
-	typedef std::map<string,ValueType*>   VarMap;
-	typedef std::map<string,int>          VarInputMap;
-
 	// can redefine
-	void            defineConst( char const* name ,ValueType val )  {  mConstMap[name] = val; }
-	void            defineVar( char const* name , ValueType* varPtr){  mVarMap[name] = varPtr;  }
-	void            defineVarInput(char const* name, int inputIndex) { mVarInputMap[name] = inputIndex; }
+	void            defineConst( char const* name ,ValueType val )  { mNameToEntryMap[name] = val; }
+	void            defineVar( char const* name , ValueType* varPtr){ mNameToEntryMap[name] = varPtr;  }
+	void            defineVarInput(char const* name, uint8 inputIndex) { mNameToEntryMap[name] = inputIndex; }
 	void            defineFun( char const* name , FunType0 fun ){  defineFunInternal(name,(void*)fun,0);  }
 	void            defineFun( char const* name , FunType1 fun ){  defineFunInternal(name,(void*)fun,1);  }
 	void            defineFun( char const* name , FunType2 fun ){  defineFunInternal(name,(void*)fun,2);  }
@@ -163,28 +211,48 @@ public:
 	FunInfo const*  findFun  (std::string const& name ) const;
 	ValueType*      findVar(std::string const& name ) const;
 	int             findInput(std::string const& name) const;
-	char const*     getFunName( FunInfo const* info ) const;
+	char const*     getFunName( FunInfo const& info ) const;
 	char const*     getVarName( ValueType* var ) const;
 
-	bool            isFunDefined(std::string const& name) const{  return mFunMap.find(name) != mFunMap.end(); }
-	bool            isVarDefined(std::string const& name) const{  return mVarMap.find(name) != mVarMap.end(); }
-	bool            isConstDefined(std::string const& name ) const{  return mConstMap.find(name) != mConstMap.end(); }
+	bool            isFunDefined(std::string const& name) const{  return isDefinedInternal( name , SymbolEntry::eFun ); }
+	bool            isVarDefined(std::string const& name) const{ return isDefinedInternal(name, SymbolEntry::eVar ); }
+	bool            isConstDefined(std::string const& name ) const{ return isDefinedInternal(name, SymbolEntry::eConstValue); }
 
-	int             getVarTable( char const* varStr[], double varVal[] );
+	int             getVarTable( char const* varStr[], double varVal[] ) const;
 
+
+	SymbolEntry const* findSymbol(std::string const& name) const
+	{
+		auto iter = mNameToEntryMap.find(name);
+		if( iter == mNameToEntryMap.end() )
+			return nullptr;
+		return &iter->second;
+	}
+	SymbolEntry const* findSymbol(std::string const& name, SymbolEntry::Type type) const
+	{
+		auto iter = mNameToEntryMap.find(name);
+		if( iter == mNameToEntryMap.end() || iter->second.type != type )
+			return nullptr;
+		return &iter->second;
+	}
 protected:
+
+
+	bool  isDefinedInternal(std::string const& name, SymbolEntry::Type type) const
+	{
+		return findSymbol(name, type) != nullptr;
+	}
 
 	void defineFunInternal( char const* name ,void* funPtr ,int num )
 	{
 		FunInfo info;
 		info.ptrFun = funPtr;
 		info.numParam = num;
-		mFunMap[name] = info;
+		mNameToEntryMap[name] = info;
 	}
-	FunMap    mFunMap;
-	ConstMap  mConstMap;
-	VarMap    mVarMap;
-	VarInputMap mVarInputMap;
+
+	std::map< std::string, SymbolEntry > mNameToEntryMap;
+
 };
 
 
@@ -224,7 +292,7 @@ public:
 	bool  optimizeNodeConstValue(int idxNode );
 	bool  optimizeNodeBOpOrder( int idxNode );
 
-	void  printTree( DefineTable const& table );
+	void  printTree( SymbolTable const& table );
 private:
 
 	Node& getNode( int idx ){ return mTreeNodes[ idx ]; }
@@ -272,7 +340,7 @@ private:
 	}
 
 	std::vector< int > mIdxOpNext;
-	DefineTable const* mTable;
+	SymbolTable const* mTable;
 	Node*    mTreeNodes;
 	int      mNumNodes;
 	Unit*    mExprCodes;
@@ -300,7 +368,7 @@ private:
 	bool optimizeOperatorOrder(int index);
 	bool optimizeValueOrder(int index);
 
-	DefineTable const* mDefineTable;
+	SymbolTable const* mSymbolDefine = nullptr;
 	NodeVec      mTreeNodes;
 	UnitCodes    mIFCodes;
 	UnitCodes    mPFCodes;
@@ -313,8 +381,8 @@ public:
 		for ( int i = start; i < end; ++i )
 			mPFCodes[i+move] = mPFCodes[i];
 	}
-	void printInfixCodes(){ ExprParse::print( mIFCodes , *mDefineTable ,  false ); }
-	void printPostfixCodes(){ ExprParse::print( mPFCodes , *mDefineTable ,  true ); }
+	void printInfixCodes(){ ExprParse::print( mIFCodes , *mSymbolDefine ,  false ); }
+	void printPostfixCodes(){ ExprParse::print( mPFCodes , *mSymbolDefine ,  true ); }
 
 };
 
@@ -325,7 +393,7 @@ public:
 	void codeInit();
 	void codeConstValue(ValueType const&val);
 	void codeVar(ValueType* varPtr);
-	void codeInput(int inputIndex);
+	void codeInput(uint8 inputIndex);
 	void codeFunction(FunInfo const& info);
 	void codeBinaryOp(TokenType type,bool isReverse);
 	void codeUnaryOp(TokenType type);
@@ -343,15 +411,15 @@ public:
 	};
 
 	// test Compile String has used Var(name)
-	bool parse( char const* expr , DefineTable const& table );
-	bool parse( char const* expr , DefineTable const& table , ParseResult& result );
+	bool parse( char const* expr , SymbolTable const& table );
+	bool parse( char const* expr , SymbolTable const& table , ParseResult& result );
 
 	std::string const& getErrorMsg(){ return mErrorMsg; }
 
 protected:
 
 
-	bool analyzeTokenUnit( char const* expr , DefineTable const& table , UnitCodes& infixCode );
+	bool analyzeTokenUnit( char const* expr , SymbolTable const& table , UnitCodes& infixCode );
 	bool checkExprValid( UnitCodes const& infixCode );
 	void convertCode( UnitCodes& infixCode , UnitCodes& postfixCode );
 	bool testTokenValid(int bToken,int cToken);
@@ -366,26 +434,24 @@ void ParseResult::generateCode( CodeTemplate& codeTemplate )
 {
 	codeTemplate.codeInit();
 
-	for ( UnitCodes::iterator iter( mPFCodes.begin() ) , end( mPFCodes.end() ); 
-		  iter!= end; ++iter )
+	for ( Unit const& unit : mPFCodes )
 	{
-		Unit& unit = *iter;
 		switch( unit.type )
 		{
 		case ExprParse::VALUE_CONST:
 			codeTemplate.codeConstValue(unit.constValue);
 			break;
 		case ExprParse::VALUE_VARIABLE:
-			codeTemplate.codeVar(unit.varPtr);
+			codeTemplate.codeVar(unit.symbol->varPtr);
 			break;
 		case ExprParse::VALUE_INPUT:
-			codeTemplate.codeInput(unit.inputIndex);
+			codeTemplate.codeInput(unit.symbol->inputIndex);
 			break;
 		default:
 			switch( unit.type & TOKEN_MASK )
 			{
 			case TOKEN_FUN:
-				codeTemplate.codeFunction(*unit.funInfo);
+				codeTemplate.codeFunction(unit.symbol->funInfo);
 				break;
 			case TOKEN_UNARY_OP:
 				codeTemplate.codeUnaryOp(unit.type);

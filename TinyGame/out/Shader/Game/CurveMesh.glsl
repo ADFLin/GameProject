@@ -48,19 +48,17 @@ void MainPS()
 {
 	float3 normal = normalize(OutputVS.normal);
 	float3 color = dot(normal, float3(0, 0, 1)) * OutputVS.color.rgb;
-	color = OutputVS.normal;
+	color = 0.5 * normal + 0.5;
+	float alpha = OutputVS.color.a;
 #if USE_OIT
 	float pixelDepth = -(View.worldToView * float4(OutputVS.pos, 1)).z;
-	OITProcessPS(float4(color , 1), pixelDepth);
+	OITProcessPS(float4(color , alpha), pixelDepth);
 	OutColor = float4(0, 0, 0, 1);
-
-
 #else
 	OutColor = float4(dot(normal, float3(0, 0, 1)) * OutputVS.color.rgb, OutputVS.color.a);
 
-	//OutColor = float4((0.5 * normal + 0.5), 1);
-	//OutColor = float4( normal , 1);
-
+	OutColor = float4((0.5 * normal + 0.5), 1);
+	//OutColor = float4(OutputVS.color.rgb, 1);
 #endif
 
 }

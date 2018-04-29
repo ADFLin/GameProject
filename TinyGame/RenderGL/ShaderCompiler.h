@@ -3,6 +3,7 @@
 #define ShaderCompiler_H_7817AD1B_28BB_41DC_B037_0D75389E42A2
 
 #include "GLCommon.h"
+#include "ShaderCore.h"
 #include "Singleton.h"
 #include "Asset.h"
 

@@ -57,8 +57,11 @@ namespace RenderGL
 		};
 		void endSample(GpuProfileSample* sample);
 		std::vector< std::unique_ptr< GpuProfileSample > > mSamples;
-		int mCurLevel;
-		int numSampleUsed;
+
+
+		bool bFrameStarted;
+		int  mCurLevel;
+		int  numSampleUsed;
 	};
 
 

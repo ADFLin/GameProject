@@ -123,8 +123,8 @@ namespace Go
 			}
 			else
 			{
-				g.drawText(pos, filePath);
-			}
+			g.drawText(pos, filePath);
+		}
 			g.endClip();
 		}
 
@@ -358,7 +358,7 @@ namespace Go
 		bool bDrawDebugMsg = false;
 		BoardRenderer mBoardRenderer;
 		float const RenderBoardScale = 1.2;
-		Vector2 const BoardPos = Vector2(50.5, 50.5);
+		Vector2 const BoardPos = Vector2(50, 50);
 
 		GameMode mGameMode;
 		class UnderCurveAreaProgram* mProgUnderCurveArea;

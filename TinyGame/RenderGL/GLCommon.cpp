@@ -26,183 +26,6 @@ namespace RenderGL
 		return true;
 	}
 
-	bool RHIShader::loadFile( Shader::Type type , char const* path , char const* def )
-	{
-		std::vector< char > codeBuffer;
-		if( !FileUtility::LoadToBuffer(path, codeBuffer, true) )
-			return false;
-		int num = 0;
-		char const* src[2];
-		if ( def )
-		{
-			src[num] = def;
-			++num;
-		}
-		src[num] = &codeBuffer[0];
-		++num;
-
-		bool result = compileCode( type , src , num );
-		return result;
-
-	}
-
-	Shader::Type RHIShader::getType()
-	{
-		if ( mHandle )
-		{
-			switch( getGLParam( GL_SHADER_TYPE ) )
-			{
-			case GL_VERTEX_SHADER:   return Shader::eVertex;
-			case GL_FRAGMENT_SHADER: return Shader::ePixel;
-			case GL_GEOMETRY_SHADER: return Shader::eGeometry;
-			case GL_COMPUTE_SHADER:  return Shader::eCompute;
-			case GL_TESS_CONTROL_SHADER: return Shader::eHull;
-			case GL_TESS_EVALUATION_SHADER: return Shader::eDomain;
-			}
-		}
-		return Shader::eEmpty;
-	}
-
-	bool RHIShader::compileCode(Shader::Type type , char const* src[] , int num )
-	{
-		if ( !create( type ) )
-			return false;
-
-		glShaderSource(mHandle, num, src, 0);
-		glCompileShader(mHandle);
-
-		if( getGLParam(GL_COMPILE_STATUS) == GL_FALSE )
-		{
-			return false;
-		}
-		return true;
-	}
-
-	bool RHIShader::create(Shader::Type type)
-	{
-		if ( mHandle )
-		{
-			if ( getType() == type )
-				return true;
-			destroy();
-		}
-
-		mHandle = glCreateShader(GLConvert::To(type));
-		return mHandle != 0;
-	}
-
-	void RHIShader::destroy()
-	{
-		if ( mHandle )
-		{
-			glDeleteShader( mHandle );
-			mHandle = 0;
-		}
-	}
-
-	GLuint RHIShader::getGLParam(GLuint val)
-	{
-		GLint status;
-		glGetShaderiv( mHandle , val , &status );
-		return status;
-	}
-
-
-	ShaderProgram::ShaderProgram()
-	{
-		mNeedLink = true;
-		std::fill_n( mShaders , NumShader , (RHIShader*)0 );
-	}
-
-	ShaderProgram::~ShaderProgram()
-	{
-
-	}
-
-	bool ShaderProgram::create()
-	{
-		return fetchHandle();
-	}
-
-	RHIShader* ShaderProgram::removeShader( Shader::Type type )
-	{
-		RHIShader* out = mShaders[ type ];
-		if ( mShaders[ type ] )
-		{
-			glDetachShader( mHandle , mShaders[ type ]->mHandle );
-			mShaders[ type ] = NULL;
-			mNeedLink = true;
-		}
-		return out;
-	}
-
-	void ShaderProgram::attachShader(RHIShader& shader)
-	{
-		Shader::Type type = shader.getType();
-		if ( mShaders[ type ] )
-			glDetachShader( mHandle , mShaders[ type ]->mHandle );
-		glAttachShader( mHandle , shader.mHandle );
-		mShaders[ type ] = &shader;
-		mNeedLink = true;
-	}
-
-	bool ShaderProgram::updateShader(bool bForce)
-	{
-		if ( mNeedLink || bForce )
-		{
-			glLinkProgram( mHandle );
-
-			GLint value;
-			glGetProgramiv(mHandle, GL_LINK_STATUS, &value);
-			if( value != GL_TRUE )
-			{
-				return false;
-			}
-			glValidateProgram(mHandle);
-			checkProgramStatus();
-			mNeedLink = false;
-		}
-
-		bindParameters();
-		return true;
-	}
-
-	void ShaderProgram::checkProgramStatus()
-	{
-		GLint value;
-		glGetProgramiv(mHandle, GL_LINK_STATUS, &value);
-		if( value != GL_TRUE )
-		{
-			GLchar buffer[40960];
-			GLsizei size;
-			glGetProgramInfoLog(mHandle, ARRAY_SIZE(buffer), &size, buffer);
-			//::Msg("Can't Link Program : %s", buffer);
-			int i = 1;
-		}
-
-		glGetProgramiv(mHandle, GL_VALIDATE_STATUS, &value);
-		if( value != GL_TRUE )
-		{
-			GLchar buffer[40960];
-			GLsizei size;
-			glGetProgramInfoLog(mHandle, ARRAY_SIZE(buffer), &size, buffer);
-			//::Msg("Can't Link Program : %s", buffer);
-			int i = 1;
-		}
-	}
-
-	void ShaderProgram::bind()
-	{
-		updateShader();
-		glUseProgram( mHandle );
-		resetTextureAutoBindIndex();
-	}
-
-	void ShaderProgram::unbind()
-	{
-		glUseProgram( 0 );
-	}
-
 	Mesh::Mesh()
 	{
 		mType = PrimitiveType::eTriangleList;
@@ -1247,11 +1070,78 @@ namespace RenderGL
 		return GL_READ_ONLY;
 	}
 
-	bool ShaderParameter::bind(ShaderProgram& program, char const* name)
+	GLenum GLConvert::To(Blend::Factor factor)
 	{
-		mLoc = program.getParamLoc(name);
-		return mLoc != -1;
+		switch( factor )
+		{
+		case Blend::eSrcAlpha:
+			return GL_SRC_ALPHA;
+		case Blend::eOneMinusSrcAlpha:
+			return GL_ONE_MINUS_SRC_ALPHA;
+		case Blend::eOne:
+			return GL_ONE;
+		case Blend::eZero:
+			return GL_ZERO;
+		case Blend::eDestAlpha:
+			return GL_DST_ALPHA;
+		case Blend::eOneMinusDestAlpha:
+			return GL_ONE_MINUS_DST_ALPHA;
+		case Blend::eSrcColor:
+			return GL_SRC_COLOR;
+		case Blend::eOneMinusSrcColor:
+			return GL_ONE_MINUS_SRC_COLOR;
+		}
+		return GL_ONE;
 	}
+
+	GLenum GLConvert::To(ECompareFun fun)
+	{
+		switch( fun )
+		{
+		case ECompareFun::Never:
+			return GL_NEVER;
+		case ECompareFun::Less:
+			return GL_LESS;
+		case ECompareFun::Equal:
+			return GL_EQUAL;
+		case ECompareFun::NotEqual:
+			return GL_NOTEQUAL;
+		case ECompareFun::LessEqual:
+			return GL_LEQUAL;
+		case ECompareFun::Greater:
+			return GL_GREATER;
+		case ECompareFun::GeraterEqual:
+			return GL_GEQUAL;
+		case ECompareFun::Always:
+			return GL_ALWAYS;
+		}
+		return GL_LESS;
+	}
+
+	GLenum GLConvert::To(Stencil::Operation op)
+	{
+		switch( op )
+		{
+		case Stencil::eKeep:
+			return GL_KEEP;
+		case Stencil::eZero:
+			return GL_ZERO;
+		case Stencil::eReplace:
+			return GL_REPLACE;
+		case Stencil::eIncr:
+			return GL_INCR;
+		case Stencil::eIncrWarp:
+			return GL_INCR_WRAP;
+		case Stencil::eDecr:
+			return GL_DECR;
+		case Stencil::eDecrWarp:
+			return GL_DECR_WRAP;
+		case Stencil::eInvert:
+			return GL_INVERT;
+		}
+		return GL_KEEP;
+	}
+
 
 	GLenum Vertex::GetComponentType(uint8 format)
 	{
@@ -1309,5 +1199,18 @@ namespace RenderGL
 		mNumVertices = numVertices;
 	}
 
+
+	bool RHIUniformBuffer::create(int size)
+	{
+		if( !fetchHandle() )
+			return false;
+
+		glBindBuffer(GL_UNIFORM_BUFFER, mHandle);
+		glBufferData(GL_UNIFORM_BUFFER, size, nullptr, GL_DYNAMIC_DRAW);
+		glBindBuffer(GL_UNIFORM_BUFFER, 0);
+
+		mSize = size;
+		return true;
+	}
 
 }//namespace GL

@@ -24,7 +24,7 @@ namespace CB
 		try
 		{
 			ExpressionParser parser;
-			result = parser.parse(expr, mDefineTable);
+			result = parser.parse(expr, mSymbolDefine);
 		}
 		catch( ParseException& e )
 		{
@@ -35,13 +35,13 @@ namespace CB
 
 	bool FunctionParser::parse(Expression& expr , int numInput )
 	{
-		expr.mIsParsed = compile(expr.getExprString().c_str(), mDefineTable, expr.getEvalData(), numInput);
+		expr.mIsParsed = compile(expr.getExprString().c_str(), mSymbolDefine, expr.getEvalData(), numInput);
 		return expr.mIsParsed;
 	}
 
 	FunctionParser::FunctionParser()
 	{
-		DefineTable& table = getDefineTable();
+		SymbolTable& table = getSymbolDefine();
 
 		table.defineVarInput("x", 0);
 		table.defineVarInput("y", 1);

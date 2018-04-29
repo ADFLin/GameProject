@@ -3,6 +3,7 @@
 #define SceneRenderer_H_D5144663_1B3D_486C_A523_45B46EC4482A
 
 #include "RHICommon.h"
+#include "ShaderCore.h"
 #include "Material.h"
 #include "RenderContext.h"
 

@@ -265,6 +265,7 @@ public:
 	bool bChecked;
 
 protected:
+
 	TINY_API void updateMotionState( bool bInside );
 	String mTitle;
 };
@@ -273,7 +274,11 @@ class  GPanel : public GUI::PanelT< GPanel >
 {
 	typedef GUI::PanelT< GPanel > BaseClass;
 public:
-
+	enum RenderType
+	{
+		eRoundRectType ,
+		eRectType ,
+	};
 
 	TINY_API GPanel( int id , Vec2i const& pos , Vec2i const& size  , GWidget* parent );
 	TINY_API ~GPanel();
@@ -281,12 +286,6 @@ public:
 	TINY_API void onRender();
 	TINY_API bool onMouseMsg(MouseMsg const& msg);
 	void setAlpha( float alpha ){  mAlpha = alpha; }
-
-	enum RenderType
-	{
-		eRoundRectType,
-		eRectType,
-	};
 	void setRenderType( RenderType type ){ mRenderType = type; }
 
 private:

@@ -9,7 +9,10 @@
 #include "CppVersion.h"
 #include "Math/Vector2.h"
 #include "Math/Vector3.h"
+
+
 #include "RenderGL/GLCommon.h"
+#include "RenderGL/ShaderCore.h"
 
 #define SHADOW_USE_GEOMETRY_SHADER 1
 
@@ -61,7 +64,7 @@ namespace Lighting2D
 		{
 			setParam(mParamLightLocation, lightPos);
 			setParam(mParamLightColor, lightColor);
-			setParam(mParamLightAttenuation, 0, 1 / 5.0, 0);
+			setParam(mParamLightAttenuation, Vector3( 0.0, 1 / 5.0, 0.0 ));
 		}
 		ShaderParameter mParamLightLocation;
 		ShaderParameter mParamLightColor;

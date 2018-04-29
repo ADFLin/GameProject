@@ -16,6 +16,7 @@
 #include "RandomUtility.h"
 
 #include "GLCommon.h"
+#include "ShaderCore.h"
 #include "GLUtility.h"
 #include "DrawUtility.h"
 #include "GpuProfiler.h"

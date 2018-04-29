@@ -146,7 +146,7 @@ namespace Zuma
 		{
 			RNODE& node = *mNextRenderNode;
 
-			if ( node.obj->getRenderOrder() > order )
+			if ( node.obj->getOrder() > order )
 				break;
 
 			renderNode( node );

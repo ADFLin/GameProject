@@ -31,7 +31,8 @@ float UnpackAlpha(int value)
 
 void OITProcessPS(in float4 pixelColor, in float pixelDepth)
 {
-	if( pixelColor.a < 0.01 )
+	//Not support multi-sample yet
+	if( pixelColor.a < 0.01 || gl_SampleID != 0)
 		discard;
 
 	uint index = atomicCounterIncrement(NextIndex) + 1;

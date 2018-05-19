@@ -103,6 +103,7 @@
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <OpenMPSupport>false</OpenMPSupport>
       <BrowseInformation>true</BrowseInformation>
+      <EnableEnhancedInstructionSet>NoExtensions</EnableEnhancedInstructionSet>
     </ClCompile>
     <Link>
       <AdditionalDependencies>Msimg32.lib;d3d9.lib;d3dx9d.lib;dsound.lib;dinput8.lib;dxguid.lib;winmm.lib;%(AdditionalDependencies)</AdditionalDependencies>
@@ -301,12 +302,11 @@ copy $(TargetDir)EngineShare.dll $(ProjectDir)out\</Command>
     <ClCompile Include="Go\ZenBot.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Stage\AsyncWokTestStage.cpp" />
-    <ClCompile Include="Stage\CurveBuilderStage.cpp">
-      <OpenMPSupport Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</OpenMPSupport>
-    </ClCompile>
+    <ClCompile Include="Stage\CurveBuilderStage.cpp" />
     <ClCompile Include="Stage\FlowGameStage.cpp" />
     <ClCompile Include="Stage\FluidSimStage.cpp" />
     <ClCompile Include="Stage\FontDrawStage.cpp" />
+    <ClCompile Include="Stage\FractialStage.cpp" />
     <ClCompile Include="Stage\NesEmulatorStage.cpp" />
     <ClCompile Include="Stage\AudioTestStage.cpp" />
     <ClCompile Include="Stage\SpatialIndexTest.cpp" />
@@ -448,6 +448,7 @@ copy $(TargetDir)EngineShare.dll $(ProjectDir)out\</Command>
     <ClCompile Include="Stage\TMechineStage.cpp" />
     <ClCompile Include="Stage\MiscTestStage.cpp" />
     <ClCompile Include="Sudoku\SudokuStage.cpp" />
+    <ClCompile Include="SuperFractial\SelectRectBase.cpp" />
     <ClCompile Include="TinyGameApp.cpp" />
     <ClCompile Include="TinyGamePCH.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
@@ -519,6 +520,21 @@ copy $(TargetDir)EngineShare.dll $(ProjectDir)out\</Command>
     <ClInclude Include="CellWalker.h" />
     <ClInclude Include="Civ\CvCity.h" />
     <ClInclude Include="Civ\CvMap.h" />
+    <ClInclude Include="CurveBuilder\AsmetaBase.h" />
+    <ClInclude Include="CurveBuilder\Assembler.h" />
+    <ClInclude Include="CurveBuilder\ColorMap.h" />
+    <ClInclude Include="CurveBuilder\DifferentialParser.h" />
+    <ClInclude Include="CurveBuilder\Expression.h" />
+    <ClInclude Include="CurveBuilder\ExpressionParser.h" />
+    <ClInclude Include="CurveBuilder\FPUCompiler.h" />
+    <ClInclude Include="CurveBuilder\FunctionParser.h" />
+    <ClInclude Include="CurveBuilder\CurveRenderer.h" />
+    <ClInclude Include="CurveBuilder\Base.h" />
+    <ClInclude Include="CurveBuilder\RenderData.h" />
+    <ClInclude Include="CurveBuilder\ShapeCommon.h" />
+    <ClInclude Include="CurveBuilder\ShapeFun.h" />
+    <ClInclude Include="CurveBuilder\ShapeMaker.h" />
+    <ClInclude Include="CurveBuilder\Surface.h" />
     <ClInclude Include="ECSModel\ECSBase.h" />
     <ClInclude Include="Fight\FightLevel.h" />
     <ClInclude Include="FlappyBird\FBLevel.h" />
@@ -588,6 +604,7 @@ copy $(TargetDir)EngineShare.dll $(ProjectDir)out\</Command>
     <ClInclude Include="Sudoku\SudokuSolver.h" />
     <ClInclude Include="Sudoku\SudokuSolver.hpp" />
     <ClInclude Include="Stage\MiscTestStage.h" />
+    <ClInclude Include="SuperFractial\SelectRectBase.h" />
     <ClInclude Include="TinyGameApp.h" />
     <ClInclude Include="TinyGamePCH.h" />
     <ClInclude Include="TripleTown\TextureId.h" />
@@ -607,14 +624,20 @@ copy $(TargetDir)EngineShare.dll $(ProjectDir)out\</Command>
   <ItemGroup>
     <None Include="out\Game.ini" />
     <None Include="out\Script\SceneA.chai" />
+    <None Include="out\Shader\BigNumberCommon.glsl" />
+    <None Include="out\Shader\BufferUtility.glsl" />
     <None Include="out\Shader\Common.glsl" />
+    <None Include="out\Shader\ComplexCommon.glsl" />
     <None Include="out\Shader\CopyTexture.glsl" />
     <None Include="out\Shader\DeferredBasePass.glsl" />
     <None Include="out\Shader\DeferredLighting.glsl" />
     <None Include="out\Shader\DeferredShadingCommon.glsl" />
+    <None Include="out\Shader\DOF.glsl" />
     <None Include="out\Shader\Game\BumpPS.glsl" />
     <None Include="out\Shader\Game\BumpVS.glsl" />
+    <None Include="out\Shader\Game\CurveMesh.glsl" />
     <None Include="out\Shader\Game\FS.glsl" />
+    <None Include="out\Shader\Game\Mandelbrot.glsl" />
     <None Include="out\Shader\Game\MeshNormalVisualize.glsl" />
     <None Include="out\Shader\Game\UnderCurveArea.glsl" />
     <None Include="out\Shader\Game\Lighting2D.glsl" />
@@ -625,6 +648,7 @@ copy $(TargetDir)EngineShare.dll $(ProjectDir)out\</Command>
     <None Include="out\Shader\Game\PongShader.glsl" />
     <None Include="out\Shader\Game\Simple.glsl" />
     <None Include="out\Shader\Game\Sphere.glsl" />
+    <None Include="out\Shader\GLSLCommon.glsl" />
     <None Include="out\Shader\GPUSkinVertexFactory.glsl" />
     <None Include="out\Shader\LightingCommon.glsl" />
     <None Include="out\Shader\LightParam.glsl" />
@@ -643,7 +667,9 @@ copy $(TargetDir)EngineShare.dll $(ProjectDir)out\</Command>
     <None Include="out\Shader\Material\Simple1.glsl" />
     <None Include="out\Shader\Material\Simple2.glsl" />
     <None Include="out\Shader\Material\Sphere.glsl" />
+    <None Include="out\Shader\OITCommon.glsl" />
     <None Include="out\Shader\OITRender.glsl" />
+    <None Include="out\Shader\OITResolve.glsl" />
     <None Include="out\Shader\ParallaxOcclusionCommon.glsl" />
     <None Include="out\Shader\PrimitiveParam.glsl" />
     <None Include="out\Shader\Reflection.glsl" />
@@ -656,7 +682,7 @@ copy $(TargetDir)EngineShare.dll $(ProjectDir)out\</Command>
     <None Include="out\Shader\SimpleBasePass.glsl" />
     <None Include="out\Shader\SimpleElement.glsl" />
     <None Include="out\Shader\SimpleSprite.glsl" />
-    <None Include="out\Shader\GpuSkinCommon.glsl" />
+    <None Include="out\Shader\GPUSkinCommon.glsl" />
     <None Include="out\Shader\ShadowDepthRender.glsl" />
     <None Include="out\Shader\SphereCommon.glsl" />
     <None Include="out\Shader\SSAO.glsl" />
@@ -664,6 +690,7 @@ copy $(TargetDir)EngineShare.dll $(ProjectDir)out\</Command>
     <None Include="out\Shader\Tonemap.glsl" />
     <None Include="out\Shader\VertexProcess.glsl" />
     <None Include="out\Shader\ViewParam.glsl" />
+    <None Include="out\Shader\VolumetricLighting.glsl" />
     <None Include="out\Shader\Water.glsl" />
   </ItemGroup>
   <ItemGroup>

@@ -2,8 +2,12 @@
 #ifndef CString_H_68B1FD83_57D7_4E26_B8F4_683C9097A912
 #define CString_H_68B1FD83_57D7_4E26_B8F4_683C9097A912
 
-#include <string>
 #include "MemorySecurity.h"
+#include "MetaBase.h"
+#include "Core/IntegerType.h"
+
+#include <string>
+#include <cassert>
 
 template < class CharT >
 class TStringTraits {};
@@ -62,6 +66,70 @@ struct FCString
 	static float   Strtof(char const* s, char** end) { return ::strtof(s, end); }
 	static float   Strtof(wchar_t const* s, wchar_t** end) { return ::wcstof(s, end); }
 
+	template <typename T>
+	struct TIsValidFormatType
+	{
+	private:
+		static uint32 Tester(uint32);
+		static uint32 Tester(uint16);
+		static uint32 Tester(uint8);
+		static uint32 Tester(int32);
+		static uint32 Tester(uint64);
+		static uint32 Tester(int64);
+		static uint32 Tester(short);
+		static uint32 Tester(double);
+		static uint32 Tester(float);
+		static uint32 Tester(long);
+		static uint32 Tester(unsigned long);
+		static uint32 Tester(char);
+		static uint32 Tester(bool);
+		static uint32 Tester(const void*);
+		static uint8  Tester(...);
+
+		static T DeclValT();
+
+	public:
+		enum { Value = sizeof(Tester(DeclValT())) == sizeof(uint32) };
+	};
+
+	template< class CharT , int N , class ...Args>
+	static void  PrintfT(CharT(&str)[N], CharT const* fmt, Args ...args)
+	{
+		static_assert(Meta::And< TIsValidFormatType< Args >... >::Value == true , "Arg Type Error");
+		FCString::PrintfImpl(str, fmt, args...);
+	}
+	template< class CharT, int N>
+	static void  PrintfImpl(CharT(&str)[N], CharT const* fmt, ...)
+	{
+		va_list argptr;
+		va_start(argptr, fmt);
+		FCString::PrintfV(str, fmt, argptr);
+		va_end(argptr);
+	}
+
+	static void Stricpy(char * dest, char const* src)
+	{
+		assert(dest && src);
+		while( *src )
+		{
+			int c = ::tolower(*src);
+			*dest = c;
+			++dest;
+			++src;
+		}
+	}
+
+	static uint32 StriHash(char const* str)
+	{
+		uint32 result = 5381;
+		while( *str )
+		{
+			uint32 c = (uint32)tolower(*str);
+			result = ((result << 5) + result) + c; /* hash * 33 + c */
+			++str;
+		}
+		return result;
+	}
 };
 
 

@@ -468,7 +468,7 @@ void NetRoomStage::procPlayerState( IComPacket* cp )
 			}
 			else
 			{
-				LogMsgF("No NetLevel!");
+				LogMsg("No NetLevel!");
 			}
 		}
 		break;

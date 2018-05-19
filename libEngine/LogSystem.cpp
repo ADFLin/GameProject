@@ -97,42 +97,6 @@ void LogWarning(int level, char const* str)
 	LogManager::Get().sendMessage(LOG_WARNING, level, str);
 }
 
-
-void LogMsgF(char const* format, ...)
-{
-	va_list argptr;
-	va_start(argptr, format);
-	LogManager::Get().sendMessageV(LOG_MSG, format, 0, argptr);
-	va_end(argptr);
-}
-
-void LogDevMsgF(int level, char const* format, ...)
-{
-	//#ifdef _DEBUG
-	va_list argptr;
-	va_start(argptr, format);
-	LogManager::Get().sendMessageV(LOG_DEV, format, level, argptr);
-	va_end(argptr);
-	//#endif
-}
-
-void LogWarningF(int level, char const* format, ...)
-{
-	va_list argptr;
-	va_start(argptr, format);
-	LogManager::Get().sendMessageV(LOG_WARNING, format, level, argptr);
-	va_end(argptr);
-
-}
-
-void LogErrorF(char const* format, ...)
-{
-	va_list argptr;
-	va_start(argptr, format);
-	LogManager::Get().sendMessageV(LOG_ERROR, format, 0, argptr);
-	va_end(argptr);
-}
-
 void LogMsgV(char const* format, va_list argptr)
 {
 	LogManager::Get().sendMessageV(LOG_MSG, format, 0, argptr);

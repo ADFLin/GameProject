@@ -41,7 +41,7 @@ float3 GetMaterialWorldPositionAndCheckDepthOffset(in MaterialInputPS input, ino
 		float4 worldPosH = View.clipToWorld * float4( clipPos , 1 );
 		worldPos = worldPosH.xyz / worldPosH.w;
 	}
-	WritePxielDepth(clipPos.z);
+	WritePixelDepth(clipPos.z);
 #endif
 	return worldPos;
 	

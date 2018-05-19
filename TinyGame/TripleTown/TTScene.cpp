@@ -831,7 +831,7 @@ namespace TripleTown
 		GLenum error = glGetError();
 		if ( error != GL_NO_ERROR )
 		{
-			LogMsgF( "Load texture Fail error code = %d" , (int)error );
+			LogMsg( "Load texture Fail error code = %d" , (int)error );
 			//return false;
 		}
 		return true;
@@ -1007,7 +1007,7 @@ namespace TripleTown
 		GLenum error = glGetError();
 		if ( error != GL_NO_ERROR )
 		{
-			LogMsgF( "Load texture Fail error code = %d" , (int)error );
+			LogMsg( "Load texture Fail error code = %d" , (int)error );
 			//return false;
 		}
 		return true;

@@ -43,10 +43,8 @@ namespace CB
 		void drawSurface(Surface3D& surface);
 		void drawCurve3D(Curve3D& curve);
 
-		void showData(int nx, int ny);
-
 		void drawMesh(Surface3D& surface);
-		void drawMeshLine(Surface3D& surface);
+		void drawMeshLine(Surface3D& surface , LinearColor const& color );
 		void drawMeshNormal(Surface3D& surface , float length );
 
 

@@ -1,0 +1,56 @@
+#include "Common.glsl"
+
+#ifndef SIZE_X
+#define SIZE_X 8
+#endif
+#ifndef SIZE_Y
+#define SIZE_Y 8
+#endif
+#ifndef SIZE_Z
+#define SIZE_Z 8
+#endif
+
+uniform restrict writeonly image3D TargetRWTexture;
+uniform float4 ClearValue;
+
+layout(local_size_x = SIZE_X, local_size_y = SIZE_Y, local_size_z = SIZE_Z) in;
+void BufferClearCS()
+{
+	int3 uvw = int3(gl_GlobalInvocationID.xyz);
+	imageStore(TargetRWTexture, uvw, ClearValue);
+}
+
+#ifndef CUSTOM_FLITER_WIDGETS
+//define in c++
+const float  FliterWidgets[1] = { 1 };
+const int    FliterWidth = 0;
+#endif
+
+uniform int2 BufferSize;
+uniform sampler3D SrcTexture;
+
+void BufferBlurHCS()
+{
+	int3 uvw = int3(gl_GlobalInvocationID.xyz);
+	float4 outData;
+	for( int i = -FliterWidth; i <= FliterWidth; ++i )
+	{
+		int3 pos = uvw + int3(i, 0, 0);
+		pos.x = clamp(pos.x, 0, BufferSize.x-1);
+		outData += texelFetch(SrcTexture, pos , 0);
+	}
+	imageStore(TargetRWTexture, uvw , outData / float(2 * FliterWidth + 1));
+}
+
+void BufferBlurVCS()
+{
+	int3 uvw = int3(gl_GlobalInvocationID.xyz);
+	float4 outData;
+	for( int i = -FliterWidth; i <= FliterWidth; ++i )
+	{
+		int3 pos = uvw + int3(0, i, 0);
+		pos.y = clamp(pos.y, 0, BufferSize.y - 1);
+		outData += texelFetch(SrcTexture, pos , 0);
+	}
+	imageStore(TargetRWTexture, uvw , outData / float(2 * FliterWidth + 1));
+}

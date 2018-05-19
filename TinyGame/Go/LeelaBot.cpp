@@ -13,6 +13,7 @@
 
 namespace Go
 {
+	char const* ELFWeight = "62b5417b64c46976795d10a6741801f15f857e5029681a42d02c9852097df4b9";
 
 	template< int N >
 	static int StartWith(char const* s1, char const (&s2)[N])
@@ -143,7 +144,7 @@ namespace Go
 				outCom.playColor = color;
 				return numRead;
 			}
-			LogWarningF(0, "ParsePlayError : %s", str);
+			LogWarning(0, "ParsePlayError : %s", str);
 			return 0;
 		}
 
@@ -173,7 +174,7 @@ namespace Go
 				return numRead;
 			}
 
-			LogWarningF(0, "ParsePlayError : %s", str);
+			LogWarning(0, "ParsePlayError : %s", str);
 			return 0;
 		}
 	};
@@ -236,7 +237,7 @@ namespace Go
 
 						if( curStep != step )
 						{
-							LogMsgF("Warning:Error Step");
+							LogMsg("Warning:Error Step");
 						}
 						if( StartWith(coord, "pass") )
 						{
@@ -261,7 +262,7 @@ namespace Go
 							}
 							else
 							{
-								LogWarningF(0 , "Unknown color : %s" , color);
+								LogWarning(0 , "Unknown color : %s" , color);
 								com.playColor = StoneColor::eEmpty;
 							}
 							addOutputCommand(com);
@@ -269,14 +270,14 @@ namespace Go
 						}
 						else
 						{
-							LogMsgF("Unknown Com = %s", coord);
+							LogMsg("Unknown Com = %s", coord);
 						}
 						++curStep;
 						cur += numRead;
 					}
 					else if( sscanf(cur, "%d(", &step, &numRead) == 1 )
 					{
-						//LogMsgF("==comand not complete : %s ==", cur);
+						//LogMsg("==comand not complete : %s ==", cur);
 						return bufferSize - (cur - buffer);
 					}
 					else
@@ -288,7 +289,7 @@ namespace Go
 							FixString< 512 > str{ cur , num };
 							if( bLogMsg )
 							{
-								LogMsgF("%s", str.c_str());
+								LogMsg("%s", str.c_str());
 							}
 
 							if( StartWith(str , STR_SCORE) )
@@ -327,7 +328,7 @@ namespace Go
 						FixString< 512 > str{ cur , num };
 						if( bLogMsg )
 						{
-							LogMsgF(str.c_str());
+							LogMsg(str.c_str());
 						}
 
 						if( StartWith(str, STR_NET) )
@@ -336,7 +337,7 @@ namespace Go
 							if ( lastNetworkName.back() == '.' )
 								lastNetworkName.pop_back();
 							GameCommand com;
-							com.setParam(LeelaGameParam::eLastNetWeight, lastNetworkName.c_str());
+							com.setParam(LeelaGameParam::eNetWeight, lastNetworkName.c_str());
 							addOutputCommand(com);
 						}
 						else if( StartWith(str, STR_GOT_NEW_JOB) )
@@ -440,7 +441,7 @@ namespace Go
 				{
 					if( bLogMsg )
 					{
-						LogMsgF("GTP: %s ", pData);
+						LogMsg("GTP: %s ", pData);
 					}
 					parseLine(pData, pLineEnd - pData);
 				}
@@ -474,7 +475,7 @@ namespace Go
 		bool bDumping = false;
 		bool parseLine(char* buffer, int num)
 		{
-			//LogMsgF("%s", buffer);
+			//LogMsg("%s", buffer);
 
 			GTPCommand com = getHeadRequest();
 			if( com.id != GTPCommand::eNone && bDumping == false )
@@ -679,7 +680,7 @@ namespace Go
 			int vertex = GetVertex(coord);
 			if( vertex == -3 )
 			{
-				//LogWarningF(0, "Error Think Str = %s", buffer);
+				//LogWarning(0, "Error Think Str = %s", buffer);
 				//return;
 			}
 
@@ -712,14 +713,12 @@ namespace Go
 			addOutputCommand(paramCom);
 		}
 
-#if USE_MODIFY_LEELA_PROGRAM
 		bool bRecvThinkInfo = false;
-#endif
+
 		virtual void procDumpCommandMsg(GTPCommand com, char* buffer, int num)
 		{
 			switch( com.id )
 			{
-#if USE_MODIFY_LEELA_PROGRAM
 			case GTPCommand::eNone:
 				{
 					if( bRecvThinkInfo )
@@ -745,7 +744,6 @@ namespace Go
 					}
 				}
 				break;
-#endif
 			case GTPCommand::eStopPonder:
 			case GTPCommand::eGenmove:
 				{
@@ -760,7 +758,7 @@ namespace Go
 						int vertex = GetVertex(coord);
 						if( vertex == -3 )
 						{
-							LogWarningF(0, "Error Think Str = %s", buffer);
+							LogWarning(0, "Error Think Str = %s", buffer);
 							return;
 						}
 
@@ -987,9 +985,12 @@ namespace Go
 			return false;
 
 		FixString<256> path;
-		path.format("%s/%s", InstallDir, "/leelaz.exe");
+		if ( setting.bUseModifyVersion )
+			path.format("%s/%s", InstallDir, "/leelazModify.exe");
+		else
+			path.format("%s/%s", InstallDir, "/leelaz.exe");
 
-		LogMsgF("Play weight = %s", setting.weightName);
+		LogMsg("Play weight = %s", setting.weightName);
 
 		std::string opitions = setting.toString();
 		bool result = buildProcessT< LeelaOutputThread >(path, opitions.c_str());
@@ -997,7 +998,7 @@ namespace Go
 		return result;
 	}
 
-	bool LeelaAppRun::buildAnalysisGame()
+	bool LeelaAppRun::buildAnalysisGame( bool bUseELF )
 	{
 		LeelaAISetting setting;
 		std::string weightName = LeelaAppRun::GetBestWeightName();
@@ -1009,6 +1010,11 @@ namespace Go
 		setting.visits = 0;
 		setting.randomcnt = 0;
 		setting.resignpct = 0;
+		setting.bUseModifyVersion = true;
+		if( bUseELF )
+		{
+			setting.weightName = ELFWeight;
+		}
 		bool result = buildPlayGame(setting);
 		if( result )
 		{

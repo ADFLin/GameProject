@@ -1,5 +1,7 @@
 #include "RHICommand.h"
 
+#include <cassert>
+
 
 namespace RenderGL
 {
@@ -32,22 +34,39 @@ namespace RenderGL
 		{
 			Initialize();
 		}
-
+		RHIRasterizerState* rasterizerStateUsage;
+		GLRasterizerStateValue rasterizerStateValue;
 		RHIDepthStencilState* depthStencilStateUsage;
 		GLDepthStencilStateValue depthStencilStateValue;
 		RHIBlendState* blendStateUsage;
 		GLBlendStateValue blendStateValue;
 
+		bool bScissorRectEnabled;
+
 		void Initialize()
 		{
+			rasterizerStateUsage = nullptr;
+			rasterizerStateValue = GLRasterizerStateValue(ForceInit);
 			depthStencilStateUsage = nullptr;
 			depthStencilStateValue = GLDepthStencilStateValue(ForceInit);
 			blendStateUsage = nullptr;
 			blendStateValue = GLBlendStateValue(ForceInit);
+			bScissorRectEnabled = false;
 		}
 	};
 
 	GLDeviceState gDeviceState;
+
+	RHITexture1D* RHICreateTexture1D(Texture::Format format, int length , int numMipLevel /*= 0*/, void* data /*= nullptr*/)
+	{
+		RHITexture1D* result = new RHITexture1D;
+		if( result && !result->create(format, length, numMipLevel, data) )
+		{
+			delete result;
+			return nullptr;
+		}
+		return result;
+	}
 
 	RHITexture2D* RHICreateTexture2D()
 	{
@@ -57,7 +76,19 @@ namespace RenderGL
 	RHITexture2D* RHICreateTexture2D(Texture::Format format, int w, int h, int numMipLevel, void* data , int dataAlign)
 	{
 		RHITexture2D* result = new RHITexture2D;
-		if( !result->create(format, w, h , numMipLevel, data , dataAlign) )
+		if( result && !result->create(format, w, h , numMipLevel, data , dataAlign) )
+		{
+			delete result;
+			return nullptr;
+		}
+		return result;
+	}
+
+
+	RHITexture3D* RHICreateTexture3D(Texture::Format format, int sizeX ,int sizeY , int sizeZ )
+	{
+		RHITexture3D* result = new RHITexture3D;
+		if( result && !result->create(format , sizeX , sizeY , sizeZ ) )
 		{
 			delete result;
 			return nullptr;
@@ -75,10 +106,129 @@ namespace RenderGL
 		return new RHITextureCube;
 	}
 
+	RenderGL::RHIVertexBuffer* RHICreateVertexBuffer()
+	{
+		RHIVertexBuffer* result = new RHIVertexBuffer;
+		if( result && !result->create() )
+		{
+			delete result;
+			return nullptr;
+		}
+		return result;
+	}
+
 	RHIUniformBuffer* RHICreateUniformBuffer(int size)
 	{
 		RHIUniformBuffer* result = new RHIUniformBuffer;
-		if( !result->create(size) )
+		if( result && !result->create(size) )
+		{
+			delete result;
+			return nullptr;
+		}
+		return result;
+	}
+
+
+	void RHISetupFixedPipeline(Matrix4 const& matModelView, Matrix4 const& matProj,  int numTexture /*= 0*/, RHITexture2D** texture /*= nullptr*/)
+	{
+		glMatrixMode(GL_PROJECTION);
+		glLoadMatrixf(matProj);
+		glMatrixMode(GL_MODELVIEW);
+		glLoadMatrixf(matModelView);
+		if( numTexture )
+		{
+			glEnable(GL_TEXTURE);
+			for( int i = 0; i < numTexture; ++i )
+			{
+				glEnable(GL_TEXTURE0 + i);
+				glBindTexture(GL_TEXTURE_2D, texture[i]->mHandle);
+			}
+		}
+	}
+
+	void RHISetViewport(int x, int y, int w, int h)
+	{
+		glViewport(x, y, w, h);
+	}
+
+	void RHISetScissorRect(bool bEnable, int x, int y, int w, int h)
+	{
+		if( gDeviceState.bScissorRectEnabled != bEnable )
+		{
+			EnableGLState(GL_SCISSOR_TEST, bEnable);
+			gDeviceState.bScissorRectEnabled = bEnable;
+			if( bEnable )
+			{
+				glScissor(x, y, w, h);
+			}
+		}
+	}
+
+	void RHIDrawPrimitive(PrimitiveType type , int start, int nv)
+	{
+		glDrawArrays(GLConvert::To(type), start, nv);
+	}
+
+	void RHIDrawIndexedPrimitive(PrimitiveType type, ECompValueType indexType , int indexStart, int nIndex)
+	{
+		assert(indexType == CVT_UInt || indexType == CVT_UShort);
+		glDrawElements(GLConvert::To(type), nIndex, GLConvert::To(indexType), (void*)indexStart);
+	}
+
+	RHIRasterizerState::RHIRasterizerState(RasterizerStateInitializer const& initializer)
+	{
+		mStateValue.bEnalbeCull = initializer.cullMode != ECullMode::None;
+		mStateValue.cullFace = GLConvert::To(initializer.cullMode);
+		mStateValue.fillMode = GLConvert::To(initializer.fillMode);
+	}
+
+	RHIRasterizerState* RHICreateRasterizerState(RasterizerStateInitializer const& initializer)
+	{
+		RHIRasterizerState* reslut = new RHIRasterizerState(initializer);
+		return reslut;
+	}
+
+	void RHISetRasterizerState(RHIRasterizerState& rasterizerState)
+	{
+		if( &rasterizerState == gDeviceState.rasterizerStateUsage )
+		{
+			return;
+		}
+
+		gDeviceState.rasterizerStateUsage = &rasterizerState;
+		auto& deviceValue = gDeviceState.rasterizerStateValue;
+		auto const& setupValue = rasterizerState.mStateValue;
+
+#define VAR_TEST( NAME )  true ||  (deviceValue.##NAME != setupValue.##NAME)
+#define VAR_ASSIGN( NAME ) deviceValue.##NAME = setupValue.##NAME 
+
+		if( VAR_TEST(fillMode) )
+		{
+			VAR_ASSIGN(fillMode);
+			glPolygonMode(GL_FRONT_AND_BACK, setupValue.fillMode);
+		}
+
+		if( VAR_TEST(bEnalbeCull) )
+		{
+			VAR_ASSIGN(bEnalbeCull);
+			EnableGLState(GL_CULL_FACE, setupValue.bEnalbeCull);
+
+			if( VAR_TEST(cullFace) )
+			{
+				VAR_ASSIGN(cullFace);
+				glCullFace(setupValue.cullFace);
+			}
+		}
+
+
+#undef VAR_TEST
+#undef VAR_ASSIGN
+	}
+
+	RenderGL::RHISamplerState* RHICreateSamplerState(SamplerStateInitializer const& initializer)
+	{
+		RHISamplerState* result = new RHISamplerState;
+		if( result && !result->create(initializer) )
 		{
 			delete result;
 			return nullptr;
@@ -110,15 +260,21 @@ namespace RenderGL
 
 	void RHISetDepthStencilState(RHIDepthStencilState& depthStencilState , uint32 stencilRef)
 	{
-		if( &depthStencilState == gDeviceState.depthStencilStateUsage )
-			return;
-
-		gDeviceState.depthStencilStateUsage = &depthStencilState;
-
 		auto& deviceValue = gDeviceState.depthStencilStateValue;
+		if( &depthStencilState == gDeviceState.depthStencilStateUsage )
+		{
+			if( deviceValue.stencilRef != stencilRef )
+			{
+				deviceValue.stencilRef = stencilRef;
+				glStencilFunc(deviceValue.stencilFun, stencilRef, deviceValue.stencilReadMask);
+			}
+			return;
+		}
+		gDeviceState.depthStencilStateUsage = &depthStencilState;
+	
 		auto const& setupValue = depthStencilState.mStateValue;
 
-#define VAR_TEST( NAME )  true || (deviceValue.##NAME != setupValue.##NAME)
+#define VAR_TEST( NAME )   true || (deviceValue.##NAME != setupValue.##NAME)
 #define VAR_ASSIGN( NAME ) deviceValue.##NAME = setupValue.##NAME 
 
 		if( VAR_TEST( bEnableDepthTest ) )
@@ -196,7 +352,7 @@ namespace RenderGL
 	RHIBlendState::RHIBlendState(BlendStateInitializer const& initializer)
 	{
 		
-		for( int i = 0 ; i < NumBlendTarget ; ++i )
+		for( int i = 0 ; i < NumBlendStateTarget ; ++i )
 		{
 			auto const& targetValue = initializer.targetValues[i];
 			auto& targetValueGL = mStateValue.targetValues[i];
@@ -221,7 +377,7 @@ namespace RenderGL
 
 		gDeviceState.blendStateUsage = &blendState;
 
-		for( int i = 0; i < NumBlendTarget; ++i )
+		for( int i = 0; i < NumBlendStateTarget; ++i )
 		{
 			auto& deviceValue = gDeviceState.blendStateValue.targetValues[i];
 			auto const& setupValue = blendState.mStateValue.targetValues[i];
@@ -277,6 +433,32 @@ namespace RenderGL
 #undef VAR_TEST
 #undef VAR_ASSIGN
 		}
+	}
+
+
+	RHIRasterizerState& GetStaticRasterizerState(ECullMode cullMode , EFillMode fillMode)
+	{
+#define SWITCH_CULL_MODE( FILL_MODE )\
+		switch( cullMode )\
+		{\
+		case ECullMode::Front: return TStaticRasterizerState< ECullMode::Front , FILL_MODE >::GetRHI();\
+		case ECullMode::Back: return TStaticRasterizerState< ECullMode::Back , FILL_MODE >::GetRHI();\
+		case ECullMode::None: return TStaticRasterizerState< ECullMode::None , FILL_MODE >::GetRHI();\
+		}
+
+		switch( fillMode )
+		{
+		case EFillMode::Point:
+			SWITCH_CULL_MODE(EFillMode::Point);
+			break;
+		case EFillMode::Wireframe:
+			SWITCH_CULL_MODE(EFillMode::Wireframe);
+			break;
+		}
+
+		SWITCH_CULL_MODE(EFillMode::Solid);
+
+#undef SWITCH_CULL_MODE
 	}
 
 }

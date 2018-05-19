@@ -5,32 +5,28 @@ namespace RenderGL
 
 	void StaticMesh::render(Matrix4 const& worldTrans, RenderContext& context, Material* material)
 	{
-		context.setupShader(material);
+		context.setMaterial(material);
 		context.setWorld(worldTrans);
 		{
 			//GPU_PROFILE_VA("MeshDraw %s", name.c_str());
-			draw();
+			drawShader();
 		}
 	}
 
-	void StaticMesh::render(Matrix4 const& worldTrans, RenderContext& context, bool bVAO /*= false*/)
+	void StaticMesh::render(Matrix4 const& worldTrans, RenderContext& context)
 	{
-		glPushMatrix();
 		for( int i = 0; i < mSections.size(); ++i )
 		{
-			//if ( i != 5  )
-			//continue;
 			Material* material = getMaterial(i);
-			context.setupShader(material);
+			context.setMaterial(material);
 			context.setWorld(worldTrans);
 
 			{
 				char const* matName = material ? material->getMaster()->mName.c_str() : "DefalutMaterial";
 				//GPU_PROFILE_VA( "MeshDraw %s %s %d" , name.c_str() , matName , mSections[i].num);
-				this->drawSection(i);
+				drawSection(i , true);
 			}
 		}
-		glPopMatrix();
 	}
 
 	void SimpleMeshObject::getPrimitives(PrimitivesCollection& primitiveCollection)

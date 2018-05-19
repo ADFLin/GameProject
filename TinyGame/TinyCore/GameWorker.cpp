@@ -199,7 +199,7 @@ bool EvalCommand( UdpChain& chain , ComEvaluator& evaluator , SocketBuffer& buff
 		{
 			if ( !evaluator.evalCommand( buffer , group , userData ) )
 			{
-				LogMsgF( "readPacket Error Need Fix" );
+				LogMsg( "readPacket Error Need Fix" );
 				return false;
 			}
 		}
@@ -235,11 +235,11 @@ unsigned WriteComToBuffer( SocketBuffer& buffer , IComPacket* cp )
 		catch ( BufferException& e )
 		{
 			buffer.grow( ( buffer.getMaxSize() * 3 ) / 2 );
-			LogMsgF( e.what() );
+			LogMsg( e.what() );
 		}
 		catch ( ComException& e )
 		{
-			LogMsgF( e.what() );
+			LogMsg( e.what() );
 			return 0;
 		}
 		++count;

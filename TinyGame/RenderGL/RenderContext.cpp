@@ -6,38 +6,41 @@ namespace RenderGL
 {
 	void RenderTechnique::setupWorld(RenderContext& context, Matrix4 const& mat)
 	{
-		//#TODO : Remove GL Matrix fun
-		glMultMatrixf(mat);
-		if( context.mUsageShader )
+		if( context.mUsageProgram )
 		{
 			Matrix4 matInv;
 			float det;
 			mat.inverseAffine(matInv, det);
-			context.mUsageShader->setParam(SHADER_PARAM(Primitive.localToWorld), mat);
-			context.mUsageShader->setParam(SHADER_PARAM(Primitive.worldToLocal), matInv);
+			context.mUsageProgram->setParam(SHADER_PARAM(Primitive.localToWorld), mat);
+			context.mUsageProgram->setParam(SHADER_PARAM(Primitive.worldToLocal), matInv);
 		}
-	}
-
-	void RenderContext::setShader(ShaderProgram& shader)
-	{
-		if( mUsageShader != &shader )
+		else
 		{
-			if( mUsageShader )
-			{
-				mUsageShader->unbind();
-			}
-			mUsageShader = &shader;
-			mUsageShader->bind();
+			//Fixed pipeline
+			glLoadMatrixf( mat * context.getView().worldToView );
 		}
 	}
 
-	void RenderContext::setupShader( Material* material , VertexFactory* vertexFactory )
+	void RenderContext::setShader(ShaderProgram& program)
 	{
-		MaterialShaderProgram* shader;
+		if( mUsageProgram != &program )
+		{
+			if( mUsageProgram )
+			{
+				mUsageProgram->unbind();
+			}
+			mUsageProgram = &program;
+			mUsageProgram->bind();
+		}
+	}
+
+	MaterialShaderProgram* RenderContext::setMaterial( Material* material , VertexFactory* vertexFactory )
+	{
+		MaterialShaderProgram* program;
 		if( material )
 		{
-			shader = mTechique->getMaterialShader(*this,*material->getMaster() , vertexFactory );
-			if( shader == nullptr || !shader->isValid() )
+			program = mTechique->getMaterialShader(*this,*material->getMaster() , vertexFactory );
+			if( program == nullptr || !program->isValid() )
 			{
 				material = nullptr;
 			}
@@ -46,25 +49,29 @@ namespace RenderGL
 		if( material == nullptr )
 		{
 			material = GDefalutMaterial;
-			shader = mTechique->getMaterialShader(*this, *GDefalutMaterial , vertexFactory );
+			program = mTechique->getMaterialShader(*this, *GDefalutMaterial , vertexFactory );
 		}
 
-		if( shader == nullptr )
-			return;
-
-		if( mUsageShader != shader )
+		if( program == nullptr )
 		{
-			if( mUsageShader )
-			{
-				mUsageShader->unbind();
-			}
-			mUsageShader = shader;
-			mbUseMaterialShader = true;
-			mUsageShader->bind();
-			mCurView->setupShader(*mUsageShader);
-			mTechique->setupMaterialShader(*this, *mUsageShader);
+			return nullptr;
 		}
-		material->setupShader(*shader);
+
+		if( mUsageProgram != program )
+		{
+			if( mUsageProgram )
+			{
+				mUsageProgram->unbind();
+			}
+			mUsageProgram = program;
+			mbUseMaterialShader = true;
+			mUsageProgram->bind();
+			mCurView->setupShader(*mUsageProgram);
+			mTechique->setupMaterialShader(*this, *mUsageProgram);
+		}
+		material->setupShader(*program);
+
+		return program;
 	}
 
 

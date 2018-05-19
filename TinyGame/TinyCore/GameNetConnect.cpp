@@ -218,7 +218,7 @@ void NetBufferOperator::fillBuffer( SocketBuffer& buffer , unsigned num )
 		catch ( BufferException& e )
 		{
 			mBuffer.grow( ( mBuffer.getMaxSize() * 3 ) / 2 );
-			LogMsgF( "%s(%d)" , e.what() ,count );
+			LogMsg( "%s(%d)" , e.what() ,count );
 		}
 		++count;
 	}
@@ -251,7 +251,7 @@ bool NetBufferOperator::sendData( NetSocket& socket , NetAddress* addr )
 			++count;
 			if ( count > 10 )
 			{
-				LogMsgF( "Send Buffer: %d data no send" , mBuffer.getAvailableSize() );
+				LogMsg( "Send Buffer: %d data no send" , mBuffer.getAvailableSize() );
 			}
 			return false;
 		}
@@ -286,7 +286,7 @@ bool NetBufferOperator::recvData( NetSocket& socket , int len , NetAddress* addr
 	catch( std::exception& e )
 	{
 		mBuffer.clear();
-		LogMsgF( "%s(%d) : %s" , __FILE__ , __LINE__ ,e.what() );
+		LogMsg( "%s(%d) : %s" , __FILE__ , __LINE__ ,e.what() );
 		LogError( e.what() );
 		return false;
 		//cout << e.what() << endl;
@@ -361,7 +361,7 @@ bool UdpChain::sendPacket( long time , NetSocket& socket , SocketBuffer& buffer 
 		if ( mBufferRel.getFreeSize() < bufSize )
 		{
 			mBufferRel.grow( mBufferRel.getMaxSize() * 2 );
-			LogMsgF( "UDPChain::sendPacket : ReliableBuffer too small" );
+			LogMsg( "UDPChain::sendPacket : ReliableBuffer too small" );
 		}
 
 		size_t oldSize = mBufferRel.getFillSize();

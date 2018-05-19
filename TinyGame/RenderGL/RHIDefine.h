@@ -18,6 +18,22 @@ namespace RenderGL
 		CWM_RGBA = CWM_RGB | CWM_A ,
 	};
 
+
+	enum class EFillMode
+	{
+		Point ,
+		Wireframe,
+		Solid,
+		System,
+	};
+
+	enum class ECullMode
+	{
+		Front ,
+		Back ,
+		None ,
+	};
+
 	enum class ECompareFun
 	{
 		Never,
@@ -43,6 +59,7 @@ namespace RenderGL
 			eOneMinusDestAlpha,
 			eSrcColor,
 			eOneMinusSrcColor,
+			eOneMinusDestColor,
 		};
 
 		enum Operation
@@ -78,7 +95,7 @@ namespace RenderGL
 		};
 	};
 
-	enum AccessOperator
+	enum EAccessOperator
 	{
 		AO_READ_ONLY,
 		AO_WRITE_ONLY,
@@ -87,14 +104,16 @@ namespace RenderGL
 
 	enum class PrimitiveType
 	{
-		eTriangleList,
-		eTriangleStrip,
-		eTriangleFan,
-		eLineList,
-		eLineStrip,
-		eLineLoop,
-		eQuad,
-		ePoints,
+		Points,
+		TriangleList,
+		TriangleStrip,
+		LineList,
+		LineStrip,
+		//Discard?
+		TriangleFan,
+		LineLoop,
+		Quad,
+		
 	};
 
 	enum class ELockAccess
@@ -120,6 +139,29 @@ namespace RenderGL
 			eEmpty = -1,
 		};
 	};
+
+
+	struct Sampler
+	{
+		enum AddressMode
+		{
+			eWarp,
+			eClamp,
+			eMirror,
+			eBorder,
+		};
+
+		enum Filter
+		{
+			ePoint,
+			eBilinear,
+			eTrilinear,
+			eAnisotroicPoint,
+			eAnisotroicLinear,
+		};
+
+	};
+
 
 }//namespace RenderGL
 

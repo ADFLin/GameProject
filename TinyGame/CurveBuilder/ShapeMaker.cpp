@@ -23,13 +23,13 @@ namespace CB
 		,mParser()
 	{
 
-		mColorMap.addColorPoint(0, 0, 7, 100);
-		mColorMap.addColorPoint(640 / 4, 32, 107, 203);
-		mColorMap.addColorPoint(1680 / 4, 237, 255, 255);
-		mColorMap.addColorPoint(2570 / 4, 255, 170, 0);
-		mColorMap.addColorPoint(3430 / 4, 0, 2, 0);
+		mColorMap.addPoint(0, Color3ub(0, 7, 100));
+		mColorMap.addPoint(640 / 4, Color3ub( 32, 107, 203) );
+		mColorMap.addPoint(1680 / 4, Color3ub(237, 255, 255));
+		mColorMap.addPoint(2570 / 4, Color3ub(255, 170, 0));
+		mColorMap.addPoint(3430 / 4, Color3ub(0, 2, 0));
 
-		mColorMap.computeColorMap();
+		mColorMap.calcColorMap();
 		mColorMap.setRotion(150);
 
 		SymbolTable& table = mParser.getSymbolDefine();

@@ -529,7 +529,7 @@ namespace Zuma
 		BGImage->release();
 		if ( !renderSys.loadTexture( *BGImage ,  BGImage->getPath().c_str() , NULL ) )
 		{
-			LogWarningF( 0 , "Can't load Level BG Image %s" , BGImage->getPath().c_str() );
+			LogWarning( 0 , "Can't load Level BG Image %s" , BGImage->getPath().c_str() );
 		}
 
 		for( int i = 0 ; i < numCutout ; ++i )
@@ -539,7 +539,7 @@ namespace Zuma
 			image->release();
 			if( !renderSys.loadTexture( *image , NULL , image->getPath().c_str() ) )
 			{
-				LogWarningF( 0 , "Can't load Level Mask Image %s" , image->getPath().c_str() );
+				LogWarning( 0 , "Can't load Level Mask Image %s" , image->getPath().c_str() );
 			}
 		}
 	}

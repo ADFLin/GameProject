@@ -89,7 +89,7 @@ namespace CFly
 			Camera* camera = getScene()->_getRenderCamera();
 			if ( !camera->testVisible( trans , mBoundSphere ) )
 			{
-				LogDevMsgF( 1 , "RenderNode isn't visible %d" , getEntityID() );
+				LogDevMsg( 1 , "RenderNode isn't visible %d" , getEntityID() );
 				return false;
 			}
 		}

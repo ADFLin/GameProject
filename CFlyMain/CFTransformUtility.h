@@ -45,31 +45,31 @@ namespace CFly
 	//m4 , m5 , m6 , 0 ,
 	//m8 , m9 , m10 , 0 ,
 	//m12 , m13 , m14 , 1 ,
-	class TransformUntility
+	class FTransform
 	{
 	public:
-		static void transform( Matrix4& self , Matrix4 const& trans , TransOp op );
-		static void transformInv( Matrix4& self , Matrix4 const& trans , TransOp op  );
-		static void translate( Matrix4& self , Vector3 const& offset , TransOp op );
-		static void scale( Matrix4& self , Vector3 const& s , TransOp op );
-		static void rotate( Matrix4& self , AxisEnum axis , float angle , TransOp op);
-		static void rotate( Matrix4& self , Vector3 const& axis , float angle  , TransOp op );
-		static void rotate( Matrix4& self , Quaternion const& q , TransOp op );
+		static void Transform( Matrix4& self , Matrix4 const& trans , TransOp op );
+		static void TransformInv( Matrix4& self , Matrix4 const& trans , TransOp op  );
+		static void Translate( Matrix4& self , Vector3 const& offset , TransOp op );
+		static void Scale( Matrix4& self , Vector3 const& s , TransOp op );
+		static void Rotate( Matrix4& self , AxisEnum axis , float angle , TransOp op);
+		static void Rotate( Matrix4& self , Vector3 const& axis , float angle  , TransOp op );
+		static void Rotate( Matrix4& self , Quaternion const& q , TransOp op );
 
-		static void translateGlobal( Matrix4& self , Vector3 const& offset );
-		static void translateLocal( Matrix4& self , Vector3 const& offset );
-		static void scaleLocal( Matrix4& self , Vector3 const& s );
-		static void scaleGlobal( Matrix4& self , Vector3 const& s );
+		static void TranslateGlobal( Matrix4& self , Vector3 const& offset );
+		static void TranslateLocal( Matrix4& self , Vector3 const& offset );
+		static void ScaleLocal( Matrix4& self , Vector3 const& s );
+		static void ScaleGlobal( Matrix4& self , Vector3 const& s );
 
 		static void checkFormat( Matrix4 const& mat )
 		{
 			assert( mat.isAffine() );
 		}
 
-		static void mul( Matrix4& result , Matrix4 const& lhs , Matrix4 const& rhs );
-		static void mul( Matrix4& result , Matrix3 const& lhs , Matrix4 const& rhs );
+		static void Mul( Matrix4& result , Matrix4 const& lhs , Matrix4 const& rhs );
+		static void Mul( Matrix4& result , Matrix3 const& lhs , Matrix4 const& rhs );
 
-		static Vector3 mul( Vector3 const& v , Matrix4 const& m )
+		static Vector3 Mul( Vector3 const& v , Matrix4 const& m )
 		{
 			checkFormat( m );
 			return Vector3(

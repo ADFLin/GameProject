@@ -5,18 +5,18 @@ template< class T >
 class TVector3
 {
 public:
-	typedef T RefConstType;
+	typedef T InputType;
 	typedef T ScaleType;
 
 	TVector3(){}
 	TVector3( T v[] ){ setValue( v[0] , v[1] , v[2] ); }
-	TVector3( RefConstType sx,RefConstType sy, RefConstType sz);
+	TVector3( InputType sx,InputType sy, InputType sz);
 
 	template< class Q >
 	TVector3( TVector3< Q > const& rhs )
 		:x( rhs.x ),y(rhs.y),z(rhs.z){}
 
-	void setValue( RefConstType sx,RefConstType sy,RefConstType sz)
+	void setValue( InputType sx,InputType sy,InputType sz)
 	{ x=sx; y=sy; z=sz;}
 
 	T length2() const { return dot( *this ); }
@@ -26,7 +26,7 @@ public:
 
 	TVector3& operator += ( TVector3 const& v);
 	TVector3& operator -= ( TVector3 const& v);
-	TVector3& operator *= ( T s );
+	TVector3& operator *= ( InputType s );
 
 
 	TVector3 mul( TVector3 const& v )
@@ -53,7 +53,7 @@ private:
 
 
 template< class T >
-inline TVector3<T>::TVector3( RefConstType sx, RefConstType sy, RefConstType sz ) 
+inline TVector3<T>::TVector3( InputType sx, InputType sy, InputType sz ) 
 	:x(sx),y(sy),z(sz)
 {
 
@@ -86,7 +86,7 @@ inline TVector3<T>& TVector3<T>::operator -= (const TVector3& v)
 }
 
 template< class T >
-inline TVector3<T>& TVector3<T>::operator *= ( RefConstType s )
+inline TVector3<T>& TVector3<T>::operator *= ( InputType s )
 {
 	x *= s; y *= s; z *= s;
 	return *this;
@@ -105,19 +105,19 @@ inline TVector3<T> operator- (TVector3<T> const& a,TVector3<T> const& b)
 }
 
 template< class T >
-inline TVector3<T> operator * ( typename TVector3<T>::RefConstType s , TVector3<T> const& v )
+inline TVector3<T> operator * ( typename TVector3<T>::InputType s , TVector3<T> const& v )
 {
 	return TVector3< T >( s*v.x , s*v.y , s*v.z );
 }
 
 template< class T >
-inline TVector3<T> operator*(TVector3<T> const& v, typename TVector3<T>::RefConstType s)
+inline TVector3<T> operator*(TVector3<T> const& v, typename TVector3<T>::InputType s)
 {
 	return TVector3<T>( s*v.x , s*v.y , s*v.z );
 }
 
 template< class T >
-inline TVector3<T> operator/(TVector3<T> const& v, typename TVector3<T>::RefConstType s)
+inline TVector3<T> operator/(TVector3<T> const& v, typename TVector3<T>::InputType s)
 {
 	return TVector3<T>( v.x / s , v.y / s , v.z / s );
 }

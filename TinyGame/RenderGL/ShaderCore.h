@@ -50,7 +50,7 @@ namespace RenderGL
 #define DECLARE_UNIFORM_STRUCT( NAME )\
 	static UniformStructInfo& GetStruct()\
 	{\
-		static UniformStructInfo sMyStruct( NAME );\
+		static UniformStructInfo sMyStruct( #NAME );\
 		return sMyStruct;\
 	}
 
@@ -66,7 +66,7 @@ namespace RenderGL
 		bool bind(ShaderProgram& program, char const* name);
 
 		template< class T >
-		bool bindStruct(ShaderProgram& program)
+		bool bindStructT(ShaderProgram& program)
 		{
 			auto& bufferStruct = T::GetStruct();
 			if( bind(program, bufferStruct.blockName) )
@@ -184,42 +184,34 @@ namespace RenderGL
 		void setParam(char const* name, Vector3 const v[], int num) { setVector3(name, (float*)&v[0], num); }
 		void setParam(char const* name, Vector4 const v[], int num) { setVector4(name, (float*)&v[0], num); }
 
-
-		void setRWTexture(char const* name, RHITexture2D& tex, AccessOperator op = AO_READ_AND_WRITE, int idx = -1)
+		template < GLenum TypeName >
+		void setRWTexture(char const* name, TRHITextureBase< TypeName >& tex, EAccessOperator op = AO_READ_AND_WRITE, int idx = -1)
 		{
 			int loc = getParamLoc(name);
 			if( loc == -1 )
 				return;
 			setRWTextureInternal(loc, tex.getFormat(), tex.mHandle, op, idx);
 		}
-		void setTexture(char const* name, RHITexture2D& tex, int idx = -1)
+		
+		template < GLenum TypeName >
+		void setTexture(char const* name, TRHITextureBase< TypeName >& tex, RHISamplerState& sampler, int idx = -1)
 		{
 			int loc = getParamLoc(name);
 			if( loc == -1 )
 				return;
-			return setTextureInternal(loc, GL_TEXTURE_2D, tex.mHandle, idx);
+			return setTextureInternal(loc, TypeName, tex.mHandle, sampler.mHandle, idx);
 		}
-		void setTexture(char const* name, RHITextureDepth& tex, int idx = -1)
+
+		template < GLenum TypeName >
+		void setTexture(char const* name, TRHITextureBase< TypeName >& tex, int idx = -1)
 		{
 			int loc = getParamLoc(name);
 			if( loc == -1 )
 				return;
-			return setTextureInternal(loc, GL_TEXTURE_2D, tex.mHandle, idx);
+			return setTextureInternal(loc, TypeName, tex.mHandle, idx);
 		}
-		void setTexture(char const* name, RHITextureCube& tex, int idx = -1)
-		{
-			int loc = getParamLoc(name);
-			if( loc == -1 )
-				return;
-			return setTextureInternal(loc, GL_TEXTURE_CUBE_MAP, tex.mHandle, idx);
-		}
-		void setTexture(char const* name, RHITexture3D& tex, int idx = -1)
-		{
-			int loc = getParamLoc(name);
-			if( loc == -1 )
-				return;
-			return setTextureInternal(loc, GL_TEXTURE_3D, tex.mHandle, idx);
-		}
+
+
 #if 0 //#TODO Can't Bind to texture 2d
 		void setTexture2D(char const* name, TextureCube& tex, Texture::Face face, int idx = -1)
 		{
@@ -230,15 +222,8 @@ namespace RenderGL
 		}
 #endif
 
-		void setTexture2D(char const* name, GLuint idTex, int idx = -1)
-		{
-			int loc = getParamLoc(name);
-			if( loc == -1 )
-				return;
-			setTextureInternal(loc, GL_TEXTURE_2D, idTex, idx);
-		}
 
-#define CHECK_PARAMETER( PARAM , CODE ) assert( param.isBound() ); CODE
+#define CHECK_PARAMETER( PARAM , CODE ) if ( !param.isBound() ){ LogWarning( 0 ,"Shader Param not bounded" ); } CODE
 
 		void setParam(ShaderParameter const& param, int v1) { CHECK_PARAMETER(param, setParam(param.mLoc, v1)); }
 		void setParam(ShaderParameter const& param, IntVector2 const& v ) { CHECK_PARAMETER(param, setParam(param.mLoc, v.x, v.y)); }
@@ -253,31 +238,27 @@ namespace RenderGL
 		void setParam(ShaderParameter const& param, Vector3 const v[], int num) { CHECK_PARAMETER(param, setVector3(param.mLoc, (float*)&v[0], num)); }
 		void setParam(ShaderParameter const& param, Vector4 const v[], int num) { CHECK_PARAMETER(param, setVector4(param.mLoc, (float*)&v[0], num)); }
 
-		void setRWTexture(ShaderParameter const& param, RHITexture2D& tex, AccessOperator op = AO_READ_AND_WRITE, int idx = -1)
+		template < GLenum TypeName >
+		void setRWTexture(ShaderParameter const& param, TRHITextureBase< TypeName >& tex, EAccessOperator op = AO_READ_AND_WRITE, int idx = -1)
 		{
 			CHECK_PARAMETER(param, setRWTextureInternal(param.mLoc, tex.getFormat(), tex.mHandle, op, idx));
 		}
-		void setTexture(ShaderParameter const& param, RHITexture2D& tex, int idx = -1)
+
+		template < GLenum TypeName >
+		void setTexture(ShaderParameter const& param, TRHITextureBase< TypeName >& tex, int idx = -1)
 		{
-			CHECK_PARAMETER(param, setTextureInternal(param.mLoc, GL_TEXTURE_2D, tex.mHandle, idx));
+			CHECK_PARAMETER(param, setTextureInternal(param.mLoc, TypeName, tex.mHandle, idx));
 		}
-		void setTexture(ShaderParameter const& param, RHITextureDepth& tex, int idx = -1)
+		template < GLenum TypeName >
+		void setTexture(ShaderParameter const& param, TRHITextureBase< TypeName >& tex, RHISamplerState& sampler, int idx = -1)
 		{
-			CHECK_PARAMETER(param, setTextureInternal(param.mLoc, GL_TEXTURE_2D, tex.mHandle, idx));
-		}
-		void setTexture(ShaderParameter const& param, RHITextureCube& tex, int idx = -1)
-		{
-			CHECK_PARAMETER(param, setTextureInternal(param.mLoc, GL_TEXTURE_CUBE_MAP, tex.mHandle, idx));
-		}
-		void setTexture(ShaderParameter const& param, RHITexture3D& tex, int idx = -1)
-		{
-			CHECK_PARAMETER(param, setTextureInternal(param.mLoc, GL_TEXTURE_3D, tex.mHandle, idx));
+			CHECK_PARAMETER(param, setTextureInternal(param.mLoc, TypeName, tex.mHandle, sampler.mHandle, idx));
 		}
 
 		void setUniformBuffer(ShaderUniformParameter const& param, RHIUniformBuffer& buffer);
 
 		template< class T >
-		void setUniformBuffer(RHIUniformBuffer& buffer)
+		void setUniformBufferT(RHIUniformBuffer& buffer)
 		{
 			auto& bufferStruct = T::GetStruct();
 			for( auto const& param : mUniformParameters )
@@ -290,7 +271,7 @@ namespace RenderGL
 			}
 
 			ShaderUniformParameter param;
-			if( param.bindStruct< T >(*this) )
+			if( param.bindStructT< T >(*this) )
 			{
 				mUniformParameters.push_back(param);
 				setUniformBuffer(param, buffer);
@@ -301,7 +282,7 @@ namespace RenderGL
 
 #undef CHECK_PARAMETER
 
-		void setRWTexture(int loc, RHITexture2D& tex, AccessOperator op = AO_READ_AND_WRITE, int idx = -1)
+		void setRWTexture(int loc, RHITexture2D& tex, EAccessOperator op = AO_READ_AND_WRITE, int idx = -1)
 		{
 			setRWTextureInternal(loc, tex.getFormat(), tex.mHandle, op, idx);
 		}
@@ -340,21 +321,6 @@ namespace RenderGL
 		void setVector3(int loc, float const v[], int num) { glUniform3fv(loc, num, v); }
 		void setVector4(int loc, float const v[], int num) { glUniform4fv(loc, num, v); }
 
-		void setTexture2D(int loc, GLuint idTex, int idx)
-		{
-			glActiveTexture(GL_TEXTURE0 + idx);
-			glBindTexture(GL_TEXTURE_2D, idTex);
-			setParam(loc, idx);
-			glActiveTexture(GL_TEXTURE0);
-		}
-		void setTexture1D(int loc, GLuint idTex, int idx)
-		{
-			glActiveTexture(GL_TEXTURE0 + idx);
-			glBindTexture(GL_TEXTURE_1D, idTex);
-			setParam(loc, idx);
-			glActiveTexture(GL_TEXTURE0);
-		}
-
 		static int const IdxTextureAutoBindStart = 2;
 		void setTextureInternal(int loc, GLenum texType, GLuint idTex, int idx)
 		{
@@ -365,11 +331,26 @@ namespace RenderGL
 			}
 			glActiveTexture(GL_TEXTURE0 + idx);
 			glBindTexture(texType, idTex);
+			glBindSampler(idx, 0);
 			setParam(loc, idx);
 			glActiveTexture(GL_TEXTURE0);
 		}
 
-		void setRWTextureInternal(int loc, Texture::Format format, GLuint idTex, AccessOperator op, int idx)
+		void setTextureInternal(int loc, GLenum texType, GLuint idTex, GLuint idSampler , int idx)
+		{
+			if( idx < 0 || idx >= IdxTextureAutoBindStart )
+			{
+				idx = mIdxTextureAutoBind;
+				++mIdxTextureAutoBind;
+			}
+			glActiveTexture(GL_TEXTURE0 + idx);
+			glBindTexture(texType, idTex);
+			glBindSampler(idx, idSampler);
+			setParam(loc, idx);
+			glActiveTexture(GL_TEXTURE0);
+		}
+
+		void setRWTextureInternal(int loc, Texture::Format format, GLuint idTex, EAccessOperator op, int idx)
 		{
 			if( idx < 0 || idx >= IdxTextureAutoBindStart )
 			{
@@ -382,8 +363,7 @@ namespace RenderGL
 
 
 		int  getParamLoc(char const* name) { return glGetUniformLocation(mHandle, name); }
-		static int const NumShader = 3;
-		RHIShaderRef mShaders[NumShader];
+		RHIShaderRef mShaders[Shader::NUM_SHADER_TYPE];
 		bool         mNeedLink;
 
 		//#TODO

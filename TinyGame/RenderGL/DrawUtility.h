@@ -1,7 +1,7 @@
 #ifndef GLDrawUtility_h__
 #define GLDrawUtility_h__
 
-#include "GLUtility.h"
+#include "MeshUtility.h"
 #include "GLCommon.h"
 
 #ifndef BIT
@@ -68,41 +68,41 @@ namespace RenderGL
 	public:
 		FORCEINLINE static void Draw(PrimitiveType type, RHIVertexBuffer& buffer , int nV, int vertexStride = GetVertexSize())
 		{
-			BindVertexArray((uint8 const*)0, vertexStride);
+			BindVertexPointer((uint8 const*)0, vertexStride);
 			buffer.bind();
-			glDrawArrays(GLConvert::To(type), 0, nV);
+			RHIDrawPrimitive(type, 0, nV);
 			buffer.unbind();
-			UnbindVertexArray();
+			UnbindVertexPointer();
 		}
 
 		FORCEINLINE static void DrawShader(PrimitiveType type, RHIVertexBuffer& buffer, int nV, int vertexStride = GetVertexSize())
 		{
 			BindVertexAttrib((uint8 const*)0, vertexStride);
 			buffer.bind();
-			glDrawArrays(GLConvert::To(type), 0, nV);
+			RHIDrawPrimitive(type, 0, nV);
 			buffer.unbind();
 			UnbindVertexAttrib();
 		}
 
 		FORCEINLINE static void Draw(PrimitiveType type, void const* vetrices, int nV, int vertexStride = GetVertexSize())
 		{
-			BindVertexArray((uint8 const*)vetrices, vertexStride);
-			glDrawArrays( GLConvert::To(type), 0, nV);
-			UnbindVertexArray();
+			BindVertexPointer((uint8 const*)vetrices, vertexStride);
+			RHIDrawPrimitive(type, 0, nV);
+			UnbindVertexPointer();
 		}
 
 		FORCEINLINE static void DrawShader(PrimitiveType type, void const* vetrices, int nV, int vertexStride = GetVertexSize())
 		{
 			BindVertexAttrib((uint8 const*)vetrices, vertexStride);
-			glDrawArrays(GLConvert::To(type), 0, nV);
+			RHIDrawPrimitive(type, 0, nV);
 			UnbindVertexAttrib();
 		}
 
 		FORCEINLINE static void DrawIndexed(PrimitiveType type, void const* vetrices, int nV, int const* indices, int nIndex, int vertexStride = GetVertexSize())
 		{
-			BindVertexArray((uint8 const*)vetrices, vertexStride);
+			BindVertexPointer((uint8 const*)vetrices, vertexStride);
 			glDrawElements(GLConvert::To(type), nIndex, GL_UNSIGNED_INT, indices);
-			UnbindVertexArray();
+			UnbindVertexPointer();
 		}
 
 		FORCEINLINE static void DrawIndexedShader(PrimitiveType type, void const* vetrices, int nV, int const* indices, int nIndex, int vertexStride = GetVertexSize())
@@ -134,7 +134,7 @@ namespace RenderGL
 #define VERTEX_ELEMENT_SIZE( S ) ( USE_SEMANTIC( S ) >> ( RTS_ELEMENT_BIT_OFFSET * S ) )
 #define VETEX_ELEMENT_OFFSET( S ) VertexElementOffset< VertexFormat , S >::Result
 
-		FORCEINLINE static void BindVertexArray(uint8 const* v, uint32 vertexStride)
+		FORCEINLINE static void BindVertexPointer(uint8 const* v, uint32 vertexStride , LinearColor const* overwriteColor = nullptr )
 		{
 			if( USE_SEMANTIC( RTS_Position) )
 			{
@@ -142,7 +142,11 @@ namespace RenderGL
 				glVertexPointer( VERTEX_ELEMENT_SIZE(RTS_Position) , GL_FLOAT, vertexStride, v + VETEX_ELEMENT_OFFSET( RTS_Position ));
 			}
 
-			if( USE_SEMANTIC(RTS_Color) )
+			if ( overwriteColor )
+			{
+				glColor4fv(*overwriteColor);
+			}
+			else if( USE_SEMANTIC(RTS_Color) )
 			{
 				glEnableClientState(GL_COLOR_ARRAY);
 				glColorPointer(VERTEX_ELEMENT_SIZE(RTS_Color), GL_FLOAT, vertexStride, v + VETEX_ELEMENT_OFFSET(RTS_Color));
@@ -163,13 +167,13 @@ namespace RenderGL
 			}
 		}
 
-		FORCEINLINE static void UnbindVertexArray()
+		FORCEINLINE static void UnbindVertexPointer(LinearColor const* overwriteColor = nullptr )
 		{
 			if( USE_SEMANTIC(RTS_Position) )
 			{
 				glDisableClientState(GL_VERTEX_ARRAY);
 			}
-			if( USE_SEMANTIC(RTS_Color) )
+			if( overwriteColor == nullptr && USE_SEMANTIC(RTS_Color) )
 			{
 				glDisableClientState(GL_COLOR_ARRAY);
 			}
@@ -184,7 +188,7 @@ namespace RenderGL
 			}
 		}
 
-		FORCEINLINE static void BindVertexAttrib(uint8 const* v, uint32 vertexStride)
+		FORCEINLINE static void BindVertexAttrib(uint8 const* v, uint32 vertexStride , LinearColor const* overwriteColor = nullptr )
 		{
 #define VERTEX_ATTRIB_BIND( ATTR , RTS )\
 			if( USE_SEMANTIC(RTS ) )\
@@ -194,14 +198,21 @@ namespace RenderGL
 			}
 
 			VERTEX_ATTRIB_BIND(ATTRIBUTE_POSITION, RTS_Position);
-			VERTEX_ATTRIB_BIND(ATTRIBUTE_COLOR, RTS_Color);
+			if( overwriteColor )
+			{
+				glVertexAttrib4fv(Vertex::ATTRIBUTE_COLOR, *overwriteColor);
+			}
+			else
+			{
+				VERTEX_ATTRIB_BIND(ATTRIBUTE_COLOR, RTS_Color);
+			}
 			VERTEX_ATTRIB_BIND(ATTRIBUTE_NORMAL, RTS_Normal);		
 			VERTEX_ATTRIB_BIND(ATTRIBUTE_TEXCOORD, RTS_Texcoord);
 
 #undef VERTEX_ATTRIB_BIND
 		}
 
-		FORCEINLINE static void UnbindVertexAttrib()
+		FORCEINLINE static void UnbindVertexAttrib(LinearColor const* overwriteColor = nullptr)
 		{
 #define VERTEX_ATTRIB_UNBIND( ATTR , RTS )\
 			if( USE_SEMANTIC(RTS) )\
@@ -211,7 +222,11 @@ namespace RenderGL
 
 			VERTEX_ATTRIB_UNBIND(ATTRIBUTE_POSITION, RTS_Position);
 			VERTEX_ATTRIB_UNBIND(ATTRIBUTE_NORMAL, RTS_Normal);
-			VERTEX_ATTRIB_UNBIND(ATTRIBUTE_COLOR, RTS_Color);
+			if ( overwriteColor ){}
+			else
+			{
+				VERTEX_ATTRIB_UNBIND(ATTRIBUTE_COLOR, RTS_Color);
+			}
 			VERTEX_ATTRIB_UNBIND(ATTRIBUTE_TEXCOORD, RTS_Texcoord);
 
 #undef VERTEX_ATTRIB_UNBIND
@@ -244,11 +259,156 @@ namespace RenderGL
 		static void Sprite(Vector2 const& pos, Vector2 const& size, Vector2 const& pivot, Vector2 const& texPos, Vector2 const& texSize);
 
 		static void DrawTexture(RHITexture2D& texture, Vec2i const& pos, Vec2i const& size);
+		static void DrawTexture(RHITexture2D& texture, RHISamplerState& sampler , Vec2i const& pos, Vec2i const& size);
 		static void DrawCubeTexture(RHITextureCube& texCube, Vec2i const& pos, int length);
 
 	};
 
 
+	class SimpleCamera
+	{
+	public:
+		SimpleCamera()
+			:mPos(0, 0, 0)
+			, mYaw(0)
+			, mPitch(0)
+			, mRoll(0)
+		{
+			updateInternal();
+		}
+		void setPos(Vector3 const& pos) { mPos = pos; }
+		void setViewDir(Vector3 const& forwardDir, Vector3 const& upDir)
+		{
+			LookAtMatrix mat(Vector3::Zero(), forwardDir, upDir);
+			mRotation.setMatrix(mat);
+			mRotation = mRotation.inverse();
+			Vector3 angle = mRotation.getEulerZYX();
+			mYaw = angle.z;
+			mRoll = angle.y;
+			mPitch = angle.x;
+		}
+		void setRotation(float yaw, float pitch, float roll)
+		{
+			mYaw = yaw;
+			mPitch = pitch;
+			mRoll = roll;
+			updateInternal();
+		}
+
+		Matrix4 getViewMatrix() const { return LookAtMatrix(mPos, getViewDir(), getUpDir()); }
+		Matrix4 getTransform() const { return Matrix4(mPos, mRotation); }
+		Vector3 const& getPos() const { return mPos; }
+
+		static Vector3 LocalViewDir() { return Vector3(0, 0, -1); }
+		static Vector3 LocalUpDir() { return Vector3(0, 1, 0); }
+
+		Vector3 getViewDir() const { return mRotation.rotate(LocalViewDir()); }
+		Vector3 getUpDir() const { return mRotation.rotate(LocalUpDir()); }
+		Vector3 getRightDir() const { return mRotation.rotate(Vector3(1, 0, 0)); }
+
+		void    moveRight(float dist) { mPos += mRotation.rotate(Vector3(dist, 0, 0)); }
+		void    moveFront(float dist) { mPos += dist * getViewDir(); }
+		void    moveUp(float dist) { mPos += dist * getUpDir(); }
+
+
+		Vector3 toWorld(Vector3 const& p) const { return mPos + mRotation.rotate(p); }
+		Vector3 toLocal(Vector3 const& p) const { return mRotation.rotateInverse(p - mPos); }
+
+		void    rotateByMouse(float dx, float dy)
+		{
+			mYaw -= dx;
+			mPitch -= dy;
+			//float const f = 0.00001;
+			//if ( mPitch < f )
+			//	mPitch = f;
+			//else if ( mPitch > Deg2Rad(180) - f )
+			//	mPitch = Deg2Rad(180) - f;
+			updateInternal();
+		}
+
+	private:
+		void updateInternal()
+		{
+			mRotation.setEulerZYX(mYaw, mRoll, mPitch);
+		}
+
+		Quaternion mRotation;
+		Vector3 mPos;
+		float   mYaw;
+		float   mPitch;
+		float   mRoll;
+	};
+
+
+	class Font
+	{
+	public:
+		Font() { base = 0; }
+		explicit Font(int size, HDC hDC) { buildFontImage(size, hDC); }
+		~Font();
+		void create(int size, HDC hDC);
+		void printf(char const* fmt, ...);
+		void print(char const* str);
+	private:
+		void buildFontImage(int size, HDC hDC);
+		GLuint	base;
+	};
+
+
+	struct MatrixSaveScope
+	{
+		MatrixSaveScope(Matrix4 const& projMat, Matrix4 const& viewMat)
+		{
+			glMatrixMode(GL_PROJECTION);
+			glPushMatrix();
+			glLoadMatrixf(projMat);
+			glMatrixMode(GL_MODELVIEW);
+			glPushMatrix();
+			glLoadMatrixf(viewMat);
+		}
+
+		MatrixSaveScope(Matrix4 const& projMat)
+		{
+			glMatrixMode(GL_PROJECTION);
+			glPushMatrix();
+			glLoadMatrixf(projMat);
+			glMatrixMode(GL_MODELVIEW);
+			glPushMatrix();
+			glLoadIdentity();
+		}
+
+		MatrixSaveScope()
+		{
+			glMatrixMode(GL_PROJECTION);
+			glPushMatrix();
+			glMatrixMode(GL_MODELVIEW);
+			glPushMatrix();
+		}
+
+		~MatrixSaveScope()
+		{
+			glMatrixMode(GL_MODELVIEW);
+			glPopMatrix();
+			glMatrixMode(GL_PROJECTION);
+			glPopMatrix();
+			glMatrixMode(GL_MODELVIEW);
+		}
+	};
+
+	struct ViewportSaveScope
+	{
+		ViewportSaveScope()
+		{
+			glGetIntegerv(GL_VIEWPORT, value);
+		}
+		~ViewportSaveScope()
+		{
+			RHISetViewport(value[0], value[1], value[2], value[3]);
+		}
+
+		int operator[](int idx) const { return value[idx]; }
+		int value[4];
+	};
 
 }//namespace GL
 

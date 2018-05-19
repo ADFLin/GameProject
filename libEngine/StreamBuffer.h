@@ -139,9 +139,9 @@ public:
 			return;
 
 		typedef typename Meta::Select< 
-			(sizeof(T) > 8) && Meta::IsPod< T >::Result ,
+			(sizeof(T) > 8) && Meta::IsPod< T >::Value ,
 			MemcpyStrategy , AssignStrategy 
-		>::ResultType Strategy;
+		>::Type Strategy;
 
 		Strategy::fill( mData + mFillSize , val );
 		mFillSize += sizeof( T );
@@ -154,9 +154,9 @@ public:
 			return;
 
 		typedef typename Meta::Select< 
-			( sizeof( T ) > 8 ) && Meta::IsPod< T >::Result , 
+			( sizeof( T ) > 8 ) && Meta::IsPod< T >::Value , 
 			MemcpyStrategy , AssignStrategy 
-		>::ResultType Strategy;
+		>::Type Strategy;
 
 		Strategy::take( mData + mUseSize , val );
 		mUseSize += sizeof( T );

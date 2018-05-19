@@ -426,18 +426,6 @@ namespace Go
 
 		if( bAnalysisEnabled )
 		{
-#if !USE_MODIFY_LEELA_PROGRAM
-			if( bAnalysisPondering )
-			{
-				remainingAnalysisTime -= time;
-				if( remainingAnalysisTime < 0 )
-				{
-					mLeelaAIRun.stopPonder();
-					mLeelaAIRun.startPonder(analysisPonderColor);
-					remainingAnalysisTime = timeOutputAnalysisResult;
-				}
-			}
-#endif
 			mLeelaAIRun.update();
 			auto ProcFun = [&](GameCommand& com)
 			{
@@ -464,7 +452,7 @@ namespace Go
 						}
 						else
 						{
-							LogMsgF("Warning:Can't Play step : [%d,%d]", com.pos[0], com.pos[1]);
+							LogMsg("Warning:Can't Play step : [%d,%d]", com.pos[0], com.pos[1]);
 						}
 					}
 					break;
@@ -496,6 +484,7 @@ namespace Go
 		GpuProfiler::Get().beginFrame();
 
 		glClear(GL_COLOR_BUFFER_BIT);
+		RHISetDepthStencilState(StaticDepthDisableState::GetRHI());
 
 		auto& viewingGame = getViewingGame();
 
@@ -621,7 +610,8 @@ namespace Go
 			ViewportSaveScope viewportSave;
 			int renderWidth = 250;
 			int renderHeight = 300;
-			glViewport( screenSize.x - (renderWidth + 10 ), 10, renderWidth, renderHeight);
+
+			RHISetViewport(screenSize.x - (renderWidth + 10), 10, renderWidth, renderHeight);
 			MatrixSaveScope matrixSaveScope;
 			glMatrixMode(GL_PROJECTION);
 
@@ -652,7 +642,7 @@ namespace Go
 			if( !buffer.empty() )
 			{
 				glColor3f(0.3, 0.3, 0.3);
-				TRenderRT< RTVF_XY >::Draw(PrimitiveType::eLineList, &buffer[0], buffer.size());
+				TRenderRT< RTVF_XY >::Draw(PrimitiveType::LineList, &buffer[0], buffer.size());
 			}
 
 			Vector3 colors[2] = { Vector3(1,0,0) , Vector3(0,1,0) };
@@ -662,6 +652,7 @@ namespace Go
 				auto& winRateHistory = mWinRateHistory[i];
 				if( winRateHistory.empty() )
 					continue;
+
 				{
 					if( i == 0 )
 					{
@@ -679,13 +670,12 @@ namespace Go
 						Vector4(colors[i], alpha[i]),
 						Vector4(0.3 * colors[i], alpha[i]));
 
-					TRenderRT< RTVF_XY >::DrawShader(PrimitiveType::eLineStrip, &winRateHistory[0], winRateHistory.size());
-
-					RHISetBlendState(TStaticBlendState<>::GetRHI());
+					TRenderRT< RTVF_XY >::DrawShader(PrimitiveType::LineStrip, &winRateHistory[0], winRateHistory.size());
 				}
 
+				RHISetBlendState(TStaticBlendState<>::GetRHI());
 				glColor3fv(colors[i]);
-				TRenderRT< RTVF_XY >::Draw(PrimitiveType::eLineStrip, &winRateHistory[0], winRateHistory.size());
+				TRenderRT< RTVF_XY >::Draw(PrimitiveType::LineStrip, &winRateHistory[0], winRateHistory.size());
 			}
 
 
@@ -698,7 +688,7 @@ namespace Go
 			};
 
 			glColor3f(0, 0, 1);
-			TRenderRT< RTVF_XY >::Draw(PrimitiveType::eLineList, &lines[0], ARRAY_SIZE(lines));
+			TRenderRT< RTVF_XY >::Draw(PrimitiveType::LineList, &lines[0], ARRAY_SIZE(lines));
 		}
 
 		GpuProfiler::Get().endFrame();
@@ -727,7 +717,7 @@ namespace Go
 			}
 			else
 			{
-				str.format("Job Type = Self Play");
+				str.format("Job Type = Self Play , Weight = %s" , mUsedWeight.c_str() );
 			}
 			g.drawText(200, 35, str);
 
@@ -1222,7 +1212,7 @@ namespace Go
 			case GameCommand::eResign:
 				{
 					char const* name = (color == StoneColor::eBlack) ? "Black" : "White";
-					LogMsgF("%s Resigned", name);
+					LogMsg("%s Resigned", name);
 				}
 				break;
 			case GameCommand::eEnd:
@@ -1251,9 +1241,11 @@ namespace Go
 					case LeelaGameParam::eMatchChallengerColor:
 						matchChallenger = com.intParam;
 						break;
-					case LeelaGameParam::eLastNetWeight:
-						{
-							::Global::GameConfig().setKeyValue("LeelaLastNetWeight", "Go", com.strParam);
+					case LeelaGameParam::eNetWeight:
+						{	
+							mUsedWeight = StringView(com.strParam, 8);
+							if ( strcmp( com.strParam , ELFWeight) !=0 )
+								::Global::GameConfig().setKeyValue("LeelaLastNetWeight", "Go", com.strParam);
 						}
 						break;
 					}
@@ -1268,7 +1260,7 @@ namespace Go
 					}
 					else
 					{
-						LogMsgF("Warning:Can't Play step : [%d,%d]", com.pos[0], com.pos[1]);
+						LogMsg("Warning:Can't Play step : [%d,%d]", com.pos[0], com.pos[1]);
 					}
 
 				}
@@ -1410,7 +1402,7 @@ namespace Go
 					v.x = ( mGame.getCurrentStep() + 1 ) / 2;
 					v.y = com.floatParam;
 					mWinRateHistory[indexPlayer].push_back(v);
-					//LogMsgF("Win rate = %.2f", com.floatParam);
+					//LogMsg("Win rate = %.2f", com.floatParam);
 				}
 				break;
 			}
@@ -1441,7 +1433,7 @@ namespace Go
 				}
 				else
 				{
-					LogMsgF("Warning:Can't Play step : [%d,%d]", com.pos[0], com.pos[1]);
+					LogMsg("Warning:Can't Play step : [%d,%d]", com.pos[0], com.pos[1]);
 				}
 
 			}
@@ -1456,7 +1448,7 @@ namespace Go
 		if( bAnalysisEnabled )
 			return true;
 
-		if( !mLeelaAIRun.buildAnalysisGame() )
+		if( !mLeelaAIRun.buildAnalysisGame( true ) )
 			return false;
 
 		bAnalysisPondering = false;
@@ -1501,9 +1493,6 @@ namespace Go
 
 		if( bAnalysisPondering )
 		{
-#if !USE_MODIFY_LEELA_PROGRAM
-			remainingAnalysisTime = timeOutputAnalysisResult;
-#endif
 			analysisPonderColor = mGame.getNextPlayColor();
 			mLeelaAIRun.startPonder(analysisPonderColor);
 		}
@@ -1681,6 +1670,48 @@ namespace Go
 		filePicker->filePath.replace('/', '\\');
 	}
 
+	void MatchSettingPanel::addZenParamWidget(int id, int idxPlayer)
+	{
+		Zen::CoreSetting setting = ZenBot::GetCoreConfigSetting();
+		GTextCtrl* textCtrl;
+		textCtrl = addTextCtrl(id + UPARAM_SIMULATIONS_NUM, "Num Simulations", BIT(idxPlayer), idxPlayer);
+		textCtrl->setValue(std::to_string(setting.numSimulations).c_str());
+		textCtrl = addTextCtrl(id + UPARAM_MAX_TIME, "Max Time", BIT(idxPlayer), idxPlayer);
+		FixString<512> valueStr;
+		textCtrl->setValue(valueStr.format("%g", setting.maxTime));
+	}
+
+	GChoice* MatchSettingPanel::addPlayerChoice(int idxPlayer, char const* title)
+	{
+		int id = idxPlayer ? UI_CONTROLLER_TYPE_B : UI_CONTROLLER_TYPE_A;
+		GChoice* choice = addChoice(id, title, 0, idxPlayer);
+		for( int i = 0; i < (int)ControllerType::Count; ++i )
+		{
+			uint slot = choice->addItem(GetControllerName(ControllerType(i)));
+			choice->setItemData(slot, (void*)i);
+		}
+
+		choice->onEvent = [this, idxPlayer](int event, GWidget* ui)
+		{
+			removeChildWithMask(BIT(idxPlayer));
+			switch( (ControllerType)(intptr_t)ui->cast< GChoice >()->getSelectedItemData() )
+			{
+			case ControllerType::eLeelaZero:
+				addLeelaParamWidget(ui->getID(), idxPlayer);
+				break;
+			case ControllerType::eZenV7:
+			case ControllerType::eZenV6:
+			case ControllerType::eZenV4:
+				addZenParamWidget(ui->getID(), idxPlayer);
+			default:
+				break;
+			}
+			adjustChildLayout();
+			return false;
+		};
+		return choice;
+	}
+
 	bool MatchSettingPanel::setupMatchSetting(MatchGameData& matchData, GameSetting& setting)
 	{
 		ControllerType types[2] =
@@ -1688,6 +1719,8 @@ namespace Go
 			(ControllerType)(intptr_t)findChildT<GChoice>(UI_CONTROLLER_TYPE_A)->getSelectedItemData(),
 			(ControllerType)(intptr_t)findChildT<GChoice>(UI_CONTROLLER_TYPE_B)->getSelectedItemData()
 		};
+
+		bool bHavePlayerController = types[0] == ControllerType::ePlayer || types[1] == ControllerType::ePlayer;
 
 		matchData.bAutoRun = findChildT<GCheckBox>(UI_AUTO_RUN)->bChecked;
 		for( int i = 0; i < 2; ++i )
@@ -1701,6 +1734,11 @@ namespace Go
 					std::string weightName = findChildT<GFilePicker>(id + UPARAM_WEIGHT_NAME)->filePath.c_str();
 					setting.weightName = FileUtility::GetDirPathPos(weightName.c_str()) + 1;
 					setting.visits = atoi(findChildT<GTextCtrl>(id + UPARAM_VISITS)->getValue());
+					setting.bUseModifyVersion = true;
+					if( bHavePlayerController )
+					{
+						setting.resignpct = 0;
+					}
 					if( !matchData.players[i].initialize(types[i], &setting) )
 						return false;
 				}

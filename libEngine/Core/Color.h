@@ -101,8 +101,8 @@ public:
 	template< class Q >
 	TColor3(TColor3<Q> const& c)
 		: r(ColorTypeTraints::Normlize(c.r))
-		: g(ColorTypeTraints::Normlize(c.g))
-		: b(ColorTypeTraints::Normlize(c.b))
+		, g(ColorTypeTraints::Normlize(c.g))
+		, b(ColorTypeTraints::Normlize(c.b))
 	{
 	}
 
@@ -133,7 +133,7 @@ public:
 
 	TColor4() {}
 	TColor4(T cr, T cg, T cb, T ca = ColorTypeTraints::Max()) :TColor3<T>(cr, cg, cb), a(ca) {}
-	TColor4(TColor3<T> const& rh) :TColor3<T>(rh), a(ColorTypeTraints::Max()) {}
+	TColor4(TColor3<T> const& rh , float ca = ColorTypeTraints::Max()) :TColor3<T>(rh), a(ca) {}
 	TColor4(T const* v) :TColor3<T>(v), a(v[3]) {}
 	TColor4(Vector3 const& v) :TColor3<T>(v) , a(ColorTypeTraints::Max()){}
 	TColor4(Vector4 const& v) :TColor3<T>(v), a(v.w) {}

@@ -110,6 +110,7 @@ namespace Math
 		operator       float* ()       { return m_val; }
 		operator const float* () const { return m_val; }
 
+		Vector4 row(int index) const { return Vector4(&m_m[index][0]); }
 		void setTransform( Vector3 const& pos , Quaternion const& q );
 		void setScale( Vector3 const& factor )
 		{
@@ -165,7 +166,7 @@ namespace Math
 		// result = this * m
 		Matrix4 leftMul ( Matrix3 const& m ) const;
 		// result = m * this
-		Matrix4 rightMul( Matrix3 const& m ) const;
+		Matrix4   rightMul( Matrix3 const& m ) const;
 		Vector3   leftMul ( Vector3 const& v ) const;
 		Vector3   rightMul( Vector3 const& v ) const;
 		Vector4   leftMul ( Vector4 const& v ) const;

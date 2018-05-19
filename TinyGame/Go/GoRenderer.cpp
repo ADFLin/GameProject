@@ -93,7 +93,7 @@ namespace Go
 				if( !mSpriteVertices.empty() )
 				{
 					GL_BIND_LOCK_OBJECT(mTextureAtlas.getTexture());
-					TRenderRT< RTVF_XY_CA_T2 >::Draw(PrimitiveType::eQuad, &mSpriteVertices[0], mSpriteVertices.size());
+					TRenderRT< RTVF_XY_CA_T2 >::Draw(PrimitiveType::Quad, &mSpriteVertices[0], mSpriteVertices.size());
 					mSpriteVertices.clear();
 				}
 			}
@@ -132,6 +132,8 @@ namespace Go
 
 		int const border = 40;
 		float const boardRenderLength = length + 2 * border;
+
+		RHISetBlendState(TStaticBlendState<>::GetRHI());
 
 #if DRAW_TEXTURE
 		glColor3f(1, 1, 1);
@@ -241,13 +243,12 @@ namespace Go
 				if( !mSpriteVertices.empty() )
 				{
 					GL_BIND_LOCK_OBJECT(mTextureAtlas.getTexture());
-					TRenderRT< RTVF_XY_CA_T2 >::Draw(PrimitiveType::eQuad, &mSpriteVertices[0], mSpriteVertices.size());
+					TRenderRT< RTVF_XY_CA_T2 >::Draw(PrimitiveType::Quad, &mSpriteVertices[0], mSpriteVertices.size());
 					mSpriteVertices.clear();
 				}
 			}
 
 			glDisable(GL_TEXTURE_2D);
-			RHISetBlendState(TStaticBlendState<>::GetRHI());
 #endif
 		}
 

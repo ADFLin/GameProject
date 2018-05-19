@@ -278,7 +278,7 @@ bool TResManager::checkResLoaded( IResBase* resData , bool beWait )
 			}
 			else
 			{
-				LogErrorF("Can't load Res : type = %s , name = %s" , 
+				LogError("Can't load Res : type = %s , name = %s" , 
 					ResTypStr[ resData->resType ] , 
 					resData->resName.c_str() );
 			}
@@ -672,7 +672,7 @@ bool SceneMapRes::load()
 	fileName = mapDir + "/" + resName + ".ter";
 	if ( !terrainMesh->load( fileName.c_str() ) )
 	{
-		LogErrorF( "cant Load TerrainData! , map = %s" , resName.c_str() );
+		LogError( "cant Load TerrainData! , map = %s" , resName.c_str() );
 		goto load_fail;
 	}
 
@@ -683,7 +683,7 @@ bool SceneMapRes::load()
 	fileName = mapDir + "/" + resName + ".nav";
 	if ( !navMesh.load( fileName.c_str() ) )
 	{
-		LogErrorF( "cant Load NavMesh! , map = %s" , resName.c_str() ); 
+		LogError( "cant Load NavMesh! , map = %s" , resName.c_str() ); 
 		goto load_fail;
 	}
 

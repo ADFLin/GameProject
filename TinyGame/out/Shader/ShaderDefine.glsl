@@ -49,6 +49,11 @@ typedef TVec4<uint> uint4;
 typedef TVec3<uint> uint3;
 typedef TVec2<uint> uint2;
 
+
+typedef TVec4<bool> bool4;
+typedef TVec3<bool> bool3;
+typedef TVec2<bool> bool2;
+
 typedef TVec4<int> int4;
 typedef TVec3<int> int3;
 typedef TVec2<int> int2;
@@ -140,6 +145,10 @@ typedef uint4 uvec4;
 typedef int2 ivec2;
 typedef int3 ivec3;
 typedef int4 ivec4;
+typedef bool2 bvec2;
+typedef bool3 bvec3;
+typedef bool4 bvec4;
+
 typedef float3x3 mat3;
 typedef float4x4 mat4;
 
@@ -158,6 +167,25 @@ template< class T >
 T dFdx(T);
 template< class T >
 T dFdy(T);
+
+template< class T >
+T lessThan(T, T);
+template< class T >
+T lessThanEqual(T, T);
+template< class T >
+T greaterThan(T, T);
+template< class T >
+T greaterThanEqual(T, T);
+template< class T >
+T equal(T, T);
+template< class T >
+T notEqual(T, T);
+template< class T >
+bool any(T);
+template< class T >
+bool all(T);
+template< class T >
+bool not(T);
 
 
 //BUILT-IN CONSTANTS (7.4 p44) 
@@ -412,7 +440,7 @@ out int gl_SampleMask[];
 
 //Compute Shader
 
-//layout(local_size_x = X​, local_size_y = Y​, local_size_z = Z​) in;
+//layout(local_size_x = SIZE_X, local_size_y = SIZE_Y, local_size_z = 1) in;
 int local_size_x;
 int local_size_y;
 int local_size_z;
@@ -439,6 +467,7 @@ class uimage3D;
 
 enum
 {
+	rgba32f ,
 	rgba16f ,
 	r32i ,
 	rg32i,
@@ -479,6 +508,9 @@ template< class gimage >
 uint imageAtomicExchange(gimage image​, uint data);
 template< class gimage >
 uint imageAtomicCompSwap(gimage image​, uint compare, uint data);
+
+template< class gimage >
+float4 texelFetch(gimage image, int32 data);
 
 //Atomic Counter
 

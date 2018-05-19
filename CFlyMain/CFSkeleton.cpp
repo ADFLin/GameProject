@@ -248,7 +248,7 @@ namespace CFly
 			BoneNode* bone = mBoneVec[i];
 			Matrix4& boneTrans = matVec[bone->id];
 			bone->calcFrameTransform( boneTrans , frame , frame + 1 , fract );
-			TransformUntility::mul( boneTrans , boneTrans , matVec[ bone->parentId ] );
+			FTransform::Mul( boneTrans , boneTrans , matVec[ bone->parentId ] );
 		}
 	}
 
@@ -264,7 +264,7 @@ namespace CFly
 			BoneNode* bone = mBoneVec[i];
 			Matrix4& boneTrans = matVec[bone->id];
 			bone->calcFrameTransform( boneTrans , frames , weights , num );
-			TransformUntility::mul( boneTrans , boneTrans , matVec[ bone->parentId ] );
+			FTransform::Mul( boneTrans , boneTrans , matVec[ bone->parentId ] );
 		}
 	}
 
@@ -286,7 +286,7 @@ namespace CFly
 
 			Matrix4& worldTrans = globalTransVec[ bone->id ];
 			bone->calcFrameTransform( worldTrans , 0 );
-			TransformUntility::mul( worldTrans , worldTrans , parentTrans );
+			FTransform::Mul( worldTrans , worldTrans , parentTrans );
 
 			float det;
 			bool result = worldTrans.inverseAffine( bone->invLocalTrans , det );
@@ -310,8 +310,8 @@ namespace CFly
 					BoneNode* bone = getBone(i);
 					Matrix4 worldTrans;
 					//World = InvLocal * Bone * BaseWorld
-					TransformUntility::mul( worldTrans , bone->invLocalTrans , boneTrans[i] );
-					TransformUntility::mul( worldTrans , worldTrans , baseWorld );
+					FTransform::Mul( worldTrans , bone->invLocalTrans , boneTrans[i] );
+					FTransform::Mul( worldTrans , worldTrans , baseWorld );
 					renderSys->setWorldMatrix( i , worldTrans );
 				}
 			}
@@ -321,7 +321,7 @@ namespace CFly
 				{
 					BoneNode* bone = getBone(i);
 					Matrix4 worldTrans;
-					TransformUntility::mul( worldTrans , boneTrans[i] , baseWorld );
+					FTransform::Mul( worldTrans , boneTrans[i] , baseWorld );
 					renderSys->setWorldMatrix( i , worldTrans );
 				}
 			}

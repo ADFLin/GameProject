@@ -258,14 +258,35 @@ namespace RenderGL
 		class SSAOAmbientProgram*  mProgAmbient;
 
 	};
-	inline float normalizePlane(Vector4& plane)
+
+	class PostProcessDOF : public PostProcess
+	{
+	public:
+		bool init(Vec2i const& size);
+		void render(ViewInfo& view, SceneRenderTargets& sceneRenderTargets);
+
+		FrameBuffer mFrameBufferGen;
+		RHITexture2DRef mTextureNear;
+		RHITexture2DRef mTextureFar;
+
+		FrameBuffer mFrameBufferBlur;
+		RHITexture2DRef mTextureBlurR;
+		RHITexture2DRef mTextureBlurG;
+		RHITexture2DRef mTextureBlurB;
+
+
+		class DOFGenerateCoC*  mProgGenCoc;
+		class DOFBlurVProgram* mProgBlurV;
+		class DOFBlurHAndCombineProgram* mProgBlurHAndCombine;
+	};
+
+	inline float NormalizePlane(Vector4& plane)
 	{
 		float len2 = plane.xyz().dot(plane.xyz());
 		float invSqrt = Math::InvSqrt(len2);
 		plane *= invSqrt;
 		return invSqrt;
 	}
-
 
 	enum LightBoundMethod
 	{
@@ -288,6 +309,57 @@ namespace RenderGL
 			mParamGBuffer.setParameters(*this, sceneRenderTargets);
 		}
 		GBufferShaderParameters mParamGBuffer;
+	};
+
+	struct TitledLightInfo
+	{
+		DECLARE_UNIFORM_STRUCT(TitledLightBlock);
+
+		Vector3 pos;
+		int32   type; 
+		Vector3 color;
+		float   intensity;
+		Vector3 dir;
+		float   radius;
+		Vector4 param; // x y: spotAngle  , z : shadowFactor
+		Matrix4 worldToShadow;
+	};
+
+
+	struct SceneLightPrimtive
+	{
+		LightInfo const* light;
+		RHITextureRef shadowMap;
+	};
+
+	class VolumetricLightingTech : public RenderTechnique
+	{	
+
+	public:
+
+		bool init(Vec2i const& screenSize);
+
+		void releaseRHI()
+		{
+			mVolumeBufferA.release();
+			mVolumeBufferB.release();
+			mScatteringBuffer.release();
+			mTiledLightBuffer.release();
+		}
+
+		static int constexpr MaxTiledLightNum = 1024;
+		bool setupBuffer(Vec2i const& screenSize, int sizeFactor, int depthSlices);
+
+
+		void render(ViewInfo& view, std::vector< LightInfo > const& lights);
+		RHITexture3DRef mVolumeBufferA;
+		RHITexture3DRef mVolumeBufferB;
+		RHITexture3DRef mScatteringBuffer;
+		RHITexture2DRef mShadowMapAtlas;
+		RHIUniformBufferRef mTiledLightBuffer;
+
+		class ClearBufferProgram* mProgClearBuffer;
+		class LightScatteringProgram* mProgLightScattering;
 	};
 
 	class DefferredShadingTech : public RenderTechnique
@@ -363,8 +435,8 @@ namespace RenderGL
 
 		void renderInternal(ViewInfo& view , std::function< void() > drawFuncion , SceneRenderTargets* sceneRenderTargets = nullptr );
 
-		static int const NumBMALevel = 2;
-		int BMA_MaxPixelCounts[NumBMALevel] =
+		
+		static constexpr int BMA_MaxPixelCounts[] =
 		{
 			//256 ,
 			//128 , 
@@ -374,6 +446,7 @@ namespace RenderGL
 			16 ,  
 			//8 ,
 		};
+		static int const NumBMALevel = sizeof( BMA_MaxPixelCounts ) / sizeof( BMA_MaxPixelCounts[0] );
 		int BMA_InternalValMin[NumBMALevel];
 
 		ShaderProgram mShaderBassPassTest;
@@ -391,9 +464,9 @@ namespace RenderGL
 
 		FrameBuffer mFrameBuffer;
 
-		void setupShader(ShaderProgram& shader);
+		void setupShader(ShaderProgram& program);
 		virtual MaterialShaderProgram* getMaterialShader( RenderContext& context , MaterialMaster& material , VertexFactory* vertexFactory) override;
-		virtual void setupMaterialShader(RenderContext& context, ShaderProgram& shader) override;
+		virtual void setupMaterialShader(RenderContext& context, ShaderProgram& program) override;
 
 	};
 }//namespace RenderGL

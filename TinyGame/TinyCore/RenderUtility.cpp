@@ -3,6 +3,7 @@
 
 #include "GameGlobal.h"
 #include "GLGraphics2D.h"
+#include "RenderGL/RHIGraphics2D.h"
 
 #include <algorithm>
 
@@ -143,7 +144,40 @@ void RenderUtility::SetFont(GLGraphics2D& g , int fontID)
 {
 	//#TODO
 	g.setFont( FontGL[ fontID ] );
+}
 
+void RenderUtility::SetPen(RenderGL::RHIGraphics2D& g, int color, int type)
+{
+	if( color == Color::eNull )
+	{
+		g.enablePen(false);
+	}
+	else
+	{
+		COLORREF const& c = gColorMap[type][color];
+		g.enablePen(true);
+		g.setPen(Color3ub(GetRValue(c), GetGValue(c), GetBValue(c)));
+	}
+}
+
+void RenderUtility::SetBrush(RenderGL::RHIGraphics2D& g, int color, int type /*= COLOR_NORMAL */)
+{
+	if( color == Color::eNull )
+	{
+		g.enableBrush(false);
+	}
+	else
+	{
+		COLORREF const& c = gColorMap[type][color];
+		g.enableBrush(true);
+		g.setBrush(Color3ub(GetRValue(c), GetGValue(c), GetBValue(c)));
+	}
+}
+
+void RenderUtility::SetFont(RenderGL::RHIGraphics2D& g, int fontID)
+{
+	//#TODO
+	g.setFont(FontGL[fontID]);
 }
 
 void RenderUtility::SetPen(IGraphics2D& g , int color , int type )
@@ -152,6 +186,7 @@ void RenderUtility::SetPen(IGraphics2D& g , int color , int type )
 	{
 		virtual void visit(Graphics2D& g){  RenderUtility::SetPen(  g , color );  }
 		virtual void visit(GLGraphics2D& g){  RenderUtility::SetPen(  g , color );  }
+		virtual void visit(RenderGL::RHIGraphics2D& g) { RenderUtility::SetPen(g, color); }
 		int color;
 		int type;
 	} visitor;
@@ -166,6 +201,7 @@ void RenderUtility::SetBrush(IGraphics2D& g , int color , int type /*= COLOR_NOR
 	{
 		virtual void visit(Graphics2D& g){  RenderUtility::SetBrush(  g , color , type  );  }
 		virtual void visit(GLGraphics2D& g){  RenderUtility::SetBrush(  g , color , type );  }
+		virtual void visit(RenderGL::RHIGraphics2D& g) { RenderUtility::SetBrush(g, color, type); }
 		int color;
 		int type;
 	} visitor;
@@ -180,6 +216,7 @@ void RenderUtility::SetFont(IGraphics2D& g , int fontID )
 	{
 		virtual void visit(Graphics2D& g){  RenderUtility::SetFont(  g , fontID );  }
 		virtual void visit(GLGraphics2D& g){  RenderUtility::SetFont(  g , fontID );  }
+		virtual void visit(RenderGL::RHIGraphics2D& g) { RenderUtility::SetFont(g, fontID); }
 		int fontID;
 	} visitor;
 	visitor.fontID = fontID;

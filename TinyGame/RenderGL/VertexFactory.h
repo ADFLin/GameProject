@@ -23,6 +23,10 @@ namespace RenderGL
 		CreateShaderDataFun CreateShaderData;
 
 		void getCompileOption(ShaderCompileOption& option);
+		virtual void setupShader( MaterialShaderProgram& shader , VertexFactoryShaderData* shaderData)
+		{
+
+		}
 		
 		static VertexFarcoryType* DefaultType;
 		static std::vector< VertexFarcoryType* > TypeList;
@@ -32,6 +36,7 @@ namespace RenderGL
 	{
 	public:
 	};
+
 	class VertexFactory
 	{
 	public:

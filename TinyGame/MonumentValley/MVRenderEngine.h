@@ -10,7 +10,7 @@
 #include "GLConfig.h"
 
 #include "RenderGL/GLCommon.h"
-#include "RenderGL/GLUtility.h"
+#include "RenderGL/DrawUtility.h"
 #include "RenderGL/ShaderCore.h"
 
 

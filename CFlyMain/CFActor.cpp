@@ -116,7 +116,7 @@ namespace CFly
 			for (int i = 0 ; i < mBoneTransVec.size() ; ++i )
 			{
 				Matrix4 worldTrans;
-				TransformUntility::mul( worldTrans , mBoneTransVec[i] , trans );
+				FTransform::Mul( worldTrans , mBoneTransVec[i] , trans );
 				renderSys->setWorldMatrix( i , worldTrans );
 			}
 		}

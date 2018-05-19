@@ -92,6 +92,9 @@ namespace RenderGL
 		float   gameTime;
 		float   realTime;
 
+		IntVector2 rectSize;
+		IntVector2 rectOffset;
+
 
 		Plane frustumPlanes[6];
 
@@ -136,9 +139,9 @@ namespace RenderGL
 	{
 	public:
 		virtual MaterialShaderProgram* getMaterialShader(RenderContext& context, MaterialMaster& material , VertexFactory* vertexFactory ) { return nullptr; }
-		virtual void setupMaterialShader(RenderContext& context, ShaderProgram& shader) {}
-		virtual void setupWorld(RenderContext& context, Matrix4 const& mat);
-		virtual bool needUseVAO() { return false; }
+		virtual void setupMaterialShader(RenderContext& context, ShaderProgram& program) {}
+		virtual void setupWorld(RenderContext& context, Matrix4 const& mat );
+		virtual bool isShaderPipline() { return true; }
 	};
 
 	class RenderContext
@@ -148,9 +151,9 @@ namespace RenderGL
 			:mTechique(&techique)
 			,mCurView( &view )
 		{
-			bBindAttrib = techique.needUseVAO();
-			mUsageShader = nullptr;
-			bBindAttrib = false;
+			bBindAttrib  = techique.isShaderPipline();
+			mUsageProgram = nullptr;
+			bBindAttrib  = false;
 		}
 
 		ViewInfo& getView() { return *mCurView; }
@@ -168,47 +171,25 @@ namespace RenderGL
 		}
 		void beginRender()
 		{
-			mUsageShader = nullptr;
+			mUsageProgram = nullptr;
 			mbUseMaterialShader = false;
 		}
 		void endRender()
 		{
-			if( mUsageShader )
+			if( mUsageProgram )
 			{
-				mUsageShader->unbind();
-				mUsageShader = nullptr;
+				mUsageProgram->unbind();
+				mUsageProgram = nullptr;
 			}
 		}
 
-		void setShader(ShaderProgram& shader);
-		void setupShader(Material* material, VertexFactory* vertexFactory = nullptr);
-		void setShaderParameter(char const* name, Texture2D& texture)
-		{
-			if( mUsageShader )
-			{
-				RHITexture2D* textureRHI = texture.getRHI() ? texture.getRHI() : GDefaultMaterialTexture2D;
-				mUsageShader->setTexture(name, *textureRHI);
-			}
-		}
-		void setShaderParameter(char const* name, RHITexture2D& texture)
-		{
-			if( mUsageShader )
-			{
-				mUsageShader->setTexture(name, texture);
-			}
-		}
-		void setShaderParameter(char const* name, Vector3 value)
-		{
-			if( mUsageShader )
-			{
-				mUsageShader->setParam(name, value);
-			}
-		}
+		void setShader(ShaderProgram& program);
+		MaterialShaderProgram* setMaterial(Material* material, VertexFactory* vertexFactory = nullptr);
 
 		RenderTechnique* mTechique;
 		ViewInfo*       mCurView;
 		VertexFactory*  mUsageVertexFactory;
-		ShaderProgram*  mUsageShader;
+		ShaderProgram*  mUsageProgram;
 		bool            mbUseMaterialShader;
 		bool            bBindAttrib;
 	};

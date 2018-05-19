@@ -237,7 +237,7 @@ namespace FlappyBird
 						mTrainManager->topFitness = (*genePool)[0]->fitness;
 				}
 
-				LogMsgF("lock time = %ld", time);
+				LogMsg("lock time = %ld", time);
 			}
 
 			restart();

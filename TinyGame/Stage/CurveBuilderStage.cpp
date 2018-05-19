@@ -11,8 +11,9 @@
 #include "GLGraphics2D.h"
 #include "ProfileSystem.h"
 
-#include "RenderGL/GLUtility.h"
+#include "RenderGL/DrawUtility.h"
 #include "RenderGL/RenderContext.h"
+#include "RenderGL/RHICommand.h"
 
 #include "GL/wglew.h"
 
@@ -27,7 +28,7 @@ namespace CB
 
 		std::unique_ptr<ShapeMaker>   mSurfaceMaker;
 		std::unique_ptr<CurveRenderer>   mRenderer;
-		Camera  mCamera;
+		SimpleCamera  mCamera;
 		std::vector<ShapeBase*> mSurfaceList;
 
 		TemplateTestStage() 
@@ -61,6 +62,8 @@ namespace CB
 			mSurfaceMaker.reset( new ShapeMaker );
 
 			wglSwapIntervalEXT(0);
+			glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);
+
 
 			::Global::GUI().cleanupWidget();
 
@@ -170,17 +173,13 @@ namespace CB
 			int width = ::Global::getDrawEngine()->getScreenWidth();
 			int height = ::Global::getDrawEngine()->getScreenHeight();
 
-			glShadeModel(GL_SMOOTH);						// Enables Smooth Shading
 
 			glClearDepth(1.0f);							// Depth Buffer Setup
-			glEnable(GL_DEPTH_TEST);						// Enables Depth Testing
-			glDepthFunc(GL_LEQUAL);							// The Type Of Depth Test To Do
-			glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 			glClearColor(0.7f, 0.7f, 0.7f, 1.0f);
 
-
-			glViewport(0, 0, width, height);
+			RHISetViewport(0, 0, width, height);
+			RHISetDepthStencilState(TStaticDepthStencilState<>::GetRHI());
 
 			glMatrixMode(GL_PROJECTION);
 			Matrix4 matProj = PerspectiveMatrix( Math::Deg2Rad(45.0f) , (GLdouble)width / (GLdouble)height, 0.1f, 1000.0f);
@@ -194,6 +193,7 @@ namespace CB
 			mRenderer->beginRender();
 			{
 				mRenderer->drawAxis();
+
 				for( ShapeBase* current : mSurfaceList )
 				{
 					if( current->isVisible() )

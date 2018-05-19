@@ -291,31 +291,33 @@ namespace RenderGL
 
 	void SampleStage::renderScene(RenderContext& context)
 	{
+
+		ViewInfo const& viewInfo = context.getView();
 		getScene(0).render(context);
 
 		Matrix4 matWorld;
 
 #if 1
-		glPushMatrix();
+
+#if 0
 		matWorld = Matrix4::Identity();
-		//context.setWorld(matWorld);
-		//drawAxis(10);
-		glPopMatrix();
+		context.setWorld(matWorld);
+		drawAxis(10);
+#endif
+
 
 
 		{
-			//glDisable(GL_CULL_FACE);
+			//RHISetRasterizerState(TStaticRasterizerState< ECullMode::None >::GetRHI());
 			Material* material = getMaterial(MaterialId::Simple3);
-			context.setupShader(material);
-			context.setShaderParameter(SHADER_PARAM(BaseTexture), getTexture(TextureId::Metel));
-			glPushMatrix();
+			auto shader = context.setMaterial(material);
+			shader->setTexture(SHADER_PARAM(BaseTexture), getTexture(TextureId::Metel).getRHI());
+
 			matWorld = Matrix4::Translate(Vector3(-2.6, -2.6, 3));
 			//matWorld = Matrix4::Translate(Vector3(0, 0, 7));
 			context.setWorld(matWorld);
-			glColor3f(1, 1, 1);
-			mSimpleMeshs[SimpleMeshId::Sphere].draw();
-			glPopMatrix();
-			glEnable(GL_CULL_FACE);
+			mSimpleMeshs[SimpleMeshId::Sphere].draw( LinearColor(1,1,1) );
+			//RHISetRasterizerState(TStaticRasterizerState<>::GetRHI());
 		}
 		{
 
@@ -331,7 +333,6 @@ namespace RenderGL
 		{
 			{
 				StaticMesh& mesh = getMesh(MeshId::Sponza);
-				glColor3f(1, 1, 1);
 				matWorld = Matrix4::Translate(Vector3(0, 0, 0));
 				mesh.render(matWorld, context);
 			}
@@ -339,13 +340,10 @@ namespace RenderGL
 
 			{
 
-				context.setupShader(getMaterial(MaterialId::Simple1));
-				glPushMatrix();
+				context.setMaterial(getMaterial(MaterialId::Simple1));
 				matWorld = Matrix4::Rotate(Vector3(1, 1, 1), Math::Deg2Rad(45)) * Matrix4::Translate(Vector3(-7, -6, 7));
 				context.setWorld(matWorld);
-				glColor3f(0.3, 0.3, 1);
-				mSimpleMeshs[SimpleMeshId::Box].draw();
-				glPopMatrix();
+				mSimpleMeshs[SimpleMeshId::Box].draw(LinearColor(0.3, 0.3, 1));
 
 			}
 
@@ -354,13 +352,9 @@ namespace RenderGL
 				Material* material = getMaterial(MaterialId::Sphere);
 				material->setParameter(SHADER_PARAM(Sphere.pos), Vector3(0, 10, 10));
 				material->setParameter(SHADER_PARAM(Sphere.radius), 2.0f);
-
-				context.setupShader(material);
-				glPushMatrix();
+				context.setMaterial(material);
 				context.setWorld(Matrix4::Identity());
-				glColor3f(1, 0, 0);
-				mSimpleMeshs[SimpleMeshId::SpherePlane].draw();
-				glPopMatrix();
+				mSimpleMeshs[SimpleMeshId::SpherePlane].draw(LinearColor(1, 0, 0) );
 			}
 		}
 
@@ -369,64 +363,52 @@ namespace RenderGL
 		if( 1 )
 		{
 			Material* material = getMaterial(MaterialId::MetelA);
-			context.setupShader(material);
-			context.setShaderParameter(SHADER_PARAM(BaseTexture), getTexture(TextureId::Metel));
+			auto shader = context.setMaterial(material);
+			shader->setTexture(SHADER_PARAM(BaseTexture), getTexture(TextureId::Metel).getRHI());
 			Mesh& mesh = getMesh(MeshId::Dragon);
-			glPushMatrix();
 			matWorld = Matrix4::Rotate(Vector3(0, 0, 1), Math::Deg2Rad(45 + 180)) * Matrix4::Translate(Vector3(20, 0, 4));
 			context.setWorld(matWorld);
-			glColor3f(0.7, 0.7, 0.7);
-			mesh.draw();
-			glPopMatrix();
+			mesh.draw( Vector4(0.7, 0.7, 0.7, 1) );
 		}
 
 		if(1)
 		{
 			Material* material = getMaterial(MaterialId::POMTitle);
-			context.setupShader(material);
-			context.setShaderParameter(SHADER_PARAM(DispFactor), Vector3(1, 0, 0));
+			auto shader = context.setMaterial(material);
+			shader->setParam(SHADER_PARAM(DispFactor), Vector3(1, 0, 0));
 #if 0
-			param.setMaterialParameter(SHADER_PARAM(BaseTexture), getTexture(TextureId::RocksD));
-			param.setMaterialParameter(SHADER_PARAM(NoramlTexture), getTexture(TextureId::RocksNH));
+			shader->setTexture(SHADER_PARAM(BaseTexture), getTexture(TextureId::RocksD).getRHI());
+			shader->setTexture(SHADER_PARAM(NoramlTexture), getTexture(TextureId::RocksNH).getRHI());
 #else
-			context.setShaderParameter(SHADER_PARAM(BaseTexture), getTexture(TextureId::Base));
-			context.setShaderParameter(SHADER_PARAM(NoramlTexture), getTexture(TextureId::Normal));
+			shader->setTexture(SHADER_PARAM(BaseTexture), getTexture(TextureId::Base).getRHI());
+			shader->setTexture(SHADER_PARAM(NoramlTexture), getTexture(TextureId::Normal).getRHI());
 #endif
-			glPushMatrix();
 			matWorld = Matrix4::Scale(0.5) * Matrix4::Translate(Vector3(-12, 0, 2));
 			context.setWorld(matWorld);
-			glColor3f(0.7, 0.7, 0.7);
-			mSimpleMeshs[SimpleMeshId::Plane].draw();
-			glPopMatrix();
+			mSimpleMeshs[SimpleMeshId::Plane].draw(LinearColor(0.7, 0.7, 0.7));
 		}
 
 
 		{
 			Material* material = getMaterial(MaterialId::Mario);
-			context.setupShader(material);
-			context.setShaderParameter(SHADER_PARAM(TextureD), getTexture(TextureId::MarioD));
-			context.setShaderParameter(SHADER_PARAM(TextureS), getTexture(TextureId::MarioS));
+			auto shader = context.setMaterial(material);
+			shader->setTexture(SHADER_PARAM(TextureD), getTexture(TextureId::MarioD).getRHI());
+			shader->setTexture(SHADER_PARAM(TextureS), getTexture(TextureId::MarioS).getRHI());
 			Mesh& mesh = getMesh(MeshId::Mario);
-			glPushMatrix();
 			matWorld = Matrix4::Translate(Vector3(8, -8, 0));
 			context.setWorld(matWorld);
-			glColor3f(0.7, 0.7, 0.7);
-			mesh.draw();
-			glPopMatrix();
+			mesh.draw(LinearColor(0.7, 0.7, 0.7));
 		}
 
 		if( 1 )
 		{
 			Material* material = getMaterial(MaterialId::MetelA);
-			context.setupShader(material);
-			context.setShaderParameter(SHADER_PARAM(BaseTexture), getTexture(TextureId::Metel));
+			auto shader = context.setMaterial(material);
+			shader->setTexture(SHADER_PARAM(BaseTexture), getTexture(TextureId::Metel).getRHI() );
 			Mesh& mesh = getMesh(MeshId::Dragon2);
-			glPushMatrix();
 			matWorld = Matrix4::Rotate(Vector3(0, 0, 1), Math::Deg2Rad(45 + 180)) * Matrix4::Translate(Vector3(6, -6, 4));
 			context.setWorld(matWorld);
-			glColor3f(0.7, 0.7, 0.7);
-			mesh.draw();
-			glPopMatrix();
+			mesh.draw(LinearColor(0.7, 0.7, 0.7,1.0) );
 		}
 
 		{
@@ -438,7 +420,6 @@ namespace RenderGL
 
 		{
 			StaticMesh& mesh = getMesh(MeshId::Lightning);
-			glColor3f(0.7, 0.7, 0.7);
 			matWorld = Matrix4::Translate(Vector3(-5, -8, 3));
 			mesh.render(matWorld , context);
 		}
@@ -446,7 +427,6 @@ namespace RenderGL
 		if(1)
 		{
 			StaticMesh& mesh = getMesh(MeshId::Vanille);
-			glColor3f(0.7, 0.7, 0.7);
 			matWorld = Matrix4::Translate(Vector3(0, -8, 3));
 			mesh.render(matWorld, context);
 		}
@@ -454,65 +434,49 @@ namespace RenderGL
 		if( 1 )
 		{
 			Material* material = getMaterial(MaterialId::Simple1);
-			context.setupShader(material);
-			context.setShaderParameter(SHADER_PARAM(BaseTexture), getTexture(TextureId::Metel));
+			auto shader = context.setMaterial(material);
+			shader->setTexture(SHADER_PARAM(BaseTexture), getTexture(TextureId::Metel).getRHI());
 			Mesh& mesh = getMesh(MeshId::Skeleton);
-			glPushMatrix();
 			matWorld = Matrix4::Translate(Vector3(0, -10, 5));
 			context.setWorld(matWorld);
-			glColor3f(0.7, 0.7, 0.7);
-			mesh.draw();
-			glPopMatrix();
+			mesh.draw(LinearColor(0.7, 0.7, 0.7));
 		}
 
 
-		context.setupShader(getMaterial(MaterialId::Simple1));
+		context.setMaterial(getMaterial(MaterialId::Simple1));
 
 		if( 0 )
 		{
-			glPushMatrix();
 			matWorld = Matrix4::Rotate(Vector3(0, 0, -1), Math::Deg2Rad(45 + 180)) * Matrix4::Translate(Vector3(-6, 6, 4));
 			Mesh& mesh = getMesh(MeshId::Teapot);
 			context.setWorld(matWorld);
-			glColor3f(0.7, 0.7, 0.7);
-			mesh.draw();
-			glPopMatrix();
+			mesh.draw(LinearColor(0.7, 0.7, 0.7, 1.0));
 		}
 
 
 
-		context.setupShader(getMaterial(MaterialId::Simple1));
-		glPushMatrix();
+		context.setMaterial(getMaterial(MaterialId::Simple1));
+
 		matWorld = Matrix4::Translate(Vector3(-3, 3, 5));
 		context.setWorld(matWorld);
-		glColor3f(0.3, 0.3, 1);
-		mSimpleMeshs[SimpleMeshId::Box].draw();
-		glPopMatrix();
+		mSimpleMeshs[SimpleMeshId::Box].draw(LinearColor(0.3, 0.3, 1));
 
-		glPushMatrix();
+
 		matWorld = Matrix4::Scale(1) * Matrix4::Translate(Vector3(1, 3, 14));
 		context.setWorld(matWorld);
-		glColor3f(1, 1, 0);
-		mSimpleMeshs[SimpleMeshId::Doughnut].draw();
-		glPopMatrix();
+		mSimpleMeshs[SimpleMeshId::Doughnut].draw(LinearColor(1, 1, 0));
 
-		glPushMatrix();
 		matWorld = Matrix4::Scale(1) * Matrix4::Translate(Vector3(6, 6, 5));
 		context.setWorld(matWorld);
-		glColor3f(1, 1, 0);
-		mSimpleMeshs[SimpleMeshId::Box].draw();
-		glPopMatrix();
+		mSimpleMeshs[SimpleMeshId::Box].draw(LinearColor(1, 1, 0));
 
-		context.setupShader(getMaterial((int)MaterialId::Simple2));
+		context.setMaterial(getMaterial((int)MaterialId::Simple2));
 
-		glPushMatrix();
 		matWorld = Matrix4::Rotate(Vector3(0.5, 1, 0), Math::Deg2Rad(-80)) * Matrix4::Scale(3) * Matrix4::Translate(Vector3(0.5 * 20, 0, 20));
 		context.setWorld(matWorld);
-		glColor3f(1, 1, 1);
 		mSimpleMeshs[SimpleMeshId::Box].draw();
-		glPopMatrix();
 #endif
-		context.setupShader(getMaterial(MaterialId::Simple2));
+		context.setMaterial(getMaterial(MaterialId::Simple2));
 
 
 		float scale = 2.5;
@@ -520,70 +484,43 @@ namespace RenderGL
 		
 		if (0)
 		{
-			glPushMatrix();
 			matWorld = Matrix4::Scale(10.0) * Matrix4::Translate(Vector3(0, 0, 0));
 			context.setWorld(matWorld);
-			glColor3f(1, 1, 1);
-			mSimpleMeshs[SimpleMeshId::Plane].draw();
-			glPopMatrix();
+			mSimpleMeshs[SimpleMeshId::Plane].draw(LinearColor(1, 1, 1));
 
-			glPushMatrix();
 			matWorld = Matrix4::Rotate(Vector3(1, 0, 0), Math::Deg2Rad(90)) * Matrix4::Scale(scale) * Matrix4::Translate(Vector3(0, len, len));
 			context.setWorld(matWorld);
-			glColor3f(0.5, 1, 0);
-			mSimpleMeshs[SimpleMeshId::Plane].draw();
-			glPopMatrix();
+			mSimpleMeshs[SimpleMeshId::Plane].draw(LinearColor(0.5 , 1 , 0 ));
 	
-			glPushMatrix();
 			matWorld = Matrix4::Rotate(Vector3(1, 0, 0), Math::Deg2Rad(-90)) * Matrix4::Scale(scale) * Matrix4::Translate(Vector3(0, -len, len));
 			context.setWorld(matWorld);
-			glColor3f(1, 0.5, 1);
-			mSimpleMeshs[SimpleMeshId::Plane].draw();
-			glPopMatrix();
+			mSimpleMeshs[SimpleMeshId::Plane].draw(LinearColor(1, 0.5, 1));
 	
-			glPushMatrix();
 			matWorld = Matrix4::Rotate(Vector3(0, 1, 0), Math::Deg2Rad(-90)) * Matrix4::Scale(scale) * Matrix4::Translate(Vector3(len, 0, len));
 			context.setWorld(matWorld);
-			glColor3f(1, 1, 1);
-			mSimpleMeshs[SimpleMeshId::Plane].draw();
-			glPopMatrix();
+			mSimpleMeshs[SimpleMeshId::Plane].draw(LinearColor(1, 1, 1));
 	
 	
 			{
 	#if 0
 				Material& material = getMaterial(MaterialId::POMTitle);
-				context.setMaterial(material);
-				context.setMaterialParameter(SHADER_PARAM(DispFactor), Vector3(-1, 1, 0));
+				auto shader = context.setMaterial(material);
+				shader->setParam(SHADER_PARAM(DispFactor), Vector3(-1, 1, 0));
 	#if 1
-				context.setMaterialParameter(SHADER_PARAM(BaseTexture), getTexture(TextureId::RocksD));
-				context.setMaterialParameter(SHADER_PARAM(NoramlTexture), getTexture(TextureId::RocksNH));
+				shader->setTexture2D(SHADER_PARAM(BaseTexture), getTexture(TextureId::RocksD).getRHI());
+				shader->setTexture2D(SHADER_PARAM(NoramlTexture), getTexture(TextureId::RocksNH).getRHI());
 	#else
-				context.setMaterialParameter(SHADER_PARAM(BaseTexture), getTexture(TextureId::Base));
-				context.setMaterialParameter(SHADER_PARAM(NoramlTexture), getTexture(TextureId::Normal));
+				shader->setTexture2D(SHADER_PARAM(BaseTexture), getTexture(TextureId::Base).getRHI());
+				shader->setTexture2D(SHADER_PARAM(NoramlTexture), getTexture(TextureId::Normal).getRHI());
 	#endif
 	#endif
 	
-				glPushMatrix();
 				matWorld = Matrix4::Rotate(Vector3(0, 1, 0), Math::Deg2Rad(90)) * Matrix4::Scale(scale) * Matrix4::Translate(Vector3(-len, 0, len));
 				context.setWorld(matWorld);
-				glColor3f(1, 1, 0.5);
-				mSimpleMeshs[SimpleMeshId::Plane].draw();
-				glPopMatrix();
+				mSimpleMeshs[SimpleMeshId::Plane].draw(LinearColor(1, 1, 0.5) );
 			}
 		}
 
-
-
-
-		//glPushMatrix();
-		//mProgSphere.bind();
-		//mProgSphere.setParam( "sphere.radius" , 2.0f );
-		//mProgSphere.setParam( "sphere.localPos" , Vector3(5,5,5) );
-		//mSpherePlane.draw();
-		//mProgSphere.unbind();
-		//glPopMatrix();
-
-		//glFlush();
 	}
 
 
@@ -616,7 +553,7 @@ namespace RenderGL
 
 		int const RandLightNum = 0;
 		mNumLightDraw = RandLightNum + 5;
-		mShadowTech.mCascadeMaxDist = 400;
+		mTechShadow.mCascadeMaxDist = 400;
 
 		static int const LightNum = 5;
 

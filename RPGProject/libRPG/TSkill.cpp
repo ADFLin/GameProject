@@ -89,7 +89,7 @@ void TSkillLibrary::init()
 
 	if ( !loadIconName( SKILL_DATA_PATCH ) )
 	{
-		LogErrorF("Can't Load Skill Data : %s" , SKILL_DATA_PATCH );
+		LogError("Can't Load Skill Data : %s" , SKILL_DATA_PATCH );
 	}
 }
 

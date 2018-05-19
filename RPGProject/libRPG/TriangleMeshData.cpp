@@ -37,7 +37,7 @@ void TriangleMeshData::add( CFly::Object* object )
 				Vec3D& vtx = m_vertexVec.back();
 				Vec3D& v = *reinterpret_cast< Vec3D* >( ptr );
 
-				vtx = TransformUntility::mul( v , m );
+				vtx = FTransform::Mul( v , m );
 				ptr += strride;
 			}
 

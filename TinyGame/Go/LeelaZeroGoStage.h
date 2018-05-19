@@ -253,47 +253,9 @@ namespace Go
 
 		void addLeelaParamWidget(int id , int idxPlayer );
 
-		void addZenParamWidget(int id, int idxPlayer)
-		{
-			Zen::CoreSetting setting = ZenBot::GetCoreConfigSetting();
-			GTextCtrl* textCtrl;
-			textCtrl = addTextCtrl(id + UPARAM_SIMULATIONS_NUM, "Num Simulations", BIT(idxPlayer), idxPlayer);
-			textCtrl->setValue(std::to_string(setting.numSimulations).c_str());
-			textCtrl = addTextCtrl(id + UPARAM_MAX_TIME, "Max Time", BIT(idxPlayer), idxPlayer);
-			FixString<512> valueStr;
-			textCtrl->setValue( valueStr.format( "%g" , setting.maxTime) );
-		}
+		void addZenParamWidget(int id, int idxPlayer);
 
-		GChoice* addPlayerChoice(int idxPlayer, char const* title)
-		{
-			int id = idxPlayer ? UI_CONTROLLER_TYPE_B : UI_CONTROLLER_TYPE_A;
-			GChoice* choice = addChoice( id , title , 0 , idxPlayer );
-			for( int i = 0; i < (int)ControllerType::Count; ++i )
-			{
-				uint slot = choice->addItem( GetControllerName(ControllerType(i)) );
-				choice->setItemData(slot, (void*)i);
-			}
-
-			choice->onEvent = [this,idxPlayer](int event, GWidget* ui)
-			{
-				removeChildWithMask(BIT(idxPlayer));
-				switch( (ControllerType)(intptr_t)ui->cast< GChoice >()->getSelectedItemData() )
-				{
-				case ControllerType::eLeelaZero:
-					addLeelaParamWidget( ui->getID() , idxPlayer );
-					break;
-				case ControllerType::eZenV7:
-				case ControllerType::eZenV6:
-				case ControllerType::eZenV4:
-					addZenParamWidget( ui->getID() , idxPlayer);
-				default:
-					break;
-				}
-				adjustChildLayout();
-				return false;
-			};
-			return choice;
-		}
+		GChoice* addPlayerChoice(int idxPlayer, char const* title);
 
 		virtual bool onChildEvent(int event, int id, GWidget* ui) override
 		{
@@ -345,6 +307,7 @@ namespace Go
 		bool bPauseGame = false;
 		int  numGameCompleted = 0;
 		bool bMatchJob = false;
+		FixString<32> mUsedWeight;
 		int  matchChallenger = StoneColor::eEmpty;
 #if DETECT_LEELA_PROCESS
 		DWORD  mPIDLeela = -1;
@@ -396,10 +359,7 @@ namespace Go
 		bool bAnalysisEnabled = false;
 		bool bAnalysisPondering;
 		LeelaThinkInfoVec analysisResult;
-#if !USE_MODIFY_LEELA_PROGRAM
-		long timeOutputAnalysisResult = 200;
-		long remainingAnalysisTime;
-#endif
+
 		int  analysisPonderColor = 0;
 		int  showBranchVertex = -1;
 
@@ -409,6 +369,7 @@ namespace Go
 		int  unknownWinerCount = 0;
 		MatchGameData mMatchData;
 		FixString<32> mLastGameResult;
+
 
 
 

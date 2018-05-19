@@ -315,7 +315,7 @@ void SVSyncFrameManager::procFrameData( IComPacket* cp )
 	static int count = 0;
 	if ( fp->buffer.getAvailableSize() && count <= 10  )
 	{
-		LogMsgF( "==%d %d %d==" , (int)mFrameMgr.getFrame() , (int)fp->frame , (int)fp->buffer.getAvailableSize() );
+		LogMsg( "==%d %d %d==" , (int)mFrameMgr.getFrame() , (int)fp->frame , (int)fp->buffer.getAvailableSize() );
 		count += 1;
 	}
 
@@ -463,13 +463,13 @@ void CLSyncFrameManager::procFrameData( IComPacket* cp)
 		mCalcuator.markReply();
 		if ( mCalcuator.getSampleNum() >= 30 )
 		{
-			LogMsgF("Lactency = %u" , mCalcuator.calcResult() );
+			LogMsg("Lactency = %u" , mCalcuator.calcResult() );
 			mCalcuator.clear();
 		}
 	}
 
 	if ( mFrameStream->frame % 40 == 0 )
-		LogDevMsgF(  10 , "Recv Frame Data frame = %d %d %d" , data->frame , mFrameMgr.getFrame() , data->frame - mFrameMgr.getFrame() );
+		LogDevMsg(  10 , "Recv Frame Data frame = %d %d %d" , data->frame , mFrameMgr.getFrame() , data->frame - mFrameMgr.getFrame() );
 	mLastRecvDataFrame = data->frame;
 	mFrameMgr.addFrameData( data->frame , data->buffer );
 	return;

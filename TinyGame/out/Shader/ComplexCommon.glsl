@@ -1,0 +1,18 @@
+#pragma once
+#include "Common.glsl"
+
+float2 ComplexMul(float2 a, float2 b)
+{
+#if 1
+	float4 temp = a.xyxy * b.xyyx;
+	return float2(temp.x - temp.y, temp.z + temp.w);
+#else
+	return float2(a.x * b.x - a.y * b.y, a.x * b.y + a.y * b.x);
+#endif
+}
+
+float2 ComplexDiv(float2 a, float2 b)
+{
+	float4 temp = a.xyxy * b.xyyx;
+	return float2(temp.x + temp.y, temp.w - temp.z ) / dot( b , b );
+}

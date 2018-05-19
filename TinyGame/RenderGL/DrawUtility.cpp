@@ -40,7 +40,7 @@ namespace RenderGL
 			Vector3(0,0,0),Vector3(1,0,0),Vector3(0,1,0),Vector3(1,1,0),
 			Vector3(0,1,1),Vector3(1,1,1),Vector3(0,0,1),Vector3(1,0,1),
 		};
-		TRenderRT< RTVF_XYZ >::Draw(PrimitiveType::eLineList, v, 4 * 6, sizeof(Vector3));
+		TRenderRT< RTVF_XYZ >::Draw(PrimitiveType::LineList, v, 4 * 6, sizeof(Vector3));
 	}
 
 	void RenderGL::DrawUtility::CubeMesh()
@@ -66,7 +66,7 @@ namespace RenderGL
 			Vector3(1,0,0),Vector3(0,0,-1),Vector3(0,0,0),Vector3(0,0,-1),
 			Vector3(0,1,0),Vector3(0,0,-1),Vector3(1,1,0),Vector3(0,0,-1),
 		};
-		TRenderRT< RTVF_XYZ_N >::Draw(PrimitiveType::eQuad, v, 4 * 6, 2 * sizeof(Vector3));
+		TRenderRT< RTVF_XYZ_N >::Draw(PrimitiveType::Quad, v, 4 * 6, 2 * sizeof(Vector3));
 	}
 
 	void RenderGL::DrawUtility::AixsLine()
@@ -77,7 +77,7 @@ namespace RenderGL
 			Vector3(0,0,0),Vector3(0,1,0), Vector3(0,1,0),Vector3(0,1,0),
 			Vector3(0,0,0),Vector3(0,0,1), Vector3(0,0,1),Vector3(0,0,1),
 		};
-		TRenderRT< RTVF_XYZ_C >::Draw(PrimitiveType::eLineList, v, 6, 2 * sizeof(Vector3));
+		TRenderRT< RTVF_XYZ_C >::Draw(PrimitiveType::LineList, v, 6, 2 * sizeof(Vector3));
 	}
 
 	void RenderGL::DrawUtility::Rect(int x, int y, int width, int height)
@@ -92,7 +92,7 @@ namespace RenderGL
 			{ Vector2(x , y2 ) , Vector2(0,1) },
 		};
 
-		TRenderRT< RTVF_XY_T2 >::Draw(PrimitiveType::eQuad, vertices, 4);
+		TRenderRT< RTVF_XY_T2 >::Draw(PrimitiveType::Quad, vertices, 4);
 	}
 
 	void RenderGL::DrawUtility::Rect(int width, int height)
@@ -104,7 +104,7 @@ namespace RenderGL
 			{ Vector2(width , height ) , Vector2(1,1) },
 			{ Vector2(0 , height ) , Vector2(0,1) },
 		};
-		TRenderRT< RTVF_XY_T2 >::Draw(PrimitiveType::eQuad, vertices, 4);
+		TRenderRT< RTVF_XY_T2 >::Draw(PrimitiveType::Quad, vertices, 4);
 	}
 
 	void DrawUtility::RectShader(int width, int height)
@@ -116,17 +116,17 @@ namespace RenderGL
 			{ Vector2(width , height) , Vector2(1,1) },
 			{ Vector2(0 , height) , Vector2(0,1) },
 		};
-		TRenderRT< RTVF_XY_T2 >::DrawShader(PrimitiveType::eQuad, vertices, 4);
+		TRenderRT< RTVF_XY_T2 >::DrawShader(PrimitiveType::Quad, vertices, 4);
 	}
 
 	void DrawUtility::ScreenRect()
 	{
-		TRenderRT< RTVF_XYZW_T2 >::Draw(PrimitiveType::eQuad, GScreenVertices, 4);
+		TRenderRT< RTVF_XYZW_T2 >::Draw(PrimitiveType::Quad, GScreenVertices, 4);
 	}
 
 	void DrawUtility::ScreenRectShader()
 	{
-		TRenderRT< RTVF_XYZW_T2 >::DrawShader(PrimitiveType::eQuad, GScreenVertices, 4);
+		TRenderRT< RTVF_XYZW_T2 >::DrawShader(PrimitiveType::Quad, GScreenVertices, 4);
 	}
 
 	void DrawUtility::Sprite(Vector2 const& pos, Vector2 const& size, Vector2 const& pivot)
@@ -158,7 +158,7 @@ namespace RenderGL
 			{ Vector2(posLT.x, posRB.y) , Vector2(texLT.x, texRB.y) },
 		};
 
-		TRenderRT< RTVF_XY_T2 >::Draw(PrimitiveType::eQuad, vertices, 4);
+		TRenderRT< RTVF_XY_T2 >::Draw(PrimitiveType::Quad, vertices, 4);
 	}
 
 	void DrawUtility::DrawTexture(RHITexture2D& texture, Vec2i const& pos, Vec2i const& size)
@@ -166,6 +166,18 @@ namespace RenderGL
 		glEnable(GL_TEXTURE_2D);
 		{
 			GL_BIND_LOCK_OBJECT(texture);
+			glColor3f(1, 1, 1);
+			DrawUtility::Rect(pos.x, pos.y, size.x, size.y);
+		}
+		glDisable(GL_TEXTURE_2D);
+	}
+
+	void DrawUtility::DrawTexture(RHITexture2D& texture, RHISamplerState& sampler, Vec2i const& pos, Vec2i const& size)
+	{
+		glEnable(GL_TEXTURE_2D);
+		{
+			GL_BIND_LOCK_OBJECT(texture);
+			glBindSampler( 0 , sampler.mHandle );
 			glColor3f(1, 1, 1);
 			DrawUtility::Rect(pos.x, pos.y, size.x, size.y);
 		}
@@ -243,9 +255,81 @@ namespace RenderGL
 		{
 			GL_BIND_LOCK_OBJECT(texCube);
 			glColor3f(1, 1, 1);
-			TRenderRT< RTVF_XY | RTVF_TEX_UVW >::Draw(PrimitiveType::eQuad, vertices, ARRAY_SIZE(vertices));
+			TRenderRT< RTVF_XY | RTVF_TEX_UVW >::Draw(PrimitiveType::Quad, vertices, ARRAY_SIZE(vertices));
 		}
 		glDisable(GL_TEXTURE_CUBE_MAP);
+	}
+
+	void Font::buildFontImage(int size, HDC hDC)
+	{
+		HFONT	font;										// Windows Font ID
+		HFONT	oldfont;									// Used For Good House Keeping
+
+		base = glGenLists(96);								// Storage For 96 Characters
+
+		int height = -(int)(fabs((float)10 * size *GetDeviceCaps(hDC, LOGPIXELSY) / 72) / 10.0 + 0.5);
+
+		font = CreateFont(
+			height,					    // Height Of Font
+			0,								// Width Of Font
+			0,								// Angle Of Escapement
+			0,								// Orientation Angle
+			FW_BOLD,						// Font Weight
+			FALSE,							// Italic
+			FALSE,							// Underline
+			FALSE,							// Strikeout
+			ANSI_CHARSET,					// Character Set Identifier
+			OUT_TT_PRECIS,					// Output Precision
+			CLIP_DEFAULT_PRECIS,			// Clipping Precision
+			ANTIALIASED_QUALITY,			// Output Quality
+			FF_DONTCARE | DEFAULT_PITCH,		// Family And Pitch
+			TEXT("²Ó©úÅé"));			    // Font Name
+
+		oldfont = (HFONT)SelectObject(hDC, font);           // Selects The Font We Want
+		wglUseFontBitmaps(hDC, 32, 96, base);				// Builds 96 Characters Starting At Character 32
+		SelectObject(hDC, oldfont);							// Selects The Font We Want
+		DeleteObject(font);									// Delete The Font
+	}
+
+	void Font::printf(const char *fmt, ...)
+	{
+		if( fmt == NULL )									// If There's No Text
+			return;											// Do Nothing
+
+		va_list	ap;
+		char    text[512];								// Holds Our String
+
+		va_start(ap, fmt);									// Parses The String For Variables
+		vsprintf(text, fmt, ap);						// And Converts Symbols To Actual Numbers
+		va_end(ap);											// Results Are Stored In Text
+
+		glPushAttrib(GL_LIST_BIT);							// Pushes The Display List Bits
+		glListBase(base - 32);								// Sets The Base Character to 32
+		glCallLists(strlen(text), GL_UNSIGNED_BYTE, text);	// Draws The Display List Text
+		glPopAttrib();										// Pops The Display List Bits
+	}
+
+
+	void Font::print(char const* str)
+	{
+		if( str == NULL )									// If There's No Text
+			return;											// Do Nothing
+		glPushAttrib(GL_LIST_BIT);							// Pushes The Display List Bits
+		glListBase(base - 32);								// Sets The Base Character to 32
+		glCallLists(strlen(str), GL_UNSIGNED_BYTE, str);	// Draws The Display List Text
+		glPopAttrib();										// Pops The Display List Bits
+	}
+
+
+	Font::~Font()
+	{
+		if( base )
+			glDeleteLists(base, 96);
+	}
+
+	void Font::create(int size, HDC hDC)
+	{
+		buildFontImage(size, hDC);
 	}
 
 }

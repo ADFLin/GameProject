@@ -1,4 +1,4 @@
-#include "GLUtility.h"
+#include "MeshUtility.h"
 
 #include "WindowsHeader.h"
 #include "MarcoCommon.h"
@@ -13,6 +13,145 @@
 
 namespace RenderGL
 {
+	bool CheckGLStateValid();
+
+	Mesh::Mesh()
+	{
+		mType = PrimitiveType::TriangleList;
+		mVAO = 0;
+	}
+
+	Mesh::~Mesh()
+	{
+		if( mVAO )
+		{
+			glDeleteVertexArrays(1, &mVAO);
+		}
+	}
+
+	bool Mesh::createBuffer(void* pVertex, int nV, void* pIdx, int nIndices, bool bIntIndex)
+	{
+		mVertexBuffer = RHICreateVertexBuffer();
+		if( !mVertexBuffer.isValid() )
+			return false;
+
+		mVertexBuffer->resetData(mDecl.getVertexSize(), nV, pVertex);
+
+		if( nIndices )
+		{
+			mIndexBuffer = new RHIIndexBuffer;
+			if( !mIndexBuffer->create(nIndices, bIntIndex, pIdx) )
+				return false;
+		}
+		return true;
+	}
+
+	void Mesh::draw()
+	{
+		if( mVertexBuffer == nullptr )
+			return;
+
+		drawInternal(0, (mIndexBuffer) ? mIndexBuffer->mNumIndices : mVertexBuffer->mNumVertices);
+	}
+
+	void Mesh::draw(LinearColor const& color)
+	{
+		if( mVertexBuffer == nullptr )
+			return;
+		drawInternal(0, (mIndexBuffer) ? mIndexBuffer->mNumIndices : mVertexBuffer->mNumVertices, &color);
+	}
+
+	void Mesh::drawShader()
+	{
+		if( mVertexBuffer == nullptr )
+			return;
+		drawShaderInternal(0, (mIndexBuffer) ? mIndexBuffer->mNumIndices : mVertexBuffer->mNumVertices);
+	}
+
+	void Mesh::drawShader(LinearColor const& color)
+	{
+		if( mVertexBuffer == nullptr )
+			return;
+		drawShaderInternal(0, (mIndexBuffer) ? mIndexBuffer->mNumIndices : mVertexBuffer->mNumVertices, &color);
+	}
+
+	void Mesh::drawSection(int idx, bool bUseVAO)
+	{
+		if( mVertexBuffer == nullptr )
+			return;
+		Section& section = mSections[idx];
+		if( bUseVAO )
+		{
+			drawShaderInternal(section.start, section.num);
+		}
+		else
+		{
+			drawInternal(section.start, section.num);
+		}
+	}
+
+	void Mesh::drawInternal(int idxStart, int num, LinearColor const* color)
+	{
+		assert(mVertexBuffer != nullptr);
+		mVertexBuffer->bind();
+		mDecl.bindPointer(color);
+
+		if( mIndexBuffer )
+		{
+			GL_BIND_LOCK_OBJECT(mIndexBuffer);
+			RHIDrawIndexedPrimitive(mType, mIndexBuffer->mbIntIndex ? CVT_UInt : CVT_UShort, idxStart, num);
+		}
+		else
+		{
+			RHIDrawPrimitive(mType, idxStart, num);
+		}
+
+		CheckGLStateValid();
+
+		mDecl.unbindPointer(color);
+		mVertexBuffer->unbind();
+	}
+
+	void Mesh::drawShaderInternal(int idxStart, int num, LinearColor const* color /*= nullptr*/)
+	{
+		assert(mVertexBuffer != nullptr);
+
+		bindVAO(color);
+		if( mIndexBuffer )
+		{
+			RHIDrawIndexedPrimitive(mType, mIndexBuffer->mbIntIndex ? CVT_UInt : CVT_UShort, idxStart, num);
+		}
+		else
+		{
+			RHIDrawPrimitive(mType, idxStart, num);
+		}
+
+		CheckGLStateValid();
+		unbindVAO();
+	}
+
+	void Mesh::bindVAO(LinearColor const* color)
+	{
+		if( mVAO == 0 )
+		{
+			glGenVertexArrays(1, &mVAO);
+			glBindVertexArray(mVAO);
+
+			mVertexBuffer->bind();
+			mDecl.bindAttrib(color);
+
+			if( mIndexBuffer )
+				mIndexBuffer->bind();
+			glBindVertexArray(0);
+			mVertexBuffer->unbind();
+			if( mIndexBuffer )
+				mIndexBuffer->unbind();
+
+			mDecl.unbindAttrib(color);
+		}
+		glBindVertexArray(mVAO);
+	}
+
 
 	class MeshBuildUtility
 	{
@@ -534,7 +673,7 @@ namespace RenderGL
 		if ( !mesh.createBuffer( &v[0] , 8 , &idx[0] , 4 * 6 , true ) )
 			return false;
 
-		mesh.mType = PrimitiveType::eQuad;
+		mesh.mType = PrimitiveType::Quad;
 		return true;
 	}
 
@@ -595,7 +734,7 @@ namespace RenderGL
 		};
 
 		fillTangent_QuadList( mesh.mDecl , &v[0] , 6 * 4 , &idx[0] , 6 * 4 );
-		mesh.mType = PrimitiveType::eQuad;
+		mesh.mType = PrimitiveType::Quad;
 		if ( !mesh.createBuffer( &v[0] , 6 * 4 , &idx[0] , 6 * 4 , true ) )
 			return false;
 
@@ -1378,77 +1517,5 @@ namespace RenderGL
 		return true;
 	}
 
-
-	void Font::buildFontImage( int size , HDC hDC )
-	{
-		HFONT	font;										// Windows Font ID
-		HFONT	oldfont;									// Used For Good House Keeping
-
-		base = glGenLists(96);								// Storage For 96 Characters
-
-		int height = -(int)(fabs( ( float)10 * size *GetDeviceCaps( hDC ,LOGPIXELSY)/72)/10.0+0.5);
-
-		font = CreateFont(	
-			height ,					    // Height Of Font
-			0,								// Width Of Font
-			0,								// Angle Of Escapement
-			0,								// Orientation Angle
-			FW_BOLD,						// Font Weight
-			FALSE,							// Italic
-			FALSE,							// Underline
-			FALSE,							// Strikeout
-			ANSI_CHARSET,					// Character Set Identifier
-			OUT_TT_PRECIS,					// Output Precision
-			CLIP_DEFAULT_PRECIS,			// Clipping Precision
-			ANTIALIASED_QUALITY,			// Output Quality
-			FF_DONTCARE|DEFAULT_PITCH,		// Family And Pitch
-			TEXT("²Ó©úÅé") );			    // Font Name
-
-		oldfont = (HFONT)SelectObject(hDC, font);           // Selects The Font We Want
-		wglUseFontBitmaps(hDC, 32, 96, base);				// Builds 96 Characters Starting At Character 32
-		SelectObject(hDC, oldfont);							// Selects The Font We Want
-		DeleteObject(font);									// Delete The Font
-	}
-
-	void Font::printf(const char *fmt, ...)
-	{
-		if (fmt == NULL)									// If There's No Text
-			return;											// Do Nothing
-
-		va_list	ap;	
-		char    text[512];								// Holds Our String
-
-		va_start(ap, fmt);									// Parses The String For Variables
-		vsprintf(text, fmt, ap);						// And Converts Symbols To Actual Numbers
-		va_end(ap);											// Results Are Stored In Text
-
-		glPushAttrib(GL_LIST_BIT);							// Pushes The Display List Bits
-		glListBase(base - 32);								// Sets The Base Character to 32
-		glCallLists(strlen(text), GL_UNSIGNED_BYTE, text);	// Draws The Display List Text
-		glPopAttrib();										// Pops The Display List Bits
-	}
-
-
-	void Font::print( char const* str )
-	{
-		if (str == NULL)									// If There's No Text
-			return;											// Do Nothing
-		glPushAttrib(GL_LIST_BIT);							// Pushes The Display List Bits
-		glListBase(base - 32);								// Sets The Base Character to 32
-		glCallLists(strlen(str), GL_UNSIGNED_BYTE, str);	// Draws The Display List Text
-		glPopAttrib();										// Pops The Display List Bits
-	}
-
-
-	Font::~Font()
-	{
-		if ( base )
-			glDeleteLists(base, 96);
-	}
-
-	void Font::create( int size , HDC hDC)
-	{
-		buildFontImage( size , hDC );
-	}
 
 }//namespace GL

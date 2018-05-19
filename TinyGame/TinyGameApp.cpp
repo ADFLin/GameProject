@@ -32,7 +32,7 @@
 
 #include "Thread.h"
 #include "SystemPlatform.h"
-#include "RenderGL/GLUtility.h"
+#include "RenderGL/MeshUtility.h"
 
 #define GAME_SETTING_PATH "Game.ini"
 
@@ -540,7 +540,7 @@ StageBase* TinyGameApp::createStage( StageID stageId )
 		CASE_STAGE( STAGE_REPLAY_EDIT , ReplayEditStage )
 #undef CASE_STAGE
 		default:
-			LogErrorF( "Can't find Stage %d " , stageId );
+			LogError( "Can't find Stage %d " , stageId );
 			return NULL;
 		}
 	}

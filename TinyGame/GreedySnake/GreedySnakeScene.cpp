@@ -34,7 +34,7 @@ namespace GreedySnake
 	if ( trigger.detect( ACT )  )\
 	{\
 		snake.changeMoveDir( DIR );\
-		LogMsgF("%d : %u change dir %d", mFrame, snake.id, (int)DIR);\
+		LogMsg("%d : %u change dir %d", mFrame, snake.id, (int)DIR);\
 	}
 
 		CHECK_MOVE_ACTION( ACT_GS_MOVE_E , DIR_EAST );

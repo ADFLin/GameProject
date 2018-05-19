@@ -5,6 +5,7 @@
 #include <cassert>
 
 #include "CoreShare.h"
+#include "CString.h"
 
 #ifndef USE_LOG
 #define USE_LOG 1
@@ -17,10 +18,39 @@ CORE_API void LogError  (char const* str);
 CORE_API void LogDevMsg (int level, char const* str);
 CORE_API void LogWarning(int level, char const* str);
 
-CORE_API void LogMsgF    ( char const* format , ... );
-CORE_API void LogErrorF  ( char const* format , ... );
-CORE_API void LogDevMsgF ( int level , char const* format , ... );
-CORE_API void LogWarningF( int level , char const* format , ... );
+#define LOG_BUFFER_SIZE 10240
+
+template< class ...Arg >
+void LogMsg(char const* format, Arg ...arg)
+{
+	char buffer[LOG_BUFFER_SIZE];
+	FCString::PrintfT(buffer, format, arg...);
+	LogMsg(buffer);
+}
+
+template< class ...Arg >
+void LogError(char const* format, Arg ...arg)
+{
+	char buffer[LOG_BUFFER_SIZE];
+	FCString::PrintfT(buffer, format, arg...);
+	LogError(buffer);
+}
+
+template< class ...Arg >
+void LogDevMsg(int level, char const* format, Arg ...arg)
+{
+	char buffer[LOG_BUFFER_SIZE];
+	FCString::PrintfT(buffer, format, arg...);
+	LogDevMsg(level, buffer);
+}
+
+template< class ...Arg >
+void LogWarning(int level, char const* format, Arg ...arg)
+{
+	char buffer[LOG_BUFFER_SIZE];
+	FCString::PrintfT(buffer, format, arg...);
+	LogWarning(level, buffer);
+}
 
 CORE_API void LogMsgV    ( char const* format , va_list argptr );
 CORE_API void LogErrorV  ( char const* format , va_list argptr );
@@ -33,11 +63,6 @@ CORE_API void LogWarningV( int level , char const* format , va_list argptr );
 #define  LogError(...) 
 #define  LogDevMsg(...)
 #define  LogWarning(...) 
-
-#define  LogMsgF(...) 
-#define  LogErrorF(...) 
-#define  LogDevMsgF(...) 
-#define  LogWarningF(...) 
 
 #define  LogMsgV(...) 
 #define  LogErrorV(...) 

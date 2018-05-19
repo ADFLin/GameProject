@@ -2,6 +2,7 @@
 
 #include "RenderContext.h"
 #include "ShaderCompiler.h"
+#include "RHICommand.h"
 
 namespace RenderGL
 {
@@ -9,7 +10,7 @@ namespace RenderGL
 	{
 		GLenum primitivTypeGL = GLConvert::To(primitiveType);
 
-		context.setupShader(material);
+		context.setMaterial(material);
 		if( context.bBindAttrib )
 		{
 			if( VAOHandle == 0 )
@@ -27,21 +28,17 @@ namespace RenderGL
 
 			for( int i = 0; i < elements.size(); ++i )
 			{
-				//#TODO : Remove GL Matrix fun
-				glPushMatrix();
 				MeshBatchElement& meshElement = elements[i];
 				context.setWorld(meshElement.world);
 				if( meshElement.indexBuffer )
 				{
 					GL_BIND_LOCK_OBJECT(*meshElement.indexBuffer);
-					glDrawElements(primitivTypeGL, meshElement.numElement, meshElement.indexBuffer->mbIntIndex ? GL_UNSIGNED_INT : GL_UNSIGNED_SHORT, (void*)meshElement.idxStart);
+					RHIDrawIndexedPrimitive(primitiveType, meshElement.indexBuffer->mbIntIndex ? CVT_UInt : CVT_UShort, meshElement.idxStart, meshElement.numElement);
 				}
 				else
 				{
-
-					glDrawArrays(primitivTypeGL, meshElement.idxStart, meshElement.numElement);
+					RHIDrawPrimitive(primitiveType, meshElement.idxStart, meshElement.numElement);
 				}
-				glPopMatrix();
 			}
 			//checkGLError();
 			glBindVertexArray(0);
@@ -49,28 +46,26 @@ namespace RenderGL
 		else
 		{
 			vertexBuffer->bind();
-			vertexDecl->bind();
+			vertexDecl->bindPointer();
 
 			for( int i = 0; i < elements.size(); ++i )
 			{
 				MeshBatchElement& meshElement = elements[i];
-				//#TODO : Remove GL Matrix fun
-				glPushMatrix();
 				context.setWorld(meshElement.world);
 				if( meshElement.indexBuffer )
 				{
 					GL_BIND_LOCK_OBJECT(*meshElement.indexBuffer);
-					glDrawElements(primitivTypeGL, meshElement.numElement, meshElement.indexBuffer->mbIntIndex ? GL_UNSIGNED_INT : GL_UNSIGNED_SHORT, (void*)meshElement.idxStart);
+					RHIDrawIndexedPrimitive(primitiveType, meshElement.indexBuffer->mbIntIndex ? CVT_UInt : CVT_UShort , meshElement.idxStart , meshElement.numElement );
 				}
 				else
 				{
-					glDrawArrays(primitivTypeGL, meshElement.idxStart, meshElement.numElement);
+					RHIDrawPrimitive(primitiveType, meshElement.idxStart, meshElement.numElement);
 				}
-				glPopMatrix();
 			}
 			//checkGLError();
+			
+			vertexDecl->unbindPointer();
 			vertexBuffer->unbind();
-			vertexDecl->unbind();
 		}
 	}
 
@@ -99,12 +94,14 @@ namespace RenderGL
 
 	void SimpleElementRenderer::draw( RenderContext& context , SimpleVertex* vertices, int numVertices)
 	{
-		mVertexBuffer->updateData(sizeof(SimpleVertex), numVertices, vertices);
+		void* pData = mVertexBuffer->lock(ELockAccess::WriteOnly);
+		memcpy(pData, vertices, numVertices * mVertexBuffer->mVertexSize);
+		mVertexBuffer->unlock();
 
 		glBindVertexArray(mVAO);
 		context.setShader(mShader);
 		mShader.setParam(SHADER_PARAM(VertexTransform), context.getView().worldToClip);
-		glDrawArrays(GLConvert::To(PrimitiveType::eTriangleList), 0, numVertices);
+		glDrawArrays(GLConvert::To(PrimitiveType::TriangleList), 0, numVertices);
 		glBindVertexArray(0);
 	}
 
@@ -129,7 +126,8 @@ namespace RenderGL
 			Vector3 cameraY = context.getView().getViewUpDir();
 
 			Vec2i screenSize = context.getView().getViewportSize();
-			glDisable(GL_CULL_FACE);
+
+			RHISetRasterizerState(TStaticRasterizerState< ECullMode::None >::GetRHI());
 			int idxLine = 0;
 			{
 				for( ; idxLine < mLineBatchs.size(); ++idxLine )
@@ -187,7 +185,7 @@ namespace RenderGL
 				gSimpleElementRender.draw(context, &mCacheBuffer[0], mCacheBuffer.size());
 
 			}
-			glEnable(GL_CULL_FACE);
+			RHISetRasterizerState(TStaticRasterizerState<>::GetRHI());
 		}
 	}
 

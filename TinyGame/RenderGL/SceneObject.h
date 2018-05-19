@@ -240,7 +240,7 @@ namespace RenderGL
 		}
 
 		void render(Matrix4 const& worldTrans, RenderContext& context, Material* material);
-		void render(Matrix4 const& worldTrans, RenderContext& context, bool bVAO = false);
+		void render(Matrix4 const& worldTrans, RenderContext& context );
 
 		void setMaterial(int idx, MaterialPtr material)
 		{

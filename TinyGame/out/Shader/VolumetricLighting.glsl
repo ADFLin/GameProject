@@ -1,0 +1,121 @@
+#include "Common.glsl"
+
+//                                 o L
+//                                /  \
+//                               /     \  
+//   cam o----------------------o------- /
+//       x                      xt       xs
+//
+//Li(x,w) = Tr(x,xs)*Ls(xs,w0) + Integral( xs , 0 )[ Tr(x,xt) mu_t(s,x) Lscat(xt,wi)] ds
+//Tr(x,xs) = exp( - Integral(xs,0)[mu_t(s,x)] ds )
+//Lscat(xt,wi) = p * sum(l:lights)[ f(v,l)Vis(x,l)Li(x,l) ]
+//Vis(x,l) = shadowMap(x,l) * volumetricShadowMap( x , l )
+// f(v,l) ?
+// mu_a : Absorption 
+// mu_s : Scattering
+// mu_t = mu_s + mu_a: Extinction 
+// p = mu_s / mu_t: Albedo 
+// g = g_m + g_k : phase
+// g_mei = 1/4pi
+// g_r = HG or schlick
+
+
+float PhaseFunction_Mei(float c)
+{
+	return 1.0 / (4 * PI);
+}
+
+float PhaseFunction_HG(float c , float g )
+{
+	float g2 = Square(g);
+	return (1.0 - g2) / pow((1.0 + g2 + 2*g*c), 1.5 );
+}
+
+float PhaseFunction_Schlick(float c, float g)
+{
+	float k = ( 1.55 - 0.55 * g * g ) * g;
+	return (1 - Square(k)) * Square(1.0 / (1.0 + k * c));
+}
+
+struct TitledLightInfo
+{
+	float3 pos;
+	int   type;
+	float3 color;
+	float   intensity;
+	float3 dir;
+	float   radius;
+	float4 param; // x y: spotAngle  , z : shadowFactor
+	float4x4 worldToShadow;
+};
+
+layout(std140) uniform TitledLightBlock
+{
+	uniform TitledLightInfo TitledLightList[];
+};
+
+uniform int TitledLightNum = 0;
+
+struct FroxelVolumeData
+{
+	float3 scarttingColor;
+	float  extinction;
+	float3 emitterColor;
+	float  gFactor;
+};
+
+uniform restrict writeonly image3D VolumeRWBufferA;
+uniform restrict writeonly image3D VolumeRWBufferB;
+void WriteVolumeBuffer(in FroxelVolumeData data , int3 pos )
+{
+	float4 dataA = float4(data.scarttingColor, data.extinction);
+	imageStore(VolumeRWBufferA, pos, dataA);
+	float4 dataB = float4(data.emitterColor, data.gFactor);
+	imageStore(VolumeRWBufferB, pos, dataB);
+}
+
+uniform sampler3D VolumeBufferA;
+uniform sampler3D VolumeBufferB;
+void ReadVolumeBuffer(out FroxelVolumeData data , int3 pos )
+{
+	float4 dataA = texelFetch(VolumeBufferA, pos, 0);
+	float4 dataB = texelFetch(VolumeBufferB, pos, 0);
+	data.scarttingColor = dataA.rgb;
+	data.extinction = dataA.a;
+	data.emitterColor = dataB.rgb;
+	data.gFactor = dataB.a;
+}
+
+
+uniform restrict writeonly image3D ScatteringRWBuffer;
+
+#ifndef GROUP_SIZE_X
+#define GROUP_SIZE_X 8
+#endif
+#ifndef GROUP_SIZE_Y
+#define GROUP_SIZE_Y 8
+#endif
+
+
+float3 CellToViewPos(int3 cellPos , float3 cellOffset)
+{
+
+	return float3(0, 0, 0);
+}
+
+layout(local_size_x = GROUP_SIZE_X, local_size_y = GROUP_SIZE_Y, local_size_z = 1) in;
+void LightScatteringCS()
+{
+	for( int i = 0; i < TitledLightNum; ++i )
+	{
+		TitledLightInfo light = TitledLightList[i];
+
+
+
+
+
+
+
+	}
+
+}

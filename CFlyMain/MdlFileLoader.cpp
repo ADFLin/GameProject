@@ -379,7 +379,7 @@ namespace CFly
 
 			if ( numTri != curMesh.numtris )
 			{
-				LogDevMsgF( 1 , "Warmming Load Model Mesh Error" );
+				LogDevMsg( 1 , "Warmming Load Model Mesh Error" );
 				continue;
 			}
 

@@ -4,7 +4,7 @@
 
 #include "GLCommon.h"
 #include "ShaderCore.h"
-#include "GLUtility.h"
+#include "MeshUtility.h"
 #include "TVector2.h"
 #include "Singleton.h"
 

@@ -4,7 +4,7 @@
 #include "BaseType.h"
 #include "RHIDefine.h"
 
-#include "GL/glew.h"
+#include "glew/GL/glew.h"
 #include "GLConfig.h"
 
 #include "CppVersion.h"
@@ -122,6 +122,12 @@ namespace RenderGL
 		static void Destroy(GLuint& handle) { glDeleteBuffers(1, &handle); }
 	};
 
+	struct RMPSamplerObject
+	{
+		static void Create(GLuint& handle) { glGenSamplers(1, &handle); }
+		static void Destroy(GLuint& handle) { glDeleteSamplers(1, &handle); }
+	};
+
 	class RHIResource : public RefCountedObjectT< RHIResource >
 	{
 	public:
@@ -147,22 +153,37 @@ namespace RenderGL
 	};
 
 
-	enum VectorComponentType
+	enum ECompValueType
 	{
-		VCT_Float,
-		VCT_Half,
-		VCT_UInt,
-		VCT_Int,
-		VCT_UShort,
-		VCT_Short,
-		VCT_UByte,
-		VCT_Byte,
+		CVT_Float,
+		CVT_Half,
+		CVT_UInt,
+		CVT_Int,
+		CVT_UShort,
+		CVT_Short,
+		CVT_UByte,
+		CVT_Byte,
 
 		//
-		VCT_NInt8,
-		VCT_NInt16,
+		CVT_NInt8,
+		CVT_NInt16,
 
 	};
+
+	struct SamplerStateInitializer
+	{
+		Sampler::Filter filter;
+		Sampler::AddressMode addressU;
+		Sampler::AddressMode addressV;
+		Sampler::AddressMode addressW;
+	};
+	class RHISamplerState : public TRHIResource< RMPSamplerObject >
+	{
+	public:
+		bool create(SamplerStateInitializer const& initializer);
+	};
+
+	typedef TRefCountPtr< RHISamplerState > RHISamplerStateRef;
 
 	struct Texture
 	{
@@ -266,6 +287,8 @@ namespace RenderGL
 		}
 	};
 
+
+
 	class RHITextureBase : public TRHIResource< RMPTexture >
 	{
 	public:
@@ -274,68 +297,89 @@ namespace RenderGL
 		bool loadFileInternal(char const* path, GLenum texType, GLenum texImageType, Vec2i& outSize , Texture::Format& outFormat);
 	};
 
+
+	template< GLenum TYPE_NAME_GL >
+	class TRHITextureBase : public RHITextureBase
+	{
+	public:
+		static GLenum const TypeNameGL = TYPE_NAME_GL;
+		void bind()
+		{
+			glBindTexture(TypeNameGL, mHandle);
+		}
+
+		void unbind()
+		{
+			glBindTexture(TypeNameGL, 0);
+		}
+		Texture::Format getFormat() { return mFormat; }
+	protected:
+		Texture::Format mFormat;
+	};
+
 	class RenderTarget
 	{
 
 	};
 
-	class RHITexture2D : public RHITextureBase
+	class RHITexture1D : public TRHITextureBase< GL_TEXTURE_1D >
+	{
+	public:
+		bool create(Texture::Format format, int length, int numMipLevel = 0, void* data = nullptr);
+		int  getSize() const { return mSize; }
+		bool update(int offset, int length, Texture::Format format, void* data, int level = 0);
+	private:
+		int mSize;
+	};
+
+
+	class RHITexture2D : public TRHITextureBase< GL_TEXTURE_2D >
 	{
 	public:
 		bool loadFromFile( char const* path );
 		bool create( Texture::Format format, int width, int height , int numMipLevel = 0 ,void* data = nullptr , int alignment = 0);
 		int  getSizeX() const { return mSizeX; }
 		int  getSizeY() const { return mSizeY; }
-		void bind();
-		void unbind();
-
 		bool update(int ox, int oy, int w, int h , Texture::Format format , void* data , int level = 0 );
 		bool update(int ox, int oy, int w, int h, Texture::Format format, int pixelStride, void* data, int level = 0);
-		Texture::Format getFormat() { return mFormat; }
 	private:
-		Texture::Format mFormat;
+		
 		int mSizeX;
 		int mSizeY;
 	};
 
 
 
-	class RHITexture3D : public RHITextureBase
+	class RHITexture3D : public TRHITextureBase< GL_TEXTURE_3D >
 	{
 	public:
 		bool create(Texture::Format format, int sizeX , int sizeY , int sizeZ );
 		int  getSizeX() { return mSizeX; }
 		int  getSizeY() { return mSizeY; }
 		int  getSizeZ() { return mSizeZ; }
-		void bind();
-		void unbind();
-
 	private:
 		int mSizeX;
 		int mSizeY;
 		int mSizeZ;
 	};
 
-	class RHITextureCube : public RHITextureBase
+	class RHITextureCube : public TRHITextureBase< GL_TEXTURE_CUBE_MAP >
 	{
 	public:
 		bool loadFile( char const* path[] );
 		bool create( Texture::Format format, int width, int height, void* data = nullptr );
-		void bind();
-		void unbind();
 	};
 
 	typedef TRefCountPtr< RHITextureBase > RHITextureRef;
+	typedef TRefCountPtr< RHITexture1D > RHITexture1DRef;
 	typedef TRefCountPtr< RHITexture2D > RHITexture2DRef;
 	typedef TRefCountPtr< RHITexture3D > RHITexture3DRef;
 	typedef TRefCountPtr< RHITextureCube > RHITextureCubeRef;
 
-	class RHITextureDepth : public RHITextureBase
+	class RHITextureDepth : public TRHITextureBase< GL_TEXTURE_2D >
 	{
 	public:
 		bool create(Texture::DepthFormat format, int width, int height);
-		void bind();
-		void unbind();
 		Texture::DepthFormat getFormat() { return mFromat; }
 		Texture::DepthFormat mFromat;
 	};
@@ -354,7 +398,7 @@ namespace RenderGL
 	class GLConvert
 	{
 	public:
-		static GLenum To(AccessOperator op);
+		static GLenum To(EAccessOperator op);
 		static GLenum To(Texture::Format format);
 		static GLenum To(PrimitiveType type);
 		static GLenum To(Shader::Type type);
@@ -362,11 +406,17 @@ namespace RenderGL
 		static GLenum To(Blend::Factor factor);
 		static GLenum To(Blend::Operation op)
 		{
-
+			//TODO
 
 		}
 		static GLenum To(ECompareFun fun);
 		static GLenum To(Stencil::Operation op);
+		static GLenum To(ECullMode mode);
+		static GLenum To(EFillMode mode);
+		static GLenum To(ECompValueType type );
+		static GLenum To(Sampler::Filter filter);
+		static GLenum To(Sampler::AddressMode mode);
+		static GLenum To(Buffer::Usage usage);
 		
 	};
 
@@ -475,47 +525,47 @@ namespace RenderGL
 		{
 			return (format & 0x3) + 1;
 		}
-		static VectorComponentType GetVectorComponentType(uint8 format)
+		static ECompValueType GetCompValueType(uint8 format)
 		{
-			return VectorComponentType(format >> 2);
+			return ECompValueType(format >> 2);
 		}
 
 		enum Format
 		{
 #define  ENCODE_VECTOR_FORAMT( TYPE , NUM ) (( TYPE << 2 ) | ( NUM - 1 ) )
 
-			eFloat1 = ENCODE_VECTOR_FORAMT(VCT_Float,1),
-			eFloat2 = ENCODE_VECTOR_FORAMT(VCT_Float,2),
-			eFloat3 = ENCODE_VECTOR_FORAMT(VCT_Float,3),
-			eFloat4 = ENCODE_VECTOR_FORAMT(VCT_Float,4),
-			eHalf1 = ENCODE_VECTOR_FORAMT(VCT_Half, 1),
-			eHalf2 = ENCODE_VECTOR_FORAMT(VCT_Half, 2),
-			eHalf3 = ENCODE_VECTOR_FORAMT(VCT_Half, 3),
-			eHalf4 = ENCODE_VECTOR_FORAMT(VCT_Half, 4),
-			eUInt1  = ENCODE_VECTOR_FORAMT(VCT_UInt,1),
-			eUInt2  = ENCODE_VECTOR_FORAMT(VCT_UInt,2),
-			eUInt3  = ENCODE_VECTOR_FORAMT(VCT_UInt,3),
-			eUInt4  = ENCODE_VECTOR_FORAMT(VCT_UInt,4),
-			eInt1 = ENCODE_VECTOR_FORAMT(VCT_Int, 1),
-			eInt2 = ENCODE_VECTOR_FORAMT(VCT_Int, 2),
-			eInt3 = ENCODE_VECTOR_FORAMT(VCT_Int, 3),
-			eInt4 = ENCODE_VECTOR_FORAMT(VCT_Int, 4),
-			eUShort1 = ENCODE_VECTOR_FORAMT(VCT_UShort, 1),
-			eUShort2 = ENCODE_VECTOR_FORAMT(VCT_UShort, 2),
-			eUShort3 = ENCODE_VECTOR_FORAMT(VCT_UShort, 3),
-			eUShort4 = ENCODE_VECTOR_FORAMT(VCT_UShort, 4),
-			eShort1 = ENCODE_VECTOR_FORAMT(VCT_Short, 1),
-			eShort2 = ENCODE_VECTOR_FORAMT(VCT_Short, 2),
-			eShort3 = ENCODE_VECTOR_FORAMT(VCT_Short, 3),
-			eShort4 = ENCODE_VECTOR_FORAMT(VCT_Short, 4),
-			eUByte1 = ENCODE_VECTOR_FORAMT(VCT_UByte, 1),
-			eUByte2 = ENCODE_VECTOR_FORAMT(VCT_UByte, 2),
-			eUByte3 = ENCODE_VECTOR_FORAMT(VCT_UByte, 3),
-			eUByte4 = ENCODE_VECTOR_FORAMT(VCT_UByte, 4),
-			eByte1 = ENCODE_VECTOR_FORAMT(VCT_Byte, 1),
-			eByte2 = ENCODE_VECTOR_FORAMT(VCT_Byte, 2),
-			eByte3 = ENCODE_VECTOR_FORAMT(VCT_Byte, 3),
-			eByte4 = ENCODE_VECTOR_FORAMT(VCT_Byte, 4),
+			eFloat1 = ENCODE_VECTOR_FORAMT(CVT_Float,1),
+			eFloat2 = ENCODE_VECTOR_FORAMT(CVT_Float,2),
+			eFloat3 = ENCODE_VECTOR_FORAMT(CVT_Float,3),
+			eFloat4 = ENCODE_VECTOR_FORAMT(CVT_Float,4),
+			eHalf1 = ENCODE_VECTOR_FORAMT(CVT_Half, 1),
+			eHalf2 = ENCODE_VECTOR_FORAMT(CVT_Half, 2),
+			eHalf3 = ENCODE_VECTOR_FORAMT(CVT_Half, 3),
+			eHalf4 = ENCODE_VECTOR_FORAMT(CVT_Half, 4),
+			eUInt1  = ENCODE_VECTOR_FORAMT(CVT_UInt,1),
+			eUInt2  = ENCODE_VECTOR_FORAMT(CVT_UInt,2),
+			eUInt3  = ENCODE_VECTOR_FORAMT(CVT_UInt,3),
+			eUInt4  = ENCODE_VECTOR_FORAMT(CVT_UInt,4),
+			eInt1 = ENCODE_VECTOR_FORAMT(CVT_Int, 1),
+			eInt2 = ENCODE_VECTOR_FORAMT(CVT_Int, 2),
+			eInt3 = ENCODE_VECTOR_FORAMT(CVT_Int, 3),
+			eInt4 = ENCODE_VECTOR_FORAMT(CVT_Int, 4),
+			eUShort1 = ENCODE_VECTOR_FORAMT(CVT_UShort, 1),
+			eUShort2 = ENCODE_VECTOR_FORAMT(CVT_UShort, 2),
+			eUShort3 = ENCODE_VECTOR_FORAMT(CVT_UShort, 3),
+			eUShort4 = ENCODE_VECTOR_FORAMT(CVT_UShort, 4),
+			eShort1 = ENCODE_VECTOR_FORAMT(CVT_Short, 1),
+			eShort2 = ENCODE_VECTOR_FORAMT(CVT_Short, 2),
+			eShort3 = ENCODE_VECTOR_FORAMT(CVT_Short, 3),
+			eShort4 = ENCODE_VECTOR_FORAMT(CVT_Short, 4),
+			eUByte1 = ENCODE_VECTOR_FORAMT(CVT_UByte, 1),
+			eUByte2 = ENCODE_VECTOR_FORAMT(CVT_UByte, 2),
+			eUByte3 = ENCODE_VECTOR_FORAMT(CVT_UByte, 3),
+			eUByte4 = ENCODE_VECTOR_FORAMT(CVT_UByte, 4),
+			eByte1 = ENCODE_VECTOR_FORAMT(CVT_Byte, 1),
+			eByte2 = ENCODE_VECTOR_FORAMT(CVT_Byte, 2),
+			eByte3 = ENCODE_VECTOR_FORAMT(CVT_Byte, 3),
+			eByte4 = ENCODE_VECTOR_FORAMT(CVT_Byte, 4),
 
 #undef ENCODE_VECTOR_FORAMT
 			eUnknowFormat ,
@@ -612,11 +662,11 @@ namespace RenderGL
 		VertexDecl&   addElement( uint8 attribute ,  Vertex::Format f,  bool bNormailze = false );
 
 
-		void bind();
-		void unbind();
+		void bindPointer(LinearColor const* overwriteColor = nullptr);
+		void unbindPointer(LinearColor const* overwriteColor = nullptr);
 
-		void bindAttrib();
-		void unbindAttrib();
+		void bindAttrib(LinearColor const* overwriteColor = nullptr);
+		void unbindAttrib(LinearColor const* overwriteColor = nullptr);
 
 		VertexElement const*   findBySematic( Vertex::Semantic s , int idx ) const;
 		VertexElement const*   findBySematic( Vertex::Semantic s ) const;
@@ -676,12 +726,17 @@ namespace RenderGL
 		{
 			mBufferSize = 0;
 			mNumVertices = 0;
+			mVertexSize = 0;
 		}
+		bool  create();
 		bool  create( uint32 vertexSize,  uint32 numVertices , void* data = nullptr , Buffer::Usage usage = Buffer::eStatic );
-		void  updateData(uint32 vertexSize, uint32 numVertices, void* data );
+		
+		void  resetData(uint32 vertexSize, uint32 numVertices, void* data = nullptr, Buffer::Usage usage = Buffer::eStatic);
+		void  updateData(uint32 vStart, uint32 numVertices, void* data);
 
 		uint32 mBufferSize;
 		uint32 mNumVertices;
+		uint32 mVertexSize;
 
 	};
 
@@ -732,41 +787,6 @@ namespace RenderGL
 		int32 numIndex;
 		int32 numElement;
 	};
-
-	class Mesh
-	{
-	public:
-
-		Mesh();
-		~Mesh();
-
-		bool createBuffer( void* pVertex  , int nV , void* pIdx = nullptr , int nIndices = 0 , bool bIntIndex = false );
-		void draw(bool bUseVAO = false);
-		void draw(Matrix4 const& transform, bool bUseVAO);
-		void drawSection(int idx , bool bUseVAO = false);
-
-		void drawInternal(int idxStart , int num , bool bUseVAO);
-
-		void bindVAO();
-		void unbindVAO()
-		{
-			glBindVertexArray(0);
-		}
-
-		PrimitiveType       mType;
-		VertexDecl          mDecl;
-		RHIVertexBufferRef  mVertexBuffer;
-		RHIIndexBufferRef   mIndexBuffer;
-		uint32              mVAO;
-
-		struct Section
-		{
-			int start;
-			int num;
-		};
-		std::vector< Section > mSections;
-	};
-
 
 	template< class T >
 	struct TBindLockScope

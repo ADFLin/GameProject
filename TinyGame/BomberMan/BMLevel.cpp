@@ -196,7 +196,7 @@ namespace BomberMan
 				{
 					if ( testIntersect( iter1->bMin , iter1->bMax , iter2->bMin , iter2->bMax ) )
 					{
-						LogMsgF( "Object Collision ( %d , %d )" , obj1->getClient()->getType() , obj2->getClient()->getType() );
+						LogMsg( "Object Collision ( %d , %d )" , obj1->getClient()->getType() , obj2->getClient()->getType() );
 						info.obj = obj2;
 						obj1->notifyCollision( info );
 						info.obj = obj1;
@@ -506,7 +506,7 @@ namespace BomberMan
 
 						if ( tile.obj != MO_NULL )
 						{
-							LogMsgF( "warming:" );
+							LogMsg( "warming:" );
 						}
 
 						tile.obj  = MO_BOMB;

@@ -4,22 +4,22 @@
 namespace CFly
 {
 
-	void TransformUntility::transform( Matrix4& self , Matrix4 const& trans , TransOp op )
+	void FTransform::Transform( Matrix4& self , Matrix4 const& trans , TransOp op )
 	{
 		switch ( op )
 		{
 		case CFTO_REPLACE: self = trans; break;
-		case CFTO_LOCAL:   mul( self , trans , self ); break;
-		case CFTO_GLOBAL:  mul( self , self , trans ); break;
+		case CFTO_LOCAL:   Mul( self , trans , self ); break;
+		case CFTO_GLOBAL:  Mul( self , self , trans ); break;
 		}
 	}
 
-	void TransformUntility::rotate( Matrix4& self , Vector3 const& axis , float angle , TransOp op )
+	void FTransform::Rotate( Matrix4& self , Vector3 const& axis , float angle , TransOp op )
 	{
-		transform( self , Matrix4::Rotate( axis , angle ) , op );
+		Transform( self , Matrix4::Rotate( axis , angle ) , op );
 	}
 
-	void TransformUntility::rotate( Matrix4& self , AxisEnum axis , float angle , TransOp op )
+	void FTransform::Rotate( Matrix4& self , AxisEnum axis , float angle , TransOp op )
 	{
 		Matrix4 mat;
 		switch( axis )
@@ -31,37 +31,37 @@ namespace CFly
 		case CF_AXIS_Y_INV: mat.setRotationY( -angle ); break;
 		case CF_AXIS_Z_INV: mat.setRotationZ( -angle ); break;
 		}
-		transform( self , mat , op );
+		Transform( self , mat , op );
 	}
 
-	void TransformUntility::rotate( Matrix4& self , Quaternion const& q , TransOp op )
+	void FTransform::Rotate( Matrix4& self , Quaternion const& q , TransOp op )
 	{
 		Matrix4 mat;
 		mat.setQuaternion( q );
-		transform( self , mat , op );
+		Transform( self , mat , op );
 	}
 
-	void TransformUntility::scale( Matrix4& self , Vector3 const& s , TransOp op )
+	void FTransform::Scale( Matrix4& self , Vector3 const& s , TransOp op )
 	{
 		switch( op )
 		{
-		case CFTO_GLOBAL: scaleGlobal( self , s ); break;
-		case CFTO_LOCAL:  scaleLocal( self , s );  break;
+		case CFTO_GLOBAL: ScaleGlobal( self , s ); break;
+		case CFTO_LOCAL:  ScaleLocal( self , s );  break;
 		case CFTO_REPLACE: self.setScale( s );   break;
 		}
 	}
-
-	void TransformUntility::translate( Matrix4& self , Vector3 const& offset , TransOp op )
+		
+	void FTransform::Translate( Matrix4& self , Vector3 const& offset , TransOp op )
 	{
 		switch( op )
 		{
-		case CFTO_GLOBAL: translateGlobal( self , offset ); break;
-		case CFTO_LOCAL:  translateLocal( self , offset );  break;
+		case CFTO_GLOBAL: TranslateGlobal( self , offset ); break;
+		case CFTO_LOCAL:  TranslateLocal( self , offset );  break;
 		case CFTO_REPLACE: self.modifyTranslation( offset );   break;
 		}
 	}
 
-	void TransformUntility::transformInv( Matrix4& self , Matrix4 const& trans , TransOp op )
+	void FTransform::TransformInv( Matrix4& self , Matrix4 const& trans , TransOp op )
 	{
 		checkFormat( trans );
 
@@ -79,19 +79,19 @@ namespace CFly
 		}
 	}
 
-	void TransformUntility::translateGlobal( Matrix4& self , Vector3 const& offset )
+	void FTransform::TranslateGlobal( Matrix4& self , Vector3 const& offset )
 	{
 		checkFormat( self );
-		self.modifyTranslation( offset );
+		self.translate( offset );
 	}
 
-	void TransformUntility::translateLocal( Matrix4& self , Vector3 const& offset )
+	void FTransform::TranslateLocal( Matrix4& self , Vector3 const& offset )
 	{
 		checkFormat( self );
 		self.translate( Math::TransformVector( offset , self )  );
 	}
 
-	void TransformUntility::scaleGlobal( Matrix4& self , Vector3 const& s )
+	void FTransform::ScaleGlobal( Matrix4& self , Vector3 const& s )
 	{
 		checkFormat( self );
 
@@ -101,7 +101,7 @@ namespace CFly
 		self[12]*= s.x; self[13]*= s.y ;self[14]*= s.z;
 	}
 
-	void TransformUntility::scaleLocal( Matrix4& self , Vector3 const& s )
+	void FTransform::ScaleLocal( Matrix4& self , Vector3 const& s )
 	{
 		checkFormat( self );
 
@@ -110,7 +110,7 @@ namespace CFly
 		self[8] *= s.z; self[9] *= s.z; self[10] *= s.z;
 	}
 
-	void TransformUntility::mul( Matrix4& result , Matrix4 const& lhs , Matrix4 const& rhs )
+	void FTransform::Mul( Matrix4& result , Matrix4 const& lhs , Matrix4 const& rhs )
 	{
 		checkFormat( lhs );
 		checkFormat( rhs );

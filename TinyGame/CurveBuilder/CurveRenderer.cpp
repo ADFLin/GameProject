@@ -3,13 +3,9 @@
 #include "Surface.h"
 #include "RenderData.h"
 
-#include <Windows.h>
-#include <gl/GL.h>
-#include <gl/GLU.h>
-
-
 #include "RenderGL/DrawUtility.h"
 #include "RenderGL/ShaderCompiler.h"
+#include "RenderGL/RHICommand.h"
 
 namespace CB
 {
@@ -137,6 +133,11 @@ namespace CB
 	{
 		mTranslucentDraw.clear();
 
+		//#TODO : REMOVE
+		glMatrixMode(GL_PROJECTION);
+		glLoadMatrixf(mViewInfo.viewToClip);
+		glMatrixMode(GL_MODELVIEW);
+		glLoadMatrixf( mViewInfo.worldToView );
 	}
 
 	void CurveRenderer::endRender()
@@ -154,6 +155,8 @@ namespace CB
 		}
 	}
 
+
+
 	void CurveRenderer::drawSurface(Surface3D& surface)
 	{
 		if( !surface.getFunction()->isParsed() )
@@ -164,9 +167,10 @@ namespace CB
 			glEnable(GL_POLYGON_OFFSET_FILL);
 			glPolygonOffset(1, 1);
 
-			Color4f const& color = surface.getColor();
-			glColor4f(1 - color.r, 1 - color.g, 1 - color.b, 1.0f);
-			drawMeshLine(surface);
+			Color4f const& surfaceColor = surface.getColor();
+			Color4f const color = Color4f(1 - surfaceColor.r, 1 - surfaceColor.g, 1 - surfaceColor.b);
+			RHISetupFixedPipeline(mViewInfo.worldToView, mViewInfo.viewToClip);
+			drawMeshLine( surface , color );
 
 			glDisable(GL_POLYGON_OFFSET_FILL);
 		}
@@ -180,6 +184,8 @@ namespace CB
 					GL_BIND_LOCK_OBJECT(*mProgCurveMeshOIT);
 					mViewInfo.setupShader(*mProgCurveMeshOIT);
 					mOITTech.setupShader(*mProgCurveMeshOIT);
+
+					RHISetRasterizerState(TStaticRasterizerState<ECullMode::None>::GetRHI());					
 					drawMesh(surface);
 				};
 				mTranslucentDraw.push_back(DrawFun);
@@ -202,9 +208,8 @@ namespace CB
 	{
 		typedef TRenderRT< bHaveNormal ? RTVF_XYZ_CA_N : RTVF_XYZ_CA > MyRender;
 
-		static void Draw(Surface3D& surface)
+		static void Draw(Surface3D& surface , LinearColor const& color)
 		{
-
 			RenderData* data = surface.getRenderData();
 			assert(data);
 			int    numDataU = surface.getParamU().getNumData();
@@ -214,8 +219,15 @@ namespace CB
 			d = 1;
 			int nx = numDataU / d;
 			int ny = numDataV / d;
-			MyRender::BindVertexArray(data->getVertexData(), data->getVertexSize());
+			MyRender::BindVertexArray(data->getVertexData(), data->getVertexSize() , &color );
 			for( int i = 0; i < ny; ++i )
+			{
+				glDrawArrays(GL_LINE_STRIP, numDataU * i, numDataU);
+			}
+			MyRender::UnbindVertexArray();
+
+			MyRender::BindVertexArray(data->getVertexData(), data->getVertexSize(), &color);
+			for( int i = 0; i < nx; ++i )
 			{
 				glDrawArrays(GL_LINE_STRIP, numDataU * i, numDataU);
 			}
@@ -223,7 +235,7 @@ namespace CB
 		}
 	};
 
-	void CurveRenderer::drawMeshLine(Surface3D& surface)
+	void CurveRenderer::drawMeshLine(Surface3D& surface , LinearColor const& color )
 	{
 		if( surface.getMeshLineDensity() < 1e-6 )
 			return;
@@ -233,11 +245,11 @@ namespace CB
 #if 0
 		if( data->getNormalOffset() != -1 )
 		{
-			LineDrawer<true>::Draw(surface);
+			LineDrawer<true>::Draw(surface , color);
 		}
 		else
 		{
-			LineDrawer<false>::Draw(surface);
+			LineDrawer<false>::Draw(surface , color);
 		}
 
 
@@ -252,7 +264,7 @@ namespace CB
 		int nx = numDataU / d;
 		int ny = numDataV / d;
 
-
+		glColor4fv(color);
 		glEnableClientState(GL_VERTEX_ARRAY);
 		glVertexPointer(3, GL_FLOAT, data->getVertexSize() , pPositionData);
 		for( int n = 0; n < nx; ++n )
@@ -279,18 +291,17 @@ namespace CB
 		int const stride = data->getVertexSize();
 		if( data->getNormalOffset() != -1 )
 		{
-			TRenderRT< RTVF_XYZ_CA_N >::DrawIndexedShader(PrimitiveType::eTriangleList, vertexData, data->getVertexNum(), data->getIndexData(), data->getIndexNum() , data->getVertexSize());
+			TRenderRT< RTVF_XYZ_CA_N >::DrawIndexedShader(PrimitiveType::TriangleList, vertexData, data->getVertexNum(), data->getIndexData(), data->getIndexNum() , data->getVertexSize());
 		}
 		else
 		{
-			TRenderRT< RTVF_XYZ_CA >::DrawIndexedShader(PrimitiveType::eTriangleList, vertexData, data->getVertexNum(), data->getIndexData(), data->getIndexNum(), data->getVertexSize());
+			TRenderRT< RTVF_XYZ_CA >::DrawIndexedShader(PrimitiveType::TriangleList, vertexData, data->getVertexNum(), data->getIndexData(), data->getIndexNum(), data->getVertexSize());
 		}
 	}
 
 
 	void CurveRenderer::drawAxis()
 	{
-		glDisable(GL_LIGHTING);
 		glBegin(GL_LINES);
 
 		glColor3f(1, 0, 0);
@@ -350,31 +361,12 @@ namespace CB
 
 	}
 
-	void CurveRenderer::showData(int nx, int ny)
-	{
-		//nx=min(m_NumAxisData+1,max(0,nx));
-		//ny=min(m_NumAxisData+1,max(0,ny));
-		//float x=m_MinX+nx*dx;
-		//float y=m_MinY+ny*dy;
-		//float z=data[nx+(m_NumAxisData+1)*ny];
-		//glColor3f(0,0,0);
-		//glPointSize(5);
-		//glDisable(GL_DEPTH_TEST);
-		//glBegin(GL_POINTS);
-		//glVertex3f(x,y,z);
-		//glEnd();
-		//glRasterPos3f(x,y,z);
-		//font.print(" <-(%3.3f,%3.3f,%3.3f)",x,y,z);
-		//glEnable(GL_DEPTH_TEST);
-	}
-
-
 
 	void CurveRenderer::drawVertexPoint(ShapeBase& shape)
 	{
 		RenderData* data = shape.getRenderData();
 		assert(data);
-		TRenderRT< RTVF_XYZ_CA >::Draw(PrimitiveType::ePoints, data->getVertexData(), data->getVertexNum(), data->getVertexSize());
+		TRenderRT< RTVF_XYZ_CA >::Draw(PrimitiveType::Points, data->getVertexData(), data->getVertexNum(), data->getVertexSize());
 	}
 
 
@@ -390,7 +382,7 @@ namespace CB
 		GL_BIND_LOCK_OBJECT(*mProgMeshNormalVisualize);
 		mProgMeshNormalVisualize->setParameters( Vector4(1,0,0,1) , length , d , surface.getParamU().getNumData());
 		mViewInfo.setupShader(*mProgMeshNormalVisualize);
-		TRenderRT< RTVF_XYZ_CA_N >::DrawShader(PrimitiveType::ePoints, data->getVertexData(), data->getVertexNum(), data->getVertexSize());
+		TRenderRT< RTVF_XYZ_CA_N >::DrawShader(PrimitiveType::Points, data->getVertexData(), data->getVertexNum(), data->getVertexSize());
 
 	}
 
@@ -484,7 +476,7 @@ namespace CB
 		RenderData* data = curve.getRenderData();
 		assert(data);
 		glLineWidth(2);
-		TRenderRT< RTVF_XYZ_CA >::Draw(PrimitiveType::eLineStrip, data->getVertexData(), data->getVertexNum(), data->getVertexSize());
+		TRenderRT< RTVF_XYZ_CA >::Draw(PrimitiveType::LineStrip, data->getVertexData(), data->getVertexNum(), data->getVertexSize());
 		glLineWidth(1);
 	}
 

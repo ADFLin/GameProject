@@ -44,11 +44,23 @@ namespace RenderGL
 			var.value = str.format("%d", value);
 			mConfigVars.push_back(var);
 		}
+		void addDefine(char const* name, float value)
+		{
+			ConfigVar var;
+			var.name = name;
+			FixString<128> str;
+			var.value = str.format("%f", value);
+			mConfigVars.push_back(var);
+		}
 		void addDefine(char const* name)
 		{
 			ConfigVar var;
 			var.name = name;
 			mConfigVars.push_back(var);
+		}
+		void addCode(char const* name)
+		{
+			mCodes.push_back(name);
 		}
 		struct ConfigVar
 		{
@@ -59,6 +71,8 @@ namespace RenderGL
 		std::string getCode( char const* defCode = nullptr , char const* addionalCode = nullptr ) const;
 
 		unsigned version;
+
+		std::vector< std::string > mCodes;
 		std::vector< ConfigVar >   mConfigVars;
 		std::vector< std::string > mIncludeFiles;
 	};
@@ -81,6 +95,7 @@ namespace RenderGL
 
 	class GlobalShaderProgram : public ShaderProgram
 	{
+	public:
 		static GlobalShaderProgram* CreateShader() { assert(0); return nullptr; }
 		static void SetupShaderCompileOption(ShaderCompileOption&) {}
 		static char const* GetShaderFileName()
@@ -93,7 +108,10 @@ namespace RenderGL
 			assert(0);
 			return nullptr;
 		}
+		class GlobalShaderProgramClass* myClass;
 	};
+
+
 
 	struct GlobalShaderProgramClass
 	{
@@ -247,6 +265,13 @@ namespace RenderGL
 		{
 			Shader::Type type;
 			std::string  headCode;
+
+			template< class S >
+			ShaderCompileInfo(Shader::Type inType, S&& inCode)
+				:type(inType) , headCode( std::forward<S>(inCode) )
+			{}
+
+			ShaderCompileInfo(){}
 		};
 
 		struct ShaderProgramCompileInfo : public AssetBase
@@ -255,12 +280,15 @@ namespace RenderGL
 			std::string    fileName;
 			std::vector< ShaderCompileInfo > shaders;
 			bool           bSingleFile;
-
+			bool           bGlobalShader = false;
 			
+
 		protected:
 			virtual void getDependentFilePaths(std::vector<std::wstring>& paths) override;
 			virtual void postFileModify(FileAction action) override;
 		};
+
+		void  generateCompileSetup( ShaderProgramCompileInfo& compileInfo , ShaderEntryInfo const entries[], ShaderCompileOption const& option, char const* additionalCode);
 
 		uint32         mDefaultVersion = 430;
 

@@ -448,7 +448,7 @@ namespace Zuma
 
 					if ( info.numTool > MAX_NUM_COMBOINFO_TOOL )
 					{
-						LogDevMsgF( 0, "MAX_NUM_COMBOINFO_TOOL" );
+						LogDevMsg( 0, "MAX_NUM_COMBOINFO_TOOL" );
 						break;
 					}
 					++start;

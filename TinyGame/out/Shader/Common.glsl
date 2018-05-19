@@ -1,5 +1,15 @@
 #pragma once
 
+#define COMPILER_GLSL 1
+
+#ifndef COMPILER_GLSL
+#define COMPILER_GLSL 0
+#endif
+
+#ifndef COMPILER_HLSL
+#define COMPILER_HLSL 0
+#endif
+
 #ifndef VERTEX_SHADER
 #define VERTEX_SHADER 0
 #endif
@@ -12,26 +22,23 @@
 #define GEOMETRY_SHADER 0
 #endif
 
+#ifndef HULL_SHADER
+#define HULL_SHADER 0
+#endif
+
+#ifndef DOMAIN_SHADER
+#define DOMAIN_SHADER 0
+#endif
+
 #ifndef COMPUTE_SHADER
 #define COMPUTE_SHADER 0
 #endif
 
-#define float2 vec2
-#define float3 vec3
-#define float4 vec4
-#define uint2 uvec2
-#define uint3 uvec3
-#define uint4 uvec4
-#define int2 ivec2
-#define int3 ivec3
-#define int4 ivec4
-#define float4x4 mat4
-#define float3x3 mat3
+#define UNROLL
+#define LOOP
 
-#define PI 3.1415926535897932
-
-#define lerp mix
-#define frac fract
+#define BRANCH
+#define FLATTEN
 
 #define ATTRIBUTE0 0
 #define ATTRIBUTE1 1
@@ -63,46 +70,46 @@
 #define ATTRIBUTE_TEXCOORD6 ATTRIBUTE14
 //#define ATTRIBUTE_TEXCOORD7 ATTRIBUTE15
 
-#define gl_Tangent gl_MultiTexCoord7
+#define PI 3.1415926535897932
+#define VECTOR_FUNCTION_LIST( NAME )\
+	NAME( float )\
+	NAME( float2 )\
+	NAME( float3 )\
+	NAME( float4 )
+#define DEFINE_FUNCTION_INNER( TYPE , NAME , CODE ) TYPE NAME( TYPE x ) CODE
+#define DEFINE_VECTOR_FUNCTION( NAME , CODE )\
+	DEFINE_FUNCTION_INNER( float2 , NAME , CODE )\
+	DEFINE_FUNCTION_INNER( float3 , NAME , CODE )\
+	DEFINE_FUNCTION_INNER( float4 , NAME , CODE )
 
-#define LIGHTTYPE_SPOT 0
-#define LIGHTTYPE_POINT 1
-#define LIGHTTYPE_DIRECTIONAL 2
-
-float4x4 Transform(float4x4 m1, float4x4 m2)
-{
-	return m2 * m1;
-}
-
-float4 Transform(float4 v, float4x4 m)
-{
-	return m * v;
-}
-
-float3 TransformInv(float3 v, float3x3 m)
-{
-	return v * m;
-}
-
-float Square(float x)
-{
-	return x*x;
-}
-
-float rcp(float x)
-{
-	return 1.0 / x;
-}
-
-float saturate(float x)
-{
-	return clamp(x, 0.0, 1.0);
-}
-
-#if PIXEL_SHADER
-void WritePxielDepth(float depth)
-{
-	gl_FragDepth = (gl_DepthRange.diff * depth  + gl_DepthRange.near + gl_DepthRange.far) * 0.5;
-}
+#if COMPILER_GLSL
+#include "GLSLCommon.glsl"
+#elif COMPILER_HLSL
 #endif
 
+float Square(float x){ return x * x; }
+DEFINE_VECTOR_FUNCTION(Square, { return x * x; })
+float Pow3(float x){ return x * x * x; }
+DEFINE_VECTOR_FUNCTION(Pow3, { return x * x * x; })
+
+#define TPow4( TYPE )\
+	TYPE Pow4( TYPE x )\
+	{\
+		TYPE x2 = x*x;\
+		return x2 * x2;\
+	}
+VECTOR_FUNCTION_LIST(TPow4)
+#undef TPow4
+
+#define TPow5( TYPE )\
+	TYPE Pow5( TYPE x )\
+	{\
+		TYPE x2 = x*x;\
+		return x2 * x2 * x;\
+	}
+VECTOR_FUNCTION_LIST(TPow5)
+#undef TPow5
+
+#undef VECTOR_FUNCTION_LIST
+#undef DEFINE_FUNCTION_INNER
+#undef DEFINE_VECTOR_FUNCTION

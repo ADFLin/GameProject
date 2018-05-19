@@ -107,7 +107,7 @@ void MainPS()
 		outDepth = outPosition.z * ShadowParam.y;
 #endif
 	}
-	WritePxielDepth(svPosition.z);
+	WritePixelDepth(svPosition.z);
 
 #endif
 	//depth = 0.5;

@@ -336,7 +336,7 @@ void CalcMoney()
 	{
 		money += info.count * info.value;
 	}
-	LogMsgF("Money = %d", money);
+	LogMsg("Money = %d", money);
 }
 
 REGISTER_MISC_TEST("Calc Money", CalcMoney);
@@ -931,7 +931,7 @@ namespace Meta
 		};
 		typedef FindValueWithMaskImpl< Mask, FindValue, Index + 1, TUint32List< Args... > > NextFindType;
 		static constexpr bool   IsFound = ((Value & Mask) == FindValue);
-		typedef typename Select< IsFound, FoundResultType, NextFindType >::ResultType FindResultType;
+		typedef typename Select< IsFound, FoundResultType, NextFindType >::Type FindResultType;
 		
 		static constexpr bool   Result = FindResultType::Result;
 		static constexpr uint32 ResultValue = FindResultType::ResultValue;
@@ -978,12 +978,12 @@ void MyMethod()
 		if ( count == 30 )
 		{
 			count = 0;
-			LogMsgF( "%s" , str.c_str() );
+			LogMsg( "%s" , str.c_str() );
 			str.clear();
 		}
 		heap.pop();
 	}
-	LogMsgF( "%s" , str.c_str() );
+	LogMsg( "%s" , str.c_str() );
 }
 
 void TestHeap()
@@ -995,13 +995,13 @@ void TestHeap()
 	heap.push(7);
 	MyHeap::NodeHandle handle = heap.push(10);
 	heap.update(handle, 1);
-	LogMsgF( "%d" , heap.top() );
+	LogMsg( "%d" , heap.top() );
 	heap.pop();
-	LogMsgF("%d", heap.top());
+	LogMsg("%d", heap.top());
 	heap.pop();
-	LogMsgF("%d", heap.top());
+	LogMsg("%d", heap.top());
 	heap.pop();
-	LogMsgF("%d", heap.top());
+	LogMsg("%d", heap.top());
 
 #if 1
 	MyMethod< TFibonaccilHeap< int > >();
@@ -1489,7 +1489,7 @@ void TestCycleQueue()
 
 	for( auto val : queue )
 	{
-		LogMsgF("%d", val);
+		LogMsg("%d", val);
 	}
 
 	int value = queue.front();

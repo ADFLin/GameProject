@@ -18,6 +18,8 @@ namespace Math
 	float constexpr PI = 3.141592654f;
 
 	inline int FloorToInt(float val) { return (int)::floor(val); }
+	inline int CeilToInt(float val) { return (int)::ceil(val); }
+
 	inline float Floor( float val ){ return ::floor( val ); }
 	inline float Sqrt( float val ){ return ::sqrt( val ); }
 	inline float InvSqrt( float val ){ return 1.0f / Sqrt( val ); }

@@ -1,79 +1,73 @@
-#pragma once
+#ifndef ColorMap_H
+#define ColorMap_H
 
-#include <cmath>
-#include <memory.h>
+#include "Color.h"
 
-#include "CRSpline.h"
+class ColorMap;
+typedef unsigned char uint8;
 
-#define COLOR_R 0
-#define COLOR_G 1
-#define COLOR_B 2
+enum
+{
+	COLOR_R = 0,
+	COLOR_G,
+	COLOR_B,
+};
 
 struct ColorPoint
 {
-	union
-	{
-		struct
-		{
-			BYTE R,G,B;
-		};
-		BYTE RGB[3];
-	};
-	
-	int pos;
-	BYTE getColor(int color)
-	{
-		return RGB[ color ];
-	}
-	void setColor(int color,BYTE val)
-	{
-		RGB[color] = val;
-	}
+	Color3f color;
+	int     pos;
 };
 
 class ColorMap
 {
 public:
 	ColorMap(int iSize);
+	ColorMap(ColorMap& CMap);
 	~ColorMap();
 
-	bool addColorPoint(int iPos);
-	bool addColorPoint(int iPos,BYTE R,BYTE G,BYTE B);
-	bool deleteColorPoint(int index);
-	void computeColorMap_Smooth();
-	void computeColorMap();
-	void sortCPList();
+	void addPoint(int iPos);
+	void addPoint(int iPos, Color3f const& color);
+	bool removePoint(int index);
 
-	void setColorPointPos(int index,int Pos);
-	void setColorPointPos(ColorPoint* pCP,int Pos);
-	void setColorPointColor(int index,int color,BYTE val);
-	void setColorPointColor(ColorPoint* pCP,int color,BYTE val);
-	
+	void calcColorMap( bool beForce = false );
+
+	void setCPPos(int index,int Pos);
+	void setCPColor(int index,int idxComp,float val);
+
 
 	bool isSmoothLine(){ return m_bSmoothLine; }
 	void setSmoothLine(bool isSmooth=true){ m_bSmoothLine=isSmooth; }
-	ColorPoint& getColorPoint(int index){ return *m_arpCPlist[index]; }
-	int   getCPIndex(ColorPoint* pCP);
-	BYTE* getColorMap(int index){ return m_parColorMap[index]; }	
-	void  getColor(float fVal,BYTE arColor[]);
-	int   getRotion() { return m_iRotion; }
+	ColorPoint& getColorPoint(int index){ return mSortedCPoints[index]; }
+
+	void  getColor(float fVal, Color3f& outColor) const;
+	int   getRotion() const { return m_iRotion; }
 	void  setRotion(int iRotion){ m_iRotion=iRotion; }
 
-	int   getCPListSize(){ return m_iNumCPList; }
-	int   getMapSize(){ return m_iMapSize; }
+	int getCPListSize() const { return (int)mSortedCPoints.size(); }
+	int getMapSize() const { return m_iMapSize; }
 
-	static int CPPosRange(){ return 1000; }
+
+	static int const CPPosRange = 1000;
 
 private:
-	static const int MaxCPSize=20;
-	int m_iRotion;
-	int m_iMapSize;
-	BYTE* m_parColorMap[3];
+	void sortCPList();
+	float getSizePosRatio() const { return float(m_iMapSize)/CPPosRange; }
+	void computeColorMapSmooth();
+	void computeColorMapLinear();
 
-	bool m_bSmoothLine;
+
+	bool    m_bSmoothLine;
+	bool    m_isDirty;
+	int     m_iRotion;
+	int     m_iMapSize;
+
+	std::vector< ColorPoint > mSortedCPoints;
+	std::vector< Color3f > mColorData;
+
+
 	
-	int m_iNumCPList;
-	bool        m_arMemPoolUsed[MaxCPSize];
-	ColorPoint  m_arCPMemPool[MaxCPSize];
-	ColorPoint* m_arpCPlist[MaxCPSize];
 };
+
+
+#endif //ColorMap_H

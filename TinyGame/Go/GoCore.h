@@ -327,13 +327,14 @@ namespace Go
 		bool    isReviewing() const;
 		void    reviewBeginStep();
 		void    reviewPrevSetp(int numStep = 1);
+		
 		void    reviewNextStep(int numStep = 1);
 		void    reviewLastStep();
 
 
 
 	private:
-
+		
 		void     doRestart( bool beClearBoard , bool bClearStepHistory = true);
 		bool     playStoneInternal(Pos const& pos, bool bReviewing);
 		void     playPassInternal(bool bReviewing);
@@ -345,6 +346,7 @@ namespace Go
 
 		
 		int      captureStone(Board::Pos const& pos, unsigned& bitDir);
+		void     advanceStepFromHistory();
 
 		GameSetting mSetting;
 		int       mCurrentStep;

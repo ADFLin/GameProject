@@ -350,7 +350,7 @@ namespace FlappyBird
 				lastUpdateTime = SystemPlatform::GetTickCount();
 			}
 		
-			LogMsgF("Num %d genotype add to master Pool : index = %d ,genteration = %d , topFitness = %f", 
+			LogMsg("Num %d genotype add to master Pool : index = %d ,genteration = %d , topFitness = %f", 
 				  numAdded , index , trainData.generation , genePool[0]->fitness);
 
 		}

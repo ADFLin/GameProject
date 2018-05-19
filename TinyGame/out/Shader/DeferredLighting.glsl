@@ -44,14 +44,14 @@ in VSOutput vsOutput;
 
 void ShowBoundPS()
 {
-	float2 ScreenUVs = (gl_FragCoord.xy + View.viewportPosAndSizeInv.xy) * View.viewportPosAndSizeInv.zw;
+	float2 ScreenUVs = (gl_FragCoord.xy + View.rectPosAndSizeInv.xy) * View.rectPosAndSizeInv.zw;
 	gl_FragColor = ( 1.0 / 100.0 ) * float4(0,1,1,0);
 }
 
 void LightingPassPS()
 {
 #if DEFERRED_SHADING_USE_BOUND_SHAPE
-	float2 ScreenUVs = (gl_FragCoord.xy + View.viewportPosAndSizeInv.xy) * View.viewportPosAndSizeInv.zw;
+	float2 ScreenUVs = (gl_FragCoord.xy + View.rectPosAndSizeInv.xy) * View.rectPosAndSizeInv.zw;
 #else
 	float2 ScreenUVs = vsOutput.UVs;
 #endif
@@ -142,18 +142,18 @@ void LightingPassPS()
 		//outColor = shading * attenuation * GLight.color;
 		outColor *= shadow;
 		//outColor = float3(1, 0, 0);
-
+		//outColor = GLight.color;
 		//outColor = shadow;
 		//outColor = 2 * shadow * shading;
 	}
 
 	//outColor *= shadow;
 	//gl_FragColor = float4( float2( ProjectShadowMatrix[0] * float4(GBuffer.worldPos, 1) ) , 0 , 1 );
-	gl_FragColor = float4(outColor, 1);
+	//gl_FragColor = float4(outColor, 1);
 	//gl_FragColor = float4(GLight.spotParam.x);
 	//gl_FragColor = float4(shadow, 1);
 
-	
+	gl_FragColor = float4( outColor , 1 );
 }
 
 #endif //PIXEL_SHADER

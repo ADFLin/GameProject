@@ -22,7 +22,7 @@ namespace RenderGL
 		"DS" SHADER_FILE_SUBNAME ,
 	};
 
-	char const* shaderDefines[] =
+	char const* gShaderDefines[] =
 	{
 		"#define VERTEX_SHADER 1\n" ,
 		"#define PIXEL_SHADER 1\n" ,
@@ -93,17 +93,21 @@ namespace RenderGL
 		GlobalShaderProgram* result = (*shaderClass.funCreateShader)();
 		if( result )
 		{
+			result->myClass = &shaderClass;
+
 			ShaderCompileOption option;
 			option.version = mDefaultVersion;
 			(*shaderClass.funSetupShaderCompileOption)(option);
 
 			if( !loadInternal(*result, (*shaderClass.funGetShaderFileName)(), (*shaderClass.funGetShaderEntries)(), option, nullptr, true) )
 			{
-				LogWarningF(0, "Can't Load Global Shader %s", (*shaderClass.funGetShaderFileName)());
+				LogWarning(0, "Can't Load Global Shader %s", (*shaderClass.funGetShaderFileName)());
 
 				delete result;
 				result = nullptr;
 			}
+
+			mShaderCompileMap[result]->bGlobalShader = true;
 		}
 
 		return result;
@@ -120,7 +124,13 @@ namespace RenderGL
 
 	bool ShaderManager::loadFileSimple(ShaderProgram& shaderProgram, char const* fileName, char const* def, char const* additionalCode)
 	{
-		return loadFile(shaderProgram , fileName, SHADER_ENTRY(MainVS), SHADER_ENTRY(MainPS), def, additionalCode);
+		ShaderEntryInfo entries[] =
+		{
+			{ Shader::eVertex , SHADER_ENTRY(MainVS) } ,
+			{ Shader::ePixel , SHADER_ENTRY(MainPS) } ,
+			{ Shader::eEmpty , nullptr } ,
+		};
+		return loadFile(shaderProgram , fileName, entries , def, additionalCode);
 	}
 
 	bool ShaderManager::loadFile(ShaderProgram& shaderProgram, char const* fileName, char const* vertexEntryName, char const* pixelEntryName, char const* def, char const* additionalCode)
@@ -180,21 +190,7 @@ namespace RenderGL
 		info->bSingleFile = bSingle;
 		info->fileName = fileName;
 
-		for( int i = 0; entries[i].type != Shader::eEmpty ; ++i )
-		{
-			auto const& entry = entries[i];
-			std::string defCode;
-			defCode += shaderDefines[entry.type];
-			if( entry.name )
-			{
-				defCode += "#define ";
-				defCode += entry.name;
-				defCode += " main\n";
-			}
-
-			std::string headCode = option.getCode(defCode.c_str(), additionalCode);
-			info->shaders.push_back({ entry.type , std::move(headCode) });
-		}
+		generateCompileSetup(*info, entries, option, additionalCode);
 
 		if( !updateShaderInternal(shaderProgram, *info) )
 		{
@@ -234,13 +230,15 @@ namespace RenderGL
 				headCode += " compatibility\n";
 			}
 
+			headCode += "#define COMPILER_GLSL 1\n";
+			headCode += gShaderDefines[entry.type];
+
 			if( def )
 			{
 				headCode += def;
 				headCode += '\n';
 			}
-
-			headCode += shaderDefines[entry.type];
+			
 			if( entry.name )
 			{
 				headCode += "#define ";
@@ -279,7 +277,20 @@ namespace RenderGL
 		if( iter == mShaderCompileMap.end() )
 			return false;
 
-		return updateShaderInternal(shaderProgram, *iter->second);
+		ShaderProgramCompileInfo* info = iter->second;
+		if( info->bGlobalShader )
+		{
+			ShaderCompileOption option;
+			option.version = mDefaultVersion;
+
+			GlobalShaderProgramClass& myClass = *static_cast<GlobalShaderProgram&>(shaderProgram).myClass;
+			(*myClass.funSetupShaderCompileOption)(option);
+
+			info->shaders.clear();
+			generateCompileSetup(*info, (*myClass.funGetShaderEntries)(), option, nullptr);
+		}
+
+		updateShaderInternal(shaderProgram, *info);
 	}
 
 
@@ -333,7 +344,29 @@ namespace RenderGL
 		return true;
 	}
 
-	bool ShaderCompiler::compileCode(Shader::Type type , RHIShader& shader, char const* path, char const* def)
+	void ShaderManager::generateCompileSetup(ShaderProgramCompileInfo& compileInfo, ShaderEntryInfo const entries[], ShaderCompileOption const& option, char const* additionalCode)
+	{
+		assert(compileInfo.shaders.empty());
+
+		for( int i = 0; entries[i].type != Shader::eEmpty; ++i )
+		{
+			auto const& entry = entries[i];
+			std::string defCode;
+			defCode += "#define COMPILER_GLSL 1\n";
+			defCode += gShaderDefines[entry.type];
+			if( entry.name )
+			{
+				defCode += "#define ";
+				defCode += entry.name;
+				defCode += " main\n";
+			}
+
+			std::string headCode = option.getCode(defCode.c_str(), additionalCode);
+			compileInfo.shaders.push_back({ entry.type , std::move(headCode) });
+		}
+	}
+
+	bool ShaderCompiler::compileCode(Shader::Type type, RHIShader& shader, char const* path, char const* def)
 	{
 		bool bSuccess;
 		do
@@ -494,6 +527,12 @@ namespace RenderGL
 			result += name;
 			result += SHADER_FILE_SUBNAME;
 			result += "\"\n";
+		}
+
+		for( auto code : mCodes )
+		{
+			result += code;
+			result += '\n';
 		}
 
 		return result;

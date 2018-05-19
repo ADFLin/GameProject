@@ -10,6 +10,8 @@
 #include "WinGDIRenderSystem.h"
 #include "WGLContext.h"
 
+#include <memory>
+
 
 #define OPENGL_RENDER_DIB 0
 
@@ -22,6 +24,11 @@ public:
 
 class GLGraphics2D;
 
+
+namespace RenderGL
+{
+	class RHIGraphics2D;
+}
 
 
 class IGraphics2D
@@ -52,6 +59,7 @@ public:
 	public:
 		virtual void visit( Graphics2D& g ) = 0;
 		virtual void visit( GLGraphics2D& g ) = 0;
+		virtual void visit( RenderGL::RHIGraphics2D& g) = 0;
 	};
 	virtual void  accept( Visitor& visitor ) = 0;
 };
@@ -103,7 +111,7 @@ public:
 	Vec2i         getScreenSize(){ return Vec2i( mBufferDC.getWidth() , mBufferDC.getHeight() ); }
 	int           getScreenWidth(){ return mBufferDC.getWidth(); }
 	int           getScreenHeight(){ return mBufferDC.getHeight(); }
-	Graphics2D&   getScreenGraphics(){ return *mScreenGraphics; }
+	Graphics2D&   getScreenGraphics(){ return *mPlatformGraphics; }
 	GLGraphics2D& getGLGraphics(){ return *mGLGraphics; }
 
 	TINY_API IGraphics2D&  getIGraphics();
@@ -137,11 +145,12 @@ private:
 	
 	GameWindow* mGameWindow;
 	BitmapDC    mBufferDC;
-	Graphics2D* mScreenGraphics;
+	std::unique_ptr< Graphics2D > mPlatformGraphics;
 
 
 	WindowsGLContext    mGLContext;
-	GLGraphics2D* mGLGraphics;
+	std::unique_ptr< GLGraphics2D >   mGLGraphics;
+	std::unique_ptr< RenderGL::RHIGraphics2D > mRHIGraphics;
 
 };
 

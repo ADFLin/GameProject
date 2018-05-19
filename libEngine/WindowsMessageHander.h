@@ -33,7 +33,7 @@ namespace Private
 #define MSG_DEUFLT MSG_CHAR | MSG_KEY | MSG_MOUSE | MSG_ACTIAVTE | MSG_PAINT
 
 template< class T , unsigned MSG = MSG_DEUFLT >
-class WindowsMessageHandlerT : private Meta::Select< MSG & MSG_MOUSE , Private::MouseData , Meta::EmptyType >::ResultType
+class WindowsMessageHandlerT : private Meta::Select< MSG & MSG_MOUSE , Private::MouseData , Meta::EmptyType >::Type
 {
 
 	typedef WindowsMessageHandlerT< T , MSG >  ThisType;
@@ -134,7 +134,7 @@ LRESULT CALLBACK WindowsMessageHandlerT<T, MSG>::MsgProc( HWND hWnd , UINT msg ,
 
 #define PROC_MSG_FUN(  CASE_MSG , FUN )\
 	{\
-		typename Select< ( MSG & CASE_MSG ) != 0 , EvalFun< &ThisType::FUN > , DefaultEval >::ResultType evaler;\
+		typename Select< ( MSG & CASE_MSG ) != 0 , EvalFun< &ThisType::FUN > , DefaultEval >::Type evaler;\
 		if ( !evaler( s_MsgHandler , hWnd , msg , wParam , lParam , result ) )\
 		return result;\
 	}
@@ -166,7 +166,7 @@ LRESULT CALLBACK WindowsMessageHandlerT<T, MSG>::MsgProc( HWND hWnd , UINT msg ,
 		break;
 	case WM_DESTROY:
 		{
-			typename Select< ( MSG & MSG_DESTROY ) != 0 , EvalFun< &ThisType::_procDestroyMsg > , DefaultEval >::ResultType evaler;
+			typename Select< ( MSG & MSG_DESTROY ) != 0 , EvalFun< &ThisType::_procDestroyMsg > , DefaultEval >::Type evaler;
 			evaler( s_MsgHandler , hWnd , msg , wParam , lParam , result );
 		}
 		::PostQuitMessage (0);

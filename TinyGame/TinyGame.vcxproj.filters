@@ -84,6 +84,15 @@
     <Filter Include="RenderGL\Script">
       <UniqueIdentifier>{ad403451-aa16-4da2-a8e0-a95bfaef33a1}</UniqueIdentifier>
     </Filter>
+    <Filter Include="CurveBuilder">
+      <UniqueIdentifier>{be30cc7a-c22c-4a27-8550-16bbabc8926a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="CurveBuilder\Shader">
+      <UniqueIdentifier>{c8b690e4-a1e8-4048-a82e-81c50f0b0e57}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="SuperFractial">
+      <UniqueIdentifier>{2bd4e754-18d3-4272-b809-e940ad7e966c}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Voronoi.cpp">
@@ -307,6 +316,48 @@
     </ClCompile>
     <ClCompile Include="Stage\FontDrawStage.cpp">
       <Filter>Stage</Filter>
+    </ClCompile>
+    <ClCompile Include="CurveBuilder\ColorMap.cpp">
+      <Filter>CurveBuilder</Filter>
+    </ClCompile>
+    <ClCompile Include="CurveBuilder\DifferentialParser.cpp">
+      <Filter>CurveBuilder</Filter>
+    </ClCompile>
+    <ClCompile Include="CurveBuilder\Expression.cpp">
+      <Filter>CurveBuilder</Filter>
+    </ClCompile>
+    <ClCompile Include="CurveBuilder\ExpressionParser.cpp">
+      <Filter>CurveBuilder</Filter>
+    </ClCompile>
+    <ClCompile Include="CurveBuilder\FPUCompiler.cpp">
+      <Filter>CurveBuilder</Filter>
+    </ClCompile>
+    <ClCompile Include="CurveBuilder\FunctionParser.cpp">
+      <Filter>CurveBuilder</Filter>
+    </ClCompile>
+    <ClCompile Include="CurveBuilder\RenderData.cpp">
+      <Filter>CurveBuilder</Filter>
+    </ClCompile>
+    <ClCompile Include="CurveBuilder\ShapeFun.cpp">
+      <Filter>CurveBuilder</Filter>
+    </ClCompile>
+    <ClCompile Include="CurveBuilder\ShapeMaker.cpp">
+      <Filter>CurveBuilder</Filter>
+    </ClCompile>
+    <ClCompile Include="CurveBuilder\Surface.cpp">
+      <Filter>CurveBuilder</Filter>
+    </ClCompile>
+    <ClCompile Include="Stage\CurveBuilderStage.cpp">
+      <Filter>Stage</Filter>
+    </ClCompile>
+    <ClCompile Include="CurveBuilder\CurveRenderer.cpp">
+      <Filter>CurveBuilder</Filter>
+    </ClCompile>
+    <ClCompile Include="Stage\FractialStage.cpp">
+      <Filter>Stage</Filter>
+    </ClCompile>
+    <ClCompile Include="SuperFractial\SelectRectBase.cpp">
+      <Filter>SuperFractial</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -718,6 +769,54 @@
     <ClInclude Include="Stage\FlowGameStage.h">
       <Filter>Stage</Filter>
     </ClInclude>
+    <ClInclude Include="CurveBuilder\Surface.h">
+      <Filter>CurveBuilder</Filter>
+    </ClInclude>
+    <ClInclude Include="CurveBuilder\AsmetaBase.h">
+      <Filter>CurveBuilder</Filter>
+    </ClInclude>
+    <ClInclude Include="CurveBuilder\Assembler.h">
+      <Filter>CurveBuilder</Filter>
+    </ClInclude>
+    <ClInclude Include="CurveBuilder\ColorMap.h">
+      <Filter>CurveBuilder</Filter>
+    </ClInclude>
+    <ClInclude Include="CurveBuilder\DifferentialParser.h">
+      <Filter>CurveBuilder</Filter>
+    </ClInclude>
+    <ClInclude Include="CurveBuilder\Expression.h">
+      <Filter>CurveBuilder</Filter>
+    </ClInclude>
+    <ClInclude Include="CurveBuilder\ExpressionParser.h">
+      <Filter>CurveBuilder</Filter>
+    </ClInclude>
+    <ClInclude Include="CurveBuilder\FPUCompiler.h">
+      <Filter>CurveBuilder</Filter>
+    </ClInclude>
+    <ClInclude Include="CurveBuilder\FunctionParser.h">
+      <Filter>CurveBuilder</Filter>
+    </ClInclude>
+    <ClInclude Include="CurveBuilder\RenderData.h">
+      <Filter>CurveBuilder</Filter>
+    </ClInclude>
+    <ClInclude Include="CurveBuilder\ShapeCommon.h">
+      <Filter>CurveBuilder</Filter>
+    </ClInclude>
+    <ClInclude Include="CurveBuilder\ShapeFun.h">
+      <Filter>CurveBuilder</Filter>
+    </ClInclude>
+    <ClInclude Include="CurveBuilder\ShapeMaker.h">
+      <Filter>CurveBuilder</Filter>
+    </ClInclude>
+    <ClInclude Include="CurveBuilder\CurveRenderer.h">
+      <Filter>CurveBuilder</Filter>
+    </ClInclude>
+    <ClInclude Include="CurveBuilder\Base.h">
+      <Filter>CurveBuilder</Filter>
+    </ClInclude>
+    <ClInclude Include="SuperFractial\SelectRectBase.h">
+      <Filter>SuperFractial</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Image Include="Poker\cards.bmp">
@@ -884,9 +983,6 @@
     <None Include="out\Shader\PrimitiveParam.glsl">
       <Filter>Shader</Filter>
     </None>
-    <None Include="out\Shader\GpuSkinCommon.glsl">
-      <Filter>Shader</Filter>
-    </None>
     <None Include="out\Shader\GPUSkinVertexFactory.glsl">
       <Filter>Shader</Filter>
     </None>
@@ -908,10 +1004,6 @@
     <None Include="out\Shader\Game\UnderCurveArea.glsl">
       <Filter>Shader\Game</Filter>
     </None>
-<<<<<<< HEAD
-    <None Include="out\Shader\Game\CurveMesh.glsl">
-      <Filter>CurveBuilder\Shader</Filter>
-    </None>
     <None Include="out\Shader\OITCommon.glsl">
       <Filter>Shader</Filter>
     </None>
@@ -921,7 +1013,32 @@
     <None Include="out\Shader\Game\MeshNormalVisualize.glsl">
       <Filter>CurveBuilder\Shader</Filter>
     </None>
-=======
->>>>>>> parent of ada61c0... Update
+    <None Include="out\Shader\Game\CurveMesh.glsl">
+      <Filter>CurveBuilder\Shader</Filter>
+    </None>
+    <None Include="out\Shader\GPUSkinCommon.glsl">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="out\Shader\DOF.glsl">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="out\Shader\Game\Mandelbrot.glsl">
+      <Filter>Shader\Game</Filter>
+    </None>
+    <None Include="out\Shader\ComplexCommon.glsl">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="out\Shader\BigNumberCommon.glsl">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="out\Shader\VolumetricLighting.glsl">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="out\Shader\GLSLCommon.glsl">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="out\Shader\BufferUtility.glsl">
+      <Filter>Shader</Filter>
+    </None>
   </ItemGroup>
 </Project>

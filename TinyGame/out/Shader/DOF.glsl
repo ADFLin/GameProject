@@ -1,0 +1,209 @@
+#pragma once
+#include "ScreenVertexShader.glsl"
+//#include "DeferredShadingCommon.glsl"
+#include "ComplexCommon.glsl"
+
+#ifndef DOF_PASS_STEP
+#define DOF_PASS_STEP 0
+#endif
+
+#ifndef SAMPLE_RADIUS_NUM
+#define SAMPLE_RADIUS_NUM 0
+#endif
+#ifndef FLITER_NFACTOR
+#define FLITER_NFACTOR 1.0
+#endif
+#ifndef FLITER_SCALE
+#define FLITER_SCALE 1.0
+#endif
+#ifndef FLITER_BIAS
+#define FLITER_BIAS 0.0
+#endif
+
+#define USE_VAR_IN_CPP 1
+#define USE_BRACKETING_FILTER ( 0  && USE_VAR_IN_CPP )
+
+#if PIXEL_SHADER
+
+in VSOutput vsOutput;
+
+#if MAKE_VISIBLE
+//define in c++
+const float4 FliterWidgets[];
+const float4 FliterScaleBias;
+#endif
+
+#if DOF_PASS_STEP == 0
+
+uniform sampler2D Texture;
+
+uniform float FoualLength;
+uniform float FocusSceneDepth;
+uniform float MaxCoCValue = 3;
+float CalcCircleOfConfusion( float depth )
+{
+	float CoC = abs((FoualLength * (depth - FocusSceneDepth)) / ( depth * (FocusSceneDepth - FoualLength));
+	return CoC;
+}
+
+layout(location = 0) out float4 OutColorNear;
+layout(location = 1) out float4 OutColorFar;
+void MainGenCoc()
+{
+	float2 ScreenUVs = vsOutput.UVs;
+	float depth = ScreenUVToSceneDepth(ScreenUVs);
+	float4 color = texture2D(Texture, ScreenUVs);
+	
+	float CoC = CalcCircleOfConfusion(depth);
+	
+	OutColorNear = (depth > FocusSceneDepth)? float4( color.rgb , CoC ) : float4(0);
+	OutColorFar  = (depth <= FocusSceneDepth) ? float4( color.rgb , CoC ) : float4(0);
+}
+
+#endif
+
+// f(x) = exp( ax^2 ) * ( cos(bx^2) + sin(bx^2 )
+// color = Sun ( A(ci) fr + B(ci) fi )
+//          ci
+//      ( a , b , A , B )
+// c0 :-0.886528, 5.268909, 0.411259, -0.548794
+// c1 :-1.960518, 1.558213, 0.513282, 4.561110
+
+const float DefaultRadius = 1.2;
+
+
+float4 GetFliter2( int idx ) // ( c0r ,  c0i , c1r , c1i )
+{
+#if USE_VAR_IN_CPP
+	return FliterWidgets[idx + SAMPLE_RADIUS_NUM];
+#else
+	float x = float(idx) / float(SAMPLE_RADIUS_NUM);
+	const float2 ca = float2(-0.886528, -1.960518);
+	const float2 cb = float2(5.268909, 1.558213);
+	float x2 = x * x;
+	float2 e = exp(ca * x2);
+	float2 c;
+	float2 s;
+	sincos(cb*x2, s, c);
+	return e.xxyy * float4(c.x, s.x, c.y, s.y) * FLITER_NFACTOR;
+
+#endif
+}
+
+#if DOF_PASS_STEP == 1
+
+uniform sampler2D Texture;
+
+layout(location = 0) out float4 OutColorR;
+layout(location = 1) out float4 OutColorG;
+layout(location = 2) out float4 OutColorB;
+void MainBlurV()
+{
+	float2 ScreenUVs = vsOutput.UVs;
+	float radius = DefaultRadius;
+
+
+	float2 duv = float2(radius) / textureSize(Texture, 0).xy;
+	float4 resultR = float4(0, 0, 0, 0);
+	float4 resultG = float4(0, 0, 0, 0);
+	float4 resultB = float4(0, 0, 0, 0);
+
+	for( int i = -SAMPLE_RADIUS_NUM; i <= SAMPLE_RADIUS_NUM; ++i )
+	{
+		float2 uv = ScreenUVs + float2(0,i) * duv;
+		float4 color = texture2D(Texture, uv) ;
+
+#if USE_BRACKETING_FILTER
+		float4 f = (GetFliter2(i) - FliterScaleBias.yyww) / FliterScaleBias.xxzz;
+#else
+		float4 f = GetFliter2(i);
+#endif
+		resultR += color.r * f;
+		resultG += color.g * f;
+		resultB += color.b * f;
+	}
+
+	OutColorR = resultR;
+	OutColorG = resultG;
+	OutColorB = resultB;
+}
+
+#elif DOF_PASS_STEP == 2
+
+uniform sampler2D Texture;
+uniform sampler2D TextureR;
+uniform sampler2D TextureG;
+uniform sampler2D TextureB;
+
+layout(location = 0) out float4 OutColor;
+void MainBlurHAndCombine()
+{
+	float2 ScreenUVs = vsOutput.UVs;
+	float radius = DefaultRadius;
+
+	float2 duv = float2(radius) / textureSize(TextureR, 0).xy;
+
+	float4 accR = float4(0, 0, 0, 0);
+	float4 accG = float4(0, 0, 0, 0);
+	float4 accB = float4(0, 0, 0, 0);
+
+#if USE_BRACKETING_FILTER
+	float4 offsetR = float4(0);
+	float4 offsetG = float4(0);
+	float4 offsetB = float4(0);
+	for( int i = -SAMPLE_RADIUS_NUM; i <= SAMPLE_RADIUS_NUM; ++i )
+	{
+		float2 uv = ScreenUVs + float2(0, i) * duv;
+		float4 color = texture2D(Texture, uv);
+		offsetR += color.r * FliterScaleBias.yyww;
+		offsetG += color.g * FliterScaleBias.yyww;
+		offsetB += color.b * FliterScaleBias.yyww;
+	}
+#endif
+
+#if 1
+	for( int i = -SAMPLE_RADIUS_NUM; i <= SAMPLE_RADIUS_NUM; ++i )
+	{
+		float2 uv = ScreenUVs + float2(i) * duv;
+
+		float4 colorR = texture2D(TextureR, uv);
+		float4 colorG = texture2D(TextureG, uv);
+		float4 colorB = texture2D(TextureB, uv);
+
+#if USE_BRACKETING_FILTER
+		colorR = colorR * FliterScaleBias.xxzz + offsetR;
+		colorG = colorG * FliterScaleBias.xxzz + offsetG;
+		colorB = colorB * FliterScaleBias.xxzz + offsetB;
+#endif
+		float4 f = GetFliter2(i);
+
+		accR.xy += ComplexMul(f.xy, colorR.xy);
+		accR.zw += ComplexMul(f.zw, colorR.zw);
+
+		accG.xy += ComplexMul(f.xy, colorG.xy);
+		accG.zw += ComplexMul(f.zw, colorG.zw);
+
+		accB.xy += ComplexMul(f.xy, colorB.xy);
+		accB.zw += ComplexMul(f.zw, colorB.zw);
+	}
+#else
+
+	float4 colorR = texture2D(TextureR, ScreenUVs);
+	float4 colorG = texture2D(TextureG, ScreenUVs);
+	float4 colorB = texture2D(TextureB, ScreenUVs);
+	accR += colorR;
+	accG += colorG;
+	accB += colorB;
+#endif
+	//aa;
+	const float4 Weight = float4(0.411259, -0.548794, 0.513282, 4.561110);
+	float r = dot(accR, Weight);
+	float g = dot(accG, Weight);
+	float b = dot(accB, Weight);
+	OutColor = float4(r, g, b, 1);
+	//OutColor = float4(texture2D(TextureR, ScreenUVs).rgb, 1);
+}
+
+#endif
+
+#endif //PIXEL_SHADER

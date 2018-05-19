@@ -64,7 +64,7 @@ public:
 		       Vec2D const& P2,Vec2D const& P3)
 	   :CRSplineT< TVector2< float > >( P0 , P1 , P2 ,P3 ){}
 //  0 <= t <= 1
-	void  getValue( int numPoint ,float* pXVal ,float* pYVal ,int numData );
+	void  getValue(int numPoint, float* pXVal, float* pYVal, int numData);
 };
 
 

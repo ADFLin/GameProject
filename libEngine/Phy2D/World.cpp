@@ -224,7 +224,7 @@ namespace Phy2D
 					float depth2 = normal.dot( cpA - cpB );
 
 					float dp = depth - depth2;
-					LogMsgF( "dp = %f " , dp );
+					LogMsg( "dp = %f " , dp );
 
 					int i = 1;
 				}

@@ -14,7 +14,7 @@ namespace RenderGL
 {
 	int const GLDefalutUnpackAlignment = 4;
 
-	static bool checkGLError()
+	bool CheckGLStateValid()
 	{
 		GLenum error = glGetError();
 		if( error != GL_NO_ERROR )
@@ -26,132 +26,14 @@ namespace RenderGL
 		return true;
 	}
 
-	Mesh::Mesh()
-	{
-		mType = PrimitiveType::eTriangleList;
-		mVAO = 0;
-	}
 
-	Mesh::~Mesh()
-	{
-		if( mVAO )
-		{
-			glDeleteVertexArrays(1, &mVAO);
-		}
-	}
-
-	bool Mesh::createBuffer(void* pVertex , int nV , void* pIdx , int nIndices , bool bIntIndex)
-	{
-		mVertexBuffer = new RHIVertexBuffer;
-		if( !mVertexBuffer->create(mDecl.getVertexSize() , nV , pVertex ) )
-			return false;
-
-		if ( nIndices )
-		{
-			mIndexBuffer = new RHIIndexBuffer;
-			if( !mIndexBuffer->create(nIndices, bIntIndex, pIdx) )
-				return false;
-		}
-		return true;
-	}
-
-	void Mesh::draw(bool bUseVAO)
-	{
-		if( mVertexBuffer == nullptr )
-			return;
-
-		drawInternal(0, (mIndexBuffer) ? mIndexBuffer->mNumIndices : mVertexBuffer->mNumVertices, bUseVAO);
-	}
-
-
-	void Mesh::draw(Matrix4 const& transform, bool bUseVAO)
-	{
-		if( mVertexBuffer == nullptr )
-			return;
-
-		glPushMatrix();
-		glLoadMatrixf(transform);
-		drawInternal(0, (mIndexBuffer) ? mIndexBuffer->mNumIndices : mVertexBuffer->mNumVertices, bUseVAO);
-		glPopMatrix();
-	}
-
-	void Mesh::drawSection(int idx, bool bUseVAO)
-	{
-		if( mVertexBuffer == nullptr )
-			return;
-		Section& section = mSections[idx];
-		drawInternal( section.start , section.num , bUseVAO );
-	}
-
-	void Mesh::drawInternal(int idxStart, int num, bool bUseVAO)
-	{
-		assert(mVertexBuffer != nullptr);
-
-		if( bUseVAO )
-		{
-			bindVAO();
-
-			if( mIndexBuffer )
-			{
-				glDrawElements(GLConvert::To(mType), num, mIndexBuffer->mbIntIndex ? GL_UNSIGNED_INT : GL_UNSIGNED_SHORT, (void*)idxStart);
-			}
-			else
-			{
-				glDrawArrays(GLConvert::To(mType), idxStart, num);
-			}
-
-			checkGLError();
-
-			unbindVAO();
-		}
-		else
-		{
-			mVertexBuffer->bind();
-			mDecl.bind();
-
-			if( mIndexBuffer )
-			{
-				GL_BIND_LOCK_OBJECT(mIndexBuffer);
-				glDrawElements(GLConvert::To(mType), num, mIndexBuffer->mbIntIndex ? GL_UNSIGNED_INT : GL_UNSIGNED_SHORT, (void*)idxStart);
-			}
-			else
-			{
-				glDrawArrays(GLConvert::To(mType), idxStart, num);
-			}
-
-			checkGLError();
-
-			mDecl.unbind();
-			mVertexBuffer->unbind();
-		}
-	}
-
-	void Mesh::bindVAO()
-	{
-		if( mVAO == 0 )
-		{
-			glGenVertexArrays(1, &mVAO);
-			glBindVertexArray(mVAO);
-
-			mVertexBuffer->bind();
-			mDecl.bindAttrib();
-			if( mIndexBuffer )
-				mIndexBuffer->bind();
-			glBindVertexArray(0);
-			mVertexBuffer->unbind();
-			if( mIndexBuffer )
-				mIndexBuffer->unbind();
-			mDecl.unbindAttrib();
-		}
-		glBindVertexArray(mVAO);
-	}
 
 	VertexDecl::VertexDecl()
 	{
 		mVertexSize = 0;
 	}
 
-	void VertexDecl::bind()
+	void VertexDecl::bindPointer(LinearColor const* overwriteColor)
 	{
 		bool haveTex = false;
 		for( VertexElement& info : mInfoVec )
@@ -170,8 +52,11 @@ namespace RenderGL
 			case Vertex::eColor:
 				if ( info.idx == 0 )
 				{
-					glEnableClientState( GL_COLOR_ARRAY );
-					glColorPointer( Vertex::GetComponentNum( info.format ) , Vertex::GetComponentType( info.format ) , mVertexSize , (void*)info.offset );
+					if( overwriteColor == nullptr )
+					{
+						glEnableClientState(GL_COLOR_ARRAY);
+						glColorPointer(Vertex::GetComponentNum(info.format), Vertex::GetComponentType(info.format), mVertexSize, (void*)info.offset);
+					}
 				}
 				else
 				{
@@ -193,9 +78,14 @@ namespace RenderGL
 				break;
 			}
 		}
+
+		if( overwriteColor )
+		{
+			glColor4fv(*overwriteColor);
+		}
 	}
 
-	void VertexDecl::unbind()
+	void VertexDecl::unbindPointer(LinearColor const* overwriteColor)
 	{
 		bool haveTex = false;
 		for( VertexElement& info : mInfoVec )
@@ -209,7 +99,8 @@ namespace RenderGL
 				glDisableClientState( GL_NORMAL_ARRAY );
 				break;
 			case Vertex::eColor:
-				glDisableClientState( ( info.idx == 0) ? GL_COLOR_ARRAY:GL_SECONDARY_COLOR_ARRAY );
+				if ( overwriteColor == nullptr )
+					glDisableClientState( ( info.idx == 0) ? GL_COLOR_ARRAY:GL_SECONDARY_COLOR_ARRAY );
 				break;
 			case Vertex::eTangent:
 				haveTex = true;
@@ -223,20 +114,31 @@ namespace RenderGL
 				break;
 			}
 		}
+
+		if( overwriteColor )
+		{
+			glColor4f(1, 1, 1, 1);
+		}
 		if ( haveTex )
 			glClientActiveTexture( GL_TEXTURE0 );
 	}
 
-	void VertexDecl::bindAttrib()
+	void VertexDecl::bindAttrib(LinearColor const* overwriteColor)
 	{
 		for( VertexElement& info : mInfoVec )
 		{
 			glEnableVertexAttribArray(info.attribute);
 			glVertexAttribPointer(info.attribute, Vertex::GetComponentNum(info.format), Vertex::GetComponentType(info.format), GL_FALSE, mVertexSize, (void*)info.offset);
 		}
+		if( overwriteColor )
+		{
+			glDisableVertexAttribArray(Vertex::ATTRIBUTE_COLOR);
+			glVertexAttrib4fv(Vertex::ATTRIBUTE_COLOR, *overwriteColor);
+		}
+
 	}
 
-	void VertexDecl::unbindAttrib()
+	void VertexDecl::unbindAttrib(LinearColor const* overwriteColor)
 	{
 		for( VertexElement& info : mInfoVec )
 		{
@@ -382,6 +284,37 @@ namespace RenderGL
 		return true;
 	}
 
+	bool RHITexture1D::create(Texture::Format format, int length, int numMipLevel /*= 0*/, void* data /*= nullptr*/)
+	{
+		if( !fetchHandle() )
+			return false;
+		mSize = length;
+
+		mFormat = format;
+
+		bind();
+		glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		if( numMipLevel )
+			glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MAX_LEVEL, numMipLevel - 1);
+
+		glTexImage1D(GL_TEXTURE_1D, 0, GLConvert::To(format), length, 0,
+					 Texture::GetBaseFormat(format), Texture::GetComponentType(format), data);
+
+		CheckGLStateValid();
+		unbind();
+		return true;
+	}
+
+	bool RHITexture1D::update(int offset, int length, Texture::Format format, void* data, int level /*= 0*/)
+	{
+		bind();
+		glTexSubImage1D(GL_TEXTURE_1D, level, offset, length, Texture::GetPixelFormat(format), Texture::GetComponentType(format), data);
+		bool result = CheckGLStateValid();
+		unbind();
+		return result;
+	}
+
 
 	bool RHITexture2D::create(Texture::Format format, int width, int height, int numMipLevel, void* data , int alignment )
 	{
@@ -391,7 +324,7 @@ namespace RenderGL
 		mSizeY = height;
 		mFormat = format;
 
-		glBindTexture(GL_TEXTURE_2D, mHandle);
+		bind();
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 		if ( numMipLevel )
@@ -408,8 +341,8 @@ namespace RenderGL
 			glTexImage2D(GL_TEXTURE_2D, 0, GLConvert::To(format), width, height, 0,
 						 Texture::GetBaseFormat(format), Texture::GetComponentType(format), data);
 		}
-		checkGLError();
-		glBindTexture(GL_TEXTURE_2D, 0);
+		CheckGLStateValid();
+		unbind();
 		return true;
 	}
 
@@ -418,7 +351,7 @@ namespace RenderGL
 		if ( !fetchHandle() )
 			return false;
 
-		glBindTexture( GL_TEXTURE_2D , mHandle );
+		bind();
 		Vec2i size;
 		bool result = loadFileInternal( path , GL_TEXTURE_2D , GL_TEXTURE_2D , size , mFormat );
 		if( result )
@@ -426,25 +359,16 @@ namespace RenderGL
 			mSizeX = size.x;
 			mSizeY = size.y;
 		}
-		glBindTexture(GL_TEXTURE_2D, 0);
+		unbind();
 		return result;
 	}
 
-	void RHITexture2D::bind()
-	{
-		glBindTexture( GL_TEXTURE_2D , mHandle );
-	}
-
-	void RHITexture2D::unbind()
-	{
-		glBindTexture( GL_TEXTURE_2D , 0 );
-	}
 
 	bool RHITexture2D::update(int ox, int oy, int w, int h, Texture::Format format , void* data , int level )
 	{
 		bind();
 		glTexSubImage2D(GL_TEXTURE_2D, level, ox, oy, w, h, Texture::GetPixelFormat(format), Texture::GetComponentType(format), data);
-		bool result = checkGLError();
+		bool result = CheckGLStateValid();
 		unbind();
 		return result;
 	}
@@ -455,7 +379,7 @@ namespace RenderGL
 #if 1
 		::glPixelStorei(GL_UNPACK_ROW_LENGTH, pixelStride);
 		glTexSubImage2D(GL_TEXTURE_2D, level, ox, oy, w, h, Texture::GetPixelFormat(format), Texture::GetComponentType(format), data);
-		bool result = checkGLError();
+		bool result = CheckGLStateValid();
 		::glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
 #else
 		GLenum formatGL = Texture::GetPixelFormat(format);
@@ -467,7 +391,7 @@ namespace RenderGL
 			glTexSubImage2D(GL_TEXTURE_2D, level, ox, oy+dy , w, 1, formatGL , typeGL,pData);
 			pData += dataStride;
 		}
-		bool result = checkGLError();
+		bool result = CheckGLStateValid();
 #endif
 		unbind();
 		return result;
@@ -477,36 +401,28 @@ namespace RenderGL
 	{
 		if( !fetchHandle() )
 			return false;
+		
 		mSizeX = sizeX;
 		mSizeY = sizeY;
 		mSizeZ = sizeZ;
+		mFormat = format;
 
-		glBindTexture(GL_TEXTURE_3D, mHandle);
+		bind();
 		glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 		glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MAX_LEVEL, 0);
 		glTexImage3D(GL_TEXTURE_3D, 0, GLConvert::To(format), sizeX, sizeY , sizeZ, 0, 
 					 Texture::GetBaseFormat(format), Texture::GetComponentType(format), NULL);
-		glBindTexture(GL_TEXTURE_3D, 0);
+		unbind();
 		return true;
 	}
-
-	void RHITexture3D::bind()
-	{
-		glBindTexture(GL_TEXTURE_3D, mHandle);
-	}
-
-	void RHITexture3D::unbind()
-	{
-		glBindTexture(GL_TEXTURE_3D, 0);
-	}
-
 
 	bool RHITextureCube::create(Texture::Format format, int width, int height , void* data )
 	{
 		if( !fetchHandle() )
 			return false;
 
-		glBindTexture(GL_TEXTURE_CUBE_MAP, mHandle);
+		bind();
 		for( int i = 0; i < 6; ++i )
 		{
 			glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
@@ -515,7 +431,7 @@ namespace RenderGL
 						 GLConvert::To(format), width, height, 0,
 						 Texture::GetBaseFormat(format), Texture::GetComponentType(format), data );
 		}
-		glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
+		unbind();
 		return true;
 	}
 
@@ -524,31 +440,18 @@ namespace RenderGL
 		if ( !fetchHandle() )
 			return false;
 
-		glBindTexture(GL_TEXTURE_CUBE_MAP, mHandle );
-
+		bind();
 		bool result = true; 
 		for( int i = 0 ; i < 6 ; ++i )
 		{
 			Vec2i size;
-			Texture::Format format;
-			if ( !loadFileInternal( path[i] , GL_TEXTURE_CUBE_MAP , GL_TEXTURE_CUBE_MAP_POSITIVE_X + i , size , format) )
+			if ( !loadFileInternal( path[i] , GL_TEXTURE_CUBE_MAP , GL_TEXTURE_CUBE_MAP_POSITIVE_X + i , size , mFormat) )
 			{
 				result = false;
 			}
 		}
-
-		glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
+		unbind();
 		return result;
-	}
-
-	void RHITextureCube::bind()
-	{
-		glBindTexture( GL_TEXTURE_CUBE_MAP , mHandle );
-	}
-
-	void RHITextureCube::unbind()
-	{
-		glBindTexture( GL_TEXTURE_CUBE_MAP , 0 );
 	}
 
 	bool RHITextureDepth::create(Texture::DepthFormat format, int width, int height)
@@ -558,7 +461,7 @@ namespace RenderGL
 		
 		mFromat = format;
 
-		glBindTexture(GL_TEXTURE_2D, mHandle);
+		bind();
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 		glTexImage2D(GL_TEXTURE_2D, 0,  Texture::Convert(format), width, height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
@@ -567,18 +470,8 @@ namespace RenderGL
 		if( error != GL_NO_ERROR )
 		{
 		}
-		glBindTexture(GL_TEXTURE_2D, 0);
+		unbind();
 		return true;	
-	}
-
-	void RHITextureDepth::bind()
-	{
-		glBindTexture(GL_TEXTURE_2D, mHandle);
-	}
-
-	void RHITextureDepth::unbind()
-	{
-		glBindTexture(GL_TEXTURE_2D, 0);
 	}
 
 	FrameBuffer::FrameBuffer()
@@ -1014,7 +907,7 @@ namespace RenderGL
 
 
 
-	GLenum GLConvert::To(AccessOperator op)
+	GLenum GLConvert::To(EAccessOperator op)
 	{
 		switch( op )
 		{
@@ -1030,14 +923,14 @@ namespace RenderGL
 	{
 		switch( type )
 		{
-		case PrimitiveType::eTriangleList:  return GL_TRIANGLES;
-		case PrimitiveType::eTriangleStrip: return GL_TRIANGLE_STRIP;
-		case PrimitiveType::eTriangleFan:   return GL_TRIANGLE_FAN;
-		case PrimitiveType::eLineList:      return GL_LINES;
-		case PrimitiveType::eLineStrip:     return GL_LINE_STRIP;
-		case PrimitiveType::eLineLoop:      return GL_LINE_LOOP;
-		case PrimitiveType::eQuad:          return GL_QUADS;
-		case PrimitiveType::ePoints:        return GL_POINTS;
+		case PrimitiveType::TriangleList:  return GL_TRIANGLES;
+		case PrimitiveType::TriangleStrip: return GL_TRIANGLE_STRIP;
+		case PrimitiveType::TriangleFan:   return GL_TRIANGLE_FAN;
+		case PrimitiveType::LineList:      return GL_LINES;
+		case PrimitiveType::LineStrip:     return GL_LINE_STRIP;
+		case PrimitiveType::LineLoop:      return GL_LINE_LOOP;
+		case PrimitiveType::Quad:          return GL_QUADS;
+		case PrimitiveType::Points:        return GL_POINTS;
 		}
 		return GL_POINTS;
 	}
@@ -1090,6 +983,8 @@ namespace RenderGL
 			return GL_SRC_COLOR;
 		case Blend::eOneMinusSrcColor:
 			return GL_ONE_MINUS_SRC_COLOR;
+		case Blend::eOneMinusDestColor:
+			return GL_ONE_MINUS_DST_COLOR;
 		}
 		return GL_ONE;
 	}
@@ -1143,60 +1038,147 @@ namespace RenderGL
 	}
 
 
+	GLenum GLConvert::To(ECullMode mode)
+	{
+		switch( mode )
+		{
+		case ECullMode::Front: return GL_FRONT;
+		case ECullMode::Back: return GL_BACK;
+		}
+		return GL_FRONT;
+	}
+
+	GLenum GLConvert::To(EFillMode mode)
+	{
+		switch( mode )
+		{
+		case EFillMode::Point: return GL_POINT;
+		case EFillMode::Wireframe: return GL_LINE;
+		case EFillMode::Solid: return GL_FILL;
+		}
+		return GL_FILL;
+	}
+
+	GLenum GLConvert::To(ECompValueType type)
+	{
+		switch( type )
+		{
+		case CVT_Float:  return GL_FLOAT;
+		case CVT_Half:   return GL_HALF_FLOAT;
+		case CVT_UInt:   return GL_UNSIGNED_INT;
+		case CVT_Int:    return GL_INT;
+		case CVT_UShort: return GL_UNSIGNED_SHORT;
+		case CVT_Short:  return GL_SHORT;
+		case CVT_UByte:  return GL_UNSIGNED_BYTE;
+		case CVT_Byte:   return GL_BYTE;
+		}
+
+		assert(0);
+		return GL_FLOAT;
+	}
+
+	GLenum GLConvert::To(Sampler::Filter filter)
+	{
+		switch( filter )
+		{
+		case Sampler::ePoint:
+			return GL_NEAREST;
+		case Sampler::eBilinear:
+			return GL_LINEAR;
+		case Sampler::eTrilinear:
+			return GL_LINEAR_MIPMAP_LINEAR;
+		case Sampler::eAnisotroicPoint:
+			return GL_NEAREST;
+		case Sampler::eAnisotroicLinear:
+			return GL_LINEAR_MIPMAP_LINEAR;
+		}
+		return GL_NEAREST;
+	}
+
+	GLenum GLConvert::To(Sampler::AddressMode mode)
+	{
+		switch( mode )
+		{
+		case Sampler::eWarp:
+			return GL_REPEAT;
+		case Sampler::eClamp:
+			return GL_CLAMP_TO_EDGE;
+		case Sampler::eMirror:
+			return GL_MIRRORED_REPEAT;
+		case Sampler::eBorder:
+			return GL_CLAMP_TO_BORDER;
+		}
+		return GL_REPEAT;
+	}
+
+	GLenum GLConvert::To(Buffer::Usage usage)
+	{
+		switch( usage )
+		{
+		case Buffer::eStatic:
+			return GL_STATIC_DRAW;
+		case Buffer::eDynamic:
+			return GL_DYNAMIC_DRAW;
+		}
+		return GL_STATIC_DRAW;
+	}
+
 	GLenum Vertex::GetComponentType(uint8 format)
 	{
-		switch( Vertex::GetVectorComponentType(Vertex::Format(format)) )
-		{
-		case VCT_Float:  return GL_FLOAT;
-		case VCT_Half:   return GL_HALF_FLOAT;
-		case VCT_UInt:  return GL_UNSIGNED_INT;
-		case VCT_Int:    return GL_INT;
-		case VCT_UShort: return GL_UNSIGNED_SHORT;
-		case VCT_Short:  return GL_SHORT;
-		case VCT_UByte:  return GL_UNSIGNED_BYTE;
-		case VCT_Byte:   return GL_BYTE;
-		}
-		return 0;
+		return GLConvert::To(Vertex::GetCompValueType(Vertex::Format(format)));
 	}
 
 	int Vertex::GetFormatSize(uint8 format)
 	{
 		int num = Vertex::GetComponentNum(format);
-		switch( Vertex::GetVectorComponentType(Vertex::Format(format)) )
+		switch( Vertex::GetCompValueType(Vertex::Format(format)) )
 		{
-		case VCT_Float:  return sizeof(float) * num;
-		case VCT_Half:   return sizeof(float)/2 * num;
-		case VCT_UInt:   return sizeof(uint32) * num;
-		case VCT_Int:    return sizeof(int) * num;
-		case VCT_UShort: return sizeof(uint16) * num;
-		case VCT_Short:  return sizeof(int16) * num;
-		case VCT_UByte:  return sizeof(uint8) * num;
-		case VCT_Byte:   return sizeof(int8) * num;
+		case CVT_Float:  return sizeof(float) * num;
+		case CVT_Half:   return sizeof(float)/2 * num;
+		case CVT_UInt:   return sizeof(uint32) * num;
+		case CVT_Int:    return sizeof(int) * num;
+		case CVT_UShort: return sizeof(uint16) * num;
+		case CVT_Short:  return sizeof(int16) * num;
+		case CVT_UByte:  return sizeof(uint8) * num;
+		case CVT_Byte:   return sizeof(int8) * num;
 		}
 		return 0;
+	}
+
+	bool RHIVertexBuffer::create()
+	{
+		if( !fetchHandle() )
+			return false;
+		return true;
 	}
 
 	bool RHIVertexBuffer::create(uint32 vertexSize, uint32 numVertices, void* data, Buffer::Usage usage /*= Buffer::eStatic */)
 	{
 		if( !fetchHandle() )
 			return false;
-		glBindBuffer(GL_ARRAY_BUFFER, mHandle);
-		glBufferData(GL_ARRAY_BUFFER, vertexSize * numVertices, data, usage == Buffer::eStatic ? GL_STATIC_DRAW : GL_DYNAMIC_DRAW);
-		glBindBuffer(GL_ARRAY_BUFFER, 0);
 
-		mBufferSize = vertexSize * numVertices;
-		mNumVertices = numVertices;
+		resetData(vertexSize, numVertices, data, usage);
 		return true;
 	}
 
-	void RHIVertexBuffer::updateData(uint32 vertexSize, uint32 numVertices, void* data)
+	void RHIVertexBuffer::resetData(uint32 vertexSize, uint32 numVertices, void* data , Buffer::Usage usage )
 	{
 		glBindBuffer(GL_ARRAY_BUFFER, mHandle);
-		glBufferSubData(GL_ARRAY_BUFFER, 0, vertexSize*numVertices, data);
+		glBufferData(GL_ARRAY_BUFFER, vertexSize*numVertices, data , GLConvert::To( usage ) );
 		glBindBuffer(GL_ARRAY_BUFFER, 0);
 
 		mBufferSize = vertexSize * numVertices;
 		mNumVertices = numVertices;
+		mVertexSize = vertexSize;
+	}
+
+	void RHIVertexBuffer::updateData(uint32 vStart , uint32 numVertices, void* data)
+	{
+		assert( (vStart + numVertices) * mVertexSize < mBufferSize );
+		glBindBuffer(GL_ARRAY_BUFFER, mHandle);
+		glBufferSubData(GL_ARRAY_BUFFER, vStart * mVertexSize , mVertexSize * numVertices, data);
+		glBindBuffer(GL_ARRAY_BUFFER, 0);
+
 	}
 
 
@@ -1212,5 +1194,22 @@ namespace RenderGL
 		mSize = size;
 		return true;
 	}
+
+	bool RHISamplerState::create(SamplerStateInitializer const& initializer)
+	{
+		if( !fetchHandle() )
+		{
+			return false;
+		}
+
+		glSamplerParameteri(mHandle, GL_TEXTURE_MIN_FILTER, GLConvert::To(initializer.filter));
+		glSamplerParameteri(mHandle, GL_TEXTURE_MAG_FILTER, initializer.filter == Sampler::ePoint ? GL_NEAREST : GL_LINEAR);
+		glSamplerParameteri(mHandle, GL_TEXTURE_WRAP_S, GLConvert::To(initializer.addressU));
+		glSamplerParameteri(mHandle, GL_TEXTURE_WRAP_T, GLConvert::To(initializer.addressV));
+		glSamplerParameteri(mHandle, GL_TEXTURE_WRAP_R, GLConvert::To(initializer.addressW));
+		return true;
+	}
+
+
 
 }//namespace GL

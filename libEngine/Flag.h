@@ -47,7 +47,7 @@ namespace Private
 		static int const N =  8 * sizeof(T);
 		typedef typename Meta::Select< 
 			BitNum <= N , FlagValue< T > , FlagBitsMulti< T , BitNum > 
-		>::ResultType ResultType;
+		>::Type Type;
 	};
 
 }
@@ -82,7 +82,7 @@ private:
 
 
 template < int BitNum  , class T = unsigned int >
-class FlagBits : public Private::FlagBitsSelector< BitNum , T >::ResultType
+class FlagBits : public Private::FlagBitsSelector< BitNum , T >::Type
 {
 
 };

@@ -99,7 +99,7 @@ namespace CFly
 
 		if ( !texture )
 		{
-			LogErrorF( "Can't Load Texture File ! \n"
+			LogError( "Can't Load Texture File ! \n"
 				      "Path = %s Error Code = %d",  
 				      path , hr );
 			return nullptr;
@@ -281,7 +281,7 @@ namespace CFly
 		if ( hr != D3D_OK )
 		{
 			char const* error = (char const*)buffer->GetBufferPointer();
-			LogErrorF( "Compile Shader file Error : \n"
+			LogError( "Compile Shader file Error : \n"
 				       "path = %s \n"
 					   "ErrorMsg = %s ",
 					   path , error  );

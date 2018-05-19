@@ -85,7 +85,7 @@ public:
 	};
 
 	template< class T >
-	typename Meta::EnableIf< HaveBitDataOutput< BitWriter , T >::Result >::ResultType
+	typename Meta::EnableIf< HaveBitDataOutput< BitWriter , T >::Value >::Type
 	write(TArrayBitData<T> const& data)
 	{
 		if( data.length )
@@ -100,7 +100,7 @@ public:
 	}
 
 	template< class T >
-	typename Meta::EnableIf< !HaveBitDataOutput< BitWriter , T >::Result >::ResultType
+	typename Meta::EnableIf< !HaveBitDataOutput< BitWriter , T >::Value >::Type
     write(TArrayBitData<T> const& data )
 	{
 		if( data.length )
@@ -112,7 +112,7 @@ public:
 	}
 
 	template< class T>
-	typename Meta::EnableIf< HaveBitDataInput< BitReader , T >::Result >::ResultType
+	typename Meta::EnableIf< HaveBitDataInput< BitReader , T >::Value >::Type
 	read(TArrayBitData<T> const& data)
 	{
 		if( data.length )
@@ -126,7 +126,7 @@ public:
 	}
 
 	template< class T>
-	typename Meta::EnableIf< !HaveBitDataInput< BitReader, T >::Result >::ResultType
+	typename Meta::EnableIf< !HaveBitDataInput< BitReader, T >::Value >::Type
 	read(TArrayBitData<T> const& data)
 	{
 		if( data.length )
@@ -170,23 +170,23 @@ public:
 
 	template< class T >
 	struct CanUseInputSequence : Meta::HaveResult< 
-		(!HaveSerializerInput<DataSerializer , T>::Result) && Meta::IsPod<T>::Result >
+		(!HaveSerializerInput<DataSerializer , T>::Value) && Meta::IsPod<T>::Value >
 	{};
 
 	template< class T >
 	struct CanUseOutputSequence : Meta::HaveResult<
-		(!HaveSerializerOutput<DataSerializer, T>::Result) && Meta::IsPod<T>::Result >
+		(!HaveSerializerOutput<DataSerializer, T>::Value) && Meta::IsPod<T>::Value >
 	{};
 
 	template < class T >
-	typename Meta::EnableIf< CanUseInputSequence<T>::Result >::ResultType
+	typename Meta::EnableIf< CanUseInputSequence<T>::Value >::Type
 	read( T* ptr , size_t num  )
 	{
 		mStream.read( ptr , num * sizeof(T) );
 	}
 
 	template < class T >
-	typename Meta::EnableIf< !CanUseInputSequence<T>::Result >::ResultType
+	typename Meta::EnableIf< !CanUseInputSequence<T>::Value >::Type
 	read(T* ptr, size_t num)
 	{
 		for( size_t i = 0; i < num; ++i )
@@ -196,14 +196,14 @@ public:
 	}
 
 	template< class T >
-	typename Meta::EnableIf< CanUseOutputSequence<T>::Result >::ResultType
+	typename Meta::EnableIf< CanUseOutputSequence<T>::Value >::Type
 	write(T const* ptr, size_t num)
 	{
 		mStream.write(ptr, num * sizeof(T));
 	}
 
 	template< class T >
-	typename Meta::EnableIf< !CanUseOutputSequence<T>::Result >::ResultType
+	typename Meta::EnableIf< !CanUseOutputSequence<T>::Value >::Type
 	write(T const* ptr, size_t num)
 	{
 		for( size_t i = 0; i < num; ++i )

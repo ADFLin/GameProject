@@ -4,6 +4,7 @@
 #include "ProfileSystem.h"
 #include "Thread.h"
 
+#include "RenderGL/RHIGraphics2D.h"
 #include "GLGraphics2D.h"
 #include "GameGlobal.h"
 #include "RenderUtility.h"
@@ -22,13 +23,12 @@ WORD GameWindow::getSmallIcon()
 	return IDI_ICON1;
 }
 
-
 void WINAPI GLDebugCallback(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar* message, GLvoid* userParam)
 {
 	if( type == GL_DEBUG_TYPE_OTHER )
 		return;
 
-	LogMsgF(message);
+	LogMsg(message);
 }
 
 
@@ -65,11 +65,12 @@ public:
 
 IGraphics2D& DrawEngine::getIGraphics()
 {
-	static TGraphics2DProxy< Graphics2D > proxySimple( *mScreenGraphics );
+	static TGraphics2DProxy< Graphics2D > proxyPlatform( *mPlatformGraphics );
 	static TGraphics2DProxy< GLGraphics2D > proxyGL( *mGLGraphics );
+	static TGraphics2DProxy< RenderGL::RHIGraphics2D > proxyRHI( *mRHIGraphics );
 	if ( mbGLEnabled ) 
 		return proxyGL;
-	return proxySimple;
+	return proxyPlatform;
 }
 
 DrawEngine::DrawEngine()
@@ -78,16 +79,15 @@ DrawEngine::DrawEngine()
 	mbInitialized = false;
 	mbSweepBuffer = true;
 	mbCleaupGLDefferred = false;
-	mScreenGraphics = NULL;
-	mGLGraphics = NULL;
 
 }
 
 DrawEngine::~DrawEngine()
 {
 	mBufferDC.release();
-	delete mScreenGraphics;
-	delete mGLGraphics;
+	mPlatformGraphics.release();
+	mGLGraphics.release();
+	mRHIGraphics.release();
 
 }
 
@@ -95,10 +95,14 @@ void DrawEngine::init( GameWindow& window )
 {
 	mGameWindow = &window;
 	mBufferDC.initialize( window.getHDC() , window.getHWnd() );
-	mScreenGraphics = new Graphics2D( mBufferDC.getDC() );
-	mGLGraphics = new GLGraphics2D;
-	mGLGraphics->init( mGameWindow->getWidth() , mGameWindow->getHeight() );
+	mPlatformGraphics.reset ( new Graphics2D( mBufferDC.getDC() ) );
 	RenderUtility::Initialize();
+
+	mGLGraphics.reset(new GLGraphics2D);
+	mGLGraphics->init(mGameWindow->getWidth(), mGameWindow->getHeight());
+	mRHIGraphics.reset(new RenderGL::RHIGraphics2D);
+	mRHIGraphics->init(mGameWindow->getWidth(), mGameWindow->getHeight());
+
 
 	mbInitialized = true;
 }
@@ -137,6 +141,8 @@ bool DrawEngine::startOpenGL( bool useGLEW , int numSamples )
 		}
 	}
 	RenderUtility::StartOpenGL();
+
+
 	mbGLEnabled = true;
 
 	return true;
@@ -180,7 +186,7 @@ bool DrawEngine::beginRender()
 			mGLContext.cleanup();
 		}
 		mBufferDC.clear();
-		mScreenGraphics->beginRender();
+		mPlatformGraphics->beginRender();
 	}
 	return true;
 }
@@ -200,7 +206,7 @@ void DrawEngine::endRender()
 	else
 #endif
 	{
-		mScreenGraphics->endRender();
+		mPlatformGraphics->endRender();
 		if ( mbSweepBuffer )
 			mBufferDC.bitBlt( getWindow().getHDC() );
 	}
@@ -311,7 +317,11 @@ void DrawEngine::changeScreenSize( int w , int h )
 	if ( mBufferDC.getWidth() != w || mBufferDC.getHeight() != h )
 	{
 		setupBuffer( w , h );
-		mGLGraphics->init( w , h );
+		if ( mGLGraphics )
+			mGLGraphics->init( w , h );
+		if( mRHIGraphics )
+			mRHIGraphics->init(w, h);
+
 	}
 }
 
@@ -357,7 +367,7 @@ void DrawEngine::setupBuffer( int w , int h )
 		mBufferDC.initialize( getWindow().getHDC() , w , h );
 	}
 
-	mScreenGraphics->setTargetDC( mBufferDC.getDC() );
+	mPlatformGraphics->setTargetDC( mBufferDC.getDC() );
 }
 
 void DrawEngine::enableSweepBuffer(bool beS)
@@ -366,9 +376,9 @@ void DrawEngine::enableSweepBuffer(bool beS)
 		return;
 	mbSweepBuffer = beS;
 	if ( !mbSweepBuffer )
-		mScreenGraphics->setTargetDC( mGameWindow->getHDC() );
+		mPlatformGraphics->setTargetDC( mGameWindow->getHDC() );
 	else
-		mScreenGraphics->setTargetDC( mBufferDC.getDC() );
+		mPlatformGraphics->setTargetDC( mBufferDC.getDC() );
 }
 
 bool DrawEngine::cleanupGLContextDeferred()

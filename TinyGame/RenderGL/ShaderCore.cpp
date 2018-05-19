@@ -89,7 +89,6 @@ namespace RenderGL
 	ShaderProgram::ShaderProgram()
 	{
 		mNeedLink = true;
-		std::fill_n(mShaders, NumShader, (RHIShader*)0);
 	}
 
 	ShaderProgram::~ShaderProgram()

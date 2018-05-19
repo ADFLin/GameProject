@@ -43,7 +43,7 @@ namespace Zen
 #define LoadZenFun( FN , NAME )\
 		if ( !readProcAddress(mhModule,  FN, NAME ) )\
 		{\
-			LogErrorF("Can't Load %s!!" , #FN );\
+			LogError("Can't Load %s!!" , #FN );\
 			return false;\
 		}
 

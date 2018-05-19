@@ -70,23 +70,23 @@ struct VertexFactoryOutputVSToPS
 in VertexFactoryInputParameters
 {
 
-	layout(location = ATTRIBUTE_POSITION) float4 VertexInput_position;
-	layout(location = ATTRIBUTE_NORMAL) float3 VertexInput_normal;
-	layout(location = ATTRIBUTE_COLOR) float4 VertexInput_color;
-	layout(location = ATTRIBUTE_TANGENT) float4 VertexInput_tangent;
+	layout(location = ATTRIBUTE_POSITION) float4 position;
+	layout(location = ATTRIBUTE_NORMAL) float3 normal;
+	layout(location = ATTRIBUTE_COLOR) float4 color;
+	layout(location = ATTRIBUTE_TANGENT) float4 tangent;
 
 #if MATERIAL_TEXCOORD_NUM
 	#if MATERIAL_TEXCOORD_NUM > 0
-	layout(location = ATTRIBUTE4) float2 VertexInput_texCoord0;
+	layout(location = ATTRIBUTE4) float2 texCoord0;
 	#endif
 	#if MATERIAL_TEXCOORD_NUM > 1
-	layout(location = ATTRIBUTE5) float2 VertexInput_texCoord1;
+	layout(location = ATTRIBUTE5) float2 texCoord1;
 	#endif
 	#if MATERIAL_TEXCOORD_NUM > 2
-	layout(location = ATTRIBUTE6) float2 VertexInput_texCoord2;
+	layout(location = ATTRIBUTE6) float2 texCoord2;
 	#endif
 	#if MATERIAL_TEXCOORD_NUM > 3
-	layout(location = ATTRIBUTE7) float2 VertexInput_texCoord3;
+	layout(location = ATTRIBUTE7) float2 texCoord3;
 	#endif
 #endif//MATERIAL_TEXCOORD_NUM
 

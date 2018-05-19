@@ -138,8 +138,7 @@ namespace Lighting2D
 		glMatrixMode(GL_MODELVIEW);
 		glLoadIdentity();
 
-		
-		glDisable( GL_CULL_FACE );
+		RHISetRasterizerState(TStaticRasterizerState< ECullMode::None > ::GetRHI());
 		glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT );
 
 		int w = window.getWidth();
@@ -155,11 +154,12 @@ namespace Lighting2D
 		for ( Light& light : lights )
 		{
 
-			RHISetDepthStencilState( TStaticDepthStencilState<
-				 true , ECompareFun::Always ,
-				 true , ECompareFun::Always , 
-				 Stencil::eKeep , Stencil::eKeep , Stencil::eReplace ,
-				 0x1 >::GetRHI(), 0x1 );
+			RHISetDepthStencilState( 
+				TStaticDepthStencilState<
+					true , ECompareFun::Always ,
+					true , ECompareFun::Always , 
+					Stencil::eKeep , Stencil::eKeep , Stencil::eReplace ,0x1 
+				>::GetRHI(), 0x1 );
 			
 			RHISetBlendState(TStaticBlendState< CWM_NONE >::GetRHI());
 
@@ -181,18 +181,19 @@ namespace Lighting2D
 				if( !mBuffers.empty() )
 				{
 #if SHADOW_USE_GEOMETRY_SHADER
-					TRenderRT< RTVF_XY >::DrawShader(PrimitiveType::eLineList, &mBuffers[0], mBuffers.size());
+					TRenderRT< RTVF_XY >::DrawShader(PrimitiveType::LineList, &mBuffers[0], mBuffers.size());
 #else
-					TRenderRT< RTVF_XY >::DrawShader(PrimitiveType::eQuad, &mBuffers[0], mBuffers.size());
+					TRenderRT< RTVF_XY >::DrawShader(PrimitiveType::Quad, &mBuffers[0], mBuffers.size());
 #endif
 				}
 			}
 			
-			RHISetDepthStencilState(TStaticDepthStencilState<
-				true, ECompareFun::Always,
-				true, ECompareFun::Equal,
-				Stencil::eKeep, Stencil::eKeep, Stencil::eKeep,
-				0x1 >::GetRHI(), 0x0);
+			RHISetDepthStencilState(
+				TStaticDepthStencilState<
+					true, ECompareFun::Always,
+					true, ECompareFun::Equal, 
+					Stencil::eKeep, Stencil::eKeep, Stencil::eKeep,0x1 
+				>::GetRHI(), 0x0);
 
 			RHISetBlendState(TStaticBlendState< CWM_RGBA, Blend::eOne, Blend::eOne >::GetRHI());
 			{
@@ -206,7 +207,7 @@ namespace Lighting2D
 			glClear(GL_STENCIL_BUFFER_BIT);
 		}
 
-		RHISetDepthStencilState(TStaticDepthStencilState< false , ECompareFun::Always >::GetRHI());
+		RHISetDepthStencilState(StaticDepthDisableState::GetRHI());
 		RHISetBlendState(TStaticBlendState<>::GetRHI());
 
 #if 0

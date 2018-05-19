@@ -39,7 +39,7 @@ bool CGameMod::init( GameFramework* gameFramework )
 
 	if ( !TResManager::Get().loadRes( RES_DATA_PATH ) )
 	{
-		LogErrorF( "can't load Res" );
+		LogError( "can't load Res" );
 		TResManager::Get().addDefultData();
 		TResManager::Get().saveRes( RES_DATA_PATH );
 	}

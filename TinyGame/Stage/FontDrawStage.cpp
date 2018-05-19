@@ -19,7 +19,7 @@ namespace RenderGL
 		float  advance;
 		int    imageWidth;
 		int    imageHeight;
-		int    pixelByte;
+		int    pixelSize;
 		std::vector<uint8> imageData;
 	};
 
@@ -124,8 +124,8 @@ namespace RenderGL
 			::SelectObject(tempDC, hOldFont);
 
 
-			BITMAPINFO bmpInfo;
-			bmpInfo.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
+			BITMAPINFO& bmpInfo = *(BITMAPINFO*)(alloca(sizeof(BITMAPINFOHEADER) + sizeof(RGBQUAD) * 0 ));
+			bmpInfo.bmiHeader.biSize = sizeof(bmpInfo.bmiHeader);
 			bmpInfo.bmiHeader.biWidth = 2 * size;
 			bmpInfo.bmiHeader.biHeight = -tm.tmHeight;
 			bmpInfo.bmiHeader.biPlanes = 1;
@@ -180,9 +180,9 @@ namespace RenderGL
 			data.advance = abcFloat.abcfB + abcFloat.abcfC;
 			data.imageWidth = data.width;
 			data.imageHeight = textureDC.getHeight();
-			data.pixelByte = 4;
-			data.imageData.resize(data.imageWidth * data.imageHeight * data.pixelByte);
-			CopyImage( &data.imageData[0] , data.imageWidth  , data.imageHeight , data.pixelByte, pDataTexture ,  textureDC.getWidth() );
+			data.pixelSize = 4;
+			data.imageData.resize(data.imageWidth * data.imageHeight * data.pixelSize);
+			CopyImage( &data.imageData[0] , data.imageWidth  , data.imageHeight , data.pixelSize, pDataTexture ,  textureDC.getWidth() );
 
 			return true;
 		}
@@ -205,6 +205,8 @@ public:
 	FontDrawTestStage() {}
 
 
+	RHITexture2DRef mTexture;
+
 	virtual bool onInit()
 	{
 		if( !BaseClass::onInit() )
@@ -218,11 +220,20 @@ public:
 		if( !provider.initialize("微軟正黑體", 12) )
 			return false;
 
-		if( !mFontTextureAtlas.create(Texture::eRGB8, 1024, 1024, 1) )
+		if( !mFontTextureAtlas.create(Texture::eR8, 1024, 1024, 1) )
 			return false;
 		mFontTextureAtlas.getTexture().bind();
-		glTexParameteri(GL_TEXTURE_2D , GL_TEXTURE_SWIZZLE_A , GL_RED );
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_A, GL_RED);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_G, GL_RED);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_B, GL_RED);
 		mFontTextureAtlas.getTexture().unbind();
+
+		Color4f colors[] =
+		{
+			Color4f(0,0,0) ,Color4f(1,0,0) ,
+			Color4f(0,1,0) ,Color4f(1,1,1) ,
+		};
+		mTexture = RHICreateTexture2D(Texture::eFloatRGBA, 2, 2, 1, colors);
 
 		mCharDataSet.mUsedTextAtlas = &mFontTextureAtlas;
 
@@ -286,7 +297,7 @@ public:
 			{
 				glEnable(GL_TEXTURE_2D);
 				GL_BIND_LOCK_OBJECT(mFontTextureAtlas.getTexture());
-				TRenderRT< RTVF_XY_T2 >::Draw(PrimitiveType::eQuad, &mBuffer[0], mBuffer.size());
+				TRenderRT< RTVF_XY_T2 >::Draw(PrimitiveType::Quad, &mBuffer[0], mBuffer.size());
 				glDisable(GL_TEXTURE_2D);
 			}
 			RHISetBlendState(TStaticBlendState<>::GetRHI());
@@ -363,10 +374,15 @@ public:
 			"承諾要灰飛煙滅　誰還能被愛紀念\n"
 			"凋謝最紅的玫瑰　眼淚化作塞納河水\n";
 
-		glColor3f(1, 0, 0);
+		glColor3f(1, 0.5, 0);
 		drawText(Vec2i(100, 50), str);
 
-		glColor3f(1, 0, 0);
+		g.beginClip(Vec2i(50, 50), Vec2i(100, 100));
+		g.setBrush(Color3f(1, 0, 0));
+		g.drawRect(Vec2i(0, 0), Global::getDrawEngine()->getScreenSize());
+		g.endClip();
+
+		glColor3f(1, 1, 1);
 		Vector2 vertices[] =
 		{
 			Vector2(100 , 100),
@@ -378,14 +394,10 @@ public:
 		{
 			0,1,2,0,2,3,
 		};
-		TRenderRT<RTVF_XY>::DrawIndexed(PrimitiveType::eTriangleList, vertices, 4, indices, 6);
+		TRenderRT<RTVF_XY>::DrawIndexed(PrimitiveType::TriangleList, vertices, 4, indices, 6);
 
 
-		g.beginClip(Vec2i(50, 50), Vec2i(100, 100));
-		g.setBrush(Color3f(1, 0, 0));
-		g.drawRect(Vec2i(0, 0), Global::getDrawEngine()->getScreenSize());
-		g.endClip();
-
+		DrawUtility::DrawTexture(*mTexture, TStaticSamplerState< Sampler::eBilinear , Sampler::eClamp , Sampler::eClamp >::GetRHI() , Vec2i(0, 0), Vec2i(200, 200));
 		g.endRender();
 
 	}

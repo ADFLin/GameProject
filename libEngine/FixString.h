@@ -2,7 +2,7 @@
 #define FixString_h__
 
 #include "CString.h"
-
+#include "Template/StringView.h"
 
 template< int N , class T = char >
 class FixString
@@ -22,6 +22,7 @@ public:
 	template< int M >
 	FixString& operator = (FixString< M, CharT > const& other) { assign(other.mStr);  return *this; }
 	FixString& operator = (StdString const& str) { assign(str.c_str()); return *this; }
+	FixString& operator = (TStringView<T> const& str) { assign(str.data(), str.length());  return *this; }
 
 	bool operator == (CharT const* str) const { return compare(str) == 0; }
 	bool operator != (CharT const* str) const { return compare(str) != 0; }
@@ -32,13 +33,12 @@ public:
 	bool  empty() const { return mStr[0] == 0; }
 	void  assign(CharT const* str) { FCString::Copy(mStr, str); }
 	void  assign(CharT const* str, int num) { FCString::CopyN(mStr, str, num); }
-	void       clear() { mStr[0] = 0; }
-	FixString& format(CharT const* fmt, ...)
+	void  clear() { mStr[0] = 0; }
+	
+	template< class ...Args>
+	FixString& format(CharT const* fmt, Args ...args)
 	{
-		va_list argptr;
-		va_start(argptr, fmt);
-		FCString::PrintfV(mStr, fmt, argptr);
-		va_end(argptr);
+		FCString::PrintfT(mStr, fmt , args...);
 		return *this;
 	}
 

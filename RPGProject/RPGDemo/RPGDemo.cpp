@@ -560,10 +560,10 @@ public:
 		switch( key )
 		{
 		case VK_ESCAPE: setLoopOver( true ); break;
-		//case 'W': mCFCamera->translate( CFly::CFTO_LOCAL , Vec3D( 0,0,10 ) ); break;
-		//case 'S': mCFCamera->translate( CFly::CFTO_LOCAL , Vec3D( 0,0,-10 ) ); break;
-		//case 'A': mCFCamera->translate( CFly::CFTO_LOCAL, Vec3D( 10 ,0 , 0 ) ); break;
-		//case 'D': mCFCamera->translate( CFly::CFTO_LOCAL , Vec3D( -10 ,0 , 0 ) ); break;
+		//case 'W': mCFCamera->translate( Vec3D( 0,0,10 ) , CFly::CFTO_LOCAL); break;
+		//case 'S': mCFCamera->translate( Vec3D( 0,0,-10 ) , CFly::CFTO_LOCAL); break;
+		//case 'A': mCFCamera->translate( Vec3D( 10 ,0 , 0 ), CFly::CFTO_LOCAL ); break;
+		//case 'D': mCFCamera->translate( Vec3D( -10 ,0 , 0 ) , CFly::CFTO_LOCAL ); break;
 
 		//case 'W': mCamControl->moveForward(); break;
 		//case 'S': mCamControl->moveBack(); break;

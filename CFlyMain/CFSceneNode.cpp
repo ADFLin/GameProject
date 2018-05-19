@@ -46,7 +46,7 @@ namespace CFly
 	void SceneNode::renderAll( Matrix4 const& curMat )
 	{
 		Matrix4 trans = getLocalTransform();
-		TransformUntility::transform( trans , curMat , mLinkTransOp );
+		FTransform::Transform( trans , curMat , mLinkTransOp );
 
 		render( trans );
 

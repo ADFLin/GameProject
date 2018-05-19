@@ -9,27 +9,27 @@ public:
 	template< class T >
 	static void construct(T* ptr, T const& val = T() )
 	{
-		constructInternal(ptr, val, Meta::IsPod< T >::ResultType());
+		constructInternal(ptr, val, Meta::IsPod< T >::Type());
 	}
 	template< class T >
 	static void construct(T* ptr, size_t num, T const& val = T())
 	{
-		constructInternal(ptr, num, val, Meta::IsPod< T >::ResultType());
+		constructInternal(ptr, num, val, Meta::IsPod< T >::Type());
 	}
 	template< class T >
 	static void construct(T* ptr, size_t num, T* ptrValue)
 	{
-		constructInternal(ptr, num, ptrValue, Meta::IsPod< T >::ResultType());
+		constructInternal(ptr, num, ptrValue, Meta::IsPod< T >::Type());
 	}
 	template< class T >
 	static void move(T* ptr, T* from)
 	{
-		moveInternal(ptr, from, Meta::IsPod< T >::ResultType());
+		moveInternal(ptr, from, Meta::IsPod< T >::Type());
 	}
 	template< class T >
 	static void move(T* ptr, size_t num, T* from)
 	{
-		moveInternal(ptr, num , from, Meta::IsPod< T >::ResultType());
+		moveInternal(ptr, num , from, Meta::IsPod< T >::Type());
 	}
 	template< class T >
 	static void destruct(T* ptr)
@@ -39,7 +39,7 @@ public:
 	template< class T >
 	static void destruct(T* ptr, size_t num )
 	{
-		destructInternal(ptr, num, Meta::IsPod< T >::ResultType());
+		destructInternal(ptr, num, Meta::IsPod< T >::Type());
 	}
 private:
 	template< class T >

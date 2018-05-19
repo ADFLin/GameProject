@@ -184,6 +184,7 @@ float4 CalcVertexFactoryOutputVS(out VertexFactoryOutputVS vertexFactoryOutput,
 #endif //VERTEX_FACTORY_USE_GEOMETRY_SHADER
 
 #if MATERIAL_TEXCOORD_NUM
+	UNROLL
 	for( int i = 0; i < MATERIAL_TEXCOORD_NUM; ++i )
 		vertexFactoryOutput.texCoords[i] = materialParameters.texCoords[i];
 #endif
@@ -202,6 +203,7 @@ MaterialParametersPS GetMaterialParameterPS(in VertexFactoryIutputPS vertexFacto
 	float3 worldNormal = normalize(vertexFactoryInput.worldNormal.xyz);
 	float normalYSign = sign(vertexFactoryInput.tangent.w);
 
+	FLATTEN
 	if( true )
 	{
 		float normalFactor = 1.0; // gl_FrontFacing ? 1.0 : -1.0;

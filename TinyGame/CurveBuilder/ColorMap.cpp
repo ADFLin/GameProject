@@ -1,242 +1,207 @@
 #include "ColorMap.h"
 
 #include <cassert>
+#include <memory.h>
+#include "CRSpline.h"
+#include <algorithm>
 
-ColorMap::ColorMap(int iSize):
-	m_iRotion(0),
-	m_iMapSize(iSize),
-	m_iNumCPList(0),
-	m_bSmoothLine(false)
+ColorMap::ColorMap(int iSize)
+	:m_iRotion(0)
+	,m_iMapSize(iSize)
+	,m_bSmoothLine(true)
+	,m_isDirty( true )
+	,mColorData( m_iMapSize , Color3f(0,0,0) )
 {
-	m_parColorMap[0]=new BYTE[m_iMapSize];
-	m_parColorMap[1]=new BYTE[m_iMapSize];
-	m_parColorMap[2]=new BYTE[m_iMapSize];
 
-	memset(m_parColorMap[0],0,m_iMapSize);
-	memset(m_parColorMap[1],0,m_iMapSize);
+}
 
-	memset(m_arMemPoolUsed,0,MaxCPSize);
+ColorMap::ColorMap(ColorMap& rhs)
+	:m_iRotion(rhs.m_iRotion)
+	,m_iMapSize(rhs.m_iMapSize)
+	,m_bSmoothLine(rhs.m_bSmoothLine)
+	,mSortedCPoints(rhs.mSortedCPoints)
+	,mColorData( rhs.mColorData )
+	,m_isDirty( rhs.m_isDirty )
+{
+
 }
 
 ColorMap::~ColorMap()
 {
-	delete[] m_parColorMap[0];
-	delete[] m_parColorMap[1];
-	delete[] m_parColorMap[2];
+
 }
 
 
-bool ColorMap::addColorPoint(int iPos,BYTE R,BYTE G,BYTE B)
+void ColorMap::addPoint(int iPos, Color3f const& color)
 {
-	if(m_iNumCPList>=MaxCPSize) return false;
-	int index=-1;
-	for(int i=0;i<MaxCPSize;++i)
-	{
-		if(!m_arMemPoolUsed[i])
-		{
-			index=i;
-			break;
-		}
-	}
-	if (index==-1) return false;
+	ColorPoint cp;
+	cp.color = color;
+	cp.pos = iPos;
+
+	mSortedCPoints.push_back( cp );
+	sortCPList();
+	m_isDirty = true;
+}
+
+void ColorMap::addPoint(int iPos)
+{
+	calcColorMap(false);
+	ColorPoint cp;
+	int pos = int( iPos * getSizePosRatio() );
+
+	cp.color = mColorData[pos];
+	cp.pos = iPos;
 	
-	m_arCPMemPool[index].R=R;
-	m_arCPMemPool[index].G=G;
-	m_arCPMemPool[index].B=B;
-	m_arCPMemPool[index].pos=iPos;
-	m_arpCPlist[index]=&m_arCPMemPool[index];
-	m_arMemPoolUsed[index]=true;
-	
-	++m_iNumCPList;
+	mSortedCPoints[getCPListSize()]= cp;
+
 	sortCPList();
-	return true;
+	m_isDirty = true;
 }
 
-bool ColorMap::addColorPoint(int iPos)
+bool ColorMap::removePoint(int index)
 {
-	if(m_iNumCPList>=MaxCPSize) return false;
-	int index=-1;
-	for(int i=0;i<MaxCPSize;++i)
-	{
-		if(!m_arMemPoolUsed[i])
-		{
-			index=i;
-			break;
-		}
-	}
-	if (index==-1) return false;
+	if( getCPListSize() <= 2 ) 
+		return false;
 
-	m_arCPMemPool[index].R=m_parColorMap[0][iPos];
-	m_arCPMemPool[index].G=m_parColorMap[1][iPos];
-	m_arCPMemPool[index].B=m_parColorMap[2][iPos];
-	m_arCPMemPool[index].pos=iPos;
-	m_arpCPlist[index]=&m_arCPMemPool[index];
-	m_arMemPoolUsed[index]=true;
+	if(index < 0 || index >= mSortedCPoints.size()) 
+		return false;
 
-	++m_iNumCPList;
+	for(int i = index + 1;i<mSortedCPoints.size();++i)
+		mSortedCPoints[i-1] = mSortedCPoints[i];
+
+	mSortedCPoints.clear();
 	sortCPList();
-	return true;
-}
-
-bool ColorMap::deleteColorPoint(int index)
-{
-	if(m_iNumCPList <= 2) return false;
-	if(index < 0 || index >= m_iNumCPList) return false;
-
-	m_arpCPlist[index]=m_arpCPlist[m_iNumCPList-1];
-	m_arMemPoolUsed[index]=false;
-	--m_iNumCPList;
-	sortCPList();
-
+	m_isDirty = true;
 	return true;
 }
 
 void ColorMap::sortCPList()
 {
-	for(int i=0;i<m_iNumCPList-1;++i)
-	{
-		int min=i;
-		for(int j=i+1;j<m_iNumCPList;++j)
+	std::sort( mSortedCPoints.begin() , mSortedCPoints.end() , 
+		[](auto const& lhs, auto const& rhs)
 		{
-			if (m_arpCPlist[min]->pos > m_arpCPlist[j]->pos)
-				min=j;
+			return lhs.pos < rhs.pos;
+		});
+}
+
+
+void ColorMap::getColor(float fVal,Color3f& outColor) const
+{
+	int rotion = m_iRotion*getSizePosRatio();
+	int index = ( int(fVal*m_iMapSize) - rotion ) % m_iMapSize;
+	
+	if (index < 0) 
+		index+=m_iMapSize;
+
+	outColor = mColorData[index];
+}
+
+
+
+void ColorMap::setCPPos(int index,int Pos)
+{
+	assert(index >= 0 && index < mSortedCPoints.size());
+
+	mSortedCPoints[index].pos = Pos - getRotion();
+	if (mSortedCPoints[index].pos<0)
+		mSortedCPoints[index].pos += CPPosRange;
+
+	sortCPList();
+	m_isDirty = true;
+}
+
+
+void ColorMap::setCPColor(int index,int idxComp,float val)
+{
+	if( index < 0 || index >= mSortedCPoints.size()) 
+		return;
+
+	mSortedCPoints[index].color[idxComp] = val;
+	m_isDirty = true;
+	//computeColorMap();
+}
+
+void ColorMap::computeColorMapSmooth()
+{
+	float pos[4];
+	Color3f arColor[4];
+	float* y = new float[m_iMapSize];
+
+	for(int n=0;n<mSortedCPoints.size()+3;++n)
+	{
+		ColorPoint* cps[4];
+		for(int i=0;i<4;++i)
+		{
+			int index=(i+n-2+ mSortedCPoints.size())% mSortedCPoints.size();
+			pos[i] = mSortedCPoints[index].pos;
+			arColor[i]= mSortedCPoints[index].color;
+			if(  ( i + n - 2 ) < 0 ) 
+				pos[i] -= ColorMap::CPPosRange;
+
+			if( ( i + n- 2 ) >= mSortedCPoints.size() )
+				pos[i] += ColorMap::CPPosRange;
 		}
-		if( min!=i )
+
+		int x1=(pos[1]*m_iMapSize)/ColorMap::CPPosRange;
+		int x2=(pos[2]*m_iMapSize)/ColorMap::CPPosRange;
+		int size = x2 - x1;
+
+		for (int idxComp=0;idxComp<3;++idxComp)
 		{
-			ColorPoint* temp=m_arpCPlist[i];
-			m_arpCPlist[i]=m_arpCPlist[min];
-			m_arpCPlist[min]=temp;
-		}
-	}
-}
+			CRSpline2D spline(Vector2(pos[0],arColor[0][idxComp]) ,
+							  Vector2(pos[1],arColor[1][idxComp]) ,
+							  Vector2(pos[2],arColor[2][idxComp]) ,
+							  Vector2(pos[3],arColor[3][idxComp]) );
 
-void ColorMap::getColor(float fVal,BYTE arColor[])
-{
-	int rotion=m_iRotion*m_iMapSize/CPPosRange();
-	int index=(int(fVal*m_iMapSize)-rotion)%m_iMapSize;
-	if (index<0) index+=m_iMapSize;
-
-	arColor[0]=m_parColorMap[0][index];
-	arColor[1]=m_parColorMap[1][index];
-	arColor[2]=m_parColorMap[2][index];
-}
-
-
-
-void ColorMap::setColorPointPos(int index,int Pos)
-{
-	if(index<0 || index>=m_iNumCPList) return;
-	m_arpCPlist[index]->pos=Pos-getRotion();
-	if (m_arpCPlist[index]->pos<0)
-		m_arpCPlist[index]->pos+=CPPosRange();
-	sortCPList();
-	computeColorMap();
-}
-
-void ColorMap::setColorPointPos(ColorPoint* pCP,int Pos)
-{
-	assert( pCP != NULL);
-
-	pCP->pos=Pos-getRotion();
-	if (pCP->pos<0) pCP->pos+=CPPosRange();
-	sortCPList();
-	computeColorMap();
-}
-
-void ColorMap::setColorPointColor(ColorPoint* pCP,int color,BYTE val)
-{
-	assert( pCP != NULL);
-
-	pCP->setColor(color,val);
-	sortCPList();
-	computeColorMap();
-}
-
-void ColorMap::setColorPointColor(int index,int color,BYTE val)
-{
-	if(index<0 || index>=m_iNumCPList) return;
-	m_arpCPlist[index]->setColor(color,val);
-	sortCPList();
-	computeColorMap();
-}
-
-int ColorMap::getCPIndex(ColorPoint* pCP)
-{
-	for(int i=0;i<getCPListSize();++i)
-	{
-		if (pCP==m_arpCPlist[i])
-			return i;
-	}
-	return -1;
-}
-void ColorMap::computeColorMap_Smooth()
-{
-	//#FIXME
-#if 0
-	double arPos[4];
-	double arColor[3][4];
-	double* y=new double[m_iMapSize];
-	CRSpline2D spline;
-	for (int color=0;color<3;++color)
-	{
-		for(int n=0;n<m_iNumCPList+3;++n)
-		{
-			for(int i=0;i<4;++i)
-			{
-				int index=(i+n-2+m_iNumCPList)%m_iNumCPList;
-				arPos[i]=(double)m_arpCPlist[index]->pos;
-				arColor[0][i]=(double)m_arpCPlist[index]->R;
-				arColor[1][i]=(double)m_arpCPlist[index]->G;
-				arColor[2][i]=(double)m_arpCPlist[index]->B;
-				if( (i+n-2)<0 ) arPos[i]-=ColorMap::CPPosRange();
-				if( (i+n-2)>=m_iNumCPList) arPos[i]+=ColorMap::CPPosRange();
-			}		
-			int x1=arPos[1]*m_iMapSize/ColorMap::CPPosRange();
-			int x2=arPos[2]*m_iMapSize/ColorMap::CPPosRange();
-			int size=(arPos[2]-arPos[1])*m_iMapSize/ColorMap::CPPosRange();
-			spline.create(arPos,&arColor[color][0],4);
-			spline.compute_y(size,NULL,y,arPos[1],arPos[2]);
+			spline.getValue( 20,nullptr,y,size);
 			for(int j=0;j<size;++j)
 			{
-				int val=(int)y[j];
-				if (val>255) val=255;
-				if (val<0) val=0;
-				m_parColorMap[color][(x1+j+m_iMapSize)%m_iMapSize]=val;
+				float val = Math::Clamp<float>(y[j], 0, 1);
+				mColorData[(x1+j+m_iMapSize)%m_iMapSize][idxComp] =val;
 			}
 		}
 	}
 	delete[] y;
-#endif
 }
-void ColorMap::computeColorMap()
+void ColorMap::calcColorMap( bool beForce /*= false */)
 {
-	if (m_bSmoothLine)
-	{
-		computeColorMap_Smooth();
+	if ( !m_isDirty && !beForce )
 		return;
-	}
-	for (int n=0;n<m_iNumCPList;++n)
-	{
-		int now=n%m_iNumCPList;
-		int next=(n+1)%m_iNumCPList;
-		int start=m_arpCPlist[now]->pos*m_iMapSize/CPPosRange();
-		int end =m_arpCPlist[next]->pos*m_iMapSize/CPPosRange();
-		int dL=end-start;
-		dL=(dL>0)?dL:(m_iMapSize+dL);
 
-		float dR=(float)(m_arpCPlist[next]->R-m_arpCPlist[now]->R)/dL;
-		float dG=(float)(m_arpCPlist[next]->G-m_arpCPlist[now]->G)/dL;
-		float dB=(float)(m_arpCPlist[next]->B-m_arpCPlist[now]->B)/dL;
-		float R=(float)m_arpCPlist[now]->R;
-		float G=(float)m_arpCPlist[now]->G;
-		float B=(float)m_arpCPlist[now]->B;
+	if (m_bSmoothLine && mSortedCPoints.size() > 2)
+		computeColorMapSmooth();
+	else
+		computeColorMapLinear();
+
+	m_isDirty = false;
+}
+
+void ColorMap::computeColorMapLinear()
+{
+	for (int n=0;n<mSortedCPoints.size();++n)
+	{
+		int now = n%mSortedCPoints.size();
+		int next = (n+1)% mSortedCPoints.size();
+		int start = mSortedCPoints[now].pos*m_iMapSize/CPPosRange;
+		int end  = mSortedCPoints[next].pos*m_iMapSize/CPPosRange;
+
+		int dL = end-start;
+		dL = (dL>0) ? dL : (m_iMapSize+dL);
+
+		float dR = float(mSortedCPoints[next].color[COLOR_R] - mSortedCPoints[now].color[COLOR_R])/dL;
+		float dG = float(mSortedCPoints[next].color[COLOR_G] - mSortedCPoints[now].color[COLOR_G])/dL;
+		float dB = float(mSortedCPoints[next].color[COLOR_B] - mSortedCPoints[now].color[COLOR_B])/dL;
+		float R = float(mSortedCPoints[now].color[COLOR_R]);
+		float G = float(mSortedCPoints[now].color[COLOR_G]);
+		float B = float(mSortedCPoints[now].color[COLOR_B]);
+
 		for (int i=0;i<dL;++i)
 		{
 			int index=(start+i)%m_iMapSize;
-	
-			m_parColorMap[0][index]=(BYTE)R;		
-			m_parColorMap[1][index]=(BYTE)G;
-			m_parColorMap[2][index]=(BYTE)B;
+
+			mColorData[index][0]=R;		
+			mColorData[index][1]=G;
+			mColorData[index][2]=B;
 
 			R+=dR;
 			G+=dG;
@@ -244,4 +209,3 @@ void ColorMap::computeColorMap()
 		}
 	}
 }
-

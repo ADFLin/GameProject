@@ -162,7 +162,8 @@
     <ClInclude Include="RenderGL\DrawUtility.h" />
     <ClInclude Include="RenderGL\FrameGraph.h" />
     <ClInclude Include="RenderGL\GLCommon.h" />
-    <ClInclude Include="RenderGL\GLUtility.h" />
+    <ClInclude Include="RenderGL\RHIGraphics2D.h" />
+    <ClInclude Include="RenderGL\MeshUtility.h" />
     <ClInclude Include="RenderGL\GpuProfiler.h" />
     <None Include="RenderGL\LazyObject.h" />
     <ClInclude Include="RenderGL\Material.h" />
@@ -202,7 +203,8 @@
     <ClCompile Include="GameStageMode.cpp" />
     <ClCompile Include="RenderGL\DrawUtility.cpp" />
     <ClCompile Include="RenderGL\GLCommon.cpp" />
-    <ClCompile Include="RenderGL\GLUtility.cpp" />
+    <ClCompile Include="RenderGL\RHIGraphics2D.cpp" />
+    <ClCompile Include="RenderGL\MeshUtility.cpp" />
     <ClCompile Include="RenderGL\GpuProfiler.cpp" />
     <ClCompile Include="RenderGL\LazyObject.cpp" />
     <ClCompile Include="RenderGL\Material.cpp" />

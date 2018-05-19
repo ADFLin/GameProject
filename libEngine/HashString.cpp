@@ -1,5 +1,6 @@
 #include "HashString.h"
 
+#include "CString.h"
 #include "FixString.h"
 #include "TypeHash.h"
 #include "MetaBase.h"
@@ -9,33 +10,6 @@
 #include <type_traits>
 
 #include "Core/FNV1a.h"
-
-struct FString
-{
-	static void Stricpy( char * dest , char const* src )
-	{
-		assert(dest && src);
-		while( *src )
-		{
-			int c = ::tolower(*src);
-			*dest = c;
-			++dest;
-			++src;
-		}
-	}
-
-	static uint32 StriHash(char const* str)
-	{
-		uint32 result = 5381;
-		while( *str )
-		{
-			uint32 c = (uint32)tolower(*str);
-			result = ((result << 5) + result) + c; /* hash * 33 + c */
-			++str;
-		}
-		return result;
-	}
-};
 
 int const NameSlotHashBucketSize = 0xffff;
 int const MaxHashStringLength = 2048;
@@ -170,7 +144,7 @@ HashString::HashString(char const* str , bool bCaseSensitive )
 	}
 #endif
 
-	uint32 idxHash = FString::StriHash(str) % NameSlotHashBucketSize;
+	uint32 idxHash = FCString::StriHash(str) % NameSlotHashBucketSize;
 	NameSlot* slot = NameSlot::sHashHead[idxHash];
 	for( ; slot; slot = slot->next )
 	{

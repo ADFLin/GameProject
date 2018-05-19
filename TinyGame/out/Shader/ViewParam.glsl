@@ -3,8 +3,6 @@
 
 struct ViewParameters
 {
-
-
 	mat4   worldToView;
 	mat4   worldToClip;
 	mat4   viewToWorld;  
@@ -12,7 +10,7 @@ struct ViewParameters
 	mat4   clipToView;
 	mat4   clipToWorld;
 
-	float4 viewportPosAndSizeInv;
+	float4 rectPosAndSizeInv;
 	float3 worldPos;
 	float  realTime;
 
@@ -22,16 +20,26 @@ struct ViewParameters
 };
 
 
+#if 1
 layout(std140) uniform ViewBlock
 {
 	uniform ViewParameters View;
 };
+#else
+uniform ViewParameters View;
+#endif
 
-//uniform ViewParameters View;
 
 uniform sampler2D FrameDepthTexture;
 
-
+float2 ScreenUVToBufferUV(float2 screenUVs)
+{
+	return screenUVs + View.rectPosAndSizeInv.xy * View.rectPosAndSizeInv.zw;
+}
+float2 BufferUVToScreenUV(float2 bufferUVs)
+{
+	return bufferUVs - View.rectPosAndSizeInv.xy * View.rectPosAndSizeInv.zw;
+}
 float BufferDepthToSceneDepth(float depth)
 {
 	float sceneDepth = (depth - View.viewToClip[3][2]) / View.viewToClip[2][2];
@@ -39,23 +47,23 @@ float BufferDepthToSceneDepth(float depth)
 	return sceneDepth;
 }
 
-float ScreenUVToSceneDepth(float2 ScreenUVs)
+float ScreenUVToSceneDepth(float2 screenUVs)
 {
-	float depth = texture2D(FrameDepthTexture, ScreenUVs).r;
+	float depth = texture2D(FrameDepthTexture, ScreenUVToBufferUV(screenUVs)).r;
 	return BufferDepthToSceneDepth(depth);
 }
 
-float3 StoreWorldPos(float2 ScreenUVs, float depth)
+float3 StoreWorldPos(float2 screenUVs, float bufferDepth)
 {
-	float sceneDepth = BufferDepthToSceneDepth(depth);
-	float2 screenPos = (2.0 * ScreenUVs - 1.0);
-	float4 clipPos = float4(depth * screenPos, depth, 1);
+	float sceneDepth = BufferDepthToSceneDepth(bufferDepth);
+	float2 screenPos = (2.0 * screenUVs - 1.0);
+	float4 clipPos = float4(bufferDepth * screenPos, bufferDepth, 1);
 	float4 pos = View.clipToWorld * clipPos;
 	return pos.xyz / pos.w;
 }
 
-float3 ScreenUVToWorldPos(float2 ScreenUVs)
+float3 ScreenUVToWorldPos(float2 screenUVs)
 {
-	return StoreWorldPos(ScreenUVs, texture2D(FrameDepthTexture, ScreenUVs).r);
+	return StoreWorldPos(screenUVs, texture2D(FrameDepthTexture, ScreenUVToBufferUV(screenUVs)).r);
 }
 

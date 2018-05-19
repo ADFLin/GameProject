@@ -28,43 +28,43 @@ namespace CFly
 	void SpatialNode::transform( Vector3 const& pos , Quaternion const& rotation  , TransOp op )
 	{
 		Matrix4 mat; mat.setTransform( pos ,rotation );
-		TransformUntility::transform( mLocalTrans , mat , op );
+		FTransform::Transform( mLocalTrans , mat , op );
 		onModifyTransform( true );
 	}
 
 	void SpatialNode::transform( Matrix4 const& mat , TransOp op )
 	{
-		TransformUntility::transform( mLocalTrans , mat , op );
+		FTransform::Transform( mLocalTrans , mat , op );
 		onModifyTransform( true );
 	}
 
 	void SpatialNode::translate( Vector3 const& v , TransOp op )
 	{
-		TransformUntility::translate( mLocalTrans , v , op );
+		FTransform::Translate( mLocalTrans , v , op );
 		onModifyTransform( true );
 	}
 
 	void SpatialNode::rotate( Vector3 const& axis , float angle , TransOp op )
 	{
-		TransformUntility::rotate( mLocalTrans , axis , angle , op );
+		FTransform::Rotate( mLocalTrans , axis , angle , op );
 		onModifyTransform( true );
 	}
 
 	void SpatialNode::rotate( AxisEnum axis , float angle , TransOp op )
 	{
-		TransformUntility::rotate( mLocalTrans , axis , angle , op );
+		FTransform::Rotate( mLocalTrans , axis , angle , op );
 		onModifyTransform( true );
 	}
 
 	void SpatialNode::rotate( Quaternion const& q , TransOp op )
 	{
-		TransformUntility::rotate( mLocalTrans , q , op );
+		FTransform::Rotate( mLocalTrans , q , op );
 		onModifyTransform( true );
 	}
 
 	void SpatialNode::scale( Vector3 const& factor , TransOp op )
 	{
-		TransformUntility::scale( mLocalTrans , factor , op );
+		FTransform::Scale( mLocalTrans , factor , op );
 		onModifyTransform( true );
 	}
 
@@ -163,7 +163,7 @@ namespace CFly
 		assert( checkFlag( NODE_SUB_CHILD ) );
 
 		mCacheWorldTrans = mLocalTrans;
-		TransformUntility::transform( mCacheWorldTrans , boneTrans , mLinkTransOp );
+		FTransform::Transform( mCacheWorldTrans , boneTrans , mLinkTransOp );
 
 		removeFlag( NODE_WORLD_TRANS_DIRTY );
 		onModifyTransform( false );
@@ -182,7 +182,7 @@ namespace CFly
 
 			if ( parent->getParent() != nullptr )
 			{
-				TransformUntility::transform( mCacheWorldTrans , parent->mCacheWorldTrans , mLinkTransOp );
+				FTransform::Transform( mCacheWorldTrans , parent->mCacheWorldTrans , mLinkTransOp );
 			}
 
 			removeFlag( NODE_WORLD_TRANS_DIRTY );
@@ -205,7 +205,7 @@ namespace CFly
 				if ( !parentUpdated )
 					parent->checkWorldTranform_R();
 
-				TransformUntility::transform( mCacheWorldTrans , parent->mCacheWorldTrans , mLinkTransOp );
+				FTransform::Transform( mCacheWorldTrans , parent->mCacheWorldTrans , mLinkTransOp );
 			}
 		}
 

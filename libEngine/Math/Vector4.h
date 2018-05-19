@@ -12,6 +12,8 @@ namespace Math
 		Vector4(){}
 		Vector4( float x , float y , float z , float w )
 			:x(x),y(y),z(z),w(w){}
+		Vector4( float* ptr )
+			:x(ptr[0]),y(ptr[1]), z(ptr[2]), w(ptr[3]){ }
 		explicit Vector4( Vector3 const& v , float w  = 1.0 )
 			:x(v.x),y(v.y),z(v.z),w(w){}
 
@@ -24,10 +26,32 @@ namespace Math
 		Vector3 xyz() const { return Vector3(x,y,z); }
 		Vector3 dividedVector() const { float wf = 1.0f / w ; return Vector3(x*wf,y*wf,z*wf); }
 
-		Vector4& operator *= ( float v ){ x *= v ; y *= v; z *= v; w *= v; return *this;}
+		Vector4& operator *= ( float v ) { x *= v ; y *= v; z *= v; w *= v; return *this; }
+		Vector4& operator /= ( float v ) { x /= v; y /= v; z /= v; w /= v; return *this; }
+
+		operator float*() { return &x; }
+		operator float const*() const { return &x; }
 
 		float x , y , z , w;
 	};
+
+	template< class T >
+	FORCEINLINE Vector4 operator * (float s, Vector4 const& v)
+	{
+		return Vector4(s*v.x, s*v.y, s*v.z , s*v.w);
+	}
+
+	template< class T >
+	FORCEINLINE Vector4 operator*(Vector4 const& v, float s)
+	{
+		return Vector4(s*v.x, s*v.y, s*v.z, s*v.w);
+	}
+
+	template< class T >
+	FORCEINLINE Vector4 operator/(Vector4 const& v, float s)
+	{
+		return Vector4(v.x / s, v.y / s, v.z / s , v.w / s);
+	}
 
 }//namespace Math
 

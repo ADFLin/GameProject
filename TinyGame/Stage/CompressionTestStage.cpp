@@ -218,14 +218,14 @@ namespace Compression
 		{
 
 
-			int a = HaveFunCallOperator< FooCall, int >::Result;
-			int a2 = HaveFunCallOperator< FooCall, uint32 >::Result;
-			int v = HaveBitDataOutput< DataSerializer::BitWriter, uint32 >::Result;
+			int a = HaveFunCallOperator< FooCall, int >::Value;
+			int a2 = HaveFunCallOperator< FooCall, uint32 >::Value;
+			int v = HaveBitDataOutput< DataSerializer::BitWriter, uint32 >::Value;
 
-			int i = HaveSerializeOutput< Foo , MyTest >::Result;
-			int i2 = HaveSerializeOutput< Foo , int >::Result;
-			int i3 = HaveSerializeOutput< Foo , MyTest2 >::Result;
-			int i4 = HaveSerializeOutput< Foo , MyTest3 >::Result;
+			int i = HaveSerializeOutput< Foo , MyTest >::Value;
+			int i2 = HaveSerializeOutput< Foo , int >::Value;
+			int i3 = HaveSerializeOutput< Foo , MyTest2 >::Value;
+			int i4 = HaveSerializeOutput< Foo , MyTest3 >::Value;
 
 			Foo foo;
 			Fun fun = &operator <<;

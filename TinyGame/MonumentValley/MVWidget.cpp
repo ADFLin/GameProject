@@ -2,7 +2,7 @@
 
 #include "MVRenderEngine.h"
 
-#include "RenderGL/GLUtility.h"
+#include "RenderGL/DrawUtility.h"
 
 namespace MV
 {

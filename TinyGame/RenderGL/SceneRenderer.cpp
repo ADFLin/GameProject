@@ -40,11 +40,11 @@ namespace RenderGL
 
 	void ViewInfo::setupShader(ShaderProgram& program)
 	{
-		static RHIUniformBuffer buffer;
 		//ref ViewParam.glsl
+#if 1
 		struct ViewBufferData
 		{
-			DECLARE_UNIFORM_STRUCT("ViewBlock");
+			DECLARE_UNIFORM_STRUCT(ViewBlock);
 
 			Matrix4  worldToView;
 			Matrix4  worldToClip;
@@ -52,11 +52,12 @@ namespace RenderGL
 			Matrix4  viewToClip;
 			Matrix4  clipToView;
 			Matrix4  clipToWorld;
-			Vector4 viewportPosAndSizeInv;
+			Vector4  rectPosAndSizeInv;
 			Vector3 worldPos;
 			float  realTime;
 			Vector3 direction;
 			float  gameTime;
+
 		};
 
 		if( !mUniformBuffer.isValid() )
@@ -80,20 +81,35 @@ namespace RenderGL
 			data.clipToWorld = clipToWorld;
 			data.gameTime = gameTime;
 			data.realTime = realTime;
-
-			int values[4];
-			glGetIntegerv(GL_VIEWPORT, values);
-			Vector4 viewportParam;
-			viewportParam.x = values[0];
-			viewportParam.y = values[1];
-			viewportParam.z = 1.0 / values[2];
-			viewportParam.w = 1.0 / values[3];
-			data.viewportPosAndSizeInv = viewportParam;
+			data.rectPosAndSizeInv.x = rectOffset.x;
+			data.rectPosAndSizeInv.y = rectOffset.y;
+			data.rectPosAndSizeInv.z = 1.0 / float(rectSize.x);
+			data.rectPosAndSizeInv.w = 1.0 / float(rectSize.y);
 			mUniformBuffer->unlock();
 		}
 
-		program.setUniformBuffer<ViewBufferData>(*mUniformBuffer);
+		program.setUniformBufferT<ViewBufferData>(*mUniformBuffer);
 
+#else
+		program.setParam(SHADER_PARAM(View.worldPos), worldPos);
+		program.setParam(SHADER_PARAM(View.direction), direction);
+		program.setParam(SHADER_PARAM(View.worldToView), worldToView);
+		program.setParam(SHADER_PARAM(View.worldToClip), worldToClip);
+		program.setParam(SHADER_PARAM(View.viewToWorld), viewToWorld);
+		program.setParam(SHADER_PARAM(View.viewToClip), viewToClip);
+		program.setParam(SHADER_PARAM(View.clipToView), clipToView);
+		program.setParam(SHADER_PARAM(View.clipToWorld), clipToWorld);
+		program.setParam(SHADER_PARAM(View.gameTime), gameTime);
+		program.setParam(SHADER_PARAM(View.realTime), realTime);
+		int values[4];
+		glGetIntegerv(GL_VIEWPORT, values);
+		Vector4 viewportParam;
+		viewportParam.x = values[0];
+		viewportParam.y = values[1];
+		viewportParam.z = 1.0 / values[2];
+		viewportParam.w = 1.0 / values[3];
+		program.setParam(SHADER_PARAM(View.viewportPosAndSizeInv), viewportParam);
+#endif
 	}
 
 	void ViewInfo::updateFrustumPlanes()
@@ -243,18 +259,20 @@ namespace RenderGL
 
 		//mProgLighting.setParam(SHADER_PARAM(worldToLightView) , worldToLightView );
 		mProgLighting.setTexture(SHADER_PARAM(ShadowTextureCube), *mShadowMap);
-		mProgLighting.setParam(SHADER_PARAM(DepthParam), depthParam[0], depthParam[1]);
+		mProgLighting.setParam(SHADER_PARAM(DepthParam), Vector2( depthParam[0], depthParam[1] ));
 
 		mEffectCur = &mProgLighting;
 
 		if( bMultiple )
 		{
-			glDepthFunc(GL_EQUAL);
+			//glDepthFunc(GL_EQUAL);
+			RHISetDepthStencilState(TStaticDepthStencilState< true , ECompareFun::Equal >::GetRHI());
 			RHISetBlendState(TStaticBlendState< CWM_RGBA , Blend::eOne, Blend::eOne >::GetRHI());
 			RenderContext context(view, *this);
 			scene.render( context);
 			RHISetBlendState(TStaticBlendState<>::GetRHI());
-			glDepthFunc(GL_LESS);
+			RHISetDepthStencilState(TStaticDepthStencilState< true, ECompareFun::Less >::GetRHI());
+			//glDepthFunc(GL_LESS);
 		}
 		else
 		{
@@ -274,7 +292,7 @@ namespace RenderGL
 
 	void ShadowDepthTech::renderShadowDepth(ViewInfo& view, SceneInterface& scene, ShadowProjectParam& shadowProjectParam)
 	{
-		//glDisable( GL_CULL_FACE );
+		//RHISetRasterizerState(TStaticRasterizerState< ECullMode::None >::GetRHI());
 		LightInfo const& light = *shadowProjectParam.light;
 
 		if( !light.bCastShadow )
@@ -284,6 +302,7 @@ namespace RenderGL
 
 		ViewInfo lightView;
 		lightView = view;
+		lightView.mUniformBuffer = nullptr;
 
 #if !USE_MATERIAL_SHADOW
 		GL_BIND_LOCK_OBJECT(mProgShadowDepth);
@@ -298,6 +317,8 @@ namespace RenderGL
 		//baisMatrix = Matrix4::Identity();
 		Matrix4  worldToLight;
 		Matrix4 shadowProject;
+
+		RHISetBlendState(TStaticBlendState<>::GetRHI());
 
 		if( light.type == LightType::Directional )
 		{
@@ -327,6 +348,8 @@ namespace RenderGL
 			glClearColor(1, 1, 1, 1.0);
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+			RHISetDepthStencilState(TStaticDepthStencilState<>::GetRHI());
+
 			for( int i = 0; i < CascadedShadowNum; ++i )
 			{
 				float delata = 1.0f / CascadedShadowNum;
@@ -343,7 +366,7 @@ namespace RenderGL
 				MatrixSaveScope matScope(shadowProject);
 
 				ViewportSaveScope vpScope;
-				glViewport(i*CascadeTextureSize, 0, CascadeTextureSize, CascadeTextureSize);
+				RHISetViewport(i*CascadeTextureSize, 0, CascadeTextureSize, CascadeTextureSize);
 
 				lightView.setupTransform(worldToLight, shadowProject);
 
@@ -355,9 +378,6 @@ namespace RenderGL
 				mShadowMatrix = worldToLight * shadowProject * biasMatrix;
 
 				shadowProjectParam.shadowMatrix[i] = mShadowMatrix * corpMatrix;
-
-				glLoadMatrixf(worldToLight);
-
 				RenderContext context(lightView, *this);
 				scene.render( context );
 			}
@@ -378,15 +398,13 @@ namespace RenderGL
 			GL_BIND_LOCK_OBJECT(mShadowBuffer);
 
 			ViewportSaveScope vpScope;
-			glViewport(0, 0, ShadowTextureSize, ShadowTextureSize);
-			glEnable(GL_DEPTH_TEST);
+			RHISetViewport(0, 0, ShadowTextureSize, ShadowTextureSize);
+			RHISetDepthStencilState(TStaticDepthStencilState<>::GetRHI());
 			glClearDepth(1);
 			glClearColor(1, 1, 1, 1.0);
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 			lightView.setupTransform(worldToLight, shadowProject);
-			glLoadMatrixf(worldToLight);
-
 			RenderContext context(lightView, *this);
 			scene.render( context );
 
@@ -419,10 +437,10 @@ namespace RenderGL
 			shadowProjectParam.shadowTexture = mShadowMap;
 
 			ViewportSaveScope vpScope;
-			glViewport(0, 0, ShadowTextureSize, ShadowTextureSize);
+			RHISetViewport(0, 0, ShadowTextureSize, ShadowTextureSize);
 			mShadowBuffer.setDepth(*depthBuffer2);
 
-			glEnable(GL_DEPTH_TEST);
+			RHISetDepthStencilState(TStaticDepthStencilState<>::GetRHI());
 			for( int i = 0; i < 6; ++i )
 			{
 				//GPU_PROFILE("Face");
@@ -442,8 +460,6 @@ namespace RenderGL
 				{
 					//GPU_PROFILE("DrawMesh");
 					lightView.setupTransform(worldToLight, shadowProject);
-					glLoadMatrixf(worldToLight);
-
 					RenderContext context(lightView, *this);
 					scene.render( context );
 				}
@@ -597,7 +613,6 @@ namespace RenderGL
 
 	void DefferredShadingTech::renderBassPass(ViewInfo& view, SceneInterface& scene)
 	{
-		glEnable(GL_DEPTH_TEST);
 		mBassPassBuffer.setTexture(0, mSceneRenderTargets->getRenderFrameTexture());
 		GL_BIND_LOCK_OBJECT(mBassPassBuffer);
 		float const depthValue = 1.0;
@@ -605,7 +620,7 @@ namespace RenderGL
 			GPU_PROFILE("Clear Buffer");
 			mBassPassBuffer.clearBuffer(&Vector4(0, 0, 0, 1), &depthValue);
 		}
-
+		RHISetDepthStencilState(TStaticDepthStencilState<>::GetRHI());
 		RenderContext context(view, *this);
 		scene.render( context );
 	}
@@ -676,17 +691,10 @@ namespace RenderGL
 				glPopMatrix();
 			};
 
-			glEnable(GL_CULL_FACE);
-
-			glEnable(GL_DEPTH_TEST);
-			glDepthMask(GL_FALSE);
-
 			constexpr bool bWriteDepth = false;
 
-			if( 0 && boundMethod == LBM_GEMO_BOUND_SHAPE_WITH_STENCIL )
+			if( boundMethod == LBM_GEMO_BOUND_SHAPE_WITH_STENCIL )
 			{
-				glEnable(GL_STENCIL_TEST);
-
 				constexpr bool bEnableStencilTest = true;
 				mLightBuffer.bindDepthOnly();
 				glClearStencil(1);
@@ -696,21 +704,13 @@ namespace RenderGL
 				RHISetBlendState(TStaticBlendState< CWM_NONE >::GetRHI());
 				//if ( debugMode != DebugMode::eShowVolume )
 				{
-					
-					glCullFace(GL_BACK);
-
-#if 0
+					RHISetRasterizerState(TStaticRasterizerState< ECullMode::Back >::GetRHI());
 					RHISetDepthStencilState(
 						TStaticDepthStencilState<
 							bWriteDepth, ECompareFun::Greater,
 							bEnableStencilTest, ECompareFun::Always,
 							Stencil::eKeep, Stencil::eKeep, Stencil::eDecr, 0x0 
 						>::GetRHI(), 0x0);
-#else
-					glDepthFunc(GL_GREATER);
-					glStencilFunc(GL_ALWAYS, 0, 0);
-					glStencilOp(GL_KEEP, GL_KEEP, GL_DECR);
-#endif
 
 					mLightBuffer.bindDepthOnly();
 					DrawBoundShape(false);
@@ -721,62 +721,38 @@ namespace RenderGL
 				RHISetBlendState(TStaticBlendState< CWM_RGBA >::GetRHI());
 				if( debugMode == DebugMode::eShowVolume )
 				{
-#if 0
 					RHISetDepthStencilState(
 						TStaticDepthStencilState<
 							bWriteDepth, ECompareFun::Always,
 							bEnableStencilTest, ECompareFun::Equal,
 							Stencil::eKeep, Stencil::eKeep, Stencil::eKeep, 0x1
 						>::GetRHI(), 0x1);
-#else
-					glStencilFunc(GL_EQUAL, 1, 1);
-					glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
-					glDisable(GL_DEPTH_TEST);
-#endif
 				}
 				else
 				{
-#if 0
 					RHISetDepthStencilState(
 						TStaticDepthStencilState<
 							bWriteDepth, ECompareFun::GeraterEqual,
 							bEnableStencilTest, ECompareFun::Equal,
 							Stencil::eKeep, Stencil::eKeep, Stencil::eKeep, 0x1
 						>::GetRHI(), 0x1);
-#else
-
-					glStencilFunc(GL_EQUAL, 1, 1);
-					glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
-					glDepthFunc(GL_GEQUAL);
-#endif
 				}
 			}
 			else
 			{
 				if( debugMode == DebugMode::eShowVolume )
 				{
-#if 0
 					RHISetDepthStencilState(TStaticDepthStencilState<bWriteDepth, ECompareFun::Always >::GetRHI());
-#else
-					glDisable(GL_DEPTH_TEST);
-#endif
+
 				}
 				else
 				{
-#if 0
 					RHISetDepthStencilState(TStaticDepthStencilState<bWriteDepth, ECompareFun::GeraterEqual >::GetRHI());
-#else
-					glDepthFunc(GL_GEQUAL);
-#endif
 				}
 			}
 
-			//RHISetBlendState(TStaticBlendState< CWM_RGBA , Blend::eOne, Blend::eOne >::GetRHI());
-			glBlendFunc(GL_ONE, GL_ONE);
-			glEnable(GL_BLEND);
-			glCullFace(GL_FRONT);
-			glDepthFunc(GL_GEQUAL);
-
+			RHISetBlendState(TStaticBlendState< CWM_RGBA , Blend::eOne, Blend::eOne >::GetRHI());
+			RHISetRasterizerState(TStaticRasterizerState< ECullMode::Front >::GetRHI());
 			{
 				GL_BIND_LOCK_OBJECT(mLightBuffer);
 				GL_BIND_LOCK_OBJECT(lightShader);
@@ -787,23 +763,11 @@ namespace RenderGL
 				lightShader.setParam(SHADER_PARAM(BoundTransform), lightXForm);
 				DrawBoundShape(true);
 			}
-			glCullFace(GL_BACK);
-
-			glDepthFunc(GL_LESS);
-			glDisable(GL_BLEND);
-
-			if( debugMode == DebugMode::eShowVolume )
-				glEnable(GL_DEPTH_TEST);
-			if( boundMethod == LBM_GEMO_BOUND_SHAPE_WITH_STENCIL )
-			{
-				glDisable(GL_STENCIL_TEST);
-			}
-
-			glDepthMask(GL_TRUE);
+			RHISetRasterizerState(TStaticRasterizerState<>::GetRHI());
 		}
 		else
 		{
-			RHISetDepthStencilState( TStaticDepthStencilState<false, ECompareFun::Always >::GetRHI());
+			RHISetDepthStencilState(StaticDepthDisableState::GetRHI());
 			RHISetBlendState(TStaticBlendState< CWM_RGBA, Blend::eOne, Blend::eOne >::GetRHI());
 			{
 				GL_BIND_LOCK_OBJECT(mSceneRenderTargets->getFrameBuffer());
@@ -815,9 +779,9 @@ namespace RenderGL
 
 				//glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
 			}
-			RHISetBlendState(TStaticBlendState<>::GetRHI());
-			RHISetDepthStencilState(TStaticDepthStencilState<>::GetRHI());
+
 		}
+
 	}
 
 	void DefferredShadingTech::reload()
@@ -872,7 +836,7 @@ namespace RenderGL
 		drawTexture(0 * width + gapX, 0 * height + gapY, drawWidth, drawHeight, BufferA);
 		{
 			ViewportSaveScope vpScope;
-			glViewport(1 * width + gapX, 0 * height + gapY, drawWidth, drawHeight);
+			RHISetViewport(1 * width + gapX, 0 * height + gapY, drawWidth, drawHeight);
 			float colorBias[2] = { 0.5 , 0.5 };
 			ShaderHelper::Get().copyTextureBiasToBuffer(*textures[BufferB], colorBias);
 
@@ -884,7 +848,7 @@ namespace RenderGL
 		drawTexture(3 * width + gapX, 1 * height + gapY, drawWidth, drawHeight, BufferD, Vector4(0, 0, 1, 0));
 		{
 			ViewportSaveScope vpScope;
-			glViewport(3 * width + gapX, 0 * height + gapY, drawWidth, drawHeight);
+			RHISetViewport(3 * width + gapX, 0 * height + gapY, drawWidth, drawHeight);
 			float valueFactor[2] = { 255 , 0 };
 			ShaderHelper::Get().mapTextureColorToBuffer(*textures[BufferD], Vector4(0, 0, 0, 1), valueFactor);
 		}
@@ -899,7 +863,7 @@ namespace RenderGL
 	void GBufferParamData::drawTexture(int x, int y, int width, int height, int idxBuffer, Vector4 const& colorMask)
 	{
 		ViewportSaveScope vpScope;
-		glViewport(x, y, width, height);
+		RHISetViewport(x, y, width, height);
 		ShaderHelper::Get().copyTextureMaskToBuffer(*textures[idxBuffer], colorMask);
 	}
 
@@ -1037,8 +1001,7 @@ namespace RenderGL
 
 	void PostProcessSSAO::render(ViewInfo& view, SceneRenderTargets& sceneRenderTargets)
 	{
-		glDisable(GL_DEPTH_TEST);
-
+		RHISetDepthStencilState(StaticDepthDisableState::GetRHI());
 		{
 			GPU_PROFILE("SSAO-Generate");
 			mFrameBuffer.setTexture(0, *mSSAOTexture);
@@ -1068,9 +1031,8 @@ namespace RenderGL
 			GL_BIND_LOCK_OBJECT(mProgAmbient);
 			mProgAmbient->setParameters(sceneRenderTargets, *mSSAOTextureBlur);
 			DrawUtility::ScreenRectShader();
-			RHISetBlendState(TStaticBlendState<>::GetRHI());
+			
 		}
-		glEnable(GL_DEPTH_TEST);
 	}
 
 	void PostProcessSSAO::drawSSAOTexture(Vec2i const& pos, Vec2i const& size)
@@ -1103,7 +1065,7 @@ namespace RenderGL
 
 	void ShadowProjectParam::setupShader(ShaderProgram& program) const
 	{
-		program.setParam(SHADER_PARAM(ShadowParam), shadowParam.x, shadowParam.y);
+		program.setParam(SHADER_PARAM(ShadowParam), Vector2( shadowParam.x, shadowParam.y ));
 		switch( light->type )
 		{
 		case LightType::Spot:
@@ -1198,7 +1160,7 @@ namespace RenderGL
 			Vector4(0,0,0,1) , Vector4(0.5,0,0,1) , Vector4(0.25,0.5,0,1) ,
 		};
 		mMeshScreenTri.createBuffer(v, 3);
-		mMeshScreenTri.mType = PrimitiveType::eTriangleList;
+		mMeshScreenTri.mType = PrimitiveType::TriangleList;
 
 
 		{
@@ -1255,7 +1217,6 @@ namespace RenderGL
 
 	void OITTechnique::render(ViewInfo& view, SceneInterface& scnenRender, SceneRenderTargets* sceneRenderTargets)
 	{
-		return;
 
 		auto DrawFun = [this, &view, &scnenRender]()
 		{
@@ -1272,9 +1233,8 @@ namespace RenderGL
 			OrthoMatrix matProj(0, vpScope[2], 0, vpScope[3], -1, 1);
 			MatrixSaveScope matScope(matProj);
 
-			glDisable(GL_DEPTH_TEST);
+			RHISetDepthStencilState(StaticDepthDisableState::GetRHI());
 			DrawUtility::DrawTexture(*mColorStorageTexture, Vec2i(0, 0), Vec2i(200, 200));
-			glEnable(GL_DEPTH_TEST);
 			glMemoryBarrier(GL_ALL_BARRIER_BITS);
 
 		}
@@ -1308,15 +1268,15 @@ namespace RenderGL
 			mShaderBassPassTest.setParam(SHADER_PARAM(BaseColor), color[0]);
 
 			mShaderBassPassTest.setParam(SHADER_PARAM(WorldTransform), Matrix4::Identity());
-			mesh.draw(true);
+			mesh.drawShader();
 			glMemoryBarrier(GL_ALL_BARRIER_BITS);
 
 			mShaderBassPassTest.setParam(SHADER_PARAM(WorldTransform), Matrix4::Translate(Vector3(10,0,0)));
-			mesh.draw(true);
+			mesh.drawShader();
 			glMemoryBarrier(GL_ALL_BARRIER_BITS);
 
 			mShaderBassPassTest.setParam(SHADER_PARAM(WorldTransform), Matrix4::Translate(Vector3(-10, 0, 0)));
-			mesh.draw(true);
+			mesh.drawShader();
 			glMemoryBarrier(GL_ALL_BARRIER_BITS);
 			
 		};
@@ -1331,9 +1291,8 @@ namespace RenderGL
 			OrthoMatrix matProj(0, vpScope[2], 0, vpScope[3], -1, 1);
 			MatrixSaveScope matScope(matProj);
 
-			glDisable(GL_DEPTH_TEST);
+			RHISetDepthStencilState(StaticDepthDisableState::GetRHI());
 			DrawUtility::DrawTexture(*mColorStorageTexture, Vec2i(0, 0), Vec2i(200,200));
-			glEnable(GL_DEPTH_TEST);
 			glMemoryBarrier(GL_ALL_BARRIER_BITS);
 
 		}
@@ -1350,11 +1309,10 @@ namespace RenderGL
 
 	void OITTechnique::renderInternal(ViewInfo& view, std::function< void() > drawFuncion , SceneRenderTargets* sceneRenderTargets )
 	{
-
 		GPU_PROFILE("OIT");
 		
-		glDisable(GL_CULL_FACE);
-		glDepthMask(GL_FALSE);
+		RHISetRasterizerState(TStaticRasterizerState< ECullMode::None >::GetRHI());
+		constexpr bool bWriteDepth = false;
 
 		if ( 1 )
 		{
@@ -1374,7 +1332,7 @@ namespace RenderGL
 				{
 					GL_BIND_LOCK_OBJECT(mFrameBuffer);
 					ViewportSaveScope vpScope;
-					glViewport(0, 0, OIT_StorageSize, OIT_StorageSize);
+					RHISetViewport(0, 0, OIT_StorageSize, OIT_StorageSize);
 					glClearBufferfv(GL_COLOR, 0, clearValueA);
 					glClearBufferiv(GL_COLOR, 1, clearValueB);
 					//glClearBufferuiv(GL_COLOR, 2, clearValueC);
@@ -1385,20 +1343,25 @@ namespace RenderGL
 			glMemoryBarrier(GL_ALL_BARRIER_BITS);
 		}
 
-		glEnable(GL_DEPTH_TEST);
+		if( sceneRenderTargets )
+			sceneRenderTargets->getFrameBuffer().bind();
 
 		if( bUseBMA )
 		{
 			glClearStencil(0);
 			glClear(GL_STENCIL_BUFFER_BIT);
-			glEnable(GL_STENCIL_TEST);
-			glStencilFunc(GL_ALWAYS, 0, 0xff);
-			glStencilOp(GL_KEEP, GL_KEEP, GL_INCR);
+
+			RHISetDepthStencilState(
+				TStaticDepthStencilState< 
+					bWriteDepth , ECompareFun::Less , 
+					true , ECompareFun::Always , Stencil::eKeep , Stencil::eKeep , Stencil::eIncr , 0xff
+				>::GetRHI(), 0 );
+
 		}
-
-		if( sceneRenderTargets )
-			sceneRenderTargets->getFrameBuffer().bind();
-
+		else
+		{
+			RHISetDepthStencilState( TStaticDepthStencilState< bWriteDepth >::GetRHI());
+		}
 		if( 1 )
 		{
 			GPU_PROFILE("BasePass");
@@ -1412,13 +1375,11 @@ namespace RenderGL
 			drawFuncion();
 
 			mStorageUsageCounter.unbind();
-			RHISetBlendState(TStaticBlendState<>::GetRHI());
 			glFlush();
 			glMemoryBarrier(GL_ALL_BARRIER_BITS);
 
 		}
 
-		glDisable(GL_DEPTH_TEST);
 		//if(0 )
 		{
 			GPU_PROFILE("Resolve");
@@ -1434,44 +1395,44 @@ namespace RenderGL
 				for( int i = 0; i < NumBMALevel; ++i )
 				{
 					GPU_PROFILE_VA("BMA=%d", BMA_MaxPixelCounts[i]);
-					glStencilFunc(GL_LEQUAL, BMA_InternalValMin[i], 0xff);
-					glStencilOp(GL_KEEP, GL_ZERO, GL_ZERO);
+					RHISetDepthStencilState(
+						TStaticDepthStencilState< bWriteDepth, ECompareFun::Always ,
+							true , ECompareFun::LessEqual , Stencil::eKeep , Stencil::eZero , Stencil::eZero , 0xff 
+						>::GetRHI() , BMA_InternalValMin[i]);
+
 					BMAResolveProgram& shaderprogram = mShaderBMAResolves[i];
 					GL_BIND_LOCK_OBJECT(shaderprogram);
 					shaderprogram.setParameters(*mColorStorageTexture, *mNodeAndDepthStorageTexture, *mNodeHeadTexture);
-					mScreenMesh.draw(true);
+					mScreenMesh.drawShader();
 				}
 
 			}
 			else
 			{
+				RHISetDepthStencilState(TStaticDepthStencilState< bWriteDepth , ECompareFun::Always >::GetRHI());
+
 				BMAResolveProgram& shaderprogram = mShaderBMAResolves[0];
 				GL_BIND_LOCK_OBJECT(shaderprogram);
 				shaderprogram.setParameters(*mColorStorageTexture, *mNodeAndDepthStorageTexture, *mNodeHeadTexture);
-				mScreenMesh.draw(true);
+				mScreenMesh.drawShader();
 			}
 
-			RHISetBlendState(TStaticBlendState<>::GetRHI());
+			
 		}
 
 		if( sceneRenderTargets )
 			sceneRenderTargets->getFrameBuffer().unbind();
 
-		if( bUseBMA )
-		{
-			glDisable(GL_STENCIL_TEST);
-		}
-		glDepthMask( GL_TRUE );
-
-		glEnable(GL_DEPTH_TEST);
-		glEnable(GL_CULL_FACE);
+		RHISetBlendState(TStaticBlendState<>::GetRHI());
+		RHISetDepthStencilState(TStaticDepthStencilState<>::GetRHI());
+		RHISetRasterizerState(TStaticRasterizerState<>::GetRHI());
 	}
 
-	void OITTechnique::setupShader(ShaderProgram& shader)
+	void OITTechnique::setupShader(ShaderProgram& program)
 	{
-		shader.setRWTexture(SHADER_PARAM(ColorStorageRWTexture), *mColorStorageTexture, AO_WRITE_ONLY);
-		shader.setRWTexture(SHADER_PARAM(NodeAndDepthStorageRWTexture), *mNodeAndDepthStorageTexture, AO_READ_AND_WRITE);
-		shader.setRWTexture(SHADER_PARAM(NodeHeadRWTexture), *mNodeHeadTexture, AO_READ_AND_WRITE);
+		program.setRWTexture(SHADER_PARAM(ColorStorageRWTexture), *mColorStorageTexture, AO_WRITE_ONLY);
+		program.setRWTexture(SHADER_PARAM(NodeAndDepthStorageRWTexture), *mNodeAndDepthStorageTexture, AO_READ_AND_WRITE);
+		program.setRWTexture(SHADER_PARAM(NodeHeadRWTexture), *mNodeHeadTexture, AO_READ_AND_WRITE);
 	}
 
 	MaterialShaderProgram* OITTechnique::getMaterialShader(RenderContext& context, MaterialMaster& material, VertexFactory* vertexFactory)
@@ -1479,9 +1440,9 @@ namespace RenderGL
 		return material.getShader(RenderTechiqueUsage::OIT , vertexFactory);
 	}
 
-	void OITTechnique::setupMaterialShader(RenderContext& context, ShaderProgram& shader)
+	void OITTechnique::setupMaterialShader(RenderContext& context, ShaderProgram& program)
 	{
-		setupShader(shader);
+		setupShader(program);
 	}
 
 	void BMAResolveProgram::bindParameters()
@@ -1566,6 +1527,475 @@ namespace RenderGL
 		if( mParamFrameDepthTexture.isBound() )
 		{
 			program.setTexture(mParamFrameDepthTexture, sceneRenderTargets.getDepthTexture());
+		}
+	}
+
+	class DOFGenerateCoC : public GlobalShaderProgram
+	{
+		DECLARE_GLOBAL_SHADER(DOFGenerateCoC);
+
+
+	};
+
+	IMPLEMENT_GLOBAL_SHADER(DOFGenerateCoC);
+
+	class DOFBlurBaseProgram : public GlobalShaderProgram
+	{
+	public:
+		static Vector2 GetFliter(float x, float a, float b)
+		{
+			float x2 = x * x;
+			float e, c, s;
+			e = Math::Exp(a * x2);
+			c = Math::Cos(b * x2);
+			s = Math::Sin(b * x2);
+			return Vector2(e * c, e * s);
+		}
+
+		static int const SampleRaidusNum = 8;
+
+		static float GenerateFilterValues( Vector4 values[] , Vector2 scaleAndBias[2] )
+		{
+			float a[] = { -0.886528, -1.960518 };
+			float b[] = { 5.268909, 1.558213 };
+			float A[] = { 0.411259, 0.513282 };
+			float B[] = { -0.548794 , 4.561110 };
+
+
+			float min[2] = { Math::MaxFloat , Math::MaxFloat };
+			float max[2] = { Math::MinFloat , Math::MinFloat };
+			for( int x = -SampleRaidusNum; x <= SampleRaidusNum; ++x )
+			{
+				for( int c = 0; c < 2; ++c )
+				{
+					Vector2 f = GetFliter(float(x) / SampleRaidusNum, a[c], b[c]);
+					values[x + SampleRaidusNum][2 * c] = f.x;
+					values[x + SampleRaidusNum][2 * c + 1] = f.y;
+
+					max[c] = Math::Max(max[c], f.x);
+					max[c] = Math::Max(max[c], f.y);
+					min[c] = Math::Min(min[c], f.x);
+					min[c] = Math::Min(min[c], f.y);
+				}
+			}
+		
+			float factor = 0;
+
+			for( int c = 0; c < 2; ++c )
+			{
+				for( int x = -SampleRaidusNum; x <= SampleRaidusNum; ++x )
+				{
+					Vector4 vx = values[x + SampleRaidusNum];
+					
+					for( int y = -SampleRaidusNum; y <= SampleRaidusNum; ++y )
+					{
+						Vector4 vy = values[y + SampleRaidusNum];
+
+						Vector2 fx = Vector2(vx[2 * c], vx[2 * c + 1]);
+						Vector2 fy = Vector2(vy[2 * c], vy[2 * c + 1]);
+						factor += A[c] * (fx.x * fy.x - fx.y * fy.y) + B[c] * (fx.x * fy.y + fx.y * fy.x);
+					}
+				}
+			}
+			factor = 1.0 / Math::Sqrt(factor);
+			for( int c = 0; c < 2 ;++c)
+			{
+				max[c] *= factor;
+				min[c] *= factor;
+				scaleAndBias[c].x = (max[c] - min[c]);
+				scaleAndBias[c].y = min[c];
+			}
+
+			for( int x = -SampleRaidusNum; x <= SampleRaidusNum; ++x )
+			{
+				values[x + SampleRaidusNum] *= factor;
+			}
+
+			return factor;
+		}
+
+		static void SetupShaderCompileOption(ShaderCompileOption& option)
+		{
+			struct ParamConstructor
+			{
+				ParamConstructor()
+				{
+					Vector4 values[2 * SampleRaidusNum + 1];
+					Vector2 scaleAndBias[2];
+					factor = GenerateFilterValues(values , scaleAndBias);
+
+					code += "const float4 ";
+					code += SHADER_PARAM(FliterWidgets);
+					code += "[]= {";
+
+					FixString<256> str;
+					for( int i = 0; i < 2 * SampleRaidusNum + 1; ++i )
+					{
+						if( i != 0 )
+							code += ",";
+						
+						str.format("float4( %f , %f , %f , %f )" , values[i].x , values[i].y , values[i].z , values[i].w);
+						code += str;
+					}
+					code += "};\n";
+
+					str.format("const float4 %s = float4( %f , %f , %f , %f );", SHADER_PARAM(FliterScaleBias) , scaleAndBias[0].x, scaleAndBias[0].y, scaleAndBias[1].x, scaleAndBias[1].y);
+					code += str;
+				}
+				float factor;
+				std::string code;
+			};
+			static ParamConstructor sParamConstructor;
+			option.addDefine(SHADER_PARAM( SAMPLE_RADIUS_NUM ), SampleRaidusNum);
+			option.addDefine(SHADER_PARAM( FLITER_NFACTOR ), sParamConstructor.factor);
+			option.addInclude("Common");
+			option.addCode(sParamConstructor.code.c_str());
+		}
+
+		static char const* GetShaderFileName()
+		{
+			return "Shader/DOF";
+		}
+
+	};
+
+
+
+	class DOFBlurVProgram : public DOFBlurBaseProgram
+	{
+
+		DECLARE_GLOBAL_SHADER(DOFBlurVProgram);
+		static void SetupShaderCompileOption(ShaderCompileOption& option)
+		{
+			DOFBlurBaseProgram::SetupShaderCompileOption(option);
+			option.addDefine(SHADER_PARAM( DOF_PASS_STEP ), 1);
+		}
+
+		static ShaderEntryInfo const* GetShaderEntries()
+		{
+			static ShaderEntryInfo const entries[] =
+			{
+				{ Shader::eVertex , SHADER_ENTRY(ScreenVS) },
+				{ Shader::ePixel  , SHADER_ENTRY(MainBlurV) },
+				{ Shader::eEmpty  , nullptr },
+			};
+			return entries;
+		}
+	};
+
+
+	class DOFBlurHAndCombineProgram : public DOFBlurBaseProgram
+	{
+		DECLARE_GLOBAL_SHADER(DOFBlurHAndCombineProgram);
+		static void SetupShaderCompileOption(ShaderCompileOption& option)
+		{
+			DOFBlurBaseProgram::SetupShaderCompileOption(option);
+			option.addDefine(SHADER_PARAM(DOF_PASS_STEP), 2);
+		}
+
+		static ShaderEntryInfo const* GetShaderEntries()
+		{
+			static ShaderEntryInfo const entries[] =
+			{
+				{ Shader::eVertex , SHADER_ENTRY(ScreenVS) },
+				{ Shader::ePixel  , SHADER_ENTRY(MainBlurHAndCombine) },
+				{ Shader::eEmpty  , nullptr },
+			};
+			return entries;
+		}
+		void bindParameters()
+		{
+			mParamTextureR.bind(*this, SHADER_PARAM(TextureR));
+			mParamTextureG.bind(*this, SHADER_PARAM(TextureG));
+			mParamTextureB.bind(*this, SHADER_PARAM(TextureB));
+		}
+
+		void setParameters(RHITexture2D& textureR, RHITexture2D& textureG, RHITexture2D& textureB)
+		{
+			auto& sampler = TStaticSamplerState< Sampler::eBilinear, Sampler::eClamp, Sampler::eClamp, Sampler::eClamp >::GetRHI();
+			if ( mParamTextureR.isBound() )
+			setTexture(mParamTextureR, textureR, sampler);
+			if( mParamTextureG.isBound() )
+			setTexture(mParamTextureG, textureG, sampler);
+			if( mParamTextureB.isBound() )
+			setTexture(mParamTextureB, textureB, sampler);
+		}
+
+		ShaderParameter mParamTextureR;
+		ShaderParameter mParamTextureG;
+		ShaderParameter mParamTextureB;
+	};
+
+	IMPLEMENT_GLOBAL_SHADER(DOFBlurVProgram);
+	IMPLEMENT_GLOBAL_SHADER(DOFBlurHAndCombineProgram);
+
+	bool PostProcessDOF::init(Vec2i const& size)
+	{
+#if 0
+		mProgGenCoc = ShaderManager::Get().getGlobalShaderT< DOFGenerateCoC >(true);
+		if( mProgGenCoc == nullptr )
+			return false;
+#endif
+
+		mProgBlurV = ShaderManager::Get().getGlobalShaderT< DOFBlurVProgram >(true);
+		if( mProgBlurV == nullptr )
+			return false;
+		mProgBlurHAndCombine = ShaderManager::Get().getGlobalShaderT< DOFBlurHAndCombineProgram >(true);
+		if( mProgBlurHAndCombine == nullptr )
+			return false;
+
+		mTextureNear = RHICreateTexture2D(Texture::eRGBA32F, size.x, size.y);
+		if( !mTextureNear.isValid() )
+			return false;
+		mTextureFar = RHICreateTexture2D(Texture::eRGBA32F, size.x, size.y);
+		if( !mTextureFar.isValid() )
+			return false;
+
+
+		if( !mFrameBufferGen.create() )
+			return false;
+
+		mFrameBufferGen.addTexture(*mTextureNear);
+		mFrameBufferGen.addTexture(*mTextureFar);
+
+		mTextureBlurR = RHICreateTexture2D(Texture::eRGBA32F, size.x, size.y);
+		if( !mTextureBlurR.isValid() )
+			return false;
+		mTextureBlurG = RHICreateTexture2D(Texture::eRGBA32F, size.x, size.y);
+		if( !mTextureBlurG.isValid() )
+			return false;
+		mTextureBlurB = RHICreateTexture2D(Texture::eRGBA32F, size.x, size.y);
+		if( !mTextureBlurB.isValid() )
+			return false;
+
+		if( !mFrameBufferBlur.create() )
+			return false;
+
+		mFrameBufferBlur.addTexture(*mTextureBlurR);
+		mFrameBufferBlur.addTexture(*mTextureBlurG);
+		mFrameBufferBlur.addTexture(*mTextureBlurB);
+	}
+
+
+	void PostProcessDOF::render(ViewInfo& view, SceneRenderTargets& sceneRenderTargets)
+	{
+
+		auto& sampler = TStaticSamplerState< Sampler::eBilinear, Sampler::eClamp, Sampler::eClamp , Sampler::eClamp >::GetRHI();
+		ViewportSaveScope vpScope;
+
+		{
+			GL_BIND_LOCK_OBJECT(mFrameBufferBlur);
+			RHITexture2D& frameTexture = sceneRenderTargets.getRenderFrameTexture();
+
+			RHISetViewport(0, 0, frameTexture.getSizeX(), frameTexture.getSizeY());
+			RHISetBlendState(TStaticBlendState<>::GetRHI());
+			RHISetDepthStencilState(StaticDepthDisableState::GetRHI());
+
+			GL_BIND_LOCK_OBJECT(*mProgBlurV);
+			mProgBlurV->setTexture(SHADER_PARAM(Texture), frameTexture , sampler);
+
+			DrawUtility::ScreenRectShader();
+		}
+
+		{
+			//sceneRenderTargets.swapFrameBufferTexture();
+			GL_BIND_LOCK_OBJECT(sceneRenderTargets.getFrameBuffer());
+
+			RHITexture2D& frameTexture = sceneRenderTargets.getPrevRenderFrameTexture();
+			RHISetViewport(0, 0, frameTexture.getSizeX(), frameTexture.getSizeY());
+			RHISetBlendState(TStaticBlendState<>::GetRHI());
+			RHISetDepthStencilState(StaticDepthDisableState::GetRHI());
+
+			GL_BIND_LOCK_OBJECT(*mProgBlurHAndCombine);
+			mProgBlurHAndCombine->setParameters(*mTextureBlurR, *mTextureBlurG, *mTextureBlurB);
+			//mProgBlurHAndCombine->setTexture(SHADER_PARAM(Texture), frameTexture, sampler);
+			DrawUtility::ScreenRectShader();
+		}	
+	}
+
+	class ClearBufferProgram : public GlobalShaderProgram
+	{
+		DECLARE_GLOBAL_SHADER(ClearBufferProgram);
+
+		static int constexpr SizeX = 8;
+		static int constexpr SizeY = 8;
+		static int constexpr SizeZ = 8;
+
+
+		void bindParameters()
+		{
+			mParamBufferRW.bind(*this, SHADER_PARAM(TargetRWTexture));
+			mParamClearValue.bind(*this, SHADER_PARAM(ClearValue));
+		}
+
+		void setParameters(RHITexture3D& Buffer , Vector4 const& clearValue)
+		{
+			setRWTexture(mParamBufferRW, Buffer, AO_WRITE_ONLY);
+			setParam(mParamClearValue, clearValue);
+		}
+		
+		void clearTexture(RHITexture3D& buffer , Vector4 const& clearValue)
+		{
+			int nx = (buffer.getSizeX() + SizeX - 1) / SizeX;
+			int ny = (buffer.getSizeY() + SizeY - 1) / SizeY;
+			int nz = (buffer.getSizeZ() + SizeZ - 1) / SizeZ;
+			GL_BIND_LOCK_OBJECT(*this)
+			setParameters(buffer, clearValue);
+			glDispatchCompute(nx, ny, nz);
+		}
+
+		static void SetupShaderCompileOption(ShaderCompileOption& option)
+		{
+			option.addDefine(SHADER_PARAM(SIZE_X), SizeX);
+			option.addDefine(SHADER_PARAM(SIZE_Y), SizeY);
+			option.addDefine(SHADER_PARAM(SIZE_Z), SizeZ);
+		}
+		static char const* GetShaderFileName()
+		{
+			return "Shader/BufferUtility";
+		}
+		static ShaderEntryInfo const* GetShaderEntries()
+		{
+			static ShaderEntryInfo entries[] =
+			{
+				{ Shader::eCompute , SHADER_ENTRY(BufferClearCS) },
+				{ Shader::eEmpty , nullptr },
+			};
+			return entries;
+		}
+
+		ShaderParameter mParamBufferRW;
+		ShaderParameter mParamClearValue;
+	};
+	struct VolumetricLightingParameter
+	{
+		RHITexture3D*     volumeBuffer[2];
+		RHITexture3D*     scatteringBuffer[2];
+		RHIUniformBuffer* lightBuffer;
+		int               numLights;
+
+
+	};
+	class LightScatteringProgram : public GlobalShaderProgram
+	{
+		DECLARE_GLOBAL_SHADER(LightScatteringProgram);
+
+		static int constexpr GroupSizeX = 8;
+		static int constexpr GroupSizeY = 8;
+
+		void bindParameters()
+		{
+			mParamVolumeBufferA.bind(*this, SHADER_PARAM(VolumeBufferA));
+			mParamVolumeBufferB.bind(*this, SHADER_PARAM(VolumeBufferB));
+			mParamScatteringRWBuffer.bind(*this, SHADER_PARAM(ScatteringRWBuffer));
+			mParamTitledLightNum.bind(*this, SHADER_PARAM(TitledLightNum));
+		}
+
+		void setParameters(ViewInfo& view , VolumetricLightingParameter& parameter )
+		{
+			setTexture(mParamVolumeBufferA, *parameter.volumeBuffer[0]);
+			setTexture(mParamVolumeBufferB, *parameter.volumeBuffer[1]);
+			setRWTexture(mParamScatteringRWBuffer, *parameter.scatteringBuffer[0], AO_WRITE_ONLY);
+			setUniformBufferT<TitledLightInfo>(*parameter.lightBuffer);
+			view.setupShader(*this);
+			setParam(mParamTitledLightNum, parameter.numLights);
+		}
+
+		static void SetupShaderCompileOption(ShaderCompileOption& option)
+		{
+			option.addDefine(SHADER_PARAM(GROUP_SIZE_X), GroupSizeX);
+			option.addDefine(SHADER_PARAM(GROUP_SIZE_Y), GroupSizeY);
+		}
+		static char const* GetShaderFileName()
+		{
+			return "Shader/VolumetricLighting";
+		}
+		static ShaderEntryInfo const* GetShaderEntries()
+		{
+			static ShaderEntryInfo entries[] =
+			{
+				{ Shader::eCompute , SHADER_ENTRY(LightScatteringCS) },
+				{ Shader::eEmpty , nullptr },
+			};
+			return entries;
+		}
+
+		ShaderParameter mParamVolumeBufferA;
+		ShaderParameter mParamVolumeBufferB;
+		ShaderParameter mParamScatteringRWBuffer;
+		ShaderParameter mParamTitledLightNum;
+	};
+
+	IMPLEMENT_GLOBAL_SHADER(ClearBufferProgram)
+	IMPLEMENT_GLOBAL_SHADER(LightScatteringProgram)
+
+	bool VolumetricLightingTech::init(Vec2i const& screenSize)
+	{
+		mProgClearBuffer = ShaderManager::Get().getGlobalShaderT< ClearBufferProgram >(true);
+		if( mProgClearBuffer == nullptr )
+			return false;
+		mProgLightScattering = ShaderManager::Get().getGlobalShaderT< LightScatteringProgram >(true);
+		if( mProgLightScattering == nullptr )
+			return false;
+
+
+		if( !setupBuffer(screenSize, 10, 32) )
+			return false;
+		return true;
+	}
+
+
+	bool VolumetricLightingTech::setupBuffer(Vec2i const& screenSize, int sizeFactor, int depthSlices)
+	{
+		int nx = (screenSize.x + sizeFactor - 1) / sizeFactor;
+		int ny = (screenSize.y + sizeFactor - 1) / sizeFactor;
+
+		mVolumeBufferA = RHICreateTexture3D(Texture::eRGBA16F, nx, ny, depthSlices);
+		mVolumeBufferB = RHICreateTexture3D(Texture::eRGBA16F, nx, ny, depthSlices);
+		mScatteringBuffer = RHICreateTexture3D(Texture::eRGBA16F, nx, ny, depthSlices);
+		mTiledLightBuffer = RHICreateUniformBuffer(sizeof(TitledLightInfo) * MaxTiledLightNum);
+
+		return mVolumeBufferA.isValid() && mVolumeBufferB.isValid() && mScatteringBuffer.isValid() && mTiledLightBuffer.isValid();
+	}
+
+	void VolumetricLightingTech::render(ViewInfo& view, std::vector< LightInfo > const& lights)
+	{
+		{
+			GPU_PROFILE("ClearBuffer");
+			mProgClearBuffer->clearTexture(*mVolumeBufferA, Vector4(0, 0, 0, 0));
+			mProgClearBuffer->clearTexture(*mVolumeBufferB, Vector4(0, 0, 0, 0));
+			mProgClearBuffer->clearTexture(*mScatteringBuffer, Vector4(0, 0, 0, 0));
+		}
+
+		TitledLightInfo* pInfo = (TitledLightInfo*)mTiledLightBuffer->lock(ELockAccess::WriteOnly, 0, sizeof(TitledLightInfo) * lights.size());
+		for( auto const& light : lights )
+		{
+			pInfo->pos = light.pos;
+			pInfo->type = (int)light.type;
+			pInfo->color = light.color;
+			pInfo->intensity = light.intensity;
+			pInfo->dir = light.dir;
+			pInfo->radius = light.radius;
+			Vector3 spotParam;
+			float angleInner = Math::Min(light.spotAngle.x, light.spotAngle.y);
+			spotParam.x = Math::Cos(Math::Deg2Rad(Math::Min<float>(89.9, angleInner)));
+			spotParam.y = Math::Cos(Math::Deg2Rad(Math::Min<float>(89.9, light.spotAngle.y)));
+			pInfo->param = Vector4(spotParam.x,spotParam.y, light.bCastShadow ? 1.0 : 0.0 , 0.0);
+			++pInfo;
+		}
+		mTiledLightBuffer->unlock();
+
+		VolumetricLightingParameter parameter;
+		parameter.volumeBuffer[0] = mVolumeBufferA;
+		parameter.volumeBuffer[1] = mVolumeBufferB;
+		parameter.scatteringBuffer[0] = mScatteringBuffer;
+		parameter.numLights = lights.size();
+
+
+		{
+			GPU_PROFILE("LightScattering");
+			GL_BIND_LOCK_OBJECT(*mProgLightScattering);
+			mProgLightScattering->setParameters(view , parameter);
 		}
 	}
 

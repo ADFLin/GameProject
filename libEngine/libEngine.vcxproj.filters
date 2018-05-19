@@ -262,6 +262,9 @@
     <ClCompile Include="Core\Color.cpp">
       <Filter>Core</Filter>
     </ClCompile>
+    <ClCompile Include="CRSpline.cpp">
+      <Filter>Math</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ConsoleSystem.h">

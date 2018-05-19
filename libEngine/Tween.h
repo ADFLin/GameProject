@@ -73,7 +73,7 @@ namespace Tween
 			Access()( mData  , FunParam::operator()< Fun >( t , mFrom , mDiff , durtion ) );
 		}
 
-		typedef typename Meta::Select< BE_REF , DataType& , DataType >::ResultType HoldType;
+		typedef typename Meta::Select< BE_REF , DataType& , DataType >::Type HoldType;
 		HoldType  mData;
 		ValueType mFrom;
 		ValueType mDiff;

@@ -33,11 +33,11 @@ namespace RenderGL
 
 		bool loadFile(char const* path, int numMipLevel = 0);
 
-		RHITexture2D* getRHI() 
+		RHITexture2D& getRHI() 
 		{
 			if ( mRHI )
-				return mRHI.get();
-			return GDefaultMaterialTexture2D;
+				return *mRHI.get();
+			return *GDefaultMaterialTexture2D;
 		}
 		RHITexture2DRef mRHI;
 	};

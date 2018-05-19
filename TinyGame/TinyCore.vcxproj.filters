@@ -92,9 +92,6 @@
     <ClInclude Include="RenderGL\DrawUtility.h">
       <Filter>RenderGL</Filter>
     </ClInclude>
-    <ClInclude Include="RenderGL\GLUtility.h">
-      <Filter>RenderGL</Filter>
-    </ClInclude>
     <ClInclude Include="RenderGL\GpuProfiler.h">
       <Filter>RenderGL</Filter>
     </ClInclude>
@@ -135,6 +132,12 @@
       <Filter>RenderGL</Filter>
     </ClInclude>
     <ClInclude Include="RenderGL\BaseType.h">
+      <Filter>RenderGL</Filter>
+    </ClInclude>
+    <ClInclude Include="RenderGL\RHIGraphics2D.h">
+      <Filter>RenderGL</Filter>
+    </ClInclude>
+    <ClInclude Include="RenderGL\MeshUtility.h">
       <Filter>RenderGL</Filter>
     </ClInclude>
   </ItemGroup>
@@ -187,9 +190,6 @@
     <ClCompile Include="RenderGL\DrawUtility.cpp">
       <Filter>RenderGL</Filter>
     </ClCompile>
-    <ClCompile Include="RenderGL\GLUtility.cpp">
-      <Filter>RenderGL</Filter>
-    </ClCompile>
     <ClCompile Include="RenderGL\GpuProfiler.cpp">
       <Filter>RenderGL</Filter>
     </ClCompile>
@@ -230,6 +230,12 @@
       <Filter>RenderGL</Filter>
     </ClCompile>
     <ClCompile Include="RenderGL\ShaderCore.cpp">
+      <Filter>RenderGL</Filter>
+    </ClCompile>
+    <ClCompile Include="RenderGL\RHIGraphics2D.cpp">
+      <Filter>RenderGL</Filter>
+    </ClCompile>
+    <ClCompile Include="RenderGL\MeshUtility.cpp">
       <Filter>RenderGL</Filter>
     </ClCompile>
   </ItemGroup>

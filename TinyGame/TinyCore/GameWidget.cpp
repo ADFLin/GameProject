@@ -75,6 +75,7 @@ void WidgetRenderer::drawPanel( IGraphics2D& g , Vec2i const& pos , Vec2i const&
 
 void WidgetRenderer::drawPanel2( IGraphics2D& g , Vec2i const& pos , Vec2i const& size  , Color3ub const& color  )
 {
+
 	int border = 2;
 	RenderUtility::SetPen( g , Color::eBlack );
 	RenderUtility::SetBrush( g , Color::eWhite );

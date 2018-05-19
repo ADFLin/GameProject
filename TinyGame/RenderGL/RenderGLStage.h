@@ -17,7 +17,7 @@
 
 #include "GLCommon.h"
 #include "ShaderCore.h"
-#include "GLUtility.h"
+#include "MeshUtility.h"
 #include "DrawUtility.h"
 #include "GpuProfiler.h"
 
@@ -104,7 +104,7 @@ namespace RenderGL
 		Vector3 frameMoveDir;
 		Vector3 vel;
 		//Vector3 acc;
-		Camera* target;
+		SimpleCamera* target;
 	};
 
 	//
@@ -436,6 +436,83 @@ namespace RenderGL
 		}
 	};
 
+	class InstancedMesh
+	{
+	public:
+		Mesh* mesh;
+
+		int addInstance(Vector3 const& pos, Vector3 const& scale, Quaternion const& rotation , Vector4 const& param )
+		{
+			Matrix4 xform= Matrix4::Scale(scale) * Matrix4::Rotate(rotation) * Matrix4::Translate( pos );
+			mInstanceTransforms.push_back(xform);
+			mInstanceParams.push_back(param);
+			bBufferValid = false;
+		}
+
+		bool UpdateInstanceBuffer()
+		{
+			if( !mInstancedBuffer.isValid() )
+			{
+				mInstancedBuffer = RHICreateVertexBuffer();
+				if( !mInstancedBuffer.isValid() )
+				{
+					LogMsg("Can't create vertex buffer!!");
+					return false;
+				}
+			}
+			int newBufferSize = sizeof(Vector4) * 4 * mInstanceTransforms.size();
+			if( mInstancedBuffer->mBufferSize < newBufferSize )
+			{
+				mInstancedBuffer->resetData(sizeof(Vector4) * 4, mInstanceTransforms.size(), nullptr, Buffer::eDynamic);
+			}
+			Vector4* ptr = (Vector4*)mInstancedBuffer->lock(ELockAccess::WriteOnly);
+			if( ptr == nullptr )
+			{
+				return false;
+			}
+
+			for( int i = 0; i < mInstanceTransforms.size(); ++i )
+			{
+				ptr[0] = mInstanceTransforms[i].row(0);
+				ptr[0].w = mInstanceParams[i].x;
+				ptr[1] = mInstanceTransforms[i].row(1);
+				ptr[1].w = mInstanceParams[i].y;
+				ptr[2] = mInstanceTransforms[i].row(2);
+				ptr[2].w = mInstanceParams[i].z;
+				ptr[3] = mInstanceTransforms[i].row(3);
+				ptr[3].w = mInstanceParams[i].w;
+			}
+			mInstancedBuffer->unlock();
+
+			return true;
+		}
+
+		void draw()
+		{
+			if( !bBufferValid )
+			{
+				if( UpdateInstanceBuffer() )
+				{
+					bBufferValid = true;
+				}
+				else
+				{
+					return;
+				}
+			}
+			mesh->bindVAO();
+
+
+			mesh->unbindVAO();
+		}
+
+		void setupShader(ShaderProgram& program);
+		std::vector< Matrix4 > mInstanceTransforms;
+		std::vector< Vector4 > mInstanceParams;
+		RHIVertexBufferRef mInstancedBuffer;
+		bool bBufferValid = false;
+	};
+
 
 	class EnvTech
 	{
@@ -476,11 +553,10 @@ namespace RenderGL
 
 		void render(ViewInfo& view, SceneInterface& scene)
 		{
-			normalizePlane(waterPlane);
-			int vp[4];
-			glGetIntegerv(GL_VIEWPORT, vp);
+			NormalizePlane(waterPlane);
 
-			glViewport(0, 0, MapSize, MapSize);
+			ViewportSaveScope vpScope;
+			RHISetViewport(0, 0, MapSize, MapSize);
 			glPushMatrix();
 			ReflectMatrix matReflect(waterPlane.xyz(), waterPlane.w);
 			glMultMatrixf(matReflect);
@@ -495,7 +571,6 @@ namespace RenderGL
 
 			glDisable(GL_CLIP_PLANE0);
 			glPopMatrix();
-			glViewport(vp[0], vp[1], vp[2], vp[3]);
 		}
 
 		Vector4      waterPlane;
@@ -566,14 +641,14 @@ namespace RenderGL
 
 		void onRender( float dFrame );
 
-		void renderTest0( ViewInfo& view );
-		void renderTest1( ViewInfo& view );
+		void render_SpherePlane( ViewInfo& view );
+		void render_ParallaxMapping( ViewInfo& view );
 		void renderTest2( ViewInfo& view );
-		void renderTest3( ViewInfo& view );
-		void renderTest4( ViewInfo& view );
-		void renderTest5( ViewInfo& view );
-		void renderTest6( ViewInfo& view );
-		void renderTerrain( ViewInfo& view );
+		void render_RaycastTest( ViewInfo& view );
+		void render_DeferredLighting( ViewInfo& view );
+		void render_Sprite( ViewInfo& view );
+		void render_OIT( ViewInfo& view );
+		void render_Terrain( ViewInfo& view );
 
 		void renderScene(RenderContext& param);
 
@@ -715,7 +790,7 @@ namespace RenderGL
 		CycleTrack mTracks[4];
 
 		Vector3 mPos;
-		RenderGL::Camera  mCamStorage[2];
+		RenderGL::SimpleCamera  mCamStorage[2];
 		CameraMove  mCameraMove;
 		ViewFrustum mViewFrustum;
 
@@ -788,13 +863,15 @@ namespace RenderGL
 
 		bool  mLineMode;
 
-		SceneRenderTargets   mSceneRenderTargets;
+		SceneRenderTargets    mSceneRenderTargets;
 		
-		DefferredShadingTech mDefferredShadingTech;
-		ShadowDepthTech      mShadowTech;
-		OITTechnique          mOITTech;
+		DefferredShadingTech   mTechDefferredShading;
+		ShadowDepthTech        mTechShadow;
+		OITTechnique           mTechOIT;
+		VolumetricLightingTech mTechVolumetricLighing;
 
-		PostProcessSSAO      mSSAO;
+		PostProcessSSAO        mSSAO;
+		PostProcessDOF         mDOF;
 
 		bool   mbShowBuffer;
 

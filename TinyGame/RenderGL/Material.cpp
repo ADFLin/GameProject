@@ -75,8 +75,7 @@ namespace RenderGL
 			case ParamType::eTexture2D:
 				{
 					Texture2D* texture = *reinterpret_cast<Texture2D**>(&mParamDataStorage[param.offset]);
-					RHITexture2D* textureRHI = texture->getRHI() ? texture->getRHI() : GDefaultMaterialTexture2D;
-					shader.setTexture(param.name, *textureRHI);
+					shader.setTexture(param.name, texture->getRHI());
 				}
 				break;
 			case ParamType::eMatrix4:
@@ -194,7 +193,7 @@ namespace RenderGL
 	{
 		std::string path("Shader/Material/");
 		path += name;
-		path += ".glsl";
+		path += SHADER_FILE_SUBNAME;
 		return path;
 	}
 

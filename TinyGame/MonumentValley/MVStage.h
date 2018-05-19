@@ -126,7 +126,7 @@ namespace MV
 
 	protected:
 
-		RenderGL::Camera mCamera;
+		RenderGL::SimpleCamera mCamera;
 		bool  bCameraView;
 
 		////////////////////////

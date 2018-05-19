@@ -179,6 +179,7 @@
     <ClCompile Include="Core\Color.cpp" />
     <ClCompile Include="Core\MD5.cpp" />
     <ClCompile Include="CPreprocessor.cpp" />
+    <ClCompile Include="CRSpline.cpp" />
     <ClCompile Include="FlowSystem.cpp" />
     <ClCompile Include="LogSystem.cpp" />
     <ClCompile Include="FileSystem.cpp" />

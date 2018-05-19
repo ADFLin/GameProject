@@ -2,6 +2,10 @@
 
 #include "Common.glsl"
 
+#define LIGHTTYPE_SPOT 0
+#define LIGHTTYPE_POINT 1
+#define LIGHTTYPE_DIRECTIONAL 2
+
 float CalcRaidalAttenuation( float lightDist , float lightRadiusInv )
 {
 	float falloff = Square(saturate(1.0 - Square(lightDist * lightRadiusInv)));
@@ -45,12 +49,6 @@ float Vis_SmithJointApprox(float Roughness, float NoV, float NoL)
 	float Vis_SmithL = NoV * (NoL * (1.0 - a) + a);
 	// Note: will generate NaNs with Roughness = 0.  MinRoughness is used to prevent this
 	return 0.5 * rcp(Vis_SmithV + Vis_SmithL);
-}
-
-float Pow5(float x)
-{
-	float xx = x*x;
-	return xx * xx * x;
 }
 
 // [Schlick 1994, "An Inexpensive BRDF Model for Physically-Based Rendering"]

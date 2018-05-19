@@ -9,18 +9,17 @@
 
 #define LEELA_NET_DIR "networks/"
 
-#define USE_MODIFY_LEELA_PROGRAM 1
-
 namespace Go
 {
 	int constexpr LeelaGoSize = 19;
+	extern char const* ELFWeight;
 
 	namespace LeelaGameParam
 	{
 		enum
 		{
 			eJobMode,
-			eLastNetWeight,
+			eNetWeight,
 			eMatchChallengerColor,
 			eWinRate,
 
@@ -161,6 +160,7 @@ namespace Go
 
 		bool bGTPMode = true;
 
+		bool bUseModifyVersion = false;
 		static LeelaAISetting GetDefalut();
 
 		std::string toString() const
@@ -225,8 +225,7 @@ namespace Go
 
 		bool buildLearningGame();
 		bool buildPlayGame(LeelaAISetting const& setting);
-		bool buildAnalysisGame();
-
+		bool buildAnalysisGame(bool bUseELF);
 		void startPonder(int color);
 		void stopPonder();
 

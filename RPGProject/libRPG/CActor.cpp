@@ -328,11 +328,11 @@ void CActor::onAnimationFinish( AnimationType finishPose )
 	case ANIM_DYING :
 		if ( ( getStateBit() & AS_DIE ) == 0 )
 		{
-			LogDevMsgF( 5 , "Dying" );
+			LogDevMsg( 5 , "Dying" );
 			addStateBit( AS_DIE );
 			onDead();
 		}
-		else LogDevMsgF( 5 , "Double Dying" );
+		else LogDevMsg( 5 , "Double Dying" );
 		break;
 	}
 }
@@ -423,7 +423,7 @@ bool CActor::useItem( unsigned itemID )
 
 	if ( !item )
 	{
-		LogDevMsgF( 1 , "Use unknown ItemID = %d" , itemID );
+		LogDevMsg( 1 , "Use unknown ItemID = %d" , itemID );
 		return false;
 	}
 
@@ -443,7 +443,7 @@ bool CActor::useItem( char const* itemName )
 	unsigned itemID = UG_GetItemID( itemName );
 	if ( itemID == ITEM_ERROR_ID  )
 	{
-		LogDevMsgF( 1 , "use unknown Item = %s" , itemName );
+		LogDevMsg( 1 , "use unknown Item = %s" , itemName );
 		return false;
 	}
 	return useItem( itemID );
@@ -474,7 +474,7 @@ bool CActor::equip( char const* itemName )
 	unsigned itemID = UG_GetItemID( itemName );
 	if ( itemID == ITEM_ERROR_ID  )
 	{
-		LogDevMsgF( 1 , "equip unknown Item = %s" , itemName );
+		LogDevMsg( 1 , "equip unknown Item = %s" , itemName );
 		return false;
 	}
 
@@ -487,7 +487,7 @@ bool CActor::equip( unsigned itemID )
 
 	if ( !equipItem )
 	{
-		LogDevMsgF( 1 , "equip unknown ItemID = %d" , itemID );
+		LogDevMsg( 1 , "equip unknown ItemID = %d" , itemID );
 		return false;
 	}
 
@@ -742,7 +742,7 @@ void CActor::castSkill( char const* name )
 	}
 	else
 	{
-		LogDevMsgF( 1 ,"cant find skill: %s" , name );
+		LogDevMsg( 1 ,"cant find skill: %s" , name );
 	}
 }
 

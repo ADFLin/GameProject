@@ -201,7 +201,6 @@
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="ConsoleFrame.h" />
     <ClInclude Include="GameShare.h" />
     <ClInclude Include="DrawEngine.h" />
     <ClInclude Include="GameRoomUI.h" />

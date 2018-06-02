@@ -709,8 +709,6 @@ namespace Go
 			glMatrixMode(GL_MODELVIEW);
 			glLoadIdentity();
 
-
-
 			Vector3 colors[2] = { Vector3(1,0,0) , Vector3(0,1,0) };
 			float alpha[2] = { 0.4 , 0.4 };
 
@@ -763,15 +761,28 @@ namespace Go
 				TRenderRT< RTVF_XY >::Draw(PrimitiveType::LineList, &buffer[0], buffer.size(), LinearColor(0.3, 0.3, 0.3));
 			}
 
-			Vector2 const lines[] =
 			{
-				Vector2(0,50), Vector2(xMax,50),
-				Vector2(0,yMin) , Vector2(0,yMax),
-				Vector2(0,yMin) , Vector2(xMax,yMin),
-				Vector2(0,yMax) , Vector2(xMax,yMax),
-			};
+				Vector2 const lines[] =
+				{
+					Vector2(0,50), Vector2(xMax,50),
+					Vector2(0,yMin) , Vector2(0,yMax),
+					Vector2(0,yMin) , Vector2(xMax,yMin),
+					Vector2(0,yMax) , Vector2(xMax,yMax),
+				};
+				RHISetBlendState(TStaticBlendState<>::GetRHI());
+				TRenderRT< RTVF_XY >::Draw(PrimitiveType::LineList, &lines[0], ARRAY_SIZE(lines), LinearColor(0, 0, 1));
+			}
 
-			TRenderRT< RTVF_XY >::Draw(PrimitiveType::LineList, &lines[0], ARRAY_SIZE(lines) , LinearColor(0, 0, 1));
+			if( bReviewingGame )
+			{
+				int posX = ( mReviewGame.getCurrentStep() + 1 ) / 2;
+				Vector2 const lines[] = { Vector2(posX , yMin) , Vector2(posX , yMax) };
+
+				RHISetBlendState(TStaticBlendState< CWM_RGBA, Blend::eOne, Blend::eOne >::GetRHI());
+				TRenderRT< RTVF_XY >::Draw(PrimitiveType::LineList, &lines[0], ARRAY_SIZE(lines), LinearColor(1, 1, 0));
+			}
+
+			RHISetBlendState(TStaticBlendState<>::GetRHI());
 		}
 	}
 

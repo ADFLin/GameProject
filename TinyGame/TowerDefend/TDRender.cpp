@@ -20,10 +20,10 @@ namespace TowerDefend
 	void Renderer::drawHealthBar( Vec2i const& sPos , int len , float ratio )
 	{
 		Graphics2D& g = getGraphics();
-		RenderUtility::SetPen( g , Color::eNull );
-		RenderUtility::SetBrush( g , Color::eGreen , COLOR_DEEP );
+		RenderUtility::SetPen( g , EColor::Null );
+		RenderUtility::SetBrush( g , EColor::Green , COLOR_DEEP );
 		g.drawRect( sPos , Vec2i( len , 5 ) );
-		RenderUtility::SetBrush( g , Color::eGreen , COLOR_NORMAL );
+		RenderUtility::SetBrush( g , EColor::Green , COLOR_NORMAL );
 		g.drawRect( sPos , Vec2i( int( len*ratio ) , 5 ) );
 	}
 
@@ -40,7 +40,7 @@ namespace TowerDefend
 		offset.x %= (int)gMapCellLength;
 		offset.y %= (int)gMapCellLength;
 
-		RenderUtility::SetPen( g , Color::eWhite );
+		RenderUtility::SetPen( g , EColor::White );
 		for( int n = 0 ; n <= nSize.x ; ++n )
 		{
 			int x = int ( n * gMapCellLength );
@@ -64,11 +64,11 @@ namespace TowerDefend
 		Graphics2D& g = getGraphics();
 
 		if ( beSelected )
-			RenderUtility::SetPen( g , Color::eWhite );
+			RenderUtility::SetPen( g , EColor::White );
 		else
-			RenderUtility::SetPen( g , Color::eNull );
+			RenderUtility::SetPen( g , EColor::Null );
 
-		RenderUtility::SetBrush( g , Color::eRed );
+		RenderUtility::SetBrush( g , EColor::Red );
 
 		g.drawRect( renderPos , gMapCellLength * size - 2 * broader );
 	}
@@ -118,7 +118,7 @@ namespace TowerDefend
 		Graphics2D& g = renderer.getGraphics();
 
 		//g.drawCircle( testPos , testR );
-		//RenderUtility::setGraphicsBursh( g , ( testHaveCol ) ? Color::eRed : Color::eYellow );
+		//RenderUtility::setGraphicsBursh( g , ( testHaveCol ) ? EColor::eRed : EColor::eYellow );
 		//g.drawCircle( mBuiler->getPos() + testOffset , mBuiler->getColRadius() );
 
 
@@ -190,16 +190,16 @@ namespace TowerDefend
 		Graphics2D& g = renderer.getGraphics();
 
 		if ( checkFlag( EF_SELECTED ) )
-			RenderUtility::SetPen( g , Color::eWhite );
+			RenderUtility::SetPen( g , EColor::White );
 		else
-			RenderUtility::SetPen( g , Color::eNull );
+			RenderUtility::SetPen( g , EColor::Null );
 		switch ( getActorID() )
 		{
 		case AID_UT_BUILDER_1:
-			RenderUtility::SetBrush( g , Color::eRed );
+			RenderUtility::SetBrush( g , EColor::Red );
 			break;
 		case AID_UT_MOUSTER_1:
-			RenderUtility::SetBrush( g , Color::eGreen );
+			RenderUtility::SetBrush( g , EColor::Green );
 			break;
 		}
 
@@ -221,8 +221,8 @@ namespace TowerDefend
 	{
 		Graphics2D& g = renderer.getGraphics();
 
-		RenderUtility::SetPen( g , Color::eNull );
-		RenderUtility::SetBrush( g , Color::eBlue );
+		RenderUtility::SetPen( g , EColor::Null );
+		RenderUtility::SetBrush( g , EColor::Blue );
 		g.drawCircle( getPos() , 5 );
 	}
 
@@ -231,8 +231,8 @@ namespace TowerDefend
 	{
 		Graphics2D& g = renderer.getGraphics();
 
-		RenderUtility::SetBrush( g , Color::eNull );
-		RenderUtility::SetPen( g , Color::eGreen );
+		RenderUtility::SetBrush( g , EColor::Null );
+		RenderUtility::SetPen( g , EColor::Green );
 		for ( MsgList::iterator iter = msgList.begin();
 			iter != msgList.end(); ++iter )
 		{

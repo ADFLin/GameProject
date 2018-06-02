@@ -241,71 +241,6 @@ bool ExpressionParser::analyzeTokenUnit( char const* expr , SymbolTable const& t
 }
 
 
-
-bool ExpressionParser::checkExprValid( UnitCodes const& infixCode )
-{
-	int numBar = 0;
-	TokenType bToken = TOKEN_NONE;
-	for (size_t i= 0;i < infixCode.size();++i)
-	{
-		TokenType cToken = infixCode[i].type;
-		if ( testTokenValid(bToken,cToken) )
-		{
-			if (cToken == TOKEN_LBAR) 
-				++numBar;
-			else if( cToken == TOKEN_RBAR ) 
-				--numBar;
-		}
-
-		if ( IsFunction( cToken ) )
-		{
-			int numParam = infixCode[i].symbol->funInfo.numParam;
-			int numBarInFun = 0;
-			int numDot = 0;
-			for(int n = i+1 ; n < infixCode.size() ; ++n)
-			{
-				int token = infixCode[n].type;
-				if (token == TOKEN_LBAR) 
-					++numBarInFun;
-				else if ( token == TOKEN_RBAR ) 
-					--numBarInFun;
-				else if ( token == BOP_COMMA && numBarInFun == 1 ) 
-					++numDot;
-
-				if ( numBarInFun == 0 )
-				{
-					if ( numDot != numParam - 1 ) 
-						return false;
-					else break;
-				}
-			}
-		}
-		else if ( cToken == BOP_ASSIGN )
-		{
-			if ( bToken != VALUE_VARIABLE )
-				return false;
-			int testIndex = i - 2;
-			if ( testIndex >= 0 )
-			{
-				if ( infixCode[testIndex].type != TOKEN_LBAR &&
-				     infixCode[testIndex].type != BOP_COMMA  &&
-					 infixCode[testIndex].type != BOP_ASSIGN )
-				return false;
-			}
-		}
-
-		bToken = cToken;
-	}
-
-	if ( numBar != 0 ) 
-		return false;
-
-	if ( !testTokenValid(bToken, TOKEN_NONE ) ) 
-		return false;
-
-	return true;
-}
-
 void ExpressionParser::convertCode( UnitCodes& infixCode , UnitCodes& postfixCode )
 {
 	UnitCodes stack;
@@ -387,30 +322,22 @@ void ExpressionParser::convertCode( UnitCodes& infixCode , UnitCodes& postfixCod
 }
 
 
-bool ExpressionParser::testTokenValid( int bToken,int cToken )
-{
-
-	static bool const validMap[7][7] =
-	{
-		// b\c | No |Lbar|Rbar|BOp |Fun|Val| UOp
-		/*No*/   0 ,  1 , 0  , 0  , 1  , 1 ,  1,
-		/*Lbar*/ 0 ,  1 , 0  , 0  , 1  , 1 ,  1,
-		/*Rbar*/ 1 ,  0 , 1  , 1  , 0  , 0 ,  0,
-		/*BOp*/  0 ,  1 , 0  , 0  , 1  , 1 ,  1,
-		/*Fun */ 0 ,  1 , 0  , 0  , 0  , 0 ,  0,
-		/*Val*/  1 ,  0 , 1  , 1  , 0  , 0 ,  0,
-		/*UOp*/  0,   0 , 0  , 0  , 0  , 1 ,  0,
-	};
-	return validMap[bToken >> 16 ][cToken >> 16 ];
-}
-
 bool ExpressionParser::parse( char const* expr , SymbolTable const& table )
 {
-	UnitCodes infixCode;
-	if ( !analyzeTokenUnit( expr , table , infixCode ) ) 
+	ParseResult result;
+	if ( !analyzeTokenUnit( expr , table , result.mIFCodes) )
 		return false;
-	if ( !checkExprValid( infixCode ) )
+
+	ExprTreeBuilder builder;
+	try
+	{
+		builder.build(result.mTreeNodes, &result.mIFCodes[0], result.mIFCodes.size());
+	}
+	catch( ParseException& e )
+	{
+		mErrorMsg = e.what();
 		return false;
+	}
 
 	return true;
 }
@@ -428,7 +355,6 @@ bool ExpressionParser::parse( char const* expr , SymbolTable const& table , Pars
 	std::cout << std::endl;
 #endif
 
-#if 1
 	ExprTreeBuilder builder;
 	try 
 	{
@@ -459,15 +385,6 @@ bool ExpressionParser::parse( char const* expr , SymbolTable const& table , Pars
 	builder.printTree( table );
 #	endif
 
-#else
-
-	if ( !checkExprValid( result.mIFCodes ) )
-	{
-		return false;
-	}
-	convertCode( result.mIFCodes , result.mPFCodes );
-
-#endif
 
 #if _DEBUG
 	result.printPostfixCodes();

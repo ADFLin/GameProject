@@ -3,9 +3,9 @@
 #include "Surface.h"
 #include "RenderData.h"
 
-#include "RenderGL/DrawUtility.h"
-#include "RenderGL/ShaderCompiler.h"
-#include "RenderGL/RHICommand.h"
+#include "RHI/DrawUtility.h"
+#include "RHI/ShaderCompiler.h"
+#include "RHI/RHICommand.h"
 
 namespace CB
 {

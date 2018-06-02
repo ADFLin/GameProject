@@ -8,8 +8,11 @@
 #include "Singleton.h"
 #include "TaskBase.h"
 #include "GameControl.h"
+#include "RenderUtility.h"
 #include "Tween.h"
+
 #include <functional>
+
 
 class DrawEngine;
 class StageManager;
@@ -67,6 +70,50 @@ class GWidget;
 
 typedef std::function< bool (int event  , GWidget* ) > WidgetEventDelegate;
 
+struct WidgetColor
+{
+	WidgetColor()
+	{
+		bUseName = false;
+		value = Color3ub(0, 0, 0);
+	}
+
+	void setName(int colorName) { name = colorName; bUseName = true; }
+	void setValue(Color3ub const& colorValue){  value = colorValue;  bUseName = false;  }
+	Color3ub getValue(int type = COLOR_NORMAL) const
+	{
+		if ( bUseName )
+			RenderUtility::GetColor(name, type);
+		return value;
+	}
+
+	void setupBrush(IGraphics2D& g, int type = COLOR_NORMAL) const
+	{
+		if( bUseName )
+		{
+			RenderUtility::SetBrush(g, name, type);
+		}
+		else
+		{
+			g.setBrush(value);
+		}
+	}
+	void setupPen(IGraphics2D& g, int type = COLOR_NORMAL) const
+	{
+		if( bUseName )
+		{
+			RenderUtility::SetPen(g, name, type);
+		}
+		else
+		{
+			g.setPen(value);
+		}
+	}
+	bool      bUseName;
+	Color3ub  value;
+	int       name;
+};
+
 class  GWidget : public WidgetCoreT< GWidget >
 {
 public:
@@ -105,8 +152,9 @@ public:
 	TINY_API bool doClipTest();
 	static TINY_API WidgetRenderer& getRenderer();
 
-	void setColorKey( Color3ub const& color ){  useColorKey = true; mColorKey = color;  }
-	void setColor( int color ){  useColorKey = false; mColor = color;  }
+	void setColor(Color3ub const& color) { mColor.setValue(color); }
+	void setColorName(int color) { mColor.setName(color); }
+
 	TINY_API GWidget*  findChild( int id , GWidget* start = NULL );
 	template< class T >
 	T* findChildT(int id, GWidget* start = nullptr)
@@ -122,8 +170,6 @@ public:
 		return GUI::CastFast<T>( this );
 	}
 
-
-
 protected:
 
 	TINY_API void sendEvent( int eventID );
@@ -133,9 +179,8 @@ protected:
 	bool      useHotKey;
 	intptr_t  userData;
 
-	bool      useColorKey;
-	int       mColor;
-	Color3ub mColorKey;
+
+	WidgetColor mColor;
 
 	RenderCallBack* callback;
 	friend  class UIMotionTask;
@@ -291,7 +336,6 @@ public:
 private:
 	RenderType  mRenderType;
 	float       mAlpha;
-	Color3ub   mColor;
 };
 
 class  GFrame : public GPanel
@@ -473,11 +517,11 @@ public:
 class WidgetRenderer
 {
 public:
-	TINY_API void  drawButton( IGraphics2D& g , Vec2i const& pos , Vec2i const& size , ButtonState state , int color , bool beEnable = true );
-	TINY_API void  drawButton2( IGraphics2D& g , Vec2i const& pos , Vec2i const& size , ButtonState state , int color , bool beEnable = true );
-	TINY_API void  drawPanel( IGraphics2D& g ,Vec2i const& pos , Vec2i const& size , Color3ub const& color , float alpha );
-	TINY_API void  drawPanel( IGraphics2D& g ,Vec2i const& pos , Vec2i const& size , Color3ub const& color );
-	TINY_API void  drawPanel2( IGraphics2D& g , Vec2i const& pos , Vec2i const& size , Color3ub const& color );
+	TINY_API void  drawButton( IGraphics2D& g , Vec2i const& pos , Vec2i const& size , ButtonState state , WidgetColor const& color , bool beEnable = true );
+	TINY_API void  drawButton2( IGraphics2D& g , Vec2i const& pos , Vec2i const& size , ButtonState state , WidgetColor const& color, bool beEnable = true );
+	TINY_API void  drawPanel( IGraphics2D& g ,Vec2i const& pos , Vec2i const& size , WidgetColor const& color, float alpha );
+	TINY_API void  drawPanel( IGraphics2D& g ,Vec2i const& pos , Vec2i const& size , WidgetColor const& color);
+	TINY_API void  drawPanel2( IGraphics2D& g , Vec2i const& pos , Vec2i const& size , WidgetColor const& color);
 	TINY_API void  drawSilder( IGraphics2D& g ,Vec2i const& pos , Vec2i const& size , Vec2i const& tipPos , Vec2i const& tipSize );
 };
 

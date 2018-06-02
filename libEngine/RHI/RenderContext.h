@@ -126,7 +126,7 @@ namespace RenderGL
 
 		void setupTransform(Matrix4 const& inViewMatrix, Matrix4 const& inProjectMatrix);
 
-		Vec2i getViewportSize() const;
+		IntVector2 getViewportSize() const;
 		void  setupShader(ShaderProgram& program);
 
 

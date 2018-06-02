@@ -1,5 +1,7 @@
 #include "LazyObject.h"
 
+#include <cassert>
+
 LazyObjectPtrBase::LazyObjectPtrBase()
 {
 	mId = -1;

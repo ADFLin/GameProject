@@ -5,9 +5,9 @@
 #include "RenderUtility.h"
 #include "GLGraphics2D.h"
 
-#include "RenderGL/DrawUtility.h"
-#include "RenderGL/GpuProfiler.h"
-#include "RenderGL/RHICommand.h"
+#include "RHI/DrawUtility.h"
+#include "RHI/GpuProfiler.h"
+#include "RHI/RHICommand.h"
 
 namespace Go
 {
@@ -36,7 +36,7 @@ namespace Go
 
 	void BoardRenderer::releaseRHI()
 	{
-		mTextureAtlas.getTexture().release();
+		mTextureAtlas.releaseRHI();
 		for( int i = 0; i < NumTexture; ++i )
 		{
 			mTextures[i].release();
@@ -148,14 +148,14 @@ namespace Go
 		}
 		glDisable(GL_TEXTURE_2D);
 #else
-		RenderUtility::SetPen(g, Color::eBlack);
-		RenderUtility::SetBrush(g, Color::eOrange);
+		RenderUtility::SetPen(g, EColor::Black);
+		RenderUtility::SetBrush(g, EColor::Orange);
 		g.drawRect(renderPos - Vector2(border, border), Vector2(boardRenderLength, boardRenderLength));
 #endif
 
 		Vector2 posV = context.renderPos;
 		Vector2 posH = context.renderPos;
-		RenderUtility::SetPen(g, Color::eBlack);
+		RenderUtility::SetPen(g, EColor::Black);
 		RenderUtility::SetFont(g, FONT_S12);
 		g.setTextColor(Color3ub(0, 0, 0));
 		for( int i = 0; i < boardSize; ++i )
@@ -176,8 +176,8 @@ namespace Go
 			posH.y += context.cellLength;
 		}
 
-		RenderUtility::SetPen(g, Color::eBlack);
-		RenderUtility::SetBrush(g, Color::eBlack);
+		RenderUtility::SetPen(g, EColor::Black);
+		RenderUtility::SetBrush(g, EColor::Black);
 
 		if( bDrawStar )
 		{
@@ -332,12 +332,12 @@ namespace Go
 			}
 		}
 #else
-		RenderUtility::SetPen(g, Color::eBlack);
-		RenderUtility::SetBrush(g, (color == StoneColor::eBlack) ? Color::eBlack : Color::eWhite);
+		RenderUtility::SetPen(g, EColor::Black);
+		RenderUtility::SetBrush(g, (color == StoneColor::eBlack) ? EColor::Black : EColor::White);
 		g.drawCircle(pos, StoneRadius);
 		if( color == StoneColor::eBlack )
 		{
-			RenderUtility::SetBrush(g, Color::eWhite);
+			RenderUtility::SetBrush(g, EColor::White);
 			g.drawCircle(pos + Vec2i(5, -5), 3);
 		}
 #endif

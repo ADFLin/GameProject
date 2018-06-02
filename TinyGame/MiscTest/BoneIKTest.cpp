@@ -83,8 +83,8 @@ namespace BoneIK
 
 			bool haveIKState = mBoneState.empty() == false;
 
-			RenderUtility::SetPen(g, haveIKState ? Color::eGray : Color::eGreen);
-			RenderUtility::SetBrush(g, Color::eNull);
+			RenderUtility::SetPen(g, haveIKState ? EColor::Gray : EColor::Green);
+			RenderUtility::SetBrush(g, EColor::Null);
 
 			Vec2i const RectSize(8, 8);
 			for( int i = 0; i < mBones.size(); ++i )
@@ -97,8 +97,8 @@ namespace BoneIK
 
 			if( haveIKState )
 			{
-				RenderUtility::SetPen(g, Color::eGreen);
-				RenderUtility::SetBrush(g, Color::eNull);
+				RenderUtility::SetPen(g, EColor::Green);
+				RenderUtility::SetBrush(g, EColor::Null);
 
 				for( int i = 0; i < mLinks.size(); ++i )
 				{

@@ -1,22 +1,8 @@
 #include "PlatformConfig.h"
-
+#include "CoreShare.h"
 #include "LogSystem.h"
-#include "ProfileSystem.h"
-#include "Phy2D/Phy2D.h"
-#include "UnitTest.h"
-#include "MarcoCommon.h"
-#include "HashString.h"
 
-
-#define EXPORT_FUN(fun) static auto MARCO_NAME_COMBINE_2( GExportFun , __LINE__ ) = &fun;
-
-EXPORT_FUN( LogOutput::addChannel );
-EXPORT_FUN( UnitTest::Component::RunTest );
-//EXPORT_FUN( ProfileSystem::Get() );
-//EXPORT_FUN( static_cast< void (*)(char const*, ...) >( &LogMsgF ));
-
-#undef EXPORT_FUN
-
+#if SYS_PLATFORM_WIN
 #include "WindowsHeader.h"
 
 BOOL WINAPI DllMain( _In_  HINSTANCE hinstDLL, _In_  DWORD fdwReason, _In_  LPVOID lpvReserved)
@@ -36,3 +22,5 @@ BOOL WINAPI DllMain( _In_  HINSTANCE hinstDLL, _In_  DWORD fdwReason, _In_  LPVO
 	}
 	return TRUE;
 }
+
+#endif //SYS_PLATFORM_WIN

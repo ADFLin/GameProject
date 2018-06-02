@@ -16,6 +16,7 @@ int const MaxHashStringLength = 2048;
 struct NameSlot
 {
 	FixString< MaxHashStringLength > str;
+	uint32    hashValue;
 	uint32    index;
 	NameSlot* next;
 	static NameSlot* sHashHead[NameSlotHashBucketSize];
@@ -144,11 +145,12 @@ HashString::HashString(char const* str , bool bCaseSensitive )
 	}
 #endif
 
-	uint32 idxHash = FCString::StriHash(str) % NameSlotHashBucketSize;
+	uint32 hashValue = FCString::StriHash(str);
+	uint32 idxHash = hashValue % NameSlotHashBucketSize;
 	NameSlot* slot = NameSlot::sHashHead[idxHash];
 	for( ; slot; slot = slot->next )
 	{
-		if ( slot->compare( str , bCaseSensitive ) == 0)
+		if ( hashValue == slot->hashValue && slot->compare( str , bCaseSensitive ) == 0)
 			break;
 	}
 
@@ -158,10 +160,12 @@ HashString::HashString(char const* str , bool bCaseSensitive )
 		void* ptr = gNameSlots.addUninitialized();
 
 		slot = new (ptr) NameSlot;
+		slot->hashValue = hashValue;
 		slot->str = str;
 		slot->index = idx;
 		slot->next = nullptr;
 
+		//#TODO : thread-safe
 		if ( NameSlot::sHashTail[idxHash] )
 			NameSlot::sHashTail[idxHash]->next = slot;
 		NameSlot::sHashTail[idxHash] = slot;
@@ -181,6 +185,12 @@ HashString::HashString(EName name, char const* str )
 	:HashString(str)
 {
 	assert((mIndex >> 1 )== (uint32)name);
+}
+
+uint32 hash_value(HashString const & string)
+{
+	NameSlot& slot = gNameSlots[string.getSlotIndex()];
+	return slot.hashValue;
 }
 
 char const* HashString::toString() const

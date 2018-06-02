@@ -39,13 +39,25 @@ char const* translateData =
 	"<1>鍵盤\n"
 
 	"#OK\n"
+	"<1>確定\n"
+
+	"#Yes\n"
 	"<1>同意\n"
+
+	"#No\n"
+	"<1>不同意\n"
+
+	"#Back\n"
+	"<1>返回\n"
 
 	"#Set Defult\n"
 	"<1>預設設定\n"
 
 	"#Exit the Tetris Game?\n"
 	"<1>確定要離開遊戲?\n"
+
+	"#Be Sure Back To Main Menu?\n"
+	"<1>確定要回到主選單?\n"
 
 	"#Player\n"
 	"<1>玩家\n"

@@ -135,7 +135,7 @@ namespace RenderGL
 		void  drawTexture(GLTexture& texture, Vector2 const& pos, Vector2 const& texPos, Vector2 const& texSize);
 		void  drawTexture(GLTexture& texture, Vector2 const& pos, Vector2 const& texPos, Vector2 const& texSize, Color3ub const& color);
 
-		void  setFont(GLFont& font)
+		void  setFont(FontDrawer& font)
 		{
 			mFont = &font;
 		}
@@ -184,7 +184,7 @@ namespace RenderGL
 		bool      mDrawBrush;
 		bool      mDrawPen;
 		GLuint    mColorKeyShader;
-		GLFont*   mFont;
+		FontDrawer*   mFont;
 		std::vector< Vector2 > mBuffer;
 	};
 

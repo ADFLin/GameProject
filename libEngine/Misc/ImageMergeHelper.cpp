@@ -27,7 +27,11 @@ ImageMergeHelper::ImageMergeHelper()
 
 ImageMergeHelper::~ImageMergeHelper()
 {
-	destoryNode(mRoot);
+	if( mRoot )
+	{
+		destoryNode(mRoot);
+	}
+	
 }
 
 void ImageMergeHelper::init(int w, int h)

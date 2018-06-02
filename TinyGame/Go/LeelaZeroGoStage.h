@@ -115,16 +115,16 @@ namespace Go
 
 			Vec2i pos = getWorldPos();
 			Vec2i size;
-			g.beginClip( pos , getSize() - Vec2i(20,0) );
+			g.beginClip(pos, getSize() - Vec2i(20, 0));
 			if( bShowFileNameOnly )
 			{
 				char const* fileName = FileUtility::GetDirPathPos(filePath) + 1;
-				g.drawText(pos, fileName);
+				g.drawText(pos + Vec2i(2,3), fileName);
 			}
 			else
 			{
-			g.drawText(pos, filePath);
-		}
+				g.drawText(pos + Vec2i(2,3), filePath);
+			}
 			g.endClip();
 		}
 
@@ -156,7 +156,7 @@ namespace Go
 			return (idx == 0) ? StoneColor::eBlack : StoneColor::eWhite;
 		}
 
-		void advanceTurn()
+		void advanceStep()
 		{
 			idxPlayerTurn = 1 - idxPlayerTurn;
 		}
@@ -319,12 +319,13 @@ namespace Go
 		MyGame mGame;
 
 		bool bDrawDebugMsg = false;
+		bool bDrawFontCacheTexture = false;
 		BoardRenderer mBoardRenderer;
 		float const RenderBoardScale = 1.2;
 		Vector2 const BoardPos = Vector2(50, 50);
 
-		GameMode mGameMode;
-		class UnderCurveAreaProgram* mProgUnderCurveArea;
+		GameMode mGameMode = GameMode::None;
+		class UnderCurveAreaProgram* mProgUnderCurveArea = nullptr;
 
 
 		void toggleAnalysisPonder();
@@ -359,6 +360,7 @@ namespace Go
 		bool bAnalysisEnabled = false;
 		bool bAnalysisPondering;
 		LeelaThinkInfoVec analysisResult;
+		LeelaThinkInfo bestThinkInfo;
 
 		int  analysisPonderColor = 0;
 		int  showBranchVertex = -1;
@@ -370,6 +372,8 @@ namespace Go
 		MatchGameData mMatchData;
 		FixString<32> mLastGameResult;
 
+
+		void drawWinRateDiagram( Vec2i const& renderPos ,  Vec2i const& renderSize );
 
 
 
@@ -383,7 +387,7 @@ namespace Go
 		MyGame  mTryPlayGame;
 
 		GWidget* mGamePlayWidget = nullptr;
-
+		GWidget* mWinRateWidget = nullptr;
 
 		MyGame& getViewingGame()
 		{
@@ -434,11 +438,15 @@ namespace Go
 				mWinRateHistory[i].clear();
 				mWinRateHistory[i].push_back(Vector2(0, 50));
 			}
+			if( mWinRateWidget )
+			{
+				mWinRateWidget->destroy();
+				mWinRateWidget = nullptr;
+			}
 		}
 		void resetTurnParam()
 		{
 			bestMoveVertex = -3;
-			
 		}
 		void restartAutoMatch();
 

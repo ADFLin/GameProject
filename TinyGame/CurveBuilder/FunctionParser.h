@@ -12,7 +12,7 @@ namespace CB
 	public:
 		FunctionParser();
 		SymbolTable& getSymbolDefine() { return mSymbolDefine; }
-		bool         checkVaild(char const* expr);
+		bool         checkValid(char const* expr);
 		bool         parse(Expression& expr , int numInput = 0);
 
 	private:

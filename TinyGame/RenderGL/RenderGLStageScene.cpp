@@ -3,8 +3,8 @@
 #include "RenderGLStageAssetID.h"
 
 #include "Thread.h"
-#include "ShaderCompiler.h"
-#include "RHICommand.h"
+#include "RHI/ShaderCompiler.h"
+#include "RHI/RHICommand.h"
 #include "SceneScript.h"
 
 namespace RenderGL

@@ -162,11 +162,6 @@ struct SymbolEntry
 		double* varPtr;
 		uint8   inputIndex;
 		FunInfo funInfo;
-		struct
-		{
-			void* funPtr;
-			uint8 funParamNum;
-		};
 	};
 
 	SymbolEntry() {}
@@ -418,9 +413,7 @@ public:
 
 protected:
 
-
 	bool analyzeTokenUnit( char const* expr , SymbolTable const& table , UnitCodes& infixCode );
-	bool checkExprValid( UnitCodes const& infixCode );
 	void convertCode( UnitCodes& infixCode , UnitCodes& postfixCode );
 	bool testTokenValid(int bToken,int cToken);
 

@@ -188,15 +188,9 @@ public:
 	}
 	bool bStreaming = false;
 
+	std::string assertPath;
 	WaveFormatInfo format;
 	std::vector< uint8 > PCMData;
-};
-
-class StreamingSoundWave : public SoundWave
-{
-
-
-
 };
 
 class AudioSource
@@ -205,7 +199,11 @@ public:
 	bool initialize(SoundInstance& instance);
 
 	virtual bool doInitialize(SoundInstance& instance) { return true; }
-	virtual void update( float deltaT ) {}
+	virtual void update( float deltaT ) 
+	{
+
+
+	}
 	virtual void stop() {}
 	virtual void pause() {}
 

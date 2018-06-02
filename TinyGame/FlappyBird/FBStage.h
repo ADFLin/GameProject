@@ -4,8 +4,8 @@
 #include "StageBase.h"
 #include "FBLevel.h"
 
-#include "RenderGL/GLCommon.h"
-#include "RenderGL/DrawUtility.h"
+#include "RHI/GLCommon.h"
+#include "RHI/DrawUtility.h"
 
 
 namespace FlappyBird

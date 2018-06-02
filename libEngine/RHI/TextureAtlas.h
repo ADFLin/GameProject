@@ -2,7 +2,7 @@
 #ifndef TextureAtlas_H_991594F1_1108_4346_B634_187B185F2B8D
 #define TextureAtlas_H_991594F1_1108_4346_B634_187B185F2B8D
 
-#include "RenderGL/GLCommon.h"
+#include "RHI/GLCommon.h"
 
 #include "Misc/ImageMergeHelper.h"
 
@@ -22,6 +22,13 @@ namespace RenderGL
 
 		RHITexture2D& getTexture() { return *mTexture; }
 		int getTextureNum() const { return mNextImageId; }
+		void releaseRHI()
+		{
+			if( mTexture )
+			{
+				mTexture->release();
+			}
+		}
 
 		int              mBorder;
 		int              mNextImageId;

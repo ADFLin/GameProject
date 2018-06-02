@@ -149,21 +149,21 @@ LevelData const gLevels[] =
 
 			Vec2i rPos = Vec2i(100, 100) + loc.mul(OpSizeOffset);
 
-			RenderUtility::SetPen(g, Color::eBlack);
+			RenderUtility::SetPen(g, EColor::Black);
 			if ( canChange( loc ) )
-				RenderUtility::SetBrush(g, Color::eGreen);
+				RenderUtility::SetBrush(g, EColor::Green);
 			else
-				RenderUtility::SetBrush(g, Color::eGray);
+				RenderUtility::SetBrush(g, EColor::Gray);
 			
 			g.drawRect(rPos, OpSize);
 
 			if( mechine.mCurOP == &mechine.codeInfo.data[i] )
 			{
-				RenderUtility::SetFontColor(g, Color::eYellow);
+				RenderUtility::SetFontColor(g, EColor::Yellow);
 			}
 			else
 			{
-				RenderUtility::SetFontColor(g, Color::eRed);
+				RenderUtility::SetFontColor(g, EColor::Red);
 			}
 			drawOp(g, rPos, mechine.codeInfo.data[i]);
 		}

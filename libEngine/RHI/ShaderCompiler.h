@@ -7,6 +7,8 @@
 #include "Singleton.h"
 #include "Asset.h"
 
+#include "FixString.h"
+
 #include <unordered_map>
 
 #define SHADER_FILE_SUBNAME ".glsl"
@@ -108,7 +110,7 @@ namespace RenderGL
 			assert(0);
 			return nullptr;
 		}
-		class GlobalShaderProgramClass* myClass;
+		struct GlobalShaderProgramClass* myClass;
 	};
 
 
@@ -152,23 +154,17 @@ namespace RenderGL
 
 #define IMPLEMENT_GLOBAL_SHADER_T( TEMPLATE_ARGS , CLASS )\
 	TEMPLATE_ARGS\
-	RenderGL::GlobalShaderProgramClass& CLASS::GetShaderClass()\
-	{\
-		static GlobalShaderProgramClass staticClass\
-		{\
-			CLASS::CreateShader,\
-			CLASS::SetupShaderCompileOption,\
-			CLASS::GetShaderFileName,\
-			CLASS::GetShaderEntries,\
-		};\
-		return staticClass;\
-	}
+	IMPLEMENT_GLOBAL_SHADER( CLASS )
 
 	class ShaderManager : public SingletonT< ShaderManager >
 	{
 	public:
 
 		~ShaderManager();
+
+
+		static CORE_API ShaderManager& Get();
+
 
 
 		void clearnupRHIResouse();

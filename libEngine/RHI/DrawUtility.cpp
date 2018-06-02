@@ -134,7 +134,7 @@ namespace RenderGL
 		Sprite( pos, size, pivot, Vector2(0, 0), Vector2(1, 1));
 	}
 
-	void DrawUtility::Sprite(Vector2 const& pos, Vector2 const& size, Vector2 const& pivot, Vec2i const& framePos, Vec2i const& frameDim)
+	void DrawUtility::Sprite(Vector2 const& pos, Vector2 const& size, Vector2 const& pivot, IntVector2 const& framePos, IntVector2 const& frameDim)
 	{
 		Vector2 dtex = Vector2(1.0 / frameDim.x, 1.0 / frameDim.y);
 		Vector2 texLT = Vector2(framePos).mul(dtex);
@@ -161,7 +161,7 @@ namespace RenderGL
 		TRenderRT< RTVF_XY_T2 >::Draw(PrimitiveType::Quad, vertices, 4);
 	}
 
-	void DrawUtility::DrawTexture(RHITexture2D& texture, Vec2i const& pos, Vec2i const& size)
+	void DrawUtility::DrawTexture(RHITexture2D& texture, IntVector2 const& pos, IntVector2 const& size)
 	{
 		glEnable(GL_TEXTURE_2D);
 		{
@@ -172,7 +172,7 @@ namespace RenderGL
 		glDisable(GL_TEXTURE_2D);
 	}
 
-	void DrawUtility::DrawTexture(RHITexture2D& texture, RHISamplerState& sampler, Vec2i const& pos, Vec2i const& size)
+	void DrawUtility::DrawTexture(RHITexture2D& texture, RHISamplerState& sampler, IntVector2 const& pos, IntVector2 const& size)
 	{
 		glEnable(GL_TEXTURE_2D);
 		{
@@ -184,7 +184,7 @@ namespace RenderGL
 		glDisable(GL_TEXTURE_2D);
 	}
 
-	void DrawUtility::DrawCubeTexture(RHITextureCube& texCube, Vec2i const& pos, int length)
+	void DrawUtility::DrawCubeTexture(RHITextureCube& texCube, IntVector2 const& pos, int length)
 	{
 		int offset = 10;
 

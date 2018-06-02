@@ -51,8 +51,8 @@ namespace Go
 
 		int border = 40;
 		int boardSize = length + 2 * border;
-		RenderUtility::SetPen( g , Color::eBlack );
-		RenderUtility::SetBrush( g , Color::eOrange );
+		RenderUtility::SetPen( g , EColor::Black );
+		RenderUtility::SetBrush( g , EColor::Orange );
 		g.drawRect( BoardPos - Vec2i( border , border ) , Vec2i( boardSize , boardSize ) );
 
 		Vec2i posV = BoardPos;
@@ -78,8 +78,8 @@ namespace Go
 			posH.y += CellSize;
 		}
 
-		RenderUtility::SetPen( g , Color::eBlack );
-		RenderUtility::SetBrush( g , Color::eBlack );
+		RenderUtility::SetPen( g , EColor::Black );
+		RenderUtility::SetBrush( g , EColor::Black );
 
 		int const starRadius = 5;
 		switch( size )
@@ -174,12 +174,12 @@ namespace Go
 
 	void Stage::drawStone( Graphics2D& g , Vec2i const& pos , int color )
 	{
-		RenderUtility::SetPen( g , Color::eBlack );
-		RenderUtility::SetBrush( g ,( color == StoneColor::eBlack ) ? Color::eBlack : Color::eWhite );
+		RenderUtility::SetPen( g , EColor::Black );
+		RenderUtility::SetBrush( g ,( color == StoneColor::eBlack ) ? EColor::Black : EColor::White );
 		g.drawCircle( pos ,  CellSize / 2  );
 		if ( color == StoneColor::eBlack )
 		{
-			RenderUtility::SetBrush( g ,Color::eWhite );
+			RenderUtility::SetBrush( g ,EColor::White );
 			g.drawCircle( pos + Vec2i( 5 , -5 ) , 3 );
 		}
 	}
@@ -288,7 +288,7 @@ namespace Go
 			int value = territoryStatictics[y][x];
 			if( value )
 			{
-				int color = value > 0 ? Color::eRed : Color::eBlue;
+				int color = value > 0 ? EColor::Red : EColor::Blue;
 
 				if( !( value > 0 && mGame->getBoard().getData(x, y) == StoneColor::eBlack ||
 				      value < 0 && mGame->getBoard().getData(x, y) == StoneColor::eWhite ) )
@@ -310,10 +310,10 @@ namespace Go
 				if( value > 0 )
 				{
 					//	return;
-					//int color = value > 0 ? Color::eRed : Color::eBlue;
+					//int color = value > 0 ? EColor::eRed : EColor::Blue;
 
 					int size = 18 * value / 1000;
-					RenderUtility::SetBrush(g, Color::eGreen);
+					RenderUtility::SetBrush(g, EColor::Green);
 					g.drawRect(pos - Vec2i(size, size) / 2, Vec2i(size, size));
 				}
 
@@ -323,12 +323,12 @@ namespace Go
 				if( value > 0 )
 				{
 					int size = 18 * value / 1000;
-					RenderUtility::SetBrush(g, Color::eGreen);
+					RenderUtility::SetBrush(g, EColor::Green);
 					g.drawRect(pos - Vec2i(size, size) / 2, Vec2i(size, size));
 				}
 			}
 #if 1
-			RenderUtility::SetFontColor(g, Color::ePurple);
+			RenderUtility::SetFontColor(g, EColor::Purple);
 			RenderUtility::SetFont(g, FONT_S8);
 			FixString< 128 > str;
 			g.drawText(pos, str.format("%d", value));

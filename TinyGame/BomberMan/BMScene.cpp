@@ -621,8 +621,8 @@ namespace BomberMan
 		case MO_WALL:
 			if ( mDrawDebug )
 			{
-				RenderUtility::SetPen( g , Color::eBlack );
-				RenderUtility::SetBrush( g , Color::eYellow );
+				RenderUtility::SetPen( g , EColor::Black );
+				RenderUtility::SetBrush( g , EColor::Yellow );
 				g.drawRect( pos , TileSize );
 			}
 			lvSpr.render( g , pos , ANIM_TILE_WALL_STAND , mCurFrame );
@@ -646,7 +646,7 @@ namespace BomberMan
 		case MO_BLOCK:
 			if ( mDrawDebug )
 			{
-				RenderUtility::SetBrush( g , Color::eRed );
+				RenderUtility::SetBrush( g , EColor::Red );
 				g.drawRoundRect( pos , TileSize , Vec2i( 3 , 3 ) );
 			}
 
@@ -659,22 +659,22 @@ namespace BomberMan
 				if ( mDrawDebug )
 				{
 					int gap = 1;
-					int color = Color::eBlue;
+					int color = EColor::Blue;
 					char const* text = "";
 					switch( tile.meta )
 					{
-					case ITEM_REMOTE_CTRL:   text = "C"; color = Color::eYellow; break;
-					case ITEM_LIQUID_BOMB:   text = "L"; color = Color::eCyan; break;
-					case ITEM_BOMB_KICK:     text = "K"; color = Color::eOrange; break;
-					case ITEM_POWER_GLOVE:   text = "G"; color = Color::eBlue; break;
-					case ITEM_SPEED:         text = "S"; color = Color::eGreen; break;
-					case ITEM_POWER:         text = "P"; color = Color::ePurple; break;
-					case ITEM_BOMB_UP:       text = "B"; color = Color::eRed; break;
+					case ITEM_REMOTE_CTRL:   text = "C"; color = EColor::Yellow; break;
+					case ITEM_LIQUID_BOMB:   text = "L"; color = EColor::Cyan; break;
+					case ITEM_BOMB_KICK:     text = "K"; color = EColor::Orange; break;
+					case ITEM_POWER_GLOVE:   text = "G"; color = EColor::Blue; break;
+					case ITEM_SPEED:         text = "S"; color = EColor::Green; break;
+					case ITEM_POWER:         text = "P"; color = EColor::Purple; break;
+					case ITEM_BOMB_UP:       text = "B"; color = EColor::Red; break;
 
 					default:
 						text = "?"; 
 					}
-					RenderUtility::SetPen( g , Color::eBlack );
+					RenderUtility::SetPen( g , EColor::Black );
 					RenderUtility::SetBrush( g , color );
 					g.drawRoundRect( pos + Vec2i( gap , gap ) , TileSize - 2 * Vec2i( gap , gap ) , Vec2i( 5 , 5 ) );
 
@@ -719,7 +719,7 @@ namespace BomberMan
 			if ( mDrawDebug )
 			{
 				MineCar& car = static_cast< MineCar& >( entity );
-				RenderUtility::SetBrush( g , Color::eYellow );
+				RenderUtility::SetBrush( g , EColor::Yellow );
 				g.drawRoundRect( renderPos - TileSize / 2 , TileSize , Vec2i( 3 , 3 ) );
 			}
 			break;
@@ -731,7 +731,7 @@ namespace BomberMan
 	{
 		if ( mDrawDebug )
 		{
-			RenderUtility::SetBrush( g , Color::eCyan );
+			RenderUtility::SetBrush( g , EColor::Cyan );
 			g.drawCircle( pos , TileLength / 2 - 2 );
 		}
 		SpriteAnim& spr = gResManager->bombSpr;
@@ -747,11 +747,11 @@ namespace BomberMan
 		if ( mDrawDebug )
 		{
 			bool bTakeBomb = player.getTakeBombIndex() != -1 ;
-			RenderUtility::SetBrush( g , Color::eBlue );
+			RenderUtility::SetBrush( g , EColor::Blue );
 			g.drawRect( pos - TileSize / 2 , TileSize );
-			RenderUtility::SetPen( g , Color::eYellow );
+			RenderUtility::SetPen( g , EColor::Yellow );
 			g.drawLine( pos , pos + ( TileLength / 2 ) * getDirOffset( player.getFaceDir() ) );
-			RenderUtility::SetPen( g , Color::eBlack );
+			RenderUtility::SetPen( g , EColor::Black );
 			if (  bTakeBomb )
 			{
 				drawBomb( g , pos - Vec2i( 0 , 5 ) , getWorld().getBomb( player.getTakeBombIndex() ));
@@ -844,8 +844,8 @@ namespace BomberMan
 			if ( mDrawDebug )
 			{
 				Vec2i renderPos = pos - TileSize / 2;
-				RenderUtility::SetBrush( g , Color::eRed );
-				RenderUtility::SetPen( g , Color::eNull );
+				RenderUtility::SetBrush( g , EColor::Red );
+				RenderUtility::SetPen( g , EColor::Null );
 
 				g.drawRect( renderPos + Vec2i( 0 , fireCap ) , TileSize - Vec2i( 0 , 2 * fireCap ) );
 				g.drawRect( renderPos + Vec2i( fireCap , 0 ) , TileSize - Vec2i( 2 * fireCap , 0 ) );
@@ -875,7 +875,7 @@ namespace BomberMan
 					}
 				}
 
-				RenderUtility::SetPen( g , Color::eBlack );
+				RenderUtility::SetPen( g , EColor::Black );
 			}
 			SpriteAnim& spr = gResManager->bombSpr;
 			

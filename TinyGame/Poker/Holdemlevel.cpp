@@ -1204,33 +1204,13 @@ namespace Poker { namespace Holdem {
 		int  index[5];
 	};
 
-	static bool powerCmp( CardTrickInfo* i1 , CardTrickInfo* i2 )
-	{
-		return i1->power > i2 ->power;
-	}
-	static bool betCmp( CardTrickInfo* i1 , CardTrickInfo* i2 )
-	{
-		return i1->betMoney < i2 ->betMoney;
-	}
-
 	void ServerLevel::calcRoundResult()
 	{
-		struct MySortFun
-		{
-			MySortFun( Card* cards ):cards( cards ){}
-			bool operator()( int idx1 , int idx2 )
-			{
-				return gFaceRankPower[ cards[idx1].getFaceRank() ] < 
-					   gFaceRankPower[ cards[idx2].getFaceRank() ];
-			}
-			Card* cards;
-		};
 
 		CardTrickInfo  storage[ MaxPlayerNum ];
 		CardTrickInfo* powerSorted[ MaxPlayerNum ];
 		int numPlayer = 0;
 		
-
 		SDTrickResult trickResult;
 		int numTrick = 0;
 
@@ -1278,7 +1258,13 @@ namespace Poker { namespace Holdem {
 				for( int i = 0 ; i < HandCardNum ; ++i )
 					idxOldMap[i] = i;
 
-				std::sort( idxOldMap , idxOldMap + HandCardNum , MySortFun( cards ) );
+				std::sort(idxOldMap, idxOldMap + HandCardNum, 
+					[&cards](int idx1, int idx2)
+					{
+						return gFaceRankPower[cards[idx1].getFaceRank()] <
+							   gFaceRankPower[cards[idx2].getFaceRank()];
+					}
+				);
 
 				Card sortedCards[ HandCardNum ];
 				for( int i = 0 ; i < HandCardNum ; ++i )
@@ -1305,7 +1291,12 @@ namespace Poker { namespace Holdem {
 		getTransfer()->sendData( SLOT_SERVER , DATA2ID( SDTrickResult ) ,  &trickResult , 
 			SDTrickResult::BaseSize + numTrick * sizeof( SlotTrickInfo ) );
 
-		std::sort( powerSorted , powerSorted + numPlayer , std::ptr_fun( powerCmp ) );
+		std::sort( powerSorted , powerSorted + numPlayer , 
+			[](CardTrickInfo* i1, CardTrickInfo* i2)
+			{
+				return i1->power > i2->power;
+			}
+		);
 
 		int order = 0;
 		int powerOrderCount[ MaxPlayerNum ];
@@ -1335,7 +1326,12 @@ namespace Poker { namespace Holdem {
 			{
 				betSorted[i] = &storage[i];
 			}
-			std::sort( betSorted , betSorted + numPlayer , std::ptr_fun( betCmp ) );
+			std::sort(betSorted, betSorted + numPlayer, 
+				[](CardTrickInfo* i1, CardTrickInfo* i2)
+				{
+					return i1->betMoney < i2->betMoney;
+				}
+			);
 
 			int betOrderLast = 0;
 			int prevMoney = 0;

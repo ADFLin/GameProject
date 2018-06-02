@@ -8,7 +8,7 @@ WORD  gSockVersion = MAKEWORD(1,1);
 void socketError(char* str){ }
 
 NetSocket::NetSocket()
-	:mSocketObj( INVALID_SOCKET )
+	:mHandle( INVALID_SOCKET )
 	,mState( SKS_CLOSE )
 {
 
@@ -21,7 +21,7 @@ NetSocket::~NetSocket()
 
 bool NetSocket::connect( char const* addrName  , unsigned  port )
 {
-	assert( mSocketObj == INVALID_SOCKET );
+	assert( mHandle == INVALID_SOCKET );
 	NetAddress addr;
 	if ( !addr.setInternet( addrName , port ) )
 		return false;
@@ -37,7 +37,7 @@ bool NetSocket::connect( NetAddress const& addr )
 		return false;
 	}
 
-	int result = ::connect( getSocketObject() , (sockaddr*)&addr.get() , sizeof( addr.get() ) );
+	int result = ::connect( getHandle() , (sockaddr*)&addr.get() , sizeof( addr.get() ) );
 
 	if ( result == SOCKET_ERROR && WSAGetLastError() != WSAEWOULDBLOCK )
 	{
@@ -61,7 +61,7 @@ bool NetSocket::listen( unsigned port , int maxWaitClient )
 	if ( !bindPort( port ) )
 		return false;
 
-	int result = ::listen( getSocketObject(), maxWaitClient );
+	int result = ::listen( getHandle(), maxWaitClient );
 	if( result == SOCKET_ERROR)
 	{
 		return false;
@@ -73,17 +73,17 @@ bool NetSocket::listen( unsigned port , int maxWaitClient )
 
 int NetSocket::recvData( char* data , size_t maxNum )
 {
-	return ::recv( getSocketObject() , data , (int)maxNum , 0 );
+	return ::recv( getHandle() , data , (int)maxNum , 0 );
 }
 
 int NetSocket::recvData( char* data , size_t maxNum , sockaddr* addrInfo , int addrLength )
 {
-	return ::recvfrom( getSocketObject() ,data , (int)maxNum , 0 , addrInfo , &addrLength );
+	return ::recvfrom( getHandle() ,data , (int)maxNum , 0 , addrInfo , &addrLength );
 }
 
 int NetSocket::sendData( char const* data , size_t num )
 {
-	return ::send( getSocketObject() , data , (int)num , 0 );
+	return ::send( getHandle() , data , (int)num , 0 );
 }
 
 int NetSocket::sendData( char const* data , size_t num , char const* addrName , unsigned port )
@@ -98,18 +98,18 @@ int NetSocket::sendData( char const* data , size_t num , char const* addrName , 
 
 int NetSocket::sendData( char const* data , size_t num , sockaddr* addrInfo , int addrLength )
 {
-	if ( mSocketObj == INVALID_SOCKET && ! createUDP( ) )
+	if ( mHandle == INVALID_SOCKET && ! createUDP( ) )
 		return false;
 
-	return ::sendto( getSocketObject() , data , (int)num , 0 , addrInfo , addrLength );
+	return ::sendto( getHandle() , data , (int)num , 0 , addrInfo , addrLength );
 }
 
 bool NetSocket::createTCP( bool beNB )
 {
 	close();
 
-	mSocketObj = ::socket( PF_INET , SOCK_STREAM , 0 );
-	if ( mSocketObj  == INVALID_SOCKET )
+	mHandle = ::socket( PF_INET , SOCK_STREAM , 0 );
+	if ( mHandle  == INVALID_SOCKET )
 	{
 		throw SocketException("Can't create socket");
 	}
@@ -121,9 +121,9 @@ bool NetSocket::createTCP( bool beNB )
 bool NetSocket::createUDP()
 {
 	close();
-	mSocketObj = ::socket( PF_INET , SOCK_DGRAM , IPPROTO_UDP );
+	mHandle = ::socket( PF_INET , SOCK_DGRAM , IPPROTO_UDP );
 
-	if ( mSocketObj == INVALID_SOCKET )
+	if ( mHandle == INVALID_SOCKET )
 	{
 		throw SocketException("Can't create socket");
 	}
@@ -138,7 +138,7 @@ bool NetSocket::createUDP()
 bool NetSocket::setBroadcast()
 {
 	int i = 1;
-	if ( setsockopt( getSocketObject() , SOL_SOCKET, SO_BROADCAST, (char *)&i, sizeof(i)) == SOCKET_ERROR )
+	if ( setsockopt( getHandle() , SOL_SOCKET, SO_BROADCAST, (char *)&i, sizeof(i)) == SOCKET_ERROR )
 		return false;
 	return true;
 }
@@ -152,7 +152,7 @@ bool NetSocket::bindPort( unsigned port )
 
 	int result;
 	//bind the socket
-	result = ::bind(getSocketObject(), (sockaddr*)&addr, sizeof(addr));
+	result = ::bind(getHandle(), (sockaddr*)&addr, sizeof(addr));
 	if( result == SOCKET_ERROR)
 	{
 		return false;
@@ -164,7 +164,7 @@ bool NetSocket::bindPort( unsigned port )
 bool NetSocket::setNonBlocking( bool beNB )
 {
 	u_long  nonBlocking = beNB ? 1 : 0;
-	int rVal = ioctlsocket( getSocketObject() , FIONBIO , &nonBlocking );
+	int rVal = ioctlsocket( getHandle() , FIONBIO , &nonBlocking );
 	if ( rVal == SOCKET_ERROR )
 	{
 		return false;
@@ -186,10 +186,10 @@ char const* NetSocket::getIPByName( char const* AddrName )
 
 bool NetSocket::accept( NetSocket& clientSocket , sockaddr* addr , int addrLength )
 {
-	assert( clientSocket.mSocketObj == INVALID_SOCKET );
-	clientSocket.mSocketObj = ::accept( mSocketObj , addr , &addrLength );
+	assert( clientSocket.mHandle == INVALID_SOCKET );
+	clientSocket.mHandle = ::accept( mHandle , addr , &addrLength );
 
-	if ( clientSocket.mSocketObj == INVALID_SOCKET )
+	if ( clientSocket.mHandle == INVALID_SOCKET )
 		return false;
 
 	clientSocket.mState  = SKS_CONNECT;
@@ -211,7 +211,7 @@ struct NetSelectSet
 	}
 	void addSocket(NetSocket& socket)
 	{
-		SOCKET hSocket = socket.getSocketObject();
+		SOCKET hSocket = socket.getHandle();
 		FD_SET(hSocket, &read);
 		FD_SET(hSocket, &write);
 		FD_SET(hSocket, &except);
@@ -228,15 +228,15 @@ struct NetSelectSet
 
 	bool canRead(NetSocket& socket)
 	{
-		return FD_ISSET( socket.getSocketObject() , &read );
+		return FD_ISSET( socket.getHandle() , &read );
 	}
 	bool canWrite(NetSocket& socket)
 	{
-		return FD_ISSET(socket.getSocketObject(), &write);
+		return FD_ISSET(socket.getHandle(), &write);
 	}
 	bool haveExcept(NetSocket& socket)
 	{
-		return FD_ISSET(socket.getSocketObject(), &except);
+		return FD_ISSET(socket.getHandle(), &except);
 	}
 
 	int numFD;
@@ -261,7 +261,7 @@ bool NetSocket::detectTCP( SocketDetector& detector )
 	}
 
 
-	SOCKET hSocket = getSocketObject();
+	SOCKET hSocket = getHandle();
 	switch ( mState )
 	{
 	case  SKS_CONNECT:
@@ -345,7 +345,7 @@ bool NetSocket::detectUDP( SocketDetector& detector )
 		return false;
 	}
 
-	SOCKET hSocket = getSocketObject();
+	SOCKET hSocket = getHandle();
 
 	if ( selectSet.canRead( *this ) )
 	{
@@ -373,15 +373,15 @@ bool NetSocket::detectUDP( SocketDetector& detector )
 
 void NetSocket::close()
 {
-	if ( getSocketObject() != INVALID_SOCKET )
+	if ( getHandle() != INVALID_SOCKET )
 	{
-		int rVal = ::closesocket( getSocketObject() );
+		int rVal = ::closesocket( getHandle() );
 		if ( rVal == SOCKET_ERROR )
 		{
 
 		}
 	}
-	mSocketObj =  INVALID_SOCKET;
+	mHandle =  INVALID_SOCKET;
 	mState     =  SKS_CLOSE;
 
 }
@@ -417,12 +417,12 @@ int NetSocket::getLastError()
 
 void NetSocket::move( NetSocket& socket )
 {
-	assert( mSocketObj == INVALID_SOCKET );
+	assert( mHandle == INVALID_SOCKET );
 
-	mSocketObj =  socket.mSocketObj;
+	mHandle =  socket.mHandle;
 	mState = socket.mState;
 
-	socket.mSocketObj = INVALID_SOCKET;
+	socket.mHandle = INVALID_SOCKET;
 	socket.mState = SKS_CLOSE;
 }
 
@@ -430,7 +430,7 @@ void NetSocket::move( NetSocket& socket )
 bool NetAddress::setFromSocket( NetSocket const& socket )
 {
 	int len = sizeof( mAddr );
-	return ::getpeername( socket.getSocketObject() , (sockaddr*)&mAddr, &len) != 0;
+	return ::getpeername( socket.getHandle() , (sockaddr*)&mAddr, &len) != 0;
 }
 
 bool NetAddress::setInternet( char const* addrName , unsigned port )

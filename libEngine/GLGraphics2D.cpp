@@ -2,6 +2,10 @@
 
 #include "Math/Base.h"
 
+#include "RHI/RHICommand.h"
+#include "RHI/RHICommon.h"
+
+
 #include <cassert>
 #include <algorithm>
 
@@ -138,6 +142,12 @@ void GLGraphics2D::finishXForm()
 void GLGraphics2D::beginRender()
 {
 	glPushAttrib(GL_ENABLE_BIT | GL_VIEWPORT_BIT);
+
+	using namespace RenderGL;
+	RHISetDepthStencilState(StaticDepthDisableState::GetRHI());
+	RHISetBlendState(TStaticBlendState<>::GetRHI());
+	RHISetRasterizerState(TStaticRasterizerState< ECullMode::None >::GetRHI());
+	glDisable( GL_BLEND );
 	glDisable( GL_DEPTH_TEST );
 	glDisable( GL_CULL_FACE );
 
@@ -358,32 +368,36 @@ void GLGraphics2D::setTextColor(Color3ub const& color)
 
 void GLGraphics2D::drawText(Vector2 const& pos , char const* str)
 {
-	if ( !mFont )
+	if ( !mFont || !mFont->isValid() )
 		return;
 	int fontSize = mFont->getSize();
 	float ox = pos.x;
-	float oy = pos.y + fontSize;
+	float oy = pos.y;
 	drawTextImpl(ox, oy, str);
 }
 
 void GLGraphics2D::drawText(Vector2 const& pos , Vector2 const& size , char const* str , bool beClip /*= false */)
 {
-	if ( !mFont )
+	if ( !mFont || !mFont->isValid() )
 		return;
+	if( beClip )
+		beginClip(pos, size);
+
+	Vector2 extent = mFont->calcTextExtent(str);
 	int fontSize = mFont->getSize();
 	int strLen = strlen( str );
-	float ox = pos.x + ( size.x - ( 3 * fontSize / 4 ) * strLen ) / 2 ;
-	float oy = pos.y + fontSize + ( size.y - fontSize ) / 2;
-	drawTextImpl(ox, oy, str);
+	Vector2 renderPos = pos + (size - extent) / 2;
+	drawTextImpl(renderPos.x, renderPos.y, str);
+
+	if( beClip )
+		endClip();
 }
 
 void GLGraphics2D::drawTextImpl(float  ox, float  oy, char const* str)
 {
 	assert( mFont );
-	glColor4f( mColorFont.r , mColorFont.g , mColorFont.b , mAlpha );
-	glRasterPos2i(0, 0);
-	glBitmap(0, 0, 0, 0, ox , -oy , NULL);
-	mFont->print( str );
+	glColor4f( mColorFont.r , mColorFont.g , mColorFont.b , 1.0 );
+	mFont->draw( Vector2(int(ox),int(oy)) , str );
 }
 
 void GLGraphics2D::drawPolygonBuffer()
@@ -451,96 +465,3 @@ void GLGraphics2D::endBlend()
 	mAlpha = 1.0f;
 }
 
-GLFont::GLFont()
-{
-#ifdef SYS_PLATFORM_WIN
-	mhFont = NULL;
-#endif
-	mSize = 0;
-	mIdBaseList = 0;
-}
-
-
-GLFont::~GLFont()
-{
-	cleanup();
-}
-
-#ifdef SYS_PLATFORM_WIN
-void GLFont::buildBaseImage( int size , char const* faceName , HDC hDC )
-{
-	mSize = size;
-	mIdBaseList = glGenLists(96);								// Storage For 96 Characters
-
-	int height = -(int)(fabs( ( float)10 * size *GetDeviceCaps( hDC ,LOGPIXELSY)/72)/10.0+0.5);
-
-	mhFont = CreateFontA(	
-		height ,					    // Height Of Font
-		0,								// Width Of Font
-		0,								// Angle Of Escapement
-		0,								// Orientation Angle
-		FW_BOLD,						// Font Weight
-		FALSE,							// Italic
-		FALSE,							// Underline
-		FALSE,							// Strikeout
-		ANSI_CHARSET,					// Character Set Identifier
-		OUT_TT_PRECIS,					// Output Precision
-		CLIP_DEFAULT_PRECIS,			// Clipping Precision
-		ANTIALIASED_QUALITY,			// Output Quality
-		FF_DONTCARE|DEFAULT_PITCH,		// Family And Pitch
-		faceName );			    // Font Name
-
-	
-	HFONT oldFont = (HFONT)SelectObject(hDC, mhFont);           // Selects The Font We Want
-	wglUseFontBitmaps(hDC, 32, 96, mIdBaseList);	    // Builds 96 Characters Starting At Character 32
-	SelectObject(hDC, oldFont);							// Selects The Font We Want
-	DeleteObject(oldFont);									// Delete The Font
-}
-#endif
-void GLFont::printf(const char *fmt, ...)
-{
-	if (fmt == NULL)									// If There's No Text
-		return;											// Do Nothing
-
-	va_list	ap;	
-	char    text[1024];								// Holds Our String
-
-	va_start(ap, fmt);									// Parses The String For Variables
-	vsprintf_s(text, fmt, ap);						// And Converts Symbols To Actual Numbers
-	va_end(ap);											// Results Are Stored In Text
-
-
-	glPushAttrib(GL_LIST_BIT);							// Pushes The Display List Bits
-	glListBase(mIdBaseList - 32);								// Sets The Base Character to 32
-	glCallLists(strlen(text), GL_UNSIGNED_BYTE, text);	// Draws The Display List Text
-	glPopAttrib();										// Pops The Display List Bits
-}
-
-
-void GLFont::print( char const* str )
-{
-
-	if (str == NULL)									// If There's No Text
-		return;											// Do Nothing
-	glPushAttrib(GL_LIST_BIT);							// Pushes The Display List Bits
-	glListBase(mIdBaseList - 32);								// Sets The Base Character to 32
-	glCallLists(strlen(str), GL_UNSIGNED_BYTE, str);	// Draws The Display List Text
-	glPopAttrib();										// Pops The Display List Bits
-}
-
-
-
-void GLFont::create( int size , char const* faceName , HDC hDC)
-{
-	buildBaseImage( size , faceName , hDC );
-}
-
-void GLFont::cleanup()
-{
-	if ( mIdBaseList )
-	{
-		glDeleteLists(mIdBaseList, 96);
-		mIdBaseList = 0;
-		mSize = 0;
-	}
-}

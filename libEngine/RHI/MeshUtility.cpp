@@ -1463,7 +1463,7 @@ namespace RenderGL
 
 		int nV = numSide + 2;
 		std::vector< float > vertices(nV * size);
-		float const sf = 2 * PI / numSide;
+		float const sf = 2 * Math::PI / numSide;
 
 		float* v = &vertices[0] + mesh.mDecl.getSematicOffset(Vertex::ePosition) / sizeof(float);
 

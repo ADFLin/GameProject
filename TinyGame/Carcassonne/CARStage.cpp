@@ -15,6 +15,7 @@
 
 #include "DataTransferImpl.h"
 
+
 namespace CAR
 {
 #if CAR_USE_INPUT_COMMAND
@@ -53,7 +54,7 @@ namespace CAR
 		Vector2( -farmOffset , farmOffset2 ) , Vector2( -farmOffset , -farmOffset2 ) , Vector2( -farmOffset2 , -farmOffset ) , Vector2( farmOffset2 , -farmOffset ) , 
 	};
 
-	int ColorMap[] = { Color::eBlack , Color::eRed , Color::eYellow , Color::eGreen , Color::eBlue , Color::eGray };
+	int ColorMap[] = { EColor::Black , EColor::Red , EColor::Yellow , EColor::Green , EColor::Blue , EColor::Gray };
 
 
 	bool gDrawFarmLink = true;
@@ -263,8 +264,8 @@ namespace CAR
 		WorldTileManager& world = mGameLogic.getWorld();
 		for ( auto iter = world.createWorldTileIterator() ; iter ; ++iter )
 		{
-			RenderUtility::SetBrush( g , Color::eNull );
-			RenderUtility::SetPen( g , Color::eGray );
+			RenderUtility::SetBrush( g , EColor::Null );
+			RenderUtility::SetPen( g , EColor::Gray );
 
 			MapTile const& mapData = iter->second;
 
@@ -332,8 +333,8 @@ namespace CAR
 					for( MapTileSet::iterator iter = feature->mapTiles.begin() , itEnd = feature->mapTiles.end() ;
 						iter != itEnd ; ++iter )
 					{
-						RenderUtility::SetBrush( g , Color::eNull );
-						RenderUtility::SetPen( g , Color::eRed );
+						RenderUtility::SetBrush( g , EColor::Null );
+						RenderUtility::SetPen( g , EColor::Red );
 						drawTileRect( g , (*iter)->pos );
 					}
 
@@ -342,8 +343,8 @@ namespace CAR
 					case FeatureType::eCity:
 					case FeatureType::eRoad:
 						{
-							RenderUtility::SetBrush( g , Color::eRed );
-							RenderUtility::SetPen( g , Color::eRed );
+							RenderUtility::SetBrush( g , EColor::Red );
+							RenderUtility::SetPen( g , EColor::Red );
 							SideFeature* sideFeature = static_cast< SideFeature* >( feature );
 							for( std::vector< SideNode* >::iterator iter = sideFeature->nodes.begin() , itEnd = sideFeature->nodes.end();
 								iter != itEnd ; ++iter )
@@ -356,8 +357,8 @@ namespace CAR
 						break;
 					case FeatureType::eFarm:
 						{
-							RenderUtility::SetBrush( g , Color::eRed );
-							RenderUtility::SetPen( g , Color::eRed );
+							RenderUtility::SetBrush( g , EColor::Red );
+							RenderUtility::SetPen( g , EColor::Red );
 							FarmFeature* farm = static_cast< FarmFeature* >( feature );
 							for( std::vector< FarmNode* >::iterator iter = farm->nodes.begin() , itEnd = farm->nodes.end();
 								iter != itEnd ; ++iter )
@@ -398,8 +399,8 @@ namespace CAR
 				}
 			}
 
-			RenderUtility::SetBrush( g , Color::eWhite );
-			RenderUtility::SetPen( g , Color::eWhite );
+			RenderUtility::SetBrush( g , EColor::White );
+			RenderUtility::SetPen( g , EColor::White );
 
 			FixString< 128 > str;
 			Vector2 screenPos = convertToScreenPos( mapPos );
@@ -466,8 +467,8 @@ namespace CAR
 
 		if ( mInput.getReplyAction() == ACTION_PLACE_TILE )
 		{
-			RenderUtility::SetBrush( g , Color::eNull );
-			RenderUtility::SetPen( g , Color::eWhite );
+			RenderUtility::SetBrush( g , EColor::Null );
+			RenderUtility::SetPen( g , EColor::White );
 			drawTileRect( g , mCurMapPos );
 			if ( world.findMapTile( mCurMapPos ) == nullptr )
 			{
@@ -477,8 +478,8 @@ namespace CAR
 			for( int i = 0  ; i < mGameLogic.mPlaceTilePosList.size() ; ++i )
 			{
 				Vec2i pos = mGameLogic.mPlaceTilePosList[i];
-				RenderUtility::SetBrush( g , Color::eNull );
-				RenderUtility::SetPen( g , Color::eGreen );
+				RenderUtility::SetBrush( g , EColor::Null );
+				RenderUtility::SetPen( g , EColor::Green );
 				drawTileRect( g , pos );
 			}
 		}
@@ -518,8 +519,8 @@ namespace CAR
 					actionStr = "Deploy Actor";
 					GameDeployActorData* myData = static_cast< GameDeployActorData* >( mInput.getReplyData() );
 
-					RenderUtility::SetBrush( g , Color::eNull );
-					RenderUtility::SetPen( g , Color::eWhite );
+					RenderUtility::SetBrush( g , EColor::Null );
+					RenderUtility::SetPen( g , EColor::White );
 					for( int i = 0 ; i < mGameActionUI.size() ; ++i )
 					{
 						GWidget* widget = mGameActionUI[i];
@@ -558,7 +559,7 @@ namespace CAR
 			
 			for( int i = 0; i < TilePiece::NumFarm ; ++i )
 			{
-				int color = Color::eCyan;
+				int color = EColor::Cyan;
 				MapTile::FarmNode const& node = mapData.farmNodes[i];
 
 				if ( node.outConnect )
@@ -608,13 +609,13 @@ namespace CAR
 				{
 					int dir = FDir::ToWorld(i, rotation);
 
-					int color = Color::eWhite;
+					int color = EColor::White;
 					switch( tile.getLinkType(i) )
 					{
-					case SideType::eCity:   color = Color::eOrange; break;
-					case SideType::eField:  color = Color::eGreen; break;
-					case SideType::eRiver:  color = Color::eBlue; break;
-					case SideType::eRoad:   color = Color::eYellow; break;
+					case SideType::eCity:   color = EColor::Orange; break;
+					case SideType::eField:  color = EColor::Green; break;
+					case SideType::eRiver:  color = EColor::Blue; break;
+					case SideType::eRoad:   color = EColor::Yellow; break;
 					}
 
 					RenderUtility::SetBrush(g, color, COLOR_NORMAL);
@@ -653,8 +654,8 @@ namespace CAR
 
 			if ( tile.contentFlag & TileContent::eCloister )
 			{
-				RenderUtility::SetBrush( g , Color::ePurple , COLOR_NORMAL );
-				RenderUtility::SetPen( g , Color::ePurple , COLOR_NORMAL );
+				RenderUtility::SetBrush( g , EColor::Purple , COLOR_NORMAL );
+				RenderUtility::SetPen( g , EColor::Purple , COLOR_NORMAL );
 				Vec2i size( 4 ,4 );
 				g.drawRect( convertToScreenPos( mapPos ) - size / 2 , size );
 			}
@@ -695,7 +696,7 @@ namespace CAR
 				MapTile const* mapTile = myFeature->nodes[0]->getMapTile();
 				g.drawText( tempPos , str.format( " City: ( %d %d , %d ) NodeNum=%d OpenCount=%d HSCount=%d FarmNum=%d " ,
 					mapTile->pos.x , mapTile->pos.y , myFeature->nodes[0]->index ,
-					myFeature->nodes.size() , myFeature->openCount , myFeature->halfSepareteCount , myFeature->linkFarms.size() ) ) ;
+					myFeature->nodes.size() , myFeature->openCount , myFeature->halfSepareteCount , myFeature->linkedFarms.size() ) ) ;
 				tempPos.y += offsetY;
 			}
 			break;
@@ -715,7 +716,7 @@ namespace CAR
 				MapTile const* mapTile = myFeature->nodes[0]->getMapTile();
 				g.drawText( tempPos , str.format( " Farm: ( %d %d , %d ) NodeNum=%d CityNum=%d" , 
 					mapTile->pos.x , mapTile->pos.y , myFeature->nodes[0]->index ,
-					myFeature->nodes.size() , myFeature->linkCities.size() ) );
+					myFeature->nodes.size() , myFeature->linkedCities.size() ) );
 				tempPos.y += offsetY;
 			}
 			break;
@@ -1481,7 +1482,7 @@ namespace CAR
 			//BIT( EXP_THE_TOWER ) |
 			//BIT( EXP_ABBEY_AND_MAYOR ) |
 			//BIT( EXP_KING_AND_ROBBER ) |
-			//BIT( EXP_BRIDGES_CASTLES_AND_BAZAARS ) |
+			BIT( EXP_BRIDGES_CASTLES_AND_BAZAARS ) |
 			BIT( EXP_HILLS_AND_SHEEP ) |
 			BIT( EXP_CASTLES ) |
 			0;
@@ -1635,18 +1636,18 @@ namespace CAR
 		//assert( !useColorKey );
 
 		if ( getButtonState() == BS_PRESS )
-			RenderUtility::SetPen( g , Color::eBlack );
+			RenderUtility::SetPen( g , EColor::Black );
 		else
-			RenderUtility::SetPen( g , Color::eWhite );
+			RenderUtility::SetPen( g , EColor::White );
 
 		switch( info->pos.type )
 		{
-		case ActorPos::eSideNode:    RenderUtility::SetBrush( g , Color::eYellow , COLOR_DEEP );  break;
-		case ActorPos::eFarmNode:    RenderUtility::SetBrush( g , Color::eGreen , COLOR_LIGHT ); break;
-		case ActorPos::eTile:        RenderUtility::SetBrush( g , Color::eOrange , COLOR_LIGHT ); break;
-		case ActorPos::eTileCorner:  RenderUtility::SetBrush( g , Color::eYellow  , COLOR_LIGHT ); break;
+		case ActorPos::eSideNode:    RenderUtility::SetBrush( g , EColor::Yellow , COLOR_DEEP );  break;
+		case ActorPos::eFarmNode:    RenderUtility::SetBrush( g , EColor::Green , COLOR_LIGHT ); break;
+		case ActorPos::eTile:        RenderUtility::SetBrush( g , EColor::Orange , COLOR_LIGHT ); break;
+		case ActorPos::eTileCorner:  RenderUtility::SetBrush( g , EColor::Yellow  , COLOR_LIGHT ); break;
 		default:
-			RenderUtility::SetBrush( g , Color::eGray );
+			RenderUtility::SetBrush( g , EColor::Gray );
 		}
 		g.drawRect( pos , size );
 
@@ -1665,11 +1666,11 @@ namespace CAR
 		//assert( !useColorKey );
 
 		if ( getButtonState() == BS_PRESS )
-			RenderUtility::SetPen( g , Color::eBlack );
+			RenderUtility::SetPen( g , EColor::Black );
 		else
-			RenderUtility::SetPen( g , Color::eWhite );
+			RenderUtility::SetPen( g , EColor::White );
 
-		RenderUtility::SetBrush( g , Color::eYellow , COLOR_DEEP );
+		RenderUtility::SetBrush( g , EColor::Yellow , COLOR_DEEP );
 		g.drawRect( pos , size );
 
 		//g.setTextColor( 0 , 0 , 0 );

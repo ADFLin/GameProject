@@ -116,7 +116,10 @@ namespace Poker { namespace Big2 {
 			IGraphics2D& g = ::Global::getIGraphics2D();
 			Vec2i pos  = getWorldPos();
 			Vec2i size = getSize();
-			GWidget::getRenderer().drawButton( g , pos  , size , getButtonState() , Color::eBlue , isEnable() );
+
+			WidgetColor color;
+			color.setName(EColor::Blue);
+			GWidget::getRenderer().drawButton( g , pos  , size , getButtonState() , color, isEnable() );
 
 			char const* str = "??";
 			if ( getButtonState() == BS_PRESS )
@@ -230,7 +233,7 @@ namespace Poker { namespace Big2 {
 
 		int yOffset = 50;
 		Vec2i gap( 8 , 8 );
-		RenderUtility::SetPen( g , Color::eBlack );
+		RenderUtility::SetPen( g , EColor::Black );
 		g.setBrush( Color3ub( 100 , 100 , 100 ) );
 		g.drawRect( Vec2i(0,0) , sSize );
 		g.setBrush( Color3ub( 128 , 64 , 64 ) );
@@ -313,7 +316,7 @@ namespace Poker { namespace Big2 {
 				}
 
 				{
-					RenderUtility::SetBrush( g , Color::eRed );
+					RenderUtility::SetBrush( g , EColor::Red );
 
 					TablePos tPos = getLevel().getTablePos( getLevel().getNextShowSlot() );
 					g.drawCircle( ( sSize - Vec2i( 0 , yOffset ) ) / 2 + 14 * gTablePosOffset[ tPos ]  , 10 );

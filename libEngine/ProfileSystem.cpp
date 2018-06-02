@@ -20,11 +20,40 @@ inline float Profile_GetTickRate(void)
 	return 1000.f;
 }
 
+class ProfileSystemImpl : public ProfileSystem
+{
+public:
+
+	void  cleanup();
+	void  resetSample();
+
+	void  incrementFrameCount();
+	int	  getFrameCountSinceReset() { return mFrameCounter; }
+	float  getTimeSinceReset();
+
+	ProfileSampleIterator getSampleIterator(uint32 ThreadId = 0);
+
+#if 0
+	void   dumpRecursive(ProfileSampleIterator* profileIterator, int spacing);
+	void   dumpAll(uint32 ThreadId);
+#endif
+
+	static ThreadProfileData* GetThreadData();
+private:
+	friend class ProfileSystem;
+	ProfileSystemImpl(char const* rootName = "Root");
+	~ProfileSystemImpl();
+
+	int				         mFrameCounter;
+	unsigned long int        ResetTime;
+};
+
+#if CORE_SHARE_CODE
 
 #if 0
 Mutex gInstanceLock;
 std::atomic< ProfileSystem* > gInstance;
-ProfileSystem& ProfileSystem::Get()
+ProfileSystem& IProfileSystem::Get()
 {
 	ProfileSystem* instance = gInstance.load(std::memory_order_acquire);
 
@@ -43,12 +72,25 @@ ProfileSystem& ProfileSystem::Get()
 #else
 ProfileSystem& ProfileSystem::Get()
 {
-	static ProfileSystem sInstance;
+	static ProfileSystemImpl sInstance;
 	return sInstance;
 }
 #endif
 
-ProfileSystem::ProfileSystem(char const* rootName)
+ProfileSampleScope::ProfileSampleScope(const char * name, unsigned flag)
+{
+	ProfileSystemImpl::GetThreadData()->tryStartTiming(name, flag);
+}
+
+ProfileSampleScope::~ProfileSampleScope(void)
+{
+	ProfileSystemImpl::GetThreadData()->stopTiming();
+}
+
+#endif //CORE_SHARE_CODE
+
+
+ProfileSystemImpl::ProfileSystemImpl(char const* rootName)
 	:mFrameCounter(0)
 	,ResetTime(0)
 {
@@ -56,19 +98,17 @@ ProfileSystem::ProfileSystem(char const* rootName)
 
 }
 
-
-
-ProfileSystem::~ProfileSystem()
+ProfileSystemImpl::~ProfileSystemImpl()
 {
 	cleanup();
 }
 
-void ProfileSystem::cleanup()
+void ProfileSystemImpl::cleanup()
 {
 
 }
 
-void ProfileSystem::resetSample()
+void ProfileSystemImpl::resetSample()
 {
 	gProfileClock.reset();
 	mFrameCounter = 0;
@@ -78,13 +118,13 @@ void ProfileSystem::resetSample()
 
 
 
-void ProfileSystem::incrementFrameCount()
+void ProfileSystemImpl::incrementFrameCount()
 {
 	++mFrameCounter;
 }
 
 
-float ProfileSystem::getTimeSinceReset()
+float ProfileSystemImpl::getTimeSinceReset()
 {
 	unsigned long int time;
 	Profile_GetTicks(&time);
@@ -92,7 +132,7 @@ float ProfileSystem::getTimeSinceReset()
 	return (float)time / Profile_GetTickRate();
 }
 
-ProfileSampleIterator ProfileSystem::getSampleIterator(uint32 ThreadId)
+ProfileSampleIterator ProfileSystemImpl::getSampleIterator(uint32 ThreadId)
 {
 	return GetThreadData()->getSampleIterator();
 }
@@ -100,7 +140,7 @@ ProfileSampleIterator ProfileSystem::getSampleIterator(uint32 ThreadId)
 std::unordered_map< uint32, ThreadProfileData* > ThreadDataMap;
 thread_local ThreadProfileData* gThreadDataLocal = nullptr;
 
-ThreadProfileData* ProfileSystem::GetThreadData()
+ThreadProfileData* ProfileSystemImpl::GetThreadData()
 {
 	if( gThreadDataLocal == nullptr )
 	{
@@ -114,7 +154,7 @@ ThreadProfileData* ProfileSystem::GetThreadData()
 #if 0
 #include <stdio.h>
 
-void	ProfileSystem::dumpRecursive(ProfileSampleIterator* profileIterator, int spacing)
+void	ProfileSystemImpl::dumpRecursive(ProfileSampleIterator* profileIterator, int spacing)
 {
 	profileIterator->first();
 	if( profileIterator->isDone() )
@@ -162,7 +202,7 @@ void	ProfileSystem::dumpRecursive(ProfileSampleIterator* profileIterator, int sp
 }
 
 
-void ProfileSystem::dumpAll(uint32 ThreadId)
+void ProfileSystemImpl::dumpAll(uint32 ThreadId)
 {
 	//#FIXME
 	ProfileSampleIterator profileIterator = getSampleIterator(ThreadId);
@@ -333,17 +373,6 @@ void ProfileSampleIterator::before()
 		node = node->getSibling();
 	}
 	curNode = node;
-}
-
-
-ProfileSampleScope::ProfileSampleScope( const char * name , unsigned flag )
-{
-	ProfileSystem::GetThreadData()->tryStartTiming(name, flag);
-}
-
-ProfileSampleScope::~ProfileSampleScope( void )
-{
-	ProfileSystem::GetThreadData()->stopTiming();
 }
 
 ThreadProfileData::ThreadProfileData(char const* rootName)

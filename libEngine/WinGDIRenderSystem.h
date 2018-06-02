@@ -7,7 +7,7 @@
 #include "Graphics2DBase.h"
 #include "BitmapDC.h"
 
-
+#include <unordered_map>
 #include <cassert>
 
 class GdiTexture
@@ -35,6 +35,8 @@ class WinGdiGraphics2D
 public:
 	WinGdiGraphics2D( HDC hDC = NULL );
 
+
+	void  releaseReources();
 	void  beginXForm();
 	void  finishXForm();
 
@@ -45,11 +47,11 @@ public:
 	void  rotateXForm( float angle );
 	void  scaleXForm( float sx , float sy  );
 
-	void  setPen( Color3ub const& color , int width = 1 )  {  _setPenImpl( ::CreatePen( PS_SOLID , width , color.toXBGR()) , true );  }
-	void  setPen( HPEN hPen , bool beManaged = false )      {  _setPenImpl( hPen , beManaged ); }
-	void  setBrush( Color3ub const& color )                {  _setBrushImpl( ::CreateSolidBrush( color.toXBGR() ) , true );  }
-	void  setBrush( HBRUSH hBrush , bool beManaged = false ){  _setBrushImpl( hBrush , beManaged ); }
-	void  setFont( HFONT hFont , bool beManaged = false )   {  _setFontImpl( hFont , beManaged );  }
+	void  setPen( Color3ub const& color , int width = 1 );
+	void  setPen( HPEN hPen , bool beManaged = false )      {  setPenImpl( hPen , beManaged ); }
+	void  setBrush( Color3ub const& color );
+	void  setBrush( HBRUSH hBrush , bool beManaged = false ){  setBrushImpl( hBrush , beManaged ); }
+	void  setFont( HFONT hFont , bool beManaged = false )   {  setFontImpl( hFont , beManaged );  }
 
 	void  beginClip(Vec2i const& pos, Vec2i const& size);
 	void  endClip();
@@ -94,17 +96,17 @@ public:
 	}
 
 private:
-	void  _setPenImpl( HPEN hPen , bool beManaged );
-	void  _setBrushImpl( HBRUSH hBrush , bool beManaged );
-	void  _setFontImpl( HFONT hFont , bool beManaged );
+	void  setPenImpl( HPEN hPen , bool beManaged );
+	void  setBrushImpl( HBRUSH hBrush , bool beManaged );
+	void  setFontImpl( HFONT hFont , bool beManaged );
 
 	static int const MaxXFormStackNum = 5;
 	XFORM    mXFormStack[ MaxXFormStackNum ];
 	int      mNumStack;
 
-	bool     mbManagedBrush;
-	bool     mbManagedPen;
-	bool     mbManagedFont;
+	bool     mbBrushManaged;
+	bool     mbPenManaged;
+	bool     mbFontManaged;
 
 	HBRUSH   mhCurBrush;
 	HPEN     mhCurPen;
@@ -119,6 +121,9 @@ private:
 	HDC      mhDCTarget;
 	HDC      mhDCRender;
 	HRGN     mhClipRegion;
+
+	std::unordered_map< uint32, HPEN > mCachedPenMap;
+	std::unordered_map< uint32, HBRUSH > mCachedBrushMap;
 
 };
 

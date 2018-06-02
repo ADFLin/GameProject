@@ -32,6 +32,13 @@ namespace RenderGL
 		"#define DOMAIN_SHADER 1\n" ,
 	};
 
+#if CORE_SHARE_CODE
+	ShaderManager& ShaderManager::Get()
+	{
+		static ShaderManager sInatance;
+		return sInatance;
+	}
+#endif //CORE_SHARE_CODE
 
 	ShaderManager::~ShaderManager()
 	{
@@ -40,8 +47,6 @@ namespace RenderGL
 			delete pair.second;
 		}
 	}
-
-
 
 	void ShaderManager::clearnupRHIResouse()
 	{
@@ -290,7 +295,7 @@ namespace RenderGL
 			generateCompileSetup(*info, (*myClass.funGetShaderEntries)(), option, nullptr);
 		}
 
-		updateShaderInternal(shaderProgram, *info);
+		return updateShaderInternal(shaderProgram, *info);
 	}
 
 
@@ -469,14 +474,14 @@ namespace RenderGL
 		if( bSingleFile )
 		{
 			path.format("%s%s", fileName.c_str(), SHADER_FILE_SUBNAME);
-			paths.push_back(CharToWChar(path));
+			paths.push_back(FCString::CharToWChar(path));
 		}
 		else
 		{
 			for( ShaderCompileInfo const& shaderInfo  : shaders )
 			{
 				path.format("%s%s", fileName.c_str(), ShaderPosfixNames[shaderInfo.type]);
-				paths.push_back(CharToWChar(path));
+				paths.push_back(FCString::CharToWChar(path));
 			}
 		}
 	}

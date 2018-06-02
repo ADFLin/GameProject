@@ -140,7 +140,7 @@ namespace Tetris
 
 				bool beCon = false;
 
-				RenderUtility::SetPen( g , Color::eNull );
+				RenderUtility::SetPen( g , EColor::Null );
 
 				if ( color == Piece::Color( dataR ) && i != mapSizeX - 1 )
 				{
@@ -365,14 +365,14 @@ namespace Tetris
 
 	void Scene::renderBackground( Graphics2D& g , Vec2i const& pos )
 	{
-		RenderUtility::SetPen( g , Color::eBlack );
+		RenderUtility::SetPen( g , EColor::Black );
 
 		int sizeX = mLevel->getBlockStorage().getSizeX();
 		int sizeY = mLevel->getBlockStorage().getSizeY();
 
-		RenderUtility::DrawBlock( g , pos , 1 , sizeY + 1 , Color::eGray );
-		RenderUtility::DrawBlock( g , pos + Vec2i( BlockSize , BlockSize * sizeY ) , sizeX , 1  , Color::eGray );
-		RenderUtility::DrawBlock( g , pos + Vec2i( BlockSize * ( sizeX + 1 ) ,0 ) , 1 , sizeY + 1 , Color::eGray );
+		RenderUtility::DrawBlock( g , pos , 1 , sizeY + 1 , EColor::Gray );
+		RenderUtility::DrawBlock( g , pos + Vec2i( BlockSize , BlockSize * sizeY ) , sizeX , 1  , EColor::Gray );
+		RenderUtility::DrawBlock( g , pos + Vec2i( BlockSize * ( sizeX + 1 ) ,0 ) , 1 , sizeY + 1 , EColor::Gray );
 	}
 
 	void Scene::renderCurPiece( Graphics2D& g , Vec2i const& mapPos )

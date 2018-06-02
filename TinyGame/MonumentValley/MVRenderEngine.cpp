@@ -1,8 +1,8 @@
 #include "MVRenderEngine.h"
 
-#include "RenderGL/GLCommon.h"
-#include "RenderGL/DrawUtility.h"
-#include "RenderGL/ShaderCompiler.h"
+#include "RHI/GLCommon.h"
+#include "RHI/DrawUtility.h"
+#include "RHI/ShaderCompiler.h"
 
 #include "FixString.h"
 

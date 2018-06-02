@@ -6,6 +6,8 @@
 #include "ShaderCompiler.h"
 #include "RHICommand.h"
 
+#include "FixString.h"
+
 #include "Scene.h"
 
 #include <algorithm>
@@ -31,11 +33,11 @@ namespace RenderGL
 		mbDataDirty = true;
 	}
 
-	Vec2i ViewInfo::getViewportSize() const
+	IntVector2 ViewInfo::getViewportSize() const
 	{
 		int values[4];
 		glGetIntegerv(GL_VIEWPORT, values);
-		return Vec2i(values[2], values[3]);
+		return IntVector2(values[2], values[3]);
 	}
 
 	void ViewInfo::setupShader(ShaderProgram& program)
@@ -211,7 +213,7 @@ namespace RenderGL
 		return true;
 	}
 
-	void ShadowDepthTech::drawShadowTexture(LightType type , Vec2i const& pos , int length )
+	void ShadowDepthTech::drawShadowTexture(LightType type , IntVector2 const& pos , int length )
 	{
 		ViewportSaveScope vpScope;
 
@@ -222,10 +224,10 @@ namespace RenderGL
 		switch( type )
 		{
 		case LightType::Spot:
-			DrawUtility::DrawTexture(*mShadowMap2, pos, Vec2i(length, length));
+			DrawUtility::DrawTexture(*mShadowMap2, pos, IntVector2(length, length));
 			break;
 		case LightType::Directional:
-			DrawUtility::DrawTexture(*mCascadeTexture, pos, Vec2i(length * CascadedShadowNum, length));
+			DrawUtility::DrawTexture(*mCascadeTexture, pos, IntVector2(length * CascadedShadowNum, length));
 			break;
 		case LightType::Point:
 			DrawUtility::DrawCubeTexture(*mShadowMap, pos, length / 2);
@@ -794,7 +796,7 @@ namespace RenderGL
 		ShaderManager::Get().reloadShader(mProgLightingShowBound);
 	}
 
-	bool GBufferParamData::init(Vec2i const& size)
+	bool GBufferParamData::init(IntVector2 const& size)
 	{
 		for( int i = 0; i < NumBuffer; ++i )
 		{
@@ -824,7 +826,7 @@ namespace RenderGL
 
 	}
 
-	void GBufferParamData::drawTextures( Vec2i const& size , Vec2i const& gapSize )
+	void GBufferParamData::drawTextures(IntVector2 const& size , IntVector2 const& gapSize )
 	{
 		int width = size.x;
 		int height = size.y;
@@ -857,7 +859,7 @@ namespace RenderGL
 
 	void GBufferParamData::drawTexture(int x, int y, int width, int height, int idxBuffer)
 	{
-		DrawUtility::DrawTexture(*textures[idxBuffer], Vec2i(x, y), Vec2i(width, height));
+		DrawUtility::DrawTexture(*textures[idxBuffer], IntVector2(x, y), IntVector2(width, height));
 	}
 
 	void GBufferParamData::drawTexture(int x, int y, int width, int height, int idxBuffer, Vector4 const& colorMask)
@@ -954,7 +956,7 @@ namespace RenderGL
 
 	IMPLEMENT_GLOBAL_SHADER(SSAOAmbientProgram)
 
-	bool PostProcessSSAO::init(Vec2i const& size)
+	bool PostProcessSSAO::init(IntVector2 const& size)
 	{
 		if( !mFrameBuffer.create() )
 			return false;
@@ -1035,7 +1037,7 @@ namespace RenderGL
 		}
 	}
 
-	void PostProcessSSAO::drawSSAOTexture(Vec2i const& pos, Vec2i const& size)
+	void PostProcessSSAO::drawSSAOTexture(IntVector2 const& pos, IntVector2 const& size)
 	{
 		DrawUtility::DrawTexture(*mSSAOTextureBlur, pos, size);
 	}
@@ -1094,7 +1096,7 @@ namespace RenderGL
 		}
 	}
 
-	bool SceneRenderTargets::init(Vec2i const& size)
+	bool SceneRenderTargets::init(IntVector2 const& size)
 	{
 		mIdxRenderFrameTexture = 0;
 		for( int i = 0; i < 2; ++i )
@@ -1139,7 +1141,7 @@ namespace RenderGL
 		glDisable(GL_TEXTURE_2D);
 	}
 
-	bool OITTechnique::init(Vec2i const& size)
+	bool OITTechnique::init(IntVector2 const& size)
 	{
 		mColorStorageTexture = RHICreateTexture2D();
 		if( !mColorStorageTexture->create(Texture::eRGBA16F, OIT_StorageSize, OIT_StorageSize) )
@@ -1234,7 +1236,7 @@ namespace RenderGL
 			MatrixSaveScope matScope(matProj);
 
 			RHISetDepthStencilState(StaticDepthDisableState::GetRHI());
-			DrawUtility::DrawTexture(*mColorStorageTexture, Vec2i(0, 0), Vec2i(200, 200));
+			DrawUtility::DrawTexture(*mColorStorageTexture, IntVector2(0, 0), IntVector2(200, 200));
 			glMemoryBarrier(GL_ALL_BARRIER_BITS);
 
 		}
@@ -1292,7 +1294,7 @@ namespace RenderGL
 			MatrixSaveScope matScope(matProj);
 
 			RHISetDepthStencilState(StaticDepthDisableState::GetRHI());
-			DrawUtility::DrawTexture(*mColorStorageTexture, Vec2i(0, 0), Vec2i(200,200));
+			DrawUtility::DrawTexture(*mColorStorageTexture, IntVector2(0, 0), IntVector2(200,200));
 			glMemoryBarrier(GL_ALL_BARRIER_BITS);
 
 		}
@@ -1729,7 +1731,7 @@ namespace RenderGL
 	IMPLEMENT_GLOBAL_SHADER(DOFBlurVProgram);
 	IMPLEMENT_GLOBAL_SHADER(DOFBlurHAndCombineProgram);
 
-	bool PostProcessDOF::init(Vec2i const& size)
+	bool PostProcessDOF::init(IntVector2 const& size)
 	{
 #if 0
 		mProgGenCoc = ShaderManager::Get().getGlobalShaderT< DOFGenerateCoC >(true);
@@ -1774,6 +1776,8 @@ namespace RenderGL
 		mFrameBufferBlur.addTexture(*mTextureBlurR);
 		mFrameBufferBlur.addTexture(*mTextureBlurG);
 		mFrameBufferBlur.addTexture(*mTextureBlurB);
+
+		return true;
 	}
 
 
@@ -1929,7 +1933,7 @@ namespace RenderGL
 	IMPLEMENT_GLOBAL_SHADER(ClearBufferProgram)
 	IMPLEMENT_GLOBAL_SHADER(LightScatteringProgram)
 
-	bool VolumetricLightingTech::init(Vec2i const& screenSize)
+	bool VolumetricLightingTech::init(IntVector2 const& screenSize)
 	{
 		mProgClearBuffer = ShaderManager::Get().getGlobalShaderT< ClearBufferProgram >(true);
 		if( mProgClearBuffer == nullptr )
@@ -1945,7 +1949,7 @@ namespace RenderGL
 	}
 
 
-	bool VolumetricLightingTech::setupBuffer(Vec2i const& screenSize, int sizeFactor, int depthSlices)
+	bool VolumetricLightingTech::setupBuffer(IntVector2 const& screenSize, int sizeFactor, int depthSlices)
 	{
 		int nx = (screenSize.x + sizeFactor - 1) / sizeFactor;
 		int ny = (screenSize.y + sizeFactor - 1) / sizeFactor;
@@ -1989,6 +1993,7 @@ namespace RenderGL
 		parameter.volumeBuffer[0] = mVolumeBufferA;
 		parameter.volumeBuffer[1] = mVolumeBufferB;
 		parameter.scatteringBuffer[0] = mScatteringBuffer;
+		parameter.lightBuffer = mTiledLightBuffer;
 		parameter.numLights = lights.size();
 
 

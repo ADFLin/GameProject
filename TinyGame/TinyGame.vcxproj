@@ -303,6 +303,7 @@ copy $(TargetDir)EngineShare.dll $(ProjectDir)out\</Command>
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Stage\AsyncWokTestStage.cpp" />
     <ClCompile Include="Stage\CurveBuilderStage.cpp" />
+    <ClCompile Include="Stage\DeviceInfoStage.cpp" />
     <ClCompile Include="Stage\FlowGameStage.cpp" />
     <ClCompile Include="Stage\FluidSimStage.cpp" />
     <ClCompile Include="Stage\FontDrawStage.cpp" />

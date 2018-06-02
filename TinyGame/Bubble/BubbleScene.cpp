@@ -13,16 +13,16 @@ namespace Bubble
 {
 	int const g_BubbleColor[] =
 	{
-		Color::eCyan ,
-		Color::eBlue ,
-		Color::eOrange,
-		Color::eYellow ,
-		Color::eGreen ,
-		Color::ePurple,
-		Color::eRed  ,
-		Color::eGray ,
-		Color::eWhite ,
-		Color::eBlack ,
+		EColor::Cyan ,
+		EColor::Blue ,
+		EColor::Orange,
+		EColor::Yellow ,
+		EColor::Green ,
+		EColor::Purple,
+		EColor::Red  ,
+		EColor::Gray ,
+		EColor::White ,
+		EColor::Black ,
 	};
 
 	struct Scene::SceneBubble : public Level::Bubble
@@ -151,12 +151,12 @@ namespace Bubble
 
 	void Scene::renderBubble( Graphics2D& g , Vector2 const& pos , int color )
 	{
-		RenderUtility::SetPen( g , Color::eBlack );
+		RenderUtility::SetPen( g , EColor::Black );
 		RenderUtility::SetBrush( g , color , COLOR_NORMAL);
 		g.drawCircle( pos , int( g_BubbleRadius )  );
 
 		RenderUtility::SetBrush( g ,  color , COLOR_DEEP );
-		RenderUtility::SetPen( g , Color::eNull );
+		RenderUtility::SetPen( g , EColor::Null );
 		g.drawCircle( pos , int( g_BubbleRadius - 5.0 ) );
 
 		RenderUtility::SetBrush( g ,  color , COLOR_LIGHT );
@@ -167,13 +167,13 @@ namespace Bubble
 	{
 		int width  = int( mLevel.mNumFreeCellLayer * g_BubbleDiameter );
 		RenderUtility::DrawBlock( g , pos - Vector2( (float)BlockSize , (float)BlockSize ) , 
-			Vec2i(   width + 2 * BlockSize , BlockSize ) , Color::eGray );
+			Vec2i(   width + 2 * BlockSize , BlockSize ) , EColor::Gray );
 
 		RenderUtility::DrawBlock( g , pos - Vector2( (float)BlockSize , 0 ) , 
-			Vec2i( BlockSize , (int)mLevel.mMaxDepth ) , Color::eGray );
+			Vec2i( BlockSize , (int)mLevel.mMaxDepth ) , EColor::Gray );
 
 		RenderUtility::DrawBlock( g , pos + Vector2( (float)width , 0 ) , 
-			Vec2i( BlockSize , (int)mLevel.mMaxDepth ) , Color::eGray );
+			Vec2i( BlockSize , (int)mLevel.mMaxDepth ) , EColor::Gray );
 
 	}
 

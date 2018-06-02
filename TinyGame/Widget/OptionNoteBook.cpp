@@ -55,7 +55,7 @@ KeyButton* OptionNoteBook::createKeyButton( Vec2i const& pos , ControlAction act
 	KeyButton* button;
 	button = new KeyButton( UI_SET_KEY , pos, action, parent );
 	button->setRenderCallback( RenderCallBack::Create( this , &OptionNoteBook::renderKeyTitle ) );
-	button->setColor( Color::eRed );
+	button->setColorName( EColor::Red );
 	return button;
 }
 

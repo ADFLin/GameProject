@@ -47,10 +47,15 @@ public:
 private:
 	uint32 getSlotIndex() const { return mIndex >> 1;  }
 	bool   isCastSensitive() const { return !(mIndex & 0x1);  }
-	HashString(EName name, char const* str);
+	CORE_API HashString(EName name, char const* str);
 	uint32 mNumber;
 	uint32 mIndex;
+
+	CORE_API friend uint32 hash_value(HashString const & string);
+
 };
+
+
 
 
 #endif // HashString_h__

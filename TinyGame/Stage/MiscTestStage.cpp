@@ -216,11 +216,11 @@ namespace MRT
 			Vec2i pos = mStationSelected->visual->getPos();
 			Vec2i size = mStationSelected->visual->getSize();
 
-			RenderUtility::SetBrush(g, Color::eRed);
+			RenderUtility::SetBrush(g, EColor::Red);
 			g.drawRect(pos, size);
 		}
 
-		RenderUtility::SetPen(g, Color::eYellow);
+		RenderUtility::SetPen(g, EColor::Yellow);
 		for( auto const& link : mNetwork.links )
 		{
 			Vec2i posA = link->stations[0]->visual->getPos();
@@ -547,7 +547,7 @@ namespace Bsp2D
 			Tree::Edge& edge = tree.mEdges[ leaf.edges[i] ];
 
 			Vec2i pos[2];
-			RenderUtility::SetPen( g , Color::eBlue );
+			RenderUtility::SetPen( g , EColor::Blue );
 			renderer.drawLine( g , edge.v[0] , edge.v[1] , pos );
 
 			Vec2i const rectSize = Vec2i( 6 , 6 );
@@ -558,7 +558,7 @@ namespace Bsp2D
 
 			Vector2 v1 = ( edge.v[0] + edge.v[1] ) / 2;
 			Vector2 v2 = v1 + 0.8 * edge.plane.normal;
-			RenderUtility::SetPen( g , Color::eGreen );
+			RenderUtility::SetPen( g , EColor::Green );
 			renderer.drawLine( g , v1 , v2 , pos );
 		}
 	}
@@ -567,12 +567,12 @@ namespace Bsp2D
 	{
 		Graphics2D& g = Global::getGraphics2D();
 
-		RenderUtility::SetBrush( g , Color::eGray );
-		RenderUtility::SetPen( g , Color::eGray );
+		RenderUtility::SetBrush( g , EColor::Gray );
+		RenderUtility::SetPen( g , EColor::Gray );
 		g.drawRect( Vec2i(0,0) , ::Global::getDrawEngine()->getScreenSize() );
 
-		RenderUtility::SetPen( g , Color::eBlack );
-		RenderUtility::SetBrush( g , Color::eYellow );
+		RenderUtility::SetPen( g , EColor::Black );
+		RenderUtility::SetBrush( g , EColor::Yellow );
 
 		Vec2i sizeRect = Vec2i( 6 , 6 );
 		Vec2i offsetRect = sizeRect / 2;
@@ -591,7 +591,7 @@ namespace Bsp2D
 
 			if ( gShowEdgeNormal )
 			{
-				RenderUtility::SetPen( g , Color::eBlue );
+				RenderUtility::SetPen( g , EColor::Blue );
 
 				for( int i = 0 ; i < mTree.mEdges.size() ; ++i )
 				{
@@ -610,7 +610,7 @@ namespace Bsp2D
 				Vec2i buf[32];
 				drawPolyInternal( g , *mPolyEdit , buf );
 				int const lenRect = 6;
-				RenderUtility::SetBrush( g , Color::eWhite );
+				RenderUtility::SetBrush( g , EColor::White );
 				for( int i = 0 ; i < mPolyEdit->getVertexNum() ; ++i )
 				{
 					g.drawRect( buf[i] - offsetRect , sizeRect );
@@ -619,17 +619,17 @@ namespace Bsp2D
 			break;
 		case CMOD_TEST_INTERACTION:
 			{
-				RenderUtility::SetPen( g , Color::eRed );
+				RenderUtility::SetPen( g , EColor::Red );
 
 				Vec2i pos[2];
 				drawLine( g , mSegment[0] , mSegment[1] , pos );
-				RenderUtility::SetBrush( g , Color::eGreen );
+				RenderUtility::SetBrush( g , EColor::Green );
 				g.drawRect( pos[0] - offsetRect , sizeRect );
-				RenderUtility::SetBrush( g , Color::eBlue );
+				RenderUtility::SetBrush( g , EColor::Blue );
 				g.drawRect( pos[1] - offsetRect , sizeRect );
 				if ( mHaveCol )
 				{
-					RenderUtility::SetBrush( g , Color::eRed );
+					RenderUtility::SetBrush( g , EColor::Red );
 					g.drawRect( convertToScreen( mPosCol ) - offsetRect , sizeRect );
 				}	
 			}

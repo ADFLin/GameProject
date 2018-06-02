@@ -182,7 +182,7 @@ public:
 	{
 		Graphics2D& g = Global::getGraphics2D();
 
-		RenderUtility::SetPen( g , Color::eRed );
+		RenderUtility::SetPen( g , EColor::Red );
 		int num = mSplineLine.size() - 1;
 		for( int i = 0 ; i < num ; ++i )
 		{
@@ -971,20 +971,20 @@ public:
 	{
 		Graphics2D& g = Global::getGraphics2D();
 
-		RenderUtility::SetPen( g , Color::eGray );
+		RenderUtility::SetPen( g , EColor::Gray );
 		for( int i = 0 ; i < mMap.getSizeX() ; ++i )
 		for( int j = 0 ; j < mMap.getSizeY() ; ++j )
 		{
 			switch( mMap.getData(i,j) )
 			{
-			case 1: RenderUtility::SetBrush( g , Color::eYellow ); break;
-			case 0: RenderUtility::SetBrush( g , Color::eWhite );  break;
+			case 1: RenderUtility::SetBrush( g , EColor::Yellow ); break;
+			case 0: RenderUtility::SetBrush( g , EColor::White );  break;
 			}
 			g.drawRect( TileLength * Vec2i( i , j ) , Vec2i( TileLength , TileLength ) );
 		}
 
-		RenderUtility::SetBrush( g , Color::eRed );
-		RenderUtility::SetPen( g , Color::eRed );
+		RenderUtility::SetBrush( g , EColor::Red );
+		RenderUtility::SetPen( g , EColor::Red );
 		g.drawRect( mPos , mSize );
 	}
 
@@ -1193,8 +1193,8 @@ namespace Mario
 
 			TileMap& terrain = mWorld.getTerrain();
 
-			RenderUtility::SetBrush( g , Color::eYellow );
-			RenderUtility::SetPen( g , Color::eYellow );
+			RenderUtility::SetBrush( g , EColor::Yellow );
+			RenderUtility::SetPen( g , EColor::Yellow );
 
 			for( int i = 0 ; i < terrain.getSizeX() ; ++i )
 			for( int j = 0 ; j < terrain.getSizeY() ; ++j )
@@ -1234,8 +1234,8 @@ namespace Mario
 				}
 			}
 
-			RenderUtility::SetBrush( g , Color::eRed );
-			RenderUtility::SetPen( g , Color::eRed );
+			RenderUtility::SetBrush( g , EColor::Red );
+			RenderUtility::SetPen( g , EColor::Red );
 			drawRect( g , player.pos , player.size );
 		}
 
@@ -1739,27 +1739,27 @@ namespace G2D
 		{
 			Graphics2D& g = Global::getGraphics2D();
 
-			RenderUtility::SetPen( g , Color::eGray );
-			RenderUtility::SetBrush( g, Color::eGray );
+			RenderUtility::SetPen( g , EColor::Gray );
+			RenderUtility::SetBrush( g, EColor::Gray );
 			g.drawRect( Vec2i(0,0) , Global::getDrawEngine()->getScreenSize() );
 
 
-			RenderUtility::SetPen( g , Color::eYellow );
-			RenderUtility::SetBrush( g, Color::eNull );
+			RenderUtility::SetPen( g , EColor::Yellow );
+			RenderUtility::SetBrush( g, EColor::Null );
 			if ( !mHullPoly.empty() )
 			{
 				mRenderer.drawPoly( g , &mHullPoly[0] , mHullPoly.size() );
 			}
 
-			RenderUtility::SetPen( g , Color::eGreen );
-			RenderUtility::SetBrush( g, Color::eNull );
+			RenderUtility::SetPen( g , EColor::Green );
+			RenderUtility::SetBrush( g, EColor::Null );
 			if ( !mVertices.empty() )
 			{
 				mRenderer.drawPoly( g , &mVertices[0] , mVertices.size() );
 			}
 
 
-			RenderUtility::SetBrush( g , Color::eRed );
+			RenderUtility::SetBrush( g , EColor::Red );
 			if ( !mVertices.empty() )
 			{
 				for( int i = 0 ; i < mVertices.size(); ++i )
@@ -1768,7 +1768,7 @@ namespace G2D
 				}
 			}
 
-			RenderUtility::SetBrush( g , bInside ? Color::eRed  : Color::eYellow );
+			RenderUtility::SetBrush( g , bInside ? EColor::Red  : EColor::Yellow );
 			mRenderer.drawCircle( g , mTestPos , 0.5 );
 
 		}
@@ -1955,19 +1955,19 @@ namespace G2D
 		{
 			Graphics2D& g = Global::getGraphics2D();
 
-			RenderUtility::SetBrush( g , Color::eGray );
-			RenderUtility::SetPen( g , Color::eGray );
+			RenderUtility::SetBrush( g , EColor::Gray );
+			RenderUtility::SetPen( g , EColor::Gray );
 			g.drawRect( Vec2i(0,0) , ::Global::getDrawEngine()->getScreenSize() );
 
 			if ( mSAT.haveSA )
 			{
-				RenderUtility::SetBrush( g , Color::eWhite );
-				RenderUtility::SetPen( g , Color::eBlack );
+				RenderUtility::SetBrush( g , EColor::White );
+				RenderUtility::SetPen( g , EColor::Black );
 			}
 			else
 			{
-				RenderUtility::SetBrush( g , Color::eRed );
-				RenderUtility::SetPen( g , Color::eYellow );
+				RenderUtility::SetBrush( g , EColor::Red );
+				RenderUtility::SetPen( g , EColor::Yellow );
 			}
 
 			switch( mMode )
@@ -2095,8 +2095,8 @@ public:
 	{
 		Graphics2D& g = Global::getGraphics2D();
 
-		RenderUtility::SetBrush( g, Color::eRed );
-		RenderUtility::SetPen( g , Color::eBlack );
+		RenderUtility::SetBrush( g, EColor::Red );
+		RenderUtility::SetPen( g , EColor::Black );
 		g.drawCircle( Vec2i( mPos ) , radius );
 	}
 
@@ -2251,8 +2251,8 @@ public:
 			Vec2i pos = rootPos + Vec2i( 20 * data.pos , 20 * data.depth );
 
 			Vec2i rectSize( 15 , 15 );
-			RenderUtility::SetBrush( g , node.bBlack ? Color::eBlack : Color::eRed );
-			RenderUtility::SetPen( g , Color::eWhite );
+			RenderUtility::SetBrush( g , node.bBlack ? EColor::Black : EColor::Red );
+			RenderUtility::SetPen( g , EColor::White );
 			g.drawRect( pos , rectSize );
 
 			FixString< 64 > str;
@@ -2562,7 +2562,7 @@ namespace Net
 		{
 			Graphics2D& g = Global::getGraphics2D();
 
-			RenderUtility::SetBrush( g , Color::eYellow );
+			RenderUtility::SetBrush( g , EColor::Yellow );
 			for( int i = 0 ; i < (int)mDataMap.size() ; ++i )
 			{
 				TestObj& data = mDataMap[i];

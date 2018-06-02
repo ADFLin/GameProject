@@ -361,8 +361,8 @@ namespace StickMove
 			Vector2 screenOffset = Vector2(50, 50);
 			float renderScale = 2;
 
-			RenderUtility::SetPen(g, Color::eBlack);
-			RenderUtility::SetBrush(g, Color::eGray);
+			RenderUtility::SetPen(g, EColor::Black);
+			RenderUtility::SetBrush(g, EColor::Gray);
 			g.drawRect(screenOffset, renderScale * mBoundRectSize);
 
 			g.setPen(Color3ub(255, 0, 0), 2);

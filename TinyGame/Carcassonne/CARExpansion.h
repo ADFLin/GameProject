@@ -11,7 +11,7 @@ namespace CAR
 
 	enum Expansion : uint8
 	{
-		// ?process -Done +Tested
+		// ?:process -:Done +:Tested T:Title Edit
 		EXP_INNS_AND_CATHEDRALS,         //
 		EXP_TRADERS_AND_BUILDERS,        //
 		EXP_THE_PRINCESS_AND_THE_DRAGON, //+T +Dragon

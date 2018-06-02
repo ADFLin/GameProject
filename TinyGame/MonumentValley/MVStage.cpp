@@ -10,10 +10,11 @@
 #include "RenderUtility.h"
 #include "GLGraphics2D.h"
 
+#include "RHI/RHICommand.h"
+#include "RHI/DrawUtility.h"
+#include "RHI/ShaderCompiler.h"
+
 #include <limits>
-#include "RenderGL/RHICommand.h"
-#include "RenderGL/DrawUtility.h"
-#include "RenderGL/ShaderCompiler.h"
 
 namespace MV
 {

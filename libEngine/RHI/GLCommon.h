@@ -131,14 +131,22 @@ namespace RenderGL
 	class RHIResource : public RefCountedObjectT< RHIResource >
 	{
 	public:
-		virtual ~RHIResource(){}
-		virtual void releaseRHI(){ }
-
+		RHIResource()
+		{
+			++TotalCount;
+		}
+		virtual ~RHIResource()
+		{
+			--TotalCount;
+		}
+		virtual void releaseRHI(){}
 		void destroyThis()
 		{
 			releaseRHI();
 			delete this;
 		}
+
+		static uint32 TotalCount;
 	};
 
 	typedef  TRefCountPtr< RHIResource > RHIResourceRef;
@@ -294,7 +302,7 @@ namespace RenderGL
 	public:
 		virtual ~RHITextureBase() {}
 	protected:
-		bool loadFileInternal(char const* path, GLenum texType, GLenum texImageType, Vec2i& outSize , Texture::Format& outFormat);
+		bool loadFileInternal(char const* path, GLenum texType, GLenum texImageType, IntVector2& outSize , Texture::Format& outFormat);
 	};
 
 
@@ -638,6 +646,7 @@ namespace RenderGL
 
 	struct VertexElement
 	{
+		uint8 idxStream;
 		uint8 attribute;
 		uint8 format;
 		uint8 offset;
@@ -645,6 +654,7 @@ namespace RenderGL
 		uint8 idx;
 		bool  bNormalize;
 	};
+
 	class VertexDecl
 	{
 	public:
@@ -656,11 +666,12 @@ namespace RenderGL
 		int   getSematicOffset( Vertex::Semantic s , int idx ) const;
 		Vertex::Format  getSematicFormat( Vertex::Semantic s ) const;
 		Vertex::Format  getSematicFormat( Vertex::Semantic s , int idx ) const;
-		uint8 getOffset( int idx ) const { return mInfoVec[idx].offset; }
+		uint8 getOffset( int idx ) const { return mElements[idx].offset; }
 
 		VertexDecl&   addElement( Vertex::Semantic s , Vertex::Format f , uint8 idx = 0 );
 		VertexDecl&   addElement( uint8 attribute ,  Vertex::Format f,  bool bNormailze = false );
-
+		VertexDecl&   addElement( uint8 idxStream , Vertex::Semantic s, Vertex::Format f, uint8 idx = 0);
+		VertexDecl&   addElement( uint8 idxStream , uint8 attribute, Vertex::Format f, bool bNormailze = false);
 
 		void bindPointer(LinearColor const* overwriteColor = nullptr);
 		void unbindPointer(LinearColor const* overwriteColor = nullptr);
@@ -670,8 +681,8 @@ namespace RenderGL
 
 		VertexElement const*   findBySematic( Vertex::Semantic s , int idx ) const;
 		VertexElement const*   findBySematic( Vertex::Semantic s ) const;
-		typedef std::vector< VertexElement > InfoVec;
-		InfoVec mInfoVec;
+
+		std::vector< VertexElement > mElements;
 		uint8   mVertexSize;
 	};
 

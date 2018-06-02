@@ -155,13 +155,13 @@ namespace TripleTown
 					switch( e.id )
 					{
 					case OBJ_NINJA:
-						RenderUtility::SetBrush( g , Color::eRed );
-						RenderUtility::SetPen( g , Color::eBlack );
+						RenderUtility::SetBrush( g , EColor::Red );
+						RenderUtility::SetPen( g , EColor::Black );
 						g.drawCircle( pos + TileSize / 2 , 10 );
 						break;
 					case OBJ_BEAR:
-						RenderUtility::SetBrush( g , Color::eYellow );
-						RenderUtility::SetPen( g , Color::eBlack );
+						RenderUtility::SetBrush( g , EColor::Yellow );
+						RenderUtility::SetPen( g , EColor::Black );
 						g.drawCircle( pos + TileSize / 2 , 10 );
 						break;
 					}
@@ -176,8 +176,8 @@ namespace TripleTown
 			}
 		}
 
-		RenderUtility::SetPen( g , Color::eRed );
-		RenderUtility::SetBrush( g , Color::eNull );
+		RenderUtility::SetPen( g , EColor::Red );
+		RenderUtility::SetBrush( g , EColor::Null );
 		for( int i = 0 ; i < mNumPosRemove ; ++i )
 		{
 			Vec2i pos = mMapOffset + TileLength * Vec2i( mRemovePos[i].x , mRemovePos[i].y );
@@ -187,45 +187,45 @@ namespace TripleTown
 
 	void Scene::renderTile( Graphics2D& g , Vec2i const& pos , ObjectId id , int meta /*= 0 */ )
 	{
-		RenderUtility::SetPen( g , Color::eNull );
+		RenderUtility::SetPen( g , EColor::Null );
 
 		switch( id )
 		{
 		case OBJ_NULL:
-			RenderUtility::SetBrush( g , Color::eYellow , COLOR_DEEP );
+			RenderUtility::SetBrush( g , EColor::Yellow , COLOR_DEEP );
 			g.drawRect( pos , TileSize );
 			break;
 		case OBJ_GRASS:
 			{
 				Vec2i const border = Vec2i( 4 , 4 );
-				RenderUtility::SetBrush( g , Color::eGreen , COLOR_LIGHT );
+				RenderUtility::SetBrush( g , EColor::Green , COLOR_LIGHT );
 				g.drawRect( pos , TileSize );
-				RenderUtility::SetBrush( g , Color::eGreen );
+				RenderUtility::SetBrush( g , EColor::Green );
 				g.drawRect( pos + border , TileSize - 2 * border );
 			}
 			break;
 		case OBJ_BUSH:
 			{
-				RenderUtility::SetBrush( g , Color::eGreen , COLOR_LIGHT );
+				RenderUtility::SetBrush( g , EColor::Green , COLOR_LIGHT );
 				g.drawRect( pos , TileSize );
-				RenderUtility::SetBrush( g , Color::eGreen );
+				RenderUtility::SetBrush( g , EColor::Green );
 				g.drawCircle( pos + TileSize / 2 , TileLength / 2 - 10 );
 			}
 			break;
 		case OBJ_TREE:
 			{
 				Vec2i bSize( 10 , 20 );
-				RenderUtility::SetBrush( g , Color::eGreen , COLOR_LIGHT );
+				RenderUtility::SetBrush( g , EColor::Green , COLOR_LIGHT );
 				g.drawRect( pos , TileSize );
-				RenderUtility::SetBrush( g , Color::eCyan );
+				RenderUtility::SetBrush( g , EColor::Cyan );
 				g.drawRect( pos + TileSize / 2 - bSize / 2 , bSize );
-				RenderUtility::SetBrush( g , Color::eGreen );
+				RenderUtility::SetBrush( g , EColor::Green );
 				g.drawCircle( pos + TileSize / 2 , TileLength / 2 - 12 );
 			}
 			break;
 		case OBJ_STOREHOUSE:
 			{
-				RenderUtility::SetBrush( g , Color::eRed );
+				RenderUtility::SetBrush( g , EColor::Red );
 				g.drawRect( pos , TileSize );
 
 				if ( meta )
@@ -237,7 +237,7 @@ namespace TripleTown
 		default:
 			{
 				Vec2i bSize( TileLength - 16  , TileLength - 16 );
-				RenderUtility::SetBrush( g , Color::eRed );
+				RenderUtility::SetBrush( g , EColor::Red );
 				g.drawRect( pos + TileSize / 2 - bSize / 2 , bSize );
 				FixString< 32 > str;
 				str.format( "%d" , id );

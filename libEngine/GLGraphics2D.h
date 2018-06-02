@@ -1,10 +1,13 @@
 #ifndef GLGraphics2D_h__
 #define GLGraphics2D_h__
 
+#include "RHI/Font.h"
 #include "GLConfig.h"
 #include "Math/Vector2.h"
 #include "Graphics2DBase.h"
 #include "Core/IntegerType.h"
+
+
 
 #include <algorithm>
 #include <cmath>
@@ -18,31 +21,7 @@ class GLTexture
 	
 };
 
-
-class GLFont
-{	
-public:
-	GLFont();
-	~GLFont();
-#ifdef SYS_PLATFORM_WIN
-	explicit GLFont( int size , char const* faceName , HDC hDC ){ buildBaseImage( size , faceName , hDC ); }
-	void create( int size , char const* faceName , HDC hDC);
-private:
-	void buildBaseImage( int size , char const* faceName , HDC hDC );
-#endif
-public:
-	void cleanup();
-	void printf( char const* fmt, ...);
-	void print( char const* str );
-	int  getSize() const{ return mSize; }
-private:
-
-#ifdef SYS_PLATFORM_WIN
-	HFONT   mhFont;
-#endif
-	GLuint	mIdBaseList;
-	int     mSize;
-};
+typedef RenderGL::FontDrawer GLFont;
 
 class GLGraphics2D
 {

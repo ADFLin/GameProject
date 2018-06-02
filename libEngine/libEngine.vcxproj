@@ -160,6 +160,7 @@
     </ProjectReference>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\OtherLib\stb\stb_image.cpp" />
     <ClCompile Include="AI\GeneticAlgorithm.cpp" />
     <ClCompile Include="AI\NeuralNetwork.cpp" />
     <ClCompile Include="AppEntry.cpp" />
@@ -181,6 +182,7 @@
     <ClCompile Include="CPreprocessor.cpp" />
     <ClCompile Include="CRSpline.cpp" />
     <ClCompile Include="FlowSystem.cpp" />
+    <ClCompile Include="Hardware\GPUDeviceQuery.cpp" />
     <ClCompile Include="LogSystem.cpp" />
     <ClCompile Include="FileSystem.cpp" />
     <ClCompile Include="GIFLoader.cpp" />
@@ -203,6 +205,25 @@
     <ClCompile Include="Phy2D\World.cpp" />
     <ClCompile Include="Platform\Windows\WindowsProcess.cpp" />
     <ClCompile Include="ProfileSystem.cpp" />
+    <ClCompile Include="RHI\DrawUtility.cpp" />
+    <ClCompile Include="RHI\Font.cpp" />
+    <ClCompile Include="RHI\GLCommon.cpp" />
+    <ClCompile Include="RHI\GpuProfiler.cpp" />
+    <ClCompile Include="RHI\LazyObject.cpp" />
+    <ClCompile Include="RHI\Material.cpp" />
+    <ClCompile Include="RHI\MeshUtility.cpp" />
+    <ClCompile Include="RHI\PrimitiveBatch.cpp" />
+    <ClCompile Include="RHI\RenderContext.cpp" />
+    <ClCompile Include="RHI\RHICommand.cpp" />
+    <ClCompile Include="RHI\RHICommon.cpp" />
+    <ClCompile Include="RHI\RHIGraphics2D.cpp" />
+    <ClCompile Include="RHI\Scene.cpp" />
+    <ClCompile Include="RHI\SceneObject.cpp" />
+    <ClCompile Include="RHI\SceneRenderer.cpp" />
+    <ClCompile Include="RHI\ShaderCompiler.cpp" />
+    <ClCompile Include="RHI\ShaderCore.cpp" />
+    <ClCompile Include="RHI\TextureAtlas.cpp" />
+    <ClCompile Include="RHI\VertexFactory.cpp" />
     <ClCompile Include="SocketBuffer.cpp" />
     <ClCompile Include="StringParse.cpp" />
     <ClCompile Include="SystemPlatform.cpp" />
@@ -264,6 +285,7 @@
     <ClInclude Include="DataStructure\TUnsignedHash.h" />
     <ClInclude Include="DataStructure\VertorSet.h" />
     <ClInclude Include="Delegate.h" />
+    <ClInclude Include="Hardware\GPUDeviceQuery.h" />
     <ClInclude Include="Math\PrimitiveTest2D.h" />
     <ClInclude Include="Math\SIMD.h" />
     <ClInclude Include="Misc\Guid.h" />
@@ -328,6 +350,28 @@
     <ClInclude Include="RefCount.h" />
     <ClInclude Include="CoreShare.h" />
     <ClInclude Include="ReflectionCollect.h" />
+    <ClInclude Include="RHI\BaseType.h" />
+    <ClInclude Include="RHI\DrawUtility.h" />
+    <ClInclude Include="RHI\Font.h" />
+    <ClInclude Include="RHI\FrameGraph.h" />
+    <ClInclude Include="RHI\GLCommon.h" />
+    <ClInclude Include="RHI\GpuProfiler.h" />
+    <ClInclude Include="RHI\LazyObject.h" />
+    <ClInclude Include="RHI\Material.h" />
+    <ClInclude Include="RHI\MeshUtility.h" />
+    <ClInclude Include="RHI\PrimitiveBatch.h" />
+    <ClInclude Include="RHI\RenderContext.h" />
+    <ClInclude Include="RHI\RHICommand.h" />
+    <ClInclude Include="RHI\RHICommon.h" />
+    <ClInclude Include="RHI\RHIDefine.h" />
+    <ClInclude Include="RHI\RHIGraphics2D.h" />
+    <ClInclude Include="RHI\Scene.h" />
+    <ClInclude Include="RHI\SceneObject.h" />
+    <ClInclude Include="RHI\SceneRenderer.h" />
+    <ClInclude Include="RHI\ShaderCompiler.h" />
+    <ClInclude Include="RHI\ShaderCore.h" />
+    <ClInclude Include="RHI\TextureAtlas.h" />
+    <ClInclude Include="RHI\VertexFactory.h" />
     <ClInclude Include="Singleton.h" />
     <ClInclude Include="SocketBuffer.h" />
     <ClInclude Include="SortFunction.h" />

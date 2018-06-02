@@ -75,6 +75,15 @@ namespace RenderGL
 			UnbindVertexPointer();
 		}
 
+		FORCEINLINE static void Draw(PrimitiveType type, RHIVertexBuffer& buffer,  int nV, LinearColor const& color, int vertexStride = GetVertexSize())
+		{
+			BindVertexPointer((uint8 const*)0, vertexStride ,&color);
+			buffer.bind();
+			RHIDrawPrimitive(type, 0, nV);
+			buffer.unbind();
+			UnbindVertexPointer(&color);
+		}
+
 		FORCEINLINE static void DrawShader(PrimitiveType type, RHIVertexBuffer& buffer, int nV, int vertexStride = GetVertexSize())
 		{
 			BindVertexAttrib((uint8 const*)0, vertexStride);
@@ -82,6 +91,13 @@ namespace RenderGL
 			RHIDrawPrimitive(type, 0, nV);
 			buffer.unbind();
 			UnbindVertexAttrib();
+		}
+
+		FORCEINLINE static void Draw(PrimitiveType type, void const* vetrices, int nV, LinearColor const& color, int vertexStride = GetVertexSize())
+		{
+			BindVertexPointer((uint8 const*)vetrices, vertexStride , &color );
+			RHIDrawPrimitive(type, 0, nV);
+			UnbindVertexPointer(&color);
 		}
 
 		FORCEINLINE static void Draw(PrimitiveType type, void const* vetrices, int nV, int vertexStride = GetVertexSize())
@@ -103,6 +119,13 @@ namespace RenderGL
 			BindVertexPointer((uint8 const*)vetrices, vertexStride);
 			glDrawElements(GLConvert::To(type), nIndex, GL_UNSIGNED_INT, indices);
 			UnbindVertexPointer();
+		}
+
+		FORCEINLINE static void DrawIndexed(PrimitiveType type, void const* vetrices, int nV, int const* indices, int nIndex, LinearColor const& color , int vertexStride = GetVertexSize())
+		{
+			BindVertexPointer((uint8 const*)vetrices, vertexStride, &color );
+			glDrawElements(GLConvert::To(type), nIndex, GL_UNSIGNED_INT, indices);
+			UnbindVertexPointer(&color);
 		}
 
 		FORCEINLINE static void DrawIndexedShader(PrimitiveType type, void const* vetrices, int nV, int const* indices, int nIndex, int vertexStride = GetVertexSize())
@@ -255,12 +278,12 @@ namespace RenderGL
 		static void ScreenRectShader();
 
 		static void Sprite(Vector2 const& pos, Vector2 const& size, Vector2 const& pivot);
-		static void Sprite(Vector2 const& pos, Vector2 const& size, Vector2 const& pivot, Vec2i const& framePos, Vec2i const& frameDim);
+		static void Sprite(Vector2 const& pos, Vector2 const& size, Vector2 const& pivot, IntVector2 const& framePos, IntVector2 const& frameDim);
 		static void Sprite(Vector2 const& pos, Vector2 const& size, Vector2 const& pivot, Vector2 const& texPos, Vector2 const& texSize);
 
-		static void DrawTexture(RHITexture2D& texture, Vec2i const& pos, Vec2i const& size);
-		static void DrawTexture(RHITexture2D& texture, RHISamplerState& sampler , Vec2i const& pos, Vec2i const& size);
-		static void DrawCubeTexture(RHITextureCube& texCube, Vec2i const& pos, int length);
+		static void DrawTexture(RHITexture2D& texture, IntVector2 const& pos, IntVector2 const& size);
+		static void DrawTexture(RHITexture2D& texture, RHISamplerState& sampler , IntVector2 const& pos, IntVector2 const& size);
+		static void DrawCubeTexture(RHITextureCube& texCube, IntVector2 const& pos, int length);
 
 	};
 

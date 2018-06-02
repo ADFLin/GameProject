@@ -107,7 +107,7 @@ namespace CAR
 		int numPlayer = evalMajorityControl( scoreInfos );
 		for( int i = 0 ; i < numPlayer ; ++i )
 		{
-			scoreInfos[i].score = calcPlayerScore( scoreInfos[i].id );
+			scoreInfos[i].score = calcPlayerScore( scoreInfos[i].playerId );
 		}
 		return numPlayer;
 	}
@@ -204,7 +204,7 @@ namespace CAR
 		scoreInfos.resize( MaxPlayerNum );
 		for( int i = 0 ; i < MaxPlayerNum ; ++i )
 		{
-			scoreInfos[i].id       = i;
+			scoreInfos[i].playerId = i;
 			scoreInfos[i].majority = 0;
 			scoreInfos[i].hillFollowerCount = 0;
 		}
@@ -479,12 +479,12 @@ namespace CAR
 
 		assert( other.type == type );
 		CityFeature& otherData = static_cast< CityFeature& >( other );
-		MergeData( linkFarms , otherData.linkFarms );
-		for( std::set< FarmFeature* >::iterator iter = otherData.linkFarms.begin() , itEnd = otherData.linkFarms.end();
+		MergeData( linkedFarms , otherData.linkedFarms );
+		for( std::set< FarmFeature* >::iterator iter = otherData.linkedFarms.begin() , itEnd = otherData.linkedFarms.end();
 			iter != itEnd ; ++iter )
 		{
 			FarmFeature* farm = *iter;
-			farm->linkCities.erase( &otherData );
+			farm->linkedCities.erase( &otherData );
 		}
 	}
 
@@ -576,12 +576,12 @@ namespace CAR
 		FarmFeature& otherData = static_cast< FarmFeature& >( other );
 		int idx = nodes.size();
 		MergeData( nodes , otherData.nodes );
-		MergeData( linkCities , otherData.linkCities );
-		for( std::set< CityFeature* >::iterator iter = otherData.linkCities.begin() , itEnd = otherData.linkCities.end();
+		MergeData( linkedCities , otherData.linkedCities );
+		for( std::set< CityFeature* >::iterator iter = otherData.linkedCities.begin() , itEnd = otherData.linkedCities.end();
 			iter != itEnd ; ++iter )
 		{
 			CityFeature* city = *iter;
-			city->linkFarms.erase( &otherData );
+			city->linkedFarms.erase( &otherData );
 		}
 		for( int i = idx ; i < nodes.size() ; ++i )
 			nodes[i]->group = group;
@@ -645,7 +645,7 @@ namespace CAR
 		int numCityFinish = 0;
 		int numCastle = 0;
 
-		for( std::set< CityFeature* >::iterator iter = linkCities.begin() , itEnd = linkCities.end();
+		for( std::set< CityFeature* >::iterator iter = linkedCities.begin() , itEnd = linkedCities.end();
 			iter != itEnd ; ++iter )
 		{
 			CityFeature* city = *iter;
@@ -718,9 +718,9 @@ namespace CAR
 			if ( majority > 0 )
 			{
 				scoreInfos.resize(1);
-				scoreInfos[0].id = actor->owner->getId();
+				scoreInfos[0].playerId = actor->owner->getId();
 				scoreInfos[0].majority = majority;
-				scoreInfos[0].score = calcPlayerScore( actor->owner->getId() );
+				scoreInfos[0].score = calcPlayerScore(scoreInfos[0].playerId);
 				return 1;
 			}
 		}
@@ -817,7 +817,7 @@ namespace CAR
 			if ( majority > 0 )
 			{
 				scoreInfos.resize(1);
-				scoreInfos[0].id = actor->owner->getId();
+				scoreInfos[0].playerId = actor->owner->getId();
 				scoreInfos[0].majority = majority;
 				scoreInfos[0].score = calcPlayerScore( actor->owner->getId() );
 				return 1;

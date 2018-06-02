@@ -210,7 +210,7 @@ void PlayerListPanel::setupPlayerList( SPPlayerStatus& status )
 	{
 		Slot&  slot = getSlot( status.info[i]->slot );
 		if ( status.flags[i] & ServerPlayer::eReady )
-			slot.choice->setColor( Color::eGreen );
+			slot.choice->setColorName( EColor::Green );
 	}
 }
 

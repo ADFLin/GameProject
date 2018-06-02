@@ -109,54 +109,54 @@ public:
 	}
 	bool init( int af,int type,int protocol )
 	{
-		mSocketHandle = ::socket( af , type , protocol );
-		if ( mSocketHandle == INVALID_SOCKET )
+		mHandle = ::socket( af , type , protocol );
+		if ( mHandle == INVALID_SOCKET )
 			return false;
 		return true;
 	}
 	void close()
 	{
-		if ( mSocketHandle == INVALID_SOCKET )
+		if ( mHandle == INVALID_SOCKET )
 			return;
-		int rVal = ::closesocket( mSocketHandle );
+		int rVal = ::closesocket( mHandle );
 		if ( rVal != SOCKET_ERROR )
-			mSocketHandle =  INVALID_SOCKET;
+			mHandle =  INVALID_SOCKET;
 	}
 	bool setopt( int option , int value )
 	{
-		if ( setsockopt( mSocketHandle , SOL_SOCKET , option , (char *)&value, sizeof(value) ) == SOCKET_ERROR )
+		if ( setsockopt( mHandle , SOL_SOCKET , option , (char *)&value, sizeof(value) ) == SOCKET_ERROR )
 			return false;
 		return true;
 	}
 	bool getopt( int option , int& value )
 	{
 		int len = sizeof(value);
-		if ( getsockopt( mSocketHandle , SOL_SOCKET , option , (char *)&value, &len ) == SOCKET_ERROR )
+		if ( getsockopt( mHandle , SOL_SOCKET , option , (char *)&value, &len ) == SOCKET_ERROR )
 			return false;
 		return true;
 	}
 	bool connect( sockaddr const *to , int tolen )
 	{  
-		int ret = ::connect( mSocketHandle , to , tolen ); 
+		int ret = ::connect( mHandle , to , tolen ); 
 		if ( ret == SOCKET_ERROR && getLastError()  != WSAEWOULDBLOCK )
 			return false;
 		return true;
 	}
 	int sendto( char const* buf , int len, int flags, sockaddr const *to , int tolen )
-	{  return ::sendto( mSocketHandle , buf , len , flags , to , tolen );  }
+	{  return ::sendto( mHandle , buf , len , flags , to , tolen );  }
 	int recvfrom( char* buf , int len, int flags, sockaddr* addr , int lenAddr )
-	{  return ::recvfrom( mSocketHandle , buf , len , flags , addr , &lenAddr );  }
+	{  return ::recvfrom( mHandle , buf , len , flags , addr , &lenAddr );  }
 	int recv( char* buf , int len, int flags )
-	{  return ::recv( mSocketHandle , buf , len , flags );  }
+	{  return ::recv( mHandle , buf , len , flags );  }
 	int select( fd_set* fRead , fd_set* fWrite , fd_set* fExcept , timeval const& timeout )
 	{
-		if ( fRead  ) FD_SET( mSocketHandle , fRead );
-		if ( fWrite ) FD_SET( mSocketHandle , fRead );
-		if ( fExcept ) FD_SET( mSocketHandle , fRead );
+		if ( fRead  ) FD_SET( mHandle , fRead );
+		if ( fWrite ) FD_SET( mHandle , fRead );
+		if ( fExcept ) FD_SET( mHandle , fRead );
 		return ::select( 1, fRead, fWrite, fExcept, &timeout );
 	}
 
-	SOCKET       mSocketHandle;
+	SOCKET       mHandle;
 };
 
 class NetSocket
@@ -164,7 +164,7 @@ class NetSocket
 public:
 	NetSocket();
 	explicit NetSocket( SOCKET hSocket )
-		:mSocketObj( hSocket ){}
+		:mHandle( hSocket ){}
 
 	~NetSocket();
 
@@ -214,7 +214,7 @@ public: 	//UDP
 	}
 	void   close();
 
-	SOCKET getSocketObject() const { return mSocketObj; }
+	SOCKET getHandle() const { return mHandle; }
 protected:
 
 	friend class NetAddress;
@@ -223,7 +223,7 @@ protected:
 
 private:
 	SocketState  mState;
-	SOCKET       mSocketObj;
+	SOCKET       mHandle;
 };
 
 

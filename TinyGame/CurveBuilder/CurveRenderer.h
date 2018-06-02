@@ -8,9 +8,9 @@
 #include <cmath>
 #include <vector>
 
-#include "RenderGL/GLCommon.h"
-#include "RenderGL/RenderContext.h"
-#include "RenderGL/SceneRenderer.h"
+#include "RHI/GLCommon.h"
+#include "RHI/RenderContext.h"
+#include "RHI/SceneRenderer.h"
 
 namespace CB
 {

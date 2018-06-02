@@ -44,7 +44,7 @@ namespace CAR
 
 	struct FeatureScoreInfo
 	{
-		int  id;
+		int  playerId;
 		int  score;
 		int  majority;
 		int  hillFollowerCount;
@@ -173,7 +173,7 @@ namespace CAR
 		bool haveCathedral;
 		bool isCastle;
 		int  cloisterGroup;
-		std::set< FarmFeature* > linkFarms;
+		std::set< FarmFeature* > linkedFarms;
 
 		bool isSamllCircular();
 
@@ -209,7 +209,7 @@ namespace CAR
 
 		bool haveBarn;
 		std::vector< FarmNode* > nodes;
-		std::set< CityFeature* > linkCities;
+		std::set< CityFeature* > linkedCities;
 	};
 
 	class CloisterFeature : public FeatureBase

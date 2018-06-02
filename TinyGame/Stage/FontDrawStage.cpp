@@ -4,197 +4,8 @@
 
 #include "GLGraphics2D.h"
 
-#include "RenderGL/RHICommand.h"
-#include "RenderGL/TextureAtlas.h"
-#include "RenderGL/DrawUtility.h"
-#include <unordered_map>
+#include "RHI/Font.h"
 
-namespace RenderGL
-{
-	struct CharImageData
-	{
-		int    width;
-		int    height;
-		float  kerning;
-		float  advance;
-		int    imageWidth;
-		int    imageHeight;
-		int    pixelSize;
-		std::vector<uint8> imageData;
-	};
-
-	class ICharDataProvider
-	{
-	public:
-		~ICharDataProvider(){}
-		virtual bool getCharData(uint32 charWord, CharImageData& data) = 0;
-	};
-
-
-	class CharDataSet
-	{
-	public:
-		struct CharData
-		{
-			int     width;
-			int     height;
-			float   kerning;
-			float   advance;
-			int     atlasId;
-			Vector2 uvMin;
-			Vector2 uvMax;
-		};
-
-		CharData const& findOrAddChar(uint32 charWord, ICharDataProvider& provider)
-		{
-			auto iter = mCharMap.find(charWord);
-			if( iter != mCharMap.end() )
-				return iter->second;
-
-			CharImageData imageData;
-			provider.getCharData(charWord, imageData);
-
-			CharData& charData = mCharMap[charWord];
-			charData.width = imageData.width;
-			charData.height = imageData.height;
-			if( imageData.width != imageData.imageWidth )
-			{
-				charData.atlasId = mUsedTextAtlas->addImage(imageData.width, imageData.height, Texture::eRGBA8, &imageData.imageData[0], imageData.imageWidth);
-			}
-			else
-			{
-				charData.atlasId = mUsedTextAtlas->addImage(imageData.width, imageData.height, Texture::eRGBA8, &imageData.imageData[0]);
-			}
-			
-			charData.advance = imageData.advance;
-			charData.kerning = imageData.kerning;
-			mUsedTextAtlas->getRectUV(charData.atlasId, charData.uvMin, charData.uvMax);
-
-			return charData;
-		}
-
-		uint32        UsedAtlasId;
-		TextureAtlas* mUsedTextAtlas;
-		std::unordered_map< uint32, CharData > mCharMap;
-	};
-
-	struct FontInfo
-	{
-		int  size;
-		bool bBold;
-		bool bUnderLine;
-	};
-
-	class GDIFontCharDataProvider : public ICharDataProvider
-	{
-	public:
-		bool initialize(char const* faceName , int size , bool bBold = true , bool bUnderLine = false)
-		{
-
-			int height = (int)(fabs((float)10 * size *GetDeviceCaps(NULL, LOGPIXELSY) / 72) / 10.0 + 0.5);
-
-			hFont = ::CreateFontA(
-				-height,				        // Height Of Font
-				0,								// Width Of Font
-				0,								// Angle Of Escapement
-				0,								// Orientation Angle
-				bBold ? FW_BOLD : FW_NORMAL,	// Font Weight
-				FALSE,							// Italic
-				bUnderLine,							// Underline
-				FALSE,							// Strikeout
-				DEFAULT_CHARSET,			    // Character Set Identifier
-				OUT_TT_PRECIS,					// Output Precision
-				CLIP_DEFAULT_PRECIS,			// Clipping Precision
-				ANTIALIASED_QUALITY,			// Output Quality
-				FF_DONTCARE | DEFAULT_PITCH,    // Family And Pitch
-				faceName);			            // Font Name
-
-			if( hFont == NULL )
-				return false;
-
-			static HDC tempDC = NULL;
-			if( tempDC == NULL )
-			{
-				tempDC = ::CreateCompatibleDC(NULL);
-			}
-
-			TEXTMETRIC tm;
-			HGDIOBJ hOldFont = ::SelectObject(tempDC, hFont);
-			::GetTextMetrics(tempDC, &tm);
-			::SelectObject(tempDC, hOldFont);
-
-
-			BITMAPINFO& bmpInfo = *(BITMAPINFO*)(alloca(sizeof(BITMAPINFOHEADER) + sizeof(RGBQUAD) * 0 ));
-			bmpInfo.bmiHeader.biSize = sizeof(bmpInfo.bmiHeader);
-			bmpInfo.bmiHeader.biWidth = 2 * size;
-			bmpInfo.bmiHeader.biHeight = -tm.tmHeight;
-			bmpInfo.bmiHeader.biPlanes = 1;
-			bmpInfo.bmiHeader.biBitCount = 32;
-			bmpInfo.bmiHeader.biCompression = BI_RGB;
-			bmpInfo.bmiHeader.biXPelsPerMeter = 0;
-			bmpInfo.bmiHeader.biYPelsPerMeter = 0;
-			bmpInfo.bmiHeader.biSizeImage = 0;
-			if( !textureDC.initialize(NULL, &bmpInfo, (void**)&pDataTexture) )
-				return false;
-
-
-			::SelectObject(textureDC, GetStockObject(BLACK_PEN));
-			::SelectObject(textureDC, GetStockObject(BLACK_BRUSH));
-			::SetBkMode(textureDC, TRANSPARENT);
-			::SelectObject(textureDC, hFont);
-			::SetTextColor(textureDC, RGB(255, 255, 255));
-			mSize = size;
-			
-			return true;
-
-		}
-
-		static void CopyImage(uint8* dest, int w, int h, int pixeSize, uint8* src, int pixelStride)
-		{
-			int copySize = pixeSize * w;
-			int dataStride = pixelStride * pixeSize;
-			for( int i = 0; i < h; ++i )
-			{
-				std::copy(src, src + copySize, dest);
-				src += dataStride;
-				dest += copySize;
-			}
-		}
-
-		virtual bool getCharData(uint32 charWord, CharImageData& data)
-		{
-			ABCFLOAT abcFloat;
-			::GetCharABCWidthsFloatW(textureDC , charWord, charWord, &abcFloat);
-			::Rectangle(textureDC , 0, 0, textureDC.getWidth(), textureDC.getHeight());
-			RECT rect;
-			rect.left = -(int)abcFloat.abcfA;
-			rect.right = (int)abcFloat.abcfB;
-			rect.top = 0;
-			rect.bottom = textureDC.getHeight();
-			wchar_t charW = charWord;
-			::DrawTextW(textureDC , &charW, 1, &rect, DT_LEFT | DT_TOP );
-
-			data.width = (int)abcFloat.abcfB;
-			data.height = textureDC.getHeight();
-			data.kerning = abcFloat.abcfA;
-			data.advance = abcFloat.abcfB + abcFloat.abcfC;
-			data.imageWidth = data.width;
-			data.imageHeight = textureDC.getHeight();
-			data.pixelSize = 4;
-			data.imageData.resize(data.imageWidth * data.imageHeight * data.pixelSize);
-			CopyImage( &data.imageData[0] , data.imageWidth  , data.imageHeight , data.pixelSize, pDataTexture ,  textureDC.getWidth() );
-
-			return true;
-		}
-
-		int      getFontHeight() const { return textureDC.getHeight(); }
-		int      mSize;
-		BitmapDC textureDC;
-		uint8*   pDataTexture = nullptr;
-		HFONT    hFont = NULL;
-	};
-
-}
 
 using namespace RenderGL;
 
@@ -217,16 +28,16 @@ public:
 		if( !::Global::getDrawEngine()->startOpenGL(true , 4) )
 			return false;
 
-		if( !provider.initialize("微軟正黑體", 12) )
+		if( !FontCharCache::Get().initialize() )
 			return false;
 
-		if( !mFontTextureAtlas.create(Texture::eR8, 1024, 1024, 1) )
+		FontFaceInfo fontFace;
+		fontFace.name = "微軟正黑體";
+		fontFace.size = 12;
+		mCharDataSet = FontCharCache::Get().getCharDataSet(fontFace);
+		if( mCharDataSet == nullptr )
 			return false;
-		mFontTextureAtlas.getTexture().bind();
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_A, GL_RED);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_G, GL_RED);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_B, GL_RED);
-		mFontTextureAtlas.getTexture().unbind();
+
 
 		Color4f colors[] =
 		{
@@ -235,10 +46,8 @@ public:
 		};
 		mTexture = RHICreateTexture2D(Texture::eFloatRGBA, 2, 2, 1, colors);
 
-		mCharDataSet.mUsedTextAtlas = &mFontTextureAtlas;
-
-		charData = mCharDataSet.findOrAddChar(L'大', provider);
-		charData = mCharDataSet.findOrAddChar(L'H', provider);
+		charData = mCharDataSet->findOrAddChar(L'籖');
+		charData = mCharDataSet->findOrAddChar(L'H');
 
 
 		restart();
@@ -273,12 +82,12 @@ public:
 			if( c == L'\n' )
 			{
 				curPos.x = pos.x;
-				curPos.y += provider.getFontHeight() + 2;
+				curPos.y += mCharDataSet->getFontHeight() + 2;
 				bStartChar = true;
 				continue;
 			}
 
-			CharDataSet::CharData const& data = mCharDataSet.findOrAddChar(c, provider);
+			CharDataSet::CharData const& data = mCharDataSet->findOrAddChar(c);
 
 			if ( !( bPrevSpace || bStartChar ) )
 				curPos.x += data.kerning;
@@ -296,7 +105,7 @@ public:
 			RHISetBlendState(TStaticBlendState< CWM_RGBA , Blend::eSrcAlpha, Blend::eOneMinusSrcAlpha >::GetRHI());
 			{
 				glEnable(GL_TEXTURE_2D);
-				GL_BIND_LOCK_OBJECT(mFontTextureAtlas.getTexture());
+				GL_BIND_LOCK_OBJECT(mCharDataSet->getTexture());
 				TRenderRT< RTVF_XY_T2 >::Draw(PrimitiveType::Quad, &mBuffer[0], mBuffer.size());
 				glDisable(GL_TEXTURE_2D);
 			}
@@ -305,9 +114,7 @@ public:
 			
 	}
 
-	TextureAtlas mFontTextureAtlas;
-	GDIFontCharDataProvider provider;
-	CharDataSet mCharDataSet;
+	CharDataSet* mCharDataSet;
 	CharDataSet::CharData charData;
 
 	virtual void onEnd()
@@ -335,9 +142,10 @@ public:
 		GLGraphics2D& g = ::Global::getGLGraphics2D();
 		g.beginRender();
 
+		glClearColor(0.2, 0.2, 0.2, 0);
 		glClear(GL_COLOR_BUFFER_BIT);
 
-		DrawUtility::DrawTexture(mFontTextureAtlas.getTexture(), Vec2i(0, 0), Vec2i(400, 400));
+		DrawUtility::DrawTexture(mCharDataSet->getTexture(), Vec2i(0, 0), Vec2i(400, 400));
 
 		wchar_t const* str =
 			L"作詞：陳宏宇作曲：G.E.M. 編曲：Lupo Groinig 監製：Lupo Groinig\n"

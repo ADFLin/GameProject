@@ -476,14 +476,14 @@ void NetRoomStage::procPlayerState( IComPacket* cp )
 		{
 			GamePlayer* player = mWorker->getPlayerManager()->getPlayer( com->playerID );
 			PlayerListPanel::Slot& slot = mPlayerPanel->getSlot( player->getInfo().slot );
-			slot.choice->setColor( Color::eGreen );
+			slot.choice->setColorName( EColor::Green );
 		}
 		break;
 	case NAS_ROOM_WAIT:
 		{
 			GamePlayer* player = mWorker->getPlayerManager()->getPlayer( com->playerID );
 			PlayerListPanel::Slot& slot = mPlayerPanel->getSlot( player->getInfo().slot );
-			slot.choice->setColor( Color::eBlue );
+			slot.choice->setColorName( EColor::Blue );
 		}
 		break;
 	case NAS_CONNECT:
@@ -520,7 +520,7 @@ void NetRoomStage::procPlayerState( IComPacket* cp )
 			if ( player )
 			{
 				PlayerListPanel::Slot& slot = mPlayerPanel->getSlot( player->getInfo().slot );
-				slot.choice->setColor( Color::eBlue );
+				slot.choice->setColorName( EColor::Blue );
 
 				FixString< 64 > str;
 				str.format( LOCTEXT("== %s Leave Room =="), player->getName() );

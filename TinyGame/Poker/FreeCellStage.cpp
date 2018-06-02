@@ -179,7 +179,7 @@ namespace Poker
 			pos.y -= SCellCardOffsetY;
 
 		g.setBrush( Color3ub( 255 , 255 , 0 ) );
-		RenderUtility::SetPen( g , Color::eNull );
+		RenderUtility::SetPen( g , EColor::Null );
 		Vec2i bSize( 3 , 3 );
 		g.drawRoundRect( pos - bSize  , mCardSize + 2 * bSize + Vec2i( 1 , 1 ) , Vec2i( 5 , 5 ) );
 	}
@@ -344,8 +344,8 @@ namespace Poker
 
 	void FreeCellStage::drawCell( Graphics2D& g , Vec2i const& pos )
 	{
-		RenderUtility::SetPen( g , Color::eBlack );
-		RenderUtility::SetBrush( g , Color::eNull );
+		RenderUtility::SetPen( g , EColor::Black );
+		RenderUtility::SetBrush( g , EColor::Null );
 
 		Vec2i border( 3 , 3 );
 		g.drawRoundRect( pos - border , mCardSize + 2 * border , Vec2i( 8 , 8 ) );

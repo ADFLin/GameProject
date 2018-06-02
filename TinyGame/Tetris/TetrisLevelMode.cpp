@@ -209,7 +209,7 @@ namespace Tetris
 			unsigned leakBit = 1  << ( Global::RandomNet() % level->getBlockStorage().getSizeX() );
 			for( int i = 0 ; i < numAddLayer ; ++i )
 			{
-				if ( !level->getBlockStorage().addLayer( 0 , leakBit , Color::eGray ) )
+				if ( !level->getBlockStorage().addLayer( 0 , leakBit , EColor::Gray ) )
 					break;
 			}
 			level->fixPiecePos( numAddLayer );

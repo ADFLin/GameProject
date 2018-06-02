@@ -158,27 +158,6 @@
     <ClInclude Include="GameMenuStage.h" />
     <ClInclude Include="GameStageMode.h" />
     <None Include="TinyCore\ColorName.h" />
-    <ClInclude Include="RenderGL\BaseType.h" />
-    <ClInclude Include="RenderGL\DrawUtility.h" />
-    <ClInclude Include="RenderGL\FrameGraph.h" />
-    <ClInclude Include="RenderGL\GLCommon.h" />
-    <ClInclude Include="RenderGL\RHIGraphics2D.h" />
-    <ClInclude Include="RenderGL\MeshUtility.h" />
-    <ClInclude Include="RenderGL\GpuProfiler.h" />
-    <None Include="RenderGL\LazyObject.h" />
-    <ClInclude Include="RenderGL\Material.h" />
-    <None Include="RenderGL\PrimitiveBatch.h" />
-    <ClInclude Include="RenderGL\RenderContext.h" />
-    <ClInclude Include="RenderGL\RHICommand.h" />
-    <ClInclude Include="RenderGL\RHICommon.h" />
-    <ClInclude Include="RenderGL\RHIDefine.h" />
-    <ClInclude Include="RenderGL\Scene.h" />
-    <ClInclude Include="RenderGL\SceneObject.h" />
-    <ClInclude Include="RenderGL\SceneRenderer.h" />
-    <ClInclude Include="RenderGL\ShaderCompiler.h" />
-    <ClInclude Include="RenderGL\ShaderCore.h" />
-    <ClInclude Include="RenderGL\TextureAtlas.h" />
-    <ClInclude Include="RenderGL\VertexFactory.h" />
     <ClInclude Include="TinyCore\DataStream.h" />
     <ClInclude Include="TinyCore\DataSteamBuffer.h" />
     <ClInclude Include="TinyCore\DataTransfer.h" />
@@ -201,34 +180,6 @@
   <ItemGroup>
     <ClCompile Include="GameMenuStage.cpp" />
     <ClCompile Include="GameStageMode.cpp" />
-    <ClCompile Include="RenderGL\DrawUtility.cpp" />
-    <ClCompile Include="RenderGL\GLCommon.cpp" />
-    <ClCompile Include="RenderGL\RHIGraphics2D.cpp" />
-    <ClCompile Include="RenderGL\MeshUtility.cpp" />
-    <ClCompile Include="RenderGL\GpuProfiler.cpp" />
-    <ClCompile Include="RenderGL\LazyObject.cpp" />
-    <ClCompile Include="RenderGL\Material.cpp" />
-    <ClCompile Include="RenderGL\PrimitiveBatch.cpp" />
-    <ClCompile Include="RenderGL\RenderContext.cpp" />
-    <ClCompile Include="RenderGL\RHICommand.cpp" />
-    <ClCompile Include="RenderGL\RHICommon.cpp" />
-    <ClCompile Include="RenderGL\Scene.cpp" />
-    <ClCompile Include="RenderGL\SceneObject.cpp" />
-    <ClCompile Include="RenderGL\SceneRenderer.cpp" />
-    <ClCompile Include="RenderGL\ShaderCompiler.cpp" />
-    <ClCompile Include="RenderGL\ShaderCore.cpp" />
-    <ClCompile Include="RenderGL\TextureAtlas.cpp" />
-    <ClCompile Include="RenderGL\VertexFactory.cpp" />
-    <ClCompile Include="stb_image.cpp">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-      </PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-      </PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|VisualGDB'">
-      </PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|VisualGDB'">
-      </PrecompiledHeader>
-    </ClCompile>
     <ClCompile Include="TinyCore\DataSteamBuffer.cpp" />
     <ClCompile Include="TinyCore\DataStream.cpp" />
     <ClCompile Include="TinyCore\DataTransferImpl.cpp" />

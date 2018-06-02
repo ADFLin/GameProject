@@ -442,8 +442,8 @@ namespace Tetris
 
 	static int const gBGColor[] = 
 	{ 
-		Color::eRed , Color::ePurple , Color::eBlue , Color::eOrange , Color::eCyan,
-		Color::eGreen , Color::eYellow , Color::eGray , Color::eWhite 
+		EColor::Red , EColor::Purple , EColor::Blue , EColor::Orange , EColor::Cyan,
+		EColor::Green , EColor::Yellow , EColor::Gray , EColor::White 
 	};
 
 	bool MenuStage::onInit()
@@ -480,7 +480,7 @@ namespace Tetris
 			}
 		}
 
-		int color[] = { Color::eRed , Color::ePurple , Color::eBlue , Color::eOrange , Color::eCyan, Color::eGreen };
+		int color[] = { EColor::Red , EColor::Purple , EColor::Blue , EColor::Orange , EColor::Cyan, EColor::Green };
 
 
 		Vec2i const titlePos( 230 , 150 );
@@ -944,7 +944,7 @@ namespace Tetris
 
 			if ( i == highLightRecordOrder && lightBlink > 0 )
 			{
-				RenderUtility::SetBrush( g, Color::eRed );
+				RenderUtility::SetBrush( g, EColor::Red );
 			}
 
 			g.beginBlend( Vec2i(0,y) , Vec2i( Global::getDrawEngine()->getScreenWidth() , 22 ), 0.5f );

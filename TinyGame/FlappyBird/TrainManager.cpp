@@ -523,16 +523,16 @@ namespace FlappyBird
 	int NeuralNetworkRenderer::getValueColor(NNScale value)
 	{
 		if( value > 0.9 )
-			return Color::eWhite;
+			return EColor::White;
 		if( value > 0.75 )
-			return Color::eYellow;
+			return EColor::Yellow;
 		if( value > 0.5 )
-			return Color::eOrange;
+			return EColor::Orange;
 		if( value > 0.25 )
-			return Color::eBlue;
+			return EColor::Blue;
 		if( value > 0.1 )
-			return Color::eGray;
-		return Color::eBlack;
+			return EColor::Gray;
+		return EColor::Black;
 	}
 
 	void NeuralNetworkRenderer::draw(IGraphics2D& g)
@@ -541,7 +541,7 @@ namespace FlappyBird
 		for( int i = 0; i < NNLayout.getInputNum(); ++i )
 		{
 			Vector2 pos = getInputNodePos(i);
-			RenderUtility::SetPen(g, Color::eBlack);
+			RenderUtility::SetPen(g, EColor::Black);
 			RenderUtility::SetBrush(g, getValueColor(inputsAndSignals[i]));
 			drawNode(g, pos);
 		}
@@ -555,14 +555,14 @@ namespace FlappyBird
 			for( int idxNode = 0; idxNode < layer.numNode; ++idxNode )
 			{
 				Vector2 pos = getLayerNodePos(i, idxNode);
-				RenderUtility::SetPen(g, Color::eBlack);
+				RenderUtility::SetPen(g, EColor::Black);
 				if( inputsAndSignals )
 				{
 					RenderUtility::SetBrush(g, getValueColor(inputsAndSignals[idxSignal]));
 				}
 				else
 				{
-					RenderUtility::SetBrush(g, Color::ePurple);
+					RenderUtility::SetBrush(g, EColor::Purple);
 				}
 				drawNode(g, pos);
 
@@ -575,8 +575,8 @@ namespace FlappyBird
 					{
 						value *= inputsAndSignals[idxPrevLayerSignal+n];
 					}
-					RenderUtility::SetPen(g, (value > 0) ? Color::eGreen : Color::eRed);
-					RenderUtility::SetBrush(g, (value > 0) ? Color::eGreen : Color::eRed);
+					RenderUtility::SetPen(g, (value > 0) ? EColor::Green : EColor::Red);
+					RenderUtility::SetBrush(g, (value > 0) ? EColor::Green : EColor::Red);
 					drawLink(g, prevPos, pos, Math::Abs(value));
 				}
 				++idxSignal;

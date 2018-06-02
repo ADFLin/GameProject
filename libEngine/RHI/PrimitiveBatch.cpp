@@ -125,7 +125,7 @@ namespace RenderGL
 			Vector3 cameraX = context.getView().getViewRightDir();
 			Vector3 cameraY = context.getView().getViewUpDir();
 
-			Vec2i screenSize = context.getView().getViewportSize();
+			IntVector2 screenSize = context.getView().getViewportSize();
 
 			RHISetRasterizerState(TStaticRasterizerState< ECullMode::None >::GetRHI());
 			int idxLine = 0;

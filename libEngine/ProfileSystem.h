@@ -179,34 +179,22 @@ public:
 class ProfileSystem
 {
 public:
-
-
 	CORE_API static ProfileSystem& Get();
 
-	CORE_API void  cleanup();
-	CORE_API void  resetSample();
+	virtual void  cleanup() = 0;
+	virtual void  resetSample() = 0;
 
-	CORE_API void  incrementFrameCount();
-	int		getFrameCountSinceReset()		{ return mFrameCounter; }
-	CORE_API float  getTimeSinceReset();
+	virtual void  incrementFrameCount() = 0;
+	virtual int	  getFrameCountSinceReset() = 0;
+	virtual float  getTimeSinceReset() = 0;
 
-	CORE_API ProfileSampleIterator getSampleIterator(uint32 ThreadId = 0);
+	virtual ProfileSampleIterator getSampleIterator(uint32 ThreadId = 0) = 0;
 
 #if 0
-	CORE_API void   dumpRecursive(ProfileSampleIterator* profileIterator, int spacing );
-	CORE_API void   dumpAll(uint32 ThreadId);
+	virtual void   dumpRecursive(ProfileSampleIterator* profileIterator, int spacing) = 0;
+	virtual void   dumpAll(uint32 ThreadId) = 0;
 #endif
-
-	static ThreadProfileData* GetThreadData();
-private:
-
-	ProfileSystem(char const* rootName = "Root");
-	~ProfileSystem();
-
-	int				         mFrameCounter;
-	unsigned long int        ResetTime;
 };
-
 
 
 
@@ -277,11 +265,11 @@ public:
 };
 
 
-class CORE_API ProfileSampleScope
+class  ProfileSampleScope
 {
 public:
-	ProfileSampleScope( const char * name , unsigned flag = 0 );
-	~ProfileSampleScope( void );
+	CORE_API  ProfileSampleScope( const char * name , unsigned flag = 0 );
+	CORE_API ~ProfileSampleScope( void );
 };
 
 

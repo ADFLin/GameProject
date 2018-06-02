@@ -372,7 +372,7 @@ namespace CAR
 					case 1:
 						{
 							FeatureBase::initFeatureScoreInfo(scoreInfos); 
-							for( std::set<FarmFeature*>::iterator iter = city->linkFarms.begin() , itEnd = city->linkFarms.end();
+							for( std::set<FarmFeature*>::iterator iter = city->linkedFarms.begin() , itEnd = city->linkedFarms.end();
 								iter != itEnd ; ++iter )
 							{
 								FarmFeature* farm = *iter;
@@ -1201,7 +1201,7 @@ namespace CAR
 		if ( castleScore )
 		{
 			FeatureScoreInfo info;
-			info.id = feature.findActor( KINGHT_MASK )->owner->getId();
+			info.playerId = feature.findActor( KINGHT_MASK )->owner->getId();
 			info.majority = 1;
 			info.score = castleScore->value;
 			scoreInfos.push_back( info );
@@ -2114,8 +2114,8 @@ namespace CAR
 					}
 					CityFeature* city = static_cast< CityFeature* >( getFeature( mapTile.getSideGroup( dir ) ) );
 					assert( city->type == FeatureType::eCity );
-					city->linkFarms.insert( farm );
-					farm->linkCities.insert( city );
+					city->linkedFarms.insert( farm );
+					farm->linkedCities.insert( city );
 				}
 
 			}
@@ -2161,8 +2161,8 @@ namespace CAR
 		for( int i = 0 ; i < numPlayer ; ++i )
 		{
 			FeatureScoreInfo& info = featureControls[i];
-			modifyPlayerScore( info.id, info.score );
-			CAR_LOG( "Player %d add Score %d " , info.id , info.score );
+			modifyPlayerScore( info.playerId, info.score );
+			CAR_LOG( "Player %d add Score %d " , info.playerId, info.score );
 		}
 	}
 
@@ -3096,7 +3096,7 @@ namespace CAR
 		assert( numPlayer > 0 );
 		for( int i = 0; i < numPlayer ; ++i )
 		{
-			scoreInfos[i].score = farm->calcPlayerScoreByBarnRemoveFarmer( scoreInfos[i].id );
+			scoreInfos[i].score = farm->calcPlayerScoreByBarnRemoveFarmer( scoreInfos[i].playerId );
 		}
 		addFeaturePoints( *farm , scoreInfos , numPlayer );
 		farm->haveBarn = true;

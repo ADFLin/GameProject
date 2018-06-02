@@ -77,6 +77,7 @@ void LogRemoveListenLogChannel(LogOutput& listener, LogChannel channel)
 	LogManager::Get().addListener(channel, &listener);
 }
 
+#if CORE_SHARE_CODE
 void LogMsg(char const* str)
 {
 	LogManager::Get().sendMessage(LOG_MSG, 0, str);
@@ -141,3 +142,5 @@ void LogOutput::addChannel(LogChannel channel){}
 void LogOutput::removeChannel(LogChannel channel){}
 
 #endif
+
+#endif //CORE_SHARE_CODE

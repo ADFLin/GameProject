@@ -40,17 +40,17 @@ namespace Tetris
 
 	static PieceTemplate gClassicTemplateData[] = 
 	{
-		4 , 2 , Color::eRed    , ARRAY2BIT4( 0010 , 0010 , 0010 , 0010 ) ,
-		4 , 1 , Color::eYellow , ARRAY2BIT4( 0000 , 0110 , 0110 , 0000 ) ,
-		3 , 2 , Color::eGreen  , ARRAY2BIT3( 100 , 110 , 010 ) ,
-		3 , 2 , Color::ePurple , ARRAY2BIT3( 001 , 011 , 010 ) ,
-		3 , 4 , Color::eCyan   , ARRAY2BIT3( 010 , 110 , 010 ) ,
-		3 , 4 , Color::eBlue   , ARRAY2BIT3( 110 , 010 , 010 ) ,
-		3 , 4 , Color::eOrange , ARRAY2BIT3( 011 , 010 , 010 ) ,
+		4 , 2 , EColor::Red    , ARRAY2BIT4( 0010 , 0010 , 0010 , 0010 ) ,
+		4 , 1 , EColor::Yellow , ARRAY2BIT4( 0000 , 0110 , 0110 , 0000 ) ,
+		3 , 2 , EColor::Green  , ARRAY2BIT3( 100 , 110 , 010 ) ,
+		3 , 2 , EColor::Purple , ARRAY2BIT3( 001 , 011 , 010 ) ,
+		3 , 4 , EColor::Cyan   , ARRAY2BIT3( 010 , 110 , 010 ) ,
+		3 , 4 , EColor::Blue   , ARRAY2BIT3( 110 , 010 , 010 ) ,
+		3 , 4 , EColor::Orange , ARRAY2BIT3( 011 , 010 , 010 ) ,
 	};
 	PieceTemplateSet gClassicTemplateSet = PieceTemplateSet( gClassicTemplateData , sizeof(gClassicTemplateData) / sizeof(PieceTemplate));
 
-	static PieceTemplate sEmptyTemp = { 3 ,1 , Color::eRed , 0 };
+	static PieceTemplate sEmptyTemp = { 3 ,1 , EColor::Red , 0 };
 	static Piece         sEmptyPiece;
 
 	void PieceBlock::transformPos( uint8 const* trans, int size )

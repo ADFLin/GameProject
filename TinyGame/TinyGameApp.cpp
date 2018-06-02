@@ -32,7 +32,7 @@
 
 #include "Thread.h"
 #include "SystemPlatform.h"
-#include "RenderGL/MeshUtility.h"
+#include "RHI/MeshUtility.h"
 
 #define GAME_SETTING_PATH "Game.ini"
 
@@ -609,8 +609,8 @@ void TinyGameApp::prevStageChange()
 	Graphics2D& g = ::Global::getGraphics2D();
 	if ( de->beginRender() )
 	{
-		RenderUtility::SetBrush( g , Color::eBlack );
-		RenderUtility::SetPen( g , Color::eBlack );
+		RenderUtility::SetBrush( g , EColor::Black );
+		RenderUtility::SetPen( g , EColor::Black );
 		g.drawRect( Vec2i(0,0) , ::Global::getDrawEngine()->getScreenSize() );
 		de->endRender();
 	}
@@ -623,7 +623,7 @@ void TinyGameApp::postStageEnd()
 
 void TinyGameApp::postStageChange( StageBase* stage )
 {
-	addTask( new FadeInEffect( Color::eBlack , 1000 ) , this );
+	addTask( new FadeInEffect( EColor::Black , 1000 ) , this );
 	if ( mShowErrorMsg )
 	{
 		//::Global::getGUI().showMessageBox( UI_ANY , mErrorMsg.c_str() , GMB_OK );

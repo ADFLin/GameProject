@@ -2,8 +2,8 @@
 #ifndef GoRenderer_H_63C72169_FDB0_4E4A_B43E_C3F1E1E35D09
 #define GoRenderer_H_63C72169_FDB0_4E4A_B43E_C3F1E1E35D09
 
-#include "RenderGL/GLCommon.h"
-#include "RenderGL/TextureAtlas.h"
+#include "RHI/GLCommon.h"
+#include "RHI/TextureAtlas.h"
 
 #include "RandomUtility.h"
 

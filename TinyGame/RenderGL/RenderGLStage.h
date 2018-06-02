@@ -9,23 +9,22 @@
 #include "WinGLPlatform.h"
 #include "SystemPlatform.h"
 #include "Asset.h"
-#include "LazyObject.h"
+
 #include "MarcoCommon.h"
 #include "TVector3.h"
 #include "FastDelegate/FastDelegate.h"
 #include "RandomUtility.h"
 
-#include "GLCommon.h"
-#include "ShaderCore.h"
-#include "MeshUtility.h"
-#include "DrawUtility.h"
-#include "GpuProfiler.h"
-
-
-#include "Material.h"
-#include "Scene.h"
-#include "SceneObject.h"
-#include "SceneRenderer.h"
+#include "RHI/GLCommon.h"
+#include "RHI/ShaderCore.h"
+#include "RHI/MeshUtility.h"
+#include "RHI/DrawUtility.h"
+#include "RHI/GpuProfiler.h"
+#include "RHI/Material.h"
+#include "RHI/Scene.h"
+#include "RHI/SceneObject.h"
+#include "RHI/SceneRenderer.h"
+#include "RHI/LazyObject.h"
 
 #include "SceneScript.h"
 
@@ -128,7 +127,7 @@ namespace RenderGL
 		virtual void getDependentFilePaths(std::vector<std::wstring>& paths) override
 		{
 			std::string cPath = MaterialShaderMap::GetFilePath( material->mName.c_str() );
-			paths.push_back(CharToWChar(cPath.c_str()));
+			paths.push_back(FCString::CharToWChar(cPath.c_str()));
 		}
 		virtual void postFileModify(FileAction action) override
 		{
@@ -154,7 +153,7 @@ namespace RenderGL
 		virtual void getDependentFilePaths(std::vector<std::wstring>& paths) override
 		{
 			std::string cPath = ISceneScript::GetFilePath( mName.c_str() );
-			paths.push_back(CharToWChar(cPath.c_str()));
+			paths.push_back(FCString::CharToWChar(cPath.c_str()));
 		}
 
 		virtual void postFileModify(FileAction action) override

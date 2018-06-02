@@ -714,7 +714,7 @@ namespace Go
 		}
 
 		bool bRecvThinkInfo = false;
-
+		LeelaThinkInfo bestThinkInfo;
 		virtual void procDumpCommandMsg(GTPCommand com, char* buffer, int num)
 		{
 			switch( com.id )
@@ -752,8 +752,8 @@ namespace Go
 					float winRate;
 					float evalValue;
 					int   playout;
-					int numRead;
-					if( sscanf( buffer , "Playouts: %d, Win: %f%% , PV: %s" , &playout , &winRate , coord.data() ) == 3 )
+					int   numRead;
+					if( sscanf( buffer , "Playouts: %d, Win: %f%% , PV: %s%n" , &playout , &winRate , coord.data() , &numRead ) == 3 )
 					{
 						int vertex = GetVertex(coord);
 						if( vertex == -3 )
@@ -762,8 +762,26 @@ namespace Go
 							return;
 						}
 
+						bestThinkInfo.evalValue = evalValue;
+						bestThinkInfo.nodeVisited = playout;
+						bestThinkInfo.winRate = winRate;
+						bestThinkInfo.v = vertex;
+						bestThinkInfo.vSeq.clear();
+						bestThinkInfo.vSeq.push_back(vertex);
+						
+						char const* vBuffer = FStringParse::SkipSpace(buffer + numRead);
+						while( *vBuffer != 0 )
+						{
+							int v = ReadVertex(vBuffer, numRead);
+							if( numRead == 0 )
+								break;
+
+							bestThinkInfo.vSeq.push_back(v);
+							vBuffer = FStringParse::SkipSpace(vBuffer + numRead);
+						}
+
 						GameCommand com;
-						com.setParam(LeelaGameParam::eBestMoveVertex, vertex);
+						com.setParam(LeelaGameParam::eBestMoveVertex, &bestThinkInfo);
 						addOutputCommand(com);
 
 					}

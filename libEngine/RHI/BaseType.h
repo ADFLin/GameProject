@@ -16,6 +16,8 @@
 
 #include "Core/Color.h"
 
+#include <cassert>
+
 namespace RenderGL
 {
 	using IntVector2 = TVector2<int>;

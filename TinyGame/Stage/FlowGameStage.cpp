@@ -36,7 +36,7 @@ namespace Flow
 
 		Vec2i size = mLevel.getSize();
 
-		RenderUtility::SetPen(g, Color::eWhite);
+		RenderUtility::SetPen(g, EColor::White);
 		
 		for( int i = 0; i <= size.x; ++i )
 		{
@@ -52,7 +52,7 @@ namespace Flow
 
 		int ColorMap[] = 
 		{
-			Color::eNull , Color::eRed , Color::eGreen , Color::eBlue , Color::eYellow 
+			EColor::Null , EColor::Red , EColor::Green , EColor::Blue , EColor::Yellow 
 		};
 		for( int i = 0; i < size.x; ++i )
 		{

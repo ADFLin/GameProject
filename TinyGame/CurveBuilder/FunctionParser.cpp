@@ -18,7 +18,7 @@ namespace CB
 		}
 	}
 
-	bool FunctionParser::checkVaild(char const* expr)
+	bool FunctionParser::checkValid(char const* expr)
 	{
 		bool result;
 		try

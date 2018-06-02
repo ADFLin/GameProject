@@ -32,9 +32,9 @@ namespace Chromatron
 	static int const gColorMap[] = 
 	{
 		//      000           001            010              011
-		Color::eNull , Color::eRed , Color::eGreen , Color::eYellow ,
+		EColor::Null , EColor::Red , EColor::Green , EColor::Yellow ,
 		//      100           101            110              111
-		Color::eBlue , Color::ePink ,Color::eCyan  , Color::eWhite ,
+		EColor::Blue , EColor::Pink ,EColor::Cyan  , EColor::White ,
 	};
 
 	Scene::Scene() 
@@ -82,8 +82,8 @@ namespace Chromatron
 
 		if ( mbCreateMdoe )
 		{
-			RenderUtility::SetPen( g , Color::eGray );
-			RenderUtility::SetBrush( g , Color::eBlue , COLOR_LIGHT );
+			RenderUtility::SetPen( g , EColor::Gray );
+			RenderUtility::SetBrush( g , EColor::Blue , COLOR_LIGHT );
 			g.drawRoundRect( CMToolPos - Vec2D( 10 , 10 ) ,
 				Vec2i( DC_DEVICE_NUM * ( CellLength + CMToolGap ) - CMToolGap + 2 * 10 , CellLength + 2 * 10 ) ,
 				Vec2i( 10 , 10 ) );
@@ -223,7 +223,7 @@ namespace Chromatron
 			{
 				if ( flag & DFB_GOAL )
 				{
-					RenderUtility::SetPen( g , Color::eWhite );
+					RenderUtility::SetPen( g , EColor::White );
 					g.setBrush( Color3ub( ( color & COLOR_R ) ? 255 : 80  ,
 						( color & COLOR_G ) ? 255 : 80  ,
 						( color & COLOR_B ) ? 255 : 80  ) );
@@ -231,7 +231,7 @@ namespace Chromatron
 				}
 				else
 				{
-					RenderUtility::SetPen( g , Color::eBlack );
+					RenderUtility::SetPen( g , EColor::Black );
 					RenderUtility::SetBrush( g , gColorMap[ color ] , COLOR_DEEP );
 					g.drawCircle( Vec2i(0,0) , 8 );
 				}
@@ -240,13 +240,13 @@ namespace Chromatron
 			{
 				if ( flag & DFB_GOAL )
 				{
-					RenderUtility::SetPen( g , Color::eBlack );
-					RenderUtility::SetBrush( g , Color::eBlack );
+					RenderUtility::SetPen( g , EColor::Black );
+					RenderUtility::SetBrush( g , EColor::Black );
 					g.drawCircle( Vec2i(0,0) , 9 );
 				}
 				else
 				{
-					RenderUtility::SetPen( g , Color::eWhite );
+					RenderUtility::SetPen( g , EColor::White );
 					g.setBrush( Color3ub( 30 , 30 , 30 ) );
 					g.drawCircle( Vec2i(0,0) , 8 );
 				}
@@ -257,18 +257,18 @@ namespace Chromatron
 		case DC_SMIRROR:
 			{
 				Vec2i size( 4 , 20 );
-				RenderUtility::SetPen( g , Color::eBlack );
+				RenderUtility::SetPen( g , EColor::Black );
 				g.setBrush( Color3ub( 200 , 200 , 200 ) );
 				g.drawRect( Vec2i( - size.x / 2 + 1 , 0 ) - size / 2 , size );
 				Vec2i size2( 2 , 20 );
-				RenderUtility::SetBrush( g , Color::eBlack );
+				RenderUtility::SetBrush( g , EColor::Black );
 				g.drawRect( Vec2i( - size2.x / 2 - size.x + 1 , 0 ) - size2 / 2 , size2 );
 			}
 			break;
 		case DC_LIGHTSOURCE:
 			{
 				Vec2i size( 13 , 4 );
-				RenderUtility::SetPen( g , Color::eBlack );
+				RenderUtility::SetPen( g , EColor::Black );
 				g.setBrush( Color3ub( 200 , 200 , 200 ) );
 				DRAW_RECT2( size , Vec2i( 5 , 0 ) );
 
@@ -280,15 +280,15 @@ namespace Chromatron
 		case DC_SPECTROSCOPE:
 			{
 				Vec2i size( 4 , 24 );
-				RenderUtility::SetPen( g , Color::eBlack );
+				RenderUtility::SetPen( g , EColor::Black );
 				g.setBrush( Color3ub( 200 , 200 , 200 ) );
 				g.drawRoundRect( - size / 2 , size , Vec2i( 4 , 4 ) );
 			}
 			break;
 		case DC_TELEPORTER:
 			{
-				RenderUtility::SetPen( g , Color::eBlack );
-				RenderUtility::SetBrush( g , Color::eWhite );
+				RenderUtility::SetPen( g , EColor::Black );
+				RenderUtility::SetBrush( g , EColor::White );
 				Vec2i size( 4 , 24 );
 				Vec2i size2( 24 , 4 );
 				DRAW_RECT( size );
@@ -305,12 +305,12 @@ namespace Chromatron
 				Vec2i size( 24 , 2 );
 				Vec2i size2( 24 , 6 );
 				Vec2i offset( 0 , 3 );
-				//RenderUtility::setPen( g , Color::eNull );
+				//RenderUtility::setPen( g , EColor::Null );
 				//g.setBrush( ColorKey3( 130 , 130 , 130 ) );
 				//g.drawRect( - size2 / 2 , size2 );
 
-				RenderUtility::SetPen( g , Color::eBlack );
-				RenderUtility::SetBrush( g , Color::eBlack );
+				RenderUtility::SetPen( g , EColor::Black );
+				RenderUtility::SetBrush( g , EColor::Black );
 				DRAW_RECT2( size , offset );
 				DRAW_RECT2( size , -offset );
 			}
@@ -318,7 +318,7 @@ namespace Chromatron
 		case DC_PRISM:
 			{
 				Vec2i vtx[] = { Vec2i( 5 , 0 ) , Vec2i( 5 , 10 ) , Vec2i( -5 , -10 ) };
-				RenderUtility::SetPen( g , Color::eBlack );
+				RenderUtility::SetPen( g , EColor::Black );
 				g.setBrush( Color3ub( 200 , 200 , 200 ) );
 				g.drawPolygon( vtx , 3 );
 			}
@@ -326,8 +326,8 @@ namespace Chromatron
 		case DC_FILTER:
 			{
 				Vec2i size( 4 , 16 );
-				RenderUtility::SetPen( g , Color::eBlack );
-				RenderUtility::SetBrush( g , Color::eBlack );
+				RenderUtility::SetPen( g , EColor::Black );
+				RenderUtility::SetBrush( g , EColor::Black );
 				g.drawCircle( Vec2i( 0 , size.y / 2 ) , 2 );
 				g.drawCircle( Vec2i( 0 , -size.y / 2 ) , 2 );
 				RenderUtility::SetBrush( g , gColorMap[ color ] );
@@ -339,7 +339,7 @@ namespace Chromatron
 				Vec2i size( 4 , 20 );
 				Vec2i size2( 10 , 6 );
 
-				RenderUtility::SetPen( g , Color::eBlack );
+				RenderUtility::SetPen( g , EColor::Black );
 				g.setBrush( Color3ub( 50 , 50 , 50 ) );
 				DRAW_RECT( size );
 				g.drawRect( Vec2i( 0 ,  -size2.y / 2  ) , size2 );
@@ -349,17 +349,17 @@ namespace Chromatron
 		case DC_DOPPLER:
 			{
 				Vec2i size( 20 , 6 );
-				RenderUtility::SetPen( g , Color::eBlack );
+				RenderUtility::SetPen( g , EColor::Black );
 				g.setBrush( Color3ub( 200 , 200 , 200 ) );
 				DRAW_RECT( size );
 				g.drawRect( - size / 2 , size );
 				Vec2i size2( 4 , 6 );
 				Vec2i offset2( 6 , 0 );
-				RenderUtility::SetBrush( g , Color::eRed );
+				RenderUtility::SetBrush( g , EColor::Red );
 				DRAW_RECT2( size2 , -offset2 );
-				RenderUtility::SetBrush( g , Color::eGreen );
+				RenderUtility::SetBrush( g , EColor::Green );
 				DRAW_RECT( size2 );
-				RenderUtility::SetBrush( g , Color::eBlue );
+				RenderUtility::SetBrush( g , EColor::Blue );
 				DRAW_RECT2( size2 , offset2 );
 			}
 			break;
@@ -368,9 +368,9 @@ namespace Chromatron
 				Vec2i size( 4 , 7 );
 				Vec2i offset( 10 , 0 ) ;
 
-				RenderUtility::SetPen( g , Color::eBlack );
+				RenderUtility::SetPen( g , EColor::Black );
 
-				Color color[ ] = { Color::eWhite , Color::eRed , Color::eGreen , Color::eBlue };
+				Color color[ ] = { EColor::White , EColor::Red , EColor::Green , EColor::Blue };
 				for( int i = 0 ; i < 4 ; ++i )
 				{
 					RenderUtility::SetBrush( g , color[ i ] );
@@ -383,8 +383,8 @@ namespace Chromatron
 			break;
 		case DC_TWISTER:
 			{
-				RenderUtility::SetPen( g , Color::eBlack );
-				RenderUtility::SetBrush( g , Color::eWhite );
+				RenderUtility::SetPen( g , EColor::Black );
+				RenderUtility::SetBrush( g , EColor::White );
 
 				g.drawCircle( Vec2i(0,0) , 12 );
 
@@ -400,8 +400,8 @@ namespace Chromatron
 			break;
 		case DC_COMPLEMENTOR:
 			{
-				RenderUtility::SetPen( g , Color::eBlack );
-				RenderUtility::SetBrush( g , Color::eWhite );
+				RenderUtility::SetPen( g , EColor::Black );
+				RenderUtility::SetBrush( g , EColor::White );
 
 				Vec2i size2a( 20 , 4 );
 				Vec2i size2b(  4 , 20);
@@ -416,8 +416,8 @@ namespace Chromatron
 			g.rotateXForm( -DEG2RAD( 22.5 ) );
 		case DC_DUALREFLECTOR:
 			{
-				RenderUtility::SetPen( g , Color::eBlack );
-				RenderUtility::SetBrush( g , Color::eBlack );
+				RenderUtility::SetPen( g , EColor::Black );
+				RenderUtility::SetBrush( g , EColor::Black );
 
 				Vec2i size1( 2 , 22 );
 				DRAW_RECT( size1 );
@@ -437,13 +437,13 @@ namespace Chromatron
 		case DC_LOGICGATE_AND_PRIMARY:
 		case DC_LOGICGATE_AND:
 			{
-				RenderUtility::SetPen( g , Color::eBlack );
-				RenderUtility::SetBrush( g , Color::eGray );
+				RenderUtility::SetPen( g , EColor::Black );
+				RenderUtility::SetBrush( g , EColor::Gray );
 
 				Vec2i size( 12 , 4 );
 				DRAW_RECT2( size , Vec2i( -5 , 0 ) );
 
-				RenderUtility::SetBrush( g , Color::eWhite );
+				RenderUtility::SetBrush( g , EColor::White );
 				g.rotateXForm( DEG2RAD( -45 ) );
 
 				int w = 4;
@@ -469,8 +469,8 @@ namespace Chromatron
 			break;
 		case DC_STARBURST:
 			{
-				RenderUtility::SetPen( g , Color::eBlack );
-				RenderUtility::SetBrush( g , Color::eWhite );
+				RenderUtility::SetPen( g , EColor::Black );
+				RenderUtility::SetBrush( g , EColor::White );
 				int w = 5;
 				int h = 24;
 				for( int i = 0 ; i < 2 ; ++i )
@@ -494,7 +494,7 @@ namespace Chromatron
 		default:
 			{
 				Vec2i size( 20 , 20 );
-				RenderUtility::SetPen( g , Color::eBlack );
+				RenderUtility::SetPen( g , EColor::Black );
 				RenderUtility::SetBrush( g , id % 8 + 1 );
 				g.drawRect( - size / 2 , size );
 
@@ -530,12 +530,12 @@ namespace Chromatron
 				switch( tile.getType() )
 				{
 				case MT_EMPTY:
-					RenderUtility::SetPen( g , Color::eBlack );
+					RenderUtility::SetPen( g , EColor::Black );
 					g.setBrush( Color3ub( 130 , 130 , 130 ) );
 					g.drawRect( cellPos , CellSize + Vec2i(1,1) );
 					break;
 				case MT_BLOCK:
-					RenderUtility::DrawBlock( g , cellPos , CellSize , Color::eGray );
+					RenderUtility::DrawBlock( g , cellPos , CellSize , EColor::Gray );
 					break;
 				case MT_HOLE:
 					break;
@@ -579,7 +579,7 @@ namespace Chromatron
 
 			Vec2i cellPos = pos + Vec2i( x , y );
 
-			RenderUtility::SetPen( g , Color::eBlack );
+			RenderUtility::SetPen( g , EColor::Black );
 			g.setBrush( Color3ub( 150 , 150 , 150 ) );
 
 			g.drawRoundRect( cellPos , CellSize + Vec2i(1,1) , Vec2i( 8 , 8 ) );

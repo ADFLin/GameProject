@@ -73,9 +73,9 @@ namespace TowerDefend
 		Vec2i wPos = getWorldPos();
 
 		if ( mGlowFrame > 0 )
-			RenderUtility::DrawBlock( g , wPos, getSize() , Color::eGreen );
+			RenderUtility::DrawBlock( g , wPos, getSize() , EColor::Green );
 		else
-			RenderUtility::DrawBlock( g , wPos, getSize() , Color::eBlue );
+			RenderUtility::DrawBlock( g , wPos, getSize() , EColor::Blue );
 		if ( getComKey() && getComKey()->comID != CID_NULL )
 		{
 			FixString< 32 > str;

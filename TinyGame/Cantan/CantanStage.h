@@ -43,7 +43,7 @@ namespace Cantan
 			bool drawCoord = false;
 			g.setTextColor(Color3ub(0,0,255));
 			FixString< 256 > str;
-			RenderUtility::SetBrush( g , Color::eYellow );
+			RenderUtility::SetBrush( g , EColor::Yellow );
 			for( MapCellManager::CellVec::iterator iter = mCellManager.mCells.begin() , itEnd = mCellManager.mCells.end();
 				 iter != itEnd ; ++iter )
 			{
@@ -56,7 +56,7 @@ namespace Cantan
 			}
 
 
-			RenderUtility::SetPen( g , Color::eBlue );
+			RenderUtility::SetPen( g , EColor::Blue );
 			for( MapCellManager::CellEdgeVec::iterator iter = mCellManager.mCellEdges.begin() , itEnd = mCellManager.mCellEdges.end();
 				iter != itEnd ; ++iter )
 			{
@@ -66,7 +66,7 @@ namespace Cantan
 				g.drawLine( rPosA , rPosB );
 			}
 
-			RenderUtility::SetBrush( g , Color::eRed );
+			RenderUtility::SetBrush( g , EColor::Red );
 			for( MapCellManager::CellVertexVec::iterator iter = mCellManager.mCellVertices.begin() , itEnd = mCellManager.mCellVertices.end();
 				iter != itEnd ; ++iter )
 			{

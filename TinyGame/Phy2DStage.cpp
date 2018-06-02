@@ -121,14 +121,14 @@ namespace Phy2D
 		glScalef(scale, scale, scale);
 
 
-		RenderUtility::SetPen(g, Color::eRed);
+		RenderUtility::SetPen(g, EColor::Red);
 		g.drawLine(Vector2(-100, 0), Vector2(100, 0));
-		RenderUtility::SetPen(g, Color::eGreen);
+		RenderUtility::SetPen(g, EColor::Green);
 		g.drawLine(Vector2(0, -100), Vector2(0, 100));
 
 
-		RenderUtility::SetPen(g, (mIsCollided) ? Color::eWhite : Color::eGray);
-		RenderUtility::SetBrush(g, Color::eNull);
+		RenderUtility::SetPen(g, (mIsCollided) ? EColor::White : EColor::Gray);
+		RenderUtility::SetBrush(g, EColor::Null);
 		for( int i = 0; i < 2; ++i )
 		{
 			CollideObject& obj = mObjects[i];
@@ -139,12 +139,12 @@ namespace Phy2D
 
 		//if ( mIsCollided )
 		{
-			RenderUtility::SetPen(g, Color::eGreen);
+			RenderUtility::SetPen(g, EColor::Green);
 			g.drawLine(mContact.pos[0], mObjects[0].getPos());
 			g.drawLine(mContact.pos[1], mObjects[1].getPos());
-			RenderUtility::SetPen(g, Color::eYellow);
+			RenderUtility::SetPen(g, EColor::Yellow);
 			g.drawLine(mObjects[0].getPos() + mContact.normal * mContact.depth, mObjects[0].getPos());
-			RenderUtility::SetPen(g, Color::ePurple);
+			RenderUtility::SetPen(g, EColor::Purple);
 			g.drawLine(mObjects[0].getPos() - mContact.normal, mObjects[0].getPos());
 
 
@@ -178,9 +178,9 @@ namespace Phy2D
 			{
 				GJK::Edge& edge = gGJK.mEdges[n];
 				Vector2 size = Vector2(0.05, 0.05);
-				RenderUtility::SetPen(g, Color::eCyan);
+				RenderUtility::SetPen(g, EColor::Cyan);
 				g.drawRect(edge.sv->v - size / 2, size);
-				RenderUtility::SetPen(g, Color::eCyan);
+				RenderUtility::SetPen(g, EColor::Cyan);
 				g.drawLine(edge.sv->v, edge.sv->v + Math::GetNormal(edge.sv->d));
 			}
 #endif
@@ -190,9 +190,9 @@ namespace Phy2D
 				GJK::Simplex& sv = gGJK.mDBG[n];
 				Vector2 pos = mObjects[0].mXForm.transformPosition(sv.v);
 				Vector2 size = Vector2(0.05, 0.05);
-				RenderUtility::SetPen(g, Color::eGreen);
+				RenderUtility::SetPen(g, EColor::Green);
 				g.drawRect(pos - size / 2, size);
-				RenderUtility::SetPen(g, Color::eGreen);
+				RenderUtility::SetPen(g, EColor::Green);
 				g.drawLine(pos, pos + 0.5 * Math::GetNormal(sv.d));
 			}
 
@@ -322,33 +322,33 @@ namespace Phy2D
 		glScalef(scale, -scale, scale);
 
 
-		RenderUtility::SetPen(g, Color::eRed);
+		RenderUtility::SetPen(g, EColor::Red);
 		g.drawLine(Vector2(-100, 0), Vector2(100, 0));
-		RenderUtility::SetPen(g, Color::eGreen);
+		RenderUtility::SetPen(g, EColor::Green);
 		g.drawLine(Vector2(0, -100), Vector2(0, 100));
 
 
-		RenderUtility::SetBrush(g, Color::eNull);
+		RenderUtility::SetBrush(g, EColor::Null);
 		for( World::RigidBodyList::iterator iter = mWorld.mRigidBodies.begin(), itEnd = mWorld.mRigidBodies.end();
 			iter != itEnd; ++iter )
 		{
 			RigidBody* body = *iter;
-			RenderUtility::SetPen(g, Color::eWhite);
+			RenderUtility::SetPen(g, EColor::White);
 			renderObject(g, *body);
 			CollisionProxy* proxy = body->mProxy;
 
-			RenderUtility::SetPen(g, Color::eYellow);
+			RenderUtility::SetPen(g, EColor::Yellow);
 			g.drawRect(proxy->aabb.min, proxy->aabb.max - proxy->aabb.min);
 
-			RenderUtility::SetPen(g, Color::eRed);
+			RenderUtility::SetPen(g, EColor::Red);
 			Vector2 const xDir = body->mXForm.getRotation().getXDir();
 			Vector2 const yDir = body->mXForm.getRotation().getYDir();
-			RenderUtility::SetPen(g, Color::eRed);
+			RenderUtility::SetPen(g, EColor::Red);
 			g.drawLine(body->getPos(), body->getPos() + 0.5 * xDir);
-			RenderUtility::SetPen(g, Color::eGreen);
+			RenderUtility::SetPen(g, EColor::Green);
 			g.drawLine(body->getPos(), body->getPos() + 0.5 * yDir);
 
-			RenderUtility::SetPen(g, Color::eOrange);
+			RenderUtility::SetPen(g, EColor::Orange);
 			g.drawLine(body->getPos(), body->getPos() + body->mLinearVel);
 
 		}

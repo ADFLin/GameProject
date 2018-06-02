@@ -69,7 +69,7 @@ namespace GreedySnake
 		if( snake.stateBit & SS_DEAD )
 			return;
 
-		int ColorMap[4] = { Color::eYellow  , Color::eOrange , Color::eWhite , Color::eBlack };
+		int ColorMap[4] = { EColor::Yellow  , EColor::Orange , EColor::White , EColor::Black };
 		float frac = ( snake.moveCountAcc + snake.moveSpeed * dFrame ) / float( Level::MoveCount );
 		int offset = int( BlockSize * frac );
 		drawSnakeBody( g , snake , ColorMap[ snake.id ] , offset );
@@ -169,16 +169,16 @@ namespace GreedySnake
 			switch( info.type )
 			{
 			case FOOD_GROW:
-				RenderUtility::SetBrush(g, Color::eRed);
+				RenderUtility::SetBrush(g, EColor::Red);
 				break;
 			case FOOD_SPEED_UP:
-				RenderUtility::SetBrush(g, Color::eGreen);
+				RenderUtility::SetBrush(g, EColor::Green);
 				break;
 			case FOOD_SPEED_SLOW:
-				RenderUtility::SetBrush(g, Color::ePurple);
+				RenderUtility::SetBrush(g, EColor::Purple);
 				break;
 			case FOOD_CONFUSED:
-				RenderUtility::SetBrush(g, Color::eGray);
+				RenderUtility::SetBrush(g, EColor::Gray);
 				break;
 			}
 			g.drawCircle(BlockSize * info.pos + Vec2i(BlockSize / 2, BlockSize / 2), SnakeWidth / 2);
@@ -196,8 +196,8 @@ namespace GreedySnake
 		g.pushXForm();
 
 		g.translateXForm( offset.x , offset.y );
-		RenderUtility::SetBrush( g , Color::eBlue );
-		RenderUtility::SetPen( g , Color::eBlue );
+		RenderUtility::SetBrush( g , EColor::Blue );
+		RenderUtility::SetPen( g , EColor::Blue );
 		g.drawRect( Vec2i(0,0) , rectSize );
 
 		drawFood( g );

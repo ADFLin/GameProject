@@ -27,13 +27,6 @@ protected:
 	virtual void postFileModify(FileAction action){}
 
 
-	static std::wstring CharToWChar(const char *c)
-	{
-		const size_t cSize = strlen(c)+1;
-		wchar_t buff[1024];
-		mbstowcs(buff, c, cSize);
-		return buff;
-	}
 };
 
 #if SYS_PLATFORM_WIN

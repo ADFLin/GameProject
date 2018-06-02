@@ -14,9 +14,6 @@
     <Filter Include="Net">
       <UniqueIdentifier>{8d79001f-dee9-4eac-94c4-c03303f2dd6f}</UniqueIdentifier>
     </Filter>
-    <Filter Include="OtherLib">
-      <UniqueIdentifier>{6b5f83c9-c73e-4b2c-86a4-021eaa35bf8f}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Stage">
       <UniqueIdentifier>{d07d131e-86ce-4e00-8132-537d07e60c2c}</UniqueIdentifier>
     </Filter>
@@ -100,9 +97,6 @@
     <ClInclude Include="TinyCore\INetEngine.h">
       <Filter>Net</Filter>
     </ClInclude>
-    <ClInclude Include="..\OtherLib\glew\GL\glew.h">
-      <Filter>OtherLib</Filter>
-    </ClInclude>
     <ClInclude Include="Phy2DStage.h">
       <Filter>Stage</Filter>
     </ClInclude>
@@ -185,9 +179,6 @@
     </ClCompile>
     <ClCompile Include="TinyCore\GameWorker.cpp">
       <Filter>Net</Filter>
-    </ClCompile>
-    <ClCompile Include="..\OtherLib\glew\glew.c">
-      <Filter>OtherLib</Filter>
     </ClCompile>
     <ClCompile Include="Phy2DStage.cpp">
       <Filter>Stage</Filter>

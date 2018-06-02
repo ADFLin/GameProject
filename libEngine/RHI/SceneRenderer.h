@@ -47,10 +47,10 @@ namespace RenderGL
 		RHITexture2DRef textures[NumBuffer];
 		RHITextureDepthRef depthTexture;
 
-		bool init(Vec2i const& size);
+		bool init(IntVector2 const& size);
 		void setupShader(ShaderProgram& program);
 
-		void drawTextures( Vec2i const& size, Vec2i const& gapSize);
+		void drawTextures(IntVector2 const& size, IntVector2 const& gapSize);
 		void drawTexture(int x, int y, int width, int height, int idxBuffer);
 		void drawTexture(int x, int y, int width, int height, int idxBuffer, Vector4 const& colorMask);
 	};
@@ -59,7 +59,7 @@ namespace RenderGL
 	class SceneRenderTargets
 	{
 	public:
-		bool init(Vec2i const& size);
+		bool init(IntVector2 const& size);
 
 		RHITexture2D&  getRenderFrameTexture() { return *mFrameTextures[mIdxRenderFrameTexture]; }
 		RHITexture2D&  getPrevRenderFrameTexture() { return *mFrameTextures[1 - mIdxRenderFrameTexture]; }
@@ -151,7 +151,7 @@ namespace RenderGL
 
 		static void determineCascadeSplitDist(float nearDist, float farDist, int numCascade, float lambda, float outDist[]);
 
-		void drawShadowTexture(LightType type, Vec2i const& pos, int length);
+		void drawShadowTexture(LightType type, IntVector2 const& pos, int length);
 		void reload();
 
 		//RenderTechnique
@@ -221,10 +221,10 @@ namespace RenderGL
 	public:
 		static int const NumDefaultKernel = 16;
 
-		bool init(Vec2i const& size);
+		bool init(IntVector2 const& size);
 
 		void render(ViewInfo& view, SceneRenderTargets& sceneRenderTargets);
-		void drawSSAOTexture( Vec2i const& pos , Vec2i const& size );
+		void drawSSAOTexture(IntVector2 const& pos , IntVector2 const& size );
 
 		void reload();
 	private:
@@ -262,7 +262,7 @@ namespace RenderGL
 	class PostProcessDOF : public PostProcess
 	{
 	public:
-		bool init(Vec2i const& size);
+		bool init(IntVector2 const& size);
 		void render(ViewInfo& view, SceneRenderTargets& sceneRenderTargets);
 
 		FrameBuffer mFrameBufferGen;
@@ -337,7 +337,7 @@ namespace RenderGL
 
 	public:
 
-		bool init(Vec2i const& screenSize);
+		bool init(IntVector2 const& screenSize);
 
 		void releaseRHI()
 		{
@@ -348,7 +348,7 @@ namespace RenderGL
 		}
 
 		static int constexpr MaxTiledLightNum = 1024;
-		bool setupBuffer(Vec2i const& screenSize, int sizeFactor, int depthSlices);
+		bool setupBuffer(IntVector2 const& screenSize, int sizeFactor, int depthSlices);
 
 
 		void render(ViewInfo& view, std::vector< LightInfo > const& lights);
@@ -427,7 +427,7 @@ namespace RenderGL
 		//backwards memory allocation
 		bool bUseBMA = true;
 
-		bool init(Vec2i const& screenSize);
+		bool init(IntVector2 const& screenSize);
 
 		void render(ViewInfo& view, SceneInterface& scnenRender , SceneRenderTargets* sceneRenderTargets );
 		void renderTest(ViewInfo& view, SceneRenderTargets& sceneRenderTargets, Mesh& mesh , Material* material );

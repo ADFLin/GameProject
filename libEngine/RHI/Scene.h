@@ -6,6 +6,8 @@
 #include "PrimitiveBatch.h"
 #include "RenderContext.h"
 
+#include <memory>
+
 namespace RenderGL
 {
 

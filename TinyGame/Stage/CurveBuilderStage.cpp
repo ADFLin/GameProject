@@ -11,9 +11,9 @@
 #include "GLGraphics2D.h"
 #include "ProfileSystem.h"
 
-#include "RenderGL/DrawUtility.h"
-#include "RenderGL/RenderContext.h"
-#include "RenderGL/RHICommand.h"
+#include "RHI/DrawUtility.h"
+#include "RHI/RenderContext.h"
+#include "RHI/RHICommand.h"
 
 #include "GL/wglew.h"
 

@@ -341,10 +341,10 @@ namespace FlappyBird
 		if ( mbDebugDraw )
 		{
 
-			RenderUtility::SetBrush(g, Color::eGray);
+			RenderUtility::SetBrush(g, EColor::Gray);
 			g.drawRect(Vec2i(0, 0), ::Global::getDrawEngine()->getScreenSize());
 
-			RenderUtility::SetBrush(g, Color::eGray, COLOR_LIGHT);
+			RenderUtility::SetBrush(g, EColor::Gray, COLOR_LIGHT);
 			g.drawRect(convertToScreen(Vector2(0, WorldHeight)), GScale * Vector2(WorldWidth, WorldHeight));
 		}
 
@@ -412,8 +412,8 @@ namespace FlappyBird
 
 
 		{
-			RenderUtility::SetPen(g, Color::eNull);
-			RenderUtility::SetBrush(g, Color::eGray);
+			RenderUtility::SetPen(g, EColor::Null);
+			RenderUtility::SetBrush(g, EColor::Gray);
 			Vector2 holePos = convertToScreen(Vector2(0, WorldHeight - 1));
 			Vector2 holeSize = GScale * Vector2(WorldWidth, WorldHeight);
 			drawScreenHole(g, holePos, holeSize);
@@ -499,10 +499,10 @@ namespace FlappyBird
 		if ( mbDebugDraw )
 		{
 			
-			RenderUtility::SetPen(g, Color::eBlack);
-			RenderUtility::SetBrush(g, Color::eYellow);
+			RenderUtility::SetPen(g, EColor::Black);
+			RenderUtility::SetBrush(g, EColor::Yellow);
 			g.drawCircle(rPos, size);
-			RenderUtility::SetPen(g, Color::eRed);
+			RenderUtility::SetPen(g, EColor::Red);
 			
 			dir /= sqrt(dir.length2());
 			g.drawLine(rPos, rPos + Vec2i(15 * dir));
@@ -563,8 +563,8 @@ namespace FlappyBird
 		rPos.y -= rSize.y;
 		if( mbDebugDraw )
 		{
-			RenderUtility::SetBrush(g, Color::eCyan);
-			RenderUtility::SetPen(g, Color::eBlack);
+			RenderUtility::SetBrush(g, EColor::Cyan);
+			RenderUtility::SetPen(g, EColor::Black);
 			g.drawRect(rPos, rSize);
 		}
 		else

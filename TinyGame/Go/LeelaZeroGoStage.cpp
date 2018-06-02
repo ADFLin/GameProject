@@ -9,10 +9,11 @@
 #include "InputManager.h"
 
 #include "GLGraphics2D.h"
-#include "RenderGL/RHICommand.h"
-#include "RenderGL/DrawUtility.h"
-#include "RenderGL/GpuProfiler.h"
-#include "RenderGL/ShaderCompiler.h"
+
+#include "RHI/RHICommand.h"
+#include "RHI/DrawUtility.h"
+#include "RHI/GpuProfiler.h"
+#include "RHI/ShaderCompiler.h"
 
 REGISTER_STAGE("LeelaZero Learning", Go::LeelaZeroGoStage, EStageGroup::Test);
 
@@ -140,7 +141,7 @@ namespace Go
 		if( !mBoardRenderer.initializeRHI() )
 			return false;
 
-		ILocalization::Get().changeLanguage(LAN_ENGLISH);
+		//ILocalization::Get().changeLanguage(LAN_ENGLISH);
 
 		using namespace RenderGL;
 #if 0
@@ -478,14 +479,15 @@ namespace Go
 
 		using namespace Go;
 
+		glClear(GL_COLOR_BUFFER_BIT);
+		RHISetDepthStencilState(StaticDepthDisableState::GetRHI());
+
 		GLGraphics2D& g = ::Global::getGLGraphics2D();
 		g.beginRender();
 
 		GpuProfiler::Get().beginFrame();
 
-		glClear(GL_COLOR_BUFFER_BIT);
-		RHISetDepthStencilState(StaticDepthDisableState::GetRHI());
-
+		
 		auto& viewingGame = getViewingGame();
 
 		RenderContext context( viewingGame.getBoard() , BoardPos , RenderBoardScale );
@@ -497,8 +499,8 @@ namespace Go
 		if( lastPlayPos[0] != -1 && lastPlayPos[1] != -1 )
 		{
 			Vector2 pos = mBoardRenderer.getStonePos(context, lastPlayPos[0], lastPlayPos[1]);
-			RenderUtility::SetPen(g, Color::eRed);
-			RenderUtility::SetBrush(g, Color::eRed);
+			RenderUtility::SetPen(g, EColor::Red);
+			RenderUtility::SetBrush(g, EColor::Red);
 			g.drawCircle(pos, context.stoneRadius / 2);
 		}
 
@@ -593,102 +595,18 @@ namespace Go
 
 		if( bestMoveVertex >= 0 )
 		{
+			if( showBranchVertex == bestMoveVertex && !bestThinkInfo.vSeq.empty() )
+			{
+				mBoardRenderer.drawStoneSequence(context, bestThinkInfo.vSeq, mGame.getNextPlayColor(), 0.7);
+			}
+
 			int x = bestMoveVertex % LeelaGoSize;
 			int y = bestMoveVertex / LeelaGoSize;
 			Vector2 pos = context.getIntersectionPos(x, y);
 
-			RenderUtility::SetPen(g, Color::eRed);
-			RenderUtility::SetBrush(g, Color::eRed);
+			RenderUtility::SetPen(g, EColor::Red);
+			RenderUtility::SetBrush(g, EColor::Red);
 			g.drawCircle(pos, 8);
-		}
-
-
-		if( mWinRateHistory[0].size() > 1 || mWinRateHistory[1].size() > 1 )
-		{
-			GPU_PROFILE("Draw WinRate Graph");
-			Vec2i screenSize = ::Global::getDrawEngine()->getScreenSize();
-			ViewportSaveScope viewportSave;
-			int renderWidth = 250;
-			int renderHeight = 300;
-
-			RHISetViewport(screenSize.x - (renderWidth + 10), 10, renderWidth, renderHeight);
-			MatrixSaveScope matrixSaveScope;
-			glMatrixMode(GL_PROJECTION);
-
-			float const xMin = 0;
-			float const xMax = (mGame.getCurrentStep() + 1) / 2 + 1;
-			float const yMin = 0;
-			float const yMax = 100;
-			Matrix4 matProj = OrthoMatrix(xMin-1, xMax, yMin-5, yMax + 5 , -1, 1);
-
-			glLoadMatrixf(matProj);
-			glMatrixMode(GL_MODELVIEW);
-			glLoadIdentity();
-			static std::vector<Vector2> buffer;
-
-			buffer.clear();
-			float offset = 25;
-			for( float y = 10; y < yMax; y += 10 )
-			{
-				buffer.push_back(Vector2(xMin, y));
-				buffer.push_back(Vector2(xMax, y));
-			}
-			for( float x = offset; x < xMax; x += offset )
-			{
-				buffer.push_back(Vector2(x, yMin));
-				buffer.push_back(Vector2(x, yMax));
-			}
-
-			if( !buffer.empty() )
-			{
-				glColor3f(0.3, 0.3, 0.3);
-				TRenderRT< RTVF_XY >::Draw(PrimitiveType::LineList, &buffer[0], buffer.size());
-			}
-
-			Vector3 colors[2] = { Vector3(1,0,0) , Vector3(0,1,0) };
-			float alpha[2] = { 0.6 , 0.6 };
-			for( int i = 0; i < 2; ++i )
-			{
-				auto& winRateHistory = mWinRateHistory[i];
-				if( winRateHistory.empty() )
-					continue;
-
-				{
-					if( i == 0 )
-					{
-						RHISetBlendState(TStaticBlendState< CWM_RGBA, Blend::eSrcAlpha, Blend::eOneMinusSrcAlpha >::GetRHI());
-					}
-					else
-					{
-						RHISetBlendState(TStaticBlendState< CWM_RGBA, Blend::eSrcAlpha, Blend::eOne >::GetRHI());
-					}
-
-					GL_BIND_LOCK_OBJECT(mProgUnderCurveArea);
-
-					mProgUnderCurveArea->setParameters(
-						float(50), matProj, 
-						Vector4(colors[i], alpha[i]),
-						Vector4(0.3 * colors[i], alpha[i]));
-
-					TRenderRT< RTVF_XY >::DrawShader(PrimitiveType::LineStrip, &winRateHistory[0], winRateHistory.size());
-				}
-
-				RHISetBlendState(TStaticBlendState<>::GetRHI());
-				glColor3fv(colors[i]);
-				TRenderRT< RTVF_XY >::Draw(PrimitiveType::LineStrip, &winRateHistory[0], winRateHistory.size());
-			}
-
-
-			Vector2 const lines[] =
-			{
-				Vector2(0,50), Vector2(xMax,50),
-				Vector2(0,yMin) , Vector2(0,yMax),
-				Vector2(0,yMin) , Vector2(xMax,yMin),
-				Vector2(0,yMax) , Vector2(xMax,yMax),
-			};
-
-			glColor3f(0, 0, 1);
-			TRenderRT< RTVF_XY >::Draw(PrimitiveType::LineList, &lines[0], ARRAY_SIZE(lines));
 		}
 
 		GpuProfiler::Get().endFrame();
@@ -762,7 +680,99 @@ namespace Go
 			}
 		}
 
+		if ( bDrawFontCacheTexture )
+			DrawUtility::DrawTexture(FontCharCache::Get().mTextAtlas.getTexture(), Vector2(0, 0), Vector2(600, 600));
 		g.endRender();
+	}
+
+	void LeelaZeroGoStage::drawWinRateDiagram(Vec2i const& renderPos, Vec2i const& renderSize)
+	{
+		if( mWinRateHistory[0].size() > 1 || mWinRateHistory[1].size() > 1 )
+		{
+			GPU_PROFILE("Draw WinRate Diagram");
+
+			ViewportSaveScope viewportSave;
+
+			Vec2i screenSize = ::Global::getDrawEngine()->getScreenSize();
+
+			RHISetViewport(renderPos.x, screenSize.y - ( renderPos.y + renderSize.y ) , renderSize.x, renderSize.y);
+			MatrixSaveScope matrixSaveScope;
+			glMatrixMode(GL_PROJECTION);
+
+			float const xMin = 0;
+			float const xMax = (mGame.getCurrentStep() + 1) / 2 + 1;
+			float const yMin = 0;
+			float const yMax = 100;
+			Matrix4 matProj = OrthoMatrix(xMin - 1, xMax, yMin - 5, yMax + 5, -1, 1);
+
+			glLoadMatrixf(matProj);
+			glMatrixMode(GL_MODELVIEW);
+			glLoadIdentity();
+
+
+
+			Vector3 colors[2] = { Vector3(1,0,0) , Vector3(0,1,0) };
+			float alpha[2] = { 0.4 , 0.4 };
+
+			for( int i = 0; i < 2; ++i )
+			{
+				auto& winRateHistory = mWinRateHistory[i];
+				if( winRateHistory.empty() )
+					continue;
+				if( mProgUnderCurveArea )
+				{
+					if( i == 0 )
+					{
+						RHISetBlendState(TStaticBlendState< CWM_RGBA, Blend::eSrcAlpha, Blend::eOneMinusSrcAlpha >::GetRHI());
+					}
+					else
+					{
+						RHISetBlendState(TStaticBlendState< CWM_RGBA, Blend::eSrcAlpha, Blend::eOne >::GetRHI());
+					}
+
+					GL_BIND_LOCK_OBJECT(mProgUnderCurveArea);
+
+					mProgUnderCurveArea->setParameters(
+						float(50), matProj,
+						Vector4(colors[i], alpha[i]),
+						Vector4(0.3 * colors[i], alpha[i]));
+
+					TRenderRT< RTVF_XY >::DrawShader(PrimitiveType::LineStrip, &winRateHistory[0], winRateHistory.size());
+				}
+				RHISetBlendState(TStaticBlendState<>::GetRHI());
+				TRenderRT< RTVF_XY >::Draw(PrimitiveType::LineStrip, &winRateHistory[0], winRateHistory.size(), colors[i]);
+			}
+
+			static std::vector<Vector2> buffer;
+			buffer.clear();
+			float offset = 25;
+			for( float y = 10; y < yMax; y += 10 )
+			{
+				buffer.push_back(Vector2(xMin, y));
+				buffer.push_back(Vector2(xMax, y));
+			}
+			for( float x = offset; x < xMax; x += offset )
+			{
+				buffer.push_back(Vector2(x, yMin));
+				buffer.push_back(Vector2(x, yMax));
+			}
+
+			if( !buffer.empty() )
+			{
+				RHISetBlendState(TStaticBlendState< CWM_RGBA, Blend::eOne , Blend::eOne >::GetRHI());
+				TRenderRT< RTVF_XY >::Draw(PrimitiveType::LineList, &buffer[0], buffer.size(), LinearColor(0.3, 0.3, 0.3));
+			}
+
+			Vector2 const lines[] =
+			{
+				Vector2(0,50), Vector2(xMax,50),
+				Vector2(0,yMin) , Vector2(0,yMax),
+				Vector2(0,yMin) , Vector2(xMax,yMin),
+				Vector2(0,yMax) , Vector2(xMax,yMax),
+			};
+
+			TRenderRT< RTVF_XY >::Draw(PrimitiveType::LineList, &lines[0], ARRAY_SIZE(lines) , LinearColor(0, 0, 1));
+		}
 	}
 
 	bool LeelaZeroGoStage::onWidgetEvent(int event, int id, GWidget* ui)
@@ -882,6 +892,7 @@ namespace Go
 			break;
 		case Keyboard::eV: glEnable(GL_MULTISAMPLE); break;
 		case Keyboard::eB: glDisable(GL_MULTISAMPLE); break;
+		case Keyboard::eQ: bDrawFontCacheTexture = !bDrawFontCacheTexture; break;
 		}
 		return false;
 	}
@@ -1305,7 +1316,7 @@ namespace Go
 				}
 				else
 				{
-					mMatchData.advanceTurn();
+					mMatchData.advanceStep();
 					IBotInterface* bot = mMatchData.getCurTurnBot();
 					if( bot )
 					{
@@ -1374,7 +1385,7 @@ namespace Go
 				{
 					mWinRateHistory[indexPlayer].pop_back();
 				}
-				mMatchData.advanceTurn();
+				mMatchData.advanceStep();
 				IBotInterface* bot = mMatchData.getCurTurnBot();
 				if( bot )
 				{
@@ -1391,6 +1402,12 @@ namespace Go
 			switch( com.paramId )
 			{
 			case LeelaGameParam::eBestMoveVertex:
+				{
+					LeelaThinkInfo* info = static_cast<LeelaThinkInfo*>(com.ptrParam);
+					bestMoveVertex = info->v;
+					bestThinkInfo = *info;
+				}
+				break;
 			case ZenGameParam::eBestMoveVertex:
 				bestMoveVertex = com.intParam;
 				break;
@@ -1402,6 +1419,25 @@ namespace Go
 					v.x = ( mGame.getCurrentStep() + 1 ) / 2;
 					v.y = com.floatParam;
 					mWinRateHistory[indexPlayer].push_back(v);
+
+					if( mWinRateWidget == nullptr )
+					{
+						Vec2i screenSize = ::Global::getDrawEngine()->getScreenSize();
+						Vec2i widgetSize = { 260 , 310 };
+						Vec2i widgetPos = { screenSize.x - (widgetSize.x + 20), screenSize.y - ( widgetSize.y + 20 ) };
+						mWinRateWidget = new GFrame( UI_ANY , widgetPos , widgetSize , nullptr );
+						mWinRateWidget->setColor(Color3ub(0, 0, 0));
+						mWinRateWidget->setRenderCallback(
+							RenderCallBack::Create([this](GWidget* widget)
+							{
+								Vec2i screenSize = ::Global::getDrawEngine()->getScreenSize();
+								Vec2i diagramPos  = widget->getWorldPos() + Vec2i(5, 5);
+								Vec2i diagramSize = widget->getSize() - 2 * Vec2i(5, 5);
+								drawWinRateDiagram(diagramPos, diagramSize);
+							})
+						);
+						::Global::GUI().addWidget(mWinRateWidget);
+					}
 					//LogMsg("Win rate = %.2f", com.floatParam);
 				}
 				break;
@@ -1417,7 +1453,7 @@ namespace Go
 				{
 					resetTurnParam();
 
-					mMatchData.advanceTurn();
+					mMatchData.advanceStep();
 					IBotInterface* bot = mMatchData.getCurTurnBot();
 					if( bot )
 					{

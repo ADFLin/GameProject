@@ -166,7 +166,6 @@ void GUISystem::render()
 		return;
 
 	mUIManager.render();
-
 }
 
 void GUISystem::update()

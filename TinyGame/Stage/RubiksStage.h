@@ -290,7 +290,7 @@ namespace Rubiks
 
 	static int BlockColor[] = 
 	{
-		Color::eBlack , Color::eRed , Color::eWhite , Color::eBlue , Color::eYellow , Color::eGreen , Color::eOrange ,
+		EColor::Black , EColor::Red , EColor::White , EColor::Blue , EColor::Yellow , EColor::Green , EColor::Orange ,
 	};
 	int const BlockLen = 20;
 	Vec2i const BlockSize = Vec2i( BlockLen  , BlockLen  );
@@ -417,7 +417,7 @@ namespace Rubiks
 		}
 		void drawFace( Graphics2D& g , Vec2i const& pos , CubeState const& state , FaceDir dir )
 		{
-			RenderUtility::SetPen( g , Color::eBlack );
+			RenderUtility::SetPen( g , EColor::Black );
 			for(int i = 0 ; i < CubeBlockSize * CubeBlockSize ; ++i )
 			{
 				RenderUtility::SetBrush( g , BlockColor[ state.getBlockValue( dir , i ) ] );

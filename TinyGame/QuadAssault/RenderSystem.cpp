@@ -379,7 +379,7 @@ public:
 			mLines.push_back( std::vector< char >( start_line , c ) );
 		}
 	}
-	virtual void setColor( Color const& color )
+	virtual void setColor( EColor const& color )
 	{
 		mColor = color;
 	}
@@ -519,7 +519,7 @@ public:
 	String       mStr;
 
 	LineVec      mLines;
-	Color        mColor;
+	EColor        mColor;
 	int          mCharSize;
 };
 #else

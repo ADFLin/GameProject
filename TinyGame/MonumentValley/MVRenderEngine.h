@@ -9,9 +9,9 @@
 #include "GL/glew.h"
 #include "GLConfig.h"
 
-#include "RenderGL/GLCommon.h"
-#include "RenderGL/DrawUtility.h"
-#include "RenderGL/ShaderCore.h"
+#include "RHI/GLCommon.h"
+#include "RHI/DrawUtility.h"
+#include "RHI/ShaderCore.h"
 
 
 

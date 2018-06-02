@@ -7,9 +7,9 @@
 
 #include "GLGraphics2D.h"
 
-#include "RenderGL/ShaderCompiler.h"
-#include "RenderGL/DrawUtility.h"
-#include "RenderGL/RHICommand.h"
+#include "RHI/ShaderCompiler.h"
+#include "RHI/DrawUtility.h"
+#include "RHI/RHICommand.h"
 
 
 #include "GL/wglew.h"

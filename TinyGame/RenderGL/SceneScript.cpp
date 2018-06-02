@@ -4,7 +4,7 @@
 #include "chaiscript/chaiscript.hpp"
 
 
-#include "SceneObject.h"
+#include "RHI/SceneObject.h"
 #include "RenderGLStageAssetID.h"
 
 namespace Chai = chaiscript;

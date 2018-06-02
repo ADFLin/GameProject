@@ -15,9 +15,9 @@ WinGdiGraphics2D::WinGdiGraphics2D( HDC hDC )
 	,mhDCRender( hDC )
 	,mhDCTarget( hDC )
 {
-	mbManagedPen   = false;
-	mbManagedBrush = false;
-	mbManagedFont  = false;
+	mbPenManaged   = false;
+	mbBrushManaged = false;
+	mbFontManaged  = false;
 
 	mhCurPen   = NULL;
 	mhCurBrush = NULL;
@@ -27,40 +27,122 @@ WinGdiGraphics2D::WinGdiGraphics2D( HDC hDC )
 		::SetBkMode( mhDCTarget , TRANSPARENT );
 }
 
-void WinGdiGraphics2D::_setPenImpl( HPEN hPen , bool beManaged  )
+void WinGdiGraphics2D::releaseReources()
 {
-	if ( mbManagedPen )
-		::DeleteObject( mhCurPen );
+	if( mbFontManaged )
+	{
+		::DeleteObject(mhCurFont);
+		mhCurFont = NULL;
+		mbFontManaged = false;
+	}
+	if( mbBrushManaged )
+	{
+		::DeleteObject(mhCurBrush);
+		mhCurBrush = NULL;
+		mbBrushManaged = false;
+	}
+	if( mbPenManaged )
+	{
+		::DeleteObject(mhCurPen);
+		mhCurPen = NULL;
+		mbPenManaged = false;
+	}
 
-	::SelectObject( getRenderDC() , hPen );
-
-	mhCurPen = hPen;
-	mbManagedPen = beManaged;
+	for( auto& pair : mCachedBrushMap )
+	{
+		::DeleteObject(pair.second);
+	}
+	mCachedBrushMap.clear();
+	for( auto& pair : mCachedPenMap )
+	{
+		::DeleteObject(pair.second);
+	}
+	mCachedPenMap.clear();
 }
 
-void WinGdiGraphics2D::_setBrushImpl( HBRUSH hBrush , bool beManaged )
+void WinGdiGraphics2D::setPenImpl( HPEN hPen , bool beManaged  )
 {
-	if ( mbManagedBrush )
-		::DeleteObject( mhCurBrush );
+	if ( hPen != mhCurPen )
+	{
+		if( mbPenManaged )
+			::DeleteObject(mhCurPen);
 
-	::SelectObject( getRenderDC() , hBrush );
+		::SelectObject(getRenderDC(), hPen);
 
-	mhCurBrush = hBrush;
-	mbManagedBrush = beManaged;
+		mhCurPen = hPen;
+		mbPenManaged = beManaged;
+	}
+}
+
+void WinGdiGraphics2D::setBrushImpl( HBRUSH hBrush , bool beManaged )
+{
+	if ( hBrush != mhCurBrush )
+	{
+		if( mbBrushManaged )
+			::DeleteObject(mhCurBrush);
+
+		::SelectObject(getRenderDC(), hBrush);
+		mhCurBrush = hBrush;
+		mbBrushManaged = beManaged;
+	}
 }
 
 
-void WinGdiGraphics2D::_setFontImpl( HFONT hFont , bool beManaged )
+void WinGdiGraphics2D::setFontImpl( HFONT hFont , bool beManaged )
 {
-	if ( mbManagedFont )
-		::DeleteObject( mhCurFont );
+	if ( hFont != mhCurFont )
+	{
+		if( mbFontManaged )
+			::DeleteObject(mhCurFont);
 
-	::SelectObject( getRenderDC() , hFont );
-
-	mhCurFont = hFont;
-	mbManagedFont = beManaged;
+		::SelectObject(getRenderDC(), hFont);
+		mhCurFont = hFont;
+		mbFontManaged = beManaged;
+	}
 }
 
+
+void WinGdiGraphics2D::setPen(Color3ub const& color, int width /*= 1 */)
+{
+	if( width == 1 )
+	{
+		HPEN hPen;
+		auto iter = mCachedPenMap.find(color.toXBGR());
+		if( iter != mCachedPenMap.end() )
+		{
+			hPen = iter->second;
+		}
+		else
+		{
+			hPen = ::CreatePen(PS_SOLID, width, color.toXBGR());
+			mCachedPenMap.emplace(color.toXBGR(), hPen);
+		}
+		assert(hPen != NULL);
+		setPenImpl(hPen, false);
+	}
+	else
+	{
+		setPenImpl(::CreatePen(PS_SOLID, width, color.toXBGR()), true);
+	}
+}
+
+void WinGdiGraphics2D::setBrush(Color3ub const& color)
+{
+
+	HBRUSH hBrush;
+	auto iter = mCachedBrushMap.find(color.toXBGR());
+	if( iter != mCachedBrushMap.end() )
+	{
+		hBrush = iter->second;
+	}
+	else
+	{
+		hBrush = ::CreateSolidBrush(color.toXBGR());
+		mCachedBrushMap.emplace(color.toXBGR(), hBrush);
+	}
+	assert(hBrush != NULL);
+	setBrushImpl(hBrush, false);
+}
 
 void WinGdiGraphics2D::beginClip(Vec2i const& pos, Vec2i const& size)
 {

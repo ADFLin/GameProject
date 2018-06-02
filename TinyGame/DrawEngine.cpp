@@ -4,7 +4,7 @@
 #include "ProfileSystem.h"
 #include "Thread.h"
 
-#include "RenderGL/RHIGraphics2D.h"
+#include "RHI/RHIGraphics2D.h"
 #include "GLGraphics2D.h"
 #include "GameGlobal.h"
 #include "RenderUtility.h"
@@ -109,6 +109,8 @@ void DrawEngine::init( GameWindow& window )
 
 void DrawEngine::release()
 {
+	mPlatformGraphics->releaseReources();
+
 	if( mbGLEnabled )
 		stopOpenGL();
 	else
@@ -134,15 +136,14 @@ bool DrawEngine::startOpenGL( bool useGLEW , int numSamples )
 
 		if( 1 )
 		{
-			//glDebugMessageCallback( NULL ​,  NULL );
+			//glDebugMessageCallback( NULL ?,  NULL );
 			glDebugMessageCallback(GLDebugCallback, nullptr);
 			glEnable(GL_DEBUG_OUTPUT);
 			glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
 		}
 	}
+
 	RenderUtility::StartOpenGL();
-
-
 	mbGLEnabled = true;
 
 	return true;

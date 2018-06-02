@@ -15,7 +15,7 @@
 #include "Math/Vector4.h"
 #include "Math/Transform.h"
 
-#include "RenderGL/MeshUtility.h"
+#include "RHI/MeshUtility.h"
 
 namespace SR
 {

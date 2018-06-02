@@ -302,15 +302,15 @@ void SpatialIndexTestStage::onRender(float dFrame)
 {
 	Graphics2D& g = Global::getGraphics2D();
 
-	RenderUtility::SetPen(g, Color::eNull);
-	RenderUtility::SetBrush(g, Color::eGray);
+	RenderUtility::SetPen(g, EColor::Null);
+	RenderUtility::SetBrush(g, EColor::Gray);
 	g.drawRect(Vec2i(0, 0), ::Global::getDrawEngine()->getScreenSize());
 
 	static int const ColorMap[] =
 	{
-		Color::eBlue , Color::eGreen , Color::ePink ,
-		Color::eOrange , Color::eRed  , Color::eYellow ,
-		Color::ePurple
+		EColor::Blue , EColor::Green , EColor::Pink ,
+		EColor::Orange , EColor::Red  , EColor::Yellow ,
+		EColor::Purple
 	};
 	for( int i = 0; i < mTree.mDataVec.size(); ++i )
 	{
@@ -320,13 +320,13 @@ void SpatialIndexTestStage::onRender(float dFrame)
 
 		if( i == mRayResult.indexData )
 		{
-			RenderUtility::SetPen(g, Color::eBlack);
-			RenderUtility::SetBrush(g, Color::eWhite);
+			RenderUtility::SetPen(g, EColor::Black);
+			RenderUtility::SetBrush(g, EColor::White);
 
 		}
 		else
 		{
-			RenderUtility::SetPen(g, Color::eWhite);
+			RenderUtility::SetPen(g, EColor::White);
 			RenderUtility::SetBrush(g, ColorMap[data.id % ARRAY_SIZE(ColorMap)]);
 		}
 
@@ -342,7 +342,7 @@ void SpatialIndexTestStage::onRender(float dFrame)
 
 		void operator()(KDTree::Node const& node, BoundBox2D bound)
 		{
-			RenderUtility::SetPen(g, Color::eRed);
+			RenderUtility::SetPen(g, EColor::Red);
 			if( node.axis == 0 )
 			{
 				Vector2 p1 = convertToScreen(Vector2(node.value, bound.min.y));
@@ -371,14 +371,14 @@ void SpatialIndexTestStage::onRender(float dFrame)
 	float rayDist = 200;
 	if( mRayResult.indexData == -1 )
 	{
-		RenderUtility::SetPen(g, Color::eOrange);
+		RenderUtility::SetPen(g, EColor::Orange);
 
 
 	}
 	else
 	{
 		rayDist = mRayResult.dist;
-		RenderUtility::SetPen(g, Color::ePink);
+		RenderUtility::SetPen(g, EColor::Pink);
 	}
 	g.drawLine(convertToScreen(mTestRay.pos), convertToScreen(mTestRay.getPosition(rayDist)));
 }

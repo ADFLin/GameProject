@@ -9,6 +9,7 @@ namespace UnitTest
 		return gNode;
 	}
 
+#if CORE_SHARE_CODE
 	Component::Component()
 	{
 		mNext = getNode();
@@ -32,6 +33,7 @@ namespace UnitTest
 		}
 		return true;
 	}
+#endif //CORE_SHARE_CODE
 
 
 }//namespace UnitTest

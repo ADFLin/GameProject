@@ -2,6 +2,7 @@
 #define Singleton_h__
 
 #include "CppVersion.h"
+#include "CoreShare.h"
 
 template< class T >
 class SingletonT

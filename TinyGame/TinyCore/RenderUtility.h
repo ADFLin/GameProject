@@ -40,6 +40,7 @@ public:
 	static TINY_API void Initialize();
 	static TINY_API void Finalize();
 
+	static TINY_API Color3ub GetColor(int color, int type = COLOR_NORMAL);
 	static TINY_API void SetPen( Graphics2D& g , int color , int type = COLOR_NORMAL );
 	static TINY_API void SetBrush( Graphics2D& g , int color , int type = COLOR_NORMAL );
 	static TINY_API void SetFont( Graphics2D& g , int fontID );
@@ -65,11 +66,11 @@ public:
 	template< class Graphics2D >
 	static void DrawBlock( Graphics2D& g , Vec2i const& pos , Vec2i const& size , int color )
 	{
-		SetPen( g , Color::eBlack );
+		SetPen( g , EColor::Black );
 		SetBrush( g , color , COLOR_DEEP );
 		g.drawRoundRect( pos , size , Vec2i( 8 , 8 ) ); 
 
-		SetPen( g , Color::eNull );
+		SetPen( g , EColor::Null );
 		SetBrush( g , color );
 		g.drawRoundRect( 
 			pos + Vec2i( 3 , 3 ) , Vec2i( size.x - 6 , size.y - 6 ) , Vec2i( 4 , 4 ) );

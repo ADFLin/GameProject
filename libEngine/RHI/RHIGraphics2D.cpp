@@ -300,9 +300,7 @@ namespace RenderGL
 		assert(mFont);
 		flushCommand();
 		glColor4f(mColorFont.r, mColorFont.g, mColorFont.b, mAlpha);
-		glRasterPos2i(0, 0);
-		glBitmap(0, 0, 0, 0, ox, -oy, NULL);
-		mFont->print(str);
+		mFont->draw( Vector2(ox,oy) , str );
 	}
 
 	void RHIGraphics2D::drawPolygonBuffer()

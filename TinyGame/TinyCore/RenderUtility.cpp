@@ -3,18 +3,18 @@
 
 #include "GameGlobal.h"
 #include "GLGraphics2D.h"
-#include "RenderGL/RHIGraphics2D.h"
+#include "RHI/RHIGraphics2D.h"
 
 #include <algorithm>
 
 namespace
 {
-	HBRUSH hBrush[3][ Color::Number ];
-	HPEN   hCPen[3][ Color::Number ];
-	HFONT  hFont[ FONT_NUM ];
-	COLORREF gColorMap[3][ Color::Number ];
+	HBRUSH hBrush[3][EColor::Number];
+	HPEN   hCPen[3][EColor::Number];
+	HFONT  hFont[FONT_NUM];
+	GLFont FontGL[FONT_NUM];
 
-	GLFont FontGL[ FONT_NUM ];
+	Color3ub gColorMap[3][EColor::Number];
 }
 
 
@@ -27,41 +27,41 @@ void RenderUtility::Initialize()
 {
 	using std::min;
 
-	gColorMap[COLOR_NORMAL][ Color::eCyan   ] = RGB( 0 , 255 , 255 );
-	gColorMap[COLOR_NORMAL][ Color::eBlue   ] = RGB( 0 , 0 , 255 );
-	gColorMap[COLOR_NORMAL][ Color::eOrange ] = RGB( 255 , 165 , 0 );
-	gColorMap[COLOR_NORMAL][ Color::eYellow ] = RGB( 255 , 255 , 0 );
-	gColorMap[COLOR_NORMAL][ Color::eGreen  ] = RGB( 0 , 255 , 0 );
-	gColorMap[COLOR_NORMAL][ Color::ePurple ] = RGB( 160 , 32 , 240 );
-	gColorMap[COLOR_NORMAL][ Color::eRed    ] = RGB( 255 , 0 , 0 );
-	gColorMap[COLOR_NORMAL][ Color::eGray   ] = RGB( 100 , 100 , 100 );
-	gColorMap[COLOR_NORMAL][ Color::ePink   ] = RGB( 255 , 0 , 255 );
-	gColorMap[COLOR_NORMAL][ Color::eWhite  ] = RGB( 255 , 255 , 255 );
-	gColorMap[COLOR_NORMAL][ Color::eBlack  ] = RGB( 0, 0, 0 );
+	gColorMap[COLOR_NORMAL][ EColor::Cyan   ] = Color3ub( 0 , 255 , 255 );
+	gColorMap[COLOR_NORMAL][ EColor::Blue   ] = Color3ub( 0 , 0 , 255 );
+	gColorMap[COLOR_NORMAL][ EColor::Orange ] = Color3ub( 255 , 165 , 0 );
+	gColorMap[COLOR_NORMAL][ EColor::Yellow ] = Color3ub( 255 , 255 , 0 );
+	gColorMap[COLOR_NORMAL][ EColor::Green  ] = Color3ub( 0 , 255 , 0 );
+	gColorMap[COLOR_NORMAL][ EColor::Purple ] = Color3ub( 160 , 32 , 240 );
+	gColorMap[COLOR_NORMAL][ EColor::Red    ] = Color3ub( 255 , 0 , 0 );
+	gColorMap[COLOR_NORMAL][ EColor::Gray   ] = Color3ub( 100 , 100 , 100 );
+	gColorMap[COLOR_NORMAL][ EColor::Pink   ] = Color3ub( 255 , 0 , 255 );
+	gColorMap[COLOR_NORMAL][ EColor::White  ] = Color3ub( 255 , 255 , 255 );
+	gColorMap[COLOR_NORMAL][ EColor::Black  ] = Color3ub( 0, 0, 0 );
 
-	hBrush[ COLOR_NORMAL ][ Color::eNull ] = 
-	hBrush[ COLOR_DEEP   ][ Color::eNull ] =
-	hBrush[ COLOR_LIGHT  ][ Color::eNull ] = (HBRUSH)::GetStockObject( NULL_BRUSH );
+	hBrush[ COLOR_NORMAL ][ EColor::Null ] = 
+	hBrush[ COLOR_DEEP   ][ EColor::Null ] =
+	hBrush[ COLOR_LIGHT  ][ EColor::Null ] = (HBRUSH)::GetStockObject( NULL_BRUSH );
 
-	hCPen[COLOR_NORMAL][ Color::eNull ] = hCPen[COLOR_DEEP][Color::eNull] = hCPen[COLOR_LIGHT][Color::eNull] = (HPEN)::GetStockObject( NULL_PEN ) ;
+	hCPen[COLOR_NORMAL][ EColor::Null ] = hCPen[COLOR_DEEP][EColor::Null] = hCPen[COLOR_LIGHT][EColor::Null] = (HPEN)::GetStockObject( NULL_PEN ) ;
 
-	for(int i = 1; i < Color::Number ; ++i )
+	for(int i = 1; i < EColor::Number ; ++i )
 	{
-		hBrush[ COLOR_NORMAL ][i] = ::CreateSolidBrush( gColorMap[COLOR_NORMAL][i] );
-		gColorMap[COLOR_DEEP][i] = RGB( 
-			GetRValue( gColorMap[COLOR_NORMAL][i] ) * 60 / 100 , 
-			GetGValue( gColorMap[COLOR_NORMAL][i] ) * 60 / 100 ,
-			GetBValue( gColorMap[COLOR_NORMAL][i] ) * 60 / 100 );
-		gColorMap[ COLOR_LIGHT ][i] = RGB( 
-			min( GetRValue( gColorMap[COLOR_NORMAL][i] ) + 180 , 255 )  , 
-			min( GetGValue( gColorMap[COLOR_NORMAL][i] ) + 180 , 255 )  ,
-			min( GetBValue( gColorMap[COLOR_NORMAL][i] ) + 180 , 255 )  );
+		hBrush[ COLOR_NORMAL ][i] = ::CreateSolidBrush( gColorMap[COLOR_NORMAL][i].toXBGR() );
+		gColorMap[COLOR_DEEP][i] = Color3ub(
+			int(gColorMap[COLOR_NORMAL][i].r) * 60 / 100 , 
+			int(gColorMap[COLOR_NORMAL][i].g) * 60 / 100 ,
+			int(gColorMap[COLOR_NORMAL][i].b) * 60 / 100 );
+		gColorMap[ COLOR_LIGHT ][i] = Color3ub(
+			min( gColorMap[COLOR_NORMAL][i].r + 180 , 255 )  , 
+			min( gColorMap[COLOR_NORMAL][i].g + 180 , 255 )  ,
+			min( gColorMap[COLOR_NORMAL][i].b + 180 , 255 )  );
 
-		hBrush[ COLOR_DEEP ][i] = ::CreateSolidBrush(  gColorMap[COLOR_DEEP][i] );
-		hBrush[ COLOR_LIGHT ][i] = ::CreateSolidBrush( gColorMap[COLOR_LIGHT][i] );
-		hCPen[COLOR_NORMAL][ i ] = CreatePen( PS_SOLID , 1 , gColorMap[COLOR_NORMAL][i] );
-		hCPen[COLOR_DEEP][i] = CreatePen(PS_SOLID, 1, gColorMap[COLOR_DEEP][i]);
-		hCPen[COLOR_LIGHT][i] = CreatePen(PS_SOLID, 1, gColorMap[COLOR_LIGHT][i]);
+		hBrush[ COLOR_DEEP ][i] = ::CreateSolidBrush(  gColorMap[COLOR_DEEP][i].toXBGR() );
+		hBrush[ COLOR_LIGHT ][i] = ::CreateSolidBrush( gColorMap[COLOR_LIGHT][i].toXBGR() );
+		hCPen[COLOR_NORMAL][ i ] = CreatePen( PS_SOLID , 1 , gColorMap[COLOR_NORMAL][i].toXBGR() );
+		hCPen[COLOR_DEEP][i] = CreatePen(PS_SOLID, 1, gColorMap[COLOR_DEEP][i].toXBGR() );
+		hCPen[COLOR_LIGHT][i] = CreatePen(PS_SOLID, 1, gColorMap[COLOR_LIGHT][i].toXBGR() );
 	}
 
 	DrawEngine* de = Global::getDrawEngine();
@@ -80,7 +80,7 @@ void RenderUtility::Initialize()
 
 void RenderUtility::Finalize()
 {
-	for(int i= 1 ; i < Color::Number ;++i)
+	for(int i= 1 ; i < EColor::Number ;++i)
 	{
 		::DeleteObject( hBrush[ COLOR_NORMAL ][i] );
 		::DeleteObject( hBrush[ COLOR_DEEP ][i] );
@@ -95,6 +95,11 @@ void RenderUtility::Finalize()
 	{
 		::DeleteObject( hFont[i] );
 	}
+}
+
+Color3ub RenderUtility::GetColor(int color, int type /*= COLOR_NORMAL*/)
+{
+	return gColorMap[type][color];
 }
 
 void RenderUtility::SetPen( Graphics2D& g , int color , int type )
@@ -114,29 +119,27 @@ void RenderUtility::SetFont( Graphics2D& g , int fontID )
 
 void RenderUtility::SetPen( GLGraphics2D& g , int color , int type )
 {
-	if ( color == Color::eNull )
+	if ( color == EColor::Null )
 	{
 		g.enablePen( false );
 	}
 	else
 	{
-		COLORREF const& c = gColorMap[type][color];
 		g.enablePen( true );
-		g.setPen( Color3ub( GetRValue( c ) , GetGValue( c )  , GetBValue( c ) ) );
+		g.setPen(gColorMap[type][color]);
 	}
 }
 
 void RenderUtility::SetBrush(GLGraphics2D& g , int color , int type /*= COLOR_NORMAL */)
 {
-	if ( color == Color::eNull )
+	if ( color == EColor::Null )
 	{
 		g.enableBrush( false );
 	}
 	else
 	{
-		COLORREF const& c = gColorMap[type][color];
 		g.enableBrush( true );
-		g.setBrush( Color3ub( GetRValue( c ) , GetGValue( c )  , GetBValue( c ) ) );
+		g.setBrush(gColorMap[type][color]);
 	}
 }
 
@@ -148,29 +151,27 @@ void RenderUtility::SetFont(GLGraphics2D& g , int fontID)
 
 void RenderUtility::SetPen(RenderGL::RHIGraphics2D& g, int color, int type)
 {
-	if( color == Color::eNull )
+	if( color == EColor::Null )
 	{
 		g.enablePen(false);
 	}
 	else
 	{
-		COLORREF const& c = gColorMap[type][color];
 		g.enablePen(true);
-		g.setPen(Color3ub(GetRValue(c), GetGValue(c), GetBValue(c)));
+		g.setPen(gColorMap[type][color]);
 	}
 }
 
 void RenderUtility::SetBrush(RenderGL::RHIGraphics2D& g, int color, int type /*= COLOR_NORMAL */)
 {
-	if( color == Color::eNull )
+	if( color == EColor::Null )
 	{
 		g.enableBrush(false);
 	}
 	else
 	{
-		COLORREF const& c = gColorMap[type][color];
 		g.enableBrush(true);
-		g.setBrush(Color3ub(GetRValue(c), GetGValue(c), GetBValue(c)));
+		g.setBrush(gColorMap[type][color]);
 	}
 }
 
@@ -226,13 +227,17 @@ void RenderUtility::SetFont(IGraphics2D& g , int fontID )
 
 void RenderUtility::StartOpenGL()
 {
+	using namespace RenderGL;
+
 	HDC hDC = ::Global::getDrawEngine()->getWindow().getHDC();
+	FontCharCache::Get().hDC = hDC;
+
 	char const* faceName = "·s²Ó©úÅé";
-	FontGL[ FONT_S8  ].create(  8 , faceName , hDC );
-	FontGL[ FONT_S10 ].create( 10 , faceName , hDC );
-	FontGL[ FONT_S12 ].create( 12 , faceName , hDC );
-	FontGL[ FONT_S16 ].create( 16 , faceName , hDC );
-	FontGL[ FONT_S24 ].create( 24 , faceName , hDC );
+	FontGL[ FONT_S8  ].initialize(FontFaceInfo(faceName, 8 , true));
+	FontGL[ FONT_S10 ].initialize(FontFaceInfo(faceName, 10, true));
+	FontGL[ FONT_S12 ].initialize(FontFaceInfo(faceName, 12, true));
+	FontGL[ FONT_S16 ].initialize(FontFaceInfo(faceName, 16, true));
+	FontGL[ FONT_S24 ].initialize(FontFaceInfo(faceName, 24, true));
 }
 
 void RenderUtility::StopOpenGL()
@@ -243,18 +248,15 @@ void RenderUtility::StopOpenGL()
 
 void RenderUtility::SetFontColor(Graphics2D& g , int color , int type /*= COLOR_NORMAL */)
 {
-	COLORREF const& c = gColorMap[type][color];
-	g.setTextColor(Color3ub( GetRValue( c ) , GetGValue( c )  , GetBValue( c )) );
+	g.setTextColor(gColorMap[type][color]);
 }
 
 void RenderUtility::SetFontColor(GLGraphics2D& g , int color , int type /*= COLOR_NORMAL */)
 {
-	COLORREF const& c = gColorMap[type][color];
-	g.setTextColor(Color3ub(GetRValue( c ) , GetGValue( c )  , GetBValue( c )) );
+	g.setTextColor(gColorMap[type][color]);
 }
 
 void RenderUtility::SetFontColor(IGraphics2D& g , int color , int type /*= COLOR_NORMAL */)
 {
-	COLORREF const& c = gColorMap[type][color];
-	g.setTextColor(Color3ub(GetRValue( c ) , GetGValue( c )  , GetBValue( c )) );
+	g.setTextColor(gColorMap[type][color]);
 }

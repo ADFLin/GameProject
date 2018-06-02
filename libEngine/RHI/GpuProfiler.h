@@ -5,6 +5,7 @@
 #include "GL/glew.h"
 #include "GLConfig.h"
 #include "Singleton.h"
+#include "Core/IntegerType.h"
 
 #include <unordered_map>
 #include <memory>

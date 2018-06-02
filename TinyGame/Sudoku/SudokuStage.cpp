@@ -128,8 +128,8 @@ public:
 	{
 		Graphics2D& g = Global::getGraphics2D();
 
-		//RenderUtility::setBrush(g, Color::eWhite);
-		//RenderUtility::setPen(g, Color::eWhite);
+		//RenderUtility::setBrush(g, EColor::eWhite);
+		//RenderUtility::setPen(g, EColor::eWhite);
 		//g.drawRect(Vec2i(0, 0), ::Global::getDrawEngine()->getScreenSize());
 
 		int const CellSize = 50;
@@ -137,7 +137,7 @@ public:
 
 		Vec2i org(20, 20);
 
-		RenderUtility::SetPen(g, Color::eRed , COLOR_LIGHT );
+		RenderUtility::SetPen(g, EColor::Red , COLOR_LIGHT );
 		for( int i = 0; i < SudokuSolver::NumberNum; ++i )
 		{
 			Vec2i p1 = org + Vec2i(i * CellSize, 0);
@@ -147,7 +147,7 @@ public:
 			g.drawLine(p2, p2 + Vec2i(TotalSize, 0));
 		}
 
-		RenderUtility::SetPen(g, Color::eRed);
+		RenderUtility::SetPen(g, EColor::Red);
 		for( int i = 0; i <= SudokuSolver::BoxSize; ++i )
 		{
 			Vec2i p1 = org + Vec2i(3 * i * CellSize, 0);
@@ -166,7 +166,7 @@ public:
 			if( mSolver.bRelatedCell[i] )
 			{
 				Vec2i pos = org + Vec2i((i % 9) * CellSize, (i / 9) * CellSize);
-				RenderUtility::SetBrush(g, Color::eOrange);
+				RenderUtility::SetBrush(g, EColor::Orange);
 				g.drawRect(pos, Vec2i(CellSize, CellSize));
 			}
 			int sol = mSolver.getSolution(i);

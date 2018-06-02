@@ -14,6 +14,8 @@ namespace RenderGL
 {
 	int const GLDefalutUnpackAlignment = 4;
 
+	uint32 RHIResource::TotalCount = 0;
+
 	bool CheckGLStateValid()
 	{
 		GLenum error = glGetError();
@@ -26,8 +28,6 @@ namespace RenderGL
 		return true;
 	}
 
-
-
 	VertexDecl::VertexDecl()
 	{
 		mVertexSize = 0;
@@ -36,7 +36,7 @@ namespace RenderGL
 	void VertexDecl::bindPointer(LinearColor const* overwriteColor)
 	{
 		bool haveTex = false;
-		for( VertexElement& info : mInfoVec )
+		for( VertexElement& info : mElements )
 		{
 			switch( info.semantic )
 			{
@@ -88,7 +88,7 @@ namespace RenderGL
 	void VertexDecl::unbindPointer(LinearColor const* overwriteColor)
 	{
 		bool haveTex = false;
-		for( VertexElement& info : mInfoVec )
+		for( VertexElement& info : mElements )
 		{
 			switch( info.semantic )
 			{
@@ -125,7 +125,7 @@ namespace RenderGL
 
 	void VertexDecl::bindAttrib(LinearColor const* overwriteColor)
 	{
-		for( VertexElement& info : mInfoVec )
+		for( VertexElement& info : mElements )
 		{
 			glEnableVertexAttribArray(info.attribute);
 			glVertexAttribPointer(info.attribute, Vertex::GetComponentNum(info.format), Vertex::GetComponentType(info.format), GL_FALSE, mVertexSize, (void*)info.offset);
@@ -140,7 +140,7 @@ namespace RenderGL
 
 	void VertexDecl::unbindAttrib(LinearColor const* overwriteColor)
 	{
-		for( VertexElement& info : mInfoVec )
+		for( VertexElement& info : mElements )
 		{
 			glDisableVertexAttribArray(info.attribute);
 		}
@@ -175,27 +175,58 @@ namespace RenderGL
 
 	VertexDecl& VertexDecl::addElement(Vertex::Semantic s, Vertex::Format f, uint8 idx /*= 0 */)
 	{
-		VertexElement info;
-		info.attribute = SemanticToAttribute(s, idx);
-		info.format   = f;
-		info.offset   = mVertexSize;
-		info.semantic = s;
-		info.idx      = idx;
-		info.bNormalize = false;
-		mInfoVec.push_back( info );
+		VertexElement element;
+		element.idxStream = 0;
+		element.attribute = SemanticToAttribute(s, idx);
+		element.format   = f;
+		element.offset   = mVertexSize;
+		element.semantic = s;
+		element.idx      = idx;
+		element.bNormalize = false;
+		mElements.push_back( element );
 		mVertexSize += Vertex::GetFormatSize( f );
 		return *this;
 	}
 
 	VertexDecl& VertexDecl::addElement(uint8 attribute, Vertex::Format f, bool bNormailze)
 	{
-		VertexElement info;
-		info.attribute = attribute;
-		info.format = f;
-		info.offset = mVertexSize;
-		info.semantic = AttributeToSemantic(attribute, info.idx);
-		info.bNormalize = bNormailze;
-		mInfoVec.push_back(info);
+		VertexElement element;
+		element.idxStream = 0;
+		element.attribute = attribute;
+		element.format = f;
+		element.offset = mVertexSize;
+		element.semantic = AttributeToSemantic(attribute, element.idx);
+		element.bNormalize = bNormailze;
+		mElements.push_back(element);
+		mVertexSize += Vertex::GetFormatSize(f);
+		return *this;
+	}
+
+	VertexDecl& VertexDecl::addElement(uint8 idxStream , Vertex::Semantic s, Vertex::Format f, uint8 idx /*= 0 */)
+	{
+		VertexElement element;
+		element.idxStream = idxStream;
+		element.attribute = SemanticToAttribute(s, idx);
+		element.format = f;
+		element.offset = mVertexSize;
+		element.semantic = s;
+		element.idx = idx;
+		element.bNormalize = false;
+		mElements.push_back(element);
+		mVertexSize += Vertex::GetFormatSize(f);
+		return *this;
+	}
+
+	VertexDecl& VertexDecl::addElement(uint8 idxStream, uint8 attribute, Vertex::Format f, bool bNormailze)
+	{
+		VertexElement element;
+		element.idxStream = idxStream;
+		element.attribute = attribute;
+		element.format = f;
+		element.offset = mVertexSize;
+		element.semantic = AttributeToSemantic(attribute, element.idx);
+		element.bNormalize = bNormailze;
+		mElements.push_back(element);
 		mVertexSize += Vertex::GetFormatSize(f);
 		return *this;
 	}
@@ -203,26 +234,22 @@ namespace RenderGL
 
 	VertexElement const* VertexDecl::findBySematic(Vertex::Semantic s , int idx) const
 	{
-		for( InfoVec::const_iterator iter = mInfoVec.begin(),itEnd = mInfoVec.end() ;
-			iter != itEnd ; ++iter )
+		for( auto const& decl : mElements )
 		{
-			VertexElement const& info = *iter;
-			if ( iter->semantic == s && iter->idx == idx )
-				return &info;
+			if ( decl.semantic == s && decl.idx == idx )
+				return &decl;
 		}
-		return NULL;
+		return nullptr;
 	}
 
 	VertexElement const* VertexDecl::findBySematic(Vertex::Semantic s) const
 	{
-		for( InfoVec::const_iterator iter = mInfoVec.begin(),itEnd = mInfoVec.end() ;
-			iter != itEnd ; ++iter )
+		for( auto const& decl : mElements )
 		{
-			VertexElement const& info = *iter;
-			if ( iter->semantic == s )
-				return &info;
+			if( decl.semantic == s )
+				return &decl;
 		}
-		return NULL;
+		return nullptr;
 	}
 
 	int VertexDecl::getSematicOffset(Vertex::Semantic s) const
@@ -249,7 +276,7 @@ namespace RenderGL
 		return ( info ) ? Vertex::Format( info->format ) : Vertex::eUnknowFormat;
 	}
 
-	bool RHITextureBase::loadFileInternal(char const* path, GLenum texType , GLenum texImageType, Vec2i& outSize , Texture::Format& outFormat)
+	bool RHITextureBase::loadFileInternal(char const* path, GLenum texType , GLenum texImageType, IntVector2& outSize , Texture::Format& outFormat)
 	{
 		int w;
 		int h;
@@ -352,7 +379,7 @@ namespace RenderGL
 			return false;
 
 		bind();
-		Vec2i size;
+		IntVector2 size;
 		bool result = loadFileInternal( path , GL_TEXTURE_2D , GL_TEXTURE_2D , size , mFormat );
 		if( result )
 		{
@@ -444,7 +471,7 @@ namespace RenderGL
 		bool result = true; 
 		for( int i = 0 ; i < 6 ; ++i )
 		{
-			Vec2i size;
+			IntVector2 size;
 			if ( !loadFileInternal( path[i] , GL_TEXTURE_CUBE_MAP , GL_TEXTURE_CUBE_MAP_POSITIVE_X + i , size , mFormat) )
 			{
 				result = false;
@@ -1209,6 +1236,7 @@ namespace RenderGL
 		glSamplerParameteri(mHandle, GL_TEXTURE_WRAP_R, GLConvert::To(initializer.addressW));
 		return true;
 	}
+
 
 
 

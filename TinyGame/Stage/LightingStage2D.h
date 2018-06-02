@@ -11,8 +11,8 @@
 #include "Math/Vector3.h"
 
 
-#include "RenderGL/GLCommon.h"
-#include "RenderGL/ShaderCore.h"
+#include "RHI/GLCommon.h"
+#include "RHI/ShaderCore.h"
 
 #define SHADOW_USE_GEOMETRY_SHADER 1
 

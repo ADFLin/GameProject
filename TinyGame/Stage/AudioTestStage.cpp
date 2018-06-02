@@ -243,6 +243,13 @@ static bool LoadWaveFile(char const* path, WaveFormatInfo& outWaveFormat, std::v
 }
 
 
+class IDataStreaming
+{
+
+
+
+
+};
 class AudioTestStage : public StageBase
 {
 	typedef StageBase BaseClass;
@@ -405,17 +412,17 @@ public:
 
 		if( step > 0 )
 		{
-			RenderUtility::SetBrush(g, Color::eNull);
-			RenderUtility::SetPen(g, Color::eBlue);
+			RenderUtility::SetBrush(g, EColor::Null);
+			RenderUtility::SetPen(g, EColor::Blue);
 			g.drawCircle(curPos, curRadius);
 			if( step > 1 && bMoving )
 			{
-				RenderUtility::SetBrush(g, Color::eNull);
-				RenderUtility::SetPen(g, Color::eRed);
+				RenderUtility::SetBrush(g, EColor::Null);
+				RenderUtility::SetPen(g, EColor::Red);
 				g.drawCircle(nextPos, nextRadius);
 
-				RenderUtility::SetPen(g, Color::eNull);
-				RenderUtility::SetBrush(g, Color::eRed, COLOR_LIGHT);
+				RenderUtility::SetPen(g, EColor::Null);
+				RenderUtility::SetBrush(g, EColor::Red, COLOR_LIGHT);
 				g.beginBlend(nextPos - Vector2(nextRadius, nextRadius), 2 * Vector2(nextRadius , nextRadius ) , 0.5 );
 				g.drawCircle(nextPos, nextRadius);
 				g.endBlend();

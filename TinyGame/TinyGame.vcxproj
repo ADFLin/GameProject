@@ -296,7 +296,6 @@ copy $(TargetDir)EngineShare.dll $(ProjectDir)out\</Command>
       <Optimization Condition="'$(Configuration)|$(Platform)'=='Release|VisualGDB'">MaxSpeed</Optimization>
       <Optimization Condition="'$(Configuration)|$(Platform)'=='Debug|VisualGDB'">MaxSpeed</Optimization>
     </ClCompile>
-    <ClCompile Include="SingleStageMode.cpp" />
     <ClCompile Include="Go\GoCore.cpp" />
     <ClCompile Include="Go\GoStage.cpp" />
     <ClCompile Include="Go\ZenBot.cpp" />
@@ -324,9 +323,7 @@ copy $(TargetDir)EngineShare.dll $(ProjectDir)out\</Command>
     <ClCompile Include="MonumentValley\MVStage.cpp" />
     <ClCompile Include="MonumentValley\MVWidget.cpp" />
     <ClCompile Include="MonumentValley\MVWorld.cpp" />
-    <ClCompile Include="NetGameStage.cpp" />
     <ClCompile Include="Qix\QixLevel.cpp" />
-    <ClCompile Include="ReplayStageMode.cpp" />
     <ClCompile Include="Shoot2D\Action.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
       </PrecompiledHeader>
@@ -450,6 +447,9 @@ copy $(TargetDir)EngineShare.dll $(ProjectDir)out\</Command>
     <ClCompile Include="Stage\MiscTestStage.cpp" />
     <ClCompile Include="Sudoku\SudokuStage.cpp" />
     <ClCompile Include="SuperFractial\SelectRectBase.cpp" />
+    <ClCompile Include="TinyCore\NetGameMode.cpp" />
+    <ClCompile Include="TinyCore\ReplayStageMode.cpp" />
+    <ClCompile Include="TinyCore\SingleStageMode.cpp" />
     <ClCompile Include="TinyGameApp.cpp" />
     <ClCompile Include="TinyGamePCH.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
@@ -550,7 +550,6 @@ copy $(TargetDir)EngineShare.dll $(ProjectDir)out\</Command>
     <ClInclude Include="RenderGL\RenderGLStage.h" />
     <ClInclude Include="RenderGL\RenderGLStageAssetID.h" />
     <ClInclude Include="RenderGL\SceneScript.h" />
-    <ClInclude Include="SingleStageMode.h" />
     <ClInclude Include="Geometry2d.h" />
     <ClInclude Include="Go\GoCore.h" />
     <ClInclude Include="Go\GoStage.h" />
@@ -572,9 +571,7 @@ copy $(TargetDir)EngineShare.dll $(ProjectDir)out\</Command>
     <ClInclude Include="MonumentValley\MVStage.h" />
     <ClInclude Include="MonumentValley\MVWidget.h" />
     <ClInclude Include="MonumentValley\MVWorld.h" />
-    <ClInclude Include="NetGameStage.h" />
     <ClInclude Include="Qix\QixLevel.h" />
-    <ClInclude Include="ReplayStageMode.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="Shoot2D\Action.h" />
     <ClInclude Include="Shoot2D\AxisSweepDetector.h" />
@@ -606,6 +603,9 @@ copy $(TargetDir)EngineShare.dll $(ProjectDir)out\</Command>
     <ClInclude Include="Sudoku\SudokuSolver.hpp" />
     <ClInclude Include="Stage\MiscTestStage.h" />
     <ClInclude Include="SuperFractial\SelectRectBase.h" />
+    <ClInclude Include="TinyCore\NetGameMode.h" />
+    <ClInclude Include="TinyCore\ReplayStageMode.h" />
+    <ClInclude Include="TinyCore\SingleStageMode.h" />
     <ClInclude Include="TinyGameApp.h" />
     <ClInclude Include="TinyGamePCH.h" />
     <ClInclude Include="TripleTown\TextureId.h" />

@@ -98,9 +98,6 @@
     <ClCompile Include="Voronoi.cpp">
       <Filter>Common</Filter>
     </ClCompile>
-    <ClCompile Include="NetGameStage.cpp">
-      <Filter>Stage</Filter>
-    </ClCompile>
     <ClCompile Include="Bejeweled\BJLevel.cpp">
       <Filter>GameBejeweled</Filter>
     </ClCompile>
@@ -205,12 +202,6 @@
     </ClCompile>
     <ClCompile Include="Sudoku\SudokuStage.cpp">
       <Filter>GameSudoku</Filter>
-    </ClCompile>
-    <ClCompile Include="SingleStageMode.cpp">
-      <Filter>StageMode</Filter>
-    </ClCompile>
-    <ClCompile Include="ReplayStageMode.cpp">
-      <Filter>StageMode</Filter>
     </ClCompile>
     <ClCompile Include="Stage\BloxorzStage.cpp">
       <Filter>Stage</Filter>
@@ -362,6 +353,15 @@
     <ClCompile Include="Stage\DeviceInfoStage.cpp">
       <Filter>Stage</Filter>
     </ClCompile>
+    <ClCompile Include="TinyCore\NetGameMode.cpp">
+      <Filter>StageMode</Filter>
+    </ClCompile>
+    <ClCompile Include="TinyCore\ReplayStageMode.cpp">
+      <Filter>StageMode</Filter>
+    </ClCompile>
+    <ClCompile Include="TinyCore\SingleStageMode.cpp">
+      <Filter>StageMode</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Bsp2D.h">
@@ -381,9 +381,6 @@
     </ClInclude>
     <ClInclude Include="Voronoi.h">
       <Filter>Common</Filter>
-    </ClInclude>
-    <ClInclude Include="NetGameStage.h">
-      <Filter>Stage</Filter>
     </ClInclude>
     <ClInclude Include="VoronoiStage.h">
       <Filter>Stage</Filter>
@@ -534,12 +531,6 @@
     </ClInclude>
     <ClInclude Include="Sudoku\SamplerTest.h">
       <Filter>GameSudoku</Filter>
-    </ClInclude>
-    <ClInclude Include="SingleStageMode.h">
-      <Filter>StageMode</Filter>
-    </ClInclude>
-    <ClInclude Include="ReplayStageMode.h">
-      <Filter>StageMode</Filter>
     </ClInclude>
     <ClInclude Include="..\va_stdafx.h">
       <Filter>Common</Filter>
@@ -819,6 +810,15 @@
     </ClInclude>
     <ClInclude Include="SuperFractial\SelectRectBase.h">
       <Filter>SuperFractial</Filter>
+    </ClInclude>
+    <ClInclude Include="TinyCore\NetGameMode.h">
+      <Filter>StageMode</Filter>
+    </ClInclude>
+    <ClInclude Include="TinyCore\ReplayStageMode.h">
+      <Filter>StageMode</Filter>
+    </ClInclude>
+    <ClInclude Include="TinyCore\SingleStageMode.h">
+      <Filter>StageMode</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

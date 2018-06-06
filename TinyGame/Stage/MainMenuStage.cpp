@@ -8,7 +8,7 @@
 #include "GameModule.h"
 #include "GameModuleManager.h"
 
-#include "NetGameStage.h"
+#include "NetGameMode.h"
 
 #include "StageRegister.h"
 #include "RenderUtility.h"

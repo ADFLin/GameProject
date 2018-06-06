@@ -26,7 +26,7 @@
 
 #include "Stage/MainMenuStage.h"
 
-#include "NetGameStage.h"
+#include "NetGameMode.h"
 
 #include "SingleStageMode.h"
 #include "ReplayStageMode.h"

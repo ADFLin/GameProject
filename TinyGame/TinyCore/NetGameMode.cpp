@@ -1,5 +1,5 @@
 #include "TinyGamePCH.h"
-#include "NetGameStage.h"
+#include "NetGameMode.h"
 
 #include "GameStage.h"
 #include "GameWorker.h"

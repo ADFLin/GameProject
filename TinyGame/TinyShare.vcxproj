@@ -202,7 +202,6 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="GameShare.h" />
-    <ClInclude Include="DrawEngine.h" />
     <ClInclude Include="GameRoomUI.h" />
     <ClInclude Include="Phy2DStage.h" />
     <ClInclude Include="TinyCore\CAsyncFrameManager.h" />
@@ -210,6 +209,7 @@
     <ClInclude Include="TinyCore\ComPacket.h" />
     <ClInclude Include="TinyCore\CPredictFrameManager.h" />
     <ClInclude Include="TinyCore\CSyncFrameManager.h" />
+    <ClInclude Include="TinyCore\DrawEngine.h" />
     <ClInclude Include="TinyCore\GameClient.h" />
     <ClInclude Include="TinyCore\GameControl.h" />
     <ClInclude Include="TinyCore\GameGlobal.h" />
@@ -233,12 +233,12 @@
     <ClInclude Include="TinyGamePCH.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="DrawEngine.cpp" />
     <ClCompile Include="GameRoomUI.cpp" />
     <ClCompile Include="Phy2DStage.cpp" />
     <ClCompile Include="TinyCore\CFrameActionNetEngine.cpp" />
     <ClCompile Include="TinyCore\ComPacket.cpp" />
     <ClCompile Include="TinyCore\CSyncFrameManager.cpp" />
+    <ClCompile Include="TinyCore\DrawEngine.cpp" />
     <ClCompile Include="TinyCore\GameClient.cpp" />
     <ClCompile Include="TinyCore\GameControl.cpp" />
     <ClCompile Include="TinyCore\GameDllMain.cpp" />

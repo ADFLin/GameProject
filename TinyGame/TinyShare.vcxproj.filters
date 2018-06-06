@@ -19,9 +19,6 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="DrawEngine.h">
-      <Filter>Common</Filter>
-    </ClInclude>
     <ClInclude Include="TinyCore\GameControl.h">
       <Filter>Common</Filter>
     </ClInclude>
@@ -109,11 +106,11 @@
     <ClInclude Include="TinyCore\GameModuleManager.h">
       <Filter>Common</Filter>
     </ClInclude>
+    <ClInclude Include="TinyCore\DrawEngine.h">
+      <Filter>Common</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="DrawEngine.cpp">
-      <Filter>Common</Filter>
-    </ClCompile>
     <ClCompile Include="TinyCore\GameControl.cpp">
       <Filter>Common</Filter>
     </ClCompile>
@@ -187,6 +184,9 @@
       <Filter>Common</Filter>
     </ClCompile>
     <ClCompile Include="TinyCore\GameModuleManager.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
+    <ClCompile Include="TinyCore\DrawEngine.cpp">
       <Filter>Common</Filter>
     </ClCompile>
   </ItemGroup>

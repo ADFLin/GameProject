@@ -6,7 +6,7 @@
 #include "GreedySnakeMode.h"
 
 #include "GameSettingHelper.h"
-#include "GameRoomUI.h"
+#include "Widget/GameRoomUI.h"
 
 namespace GreedySnake
 {

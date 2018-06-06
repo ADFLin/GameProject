@@ -9,7 +9,7 @@
 #include "INetEngine.h"
 #include "ComPacket.h"
 
-#include "GameRoomUI.h"
+#include "Widget/GameRoomUI.h"
 
 
 class CSPRawData;

@@ -5,7 +5,7 @@
 #include "BMAction.h"
 
 #include "GameSettingHelper.h"
-#include "GameRoomUI.h"
+#include "Widget/GameRoomUI.h"
 #include "GameSettingPanel.h"
 
 namespace BomberMan

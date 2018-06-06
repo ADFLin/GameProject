@@ -18,7 +18,7 @@
 #include "RenderUtility.h"
 #include "Widget/OptionNoteBook.h"
 
-#include "NetGameStage.h"
+#include "NetGameMode.h"
 
 #include "GameWorker.h"
 #include "CSyncFrameManager.h"

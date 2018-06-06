@@ -11,7 +11,7 @@
 #include "PropertyKey.h"
 
 #include "GameWorker.h"
-#include "NetGameStage.h"
+#include "NetGameMode.h"
 
 #include "DataTransferImpl.h"
 

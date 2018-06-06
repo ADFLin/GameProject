@@ -4,7 +4,7 @@
 
 #include "DataTransferImpl.h"
 #include "GameWorker.h"
-#include "NetGameStage.h"
+#include "NetGameMode.h"
 
 #include "GameGUISystem.h"
 #include "Widget/WidgetUtility.h"

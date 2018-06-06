@@ -6,7 +6,7 @@
 #include "InputManager.h"
 #include "INetEngine.h"
 
-#include "NetGameStage.h"
+#include "NetGameMode.h"
 
 #include "GameGUISystem.h"
 #include "Widget/WidgetUtility.h"

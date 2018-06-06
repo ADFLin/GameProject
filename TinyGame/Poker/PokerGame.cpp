@@ -4,14 +4,14 @@
 #include "StageBase.h"
 #include "GameServer.h"
 #include "GameSettingHelper.h"
-#include "GameRoomUI.h"
+#include "Widget/GameRoomUI.h"
 
 #include "Big2Stage.h"
 #include "HoldemStage.h"
 #include "FreeCellStage.h"
 
 #include "GameSettingPanel.h"
-#include "GameRoomUI.h"
+#include "Widget/GameRoomUI.h"
 #include "GameWidgetID.h"
 #include "DataSteamBuffer.h"
 

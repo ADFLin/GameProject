@@ -62,9 +62,6 @@
     <ClInclude Include="TinyCore\UserProfile.h">
       <Filter>Common</Filter>
     </ClInclude>
-    <ClInclude Include="GameStageMode.h">
-      <Filter>Common</Filter>
-    </ClInclude>
     <ClInclude Include="TinyCore\DataSteamBuffer.h">
       <Filter>Common</Filter>
     </ClInclude>
@@ -86,6 +83,9 @@
     <ClInclude Include="Widget\ConsoleFrame.h">
       <Filter>GUI</Filter>
     </ClInclude>
+    <ClInclude Include="TinyCore\GameStageMode.h">
+      <Filter>Stage</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="TinyCore\DataTransferImpl.cpp">
@@ -104,9 +104,6 @@
       <Filter>Stage</Filter>
     </ClCompile>
     <ClCompile Include="TinyCore\StageBase.cpp">
-      <Filter>Stage</Filter>
-    </ClCompile>
-    <ClCompile Include="GameStageMode.cpp">
       <Filter>Stage</Filter>
     </ClCompile>
     <ClCompile Include="TinyCore\DataSteamBuffer.cpp">
@@ -129,6 +126,9 @@
     </ClCompile>
     <ClCompile Include="Widget\ConsoleFrame.cpp">
       <Filter>GUI</Filter>
+    </ClCompile>
+    <ClCompile Include="TinyCore\GameStageMode.cpp">
+      <Filter>Stage</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

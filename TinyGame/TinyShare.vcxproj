@@ -202,7 +202,6 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="GameShare.h" />
-    <ClInclude Include="GameRoomUI.h" />
     <ClInclude Include="Phy2DStage.h" />
     <ClInclude Include="TinyCore\CAsyncFrameManager.h" />
     <ClInclude Include="TinyCore\CFrameActionNetEngine.h" />
@@ -231,9 +230,9 @@
     <ClInclude Include="TinyCore\RenderUtility.h" />
     <ClInclude Include="TinyCore\StageRegister.h" />
     <ClInclude Include="TinyGamePCH.h" />
+    <ClInclude Include="Widget\GameRoomUI.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="GameRoomUI.cpp" />
     <ClCompile Include="Phy2DStage.cpp" />
     <ClCompile Include="TinyCore\CFrameActionNetEngine.cpp" />
     <ClCompile Include="TinyCore\ComPacket.cpp" />
@@ -264,6 +263,7 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|VisualGDB'">Create</PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="Widget\GameRoomUI.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\libEngine\EngineShare.vcxproj">

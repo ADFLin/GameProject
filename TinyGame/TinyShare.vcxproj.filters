@@ -46,9 +46,6 @@
     <ClInclude Include="TinyCore\RenderUtility.h">
       <Filter>Common</Filter>
     </ClInclude>
-    <ClInclude Include="GameRoomUI.h">
-      <Filter>GUI</Filter>
-    </ClInclude>
     <ClInclude Include="TinyCore\GameSettingPanel.h">
       <Filter>GUI</Filter>
     </ClInclude>
@@ -109,6 +106,9 @@
     <ClInclude Include="TinyCore\DrawEngine.h">
       <Filter>Common</Filter>
     </ClInclude>
+    <ClInclude Include="Widget\GameRoomUI.h">
+      <Filter>GUI</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="TinyCore\GameControl.cpp">
@@ -143,9 +143,6 @@
     </ClCompile>
     <ClCompile Include="TinyCore\RenderUtility.cpp">
       <Filter>Common</Filter>
-    </ClCompile>
-    <ClCompile Include="GameRoomUI.cpp">
-      <Filter>GUI</Filter>
     </ClCompile>
     <ClCompile Include="TinyCore\GameSettingPanel.cpp">
       <Filter>GUI</Filter>
@@ -188,6 +185,9 @@
     </ClCompile>
     <ClCompile Include="TinyCore\DrawEngine.cpp">
       <Filter>Common</Filter>
+    </ClCompile>
+    <ClCompile Include="Widget\GameRoomUI.cpp">
+      <Filter>GUI</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

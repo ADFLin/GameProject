@@ -156,7 +156,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="GameMenuStage.h" />
-    <ClInclude Include="GameStageMode.h" />
+    <ClInclude Include="TinyCore\GameStageMode.h" />
     <ClInclude Include="Widget\ConsoleFrame.h" />
     <ClInclude Include="Widget\WidgetLayout.h" />
     <ClInclude Include="Widget\WidgetUtility.h" />
@@ -180,12 +180,12 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="GameMenuStage.cpp" />
-    <ClCompile Include="GameStageMode.cpp" />
     <ClCompile Include="TinyCore\DataSteamBuffer.cpp" />
     <ClCompile Include="TinyCore\DataStream.cpp" />
     <ClCompile Include="TinyCore\DataTransferImpl.cpp" />
     <ClCompile Include="TinyCore\GameModule.cpp" />
     <ClCompile Include="TinyCore\GameStage.cpp" />
+    <ClCompile Include="TinyCore\GameStageMode.cpp" />
     <ClCompile Include="TinyCore\PropertyKey.cpp" />
     <ClCompile Include="TinyCore\StageBase.cpp" />
     <ClCompile Include="TinyGamePCH.cpp">

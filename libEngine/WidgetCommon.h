@@ -379,7 +379,7 @@ public:
 		{
 			CoreImpl::focus( beF ); 
 			if (!beF) 
-				getOwner()->destroyMenu( this );
+				getOwner()->destroyMenu();
 		}
 		WChoiceT* getOwner(){ return mOwner; }
 		virtual void render(){  getOwner()->notifyRenderMenu( this );  }
@@ -398,15 +398,12 @@ public:
 
 	bool onMouseMsg( MouseMsg const& msg );
 protected:
-	void destroyMenu( Menu* menu )
-	{
-		menu->destroy();
-		removeFlagInternal( WIF_HITTEST_CHILDREN );
-	}
+	void destroyMenu();
 	void notifyRenderMenu( Menu* menu );
 	bool notifyMenuMouseMsg( Menu* menu , MouseMsg const& msg );
 
 	int        mLightSelect;
+	Menu*      mMenu = nullptr;
 };
 
 

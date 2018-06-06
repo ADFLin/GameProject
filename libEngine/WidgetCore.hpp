@@ -26,13 +26,6 @@ template< class T >
 void WidgetCoreT< T >::init()
 {
 	mParent = NULL;
-#if UI_CORE_USE_INTRLIST
-
-#else
-	mChild = NULL;
-	mNext = NULL;
-	mPrev = NULL;
-#endif
 	mNumChild = 0;
 	mManager = NULL;
 	mFlag = 0;
@@ -43,10 +36,9 @@ template< class T >
 WidgetCoreT<T>::~WidgetCoreT()
 {
 	if ( mParent )
-		_unlinkInternal( true );
+		unlinkInternal( true );
 }
 
-#if UI_CORE_USE_INTRLIST
 template< class T >
 WidgetCoreT<T>* WidgetCoreT<T>::hitTestInternal(Vec2i const& testPos , WidgetList& Widgetlist)
 {
@@ -92,94 +84,18 @@ WidgetCoreT<T>* WidgetCoreT<T>::hitTestInternal(Vec2i const& testPos , WidgetLis
 
 	return result;
 }
-#endif
 
 template< class T >
 WidgetCoreT<T>* WidgetCoreT<T>::hitTestChildren(Vec2i const& testPos)
 {
-#if UI_CORE_USE_INTRLIST
 	return hitTestInternal(testPos, mChildren);
-#else
-	WidgetCoreT* result = NULL;
-
-	if( !mChild )
-		return NULL;
-
-	Vec2i  pos = testPos;
-
-	WidgetCoreT* child = mChild;
-	WidgetCoreT* ui = child->mPrev;
-
-	while( 1 )
-	{
-		bool testFail = true;
-		if( !ui->checkFlag(WIF_DISABLE | WIF_BE_HIDDEN) )
-			// ui->isEnable() && ui->isShow()
-		{
-			if( ui->checkFlag(WIF_HITTEST_CHILDREN) )
-			{
-				Vec2i tPos = pos - ui->getPos();
-				result = ui->hitTestChildren(tPos);
-				if( result )
-					return result;
-			}
-			else if( static_cast<T*>(ui)->doHitTest(pos) )
-			{
-				result = ui;
-				child = ui->mChild;
-
-				if( !child )
-					return result;
-
-				pos -= ui->getPos();
-				ui = child->mPrev;
-
-				testFail = false;
-			}
-		}
-
-		if( testFail )
-		{
-			if( ui == child )
-				return result;
-
-			ui = ui->mPrev;
-		}
-	}
-	return result;
-#endif
 }
 
 
 template< class T >
-void WidgetCoreT<T>::_unlinkInternal( bool bRemove)
+void WidgetCoreT<T>::unlinkInternal( bool bRemove )
 {
-	
-
-#if UI_CORE_USE_INTRLIST
 	mLinkHook.unlink();
-#else
-	assert(mParent);
-	if ( mParent->mChild == this )
-	{
-		mParent->mChild = mNext;
-
-		if ( mNext )
-			mNext->mPrev = mPrev;
-	}
-	else
-	{
-		mPrev->mNext = mNext;
-
-		if ( mNext )
-			mNext->mPrev = mPrev;
-		else
-			mParent->mChild->mPrev = mPrev;
-	}
-
-	mNext = NULL;
-	mPrev = NULL;
-#endif
 
 	if ( !isTop() )
 		static_cast< T* >( mParent )->onChangeChildrenOrder();
@@ -187,36 +103,19 @@ void WidgetCoreT<T>::_unlinkInternal( bool bRemove)
 	if( mParent )
 	{
 		--mParent->mNumChild;
+		mParent = nullptr;
 	}
 
-	mParent = NULL;
 	if ( bRemove )
-		mManager = NULL;
+		mManager = nullptr;
 }
-
 
 template< class T >
 void WidgetCoreT<T>::linkChildInternal( WidgetCoreT* ui )
 {
-	assert( ui->mParent == NULL );
+	assert( ui->mParent == nullptr );
 
-#if UI_CORE_USE_INTRLIST
 	mChildren.push_back(*static_cast<T*>(ui));
-#else
-	if ( mChild )
-	{
-		WidgetCoreT* lastUI = mChild->mPrev;
-		lastUI->mNext = ui;
-		ui->mPrev = lastUI;
-	}
-	else
-	{
-		mChild = ui;
-	}
-
-	mChild->mPrev = ui;
-	ui->mNext = NULL;
-#endif
 
 	ui->mParent = this;
 
@@ -225,11 +124,12 @@ void WidgetCoreT<T>::linkChildInternal( WidgetCoreT* ui )
 
 	++mNumChild;
 }
+
 template< class T >
 T& WidgetCoreT<T>::addChild( WidgetCoreT* ui )
 {
 	if ( ui->mParent )
-		ui->_unlinkInternal(true);
+		ui->unlinkInternal(true);
 
 	linkChildInternal( ui );
 
@@ -250,13 +150,10 @@ bool WidgetCoreT<T>::isFocus()
 template< class T >
 T&  WidgetCoreT<T>::show( bool beS )
 {
-	if ( isShow() != beS )
+	bool bShown = isShow();
+	if ( bShown != beS )
 	{
-		if ( beS )
-			removeFlagInternal( WIF_BE_HIDDEN );
-		else
-			addFlagInternal( WIF_BE_HIDDEN );
-
+		enableFlag(WIF_BE_HIDDEN, !beS);
 		_this()->onShow( beS );
 
 		for( auto ui = createChildrenIterator() ; ui ; ++ui )
@@ -282,6 +179,19 @@ T&  WidgetCoreT<T>::enable( bool beE = true )
 	return *_this();
 }
 
+
+template< class T >
+bool WidgetCoreT<T>::isEnable() const
+{
+	return !checkFlag(WIF_DISABLE);
+}
+
+
+template< class T >
+bool WidgetCoreT<T>::isShow() const
+{
+	return !checkFlag(WIF_BE_HIDDEN);
+}
 
 template< class T >
 int WidgetCoreT<T>::getLevel()
@@ -351,7 +261,6 @@ void WidgetCoreT<T>::setManager( TWidgetManager<T>* mgr )
 	}
 }
 
-#if UI_CORE_USE_INTRLIST
 template< class T >
 void WidgetCoreT<T>::SetTopInternal(WidgetList& list, WidgetCoreT* ui, bool bAlwaysTop)
 {
@@ -359,43 +268,12 @@ void WidgetCoreT<T>::SetTopInternal(WidgetList& list, WidgetCoreT* ui, bool bAlw
 	ui->mLinkHook.unlink();
 	list.push_back(*static_cast<T*>(ui));
 }
-#endif
+
 
 template< class T >
 void WidgetCoreT<T>::setTopChild( WidgetCoreT* ui , bool beAlways )
 {
-#if UI_CORE_USE_INTRLIST
 	SetTopInternal(mChildren, ui, beAlways);
-#else
-	assert( ui->mNext );
-
-	if ( mChild == ui )
-	{
-		mChild = ui->mNext;
-		mChild->mPrev = ui->mPrev;
-	}
-	else
-	{
-		ui->mPrev->mNext = ui->mNext;
-		ui->mNext->mPrev = ui->mPrev;
-	}
-
-	assert( mChild );
-
-	WidgetCoreT* lastUI = mChild->mPrev;
-	assert( lastUI );
-
-	lastUI->mNext = ui;
-	ui->mPrev = lastUI;
-	ui->mNext = NULL;
-
-	mChild->mPrev = ui;
-#endif
-
-#if !UI_CORE_USE_INTRLIST
-	if ( getManager()->getRoot() != this )
-		_this()->onChangeChildrenOrder();
-#endif
 }
 
 template< class T >
@@ -405,24 +283,16 @@ T& WidgetCoreT<T>::setTop( bool beAlways )
 	if ( beAlways )
 		addFlagInternal( WIF_STAY_TOP );
 
-#if UI_CORE_USE_INTRLIST
 	if( getParent() )
 	{
 		getParent()->setTopChild(this, beAlways);
-
 	}
 	else
 	{
 		SetTopInternal(getManager()->mTopWidgetList ,  this, beAlways);
 	}
 	_this()->onChangeOrder();
-#else
-	if ( mNext )
-	{
-		getParent()->setTopChild( this , beAlways );
-		_this()->onChangeOrder();
-	}
-#endif
+
 
 	return *_this();
 }
@@ -461,22 +331,6 @@ T& WidgetCoreT<T>::makeFocus()
 	return *_this();
 }
 
-template< class T >
-void WidgetCoreT<T>::destroyChildren_R()
-{
-	auto childIter = createChildrenIterator();
-	while( childIter )
-	{
-		WidgetCoreT* ui = &(*childIter);
-		ui->destroyChildren_R();
-
-		if ( getManager() )
-			getManager()->removeWidgetReference( ui );
-
-		++childIter;
-		ui->deleteThis();
-	}
-}
 
 template< class T >
 void WidgetCoreT<T>::doRenderAll()
@@ -519,24 +373,30 @@ void WidgetCoreT<T>::destroy()
 	}
 	else
 	{
-		destroyChildren_R();
+		deleteChildren_R();
 		deleteThis();
+	}
+}
+
+template< class T >
+void WidgetCoreT<T>::deleteChildren_R()
+{
+	auto iterChildren = createChildrenIterator();
+
+	while( iterChildren )
+	{
+		WidgetCoreT* child = &(*iterChildren);
+		child->deleteChildren_R();
+		++iterChildren;
+		child->deleteThis();
 	}
 }
 
 template< class T >
 TWidgetManager<T>::TWidgetManager()
 	:mProcessingMsg(false)
-#if !UI_CORE_USE_INTRLIST
-	,mRoot()
-	, mRemoveUI()
-#endif
 {
 	std::fill_n(mNamedSlots, (int)ESlotName::Num, nullptr);
-#if !UI_CORE_USE_INTRLIST
-	mRoot.setManager( this );
-	mRemoveUI.setManager(this);
-#endif
 }
 
 template < class T >
@@ -717,12 +577,7 @@ template< class T >
 T* TWidgetManager<T>::hitTest( Vec2i const& testPos )
 {
 	WIDGET_PROFILE_ENTRY("UI Hit Test");
-#if UI_CORE_USE_INTRLIST
 	return static_cast< T*>( WidgetCore::hitTestInternal( testPos , mTopWidgetList ) );
-#else
-	return static_cast< T* >(mRoot.hitTestChildren(testPos));
-#endif
-	
 }
 
 template< class T >
@@ -732,11 +587,8 @@ void TWidgetManager<T>::update()
 
 	{
 		WIDGET_PROFILE_ENTRY("UpdateUI");
-#if UI_CORE_USE_INTRLIST
+
 		for( auto ui = createTopWidgetIterator(); ui; ++ui )
-#else
-		for( auto ui = mRoot.createChildrenIterator(); ui; ++ui )
-#endif
 		{
 			updateInternal(*ui);
 		}
@@ -763,11 +615,7 @@ void TWidgetManager<T>::updateInternal( WidgetCore& ui )
 template< class T >
 void TWidgetManager<T>::render()
 {
-#if UI_CORE_USE_INTRLIST
 	for( auto ui = createTopWidgetIterator(); ui; ++ui )
-#else
-	for( auto ui = mRoot.createChildrenIterator(); ui; ++ui )
-#endif
 	{
 		if ( !ui->isShow() )
 			continue;
@@ -783,11 +631,8 @@ void  TWidgetManager<T>::visitWidgets( Visitor visitor )
 	WIDGET_PROFILE_ENTRY("UI System");
 	{
 		WIDGET_PROFILE_ENTRY("visitUI");
-#if UI_CORE_USE_INTRLIST
+
 		for( auto ui = createTopWidgetIterator(); ui; ++ui )
-#else
-		for( auto ui = mRoot.createChildrenIterator(); ui; ++ui )
-#endif
 		{
 			visitWidgetInternal(visitor , *ui);
 		}
@@ -833,81 +678,100 @@ void TWidgetManager<T>::removeWidgetReference( WidgetCore* ui )
 template< class T >
 void TWidgetManager<T>::destroyWidget( WidgetCore* ui )
 {
-	if ( ui == NULL || ui->checkFlag( WIF_MARK_DESTROY ) )
+	if ( ui == nullptr || ui->checkFlag( WIF_MARK_DESTROY ) )
 		return;
 
 	ui->addFlagInternal(WIF_MARK_DESTROY);
-	if ( mProcessingMsg || ui->checkFlag( WIF_BLOCK_DESTROY ))
+	if ( mProcessingMsg || ui->checkFlag( WIF_DEFERRED_DESTROY ))
 	{
-		ui->_unlinkInternal(false);
-#if UI_CORE_USE_INTRLIST
-		mRemoveWidgetList.push_back(*static_cast<T*>(ui));
-#else
-		mRemoveUI.linkChildInternal( ui );
-#endif
-
+		ui->unlinkInternal(false);
+		mDeferredDestroyWidgets.push_back(*static_cast<T*>(ui));
 	}
 	else
 	{
-		destroyNoCheck( ui );
+		destroyWidgetActually( ui );
 	}
+}
+
+template < class T >
+void TWidgetManager<T>::destroyWidgetChildren_R(WidgetCore* ui)
+{
+	auto childIter = ui->createChildrenIterator();
+	while( childIter )
+	{
+		WidgetCore* child = &(*childIter);
+		destroyWidgetChildren_R(child);
+		++childIter;
+		destroyWidget(child);
+	}
+}
+
+
+template< class T >
+void TWidgetManager<T>::destroyWidgetActually( WidgetCore* ui )
+{
+	removeWidgetReference( ui );
+	destroyWidgetChildren_R( ui );
+
+	ui->unlinkInternal(true);
+	ui->deleteThis();
 }
 
 template< class T >
 void TWidgetManager<T>::cleanupPaddingKillWidgets()
 {
-#if UI_CORE_USE_INTRLIST
-	while( !mRemoveWidgetList.empty() )
+	int loopCount = 0;
+
+	while( !mDeferredDestroyWidgets.empty() )
 	{
-		destroyNoCheck( &mRemoveWidgetList.front() );
+		WidgetList processingList;
+		processingList.swap(mDeferredDestroyWidgets);
+
+		while( !processingList.empty() )
+		{
+			WidgetCore* ui = &processingList.front();
+			ui->removeFlagInternal(WIF_MARK_DESTROY);
+			destroyWidget(ui);
+		}
+
+		++loopCount;
+		if( loopCount > 10 )
+		{
+			LogWarning(0, "Can't Destroy Padding Widgets!!");
+			break;
+		}
 	}
-#else
-	WidgetCore* ui = mRemoveUI.getChild();
-	while( ui )
-	{
-		destroyNoCheck(ui);
-		ui = mRemoveUI.getChild();
-	}
-#endif
 }
 
 template< class T >
-void TWidgetManager<T>::destroyNoCheck( WidgetCore* ui )
+void TWidgetManager<T>::cleanupWidgets(bool bGlobalIncluded = false)
 {
-	removeWidgetReference( ui );
-	ui->destroyChildren_R();
-	ui->_unlinkInternal(true);
-	ui->deleteThis();
-}
-
-template< class T >
-void TWidgetManager<T>::cleanupWidgets()
-{
-#if UI_CORE_USE_INTRLIST
-	while( !mTopWidgetList.empty() )
+	if( bGlobalIncluded )
 	{
-		destroyWidget(&mTopWidgetList.front());
+		while( !mTopWidgetList.empty() )
+		{
+			destroyWidget(&mTopWidgetList.front());
+		}
 	}
-#else
-	WidgetCore* child = getRoot()->getChild();
-	while ( child )
+	else
 	{
-		destroyWidget( child );
-		child = getRoot()->getChild();
+		for( auto iter = mTopWidgetList.begin(); iter != mTopWidgetList.end();  )
+		{
+			WidgetCore& widget = *iter;
+			++iter;
+			if( !widget.checkFlag(WIF_GLOBAL) )
+			{
+				destroyWidget(&widget);
+			}
+		}
 	}
-#endif
 }
 
 template< class T >
 void TWidgetManager<T>::addWidget( WidgetCore* ui )
 {
-#if UI_CORE_USE_INTRLIST
 	mTopWidgetList.push_back(*static_cast<T*>(ui));
 	ui->setManager(this);
-#else
-	assert( ui && ui->getParent() == NULL );
-	mRoot.addChild( ui );
-#endif
 }
 
 template< class T >
@@ -928,13 +792,7 @@ void TWidgetManager<T>::endModal( WidgetCore* ui )
 template< class T >
 bool TWidgetManager<T>::isTopWidget( WidgetCore* ui )
 {
-#if UI_CORE_USE_INTRLIST
 	return ui->getParent() == nullptr;
-#else
-	WidgetCore* parent = ui->getParent();
-	return parent == getRoot() ||
-		   parent == &mRemoveUI;
-#endif
 }
 
 template< class T >

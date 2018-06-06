@@ -6,7 +6,7 @@
 #include "InputManager.h"
 #include "DataStream.h"
 
-#include "WidgetUtility.h"
+#include "Widget/WidgetUtility.h"
 #include "RenderUtility.h"
 #include "GLGraphics2D.h"
 

@@ -10,6 +10,8 @@
 #include "RenderUtility.h"
 #include "GameModule.h"
 
+#include "Widget/WidgetUtility.h"
+
 #include "Core/IntegerType.h"
 
 class MiscTestRegister

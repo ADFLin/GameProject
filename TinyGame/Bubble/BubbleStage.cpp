@@ -9,7 +9,7 @@
 
 #include "GameGUISystem.h"
 #include "GameWidgetID.h"
-#include "WidgetUtility.h"
+#include "Widget/WidgetUtility.h"
 
 namespace Bubble
 {

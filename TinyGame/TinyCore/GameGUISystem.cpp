@@ -74,7 +74,7 @@ void GUISystem::scanHotkey( GameController& controller )
 	//for ( HotkeyList::iterator iter = mHotKeys.begin();
 	//	iter != mHotKeys.end() ; ++iter )
 	//{
-	//	iter->ui->lockDestroy();
+	//	iter->ui->markDestroyDefferred();
 	//	if ( controller.checkKey( 0 , iter->keyAction ) )
 	//	{
 	//		iter->ui->onHotkey( iter->keyAction );
@@ -86,7 +86,7 @@ void GUISystem::scanHotkey( GameController& controller )
 	//for ( HotkeyList::iterator iter = mHotKeys.begin();
 	//	iter != mHotKeys.end() ; ++iter )
 	//{
-	//	iter->ui->unlockDestroy();
+	//	iter->ui->unmarkDestroyDefferred();
 	//}
 }
 
@@ -152,9 +152,9 @@ void GUISystem::addWidget( GWidget* widget )
 	mUIManager.addWidget( widget );
 }
 
-void GUISystem::cleanupWidget(bool bForceCleanup)
+void GUISystem::cleanupWidget(bool bForceCleanup , bool bGlobalIncluded)
 {
-	mUIManager.cleanupWidgets();
+	mUIManager.cleanupWidgets(bGlobalIncluded);
 	mTweener.clear();
 	if( bForceCleanup )
 		mUIManager.cleanupPaddingKillWidgets();

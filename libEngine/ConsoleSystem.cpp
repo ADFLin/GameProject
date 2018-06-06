@@ -67,7 +67,7 @@ bool ConsoleSystem::init()
 	return true;
 }
 
-bool ConsoleSystem::command( char const* comStr )
+bool ConsoleSystem::executeCommand( char const* comStr )
 {
 	size_t maxLen = strlen( comStr );
 
@@ -95,7 +95,7 @@ bool ConsoleSystem::command( char const* comStr )
 
 	if ( com == NULL )
 	{
-		m_errorMsg = "unknown command";
+		m_errorMsg = "unknown executeCommand";
 		return false;
 	}
 

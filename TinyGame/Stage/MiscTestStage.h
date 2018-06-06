@@ -10,7 +10,8 @@
 #include "GameReplay.h"
 #include "GameGUISystem.h"
 #include "GameWidgetID.h"
-#include "WidgetUtility.h"
+
+#include "Widget/WidgetUtility.h"
 
 #include "DrawEngine.h"
 #include "INetEngine.h"

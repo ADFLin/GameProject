@@ -23,7 +23,7 @@ public:
 
 	FixVector( size_t num , T val = T() )
 	{
-		TypeConstructHelpler::construct((T*)mEle, num, val);
+		TypeDataHelper::Construct((T*)mEle, num, val);
 		mNext = mEle + num;
 	}
 	~FixVector(){  clear();  }
@@ -41,8 +41,8 @@ public:
 	void    resize( size_t num );
 	void    resize( size_t num , value_type const& value );
 
-	void push_back( T const& val ){  assert( mNext != mEle + N ); TypeConstructHelpler::construct((T*)mNext , val ); ++mNext; }
-	void pop_back() { assert(size() != 0); --mNext; TypeConstructHelpler::destruct((T*)mNext); }
+	void push_back( T const& val ){  assert( mNext != mEle + N ); TypeDataHelper::Construct((T*)mNext , val ); ++mNext; }
+	void pop_back() { assert(size() != 0); --mNext; TypeDataHelper::Destruct((T*)mNext); }
 
 	const_refernece front() const { return castType( mEle[ 0 ] ); }
 	reference       front()       { return castType( mEle[ 0 ] ); }
@@ -58,7 +58,7 @@ public:
 	iterator erase( iterator iter )
 	{
 		checkRange( iter );
-		TypeConstructHelpler::destruct(iter);
+		TypeDataHelper::Destruct(iter);
 		
 		moveToEnd( iter , iter + 1 );
 		return iter;
@@ -69,7 +69,7 @@ public:
 		checkRange( from );
 		checkRange( to );
 		assert( to > from );
-		TypeConstructHelpler::destruct(from, to - from);
+		TypeDataHelper::Destruct(from, to - from);
 		moveToEnd( from , to );
 		return from;
 	}	
@@ -87,14 +87,14 @@ private:
 		size_t num = (T*)mNext - src;
 		if( num )
 		{
-			TypeConstructHelpler::move(where, num, src);
+			TypeDataHelper::Move(where, num, src);
 		}
 		mNext = reinterpret_cast< Storage*>( where + num );
 	}
 
 	void  eraseToEnd( iterator is )
 	{
-		TypeConstructHelpler::destruct(is, end() - is);
+		TypeDataHelper::Destruct(is, end() - is);
 		mNext = reinterpret_cast< Storage*>( is );
 	}
 
@@ -121,7 +121,7 @@ void  FixVector< T , N >::resize( size_t num )
 	}
 	else
 	{
-		TypeConstructHelpler::construct(mNext, num);
+		TypeDataHelper::Construct(mNext, num);
 		mNext += num;
 	}
 }
@@ -137,7 +137,7 @@ void  FixVector< T , N >::resize( size_t num , value_type const& value )
 	}
 	else
 	{
-		TypeConstructHelpler::construct(mNext, num, value );
+		TypeDataHelper::Construct(mNext, num, value );
 		mNext += num;
 	}
 }

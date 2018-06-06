@@ -1,77 +1,103 @@
 #pragma once
-#ifndef TypeFactory_H_BC9060AA_A057_4EF9_A087_C2D68BFF78F4
-#define TypeFactory_H_BC9060AA_A057_4EF9_A087_C2D68BFF78F4
+#ifndef TypeConstruct_H_CF8B1CE1_FBAC_450E_B932_B8C76DF1B46A
+#define TypeConstruct_H_CF8B1CE1_FBAC_450E_B932_B8C76DF1B46A
 
 #include "MetaBase.h"
-class TypeConstructHelpler
+class TypeDataHelper
 {
 public:
 	template< class T >
-	static void construct(T* ptr, T const& val = T() )
+	static void Construct(T* ptr, T const& val = T() )
 	{
-		constructInternal(ptr, val, Meta::IsPod< T >::Type());
+		ConstructInternal(ptr, val, Meta::IsPod< T >::Type());
+	}
+
+	template< class T , class Q >
+	static void Construct(T* ptr, Q&& val )
+	{
+		::new (ptr) T(std::forward<Q>(val));
+	}
+
+	template< class T, class ...Args >
+	static void Construct(T* ptr, Args&& ...args)
+	{
+		::new (ptr) T(std::forward<Args>(args)...);
+	}
+
+	template< class T >
+	static void Construct(T* ptr, size_t num, T const& val = T())
+	{
+		ConstructInternal(ptr, num, val, Meta::IsPod< T >::Type());
 	}
 	template< class T >
-	static void construct(T* ptr, size_t num, T const& val = T())
+	static void Construct(T* ptr, size_t num, T* ptrValue)
 	{
-		constructInternal(ptr, num, val, Meta::IsPod< T >::Type());
+		ConstructInternal(ptr, num, ptrValue, Meta::IsPod< T >::Type());
 	}
 	template< class T >
-	static void construct(T* ptr, size_t num, T* ptrValue)
+	static void Move(T* ptr, T* from)
 	{
-		constructInternal(ptr, num, ptrValue, Meta::IsPod< T >::Type());
+		MoveInternal(ptr, from, Meta::IsPod< T >::Type());
 	}
 	template< class T >
-	static void move(T* ptr, T* from)
+	static void Move(T* ptr, size_t num, T* from)
 	{
-		moveInternal(ptr, from, Meta::IsPod< T >::Type());
+		MoveInternal(ptr, num , from, Meta::IsPod< T >::Type());
 	}
-	template< class T >
-	static void move(T* ptr, size_t num, T* from)
+
+	template< class T, class Q >
+	static void Assign(T* ptr, Q&& val)
 	{
-		moveInternal(ptr, num , from, Meta::IsPod< T >::Type());
+		*ptr = val;
 	}
+
+	template< class T, class ...Args >
+	static void Assign(T* ptr, Args&& ...args)
+	{
+		Assign(ptr , T(std::forward<Args>(args)...) );
+	}
+
 	template< class T >
-	static void destruct(T* ptr)
+	static void Destruct(T* ptr)
 	{
 		ptr->~T();
 	}
 	template< class T >
-	static void destruct(T* ptr, size_t num )
+	static void Destruct(T* ptr, size_t num )
 	{
-		destructInternal(ptr, num, Meta::IsPod< T >::Type());
+		DestructInternal(ptr, num, Meta::IsPod< T >::Type());
 	}
 private:
 	template< class T >
-	static void constructInternal(T* ptr, T const& val, Meta::TrueType)
+	static void ConstructInternal(T* ptr, T const& val, Meta::TrueType)
 	{
 		*ptr = val;
 	}
 	template< class T >
-	static void constructInternal(T* ptr, T const& val , Meta::FalseType )
+	static void ConstructInternal(T* ptr, T const& val , Meta::FalseType )
 	{
 		::new (ptr) T(val);
 	}
 	template< class T >
-	static void constructInternal(T* ptr, size_t num, T const& val, Meta::TrueType)
+	static void ConstructInternal(T* ptr, size_t num, T const& val, Meta::TrueType)
 	{
 		std::fill_n(ptr, num, val);
 	}
 	template< class T >
-	static void constructInternal(T* ptr, size_t num, T const& val, Meta::FalseType)
+	static void ConstructInternal(T* ptr, size_t num, T const& val, Meta::FalseType)
 	{
 		for( T* end = ptr + num; ptr != end; ++ptr )
 		{
-			construct(ptr, val);
+			Construct(ptr, val);
 		}
 	}
 	template< class T >
-	static void constructInternal(T* ptr, size_t num, T* ptrValue, Meta::TrueType)
+	static void ConstructInternal(T* ptr, size_t num, T* ptrValue, Meta::TrueType)
 	{
 		::memcpy(ptr, ptrValue, sizeof(T) * num);
 	}
 	template< class T >
-	static void constructInternal(T* ptr, size_t num, T* ptrValue, Meta::FalseType)
+	static void ConstructInternal(T* ptr, size_t num, T* ptrValue, Meta::FalseType)
 	{
 		for( T* end = ptr + num; ptr != end; ++ptr )
 		{
@@ -80,12 +106,12 @@ private:
 		}
 	}
 	template< class T >
-	static void destructInternal(T* ptr, size_t num, Meta::TrueType)
+	static void DestructInternal(T* ptr, size_t num, Meta::TrueType)
 	{
 		(void*)ptr;
 	}
 	template< class T >
-	static void destructInternal(T* ptr, size_t num, Meta::FalseType)
+	static void DestructInternal(T* ptr, size_t num, Meta::FalseType)
 	{
 		for( T* end = ptr + num; ptr != end; ++ptr )
 		{
@@ -93,31 +119,31 @@ private:
 		}
 	}
 	template< class T >
-	static void moveInternal(T* ptr, T* from, Meta::TrueType)
+	static void MoveInternal(T* ptr, T* from, Meta::TrueType)
 	{
 		*ptr = *from;
 
 	}
 	template< class T >
-	static void moveInternal(T* ptr, T* from, Meta::FalseType)
+	static void MoveInternal(T* ptr, T* from, Meta::FalseType)
 	{
 		new (ptr) (std::move(*from));
 		from->~T();
 	}
 	template< class T >
-	static void moveInternal(T* ptr, size_t num, T* from, Meta::TrueType)
+	static void MoveInternal(T* ptr, size_t num, T* from, Meta::TrueType)
 	{
 		memcpy(ptr, from, sizeof(T)*num);
 	}
 	template< class T >
-	static void moveInternal(T* ptr, size_t num, T* from, Meta::FalseType)
+	static void MoveInternal(T* ptr, size_t num, T* from, Meta::FalseType)
 	{
 		for( T* end = ptr + num; ptr != end ; ++ptr )
 		{
-			construct(ptr, *from);
-			destruct(from);
+			Construct(ptr, *from);
+			Destruct(from);
 			++from;
 		}
 	}
 };
-#endif // TypeFactory_H_BC9060AA_A057_4EF9_A087_C2D68BFF78F4
+#endif // TypeConstruct_H_CF8B1CE1_FBAC_450E_B932_B8C76DF1B46A

@@ -24,12 +24,12 @@ public:
 		size_t numTail = mNumStorage - mIndexCur;
 		if( mNumElement > numTail )
 		{
-			TypeConstructHelpler::destruct(mStorage + mIndexCur, numTail);
-			TypeConstructHelpler::destruct(mStorage, mNumElement - numTail);
+			TypeDataHelper::Destruct(mStorage + mIndexCur, numTail);
+			TypeDataHelper::Destruct(mStorage, mNumElement - numTail);
 		}
 		else
 		{
-			TypeConstructHelpler::destruct(mStorage + mIndexCur, mNumElement);
+			TypeDataHelper::Destruct(mStorage + mIndexCur, mNumElement);
 		}
 
 		if( mStorage )
@@ -44,12 +44,12 @@ public:
 		size_t numTail = mNumStorage - mIndexCur;
 		if( mNumElement > numTail )
 		{
-			TypeConstructHelpler::destruct(mStorage + mIndexCur, numTail);
-			TypeConstructHelpler::destruct(mStorage, mNumElement - numTail);
+			TypeDataHelper::Destruct(mStorage + mIndexCur, numTail);
+			TypeDataHelper::Destruct(mStorage, mNumElement - numTail);
 		}
 		else
 		{
-			TypeConstructHelpler::destruct(mStorage + mIndexCur, mNumElement);
+			TypeDataHelper::Destruct(mStorage + mIndexCur, mNumElement);
 		}
 
 		mIndexCur = 0;
@@ -72,14 +72,14 @@ public:
 				size_t numTail = mNumStorage - mIndexCur;
 				if ( mNumElement > numTail )
 				{
-					TypeConstructHelpler::construct(newPtr, numTail, mStorage + mIndexCur);
-					TypeConstructHelpler::construct(newPtr + numTail, mNumElement - numTail, mStorage);
+					TypeDataHelper::Construct(newPtr, numTail, mStorage + mIndexCur);
+					TypeDataHelper::Construct(newPtr + numTail, mNumElement - numTail, mStorage);
 				}
 				else
 				{
-					TypeConstructHelpler::construct(newPtr, mNumElement, mStorage + mIndexCur);	
+					TypeDataHelper::Construct(newPtr, mNumElement, mStorage + mIndexCur);	
 				}
-				TypeConstructHelpler::destruct(mStorage , mNumElement);
+				TypeDataHelper::Destruct(mStorage , mNumElement);
 			}
 
 			mNumStorage = newSize;
@@ -87,7 +87,7 @@ public:
 			mIndexNext = mNumElement;
 		}
 
-		TypeConstructHelpler::construct(mStorage + mIndexNext, value);
+		TypeDataHelper::Construct(mStorage + mIndexNext, value);
 		++mIndexNext;
 		if( mIndexNext == mNumStorage )
 			mIndexNext = 0;
@@ -101,7 +101,7 @@ public:
 		if( mIndexNext == mNumStorage )
 			mIndexNext = 0;
 
-		TypeConstructHelpler::destruct(mStorage + mIndexCur);
+		TypeDataHelper::Destruct(mStorage + mIndexCur);
 		--mNumElement;
 	}
 

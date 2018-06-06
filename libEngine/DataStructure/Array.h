@@ -4,6 +4,42 @@
 
 #include "Core/IntegerType.h"
 
+
+template< class T >
+struct TCompatibleByte
+{
+	struct alignas(alignof(T)) Data
+	{
+		uint8 bytes[sizeof(T)];
+	};
+#if _DEBUG
+	union DebugData
+	{
+		T     value;
+		Data  pad;
+		
+		DebugData(){}
+		~DebugData(){}
+	} data;
+#else
+	Data pad;
+#endif
+	
+	static int constexpr Size = sizeof(Data);
+};
+
+
+template< class T, int N >
+struct TCompatibleStorage
+{
+	void*       operator[](int index)       { return mData + index; }
+	void const* operator[](int index) const { return mData + index; }
+
+	~TCompatibleStorage(){}
+	TCompatibleByte< T > mData[N];
+};
+
+
 struct DefaultAllocator
 {
 
@@ -12,7 +48,7 @@ struct DefaultAllocator
 
 };
 
-struct DyanmicFixSizeAllocator
+struct DyanmicFixedAllocator
 {
 
 	template< class T >
@@ -24,17 +60,13 @@ struct DyanmicFixSizeAllocator
 		{
 
 		}
-		struct Element
-		{
-			char s[sizeof(T)];
-		};
 
-		Element* mStorage;
+		TCompatibleByte< T >* mStorage;
 	};
 };
 
 template < uint32 TotalSize >
-struct FixSizeAllocator
+struct TFixedAllocator
 {
 	template< class T >
 	struct TArrayData
@@ -59,20 +91,15 @@ struct FixSizeAllocator
 			mNext -= size;
 		}
 
-		struct Element
-		{
-			char s[sizeof(T)];
-		};
-
-		Element  mStorage[TotalSize];
-		Element* mNext;
+		TCompatibleByte< T >  mStroage[TotalSize];
+		TCompatibleByte< T >* mNext;
 	};
 };
 
 template< class T , class Allocator >
-class TArray : private Allocator::TArrayData< T >
+class TArray : private Allocator::template TArrayData< T >
 {
-	typedef Allocator::TArrayData< T > ArrayData;
+	typedef typename Allocator::template TArrayData< T > ArrayData;
 
 public:
 	typedef T*        iterator;
@@ -91,16 +118,28 @@ public:
 	const_refernece operator[](size_t idx) const { return ArrayData::getHead()[idx]; }
 	reference       operator[](size_t idx) { return ArrayData::getHead()[idx]; }
 
-	void push_back(T const& val) 
+	template< class Q >
+	void push_back(Q&& val)
 	{ 
 		T* ptr = ArrayData::alloc(1); 
-		TypeConstructHelpler::construct(ptr, val); 
+		TypeDataHelper::Construct(ptr, std::forward< Q >(val)); 
 	}
 	void pop_back()
 	{ 
 		assert(size() != 0); 
-		TypeConstructHelpler::destruct(ArrayData::getEnd() - 1); 
+		TypeDataHelper::Destruct(ArrayData::getEnd() - 1); 
 		ArrayData::dealloc(1);
+	}
+
+	void    resize(size_t num)
+	{
+
+
+	}
+	void    resize(size_t num, value_type const& value)
+	{
+
+
 	}
 
 };

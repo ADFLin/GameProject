@@ -4,7 +4,7 @@
 #include "TypeCast.h"
 
 #include <cassert>
-
+#include <algorithm>
 
 class ListNode
 {
@@ -29,6 +29,7 @@ struct NodeTraits
 
 struct ListNodeTraits
 {
+	typedef ListNode  NodeType;
 	typedef ListNode* NodePtr;
 	typedef ListNode const* ConstNodePtr;
 
@@ -47,6 +48,7 @@ template< class NodeTraits >
 class CycleListAlgorithm
 {
 	typename NodeTraits NodeTraits;
+	typedef typename NodeTraits::NodeType NodeType;
 	typedef typename NodeTraits::NodePtr NodePtr;
 	typedef typename NodeTraits::ConstNodePtr ConstNodePtr;
 
@@ -56,6 +58,18 @@ public:
 		NodeTraits::setNext( n , n );
 		NodeTraits::setPrev( n , n );
 	}
+
+	static void swapHeader(NodePtr const& n1, NodePtr const& n2)
+	{
+		NodeType tempNode;
+		linkBefore(&tempNode , n1);
+		unlink(n1);
+		linkBefore(n1, n2);
+		unlink(n2);
+		linkAfter(n2, &tempNode);
+		unlink(&tempNode);
+	}
+
 	static void initNode( NodePtr const& n )
 	{
 		NodeTraits::setNext( n , NodePtr(0) );
@@ -107,6 +121,8 @@ public:
 		NodeTraits::setPrev( next , to );
 		NodeTraits::setNext( to , next );
 	}
+
+
 
 	static size_t count( ConstNodePtr const& from , ConstNodePtr const& end )
 	{
@@ -293,6 +309,11 @@ public:
 			cur = NodeTraits::getNext( cur );
 		}
 		return false;
+	}
+
+	void swap(TIntrList& other)
+	{
+		Algorithm::swapHeader(&mHeader, &other.mHeader);
 	}
 
 private:

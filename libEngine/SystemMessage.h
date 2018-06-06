@@ -97,6 +97,8 @@ struct Keyboard
 		eRCONTROL       = 0xA3 ,
 		eLMENU          = 0xA4 ,
 		eRMENU          = 0xA5 ,
+
+		eOEM3          = 0xC0 ,
 	};
 };
 class SysMessage

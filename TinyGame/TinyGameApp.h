@@ -172,6 +172,19 @@ private:
 	NetWorker*         mNetWorker;
 	bool               mShowErrorMsg;
 	FPSCalculator      mFPSCalc;
+
+	enum class ConsoleShowMode
+	{
+		Screen,
+		GUI,
+		None ,
+
+		Count ,
+	};
+	ConsoleShowMode mConsoleShowMode;
+	void setConsoleShowMode(ConsoleShowMode mode);
+
+	class ConsoleFrame* mConsoleWidget = nullptr;
 };
 
 #endif // TinyGameApp_h__

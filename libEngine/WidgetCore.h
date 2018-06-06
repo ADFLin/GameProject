@@ -8,12 +8,8 @@
 #include "SystemMessage.h"
 #include "Rect.h"
 
-#define UI_CORE_USE_INTRLIST 1
-
-#if UI_CORE_USE_INTRLIST
 #include "DataStructure/IntrList.h"
 #include "StdUtility.h"
-#endif
 
 //#include "ProfileSystem.h"
 #define  WIDGET_PROFILE_ENTRY(...)
@@ -34,11 +30,12 @@ enum WidgetInternalFlag
 	WIF_DISABLE             = BIT(3) ,
 	WIF_BE_HIDDEN           = BIT(4) ,
 	WIF_HITTEST_CHILDREN    = BIT(5) ,
-	WIF_BLOCK_DESTROY       = BIT(6) ,
+	WIF_DEFERRED_DESTROY    = BIT(6) ,
 	WIF_PARENT_MOUSE_EVENT  = BIT(7) ,
 	WIF_MARK_DESTROY        = BIT(8) ,
 	WIF_EFFECT_DISABLE_CHILD= BIT(9) ,
 	WIF_MANAGER_REF         = BIT(10),
+	WIF_GLOBAL              = BIT(11),
 };
 
 #ifdef max
@@ -55,44 +52,27 @@ class WidgetCoreBase
 {
 public:
 	virtual ~WidgetCoreBase(){}
-#if UI_CORE_USE_INTRLIST
 	HookNode       mLinkHook;
-#endif
 };
 
 template< class T >
 class WidgetCoreT : public WidgetCoreBase
 {
-	T* _this(){ return static_cast< T* >( this );  }
+	T* _this() { return static_cast<T*>(this); }
 	typedef TRect< int > Rect;
+
+	typedef WidgetCoreT<T> WidgetCore;
 public:
-	WidgetCoreT( Vec2i const& pos , Vec2i const& size , T* parent );
+	
+	WidgetCoreT(Vec2i const& pos, Vec2i const& size, T* parent);
 	virtual ~WidgetCoreT();
 
-#if UI_CORE_USE_INTRLIST
-	auto           createChildrenIterator() { return MakeIterator( mChildren ); }
-	T*             getChild() { return ( mChildren.empty() ) ? nullptr : &mChildren.front(); }
-#else
-	class Iterator
-	{
-	public:
-		Iterator(WidgetCoreT* c) :cur(c){}
-		operator bool()  const { return !!cur; }
-		T& operator *() { return *static_cast< T*>( cur ); }
-		T* operator->() { return static_cast< T*>( cur ); }
-		Iterator& operator ++() { cur = cur->mNext; return *this; }
-		Iterator  operator ++(int) { Iterator temp = *this;  cur = cur->mNext; return temp; }
-	private:
-		WidgetCoreT* cur;
-	};
+	auto           createChildrenIterator() { return MakeIterator(mChildren); }
+	T*             getChild() { return (mChildren.empty()) ? nullptr : &mChildren.front(); }
 
-	auto           createChildrenIterator() { return Iterator(mChild);  }
-	T*             getChild(){ return static_cast< T*>( mChild );  }
-#endif
-	
-	WidgetCoreT*       getParent(){ return mParent; }
-	TWidgetManager<T>* getManager(){ return mManager; }
-	int            getChildrenNum(){ return mNumChild; }
+	T*             getParent() { return static_cast<T*>( mParent ); }
+	TWidgetManager<T>* getManager() { return mManager; }
+	int            getChildrenNum() { return mNumChild; }
 	int            getLevel();
 	int            getOrder();
 
@@ -102,80 +82,86 @@ public:
 	Rect const&   getBoundRect() const { return mBoundRect; }
 
 	bool           isFocus();
-	bool           isEnable() const { return !checkFlag( WIF_DISABLE ); }
-	bool           isShow() const { return !checkFlag( WIF_BE_HIDDEN ); }
+	bool           isEnable() const;
+	bool           isShow() const;
 	bool           isTop();
 
-	T&             setPos( Vec2i const& pos );
-	T&             setSize( Vec2i const& size ){  mBoundRect.max = mBoundRect.min + size;  return *_this(); }
-	T&             setTop( bool beAlways = false );
+	T&             setPos(Vec2i const& pos);
+	T&             setSize(Vec2i const& size) { mBoundRect.max = mBoundRect.min + size;  return *_this(); }
+	T&             setTop(bool beAlways = false);
 	T&             makeFocus();
-	T&             show( bool beS = true );
-	T&             enable( bool beE = true );
+	T&             show(bool beS = true);
+	T&             enable(bool beE = true);
 
-	T&             addChild( WidgetCoreT* ui );
+	T&             addChild(WidgetCoreT* ui);
 	void           destroy();
 
+	T&             setGlobal() { addFlagInternal(WIF_GLOBAL); return *_this(); }
+
+
 public:
-	void          _unlinkInternal(bool bRemove);
+	void          unlinkInternal(bool bRemove);
 private:
-	void          linkChildInternal( WidgetCoreT* ui );
+	void          linkChildInternal(WidgetCoreT* ui);
 
 protected:
-	void    onLink(){}
-	void    onUnlink(){}
-	void    onChangeOrder(){}
-	void    onChangeChildrenOrder(){}
-	void    onEnable( bool beE ){}
-	void    onUpdateUI(){}
-	void    onChangePos( Vec2i const& pos , bool beLocal ){}
-	void    onShow( bool beS ){}
-	void    onMouse( bool beIn ){}
+	void    onLink() {}
+	void    onUnlink() {}
+	void    onChangeOrder() {}
+	void    onChangeChildrenOrder() {}
+	void    onEnable(bool beE) {}
+	void    onUpdateUI() {}
+	void    onChangePos(Vec2i const& pos, bool beLocal) {}
+	void    onShow(bool beS) {}
+	void    onMouse(bool beIn) {}
 
-	void    onFocus( bool beF ){}
-	void    onResize( Vec2i const& size ){}
-	bool    doHitTest( Vec2i const& pos ){ return mBoundRect.hitTest( pos ); }
+	void    onFocus(bool beF) {}
+	void    onResize(Vec2i const& size) {}
+	bool    doHitTest(Vec2i const& pos) { return mBoundRect.hitTest(pos); }
 
 	void    doRenderAll();
-	void    onRender(){}
-	void    onPrevRender(){}
-	void    onPostRender(){}
-	void    onPostRenderChildren(){}
-	bool    haveChildClipTest(){ return false; }
-	bool    doClipTest(){ return true; }
+	void    onRender() {}
+	void    onPrevRender() {}
+	void    onPostRender() {}
+	void    onPostRenderChildren() {}
+	bool    haveChildClipTest() { return false; }
+	bool    doClipTest() { return true; }
 
 public:
 
-	virtual void  deleteThis(){ delete this; }
-	virtual bool  onKeyMsg( unsigned key , bool isDown ){ (void)key; (void)isDown; return true; }
-	virtual bool  onCharMsg( unsigned code ){ (void)code; return true; }
-	virtual bool  onMouseMsg( MouseMsg const& msg){ (void)msg; return false; }
+	virtual void  deleteThis() { delete this; }
+	virtual bool  onKeyMsg(unsigned key, bool isDown) { (void)key; (void)isDown; return true; }
+	virtual bool  onCharMsg(unsigned code) { (void)code; return true; }
+	virtual bool  onMouseMsg(MouseMsg const& msg) { (void)msg; return false; }
 
 private:
+	void    deleteChildren_R();
 
+	void          setTopChild(WidgetCoreT* ui, bool beAlways);
 
-	void          setTopChild( WidgetCoreT* ui , bool beAlways );
-	void          destroyChildren_R();
+	void          setFlag(unsigned flag) { mFlag = flag; }
+	unsigned      getFlag() { return mFlag; }
 
-	void          setFlag( unsigned flag ){	mFlag = flag;	}
-	unsigned      getFlag(){ return mFlag; }
+	bool          checkFlag(unsigned flag) const { return !!(mFlag & flag); }
 
-	bool          checkFlag( unsigned flag ) const { return !!( mFlag & flag ); }
+	void          addChildFlag(unsigned flag);
+	void          removeChildFlag(unsigned flag);
+	void          enableFlag(unsigned flag , bool bEnable)
+	{
+		if( bEnable ) addFlagInternal(flag);
+		else removeFlagInternal(flag);
+	}
 
-	void          addChildFlag( unsigned flag );
-	void          removeChildFlag( unsigned flag );
+	void          setManager(TWidgetManager<T>* mgr);
 
-	void          setManager( TWidgetManager<T>* mgr );
-
-	bool          hitTest( Vec2i const& testPos ){ return _this()->doHitTest( testPos ); }
-	bool          clipTest(){ return _this()->doClipTest(); }
+	bool          hitTest(Vec2i const& testPos) { return _this()->doHitTest(testPos); }
+	bool          clipTest() { return _this()->doClipTest(); }
 	WidgetCoreT*  hitTestChildren(Vec2i const& testPos);
 
 protected:
-	void          skipMouseMsg(){ addFlagInternal( WIF_PARENT_MOUSE_EVENT ); }
-	void          lockDestroy()   { addFlagInternal( WIF_BLOCK_DESTROY );  }
-	void          unlockDestroy() { removeFlagInternal( WIF_BLOCK_DESTROY ); }
-
+	void          skipMouseMsg() { addFlagInternal(WIF_PARENT_MOUSE_EVENT); }
+	void          markDeferredDestroy() { addFlagInternal(WIF_DEFERRED_DESTROY); }
+	void          unmarkDeferredDestroy() { removeFlagInternal(WIF_DEFERRED_DESTROY); }
 
 
 	void          addFlagInternal( unsigned flag ){ mFlag |= flag; }
@@ -202,18 +188,12 @@ private:
 
 protected:
 
-#if UI_CORE_USE_INTRLIST
 	typedef TIntrList< T, MemberHook< WidgetCoreBase, &WidgetCoreBase::mLinkHook > > WidgetList;
 	static void SetTopInternal(WidgetList& list, WidgetCoreT* ui , bool bAlwaysTop );
 
 	static WidgetCoreT*  hitTestInternal(Vec2i const& testPos, WidgetList& Widgetlist);
 	WidgetList        mChildren;
-#else
-	WidgetCoreT*       mNext;
-	WidgetCoreT*       mPrev;
-	WidgetCoreT*       mChild;
 
-#endif
 
 	TWidgetManager<T>* mManager;
 	WidgetCoreT*       mParent;
@@ -239,7 +219,7 @@ public:
 	void      render();
 
 	void      destroyWidget(WidgetCore* ui );
-	void      cleanupWidgets();
+	void      cleanupWidgets( bool bGlobalIncluded = false);
 
 	bool      isTopWidget( WidgetCore* ui );
 	MouseMsg& getLastMouseMsg(){ return mMouseMsg; }
@@ -254,11 +234,7 @@ public:
 
 	auto      createTopWidgetIterator()
 	{
-#if UI_CORE_USE_INTRLIST
 		return MakeIterator(mTopWidgetList);
-#else
-		return mRoot.createChildrenIterator(); 
-#endif
 	}
 	void      startModal(WidgetCore* ui );
 	void      endModal(WidgetCore* ui );
@@ -278,7 +254,8 @@ public:
 	void      visitWidgets( Visitor visitor );
 
 protected:
-	void        destroyNoCheck(WidgetCore* ui );
+	void        destroyWidgetChildren_R(WidgetCore* ui);
+	void        destroyWidgetActually(WidgetCore* ui );
 	void        removeWidgetReference(WidgetCore* ui );
 	void        updateInternal(WidgetCore& ui );
 
@@ -329,15 +306,9 @@ private:
 	
 	WidgetCore*    getKeyInputWidget();
 
-#if UI_CORE_USE_INTRLIST
 	typedef typename WidgetCore::WidgetList WidgetList;
 	WidgetList   mTopWidgetList;
-	WidgetList   mRemoveWidgetList;
-#else
-	WidgetCore*  getRoot() { return &mRoot; }
-	WidgetCore   mRoot;
-	WidgetCore   mRemoveUI;
-#endif
+	WidgetList   mDeferredDestroyWidgets;
 
 	bool         mProcessingMsg;
 	MouseMsg     mMouseMsg;

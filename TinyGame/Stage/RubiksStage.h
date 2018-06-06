@@ -9,7 +9,8 @@
 #include "RenderUtility.h"
 #include "GameGUISystem.h"
 #include "GameWidgetID.h"
-#include "WidgetUtility.h"
+
+#include "Widget/WidgetUtility.h"
 
 #include "CppVersion.h"
 #include "FastDelegate/FastDelegate.h"

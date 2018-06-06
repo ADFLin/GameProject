@@ -157,6 +157,9 @@
   <ItemGroup>
     <ClInclude Include="GameMenuStage.h" />
     <ClInclude Include="GameStageMode.h" />
+    <ClInclude Include="Widget\ConsoleFrame.h" />
+    <ClInclude Include="Widget\WidgetLayout.h" />
+    <ClInclude Include="Widget\WidgetUtility.h" />
     <None Include="TinyCore\ColorName.h" />
     <ClInclude Include="TinyCore\DataStream.h" />
     <ClInclude Include="TinyCore\DataSteamBuffer.h" />
@@ -172,8 +175,6 @@
     <ClInclude Include="TinyCore\StageBase.h" />
     <ClInclude Include="TinyCore\UserProfile.h" />
     <ClInclude Include="TinyGamePCH.h" />
-    <ClInclude Include="WidgetLayout.h" />
-    <ClInclude Include="WidgetUtility.h" />
     <ClInclude Include="Widget\OptionNoteBook.h" />
     <ClInclude Include="Widget\ServerListPanel.h" />
   </ItemGroup>
@@ -193,9 +194,10 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|VisualGDB'">Create</PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="WidgetUtility.cpp" />
+    <ClCompile Include="Widget\ConsoleFrame.cpp" />
     <ClCompile Include="Widget\OptionNoteBook.cpp" />
     <ClCompile Include="Widget\ServeListPanel.cpp" />
+    <ClCompile Include="Widget\WidgetUtility.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\libEngine\EngineShare.vcxproj">

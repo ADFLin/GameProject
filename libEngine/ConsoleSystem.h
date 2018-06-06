@@ -1,23 +1,23 @@
 #ifndef ConsoleSystem_h__
 #define ConsoleSystem_h__
 
-#include <string>
-#include <map>
+
+#include "CoreShare.h"
+
 
 #include "FunCallback.h"
 #include <cstring>
 #include "Singleton.h"
 
+#include <string>
+#include <map>
 
 struct ComBase
 {
-	ComBase( char const* _name , void* _ptr ,
+ 	CORE_API ComBase( char const* _name , void* _ptr ,
 		     int _num , char const** _pararm );
 
-	virtual ~ComBase()
-	{
-
-	}
+	CORE_API virtual ~ComBase(){}
 
 	std::string  name;
 	void*        ptr;
@@ -95,12 +95,12 @@ public:
 	ConsoleSystem();
 	~ConsoleSystem();
 
-	bool        init();
-	bool        command( char const* comStr );
-	int         findCommandName( char const* includeStr, char const** findStr , int maxNum );
-	int         findCommandName2( char const* includeStr , char const** findStr , int maxNum );
+	CORE_API bool        init();
+	CORE_API bool        executeCommand( char const* comStr );
+	CORE_API int         findCommandName( char const* includeStr, char const** findStr , int maxNum );
+	CORE_API int         findCommandName2( char const* includeStr , char const** findStr , int maxNum );
 
-	void        unregisterByName( char const* name );
+	CORE_API void        unregisterByName( char const* name );
 	char const* getErrorMsg() const { return m_errorMsg.c_str(); }
 
 	template < class T >
@@ -193,12 +193,37 @@ public:
 			getConsole()->unregisterByName( data->name.c_str() );
 	}
 
-	T const& getVal() const { return m_val; }
+	T const& getValue() const { return m_val; }
 	ConVar operator = ( T const& val ){   m_val = val;   }
 	operator T(){ return m_val; }
 
 	VarCom<T>* data;
 	T m_val;
+};
+
+
+template< class T >
+class ConVarRef
+{
+public:
+	ConVarRef(T& val, char const* name)
+		:m_val(val)
+	{
+		data = new VarCom<T>(name, &m_val);
+	}
+	~ConVarRef()
+	{
+		extern ConsoleSystem* getConsole();
+		if( getConsole() )
+			getConsole()->unregisterByName(data->name.c_str());
+	}
+
+	T const& getValue() const { return m_val; }
+	ConVar operator = (T const& val) { m_val = val; }
+	operator T() { return m_val; }
+
+	VarCom<T>* data;
+	T& m_val;
 };
 
 #define DECLARE_CON_VAR( type , name ) extern ConVar<type> name;

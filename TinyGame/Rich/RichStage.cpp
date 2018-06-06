@@ -6,7 +6,7 @@
 #include "RichWorldEditor.h"
 
 #include "GameGUISystem.h"
-#include "WidgetUtility.h"
+#include "Widget/WidgetUtility.h"
 
 namespace Rich
 {

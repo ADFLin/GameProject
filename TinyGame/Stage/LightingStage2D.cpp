@@ -2,7 +2,7 @@
 #include "LightingStage2D.h"
 
 #include "GameGUISystem.h"
-#include "WidgetUtility.h"
+#include "Widget/WidgetUtility.h"
 #include "RenderUtility.h"
 
 #include "GLGraphics2D.h"

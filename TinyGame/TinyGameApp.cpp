@@ -20,6 +20,7 @@
 
 #include "GameWidget.h"
 #include "GameWidgetID.h"
+#include "Widget/ConsoleFrame.h"
 
 #include "Localization.h"
 
@@ -89,11 +90,11 @@ public:
 		}
 	}
 
-	void render( Vec2i const& a_pos )
+	void render( Vec2i const& renderPos )
 	{
 		IGraphics2D& g = Global::getIGraphics2D();
 
-		Vec2i pos = a_pos;
+		Vec2i pos = renderPos;
 		RenderUtility::SetFont( g , FONT_S8 );
 		g.setTextColor(Color3ub(255 , 255 , 0));
 		Mutex::Locker locker( mMutex );
@@ -165,10 +166,21 @@ bool TinyGameApp::onInit()
 
 	::Global::GUI().initialize( *this );
 
+
+	mConsoleWidget = new ConsoleFrame(UI_ANY, Vec2i(10, 10), Vec2i(400, 300), nullptr);
+	mConsoleWidget->setGlobal();
+	mConsoleWidget->addChannel(LOG_ERROR);
+	mConsoleWidget->addChannel(LOG_DEV);
+	mConsoleWidget->addChannel(LOG_MSG);
+	mConsoleWidget->addChannel(LOG_WARNING);
+	::Global::GUI().addWidget(mConsoleWidget);
+
 	loadGamePackage();
 
 	setupStage();
 
+
+	setConsoleShowMode(ConsoleShowMode::Screen);
 
 	bool havePlayGame = false;
 	char const* gameName;
@@ -204,7 +216,7 @@ void TinyGameApp::cleanup()
 	closeNetwork();
 
 	//cleanup widget before delete game instance
-	Global::GUI().cleanupWidget(true);
+	Global::GUI().cleanupWidget(true , true);
 
 	Global::GameManager().cleanup();
 
@@ -342,6 +354,12 @@ ClientWorker* TinyGameApp::createClinet()
 	return worker;
 }
 
+void TinyGameApp::setConsoleShowMode(ConsoleShowMode mode)
+{
+	mConsoleShowMode = mode;
+	mConsoleWidget->show(mConsoleShowMode == ConsoleShowMode::GUI);
+}
+
 bool TinyGameApp::onMouse( MouseMsg const& msg )
 {
 	bool result = true;
@@ -376,9 +394,13 @@ bool TinyGameApp::onKey( unsigned key , bool isDown )
 {
 	if ( isDown )
 	{
-		if ( key == VK_F1 )
+		if ( key == Keyboard::eF1 )
 		{
 			mGameWindow.toggleFullscreen();
+		}
+		else if( key == Keyboard::eOEM3 )
+		{
+			setConsoleShowMode( ConsoleShowMode(( int(mConsoleShowMode) + 1 ) % int(ConsoleShowMode::Count) ) );
 		}
 	}
 	bool result = ::Global::GUI().procKeyMsg( key , isDown );
@@ -453,14 +475,19 @@ void TinyGameApp::render( float dframe )
 			::Global::getGLGraphics2D().beginRender();
 	}
 
-	gLogPrinter.render(Vec2i(5, 25));
+	if( mConsoleShowMode == ConsoleShowMode::Screen )
+	{
+		gLogPrinter.render(Vec2i(5, 25));
+	}
 
+	
 	mFPSCalc.increaseFrame(getMillionSecond());
 	IGraphics2D& g = ::Global::getIGraphics2D();
 	FixString< 256 > str;
+	RenderUtility::SetFont(g, FONT_S8);
 	g.setTextColor(Color3ub(255, 255, 0));
 	g.drawText(Vec2i(5, 5), str.format("FPS = %f", mFPSCalc.getFPS()));
-
+	g.drawText(Vec2i(5, 15), str.format("mode = %d", (int)mConsoleShowMode));
 	if( de->isOpenGLEnabled() )
 		::Global::getGLGraphics2D().endRender();
 		

@@ -4,7 +4,6 @@
 
 #include "TestStageHeader.h"
 
-#include "WidgetUtility.h"
 #include "Template/ArrayView.h"
 #include "Math/Math2D.h"
 #include "Math/PrimitiveTest2D.h"

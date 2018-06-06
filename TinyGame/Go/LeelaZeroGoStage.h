@@ -9,7 +9,7 @@
 #include "Go/GoBot.h"
 #include "ZenBot.h"
 #include "LeelaBot.h"
-#include "WidgetUtility.h"
+#include "Widget/WidgetUtility.h"
 
 #include "Misc/Guid.h"
 #include "FileSystem.h"

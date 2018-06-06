@@ -29,7 +29,7 @@ public:
 	TINY_API void         addTask( TaskBase* task , bool beGlobal = false );
 
 	TINY_API void         addWidget( GWidget* widget );
-	TINY_API void         cleanupWidget(bool bForceCleanup = false );
+	TINY_API void         cleanupWidget(bool bForceCleanup = false , bool bGlobalIncluded = false);
 
 	UIManager&   getManager(){ return mUIManager; }
 

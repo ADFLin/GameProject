@@ -3,7 +3,7 @@
 
 #include "DrawEngine.h"
 #include "GameGUISystem.h"
-#include "WidgetUtility.h"
+#include "Widget/WidgetUtility.h"
 
 namespace Bejeweled
 {

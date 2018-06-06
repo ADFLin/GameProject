@@ -162,29 +162,42 @@ bool WChoiceT<Impl, CoreImpl>::onMouseMsg( MouseMsg const& msg )
 
 	if ( msg.onDown() )
 	{
-		Vec2i pos = getWorldPos();
-		Vec2i size = getSize();
-		pos.y += getSize().y;
+		if( mMenu == nullptr )
+		{
+			Vec2i pos = getWorldPos();
+			Vec2i size = getSize();
+			pos.y += getSize().y;
 
-		if ( mItemList.size() )
-			size.y = _this()->getMenuItemHeight() * int( mItemList.size() );
-		else
-			size.y = _this()->getMenuItemHeight();
+			if( mItemList.size() )
+				size.y = _this()->getMenuItemHeight() * int(mItemList.size());
+			else
+				size.y = _this()->getMenuItemHeight();
 
-		mLightSelect = mCurSelect;
+			mLightSelect = mCurSelect;
 
-		Menu* menu = new Menu( pos , size , this );
-		getManager()->addWidget( menu );
-		//addFlagInternal( WIF_HITTEST_CHILDREN );
-		menu->setTop();
-		menu->makeFocus();
+			mMenu = new Menu(pos, size, this);
+			getManager()->addWidget(mMenu);
+			markDeferredDestroy();
+			mMenu->setTop();
+			mMenu->makeFocus();
+		}
 	}
 	return false;
+}
+
+
+template < class Impl, class CoreImpl >
+void WChoiceT<Impl, CoreImpl>::destroyMenu()
+{
+	mMenu->destroy();
+	mMenu = nullptr;
+	unmarkDeferredDestroy();
 }
 
 template < class Impl, class CoreImpl >
 bool WChoiceT<Impl, CoreImpl>::notifyMenuMouseMsg( Menu* menu , MouseMsg const& msg )
 {
+	assert(mMenu == menu);
 	Vec2i menuSize = menu->getSize();
 	int posSelect = ( msg.getPos().y - menu->getWorldPos().y ) / _this()->getMenuItemHeight();
 	if ( posSelect < (int)mItemList.size() )
@@ -200,7 +213,7 @@ bool WChoiceT<Impl, CoreImpl>::notifyMenuMouseMsg( Menu* menu , MouseMsg const& 
 					_this()->onItemSelect( mCurSelect );
 				}
 			}
-			destroyMenu( menu );
+			destroyMenu();
 		}
 	}
 	return false;
@@ -433,7 +446,7 @@ void WNoteBookT<Impl, CoreImpl >::changePage( int pID )
 		if ( mCurPageButton->pID == pID )
 			return;
 
-		mCurPageButton->page->_unlinkInternal(true);
+		mCurPageButton->page->unlinkInternal(true);
 	}
 	PageButton* pb = mPageButtons[ pID ];
 	addChild( pb->page );

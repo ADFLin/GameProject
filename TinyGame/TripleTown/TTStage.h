@@ -6,7 +6,7 @@
 #include "TTLevel.h"
 #include "TTScene.h"
 
-#include "WidgetUtility.h"
+#include "Widget/WidgetUtility.h"
 
 namespace TripleTown
 {

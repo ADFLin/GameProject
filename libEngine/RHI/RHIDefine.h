@@ -3,10 +3,11 @@
 
 #include "Core/IntegerType.h"
 
+#define SHADER_ENTRY( NAME ) #NAME
+#define SHADER_PARAM( NAME ) #NAME
+
 namespace RenderGL
 {
-
-
 	enum ColorWriteMask
 	{
 		CWM_NONE = 0,

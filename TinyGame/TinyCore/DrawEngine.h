@@ -135,6 +135,8 @@ public:
 	TINY_API void  endRender();
 	TINY_API void  enableSweepBuffer( bool beS );
 	TINY_API bool  cleanupGLContextDeferred();
+
+	bool        bStopPlatformGraphicsRender = false;
 private:
 	void        setupBuffer( int w , int h );
 

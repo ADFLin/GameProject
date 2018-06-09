@@ -186,8 +186,11 @@ bool DrawEngine::beginRender()
 			mbCleaupGLDefferred = false;
 			mGLContext.cleanup();
 		}
-		mBufferDC.clear();
-		mPlatformGraphics->beginRender();
+		if ( !bStopPlatformGraphicsRender )
+		{
+			mBufferDC.clear();
+			mPlatformGraphics->beginRender();
+		}
 	}
 	return true;
 }
@@ -207,9 +210,12 @@ void DrawEngine::endRender()
 	else
 #endif
 	{
-		mPlatformGraphics->endRender();
-		if ( mbSweepBuffer )
-			mBufferDC.bitBlt( getWindow().getHDC() );
+		if( !bStopPlatformGraphicsRender )
+		{
+			mPlatformGraphics->endRender();
+			if( mbSweepBuffer )
+				mBufferDC.bitBlt(getWindow().getHDC());
+		}
 	}
 }
 

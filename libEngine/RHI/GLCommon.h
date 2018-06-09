@@ -18,8 +18,6 @@
 
 #include "RefCount.h"
 
-#define SHADER_ENTRY( NAME ) #NAME
-#define SHADER_PARAM( NAME ) #NAME
 
 namespace RenderGL
 {

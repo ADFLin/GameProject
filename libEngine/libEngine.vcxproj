@@ -342,6 +342,7 @@
     <ClInclude Include="Phy2D\Shape.h" />
     <ClInclude Include="Phy2D\World.h" />
     <ClInclude Include="PlatformConfig.h" />
+    <ClInclude Include="Platform\Windows\ComUtility.h" />
     <ClInclude Include="Platform\Windows\MediaFoundationHeader.h" />
     <ClInclude Include="Platform\Windows\WindowsProcess.h" />
     <ClInclude Include="ProfileSystem.h" />

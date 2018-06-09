@@ -3,60 +3,12 @@
 
 #include "Audio/AudioDevice.h"
 
-#define CHECK_RETRUN( EXPR , RT_VALUE )\
-	if( HRESULT hr = EXPR < 0 )\
-		return RT_VALUE;
-
-struct ReleaseDeleter
-{
-	template< class T >
-	static void Destroy(T* ptr) { ptr->Release(); }
-};
-
-template< class T, class Deleter = ReleaseDeleter >
-class TComPtr
-{
-public:
-
-	TComPtr()
-	{
-		mPtr = nullptr;
-	}
-
-	~TComPtr()
-	{
-		if( mPtr )
-		{
-			Deleter::Destroy(mPtr);
-		}
-	}
-
-	void reset()
-	{
-		if( mPtr )
-		{
-			Deleter::Destroy(mPtr);
-			mPtr = nullptr;
-		}
-	}
-
-	bool operator == (void* ptr) const { return mPtr == ptr; }
-	bool operator != (void* ptr) const { return mPtr != ptr; }
-
-	operator T*  () { return mPtr; }
-	operator bool() const { return mPtr; }
-	T*  operator->() { return mPtr; }
-	T** operator& () { return &mPtr; }
-
-	T* mPtr;
-};
-
+#include "Platform/Windows/ComUtility.h"
 
 struct VoiceDeleter
 {
 	template< class T >
 	static void Destroy(T* ptr) { ptr->DestroyVoice(); }
-
 };
 
 class XAudio2Device;

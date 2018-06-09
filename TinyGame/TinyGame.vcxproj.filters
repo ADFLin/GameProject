@@ -362,6 +362,9 @@
     <ClCompile Include="TinyCore\SingleStageMode.cpp">
       <Filter>StageMode</Filter>
     </ClCompile>
+    <ClCompile Include="Stage\D3DTestStage.cpp">
+      <Filter>Stage</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Bsp2D.h">

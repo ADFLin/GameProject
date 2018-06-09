@@ -876,6 +876,9 @@
     <ClInclude Include="Hardware\GPUDeviceQuery.h">
       <Filter>Hardware</Filter>
     </ClInclude>
+    <ClInclude Include="Platform\Windows\ComUtility.h">
+      <Filter>Platform\Windows</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="ObjectHandle.cpp">

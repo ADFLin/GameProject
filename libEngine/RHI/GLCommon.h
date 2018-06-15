@@ -714,10 +714,23 @@ namespace RenderGL
 			case ELockAccess::WriteOnly:
 				accessBits = GL_MAP_WRITE_BIT;
 				break;
-		}
+			}
 			void* result = glMapBufferRange(GLBufferType, offset, length, accessBits);
 			glBindBuffer(GLBufferType, 0);
 			return result;
+		}
+
+		bool createInternal( uint32 size , void* initData , GLenum usageType )
+		{
+			if( !fetchHandle() )
+				return false;
+
+			glBindBuffer(GLBufferType, mHandle);
+			glBufferData(GLBufferType, size , initData , usageType);
+			glBindBuffer(GLBufferType, 0);
+
+			mBufferSize = size;
+			return true;
 		}
 
 		void unlock()
@@ -726,6 +739,10 @@ namespace RenderGL
 			glUnmapBuffer(GLBufferType);
 			glBindBuffer(GLBufferType, 0);
 		}
+
+		uint32 getSize() const { return mBufferSize; }
+
+		uint32 mBufferSize;
 	};
 
 	class RHIVertexBuffer : public TRHIBufferBase< GL_ARRAY_BUFFER >
@@ -743,7 +760,6 @@ namespace RenderGL
 		void  resetData(uint32 vertexSize, uint32 numVertices, void* data = nullptr, Buffer::Usage usage = Buffer::eStatic);
 		void  updateData(uint32 vStart, uint32 numVertices, void* data);
 
-		uint32 mBufferSize;
 		uint32 mNumVertices;
 		uint32 mVertexSize;
 
@@ -757,14 +773,10 @@ namespace RenderGL
 			mNumIndices = 0;
 			mbIntIndex = false;
 		}
-		bool create(int nIndices, bool bIntIndex , void* data )
+		bool create(uint32 nIndices, bool bIntIndex , void* data )
 		{
-			if( !fetchHandle() )
+			if ( !createInternal( (bIntIndex ? sizeof(GLuint) : sizeof(GLushort)) * nIndices , data , GL_STATIC_DRAW ) )
 				return false;
-
-			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mHandle);
-			glBufferData(GL_ELEMENT_ARRAY_BUFFER, ((bIntIndex) ? sizeof(GLuint) : sizeof(GLushort)) * nIndices, data , GL_STATIC_DRAW);
-			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 
 			mNumIndices = nIndices;
 			mbIntIndex = bIntIndex;
@@ -780,14 +792,20 @@ namespace RenderGL
 	class RHIUniformBuffer : public TRHIBufferBase< GL_UNIFORM_BUFFER >
 	{
 	public:
-		bool create(int size);
+		bool create(uint32 size);
+	};
 
-		int mSize;
+
+	class RHIStorageBuffer : public TRHIBufferBase< GL_SHADER_STORAGE_BUFFER >
+	{
+	public:
+		bool create(uint32 size);
 	};
 
 	typedef TRefCountPtr< RHIVertexBuffer > RHIVertexBufferRef;
 	typedef TRefCountPtr< RHIIndexBuffer > RHIIndexBufferRef;
 	typedef TRefCountPtr< RHIUniformBuffer > RHIUniformBufferRef;
+	typedef TRefCountPtr< RHIStorageBuffer > RHIStorageBufferRef;
 
 
 	struct PrimitiveDebugInfo

@@ -1,6 +1,6 @@
 #pragma once
-#include "Common.glsl"
-#include "ViewParam.glsl"
+#include "Common.sgc"
+#include "ViewParam.sgc"
 
 #ifndef USE_PERSPECTIVE_DEPTH
 #define USE_PERSPECTIVE_DEPTH 0

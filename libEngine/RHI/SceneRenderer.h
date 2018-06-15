@@ -313,7 +313,7 @@ namespace RenderGL
 
 	struct TitledLightInfo
 	{
-		DECLARE_UNIFORM_STRUCT(TitledLightBlock);
+		DECLARE_BUFFER_STRUCT(TitledLightBlock);
 
 		Vector3 pos;
 		int32   type; 

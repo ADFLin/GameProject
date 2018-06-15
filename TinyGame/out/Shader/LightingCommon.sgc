@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Common.glsl"
+#include "Common.sgc"
 
 #define LIGHTTYPE_SPOT 0
 #define LIGHTTYPE_POINT 1

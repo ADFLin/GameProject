@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Common.glsl"
+#include "Common.sgc"
 
 uniform sampler2D GBufferTextureA;
 uniform sampler2D GBufferTextureB;
@@ -21,9 +21,13 @@ struct GBufferData
 	float3 diffuseColor;
 	float  depth;
 	float3 specularColor;
-
-	
 };
+
+
+float3 GetGBufferNormal(float2 UVs)
+{
+	return texture2D(GBufferTextureB, UVs).xyz;
+}
 
 uint DecodeShadingModel(float value)
 {

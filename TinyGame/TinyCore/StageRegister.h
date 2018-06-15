@@ -26,13 +26,13 @@ public:
 
 struct StageInfo
 {
-	char const*        decl;
-	IStageFactory*     factory;
-	EStageGroup group;
-	int                priority;
+	char const*     title;
+	IStageFactory*  factory;
+	EStageGroup     group;
+	int             priority;
 
-	StageInfo(char const* inDecl, IStageFactory* inFactory, EStageGroup inGroup , int inPriority = 0)
-		:decl(inDecl), factory(inFactory), group(inGroup) , priority(inPriority)
+	StageInfo(char const* inTitle, IStageFactory* inFactory, EStageGroup inGroup , int inPriority = 0)
+		:title(inTitle), factory(inFactory), group(inGroup) , priority(inPriority)
 	{
 	}
 };
@@ -53,7 +53,7 @@ static IStageFactory* makeStageFactory()
 
 struct GameStageInfo
 {
-	char const* decl;
+	char const* title;
 	char const* game;
 	EStageGroup group;
 };
@@ -80,11 +80,10 @@ struct StageRegisterHelper
 };
 
 
+#define REGISTER_STAGE( TITLE , CLASS , GROUP )\
+	static StageRegisterHelper ANONYMOUS_VARIABLE(gStageRegister)( StageInfo( TITLE , makeStageFactory< CLASS >() , GROUP ) );
 
-
-#define REGISTER_STAGE( DECL , CLASS , GROUP )\
-	static StageRegisterHelper ANONYMOUS_VARIABLE(gStageRegister)( StageInfo( DECL , makeStageFactory< CLASS >() , GROUP ) );
-
-
+#define REGISTER_STAGE2( TITLE , CLASS , GROUP , PRIORITY)\
+	static StageRegisterHelper ANONYMOUS_VARIABLE(gStageRegister)( StageInfo( TITLE , makeStageFactory< CLASS >() , GROUP , PRIORITY) );
 
 #endif // StageRegister_h__

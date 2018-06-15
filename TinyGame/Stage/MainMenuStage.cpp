@@ -227,7 +227,7 @@ void MainMenuStage::doChangeGroup( StageGroupID group )
 	case UI_GAME_DEV2_GROUP:
 		for( int i = 0 ; i < ARRAY_SIZE( gSingleDev ) ; ++i )
 		{
-			CREATE_BUTTON( UI_SINGLE_DEV_INDEX + i , LOCTEXT( gSingleDev[i].decl ) );
+			CREATE_BUTTON( UI_SINGLE_DEV_INDEX + i , LOCTEXT( gSingleDev[i].title ) );
 		}
 		CREATE_BUTTON( UI_BACK_GROUP     , LOCTEXT("Back")          );
 		break;
@@ -269,7 +269,7 @@ void MainMenuStage::createStageGroupButton( int& delay , int& xUI , int& yUI )
 		int PosRX = xUI + (MenuBtnSize.x + 6) / 2;
 		for( auto info : StageRegisterCollection::Get().getGroupStage(mCurGroup) )
 		{
-			CREATE_BUTTON_POS_DELAY(UI_GROUP_STAGE_INDEX + idx, info.decl , (idx % 2 ) ?PosRX : PosLX , yUI , delay );
+			CREATE_BUTTON_POS_DELAY(UI_GROUP_STAGE_INDEX + idx, info.title, (idx % 2 ) ?PosRX : PosLX , yUI , delay );
 			++idx;
 			if( (idx % 2) == 0 )
 			{
@@ -282,7 +282,7 @@ void MainMenuStage::createStageGroupButton( int& delay , int& xUI , int& yUI )
 	{
 		for( auto info : StageRegisterCollection::Get().getGroupStage(mCurGroup) )
 		{
-			CREATE_BUTTON(UI_GROUP_STAGE_INDEX + idx, info.decl);
+			CREATE_BUTTON(UI_GROUP_STAGE_INDEX + idx, info.title);
 			++idx;
 		}
 	}

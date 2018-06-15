@@ -3,8 +3,8 @@
 #define MATERIAL_USE_DEPTH_OFFSET 1
 #define MATERIAL_USE_WORLD_NORMAL 1
 
-#include "MaterialCommon.glsl"
-#include "ViewParam.glsl"
+#include "MaterialCommon.sgc"
+#include "ViewParam.sgc"
 
 struct SphereParam
 {

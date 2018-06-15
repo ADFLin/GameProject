@@ -37,6 +37,7 @@
 
 #define in
 #define out
+#define inout
 #define technique
 #define pass
 #define triangle

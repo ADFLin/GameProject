@@ -40,6 +40,11 @@ namespace RenderGL
 	}
 #endif //CORE_SHARE_CODE
 
+	ShaderManager::ShaderManager()
+	{
+		mDefaultVersion = 430;
+	}
+
 	ShaderManager::~ShaderManager()
 	{
 		for( auto& pair : mShaderCompileMap )
@@ -113,6 +118,11 @@ namespace RenderGL
 			}
 
 			mShaderCompileMap[result]->bGlobalShader = true;
+		}
+		else
+		{
+
+			
 		}
 
 		return result;

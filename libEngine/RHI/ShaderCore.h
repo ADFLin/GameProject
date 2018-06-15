@@ -37,39 +37,48 @@ namespace RenderGL
 	};
 
 
-	struct UniformStructInfo
+	struct StructuredBuffertInfo
 	{
 		char const* blockName;
 
-		UniformStructInfo(char const* name)
+		StructuredBuffertInfo(char const* name)
 			:blockName(name)
 		{
 		}
 	};
 
-#define DECLARE_UNIFORM_STRUCT( NAME )\
-	static UniformStructInfo& GetStruct()\
+#define DECLARE_BUFFER_STRUCT( NAME )\
+	static StructuredBuffertInfo& GetStruct()\
 	{\
-		static UniformStructInfo sMyStruct( #NAME );\
+		static StructuredBuffertInfo sMyStruct( #NAME );\
 		return sMyStruct;\
 	}
 
 	class RHIUniformBuffer;
+	class RHIStorageBuffer;
 
-	class ShaderUniformParameter
+	class ShaderBufferParameter
 	{
 	public:
 		bool isBound() const
 		{
 			return mIndex != -1;
 		}
-		bool bind(ShaderProgram& program, char const* name);
+		bool bindUniform(ShaderProgram& program, char const* name);
+		bool bindStorage(ShaderProgram& program, char const* name);
 
-		template< class T >
-		bool bindStructT(ShaderProgram& program)
+		template< class RHIBufferType >
+		bool bindT(ShaderProgram& program, char const* name);
+		template<>
+		bool bindT< RHIUniformBuffer >(ShaderProgram& program, char const* name) { return bindUniform(program, name); }
+		template<>
+		bool bindT< RHIStorageBuffer >(ShaderProgram& program, char const* name) { return bindStorage(program, name); }
+
+		template< class T , class RHIBufferType >
+		bool bindStructT(ShaderProgram& program , RHIBufferType& buffer )
 		{
 			auto& bufferStruct = T::GetStruct();
-			if( bind(program, bufferStruct.blockName) )
+			if( bindT< RHIBufferType >(program, bufferStruct.blockName) )
 			{
 				mStruct = &bufferStruct;
 				return true;
@@ -79,7 +88,7 @@ namespace RenderGL
 	private:
 		friend class ShaderProgram;
 		GLuint mIndex;
-		UniformStructInfo* mStruct = nullptr;
+		StructuredBuffertInfo* mStruct = nullptr;
 	};
 
 	class ShaderProgram : public TGLObjectBase< RMPShaderProgram >
@@ -255,30 +264,31 @@ namespace RenderGL
 			CHECK_PARAMETER(param, setTextureInternal(param.mLoc, TypeName, tex.mHandle, sampler.mHandle, idx));
 		}
 
-		void setUniformBuffer(ShaderUniformParameter const& param, RHIUniformBuffer& buffer);
+		void setBuffer(ShaderBufferParameter const& param, RHIUniformBuffer& buffer);
+		void setBuffer(ShaderBufferParameter const& param, RHIStorageBuffer& buffer);
 
-		template< class T >
-		void setUniformBufferT(RHIUniformBuffer& buffer)
+		template< class T , class RHIBufferType >
+		void setBufferT(RHIBufferType& buffer)
 		{
 			auto& bufferStruct = T::GetStruct();
-			for( auto const& param : mUniformParameters )
+			for( auto const& param : mBufferParameters )
 			{
 				if( param.mStruct == &bufferStruct )
 				{
-					setUniformBuffer(param, buffer);
+					setBuffer(param, buffer);
 					return;
 				}
 			}
 
-			ShaderUniformParameter param;
-			if( param.bindStructT< T >(*this) )
+			ShaderBufferParameter param;
+			if( param.bindStructT< T >(*this , buffer ) )
 			{
-				mUniformParameters.push_back(param);
-				setUniformBuffer(param, buffer);
+				mBufferParameters.push_back(param);
+				setBuffer(param, buffer);
 			}
 		}
 
-		std::vector< ShaderUniformParameter > mUniformParameters;
+		std::vector< ShaderBufferParameter > mBufferParameters;
 
 #undef CHECK_PARAMETER
 
@@ -372,9 +382,11 @@ namespace RenderGL
 		{
 			mIdxTextureAutoBind = IdxTextureAutoBindStart;
 			mNextUniformSlot = 0;
+			mNextStorageSlot = 0;
 		}
 		int  mIdxTextureAutoBind;
 		int  mNextUniformSlot;
+		int  mNextStorageSlot;
 	};
 
 }//namespace RenderGL

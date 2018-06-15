@@ -83,7 +83,7 @@
 	DEFINE_FUNCTION_INNER( float4 , NAME , CODE )
 
 #if COMPILER_GLSL
-#include "GLSLCommon.glsl"
+#include "GLSLCommon.sgc"
 #elif COMPILER_HLSL
 #endif
 
@@ -92,24 +92,24 @@ DEFINE_VECTOR_FUNCTION(Square, { return x * x; })
 float Pow3(float x){ return x * x * x; }
 DEFINE_VECTOR_FUNCTION(Pow3, { return x * x * x; })
 
-#define TPow4( TYPE )\
+#define Pow4T( TYPE )\
 	TYPE Pow4( TYPE x )\
 	{\
 		TYPE x2 = x*x;\
 		return x2 * x2;\
 	}
-VECTOR_FUNCTION_LIST(TPow4)
-#undef TPow4
+VECTOR_FUNCTION_LIST(Pow4T)
+#undef Pow4T
 
-#define TPow5( TYPE )\
+#define Pow5T( TYPE )\
 	TYPE Pow5( TYPE x )\
 	{\
 		TYPE x2 = x*x;\
 		return x2 * x2 * x;\
 	}
-VECTOR_FUNCTION_LIST(TPow5)
-#undef TPow5
+VECTOR_FUNCTION_LIST(Pow5T)
+#undef Pow5T
 
-#undef VECTOR_FUNCTION_LIST
+//#undef VECTOR_FUNCTION_LIST
 #undef DEFINE_FUNCTION_INNER
 #undef DEFINE_VECTOR_FUNCTION

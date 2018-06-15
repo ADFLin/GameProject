@@ -1,7 +1,7 @@
 #pragma once
-#include "ScreenVertexShader.glsl"
-//#include "DeferredShadingCommon.glsl"
-#include "ComplexCommon.glsl"
+#include "ScreenVertexShader.sgc"
+//#include "DeferredShadingCommon.sgc"
+#include "ComplexCommon.sgc"
 
 #ifndef DOF_PASS_STEP
 #define DOF_PASS_STEP 0

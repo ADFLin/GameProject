@@ -1,8 +1,8 @@
-#include "Common.glsl"
-#include "LightingCommon.glsl"
-#include "ShadowCommon.glsl"
-#include "ViewParam.glsl"
-#include "LightParam.glsl"
+#include "Common.sgc"
+#include "LightingCommon.sgc"
+#include "ShadowCommon.sgc"
+#include "ViewParam.sgc"
+#include "LightParam.sgc"
 
 #define USE_POINT_LIGHT 1
 

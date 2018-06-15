@@ -2,7 +2,7 @@
 #define MATERIAL_BLENDING_MASKED 0
 #define MATERIAL_USE_DEPTH_OFFSET 0
 
-#include "MaterialCommon.glsl"
+#include "MaterialCommon.sgc"
 
 #if VERTEX_SHADER
 

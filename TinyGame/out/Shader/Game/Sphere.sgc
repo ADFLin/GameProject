@@ -1,4 +1,5 @@
-#include "ViewParam.glsl"
+#include "ViewParam.sgc"
+#include "GeometryTestCommon.sgc"
 
 struct SphereData
 {
@@ -99,42 +100,35 @@ void MainVS()
 #define FSINPUT_LOCAL_SPACE
 struct FSInput 
 {
-	vec3 viewDir;
-	vec3 normal;
-	vec3 vertex;
+	float3 viewDir;
+	float3 normal;
+	float3 vertex;
 #if USE_SHADOW_MAP
-	vec3 viewOffsetV;
+	float3 viewOffsetV;
 #endif
 };
 
 in VSOutput vsOutput;
 bool FSInputMain( in VSOutput inVS , out FSInput outFS )
 {
-	vec3 viewPosL = vec3( gl_ModelViewMatrixInverse * vec4(0.0, 0.0, 0.0, 1.0) );
-	// ( ld + vd * t ) ^ 2 = r^2 ; ld = camPos - sphere.localPos
-	// t^2 + 2 ( ld * vd ) t + ( ld^2 - r^2 ) = 0
-	vec3  vd = normalize( inVS.viewOffsetL );
-	vec3  ld = viewPosL - Sphere.localPos;
+	float3 viewPosL = vec3( gl_ModelViewMatrixInverse * vec4(0.0, 0.0, 0.0, 1.0) );
 
-	float b = dot( ld , vd );
-	float c = dot( ld , ld ) - Sphere.radius * Sphere.radius;
-	float d = b * b - c;
-
-	if ( d < 0 || b > 0 )
+	float3  vd = normalize(inVS.viewOffsetL);
+	float t;
+	if( !RaySphereTest(viewPosL, vd, Sphere.localPos, Sphere.radius, t) )
 	{
 #define USE_DEBUG_SHOW 1
 #if USE_DEBUG_SHOW
 		discard;
 #else
-		vec4 depth = gl_ModelViewProjectionMatrix * vec4( viewPosL + vsOutput.viewOffsetL , 1.0 );
-		gl_FragDepth = gl_DepthRange.diff * 0.5 * depth.z/depth.w + (gl_DepthRange.near + gl_DepthRange.far) * 0.5;
+		float4 depth = gl_ModelViewProjectionMatrix * vec4(viewPosL + vsOutput.viewOffsetL, 1.0);
+		WritePixelDepth(depth.z / depth.w);
 		//gl_FragColor = vec4( 0.5 * vd + 0.5 , 1.0 );
-		gl_FragColor = vec4( 1.0 , 1.0 , 0 , 1.0 );
+		gl_FragColor = vec4(1.0, 1.0, 0, 1.0);
 		return false;
 #endif
 	}
 
-	float t = -b - sqrt( d );
 	vec3 vL = viewPosL + vd * t;
 	outFS.vertex  = vL;
 	outFS.normal  = ( vL - Sphere.localPos ) / Sphere.radius;

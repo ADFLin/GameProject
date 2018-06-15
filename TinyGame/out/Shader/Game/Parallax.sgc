@@ -1,6 +1,6 @@
-#include "ViewParam.glsl"
-#include "LightParam.glsl"
-#include "ParallaxOcclusionCommon.glsl"
+#include "ViewParam.sgc"
+#include "LightParam.sgc"
+#include "ParallaxOcclusionCommon.sgc"
 #define PARALLAX_DEPTH_CORRECT 1
 #define PARALLAX_DRAW_SHADOW 1
 #define PARALLAX_USE_VIEW_TSPACE 1

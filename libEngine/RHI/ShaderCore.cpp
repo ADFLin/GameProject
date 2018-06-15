@@ -153,7 +153,7 @@ namespace RenderGL
 			GLchar buffer[40960];
 			GLsizei size;
 			glGetProgramInfoLog(mHandle, ARRAY_SIZE(buffer), &size, buffer);
-			//::Msg("Can't Link Program : %s", buffer);
+			LogMsg("Can't Link Program : %s", buffer);
 			int i = 1;
 		}
 
@@ -163,7 +163,7 @@ namespace RenderGL
 			GLchar buffer[40960];
 			GLsizei size;
 			glGetProgramInfoLog(mHandle, ARRAY_SIZE(buffer), &size, buffer);
-			//::Msg("Can't Link Program : %s", buffer);
+			LogMsg("Can't Link Program : %s", buffer);
 			int i = 1;
 		}
 	}
@@ -180,11 +180,18 @@ namespace RenderGL
 		glUseProgram(0);
 	}
 
-	void ShaderProgram::setUniformBuffer(ShaderUniformParameter const& param, RHIUniformBuffer& buffer)
+	void ShaderProgram::setBuffer(ShaderBufferParameter const& param, RHIUniformBuffer& buffer)
 	{
 		glUniformBlockBinding(mHandle, param.mIndex, mNextUniformSlot);
 		glBindBufferBase(GL_UNIFORM_BUFFER, mNextUniformSlot, buffer.mHandle);
 		++mNextUniformSlot;
+	}
+
+	void ShaderProgram::setBuffer(ShaderBufferParameter const& param, RHIStorageBuffer& buffer)
+	{
+		glShaderStorageBlockBinding(mHandle, param.mIndex, mNextStorageSlot);
+		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, mNextStorageSlot, buffer.mHandle);
+		++mNextStorageSlot;
 	}
 
 	bool ShaderParameter::bind(ShaderProgram& program, char const* name)
@@ -193,9 +200,15 @@ namespace RenderGL
 		return isBound();
 	}
 
-	bool ShaderUniformParameter::bind(ShaderProgram& program, char const* name)
+	bool ShaderBufferParameter::bindUniform(ShaderProgram& program, char const* name)
 	{
 		mIndex = glGetUniformBlockIndex(program.mHandle, name);
+		return isBound();
+	}
+
+	bool ShaderBufferParameter::bindStorage(ShaderProgram& program, char const* name)
+	{
+		mIndex = glGetProgramResourceIndex(program.mHandle, GL_SHADER_STORAGE_BLOCK , name);
 		return isBound();
 	}
 

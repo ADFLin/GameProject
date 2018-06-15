@@ -958,6 +958,7 @@ namespace RenderGL
 		case PrimitiveType::LineLoop:      return GL_LINE_LOOP;
 		case PrimitiveType::Quad:          return GL_QUADS;
 		case PrimitiveType::Points:        return GL_POINTS;
+		case PrimitiveType::Patchs:        return GL_PATCHES;
 		}
 		return GL_POINTS;
 	}
@@ -1209,16 +1210,17 @@ namespace RenderGL
 	}
 
 
-	bool RHIUniformBuffer::create(int size)
+	bool RHIUniformBuffer::create(uint32 size)
 	{
-		if( !fetchHandle() )
+		if( !createInternal(size, nullptr, GL_DYNAMIC_DRAW) )
 			return false;
+		return true;
+	}
 
-		glBindBuffer(GL_UNIFORM_BUFFER, mHandle);
-		glBufferData(GL_UNIFORM_BUFFER, size, nullptr, GL_DYNAMIC_DRAW);
-		glBindBuffer(GL_UNIFORM_BUFFER, 0);
-
-		mSize = size;
+	bool RHIStorageBuffer::create(uint32 size)
+	{
+		if( !createInternal(size, nullptr, GL_DYNAMIC_DRAW) )
+			return false;
 		return true;
 	}
 
@@ -1236,7 +1238,6 @@ namespace RenderGL
 		glSamplerParameteri(mHandle, GL_TEXTURE_WRAP_R, GLConvert::To(initializer.addressW));
 		return true;
 	}
-
 
 
 

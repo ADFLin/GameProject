@@ -1,7 +1,7 @@
 #pragma once
-#include "ScreenVertexShader.glsl"
-#include "DeferredShadingCommon.glsl"
-#include "ViewParam.glsl"
+#include "ScreenVertexShader.sgc"
+#include "DeferredShadingCommon.sgc"
+#include "ViewParam.sgc"
 
 #if PIXEL_SHADER
 

@@ -24,6 +24,8 @@
 #define lerp mix
 #define frac fract
 
+
+
 float rcp(float x)
 {
 	return 1.0 / x;
@@ -35,14 +37,14 @@ float saturate(float x)
 }
 DEFINE_VECTOR_FUNCTION(saturate, { return clamp(x, 0.0, 1.0); })
 
-#define TSincos( TYPE )\
+#define SincosT( TYPE )\
 	void sincos(TYPE x, out TYPE s, out TYPE c)\
 	{\
 		s = sin(x);\
 		c = cos(x);\
 	}
-VECTOR_FUNCTION_LIST(TSincos)
-#undef TSincos
+VECTOR_FUNCTION_LIST(SincosT)
+#undef SincosT
 
 #if PIXEL_SHADER
 void WritePixelDepth(float depth)

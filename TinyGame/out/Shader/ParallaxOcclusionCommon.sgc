@@ -1,5 +1,5 @@
-#include "Common.glsl"
-#include "ViewParam.glsl"
+#include "Common.sgc"
+#include "ViewParam.sgc"
 
 struct POMParameters
 {

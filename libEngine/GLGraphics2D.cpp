@@ -146,7 +146,8 @@ void GLGraphics2D::beginRender()
 	using namespace RenderGL;
 	RHISetDepthStencilState(StaticDepthDisableState::GetRHI());
 	RHISetBlendState(TStaticBlendState<>::GetRHI());
-	RHISetRasterizerState(TStaticRasterizerState< ECullMode::None >::GetRHI());
+	//RHISetRasterizerState(TStaticRasterizerState< ECullMode::None >::GetRHI());
+	
 	glDisable( GL_BLEND );
 	glDisable( GL_DEPTH_TEST );
 	glDisable( GL_CULL_FACE );

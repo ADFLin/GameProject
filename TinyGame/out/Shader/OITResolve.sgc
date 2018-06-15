@@ -1,5 +1,5 @@
-﻿//#include "Common.glsl"
-#include "OITCommon.glsl"
+﻿//#include "Common.sgc"
+#include "OITCommon.sgc"
 
 #if VERTEX_SHADER
 layout(location = 0) in float4 InScreenPos;

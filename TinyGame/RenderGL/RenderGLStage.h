@@ -608,7 +608,6 @@ namespace RenderGL
 	};
 
 
-
 	class SampleStage : public StageBase
 		              , public SceneInterface
 		              , public IAssetProvider

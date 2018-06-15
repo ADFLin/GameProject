@@ -1,0 +1,40 @@
+#include "Common.sgc"
+
+#include "ViewParam.sgc"
+#include "WaterSimulation.sgc"
+
+struct VertexInterpolatnsParam
+{
+	float3 normal;
+};
+
+#if VERTEX_SHADER
+
+layout(location = ATTRIBUTE_POSITION) in float3 VertexPos;
+out VertexInterpolatnsParam OutputVS;
+void MainVS()
+{
+	WaterVertexData data = WaterVertices[gl_VertexID];
+	float3 normal = float3(data.normal, 1);
+	normal = normalize(normal);
+	float3 worldPos = VertexPos + float3(0, 0, data.h);
+	OutputVS.normal = normal;
+	gl_Position = View.worldToClip * float4(worldPos , 1);
+}
+
+#endif
+
+
+#if PIXEL_SHADER
+
+in  VertexInterpolatnsParam OutputVS;
+layout(location = 0 ) out float4 OutColor;
+void MainPS()
+{
+	float3 n = normalize(OutputVS.normal);
+	float dif = saturate(dot(n, normalize( float3(1, 0, 1) ) ));
+	OutColor = dif * float4(1, 0, 0, 1);
+	//OutColor = float4(0.5 * n + 0.5, 1);
+}
+
+#endif

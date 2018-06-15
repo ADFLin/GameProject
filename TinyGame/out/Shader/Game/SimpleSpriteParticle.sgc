@@ -1,0 +1,101 @@
+#include "Common.sgc"
+#include "ViewParam.sgc"
+#include "ParticleCommon.sgc"
+
+struct OutputVSParam
+{
+	float4 color;
+	float  size;
+};
+
+#if VERTEX_SHADER
+
+layout(std140) buffer ParticleDataBlock
+{
+	readonly ParticleData Particles[];
+};
+
+layout(location = ATTRIBUTE0) in float3 InPos;
+layout(location = ATTRIBUTE1) in float3 InColor;
+layout(location = ATTRIBUTE2) in float3 InParam;
+
+out OutputVSParam OutputVS;
+void MainVS()
+{
+#if 1
+	ParticleData particle = Particles[ gl_VertexID ];
+	gl_Position = float4(particle.pos, 1.0);
+	OutputVS.color = particle.color;
+	OutputVS.color.a *= clamp( 1 - ( particle.lifeTime - 0.9 ) / 0.1 , 0 , 1 );
+	OutputVS.size = particle.size;
+#else
+	ParticleData particle = Particles[gl_VertexID];
+	gl_Position = float4(0 ,float(gl_VertexID) / 100, float(gl_VertexID % 100),1);
+	OutputVS.color = float4(1,1,1,1);
+	OutputVS.size = 20;
+#endif
+}
+
+#endif //VERTEX_SHADER
+
+struct OutputGSParam
+{
+	float4 color;
+	float2 UVs;
+};
+
+
+#if GEOMETRY_SHADER
+
+in OutputVSParam OutputVS[];
+out OutputGSParam OutputGS;
+
+
+layout(points, invocations = 1) in;
+layout(triangle_strip, max_vertices = 4) out;
+void MainGS()
+{
+	float4 color = OutputVS[0].color;
+
+	float4 pos = View.worldToView * float4(gl_in[0].gl_Position.xyz, 1);
+	//float size = (aa + 1)  * 0.05 * OutputVS[0].size;
+	float size = 0.05 * OutputVS[0].size;
+
+	gl_Position = View.viewToClip * float4(pos.xyz + float3(size, size, 0.0), 1.0);
+	OutputGS.color = color;
+	OutputGS.UVs = float2(1, 1);
+	EmitVertex();
+
+	gl_Position = View.viewToClip * float4(pos.xyz + float3(-size, size, 0.0), 1.0);
+	OutputGS.color = color;
+	OutputGS.UVs = float2(0, 1);
+	EmitVertex();
+
+	gl_Position = View.viewToClip * float4(pos.xyz + float3(size, -size, 0.0), 1.0);
+	OutputGS.color = color;
+	OutputGS.UVs = float2(1, 0);
+	EmitVertex();
+
+	gl_Position = View.viewToClip * float4(pos.xyz + float3(-size, -size, 0.0), 1.0);
+	OutputGS.color = color;
+	OutputGS.UVs = float2(0, 0);
+	EmitVertex();
+
+	EndPrimitive();
+}
+
+#endif //GEOMETRY_SHADER
+
+#if PIXEL_SHADER
+
+layout(location = 0) out vec4 OutColor;
+
+in OutputGSParam OutputGS;
+
+uniform sampler2D BaseTexture;
+void MainPS()
+{
+	OutColor =  float4(texture(BaseTexture, OutputGS.UVs).rgb , 1.0) * OutputGS.color;
+}
+
+#endif //PIXEL_SHADER

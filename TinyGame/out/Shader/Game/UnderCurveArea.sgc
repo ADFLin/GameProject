@@ -1,4 +1,4 @@
-#include "Common.glsl"
+#include "Common.sgc"
 
 #if VERTEX_SHADER
 

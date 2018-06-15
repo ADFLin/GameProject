@@ -1,0 +1,77 @@
+#include "Common.sgc"
+
+
+struct WaterVertexData
+{
+	float2 normal;
+	float h;
+	float v;
+};
+
+layout(std140) buffer WaterDataInBlock
+{
+	readonly WaterVertexData WaterVertices[];
+};
+
+layout(std140) buffer WaterDataOutBlock
+{
+	WaterVertexData OutWaterVertices[];
+};
+
+uniform float4 WaterParam; // dt , c , dumpping
+uniform int TileNum;
+
+int GetIndex(int2 pos)
+{
+	return TileNum * pos.y + pos.x;
+}
+
+int GetClampedIndex( int2 pos )
+{
+	int2 posClamped = clamp(pos , int2(0), int2(TileNum - 1));
+	return GetIndex(posClamped);
+}
+
+#if COMPUTE_SHADER
+
+layout(local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
+void MainUpdateCS()
+{
+	int2 pos = int2( gl_GlobalInvocationID.xy );
+
+	int index = GetIndex(pos);
+	WaterVertexData data = WaterVertices[index];
+
+	float hxp = WaterVertices[GetClampedIndex(pos + int2(1, 0)) ].h;
+	float hxn = WaterVertices[GetClampedIndex(pos + int2(-1, 0))].h;
+	float hyp = WaterVertices[GetClampedIndex(pos + int2(0, 1))].h;
+	float hyn = WaterVertices[GetClampedIndex(pos + int2(0, -1))].h;
+
+	float dv = WaterParam.y * (hxp + hxn + hyp + hyn - 4 * data.h);
+
+	float v = WaterParam.z * ( data.v + dv );
+	float h = data.h + v * WaterParam.x;
+
+	//if( pos.x == TileNum / 2 && pos.y == TileNum / 2 )
+	//{
+	//	h = 10;
+	//}
+
+	OutWaterVertices[index].v = v;
+	OutWaterVertices[index].h = h;
+}
+
+layout(local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
+void MainUpdateNormal()
+{
+	int2 pos = int2(gl_GlobalInvocationID.xy);
+	int index = GetIndex(pos);
+	float hxp = OutWaterVertices[GetClampedIndex(pos + int2(1, 0))].h;
+	float hxn = OutWaterVertices[GetClampedIndex(pos + int2(-1, 0))].h;
+	float hyp = OutWaterVertices[GetClampedIndex(pos + int2(0, 1))].h;
+	float hyn = OutWaterVertices[GetClampedIndex(pos + int2(0, -1))].h;
+
+	OutWaterVertices[index].normal = 0.5 * float2( hxp - hxn , hyp - hyn );
+}
+
+#endif //COMPUTE_SHADER

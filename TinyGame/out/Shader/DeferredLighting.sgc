@@ -1,10 +1,10 @@
-#include "DeferredShadingCommon.glsl"
-#include "LightingCommon.glsl"
-#include "ShadowCommon.glsl"
-#include "MaterialCommon.glsl"
+#include "DeferredShadingCommon.sgc"
+#include "LightingCommon.sgc"
+#include "ShadowCommon.sgc"
+#include "MaterialCommon.sgc"
 
-#include "ViewParam.glsl"
-#include "LightParam.glsl"
+#include "ViewParam.sgc"
+#include "LightParam.sgc"
 
 #ifndef DEFERRED_SHADING_USE_BOUND_SHAPE
 #define DEFERRED_SHADING_USE_BOUND_SHAPE 0
@@ -24,7 +24,7 @@ void LightingPassVS()
 
 #else
 
-#include "ScreenVertexShader.glsl"
+#include "ScreenVertexShader.sgc"
 
 #endif
 

@@ -365,6 +365,9 @@
     <ClCompile Include="Stage\D3DTestStage.cpp">
       <Filter>Stage</Filter>
     </ClCompile>
+    <ClCompile Include="Stage\ParticleSimulationStage.cpp">
+      <Filter>Stage</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Bsp2D.h">
@@ -838,183 +841,9 @@
     </ResourceCompile>
   </ItemGroup>
   <ItemGroup>
-    <None Include="out\Shader\Reflection.glsl">
-      <Filter>Shader</Filter>
-    </None>
-    <None Include="out\Shader\ShadowLighting.glsl">
-      <Filter>Shader</Filter>
-    </None>
-    <None Include="out\Shader\ShadowMap.glsl">
-      <Filter>Shader</Filter>
-    </None>
-    <None Include="out\Shader\Water.glsl">
-      <Filter>Shader</Filter>
-    </None>
     <None Include="out\Game.ini" />
-    <None Include="out\Shader\DeferredLighting.glsl">
-      <Filter>Shader</Filter>
-    </None>
-    <None Include="out\Shader\CopyTexture.glsl">
-      <Filter>Shader</Filter>
-    </None>
-    <None Include="out\Shader\LightingCommon.glsl">
-      <Filter>Shader</Filter>
-    </None>
-    <None Include="out\Shader\Common.glsl">
-      <Filter>Shader</Filter>
-    </None>
-    <None Include="out\Shader\ShadowCommon.glsl">
-      <Filter>Shader</Filter>
-    </None>
-    <None Include="out\Shader\ScreenSpaceReflection.glsl">
-      <Filter>Shader</Filter>
-    </None>
-    <None Include="out\Shader\DeferredBasePass.glsl">
-      <Filter>Shader</Filter>
-    </None>
-    <None Include="out\Shader\MaterialCommon.glsl">
-      <Filter>Shader</Filter>
-    </None>
-    <None Include="out\Shader\ViewParam.glsl">
-      <Filter>Shader</Filter>
-    </None>
-    <None Include="out\Shader\Material\MaterialTemplate.glsl">
-      <Filter>Shader\Material</Filter>
-    </None>
-    <None Include="out\Shader\MaterialProcess.glsl">
-      <Filter>Shader</Filter>
-    </None>
-    <None Include="out\Shader\Material\Elephant.glsl">
-      <Filter>Shader\Material</Filter>
-    </None>
-    <None Include="out\Shader\ShadowDepthRender.glsl">
-      <Filter>Shader</Filter>
-    </None>
-    <None Include="out\Shader\Material\Simple3.glsl">
-      <Filter>Shader\Material</Filter>
-    </None>
-    <None Include="out\Shader\Material\Simple1.glsl">
-      <Filter>Shader\Material</Filter>
-    </None>
-    <None Include="out\Shader\Material\Simple2.glsl">
-      <Filter>Shader\Material</Filter>
-    </None>
-    <None Include="out\Shader\SphereCommon.glsl">
-      <Filter>Shader</Filter>
-    </None>
-    <None Include="out\Shader\Material\Mario.glsl">
-      <Filter>Shader\Material</Filter>
-    </None>
-    <None Include="out\Shader\Material\MetelA.glsl">
-      <Filter>Shader\Material</Filter>
-    </None>
-    <None Include="out\Shader\Material\Lightning.glsl">
-      <Filter>Shader\Material</Filter>
-    </None>
-    <None Include="out\Shader\LightParam.glsl">
-      <Filter>Shader</Filter>
-    </None>
-    <None Include="out\Shader\Material\Sphere.glsl">
-      <Filter>Shader\Material</Filter>
-    </None>
-    <None Include="out\Shader\Material\EmptyMaterial.glsl">
-      <Filter>Shader\Material</Filter>
-    </None>
-    <None Include="out\Shader\ParallaxOcclusionCommon.glsl">
-      <Filter>Shader</Filter>
-    </None>
-    <None Include="out\Shader\Material\POMTitle.glsl">
-      <Filter>Shader\Material</Filter>
-    </None>
-    <None Include="out\Shader\Material\Havoc.glsl">
-      <Filter>Shader\Material</Filter>
-    </None>
-    <None Include="out\Shader\DeferredShadingCommon.glsl">
-      <Filter>Shader</Filter>
-    </None>
-    <None Include="out\Shader\SSAO.glsl">
-      <Filter>Shader</Filter>
-    </None>
-    <None Include="out\Shader\Tonemap.glsl">
-      <Filter>Shader</Filter>
-    </None>
-    <None Include="out\Shader\SimpleBasePass.glsl">
-      <Filter>Shader</Filter>
-    </None>
-    <None Include="out\Shader\SimpleSprite.glsl">
-      <Filter>Shader</Filter>
-    </None>
-    <None Include="out\Shader\OITRender.glsl">
-      <Filter>Shader</Filter>
-    </None>
-    <None Include="out\Shader\ShaderDefine.glsl">
-      <Filter>Shader</Filter>
-    </None>
-    <None Include="out\Shader\SimpleElement.glsl">
-      <Filter>Shader</Filter>
-    </None>
-    <None Include="out\Shader\VertexProcess.glsl">
-      <Filter>Shader</Filter>
-    </None>
-    <None Include="out\Shader\Game\BumpPS.glsl">
-      <Filter>Shader\Game</Filter>
-    </None>
-    <None Include="out\Shader\Game\BumpVS.glsl">
-      <Filter>Shader\Game</Filter>
-    </None>
-    <None Include="out\Shader\Game\FS.glsl">
-      <Filter>Shader\Game</Filter>
-    </None>
-    <None Include="out\Shader\Game\MVPiece.glsl">
-      <Filter>Shader\Game</Filter>
-    </None>
-    <None Include="out\Shader\Game\Parallax.glsl">
-      <Filter>Shader\Game</Filter>
-    </None>
-    <None Include="out\Shader\Game\Sphere.glsl">
-      <Filter>Shader\Game</Filter>
-    </None>
-    <None Include="out\Shader\Game\Simple.glsl">
-      <Filter>Shader\Game</Filter>
-    </None>
-    <None Include="out\Shader\Game\PlanetSurface.glsl">
-      <Filter>Shader\Game</Filter>
-    </None>
-    <None Include="out\Shader\Game\PongShader.glsl">
-      <Filter>Shader\Game</Filter>
-    </None>
-    <None Include="out\Shader\LocalVertexFactory.glsl">
-      <Filter>Shader</Filter>
-    </None>
-    <None Include="out\Shader\PrimitiveParam.glsl">
-      <Filter>Shader</Filter>
-    </None>
-    <None Include="out\Shader\GPUSkinVertexFactory.glsl">
-      <Filter>Shader</Filter>
-    </None>
-    <None Include="out\Shader\Game\Lighting2D.glsl">
-      <Filter>Shader\Game</Filter>
-    </None>
-    <None Include="out\Shader\Terrain.glsl">
-      <Filter>Shader</Filter>
-    </None>
-    <None Include="out\Shader\Game\Lighting2DShadow.glsl">
-      <Filter>Shader\Game</Filter>
-    </None>
     <None Include="out\Script\SceneA.chai">
       <Filter>RenderGL\Script</Filter>
-    </None>
-    <None Include="out\Shader\ScreenVertexShader.glsl">
-      <Filter>Shader</Filter>
-    </None>
-    <None Include="out\Shader\Game\UnderCurveArea.glsl">
-      <Filter>Shader\Game</Filter>
-    </None>
-    <None Include="out\Shader\OITCommon.glsl">
-      <Filter>Shader</Filter>
-    </None>
-    <None Include="out\Shader\OITResolve.glsl">
-      <Filter>Shader</Filter>
     </None>
     <None Include="out\Shader\Game\MeshNormalVisualize.glsl">
       <Filter>CurveBuilder\Shader</Filter>
@@ -1022,29 +851,230 @@
     <None Include="out\Shader\Game\CurveMesh.glsl">
       <Filter>CurveBuilder\Shader</Filter>
     </None>
-    <None Include="out\Shader\GPUSkinCommon.glsl">
+    <None Include="out\Shader\BigNumberCommon.sgc">
       <Filter>Shader</Filter>
     </None>
-    <None Include="out\Shader\DOF.glsl">
+    <None Include="out\Shader\BufferUtility.sgc">
       <Filter>Shader</Filter>
     </None>
-    <None Include="out\Shader\Game\Mandelbrot.glsl">
+    <None Include="out\Shader\Common.sgc">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="out\Shader\ComplexCommon.sgc">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="out\Shader\CopyTexture.sgc">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="out\Shader\DeferredBasePass.sgc">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="out\Shader\DeferredLighting.sgc">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="out\Shader\DeferredShadingCommon.sgc">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="out\Shader\DOF.sgc">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="out\Shader\GLSLCommon.sgc">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="out\Shader\GPUSkinCommon.sgc">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="out\Shader\GPUSkinVertexFactory.sgc">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="out\Shader\LightingCommon.sgc">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="out\Shader\LightParam.sgc">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="out\Shader\LocalVertexFactory.sgc">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="out\Shader\MaterialCommon.sgc">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="out\Shader\MaterialProcess.sgc">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="out\Shader\OITCommon.sgc">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="out\Shader\OITRender.sgc">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="out\Shader\OITResolve.sgc">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="out\Shader\ParallaxOcclusionCommon.sgc">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="out\Shader\PrimitiveParam.sgc">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="out\Shader\Reflection.sgc">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="out\Shader\ScreenSpaceReflection.sgc">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="out\Shader\ScreenVertexShader.sgc">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="out\Shader\Shader.sgc">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="out\Shader\ShaderDefine.sgc">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="out\Shader\ShadowDepthRender.sgc">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="out\Shader\ShadowLighting.sgc">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="out\Shader\ShadowMap.sgc">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="out\Shader\SimpleBasePass.sgc">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="out\Shader\SimpleElement.sgc">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="out\Shader\SimpleSprite.sgc">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="out\Shader\SSAO.sgc">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="out\Shader\Terrain.sgc">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="out\Shader\Tonemap.sgc">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="out\Shader\VertexProcess.sgc">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="out\Shader\ViewParam.sgc">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="out\Shader\VolumetricLighting.sgc">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="out\Shader\Material\MaterialTemplate.sgc">
+      <Filter>Shader\Material</Filter>
+    </None>
+    <None Include="out\Shader\Material\MetelA.sgc">
+      <Filter>Shader\Material</Filter>
+    </None>
+    <None Include="out\Shader\Material\POMTitle.sgc">
+      <Filter>Shader\Material</Filter>
+    </None>
+    <None Include="out\Shader\Material\Simple1.sgc">
+      <Filter>Shader\Material</Filter>
+    </None>
+    <None Include="out\Shader\Material\Simple2.sgc">
+      <Filter>Shader\Material</Filter>
+    </None>
+    <None Include="out\Shader\Material\Simple3.sgc">
+      <Filter>Shader\Material</Filter>
+    </None>
+    <None Include="out\Shader\Material\Sphere.sgc">
+      <Filter>Shader\Material</Filter>
+    </None>
+    <None Include="out\Shader\Material\Elephant.sgc">
+      <Filter>Shader\Material</Filter>
+    </None>
+    <None Include="out\Shader\Material\EmptyMaterial.sgc">
+      <Filter>Shader\Material</Filter>
+    </None>
+    <None Include="out\Shader\Material\Havoc.sgc">
+      <Filter>Shader\Material</Filter>
+    </None>
+    <None Include="out\Shader\Material\Lightning.sgc">
+      <Filter>Shader\Material</Filter>
+    </None>
+    <None Include="out\Shader\Material\Mario.sgc">
+      <Filter>Shader\Material</Filter>
+    </None>
+    <None Include="out\Shader\Game\Mandelbrot.sgc">
       <Filter>Shader\Game</Filter>
     </None>
-    <None Include="out\Shader\ComplexCommon.glsl">
+    <None Include="out\Shader\Game\MeshNormalVisualize.sgc">
+      <Filter>Shader\Game</Filter>
+    </None>
+    <None Include="out\Shader\Game\MVPiece.sgc">
+      <Filter>Shader\Game</Filter>
+    </None>
+    <None Include="out\Shader\Game\Parallax.sgc">
+      <Filter>Shader\Game</Filter>
+    </None>
+    <None Include="out\Shader\Game\PlanetSurface.sgc">
+      <Filter>Shader\Game</Filter>
+    </None>
+    <None Include="out\Shader\Game\PongShader.sgc">
+      <Filter>Shader\Game</Filter>
+    </None>
+    <None Include="out\Shader\Game\Simple.sgc">
+      <Filter>Shader\Game</Filter>
+    </None>
+    <None Include="out\Shader\Game\Sphere.sgc">
+      <Filter>Shader\Game</Filter>
+    </None>
+    <None Include="out\Shader\Game\UnderCurveArea.sgc">
+      <Filter>Shader\Game</Filter>
+    </None>
+    <None Include="out\Shader\Game\BumpPS.sgc">
+      <Filter>Shader\Game</Filter>
+    </None>
+    <None Include="out\Shader\Game\BumpVS.sgc">
+      <Filter>Shader\Game</Filter>
+    </None>
+    <None Include="out\Shader\Game\CurveMesh.sgc">
+      <Filter>Shader\Game</Filter>
+    </None>
+    <None Include="out\Shader\Game\FS.sgc">
+      <Filter>Shader\Game</Filter>
+    </None>
+    <None Include="out\Shader\Game\Lighting2D.sgc">
+      <Filter>Shader\Game</Filter>
+    </None>
+    <None Include="out\Shader\Game\Lighting2DShadow.sgc">
+      <Filter>Shader\Game</Filter>
+    </None>
+    <None Include="out\Shader\NoiseCommon.sgc">
       <Filter>Shader</Filter>
     </None>
-    <None Include="out\Shader\BigNumberCommon.glsl">
+    <None Include="out\Shader\ShadowCommon.sgc">
       <Filter>Shader</Filter>
     </None>
-    <None Include="out\Shader\VolumetricLighting.glsl">
+    <None Include="out\Shader\GeometryTestCommon.sgc">
       <Filter>Shader</Filter>
     </None>
-    <None Include="out\Shader\GLSLCommon.glsl">
+    <None Include="out\Shader\ParticleCommon.sgc">
       <Filter>Shader</Filter>
     </None>
-    <None Include="out\Shader\BufferUtility.glsl">
+    <None Include="out\Shader\Game\SimpleSpriteParticle.sgc">
+      <Filter>Shader\Game</Filter>
+    </None>
+    <None Include="out\Shader\ParticleSimulation.sgc">
       <Filter>Shader</Filter>
+    </None>
+    <None Include="out\Shader\Game\Spline.sgc">
+      <Filter>Shader\Game</Filter>
+    </None>
+    <None Include="out\Shader\Game\WaterSimulation.sgc">
+      <Filter>Shader\Game</Filter>
+    </None>
+    <None Include="out\Shader\Game\Water.sgc">
+      <Filter>Shader\Game</Filter>
     </None>
   </ItemGroup>
 </Project>

@@ -1,14 +1,14 @@
 ﻿
-#include "Common.glsl"
-#include "ViewParam.glsl"
+#include "Common.sgc"
+#include "ViewParam.sgc"
 
 #ifndef OIT_USE_MATERIAL
 #define OIT_USE_MATERIAL 0
 #endif
 
 #if OIT_USE_MATERIAL
-#include "MaterialProcess.glsl"
-#include "VertexProcess.glsl"
+#include "MaterialProcess.sgc"
+#include "VertexProcess.sgc"
 #endif
 
 struct OutputVSParam

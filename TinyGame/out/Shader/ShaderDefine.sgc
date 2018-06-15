@@ -330,6 +330,7 @@ struct gl_LightProductParams
 uniform gl_LightProductParams gl_FrontLightProduct[gl_MaxLights];
 uniform gl_LightProductParams gl_BackLightProduct[gl_MaxLights];
 
+
 //Vertex Shader
 in int gl_VertexID;
 in int gl_InstanceID;
@@ -344,8 +345,13 @@ out gl_PerVertex
 	float gl_ClipDistance[];
 };
 
+#define patch
+
 //Tessellation control shader 
-in int gl_PatchVerticesIn;
+
+//layout(vertices = n) out;
+i
+n int gl_PatchVerticesIn;
 in int gl_PrimitiveID;
 in int gl_InvocationID;
 

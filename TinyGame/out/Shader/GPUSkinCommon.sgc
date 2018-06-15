@@ -1,4 +1,4 @@
-#include "ViewParam.glsl"
+#include "ViewParam.sgc"
 
 #define USE_NORMAL
 #define SKIN_BLEND_BONE_NUM 4

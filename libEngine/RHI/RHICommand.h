@@ -17,8 +17,8 @@ namespace RenderGL
 	RHITextureCube*  RHICreateTextureCube();
 
 	RHIVertexBuffer* RHICreateVertexBuffer();
-	RHIUniformBuffer* RHICreateUniformBuffer(int size);
-
+	RHIUniformBuffer* RHICreateUniformBuffer(uint32 size);
+	RHIStorageBuffer* RHICreateStorageBuffer(uint32 size);
 
 	void RHISetupFixedPipeline(Matrix4 const& matModelView, Matrix4 const& matProj,  int numTexture = 0, RHITexture2D** texture = nullptr);
 

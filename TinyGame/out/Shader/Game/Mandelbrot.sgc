@@ -1,5 +1,5 @@
-#include "Common.glsl"
-#include "ComplexCommon.glsl"
+#include "Common.sgc"
+#include "ComplexCommon.sgc"
 
 #if COMPUTE_SHADER
 

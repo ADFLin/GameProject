@@ -910,7 +910,6 @@ namespace Go
 
 	bool LeelaZeroGoStage::buildLearningMode()
 	{
-
 		if( !mLeelaAIRun.buildLearningGame() )
 			return false;
 
@@ -1285,6 +1284,14 @@ namespace Go
 						LogMsg("Warning:Can't Play step : [%d,%d]", com.pos[0], com.pos[1]);
 					}
 
+#if 0
+					if( mGame.getCurrentStep() >= ::Global::GameConfig().getIntValue( "LeelaLearnMaxSetp" , "Go" , 400 ) )
+					{
+						cleanupModeData(false);
+						buildLearningMode();
+						return;
+					}
+#endif
 				}
 				break;
 			}

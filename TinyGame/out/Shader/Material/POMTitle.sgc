@@ -2,9 +2,9 @@
 #define MATERIAL_BLENDING_MASKED 1
 #define MATERIAL_USE_DEPTH_OFFSET 1
 
-#include "MaterialCommon.glsl"
-#include "ViewParam.glsl"
-#include "ParallaxOcclusionCommon.glsl"
+#include "MaterialCommon.sgc"
+#include "ViewParam.sgc"
+#include "ParallaxOcclusionCommon.sgc"
 
 uniform sampler2D BaseTexture;
 uniform sampler2D NoramlTexture;

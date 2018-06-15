@@ -1,4 +1,4 @@
-#include "ViewParam.glsl"
+#include "ViewParam.sgc"
 
 struct PrimitiveParameters
 {

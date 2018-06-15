@@ -42,11 +42,11 @@ namespace RenderGL
 
 	void ViewInfo::setupShader(ShaderProgram& program)
 	{
-		//ref ViewParam.glsl
+		//ref ViewParam.sgc
 #if 1
 		struct ViewBufferData
 		{
-			DECLARE_UNIFORM_STRUCT(ViewBlock);
+			DECLARE_BUFFER_STRUCT(ViewBlock);
 
 			Matrix4  worldToView;
 			Matrix4  worldToClip;
@@ -90,7 +90,7 @@ namespace RenderGL
 			mUniformBuffer->unlock();
 		}
 
-		program.setUniformBufferT<ViewBufferData>(*mUniformBuffer);
+		program.setBufferT<ViewBufferData>(*mUniformBuffer);
 
 #else
 		program.setParam(SHADER_PARAM(View.worldPos), worldPos);
@@ -1900,7 +1900,7 @@ namespace RenderGL
 			setTexture(mParamVolumeBufferA, *parameter.volumeBuffer[0]);
 			setTexture(mParamVolumeBufferB, *parameter.volumeBuffer[1]);
 			setRWTexture(mParamScatteringRWBuffer, *parameter.scatteringBuffer[0], AO_WRITE_ONLY);
-			setUniformBufferT<TitledLightInfo>(*parameter.lightBuffer);
+			setBufferT<TitledLightInfo>(*parameter.lightBuffer);
 			view.setupShader(*this);
 			setParam(mParamTitledLightNum, parameter.numLights);
 		}

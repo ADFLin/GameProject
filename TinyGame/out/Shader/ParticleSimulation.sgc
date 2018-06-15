@@ -1,0 +1,181 @@
+#include "Common.sgc"
+
+#include "ParticleCommon.sgc"
+#include "NoiseCommon.sgc"
+
+#ifndef USE_DPTH_BUFFER_COLLISION
+#define USE_DPTH_BUFFER_COLLISION 0
+#endif
+
+#ifndef USE_GBUFFER_NORMAL
+#define USE_GBUFFER_NORMAL 0
+#endif
+
+#if USE_DPTH_BUFFER_COLLISION
+#include "ViewParam.sgc"
+#endif
+
+#if USE_GBUFFER_NORMAL
+#include "DeferredShadingCommon.sgc"
+#endif
+
+layout(std140) buffer ParticleDataBlock
+{
+	ParticleData Particles[];
+};
+
+struct ParticleParameters
+{
+	float3 gravity;
+	uint   numParticle;
+	float4 dynamic; // x : Friction , y : Restitution , z : vel dumping , w
+};
+
+layout(std140) uniform ParticleParamBlock
+{
+	ParticleParameters ParticleParam;
+};
+
+
+struct ParticleInitParameters
+{
+	float3 posMin;
+	float3 posMax;
+};
+
+layout(std140) uniform ParticleInitParamBlock
+{
+	ParticleInitParameters ParticleInitParam;
+};
+
+void InitParticleData(inout ParticleData particle, in uint index)
+{
+	float3 seed = float3(index);
+	seed = RandVec(seed);
+	//particle.pos = RandRangeSeparate(seed, ParticleInitParam.posMin,ParticleInitParam.posMax);
+	particle.pos = float3(0,0,50);
+	seed = RandVec(seed);
+	particle.velocity = RandRangeSeparate(seed, float3(-10,-10,-5), float3(10, 10, 0));
+	seed = RandVec(seed);
+	particle.color = float4(RandRangeSeparate(seed , float3(0) ,float3(1) ) , 1);
+	seed = RandVec(seed);
+	particle.size = RandRange( seed.x , 10 , 20 );
+	particle.lifeTimeScale = 1.0 / RandRange(seed.y, 7, 10 );
+	particle.lifeTime = 0;
+}
+
+layout(local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
+void MainInitCS()
+{
+	uint indexParticle = gl_GlobalInvocationID.x;
+
+	InitParticleData(Particles[indexParticle], indexParticle);
+}
+
+uniform float DeltaTime;
+
+struct CollisionPrimitive
+{
+	float3 velocity;
+	int    type;
+	float4 param;
+};
+
+
+uniform int NumCollisionPrimitive = 1;
+layout(std140) uniform CollisionPrimitiveBlock
+{
+	CollisionPrimitive CollisionPrimitives[10];
+};
+
+float3 bounce(float3 i, float3 n, float restitution, float friction)
+{
+	float d = dot(i, n);
+	float f = -d / length(i);
+	float3 perp = d * n;
+	float3 para = i - perp;
+	return -(1.0 + restitution) * perp - friction * f * para;
+}
+
+void ResolveCollision( inout float3 pos , inout float3 velocity , float3 normal , float depth , float friction, float restitution )
+{
+	float VoN = dot(velocity, float3(0,0,1));
+	float3 Vn = VoN * normal;
+	float3 Vt = velocity - Vn;
+
+	pos += normal * depth;
+	velocity += step(1e-5, depth) * bounce( velocity , normal , 0.7 , 0 );
+}
+
+layout(local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
+void MainUpdateCS()
+{
+	uint indexParticle = gl_GlobalInvocationID.x;
+	if( indexParticle >= ParticleParam.numParticle )
+		return;
+
+	ParticleData particle = Particles[indexParticle];
+#if 0
+
+	if( particle.lifeTime < 0 )
+		return;
+#endif
+
+	float lifeTime = particle.lifeTime;
+	lifeTime += particle.lifeTimeScale * DeltaTime;
+
+	if ( lifeTime > 1.0 )
+	{
+		InitParticleData(Particles[indexParticle], indexParticle);
+		return;
+	}
+
+
+	float3 velocity = particle.velocity;
+	float3 pos = particle.pos;
+
+	velocity += 10 * ParticleParam.gravity * DeltaTime;
+	velocity *= ParticleParam.dynamic.z;
+
+	for( int i = 0; i < NumCollisionPrimitive; ++i )
+	{
+		CollisionPrimitive primitive = CollisionPrimitives[i];
+
+		if( primitive.type == 0 )
+		{
+			float4 plane = primitive.param;
+			float depth = dot(float4(pos, 1), plane);
+
+			if( depth < 0 )
+			{
+				ResolveCollision(pos, velocity, plane.xyz, -depth, ParticleParam.dynamic.x, ParticleParam.dynamic.y);
+
+			}
+		}
+		else if( primitive.type == 1 )
+		{
+			float3 posCenter = primitive.param.xyz;
+			float radius = primitive.param.w;
+			float depth = length(pos - posCenter) - radius;
+
+			if( depth < 0 )
+			{
+				float3 normal = normalize(pos - posCenter);
+				ResolveCollision(pos, velocity, normal, -depth, ParticleParam.dynamic.x, ParticleParam.dynamic.y);
+			}
+		}
+	}
+
+#if USE_DPTH_BUFFER_COLLISION
+
+
+
+
+#endif
+
+	pos += velocity * DeltaTime;
+
+	Particles[indexParticle].velocity = velocity;
+	Particles[indexParticle].pos = pos;
+	Particles[indexParticle].lifeTime = lifeTime;
+}

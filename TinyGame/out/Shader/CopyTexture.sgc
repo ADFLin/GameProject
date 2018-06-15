@@ -1,5 +1,5 @@
-#include "Common.glsl"
-#include "ScreenVertexShader.glsl"
+#include "Common.sgc"
+#include "ScreenVertexShader.sgc"
 
 #if PIXEL_SHADER
 

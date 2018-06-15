@@ -1,5 +1,5 @@
-#include "Common.glsl"
-#include "ViewParam.glsl"
+#include "Common.sgc"
+#include "ViewParam.sgc"
 
 struct OutputVSParam
 {
@@ -53,7 +53,6 @@ void MainGS()
 		gl_Layer = face;
 
 		gl_Position = ViewProjectMatrix * float4(pos.xyz + float3(size, size, 0.0), 1.0);
-
 		OutputGS.color = color;
 		OutputGS.UVs = float2(1, 1);
 		EmitVertex();

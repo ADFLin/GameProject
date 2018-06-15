@@ -1,7 +1,7 @@
-#include "DeferredShadingCommon.glsl"
-#include "MaterialProcess.glsl"
-#include "ViewParam.glsl"
-#include "VertexProcess.glsl"
+#include "DeferredShadingCommon.sgc"
+#include "MaterialProcess.sgc"
+#include "ViewParam.sgc"
+#include "VertexProcess.sgc"
 
 #if VERTEX_SHADER
 

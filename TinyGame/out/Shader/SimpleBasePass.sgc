@@ -1,8 +1,8 @@
-#include "Common.glsl"
-#include "ViewParam.glsl"
-#include "PrimitiveParam.glsl"
-#include "VertexProcess.glsl"
-#include "DeferredShadingCommon.glsl"
+#include "Common.sgc"
+#include "ViewParam.sgc"
+#include "PrimitiveParam.sgc"
+#include "VertexProcess.sgc"
+#include "DeferredShadingCommon.sgc"
 
 struct VSOutputParam
 {

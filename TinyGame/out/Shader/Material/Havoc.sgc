@@ -1,7 +1,7 @@
 #define MATERIAL_TEXCOORD_NUM 1
 #define MATERIAL_BLENDING_MASKED 0
-#include "MaterialCommon.glsl"
-#include "ViewParam.glsl"
+#include "MaterialCommon.sgc"
+#include "ViewParam.sgc"
 
 uniform sampler2D TextureBase;
 uniform sampler2D TextureB;

@@ -6,10 +6,10 @@
 #define VERTEX_FACTORY_USE_GEOMETRY_SHADER 1
 #endif
 
-#include "Common.glsl"
-#include "MaterialProcess.glsl"
-#include "VertexProcess.glsl"
-#include "ShadowCommon.glsl"
+#include "Common.sgc"
+#include "MaterialProcess.sgc"
+#include "VertexProcess.sgc"
+#include "ShadowCommon.sgc"
 
 
 

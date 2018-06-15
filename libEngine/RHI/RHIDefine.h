@@ -115,6 +115,7 @@ namespace RenderGL
 		LineLoop,
 		Quad,
 		
+		Patchs ,
 	};
 
 	enum class ELockAccess

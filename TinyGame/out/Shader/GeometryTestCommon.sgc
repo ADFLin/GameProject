@@ -1,0 +1,21 @@
+#pragma once
+
+#include "Common.sgc"
+
+bool RaySphereTest(float3 pos, float3 dirNormalized, float3 center, float radius, out float outT)
+{
+	// ( ld + vd * t ) ^ 2 = r^2 ; ld = pos - center
+	// t^2 + 2 ( ld * vd ) t + ( ld^2 - r^2 ) = 0
+	float3 offset = pos - center;
+
+	float b = dot(offset, dirNormalized);
+	float c = dot(offset, offset) - radius * radius;
+	float d = b * b - c;
+
+	if( d < 0 || b > 0 )
+	{
+		return false;
+	}
+	outT = -b - sqrt(d);
+	return true;
+}

@@ -311,8 +311,10 @@ namespace RenderGL
 			//RHISetRasterizerState(TStaticRasterizerState< ECullMode::None >::GetRHI());
 			Material* material = getMaterial(MaterialId::Simple3);
 			auto shader = context.setMaterial(material);
-			shader->setTexture(SHADER_PARAM(BaseTexture), getTexture(TextureId::Metel).getRHI());
-
+			if( shader )
+			{
+				shader->setTexture(SHADER_PARAM(BaseTexture), getTexture(TextureId::Metel).getRHI());
+			}
 			matWorld = Matrix4::Translate(Vector3(-2.6, -2.6, 3));
 			//matWorld = Matrix4::Translate(Vector3(0, 0, 7));
 			context.setWorld(matWorld);

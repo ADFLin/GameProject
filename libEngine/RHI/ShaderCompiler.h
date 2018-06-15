@@ -11,7 +11,7 @@
 
 #include <unordered_map>
 
-#define SHADER_FILE_SUBNAME ".glsl"
+#define SHADER_FILE_SUBNAME ".sgc"
 
 namespace RenderGL
 {
@@ -159,7 +159,7 @@ namespace RenderGL
 	class ShaderManager : public SingletonT< ShaderManager >
 	{
 	public:
-
+		ShaderManager();
 		~ShaderManager();
 
 
@@ -173,7 +173,7 @@ namespace RenderGL
 
 
 		template< class T >
-		T* getGlobalShaderT(bool bForceLoad)
+		T* getGlobalShaderT(bool bForceLoad = true)
 		{
 			return static_cast<T*>( getGlobalShader(T::GetShaderClass() , bForceLoad) );
 		}
@@ -286,7 +286,7 @@ namespace RenderGL
 
 		void  generateCompileSetup( ShaderProgramCompileInfo& compileInfo , ShaderEntryInfo const entries[], ShaderCompileOption const& option, char const* additionalCode);
 
-		uint32         mDefaultVersion = 430;
+		uint32         mDefaultVersion;
 
 		ShaderCompiler mCompiler;
 		std::unordered_map< ShaderProgram*, ShaderProgramCompileInfo* > mShaderCompileMap;

@@ -1,8 +1,8 @@
 #pragma once
-#include "Common.glsl"
-#include "MaterialCommon.glsl"
-#include "ViewParam.glsl"
-#include "PrimitiveParam.glsl"
+#include "Common.sgc"
+#include "MaterialCommon.sgc"
+#include "ViewParam.sgc"
+#include "PrimitiveParam.sgc"
 
 #ifndef VERTEX_FACTORY_USE_GEOMETRY_SHADER
 #define VERTEX_FACTORY_USE_GEOMETRY_SHADER 0

@@ -57,15 +57,24 @@ namespace RenderGL
 
 	GLDeviceState gDeviceState;
 
-	RHITexture1D* RHICreateTexture1D(Texture::Format format, int length , int numMipLevel /*= 0*/, void* data /*= nullptr*/)
+
+	template< class T, class ...Args >
+	T* CreateRHIObjectT(Args ...args)
 	{
-		RHITexture1D* result = new RHITexture1D;
-		if( result && !result->create(format, length, numMipLevel, data) )
+		T* result = new T;
+		if( result && !result->create(std::forward< Args >(args)...) )
 		{
 			delete result;
 			return nullptr;
 		}
 		return result;
+	}
+
+
+
+	RHITexture1D* RHICreateTexture1D(Texture::Format format, int length , int numMipLevel /*= 0*/, void* data /*= nullptr*/)
+	{
+		return CreateRHIObjectT< RHITexture1D >(format, length, numMipLevel, data);
 	}
 
 	RHITexture2D* RHICreateTexture2D()
@@ -75,25 +84,12 @@ namespace RenderGL
 
 	RHITexture2D* RHICreateTexture2D(Texture::Format format, int w, int h, int numMipLevel, void* data , int dataAlign)
 	{
-		RHITexture2D* result = new RHITexture2D;
-		if( result && !result->create(format, w, h , numMipLevel, data , dataAlign) )
-		{
-			delete result;
-			return nullptr;
-		}
-		return result;
+		return CreateRHIObjectT< RHITexture2D >(format, w, h, numMipLevel, data, dataAlign);
 	}
-
 
 	RHITexture3D* RHICreateTexture3D(Texture::Format format, int sizeX ,int sizeY , int sizeZ )
 	{
-		RHITexture3D* result = new RHITexture3D;
-		if( result && !result->create(format , sizeX , sizeY , sizeZ ) )
-		{
-			delete result;
-			return nullptr;
-		}
-		return result;
+		return CreateRHIObjectT< RHITexture3D >(format, sizeX, sizeY, sizeZ);
 	}
 
 	RHITextureDepth* RHICreateTextureDepth()
@@ -106,28 +102,20 @@ namespace RenderGL
 		return new RHITextureCube;
 	}
 
-	RenderGL::RHIVertexBuffer* RHICreateVertexBuffer()
+	RHIVertexBuffer* RHICreateVertexBuffer()
 	{
-		RHIVertexBuffer* result = new RHIVertexBuffer;
-		if( result && !result->create() )
-		{
-			delete result;
-			return nullptr;
-		}
-		return result;
+		return CreateRHIObjectT< RHIVertexBuffer >();
 	}
 
-	RHIUniformBuffer* RHICreateUniformBuffer(int size)
+	RHIUniformBuffer* RHICreateUniformBuffer(uint32 size)
 	{
-		RHIUniformBuffer* result = new RHIUniformBuffer;
-		if( result && !result->create(size) )
-		{
-			delete result;
-			return nullptr;
-		}
-		return result;
+		return CreateRHIObjectT< RHIUniformBuffer >( size );
 	}
 
+	RHIStorageBuffer* RHICreateStorageBuffer(uint32 size)
+	{
+		return CreateRHIObjectT< RHIStorageBuffer >(size);
+	}
 
 	void RHISetupFixedPipeline(Matrix4 const& matModelView, Matrix4 const& matProj,  int numTexture /*= 0*/, RHITexture2D** texture /*= nullptr*/)
 	{

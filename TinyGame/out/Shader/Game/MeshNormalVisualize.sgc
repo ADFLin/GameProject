@@ -1,12 +1,12 @@
-#include "Common.glsl"
-#include "ViewParam.glsl"
+#include "Common.sgc"
+#include "ViewParam.sgc"
 
 #ifndef USE_OIT
 #define USE_OIT 0
 #endif
 
 #if USE_OIT
-#include "OITCommon.glsl"
+#include "OITCommon.sgc"
 #endif
 
 struct OutputVSParam

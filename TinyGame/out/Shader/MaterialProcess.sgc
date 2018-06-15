@@ -1,6 +1,6 @@
 #pragma once
-#include "MaterialCommon.glsl"
-#include "ViewParam.glsl"
+#include "MaterialCommon.sgc"
+#include "ViewParam.sgc"
 
 //Material Template
 #if 0

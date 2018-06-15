@@ -1,4 +1,4 @@
-#include "Common.glsl"
+#include "Common.sgc"
 
 #ifndef SIZE_X
 #define SIZE_X 8

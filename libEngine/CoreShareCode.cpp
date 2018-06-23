@@ -4,6 +4,8 @@
 #include "ProfileSystem.cpp"
 #include "LogSystem.cpp"
 #include "RHI/ShaderCompiler.cpp"
+#include "RHI/MaterialShader.cpp"
+#include "RHI/VertexFactory.cpp"
 #include "RHI/Font.cpp"
 #include "UnitTest/TestClass.cpp"
 #endif

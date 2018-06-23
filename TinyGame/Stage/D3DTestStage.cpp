@@ -366,8 +366,6 @@ namespace RenderD3D
 		TComPtr< ID3D11PixelShader >  mPixelShader;
 		ShaderParameterMap mParameterMap;
 
-		static Shader::Type GetShaderType(ID3D11VertexShader* Shader = nullptr) { return Shader::eVertex; }
-		static Shader::Type GetShaderType(ID3D11PixelShader* Shader = nullptr) { return Shader::ePixel; }
 
 		template< class ShaderType >
 		bool SetShaderResource(char const* name , ShaderType* shader , ID3D11ShaderResourceView* view)
@@ -379,17 +377,17 @@ namespace RenderD3D
 			return true;
 		}
 
-		template< Shader::Type Type >
+		template< Shader::Type TypeValue >
 		void SetShaderResourceInternal(ShaderParameter const parameter, ID3D11ShaderResourceView* view)
 		{
-			switch( Type )
+			switch( TypeValue )
 			{
-			case RenderGL::Shader::eVertex:   mRHISystem.mDeviceContext->VSSetShaderResources(parameter.bindIndex, 1, &view); break;
-			case RenderGL::Shader::ePixel:    mRHISystem.mDeviceContext->PSSetShaderResources(parameter.bindIndex, 1, &view); break;
-			case RenderGL::Shader::eGeometry: mRHISystem.mDeviceContext->GSSetShaderResources(parameter.bindIndex, 1, &view); break;
-			case RenderGL::Shader::eCompute:  mRHISystem.mDeviceContext->CSSetShaderResources(parameter.bindIndex, 1, &view); break;
-			case RenderGL::Shader::eHull:     mRHISystem.mDeviceContext->HSSetShaderResources(parameter.bindIndex, 1, &view); break;
-			case RenderGL::Shader::eDomain:   mRHISystem.mDeviceContext->DSSetShaderResources(parameter.bindIndex, 1, &view); break;
+			case Shader::eVertex:   mRHISystem.mDeviceContext->VSSetShaderResources(parameter.bindIndex, 1, &view); break;
+			case Shader::ePixel:    mRHISystem.mDeviceContext->PSSetShaderResources(parameter.bindIndex, 1, &view); break;
+			case Shader::eGeometry: mRHISystem.mDeviceContext->GSSetShaderResources(parameter.bindIndex, 1, &view); break;
+			case Shader::eCompute:  mRHISystem.mDeviceContext->CSSetShaderResources(parameter.bindIndex, 1, &view); break;
+			case Shader::eHull:     mRHISystem.mDeviceContext->HSSetShaderResources(parameter.bindIndex, 1, &view); break;
+			case Shader::eDomain:   mRHISystem.mDeviceContext->DSSetShaderResources(parameter.bindIndex, 1, &view); break;
 			}
 			
 		}
@@ -440,7 +438,15 @@ namespace RenderD3D
 			}
 		};
 
-		ConstBufferInfo mConstBuffers[2][MaxConstBufferNum];
+		ConstBufferInfo mConstBuffers[Shader::NUM_SHADER_TYPE][MaxConstBufferNum];
+
+
+		template< Shader::Type TypeValue >
+		void SetShaderValueInternal(ShaderParameter const parameter, void const* value, int valueSize)
+		{
+			assert(parameter.bindIndex < MaxConstBufferNum);
+			mConstBuffers[TypeValue][parameter.bindIndex].setUpdateValue(parameter, value, valueSize);
+		}
 
 		template< class ShaderType , class ValueType >
 		bool SetShaderValue(char const* name, ShaderType* shader, ValueType const& value )
@@ -452,20 +458,6 @@ namespace RenderD3D
 			return true;
 		}
 
-		template< Shader::Type Type >
-		void SetShaderValueInternal(ShaderParameter const parameter, void const* value , int valueSize )
-		{
-			assert(parameter.bindIndex < MaxConstBufferNum);
-			switch( Type )
-			{
-			case RenderGL::Shader::eVertex: mConstBuffers[0][parameter.bindIndex].setUpdateValue(parameter, value, valueSize); break;
-			case RenderGL::Shader::ePixel:  mConstBuffers[1][parameter.bindIndex].setUpdateValue(parameter, value, valueSize); break;
-			case RenderGL::Shader::eGeometry:break;
-			case RenderGL::Shader::eCompute:break;
-			case RenderGL::Shader::eHull:break;
-			case RenderGL::Shader::eDomain:break;
-			}		
-		}
 
 		FrameSwapChain mSwapChain;
 
@@ -499,14 +491,14 @@ namespace RenderD3D
 			{
 				ShaderVariantD3D11 shaderVariant;
 				ShaderParameterMap parameterMap;
-				if( !mRHISystem.compileShader(Shader::eVertex, Code, strlen(Code), "MainVS", parameterMap, shaderVariant , mVertexShaderByteCode.address() ) )
+				if( !mRHISystem.compileShader(Shader::eVertex, Code, strlen(Code), SHADER_ENTRY(MainVS), parameterMap, shaderVariant , mVertexShaderByteCode.address() ) )
 					return false;
 				mVertexShader.initialize(shaderVariant.vertex);
 			}
 
 			{
 				ShaderVariantD3D11 shaderVariant;
-				if( !mRHISystem.compileShader(Shader::ePixel, Code, strlen(Code), "MainPS", mParameterMap, shaderVariant) )
+				if( !mRHISystem.compileShader(Shader::ePixel, Code, strlen(Code), SHADER_ENTRY(MainPS), mParameterMap, shaderVariant) )
 					return false;
 				mPixelShader.initialize(shaderVariant.pixel);
 			}

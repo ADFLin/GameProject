@@ -105,7 +105,6 @@ namespace RenderGL
 		void    attachShader(RHIShader& shader);
 		bool    updateShader(bool bForce = false);
 
-		void checkProgramStatus();
 
 		void    bind();
 		void    unbind();
@@ -375,7 +374,7 @@ namespace RenderGL
 		int  getParamLoc(char const* name) { return glGetUniformLocation(mHandle, name); }
 		RHIShaderRef mShaders[Shader::NUM_SHADER_TYPE];
 		bool         mNeedLink;
-
+		std::string  shaderName;
 		//#TODO
 	public:
 		void resetBindIndex()

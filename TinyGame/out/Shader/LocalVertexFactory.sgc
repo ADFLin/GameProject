@@ -78,16 +78,16 @@ in VertexFactoryInputParameters
 
 #if MATERIAL_TEXCOORD_NUM
 	#if MATERIAL_TEXCOORD_NUM > 0
-	layout(location = ATTRIBUTE4) in float2 VertexInput_texCoord0;
+	layout(location = ATTRIBUTE_TEXCOORD) in float2 VertexInput_texCoord0;
 	#endif
 	#if MATERIAL_TEXCOORD_NUM > 1
-	layout(location = ATTRIBUTE5) in float2 VertexInput_texCoord1;
+	layout(location = ATTRIBUTE_TEXCOORD1) in float2 VertexInput_texCoord1;
 	#endif
 	#if MATERIAL_TEXCOORD_NUM > 2
-	layout(location = ATTRIBUTE6) in float2 VertexInput_texCoord2;
+	layout(location = ATTRIBUTE_TEXCOORD2) in float2 VertexInput_texCoord2;
 	#endif
 	#if MATERIAL_TEXCOORD_NUM > 3
-	layout(location = ATTRIBUTE7) in float2 VertexInput_texCoord3;
+	layout(location = ATTRIBUTE_TEXCOORD3) in float2 VertexInput_texCoord3;
 	#endif
 #endif//MATERIAL_TEXCOORD_NUM
 

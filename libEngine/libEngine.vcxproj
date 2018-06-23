@@ -211,6 +211,7 @@
     <ClCompile Include="RHI\GpuProfiler.cpp" />
     <ClCompile Include="RHI\LazyObject.cpp" />
     <ClCompile Include="RHI\Material.cpp" />
+    <ClCompile Include="RHI\MaterialShader.cpp" />
     <ClCompile Include="RHI\MeshUtility.cpp" />
     <ClCompile Include="RHI\PrimitiveBatch.cpp" />
     <ClCompile Include="RHI\RenderContext.cpp" />
@@ -356,9 +357,11 @@
     <ClInclude Include="RHI\Font.h" />
     <ClInclude Include="RHI\FrameGraph.h" />
     <ClInclude Include="RHI\GLCommon.h" />
+    <ClInclude Include="RHI\GlobalShader.h" />
     <ClInclude Include="RHI\GpuProfiler.h" />
     <ClInclude Include="RHI\LazyObject.h" />
     <ClInclude Include="RHI\Material.h" />
+    <ClInclude Include="RHI\MaterialShader.h" />
     <ClInclude Include="RHI\MeshUtility.h" />
     <ClInclude Include="RHI\PrimitiveBatch.h" />
     <ClInclude Include="RHI\RenderContext.h" />

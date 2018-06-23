@@ -4,6 +4,9 @@
 
 #include "DrawUtility.h"
 #include "ShaderCompiler.h"
+#include "MaterialShader.h"
+#include "VertexFactory.h"
+
 #include "RHICommand.h"
 
 #include "FixString.h"
@@ -244,6 +247,48 @@ namespace RenderGL
 			ShaderManager::Get().reloadShader(mProgShadowDepth[i]);
 		}
 		ShaderManager::Get().reloadShader(mProgLighting);
+	}
+
+
+	class ShadowDepthProgram : public MaterialShaderProgram
+	{
+	public:
+		typedef MaterialShaderProgram BaseClass;
+		DECLARE_MATERIAL_SHADER(ShadowDepthProgram);
+
+
+		static void SetupShaderCompileOption(ShaderCompileOption& option)
+		{
+			BaseClass::SetupShaderCompileOption(option);
+		}
+
+		static char const* GetShaderFileName()
+		{
+			return "Shader/ShadowDepthRender";
+		}
+		static ShaderEntryInfo const* GetShaderEntries()
+		{
+			static ShaderEntryInfo const entries[] =
+			{
+				{ Shader::eVertex , SHADER_ENTRY(MainVS) },
+				{ Shader::ePixel  , SHADER_ENTRY(MainPS) },
+				{ Shader::eEmpty  , nullptr },
+			};
+			return entries;
+		}
+
+	};
+	IMPLEMENT_MATERIAL_SHADER(ShadowDepthProgram);
+
+	MaterialShaderProgram* ShadowDepthTech::getMaterialShader(RenderContext& context, MaterialMaster& material, VertexFactory* vertexFactory)
+	{
+#if USE_MATERIAL_SHADOW
+		if( mEffectCur == &mProgLighting )
+			return nullptr;
+		return material.getShaderT< ShadowDepthProgram >(vertexFactory);
+#else
+		return nullptr;
+#endif
 	}
 
 	void ShadowDepthTech::renderLighting(ViewInfo& view, SceneInterface& scene, LightInfo const& light, bool bMultiple)
@@ -531,7 +576,117 @@ namespace RenderGL
 		shadowProject = OrthoMatrix(Vmin.x, Vmax.x, Vmin.y, Vmax.y, -mCascadeMaxDist / 2, Vmax.z);
 	}
 
-	bool DefferredShadingTech::init( SceneRenderTargets& sceneRenderTargets )
+	class DeferredLightingProgram : public GlobalShaderProgram
+	{
+	public:
+		void bindParameters()
+		{
+			mParamGBuffer.bindParameters(*this, true);
+		}
+		void setParamters(SceneRenderTargets& sceneRenderTargets)
+		{
+			mParamGBuffer.setParameters(*this, sceneRenderTargets);
+		}
+
+		GBufferShaderParameters mParamGBuffer;
+
+		static void SetupShaderCompileOption(ShaderCompileOption& option) 
+		{
+
+		}
+		static char const* GetShaderFileName()
+		{
+			return "Shader/DeferredLighting";
+		}
+
+		static ShaderEntryInfo const* GetShaderEntries()
+		{
+			static ShaderEntryInfo const entries[] =
+			{
+				{ Shader::eVertex , SHADER_ENTRY(ScreenVS) },
+				{ Shader::ePixel  , SHADER_ENTRY(LightingPassPS) },
+				{ Shader::eEmpty  , nullptr },
+			};
+			return entries;
+		}
+
+	};
+
+	template< LightType LIGHT_TYPE , bool bUseBoundShape = false >
+	class TDeferredLightingProgram : public DeferredLightingProgram
+	{
+		DECLARE_GLOBAL_SHADER( TDeferredLightingProgram )
+		typedef DeferredLightingProgram BaseClass;
+
+		static ShaderEntryInfo const* GetShaderEntries()
+		{
+			if( bUseBoundShape )
+			{
+				static ShaderEntryInfo const entriesUseBoundShape[] =
+				{
+					{ Shader::eVertex , SHADER_ENTRY(LightingPassVS) },
+					{ Shader::ePixel  , SHADER_ENTRY(LightingPassPS) },
+					{ Shader::eEmpty  , nullptr },
+				};
+				return entriesUseBoundShape;
+			}
+
+			static ShaderEntryInfo const entries[] =
+			{
+				{ Shader::eVertex , SHADER_ENTRY(ScreenVS) },
+				{ Shader::ePixel  , SHADER_ENTRY(LightingPassPS) },
+				{ Shader::eEmpty  , nullptr },
+			};
+			return entries;
+		}
+
+		static void SetupShaderCompileOption(ShaderCompileOption& option)
+		{
+			BaseClass::SetupShaderCompileOption(option);
+			option.addDefine( SHADER_PARAM(DEFERRED_LIGHT_TYPE), (int)LIGHT_TYPE);
+			option.addDefine( SHADER_PARAM(DEFERRED_SHADING_USE_BOUND_SHAPE), bUseBoundShape );
+		}
+	};
+
+
+#define IMPLEMENT_DEFERRED_SHADER( LIGHT_TYPE , NAME )\
+	IMPLEMENT_GLOBAL_SHADER_T(template<>, TDeferredLightingProgram< LIGHT_TYPE >);\
+	typedef TDeferredLightingProgram< LIGHT_TYPE , true > DeferredLightingProgram##NAME;\
+	IMPLEMENT_GLOBAL_SHADER_T(template<>, DeferredLightingProgram##NAME);
+
+	IMPLEMENT_DEFERRED_SHADER(LightType::Spot, Spot);
+	IMPLEMENT_DEFERRED_SHADER(LightType::Point, Point);
+	IMPLEMENT_DEFERRED_SHADER(LightType::Directional, Directional);
+
+#undef IMPLEMENT_DEFERRED_SHADER
+
+	class LightingShowBoundProgram : public DeferredLightingProgram
+	{
+		DECLARE_GLOBAL_SHADER(LightingShowBoundProgram)
+		typedef DeferredLightingProgram BaseClass;
+
+		static void SetupShaderCompileOption(ShaderCompileOption& option)
+		{
+			BaseClass::SetupShaderCompileOption(option);
+			option.addDefine(SHADER_PARAM(DEFERRED_SHADING_USE_BOUND_SHAPE), true);
+		}
+
+		static ShaderEntryInfo const* GetShaderEntries()
+		{
+			static ShaderEntryInfo const entries[] =
+			{
+				{ Shader::eVertex , SHADER_ENTRY(LightingPassVS) },
+				{ Shader::ePixel  , SHADER_ENTRY(ShowBoundPS) },
+				{ Shader::eEmpty  , nullptr },
+			};
+			return entries;
+		}
+	};
+
+
+	IMPLEMENT_GLOBAL_SHADER(LightingShowBoundProgram)
+
+	bool DeferredShadingTech::init( SceneRenderTargets& sceneRenderTargets )
 	{
 		mSceneRenderTargets = &sceneRenderTargets;
 
@@ -554,66 +709,25 @@ namespace RenderGL
 		mLightBuffer.setDepth( sceneRenderTargets.getDepthTexture() );
 
 
-		if( !MeshBuild::LightSphere(mSphereMesh) ||
-		    !MeshBuild::LightCone(mConeMesh) )
-			return false;
+		VERIFY_INITRESULT(MeshBuild::LightSphere(mSphereMesh));
+		VERIFY_INITRESULT(MeshBuild::LightCone(mConeMesh));
 
-		if( !ShaderManager::Get().loadFile( 
-			 mProgLightingScreenRect[(int)LightType::Point] ,
-			"Shader/DeferredLighting",
-			SHADER_ENTRY(ScreenVS), SHADER_ENTRY(LightingPassPS),
-			"#define DEFERRED_LIGHT_TYPE LIGHTTYPE_POINT") )
-			return false;
+#define GET_LIGHTING_SHADER( LIGHT_TYPE , NAME )\
+		VERIFY_INITRESULT( mProgLightingScreenRect[(int)LIGHT_TYPE] = ShaderManager::Get().getGlobalShaderT< TDeferredLightingProgram< LIGHT_TYPE > >(true) );\
+		VERIFY_INITRESULT( mProgLighting[(int)LIGHT_TYPE] = ShaderManager::Get().getGlobalShaderT< DeferredLightingProgram##NAME >(true) );
 
-		if( !ShaderManager::Get().loadFile(
-			mProgLightingScreenRect[(int)LightType::Spot] ,
-			"Shader/DeferredLighting",
-			SHADER_ENTRY(ScreenVS), SHADER_ENTRY(LightingPassPS),
-			"#define DEFERRED_LIGHT_TYPE LIGHTTYPE_SPOT \n") )
-			return false;
+		GET_LIGHTING_SHADER(LightType::Spot, Spot);
+		GET_LIGHTING_SHADER(LightType::Point , Point);
+		GET_LIGHTING_SHADER(LightType::Directional , Directional);
+		
 
-		if( !ShaderManager::Get().loadFile(
-			mProgLightingScreenRect[(int)LightType::Directional] ,
-			"Shader/DeferredLighting",
-			SHADER_ENTRY(ScreenVS), SHADER_ENTRY(LightingPassPS),
-			"#define DEFERRED_LIGHT_TYPE LIGHTTYPE_DIRECTIONAL\n") )
-			return false;
+#undef GET_LIGHTING_SHADER
 
-		if( !ShaderManager::Get().loadFile(
-			mProgLighting[(int)LightType::Point],
-			"Shader/DeferredLighting",
-			SHADER_ENTRY(LightingPassVS), SHADER_ENTRY(LightingPassPS),
-			"#define DEFERRED_LIGHT_TYPE LIGHTTYPE_POINT \n"
-			"#define DEFERRED_SHADING_USE_BOUND_SHAPE 1 \n") )
-			return false;
-
-		if( !ShaderManager::Get().loadFile(
-			mProgLighting[(int)LightType::Spot],
-			"Shader/DeferredLighting",
-			SHADER_ENTRY(LightingPassVS), SHADER_ENTRY(LightingPassPS),
-			"#define DEFERRED_LIGHT_TYPE LIGHTTYPE_SPOT \n"
-			"#define DEFERRED_SHADING_USE_BOUND_SHAPE 1 \n") )
-			return false;
-
-		if( !ShaderManager::Get().loadFile(
-			mProgLighting[(int)LightType::Directional],
-			"Shader/DeferredLighting",
-			SHADER_ENTRY(LightingPassVS), SHADER_ENTRY(LightingPassPS),
-			"#define DEFERRED_LIGHT_TYPE LIGHTTYPE_DIRECTIONAL \n"
-			"#define DEFERRED_SHADING_USE_BOUND_SHAPE 1 \n") )
-			return false;
-
-		if( !ShaderManager::Get().loadFile(
-			mProgLightingShowBound,
-			"Shader/DeferredLighting",
-			SHADER_ENTRY(LightingPassVS), SHADER_ENTRY(ShowBoundPS),
-			"#define DEFERRED_SHADING_USE_BOUND_SHAPE 1 \n") )
-			return false;
-
+		VERIFY_INITRESULT(mProgLightingShowBound = ShaderManager::Get().getGlobalShaderT< LightingShowBoundProgram >(true));
 		return true;
 	}
 
-	void DefferredShadingTech::renderBassPass(ViewInfo& view, SceneInterface& scene)
+	void DeferredShadingTech::renderBassPass(ViewInfo& view, SceneInterface& scene)
 	{
 		mBassPassBuffer.setTexture(0, mSceneRenderTargets->getRenderFrameTexture());
 		GL_BIND_LOCK_OBJECT(mBassPassBuffer);
@@ -628,31 +742,15 @@ namespace RenderGL
 	}
 	
 
-	void DefferredShadingTech::prevRenderLights(ViewInfo& view)
+	void DeferredShadingTech::prevRenderLights(ViewInfo& view)
 	{
-		//#PROB GL Can't Save Uniform Params
-#if 0
-		auto const SetupShaderParam = [this, &view](ShaderProgram& program)
-		{
-			program.bind();
-			mSceneRenderTargets->setupShaderGBuffer(program, true);
-			view.setupShader(program);
-			program.unbind();
-		};
 
-		for( int i = 0; i < 3; ++i )
-		{
-			SetupShaderParam(mProgLightingScreenRect[i]);
-			SetupShaderParam(mProgLighting[i]);
-		}
-		SetupShaderParam(mProgLightingShowBound);
-#endif
 	}
 
-	void DefferredShadingTech::renderLight(ViewInfo& view, LightInfo const& light, ShadowProjectParam const& shadowProjectParam)
+	void DeferredShadingTech::renderLight(ViewInfo& view, LightInfo const& light, ShadowProjectParam const& shadowProjectParam)
 	{
 
-		auto const BindShaderParam = [this , &view , &light , &shadowProjectParam](DefferredLightingProgram& program)
+		auto const BindShaderParam = [this , &view , &light , &shadowProjectParam](DeferredLightingProgram& program)
 		{
 			program.setParamters(*mSceneRenderTargets);
 			shadowProjectParam.setupShader(program);
@@ -662,7 +760,7 @@ namespace RenderGL
 
 		if( boundMethod != LBM_SCREEN_RECT && light.type != LightType::Directional )
 		{
-			DefferredLightingProgram& lightShader = (debugMode == DebugMode::eNone) ? mProgLighting[ (int)light.type ] : mProgLightingShowBound;
+			DeferredLightingProgram* lightShader = (debugMode == DebugMode::eNone) ? mProgLighting[ (int)light.type ] : mProgLightingShowBound;
 
 			mLightBuffer.setTexture(0, mSceneRenderTargets->getRenderFrameTexture());
 
@@ -760,9 +858,9 @@ namespace RenderGL
 				GL_BIND_LOCK_OBJECT(lightShader);
 				//if( debugMode == DebugMode::eNone )
 				{
-					BindShaderParam(lightShader);
+					BindShaderParam(*lightShader);
 				}
-				lightShader.setParam(SHADER_PARAM(BoundTransform), lightXForm);
+				lightShader->setParam(SHADER_PARAM(BoundTransform), lightXForm);
 				DrawBoundShape(true);
 			}
 			RHISetRasterizerState(TStaticRasterizerState<>::GetRHI());
@@ -774,9 +872,9 @@ namespace RenderGL
 			{
 				GL_BIND_LOCK_OBJECT(mSceneRenderTargets->getFrameBuffer());
 				//MatrixSaveScope matrixScope(Matrix4::Identity());
-				DefferredLightingProgram& program = mProgLightingScreenRect[(int)light.type];
+				DeferredLightingProgram* program = mProgLightingScreenRect[(int)light.type];
 				GL_BIND_LOCK_OBJECT(program);
-				BindShaderParam(program);
+				BindShaderParam(*program);
 				DrawUtility::ScreenRectShader();
 
 				//glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
@@ -786,14 +884,47 @@ namespace RenderGL
 
 	}
 
-	void DefferredShadingTech::reload()
+	class DeferredBasePassProgram : public MaterialShaderProgram
+	{
+		typedef MaterialShaderProgram BaseClass;
+		DECLARE_MATERIAL_SHADER(DeferredBasePassProgram);
+
+		static void SetupShaderCompileOption(ShaderCompileOption& option)
+		{
+			BaseClass::SetupShaderCompileOption(option);
+		}
+
+		static char const* GetShaderFileName()
+		{
+			return "Shader/DeferredBasePass";
+		}
+		static ShaderEntryInfo const* GetShaderEntries()
+		{
+			static ShaderEntryInfo const entries[] =
+			{
+				{ Shader::eVertex , SHADER_ENTRY(BassPassVS) },
+				{ Shader::ePixel  , SHADER_ENTRY(BasePassPS) },
+				{ Shader::eEmpty  , nullptr },
+			};
+			return entries;
+		}
+	};
+	IMPLEMENT_MATERIAL_SHADER(DeferredBasePassProgram);
+
+	RenderGL::MaterialShaderProgram* DeferredShadingTech::getMaterialShader(RenderContext& context, MaterialMaster& material, VertexFactory* vertexFactory)
+	{
+		//return &GSimpleBasePass;
+		return material.getShaderT<DeferredBasePassProgram>(vertexFactory);
+	}
+
+	void DeferredShadingTech::reload()
 	{
 		for( int i = 0; i < 3; ++i )
 		{
-			ShaderManager::Get().reloadShader(mProgLightingScreenRect[i]);
-			ShaderManager::Get().reloadShader(mProgLighting[i]);
+			ShaderManager::Get().reloadShader(*mProgLightingScreenRect[i]);
+			ShaderManager::Get().reloadShader(*mProgLighting[i]);
 		}
-		ShaderManager::Get().reloadShader(mProgLightingShowBound);
+		ShaderManager::Get().reloadShader(*mProgLightingShowBound);
 	}
 
 	bool GBufferParamData::init(IntVector2 const& size)
@@ -898,7 +1029,7 @@ namespace RenderGL
 		ShaderParameter mParamOcclusionRadius;
 	};
 
-	IMPLEMENT_GLOBAL_SHADER(SSAOGenerateProgram)
+	IMPLEMENT_GLOBAL_SHADER(SSAOGenerateProgram);
 
 	class SSAOBlurProgram : public GlobalShaderProgram
 	{
@@ -926,7 +1057,7 @@ namespace RenderGL
 		ShaderParameter mParamTextureSSAO;
 	};
 
-	IMPLEMENT_GLOBAL_SHADER(SSAOBlurProgram)
+	IMPLEMENT_GLOBAL_SHADER(SSAOBlurProgram);
 
 	class SSAOAmbientProgram : public GlobalShaderProgram
 	{
@@ -1169,13 +1300,14 @@ namespace RenderGL
 			ShaderCompileOption option;
 			option.version = 430;
 			option.addDefine(SHADER_PARAM(OIT_STORAGE_SIZE), OIT_StorageSize);
+			option.bShowComplieInfo = true;
 			if( !ShaderManager::Get().loadFile(
 				mShaderBassPassTest, "Shader/OITRender",
 				SHADER_ENTRY(BassPassVS), SHADER_ENTRY(BassPassPS),
 				option, nullptr) )
 				return false;
 			if( !ShaderManager::Get().loadFile(
-				mShaderResolve, "Shader/OITRender",
+				mShaderResolve, "Shader/OITResolve",
 				SHADER_ENTRY(ScreenVS), SHADER_ENTRY(ResolvePS),
 				option, nullptr) )
 				return false;
@@ -1192,7 +1324,7 @@ namespace RenderGL
 			option.addDefine(SHADER_PARAM(OIT_STORAGE_SIZE), OIT_StorageSize);
 			option.addDefine(SHADER_PARAM(OIT_MAX_PIXEL_COUNT) , BMA_MaxPixelCounts[i]);
 			if( !ShaderManager::Get().loadFile(
-				mShaderBMAResolves[i], "Shader/OITRender",
+				mShaderBMAResolves[i], "Shader/OITResolve",
 				SHADER_ENTRY(ScreenVS), SHADER_ENTRY(ResolvePS),
 				option , nullptr) )
 				return false;
@@ -1430,6 +1562,36 @@ namespace RenderGL
 		RHISetRasterizerState(TStaticRasterizerState<>::GetRHI());
 	}
 
+
+	class OITBBasePassProgram : public MaterialShaderProgram
+	{
+		typedef MaterialShaderProgram BaseClass;
+		DECLARE_MATERIAL_SHADER(OITBBasePassProgram);
+
+		static void SetupShaderCompileOption(ShaderCompileOption& option)
+		{
+			BaseClass::SetupShaderCompileOption(option);
+			option.addDefine(SHADER_PARAM(OIT_USE_MATERIAL), true);
+			option.addDefine(SHADER_PARAM(OIT_STORAGE_SIZE), OIT_StorageSize);
+		}
+
+		static char const* GetShaderFileName()
+		{
+			return "Shader/OITRender";
+		}
+		static ShaderEntryInfo const* GetShaderEntries()
+		{
+			static ShaderEntryInfo const entries[] =
+			{
+				{ Shader::eVertex , SHADER_ENTRY(BassPassVS) },
+				{ Shader::ePixel  , SHADER_ENTRY(BassPassPS) },
+				{ Shader::eEmpty  , nullptr },
+			};
+			return entries;
+		}
+	};
+	IMPLEMENT_MATERIAL_SHADER(OITBBasePassProgram);
+
 	void OITTechnique::setupShader(ShaderProgram& program)
 	{
 		program.setRWTexture(SHADER_PARAM(ColorStorageRWTexture), *mColorStorageTexture, AO_WRITE_ONLY);
@@ -1439,7 +1601,7 @@ namespace RenderGL
 
 	MaterialShaderProgram* OITTechnique::getMaterialShader(RenderContext& context, MaterialMaster& material, VertexFactory* vertexFactory)
 	{
-		return material.getShader(RenderTechiqueUsage::OIT , vertexFactory);
+		return material.getShaderT< OITBBasePassProgram >(vertexFactory);
 	}
 
 	void OITTechnique::setupMaterialShader(RenderContext& context, ShaderProgram& program)
@@ -1650,7 +1812,6 @@ namespace RenderGL
 			static ParamConstructor sParamConstructor;
 			option.addDefine(SHADER_PARAM( SAMPLE_RADIUS_NUM ), SampleRaidusNum);
 			option.addDefine(SHADER_PARAM( FLITER_NFACTOR ), sParamConstructor.factor);
-			option.addInclude("Common");
 			option.addCode(sParamConstructor.code.c_str());
 		}
 

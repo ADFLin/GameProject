@@ -4,6 +4,7 @@
 
 #include "GLCommon.h"
 #include "ShaderCore.h"
+#include "GlobalShader.h"
 #include "Singleton.h"
 #include "Asset.h"
 
@@ -15,6 +16,11 @@
 
 namespace RenderGL
 {
+	class MaterialShaderProgramClass;
+	class MaterialShaderProgram;
+	class VertexFactoryType;
+
+
 	enum ShaderFreature
 	{
 
@@ -70,14 +76,16 @@ namespace RenderGL
 			std::string value;
 		};
 
-		std::string getCode( char const* defCode = nullptr , char const* addionalCode = nullptr ) const;
+		std::string getCode(char const* defCode = nullptr, char const* addionalCode = nullptr) const;
 
 		unsigned version;
+		bool     bShowComplieInfo = false;
 
 		std::vector< std::string > mCodes;
 		std::vector< ConfigVar >   mConfigVars;
 		std::vector< std::string > mIncludeFiles;
 	};
+
 
 	class ShaderCompiler
 	{
@@ -95,66 +103,14 @@ namespace RenderGL
 		char const*  name;
 	};
 
-	class GlobalShaderProgram : public ShaderProgram
+	enum class ShaderClassType
 	{
-	public:
-		static GlobalShaderProgram* CreateShader() { assert(0); return nullptr; }
-		static void SetupShaderCompileOption(ShaderCompileOption&) {}
-		static char const* GetShaderFileName()
-		{
-			assert(0);
-			return nullptr;
-		}
-		static ShaderEntryInfo const* GetShaderEntries()
-		{
-			assert(0);
-			return nullptr;
-		}
-		struct GlobalShaderProgramClass* myClass;
+		Common,
+		Global,
+		Material,
 	};
 
-
-
-	struct GlobalShaderProgramClass
-	{
-		typedef GlobalShaderProgram* (*FunCreateShader)();
-		typedef void(*FunSetupShaderCompileOption)(ShaderCompileOption&);
-		typedef char const* (*FunGetShaderFileName)();
-		typedef ShaderEntryInfo const* (*FunGetShaderEntries)();
-
-		FunCreateShader funCreateShader;
-		FunSetupShaderCompileOption funSetupShaderCompileOption;
-		FunGetShaderFileName funGetShaderFileName;
-		FunGetShaderEntries funGetShaderEntries;
-
-		GlobalShaderProgramClass(
-			FunCreateShader inFunCreateShader,
-			FunSetupShaderCompileOption inFunSetupShaderCompileOption,
-			FunGetShaderFileName inFunGetShaderFileName,
-			FunGetShaderEntries inFunGetShaderEntries);
-
-	};
-#define DECLARE_GLOBAL_SHADER( CLASS )\
-	public:\
-		static GlobalShaderProgramClass& GetShaderClass();\
-		static GlobalShaderProgram* CreateShader() { return new CLASS; }
-
-#define IMPLEMENT_GLOBAL_SHADER( CLASS )\
-	RenderGL::GlobalShaderProgramClass& CLASS::GetShaderClass()\
-	{\
-		static GlobalShaderProgramClass staticClass\
-		{\
-			CLASS::CreateShader,\
-			CLASS::SetupShaderCompileOption,\
-			CLASS::GetShaderFileName,\
-			CLASS::GetShaderEntries,\
-		};\
-		return staticClass;\
-	}
-
-#define IMPLEMENT_GLOBAL_SHADER_T( TEMPLATE_ARGS , CLASS )\
-	TEMPLATE_ARGS\
-	IMPLEMENT_GLOBAL_SHADER( CLASS )
+	typedef std::vector< std::pair< MaterialShaderProgramClass*, MaterialShaderProgram* > > MaterialShaderPairVec;
 
 	class ShaderManager : public SingletonT< ShaderManager >
 	{
@@ -169,14 +125,14 @@ namespace RenderGL
 
 		void clearnupRHIResouse();
 
-		std::unordered_map< GlobalShaderProgramClass*, GlobalShaderProgram* > mGlobalShaderMap;
 
-
-		template< class T >
-		T* getGlobalShaderT(bool bForceLoad = true)
+		template< class ShaderType >
+		ShaderType* getGlobalShaderT(bool bForceLoad = true)
 		{
-			return static_cast<T*>( getGlobalShader(T::GetShaderClass() , bForceLoad) );
+			return static_cast<ShaderType*>( getGlobalShader(ShaderType::GetShaderClass() , bForceLoad) );
 		}
+
+		int loadMaterialShaders(char const* fileName  , VertexFactoryType& vertexFactoryType , MaterialShaderPairVec& outShaders );
 
 		GlobalShaderProgram* getGlobalShader(GlobalShaderProgramClass& shaderClass , bool bForceLoad );
 
@@ -185,7 +141,8 @@ namespace RenderGL
 		int  loadAllGlobalShaders();
 
 		GlobalShaderProgram* constructGlobalShader(GlobalShaderProgramClass& shaderClass);
-		
+		GlobalShaderProgram* constructGlobalShaderInternal(GlobalShaderProgramClass& shaderClass, ShaderClassType classType, ShaderCompileOption& option );
+
 		void cleanupGlobalShader();
 
 		bool loadFileSimple(ShaderProgram& shaderProgram, char const* fileName, char const* def = nullptr, char const* additionalCode = nullptr);
@@ -270,26 +227,41 @@ namespace RenderGL
 			ShaderCompileInfo(){}
 		};
 
+
+
 		struct ShaderProgramCompileInfo : public AssetBase
 		{
 			ShaderProgram* shaderProgram;
 			std::string    fileName;
 			std::vector< ShaderCompileInfo > shaders;
 			bool           bSingleFile;
-			bool           bGlobalShader = false;
+			bool           bShowComplieInfo = false;
 			
-
+			ShaderClassType classType = ShaderClassType::Common;
 		protected:
 			virtual void getDependentFilePaths(std::vector<std::wstring>& paths) override;
 			virtual void postFileModify(FileAction action) override;
 		};
 
+		void removeFromShaderCompileMap( ShaderProgram& shader )
+		{
+			auto iter = mShaderCompileMap.find(&shader);
+
+			if( iter != mShaderCompileMap.end() )
+			{
+				delete iter->second;
+				mShaderCompileMap.erase(iter);
+			}
+		}
+
 		void  generateCompileSetup( ShaderProgramCompileInfo& compileInfo , ShaderEntryInfo const entries[], ShaderCompileOption const& option, char const* additionalCode);
 
 		uint32         mDefaultVersion;
-
 		ShaderCompiler mCompiler;
+
 		std::unordered_map< ShaderProgram*, ShaderProgramCompileInfo* > mShaderCompileMap;
+		std::unordered_map< GlobalShaderProgramClass*, GlobalShaderProgram* > mGlobalShaderMap;
+
 	};
 
 }

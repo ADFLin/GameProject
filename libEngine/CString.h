@@ -131,11 +131,11 @@ struct FCString
 		return result;
 	}
 
-
+	
 	static std::wstring CharToWChar(const char *c)
 	{
 		const size_t cSize = strlen(c) + 1;
-		wchar_t buff[1024];
+		wchar_t buff[1024 * 256];
 		setlocale(LC_ALL, "cht");
 		mbstowcs(buff, c, cSize);
 		return buff;

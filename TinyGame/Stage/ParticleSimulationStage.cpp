@@ -51,14 +51,6 @@ namespace RenderGL
 	{
 	public:
 
-		bool initializeResource(uint32 numElement)
-		{
-			mResource = RHICreateUniformBuffer(numElement * sizeof(T));
-			if( !mResource.isValid() )
-				return false;
-			return true;
-		}
-
 		void releaseResources()
 		{
 			mResource->release();
@@ -503,7 +495,7 @@ namespace RenderGL
 			float constexpr scale = 0.001;
 			float len = max - min;
 			widget->setRange(0, len / scale);
-			FloatWidgetPropery::Set(widget, mValueRef);
+			FloatWidgetPropery::Set(widget, ( mValueRef - min ) / scale );
 			widget->onEvent = [this,scale, min](int event, GWidget* widget)
 			{
 				mValueRef = min + scale * FloatWidgetPropery::Get(widget->cast<GSlider>());
@@ -521,80 +513,25 @@ namespace RenderGL
 	};
 
 
-
-	class GPUParticleTestStage : public StageBase
+	struct GPUParticleData
 	{
-		typedef StageBase BaseClass;
-	public:
-		GPUParticleTestStage() {}
 
-		TStructuredUniformBuffer< ParticleInitParameters > mInitParamBuffer;
-		TStructuredUniformBuffer< ParticleParameters >     mParamBuffer;
-		TStructuredStorageBuffer< ParticleData > mParticleBuffer;
-		TStructuredUniformBuffer< CollisionPrimitive > mCollisionPrimitiveBuffer;
-		
-		ParticleInitProgram* mProgInit;
-		ParticleUpdateProgram* mProgUpdate;
-		SimpleSpriteParticleProgram* mProgParticleRender;
-		SplineProgram* mProgSpline;
-
-
-		int mIndexWaterBufferUsing = 0;
-		TStructuredStorageBuffer< WaterVertexData > mWaterDataBuffers[2];
-		WaterSimulationProgram* mProgWaterSimulation;
-		WaterUpdateNormalProgram* mProgWaterUpdateNormal;
-		WaterProgram* mProgWater;
-		
-
-		RHITexture2DRef mTexture;
-		ViewFrustum mViewFrustum;
-		SimpleCamera  mCamera;
-
-		Mesh mTileMesh;
-		int  mTileNum = 500;
-
-		std::vector< CollisionPrimitive > mPrimitives;
-		std::vector < std::unique_ptr< IPropertyBinder > > mBinders;
-		float mWaterSpeed = 10;
-
-		virtual bool onInit()
+		bool initialize()
 		{
-			if( !BaseClass::onInit() )
-				return false;
-
-			if( !::Global::getDrawEngine()->startOpenGL(true) )
-				return false;
-
+			
 			VERIFY_INITRESULT(mProgInit = ShaderManager::Get().getGlobalShaderT< ParticleInitProgram >(true));
 			VERIFY_INITRESULT(mProgUpdate = ShaderManager::Get().getGlobalShaderT< ParticleUpdateProgram >(true));
 
 			VERIFY_INITRESULT(mProgParticleRender = ShaderManager::Get().getGlobalShaderT< SimpleSpriteParticleProgram >(true));
-			VERIFY_INITRESULT(mProgSpline = ShaderManager::Get().getGlobalShaderT< SplineProgram >(true));
 
 			VERIFY_INITRESULT(mParticleBuffer.initializeResource(1000));
 			VERIFY_INITRESULT(mInitParamBuffer.initializeResource(1));
 			VERIFY_INITRESULT(mParamBuffer.initializeResource(1));
 
-			mTexture = RHICreateTexture2D();
-			VERIFY_INITRESULT(mTexture->loadFromFile("Texture/star.png"));
-
-			VERIFY_INITRESULT(ShaderManager::Get().loadFileSimple(mProgSphere, "Shader/Game/Sphere"));
-			Vector3 v[] =
-			{
-				Vector3(1,1,0),
-				Vector3(-1,1,0) ,
-				Vector3(-1,-1,0),
-				Vector3(1,-1,0),
-			};
-			int   idx[6] = { 0 , 1 , 2 , 0 , 2 , 3 };
-			mSpherePlane.mDecl.addElement(Vertex::ePosition, Vertex::eFloat3);
-			if( !mSpherePlane.createBuffer(&v[0], 4, &idx[0], 6, true) )
-				return false;
-
 			{
 				ParticleParameters& parameters = *mParamBuffer.lock();
 				parameters.numParticle = mParticleBuffer.getElementNum();
-				parameters.gravity = Vector3( 0, 0 ,-9.8);
+				parameters.gravity = Vector3(0, 0, -9.8);
 				parameters.dynamic = Vector4(1, 1, 1, 0);
 				mParamBuffer.unlock();
 			}
@@ -607,7 +544,7 @@ namespace RenderGL
 			}
 
 			{
-				
+
 				{
 					CollisionPrimitive primitive;
 					primitive.type = 0;
@@ -632,7 +569,92 @@ namespace RenderGL
 				memcpy(pData, &mPrimitives[0], mPrimitives.size() * sizeof(CollisionPrimitive));
 				mCollisionPrimitiveBuffer.unlock();
 			}
+		}
 
+
+		void initParticleData()
+		{
+			GL_BIND_LOCK_OBJECT(mProgInit);
+			mProgInit->setParameters(mParticleBuffer, mParamBuffer, mInitParamBuffer);
+			glDispatchCompute(mParticleBuffer.getElementNum(), 1, 1);
+		}
+
+		void updateParticleData(float dt)
+		{
+			GL_BIND_LOCK_OBJECT(mProgUpdate);
+			mProgUpdate->setParameters(mParticleBuffer, mParamBuffer, mInitParamBuffer, dt, mPrimitives.size());
+			mProgUpdate->setBufferT<CollisionPrimitive>(*mCollisionPrimitiveBuffer.getRHI());
+			glDispatchCompute(mParticleBuffer.getElementNum(), 1, 1);
+		}
+
+		TStructuredUniformBuffer< ParticleInitParameters > mInitParamBuffer;
+		TStructuredUniformBuffer< ParticleParameters >     mParamBuffer;
+		TStructuredStorageBuffer< ParticleData > mParticleBuffer;
+		TStructuredUniformBuffer< CollisionPrimitive > mCollisionPrimitiveBuffer;
+
+		ParticleInitProgram* mProgInit;
+		ParticleUpdateProgram* mProgUpdate;
+		SimpleSpriteParticleProgram* mProgParticleRender;
+
+		std::vector< CollisionPrimitive > mPrimitives;
+	};
+
+
+
+	class GPUParticleTestStage : public StageBase
+		                       , public GPUParticleData
+	{
+		typedef StageBase BaseClass;
+	public:
+		GPUParticleTestStage() {}
+
+
+		SplineProgram* mProgSpline;
+
+
+		int mIndexWaterBufferUsing = 0;
+		TStructuredStorageBuffer< WaterVertexData > mWaterDataBuffers[2];
+		WaterSimulationProgram* mProgWaterSimulation;
+		WaterUpdateNormalProgram* mProgWaterUpdateNormal;
+		WaterProgram* mProgWater;
+		
+
+		RHITexture2DRef mTexture;
+		ViewFrustum mViewFrustum;
+		SimpleCamera  mCamera;
+
+		Mesh mTileMesh;
+		int  mTileNum = 500;
+
+		
+		std::vector < std::unique_ptr< IPropertyBinder > > mBinders;
+		float mWaterSpeed = 10;
+
+		virtual bool onInit()
+		{
+			if( !BaseClass::onInit() )
+				return false;
+
+			if( !::Global::getDrawEngine()->startOpenGL(true) )
+				return false;
+
+			VERIFY_INITRESULT(GPUParticleData::initialize());
+			
+			VERIFY_INITRESULT(mProgSpline = ShaderManager::Get().getGlobalShaderT< SplineProgram >(true));
+
+			mTexture = RHICreateTexture2D();
+			VERIFY_INITRESULT(mTexture->loadFromFile("Texture/star.png"));
+			VERIFY_INITRESULT(ShaderManager::Get().loadFileSimple(mProgSphere, "Shader/Game/Sphere"));
+			Vector3 v[] =
+			{
+				Vector3(1,1,0),
+				Vector3(-1,1,0) ,
+				Vector3(-1,-1,0),
+				Vector3(1,-1,0),
+			};
+			int   idx[6] = { 0 , 1 , 2 , 0 , 2 , 3 };
+			mSpherePlane.mDecl.addElement(Vertex::ePosition, Vertex::eFloat3);
+			VERIFY_INITRESULT(mSpherePlane.createBuffer(&v[0], 4, &idx[0], 6, true));
 
 			VERIFY_INITRESULT(MeshBuild::Tile(mTileMesh, mTileNum - 1, 100, false));
 			VERIFY_INITRESULT(mWaterDataBuffers[0].initializeResource(mTileNum * mTileNum));
@@ -697,21 +719,6 @@ namespace RenderGL
 			mProgSphere.setParam(SHADER_PARAM(Sphere.localPos), pos);
 			
 			mSpherePlane.draw();
-		}
-
-		void initParticleData()
-		{
-			GL_BIND_LOCK_OBJECT(mProgInit);
-			mProgInit->setParameters(mParticleBuffer, mParamBuffer, mInitParamBuffer);
-			glDispatchCompute(mParticleBuffer.getElementNum(), 1, 1);
-		}
-
-		void updateParticleData(float dt)
-		{
-			GL_BIND_LOCK_OBJECT(mProgUpdate);
-			mProgUpdate->setParameters(mParticleBuffer, mParamBuffer, mInitParamBuffer, dt, mPrimitives.size());
-			mProgUpdate->setBufferT<CollisionPrimitive>(*mCollisionPrimitiveBuffer.getRHI());
-			glDispatchCompute(mParticleBuffer.getElementNum(), 1, 1);
 		}
 
 		void upateWaterData(float dt)

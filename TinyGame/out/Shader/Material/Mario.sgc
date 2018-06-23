@@ -28,7 +28,7 @@ void CalcMaterialInputPS(inout MaterialInputPS input, inout MaterialParametersPS
 
 	input.baseColor = baseColor;
 	//input.emissiveColor = 0.2 * baseColor;
-	//input.baseColor = float3(1,1,1) * float3( parameters.worldPos.xy , 0 );
+	//input.baseColor = float3(parameters.texCoords[0].x, parameters.texCoords[0].y, 1);
 	input.metallic = 0.9;
 	input.roughness = 0.7;
 	input.specular = 0.2;

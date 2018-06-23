@@ -255,13 +255,15 @@ namespace RenderGL
 
 	void SampleStage::buildScene1(Scene& scene)
 	{
-		return;
+
 		{
 			auto meshObject = new StaticMeshObject;
 			meshObject->meshPtr = getMesh(MeshId::Sponza);
 			meshObject->worldTransform = Matrix4::Translate(Vector3(0, 0, 0));
 			scene.addObject(meshObject);
 		}
+
+		return;
 
 		{
 			auto meshObject = new SimpleMeshObject;
@@ -306,6 +308,17 @@ namespace RenderGL
 #endif
 
 
+
+		{
+			Material* material = getMaterial(MaterialId::Mario);
+			auto shader = context.setMaterial(material);
+			shader->setTexture(SHADER_PARAM(TextureD), getTexture(TextureId::MarioD).getRHI());
+			shader->setTexture(SHADER_PARAM(TextureS), getTexture(TextureId::MarioS).getRHI());
+			Mesh& mesh = getMesh(MeshId::Mario);
+			matWorld = Matrix4::Translate(Vector3(8, -8, 0));
+			context.setWorld(matWorld);
+			mesh.draw(LinearColor(0.7, 0.7, 0.7));
+		}
 
 		{
 			//RHISetRasterizerState(TStaticRasterizerState< ECullMode::None >::GetRHI());
@@ -390,17 +403,6 @@ namespace RenderGL
 			mSimpleMeshs[SimpleMeshId::Plane].draw(LinearColor(0.7, 0.7, 0.7));
 		}
 
-
-		{
-			Material* material = getMaterial(MaterialId::Mario);
-			auto shader = context.setMaterial(material);
-			shader->setTexture(SHADER_PARAM(TextureD), getTexture(TextureId::MarioD).getRHI());
-			shader->setTexture(SHADER_PARAM(TextureS), getTexture(TextureId::MarioS).getRHI());
-			Mesh& mesh = getMesh(MeshId::Mario);
-			matWorld = Matrix4::Translate(Vector3(8, -8, 0));
-			context.setWorld(matWorld);
-			mesh.draw(LinearColor(0.7, 0.7, 0.7));
-		}
 
 		if( 1 )
 		{
@@ -550,7 +552,8 @@ namespace RenderGL
 	}
 	void SampleStage::setupScene()
 	{
-		addScene("SceneA");
+		//addScene("SceneA");
+		addScene();
 		buildScene1( getScene(0) );
 
 		int const RandLightNum = 0;

@@ -106,10 +106,6 @@ private:
 	StageBase*      mCurStage;
 };
 
-#define FAIL_MSG_GENERATE__( CODE , FILE , LINE )\
-	LogWarning(1, "Init Fail : File = %s Line = %s %s ", FILE, #LINE, #CODE)
 
-#define VERIFY_INITRESULT( CODE )\
-	{ if( !( CODE ) ) { FAIL_MSG_GENERATE__( CODE, __FILE__ , __LINE__ ); return false; } }
 
 #endif // StageBase_h__

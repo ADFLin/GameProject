@@ -4,16 +4,18 @@
 namespace RenderGL
 {
 
-	void VertexFarcoryType::getCompileOption(ShaderCompileOption& opation)
+#if CORE_SHARE_CODE
+	VertexFactoryType* VertexFactoryType::DefaultType = &LocalVertexFactory::StaticType;
+	std::vector< VertexFactoryType* > VertexFactoryType::TypeList;
+#endif CORE_SHARE_CODE
+
+	void VertexFactoryType::getCompileOption(ShaderCompileOption& opation)
 	{
 		opation.addInclude(fileName);
 		ModifyCompilationOption(opation);
 	}
 
-	VertexFarcoryType* VertexFarcoryType::DefaultType = &LocalVertexFactory::StaticType;
-	std::vector< VertexFarcoryType* > VertexFarcoryType::TypeList;
-
-	VertexFarcoryType::VertexFarcoryType(char const* inFileName , ModifyCompilationOptionFun MCO )
+	VertexFactoryType::VertexFactoryType(char const* inFileName , ModifyCompilationOptionFun MCO )
 		:fileName(inFileName)
 		,ModifyCompilationOption( MCO )
 	{

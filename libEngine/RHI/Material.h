@@ -5,16 +5,19 @@
 #include "HashString.h"
 #include "LazyObject.h"
 
+#include "VertexFactory.h"
+#include "MaterialShader.h"
+
 #include <functional>
+#include <memory>
 
 namespace RenderGL
 {
 	class MaterialMaster;
 	class VertexFactory;
-	class VertexFarcoryType;
+	class VertexFactoryType;
 
-	//#MOVE
-	int const OIT_StorageSize = 4096;
+
 
 	class Texture2D
 	{
@@ -42,16 +45,6 @@ namespace RenderGL
 		RHITexture2DRef mRHI;
 	};
 
-	class MaterialShaderProgram : public ShaderProgram
-	{
-	public:
-
-		struct ShaderParamBind
-		{
-			ShaderParameter parameter;
-		};
-
-	};
 
 	class Material
 	{
@@ -139,22 +132,6 @@ namespace RenderGL
 
 	};
 
-	enum class RenderTechiqueUsage
-	{
-		BasePass ,
-		Shadow ,
-		OIT ,
-
-		Count ,
-	};
-
-	enum class VertexFactoryTypeUsage
-	{
-		Local ,
-
-		Count,
-	};
-
 	enum BlendMode
 	{
 		Blend_Opaque,
@@ -166,31 +143,53 @@ namespace RenderGL
 		NumBlendMode,
 	};
 
-	struct MaterialShaderOption
-	{
-		RenderTechiqueUsage    renderTechique;
-		VertexFactoryTypeUsage vertexFactory;
-	};
 
+	struct MaterialShaderKey
+	{
+		VertexFactoryType*          vertexFactoryType;
+		MaterialShaderProgramClass* shaderClass;
+
+		MaterialShaderKey() {}
+		MaterialShaderKey(VertexFactoryType* inVertexFactoryType, MaterialShaderProgramClass* inShaderClass)
+			:vertexFactoryType(inVertexFactoryType)
+			, shaderClass(inShaderClass)
+		{
+		}
+
+		bool operator == (MaterialShaderKey const& rhs) const
+		{
+			return vertexFactoryType == rhs.vertexFactoryType &&
+				shaderClass == rhs.shaderClass;
+		}
+		uint32 getHash() const
+		{
+			uint32 result = HashValue(vertexFactoryType);
+			HashCombine(result, shaderClass);
+			return result;
+		}
+	};
 
 	class MaterialShaderMap
 	{
 	public:
 		~MaterialShaderMap();
-		MaterialShaderProgram*  getShader(RenderTechiqueUsage shaderUsage , VertexFactory* vertexFactory );
 
 
-		void releaseRHI();
+		MaterialShaderProgram* getShader(VertexFactory* vertexFactory, MaterialShaderProgramClass& shaderClass);
+
+		template< class ShaderType >
+		ShaderType* getShaderT(VertexFactory* vertexFactory)
+		{
+			return (ShaderType*)getShader( vertexFactory , ShaderType::GetShaderClass() );
+		}
+
+		void cleanup();
+
 		static std::string GetFilePath(char const* name);
 
-		bool load( char const* name );
+		bool load(char const* name);
 
-		struct ShaderCache
-		{
-			MaterialShaderProgram shaders[(int)RenderTechiqueUsage::Count];
-		};
-
-		std::unordered_map< VertexFarcoryType*, ShaderCache* > mShaderCacheMap;
+		std::unordered_map< MaterialShaderKey, MaterialShaderProgram*, MemberFunHasher > mShaderMap;
 	};
 
 
@@ -213,22 +212,22 @@ namespace RenderGL
 
 		void releaseRHI()
 		{
-			mShaderMap.releaseRHI();
+			mShaderMap.cleanup();
 		}
 
 		MaterialMaster* getMaster() override { return this; }
 		MaterialShaderMap& getShaderMap() { return mShaderMap; }
-		MaterialShaderProgram*  getShader(RenderTechiqueUsage shaderUsage , VertexFactory* vertexFactory )
-		{
-			return mShaderMap.getShader(shaderUsage , vertexFactory);
-		}
 
+		template< class ShaderType >
+		ShaderType* getShaderT(VertexFactory* vertexFactory)
+		{
+			return mShaderMap.getShaderT< ShaderType >( vertexFactory);
+		}
 
 		bool loadInternal()
 		{
 			return mShaderMap.load(mName.c_str());
 		}
-
 
 		BlendMode blendMode;
 		MaterialShaderMap mShaderMap;

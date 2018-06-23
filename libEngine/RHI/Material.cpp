@@ -1,11 +1,13 @@
 #include "Material.h"
 
+
+#include "RHICommand.h"
 #include "ShaderCompiler.h"
 #include "VertexFactory.h"
 #include "FileSystem.h"
 
+
 #include "stb/stb_image.h"
-#include "RHICommand.h"
 
 namespace RenderGL
 {
@@ -156,37 +158,28 @@ namespace RenderGL
 
 	MaterialShaderMap::~MaterialShaderMap()
 	{
-		for ( auto& pair : mShaderCacheMap )
-		{
-			delete pair.second;
-		}
+		cleanup();
 	}
 
-	MaterialShaderProgram* MaterialShaderMap::getShader(RenderTechiqueUsage shaderUsage, VertexFactory* vertexFactory)
+	MaterialShaderProgram* MaterialShaderMap::getShader(VertexFactory* vertexFactory , MaterialShaderProgramClass& shaderClass )
 	{
-		VertexFarcoryType* VFType = VertexFarcoryType::DefaultType;
-		if( vertexFactory )
-		{
-			VFType = &vertexFactory->getType();
-		}
-
-		auto itFind = mShaderCacheMap.find(VFType);
-		if( itFind == mShaderCacheMap.end() )
+		MaterialShaderKey key{ (vertexFactory) ? &vertexFactory->getType() : VertexFactoryType::DefaultType , &shaderClass };
+		auto iter = mShaderMap.find(key);
+		if( iter == mShaderMap.end() )
 			return nullptr;
 
-		return &itFind->second->shaders[(int)shaderUsage];
+		return iter->second;
 	}
 
-	void MaterialShaderMap::releaseRHI()
+
+	void MaterialShaderMap::cleanup()
 	{
-		for( auto& pair : mShaderCacheMap )
+		for( auto& pair : mShaderMap )
 		{
-			ShaderCache* shaderCache = pair.second;
-			for( int i = 0; i < (int)RenderTechiqueUsage::Count; ++i )
-			{
-				shaderCache->shaders[i].release();
-			}
+			pair.second->release();
+			delete pair.second;
 		}
+		mShaderMap.clear();
 	}
 
 	std::string MaterialShaderMap::GetFilePath(char const* name)
@@ -197,54 +190,26 @@ namespace RenderGL
 		return path;
 	}
 
+
 	bool MaterialShaderMap::load(char const* name)
 	{
-		std::string path = GetFilePath(name);
+		cleanup();
 
-		std::vector< char > materialCode;
-		if( !FileUtility::LoadToBuffer(path.c_str(), materialCode, true) )
-			return false;
-
-		for( auto VFType : VertexFarcoryType::TypeList )
+		for( auto pVertexFactoryType : VertexFactoryType::TypeList )
 		{
-			ShaderCache* shaderCache = new ShaderCache;
+			MaterialShaderPairVec shaderPairs;
+			int numShader = ShaderManager::Get().loadMaterialShaders(name, *pVertexFactoryType, shaderPairs);
 
-			ShaderCompileOption option;
-			option.version = 430;
-			VFType->getCompileOption(option);
-
-			if( !ShaderManager::Get().loadFile(
-				shaderCache->shaders[(int)RenderTechiqueUsage::BasePass],
-				"Shader/DeferredBasePass",
-				SHADER_ENTRY(BassPassVS), SHADER_ENTRY(BasePassPS),
-				option , &materialCode[0]) )
+			if( numShader == 0 )
 				return false;
 
-			if( !ShaderManager::Get().loadFile(
-				shaderCache->shaders[(int)RenderTechiqueUsage::Shadow],
-				"Shader/ShadowDepthRender",
-				SHADER_ENTRY(MainVS), SHADER_ENTRY(MainPS), 
-				option , &materialCode[0]) )
-				return false;
-
-#if 1
-			option.version = 430;
-			option.addDefine(SHADER_PARAM(OIT_USE_MATERIAL) , true);
-			option.addDefine(SHADER_PARAM(OIT_STORAGE_SIZE), OIT_StorageSize);
-
-			if( !ShaderManager::Get().loadFile(
-				shaderCache->shaders[(int)RenderTechiqueUsage::OIT],
-				"Shader/OITRender",
-				SHADER_ENTRY(BassPassVS), SHADER_ENTRY(BassPassPS),
-				option, &materialCode[0]) )
-				return false;
-#endif
-
-			mShaderCacheMap.insert({ VFType , shaderCache });
+			for( auto pair : shaderPairs )
+			{
+				mShaderMap.emplace( MaterialShaderKey( pVertexFactoryType , pair.first ) , pair.second);
+			}
 		}
 
 		return true;
 	}
-
 }//namespace RenderGL
 

@@ -38,10 +38,10 @@ namespace RenderGL
 
 	bool GDIFontCharDataProvider::initialize(HDC hDC , char const* faceName, int size, bool bBold /*= true*/, bool bUnderLine /*= false*/)
 	{
-		int height = (int)(fabs((float)10 * size *GetDeviceCaps(hDC, LOGPIXELSY) / 72) / 10.0 + 0.5);
+		int fontHeight = MulDiv(size, GetDeviceCaps(hDC, LOGPIXELSY), 72);
 
 		hFont = ::CreateFontA(
-			-height,				        // Height Of Font
+			-fontHeight,				        // Height Of Font
 			0,								// Width Of Font
 			0,								// Angle Of Escapement
 			0,								// Orientation Angle
@@ -59,29 +59,22 @@ namespace RenderGL
 		if( hFont == NULL )
 			return false;
 
-		static HDC tempDC = NULL;
-		if( tempDC == NULL )
-		{
-			tempDC = ::CreateCompatibleDC(NULL);
-		}
-
 		TEXTMETRIC tm;
-		HGDIOBJ hOldFont = ::SelectObject(tempDC, hFont);
-		::GetTextMetrics(tempDC, &tm);
-		::SelectObject(tempDC, hOldFont);
-
+		HGDIOBJ hOldFont = ::SelectObject(hDC, hFont);
+		::GetTextMetrics(hDC, &tm);
+		::SelectObject(hDC, hOldFont);
 
 		BITMAPINFO& bmpInfo = *(BITMAPINFO*)(alloca(sizeof(BITMAPINFOHEADER) + sizeof(RGBQUAD) * 0));
 		bmpInfo.bmiHeader.biSize = sizeof(bmpInfo.bmiHeader);
-		bmpInfo.bmiHeader.biWidth = 2 * size;
-		bmpInfo.bmiHeader.biHeight = -tm.tmHeight;
+		bmpInfo.bmiHeader.biWidth = tm.tmMaxCharWidth;
+		bmpInfo.bmiHeader.biHeight = -fontHeight;
 		bmpInfo.bmiHeader.biPlanes = 1;
 		bmpInfo.bmiHeader.biBitCount = 32;
 		bmpInfo.bmiHeader.biCompression = BI_RGB;
 		bmpInfo.bmiHeader.biXPelsPerMeter = 0;
 		bmpInfo.bmiHeader.biYPelsPerMeter = 0;
 		bmpInfo.bmiHeader.biSizeImage = 0;
-		if( !textureDC.initialize(NULL, &bmpInfo, (void**)&pDataTexture) )
+		if( !textureDC.initialize(hDC, &bmpInfo, (void**)&pDataTexture) )
 			return false;
 
 

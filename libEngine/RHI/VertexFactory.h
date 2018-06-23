@@ -9,14 +9,14 @@ namespace RenderGL
 	class ShaderCompileOption;
 	class VertexFactoryShaderData;
 
-	class VertexFarcoryType
+	class VertexFactoryType
 	{
 	public:
 
 		typedef VertexFactoryShaderData* (*CreateShaderDataFun)();
 		typedef void (*ModifyCompilationOptionFun)(ShaderCompileOption& opation);
 
-		VertexFarcoryType(char const* inFileName , ModifyCompilationOptionFun MCO );
+		VertexFactoryType(char const* inFileName , ModifyCompilationOptionFun MCO );
 		
 		char const* fileName;
 		ModifyCompilationOptionFun ModifyCompilationOption;
@@ -28,8 +28,8 @@ namespace RenderGL
 
 		}
 		
-		static VertexFarcoryType* DefaultType;
-		static std::vector< VertexFarcoryType* > TypeList;
+		CORE_API static VertexFactoryType* DefaultType;
+		CORE_API static std::vector< VertexFactoryType* > TypeList;
 	};
 
 	class VertexFactoryShaderData
@@ -40,7 +40,7 @@ namespace RenderGL
 	class VertexFactory
 	{
 	public:
-		virtual VertexFarcoryType& getType() = 0;
+		virtual VertexFactoryType& getType() = 0;
 		VertexDecl*  vertexDecl;
 		static VertexFactoryShaderData* CreateShaderData() { return nullptr; }
 		static void ModifyCompilationOption(ShaderCompileOption& option){}
@@ -48,11 +48,12 @@ namespace RenderGL
 
 #define DECL_VERTEX_FACTORY_TYPE( CLASS )\
 	friend class VertexFarcoryType;\
-	static VertexFarcoryType StaticType;\
-	virtual VertexFarcoryType& getType() override { return StaticType; }
+	public:\
+		static VertexFactoryType StaticType;\
+		virtual VertexFactoryType& getType() override { return StaticType; }
 
 #define IMPL_VERTEX_FACTORY_TYPE( CLASS , FILE_NAME )\
-	VertexFarcoryType CLASS::StaticType( FILE_NAME , &CLASS::ModifyCompilationOption);\
+	VertexFactoryType CLASS::StaticType( FILE_NAME , &CLASS::ModifyCompilationOption);\
 
 	class LocalVertexFactory : public VertexFactory
 	{

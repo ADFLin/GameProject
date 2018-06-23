@@ -123,49 +123,38 @@ namespace RenderGL
 		mNeedLink = true;
 	}
 
+	
 	bool ShaderProgram::updateShader(bool bForce)
 	{
 		if( mNeedLink || bForce )
 		{
+			GLchar buffer[4096 * 32];
+
 			glLinkProgram(mHandle);
 
 			GLint value;
 			glGetProgramiv(mHandle, GL_LINK_STATUS, &value);
 			if( value != GL_TRUE )
 			{
+				GLsizei size;
+				glGetProgramInfoLog(mHandle, ARRAY_SIZE(buffer), &size, buffer);
+				LogMsg("Can't Link Program : %s", buffer);
 				return false;
 			}
+
 			glValidateProgram(mHandle);
-			checkProgramStatus();
+			glGetProgramiv(mHandle, GL_VALIDATE_STATUS, &value);
+			if( value != GL_TRUE )
+			{
+				GLsizei size;
+				glGetProgramInfoLog(mHandle, ARRAY_SIZE(buffer), &size, buffer);
+				LogMsg("Can't Link Program : %s", buffer);
+			}
 			mNeedLink = false;
 		}
 
 		bindParameters();
 		return true;
-	}
-
-	void ShaderProgram::checkProgramStatus()
-	{
-		GLint value;
-		glGetProgramiv(mHandle, GL_LINK_STATUS, &value);
-		if( value != GL_TRUE )
-		{
-			GLchar buffer[40960];
-			GLsizei size;
-			glGetProgramInfoLog(mHandle, ARRAY_SIZE(buffer), &size, buffer);
-			LogMsg("Can't Link Program : %s", buffer);
-			int i = 1;
-		}
-
-		glGetProgramiv(mHandle, GL_VALIDATE_STATUS, &value);
-		if( value != GL_TRUE )
-		{
-			GLchar buffer[40960];
-			GLsizei size;
-			glGetProgramInfoLog(mHandle, ARRAY_SIZE(buffer), &size, buffer);
-			LogMsg("Can't Link Program : %s", buffer);
-			int i = 1;
-		}
 	}
 
 	void ShaderProgram::bind()

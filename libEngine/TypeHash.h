@@ -4,34 +4,38 @@
 
 #include "Core/IntegerType.h"
 
-namespace Type
+inline uint32 HashValue(char const* str)
 {
-	inline uint32 Hash(char const* str)
+	int32 hash = 5381;
+	int c;
+
+	while( c = *str++ )
 	{
-		int32 hash = 5381;
-		int c;
-
-		while( c = *str++ )
-		{
-			hash = ((hash << 5) + hash) + c; /* hash * 33 + c */
-		}
-		return hash;
+		hash = ((hash << 5) + hash) + c; /* hash * 33 + c */
 	}
-
-	inline uint32 Hash(char const* str , int num )
-	{
-		uint32 hash = 5381;
-
-		while( num )
-		{
-			uint32 c = (uint32)*str++;
-			hash = ((hash << 5) + hash) + c; /* hash * 33 + c */
-			--num;
-		}
-		return hash;
-	}
-
+	return hash;
 }
+
+inline uint32 HashValue(char const* str, int num)
+{
+	uint32 hash = 5381;
+
+	while( num )
+	{
+		uint32 c = (uint32)*str++;
+		hash = ((hash << 5) + hash) + c; /* hash * 33 + c */
+		--num;
+	}
+	return hash;
+}
+
+template< class T >
+inline uint32 HashValue(T const& v)
+{
+	std::hash<T> hasher;
+	return hasher(v);
+}
+
 
 struct MemberFunHasher
 {

@@ -337,6 +337,9 @@
     <ClCompile Include="Hardware\GPUDeviceQuery.cpp">
       <Filter>Hardware</Filter>
     </ClCompile>
+    <ClCompile Include="RHI\MaterialShader.cpp">
+      <Filter>RHI</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ConsoleSystem.h">
@@ -878,6 +881,12 @@
     </ClInclude>
     <ClInclude Include="Platform\Windows\ComUtility.h">
       <Filter>Platform\Windows</Filter>
+    </ClInclude>
+    <ClInclude Include="RHI\MaterialShader.h">
+      <Filter>RHI</Filter>
+    </ClInclude>
+    <ClInclude Include="RHI\GlobalShader.h">
+      <Filter>RHI</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

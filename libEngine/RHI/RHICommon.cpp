@@ -64,7 +64,7 @@ namespace RenderGL
 
 		ShaderCompileOption option;
 		option.version = 430;
-		VertexFarcoryType::DefaultType->getCompileOption(option);
+		VertexFactoryType::DefaultType->getCompileOption(option);
 
 		if( !ShaderManager::Get().loadFile( 
 			GSimpleBasePass ,
@@ -235,10 +235,10 @@ namespace RenderGL
 		ShaderParameter mParamValueFactor;
 	};
 
-	IMPLEMENT_GLOBAL_SHADER(CopyTextureProgram)
-	IMPLEMENT_GLOBAL_SHADER(CopyTextureMaskProgram)
-	IMPLEMENT_GLOBAL_SHADER(CopyTextureBiasProgram)
-	IMPLEMENT_GLOBAL_SHADER(MappingTextureColorProgram)
+	IMPLEMENT_GLOBAL_SHADER(CopyTextureProgram);
+	IMPLEMENT_GLOBAL_SHADER(CopyTextureMaskProgram);
+	IMPLEMENT_GLOBAL_SHADER(CopyTextureBiasProgram);
+	IMPLEMENT_GLOBAL_SHADER(MappingTextureColorProgram);
 
 	bool ShaderHelper::init()
 	{

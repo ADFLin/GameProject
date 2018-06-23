@@ -189,9 +189,12 @@ bool WChoiceT<Impl, CoreImpl>::onMouseMsg( MouseMsg const& msg )
 template < class Impl, class CoreImpl >
 void WChoiceT<Impl, CoreImpl>::destroyMenu()
 {
-	mMenu->destroy();
-	mMenu = nullptr;
-	unmarkDeferredDestroy();
+	if ( mMenu )
+	{
+		mMenu->destroy();
+		mMenu = nullptr;
+		unmarkDeferredDestroy();
+	}
 }
 
 template < class Impl, class CoreImpl >

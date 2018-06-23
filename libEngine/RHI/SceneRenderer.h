@@ -164,17 +164,7 @@ namespace RenderGL
 			}
 		}
 
-		virtual MaterialShaderProgram* getMaterialShader(RenderContext& context,  MaterialMaster& material , VertexFactory* vertexFactory ) override
-		{
-#if USE_MATERIAL_SHADOW
-			if( mEffectCur == &mProgLighting )
-				return nullptr;
-			return material.getShader(RenderTechiqueUsage::Shadow, vertexFactory);
-
-#else
-			return nullptr;
-#endif
-		}
+		virtual MaterialShaderProgram* getMaterialShader(RenderContext& context,  MaterialMaster& material , VertexFactory* vertexFactory ) override;
 
 		virtual void setupMaterialShader(RenderContext& context, ShaderProgram& shader) override
 		{
@@ -297,19 +287,6 @@ namespace RenderGL
 		NumLightBoundMethod,
 	};
 
-	class DefferredLightingProgram : public ShaderProgram
-	{
-	public:
-		void bindParameters()
-		{
-			mParamGBuffer.bindParameters(*this , true);
-		}
-		void setParamters(SceneRenderTargets& sceneRenderTargets)
-		{
-			mParamGBuffer.setParameters(*this, sceneRenderTargets);
-		}
-		GBufferShaderParameters mParamGBuffer;
-	};
 
 	struct TitledLightInfo
 	{
@@ -362,7 +339,7 @@ namespace RenderGL
 		class LightScatteringProgram* mProgLightScattering;
 	};
 
-	class DefferredShadingTech : public RenderTechnique
+	class DeferredShadingTech : public RenderTechnique
 	{
 	public:
 
@@ -388,21 +365,16 @@ namespace RenderGL
 
 		FrameBuffer   mBassPassBuffer;
 		FrameBuffer   mLightBuffer;
-		DefferredLightingProgram mProgLightingScreenRect[3];
-		DefferredLightingProgram mProgLighting[3];
-		DefferredLightingProgram mProgLightingShowBound;
+		class DeferredLightingProgram* mProgLightingScreenRect[3];
+		class DeferredLightingProgram* mProgLighting[3];
+		class DeferredLightingProgram* mProgLightingShowBound;
 
 		SceneRenderTargets* mSceneRenderTargets;
 
 		Mesh mSphereMesh;
 		Mesh mConeMesh;
 
-		virtual MaterialShaderProgram* getMaterialShader(RenderContext& context, MaterialMaster& material , VertexFactory* vertexFactory)
-		{
-			//return &GSimpleBasePass;
-
-			return material.getShader(RenderTechiqueUsage::BasePass, vertexFactory);
-		}
+		virtual MaterialShaderProgram* getMaterialShader(RenderContext& context, MaterialMaster& material , VertexFactory* vertexFactory);
 
 		void reload();
 	};

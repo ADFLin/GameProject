@@ -1,9 +1,13 @@
 #include "ShaderCompiler.h"
 
-#include "FileSystem.h"
+#include "MaterialShader.h"
+#include "GlobalShader.h"
+#include "VertexFactory.h"
 
+#include "FileSystem.h"
 #include "CPreprocessor.h"
 #include "BitUtility.h"
+
 
 #include <fstream>
 #include <sstream>
@@ -58,6 +62,44 @@ namespace RenderGL
 		cleanupGlobalShader();
 	}
 
+
+	//TODO: Remove
+	std::string GetFilePath(char const* name)
+	{
+		std::string path("Shader/Material/");
+		path += name;
+		path += SHADER_FILE_SUBNAME;
+		return path;
+	}
+
+	int ShaderManager::loadMaterialShaders(
+		char const* fileName , VertexFactoryType& vertexFactoryType,
+		MaterialShaderPairVec& outShaders )
+	{
+		std::string path = GetFilePath(fileName);
+		std::vector< char > materialCode;
+		if( !FileUtility::LoadToBuffer(path.c_str(), materialCode, true) )
+			return 0;
+
+		int result = 0;
+		for( auto pShaderClass : MaterialShaderProgramClass::ClassList )
+		{
+			ShaderCompileOption option;
+			option.version = 430;
+			option.addCode(&materialCode[0]);
+			vertexFactoryType.getCompileOption(option);
+			MaterialShaderProgram* shaderProgram = (MaterialShaderProgram*)constructGlobalShaderInternal(*pShaderClass, ShaderClassType::Material, option );
+
+			if( shaderProgram )
+			{
+				outShaders.push_back({ pShaderClass , shaderProgram });
+				++result;
+			}
+		}
+
+		return result;
+	}
+
 	GlobalShaderProgram* ShaderManager::getGlobalShader(GlobalShaderProgramClass& shaderClass, bool bForceLoad)
 	{
 		GlobalShaderProgram* result = mGlobalShaderMap[&shaderClass];
@@ -100,13 +142,22 @@ namespace RenderGL
 
 	GlobalShaderProgram* ShaderManager::constructGlobalShader(GlobalShaderProgramClass& shaderClass)
 	{
+		ShaderCompileOption option;
+		option.version = mDefaultVersion;
+		return constructGlobalShaderInternal(shaderClass, ShaderClassType::Global, option);
+	}
+
+	GlobalShaderProgram* ShaderManager::constructGlobalShaderInternal(GlobalShaderProgramClass& shaderClass , ShaderClassType classType , ShaderCompileOption& option )
+	{
 		GlobalShaderProgram* result = (*shaderClass.funCreateShader)();
 		if( result )
 		{
 			result->myClass = &shaderClass;
-
-			ShaderCompileOption option;
-			option.version = mDefaultVersion;
+			if( option.version == 0 )
+			{
+				option.version = mDefaultVersion;
+			}
+			
 			(*shaderClass.funSetupShaderCompileOption)(option);
 
 			if( !loadInternal(*result, (*shaderClass.funGetShaderFileName)(), (*shaderClass.funGetShaderEntries)(), option, nullptr, true) )
@@ -117,7 +168,14 @@ namespace RenderGL
 				result = nullptr;
 			}
 
-			mShaderCompileMap[result]->bGlobalShader = true;
+			if( classType == ShaderClassType::Material )
+			{
+				removeFromShaderCompileMap(*result);
+			}
+			else
+			{
+				mShaderCompileMap[result]->classType = classType;
+			}			
 		}
 		else
 		{
@@ -199,11 +257,14 @@ namespace RenderGL
 
 	bool ShaderManager::loadInternal(ShaderProgram& shaderProgram, char const* fileName, ShaderEntryInfo const entries[] , ShaderCompileOption const& option, char const* additionalCode, bool bSingle)
 	{
+		removeFromShaderCompileMap(shaderProgram);
+
 		ShaderProgramCompileInfo* info = new ShaderProgramCompileInfo;
 
 		info->shaderProgram = &shaderProgram;
 		info->bSingleFile = bSingle;
 		info->fileName = fileName;
+		info->bShowComplieInfo = option.bShowComplieInfo;
 
 		generateCompileSetup(*info, entries, option, additionalCode);
 
@@ -226,6 +287,8 @@ namespace RenderGL
 
 	bool ShaderManager::loadInternal(ShaderProgram& shaderProgram, char const* fileName, ShaderEntryInfo const entries[], char const* def, char const* additionalCode, bool bSingle)
 	{
+		removeFromShaderCompileMap(shaderProgram);
+
 		ShaderProgramCompileInfo* info = new ShaderProgramCompileInfo;
 
 		info->shaderProgram = &shaderProgram;
@@ -293,7 +356,7 @@ namespace RenderGL
 			return false;
 
 		ShaderProgramCompileInfo* info = iter->second;
-		if( info->bGlobalShader )
+		if( info->classType == ShaderClassType::Global )
 		{
 			ShaderCompileOption option;
 			option.version = mDefaultVersion;
@@ -352,10 +415,18 @@ namespace RenderGL
 				if( !mCompiler.compileCode(shaderInfo.type, *shader, path, shaderInfo.headCode.c_str()) )
 					return false;
 			}
+
+			if( info.bShowComplieInfo )
+			{
+
+			}
 			++indexCode;
 		}
-		shaderProgram.updateShader(true);
 
+		if( !shaderProgram.updateShader(true) )
+		{
+
+		}
 		return true;
 	}
 
@@ -530,9 +601,17 @@ namespace RenderGL
 			result += "\n";
 		}
 
+		result += "#include \"Common" SHADER_FILE_SUBNAME "\"\n" ;
+
 		if( addionalCode )
 		{
 			result += addionalCode;
+			result += '\n';
+		}
+
+		for( auto const& code : mCodes )
+		{
+			result += code;
 			result += '\n';
 		}
 
@@ -542,12 +621,6 @@ namespace RenderGL
 			result += name;
 			result += SHADER_FILE_SUBNAME;
 			result += "\"\n";
-		}
-
-		for( auto code : mCodes )
-		{
-			result += code;
-			result += '\n';
 		}
 
 		return result;

@@ -607,6 +607,12 @@ namespace RenderGL
 
 	};
 
+	struct Portal
+	{
+		Matrix4 transform;
+		Vector2 size;
+	};
+
 
 	class SampleStage : public StageBase
 		              , public SceneInterface
@@ -647,6 +653,7 @@ namespace RenderGL
 		void render_Sprite( ViewInfo& view );
 		void render_OIT( ViewInfo& view );
 		void render_Terrain( ViewInfo& view );
+		void render_Portal(ViewInfo& view);
 
 		void renderScene(RenderContext& param);
 
@@ -796,7 +803,7 @@ namespace RenderGL
 		typedef std::unique_ptr< SceneAsset > SceneAssetPtr;
 		std::vector< SceneAssetPtr > mSceneAssets;
 		Scene& getScene(int idx = 0) { return mSceneAssets[idx]->scene; }
-		Scene& addScene(char const* name)
+		Scene& addScene(char const* name = nullptr )
 		{
 			auto sceneAsset = std::make_unique< SceneAsset >();
 			sceneAsset->scene.mListener = this;
@@ -806,11 +813,12 @@ namespace RenderGL
 				scene.addObject(debugObject);
 				mDebugGeometryObject = debugObject;
 			};
-			sceneAsset->load(name);
+			if( name )
+			{
+				sceneAsset->load(name);
+				mAssetManager.registerAsset(mSceneAssets.back().get());
+			}	
 			mSceneAssets.push_back(std::move(sceneAsset));
-
-			mAssetManager.registerAsset(mSceneAssets.back().get());
-
 			return mSceneAssets.back()->scene;
 		}
 		Scene mScene;
@@ -863,7 +871,7 @@ namespace RenderGL
 
 		SceneRenderTargets    mSceneRenderTargets;
 		
-		DefferredShadingTech   mTechDefferredShading;
+		DeferredShadingTech    mTechDeferredShading;
 		ShadowDepthTech        mTechShadow;
 		OITTechnique           mTechOIT;
 		VolumetricLightingTech mTechVolumetricLighing;

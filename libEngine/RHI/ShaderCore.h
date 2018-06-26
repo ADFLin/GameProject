@@ -6,14 +6,20 @@
 
 namespace RenderGL
 {
-	class RHIShader : public TRHIResource< RMPShader >
+
+	struct RMPShader
+	{
+		static void Create(GLuint& handle, GLenum type) { handle = glCreateShader(type); }
+		static void Destroy(GLuint& handle) { glDeleteShader(handle); }
+	};
+
+	class RHIShader : public TOpenGLResource< RHIResource , RMPShader >
 	{
 	public:
 		bool loadFile(Shader::Type type, char const* path, char const* def = NULL);
 		Shader::Type getType();
 		bool compileCode(Shader::Type type, char const* src[], int num);
 		bool create(Shader::Type type);
-		void destroy();
 
 		GLuint getGLParam(GLuint val);
 		friend class ShaderProgram;
@@ -91,7 +97,14 @@ namespace RenderGL
 		StructuredBuffertInfo* mStruct = nullptr;
 	};
 
-	class ShaderProgram : public TGLObjectBase< RMPShaderProgram >
+
+	struct RMPShaderProgram
+	{
+		static void Create(GLuint& handle) { handle = glCreateProgram(); }
+		static void Destroy(GLuint& handle) { glDeleteProgram(handle); }
+	};
+
+	class ShaderProgram : public TOpenGLObject< RMPShaderProgram >
 	{
 	public:
 		ShaderProgram();
@@ -192,31 +205,31 @@ namespace RenderGL
 		void setParam(char const* name, Vector3 const v[], int num) { setVector3(name, (float*)&v[0], num); }
 		void setParam(char const* name, Vector4 const v[], int num) { setVector4(name, (float*)&v[0], num); }
 
-		template < GLenum TypeName >
-		void setRWTexture(char const* name, TRHITextureBase< TypeName >& tex, EAccessOperator op = AO_READ_AND_WRITE, int idx = -1)
+		template < class RHITextureType >
+		void setRWTexture(char const* name, RHITextureType& tex, EAccessOperator op = AO_READ_AND_WRITE, int idx = -1)
 		{
 			int loc = getParamLoc(name);
 			if( loc == -1 )
 				return;
-			setRWTextureInternal(loc, tex.getFormat(), tex.mHandle, op, idx);
+			setRWTextureInternal(loc, tex.getFormat(), OpenGLCast::GetHandle(tex), op, idx);
 		}
 		
-		template < GLenum TypeName >
-		void setTexture(char const* name, TRHITextureBase< TypeName >& tex, RHISamplerState& sampler, int idx = -1)
+		template < class RHITextureType >
+		void setTexture(char const* name, RHITextureType& tex, RHISamplerState& sampler, int idx = -1)
 		{
 			int loc = getParamLoc(name);
 			if( loc == -1 )
 				return;
-			return setTextureInternal(loc, TypeName, tex.mHandle, sampler.mHandle, idx);
+			return setTextureInternal(loc, OpenGLTextureTraits< RHITextureType >::EnumValue , OpenGLCast::GetHandle(tex), OpenGLCast::GetHandle(sampler), idx);
 		}
 
-		template < GLenum TypeName >
-		void setTexture(char const* name, TRHITextureBase< TypeName >& tex, int idx = -1)
+		template < class RHITextureType >
+		void setTexture(char const* name, RHITextureType& tex, int idx = -1)
 		{
 			int loc = getParamLoc(name);
 			if( loc == -1 )
 				return;
-			return setTextureInternal(loc, TypeName, tex.mHandle, idx);
+			return setTextureInternal(loc, OpenGLTextureTraits< RHITextureType >::EnumValue, OpenGLCast::GetHandle(tex), idx);
 		}
 
 
@@ -246,21 +259,22 @@ namespace RenderGL
 		void setParam(ShaderParameter const& param, Vector3 const v[], int num) { CHECK_PARAMETER(param, setVector3(param.mLoc, (float*)&v[0], num)); }
 		void setParam(ShaderParameter const& param, Vector4 const v[], int num) { CHECK_PARAMETER(param, setVector4(param.mLoc, (float*)&v[0], num)); }
 
-		template < GLenum TypeName >
-		void setRWTexture(ShaderParameter const& param, TRHITextureBase< TypeName >& tex, EAccessOperator op = AO_READ_AND_WRITE, int idx = -1)
+		template < class RHITextureType >
+		void setRWTexture(ShaderParameter const& param, RHITextureType& tex, EAccessOperator op = AO_READ_AND_WRITE, int idx = -1)
 		{
-			CHECK_PARAMETER(param, setRWTextureInternal(param.mLoc, tex.getFormat(), tex.mHandle, op, idx));
+			CHECK_PARAMETER(param, setRWTextureInternal(param.mLoc, tex.getFormat(), OpenGLCast::GetHandle(tex), op, idx));
 		}
 
-		template < GLenum TypeName >
-		void setTexture(ShaderParameter const& param, TRHITextureBase< TypeName >& tex, int idx = -1)
+		template < class RHITextureType >
+		void setTexture(ShaderParameter const& param, RHITextureType& tex, int idx = -1)
 		{
-			CHECK_PARAMETER(param, setTextureInternal(param.mLoc, TypeName, tex.mHandle, idx));
+			CHECK_PARAMETER(param, setTextureInternal(param.mLoc, OpenGLTextureTraits< RHITextureType >::EnumValue, OpenGLCast::GetHandle(tex), idx));
 		}
-		template < GLenum TypeName >
-		void setTexture(ShaderParameter const& param, TRHITextureBase< TypeName >& tex, RHISamplerState& sampler, int idx = -1)
+
+		template < class RHITextureType >
+		void setTexture(ShaderParameter const& param, RHITextureType& tex, RHISamplerState& sampler, int idx = -1)
 		{
-			CHECK_PARAMETER(param, setTextureInternal(param.mLoc, TypeName, tex.mHandle, sampler.mHandle, idx));
+			CHECK_PARAMETER(param, setTextureInternal(param.mLoc, OpenGLTextureTraits< RHITextureType >::EnumValue, OpenGLCast::GetHandle(tex), OpenGLCast::GetHandle(sampler), idx));
 		}
 
 		void setBuffer(ShaderBufferParameter const& param, RHIUniformBuffer& buffer);
@@ -293,23 +307,23 @@ namespace RenderGL
 
 		void setRWTexture(int loc, RHITexture2D& tex, EAccessOperator op = AO_READ_AND_WRITE, int idx = -1)
 		{
-			setRWTextureInternal(loc, tex.getFormat(), tex.mHandle, op, idx);
+			setRWTextureInternal(loc, tex.getFormat(), OpenGLCast::GetHandle(tex) , op, idx);
 		}
 		void setTexture(int loc, RHITexture2D& tex, int idx = -1)
 		{
-			setTextureInternal(loc, GL_TEXTURE_2D, tex.mHandle, idx);
+			setTextureInternal(loc, GL_TEXTURE_2D, OpenGLCast::GetHandle(tex), idx);
 		}
 		void setTexture(int loc, RHITextureDepth& tex, int idx = -1)
 		{
-			setTextureInternal(loc, GL_TEXTURE_2D, tex.mHandle, idx);
+			setTextureInternal(loc, GL_TEXTURE_2D, OpenGLCast::GetHandle(tex), idx);
 		}
 		void setTexture(int loc, RHITextureCube& tex, int idx = -1)
 		{
-			setTextureInternal(loc, GL_TEXTURE_CUBE_MAP, tex.mHandle, idx);
+			setTextureInternal(loc, GL_TEXTURE_CUBE_MAP, OpenGLCast::GetHandle(tex), idx);
 		}
 		void setTexture(int loc, RHITexture3D& tex, int idx = -1)
 		{
-			setTextureInternal(loc, GL_TEXTURE_3D, tex.mHandle, idx);
+			setTextureInternal(loc, GL_TEXTURE_3D, OpenGLCast::GetHandle(tex), idx);
 		}
 
 

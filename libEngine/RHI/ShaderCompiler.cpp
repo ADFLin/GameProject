@@ -88,7 +88,7 @@ namespace RenderGL
 			option.version = 430;
 			option.addCode(&materialCode[0]);
 			vertexFactoryType.getCompileOption(option);
-			MaterialShaderProgram* shaderProgram = (MaterialShaderProgram*)constructGlobalShaderInternal(*pShaderClass, ShaderClassType::Material, option );
+			MaterialShaderProgram* shaderProgram = (MaterialShaderProgram*)constructShaderInternal(*pShaderClass, ShaderClassType::Material, option );
 
 			if( shaderProgram )
 			{
@@ -144,10 +144,10 @@ namespace RenderGL
 	{
 		ShaderCompileOption option;
 		option.version = mDefaultVersion;
-		return constructGlobalShaderInternal(shaderClass, ShaderClassType::Global, option);
+		return constructShaderInternal(shaderClass, ShaderClassType::Global, option);
 	}
 
-	GlobalShaderProgram* ShaderManager::constructGlobalShaderInternal(GlobalShaderProgramClass& shaderClass , ShaderClassType classType , ShaderCompileOption& option )
+	GlobalShaderProgram* ShaderManager::constructShaderInternal(GlobalShaderProgramClass& shaderClass , ShaderClassType classType , ShaderCompileOption& option )
 	{
 		GlobalShaderProgram* result = (*shaderClass.funCreateShader)();
 		if( result )
@@ -534,10 +534,10 @@ namespace RenderGL
 				}
 
 				int maxLength;
-				glGetShaderiv(shader.mHandle, GL_INFO_LOG_LENGTH, &maxLength);
+				glGetShaderiv( OpenGLCast::GetHandle( shader ), GL_INFO_LOG_LENGTH, &maxLength);
 				std::vector< char > buf(maxLength);
 				int logLength = 0;
-				glGetShaderInfoLog(shader.mHandle, maxLength, &logLength, &buf[0]);
+				glGetShaderInfoLog( OpenGLCast::GetHandle(shader ), maxLength, &logLength, &buf[0]);
 				::MessageBoxA(NULL, &buf[0], "Shader Compile Error", 0);
 			}
 

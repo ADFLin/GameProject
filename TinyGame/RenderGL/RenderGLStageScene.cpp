@@ -76,8 +76,7 @@ namespace RenderGL
 					mat = new MaterialInstance(getMaterial(MaterialId::Lightning));
 					FixString< 256 > path = textureDir;
 					path += noramlTexture;
-					RHITexture2DRef tex = RHICreateTexture2D();
-					tex->loadFromFile(path);
+					RHITexture2DRef tex = RHIUtility::LoadTexture2DFromFile(path);
 					mat->setParameter(SHADER_PARAM(TextureB), *tex);
 				}
 				else
@@ -89,8 +88,7 @@ namespace RenderGL
 				{
 					FixString< 256 > path = textureDir;
 					path += matInfo->diffuseTextureName;
-					RHITexture2DRef tex = RHICreateTexture2D();
-					tex->loadFromFile(path);
+					RHITexture2DRef tex = RHIUtility::LoadTexture2DFromFile(path);
 					mat->setParameter(SHADER_PARAM(TextureBase), *tex);
 				}
 				return mat;
@@ -312,8 +310,11 @@ namespace RenderGL
 		{
 			Material* material = getMaterial(MaterialId::Mario);
 			auto shader = context.setMaterial(material);
-			shader->setTexture(SHADER_PARAM(TextureD), getTexture(TextureId::MarioD).getRHI());
-			shader->setTexture(SHADER_PARAM(TextureS), getTexture(TextureId::MarioS).getRHI());
+			if  (shader )
+			{
+				shader->setTexture(SHADER_PARAM(TextureD), getTexture(TextureId::MarioD).getRHI());
+				shader->setTexture(SHADER_PARAM(TextureS), getTexture(TextureId::MarioS).getRHI());
+			}
 			Mesh& mesh = getMesh(MeshId::Mario);
 			matWorld = Matrix4::Translate(Vector3(8, -8, 0));
 			context.setWorld(matWorld);
@@ -379,7 +380,10 @@ namespace RenderGL
 		{
 			Material* material = getMaterial(MaterialId::MetelA);
 			auto shader = context.setMaterial(material);
-			shader->setTexture(SHADER_PARAM(BaseTexture), getTexture(TextureId::Metel).getRHI());
+			if( shader )
+			{
+				shader->setTexture(SHADER_PARAM(BaseTexture), getTexture(TextureId::Metel).getRHI());
+			}
 			Mesh& mesh = getMesh(MeshId::Dragon);
 			matWorld = Matrix4::Rotate(Vector3(0, 0, 1), Math::Deg2Rad(45 + 180)) * Matrix4::Translate(Vector3(20, 0, 4));
 			context.setWorld(matWorld);
@@ -390,14 +394,17 @@ namespace RenderGL
 		{
 			Material* material = getMaterial(MaterialId::POMTitle);
 			auto shader = context.setMaterial(material);
-			shader->setParam(SHADER_PARAM(DispFactor), Vector3(1, 0, 0));
+			if (shader)
+			{
+				shader->setParam(SHADER_PARAM(DispFactor), Vector3(1, 0, 0));
 #if 0
-			shader->setTexture(SHADER_PARAM(BaseTexture), getTexture(TextureId::RocksD).getRHI());
-			shader->setTexture(SHADER_PARAM(NoramlTexture), getTexture(TextureId::RocksNH).getRHI());
+				shader->setTexture(SHADER_PARAM(BaseTexture), getTexture(TextureId::RocksD).getRHI());
+				shader->setTexture(SHADER_PARAM(NoramlTexture), getTexture(TextureId::RocksNH).getRHI());
 #else
-			shader->setTexture(SHADER_PARAM(BaseTexture), getTexture(TextureId::Base).getRHI());
-			shader->setTexture(SHADER_PARAM(NoramlTexture), getTexture(TextureId::Normal).getRHI());
+				shader->setTexture(SHADER_PARAM(BaseTexture), getTexture(TextureId::Base).getRHI());
+				shader->setTexture(SHADER_PARAM(NoramlTexture), getTexture(TextureId::Normal).getRHI());
 #endif
+			}
 			matWorld = Matrix4::Scale(0.5) * Matrix4::Translate(Vector3(-12, 0, 2));
 			context.setWorld(matWorld);
 			mSimpleMeshs[SimpleMeshId::Plane].draw(LinearColor(0.7, 0.7, 0.7));
@@ -408,7 +415,10 @@ namespace RenderGL
 		{
 			Material* material = getMaterial(MaterialId::MetelA);
 			auto shader = context.setMaterial(material);
-			shader->setTexture(SHADER_PARAM(BaseTexture), getTexture(TextureId::Metel).getRHI() );
+			if( shader )
+			{
+				shader->setTexture(SHADER_PARAM(BaseTexture), getTexture(TextureId::Metel).getRHI());
+			}
 			Mesh& mesh = getMesh(MeshId::Dragon2);
 			matWorld = Matrix4::Rotate(Vector3(0, 0, 1), Math::Deg2Rad(45 + 180)) * Matrix4::Translate(Vector3(6, -6, 4));
 			context.setWorld(matWorld);
@@ -439,7 +449,10 @@ namespace RenderGL
 		{
 			Material* material = getMaterial(MaterialId::Simple1);
 			auto shader = context.setMaterial(material);
-			shader->setTexture(SHADER_PARAM(BaseTexture), getTexture(TextureId::Metel).getRHI());
+			if ( shader )
+			{
+				shader->setTexture(SHADER_PARAM(BaseTexture), getTexture(TextureId::Metel).getRHI());
+			}
 			Mesh& mesh = getMesh(MeshId::Skeleton);
 			matWorld = Matrix4::Translate(Vector3(0, -10, 5));
 			context.setWorld(matWorld);
@@ -506,18 +519,21 @@ namespace RenderGL
 	
 	
 			{
-	#if 0
+#if 0
 				Material& material = getMaterial(MaterialId::POMTitle);
 				auto shader = context.setMaterial(material);
-				shader->setParam(SHADER_PARAM(DispFactor), Vector3(-1, 1, 0));
-	#if 1
-				shader->setTexture2D(SHADER_PARAM(BaseTexture), getTexture(TextureId::RocksD).getRHI());
-				shader->setTexture2D(SHADER_PARAM(NoramlTexture), getTexture(TextureId::RocksNH).getRHI());
-	#else
-				shader->setTexture2D(SHADER_PARAM(BaseTexture), getTexture(TextureId::Base).getRHI());
-				shader->setTexture2D(SHADER_PARAM(NoramlTexture), getTexture(TextureId::Normal).getRHI());
-	#endif
-	#endif
+				if ( shader )
+				{
+					shader->setParam(SHADER_PARAM(DispFactor), Vector3(-1, 1, 0));
+#if 1
+					shader->setTexture2D(SHADER_PARAM(BaseTexture), getTexture(TextureId::RocksD).getRHI());
+					shader->setTexture2D(SHADER_PARAM(NoramlTexture), getTexture(TextureId::RocksNH).getRHI());
+#else
+					shader->setTexture2D(SHADER_PARAM(BaseTexture), getTexture(TextureId::Base).getRHI());
+					shader->setTexture2D(SHADER_PARAM(NoramlTexture), getTexture(TextureId::Normal).getRHI());
+#endif
+				}
+#endif
 	
 				matWorld = Matrix4::Rotate(Vector3(0, 1, 0), Math::Deg2Rad(90)) * Matrix4::Scale(scale) * Matrix4::Translate(Vector3(-len, 0, len));
 				context.setWorld(matWorld);

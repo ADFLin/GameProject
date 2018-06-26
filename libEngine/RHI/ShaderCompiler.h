@@ -132,6 +132,12 @@ namespace RenderGL
 			return static_cast<ShaderType*>( getGlobalShader(ShaderType::GetShaderClass() , bForceLoad) );
 		}
 
+		template< class ShaderType >
+		ShaderType* loadGlobalShaderT( ShaderCompileOption& option)
+		{
+			return static_cast<ShaderType*>(constructShaderInternal(ShaderType::GetShaderClass(), ShaderClassType::Common , option ));
+		}
+
 		int loadMaterialShaders(char const* fileName  , VertexFactoryType& vertexFactoryType , MaterialShaderPairVec& outShaders );
 
 		GlobalShaderProgram* getGlobalShader(GlobalShaderProgramClass& shaderClass , bool bForceLoad );
@@ -141,7 +147,7 @@ namespace RenderGL
 		int  loadAllGlobalShaders();
 
 		GlobalShaderProgram* constructGlobalShader(GlobalShaderProgramClass& shaderClass);
-		GlobalShaderProgram* constructGlobalShaderInternal(GlobalShaderProgramClass& shaderClass, ShaderClassType classType, ShaderCompileOption& option );
+		GlobalShaderProgram* constructShaderInternal(GlobalShaderProgramClass& shaderClass, ShaderClassType classType, ShaderCompileOption& option );
 
 		void cleanupGlobalShader();
 

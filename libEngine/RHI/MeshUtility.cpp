@@ -31,16 +31,14 @@ namespace RenderGL
 
 	bool Mesh::createBuffer(void* pVertex, int nV, void* pIdx, int nIndices, bool bIntIndex)
 	{
-		mVertexBuffer = RHICreateVertexBuffer();
+		mVertexBuffer = RHICreateVertexBuffer(mDecl.getVertexSize(), nV, 0 , pVertex);
 		if( !mVertexBuffer.isValid() )
 			return false;
 
-		mVertexBuffer->resetData(mDecl.getVertexSize(), nV, pVertex);
-
 		if( nIndices )
 		{
-			mIndexBuffer = new RHIIndexBuffer;
-			if( !mIndexBuffer->create(nIndices, bIntIndex, pIdx) )
+			mIndexBuffer = RHICreateIndexBuffer(nIndices, bIntIndex, 0 , pIdx);
+			if( !mIndexBuffer.isValid() )
 				return false;
 		}
 		return true;
@@ -93,7 +91,7 @@ namespace RenderGL
 	void Mesh::drawInternal(int idxStart, int num, LinearColor const* color)
 	{
 		assert(mVertexBuffer != nullptr);
-		mVertexBuffer->bind();
+		OpenGLCast::To(mVertexBuffer)->bind();
 		mDecl.bindPointer(color);
 
 		if( mIndexBuffer )
@@ -109,7 +107,7 @@ namespace RenderGL
 		CheckGLStateValid();
 
 		mDecl.unbindPointer(color);
-		mVertexBuffer->unbind();
+		OpenGLCast::To(mVertexBuffer)->unbind();
 	}
 
 	void Mesh::drawShaderInternal(int idxStart, int num, LinearColor const* color /*= nullptr*/)
@@ -137,15 +135,15 @@ namespace RenderGL
 			glGenVertexArrays(1, &mVAO);
 			glBindVertexArray(mVAO);
 
-			mVertexBuffer->bind();
+			OpenGLCast::To( mVertexBuffer )->bind();
 			mDecl.bindAttrib(color);
 
 			if( mIndexBuffer )
-				mIndexBuffer->bind();
+				OpenGLCast::To( mIndexBuffer )->bind();
 			glBindVertexArray(0);
-			mVertexBuffer->unbind();
+			OpenGLCast::To( mVertexBuffer )->unbind();
 			if( mIndexBuffer )
-				mIndexBuffer->unbind();
+				OpenGLCast::To( mIndexBuffer )->unbind();
 
 			mDecl.unbindAttrib(color);
 		}

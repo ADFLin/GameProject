@@ -17,124 +17,7 @@
 
 namespace RenderGL
 {
-	void ViewInfo::setupTransform(Matrix4 const& inViewMatrix, Matrix4 const& inProjectMatrix)
-	{
-		worldToView = inViewMatrix;
-		float det;
-		worldToView.inverse(viewToWorld, det);
-		worldPos = TransformPosition(Vector3(0, 0, 0), viewToWorld);
-		viewToClip = inProjectMatrix;
-		worldToClip = worldToView * viewToClip;
-
-		viewToClip.inverse(clipToView, det);
-		clipToWorld = clipToView * viewToWorld;
-
-		direction = TransformVector(Vector3(0, 0, -1), viewToWorld);
-
-		updateFrustumPlanes();
-
-		mbDataDirty = true;
-	}
-
-	IntVector2 ViewInfo::getViewportSize() const
-	{
-		int values[4];
-		glGetIntegerv(GL_VIEWPORT, values);
-		return IntVector2(values[2], values[3]);
-	}
-
-	void ViewInfo::setupShader(ShaderProgram& program)
-	{
-		//ref ViewParam.sgc
-#if 1
-		struct ViewBufferData
-		{
-			DECLARE_BUFFER_STRUCT(ViewBlock);
-
-			Matrix4  worldToView;
-			Matrix4  worldToClip;
-			Matrix4  viewToWorld;
-			Matrix4  viewToClip;
-			Matrix4  clipToView;
-			Matrix4  clipToWorld;
-			Vector4  rectPosAndSizeInv;
-			Vector3 worldPos;
-			float  realTime;
-			Vector3 direction;
-			float  gameTime;
-
-		};
-
-		if( !mUniformBuffer.isValid() )
-		{
-			mUniformBuffer = RHICreateUniformBuffer(sizeof(ViewBufferData));
-		}
-
-		if ( mbDataDirty )
-		{
-			mbDataDirty = false;
-
-			void* ptr = mUniformBuffer->lock(ELockAccess::WriteOnly);
-			ViewBufferData& data = *(ViewBufferData*)ptr;
-			data.worldPos = worldPos;
-			data.direction = direction;
-			data.worldToView = worldToView;
-			data.worldToClip = worldToClip;
-			data.viewToWorld = viewToWorld;
-			data.viewToClip = viewToClip;
-			data.clipToView = clipToView;
-			data.clipToWorld = clipToWorld;
-			data.gameTime = gameTime;
-			data.realTime = realTime;
-			data.rectPosAndSizeInv.x = rectOffset.x;
-			data.rectPosAndSizeInv.y = rectOffset.y;
-			data.rectPosAndSizeInv.z = 1.0 / float(rectSize.x);
-			data.rectPosAndSizeInv.w = 1.0 / float(rectSize.y);
-			mUniformBuffer->unlock();
-		}
-
-		program.setBufferT<ViewBufferData>(*mUniformBuffer);
-
-#else
-		program.setParam(SHADER_PARAM(View.worldPos), worldPos);
-		program.setParam(SHADER_PARAM(View.direction), direction);
-		program.setParam(SHADER_PARAM(View.worldToView), worldToView);
-		program.setParam(SHADER_PARAM(View.worldToClip), worldToClip);
-		program.setParam(SHADER_PARAM(View.viewToWorld), viewToWorld);
-		program.setParam(SHADER_PARAM(View.viewToClip), viewToClip);
-		program.setParam(SHADER_PARAM(View.clipToView), clipToView);
-		program.setParam(SHADER_PARAM(View.clipToWorld), clipToWorld);
-		program.setParam(SHADER_PARAM(View.gameTime), gameTime);
-		program.setParam(SHADER_PARAM(View.realTime), realTime);
-		int values[4];
-		glGetIntegerv(GL_VIEWPORT, values);
-		Vector4 viewportParam;
-		viewportParam.x = values[0];
-		viewportParam.y = values[1];
-		viewportParam.z = 1.0 / values[2];
-		viewportParam.w = 1.0 / values[3];
-		program.setParam(SHADER_PARAM(View.viewportPosAndSizeInv), viewportParam);
-#endif
-	}
-
-	void ViewInfo::updateFrustumPlanes()
-	{
-		//#NOTE: Dependent RHI
-		Vector3 centerNearPos = (Vector4(0, 0, -1, 1) * clipToWorld).dividedVector();
-		Vector3 centerFarPos = (Vector4(0, 0, 1, 1) * clipToWorld).dividedVector();
-
-		Vector3 posRT = (Vector4(1, 1, 1, 1) * clipToWorld).dividedVector();
-		Vector3 posLB = (Vector4(-1, -1, 1, 1) * clipToWorld).dividedVector();
-		Vector3 posRB = (Vector4(1, -1, 1, 1) * clipToWorld).dividedVector();
-		Vector3 posLT = (Vector4(-1, 1, 1, 1) * clipToWorld).dividedVector();
-
-		frustumPlanes[0] = Plane(-direction, centerNearPos); //ZFar;
-		frustumPlanes[1] = Plane(direction, centerFarPos); //ZNear
-		frustumPlanes[2] = Plane(worldPos, posRT, posLT); //top
-		frustumPlanes[3] = Plane(worldPos, posLB, posRB); //bottom
-		frustumPlanes[4] = Plane(worldPos, posLT, posLB); //left
-		frustumPlanes[5] = Plane(worldPos, posRB, posRT); //right
-	}
+	int const OIT_StorageSize = 4096;
 
 	void LightInfo::setupShaderGlobalParam(ShaderProgram& shader) const
 	{
@@ -156,18 +39,18 @@ namespace RenderGL
 		if( !mShadowBuffer.create() )
 			return false;
 
-		mShadowMap = new RHITextureCube;
+		mShadowMap = RHICreateTextureCube();
 		if( !mShadowMap->create(Texture::eFloatRGBA, ShadowTextureSize, ShadowTextureSize) )
 			return false;
 
 
-		mShadowMap->bind();
+		OpenGLCast::To(mShadowMap)->bind();
 		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
-		mShadowMap->unbind();
+		OpenGLCast::To(mShadowMap)->unbind();
 
 		mShadowMap2 = RHICreateTexture2D(Texture::eFloatRGBA, ShadowTextureSize, ShadowTextureSize);
 		if( !mShadowMap2.isValid() )
@@ -180,21 +63,24 @@ namespace RenderGL
 		int sizeX = Math::Max(CascadedShadowNum * CascadeTextureSize, ShadowTextureSize);
 		int sizeY = Math::Max(CascadeTextureSize, ShadowTextureSize);
 
+#if USE_DepthRenderBuffer
 		depthBuffer1 = new RHIDepthRenderBuffer;
 		if( !depthBuffer1->create(sizeX, sizeY, Texture::eDepth32F) )
 			return false;
 		depthBuffer2 = new RHIDepthRenderBuffer;
 		if( !depthBuffer2->create(ShadowTextureSize, ShadowTextureSize, Texture::eDepth32F) )
 			return false;
+#endif
 
-		mShadowMap2->bind();
+		OpenGLCast::To(mShadowMap2)->bind();
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-		mShadowMap2->unbind();
-
+		OpenGLCast::To(mShadowMap2)->unbind();
+#if USE_DepthRenderBuffer
 		mShadowBuffer.setDepth(*depthBuffer1);
+#endif
 		mShadowBuffer.addTexture(*mShadowMap, Texture::eFaceX);
 		//mBuffer.addTexture( mShadowMap2 );
 		//mBuffer.addTexture( mShadowMap , Texture::eFaceX , false );
@@ -386,7 +272,9 @@ namespace RenderGL
 			};
 
 			shadowProjectParam.shadowTexture = mCascadeTexture;
+#if USE_DepthRenderBuffer
 			mShadowBuffer.setDepth(*depthBuffer1);
+#endif
 			mShadowBuffer.setTexture(0, *mCascadeTexture);
 
 			GL_BIND_LOCK_OBJECT(mShadowBuffer);
@@ -438,9 +326,10 @@ namespace RenderGL
 			worldToLight = LookAtMatrix(light.pos, light.dir, GetUpDir(light.dir));
 			mShadowMatrix = worldToLight * shadowProject * biasMatrix;
 			shadowProjectParam.shadowMatrix[0] = mShadowMatrix;
-
+#if USE_DepthRenderBuffer
 			shadowProjectParam.shadowTexture = mShadowMap2;
 			mShadowBuffer.setDepth(*depthBuffer2);
+#endif
 			mShadowBuffer.setTexture(0, *mShadowMap2);
 			GL_BIND_LOCK_OBJECT(mShadowBuffer);
 
@@ -485,8 +374,9 @@ namespace RenderGL
 
 			ViewportSaveScope vpScope;
 			RHISetViewport(0, 0, ShadowTextureSize, ShadowTextureSize);
+#if USE_DepthRenderBuffer
 			mShadowBuffer.setDepth(*depthBuffer2);
-
+#endif
 			RHISetDepthStencilState(TStaticDepthStencilState<>::GetRHI());
 			for( int i = 0; i < 6; ++i )
 			{
@@ -931,17 +821,17 @@ namespace RenderGL
 	{
 		for( int i = 0; i < NumBuffer; ++i )
 		{
-			textures[i] = new RHITexture2D;
+			textures[i] = RHICreateTexture2D(Texture::eFloatRGBA, size.x, size.y);
 
-			if( !textures[i]->create(Texture::eFloatRGBA, size.x, size.y) )
+			if( !textures[i].isValid() )
 				return false;
 
-			textures[i]->bind();
+			OpenGLCast::To(textures[i])->bind();
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-			textures[i]->unbind();
+			OpenGLCast::To(textures[i])->unbind();
 		}
 
 
@@ -1092,29 +982,29 @@ namespace RenderGL
 		if( !mFrameBuffer.create() )
 			return false;
 		
-		mSSAOTexture = new RHITexture2D;
-		if( !mSSAOTexture->create(Texture::eFloatRGBA, size.x, size.y) )
+		mSSAOTexture = RHICreateTexture2D(Texture::eFloatRGBA, size.x, size.y);
+		if( !mSSAOTexture.isValid() )
 			return false;
 
-		mSSAOTexture->bind();
+		OpenGLCast::To(mSSAOTexture)->bind();
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
-		mSSAOTexture->unbind();
+		OpenGLCast::To(mSSAOTexture)->unbind();
 
-		mSSAOTextureBlur = new RHITexture2D;
-		if( !mSSAOTextureBlur->create(Texture::eFloatRGBA, size.x, size.y) )
+		mSSAOTextureBlur = RHICreateTexture2D(Texture::eFloatRGBA, size.x, size.y);
+		if( !mSSAOTextureBlur.isValid() )
 			return false;
 
-		mSSAOTextureBlur->bind();
+		OpenGLCast::To(mSSAOTextureBlur)->bind();
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
-		mSSAOTextureBlur->unbind();
+		OpenGLCast::To(mSSAOTextureBlur)->unbind();
 
 		mFrameBuffer.addTexture(*mSSAOTexture);
 
@@ -1232,19 +1122,19 @@ namespace RenderGL
 		mIdxRenderFrameTexture = 0;
 		for( int i = 0; i < 2; ++i )
 		{
-			mFrameTextures[i] = new RHITexture2D;
-			if( !mFrameTextures[i]->create(Texture::eFloatRGBA, size.x, size.y) )
+			mFrameTextures[i] = RHICreateTexture2D(Texture::eFloatRGBA, size.x, size.y);
+			if( !mFrameTextures[i].isValid() )
 				return false;
 		}
 
 		if( !mGBuffer.init(size) )
 			return false;
 		
-		mDepthTexture = new RHITextureDepth;
-		if( !mDepthTexture->create(Texture::eD32FS8, size.x, size.y) )
+		mDepthTexture = RHICreateTextureDepth(Texture::eD32FS8, size.x, size.y);
+		if( !mDepthTexture.isValid() )
 			return false;
 
-		mDepthTexture->bind();
+		OpenGLCast::To(mDepthTexture)->bind();
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
@@ -1252,7 +1142,7 @@ namespace RenderGL
 		glTexParameteri(GL_TEXTURE_2D, GL_DEPTH_TEXTURE_MODE, GL_INTENSITY);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_R_TO_TEXTURE);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_FUNC, GL_LEQUAL);
-		mDepthTexture->unbind();
+		OpenGLCast::To(mDepthTexture)->unbind();
 
 		if( !mFrameBuffer.create() )
 			return false;
@@ -1265,36 +1155,71 @@ namespace RenderGL
 		//PROB
 		glLoadIdentity();
 		glEnable(GL_TEXTURE_2D);
-		glBindTexture(GL_TEXTURE_2D, mDepthTexture->mHandle);
+		glBindTexture(GL_TEXTURE_2D, OpenGLCast::GetHandle(mDepthTexture));
 		glColor3f(1, 1, 1);
 		DrawUtility::Rect(x, y, width, height);
 		glBindTexture(GL_TEXTURE_2D, 0);
 		glDisable(GL_TEXTURE_2D);
 	}
 
+	bool OITShaderData::init(int storageSize, IntVector2 const& screenSize)
+	{
+		colorStorageTexture = RHICreateTexture2D(Texture::eRGBA16F, storageSize, storageSize);
+		if( !colorStorageTexture.isValid() )
+			return false;
+		nodeAndDepthStorageTexture = RHICreateTexture2D(Texture::eRGBA32I, storageSize, storageSize);
+		if( !nodeAndDepthStorageTexture.isValid() )
+			return false;
+		nodeHeadTexture = RHICreateTexture2D(Texture::eR32U, screenSize.x, screenSize.y);
+		if( !nodeHeadTexture.isValid() )
+			return false;
+
+		return true;
+	}
+
+
+	class BMAResolveProgram : public GlobalShaderProgram
+	{
+	public:
+
+		DECLARE_GLOBAL_SHADER(BMAResolveProgram);
+
+		void bindParameters();
+
+		void setParameters(OITShaderData& data);
+
+		ShaderParameter mParamColorStorageTexture;
+		ShaderParameter mParamNodeAndDepthStorageTexture;
+		ShaderParameter mParamNodeHeadTexture;
+
+		static void SetupShaderCompileOption(ShaderCompileOption& option) 
+		{
+			option.addDefine(SHADER_PARAM(OIT_STORAGE_SIZE), OIT_StorageSize);
+		}
+		static char const* GetShaderFileName()
+		{
+			return "Shader/OITResolve";
+		}
+		static ShaderEntryInfo const* GetShaderEntries()
+		{
+			static ShaderEntryInfo const entries[] =
+			{
+				{ Shader::eVertex , SHADER_ENTRY(ScreenVS) },
+				{ Shader::ePixel  , SHADER_ENTRY(ResolvePS) },
+				{ Shader::eEmpty  , nullptr },
+			};
+			return entries;
+		}
+	};
+
+	IMPLEMENT_GLOBAL_SHADER(BMAResolveProgram);
+
 	bool OITTechnique::init(IntVector2 const& size)
 	{
-		mColorStorageTexture = RHICreateTexture2D();
-		if( !mColorStorageTexture->create(Texture::eRGBA16F, OIT_StorageSize, OIT_StorageSize) )
-			return false;
-		mNodeAndDepthStorageTexture = RHICreateTexture2D();
-		if( !mNodeAndDepthStorageTexture->create(Texture::eRGBA32I, OIT_StorageSize, OIT_StorageSize) )
-			return false;
-		mNodeHeadTexture = RHICreateTexture2D();
-		if( !mNodeHeadTexture->create(Texture::eR32U, size.x, size.y) )
-			return false;
+		VERIFY_INITRESULT(mShaderData.init(OIT_StorageSize, size));
 
 		if( !mStorageUsageCounter.create() )
 			return false;
-
-		mMeshScreenTri.mDecl.addElement(Vertex::ATTRIBUTE_POSITION, Vertex::eFloat4);
-		Vector4 v[] =
-		{
-			Vector4(0,0,0,1) , Vector4(0.5,0,0,1) , Vector4(0.25,0.5,0,1) ,
-		};
-		mMeshScreenTri.createBuffer(v, 3);
-		mMeshScreenTri.mType = PrimitiveType::TriangleList;
-
 
 		{
 			ShaderCompileOption option;
@@ -1306,11 +1231,7 @@ namespace RenderGL
 				SHADER_ENTRY(BassPassVS), SHADER_ENTRY(BassPassPS),
 				option, nullptr) )
 				return false;
-			if( !ShaderManager::Get().loadFile(
-				mShaderResolve, "Shader/OITResolve",
-				SHADER_ENTRY(ScreenVS), SHADER_ENTRY(ResolvePS),
-				option, nullptr) )
-				return false;
+			VERIFY_INITRESULT( mShaderResolve = ShaderManager::Get().loadGlobalShaderT< BMAResolveProgram >(option) );
 		}
 
 		BMA_InternalValMin[NumBMALevel - 1] = 1;
@@ -1321,13 +1242,8 @@ namespace RenderGL
 
 			ShaderCompileOption option;
 			option.version = 430;
-			option.addDefine(SHADER_PARAM(OIT_STORAGE_SIZE), OIT_StorageSize);
 			option.addDefine(SHADER_PARAM(OIT_MAX_PIXEL_COUNT) , BMA_MaxPixelCounts[i]);
-			if( !ShaderManager::Get().loadFile(
-				mShaderBMAResolves[i], "Shader/OITResolve",
-				SHADER_ENTRY(ScreenVS), SHADER_ENTRY(ResolvePS),
-				option , nullptr) )
-				return false;
+			VERIFY_INITRESULT(mShaderBMAResolves[i] = ShaderManager::Get().loadGlobalShaderT< BMAResolveProgram >(option));
 		}
 
 		{
@@ -1343,8 +1259,8 @@ namespace RenderGL
 		}
 
 		mFrameBuffer.create();
-		mFrameBuffer.addTexture(*mColorStorageTexture);
-		mFrameBuffer.addTexture(*mNodeAndDepthStorageTexture);
+		mFrameBuffer.addTexture(*mShaderData.colorStorageTexture);
+		mFrameBuffer.addTexture(*mShaderData.nodeAndDepthStorageTexture);
 
 		return true;
 	}
@@ -1368,7 +1284,7 @@ namespace RenderGL
 			MatrixSaveScope matScope(matProj);
 
 			RHISetDepthStencilState(StaticDepthDisableState::GetRHI());
-			DrawUtility::DrawTexture(*mColorStorageTexture, IntVector2(0, 0), IntVector2(200, 200));
+			DrawUtility::DrawTexture(*mShaderData.colorStorageTexture, IntVector2(0, 0), IntVector2(200, 200));
 			glMemoryBarrier(GL_ALL_BARRIER_BITS);
 
 		}
@@ -1393,9 +1309,9 @@ namespace RenderGL
 
 			GL_BIND_LOCK_OBJECT(mShaderBassPassTest);
 			view.setupShader(mShaderBassPassTest);
-			mShaderBassPassTest.setRWTexture(SHADER_PARAM(ColorStorageRWTexture), *mColorStorageTexture, AO_WRITE_ONLY);
-			mShaderBassPassTest.setRWTexture(SHADER_PARAM(NodeAndDepthStorageRWTexture), *mNodeAndDepthStorageTexture, AO_READ_AND_WRITE);
-			mShaderBassPassTest.setRWTexture(SHADER_PARAM(NodeHeadRWTexture), *mNodeHeadTexture, AO_READ_AND_WRITE);
+			mShaderBassPassTest.setRWTexture(SHADER_PARAM(ColorStorageRWTexture), *mShaderData.colorStorageTexture, AO_WRITE_ONLY);
+			mShaderBassPassTest.setRWTexture(SHADER_PARAM(NodeAndDepthStorageRWTexture), *mShaderData.nodeAndDepthStorageTexture, AO_READ_AND_WRITE);
+			mShaderBassPassTest.setRWTexture(SHADER_PARAM(NodeHeadRWTexture), *mShaderData.nodeHeadTexture, AO_READ_AND_WRITE);
 
 
 			//
@@ -1426,7 +1342,7 @@ namespace RenderGL
 			MatrixSaveScope matScope(matProj);
 
 			RHISetDepthStencilState(StaticDepthDisableState::GetRHI());
-			DrawUtility::DrawTexture(*mColorStorageTexture, IntVector2(0, 0), IntVector2(200,200));
+			DrawUtility::DrawTexture(*mShaderData.colorStorageTexture, IntVector2(0, 0), IntVector2(200,200));
 			glMemoryBarrier(GL_ALL_BARRIER_BITS);
 
 		}
@@ -1436,9 +1352,9 @@ namespace RenderGL
 	void OITTechnique::reload()
 	{
 		ShaderManager::Get().reloadShader(mShaderBassPassTest);
-		ShaderManager::Get().reloadShader(mShaderResolve);
+		ShaderManager::Get().reloadShader(*mShaderResolve);
 		for( int i = 0; i < NumBMALevel; ++i )
-			ShaderManager::Get().reloadShader(mShaderBMAResolves[i]);
+			ShaderManager::Get().reloadShader(*mShaderBMAResolves[i]);
 	}
 
 	void OITTechnique::renderInternal(ViewInfo& view, std::function< void() > drawFuncion , SceneRenderTargets* sceneRenderTargets )
@@ -1459,8 +1375,8 @@ namespace RenderGL
 			{
 				if( 1 )
 				{
-					ShaderHelper::Get().clearBuffer(*mColorStorageTexture, clearValueA);
-					ShaderHelper::Get().clearBuffer(*mNodeAndDepthStorageTexture, clearValueB);
+					ShaderHelper::Get().clearBuffer(*mShaderData.colorStorageTexture, clearValueA);
+					ShaderHelper::Get().clearBuffer(*mShaderData.nodeAndDepthStorageTexture, clearValueB);
 				}
 				else
 				{
@@ -1473,7 +1389,7 @@ namespace RenderGL
 				}
 			}
 
-			ShaderHelper::Get().clearBuffer(*mNodeHeadTexture, clearValueC);
+			ShaderHelper::Get().clearBuffer(*mShaderData.nodeHeadTexture, clearValueC);
 			glMemoryBarrier(GL_ALL_BARRIER_BITS);
 		}
 
@@ -1534,9 +1450,9 @@ namespace RenderGL
 							true , ECompareFun::LessEqual , Stencil::eKeep , Stencil::eZero , Stencil::eZero , 0xff 
 						>::GetRHI() , BMA_InternalValMin[i]);
 
-					BMAResolveProgram& shaderprogram = mShaderBMAResolves[i];
+					BMAResolveProgram* shaderprogram = mShaderBMAResolves[i];
 					GL_BIND_LOCK_OBJECT(shaderprogram);
-					shaderprogram.setParameters(*mColorStorageTexture, *mNodeAndDepthStorageTexture, *mNodeHeadTexture);
+					shaderprogram->setParameters( mShaderData );
 					mScreenMesh.drawShader();
 				}
 
@@ -1545,9 +1461,9 @@ namespace RenderGL
 			{
 				RHISetDepthStencilState(TStaticDepthStencilState< bWriteDepth , ECompareFun::Always >::GetRHI());
 
-				BMAResolveProgram& shaderprogram = mShaderBMAResolves[0];
+				BMAResolveProgram* shaderprogram = mShaderBMAResolves[0];
 				GL_BIND_LOCK_OBJECT(shaderprogram);
-				shaderprogram.setParameters(*mColorStorageTexture, *mNodeAndDepthStorageTexture, *mNodeHeadTexture);
+				shaderprogram->setParameters(mShaderData);
 				mScreenMesh.drawShader();
 			}
 
@@ -1589,14 +1505,36 @@ namespace RenderGL
 			};
 			return entries;
 		}
+
+		void bindParameters()
+		{
+			BaseClass::bindParameters();
+
+			mParamColorStorageTexture.bind( *this , SHADER_PARAM(ColorStorageRWTexture) );
+			mParamNodeAndDepthStorageTexture.bind(*this, SHADER_PARAM(NodeAndDepthStorageRWTexture));
+			mParamNodeHeadTexture.bind(*this , SHADER_PARAM(NodeHeadRWTexture));
+
+		}
+
+		void setParameter( OITShaderData& data )
+		{
+			setRWTexture(mParamColorStorageTexture, *data.colorStorageTexture, AO_WRITE_ONLY);
+			setRWTexture(mParamNodeAndDepthStorageTexture, *data.nodeAndDepthStorageTexture, AO_READ_AND_WRITE);
+			setRWTexture(mParamNodeHeadTexture, *data.nodeHeadTexture, AO_READ_AND_WRITE);
+		}
+
+		ShaderParameter mParamColorStorageTexture;
+		ShaderParameter mParamNodeAndDepthStorageTexture;
+		ShaderParameter mParamNodeHeadTexture;
 	};
+
 	IMPLEMENT_MATERIAL_SHADER(OITBBasePassProgram);
 
 	void OITTechnique::setupShader(ShaderProgram& program)
 	{
-		program.setRWTexture(SHADER_PARAM(ColorStorageRWTexture), *mColorStorageTexture, AO_WRITE_ONLY);
-		program.setRWTexture(SHADER_PARAM(NodeAndDepthStorageRWTexture), *mNodeAndDepthStorageTexture, AO_READ_AND_WRITE);
-		program.setRWTexture(SHADER_PARAM(NodeHeadRWTexture), *mNodeHeadTexture, AO_READ_AND_WRITE);
+		program.setRWTexture(SHADER_PARAM(ColorStorageRWTexture), *mShaderData.colorStorageTexture, AO_WRITE_ONLY);
+		program.setRWTexture(SHADER_PARAM(NodeAndDepthStorageRWTexture), *mShaderData.nodeAndDepthStorageTexture, AO_READ_AND_WRITE);
+		program.setRWTexture(SHADER_PARAM(NodeHeadRWTexture), *mShaderData.nodeHeadTexture, AO_READ_AND_WRITE);
 	}
 
 	MaterialShaderProgram* OITTechnique::getMaterialShader(RenderContext& context, MaterialMaster& material, VertexFactory* vertexFactory)
@@ -1604,9 +1542,9 @@ namespace RenderGL
 		return material.getShaderT< OITBBasePassProgram >(vertexFactory);
 	}
 
-	void OITTechnique::setupMaterialShader(RenderContext& context, ShaderProgram& program)
+	void OITTechnique::setupMaterialShader(RenderContext& context, MaterialShaderProgram& program)
 	{
-		setupShader(program);
+		static_cast<OITBBasePassProgram&>(program).setParameter(mShaderData);
 	}
 
 	void BMAResolveProgram::bindParameters()
@@ -1616,11 +1554,11 @@ namespace RenderGL
 		mParamNodeHeadTexture.bind(*this, SHADER_PARAM(NodeHeadTexture));
 	}
 
-	void BMAResolveProgram::setParameters(RHITexture2D& ColorStorageTexture, RHITexture2D& NodeAndDepthStorageTexture, RHITexture2D& NodeHeadTexture)
+	void BMAResolveProgram::setParameters( OITShaderData& data )
 	{
-		setRWTexture(mParamColorStorageTexture, ColorStorageTexture, AO_READ_AND_WRITE);
-		setRWTexture(mParamNodeAndDepthStorageTexture, NodeAndDepthStorageTexture, AO_READ_AND_WRITE);
-		setRWTexture(mParamNodeHeadTexture, NodeHeadTexture, AO_READ_AND_WRITE);
+		setRWTexture(mParamColorStorageTexture, *data.colorStorageTexture, AO_READ_AND_WRITE);
+		setRWTexture(mParamNodeAndDepthStorageTexture, *data.nodeAndDepthStorageTexture, AO_READ_AND_WRITE);
+		setRWTexture(mParamNodeHeadTexture, *data.nodeHeadTexture, AO_READ_AND_WRITE);
 	}
 
 	void SSAOGenerateProgram::bindParameters()

@@ -205,6 +205,7 @@
     <ClCompile Include="Phy2D\World.cpp" />
     <ClCompile Include="Platform\Windows\WindowsProcess.cpp" />
     <ClCompile Include="ProfileSystem.cpp" />
+    <ClCompile Include="RHI\D3D11Command.cpp" />
     <ClCompile Include="RHI\DrawUtility.cpp" />
     <ClCompile Include="RHI\Font.cpp" />
     <ClCompile Include="RHI\GLCommon.cpp" />
@@ -213,6 +214,7 @@
     <ClCompile Include="RHI\Material.cpp" />
     <ClCompile Include="RHI\MaterialShader.cpp" />
     <ClCompile Include="RHI\MeshUtility.cpp" />
+    <ClCompile Include="RHI\OpenGLCommand.cpp" />
     <ClCompile Include="RHI\PrimitiveBatch.cpp" />
     <ClCompile Include="RHI\RenderContext.cpp" />
     <ClCompile Include="RHI\RHICommand.cpp" />
@@ -353,6 +355,7 @@
     <ClInclude Include="CoreShare.h" />
     <ClInclude Include="ReflectionCollect.h" />
     <ClInclude Include="RHI\BaseType.h" />
+    <ClInclude Include="RHI\D3D11Command.h" />
     <ClInclude Include="RHI\DrawUtility.h" />
     <ClInclude Include="RHI\Font.h" />
     <ClInclude Include="RHI\FrameGraph.h" />
@@ -363,6 +366,7 @@
     <ClInclude Include="RHI\Material.h" />
     <ClInclude Include="RHI\MaterialShader.h" />
     <ClInclude Include="RHI\MeshUtility.h" />
+    <ClInclude Include="RHI\OpenGLCommand.h" />
     <ClInclude Include="RHI\PrimitiveBatch.h" />
     <ClInclude Include="RHI\RenderContext.h" />
     <ClInclude Include="RHI\RHICommand.h" />

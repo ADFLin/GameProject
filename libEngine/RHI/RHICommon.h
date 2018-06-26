@@ -8,9 +8,9 @@
 #include "TVector2.h"
 #include "Singleton.h"
 
+
 namespace RenderGL
 {
-	using namespace RenderGL;
 
 	class ShaderCompileOption;
 	class MaterialShaderProgram;
@@ -49,7 +49,6 @@ namespace RenderGL
 		class CopyTextureBiasProgram* mProgCopyTextureBias;
 		class MappingTextureColorProgram* mProgMappingTextureColor;
 		FrameBuffer mFrameBuffer;
-
 
 	};
 

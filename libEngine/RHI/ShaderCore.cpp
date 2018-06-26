@@ -26,7 +26,7 @@ namespace RenderGL
 
 	Shader::Type RHIShader::getType()
 	{
-		if( mHandle )
+		if( getHandle() )
 		{
 			switch( getGLParam(GL_SHADER_TYPE) )
 			{
@@ -46,8 +46,8 @@ namespace RenderGL
 		if( !create(type) )
 			return false;
 
-		glShaderSource(mHandle, num, src, 0);
-		glCompileShader(mHandle);
+		glShaderSource(getHandle(), num, src, 0);
+		glCompileShader(getHandle());
 
 		if( getGLParam(GL_COMPILE_STATUS) == GL_FALSE )
 		{
@@ -58,30 +58,19 @@ namespace RenderGL
 
 	bool RHIShader::create(Shader::Type type)
 	{
-		if( mHandle )
+		if( getHandle() )
 		{
 			if( getType() == type )
 				return true;
-			destroy();
+			mGLObject.destroyHandle();
 		}
-
-		mHandle = glCreateShader(GLConvert::To(type));
-		return mHandle != 0;
-	}
-
-	void RHIShader::destroy()
-	{
-		if( mHandle )
-		{
-			glDeleteShader(mHandle);
-			mHandle = 0;
-		}
+		return mGLObject.fetchHandle(GLConvert::To(type));
 	}
 
 	GLuint RHIShader::getGLParam(GLuint val)
 	{
 		GLint status;
-		glGetShaderiv(mHandle, val, &status);
+		glGetShaderiv(getHandle(), val, &status);
 		return status;
 	}
 
@@ -106,7 +95,7 @@ namespace RenderGL
 		RHIShader* out = mShaders[type];
 		if( mShaders[type] )
 		{
-			glDetachShader(mHandle, mShaders[type]->mHandle);
+			glDetachShader(mHandle,  OpenGLCast::GetHandle( mShaders[type] ) );
 			mShaders[type] = NULL;
 			mNeedLink = true;
 		}
@@ -117,8 +106,8 @@ namespace RenderGL
 	{
 		Shader::Type type = shader.getType();
 		if( mShaders[type] )
-			glDetachShader(mHandle, mShaders[type]->mHandle);
-		glAttachShader(mHandle, shader.mHandle);
+			glDetachShader(mHandle, OpenGLCast::GetHandle(mShaders[type]) );
+		glAttachShader(mHandle, OpenGLCast::GetHandle( shader ) );
 		mShaders[type] = &shader;
 		mNeedLink = true;
 	}
@@ -159,9 +148,12 @@ namespace RenderGL
 
 	void ShaderProgram::bind()
 	{
-		updateShader();
-		glUseProgram(mHandle);
-		resetBindIndex();
+		if ( mHandle )
+		{
+			updateShader();
+			glUseProgram(mHandle);
+			resetBindIndex();
+		}
 	}
 
 	void ShaderProgram::unbind()
@@ -172,14 +164,14 @@ namespace RenderGL
 	void ShaderProgram::setBuffer(ShaderBufferParameter const& param, RHIUniformBuffer& buffer)
 	{
 		glUniformBlockBinding(mHandle, param.mIndex, mNextUniformSlot);
-		glBindBufferBase(GL_UNIFORM_BUFFER, mNextUniformSlot, buffer.mHandle);
+		glBindBufferBase(GL_UNIFORM_BUFFER, mNextUniformSlot, OpenGLCast::GetHandle(buffer));
 		++mNextUniformSlot;
 	}
 
 	void ShaderProgram::setBuffer(ShaderBufferParameter const& param, RHIStorageBuffer& buffer)
 	{
 		glShaderStorageBlockBinding(mHandle, param.mIndex, mNextStorageSlot);
-		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, mNextStorageSlot, buffer.mHandle);
+		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, mNextStorageSlot, OpenGLCast::GetHandle(buffer));
 		++mNextStorageSlot;
 	}
 

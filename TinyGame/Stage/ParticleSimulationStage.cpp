@@ -642,8 +642,8 @@ namespace RenderGL
 			
 			VERIFY_INITRESULT(mProgSpline = ShaderManager::Get().getGlobalShaderT< SplineProgram >(true));
 
-			mTexture = RHICreateTexture2D();
-			VERIFY_INITRESULT(mTexture->loadFromFile("Texture/star.png"));
+			mTexture = RHIUtility::LoadTexture2DFromFile("Texture/star.png");
+			VERIFY_INITRESULT(mTexture.isValid());
 			VERIFY_INITRESULT(ShaderManager::Get().loadFileSimple(mProgSphere, "Shader/Game/Sphere"));
 			Vector3 v[] =
 			{

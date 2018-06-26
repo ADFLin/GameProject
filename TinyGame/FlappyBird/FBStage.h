@@ -11,7 +11,9 @@
 namespace FlappyBird
 {
 	using RenderGL::RHITexture2D;
+	using RenderGL::RHITexture2DRef;
 	using RenderGL::DrawUtility;
+	using RenderGL::TBindLockScope;
 
 	class TrainManager;
 	class TrainData;
@@ -92,14 +94,14 @@ namespace FlappyBird
 
 		float getTextureSizeRatio( int id )
 		{
-			return float( mTextures[id].getSizeX() ) / mTextures[id].getSizeY();
+			return float( mTextures[id]->getSizeX() ) / mTextures[id]->getSizeY();
 		}
 
 
 
 		bool loadResource();
 
-		RHITexture2D mTextures[ TextureID::Count ];
+		RHITexture2DRef mTextures[ TextureID::Count ];
 		bool mbDebugDraw = false;
 
 		void drawTexture(int id, Vector2 const& pos, Vector2 const& size, Vector2 const& pivot);

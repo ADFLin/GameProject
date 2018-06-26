@@ -99,7 +99,7 @@ namespace Go
 
 			NumTexture,
 		};
-		RenderGL::RHITexture2D mTextures[NumTexture];
+		RenderGL::RHITexture2DRef mTextures[NumTexture];
 
 		std::vector< Vector2 > mNoiseOffsets;
 		struct Vertex

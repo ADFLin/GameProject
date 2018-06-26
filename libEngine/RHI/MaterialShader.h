@@ -9,7 +9,7 @@
 #include <unordered_map>
 
 //#MOVE
-int const OIT_StorageSize = 4096;
+
 
 namespace RenderGL
 {

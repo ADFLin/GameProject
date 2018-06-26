@@ -139,7 +139,7 @@ namespace RenderGL
 	{
 	public:
 		virtual MaterialShaderProgram* getMaterialShader(RenderContext& context, MaterialMaster& material , VertexFactory* vertexFactory ) { return nullptr; }
-		virtual void setupMaterialShader(RenderContext& context, ShaderProgram& program) {}
+		virtual void setupMaterialShader(RenderContext& context, MaterialShaderProgram& program) {}
 		virtual void setupWorld(RenderContext& context, Matrix4 const& mat );
 		virtual bool isShaderPipline() { return true; }
 	};

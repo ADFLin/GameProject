@@ -24,14 +24,12 @@ namespace RenderGL
 	public:
 		Texture2D()
 		{
-			mRHI = nullptr;
+
 		}
 		~Texture2D()
 		{
-			if( mRHI )
-			{
-				mRHI->release();
-			}
+
+			mRHI.release();
 		}
 
 		bool loadFile(char const* path, int numMipLevel = 0);

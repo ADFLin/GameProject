@@ -176,7 +176,7 @@ namespace RenderGL
 	{
 		for( auto& pair : mShaderMap )
 		{
-			pair.second->release();
+			pair.second->destroyHandle();
 			delete pair.second;
 		}
 		mShaderMap.clear();

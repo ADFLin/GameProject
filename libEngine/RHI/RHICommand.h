@@ -3,30 +3,75 @@
 #define RHICommand_H_C0CC3E6C_43AE_4582_8203_41997F0A4C7D
 
 #include "GLCommon.h"
+#include "CoreShare.h"
 
 namespace RenderGL
 {
+	extern CORE_API class RHISystem* gRHISystem;
+
+	enum class RHISytemName
+	{
+		D3D11,
+		Opengl,
+	};
+	bool RHISystemInitialize(RHISytemName name );
+
+	void RHISystemShutdown();
+
+
 	RHITexture1D*    RHICreateTexture1D(Texture::Format format, int length ,
 										int numMipLevel = 0, void* data = nullptr);
-	RHITexture2D*    RHICreateTexture2D();
+
 	RHITexture2D*    RHICreateTexture2D(Texture::Format format, int w, int h, 
 										int numMipLevel = 0 , void* data = nullptr, int dataAlign = 0);
 	RHITexture3D*    RHICreateTexture3D(Texture::Format format, int sizeX, int sizeY, int sizeZ);
 
-	RHITextureDepth* RHICreateTextureDepth();
+	RHITextureDepth* RHICreateTextureDepth(Texture::DepthFormat format, int w, int h);
 	RHITextureCube*  RHICreateTextureCube();
 
-	RHIVertexBuffer* RHICreateVertexBuffer();
-	RHIUniformBuffer* RHICreateUniformBuffer(uint32 size);
-	RHIStorageBuffer* RHICreateStorageBuffer(uint32 size);
+	RHIVertexBuffer*  RHICreateVertexBuffer(uint32 vertexSize, uint32 numVertices, uint32 creationFlags = 0, void* data = nullptr);
+	RHIIndexBuffer*   RHICreateIndexBuffer(uint32 nIndices, bool bIntIndex, uint32 creationFlags = 0, void* data = nullptr);
+	RHIUniformBuffer* RHICreateUniformBuffer(uint32 size, uint32 creationFlags = 0, void* data = nullptr);
+	RHIStorageBuffer* RHICreateStorageBuffer(uint32 size, uint32 creationFlags = 0, void* data = nullptr);
+
+
+
+	class RHISystem
+	{
+	public:
+		virtual bool initialize() { return true; }
+		virtual void shutdown(){}
+
+		virtual RHITexture1D*    RHICreateTexture1D(
+			Texture::Format format, int length,
+			int numMipLevel , void* data ) = 0;
+		virtual RHITexture2D*    RHICreateTexture2D(
+			Texture::Format format, int w, int h,
+			int numMipLevel , void* data , int dataAlign ) = 0;
+		virtual RHITexture3D*    RHICreateTexture3D(Texture::Format format, int sizeX, int sizeY, int sizeZ) = 0;
+
+		virtual RHITextureDepth* RHICreateTextureDepth(Texture::DepthFormat format, int w, int h) = 0;
+		virtual RHITextureCube*  RHICreateTextureCube() = 0;
+
+		virtual RHIVertexBuffer*  RHICreateVertexBuffer(uint32 vertexSize, uint32 numVertices, uint32 creationFlag, void* data) = 0;
+		virtual RHIIndexBuffer*   RHICreateIndexBuffer(uint32 nIndices, bool bIntIndex, uint32 creationFlag, void* data) = 0;
+		virtual RHIUniformBuffer* RHICreateUniformBuffer(uint32 size, uint32 creationFlag, void* data) = 0;
+		virtual RHIStorageBuffer* RHICreateStorageBuffer(uint32 size, uint32 creationFlag, void* data) = 0;
+
+	};
+
 
 	void RHISetupFixedPipeline(Matrix4 const& matModelView, Matrix4 const& matProj,  int numTexture = 0, RHITexture2D** texture = nullptr);
-
-
 	void RHISetViewport(int x, int y, int w , int h );
 	void RHISetScissorRect(bool bEnable, int x = 0, int y = 0, int w = 0, int h = 0);
 	void RHIDrawPrimitive(PrimitiveType type, int vStart, int nv);
 	void RHIDrawIndexedPrimitive(PrimitiveType type, ECompValueType indexType, int indexStart, int nIndex);
+
+	class RHIUtility
+	{
+	public:
+		static RHITexture2D* LoadTexture2DFromFile(char const* path);
+	};
 
 	struct RasterizerStateInitializer
 	{

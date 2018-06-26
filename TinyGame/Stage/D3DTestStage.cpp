@@ -1,24 +1,17 @@
 #include "TestStageHeader.h"
 
-#include "D3D11.h"
-#include "D3D11Shader.h"
-#include "D3DX11async.h"
-#include "D3Dcompiler.h"
-#pragma comment(lib , "D3D11.lib")
-#pragma comment(lib , "D3DX11.lib")
-#pragma comment(lib , "D3dcompiler.lib")
-#pragma comment(lib , "DXGI.lib")
-#include "Platform/Windows/ComUtility.h"
 
-#define CODE_STRING_INNER( CODE_TEXT ) R#CODE_TEXT
-
-#define CODE_STRING( CODE_TEXT ) CODE_STRING_INNER( CODE(##CODE_TEXT)CODE );
 
 #include "RHI/RHIDefine.h"
 #include "RHI/BaseType.h"
+#include "RHI/GLCommon.h"
+#include "RHI/D3D11Command.h"
+
 #include "stb/stb_image.h"
 
-#include "Core/ScopeExit.h"
+
+#define CODE_STRING_INNER( CODE_TEXT ) R#CODE_TEXT
+#define CODE_STRING( CODE_TEXT ) CODE_STRING_INNER( CODE(##CODE_TEXT)CODE );
 
 char const* Code = CODE_STRING(
 struct VSInput
@@ -55,14 +48,6 @@ void MainPS(in VSOutput input, out float4 OutColor : SV_Target0 )
 }
 );
 
-#define ERROR_MSG_GENERATE( HR , CODE , FILE , LINE )\
-	LogWarning(1, "ErrorCode = 0x%x File = %s Line = %s %s ", HR , FILE, #LINE, #CODE)
-
-#define VERIFY_D3D11RESULT_INNER( FILE , LINE , CODE ,ERRORCODE )\
-	{ HRESULT hr = CODE; if( hr != S_OK ){ ERROR_MSG_GENERATE( hr , CODE, FILE, LINE ); ERRORCODE } }
-
-#define VERIFY_D3D11RESULT( CODE , ERRORCODE ) VERIFY_D3D11RESULT_INNER( __FILE__ , __LINE__ , CODE , ERRORCODE )
-#define VERIFY_D3D11RESULT_RETURN_FALSE( CODE ) VERIFY_D3D11RESULT_INNER( __FILE__ , __LINE__ , CODE , return false; )
 
 namespace RenderD3D
 {
@@ -70,296 +55,47 @@ namespace RenderD3D
 	using namespace RenderGL;
 
 
-	struct ShaderParameter
-	{
-		uint8  bindIndex;
-		uint16 offset;
-		uint16 size;
-	};
 
-	struct ShaderParameterMap
+	template < uint32 VertexFormat >
+	class TRenderRT_D3D
 	{
 
-		void addParameter(char const* name, uint8 bindIndex, uint16 offset, uint16 size)
-		{
-			ShaderParameter entry = { bindIndex, offset, size };
-			mMap.emplace( name , entry );
-		}
-
-
-		std::unordered_map< std::string, ShaderParameter > mMap;
-	};
-
-	union ShaderVariantD3D11
-	{
-		ID3D11VertexShader*   vertex;
-		ID3D11PixelShader*    pixel;
-		ID3D11GeometryShader* geometry;
-		ID3D11ComputeShader*  compute;
-		ID3D11HullShader*     hull;
-		ID3D11DomainShader*   domain;
-
-	};
-
-
-
-	struct FrameSwapChain
-	{
-
-		TComPtr<IDXGISwapChain> ptr;
-	};
-
-	enum class RHISytemName
-	{
-		D3D9  ,
-		D3D11 ,
-		Opengl ,
-	};
-	class IRHISystem
-	{
 	public:
-		virtual bool initialize() { return true; }
-
-		static IRHISystem* Create(RHISytemName Name)
+		FORCEINLINE static void Draw(PrimitiveType type, void const* vetrices, int nV, int vertexStride = GetVertexSize())
 		{
 
-			return nullptr;
 		}
-	};
 
-	class RHISystemD3D11 : public IRHISystem
-	{
-	public:
-
-		bool initialize()
+		template< uint32 VF, uint32 SEMANTIC >
+		struct VertexElementOffset
 		{
-			uint32 flag = D3D11_CREATE_DEVICE_BGRA_SUPPORT;
+			enum { Result = sizeof(float) * (VF & RTS_ELEMENT_MASK) + VertexElementOffset< (VF >> RTS_ELEMENT_BIT_OFFSET), SEMANTIC - 1 >::Result };
+		};
 
-			VERIFY_D3D11RESULT_RETURN_FALSE( D3D11CreateDevice(NULL, D3D_DRIVER_TYPE_HARDWARE, NULL, flag, NULL, 0, D3D11_SDK_VERSION, &mDevice, NULL, &mDeviceContext) );
-
-			return true;
-		}
-
-		bool createFrameSwapChain( HWND hWnd, int w, int h , bool bWindowed , FrameSwapChain& outResult )
+		template< uint32 VF >
+		struct VertexElementOffset< VF, 0 >
 		{
-			HRESULT hr;
-			TComPtr<IDXGIFactory> factory;
-			hr = CreateDXGIFactory(IID_PPV_ARGS(&factory));
+			enum { Result = 0 };
+		};
 
-			DXGI_SWAP_CHAIN_DESC swapChainDesc; ZeroMemory(&swapChainDesc, sizeof(swapChainDesc));
-			swapChainDesc.OutputWindow = hWnd;
-			swapChainDesc.Windowed = bWindowed;
-			swapChainDesc.SampleDesc.Count = 1;
-			swapChainDesc.SampleDesc.Quality = 0;
-			swapChainDesc.BufferDesc.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
-			swapChainDesc.BufferDesc.Width = w;
-			swapChainDesc.BufferDesc.Height = h;
-			swapChainDesc.BufferCount = 1;
-			swapChainDesc.BufferUsage = DXGI_USAGE_BACK_BUFFER | DXGI_USAGE_RENDER_TARGET_OUTPUT;
-			//swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_SEQUENTIAL;
-			swapChainDesc.Flags = DXGI_SWAP_CHAIN_FLAG_GDI_COMPATIBLE;
-			
-			VERIFY_D3D11RESULT_RETURN_FALSE( factory->CreateSwapChain(mDevice, &swapChainDesc, &outResult.ptr) );
+#define USE_SEMANTIC( S ) ( ( VertexFormat ) & RTS_ELEMENT( S , RTS_ELEMENT_MASK ) )
+#define VERTEX_ELEMENT_SIZE( S ) ( USE_SEMANTIC( S ) >> ( RTS_ELEMENT_BIT_OFFSET * S ) )
+#define VETEX_ELEMENT_OFFSET( S ) VertexElementOffset< VertexFormat , S >::Result
 
 
-			return true;
-		}
-
-		FixString<32> GetShaderProfile(Shader::Type type)
-		{
-			char const* ShaderNames[] = { "vs" , "ps" , "gs" , "cs" , "hs" , "ds" };
-			char const* featureName = nullptr;
-			switch( mDevice->GetFeatureLevel() )
-			{
-			case D3D_FEATURE_LEVEL_9_1:
-			case D3D_FEATURE_LEVEL_9_2:
-			case D3D_FEATURE_LEVEL_9_3:
-				featureName = "2_0";
-				break;
-			case D3D_FEATURE_LEVEL_10_0:
-				featureName = "4_0";
-				break;
-			case D3D_FEATURE_LEVEL_10_1:
-				featureName = "5_0";
-				break;
-			case D3D_FEATURE_LEVEL_11_0:
-				featureName = "5_0";
-				break;
-			}
-			FixString<32> result = ShaderNames[type];
-			result += "_";
-			result += featureName;
-			return result;
-		}
-
-
-		bool compileShader(Shader::Type type, char const* code, int codeLen , char const* entryName , ShaderParameterMap& parameterMap , ShaderVariantD3D11& shaderResult , TComPtr< ID3D10Blob >* pOutbyteCode = nullptr )
-		{
-
-			TComPtr< ID3D10Blob > errorCode;
-			TComPtr< ID3D10Blob > byteCode;
-			FixString<32> profileName = GetShaderProfile(type);
-
-			uint32 compileFlag = 0 /*| D3D10_SHADER_PACK_MATRIX_ROW_MAJOR*/;
-			VERIFY_D3D11RESULT(
-				D3DX11CompileFromMemory(code, codeLen, "ShaderCode", NULL, NULL, entryName , profileName , compileFlag, 0, NULL, &byteCode, &errorCode, NULL),
-				{ 
-					LogWarning(0, "Compile Error %s", errorCode->GetBufferPointer());
-					return false; 
-				}
-			);
-
-			TComPtr< ID3D11ShaderReflection > reflection;
-			VERIFY_D3D11RESULT_RETURN_FALSE(D3DReflect(byteCode->GetBufferPointer(), byteCode->GetBufferSize(),IID_ID3D11ShaderReflection, (void**)&reflection.mPtr) );
-
-			D3D11_SHADER_DESC shaderDesc;
-			reflection->GetDesc(&shaderDesc);
-			for( int i = 0; i < shaderDesc.BoundResources; ++i )
-			{
-				D3D11_SHADER_INPUT_BIND_DESC bindDesc;
-				reflection->GetResourceBindingDesc(i, &bindDesc);
-
-				switch( bindDesc.Type )
-				{
-				case D3D11_CT_CBUFFER:
-				case D3D11_CT_TBUFFER:
-					{
-						ID3D11ShaderReflectionConstantBuffer* buffer = reflection->GetConstantBufferByName(bindDesc.Name);
-						assert(buffer);
-						D3D11_SHADER_BUFFER_DESC bufferDesc;
-						buffer->GetDesc(&bufferDesc);
-						if( FCString::Compare(bufferDesc.Name, "$Globals") == 0 )
-						{
-							for( int idxVar = 0; idxVar < bufferDesc.Variables; ++idxVar )
-							{
-								ID3D11ShaderReflectionVariable* var = buffer->GetVariableByIndex(idxVar);
-								if( var )
-								{
-									D3D11_SHADER_VARIABLE_DESC varDesc;
-									var->GetDesc(&varDesc);
-									parameterMap.addParameter(varDesc.Name, bindDesc.BindPoint, varDesc.StartOffset, varDesc.Size);
-								}
-							}
-						}
-						else
-						{
-							//CBuffer TBuffer
-							parameterMap.addParameter(bufferDesc.Name, bindDesc.BindPoint, 0, 0);
-						}
-					}
-					break;
-				case D3D11_CT_RESOURCE_BIND_INFO:
-					{
-						parameterMap.addParameter(bindDesc.Name, bindDesc.BindPoint, 0, bindDesc.BindCount);
-					}
-					break;
-				case D3D_SIT_TEXTURE:
-					{
-						parameterMap.addParameter(bindDesc.Name, bindDesc.BindPoint, 0, bindDesc.BindCount);
-					}
-					break;
-				}
-			}
-
-			switch( type )
-			{
-#define CASE_SHADER(  TYPE , FUN ,VAR )\
-			case TYPE:\
-				VERIFY_D3D11RESULT_RETURN_FALSE( mDevice->FUN(byteCode->GetBufferPointer(), byteCode->GetBufferSize(), NULL, &VAR) );\
-				break;
-				
-			CASE_SHADER(Shader::eVertex, CreateVertexShader, shaderResult.vertex);
-			CASE_SHADER(Shader::ePixel, CreatePixelShader, shaderResult.pixel);
-			CASE_SHADER(Shader::eGeometry, CreateGeometryShader, shaderResult.geometry);
-			CASE_SHADER(Shader::eCompute, CreateComputeShader, shaderResult.compute);
-			CASE_SHADER(Shader::eHull, CreateHullShader, shaderResult.hull);
-			CASE_SHADER(Shader::eDomain, CreateDomainShader, shaderResult.domain);
-
-#undef CASE_SHADER
-			default:
-				assert(0);
-			}
-
-			if ( pOutbyteCode )
-				*pOutbyteCode = byteCode;
-
-			return true;
-		}
-
-		bool loadTexture(char const* path, TComPtr< ID3D11Texture2D >& outTexture)
-		{
-
-			int w;
-			int h;
-			int comp;
-			unsigned char* image = stbi_load(path, &w, &h, &comp, STBI_rgb_alpha);
-
-			if( !image )
-				return false;
-
-			ON_SCOPE_EXIT{ stbi_image_free(image); };
-			D3D11_TEXTURE2D_DESC desc = {};
-			desc.Width = w;
-			desc.Height = h;
-			desc.MipLevels = 1;
-			desc.ArraySize = 1;
-			desc.Usage = D3D11_USAGE_DEFAULT;
-			desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
-			desc.SampleDesc.Count = 1;
-			desc.SampleDesc.Quality = 0;
-			desc.CPUAccessFlags = false;
-			//#TODO
-
-			D3D11_SUBRESOURCE_DATA initData;
-			uint8* pData = image;
-			switch( comp )
-			{
-			case 3:
-				{
-					desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-
-
-					initData.pSysMem = (void *)image;
-					initData.SysMemPitch = w * comp;
-					initData.SysMemSlicePitch = w * h * comp;
-				}
-				break;
-			case 4:
-				{
-					initData.pSysMem = (void *)image;
-					initData.SysMemPitch = w * comp;
-					initData.SysMemSlicePitch = w * h * comp;
-					desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-				}
-				break;
-			}
-
-			VERIFY_D3D11RESULT_RETURN_FALSE(mDevice->CreateTexture2D(&desc, &initData, &outTexture) );
-
-			return true;
-		}
-
-
-		TComPtr< ID3D11Device > mDevice;
-		TComPtr< ID3D11DeviceContext > mDeviceContext;
+#undef USE_SEMANTIC
+#undef VERTEX_ELEMENT_SIZE
+#undef VETEX_ELEMENT_OFFSET
 	};
 
 
-	template<class T> 
-	struct ToShaderEnum {};
-	template<> struct ToShaderEnum< ID3D11VertexShader > { static Shader::Type constexpr Result = Shader::eVertex; };
-	template<> struct ToShaderEnum< ID3D11PixelShader > { static Shader::Type constexpr Result = Shader::ePixel; };
-	template<> struct ToShaderEnum< ID3D11GeometryShader > { static Shader::Type constexpr Result = Shader::eGeometry; };
-	template<> struct ToShaderEnum< ID3D11ComputeShader > { static Shader::Type constexpr Result = Shader::eCompute; };
-	template<> struct ToShaderEnum< ID3D11HullShader > { static Shader::Type constexpr Result = Shader::eHull; };
-	template<> struct ToShaderEnum< ID3D11DomainShader > { static Shader::Type constexpr Result = Shader::eDomain; };
 
 	class TestStage : public StageBase
 	{
 		typedef StageBase BaseClass;
 	public:
 		TestStage() {}
-		RHISystemD3D11 mRHISystem;
+		D3D11System* mRHISystem;
 
 		TComPtr< ID3D11VertexShader > mVertexShader;
 		TComPtr< ID3D10Blob >         mVertexShaderByteCode;
@@ -378,16 +114,16 @@ namespace RenderD3D
 		}
 
 		template< Shader::Type TypeValue >
-		void SetShaderResourceInternal(ShaderParameter const parameter, ID3D11ShaderResourceView* view)
+		void SetShaderResourceInternal(D3D11ShaderParameter const parameter, ID3D11ShaderResourceView* view)
 		{
 			switch( TypeValue )
 			{
-			case Shader::eVertex:   mRHISystem.mDeviceContext->VSSetShaderResources(parameter.bindIndex, 1, &view); break;
-			case Shader::ePixel:    mRHISystem.mDeviceContext->PSSetShaderResources(parameter.bindIndex, 1, &view); break;
-			case Shader::eGeometry: mRHISystem.mDeviceContext->GSSetShaderResources(parameter.bindIndex, 1, &view); break;
-			case Shader::eCompute:  mRHISystem.mDeviceContext->CSSetShaderResources(parameter.bindIndex, 1, &view); break;
-			case Shader::eHull:     mRHISystem.mDeviceContext->HSSetShaderResources(parameter.bindIndex, 1, &view); break;
-			case Shader::eDomain:   mRHISystem.mDeviceContext->DSSetShaderResources(parameter.bindIndex, 1, &view); break;
+			case Shader::eVertex:   mRHISystem->mDeviceContext->VSSetShaderResources(parameter.bindIndex, 1, &view); break;
+			case Shader::ePixel:    mRHISystem->mDeviceContext->PSSetShaderResources(parameter.bindIndex, 1, &view); break;
+			case Shader::eGeometry: mRHISystem->mDeviceContext->GSSetShaderResources(parameter.bindIndex, 1, &view); break;
+			case Shader::eCompute:  mRHISystem->mDeviceContext->CSSetShaderResources(parameter.bindIndex, 1, &view); break;
+			case Shader::eHull:     mRHISystem->mDeviceContext->HSSetShaderResources(parameter.bindIndex, 1, &view); break;
+			case Shader::eDomain:   mRHISystem->mDeviceContext->DSSetShaderResources(parameter.bindIndex, 1, &view); break;
 			}
 			
 		}
@@ -413,7 +149,7 @@ namespace RenderD3D
 				return true;
 			}
 
-			void setUpdateValue(ShaderParameter const parameter, void const* value , int valueSize )
+			void setUpdateValue(D3D11ShaderParameter const parameter, void const* value , int valueSize )
 			{
 				int idxDataEnd = parameter.offset + parameter.size;
 				if( updateData.size() <= idxDataEnd )
@@ -442,7 +178,7 @@ namespace RenderD3D
 
 
 		template< Shader::Type TypeValue >
-		void SetShaderValueInternal(ShaderParameter const parameter, void const* value, int valueSize)
+		void SetShaderValueInternal(D3D11ShaderParameter const parameter, void const* value, int valueSize)
 		{
 			assert(parameter.bindIndex < MaxConstBufferNum);
 			mConstBuffers[TypeValue][parameter.bindIndex].setUpdateValue(parameter, value, valueSize);
@@ -461,7 +197,7 @@ namespace RenderD3D
 
 		FrameSwapChain mSwapChain;
 
-		TComPtr< ID3D11Texture2D > mTexture;
+		RHITexture2DRef mTexture;
 		TComPtr< ID3D11ShaderResourceView > mTextureView;
 		struct MyVertex
 		{
@@ -475,15 +211,17 @@ namespace RenderD3D
 			if( !BaseClass::onInit() )
 				return false;
 
-			if( !mRHISystem.initialize() )
+			if( !RHISystemInitialize(RHISytemName::D3D11))
 			{
 				LogWarning( 0 , "Can't Initialize RHI System! ");
 				return false;
 			}
 
+			mRHISystem = static_cast<D3D11System*>(gRHISystem);
+
 			GameWindow& window = ::Global::getDrawEngine()->getWindow();
 			//::Global::getDrawEngine()->bStopPlatformGraphicsRender = true;
-			if( !mRHISystem.createFrameSwapChain(window.getHWnd(), window.getWidth(), window.getHeight(), true, mSwapChain) )
+			if( !mRHISystem->createFrameSwapChain(window.getHWnd(), window.getWidth(), window.getHeight(), true, mSwapChain) )
 			{
 				return false;
 			}
@@ -491,35 +229,34 @@ namespace RenderD3D
 			{
 				ShaderVariantD3D11 shaderVariant;
 				ShaderParameterMap parameterMap;
-				if( !mRHISystem.compileShader(Shader::eVertex, Code, strlen(Code), SHADER_ENTRY(MainVS), parameterMap, shaderVariant , mVertexShaderByteCode.address() ) )
+				if( !mRHISystem->compileShader(Shader::eVertex, Code, strlen(Code), SHADER_ENTRY(MainVS), parameterMap, shaderVariant , mVertexShaderByteCode.address() ) )
 					return false;
 				mVertexShader.initialize(shaderVariant.vertex);
 			}
 
 			{
 				ShaderVariantD3D11 shaderVariant;
-				if( !mRHISystem.compileShader(Shader::ePixel, Code, strlen(Code), SHADER_ENTRY(MainPS), mParameterMap, shaderVariant) )
+				if( !mRHISystem->compileShader(Shader::ePixel, Code, strlen(Code), SHADER_ENTRY(MainPS), mParameterMap, shaderVariant) )
 					return false;
 				mPixelShader.initialize(shaderVariant.pixel);
 			}
 
-			if( !mRHISystem.loadTexture("Texture/rocks.png", mTexture) )
+			mTexture = RHIUtility::LoadTexture2DFromFile("Texture/rocks.png");
+			if( !mTexture.isValid() )
 				return false;
 
 			HRESULT hr;
 
-			TComPtr< ID3D11Device >& device = mRHISystem.mDevice;
+			TComPtr< ID3D11Device >& device = mRHISystem->mDevice;
 			TComPtr< ID3D11Texture2D > backBuffer;
 			VERIFY_D3D11RESULT_RETURN_FALSE( mSwapChain.ptr->GetBuffer(0, IID_PPV_ARGS(&backBuffer)));
 
 			VERIFY_D3D11RESULT_RETURN_FALSE( device->CreateRenderTargetView( backBuffer , NULL, &renderTargetView) );
-			TComPtr< ID3D11DeviceContext >& context = mRHISystem.mDeviceContext;
+			TComPtr< ID3D11DeviceContext >& context = mRHISystem->mDeviceContext;
 			
 
-
-			
 			{
-				VERIFY_D3D11RESULT_RETURN_FALSE(device->CreateShaderResourceView(mTexture, NULL, &mTextureView));
+				VERIFY_D3D11RESULT_RETURN_FALSE(device->CreateShaderResourceView(D3D11Cast::GetImpl(mTexture), NULL, &mTextureView));
 			}
 
 			for( int i = 0 ; i < MaxConstBufferNum ; ++i )
@@ -621,11 +358,12 @@ namespace RenderD3D
 		}
 
 
+
 		void onRender(float dFrame)
 		{
 			Graphics2D& g = Global::getGraphics2D();
-			TComPtr< ID3D11DeviceContext >& context = mRHISystem.mDeviceContext;
-			TComPtr< ID3D11Device >& device = mRHISystem.mDevice;
+			TComPtr< ID3D11DeviceContext >& context = mRHISystem->mDeviceContext;
+			TComPtr< ID3D11Device >& device = mRHISystem->mDevice;
 			GameWindow& window = ::Global::getDrawEngine()->getWindow();
 
 			context->ClearRenderTargetView(renderTargetView ,Vector4(0.2, 0.2, 0.2,1));

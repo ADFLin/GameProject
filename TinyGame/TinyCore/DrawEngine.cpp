@@ -5,6 +5,9 @@
 #include "Thread.h"
 
 #include "RHI/RHIGraphics2D.h"
+#include "RHI/RHICommand.h"
+
+
 #include "GLGraphics2D.h"
 #include "GameGlobal.h"
 #include "RenderUtility.h"
@@ -143,7 +146,13 @@ bool DrawEngine::startOpenGL( bool useGLEW , int numSamples )
 		}
 	}
 
+	using namespace RenderGL;
+	if( !RHISystemInitialize(RHISytemName::Opengl) )
+		return false;
+
+
 	RenderUtility::StartOpenGL();
+
 	mbGLEnabled = true;
 
 	return true;

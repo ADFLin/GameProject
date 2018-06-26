@@ -13,7 +13,7 @@ namespace RenderGL
 	{
 	public:
 		static GlobalShaderProgram* CreateShader() { assert(0); return nullptr; }
-		static void SetupShaderCompileOption(ShaderCompileOption&) {}
+		static void SetupShaderCompileOption(ShaderCompileOption& option) {}
 		static char const* GetShaderFileName()
 		{
 			assert(0);
@@ -22,9 +22,17 @@ namespace RenderGL
 		static ShaderEntryInfo const* GetShaderEntries()
 		{
 			assert(0);
+#if 0
+			static ShaderEntryInfo const entries[] =
+			{
+				{ Shader::eVertex , SHADER_ENTRY(MainVS) },
+				{ Shader::ePixel  , SHADER_ENTRY(MainPS) },
+				{ Shader::eEmpty  , nullptr },
+			};
+#endif
 			return nullptr;
 		}
-		struct GlobalShaderProgramClass* myClass;
+		class GlobalShaderProgramClass* myClass;
 	};
 
 

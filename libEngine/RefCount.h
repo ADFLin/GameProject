@@ -22,7 +22,6 @@ public:
 		--mRefCount;
 		if ( mRefCount <= 0 )
 		{
-			_this()->destroyThis();
 			return true;
 		}
 		return false; 
@@ -64,7 +63,6 @@ public:
 	void     release() 
 	{ 
 		cleanup();
-		mPtr = 0;
 	}
 
 	TRefCountPtr& operator = ( TRefCountPtr const& rcPtr ){  assign( rcPtr.mPtr ); return *this;  }
@@ -74,7 +72,14 @@ public:
 	TRefCountPtr& operator = ( T* ptr ){  assign( ptr ); return *this;  }
 private:
 	void init( T* ptr ){ mPtr = ptr; if ( mPtr ) mPtr->incRef(); }
-	void cleanup(){  if ( mPtr ) mPtr->decRef();  }
+	void cleanup()
+	{
+		if( mPtr && mPtr->decRef() )
+		{
+			mPtr->destroyThis();
+		}  
+		mPtr = nullptr;
+	}
 	void assign( T* ptr )
 	{
 		if ( mPtr == ptr )

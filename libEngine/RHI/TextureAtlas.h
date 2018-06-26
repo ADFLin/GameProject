@@ -21,13 +21,10 @@ namespace RenderGL
 		void getRectUV(int id, Vector2& outMin, Vector2& outMax) const;
 
 		RHITexture2D& getTexture() { return *mTexture; }
-		int getTextureNum() const { return mNextImageId; }
+		int  getTextureNum() const { return mNextImageId; }
 		void releaseRHI()
 		{
-			if( mTexture )
-			{
-				mTexture->release();
-			}
+			mTexture.release();
 		}
 
 		int              mBorder;

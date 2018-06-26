@@ -11,6 +11,8 @@
 
 namespace Go
 {
+	using namespace RenderGL;
+
 	bool BoardRenderer::initializeRHI()
 	{
 		if( !mTextureAtlas.create(Texture::eRGBA8, 128, 128, 2) )
@@ -22,7 +24,8 @@ namespace Go
 			return false;
 
 #define TEXTURE( ID , PATH )\
-			if( !mTextures[ID].loadFromFile(PATH) )\
+			mTextures[ID] = RHIUtility::LoadTexture2DFromFile(PATH);\
+			if( !mTextures[ID].isValid() )\
 				return false
 
 		TEXTURE(TextureId::eBlockStone, "Go/blackStone.png");

@@ -177,7 +177,7 @@ namespace RenderGL
 		glEnable(GL_TEXTURE_2D);
 		{
 			GL_BIND_LOCK_OBJECT(texture);
-			glBindSampler( 0 , sampler.mHandle );
+			glBindSampler( 0 , OpenGLCast::GetHandle(sampler) );
 			glColor3f(1, 1, 1);
 			DrawUtility::Rect(pos.x, pos.y, size.x, size.y);
 		}

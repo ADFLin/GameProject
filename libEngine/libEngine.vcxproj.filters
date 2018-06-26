@@ -110,6 +110,12 @@
     <Filter Include="Hardware">
       <UniqueIdentifier>{e62429ee-90bb-44a8-a466-b572fa4ae06b}</UniqueIdentifier>
     </Filter>
+    <Filter Include="RHI\OpenGL">
+      <UniqueIdentifier>{c967042e-a842-4761-b97f-191342eee644}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="RHI\D3D11">
+      <UniqueIdentifier>{a8ca91b3-67c5-4e34-abdd-c79673a86a32}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="AppEntry.cpp">
@@ -339,6 +345,12 @@
     </ClCompile>
     <ClCompile Include="RHI\MaterialShader.cpp">
       <Filter>RHI</Filter>
+    </ClCompile>
+    <ClCompile Include="RHI\OpenGLCommand.cpp">
+      <Filter>RHI\OpenGL</Filter>
+    </ClCompile>
+    <ClCompile Include="RHI\D3D11Command.cpp">
+      <Filter>RHI\D3D11</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -887,6 +899,12 @@
     </ClInclude>
     <ClInclude Include="RHI\GlobalShader.h">
       <Filter>RHI</Filter>
+    </ClInclude>
+    <ClInclude Include="RHI\OpenGLCommand.h">
+      <Filter>RHI\OpenGL</Filter>
+    </ClInclude>
+    <ClInclude Include="RHI\D3D11Command.h">
+      <Filter>RHI\D3D11</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

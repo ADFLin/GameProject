@@ -450,20 +450,24 @@ namespace RenderGL
 
 		bool UpdateInstanceBuffer()
 		{
+			int newBufferSize = sizeof(Vector4) * 4 * mInstanceTransforms.size();
 			if( !mInstancedBuffer.isValid() )
 			{
-				mInstancedBuffer = RHICreateVertexBuffer();
+				mInstancedBuffer = RHICreateVertexBuffer(sizeof(Vector4) * 4, mInstanceTransforms.size(), BCF_UsageDynamic, nullptr);
 				if( !mInstancedBuffer.isValid() )
 				{
 					LogMsg("Can't create vertex buffer!!");
 					return false;
 				}
 			}
-			int newBufferSize = sizeof(Vector4) * 4 * mInstanceTransforms.size();
-			if( mInstancedBuffer->mBufferSize < newBufferSize )
+			else
 			{
-				mInstancedBuffer->resetData(sizeof(Vector4) * 4, mInstanceTransforms.size(), nullptr, Buffer::eDynamic);
+				if( mInstancedBuffer->getSize() < newBufferSize )
+				{
+					mInstancedBuffer->resetData(sizeof(Vector4) * 4, mInstanceTransforms.size(), BCF_UsageDynamic, nullptr);
+				}
 			}
+
 			Vector4* ptr = (Vector4*)mInstancedBuffer->lock(ELockAccess::WriteOnly);
 			if( ptr == nullptr )
 			{
@@ -522,16 +526,19 @@ namespace RenderGL
 			if( !mBuffer.create() )
 				return false;
 
-			mTexEnv = new RHITextureCube;
+			mTexEnv = RHICreateTextureCube();
 			if( !mTexEnv->create(Texture::eFloatRGBA, MapSize, MapSize) )
 				return false;
-
+#if USE_DepthRenderBuffer
 			RHIDepthRenderBufferRef depthBuffer = new RHIDepthRenderBuffer;
 			if( !depthBuffer->create(MapSize, MapSize, Texture::eDepth24) )
 				return false;
+#endif
 
 			mBuffer.addTexture(*mTexEnv, Texture::eFaceX);
+#if USE_DepthRenderBuffer
 			mBuffer.setDepth(*depthBuffer);
+#endif
 			return true;
 
 		}

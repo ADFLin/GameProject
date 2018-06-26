@@ -90,6 +90,8 @@ namespace FlappyBird
 
 	bool LevelStage::loadResource()
 	{
+		using namespace RenderGL;
+
 		char const* fileName[TextureID::Count] =
 		{
 			"Bird.png" ,
@@ -103,12 +105,14 @@ namespace FlappyBird
 		{
 			FixString<128> path;
 			path.format("FlappyBird/%s", fileName[i]);
-			if( !mTextures[i].loadFromFile(path) )
+			mTextures[i] = RHIUtility::LoadTexture2DFromFile(path);
+			if( !mTextures[i].isValid() )
 				return false;
 
-			GL_BIND_LOCK_OBJECT(mTextures[i]);
+			RenderGL::OpenGLCast::To(mTextures[i])->bind();
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+			RenderGL::OpenGLCast::To(mTextures[i])->unbind();
 		}
 
 		return true;

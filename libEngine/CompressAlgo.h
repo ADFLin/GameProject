@@ -275,7 +275,7 @@ public:
 	{
 		size_t operator() ( Keyword const& key ) const
 		{
-			return Type::Hash( ( char const*) key.ptr, key.num);
+			return HashValue( ( char const*) key.ptr, key.num);
 		}
 	};
 

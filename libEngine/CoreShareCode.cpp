@@ -6,6 +6,7 @@
 #include "RHI/ShaderCompiler.cpp"
 #include "RHI/MaterialShader.cpp"
 #include "RHI/VertexFactory.cpp"
+#include "RHI/RHICommand.cpp"
 #include "RHI/Font.cpp"
 #include "UnitTest/TestClass.cpp"
 #endif

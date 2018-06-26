@@ -1,10 +1,19 @@
 #include "RHICommand.h"
 
+#include "GLCommon.h"
 #include <cassert>
 
+#include "stb/stb_image.h"
+
+#include "OpenGLCommand.h"
+#include "D3D11Command.h"
 
 namespace RenderGL
 {
+#if CORE_SHARE_CODE
+	RHISystem* gRHISystem = nullptr;
+#endif
+
 	static void EnableGLState(GLenum param, bool bEnable)
 	{
 		if( bEnable )
@@ -57,64 +66,75 @@ namespace RenderGL
 
 	GLDeviceState gDeviceState;
 
-
-	template< class T, class ...Args >
-	T* CreateRHIObjectT(Args ...args)
+	bool RHISystemInitialize(RHISytemName name)
 	{
-		T* result = new T;
-		if( result && !result->create(std::forward< Args >(args)...) )
+		if( gRHISystem == nullptr )
 		{
-			delete result;
-			return nullptr;
+			switch( name )
+			{
+			case RHISytemName::D3D11: gRHISystem = new D3D11System; break;
+			case RHISytemName::Opengl:gRHISystem = new OpenGLSystem; break;
+			}
+
+			if( gRHISystem && !gRHISystem->initialize() )
+			{
+				delete gRHISystem;
+				gRHISystem = nullptr;
+			}
 		}
-		return result;
+		
+		return gRHISystem != nullptr;
 	}
 
 
-
-	RHITexture1D* RHICreateTexture1D(Texture::Format format, int length , int numMipLevel /*= 0*/, void* data /*= nullptr*/)
+	void RHISystemShutdown()
 	{
-		return CreateRHIObjectT< RHITexture1D >(format, length, numMipLevel, data);
+
 	}
 
-	RHITexture2D* RHICreateTexture2D()
+	RHITexture1D* RHICreateTexture1D(Texture::Format format, int length, int numMipLevel /*= 0*/, void* data /*= nullptr*/)
 	{
-		return new RHITexture2D;
+		return gRHISystem->RHICreateTexture1D(format, length, numMipLevel, data);
 	}
 
 	RHITexture2D* RHICreateTexture2D(Texture::Format format, int w, int h, int numMipLevel, void* data , int dataAlign)
 	{
-		return CreateRHIObjectT< RHITexture2D >(format, w, h, numMipLevel, data, dataAlign);
+		return gRHISystem->RHICreateTexture2D(format, w, h, numMipLevel, data, dataAlign);
 	}
 
 	RHITexture3D* RHICreateTexture3D(Texture::Format format, int sizeX ,int sizeY , int sizeZ )
 	{
-		return CreateRHIObjectT< RHITexture3D >(format, sizeX, sizeY, sizeZ);
+		return gRHISystem->RHICreateTexture3D(format, sizeX, sizeY, sizeZ);
 	}
 
-	RHITextureDepth* RHICreateTextureDepth()
+	RHITextureDepth* RHICreateTextureDepth(Texture::DepthFormat format, int w, int h)
 	{
-		return new RHITextureDepth;
+		return gRHISystem->RHICreateTextureDepth(format, w, h);
 	}
 
 	RHITextureCube* RHICreateTextureCube()
 	{
-		return new RHITextureCube;
+		return gRHISystem->RHICreateTextureCube();
 	}
 
-	RHIVertexBuffer* RHICreateVertexBuffer()
+	RHIVertexBuffer* RHICreateVertexBuffer(uint32 vertexSize, uint32 numVertices, uint32 creationFlags, void* data)
 	{
-		return CreateRHIObjectT< RHIVertexBuffer >();
+		return gRHISystem->RHICreateVertexBuffer(vertexSize, numVertices, creationFlags, data);
 	}
 
-	RHIUniformBuffer* RHICreateUniformBuffer(uint32 size)
+	RHIIndexBuffer* RHICreateIndexBuffer(uint32 nIndices, bool bIntIndex, uint32 creationFlags, void* data)
 	{
-		return CreateRHIObjectT< RHIUniformBuffer >( size );
+		return gRHISystem->RHICreateIndexBuffer(nIndices, bIntIndex, creationFlags, data);
 	}
 
-	RHIStorageBuffer* RHICreateStorageBuffer(uint32 size)
+	RHIUniformBuffer* RHICreateUniformBuffer(uint32 size, uint32 creationFlags, void* data)
 	{
-		return CreateRHIObjectT< RHIStorageBuffer >(size);
+		return gRHISystem->RHICreateUniformBuffer(size, creationFlags, data);
+	}
+
+	RHIStorageBuffer* RHICreateStorageBuffer(uint32 size, uint32 creationFlags, void* data)
+	{
+		return gRHISystem->RHICreateStorageBuffer(size, creationFlags, data);
 	}
 
 	void RHISetupFixedPipeline(Matrix4 const& matModelView, Matrix4 const& matProj,  int numTexture /*= 0*/, RHITexture2D** texture /*= nullptr*/)
@@ -129,7 +149,7 @@ namespace RenderGL
 			for( int i = 0; i < numTexture; ++i )
 			{
 				glEnable(GL_TEXTURE0 + i);
-				glBindTexture(GL_TEXTURE_2D, texture[i]->mHandle);
+				glBindTexture(GL_TEXTURE_2D, texture[i] ? OpenGLCast::GetHandle( *texture[i] ) : 0 );
 			}
 		}
 	}
@@ -213,9 +233,9 @@ namespace RenderGL
 #undef VAR_ASSIGN
 	}
 
-	RenderGL::RHISamplerState* RHICreateSamplerState(SamplerStateInitializer const& initializer)
+	RHISamplerState* RHICreateSamplerState(SamplerStateInitializer const& initializer)
 	{
-		RHISamplerState* result = new RHISamplerState;
+		OpenGLSamplerState* result = new OpenGLSamplerState;
 		if( result && !result->create(initializer) )
 		{
 			delete result;
@@ -448,5 +468,32 @@ namespace RenderGL
 
 #undef SWITCH_CULL_MODE
 	}
+
+	RHITexture2D* RHIUtility::LoadTexture2DFromFile(char const* path)
+	{
+		int w;
+		int h;
+		int comp;
+		unsigned char* image = stbi_load(path, &w, &h, &comp, STBI_default);
+
+		if( !image )
+			return false;
+
+
+		RHITexture2D* result = nullptr;
+		//#TODO
+		switch( comp )
+		{
+		case 3:
+			result = RHICreateTexture2D(Texture::eRGB8, w, h, 0, image, 1);
+			break;
+		case 4:
+			result = RHICreateTexture2D(Texture::eRGBA8, w, h, 0, image);
+			break;
+		}
+
+		return result;
+	}
+
 
 }

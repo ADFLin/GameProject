@@ -153,11 +153,13 @@ namespace RenderGL
 		{
 			if( !mTextAtlas.create(Texture::eRGBA8, 1024, 1024, 1) )
 				return false;
-			mTextAtlas.getTexture().bind();
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_A, GL_RED);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_G, GL_RED);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_B, GL_RED);
-			mTextAtlas.getTexture().unbind();
+
+			{
+				GL_BIND_LOCK_OBJECT(mTextAtlas.getTexture());
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_A, GL_RED);
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_G, GL_RED);
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_B, GL_RED);
+			}
 
 			bInitialized = true;
 		}
@@ -339,17 +341,14 @@ namespace RenderGL
 
 		if( !mBuffer.empty() )
 		{
-			glEnable(GL_BLEND);
-			glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-			//RHISetBlendState(TStaticBlendState< CWM_RGBA, Blend::eSrcAlpha, Blend::eOneMinusSrcAlpha >::GetRHI());
+			RHISetBlendState(TStaticBlendState< CWM_RGBA, Blend::eSrcAlpha, Blend::eOneMinusSrcAlpha >::GetRHI());
 			{
 				glEnable(GL_TEXTURE_2D);
 				GL_BIND_LOCK_OBJECT(mCharDataSet->getTexture());
 				TRenderRT< RTVF_XY_T2 >::Draw(PrimitiveType::Quad, &mBuffer[0], mBuffer.size());
 				glDisable(GL_TEXTURE_2D);
 			}
-			//RHISetBlendState(TStaticBlendState<>::GetRHI());
-			glDisable(GL_BLEND);
+			RHISetBlendState(TStaticBlendState<>::GetRHI());
 		}
 	}
 

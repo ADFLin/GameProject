@@ -17,10 +17,10 @@ namespace RenderGL
 			{
 				glGenVertexArrays(1, &VAOHandle);
 				glBindVertexArray(VAOHandle);
-				vertexBuffer->bind();
+				OpenGLCast::To(vertexBuffer)->bind();
 				vertexDecl->bindAttrib();
 				glBindVertexArray(0);
-				vertexBuffer->unbind();
+				OpenGLCast::To(vertexBuffer)->unbind();
 				vertexDecl->unbindAttrib();
 			}
 
@@ -45,7 +45,7 @@ namespace RenderGL
 		}
 		else
 		{
-			vertexBuffer->bind();
+			OpenGLCast::To(vertexBuffer)->bind();
 			vertexDecl->bindPointer();
 
 			for( int i = 0; i < elements.size(); ++i )
@@ -65,7 +65,7 @@ namespace RenderGL
 			//checkGLError();
 			
 			vertexDecl->unbindPointer();
-			vertexBuffer->unbind();
+			OpenGLCast::To(vertexBuffer)->unbind();
 		}
 	}
 
@@ -74,14 +74,13 @@ namespace RenderGL
 		mDecl.addElement(Vertex::ATTRIBUTE_POSITION, Vertex::eFloat4);
 		mDecl.addElement(Vertex::ATTRIBUTE_COLOR, Vertex::eFloat4);
 
-		mVertexBuffer = new RHIVertexBuffer;
-		mVertexBuffer->create(sizeof(SimpleVertex), MaxVertexSize, nullptr, Buffer::eDynamic);
+		mVertexBuffer = RHICreateVertexBuffer(sizeof(SimpleVertex), MaxVertexSize, BCF_UsageDynamic);
 		glGenVertexArrays(1, &mVAO);
 		glBindVertexArray(mVAO);
-		mVertexBuffer->bind();
+		OpenGLCast::To(mVertexBuffer)->bind();
 		mDecl.bindAttrib();
 		glBindVertexArray(0);
-		mVertexBuffer->unbind();
+		OpenGLCast::To(mVertexBuffer)->unbind();
 		mDecl.unbindAttrib();
 
 		if( !ShaderManager::Get().loadFile(

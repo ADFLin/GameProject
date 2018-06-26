@@ -13,59 +13,38 @@
 #include "LogSystem.h"
 #include "TVector2.h"
 
+#include "RefCount.h"
+
 #include <vector>
 #include <functional>
-
-#include "RefCount.h"
+#include <type_traits>
 
 
 namespace RenderGL
 {
 
 	template< class RMPolicy >
-	class TGLObjectBase
+	class TOpenGLObject : public RefCountedObjectT< TOpenGLObject< RMPolicy > >
 	{
 	public:
-		TGLObjectBase()
+		TOpenGLObject()
 		{
 			mHandle = 0;
 		}
 
-		~TGLObjectBase()
+		~TOpenGLObject()
 		{
-			destroy();
+			destroyHandle();
 		}
 
 		bool isValid() { return mHandle != 0; }
-
-		void release()
-		{
-			destroy();
-		}
-
-		void destroy()
-		{
-			if( mHandle )
-			{
-				RMPolicy::Destroy(mHandle);
-				GLenum error = glGetError();
-				if( error != GL_NO_ERROR )
-				{
-					//#TODO
-					LogError("Can't Destory GL Object");
-				}
-			}
-			mHandle = 0;
-		}
-
-
 
 #if CPP_VARIADIC_TEMPLATE_SUPPORT
 		template< class ...Args >
 		bool fetchHandle(Args&& ...args)
 		{
 			if( !mHandle )
-				RMPolicy::Create(mHandle, std::forward(args)...);
+				RMPolicy::Create(mHandle, std::forward<Args>(args)...);
 			return mHandle != 0;
 		}
 
@@ -86,6 +65,22 @@ namespace RenderGL
 		}
 
 #endif
+
+		void destroyHandle()
+		{
+			if( mHandle )
+			{
+				RMPolicy::Destroy(mHandle);
+				GLenum error = glGetError();
+				if( error != GL_NO_ERROR )
+				{
+					//#TODO
+					LogError("Can't Destory GL Object");
+				}
+			}
+			mHandle = 0;
+		}
+
 		GLuint mHandle;
 	};
 
@@ -94,19 +89,8 @@ namespace RenderGL
 		static void Create(GLuint& handle) { glGenTextures(1, &handle); }
 		static void Destroy(GLuint& handle) { glDeleteTextures(1, &handle); }
 	};
-	
-	struct RMPShader
-	{
-		static void Create(GLuint& handle, GLenum type) { handle = glCreateShader(type); }
-		static void Destroy(GLuint& handle) { glDeleteShader(handle); }
-	};	
-	
-	struct RMPShaderProgram
-	{
-		static void Create(GLuint& handle) { handle = glCreateProgram(); }
-		static void Destroy(GLuint& handle) { glDeleteProgram(handle); }
-	};
-	
+
+
 	struct RMPRenderBuffer
 	{
 		static void Create(GLuint& handle) { glGenRenderbuffers(1, &handle); }
@@ -126,7 +110,9 @@ namespace RenderGL
 		static void Destroy(GLuint& handle) { glDeleteSamplers(1, &handle); }
 	};
 
-	class RHIResource : public RefCountedObjectT< RHIResource >
+
+
+	class RHIResource
 	{
 	public:
 		RHIResource()
@@ -137,26 +123,34 @@ namespace RenderGL
 		{
 			--TotalCount;
 		}
-		virtual void releaseRHI(){}
+		virtual void incRef() = 0;
+		virtual bool decRef() = 0;
+		virtual void releaseResource() = 0;
+
 		void destroyThis()
 		{
-			releaseRHI();
+			releaseResource();
 			delete this;
 		}
-
 		static uint32 TotalCount;
 	};
 
 	typedef  TRefCountPtr< RHIResource > RHIResourceRef;
 
 
-	template< class RMPolicy >
-	class TRHIResource : public RHIResource
-		               , public TGLObjectBase< RMPolicy >
+	template< class RHIResourceType , class RMPolicy >
+	class TOpenGLResource : public RHIResourceType
 	{
 	public:
-		virtual void releaseRHI() { TGLObjectBase< RMPolicy >::destroy();  }
+		GLuint getHandle() { return mGLObject.mHandle; }
+
+		virtual void incRef() { mGLObject.incRef();  }
+		virtual bool decRef() { return mGLObject.decRef();  }
+		virtual void releaseResource() { mGLObject.destroyHandle(); }
+
+		TOpenGLObject< RMPolicy > mGLObject;
 	};
+
 
 
 	enum ECompValueType
@@ -176,20 +170,7 @@ namespace RenderGL
 
 	};
 
-	struct SamplerStateInitializer
-	{
-		Sampler::Filter filter;
-		Sampler::AddressMode addressU;
-		Sampler::AddressMode addressV;
-		Sampler::AddressMode addressW;
-	};
-	class RHISamplerState : public TRHIResource< RMPSamplerObject >
-	{
-	public:
-		bool create(SamplerStateInitializer const& initializer);
-	};
 
-	typedef TRefCountPtr< RHISamplerState > RHISamplerStateRef;
 
 	struct Texture
 	{
@@ -261,7 +242,8 @@ namespace RenderGL
 		static GLenum GetComponentType(Format format);
 		static GLenum GetImage2DType(Format format);
 		static uint32 GetFormatSize(Format format);
-		
+		static uint32 GetComponentNum(Format format);
+
 		enum DepthFormat
 		{
 			eDepth16 ,
@@ -294,86 +276,137 @@ namespace RenderGL
 	};
 
 
+	class RHITexture1D;
+	class RHITexture2D;
+	class RHITexture3D;
+	class RHITextureDepth;
+	class RHITextureCube;
 
-	class RHITextureBase : public TRHIResource< RMPTexture >
+	template< class RHITextureType >
+	struct OpenGLTextureTraits {};
+
+	template<>
+	struct OpenGLTextureTraits< RHITexture1D >{ static GLenum constexpr EnumValue = GL_TEXTURE_1D; };
+	template<>
+	struct OpenGLTextureTraits< RHITexture2D >{ static GLenum constexpr EnumValue = GL_TEXTURE_2D; };
+	template<>
+	struct OpenGLTextureTraits< RHITexture3D >{ static GLenum constexpr EnumValue = GL_TEXTURE_3D; };
+	template<>
+	struct OpenGLTextureTraits< RHITextureCube >{ static GLenum constexpr EnumValue = GL_TEXTURE_CUBE_MAP; };
+	template<>
+	struct OpenGLTextureTraits< RHITextureDepth >{ static GLenum constexpr EnumValue = GL_TEXTURE_2D; };
+
+
+	class RHITextureBase : public RHIResource
 	{
 	public:
 		virtual ~RHITextureBase() {}
+		virtual RHITexture1D* getTexture1D() { return nullptr; }
+		virtual RHITexture2D* getTexture2D() { return nullptr; }
+		virtual RHITexture3D* getTexture3D() { return nullptr; }
+		virtual RHITextureCube* getTextureCube() { return nullptr; }
+
+		Texture::Format getFormat() const { return mFormat; }
 	protected:
-		bool loadFileInternal(char const* path, GLenum texType, GLenum texImageType, IntVector2& outSize , Texture::Format& outFormat);
+		Texture::Format mFormat;
 	};
 
-
-	template< GLenum TYPE_NAME_GL >
-	class TRHITextureBase : public RHITextureBase
+	class RHITexture1D : public RHITextureBase
 	{
 	public:
-		static GLenum const TypeNameGL = TYPE_NAME_GL;
+		virtual bool create(Texture::Format format, int length, int numMipLevel = 0, void* data = nullptr) = 0;
+		virtual bool update(int offset, int length, Texture::Format format, void* data, int level = 0) = 0;
+
+		int  getSize() const { return mSize; }
+	protected:
+		int mSize;
+	};
+
+	template< class RHITextureType >
+	class TOpengGLTexture : public TOpenGLResource< RHITextureType , RMPTexture >
+	{
+	protected:
+		static GLenum const TypeNameGL = OpenGLTextureTraits< RHITextureType >::EnumValue;
+
+	public:
 		void bind()
 		{
-			glBindTexture(TypeNameGL, mHandle);
+			glBindTexture(TypeNameGL, getHandle());
 		}
 
 		void unbind()
 		{
 			glBindTexture(TypeNameGL, 0);
 		}
-		Texture::Format getFormat() { return mFormat; }
-	protected:
-		Texture::Format mFormat;
-	};
-
-	class RenderTarget
-	{
 
 	};
 
-	class RHITexture1D : public TRHITextureBase< GL_TEXTURE_1D >
+
+	class OpenGLTexture1D : public TOpengGLTexture< RHITexture1D >
 	{
 	public:
-		bool create(Texture::Format format, int length, int numMipLevel = 0, void* data = nullptr);
-		int  getSize() const { return mSize; }
-		bool update(int offset, int length, Texture::Format format, void* data, int level = 0);
-	private:
-		int mSize;
+		bool create(Texture::Format format, int length, int numMipLevel , void* data );
+		bool update(int offset, int length, Texture::Format format, void* data, int level );
 	};
 
 
-	class RHITexture2D : public TRHITextureBase< GL_TEXTURE_2D >
+	class RHITexture2D : public RHITextureBase
 	{
 	public:
-		bool loadFromFile( char const* path );
-		bool create( Texture::Format format, int width, int height , int numMipLevel = 0 ,void* data = nullptr , int alignment = 0);
+		virtual bool update(int ox, int oy, int w, int h , Texture::Format format , void* data , int level = 0 ) = 0;
+		virtual bool update(int ox, int oy, int w, int h, Texture::Format format, int pixelStride, void* data, int level = 0) = 0;
+
 		int  getSizeX() const { return mSizeX; }
 		int  getSizeY() const { return mSizeY; }
-		bool update(int ox, int oy, int w, int h , Texture::Format format , void* data , int level = 0 );
-		bool update(int ox, int oy, int w, int h, Texture::Format format, int pixelStride, void* data, int level = 0);
-	private:
+	protected:
 		
 		int mSizeX;
 		int mSizeY;
 	};
 
-
-
-	class RHITexture3D : public TRHITextureBase< GL_TEXTURE_3D >
+	class OpenGLTexture2D : public TOpengGLTexture< RHITexture2D >
 	{
 	public:
-		bool create(Texture::Format format, int sizeX , int sizeY , int sizeZ );
+		bool loadFromFile(char const* path);
+		bool create(Texture::Format format, int width, int height, int numMipLevel, void* data, int alignment);
+
+		bool update(int ox, int oy, int w, int h, Texture::Format format, void* data, int level);
+		bool update(int ox, int oy, int w, int h, Texture::Format format, int pixelStride, void* data, int level);
+	};
+
+	class RHITexture3D : public RHITextureBase
+	{
+	public:
+		virtual bool create(Texture::Format format, int sizeX , int sizeY , int sizeZ ) = 0;
 		int  getSizeX() { return mSizeX; }
 		int  getSizeY() { return mSizeY; }
 		int  getSizeZ() { return mSizeZ; }
-	private:
+	
+	protected:
 		int mSizeX;
 		int mSizeY;
 		int mSizeZ;
 	};
 
-	class RHITextureCube : public TRHITextureBase< GL_TEXTURE_CUBE_MAP >
+	class OpenGLTexture3D : public TOpengGLTexture< RHITexture3D >
 	{
 	public:
-		bool loadFile( char const* path[] );
-		bool create( Texture::Format format, int width, int height, void* data = nullptr );
+		bool create(Texture::Format format, int sizeX, int sizeY, int sizeZ);
+	};
+
+	class RHITextureCube : public RHITextureBase
+	{
+	public:
+		virtual bool loadFile( char const* path[] ) = 0;
+		virtual bool create( Texture::Format format, int width, int height, void* data = nullptr ) = 0;
+	};
+
+
+	class OpenGLTextureCube : public TOpengGLTexture< RHITextureCube >
+	{
+	public:
+		bool loadFile(char const* path[]);
+		bool create(Texture::Format format, int width, int height, void* data );
 	};
 
 	typedef TRefCountPtr< RHITextureBase > RHITextureRef;
@@ -382,23 +415,20 @@ namespace RenderGL
 	typedef TRefCountPtr< RHITexture3D > RHITexture3DRef;
 	typedef TRefCountPtr< RHITextureCube > RHITextureCubeRef;
 
-	class RHITextureDepth : public TRHITextureBase< GL_TEXTURE_2D >
+	class RHITextureDepth : public RHITextureBase
 	{
 	public:
-		bool create(Texture::DepthFormat format, int width, int height);
+		virtual bool create(Texture::DepthFormat format, int width, int height) = 0;
 		Texture::DepthFormat getFormat() { return mFromat; }
 		Texture::DepthFormat mFromat;
 	};
-	typedef TRefCountPtr< RHITextureDepth > RHITextureDepthRef;
 
-	struct Buffer
+	class OpenGLTextureDepth : public TOpengGLTexture< RHITextureDepth >
 	{
-		enum Usage
-		{
-			eStatic,
-			eDynamic,
-		};
+	public:
+		bool create(Texture::DepthFormat format, int width, int height);
 	};
+	typedef TRefCountPtr< RHITextureDepth > RHITextureDepthRef;
 
 
 	class GLConvert
@@ -422,7 +452,6 @@ namespace RenderGL
 		static GLenum To(ECompValueType type );
 		static GLenum To(Sampler::Filter filter);
 		static GLenum To(Sampler::AddressMode mode);
-		static GLenum To(Buffer::Usage usage);
 		
 	};
 
@@ -472,6 +501,9 @@ namespace RenderGL
 		GLuint mHandle;
 	};
 
+#define USE_DepthRenderBuffer 0
+
+#if USE_DepthRenderBuffer
 	class RHIDepthRenderBuffer : public TRHIResource< RMPRenderBuffer >
 	{
 	public:
@@ -481,7 +513,10 @@ namespace RenderGL
 
 	};
 
+
 	typedef TRefCountPtr< RHIDepthRenderBuffer > RHIDepthRenderBufferRef;
+#endif
+
 
 	class FrameBuffer
 	{
@@ -500,7 +535,9 @@ namespace RenderGL
 		void bindDepthOnly();
 		void bind();
 		void unbind();
-		void setDepth( RHIDepthRenderBuffer& buffer  );
+#if USE_DepthRenderBuffer
+		void setDepth( RHIDepthRenderBuffer& buffer );
+#endif
 		void setDepth( RHITextureDepth& target );
 		void removeDepthBuffer();
 
@@ -519,6 +556,7 @@ namespace RenderGL
 		};
 		void setTextureInternal(int idx, GLuint handle, GLenum texType);
 		void setDepthInternal(RHIResource& resource, GLuint handle, Texture::DepthFormat format, bool bTexture);
+
 
 		std::vector< BufferInfo > mTextures;
 		BufferInfo  mDepth;
@@ -641,6 +679,19 @@ namespace RenderGL
 		};
 	};
 
+	enum TextureCreationFlag : uint32
+	{
+		TCF_CreateSRV = BIT(0),
+		TCF_CreateUAV = BIT(1),
+		TCF_RenderTarget = BIT(2),
+	};
+
+	enum BufferCreationFlag : uint32
+	{
+		BCF_UsageDynamic = BIT(0),
+		BCF_UsageStage = BIT(1),
+	};
+
 
 	struct VertexElement
 	{
@@ -684,23 +735,63 @@ namespace RenderGL
 		uint8   mVertexSize;
 	};
 
-	template< uint32 GLBufferType >
-	class TRHIBufferBase : public TRHIResource< RMPBufferObject >
+	class RHIBufferBase : public RHIResource
 	{
 	public:
-		void  bind() { glBindBuffer(GLBufferType, mHandle); }
+		RHIBufferBase()
+		{
+			mBufferSize = 0;
+			mCreationFlags = 0;
+		}
+		uint32 getSize() const { return mBufferSize; }
+
+		virtual void* lock(ELockAccess access) = 0;
+		virtual void* lock(ELockAccess access, uint32 offset, uint32 length) = 0;
+		virtual void  unlock() = 0;
+
+	protected:
+		uint32 mCreationFlags;
+		uint32 mBufferSize;
+	};
+
+
+	class RHIVertexBuffer;
+	class RHIIndexBuffer;
+	class RHIUniformBuffer;
+	class RHIStorageBuffer;
+
+	template< class RHITextureType >
+	struct OpenGLBufferTraits {};
+
+	template<>
+	struct OpenGLBufferTraits< RHIVertexBuffer >{  static GLenum constexpr EnumValue = GL_ARRAY_BUFFER;  };
+	template<>
+	struct OpenGLBufferTraits< RHIIndexBuffer > { static GLenum constexpr EnumValue = GL_ELEMENT_ARRAY_BUFFER; };
+	template<>
+	struct OpenGLBufferTraits< RHIUniformBuffer > { static GLenum constexpr EnumValue = GL_UNIFORM_BUFFER; };
+	template<>
+	struct OpenGLBufferTraits< RHIStorageBuffer > { static GLenum constexpr EnumValue = GL_SHADER_STORAGE_BUFFER; };
+
+
+	template < class RHIBufferType >
+	class TOpenGLBuffer : public TOpenGLResource< RHIBufferType, RMPBufferObject >
+	{
+	public:
+		static GLenum constexpr GLBufferType = OpenGLBufferTraits< RHIBufferType >::EnumValue;
+
+		void  bind() { glBindBuffer(GLBufferType, getHandle()); }
 		void  unbind() { glBindBuffer(GLBufferType, 0); }
 
 		void* lock(ELockAccess access)
 		{
-			glBindBuffer(GLBufferType, mHandle);
+			glBindBuffer(GLBufferType, getHandle());
 			void* result = glMapBuffer(GLBufferType, GLConvert::To(access));
 			glBindBuffer(GLBufferType, 0);
 			return result;
 		}
 		void* lock(ELockAccess access, uint32 offset, uint32 length)
 		{
-			glBindBuffer(GLBufferType, mHandle);
+			glBindBuffer(GLBufferType, getHandle());
 
 			GLbitfield accessBits = 0;
 			switch( access )
@@ -720,52 +811,70 @@ namespace RenderGL
 			return result;
 		}
 
-		bool createInternal( uint32 size , void* initData , GLenum usageType )
-		{
-			if( !fetchHandle() )
-				return false;
-
-			glBindBuffer(GLBufferType, mHandle);
-			glBufferData(GLBufferType, size , initData , usageType);
-			glBindBuffer(GLBufferType, 0);
-
-			mBufferSize = size;
-			return true;
-		}
-
 		void unlock()
 		{
-			glBindBuffer(GLBufferType, mHandle);
+			glBindBuffer(GLBufferType, getHandle());
 			glUnmapBuffer(GLBufferType);
 			glBindBuffer(GLBufferType, 0);
 		}
 
-		uint32 getSize() const { return mBufferSize; }
+		bool createInternal(uint32 size, uint32 creationFlags , void* initData)
+		{
+			if( !mGLObject.fetchHandle() )
+				return false;
 
-		uint32 mBufferSize;
+			return resetDataInternal(size, creationFlags, initData);
+		}
+
+		bool resetDataInternal(uint32 size, uint32 creationFlags, void* initData)
+		{
+			glBindBuffer(GLBufferType, getHandle());
+			glBufferData(GLBufferType, size, initData, GetUsageEnum(creationFlags));
+			glBindBuffer(GLBufferType, 0);
+
+			mCreationFlags = creationFlags;
+			mBufferSize = size;
+			return true;
+		}
+
+
+		static GLenum GetUsageEnum(uint32 creationFlags)
+		{
+			if( creationFlags & BCF_UsageDynamic )
+				return GL_DYNAMIC_DRAW;
+			else if( creationFlags & BCF_UsageStage )
+				return GL_STREAM_DRAW;
+			return GL_STATIC_DRAW;
+		}
+		
 	};
 
-	class RHIVertexBuffer : public TRHIBufferBase< GL_ARRAY_BUFFER >
+	class RHIVertexBuffer : public RHIBufferBase
 	{
 	public:
 		RHIVertexBuffer()
 		{
-			mBufferSize = 0;
 			mNumVertices = 0;
 			mVertexSize = 0;
 		}
-		bool  create();
-		bool  create( uint32 vertexSize,  uint32 numVertices , void* data = nullptr , Buffer::Usage usage = Buffer::eStatic );
-		
-		void  resetData(uint32 vertexSize, uint32 numVertices, void* data = nullptr, Buffer::Usage usage = Buffer::eStatic);
-		void  updateData(uint32 vStart, uint32 numVertices, void* data);
+
+		virtual void  resetData(uint32 vertexSize, uint32 numVertices, uint32 creationFlags, void* data) = 0;
+		virtual void  updateData(uint32 vStart, uint32 numVertices, void* data) = 0;
 
 		uint32 mNumVertices;
 		uint32 mVertexSize;
 
 	};
 
-	class RHIIndexBuffer : public TRHIBufferBase< GL_ELEMENT_ARRAY_BUFFER >
+	class OpenGLVertexBuffer : public TOpenGLBuffer< RHIVertexBuffer >
+	{
+	public:
+		bool  create(uint32 vertexSize, uint32 numVertices, uint32 creationFlags, void* data);
+		void  resetData(uint32 vertexSize, uint32 numVertices, uint32 creationFlags, void* data);
+		void  updateData(uint32 vStart, uint32 numVertices, void* data);
+	};
+
+	class RHIIndexBuffer : public RHIBufferBase
 	{
 	public:
 		RHIIndexBuffer()
@@ -773,34 +882,73 @@ namespace RenderGL
 			mNumIndices = 0;
 			mbIntIndex = false;
 		}
-		bool create(uint32 nIndices, bool bIntIndex , void* data )
-		{
-			if ( !createInternal( (bIntIndex ? sizeof(GLuint) : sizeof(GLushort)) * nIndices , data , GL_STATIC_DRAW ) )
-				return false;
-
-			mNumIndices = nIndices;
-			mbIntIndex = bIntIndex;
-			return true;
-		}
-		void bind() { glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mHandle); }
-		void unbind() { glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0); }
 
 		bool   mbIntIndex;
 		uint32 mNumIndices;
 	};
 
-	class RHIUniformBuffer : public TRHIBufferBase< GL_UNIFORM_BUFFER >
+
+	class OpenGLIndexBuffer : public TOpenGLBuffer< RHIIndexBuffer >
 	{
 	public:
-		bool create(uint32 size);
+
+		bool create(uint32 nIndices, bool bIntIndex, uint32 creationFlags, void* data)
+		{
+			if( !createInternal((bIntIndex ? sizeof(GLuint) : sizeof(GLushort)) * nIndices, creationFlags , data) )
+				return false;
+			mNumIndices = nIndices;
+			mbIntIndex = bIntIndex;
+			return true;
+		}
+	};
+
+	class RHIUniformBuffer : public RHIBufferBase
+	{
+	public:
+	};
+
+	class OpenGLUniformBuffer : public TOpenGLBuffer< RHIUniformBuffer >
+	{
+	public:
+		bool create(uint32 size, uint32 creationFlags, void* data);
+	};
+
+	class RHIStorageBuffer : public RHIBufferBase
+	{
+	public:
+	};
+
+	class OpenGLStorageBuffer : public TOpenGLBuffer< RHIStorageBuffer >
+	{
+	public:
+		bool create(uint32 size, uint32 creationFlags, void* data);
+	};
+
+	struct SamplerStateInitializer
+	{
+		Sampler::Filter filter;
+		Sampler::AddressMode addressU;
+		Sampler::AddressMode addressV;
+		Sampler::AddressMode addressW;
 	};
 
 
-	class RHIStorageBuffer : public TRHIBufferBase< GL_SHADER_STORAGE_BUFFER >
+
+
+
+	class RHISamplerState : public RHIResource
+	{
+
+	};
+
+
+	class OpenGLSamplerState : public TOpenGLResource< RHISamplerState, RMPSamplerObject >
 	{
 	public:
-		bool create(uint32 size);
+		bool create(SamplerStateInitializer const& initializer);
 	};
+
+	typedef TRefCountPtr< RHISamplerState > RHISamplerStateRef;
 
 	typedef TRefCountPtr< RHIVertexBuffer > RHIVertexBufferRef;
 	typedef TRefCountPtr< RHIIndexBuffer > RHIIndexBufferRef;
@@ -815,22 +963,60 @@ namespace RenderGL
 		int32 numElement;
 	};
 
+	class RHIShader;
+	class ShaderProgram;
+
+	struct OpenGLCast
+	{
+		static OpenGLTexture1D* To(RHITexture1D* tex) { return static_cast<OpenGLTexture1D*>(tex); }
+		static OpenGLTexture2D* To(RHITexture2D* tex) { return static_cast<OpenGLTexture2D*>(tex); }
+		static OpenGLTexture3D* To(RHITexture3D* tex) { return static_cast<OpenGLTexture3D*>(tex); }
+		static OpenGLTextureCube* To(RHITextureCube* tex) { return static_cast<OpenGLTextureCube*>(tex); }
+		static OpenGLTextureDepth* To(RHITextureDepth* tex) { return static_cast<OpenGLTextureDepth*>(tex); }
+
+		static OpenGLVertexBuffer* To(RHIVertexBuffer* buffer) { return static_cast<OpenGLVertexBuffer*>(buffer); }
+		static OpenGLIndexBuffer* To(RHIIndexBuffer* buffer) { return static_cast<OpenGLIndexBuffer*>(buffer); }
+		static OpenGLUniformBuffer* To(RHIUniformBuffer* buffer) { return static_cast<OpenGLUniformBuffer*>(buffer); }
+		static OpenGLStorageBuffer* To(RHIStorageBuffer* buffer) { return static_cast<OpenGLStorageBuffer*>(buffer); }
+
+		static OpenGLSamplerState* To(RHISamplerState* state ) { return static_cast<OpenGLSamplerState*>(state); }
+
+		static RHIShader* To(RHIShader* shader) { return shader; }
+		static ShaderProgram* To(ShaderProgram* shader) { return shader; }
+		static FrameBuffer* To(FrameBuffer* buffer) { return buffer; }
+
+		template < class T >
+		static auto To(TRefCountPtr<T>& ptr) { return To(ptr.get()); }
+
+		template < class T >
+		static GLuint GetHandle(T& RHIObject)
+		{
+			return OpenGLCast::To(&RHIObject)->getHandle();
+		}
+		template < class T >
+		static GLuint GetHandle(TRefCountPtr<T>& refPtr )
+		{
+			return OpenGLCast::To(refPtr)->getHandle();
+		}
+	};
+
 	template< class T >
 	struct TBindLockScope
 	{
 		TBindLockScope(T& obj)
 			:mObj(obj)
 		{
-			mObj.bind();
+			OpenGLCast::To(&mObj)->bind();
 		}
 
 		~TBindLockScope()
 		{
-			mObj.unbind();
+			OpenGLCast::To(&mObj)->unbind();
 		}
 
 		T& mObj;
 	};
+
 
 
 	template< class T >
@@ -840,12 +1026,12 @@ namespace RenderGL
 			:mObj(obj)
 		{
 			assert(mObj);
-			mObj->bind();
+			OpenGLCast::To(mObj)->bind();
 		}
 
 		~TBindLockScope()
 		{
-			mObj->unbind();
+			OpenGLCast::To(mObj)->unbind();
 		}
 
 		T* mObj;
@@ -858,19 +1044,21 @@ namespace RenderGL
 			:mObj(obj)
 		{
 			assert(mObj);
-			mObj->bind();
+			OpenGLCast::To(mObj.get())->bind();
 		}
 
 		~TBindLockScope()
 		{
-			mObj->unbind();
+			OpenGLCast::To(mObj.get())->unbind();
 		}
 
 		TRefCountPtr< T >& mObj;
 	};
 
 #define GL_BIND_LOCK_OBJECT( obj )\
-	RenderGL::TBindLockScope< decltype(obj) >  ANONYMOUS_VARIABLE( BindLockObj )( obj );
+	RenderGL::TBindLockScope< std::remove_reference< decltype(obj) >::type >  ANONYMOUS_VARIABLE( BindLockObj )( obj );
+
+
 
 }
 

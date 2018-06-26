@@ -39,27 +39,27 @@ namespace RenderGL
 		if( !GBlackTextureCube->create(Texture::eRGBA8, 2, 2, colorB) )
 			return false;
 
-		GWhiteTextureCube->bind();
+		OpenGLCast::To(GWhiteTextureCube)->bind();
 		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
-		GWhiteTextureCube->unbind();
+		OpenGLCast::To(GWhiteTextureCube)->unbind();
 
-		GWhiteTexture2D->bind();
+		OpenGLCast::To(GWhiteTexture2D)->bind();
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-		GWhiteTexture2D->unbind();
+		OpenGLCast::To(GWhiteTexture2D)->unbind();
 
 		GDefalutMaterial = new MaterialMaster;
 		if( !GDefalutMaterial->loadFile("EmptyMaterial") )
 			return false;
 
-		GDefaultMaterialTexture2D = RHICreateTexture2D();
-		if( !GDefaultMaterialTexture2D->loadFromFile("Texture/Gird.png") )
+		GDefaultMaterialTexture2D = RHIUtility::LoadTexture2DFromFile("Texture/Gird.png");
+		if( !GDefaultMaterialTexture2D.isValid() )
 			return false;
 
 		ShaderCompileOption option;

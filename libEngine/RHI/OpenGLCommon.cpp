@@ -1,4 +1,4 @@
-#include "GLCommon.h"
+#include "OpenGLCommand.h"
 
 #include "GpuProfiler.h"
 #include "MarcoCommon.h"

@@ -110,6 +110,7 @@ namespace RenderGL
 		TriangleStrip,
 		LineList,
 		LineStrip,
+		TriangleAdjacency ,
 		//Discard?
 		TriangleFan,
 		LineLoop,

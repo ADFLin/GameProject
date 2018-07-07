@@ -76,6 +76,7 @@ namespace Math
 			if ( z > rhs.z ) z = rhs.z;
 		}
 
+		Vector3 abs() const { return Vector3(Math::Abs(x), Math::Abs(y), Math::Abs(z)); }
 		Vector3 projectNormal(Vector3 const& dir) const;
 
 		static Vector3 Zero(){ return Vector3(0,0,0); }

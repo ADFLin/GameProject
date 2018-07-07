@@ -670,30 +670,58 @@ GFrame::GFrame( int id , Vec2i const& pos , Vec2i const& size , GWidget* parent 
 
 }
 
+struct DragOperation
+{
+
+	void start(Vec2i const& startPos)
+	{
+		bStart = true;
+		pos = startPos;
+	}
+	void end()
+	{
+		bStart = false;
+	}
+	bool update(Vec2i const& inPos , Vec2i& outOffset )
+	{
+		if( bStart )
+		{
+			outOffset = inPos - pos;
+			pos = inPos;
+		}
+		return bStart;
+	}
+
+	Vec2i pos;
+	bool  bStart;
+};
+
 bool GFrame::onMouseMsg( MouseMsg const& msg )
 {
 	BaseClass::onMouseMsg( msg );
 
 	static int x , y;
+
+	static DragOperation operation;
 	if ( msg.onLeftDown() )
 	{
-		x = msg.x();
-		y = msg.y();
-
 		setTop();
 		getManager()->captureMouse( this );
+		operation.start(msg.getPos());
 	}
 	else if ( msg.onLeftUp() )
 	{
 		getManager()->releaseMouse();
+		operation.end();
 	}
 
 	if ( msg.isLeftDown() && msg.isDraging() )
 	{
-		Vec2i pos = getPos() +Vec2i( msg.x() - x , msg.y() - y );
-		setPos( pos );
-		x = msg.x();
-		y = msg.y();
+		Vec2i offset;
+		if( operation.update(msg.getPos(),offset) )
+		{
+			setPos(getPos() + offset);
+		}
 	}
 
 	return false;

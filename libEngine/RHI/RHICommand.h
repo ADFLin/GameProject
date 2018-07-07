@@ -2,8 +2,15 @@
 #ifndef RHICommand_H_C0CC3E6C_43AE_4582_8203_41997F0A4C7D
 #define RHICommand_H_C0CC3E6C_43AE_4582_8203_41997F0A4C7D
 
-#include "GLCommon.h"
+#include "RHICommon.h"
+
 #include "CoreShare.h"
+
+#include "SystemPlatform.h"
+
+#if SYS_PLATFORM_WIN
+#include "WindowsHeader.h"
+#endif
 
 namespace RenderGL
 {
@@ -14,232 +21,151 @@ namespace RenderGL
 		D3D11,
 		Opengl,
 	};
-	bool RHISystemInitialize(RHISytemName name );
 
+	struct RHISystemInitParam
+	{
+		int  numSamples;
+#if SYS_PLATFORM_WIN
+		HWND hWnd;
+		HDC  hDC;
+
+		RHISystemInitParam()
+		{
+			numSamples = 1;
+		}
+#endif
+	};
+
+	class RHIRenderWindow
+	{
+	public:
+		virtual RHITexture2D* getBackBufferTexture() = 0;
+		virtual void Present() = 0;
+	};
+
+	bool RHISystemInitialize(RHISytemName name , RHISystemInitParam const& initParam );
 	void RHISystemShutdown();
+	bool RHIBeginRender();
+	void RHIEndRender(bool bPresent);
 
+	struct PlatformWindowInfo
+	{
+		HWND hWnd;
+		HDC  hDC;
+		int  Width;
+		int  Height;
+		bool bFullScreen;
+		int  numSamples;
+
+		PlatformWindowInfo()
+		{
+			numSamples = 1;
+			bFullScreen = false;
+		}
+
+	};
+
+	RHIRenderWindow* RHICreateRenderWindow(PlatformWindowInfo const& info);
 
 	RHITexture1D*    RHICreateTexture1D(Texture::Format format, int length ,
-										int numMipLevel = 0, void* data = nullptr);
+										int numMipLevel = 0, uint32 creationFlags = TCF_DefalutValue,void* data = nullptr);
 
 	RHITexture2D*    RHICreateTexture2D(Texture::Format format, int w, int h, 
-										int numMipLevel = 0 , void* data = nullptr, int dataAlign = 0);
-	RHITexture3D*    RHICreateTexture3D(Texture::Format format, int sizeX, int sizeY, int sizeZ);
+										int numMipLevel = 0 , uint32 creationFlags = TCF_DefalutValue, void* data = nullptr, int dataAlign = 0);
+	RHITexture3D*    RHICreateTexture3D(Texture::Format format, int sizeX, int sizeY, int sizeZ , uint32 creationFlags = TCF_DefalutValue);
 
-	RHITextureDepth* RHICreateTextureDepth(Texture::DepthFormat format, int w, int h);
+	RHITextureDepth* RHICreateTextureDepth(Texture::DepthFormat format, int w, int );
 	RHITextureCube*  RHICreateTextureCube();
 
-	RHIVertexBuffer*  RHICreateVertexBuffer(uint32 vertexSize, uint32 numVertices, uint32 creationFlags = 0, void* data = nullptr);
-	RHIIndexBuffer*   RHICreateIndexBuffer(uint32 nIndices, bool bIntIndex, uint32 creationFlags = 0, void* data = nullptr);
-	RHIUniformBuffer* RHICreateUniformBuffer(uint32 size, uint32 creationFlags = 0, void* data = nullptr);
-	RHIStorageBuffer* RHICreateStorageBuffer(uint32 size, uint32 creationFlags = 0, void* data = nullptr);
+	RHIVertexBuffer*  RHICreateVertexBuffer(uint32 vertexSize, uint32 numVertices, uint32 creationFlags = BCF_DefalutValue, void* data = nullptr);
+	RHIIndexBuffer*   RHICreateIndexBuffer(uint32 nIndices, bool bIntIndex, uint32 creationFlags = BCF_DefalutValue, void* data = nullptr);
+	RHIUniformBuffer* RHICreateUniformBuffer(uint32 elementSize, uint32 numElement, uint32 creationFlags = BCF_DefalutValue, void* data = nullptr);
+	RHIStorageBuffer* RHICreateStorageBuffer(uint32 elementSize, uint32 numElement, uint32 creationFlags = BCF_DefalutValue, void* data = nullptr);
 
 
-
-	class RHISystem
-	{
-	public:
-		virtual bool initialize() { return true; }
-		virtual void shutdown(){}
-
-		virtual RHITexture1D*    RHICreateTexture1D(
-			Texture::Format format, int length,
-			int numMipLevel , void* data ) = 0;
-		virtual RHITexture2D*    RHICreateTexture2D(
-			Texture::Format format, int w, int h,
-			int numMipLevel , void* data , int dataAlign ) = 0;
-		virtual RHITexture3D*    RHICreateTexture3D(Texture::Format format, int sizeX, int sizeY, int sizeZ) = 0;
-
-		virtual RHITextureDepth* RHICreateTextureDepth(Texture::DepthFormat format, int w, int h) = 0;
-		virtual RHITextureCube*  RHICreateTextureCube() = 0;
-
-		virtual RHIVertexBuffer*  RHICreateVertexBuffer(uint32 vertexSize, uint32 numVertices, uint32 creationFlag, void* data) = 0;
-		virtual RHIIndexBuffer*   RHICreateIndexBuffer(uint32 nIndices, bool bIntIndex, uint32 creationFlag, void* data) = 0;
-		virtual RHIUniformBuffer* RHICreateUniformBuffer(uint32 size, uint32 creationFlag, void* data) = 0;
-		virtual RHIStorageBuffer* RHICreateStorageBuffer(uint32 size, uint32 creationFlag, void* data) = 0;
-
-	};
-
-
-	void RHISetupFixedPipeline(Matrix4 const& matModelView, Matrix4 const& matProj,  int numTexture = 0, RHITexture2D** texture = nullptr);
-	void RHISetViewport(int x, int y, int w , int h );
-	void RHISetScissorRect(bool bEnable, int x = 0, int y = 0, int w = 0, int h = 0);
-	void RHIDrawPrimitive(PrimitiveType type, int vStart, int nv);
-	void RHIDrawIndexedPrimitive(PrimitiveType type, ECompValueType indexType, int indexStart, int nIndex);
-
-	class RHIUtility
-	{
-	public:
-		static RHITexture2D* LoadTexture2DFromFile(char const* path);
-	};
-
-	struct RasterizerStateInitializer
-	{
-		EFillMode fillMode;
-		ECullMode cullMode;
-	};
-
-	struct GLRasterizerStateValue
-	{
-		bool   bEnalbeCull;
-		GLenum fillMode;
-		GLenum cullFace;
-
-		GLRasterizerStateValue(){}
-		GLRasterizerStateValue(EForceInit)
-		{
-			bEnalbeCull = false;
-			fillMode = GL_FILL;
-			cullFace = GL_BACK;
-		}
-	};
-
-
-	class RHIRasterizerState : public RefCountedObjectT< RHIRasterizerState >
-	{
-	public:
-		RHIRasterizerState(RasterizerStateInitializer const& initializer);
-		GLRasterizerStateValue mStateValue;
-	};
-
-	typedef TRefCountPtr< RHIRasterizerState > RHIRasterizerStateRef;
-
-
-	struct DepthStencilStateInitializer
-	{
-		ECompareFun depthFun;
-		bool bEnableStencilTest;
-		Stencil::Operation stencilFailOp;
-		Stencil::Operation zFailOp;
-		Stencil::Operation zPassOp;
-		ECompareFun stencilFun;
-		uint32 stencilReadMask;
-		uint32 stencilWriteMask;
-		bool   bWriteDepth;
-	};
-
-	struct GLDepthStencilStateValue
-	{
-		bool   bEnableDepthTest;
-		bool   bEnableStencilTest;
-		bool   bWriteDepth;
-
-		GLenum depthFun;
-		GLenum stencilFailOp;
-		GLenum stencilZFailOp;
-		GLenum stencilZPassOp;
-		GLenum stencilFun;
-		uint32 stencilReadMask;
-		uint32 stencilWriteMask;
-		uint32 stencilRef;
-
-		GLDepthStencilStateValue(){}
-
-		GLDepthStencilStateValue(EForceInit)
-		{
-			bEnableDepthTest = false;
-
-			bEnableStencilTest = false;
-			depthFun = GL_LESS;
-			stencilFailOp = GL_KEEP;
-			stencilZFailOp = GL_KEEP;
-			stencilZPassOp = GL_KEEP;
-
-			stencilReadMask = -1;
-			stencilWriteMask = -1;
-			stencilRef = -1;
-			stencilFun = GL_ALWAYS;
-		}
-	};
-
-
-	class RHIDepthStencilState : public RefCountedObjectT< RHIDepthStencilState >
-	{
-	public:
-		RHIDepthStencilState(DepthStencilStateInitializer const& initializer);
-		GLDepthStencilStateValue mStateValue;
-	};
-
-	typedef TRefCountPtr<RHIDepthStencilState> RHIDepthStencilStateRef;
-
-
-	struct GLTargetBlendValue
-	{
-		ColorWriteMask writeMask;
-
-		GLenum srcColor;
-		GLenum srcAlpha;
-		GLenum destColor;
-		GLenum destAlpha;
-
-		bool bEnable;
-		bool bSeparateBlend;
-
-		GLTargetBlendValue(){}
-		GLTargetBlendValue(EForceInit)
-		{
-			bEnable = false;
-			bSeparateBlend = false;
-			srcColor = GL_ONE;
-			srcAlpha = GL_ONE;
-			destColor = GL_ZERO;
-			destAlpha = GL_ZERO;
-			writeMask = CWM_RGBA;
-		}
-	};
-
-	constexpr int NumBlendStateTarget = 1;
-
-	struct GLBlendStateValue
-	{
-		GLTargetBlendValue targetValues[NumBlendStateTarget];
-		GLBlendStateValue(){}
-		GLBlendStateValue(EForceInit)
-		{
-			for( int i = 0 ; i < NumBlendStateTarget ; ++i )
-				targetValues[0] = GLTargetBlendValue(ForceInit);
-		}
-	};
-	
-
-	struct BlendStateInitializer
-	{
-		struct TargetValue
-		{
-			ColorWriteMask   writeMask;
-			Blend::Operation op;
-			Blend::Factor    srcColor;
-			Blend::Factor    srcAlpha;
-			Blend::Factor    destColor;
-			Blend::Factor    destAlpha;
-		};
-		TargetValue    targetValues[NumBlendStateTarget];
-	};
-
-	class RHIBlendState : public RefCountedObjectT< RHIBlendState >
-	{
-	public:
-		RHIBlendState(BlendStateInitializer const& initializer);
-		GLBlendStateValue mStateValue;
-	};
-
-	typedef TRefCountPtr< RHIBlendState > RHIBlendStateRef;
+	RHIFrameBuffer*  RHICreateFrameBuffer();
 
 
 	RHISamplerState* RHICreateSamplerState(SamplerStateInitializer const& initializer);
 
-
+	RHIRasterizerState* RHICreateRasterizerState(RasterizerStateInitializer const& initializer);
+	RHIBlendState* RHICreateBlendState(BlendStateInitializer const& initializer);
 	RHIDepthStencilState* RHICreateDepthStencilState(DepthStencilStateInitializer const& initializer);
+
+	//
+	void RHISetRasterizerState(RHIRasterizerState& rasterizerState);
+	void RHISetBlendState(RHIBlendState& blendState);
 	void RHISetDepthStencilState(RHIDepthStencilState& depthStencilState, uint32 stencilRef = -1);
 
-	RHIBlendState* RHICreateBlendState(BlendStateInitializer const& initializer);
-	void           RHISetBlendState(RHIBlendState& blendState);
+	void RHISetViewport(int x, int y, int w, int h);
+	void RHISetScissorRect(bool bEnable, int x = 0, int y = 0, int w = 0, int h = 0);
 
-	RHIRasterizerState* RHICreateRasterizerState(RasterizerStateInitializer const& initializer);
-	void RHISetRasterizerState(RHIRasterizerState& rasterizerState);
+	void RHISetupFixedPipelineState(Matrix4 const& matModelView, Matrix4 const& matProj, int numTexture = 0, RHITexture2D** textures = nullptr);
+	void RHIDrawPrimitive(PrimitiveType type, int vStart, int nv);
+	void RHIDrawIndexedPrimitive(PrimitiveType type, ECompValueType indexType, int indexStart, int nIndex);
 
-	RHIRasterizerState* RHICreateRasterizerState(RasterizerStateInitializer const& initializer);
-	void RHISetRasterizerState(RHIRasterizerState& rasterizerState);
+	void RHISetFrameBuffer(RHIFrameBuffer& frameBuffer, RHITextureDepth* overrideDepthTexture = nullptr);
+
+
+
+#define RHIFUNCTION( FUN ) virtual FUN = 0
+
+	class RHISystem
+	{
+	public:
+		virtual bool initialize(RHISystemInitParam const& initParam) { return true; }
+		virtual void shutdown(){}
+		
+		RHIFUNCTION(RHIRenderWindow* RHICreateRenderWindow(PlatformWindowInfo const& info));
+		RHIFUNCTION(bool RHIBeginRender());
+		RHIFUNCTION(void RHIEndRender(bool bPresent));
+
+		RHIFUNCTION(RHITexture1D*    RHICreateTexture1D(
+			Texture::Format format, int length,
+			int numMipLevel, uint32 creationFlag, void* data));
+		RHIFUNCTION(RHITexture2D*    RHICreateTexture2D(
+			Texture::Format format, int w, int h,
+			int numMipLevel, uint32 creationFlag, void* data, int dataAlign));
+		RHIFUNCTION(RHITexture3D*    RHICreateTexture3D(Texture::Format format, int sizeX, int sizeY, int sizeZ, uint32 creationFlag));
+		RHIFUNCTION(RHITextureDepth* RHICreateTextureDepth(Texture::DepthFormat format, int w, int h) );
+		RHIFUNCTION(RHITextureCube*  RHICreateTextureCube() );
+		RHIFUNCTION(RHIVertexBuffer*  RHICreateVertexBuffer(uint32 vertexSize, uint32 numVertices, uint32 creationFlag, void* data));
+		RHIFUNCTION(RHIIndexBuffer*   RHICreateIndexBuffer(uint32 nIndices, bool bIntIndex, uint32 creationFlag, void* data));
+		RHIFUNCTION(RHIUniformBuffer* RHICreateUniformBuffer(uint32 elementSize, uint32 numElement, uint32 creationFlag, void* data));
+		RHIFUNCTION(RHIStorageBuffer* RHICreateStorageBuffer(uint32 elementSize, uint32 numElement, uint32 creationFlag, void* data));
+		RHIFUNCTION(RHIFrameBuffer*  RHICreateFrameBuffer());
+
+
+		RHIFUNCTION(RHISamplerState* RHICreateSamplerState(SamplerStateInitializer const& initializer));
+
+		RHIFUNCTION(RHIRasterizerState* RHICreateRasterizerState(RasterizerStateInitializer const& initializer));
+		RHIFUNCTION(RHIBlendState* RHICreateBlendState(BlendStateInitializer const& initializer));
+		RHIFUNCTION(RHIDepthStencilState* RHICreateDepthStencilState(DepthStencilStateInitializer const& initializer));
+
+		RHIFUNCTION(void RHISetRasterizerState(RHIRasterizerState& rasterizerState));
+		RHIFUNCTION(void RHISetBlendState(RHIBlendState& blendState));
+		RHIFUNCTION(void RHISetDepthStencilState(RHIDepthStencilState& depthStencilState, uint32 stencilRef = -1));
+		
+		RHIFUNCTION(void RHISetViewport(int x, int y, int w, int h));
+		RHIFUNCTION(void RHISetScissorRect(bool bEnable, int x , int y , int w , int h ));
+
+		RHIFUNCTION(void RHIDrawPrimitive(PrimitiveType type, int vStart, int nv));
+		RHIFUNCTION(void RHIDrawIndexedPrimitive(PrimitiveType type, ECompValueType indexType, int indexStart, int nIndex));
+		RHIFUNCTION(void RHISetFrameBuffer(RHIFrameBuffer& frameBuffer, RHITextureDepth* overrideDepthTexture));
+
+		RHIFUNCTION(void RHISetupFixedPipelineState(Matrix4 const& matModelView, Matrix4 const& matProj, int numTexture , RHITexture2D** textures));
+
+	};
+
+
+
+
+	class RHIUtility
+	{
+	public:
+		static RHITexture2D* LoadTexture2DFromFile(char const* path, int numMipLevel = 0, uint32 creationFlags = TCF_DefalutValue);
+	};
+
 
 	template<
 		Sampler::Filter Filter = Sampler::ePoint,
@@ -296,7 +222,6 @@ namespace RenderGL
 
 	RHIRasterizerState& GetStaticRasterizerState(ECullMode cullMode, EFillMode fillMode);
 
-
 	template <
 		bool bWriteDepth = true,
 		ECompareFun DepthFun = ECompareFun::Less,
@@ -305,9 +230,13 @@ namespace RenderGL
 		Stencil::Operation StencilFailOp = Stencil::eKeep,
 		Stencil::Operation ZFailOp = Stencil::eKeep,
 		Stencil::Operation ZPassOp = Stencil::eKeep,
+		ECompareFun BackStencilFun = ECompareFun::Always,
+		Stencil::Operation BackStencilFailOp = Stencil::eKeep,
+		Stencil::Operation BackZFailOp = Stencil::eKeep,
+		Stencil::Operation BackZPassOp = Stencil::eKeep,
 		uint32 StencilReadMask = -1,
 		uint32 StencilWriteMask = -1 >
-	class TStaticDepthStencilState
+		class TStaticDepthStencilSeparateState
 	{
 	public:
 		static RHIDepthStencilState& GetRHI()
@@ -326,6 +255,10 @@ namespace RenderGL
 					initializer.stencilFailOp = StencilFailOp;
 					initializer.zFailOp = ZFailOp;
 					initializer.zPassOp = ZPassOp;
+					initializer.stencilFunBack = BackStencilFun;
+					initializer.stencilFailOpBack = BackStencilFailOp;
+					initializer.zFailOpBack = BackZFailOp;
+					initializer.zPassOpBack = BackZPassOp;
 					initializer.stencilReadMask = StencilReadMask;
 					initializer.stencilWriteMask = StencilWriteMask;
 					RHI = RHICreateDepthStencilState(initializer);
@@ -334,6 +267,25 @@ namespace RenderGL
 			static StaticConstructor sConstructor;
 			return *sConstructor.RHI;
 		}
+	};
+
+	template <
+		bool bWriteDepth = true,
+		ECompareFun DepthFun = ECompareFun::Less,
+		bool bEnableStencilTest = false,
+		ECompareFun StencilFun = ECompareFun::Always,
+		Stencil::Operation StencilFailOp = Stencil::eKeep,
+		Stencil::Operation ZFailOp = Stencil::eKeep,
+		Stencil::Operation ZPassOp = Stencil::eKeep,
+		uint32 StencilReadMask = -1,
+		uint32 StencilWriteMask = -1 >
+	class TStaticDepthStencilState : public TStaticDepthStencilSeparateState<
+		bWriteDepth, DepthFun, bEnableStencilTest, 
+		StencilFun, StencilFailOp, ZFailOp, ZPassOp,
+		StencilFun, StencilFailOp, ZFailOp, ZPassOp,
+		StencilReadMask, StencilWriteMask >
+	{
+
 	};
 
 	typedef TStaticDepthStencilState<false, ECompareFun::Always> StaticDepthDisableState;

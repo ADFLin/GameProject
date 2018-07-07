@@ -4,6 +4,7 @@
 
 #include "LazyObject.h"
 #include "GLCommon.h"
+#include "MeshUtility.h"
 #include "Scene.h"
 
 namespace RenderGL

@@ -248,6 +248,12 @@ bool WindowsGLContext::init(HDC hDC , WGLPixelFormat const& format , bool bWindo
 	if ( !::wglMakeCurrent( hDC , mhRC )  )
 		return false;
 
+	mhDC = hDC;
+	return true;
+}
+
+bool WindowsGLContext::init()
+{
 	return true;
 }
 
@@ -257,12 +263,18 @@ void WindowsGLContext::cleanup()
 	{
 		::wglDeleteContext( mhRC );
 		mhRC = 0;
+		mhDC = 0;
 	}
 }
 
-bool WindowsGLContext::makeCurrent(HDC hDC)
+bool WindowsGLContext::makeCurrent()
 {
-	return wglMakeCurrent( hDC , mhRC ) != 0;
+	return wglMakeCurrent( mhDC , mhRC ) != 0;
+}
+
+void WindowsGLContext::swapBuffer()
+{
+	::SwapBuffers(mhDC);
 }
 
 bool WindowsGLContext::setupPixelFormat( HDC hDC , WGLPixelFormat const& setting , bool bWindowed )

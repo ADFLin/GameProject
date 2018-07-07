@@ -246,7 +246,7 @@ T& WidgetCoreT<T>::setPos( Vec2i const& pos )
 
 	removeFlagInternal( WIF_WORLD_POS_CACHED );
 	removeChildFlag( WIF_WORLD_POS_CACHED);
-	_this()->onChangePos( pos , true );
+	_this()->onChangePos( pos , false );
 
 	return *_this();
 }

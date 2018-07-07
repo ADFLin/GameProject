@@ -1,4 +1,16 @@
 #pragma once
+#ifndef SHADER_COMPILING
+#define SHADER_COMPILING 0
+#endif
+
+#if !SHADER_COMPILING
+#define VERTEX_SHADER 1
+#define PIXEL_SHADER 1
+#define GEOMETRY_SHADER 1
+#define HULL_SHADER 1
+#define DOMAIN_SHADER 1
+#define COMPUTE_SHADER 1
+#endif
 
 #define COMPILER_GLSL 1
 

@@ -59,9 +59,6 @@ namespace Go
 	}
 
 
-
-
-
 	void BoardRenderer::drawStoneSequence(RenderContext const& context, std::vector<int> const& vertices, int colorStart, float opacity)
 	{
 		using namespace RenderGL;
@@ -86,7 +83,7 @@ namespace Go
 
 
 				Vector2 pos = getStonePos(context, x, y);
-				drawStone(g, pos, color, context.stoneRadius, opacity);
+				drawStone(g, pos, color, context.stoneRadius , context.scale , opacity);
 				color = StoneColor::Opposite(color);
 			}
 
@@ -113,7 +110,7 @@ namespace Go
 	{
 		Vector2 pos = context.getIntersectionPos(i, j);
 		if( bUseNoiseOffset )
-			pos += getNoiseOffset(i, j, context.board.getSize());
+			pos += context.scale * getNoiseOffset(i, j, context.board.getSize());
 		return pos;
 	}
 
@@ -133,7 +130,7 @@ namespace Go
 		int boardSize = context.board.getSize();
 		float length = (boardSize - 1) * context.cellLength;
 
-		int const border = 40;
+		float const border = 0.5 * context.cellLength + (( bDrawCoord ) ? 30 : 0 );
 		float const boardRenderLength = length + 2 * border;
 
 		RHISetBlendState(TStaticBlendState<>::GetRHI());
@@ -158,6 +155,7 @@ namespace Go
 
 		Vector2 posV = context.renderPos;
 		Vector2 posH = context.renderPos;
+
 		RenderUtility::SetPen(g, EColor::Black);
 		RenderUtility::SetFont(g, FONT_S12);
 		g.setTextColor(Color3ub(0, 0, 0));
@@ -165,16 +163,17 @@ namespace Go
 		{
 			g.drawLine(posV, posV + Vector2(0, length));
 			g.drawLine(posH, posH + Vector2(length, 0));
+			if( bDrawCoord )
+			{
+				FixString< 64 > str;
+				str.format("%2d", i + 1);
+				g.drawText(posH - Vector2(30, 8), str);
+				g.drawText(posH + Vector2(12 + length, -8), str);
 
-			FixString< 64 > str;
-			str.format("%2d", i + 1);
-			g.drawText(posH - Vector2(30, 8), str);
-			g.drawText(posH + Vector2(12 + length, -8), str);
-
-			str.format("%c", CoordStr[i]);
-			g.drawText(posV - Vector2(5, 30), str);
-			g.drawText(posV + Vector2(-5, 15 + length), str);
-
+				str.format("%c", CoordStr[i]);
+				g.drawText(posV - Vector2(5, 30), str);
+				g.drawText(posV + Vector2(-5, 15 + length), str);
+			}
 			posV.x += context.cellLength;
 			posH.y += context.cellLength;
 		}
@@ -235,7 +234,7 @@ namespace Go
 					if( data )
 					{
 						Vector2 pos = getStonePos(context, i, j);
-						drawStone( g , pos, data , context.stoneRadius);
+						drawStone( g , pos, data , context.stoneRadius , context.scale);
 					}
 				}
 			}
@@ -311,13 +310,13 @@ namespace Go
 		mSpriteVertices.push_back({ Vector2(posRB.x , posLT.y) , color , Vector2(max.x , min.y) });
 	}
 
-	void BoardRenderer::drawStone(GLGraphics2D& g, Vector2 const& pos, int color , float stoneRadius , float opaticy)
+	void BoardRenderer::drawStone(GLGraphics2D& g, Vector2 const& pos, int color , float stoneRadius , float scale , float opaticy)
 	{
 #if DRAW_TEXTURE
 		if( bUseBatchedRender )
 		{
 			int id = (color == StoneColor::eBlack) ? 0 : 1;
-			addBatchedSprite(id, pos + Vector2(2, 2), 2.1 * Vector2(stoneRadius, stoneRadius), Vector2(0.5, 0.5), Vector4(0, 0, 0, 0.2 * opaticy));
+			addBatchedSprite(id, pos + scale * Vector2(2, 2), 2.1 * Vector2(stoneRadius, stoneRadius), Vector2(0.5, 0.5), Vector4(0, 0, 0, 0.2 * opaticy));
 			addBatchedSprite(id, pos, 2 * Vector2(stoneRadius, stoneRadius), Vector2(0.5, 0.5), Vector4(1, 1, 1, opaticy));
 		}
 		else
@@ -327,7 +326,7 @@ namespace Go
 				GL_BIND_LOCK_OBJECT(mTextures[id]);
 
 				glColor4f(0, 0, 0, 0.2 * opaticy);
-				DrawUtility::Sprite(pos + Vector2(2, 2), 2.1 * Vector2(stoneRadius, stoneRadius), Vector2(0.5, 0.5));
+				DrawUtility::Sprite(pos + scale * Vector2(2, 2), 2.1 * Vector2(stoneRadius, stoneRadius), Vector2(0.5, 0.5));
 
 				glColor4f(1, 1, 1 , opaticy);
 				DrawUtility::Sprite(pos, 2 * Vector2(stoneRadius, stoneRadius), Vector2(0.5, 0.5));

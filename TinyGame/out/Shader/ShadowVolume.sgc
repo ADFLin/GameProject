@@ -1,0 +1,232 @@
+#include "Common.sgc"
+#include "ViewParam.sgc"
+
+struct OutputVSParam
+{
+	float3 normal;
+	float4 color;
+};
+
+#if VERTEX_SHADER
+
+layout(location = ATTRIBUTE_POSITION) in float3 InPos;
+layout(location = ATTRIBUTE_NORMAL) in float3 InNormal;
+layout(location = ATTRIBUTE_COLOR) in float4 InColor;
+
+out OutputVSParam OutputVS;
+uniform mat4 LocalToWorld;
+void MainVS()
+{
+	gl_Position = LocalToWorld * float4(InPos, 1);
+	OutputVS.color = InColor;
+	OutputVS.normal = InNormal;
+}
+
+#endif // VERTEX_SHADER
+
+struct OutputGSParam
+{
+	float3 normal;
+	float4 color;
+};
+
+#if GEOMETRY_SHADER
+
+//          v3
+//           0  
+//         e1 \ e1a 
+//    v4 x --- x v2
+//  e2a/ e2\  / e0
+//   0      x--------o
+// v5       v0  e0a   v1 
+
+
+in OutputVSParam OutputVS[];
+out OutputGSParam OutputGS;
+
+#if 0
+layout(triangles_adjacency, invocations = 1) in;
+layout(line_strip, max_vertices = 6) out;
+void AddLine( int idx0 , int idx1 )
+{
+	gl_Position = View.worldToClip * gl_in[idx0].gl_Position;
+	OutputGS.color = OutputVS[idx0].color;
+	OutputGS.normal = OutputVS[idx0].normal;
+	EmitVertex();
+
+	gl_Position = View.worldToClip * gl_in[idx1].gl_Position;
+	OutputGS.color = OutputVS[idx1].color;
+	OutputGS.normal = OutputVS[idx1].normal;
+	EmitVertex();
+
+	EndPrimitive();
+}
+void MainGS()
+{
+	float3 e0 = gl_in[2].gl_Position.xyz - gl_in[0].gl_Position.xyz;
+	float3 e1 = gl_in[4].gl_Position.xyz - gl_in[2].gl_Position.xyz;
+
+	if( dot(gl_in[0].gl_Position.xyz - View.worldPos , cross(e0, e1)) > 0.0001 )
+		return;
+
+	float3 e2 = gl_in[0].gl_Position.xyz - gl_in[4].gl_Position.xyz;
+
+	float3 e0a = gl_in[1].gl_Position.xyz - gl_in[0].gl_Position.xyz;
+	float3 e1a = gl_in[3].gl_Position.xyz - gl_in[2].gl_Position.xyz;
+	float3 e2a = gl_in[5].gl_Position.xyz - gl_in[4].gl_Position.xyz;
+
+	float3 normal;
+	float3 dir;
+	dir = gl_in[0].gl_Position.xyz - View.worldPos;
+	normal = cross(e0a, e0);
+	if( dot(dir, normal) >= 0 )
+	{
+		AddLine(0, 2);
+	}
+	dir = gl_in[2].gl_Position.xyz - View.worldPos;
+	normal = cross(e1a, e1);
+	if( dot(dir, normal) >= 0 )
+	{
+		AddLine(2, 4);
+	}
+	normal = cross(e2a, e2);
+	dir = gl_in[4].gl_Position.xyz - View.worldPos;
+	if( dot(dir, normal) >= 0 )
+	{
+		AddLine(4, 0);
+	}
+}
+#else
+
+
+#define FAR_DEPTH_BIAS 0.00001
+
+void AddQuad( float4 clip1 , float4 clipFar1, float4 clip2 , float4 clipFar2)
+{
+	gl_Position = clip2;
+	//gl_Position.z += FAR_DEPTH_BIAS * gl_Position.w;
+	EmitVertex();
+	gl_Position = clip1;
+	//gl_Position.z += FAR_DEPTH_BIAS * gl_Position.w;
+	EmitVertex();
+	gl_Position = clipFar2;
+	EmitVertex();
+	gl_Position = clipFar1;
+	EmitVertex();
+
+
+	EndPrimitive();
+}
+
+uniform float3 LightPos;
+
+layout(triangles_adjacency, invocations = 1) in;
+layout(triangle_strip, max_vertices = 18) out;
+void MainGS()
+{
+	float3 e0 = gl_in[2].gl_Position.xyz - gl_in[0].gl_Position.xyz;
+	float3 e1 = gl_in[4].gl_Position.xyz - gl_in[2].gl_Position.xyz;
+
+	if( dot(gl_in[0].gl_Position.xyz - LightPos, cross(e0, e1)) >= 0)
+		return;
+
+
+	float3 e2 = gl_in[0].gl_Position.xyz - gl_in[4].gl_Position.xyz;
+
+	float3 e0a = gl_in[1].gl_Position.xyz - gl_in[0].gl_Position.xyz;
+	float3 e1a = gl_in[3].gl_Position.xyz - gl_in[2].gl_Position.xyz;
+	float3 e2a = gl_in[5].gl_Position.xyz - gl_in[4].gl_Position.xyz;
+
+	float4 clip0 = View.worldToClip * gl_in[0].gl_Position;
+	float4 clip1 = View.worldToClip * gl_in[2].gl_Position;
+	float4 clip2 = View.worldToClip * gl_in[4].gl_Position;
+#if 1
+
+	clip0.z += FAR_DEPTH_BIAS;
+	clip1.z += FAR_DEPTH_BIAS;
+	clip2.z += FAR_DEPTH_BIAS;
+#endif
+	float3 dir0 = normalize(gl_in[0].gl_Position.xyz - LightPos);
+	float3 dir1 = normalize(gl_in[2].gl_Position.xyz - LightPos);
+	float3 dir2 = normalize(gl_in[4].gl_Position.xyz - LightPos);
+
+
+#if 0
+
+	float4 clipFar0 = View.worldToClip * float4(dir0, 0);
+	clipFar0.z -= FAR_DEPTH_BIAS * clipFar0.w;
+	float4 clipFar1 = View.worldToClip * float4(dir1, 0);
+	clipFar1.z -= FAR_DEPTH_BIAS * clipFar1.w;
+	float4 clipFar2 = View.worldToClip * float4(dir2, 0);
+	clipFar2.z -= FAR_DEPTH_BIAS * clipFar2.w;
+#else
+	float dist = 100;
+
+	float4 clipFar0 = View.worldToClip * float4(gl_in[0].gl_Position.xyz + dist * dir0, 1);
+	float4 clipFar1 = View.worldToClip * float4(gl_in[2].gl_Position.xyz + dist * dir1, 1);
+	float4 clipFar2 = View.worldToClip * float4(gl_in[4].gl_Position.xyz + dist * dir2, 1);
+#endif
+
+	float3 normal;
+	float3 dir;
+	normal = cross(e0a, e0);
+	if( dot(dir0, normal) > 0 )
+	{
+		AddQuad(clip0, clipFar0, clip1, clipFar1);
+	}
+	normal = cross(e1a, e1);
+	if( dot(dir1, normal) > 0 )
+	{
+		AddQuad(clip1, clipFar1, clip2, clipFar2);
+	}
+	normal = cross(e2a, e2);
+	if( dot(dir2, normal) > 0 )
+	{
+		AddQuad(clip2, clipFar2, clip0, clipFar0);
+	}
+
+	//if ( false )
+	{
+		gl_Position = clipFar0;
+		EmitVertex();
+		gl_Position = clipFar2;
+		EmitVertex();		
+		gl_Position = clipFar1;
+		EmitVertex();
+
+		EndPrimitive();
+	}
+
+	float scale = 0.9999;
+	{
+		gl_Position = clip0;
+		//gl_Position.z += FAR_DEPTH_BIAS * gl_Position.w;
+		EmitVertex();
+		gl_Position = clip1;
+		//gl_Position.z += FAR_DEPTH_BIAS * gl_Position.w;
+		EmitVertex();
+		gl_Position = clip2;
+		//gl_Position.z += FAR_DEPTH_BIAS * gl_Position.w;
+		EmitVertex();
+
+		EndPrimitive();
+	}
+}
+#endif
+
+#endif //GEOMETRY_SHADER
+
+
+#if PIXEL_SHADER
+
+layout(location = 0) out float4 OutColor;
+
+//in OutputGSParam OutputGS;
+
+void MainPS()
+{
+	//OutColor = OutputGS.color;
+	OutColor = float4( 0.2,0,0,1) ;
+}
+
+#endif //PIXEL_SHADER

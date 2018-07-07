@@ -285,6 +285,24 @@ namespace RenderGL
 		return loadInternal(shaderProgram, fileName, enties, def, additionalCode, bSingle);
 	}
 
+	static void AddCommonHeadCode(std::string& inoutHeadCode , uint32 version , ShaderEntryInfo const& entry )
+	{
+		inoutHeadCode += "#version ";
+		FixString<128> str;
+		inoutHeadCode += str.format("%u", version);
+		inoutHeadCode += " compatibility\n";
+
+		inoutHeadCode += "#define COMPILER_GLSL 1\n";
+		inoutHeadCode += "#define SHADER_COMPILING 1\n";
+
+		inoutHeadCode += gShaderDefines[entry.type];
+		if( entry.name )
+		{
+			inoutHeadCode += "#define ";
+			inoutHeadCode += entry.name;
+			inoutHeadCode += " main\n";
+		}
+	}
 	bool ShaderManager::loadInternal(ShaderProgram& shaderProgram, char const* fileName, ShaderEntryInfo const entries[], char const* def, char const* additionalCode, bool bSingle)
 	{
 		removeFromShaderCompileMap(shaderProgram);
@@ -301,29 +319,15 @@ namespace RenderGL
 			auto const& entry = entries[i];
 
 			std::string headCode;
-			{
-				headCode += "#version ";
-				FixString<128> str;
-				headCode += str.format("%u", mDefaultVersion);
-				headCode += " compatibility\n";
-			}
-
-			headCode += "#define COMPILER_GLSL 1\n";
-			headCode += gShaderDefines[entry.type];
+			AddCommonHeadCode(headCode, mDefaultVersion, entry);
 
 			if( def )
 			{
 				headCode += def;
 				headCode += '\n';
 			}
-			
-			if( entry.name )
-			{
-				headCode += "#define ";
-				headCode += entry.name;
-				headCode += " main\n";
-				++indexNameUsed;
-			}
+
+			headCode += "#include \"Common" SHADER_FILE_SUBNAME "\"\n";
 
 			if( additionalCode )
 			{
@@ -438,14 +442,8 @@ namespace RenderGL
 		{
 			auto const& entry = entries[i];
 			std::string defCode;
-			defCode += "#define COMPILER_GLSL 1\n";
-			defCode += gShaderDefines[entry.type];
-			if( entry.name )
-			{
-				defCode += "#define ";
-				defCode += entry.name;
-				defCode += " main\n";
-			}
+
+			AddCommonHeadCode(defCode, option.version ? option.version : mDefaultVersion, entry);
 
 			std::string headCode = option.getCode(defCode.c_str(), additionalCode);
 			compileInfo.shaders.push_back({ entry.type , std::move(headCode) });
@@ -576,14 +574,6 @@ namespace RenderGL
 	std::string ShaderCompileOption::getCode(char const* defCode /*= nullptr */, char const* addionalCode /*= nullptr */) const
 	{
 		std::string result;
-		if( version )
-		{
-			result += "#version ";
-			FixString<128> str;
-			result += str.format("%u", version);
-			result += " compatibility\n";
-		}
-
 		if( defCode )
 		{
 			result += defCode;

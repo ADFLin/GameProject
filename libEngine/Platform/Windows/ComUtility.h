@@ -40,6 +40,7 @@ public:
 	}
 
 	TComPtr* address() { return this; }
+	T*   release() { T* ptr = mPtr; mPtr = nullptr; return ptr; }
 
 	void initialize(T* ptr)
 	{

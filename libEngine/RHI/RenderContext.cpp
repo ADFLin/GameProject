@@ -1,6 +1,7 @@
 #include "RenderContext.h"
 
 #include "Material.h"
+#include "RHICommand.h"
 
 namespace RenderGL
 {
@@ -125,7 +126,7 @@ namespace RenderGL
 
 		if( !mUniformBuffer.isValid() )
 		{
-			mUniformBuffer = RHICreateUniformBuffer(sizeof(ViewBufferData));
+			mUniformBuffer = RHICreateUniformBuffer(sizeof(ViewBufferData) , 1 , BCF_UsageDynamic );
 		}
 
 		if( mbDataDirty )

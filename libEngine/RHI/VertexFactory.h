@@ -3,11 +3,13 @@
 #define VertexFactory_H_86132998_96CC_46B9_8772_AD134BCD249E
 
 #include "RHICommon.h"
+#include "CoreShare.h"
 
 namespace RenderGL
 {
 	class ShaderCompileOption;
 	class VertexFactoryShaderData;
+	class VertexFactoryType;
 
 	class VertexFactoryType
 	{

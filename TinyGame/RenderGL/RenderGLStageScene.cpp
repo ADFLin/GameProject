@@ -147,7 +147,7 @@ namespace RenderGL
 		};
 
 		DrawEngine* de = ::Global::getDrawEngine();
-		HGLRC hRC = de->getGLContext().getHandle();
+		HGLRC hRC = de->getGLContext()->getHandle();
 		HGLRC hLoadRC = wglCreateContext(de->getWindow().getHDC());
 		wglShareLists( hRC , hLoadRC );
 

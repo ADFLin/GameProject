@@ -4,6 +4,8 @@
 #include "MeshUtility.h"
 #include "GLCommon.h"
 
+#include "Singleton.h"
+
 #ifndef BIT
 #define BIT( n ) ( 1 << ( n ) )
 #endif
@@ -433,6 +435,31 @@ namespace RenderGL
 		int value[4];
 	};
 
+
+	class ShaderHelper : public SingletonT< ShaderHelper >
+	{
+	public:
+		bool init();
+
+		void copyTextureToBuffer(RHITexture2D& copyTexture);
+		void copyTextureMaskToBuffer(RHITexture2D& copyTexture, Vector4 const& colorMask);
+		void copyTextureBiasToBuffer(RHITexture2D& copyTexture, float colorBais[2]);
+		void mapTextureColorToBuffer(RHITexture2D& copyTexture, Vector4 const& colorMask, float valueFactor[2]);
+		void copyTexture(RHITexture2D& destTexture, RHITexture2D& srcTexture);
+
+		void clearBuffer(RHITexture2D& texture, float clearValue[]);
+		void clearBuffer(RHITexture2D& texture, uint32 clearValue[]);
+		void clearBuffer(RHITexture2D& texture, int32 clearValue[]);
+
+		void reload();
+
+		class CopyTextureProgram* mProgCopyTexture;
+		class CopyTextureMaskProgram* mProgCopyTextureMask;
+		class CopyTextureBiasProgram* mProgCopyTextureBias;
+		class MappingTextureColorProgram* mProgMappingTextureColor;
+		OpenGLFrameBuffer mFrameBuffer;
+
+	};
 }//namespace GL
 
 #endif // GLDrawUtility_h__

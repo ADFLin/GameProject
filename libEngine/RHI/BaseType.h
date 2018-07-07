@@ -79,6 +79,11 @@ namespace RenderGL
 				(right + left) * xFactor, (top + bottom) * yFactor, (zFar + zNear) / dz, -1,
 				0, 0, 2 * zFar * zNear / dz, 0);
 		}
+
+		static float GetNearZ(Matrix4 const& m)
+		{
+			return  m[14] / (m[10] - 1);
+		}
 	};
 	class OrthoMatrix : public Matrix4
 	{

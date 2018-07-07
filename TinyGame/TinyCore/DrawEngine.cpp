@@ -6,7 +6,7 @@
 
 #include "RHI/RHIGraphics2D.h"
 #include "RHI/RHICommand.h"
-
+#include "RHI/OpenGLCommand.h"
 
 #include "GLGraphics2D.h"
 #include "GameGlobal.h"
@@ -26,14 +26,7 @@ WORD GameWindow::getSmallIcon()
 	return IDI_ICON1;
 }
 
-void WINAPI GLDebugCallback(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar* message, GLvoid* userParam)
-{
-	if( type == GL_DEBUG_TYPE_OTHER )
-		return;
-
-	LogMsg(message);
-}
-
+using namespace RenderGL;
 
 template< class T >
 class TGraphics2DProxy : public IGraphics2D
@@ -71,18 +64,15 @@ IGraphics2D& DrawEngine::getIGraphics()
 	static TGraphics2DProxy< Graphics2D > proxyPlatform( *mPlatformGraphics );
 	static TGraphics2DProxy< GLGraphics2D > proxyGL( *mGLGraphics );
 	static TGraphics2DProxy< RenderGL::RHIGraphics2D > proxyRHI( *mRHIGraphics );
-	if ( mbGLEnabled ) 
+	if ( mRHIName == RHITargetName::OpenGL ) 
 		return proxyGL;
 	return proxyPlatform;
 }
 
 DrawEngine::DrawEngine()
 {
-	mbGLEnabled = false;
 	mbInitialized = false;
-	mbSweepBuffer = true;
-	mbCleaupGLDefferred = false;
-
+	bRHIShutdownDeferred = false;
 }
 
 DrawEngine::~DrawEngine()
@@ -114,117 +104,122 @@ void DrawEngine::release()
 {
 	mPlatformGraphics->releaseReources();
 
-	if( mbGLEnabled )
-		stopOpenGL();
-	else
-		cleanupGLContextDeferred();
+	if( isRHIEnabled() )
+		RHISystemShutdown();
+
 	RenderUtility::Finalize();
 }
 
-bool DrawEngine::startOpenGL( bool useGLEW , int numSamples )
+void DrawEngine::update(long deltaTime)
 {
-	if ( mbGLEnabled )
+	if( !isRHIEnabled() && bRHIShutdownDeferred )
+	{
+		bRHIShutdownDeferred = false;
+		RHISystemShutdown();
+	}
+}
+
+bool DrawEngine::initializeRHI(RHITargetName targetName, int numSamples)
+{
+	if( isRHIEnabled() )
 		return true;
 
-	setupBuffer( getScreenWidth() , getScreenHeight() );
-	WGLPixelFormat format;
-	format.numSamples = numSamples;
-	if ( !mGLContext.init( getWindow().getHDC() , format ) )
-		return false;
+	setupBuffer(getScreenWidth(), getScreenHeight());
 
-	if ( useGLEW )
+	RHISystemInitParam initParam;
+	initParam.numSamples = numSamples;
+	initParam.hWnd = getWindow().getHWnd();
+	initParam.hDC = getWindow().getHDC();
+
+	RHISytemName name = [targetName]
 	{
-		if ( glewInit() != GLEW_OK )
-			return false;
-
-		if( 1 )
+		switch( targetName )
 		{
-			//glDebugMessageCallback( NULL ?,  NULL );
-			glDebugMessageCallback(GLDebugCallback, nullptr);
-			glEnable(GL_DEBUG_OUTPUT);
-			glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
+		case RHITargetName::OpenGL: return RHISytemName::Opengl;
+		case RHITargetName::D3D11: return RHISytemName::D3D11;
 		}
-	}
-
-	using namespace RenderGL;
-	if( !RHISystemInitialize(RHISytemName::Opengl) )
+		return RHISytemName::Opengl;
+	}();
+	if( !RHISystemInitialize(name, initParam) )
 		return false;
 
-
-	RenderUtility::StartOpenGL();
-
-	mbGLEnabled = true;
-
+	mRHIName = targetName;
+	if( mRHIName == RHITargetName::OpenGL )
+	{
+		RenderUtility::StartOpenGL();
+		mGLContext = &static_cast<OpenGLSystem*>(gRHISystem)->mGLContext;
+	}
+	
 	return true;
 }
 
-void DrawEngine::stopOpenGL(bool bDeferred)
+void DrawEngine::shutdownRHI(bool bDeferred)
 {
-	if ( !mbGLEnabled )
+	if( !isRHIEnabled() )
 		return;
 
-	mbGLEnabled = false;
-
-	RenderUtility::StopOpenGL();
+	mRHIName = RHITargetName::None;
+	if( mRHIName == RHITargetName::OpenGL )
+	{
+		RenderUtility::StopOpenGL();
+	}
 	if( bDeferred == false )
 	{
-		mGLContext.cleanup();
+
+		RHISystemShutdown();
 	}
 	else
 	{
-		mbCleaupGLDefferred = true;
+		bRHIShutdownDeferred = true;
 	}
 
 	setupBuffer(getScreenWidth(), getScreenHeight());
 }
 
+bool DrawEngine::startOpenGL( int numSamples )
+{
+	return initializeRHI(RHITargetName::OpenGL, numSamples);
+}
+
+void DrawEngine::stopOpenGL(bool bDeferred)
+{
+	shutdownRHI(bDeferred);
+}
+
 
 bool DrawEngine::beginRender()
 {
-	if ( mbGLEnabled )
+	if ( isRHIEnabled() )
 	{
-		if ( !mGLContext.makeCurrent( getWindow().getHDC() ) )
+		if( !RHIBeginRender() )
 			return false;
 	}
-#if !OPENGL_RENDER_DIB
 	else
-#endif
 	{
-		if( mbCleaupGLDefferred )
-		{
-			mbCleaupGLDefferred = false;
-			mGLContext.cleanup();
-		}
-		if ( !bStopPlatformGraphicsRender )
-		{
-			mBufferDC.clear();
-			mPlatformGraphics->beginRender();
-		}
+		mPlatformGraphics->beginRender();
+		
+	}
+
+	if( !isRHIEnabled() || bUsePlatformBuffer )
+	{	
+		mBufferDC.clear();
 	}
 	return true;
 }
 
 void DrawEngine::endRender()
 {
-	if ( mbGLEnabled )
+	if ( isRHIEnabled() )
 	{
-		::glFlush();
-
-#if !OPENGL_RENDER_DIB
-		if ( mbSweepBuffer )
-			::SwapBuffers( getWindow().getHDC() );
-#endif
+		RHIEndRender(!bUsePlatformBuffer);
 	}
-#if !OPENGL_RENDER_DIB
 	else
-#endif
 	{
-		if( !bStopPlatformGraphicsRender )
-		{
-			mPlatformGraphics->endRender();
-			if( mbSweepBuffer )
-				mBufferDC.bitBlt(getWindow().getHDC());
-		}
+		mPlatformGraphics->endRender();
+	}
+	if( !isRHIEnabled() || bUsePlatformBuffer )
+	{
+		mBufferDC.bitBlt(getWindow().getHDC());
 	}
 }
 
@@ -248,14 +243,6 @@ HFONT DrawEngine::createFont( int size , char const* faceName , bool beBold , bo
 	strcpy_s( lf.lfFaceName , faceName );
 
 	return CreateFontIndirect( &lf );
-}
-
-
-void DrawEngine::changePixelSample(int numSamples)
-{
-	WGLPixelFormat format;
-	format.numSamples = numSamples;
-	mGLContext.setupPixelFormat(getWindow().getHDC(), format, true);
 }
 
 
@@ -343,7 +330,7 @@ void DrawEngine::changeScreenSize( int w , int h )
 
 void DrawEngine::setupBuffer( int w , int h )
 {
-	if ( mbGLEnabled )
+	if ( isRHIEnabled() )
 	{
 		int bitsPerPixel = GetDeviceCaps( getWindow().getHDC() , BITSPIXEL );
 
@@ -385,25 +372,3 @@ void DrawEngine::setupBuffer( int w , int h )
 
 	mPlatformGraphics->setTargetDC( mBufferDC.getDC() );
 }
-
-void DrawEngine::enableSweepBuffer(bool beS)
-{
-	if ( mbSweepBuffer == beS )
-		return;
-	mbSweepBuffer = beS;
-	if ( !mbSweepBuffer )
-		mPlatformGraphics->setTargetDC( mGameWindow->getHDC() );
-	else
-		mPlatformGraphics->setTargetDC( mBufferDC.getDC() );
-}
-
-bool DrawEngine::cleanupGLContextDeferred()
-{
-	if( mbGLEnabled == false && mGLContext.isValid() )
-	{
-		mGLContext.cleanup();
-		return true;
-	}
-	return false;
-}
-

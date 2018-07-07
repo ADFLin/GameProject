@@ -103,13 +103,13 @@ namespace RenderD3D
 		ShaderParameterMap mParameterMap;
 
 
-		template< class ShaderType >
-		bool SetShaderResource(char const* name , ShaderType* shader , ID3D11ShaderResourceView* view)
+		template< class ShaderType , class RHITextureType >
+		bool SetShaderTexture(char const* name , ShaderType* shader , RHITextureType& texture )
 		{
 			auto iter = mParameterMap.mMap.find(name);
 			if( iter == mParameterMap.mMap.end() )
 				return false;
-			SetShaderResourceInternal< ToShaderEnum< ShaderType >::Result >(iter->second, view);
+			SetShaderResourceInternal< ToShaderEnum< ShaderType >::Result >(iter->second, D3D11Cast::To(texture)->mSRV);
 			return true;
 		}
 
@@ -211,7 +211,7 @@ namespace RenderD3D
 			if( !BaseClass::onInit() )
 				return false;
 
-			if( !RHISystemInitialize(RHISytemName::D3D11))
+			if ( !::Global::getDrawEngine()->initializeRHI(RHITargetName::D3D11 , 1 ) )
 			{
 				LogWarning( 0 , "Can't Initialize RHI System! ");
 				return false;
@@ -220,7 +220,7 @@ namespace RenderD3D
 			mRHISystem = static_cast<D3D11System*>(gRHISystem);
 
 			GameWindow& window = ::Global::getDrawEngine()->getWindow();
-			//::Global::getDrawEngine()->bStopPlatformGraphicsRender = true;
+			::Global::getDrawEngine()->bUsePlatformBuffer = true;
 			if( !mRHISystem->createFrameSwapChain(window.getHWnd(), window.getWidth(), window.getHeight(), true, mSwapChain) )
 			{
 				return false;
@@ -246,18 +246,12 @@ namespace RenderD3D
 				return false;
 
 			HRESULT hr;
-
 			TComPtr< ID3D11Device >& device = mRHISystem->mDevice;
 			TComPtr< ID3D11Texture2D > backBuffer;
 			VERIFY_D3D11RESULT_RETURN_FALSE( mSwapChain.ptr->GetBuffer(0, IID_PPV_ARGS(&backBuffer)));
 
 			VERIFY_D3D11RESULT_RETURN_FALSE( device->CreateRenderTargetView( backBuffer , NULL, &renderTargetView) );
 			TComPtr< ID3D11DeviceContext >& context = mRHISystem->mDeviceContext;
-			
-
-			{
-				VERIFY_D3D11RESULT_RETURN_FALSE(device->CreateShaderResourceView(D3D11Cast::GetImpl(mTexture), NULL, &mTextureView));
-			}
 
 			for( int i = 0 ; i < MaxConstBufferNum ; ++i )
 			{
@@ -382,7 +376,7 @@ namespace RenderD3D
 			context->PSSetShader(mPixelShader, nullptr, 0);
 
 
-			SetShaderResource(SHADER_PARAM(Texture), mPixelShader.get(), mTextureView);
+			SetShaderTexture(SHADER_PARAM(Texture), mPixelShader.get(), mTexture);
 
 
 			float c = 0.5 * Math::Sin(worldTime) + 0.5;
@@ -404,6 +398,10 @@ namespace RenderD3D
 					{
 					case Shader::eVertex: context->VSSetConstantBuffers(0, MaxConstBufferNum, constBuffers); break;
 					case Shader::ePixel: context->PSSetConstantBuffers(0, MaxConstBufferNum, constBuffers); break;
+					case Shader::eGeometry: context->GSSetConstantBuffers(0, MaxConstBufferNum, constBuffers); break;
+					case Shader::eHull: context->HSSetConstantBuffers(0, MaxConstBufferNum, constBuffers); break;
+					case Shader::eDomain: context->DSSetConstantBuffers(0, MaxConstBufferNum, constBuffers); break;
+					case Shader::eCompute: context->CSSetConstantBuffers(0, MaxConstBufferNum, constBuffers); break;
 					}
 
 				}
@@ -421,7 +419,7 @@ namespace RenderD3D
 			
 			context->Flush();
 
-			if( ::Global::getDrawEngine()->bStopPlatformGraphicsRender )
+			if( !::Global::getDrawEngine()->bUsePlatformBuffer )
 			{
 				mSwapChain.ptr->Present(1, 0);
 			}

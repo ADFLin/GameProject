@@ -847,7 +847,7 @@ public:
 	{
 		::Global::getDrawEngine()->changeScreenSize(1600, 1200);
 		::Global::GUI().cleanupWidget();
-		if ( !::Global::getDrawEngine()->startOpenGL( true ) )
+		if ( !::Global::getDrawEngine()->startOpenGL() )
 			return false;
 
 		GameWindow& window = ::Global::getDrawEngine()->getWindow();

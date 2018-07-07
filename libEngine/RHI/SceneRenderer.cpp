@@ -1,17 +1,17 @@
 #include "SceneRenderer.h"
 
 #include "GpuProfiler.h"
-
-#include "DrawUtility.h"
-#include "ShaderCompiler.h"
-#include "MaterialShader.h"
-#include "VertexFactory.h"
-
 #include "RHICommand.h"
 
-#include "FixString.h"
+#include "ShaderCompiler.h"
+#include "VertexFactory.h"
+#include "MaterialShader.h"
+
+#include "DrawUtility.h"
 
 #include "Scene.h"
+
+#include "FixString.h"
 
 #include <algorithm>
 
@@ -326,8 +326,10 @@ namespace RenderGL
 			worldToLight = LookAtMatrix(light.pos, light.dir, GetUpDir(light.dir));
 			mShadowMatrix = worldToLight * shadowProject * biasMatrix;
 			shadowProjectParam.shadowMatrix[0] = mShadowMatrix;
-#if USE_DepthRenderBuffer
+
 			shadowProjectParam.shadowTexture = mShadowMap2;
+
+#if USE_DepthRenderBuffer
 			mShadowBuffer.setDepth(*depthBuffer2);
 #endif
 			mShadowBuffer.setTexture(0, *mShadowMap2);
@@ -2056,7 +2058,7 @@ namespace RenderGL
 		mVolumeBufferA = RHICreateTexture3D(Texture::eRGBA16F, nx, ny, depthSlices);
 		mVolumeBufferB = RHICreateTexture3D(Texture::eRGBA16F, nx, ny, depthSlices);
 		mScatteringBuffer = RHICreateTexture3D(Texture::eRGBA16F, nx, ny, depthSlices);
-		mTiledLightBuffer = RHICreateUniformBuffer(sizeof(TitledLightInfo) * MaxTiledLightNum);
+		mTiledLightBuffer = RHICreateUniformBuffer(sizeof(TitledLightInfo) , MaxTiledLightNum);
 
 		return mVolumeBufferA.isValid() && mVolumeBufferB.isValid() && mScatteringBuffer.isValid() && mTiledLightBuffer.isValid();
 	}

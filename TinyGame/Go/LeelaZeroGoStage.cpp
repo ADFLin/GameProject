@@ -135,7 +135,7 @@ namespace Go
 
 		::Global::getDrawEngine()->changeScreenSize(1080, 720);
 
-		if( !::Global::getDrawEngine()->startOpenGL(true,8) )
+		if( !::Global::getDrawEngine()->startOpenGL(8) )
 			return false;
 
 		if( !mBoardRenderer.initializeRHI() )
@@ -332,6 +332,27 @@ namespace Go
 
 		devFrame->addCheckBox("Try Play", [&](int eventId, GWidget* widget) ->bool
 		{
+#if 1
+			if( mTryPlayWidget )
+			{
+				mTryPlayWidgetPos = mTryPlayWidget->getWorldPos();
+				mTryPlayWidget->destroy();
+				mTryPlayWidget = nullptr;
+				widget->cast<GCheckBox>()->setTitle("Try Play");
+			}
+			else
+			{
+				MyGame& Gamelooking = bReviewingGame ? mReviewGame : mGame;
+				mTryPlayWidget = new BoardFrame( UI_ANY , mTryPlayWidgetPos, Vec2i(400,400) , nullptr );
+				mTryPlayWidget->game.guid = Gamelooking.guid;
+				mTryPlayWidget->game.copy(Gamelooking);
+				mTryPlayWidget->game.removeUnplayedHistory();
+				mTryPlayWidget->renderer = &mBoardRenderer;
+				::Global::GUI().addWidget(mTryPlayWidget);
+				widget->cast<GCheckBox>()->setTitle("End Play");
+
+			}
+#else
 			bTryPlayingGame = !bTryPlayingGame;
 
 			if( bTryPlayingGame )
@@ -346,7 +367,7 @@ namespace Go
 			{
 				widget->cast<GCheckBox>()->setTitle("Try Play");
 			}
-
+#endif
 			return false;
 		});
 
@@ -422,7 +443,19 @@ namespace Go
 		{
 			mLeelaAIRun.update();
 			processLearningCommand();
-			keepLeelaProcessRunning(time);
+
+			if( mbRestartLearning )
+			{
+				cleanupModeData(false);
+				buildLearningMode();
+				mbRestartLearning = false;
+				return;
+			}
+			else
+			{
+				keepLeelaProcessRunning(time);
+			}
+			
 		}
 
 		if( bAnalysisEnabled )
@@ -1210,6 +1243,9 @@ namespace Go
 		assert(mGameMode == GameMode::Learning);
 		auto ProcFun = [&](GameCommand& com)
 		{
+			if( mbRestartLearning )
+				return;
+
 			int color = mGame.getNextPlayColor();
 			switch( com.id )
 			{
@@ -1284,14 +1320,11 @@ namespace Go
 						LogMsg("Warning:Can't Play step : [%d,%d]", com.pos[0], com.pos[1]);
 					}
 
-#if 0
-					if( mGame.getCurrentStep() >= ::Global::GameConfig().getIntValue( "LeelaLearnMaxSetp" , "Go" , 400 ) )
+					if( mGame.getCurrentStep() - 1 >= ::Global::GameConfig().getIntValue( "LeelaLearnMaxSetp" , "Go" , 400 ) )
 					{
-						cleanupModeData(false);
-						buildLearningMode();
+						mbRestartLearning = true;
 						return;
 					}
-#endif
 				}
 				break;
 			}

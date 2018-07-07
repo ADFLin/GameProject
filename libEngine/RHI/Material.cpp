@@ -13,28 +13,8 @@ namespace RenderGL
 {
 	bool Texture2D::loadFile(char const* path , int numMipLevel )
 	{
-		int w;
-		int h;
-		int comp;
-		uint8* imageData = stbi_load(path, &w, &h, &comp, STBI_default);
-
-		if( !imageData )
-			return false;
-
-		assert(mRHI == nullptr);
-		//#TODO
-		switch( comp )
-		{
-		case 3:
-			mRHI = RHICreateTexture2D(Texture::eRGB8, w, h, numMipLevel, imageData, 1);
-			break;
-		case 4:
-			mRHI = RHICreateTexture2D(Texture::eRGBA8, w, h, numMipLevel, imageData, 1);
-			break;
-		}
-		//glGenerateMipmap( texType);
-		stbi_image_free(imageData);
-		return true;
+		mRHI = RHIUtility::LoadTexture2DFromFile(path, numMipLevel);
+		return mRHI.isValid();
 	}
 
 
@@ -53,31 +33,36 @@ namespace RenderGL
 			case ParamType::eTexture2DRHI:
 				{
 					RHITextureBase* texture = *reinterpret_cast<RHITextureBase**>(&mParamDataStorage[param.offset]);
-					shader.setTexture(param.name, *(RHITexture2D*)texture);
+					if ( texture )
+						shader.setTexture(param.name, *(RHITexture2D*)texture);
 				}
 				break;
 			case ParamType::eTexture3DRHI:
 				{
 					RHITextureBase* texture = *reinterpret_cast<RHITextureBase**>(&mParamDataStorage[param.offset]);
-					shader.setTexture(param.name, *(RHITexture3D*)texture);
+					if( texture )
+						shader.setTexture(param.name, *(RHITexture3D*)texture);
 				}
 				break;
 			case ParamType::eTextureCubeRHI:
 				{
 					RHITextureBase* texture = *reinterpret_cast<RHITextureBase**>(&mParamDataStorage[param.offset]);
-					shader.setTexture(param.name, *(RHITextureCube*)texture);
+					if( texture )
+						shader.setTexture(param.name, *(RHITextureCube*)texture);
 				}
 				break;
 			case ParamType::eTextureDepthRHI:
 				{
 					RHITextureBase* texture = *reinterpret_cast<RHITextureBase**>(&mParamDataStorage[param.offset]);
-					shader.setTexture(param.name, *(RHITextureDepth*)texture);
+					if( texture )
+						shader.setTexture(param.name, *(RHITextureDepth*)texture);
 				}
 				break;
 			case ParamType::eTexture2D:
 				{
 					Texture2D* texture = *reinterpret_cast<Texture2D**>(&mParamDataStorage[param.offset]);
-					shader.setTexture(param.name, texture->getRHI());
+					if( texture )
+						shader.setTexture(param.name, texture->getRHI());
 				}
 				break;
 			case ParamType::eMatrix4:

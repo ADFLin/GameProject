@@ -236,6 +236,8 @@ long TinyGameApp::onUpdate( long shouldTime )
 	int  numFrame = shouldTime / getUpdateTime();
 	long updateTime = numFrame * getUpdateTime();
 
+	Global::getDrawEngine()->update(updateTime);
+
 	for( int i = 0 ; i < numFrame ; ++i )
 	{
 		ProfileSystem::Get().incrementFrameCount();
@@ -488,6 +490,7 @@ void TinyGameApp::render( float dframe )
 	g.setTextColor(Color3ub(255, 255, 0));
 	g.drawText(Vec2i(5, 5), str.format("FPS = %f", mFPSCalc.getFPS()));
 	g.drawText(Vec2i(5, 15), str.format("mode = %d", (int)mConsoleShowMode));
+
 	if( de->isOpenGLEnabled() )
 		::Global::getGLGraphics2D().endRender();
 		
@@ -599,6 +602,11 @@ StageBase* TinyGameApp::resolveChangeStageFail( FailReason reason )
 	switch( reason )
 	{
 	case FailReason::InitFail:
+		if( ::Global::getDrawEngine()->isOpenGLEnabled() )
+		{
+			::Global::getDrawEngine()->stopOpenGL();
+		}
+		break;
 	case FailReason::NoStage:
 		//if ( !mErrorMsg.empty() )
 		//	mShowErrorMsg = true;
@@ -645,7 +653,7 @@ void TinyGameApp::prevStageChange()
 
 void TinyGameApp::postStageEnd()
 {
-	::Global::getDrawEngine()->cleanupGLContextDeferred();
+
 }
 
 void TinyGameApp::postStageChange( StageBase* stage )

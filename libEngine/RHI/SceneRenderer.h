@@ -5,6 +5,7 @@
 #include "RHICommon.h"
 #include "ShaderCore.h"
 #include "Material.h"
+#include "MeshUtility.h"
 #include "RenderContext.h"
 
 namespace RenderGL
@@ -72,14 +73,14 @@ namespace RenderGL
 		GBufferParamData&   getGBuffer() { return mGBuffer; }
 		RHITextureDepth&    getDepthTexture() { return *mDepthTexture; }
 
-		FrameBuffer& getFrameBuffer() { return mFrameBuffer; }
+		OpenGLFrameBuffer& getFrameBuffer() { return mFrameBuffer; }
 
 		void drawDepthTexture(int x, int y, int width, int height);
 
 		GBufferParamData mGBuffer;
 		RHITexture2DRef  mFrameTextures[2];
 		int              mIdxRenderFrameTexture;
-		FrameBuffer      mFrameBuffer;
+		OpenGLFrameBuffer      mFrameBuffer;
 		RHITextureDepthRef mDepthTexture;
 	};
 
@@ -185,7 +186,7 @@ namespace RenderGL
 		RHITexture2DRef    mShadowMap2;
 		RHITextureCubeRef  mShadowMap;
 		RHITexture2DRef    mCascadeTexture;
-		FrameBuffer     mShadowBuffer;
+		OpenGLFrameBuffer     mShadowBuffer;
 
 		ShaderProgram  mProgShadowDepth[3];
 		ShaderProgram  mProgLighting;
@@ -242,7 +243,7 @@ namespace RenderGL
 
 	public:
 		std::vector< Vector3 > mKernelVectors;
-		FrameBuffer  mFrameBuffer;
+		OpenGLFrameBuffer  mFrameBuffer;
 		RHITexture2DRef mSSAOTextureBlur;
 		RHITexture2DRef mSSAOTexture;
 		class SSAOGenerateProgram* mProgSSAOGenerate;
@@ -257,11 +258,11 @@ namespace RenderGL
 		bool init(IntVector2 const& size);
 		void render(ViewInfo& view, SceneRenderTargets& sceneRenderTargets);
 
-		FrameBuffer mFrameBufferGen;
+		OpenGLFrameBuffer mFrameBufferGen;
 		RHITexture2DRef mTextureNear;
 		RHITexture2DRef mTextureFar;
 
-		FrameBuffer mFrameBufferBlur;
+		OpenGLFrameBuffer mFrameBufferBlur;
 		RHITexture2DRef mTextureBlurR;
 		RHITexture2DRef mTextureBlurG;
 		RHITexture2DRef mTextureBlurB;
@@ -365,8 +366,8 @@ namespace RenderGL
 		void prevRenderLights(ViewInfo& view);
 		void renderLight(ViewInfo& view, LightInfo const& light, ShadowProjectParam const& shadowProjectParam );
 
-		FrameBuffer   mBassPassBuffer;
-		FrameBuffer   mLightBuffer;
+		OpenGLFrameBuffer   mBassPassBuffer;
+		OpenGLFrameBuffer   mLightBuffer;
 		class DeferredLightingProgram* mProgLightingScreenRect[3];
 		class DeferredLightingProgram* mProgLighting[3];
 		class DeferredLightingProgram* mProgLightingShowBound;
@@ -392,7 +393,8 @@ namespace RenderGL
 
 
 
-
+	class Material;
+	class Mesh;
 
 
 	class OITTechnique :  public RenderTechnique
@@ -433,7 +435,7 @@ namespace RenderGL
 		AtomicCounterBuffer mStorageUsageCounter;
 		Mesh mScreenMesh;
  
-		FrameBuffer mFrameBuffer;
+		OpenGLFrameBuffer mFrameBuffer;
 
 		void setupShader(ShaderProgram& program);
 		virtual MaterialShaderProgram* getMaterialShader( RenderContext& context , MaterialMaster& material , VertexFactory* vertexFactory) override;

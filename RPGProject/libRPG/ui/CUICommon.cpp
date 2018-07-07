@@ -112,12 +112,15 @@ void CWidget::setupUITextDepth()
 	CFly::ShuFa::setTextDepth( depth );
 }
 
-void CWidget::onChangePos( Vec2i const& pos , bool beLocal )
+void CWidget::onChangePos( Vec2i const& pos , bool bParentMove)
 {
-	Vec3D sPos = mSprite->getLocalPosition();
-	sPos.x = pos.x;
-	sPos.y = pos.y;
-	mSprite->setLocalPosition( sPos );
+	if ( !bParentMove )
+	{
+		Vec3D sPos = mSprite->getLocalPosition();
+		sPos.x = pos.x;
+		sPos.y = pos.y;
+		mSprite->setLocalPosition(sPos);
+	}
 }
 
 void CWidget::onShow( bool beS )

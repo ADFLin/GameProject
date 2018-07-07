@@ -58,24 +58,37 @@ namespace RenderGL
 		void draw();
 		void draw(LinearColor const& color);
 
+		void drawAdjShader(LinearColor const& color);
+
 		void drawShader();
 		void drawShader(LinearColor const& color);
 
 		void drawSection(int idx, bool bUseVAO = false);
 
-		void drawInternal(int idxStart, int num, LinearColor const* color = nullptr);
-		void drawShaderInternal(int idxStart, int num, LinearColor const* color = nullptr);
-
+		void drawInternal(int idxStart, int num, LinearColor const* color = nullptr)
+		{
+			drawInternal(idxStart, num, mIndexBuffer, color);
+		}
+		void drawInternal(int idxStart, int num, RHIIndexBuffer* indexBuffer, LinearColor const* color);
+		void drawShaderInternal(int idxStart, int num, LinearColor const* color = nullptr)
+		{
+			drawShaderInternal(idxStart, num, mIndexBuffer, color);
+		}
+		void drawShaderInternal(int idxStart, int num, RHIIndexBuffer* indexBuffer, LinearColor const* color /*= nullptr*/);
+		void drawShaderInternalEx(PrimitiveType type, int idxStart, int num, RHIIndexBuffer* indexBuffer, LinearColor const* color /*= nullptr*/);
 		void bindVAO(LinearColor const* color = nullptr);
 		void unbindVAO()
 		{
 			glBindVertexArray(0);
 		}
 
+		bool generateAdjacency();
+
 		PrimitiveType       mType;
 		VertexDecl          mDecl;
 		RHIVertexBufferRef  mVertexBuffer;
 		RHIIndexBufferRef   mIndexBuffer;
+		RHIIndexBufferRef   mAdjacencyIndexBuffer;
 		uint32              mVAO;
 
 		struct Section

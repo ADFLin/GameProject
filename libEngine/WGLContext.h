@@ -28,15 +28,20 @@ public:
 	~WindowsGLContext();
 
 
+	bool  init();
 	bool  init( HDC hDC , WGLPixelFormat const& format , bool bWindowed = true );
 	void  cleanup();
-	bool  makeCurrent( HDC hDC );
+	bool  makeCurrent();
+	void  swapBuffer();
 
 	bool  isValid() { return mhRC != NULL; }
 	HGLRC getHandle(){ return mhRC; }
 	bool  setupPixelFormat(HDC hDC, WGLPixelFormat const& format , bool bWindowed);
 private:
 	HGLRC mhRC;
+	HDC   mhDC;
+	// dump window != NULL
+	HWND  mhWnd;
 };
 
 #endif // WGLContext_h__

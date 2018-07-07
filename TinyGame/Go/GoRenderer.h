@@ -37,9 +37,14 @@ namespace Go
 			starRadius = DefalutStarRadius * scale;
 		}
 
-		float const DefalutCellLength = 28;
-		float const DefalutStoneRadius = (DefalutCellLength / 2) * 11 / 12;
-		float const DefalutStarRadius = 5;
+		static float constexpr DefalutCellLength = 28;
+		static float constexpr DefalutStoneRadius = (DefalutCellLength / 2) * 11 / 12;
+		static float constexpr DefalutStarRadius = 5;
+
+		static float CalcDefalutSize(int boradSize)
+		{
+			return (boradSize - 1) * DefalutCellLength;
+		}
 
 		Vector2 getIntersectionPos(int i, int j) const
 		{
@@ -56,9 +61,11 @@ namespace Go
 	public:
 		bool bUseBatchedRender = true;
 		bool bDrawStar = true;
+		bool bDrawCoord = true;
 		bool bUseNoiseOffset = true;
 		bool bDrawLinkInfo = false;
 		bool bDrawStepNum = true;
+
 
 		bool initializeRHI();
 
@@ -84,8 +91,7 @@ namespace Go
 
 		void addBatchedSprite(int id, Vector2 pos, Vector2 size, Vector2 pivot, Vector4 color);
 
-		void drawStone(GLGraphics2D& g ,Vector2 const& pos, int color , float stoneRadius , float opacity = 1.0f);
-
+		void drawStone(GLGraphics2D& g, Vector2 const& pos, int color, float stoneRadius, float scale, float opaticy = 1.0 );
 
 
 

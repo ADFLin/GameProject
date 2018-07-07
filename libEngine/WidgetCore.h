@@ -111,7 +111,7 @@ protected:
 	void    onChangeChildrenOrder() {}
 	void    onEnable(bool beE) {}
 	void    onUpdateUI() {}
-	void    onChangePos(Vec2i const& pos, bool beLocal) {}
+	void    onChangePos(Vec2i const& pos, bool bParentMove) {}
 	void    onShow(bool beS) {}
 	void    onMouse(bool beIn) {}
 

@@ -169,7 +169,7 @@ namespace CB
 
 			Color4f const& surfaceColor = surface.getColor();
 			Color4f const color = Color4f(1 - surfaceColor.r, 1 - surfaceColor.g, 1 - surfaceColor.b);
-			RHISetupFixedPipeline(mViewInfo.worldToView, mViewInfo.viewToClip);
+			RHISetupFixedPipelineState(mViewInfo.worldToView, mViewInfo.viewToClip);
 			drawMeshLine( surface , color );
 
 			glDisable(GL_POLYGON_OFFSET_FILL);

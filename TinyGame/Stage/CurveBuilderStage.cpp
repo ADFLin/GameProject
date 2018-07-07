@@ -41,7 +41,7 @@ namespace CB
 			if( !BaseClass::onInit() )
 				return false;
 
-			if( !::Global::getDrawEngine()->startOpenGL(true,4) )
+			if( !::Global::getDrawEngine()->startOpenGL(4) )
 				return false;
 
 			if( !InitGlobalRHIResource() )

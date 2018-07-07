@@ -4,11 +4,33 @@
 
 #define GLOBAL_SECTION "__GLOBAL__"
 
+float KeyValue::getFloat() const
+{
+	if( mCacheGetType != CacheFloat )
+	{
+		mCacheGetValue.floatValue = float(::atof(mValue.c_str()));
+		mCacheGetType = CacheFloat;
+	}
+	return mCacheGetValue.floatValue;
+}
+
+int KeyValue::getInt() const
+{
+	if( mCacheGetType != CacheInt )
+	{
+		mCacheGetValue.intValue = ::atoi(mValue.c_str());
+		mCacheGetType = CacheInt;
+	}
+	return mCacheGetValue.intValue;
+}
+
 void  KeyValue::setFloat( float value )
 { 
 	std::stringstream ss;
 	ss << value;
 	mValue = ss.str();
+	mCacheGetType = CacheFloat;
+	mCacheGetValue.floatValue = value;
 }
 
 void KeyValue::setInt( int value )
@@ -16,6 +38,21 @@ void KeyValue::setInt( int value )
 	std::stringstream ss;
 	ss << value;
 	mValue = ss.str();
+	mCacheGetType = CacheInt;
+	mCacheGetValue.intValue = value;
+}
+
+void KeyValue::setChar(char value)
+{
+	mValue.clear();
+	mValue.push_back(value);
+	mCacheGetType = NoCache;
+}
+
+void KeyValue::setString(char const* value)
+{
+	mValue = value;
+	mCacheGetType = NoCache;
 }
 
 KeyValue* KeySection::getKeyValue( char const* keyName )
@@ -48,15 +85,15 @@ KeyValue* PropertyKey::getKeyValue( char const* group, char const* keyName )
 }
 
 template< class T > struct KeyOp {};
-template<>  struct KeyOp< int >  { static int   Get( KeyValue* value ){ return value->getInt(); }  }; 
-template<>  struct KeyOp< float >{ static  float Get( KeyValue* value ){ return value->getFloat(); }  };
-template<>  struct KeyOp< char > { static  char  Get( KeyValue* value ){ return value->getChar(); }  };
-template<>  struct KeyOp< char const* >{ static char const* Get( KeyValue* value ){ return value->getString(); } };
+template<>  struct KeyOp< int >  { static int   Get( KeyValue const* value ){ return value->getInt(); }  }; 
+template<>  struct KeyOp< float >{ static  float Get( KeyValue const* value ){ return value->getFloat(); }  };
+template<>  struct KeyOp< char > { static  char  Get( KeyValue const* value ){ return value->getChar(); }  };
+template<>  struct KeyOp< char const* >{ static char const* Get( KeyValue const* value ){ return value->getString(); } };
 
 template< class T >
 bool PropertyKey::tryGetValueT( char const* keyName , char const* group , T& value )
 {
-	KeyValue* keyValue = getKeyValue( group, keyName );
+	KeyValue const* keyValue = getKeyValue( group, keyName );
 	if ( !keyValue )
 		return false;
 
@@ -70,7 +107,7 @@ T PropertyKey::getValueT( char const* keyName , char const* group , T defaultVal
 	if( !group )
 		group = GLOBAL_SECTION;
 
-	KeyValue* keyValue = getKeyValue( group, keyName );
+	KeyValue const* keyValue = getKeyValue( group, keyName );
 	if ( keyValue )
 	{
 		return KeyOp<T>::Get( keyValue );

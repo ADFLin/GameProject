@@ -42,12 +42,12 @@ namespace RenderGL
 			{
 			case Vertex::ePosition:
 				glEnableClientState( GL_VERTEX_ARRAY );
-				glVertexPointer( Vertex::GetComponentNum( info.format ) , Vertex::GetComponentType( info.format ) , mVertexSize , (void*)info.offset );
+				glVertexPointer( Vertex::GetComponentNum( info.format ) , GLConvert::VertexComponentType( info.format ) , mVertexSize , (void*)info.offset );
 				break;
 			case Vertex::eNormal:
 				assert( Vertex::GetComponentNum( info.format ) == 3 );
 				glEnableClientState( GL_NORMAL_ARRAY );
-				glNormalPointer(Vertex::GetComponentType(info.format ) , mVertexSize , (void*)info.offset );
+				glNormalPointer(GLConvert::VertexComponentType(info.format ) , mVertexSize , (void*)info.offset );
 				break;
 			case Vertex::eColor:
 				if ( info.idx == 0 )
@@ -55,25 +55,25 @@ namespace RenderGL
 					if( overwriteColor == nullptr )
 					{
 						glEnableClientState(GL_COLOR_ARRAY);
-						glColorPointer(Vertex::GetComponentNum(info.format), Vertex::GetComponentType(info.format), mVertexSize, (void*)info.offset);
+						glColorPointer(Vertex::GetComponentNum(info.format), GLConvert::VertexComponentType(info.format), mVertexSize, (void*)info.offset);
 					}
 				}
 				else
 				{
 					glEnableClientState( GL_SECONDARY_COLOR_ARRAY );
-					glSecondaryColorPointer( Vertex::GetComponentNum( info.format ) , Vertex::GetComponentType( info.format ) , mVertexSize , (void*)info.offset );
+					glSecondaryColorPointer( Vertex::GetComponentNum( info.format ) , GLConvert::VertexComponentType( info.format ) , mVertexSize , (void*)info.offset );
 				}
 				break;
 			case Vertex::eTangent:
 				glClientActiveTexture(GL_TEXTURE0 + (Vertex::ATTRIBUTE_TANGENT - Vertex::ATTRIBUTE_TEXCOORD));
 				glEnableClientState(GL_TEXTURE_COORD_ARRAY);
-				glTexCoordPointer(Vertex::GetComponentNum(info.format), Vertex::GetComponentType( info.format), mVertexSize, (void*)info.offset);
+				glTexCoordPointer(Vertex::GetComponentNum(info.format), GLConvert::VertexComponentType( info.format), mVertexSize, (void*)info.offset);
 				haveTex = true;
 				break;
 			case Vertex::eTexcoord:
 				glClientActiveTexture( GL_TEXTURE0 + info.idx );
 				glEnableClientState( GL_TEXTURE_COORD_ARRAY );
-				glTexCoordPointer( Vertex::GetComponentNum( info.format ) , Vertex::GetComponentType( info.format ) , mVertexSize , (void*)info.offset );
+				glTexCoordPointer( Vertex::GetComponentNum( info.format ) , GLConvert::VertexComponentType( info.format ) , mVertexSize , (void*)info.offset );
 				haveTex = true;
 				break;
 			}
@@ -128,7 +128,7 @@ namespace RenderGL
 		for( VertexElement& info : mElements )
 		{
 			glEnableVertexAttribArray(info.attribute);
-			glVertexAttribPointer(info.attribute, Vertex::GetComponentNum(info.format), Vertex::GetComponentType(info.format), GL_FALSE, mVertexSize, (void*)info.offset);
+			glVertexAttribPointer(info.attribute, Vertex::GetComponentNum(info.format), GLConvert::VertexComponentType(info.format), GL_FALSE, mVertexSize, (void*)info.offset);
 		}
 		if( overwriteColor )
 		{
@@ -326,7 +326,7 @@ namespace RenderGL
 			glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MAX_LEVEL, numMipLevel - 1);
 
 		glTexImage1D(GL_TEXTURE_1D, 0, GLConvert::To(format), length, 0,
-					 Texture::GetBaseFormat(format), Texture::GetComponentType(format), data);
+					 GLConvert::BaseFormat(format), GLConvert::TextureComponentType(format), data);
 
 		CheckGLStateValid();
 		unbind();
@@ -336,7 +336,7 @@ namespace RenderGL
 	bool OpenGLTexture1D::update(int offset, int length, Texture::Format format, void* data, int level /*= 0*/)
 	{
 		bind();
-		glTexSubImage1D(GL_TEXTURE_1D, level, offset, length, Texture::GetPixelFormat(format), Texture::GetComponentType(format), data);
+		glTexSubImage1D(GL_TEXTURE_1D, level, offset, length, GLConvert::PixelFormat(format), GLConvert::TextureComponentType(format), data);
 		bool result = CheckGLStateValid();
 		unbind();
 		return result;
@@ -361,13 +361,13 @@ namespace RenderGL
 		{
 			glPixelStorei(GL_UNPACK_ALIGNMENT, alignment);
 			glTexImage2D(GL_TEXTURE_2D, 0, GLConvert::To(format), width, height, 0,
-						 Texture::GetBaseFormat(format), Texture::GetComponentType(format), data);
+						 GLConvert::BaseFormat(format), GLConvert::TextureComponentType(format), data);
 			glPixelStorei(GL_UNPACK_ALIGNMENT, GLDefalutUnpackAlignment);
 		}
 		else
 		{
 			glTexImage2D(GL_TEXTURE_2D, 0, GLConvert::To(format), width, height, 0,
-						 Texture::GetBaseFormat(format), Texture::GetComponentType(format), data);
+						 GLConvert::BaseFormat(format), GLConvert::TextureComponentType(format), data);
 		}
 		CheckGLStateValid();
 		unbind();
@@ -395,7 +395,7 @@ namespace RenderGL
 	bool OpenGLTexture2D::update(int ox, int oy, int w, int h, Texture::Format format , void* data , int level )
 	{
 		bind();
-		glTexSubImage2D(GL_TEXTURE_2D, level, ox, oy, w, h, Texture::GetPixelFormat(format), Texture::GetComponentType(format), data);
+		glTexSubImage2D(GL_TEXTURE_2D, level, ox, oy, w, h, GLConvert::PixelFormat(format), GLConvert::TextureComponentType(format), data);
 		bool result = CheckGLStateValid();
 		unbind();
 		return result;
@@ -406,12 +406,12 @@ namespace RenderGL
 		bind();
 #if 1
 		::glPixelStorei(GL_UNPACK_ROW_LENGTH, pixelStride);
-		glTexSubImage2D(GL_TEXTURE_2D, level, ox, oy, w, h, Texture::GetPixelFormat(format), Texture::GetComponentType(format), data);
+		glTexSubImage2D(GL_TEXTURE_2D, level, ox, oy, w, h, GLConvert::PixelFormat(format), GLConvert::TextureComponentType(format), data);
 		bool result = CheckGLStateValid();
 		::glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
 #else
-		GLenum formatGL = Texture::GetPixelFormat(format);
-		GLenum typeGL = Texture::GetComponentType(format);
+		GLenum formatGL = GLConvert::PixelFormat(format);
+		GLenum typeGL = GLConvert::TextureComponentType(format);
 		uint8* pData = (uint8*)data;
 		int dataStride = pixelStride * Texture::GetFormatSize(format);
 		for( int dy = 0; dy < h; ++dy )
@@ -440,7 +440,7 @@ namespace RenderGL
 		glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 		glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MAX_LEVEL, 0);
 		glTexImage3D(GL_TEXTURE_3D, 0, GLConvert::To(format), sizeX, sizeY , sizeZ, 0, 
-					 Texture::GetBaseFormat(format), Texture::GetComponentType(format), NULL);
+					 GLConvert::BaseFormat(format), GLConvert::TextureComponentType(format), NULL);
 		unbind();
 		return true;
 	}
@@ -457,7 +457,7 @@ namespace RenderGL
 			glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 			glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, 
 						 GLConvert::To(format), width, height, 0,
-						 Texture::GetBaseFormat(format), Texture::GetComponentType(format), data );
+						 GLConvert::BaseFormat(format), GLConvert::TextureComponentType(format), data );
 		}
 		unbind();
 		return true;
@@ -492,7 +492,7 @@ namespace RenderGL
 		bind();
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-		glTexImage2D(GL_TEXTURE_2D, 0,  Texture::Convert(format), width, height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+		glTexImage2D(GL_TEXTURE_2D, 0, GLConvert::To(format), width, height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
 
 		GLenum error = glGetError();
 		if( error != GL_NO_ERROR )
@@ -502,22 +502,17 @@ namespace RenderGL
 		return true;	
 	}
 
-	FrameBuffer::FrameBuffer()
+	OpenGLFrameBuffer::OpenGLFrameBuffer()
 	{
-		mFBO = 0;
+
 	}
 
-	FrameBuffer::~FrameBuffer()
+	OpenGLFrameBuffer::~OpenGLFrameBuffer()
 	{
-		if( mFBO )
-		{
-			glDeleteFramebuffers(1, &mFBO);
-			mFBO = 0;
-		}
 		mTextures.clear();
 	}
 
-	int FrameBuffer::addTexture( RHITextureCube& target , Texture::Face face  )
+	int OpenGLFrameBuffer::addTexture( RHITextureCube& target , Texture::Face face  )
 	{
 		int idx = mTextures.size();
 
@@ -530,7 +525,7 @@ namespace RenderGL
 		return idx;
 	}
 
-	int FrameBuffer::addTexture( RHITexture2D& target )
+	int OpenGLFrameBuffer::addTexture( RHITexture2D& target )
 	{
 		int idx = mTextures.size();
 
@@ -543,7 +538,7 @@ namespace RenderGL
 		return idx;
 	}
 
-	void FrameBuffer::setTexture( int idx , RHITexture2D& target )
+	void OpenGLFrameBuffer::setTexture( int idx , RHITexture2D& target )
 	{
 		assert( idx < mTextures.size() );
 		BufferInfo& info = mTextures[idx];
@@ -552,7 +547,7 @@ namespace RenderGL
 		setTextureInternal( idx , OpenGLCast::GetHandle( target ) , GL_TEXTURE_2D );
 	}
 
-	void FrameBuffer::setTexture( int idx , RHITextureCube& target , Texture::Face face )
+	void OpenGLFrameBuffer::setTexture( int idx , RHITextureCube& target , Texture::Face face )
 	{
 		assert( idx < mTextures.size() );
 		BufferInfo& info = mTextures[idx];
@@ -562,10 +557,10 @@ namespace RenderGL
 	}
 
 
-	void FrameBuffer::setTextureInternal(int idx, GLuint handle , GLenum texType)
+	void OpenGLFrameBuffer::setTextureInternal(int idx, GLuint handle , GLenum texType)
 	{
-		assert( mFBO );
-		glBindFramebuffer( GL_FRAMEBUFFER , mFBO );
+		assert( getHandle() );
+		glBindFramebuffer( GL_FRAMEBUFFER , getHandle() );
 		glFramebufferTexture2D( GL_FRAMEBUFFER , GL_COLOR_ATTACHMENT0 + idx , texType , handle , 0 );
 		GLenum Status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
 		if( Status != GL_FRAMEBUFFER_COMPLETE )
@@ -575,15 +570,15 @@ namespace RenderGL
 		glBindFramebuffer(GL_FRAMEBUFFER, 0 );
 	}
 
-	void FrameBuffer::bindDepthOnly()
+	void OpenGLFrameBuffer::bindDepthOnly()
 	{
-		glBindFramebuffer(GL_FRAMEBUFFER, mFBO);
+		glBindFramebuffer(GL_FRAMEBUFFER, getHandle() );
 	}
 
 
-	void FrameBuffer::bind()
+	void OpenGLFrameBuffer::bind()
 	{
-		glBindFramebuffer( GL_FRAMEBUFFER, mFBO );
+		glBindFramebuffer( GL_FRAMEBUFFER, getHandle() );
 		GLenum DrawBuffers[] =
 		{ 
 			GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2 , GL_COLOR_ATTACHMENT3, GL_COLOR_ATTACHMENT4,
@@ -599,26 +594,27 @@ namespace RenderGL
 		}
 	}
 
-	void FrameBuffer::unbind()
+	void OpenGLFrameBuffer::unbind()
 	{
 		glBindFramebuffer( GL_FRAMEBUFFER, 0 );
 	}
 
-	bool FrameBuffer::create()
+	bool OpenGLFrameBuffer::create()
 	{
-		glGenFramebuffers( 1, &mFBO ); 
-		//glBindFramebuffer( GL_DRAW_FRAMEBUFFER , mFBO );
-		return mFBO != 0;
+		if( !mGLObject.fetchHandle() )
+			return false;
+
+		return true;
 	}
 
-	int FrameBuffer::addTextureLayer(RHITextureCube& target)
+	int OpenGLFrameBuffer::addTextureLayer(RHITextureCube& target)
 	{
 		int idx = mTextures.size();
 		BufferInfo info;
 		info.bufferRef = &target;
 		info.idxFace = 0;
 		mTextures.push_back(info);
-		glBindFramebuffer(GL_FRAMEBUFFER, mFBO);
+		glBindFramebuffer(GL_FRAMEBUFFER, getHandle());
 		glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, OpenGLCast::GetHandle( target ), 0);
 		GLenum Status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
 		if( Status != GL_FRAMEBUFFER_COMPLETE )
@@ -629,7 +625,7 @@ namespace RenderGL
 		return idx;
 	}
 
-	void FrameBuffer::clearBuffer(Vector4 const* colorValue, float const* depthValue, uint8 stencilValue)
+	void OpenGLFrameBuffer::clearBuffer(Vector4 const* colorValue, float const* depthValue, uint8 stencilValue)
 	{
 		if( colorValue )
 		{
@@ -646,7 +642,7 @@ namespace RenderGL
 		}
 	}
 
-	void FrameBuffer::setDepthInternal( RHIResource& resource , GLuint handle, Texture::DepthFormat format, bool bTexture )
+	void OpenGLFrameBuffer::setDepthInternal( RHIResource& resource , GLuint handle, Texture::DepthFormat format, bool bTexture )
 	{
 		removeDepthBuffer();
 
@@ -655,7 +651,7 @@ namespace RenderGL
 
 		if( handle )
 		{
-			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, mFBO);
+			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, getHandle());
 
 			GLenum attachType = GL_DEPTH_ATTACHMENT;
 			if( Texture::ContainStencil(format) )
@@ -686,23 +682,23 @@ namespace RenderGL
 	}
 
 #if USE_DepthRenderBuffer
-	void FrameBuffer::setDepth( RHIDepthRenderBuffer& buffer)
+	void OpenGLFrameBuffer::setDepth( RHIDepthRenderBuffer& buffer)
 	{
 		setDepthInternal( buffer , buffer.mHandle , buffer.getFormat() , false );
 	}
 #endif
 
-	void FrameBuffer::setDepth(RHITextureDepth& target)
+	void OpenGLFrameBuffer::setDepth(RHITextureDepth& target)
 	{
 		setDepthInternal( target , OpenGLCast::GetHandle( target ) , target.getFormat(), true );
 	}
 
-	void FrameBuffer::removeDepthBuffer()
+	void OpenGLFrameBuffer::removeDepthBuffer()
 	{
 		if ( mDepth.bufferRef )
 		{
 			mDepth.bufferRef = nullptr;
-			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, mFBO);
+			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, getHandle());
 			if( mDepth.bTexture )
 			{
 				glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_TEXTURE_2D, 0, 0);
@@ -713,7 +709,6 @@ namespace RenderGL
 			}
 			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
 		}
-
 	}
 
 #if USE_DepthRenderBuffer
@@ -810,110 +805,11 @@ namespace RenderGL
 	static_assert(CheckTexConvMapValid(), "CheckTexConvMapValid Error");
 #endif
 
-	GLenum Texture::Convert(DepthFormat format)
-	{
-		switch( format )
-		{
-		case eDepth16: return GL_DEPTH_COMPONENT16;
-		case eDepth24: return GL_DEPTH_COMPONENT24;
-		case eDepth32: return GL_DEPTH_COMPONENT32;
-		case eDepth32F:return GL_DEPTH_COMPONENT32F;
-		case eD24S8:   return GL_DEPTH24_STENCIL8;
-		case eD32FS8:  return GL_DEPTH32F_STENCIL8;
-		case eStencil1: return GL_STENCIL_INDEX1;
-		case eStencil4: return GL_STENCIL_INDEX4;
-		case eStencil8: return GL_STENCIL_INDEX8;
-		case eStencil16: return GL_STENCIL_INDEX16;
-		}
-		return 0;
-	}
+
 
 	GLenum GLConvert::To(Texture::Format format)
 	{
 		return gTexConvMap[(int)format].foramt;
-	}
-
-	GLenum Texture::GetComponentType(Format format)
-	{
-		return gTexConvMap[format].compType;
-	}
-
-	GLenum Texture::GetPixelFormat(Format format)
-	{
-		switch( format )
-		{
-		case eR32F: case eR16: case eR8:
-		case eR8I:case eR16I:case eR32I:
-		case eR8U:case eR16U:case eR32U:
-			return GL_RED;
-		case eRG8I:case eRG16I:case eRG32I:
-		case eRG8U:case eRG16U:case eRG32U:
-			return GL_RG;
-		case eRGB8:
-		case eRGB32F:case eRGB16F:
-		case eRGB8I:case eRGB16I:case eRGB32I:
-		case eRGB8U:case eRGB16U:case eRGB32U:
-			return GL_RGB;
-		case eRGBA8:
-		case eRGBA32F:case eRGBA16F:
-		case eRGBA8I:case eRGBA16I:case eRGBA32I:
-		case eRGBA8U:case eRGBA16U:case eRGBA32U:
-			return GL_RGBA;
-		}
-		return 0;
-	}
-
-	GLenum Texture::GetBaseFormat(Format format)
-	{
-		switch( format )
-		{
-		case eRGB8: case eRGB32F:case eRGB16F:
-			return GL_RGB;
-		case eRGBA8:case eRGBA32F:case eRGBA16F:
-			return GL_RGBA;
-		case eR32F: case eR16: case eR8:
-			return GL_RED;
-		case eR8I:case eR16I:case eR32I:
-		case eR8U:case eR16U:case eR32U:
-			return GL_RED_INTEGER;
-		case eRG8I:case eRG16I:case eRG32I:
-		case eRG8U:case eRG16U:case eRG32U:
-			return GL_RG_INTEGER;
-		case eRGB8I:case eRGB16I:case eRGB32I:
-		case eRGB8U:case eRGB16U:case eRGB32U:
-			return GL_RGB_INTEGER;
-		case eRGBA8I:case eRGBA16I:case eRGBA32I:
-		case eRGBA8U:case eRGBA16U:case eRGBA32U:
-			return GL_RGBA_INTEGER;
-		}
-		return 0;
-
-	}
-
-	GLenum Texture::GetImage2DType(Format format)
-	{
-		switch( format )
-		{
-		case eRGBA8:
-		case eRGB8:
-		case eR32F:case eR16:case eR8:
-		case eRGB32F:
-		case eRGBA32F:
-		case eRGB16F:
-		case eRGBA16F:
-			return GL_IMAGE_2D;
-		case eR8I:case eR16I:case eR32I:
-		case eRG8I:case eRG16I:case eRG32I:
-		case eRGB8I:case eRGB16I:case eRGB32I:
-		case eRGBA8I:case eRGBA16I:case eRGBA32I:
-			return GL_INT_IMAGE_2D;
-		case eR8U:case eR16U:case eR32U:
-		case eRG8U:case eRG16U:case eRG32U:
-		case eRGB8U:case eRGB16U:case eRGB32U:
-		case eRGBA8U:case eRGBA16U:case eRGBA32U:
-			return GL_UNSIGNED_INT_IMAGE_2D;
-		}
-		return 0;
 	}
 
 	uint32 Texture::GetFormatSize(Format format)
@@ -970,6 +866,7 @@ namespace RenderGL
 		case PrimitiveType::LineList:      return GL_LINES;
 		case PrimitiveType::LineStrip:     return GL_LINE_STRIP;
 		case PrimitiveType::LineLoop:      return GL_LINE_LOOP;
+		case PrimitiveType::TriangleAdjacency:   return GL_TRIANGLES_ADJACENCY;
 		case PrimitiveType::Quad:          return GL_QUADS;
 		case PrimitiveType::Points:        return GL_POINTS;
 		case PrimitiveType::Patchs:        return GL_PATCHES;
@@ -1153,9 +1050,104 @@ namespace RenderGL
 		return GL_REPEAT;
 	}
 
-	GLenum Vertex::GetComponentType(uint8 format)
+	GLenum GLConvert::To(Texture::DepthFormat format)
 	{
-		return GLConvert::To(Vertex::GetCompValueType(Vertex::Format(format)));
+		switch( format )
+		{
+		case Texture::eDepth16: return GL_DEPTH_COMPONENT16;
+		case Texture::eDepth24: return GL_DEPTH_COMPONENT24;
+		case Texture::eDepth32: return GL_DEPTH_COMPONENT32;
+		case Texture::eDepth32F:return GL_DEPTH_COMPONENT32F;
+		case Texture::eD24S8:   return GL_DEPTH24_STENCIL8;
+		case Texture::eD32FS8:  return GL_DEPTH32F_STENCIL8;
+		case Texture::eStencil1: return GL_STENCIL_INDEX1;
+		case Texture::eStencil4: return GL_STENCIL_INDEX4;
+		case Texture::eStencil8: return GL_STENCIL_INDEX8;
+		case Texture::eStencil16: return GL_STENCIL_INDEX16;
+		}
+		return 0;
+	}
+
+	GLenum GLConvert::BaseFormat(Texture::Format format)
+	{
+		switch( format )
+		{
+		case Texture::eRGB8: case Texture::eRGB32F:case Texture::eRGB16F:
+			return GL_RGB;
+		case Texture::eRGBA8:case Texture::eRGBA32F:case Texture::eRGBA16F:
+			return GL_RGBA;
+		case Texture::eR32F: case Texture::eR16: case Texture::eR8:
+			return GL_RED;
+		case Texture::eR8I:case Texture::eR16I:case Texture::eR32I:
+		case Texture::eR8U:case Texture::eR16U:case Texture::eR32U:
+			return GL_RED_INTEGER;
+		case Texture::eRG8I:case Texture::eRG16I:case Texture::eRG32I:
+		case Texture::eRG8U:case Texture::eRG16U:case Texture::eRG32U:
+			return GL_RG_INTEGER;
+		case Texture::eRGB8I:case Texture::eRGB16I:case Texture::eRGB32I:
+		case Texture::eRGB8U:case Texture::eRGB16U:case Texture::eRGB32U:
+			return GL_RGB_INTEGER;
+		case Texture::eRGBA8I:case Texture::eRGBA16I:case Texture::eRGBA32I:
+		case Texture::eRGBA8U:case Texture::eRGBA16U:case Texture::eRGBA32U:
+			return GL_RGBA_INTEGER;
+		}
+		return 0;
+	}
+
+	GLenum GLConvert::PixelFormat(Texture::Format format)
+	{
+		switch( format )
+		{
+		case Texture::eR32F: case Texture::eR16: case Texture::eR8:
+		case Texture::eR8I:case Texture::eR16I:case Texture::eR32I:
+		case Texture::eR8U:case Texture::eR16U:case Texture::eR32U:
+			return GL_RED;
+		case Texture::eRG8I:case Texture::eRG16I:case Texture::eRG32I:
+		case Texture::eRG8U:case Texture::eRG16U:case Texture::eRG32U:
+			return GL_RG;
+		case Texture::eRGB8:
+		case Texture::eRGB32F:case Texture::eRGB16F:
+		case Texture::eRGB8I:case Texture::eRGB16I:case Texture::eRGB32I:
+		case Texture::eRGB8U:case Texture::eRGB16U:case Texture::eRGB32U:
+			return GL_RGB;
+		case Texture::eRGBA8:
+		case Texture::eRGBA32F:case Texture::eRGBA16F:
+		case Texture::eRGBA8I:case Texture::eRGBA16I:case Texture::eRGBA32I:
+		case Texture::eRGBA8U:case Texture::eRGBA16U:case Texture::eRGBA32U:
+			return GL_RGBA;
+		}
+		return 0;
+	}
+
+	GLenum GLConvert::TextureComponentType(Texture::Format format)
+	{
+		return gTexConvMap[format].compType;
+	}
+
+	GLenum GLConvert::Image2DType(Texture::Format format)
+	{
+		switch( format )
+		{
+		case Texture::eRGBA8:
+		case Texture::eRGB8:
+		case Texture::eR32F:case Texture::eR16:case Texture::eR8:
+		case Texture::eRGB32F:
+		case Texture::eRGBA32F:
+		case Texture::eRGB16F:
+		case Texture::eRGBA16F:
+			return GL_IMAGE_2D;
+		case Texture::eR8I:case Texture::eR16I:case Texture::eR32I:
+		case Texture::eRG8I:case Texture::eRG16I:case Texture::eRG32I:
+		case Texture::eRGB8I:case Texture::eRGB16I:case Texture::eRGB32I:
+		case Texture::eRGBA8I:case Texture::eRGBA16I:case Texture::eRGBA32I:
+			return GL_INT_IMAGE_2D;
+		case Texture::eR8U:case Texture::eR16U:case Texture::eR32U:
+		case Texture::eRG8U:case Texture::eRG16U:case Texture::eRG32U:
+		case Texture::eRGB8U:case Texture::eRGB16U:case Texture::eRGB32U:
+		case Texture::eRGBA8U:case Texture::eRGBA16U:case Texture::eRGBA32U:
+			return GL_UNSIGNED_INT_IMAGE_2D;
+		}
+		return 0;
 	}
 
 	int Vertex::GetFormatSize(uint8 format)
@@ -1178,42 +1170,38 @@ namespace RenderGL
 
 	bool OpenGLVertexBuffer::create(uint32 vertexSize, uint32 numVertices, uint32 creationFlags, void* data)
 	{
-		if( createInternal(vertexSize * numVertices, creationFlags, data) )
+		if( !createInternal(vertexSize , numVertices, creationFlags, data) )
 			return false;
 
-		mNumVertices = numVertices;
-		mVertexSize = vertexSize;
 		return true;
 	}
 
 	void OpenGLVertexBuffer::resetData(uint32 vertexSize, uint32 numVertices, uint32 creationFlags , void* data)
 	{
-		if( !resetDataInternal(vertexSize * numVertices, creationFlags, data) )
+		if( !resetDataInternal(vertexSize , numVertices, creationFlags, data) )
 			return;
 
-		mNumVertices = numVertices;
-		mVertexSize = vertexSize;
 	}
 
 	void OpenGLVertexBuffer::updateData(uint32 vStart , uint32 numVertices, void* data)
 	{
-		assert( (vStart + numVertices) * mVertexSize < mBufferSize );
+		assert( (vStart + numVertices) * mElementSize < getSize() );
 		glBindBuffer(GL_ARRAY_BUFFER, getHandle());
-		glBufferSubData(GL_ARRAY_BUFFER, vStart * mVertexSize , mVertexSize * numVertices, data);
+		glBufferSubData(GL_ARRAY_BUFFER, vStart * mElementSize , mElementSize * numVertices, data);
 		glBindBuffer(GL_ARRAY_BUFFER, 0);
 	}
 
 
-	bool OpenGLUniformBuffer::create(uint32 size, uint32 creationFlags, void* data)
+	bool OpenGLUniformBuffer::create(uint32 elementSize, uint32 numElements, uint32 creationFlags, void* data)
 	{
-		if( !createInternal(size, creationFlags , data) )
+		if( !createInternal(elementSize , numElements , creationFlags , data) )
 			return false;
 		return true;
 	}
 
-	bool OpenGLStorageBuffer::create(uint32 size, uint32 creationFlags, void* data)
+	bool OpenGLStorageBuffer::create(uint32 elementSize, uint32 numElements, uint32 creationFlags, void* data)
 	{
-		if( !createInternal(size, creationFlags, data) )
+		if( !createInternal(elementSize, numElements, creationFlags , data) )
 			return false;
 		return true;
 	}
@@ -1233,6 +1221,59 @@ namespace RenderGL
 		return true;
 	}
 
+	OpenGLBlendState::OpenGLBlendState(BlendStateInitializer const& initializer)
+	{
+		for( int i = 0; i < NumBlendStateTarget; ++i )
+		{
+			auto const& targetValue = initializer.targetValues[i];
+			auto& targetValueGL = mStateValue.targetValues[i];
+			targetValueGL.writeMask = targetValue.writeMask;
+			targetValueGL.bEnable = (targetValue.srcColor != Blend::eOne) || (targetValue.srcAlpha != Blend::eOne) ||
+				(targetValue.destColor != Blend::eZero) || (targetValue.destAlpha != Blend::eZero);
 
+			targetValueGL.bSeparateBlend = (targetValue.srcColor != targetValue.srcAlpha) || (targetValue.destColor != targetValue.destAlpha);
+
+			targetValueGL.srcColor = GLConvert::To(targetValue.srcColor);
+			targetValueGL.srcAlpha = GLConvert::To(targetValue.srcAlpha);
+			targetValueGL.destColor = GLConvert::To(targetValue.destColor);
+			targetValueGL.destAlpha = GLConvert::To(targetValue.destAlpha);
+		}
+	}
+
+	OpenGLDepthStencilState::OpenGLDepthStencilState(DepthStencilStateInitializer const& initializer)
+	{
+		//When depth testing is disabled, writes to the depth buffer are also disabled
+		mStateValue.bEnableDepthTest = (initializer.depthFun != ECompareFun::Always) || (initializer.bWriteDepth);
+		mStateValue.depthFun = GLConvert::To(initializer.depthFun);
+		mStateValue.bWriteDepth = initializer.bWriteDepth;
+
+		mStateValue.bEnableStencilTest = initializer.bEnableStencilTest;
+
+		mStateValue.stencilFun = GLConvert::To(initializer.stencilFun);
+		mStateValue.stencilFailOp = GLConvert::To(initializer.stencilFailOp);
+		mStateValue.stencilZFailOp = GLConvert::To(initializer.zFailOp);
+		mStateValue.stencilZPassOp = GLConvert::To(initializer.zPassOp);
+
+		mStateValue.stencilFunBack = GLConvert::To(initializer.stencilFunBack);
+		mStateValue.stencilFailOpBack = GLConvert::To(initializer.stencilFailOpBack);
+		mStateValue.stencilZFailOpBack = GLConvert::To(initializer.zFailOpBack);
+		mStateValue.stencilZPassOpBack = GLConvert::To(initializer.zPassOpBack);
+
+		mStateValue.bUseSeparateStencilOp =
+			(mStateValue.stencilFailOp != mStateValue.stencilFailOpBack) ||
+			(mStateValue.stencilZFailOp != mStateValue.stencilZFailOpBack) ||
+			(mStateValue.stencilZPassOp != mStateValue.stencilZPassOpBack);
+
+		mStateValue.bUseSeparateStencilFun = (mStateValue.stencilFun != mStateValue.stencilFunBack);
+		mStateValue.stencilReadMask = initializer.stencilReadMask;
+		mStateValue.stencilWriteMask = initializer.stencilWriteMask;
+	}
+
+	OpenGLRasterizerState::OpenGLRasterizerState(RasterizerStateInitializer const& initializer)
+	{
+		mStateValue.bEnalbeCull = initializer.cullMode != ECullMode::None;
+		mStateValue.cullFace = GLConvert::To(initializer.cullMode);
+		mStateValue.fillMode = GLConvert::To(initializer.fillMode);
+	}
 
 }//namespace GL

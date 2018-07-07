@@ -694,6 +694,7 @@ copy $(TargetDir)EngineShare.dll $(ProjectDir)out\</Command>
     <None Include="out\Shader\ShadowDepthRender.sgc" />
     <None Include="out\Shader\ShadowLighting.sgc" />
     <None Include="out\Shader\ShadowMap.sgc" />
+    <None Include="out\Shader\ShadowVolume.sgc" />
     <None Include="out\Shader\SimpleBasePass.sgc" />
     <None Include="out\Shader\SimpleElement.sgc" />
     <None Include="out\Shader\SimpleSprite.sgc" />

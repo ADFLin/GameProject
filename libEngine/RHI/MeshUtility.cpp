@@ -5,6 +5,8 @@
 #include "FixString.h"
 #include "FileSystem.h"
 
+#include "Core/ScopeExit.h"
+
 #include "tinyobjloader/tiny_obj_loader.h"
 
 #include <unordered_map>
@@ -49,28 +51,35 @@ namespace RenderGL
 		if( mVertexBuffer == nullptr )
 			return;
 
-		drawInternal(0, (mIndexBuffer) ? mIndexBuffer->mNumIndices : mVertexBuffer->mNumVertices);
+		drawInternal(0, (mIndexBuffer) ? mIndexBuffer->getNumElements() : mVertexBuffer->getNumElements());
 	}
 
 	void Mesh::draw(LinearColor const& color)
 	{
 		if( mVertexBuffer == nullptr )
 			return;
-		drawInternal(0, (mIndexBuffer) ? mIndexBuffer->mNumIndices : mVertexBuffer->mNumVertices, &color);
+		drawInternal(0, (mIndexBuffer) ? mIndexBuffer->getNumElements() : mVertexBuffer->getNumElements(), &color);
+	}
+
+	void Mesh::drawAdjShader(LinearColor const& color)
+	{
+		if( mVertexBuffer == nullptr || mAdjacencyIndexBuffer == nullptr )
+			return;
+		drawShaderInternalEx( PrimitiveType::TriangleAdjacency, 0, mAdjacencyIndexBuffer->getNumElements(), mAdjacencyIndexBuffer, &color);
 	}
 
 	void Mesh::drawShader()
 	{
 		if( mVertexBuffer == nullptr )
 			return;
-		drawShaderInternal(0, (mIndexBuffer) ? mIndexBuffer->mNumIndices : mVertexBuffer->mNumVertices);
+		drawShaderInternal(0, (mIndexBuffer) ? mIndexBuffer->getNumElements() : mVertexBuffer->getNumElements());
 	}
 
 	void Mesh::drawShader(LinearColor const& color)
 	{
 		if( mVertexBuffer == nullptr )
 			return;
-		drawShaderInternal(0, (mIndexBuffer) ? mIndexBuffer->mNumIndices : mVertexBuffer->mNumVertices, &color);
+		drawShaderInternal(0, (mIndexBuffer) ? mIndexBuffer->getNumElements() : mVertexBuffer->getNumElements(), &color);
 	}
 
 	void Mesh::drawSection(int idx, bool bUseVAO)
@@ -88,16 +97,16 @@ namespace RenderGL
 		}
 	}
 
-	void Mesh::drawInternal(int idxStart, int num, LinearColor const* color)
+	void Mesh::drawInternal(int idxStart, int num, RHIIndexBuffer* indexBuffer , LinearColor const* color)
 	{
 		assert(mVertexBuffer != nullptr);
 		OpenGLCast::To(mVertexBuffer)->bind();
 		mDecl.bindPointer(color);
 
-		if( mIndexBuffer )
+		if( indexBuffer )
 		{
-			GL_BIND_LOCK_OBJECT(mIndexBuffer);
-			RHIDrawIndexedPrimitive(mType, mIndexBuffer->mbIntIndex ? CVT_UInt : CVT_UShort, idxStart, num);
+			GL_BIND_LOCK_OBJECT(indexBuffer);
+			RHIDrawIndexedPrimitive(mType, indexBuffer->isIntType() ? CVT_UInt : CVT_UShort, idxStart, num);
 		}
 		else
 		{
@@ -110,14 +119,34 @@ namespace RenderGL
 		OpenGLCast::To(mVertexBuffer)->unbind();
 	}
 
-	void Mesh::drawShaderInternal(int idxStart, int num, LinearColor const* color /*= nullptr*/)
+
+	void Mesh::drawShaderInternalEx(PrimitiveType type , int idxStart, int num, RHIIndexBuffer* indexBuffer, LinearColor const* color /*= nullptr*/)
 	{
 		assert(mVertexBuffer != nullptr);
 
 		bindVAO(color);
-		if( mIndexBuffer )
+		if( indexBuffer )
 		{
-			RHIDrawIndexedPrimitive(mType, mIndexBuffer->mbIntIndex ? CVT_UInt : CVT_UShort, idxStart, num);
+			GL_BIND_LOCK_OBJECT(indexBuffer);
+			RHIDrawIndexedPrimitive(type, indexBuffer->isIntType() ? CVT_UInt : CVT_UShort, idxStart, num);
+		}
+		else
+		{
+			RHIDrawPrimitive(type, idxStart, num);
+		}
+
+		CheckGLStateValid();
+		unbindVAO();
+	}
+	void Mesh::drawShaderInternal(int idxStart, int num, RHIIndexBuffer* indexBuffer, LinearColor const* color /*= nullptr*/)
+	{
+		assert(mVertexBuffer != nullptr);
+
+		bindVAO(color);
+		if( indexBuffer )
+		{
+			GL_BIND_LOCK_OBJECT(indexBuffer);
+			RHIDrawIndexedPrimitive(mType, indexBuffer->isIntType() ? CVT_UInt : CVT_UShort, idxStart, num);
 		}
 		else
 		{
@@ -138,12 +167,12 @@ namespace RenderGL
 			OpenGLCast::To( mVertexBuffer )->bind();
 			mDecl.bindAttrib(color);
 
-			if( mIndexBuffer )
-				OpenGLCast::To( mIndexBuffer )->bind();
+			//if( mIndexBuffer )
+			//	OpenGLCast::To( mIndexBuffer )->bind();
 			glBindVertexArray(0);
 			OpenGLCast::To( mVertexBuffer )->unbind();
-			if( mIndexBuffer )
-				OpenGLCast::To( mIndexBuffer )->unbind();
+			//if( mIndexBuffer )
+			//	OpenGLCast::To( mIndexBuffer )->unbind();
 
 			mDecl.unbindAttrib(color);
 		}
@@ -151,12 +180,204 @@ namespace RenderGL
 	}
 
 
-	class MeshBuildUtility
+	bool IsVertexEqual(Vector3 const& a, Vector3 const& b , float error = 1e-6)
 	{
+		Vector3 diff = (a - b).abs();
+		return diff.x < error && diff.y < error && diff.z < error;
+	}
+
+	void BuildMeshAdjacency( uint8* pPosition  , int numVertices, int vertexStride,  int* triIndices, int numTirangle , std::vector<int>& outResult )
+	{
+		std::vector< int > triangleIndexMap;
+		struct Vertex
+		{
+			int   index;
+			float z;
+		};
+		std::vector< Vertex > sortedVertices;
+		sortedVertices.resize(numVertices);
+		for( int i = 0; i < numVertices; ++i )
+		{
+			Vector3& pos = *(Vector3*)(pPosition + i * vertexStride);
+			sortedVertices[i].index = i;
+			sortedVertices[i].z = pos.z;
+		}
+
+		std::sort(sortedVertices.begin(), sortedVertices.end(), [](auto const& a, auto const& b)
+		{
+			return a.z < b.z;
+		});
+		triangleIndexMap.resize(numVertices , -1);
+		for( int i = 0; i < numVertices; ++i )
+		{
+			Vertex const& vi = sortedVertices[i];
+			if( triangleIndexMap[vi.index] != -1 )
+				continue;
+			
+			triangleIndexMap[vi.index] = vi.index;
+			Vector3 const& pos0 = *(Vector3*)(pPosition + vi.index * vertexStride);
+			for( int j = i + 1; j < numVertices; ++j )
+			{
+				Vertex const& vj = sortedVertices[j];
+				Vector3 const& pos1 = *(Vector3*)(pPosition + vj.index * vertexStride);
+
+				if( Math::Abs(pos0.z - pos1.z) > 1e-6 )
+				{
+					break;
+				}
+
+				if( IsVertexEqual( pos0 , pos1 ) )
+				{
+					triangleIndexMap[vj.index] = vi.index;
+				}
+			}
+		}
+
+		struct TrianglePair
+		{
+
+			int val[2];
+			TrianglePair()
+			{
+				val[0] = val[1] = -1 ;
+			}
+		};
+		std::unordered_map< uint64 , TrianglePair > edgeToTriangle;
+
+		auto MakeEdgeId = [](int idx1, int idx2) -> uint64
+		{
+			return (idx1 < idx2) ? (((uint64(idx1) << 32)) | uint32(idx2) ) : (((uint64(idx2) << 32)) | uint32(idx1) );
+		};
+		auto AddEdgeToTriangle = [&](int idxTriIndices, int idx1, int idx2 )
+		{
+			if( idx1 == idx2 )
+				return;
+			uint64 edgeId = MakeEdgeId(idx1, idx2);
+			auto& triPair = edgeToTriangle[edgeId];
+
+			if( idx1 > idx2 )
+			{
+				if( triPair.val[0] == -1 )
+				{
+					triPair.val[0] = idxTriIndices;
+				}
+				else
+				{
+					LogWarning(0, "Incomplete Mesh!!");
+				}
+			}
+			else
+			{
+				if( triPair.val[1] == -1 )
+				{
+					triPair.val[1] = idxTriIndices;
+				}
+				else
+				{
+					LogWarning(0, "Incomplete Mesh!!");
+				}
+			}
+		};
+
+		for( int i = 0; i < numTirangle; ++i )
+		{
+			int idx0 = triangleIndexMap[ triIndices[3 * i + 0] ];
+			int idx1 = triangleIndexMap[ triIndices[3 * i + 1] ];
+			int idx2 = triangleIndexMap[ triIndices[3 * i + 2] ];
+			 
+			AddEdgeToTriangle(3 * i + 2,idx0, idx1);
+			AddEdgeToTriangle(3 * i + 0,idx1, idx2);
+			AddEdgeToTriangle(3 * i + 1,idx2, idx0);
+		}
+
+		int incompleteEdgeCount = 0;
+		auto GetAdjIndex = [&](int idxTriIndices , int idx1, int idx2)
+		{
+			uint64 edgeId = MakeEdgeId(idx1, idx2);
+			auto& triPair = edgeToTriangle[edgeId];
+			int idxOtherTri;
+			if( idx1 > idx2 )
+			{
+				idxOtherTri = triPair.val[1];
+			}
+			else
+			{
+				idxOtherTri = triPair.val[0];
+
+			}
+			if( idxOtherTri == -1 )
+			{
+				++incompleteEdgeCount;
+			}
+			return ( idxOtherTri == -1 ) ? -1 : triIndices[idxOtherTri];
+		};
+
+		if( incompleteEdgeCount > 0 )
+		{
+			LogWarning(0, "%d Edge not have adj", incompleteEdgeCount);
+		}
+
+		outResult.resize(6 * numTirangle);
+
+		int* pInddex = &outResult[0];
+		for( int i = 0; i < numTirangle; ++i )
+		{
+			int idx0 = triIndices[3 * i + 0];
+			int idx1 = triIndices[3 * i + 1];
+			int idx2 = triIndices[3 * i + 2];
+
+			int idxMapped0 = triangleIndexMap[idx0];
+			int idxMapped1 = triangleIndexMap[idx1];
+			int idxMapped2 = triangleIndexMap[idx2];
+
+			if ( idxMapped0 == idxMapped1 || idxMapped1 == idxMapped2 || idxMapped2 == idxMapped0 )
+				continue;
+
+			int adj0 = GetAdjIndex(3 * i + 2, idxMapped0, idxMapped1);
+			int adj1 = GetAdjIndex(3 * i + 0, idxMapped1, idxMapped2);
+			int adj2 = GetAdjIndex(3 * i + 1, idxMapped2, idxMapped0);
+
+			pInddex[0] = idx0; pInddex[1] = adj0;
+			pInddex[2] = idx1; pInddex[3] = adj1;
+			pInddex[4] = idx2; pInddex[5] = adj2;
+
+			pInddex += 6;
+ 		}
+		outResult.resize(pInddex - &outResult[0]);
+	}
+
+	bool Mesh::generateAdjacency()
+	{	
+		if( mAdjacencyIndexBuffer.isValid() )
+			return true;
+
+		if( mType != PrimitiveType::TriangleList || !mIndexBuffer.isValid() || !mVertexBuffer.isValid() )
+		{
+			return false;
+		}
+		uint8* pIndex = (uint8*) mIndexBuffer->lock(ELockAccess::ReadOnly);
+		uint8* pVertex = (uint8*) mVertexBuffer->lock(ELockAccess::ReadOnly);
+		ON_SCOPE_EXIT
+		{
+			mVertexBuffer->unlock();
+			mIndexBuffer->unlock();
+		};
+
+		uint32 offset = mDecl.getSematicOffset(Vertex::ePosition);
+		uint32 stride = mDecl.getVertexSize();
+		if( !mIndexBuffer->isIntType() )
+		{
+			//#TODO
+			return false;
+		}
+		std::vector< int > adjIndices;
+		BuildMeshAdjacency(pVertex + offset, mVertexBuffer->getNumElements(), stride, (int*)pIndex, mIndexBuffer->getNumElements() / 3, adjIndices);
 
 
+		mAdjacencyIndexBuffer = RHICreateIndexBuffer(adjIndices.size(), true, 0, &adjIndices[0]);
+		return mAdjacencyIndexBuffer.isValid();
+	}
 
-	};
 
 	void calcTangent( uint8* v0 , uint8* v1 , uint8* v2 , int texOffset , Vector3& tangent , Vector3& binormal )
 	{
@@ -721,7 +942,23 @@ namespace RenderGL
 			{ halfLen * Vector3(-1,-1,-1),Vector3(0,0,-1),{0,0} },
 			{ halfLen * Vector3(-1,1,-1),Vector3(0,0,-1),{0,1} },
 		};
-		int idx[] = 
+#if 1
+		int indices[] =
+		{
+			0 , 1 , 2 , 0 , 2 , 3 ,
+			4 , 5 , 6 , 4 , 6 , 7 ,
+			8 , 9 , 10 , 8 , 10 , 11 ,
+			12 , 13 , 14 , 12 , 14 , 15 ,
+			16 , 17 , 18 , 16 , 18 , 19 ,
+			20 , 21 , 22 , 20 , 22 , 23 ,
+		};
+
+		fillTangent_TriangleList(mesh.mDecl, &v[0], 6 * 4, &indices[0], 6 * 6);
+		mesh.mType = PrimitiveType::TriangleList;
+		if( !mesh.createBuffer(&v[0], 6 * 4, &indices[0], 6 * 6, true) )
+			return false;
+#else
+		int indices[] =
 		{
 			0 , 1 , 2 , 3 ,
 			4 , 5 , 6 , 7 ,
@@ -731,11 +968,11 @@ namespace RenderGL
 			20 , 21 , 22 , 23 ,
 		};
 
-		fillTangent_QuadList( mesh.mDecl , &v[0] , 6 * 4 , &idx[0] , 6 * 4 );
+		fillTangent_QuadList(mesh.mDecl, &v[0], 6 * 4, &indices[0], 6 * 4);
 		mesh.mType = PrimitiveType::Quad;
-		if ( !mesh.createBuffer( &v[0] , 6 * 4 , &idx[0] , 6 * 4 , true ) )
+		if( !mesh.createBuffer(&v[0], 6 * 4, &indices[0], 6 * 4, true) )
 			return false;
-
+#endif
 
 		return true;
 	}

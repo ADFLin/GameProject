@@ -1,7 +1,6 @@
 #include "D3D11Command.h"
 
-
-#include "stb/stb_image.h"
+#include "LogSystem.h"
 
 #pragma comment(lib , "D3D11.lib")
 #pragma comment(lib , "D3DX11.lib")
@@ -11,68 +10,68 @@
 namespace RenderGL
 {
 
-	RHITexture2D* D3D11System::RHICreateTexture2D(Texture::Format format, int w, int h, int numMipLevel, void* data, int dataAlign)
+	bool D3D11System::initialize(RHISystemInitParam const& initParam)
 	{
-		ID3D11Texture2D* textureD3D11 = createTexture2DInternal(D3D11Conv::To(format), w, h, numMipLevel, data, Texture::GetFormatSize(format));
-		if( textureD3D11 )
+		uint32 flag = D3D11_CREATE_DEVICE_BGRA_SUPPORT;
+		VERIFY_D3D11RESULT_RETURN_FALSE(D3D11CreateDevice(NULL, D3D_DRIVER_TYPE_HARDWARE, NULL, flag, NULL, 0, D3D11_SDK_VERSION, &mDevice, NULL, &mDeviceContext));
+		return true;
+	}
+
+	RHITexture2D* D3D11System::RHICreateTexture2D(Texture::Format format, int w, int h, int numMipLevel, uint32 createFlags, void* data, int dataAlign)
+	{
+		Texture2DCreationResult creationResult;
+		if ( createTexture2DInternal(D3D11Conv::To(format), w, h, numMipLevel, createFlags , data, Texture::GetFormatSize(format), creationResult ) )
 		{
-			return new D3D11Texture2D(format, textureD3D11);
+			return new D3D11Texture2D(format, creationResult);
 		}
 		return nullptr;
 	}
 
-
-	bool D3D11System::loadTexture(char const* path, TComPtr< ID3D11Texture2D >& outTexture)
+	bool D3D11System::createTexture2DInternal(DXGI_FORMAT format, int width, int height, int numMipLevel, uint32 creationFlag, void* data, uint32 pixelSize, Texture2DCreationResult& outResult)
 	{
-		int w;
-		int h;
-		int comp;
-		unsigned char* image = stbi_load(path, &w, &h, &comp, STBI_rgb_alpha);
-
-		if( !image )
-			return false;
-
-		ON_SCOPE_EXIT{ stbi_image_free(image); };
 		D3D11_TEXTURE2D_DESC desc = {};
-		desc.Width = w;
-		desc.Height = h;
-		desc.MipLevels = 1;
+		desc.Format = format;
+		desc.Width = width;
+		desc.Height = height;
+		desc.MipLevels = (numMipLevel) ? numMipLevel : 1;
 		desc.ArraySize = 1;
+
 		desc.Usage = D3D11_USAGE_DEFAULT;
-		desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+		desc.BindFlags = 0;
+		if( creationFlag & TCF_RenderTarget )
+			desc.BindFlags |= D3D11_BIND_RENDER_TARGET;
+		if( creationFlag & TCF_CreateSRV )
+			desc.BindFlags |= D3D11_BIND_SHADER_RESOURCE;
+		if( creationFlag & TCF_CreateUAV )
+			desc.BindFlags |= D3D11_BIND_UNORDERED_ACCESS;
+
+
 		desc.SampleDesc.Count = 1;
 		desc.SampleDesc.Quality = 0;
-		desc.CPUAccessFlags = false;
-		//#TODO
+		desc.CPUAccessFlags = 0;
 
-		D3D11_SUBRESOURCE_DATA initData;
-		uint8* pData = image;
-		switch( comp )
+		D3D11_SUBRESOURCE_DATA initData = {};
+		if( data )
 		{
-		case 3:
-			{
-				desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-
-
-				initData.pSysMem = (void *)image;
-				initData.SysMemPitch = w * comp;
-				initData.SysMemSlicePitch = w * h * comp;
-			}
-			break;
-		case 4:
-			{
-				initData.pSysMem = (void *)image;
-				initData.SysMemPitch = w * comp;
-				initData.SysMemSlicePitch = w * h * comp;
-				desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-			}
-			break;
+			initData.pSysMem = (void *)data;
+			initData.SysMemPitch = width * pixelSize;
+			initData.SysMemSlicePitch = width * height * pixelSize;
 		}
 
-		VERIFY_D3D11RESULT_RETURN_FALSE(mDevice->CreateTexture2D(&desc, &initData, &outTexture));
-
+		VERIFY_D3D11RESULT_RETURN_FALSE(mDevice->CreateTexture2D(&desc, &initData, &outResult.resource));
+		if( creationFlag & TCF_RenderTarget )
+		{
+			VERIFY_D3D11RESULT_RETURN_FALSE(mDevice->CreateRenderTargetView(outResult.resource, nullptr, &outResult.RTV));
+		}
+		if( creationFlag & TCF_CreateSRV )
+		{
+			VERIFY_D3D11RESULT_RETURN_FALSE(mDevice->CreateShaderResourceView(outResult.resource, nullptr, &outResult.SRV));
+		}
+		if( creationFlag & TCF_CreateUAV )
+		{
+			VERIFY_D3D11RESULT_RETURN_FALSE(mDevice->CreateUnorderedAccessView(outResult.resource, nullptr, &outResult.UAV));
+		}
 		return true;
 	}
-
 
 }//namespace RenderGL

@@ -141,6 +141,7 @@ public:
 	virtual bool onKeyMsg( unsigned key , bool isDown ){ return true; }
 	virtual void onHotkey( unsigned key ){}
 	virtual void onFocus( bool beF ){}
+	virtual void onChangePos(Vec2i const& newPos, bool bParentMove) {}
 
 	virtual void  updateFrame( int frame ){}
 

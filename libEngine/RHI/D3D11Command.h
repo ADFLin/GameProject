@@ -4,7 +4,7 @@
 
 #include "RHICommand.h"
 
-
+#include "LogSystem.h"
 #include "Platform/Windows/ComUtility.h"
 #include "FixString.h"
 #include "Core/ScopeExit.h"
@@ -76,6 +76,7 @@ namespace RenderGL
 			case PrimitiveType::TriangleStrip: return D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP;
 			case PrimitiveType::LineList: return D3D_PRIMITIVE_TOPOLOGY_LINELIST;
 			case PrimitiveType::LineStrip: return D3D_PRIMITIVE_TOPOLOGY_LINESTRIP;
+			case PrimitiveType::TriangleAdjacency: return D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST_ADJ;
 			case PrimitiveType::TriangleFan:
 			case PrimitiveType::LineLoop:
 			case PrimitiveType::Quad:
@@ -158,50 +159,81 @@ namespace RenderGL
 	struct TD3D11TypeTraits { typedef void ImplType; };
 
 	template<>
-	struct TD3D11TypeTraits< RHITexture1D > { typedef ID3D11Texture1D ImplType; };
+	struct TD3D11TypeTraits< RHITexture1D > { typedef ID3D11Texture1D ResourceType; };
 	template<>
-	struct TD3D11TypeTraits< RHITexture2D > { typedef ID3D11Texture2D ImplType; };
+	struct TD3D11TypeTraits< RHITexture2D > { typedef ID3D11Texture2D ResourceType; };
 	template<>
-	struct TD3D11TypeTraits< RHITexture3D > { typedef ID3D11Texture3D ImplType; };
+	struct TD3D11TypeTraits< RHITexture3D > { typedef ID3D11Texture3D ResourceType; };
 	//template<>
-	//struct TD3D11TextureTraits< RHITextureCube > { typedef ID3D11TextureArray ImplType; };
+	//struct TD3D11TextureTraits< RHITextureCube > { typedef ID3D11TextureArray ResourceType; };
 	//template<>
-	//struct TD3D11TextureTraits< RHITextureDepth > { typedef ID3D11Texture2D ImplType; };
+	//struct TD3D11TextureTraits< RHITextureDepth > { typedef ID3D11Texture2D ResourceType; };
+	template<>
+	struct TD3D11TypeTraits< RHIVertexBuffer > { typedef ID3D11Buffer ResourceType; };
+	template<>
+	struct TD3D11TypeTraits< RHIIndexBuffer > { typedef ID3D11Buffer ResourceType; };
+	template<>
+	struct TD3D11TypeTraits< RHIUniformBuffer > { typedef ID3D11Buffer ResourceType; };
 
 	template< class RHIResoureType >
 	class TD3D11Resource : public RHIResoureType
 	{
 	public:
-		virtual void incRef() { mImplPtr->AddRef(); }
-		virtual bool decRef() { return mImplPtr->Release() == 1; }
-		virtual void releaseResource() { mImplPtr->Release(); mImplPtr = nullptr; }
+		virtual void incRef() { mResource->AddRef(); }
+		virtual bool decRef() { return mResource->Release() == 1; }
+		virtual void releaseResource() { mResource->Release(); mResource = nullptr; }
 
-		typedef typename TD3D11TypeTraits< RHIResoureType >::ImplType ImplType;
+		typedef typename TD3D11TypeTraits< RHIResoureType >::ResourceType ResourceType;
 
-		ImplType* getImpl() { return mImplPtr; }
-		ImplType* mImplPtr;
+		ResourceType* getResource() { return mResource; }
+		ResourceType* mResource;
 	};
 
-
-
-
-
+#define SAFE_RELEASE( PTR ) if ( PTR ){ PTR->Release(); PTR = nullptr; }
 
 	template< class RHITextureType >
 	class TD3D11Texture : public TD3D11Resource< RHITextureType >
 	{
+	protected:
+		TD3D11Texture(ID3D11RenderTargetView* RTV, ID3D11ShaderResourceView* SRV, ID3D11UnorderedAccessView* UAV)
+			:mRTV(RTV), mSRV(SRV), mUAV(UAV)
+		{
 
+		}
+
+		virtual void releaseResource() 
+		{ 
+			SAFE_RELEASE(mRTV);
+			SAFE_RELEASE(mSRV);
+			SAFE_RELEASE(mUAV);
+			TD3D11Resource< RHITextureType >::releaseResource();
+		}
+	public:
+		ID3D11RenderTargetView* mRTV;
+		ID3D11ShaderResourceView* mSRV;
+		ID3D11UnorderedAccessView* mUAV;
+	};
+
+
+	struct Texture2DCreationResult
+	{
+		TComPtr< ID3D11Texture2D > resource;
+		TComPtr< ID3D11RenderTargetView >    RTV;
+		TComPtr< ID3D11ShaderResourceView >  SRV;
+		TComPtr< ID3D11UnorderedAccessView > UAV;
+		
 	};
 
 	class D3D11Texture2D : public TD3D11Texture< RHITexture2D >
 	{
 	public:
-		D3D11Texture2D(Texture::Format format, ID3D11Texture2D* inImpl)
+		D3D11Texture2D(Texture::Format format, Texture2DCreationResult& creationResult )
+			:TD3D11Texture< RHITexture2D >(creationResult.RTV.release() , creationResult.SRV.release() , creationResult.UAV.release() )
 		{
 			mFormat = format;
-			mImplPtr = inImpl;
+			mResource = creationResult.resource.release();
 			D3D11_TEXTURE2D_DESC desc;
-			mImplPtr->GetDesc(&desc);
+			mResource->GetDesc(&desc);
 			mSizeX = desc.Width;
 			mSizeY = desc.Height;
 		}
@@ -210,7 +242,7 @@ namespace RenderGL
 		bool update(int ox, int oy, int w, int h, Texture::Format format, void* data, int level)
 		{
 			TComPtr<ID3D11Device> device;
-			mImplPtr->GetDevice(&device);
+			mResource->GetDevice(&device);
 			TComPtr<ID3D11DeviceContext> deviceContext;
 			device->GetImmediateContext(&deviceContext);
 			D3D11_BOX box;
@@ -220,14 +252,14 @@ namespace RenderGL
 			box.right = ox + w;
 			box.top = oy;
 			box.bottom = oy + h;
-			deviceContext->UpdateSubresource(mImplPtr, level, &box, data, w * Texture::GetFormatSize(format), w * h * Texture::GetFormatSize(format));
+			deviceContext->UpdateSubresource(mResource, level, &box, data, w * Texture::GetFormatSize(format), w * h * Texture::GetFormatSize(format));
 			return true;
 		}
 
 		bool update(int ox, int oy, int w, int h, Texture::Format format, int pixelStride, void* data, int level)
 		{
 			TComPtr<ID3D11Device> device;
-			mImplPtr->GetDevice(&device);
+			mResource->GetDevice(&device);
 			TComPtr<ID3D11DeviceContext> deviceContext;
 			device->GetImmediateContext(&deviceContext);
 			D3D11_BOX box;
@@ -237,7 +269,7 @@ namespace RenderGL
 			box.right = ox + w;
 			box.top = oy;
 			box.bottom = oy + h;
-			deviceContext->UpdateSubresource(mImplPtr, level, &box, data, w * pixelStride, w * h * pixelStride);
+			deviceContext->UpdateSubresource(mResource, level, &box, data, w * pixelStride, w * h * pixelStride);
 			return true;
 		}
 
@@ -252,101 +284,148 @@ namespace RenderGL
 		static auto To(TRefCountPtr<T>& ptr) { return D3D11Cast::To(ptr.get()); }
 
 		template< class T >
-		static auto GetImpl(T& RHIObject) { return D3D11Cast::To(&RHIObject)->getImpl(); }
+		static auto GetResource(T& RHIObject) { return D3D11Cast::To(&RHIObject)->getResource(); }
 
 		template< class T >
-		static auto GetImpl(TRefCountPtr<T>& refPtr ) { return D3D11Cast::To(refPtr)->getImpl(); }
+		static auto GetResource(TRefCountPtr<T>& refPtr ) { return D3D11Cast::To(refPtr)->getResource(); }
 	};
 
 	class D3D11System : public RHISystem
 	{
 	public:
 
-		bool initialize()
+		bool initialize(RHISystemInitParam const& initParam);
+		void shutdown(){}
+
+
+
+		bool RHIBeginRender()
 		{
-			uint32 flag = D3D11_CREATE_DEVICE_BGRA_SUPPORT;
-
-			VERIFY_D3D11RESULT_RETURN_FALSE(D3D11CreateDevice(NULL, D3D_DRIVER_TYPE_HARDWARE, NULL, flag, NULL, 0, D3D11_SDK_VERSION, &mDevice, NULL, &mDeviceContext));
-
 			return true;
 		}
 
-		virtual RHITexture1D*    RHICreateTexture1D(
-			Texture::Format format, int length,
-			int numMipLevel, void* data)
+		void RHIEndRender(bool bPresent)
 		{
 
+		}
+		RHIRenderWindow* RHICreateRenderWindow(PlatformWindowInfo const& info)
+		{
 			return nullptr;
-
+		}
+		RHITexture1D*    RHICreateTexture1D(
+			Texture::Format format, int length,
+			int numMipLevel, uint32 createFlags , void* data)
+		{
+			return nullptr;
 		}
 		virtual RHITexture2D*    RHICreateTexture2D(
 			Texture::Format format, int w, int h,
-			int numMipLevel, void* data, int dataAlign);
-		virtual RHITexture3D*    RHICreateTexture3D(Texture::Format format, int sizeX, int sizeY, int sizeZ)
+			int numMipLevel, uint32 createFlags, void* data, int dataAlign);
+
+		virtual RHITexture3D*    RHICreateTexture3D(Texture::Format format, int sizeX, int sizeY, int sizeZ , uint32 createFlags )
 		{
 			return nullptr;
 		}
 
-		virtual RHITextureDepth* RHICreateTextureDepth(Texture::DepthFormat format, int w, int h)
+		RHITextureDepth* RHICreateTextureDepth(Texture::DepthFormat format, int w, int h)
 		{
 
 
 			return nullptr;
 		}
-		virtual RHITextureCube*  RHICreateTextureCube()
-		{
-
-			return nullptr;
-		}
-
-		virtual RHIVertexBuffer*  RHICreateVertexBuffer(uint32 vertexSize, uint32 numVertices, uint32 creationFlag, void* data)
-		{
-
-			return nullptr;
-		}
-		virtual RHIIndexBuffer*   RHICreateIndexBuffer(uint32 nIndices, bool bIntIndex, uint32 creationFlag, void* data)
-		{
-
-			return nullptr;
-		}
-		virtual RHIUniformBuffer* RHICreateUniformBuffer(uint32 size, uint32 creationFlag, void* data)
-		{
-
-			return nullptr;
-		}
-		virtual RHIStorageBuffer* RHICreateStorageBuffer(uint32 size, uint32 creationFlag, void* data)
+		RHITextureCube*  RHICreateTextureCube()
 		{
 
 			return nullptr;
 		}
 
-
-		ID3D11Texture2D* createTexture2DInternal(DXGI_FORMAT  format, int width, int height, int numMipLevel, void* data, uint32 pixelSize)
+		RHIVertexBuffer*  RHICreateVertexBuffer(uint32 vertexSize, uint32 numVertices, uint32 creationFlag, void* data)
 		{
-			D3D11_TEXTURE2D_DESC desc = {};
-			desc.Format = format;
-			desc.Width = width;
-			desc.Height = height;
-			desc.MipLevels = (numMipLevel) ? numMipLevel : 1;
-			desc.ArraySize = 1;
-			desc.Usage = D3D11_USAGE_DEFAULT;
-			desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
-			desc.SampleDesc.Count = 1;
-			desc.SampleDesc.Quality = 0;
-			desc.CPUAccessFlags = false;
 
-			D3D11_SUBRESOURCE_DATA initData = {};
-			if( data )
-			{
-				initData.pSysMem = (void *)data;
-				initData.SysMemPitch = width * pixelSize;
-				initData.SysMemSlicePitch = width * height * pixelSize;
-			}
-
-			ID3D11Texture2D* result = nullptr;
-			VERIFY_D3D11RESULT(mDevice->CreateTexture2D(&desc, &initData, &result), );
-			return result;
+			return nullptr;
 		}
+		RHIIndexBuffer*   RHICreateIndexBuffer(uint32 nIndices, bool bIntIndex, uint32 creationFlag, void* data)
+		{
+
+			return nullptr;
+		}
+		RHIUniformBuffer* RHICreateUniformBuffer(uint32 elementSize, uint32 numElement, uint32 creationFlag, void* data)
+		{
+
+			return nullptr;
+		}
+		RHIStorageBuffer* RHICreateStorageBuffer(uint32 elementSize, uint32 numElement, uint32 creationFlag, void* data)
+		{
+
+			return nullptr;
+		}
+
+		RHIFrameBuffer*   RHICreateFrameBuffer()
+		{
+			return nullptr;
+		}
+
+		RHISamplerState* RHICreateSamplerState(SamplerStateInitializer const& initializer)
+		{
+			return nullptr;
+		}
+
+		RHIRasterizerState* RHICreateRasterizerState(RasterizerStateInitializer const& initializer)
+		{
+			return nullptr;
+		}
+		RHIBlendState* RHICreateBlendState(BlendStateInitializer const& initializer)
+		{
+			return nullptr;
+		}
+		RHIDepthStencilState* RHICreateDepthStencilState(DepthStencilStateInitializer const& initializer)
+		{
+			return nullptr;
+		}
+
+		void RHISetRasterizerState(RHIRasterizerState& rasterizerState)
+		{
+
+		}
+		void RHISetBlendState(RHIBlendState& blendState)
+		{
+
+		}
+		void RHISetDepthStencilState(RHIDepthStencilState& depthStencilState, uint32 stencilRef)
+		{
+
+		}
+
+		void RHISetViewport(int x, int y, int w, int h)
+		{
+
+		}
+		void RHISetScissorRect(bool bEnable, int x, int y, int w, int h)
+		{
+
+		}
+
+
+		void RHIDrawPrimitive(PrimitiveType type, int start, int nv)
+		{
+
+		}
+
+		void RHIDrawIndexedPrimitive(PrimitiveType type, ECompValueType indexType, int indexStart, int nIndex)
+		{
+
+		}
+		void RHISetupFixedPipelineState(Matrix4 const& matModelView, Matrix4 const& matProj, int numTexture, RHITexture2D** textures)
+		{
+
+		}
+
+		void RHISetFrameBuffer(RHIFrameBuffer& frameBuffer, RHITextureDepth* overrideDepthTexture /*= nullptr*/)
+		{
+
+		}
+
+		bool createTexture2DInternal( DXGI_FORMAT format, int width, int height, int numMipLevel, uint32 creationFlag, void* data, uint32 pixelSize , Texture2DCreationResult& outResult );
 
 		bool createFrameSwapChain(HWND hWnd, int w, int h, bool bWindowed, FrameSwapChain& outResult)
 		{
@@ -494,9 +573,8 @@ namespace RenderGL
 			return true;
 		}
 
-		bool loadTexture(char const* path, TComPtr< ID3D11Texture2D >& outTexture);
 
-
+		FrameSwapChain mSwapChain;
 		TComPtr< ID3D11Device > mDevice;
 		TComPtr< ID3D11DeviceContext > mDeviceContext;
 	};

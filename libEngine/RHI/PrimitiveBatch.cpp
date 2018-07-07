@@ -33,7 +33,7 @@ namespace RenderGL
 				if( meshElement.indexBuffer )
 				{
 					GL_BIND_LOCK_OBJECT(*meshElement.indexBuffer);
-					RHIDrawIndexedPrimitive(primitiveType, meshElement.indexBuffer->mbIntIndex ? CVT_UInt : CVT_UShort, meshElement.idxStart, meshElement.numElement);
+					RHIDrawIndexedPrimitive(primitiveType, meshElement.indexBuffer->isIntType() ? CVT_UInt : CVT_UShort, meshElement.idxStart, meshElement.numElement);
 				}
 				else
 				{
@@ -55,7 +55,7 @@ namespace RenderGL
 				if( meshElement.indexBuffer )
 				{
 					GL_BIND_LOCK_OBJECT(*meshElement.indexBuffer);
-					RHIDrawIndexedPrimitive(primitiveType, meshElement.indexBuffer->mbIntIndex ? CVT_UInt : CVT_UShort , meshElement.idxStart , meshElement.numElement );
+					RHIDrawIndexedPrimitive(primitiveType, meshElement.indexBuffer->isIntType() ? CVT_UInt : CVT_UShort , meshElement.idxStart , meshElement.numElement );
 				}
 				else
 				{
@@ -94,7 +94,7 @@ namespace RenderGL
 	void SimpleElementRenderer::draw( RenderContext& context , SimpleVertex* vertices, int numVertices)
 	{
 		void* pData = mVertexBuffer->lock(ELockAccess::WriteOnly);
-		memcpy(pData, vertices, numVertices * mVertexBuffer->mVertexSize);
+		memcpy(pData, vertices, numVertices * mVertexBuffer->getElementSize());
 		mVertexBuffer->unlock();
 
 		glBindVertexArray(mVAO);

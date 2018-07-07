@@ -5,10 +5,9 @@
 #include "BitmapDC.h"
 
 #include "glew/GL/glew.h"
-
-#include "WinGLPlatform.h"
-#include "WinGDIRenderSystem.h"
 #include "WGLContext.h"
+#include "WinGDIRenderSystem.h"
+
 
 #include <memory>
 
@@ -98,6 +97,12 @@ public:
 	WORD   getSmallIcon();
 };
 
+enum class RHITargetName
+{
+	None   ,
+	OpenGL ,
+	D3D11 ,
+};
 class DrawEngine
 {
 public:
@@ -107,7 +112,8 @@ public:
 	TINY_API void  init( GameWindow& window );
 	TINY_API void  release();
 	TINY_API void  changeScreenSize( int w , int h );
-	
+	TINY_API void  update(long deltaTime);
+
 	Vec2i         getScreenSize(){ return Vec2i( mBufferDC.getWidth() , mBufferDC.getHeight() ); }
 	int           getScreenWidth(){ return mBufferDC.getWidth(); }
 	int           getScreenHeight(){ return mBufferDC.getHeight(); }
@@ -117,40 +123,37 @@ public:
 	TINY_API IGraphics2D&  getIGraphics();
 
 	HFONT       createFont( int size , char const* faceName , bool beBold , bool beItalic );
-	WindowsGLContext& getGLContext(){ return mGLContext; }
+	WindowsGLContext*    getGLContext(){ return mGLContext; }
 	
 	GameWindow& getWindow(){ return *mGameWindow; }
-
-	TINY_API void changePixelSample(int numSamples);
 
 	TINY_API void drawProfile(Vec2i const& pos);
 
 
-	bool isOpenGLEnabled(){ return mbGLEnabled; }
+	bool isRHIEnabled() { return mRHIName != RHITargetName::None; }
+	bool isOpenGLEnabled(){ return mRHIName == RHITargetName::OpenGL; }
 	bool isInitialized() { return mbInitialized; }
 
-	TINY_API bool  startOpenGL( bool useGLEW = true , int numSamples = 1 );
+	TINY_API bool  initializeRHI(RHITargetName targetName , int numSamples);
+	TINY_API void  shutdownRHI(bool bDeferred);
+	TINY_API bool  startOpenGL( int numSamples = 1 );
 	TINY_API void  stopOpenGL(bool bDeferred = false);
 	TINY_API bool  beginRender();
 	TINY_API void  endRender();
-	TINY_API void  enableSweepBuffer( bool beS );
-	TINY_API bool  cleanupGLContextDeferred();
 
-	bool        bStopPlatformGraphicsRender = false;
+	bool        bUsePlatformBuffer = false;
 private:
 	void        setupBuffer( int w , int h );
 
 	bool        mbInitialized;
-	bool        mbGLEnabled;
-	bool        mbSweepBuffer;
-	bool        mbCleaupGLDefferred;
+	bool        bRHIShutdownDeferred;
 	
 	GameWindow* mGameWindow;
 	BitmapDC    mBufferDC;
 	std::unique_ptr< Graphics2D > mPlatformGraphics;
 
-
-	WindowsGLContext    mGLContext;
+	RHITargetName mRHIName = RHITargetName::None;
+	WindowsGLContext*  mGLContext = nullptr;
 	std::unique_ptr< GLGraphics2D >   mGLGraphics;
 	std::unique_ptr< RenderGL::RHIGraphics2D > mRHIGraphics;
 

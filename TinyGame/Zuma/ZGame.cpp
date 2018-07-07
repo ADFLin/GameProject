@@ -92,7 +92,7 @@ namespace Zuma
 
 			GLRenderSystem* renderSys = new GLRenderSystem;
 			renderSys->mNeedSweepBuffer = false;
-			renderSys->init( window.getHWnd(), hDC , drawEngine->getGLContext().getHandle() );
+			renderSys->init( window.getHWnd(), hDC , drawEngine->getGLContext()->getHandle() );
 
 			return renderSys;
 		}

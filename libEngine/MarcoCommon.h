@@ -31,10 +31,12 @@ size_t array_size(T(&ar)[N]) { return N; }
 #define CHECK( EXPR ) assert( EXPR )
 #define NEVER_REACH( STR ) assert( !STR )
 
-#define FAIL_MSG_GENERATE__( CODE , FILE , LINE )\
-	LogWarning(1, "Init Fail : File = %s Line = %s %s ", FILE, #LINE, #CODE)
+#define FAIL_LOG_MSG_GENERATE( CODE , FILE , LINE )\
+	LogWarning(1, "Init Fail => File = %s Line = %s : %s ", FILE, #LINE, #CODE)
 
-#define VERIFY_INITRESULT( CODE )\
-	{ if( !( CODE ) ) { FAIL_MSG_GENERATE__( CODE, __FILE__ , __LINE__ ); return false; } }
+#define VERIFY_INITRESULT_INNEAR( CODE , FILE , LINE  )\
+	{ if( !( CODE ) ) { FAIL_LOG_MSG_GENERATE( CODE, FILE , LINE ); return false; } }
+
+#define VERIFY_INITRESULT( CODE ) VERIFY_INITRESULT_INNEAR( CODE, __FILE__ , __LINE__ )
 
 #endif // MarcoCommon_H_5F8ACEA8_F34E_4CAA_9C04_F663367A6F07

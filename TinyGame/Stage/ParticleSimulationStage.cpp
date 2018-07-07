@@ -77,7 +77,7 @@ namespace RenderGL
 	public:
 		bool initializeResource(uint32 numElement)
 		{
-			mResource = RHICreateUniformBuffer(numElement * sizeof(T));
+			mResource = RHICreateUniformBuffer(sizeof(T) , numElement );
 			if( !mResource.isValid() )
 				return false;
 			return true;
@@ -90,7 +90,7 @@ namespace RenderGL
 	public:
 		bool initializeResource(uint32 numElement)
 		{
-			mResource = RHICreateStorageBuffer(numElement * sizeof(T));
+			mResource = RHICreateStorageBuffer(sizeof(T) , numElement );
 			if( !mResource.isValid() )
 				return false;
 			return true;
@@ -568,6 +568,8 @@ namespace RenderGL
 				CollisionPrimitive* pData = mCollisionPrimitiveBuffer.lock();
 				memcpy(pData, &mPrimitives[0], mPrimitives.size() * sizeof(CollisionPrimitive));
 				mCollisionPrimitiveBuffer.unlock();
+
+				return true;
 			}
 		}
 
@@ -635,7 +637,7 @@ namespace RenderGL
 			if( !BaseClass::onInit() )
 				return false;
 
-			if( !::Global::getDrawEngine()->startOpenGL(true) )
+			if( !::Global::getDrawEngine()->startOpenGL() )
 				return false;
 
 			VERIFY_INITRESULT(GPUParticleData::initialize());

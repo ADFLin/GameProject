@@ -23,7 +23,7 @@ public:
 	void     onLink();
 
 	virtual void  onUpdateUI(){}
-	virtual void  onChangePos( Vec2i const& pos , bool beLocal );
+	virtual void  onChangePos( Vec2i const& pos , bool bParentMove);
 	virtual void  onShow( bool beS );
 	virtual void  onRender();
 	virtual void  drawText(){}

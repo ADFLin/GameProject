@@ -44,9 +44,9 @@ namespace RenderGL
 		meshElement.indexBuffer = mesh->mIndexBuffer;
 		meshElement.idxStart = 0;
 		if( mesh->mIndexBuffer )
-			meshElement.numElement = mesh->mIndexBuffer->mNumIndices;
+			meshElement.numElement = mesh->mIndexBuffer->getNumElements();
 		else
-			meshElement.numElement = mesh->mVertexBuffer->mNumVertices;
+			meshElement.numElement = mesh->mVertexBuffer->getNumElements();
 		meshElement.world = worldTransform;
 
 		meshBatch.elements.push_back(meshElement);
@@ -92,9 +92,9 @@ namespace RenderGL
 			meshElement.indexBuffer = mesh->mIndexBuffer;
 			meshElement.idxStart = 0;
 			if( mesh->mIndexBuffer )
-				meshElement.numElement = mesh->mIndexBuffer->mNumIndices;
+				meshElement.numElement = mesh->mIndexBuffer->getNumElements();
 			else
-				meshElement.numElement = mesh->mVertexBuffer->mNumVertices;
+				meshElement.numElement = mesh->mVertexBuffer->getNumElements();
 			meshElement.world = worldTransform;
 
 			meshBatch.elements.push_back(meshElement);

@@ -280,6 +280,69 @@ namespace Go
 	};
 
 
+	class BoardFrame : public GFrame
+	{
+	public:
+		typedef GFrame BaseClass;
+
+		BoardFrame(int id, Vec2i const& pos, Vec2i const size, GWidget* parent)
+			:GFrame(id, pos, size, parent)
+			,renderContext( game.getBoard() , getWorldPos() + GetBorder(), CalcRenderScale(size) )
+		{
+
+		}
+
+		static float CalcRenderScale(Vec2i const size)
+		{
+			Vec2i clientSize = size - 2 * GetBorder();
+			int boardRenderSize = Math::Min(clientSize.x, clientSize.y);
+			return float(boardRenderSize) / RenderContext::CalcDefalutSize(19);
+		}
+
+		static Vec2i GetBorder()
+		{
+			return Vec2i(20, 20);
+		}
+		virtual void onRender()
+		{
+			BaseClass::onRender();
+			GLGraphics2D& g = ::Global::getGLGraphics2D();
+			{
+				TGuardValue<bool> gurdValue(renderer->bDrawCoord , false);
+				renderer->drawBorad(g, renderContext);
+			}
+		}
+		virtual void onChangePos(Vec2i const& pos, bool bParentMove) override
+		{
+			BaseClass::onChangePos(pos, bParentMove);
+			renderContext.renderPos = getWorldPos() + GetBorder();
+		}
+
+
+		virtual bool onMouseMsg(MouseMsg const& msg)
+		{
+			if( msg.onLeftDown() )
+			{
+				Vec2i pos = renderContext.getCoord(msg.getPos());
+				if ( game.playStone(pos.x, pos.y) )
+					return false;
+			}
+			else if( msg.onRightDown() )
+			{
+				game.undo();
+				return false;
+			}
+
+			if( !BaseClass::onMouseMsg(msg) )
+				return false;
+
+			return true;
+		}
+		MyGame game;
+		RenderContext  renderContext;
+		BoardRenderer* renderer;
+	};
+
 	class LeelaZeroGoStage : public StageBase
 	{
 		typedef StageBase BaseClass;
@@ -327,7 +390,6 @@ namespace Go
 		GameMode mGameMode = GameMode::None;
 		class UnderCurveAreaProgram* mProgUnderCurveArea = nullptr;
 
-
 		void toggleAnalysisPonder();
 		bool tryEnableAnalysis();
 		bool canAnalysisPonder(MatchPlayer& player)
@@ -338,8 +400,9 @@ namespace Go
 				return true;
 			return false;
 		}
+
 		template< class Fun >
-		void executeAnalysisAICommand(Fun fun, bool bKeepPonder = true)
+		void executeAnalysisAICommand(Fun&& fun, bool bKeepPonder = true)
 		{
 			assert(bAnalysisEnabled);
 
@@ -385,9 +448,12 @@ namespace Go
 		MyGame  mReviewGame;
 		bool    bTryPlayingGame = false;
 		MyGame  mTryPlayGame;
+		BoardFrame* mTryPlayWidget = nullptr;
+		Vec2i   mTryPlayWidgetPos = Vec2i(0,0);
 
 		GWidget* mGamePlayWidget = nullptr;
 		GWidget* mWinRateWidget = nullptr;
+		bool    mbRestartLearning = false;
 
 		MyGame& getViewingGame()
 		{

@@ -16,16 +16,30 @@ public:
 	KeyValue( float value ){ setFloat( value ); }
 	KeyValue( char  value ){ setChar( value ); }
 
-	char        getChar(){ return mValue[0]; }
-	float       getFloat(){ return float( ::atof( mValue.c_str() ) );  }
-	int         getInt()  { return ::atoi( mValue.c_str() );  }
-	char const* getString(){ return mValue.c_str();  }
+	char        getChar() const { return mValue[0]; }
+	float       getFloat() const;
+	int         getInt() const ;
+	char const* getString() const { return mValue.c_str();  }
 	void        setFloat( float value );
 	void        setInt( int value );
-	void        setChar( char value ){ mValue.clear(); mValue.push_back( value ); }
-	void        setString( char const* value ){ mValue = value; }
+	void        setChar(char value);
+	void        setString(char const* value);
 
 private:
+	enum 
+	{
+		NoCache ,
+		CacheInt ,
+		CacheFloat ,
+	};
+
+	mutable int mCacheGetType = NoCache;
+	union SaveValue
+	{
+		int   intValue;
+		float floatValue;
+	};
+	mutable SaveValue mCacheGetValue;
 	std::string mValue;
 };
 

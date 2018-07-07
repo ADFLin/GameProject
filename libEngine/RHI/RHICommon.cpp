@@ -7,7 +7,7 @@
 #include "ShaderCompiler.h"
 #include "VertexFactory.h"
 
-#include "GLCommon.h"
+#include "OpenGLCommon.h"
 #include "RHICommand.h"
 
 namespace RenderGL

@@ -1,6 +1,6 @@
 #include "MVRenderEngine.h"
 
-#include "RHI/GLCommon.h"
+#include "RHI/OpenGLCommon.h"
 #include "RHI/DrawUtility.h"
 #include "RHI/ShaderCompiler.h"
 

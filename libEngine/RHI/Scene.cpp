@@ -1,7 +1,6 @@
 #include "Scene.h"
 
 
-#include "GLCommon.h"
 #include "RenderContext.h"
 
 namespace RenderGL

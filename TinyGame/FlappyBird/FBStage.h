@@ -4,7 +4,7 @@
 #include "StageBase.h"
 #include "FBLevel.h"
 
-#include "RHI/GLCommon.h"
+#include "RHI/OpenGLCommon.h"
 #include "RHI/DrawUtility.h"
 
 

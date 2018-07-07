@@ -3,7 +3,7 @@
 #define SceneObject_H_39A04D57_E8EC_4831_855C_91B74D94377E
 
 #include "LazyObject.h"
-#include "GLCommon.h"
+#include "OpenGLCommon.h"
 #include "MeshUtility.h"
 #include "Scene.h"
 

@@ -1,7 +1,7 @@
 #include "RHICommand.h"
 
 #include "glew/GL/glew.h"
-#include "GLCommon.h"
+#include "OpenGLCommon.h"
 
 #include "WGLContext.h"
 

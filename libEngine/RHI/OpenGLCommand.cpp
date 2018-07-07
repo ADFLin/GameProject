@@ -1,6 +1,6 @@
 #include "OpenGLCommand.h"
 
-#include "GLCommon.h"
+#include "OpenGLCommon.h"
 
 namespace RenderGL
 {

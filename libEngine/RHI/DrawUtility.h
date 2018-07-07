@@ -2,7 +2,7 @@
 #define GLDrawUtility_h__
 
 #include "MeshUtility.h"
-#include "GLCommon.h"
+#include "OpenGLCommon.h"
 
 #include "Singleton.h"
 

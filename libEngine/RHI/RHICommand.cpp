@@ -1,12 +1,12 @@
 #include "RHICommand.h"
 
-#include "GLCommon.h"
-#include <cassert>
-
-#include "stb/stb_image.h"
+#include "RHICommon.h"
 
 #include "OpenGLCommand.h"
 #include "D3D11Command.h"
+
+#include <cassert>
+#include "stb/stb_image.h"
 
 namespace RenderGL
 {

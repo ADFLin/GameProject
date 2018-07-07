@@ -208,7 +208,7 @@
     <ClCompile Include="RHI\D3D11Command.cpp" />
     <ClCompile Include="RHI\DrawUtility.cpp" />
     <ClCompile Include="RHI\Font.cpp" />
-    <ClCompile Include="RHI\GLCommon.cpp" />
+    <ClCompile Include="RHI\OpenGLCommon.cpp" />
     <ClCompile Include="RHI\GpuProfiler.cpp" />
     <ClCompile Include="RHI\LazyObject.cpp" />
     <ClCompile Include="RHI\Material.cpp" />
@@ -359,7 +359,7 @@
     <ClInclude Include="RHI\DrawUtility.h" />
     <ClInclude Include="RHI\Font.h" />
     <ClInclude Include="RHI\FrameGraph.h" />
-    <ClInclude Include="RHI\GLCommon.h" />
+    <ClInclude Include="RHI\OpenGLCommon.h" />
     <ClInclude Include="RHI\GlobalShader.h" />
     <ClInclude Include="RHI\GpuProfiler.h" />
     <ClInclude Include="RHI\LazyObject.h" />

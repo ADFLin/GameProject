@@ -4,7 +4,7 @@
 
 
 #include "Graphics2DBase.h"
-#include "GLCommon.h"
+#include "OpenGLCommon.h"
 #include "Core/IntegerType.h"
 
 #include "RHICommand.h"

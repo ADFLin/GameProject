@@ -2,7 +2,7 @@
 #ifndef TextureAtlas_H_991594F1_1108_4346_B634_187B185F2B8D
 #define TextureAtlas_H_991594F1_1108_4346_B634_187B185F2B8D
 
-#include "RHI/GLCommon.h"
+#include "RHI/OpenGLCommon.h"
 
 #include "Misc/ImageMergeHelper.h"
 

@@ -295,9 +295,6 @@
     <ClCompile Include="RHI\DrawUtility.cpp">
       <Filter>RHI</Filter>
     </ClCompile>
-    <ClCompile Include="RHI\GLCommon.cpp">
-      <Filter>RHI</Filter>
-    </ClCompile>
     <ClCompile Include="RHI\GpuProfiler.cpp">
       <Filter>RHI</Filter>
     </ClCompile>
@@ -351,6 +348,9 @@
     </ClCompile>
     <ClCompile Include="RHI\D3D11Command.cpp">
       <Filter>RHI\D3D11</Filter>
+    </ClCompile>
+    <ClCompile Include="RHI\OpenGLCommon.cpp">
+      <Filter>RHI\OpenGL</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -843,9 +843,6 @@
     <ClInclude Include="RHI\FrameGraph.h">
       <Filter>RHI</Filter>
     </ClInclude>
-    <ClInclude Include="RHI\GLCommon.h">
-      <Filter>RHI</Filter>
-    </ClInclude>
     <ClInclude Include="RHI\GpuProfiler.h">
       <Filter>RHI</Filter>
     </ClInclude>
@@ -905,6 +902,9 @@
     </ClInclude>
     <ClInclude Include="RHI\D3D11Command.h">
       <Filter>RHI\D3D11</Filter>
+    </ClInclude>
+    <ClInclude Include="RHI\OpenGLCommon.h">
+      <Filter>RHI\OpenGL</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

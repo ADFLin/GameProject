@@ -9,7 +9,7 @@
 #include "GL/glew.h"
 #include "GLConfig.h"
 
-#include "RHI/GLCommon.h"
+#include "RHI/OpenGLCommon.h"
 #include "RHI/DrawUtility.h"
 #include "RHI/ShaderCore.h"
 

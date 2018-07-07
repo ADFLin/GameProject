@@ -1,7 +1,7 @@
 #ifndef GLUtility_h__
 #define GLUtility_h__
 
-#include "GLCommon.h"
+#include "OpenGLCommon.h"
 #include "RHICommand.h"
 #include "MarcoCommon.h"
 #include <string>

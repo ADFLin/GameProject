@@ -4,7 +4,7 @@
 
 #include "RHI/RHIDefine.h"
 #include "RHI/BaseType.h"
-#include "RHI/GLCommon.h"
+#include "RHI/OpenGLCommon.h"
 #include "RHI/D3D11Command.h"
 
 #include "stb/stb_image.h"

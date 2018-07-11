@@ -522,7 +522,7 @@ namespace SR
 		bool raycast(RayTrace const& trace, RayResult& result)
 		{
 			PrimitiveObject* hitObject = nullptr;
-			result.distance = FLT_MAX;
+			result.distance = Math::MaxFloat;
 			for( PrimitiveObject* object : mPrimitiveObjects )
 			{
 				RayResult objResult;

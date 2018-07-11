@@ -52,7 +52,7 @@ namespace RenderGL
 		RHITexture2D*    RHICreateTexture2D(
 			Texture::Format format, int w, int h,
 			int numMipLevel, uint32 createFlags, void* data, int dataAlign);
-		RHITexture3D*    RHICreateTexture3D(Texture::Format format, int sizeX, int sizeY, int sizeZ, uint32 createFlags );
+		RHITexture3D*    RHICreateTexture3D(Texture::Format format, int sizeX, int sizeY, int sizeZ, uint32 createFlags, void* data);
 
 		RHITextureDepth* RHICreateTextureDepth(Texture::DepthFormat format, int w, int h);
 		RHITextureCube*  RHICreateTextureCube() override;

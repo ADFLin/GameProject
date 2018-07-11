@@ -368,6 +368,9 @@
     <ClCompile Include="Stage\ParticleSimulationStage.cpp">
       <Filter>Stage</Filter>
     </ClCompile>
+    <ClCompile Include="Stage\DistanceFieldStage.cpp">
+      <Filter>Stage</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Bsp2D.h">
@@ -1077,6 +1080,9 @@
       <Filter>Shader\Game</Filter>
     </None>
     <None Include="out\Shader\ShadowVolume.sgc">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="out\Shader\DistanceField.sgc">
       <Filter>Shader</Filter>
     </None>
   </ItemGroup>

@@ -20,6 +20,7 @@ public:
 	static char const*    GetDirPathPos(char const* filePath);
 	static wchar_t const* GetDirPathPos(wchar_t const* filePath);
 	static bool LoadToBuffer(char const* path, std::vector< char >& outBuffer , bool bAppendZeroAfterEnd = false);
+	static bool SaveFromBuffer(char const* path, char const* data, uint32 dataSize);
 };
 
 class FilePath

@@ -26,10 +26,11 @@ namespace Zen
 		int  winRate;
 	};
 
-	struct BestThinkInfo
+	struct ThinkInfo
 	{
-		int   x, y;
+		int v;
 		float winRate;
+		std::vector< int > vSeq;
 	};
 
 	struct TerritoryInfo
@@ -116,7 +117,7 @@ namespace Zen
 		virtual void     stopThink() = 0;
 		virtual bool     isThinking() = 0;
 		virtual void     getThinkResult(ThinkResult& result) = 0;
-		virtual bool     getBestThinkMove(BestThinkInfo info[], int num) = 0;
+		virtual bool     getBestThinkMove(ThinkInfo info[], int num) = 0;
 		virtual void     getTerritoryStatictics( TerritoryInfo& info ) = 0;
 
 	};
@@ -268,6 +269,8 @@ namespace Zen
 
 		void startGame(GameSetting const& setting)
 		{
+			mBoardSize = setting.boardSize;
+
 			ZenClearBoard();
 			ZenSetBoardSize(setting.boardSize);
 			ZenFixedHandicap(setting.numHandicap);
@@ -310,16 +313,38 @@ namespace Zen
 			ZenReadGeneratedMove(result.x, result.y, result.bPass, result.bResign);
 		}
 
-		bool getBestThinkMove( BestThinkInfo infoList[] , int num )
+		bool getBestThinkMove( ThinkInfo infoList[] , int num )
 		{
 			for( int i = 0; i < num ; ++i )
 			{
 				auto& info = infoList[i];
-				int c;
+
+				int x, y , c;
 				char buf[256];
-				ZenGetTopMoveInfo(i, info.x , info.y , c, info.winRate, buf, ARRAY_SIZE(buf));
-				if( info.x == -4 )
+				ZenGetTopMoveInfo(i, x , y , c, info.winRate, buf, ARRAY_SIZE(buf));
+				if( x == -4 )
 					return false;
+
+				info.v = y * mBoardSize + x;
+
+				char* pData = buf;
+				while( 1 )
+				{
+					uint8 pos[2];
+					int numRead = Go::ReadCoord(pData, pos);
+					if  ( numRead == 0 )
+						break;
+					
+					pos[1] = mBoardSize - ( pos[1] + 1 );
+					int vertex = pos[1] * mBoardSize + pos[0];
+					info.vSeq.push_back(vertex);
+
+					pData += numRead;
+					if( *pData == 0 )
+						break;
+
+					++pData;
+				}
 			}
 			return true;
 		}
@@ -400,6 +425,7 @@ namespace Zen
 
 
 	private:
+		int mBoardSize;
 		TBotCore() {}
 
 		TBotCore(TBotCore const&) = delete;

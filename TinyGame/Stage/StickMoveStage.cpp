@@ -29,7 +29,7 @@ namespace StickMove
 
 	static Vector2 RotateVector(Vector2 const& v, float theta)
 	{
-		Rotation rotation(theta);
+		Rotation2D rotation(theta);
 		return rotation.mul(v);
 	}
 

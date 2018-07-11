@@ -169,3 +169,14 @@ bool FileUtility::LoadToBuffer(char const* path, std::vector< char >& outBuffer 
 	fs.close();
 	return true;
 }
+
+bool FileUtility::SaveFromBuffer(char const* path, char const* data, uint32 dataSize)
+{
+	std::ofstream fs(path, std::ios::binary);
+	if( !fs.is_open() )
+		return false;
+
+	fs.write(data, dataSize);
+	fs.close();
+	return true;
+}

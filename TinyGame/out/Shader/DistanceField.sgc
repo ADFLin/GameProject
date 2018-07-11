@@ -1,0 +1,64 @@
+#include "Common.sgc"
+#include "ScreenVertexShader.sgc"
+
+#include "ViewParam.sgc"
+#include "GeometryTestCommon.sgc"
+
+#if PIXEL_SHADER
+
+uniform sampler3D DistanceFieldTexture;
+uniform mat4 WorldToLocal;
+
+uniform float3 BoundMax;
+uniform float3 BoundMin;
+uniform float  DistanceFactor;
+
+in  VSOutput vsOutput;
+layout(location = 0) out float4 OutColor;
+void RayMarchingPS()
+{
+	float4 NDC = float4( 2 * vsOutput.UVs.xy - 1 , 1 , 1 );
+	float4 rayDestLocal = WorldToLocal * View.clipToWorld * NDC;
+	rayDestLocal /= rayDestLocal.w;
+	float3 rayPosLocal = ( WorldToLocal * float4( View.worldPos , 1 ) ).xyz;
+	float3 rayDirLocal = normalize( rayDestLocal.xyz - rayPosLocal );
+	OutColor = float4(0, 0, 0, 1);
+#if 1
+	float2 distRange;
+	
+	if( RayAABBTest(rayPosLocal, rayDirLocal, BoundMin, BoundMax, distRange) )
+	{
+		float dist = (distRange.x > 0) ? distRange.x : 0;
+		float3 boundExtent = BoundMax - BoundMin;
+		const int maxStep = 120;
+		for( int step = 0 ; step < maxStep; ++step )
+		{
+			if ( dist > distRange.y )
+				break;
+
+			float3 curPosLocal = rayPosLocal + dist * rayDirLocal;
+			float3 UVs = (curPosLocal - BoundMin) / boundExtent;
+
+			float offset = DistanceFactor * texture3D(DistanceFieldTexture, UVs).r;
+
+			if( offset < 1e-3 )
+			{
+				OutColor = float4(1, 0, float(step) / maxStep, 1);
+				break;
+			}
+			dist += offset;
+		}
+	}
+
+	OutColor.xyz += float3(texture3D(DistanceFieldTexture, float3(vsOutput.UVs, 0.5)).r);
+#else
+	
+	float dist;
+	if( RaySphereTest(rayPosLocal, rayDirLocal, float3(0, 0, 0), 1, dist) )
+	{
+		OutColor = float4(1, 0, 0, 1);
+	}
+#endif
+}
+
+#endif

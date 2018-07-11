@@ -289,7 +289,7 @@ namespace Phy2D
 			p[0] /= sum;
 			p[1] /= sum;
 		}
-		XForm const& worldTrans = mObj[0]->mXForm;
+		XForm2D const& worldTrans = mObj[0]->mXForm;
 		c.normal = worldTrans.transformVector( e->normal );
 		c.depth  = e->depth;
 

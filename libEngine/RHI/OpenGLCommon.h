@@ -193,7 +193,7 @@ namespace RenderGL
 	class OpenGLTexture3D : public TOpengGLTexture< RHITexture3D >
 	{
 	public:
-		bool create(Texture::Format format, int sizeX, int sizeY, int sizeZ);
+		bool create(Texture::Format format, int sizeX, int sizeY, int sizeZ , void* data);
 	};
 
 
@@ -229,11 +229,7 @@ namespace RenderGL
 		static GLenum To(Shader::Type type);
 		static GLenum To(ELockAccess access);
 		static GLenum To(Blend::Factor factor);
-		static GLenum To(Blend::Operation op)
-		{
-			//TODO
-
-		}
+		static GLenum To(Blend::Operation op);
 		static GLenum To(ECompareFun fun);
 		static GLenum To(Stencil::Operation op);
 		static GLenum To(ECullMode mode);
@@ -583,6 +579,8 @@ namespace RenderGL
 		GLenum srcAlpha;
 		GLenum destColor;
 		GLenum destAlpha;
+		GLenum op;
+		GLenum opAlpha;
 
 		bool bEnable;
 		bool bSeparateBlend;
@@ -597,6 +595,8 @@ namespace RenderGL
 			destColor = GL_ZERO;
 			destAlpha = GL_ZERO;
 			writeMask = CWM_RGBA;
+			op = GL_FUNC_ADD;
+			opAlpha = GL_FUNC_ADD;
 		}
 	};
 

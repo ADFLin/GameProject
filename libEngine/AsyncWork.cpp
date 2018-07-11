@@ -117,6 +117,19 @@ void QueueThreadPool::waitAllThreadIdle()
 	}
 }
 
+void QueueThreadPool::waitAllWorkComplete()
+{
+	while( 1 )
+	{
+		{
+			Mutex::Locker locker(mQueueMutex);
+			if( mAllThreads.size() == mQueuedThreads.size() && mQueuedWorks.empty() )
+				break;
+		}
+		SystemPlatform::Sleep(0);
+	}
+}
+
 IQueuedWork* QueueThreadPool::doWorkCompleted(PoolRunableThread* runThread)
 {
 	Mutex::Locker locker(mQueueMutex);

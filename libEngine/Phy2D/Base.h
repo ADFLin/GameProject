@@ -17,7 +17,7 @@ namespace Phy2D
 {
 	typedef Math::Vector2 Vector2;
 
-	using namespace Math2D;
+	using namespace Math;
 
 	class AABB
 	{

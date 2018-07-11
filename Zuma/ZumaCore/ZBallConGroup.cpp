@@ -4,7 +4,7 @@
 #include "ZBall.h"
 #include "ZEvent.h"
 
-#include "Math/PrimitiveTest2D.h"
+#include "Math/PrimitiveTest.h"
 
 #include <list>
 #include <cassert>
@@ -60,7 +60,7 @@ namespace Zuma
 
 			float t[2];
 
-			if ( !Math2D::LineCircleTest( rPos , rDir , ball->getPos() , g_ZBallRaidus , t ) )
+			if ( !Math::LineCircleTest( rPos , rDir , ball->getPos() , g_ZBallRaidus , t ) )
 				continue;
 
 			if ( t[0] > 0 )

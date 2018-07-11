@@ -6,10 +6,14 @@
 #include "FileSystem.h"
 
 #include "Core/ScopeExit.h"
+#include "DataStructure/KDTree.h"
+#include "Math/PrimitiveTest.h"
+#include "AsyncWork.h"
 
 #include "tinyobjloader/tiny_obj_loader.h"
 
 #include <unordered_map>
+#include <memory>
 #include <fstream>
 #include <algorithm>
 
@@ -180,198 +184,37 @@ namespace RenderGL
 	}
 
 
-	bool IsVertexEqual(Vector3 const& a, Vector3 const& b , float error = 1e-6)
-	{
-		Vector3 diff = (a - b).abs();
-		return diff.x < error && diff.y < error && diff.z < error;
-	}
 
-	void BuildMeshAdjacency( uint8* pPosition  , int numVertices, int vertexStride,  int* triIndices, int numTirangle , std::vector<int>& outResult )
-	{
-		std::vector< int > triangleIndexMap;
-		struct Vertex
-		{
-			int   index;
-			float z;
-		};
-		std::vector< Vertex > sortedVertices;
-		sortedVertices.resize(numVertices);
-		for( int i = 0; i < numVertices; ++i )
-		{
-			Vector3& pos = *(Vector3*)(pPosition + i * vertexStride);
-			sortedVertices[i].index = i;
-			sortedVertices[i].z = pos.z;
-		}
-
-		std::sort(sortedVertices.begin(), sortedVertices.end(), [](auto const& a, auto const& b)
-		{
-			return a.z < b.z;
-		});
-		triangleIndexMap.resize(numVertices , -1);
-		for( int i = 0; i < numVertices; ++i )
-		{
-			Vertex const& vi = sortedVertices[i];
-			if( triangleIndexMap[vi.index] != -1 )
-				continue;
-			
-			triangleIndexMap[vi.index] = vi.index;
-			Vector3 const& pos0 = *(Vector3*)(pPosition + vi.index * vertexStride);
-			for( int j = i + 1; j < numVertices; ++j )
-			{
-				Vertex const& vj = sortedVertices[j];
-				Vector3 const& pos1 = *(Vector3*)(pPosition + vj.index * vertexStride);
-
-				if( Math::Abs(pos0.z - pos1.z) > 1e-6 )
-				{
-					break;
-				}
-
-				if( IsVertexEqual( pos0 , pos1 ) )
-				{
-					triangleIndexMap[vj.index] = vi.index;
-				}
-			}
-		}
-
-		struct TrianglePair
-		{
-
-			int val[2];
-			TrianglePair()
-			{
-				val[0] = val[1] = -1 ;
-			}
-		};
-		std::unordered_map< uint64 , TrianglePair > edgeToTriangle;
-
-		auto MakeEdgeId = [](int idx1, int idx2) -> uint64
-		{
-			return (idx1 < idx2) ? (((uint64(idx1) << 32)) | uint32(idx2) ) : (((uint64(idx2) << 32)) | uint32(idx1) );
-		};
-		auto AddEdgeToTriangle = [&](int idxTriIndices, int idx1, int idx2 )
-		{
-			if( idx1 == idx2 )
-				return;
-			uint64 edgeId = MakeEdgeId(idx1, idx2);
-			auto& triPair = edgeToTriangle[edgeId];
-
-			if( idx1 > idx2 )
-			{
-				if( triPair.val[0] == -1 )
-				{
-					triPair.val[0] = idxTriIndices;
-				}
-				else
-				{
-					LogWarning(0, "Incomplete Mesh!!");
-				}
-			}
-			else
-			{
-				if( triPair.val[1] == -1 )
-				{
-					triPair.val[1] = idxTriIndices;
-				}
-				else
-				{
-					LogWarning(0, "Incomplete Mesh!!");
-				}
-			}
-		};
-
-		for( int i = 0; i < numTirangle; ++i )
-		{
-			int idx0 = triangleIndexMap[ triIndices[3 * i + 0] ];
-			int idx1 = triangleIndexMap[ triIndices[3 * i + 1] ];
-			int idx2 = triangleIndexMap[ triIndices[3 * i + 2] ];
-			 
-			AddEdgeToTriangle(3 * i + 2,idx0, idx1);
-			AddEdgeToTriangle(3 * i + 0,idx1, idx2);
-			AddEdgeToTriangle(3 * i + 1,idx2, idx0);
-		}
-
-		int incompleteEdgeCount = 0;
-		auto GetAdjIndex = [&](int idxTriIndices , int idx1, int idx2)
-		{
-			uint64 edgeId = MakeEdgeId(idx1, idx2);
-			auto& triPair = edgeToTriangle[edgeId];
-			int idxOtherTri;
-			if( idx1 > idx2 )
-			{
-				idxOtherTri = triPair.val[1];
-			}
-			else
-			{
-				idxOtherTri = triPair.val[0];
-
-			}
-			if( idxOtherTri == -1 )
-			{
-				++incompleteEdgeCount;
-			}
-			return ( idxOtherTri == -1 ) ? -1 : triIndices[idxOtherTri];
-		};
-
-		if( incompleteEdgeCount > 0 )
-		{
-			LogWarning(0, "%d Edge not have adj", incompleteEdgeCount);
-		}
-
-		outResult.resize(6 * numTirangle);
-
-		int* pInddex = &outResult[0];
-		for( int i = 0; i < numTirangle; ++i )
-		{
-			int idx0 = triIndices[3 * i + 0];
-			int idx1 = triIndices[3 * i + 1];
-			int idx2 = triIndices[3 * i + 2];
-
-			int idxMapped0 = triangleIndexMap[idx0];
-			int idxMapped1 = triangleIndexMap[idx1];
-			int idxMapped2 = triangleIndexMap[idx2];
-
-			if ( idxMapped0 == idxMapped1 || idxMapped1 == idxMapped2 || idxMapped2 == idxMapped0 )
-				continue;
-
-			int adj0 = GetAdjIndex(3 * i + 2, idxMapped0, idxMapped1);
-			int adj1 = GetAdjIndex(3 * i + 0, idxMapped1, idxMapped2);
-			int adj2 = GetAdjIndex(3 * i + 1, idxMapped2, idxMapped0);
-
-			pInddex[0] = idx0; pInddex[1] = adj0;
-			pInddex[2] = idx1; pInddex[3] = adj1;
-			pInddex[4] = idx2; pInddex[5] = adj2;
-
-			pInddex += 6;
- 		}
-		outResult.resize(pInddex - &outResult[0]);
-	}
 
 	bool Mesh::generateAdjacency()
 	{	
 		if( mAdjacencyIndexBuffer.isValid() )
 			return true;
 
-		if( mType != PrimitiveType::TriangleList || !mIndexBuffer.isValid() || !mVertexBuffer.isValid() )
+		if( !mIndexBuffer.isValid() || !mVertexBuffer.isValid() )
 		{
 			return false;
 		}
-		uint8* pIndex = (uint8*) mIndexBuffer->lock(ELockAccess::ReadOnly);
-		uint8* pVertex = (uint8*) mVertexBuffer->lock(ELockAccess::ReadOnly);
+
+		uint8* pVertex = (uint8*)mVertexBuffer->lock(ELockAccess::ReadOnly);
+		uint8* pIndex = (uint8*)mIndexBuffer->lock(ELockAccess::ReadOnly);
 		ON_SCOPE_EXIT
 		{
 			mVertexBuffer->unlock();
 			mIndexBuffer->unlock();
 		};
+		std::vector< int > tempBuffer;
+		int numTriangles = 0;
+		int* pIndexData = MeshUtility::ConvertToTriangleList(mType, pIndex, mIndexBuffer->getNumElements(), mIndexBuffer->isIntType(), tempBuffer, numTriangles);
 
+		if( pIndexData == nullptr )
+			return false;
+		
 		uint32 offset = mDecl.getSematicOffset(Vertex::ePosition);
 		uint32 stride = mDecl.getVertexSize();
-		if( !mIndexBuffer->isIntType() )
-		{
-			//#TODO
-			return false;
-		}
+
 		std::vector< int > adjIndices;
-		BuildMeshAdjacency(pVertex + offset, mVertexBuffer->getNumElements(), stride, (int*)pIndex, mIndexBuffer->getNumElements() / 3, adjIndices);
+		MeshUtility::BuildVertexAdjacency(pVertex + offset, mVertexBuffer->getNumElements(), stride, pIndexData, numTriangles, adjIndices);
 
 
 		mAdjacencyIndexBuffer = RHICreateIndexBuffer(adjIndices.size(), true, 0, &adjIndices[0]);
@@ -1188,7 +1031,7 @@ namespace RenderGL
 		return true;
 	}
 
-	bool MeshBuild::TriangleMesh(Mesh& mesh, MeshData& data)
+	bool MeshBuild::ObjFileMesh(Mesh& mesh, MeshData& data)
 	{
 		int maxNumVertex = data.numPosition * data.numNormal;
 		std::vector< int > idxMap(maxNumVertex, -1);
@@ -1751,6 +1594,505 @@ namespace RenderGL
 
 		return true;
 	}
+	template< class IndexType >
+	int* ConvertToTriangleListIndices(PrimitiveType type, IndexType* data, int numData, std::vector< int >& outConvertBuffer, int& outNumTriangle)
+	{
+		outNumTriangle = 0;
 
+		switch( type )
+		{
+		case PrimitiveType::TriangleList:
+			{
+				int numElements = numData / 3;
+				if( numElements <= 0 )
+					return nullptr;
+
+				outNumTriangle = numElements;
+				if( sizeof(IndexType) != sizeof(int) )
+				{
+					outConvertBuffer.resize(numData);
+					std::copy(data, data + numData, &outConvertBuffer[0]);
+					return &outConvertBuffer[0];
+				}
+				return (int*)data;
+			}
+			break;
+		case PrimitiveType::TriangleStrip:
+			{
+				int numElements = numData - 2;
+				if( numElements <= 0 )
+					return nullptr;
+
+				outNumTriangle = numElements;
+				outConvertBuffer.resize(3 * outNumTriangle);
+				IndexType* src = data;
+				int* dest = &outConvertBuffer[0];
+				int idx0 = src[0];
+				int idx1 = src[1];
+				src += 2;
+				for( int i = 0; i < numElements; ++i )
+				{
+					int idxCur = src[0];
+					if( i & 1 )
+					{
+						dest[0] = idx0; dest[1] = idx1; dest[2] = idxCur;
+					}
+					else
+					{
+						dest[0] = idx1; dest[1] = idx0; dest[2] = idxCur;
+					}
+					idx0 = idx1;
+					idx1 = idxCur;
+					dest += 3;
+					src += 1;
+				}
+			}
+			break;
+		case PrimitiveType::TriangleAdjacency:
+			{
+				int numElements = numData / 6;
+				if( numElements <= 0 )
+					return nullptr;
+
+				outNumTriangle = numElements;
+				outConvertBuffer.resize(3 * outNumTriangle);
+				IndexType* src = data;
+				int* dest = &outConvertBuffer[0];
+				for( int i = 0; i < numElements; ++i )
+				{
+					dest[0] = src[0]; dest[1] = src[2]; dest[2] = src[4];
+					dest += 3;
+					src += 6;
+				}
+			}
+			break;
+		case PrimitiveType::TriangleFan:
+			{
+				int numElements = numData - 2;
+				if( numElements <= 0 )
+					return nullptr;
+
+				outNumTriangle = numElements;
+				outConvertBuffer.resize(3 * outNumTriangle);
+				IndexType* src = data;
+				int* dest = &outConvertBuffer[0];
+				int idxStart = src[0];
+				int idx1 = src[0];
+				src += 2;
+				for( int i = 0; i < numElements; ++i )
+				{
+					int idxCur = src[0];
+					dest[0] = idxStart; dest[1] = idx1; dest[2] = idxCur;
+					idx1 = idxCur;
+					dest += 3;
+					src += 1;
+				}
+			}
+			break;
+		case PrimitiveType::Quad:
+			{
+				int numElements = numData / 4;
+				if( numElements <= 0 )
+					return nullptr;
+
+				outNumTriangle = 2 * numElements;
+				outConvertBuffer.resize(3 * outNumTriangle);
+				IndexType* src = data;
+				int* dest = &outConvertBuffer[0];
+				for( int i = 0; i < numElements; ++i )
+				{
+					dest[0] = src[0]; dest[1] = src[1]; dest[2] = src[2];
+					dest[3] = src[2]; dest[4] = src[3]; dest[5] = src[0];
+					dest += 6;
+					src += 4;
+				}
+				return &outConvertBuffer[0];
+			}
+			break;
+		}
+		return nullptr;
+	}
+
+	int* MeshUtility::ConvertToTriangleList(PrimitiveType type, void* pIndexData , int numIndices, bool bIntType , std::vector< int >& outConvertBuffer, int& outNumTriangles)
+	{
+		if( bIntType )
+		{
+			return ConvertToTriangleListIndices<int32>(type, (int*)pIndexData, numIndices, outConvertBuffer, outNumTriangles);
+		}
+		else
+		{
+			return ConvertToTriangleListIndices<int16>(type, (int16*)pIndexData, numIndices, outConvertBuffer, outNumTriangles);
+		}
+
+	}
+
+
+
+	void MeshUtility::CalcAABB(uint8* pData, int dataStride, int numVertex, Vector3& outMin, Vector3& outMax)
+	{
+		assert(numVertex >= 1);
+
+		uint8* pCur = pData;
+
+		outMin = *(Vector3*)(pData);
+		outMax = *(Vector3*)(pData);
+		pData += dataStride;
+		for( int i = 1; i < numVertex; ++i )
+		{
+			Vector3 const& pos = *(Vector3*)(pData);
+			outMax.max(pos);
+			outMin.min(pos);
+			pData += dataStride;
+		}
+	}
+
+	bool MeshUtility::BuildDistanceField(Mesh& mesh, DistanceFieldBuildSetting const& setting, DistanceFieldData& outResult)
+	{
+		if( !mesh.mIndexBuffer.isValid() || !mesh.mVertexBuffer.isValid() )
+			return false;
+
+		uint8* pData = (uint8*)(mesh.mVertexBuffer->lock(ELockAccess::ReadOnly)) + mesh.mDecl.getSematicOffset(Vertex::ePosition);
+		void* pIndexBufferData = mesh.mIndexBuffer->lock(ELockAccess::ReadOnly);
+		std::vector<int> tempBuffer;
+		int numTriangles;
+		int* pIndexData = ConvertToTriangleList(mesh.mType, pIndexBufferData, mesh.mIndexBuffer->getNumElements() , mesh.mIndexBuffer->isIntType(), tempBuffer , numTriangles);
+		bool result = false;
+		if ( pIndexData )
+		{
+			int dataStride = mesh.mVertexBuffer->getElementSize();
+			result = BuildDistanceField(pData, dataStride, mesh.mVertexBuffer->getNumElements(), pIndexData, numTriangles, setting, outResult);
+		}
+
+		mesh.mVertexBuffer->unlock();
+		mesh.mIndexBuffer->unlock();
+		return result;
+	}
+
+	bool MeshUtility::BuildDistanceField(uint8* pVertexData, uint32 vertexDataStride, int32 numVertex, int* pIndexData, int numTriangles, DistanceFieldBuildSetting const& setting, DistanceFieldData& outResult)
+	{
+#define USE_KDTREE 1
+		Vector3 boundMin;
+		Vector3 boundMax;
+		CalcAABB(pVertexData, vertexDataStride, numVertex, boundMin, boundMax);
+
+		boundMax *= setting.boundSizeScale;
+		boundMin *= setting.boundSizeScale;
+		Vector3 boundSize = boundMax - boundMin;
+
+		float boundMaxDistanceSqr = boundSize.length2();
+
+		Vector3 gridSizeFloat = setting.ResolutionScale * boundSize / setting.gridLength;
+		IntVector3 gridSize = IntVector3(Math::CeilToInt(gridSizeFloat.x), Math::CeilToInt(gridSizeFloat.y), Math::CeilToInt(gridSizeFloat.z));
+		gridSize = Math::Clamp(gridSize, IntVector3(2, 2, 2), IntVector3(128, 128, 128));
+		Vector3 gridLength = (boundSize).div(Vector3(gridSize.x, gridSize.y, gridSize.z));
+		outResult.volumeData.resize(gridSize.x * gridSize.y * gridSize.z);
+
+#if USE_KDTREE
+		typedef TKDTree<3> MyTree;
+		MyTree tree;
+		{
+			int* pIndex = pIndexData;
+			for( int i = 0; i < numTriangles; ++i )
+			{
+				int idx0 = pIndex[0];
+				int idx1 = pIndex[1];
+				int idx2 = pIndex[2];
+
+				Vector3 const& p0 = *(Vector3*)(pVertexData + idx0 * vertexDataStride);
+				Vector3 const& p1 = *(Vector3*)(pVertexData + idx1 * vertexDataStride);
+				Vector3 const& p2 = *(Vector3*)(pVertexData + idx2 * vertexDataStride);
+				pIndex += 3;
+				MyTree::PrimitiveData data;
+				data.BBox.min = p0;
+				data.BBox.max = p0;
+				data.BBox += p1;
+				data.BBox += p2;
+				data.id = i;
+				tree.mDataVec.push_back(data);
+			}
+
+			tree.build();
+		}
+#endif
+
+		Vector3 minCellPos = boundMin + 0.5 * gridLength;
+		auto TaskFun = [pVertexData , vertexDataStride , pIndexData , gridSize , minCellPos , gridLength, &tree , &outResult](int nz , float& maxDistanceSqr)
+		{
+			for( int ny = 0; ny < gridSize.y; ++ny )
+			{
+				for( int nx = 0; nx < gridSize.x; ++nx )
+				{
+
+					int indexCell = gridSize.x * (gridSize.y * nz + ny) + nx;
+					Vector3 p = minCellPos + Vector3(nx, ny, nz).mul(gridLength);
+
+#if USE_KDTREE
+					int count = 0;
+					float side = 1.0;
+					auto DistFun = [&](MyTree::PrimitiveData const& data, Vector3 const& pos, float minDistSqr)
+					{
+						++count;
+						int* pIndex = pIndexData + 3 * data.id;
+						int idx0 = pIndex[0];
+						int idx1 = pIndex[1];
+						int idx2 = pIndex[2];
+						Vector3 const& p0 = *(Vector3*)(pVertexData + idx0 * vertexDataStride);
+						Vector3 const& p1 = *(Vector3*)(pVertexData + idx1 * vertexDataStride);
+						Vector3 const& p2 = *(Vector3*)(pVertexData + idx2 * vertexDataStride);
+
+						float curSide;
+						Vector3 closestPoint = Math::PointToTriangleClosestPoint(pos, p0, p1, p2, curSide);
+						float distSqr = Math::DistanceSqure(closestPoint, pos);
+						if( distSqr < minDistSqr )
+						{
+							side = curSide;
+						}
+						return distSqr;
+					};
+					float distSqr;
+					tree.findNearst(p, DistFun, distSqr);
+
+					outResult.volumeData[indexCell] = side * Math::Sqrt(distSqr);
+#else
+					int* pIndex = pIndexData;
+					for( int i = 0; i < numTriangles; ++i )
+					{
+						int idx0 = pIndex[0];
+						int idx1 = pIndex[1];
+						int idx2 = pIndex[2];
+
+						Vector3 const& p0 = *(Vector3*)(pVertexData + idx0 * vertexDataStride);
+						Vector3 const& p1 = *(Vector3*)(pVertexData + idx1 * vertexDataStride);
+						Vector3 const& p2 = *(Vector3*)(pVertexData + idx2 * vertexDataStride);
+
+						float side = 1.0;
+						Vector3 closestPoint = Math::PointToTriangleClosestPoint(p, p0, p1, p2, side);
+						float distSqr = Math::DistanceSqure(closestPoint, p);
+						if( i == 0 || Math::Abs(outData[indexCell]) > distSqr )
+							outData[indexCell] = Math::Sqrt(distSqr) * side;
+
+						pIndex += 3;
+					}
+#endif
+					if( maxDistanceSqr < Math::Abs(outResult.volumeData[indexCell]) )
+						maxDistanceSqr = Math::Abs(outResult.volumeData[indexCell]);
+				}
+			}
+		};
+
+		float maxDistanceSqr = boundMaxDistanceSqr;
+		if( setting.WorkTaskPool == nullptr )
+		{	
+			for( int nz = 0; nz < gridSize.z; ++nz )
+			{
+				TaskFun(nz, maxDistanceSqr);
+			}
+		}
+		else
+		{
+			
+			struct MyTask : public IQueuedWork
+			{
+				MyTask(decltype(TaskFun)& fun , float inDistSqr , int inNz)
+					:mFun(fun),maxDistanceSqr(inDistSqr),nz(inNz) {}
+				virtual void executeWork() override { mFun(nz , maxDistanceSqr); }
+				virtual void release() override {}
+				decltype( TaskFun )& mFun;
+				float maxDistanceSqr;
+				int nz;
+			};
+			std::vector< std::unique_ptr< MyTask > > allTasks;
+			for( int nz = 0; nz < gridSize.z; ++nz )
+			{
+				auto task = std::make_unique<MyTask>( TaskFun , boundMaxDistanceSqr , nz );
+				setting.WorkTaskPool->addWork(task.get());
+				allTasks.push_back(std::move(task));
+				
+				
+			}
+			setting.WorkTaskPool->waitAllWorkComplete();
+
+			for( auto& ptr : allTasks )
+			{
+				if( maxDistanceSqr > ptr->maxDistanceSqr )
+					maxDistanceSqr = ptr->maxDistanceSqr;
+			}
+		}
+
+
+		float maxDistance = Math::Sqrt(maxDistanceSqr);
+		for( auto& v : outResult.volumeData )
+		{
+			v /= maxDistance;
+		}
+
+		outResult.boundMax = boundMax;
+		outResult.boundMin = boundMin;
+		outResult.gridSize = gridSize;
+		outResult.maxDistance = maxDistance;
+
+
+		return true;
+	}
+
+	void MeshUtility::BuildVertexAdjacency(uint8* pPosition, int numVertices, int vertexStride, int* triIndices, int numTirangle, std::vector<int>& outResult)
+	{
+		std::vector< int > triangleIndexMap;
+		struct Vertex
+		{
+			int   index;
+			float z;
+		};
+		std::vector< Vertex > sortedVertices;
+		sortedVertices.resize(numVertices);
+		for( int i = 0; i < numVertices; ++i )
+		{
+			Vector3& pos = *(Vector3*)(pPosition + i * vertexStride);
+			sortedVertices[i].index = i;
+			sortedVertices[i].z = pos.z;
+		}
+
+		std::sort(sortedVertices.begin(), sortedVertices.end(), [](auto const& a, auto const& b)
+		{
+			return a.z < b.z;
+		});
+		triangleIndexMap.resize(numVertices, -1);
+		for( int i = 0; i < numVertices; ++i )
+		{
+			Vertex const& vi = sortedVertices[i];
+			if( triangleIndexMap[vi.index] != -1 )
+				continue;
+
+			triangleIndexMap[vi.index] = vi.index;
+			Vector3 const& pos0 = *(Vector3*)(pPosition + vi.index * vertexStride);
+			for( int j = i + 1; j < numVertices; ++j )
+			{
+				Vertex const& vj = sortedVertices[j];
+				Vector3 const& pos1 = *(Vector3*)(pPosition + vj.index * vertexStride);
+
+				if( Math::Abs(pos0.z - pos1.z) > 1e-6 )
+				{
+					break;
+				}
+
+				if( IsVertexEqual(pos0, pos1) )
+				{
+					triangleIndexMap[vj.index] = vi.index;
+				}
+			}
+		}
+
+		struct TrianglePair
+		{
+
+			int val[2];
+			TrianglePair()
+			{
+				val[0] = val[1] = -1;
+			}
+		};
+		std::unordered_map< uint64, TrianglePair > edgeToTriangle;
+
+		auto MakeEdgeId = [](int idx1, int idx2) -> uint64
+		{
+			return (idx1 < idx2) ? (((uint64(idx1) << 32)) | uint32(idx2)) : (((uint64(idx2) << 32)) | uint32(idx1));
+		};
+		auto AddEdgeToTriangle = [&](int idxTriIndices, int idx1, int idx2)
+		{
+			if( idx1 == idx2 )
+				return;
+			uint64 edgeId = MakeEdgeId(idx1, idx2);
+			auto& triPair = edgeToTriangle[edgeId];
+
+			if( idx1 > idx2 )
+			{
+				if( triPair.val[0] == -1 )
+				{
+					triPair.val[0] = idxTriIndices;
+				}
+				else
+				{
+					LogWarning(0, "Incomplete Mesh!!");
+				}
+			}
+			else
+			{
+				if( triPair.val[1] == -1 )
+				{
+					triPair.val[1] = idxTriIndices;
+				}
+				else
+				{
+					LogWarning(0, "Incomplete Mesh!!");
+				}
+			}
+		};
+
+		for( int i = 0; i < numTirangle; ++i )
+		{
+			int idx0 = triangleIndexMap[triIndices[3 * i + 0]];
+			int idx1 = triangleIndexMap[triIndices[3 * i + 1]];
+			int idx2 = triangleIndexMap[triIndices[3 * i + 2]];
+
+			AddEdgeToTriangle(3 * i + 2, idx0, idx1);
+			AddEdgeToTriangle(3 * i + 0, idx1, idx2);
+			AddEdgeToTriangle(3 * i + 1, idx2, idx0);
+		}
+
+		int incompleteEdgeCount = 0;
+		auto GetAdjIndex = [&](int idxTriIndices, int idx1, int idx2)
+		{
+			uint64 edgeId = MakeEdgeId(idx1, idx2);
+			auto& triPair = edgeToTriangle[edgeId];
+			int idxOtherTri;
+			if( idx1 > idx2 )
+			{
+				idxOtherTri = triPair.val[1];
+			}
+			else
+			{
+				idxOtherTri = triPair.val[0];
+
+			}
+			if( idxOtherTri == -1 )
+			{
+				++incompleteEdgeCount;
+			}
+			return (idxOtherTri == -1) ? -1 : triIndices[idxOtherTri];
+		};
+
+		if( incompleteEdgeCount > 0 )
+		{
+			LogWarning(0, "%d Edge not have adj", incompleteEdgeCount);
+		}
+
+		outResult.resize(6 * numTirangle);
+
+		int* pInddex = &outResult[0];
+		for( int i = 0; i < numTirangle; ++i )
+		{
+			int idx0 = triIndices[3 * i + 0];
+			int idx1 = triIndices[3 * i + 1];
+			int idx2 = triIndices[3 * i + 2];
+
+			int idxMapped0 = triangleIndexMap[idx0];
+			int idxMapped1 = triangleIndexMap[idx1];
+			int idxMapped2 = triangleIndexMap[idx2];
+
+			if( idxMapped0 == idxMapped1 || idxMapped1 == idxMapped2 || idxMapped2 == idxMapped0 )
+				continue;
+
+			int adj0 = GetAdjIndex(3 * i + 2, idxMapped0, idxMapped1);
+			int adj1 = GetAdjIndex(3 * i + 0, idxMapped1, idxMapped2);
+			int adj2 = GetAdjIndex(3 * i + 1, idxMapped2, idxMapped0);
+
+			pInddex[0] = idx0; pInddex[1] = adj0;
+			pInddex[2] = idx1; pInddex[3] = adj1;
+			pInddex[4] = idx2; pInddex[5] = adj2;
+
+			pInddex += 6;
+		}
+		outResult.resize(pInddex - &outResult[0]);
+	}
 
 }//namespace GL

@@ -47,7 +47,7 @@ namespace Phy2D
 
 		Shape* getShape(){ return mShape; }
 
-		XForm  mXForm;
+		XForm2D  mXForm;
 		Shape* mShape;
 		CollisionProxy* mProxy;
 		HookNode hook;
@@ -248,7 +248,7 @@ namespace Phy2D
 		void     buildContact( Edge* e, Contact &c );
 		Edge*    getClosetEdge();
 
-		XForm     mBToALocal;
+		XForm2D     mBToALocal;
 
 
 		static int const MaxIterNum = 20;

@@ -2,10 +2,6 @@
 
 #include "LogSystem.h"
 
-#pragma comment(lib , "D3D11.lib")
-#pragma comment(lib , "D3DX11.lib")
-#pragma comment(lib , "D3dcompiler.lib")
-#pragma comment(lib , "DXGI.lib")
 
 namespace RenderGL
 {
@@ -23,6 +19,44 @@ namespace RenderGL
 		if ( createTexture2DInternal(D3D11Conv::To(format), w, h, numMipLevel, createFlags , data, Texture::GetFormatSize(format), creationResult ) )
 		{
 			return new D3D11Texture2D(format, creationResult);
+		}
+		return nullptr;
+	}
+
+	RHIBlendState* D3D11System::RHICreateBlendState(BlendStateInitializer const& initializer)
+	{
+		TComPtr< ID3D11BlendState > stateResource;
+		D3D11_BLEND_DESC desc = { 0 };
+		desc.AlphaToCoverageEnable = FALSE;
+		desc.IndependentBlendEnable = true;
+		for( int i = 0; i < NumBlendStateTarget; ++i )
+		{
+			auto const& targetValue = initializer.targetValues[i];
+			auto& targetValueD3D11 = desc.RenderTarget[i];
+
+			if( targetValue.writeMask & CWM_R )
+				targetValueD3D11.RenderTargetWriteMask |= D3D11_COLOR_WRITE_ENABLE_RED;
+			if( targetValue.writeMask & CWM_G )
+				targetValueD3D11.RenderTargetWriteMask |= D3D11_COLOR_WRITE_ENABLE_GREEN;
+			if( targetValue.writeMask & CWM_B )
+				targetValueD3D11.RenderTargetWriteMask |= D3D11_COLOR_WRITE_ENABLE_BLUE;
+			if( targetValue.writeMask & CWM_A )
+				targetValueD3D11.RenderTargetWriteMask |= D3D11_COLOR_WRITE_ENABLE_ALPHA;
+
+			targetValueD3D11.BlendEnable = (targetValue.srcColor != Blend::eOne) || (targetValue.srcAlpha != Blend::eOne) ||
+				(targetValue.destColor != Blend::eZero) || (targetValue.destAlpha != Blend::eZero);
+			targetValueD3D11.BlendOp = D3D11Conv::To(targetValue.op);
+			targetValueD3D11.SrcBlend = D3D11Conv::To(targetValue.srcColor);
+			targetValueD3D11.DestBlend = D3D11Conv::To(targetValue.destColor);
+			targetValueD3D11.BlendOpAlpha = D3D11Conv::To(targetValue.opAlpha);
+			targetValueD3D11.SrcBlendAlpha = D3D11Conv::To(targetValue.srcAlpha);
+			targetValueD3D11.DestBlendAlpha = D3D11Conv::To(targetValue.destAlpha);
+
+		}
+		VERIFY_D3D11RESULT(mDevice->CreateBlendState(&desc, &stateResource), );
+		if( stateResource )
+		{
+			return new D3D11BlendState(stateResource.release());
 		}
 		return nullptr;
 	}

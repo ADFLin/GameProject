@@ -68,9 +68,9 @@ namespace RenderGL
 		return EXECUTE_RHIFUN( RHICreateTexture2D(format, w, h, numMipLevel, creationFlags , data, dataAlign) );
 	}
 
-	RHITexture3D* RHICreateTexture3D(Texture::Format format, int sizeX ,int sizeY , int sizeZ , uint32 creationFlags )
+	RHITexture3D* RHICreateTexture3D(Texture::Format format, int sizeX ,int sizeY , int sizeZ , uint32 creationFlags , void* data)
 	{
-		return EXECUTE_RHIFUN( RHICreateTexture3D(format, sizeX, sizeY, sizeZ, creationFlags) );
+		return EXECUTE_RHIFUN( RHICreateTexture3D(format, sizeX, sizeY, sizeZ, creationFlags, data) );
 	}
 
 	RHITextureDepth* RHICreateTextureDepth(Texture::DepthFormat format, int w, int h)

@@ -250,9 +250,6 @@
     <ClCompile Include="Collision2D\SATSolver.cpp">
       <Filter>Collision</Filter>
     </ClCompile>
-    <ClCompile Include="Math\PrimitiveTest2D.cpp">
-      <Filter>原始程式檔</Filter>
-    </ClCompile>
     <ClCompile Include="Audio\AudioDevice.cpp">
       <Filter>Audio</Filter>
     </ClCompile>
@@ -351,6 +348,12 @@
     </ClCompile>
     <ClCompile Include="RHI\OpenGLCommon.cpp">
       <Filter>RHI\OpenGL</Filter>
+    </ClCompile>
+    <ClCompile Include="RHI\D3D11Common.cpp">
+      <Filter>RHI\D3D11</Filter>
+    </ClCompile>
+    <ClCompile Include="Math\PrimitiveTest.cpp">
+      <Filter>原始程式檔</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -744,9 +747,6 @@
     <ClInclude Include="Core\Color.h">
       <Filter>Core</Filter>
     </ClInclude>
-    <ClInclude Include="Math\PrimitiveTest2D.h">
-      <Filter>Math</Filter>
-    </ClInclude>
     <ClInclude Include="Audio\AudioDevice.h">
       <Filter>Audio</Filter>
     </ClInclude>
@@ -905,6 +905,18 @@
     </ClInclude>
     <ClInclude Include="RHI\OpenGLCommon.h">
       <Filter>RHI\OpenGL</Filter>
+    </ClInclude>
+    <ClInclude Include="RHI\D3D11Common.h">
+      <Filter>RHI\D3D11</Filter>
+    </ClInclude>
+    <ClInclude Include="DataStructure\KDTree.h">
+      <Filter>DataStructure</Filter>
+    </ClInclude>
+    <ClInclude Include="Math\GeometryPrimitive.h">
+      <Filter>Math</Filter>
+    </ClInclude>
+    <ClInclude Include="Math\PrimitiveTest.h">
+      <Filter>Math</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

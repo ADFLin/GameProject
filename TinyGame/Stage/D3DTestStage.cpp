@@ -1,14 +1,9 @@
 #include "TestStageHeader.h"
 
-
-
 #include "RHI/RHIDefine.h"
 #include "RHI/BaseType.h"
-#include "RHI/OpenGLCommon.h"
+#include "RHI/RHICommon.h"
 #include "RHI/D3D11Command.h"
-
-#include "stb/stb_image.h"
-
 
 #define CODE_STRING_INNER( CODE_TEXT ) R#CODE_TEXT
 #define CODE_STRING( CODE_TEXT ) CODE_STRING_INNER( CODE(##CODE_TEXT)CODE );
@@ -363,14 +358,11 @@ namespace RenderD3D
 			context->ClearRenderTargetView(renderTargetView ,Vector4(0.2, 0.2, 0.2,1));
 			context->OMSetRenderTargets(1, &renderTargetView, NULL);
 
-			D3D11_VIEWPORT vp;
-			vp.Width = window.getWidth();
-			vp.Height = window.getHeight();
-			vp.MinDepth = 0.0f;
-			vp.MaxDepth = 1.0f;
-			vp.TopLeftX = 0;
-			vp.TopLeftY = 0;
-			context->RSSetViewports(1, &vp);
+			RHISetViewport(0, 0, window.getWidth(), window.getHeight());
+
+
+			RHISetBlendState(TStaticBlendState< CWM_RGBA, Blend::eOne, Blend::eOne >::GetRHI());
+
 			context->IASetInputLayout(mVertexInputLayout);
 			context->VSSetShader(mVertexShader, nullptr, 0);
 			context->PSSetShader(mPixelShader, nullptr, 0);
@@ -408,13 +400,11 @@ namespace RenderD3D
 			}
 
 			
-			
 			{
 				UINT stride = sizeof(MyVertex);
 				UINT offset = 0;
-				context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
 				context->IASetVertexBuffers(0, 1, &mVertexBuffer, &stride, &offset);
-				context->Draw(4, 0);
+				RHIDrawPrimitive(PrimitiveType::TriangleStrip, 0 , 4 );
 			}
 			
 			context->Flush();

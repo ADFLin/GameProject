@@ -148,7 +148,7 @@ namespace Phy2D
 			g.drawLine(mObjects[0].getPos() - mContact.normal, mObjects[0].getPos());
 
 
-			XForm const& worldTrans = mObjects[0].mXForm;
+			XForm2D const& worldTrans = mObjects[0].mXForm;
 
 			glPushMatrix();
 			glTranslatef(worldTrans.getPos().x, worldTrans.getPos().y, 0);

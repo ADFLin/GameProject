@@ -89,7 +89,7 @@ namespace SR
 
 	LinearColor Texture::sample(Vector2 const& UV) const
 	{
-		Vector2 pos = UV.max(Vector2(0, 0)).min(Vector2(1, 1)).mul(mSize - Vec2i(1, 1));
+		Vector2 pos = Math::Clamp( UV , Vector2(0, 0) , Vector2(1, 1)).mul(mSize - Vec2i(1, 1));
 		int x0 = Math::FloorToInt(pos.x);
 		int y0 = Math::FloorToInt(pos.y);
 

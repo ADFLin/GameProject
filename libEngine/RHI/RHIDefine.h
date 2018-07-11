@@ -60,6 +60,7 @@ namespace RenderGL
 			eOneMinusDestAlpha,
 			eSrcColor,
 			eOneMinusSrcColor,
+			eDestColor,
 			eOneMinusDestColor,
 		};
 
@@ -67,6 +68,9 @@ namespace RenderGL
 		{
 			eAdd,
 			eSub,
+			eReverseSub ,
+			eMax ,
+			eMin ,
 		};
 	};
 

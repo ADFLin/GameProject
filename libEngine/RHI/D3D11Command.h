@@ -4,28 +4,23 @@
 
 #include "RHICommand.h"
 
-#include "LogSystem.h"
-#include "Platform/Windows/ComUtility.h"
+#include "D3D11Common.h"
+
 #include "FixString.h"
 #include "Core/ScopeExit.h"
 
-#include "D3D11.h"
+
 #include "D3D11Shader.h"
 #include "D3DX11async.h"
 #include "D3Dcompiler.h"
 
-
 #include <unordered_map>
 
-
-#define ERROR_MSG_GENERATE( HR , CODE , FILE , LINE )\
-	LogWarning(1, "ErrorCode = 0x%x File = %s Line = %s %s ", HR , FILE, #LINE, #CODE)
-
-#define VERIFY_D3D11RESULT_INNER( FILE , LINE , CODE ,ERRORCODE )\
-	{ HRESULT hr = CODE; if( hr != S_OK ){ ERROR_MSG_GENERATE( hr , CODE, FILE, LINE ); ERRORCODE } }
-
-#define VERIFY_D3D11RESULT( CODE , ERRORCODE ) VERIFY_D3D11RESULT_INNER( __FILE__ , __LINE__ , CODE , ERRORCODE )
-#define VERIFY_D3D11RESULT_RETURN_FALSE( CODE ) VERIFY_D3D11RESULT_INNER( __FILE__ , __LINE__ , CODE , return false; )
+#pragma comment(lib , "D3D11.lib")
+#pragma comment(lib , "D3DX11.lib")
+#pragma comment(lib , "D3dcompiler.lib")
+#pragma comment(lib , "DXGI.lib")
+#pragma comment(lib , "dxguid.lib")
 
 
 namespace RenderGL
@@ -64,74 +59,7 @@ namespace RenderGL
 	};
 
 
-	struct D3D11Conv
-	{
 
-		static D3D_PRIMITIVE_TOPOLOGY To(PrimitiveType type)
-		{
-			switch( type )
-			{
-			case PrimitiveType::Points: return D3D_PRIMITIVE_TOPOLOGY_POINTLIST;
-			case PrimitiveType::TriangleList: return D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
-			case PrimitiveType::TriangleStrip: return D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP;
-			case PrimitiveType::LineList: return D3D_PRIMITIVE_TOPOLOGY_LINELIST;
-			case PrimitiveType::LineStrip: return D3D_PRIMITIVE_TOPOLOGY_LINESTRIP;
-			case PrimitiveType::TriangleAdjacency: return D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST_ADJ;
-			case PrimitiveType::TriangleFan:
-			case PrimitiveType::LineLoop:
-			case PrimitiveType::Quad:
-			case PrimitiveType::Patchs:
-			default:
-				LogWarning(0, "D3D11 No Support Primitive %d",(int)type);
-				break;
-			}
-			return D3D_PRIMITIVE_TOPOLOGY_UNDEFINED;
-		}
-
-		static DXGI_FORMAT To(Texture::Format format)
-		{
-			switch( format )
-			{
-			case Texture::eRGB8:
-			case Texture::eRGBA8: return DXGI_FORMAT_R8G8B8A8_UNORM;
-			case Texture::eR16:   return DXGI_FORMAT_R16_UNORM;
-			case Texture::eR8:    return DXGI_FORMAT_R8_UNORM;
-			case Texture::eR32F:  return DXGI_FORMAT_R32_FLOAT;
-			case Texture::eRGB32F: return DXGI_FORMAT_R32G32B32_FLOAT;
-			case Texture::eRGBA32F: return DXGI_FORMAT_R32G32B32A32_FLOAT;
-			case Texture::eRGB16F:
-			case Texture::eRGBA16F: return DXGI_FORMAT_R16G16B16A16_FLOAT;
-			case Texture::eR32I: return DXGI_FORMAT_R32_SINT;
-			case Texture::eR16I: return DXGI_FORMAT_R16_SINT;
-			case Texture::eR8I: return DXGI_FORMAT_R8_SINT;
-			case Texture::eR32U: return DXGI_FORMAT_R32_UINT;
-			case Texture::eR16U: return DXGI_FORMAT_R16_UINT;
-			case Texture::eR8U:  return DXGI_FORMAT_R8_UINT;
-			case Texture::eRG32I: return DXGI_FORMAT_R32G32_SINT;
-			case Texture::eRG16I: return DXGI_FORMAT_R16G16_SINT;
-			case Texture::eRG8I: return DXGI_FORMAT_R8G8_SINT;
-			case Texture::eRG32U: return DXGI_FORMAT_R32G32_UINT;
-			case Texture::eRG16U: return DXGI_FORMAT_R16G16_UINT;
-			case Texture::eRG8U:  return DXGI_FORMAT_R8G8_UINT;
-			case Texture::eRGB32I:
-			case Texture::eRGBA32I: return DXGI_FORMAT_R32G32B32A32_SINT;
-			case Texture::eRGB16I:
-			case Texture::eRGBA16I: return DXGI_FORMAT_R16G16B16A16_SINT;
-			case Texture::eRGB8I:
-			case Texture::eRGBA8I:  return DXGI_FORMAT_R8G8B8A8_SINT;
-			case Texture::eRGB32U:
-			case Texture::eRGBA32U: return DXGI_FORMAT_R32G32B32A32_UINT;
-			case Texture::eRGB16U:
-			case Texture::eRGBA16U: return DXGI_FORMAT_R16G16B16A16_UINT;
-			case Texture::eRGB8U:
-			case Texture::eRGBA8U:  return DXGI_FORMAT_R8G8B8A8_UINT;
-			default:
-				LogWarning(0, "D3D11 No Support Texture Format %d", (int)format);
-				break;
-			}
-			return DXGI_FORMAT_UNKNOWN;
-		}
-	};
 
 	struct FrameSwapChain
 	{
@@ -150,145 +78,7 @@ namespace RenderGL
 		ID3D11DomainShader*   domain;
 	};
 
-	class D3D11Resource : public RHIResource
-	{
 
-	};
-
-	template< class RHITextureType >
-	struct TD3D11TypeTraits { typedef void ImplType; };
-
-	template<>
-	struct TD3D11TypeTraits< RHITexture1D > { typedef ID3D11Texture1D ResourceType; };
-	template<>
-	struct TD3D11TypeTraits< RHITexture2D > { typedef ID3D11Texture2D ResourceType; };
-	template<>
-	struct TD3D11TypeTraits< RHITexture3D > { typedef ID3D11Texture3D ResourceType; };
-	//template<>
-	//struct TD3D11TextureTraits< RHITextureCube > { typedef ID3D11TextureArray ResourceType; };
-	//template<>
-	//struct TD3D11TextureTraits< RHITextureDepth > { typedef ID3D11Texture2D ResourceType; };
-	template<>
-	struct TD3D11TypeTraits< RHIVertexBuffer > { typedef ID3D11Buffer ResourceType; };
-	template<>
-	struct TD3D11TypeTraits< RHIIndexBuffer > { typedef ID3D11Buffer ResourceType; };
-	template<>
-	struct TD3D11TypeTraits< RHIUniformBuffer > { typedef ID3D11Buffer ResourceType; };
-
-	template< class RHIResoureType >
-	class TD3D11Resource : public RHIResoureType
-	{
-	public:
-		virtual void incRef() { mResource->AddRef(); }
-		virtual bool decRef() { return mResource->Release() == 1; }
-		virtual void releaseResource() { mResource->Release(); mResource = nullptr; }
-
-		typedef typename TD3D11TypeTraits< RHIResoureType >::ResourceType ResourceType;
-
-		ResourceType* getResource() { return mResource; }
-		ResourceType* mResource;
-	};
-
-#define SAFE_RELEASE( PTR ) if ( PTR ){ PTR->Release(); PTR = nullptr; }
-
-	template< class RHITextureType >
-	class TD3D11Texture : public TD3D11Resource< RHITextureType >
-	{
-	protected:
-		TD3D11Texture(ID3D11RenderTargetView* RTV, ID3D11ShaderResourceView* SRV, ID3D11UnorderedAccessView* UAV)
-			:mRTV(RTV), mSRV(SRV), mUAV(UAV)
-		{
-
-		}
-
-		virtual void releaseResource() 
-		{ 
-			SAFE_RELEASE(mRTV);
-			SAFE_RELEASE(mSRV);
-			SAFE_RELEASE(mUAV);
-			TD3D11Resource< RHITextureType >::releaseResource();
-		}
-	public:
-		ID3D11RenderTargetView* mRTV;
-		ID3D11ShaderResourceView* mSRV;
-		ID3D11UnorderedAccessView* mUAV;
-	};
-
-
-	struct Texture2DCreationResult
-	{
-		TComPtr< ID3D11Texture2D > resource;
-		TComPtr< ID3D11RenderTargetView >    RTV;
-		TComPtr< ID3D11ShaderResourceView >  SRV;
-		TComPtr< ID3D11UnorderedAccessView > UAV;
-		
-	};
-
-	class D3D11Texture2D : public TD3D11Texture< RHITexture2D >
-	{
-	public:
-		D3D11Texture2D(Texture::Format format, Texture2DCreationResult& creationResult )
-			:TD3D11Texture< RHITexture2D >(creationResult.RTV.release() , creationResult.SRV.release() , creationResult.UAV.release() )
-		{
-			mFormat = format;
-			mResource = creationResult.resource.release();
-			D3D11_TEXTURE2D_DESC desc;
-			mResource->GetDesc(&desc);
-			mSizeX = desc.Width;
-			mSizeY = desc.Height;
-		}
-
-
-		bool update(int ox, int oy, int w, int h, Texture::Format format, void* data, int level)
-		{
-			TComPtr<ID3D11Device> device;
-			mResource->GetDevice(&device);
-			TComPtr<ID3D11DeviceContext> deviceContext;
-			device->GetImmediateContext(&deviceContext);
-			D3D11_BOX box;
-			box.back = 0;
-			box.front = 1;
-			box.left = ox;
-			box.right = ox + w;
-			box.top = oy;
-			box.bottom = oy + h;
-			deviceContext->UpdateSubresource(mResource, level, &box, data, w * Texture::GetFormatSize(format), w * h * Texture::GetFormatSize(format));
-			return true;
-		}
-
-		bool update(int ox, int oy, int w, int h, Texture::Format format, int pixelStride, void* data, int level)
-		{
-			TComPtr<ID3D11Device> device;
-			mResource->GetDevice(&device);
-			TComPtr<ID3D11DeviceContext> deviceContext;
-			device->GetImmediateContext(&deviceContext);
-			D3D11_BOX box;
-			box.back = 0;
-			box.front = 1;
-			box.left = ox;
-			box.right = ox + w;
-			box.top = oy;
-			box.bottom = oy + h;
-			deviceContext->UpdateSubresource(mResource, level, &box, data, w * pixelStride, w * h * pixelStride);
-			return true;
-		}
-
-
-	};
-
-	struct D3D11Cast
-	{
-		static D3D11Texture2D* To(RHITexture2D* tex){  return static_cast<D3D11Texture2D*>(tex); }
-
-		template < class T >
-		static auto To(TRefCountPtr<T>& ptr) { return D3D11Cast::To(ptr.get()); }
-
-		template< class T >
-		static auto GetResource(T& RHIObject) { return D3D11Cast::To(&RHIObject)->getResource(); }
-
-		template< class T >
-		static auto GetResource(TRefCountPtr<T>& refPtr ) { return D3D11Cast::To(refPtr)->getResource(); }
-	};
 
 	class D3D11System : public RHISystem
 	{
@@ -322,7 +112,7 @@ namespace RenderGL
 			Texture::Format format, int w, int h,
 			int numMipLevel, uint32 createFlags, void* data, int dataAlign);
 
-		virtual RHITexture3D*    RHICreateTexture3D(Texture::Format format, int sizeX, int sizeY, int sizeZ , uint32 createFlags )
+		virtual RHITexture3D*    RHICreateTexture3D(Texture::Format format, int sizeX, int sizeY, int sizeZ, uint32 createFlags, void* data)
 		{
 			return nullptr;
 		}
@@ -374,10 +164,8 @@ namespace RenderGL
 		{
 			return nullptr;
 		}
-		RHIBlendState* RHICreateBlendState(BlendStateInitializer const& initializer)
-		{
-			return nullptr;
-		}
+		RHIBlendState* RHICreateBlendState(BlendStateInitializer const& initializer);
+
 		RHIDepthStencilState* RHICreateDepthStencilState(DepthStencilStateInitializer const& initializer)
 		{
 			return nullptr;
@@ -387,10 +175,12 @@ namespace RenderGL
 		{
 
 		}
+		
 		void RHISetBlendState(RHIBlendState& blendState)
 		{
-
+			mDeviceContext->OMSetBlendState(D3D11Cast::GetResource(blendState), Vector4(0, 0, 0, 0), 0xffffffff);
 		}
+
 		void RHISetDepthStencilState(RHIDepthStencilState& depthStencilState, uint32 stencilRef)
 		{
 
@@ -398,17 +188,39 @@ namespace RenderGL
 
 		void RHISetViewport(int x, int y, int w, int h)
 		{
-
+			D3D11_VIEWPORT vp;
+			vp.Width = w;
+			vp.Height = h;
+			vp.MinDepth = 0.0f;
+			vp.MaxDepth = 1.0f;
+			vp.TopLeftX = x;
+			vp.TopLeftY = y;
+			mDeviceContext->RSSetViewports(1, &vp);
 		}
+
 		void RHISetScissorRect(bool bEnable, int x, int y, int w, int h)
 		{
-
+			if( bEnable )
+			{
+				D3D11_RECT rect;
+				rect.top = x;
+				rect.left = y;
+				rect.bottom = x + w;
+				rect.right = y + h;
+				mDeviceContext->RSSetScissorRects(1, &rect);
+			}
+			else
+			{
+				mDeviceContext->RSSetScissorRects(0, nullptr);
+			}
+			
 		}
 
 
 		void RHIDrawPrimitive(PrimitiveType type, int start, int nv)
 		{
-
+			mDeviceContext->IASetPrimitiveTopology(D3D11Conv::To(type));
+			mDeviceContext->Draw(nv, start);
 		}
 
 		void RHIDrawIndexedPrimitive(PrimitiveType type, ECompValueType indexType, int indexStart, int nIndex)

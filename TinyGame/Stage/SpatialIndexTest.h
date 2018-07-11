@@ -5,172 +5,19 @@
 #include "TestStageHeader.h"
 
 #include "Template/ArrayView.h"
+#include "Math/Vector2.h"
 #include "Math/Math2D.h"
-#include "Math/PrimitiveTest2D.h"
-
+#include "Math/GeometryPrimitive.h"
+#include "Math/PrimitiveTest.h"
+#include "DataStructure/KDTree.h"
 #include <algorithm>
 
+
 typedef Math::Vector2 Vector2;
+typedef Math::TBoundBox< Vector2 > BoundBox2D;
+typedef Math::TRay< Vector2 > Ray;
 
-struct BoundBox2D
-{
-	Vector2 min;
-	Vector2 max;
-
-	bool isIntersect(BoundBox2D const& rhs) const
-	{
-		return Math2D::BoxBoxTest(min, max, rhs.min, rhs.max);
-	}
-
-	bool isValid() const
-	{
-		return min < max;
-	}
-
-	BoundBox2D& operator += (BoundBox2D const& rhs)
-	{
-		min = min.min(rhs.min);
-		max = max.max(rhs.max);
-		return *this;
-	}
-
-	BoundBox2D& operator += (Vector2 const& pos)
-	{
-		min = min.min(pos);
-		max = max.max(pos);
-		return *this;
-	}
-
-	BoundBox2D() {}
-	BoundBox2D(EForceInit)
-	{
-		min = Vector2(0, 0);
-		max = Vector2(0, 0);
-	}
-};
-
-struct PrimitiveData
-{
-	int id;
-	BoundBox2D BBox;
-};
-
-
-struct Ray
-{
-	Vector2 pos;
-	Vector2 dir;
-
-	Vector2 getPosition(float dist) const { return pos + dist * dir; }
-	int     testIntersect(BoundBox2D const& bound , float outDists[2] ) const
-	{
-		if( !Math2D::LineBoxTest(pos, dir, bound.min, bound.max, outDists) )
-			return 0;
-
-		if( outDists[0] < 0 )
-		{
-			if( outDists[1] < 0 )
-				return 0;
-			outDists[0] = outDists[1];
-			return 1;
-		}
-		return 2;
-	}
-};
-
-struct RayResult
-{
-	int   indexData;
-	float dist;
-
-
-};
-
-class KDTree
-{
-public:
-	static int const EMPTY_LEAF_ID = std::numeric_limits<int>::min();
-
-	KDTree()
-	{
-		mRootId = EMPTY_LEAF_ID;
-	}
-
-	struct Node
-	{
-		int   axis;
-		float value;
-		int idxLeft;
-		int idxRight;
-	};
-
-	struct Leaf
-	{
-		std::vector<int> dataIndices;
-	};
-
-	struct Edge
-	{
-		float value;
-		bool  bStart;
-		int   indexData;
-	};
-
-	BoundBox2D mBound;
-
-	void build();
-
-	bool raycast(Ray const& ray , RayResult& result );
-
-
-	int  makeLeaf(std::vector< int >& dataIndices);
-	int  buildNode_R(std::vector< int >& dataIndices, BoundBox2D bound);
-
-
-
-	template< class Fun >
-	void visitNode(Fun& visitFun)
-	{
-		visitNode_R(mRootId, visitFun, mBound);
-	}
-
-	template< class Fun >
-	void visitNode_R(int nodeId, Fun& visitFun, BoundBox2D bound)
-	{
-		if( nodeId < 0 )
-		{
-			if( nodeId != EMPTY_LEAF_ID )
-			{
-				Leaf const& leaf = mLeaves[-(nodeId + 1)];
-				visitFun(leaf, bound);
-			}
-			return;
-		}
-
-		Node const& node = mNodes[nodeId];
-
-		visitFun(node, bound);
-
-		{
-			BoundBox2D childBound = bound;
-			childBound.max[node.axis] = node.value;
-			visitNode_R(node.idxLeft, visitFun, childBound);
-		}
-
-		{
-			BoundBox2D childBound = bound;
-			childBound.min[node.axis] = node.value;
-			visitNode_R(node.idxRight, visitFun, childBound);
-		}
-	}
-
-	int mRootId;
-
-
-	std::vector< Node > mNodes;
-	std::vector< Leaf > mLeaves;
-	std::vector< PrimitiveData > mDataVec;
-};
+typedef TKDTree< 2 > KDTree;
 
 class BVH
 {
@@ -195,7 +42,7 @@ public:
 	KDTree    mTree;
 
 	Ray       mTestRay;
-	RayResult mRayResult;
+	KDTree::RayResult mRayResult;
 	SpatialIndexTestStage()
 	{
 		mTestRay.pos = Vector2(0, 0);
@@ -242,11 +89,11 @@ public:
 
 		int numShape = 50;
 
-		std::vector< PrimitiveData > shapes;
+		std::vector< KDTree::PrimitiveData > shapes;
 		shapes.resize(numShape);
 		for( int i = 0; i < numShape; ++i )
 		{
-			PrimitiveData& data = shapes[i];
+			KDTree::PrimitiveData& data = shapes[i];
 			data.id = i;
 			data.BBox.min = 100 * Vector2(randFloat(), randFloat());
 			data.BBox.max = data.BBox.min + 10 * Vector2( 0.1 + randFloat(), 0.1 + randFloat() );
@@ -270,6 +117,8 @@ public:
 
 	void onRender(float dFrame);
 
+	int mIndexNearset = -1;
+
 	bool onMouse(MouseMsg const& msg)
 	{
 		if( !BaseClass::onMouse(msg) )
@@ -282,6 +131,15 @@ public:
 
 			mRayResult.indexData = -1;
 			mTree.raycast(mTestRay, mRayResult);
+			struct DistFun
+			{
+				float operator()(KDTree::PrimitiveData const& data, Vector2 const& p , float) const
+				{
+					return Math::DistanceSqure( data.BBox , p );
+				}
+			};
+			float distSqr;
+			mIndexNearset = mTree.findNearst(worldPos, DistFun(), distSqr);
 		}
 		else if( msg.onRightDown() )
 		{

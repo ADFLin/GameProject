@@ -587,51 +587,6 @@ namespace RenderGL
 		OpenGLFrameBuffer  mBuffer;
 	};
 
-	class FDistanceField
-	{
-		static void CalcAABB(uint8* pData, int dataStride, int numVertex, Vector3& outMin, Vector3& outMax)
-		{
-			assert(numVertex >= 1);
-
-			uint8* pCur = pData;
-
-			outMin = *(Vector3*)(pData);
-			outMax = *(Vector3*)(pData);
-			pData += dataStride;
-			for( int i = 1; i < numVertex; ++i )
-			{
-				Vector3 const& pos = *(Vector3*)(pData);
-				outMax.max(pos);
-				outMin.min(pos);
-				pData += dataStride;
-			}
-		}
-
-		static bool BuildDistanceField(Mesh& mesh, float cellSize)
-		{
-			if( mesh.mType != PrimitiveType::TriangleList )
-				return false;
-			uint8* pData = (uint8*)(mesh.mVertexBuffer->lock(ELockAccess::ReadOnly)) + mesh.mDecl.getSematicOffset(Vertex::ePosition);
-			int    dataStride = mesh.mVertexBuffer->getElementSize();
-			if( !mesh.mIndexBuffer.isValid() || !mesh.mIndexBuffer->isIntType() )
-				return false;
-
-			int* pIndex = (int*)(mesh.mIndexBuffer->lock(ELockAccess::ReadOnly));
-
-			int numTriangles = mesh.mIndexBuffer->getNumElements() / 3;
-			for( int i = 0; i < numTriangles; ++i )
-			{
-				int idx0 = pIndex[0];
-				int idx1 = pIndex[1];
-				int idx2 = pIndex[2];
-
-				//Vector3 p0 = (pData + idx0 +)
-			}
-
-		}
-
-	};
-
 	struct Portal
 	{
 		Matrix4 transform;

@@ -72,7 +72,7 @@ namespace RenderGL
 
 	RHITexture2D*    RHICreateTexture2D(Texture::Format format, int w, int h, 
 										int numMipLevel = 0 , uint32 creationFlags = TCF_DefalutValue, void* data = nullptr, int dataAlign = 0);
-	RHITexture3D*    RHICreateTexture3D(Texture::Format format, int sizeX, int sizeY, int sizeZ , uint32 creationFlags = TCF_DefalutValue);
+	RHITexture3D*    RHICreateTexture3D(Texture::Format format, int sizeX, int sizeY, int sizeZ , uint32 creationFlags = TCF_DefalutValue , void* data = nullptr);
 
 	RHITextureDepth* RHICreateTextureDepth(Texture::DepthFormat format, int w, int );
 	RHITextureCube*  RHICreateTextureCube();
@@ -126,7 +126,7 @@ namespace RenderGL
 		RHIFUNCTION(RHITexture2D*    RHICreateTexture2D(
 			Texture::Format format, int w, int h,
 			int numMipLevel, uint32 creationFlag, void* data, int dataAlign));
-		RHIFUNCTION(RHITexture3D*    RHICreateTexture3D(Texture::Format format, int sizeX, int sizeY, int sizeZ, uint32 creationFlag));
+		RHIFUNCTION(RHITexture3D*    RHICreateTexture3D(Texture::Format format, int sizeX, int sizeY, int sizeZ, uint32 creationFlag , void* data));
 		RHIFUNCTION(RHITextureDepth* RHICreateTextureDepth(Texture::DepthFormat format, int w, int h) );
 		RHIFUNCTION(RHITextureCube*  RHICreateTextureCube() );
 		RHIFUNCTION(RHIVertexBuffer*  RHICreateVertexBuffer(uint32 vertexSize, uint32 numVertices, uint32 creationFlag, void* data));
@@ -294,9 +294,11 @@ namespace RenderGL
 		ColorWriteMask WriteColorMask0 = CWM_RGBA,
 		Blend::Factor SrcColorFactor0 = Blend::eOne,
 		Blend::Factor DestColorFactor0 = Blend::eZero ,
+		Blend::Operation ColorOp0 = Blend::eAdd ,
 		Blend::Factor SrcAlphaFactor0 = Blend::eOne,
-		Blend::Factor DestAlphaFactor0 = Blend::eZero >
-	class TStaticBlendState
+		Blend::Factor DestAlphaFactor0 = Blend::eZero ,
+		Blend::Operation AlphaOp0 = Blend::eAdd >
+	class TStaticBlendSeparateState
 	{
 	public:
 		static RHIBlendState& GetRHI()
@@ -310,9 +312,11 @@ namespace RenderGL
 					BlendStateInitializer initializer;
 #define SET_TRAGET_VALUE( INDEX )\
 		initializer.targetValues[INDEX].writeMask = WriteColorMask##INDEX;\
+		initializer.targetValues[INDEX].op = ColorOp##INDEX;\
 		initializer.targetValues[INDEX].srcColor = SrcColorFactor##INDEX;\
-		initializer.targetValues[INDEX].srcAlpha = SrcAlphaFactor##INDEX;\
 		initializer.targetValues[INDEX].destColor = DestColorFactor##INDEX;\
+		initializer.targetValues[INDEX].opAlpha = AlphaOp##INDEX;\
+		initializer.targetValues[INDEX].srcAlpha = SrcAlphaFactor##INDEX;\
 		initializer.targetValues[INDEX].destAlpha = DestAlphaFactor##INDEX;
 
 					SET_TRAGET_VALUE(0);
@@ -324,6 +328,17 @@ namespace RenderGL
 			static StaticConstructor sConstructor;
 			return *sConstructor.RHI;
 		}
+	};
+
+
+	template<
+		ColorWriteMask WriteColorMask0 = CWM_RGBA,
+		Blend::Factor SrcFactor0 = Blend::eOne,
+		Blend::Factor DestFactor0 = Blend::eZero ,
+		Blend::Operation Op0 = Blend::eAdd >
+	class TStaticBlendState : public TStaticBlendSeparateState<
+		WriteColorMask0 , SrcFactor0 , DestFactor0 , Op0 , SrcFactor0, DestFactor0, Op0 >
+	{
 	};
 }//namespace RenderGL
 

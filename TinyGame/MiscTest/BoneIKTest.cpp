@@ -6,7 +6,7 @@
 
 namespace BoneIK
 {
-	using namespace Math2D;
+	using namespace Math;
 
 	typedef Vector2 Vector2;
 	struct BoneState
@@ -49,7 +49,7 @@ namespace BoneIK
 			Vector2 v1(1, 0);
 			Vector2 v2 = Math::GetNormal(Vector2(1,-1));
 
-			Rotation rotation = Rotation::Make(v1, v2);
+			Rotation2D rotation = Rotation2D::Make(v1, v2);
 
 
 			Vector2 v3 = rotation.rotate(v1);
@@ -308,7 +308,7 @@ namespace BoneIK
 					{
 						Vector2 dirA = Math::GetNormal(inoutState[indexEffector].pos - inoutState[i].pos);
 						Vector2 dirB = Math::GetNormal(targetPos - inoutState[i].pos);
-						Rotation rotation = Rotation::Make(dirA, dirB);
+						Rotation2D rotation = Rotation2D::Make(dirA, dirB);
 						for( int n = indexEffector ; n != i; --n )
 						{
 							inoutState[n].pos = inoutState[i].pos + rotation.rotate(inoutState[n].pos - inoutState[i].pos);

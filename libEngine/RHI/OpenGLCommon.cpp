@@ -425,7 +425,7 @@ namespace RenderGL
 		return result;
 	}
 
-	bool OpenGLTexture3D::create(Texture::Format format, int sizeX, int sizeY, int sizeZ)
+	bool OpenGLTexture3D::create(Texture::Format format, int sizeX, int sizeY, int sizeZ, void* data)
 	{
 		if( !mGLObject.fetchHandle() )
 			return false;
@@ -440,7 +440,7 @@ namespace RenderGL
 		glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 		glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MAX_LEVEL, 0);
 		glTexImage3D(GL_TEXTURE_3D, 0, GLConvert::To(format), sizeX, sizeY , sizeZ, 0, 
-					 GLConvert::BaseFormat(format), GLConvert::TextureComponentType(format), NULL);
+					 GLConvert::BaseFormat(format), GLConvert::TextureComponentType(format), data);
 		unbind();
 		return true;
 	}
@@ -906,26 +906,31 @@ namespace RenderGL
 	{
 		switch( factor )
 		{
-		case Blend::eSrcAlpha:
-			return GL_SRC_ALPHA;
-		case Blend::eOneMinusSrcAlpha:
-			return GL_ONE_MINUS_SRC_ALPHA;
-		case Blend::eOne:
-			return GL_ONE;
-		case Blend::eZero:
-			return GL_ZERO;
-		case Blend::eDestAlpha:
-			return GL_DST_ALPHA;
-		case Blend::eOneMinusDestAlpha:
-			return GL_ONE_MINUS_DST_ALPHA;
-		case Blend::eSrcColor:
-			return GL_SRC_COLOR;
-		case Blend::eOneMinusSrcColor:
-			return GL_ONE_MINUS_SRC_COLOR;
-		case Blend::eOneMinusDestColor:
-			return GL_ONE_MINUS_DST_COLOR;
+		case Blend::eSrcAlpha: return GL_SRC_ALPHA;
+		case Blend::eOneMinusSrcAlpha: return GL_ONE_MINUS_SRC_ALPHA;
+		case Blend::eOne: return GL_ONE;
+		case Blend::eZero: return GL_ZERO;
+		case Blend::eDestAlpha: return GL_DST_ALPHA;
+		case Blend::eOneMinusDestAlpha: return GL_ONE_MINUS_DST_ALPHA;
+		case Blend::eSrcColor: return GL_SRC_COLOR;
+		case Blend::eOneMinusSrcColor: return GL_ONE_MINUS_SRC_COLOR;
+		case Blend::eDestColor: return GL_DST_COLOR;
+		case Blend::eOneMinusDestColor: return GL_ONE_MINUS_DST_COLOR;
 		}
 		return GL_ONE;
+	}
+
+	GLenum GLConvert::To(Blend::Operation op)
+	{
+		switch( op )
+		{
+		case Blend::eAdd: return GL_FUNC_ADD;
+		case Blend::eSub: return GL_FUNC_SUBTRACT;
+		case Blend::eReverseSub: return GL_FUNC_REVERSE_SUBTRACT;
+		case Blend::eMax: return GL_MIN;
+		case Blend::eMin: return GL_MAX;
+		}
+		return GL_FUNC_ADD;
 	}
 
 	GLenum GLConvert::To(ECompareFun fun)
@@ -1237,6 +1242,8 @@ namespace RenderGL
 			targetValueGL.srcAlpha = GLConvert::To(targetValue.srcAlpha);
 			targetValueGL.destColor = GLConvert::To(targetValue.destColor);
 			targetValueGL.destAlpha = GLConvert::To(targetValue.destAlpha);
+			targetValueGL.op = GLConvert::To(targetValue.op);
+			targetValueGL.opAlpha = GLConvert::To(targetValue.opAlpha);
 		}
 	}
 

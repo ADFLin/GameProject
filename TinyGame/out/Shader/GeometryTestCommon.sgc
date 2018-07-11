@@ -19,3 +19,30 @@ bool RaySphereTest(float3 pos, float3 dirNormalized, float3 center, float radius
 	outT = -b - sqrt(d);
 	return true;
 }
+
+bool RayAABBTest(float3 pos, float3 dir, float3 boundMin, float3 boundMax , out float2 outT )
+{
+	// For all three slabs
+	float3 dirABS = abs(dir);
+	UNROLL
+	for( int i = 0; i < 3; i++ )
+	{
+		if( dirABS[i] < 1e-6 )
+		{
+			// Ray is parallel to slab. No hit if origin not within slab
+			if( pos[i] < boundMin[i] || pos[i] > boundMax[i] )
+				return false;
+		}
+	}
+
+	// Compute intersection t value of ray with near and far plane of slab
+	float3 ood = 1.0f / dir;
+	float3 t1 = (boundMin - pos) * ood;
+	float3 t2 = (boundMax - pos) * ood;
+
+	float3 minT = min(t1, t2);
+	float3 maxT = max(t1, t2);
+	outT.x = max(minT.x, max(minT.y, minT.z));
+	outT.y = min(maxT.x, min(maxT.y, maxT.z));
+	return outT.x < outT.y;
+}

@@ -20,7 +20,7 @@ struct ViewParameters
 };
 
 
-#if 1
+#if SHADER_COMPILING
 layout(std140) uniform ViewBlock
 {
 	uniform ViewParameters View;

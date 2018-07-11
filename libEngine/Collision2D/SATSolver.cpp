@@ -145,7 +145,7 @@ bool SATSolver::testIntersect(Vector2 const& pA, Vector2 vA[], int nA, Vector2 c
 	return haveSA;
 }
 
-bool SATSolver::testBoxIntersect(Vector2 const& pA, Vector2 const& sizeA, Vector2 const& pB, Vector2 const& sizeB, Math2D::Rotation const& rotation)
+bool SATSolver::testBoxIntersect(Vector2 const& pA, Vector2 const& sizeA, Vector2 const& pB, Vector2 const& sizeB, Math::Rotation2D const& rotation)
 {
 	assert(0);
 	return false;

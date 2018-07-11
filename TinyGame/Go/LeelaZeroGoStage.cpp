@@ -1460,7 +1460,15 @@ namespace Go
 				}
 				break;
 			case ZenGameParam::eBestMoveVertex:
-				bestMoveVertex = com.intParam;
+				{
+					Zen::ThinkInfo* info = static_cast<Zen::ThinkInfo*>(com.ptrParam);
+					bestMoveVertex = info->v;
+					bestThinkInfo.v = info->v;
+					bestThinkInfo.nodeVisited = 0;
+					bestThinkInfo.vSeq = info->vSeq;
+					bestThinkInfo.winRate = info->winRate;
+					bestThinkInfo.evalValue = 0;
+				}
 				break;
 			case LeelaGameParam::eWinRate:
 			case ZenGameParam::eWinRate:

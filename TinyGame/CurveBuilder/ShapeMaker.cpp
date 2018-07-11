@@ -268,7 +268,7 @@ namespace CB
 	{
 		if( mUpdateThreadPool )
 		{
-			mUpdateThreadPool->waitAllThreadIdle();
+			mUpdateThreadPool->waitAllWorkComplete();
 		}
 	}
 #endif

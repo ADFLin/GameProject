@@ -304,6 +304,7 @@ copy $(TargetDir)EngineShare.dll $(ProjectDir)out\</Command>
     <ClCompile Include="Stage\CurveBuilderStage.cpp" />
     <ClCompile Include="Stage\D3DTestStage.cpp" />
     <ClCompile Include="Stage\DeviceInfoStage.cpp" />
+    <ClCompile Include="Stage\DistanceFieldStage.cpp" />
     <ClCompile Include="Stage\FlowGameStage.cpp" />
     <ClCompile Include="Stage\FluidSimStage.cpp" />
     <ClCompile Include="Stage\FontDrawStage.cpp" />
@@ -635,6 +636,7 @@ copy $(TargetDir)EngineShare.dll $(ProjectDir)out\</Command>
     <None Include="out\Shader\DeferredBasePass.sgc" />
     <None Include="out\Shader\DeferredLighting.sgc" />
     <None Include="out\Shader\DeferredShadingCommon.sgc" />
+    <None Include="out\Shader\DistanceField.sgc" />
     <None Include="out\Shader\DOF.sgc" />
     <None Include="out\Shader\Game\BumpPS.sgc" />
     <None Include="out\Shader\Game\BumpVS.sgc" />

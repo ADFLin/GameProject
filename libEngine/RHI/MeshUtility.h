@@ -6,6 +6,7 @@
 #include "MarcoCommon.h"
 #include <string>
 
+class QueueThreadPool;
 
 namespace RenderGL
 {
@@ -127,7 +128,7 @@ namespace RenderGL
 			int*   indices;
 			int    numIndex;
 		};
-		static bool TriangleMesh(Mesh& mesh, MeshData& data);
+		static bool ObjFileMesh(Mesh& mesh, MeshData& data);
 
 
 
@@ -139,7 +140,49 @@ namespace RenderGL
 
 	};
 
+	struct DistanceFieldBuildSetting
+	{
+		bool  bTwoSign;
+		float boundSizeScale;
+		float gridLength;
+		float ResolutionScale;
+		QueueThreadPool* WorkTaskPool;
 
+		DistanceFieldBuildSetting()
+		{
+			boundSizeScale = 1.1;
+			bTwoSign = false;
+			gridLength = 0.1;
+			ResolutionScale = 1.0f;
+			WorkTaskPool = nullptr;
+		}
+	};
+
+	struct DistanceFieldData
+	{
+		Vector3    boundMin;
+		Vector3    boundMax;
+		IntVector3 gridSize;
+		float      maxDistance;
+		std::vector< float > volumeData;
+	};
+
+	class MeshUtility
+	{
+	public:
+		static void CalcAABB(uint8* pData, int dataStride, int numVertex, Vector3& outMin, Vector3& outMax);
+		static int* ConvertToTriangleList(PrimitiveType type, void* pIndexData, int numIndices ,bool bIntType, std::vector< int >& outConvertBuffer, int& outNumTriangles);
+		static bool BuildDistanceField(Mesh& mesh, DistanceFieldBuildSetting const& setting , DistanceFieldData& outResult);
+		static bool BuildDistanceField(uint8* pVertexData, uint32 vertexDataStride, int32 numVertex, int* pIndexData, int numTriangles, DistanceFieldBuildSetting const& setting, DistanceFieldData& outResult);
+
+		static bool IsVertexEqual(Vector3 const& a, Vector3 const& b, float error = 1e-6)
+		{
+			Vector3 diff = (a - b).abs();
+			return diff.x < error && diff.y < error && diff.z < error;
+		}
+
+		static void BuildVertexAdjacency(uint8* pPosition, int numVertices, int vertexStride, int* triIndices, int numTirangle, std::vector<int>& outResult);
+	};
 
 
 }//namespace GL

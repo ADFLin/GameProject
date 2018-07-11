@@ -43,7 +43,7 @@ namespace Phy2D
 		AABB& aabb;
 	};
 
-	void BoxShape::calcAABB(XForm const& xform , AABB& aabb)
+	void BoxShape::calcAABB(XForm2D const& xform , AABB& aabb)
 	{
 		Vector2 len = xform.transformVector( mHalfExt );
 		Vector2 dir = xform.getRotation().getXDir();
@@ -75,7 +75,7 @@ namespace Phy2D
 			( dir.y >= 0 ) ? mHalfExt.y : -mHalfExt.y );
 	}
 
-	void CircleShape::calcAABB(XForm const& xform , AABB& aabb)
+	void CircleShape::calcAABB(XForm2D const& xform , AABB& aabb)
 	{
 		aabb.min = xform.getPos() - Vector2( mRadius , mRadius );
 		aabb.max = xform.getPos() + Vector2( mRadius , mRadius );
@@ -103,7 +103,7 @@ namespace Phy2D
 	}
 
 
-	void PolygonShape::calcAABB(XForm const& xform , AABB& aabb)
+	void PolygonShape::calcAABB(XForm2D const& xform , AABB& aabb)
 	{
 		AABBUpdater updater( aabb );
 		for( int i = 0 ; i < getVertexNum() ; ++i )
@@ -168,7 +168,7 @@ namespace Phy2D
 		aabb.min.y += +mHalfExt.x;
 	}
 
-	void CapsuleShape::calcAABB(XForm const& xform , AABB& aabb)
+	void CapsuleShape::calcAABB(XForm2D const& xform , AABB& aabb)
 	{
 		Vector2 offset = mHalfExt.y * xform.getRotation().getYDir() + Vector2( getRadius() , getRadius() );
 		aabb.min = -offset;

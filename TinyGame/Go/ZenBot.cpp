@@ -553,7 +553,7 @@ namespace Go
 			}
 			else
 			{
-				Zen::BestThinkInfo infoList[5];
+				Zen::ThinkInfo infoList[5];
 				if ( mCore->getBestThinkMove(infoList, ARRAY_SIZE(infoList)) )
 				{
 					std::sort(infoList, infoList + ARRAY_SIZE(infoList),
@@ -564,9 +564,8 @@ namespace Go
 					);
 
 					auto& bestInfo = infoList[0];
-					int vertex = bestInfo.y * 19 + bestInfo.x;
 					GameCommand com;
-					com.setParam(ZenGameParam::eBestMoveVertex, vertex);
+					com.setParam(ZenGameParam::eBestMoveVertex, &bestInfo);
 					listener.notifyCommand(com);
 				}
 			}

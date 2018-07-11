@@ -193,7 +193,7 @@
     <ClCompile Include="Math\Math2D.cpp" />
     <ClCompile Include="Math\Matrix3.cpp" />
     <ClCompile Include="Math\Matrix4.cpp" />
-    <ClCompile Include="Math\PrimitiveTest2D.cpp" />
+    <ClCompile Include="Math\PrimitiveTest.cpp" />
     <ClCompile Include="Math\Quaternion.cpp" />
     <ClCompile Include="Math\Transform.cpp" />
     <ClCompile Include="Misc\Guid.cpp" />
@@ -206,6 +206,7 @@
     <ClCompile Include="Platform\Windows\WindowsProcess.cpp" />
     <ClCompile Include="ProfileSystem.cpp" />
     <ClCompile Include="RHI\D3D11Command.cpp" />
+    <ClCompile Include="RHI\D3D11Common.cpp" />
     <ClCompile Include="RHI\DrawUtility.cpp" />
     <ClCompile Include="RHI\Font.cpp" />
     <ClCompile Include="RHI\OpenGLCommon.cpp" />
@@ -280,6 +281,7 @@
     <ClInclude Include="DataStructure\HashMap.h" />
     <ClInclude Include="DataStructure\Heap.h" />
     <ClInclude Include="DataStructure\IntrList.h" />
+    <ClInclude Include="DataStructure\KDTree.h" />
     <ClInclude Include="DataStructure\RedBlackTree.h" />
     <ClInclude Include="DataStructure\SList.h" />
     <ClInclude Include="DataStructure\Grid2D.h" />
@@ -289,7 +291,8 @@
     <ClInclude Include="DataStructure\VertorSet.h" />
     <ClInclude Include="Delegate.h" />
     <ClInclude Include="Hardware\GPUDeviceQuery.h" />
-    <ClInclude Include="Math\PrimitiveTest2D.h" />
+    <ClInclude Include="Math\GeometryPrimitive.h" />
+    <ClInclude Include="Math\PrimitiveTest.h" />
     <ClInclude Include="Math\SIMD.h" />
     <ClInclude Include="Misc\Guid.h" />
     <ClInclude Include="Misc\ImageMergeHelper.h" />
@@ -356,6 +359,7 @@
     <ClInclude Include="ReflectionCollect.h" />
     <ClInclude Include="RHI\BaseType.h" />
     <ClInclude Include="RHI\D3D11Command.h" />
+    <ClInclude Include="RHI\D3D11Common.h" />
     <ClInclude Include="RHI\DrawUtility.h" />
     <ClInclude Include="RHI\Font.h" />
     <ClInclude Include="RHI\FrameGraph.h" />

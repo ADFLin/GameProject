@@ -104,9 +104,9 @@ namespace RenderGL
 		return CreateOpenGLObjectT< OpenGLTexture2D >(format, w, h, numMipLevel, data, dataAlign);
 	}
 
-	RHITexture3D* OpenGLSystem::RHICreateTexture3D(Texture::Format format, int sizeX, int sizeY, int sizeZ, uint32 createFlags )
+	RHITexture3D* OpenGLSystem::RHICreateTexture3D(Texture::Format format, int sizeX, int sizeY, int sizeZ, uint32 createFlags, void* data)
 	{
-		return CreateOpenGLObjectT< OpenGLTexture3D >(format, sizeX, sizeY, sizeZ);
+		return CreateOpenGLObjectT< OpenGLTexture3D >(format, sizeX, sizeY, sizeZ, data);
 	}
 
 	RHITextureDepth* OpenGLSystem::RHICreateTextureDepth(Texture::DepthFormat format, int w, int h)

@@ -113,7 +113,7 @@ namespace Phy2D
 
 		struct State
 		{
-			XForm xform;
+			XForm2D xform;
 			Vector2 linearVel;
 			float angularVel;
 		};

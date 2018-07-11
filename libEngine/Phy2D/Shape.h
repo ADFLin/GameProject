@@ -27,7 +27,7 @@ namespace Phy2D
 			NumShape ,
 		};
 		virtual Type  getType() const = 0;
-		virtual void  calcAABB( XForm const& xform , AABB& aabb ) = 0;
+		virtual void  calcAABB( XForm2D const& xform , AABB& aabb ) = 0;
 		virtual void  calcAABB( AABB& aabb ) = 0;
 		virtual void  calcMass( MassInfo& info ) = 0;
 		virtual Vector2 getSupport(Vector2 const& dir ) = 0;
@@ -38,7 +38,7 @@ namespace Phy2D
 	{
 	public:
 		virtual Type  getType() const { return eBox; }
-		virtual void  calcAABB( XForm const& xform , AABB& aabb );
+		virtual void  calcAABB( XForm2D const& xform , AABB& aabb );
 		virtual void  calcAABB( AABB& aabb );
 		virtual void  calcMass( MassInfo& info );
 		virtual Vector2 getSupport(Vector2 const& dir );
@@ -50,7 +50,7 @@ namespace Phy2D
 	{
 	public:
 		virtual Type  getType() const { return eCircle; }
-		virtual void  calcAABB( XForm const& xform , AABB& aabb );
+		virtual void  calcAABB( XForm2D const& xform , AABB& aabb );
 		virtual void  calcAABB( AABB& aabb );
 		virtual void calcMass( MassInfo& info );
 		virtual Vector2 getSupport(Vector2 const& dir);
@@ -67,7 +67,7 @@ namespace Phy2D
 	{
 	public:
 		virtual Type getType() const { return ePolygon; }
-		virtual void calcAABB( XForm const& xform , AABB& aabb );
+		virtual void calcAABB( XForm2D const& xform , AABB& aabb );
 		virtual void calcAABB( AABB& aabb );
 		virtual void calcMass( MassInfo& info );
 		virtual Vector2 getSupport(Vector2 const& dir );
@@ -87,7 +87,7 @@ namespace Phy2D
 	public:
 		virtual Type getType() const { return eCapsule; }
 		virtual bool isConvex() const {  return true;  }
-		virtual void calcAABB(XForm const& xform , AABB& aabb);
+		virtual void calcAABB(XForm2D const& xform , AABB& aabb);
 		virtual void calcAABB(AABB& aabb);
 		virtual void calcMass(MassInfo& info);
 		virtual Vector2 getSupport(Vector2 const& dir);

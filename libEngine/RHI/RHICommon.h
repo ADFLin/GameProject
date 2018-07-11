@@ -187,6 +187,8 @@ namespace RenderGL
 		virtual bool update(int offset, int length, Texture::Format format, void* data, int level = 0) = 0;
 
 		int  getSize() const { return mSize; }
+
+		virtual RHITexture1D* getTexture1D() override { return this; }
 	protected:
 		int mSize;
 	};
@@ -200,6 +202,8 @@ namespace RenderGL
 
 		int  getSizeX() const { return mSizeX; }
 		int  getSizeY() const { return mSizeY; }
+
+		virtual RHITexture2D* getTexture2D() override { return this; }
 	protected:
 
 		int mSizeX;
@@ -209,10 +213,12 @@ namespace RenderGL
 	class RHITexture3D : public RHITextureBase
 	{
 	public:
-		virtual bool create(Texture::Format format, int sizeX, int sizeY, int sizeZ) = 0;
 		int  getSizeX() { return mSizeX; }
 		int  getSizeY() { return mSizeY; }
 		int  getSizeZ() { return mSizeZ; }
+
+
+		virtual RHITexture3D* getTexture3D() override { return this; }
 
 	protected:
 		int mSizeX;
@@ -226,6 +232,8 @@ namespace RenderGL
 	public:
 		virtual bool loadFile(char const* path[]) = 0;
 		virtual bool create(Texture::Format format, int width, int height, void* data = nullptr) = 0;
+
+		virtual RHITextureCube* getTextureCube() override { return this; }
 	};
 
 	class RHIFrameBuffer : public RHIResource
@@ -509,8 +517,9 @@ namespace RenderGL
 			ColorWriteMask   writeMask;
 			Blend::Operation op;
 			Blend::Factor    srcColor;
-			Blend::Factor    srcAlpha;
 			Blend::Factor    destColor;
+			Blend::Operation opAlpha;
+			Blend::Factor    srcAlpha;
 			Blend::Factor    destAlpha;
 		};
 		TargetValue    targetValues[NumBlendStateTarget];

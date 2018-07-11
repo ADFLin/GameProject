@@ -12,7 +12,7 @@ namespace StickMove
 {
 	typedef Vector2 Vector2;
 
-	using namespace Math2D;
+	using namespace Math;
 
 	enum
 	{

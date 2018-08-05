@@ -542,7 +542,7 @@ namespace SR
 		if( !BaseClass::onInit() )
 			return false;
 
-		if( !mColorBuffer.create(::Global::getDrawEngine()->getScreenSize()) )
+		if( !mColorBuffer.create(::Global::GetDrawEngine()->getScreenSize()) )
 			return false;
 
 		if( !mRenderer.init() )
@@ -574,7 +574,7 @@ namespace SR
 
 	void TestStage::renderTest1()
 	{
-		Graphics2D& g = Global::getGraphics2D();
+		Graphics2D& g = Global::GetGraphics2D();
 
 		RenderTarget renderTarget;
 		renderTarget.colorBuffer = &mColorBuffer;
@@ -599,11 +599,11 @@ namespace SR
 			DrawTriangle(mColorBuffer, Vector2(300, 400), Vector2(400, 500), Vector2(600, 300), vd0, vd1, vd2);
 		}
 		using namespace RenderGL;
-		Vec2i screenSize = ::Global::getDrawEngine()->getScreenSize();
+		Vec2i screenSize = ::Global::GetDrawEngine()->getScreenSize();
 		float aspect = float(screenSize.x) / screenSize.y;
 		mRenderer.worldToClip = Matrix4::Rotate(Vector3(0, 1, 0), angle) * LookAtMatrix(Vector3(0, 0, 20), Vector3(0, 0, -1), Vector3(0, 1, 0)) * PerspectiveMatrix(Math::Deg2Rad(90), aspect, 0.01, 500);
 		mRenderer.viewportOrg = Vector2(0, 0);
-		mRenderer.viewportSize = Vector2(::Global::getDrawEngine()->getScreenSize());
+		mRenderer.viewportSize = Vector2(::Global::GetDrawEngine()->getScreenSize());
 
 		mRenderer.drawTriangle(Vector3(-10, -10, 0), LinearColor(1, 0, 0), Vector2(0, 0),
 							   Vector3(10, -10, 0), LinearColor(1, 0, 0), Vector2(1, 0),

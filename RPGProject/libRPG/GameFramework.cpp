@@ -64,7 +64,7 @@ bool GameFramework::init( SSystemInitParams& params )
 
 	gEnv->framework = this;
 
-	if ( !ConsoleSystem::Get().init() )
+	if ( !ConsoleSystem::Get().initialize() )
 		return false;
 	if ( !PhysicsSystem::Get().initSystem() )
 		return false;

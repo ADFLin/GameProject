@@ -7,12 +7,13 @@
 #include "Thread.h"
 #include "Platform/Windows/WindowsProcess.h"
 
+#include "Template/ArrayView.h"
 #define LEELA_NET_DIR "networks/"
 
 namespace Go
 {
 	int constexpr LeelaGoSize = 19;
-	extern char const* ELFWeight;
+	extern TArrayView< char const* const> ELFWeights;
 
 	namespace LeelaGameParam
 	{
@@ -229,6 +230,8 @@ namespace Go
 		void startPonder(int color);
 		void stopPonder();
 
+		std::string mUseWeightName;
+
 	};
 
 
@@ -294,8 +297,14 @@ namespace Go
 	class LeelaBot : public TGTPLikeBot< LeelaAppRun >
 	{
 	public:
+		enum MetaId
+		{
+			eWeightName ,
+		};
+	
 		virtual bool initilize(void* settingData) override;
 		virtual bool isGPUBased() const override { return true; }
+		virtual bool getMetaData(int id, uint8* dataBuffer, int size);
 
 	};
 

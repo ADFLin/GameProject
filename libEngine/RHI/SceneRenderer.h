@@ -88,7 +88,7 @@ namespace RenderGL
 	class GBufferShaderParameters
 	{
 	public:
-		void bindParameters(ShaderProgram& program, bool bUseDepth = false);
+		void bindParameters(ShaderParameterMap& parameterMap, bool bUseDepth = false);
 
 		void setParameters(ShaderProgram& program, GBufferParamData& GBufferData);
 		void setParameters(ShaderProgram& program, SceneRenderTargets& sceneRenderTargets);
@@ -386,9 +386,12 @@ namespace RenderGL
 	{
 
 		bool init(int storageSize, IntVector2 const& screenSize);
+		void releaseRHI();
+
 		RHITexture2DRef colorStorageTexture;
 		RHITexture2DRef nodeAndDepthStorageTexture;
 		RHITexture2DRef nodeHeadTexture;
+		RHIAtomicCounterBufferRef storageUsageCounter;
 	};
 
 
@@ -432,7 +435,7 @@ namespace RenderGL
 
 		OITShaderData mShaderData;
 
-		AtomicCounterBuffer mStorageUsageCounter;
+		RHIAtomicCounterBufferRef mStorageUsageCounter;
 		Mesh mScreenMesh;
  
 		OpenGLFrameBuffer mFrameBuffer;

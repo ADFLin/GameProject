@@ -1,4 +1,4 @@
-#include "ShaderCore.h"
+﻿#include "ShaderCore.h"
 
 #include "FileSystem.h"
 
@@ -115,35 +115,109 @@ namespace RenderGL
 	
 	bool ShaderProgram::updateShader(bool bForce)
 	{
-		if( mNeedLink || bForce )
+		if( !mNeedLink && !bForce )
+			return true;
+
+		GLchar buffer[4096 * 32];
+
+		glLinkProgram(mHandle);
+
+		GLint value;
+		glGetProgramiv(mHandle, GL_LINK_STATUS, &value);
+		if( value != GL_TRUE )
 		{
-			GLchar buffer[4096 * 32];
-
-			glLinkProgram(mHandle);
-
-			GLint value;
-			glGetProgramiv(mHandle, GL_LINK_STATUS, &value);
-			if( value != GL_TRUE )
-			{
-				GLsizei size;
-				glGetProgramInfoLog(mHandle, ARRAY_SIZE(buffer), &size, buffer);
-				LogMsg("Can't Link Program : %s", buffer);
-				return false;
-			}
-
-			glValidateProgram(mHandle);
-			glGetProgramiv(mHandle, GL_VALIDATE_STATUS, &value);
-			if( value != GL_TRUE )
-			{
-				GLsizei size;
-				glGetProgramInfoLog(mHandle, ARRAY_SIZE(buffer), &size, buffer);
-				LogMsg("Can't Link Program : %s", buffer);
-			}
-			mNeedLink = false;
+			GLsizei size;
+			glGetProgramInfoLog(mHandle, ARRAY_SIZE(buffer), &size, buffer);
+			LogMsg("Can't Link Program : %s", buffer);
+			return false;
 		}
 
-		bindParameters();
+		glValidateProgram(mHandle);
+		glGetProgramiv(mHandle, GL_VALIDATE_STATUS, &value);
+		if( value != GL_TRUE )
+		{
+			GLsizei size;
+			glGetProgramInfoLog(mHandle, ARRAY_SIZE(buffer), &size, buffer);
+			LogMsg("Can't Link Program : %s", buffer);
+		}
+		mNeedLink = false;
+
+		ShaderParameterMap parameterMap;
+		generateParameterMap(parameterMap);
+		bindParameters(parameterMap);
+
 		return true;
+	}
+
+	void ShaderProgram::generateParameterMap(ShaderParameterMap& parameterMap)
+	{
+		auto GetBlockParameterFun = [&](GLenum BlockTypeInterface)
+		{
+			GLint numBlocks = 0;
+			glGetProgramInterfaceiv(mHandle, BlockTypeInterface, GL_ACTIVE_RESOURCES, &numBlocks);
+			for( int idxBlock = 0; idxBlock < numBlocks; ++idxBlock )
+			{
+				GLint values[1] = { 0 };
+				const GLenum blockProperties[] = { GL_NAME_LENGTH };
+				glGetProgramResourceiv(mHandle, BlockTypeInterface, idxBlock, ARRAY_SIZE(blockProperties), blockProperties, ARRAY_SIZE(blockProperties), NULL, values);
+
+				char name[1024];
+				assert(values[0] < ARRAY_SIZE(name));
+				glGetProgramResourceName(mHandle, BlockTypeInterface, idxBlock, ARRAY_SIZE(name), NULL, &name[0]);
+				parameterMap.addParameter(name, idxBlock);
+			}
+		};
+
+		GetBlockParameterFun(GL_UNIFORM_BLOCK);
+		GetBlockParameterFun(GL_SHADER_STORAGE_BLOCK);
+
+#if 0
+
+		GLint numParam = 0;
+		glGetProgramiv(mHandle, GL_ACTIVE_UNIFORMS, &numParam);
+		for( int i = 0; i < numParam; ++i )
+		{
+			int name_len = -1, num = -1;
+			GLenum type = GL_ZERO;
+			char name[100];
+			glGetActiveUniform(mHandle, GLuint(i), sizeof(name) - 1,
+							   &name_len, &num, &type, name);
+
+			GLuint location = glGetUniformLocation(mHandle, name);
+
+			if( location == -1 )
+				continue;
+
+			parameterMap.addParameter(name, location);
+
+		}
+#else
+
+		GLint numParam = 0;
+		glGetProgramInterfaceiv(mHandle, GL_UNIFORM, GL_ACTIVE_RESOURCES, &numParam);
+		for( int paramIndex = 0; paramIndex < numParam; ++paramIndex )
+		{
+			GLint values[4] = { 0,0 ,0 ,0 };
+			const GLenum properties[] = { GL_NAME_LENGTH , GL_LOCATION , GL_BLOCK_INDEX , GL_OFFSET };
+			glGetProgramResourceiv(mHandle, GL_UNIFORM, paramIndex, ARRAY_SIZE(properties), properties, ARRAY_SIZE(properties), NULL, values);
+
+			char name[1024];
+			assert(values[0] < ARRAY_SIZE(name));
+			glGetProgramResourceName(mHandle, GL_UNIFORM, paramIndex, ARRAY_SIZE(name), NULL, &name[0]);
+
+			if( values[1] == -1 )
+			{
+				if( values[3] != 0 )
+					continue;
+
+				parameterMap.addParameter(name, values[2]);
+			}
+			else
+			{
+				parameterMap.addParameter(name, values[1]);
+			}
+		}
+#endif
 	}
 
 	void ShaderProgram::bind()
@@ -161,36 +235,47 @@ namespace RenderGL
 		glUseProgram(0);
 	}
 
-	void ShaderProgram::setBuffer(ShaderBufferParameter const& param, RHIUniformBuffer& buffer)
+
+	void ShaderProgram::setBuffer(ShaderParameter const& param, RHIUniformBuffer& buffer)
 	{
-		glUniformBlockBinding(mHandle, param.mIndex, mNextUniformSlot);
+		glUniformBlockBinding(mHandle, param.mLoc, mNextUniformSlot);
 		glBindBufferBase(GL_UNIFORM_BUFFER, mNextUniformSlot, OpenGLCast::GetHandle(buffer));
 		++mNextUniformSlot;
 	}
 
-	void ShaderProgram::setBuffer(ShaderBufferParameter const& param, RHIStorageBuffer& buffer)
+	void ShaderProgram::setBuffer(ShaderParameter const& param, RHIStorageBuffer& buffer)
 	{
-		glShaderStorageBlockBinding(mHandle, param.mIndex, mNextStorageSlot);
+		glShaderStorageBlockBinding(mHandle, param.mLoc, mNextStorageSlot);
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, mNextStorageSlot, OpenGLCast::GetHandle(buffer));
 		++mNextStorageSlot;
 	}
 
-	bool ShaderParameter::bind(ShaderProgram& program, char const* name)
+	void ShaderProgram::setBuffer(ShaderParameter const& param, RHIAtomicCounterBuffer& buffer)
 	{
-		mLoc = program.getParamLoc(name);
-		return isBound();
+		glBindBufferBase(GL_ATOMIC_COUNTER_BUFFER, param.mLoc, OpenGLCast::GetHandle(buffer));
 	}
 
-	bool ShaderBufferParameter::bindUniform(ShaderProgram& program, char const* name)
+	void ShaderProgram::setBuffer(StructuredBlockInfo const& param, RHIUniformBuffer& buffer)
 	{
-		mIndex = glGetUniformBlockIndex(program.mHandle, name);
-		return isBound();
+		glUniformBlockBinding(mHandle, param.index, mNextUniformSlot);
+		glBindBufferBase(GL_UNIFORM_BUFFER, mNextUniformSlot, OpenGLCast::GetHandle(buffer));
+		++mNextUniformSlot;
 	}
 
-	bool ShaderBufferParameter::bindStorage(ShaderProgram& program, char const* name)
+	void ShaderProgram::setBuffer(StructuredBlockInfo const& param, RHIStorageBuffer& buffer)
 	{
-		mIndex = glGetProgramResourceIndex(program.mHandle, GL_SHADER_STORAGE_BLOCK , name);
-		return isBound();
+		glShaderStorageBlockBinding(mHandle, param.index, mNextStorageSlot);
+		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, mNextStorageSlot, OpenGLCast::GetHandle(buffer));
+		++mNextStorageSlot;
+	}
+
+	void ShaderProgram::setBuffer(char const* name, RHIAtomicCounterBuffer& buffer)
+	{
+		int loc = getParamLoc(name);
+		if( loc != -1 )
+		{
+			glBindBufferBase(GL_ATOMIC_COUNTER_BUFFER, loc, OpenGLCast::GetHandle(buffer));
+		}
 	}
 
 }//namespace RenderGL

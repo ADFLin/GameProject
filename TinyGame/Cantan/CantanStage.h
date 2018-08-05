@@ -38,7 +38,7 @@ namespace Cantan
 
 		void onRender( float dFrame )
 		{
-			Graphics2D& g = Global::getGraphics2D();
+			Graphics2D& g = Global::GetGraphics2D();
 
 			bool drawCoord = false;
 			g.setTextColor(Color3ub(0,0,255));
@@ -82,7 +82,7 @@ namespace Cantan
 		Vector2 convertToScreenPos( Vec2i const& cPos )
 		{
 #define SQRT_3 1.73205080756887729
-			return Vector2( ::Global::getDrawEngine()->getScreenSize() / 2 ) + 40 * Vector2( 0.5 * SQRT_3 * cPos.x , cPos.y - 0.5 * cPos.x );
+			return Vector2( ::Global::GetDrawEngine()->getScreenSize() / 2 ) + 40 * Vector2( 0.5 * SQRT_3 * cPos.x , cPos.y - 0.5 * cPos.x );
 		}
 
 		void restart()

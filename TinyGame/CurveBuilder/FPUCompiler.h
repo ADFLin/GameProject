@@ -17,6 +17,7 @@ public:
 	double eval(double p0) const;
 	double eval(double p0, double p1) const;
 	double eval(double p0, double p1, double p2) const;
+
 	void   printCode();
 	void   clearCode();
 	int    getCodeLength() const { return mCodeEnd - mCode; }

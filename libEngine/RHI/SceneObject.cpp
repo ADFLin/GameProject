@@ -36,7 +36,7 @@ namespace RenderGL
 
 		MeshBatch meshBatch;
 		meshBatch.primitiveType = mesh->mType;
-		meshBatch.vertexDecl = &mesh->mDecl;
+		meshBatch.inputLayout = mesh->mInputLayout;
 		meshBatch.vertexBuffer = mesh->mVertexBuffer;
 		meshBatch.material = material.get();
 
@@ -66,7 +66,7 @@ namespace RenderGL
 			{
 				MeshBatch meshBatch;
 				meshBatch.primitiveType = mesh->mType;
-				meshBatch.vertexDecl = &mesh->mDecl;
+				meshBatch.inputLayout = mesh->mInputLayout;
 				meshBatch.vertexBuffer = mesh->mVertexBuffer;
 				meshBatch.material = mesh->getMaterial(i);
 
@@ -84,7 +84,7 @@ namespace RenderGL
 		{
 			MeshBatch meshBatch;
 			meshBatch.primitiveType = mesh->mType;
-			meshBatch.vertexDecl = &mesh->mDecl;
+			meshBatch.inputLayout = mesh->mInputLayout;
 			meshBatch.vertexBuffer = mesh->mVertexBuffer;
 			meshBatch.material = mesh->getMaterial(0);
 

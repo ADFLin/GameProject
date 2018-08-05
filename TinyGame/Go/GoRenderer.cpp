@@ -64,7 +64,7 @@ namespace Go
 		using namespace RenderGL;
 		using namespace Go;
 
-		GLGraphics2D& g = ::Global::getGLGraphics2D();
+		GLGraphics2D& g = ::Global::GetGLGraphics2D();
 
 		{
 			GPU_PROFILE("Draw Stone");

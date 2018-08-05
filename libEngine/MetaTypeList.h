@@ -94,5 +94,8 @@ namespace Meta
 
 	template< class TList , class T >
 	struct ListFind : detial::ListFindImpl< TList , T , 0 >{};
+
+
+
 }
 #endif // MetaTypeList_h__

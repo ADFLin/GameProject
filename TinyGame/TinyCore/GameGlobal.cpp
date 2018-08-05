@@ -7,6 +7,7 @@
 #include "GameModuleManager.h"
 #include "GameGUISystem.h"
 #include "UserProfile.h"
+#include "Asset.h"
 
 #include "Thread.h"
 
@@ -79,15 +80,15 @@ PropertyKey& Global::GameConfig()
 	return settingKey;
 }
 
-DrawEngine* Global::getDrawEngine()
+DrawEngine* Global::GetDrawEngine()
 {
 	static DrawEngine drawEngine;
 	return &drawEngine;
 }
 
-Graphics2D& Global::getGraphics2D()
+Graphics2D& Global::GetGraphics2D()
 {
-	return getDrawEngine()->getScreenGraphics();
+	return GetDrawEngine()->getScreenGraphics();
 }
 
 GameModuleManager& Global::GameManager()
@@ -99,6 +100,12 @@ GameModuleManager& Global::GameManager()
 IGameInstance* Global::GameInstacne()
 {
 	return nullptr;
+}
+
+AssetManager& Global::GetAssetManager()
+{
+	static AssetManager manager;
+	return manager;
 }
 
 IGameNetInterface& Global::GameNet()
@@ -119,17 +126,17 @@ GUISystem& Global::GUI()
 	return system;
 }
 
-GLGraphics2D& Global::getGLGraphics2D()
+GLGraphics2D& Global::GetGLGraphics2D()
 {
-	return getDrawEngine()->getGLGraphics();
+	return GetDrawEngine()->getGLGraphics();
 }
 
-IGraphics2D& Global::getIGraphics2D()
+IGraphics2D& Global::GetIGraphics2D()
 {
-	return getDrawEngine()->getIGraphics();
+	return GetDrawEngine()->getIGraphics();
 }
 
-UserProfile& Global::getUserProfile()
+UserProfile& Global::GetUserProfile()
 {
 	static UserProfile profile;
 	return profile;

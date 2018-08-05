@@ -99,8 +99,14 @@ namespace Go
 		virtual bool thinkNextMove(int color) = 0;
 		virtual bool isThinking() = 0;
 		virtual void update(IGameCommandListener& listener) = 0;
-		virtual bool getMetaData(int id , int dataBuffer[] , int size) { return false; }
+		virtual bool getMetaData(int id , uint8* dataBuffer , int size) { return false; }
 		virtual bool isGPUBased() const { return false; }
+
+		template< class T >
+		bool getMetaDataT(int id, T& data)
+		{
+			return getMetaData(id, (uint8*)&data, sizeof(T));
+		}
 	};
 
 

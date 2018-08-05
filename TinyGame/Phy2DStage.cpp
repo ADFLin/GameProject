@@ -27,14 +27,14 @@ namespace Phy2D
 		if( !BaseClass::onInit() )
 			return false;
 		::Global::GUI().cleanupWidget();
-		if( !::Global::getDrawEngine()->startOpenGL() )
+		if( !::Global::GetDrawEngine()->startOpenGL() )
 			return false;
 		return true;
 	}
 
 	void Phy2DStageBase::onEnd()
 	{
-		::Global::getDrawEngine()->stopOpenGL();
+		::Global::GetDrawEngine()->stopOpenGL();
 		BaseClass::onEnd();
 	}
 
@@ -108,7 +108,7 @@ namespace Phy2D
 
 	void CollideTestStage::onRender(float dFrame)
 	{
-		GLGraphics2D& g = Global::getGLGraphics2D();
+		GLGraphics2D& g = Global::GetGLGraphics2D();
 
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		g.beginRender();
@@ -309,7 +309,7 @@ namespace Phy2D
 
 	void WorldTestStage::onRender(float dFrame)
 	{
-		GLGraphics2D& g = Global::getGLGraphics2D();
+		GLGraphics2D& g = Global::GetGLGraphics2D();
 
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		g.beginRender();

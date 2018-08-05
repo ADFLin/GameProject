@@ -554,7 +554,6 @@ FStringParse::TokenType FStringParse::StringToken(char const*& inoutStr, char co
 
 bool FStringParse::StringToken(char const*& inoutStr, char const* dropDelims, StringView& outToken)
 {
-	char cur = *(inoutStr++);
 	inoutStr = SkipChar(inoutStr, dropDelims);
 	if( *inoutStr == 0 )
 	{

@@ -53,11 +53,11 @@ namespace Lighting2D
 	class LightingProgram : public ShaderProgram
 	{
 	public:
-		void bindParameters()
+		void bindParameters(ShaderParameterMap& parameterMap)
 		{
-			mParamLightLocation.bind(*this, SHADER_PARAM(LightLocation));
-			mParamLightColor.bind(*this, SHADER_PARAM(LightColor));
-			mParamLightAttenuation.bind(*this, SHADER_PARAM(LightAttenuation));
+			parameterMap.bind(mParamLightLocation, SHADER_PARAM(LightLocation));
+			parameterMap.bind(mParamLightColor, SHADER_PARAM(LightColor));
+			parameterMap.bind(mParamLightAttenuation, SHADER_PARAM(LightAttenuation));
 		}
 
 		void setParameters(Vector2 const& lightPos , Color const& lightColor )
@@ -75,9 +75,9 @@ namespace Lighting2D
 	class LightingShadowProgram : public ShaderProgram
 	{
 	public:
-		void bindParameters()
+		void bindParameters(ShaderParameterMap& parameterMap)
 		{
-			mParamLightLocation.bind(*this, SHADER_PARAM(LightLocation));
+			parameterMap.bind(mParamLightLocation, SHADER_PARAM(LightLocation));
 		}
 
 		void setParameters(Vector2 const& lightPos)

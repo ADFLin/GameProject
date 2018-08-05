@@ -152,7 +152,7 @@ namespace RenderGL
 			mUniformBuffer->unlock();
 		}
 
-		program.setBufferT<ViewBufferData>(*mUniformBuffer);
+		program.setStructuredBufferT<ViewBufferData>(*mUniformBuffer);
 
 #else
 		program.setParam(SHADER_PARAM(View.worldPos), worldPos);

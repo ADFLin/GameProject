@@ -190,6 +190,14 @@ namespace RenderGL
 			}
 		}
 
+		void unregisterShaderAssets(AssetManager& assetManager)
+		{
+			for( auto pair : mShaderCompileMap )
+			{
+				assetManager.unregisterAsset(pair.second);
+			}
+		}
+
 		bool loadInternal(ShaderProgram& shaderProgram, char const* fileName, uint8 shaderMask, char const* entryNames[], char const* def, char const* additionalCode, bool bSingle);
 		bool loadInternal(ShaderProgram& shaderProgram, char const* fileName, ShaderEntryInfo const entries[], char const* def, char const* additionalCode, bool bSingle);
 		bool loadInternal(ShaderProgram& shaderProgram, char const* fileName, ShaderEntryInfo const entries[], ShaderCompileOption const& option, char const* additionalCode, bool bSingle);

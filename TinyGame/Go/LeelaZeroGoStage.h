@@ -84,7 +84,18 @@ namespace Go
 		ControllerType type;
 		std::unique_ptr< IBotInterface > bot;
 		int winCount;
-
+		FixString< 128 > getName() const
+		{
+			FixString< 128 > result = GetControllerName(type);
+			if( type == ControllerType::eLeelaZero )
+			{
+				std::string weightName;
+				bot->getMetaDataT(LeelaBot::eWeightName, weightName);
+				result += " ";
+				result += weightName.substr(0, 5);
+			}
+			return result;
+		}
 		bool isBot() const { return type != ControllerType::ePlayer; }
 		bool initialize(ControllerType inType , void* botSetting = nullptr);
 	};
@@ -111,7 +122,7 @@ namespace Go
 
 		virtual void onRender() override
 		{
-			IGraphics2D& g = ::Global::getIGraphics2D();
+			IGraphics2D& g = ::Global::GetIGraphics2D();
 
 			Vec2i pos = getWorldPos();
 			Vec2i size;
@@ -306,7 +317,7 @@ namespace Go
 		virtual void onRender()
 		{
 			BaseClass::onRender();
-			GLGraphics2D& g = ::Global::getGLGraphics2D();
+			GLGraphics2D& g = ::Global::GetGLGraphics2D();
 			{
 				TGuardValue<bool> gurdValue(renderer->bDrawCoord , false);
 				renderer->drawBorad(g, renderContext);

@@ -19,10 +19,10 @@ namespace TripleTown
 		{ 
 			::Global::GUI().cleanupWidget();
 
-			if ( !::Global::getDrawEngine()->startOpenGL() )
+			if ( !::Global::GetDrawEngine()->startOpenGL() )
 				return false;
 
-			GameWindow& window = ::Global::getDrawEngine()->getWindow();
+			GameWindow& window = ::Global::GetDrawEngine()->getWindow();
 
 			if ( !mScene.init() )
 				return false;
@@ -35,7 +35,7 @@ namespace TripleTown
 		}
 		virtual void onEnd()
 		{
-			::Global::getDrawEngine()->stopOpenGL();
+			::Global::GetDrawEngine()->stopOpenGL();
 		}
 		virtual void onRestart( uint64 seed , bool beInit )
 		{
@@ -47,7 +47,7 @@ namespace TripleTown
 		}
 		virtual void onRender( float dFrame )
 		{
-			GameWindow& window = ::Global::getDrawEngine()->getWindow();
+			GameWindow& window = ::Global::GetDrawEngine()->getWindow();
 			mScene.render();
 		}
 

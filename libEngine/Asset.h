@@ -116,9 +116,9 @@ class AssetManager
 {
 public:
 	bool init();
-	void tick();
+	void cleanup();
+	void tick(long time);
 	bool registerAsset(AssetBase* asset);
-
 	void unregisterAsset(AssetBase* asset);
 
 	

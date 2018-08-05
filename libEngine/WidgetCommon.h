@@ -221,6 +221,12 @@ public:
 		_this()->onModifyValue();
 	}
 
+	void appendValue(char const* str)
+	{
+		mValue.append(str);
+		mKeyInPos = (int)mValue.size();
+		_this()->onModifyValue();
+	}
 	///////// override function ////////
 public:
 	void onPressEnter(){}
@@ -228,14 +234,16 @@ public:
 	void onModifyValue(){}
 	/////////////////////////////////////
 
+public:
+	//virtual 
+	bool onKeyMsg(unsigned key, bool isDown);
+	//virtual 
+	bool onCharMsg(unsigned code);
+
 protected:
 
 	bool isDoubleChar( int pos );
 
-	//virtual 
-	bool onKeyMsg( unsigned key , bool isDown );
-	//virtual 
-	bool onCharMsg( unsigned code );
 
 	int mKeyInPos;
 	std::string mValue;

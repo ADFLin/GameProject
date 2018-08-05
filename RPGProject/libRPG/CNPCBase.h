@@ -7,8 +7,8 @@
 
 #include "ConsoleSystem.h"
 
-extern ConVar< float > npc_dead_body_save_time;
-extern ConVar< float > npc_chest_vanish_time;
+extern TConsoleVariable< float > npc_dead_body_save_time;
+extern TConsoleVariable< float > npc_chest_vanish_time;
 
 class TNavigator;
 

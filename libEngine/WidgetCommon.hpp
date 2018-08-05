@@ -280,8 +280,8 @@ bool WTextCtrlT<Impl, CoreImpl>::onKeyMsg( unsigned key , bool isDown )
 				mKeyInPos = 0;
 			break;
 		case Keyboard::eRETURN:
+			getManager()->focusWidget(NULL);
 			_this()->onPressEnter();
-			getManager()->focusWidget( NULL );
 			break;
 
 		case Keyboard::eV:

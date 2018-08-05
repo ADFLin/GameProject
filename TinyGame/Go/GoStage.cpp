@@ -42,7 +42,7 @@ namespace Go
 
 	void Stage::onRender( float dFrame )
 	{
-		Graphics2D& g = ::Global::getGraphics2D();
+		Graphics2D& g = ::Global::GetGraphics2D();
 
 		Board const& board = mGame.getBoard();
 

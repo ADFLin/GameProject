@@ -111,13 +111,13 @@ namespace Tetris
 		Vec2i offset( -( UI_ButtonSize.x + 4 ) , 0 );
 
 		GPanel* panel = new GPanel( UI_ANY , Vec2i(0,0) , 
-			Vec2i( Global::getDrawEngine()->getScreenWidth() , UI_ButtonSize.y + 10 ) , NULL );
+			Vec2i( Global::GetDrawEngine()->getScreenWidth() , UI_ButtonSize.y + 10 ) , NULL );
 
 		GButton* button;
 		panel->setRenderType( GPanel::eRectType );
 		::Global::GUI().addWidget( panel );
 
-		Vec2i pos( Global::getDrawEngine()->getScreenWidth() - ( UI_ButtonSize.x + 10 ) , 5 );
+		Vec2i pos( Global::GetDrawEngine()->getScreenWidth() - ( UI_ButtonSize.x + 10 ) , 5 );
 
 		button = new GButton( ( flag & LevelMode::eNetGame ) ? UI_MAIN_MENU : UI_GAME_MENU , pos , UI_ButtonSize  , panel );
 		button->setTitle( LOCTEXT("Exit Game") );
@@ -264,8 +264,8 @@ namespace Tetris
 
 	void LevelStage::onRender( float dFrame )
 	{
-		DrawEngine* de = Global::getDrawEngine();
-		Graphics2D& g = Global::getGraphics2D();
+		DrawEngine* de = Global::GetDrawEngine();
+		Graphics2D& g = Global::GetGraphics2D();
 
 		mWorld->render( g );
 
@@ -466,8 +466,8 @@ namespace Tetris
 
 	void MenuStage::onRender( float dFrame )
 	{
-		DrawEngine* de = Global::getDrawEngine();
-		Graphics2D& g = Global::getGraphics2D();
+		DrawEngine* de = Global::GetDrawEngine();
+		Graphics2D& g = Global::GetGraphics2D();
 
 		for ( int j = 0 ; j < 10 ; ++j )
 		{
@@ -612,7 +612,7 @@ namespace Tetris
 	void MenuStage::doChangeGroup( StageGroupID group )
 	{
 		Vec2i btnSize( 120 , 25 );
-		int xUi = ( Global::getDrawEngine()->getScreenWidth() - btnSize.x ) / 2 ;
+		int xUi = ( Global::GetDrawEngine()->getScreenWidth() - btnSize.x ) / 2 ;
 		int yUi = 250;
 		int offset = 30;
 
@@ -681,7 +681,7 @@ namespace Tetris
 
 	void AboutGameStage::onRender( float dFrame )
 	{
-		//RenderUtility::setGraphicsBursh( de->getGraphics2D() , Color::eBlue );
+		//RenderUtility::setGraphicsBursh( de->GetGraphics2D() , Color::eBlue );
 		//renderVortex();
 
 		for( int i = 0 ; i < TotalSpriteNum ; ++i)
@@ -717,10 +717,10 @@ namespace Tetris
 			sprite[i].update( dt );
 
 		//if ( ( pos.x < 0  && vel.x < 0 ) || 
-		//	 ( pos.x > Global::getDrawEngine()->getScreenWidth() && vel.x > 0 ) )
+		//	 ( pos.x > Global::GetDrawEngine()->getScreenWidth() && vel.x > 0 ) )
 		//	 vel.x = -vel.x;
 		//if ( ( pos.y < 0  && vel.y < 0 ) || 
-		//	 ( pos.y > Global::getDrawEngine()->getScreenHeight() && vel.y > 0 ) )
+		//	 ( pos.y > Global::GetDrawEngine()->getScreenHeight() && vel.y > 0 ) )
 		//	 vel.y = -vel.y;
 	}
 
@@ -747,7 +747,7 @@ namespace Tetris
 
 	void AboutGameStage::PieceSprite::render()
 	{
-		Graphics2D& g = Global::getGraphics2D();
+		Graphics2D& g = Global::GetGraphics2D();
 		g.beginXForm();
 		g.translateXForm( pos.x , pos.y );
 		g.rotateXForm( angle );
@@ -852,7 +852,7 @@ namespace Tetris
 
 	void RecordStage::renderRecord( GWidget* ui )
 	{
-		Graphics2D& g = Global::getGraphics2D();
+		Graphics2D& g = Global::GetGraphics2D();
 
 		Vec2i pos  = ui->getWorldPos();
 		Vec2i size = ui->getSize();
@@ -947,7 +947,7 @@ namespace Tetris
 				RenderUtility::SetBrush( g, EColor::Red );
 			}
 
-			g.beginBlend( Vec2i(0,y) , Vec2i( Global::getDrawEngine()->getScreenWidth() , 22 ), 0.5f );
+			g.beginBlend( Vec2i(0,y) , Vec2i( Global::GetDrawEngine()->getScreenWidth() , 22 ), 0.5f );
 			g.drawRoundRect( Vec2i( x - 8 , y ) , Vec2i( size.x - 6 , 22) , Vec2i( 10 , 10 ) );
 			g.endBlend();
 		}

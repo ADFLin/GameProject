@@ -202,7 +202,7 @@ bool NetRoomStage::setupUI()
 			panel->addGame( *iter );
 		}
 
-		Vec2i from = Vec2i( Global::getDrawEngine()->getScreenWidth() , pos.y );
+		Vec2i from = Vec2i( Global::GetDrawEngine()->getScreenWidth() , pos.y );
 		::Global::GUI().addMotion< EasingFun >( panel , from , pos , timeUIAnim );
 	}
 
@@ -235,7 +235,7 @@ bool NetRoomStage::setupUI()
 	}
 
 	{
-		Vec2i from =  Vec2i( Global::getDrawEngine()->getScreenWidth() , btnPos.y );
+		Vec2i from =  Vec2i( Global::GetDrawEngine()->getScreenWidth() , btnPos.y );
 		::Global::GUI().addMotion< EasingFun >( button , from , btnPos , timeUIAnim );
 	}
 
@@ -250,7 +250,7 @@ bool NetRoomStage::setupUI()
 	::Global::GUI().addWidget( button );
 	mExitButton = button;
 	{
-		Vec2i from =  Vec2i( Global::getDrawEngine()->getScreenWidth() , btnPos.y );
+		Vec2i from =  Vec2i( Global::GetDrawEngine()->getScreenWidth() , btnPos.y );
 		::Global::GUI().addMotion< EasingFun >( button , from , btnPos , timeUIAnim );
 	}
 

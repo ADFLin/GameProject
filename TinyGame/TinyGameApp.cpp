@@ -9,6 +9,8 @@
 #include "InputManager.h"
 #include "FileSystem.h"
 #include "ProfileSystem.h"
+#include "ConsoleSystem.h"
+#include "Asset.h"
 
 #include "GameGUISystem.h"
 #include "GameStage.h"
@@ -42,6 +44,8 @@ int g_DevMsgLevel = 10;
 TINY_API IGameNetInterface* gGameNetInterfaceImpl;
 TINY_API IDebugInterface*   gDebugInterfaceImpl;
 TINY_API uint32 gGameThreadId;
+
+TConsoleVariable< bool > gbShowFPS(false, "ShowFPS");
 
 class GameLogPrinter : public LogOutput
 	                 , public IDebugInterface
@@ -92,7 +96,7 @@ public:
 
 	void render( Vec2i const& renderPos )
 	{
-		IGraphics2D& g = Global::getIGraphics2D();
+		IGraphics2D& g = Global::GetIGraphics2D();
 
 		Vec2i pos = renderPos;
 		RenderUtility::SetFont( g , FONT_S8 );
@@ -120,8 +124,24 @@ public:
 	StringList mMsgList;
 };
 
-static GameLogPrinter gLogPrinter;
 
+class GameConfigAsset : public AssetBase
+{
+public:
+	virtual void getDependentFilePaths(std::vector< std::wstring >& paths) 
+	{
+		paths.push_back(FCString::CharToWChar(GAME_SETTING_PATH));
+	}
+	virtual void postFileModify(FileAction action) 
+	{
+		if( action == FileAction::Modify )
+			Global::GameConfig().loadFile(GAME_SETTING_PATH);
+	}
+
+};
+
+static GameLogPrinter gLogPrinter;
+static GameConfigAsset gGameConfigAsset;
 
 TinyGameApp::TinyGameApp()
 	:mRenderEffect( NULL )
@@ -144,12 +164,19 @@ bool TinyGameApp::onInit()
 {
 	gGameThreadId = PlatformThread::GetCurrentThreadId();
 
+	ConsoleSystem::Get().initialize();
+
 	GameLoop::setUpdateTime( gDefaultTickTime );
 
 	if ( !Global::GameConfig().loadFile( GAME_SETTING_PATH ) )
 	{
 
 	}
+
+
+	::Global::GetAssetManager().init();
+
+	::Global::GetAssetManager().registerAsset(&gGameConfigAsset);
 
 	exportUserProfile();
 
@@ -162,12 +189,12 @@ bool TinyGameApp::onInit()
 	if ( !mGameWindow.create( TEXT("Tiny Game") , gDefaultScreenWidth , gDefaultScreenHeight , WindowsMessageHandler::MsgProc  ) )
 		return false;
 
-	::Global::getDrawEngine()->init( mGameWindow );
+	::Global::GetDrawEngine()->init( mGameWindow );
 
 	::Global::GUI().initialize( *this );
 
 
-	mConsoleWidget = new ConsoleFrame(UI_ANY, Vec2i(10, 10), Vec2i(400, 300), nullptr);
+	mConsoleWidget = new ConsoleFrame(UI_ANY, Vec2i(10, 10), Vec2i(600, 500), nullptr);
 	mConsoleWidget->setGlobal();
 	mConsoleWidget->addChannel(LOG_ERROR);
 	mConsoleWidget->addChannel(LOG_DEV);
@@ -222,7 +249,9 @@ void TinyGameApp::cleanup()
 
 	Global::GUI().finalize();
 
-	Global::getDrawEngine()->release();
+	Global::GetDrawEngine()->release();
+
+	Global::GetAssetManager().cleanup();
 
 	importUserProfile();
 
@@ -235,8 +264,10 @@ long TinyGameApp::onUpdate( long shouldTime )
 {
 	int  numFrame = shouldTime / getUpdateTime();
 	long updateTime = numFrame * getUpdateTime();
+	
+	::Global::GetAssetManager().tick(updateTime);
 
-	Global::getDrawEngine()->update(updateTime);
+	::Global::GetDrawEngine()->update(updateTime);
 
 	for( int i = 0 ; i < numFrame ; ++i )
 	{
@@ -359,7 +390,17 @@ ClientWorker* TinyGameApp::createClinet()
 void TinyGameApp::setConsoleShowMode(ConsoleShowMode mode)
 {
 	mConsoleShowMode = mode;
-	mConsoleWidget->show(mConsoleShowMode == ConsoleShowMode::GUI);
+	if( mConsoleShowMode == ConsoleShowMode::GUI )
+	{
+		mConsoleWidget->show(true);
+		mConsoleWidget->makeFocus();
+		mConsoleWidget->setTop();
+	}
+	else
+	{
+		mConsoleWidget->show(false);
+	}
+	
 }
 
 bool TinyGameApp::onMouse( MouseMsg const& msg )
@@ -450,7 +491,7 @@ void TinyGameApp::render( float dframe )
 	if ( getNextStage() )
 		return;
 
-	DrawEngine* de = Global::getDrawEngine();
+	DrawEngine* de = Global::GetDrawEngine();
 
 	if ( !de->beginRender() )
 		return;
@@ -467,14 +508,14 @@ void TinyGameApp::render( float dframe )
 			mRenderEffect->onRender(dt);
 
 		if( de->isOpenGLEnabled() )
-			::Global::getGLGraphics2D().beginRender();
+			::Global::GetGLGraphics2D().beginRender();
 
 		Global::GUI().render();
 	}
 	else
 	{
 		if( de->isOpenGLEnabled() )
-			::Global::getGLGraphics2D().beginRender();
+			::Global::GetGLGraphics2D().beginRender();
 	}
 
 	if( mConsoleShowMode == ConsoleShowMode::Screen )
@@ -484,15 +525,18 @@ void TinyGameApp::render( float dframe )
 
 	
 	mFPSCalc.increaseFrame(getMillionSecond());
-	IGraphics2D& g = ::Global::getIGraphics2D();
-	FixString< 256 > str;
-	RenderUtility::SetFont(g, FONT_S8);
-	g.setTextColor(Color3ub(255, 255, 0));
-	g.drawText(Vec2i(5, 5), str.format("FPS = %f", mFPSCalc.getFPS()));
-	g.drawText(Vec2i(5, 15), str.format("mode = %d", (int)mConsoleShowMode));
+	IGraphics2D& g = ::Global::GetIGraphics2D();
+	if ( gbShowFPS )
+	{
+		FixString< 256 > str;
+		RenderUtility::SetFont(g, FONT_S8);
+		g.setTextColor(Color3ub(255, 255, 0));
+		g.drawText(Vec2i(5, 5), str.format("FPS = %f", mFPSCalc.getFPS()));
+		//g.drawText(Vec2i(5, 15), str.format("mode = %d", (int)mConsoleShowMode));
+	}
 
 	if( de->isOpenGLEnabled() )
-		::Global::getGLGraphics2D().endRender();
+		::Global::GetGLGraphics2D().endRender();
 		
 	de->endRender();
 }
@@ -500,7 +544,7 @@ void TinyGameApp::render( float dframe )
 void TinyGameApp::exportUserProfile()
 {
 	PropertyKey& setting = Global::GameConfig();
-	UserProfile& userPorfile = Global::getUserProfile();
+	UserProfile& userPorfile = Global::GetUserProfile();
 
 	userPorfile.name = setting.getStringValue( "Name" , "Player" , "Player" );
 	char const* lan = setting.getStringValue( "Language" , "Player" , "Chinese-T" );
@@ -524,7 +568,7 @@ void TinyGameApp::importUserProfile()
 {
 	PropertyKey& setting = Global::GameConfig();
 
-	UserProfile& userPorfile = Global::getUserProfile();
+	UserProfile& userPorfile = Global::GetUserProfile();
 
 	setting.setKeyValue( "Name" , "Player" , userPorfile.name.c_str() );
 	switch( userPorfile.language )
@@ -602,9 +646,9 @@ StageBase* TinyGameApp::resolveChangeStageFail( FailReason reason )
 	switch( reason )
 	{
 	case FailReason::InitFail:
-		if( ::Global::getDrawEngine()->isOpenGLEnabled() )
+		if( ::Global::GetDrawEngine()->isOpenGLEnabled() )
 		{
-			::Global::getDrawEngine()->stopOpenGL();
+			::Global::GetDrawEngine()->stopOpenGL();
 		}
 		break;
 	case FailReason::NoStage:
@@ -640,13 +684,13 @@ bool TinyGameApp::initializeStage(StageBase* stage)
 
 void TinyGameApp::prevStageChange()
 {
-	DrawEngine* de = ::Global::getDrawEngine();
-	Graphics2D& g = ::Global::getGraphics2D();
+	DrawEngine* de = ::Global::GetDrawEngine();
+	Graphics2D& g = ::Global::GetGraphics2D();
 	if ( de->beginRender() )
 	{
 		RenderUtility::SetBrush( g , EColor::Black );
 		RenderUtility::SetPen( g , EColor::Black );
-		g.drawRect( Vec2i(0,0) , ::Global::getDrawEngine()->getScreenSize() );
+		g.drawRect( Vec2i(0,0) , ::Global::GetDrawEngine()->getScreenSize() );
 		de->endRender();
 	}
 }
@@ -673,7 +717,7 @@ bool TinyGameApp::onActivate( bool beA )
 
 void TinyGameApp::onPaint(HDC hDC)
 {
-	if( !::Global::getDrawEngine()->isInitialized() )
+	if( !::Global::GetDrawEngine()->isInitialized() )
 		return;
 
 	render(0.0f);
@@ -759,7 +803,7 @@ void TinyGameApp::dispatchWidgetEvent( int event , int id , GWidget* ui )
 			if ( !server )
 				return;
 
-			LocalWorker* worker = server->createLocalWorker(::Global::getUserProfile().name );
+			LocalWorker* worker = server->createLocalWorker(::Global::GetUserProfile().name );
 
 			NetRoomStage* stage = static_cast< NetRoomStage* >( changeStage( STAGE_NET_ROOM ) );
 			stage->initWorker( worker , server );	
@@ -790,10 +834,10 @@ FadeInEffect::FadeInEffect( int _color , long time )
 
 void FadeInEffect::onRender( long dt )
 {
-	DrawEngine* de = Global::getDrawEngine();
+	DrawEngine* de = Global::GetDrawEngine();
 
 	Vec2i size = de->getScreenSize() + Vec2i(5,5); 
-	Graphics2D& g = Global::getGraphics2D();
+	Graphics2D& g = Global::GetGraphics2D();
 
 	g.beginBlend( Vec2i(0,0) , size , float( getLifeTime() - dt ) / totalTime  ); 
 

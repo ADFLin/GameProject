@@ -103,9 +103,19 @@ namespace RenderGL
 		return EXECUTE_RHIFUN( RHICreateStorageBuffer(elementSize , numElement, creationFlags, data) );
 	}
 
-	RenderGL::RHIFrameBuffer* RHICreateFrameBuffer()
+	RenderGL::RHIAtomicCounterBuffer* RHICreateAtomicCounterBuffer(uint32 numElement, uint32 creationFlags /*= BCF_DefalutValue*/, void* data /*= nullptr*/)
+	{
+		return EXECUTE_RHIFUN(RHICreateAtomicCounterBuffer(numElement, creationFlags, data));
+	}
+
+	RHIFrameBuffer* RHICreateFrameBuffer()
 	{
 		return EXECUTE_RHIFUN( RHICreateFrameBuffer() );
+	}
+
+	RHIInputLayout* RHICreateInputLayout(InputLayoutDesc const& desc)
+	{
+		return EXECUTE_RHIFUN(RHICreateInputLayout(desc));
 	}
 
 	RHIRasterizerState* RHICreateRasterizerState(RasterizerStateInitializer const& initializer)

@@ -503,11 +503,10 @@ bool TWidgetManager<T>::procMouseMsg( MouseMsg const& msg )
 			else
 			{
 				result = ui->onMouseMsg( mMouseMsg );
-				while ( result && ui->checkFlag( WIF_PARENT_MOUSE_EVENT ) )
+				while ( result && ui->checkFlag( WIF_REROUTE_MOUSE_EVENT_UNHANDLED ) )
 				{
 					if ( ui->isTop() )
 						break;
-					ui->removeFlagInternal( WIF_PARENT_MOUSE_EVENT );
 
 					ui = static_cast< T* >( ui->getParent() );
 					result = ui->onMouseMsg( mMouseMsg );
@@ -545,17 +544,43 @@ WidgetCoreT<T>* TWidgetManager<T>::getKeyInputWidget()
 	return nullptr;
 }
 
+
+template< class T >
+template< class Fun >
+bool TWidgetManager<T>::processMessage(WidgetCore* ui, WidgetInternalFlag flag , WidgetInternalFlag unhandledFlag , Fun fun)
+{
+	bool result = true;
+	while( ui != nullptr )
+	{
+		if( ui->checkFlag(flag | unhandledFlag) )
+		{
+			if( ui->checkFlag(unhandledFlag) )
+			{
+				result = fun(ui);
+				if( !result )
+					break;
+			}
+
+			ui = ui->getParent();
+		}
+		else
+		{
+			result = fun(ui);
+			break;
+		}
+	}
+
+	return result;
+}
+
 template< class T >
 bool TWidgetManager<T>::procCharMsg( unsigned code )
 {
 	ProcMsgScope scope(this);
-
-	bool result = true;
-	WidgetCore* ui = getKeyInputWidget();
-	if( ui )
+	bool result = processMessage(getKeyInputWidget(), WIF_REROUTE_CHAR_EVENT, WIF_REROUTE_CHAR_EVENT_UNHANDLED, [code](WidgetCore* ui)
 	{
-		result = ui->onCharMsg(code);
-	}
+		return ui->onCharMsg(code);
+	});
 	return result;
 }
 
@@ -563,13 +588,10 @@ template< class T >
 bool TWidgetManager<T>::procKeyMsg( unsigned key , bool isDown )
 {
 	ProcMsgScope scope(this);
-
-	bool result = true;
-	WidgetCore* ui = getKeyInputWidget();
-	if( ui )
+	bool result = processMessage(getKeyInputWidget(), WIF_REROUTE_KEY_EVENT, WIF_REROUTE_KEY_EVENT_UNHANDLED, [key, isDown](WidgetCore* ui)
 	{
-		result = ui->onKeyMsg(key, isDown);
-	}
+		return ui->onKeyMsg(key, isDown);
+	});
 	return result;
 }
 

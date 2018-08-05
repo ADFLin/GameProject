@@ -250,52 +250,6 @@ namespace RenderGL
 		}
 	};
 
-	class AtomicCounterBuffer
-	{
-	public:
-		AtomicCounterBuffer()
-		{
-			mHandle = 0;
-		}
-		~AtomicCounterBuffer()
-		{
-			glDeleteBuffers(1, &mHandle);
-		}
-		bool create()
-		{
-			glGenBuffers(1, &mHandle);
-			glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, mHandle);
-			glBufferData(GL_ATOMIC_COUNTER_BUFFER, sizeof(GLuint), NULL, GL_DYNAMIC_DRAW);
-			glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, 0);
-			return true;
-		}
-
-		void bind(int idx = 0 )
-		{
-
-			glBindBufferBase(GL_ATOMIC_COUNTER_BUFFER, idx, mHandle);
-		}
-		void unbind()
-		{
-
-			glBindBufferBase(GL_ATOMIC_COUNTER_BUFFER, 0, 0);
-		}
-
-		void setValue(GLuint value)
-		{
-			glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, mHandle);
-			GLuint* ptr = (GLuint*)glMapBufferRange(GL_ATOMIC_COUNTER_BUFFER, 0, sizeof(GLuint),
-													GL_MAP_WRITE_BIT |
-													GL_MAP_INVALIDATE_BUFFER_BIT |
-													GL_MAP_UNSYNCHRONIZED_BIT);
-			ptr[0] = value;
-			glUnmapBuffer(GL_ATOMIC_COUNTER_BUFFER);
-			glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, 0);
-		}
-
-		GLuint mHandle;
-	};
-
 #define USE_DepthRenderBuffer 0
 
 #if USE_DepthRenderBuffer
@@ -374,7 +328,8 @@ namespace RenderGL
 	struct OpenGLBufferTraits< RHIUniformBuffer > { static GLenum constexpr EnumValue = GL_UNIFORM_BUFFER; };
 	template<>
 	struct OpenGLBufferTraits< RHIStorageBuffer > { static GLenum constexpr EnumValue = GL_SHADER_STORAGE_BUFFER; };
-
+	template<>
+	struct OpenGLBufferTraits< RHIAtomicCounterBuffer > { static GLenum constexpr EnumValue = GL_ATOMIC_COUNTER_BUFFER; };
 
 	template < class RHIBufferType >
 	class TOpenGLBuffer : public TOpenGLResource< RHIBufferType, RMPBufferObject >
@@ -484,6 +439,40 @@ namespace RenderGL
 	{
 	public:
 		bool create(uint32 elementSize, uint32 numElements, uint32 creationFlags, void* data);
+	};
+
+
+	class OpenGLAtomicCounterBuffer : public TOpenGLBuffer< RHIAtomicCounterBuffer >
+	{
+	public:
+
+		bool create(uint32 numElements, uint32 creationFlags, void* data)
+		{
+			if( !createInternal(sizeof(GLuint), numElements, creationFlags, data) )
+				return false;
+			return true;
+		}
+
+		void bind(int idx = 0)
+		{
+			glBindBufferBase(GL_ATOMIC_COUNTER_BUFFER, idx, getHandle());
+		}
+		void unbind(int idx = 0)
+		{
+			glBindBufferBase(GL_ATOMIC_COUNTER_BUFFER, idx, 0);
+		}
+
+		void setValue(GLuint value , uint32 index = 0)
+		{
+			glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, getHandle());
+			GLuint* ptr = (GLuint*)glMapBufferRange(GL_ATOMIC_COUNTER_BUFFER, sizeof(GLuint) * index , sizeof(GLuint),
+													GL_MAP_WRITE_BIT |
+													GL_MAP_INVALIDATE_BUFFER_BIT |
+													GL_MAP_UNSYNCHRONIZED_BIT);
+			*ptr = value;
+			glUnmapBuffer(GL_ATOMIC_COUNTER_BUFFER);
+			glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, 0);
+		}
 	};
 
 	class OpenGLSamplerState : public TOpenGLResource< RHISamplerState, RMPSamplerObject >
@@ -618,6 +607,33 @@ namespace RenderGL
 		GLBlendStateValue mStateValue;
 	};
 
+	class OpenGLInputLayout : public TOpenGLSimpleResource< RHIInputLayout >
+	{
+	public:
+		OpenGLInputLayout( InputLayoutDesc const& desc );
+
+		void bindAttrib( RHIVertexBuffer* vertexBuffer[] , int numVertexBuffer , LinearColor const* overwriteColor = nullptr);
+		void unbindAttrib(int numVertexBuffer, LinearColor const* overwriteColor = nullptr);
+
+		void bindPointer(LinearColor const* overwriteColor = nullptr);
+
+		void unbindPointer(LinearColor const* overwriteColor = nullptr);
+		struct Element
+		{
+			uint8  semantic;
+			uint8  offset;
+			uint8  idxStream;
+			uint8  attribute;
+			uint32 stride;
+			bool   bNormalize;
+			int    componentNum;
+			GLenum componentType;
+			uint8  idx;
+
+		};
+
+		std::vector< Element > mElements;
+	};
 
 	struct PrimitiveDebugInfo
 	{
@@ -641,7 +657,9 @@ namespace RenderGL
 		static OpenGLIndexBuffer* To(RHIIndexBuffer* buffer) { return static_cast<OpenGLIndexBuffer*>(buffer); }
 		static OpenGLUniformBuffer* To(RHIUniformBuffer* buffer) { return static_cast<OpenGLUniformBuffer*>(buffer); }
 		static OpenGLStorageBuffer* To(RHIStorageBuffer* buffer) { return static_cast<OpenGLStorageBuffer*>(buffer); }
+		static OpenGLAtomicCounterBuffer* To( RHIAtomicCounterBuffer* buffer ) { return static_cast<OpenGLAtomicCounterBuffer*>(buffer); }
 
+		static OpenGLInputLayout*  To(RHIInputLayout* inputLayout) { return static_cast<OpenGLInputLayout*>(inputLayout); }
 		static OpenGLSamplerState* To(RHISamplerState* state ) { return static_cast<OpenGLSamplerState*>(state); }
 
 		static RHIShader* To(RHIShader* shader) { return shader; }

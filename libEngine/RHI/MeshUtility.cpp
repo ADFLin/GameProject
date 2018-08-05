@@ -35,9 +35,13 @@ namespace RenderGL
 		}
 	}
 
-	bool Mesh::createBuffer(void* pVertex, int nV, void* pIdx, int nIndices, bool bIntIndex)
+	bool Mesh::createRHIResource(void* pVertex, int nV, void* pIdx, int nIndices, bool bIntIndex)
 	{
-		mVertexBuffer = RHICreateVertexBuffer(mDecl.getVertexSize(), nV, 0 , pVertex);
+		mInputLayout = RHICreateInputLayout(mInputLayoutDesc);
+		if( !mInputLayout.isValid() )
+			return false;
+
+		mVertexBuffer = RHICreateVertexBuffer(mInputLayoutDesc.getVertexSize(), nV, 0 , pVertex);
 		if( !mVertexBuffer.isValid() )
 			return false;
 
@@ -105,7 +109,7 @@ namespace RenderGL
 	{
 		assert(mVertexBuffer != nullptr);
 		OpenGLCast::To(mVertexBuffer)->bind();
-		mDecl.bindPointer(color);
+		OpenGLCast::To(mInputLayout)->bindPointer(color);
 
 		if( indexBuffer )
 		{
@@ -119,7 +123,7 @@ namespace RenderGL
 
 		CheckGLStateValid();
 
-		mDecl.unbindPointer(color);
+		OpenGLCast::To(mInputLayout)->unbindPointer(color);
 		OpenGLCast::To(mVertexBuffer)->unbind();
 	}
 
@@ -168,17 +172,17 @@ namespace RenderGL
 			glGenVertexArrays(1, &mVAO);
 			glBindVertexArray(mVAO);
 
-			OpenGLCast::To( mVertexBuffer )->bind();
-			mDecl.bindAttrib(color);
+
+			RHIVertexBuffer* vertexBuffer = mVertexBuffer;
+			OpenGLCast::To( mInputLayout )->bindAttrib(&vertexBuffer , 1 , color);
 
 			//if( mIndexBuffer )
 			//	OpenGLCast::To( mIndexBuffer )->bind();
 			glBindVertexArray(0);
-			OpenGLCast::To( mVertexBuffer )->unbind();
 			//if( mIndexBuffer )
 			//	OpenGLCast::To( mIndexBuffer )->unbind();
 
-			mDecl.unbindAttrib(color);
+			OpenGLCast::To(mInputLayout)->unbindAttrib(1 , color);
 		}
 		glBindVertexArray(mVAO);
 	}
@@ -210,11 +214,8 @@ namespace RenderGL
 		if( pIndexData == nullptr )
 			return false;
 		
-		uint32 offset = mDecl.getSematicOffset(Vertex::ePosition);
-		uint32 stride = mDecl.getVertexSize();
-
 		std::vector< int > adjIndices;
-		MeshUtility::BuildVertexAdjacency(pVertex + offset, mVertexBuffer->getNumElements(), stride, pIndexData, numTriangles, adjIndices);
+		MeshUtility::BuildVertexAdjacency(makePositionReader(pVertex), pIndexData, numTriangles, adjIndices);
 
 
 		mAdjacencyIndexBuffer = RHICreateIndexBuffer(adjIndices.size(), true, 0, &adjIndices[0]);
@@ -247,17 +248,17 @@ namespace RenderGL
 		binormal = Math::GetNormal( factor * ( s[0] * d2 - s[1] * d1 ) );
 	}
 
-	void fillNormal_TriangleList(VertexDecl const& decl, void* pVertex, int nV, int* idx, int nIdx)
+	void fillNormal_TriangleList(InputLayoutDesc const& desc, void* pVertex, int nV, int* idx, int nIdx)
 	{
-		assert(decl.getSematicFormat(Vertex::ePosition) == Vertex::eFloat3);
-		assert(decl.getSematicFormat(Vertex::eNormal) == Vertex::eFloat3);
+		assert(desc.getSematicFormat(Vertex::ePosition) == Vertex::eFloat3);
+		assert(desc.getSematicFormat(Vertex::eNormal) == Vertex::eFloat3);
 
-		int posOffset = decl.getSematicOffset(Vertex::ePosition);
-		int normalOffset = decl.getSematicOffset(Vertex::eNormal) - posOffset;
+		int posOffset = desc.getSematicOffset(Vertex::ePosition);
+		int normalOffset = desc.getSematicOffset(Vertex::eNormal) - posOffset;
 		uint8* pV = (uint8*)(pVertex)+posOffset;
 
 		int numEle = nIdx / 3;
-		int vertexSize = decl.getVertexSize();
+		int vertexSize = desc.getVertexSize();
 		int* pCur = idx;
 
 		for( int i = 0; i < numEle; ++i )
@@ -289,21 +290,21 @@ namespace RenderGL
 		}
 	}
 
-	void fillNormalTangent_TriangleList( VertexDecl const& decl , void* pVertex , int nV , int* idx , int nIdx )
+	void fillNormalTangent_TriangleList( InputLayoutDesc const& desc , void* pVertex , int nV , int* idx , int nIdx )
 	{
-		assert( decl.getSematicFormat( Vertex::ePosition ) == Vertex::eFloat3 );
-		assert( decl.getSematicFormat( Vertex::eNormal ) == Vertex::eFloat3 );
-		assert( decl.getSematicFormat( Vertex::eTexcoord , 0 ) == Vertex::eFloat2 );
-		assert( decl.getSematicFormat( Vertex::eTangent ) == Vertex::eFloat4 );
+		assert( desc.getSematicFormat( Vertex::ePosition ) == Vertex::eFloat3 );
+		assert( desc.getSematicFormat( Vertex::eNormal ) == Vertex::eFloat3 );
+		assert( desc.getSematicFormat( Vertex::eTexcoord , 0 ) == Vertex::eFloat2 );
+		assert( desc.getSematicFormat( Vertex::eTangent ) == Vertex::eFloat4 );
 
-		int posOffset = decl.getSematicOffset( Vertex::ePosition );
-		int texOffset = decl.getSematicOffset( Vertex::eTexcoord , 0 ) - posOffset;
-		int tangentOffset = decl.getSematicOffset( Vertex::eTangent ) - posOffset;
-		int normalOffset = decl.getSematicOffset( Vertex::eNormal ) - posOffset;
+		int posOffset = desc.getSematicOffset( Vertex::ePosition );
+		int texOffset = desc.getSematicOffset( Vertex::eTexcoord , 0 ) - posOffset;
+		int tangentOffset = desc.getSematicOffset( Vertex::eTangent ) - posOffset;
+		int normalOffset = desc.getSematicOffset( Vertex::eNormal ) - posOffset;
 		uint8* pV = (uint8*)(pVertex) + posOffset;
 
 		int numEle = nIdx / 3;
-		int vertexSize = decl.getVertexSize();
+		int vertexSize = desc.getVertexSize();
 		int* pCur = idx;
 		std::vector< Vector3 > binormals( nV , Vector3(0,0,0) );
 
@@ -360,21 +361,21 @@ namespace RenderGL
 	}
 
 
-	void fillTangent_TriangleList( VertexDecl const& decl , void* pVertex , int nV , int* idx , int nIdx )
+	void fillTangent_TriangleList( InputLayoutDesc const& desc , void* pVertex , int nV , int* idx , int nIdx )
 	{
-		assert( decl.getSematicFormat( Vertex::ePosition ) == Vertex::eFloat3 );
-		assert( decl.getSematicFormat( Vertex::eNormal ) == Vertex::eFloat3 );
-		assert( decl.getSematicFormat( Vertex::eTexcoord , 0 ) == Vertex::eFloat2 );
-		assert( decl.getSematicFormat( Vertex::eTangent ) == Vertex::eFloat4 );
+		assert( desc.getSematicFormat( Vertex::ePosition ) == Vertex::eFloat3 );
+		assert( desc.getSematicFormat( Vertex::eNormal ) == Vertex::eFloat3 );
+		assert( desc.getSematicFormat( Vertex::eTexcoord , 0 ) == Vertex::eFloat2 );
+		assert( desc.getSematicFormat( Vertex::eTangent ) == Vertex::eFloat4 );
 
-		int posOffset = decl.getSematicOffset( Vertex::ePosition );
-		int texOffset = decl.getSematicOffset( Vertex::eTexcoord , 0 ) - posOffset;
-		int tangentOffset = decl.getSematicOffset( Vertex::eTangent ) - posOffset;
-		int normalOffset = decl.getSematicOffset( Vertex::eNormal ) - posOffset;
+		int posOffset = desc.getSematicOffset( Vertex::ePosition );
+		int texOffset = desc.getSematicOffset( Vertex::eTexcoord , 0 ) - posOffset;
+		int tangentOffset = desc.getSematicOffset( Vertex::eTangent ) - posOffset;
+		int normalOffset = desc.getSematicOffset( Vertex::eNormal ) - posOffset;
 		uint8* pV = (uint8*)(pVertex) + posOffset;
 
 		int numEle = nIdx / 3;
-		int vertexSize = decl.getVertexSize();
+		int vertexSize = desc.getVertexSize();
 		int* pCur = idx;
 		std::vector< Vector3 > binormals( nV , Vector3(0,0,0) );
 
@@ -420,7 +421,7 @@ namespace RenderGL
 		}
 	}
 
-	void fillTangent_QuadList( VertexDecl const& decl , void* pVertex , int nV , int* idx , int nIdx )
+	void fillTangent_QuadList( InputLayoutDesc const& desc , void* pVertex , int nV , int* idx , int nIdx )
 	{
 		int numEle = nIdx / 4;
 		std::vector< int > indices( numEle * 6 );
@@ -433,7 +434,7 @@ namespace RenderGL
 			dest += 6;
 			src += 4;
 		}
-		fillTangent_TriangleList( decl , pVertex , nV , &indices[0] , indices.size() );
+		fillTangent_TriangleList( desc , pVertex , nV , &indices[0] , indices.size() );
 	}
 
 
@@ -449,9 +450,9 @@ namespace RenderGL
 		//need texcoord?
 #define TILE_NEED_TEXCOORD 0
 
-		mesh.mDecl.addElement( Vertex::ePosition , Vertex::eFloat3 );
+		mesh.mInputLayoutDesc.addElement( Vertex::ePosition , Vertex::eFloat3 );
 #if TILE_NEED_TEXCOORD
-		mesh.mDecl.addElement( Vertex::eTexcoord , Vertex::eFloat2, 0);
+		mesh.mInputLayoutDesc.addElement( Vertex::eTexcoord , Vertex::eFloat2, 0);
 #endif
 		
 		struct MyVertex
@@ -570,7 +571,7 @@ namespace RenderGL
 			}
 		}
 
-		if ( !mesh.createBuffer( &v[0] , nV , &idx[0] , nI , true ) )
+		if ( !mesh.createRHIResource( &v[0] , nV , &idx[0] , nI , true ) )
 			return false;
 
 		return true;
@@ -582,12 +583,12 @@ namespace RenderGL
 		assert(sectors > 0);
 		assert(radius > 0);
 
-		mesh.mDecl.addElement(Vertex::ePosition, Vertex::eFloat3);
-		mesh.mDecl.addElement(Vertex::eNormal, Vertex::eFloat3);
-		mesh.mDecl.addElement(Vertex::eTexcoord, Vertex::eFloat2);
+		mesh.mInputLayoutDesc.addElement(Vertex::ePosition, Vertex::eFloat3);
+		mesh.mInputLayoutDesc.addElement(Vertex::eNormal, Vertex::eFloat3);
+		mesh.mInputLayoutDesc.addElement(Vertex::eTexcoord, Vertex::eFloat2);
 		// #FIXME: Bug
 		//mesh.mDecl.addElement(Vertex::eTexcoord, Vertex::eFloat4, 1);
-		int size = mesh.mDecl.getVertexSize() / sizeof(float);
+		int size = mesh.mInputLayoutDesc.getVertexSize() / sizeof(float);
 
 		int nV = ( rings - 1 ) * ( sectors + 1 )+ 2 * sectors;
 		std::vector< float > vertex(nV * size);
@@ -595,9 +596,9 @@ namespace RenderGL
 		float const sf = 1.0 / sectors;
 		int r, s;
 
-		float* v = &vertex[0] + mesh.mDecl.getSematicOffset(Vertex::ePosition) / sizeof(float);
-		float* n = &vertex[0] + mesh.mDecl.getSematicOffset(Vertex::eNormal) / sizeof(float);
-		float* t = &vertex[0] + mesh.mDecl.getSematicOffset(Vertex::eTexcoord) / sizeof(float);
+		float* v = &vertex[0] + mesh.mInputLayoutDesc.getSematicOffset(Vertex::ePosition) / sizeof(float);
+		float* n = &vertex[0] + mesh.mInputLayoutDesc.getSematicOffset(Vertex::eNormal) / sizeof(float);
+		float* t = &vertex[0] + mesh.mInputLayoutDesc.getSematicOffset(Vertex::eTexcoord) / sizeof(float);
 
 		for( r = 1; r < rings; ++r )
 		{
@@ -702,7 +703,7 @@ namespace RenderGL
 		}
 
 		//fillTangent_TriangleList(mesh.mDecl, &vertex[0], nV, &indices[0], indices.size());
-		if ( !mesh.createBuffer( &vertex[0] , nV , &indices[0] , indices.size() , true ) )
+		if ( !mesh.createRHIResource( &vertex[0] , nV , &indices[0] , indices.size() , true ) )
 			return false;
 
 		return true;
@@ -710,8 +711,8 @@ namespace RenderGL
 
 	bool MeshBuild::SkyBox(Mesh& mesh)
 	{
-		mesh.mDecl.addElement( Vertex::ePosition , Vertex::eFloat3 );
-		mesh.mDecl.addElement( Vertex::eTexcoord , Vertex::eFloat3 , 0 );
+		mesh.mInputLayoutDesc.addElement( Vertex::ePosition , Vertex::eFloat3 );
+		mesh.mInputLayoutDesc.addElement( Vertex::eTexcoord , Vertex::eFloat3 , 0 );
 		Vector3 v[] = 
 		{
 			Vector3(1,1,1),Vector3(1,1,1),
@@ -732,7 +733,7 @@ namespace RenderGL
 			0 , 2 , 3 , 1 ,
 			4 , 5 , 7 , 6 ,
 		};
-		if ( !mesh.createBuffer( &v[0] , 8 , &idx[0] , 4 * 6 , true ) )
+		if ( !mesh.createRHIResource( &v[0] , 8 , &idx[0] , 4 * 6 , true ) )
 			return false;
 
 		mesh.mType = PrimitiveType::Quad;
@@ -741,10 +742,10 @@ namespace RenderGL
 
 	bool MeshBuild::Cube( Mesh& mesh , float halfLen )
 	{
-		mesh.mDecl.addElement( Vertex::ePosition , Vertex::eFloat3 );
-		mesh.mDecl.addElement( Vertex::eNormal , Vertex::eFloat3 );
-		mesh.mDecl.addElement( Vertex::eTexcoord , Vertex::eFloat2 , 0 );
-		mesh.mDecl.addElement( Vertex::eTangent , Vertex::eFloat4 );
+		mesh.mInputLayoutDesc.addElement( Vertex::ePosition , Vertex::eFloat3 );
+		mesh.mInputLayoutDesc.addElement( Vertex::eNormal , Vertex::eFloat3 );
+		mesh.mInputLayoutDesc.addElement( Vertex::eTexcoord , Vertex::eFloat2 , 0 );
+		mesh.mInputLayoutDesc.addElement( Vertex::eTangent , Vertex::eFloat4 );
 		struct MyVertex
 		{
 			Vector3 pos;
@@ -796,9 +797,9 @@ namespace RenderGL
 			20 , 21 , 22 , 20 , 22 , 23 ,
 		};
 
-		fillTangent_TriangleList(mesh.mDecl, &v[0], 6 * 4, &indices[0], 6 * 6);
+		fillTangent_TriangleList(mesh.mInputLayoutDesc, &v[0], 6 * 4, &indices[0], 6 * 6);
 		mesh.mType = PrimitiveType::TriangleList;
-		if( !mesh.createBuffer(&v[0], 6 * 4, &indices[0], 6 * 6, true) )
+		if( !mesh.createRHIResource(&v[0], 6 * 4, &indices[0], 6 * 6, true) )
 			return false;
 #else
 		int indices[] =
@@ -811,9 +812,9 @@ namespace RenderGL
 			20 , 21 , 22 , 23 ,
 		};
 
-		fillTangent_QuadList(mesh.mDecl, &v[0], 6 * 4, &indices[0], 6 * 4);
+		fillTangent_QuadList(mesh.mInputLayoutDesc, &v[0], 6 * 4, &indices[0], 6 * 4);
 		mesh.mType = PrimitiveType::Quad;
-		if( !mesh.createBuffer(&v[0], 6 * 4, &indices[0], 6 * 4, true) )
+		if( !mesh.createRHIResource(&v[0], 6 * 4, &indices[0], 6 * 4, true) )
 			return false;
 #endif
 
@@ -823,18 +824,18 @@ namespace RenderGL
 
 	bool MeshBuild::Doughnut(Mesh& mesh, float radius, float ringRadius, int rings, int sectors)
 	{
-		mesh.mDecl.addElement( Vertex::ePosition , Vertex::eFloat3 );
-		mesh.mDecl.addElement( Vertex::eNormal , Vertex::eFloat3 );
+		mesh.mInputLayoutDesc.addElement( Vertex::ePosition , Vertex::eFloat3 );
+		mesh.mInputLayoutDesc.addElement( Vertex::eNormal , Vertex::eFloat3 );
 		//mesh.mDecl.addElement( Vertex::eTexcoord , Vertex::eFloat2 );
-		int size = mesh.mDecl.getVertexSize() / sizeof( float );
+		int size = mesh.mInputLayoutDesc.getVertexSize() / sizeof( float );
 
 		float sf = 2 * Math::PI / sectors;
 		float rf = 2 * Math::PI / rings;
 
 		int nV = rings * sectors;
 		std::vector< float > vertex( nV * size );
-		float* v = &vertex[0] + mesh.mDecl.getOffset(0) / sizeof( float );
-		float* n = &vertex[0] + mesh.mDecl.getOffset(1) / sizeof( float );
+		float* v = &vertex[0] + mesh.mInputLayoutDesc.getOffset(0) / sizeof( float );
+		float* n = &vertex[0] + mesh.mInputLayoutDesc.getOffset(1) / sizeof( float );
 		//float* t = &vertex[0] + mesh.mDecl.getOffset(2) / sizeof( float );
 
 		int r , s;
@@ -914,7 +915,7 @@ namespace RenderGL
 		i[4] = i[2];
 		i[5] = s;
 
-		if ( !mesh.createBuffer( &vertex[0] , nV , &indices[0] , ( nV )* 6 , true ) )
+		if ( !mesh.createRHIResource( &vertex[0] , nV , &indices[0] , ( nV )* 6 , true ) )
 			return false;
 
 		return true;
@@ -922,10 +923,10 @@ namespace RenderGL
 
 	bool MeshBuild::Plane(Mesh& mesh , Vector3 const& offset , Vector3 const& normal , Vector3 const& dir , float len, float texFactor)
 	{
-		mesh.mDecl.addElement( Vertex::ePosition , Vertex::eFloat3 );
-		mesh.mDecl.addElement( Vertex::eNormal   , Vertex::eFloat3 );
-		mesh.mDecl.addElement( Vertex::eTexcoord , Vertex::eFloat2 , 0 );
-		mesh.mDecl.addElement( Vertex::eTangent , Vertex::eFloat4 );
+		mesh.mInputLayoutDesc.addElement( Vertex::ePosition , Vertex::eFloat3 );
+		mesh.mInputLayoutDesc.addElement( Vertex::eNormal   , Vertex::eFloat3 );
+		mesh.mInputLayoutDesc.addElement( Vertex::eTexcoord , Vertex::eFloat2 , 0 );
+		mesh.mInputLayoutDesc.addElement( Vertex::eTangent , Vertex::eFloat4 );
 
 		Vector3 n = Math::GetNormal( normal );
 		Vector3 f = dir - n * ( n.dot( dir ) );
@@ -952,8 +953,8 @@ namespace RenderGL
 
 		int   idx[6] = { 0 , 1 , 2 , 0 , 2 , 3 };
 
-		fillTangent_TriangleList( mesh.mDecl , &v[0] , 4  , &idx[0] , 6 );
-		if ( !mesh.createBuffer( &v[0] , 4  , &idx[0] , 6 , true ) )
+		fillTangent_TriangleList( mesh.mInputLayoutDesc , &v[0] , 4  , &idx[0] , 6 );
+		if ( !mesh.createRHIResource( &v[0] , 4  , &idx[0] , 6 , true ) )
 			return false;
 
 		return true;
@@ -971,12 +972,12 @@ namespace RenderGL
 			uint8   boneIndices[4];
 			Vector4 blendWeight;
 		};
-		mesh.mDecl.addElement(Vertex::ATTRIBUTE_POSITION, Vertex::eFloat3);
-		mesh.mDecl.addElement(Vertex::ATTRIBUTE_NORMAL, Vertex::eFloat3);
-		mesh.mDecl.addElement(Vertex::ATTRIBUTE_TANGENT, Vertex::eFloat4);
-		mesh.mDecl.addElement(Vertex::ATTRIBUTE_TEXCOORD, Vertex::eFloat2);
-		mesh.mDecl.addElement(Vertex::ATTRIBUTE_BONEINDEX, Vertex::eUInt4);
-		mesh.mDecl.addElement(Vertex::ATTRIBUTE_BLENDWEIGHT, Vertex::eFloat4);
+		mesh.mInputLayoutDesc.addElement(Vertex::ATTRIBUTE_POSITION, Vertex::eFloat3);
+		mesh.mInputLayoutDesc.addElement(Vertex::ATTRIBUTE_NORMAL, Vertex::eFloat3);
+		mesh.mInputLayoutDesc.addElement(Vertex::ATTRIBUTE_TANGENT, Vertex::eFloat4);
+		mesh.mInputLayoutDesc.addElement(Vertex::ATTRIBUTE_TEXCOORD, Vertex::eFloat2);
+		mesh.mInputLayoutDesc.addElement(Vertex::ATTRIBUTE_BONEINDEX, Vertex::eUInt4);
+		mesh.mInputLayoutDesc.addElement(Vertex::ATTRIBUTE_BLENDWEIGHT, Vertex::eFloat4);
 
 		float du = 1.0 / (nx - 1);
 		float dv = 1.0 / (ny - 1);
@@ -1025,7 +1026,7 @@ namespace RenderGL
 			}
 		}
 
-		if( !mesh.createBuffer(&vertices[0], vertices.size(), &indices[0], indices.size(), true) )
+		if( !mesh.createRHIResource(&vertices[0], vertices.size(), &indices[0], indices.size(), true) )
 			return false;
 
 		return true;
@@ -1064,9 +1065,9 @@ namespace RenderGL
 			indices[i] = idx;
 		}
 
-		mesh.mDecl.addElement(Vertex::ePosition, Vertex::eFloat3);
-		mesh.mDecl.addElement(Vertex::eNormal, Vertex::eFloat3);
-		if( !mesh.createBuffer(&vertices[0], numVertex, &indices[0], data.numIndex, true) )
+		mesh.mInputLayoutDesc.addElement(Vertex::ePosition, Vertex::eFloat3);
+		mesh.mInputLayoutDesc.addElement(Vertex::eNormal, Vertex::eFloat3);
+		if( !mesh.createRHIResource(&vertices[0], numVertex, &indices[0], data.numIndex, true) )
 			return false;
 		return true;
 	}
@@ -1128,16 +1129,16 @@ namespace RenderGL
 		if(  numVertex == 0 )
 			return false;
 
-		mesh.mDecl.addElement(Vertex::ePosition, Vertex::eFloat3);
-		mesh.mDecl.addElement(Vertex::eNormal, Vertex::eFloat3);
+		mesh.mInputLayoutDesc.addElement(Vertex::ePosition, Vertex::eFloat3);
+		mesh.mInputLayoutDesc.addElement(Vertex::eNormal, Vertex::eFloat3);
 		
 		if( !shapes[0].mesh.texcoords.empty() )
 		{
-			mesh.mDecl.addElement(Vertex::eTexcoord, Vertex::eFloat2, 0);
-			mesh.mDecl.addElement(Vertex::eTangent, Vertex::eFloat4);
+			mesh.mInputLayoutDesc.addElement(Vertex::eTexcoord, Vertex::eFloat2, 0);
+			mesh.mInputLayoutDesc.addElement(Vertex::eTangent, Vertex::eFloat4);
 		}
 
-		int vertexSize = mesh.mDecl.getVertexSize() / sizeof(float);
+		int vertexSize = mesh.mInputLayoutDesc.getVertexSize() / sizeof(float);
 		std::vector< float > vertices(numVertex * vertexSize);
 		std::vector< int > indices;
 		indices.reserve(numIndices);
@@ -1281,9 +1282,9 @@ namespace RenderGL
 				}
 			}
 			if ( !shapes[0].mesh.texcoords.empty() )
-				fillNormalTangent_TriangleList(mesh.mDecl, &vertices[0], numVertex, (int*)&indices[0], indices.size());
+				fillNormalTangent_TriangleList(mesh.mInputLayoutDesc, &vertices[0], numVertex, (int*)&indices[0], indices.size());
 			else
-				fillNormal_TriangleList(mesh.mDecl, &vertices[0], numVertex, (int*)&indices[0], indices.size());
+				fillNormal_TriangleList(mesh.mInputLayoutDesc, &vertices[0], numVertex, (int*)&indices[0], indices.size());
 		}
 		else
 		{
@@ -1312,9 +1313,9 @@ namespace RenderGL
 				}
 			}
 			if( !shapes[0].mesh.texcoords.empty() )
-				fillTangent_TriangleList(mesh.mDecl, &vertices[0], numVertex, (int*)&indices[0], indices.size());
+				fillTangent_TriangleList(mesh.mInputLayoutDesc, &vertices[0], numVertex, (int*)&indices[0], indices.size());
 		}
-		if( !mesh.createBuffer(&vertices[0], numVertex, &indices[0], indices.size(), true) )
+		if( !mesh.createRHIResource(&vertices[0], numVertex, &indices[0], indices.size(), true) )
 			return false;
 
 		if( listener )
@@ -1358,10 +1359,10 @@ namespace RenderGL
 
 	bool MeshBuild::PlaneZ(Mesh& mesh, float len, float texFactor)
 	{
-		mesh.mDecl.addElement( Vertex::ePosition , Vertex::eFloat3 );
-		mesh.mDecl.addElement( Vertex::eNormal   , Vertex::eFloat3 );
-		mesh.mDecl.addElement( Vertex::eTexcoord , Vertex::eFloat2 , 0 );
-		mesh.mDecl.addElement( Vertex::eTangent , Vertex::eFloat4 );
+		mesh.mInputLayoutDesc.addElement( Vertex::ePosition , Vertex::eFloat3 );
+		mesh.mInputLayoutDesc.addElement( Vertex::eNormal   , Vertex::eFloat3 );
+		mesh.mInputLayoutDesc.addElement( Vertex::eTexcoord , Vertex::eFloat2 , 0 );
+		mesh.mInputLayoutDesc.addElement( Vertex::eTangent , Vertex::eFloat4 );
 		struct MyVertex 
 		{
 			Vector3 v;
@@ -1379,8 +1380,8 @@ namespace RenderGL
 
 		int   idx[6] = { 0 , 1 , 2 , 0 , 2 , 3 };
 
-		fillTangent_TriangleList( mesh.mDecl , &v[0] , 4  , &idx[0] , 6 );
-		if ( !mesh.createBuffer( &v[0] , 4  , &idx[0] , 6 , true ) )
+		fillTangent_TriangleList( mesh.mInputLayoutDesc , &v[0] , 4  , &idx[0] , 6 );
+		if ( !mesh.createRHIResource( &v[0] , 4  , &idx[0] , 6 , true ) )
 			return false;
 
 		return true;
@@ -1478,7 +1479,7 @@ namespace RenderGL
 				numFace *= 4;
 			}
 
-			if( !mesh.createBuffer(&mVertices[0], mNumV, pIdx, nIdx, true) )
+			if( !mesh.createRHIResource(&mVertices[0], mNumV, pIdx, nIdx, true) )
 				return false;
 
 			return true;
@@ -1493,8 +1494,8 @@ namespace RenderGL
 
 	bool MeshBuild::IcoSphere(Mesh& mesh , float radius , int numDiv )
 	{
-		mesh.mDecl.addElement( Vertex::ePosition , Vertex::eFloat3 );
-		mesh.mDecl.addElement( Vertex::eNormal   , Vertex::eFloat3 );
+		mesh.mInputLayoutDesc.addElement( Vertex::ePosition , Vertex::eFloat3 );
+		mesh.mInputLayoutDesc.addElement( Vertex::eNormal   , Vertex::eFloat3 );
 
 		struct VertexTraits
 		{
@@ -1516,7 +1517,7 @@ namespace RenderGL
 
 	bool MeshBuild::LightSphere(Mesh& mesh)
 	{
-		mesh.mDecl.addElement(Vertex::ePosition, Vertex::eFloat3);
+		mesh.mInputLayoutDesc.addElement(Vertex::ePosition, Vertex::eFloat3);
 		struct VertexTraits
 		{
 			struct Type
@@ -1535,15 +1536,15 @@ namespace RenderGL
 	bool MeshBuild::LightCone(Mesh& mesh)
 	{
 		int numSide = 96;
-		mesh.mDecl.addElement(Vertex::ePosition, Vertex::eFloat3);
+		mesh.mInputLayoutDesc.addElement(Vertex::ePosition, Vertex::eFloat3);
 
-		int size = mesh.mDecl.getVertexSize() / sizeof(float);
+		int size = mesh.mInputLayoutDesc.getVertexSize() / sizeof(float);
 
 		int nV = numSide + 2;
 		std::vector< float > vertices(nV * size);
 		float const sf = 2 * Math::PI / numSide;
 
-		float* v = &vertices[0] + mesh.mDecl.getSematicOffset(Vertex::ePosition) / sizeof(float);
+		float* v = &vertices[0] + mesh.mInputLayoutDesc.getSematicOffset(Vertex::ePosition) / sizeof(float);
 
 		for( int i = 0; i < numSide; ++i )
 		{
@@ -1589,7 +1590,7 @@ namespace RenderGL
 			idxPrev = i;
 		}
 
-		if( !mesh.createBuffer( &vertices[0] , nV, &indices[0], indices.size() , true) )
+		if( !mesh.createRHIResource( &vertices[0] , nV, &indices[0], indices.size() , true) )
 			return false;
 
 		return true;
@@ -1728,21 +1729,15 @@ namespace RenderGL
 
 
 
-	void MeshUtility::CalcAABB(uint8* pData, int dataStride, int numVertex, Vector3& outMin, Vector3& outMax)
+	void MeshUtility::CalcAABB(PositionReader const& positionReader, Vector3& outMin, Vector3& outMax)
 	{
-		assert(numVertex >= 1);
-
-		uint8* pCur = pData;
-
-		outMin = *(Vector3*)(pData);
-		outMax = *(Vector3*)(pData);
-		pData += dataStride;
-		for( int i = 1; i < numVertex; ++i )
+		assert(positionReader.getNum() >= 1);
+		outMax = outMin = positionReader.get(0);
+		for( int i = 1; i < positionReader.getNum(); ++i )
 		{
-			Vector3 const& pos = *(Vector3*)(pData);
+			Vector3 const& pos = positionReader.get(i);
 			outMax.max(pos);
 			outMin.min(pos);
-			pData += dataStride;
 		}
 	}
 
@@ -1751,29 +1746,31 @@ namespace RenderGL
 		if( !mesh.mIndexBuffer.isValid() || !mesh.mVertexBuffer.isValid() )
 			return false;
 
-		uint8* pData = (uint8*)(mesh.mVertexBuffer->lock(ELockAccess::ReadOnly)) + mesh.mDecl.getSematicOffset(Vertex::ePosition);
+		uint8* pData = (uint8*)(mesh.mVertexBuffer->lock(ELockAccess::ReadOnly)) + mesh.mInputLayoutDesc.getSematicOffset(Vertex::ePosition);
 		void* pIndexBufferData = mesh.mIndexBuffer->lock(ELockAccess::ReadOnly);
+		ON_SCOPE_EXIT
+		{
+			mesh.mVertexBuffer->unlock();
+			mesh.mIndexBuffer->unlock();
+		};
 		std::vector<int> tempBuffer;
 		int numTriangles;
 		int* pIndexData = ConvertToTriangleList(mesh.mType, pIndexBufferData, mesh.mIndexBuffer->getNumElements() , mesh.mIndexBuffer->isIntType(), tempBuffer , numTriangles);
 		bool result = false;
 		if ( pIndexData )
 		{
-			int dataStride = mesh.mVertexBuffer->getElementSize();
-			result = BuildDistanceField(pData, dataStride, mesh.mVertexBuffer->getNumElements(), pIndexData, numTriangles, setting, outResult);
+			result = BuildDistanceField(mesh.makePositionReader(pData), pIndexData, numTriangles, setting, outResult);
 		}
 
-		mesh.mVertexBuffer->unlock();
-		mesh.mIndexBuffer->unlock();
 		return result;
 	}
 
-	bool MeshUtility::BuildDistanceField(uint8* pVertexData, uint32 vertexDataStride, int32 numVertex, int* pIndexData, int numTriangles, DistanceFieldBuildSetting const& setting, DistanceFieldData& outResult)
+	bool MeshUtility::BuildDistanceField(PositionReader const& positionReader , int* pIndexData, int numTriangles, DistanceFieldBuildSetting const& setting, DistanceFieldData& outResult)
 	{
 #define USE_KDTREE 1
 		Vector3 boundMin;
 		Vector3 boundMax;
-		CalcAABB(pVertexData, vertexDataStride, numVertex, boundMin, boundMax);
+		CalcAABB(positionReader, boundMin, boundMax);
 
 		boundMax *= setting.boundSizeScale;
 		boundMin *= setting.boundSizeScale;
@@ -1798,9 +1795,9 @@ namespace RenderGL
 				int idx1 = pIndex[1];
 				int idx2 = pIndex[2];
 
-				Vector3 const& p0 = *(Vector3*)(pVertexData + idx0 * vertexDataStride);
-				Vector3 const& p1 = *(Vector3*)(pVertexData + idx1 * vertexDataStride);
-				Vector3 const& p2 = *(Vector3*)(pVertexData + idx2 * vertexDataStride);
+				Vector3 const& p0 = positionReader.get(idx0);
+				Vector3 const& p1 = positionReader.get(idx1);
+				Vector3 const& p2 = positionReader.get(idx2);
 				pIndex += 3;
 				MyTree::PrimitiveData data;
 				data.BBox.min = p0;
@@ -1816,7 +1813,7 @@ namespace RenderGL
 #endif
 
 		Vector3 minCellPos = boundMin + 0.5 * gridLength;
-		auto TaskFun = [pVertexData , vertexDataStride , pIndexData , gridSize , minCellPos , gridLength, &tree , &outResult](int nz , float& maxDistanceSqr)
+		auto TaskFun = [positionReader , pIndexData , gridSize , minCellPos , gridLength, &tree , &outResult](int nz , float& maxDistanceSqr)
 		{
 			for( int ny = 0; ny < gridSize.y; ++ny )
 			{
@@ -1836,9 +1833,10 @@ namespace RenderGL
 						int idx0 = pIndex[0];
 						int idx1 = pIndex[1];
 						int idx2 = pIndex[2];
-						Vector3 const& p0 = *(Vector3*)(pVertexData + idx0 * vertexDataStride);
-						Vector3 const& p1 = *(Vector3*)(pVertexData + idx1 * vertexDataStride);
-						Vector3 const& p2 = *(Vector3*)(pVertexData + idx2 * vertexDataStride);
+
+						Vector3 const& p0 = positionReader.get(idx0);
+						Vector3 const& p1 = positionReader.get(idx1);
+						Vector3 const& p2 = positionReader.get(idx2);
 
 						float curSide;
 						Vector3 closestPoint = Math::PointToTriangleClosestPoint(pos, p0, p1, p2, curSide);
@@ -1861,9 +1859,9 @@ namespace RenderGL
 						int idx1 = pIndex[1];
 						int idx2 = pIndex[2];
 
-						Vector3 const& p0 = *(Vector3*)(pVertexData + idx0 * vertexDataStride);
-						Vector3 const& p1 = *(Vector3*)(pVertexData + idx1 * vertexDataStride);
-						Vector3 const& p2 = *(Vector3*)(pVertexData + idx2 * vertexDataStride);
+						Vector3 const& p0 = positionReader.get(idx0);
+						Vector3 const& p1 = positionReader.get(idx1);
+						Vector3 const& p2 = positionReader.get(idx2);
 
 						float side = 1.0;
 						Vector3 closestPoint = Math::PointToTriangleClosestPoint(p, p0, p1, p2, side);
@@ -1935,7 +1933,7 @@ namespace RenderGL
 		return true;
 	}
 
-	void MeshUtility::BuildVertexAdjacency(uint8* pPosition, int numVertices, int vertexStride, int* triIndices, int numTirangle, std::vector<int>& outResult)
+	void MeshUtility::BuildVertexAdjacency(PositionReader const& positionReader, int* triIndices, int numTirangle, std::vector<int>& outResult)
 	{
 		std::vector< int > triangleIndexMap;
 		struct Vertex
@@ -1944,10 +1942,10 @@ namespace RenderGL
 			float z;
 		};
 		std::vector< Vertex > sortedVertices;
-		sortedVertices.resize(numVertices);
-		for( int i = 0; i < numVertices; ++i )
+		sortedVertices.resize(positionReader.getNum());
+		for( int i = 0; i < positionReader.getNum(); ++i )
 		{
-			Vector3& pos = *(Vector3*)(pPosition + i * vertexStride);
+			Vector3 const& pos = positionReader.get(i);
 			sortedVertices[i].index = i;
 			sortedVertices[i].z = pos.z;
 		}
@@ -1956,19 +1954,19 @@ namespace RenderGL
 		{
 			return a.z < b.z;
 		});
-		triangleIndexMap.resize(numVertices, -1);
-		for( int i = 0; i < numVertices; ++i )
+		triangleIndexMap.resize(positionReader.getNum(), -1);
+		for( int i = 0; i < positionReader.getNum(); ++i )
 		{
 			Vertex const& vi = sortedVertices[i];
 			if( triangleIndexMap[vi.index] != -1 )
 				continue;
 
 			triangleIndexMap[vi.index] = vi.index;
-			Vector3 const& pos0 = *(Vector3*)(pPosition + vi.index * vertexStride);
-			for( int j = i + 1; j < numVertices; ++j )
+			Vector3 const& pos0 = positionReader.get(vi.index);
+			for( int j = i + 1; j < positionReader.getNum(); ++j )
 			{
 				Vertex const& vj = sortedVertices[j];
-				Vector3 const& pos1 = *(Vector3*)(pPosition + vj.index * vertexStride);
+				Vector3 const& pos1 = positionReader.get(vj.index);
 
 				if( Math::Abs(pos0.z - pos1.z) > 1e-6 )
 				{

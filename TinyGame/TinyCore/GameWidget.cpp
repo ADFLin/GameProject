@@ -251,7 +251,7 @@ void GMsgBox::onRender()
 {
 	GPanel::onRender();
 
-	IGraphics2D& g = Global::getIGraphics2D();
+	IGraphics2D& g = Global::GetIGraphics2D();
 
 	Vec2i pos = getWorldPos();
 	RenderUtility::SetFont( g , FONT_S12 );
@@ -365,7 +365,7 @@ void GButton::onMouse( bool beInside )
 
 void GButton::onRender()
 {
-	IGraphics2D& g = Global::getIGraphics2D();
+	IGraphics2D& g = Global::GetIGraphics2D();
 
 	Vec2i pos  = getWorldPos();
 	Vec2i size = getSize();
@@ -399,7 +399,7 @@ GNoteBook::GNoteBook( int id , Vec2i const& pos , Vec2i const& size , GWidget* p
 
 void GNoteBook::doRenderButton( PageButton* button )
 {
-	Graphics2D&  g = Global::getGraphics2D();
+	Graphics2D&  g = Global::GetGraphics2D();
 
 	Vec2i pos = button->getWorldPos();
 	//g.drawRect( pos , button->getSize() );
@@ -430,7 +430,7 @@ void GNoteBook::doRenderPage( Page* page )
 	Vec2i pos = page->getWorldPos();
 	Vec2i size = page->getSize();
 
-	Graphics2D& g = Global::getGraphics2D();
+	Graphics2D& g = Global::GetGraphics2D();
 
 	//g.beginBlend( pos , size  , 0.6 );
 	{
@@ -446,7 +446,7 @@ void GNoteBook::doRenderPage( Page* page )
 
 void GNoteBook::doRenderBackground()
 {
-	IGraphics2D& g = Global::getIGraphics2D();
+	IGraphics2D& g = Global::GetIGraphics2D();
 	WidgetColor color;
 	color.setValue(Color3ub(50, 100, 150));
 	gRenderer.drawPanel( g , getWorldPos() , getSize() , color , 0.9f );
@@ -462,7 +462,7 @@ void GTextCtrl::onRender()
 {
 	Vec2i pos = getWorldPos();
 
-	IGraphics2D& g = Global::getIGraphics2D();
+	IGraphics2D& g = Global::GetIGraphics2D();
 
 	Vec2i size = getSize();
 	RenderUtility::SetBrush( g , EColor::Gray  );
@@ -518,7 +518,7 @@ void GTextCtrl::onRender()
 
 void GChoice::onRender()
 {
-	IGraphics2D& g = Global::getIGraphics2D();
+	IGraphics2D& g = Global::GetIGraphics2D();
 
 	Vec2i pos = getWorldPos();
 	Vec2i size = getSize();
@@ -543,7 +543,7 @@ void GChoice::onRender()
 
 void GChoice::doRenderItem( Vec2i const& pos , Item& item , bool beLight )
 {
-	IGraphics2D& g = Global::getIGraphics2D();
+	IGraphics2D& g = Global::GetIGraphics2D();
 
 	Vec2i size( getSize().x , getMenuItemHeight() );
 
@@ -564,7 +564,7 @@ void GChoice::doRenderItem( Vec2i const& pos , Item& item , bool beLight )
 
 void GChoice::doRenderMenuBG( Menu* menu )
 {
-	IGraphics2D& g = Global::getIGraphics2D();
+	IGraphics2D& g = Global::GetIGraphics2D();
 
 	Vec2i pos =  menu->getWorldPos();
 	Vec2i size = menu->getSize();
@@ -599,7 +599,7 @@ void GPanel::onRender()
 {
 	Vec2i pos = getWorldPos();
 
-	IGraphics2D& g = Global::getIGraphics2D();
+	IGraphics2D& g = Global::GetIGraphics2D();
 	Vec2i size = getSize();
 
 	switch ( mRenderType )
@@ -635,7 +635,7 @@ GListCtrl::GListCtrl( int id , Vec2i const& pos , Vec2i const& size , GWidget* p
 
 void GListCtrl::doRenderItem( Vec2i const& pos , Item& item , bool beSelected )
 {
-	IGraphics2D& g = Global::getIGraphics2D();
+	IGraphics2D& g = Global::GetIGraphics2D();
 
 	Vec2i size( getSize().x , getItemHeight() );
 
@@ -658,7 +658,7 @@ void GListCtrl::doRenderItem( Vec2i const& pos , Item& item , bool beSelected )
 
 void GListCtrl::doRenderBackground( Vec2i const& pos , Vec2i const& size )
 {
-	IGraphics2D& g = Global::getIGraphics2D();
+	IGraphics2D& g = Global::GetIGraphics2D();
 	RenderUtility::SetPen( g , EColor::Black );
 	mColor.setupBrush(g, COLOR_LIGHT);
 	g.drawRoundRect( pos , size , Vec2i( 12 , 12 ) );
@@ -738,7 +738,7 @@ GSlider::GSlider( int id , Vec2i const& pos , int length , bool beH , GWidget* p
 void GSlider::renderValue( GWidget* widget )
 {
 	Vec2i pos = getWorldPos();
-	Graphics2D& g = Global::getGraphics2D();
+	Graphics2D& g = Global::GetGraphics2D();
 
 	FixString< 256 > str;
 	str.format( "%d" , getValue() );
@@ -753,7 +753,7 @@ void GSlider::showValue()
 
 void GSlider::onRender()
 {
-	IGraphics2D& g = Global::getIGraphics2D();
+	IGraphics2D& g = Global::GetIGraphics2D();
 	gRenderer.drawSilder( g , getWorldPos() , getSize() , getTipWidget()->getWorldPos() , TipSize );
 }
 
@@ -779,7 +779,7 @@ void GCheckBox::onMouse(bool beInside)
 
 void GCheckBox::onRender()
 {
-	IGraphics2D& g = Global::getIGraphics2D();
+	IGraphics2D& g = Global::GetIGraphics2D();
 	Vec2i pos  = getWorldPos();
 	Vec2i size = getSize();
 
@@ -882,12 +882,12 @@ GText::GText( Vec2i const& pos, Vec2i const& size, GWidget* parent)
 	:BaseClass(  pos, size, parent)
 {
 	mID = UI_ANY;
-	skipMouseMsg();
+	setRerouteMouseMsgUnhandled();
 }
 
 void GText::onRender()
 {
-	IGraphics2D& g = Global::getIGraphics2D();
+	IGraphics2D& g = Global::GetIGraphics2D();
 	Vec2i pos = getWorldPos();
 	Vec2i size = getSize();
 

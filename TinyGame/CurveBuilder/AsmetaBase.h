@@ -419,6 +419,7 @@ namespace Asmeta
 		SysInt  mVal;
 		bool    mSigned;
 	};
+
 	template< int ImmSize >
 	class Immediate : public ImmediateBase
 	{
@@ -427,7 +428,6 @@ namespace Asmeta
 		ASMETA_INLINE Immediate( T val , bool s = false ):ImmediateBase( (SysUint) val , s ){}
 		uint8 size() const { return ImmSize; }
 	};
-
 
 	template<>
 	class Immediate<0> : public ImmediateBase

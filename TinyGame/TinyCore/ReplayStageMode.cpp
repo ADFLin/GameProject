@@ -165,7 +165,7 @@ void ReplayEditStage::renderReplayInfo( GWidget* ui )
 		return;
 
 	Vec2i pos = ui->getWorldPos();
-	Graphics2D& g = Global::getGraphics2D();
+	Graphics2D& g = Global::GetGraphics2D();
 	
 
 	int px = pos.x + 10;

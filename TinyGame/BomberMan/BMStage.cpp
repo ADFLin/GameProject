@@ -54,7 +54,7 @@ namespace BomberMan
 
 	void LevelStage::onRender( float dFrame )
 	{
-		Graphics2D& g = Global::getGraphics2D();
+		Graphics2D& g = Global::GetGraphics2D();
 
 		g.beginXForm();
 		{
@@ -72,13 +72,13 @@ namespace BomberMan
 			{
 				RenderUtility::SetFont( g , FONT_S24 );
 				g.setTextColor(Color3ub(255 , 255 , 255) );
-				g.drawText( Vec2i(0,0) , Global::getDrawEngine()->getScreenSize() , "Ready" );
+				g.drawText( Vec2i(0,0) , Global::GetDrawEngine()->getScreenSize() , "Ready" );
 			}
 			else
 			{
 				RenderUtility::SetFont( g , FONT_S24 );
 				g.setTextColor(Color3ub(255 , 0 , 0 ));
-				g.drawText( Vec2i(0,0) , Global::getDrawEngine()->getScreenSize() , "Go!" );
+				g.drawText( Vec2i(0,0) , Global::GetDrawEngine()->getScreenSize() , "Go!" );
 			}
 		}
 	}

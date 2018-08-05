@@ -34,12 +34,12 @@ namespace Shoot2D
 
 		mFrameCount = 0;
 		mFPS   = 0;
-		GameWindow& window = ::Global::getDrawEngine()->getWindow();
+		GameWindow& window = ::Global::GetDrawEngine()->getWindow();
 
 		ResourcesLoader::Get().setDC( window.getHDC() );
 		ResourcesLoader::Get().load();
 
-		de = new RenderEngine( ::Global::getGraphics2D().getRenderDC() );
+		de = new RenderEngine( ::Global::GetGraphics2D().getRenderDC() );
 
 		Rect_t rect;
 		rect.Min = Vec2D(0,0);

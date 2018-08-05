@@ -30,8 +30,8 @@ void GUISystem::finalize()
 Vec2i GUISystem::calcScreenCenterPos( Vec2i const& size )
 {
 	Vec2i pos;
-	pos.x = ( Global::getDrawEngine()->getScreenWidth() - size.x ) / 2;
-	pos.y = ( Global::getDrawEngine()->getScreenHeight() - size.y ) / 2;
+	pos.x = ( Global::GetDrawEngine()->getScreenWidth() - size.x ) / 2;
+	pos.y = ( Global::GetDrawEngine()->getScreenHeight() - size.y ) / 2;
 	return pos;
 }
 

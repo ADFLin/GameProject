@@ -139,6 +139,15 @@ namespace RenderGL
 		return CreateOpenGLObjectT< OpenGLStorageBuffer >(elementSize , numElement, creationFlags, data);
 	}
 
+	RHIAtomicCounterBuffer* OpenGLSystem::RHICreateAtomicCounterBuffer(uint32 numElement, uint32 creationFlags, void* data)
+	{
+		return CreateOpenGLObjectT< OpenGLAtomicCounterBuffer >(numElement, creationFlags, data);
+	}
+
+	RenderGL::RHIInputLayout* OpenGLSystem::RHICreateInputLayout(InputLayoutDesc const& desc)
+	{
+		return new OpenGLInputLayout(desc);
+	}
 
 	RHIFrameBuffer* OpenGLSystem::RHICreateFrameBuffer()
 	{

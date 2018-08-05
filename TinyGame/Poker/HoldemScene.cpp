@@ -237,7 +237,7 @@ namespace Poker { namespace Holdem {
 		{
 			FixString< 128 > str;
 			str.format( "( %d , %d )" , ui->getPos().x , ui->getPos().y );
-			g.drawText( Vec2i( ::Global::getDrawEngine()->getScreenWidth() , 10 ) , str );
+			g.drawText( Vec2i( ::Global::GetDrawEngine()->getScreenWidth() , 10 ) , str );
 		}
 	}
 
@@ -307,7 +307,7 @@ namespace Poker { namespace Holdem {
 
 	void Scene::drawSlotPanel( GWidget* widget )
 	{
-		Graphics2D& g = ::Global::getGraphics2D();
+		Graphics2D& g = ::Global::GetGraphics2D();
 
 		SlotPanel* panel = GUI::CastFast< SlotPanel >( widget );
 		SlotInfo& info = getLevel().getSlotInfo( panel->slotPos );

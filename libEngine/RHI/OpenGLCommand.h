@@ -55,16 +55,16 @@ namespace RenderGL
 		RHITexture3D*    RHICreateTexture3D(Texture::Format format, int sizeX, int sizeY, int sizeZ, uint32 createFlags, void* data);
 
 		RHITextureDepth* RHICreateTextureDepth(Texture::DepthFormat format, int w, int h);
-		RHITextureCube*  RHICreateTextureCube() override;
+		RHITextureCube*  RHICreateTextureCube();
 
 		RHIVertexBuffer*  RHICreateVertexBuffer(uint32 vertexSize, uint32 numVertices, uint32 creationFlags, void* data);
 		RHIIndexBuffer*   RHICreateIndexBuffer(uint32 nIndices, bool bIntIndex, uint32 creationFlags, void* data);
 		RHIUniformBuffer* RHICreateUniformBuffer(uint32 elementSize, uint32 numElement, uint32 creationFlags, void* data);
 		RHIStorageBuffer* RHICreateStorageBuffer(uint32 elementSize, uint32 numElement, uint32 creationFlags, void* data);
-
+		RHIAtomicCounterBuffer* RHICreateAtomicCounterBuffer(uint32 numElement, uint32 creationFlags, void* data);
 
 		RHIFrameBuffer*   RHICreateFrameBuffer();
-
+		RHIInputLayout*   RHICreateInputLayout(InputLayoutDesc const& desc);
 		RHISamplerState* RHICreateSamplerState(SamplerStateInitializer const& initializer);
 
 		RHIRasterizerState* RHICreateRasterizerState(RasterizerStateInitializer const& initializer);

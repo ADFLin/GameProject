@@ -250,7 +250,7 @@ namespace TripleTown
 	{
 		mMap.resize( mLevel->getMap().getSizeX() , mLevel->getMap().getSizeY() );
 
-		Vec2i screenSize = ::Global::getDrawEngine()->getScreenSize();
+		Vec2i screenSize = ::Global::GetDrawEngine()->getScreenSize();
 		Vec2i mapSize = TileLength * Vec2i( mLevel->getMap().getSizeX() , mLevel->getMap().getSizeY() );
 		mMapOffset = ( screenSize - mapSize ) / 2;
 
@@ -342,8 +342,8 @@ namespace TripleTown
 		float scaleItem = 0.8f;
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
 
-		int wScreen = ::Global::getDrawEngine()->getScreenWidth();
-		int hScreen = ::Global::getDrawEngine()->getScreenHeight();
+		int wScreen = ::Global::GetDrawEngine()->getScreenWidth();
+		int hScreen = ::Global::GetDrawEngine()->getScreenHeight();
 
 		glMatrixMode( GL_PROJECTION );
 		glLoadIdentity();

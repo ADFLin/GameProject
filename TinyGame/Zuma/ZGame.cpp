@@ -73,7 +73,7 @@ namespace Zuma
 		//GameInitializer
 		virtual bool           setupWindow( char const* title , int w , int h )
 		{
-			DrawEngine* drawEngine = ::Global::getDrawEngine();
+			DrawEngine* drawEngine = ::Global::GetDrawEngine();
 			mOldSize = drawEngine->getScreenSize();
 			drawEngine->changeScreenSize( w , h );
 			
@@ -83,7 +83,7 @@ namespace Zuma
 
 		virtual IRenderSystem* createRenderSystem()
 		{
-			DrawEngine* drawEngine = ::Global::getDrawEngine();
+			DrawEngine* drawEngine = ::Global::GetDrawEngine();
 			GameWindow& window = drawEngine->getWindow();
 
 			//HDC hDC = ::Global::getGraphics2D().getTargetDC();
@@ -120,8 +120,8 @@ namespace Zuma
 		{
 			mGameCore->cleanup();
 
-			::Global::getDrawEngine()->stopOpenGL();
-			::Global::getDrawEngine()->changeScreenSize( mOldSize.x , mOldSize.y );
+			::Global::GetDrawEngine()->stopOpenGL();
+			::Global::GetDrawEngine()->changeScreenSize( mOldSize.x , mOldSize.y );
 
 			BaseClass::onEnd();
 

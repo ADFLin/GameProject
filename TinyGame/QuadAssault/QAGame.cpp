@@ -21,12 +21,12 @@ public:
 	{
 		if( !BaseClass::onInit() )
 			return false;
-		if (!::Global::getDrawEngine()->startOpenGL(true) )
+		if (!::Global::GetDrawEngine()->startOpenGL(true) )
 			return false;
 
 		::Global::GUI().cleanupWidget();
 
-		Vec2i screenSize = ::Global::getDrawEngine()->getScreenSize();
+		Vec2i screenSize = ::Global::GetDrawEngine()->getScreenSize();
 		mGame = new Game();
 		if( !mGame->init("config.txt" , screenSize , false ) )
 			return false;

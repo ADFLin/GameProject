@@ -64,7 +64,7 @@ void RenderUtility::Initialize()
 		hCPen[COLOR_LIGHT][i] = CreatePen(PS_SOLID, 1, gColorMap[COLOR_LIGHT][i].toXBGR() );
 	}
 
-	DrawEngine* de = Global::getDrawEngine();
+	DrawEngine* de = Global::GetDrawEngine();
 
 	HFONT badFont = de->createFont( 20 , TEXT("華康中圓體") , true , false );
 	DeleteObject( badFont );
@@ -229,7 +229,7 @@ void RenderUtility::StartOpenGL()
 {
 	using namespace RenderGL;
 
-	HDC hDC = ::Global::getDrawEngine()->getWindow().getHDC();
+	HDC hDC = ::Global::GetDrawEngine()->getWindow().getHDC();
 	FontCharCache::Get().hDC = hDC;
 
 	char const* faceName = "新細明體";

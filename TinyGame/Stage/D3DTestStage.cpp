@@ -5,8 +5,6 @@
 #include "RHI/RHICommon.h"
 #include "RHI/D3D11Command.h"
 
-#define CODE_STRING_INNER( CODE_TEXT ) R#CODE_TEXT
-#define CODE_STRING( CODE_TEXT ) CODE_STRING_INNER( CODE(##CODE_TEXT)CODE );
 
 char const* Code = CODE_STRING(
 struct VSInput
@@ -109,7 +107,7 @@ namespace RenderD3D
 		}
 
 		template< Shader::Type TypeValue >
-		void SetShaderResourceInternal(D3D11ShaderParameter const parameter, ID3D11ShaderResourceView* view)
+		void SetShaderResourceInternal(ShaderParameter const parameter, ID3D11ShaderResourceView* view)
 		{
 			switch( TypeValue )
 			{
@@ -125,7 +123,7 @@ namespace RenderD3D
 
 		static int constexpr MaxConstBufferNum = 1;
 
-		struct ConstBufferInfo
+		struct ShaderConstDataBuffer
 		{
 			TComPtr< ID3D11Buffer > resource;
 			std::vector< uint8 >    updateData;
@@ -144,7 +142,7 @@ namespace RenderD3D
 				return true;
 			}
 
-			void setUpdateValue(D3D11ShaderParameter const parameter, void const* value , int valueSize )
+			void setUpdateValue(ShaderParameter const parameter, void const* value , int valueSize )
 			{
 				int idxDataEnd = parameter.offset + parameter.size;
 				if( updateData.size() <= idxDataEnd )
@@ -169,11 +167,11 @@ namespace RenderD3D
 			}
 		};
 
-		ConstBufferInfo mConstBuffers[Shader::NUM_SHADER_TYPE][MaxConstBufferNum];
+		ShaderConstDataBuffer mConstBuffers[Shader::NUM_SHADER_TYPE][MaxConstBufferNum];
 
 
 		template< Shader::Type TypeValue >
-		void SetShaderValueInternal(D3D11ShaderParameter const parameter, void const* value, int valueSize)
+		void SetShaderValueInternal(ShaderParameter const parameter, void const* value, int valueSize)
 		{
 			assert(parameter.bindIndex < MaxConstBufferNum);
 			mConstBuffers[TypeValue][parameter.bindIndex].setUpdateValue(parameter, value, valueSize);
@@ -206,7 +204,7 @@ namespace RenderD3D
 			if( !BaseClass::onInit() )
 				return false;
 
-			if ( !::Global::getDrawEngine()->initializeRHI(RHITargetName::D3D11 , 1 ) )
+			if ( !::Global::GetDrawEngine()->initializeRHI(RHITargetName::D3D11 , 1 ) )
 			{
 				LogWarning( 0 , "Can't Initialize RHI System! ");
 				return false;
@@ -214,8 +212,8 @@ namespace RenderD3D
 
 			mRHISystem = static_cast<D3D11System*>(gRHISystem);
 
-			GameWindow& window = ::Global::getDrawEngine()->getWindow();
-			::Global::getDrawEngine()->bUsePlatformBuffer = true;
+			GameWindow& window = ::Global::GetDrawEngine()->getWindow();
+			::Global::GetDrawEngine()->bUsePlatformBuffer = true;
 			if( !mRHISystem->createFrameSwapChain(window.getHWnd(), window.getWidth(), window.getHeight(), true, mSwapChain) )
 			{
 				return false;
@@ -285,13 +283,12 @@ namespace RenderD3D
 			
 				VERIFY_D3D11RESULT_RETURN_FALSE(device->CreateBuffer(&bufferDesc, &initData, &mVertexBuffer));
 
-				D3D11_INPUT_ELEMENT_DESC descList[] =
-				{
-					{ "ATTRIBUTE" , 0 , DXGI_FORMAT_R32G32_FLOAT, 0, offsetof(MyVertex,pos), D3D11_INPUT_PER_VERTEX_DATA, 0 } ,
-					{ "ATTRIBUTE" , 1 , DXGI_FORMAT_R32G32B32_FLOAT, 0, offsetof(MyVertex,color), D3D11_INPUT_PER_VERTEX_DATA, 0 } ,
-					{ "ATTRIBUTE" , 2 , DXGI_FORMAT_R32G32_FLOAT, 0, offsetof(MyVertex,uv), D3D11_INPUT_PER_VERTEX_DATA, 0 } ,
-				};
-				VERIFY_D3D11RESULT_RETURN_FALSE(device->CreateInputLayout(descList, ARRAY_SIZE(descList), mVertexShaderByteCode->GetBufferPointer(), mVertexShaderByteCode->GetBufferSize(), &mVertexInputLayout));
+
+				InputLayoutDesc desc;
+				desc.addElement(0, Vertex::ATTRIBUTE0, Vertex::eFloat2);
+				desc.addElement(0, Vertex::ATTRIBUTE1, Vertex::eFloat3);
+				desc.addElement(0, Vertex::ATTRIBUTE2, Vertex::eFloat2);
+				mInputLayout = RHICreateInputLayout(desc);
 			}
 
 			{
@@ -316,7 +313,7 @@ namespace RenderD3D
 			return true;
 		}
 		TComPtr< ID3D11RenderTargetView > renderTargetView;
-		TComPtr< ID3D11InputLayout > mVertexInputLayout;
+		RHIInputLayoutRef mInputLayout;
 		TComPtr< ID3D11Buffer > mVertexBuffer;
 		virtual void onEnd()
 		{
@@ -350,10 +347,10 @@ namespace RenderD3D
 
 		void onRender(float dFrame)
 		{
-			Graphics2D& g = Global::getGraphics2D();
+			Graphics2D& g = Global::GetGraphics2D();
 			TComPtr< ID3D11DeviceContext >& context = mRHISystem->mDeviceContext;
 			TComPtr< ID3D11Device >& device = mRHISystem->mDevice;
-			GameWindow& window = ::Global::getDrawEngine()->getWindow();
+			GameWindow& window = ::Global::GetDrawEngine()->getWindow();
 
 			context->ClearRenderTargetView(renderTargetView ,Vector4(0.2, 0.2, 0.2,1));
 			context->OMSetRenderTargets(1, &renderTargetView, NULL);
@@ -363,7 +360,6 @@ namespace RenderD3D
 
 			RHISetBlendState(TStaticBlendState< CWM_RGBA, Blend::eOne, Blend::eOne >::GetRHI());
 
-			context->IASetInputLayout(mVertexInputLayout);
 			context->VSSetShader(mVertexShader, nullptr, 0);
 			context->PSSetShader(mPixelShader, nullptr, 0);
 
@@ -403,13 +399,14 @@ namespace RenderD3D
 			{
 				UINT stride = sizeof(MyVertex);
 				UINT offset = 0;
-				context->IASetVertexBuffers(0, 1, &mVertexBuffer, &stride, &offset);
+				context->IASetInputLayout(D3D11Cast::GetResource(mInputLayout));
+				context->IASetVertexBuffers(0, 1, &mVertexBuffer, &stride, &offset);		
 				RHIDrawPrimitive(PrimitiveType::TriangleStrip, 0 , 4 );
 			}
 			
 			context->Flush();
 
-			if( !::Global::getDrawEngine()->bUsePlatformBuffer )
+			if( !::Global::GetDrawEngine()->bUsePlatformBuffer )
 			{
 				mSwapChain.ptr->Present(1, 0);
 			}
@@ -420,8 +417,8 @@ namespace RenderD3D
 				HDC hDC;
 				VERIFY_D3D11RESULT( surface->GetDC(FALSE, &hDC) , );
 
-				int w = ::Global::getDrawEngine()->getScreenWidth();
-				int h = ::Global::getDrawEngine()->getScreenHeight();
+				int w = ::Global::GetDrawEngine()->getScreenWidth();
+				int h = ::Global::GetDrawEngine()->getScreenHeight();
 				::BitBlt(g.getRenderDC(), 0, 0, w, h, hDC, 0, 0, SRCCOPY);
 				VERIFY_D3D11RESULT( surface->ReleaseDC(NULL) , );
 			}

@@ -21,21 +21,26 @@
 
 #define UI_NO_PARENT (void*)(~0)
 
-
-
 enum WidgetInternalFlag
 {
-	WIF_STAY_TOP            = BIT(1) ,
-	WIF_WORLD_POS_CACHED    = BIT(2) ,
-	WIF_DISABLE             = BIT(3) ,
-	WIF_BE_HIDDEN           = BIT(4) ,
-	WIF_HITTEST_CHILDREN    = BIT(5) ,
-	WIF_DEFERRED_DESTROY    = BIT(6) ,
-	WIF_PARENT_MOUSE_EVENT  = BIT(7) ,
-	WIF_MARK_DESTROY        = BIT(8) ,
-	WIF_EFFECT_DISABLE_CHILD= BIT(9) ,
-	WIF_MANAGER_REF         = BIT(10),
-	WIF_GLOBAL              = BIT(11),
+	WIF_STAY_TOP             = BIT(1) ,
+	WIF_WORLD_POS_CACHED     = BIT(2) ,
+	WIF_DISABLE              = BIT(3) ,
+	WIF_BE_HIDDEN            = BIT(4) ,
+	WIF_HITTEST_CHILDREN     = BIT(5) ,
+	WIF_DEFERRED_DESTROY     = BIT(6) ,
+
+	WIF_MARK_DESTROY         = BIT(7),
+	WIF_EFFECT_DISABLE_CHILD = BIT(8),
+	WIF_MANAGER_REF          = BIT(9),
+	WIF_GLOBAL               = BIT(10),
+
+	WIF_REROUTE_MOUSE_EVENT_UNHANDLED = BIT(11),
+	WIF_REROUTE_KEY_EVENT_UNHANDLED = BIT(12),
+	WIF_REROUTE_CHAR_EVENT_UNHANDLED = BIT(13),
+	WIF_REROUTE_MOUSE_EVENT = BIT(14),
+	WIF_REROUTE_KEY_EVENT = BIT(15),
+	WIF_REROUTE_CHAR_EVENT = BIT(16),
 };
 
 #ifdef max
@@ -158,11 +163,19 @@ private:
 	bool          clipTest() { return _this()->doClipTest(); }
 	WidgetCoreT*  hitTestChildren(Vec2i const& testPos);
 
+public:
+	void          setRerouteMouseMsgUnhandled() { addFlagInternal(WIF_REROUTE_MOUSE_EVENT_UNHANDLED); }
+	void          setRerouteKeyMsgUnhandled() { addFlagInternal(WIF_REROUTE_KEY_EVENT_UNHANDLED); }
+	void          setRerouteCharMsgUnhandled() { addFlagInternal(WIF_REROUTE_CHAR_EVENT_UNHANDLED); }
+
+	void          setRerouteMouseMsg() { addFlagInternal(WIF_REROUTE_MOUSE_EVENT); }
+	void          setRerouteKeyMsg() { addFlagInternal(WIF_REROUTE_KEY_EVENT); }
+	void          setRerouteCharMsg(){ addFlagInternal(WIF_REROUTE_CHAR_EVENT); }
+
 protected:
-	void          skipMouseMsg() { addFlagInternal(WIF_PARENT_MOUSE_EVENT); }
+	
 	void          markDeferredDestroy() { addFlagInternal(WIF_DEFERRED_DESTROY); }
 	void          unmarkDeferredDestroy() { removeFlagInternal(WIF_DEFERRED_DESTROY); }
-
 
 	void          addFlagInternal( unsigned flag ){ mFlag |= flag; }
 	void          removeFlagInternal( unsigned flag ){ mFlag &= ~flag; }
@@ -264,6 +277,9 @@ protected:
 
 	void        prevProcMsg();
 	void        postProcMsg();
+
+	template< class Fun >
+	bool processMessage(WidgetCore* ui, WidgetInternalFlag flag, WidgetInternalFlag unhandledFlag, Fun fun);
 
 	struct ProcMsgScope
 	{

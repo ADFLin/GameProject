@@ -43,7 +43,7 @@ namespace RenderGL
 	{
 	public:
 		virtual VertexFactoryType& getType() = 0;
-		VertexDecl*  vertexDecl;
+		InputLayoutDesc*  vertexDecl;
 		static VertexFactoryShaderData* CreateShaderData() { return nullptr; }
 		static void ModifyCompilationOption(ShaderCompileOption& option){}
 	};

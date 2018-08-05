@@ -8,123 +8,155 @@
 #include "FunCallback.h"
 #include <cstring>
 #include "Singleton.h"
+#include "FixString.h"
+#include "HashString.h"
+#include "TypeConstruct.h"
 
 #include <string>
 #include <map>
 
-struct ComBase
+class ConsoleCommandBase
 {
- 	CORE_API ComBase( char const* _name , void* _ptr ,
-		     int _num , char const** _pararm );
-
-	CORE_API virtual ~ComBase(){}
+public:
+ 	ConsoleCommandBase( char const* inName , int inNumParam , char const** inPararmFormat );
+	virtual ~ConsoleCommandBase(){}
 
 	std::string  name;
-	void*        ptr;
-	char const** Param;
+	char const** paramFormat;
 	int          numParam;
 
-	ComBase* next;
-	virtual void exec(void** dataMap ) = 0;
-	virtual void getVal(void* g){}
-
-	static ComBase* s_unRegCom;
+	virtual void execute( void* argsData[] ) = 0;
+	virtual void getValue( void* pDest ){}
 
 };
 
 
 template < class FunSig , class T = void >
-struct MemFunCom : public ComBase
+struct TMemberFunConsoleCommand : public ConsoleCommandBase
 {
 	FunSig fun;
+	T*     mObject;
 
-	MemFunCom( char const* _name , FunSig _fun , T* _obj = NULL )
-		:ComBase( _name , _obj,
+	TMemberFunConsoleCommand( char const* inName , FunSig inFun, T* inObj = NULL )
+		:ConsoleCommandBase(inName, inObj,
 			detail::FunTraits<FunSig>::NumParam ,
 			detail::FunTraits<FunSig>::getParam() )
-		,fun(_fun)
+		,fun(inFun), mObject(inObj)
 	{
 	}
 
-	void exec(void** dataMap )
+	virtual void execute(void* argsData[]) override
 	{
-		execCallbackFun(  fun , (T*) ptr , dataMap );
+		ExecuteCallbackFun(  fun , mObject, argsData );
 	}
 };
 
 template < class FunSig >
-struct BaseFunCom : public ComBase
+struct BaseFunCom : public ConsoleCommandBase
 {
-	BaseFunCom( char const* _name , void* _fun )
-		:ComBase( _name ,_fun ,
+	FunSig mFun;
+	BaseFunCom( char const* inName, void* inFun)
+		:ConsoleCommandBase(inName,
 			detail::FunTraits<FunSig>::NumParam ,
 			detail::FunTraits<FunSig>::getParam() )
+		,mFun(inFun)
 	{
 	}
 
-	void exec(void** dataMap )
+	virtual void execute(void* argsData[]) override
 	{
-		execCallbackFun( ( FunSig )ptr , dataMap );
+		ExecuteCallbackFun( mFun , argsData);
 	}
 };
 
 
 template < class Type >
-struct VarCom : public ComBase
+struct TVariableConsoleCommad : public ConsoleCommandBase
 {
-	VarCom( char const* _name , void* _ptr )
-		:ComBase( _name, _ptr , 1 , detail::TypeToParam< Type >::getParam() )
+	Type* mPtr;
+
+	TVariableConsoleCommad( char const* inName, Type* inPtr )
+		:ConsoleCommandBase(inName, 1 , detail::TypeToParam< Type >::getParam() )
+		,mPtr(inPtr)
 	{
 	}
 
-	void exec( void** dataMap )
+	virtual void execute(void* argsData[]) override
 	{
-		*(Type*)ptr = *(Type*)dataMap[0];
-		//memcpy( ptr , dataMap[0] , sizeof(Type) );
+		TypeDataHelper::Assign(mPtr, *(Type*)argsData[0]);
 	}
 
-	void getVal(void* g)
+	virtual void getValue(void* pDest) override
 	{
-		*(Type*)g   = *(Type*) ptr;
+		TypeDataHelper::Assign((Type*)pDest, *mPtr);
 	}
 };
 
-class ConsoleSystem : public SingletonT< ConsoleSystem >
+class ConsoleSystem
 {
 public:
 	ConsoleSystem();
 	~ConsoleSystem();
 
-	CORE_API bool        init();
-	CORE_API bool        executeCommand( char const* comStr );
+	static CORE_API ConsoleSystem& Get();
+
+	CORE_API bool        initialize();
+	CORE_API void        finalize();
+
+	
+	CORE_API bool        executeCommand(char const* comStr);
 	CORE_API int         findCommandName( char const* includeStr, char const** findStr , int maxNum );
 	CORE_API int         findCommandName2( char const* includeStr , char const** findStr , int maxNum );
 
-	CORE_API void        unregisterByName( char const* name );
-	char const* getErrorMsg() const { return m_errorMsg.c_str(); }
+	CORE_API void        unregisterCommand( ConsoleCommandBase* commond );
+	CORE_API void        unregisterCommandByName( char const* name );
+
+
+	CORE_API void     insertCommand(ConsoleCommandBase* com);
+
+	bool isInitialized() const { return mbInitialized; }
+
+	char const* getErrorMsg() const { return mLastErrorMsg.c_str(); }
 
 	template < class T >
 	static void registerVar( char const* name , T* obj )
 	{
-		VarCom<T>* command = new VarCom<T>( name , obj );
+		auto* command = new TVariableConsoleCommad<T>( name , obj );
+		insertCommand(command);
 	}
 
 	template < class FunSig , class T >
 	static void registerCommand( char const* name , FunSig fun , T* obj )
 	{
-		MemFunCom<FunSig , T >* command = new MemFunCom<FunSig , T >( name ,fun , obj );
+		auto* command = new TMemberFunConsoleCommand<FunSig , T >( name ,fun , obj );
+		insertCommand(command);
 	}
 
 	template < class FunSig >
 	static void registerCommand( char const* name , FunSig fun )
 	{
-		BaseFunCom<FunSig>* command = new BaseFunCom<FunSig>( name ,fun );
+		auto* command = new BaseFunCom<FunSig>( name ,fun );
+		insertCommand(command);
 	}
 
 protected:
-	void     insertCommand( ComBase* com );
-	char*    fillVarData( char* data , char const* format );
-	ComBase* findCommand( char const* str );
+
+
+	static int const NumMaxParams = 16;
+	struct ExecuteContext
+	{
+		FixString<512> buffer;
+		ConsoleCommandBase*    command;
+		char const* commandString;
+		char const* paramStrings[NumMaxParams];
+		int  numParam;
+		int  numUsedParam;
+		bool init(char const* inCommandString);
+	};
+
+	int  fillParameterData(ExecuteContext& context , uint8* data , char const* format );
+	bool executeCommandImpl(char const* comStr);
+	ConsoleCommandBase* findCommand( char const* str );
 
 
 	struct StrCmp
@@ -135,99 +167,81 @@ protected:
 		}
 	};
 
-	typedef std::map< char const* , ComBase* ,StrCmp > CommandMap;
+	typedef std::map< char const* , ConsoleCommandBase* ,StrCmp > CommandMap;
 
 	CommandMap  mNameMap;
-	ComBase*    m_curCom;
+	bool        mbInitialized = false;
+	ConsoleCommandBase* mRegisterdCommand = nullptr;
+	std::string  mLastErrorMsg;
 
-	static int const NumMaxParams = 16;
-
-	int         m_numStr;
-	char*       m_str[ NumMaxParams ];
-	int         m_numParam;
-	int         m_numUsedParam;
-	int         m_fillNum[ NumMaxParams ];
-	char*       m_paramStr[ NumMaxParams ];
-	void*       m_dataMap[NumMaxParams];
-
-	std::string m_errorMsg;
-
-	char*       m_strBuffer;
-	char*       m_dataBuffer;
-
-
-	friend struct ComBase;
+	friend struct ConsoleCommandBase;
 };
 
 template < class T >
-inline void ConVarCom( char const* name , T* obj )
+inline void MakeConsoleCommand( char const* name , T* obj )
 {
-	VarCom<T>* command = new VarCom<T>( name , obj );
+	TVariableConsoleCommad<T>* command = new TVariableConsoleCommad<T>( name , obj );
 }
 
 template < class FunSig , class T >
-inline void ConCommand( char const* name , FunSig fun , T* obj )
+inline void MakeConsoleCommand( char const* name , FunSig fun , T* obj )
 {
-	MemFunCom<FunSig , T >* command = new MemFunCom<FunSig , T >( name ,fun , obj );
+	TMemberFunConsoleCommand<FunSig , T >* command = new TMemberFunConsoleCommand<FunSig , T >( name ,fun , obj );
 }
 
 template < class FunSig >
-inline void ConCommand( char const* name , FunSig fun )
+inline void MakeConsoleCommand( char const* name , FunSig fun )
 {
 	BaseFunCom<FunSig>* command = new BaseFunCom<FunSig>( name ,fun );
 }
 
 template< class T >
-class ConVar
+class TConsoleVariable
 {
 public:
-	ConVar(T const& val , char const* name )
-		:m_val(val)
+	TConsoleVariable(T const& val , char const* name )
+		:mValue(val)
 	{
-		data = new VarCom<T>( name , &m_val );
+		mCommand = new TVariableConsoleCommad<T>( name , &mValue );
+		ConsoleSystem::Get().insertCommand(mCommand);
 	}
-	~ConVar()
+	~TConsoleVariable()
 	{
-		extern ConsoleSystem* getConsole();
-		if ( getConsole() )
-			getConsole()->unregisterByName( data->name.c_str() );
+		ConsoleSystem::Get().unregisterCommand( mCommand );
 	}
 
-	T const& getValue() const { return m_val; }
-	ConVar operator = ( T const& val ){   m_val = val;   }
-	operator T(){ return m_val; }
+	T const& getValue() const { return mValue; }
+	TConsoleVariable operator = ( T const& val ){   mValue = val;   }
+	operator T(){ return mValue; }
 
-	VarCom<T>* data;
-	T m_val;
+	TVariableConsoleCommad<T>* mCommand;
+	T mValue;
 };
 
 
 template< class T >
-class ConVarRef
+class TConsoleVariableRef
 {
 public:
-	ConVarRef(T& val, char const* name)
-		:m_val(val)
+	TConsoleVariableRef(T& val, char const* name)
+		:mValueRef(val)
 	{
-		data = new VarCom<T>(name, &m_val);
+		mCommand = new TVariableConsoleCommad<T>(name, &mValueRef);
+		ConsoleSystem::Get().insertCommand(mCommand);
 	}
-	~ConVarRef()
+	~TConsoleVariableRef()
 	{
-		extern ConsoleSystem* getConsole();
-		if( getConsole() )
-			getConsole()->unregisterByName(data->name.c_str());
+		ConsoleSystem::Get().unregisterCommand(mCommand);
 	}
 
-	T const& getValue() const { return m_val; }
-	ConVar operator = (T const& val) { m_val = val; }
-	operator T() { return m_val; }
+	T const& getValue() const { return mValueRef; }
+	TConsoleVariable operator = (T const& val) { mValueRef = val; }
+	operator T() { return mValueRef; }
 
-	VarCom<T>* data;
-	T& m_val;
+	TVariableConsoleCommad<T>* mCommand;
+	T& mValueRef;
 };
 
-#define DECLARE_CON_VAR( type , name ) extern ConVar<type> name;
-#define DEFINE_CON_VAR( type , name , val ) ConVar<type> name( val , #name );
 
 
 #endif // ConsoleSystem_h__

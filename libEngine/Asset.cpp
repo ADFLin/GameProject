@@ -275,10 +275,15 @@ bool AssetManager::init()
 	return true;
 }
 
-void AssetManager::tick()
+void AssetManager::cleanup()
+{
+	mAssetMap.clear();
+	mFileModifyMonitor.cleanup();
+}
+
+void AssetManager::tick(long time)
 {
 #if SYS_PLATFORM_WIN
-	
 	mFileModifyMonitor.checkDirectoryStatus(0);
 #endif
 }
@@ -297,7 +302,8 @@ bool AssetManager::registerAsset(AssetBase* asset)
 		assert(std::find(assetList.begin(), assetList.end(), asset) == assetList.end());
 		assetList.push_back(asset);
 #if SYS_PLATFORM_WIN
-		std::wstring dir = std::wstring(path.c_str(),FileUtility::GetDirPathPos(path.c_str()) - path.c_str());
+		wchar_t const* pathPos = FileUtility::GetDirPathPos(path.c_str());
+		std::wstring dir = pathPos ? std::wstring(path.c_str(),pathPos - path.c_str()) : std::wstring();
 		mFileModifyMonitor.addDirectoryPath(dir.c_str(), false);
 #endif
 	}

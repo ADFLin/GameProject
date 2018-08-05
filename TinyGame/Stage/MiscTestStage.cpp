@@ -209,7 +209,7 @@ namespace MRT
 
 	void TestStage::onRender(float dFrame)
 	{
-		Graphics2D& g = Global::getGraphics2D();
+		Graphics2D& g = Global::GetGraphics2D();
 
 		if( mStationSelected )
 		{
@@ -293,7 +293,7 @@ namespace MRT
 		station->visual->setRenderCallback(
 			RenderCallBack::Create([](GWidget* widget)
 		{
-			Graphics2D& g = ::Global::getGraphics2D();
+			Graphics2D& g = ::Global::GetGraphics2D();
 			Station* station = (Station*)widget->getUserData();
 			FixString<256> str;
 			str.format("%s %.2f", station->name.c_str(), station->totalDistance);
@@ -565,11 +565,11 @@ namespace Bsp2D
 
 	void TestStage::onRender( float dFrame )
 	{
-		Graphics2D& g = Global::getGraphics2D();
+		Graphics2D& g = Global::GetGraphics2D();
 
 		RenderUtility::SetBrush( g , EColor::Gray );
 		RenderUtility::SetPen( g , EColor::Gray );
-		g.drawRect( Vec2i(0,0) , ::Global::getDrawEngine()->getScreenSize() );
+		g.drawRect( Vec2i(0,0) , ::Global::GetDrawEngine()->getScreenSize() );
 
 		RenderUtility::SetPen( g , EColor::Black );
 		RenderUtility::SetBrush( g , EColor::Yellow );
@@ -749,7 +749,7 @@ namespace Bsp2D
 		case UI_BUILD_TREE:
 			if ( !mPolyAreaMap.empty() )
 			{
-				Vec2i size = ::Global::getDrawEngine()->getScreenSize();
+				Vec2i size = ::Global::GetDrawEngine()->getScreenSize();
 				mTree.build( &mPolyAreaMap[0] , (int)mPolyAreaMap.size() , 
 					Vector2( 1 , 1 ) , Vector2( size.x / 10 - 1, size.y / 10 - 1 ));
 			}
@@ -846,9 +846,9 @@ namespace Bsp2D
 
 void GLGraphics2DTestStage::onRender(float dFrame)
 {
-	GameWindow& window = ::Global::getDrawEngine()->getWindow();
+	GameWindow& window = ::Global::GetDrawEngine()->getWindow();
 
-	GLGraphics2D& g = ::Global::getDrawEngine()->getGLGraphics();
+	GLGraphics2D& g = ::Global::GetDrawEngine()->getGLGraphics();
 	glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
 	g.beginRender();
 
@@ -1038,6 +1038,7 @@ static void PrintMsg(std::string &str)
 
 static void TestBigNumber()
 {
+	
 	float value = 1.4e-44;
 	SFloatFormat* fv = (SFloatFormat*)&value;
 

@@ -2,6 +2,9 @@
 
 #include "GpuProfiler.h"
 #include "RHICommand.h"
+#include "OpenGLCommon.h"
+
+
 
 #include "ShaderCompiler.h"
 #include "VertexFactory.h"
@@ -471,9 +474,9 @@ namespace RenderGL
 	class DeferredLightingProgram : public GlobalShaderProgram
 	{
 	public:
-		void bindParameters()
+		void bindParameters(ShaderParameterMap& parameterMap)
 		{
-			mParamGBuffer.bindParameters(*this, true);
+			mParamGBuffer.bindParameters(parameterMap, true);
 		}
 		void setParamters(SceneRenderTargets& sceneRenderTargets)
 		{
@@ -912,7 +915,7 @@ namespace RenderGL
 			return entries;
 		}
 	public:
-		void bindParameters();
+		void bindParameters(ShaderParameterMap& parameterMap);
 		void setParameters(SceneRenderTargets& sceneRenderTargets, Vector3 kernelVectors[], int numKernelVector);
 
 		GBufferShaderParameters mParamGBuffer;
@@ -943,7 +946,7 @@ namespace RenderGL
 			return entries;
 		}
 	public:
-		void bindParameters();
+		void bindParameters(ShaderParameterMap& parameterMap);
 		void setParameters(RHITexture2D& SSAOTexture);
 
 		ShaderParameter mParamTextureSSAO;
@@ -970,7 +973,7 @@ namespace RenderGL
 			return entries;
 		}
 	public:
-		void bindParameters();
+		void bindParameters(ShaderParameterMap& parameterMap);
 		void setParameters(SceneRenderTargets& sceneRenderTargets, RHITexture2D& SSAOTexture);
 
 		GBufferShaderParameters mParamGBuffer;
@@ -1167,18 +1170,28 @@ namespace RenderGL
 	bool OITShaderData::init(int storageSize, IntVector2 const& screenSize)
 	{
 		colorStorageTexture = RHICreateTexture2D(Texture::eRGBA16F, storageSize, storageSize);
-		if( !colorStorageTexture.isValid() )
-			return false;
+		VERIFY_INITRESULT(colorStorageTexture.isValid());
+
 		nodeAndDepthStorageTexture = RHICreateTexture2D(Texture::eRGBA32I, storageSize, storageSize);
-		if( !nodeAndDepthStorageTexture.isValid() )
-			return false;
+		VERIFY_INITRESULT(nodeAndDepthStorageTexture.isValid());
+
 		nodeHeadTexture = RHICreateTexture2D(Texture::eR32U, screenSize.x, screenSize.y);
-		if( !nodeHeadTexture.isValid() )
-			return false;
+		VERIFY_INITRESULT(nodeHeadTexture.isValid());
+
+		storageUsageCounter = RHICreateAtomicCounterBuffer(1);
+		VERIFY_INITRESULT(storageUsageCounter.isValid());
 
 		return true;
 	}
 
+
+	void OITShaderData::releaseRHI()
+	{
+		colorStorageTexture.release();
+		nodeAndDepthStorageTexture.release();
+		nodeHeadTexture.release();
+		storageUsageCounter.release();
+	}
 
 	class BMAResolveProgram : public GlobalShaderProgram
 	{
@@ -1186,7 +1199,7 @@ namespace RenderGL
 
 		DECLARE_GLOBAL_SHADER(BMAResolveProgram);
 
-		void bindParameters();
+		void bindParameters(ShaderParameterMap& parameterMap);
 
 		void setParameters(OITShaderData& data);
 
@@ -1220,9 +1233,6 @@ namespace RenderGL
 	{
 		VERIFY_INITRESULT(mShaderData.init(OIT_StorageSize, size));
 
-		if( !mStorageUsageCounter.create() )
-			return false;
-
 		{
 			ShaderCompileOption option;
 			option.version = 430;
@@ -1255,8 +1265,8 @@ namespace RenderGL
 				Vector4(1,1,0,1) , Vector4(-1,1,0,1) , Vector4(-1,-1,0,1) , Vector4(1,-1,0,1)
 			};
 			int indices[] = { 0 , 1 , 2 , 0 , 2 , 3 };
-			mScreenMesh.mDecl.addElement(Vertex::ATTRIBUTE_POSITION, Vertex::eFloat4);
-			if( !mScreenMesh.createBuffer(v, 4, indices, 6, true) )
+			mScreenMesh.mInputLayoutDesc.addElement(Vertex::ATTRIBUTE_POSITION, Vertex::eFloat4);
+			if( !mScreenMesh.createRHIResource(v, 4, indices, 6, true) )
 				return false;
 		}
 
@@ -1314,6 +1324,7 @@ namespace RenderGL
 			mShaderBassPassTest.setRWTexture(SHADER_PARAM(ColorStorageRWTexture), *mShaderData.colorStorageTexture, AO_WRITE_ONLY);
 			mShaderBassPassTest.setRWTexture(SHADER_PARAM(NodeAndDepthStorageRWTexture), *mShaderData.nodeAndDepthStorageTexture, AO_READ_AND_WRITE);
 			mShaderBassPassTest.setRWTexture(SHADER_PARAM(NodeHeadRWTexture), *mShaderData.nodeHeadTexture, AO_READ_AND_WRITE);
+			mShaderBassPassTest.setBuffer(SHADER_PARAM(NextIndex), *mShaderData.storageUsageCounter);
 
 
 			//
@@ -1418,15 +1429,11 @@ namespace RenderGL
 		{
 			GPU_PROFILE("BasePass");
 			RHISetBlendState(TStaticBlendState<CWM_NONE>::GetRHI());
-			mStorageUsageCounter.setValue(0);
+			OpenGLCast::To( mShaderData.storageUsageCounter )->setValue(0);
 			glMemoryBarrier(GL_ALL_BARRIER_BITS);
-
-			mStorageUsageCounter.bind();
 
 			//GL_BIND_LOCK_OBJECT(sceneRenderTargets.getFrameBuffer());
 			drawFuncion();
-
-			mStorageUsageCounter.unbind();
 			glFlush();
 			glMemoryBarrier(GL_ALL_BARRIER_BITS);
 
@@ -1508,14 +1515,14 @@ namespace RenderGL
 			return entries;
 		}
 
-		void bindParameters()
+		void bindParameters(ShaderParameterMap& parameterMap)
 		{
-			BaseClass::bindParameters();
+			BaseClass::bindParameters(parameterMap);
 
-			mParamColorStorageTexture.bind( *this , SHADER_PARAM(ColorStorageRWTexture) );
-			mParamNodeAndDepthStorageTexture.bind(*this, SHADER_PARAM(NodeAndDepthStorageRWTexture));
-			mParamNodeHeadTexture.bind(*this , SHADER_PARAM(NodeHeadRWTexture));
-
+			parameterMap.bind(mParamColorStorageTexture, SHADER_PARAM(ColorStorageRWTexture) );
+			parameterMap.bind(mParamNodeAndDepthStorageTexture, SHADER_PARAM(NodeAndDepthStorageRWTexture));
+			parameterMap.bind(mParamNodeHeadTexture, SHADER_PARAM(NodeHeadRWTexture));
+			parameterMap.bind(mParamNextIndex, SHADER_PARAM(NextIndex));
 		}
 
 		void setParameter( OITShaderData& data )
@@ -1523,11 +1530,13 @@ namespace RenderGL
 			setRWTexture(mParamColorStorageTexture, *data.colorStorageTexture, AO_WRITE_ONLY);
 			setRWTexture(mParamNodeAndDepthStorageTexture, *data.nodeAndDepthStorageTexture, AO_READ_AND_WRITE);
 			setRWTexture(mParamNodeHeadTexture, *data.nodeHeadTexture, AO_READ_AND_WRITE);
+			setBuffer(mParamNextIndex, *data.storageUsageCounter);
 		}
 
 		ShaderParameter mParamColorStorageTexture;
 		ShaderParameter mParamNodeAndDepthStorageTexture;
 		ShaderParameter mParamNodeHeadTexture;
+		ShaderParameter mParamNextIndex;
 	};
 
 	IMPLEMENT_MATERIAL_SHADER(OITBBasePassProgram);
@@ -1549,11 +1558,11 @@ namespace RenderGL
 		static_cast<OITBBasePassProgram&>(program).setParameter(mShaderData);
 	}
 
-	void BMAResolveProgram::bindParameters()
-	{
-		mParamColorStorageTexture.bind(*this, SHADER_PARAM(ColorStorageTexture));
-		mParamNodeAndDepthStorageTexture.bind(*this, SHADER_PARAM(NodeAndDepthStorageTexture));
-		mParamNodeHeadTexture.bind(*this, SHADER_PARAM(NodeHeadTexture));
+	void BMAResolveProgram::bindParameters(ShaderParameterMap& parameterMap)
+{
+		parameterMap.bind(mParamColorStorageTexture, SHADER_PARAM(ColorStorageTexture));
+		parameterMap.bind(mParamNodeAndDepthStorageTexture, SHADER_PARAM(NodeAndDepthStorageTexture));
+		parameterMap.bind(mParamNodeHeadTexture, SHADER_PARAM(NodeHeadTexture));
 	}
 
 	void BMAResolveProgram::setParameters( OITShaderData& data )
@@ -1563,12 +1572,12 @@ namespace RenderGL
 		setRWTexture(mParamNodeHeadTexture, *data.nodeHeadTexture, AO_READ_AND_WRITE);
 	}
 
-	void SSAOGenerateProgram::bindParameters()
-	{
-		mParamGBuffer.bindParameters(*this , true);
-		mParamKernelNum.bind(*this, SHADER_PARAM(KernelNum));
-		mParamKernelVectors.bind(*this, SHADER_PARAM(KernelVectors));
-		mParamOcclusionRadius.bind(*this, SHADER_PARAM(OcclusionRadius));
+	void SSAOGenerateProgram::bindParameters(ShaderParameterMap& parameterMap)
+{
+		mParamGBuffer.bindParameters(parameterMap , true);
+		parameterMap.bind(mParamKernelNum, SHADER_PARAM(KernelNum));
+		parameterMap.bind(mParamKernelVectors, SHADER_PARAM(KernelVectors));
+		parameterMap.bind(mParamOcclusionRadius, SHADER_PARAM(OcclusionRadius));
 	}
 
 	void SSAOGenerateProgram::setParameters(SceneRenderTargets& sceneRenderTargets, Vector3 kernelVectors[], int numKernelVector)
@@ -1579,9 +1588,9 @@ namespace RenderGL
 		setParam(mParamOcclusionRadius, 0.5f);
 	}
 
-	void SSAOBlurProgram::bindParameters()
-	{
-		mParamTextureSSAO.bind(*this, SHADER_PARAM(TextureSSAO));
+	void SSAOBlurProgram::bindParameters(ShaderParameterMap& parameterMap)
+{
+		parameterMap.bind(mParamTextureSSAO, SHADER_PARAM(TextureSSAO));
 	}
 
 	void SSAOBlurProgram::setParameters(RHITexture2D& SSAOTexture)
@@ -1589,10 +1598,10 @@ namespace RenderGL
 		setTexture(mParamTextureSSAO, SSAOTexture);
 	}
 
-	void SSAOAmbientProgram::bindParameters()
-	{
-		mParamGBuffer.bindParameters(*this);
-		mParamTextureSSAO.bind(*this, SHADER_PARAM(TextureSSAO));
+	void SSAOAmbientProgram::bindParameters(ShaderParameterMap& parameterMap)
+{
+		mParamGBuffer.bindParameters(parameterMap);
+		parameterMap.bind(mParamTextureSSAO, SHADER_PARAM(TextureSSAO));
 	}
 
 	void SSAOAmbientProgram::setParameters(SceneRenderTargets& sceneRenderTargets, RHITexture2D& SSAOTexture)
@@ -1601,15 +1610,15 @@ namespace RenderGL
 		setTexture(mParamTextureSSAO, SSAOTexture);
 	}
 
-	void GBufferShaderParameters::bindParameters(ShaderProgram& program, bool bUseDepth /*= false */)
+	void GBufferShaderParameters::bindParameters(ShaderParameterMap& parameterMap, bool bUseDepth /*= false */)
 	{
-		mParamGBufferTextureA.bind(program, SHADER_PARAM(GBufferTextureA));
-		mParamGBufferTextureB.bind(program, SHADER_PARAM(GBufferTextureB));
-		mParamGBufferTextureC.bind(program, SHADER_PARAM(GBufferTextureC));
-		mParamGBufferTextureD.bind(program, SHADER_PARAM(GBufferTextureD));
+		parameterMap.bind(mParamGBufferTextureA, SHADER_PARAM(GBufferTextureA));
+		parameterMap.bind(mParamGBufferTextureB, SHADER_PARAM(GBufferTextureB));
+		parameterMap.bind(mParamGBufferTextureC, SHADER_PARAM(GBufferTextureC));
+		parameterMap.bind(mParamGBufferTextureD, SHADER_PARAM(GBufferTextureD));
 		if( bUseDepth )
 		{
-			mParamFrameDepthTexture.bind(program, SHADER_PARAM(FrameDepthTexture));
+			parameterMap.bind(mParamFrameDepthTexture, SHADER_PARAM(FrameDepthTexture));
 		}
 	}
 
@@ -1806,11 +1815,11 @@ namespace RenderGL
 			};
 			return entries;
 		}
-		void bindParameters()
+		void bindParameters(ShaderParameterMap& parameterMap)
 		{
-			mParamTextureR.bind(*this, SHADER_PARAM(TextureR));
-			mParamTextureG.bind(*this, SHADER_PARAM(TextureG));
-			mParamTextureB.bind(*this, SHADER_PARAM(TextureB));
+			parameterMap.bind(mParamTextureR, SHADER_PARAM(TextureR));
+			parameterMap.bind(mParamTextureG, SHADER_PARAM(TextureG));
+			parameterMap.bind(mParamTextureB, SHADER_PARAM(TextureB));
 		}
 
 		void setParameters(RHITexture2D& textureR, RHITexture2D& textureG, RHITexture2D& textureB)
@@ -1927,10 +1936,10 @@ namespace RenderGL
 		static int constexpr SizeZ = 8;
 
 
-		void bindParameters()
+		void bindParameters(ShaderParameterMap& parameterMap)
 		{
-			mParamBufferRW.bind(*this, SHADER_PARAM(TargetRWTexture));
-			mParamClearValue.bind(*this, SHADER_PARAM(ClearValue));
+			parameterMap.bind(mParamBufferRW, SHADER_PARAM(TargetRWTexture));
+			parameterMap.bind(mParamClearValue, SHADER_PARAM(ClearValue));
 		}
 
 		void setParameters(RHITexture3D& Buffer , Vector4 const& clearValue)
@@ -1988,12 +1997,12 @@ namespace RenderGL
 		static int constexpr GroupSizeX = 8;
 		static int constexpr GroupSizeY = 8;
 
-		void bindParameters()
+		void bindParameters(ShaderParameterMap& parameterMap)
 		{
-			mParamVolumeBufferA.bind(*this, SHADER_PARAM(VolumeBufferA));
-			mParamVolumeBufferB.bind(*this, SHADER_PARAM(VolumeBufferB));
-			mParamScatteringRWBuffer.bind(*this, SHADER_PARAM(ScatteringRWBuffer));
-			mParamTitledLightNum.bind(*this, SHADER_PARAM(TitledLightNum));
+			parameterMap.bind(mParamVolumeBufferA, SHADER_PARAM(VolumeBufferA));
+			parameterMap.bind(mParamVolumeBufferB, SHADER_PARAM(VolumeBufferB));
+			parameterMap.bind(mParamScatteringRWBuffer, SHADER_PARAM(ScatteringRWBuffer));
+			parameterMap.bind(mParamTitledLightNum, SHADER_PARAM(TitledLightNum));
 		}
 
 		void setParameters(ViewInfo& view , VolumetricLightingParameter& parameter )
@@ -2001,7 +2010,7 @@ namespace RenderGL
 			setTexture(mParamVolumeBufferA, *parameter.volumeBuffer[0]);
 			setTexture(mParamVolumeBufferB, *parameter.volumeBuffer[1]);
 			setRWTexture(mParamScatteringRWBuffer, *parameter.scatteringBuffer[0], AO_WRITE_ONLY);
-			setBufferT<TitledLightInfo>(*parameter.lightBuffer);
+			setStructuredBufferT<TitledLightInfo>(*parameter.lightBuffer);
 			view.setupShader(*this);
 			setParam(mParamTitledLightNum, parameter.numLights);
 		}

@@ -51,7 +51,7 @@ namespace Phy2D
 
 		void onRender(float dFrame)
 		{
-			Graphics2D& g = Global::getGraphics2D();
+			Graphics2D& g = Global::GetGraphics2D();
 		}
 
 		void restart() {}

@@ -13,7 +13,10 @@
 
 namespace Go
 {
-	char const* ELFWeight = "62b5417b64c46976795d10a6741801f15f857e5029681a42d02c9852097df4b9";
+	TArrayView< char const* const> ELFWeights = ARRAY_VIEW_REAONLY_DATA(char const*,
+		"d13c40993740cb77d85c838b82c08cc9c3f0fbc7d8c3761366e5d59e8f371cbd",
+		"62b5417b64c46976795d10a6741801f15f857e5029681a42d02c9852097df4b9"
+	);
 
 	template< int N >
 	static int StartWith(char const* s1, char const (&s2)[N])
@@ -1002,6 +1005,8 @@ namespace Go
 		if( setting.weightName == nullptr )
 			return false;
 
+		mUseWeightName = setting.weightName;
+
 		FixString<256> path;
 		if ( setting.bUseModifyVersion )
 			path.format("%s/%s", InstallDir, "/leelazModify.exe");
@@ -1019,8 +1024,8 @@ namespace Go
 	bool LeelaAppRun::buildAnalysisGame( bool bUseELF )
 	{
 		LeelaAISetting setting;
-		std::string weightName = LeelaAppRun::GetBestWeightName();
-		setting.weightName = weightName.c_str();
+		mUseWeightName = LeelaAppRun::GetBestWeightName();
+		setting.weightName = mUseWeightName.c_str();
 		setting.bNoise = false;
 		setting.seed = generateRandSeed();
 		setting.bNoPonder = false;
@@ -1031,7 +1036,7 @@ namespace Go
 		setting.bUseModifyVersion = true;
 		if( bUseELF )
 		{
-			setting.weightName = ELFWeight;
+			setting.weightName = "ELF2";
 		}
 		bool result = buildPlayGame(setting);
 		if( result )
@@ -1071,6 +1076,18 @@ namespace Go
 				return false;
 		}
 		return true;
+	}
+
+	bool LeelaBot::getMetaData(int id, uint8* dataBuffer, int size)
+	{
+		switch( id )
+		{
+		case LeelaBot::eWeightName:
+			assert(size == sizeof(std::string));
+			*reinterpret_cast<std::string*>(dataBuffer) = mAI.mUseWeightName;
+			return true;
+		}
+		return false;
 	}
 
 	char const* AQAppRun::InstallDir = nullptr;

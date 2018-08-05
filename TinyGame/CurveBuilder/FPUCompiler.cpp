@@ -65,11 +65,12 @@ protected:
 	FPUCodeData* mData;
 
 public:
-	void   pushByte( uint8 byt1 ){ mData->pushCode( byt1 ); }
-	void   pushWord( uint16 val ){ mData->pushCodeT( val ); }
-	void   pushWord( uint8 byt1 , uint8 byte2 ){ mData->pushCode( byt1 , byte2 ); }
-	void   pushPtr ( void* ptr ){ mData->pushCode( ptr ); }
-	void   pushDWord( uint32 val ){ mData->pushCode( val ); }
+	void   emitByte( uint8 byte1 ){ mData->pushCode( byte1 ); }
+	void   emitWord( uint16 val ){ mData->pushCodeT( val ); }
+	void   emitWord( uint8 byte1 , uint8 byte2 ){ mData->pushCode( byte1 , byte2 ); }
+	void   emitDWord(uint32 val) { mData->pushCode(val); }
+	void   emitPtr ( void* ptr ){ mData->pushCode( ptr ); }
+	
 	uint32 getOffset(){ return mData->getCodeLength(); }
 
 	
@@ -387,6 +388,7 @@ void FPUCodeTemplate::codeBinaryOp( TokenType type , bool isReverse )
 				{
 					evalBinaryOp(type, isReverse, VALUE_PTR( ebp , int( (mPrevInputIndex + 1 ) * sizeof(ValueType) )) );
 				}
+				break;
 			}
 
 			++mNumInstruction;

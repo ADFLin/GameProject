@@ -108,6 +108,7 @@ namespace CB
 	void ShapeMaker::updateSurfaceData(ShapeUpdateInfo const& info, SampleParam const& paramU, SampleParam const& paramV)
 	{
 		PROFILE_ENTRY("UpdateSurfaceData");
+
 		assert(isSurface(info.fun->getFunType()));
 
 		RenderData* data = info.data;

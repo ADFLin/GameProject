@@ -356,7 +356,7 @@ namespace StickMove
 
 		void onRender(float dFrame)
 		{
-			Graphics2D& g = Global::getGraphics2D();
+			Graphics2D& g = Global::GetGraphics2D();
 
 			Vector2 screenOffset = Vector2(50, 50);
 			float renderScale = 2;

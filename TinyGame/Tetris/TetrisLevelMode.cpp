@@ -152,7 +152,7 @@ namespace Tetris
 		int x0 = posPanel.x + 10;
 		int y0 = posPanel.y + 5;
 
-		Graphics2D& g = Global::getGraphics2D();
+		Graphics2D& g = Global::GetGraphics2D();
 
 		LevelData* lvData =  reinterpret_cast< LevelData* >( ui->getUserData() );
 		Level* level  = lvData->getLevel();
@@ -224,7 +224,7 @@ namespace Tetris
 		int x0 = posPanel.x + 10;
 		int y0 = posPanel.y + 5;
 
-		DrawEngine* de = Global::getDrawEngine();
+		DrawEngine* de = Global::GetDrawEngine();
 
 		LevelData* lvData = reinterpret_cast< LevelData* >( ui->getUserData() );
 		Level* level  = lvData->getLevel();
@@ -426,7 +426,7 @@ namespace Tetris
 		int x = x0;
 		int y = y0 - d;
 
-		Graphics2D& g = Global::getGraphics2D();
+		Graphics2D& g = Global::GetGraphics2D();
 
 		Level* level = getWorld()->getLevelData(0)->getLevel();
 
@@ -463,7 +463,7 @@ namespace Tetris
 		int x0 = posPanel.x + 10;
 		int y0 = posPanel.y + 5;
 
-		Graphics2D& g = Global::getGraphics2D();
+		Graphics2D& g = Global::GetGraphics2D();
 
 		LevelData* lvData =  reinterpret_cast< LevelData* >( ui->getUserData() );
 		Level* level  = lvData->getLevel();

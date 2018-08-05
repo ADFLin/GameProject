@@ -88,7 +88,7 @@ MainOptionBook::MainOptionBook( int id , Vec2i const& pos , GWidget* parent )
 	page = addPage( LOCTEXT("User") );
 	page->setRenderCallback( RenderCallBack::Create( this , &MainOptionBook::renderUser ) );
 	{
-		UserProfile& profile = ::Global::getUserProfile();
+		UserProfile& profile = ::Global::GetUserProfile();
 
 		Vec2i uiPos( 130 , 20 );
 		Vec2i const uiSize( 150 , 25 );
@@ -126,7 +126,7 @@ bool MainOptionBook::onChildEvent( int event , int id , GWidget* ui )
 	{
 	case UI_YES:
 		{
-			UserProfile& profile = ::Global::getUserProfile();
+			UserProfile& profile = ::Global::GetUserProfile();
 			profile.name = getCurPage()->findChildT<GTextCtrl>( UI_USER_NAME )->getValue();
 			::Global::GUI().getManager().getModalWidget()->destroy();
 		}
@@ -139,7 +139,7 @@ void MainOptionBook::renderUser( GWidget* ui )
 {
 	Vec2i pos = ui->getWorldPos() + Vec2i( 20 , 20 );
 
-	Graphics2D& g = Global::getGraphics2D();
+	Graphics2D& g = Global::GetGraphics2D();
 	RenderUtility::SetFont( g , FONT_S12 );
 	g.drawText( pos , LOCTEXT("Player Name") );
 	pos.y += 35;
@@ -158,7 +158,7 @@ int const MenuYOffset = 30;
 
 void MainMenuStage::doChangeGroup( StageGroupID group )
 {
-	int xUI = ( Global::getDrawEngine()->getScreenWidth() - MenuBtnSize.x ) / 2 ;
+	int xUI = ( Global::GetDrawEngine()->getScreenWidth() - MenuBtnSize.x ) / 2 ;
 	int yUI = 200;
 	int offset = 30;
 	int delay = 0;
@@ -317,7 +317,7 @@ bool MainMenuStage::onWidgetEvent( int event , int id , GWidget* ui )
 				auto stage = new Net::TestStage;
 				ServerWorker* server = static_cast<ServerWorker*>(::Global::GameNet().buildNetwork(true));
 				auto stageMode = new NetLevelStageMode;
-				stageMode->initWorker(server->createLocalWorker(::Global::getUserProfile().name), server);
+				stageMode->initWorker(server->createLocalWorker(::Global::GetUserProfile().name), server);
 				stage->setupStageMode(stageMode);
 				getManager()->setNextStage(stage);
 

@@ -115,7 +115,7 @@ namespace RenderGL
 			if( !BaseClass::onInit() )
 				return false;
 
-			if( !::Global::getDrawEngine()->startOpenGL() )
+			if( !::Global::GetDrawEngine()->startOpenGL() )
 				return false;
 
 			//VERIFY_INITRESULT(MeshBuild::Cube(mMesh, 1));
@@ -138,7 +138,7 @@ namespace RenderGL
 			VERIFY_INITRESULT( mTextureSDF = RHICreateTexture3D( Texture::eR32F , mSDFData.gridSize.x , mSDFData.gridSize.y , mSDFData.gridSize.z , TCF_DefalutValue , &mSDFData.volumeData[0] ) );
 
 			VERIFY_INITRESULT(mProgRayMarching = ShaderManager::Get().getGlobalShaderT<RayMarchingProgram>());
-			Vec2i screenSize = ::Global::getDrawEngine()->getScreenSize();
+			Vec2i screenSize = ::Global::GetDrawEngine()->getScreenSize();
 			mViewFrustum.mNear = 0.01;
 			mViewFrustum.mFar = 800.0;
 			mViewFrustum.mAspect = float(screenSize.x) / screenSize.y;
@@ -181,9 +181,9 @@ namespace RenderGL
 
 		void onRender(float dFrame)
 		{
-			Graphics2D& g = Global::getGraphics2D();
+			Graphics2D& g = Global::GetGraphics2D();
 
-			GameWindow& window = Global::getDrawEngine()->getWindow();
+			GameWindow& window = Global::GetDrawEngine()->getWindow();
 
 			mView.gameTime = 0;
 			mView.realTime = 0;

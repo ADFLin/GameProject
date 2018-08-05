@@ -51,7 +51,7 @@ public:
 
 	void onRender(float dFrame)
 	{
-		Graphics2D& g = Global::getGraphics2D();
+		Graphics2D& g = Global::GetGraphics2D();
 
 		GPUStatus status;
 		query->getGPUStatus(0, status);

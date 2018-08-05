@@ -116,11 +116,7 @@ class ConsoleFrame : public GFrame
 
 public:
 
-	ConsoleFrame( int id , Vec2i const& pos , Vec2i const& size , GWidget* parent )
-		:BaseClass( id , pos , size , parent )
-	{
-		mComText = new GTextCtrl( UI_COM_TEXT , Vec2i( 3 , size.y - 3 ) , size.x - 6 , this );
-	}
+	ConsoleFrame( int id , Vec2i const& pos , Vec2i const& size , GWidget* parent );
 	~ConsoleFrame();
 	enum 
 	{
@@ -128,6 +124,9 @@ public:
 	};
 
 	virtual void onRender();
+	virtual bool onKeyMsg(unsigned key, bool isDown);
+	virtual bool onCharMsg(unsigned code);
+	virtual bool onChildEvent(int event, int id, GWidget* ui);
 	struct ComLine
 	{
 		Color3ub    color;
@@ -140,6 +139,9 @@ public:
 
 	TCycleBuffer< ComLine , 20 > mLines;
 	GTextCtrl* mComText;
+
+	std::vector< std::string > mFoundComs;
+	int mIndexFoundComUsed = -1;
 public:
 	//LogOutput
 	virtual bool filterLog(LogChannel channel, int level) override

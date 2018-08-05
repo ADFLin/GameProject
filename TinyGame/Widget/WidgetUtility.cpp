@@ -89,7 +89,7 @@ DevFrame* WidgetUtility::CreateDevFrame( Vec2i const& size )
 {
 	GUISystem& system = ::Global::GUI();
 
-	Vec2i screenSize = Global::getDrawEngine()->getScreenSize();
+	Vec2i screenSize = Global::GetDrawEngine()->getScreenSize();
 
 	DevFrame* frame = new DevFrame( UI_ANY , Vec2i( screenSize.x - size.x - 5 , 5 ) , size  , NULL );
 	frame->setRenderType( GPanel::eRectType );

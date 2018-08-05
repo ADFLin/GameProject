@@ -847,7 +847,7 @@ namespace GGJ
 
 	void TestStage::onRender(float dFrame)
 	{
-		Graphics2D& g = Global::getGraphics2D();
+		Graphics2D& g = Global::GetGraphics2D();
 
 		Vec2i pos( 50 , 10 );
 		for(int i = 0 ; i < condTable.numSelection ; ++i )

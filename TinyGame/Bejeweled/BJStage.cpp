@@ -10,7 +10,7 @@ namespace Bejeweled
 	bool TestStage::onInit()
 	{
 		int len = Scene::CellLength * Scene::BoardSize;
-		Vec2i pos = ( Global::getDrawEngine()->getScreenSize() - Vec2i( len , len ) ) / 2;
+		Vec2i pos = ( Global::GetDrawEngine()->getScreenSize() - Vec2i( len , len ) ) / 2;
 		mScene.setBoardPos( pos );
 
 		::Global::GUI().cleanupWidget();
@@ -33,7 +33,7 @@ namespace Bejeweled
 
 	void TestStage::onRender( float dFrame )
 	{
-		Graphics2D& g = Global::getGraphics2D();
+		Graphics2D& g = Global::GetGraphics2D();
 		mScene.render( g );
 	}
 

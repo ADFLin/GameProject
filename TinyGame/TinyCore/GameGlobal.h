@@ -54,6 +54,7 @@ class IGraphics2D;
 class GLGraphics2D;
 
 class GameModuleManager;
+class AssetManager;
 class IGameInstance;
 class PropertyKey;
 class GUISystem;
@@ -89,20 +90,22 @@ public:
 	static TINY_API void RandSeed(unsigned seed );
 
 	static TINY_API GameModuleManager& GameManager();
+	static TINY_API AssetManager&      GetAssetManager();
+
 	static TINY_API IGameInstance*     GameInstacne();
+
 
 	static TINY_API IGameNetInterface&   GameNet();
 	static TINY_API IDebugInterface&     Debug();
 	static TINY_API PropertyKey&         GameConfig();
 	static TINY_API GUISystem&           GUI();
 	
-	static TINY_API DrawEngine*   getDrawEngine();
-	static TINY_API Graphics2D&   getGraphics2D();
-	static TINY_API GLGraphics2D& getGLGraphics2D();
-	static TINY_API IGraphics2D&  getIGraphics2D();
+	static TINY_API DrawEngine*   GetDrawEngine();
+	static TINY_API Graphics2D&   GetGraphics2D();
+	static TINY_API GLGraphics2D& GetGLGraphics2D();
+	static TINY_API IGraphics2D&  GetIGraphics2D();
 
-	static TINY_API UserProfile&  getUserProfile();
-
+	static TINY_API UserProfile&  GetUserProfile();
 
 };
 

@@ -5,6 +5,8 @@
 #include "CoreShare.h"
 #include "Core/IntegerType.h"
 
+
+
 enum class EName : uint8
 {
 	None = 0,
@@ -44,6 +46,8 @@ public:
 
 	uint32 getIndex() const { return mIndex;  }
 	
+
+	CORE_API friend uint32 hash_value(HashString const & string);
 private:
 	uint32 getSlotIndex() const { return mIndex >> 1;  }
 	bool   isCastSensitive() const { return !(mIndex & 0x1);  }
@@ -51,11 +55,21 @@ private:
 	uint32 mNumber;
 	uint32 mIndex;
 
-	CORE_API friend uint32 hash_value(HashString const & string);
 
 };
 
+#include <functional>
 
-
+namespace std
+{
+	template<>
+	struct hash< HashString >
+	{
+		size_t operator()(const HashString& value ) const
+		{
+			return hash_value(value);
+		}
+	};
+}
 
 #endif // HashString_h__

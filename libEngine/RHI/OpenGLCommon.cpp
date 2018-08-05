@@ -28,254 +28,6 @@ namespace RenderGL
 		return true;
 	}
 
-	VertexDecl::VertexDecl()
-	{
-		mVertexSize = 0;
-	}
-
-	void VertexDecl::bindPointer(LinearColor const* overwriteColor)
-	{
-		bool haveTex = false;
-		for( VertexElement& info : mElements )
-		{
-			switch( info.semantic )
-			{
-			case Vertex::ePosition:
-				glEnableClientState( GL_VERTEX_ARRAY );
-				glVertexPointer( Vertex::GetComponentNum( info.format ) , GLConvert::VertexComponentType( info.format ) , mVertexSize , (void*)info.offset );
-				break;
-			case Vertex::eNormal:
-				assert( Vertex::GetComponentNum( info.format ) == 3 );
-				glEnableClientState( GL_NORMAL_ARRAY );
-				glNormalPointer(GLConvert::VertexComponentType(info.format ) , mVertexSize , (void*)info.offset );
-				break;
-			case Vertex::eColor:
-				if ( info.idx == 0 )
-				{
-					if( overwriteColor == nullptr )
-					{
-						glEnableClientState(GL_COLOR_ARRAY);
-						glColorPointer(Vertex::GetComponentNum(info.format), GLConvert::VertexComponentType(info.format), mVertexSize, (void*)info.offset);
-					}
-				}
-				else
-				{
-					glEnableClientState( GL_SECONDARY_COLOR_ARRAY );
-					glSecondaryColorPointer( Vertex::GetComponentNum( info.format ) , GLConvert::VertexComponentType( info.format ) , mVertexSize , (void*)info.offset );
-				}
-				break;
-			case Vertex::eTangent:
-				glClientActiveTexture(GL_TEXTURE0 + (Vertex::ATTRIBUTE_TANGENT - Vertex::ATTRIBUTE_TEXCOORD));
-				glEnableClientState(GL_TEXTURE_COORD_ARRAY);
-				glTexCoordPointer(Vertex::GetComponentNum(info.format), GLConvert::VertexComponentType( info.format), mVertexSize, (void*)info.offset);
-				haveTex = true;
-				break;
-			case Vertex::eTexcoord:
-				glClientActiveTexture( GL_TEXTURE0 + info.idx );
-				glEnableClientState( GL_TEXTURE_COORD_ARRAY );
-				glTexCoordPointer( Vertex::GetComponentNum( info.format ) , GLConvert::VertexComponentType( info.format ) , mVertexSize , (void*)info.offset );
-				haveTex = true;
-				break;
-			}
-		}
-
-		if( overwriteColor )
-		{
-			glColor4fv(*overwriteColor);
-		}
-	}
-
-	void VertexDecl::unbindPointer(LinearColor const* overwriteColor)
-	{
-		bool haveTex = false;
-		for( VertexElement& info : mElements )
-		{
-			switch( info.semantic )
-			{
-			case Vertex::ePosition:
-				glDisableClientState( GL_VERTEX_ARRAY );
-				break;
-			case Vertex::eNormal:
-				glDisableClientState( GL_NORMAL_ARRAY );
-				break;
-			case Vertex::eColor:
-				if ( overwriteColor == nullptr )
-					glDisableClientState( ( info.idx == 0) ? GL_COLOR_ARRAY:GL_SECONDARY_COLOR_ARRAY );
-				break;
-			case Vertex::eTangent:
-				haveTex = true;
-				glClientActiveTexture(GL_TEXTURE0 + (Vertex::ATTRIBUTE_TANGENT - Vertex::ATTRIBUTE_TEXCOORD));
-				glDisableClientState(GL_TEXTURE_COORD_ARRAY);
-				break;
-			case Vertex::eTexcoord:
-				haveTex = true;
-				glClientActiveTexture( GL_TEXTURE1 + info.idx );
-				glDisableClientState( GL_TEXTURE_COORD_ARRAY );
-				break;
-			}
-		}
-
-		if( overwriteColor )
-		{
-			glColor4f(1, 1, 1, 1);
-		}
-		if ( haveTex )
-			glClientActiveTexture( GL_TEXTURE0 );
-	}
-
-	void VertexDecl::bindAttrib(LinearColor const* overwriteColor)
-	{
-		for( VertexElement& info : mElements )
-		{
-			glEnableVertexAttribArray(info.attribute);
-			glVertexAttribPointer(info.attribute, Vertex::GetComponentNum(info.format), GLConvert::VertexComponentType(info.format), GL_FALSE, mVertexSize, (void*)info.offset);
-		}
-		if( overwriteColor )
-		{
-			glDisableVertexAttribArray(Vertex::ATTRIBUTE_COLOR);
-			glVertexAttrib4fv(Vertex::ATTRIBUTE_COLOR, *overwriteColor);
-		}
-
-	}
-
-	void VertexDecl::unbindAttrib(LinearColor const* overwriteColor)
-	{
-		for( VertexElement& info : mElements )
-		{
-			glDisableVertexAttribArray(info.attribute);
-		}
-	}
-	static Vertex::Semantic AttributeToSemantic(uint8 attribute, uint8& idx)
-	{
-		switch( attribute )
-		{
-		case Vertex::ATTRIBUTE_POSITION: idx = 0; return Vertex::ePosition;
-		case Vertex::ATTRIBUTE_COLOR: idx = 0; return Vertex::eColor;
-		case Vertex::ATTRIBUTE_COLOR2: idx = 1; return Vertex::eColor;
-		case Vertex::ATTRIBUTE_NORMAL: idx = 0; return Vertex::eNormal;
-		case Vertex::ATTRIBUTE_TANGENT: idx = 0; return Vertex::eTangent;
-		}
-
-		idx = attribute - Vertex::ATTRIBUTE_TEXCOORD;
-		return Vertex::eTexcoord;
-	}
-
-	static uint8 SemanticToAttribute(Vertex::Semantic s , uint8 idx)
-	{
-		switch( s )
-		{
-		case Vertex::ePosition: return Vertex::ATTRIBUTE_POSITION;
-		case Vertex::eColor:    assert(idx < 2); return Vertex::ATTRIBUTE_COLOR + idx;
-		case Vertex::eNormal:   return Vertex::ATTRIBUTE_NORMAL;
-		case Vertex::eTangent:  return Vertex::ATTRIBUTE_TANGENT;
-		case Vertex::eTexcoord: assert(idx < 7); return Vertex::ATTRIBUTE_TEXCOORD + idx;
-		}
-		return 0;
-	}
-
-	VertexDecl& VertexDecl::addElement(Vertex::Semantic s, Vertex::Format f, uint8 idx /*= 0 */)
-	{
-		VertexElement element;
-		element.idxStream = 0;
-		element.attribute = SemanticToAttribute(s, idx);
-		element.format   = f;
-		element.offset   = mVertexSize;
-		element.semantic = s;
-		element.idx      = idx;
-		element.bNormalize = false;
-		mElements.push_back( element );
-		mVertexSize += Vertex::GetFormatSize( f );
-		return *this;
-	}
-
-	VertexDecl& VertexDecl::addElement(uint8 attribute, Vertex::Format f, bool bNormailze)
-	{
-		VertexElement element;
-		element.idxStream = 0;
-		element.attribute = attribute;
-		element.format = f;
-		element.offset = mVertexSize;
-		element.semantic = AttributeToSemantic(attribute, element.idx);
-		element.bNormalize = bNormailze;
-		mElements.push_back(element);
-		mVertexSize += Vertex::GetFormatSize(f);
-		return *this;
-	}
-
-	VertexDecl& VertexDecl::addElement(uint8 idxStream , Vertex::Semantic s, Vertex::Format f, uint8 idx /*= 0 */)
-	{
-		VertexElement element;
-		element.idxStream = idxStream;
-		element.attribute = SemanticToAttribute(s, idx);
-		element.format = f;
-		element.offset = mVertexSize;
-		element.semantic = s;
-		element.idx = idx;
-		element.bNormalize = false;
-		mElements.push_back(element);
-		mVertexSize += Vertex::GetFormatSize(f);
-		return *this;
-	}
-
-	VertexDecl& VertexDecl::addElement(uint8 idxStream, uint8 attribute, Vertex::Format f, bool bNormailze)
-	{
-		VertexElement element;
-		element.idxStream = idxStream;
-		element.attribute = attribute;
-		element.format = f;
-		element.offset = mVertexSize;
-		element.semantic = AttributeToSemantic(attribute, element.idx);
-		element.bNormalize = bNormailze;
-		mElements.push_back(element);
-		mVertexSize += Vertex::GetFormatSize(f);
-		return *this;
-	}
-
-
-	VertexElement const* VertexDecl::findBySematic(Vertex::Semantic s , int idx) const
-	{
-		for( auto const& decl : mElements )
-		{
-			if ( decl.semantic == s && decl.idx == idx )
-				return &decl;
-		}
-		return nullptr;
-	}
-
-	VertexElement const* VertexDecl::findBySematic(Vertex::Semantic s) const
-	{
-		for( auto const& decl : mElements )
-		{
-			if( decl.semantic == s )
-				return &decl;
-		}
-		return nullptr;
-	}
-
-	int VertexDecl::getSematicOffset(Vertex::Semantic s) const
-	{
-		VertexElement const* info = findBySematic( s );
-		return ( info ) ? info->offset : -1;
-	}
-
-	int VertexDecl::getSematicOffset(Vertex::Semantic s , int idx) const
-	{
-		VertexElement const* info = findBySematic( s ,idx );
-		return ( info ) ? info->offset : -1;
-	}
-
-	Vertex::Format VertexDecl::getSematicFormat(Vertex::Semantic s) const
-	{
-		VertexElement const* info = findBySematic( s );
-		return ( info ) ? Vertex::Format( info->format ) : Vertex::eUnknowFormat;
-	}
-
-	Vertex::Format VertexDecl::getSematicFormat(Vertex::Semantic s , int idx) const
-	{
-		VertexElement const* info = findBySematic( s , idx );
-		return ( info ) ? Vertex::Format( info->format ) : Vertex::eUnknowFormat;
-	}
-
 	bool LoadFileInternal(char const* path, GLenum texType , GLenum texImageType, IntVector2& outSize , Texture::Format& outFormat)
 	{
 		int w;
@@ -1281,6 +1033,159 @@ namespace RenderGL
 		mStateValue.bEnalbeCull = initializer.cullMode != ECullMode::None;
 		mStateValue.cullFace = GLConvert::To(initializer.cullMode);
 		mStateValue.fillMode = GLConvert::To(initializer.fillMode);
+	}
+
+	OpenGLInputLayout::OpenGLInputLayout(InputLayoutDesc const& desc)
+	{
+		for( auto const& e : desc.mElements )
+		{
+			Element element;
+			element.idxStream = e.idxStream;
+			element.attribute = e.attribute;
+			element.bNormalize = e.bNormalize;
+			element.componentNum = Vertex::GetComponentNum(e.format);
+			element.componentType = GLConvert::VertexComponentType(e.format);
+			element.stride = desc.getVertexSize(e.idxStream);
+			element.offset = e.offset;
+			element.semantic = e.semantic;
+			element.idx = e.idx;
+
+			mElements.push_back(element);
+		}
+
+		std::sort(mElements.begin(), mElements.end(), [](auto const& lhs, auto const& rhs)
+		{
+			return lhs.idxStream < rhs.idxStream;
+		});
+	}
+
+	void OpenGLInputLayout::bindAttrib(RHIVertexBuffer* vertexBuffer[], int numVertexBuffer, LinearColor const* overwriteColor)
+	{
+		for( int i = 0; i < numVertexBuffer; ++i )
+		{
+			GL_BIND_LOCK_OBJECT(*vertexBuffer[i]);
+			int index = 0;
+			for( ; index < mElements.size(); ++index )
+			{
+				auto const& e = mElements[index];
+				if( e.idxStream > index )
+					break;
+
+				glEnableVertexAttribArray(e.attribute);
+				glVertexAttribPointer(e.attribute, e.componentNum, e.componentType, e.bNormalize, e.stride, (void*)e.offset);
+			}
+		}
+		if( overwriteColor )
+		{
+			glDisableVertexAttribArray(Vertex::ATTRIBUTE_COLOR);
+			glVertexAttrib4fv(Vertex::ATTRIBUTE_COLOR, *overwriteColor);
+		}
+	}
+
+	void OpenGLInputLayout::unbindAttrib(int numVertexBuffer, LinearColor const* overwriteColor)
+	{
+		for( auto const& e : mElements )
+		{
+			if ( e.idxStream >= numVertexBuffer )
+				break;
+			glDisableVertexAttribArray(e.attribute);
+		}
+
+		if( overwriteColor )
+		{
+			glDisableVertexAttribArray(Vertex::ATTRIBUTE_COLOR);
+		}
+
+	}
+
+	void OpenGLInputLayout::bindPointer(LinearColor const* overwriteColor)
+	{
+		bool haveTex = false;
+		for( auto const& e : mElements )
+		{
+			switch( e.semantic )
+			{
+			case Vertex::ePosition:
+				glEnableClientState(GL_VERTEX_ARRAY);
+				glVertexPointer(e.componentNum, e.componentType, e.stride, (void*)e.offset);
+				break;
+			case Vertex::eNormal:
+				assert(e.componentNum == 3);
+				glEnableClientState(GL_NORMAL_ARRAY);
+				glNormalPointer(e.componentType, e.stride, (void*)e.offset);
+				break;
+			case Vertex::eColor:
+				if( e.idx == 0 )
+				{
+					if( overwriteColor == nullptr )
+					{
+						glEnableClientState(GL_COLOR_ARRAY);
+						glColorPointer(e.componentNum, e.componentType, e.stride, (void*)e.offset);
+					}
+				}
+				else
+				{
+					glEnableClientState(GL_SECONDARY_COLOR_ARRAY);
+					glSecondaryColorPointer(e.componentNum, e.componentType, e.stride, (void*)e.offset);
+				}
+				break;
+			case Vertex::eTangent:
+				glClientActiveTexture(GL_TEXTURE0 + (Vertex::ATTRIBUTE_TANGENT - Vertex::ATTRIBUTE_TEXCOORD));
+				glEnableClientState(GL_TEXTURE_COORD_ARRAY);
+				glTexCoordPointer(e.componentNum, e.componentType, e.stride, (void*)e.offset);
+				haveTex = true;
+				break;
+			case Vertex::eTexcoord:
+				glClientActiveTexture(GL_TEXTURE0 + e.idx);
+				glEnableClientState(GL_TEXTURE_COORD_ARRAY);
+				glTexCoordPointer(e.componentNum, e.componentType, e.stride, (void*)e.offset);
+				haveTex = true;
+				break;
+			}
+		}
+
+		if( overwriteColor )
+		{
+			glColor4fv(*overwriteColor);
+		}
+	}
+
+	void OpenGLInputLayout::unbindPointer(LinearColor const* overwriteColor)
+	{
+		bool haveTex = false;
+		for( auto const& e : mElements )
+		{
+			switch( e.semantic )
+			{
+			case Vertex::ePosition:
+				glDisableClientState(GL_VERTEX_ARRAY);
+				break;
+			case Vertex::eNormal:
+				glDisableClientState(GL_NORMAL_ARRAY);
+				break;
+			case Vertex::eColor:
+				if( overwriteColor == nullptr )
+					glDisableClientState((e.idx == 0) ? GL_COLOR_ARRAY : GL_SECONDARY_COLOR_ARRAY);
+				break;
+			case Vertex::eTangent:
+				haveTex = true;
+				glClientActiveTexture(GL_TEXTURE0 + (Vertex::ATTRIBUTE_TANGENT - Vertex::ATTRIBUTE_TEXCOORD));
+				glDisableClientState(GL_TEXTURE_COORD_ARRAY);
+				break;
+			case Vertex::eTexcoord:
+				haveTex = true;
+				glClientActiveTexture(GL_TEXTURE1 + e.idx);
+				glDisableClientState(GL_TEXTURE_COORD_ARRAY);
+				break;
+			}
+		}
+
+		if( overwriteColor )
+		{
+			glColor4f(1, 1, 1, 1);
+		}
+		if( haveTex )
+			glClientActiveTexture(GL_TEXTURE0);
 	}
 
 }//namespace GL

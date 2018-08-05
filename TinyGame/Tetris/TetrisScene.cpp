@@ -234,7 +234,7 @@ namespace Tetris
 	void Scene::renderHoldPiece( GWidget* ui )
 	{
 		Vec2i pos = ui->getWorldPos();
-		Graphics2D& g = Global::getGraphics2D();
+		Graphics2D& g = Global::GetGraphics2D();
 
 		RenderUtility::SetFont( g , FONT_S12 );
 		g.setTextColor( Color3ub(255 , 255 , 0) );
@@ -247,7 +247,7 @@ namespace Tetris
 	void Scene::renderPieceStorage( GWidget* ui )
 	{
 		Vec2i pos = ui->getWorldPos();
-		Graphics2D& g = Global::getGraphics2D();
+		Graphics2D& g = Global::GetGraphics2D();
 
 		RenderUtility::SetFont( g , FONT_S10 );
 		g.setTextColor( Color3ub(255 , 255 , 0) );

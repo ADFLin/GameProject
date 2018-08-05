@@ -95,13 +95,6 @@ namespace Asmeta
 
 	ASMETA_INLINE RegST st( uint8 idx = 0 ){ assert( idx < 8 ); return RegST( idx );  }
 
-	//class ExecableBuffer
-	//{
-	//public:
-	//	void pushByte( uint8_t byte );
-	//	void pushByte( uint8_t byte1 , uint8_t byte2 );
-	//	void pushPtr( void* ptr );
-	//};
 
 #define DEF_REF_MEM( Type , Param , InputRef )\
 	ASMETA_INLINE RefMem< Type , 0 >  ptr      ( Param ){ return RefMem< Type , 0 >( InputRef );  }\
@@ -189,11 +182,11 @@ namespace Asmeta
 	{
 		T* _this(){ return static_cast< T* >( this );  }
 	public:	
-		void     pushByte( uint8 byte ){}
-		void     pushWord( uint8 byte1 , uint8 byte2 ){}
-		void     pushWord( uint16 val ){}
-		void     pushDWord( uint32 val ){}
-		void     pushPtr ( void* ptr ){}
+		void     emitByte( uint8 byte ){}
+		void     emitWord( uint8 byte1 , uint8 byte2 ){}
+		void     emitWord( uint16 val ){}
+		void     emitDWord( uint32 val ){}
+		void     emitPtr ( void* ptr ){}
 		uint32   getOffset(){ assert( 0 ); return 0; }
 
 	public:
@@ -328,7 +321,7 @@ namespace Asmeta
 	template< class Ref , int Size >\
 	ASMETA_INLINE void NAME( RefMem< Ref , Size > const& dst , RegX86< Size > const& src )      {  encodeIntInist< Size >( CODE , dst , src.code() ); }\
 	template< class Ref , int Size >\
-	ASMETA_INLINE void NAME( RegX86< Size > const& dst , RefMem< Ref , Size > const& src )      {  encodeIntInistR< Size >( CODE , src , dst.code()  ); }\
+	ASMETA_INLINE void NAME( RegX86< Size > const& dst , RefMem< Ref , Size > const& src )      {  encodeIntInistR< Size >( CODE , src , dst.code() , 1 ); }\
 	template< int Size , int ImmSize >\
 	ASMETA_INLINE void NAME( RegX86< Size > const& dst , Immediate< ImmSize > const& imm )      {  encodeALUInist< Size >( CODE , dst , imm );  }\
 	template< class Ref , int Size , int ImmSize >\
@@ -685,12 +678,12 @@ namespace Asmeta
 
 		ASMETA_INLINE void encodeJccInistImpl( CondTestField cond , Int2Type< 4 > )
 		{
-			_this()->pushByte( INT_INIST_OPB( igJCC ) );
-			_this()->pushByte( ( INT_INIST_OPR( igJCC ) << 4 ) | cond );
+			_this()->emitByte( INT_INIST_OPB( igJCC ) );
+			_this()->emitByte( ( INT_INIST_OPR( igJCC ) << 4 ) | cond );
 		}
 		ASMETA_INLINE void encodeJccInistImpl( CondTestField cond  , Int2Type< 2 > )
 		{
-			_this()->pushByte( INT_INIST_OPA( igJCC ) | cond );
+			_this()->emitByte( INT_INIST_OPA( igJCC ) | cond );
 		}
 
 		template< int Size , class RMType >
@@ -708,12 +701,12 @@ namespace Asmeta
 
 		ASMETA_INLINE void encodeByteInist( uint8 opA )
 		{
-			_this()->pushByte( opA );
+			_this()->emitByte( opA );
 		}
 
 		ASMETA_INLINE void encodeWordInist( uint8 opA , uint8 opB )
 		{
-			_this()->pushWord( opA , opB );
+			_this()->emitWord( opA , opB );
 		}
 
 		template< int Size >
@@ -760,7 +753,7 @@ namespace Asmeta
 		ASMETA_INLINE void encodeIntInist( uint8 op )
 		{
 			encodeInt16Prefix< Size >();
-			 _this()->pushByte( op );
+			 _this()->emitByte( op );
 		}
 
 		template< int Size >
@@ -784,16 +777,16 @@ namespace Asmeta
 			encodeIntInistWImpl( op , Int2Type< Size >() );
 		}
 		template< int Size >
-		ASMETA_INLINE void encodeIntInistWImpl( uint8 op  , Int2Type< Size > ){	_this()->pushByte( op | 0x01 );  }
-		ASMETA_INLINE void encodeIntInistWImpl( uint8 op  , Int2Type< 1 > )   { _this()->pushByte( op );  }
+		ASMETA_INLINE void encodeIntInistWImpl( uint8 op  , Int2Type< Size > ){	_this()->emitByte( op | 0x01 );  }
+		ASMETA_INLINE void encodeIntInistWImpl( uint8 op  , Int2Type< 1 > )   { _this()->emitByte( op );  }
 
 		template< int Size , class RMType >
 		ASMETA_INLINE void encodeIntInist4( uint8 opA , uint8 opB , RMType const& rm , uint8 reg )
 		{
 			encodeInt16Prefix< Size >();
 			//encodeSemgentPrefix( rm );
-			_this()->pushByte( opA );
-			_this()->pushByte( opB );
+			_this()->emitByte( opA );
+			_this()->emitByte( opB );
 			encodeModRM( rm , reg );
 		}
 
@@ -817,7 +810,7 @@ namespace Asmeta
 		ASMETA_INLINE void encodeInt16Prefix(){ encodeInt16PrefixImpl( Int2Type< Size >() ); }
 		template< int Size >
 		ASMETA_INLINE void encodeInt16PrefixImpl( Int2Type< Size > ){}
-		ASMETA_INLINE void encodeInt16PrefixImpl( Int2Type< 2 > ){ _this()->pushByte( 0x66 ); }
+		ASMETA_INLINE void encodeInt16PrefixImpl( Int2Type< 2 > ){ _this()->emitByte( 0x66 ); }
 
 		template< int Size , int ImmSize >
 		ASMETA_INLINE void encodeAccumInist( uint8 opA , Immediate< ImmSize > const& imm )
@@ -879,7 +872,7 @@ namespace Asmeta
 			ASMETA_STATIC_ASSERT( Size >= ImmSize );
 			encodeInt16Prefix< Size >();
 			uint8 s = ( Size > imm.size() ) ? 1 : 0;
-			_this()->pushByte( op | ( s << 1 ) );
+			_this()->emitByte( op | ( s << 1 ) );
 			encodeModRM( rm , opR );
 			encodeImmediateNoForce( imm );
 		}
@@ -890,7 +883,7 @@ namespace Asmeta
 			ASMETA_STATIC_ASSERT( Size >= ImmSize );
 			encodeInt16Prefix< Size >();
 			uint8 s = ( usageSignExtend ) ? ( Size > imm.size() ? 1 : 0 ) : 0;
-			_this()->pushByte( op | ( s << 1 ) );
+			_this()->emitByte( op | ( s << 1 ) );
 			encodeModRM( rm , opR );
 			encodeImmediateNoForce( imm );
 		}
@@ -901,7 +894,7 @@ namespace Asmeta
 			ASMETA_STATIC_ASSERT( Size >= ImmSize );
 			encodeInt16Prefix< Size >();
 			uint8 s = ( usageSignExtend ) ? ( Size > imm.size() ? 1 : 0 ) : 0;
-			_this()->pushByte( op | ( s << 1 ) );
+			_this()->emitByte( op | ( s << 1 ) );
 			encodeModRM( rm , opR );
 			encodeImmediateForce< Size >( imm );
 		}
@@ -1022,7 +1015,7 @@ namespace Asmeta
 		template< class RefPtr >
 		ASMETA_INLINE void encodeFPInst( uint8 opA , uint8 opB , RefPtr const& refPtr )
 		{
-			_this()->pushByte( PUI_PATTERN | ( opA  << 1 ) | 0x1 );
+			_this()->emitByte( PUI_PATTERN | ( opA  << 1 ) | 0x1 );
 			encodeModRM( refPtr , opB );
 		}
 
@@ -1040,7 +1033,7 @@ namespace Asmeta
 		template< class RefPtr >
 		ASMETA_INLINE void encodeFPInst( FPMemFormat format , uint8 opA , uint8 opB , RefPtr const& refPtr )
 		{
-			_this()->pushByte( uint8( PUI_PATTERN | ( format << 1 ) | opA ) );
+			_this()->emitByte( uint8( PUI_PATTERN | ( format << 1 ) | opA ) );
 			encodeModRM( refPtr , opB );
 		}
 
@@ -1050,14 +1043,14 @@ namespace Asmeta
 		//    11011      dest      pop      opA   |   11    opB   reverse    st(i)
 		ASMETA_INLINE void encodeFPInst( uint8 dest , uint8 pop , uint8 opA , uint8 opB , uint8 reverse , RegST const& st )
 		{
-			_this()->pushWord( 
+			_this()->emitWord( 
 				uint8( PUI_PATTERN | ( dest << 2 ) | ( pop << 1 ) | opA ) ,
 				uint8( 0xc0 | ( (opB | reverse ) << 3 ) | st.index() ) );
 		}
 
 		ASMETA_INLINE void encodeFPInst( uint8 s , uint8 op )
 		{
-			_this()->pushWord( 
+			_this()->emitWord( 
 				uint8( PUI_PATTERN | ( s << 1 ) | 0x1 )  , 
 				uint8( 0xe0 | op ) );
 		}
@@ -1081,9 +1074,9 @@ namespace Asmeta
 		{
 			switch( imm.size() )
 			{
-			case 1: _this()->pushByte( imm.value() ); break;
-			case 2: _this()->pushWord( imm.value() ); break;
-			case 4: _this()->pushDWord( imm.value() ); break;
+			case 1: _this()->emitByte( imm.value() ); break;
+			case 2: _this()->emitWord( imm.value() ); break;
+			case 4: _this()->emitDWord( imm.value() ); break;
 			}
 		}
 
@@ -1098,9 +1091,9 @@ namespace Asmeta
 		template< int DispSize  >
 		ASMETA_INLINE void encodeDisp( SysInt value ){ encodeValueImpl( value , Int2Type< DispSize >() ); }
 
-		ASMETA_INLINE void encodeValueImpl( SysInt value , Int2Type< 1 > ){  _this()->pushByte( value );  }
-		ASMETA_INLINE void encodeValueImpl( SysInt value , Int2Type< 2 > ){  _this()->pushWord( value );  }
-		ASMETA_INLINE void encodeValueImpl( SysInt value , Int2Type< 4 > ){  _this()->pushDWord( value );  }
+		ASMETA_INLINE void encodeValueImpl( SysInt value , Int2Type< 1 > ){  _this()->emitByte( value );  }
+		ASMETA_INLINE void encodeValueImpl( SysInt value , Int2Type< 2 > ){  _this()->emitWord( value );  }
+		ASMETA_INLINE void encodeValueImpl( SysInt value , Int2Type< 4 > ){  _this()->emitDWord( value );  }
 
 
 		template< class Ref , int Size >
@@ -1111,40 +1104,40 @@ namespace Asmeta
 
 		ASMETA_INLINE void encodeModRM( Label* label , uint8 reg )
 		{
-			_this()->pushByte( MOD_RM_BYTE(  MOD_M ,  reg  , RM_M_DISP ) );
+			_this()->emitByte( MOD_RM_BYTE(  MOD_M ,  reg  , RM_M_DISP ) );
 			addLabelLink( label , Label::eLinkAbs , sizeof( SysInt ) );
-			_this()->pushPtr( (void*)0xdededede );
+			_this()->emitPtr( (void*)0xdededede );
 		}
 
 		ASMETA_INLINE void encodeModRM( LabelPtr const& refPtr , uint8 reg )
 		{
-			_this()->pushByte( MOD_RM_BYTE(  MOD_M ,  reg  , RM_M_DISP ) );
+			_this()->emitByte( MOD_RM_BYTE(  MOD_M ,  reg  , RM_M_DISP ) );
 			addLabelLink( refPtr.mLabel , Label::eLinkAbs , sizeof( SysInt ) , refPtr.mOffset );
-			_this()->pushPtr( (void*)0xdededede );
+			_this()->emitPtr( (void*)0xdededede );
 		}
 
 		ASMETA_INLINE void encodeModRM( Address const& refPtr , uint8  reg )
 		{
-			_this()->pushByte( MOD_RM_BYTE( MOD_M ,  reg  , RM_M_DISP ) );
-			_this()->pushPtr( refPtr.value() );
+			_this()->emitByte( MOD_RM_BYTE( MOD_M ,  reg  , RM_M_DISP ) );
+			_this()->emitPtr( refPtr.value() );
 		}
 
 		ASMETA_INLINE void encodeModRM( RegPtr const& refPtr , uint8  reg )
 		{
-			_this()->pushByte( uint8( refPtr.mModByte | ( reg << 3 ) ) );
+			_this()->emitByte( uint8( refPtr.mModByte | ( reg << 3 ) ) );
 
 			uint8 mod = refPtr.mModByte >> 6;
 			assert( mod != MOD_R );
 			if ( ( refPtr.mModByte & 0x7 ) == RM_MD_SIB  )
-				_this()->pushByte( refPtr.mSIBByte );
+				_this()->emitByte( refPtr.mSIBByte );
 
 			switch( mod )
 			{
 			case MOD_DISP8: 
-				_this()->pushByte( uint8( refPtr.mDisp ) );
+				_this()->emitByte( uint8( refPtr.mDisp ) );
 				break;
 			case MOD_DISP32: 
-				_this()->pushDWord( refPtr.mDisp ); 
+				_this()->emitDWord( refPtr.mDisp ); 
 				break;
 			}
 		}
@@ -1152,7 +1145,7 @@ namespace Asmeta
 		template< int Size >
 		ASMETA_INLINE void encodeModRM( RegX86< Size > const& r , uint8 reg )
 		{
-			_this()->pushByte( MOD_RM_BYTE( MOD_R , reg  , r.code() ) );
+			_this()->emitByte( MOD_RM_BYTE( MOD_R , reg  , r.code() ) );
 		}
 
 		bool   bind( Label* label )

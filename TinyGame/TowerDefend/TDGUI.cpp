@@ -69,7 +69,7 @@ namespace TowerDefend
 
 	void ActComButton::onRender()
 	{
-		Graphics2D& g = Global::getGraphics2D();
+		Graphics2D& g = Global::GetGraphics2D();
 		Vec2i wPos = getWorldPos();
 
 		if ( mGlowFrame > 0 )

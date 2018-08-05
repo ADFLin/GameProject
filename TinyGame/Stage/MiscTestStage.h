@@ -77,7 +77,7 @@ public:
 
 	void onRender( float dFrame )
 	{
-		Graphics2D& g = Global::getGraphics2D();
+		Graphics2D& g = Global::GetGraphics2D();
 	}
 
 	void restart()
@@ -181,7 +181,7 @@ public:
 
 	void onRender( float dFrame )
 	{
-		Graphics2D& g = Global::getGraphics2D();
+		Graphics2D& g = Global::GetGraphics2D();
 
 		RenderUtility::SetPen( g , EColor::Red );
 		int num = mSplineLine.size() - 1;
@@ -268,7 +268,7 @@ public:
 			else
 				str += "0";
 		}
-		::Global::getGraphics2D().drawText( Vec2i( 20 , mPosY ) , str );
+		::Global::GetGraphics2D().drawText( Vec2i( 20 , mPosY ) , str );
 		mPosY += 10;
 	}
 
@@ -475,7 +475,7 @@ public:
 
 	void onRender( float dFrame )
 	{
-		Graphics2D& g = Global::getGraphics2D();
+		Graphics2D& g = Global::GetGraphics2D();
 
 		//testFlag();
 		return;
@@ -845,12 +845,12 @@ public:
 
 	virtual bool onInit()
 	{
-		::Global::getDrawEngine()->changeScreenSize(1600, 1200);
+		::Global::GetDrawEngine()->changeScreenSize(1600, 1200);
 		::Global::GUI().cleanupWidget();
-		if ( !::Global::getDrawEngine()->startOpenGL() )
+		if ( !::Global::GetDrawEngine()->startOpenGL() )
 			return false;
 
-		GameWindow& window = ::Global::getDrawEngine()->getWindow();
+		GameWindow& window = ::Global::GetDrawEngine()->getWindow();
 
 		restart();
 
@@ -860,7 +860,7 @@ public:
 
 	virtual void onEnd()
 	{
-		::Global::getDrawEngine()->stopOpenGL();
+		::Global::GetDrawEngine()->stopOpenGL();
 	}
 
 	virtual void onUpdate( long time )
@@ -970,7 +970,7 @@ public:
 
 	void onRender( float dFrame )
 	{
-		Graphics2D& g = Global::getGraphics2D();
+		Graphics2D& g = Global::GetGraphics2D();
 
 		RenderUtility::SetPen( g , EColor::Gray );
 		for( int i = 0 ; i < mMap.getSizeX() ; ++i )
@@ -1187,7 +1187,7 @@ namespace Mario
 
 		void onRender( float dFrame )
 		{
-			Graphics2D& g = Global::getGraphics2D();
+			Graphics2D& g = Global::GetGraphics2D();
 
 
 			//Vector2 posCam = player.pos;
@@ -1242,7 +1242,7 @@ namespace Mario
 
 		void drawTriangle( Graphics2D& g , Vector2 const& p1 , Vector2 const& p2 , Vector2 const& p3 )
 		{
-			int frameHeight = ::Global::getDrawEngine()->getScreenHeight();
+			int frameHeight = ::Global::GetDrawEngine()->getScreenHeight();
 
 			Vec2i v[3] = { p1 , p2 , p3 };
 			v[0].y = frameHeight - v[0].y;
@@ -1253,7 +1253,7 @@ namespace Mario
 
 		void drawRect( Graphics2D& g , Vector2 const& pos , Vector2 const& size )
 		{
-			int frameHeight = ::Global::getDrawEngine()->getScreenHeight();
+			int frameHeight = ::Global::GetDrawEngine()->getScreenHeight();
 			Vector2 rPos;
 			rPos.x = pos.x;
 			rPos.y = frameHeight - pos.y - size.y;
@@ -1356,8 +1356,8 @@ namespace TankGame
 		{
 			::Global::GUI().cleanupWidget();
 
-			Global::getDrawEngine()->startOpenGL();
-			GameWindow& window = Global::getDrawEngine()->getWindow();
+			Global::GetDrawEngine()->startOpenGL();
+			GameWindow& window = Global::GetDrawEngine()->getWindow();
 
 			restart();
 			return true;
@@ -1365,7 +1365,7 @@ namespace TankGame
 
 		virtual void onEnd()
 		{
-			Global::getDrawEngine()->stopOpenGL();
+			Global::GetDrawEngine()->stopOpenGL();
 		}
 
 		virtual void onUpdate( long time )
@@ -1381,7 +1381,7 @@ namespace TankGame
 
 		void onRender( float dFrame )
 		{
-			Graphics2D& g = Global::getGraphics2D();
+			Graphics2D& g = Global::GetGraphics2D();
 		}
 
 
@@ -1738,11 +1738,11 @@ namespace G2D
 
 		void onRender( float dFrame )
 		{
-			Graphics2D& g = Global::getGraphics2D();
+			Graphics2D& g = Global::GetGraphics2D();
 
 			RenderUtility::SetPen( g , EColor::Gray );
 			RenderUtility::SetBrush( g, EColor::Gray );
-			g.drawRect( Vec2i(0,0) , Global::getDrawEngine()->getScreenSize() );
+			g.drawRect( Vec2i(0,0) , Global::GetDrawEngine()->getScreenSize() );
 
 
 			RenderUtility::SetPen( g , EColor::Yellow );
@@ -1954,11 +1954,11 @@ namespace G2D
 
 		void onRender( float dFrame )
 		{
-			Graphics2D& g = Global::getGraphics2D();
+			Graphics2D& g = Global::GetGraphics2D();
 
 			RenderUtility::SetBrush( g , EColor::Gray );
 			RenderUtility::SetPen( g , EColor::Gray );
-			g.drawRect( Vec2i(0,0) , ::Global::getDrawEngine()->getScreenSize() );
+			g.drawRect( Vec2i(0,0) , ::Global::GetDrawEngine()->getScreenSize() );
 
 			if ( mSAT.haveSA )
 			{
@@ -2094,7 +2094,7 @@ public:
 
 	void onRender( float dFrame )
 	{
-		Graphics2D& g = Global::getGraphics2D();
+		Graphics2D& g = Global::GetGraphics2D();
 
 		RenderUtility::SetBrush( g, EColor::Red );
 		RenderUtility::SetPen( g , EColor::Black );
@@ -2269,7 +2269,7 @@ public:
 
 	void onRender( float dFrame )
 	{
-		Graphics2D& g = Global::getGraphics2D();
+		Graphics2D& g = Global::GetGraphics2D();
 
 		TreeDrawVisitor visitor( g );
 		visitor.rootPos.setValue( 200 , 10 );
@@ -2367,7 +2367,7 @@ public:
 
 	void onRender( float dFrame )
 	{
-		Graphics2D& g = Global::getGraphics2D();
+		Graphics2D& g = Global::GetGraphics2D();
 	}
 
 
@@ -2561,7 +2561,7 @@ namespace Net
 
 		void onRender( float dFrame )
 		{
-			Graphics2D& g = Global::getGraphics2D();
+			Graphics2D& g = Global::GetGraphics2D();
 
 			RenderUtility::SetBrush( g , EColor::Yellow );
 			for( int i = 0 ; i < (int)mDataMap.size() ; ++i )

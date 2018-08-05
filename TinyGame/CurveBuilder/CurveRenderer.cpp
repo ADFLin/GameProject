@@ -22,7 +22,7 @@ namespace CB
 		}
 
 
-		void bindParameters()
+		void bindParameters(ShaderParameterMap& parameterMap)
 		{
 
 		}
@@ -76,11 +76,11 @@ namespace CB
 			return enties;
 		}
 
-		void bindParameters()
+		void bindParameters(ShaderParameterMap& parameterMap)
 		{
-			mParamNormalLength.bind(*this, SHADER_PARAM(NormalLength));
-			mParamNormalColor.bind(*this, SHADER_PARAM(NormalColor));
-			mParamDensityAndSize.bind(*this, SHADER_PARAM(DensityAndSize));
+			parameterMap.bind(mParamNormalLength, SHADER_PARAM(NormalLength));
+			parameterMap.bind(mParamNormalColor, SHADER_PARAM(NormalColor));
+			parameterMap.bind(mParamDensityAndSize, SHADER_PARAM(DensityAndSize));
 		}
 
 		void setParameters( Vector4 const& inColor , float inNormalLength , int inDensity , int inSize )
@@ -115,17 +115,10 @@ namespace CB
 
 	bool CurveRenderer::initialize( Vec2i const& screenSize )
 	{
-		mProgCurveMesh = ShaderManager::Get().getGlobalShaderT< TCurveMeshProgram<false> >(true);
-		if( mProgCurveMesh == nullptr )
-			return false;
-		mProgCurveMeshOIT = ShaderManager::Get().getGlobalShaderT< TCurveMeshProgram<true> >(true);
-		if( mProgCurveMeshOIT == nullptr )
-			return false;
-		mProgMeshNormalVisualize = ShaderManager::Get().getGlobalShaderT< MeshNormalVisualizeProgram >(true);
-		if( mProgMeshNormalVisualize == nullptr )
-			return false;
-		if( !mOITTech.init(screenSize) )
-			return false;
+		VERIFY_INITRESULT( mProgCurveMesh = ShaderManager::Get().getGlobalShaderT< TCurveMeshProgram<false> >(true) );
+		VERIFY_INITRESULT( mProgCurveMeshOIT = ShaderManager::Get().getGlobalShaderT< TCurveMeshProgram<true> >(true) );
+		VERIFY_INITRESULT( mProgMeshNormalVisualize = ShaderManager::Get().getGlobalShaderT< MeshNormalVisualizeProgram >(true) );
+		VERIFY_INITRESULT( mOITTech.init(screenSize) );
 		return true;
 	}
 

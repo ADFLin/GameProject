@@ -1,6 +1,8 @@
 #ifndef FunCallback_h__
 #define FunCallback_h__
 
+#include "MetaTypeList.h"
+
 namespace detail
 {
 
@@ -239,9 +241,9 @@ struct FunCallback< FunSig , 0 >
 	FunCallback(){}
 	FunCallback( void** data ){}
 
-	void exec( FunSig fun ){ fun(); }
+	void execute( FunSig fun ){ fun(); }
 	template < class T >
-	void exec( FunSig fun , T* obj ){ (obj->*fun)(); }
+	void execute( FunSig fun , T* obj ){ (obj->*fun)(); }
 };
 
 template< class FunSig >
@@ -251,12 +253,12 @@ struct FunCallback< FunSig , 1 >
 	typedef typename FT::Param1 P1;
 	FunCallback( P1& _p1)
 		:p1(_p1){}
-	FunCallback( void** data )
-		:p1( *((P1*)data[0]) ){}
+	FunCallback(void* argsData[])
+		:p1( *((P1*)argsData[0]) ){}
 
-	void exec( FunSig fun ){ fun(p1); }
+	void execute( FunSig fun ){ fun(p1); }
 	template < class T >
-	void exec( FunSig fun , T* obj ){ (obj->*fun)(p1); }
+	void execute( FunSig fun , T* obj ){ (obj->*fun)(p1); }
 
 	P1& p1;
 };
@@ -271,13 +273,13 @@ struct FunCallback< FunSig , 2 >
 	FunCallback( P1& _p1 , P2& _p2 )
 		:p1(_p1),p2(_p2){}
 
-	FunCallback( void** data )
-		:p1( *((P1*)data[0]) )
-		,p2( *((P2*)data[1]) ){}
+	FunCallback(void* argsData[])
+		:p1( *((P1*)argsData[0]) )
+		,p2( *((P2*)argsData[1]) ){}
 
-	void exec( FunSig fun ){ fun(p1,p2); }
+	void execute( FunSig fun ){ fun(p1,p2); }
 	template < class T >
-	void exec( FunSig fun , T* obj ){ (obj->*fun)(p1,p2); }
+	void execute( FunSig fun , T* obj ){ (obj->*fun)(p1,p2); }
 
 	P1& p1; P2& p2;
 };
@@ -293,14 +295,14 @@ struct FunCallback< FunSig , 3 >
 	FunCallback( P1& _p1 , P2& _p2 , P3& _p3)
 		:p1(_p1),p2(_p2),p3(_p3){}
 
-	FunCallback( void** data )
-		:p1( *((P1*)data[0]) )
-		,p2( *((P2*)data[1]) )
-		,p3( *((P3*)data[2]) ){}
+	FunCallback(void* argsData[])
+		:p1( *((P1*)argsData[0]) )
+		,p2( *((P2*)argsData[1]) )
+		,p3( *((P3*)argsData[2]) ){}
 
-	void exec( FunSig fun ){ fun(p1,p2,p3); }
+	void execute( FunSig fun ){ fun(p1,p2,p3); }
 	template < class T >
-	void exec( FunSig fun , T* obj ){ (obj->*fun)(p1,p2,p3); }
+	void execute( FunSig fun , T* obj ){ (obj->*fun)(p1,p2,p3); }
 
 	P1& p1; P2& p2; P3& p3;
 };
@@ -316,15 +318,15 @@ struct FunCallback< FunSig , 4 >
 	FunCallback(P1& _p1 , P2& _p2 , P3& _p3 , P4& _p4 )
 		:p1(_p1),p2(_p2),p3(_p3),p4(_p4){}
 
-	FunCallback( void** data )
-		:p1( *((P1*)data[0]) )
-		,p2( *((P2*)data[1]) )
-		,p3( *((P3*)data[2]) )
-		,p4( *((P4*)data[3]) ) {}
+	FunCallback(void* argsData[])
+		:p1( *((P1*)argsData[0]) )
+		,p2( *((P2*)argsData[1]) )
+		,p3( *((P3*)argsData[2]) )
+		,p4( *((P4*)argsData[3]) ) {}
 
-	void exec( FunSig fun ){ fun(p1,p2,p3,p4); }
+	void execute( FunSig fun ){ fun(p1,p2,p3,p4); }
 	template < class T >
-	void exec( FunSig fun , T* obj ){ (obj->*fun)(p1,p2,p3,p4); }
+	void execute( FunSig fun , T* obj ){ (obj->*fun)(p1,p2,p3,p4); }
 
 	P1& p1; P2& p2; P3& p3; P4& p4;
 };
@@ -355,22 +357,19 @@ struct FunCallbackHelper
 
 
 
-
-
-
 template< class FunSig , class T >
-inline void execCallbackFun( FunSig fun , T* obj , void** data )
+inline void ExecuteCallbackFun( FunSig fun , T* obj , void* argsData[])
 {
-	typename detail::FunCallbackHelper< FunSig >::Type callback( data );
-	callback.exec( fun , obj );
+	typename detail::FunCallbackHelper< FunSig >::Type callback(argsData);
+	callback.execute( fun , obj );
 }
 
 
 template< class FunSig >
-inline void execCallbackFun( FunSig fun , void** data )
+inline void ExecuteCallbackFun( FunSig fun , void* argsData[])
 {
-	typename detail::FunCallbackHelper< FunSig >::Type callback( data );
-	callback.exec( fun );
+	typename detail::FunCallbackHelper< FunSig >::Type callback(argsData);
+	callback.execute( fun );
 }
 
 

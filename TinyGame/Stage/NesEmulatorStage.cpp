@@ -123,7 +123,7 @@ public:
 		if( !BaseClass::onInit() )
 			return false;
 
-		if( !mDevice.init(::Global::getGraphics2D()) )
+		if( !mDevice.init(::Global::GetGraphics2D()) )
 			return false;
 
 		mMechine = Nes::IMechine::Create();
@@ -173,7 +173,7 @@ public:
 
 	void onRender(float dFrame)
 	{
-		Graphics2D& g = Global::getGraphics2D();
+		Graphics2D& g = Global::GetGraphics2D();
 
 		mDevice.render(g);
 	}

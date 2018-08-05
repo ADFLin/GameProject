@@ -3,6 +3,7 @@
 #if CORE_SHARE_CODE
 #include "ProfileSystem.cpp"
 #include "LogSystem.cpp"
+#include "ConsoleSystem.cpp"
 #include "RHI/ShaderCompiler.cpp"
 #include "RHI/MaterialShader.cpp"
 #include "RHI/VertexFactory.cpp"

@@ -256,7 +256,7 @@ namespace Compression
 
 		void onRender(float dFrame)
 		{
-			Graphics2D& g = Global::getGraphics2D();
+			Graphics2D& g = Global::GetGraphics2D();
 		}
 
 		struct CompressHeader

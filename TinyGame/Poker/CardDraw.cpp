@@ -16,7 +16,7 @@ namespace Poker {
 	public:
 		CCardDraw()
 		{
-			mBugFixDC.initialize( ::Global::getGraphics2D().getTargetDC() , CardLib::CardSizeX , CardLib::CardSizeY );
+			mBugFixDC.initialize( ::Global::GetGraphics2D().getTargetDC() , CardLib::CardSizeX , CardLib::CardSizeY );
 		}
 		Vec2i getSize()
 		{
@@ -183,7 +183,7 @@ namespace Poker {
 		switch( type )
 		{
 		case eWin7:		
-			return new Win7CardShow( Global::getDrawEngine()->getWindow().getHDC() );
+			return new Win7CardShow( Global::GetDrawEngine()->getWindow().getHDC() );
 		case eWinXP:
 			if ( CardLib::isInitilized() )
 				return new CCardDraw;

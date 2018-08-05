@@ -54,7 +54,7 @@ void SlotFrame::onRender()
 
 	Vec2i pos = getWorldPos();
 
-	Graphics2D& g = Global::getGraphics2D();
+	Graphics2D& g = Global::GetGraphics2D();
 	FixString< 512 > str;
 	if ( getSlot().info )
 	{
@@ -417,7 +417,7 @@ bool ComMsgPanel::onChildEvent( int event , int id , GWidget* ui )
 
 void ComMsgPanel::renderText( GWidget* ui )
 {
-	Graphics2D& g = Global::getGraphics2D();
+	Graphics2D& g = Global::GetGraphics2D();
 
 	Vec2i pos = ui->getWorldPos() + Vec2i( 10 , 10 );
 	RenderUtility::SetFont( g , FONT_S8 );

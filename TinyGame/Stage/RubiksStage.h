@@ -360,7 +360,7 @@ namespace Rubiks
 
 		void onRender( float dFrame )
 		{
-			Graphics2D& g = Global::getGraphics2D();
+			Graphics2D& g = Global::GetGraphics2D();
 			drawCube( g , Vec2i(100,50) , mState[ idxCur ] );
 			drawCube( g , Vec2i(100,300) , mState[ 1 - idxCur ] );
 		}

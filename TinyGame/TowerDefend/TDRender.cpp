@@ -29,7 +29,7 @@ namespace TowerDefend
 
 	void Renderer::drawGrid()
 	{
-		DrawEngine* de = Global::getDrawEngine();
+		DrawEngine* de = Global::GetDrawEngine();
 		Vec2i nSize = de->getScreenSize() / gMapCellLength;
 
 		Graphics2D& g = getGraphics();
@@ -75,7 +75,7 @@ namespace TowerDefend
 
 	Graphics2D& Renderer::getGraphics()
 	{
-		return Global::getGraphics2D();
+		return Global::GetGraphics2D();
 	}
 
 	void Controller::renderMouse( Renderer& renderer )
@@ -150,7 +150,7 @@ namespace TowerDefend
 
 
 		int offset = 15;
-		int px = ::Global::getDrawEngine()->getScreenWidth() - 200;
+		int px = ::Global::GetDrawEngine()->getScreenWidth() - 200;
 		int py = 5 - offset;
 		FixString< 256 > str;
 		str.format( "Gold = %4d  Wood = %4d" , mPlayerInfo.gold , mPlayerInfo.wood );

@@ -7,6 +7,7 @@
 #include "PropertyKey.h"
 #include "FileSystem.h"
 #include "InputManager.h"
+#include "ConsoleSystem.h"
 
 #include "GLGraphics2D.h"
 
@@ -46,12 +47,12 @@ namespace Go
 			};
 			return enties;
 		}
-		void bindParameters()
+		void bindParameters(ShaderParameterMap& parameterMap)
 		{
-			mParamAxisValue.bind(*this, SHADER_PARAM(AxisValue));
-			mParamProjMatrix.bind(*this, SHADER_PARAM(ProjMatrix));
-			mParamUpperColor.bind(*this, SHADER_PARAM(UpperColor));
-			mParamLowerColor.bind(*this, SHADER_PARAM(LowerColor));
+			parameterMap.bind(mParamAxisValue, SHADER_PARAM(AxisValue));
+			parameterMap.bind(mParamProjMatrix, SHADER_PARAM(ProjMatrix));
+			parameterMap.bind(mParamUpperColor, SHADER_PARAM(UpperColor));
+			parameterMap.bind(mParamLowerColor, SHADER_PARAM(LowerColor));
 		}
 		void setParameters(float axisValue, Matrix4 const& projMatrix, Vector4 const& upperColor, Vector4 const& lowerColor)
 		{
@@ -133,9 +134,9 @@ namespace Go
 		if( !BaseClass::onInit() )
 			return false;
 
-		::Global::getDrawEngine()->changeScreenSize(1080, 720);
+		::Global::GetDrawEngine()->changeScreenSize(1080, 720);
 
-		if( !::Global::getDrawEngine()->startOpenGL(8) )
+		if( !::Global::GetDrawEngine()->startOpenGL(8) )
 			return false;
 
 		if( !mBoardRenderer.initializeRHI() )
@@ -269,7 +270,7 @@ namespace Go
 				mReviewGame.guid = mGame.guid;
 				mReviewGame.copy(mGame);
 				widget->cast<GCheckBox>()->setTitle("Close Review");
-				Vec2i screenSize = ::Global::getDrawEngine()->getScreenSize();
+				Vec2i screenSize = ::Global::GetDrawEngine()->getScreenSize();
 				Vec2i widgetSize = Vec2i(100, 300);
 				auto frame = new DevFrame(UI_REPLAY_FRAME, Vec2i(screenSize.x - widgetSize.x - 5, 300) , widgetSize , nullptr);
 				frame->addButton("[<]", [&](int eventId, GWidget* widget) ->bool
@@ -379,7 +380,7 @@ namespace Go
 		cleanupModeData( true );
 		mBoardRenderer.releaseRHI();
 		ShaderManager::Get().clearnupRHIResouse();
-		::Global::getDrawEngine()->stopOpenGL(true);
+		::Global::GetDrawEngine()->stopOpenGL(true);
 		BaseClass::onEnd();
 	}
 
@@ -505,6 +506,8 @@ namespace Go
 	}
 
 
+	TConsoleVariable< int > TestValue(0, "TestValue");
+
 
 	void LeelaZeroGoStage::onRender(float dFrame)
 	{
@@ -515,7 +518,7 @@ namespace Go
 		glClear(GL_COLOR_BUFFER_BIT);
 		RHISetDepthStencilState(StaticDepthDisableState::GetRHI());
 
-		GLGraphics2D& g = ::Global::getGLGraphics2D();
+		GLGraphics2D& g = ::Global::GetGLGraphics2D();
 		g.beginRender();
 
 		GpuProfiler::Get().beginFrame();
@@ -685,7 +688,7 @@ namespace Go
 				for( int i = 0; i < 2; ++i )
 				{
 					auto const& player = mMatchData.players[i];
-					str.format("%s (%s) = %d" , GetControllerName(player.type) , mMatchData.getPlayerColor(i) == StoneColor::eBlack ? "B" : "W" ,  player.winCount );
+					str.format("%s (%s) = %d" , player.getName().c_str() , mMatchData.getPlayerColor(i) == StoneColor::eBlack ? "B" : "W" ,  player.winCount );
 					g.drawText(200, y , str);
 					y += 15;
 				}
@@ -726,7 +729,7 @@ namespace Go
 
 			ViewportSaveScope viewportSave;
 
-			Vec2i screenSize = ::Global::getDrawEngine()->getScreenSize();
+			Vec2i screenSize = ::Global::GetDrawEngine()->getScreenSize();
 
 			RHISetViewport(renderPos.x, screenSize.y - ( renderPos.y + renderSize.y ) , renderSize.x, renderSize.y);
 			MatrixSaveScope matrixSaveScope;
@@ -1301,8 +1304,12 @@ namespace Go
 					case LeelaGameParam::eNetWeight:
 						{	
 							mUsedWeight = StringView(com.strParam, 8);
-							if ( strcmp( com.strParam , ELFWeight) !=0 )
-								::Global::GameConfig().setKeyValue("LeelaLastNetWeight", "Go", com.strParam);
+							for( int i = 0; i < ELFWeights.size(); ++i )
+							{
+								if( strcmp(com.strParam, ELFWeights[i]) != 0 )
+									::Global::GameConfig().setKeyValue("LeelaLastNetWeight", "Go", com.strParam);
+							}
+
 						}
 						break;
 					}
@@ -1481,7 +1488,7 @@ namespace Go
 
 					if( mWinRateWidget == nullptr )
 					{
-						Vec2i screenSize = ::Global::getDrawEngine()->getScreenSize();
+						Vec2i screenSize = ::Global::GetDrawEngine()->getScreenSize();
 						Vec2i widgetSize = { 260 , 310 };
 						Vec2i widgetPos = { screenSize.x - (widgetSize.x + 20), screenSize.y - ( widgetSize.y + 20 ) };
 						mWinRateWidget = new GFrame( UI_ANY , widgetPos , widgetSize , nullptr );
@@ -1489,7 +1496,7 @@ namespace Go
 						mWinRateWidget->setRenderCallback(
 							RenderCallBack::Create([this](GWidget* widget)
 							{
-								Vec2i screenSize = ::Global::getDrawEngine()->getScreenSize();
+								Vec2i screenSize = ::Global::GetDrawEngine()->getScreenSize();
 								Vec2i diagramPos  = widget->getWorldPos() + Vec2i(5, 5);
 								Vec2i diagramSize = widget->getSize() - 2 * Vec2i(5, 5);
 								drawWinRateDiagram(diagramPos, diagramSize);
@@ -1649,7 +1656,7 @@ namespace Go
 	{
 		if( mGamePlayWidget == nullptr )
 		{
-			Vec2i screenSize = Global::getDrawEngine()->getScreenSize();
+			Vec2i screenSize = Global::GetDrawEngine()->getScreenSize();
 
 			Vec2i size = Vec2i(150,200);
 			auto devFrame = new DevFrame(UI_ANY, Vec2i(screenSize.x - size.x - 5, 300), size , NULL);

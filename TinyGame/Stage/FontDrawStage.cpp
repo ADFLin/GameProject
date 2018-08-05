@@ -23,7 +23,7 @@ public:
 		if( !BaseClass::onInit() )
 			return false;
 
-		VERIFY_INITRESULT(::Global::getDrawEngine()->startOpenGL(4));
+		VERIFY_INITRESULT(::Global::GetDrawEngine()->startOpenGL(4));
 
 		VERIFY_INITRESULT(FontCharCache::Get().initialize());
 
@@ -147,7 +147,7 @@ public:
 
 	void onRender(float dFrame)
 	{
-		GLGraphics2D& g = ::Global::getGLGraphics2D();
+		GLGraphics2D& g = ::Global::GetGLGraphics2D();
 		g.beginRender();
 
 		glClearColor(0.2, 0.2, 0.2, 0);
@@ -195,7 +195,7 @@ public:
 
 		g.beginClip(Vec2i(50, 50), Vec2i(100, 100));
 		g.setBrush(Color3f(1, 0, 0));
-		g.drawRect(Vec2i(0, 0), Global::getDrawEngine()->getScreenSize());
+		g.drawRect(Vec2i(0, 0), Global::GetDrawEngine()->getScreenSize());
 		g.endClip();
 
 		glColor3f(1, 1, 1);

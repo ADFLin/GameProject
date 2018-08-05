@@ -126,7 +126,7 @@ public:
 
 	void onRender(float dFrame)
 	{
-		Graphics2D& g = Global::getGraphics2D();
+		Graphics2D& g = Global::GetGraphics2D();
 
 		//RenderUtility::setBrush(g, EColor::eWhite);
 		//RenderUtility::setPen(g, EColor::eWhite);

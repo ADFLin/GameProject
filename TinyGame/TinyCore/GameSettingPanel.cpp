@@ -66,15 +66,6 @@ void BaseSettingPanel::adjustChildLayout()
 
 void BaseSettingPanel::addWidgetInternal( GWidget* ui , char const* title , unsigned groupMask , int sortorder )
 {
-	//if ( !mSetInfoVec.empty() )
-	//{
-	//	SetInfo& info = mSetInfoVec.back();
-	//	if ( GListCtrl* ctrl = dynamic_cast< GListCtrl* >( info.ui ) )
-	//	{
-	//		int sy = ctrl->getItemNum() * ctrl->getItemHeight();
-	//		ctrl->setSize( TVec2D( mUISize.x , sy ) );
-	//	}
-	//}
 
 	SettingInfo info;
 	info.title = title;
@@ -98,7 +89,7 @@ bool BaseSettingPanel::onChildEvent( int event , int id , GWidget* ui )
 void BaseSettingPanel::renderTitle( GWidget* ui )
 {
 	int borderX = 4;
-	IGraphics2D& g = Global::getIGraphics2D();
+	IGraphics2D& g = Global::GetIGraphics2D();
 
 	RenderUtility::SetFont( g , FONT_S10 );
 	g.setTextColor(Color3ub(255 , 200 , 100) );
@@ -171,7 +162,7 @@ void GameSettingPanel::setGame(char const* name)
 void GameSettingPanel::renderTitle(GWidget* ui)
 {
 	int borderX = 4;
-	Graphics2D& g = Global::getGraphics2D();
+	Graphics2D& g = Global::GetGraphics2D();
 
 	BaseClass::renderTitle(ui);
 	Vec2i uiPos(borderX + 5, 5 + 3);

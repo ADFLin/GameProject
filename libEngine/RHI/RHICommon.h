@@ -384,7 +384,7 @@ namespace RenderGL
 	};
 
 
-	struct VertexElement
+	struct InputElement
 	{
 		uint8 idxStream;
 		uint8 attribute;
@@ -395,35 +395,56 @@ namespace RenderGL
 		bool  bNormalize;
 	};
 
-	class VertexDecl
+	int constexpr MAX_INPUT_STREAM_NUM = 8;
+
+	class InputLayoutDesc
 	{
 	public:
-		VertexDecl();
+		InputLayoutDesc();
 
-		void  setSize(uint8 size) { mVertexSize = size; }
-		uint8 getVertexSize() const { return mVertexSize; }
+		uint8 getVertexSize(int idxStream = 0) const { return mVertexSizes[idxStream]; }
 		int   getSematicOffset(Vertex::Semantic s) const;
 		int   getSematicOffset(Vertex::Semantic s, int idx) const;
 		Vertex::Format  getSematicFormat(Vertex::Semantic s) const;
 		Vertex::Format  getSematicFormat(Vertex::Semantic s, int idx) const;
 		uint8 getOffset(int idx) const { return mElements[idx].offset; }
 
-		VertexDecl&   addElement(Vertex::Semantic s, Vertex::Format f, uint8 idx = 0);
-		VertexDecl&   addElement(uint8 attribute, Vertex::Format f, bool bNormailze = false);
-		VertexDecl&   addElement(uint8 idxStream, Vertex::Semantic s, Vertex::Format f, uint8 idx = 0);
-		VertexDecl&   addElement(uint8 idxStream, uint8 attribute, Vertex::Format f, bool bNormailze = false);
+		InputLayoutDesc&   addElement(Vertex::Semantic s, Vertex::Format f, uint8 idx = 0);
+		InputLayoutDesc&   addElement(uint8 attribute, Vertex::Format f, bool bNormailze = false);
+		InputLayoutDesc&   addElement(uint8 idxStream, Vertex::Semantic s, Vertex::Format f, uint8 idx = 0);
+		InputLayoutDesc&   addElement(uint8 idxStream, uint8 attribute, Vertex::Format f, bool bNormailze = false);
 
-		void bindPointer(LinearColor const* overwriteColor = nullptr);
-		void unbindPointer(LinearColor const* overwriteColor = nullptr);
+		InputElement const*   findBySematic(Vertex::Semantic s, int idx) const;
+		InputElement const*   findBySematic(Vertex::Semantic s) const;
 
-		void bindAttrib(LinearColor const* overwriteColor = nullptr);
-		void unbindAttrib(LinearColor const* overwriteColor = nullptr);
+		std::vector< InputElement > mElements;
+		uint8   mVertexSizes[MAX_INPUT_STREAM_NUM];
+	};
 
-		VertexElement const*   findBySematic(Vertex::Semantic s, int idx) const;
-		VertexElement const*   findBySematic(Vertex::Semantic s) const;
+	class RHIInputLayout : public RHIResource
+	{
 
-		std::vector< VertexElement > mElements;
-		uint8   mVertexSize;
+	};
+
+	typedef TRefCountPtr< RHIInputLayout > RHIInputLayoutRef;
+
+
+	struct InputStreamState
+	{
+		RHIVertexBuffer* vertexBuffers[MAX_INPUT_STREAM_NUM];
+		int              numVertexBuffer;
+		RHIIndexBuffer*  indexBuffer;
+		RHIInputLayout*  inputLayout;
+
+		InputStreamState()
+		{
+			::memset(this, 0, sizeof(*this));
+		}
+	};
+
+	class RHIInputStreamState : public RHIResource
+	{
+
 	};
 
 	class RHIBufferBase : public RHIResource
@@ -473,6 +494,11 @@ namespace RenderGL
 	};
 
 	class RHIStorageBuffer : public RHIBufferBase
+	{
+	public:
+	};
+
+	class RHIAtomicCounterBuffer : public RHIBufferBase
 	{
 	public:
 	};
@@ -554,6 +580,7 @@ namespace RenderGL
 	typedef TRefCountPtr< RHIIndexBuffer >  RHIIndexBufferRef;
 	typedef TRefCountPtr< RHIUniformBuffer > RHIUniformBufferRef;
 	typedef TRefCountPtr< RHIStorageBuffer > RHIStorageBufferRef;
+	typedef TRefCountPtr< RHIAtomicCounterBuffer > RHIAtomicCounterBufferRef;
 	typedef TRefCountPtr< RHISamplerState > RHISamplerStateRef;
 	typedef TRefCountPtr< RHIRasterizerState > RHIRasterizerStateRef;
 	typedef TRefCountPtr< RHIDepthStencilState > RHIDepthStencilStateRef;

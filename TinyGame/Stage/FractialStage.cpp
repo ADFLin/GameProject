@@ -67,15 +67,15 @@ class MandelbrotProgram : public GlobalShaderProgram
 	static int constexpr SizeY = 16;
 
 
-	void bindParameters()
+	void bindParameters(ShaderParameterMap& parameterMap)
 	{
-		mParamCoordParam.bind(*this, SHADER_PARAM(CoordParam));
-		mParamCoordParam2.bind(*this, SHADER_PARAM(CoordParam2));
-		mParamTextureSize.bind(*this, SHADER_PARAM(ViewSize));
-		mParamMaxIteration.bind(*this, SHADER_PARAM(MaxIteration));
-		mParamColorMapParam.bind(*this, SHADER_PARAM(ColorMapParam));
-		mParamColorRWTexture.bind(*this, SHADER_PARAM(ColorRWTexture));
-		mParamColorMapTexture.bind(*this, SHADER_PARAM(ColorMapTexture));
+		parameterMap.bind(mParamCoordParam, SHADER_PARAM(CoordParam));
+		parameterMap.bind(mParamCoordParam2, SHADER_PARAM(CoordParam2));
+		parameterMap.bind(mParamTextureSize, SHADER_PARAM(ViewSize));
+		parameterMap.bind(mParamMaxIteration, SHADER_PARAM(MaxIteration));
+		parameterMap.bind(mParamColorMapParam, SHADER_PARAM(ColorMapParam));
+		parameterMap.bind(mParamColorRWTexture, SHADER_PARAM(ColorRWTexture));
+		parameterMap.bind(mParamColorMapTexture, SHADER_PARAM(ColorMapTexture));
 	}
 
 	void setParameters(MandelbrotParam const& param , RHITexture2D& colorTexture , RHITexture1D& colorMapTexture )
@@ -275,7 +275,7 @@ public:
 		if( !BaseClass::onInit() )
 			return false;
 
-		if( !::Global::getDrawEngine()->startOpenGL() )
+		if( !::Global::GetDrawEngine()->startOpenGL() )
 			return false;
 		::Global::GUI().cleanupWidget();
 
@@ -283,7 +283,7 @@ public:
 		if( mProgMandelbrot == nullptr )
 			return false;
 
-		Vec2i screenSize = Global::getDrawEngine()->getScreenSize();
+		Vec2i screenSize = Global::GetDrawEngine()->getScreenSize();
 		
 		ColorMap colorMap( 1024 );
 		colorMap.addPoint(0, Color3ub(0, 7, 100));
@@ -348,9 +348,9 @@ public:
 
 	void onRender(float dFrame)
 	{
-		GLGraphics2D& g = Global::getGLGraphics2D();
+		GLGraphics2D& g = Global::GetGLGraphics2D();
 
-		GameWindow& window = Global::getDrawEngine()->getWindow();
+		GameWindow& window = Global::GetDrawEngine()->getWindow();
 
 		glMatrixMode(GL_PROJECTION);
 		glLoadIdentity();
@@ -361,7 +361,7 @@ public:
 		glClearColor(0.2, 0.2, 0.2, 1);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
-		Vec2i screenSize = Global::getDrawEngine()->getScreenSize();
+		Vec2i screenSize = Global::GetDrawEngine()->getScreenSize();
 		DrawUtility::DrawTexture(*mTexture, Vec2i(0, 0), screenSize);
 		g.beginRender();
 

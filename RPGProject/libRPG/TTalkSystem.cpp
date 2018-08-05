@@ -7,7 +7,7 @@
 #include "EventType.h"
 
 
-DEFINE_CON_VAR( float , talk_section_wait_time , 3 );
+TConsoleVariable< float > talk_section_wait_time( 3 , "talk_section_wait_time" );
 
 struct TalkContent
 {

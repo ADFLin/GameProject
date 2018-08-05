@@ -4,6 +4,10 @@
 
 #include "OpenGLCommon.h"
 
+#include "HashString.h"
+
+#include <unordered_map>
+
 namespace RenderGL
 {
 
@@ -25,21 +29,63 @@ namespace RenderGL
 		friend class ShaderProgram;
 	};
 
-
 	typedef TRefCountPtr< RHIShader > RHIShaderRef;
 
 	class ShaderParameter
 	{
 	public:
+		ShaderParameter()
+		{
+			mLoc = -1;
+		}
+		ShaderParameter(uint32 inBindIndex, uint16 inOffset, uint16 inSize)
+			:bindIndex(inBindIndex),offset(inOffset),size(inSize)
+		{
+
+		}
 		bool isBound() const
 		{
 			return mLoc != -1;
 		}
-		bool bind(ShaderProgram& program, char const* name);
-	private:
+	public:
 		friend class ShaderProgram;
+		union 
+		{
+			int32 mLoc;
+			struct
+			{
+				uint32 bindIndex;
+				uint16 offset;
+				uint16 size;
+			};
+		};
+	};
 
-		GLint mLoc;
+
+	struct ShaderParameterMap
+	{
+
+		void addParameter(char const* name, uint32 bindIndex, uint16 offset = 0, uint16 size = 0)
+		{
+			ShaderParameter entry = { bindIndex, offset, size };
+			mMap.emplace(name, entry);
+		}
+
+		bool bind(ShaderParameter& param, char const* name)
+		{
+			auto iter = mMap.find(name);
+			if( iter == mMap.end() )
+			{
+				return false;
+			}
+			param = iter->second;
+			return true;
+		}
+#if _DEBUG
+		std::unordered_map< std::string, ShaderParameter > mMap;
+#else
+		std::unordered_map< HashString , ShaderParameter > mMap;
+#endif
 	};
 
 
@@ -63,40 +109,6 @@ namespace RenderGL
 	class RHIUniformBuffer;
 	class RHIStorageBuffer;
 
-	class ShaderBufferParameter
-	{
-	public:
-		bool isBound() const
-		{
-			return mIndex != -1;
-		}
-		bool bindUniform(ShaderProgram& program, char const* name);
-		bool bindStorage(ShaderProgram& program, char const* name);
-
-		template< class RHIBufferType >
-		bool bindT(ShaderProgram& program, char const* name);
-		template<>
-		bool bindT< RHIUniformBuffer >(ShaderProgram& program, char const* name) { return bindUniform(program, name); }
-		template<>
-		bool bindT< RHIStorageBuffer >(ShaderProgram& program, char const* name) { return bindStorage(program, name); }
-
-		template< class T , class RHIBufferType >
-		bool bindStructT(ShaderProgram& program , RHIBufferType& buffer )
-		{
-			auto& bufferStruct = T::GetStruct();
-			if( bindT< RHIBufferType >(program, bufferStruct.blockName) )
-			{
-				mStruct = &bufferStruct;
-				return true;
-			}
-			return false;
-		}
-	private:
-		friend class ShaderProgram;
-		GLuint mIndex;
-		StructuredBuffertInfo* mStruct = nullptr;
-	};
-
 
 	struct RMPShaderProgram
 	{
@@ -110,7 +122,7 @@ namespace RenderGL
 		ShaderProgram();
 
 		virtual ~ShaderProgram();
-		virtual void bindParameters() {}
+		virtual void bindParameters(ShaderParameterMap& parameterMap) {}
 
 		bool create();
 
@@ -277,31 +289,72 @@ namespace RenderGL
 			CHECK_PARAMETER(param, setTextureInternal(param.mLoc, OpenGLTextureTraits< RHITextureType >::EnumValue, OpenGLCast::GetHandle(tex), OpenGLCast::GetHandle(sampler), idx));
 		}
 
-		void setBuffer(ShaderBufferParameter const& param, RHIUniformBuffer& buffer);
-		void setBuffer(ShaderBufferParameter const& param, RHIStorageBuffer& buffer);
+		void setBuffer(ShaderParameter const& param, RHIUniformBuffer& buffer);
+		void setBuffer(ShaderParameter const& param, RHIStorageBuffer& buffer);
+		void setBuffer(ShaderParameter const& param, RHIAtomicCounterBuffer& buffer);
+		void setBuffer(char const* name, RHIAtomicCounterBuffer& buffer);
+
+
+		class StructuredBlockInfo
+		{
+		public:
+
+			template< class RHIBufferType >
+			bool bindT(GLuint handle, char const* name);
+			template<>
+			bool bindT< RHIUniformBuffer >(GLuint handle, char const* name)
+			{ 
+				index = glGetProgramResourceIndex(handle, GL_UNIFORM_BLOCK, name);
+				return index != -1;
+			}
+			template<>
+			bool bindT< RHIStorageBuffer >(GLuint handle, char const* name) 
+			{ 
+				index = glGetProgramResourceIndex(handle, GL_SHADER_STORAGE_BLOCK, name);
+				return index != -1;
+			}
+
+			template< class T, class RHIBufferType >
+			bool bindStructT(GLuint handle, RHIBufferType& buffer)
+			{
+				auto& bufferStruct = T::GetStruct();
+				if( bindT< RHIBufferType >(handle, bufferStruct.blockName) )
+				{
+					structInfo = &bufferStruct;
+					return true;
+				}
+				return false;
+			}
+
+			GLuint index;
+			StructuredBuffertInfo* structInfo = nullptr;
+		};
+
+		void setBuffer(StructuredBlockInfo const& param, RHIUniformBuffer& buffer);
+		void setBuffer(StructuredBlockInfo const& param, RHIStorageBuffer& buffer);
 
 		template< class T , class RHIBufferType >
-		void setBufferT(RHIBufferType& buffer)
+		void setStructuredBufferT(RHIBufferType& buffer)
 		{
 			auto& bufferStruct = T::GetStruct();
-			for( auto const& param : mBufferParameters )
+			for( auto const& param : mBoundedBlocks )
 			{
-				if( param.mStruct == &bufferStruct )
+				if( param.structInfo == &bufferStruct )
 				{
 					setBuffer(param, buffer);
 					return;
 				}
 			}
 
-			ShaderBufferParameter param;
-			if( param.bindStructT< T >(*this , buffer ) )
+			StructuredBlockInfo param;
+			if( param.bindStructT< T >(mHandle , buffer ) )
 			{
-				mBufferParameters.push_back(param);
+				mBoundedBlocks.push_back(param);
 				setBuffer(param, buffer);
 			}
 		}
 
-		std::vector< ShaderBufferParameter > mBufferParameters;
+		std::vector< StructuredBlockInfo > mBoundedBlocks;
 
 #undef CHECK_PARAMETER
 
@@ -391,6 +444,7 @@ namespace RenderGL
 		std::string  shaderName;
 		//#TODO
 	public:
+		void generateParameterMap(ShaderParameterMap& parameterMap);
 		void resetBindIndex()
 		{
 			mIdxTextureAutoBind = IdxTextureAutoBindStart;

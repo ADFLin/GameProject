@@ -22,10 +22,11 @@ public:
 	{
 	}
 
-	TArrayView(std::initializer_list< typename std::remove_const<T>::type > const& inList)
+	TArrayView(std::initializer_list<T> const& inList)
 		:mData(inList.begin()), mNum(inList.size())
 	{
 	}
+
 
 
 	operator T* () { return mData; }

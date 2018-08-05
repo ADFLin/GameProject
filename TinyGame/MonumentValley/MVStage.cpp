@@ -39,10 +39,10 @@ namespace MV
 	{
 		::Global::GUI().cleanupWidget();
 
-		if ( !Global::getDrawEngine()->startOpenGL() )
+		if ( !Global::GetDrawEngine()->startOpenGL() )
 			return false;
 
-		GameWindow& window = Global::getDrawEngine()->getWindow();
+		GameWindow& window = Global::GetDrawEngine()->getWindow();
 		//testRotation();
 
 
@@ -108,7 +108,7 @@ namespace MV
 	void TestStage::onEnd()
 	{
 		cleanup( true );
-		Global::getDrawEngine()->stopOpenGL();
+		Global::GetDrawEngine()->stopOpenGL();
 	}
 
 	void TestStage::cleanup( bool beDestroy )
@@ -157,7 +157,7 @@ namespace MV
 				{
 					int idxX = 1;
 					int idxY = 2;
-					GameWindow& window = Global::getDrawEngine()->getWindow();
+					GameWindow& window = Global::GetDrawEngine()->getWindow();
 					float x = msg.getPos().x;
 					float y = window.getHeight() - msg.getPos().y;
 					if ( x > window.getWidth() / 2 )
@@ -587,7 +587,7 @@ namespace MV
 
 	void TestStage::onRender(float dFrame)
 	{
-		GameWindow& window = Global::getDrawEngine()->getWindow();
+		GameWindow& window = Global::GetDrawEngine()->getWindow();
 
 		glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
 
@@ -689,7 +689,7 @@ namespace MV
 		}
 
 
-		GLGraphics2D& g = ::Global::getDrawEngine()->getGLGraphics();
+		GLGraphics2D& g = ::Global::GetDrawEngine()->getGLGraphics();
 
 		g.beginRender();
 
@@ -888,7 +888,7 @@ namespace MV
 
 	void TestStage::renderDbgText( Vec2i const& pos )
 	{
-		GLGraphics2D& g = Global::getGLGraphics2D();
+		GLGraphics2D& g = Global::GetGLGraphics2D();
 		FixString< 256 > str;
 		glColor3f(1,1,0);
 		g.drawText( pos.x , pos.y , str.format("( %d %d %d ) dir = %d", pos2Dbg.x , pos2Dbg.y , pos2Dbg.z , (int)dirDBG ) );
@@ -898,7 +898,7 @@ namespace MV
 
 	int TestStage::findBlockFromScreenPos( Vec2i const& pos ,Vec3f const& viewPos , Dir& outDir )
 	{
-		GameWindow& window = Global::getDrawEngine()->getWindow();
+		GameWindow& window = Global::GetDrawEngine()->getWindow();
 		float x = pos.x;
 		float y = window.getHeight() - pos.y;
 		float dx = mViewWidth * (  x / window.getWidth() - 0.5 );

@@ -81,10 +81,11 @@ namespace RenderGL
 	RHIIndexBuffer*   RHICreateIndexBuffer(uint32 nIndices, bool bIntIndex, uint32 creationFlags = BCF_DefalutValue, void* data = nullptr);
 	RHIUniformBuffer* RHICreateUniformBuffer(uint32 elementSize, uint32 numElement, uint32 creationFlags = BCF_DefalutValue, void* data = nullptr);
 	RHIStorageBuffer* RHICreateStorageBuffer(uint32 elementSize, uint32 numElement, uint32 creationFlags = BCF_DefalutValue, void* data = nullptr);
-
+	RHIAtomicCounterBuffer* RHICreateAtomicCounterBuffer(uint32 numElement, uint32 creationFlags = BCF_DefalutValue, void* data = nullptr);
 
 	RHIFrameBuffer*  RHICreateFrameBuffer();
 
+	RHIInputLayout*  RHICreateInputLayout(InputLayoutDesc const& desc);
 
 	RHISamplerState* RHICreateSamplerState(SamplerStateInitializer const& initializer);
 
@@ -133,8 +134,11 @@ namespace RenderGL
 		RHIFUNCTION(RHIIndexBuffer*   RHICreateIndexBuffer(uint32 nIndices, bool bIntIndex, uint32 creationFlag, void* data));
 		RHIFUNCTION(RHIUniformBuffer* RHICreateUniformBuffer(uint32 elementSize, uint32 numElement, uint32 creationFlag, void* data));
 		RHIFUNCTION(RHIStorageBuffer* RHICreateStorageBuffer(uint32 elementSize, uint32 numElement, uint32 creationFlag, void* data));
+		RHIFUNCTION(RHIAtomicCounterBuffer* RHICreateAtomicCounterBuffer(uint32 numElement, uint32 creationFlags, void* data));
+
 		RHIFUNCTION(RHIFrameBuffer*  RHICreateFrameBuffer());
 
+		RHIFUNCTION(RHIInputLayout*  RHICreateInputLayout(InputLayoutDesc const& desc));
 
 		RHIFUNCTION(RHISamplerState* RHICreateSamplerState(SamplerStateInitializer const& initializer));
 

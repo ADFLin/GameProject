@@ -60,7 +60,7 @@ namespace GreedySnake
 
 	void LevelStage::onRender( float dFrame )
 	{
-		Graphics2D& g = Global::getGraphics2D();
+		Graphics2D& g = Global::GetGraphics2D();
 		mScene->render( g , dFrame );
 	}
 

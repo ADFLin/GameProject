@@ -154,7 +154,7 @@ namespace Bejeweled
 
 		RenderUtility::SetFont( g , FONT_S8 );
 		FixString< 128 > str;
-		Vec2i texPos( Global::getDrawEngine()->getScreenWidth() - 100 , 10 );
+		Vec2i texPos( Global::GetDrawEngine()->getScreenWidth() - 100 , 10 );
 		str.format( "CtrlMode = %d" , (int)mCtrlMode );
 		g.drawText( texPos , str );
 		texPos.y += 15;

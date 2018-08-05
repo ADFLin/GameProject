@@ -146,7 +146,7 @@ namespace RenderGL
 			std::function< void() > exitFun;
 		};
 
-		DrawEngine* de = ::Global::getDrawEngine();
+		DrawEngine* de = ::Global::GetDrawEngine();
 		HGLRC hRC = de->getGLContext()->getHandle();
 		HGLRC hLoadRC = wglCreateContext(de->getWindow().getHDC());
 		wglShareLists( hRC , hLoadRC );
@@ -163,7 +163,7 @@ namespace RenderGL
 				{
 
 				}
-				mAssetManager.registerAsset(&mMaterialAssets[i]);
+				::Global::GetAssetManager().registerAsset(&mMaterialAssets[i]);
 				postLoading();
 			}
 
@@ -238,7 +238,7 @@ namespace RenderGL
 		};
 		loadingTask->exitFun = [this]()
 		{
-			ShaderManager::Get().registerShaderAssets(mAssetManager);
+			ShaderManager::Get().registerShaderAssets( ::Global::GetAssetManager() );
 			mGpuSync.bUseFence = false;
 			mLoadingThread = nullptr;
 		};

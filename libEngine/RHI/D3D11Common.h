@@ -44,14 +44,20 @@ namespace RenderGL
 	template<>
 	struct TD3D11TypeTraits< RHIUniformBuffer > { typedef ID3D11Buffer ResourceType; };
 	template<>
+	struct TD3D11TypeTraits< RHIRasterizerState > { typedef ID3D11RasterizerState ResourceType; };
+	template<>
 	struct TD3D11TypeTraits< RHIBlendState > { typedef ID3D11BlendState ResourceType; };
-
+	template<>
+	struct TD3D11TypeTraits< RHIInputLayout > { typedef ID3D11InputLayout ResourceType; };
 	struct D3D11Conv
 	{
 		static D3D_PRIMITIVE_TOPOLOGY To(PrimitiveType type);
+		static DXGI_FORMAT To(Vertex::Format format, bool bNormalize);
 		static DXGI_FORMAT To(Texture::Format format);
 		static D3D11_BLEND To(Blend::Factor factor);
 		static D3D11_BLEND_OP To(Blend::Operation op);
+		static D3D11_CULL_MODE To(ECullMode mode);
+		static D3D11_FILL_MODE To(EFillMode mode);
 	};
 
 	template< class RHIResoureType >
@@ -168,6 +174,15 @@ namespace RenderGL
 
 	};
 
+	class D3D11RasterizerState : public TD3D11Resource< RHIRasterizerState >
+	{
+	public:
+		D3D11RasterizerState(ID3D11RasterizerState* rasterizerResource)
+		{
+			mResource = rasterizerResource;
+		}
+	};
+
 	class D3D11BlendState : public TD3D11Resource< RHIBlendState >
 	{
 	public:
@@ -177,10 +192,21 @@ namespace RenderGL
 		}
 	};
 
+	class D3D11InputLayout : public TD3D11Resource< RHIInputLayout >
+	{
+	public:
+		D3D11InputLayout(ID3D11InputLayout* inputLayout)
+		{
+			mResource = inputLayout;
+		}
+	};
+
 	struct D3D11Cast
 	{
 		static D3D11Texture2D* To(RHITexture2D* tex) { return static_cast<D3D11Texture2D*>(tex); }
 		static D3D11BlendState* To(RHIBlendState* state) { return static_cast<D3D11BlendState*>(state); }
+		static D3D11RasterizerState* To(RHIRasterizerState* state) { return static_cast<D3D11RasterizerState*>(state); }
+		static D3D11InputLayout* To(RHIInputLayout* inputLayout) { return static_cast<D3D11InputLayout*>(inputLayout); }
 
 		template < class T >
 		static auto To(TRefCountPtr<T>& ptr) { return D3D11Cast::To(ptr.get()); }

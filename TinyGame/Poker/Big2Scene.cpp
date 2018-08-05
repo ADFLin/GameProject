@@ -50,7 +50,7 @@ namespace Poker { namespace Big2 {
 		
 		void  onRender()
 		{
-			getScene().getCardDraw().draw( ::Global::getGraphics2D() , getWorldPos() , card );
+			getScene().getCardDraw().draw( ::Global::GetGraphics2D() , getWorldPos() , card );
 		}
 		void  onClick()
 		{
@@ -113,7 +113,7 @@ namespace Poker { namespace Big2 {
 		}
 		void onRender()
 		{
-			IGraphics2D& g = ::Global::getIGraphics2D();
+			IGraphics2D& g = ::Global::GetIGraphics2D();
 			Vec2i pos  = getWorldPos();
 			Vec2i size = getSize();
 
@@ -155,7 +155,7 @@ namespace Poker { namespace Big2 {
 		mCardDraw = ICardDraw::Create( ICardDraw::eWin7 );
 		mCardSize = mCardDraw->getSize();
 
-		mShowCardBmp.initialize( ::Global::getGraphics2D().getTargetDC() , 600 , 400 );
+		mShowCardBmp.initialize( ::Global::GetGraphics2D().getTargetDC() , 600 , 400 );
 	}
 
 	Scene::~Scene()
@@ -167,7 +167,7 @@ namespace Poker { namespace Big2 {
 	void Scene::setupUI()
 	{
 
-		Vec2i sSize = ::Global::getDrawEngine()->getScreenSize();
+		Vec2i sSize = ::Global::GetDrawEngine()->getScreenSize();
 
 		CardListUI::setScene( *this );
 		mOwnCardsUI = new CardListUI( getLevel().getOwnCards() , Vec2i( sSize.x / 2 , sSize.y - mCardSize.y - 75 ) , NULL );
@@ -229,7 +229,7 @@ namespace Poker { namespace Big2 {
 
 	void Scene::render( Graphics2D& g )
 	{
-		Vec2i sSize = ::Global::getDrawEngine()->getScreenSize();
+		Vec2i sSize = ::Global::GetDrawEngine()->getScreenSize();
 
 		int yOffset = 50;
 		Vec2i gap( 8 , 8 );
@@ -645,6 +645,7 @@ namespace Poker { namespace Big2 {
 		std::fill_n( mCardSelectOffset , 13 , 0 );
 		mNumSelected = 0;
 		setClientCards( cards );
+		setRerouteMouseMsgUnhandled();
 	}
 
 	void CardListUI::setClientCards( CardDeck& cards )
@@ -670,14 +671,14 @@ namespace Poker { namespace Big2 {
 		{
 			for( int i = 0 ; i < (int)mClinetCards->size() ; ++i )
 			{
-				msCardDraw->draw( ::Global::getGraphics2D() , pos + Vec2i( mCardPosOffset + mCardPos[i] , SelectOffect )  , (*mClinetCards)[i] );
+				msCardDraw->draw( ::Global::GetGraphics2D() , pos + Vec2i( mCardPosOffset + mCardPos[i] , SelectOffect )  , (*mClinetCards)[i] );
 			}
 		}
 		else
 		{
 			for( int i = 0 ; i < (int)mClinetCards->size() ; ++i )
 			{
-				msCardDraw->draw( ::Global::getGraphics2D() , pos + Vec2i( 0 , SelectOffect - (int)mCardSelectOffset[i]  ) , (*mClinetCards)[i] );
+				msCardDraw->draw( ::Global::GetGraphics2D() , pos + Vec2i( 0 , SelectOffect - (int)mCardSelectOffset[i]  ) , (*mClinetCards)[i] );
 				pos.x += NextOffset;
 			}
 		}
@@ -688,7 +689,6 @@ namespace Poker { namespace Big2 {
 	{
 		if ( mHaveAnim || mClinetCards->size() == 0 )
 		{
-			skipMouseMsg();
 			return true;
 		}
 
@@ -707,7 +707,6 @@ namespace Poker { namespace Big2 {
 			{
 				if ( localPos.y < SelectOffect )
 				{
-					skipMouseMsg();
 					return true;
 				}
 			}

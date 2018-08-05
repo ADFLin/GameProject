@@ -13,7 +13,7 @@
 
 #include "Singleton.h"
 
-ConVar< bool > gPlayerNoDamage( false , "playerNoDamage" );
+TConsoleVariable< bool > gPlayerNoDamage( false , "playerNoDamage" );
 
 
 class DamageComputer

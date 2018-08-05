@@ -10,10 +10,10 @@
 #include "ConsoleSystem.h"
 #include "UtilityMath.h"
 
-ConVar< float > npc_dead_body_save_time( 2 , "npc_dead_body_save_time" );
-ConVar< float > npc_chest_vanish_time( 30 , "npc_chest_vanish_time" );
-ConVar< float > npc_dead_body_vanish_time( 10 , "npc_dead_body_vanish_time" );
-ConVar< bool >  npc_ai_enable( true , "npc_ai_enable" );
+TConsoleVariable< float > npc_dead_body_save_time( 2 , "npc_dead_body_save_time" );
+TConsoleVariable< float > npc_chest_vanish_time( 30 , "npc_chest_vanish_time" );
+TConsoleVariable< float > npc_dead_body_vanish_time( 10 , "npc_dead_body_vanish_time" );
+TConsoleVariable< bool >  npc_ai_enable( true , "npc_ai_enable" );
 
 int g_useScheduleNum = 0;
 

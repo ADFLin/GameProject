@@ -97,7 +97,7 @@ namespace Bubble
 	{
 		Vector2 pos = Vector2( 100 , 100 );
 
-		Graphics2D& g = Global::getGraphics2D();
+		Graphics2D& g = Global::GetGraphics2D();
 
 		mDataManager.render( g );
 	}

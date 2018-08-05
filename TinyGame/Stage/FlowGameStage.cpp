@@ -32,7 +32,7 @@ namespace Flow
 
 	void TestStage::onRender(float dFrame)
 	{
-		Graphics2D& g = Global::getGraphics2D();
+		Graphics2D& g = Global::GetGraphics2D();
 
 		Vec2i size = mLevel.getSize();
 

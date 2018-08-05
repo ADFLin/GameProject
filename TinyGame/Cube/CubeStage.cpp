@@ -11,8 +11,8 @@ namespace Cube
 	{
 		::Global::GUI().cleanupWidget();
 
-		Global::getDrawEngine()->startOpenGL();
-		GameWindow& window = Global::getDrawEngine()->getWindow();
+		Global::GetDrawEngine()->startOpenGL();
+		GameWindow& window = Global::GetDrawEngine()->getWindow();
 
 		mCamera.setPos( Vec3f( -10 , 0 , 0 ) );
 

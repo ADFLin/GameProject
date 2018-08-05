@@ -28,7 +28,7 @@ namespace RenderGL
 	struct MeshBatch
 	{
 		PrimitiveType    primitiveType;
-		VertexDecl*      vertexDecl;
+		RHIInputLayout*  inputLayout;
 		Material*        material;
 		RHIVertexBuffer* vertexBuffer;
 		std::vector< MeshBatchElement > elements;
@@ -41,7 +41,7 @@ namespace RenderGL
 		{
 			material = nullptr;
 			vertexBuffer = nullptr;
-			vertexDecl = nullptr;
+			inputLayout = nullptr;
 			VAOHandle = 0;
 		}
 	};
@@ -72,7 +72,8 @@ namespace RenderGL
 		void draw(RenderContext& context, SimpleVertex* vertices, int numVertices);
 
 		ShaderProgram mShader;
-		VertexDecl    mDecl;
+		RHIInputLayoutRef  mInputLayout;
+
 		RHIVertexBufferRef mVertexBuffer;
 		GLuint        mVAO;
 	};

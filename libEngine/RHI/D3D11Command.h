@@ -3,24 +3,31 @@
 #define D3D11Command_H_97458D19_2E17_42B7_89F9_A576B704814B
 
 #include "RHICommand.h"
+#include "ShaderCore.h"
 
 #include "D3D11Common.h"
 
 #include "FixString.h"
+
 #include "Core/ScopeExit.h"
+
 
 
 #include "D3D11Shader.h"
 #include "D3DX11async.h"
 #include "D3Dcompiler.h"
 
-#include <unordered_map>
+
 
 #pragma comment(lib , "D3D11.lib")
 #pragma comment(lib , "D3DX11.lib")
 #pragma comment(lib , "D3dcompiler.lib")
 #pragma comment(lib , "DXGI.lib")
 #pragma comment(lib , "dxguid.lib")
+
+
+#define CODE_STRING_INNER( CODE_TEXT ) R#CODE_TEXT
+#define CODE_STRING( CODE_TEXT ) CODE_STRING_INNER( CODE(##CODE_TEXT)CODE );
 
 
 namespace RenderGL
@@ -34,31 +41,6 @@ namespace RenderGL
 	template<> struct ToShaderEnum< ID3D11ComputeShader > { static Shader::Type constexpr Result = Shader::eCompute; };
 	template<> struct ToShaderEnum< ID3D11HullShader > { static Shader::Type constexpr Result = Shader::eHull; };
 	template<> struct ToShaderEnum< ID3D11DomainShader > { static Shader::Type constexpr Result = Shader::eDomain; };
-
-
-	struct D3D11ShaderParameter
-	{
-		uint8  bindIndex;
-		uint16 offset;
-		uint16 size;
-	};
-
-
-
-	struct ShaderParameterMap
-	{
-
-		void addParameter(char const* name, uint8 bindIndex, uint16 offset, uint16 size)
-		{
-			D3D11ShaderParameter entry = { bindIndex, offset, size };
-			mMap.emplace(name, entry);
-		}
-
-
-		std::unordered_map< std::string, D3D11ShaderParameter > mMap;
-	};
-
-
 
 
 	struct FrameSwapChain
@@ -119,10 +101,9 @@ namespace RenderGL
 
 		RHITextureDepth* RHICreateTextureDepth(Texture::DepthFormat format, int w, int h)
 		{
-
-
 			return nullptr;
 		}
+
 		RHITextureCube*  RHICreateTextureCube()
 		{
 
@@ -134,19 +115,26 @@ namespace RenderGL
 
 			return nullptr;
 		}
+
 		RHIIndexBuffer*   RHICreateIndexBuffer(uint32 nIndices, bool bIntIndex, uint32 creationFlag, void* data)
 		{
 
 			return nullptr;
 		}
+
 		RHIUniformBuffer* RHICreateUniformBuffer(uint32 elementSize, uint32 numElement, uint32 creationFlag, void* data)
 		{
 
 			return nullptr;
 		}
+
 		RHIStorageBuffer* RHICreateStorageBuffer(uint32 elementSize, uint32 numElement, uint32 creationFlag, void* data)
 		{
+			return nullptr;
+		}
 
+		RHIAtomicCounterBuffer* RHICreateAtomicCounterBuffer(uint32 numElement, uint32 creationFlags, void* data)
+		{
 			return nullptr;
 		}
 
@@ -155,15 +143,14 @@ namespace RenderGL
 			return nullptr;
 		}
 
+		RHIInputLayout*   RHICreateInputLayout(InputLayoutDesc const& desc);
+
 		RHISamplerState* RHICreateSamplerState(SamplerStateInitializer const& initializer)
 		{
 			return nullptr;
 		}
 
-		RHIRasterizerState* RHICreateRasterizerState(RasterizerStateInitializer const& initializer)
-		{
-			return nullptr;
-		}
+		RHIRasterizerState* RHICreateRasterizerState(RasterizerStateInitializer const& initializer);
 		RHIBlendState* RHICreateBlendState(BlendStateInitializer const& initializer);
 
 		RHIDepthStencilState* RHICreateDepthStencilState(DepthStencilStateInitializer const& initializer)
@@ -173,7 +160,7 @@ namespace RenderGL
 
 		void RHISetRasterizerState(RHIRasterizerState& rasterizerState)
 		{
-
+			mDeviceContext->RSSetState(D3D11Cast::GetResource(rasterizerState));
 		}
 		
 		void RHISetBlendState(RHIBlendState& blendState)

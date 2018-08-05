@@ -110,9 +110,9 @@ namespace RenderGL
 			TStructuredUniformBuffer< ParticleParameters >& paramBuffer,
 			TStructuredUniformBuffer< ParticleInitParameters >& paramInitBuffer)
 		{
-			setBufferT< ParticleData >(*particleBuffer.getRHI());
-			setBufferT< ParticleInitParameters >(*paramInitBuffer.getRHI());
-			setBufferT< ParticleParameters >(*paramBuffer.getRHI());
+			setStructuredBufferT< ParticleData >(*particleBuffer.getRHI());
+			setStructuredBufferT< ParticleInitParameters >(*paramInitBuffer.getRHI());
+			setStructuredBufferT< ParticleParameters >(*paramBuffer.getRHI());
 		}
 	};
 
@@ -122,7 +122,7 @@ namespace RenderGL
 		typedef ParticleSimBaseProgram BaseClass;
 
 
-		void bindParameters()
+		void bindParameters(ShaderParameterMap& parameterMap)
 		{
 		}
 
@@ -157,11 +157,11 @@ namespace RenderGL
 		DECLARE_GLOBAL_SHADER(ParticleUpdateProgram);
 		typedef ParticleSimBaseProgram BaseClass;
 
-		void bindParameters()
+		void bindParameters(ShaderParameterMap& parameterMap)
 		{
-			BaseClass::bindParameters();
-			mParamDeltaTime.bind(*this, SHADER_PARAM(DeltaTime));
-			mParamNumCollisionPrimitive.bind(*this, SHADER_PARAM(NumCollisionPrimitive));
+			BaseClass::bindParameters(parameterMap);
+			parameterMap.bind( mParamDeltaTime , SHADER_PARAM(DeltaTime));
+			parameterMap.bind( mParamNumCollisionPrimitive , SHADER_PARAM(NumCollisionPrimitive));
 		}
 
 		void setParameters(
@@ -205,15 +205,15 @@ namespace RenderGL
 		DECLARE_GLOBAL_SHADER(SimpleSpriteParticleProgram);
 		typedef GlobalShaderProgram BaseClass;
 
-		void bindParameters()
+		void bindParameters(ShaderParameterMap& parameterMap)
 		{
-			mParamBaseTexture.bind(*this, SHADER_PARAM(BaseTexture));
+			parameterMap.bind(mParamBaseTexture, SHADER_PARAM(BaseTexture));
 		}
 
 		void setParameters(
 			TStructuredStorageBuffer< ParticleData >& particleBuffer , RHITexture2D& texture )
 		{
-			setBufferT< ParticleData >(*particleBuffer.getRHI());
+			setStructuredBufferT< ParticleData >(*particleBuffer.getRHI());
 			setTexture(mParamBaseTexture, texture);
 		}
 
@@ -252,7 +252,7 @@ namespace RenderGL
 
 		static bool constexpr UseTesselation = true;
 
-		void bindParameters()
+		void bindParameters(ShaderParameterMap& parameterMap)
 		{
 
 		}
@@ -314,13 +314,13 @@ namespace RenderGL
 		DECLARE_GLOBAL_SHADER(WaterSimulationProgram);
 		typedef GlobalShaderProgram BaseClass;
 
-		void bindParameters()
+		void bindParameters(ShaderParameterMap& parameterMap)
 		{
-			BaseClass::bindParameters();
-			mParamDataIn.bindStorage(*this, SHADER_PARAM(WaterDataInBlock));
-			mParamDataOut.bindStorage(*this, SHADER_PARAM(WaterDataOutBlock));
-			mParamWaterParam.bind(*this, SHADER_PARAM(WaterParam));
-			mParamTileNum.bind(*this, SHADER_PARAM(TileNum));
+			BaseClass::bindParameters(parameterMap);
+			parameterMap.bind(mParamDataIn, SHADER_PARAM(WaterDataInBlock));
+			parameterMap.bind(mParamDataOut, SHADER_PARAM(WaterDataOutBlock));
+			parameterMap.bind(mParamWaterParam, SHADER_PARAM(WaterParam));
+			parameterMap.bind(mParamTileNum, SHADER_PARAM(TileNum));
 		}
 
 		void setParameters( Vector4 const& param , int TileNum , RHIStorageBuffer& DataIn , RHIStorageBuffer& DataOut )
@@ -353,8 +353,8 @@ namespace RenderGL
 			return entries;
 		}
 
-		ShaderBufferParameter mParamDataIn;
-		ShaderBufferParameter mParamDataOut;
+		ShaderParameter mParamDataIn;
+		ShaderParameter mParamDataOut;
 		ShaderParameter mParamWaterParam;
 		ShaderParameter mParamTileNum;
 	};
@@ -364,11 +364,11 @@ namespace RenderGL
 		DECLARE_GLOBAL_SHADER(WaterUpdateNormalProgram);
 		typedef GlobalShaderProgram BaseClass;
 
-		void bindParameters()
+		void bindParameters(ShaderParameterMap& parameterMap)
 		{
-			BaseClass::bindParameters();
-			mParamData.bindStorage(*this, SHADER_PARAM(WaterDataOutBlock));
-			mParamTileNum.bind(*this, SHADER_PARAM(TileNum));
+			BaseClass::bindParameters(parameterMap);
+			parameterMap.bind(mParamData, SHADER_PARAM(WaterDataOutBlock));
+			parameterMap.bind(mParamTileNum, SHADER_PARAM(TileNum));
 		}
 
 		void setParameters(int TileNum, RHIStorageBuffer& Data)
@@ -398,7 +398,7 @@ namespace RenderGL
 			return entries;
 		}
 
-		ShaderBufferParameter mParamData;
+		ShaderParameter mParamData;
 		ShaderParameter mParamTileNum;
 	};
 
@@ -408,17 +408,16 @@ namespace RenderGL
 		DECLARE_GLOBAL_SHADER(WaterProgram);
 		typedef GlobalShaderProgram BaseClass;
 
-		void bindParameters()
+		void bindParameters(ShaderParameterMap& parameterMap)
 		{
-			BaseClass::bindParameters();
-			mParamDataIn.bindStorage(*this, SHADER_PARAM(WaterDataInBlock));
-			mParamTileNum.bind(*this, SHADER_PARAM(TileNum));
+			BaseClass::bindParameters(parameterMap);
+			parameterMap.bind(mParamDataIn, SHADER_PARAM(WaterDataInBlock));
+			parameterMap.bind(mParamTileNum, SHADER_PARAM(TileNum));
 		}
 
 		void setParameters(int TileNum, RHIStorageBuffer& DataIn)
 		{
 			setBuffer(mParamDataIn, DataIn);
-	
 			setParam(mParamTileNum, TileNum);
 		}
 
@@ -445,7 +444,7 @@ namespace RenderGL
 			return entries;
 		}
 
-		ShaderBufferParameter mParamDataIn;
+		ShaderParameter mParamDataIn;
 		ShaderParameter mParamTileNum;
 	};
 
@@ -585,7 +584,7 @@ namespace RenderGL
 		{
 			GL_BIND_LOCK_OBJECT(mProgUpdate);
 			mProgUpdate->setParameters(mParticleBuffer, mParamBuffer, mInitParamBuffer, dt, mPrimitives.size());
-			mProgUpdate->setBufferT<CollisionPrimitive>(*mCollisionPrimitiveBuffer.getRHI());
+			mProgUpdate->setStructuredBufferT<CollisionPrimitive>(*mCollisionPrimitiveBuffer.getRHI());
 			glDispatchCompute(mParticleBuffer.getElementNum(), 1, 1);
 		}
 
@@ -637,7 +636,7 @@ namespace RenderGL
 			if( !BaseClass::onInit() )
 				return false;
 
-			if( !::Global::getDrawEngine()->startOpenGL() )
+			if( !::Global::GetDrawEngine()->startOpenGL() )
 				return false;
 
 			VERIFY_INITRESULT(GPUParticleData::initialize());
@@ -655,8 +654,8 @@ namespace RenderGL
 				Vector3(1,-1,0),
 			};
 			int   idx[6] = { 0 , 1 , 2 , 0 , 2 , 3 };
-			mSpherePlane.mDecl.addElement(Vertex::ePosition, Vertex::eFloat3);
-			VERIFY_INITRESULT(mSpherePlane.createBuffer(&v[0], 4, &idx[0], 6, true));
+			mSpherePlane.mInputLayoutDesc.addElement(Vertex::ePosition, Vertex::eFloat3);
+			VERIFY_INITRESULT(mSpherePlane.createRHIResource(&v[0], 4, &idx[0], 6, true));
 
 			VERIFY_INITRESULT(MeshBuild::Tile(mTileMesh, mTileNum - 1, 100, false));
 			VERIFY_INITRESULT(mWaterDataBuffers[0].initializeResource(mTileNum * mTileNum));
@@ -688,7 +687,7 @@ namespace RenderGL
 			}
 
 
-			Vec2i screenSize = ::Global::getDrawEngine()->getScreenSize();
+			Vec2i screenSize = ::Global::GetDrawEngine()->getScreenSize();
 			mViewFrustum.mNear = 0.01;
 			mViewFrustum.mFar = 800.0;
 			mViewFrustum.mAspect = float(screenSize.x) / screenSize.y;
@@ -774,10 +773,10 @@ namespace RenderGL
 
 		void onRender(float dFrame)
 		{
-			Graphics2D& g = Global::getGraphics2D();
+			Graphics2D& g = Global::GetGraphics2D();
 
 
-			GameWindow& window = Global::getDrawEngine()->getWindow();
+			GameWindow& window = Global::GetDrawEngine()->getWindow();
 
 			mView.gameTime = 0;
 			mView.realTime = 0;
@@ -836,8 +835,8 @@ namespace RenderGL
 
 
 			{
-				int width = ::Global::getDrawEngine()->getScreenWidth();
-				int height = ::Global::getDrawEngine()->getScreenHeight();
+				int width = ::Global::GetDrawEngine()->getScreenWidth();
+				int height = ::Global::GetDrawEngine()->getScreenHeight();
 
 				RHISetDepthStencilState(StaticDepthDisableState::GetRHI());
 				RHISetBlendState(TStaticBlendState<>::GetRHI());

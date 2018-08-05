@@ -48,7 +48,7 @@ namespace Chromatron
 
 		Vec2i buttonSize( 60 , 25 );
 
-		int screenWidth = Global::getDrawEngine()->getScreenWidth();
+		int screenWidth = Global::GetDrawEngine()->getScreenWidth();
 		GPanel* panel = new GPanel( UI_ANY , Vec2i(0,0) , Vec2i( screenWidth , 30 ) , NULL );
 		panel->setRenderType( GPanel::eRectType );
 		::Global::GUI().addWidget( panel );
@@ -127,7 +127,7 @@ namespace Chromatron
 
 	void LevelStage::onRender( float dFrame )
 	{
-		Graphics2D& g = Global::getGraphics2D();
+		Graphics2D& g = Global::GetGraphics2D();
 		mScene.render( g );		
 	}
 
@@ -420,7 +420,7 @@ namespace Chromatron
 	{
 		Vec2i pos = widget->getWorldPos() + Vec2i( 0 , 10 );
 		Vec2i size = Vec2i( widget->getSize().x , 20 );
-		Graphics2D& g = Global::getGraphics2D();
+		Graphics2D& g = Global::GetGraphics2D();
 
 		RenderUtility::SetFont( g , FONT_S12 );
 		Vec2i offset( 0 , 30 );

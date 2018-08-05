@@ -18,12 +18,12 @@ namespace Lighting2D
 {
 	bool TestStage::onInit()
 	{
-		if ( !Global::getDrawEngine()->startOpenGL() )
+		if ( !Global::GetDrawEngine()->startOpenGL() )
 			return false;
 
 		wglSwapIntervalEXT(0);
 
-		GameWindow& window = Global::getDrawEngine()->getWindow();
+		GameWindow& window = Global::GetDrawEngine()->getWindow();
 
 		{
 			ShaderEntryInfo entries[] =
@@ -62,12 +62,12 @@ namespace Lighting2D
 
 	void TestStage::onInitFail()
 	{
-		Global::getDrawEngine()->stopOpenGL(true);
+		Global::GetDrawEngine()->stopOpenGL(true);
 	}
 
 	void TestStage::onEnd()
 	{
-		Global::getDrawEngine()->stopOpenGL(true);
+		Global::GetDrawEngine()->stopOpenGL(true);
 	}
 
 	void TestStage::restart()
@@ -95,7 +95,7 @@ namespace Lighting2D
 			{
 				int lightNum = 100;
 				int blockNum = 500;
-				GameWindow& window = Global::getDrawEngine()->getWindow();
+				GameWindow& window = Global::GetDrawEngine()->getWindow();
 
 				int w = window.getWidth();
 				int h = window.getHeight();
@@ -130,7 +130,7 @@ namespace Lighting2D
 
 	void TestStage::onRender(float dFrame)
 	{
-		GameWindow& window = Global::getDrawEngine()->getWindow();
+		GameWindow& window = Global::GetDrawEngine()->getWindow();
 
 		glMatrixMode(GL_PROJECTION);
 		glLoadIdentity();
@@ -226,7 +226,7 @@ namespace Lighting2D
 		TRenderRT<RTVF_XY>::DrawIndexed(PrimitiveType::eTriangleList, vertices, 4, indices, 6);
 #endif
 
-		GLGraphics2D& g = ::Global::getDrawEngine()->getGLGraphics();
+		GLGraphics2D& g = ::Global::GetDrawEngine()->getGLGraphics();
 
 		g.beginRender();
 
@@ -282,7 +282,7 @@ namespace Lighting2D
 		if ( !BaseClass::onMouse( msg ) )
 			return false;
 
-		GameWindow& window = Global::getDrawEngine()->getWindow();
+		GameWindow& window = Global::GetDrawEngine()->getWindow();
 
 		Vector2 worldPos = Vector2(msg.getPos().x, window.getHeight() - msg.getPos().y);
 		if ( msg.onLeftDown() )

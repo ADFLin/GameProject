@@ -65,7 +65,7 @@ void OptionNoteBook::renderControl( GWidget* ui )
 	Vec2i size = ui->getSize();
 	size.y = 50;
 
-	Graphics2D& g = Global::getGraphics2D();
+	Graphics2D& g = Global::GetGraphics2D();
 
 	RenderUtility::SetFont( g , FONT_S16 );
 	g.drawText( pos , size , LOCTEXT("Keyborad") );
@@ -75,7 +75,7 @@ void OptionNoteBook::renderKeyTitle( GWidget* ui )
 {
 	KeyButton* button = static_cast< KeyButton* >( ui );
 
-	Graphics2D& g = Global::getGraphics2D();
+	Graphics2D& g = Global::GetGraphics2D();
 
 	char const* str = NULL;
 	switch( button->getAction() )
@@ -105,7 +105,7 @@ void OptionNoteBook::renderKeyTitle( GWidget* ui )
 void OptionNoteBook::renderUser( GWidget* ui )
 {
 	Vec2i pos = ui->getWorldPos();
-	Graphics2D& g = Global::getGraphics2D();
+	Graphics2D& g = Global::GetGraphics2D();
 
 	g.drawText( pos + Vec2i( 10 , 10 ) , "BB" );
 }

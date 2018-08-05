@@ -612,6 +612,7 @@ namespace RenderGL
 		void testCode();
 		bool loadAssetResouse();
 		void setupScene();
+		void unregisterAllAsset();
 
 		virtual void onUpdate( long time )
 		{
@@ -726,7 +727,6 @@ namespace RenderGL
 
 		class ShadowVolumeProgram* mProgShadowVolume;
 
-		AssetManager  mAssetManager;
 
 		struct SimpleMeshId
 		{
@@ -799,7 +799,7 @@ namespace RenderGL
 			if( name )
 			{
 				sceneAsset->load(name);
-				mAssetManager.registerAsset(mSceneAssets.back().get());
+				::Global::GetAssetManager().registerAsset(mSceneAssets.back().get());
 			}	
 			mSceneAssets.push_back(std::move(sceneAsset));
 			return mSceneAssets.back()->scene;

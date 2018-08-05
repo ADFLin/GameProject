@@ -100,7 +100,7 @@ namespace CAR
 			if ( !CFly::initSystem() )
 				return false;
 
-			GameWindow& window = ::Global::getDrawEngine()->getWindow();
+			GameWindow& window = ::Global::GetDrawEngine()->getWindow();
 
 			mWorld = CFly::createWorld( window.getHWnd() , window.getWidth() , window.getHeight() , 32 , false );
 			if ( mWorld == nullptr )
@@ -240,7 +240,7 @@ namespace CAR
 	void LevelStage::onRender(float dFrame)
 	{
 
-		::Graphics2D& g = Global::getGraphics2D();
+		::Graphics2D& g = Global::GetGraphics2D();
 		if ( 1 )
 		{
 			mScene->render( mCamera , mViewport );
@@ -252,8 +252,8 @@ namespace CAR
 			HRESULT hr = d3dDevice->GetRenderTargetData( pBackBufferSurface ,mSurfaceBufferTake );
 			pBackBufferSurface->Release();
 
-			int w = ::Global::getDrawEngine()->getScreenWidth();
-			int h = ::Global::getDrawEngine()->getScreenHeight();
+			int w = ::Global::GetDrawEngine()->getScreenWidth();
+			int h = ::Global::GetDrawEngine()->getScreenHeight();
 
 			HDC hDC;
 			mSurfaceBufferTake->GetDC(&hDC);
@@ -883,8 +883,8 @@ namespace CAR
 		mRenderScale = scale;
 		mRenderTileSize = mRenderScale * Vector2(1,1);
 
-		int w = ::Global::getDrawEngine()->getScreenWidth();
-		int h = ::Global::getDrawEngine()->getScreenHeight();
+		int w = ::Global::GetDrawEngine()->getScreenWidth();
+		int h = ::Global::GetDrawEngine()->getScreenHeight();
 		float factor = float( w ) / h;
 		float len = w / ( 2 * mRenderScale );
 		mCamera->setScreenRange( -len , len , -len / factor , len / factor );
@@ -935,8 +935,8 @@ namespace CAR
 	{
 		using namespace CFly;
 
-		int h = ::Global::getDrawEngine()->getScreenHeight();
-		int w = ::Global::getDrawEngine()->getScreenWidth();
+		int h = ::Global::GetDrawEngine()->getScreenHeight();
+		int w = ::Global::GetDrawEngine()->getScreenWidth();
 
 		if ( mb2DView )
 		{
@@ -963,8 +963,8 @@ namespace CAR
 	{
 		using namespace CFly;
 
-		int h = ::Global::getDrawEngine()->getScreenHeight();
-		int w = ::Global::getDrawEngine()->getScreenWidth();
+		int h = ::Global::GetDrawEngine()->getScreenHeight();
+		int w = ::Global::GetDrawEngine()->getScreenWidth();
 		if ( mb2DView )
 		{
 			Vector2 pos = mRenderScale * ( mRenderOffset + posMap );
@@ -1628,7 +1628,7 @@ namespace CAR
 
 	void ActorPosButton::onRender()
 	{
-		IGraphics2D& g = Global::getIGraphics2D();
+		IGraphics2D& g = Global::GetIGraphics2D();
 
 		Vec2i pos  = getWorldPos();
 		Vec2i size = getSize();
@@ -1658,7 +1658,7 @@ namespace CAR
 
 	void SelectButton::onRender()
 	{
-		IGraphics2D& g = Global::getIGraphics2D();
+		IGraphics2D& g = Global::GetIGraphics2D();
 
 		Vec2i pos  = getWorldPos();
 		Vec2i size = getSize();
@@ -1743,7 +1743,7 @@ namespace CAR
 	{
 		BaseClass::onRender();
 
-		IGraphics2D& g = Global::getIGraphics2D();
+		IGraphics2D& g = Global::GetIGraphics2D();
 		Vec2i pos  = getWorldPos();
 		Vec2i size = getSize();
 

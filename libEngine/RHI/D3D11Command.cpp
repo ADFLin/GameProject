@@ -23,9 +23,95 @@ namespace RenderGL
 		return nullptr;
 	}
 
+	RHIInputLayout* D3D11System::RHICreateInputLayout(InputLayoutDesc const& desc)
+	{
+		std::vector< D3D11_INPUT_ELEMENT_DESC > descList;
+		for( auto const& e : desc.mElements )
+		{
+			D3D11_INPUT_ELEMENT_DESC element;
+
+			element.SemanticName = "ATTRIBUTE";
+			element.SemanticIndex = e.attribute;
+			element.Format = D3D11Conv::To(Vertex::Format( e.format ), e.bNormalize);
+			element.InputSlot = e.idxStream;
+			element.AlignedByteOffset = e.offset;
+			element.InputSlotClass = D3D11_INPUT_PER_VERTEX_DATA;
+			element.InstanceDataStepRate = 0;
+
+			descList.push_back(element);
+		}
+
+		char const* FakeCodeTemplate = CODE_STRING(
+			struct VSInput
+		{
+			%s
+		};
+
+		void MainVS(in VSInput input, out float4 svPosition : SV_POSITION)
+		{
+			svPosition = float4(0, 0, 0, 1);
+		}
+		);
+
+
+		std::string vertexCode;
+		for( auto const& desc : descList )
+		{
+			FixString< 128 > str;
+			str.format("%s v%d : ATTRIBUTE%d;", "float4", desc.SemanticIndex, desc.SemanticIndex);
+			vertexCode += str.c_str();
+		}
+		FixString<512> fakeCode;
+		fakeCode.format(FakeCodeTemplate, vertexCode.c_str());
+
+		TComPtr< ID3D10Blob > errorCode;
+		TComPtr< ID3D10Blob > byteCode;
+		FixString<32> profileName = GetShaderProfile(Shader::eVertex);
+
+		uint32 compileFlag = 0 /*| D3D10_SHADER_PACK_MATRIX_ROW_MAJOR*/;
+		VERIFY_D3D11RESULT(
+			D3DX11CompileFromMemory(fakeCode, FCString::Strlen(fakeCode), "ShaderCode", NULL, NULL, SHADER_ENTRY(MainVS), profileName, compileFlag, 0, NULL, &byteCode, &errorCode, NULL),
+			{
+				LogWarning(0, "Compile Error %s", errorCode->GetBufferPointer());
+				return nullptr;
+			}
+		);
+
+		TComPtr< ID3D11InputLayout > inputLayoutResource;
+		VERIFY_D3D11RESULT(
+			mDevice->CreateInputLayout(&descList[0], descList.size(), byteCode->GetBufferPointer(), byteCode->GetBufferSize(), &inputLayoutResource),
+			return nullptr;
+		);
+
+		return new D3D11InputLayout(inputLayoutResource.release() );
+	}
+
+	RenderGL::RHIRasterizerState* D3D11System::RHICreateRasterizerState(RasterizerStateInitializer const& initializer)
+	{
+		D3D11_RASTERIZER_DESC desc = {};
+		desc.FillMode = D3D11Conv::To(initializer.fillMode);
+		desc.CullMode = D3D11Conv::To(initializer.cullMode);
+		desc.FrontCounterClockwise = TRUE;
+		desc.DepthBias = 0;
+		desc.DepthBiasClamp = 0;
+		desc.SlopeScaledDepthBias = 0;
+		desc.DepthClipEnable = FALSE;
+		desc.ScissorEnable = FALSE;
+		desc.MultisampleEnable = FALSE;
+		desc.AntialiasedLineEnable = FALSE;
+
+		TComPtr<ID3D11RasterizerState> state;
+		VERIFY_D3D11RESULT(mDevice->CreateRasterizerState(&desc, &state) , );
+		if( state )
+		{
+			return new D3D11RasterizerState(state.release());
+		}
+		return nullptr;
+	}
+
 	RHIBlendState* D3D11System::RHICreateBlendState(BlendStateInitializer const& initializer)
 	{
-		TComPtr< ID3D11BlendState > stateResource;
+	
 		D3D11_BLEND_DESC desc = { 0 };
 		desc.AlphaToCoverageEnable = FALSE;
 		desc.IndependentBlendEnable = true;
@@ -53,6 +139,8 @@ namespace RenderGL
 			targetValueD3D11.DestBlendAlpha = D3D11Conv::To(targetValue.destAlpha);
 
 		}
+
+		TComPtr< ID3D11BlendState > stateResource;
 		VERIFY_D3D11RESULT(mDevice->CreateBlendState(&desc, &stateResource), );
 		if( stateResource )
 		{

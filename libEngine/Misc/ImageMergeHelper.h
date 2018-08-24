@@ -16,6 +16,7 @@ public:
 	~ImageMergeHelper();
 
 	void init(int w, int h);
+	void clear();
 
 
 	struct Rect

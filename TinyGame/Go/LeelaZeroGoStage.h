@@ -92,7 +92,10 @@ namespace Go
 				std::string weightName;
 				bot->getMetaDataT(LeelaBot::eWeightName, weightName);
 				result += " ";
-				result += weightName.substr(0, 5);
+				if( weightName.length() > 10 )
+					result += weightName.substr(0, 5);
+				else
+					result += weightName;
 			}
 			return result;
 		}

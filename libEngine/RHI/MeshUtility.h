@@ -10,7 +10,7 @@ class QueueThreadPool;
 
 namespace RenderGL
 {
-
+	extern bool gbOptimizeVertexCache;
 
 	struct OBJMaterialInfo
 	{
@@ -207,6 +207,7 @@ namespace RenderGL
 		}
 
 		static void BuildVertexAdjacency(PositionReader const& positionReader, int* triIndices, int numTirangle, std::vector<int>& outResult);
+		static void OptimizeVertexCache(void* pIndices, int numIndex, bool bIntType);
 	};
 
 

@@ -30,10 +30,10 @@ void ExprParse::print(  Unit const& unit , SymbolTable const& table )
 	case BOP_POW:    cout<<"^";  break;
 	case UOP_MINS:   cout<<"-";  break;
 	case BOP_ASSIGN: cout<<"=";  break;
-	case VALUE_CONST: cout <<unit.constValue ; break;
+	case VALUE_CONST: cout << unit.constValue.toReal ; break;
 	case FUN_DEF:
 		{
-			char const* name = table.getFunName( unit.symbol->funInfo );
+			char const* name = table.getFunName( unit.symbol->fun );
 			if ( name )
 				cout << name;
 			else
@@ -42,7 +42,7 @@ void ExprParse::print(  Unit const& unit , SymbolTable const& table )
 		break;
 	case VALUE_VARIABLE:
 		{
-			char const* name = table.getVarName( unit.symbol->varPtr );
+			char const* name = table.getVarName( unit.symbol->varValue.ptr );
 			if ( name )
 				cout << name;
 			else
@@ -219,7 +219,7 @@ bool ExpressionParser::analyzeTokenUnit( char const* expr , SymbolTable const& t
 			else
 			{
 				char* ptrEnd;
-				ValueType val = ValueType(strtod(buffer.c_str(), &ptrEnd));
+				RealType val = RealType(strtod(buffer.c_str(), &ptrEnd));
 				if( *ptrEnd == '\0' )
 				{
 					type = VALUE_CONST;
@@ -466,7 +466,7 @@ bool ParseResult::optimizeValueOrder( int index )
 			}
 			else if( IsFunction( elem2.type ) )
 			{
-				num -= (elem2.symbol->funInfo.numParam -1 );
+				num -= (elem2.symbol->fun.numParam -1 );
 			}
 
 		} while ( num > 0 );
@@ -652,38 +652,39 @@ bool ParseResult::optimizeConstValue( int index )
 		if ( elemL.type == VALUE_CONST &&
 			 elemR.type == VALUE_CONST  )
 		{
+			assert(elemL.constValue.layout == ValueLayout::Real && elemR.constValue.layout == ValueLayout::Real);
 			bool done = false;
-			ValueType val = 0;
+			RealType val = 0;
 
 			switch (elem.type)
 			{
 			case BOP_ADD:
-				val = elemL.constValue + elemR.constValue;
+				val = elemL.constValue.toReal + elemR.constValue.toReal;
 				done = true;
 				break;
 			case BOP_MUL:
-				val = elemL.constValue * elemR.constValue;
+				val = elemL.constValue.toReal * elemR.constValue.toReal;
 				done = true;
 				break;
 			case BOP_SUB:
 				if ( elem.isReverse )
-					val = elemR.constValue - elemL.constValue;
+					val = elemR.constValue.toReal - elemL.constValue.toReal;
 				else
-					val = elemL.constValue - elemR.constValue;
+					val = elemL.constValue.toReal - elemR.constValue.toReal;
 				done = true;
 				break;
 			case BOP_DIV:
 				if ( elem.isReverse )
-					val = elemR.constValue / elemL.constValue;
+					val = elemR.constValue.toReal / elemL.constValue.toReal;
 				else
-					val = elemL.constValue / elemR.constValue;
+					val = elemL.constValue.toReal / elemR.constValue.toReal;
 				done = true;
 				break;
 			}
 			if (done)
 			{
 
-				elem = Unit( VALUE_CONST , val );
+				elem = Unit( VALUE_CONST , ConstValueInfo( val ) );
 
 				MoveElement(index,mPFCodes.size() ,-2);
 				mPFCodes.pop_back();
@@ -705,12 +706,12 @@ bool ParseResult::optimizeConstValue( int index )
 		if ( elemL.type == VALUE_CONST )
 		{
 			bool done = false;
-			ValueType val = 0;
+			RealType val = 0;
 
 			switch (elem.type)
 			{
 			case UOP_MINS:
-				val = -elemL.constValue;
+				val = -elemL.constValue.toDouble;
 				done = true;
 				break;
 			}
@@ -732,9 +733,9 @@ bool ParseResult::optimizeConstValue( int index )
 	}
 	else if ( IsFunction( elem.type ) )
 	{
-		ValueType val[5];
-		int num = elem.symbol->funInfo.numParam;
-		void* funPtr = elem.symbol->funInfo.ptrFun;
+		RealType val[5];
+		int num = elem.symbol->fun.numParam;
+		void* funPtr = elem.symbol->fun.ptrFun;
 		bool testOk =true;
 		for ( int j = 0 ; j < num ;++j)
 		{
@@ -743,7 +744,7 @@ bool ParseResult::optimizeConstValue( int index )
 				testOk = false;
 				break;
 			}
-			val[j] = mPFCodes[index-j-1].constValue;
+			val[j] = mPFCodes[index-j-1].constValue.toReal;
 		}
 		if (testOk)
 		{
@@ -800,7 +801,7 @@ bool ParseResult::optimizeZeroValue( int index )
 	if ( elem.type == BOP_ADD || elem.type == BOP_SUB )
 	{
 		if ( mPFCodes[index-1].type == VALUE_CONST &&
-			mPFCodes[index-1].constValue == 0 )
+			 mPFCodes[index-1].constValue.toReal == 0 )
 		{
 			MoveElement(index+1,mPFCodes.size() ,-2);
 			mPFCodes.pop_back();
@@ -1129,7 +1130,7 @@ int ExprTreeBuilder::checkTreeError_R( int idxNode )
 			++numVar;
 		}
 
-		if ( numVar != unit.symbol->funInfo.numParam )
+		if ( numVar != unit.symbol->fun.numParam )
 			return TREE_FUN_PARAM_NUM_NO_MATCH;
 	}
 
@@ -1150,7 +1151,7 @@ bool ExprTreeBuilder::optimizeNodeConstValue( int idxNode )
 	Node& node = mTreeNodes[ idxNode ];
 	Unit& unit = *node.opUnit;
 
-	ValueType value = 0;
+	RealType value = 0;
 
 	if ( ExprParse::IsBinaryOperator( unit.type ) )
 	{
@@ -1177,25 +1178,25 @@ bool ExprTreeBuilder::optimizeNodeConstValue( int idxNode )
 		switch ( unit.type )
 		{
 		case BOP_ADD:
-			value = unitL.constValue + unitR.constValue;
+			value = unitL.constValue.toReal + unitR.constValue.toReal;
 			break;
 		case BOP_MUL:
-			value = unitL.constValue * unitR.constValue;
+			value = unitL.constValue.toReal * unitR.constValue.toReal;
 			break;
 		case BOP_SUB:
 			if ( unit.isReverse )
-				value = unitR.constValue - unitL.constValue;
+				value = unitR.constValue.toReal - unitL.constValue.toReal;
 			else
-				value = unitL.constValue - unitR.constValue;
+				value = unitL.constValue.toReal - unitR.constValue.toReal;
 			break;
 		case BOP_DIV:
 			if ( unit.isReverse )
-				value = unitR.constValue / unitL.constValue;
+				value = unitR.constValue.toReal / unitL.constValue.toReal;
 			else
-				value = unitL.constValue / unitR.constValue;
+				value = unitL.constValue.toReal / unitR.constValue.toReal;
 			break;
 		case BOP_COMMA:
-			value = unitR.constValue;
+			value = unitR.constValue.toReal;
 			break;
 		default:
 			return false;
@@ -1214,10 +1215,10 @@ bool ExprTreeBuilder::optimizeNodeConstValue( int idxNode )
 		switch (unit.type)
 		{
 		case UOP_MINS:
-			value = -unitR.constValue;
+			value = -unitR.constValue.toReal;
 			break;
 		case UOP_PLUS:
-			value = unitR.constValue;
+			value = unitR.constValue.toReal;
 			break;
 		default:
 			return false;
@@ -1225,9 +1226,9 @@ bool ExprTreeBuilder::optimizeNodeConstValue( int idxNode )
 	}
 	else if ( ExprParse::IsFunction( unit.type ) )
 	{
-		ValueType params[5];
-		int   numParam = unit.symbol->funInfo.numParam;
-		void* ptrFun = unit.symbol->funInfo.ptrFun;
+		RealType params[5];
+		int   numParam = unit.symbol->fun.numParam;
+		void* ptrFun = unit.symbol->fun.ptrFun;
 
 		if ( numParam )
 		{
@@ -1245,7 +1246,7 @@ bool ExprTreeBuilder::optimizeNodeConstValue( int idxNode )
 				if ( unitVal.type != VALUE_CONST )
 					return false;
 
-				params[n] = unitVal.constValue;
+				params[n] = unitVal.constValue.toReal;
 				idxParam = nodeParam.children[ CN_LEFT ];
 			}
 
@@ -1253,7 +1254,7 @@ bool ExprTreeBuilder::optimizeNodeConstValue( int idxNode )
 			if ( unitVal.type != VALUE_CONST )
 				return false;
 
-			params[ numParam - 1 ] = unitVal.constValue;
+			params[ numParam - 1 ] = unitVal.constValue.toReal;
 		}
 
 		switch(numParam)
@@ -1285,7 +1286,8 @@ bool ExprTreeBuilder::optimizeNodeConstValue( int idxNode )
 
 
 	unit.type       = ExprParse::VALUE_CONST;
-	unit.constValue = value;
+	unit.constValue.layout = ValueLayout::Real;
+	unit.constValue.toReal = value;
 	return true;
 }
 
@@ -1360,29 +1362,29 @@ char const* SymbolTable::getFunName( FunInfo const& info ) const
 	for( auto const& pair : mNameToEntryMap )
 	{
 		if( pair.second.type == SymbolEntry::eFun &&
-		    pair.second.funInfo == info )
+		    pair.second.fun == info )
 			return pair.first.c_str();
 	}
 	return nullptr;
 }
 
-char const* SymbolTable::getVarName( ValueType* var ) const
+char const* SymbolTable::getVarName( void* var ) const
 {
 	for( auto const& pair : mNameToEntryMap )
 	{
 		if( pair.second.type == SymbolEntry::eVar &&
-		    pair.second.varPtr == var )
+		    pair.second.varValue.ptr == var )
 			return pair.first.c_str();
 	}
 	return nullptr;
 }
 
-ValueType* SymbolTable::findVar( std::string const& name ) const
+VarValueInfo const* SymbolTable::findVar( std::string const& name ) const
 {
 	auto entry = findSymbol(name, SymbolEntry::eVar);
 	if( entry )
 	{
-		return entry->varPtr;
+		return &entry->varValue;
 	}
 	return nullptr;
 }
@@ -1402,20 +1404,19 @@ FunInfo const* SymbolTable::findFun(std::string const& name ) const
 	auto entry = findSymbol(name, SymbolEntry::eFun);
 	if( entry )
 	{
-		return &entry->funInfo;
+		return &entry->fun;
 	}
 	return nullptr;
 }
 
-bool SymbolTable::findConst(std::string const& name , ValueType& val ) const
+ConstValueInfo const* SymbolTable::findConst(std::string const& name ) const
 {
 	auto entry = findSymbol(name, SymbolEntry::eConstValue);
 	if( entry )
 	{
-		val = entry->constValue;
-		return true;
+		return &entry->constValue;
 	}
-	return false;
+	return nullptr;
 }
 
 int SymbolTable::getVarTable( char const* varStr[],double varVal[] ) const
@@ -1427,7 +1428,24 @@ int SymbolTable::getVarTable( char const* varStr[],double varVal[] ) const
 			continue;
 
 		if ( varStr ) varStr[index] = iter->first.c_str();
-		if( varVal ) varVal[index] = *iter->second.varPtr;
+		if( varVal )
+		{
+			switch( iter->second.varValue.layout )
+			{
+			case ValueLayout::Double:
+				varVal[index] = *(double*)iter->second.varValue.ptr;
+				break;
+			case ValueLayout::Float:
+				varVal[index] = *(float*)iter->second.varValue.ptr;
+				break;
+			case ValueLayout::Int32:
+				varVal[index] = *(int32*)iter->second.varValue.ptr;
+				break;
+			default:
+				assert(0);
+			}
+			
+		}
 		++index;
 	}
 	return index;

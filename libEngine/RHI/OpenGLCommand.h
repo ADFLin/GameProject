@@ -60,8 +60,11 @@ namespace RenderGL
 		RHIVertexBuffer*  RHICreateVertexBuffer(uint32 vertexSize, uint32 numVertices, uint32 creationFlags, void* data);
 		RHIIndexBuffer*   RHICreateIndexBuffer(uint32 nIndices, bool bIntIndex, uint32 creationFlags, void* data);
 		RHIUniformBuffer* RHICreateUniformBuffer(uint32 elementSize, uint32 numElement, uint32 creationFlags, void* data);
-		RHIStorageBuffer* RHICreateStorageBuffer(uint32 elementSize, uint32 numElement, uint32 creationFlags, void* data);
-		RHIAtomicCounterBuffer* RHICreateAtomicCounterBuffer(uint32 numElement, uint32 creationFlags, void* data);
+
+		void* RHILockBuffer(RHIVertexBuffer* buffer, ELockAccess access, uint32 offset, uint32 size);
+		void  RHIUnlockBuffer(RHIVertexBuffer* buffer);
+		void* RHILockBuffer(RHIIndexBuffer* buffer, ELockAccess access, uint32 offset, uint32 size);
+		void  RHIUnlockBuffer(RHIIndexBuffer* buffer);
 
 		RHIFrameBuffer*   RHICreateFrameBuffer();
 		RHIInputLayout*   RHICreateInputLayout(InputLayoutDesc const& desc);
@@ -80,8 +83,10 @@ namespace RenderGL
 		
 
 		void RHIDrawPrimitive(PrimitiveType type, int start, int nv);
-
 		void RHIDrawIndexedPrimitive(PrimitiveType type, ECompValueType indexType, int indexStart, int nIndex);
+		void RHIDrawPrimitiveIndirect(PrimitiveType type, RHIVertexBuffer* commandBuffer, int offset, int numCommand, int commandStride);
+		void RHIDrawIndexedPrimitiveIndirect(PrimitiveType type, ECompValueType indexType, RHIVertexBuffer* commandBuffer, int offset, int numCommand, int commandStride);
+
 		void RHISetupFixedPipelineState(Matrix4 const& matModelView, Matrix4 const& matProj, int numTexture , RHITexture2D** textures);
 
 		void RHISetFrameBuffer(RHIFrameBuffer& frameBuffer, RHITextureDepth* overrideDepthTexture /*= nullptr*/)

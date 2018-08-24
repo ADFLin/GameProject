@@ -12,6 +12,8 @@
 
 namespace RenderGL
 {
+	DeviceVendorName gRHIDeviceVendorName = DeviceVendorName::Unknown;
+
 	InputLayoutDesc::InputLayoutDesc()
 	{
 		std::fill_n(mVertexSizes, MAX_INPUT_STREAM_NUM, 0);

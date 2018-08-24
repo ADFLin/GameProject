@@ -55,14 +55,7 @@ namespace RenderGL
 		{
 			mResource->release();
 		}
-		T*   lock()
-		{
-			return (T*)mResource->lock(ELockAccess::WriteOnly);
-		}
-		void unlock()
-		{
-			mResource->unlock();
-		}
+
 
 		uint32 getElementNum() { return mResource->getSize() / sizeof(T); }
 
@@ -82,18 +75,36 @@ namespace RenderGL
 				return false;
 			return true;
 		}
+
+		T*   lock()
+		{
+			return (T*)OpenGLCast::To( mResource )->lock(ELockAccess::WriteOnly);
+		}
+		void unlock()
+		{
+			OpenGLCast::To( mResource )->unlock();
+		}
 	};
 
 	template< class T >
-	class TStructuredStorageBuffer : public TStructuredBufferBase< T , RHIStorageBuffer >
+	class TStructuredStorageBuffer : public TStructuredBufferBase< T , RHIVertexBuffer >
 	{
 	public:
 		bool initializeResource(uint32 numElement)
 		{
-			mResource = RHICreateStorageBuffer(sizeof(T) , numElement );
+			mResource = RHICreateVertexBuffer(sizeof(T) , numElement );
 			if( !mResource.isValid() )
 				return false;
 			return true;
+		}
+
+		T*   lock()
+		{
+			return (T*)RHILockBuffer( mResource , ELockAccess::WriteOnly);
+		}
+		void unlock()
+		{
+			RHIUnlockBuffer( mResource );
 		}
 	};
 
@@ -323,10 +334,10 @@ namespace RenderGL
 			parameterMap.bind(mParamTileNum, SHADER_PARAM(TileNum));
 		}
 
-		void setParameters( Vector4 const& param , int TileNum , RHIStorageBuffer& DataIn , RHIStorageBuffer& DataOut )
+		void setParameters( Vector4 const& param , int TileNum , RHIVertexBuffer& DataIn , RHIVertexBuffer& DataOut )
 		{
-			setBuffer(mParamDataIn, DataIn);
-			setBuffer(mParamDataOut, DataOut);
+			setStorageBuffer(mParamDataIn, DataIn);
+			setStorageBuffer(mParamDataOut, DataOut);
 			setParam(mParamWaterParam, param);
 			setParam(mParamTileNum, TileNum);
 		}
@@ -371,9 +382,9 @@ namespace RenderGL
 			parameterMap.bind(mParamTileNum, SHADER_PARAM(TileNum));
 		}
 
-		void setParameters(int TileNum, RHIStorageBuffer& Data)
+		void setParameters(int TileNum, RHIVertexBuffer& Data)
 		{
-			setBuffer(mParamData, Data);
+			setStorageBuffer(mParamData, Data);
 			setParam(mParamTileNum, TileNum);
 		}
 
@@ -415,9 +426,9 @@ namespace RenderGL
 			parameterMap.bind(mParamTileNum, SHADER_PARAM(TileNum));
 		}
 
-		void setParameters(int TileNum, RHIStorageBuffer& DataIn)
+		void setParameters(int TileNum, RHIVertexBuffer& DataIn)
 		{
-			setBuffer(mParamDataIn, DataIn);
+			setStorageBuffer(mParamDataIn, DataIn);
 			setParam(mParamTileNum, TileNum);
 		}
 
@@ -473,12 +484,18 @@ namespace RenderGL
 		{
 			return widget->getValue();
 		}
-
 		static void Set(GSlider* widget, float value)
 		{
 			return widget->setValue(int(value));
 		}
-
+		static float Get(GTextCtrl* widget)
+		{
+			return std::atof(widget->getValue());
+		}
+		static void Set(GTextCtrl* widget, float value)
+		{
+			return widget->setValue(std::to_string(value).c_str());
+		}
 	};
 
 	struct IPropertyBinder

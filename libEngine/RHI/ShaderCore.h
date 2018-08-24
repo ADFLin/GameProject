@@ -89,25 +89,24 @@ namespace RenderGL
 	};
 
 
-	struct StructuredBuffertInfo
+	struct StructuredBufferInfo
 	{
 		char const* blockName;
 
-		StructuredBuffertInfo(char const* name)
+		StructuredBufferInfo(char const* name)
 			:blockName(name)
 		{
 		}
 	};
 
 #define DECLARE_BUFFER_STRUCT( NAME )\
-	static StructuredBuffertInfo& GetStruct()\
+	static StructuredBufferInfo& GetStruct()\
 	{\
-		static StructuredBuffertInfo sMyStruct( #NAME );\
+		static StructuredBufferInfo sMyStruct( #NAME );\
 		return sMyStruct;\
 	}
 
 	class RHIUniformBuffer;
-	class RHIStorageBuffer;
 
 
 	struct RMPShaderProgram
@@ -290,9 +289,12 @@ namespace RenderGL
 		}
 
 		void setBuffer(ShaderParameter const& param, RHIUniformBuffer& buffer);
-		void setBuffer(ShaderParameter const& param, RHIStorageBuffer& buffer);
-		void setBuffer(ShaderParameter const& param, RHIAtomicCounterBuffer& buffer);
-		void setBuffer(char const* name, RHIAtomicCounterBuffer& buffer);
+		void setStorageBuffer(ShaderParameter const& param, RHIVertexBuffer& buffer);
+		void setAtomicCounterBuffer(ShaderParameter const& param, RHIVertexBuffer& buffer);
+		void setAtomicCounterBuffer(char const* name, RHIVertexBuffer& buffer);
+
+
+		
 
 
 		class StructuredBlockInfo
@@ -308,7 +310,7 @@ namespace RenderGL
 				return index != -1;
 			}
 			template<>
-			bool bindT< RHIStorageBuffer >(GLuint handle, char const* name) 
+			bool bindT< RHIVertexBuffer >(GLuint handle, char const* name) 
 			{ 
 				index = glGetProgramResourceIndex(handle, GL_SHADER_STORAGE_BLOCK, name);
 				return index != -1;
@@ -327,12 +329,23 @@ namespace RenderGL
 			}
 
 			GLuint index;
-			StructuredBuffertInfo* structInfo = nullptr;
+			StructuredBufferInfo* structInfo = nullptr;
 		};
 
-		void setBuffer(StructuredBlockInfo const& param, RHIUniformBuffer& buffer);
-		void setBuffer(StructuredBlockInfo const& param, RHIStorageBuffer& buffer);
 
+		void setStructedBuffer(StructuredBlockInfo const& param, RHIUniformBuffer& buffer)
+		{
+			glUniformBlockBinding(mHandle, param.index, mNextUniformSlot);
+			glBindBufferBase(GL_UNIFORM_BUFFER, mNextUniformSlot, OpenGLCast::GetHandle(buffer));
+			++mNextUniformSlot;
+		}
+
+		void setStructedBuffer(StructuredBlockInfo const& param, RHIVertexBuffer& buffer)
+		{
+			glShaderStorageBlockBinding(mHandle, param.index, mNextStorageSlot);
+			glBindBufferBase(GL_SHADER_STORAGE_BUFFER, mNextStorageSlot, OpenGLCast::GetHandle(buffer));
+			++mNextStorageSlot;
+		}
 		template< class T , class RHIBufferType >
 		void setStructuredBufferT(RHIBufferType& buffer)
 		{
@@ -341,7 +354,7 @@ namespace RenderGL
 			{
 				if( param.structInfo == &bufferStruct )
 				{
-					setBuffer(param, buffer);
+					setStructedBuffer(param, buffer);
 					return;
 				}
 			}
@@ -350,7 +363,7 @@ namespace RenderGL
 			if( param.bindStructT< T >(mHandle , buffer ) )
 			{
 				mBoundedBlocks.push_back(param);
-				setBuffer(param, buffer);
+				setStructedBuffer(param, buffer);
 			}
 		}
 

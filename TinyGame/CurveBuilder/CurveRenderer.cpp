@@ -11,10 +11,9 @@ namespace CB
 {
 	using namespace RenderGL;
 
-	class CurveMeshProgram : public GlobalShaderProgram
+	class CurveMeshBaseProgram : public GlobalShaderProgram
 	{
-		DECLARE_GLOBAL_SHADER(CurveMeshProgram)
-
+	public:
 		static void SetupShaderCompileOption(ShaderCompileOption&) {}
 		static char const* GetShaderFileName()
 		{
@@ -33,11 +32,10 @@ namespace CB
 		}
 	};
 
-	template< bool bUseOIT >
-	class TCurveMeshProgram : public CurveMeshProgram
+	class CurveMeshProgram : public CurveMeshBaseProgram
 	{
-		DECLARE_GLOBAL_SHADER(TCurveMeshProgram)
-
+		DECLARE_GLOBAL_SHADER(CurveMeshProgram)
+		typedef CurveMeshBaseProgram BaseClass;
 		static ShaderEntryInfo const* GetShaderEntries()
 		{
 			static ShaderEntryInfo const enties[] =
@@ -48,14 +46,34 @@ namespace CB
 			};
 			return enties;
 		}
-
-		static void SetupShaderCompileOption(ShaderCompileOption& option) 
-		{
-			option.addDefine(SHADER_PARAM(USE_OIT), bUseOIT );
-		}
 	};
 
-	class MeshNormalVisualizeProgram : public CurveMeshProgram
+	class CurveMeshOITProgram : public CurveMeshProgram
+	{
+		DECLARE_GLOBAL_SHADER(CurveMeshOITProgram)
+
+		typedef CurveMeshProgram BaseClass;
+		static void SetupShaderCompileOption(ShaderCompileOption& option)
+		{
+			BaseClass::SetupShaderCompileOption(option);
+			option.addDefine(SHADER_PARAM(USE_OIT), true);
+		}
+
+		void bindParameters(ShaderParameterMap& parameterMap)
+		{
+			BaseClass::bindParameters(parameterMap);
+			mParamOITCommon.bindParameters(parameterMap);
+		}
+
+		void setParameters(OITShaderData& data)
+		{
+			mParamOITCommon.setParameters(*this, data);
+		}
+
+		OITCommonParameter mParamOITCommon;
+	};
+
+	class MeshNormalVisualizeProgram : public CurveMeshBaseProgram
 	{
 		DECLARE_GLOBAL_SHADER(MeshNormalVisualizeProgram)
 
@@ -97,8 +115,8 @@ namespace CB
 	};
 
 
-	IMPLEMENT_GLOBAL_SHADER_T(template<>, TCurveMeshProgram<false>);
-	IMPLEMENT_GLOBAL_SHADER_T(template<>, TCurveMeshProgram<true>);
+	IMPLEMENT_GLOBAL_SHADER(CurveMeshProgram);
+	IMPLEMENT_GLOBAL_SHADER(CurveMeshOITProgram);
 	IMPLEMENT_GLOBAL_SHADER(MeshNormalVisualizeProgram);
 
 	CurveRenderer::CurveRenderer()
@@ -115,8 +133,8 @@ namespace CB
 
 	bool CurveRenderer::initialize( Vec2i const& screenSize )
 	{
-		VERIFY_INITRESULT( mProgCurveMesh = ShaderManager::Get().getGlobalShaderT< TCurveMeshProgram<false> >(true) );
-		VERIFY_INITRESULT( mProgCurveMeshOIT = ShaderManager::Get().getGlobalShaderT< TCurveMeshProgram<true> >(true) );
+		VERIFY_INITRESULT( mProgCurveMesh = ShaderManager::Get().getGlobalShaderT< CurveMeshProgram >(true) );
+		VERIFY_INITRESULT( mProgCurveMeshOIT = ShaderManager::Get().getGlobalShaderT< CurveMeshOITProgram >(true) );
 		VERIFY_INITRESULT( mProgMeshNormalVisualize = ShaderManager::Get().getGlobalShaderT< MeshNormalVisualizeProgram >(true) );
 		VERIFY_INITRESULT( mOITTech.init(screenSize) );
 		return true;
@@ -176,8 +194,7 @@ namespace CB
 				{
 					GL_BIND_LOCK_OBJECT(*mProgCurveMeshOIT);
 					mViewInfo.setupShader(*mProgCurveMeshOIT);
-					mOITTech.setupShader(*mProgCurveMeshOIT);
-
+					mProgCurveMeshOIT->setParameters(mOITTech.mShaderData);
 					RHISetRasterizerState(TStaticRasterizerState<ECullMode::None>::GetRHI());					
 					drawMesh(surface);
 				};
@@ -191,7 +208,7 @@ namespace CB
 				drawMesh(surface);
 			}
 		}
-		if( surface.needDrawNormal() || 1)
+		if( surface.needDrawNormal() )
 		{
 			drawMeshNormal(surface, 0.1);
 		}

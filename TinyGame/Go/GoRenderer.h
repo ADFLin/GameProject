@@ -54,6 +54,11 @@ namespace Go
 		{
 			return (pos - renderPos + 0.5 * Vector2(cellLength, cellLength) ) / cellLength;
 		}
+		static Vec2i CalcCoord(Vector2 const& coordPos , Vector2 const& renderPos , float scale )
+		{
+			float cellLength = DefalutCellLength * scale;
+			return (coordPos - renderPos + 0.5 * Vector2(cellLength, cellLength)) / cellLength;
+		}
 	};
 
 	class BoardRenderer

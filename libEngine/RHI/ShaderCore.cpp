@@ -197,8 +197,8 @@ namespace RenderGL
 		glGetProgramInterfaceiv(mHandle, GL_UNIFORM, GL_ACTIVE_RESOURCES, &numParam);
 		for( int paramIndex = 0; paramIndex < numParam; ++paramIndex )
 		{
-			GLint values[4] = { 0,0 ,0 ,0 };
-			const GLenum properties[] = { GL_NAME_LENGTH , GL_LOCATION , GL_BLOCK_INDEX , GL_OFFSET };
+			GLint values[3] = { 0,0 ,0 };
+			const GLenum properties[] = { GL_NAME_LENGTH , GL_LOCATION , GL_ATOMIC_COUNTER_BUFFER_INDEX };
 			glGetProgramResourceiv(mHandle, GL_UNIFORM, paramIndex, ARRAY_SIZE(properties), properties, ARRAY_SIZE(properties), NULL, values);
 
 			char name[1024];
@@ -207,7 +207,7 @@ namespace RenderGL
 
 			if( values[1] == -1 )
 			{
-				if( values[3] != 0 )
+				if( values[2] == -1 )
 					continue;
 
 				parameterMap.addParameter(name, values[2]);
@@ -243,38 +243,30 @@ namespace RenderGL
 		++mNextUniformSlot;
 	}
 
-	void ShaderProgram::setBuffer(ShaderParameter const& param, RHIStorageBuffer& buffer)
+	void ShaderProgram::setStorageBuffer(ShaderParameter const& param, RHIVertexBuffer& buffer)
 	{
 		glShaderStorageBlockBinding(mHandle, param.mLoc, mNextStorageSlot);
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, mNextStorageSlot, OpenGLCast::GetHandle(buffer));
 		++mNextStorageSlot;
 	}
 
-	void ShaderProgram::setBuffer(ShaderParameter const& param, RHIAtomicCounterBuffer& buffer)
+	void ShaderProgram::setAtomicCounterBuffer(ShaderParameter const& param, RHIVertexBuffer& buffer)
 	{
 		glBindBufferBase(GL_ATOMIC_COUNTER_BUFFER, param.mLoc, OpenGLCast::GetHandle(buffer));
 	}
 
-	void ShaderProgram::setBuffer(StructuredBlockInfo const& param, RHIUniformBuffer& buffer)
+	void ShaderProgram::setAtomicCounterBuffer(char const* name, RHIVertexBuffer& buffer)
 	{
-		glUniformBlockBinding(mHandle, param.index, mNextUniformSlot);
-		glBindBufferBase(GL_UNIFORM_BUFFER, mNextUniformSlot, OpenGLCast::GetHandle(buffer));
-		++mNextUniformSlot;
-	}
-
-	void ShaderProgram::setBuffer(StructuredBlockInfo const& param, RHIStorageBuffer& buffer)
-	{
-		glShaderStorageBlockBinding(mHandle, param.index, mNextStorageSlot);
-		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, mNextStorageSlot, OpenGLCast::GetHandle(buffer));
-		++mNextStorageSlot;
-	}
-
-	void ShaderProgram::setBuffer(char const* name, RHIAtomicCounterBuffer& buffer)
-	{
-		int loc = getParamLoc(name);
-		if( loc != -1 )
+		int index = glGetProgramResourceIndex(mHandle, GL_UNIFORM, name);
+		if ( index != -1 )
 		{
-			glBindBufferBase(GL_ATOMIC_COUNTER_BUFFER, loc, OpenGLCast::GetHandle(buffer));
+			GLint loc = -1;
+			const GLenum properties[] = { GL_ATOMIC_COUNTER_BUFFER_INDEX };
+			glGetProgramResourceiv(mHandle, GL_UNIFORM, index, ARRAY_SIZE(properties), properties, ARRAY_SIZE(properties), NULL, &loc);
+			if( loc != -1 )
+			{
+				glBindBufferBase(GL_ATOMIC_COUNTER_BUFFER, loc, OpenGLCast::GetHandle(buffer));
+			}
 		}
 	}
 

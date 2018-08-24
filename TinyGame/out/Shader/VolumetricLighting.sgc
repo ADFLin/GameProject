@@ -49,9 +49,9 @@ struct TitledLightInfo
 	float4x4 worldToShadow;
 };
 
-layout(std140) uniform TitledLightBlock
+layout(std140) buffer TitledLightBlock
 {
-	uniform TitledLightInfo TitledLightList[];
+	TitledLightInfo TitledLightList[];
 };
 
 uniform int TitledLightNum = 0;

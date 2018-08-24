@@ -47,7 +47,7 @@ namespace CB
 	private:
 		void  setColor(float p, float* color);
 
-		ValueType        mVarTime;
+		RealType        mVarTime;
 		ColorMap         mColorMap;
 
 #if USE_PARALLEL_UPDATE

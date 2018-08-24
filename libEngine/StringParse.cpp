@@ -79,7 +79,7 @@ int FStringParse::ParseNumber(char const* str, int& num)
 	}
 	if( result == DoubleNumber && *cur == 'f' )
 	{
-		result = FlotNumber;
+		result = FloatNumber;
 		++cur;
 	}
 	if( *cur != 0 || !isspace(*cur) )

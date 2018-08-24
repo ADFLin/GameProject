@@ -40,6 +40,7 @@ namespace RenderGL
 	void RHISystemShutdown()
 	{
 		gRHISystem->shutdown();
+		gRHISystem = nullptr;
 	}
 
 
@@ -53,7 +54,7 @@ namespace RenderGL
 		EXECUTE_RHIFUN( RHIEndRender(bPresent) );
 	}
 
-	RenderGL::RHIRenderWindow* RHICreateRenderWindow(PlatformWindowInfo const& info)
+	RHIRenderWindow* RHICreateRenderWindow(PlatformWindowInfo const& info)
 	{
 		return EXECUTE_RHIFUN( RHICreateRenderWindow(info) );
 	}
@@ -98,14 +99,24 @@ namespace RenderGL
 		return EXECUTE_RHIFUN( RHICreateUniformBuffer(elementSize , numElement, creationFlags, data) );
 	}
 
-	RHIStorageBuffer* RHICreateStorageBuffer(uint32 elementSize, uint32 numElement, uint32 creationFlags, void* data)
+	void* RHILockBuffer(RHIVertexBuffer* buffer, ELockAccess access, uint32 offset, uint32 size)
 	{
-		return EXECUTE_RHIFUN( RHICreateStorageBuffer(elementSize , numElement, creationFlags, data) );
+		return EXECUTE_RHIFUN(RHILockBuffer(buffer, access , offset, size));
 	}
 
-	RenderGL::RHIAtomicCounterBuffer* RHICreateAtomicCounterBuffer(uint32 numElement, uint32 creationFlags /*= BCF_DefalutValue*/, void* data /*= nullptr*/)
+	void RHIUnlockBuffer(RHIVertexBuffer* buffer)
 	{
-		return EXECUTE_RHIFUN(RHICreateAtomicCounterBuffer(numElement, creationFlags, data));
+		return EXECUTE_RHIFUN(RHIUnlockBuffer(buffer));
+	}
+
+	void* RHILockBuffer(RHIIndexBuffer* buffer, ELockAccess access, uint32 offset, uint32 size)
+	{
+		return EXECUTE_RHIFUN(RHILockBuffer(buffer, access, offset, size));
+	}
+
+	void RHIUnlockBuffer(RHIIndexBuffer* buffer)
+	{
+		return EXECUTE_RHIFUN(RHIUnlockBuffer(buffer));
 	}
 
 	RHIFrameBuffer* RHICreateFrameBuffer()
@@ -169,6 +180,16 @@ namespace RenderGL
 	void RHIDrawIndexedPrimitive(PrimitiveType type, ECompValueType indexType , int indexStart, int nIndex)
 	{
 		EXECUTE_RHIFUN(RHIDrawIndexedPrimitive(type, indexType, indexStart, nIndex));
+	}
+
+	void RHIDrawPrimitiveIndirect(PrimitiveType type, RHIVertexBuffer* commandBuffer, int offset, int numCommand, int commandStride)
+	{
+		EXECUTE_RHIFUN(RHIDrawPrimitiveIndirect(type, commandBuffer, offset, numCommand, commandStride));
+	}
+
+	void RHIDrawIndexedPrimitiveIndirect(PrimitiveType type, ECompValueType indexType, RHIVertexBuffer* commandBuffer, int offset, int numCommand, int commandStride)
+	{
+		EXECUTE_RHIFUN(RHIDrawIndexedPrimitiveIndirect(type, indexType, commandBuffer, offset , numCommand, commandStride));
 	}
 
 	void RHISetupFixedPipelineState(Matrix4 const& matModelView, Matrix4 const& matProj, int numTexture /*= 0*/, RHITexture2D** textures /*= nullptr*/)

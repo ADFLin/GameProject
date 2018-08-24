@@ -128,11 +128,11 @@ namespace RenderGL
 		ReadOnly,
 		ReadWrite,
 		WriteOnly,
+		WriteDiscard,
 	};
 
-	class Shader
+	struct Shader
 	{
-	public:
 		enum Type
 		{
 			eVertex = 0,

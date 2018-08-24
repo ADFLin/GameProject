@@ -58,6 +58,7 @@ namespace RenderGL
 		static D3D11_BLEND_OP To(Blend::Operation op);
 		static D3D11_CULL_MODE To(ECullMode mode);
 		static D3D11_FILL_MODE To(EFillMode mode);
+		static D3D11_MAP To(ELockAccess access);
 	};
 
 	template< class RHIResoureType >
@@ -158,18 +159,54 @@ namespace RenderGL
 
 	};
 
-	template< class RHITextureType >
-	class TD3D11Buffer : public TD3D11Resource< RHITextureType >
+	template< class RHIBufferType >
+	class TD3D11Buffer : public TD3D11Resource< RHIBufferType >
 	{
-
-
-
+	public:
+		TD3D11Buffer(ID3D11Device* device, ID3D11Buffer* resource, uint32 creationFlag)
+		{
+			mResource = resource;
+			if( creationFlag & BCF_CreateSRV )
+			{
+				device->CreateShaderResourceView(resource, NULL, &mSRVResource);
+			}
+			if( creationFlag & BCF_CreateUAV )
+			{
+				device->CreateUnorderedAccessView(resource, NULL, &mUAVResource);
+			}
+		}
+		TComPtr< ID3D11ShaderResourceView > mSRVResource;
+		TComPtr< ID3D11UnorderedAccessView > mUAVResource;
 	};
 
 
 	class D3D11VertexBuffer : public TD3D11Buffer< RHIVertexBuffer >
 	{
+	public:
+		using TD3D11Buffer< RHIVertexBuffer >::TD3D11Buffer;
 
+		virtual void  resetData(uint32 vertexSize, uint32 numVertices, uint32 creationFlags, void* data)
+		{
+
+
+		}
+		virtual void  updateData(uint32 vStart, uint32 numVertices, void* data)
+		{
+			TComPtr<ID3D11Device> device;
+			mResource->GetDevice(&device);
+
+			TComPtr<ID3D11DeviceContext> context;
+			device->GetImmediateContext(&context);
+
+			D3D11_BOX box = { 0 };
+			box.left  = vStart * mElementSize;
+			box.right = vStart + numVertices * mElementSize;
+			context->UpdateSubresource(mResource, 0, &box, data, 0, 0);
+		}
+	};
+
+	class D3D11IndexBuffer : public TD3D11Buffer< RHIIndexBuffer >
+	{
 
 
 	};
@@ -204,6 +241,8 @@ namespace RenderGL
 	struct D3D11Cast
 	{
 		static D3D11Texture2D* To(RHITexture2D* tex) { return static_cast<D3D11Texture2D*>(tex); }
+		static D3D11VertexBuffer* To(RHIVertexBuffer* buffer) { return static_cast<D3D11VertexBuffer*>(buffer); }
+		static D3D11IndexBuffer* To(RHIIndexBuffer* buffer){ return static_cast<D3D11IndexBuffer*>(buffer); }
 		static D3D11BlendState* To(RHIBlendState* state) { return static_cast<D3D11BlendState*>(state); }
 		static D3D11RasterizerState* To(RHIRasterizerState* state) { return static_cast<D3D11RasterizerState*>(state); }
 		static D3D11InputLayout* To(RHIInputLayout* inputLayout) { return static_cast<D3D11InputLayout*>(inputLayout); }

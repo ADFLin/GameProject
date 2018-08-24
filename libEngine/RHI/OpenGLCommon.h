@@ -326,10 +326,6 @@ namespace RenderGL
 	struct OpenGLBufferTraits< RHIIndexBuffer > { static GLenum constexpr EnumValue = GL_ELEMENT_ARRAY_BUFFER; };
 	template<>
 	struct OpenGLBufferTraits< RHIUniformBuffer > { static GLenum constexpr EnumValue = GL_UNIFORM_BUFFER; };
-	template<>
-	struct OpenGLBufferTraits< RHIStorageBuffer > { static GLenum constexpr EnumValue = GL_SHADER_STORAGE_BUFFER; };
-	template<>
-	struct OpenGLBufferTraits< RHIAtomicCounterBuffer > { static GLenum constexpr EnumValue = GL_ATOMIC_COUNTER_BUFFER; };
 
 	template < class RHIBufferType >
 	class TOpenGLBuffer : public TOpenGLResource< RHIBufferType, RMPBufferObject >
@@ -360,6 +356,7 @@ namespace RenderGL
 			case ELockAccess::ReadWrite:
 				accessBits = GL_MAP_READ_BIT | GL_MAP_WRITE_BIT;
 				break;
+			case ELockAccess::WriteDiscard:
 			case ELockAccess::WriteOnly:
 				accessBits = GL_MAP_WRITE_BIT;
 				break;
@@ -433,46 +430,6 @@ namespace RenderGL
 	{
 	public:
 		bool create(uint32 elementSize, uint32 numElements, uint32 creationFlags, void* data);
-	};
-
-	class OpenGLStorageBuffer : public TOpenGLBuffer< RHIStorageBuffer >
-	{
-	public:
-		bool create(uint32 elementSize, uint32 numElements, uint32 creationFlags, void* data);
-	};
-
-
-	class OpenGLAtomicCounterBuffer : public TOpenGLBuffer< RHIAtomicCounterBuffer >
-	{
-	public:
-
-		bool create(uint32 numElements, uint32 creationFlags, void* data)
-		{
-			if( !createInternal(sizeof(GLuint), numElements, creationFlags, data) )
-				return false;
-			return true;
-		}
-
-		void bind(int idx = 0)
-		{
-			glBindBufferBase(GL_ATOMIC_COUNTER_BUFFER, idx, getHandle());
-		}
-		void unbind(int idx = 0)
-		{
-			glBindBufferBase(GL_ATOMIC_COUNTER_BUFFER, idx, 0);
-		}
-
-		void setValue(GLuint value , uint32 index = 0)
-		{
-			glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, getHandle());
-			GLuint* ptr = (GLuint*)glMapBufferRange(GL_ATOMIC_COUNTER_BUFFER, sizeof(GLuint) * index , sizeof(GLuint),
-													GL_MAP_WRITE_BIT |
-													GL_MAP_INVALIDATE_BUFFER_BIT |
-													GL_MAP_UNSYNCHRONIZED_BIT);
-			*ptr = value;
-			glUnmapBuffer(GL_ATOMIC_COUNTER_BUFFER);
-			glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, 0);
-		}
 	};
 
 	class OpenGLSamplerState : public TOpenGLResource< RHISamplerState, RMPSamplerObject >
@@ -656,8 +613,6 @@ namespace RenderGL
 		static OpenGLVertexBuffer* To(RHIVertexBuffer* buffer) { return static_cast<OpenGLVertexBuffer*>(buffer); }
 		static OpenGLIndexBuffer* To(RHIIndexBuffer* buffer) { return static_cast<OpenGLIndexBuffer*>(buffer); }
 		static OpenGLUniformBuffer* To(RHIUniformBuffer* buffer) { return static_cast<OpenGLUniformBuffer*>(buffer); }
-		static OpenGLStorageBuffer* To(RHIStorageBuffer* buffer) { return static_cast<OpenGLStorageBuffer*>(buffer); }
-		static OpenGLAtomicCounterBuffer* To( RHIAtomicCounterBuffer* buffer ) { return static_cast<OpenGLAtomicCounterBuffer*>(buffer); }
 
 		static OpenGLInputLayout*  To(RHIInputLayout* inputLayout) { return static_cast<OpenGLInputLayout*>(inputLayout); }
 		static OpenGLSamplerState* To(RHISamplerState* state ) { return static_cast<OpenGLSamplerState*>(state); }

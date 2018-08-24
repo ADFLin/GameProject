@@ -1178,7 +1178,7 @@ namespace RenderGL
 		nodeHeadTexture = RHICreateTexture2D(Texture::eR32U, screenSize.x, screenSize.y);
 		VERIFY_INITRESULT(nodeHeadTexture.isValid());
 
-		storageUsageCounter = RHICreateAtomicCounterBuffer(1);
+		storageUsageCounter = RHICreateVertexBuffer(sizeof(uint32) , 1 , BCF_DefalutValue | BCF_UsageDynamic );
 		VERIFY_INITRESULT(storageUsageCounter.isValid());
 
 		return true;
@@ -1324,7 +1324,7 @@ namespace RenderGL
 			mShaderBassPassTest.setRWTexture(SHADER_PARAM(ColorStorageRWTexture), *mShaderData.colorStorageTexture, AO_WRITE_ONLY);
 			mShaderBassPassTest.setRWTexture(SHADER_PARAM(NodeAndDepthStorageRWTexture), *mShaderData.nodeAndDepthStorageTexture, AO_READ_AND_WRITE);
 			mShaderBassPassTest.setRWTexture(SHADER_PARAM(NodeHeadRWTexture), *mShaderData.nodeHeadTexture, AO_READ_AND_WRITE);
-			mShaderBassPassTest.setBuffer(SHADER_PARAM(NextIndex), *mShaderData.storageUsageCounter);
+			mShaderBassPassTest.setAtomicCounterBuffer(SHADER_PARAM(NextIndex), *mShaderData.storageUsageCounter);
 
 
 			//
@@ -1429,7 +1429,10 @@ namespace RenderGL
 		{
 			GPU_PROFILE("BasePass");
 			RHISetBlendState(TStaticBlendState<CWM_NONE>::GetRHI());
-			OpenGLCast::To( mShaderData.storageUsageCounter )->setValue(0);
+
+			uint32* value = (uint32*)RHILockBuffer(mShaderData.storageUsageCounter , ELockAccess::WriteOnly);
+			*value = 0;
+			RHIUnlockBuffer(mShaderData.storageUsageCounter);
 			glMemoryBarrier(GL_ALL_BARRIER_BITS);
 
 			//GL_BIND_LOCK_OBJECT(sceneRenderTargets.getFrameBuffer());
@@ -1518,25 +1521,15 @@ namespace RenderGL
 		void bindParameters(ShaderParameterMap& parameterMap)
 		{
 			BaseClass::bindParameters(parameterMap);
-
-			parameterMap.bind(mParamColorStorageTexture, SHADER_PARAM(ColorStorageRWTexture) );
-			parameterMap.bind(mParamNodeAndDepthStorageTexture, SHADER_PARAM(NodeAndDepthStorageRWTexture));
-			parameterMap.bind(mParamNodeHeadTexture, SHADER_PARAM(NodeHeadRWTexture));
-			parameterMap.bind(mParamNextIndex, SHADER_PARAM(NextIndex));
+			mParamOITCommon.bindParameters(parameterMap);
 		}
 
-		void setParameter( OITShaderData& data )
+		void setParameters( OITShaderData& data )
 		{
-			setRWTexture(mParamColorStorageTexture, *data.colorStorageTexture, AO_WRITE_ONLY);
-			setRWTexture(mParamNodeAndDepthStorageTexture, *data.nodeAndDepthStorageTexture, AO_READ_AND_WRITE);
-			setRWTexture(mParamNodeHeadTexture, *data.nodeHeadTexture, AO_READ_AND_WRITE);
-			setBuffer(mParamNextIndex, *data.storageUsageCounter);
+			mParamOITCommon.setParameters(*this, data);
 		}
 
-		ShaderParameter mParamColorStorageTexture;
-		ShaderParameter mParamNodeAndDepthStorageTexture;
-		ShaderParameter mParamNodeHeadTexture;
-		ShaderParameter mParamNextIndex;
+		OITCommonParameter mParamOITCommon;
 	};
 
 	IMPLEMENT_MATERIAL_SHADER(OITBBasePassProgram);
@@ -1546,6 +1539,7 @@ namespace RenderGL
 		program.setRWTexture(SHADER_PARAM(ColorStorageRWTexture), *mShaderData.colorStorageTexture, AO_WRITE_ONLY);
 		program.setRWTexture(SHADER_PARAM(NodeAndDepthStorageRWTexture), *mShaderData.nodeAndDepthStorageTexture, AO_READ_AND_WRITE);
 		program.setRWTexture(SHADER_PARAM(NodeHeadRWTexture), *mShaderData.nodeHeadTexture, AO_READ_AND_WRITE);
+		program.setAtomicCounterBuffer(SHADER_PARAM(NextIndex), *mShaderData.storageUsageCounter);
 	}
 
 	MaterialShaderProgram* OITTechnique::getMaterialShader(RenderContext& context, MaterialMaster& material, VertexFactory* vertexFactory)
@@ -1555,7 +1549,7 @@ namespace RenderGL
 
 	void OITTechnique::setupMaterialShader(RenderContext& context, MaterialShaderProgram& program)
 	{
-		static_cast<OITBBasePassProgram&>(program).setParameter(mShaderData);
+		static_cast<OITBBasePassProgram&>(program).setParameters(mShaderData);
 	}
 
 	void BMAResolveProgram::bindParameters(ShaderParameterMap& parameterMap)
@@ -1985,7 +1979,7 @@ namespace RenderGL
 	{
 		RHITexture3D*     volumeBuffer[2];
 		RHITexture3D*     scatteringBuffer[2];
-		RHIUniformBuffer* lightBuffer;
+		RHIVertexBuffer*  lightBuffer;
 		int               numLights;
 
 
@@ -2067,7 +2061,7 @@ namespace RenderGL
 		mVolumeBufferA = RHICreateTexture3D(Texture::eRGBA16F, nx, ny, depthSlices);
 		mVolumeBufferB = RHICreateTexture3D(Texture::eRGBA16F, nx, ny, depthSlices);
 		mScatteringBuffer = RHICreateTexture3D(Texture::eRGBA16F, nx, ny, depthSlices);
-		mTiledLightBuffer = RHICreateUniformBuffer(sizeof(TitledLightInfo) , MaxTiledLightNum);
+		mTiledLightBuffer = RHICreateVertexBuffer(sizeof(TitledLightInfo) , MaxTiledLightNum);
 
 		return mVolumeBufferA.isValid() && mVolumeBufferB.isValid() && mScatteringBuffer.isValid() && mTiledLightBuffer.isValid();
 	}
@@ -2081,7 +2075,7 @@ namespace RenderGL
 			mProgClearBuffer->clearTexture(*mScatteringBuffer, Vector4(0, 0, 0, 0));
 		}
 
-		TitledLightInfo* pInfo = (TitledLightInfo*)mTiledLightBuffer->lock(ELockAccess::WriteOnly, 0, sizeof(TitledLightInfo) * lights.size());
+		TitledLightInfo* pInfo = (TitledLightInfo*)RHILockBuffer( mTiledLightBuffer , ELockAccess::WriteOnly, 0, sizeof(TitledLightInfo) * lights.size());
 		for( auto const& light : lights )
 		{
 			pInfo->pos = light.pos;
@@ -2097,7 +2091,7 @@ namespace RenderGL
 			pInfo->param = Vector4(spotParam.x,spotParam.y, light.bCastShadow ? 1.0 : 0.0 , 0.0);
 			++pInfo;
 		}
-		mTiledLightBuffer->unlock();
+		RHIUnlockBuffer(mTiledLightBuffer);
 
 		VolumetricLightingParameter parameter;
 		parameter.volumeBuffer[0] = mVolumeBufferA;

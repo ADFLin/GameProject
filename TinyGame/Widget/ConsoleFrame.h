@@ -52,9 +52,22 @@ public:
 		}
 	}
 
+	void pop_back()
+	{
+		assert( mNum > 0 );
+		int index = (mIndexStart + mNum - 1) % N;
+		TypeDataHelper::Destruct((T*)mStorage[index]);
+		--mNum;
+	}
+
+	void pop_front()
+	{
+		TypeDataHelper::Destruct((T*)mStorage[mIndexStart]);
+		++mIndexStart;
+		--mNum;
+	}
+
 	int size() { return mNum; }
-
-
 
 	void clear()
 	{
@@ -137,7 +150,7 @@ public:
 			:color( color ) , content( std::forward< S >( s )){}
 	};
 
-	TCycleBuffer< ComLine , 20 > mLines;
+	TCycleBuffer< ComLine , 37 > mLines;
 	GTextCtrl* mComText;
 
 	std::vector< std::string > mFoundComs;

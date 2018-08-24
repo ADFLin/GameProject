@@ -14,7 +14,8 @@ namespace CB
 	bool SurfaceXYFun::parseExpression(FunctionParser& parser)
 	{
 		SymbolTable& table = parser.getSymbolDefine();
-		if( parser.parse(mExpr , 2) )
+		ValueLayout inputLayouts[] = { ValueLayout::Real , ValueLayout::Real };
+		if( parser.parse(mExpr , ARRAY_SIZE(inputLayouts) , inputLayouts ) )
 		{
 			setDynamic(parser.isUsingVar("t"));
 		}
@@ -43,9 +44,11 @@ namespace CB
 		SymbolTable& table = parser.getSymbolDefine();
 		bool beDynamic = false;
 
+		ValueLayout inputLayouts[] = { ValueLayout::Real , ValueLayout::Real };
+		
 		for( int i = 0; i < 3; ++i )
 		{
-			if( parser.parse(mExpr[i] , 2) )
+			if( parser.parse(mExpr[i], ARRAY_SIZE(inputLayouts), inputLayouts) )
 				beDynamic |= parser.isUsingVar("t");
 		}
 
@@ -85,9 +88,10 @@ namespace CB
 		bool beDynamic = false;
 		SymbolTable& table = parser.getSymbolDefine();
 
+		ValueLayout inputLayouts[] = { ValueLayout::Real };
 		for( int i = 0; i < 3; ++i )
 		{
-			if( parser.parse(mExpr[i] , 1) )
+			if( parser.parse(mExpr[i] , ARRAY_SIZE(inputLayouts) , inputLayouts ) )
 				beDynamic |= parser.isUsingVar("t");
 		}
 

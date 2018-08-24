@@ -13,7 +13,7 @@ namespace RenderGL
 		mNextImageId = 0;
 	}
 
-	bool TextureAtlas::create(Texture::Format format, int w, int h, int border /*= 0*/)
+	bool TextureAtlas::initialize(Texture::Format format, int w, int h, int border /*= 0*/)
 	{
 		mBorder = border;
 		mTexture = RHICreateTexture2D( format , w , h );
@@ -21,6 +21,12 @@ namespace RenderGL
 			return false;
 		mHelper.init(w, h);
 		return true;
+	}
+
+	void TextureAtlas::finalize()
+	{
+		mTexture.release();
+		mHelper.clear();
 	}
 
 	int TextureAtlas::addImageFile(char const* path)

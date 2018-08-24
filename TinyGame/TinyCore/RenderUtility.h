@@ -46,8 +46,8 @@ public:
 	static TINY_API void SetFont( Graphics2D& g , int fontID );
 	static TINY_API void SetFontColor( Graphics2D& g , int color , int type = COLOR_NORMAL );
 
-	static TINY_API void StartOpenGL();
-	static TINY_API void StopOpenGL();
+	static TINY_API void InitializeRHI();
+	static TINY_API void ReleaseRHI();
 	static TINY_API void SetPen( GLGraphics2D& g , int color , int type = COLOR_NORMAL );
 	static TINY_API void SetBrush( GLGraphics2D& g , int color , int type = COLOR_NORMAL );
 	static TINY_API void SetFont( GLGraphics2D& g , int fontID );

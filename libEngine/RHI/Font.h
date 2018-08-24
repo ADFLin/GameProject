@@ -90,7 +90,7 @@ namespace RenderGL
 		};
 
 		bool initialize(FontFaceInfo const& font);
-
+		void clearRHIResource();
 		RHITexture2D& getTexture()
 		{
 			return mUsedTextAtlas->getTexture();
@@ -114,15 +114,8 @@ namespace RenderGL
 		static CORE_API FontCharCache& Get();
 
 		bool initialize();
-		void finalize()
-		{
-			releaseRHI();
-			bInitialized = false;
-		}
-		void releaseRHI()
-		{
-			mTextAtlas.releaseRHI();
-		}
+		void finalize();
+		void releaseRHI();
 		CharDataSet* getCharDataSet(FontFaceInfo const& fontFace);
 
 		TextureAtlas mTextAtlas;

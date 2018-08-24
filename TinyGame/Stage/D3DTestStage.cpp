@@ -177,8 +177,8 @@ namespace RenderD3D
 			mConstBuffers[TypeValue][parameter.bindIndex].setUpdateValue(parameter, value, valueSize);
 		}
 
-		template< class ShaderType , class ValueType >
-		bool SetShaderValue(char const* name, ShaderType* shader, ValueType const& value )
+		template< class ShaderType , class RealType >
+		bool SetShaderValue(char const* name, ShaderType* shader, RealType const& value )
 		{
 			auto iter = mParameterMap.mMap.find(name);
 			if( iter == mParameterMap.mMap.end() )
@@ -400,7 +400,7 @@ namespace RenderD3D
 				UINT stride = sizeof(MyVertex);
 				UINT offset = 0;
 				context->IASetInputLayout(D3D11Cast::GetResource(mInputLayout));
-				context->IASetVertexBuffers(0, 1, &mVertexBuffer, &stride, &offset);		
+				context->IASetVertexBuffers(0, 1, &mVertexBuffer, &stride, &offset);	
 				RHIDrawPrimitive(PrimitiveType::TriangleStrip, 0 , 4 );
 			}
 			

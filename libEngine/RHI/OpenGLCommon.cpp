@@ -648,6 +648,7 @@ namespace RenderGL
 			return GL_READ_ONLY;
 		case ELockAccess::ReadWrite:
 			return GL_READ_WRITE;
+		case ELockAccess::WriteDiscard:
 		case ELockAccess::WriteOnly:
 			return GL_WRITE_ONLY;
 		}
@@ -952,13 +953,6 @@ namespace RenderGL
 	bool OpenGLUniformBuffer::create(uint32 elementSize, uint32 numElements, uint32 creationFlags, void* data)
 	{
 		if( !createInternal(elementSize , numElements , creationFlags , data) )
-			return false;
-		return true;
-	}
-
-	bool OpenGLStorageBuffer::create(uint32 elementSize, uint32 numElements, uint32 creationFlags, void* data)
-	{
-		if( !createInternal(elementSize, numElements, creationFlags , data) )
 			return false;
 		return true;
 	}

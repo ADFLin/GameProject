@@ -10,6 +10,22 @@ namespace RenderGL
 	{
 		uint32 flag = D3D11_CREATE_DEVICE_BGRA_SUPPORT;
 		VERIFY_D3D11RESULT_RETURN_FALSE(D3D11CreateDevice(NULL, D3D_DRIVER_TYPE_HARDWARE, NULL, flag, NULL, 0, D3D11_SDK_VERSION, &mDevice, NULL, &mDeviceContext));
+
+		TComPtr< IDXGIDevice > pDXGIDevice;
+		VERIFY_D3D11RESULT_RETURN_FALSE( mDevice->QueryInterface(__uuidof(IDXGIDevice), (void **)&pDXGIDevice) );
+		TComPtr< IDXGIAdapter > pDXGIAdapter;
+		VERIFY_D3D11RESULT_RETURN_FALSE( pDXGIDevice->GetAdapter(&pDXGIAdapter) );
+
+		DXGI_ADAPTER_DESC adapterDesc;
+		VERIFY_D3D11RESULT_RETURN_FALSE( pDXGIAdapter->GetDesc(&adapterDesc) );
+
+		switch( adapterDesc.VendorId )
+		{
+		case 0x10DE: gRHIDeviceVendorName = DeviceVendorName::NVIDIA; break;
+		case 0x8086: gRHIDeviceVendorName = DeviceVendorName::Intel; break;
+		case 0x1002: gRHIDeviceVendorName = DeviceVendorName::ATI; break;
+		}
+
 		return true;
 	}
 
@@ -21,6 +37,53 @@ namespace RenderGL
 			return new D3D11Texture2D(format, creationResult);
 		}
 		return nullptr;
+	}
+
+	RHIVertexBuffer* D3D11System::RHICreateVertexBuffer(uint32 vertexSize, uint32 numVertices, uint32 creationFlag, void* data)
+	{
+		D3D11_SUBRESOURCE_DATA initData = { 0 };
+		initData.pSysMem = data;
+		initData.SysMemPitch = 0;
+		initData.SysMemSlicePitch = 0;
+
+		D3D11_BUFFER_DESC bufferDesc = { 0 };
+		bufferDesc.ByteWidth = vertexSize * numVertices;
+		bufferDesc.Usage = D3D11_USAGE_DEFAULT;
+		bufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+		bufferDesc.CPUAccessFlags = 0;
+		bufferDesc.MiscFlags = 0;
+		bufferDesc.StructureByteStride = 0;
+
+		TComPtr<ID3D11Buffer> BufferResource;
+		VERIFY_D3D11RESULT( 
+			mDevice->CreateBuffer(&bufferDesc, &initData, &BufferResource) ,
+			{
+				return nullptr;
+			});
+
+		D3D11VertexBuffer* buffer = new D3D11VertexBuffer( mDevice , BufferResource.release() , creationFlag );
+
+		return buffer;
+	}
+
+	void* D3D11System::RHILockBuffer(RHIVertexBuffer* buffer, ELockAccess access, uint32 offset, uint32 size)
+	{
+		return lockBufferInternal(D3D11Cast::GetResource(*buffer), access, offset, size);
+	}
+
+	void D3D11System::RHIUnlockBuffer(RHIVertexBuffer* buffer)
+	{
+		mDeviceContext->Unmap(D3D11Cast::GetResource(*buffer), 0);
+	}
+
+	void* D3D11System::RHILockBuffer(RHIIndexBuffer* buffer, ELockAccess access, uint32 offset, uint32 size)
+	{
+		return lockBufferInternal(D3D11Cast::GetResource(*buffer), access, offset, size);
+	}
+
+	void D3D11System::RHIUnlockBuffer(RHIIndexBuffer* buffer)
+	{
+		mDeviceContext->Unmap(D3D11Cast::GetResource(*buffer), 0);
 	}
 
 	RHIInputLayout* D3D11System::RHICreateInputLayout(InputLayoutDesc const& desc)
@@ -43,14 +106,13 @@ namespace RenderGL
 
 		char const* FakeCodeTemplate = CODE_STRING(
 			struct VSInput
-		{
-			%s
-		};
-
-		void MainVS(in VSInput input, out float4 svPosition : SV_POSITION)
-		{
-			svPosition = float4(0, 0, 0, 1);
-		}
+			{
+				%s
+			};
+			void MainVS(in VSInput input, out float4 svPosition : SV_POSITION)
+			{
+				svPosition = float4(0, 0, 0, 1);
+			}
 		);
 
 
@@ -195,5 +257,6 @@ namespace RenderGL
 		}
 		return true;
 	}
+
 
 }//namespace RenderGL

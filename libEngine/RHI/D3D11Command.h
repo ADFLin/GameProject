@@ -110,11 +110,7 @@ namespace RenderGL
 			return nullptr;
 		}
 
-		RHIVertexBuffer*  RHICreateVertexBuffer(uint32 vertexSize, uint32 numVertices, uint32 creationFlag, void* data)
-		{
-
-			return nullptr;
-		}
+		RHIVertexBuffer*  RHICreateVertexBuffer(uint32 vertexSize, uint32 numVertices, uint32 creationFlag, void* data);
 
 		RHIIndexBuffer*   RHICreateIndexBuffer(uint32 nIndices, bool bIntIndex, uint32 creationFlag, void* data)
 		{
@@ -128,15 +124,11 @@ namespace RenderGL
 			return nullptr;
 		}
 
-		RHIStorageBuffer* RHICreateStorageBuffer(uint32 elementSize, uint32 numElement, uint32 creationFlag, void* data)
-		{
-			return nullptr;
-		}
+		void* RHILockBuffer(RHIVertexBuffer* buffer, ELockAccess access, uint32 offset, uint32 size);
+		void  RHIUnlockBuffer(RHIVertexBuffer* buffer);
+		void* RHILockBuffer(RHIIndexBuffer* buffer, ELockAccess access, uint32 offset, uint32 size);
+		void  RHIUnlockBuffer(RHIIndexBuffer* buffer);
 
-		RHIAtomicCounterBuffer* RHICreateAtomicCounterBuffer(uint32 numElement, uint32 creationFlags, void* data)
-		{
-			return nullptr;
-		}
 
 		RHIFrameBuffer*   RHICreateFrameBuffer()
 		{
@@ -214,6 +206,26 @@ namespace RenderGL
 		{
 
 		}
+
+		void RHIDrawPrimitiveIndirect(PrimitiveType type, RHIVertexBuffer* commandBuffer, int offset ,int numCommand, int commandStride)
+		{
+
+		}
+		void RHIDrawIndexedPrimitiveIndirect(PrimitiveType type, ECompValueType indexType, RHIVertexBuffer* commandBuffer, int offset , int numCommand, int commandStride)
+		{
+			mDeviceContext->IASetPrimitiveTopology(D3D11Conv::To(type));
+			if( numCommand )
+			{
+				mDeviceContext->DrawInstancedIndirect(D3D11Cast::GetResource(*commandBuffer), offset);
+			}
+			else
+			{
+				//
+			}
+		}
+
+
+
 		void RHISetupFixedPipelineState(Matrix4 const& matModelView, Matrix4 const& matProj, int numTexture, RHITexture2D** textures)
 		{
 
@@ -222,6 +234,13 @@ namespace RenderGL
 		void RHISetFrameBuffer(RHIFrameBuffer& frameBuffer, RHITextureDepth* overrideDepthTexture /*= nullptr*/)
 		{
 
+		}
+
+		void* lockBufferInternal(ID3D11Resource* resource, ELockAccess access, uint32 offset, uint32 size)
+		{
+			D3D11_MAPPED_SUBRESOURCE mappedData;
+			mDeviceContext->Map(resource, 0, D3D11Conv::To(access), 0, &mappedData);
+			return (uint8*)mappedData.pData + offset;
 		}
 
 		bool createTexture2DInternal( DXGI_FORMAT format, int width, int height, int numMipLevel, uint32 creationFlag, void* data, uint32 pixelSize , Texture2DCreationResult& outResult );

@@ -158,7 +158,7 @@ namespace RenderGL
 
 		ViewInfo& getView() { return *mCurView; }
 
-		void setTechique(RenderTechnique& techique)
+		void setupTechique(RenderTechnique& techique)
 		{
 			mTechique = &techique;
 		}

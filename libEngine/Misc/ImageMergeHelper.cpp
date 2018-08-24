@@ -27,17 +27,23 @@ ImageMergeHelper::ImageMergeHelper()
 
 ImageMergeHelper::~ImageMergeHelper()
 {
-	if( mRoot )
-	{
-		destoryNode(mRoot);
-	}
-	
+	clear();
 }
 
 void ImageMergeHelper::init(int w, int h)
 {
 	assert(mRoot == nullptr);
 	mRoot = createNode(0,0,w, h);
+}
+
+void ImageMergeHelper::clear()
+{
+	if( mRoot )
+	{
+		destoryNode(mRoot);
+		mRoot = nullptr;
+	}
+	mImageNodeMap.clear();
 }
 
 void ImageMergeHelper::destoryNode(Node* node)

@@ -167,4 +167,16 @@ namespace RenderGL
 		return DXGI_FORMAT_UNKNOWN;
 	}
 
+	D3D11_MAP D3D11Conv::To(ELockAccess access)
+	{
+		switch( access )
+		{
+		case ELockAccess::ReadOnly:  return D3D11_MAP_READ;
+		case ELockAccess::ReadWrite: return D3D11_MAP_READ_WRITE;
+		case ELockAccess::WriteOnly: return D3D11_MAP_WRITE;
+		case ELockAccess::WriteDiscard: return D3D11_MAP_WRITE_DISCARD;
+		}
+		return D3D11_MAP_READ_WRITE;
+	}
+
 }//namespace RenderGL

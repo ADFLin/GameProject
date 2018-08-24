@@ -15,18 +15,13 @@ namespace Go
 
 	bool BoardRenderer::initializeRHI()
 	{
-		if( !mTextureAtlas.create(Texture::eRGBA8, 128, 128, 2) )
-			return false;
-
-		if( mTextureAtlas.addImageFile("Go/blackStone.png") != 0 )
-			return false;
-		if( mTextureAtlas.addImageFile("Go/WhiteStone.png") != 1 )
-			return false;
+		VERIFY_INITRESULT(mTextureAtlas.initialize(Texture::eRGBA8, 128, 128, 2));
+		VERIFY_INITRESULT(mTextureAtlas.addImageFile("Go/blackStone.png") == 0);
+		VERIFY_INITRESULT(mTextureAtlas.addImageFile("Go/WhiteStone.png") == 1);
 
 #define TEXTURE( ID , PATH )\
 			mTextures[ID] = RHIUtility::LoadTexture2DFromFile(PATH);\
-			if( !mTextures[ID].isValid() )\
-				return false
+			VERIFY_INITRESULT( mTextures[ID].isValid() );
 
 		TEXTURE(TextureId::eBlockStone, "Go/blackStone.png");
 		TEXTURE(TextureId::eWhiteStone, "Go/WhiteStone.png");
@@ -39,7 +34,7 @@ namespace Go
 
 	void BoardRenderer::releaseRHI()
 	{
-		mTextureAtlas.releaseRHI();
+		mTextureAtlas.finalize();
 		for( int i = 0; i < NumTexture; ++i )
 		{
 			mTextures[i].release();

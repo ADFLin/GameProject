@@ -5,18 +5,21 @@
 #include "Core/IntegerType.h"
 
 class FPUCompiler;
-class FPUCodeTemplate;
+class FPUCodeGeneratorV0;
+class FPUCodeGeneratorV1;
 
-
-class FPUCodeData
+class ExecutableCode
 {
 public:
-	explicit FPUCodeData( int size = 0 );
-	~FPUCodeData();
-	double eval() const;
-	double eval(double p0) const;
-	double eval(double p0, double p1) const;
-	double eval(double p0, double p1, double p2) const;
+	explicit ExecutableCode( int size = 0 );
+	~ExecutableCode();
+
+	template< class RT , class ...Args >
+	RT evalT(Args ...args) const
+	{
+		typedef RT (*EvalFun)(Args...);
+		return reinterpret_cast<EvalFun>(&mCode[0])(args...);
+	}
 
 	void   printCode();
 	void   clearCode();
@@ -52,7 +55,9 @@ protected:
 #if _DEBUG
 	int     mNumInstruction;
 #endif
-	friend class FPUCodeTemplate;
+	friend class AsmCodeGenerator;
+	friend class FPUCodeGeneratorV0;
+	friend class FPUCodeGeneratorV1;
 	friend class FPUCompiler;
 };
 
@@ -60,7 +65,7 @@ class FPUCompiler
 {
 public:
 	FPUCompiler();
-	bool compile( char const* expr , SymbolTable const& table , FPUCodeData& data , int numInput = 0);
+	bool compile( char const* expr , SymbolTable const& table , ExecutableCode& data , int numInput = 0 , ValueLayout inputLayouts[] = nullptr);
 	void enableOpimization(bool enable = true){	mOptimization = enable;	}
 
 	bool isUsingVar( char const* varName )

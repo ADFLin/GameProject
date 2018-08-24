@@ -73,7 +73,7 @@ namespace CB
 		SampleParam mAxis[3];
 		ViewInfo mViewInfo;
 		class CurveMeshProgram* mProgCurveMesh;
-		class CurveMeshProgram* mProgCurveMeshOIT;
+		class CurveMeshOITProgram* mProgCurveMeshOIT;
 		class MeshNormalVisualizeProgram* mProgMeshNormalVisualize;
 		std::vector< std::function< void() > > mTranslucentDraw;
 		OITTechnique mOITTech;

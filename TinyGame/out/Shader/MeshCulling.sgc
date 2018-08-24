@@ -1,0 +1,38 @@
+#include "Common.sgc"
+
+
+#if COMPUTE_SHADER
+
+
+struct DrawElementsIndirectCommand
+{
+	uint  count;
+	uint  instanceCount;
+	uint  firstIndex;
+	uint  baseVertex;
+	uint  baseInstance;
+};
+
+layout(std140) buffer DrawElementsIndirectCommandBlock
+{
+	DrawElementsIndirectCommand DrawCommand;
+};
+
+uniform int4 CommandParam;
+layout(std140) buffer IndicesBufferBlack;
+{
+	uint OutIndices[];
+};
+
+layout(local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
+void MainCS()
+{
+	DrawCommand.count = CommandParam.x;
+	DrawCommand.instanceCount = 1;
+	DrawCommand.baseVertex = 0;
+	DrawCommand.firstIndex = 0;
+	DrawCommand.baseInstance = 0;
+}
+
+
+#endif

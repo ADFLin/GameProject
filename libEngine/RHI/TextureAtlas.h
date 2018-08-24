@@ -14,7 +14,8 @@ namespace RenderGL
 	public:
 		TextureAtlas();
 
-		bool create(Texture::Format format, int w, int h, int border = 0);
+		bool initialize(Texture::Format format, int w, int h, int border = 0);
+		void finalize();
 
 		int  addImageFile(char const* path);
 		int  addImage(int w, int h, Texture::Format format, void* data, int pixelStride = 0);
@@ -22,10 +23,7 @@ namespace RenderGL
 
 		RHITexture2D& getTexture() { return *mTexture; }
 		int  getTextureNum() const { return mNextImageId; }
-		void releaseRHI()
-		{
-			mTexture.release();
-		}
+
 
 		int              mBorder;
 		int              mNextImageId;

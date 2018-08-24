@@ -468,7 +468,7 @@ namespace RenderGL
 				}
 			}
 
-			Vector4* ptr = (Vector4*)mInstancedBuffer->lock(ELockAccess::WriteOnly);
+			Vector4* ptr = (Vector4*) RHILockBuffer( mInstancedBuffer , ELockAccess::WriteOnly);
 			if( ptr == nullptr )
 			{
 				return false;
@@ -485,7 +485,7 @@ namespace RenderGL
 				ptr[3] = mInstanceTransforms[i].row(3);
 				ptr[3].w = mInstanceParams[i].w;
 			}
-			mInstancedBuffer->unlock();
+			RHIUnlockBuffer( mInstancedBuffer );
 
 			return true;
 		}

@@ -116,6 +116,9 @@
     <Filter Include="RHI\D3D11">
       <UniqueIdentifier>{a8ca91b3-67c5-4e34-abdd-c79673a86a32}</UniqueIdentifier>
     </Filter>
+    <Filter Include="OtherLib\NvTriStrip">
+      <UniqueIdentifier>{7be770d2-98ef-4ec1-b501-82a3426021e9}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="AppEntry.cpp">
@@ -354,6 +357,12 @@
     </ClCompile>
     <ClCompile Include="Math\PrimitiveTest.cpp">
       <Filter>原始程式檔</Filter>
+    </ClCompile>
+    <ClCompile Include="..\OtherLib\NvTriStrip\NvTriStripObjects.cpp">
+      <Filter>OtherLib\NvTriStrip</Filter>
+    </ClCompile>
+    <ClCompile Include="..\OtherLib\NvTriStrip\NvTriStrip.cpp">
+      <Filter>OtherLib\NvTriStrip</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -918,10 +927,24 @@
     <ClInclude Include="Math\PrimitiveTest.h">
       <Filter>Math</Filter>
     </ClInclude>
+    <ClInclude Include="..\OtherLib\NvTriStrip\NvTriStrip.h">
+      <Filter>OtherLib\NvTriStrip</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OtherLib\NvTriStrip\NvTriStripObjects.h">
+      <Filter>OtherLib\NvTriStrip</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OtherLib\NvTriStrip\VertexCache.h">
+      <Filter>OtherLib\NvTriStrip</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="ObjectHandle.cpp">
       <Filter>temp</Filter>
     </None>
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="..\OtherLib\NvTriStrip\README.txt">
+      <Filter>OtherLib\NvTriStrip</Filter>
+    </Text>
   </ItemGroup>
 </Project>

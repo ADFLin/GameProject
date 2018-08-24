@@ -37,7 +37,7 @@ namespace RenderGL
 
 
 	template< class T, class ...Args >
-	T* CreateOpenGLObjectT(Args ...args)
+	T* CreateOpenGLResourceT(Args&& ...args)
 	{
 		T* result = new T;
 		if( result && !result->create(std::forward< Args >(args)...) )
@@ -58,9 +58,23 @@ namespace RenderGL
 		if( glewInit() != GLEW_OK )
 			return false;
 
+		char const* vendorStr = (char const*) glGetString(GL_VENDOR);
+
+		if( strstr(vendorStr, "NVIDIA") != 0 )
+		{
+			gRHIDeviceVendorName = DeviceVendorName::NVIDIA;
+		}
+		else if( strstr(vendorStr, "ATI") != 0 )
+		{
+			gRHIDeviceVendorName = DeviceVendorName::ATI;
+		}
+		else if( strstr(vendorStr, "Intel") != 0 )
+		{
+			gRHIDeviceVendorName = DeviceVendorName::Intel;
+		}
+
 		if( 1 )
 		{
-			//glDebugMessageCallback( NULL ?,  NULL );
 			glDebugMessageCallback(GLDebugCallback, nullptr);
 			glEnable(GL_DEBUG_OUTPUT);
 			glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
@@ -96,22 +110,22 @@ namespace RenderGL
 
 	RHITexture1D* OpenGLSystem::RHICreateTexture1D(Texture::Format format, int length, int numMipLevel, uint32 createFlags, void* data)
 	{
-		return CreateOpenGLObjectT< OpenGLTexture1D >(format, length, numMipLevel, data);
+		return CreateOpenGLResourceT< OpenGLTexture1D >(format, length, numMipLevel, data);
 	}
 
 	RHITexture2D* OpenGLSystem::RHICreateTexture2D(Texture::Format format, int w, int h, int numMipLevel, uint32 createFlags, void* data, int dataAlign)
 	{
-		return CreateOpenGLObjectT< OpenGLTexture2D >(format, w, h, numMipLevel, data, dataAlign);
+		return CreateOpenGLResourceT< OpenGLTexture2D >(format, w, h, numMipLevel, data, dataAlign);
 	}
 
 	RHITexture3D* OpenGLSystem::RHICreateTexture3D(Texture::Format format, int sizeX, int sizeY, int sizeZ, uint32 createFlags, void* data)
 	{
-		return CreateOpenGLObjectT< OpenGLTexture3D >(format, sizeX, sizeY, sizeZ, data);
+		return CreateOpenGLResourceT< OpenGLTexture3D >(format, sizeX, sizeY, sizeZ, data);
 	}
 
 	RHITextureDepth* OpenGLSystem::RHICreateTextureDepth(Texture::DepthFormat format, int w, int h)
 	{
-		return CreateOpenGLObjectT< OpenGLTextureDepth >(format, w , h );
+		return CreateOpenGLResourceT< OpenGLTextureDepth >(format, w , h );
 	}
 
 	RHITextureCube* OpenGLSystem::RHICreateTextureCube()
@@ -121,27 +135,42 @@ namespace RenderGL
 
 	RHIVertexBuffer* OpenGLSystem::RHICreateVertexBuffer(uint32 vertexSize, uint32 numVertices, uint32 creationFlags, void* data)
 	{
-		return CreateOpenGLObjectT< OpenGLVertexBuffer >(vertexSize, numVertices, creationFlags, data);
+		return CreateOpenGLResourceT< OpenGLVertexBuffer >(vertexSize, numVertices, creationFlags, data);
 	}
 
 	RHIIndexBuffer* OpenGLSystem::RHICreateIndexBuffer(uint32 nIndices, bool bIntIndex, uint32 creationFlags, void* data)
 	{
-		return CreateOpenGLObjectT< OpenGLIndexBuffer >(nIndices, bIntIndex, creationFlags, data);
+		return CreateOpenGLResourceT< OpenGLIndexBuffer >(nIndices, bIntIndex, creationFlags, data);
 	}
 
 	RHIUniformBuffer* OpenGLSystem::RHICreateUniformBuffer(uint32 elementSize , uint32 numElement , uint32 creationFlags, void* data)
 	{
-		return CreateOpenGLObjectT< OpenGLUniformBuffer >(elementSize , numElement, creationFlags, data);
+		return CreateOpenGLResourceT< OpenGLUniformBuffer >(elementSize , numElement, creationFlags, data);
 	}
 
-	RHIStorageBuffer* OpenGLSystem::RHICreateStorageBuffer(uint32 elementSize, uint32 numElement, uint32 creationFlags, void* data)
+	void* OpenGLSystem::RHILockBuffer(RHIVertexBuffer* buffer, ELockAccess access, uint32 offset, uint32 size)
 	{
-		return CreateOpenGLObjectT< OpenGLStorageBuffer >(elementSize , numElement, creationFlags, data);
+		if( size )
+			return OpenGLCast::To(buffer)->lock(access, offset, size);
+		return OpenGLCast::To(buffer)->lock(access);
 	}
 
-	RHIAtomicCounterBuffer* OpenGLSystem::RHICreateAtomicCounterBuffer(uint32 numElement, uint32 creationFlags, void* data)
+
+	void OpenGLSystem::RHIUnlockBuffer(RHIVertexBuffer* buffer)
 	{
-		return CreateOpenGLObjectT< OpenGLAtomicCounterBuffer >(numElement, creationFlags, data);
+		OpenGLCast::To(buffer)->unlock();
+	}
+
+	void* OpenGLSystem::RHILockBuffer(RHIIndexBuffer* buffer, ELockAccess access, uint32 offset, uint32 size)
+	{
+		if( size )
+			return OpenGLCast::To(buffer)->lock(access, offset, size);
+		return OpenGLCast::To(buffer)->lock(access);
+	}
+
+	void OpenGLSystem::RHIUnlockBuffer(RHIIndexBuffer* buffer)
+	{
+		OpenGLCast::To(buffer)->unlock();
 	}
 
 	RenderGL::RHIInputLayout* OpenGLSystem::RHICreateInputLayout(InputLayoutDesc const& desc)
@@ -151,12 +180,12 @@ namespace RenderGL
 
 	RHIFrameBuffer* OpenGLSystem::RHICreateFrameBuffer()
 	{
-		return CreateOpenGLObjectT< OpenGLFrameBuffer >();
+		return CreateOpenGLResourceT< OpenGLFrameBuffer >();
 	}
 
 	RHISamplerState* OpenGLSystem::RHICreateSamplerState(SamplerStateInitializer const& initializer)
 	{
-		return CreateOpenGLObjectT< OpenGLSamplerState >(initializer);
+		return CreateOpenGLResourceT< OpenGLSamplerState >(initializer);
 	}
 
 	RHIRasterizerState* OpenGLSystem::RHICreateRasterizerState(RasterizerStateInitializer const& initializer)
@@ -457,6 +486,41 @@ namespace RenderGL
 	{
 		assert(indexType == CVT_UInt || indexType == CVT_UShort);
 		glDrawElements(GLConvert::To(type), nIndex, GLConvert::To(indexType), (void*)indexStart);
+	}
+
+
+	void OpenGLSystem::RHIDrawPrimitiveIndirect(PrimitiveType type, RHIVertexBuffer* commandBuffer, int offset , int numCommand, int commandStride )
+	{
+		assert(commandBuffer);
+		GLenum priType = GLConvert::To(type);
+
+		glBindBuffer(GL_DRAW_INDIRECT_BUFFER, OpenGLCast::GetHandle(*commandBuffer));
+		if( numCommand > 1 )
+		{
+			glMultiDrawArraysIndirect(priType, (void*)offset, numCommand, commandStride);
+		}
+		else
+		{
+			glDrawArraysIndirect(priType , (void*)offset);
+		}
+		glBindBuffer(GL_DRAW_INDIRECT_BUFFER, 0);
+	}
+
+	void OpenGLSystem::RHIDrawIndexedPrimitiveIndirect(PrimitiveType type, ECompValueType indexType, RHIVertexBuffer* commandBuffer, int offset , int numCommand, int commandStride)
+	{
+		assert(commandBuffer);
+		GLenum priType = GLConvert::To(type);
+
+		glBindBuffer(GL_DRAW_INDIRECT_BUFFER, OpenGLCast::GetHandle(*commandBuffer));
+		if( numCommand > 1 )
+		{
+			glMultiDrawElementsIndirect(priType, GLConvert::To(indexType) , (void*)offset, numCommand, commandStride);
+		}
+		else
+		{
+			glDrawElementsIndirect(priType, GLConvert::To(indexType) , (void*)offset);
+		}
+		glBindBuffer(GL_DRAW_INDIRECT_BUFFER, 0);
 	}
 
 }

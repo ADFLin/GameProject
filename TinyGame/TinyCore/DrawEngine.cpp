@@ -146,7 +146,7 @@ bool DrawEngine::initializeRHI(RHITargetName targetName, int numSamples)
 	mRHIName = targetName;
 	if( mRHIName == RHITargetName::OpenGL )
 	{
-		RenderUtility::StartOpenGL();
+		RenderUtility::InitializeRHI();
 		mGLContext = &static_cast<OpenGLSystem*>(gRHISystem)->mGLContext;
 	}
 	
@@ -158,14 +158,15 @@ void DrawEngine::shutdownRHI(bool bDeferred)
 	if( !isRHIEnabled() )
 		return;
 
-	mRHIName = RHITargetName::None;
 	if( mRHIName == RHITargetName::OpenGL )
 	{
-		RenderUtility::StopOpenGL();
+		RenderUtility::ReleaseRHI();
 	}
+
+	mRHIName = RHITargetName::None;
+
 	if( bDeferred == false )
 	{
-
 		RHISystemShutdown();
 	}
 	else

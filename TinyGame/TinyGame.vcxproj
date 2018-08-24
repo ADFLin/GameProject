@@ -184,6 +184,7 @@ copy $(TargetDir)EngineShare.dll $(ProjectDir)out\</Command>
       <ForcedIncludeFiles>TinyGamePCH.h;%(ForcedIncludeFiles)</ForcedIncludeFiles>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <OpenMPSupport>false</OpenMPSupport>
+      <EnableEnhancedInstructionSet>NotSet</EnableEnhancedInstructionSet>
     </ClCompile>
     <Link>
       <AdditionalDependencies>Msimg32.lib;Xaudio2.lib;fmodex_vc.lib;%(AdditionalDependencies)</AdditionalDependencies>
@@ -641,13 +642,11 @@ copy $(TargetDir)EngineShare.dll $(ProjectDir)out\</Command>
     <None Include="out\Shader\DOF.sgc" />
     <None Include="out\Shader\Game\BumpPS.sgc" />
     <None Include="out\Shader\Game\BumpVS.sgc" />
-    <None Include="out\Shader\Game\CurveMesh.glsl" />
     <None Include="out\Shader\Game\CurveMesh.sgc" />
     <None Include="out\Shader\Game\FS.sgc" />
     <None Include="out\Shader\Game\Lighting2D.sgc" />
     <None Include="out\Shader\Game\Lighting2DShadow.sgc" />
     <None Include="out\Shader\Game\Mandelbrot.sgc" />
-    <None Include="out\Shader\Game\MeshNormalVisualize.glsl" />
     <None Include="out\Shader\Game\MeshNormalVisualize.sgc" />
     <None Include="out\Shader\Game\MVPiece.sgc" />
     <None Include="out\Shader\Game\Parallax.sgc" />
@@ -680,6 +679,7 @@ copy $(TargetDir)EngineShare.dll $(ProjectDir)out\</Command>
     <None Include="out\Shader\Material\Simple2.sgc" />
     <None Include="out\Shader\Material\Simple3.sgc" />
     <None Include="out\Shader\Material\Sphere.sgc" />
+    <None Include="out\Shader\MeshCulling.sgc" />
     <None Include="out\Shader\NoiseCommon.sgc" />
     <None Include="out\Shader\OITCommon.sgc" />
     <None Include="out\Shader\OITRender.sgc" />

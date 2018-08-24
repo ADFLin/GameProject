@@ -53,10 +53,9 @@ void MainGS()
 
 #if PIXEL_SHADER
 
-layout(location = 0) out float4 OutColor;
 void MainPS()
 {
-	OutColor = float4(1);
+
 }
 
 #endif //PIXEL_SHADER

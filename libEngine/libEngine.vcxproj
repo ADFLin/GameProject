@@ -136,6 +136,7 @@
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <ProgramDataBaseFileName>$(IntDir)vc$(PlatformToolsetVersion).pdb</ProgramDataBaseFileName>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <EnableEnhancedInstructionSet>NotSet</EnableEnhancedInstructionSet>
     </ClCompile>
     <ProjectReference>
       <LinkLibraryDependencies>true</LinkLibraryDependencies>
@@ -160,6 +161,20 @@
     </ProjectReference>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\OtherLib\NvTriStrip\NvTriStrip.cpp">
+      <Optimization Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">MaxSpeed</Optimization>
+      <IntrinsicFunctions Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</IntrinsicFunctions>
+      <WholeProgramOptimization Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</WholeProgramOptimization>
+      <BasicRuntimeChecks Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Default</BasicRuntimeChecks>
+      <DebugInformationFormat Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">None</DebugInformationFormat>
+    </ClCompile>
+    <ClCompile Include="..\OtherLib\NvTriStrip\NvTriStripObjects.cpp">
+      <Optimization Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">MaxSpeed</Optimization>
+      <IntrinsicFunctions Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</IntrinsicFunctions>
+      <WholeProgramOptimization Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</WholeProgramOptimization>
+      <BasicRuntimeChecks Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Default</BasicRuntimeChecks>
+      <DebugInformationFormat Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">None</DebugInformationFormat>
+    </ClCompile>
     <ClCompile Include="..\OtherLib\stb\stb_image.cpp" />
     <ClCompile Include="AI\GeneticAlgorithm.cpp" />
     <ClCompile Include="AI\NeuralNetwork.cpp" />
@@ -241,6 +256,9 @@
     <ClCompile Include="WinGDIRenderSystem.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\OtherLib\NvTriStrip\NvTriStrip.h" />
+    <ClInclude Include="..\OtherLib\NvTriStrip\NvTriStripObjects.h" />
+    <ClInclude Include="..\OtherLib\NvTriStrip\VertexCache.h" />
     <ClInclude Include="AI\GeneticAlgorithm.h" />
     <ClInclude Include="AI\NeuralNetwork.h" />
     <ClInclude Include="Algo\AStar.h" />
@@ -431,6 +449,9 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="ObjectHandle.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="..\OtherLib\NvTriStrip\README.txt" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

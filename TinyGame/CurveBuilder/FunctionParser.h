@@ -13,7 +13,7 @@ namespace CB
 		FunctionParser();
 		SymbolTable& getSymbolDefine() { return mSymbolDefine; }
 		bool         checkValid(char const* expr);
-		bool         parse(Expression& expr , int numInput = 0);
+		bool         parse(Expression& expr , int numInput = 0 , ValueLayout inputLayouts[] = nullptr);
 
 	private:
 		SymbolTable  mSymbolDefine;

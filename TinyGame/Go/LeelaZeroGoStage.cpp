@@ -139,10 +139,10 @@ namespace Go
 		if( !::Global::GetDrawEngine()->startOpenGL(8) )
 			return false;
 
-		if( !mBoardRenderer.initializeRHI() )
-			return false;
 
 		//ILocalization::Get().changeLanguage(LAN_ENGLISH);
+
+		VERIFY_INITRESULT(mBoardRenderer.initializeRHI());
 
 		using namespace RenderGL;
 #if 0
@@ -150,9 +150,7 @@ namespace Go
 			return false;
 #endif
 
-		mProgUnderCurveArea = ShaderManager::Get().getGlobalShaderT< UnderCurveAreaProgram >( true );
-		if( mProgUnderCurveArea == nullptr )
-			return false;
+		VERIFY_INITRESULT( mProgUnderCurveArea = ShaderManager::Get().getGlobalShaderT< UnderCurveAreaProgram >( true ) );
 
 		LeelaAppRun::InstallDir = ::Global::GameConfig().getStringValue("LeelaZeroInstallDir", "Go" , "E:/Desktop/LeelaZero");
 		AQAppRun::InstallDir = ::Global::GameConfig().getStringValue("AQInstallDir", "Go", "E:/Desktop/AQ");
@@ -344,7 +342,7 @@ namespace Go
 			else
 			{
 				MyGame& Gamelooking = bReviewingGame ? mReviewGame : mGame;
-				mTryPlayWidget = new BoardFrame( UI_ANY , mTryPlayWidgetPos, Vec2i(400,400) , nullptr );
+				mTryPlayWidget = new BoardFrame( UI_ANY , mTryPlayWidgetPos, Vec2i(600,600) , nullptr );
 				mTryPlayWidget->game.guid = Gamelooking.guid;
 				mTryPlayWidget->game.copy(Gamelooking);
 				mTryPlayWidget->game.removeUnplayedHistory();
@@ -840,8 +838,10 @@ namespace Go
 
 		if( msg.onLeftDown() )
 		{
-			RenderContext context(getViewingGame().getBoard(), BoardPos , RenderBoardScale );
-			Vec2i pos = context.getCoord(msg.getPos());
+			Vec2i pos = RenderContext::CalcCoord(msg.getPos() , BoardPos , RenderBoardScale);
+
+			if( !getViewingGame().canPlay(pos.x, pos.y) )
+				return false;
 
 			if( mGameMode == GameMode::Analysis )
 			{
@@ -871,6 +871,14 @@ namespace Go
 				{
 					execPlayStoneCommand(pos);
 				}
+				else if ( mGameMode == GameMode::Match )
+				{
+					bool bForcePlay = InputManager::Get().isKeyDown(Keyboard::eCONTROL);
+					if( bForcePlay )
+					{
+						auto bot = mMatchData.getCurTurnBot();
+					}
+				}
 			}
 		}
 		else if( msg.onRightDown() )
@@ -890,8 +898,8 @@ namespace Go
 		else if( msg.onMoving() )
 		{
 
-			RenderContext context(getViewingGame().getBoard(), BoardPos , RenderBoardScale );
-			Vec2i pos = context.getCoord(msg.getPos());
+			Vec2i pos = RenderContext::CalcCoord(msg.getPos(), BoardPos, RenderBoardScale);
+
 			if( mGame.getBoard().checkRange(pos.x, pos.y) )
 			{
 				showBranchVertex = mGame.getBoard().getSize() * pos.y + pos.x;
@@ -1614,8 +1622,8 @@ namespace Go
 		FixString< 512 > dateString;
 		dateString.format("%d-%d-%d", date.getYear(), date.getMonth(), date.getDay());
 		GameDescription description;
-		description.blackName = GetControllerName(mMatchData.getPlayer(StoneColor::eBlack).type);
-		description.whiteName = GetControllerName(mMatchData.getPlayer(StoneColor::eWhite).type);
+		description.blackName = mMatchData.getPlayer(StoneColor::eBlack).getName();
+		description.whiteName = mMatchData.getPlayer(StoneColor::eWhite).getName();
 		description.date = dateString.c_str();
 
 		return mGame.saveSGF(path, &description);

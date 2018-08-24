@@ -72,7 +72,7 @@ public:
 		IntNumber,
 
 		HexIntNumber,
-		FlotNumber,
+		FloatNumber,
 		DoubleNumber,
 		ErrorNumber,
 	};

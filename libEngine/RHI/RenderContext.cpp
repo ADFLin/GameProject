@@ -133,7 +133,7 @@ namespace RenderGL
 		{
 			mbDataDirty = false;
 
-			void* ptr = mUniformBuffer->lock(ELockAccess::WriteOnly);
+			void* ptr = OpenGLCast::To( mUniformBuffer )->lock(ELockAccess::WriteOnly);
 			ViewBufferData& data = *(ViewBufferData*)ptr;
 			data.worldPos = worldPos;
 			data.direction = direction;
@@ -149,7 +149,7 @@ namespace RenderGL
 			data.rectPosAndSizeInv.y = rectOffset.y;
 			data.rectPosAndSizeInv.z = 1.0 / float(rectSize.x);
 			data.rectPosAndSizeInv.w = 1.0 / float(rectSize.y);
-			mUniformBuffer->unlock();
+			OpenGLCast::To( mUniformBuffer )->unlock();
 		}
 
 		program.setStructuredBufferT<ViewBufferData>(*mUniformBuffer);

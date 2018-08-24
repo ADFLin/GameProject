@@ -93,9 +93,9 @@ namespace RenderGL
 
 	void SimpleElementRenderer::draw( RenderContext& context , SimpleVertex* vertices, int numVertices)
 	{
-		void* pData = mVertexBuffer->lock(ELockAccess::WriteOnly);
+		void* pData = RHILockBuffer( mVertexBuffer , ELockAccess::WriteOnly);
 		memcpy(pData, vertices, numVertices * mVertexBuffer->getElementSize());
-		mVertexBuffer->unlock();
+		RHIUnlockBuffer(mVertexBuffer);
 
 		glBindVertexArray(mVAO);
 		context.setShader(mShader);

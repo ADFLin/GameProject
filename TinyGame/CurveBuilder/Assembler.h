@@ -908,6 +908,10 @@ namespace Asmeta
 
 		ASMETA_INLINE void fld( RegST const& dst )                {  encodeFPInst( fgFLD , 0 , 0 , 0 , dst ); }
 
+		template< class Ref, int Size >
+		ASMETA_INLINE void fild(RefMem< Ref, Size > const& mem) { encodeFPInst(fgFLD, FPMemFormat(SPFMap< Size >::Int), mem.ref()); }
+
+
 		ASMETA_INLINE void fld1()   {  encodeFPInst( 0 , 0x08 ); }
 		ASMETA_INLINE void fldl2t() {  encodeFPInst( 0 , 0x09 ); }
 		ASMETA_INLINE void fldl2e() {  encodeFPInst( 0 , 0x0a ); }
@@ -1036,8 +1040,6 @@ namespace Asmeta
 			_this()->emitByte( uint8( PUI_PATTERN | ( format << 1 ) | opA ) );
 			encodeModRM( refPtr , opB );
 		}
-
-
 
 		//    15-11       10        9        8        7-6    5       3       2 - 0
 		//    11011      dest      pop      opA   |   11    opB   reverse    st(i)

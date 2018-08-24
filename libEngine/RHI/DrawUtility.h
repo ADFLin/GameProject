@@ -59,9 +59,16 @@ namespace RenderGL
 		RTVF_XY_CA_T2 = RTVF_XY | RTVF_CA | RTVF_TEX_UV,
 	};
 
-	template < uint32 value >
-	class TRenderRTVertexDecl
+	template < uint32 VertexFormat >
+	class TStaticRenderRTInputLayout
 	{
+	public:
+		static InputLayoutDesc const& Get()
+		{
+
+
+
+		}
 	};
 
 	template < uint32 VertexFormat >

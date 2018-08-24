@@ -31,82 +31,658 @@ static void  FreeExecutableMemory(void* ptr)
 //#include "FPUCode.h"
 using namespace Asmeta;
 
-class FPUCodeTemplate : public Asmeta::AssemblerT< FPUCodeTemplate >
-	                  , public ExprParse
+class AsmCodeGenerator : public Asmeta::AssemblerT< FPUCodeGeneratorV0 >
+	                   , public ExprParse
 {
-	typedef AssemblerT< FPUCodeTemplate > Asm;
+public:
+
+	typedef AssemblerT< FPUCodeGeneratorV0 > Asm;
+
+	void   emitByte(uint8 byte1) { mData->pushCode(byte1); }
+	void   emitWord(uint16 val) { mData->pushCodeT(val); }
+	void   emitWord(uint8 byte1, uint8 byte2) { mData->pushCode(byte1, byte2); }
+	void   emitDWord(uint32 val) { mData->pushCode(val); }
+	void   emitPtr(void* ptr) { mData->pushCode(ptr); }
+
+	uint32 getOffset() { return mData->getCodeLength(); }
+	void setCodeData(ExecutableCode* data) { mData = data; }
+
+	ExecutableCode* mData;
+	int           mNumInstruction;
+};
+
+class FPUCodeGeneratorBase : public AsmCodeGenerator
+{
+public:
 	typedef double ValueType;
 #define VALUE_PTR qword_ptr
+	static int const FpuRegNum = 8;
 
+	
+	std::vector< RealType > mConstTable;
+	Asmeta::Label           mConstLabel;
+
+	struct StackValue
+	{
+		ValueLayout layout;
+		SysInt  offset;
+	};
+
+	std::vector< StackValue >  mInputStack;
+	std::vector< StackValue >  mConstStack;
+
+	struct ValueInfo
+	{
+		ValueInfo()
+		{
+			type == TOKEN_NONE;
+			idxStack = -1;
+		}
+		TokenType type;
+		union
+		{
+			VarValueInfo const* var;
+			int     idxCV;
+			int     idxInput;
+		};
+		int     idxStack;
+	};
+
+	void codeInit(int numInput, ValueLayout inputLayouts[])
+	{
+		mInputStack.resize(numInput);
+		SysInt offset = 0;
+		for( int i = 0; i < numInput; ++i )
+		{
+			offset += GetLayoutSize(inputLayouts[i]);
+			mInputStack[i].layout = inputLayouts[i];
+			mInputStack[i].offset = offset;
+		}
+	}
+
+	template< class Type >
+	int  emitBOP(TokenType type, bool isReverse, Type const& src)
+	{
+		switch( type )
+		{
+		case BOP_ADD:
+			Asm::fadd(src);
+			return 1;
+		case BOP_MUL:
+			Asm::fmul(src);
+			return 1;
+		case BOP_SUB:
+			if( isReverse )
+				Asm::fsubr(src);
+			else
+				Asm::fsub(src);
+			return 1;
+		case BOP_DIV:
+			if( isReverse )
+				Asm::fdivr(src);
+			else
+				Asm::fdiv(src);
+			return 1;
+		case BOP_COMMA:
+			Asm::fstp(st(0));
+			Asm::fld(src);
+			return 2;
+		}
+		return 0;
+	}
+
+	template< class Type >
+	int  emitBOPInt(TokenType type, bool isReverse, Type const& src)
+	{
+		switch( type )
+		{
+		case BOP_ADD:
+			Asm::fiadd(src);
+			return 1;
+		case BOP_MUL:
+			Asm::fimul(src);
+			return 1;
+		case BOP_SUB:
+			if( isReverse )
+				Asm::fisubr(src);
+			else
+				Asm::fisub(src);
+			return 1;
+		case BOP_DIV:
+			if( isReverse )
+				Asm::fidivr(src);
+			else
+				Asm::fidiv(src);
+			return 1;
+		case BOP_COMMA:
+			Asm::fstp(st(0));
+			Asm::fild(src);
+			return 2;
+		}
+		return 0;
+	}
+
+	template< class Type >
+	int emitBOPPop(TokenType type, bool isReverse, Type const& src)
+	{
+		switch( type )
+		{
+		case BOP_ADD:
+			Asm::faddp(src);
+			return 1;
+		case BOP_MUL:
+			Asm::fmulp(src);
+			return 1;
+		case BOP_SUB:
+			if( isReverse )
+				Asm::fsubrp(src);
+			else
+				Asm::fsubp(src);
+			return 1;
+		case BOP_DIV:
+			if( isReverse )
+				Asm::fdivrp(src);
+			else
+				Asm::fdivp(src);
+			return 1;
+		case BOP_COMMA:
+			Asm::fstp(src);
+			return 1;
+		}
+		return 0;
+	}
+
+	template< class ...Args >
+	int emitBOPWithLayout(TokenType opType, bool isReverse, ValueLayout layout, Args&& ...args)
+	{
+		switch( layout )
+		{
+		case ValueLayout::Double: return emitBOP(opType, isReverse, qword_ptr(args...)); break;
+		case ValueLayout::Float:  return emitBOP(opType, isReverse, dword_ptr(args...)); break;
+		case ValueLayout::Int32:  return emitBOPInt(opType, isReverse, dword_ptr(args...)); break;
+		default:
+			assert(0);
+		}
+	}
+
+	template< class ...Args >
+	int emitLoadValueWithLayout(ValueLayout layout, Args&& ...args)
+	{
+		switch( layout )
+		{
+		case ValueLayout::Double: Asm::fld(qword_ptr(args...)); break;
+		case ValueLayout::Float:  Asm::fld(dword_ptr(args...)); break;
+		case ValueLayout::Int32:  Asm::fild(dword_ptr(args...)); break;
+		default:
+			return 0;
+		}
+		return 1;
+	}
+
+	int emitLoadValue(ValueInfo const& info)
+	{
+		switch( info.type )
+		{
+		case VALUE_CONST:
+			Asm::fld(VALUE_PTR(&mConstLabel, info.idxCV * sizeof(ValueType)));
+			return 1;
+		case VALUE_VARIABLE:
+			return emitLoadValueWithLayout(info.var->layout, info.var->ptr);
+		case VALUE_INPUT:
+			{
+				StackValue& inputValue = mInputStack[info.idxInput];
+				return emitLoadValueWithLayout(inputValue.layout, ebp, inputValue.offset);
+			}
+		}
+
+		return 0;
+	}
+};
+
+
+class FPUCodeGeneratorV0 : public FPUCodeGeneratorBase
+{
+	
+	typedef FPUCodeGeneratorBase BaseClass;
 public:
-	void codeInit();
-	void codeConstValue(ValueType const&val);
-	void codeVar(ValueType* varPtr);
-	void codeInput(uint8 inputIndex);
-	void codeFunction(FunInfo const& info);
-	void codeBinaryOp(TokenType type,bool isReverse);
-	void codeUnaryOp(TokenType type);
-	void codeEnd();
-	void setCodeData(FPUCodeData* data){  mData = data; }
+
+	void codeInit(int numInput, ValueLayout inputLayouts[])
+	{
+		BaseClass::codeInit(numInput, inputLayouts);
+		//m_pData->eval();
+		mNumVarStack = 0;
+		mNumInstruction = 0;
+
+		mPrevValue.type = TOKEN_NONE;
+		mPrevValue.var = nullptr;
+
+		mConstTable.clear();
+		mData->clearCode();
+		Asm::clearLink();
+
+		Asm::push(ebp);
+		Asm::mov(ebp, esp);
+		mNumInstruction += 2;
+
+		// ??
+		//m_pData->pushCode(MSTART);
+		//++m_NumInstruction;
+	}
+
+	void codeConstValue(ConstValueInfo const& val)
+	{
+		checkStackPrevValPtr();
+		//find if have the same value before
+
+		int idx = 0;
+		int size = (int)mConstTable.size();
+		for( ; idx < size; ++idx )
+		{
+			if( mConstTable[idx] == val.toReal )
+				break;
+		}
+
+		if( idx == size )
+		{
+			mConstTable.push_back(val.toReal);
+		}
+
+
+		mPrevValue.type = VALUE_CONST;
+		mPrevValue.idxCV = idx;
+		mPrevValue.idxStack = findStack(mPrevValue);
+	}
+
+	void codeVar(VarValueInfo const& varInfo)
+	{
+		checkStackPrevValPtr();
+
+		mPrevValue.type = VALUE_VARIABLE;
+		mPrevValue.var = &varInfo;
+		mPrevValue.idxStack = findStack(mPrevValue);
+	}
+
+	void codeInput(uint8 inputIndex)
+	{
+		checkStackPrevValPtr();
+
+		mPrevValue.type = VALUE_INPUT;
+		mPrevValue.idxInput = inputIndex;
+		mPrevValue.idxStack = findStack(mPrevValue);
+	}
+
+	void codeFunction(FunInfo const& info)
+	{
+		checkStackPrevValPtr();
+
+		int   numParam = info.numParam;
+		int   numSPUParam = numParam;
+
+		unsigned espOffset = sizeof(ValueType) * numParam;
+
+		if( numParam )
+		{
+			int32 paramOffset = 0;
+
+			if( mNumVarStack > FpuRegNum )
+			{
+				int numCpuStack = mNumVarStack - FpuRegNum;
+				int numCpuParam = std::min(numParam, numCpuStack);
+
+				paramOffset -= numCpuStack * sizeof(ValueType);
+				for( int num = 0; num < numCpuParam; ++num )
+				{
+					paramOffset -= sizeof(ValueType);
+					Asm::fstp(VALUE_PTR(esp, int8(paramOffset)));
+					Asm::fld(VALUE_PTR(ebp, int8(-(numCpuStack - num) * sizeof(ValueType))));
+
+					mRegStack.back().type = TOKEN_NONE;
+				}
+
+				mNumInstruction += 2 * numCpuParam;
+				numSPUParam = numParam - numCpuParam;
+				espOffset += sizeof(ValueType) * numCpuStack;
+			}
+
+			assert(numParam < 256 / sizeof(ValueType));
+
+			for( int num = 0; num < numSPUParam; ++num )
+			{
+				paramOffset -= sizeof(ValueType);
+				Asm::fstp(VALUE_PTR(esp, int8(paramOffset)));
+				mRegStack.pop_back();
+			}
+			mNumInstruction += 1 * numSPUParam;
+		}
+
+		Asm::sub(esp, imm8u(uint8(espOffset)));
+		Asm::call(ptr((void*)&info.ptrFun));
+		Asm::add(esp, imm8u(uint8(espOffset)));
+
+		mRegStack.push_back(ValueInfo());
+		mNumInstruction += 3;
+
+		mNumVarStack -= numParam - 1;
+		mPrevValue.type = TOKEN_FUN;
+	}
+
+	void codeBinaryOp(TokenType opType, bool isReverse)
+	{
+		if( opType == BOP_ASSIGN )
+		{
+			switch( mPrevValue.var->layout )
+			{
+			case ValueLayout::Double:
+				Asm::fst(VALUE_PTR(mPrevValue.var->ptr)); break;
+			default:
+				assert(0);
+			}
+			
+			++mNumInstruction;
+		}
+		else
+		{
+			if( mPrevValue.idxStack != -1 )
+			{
+				int idxReg = mRegStack.size() - mPrevValue.idxStack - 1;
+				if( idxReg == 0 && opType == BOP_COMMA )
+				{
+
+				}
+				else
+				{
+					mNumInstruction += emitBOP(opType, isReverse, st(idxReg));
+				}
+				mRegStack.back().type = TOKEN_NONE;
+			}
+			else if( IsValue(mPrevValue.type) )
+			{
+				switch( mPrevValue.type )
+				{
+				case VALUE_CONST:
+					{
+						mNumInstruction += emitBOP(opType, isReverse, VALUE_PTR(&mConstLabel, mPrevValue.idxCV * sizeof(ValueType)));
+					}
+					break;
+				case VALUE_VARIABLE:
+					{
+						mNumInstruction += emitBOPWithLayout(opType, isReverse, mPrevValue.var->layout, mPrevValue.var->ptr);
+					}
+					break;
+				case VALUE_INPUT:
+					{
+						StackValue& inputValue = mInputStack[mPrevValue.idxInput];
+						mNumInstruction += emitBOPWithLayout(opType, isReverse, inputValue.layout, ebp , inputValue.offset);
+					}
+					break;
+				}
+
+				mRegStack.back().type = TOKEN_NONE;
+			}
+			else
+			{
+				if( mNumVarStack > FpuRegNum )
+				{
+					int32 offset = -(mNumVarStack - FpuRegNum) * sizeof(ValueType);
+					mNumInstruction += emitBOP(opType, isReverse, VALUE_PTR(ebp, int32(offset)));
+
+					mRegStack.back().type = TOKEN_NONE;
+				}
+				else
+				{
+					mNumInstruction += emitBOPPop(opType, isReverse, st(1));
+				}
+				--mNumVarStack;
+				mRegStack.pop_back();
+			}
+		}
+		mPrevValue.type = TOKEN_BINARY_OP;
+	}
+
+	void codeUnaryOp(TokenType type)
+	{
+		checkStackPrevValPtr();
+
+		if( type == UOP_MINS )
+		{
+			Asm::fchs();
+			++mNumInstruction;
+			mRegStack.back().type == TOKEN_NONE;
+		}
+
+		mPrevValue.type = TOKEN_FUN;
+	}
+
+	void codeEnd()
+	{
+		if( IsValue(mPrevValue.type) )
+		{
+			checkStackPrevValPtr();
+		}
+
+		Asm::mov(esp, ebp);
+		Asm::pop(ebp);
+		Asm::ret();
+		mNumInstruction += 3;
+
+		Asm::bind(&mConstLabel);
+
+		int   num = mData->getCodeLength();
+		for( int i = 0; i < mConstTable.size(); ++i )
+		{
+			mData->pushCode(mConstTable[i]);
+		}
+
+		Asm::reloc(mData->mCode);
+#if _DEBUG
+		mData->mNumInstruction = mNumInstruction;
+#endif
+	}
 
 protected:
-	static int const FpuRegNum = 8;
-	void  checkStackPrevValPtr();
-	void  resolvePushValues( TokenType type )
+
+
+	void checkStackPrevValPtr()
 	{
+		if( !ExprParse::IsValue(mPrevValue.type) )
+			return;
+
+		bool isVar = (mPrevValue.type == VALUE_VARIABLE);
+
+		++mNumVarStack;
+		if( mNumVarStack >= FpuRegNum )
+		{
+			//fstp        qword ptr [ebp - offset] 
+			int8 offset = -(mNumVarStack - FpuRegNum) * sizeof(ValueType);
+			Asm::fstp(VALUE_PTR(ebp, offset));
+			mRegStack.pop_back();
+			++mNumInstruction;
+		}
+
+		mNumInstruction += emitLoadValue(mPrevValue);
+		mRegStack.push_back(mPrevValue);
+	}
 
 
+	ValueInfo     mPrevValue;
+	int           mNumVarStack;
+	std::vector< ValueInfo >    mRegStack;
+
+	int findStack(ValueInfo const& value)
+	{
+		for( int i = 0; i < mRegStack.size(); ++i )
+		{
+			if( value.type == mRegStack[i].type )
+			{
+				switch( value.type )
+				{
+				case VALUE_CONST:
+					if( value.idxCV == mRegStack[i].idxCV )
+						return i;
+					break;
+				case VALUE_VARIABLE:
+					if( value.var == mRegStack[i].var )
+						return i;
+					break;
+				case VALUE_INPUT:
+					if( value.idxInput == mRegStack[i].idxInput )
+						return i;
+					break;
+				}
+			}
+		}
+		return -1;
+	}
+};
+
+
+class FPUCodeGeneratorV1 : public FPUCodeGeneratorBase
+{
+
+public:
+	void codeInit(int numInput, ValueLayout inputLayouts[])
+	{
+		mNumInstruction = 0;
+		mRegStack.clear();
+		mStackValues.clear();
+#if 0
+		ValueInfo info;
+		info.type = TOKEN_NONE;
+		info.idxCV = 0;
+		info.idxStack = 0;
+		mStackValues.push_back(info);
+#endif
+
+		mConstTable.clear();
+		mData->clearCode();
+		Asm::clearLink();
+
+		Asm::push(ebp);
+		Asm::mov(ebp, esp);
+		mNumInstruction += 2;
+	}
+	void codeConstValue(ValueType const&val)
+	{
+		int idx = 0;
+		int size = (int)mConstTable.size();
+		for( ; idx < size; ++idx )
+		{
+			if( mConstTable[idx] == val )
+				break;
+		}
+
+		if( idx == size )
+		{
+			mConstTable.push_back(val);
+		}
+
+
+		ValueInfo info;
+		info.type = VALUE_CONST;
+		info.idxCV = idx;
+		info.idxStack = -1;
+		mStackValues.push_back(info);
+	}
+	void codeVar(VarValueInfo const& varInfo)
+	{
+		ValueInfo info;
+		info.type = VALUE_VARIABLE;
+		info.var = &varInfo;
+		info.idxStack = -1;
+		mStackValues.push_back(info);
+	}
+	void codeInput(uint8 inputIndex)
+	{
+		ValueInfo info;
+		info.type = VALUE_INPUT;
+		info.idxInput = inputIndex;
+		info.idxStack = -1;
+		mStackValues.push_back(info);
+	}
+
+	void codeFunction(FunInfo const& info);
+	void codeBinaryOp(TokenType type, bool isReverse)
+	{
+		if( type == BOP_ASSIGN )
+		{
+			ValueInfo Var = mStackValues.back();
+			mStackValues.pop_back();
+			ValueInfo& value = mStackValues.back();
+			if( value.type == TOKEN_NONE )
+			{
+				switch( Var.var->layout )
+				{
+				case ValueLayout::Double:Asm::fst(qword_ptr(Var.var->ptr)); break;
+				case ValueLayout::Float: Asm::fst(dword_ptr(Var.var->ptr)); break;
+				case ValueLayout::Int32: Asm::fist(dword_ptr(Var.var->ptr)); break;
+				default:
+					assert(0);
+				}
+			}
+			else
+			{
+
+				uint8 indexReg = getRegIndex(value);
+				if( indexReg != -1 )
+				{
+					Asm::fst(st(indexReg));
+				}
+				else
+				{
+					mNumInstruction += emitLoadValue(value);
+					switch( Var.var->layout )
+					{
+					case ValueLayout::Double:Asm::fst(qword_ptr(Var.var->ptr)); break;
+					case ValueLayout::Float: Asm::fst(dword_ptr(Var.var->ptr)); break;
+					case ValueLayout::Int32: Asm::fist(dword_ptr(Var.var->ptr)); break;
+					default:
+						assert(0);
+					}
+					
+					//TODO: use move?
+				}
+			}
+		}
 
 
 	}
-	template< class Type > 
-	void  evalBinaryOp( TokenType type , bool isReverse , Type const& src );
-
-	FPUCodeData* mData;
-
-public:
-	void   emitByte( uint8 byte1 ){ mData->pushCode( byte1 ); }
-	void   emitWord( uint16 val ){ mData->pushCodeT( val ); }
-	void   emitWord( uint8 byte1 , uint8 byte2 ){ mData->pushCode( byte1 , byte2 ); }
-	void   emitDWord(uint32 val) { mData->pushCode(val); }
-	void   emitPtr ( void* ptr ){ mData->pushCode( ptr ); }
-	
-	uint32 getOffset(){ return mData->getCodeLength(); }
-
-	
-
-	struct PushValue
+	void codeUnaryOp(TokenType type);
+	void codeEnd()
 	{
-		PushValue()
+		Asm::mov(esp, ebp);
+		Asm::pop(ebp);
+		Asm::ret();
+		mNumInstruction += 3;
+
+		Asm::bind(&mConstLabel);
+
+		int   num = mData->getCodeLength();
+		for( int i = 0; i < mConstTable.size(); ++i )
 		{
-			locLoad = -1;
+			mData->pushCode(mConstTable[i]);
 		}
-		// ( - -2 ) Extra EBP -1 no Load (0 - 7) REG
-		//ExprParse::Unit unit;
-		int locLoad;
-	};
 
-	Asmeta::Label            mConstLabel;
-	std::vector< double >    mConstTable;
-	std::vector< PushValue > mPushValues;
-	int mIdxPushVarStart;
-	int mIdxPushConstStart;
-	std::vector< int > mStacks;
+		Asm::reloc(mData->mCode);
+#if _DEBUG
+		mData->mNumInstruction = mNumInstruction;
+#endif
+	}
+
+protected:
+
+	uint8 getRegIndex(ValueInfo const& info)
+	{
+		while( info.idxStack != 0 )
+		{
 
 
-	int           mIdxNextPush;
-	int           mNumPushValue;
+		}
 
-	int           mIdxRegValueOffset;
-	TokenType     mPrevType;
-	int           mNumVarStack;
-	int           mNumInstruction;
 
-	int           mIdxRegSave;
+	}
+	std::vector< int > mRegStack;
+	std::vector< ValueInfo > mStackValues;
 
-	double*       mPrevVarPtr;
-	int           mPrevIdxCV;
-	uint8         mPrevInputIndex;
 };
 
 FPUCompiler::FPUCompiler()
@@ -114,14 +690,20 @@ FPUCompiler::FPUCompiler()
 	mOptimization = false;
 }
 
-double FooTest(double x, double y)
+__declspec(noinline) double FooTest(double x, double y)
 {
 	return x + y;
+}
+
+__declspec(noinline) double FooTest2(double x, double y)
+{
+	return x - y;
 }
 
 float gc;
 float ga = 1.2f;
 float gb;
+
 __declspec(noinline) static void foo()
 {
 
@@ -135,32 +717,41 @@ __declspec(noinline) static void foo()
 	float a8 = 8;
 	float a9 = 9;
 
-	//__asm
-	//{
-	//	fld a1;
-	//	fld a2;
-	//	fld a3;
-	//	fld a4;
-	//	fld a5;
-	//	fld a6;
-	//	fld a7;
-	//	fld a8;
-	//	fld a9;
+#if 0
+	__asm
+	{
+		fld a1;
+		fld a2;
+		fld a3;
+		fld a4;
+		fld a5;
+		fld a6;
+		fld a7;
+		fld a8;
+		fld a9;
 
-	//	fstp a1;
-	//}
+		fstp a1;
+	}
+#endif
 
 	gc = ga * ga * ga;
 }
 
-bool FPUCompiler::compile( char const* expr , SymbolTable const& table , FPUCodeData& data , int numInput )
+
+double gC;
+bool FPUCompiler::compile( char const* expr , SymbolTable const& table , ExecutableCode& data , int numInput , ValueLayout inputLayouts[] )
 {
-#if 0
+#if 1
 	ga = 1.2f;
 	foo();
 	double x = 1;
 	double y = 2;
-	double c = FooTest(x, y);
+
+	double(*pFun)(double x, double y);
+	pFun = rand() % 2 ? FooTest : FooTest2;
+	gc = pFun(x, y);
+
+	LogMsg("%f", gc);
 #endif
 
 	try
@@ -173,10 +764,10 @@ bool FPUCompiler::compile( char const* expr , SymbolTable const& table , FPUCode
 		if (mOptimization)
 			mResult.optimize();
 
-		FPUCodeTemplate codeTemplate;
+		FPUCodeGeneratorV0 generator;
 		data.mNumInput = numInput;
-		codeTemplate.setCodeData( &data );
-		mResult.generateCode(codeTemplate);
+		generator.setCodeData( &data );
+		mResult.generateCode(generator , numInput, inputLayouts);
 		return true;
 	}
 	catch ( ParseException&  )
@@ -190,323 +781,31 @@ bool FPUCompiler::compile( char const* expr , SymbolTable const& table , FPUCode
 }
 
 
-template< class T >
-static T subOffset( T offset )
-{
-	return (~offset) + 1;
-}
-
-void FPUCodeTemplate::codeInit()
-{
-	//m_pData->eval();
-
-	mPrevType = TOKEN_NONE;
-	mNumVarStack = 0;
-	mIdxRegSave = -1;
-	mNumInstruction = 0;
-	mPrevVarPtr = 0;
-
-	mConstTable.clear();
-	mData->clearCode();
-	mPushValues.reserve( 10 );
-	Asm::clearLink();
-
-	Asm::push( ebp );
-	Asm::mov( ebp , esp );
-	mNumInstruction += 2;
-
-	// ??
-	//m_pData->pushCode(MSTART);
-	//++m_NumInstruction;
-}
-
-void FPUCodeTemplate::codeEnd()
-{
-	if ( IsValue( mPrevType ) )
-	{
-		checkStackPrevValPtr();
-	}
-
-	Asm::mov( esp , ebp );
-	Asm::pop( ebp );
-	Asm::ret();
-	mNumInstruction += 3;
-
-	Asm::bind( &mConstLabel );
-
-	int   num = mData->getCodeLength();
-	for (int i = 0 ; i < mConstTable.size(); ++i )
-	{
-		mData->pushCode( mConstTable[i] );
-	}
-
-	Asm::reloc( mData->mCode );
-#if _DEBUG
-	mData->mNumInstruction = mNumInstruction;
-#endif
-}
-
-
-void FPUCodeTemplate::codeConstValue( ValueType const& val )
-{
-	checkStackPrevValPtr();
-	//find if have the same value before
-
-	int idx = 0;
-	int size = (int)mConstTable.size();
-	for(  ; idx < size ; ++idx )
-	{
-		if ( mConstTable[idx] == val )
-			break;
-	}
-
-	if ( idx == size )
-	{
-		mConstTable.push_back( val );
-	}
-
-	mPrevIdxCV = idx;
-	mPrevType = VALUE_CONST;
-
-}
-
-void FPUCodeTemplate::codeVar( ValueType* varPtr )
-{
-	checkStackPrevValPtr();
-	mPrevVarPtr = varPtr;
-	mPrevType   = VALUE_VARIABLE;
-}
-
-void FPUCodeTemplate::codeInput(uint8 inputIndex)
-{
-	checkStackPrevValPtr();
-	mPrevInputIndex = inputIndex;
-	mPrevType = VALUE_INPUT;
-}
-
-void FPUCodeTemplate::codeFunction( FunInfo const& info )
-{
-	checkStackPrevValPtr();
-
-	int   numParam = info.numParam;
-	int   numSPUParam = numParam;
-
-	unsigned espOffset = sizeof( ValueType ) * numParam;
-	int32 paramOffset = 0;
-
-	if ( mNumVarStack > FpuRegNum )
-	{
-		int numCpuStack = mNumVarStack - FpuRegNum;
-		int numCpuParam = std::min( numParam , numCpuStack );
-
-		paramOffset -= numCpuStack * sizeof( ValueType );
-		for ( int num = 0; num < numCpuParam ; ++num )
-		{
-			paramOffset -= sizeof( ValueType );
-
-			Asm::fstp( VALUE_PTR( esp , int8( paramOffset ) ) );
-			Asm::fld( VALUE_PTR( ebp , int8( -( numCpuStack - num  ) * sizeof( ValueType ) ) ) );
-			mNumInstruction += 2;
-		}
-
-		numSPUParam = numParam - numCpuParam;
-		espOffset += sizeof( ValueType ) * numCpuStack;
-	}
-
-	assert( numParam < 256 / sizeof( ValueType ) );
-
-	for ( int num = 0; num < numSPUParam ; ++num )
-	{
-		paramOffset -= sizeof( ValueType );
-		Asm::fstp( VALUE_PTR( esp , int8( paramOffset ) ) );
-		++mNumInstruction;
-	}
-
-	Asm::sub( esp , imm8u( uint8( espOffset ) ) );
-	Asm::call( ptr( (void*)&info.ptrFun ) );
-	Asm::add( esp , imm8u( uint8( espOffset ) ) );
-	mNumInstruction += 3;
-
-	mNumVarStack -= numParam;
-	mPrevType = TOKEN_FUN;
-}
-
-template< class Type >
-void FPUCodeTemplate::evalBinaryOp( TokenType type , bool isReverse , Type const& src  )
-{
-	switch( type )
-	{
-	case BOP_ADD: 
-		Asm::fadd( src ); 
-		break;
-	case BOP_MUL:
-		Asm::fmul( src ); 
-		break;
-	case BOP_SUB:
-		if ( isReverse )
-			Asm::fsubr( src ); 
-		else
-			Asm::fsub( src );
-		break;
-	case BOP_DIV:
-		if ( isReverse )
-			Asm::fdivr( src ); 
-		else
-			Asm::fdiv( src );
-		break;
-	case BOP_COMMA:
-		Asm::fstp( st(0) );
-		Asm::fld( src );
-		break;
-	}
-}
-void FPUCodeTemplate::codeBinaryOp( TokenType type , bool isReverse )
-{
-
-	if ( type == BOP_ASSIGN )
-	{
-		Asm::fst( VALUE_PTR( mPrevVarPtr ) );
-		++mNumInstruction;
-	}
-	else
-	{
-		if ( IsValue( mPrevType ) )
-		{
-			switch( mPrevType )
-			{
-			case VALUE_CONST:
-				{
-					evalBinaryOp( type , isReverse , VALUE_PTR( &mConstLabel , mPrevIdxCV * sizeof( ValueType ) ) );
-				}
-				break;
-			case VALUE_VARIABLE:
-				{
-					evalBinaryOp( type , isReverse , VALUE_PTR( mPrevVarPtr ) );
-				}
-				break;
-			case VALUE_INPUT:
-				{
-					evalBinaryOp(type, isReverse, VALUE_PTR( ebp , int( (mPrevInputIndex + 1 ) * sizeof(ValueType) )) );
-				}
-				break;
-			}
-
-			++mNumInstruction;
-		}
-		else
-		{
-			if ( mNumVarStack > FpuRegNum )
-			{
-				int32 offset = -( mNumVarStack - FpuRegNum ) * sizeof( ValueType );
-				evalBinaryOp( type , isReverse , VALUE_PTR( ebp , int32( offset ) ) );
-				++mNumInstruction;
-			}
-			else
-			{
-				switch( type )
-				{
-				case BOP_ADD: 
-					Asm::faddp( st(1) ); 
-					break;
-				case BOP_SUB:
-					if ( isReverse )
-						Asm::fsubrp( st(1) ); 
-					else
-						Asm::fsubp( st(1) );
-					break;
-				case BOP_MUL:
-					Asm::fmulp( st(1) ); 
-					break;
-				case BOP_DIV:
-					if ( isReverse )
-						Asm::fdivrp( st(1) ); 
-					else
-						Asm::fdivp( st(1) );
-					break;
-				case BOP_COMMA:
-					Asm::fstp( st(1) );
-					break;
-				}
-				++mNumInstruction;
-			}
-			--mNumVarStack;
-		}
-	}
-	mPrevType = TOKEN_BINARY_OP;
-}
-
-void FPUCodeTemplate::codeUnaryOp( TokenType type )
-{
-	checkStackPrevValPtr();
-
-	if ( type == UOP_MINS )
-	{
-		Asm::fchs();
-		++mNumInstruction;
-	}
-
-	mPrevType = TOKEN_FUN;
-}
-
-void FPUCodeTemplate::checkStackPrevValPtr()
-{
-	if ( !ExprParse::IsValue( mPrevType ) )
-		return;
-
-	bool isVar = ( mPrevType == VALUE_VARIABLE );
-
-	++mNumVarStack;
-	if ( mNumVarStack >= FpuRegNum )
-	{
-		//fstp        qword ptr [ebp - offset] 
-		int8 offset = -( mNumVarStack - FpuRegNum ) * sizeof( ValueType );
-		Asm::fstp( VALUE_PTR( ebp , offset ) );
-		++mNumInstruction;
-	}
-
-	switch( mPrevType )
-	{
-	case VALUE_CONST:
-		Asm::fld(VALUE_PTR(&mConstLabel, mPrevIdxCV * sizeof(ValueType)));
-		break;
-	case VALUE_VARIABLE:
-		Asm::fld(VALUE_PTR(mPrevVarPtr));
-		break;
-	case VALUE_INPUT:
-		Asm::fld(VALUE_PTR(ebp, int((mPrevInputIndex + 1) * sizeof(ValueType))));
-		break;
-	}
-
-	++mNumInstruction;
-
-}
-
-
-void FPUCodeData::setCode( unsigned pos , uint8 byte )
+void ExecutableCode::setCode( unsigned pos , uint8 byte )
 {
 	assert( pos < getCodeLength() );
 	mCode[ pos ] = byte;
 }
-void FPUCodeData::setCode( unsigned pos , void* ptr )
+void ExecutableCode::setCode( unsigned pos , void* ptr )
 {
 	assert( pos < getCodeLength() );
 	*reinterpret_cast< void** >( mCode + pos ) = ptr; 
 }
 
-void FPUCodeData::pushCode( uint8 byte )
+void ExecutableCode::pushCode( uint8 byte )
 {
 	checkCodeSize(1);
 	pushCodeInternal( byte );
 }
 
-void FPUCodeData::pushCode( uint8 byte1,uint8 byte2 )
+void ExecutableCode::pushCode( uint8 byte1,uint8 byte2 )
 {
 	checkCodeSize( 2 );
 	pushCodeInternal(byte1); 
 	pushCodeInternal(byte2);
 }
 
-void FPUCodeData::pushCode( uint8 byte1,uint8 byte2,uint8 byte3 )
+void ExecutableCode::pushCode( uint8 byte1,uint8 byte2,uint8 byte3 )
 {
 	checkCodeSize( 3 );
 	pushCodeInternal(byte1); 
@@ -514,14 +813,14 @@ void FPUCodeData::pushCode( uint8 byte1,uint8 byte2,uint8 byte3 )
 	pushCodeInternal(byte3);
 }
 
-void FPUCodeData::pushCodeInternal( uint8 byte )
+void ExecutableCode::pushCodeInternal( uint8 byte )
 {
 	*mCodeEnd = byte;
 	++mCodeEnd;
 }
 
 
-void FPUCodeData::printCode()
+void ExecutableCode::printCode()
 {
 	std::cout << std::hex;
 	int num = getCodeLength();
@@ -540,7 +839,7 @@ void FPUCodeData::printCode()
 }
 
 
-FPUCodeData::FPUCodeData( int size )
+ExecutableCode::ExecutableCode( int size )
 {
 	mMaxCodeSize = ( size ) ? size : 128;
 	mCode = ( uint8* ) AllocExecutableMemory( mMaxCodeSize );
@@ -549,40 +848,12 @@ FPUCodeData::FPUCodeData( int size )
 }
 
 
-FPUCodeData::~FPUCodeData()
+ExecutableCode::~ExecutableCode()
 {
 	FreeExecutableMemory( mCode );
 }
 
-double FPUCodeData::eval() const
-{
-	assert(mNumInput == 0);
-	typedef double (__cdecl *EvalFun)();
-	return reinterpret_cast< EvalFun >( &mCode[0] )();
-}
-
-double FPUCodeData::eval(double p0) const
-{
-	assert(mNumInput == 1);
-	typedef double(__cdecl *EvalFun)(double);
-	return reinterpret_cast< EvalFun >(&mCode[0])(p0);
-}
-
-double FPUCodeData::eval(double p0, double p1) const
-{
-	assert(mNumInput == 2);
-	typedef double(__cdecl *EvalFun)(double,double);
-	return reinterpret_cast<EvalFun>(&mCode[0])(p0,p1);
-}
-
-double FPUCodeData::eval(double p0, double p1, double p2) const
-{
-	assert(mNumInput == 3);
-	typedef double(__cdecl *EvalFun)(double,double,double);
-	return reinterpret_cast<EvalFun>(&mCode[0])(p0,p1,p2);
-}
-
-void FPUCodeData::checkCodeSize( int freeSize )
+void ExecutableCode::checkCodeSize( int freeSize )
 {
 	int codeNum = getCodeLength();
 	if ( codeNum + freeSize <= mMaxCodeSize )
@@ -602,7 +873,7 @@ void FPUCodeData::checkCodeSize( int freeSize )
 	mMaxCodeSize = newSize;
 }
 
-void FPUCodeData::clearCode()
+void ExecutableCode::clearCode()
 {
 	memset(mCode,0,mMaxCodeSize );
 	mCodeEnd = mCode;

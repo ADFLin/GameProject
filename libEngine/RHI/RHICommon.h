@@ -12,6 +12,16 @@
 
 namespace RenderGL
 {
+	enum class DeviceVendorName
+	{
+		Unknown,
+		NVIDIA ,
+		ATI,
+		Intel ,	
+	};
+
+	extern DeviceVendorName gRHIDeviceVendorName;
+
 
 	class RHITexture1D;
 	class RHITexture2D;
@@ -22,8 +32,7 @@ namespace RenderGL
 	class RHIVertexBuffer;
 	class RHIIndexBuffer;
 	class RHIUniformBuffer;
-	class RHIStorageBuffer;
-	
+
 	enum ECompValueType
 	{
 		CVT_Float,
@@ -375,9 +384,10 @@ namespace RenderGL
 
 	enum BufferCreationFlag : uint32
 	{
-		BCF_UsageDynamic = BIT(0),
-		BCF_UsageStage = BIT(1),
-
+		BCF_CreateSRV = BIT(0),
+		BCF_CreateUAV = BIT(1),
+		BCF_UsageDynamic = BIT(2),
+		BCF_UsageStage = BIT(3),
 
 
 		BCF_DefalutValue = 0,
@@ -429,18 +439,19 @@ namespace RenderGL
 	typedef TRefCountPtr< RHIInputLayout > RHIInputLayoutRef;
 
 
-	struct InputStreamState
+	struct InputStreamDefine
 	{
 		RHIVertexBuffer* vertexBuffers[MAX_INPUT_STREAM_NUM];
 		int              numVertexBuffer;
 		RHIIndexBuffer*  indexBuffer;
 		RHIInputLayout*  inputLayout;
 
-		InputStreamState()
+		InputStreamDefine()
 		{
 			::memset(this, 0, sizeof(*this));
 		}
 	};
+
 
 	class RHIInputStreamState : public RHIResource
 	{
@@ -460,10 +471,6 @@ namespace RenderGL
 		uint32 getSize() const { return mElementSize * mNumElements; }
 		uint32 getElementSize() const { return mElementSize; }
 		uint32 getNumElements() const { return mNumElements; }
-
-		virtual void* lock(ELockAccess access) = 0;
-		virtual void* lock(ELockAccess access, uint32 offset, uint32 length) = 0;
-		virtual void  unlock() = 0;
 
 	protected:
 		uint32 mCreationFlags;
@@ -489,16 +496,6 @@ namespace RenderGL
 	};
 
 	class RHIUniformBuffer : public RHIBufferBase
-	{
-	public:
-	};
-
-	class RHIStorageBuffer : public RHIBufferBase
-	{
-	public:
-	};
-
-	class RHIAtomicCounterBuffer : public RHIBufferBase
 	{
 	public:
 	};
@@ -579,8 +576,6 @@ namespace RenderGL
 	typedef TRefCountPtr< RHIVertexBuffer > RHIVertexBufferRef;
 	typedef TRefCountPtr< RHIIndexBuffer >  RHIIndexBufferRef;
 	typedef TRefCountPtr< RHIUniformBuffer > RHIUniformBufferRef;
-	typedef TRefCountPtr< RHIStorageBuffer > RHIStorageBufferRef;
-	typedef TRefCountPtr< RHIAtomicCounterBuffer > RHIAtomicCounterBufferRef;
 	typedef TRefCountPtr< RHISamplerState > RHISamplerStateRef;
 	typedef TRefCountPtr< RHIRasterizerState > RHIRasterizerStateRef;
 	typedef TRefCountPtr< RHIDepthStencilState > RHIDepthStencilStateRef;

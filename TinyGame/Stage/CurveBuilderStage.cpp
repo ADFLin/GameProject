@@ -68,9 +68,10 @@ namespace CB
 			::Global::GUI().cleanupWidget();
 
 			{
-				Surface3D* surface = createSurfaceXY("cos(0.1*(x*x+y*y) + 0.01*t)", Color4f(0.2, 0.6, 0.4, 0.3));
-				surface = createSurfaceXY("sin(x)*cos(y+0.01*t)", Color4f(0.2, 0.6, 0.4, 0.5));
-				surface = createSurfaceXY("sin(0.1*(x*x+y*y) + 0.01*t)", Color4f(0.2, 0.6, 0.1, 0.3) );
+				Surface3D* surface = createSurfaceXY("x + x", Color4f(0.2, 0.6, 0.4, 0.3));
+				//Surface3D* surface = createSurfaceXY("cos(0.1*(x*x+y*y) + 0.01*t)", Color4f(0.2, 0.6, 0.4, 0.3));
+				//surface = createSurfaceXY("sin(x)*cos(y+0.01*t)", Color4f(0.2, 0.6, 0.4, 0.5));
+				//surface = createSurfaceXY("sin(0.1*(x*x+y*y) + 0.01*t)", Color4f(0.2, 0.6, 0.1, 0.3) );
 
 				GTextCtrl* textCtrl = new GTextCtrl(UI_ANY, Vec2i(100, 100), 200, nullptr);
 				textCtrl->setValue( static_cast<SurfaceXYFun*>( surface->getFunction() )->getExprString().c_str());
@@ -179,6 +180,8 @@ namespace CB
 			glClearColor(0.7f, 0.7f, 0.7f, 1.0f);
 
 			RHISetViewport(0, 0, width, height);
+			RHISetRasterizerState(TStaticRasterizerState<>::GetRHI());
+			RHISetBlendState(TStaticBlendState<>::GetRHI());
 			RHISetDepthStencilState(TStaticDepthStencilState<>::GetRHI());
 
 			glMatrixMode(GL_PROJECTION);
@@ -193,12 +196,13 @@ namespace CB
 			mRenderer->beginRender();
 			{
 				mRenderer->drawAxis();
-
 				for( ShapeBase* current : mSurfaceList )
 				{
 					if( current->isVisible() )
-						mRenderer->drawShape( *current);
-				}		
+					{
+						mRenderer->drawShape(*current);
+					}
+				}	
 			}
 			mRenderer->endRender();
 

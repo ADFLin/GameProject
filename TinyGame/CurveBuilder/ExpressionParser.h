@@ -13,25 +13,98 @@ class CodeTemplate;
 class SymbolTable;
 struct SymbolEntry;
 
+
+typedef double RealType;
+enum class ValueLayout
+{
+	Int32,
+	Double,
+	Float,
+
+	Real = Double,
+};
+
+inline uint32 GetLayoutSize(ValueLayout layout)
+{
+	switch( layout )
+	{
+	case ValueLayout::Int32: return sizeof(int32);
+	case ValueLayout::Double: return sizeof(double);
+	case ValueLayout::Float: return sizeof(float);
+	default:
+		break;
+	}
+	return 0;
+}
 struct FunInfo
 {
+	static int const MaxArgNum = 8;
 	void* ptrFun;
 	int   numParam;
+	ValueLayout argLayouts[MaxArgNum];
+	ValueLayout returnLayout;
+
+
+	bool isSameLayout(FunInfo const& rhs) const
+	{
+		if( returnLayout != rhs.returnLayout )
+			return false;
+		if( numParam == rhs.numParam )
+			return false;
+
+		for( int i = 0; i < numParam; ++i )
+		{
+			if( argLayouts[i] != rhs.argLayouts[i] )
+				return false;
+		}
+		return true;
+	}
 
 	bool operator == ( FunInfo const& rhs ) const
 	{
-		return ptrFun == rhs.ptrFun && numParam == rhs.numParam;
+		if( ptrFun != rhs.ptrFun )
+			return false;
+
+		return true;
 	}
+
+#if 0
+	template< class RT , class ...Args >
+	static FunInfo Get(RT(*fun)(...Args))
+	{
+	}
+#endif
 };
 
-typedef double ValueType;
+struct ConstValueInfo
+{
+	ValueLayout layout;
+	union 
+	{
+		double toDouble;
+		float  toFloat;
+		int32  toInt32;
+		RealType toReal;
+	};
 
-typedef ValueType (__cdecl *FunType0)();
-typedef ValueType (__cdecl *FunType1)(ValueType);
-typedef ValueType (__cdecl *FunType2)(ValueType,ValueType);
-typedef ValueType (__cdecl *FunType3)(ValueType,ValueType,ValueType);
-typedef ValueType (__cdecl *FunType4)(ValueType,ValueType,ValueType,ValueType);
-typedef ValueType (__cdecl *FunType5)(ValueType,ValueType,ValueType,ValueType,ValueType);
+	ConstValueInfo(){}
+	ConstValueInfo(RealType value):layout(ValueLayout::Real), toReal(value){}
+
+};
+
+struct VarValueInfo
+{
+	ValueLayout layout;
+	void* ptr;
+};
+
+
+typedef RealType (__cdecl *FunType0)();
+typedef RealType (__cdecl *FunType1)(RealType);
+typedef RealType (__cdecl *FunType2)(RealType,RealType);
+typedef RealType (__cdecl *FunType3)(RealType,RealType,RealType);
+typedef RealType (__cdecl *FunType4)(RealType,RealType,RealType,RealType);
+typedef RealType (__cdecl *FunType5)(RealType,RealType,RealType,RealType,RealType);
 
 class ExprParse
 {
@@ -99,7 +172,7 @@ public:
 		Unit(){}
 		Unit(TokenType type)
 			:type(type),isReverse(false){}
-		Unit(TokenType type,ValueType val)
+		Unit(TokenType type, ConstValueInfo val)
 			:type(type),constValue(val){}
 		Unit(TokenType type,SymbolEntry const* symbol)
 			:type(type), symbol(symbol){}
@@ -109,8 +182,8 @@ public:
 		union
 		{
 			SymbolEntry const* symbol;
-			ValueType       constValue;
 			bool            isReverse;
+			ConstValueInfo  constValue;
 		};
 	};
 
@@ -143,6 +216,7 @@ public:
 	typedef std::vector< Node > NodeVec;
 };
 
+
 struct SymbolEntry
 {
 	enum Type
@@ -154,32 +228,31 @@ struct SymbolEntry
 	};
 	Type type;
 
-	
-
 	union
 	{
-		double  constValue;
-		double* varPtr;
-		uint8   inputIndex;
-		FunInfo funInfo;
+		uint8          inputIndex;
+		FunInfo        fun;
+		ConstValueInfo constValue;
+		VarValueInfo   varValue;
 	};
 
 	SymbolEntry() {}
 	SymbolEntry(FunInfo const& funInfo)
 		:type(eFun)
-		,funInfo(funInfo)
+		,fun(funInfo)
 	{
 	}
 
-	SymbolEntry(ValueType value)
+	SymbolEntry(ConstValueInfo value)
 		:type(eConstValue)
 		, constValue(value)
 	{
 	}
-	SymbolEntry(ValueType* ptr)
+	SymbolEntry(RealType* ptr)
 		:type(eVar)
-		, varPtr(ptr)
 	{
+		varValue.ptr = ptr;
+		varValue.layout = ValueLayout::Real;
 	}
 	SymbolEntry(uint8 index)
 		:type(eInputVar)
@@ -192,8 +265,13 @@ class SymbolTable
 {
 public:
 	// can redefine
-	void            defineConst( char const* name ,ValueType val )  { mNameToEntryMap[name] = val; }
-	void            defineVar( char const* name , ValueType* varPtr){ mNameToEntryMap[name] = varPtr;  }
+	void            defineConst( char const* name ,RealType val )  { mNameToEntryMap[name] = val; }
+	void            defineVar( char const* name , RealType* varPtr)
+	{ 
+		auto entry = mNameToEntryMap[name];
+		entry.varValue.layout = ValueLayout::Real;
+		entry.varValue.ptr = varPtr;
+	}
 	void            defineVarInput(char const* name, uint8 inputIndex) { mNameToEntryMap[name] = inputIndex; }
 	void            defineFun( char const* name , FunType0 fun ){  defineFunInternal(name,(void*)fun,0);  }
 	void            defineFun( char const* name , FunType1 fun ){  defineFunInternal(name,(void*)fun,1);  }
@@ -202,12 +280,12 @@ public:
 	void            defineFun( char const* name , FunType4 fun ){  defineFunInternal(name,(void*)fun,4);  }
 	void            defineFun( char const* name , FunType5 fun ){  defineFunInternal(name,(void*)fun,5);  }
 
-	bool            findConst(std::string const& name , ValueType& val ) const;
-	FunInfo const*  findFun  (std::string const& name ) const;
-	ValueType*      findVar(std::string const& name ) const;
+	ConstValueInfo const* findConst(std::string const& name) const;
+	FunInfo const*        findFun(std::string const& name) const;
+	VarValueInfo const*   findVar(std::string const& name ) const;
 	int             findInput(std::string const& name) const;
 	char const*     getFunName( FunInfo const& info ) const;
-	char const*     getVarName( ValueType* var ) const;
+	char const*     getVarName( void* var ) const;
 
 	bool            isFunDefined(std::string const& name) const{  return isDefinedInternal( name , SymbolEntry::eFun ); }
 	bool            isVarDefined(std::string const& name) const{ return isDefinedInternal(name, SymbolEntry::eVar ); }
@@ -349,8 +427,8 @@ public:
 	bool   isUsingVar( char const* name );
 	void   optimize();
 
-	template< class CodeTemplate >
-	void   generateCode( CodeTemplate& codeTemplate );
+	template< class TCodeGenerator >
+	void   generateCode(TCodeGenerator& geneartor , int numInput, ValueLayout inputLayouts[]);
 
 	UnitCodes const& getInfixCodes() const { return mIFCodes; }
 	UnitCodes const& getPostfixCodes() const { return mPFCodes; }
@@ -381,13 +459,13 @@ public:
 
 };
 
-class CodeTemplate
+class TCodeGenerator
 {
 public:
 	typedef ParseResult::TokenType TokenType;
 	void codeInit();
-	void codeConstValue(ValueType const&val);
-	void codeVar(ValueType* varPtr);
+	void codeConstValue(ConstValueInfo const&val);
+	void codeVar( VarValueInfo const& varInfo);
 	void codeInput(uint8 inputIndex);
 	void codeFunction(FunInfo const& info);
 	void codeBinaryOp(TokenType type,bool isReverse);
@@ -422,40 +500,40 @@ protected:
 
 
 
-template< class CodeTemplate >
-void ParseResult::generateCode( CodeTemplate& codeTemplate )
+template< class TCodeGenerator >
+void ParseResult::generateCode( TCodeGenerator& generator , int numInput, ValueLayout inputLayouts[] )
 {
-	codeTemplate.codeInit();
+	generator.codeInit(numInput , inputLayouts);
 
 	for ( Unit const& unit : mPFCodes )
 	{
 		switch( unit.type )
 		{
 		case ExprParse::VALUE_CONST:
-			codeTemplate.codeConstValue(unit.constValue);
+			generator.codeConstValue(unit.constValue);
 			break;
 		case ExprParse::VALUE_VARIABLE:
-			codeTemplate.codeVar(unit.symbol->varPtr);
+			generator.codeVar(unit.symbol->varValue);
 			break;
 		case ExprParse::VALUE_INPUT:
-			codeTemplate.codeInput(unit.symbol->inputIndex);
+			generator.codeInput(unit.symbol->inputIndex);
 			break;
 		default:
 			switch( unit.type & TOKEN_MASK )
 			{
 			case TOKEN_FUN:
-				codeTemplate.codeFunction(unit.symbol->funInfo);
+				generator.codeFunction(unit.symbol->fun);
 				break;
 			case TOKEN_UNARY_OP:
-				codeTemplate.codeUnaryOp(unit.type);
+				generator.codeUnaryOp(unit.type);
 				break;
 			case TOKEN_BINARY_OP:
-				codeTemplate.codeBinaryOp(unit.type, unit.isReverse);
+				generator.codeBinaryOp(unit.type, unit.isReverse);
 				break;
 			}
 		}
 	}
-	codeTemplate.codeEnd();
+	generator.codeEnd();
 }
 
 

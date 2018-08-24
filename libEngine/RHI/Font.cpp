@@ -151,7 +151,7 @@ namespace RenderGL
 	{
 		if( !bInitialized )
 		{
-			if( !mTextAtlas.create(Texture::eRGBA8, 1024, 1024, 1) )
+			if( !mTextAtlas.initialize(Texture::eRGBA8, 1024, 1024, 1) )
 				return false;
 
 			{
@@ -161,10 +161,35 @@ namespace RenderGL
 				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_B, GL_RED);
 			}
 
+			for( auto& pair : mCharDataSetMap )
+			{
+				pair.second->mUsedTextAtlas = &mTextAtlas;
+			}
+
 			bInitialized = true;
 		}
 
 		return true;
+	}
+
+	void FontCharCache::finalize()
+	{
+		releaseRHI();
+		for( auto& pair : mCharDataSetMap )
+		{
+			delete pair.second;
+		}
+		mCharDataSetMap.clear();
+	}
+
+	void FontCharCache::releaseRHI()
+	{
+		mTextAtlas.finalize();
+		for( auto& pair : mCharDataSetMap )
+		{
+			pair.second->clearRHIResource();
+		}
+		bInitialized = false;
 	}
 
 	CharDataSet* FontCharCache::getCharDataSet(FontFaceInfo const& fontFace)
@@ -193,6 +218,12 @@ namespace RenderGL
 			return false;
 
 		return true;
+	}
+
+	void CharDataSet::clearRHIResource()
+	{
+		mCharMap.clear();
+		mUsedTextAtlas = nullptr;
 	}
 
 	CharDataSet::CharData const& CharDataSet::findOrAddChar(uint32 charWord)

@@ -4,8 +4,11 @@
 #include "GameGlobal.h"
 #include "GLGraphics2D.h"
 #include "RHI/RHIGraphics2D.h"
+#include "RHI/Font.h"
 
 #include <algorithm>
+
+using namespace RenderGL;
 
 namespace
 {
@@ -225,12 +228,13 @@ void RenderUtility::SetFont(IGraphics2D& g , int fontID )
 
 }
 
-void RenderUtility::StartOpenGL()
+void RenderUtility::InitializeRHI()
 {
 	using namespace RenderGL;
 
 	HDC hDC = ::Global::GetDrawEngine()->getWindow().getHDC();
 	FontCharCache::Get().hDC = hDC;
+	FontCharCache::Get().initialize();
 
 	char const* faceName = "·s²Ó©úÅé";
 	FontGL[ FONT_S8  ].initialize(FontFaceInfo(faceName, 8 , true));
@@ -240,10 +244,12 @@ void RenderUtility::StartOpenGL()
 	FontGL[ FONT_S24 ].initialize(FontFaceInfo(faceName, 24, true));
 }
 
-void RenderUtility::StopOpenGL()
+void RenderUtility::ReleaseRHI()
 {
 	for( int i = 0 ; i < FONT_NUM ; ++i)
 		FontGL[i].cleanup();
+
+	FontCharCache::Get().releaseRHI();
 }
 
 void RenderUtility::SetFontColor(Graphics2D& g , int color , int type /*= COLOR_NORMAL */)

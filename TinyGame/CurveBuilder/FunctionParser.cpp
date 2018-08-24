@@ -6,7 +6,7 @@
 namespace CB
 {
 
-	static ValueType sVarDummy;
+	static RealType sVarDummy;
 
 	void ReplaceAllSubString(std::string& str, std::string const& from, std::string const& to)
 	{
@@ -33,9 +33,9 @@ namespace CB
 		return result;
 	}
 
-	bool FunctionParser::parse(Expression& expr , int numInput )
+	bool FunctionParser::parse(Expression& expr , int numInput , ValueLayout inputLayouts[] )
 	{
-		expr.mIsParsed = compile(expr.getExprString().c_str(), mSymbolDefine, expr.getEvalData(), numInput);
+		expr.mIsParsed = compile(expr.getExprString().c_str(), mSymbolDefine, expr.getEvalData(), numInput , inputLayouts);
 		return expr.mIsParsed;
 	}
 

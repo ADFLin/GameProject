@@ -11,6 +11,7 @@
 #include "AsyncWork.h"
 
 #include "tinyobjloader/tiny_obj_loader.h"
+#include "NvTriStrip/NvTriStrip.h"
 
 #include <unordered_map>
 #include <memory>
@@ -20,6 +21,7 @@
 namespace RenderGL
 {
 	bool CheckGLStateValid();
+	bool gbOptimizeVertexCache = false;
 
 	Mesh::Mesh()
 	{
@@ -37,6 +39,7 @@ namespace RenderGL
 
 	bool Mesh::createRHIResource(void* pVertex, int nV, void* pIdx, int nIndices, bool bIntIndex)
 	{
+
 		mInputLayout = RHICreateInputLayout(mInputLayoutDesc);
 		if( !mInputLayout.isValid() )
 			return false;
@@ -47,7 +50,12 @@ namespace RenderGL
 
 		if( nIndices )
 		{
-			mIndexBuffer = RHICreateIndexBuffer(nIndices, bIntIndex, 0 , pIdx);
+			if( gbOptimizeVertexCache && mType == PrimitiveType::TriangleList )
+			{
+				MeshUtility::OptimizeVertexCache(pIdx, nIndices, bIntIndex);		
+			}
+
+			mIndexBuffer = RHICreateIndexBuffer(nIndices, bIntIndex, 0, pIdx);
 			if( !mIndexBuffer.isValid() )
 				return false;
 		}
@@ -131,7 +139,6 @@ namespace RenderGL
 	void Mesh::drawShaderInternalEx(PrimitiveType type , int idxStart, int num, RHIIndexBuffer* indexBuffer, LinearColor const* color /*= nullptr*/)
 	{
 		assert(mVertexBuffer != nullptr);
-
 		bindVAO(color);
 		if( indexBuffer )
 		{
@@ -200,12 +207,12 @@ namespace RenderGL
 			return false;
 		}
 
-		uint8* pVertex = (uint8*)mVertexBuffer->lock(ELockAccess::ReadOnly);
-		uint8* pIndex = (uint8*)mIndexBuffer->lock(ELockAccess::ReadOnly);
+		uint8* pVertex = (uint8*)RHILockBuffer(mVertexBuffer , ELockAccess::ReadOnly);
+		uint8* pIndex = (uint8*)RHILockBuffer( mIndexBuffer , ELockAccess::ReadOnly);
 		ON_SCOPE_EXIT
 		{
-			mVertexBuffer->unlock();
-			mIndexBuffer->unlock();
+			RHIUnlockBuffer(mVertexBuffer);
+			RHIUnlockBuffer(mIndexBuffer);
 		};
 		std::vector< int > tempBuffer;
 		int numTriangles = 0;
@@ -1746,12 +1753,12 @@ namespace RenderGL
 		if( !mesh.mIndexBuffer.isValid() || !mesh.mVertexBuffer.isValid() )
 			return false;
 
-		uint8* pData = (uint8*)(mesh.mVertexBuffer->lock(ELockAccess::ReadOnly)) + mesh.mInputLayoutDesc.getSematicOffset(Vertex::ePosition);
-		void* pIndexBufferData = mesh.mIndexBuffer->lock(ELockAccess::ReadOnly);
+		uint8* pData = (uint8*)( RHILockBuffer( mesh.mVertexBuffer , ELockAccess::ReadOnly)) + mesh.mInputLayoutDesc.getSematicOffset(Vertex::ePosition);
+		void* pIndexBufferData = RHILockBuffer( mesh.mIndexBuffer , ELockAccess::ReadOnly);
 		ON_SCOPE_EXIT
 		{
-			mesh.mVertexBuffer->unlock();
-			mesh.mIndexBuffer->unlock();
+			RHIUnlockBuffer(mesh.mVertexBuffer);
+			RHIUnlockBuffer(mesh.mIndexBuffer);
 		};
 		std::vector<int> tempBuffer;
 		int numTriangles;
@@ -2091,6 +2098,52 @@ namespace RenderGL
 			pInddex += 6;
 		}
 		outResult.resize(pInddex - &outResult[0]);
+	}
+
+	void MeshUtility::OptimizeVertexCache(void* pIndices, int numIndex, bool bIntType)
+	{
+		NvTriStrip::PrimitiveGroup* groups = nullptr;
+		uint32 numGroup = 0;
+
+		NvTriStrip::SetCacheSize(24);
+		NvTriStrip::SetListsOnly(true);
+		if( bIntType )
+		{
+			NvTriStrip::GenerateStrips((uint32*)pIndices, numIndex, &groups, &numGroup);
+		}
+		else
+		{
+			std::vector<uint32> tempIndices{ (uint16*)pIndices , (uint16*)(pIndices)+numIndex };
+			NvTriStrip::GenerateStrips((uint32*)&tempIndices[0], numIndex, &groups, &numGroup);
+		}
+
+		if( bIntType )
+		{
+			uint32* pData = (uint32*)pIndices;
+			for( int i = 0; i < numGroup; ++i )
+			{
+				NvTriStrip::PrimitiveGroup& group = groups[i];
+				assert(group.type == NvTriStrip::PT_LIST);
+				memcpy(pData, group.indices, group.numIndices * sizeof(uint32));
+				pData += group.numIndices;
+			}
+		}
+		else
+		{
+			uint16* pData = (uint16*)pIndices;
+			for( int i = 0; i < numGroup; ++i )
+			{
+				NvTriStrip::PrimitiveGroup& group = groups[i];
+				assert(group.type == NvTriStrip::PT_LIST);
+				for( int n = 0; n < group.numIndices; ++n )
+				{
+					*pData = (uint16)group.indices[n];
+					++pData;
+				}
+			}
+		}
+
+		delete[] groups;
 	}
 
 }//namespace GL

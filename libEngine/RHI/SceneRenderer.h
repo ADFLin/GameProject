@@ -336,7 +336,7 @@ namespace RenderGL
 		RHITexture3DRef mVolumeBufferB;
 		RHITexture3DRef mScatteringBuffer;
 		RHITexture2DRef mShadowMapAtlas;
-		RHIUniformBufferRef mTiledLightBuffer;
+		RHIVertexBufferRef mTiledLightBuffer;
 
 		class ClearBufferProgram* mProgClearBuffer;
 		class LightScatteringProgram* mProgLightScattering;
@@ -391,9 +391,34 @@ namespace RenderGL
 		RHITexture2DRef colorStorageTexture;
 		RHITexture2DRef nodeAndDepthStorageTexture;
 		RHITexture2DRef nodeHeadTexture;
-		RHIAtomicCounterBufferRef storageUsageCounter;
+		RHIVertexBufferRef storageUsageCounter;
 	};
 
+	struct OITCommonParameter
+	{
+
+		void bindParameters(ShaderParameterMap& parameterMap)
+		{
+			parameterMap.bind(mParamColorStorageTexture, SHADER_PARAM(ColorStorageRWTexture));
+			parameterMap.bind(mParamNodeAndDepthStorageTexture, SHADER_PARAM(NodeAndDepthStorageRWTexture));
+			parameterMap.bind(mParamNodeHeadTexture, SHADER_PARAM(NodeHeadRWTexture));
+			parameterMap.bind(mParamNextIndex, SHADER_PARAM(NextIndex));
+		}
+
+		void setParameters( ShaderProgram& shader , OITShaderData& data)
+		{
+			shader.setRWTexture(mParamColorStorageTexture, *data.colorStorageTexture, AO_WRITE_ONLY);
+			shader.setRWTexture(mParamNodeAndDepthStorageTexture, *data.nodeAndDepthStorageTexture, AO_READ_AND_WRITE);
+			shader.setRWTexture(mParamNodeHeadTexture, *data.nodeHeadTexture, AO_READ_AND_WRITE);
+			shader.setAtomicCounterBuffer(mParamNextIndex, *data.storageUsageCounter);
+		}
+
+		ShaderParameter mParamColorStorageTexture;
+		ShaderParameter mParamNodeAndDepthStorageTexture;
+		ShaderParameter mParamNodeHeadTexture;
+		ShaderParameter mParamNextIndex;
+
+	};
 
 
 	class Material;
@@ -435,7 +460,6 @@ namespace RenderGL
 
 		OITShaderData mShaderData;
 
-		RHIAtomicCounterBufferRef mStorageUsageCounter;
 		Mesh mScreenMesh;
  
 		OpenGLFrameBuffer mFrameBuffer;

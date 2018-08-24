@@ -20,17 +20,17 @@ namespace CB
 			mStrExpr = ExprStr;
 			mIsParsed = false;
 		}
-		FPUCodeData&  getEvalData() { return mEvalData; }
+		ExecutableCode&  getEvalData() { return mEvalData; }
 		string const& getExprString() const { return mStrExpr; }
-		double eval() const { return mEvalData.eval(); }
-		double eval(double p0) const { return mEvalData.eval(p0); }
-		double eval(double p0, double p1) const { return mEvalData.eval(p0,p1); }
-		double eval(double p0, double p1, double p2) const { return mEvalData.eval(p0,p1,p2); }
+		double eval() const { return mEvalData.evalT<double>(); }
+		double eval(double p0) const { return mEvalData.evalT<double>(p0); }
+		double eval(double p0, double p1) const { return mEvalData.evalT<double>(p0,p1); }
+		double eval(double p0, double p1, double p2) const { return mEvalData.evalT<double>(p0,p1,p2); }
 
 	private:
 		bool          mIsParsed;
 		string        mStrExpr;
-		FPUCodeData   mEvalData;
+		ExecutableCode   mEvalData;
 		friend class FunctionParser;
 	};
 

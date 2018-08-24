@@ -171,6 +171,7 @@
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <ProgramDataBaseFileName>$(IntDir)vc$(PlatformToolsetVersion).pdb</ProgramDataBaseFileName>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <EnableEnhancedInstructionSet>NotSet</EnableEnhancedInstructionSet>
     </ClCompile>
     <ProjectReference>
       <UseLibraryDependencyInputs>false</UseLibraryDependencyInputs>

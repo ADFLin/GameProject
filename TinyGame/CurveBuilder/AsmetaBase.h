@@ -1,6 +1,7 @@
 #ifndef AsmetaBase_h__
 #define AsmetaBase_h__
 
+#include "PlatformConfig.h"
 #include "Core/IntegerType.h"
 
 #define ASMETA_STATIC_ASSERT( COND )\
@@ -12,8 +13,13 @@ struct _TESTCOND_##__LINE__{ int val [ ( COND ) ? 1 : -1 ]; };
 
 namespace Asmeta
 {
-	typedef int SysInt;
-	typedef unsigned int SysUint;
+#if TARGET_PLATFORM_64BITS
+	typedef int64 SysInt;
+	typedef uint64 SysUint;
+#else
+	typedef int32 SysInt;
+	typedef uint32 SysUint;
+#endif
 
 	inline bool isByteInt( SysInt value ){ return -128 <= value && value <= 127; }
 
@@ -25,20 +31,30 @@ namespace Asmeta
 
 	enum FPMemFormat
 	{
-		eReal32    = 0x0,
-		eInteger32 = 0x1,
-		eReal64    = 0x2,
-		eInteger16 = 0x3,
+		FPMF_Real32     = 0x0,
+		FPMF_Integer32  = 0x1,
+		FPMF_eReal64    = 0x2,
+		FPMF_eInteger16 = 0x3,
 	};
 
 	template< int Size >
 	struct SPFMap {};
 	template<>
-	struct SPFMap< 2 >{ enum { Int  = eInteger16 }; };
+	struct SPFMap< 2 >
+	{ 
+		static FPMemFormat constexpr IntFormat = FPMF_eInteger16;
+	};
 	template<>
-	struct SPFMap< 4 >{ enum { Real = eReal32 , Int = eInteger32 }; };
+	struct SPFMap< 4 >
+	{
+		static FPMemFormat constexpr RealFormat = FPMF_Real32;
+		static FPMemFormat constexpr IntFormat = FPMF_Integer32;
+	};
 	template<>
-	struct SPFMap< 8 >{ enum { Real = eReal64 }; };
+	struct SPFMap< 8 >
+	{
+		static FPMemFormat constexpr RealFormat = FPMF_eReal64;
+	};
 
 	enum FlagModRM
 	{
@@ -238,177 +254,110 @@ namespace Asmeta
 	public:
 		typedef typename Ref::RefType RefType;
 		RefMem( RefType ref ):mRef( ref ){}
-		RefType ref() const { return mRef ; }
+		RefType reference() const { return mRef ; }
 	private:
 		RefType mRef; 
 	};
 	uint8 const PUI_PATTERN = 0xd8;
 
-	struct FPInist
-	{
-#if _DEBUG
-		uint8 code;
-#endif
-		uint8 opA;
-		uint8 opB;
-	};
 
-#define BEGIN_FP_INIST_MAP()\
-	static FPInist const gFPInistMap[] = {
-
-#if _DEBUG
-#define DEF_FP_INIST( CODE , oA , oB )\
-	{ CODE , oA , oB } ,
-#else
-#define DEF_FP_INIST( CODE , oA , oB )\
-	{ oA , oB } ,
-#endif
-
-#define END_FP_INIST_MAP()\
-	};
-
-#define FP_INIST_OPA( CODE ) gFPInistMap[ CODE ].opA
-#define FP_INIST_OPB( CODE ) gFPInistMap[ CODE ].opB
 
 	enum FPInstCode
 	{
-		fgADD ,
-		fgMUL ,
-		fgCOM ,
-		fgCOMP ,
-		fgSUB ,
-		fgDIV ,
-		fgFLD ,
-		fgST  ,
-		fgSTP ,
+#define FP_INIST_LIST( op )\
+	op( fgADD  , 0x0 , 0x0 )\
+	op( fgMUL  , 0x0 , 0x1 )\
+	op( fgCOM  , 0x0 , 0x2 )\
+	op( fgCOMP , 0x0 , 0x3 )\
+	op( fgSUB  , 0x0 , 0x4 )\
+	op( fgDIV  , 0x0 , 0x6 )\
+	op( fgFLD  , 0x1 , 0x0 )\
+	op( fgST   , 0x1 , 0x2 )\
+	op( fgSTP  , 0x1 , 0x3 )\
+
+#define ENUM_OP( A , B , C ) A,
+		FP_INIST_LIST(ENUM_OP)
+#undef  ENUM_OP
 	};
+	struct FPInist
+	{
+		uint8 opA;
+		uint8 opB;
+	};
+	static FPInist const gFPInistMap[] = 
+	{
+#define CODE_OP_DATA_OP( CODE , oA , oB ) 	{ oA , oB } ,
+		FP_INIST_LIST(CODE_OP_DATA_OP)
+#undef CODE_OP_DATA_OP
+	};
+#define FP_INIST_OPA( CODE ) gFPInistMap[ CODE ].opA
+#define FP_INIST_OPB( CODE ) gFPInistMap[ CODE ].opB
 
-	BEGIN_FP_INIST_MAP()
-		DEF_FP_INIST( fgADD  , 0x0 , 0x0 )
-		DEF_FP_INIST( fgMUL  , 0x0 , 0x1 )
-		DEF_FP_INIST( fgCOM  , 0x0 , 0x2 )
-		DEF_FP_INIST( fgCOMP , 0x0 , 0x3 )
-		DEF_FP_INIST( fgSUB  , 0x0 , 0x4 )
-		DEF_FP_INIST( fgDIV  , 0x0 , 0x6 )
-		DEF_FP_INIST( fgFLD  , 0x1 , 0x0 )
-		DEF_FP_INIST( fgST   , 0x1 , 0x2 )
-		DEF_FP_INIST( fgSTP  , 0x1 , 0x3 )
-	END_FP_INIST_MAP()
+	enum IntInstCode
+	{
+#define INT_INIST_LIST( op )\
+	op( igADD , 0x00 , 0x80  , 0x0 )\
+	op( igOR  , 0x08 , 0x80  , 0x1 )\
+	op( igADC , 0x10 , 0x80  , 0x2 )\
+	op( igSBB , 0x18 , 0x80  , 0x3 )\
+	op( igAND , 0x20 , 0x80  , 0x4 )\
+	op( igSUB , 0x28 , 0x80  , 0x5 )\
+	op( igXOR , 0x30 , 0x80  , 0x6 )\
+	op( igCMP , 0x38 , 0x80  , 0x7 )\
+	\
+	op( igNOT  , 0xf6 , 0x00  , 0x2 )\
+	op( igNEG  , 0xf6 , 0x00  , 0x3 )\
+	op( igMUL  , 0xf6 , 0x00  , 0x4 )\
+	op( igIMUL , 0xf6 , 0x00  , 0x5 )\
+	op( igDIV  , 0xf6 , 0x00  , 0x6 )\
+	op( igIDIV , 0xf6 , 0x00  , 0x7 )\
+	\
+	op( igROL  , 0xd0 , 0xc0  , 0x0 )\
+	op( igROR  , 0xd0 , 0xc0  , 0x1 )\
+	op( igRCL  , 0xd0 , 0xc0  , 0x2 )\
+	op( igRCR  , 0xd0 , 0xc0  , 0x3 )\
+	op( igSHL  , 0xd0 , 0xc0  , 0x4 )\
+	op( igSHR  , 0xd0 , 0xc0  , 0x5 )\
+	op( igSAL  , 0xd0 , 0xc0  , 0x4 )\
+	op( igSAR  , 0xd0 , 0xc0  , 0x7 )\
+	\
+	op( igPUSH , 0xff , 0x68  , 0x6 )\
+	op( igPOP  , 0x8f , 0x00  , 0x0 )\
+	op( igCALL , 0xff , 0x00  , 0x2 )\
+	op( igJCC  , 0x70 , 0x0f  , 0x8 )\
+	\
+	op( igINS  , 0x6c , 0x00  , 0x0 )\
+	op( igLODS , 0xac , 0x00  , 0x0 )\
+	op( igMOVS , 0xa4 , 0x00  , 0x0 )\
+	op( igMOV  , 0x88 , 0x00  , 0x0 )\
+	op( igOUTS , 0x6e , 0x00  , 0x0 )\
+	op( igSTOS , 0xaa , 0x00  , 0x0 )\
+	op( igCMPS , 0xa6 , 0x00  , 0x0 )\
+	op( igSCAS , 0xae , 0x00  , 0x0 )\
+	\
+	op( igTEST , 0x84 , 0xf6  , 0x0 )\
 
-#undef BEGIN_FP_INIST_MAP
-#undef DEF_FP_INIST
-#undef END_FP_INIST_MAP
+#define ENUM_OP( A , B , C , D ) A,
+		INT_INIST_LIST(ENUM_OP)
+#undef  ENUM_OP
+	};
 
 	struct IntInist
 	{
-#if _DEBUG
-		uint8 code;
-#endif
 		uint8 opA;
 		uint8 opB;
 		uint8 opR;
 	};
-
-#define BEGIN_INT_INIST_MAP()\
-	static IntInist const gIntInistMap[] = {
-
-#if _DEBUG
-#define DEF_INT_INIST( CODE , oA , oB , oR )\
-	{ CODE , oA , oB , oR } ,
-#else
-#define DEF_INT_INIST( CODE , oA , oB , oR )\
-	{ oA , oB , oR } ,
-#endif
-
-#define END_INT_INST_MAP()\
+	static IntInist const gIntInistMap[] = 
+	{
+#define CODE_OP_DATA_OP( CODE , oA , oB , oR ) 	{ oA , oB , oR } ,
+		INT_INIST_LIST(CODE_OP_DATA_OP)
+#undef CODE_OP_DATA_OP
 	};
 
 #define INT_INIST_OPA( CODE ) gIntInistMap[ CODE ].opA
 #define INT_INIST_OPB( CODE ) gIntInistMap[ CODE ].opB
 #define INT_INIST_OPR( CODE ) gIntInistMap[ CODE ].opR
-
-	enum IntInstCode
-	{
-		igMOV ,
-
-		igADD , igADC , igAND , igCMP ,
-		igOR  , igSBB , igSUB , igXOR ,
-
-		igDIV , igMUL ,
-		igIDIV, igIMUL ,
-		igNEG , igNOT ,
-
-		igROL , igROR ,igRCL , igRCR ,
-		igSHL , igSHR ,igSAL , igSAR ,
-
-		igPUSH ,
-		igPOP  ,
-		igCALL ,
-		igJCC  ,
-
-		igINS  , igLODS , igMOVS , igOUTS , igSTOS ,
-		igCMPS , igSCAS ,
-
-		igTEST ,
-	};
-
-	BEGIN_INT_INIST_MAP()
-		DEF_INT_INIST( igMOV , 0x88 , 0x00  , 0x0 )
-
-		DEF_INT_INIST( igADD , 0x00 , 0x80  , 0x0 )
-		DEF_INT_INIST( igADC , 0x10 , 0x80  , 0x2 )
-		DEF_INT_INIST( igAND , 0x20 , 0x80  , 0x4 )
-		DEF_INT_INIST( igCMP , 0x38 , 0x80  , 0x7 )
-		DEF_INT_INIST( igOR  , 0x08 , 0x80  , 0x1 )
-		DEF_INT_INIST( igSBB , 0x18 , 0x80  , 0x3 )
-		DEF_INT_INIST( igSUB , 0x28 , 0x80  , 0x5 )
-		DEF_INT_INIST( igXOR , 0x30 , 0x80  , 0x6 )
-
-		DEF_INT_INIST( igDIV  , 0xf6 , 0x00  , 0x6 )
-		DEF_INT_INIST( igMUL  , 0xf6 , 0x00  , 0x4 )
-		DEF_INT_INIST( igIDIV , 0xf6 , 0x00  , 0x7 )
-		DEF_INT_INIST( igIMUL , 0xf6 , 0x00  , 0x5 )
-		DEF_INT_INIST( igNEG  , 0xf6 , 0x00  , 0x3 )
-		DEF_INT_INIST( igNOT  , 0xf6 , 0x00  , 0x2 )
-
-		DEF_INT_INIST( igROL  , 0xd0 , 0xc0  , 0x0 )
-		DEF_INT_INIST( igROR  , 0xd0 , 0xc0  , 0x1 )
-		DEF_INT_INIST( igRCL  , 0xd0 , 0xc0  , 0x2 )
-		DEF_INT_INIST( igRCR  , 0xd0 , 0xc0  , 0x3 )
-		DEF_INT_INIST( igSHL  , 0xd0 , 0xc0  , 0x4 )
-		DEF_INT_INIST( igSHR  , 0xd0 , 0xc0  , 0x5 )
-		DEF_INT_INIST( igSAL  , 0xd0 , 0xc0  , 0x4 )
-		DEF_INT_INIST( igSAR  , 0xd0 , 0xc0  , 0x7 )
-
-		DEF_INT_INIST( igPUSH , 0xff , 0x68  , 0x6 )
-		DEF_INT_INIST( igPOP  , 0x8f , 0x00  , 0x0 )
-		DEF_INT_INIST( igCALL , 0xff , 0x00  , 0x2 )
-		DEF_INT_INIST( igJCC  , 0x70 , 0x0f  , 0x8 )
-
-		DEF_INT_INIST( igINS  , 0x6c , 0x00  , 0x0 )
-		DEF_INT_INIST( igLODS , 0xac , 0x00  , 0x0 )
-		DEF_INT_INIST( igMOVS , 0xa4 , 0x00  , 0x0 )
-		DEF_INT_INIST( igOUTS , 0x6e , 0x00  , 0x0 )
-		DEF_INT_INIST( igSTOS , 0xaa , 0x00  , 0x0 )
-		DEF_INT_INIST( igCMPS , 0xa6 , 0x00  , 0x0 )
-		DEF_INT_INIST( igSCAS , 0xae , 0x00  , 0x0 )
-
-		DEF_INT_INIST( igTEST , 0x84 , 0xf6  , 0x0 )
-		END_INT_INST_MAP()
-
-#undef BEGIN_INT_INST_MAP
-#undef DEF_INT_INST
-#undef END_INT_INST_MAP
-
-#if _DEBUG
-		static void checkInistMapValid()
-	{
-		for( int i = 0 ; i < sizeof( gIntInistMap ) / sizeof( gIntInistMap[0] ) ; ++i )
-			assert( gIntInistMap[i].code == i );
-		for( int i = 0 ; i < sizeof( gFPInistMap ) / sizeof( gFPInistMap[0] ) ; ++i )
-			assert( gFPInistMap[i].code == i );
-	}
-#endif
 
 	class ImmediateBase
 	{

@@ -1,16 +1,14 @@
-﻿
+﻿#if !SHADER_COMPILING
+#define cbuffer namespace
+#define buffer namespace
+#endif // SHADER_COMPILING
 
-class sampler1D;
-class sampler2D;
-class sampler3D;
-class samplerCUBE;
+#define in
+#define out
+#define inout
 
-
-class texture;
-class sampler_state;
 
 class SamplerState;
-
 class Texture1D;
 class Texture2D;
 class Texture3D;
@@ -18,78 +16,112 @@ class Texture3D;
 template< class T >
 struct TVec2
 {
-	float x, y;
-	float r, g;
-	float s, t;
+	TVec2(T);
+	TVec2(T, T);
+	T x, y;
+	T r, g;
+	T s, t;
+
+	TVec2 operator + (TVec2);
+	TVec2 operator - (TVec2);
+	TVec2 operator * (TVec2);
+	TVec2 operator / (TVec2);
 };
 
 template< class T >
 struct TVec3 : TVec2<T>
 {
-	float2 xy, st;
-	float2 xz, yz;
-	float  z, b, p;
+	TVec3(T);
+	TVec3(T, T, T);
+	TVec3(TVec2, T);
+	TVec2 xy, st;
+	TVec2 xz, yz;
+	T  z, b, p;
+
+	TVec3 operator + (TVec3);
+	TVec3 operator - (TVec3);
+	TVec3 operator * (TVec3);
+	TVec3 operator / (TVec3);
 };
 
 template< class T >
 struct TVec4 : TVec3<T>
 {
-	float3 xyz, rgb, stp;
-	float  w, a, q;
+	TVec4(T);
+	TVec4(T,T,T,T);
+	TVec4(TVec3,T);
+	TVec3 xyz, rgb, stp;
+	T  w, a, q;
 
-	float2 zw;
-	float3 rga;
+	TVec2 zw;
+	TVec3 rga;
+
+	TVec4 operator + (TVec4);
+	TVec4 operator - (TVec4);
+	TVec4 operator * (TVec4);
+	TVec4 operator / (TVec4);
+};
+
+
+template< class T >
+struct TMat3x3
+{
+	TVec3<T> operator[](int);
+};
+template< class T >
+struct TMat4x3
+{
+	TVec3<T> operator[](int);
+};
+template< class T >
+struct TMat3x4
+{
+	TVec4<T> operator[](int);
+};
+template< class T >
+struct TMat4x4
+{
+	TVec4<T> operator[](int);
 };
 
 typedef TVec4<float> float4;
 typedef TVec3<float> float3;
 typedef TVec2<float> float2;
-
 typedef TVec4<uint> uint4;
 typedef TVec3<uint> uint3;
 typedef TVec2<uint> uint2;
-
-
+typedef TVec4<int> int4;
+typedef TVec3<int> int3;
+typedef TVec2<int> int2;
 typedef TVec4<bool> bool4;
 typedef TVec3<bool> bool3;
 typedef TVec2<bool> bool2;
 
-typedef TVec4<int> int4;
-typedef TVec3<int> int3;
-typedef TVec2<int> int2;
+typedef TMat3x3< float > float3x3;
+typedef TMat3x4< float > float3x4;
+typedef TMat4x3< float > float4x3;
+typedef TMat4x4< float > float4x4;
 
-class float3x3
-{
-	float3 operator[](int);
-};
 
-class float4x3
-{
-	float3 operator[](int);
-};
-
-class float3x4
-{
-	float4 operator[](int);
-};
-
-struct float4x4
-{
-	float4 operator[](int);
-};
+typedef float    half;
+typedef TVec2<half>   half2;
+typedef TVec3<half>   half3;
+typedef TVec4<half>   half4;
+typedef TMat3x3<half> half3x3;
+typedef TMat3x4<half> half3x4;
+typedef TMat4x3<half> half4x3;
+typedef TMat4x4<half> half4x4;
 
 
 template< class T >
-class Buffer
-{
-};
-
-float4   tex2D(sampler2D, float2);
-float4   texCUBE(samplerCUBE, float3);
+TVec3<T> operator * ( TMat3x3<T>, TVec3<T> );
+template< class T >
+TVec4<T> operator * ( TMat4x4<T>, TVec3<T> );
 
 
-float    dot(float4, float4);
-vec3     cross(vec3, vec3);
+template< class T >
+float    dot(T, T);
+float3   cross(float3, float3);
 
 template< class T >
 float    length(T);
@@ -98,37 +130,42 @@ float4x4 mul(float4x4, float4x4);
 float4   mul(float4, float4x4);
 float3   mul(float3, float3x3);
 
+
 float    saturate(float);
 float3   reflect(float3, float3);
 float3   normalize(float3);
 
-float4   lerp(float4, float4, float);
+template< class T >
+T   lerp(T, T, float);
 float4x4 transpose(float4x4);
 float4x4 inverse(float4x4);
+
+
+float4   tex2D(sampler2D, float2);
+float4   texCUBE(samplerCUBE, float3);
 
 template< class T >
 T        mix(T a, T b, float f);
 
-typedef float  half;
-typedef float2 half2;
-typedef float3 half3;
-typedef float4 half4;
-typedef float3x3 half3x3;
-typedef float4x4 half4x4;
-typedef float4x3 half4x3;
 
-#define uniform
-#define attribute
-#define varying
-#define discard
-#define layout
-
-enum
+template< class T >
+class Buffer
 {
-	depth_unchanged,
-
 };
 
+
+
+
+//
+//  GLSL
+//
+
+class sampler1D;
+class sampler2D;
+class sampler3D;
+class samplerCUBE;
+class texture;
+class sampler_state;
 
 class sampler1D;
 class sampler2D;
@@ -187,8 +224,14 @@ bool all(T);
 template< class T >
 bool not(T);
 
+#define uniform
+#define attribute
+#define varying
+#define discard
+#define layout(...)
 
 //BUILT-IN CONSTANTS (7.4 p44) 
+
 const int gl_MaxVertexUniformComponents;
 const int gl_MaxFragmentUniformComponents;
 const int gl_MaxVertexAttribs;
@@ -338,7 +381,7 @@ in int gl_DrawID; // Requires GLSL 4.60 or ARB_shader_draw_parameters
 in int gl_BaseVertex; // Requires GLSL 4.60 or ARB_shader_draw_parameters
 in int gl_BaseInstance; // Requires GLSL 4.60 or ARB_shader_draw_parameters
 
-out gl_PerVertex
+out struct gl_PerVertex
 {
 	vec4 gl_Position;
 	float gl_PointSize;
@@ -350,8 +393,7 @@ out gl_PerVertex
 //Tessellation control shader 
 
 //layout(vertices = n) out;
-i
-n int gl_PatchVerticesIn;
+in int gl_PatchVerticesIn;
 in int gl_PrimitiveID;
 in int gl_InvocationID;
 
@@ -362,8 +404,29 @@ in gl_PerVertex gl_in[gl_MaxPatchVertices];
 
 out gl_PerVertex gl_out[];
 
+void barrier();
 
 //Tessellation evaluation shader
+
+enum PatchType
+{
+	isolines ,
+	triangles ,
+	quads ,
+};
+
+enum SpacingType
+{
+	equal_spacing ,
+	fractional_even_spacing ,
+	fractional_odd_spacing ,
+};
+
+enum WindingOrder
+{
+	cw , 
+	ccw ,
+};
 
 in vec3 gl_TessCoord;
 in int gl_PatchVerticesIn;
@@ -374,9 +437,9 @@ in int gl_PrimitiveID;
 
 in gl_PerVertex gl_in[gl_MaxPatchVertices];
 
-out gl_PerVertex
+out struct gl_PerVertex
 {
-	vec4 gl_Position;
+	vec4  gl_Position;
 	float gl_PointSize;
 	float gl_ClipDistance[];
 };
@@ -393,10 +456,10 @@ out int gl_PrimitiveID;
 out int gl_Layer;
 out int gl_ViewportIndex; //Requires GL 4.1 or ARB_viewport_array.
 
- //Layered rendering
- //layout(points, invocations = 1) in;
- //layout(line_strip, max_vertices = 2) out;
- //key
+						  //Layered rendering
+						  //layout(points, invocations = 1) in;
+						  //layout(line_strip, max_vertices = 2) out;
+						  //key
 int max_vertices;
 int invocations;
 enum
@@ -431,15 +494,15 @@ in int gl_Layer; //OpenGL 4.3
 in int gl_ViewportIndex; //OpenGL 4.3
 
 
-//layout (depth_<condition>) out float gl_FragDepth;
+						 //layout (depth_<condition>) out float gl_FragDepth;
 out float gl_FragDepth;
 
 enum
 {
-	any ,
-	greater ,
-	less ,
-	unchanged ,
+	any,
+	greater,
+	less,
+	unchanged,
 };
 
 out int gl_SampleMask[];
@@ -460,7 +523,7 @@ in uint  gl_LocalInvocationIndex;
 
 const uvec3 gl_WorkGroupSize;   // GLSL ≥ 4.30
 
-//
+								//
 class image1D;
 class image2D;
 class image3D;
@@ -473,9 +536,9 @@ class uimage3D;
 
 enum
 {
-	rgba32f ,
-	rgba16f ,
-	r32i ,
+	rgba32f,
+	rgba16f,
+	r32i,
 	rg32i,
 	rgb32i,
 	rgba32i,
@@ -484,6 +547,7 @@ enum
 	rgb32ui,
 	rgba32ui,
 };
+
 
 #define coherent
 #define volatile
@@ -494,7 +558,7 @@ enum
 template< class gimage >
 ivec2 imageSize(gimage image​);
 template< class gimage, class CoordType >
-vec4 imageLoad( gimage image​, CoordType);
+vec4 imageLoad(gimage image​, CoordType);
 template< class gimage, class CoordType >
 void imageStore(gimage image​, CoordType, vec4 data​);
 

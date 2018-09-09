@@ -13,7 +13,7 @@
 
 #include <unordered_map>
 
-namespace RenderGL
+namespace Render
 {
 	struct CharImageData
 	{

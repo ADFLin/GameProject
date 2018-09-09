@@ -11,7 +11,7 @@
 #include <functional>
 #include <memory>
 
-namespace RenderGL
+namespace Render
 {
 	class MaterialMaster;
 	class VertexFactory;
@@ -130,17 +130,6 @@ namespace RenderGL
 
 	};
 
-	enum BlendMode
-	{
-		Blend_Opaque,
-		Blend_Masked,
-		Blend_Translucent,
-		Blend_Additive,
-		Blend_Modulate,
-
-		NumBlendMode,
-	};
-
 
 	struct MaterialShaderKey
 	{
@@ -148,7 +137,7 @@ namespace RenderGL
 		MaterialShaderProgramClass* shaderClass;
 
 		MaterialShaderKey() {}
-		MaterialShaderKey(VertexFactoryType* inVertexFactoryType, MaterialShaderProgramClass* inShaderClass)
+		MaterialShaderKey(VertexFactoryType* inVertexFactoryType,  MaterialShaderProgramClass* inShaderClass)
 			:vertexFactoryType(inVertexFactoryType)
 			, shaderClass(inShaderClass)
 		{
@@ -166,6 +155,7 @@ namespace RenderGL
 			return result;
 		}
 	};
+
 
 	class MaterialShaderMap
 	{
@@ -185,7 +175,7 @@ namespace RenderGL
 
 		static std::string GetFilePath(char const* name);
 
-		bool load(char const* name);
+		bool load(MaterialShaderCompileInfo const& info);
 
 		std::unordered_map< MaterialShaderKey, MaterialShaderProgram*, MemberFunHasher > mShaderMap;
 	};
@@ -219,18 +209,24 @@ namespace RenderGL
 		template< class ShaderType >
 		ShaderType* getShaderT(VertexFactory* vertexFactory)
 		{
-			return mShaderMap.getShaderT< ShaderType >( vertexFactory);
+			return mShaderMap.getShaderT< ShaderType >( vertexFactory );
 		}
 
 		bool loadInternal()
 		{
-			return mShaderMap.load(mName.c_str());
+			MaterialShaderCompileInfo info;
+			info.name = mName.c_str();
+			info.blendMode = blendMode;
+			info.tessellationMode = tessellationMode;
+			return mShaderMap.load(info);
 		}
 
-		BlendMode blendMode;
+		BlendMode blendMode = Blend_Opaque;
+		ETessellationMode tessellationMode = ETessellationMode::None;
+
 		MaterialShaderMap mShaderMap;
 		std::string  mName;
-
+		
 	};
 
 	class MaterialInstance : public Material
@@ -290,5 +286,5 @@ namespace RenderGL
 
 
 
-}//namespace RenderGL
+}//namespace Render
 

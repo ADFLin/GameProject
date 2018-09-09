@@ -4,7 +4,7 @@
 
 #include "RHICommand.h"
 
-namespace RenderGL
+namespace Render
 {
 
 	TextureAtlas::TextureAtlas()
@@ -86,4 +86,4 @@ namespace RenderGL
 		outMax.y = float(rect.y + rect.h - mBorder) / mTexture->getSizeY();
 	}
 
-}//namespace RenderGL
+}//namespace Render

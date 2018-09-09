@@ -12,13 +12,14 @@
 
 #include "tinyobjloader/tiny_obj_loader.h"
 #include "NvTriStrip/NvTriStrip.h"
+#include "NvTess/nvtess.h"
 
 #include <unordered_map>
 #include <memory>
 #include <fstream>
 #include <algorithm>
 
-namespace RenderGL
+namespace Render
 {
 	bool CheckGLStateValid();
 	bool gbOptimizeVertexCache = false;
@@ -79,9 +80,21 @@ namespace RenderGL
 
 	void Mesh::drawAdjShader(LinearColor const& color)
 	{
-		if( mVertexBuffer == nullptr || mAdjacencyIndexBuffer == nullptr )
+		if( mVertexBuffer == nullptr || mVertexAdIndexBuffer == nullptr )
 			return;
-		drawShaderInternalEx( PrimitiveType::TriangleAdjacency, 0, mAdjacencyIndexBuffer->getNumElements(), mAdjacencyIndexBuffer, &color);
+		drawShaderInternalEx( PrimitiveType::TriangleAdjacency, 0, mVertexAdIndexBuffer->getNumElements(), mVertexAdIndexBuffer, &color);
+	}
+
+	void Mesh::drawTessellation(bool bUseAdjBuffer )
+	{
+		if( mVertexBuffer == nullptr )
+			return;
+
+		RHIIndexBuffer* indexBuffer = bUseAdjBuffer ? mTessAdjIndexBuffer : mIndexBuffer;
+		if ( indexBuffer == nullptr  )
+			return;
+
+		drawShaderInternalEx(PrimitiveType::Patchs, 0, indexBuffer->getNumElements(), indexBuffer, nullptr);
 	}
 
 	void Mesh::drawShader()
@@ -195,11 +208,19 @@ namespace RenderGL
 	}
 
 
-
-
-	bool Mesh::generateAdjacency()
+	bool Mesh::generateVertexAdjacency()
 	{	
-		if( mAdjacencyIndexBuffer.isValid() )
+		return generateAdjacencyInternal(EAdjacencyType::Vertex, mVertexAdIndexBuffer);
+	}
+
+	bool Mesh::generateTessellationAdjacency()
+	{
+		return generateAdjacencyInternal(EAdjacencyType::Tessellation, mTessAdjIndexBuffer);
+	}
+
+	bool Mesh::generateAdjacencyInternal(EAdjacencyType type, RHIIndexBufferRef& outIndexBuffer)
+	{
+		if( outIndexBuffer.isValid() )
 			return true;
 
 		if( !mIndexBuffer.isValid() || !mVertexBuffer.isValid() )
@@ -207,8 +228,8 @@ namespace RenderGL
 			return false;
 		}
 
-		uint8* pVertex = (uint8*)RHILockBuffer(mVertexBuffer , ELockAccess::ReadOnly);
-		uint8* pIndex = (uint8*)RHILockBuffer( mIndexBuffer , ELockAccess::ReadOnly);
+		uint8* pVertex = (uint8*)RHILockBuffer(mVertexBuffer, ELockAccess::ReadOnly);
+		uint8* pIndex = (uint8*)RHILockBuffer(mIndexBuffer, ELockAccess::ReadOnly);
 		ON_SCOPE_EXIT
 		{
 			RHIUnlockBuffer(mVertexBuffer);
@@ -220,17 +241,24 @@ namespace RenderGL
 
 		if( pIndexData == nullptr )
 			return false;
-		
+
 		std::vector< int > adjIndices;
-		MeshUtility::BuildVertexAdjacency(makePositionReader(pVertex), pIndexData, numTriangles, adjIndices);
 
+		switch( type )
+		{
+		case EAdjacencyType::Vertex:
+			MeshUtility::BuildVertexAdjacency(makePositionReader(pVertex), pIndexData, numTriangles, adjIndices);
+			break;
+		case EAdjacencyType::Tessellation:
+			MeshUtility::BuildTessellationAdjacency(makePositionReader(pVertex), pIndexData, numTriangles, adjIndices);
+			break;
+		}
 
-		mAdjacencyIndexBuffer = RHICreateIndexBuffer(adjIndices.size(), true, 0, &adjIndices[0]);
-		return mAdjacencyIndexBuffer.isValid();
+		outIndexBuffer = RHICreateIndexBuffer(adjIndices.size(), true, 0, &adjIndices[0]);
+		return outIndexBuffer.isValid();
 	}
 
-
-	void calcTangent( uint8* v0 , uint8* v1 , uint8* v2 , int texOffset , Vector3& tangent , Vector3& binormal )
+	void calcTangent(uint8* v0, uint8* v1, uint8* v2, int texOffset, Vector3& tangent, Vector3& binormal)
 	{
 		Vector3& p0 = *reinterpret_cast< Vector3* >( v0 );
 		Vector3& p1 = *reinterpret_cast< Vector3* >( v1 );
@@ -455,7 +483,7 @@ namespace RenderGL
 		float d = len / tileSize;
 
 		//need texcoord?
-#define TILE_NEED_TEXCOORD 0
+#define TILE_NEED_TEXCOORD 1
 
 		mesh.mInputLayoutDesc.addElement( Vertex::ePosition , Vertex::eFloat3 );
 #if TILE_NEED_TEXCOORD
@@ -746,6 +774,51 @@ namespace RenderGL
 		mesh.mType = PrimitiveType::Quad;
 		return true;
 	}
+	bool MeshBuild::CubeShare(Mesh& mesh, float halfLen)
+	{
+		mesh.mInputLayoutDesc.addElement(Vertex::ePosition, Vertex::eFloat3);
+		mesh.mInputLayoutDesc.addElement(Vertex::eNormal, Vertex::eFloat3);
+		mesh.mInputLayoutDesc.addElement(Vertex::eTexcoord, Vertex::eFloat2, 0);
+		mesh.mInputLayoutDesc.addElement(Vertex::eTangent, Vertex::eFloat4);
+		struct MyVertex
+		{
+			Vector3 pos;
+			Vector3 normal;
+			Vector2 uv;
+			Vector4 tangent;
+		};
+		MyVertex v[] =
+		{
+			//x
+			{ halfLen * Vector3(1,1,1),Vector3(1,0,0),{ 0,0 } },
+			{ halfLen * Vector3(1,-1,1),Vector3(1,0,0),{ 0,1 } },
+			{ halfLen * Vector3(1,-1,-1),Vector3(1,0,0),{ 1,1 } },
+			{ halfLen * Vector3(1,1,-1),Vector3(1,0,0),{ 1,0 } },
+			//-x
+			{ halfLen * Vector3(-1,1,1),Vector3(-1,0,0),{ 0,0 } },
+			{ halfLen * Vector3(-1,1,-1),Vector3(-1,0,0),{ 1,0 } },
+			{ halfLen * Vector3(-1,-1,-1),Vector3(-1,0,0),{ 1,1 } },
+			{ halfLen * Vector3(-1,-1,1),Vector3(-1,0,0),{ 0,1 } },
+		};
+
+		int indices[] =
+		{
+			0 , 1 , 2 , 0 , 2 , 3 , //x
+			4 , 5 , 6 , 4 , 6 , 7 , //-x
+
+			0 , 3 , 5, 0 , 5 , 4 , //y
+			1 , 7 , 6, 1 , 6 , 2 , //-y
+
+			0 , 4 , 7 ,0 , 7 , 1 , // z
+			3 , 2 , 6 ,3 , 6 , 5 , //-z
+		};
+
+		fillNormalTangent_TriangleList(mesh.mInputLayoutDesc, &v[0], ARRAY_SIZE(v), &indices[0], ARRAY_SIZE(indices));
+		mesh.mType = PrimitiveType::TriangleList;
+		if( !mesh.createRHIResource(&v[0], ARRAY_SIZE(v), &indices[0], ARRAY_SIZE(indices), true) )
+			return false;
+		return true;
+	}
 
 	bool MeshBuild::Cube( Mesh& mesh , float halfLen )
 	{
@@ -757,8 +830,8 @@ namespace RenderGL
 		{
 			Vector3 pos;
 			Vector3 normal;
-			float  st[2];
-			float  tangent[4];
+			Vector2 uv;
+			Vector4 tangent;
 		};
 		MyVertex v[] = 
 		{
@@ -1735,8 +1808,7 @@ namespace RenderGL
 	}
 
 
-
-	void MeshUtility::CalcAABB(PositionReader const& positionReader, Vector3& outMin, Vector3& outMax)
+	void MeshUtility::CalcAABB(VertexElementReader const& positionReader, Vector3& outMin, Vector3& outMax)
 	{
 		assert(positionReader.getNum() >= 1);
 		outMax = outMin = positionReader.get(0);
@@ -1772,7 +1844,7 @@ namespace RenderGL
 		return result;
 	}
 
-	bool MeshUtility::BuildDistanceField(PositionReader const& positionReader , int* pIndexData, int numTriangles, DistanceFieldBuildSetting const& setting, DistanceFieldData& outResult)
+	bool MeshUtility::BuildDistanceField(VertexElementReader const& positionReader , int* pIndexData, int numTriangles, DistanceFieldBuildSetting const& setting, DistanceFieldData& outResult)
 	{
 #define USE_KDTREE 1
 		Vector3 boundMin;
@@ -1940,7 +2012,55 @@ namespace RenderGL
 		return true;
 	}
 
-	void MeshUtility::BuildVertexAdjacency(PositionReader const& positionReader, int* triIndices, int numTirangle, std::vector<int>& outResult)
+	void MeshUtility::BuildTessellationAdjacency(VertexElementReader const& positionReader, int* triIndices, int numTirangle, std::vector<int>& outResult)
+	{
+		class MyRenderBuffer : public nv::RenderBuffer
+		{
+		public:
+			MyRenderBuffer(VertexElementReader const& positionReader, int* triIndices, int numTirangle , VertexElementReader const* texcoordReader = nullptr)
+				:mPositionReader( positionReader )
+				,mTexcoordReader( texcoordReader )
+			{
+				mIb = new nv::IndexBuffer(triIndices, nv::IBT_U32, numTirangle * 3, false);
+			}
+			virtual nv::Vertex getVertex(unsigned int index) const
+			{
+				nv::Vertex v;
+				Vector3 pos = mPositionReader.get(index);
+				v.pos.x = pos.x;
+				v.pos.y = pos.y;
+				v.pos.z = pos.z;
+				if( mTexcoordReader )
+				{
+					Vector2 uv = mTexcoordReader->getV2(index);
+					v.uv.x = uv.x;
+					v.uv.y = uv.y;
+				}
+				else
+				{
+					v.uv.x = 0;
+					v.uv.y = 0;
+				}
+				return v;
+			}
+
+			VertexElementReader const& mPositionReader;
+			VertexElementReader const* mTexcoordReader;
+		};
+		MyRenderBuffer renderBuffer( positionReader , triIndices , numTirangle );
+		nv::IndexBuffer* outBuffer = nv::tess::buildTessellationBuffer( &renderBuffer, nv::DBM_PnAenOnly , true );
+		if( outBuffer )
+		{
+			outResult.resize(outBuffer->getLength());
+			for( int i = 0; i < outBuffer->getLength(); ++i )
+			{
+				outResult[i] = (*outBuffer)[i];
+			}
+			delete outBuffer;
+		}
+	}
+
+	void MeshUtility::BuildVertexAdjacency(VertexElementReader const& positionReader, int* triIndices, int numTirangle, std::vector<int>& outResult)
 	{
 		std::vector< int > triangleIndexMap;
 		struct Vertex

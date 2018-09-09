@@ -8,7 +8,7 @@
 #include "MeshUtility.h"
 #include "RenderContext.h"
 
-namespace RenderGL
+namespace Render
 {
 
 	class FrameRenderNode
@@ -469,7 +469,7 @@ namespace RenderGL
 		virtual void setupMaterialShader(RenderContext& context, MaterialShaderProgram& program) override;
 
 	};
-}//namespace RenderGL
+}//namespace Render
 
 
 #endif // SceneRenderer_H_D5144663_1B3D_486C_A523_45B46EC4482A

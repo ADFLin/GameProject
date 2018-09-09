@@ -6,7 +6,7 @@
 
 #include <vector>
 #include <memory>
-
+#include <intrin.h>
 typedef double NNScale;
 
 class NNRand
@@ -15,17 +15,7 @@ public:
 
 	uint32 CPUSeed()
 	{
-		uint64 result;
-#if CPP_COMPILER_MSVC
-		__asm
-		{
-			rdtsc;
-			mov dword ptr result, eax;
-			mov dword ptr result + 4, edx;
-		}
-#else
-
-#endif
+		uint64 result = __rdtsc();
 		return result;
 	}
 	NNRand()

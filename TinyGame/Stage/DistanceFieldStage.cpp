@@ -14,7 +14,7 @@
 #include "DataStream.h"
 
 
-namespace RenderGL
+namespace Render
 {
 
 
@@ -295,4 +295,4 @@ namespace RenderGL
 
 	REGISTER_STAGE2("Distance Field Test", DistanceFieldTestStage, EStageGroup::FeatureDev, 1);
 
-}//namespace RenderGL
+}//namespace Render

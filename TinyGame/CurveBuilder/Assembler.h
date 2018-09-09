@@ -192,9 +192,7 @@ namespace Asmeta
 	public:
 		AssemblerT()
 		{ 
-#if _DEBUG
-			checkInistMapValid();
-#endif
+
 		}
 
 		~AssemblerT()
@@ -902,14 +900,14 @@ namespace Asmeta
 
 	public:
 		template< class Ref , int Size >
-		ASMETA_INLINE void fld( RefMem< Ref , Size > const& mem ) {  encodeFPInst( fgFLD , FPMemFormat( SPFMap< Size >::Real ) , mem.ref()  );  }
+		ASMETA_INLINE void fld( RefMem< Ref , Size > const& mem ) {  encodeFPInst( fgFLD , SPFMap< Size >::RealFormat , mem.reference()  );  }
 		template< class Ref >
-		ASMETA_INLINE void fld( RefMem< Ref , 10 > const& mem )   {  encodeFPInst( FPMemFormat( 0x1 ) , 0x1 , 0x5 , mem.ref() );  }
+		ASMETA_INLINE void fld( RefMem< Ref , 10 > const& mem )   {  encodeFPInst( FPMemFormat( 0x1 ) , 0x1 , 0x5 , mem.reference() );  }
 
 		ASMETA_INLINE void fld( RegST const& dst )                {  encodeFPInst( fgFLD , 0 , 0 , 0 , dst ); }
 
 		template< class Ref, int Size >
-		ASMETA_INLINE void fild(RefMem< Ref, Size > const& mem) { encodeFPInst(fgFLD, FPMemFormat(SPFMap< Size >::Int), mem.ref()); }
+		ASMETA_INLINE void fild(RefMem< Ref, Size > const& mem) { encodeFPInst(fgFLD, SPFMap< Size >::IntFormat, mem.reference()); }
 
 
 		ASMETA_INLINE void fld1()   {  encodeFPInst( 0 , 0x08 ); }
@@ -929,77 +927,77 @@ namespace Asmeta
 
 
 		template< class Ref , int Size >
-		ASMETA_INLINE void fstp( RefMem< Ref , Size > const& mem ) {  encodeFPInst( fgSTP , FPMemFormat( SPFMap< Size >::Real ) , mem.ref() );  }
+		ASMETA_INLINE void fstp( RefMem< Ref , Size > const& mem ) {  encodeFPInst( fgSTP , SPFMap< Size >::RealFormat , mem.reference() );  }
 		template< class Ref >
-		ASMETA_INLINE void fstp( RefMem< Ref , 10 > const& mem )   {  encodeFPInst( FPMemFormat( 0x1 ) , 0x1 , 0x7 , mem.ref() );  }
+		ASMETA_INLINE void fstp( RefMem< Ref , 10 > const& mem )   {  encodeFPInst( FPMemFormat( 0x1 ) , 0x1 , 0x7 , mem.reference() );  }
 		ASMETA_INLINE void fstp( RegST const& dst )                {  encodeFPInst( fgSTP , 1 , 0 , 0 , dst ); } 
 
 		template< class Ref , int Size >
-		ASMETA_INLINE void fst( RefMem< Ref , Size > const& mem ) {  encodeFPInst( fgST , FPMemFormat( SPFMap< Size >::Real ) , mem.ref() );  }
+		ASMETA_INLINE void fst( RefMem< Ref , Size > const& mem ) {  encodeFPInst( fgST , SPFMap< Size >::RealFormat, mem.reference() );  }
 		ASMETA_INLINE void fst( RegST const& dst )                {  encodeFPInst( fgST , 1 , 0 , 0 , dst ); } 
 
 		template< class Ref , int Size >
-		ASMETA_INLINE void fcom( RefMem< Ref , Size > const& mem ) {  encodeFPInst( fgCOM , FPMemFormat( SPFMap< Size >::Real ) , mem.ref() );  }
+		ASMETA_INLINE void fcom( RefMem< Ref , Size > const& mem ) {  encodeFPInst( fgCOM , SPFMap< Size >::RealFormat, mem.reference() );  }
 		ASMETA_INLINE void fcom( RegST const& dst )                {  encodeFPInst( fgCOM , 0 , 0 , 0 , dst ); } 
 
 		template< class Ref , int Size >
-		ASMETA_INLINE void fcomp( RefMem< Ref , Size > const& mem ) {  encodeFPInst( fgCOMP , FPMemFormat( SPFMap< Size >::Real ) , mem.ref() );  }
+		ASMETA_INLINE void fcomp( RefMem< Ref , Size > const& mem ) {  encodeFPInst( fgCOMP , SPFMap< Size >::RealFormat, mem.reference() );  }
 		ASMETA_INLINE void fcomp( RegST const& dst )                {  encodeFPInst( fgCOMP , 0 , 0 , 0 , dst ); } 
 
 		template< class Ref , int Size >
-		ASMETA_INLINE void ficom( RefMem< Ref , Size > const& mem ) {  encodeFPInst( fgCOM , FPMemFormat( SPFMap< Size >::Int ) , mem.ref() );  }
+		ASMETA_INLINE void ficom( RefMem< Ref , Size > const& mem ) {  encodeFPInst( fgCOM , SPFMap< Size >::IntFormat, mem.reference() );  }
 		template< class Ref , int Size >
-		ASMETA_INLINE void ficomp( RefMem< Ref , Size > const& mem ) {  encodeFPInst( fgCOMP , FPMemFormat( SPFMap< Size >::Int ) , mem.ref() );  }
+		ASMETA_INLINE void ficomp( RefMem< Ref , Size > const& mem ) {  encodeFPInst( fgCOMP , SPFMap< Size >::IntFormat , mem.reference() );  }
 
 		template< class Ref , int Size >
-		ASMETA_INLINE void fistp( RefMem< Ref , Size > const& mem ) {  encodeFPInst( fgSTP , FPMemFormat( SPFMap< Size >::Int ) , mem.ref() );  }
+		ASMETA_INLINE void fistp( RefMem< Ref , Size > const& mem ) {  encodeFPInst( fgSTP , SPFMap< Size >::IntFormat , mem.reference() );  }
 		template< class Ref >
-		ASMETA_INLINE void fistp( RefMem< Ref , 8 > const& mem )    {  encodeFPInst( FPMemFormat( 0x3 ) , 0x1 , 0x7 , mem.ref() );  }
+		ASMETA_INLINE void fistp( RefMem< Ref , 8 > const& mem )    {  encodeFPInst( FPMemFormat( 0x3 ) , 0x1 , 0x7 , mem.reference() );  }
 
 		template< class Ref , int Size >
-		ASMETA_INLINE void fist( RefMem< Ref , Size > const& mem ) {  encodeFPInst( fgST , FPMemFormat( SPFMap< Size >::Int ) , mem.ref() );  }
+		ASMETA_INLINE void fist( RefMem< Ref , Size > const& mem ) {  encodeFPInst( fgST , SPFMap< Size >::IntFormat , mem.reference() );  }
 
 		template< class Ref , int Size  >
-		ASMETA_INLINE void fadd( RefMem< Ref , Size > const& mem )     {  encodeFPInst( fgADD , FPMemFormat( SPFMap< Size >::Real ) , mem.ref()  );  }
+		ASMETA_INLINE void fadd( RefMem< Ref , Size > const& mem )     {  encodeFPInst( fgADD , SPFMap< Size >::RealFormat, mem.reference()  );  }
 		ASMETA_INLINE void fadd( RegST const& dst , RegST const& src = st()) {  encodeFPInst( fgADD , dst , src ,  0 , 0 );  }
 		ASMETA_INLINE void faddp( RegST const& dst = st(1) )           {  encodeFPInst( fgADD , 1 , 1 , 0 , dst );  }
 		template< class Ref , int Size >
-		ASMETA_INLINE void fiadd( RefMem< Ref , Size > const& mem )    {  encodeFPInst( fgADD , FPMemFormat( SPFMap< Size >::Int ) , mem.ref() );  }
+		ASMETA_INLINE void fiadd( RefMem< Ref , Size > const& mem )    {  encodeFPInst( fgADD , SPFMap< Size >::IntFormat , mem.reference() );  }
 
 		template< class Ref , int Size  >
-		ASMETA_INLINE void fmul( RefMem< Ref , Size > const& mem )     {  encodeFPInst( fgMUL , FPMemFormat( SPFMap< Size >::Real ) , mem.ref()  );  }
+		ASMETA_INLINE void fmul( RefMem< Ref , Size > const& mem )     {  encodeFPInst( fgMUL , SPFMap< Size >::RealFormat, mem.reference()  );  }
 		ASMETA_INLINE void fmul( RegST const& dst , RegST const& src = st()) {  encodeFPInst( fgMUL , dst , src ,  0 , 0 );  }
 		ASMETA_INLINE void fmulp( RegST const& dst = st(1) )           {  encodeFPInst( fgMUL , 1 , 1 , 0 , dst );  }
 		template< class Ref , int Size >
-		ASMETA_INLINE void fimul( RefMem< Ref , Size > const& mem )    {  encodeFPInst( fgMUL , FPMemFormat( SPFMap< Size >::Int ) , mem.ref() );  }
+		ASMETA_INLINE void fimul( RefMem< Ref , Size > const& mem )    {  encodeFPInst( fgMUL , SPFMap< Size >::IntFormat , mem.reference() );  }
 
 		template< class Ref , int Size  >
-		ASMETA_INLINE void fsub( RefMem< Ref , Size > const& mem )     {  encodeFPInst( fgSUB , FPMemFormat( SPFMap< Size >::Real ) , mem.ref()  );  }
+		ASMETA_INLINE void fsub( RefMem< Ref , Size > const& mem )     {  encodeFPInst( fgSUB , SPFMap< Size >::RealFormat, mem.reference()  );  }
 		ASMETA_INLINE void fsub( RegST const& dst , RegST const& src = st()) {  encodeFPInst( fgSUB , dst , src ,  0 , 1 );  }
 		ASMETA_INLINE void fsubp( RegST const& dst = st(1) )           {  encodeFPInst( fgSUB , 1 , 1 , 1 , dst );  }
 		template< class Ref , int Size >
-		ASMETA_INLINE void fisub( RefMem< Ref , Size > const& mem )    {  encodeFPInst( fgSUB , FPMemFormat( SPFMap< Size >::Int ) , mem.ref() );  }
+		ASMETA_INLINE void fisub( RefMem< Ref , Size > const& mem )    {  encodeFPInst( fgSUB , SPFMap< Size >::IntFormat , mem.reference() );  }
 
 		template< class Ref , int Size  >
-		ASMETA_INLINE void fsubr( RefMem< Ref , Size > const& mem )     {  encodeFPInst( fgSUB , FPMemFormat( SPFMap< Size >::Real ) , mem.ref() , 0x1 );  }
+		ASMETA_INLINE void fsubr( RefMem< Ref , Size > const& mem )     {  encodeFPInst( fgSUB , SPFMap< Size >::RealFormat, mem.reference() , 0x1 );  }
 		ASMETA_INLINE void fsubr( RegST const& dst , RegST const& src = st()) {  encodeFPInst( fgSUB , dst , src ,  1 , 1 );  }
 		ASMETA_INLINE void fsubrp( RegST const& dst = st(1) )           {  encodeFPInst( fgSUB , 1 , 1 , 0 , dst );  }
 		template< class Ref , int Size >
-		ASMETA_INLINE void fisubr( RefMem< Ref , Size > const& mem )    {  encodeFPInst( fgSUB , FPMemFormat( SPFMap< Size >::Int ) , mem.ref() , 0x1 );  }
+		ASMETA_INLINE void fisubr( RefMem< Ref , Size > const& mem )    {  encodeFPInst( fgSUB , SPFMap< Size >::IntFormat , mem.reference() , 0x1 );  }
 
 		template< class Ref , int Size  >
-		ASMETA_INLINE void fdiv( RefMem< Ref , Size > const& mem )     {  encodeFPInst( fgDIV , FPMemFormat( SPFMap< Size >::Real ) , mem.ref()  );  }
+		ASMETA_INLINE void fdiv( RefMem< Ref , Size > const& mem )     {  encodeFPInst( fgDIV , SPFMap< Size >::RealFormat, mem.reference()  );  }
 		ASMETA_INLINE void fdiv( RegST const& dst , RegST const& src = st()) {  encodeFPInst( fgDIV , dst , src ,  0 , 1 );  }
 		ASMETA_INLINE void fdivp( RegST const& dst = st(1) )           {  encodeFPInst( fgDIV , 1 , 1 , 1 , dst );  }
 		template< class Ref , int Size >
-		ASMETA_INLINE void fidiv( RefMem< Ref , Size > const& mem )    {  encodeFPInst( fgDIV , FPMemFormat( SPFMap< Size >::Int ) , mem.ref() );  }
+		ASMETA_INLINE void fidiv( RefMem< Ref , Size > const& mem )    {  encodeFPInst( fgDIV , SPFMap< Size >::IntFormat , mem.reference() );  }
 
 		template< class Ref , int Size  >
-		ASMETA_INLINE void fdivr( RefMem< Ref , Size > const& mem )     {  encodeFPInst( fgDIV , FPMemFormat( SPFMap< Size >::Real ) , mem.ref() , 0x1 );  }
+		ASMETA_INLINE void fdivr( RefMem< Ref , Size > const& mem )     {  encodeFPInst( fgDIV , SPFMap< Size >::RealFormat, mem.reference() , 0x1 );  }
 		ASMETA_INLINE void fdivr( RegST const& dst , RegST const& src = st()) {  encodeFPInst( fgDIV , dst , src , 1 , 1 );  }
 		ASMETA_INLINE void fdivrp( RegST const& dst = st(1) )           {  encodeFPInst( fgDIV , 1 , 1 , 0 , dst );  }
 		template< class Ref , int Size >
-		ASMETA_INLINE void fidivr( RefMem< Ref , Size > const& mem ) {  encodeFPInst( fgDIV , FPMemFormat( SPFMap< Size >::Int ) , mem.ref() , 0x1 );  }
+		ASMETA_INLINE void fidivr( RefMem< Ref , Size > const& mem ) {  encodeFPInst( fgDIV , SPFMap< Size >::IntFormat , mem.reference() , 0x1 );  }
 
 		ASMETA_INLINE void fxch( RegST const& dst ){  encodeFPInst( 0 , 0 , 0x1 , 0x1 , 0 , dst ); } 
 
@@ -1101,7 +1099,7 @@ namespace Asmeta
 		template< class Ref , int Size >
 		ASMETA_INLINE void encodeModRM( RefMem< Ref , Size > const& ptr , uint8 reg )
 		{
-			encodeModRM( ptr.ref() , reg );
+			encodeModRM( ptr.reference() , reg );
 		}
 
 		ASMETA_INLINE void encodeModRM( Label* label , uint8 reg )
@@ -1113,9 +1111,7 @@ namespace Asmeta
 
 		ASMETA_INLINE void encodeModRM( LabelPtr const& refPtr , uint8 reg )
 		{
-			_this()->emitByte( MOD_RM_BYTE(  MOD_M ,  reg  , RM_M_DISP ) );
-			addLabelLink( refPtr.mLabel , Label::eLinkAbs , sizeof( SysInt ) , refPtr.mOffset );
-			_this()->emitPtr( (void*)0xdededede );
+			encodeModRM( refPtr.mLabel, reg );
 		}
 
 		ASMETA_INLINE void encodeModRM( Address const& refPtr , uint8  reg )
@@ -1179,12 +1175,9 @@ namespace Asmeta
 					 label->getLink() )
 					 return false;
 
-				Label::Link* link = label->getLink();
-
-				while( link )
+				for( auto link = label->getLink(); link; link = link->next )
 				{
 					refreshLinkDisp( link , label , baseAddr );
-					link = link->next;
 				}
 			}
 			return true;
@@ -1228,6 +1221,7 @@ namespace Asmeta
 
 		void addLabelLink( Label* label , Label::LinkMode mode , int dispSize , SysInt dispOffset = 0 )
 		{
+			assert(label);
 			Label::Link* link = createLabelLink();
 
 			link->mode       = mode;

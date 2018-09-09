@@ -10,10 +10,10 @@
 
 namespace FlappyBird
 {
-	using RenderGL::RHITexture2D;
-	using RenderGL::RHITexture2DRef;
-	using RenderGL::DrawUtility;
-	using RenderGL::TBindLockScope;
+	using Render::RHITexture2D;
+	using Render::RHITexture2DRef;
+	using Render::DrawUtility;
+	using Render::TBindLockScope;
 
 	class TrainManager;
 	class TrainData;

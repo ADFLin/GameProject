@@ -2,8 +2,13 @@
 
 #include "OpenGLCommon.h"
 
-namespace RenderGL
+namespace Render
 {
+	bool gForceInitState = true;
+
+#define GL_STATE_VAR_TEST( NAME )  gForceInitState || ( deviceValue.##NAME != setupValue.##NAME )
+#define GL_STATE_VAR_ASSIGN( NAME ) deviceValue.##NAME = setupValue.##NAME 
+
 	static void EnableGLState(GLenum param, bool bEnable)
 	{
 		if( bEnable )
@@ -92,6 +97,15 @@ namespace RenderGL
 		if( !mGLContext.makeCurrent() )
 			return false;
 
+		if( 1 )
+		{
+			gForceInitState = true;
+			RHISetDepthStencilState(TStaticDepthStencilState<>::GetRHI(), 0xff);
+			RHISetBlendState(TStaticBlendState<>::GetRHI());
+			RHISetRasterizerState(TStaticRasterizerState<>::GetRHI());
+			//gForceInitState = false;
+		}
+
 		return true;
 	}
 
@@ -155,7 +169,6 @@ namespace RenderGL
 		return OpenGLCast::To(buffer)->lock(access);
 	}
 
-
 	void OpenGLSystem::RHIUnlockBuffer(RHIVertexBuffer* buffer)
 	{
 		OpenGLCast::To(buffer)->unlock();
@@ -173,7 +186,19 @@ namespace RenderGL
 		OpenGLCast::To(buffer)->unlock();
 	}
 
-	RenderGL::RHIInputLayout* OpenGLSystem::RHICreateInputLayout(InputLayoutDesc const& desc)
+	void* OpenGLSystem::RHILockBuffer(RHIUniformBuffer* buffer, ELockAccess access, uint32 offset, uint32 size)
+	{
+		if( size )
+			return OpenGLCast::To(buffer)->lock(access, offset, size);
+		return OpenGLCast::To(buffer)->lock(access);
+	}
+
+	void OpenGLSystem::RHIUnlockBuffer(RHIUniformBuffer* buffer)
+	{
+		OpenGLCast::To(buffer)->unlock();
+	}
+
+	Render::RHIInputLayout* OpenGLSystem::RHICreateInputLayout(InputLayoutDesc const& desc)
 	{
 		return new OpenGLInputLayout(desc);
 	}
@@ -205,7 +230,7 @@ namespace RenderGL
 
 	void OpenGLSystem::RHISetRasterizerState(RHIRasterizerState& rasterizerState)
 	{
-		if( &rasterizerState == mDeviceState.rasterizerStateUsage )
+		if( !gForceInitState && &rasterizerState == mDeviceState.rasterizerStateUsage )
 		{
 			return;
 		}
@@ -215,57 +240,46 @@ namespace RenderGL
 		auto& deviceValue = mDeviceState.rasterizerStateValue;
 		auto const& setupValue = rasterizerStateGL.mStateValue;
 
-#define VAR_TEST( NAME )  true ||  (deviceValue.##NAME != setupValue.##NAME)
-#define VAR_ASSIGN( NAME ) deviceValue.##NAME = setupValue.##NAME 
-
-		if( VAR_TEST(fillMode) )
+		if( GL_STATE_VAR_TEST(fillMode) )
 		{
-			VAR_ASSIGN(fillMode);
+			GL_STATE_VAR_ASSIGN(fillMode);
 			glPolygonMode(GL_FRONT_AND_BACK, setupValue.fillMode);
 		}
 
-		if( VAR_TEST(bEnalbeCull) )
+		if( GL_STATE_VAR_TEST(bEnalbeCull) )
 		{
-			VAR_ASSIGN(bEnalbeCull);
+			GL_STATE_VAR_ASSIGN(bEnalbeCull);
 			EnableGLState(GL_CULL_FACE, setupValue.bEnalbeCull);
 
-			if( VAR_TEST(cullFace) )
+			if( GL_STATE_VAR_TEST(cullFace) )
 			{
-				VAR_ASSIGN(cullFace);
+				GL_STATE_VAR_ASSIGN(cullFace);
 				glCullFace(setupValue.cullFace);
 			}
 		}
-
-
-#undef VAR_TEST
-#undef VAR_ASSIGN
 	}
 
 	void OpenGLSystem::RHISetBlendState(RHIBlendState& blendState)
 	{
 
-		if( &blendState == mDeviceState.blendStateUsage )
+		if( !gForceInitState && &blendState == mDeviceState.blendStateUsage )
 			return;
 
 		mDeviceState.blendStateUsage = &blendState;
 
 		OpenGLBlendState& BlendStateGL = static_cast<OpenGLBlendState&>(blendState);
 
-
 		for( int i = 0; i < NumBlendStateTarget; ++i )
 		{
 			auto& deviceValue = mDeviceState.blendStateValue.targetValues[i];
 			auto const& setupValue = BlendStateGL.mStateValue.targetValues[i];
 
-#define VAR_TEST( NAME )  true || ( deviceValue.##NAME != setupValue.##NAME )
-#define VAR_ASSIGN( NAME ) deviceValue.##NAME = setupValue.##NAME 
-
 			bool bFroceReset = false;
 
-			if( VAR_TEST(writeMask) )
+			if( GL_STATE_VAR_TEST(writeMask) )
 			{
 				bFroceReset = true;
-				VAR_ASSIGN(writeMask);
+				GL_STATE_VAR_ASSIGN(writeMask);
 				glColorMaski(i, setupValue.writeMask & CWM_R,
 							 setupValue.writeMask & CWM_G,
 							 setupValue.writeMask & CWM_B,
@@ -275,21 +289,21 @@ namespace RenderGL
 			if( setupValue.writeMask )
 			{
 
-				if( VAR_TEST(bEnable) )
+				if( GL_STATE_VAR_TEST(bEnable) )
 				{
-					VAR_ASSIGN(bEnable);
+					GL_STATE_VAR_ASSIGN(bEnable);
 					EnableGLStateIndex(GL_BLEND, i, setupValue.bEnable);
 				}
 
 				if( setupValue.bEnable )
 				{
-					if( bFroceReset || VAR_TEST(bSeparateBlend) || VAR_TEST(srcColor) || VAR_TEST(destColor) || VAR_TEST(srcAlpha) || VAR_TEST(destAlpha) )
+					if( bFroceReset || GL_STATE_VAR_TEST(bSeparateBlend) || GL_STATE_VAR_TEST(srcColor) || GL_STATE_VAR_TEST(destColor) || GL_STATE_VAR_TEST(srcAlpha) || GL_STATE_VAR_TEST(destAlpha) )
 					{
-						VAR_ASSIGN(bSeparateBlend);
-						VAR_ASSIGN(srcColor);
-						VAR_ASSIGN(destColor);
-						VAR_ASSIGN(srcAlpha);
-						VAR_ASSIGN(destAlpha);
+						GL_STATE_VAR_ASSIGN(bSeparateBlend);
+						GL_STATE_VAR_ASSIGN(srcColor);
+						GL_STATE_VAR_ASSIGN(destColor);
+						GL_STATE_VAR_ASSIGN(srcAlpha);
+						GL_STATE_VAR_ASSIGN(destAlpha);
 
 						if( setupValue.bSeparateBlend )
 						{
@@ -304,16 +318,13 @@ namespace RenderGL
 					}
 				}
 			}
-
-#undef VAR_TEST
-#undef VAR_ASSIGN
 		}
 	}
 
 	void OpenGLSystem::RHISetDepthStencilState(RHIDepthStencilState& depthStencilState, uint32 stencilRef)
 	{
 		auto& deviceValue = mDeviceState.depthStencilStateValue;
-		if( &depthStencilState == mDeviceState.depthStencilStateUsage )
+		if( !gForceInitState && &depthStencilState == mDeviceState.depthStencilStateUsage )
 		{
 			if( deviceValue.stencilRef != stencilRef )
 			{
@@ -328,25 +339,22 @@ namespace RenderGL
 
 		auto const& setupValue = depthStencilStateGL.mStateValue;
 
-#define VAR_TEST( NAME )   true || (deviceValue.##NAME != setupValue.##NAME)
-#define VAR_ASSIGN( NAME ) deviceValue.##NAME = setupValue.##NAME 
-
-		if( VAR_TEST(bEnableDepthTest) )
+		if( GL_STATE_VAR_TEST(bEnableDepthTest) )
 		{
-			VAR_ASSIGN(bEnableDepthTest);
+			GL_STATE_VAR_ASSIGN(bEnableDepthTest);
 			EnableGLState(GL_DEPTH_TEST, setupValue.bEnableDepthTest);
 		}
 
 		if( setupValue.bEnableDepthTest )
 		{
-			if( VAR_TEST(bWriteDepth) )
+			if( GL_STATE_VAR_TEST(bWriteDepth) )
 			{
-				VAR_ASSIGN(bWriteDepth);
+				GL_STATE_VAR_ASSIGN(bWriteDepth);
 				glDepthMask(setupValue.bWriteDepth);
 			}
-			if( VAR_TEST(depthFun) )
+			if( GL_STATE_VAR_TEST(depthFun) )
 			{
-				VAR_ASSIGN(depthFun);
+				GL_STATE_VAR_ASSIGN(depthFun);
 				glDepthFunc(setupValue.depthFun);
 			}
 		}
@@ -355,15 +363,15 @@ namespace RenderGL
 			//#TODO : Check State Value
 		}
 
-		if( VAR_TEST(bEnableStencilTest) )
+		if( GL_STATE_VAR_TEST(bEnableStencilTest) )
 		{
-			VAR_ASSIGN(bEnableStencilTest);
+			GL_STATE_VAR_ASSIGN(bEnableStencilTest);
 			EnableGLState(GL_STENCIL_TEST, setupValue.bEnableStencilTest);
 		}
 
-		if( VAR_TEST(stencilWriteMask) )
+		if( GL_STATE_VAR_TEST(stencilWriteMask) )
 		{
-			VAR_ASSIGN(stencilWriteMask);
+			GL_STATE_VAR_ASSIGN(stencilWriteMask);
 			glStencilMask(setupValue.stencilWriteMask);
 		}
 
@@ -371,50 +379,50 @@ namespace RenderGL
 		{
 
 			bool bForceRestOp = false;
-			if( VAR_TEST(bUseSeparateStencilOp) )
+			if( GL_STATE_VAR_TEST(bUseSeparateStencilOp) )
 			{
-				VAR_ASSIGN(bUseSeparateStencilOp);
+				GL_STATE_VAR_ASSIGN(bUseSeparateStencilOp);
 				bForceRestOp = true;
 			}
 
 			bool bForceRestFun = false;
-			if( VAR_TEST(bUseSeparateStencilFun) )
+			if( GL_STATE_VAR_TEST(bUseSeparateStencilFun) )
 			{
-				VAR_ASSIGN(bUseSeparateStencilFun);
+				GL_STATE_VAR_ASSIGN(bUseSeparateStencilFun);
 				bForceRestFun = true;
 			}
 
 			if( setupValue.bUseSeparateStencilOp )
 			{
-				if( bForceRestOp || VAR_TEST(stencilFailOp) || VAR_TEST(stencilZFailOp) || VAR_TEST(stencilZPassOp) || VAR_TEST(stencilFailOpBack) || VAR_TEST(stencilZFailOpBack) || VAR_TEST(stencilZPassOpBack) )
+				if( bForceRestOp || GL_STATE_VAR_TEST(stencilFailOp) || GL_STATE_VAR_TEST(stencilZFailOp) || GL_STATE_VAR_TEST(stencilZPassOp) || GL_STATE_VAR_TEST(stencilFailOpBack) || GL_STATE_VAR_TEST(stencilZFailOpBack) || GL_STATE_VAR_TEST(stencilZPassOpBack) )
 				{
-					VAR_ASSIGN(stencilFailOp);
-					VAR_ASSIGN(stencilZFailOp);
-					VAR_ASSIGN(stencilZPassOp);
-					VAR_ASSIGN(stencilFailOpBack);
-					VAR_ASSIGN(stencilZFailOpBack);
-					VAR_ASSIGN(stencilZPassOpBack);
+					GL_STATE_VAR_ASSIGN(stencilFailOp);
+					GL_STATE_VAR_ASSIGN(stencilZFailOp);
+					GL_STATE_VAR_ASSIGN(stencilZPassOp);
+					GL_STATE_VAR_ASSIGN(stencilFailOpBack);
+					GL_STATE_VAR_ASSIGN(stencilZFailOpBack);
+					GL_STATE_VAR_ASSIGN(stencilZPassOpBack);
 					glStencilOpSeparate(GL_FRONT, setupValue.stencilFailOp, setupValue.stencilZFailOp, setupValue.stencilZPassOp);
 					glStencilOpSeparate(GL_BACK, setupValue.stencilFailOpBack, setupValue.stencilZFailOpBack, setupValue.stencilZPassOpBack);
 				}
 			}
 			else
 			{
-				if( bForceRestOp || VAR_TEST(stencilFailOp) || VAR_TEST(stencilZFailOp) || VAR_TEST(stencilZPassOp) )
+				if( bForceRestOp || GL_STATE_VAR_TEST(stencilFailOp) || GL_STATE_VAR_TEST(stencilZFailOp) || GL_STATE_VAR_TEST(stencilZPassOp) )
 				{
-					VAR_ASSIGN(stencilFailOp);
-					VAR_ASSIGN(stencilZFailOp);
-					VAR_ASSIGN(stencilZPassOp);
+					GL_STATE_VAR_ASSIGN(stencilFailOp);
+					GL_STATE_VAR_ASSIGN(stencilZFailOp);
+					GL_STATE_VAR_ASSIGN(stencilZPassOp);
 					glStencilOp(setupValue.stencilFailOp, setupValue.stencilZFailOp, setupValue.stencilZPassOp);
 				}
 			}
 			if( setupValue.bUseSeparateStencilFun )
 			{
-				if( bForceRestFun || VAR_TEST(stencilFun) || VAR_TEST(stencilFunBack) || deviceValue.stencilRef != stencilRef || VAR_TEST(stencilReadMask) )
+				if( bForceRestFun || GL_STATE_VAR_TEST(stencilFun) || GL_STATE_VAR_TEST(stencilFunBack) || deviceValue.stencilRef != stencilRef || GL_STATE_VAR_TEST(stencilReadMask) )
 				{
-					VAR_ASSIGN(stencilFun);
-					VAR_ASSIGN(stencilFunBack);
-					VAR_ASSIGN(stencilReadMask);
+					GL_STATE_VAR_ASSIGN(stencilFun);
+					GL_STATE_VAR_ASSIGN(stencilFunBack);
+					GL_STATE_VAR_ASSIGN(stencilReadMask);
 					deviceValue.stencilRef = stencilRef;
 					glStencilFuncSeparate(GL_FRONT, setupValue.stencilFun, stencilRef, setupValue.stencilReadMask);
 					glStencilFuncSeparate(GL_BACK, setupValue.stencilFunBack, stencilRef, setupValue.stencilReadMask);
@@ -422,10 +430,10 @@ namespace RenderGL
 			}
 			else
 			{
-				if( bForceRestFun || VAR_TEST(stencilFun) || deviceValue.stencilRef != stencilRef || VAR_TEST(stencilReadMask) )
+				if( bForceRestFun || GL_STATE_VAR_TEST(stencilFun) || deviceValue.stencilRef != stencilRef || GL_STATE_VAR_TEST(stencilReadMask) )
 				{
-					VAR_ASSIGN(stencilFun);
-					VAR_ASSIGN(stencilReadMask);
+					GL_STATE_VAR_ASSIGN(stencilFun);
+					GL_STATE_VAR_ASSIGN(stencilReadMask);
 					deviceValue.stencilRef = stencilRef;
 					glStencilFunc(setupValue.stencilFun, stencilRef, setupValue.stencilReadMask);
 				}
@@ -436,10 +444,6 @@ namespace RenderGL
 
 
 		}
-
-
-#undef VAR_TEST
-#undef VAR_ASSIGN
 	}
 
 	void OpenGLSystem::RHISetViewport(int x, int y, int w, int h)

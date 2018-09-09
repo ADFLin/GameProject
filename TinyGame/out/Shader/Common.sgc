@@ -1,16 +1,5 @@
 #pragma once
-#ifndef SHADER_COMPILING
-#define SHADER_COMPILING 0
-#endif
 
-#if !SHADER_COMPILING
-#define VERTEX_SHADER 1
-#define PIXEL_SHADER 1
-#define GEOMETRY_SHADER 1
-#define HULL_SHADER 1
-#define DOMAIN_SHADER 1
-#define COMPUTE_SHADER 1
-#endif
 
 #define COMPILER_GLSL 1
 
@@ -21,6 +10,13 @@
 #ifndef COMPILER_HLSL
 #define COMPILER_HLSL 0
 #endif
+
+
+#ifndef SHADER_COMPILING
+#define SHADER_COMPILING 0
+#endif
+
+#if SHADER_COMPILING
 
 #ifndef VERTEX_SHADER
 #define VERTEX_SHADER 0
@@ -46,11 +42,17 @@
 #define COMPUTE_SHADER 0
 #endif
 
-#define UNROLL
-#define LOOP
+#else
+#define VERTEX_SHADER 1
+#define PIXEL_SHADER 1
+#define GEOMETRY_SHADER 1
+#define HULL_SHADER 1
+#define DOMAIN_SHADER 1
+#define COMPUTE_SHADER 1
 
-#define BRANCH
-#define FLATTEN
+#include "ShaderDefine.sgc"
+
+#endif
 
 #define ATTRIBUTE0 0
 #define ATTRIBUTE1 1
@@ -125,3 +127,7 @@ VECTOR_FUNCTION_LIST(Pow5T)
 //#undef VECTOR_FUNCTION_LIST
 #undef DEFINE_FUNCTION_INNER
 #undef DEFINE_VECTOR_FUNCTION
+
+#ifndef USE_MATERIAL
+#define USE_MATERIAL 0
+#endif

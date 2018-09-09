@@ -3,7 +3,7 @@
 
 #include "RenderContext.h"
 
-namespace RenderGL
+namespace Render
 {
 
 	void Scene::tick(float deltaTime)
@@ -66,5 +66,5 @@ namespace RenderGL
 		return true;
 	}
 
-}//namespace RenderGL
+}//namespace Render
 

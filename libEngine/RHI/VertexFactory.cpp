@@ -1,7 +1,7 @@
 #include "VertexFactory.h"
 #include "ShaderCompiler.h"
 
-namespace RenderGL
+namespace Render
 {
 
 #if CORE_SHARE_CODE
@@ -25,5 +25,5 @@ namespace RenderGL
 	IMPL_VERTEX_FACTORY_TYPE( LocalVertexFactory , "LocalVertexFactory" )
 	IMPL_VERTEX_FACTORY_TYPE( GPUSkinVertexFactory , "GPUSkinVertexFactory")
 
-}//namespace RenderGL
+}//namespace Render
 

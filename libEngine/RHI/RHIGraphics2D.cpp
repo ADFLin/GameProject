@@ -6,7 +6,7 @@
 #include <cassert>
 #include <algorithm>
 
-namespace RenderGL
+namespace Render
 {
 #if 1
 #define DRAW_LINE_IMPL( EXPR )\

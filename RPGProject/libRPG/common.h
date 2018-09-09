@@ -1,7 +1,7 @@
 #ifndef common_h__
 #define common_h__
 
-#define  USE_PROFILE
+#define  USE_PROFILE 1
 #include "ProfileSystem.h"
 #define  TPROFILE  PROFILE_ENTRY
 

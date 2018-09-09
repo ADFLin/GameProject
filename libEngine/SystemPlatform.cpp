@@ -24,7 +24,7 @@ int SystemPlatform::GetProcessorNumber()
 #endif
 }
 
-void SystemPlatform::MemoryBarrier()
+void SystemPlatform::MemoryStoreFence()
 {
 #if SYS_PLATFORM_WIN
 	::MemoryBarrier();

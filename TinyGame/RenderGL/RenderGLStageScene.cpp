@@ -7,7 +7,7 @@
 #include "RHI/RHICommand.h"
 #include "SceneScript.h"
 
-namespace RenderGL
+namespace Render
 {
 	struct LoadDatalInfo
 	{

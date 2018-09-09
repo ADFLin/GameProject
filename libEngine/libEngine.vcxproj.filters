@@ -119,6 +119,9 @@
     <Filter Include="OtherLib\NvTriStrip">
       <UniqueIdentifier>{7be770d2-98ef-4ec1-b501-82a3426021e9}</UniqueIdentifier>
     </Filter>
+    <Filter Include="OtherLib\NvTess">
+      <UniqueIdentifier>{2e129a27-6d6f-4020-8624-3122a56a91de}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="AppEntry.cpp">
@@ -363,6 +366,9 @@
     </ClCompile>
     <ClCompile Include="..\OtherLib\NvTriStrip\NvTriStrip.cpp">
       <Filter>OtherLib\NvTriStrip</Filter>
+    </ClCompile>
+    <ClCompile Include="..\OtherLib\NvTess\nvtess.cpp">
+      <Filter>OtherLib\NvTess</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -935,6 +941,9 @@
     </ClInclude>
     <ClInclude Include="..\OtherLib\NvTriStrip\VertexCache.h">
       <Filter>OtherLib\NvTriStrip</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OtherLib\NvTess\nvtess.h">
+      <Filter>OtherLib\NvTess</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

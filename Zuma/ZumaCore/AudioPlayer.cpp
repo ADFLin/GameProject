@@ -15,17 +15,14 @@ namespace Zuma
 {
 
 	static AudioPlayer* gAudioPlayer = NULL;
-
 	static FMOD_RESULT F_CALLBACK ChannelCallBack(
-		FMOD_CHANNEL *channel,
-		FMOD_CHANNEL_CALLBACKTYPE type,
-		void *commanddata1, void *commanddata2 )
+		FMOD_CHANNELCONTROL *channelcontrol, FMOD_CHANNELCONTROL_TYPE controltype, 
+		FMOD_CHANNELCONTROL_CALLBACK_TYPE callbacktype, void *commanddata1, void *commanddata2)
 	{
-		switch( type )
+		switch( callbacktype )
 		{
-		case FMOD_CHANNEL_CALLBACKTYPE_END:
+		case FMOD_CHANNELCONTROL_CALLBACK_END:
 			break;
-
 		}
 
 		return FMOD_OK;
@@ -76,6 +73,7 @@ namespace Zuma
 		}
 
 		FMOD_CHECK( FMOD_System_Init( mFmodSys , MaxNumChannel , FMOD_INIT_NORMAL, NULL ) );
+		FMOD_CHECK( FMOD_System_CreateChannelGroup(mFmodSys, "Master", &mMasterGroup) );
 		return true;
 	}
 
@@ -110,7 +108,7 @@ namespace Zuma
 			return ERROR_SOUND_ID;
 
 		FMOD_CHANNEL* channel;
-		FMOD_System_PlaySound( mFmodSys , FMOD_CHANNEL_FREE , res->sound , false , &channel );
+		FMOD_System_PlaySound( mFmodSys , res->sound , mMasterGroup, false , &channel );
 		FMOD_Channel_SetVolume( channel , volume * res->volume * mSoundVolume );
 		FMOD_Channel_SetCallback( channel ,ChannelCallBack );
 
@@ -127,7 +125,7 @@ namespace Zuma
 			return ERROR_SOUND_ID;
 
 		FMOD_CHANNEL* channel;
-		FMOD_System_PlaySound( mFmodSys , FMOD_CHANNEL_FREE , res->sound , false , &channel );
+		FMOD_System_PlaySound( mFmodSys , res->sound , mMasterGroup, false , &channel );
 		FMOD_Channel_SetVolume( channel , volume * res->volume * mSoundVolume );
 		FMOD_Channel_SetCallback( channel ,ChannelCallBack );
 

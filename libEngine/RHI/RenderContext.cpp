@@ -3,7 +3,7 @@
 #include "Material.h"
 #include "RHICommand.h"
 
-namespace RenderGL
+namespace Render
 {
 	void RenderTechnique::setupWorld(RenderContext& context, Matrix4 const& mat)
 	{
@@ -196,5 +196,5 @@ namespace RenderGL
 	}
 
 
-}//namespace RenderGL
+}//namespace Render
 

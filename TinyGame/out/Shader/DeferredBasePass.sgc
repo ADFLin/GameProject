@@ -1,21 +1,33 @@
-#include "DeferredShadingCommon.sgc"
+#include "VertexFactoryProcess.sgc"
 #include "MaterialProcess.sgc"
+
+#include "DeferredShadingCommon.sgc"
 #include "ViewParam.sgc"
-#include "VertexProcess.sgc"
+
+struct PassInterpolantsParam
+{
+	float dump;
+};
+
+struct VertexOutputParamVSToPS
+{
+	FactoryInterpolantsParam   factoryInterpolants;
+	PassInterpolantsParam      passInterpolants;
+};
 
 #if VERTEX_SHADER
 
-out VertexFactoryOutputVS VFOutputVS;
+layout(location = 0) out VertexOutputParameters OutputVS;
 void BassPassVS()
 {
-	VertexFactoryIntermediatesVS intermediates = GetVertexFactoryIntermediatesVS();
+	VertexFactoryIntermediatesVS intermediates = VertexFactory_GetIntermediatesVS();
 
 	MaterialInputVS materialInput = InitMaterialInputVS();
-	MaterialParametersVS materialParameters = GetMaterialParameterVS( intermediates );
+	MaterialParametersVS materialParameters = VertexFactory_GetMaterialParameterVS( intermediates );
 
 	CalcMaterialInputVS( materialInput , materialParameters );
 
-	gl_Position = CalcVertexFactoryOutputVS(VFOutputVS, intermediates , materialInput , materialParameters );
+	gl_Position = VertexFactory_GetInterpolants(OutputVS.factoryInterpolants , intermediates , materialInput , materialParameters );
 	//gl_Position = ftransform();
 }
 
@@ -23,15 +35,12 @@ void BassPassVS()
 
 #if PIXEL_SHADER
 
-#define VFInputPS VFOutputVS
-
-in VertexFactoryIutputPS VFOutputVS;
-
+layout(location = 0) in VertexOutputParamVSToPS InputPS;
 void BasePassPS()
 {
 
 	MaterialInputPS materialInput = InitMaterialInputPS();
-	MaterialParametersPS materialParameters = GetMaterialParameterPS(VFInputPS);
+	MaterialParametersPS materialParameters = VertexFactory_GetMaterialParameterPS(InputPS.factoryInterpolants);
 
 	CalcMaterialParameters(materialInput , materialParameters);
 

@@ -8,7 +8,7 @@
 #include <cassert>
 #include "stb/stb_image.h"
 
-namespace RenderGL
+namespace Render
 {
 #if CORE_SHARE_CODE
 	RHISystem* gRHISystem = nullptr;
@@ -119,6 +119,16 @@ namespace RenderGL
 		return EXECUTE_RHIFUN(RHIUnlockBuffer(buffer));
 	}
 
+	void* RHILockBuffer(RHIUniformBuffer* buffer, ELockAccess access, uint32 offset /*= 0*/, uint32 size /*= 0*/)
+	{
+		return EXECUTE_RHIFUN(RHILockBuffer(buffer, access, offset, size));
+	}
+
+	void RHIUnlockBuffer(RHIUniformBuffer* buffer)
+	{
+		return EXECUTE_RHIFUN(RHIUnlockBuffer(buffer));
+	}
+
 	RHIFrameBuffer* RHICreateFrameBuffer()
 	{
 		return EXECUTE_RHIFUN( RHICreateFrameBuffer() );
@@ -190,6 +200,16 @@ namespace RenderGL
 	void RHIDrawIndexedPrimitiveIndirect(PrimitiveType type, ECompValueType indexType, RHIVertexBuffer* commandBuffer, int offset, int numCommand, int commandStride)
 	{
 		EXECUTE_RHIFUN(RHIDrawIndexedPrimitiveIndirect(type, indexType, commandBuffer, offset , numCommand, commandStride));
+	}
+
+	void RHIDrawPrimitiveUP(PrimitiveType type, int numPrimitive, void* pVertices, int numVerex, int vetexStride)
+	{
+		EXECUTE_RHIFUN(RHIDrawPrimitiveUP(type, numPrimitive, pVertices, numVerex, vetexStride));
+	}
+
+	void RHIDrawIndexedPrimitiveUP(PrimitiveType type, int numPrimitive, void* pVertices, int numVerex, int vetexStride, int* pIndices, int numIndex)
+	{
+		EXECUTE_RHIFUN(RHIDrawIndexedPrimitiveUP(type, numPrimitive, pVertices, numVerex, vetexStride, pIndices, numIndex));
 	}
 
 	void RHISetupFixedPipelineState(Matrix4 const& matModelView, Matrix4 const& matProj, int numTexture /*= 0*/, RHITexture2D** textures /*= nullptr*/)

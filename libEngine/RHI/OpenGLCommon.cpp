@@ -10,7 +10,7 @@
 #include <fstream>
 #include <sstream>
 
-namespace RenderGL
+namespace Render
 {
 	int const GLDefalutUnpackAlignment = 4;
 

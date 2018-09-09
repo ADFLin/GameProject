@@ -1,6 +1,14 @@
-#pragma once
+﻿#pragma once
 
-#define gl_Tangent gl_MultiTexCoord7
+#define UNROLL
+#define LOOP
+
+#define BRANCH
+#define FLATTEN
+
+#if SHADER_COMPILING
+
+#define cbuffer uniform
 
 #define float2 vec2
 #define float3 vec3
@@ -19,17 +27,21 @@
 #define float3x3 mat3
 #define float4x4 mat4
 
+#endif
+
+#define gl_Tangent gl_MultiTexCoord7
+
+
 #define gl_Tangent gl_MultiTexCoord7
 
 #define lerp mix
 #define frac fract
 
-
-
 float rcp(float x)
 {
 	return 1.0 / x;
 }
+
 DEFINE_VECTOR_FUNCTION(rcp, { return 1.0 / x; })
 float saturate(float x)
 {
@@ -58,12 +70,17 @@ float4x4 Transform(float4x4 m1, float4x4 m2)
 	return m2 * m1;
 }
 
-float4 Transform(float4 v, float4x4 m)
+float4 TransformPosition(float4 v, float4x4 m)
 {
 	return m * v;
 }
 
-float3 TransformInv(float3 v, float3x3 m)
+float3 TransformVector(float3 v, float3x3 m)
+{
+	return m * v;
+}
+
+float3 InvTransformVector(float3 v, float3x3 m)
 {
 	return v * m;
 }

@@ -15,7 +15,6 @@
 #include "BloxorzStage.h"
 #include "AStarStage.h"
 #include "FlappyBird/FBStage.h"
-#include "RenderGL/RenderGLStage.h"
 #include "GGJStage.h"
 #include "RubiksStage.h"
 
@@ -60,7 +59,7 @@ StageInfo gPreRegisterStageGroup[] =
 	STAGE_INFO("Shoot2D Test"      , Shoot2D::TestStage , EStageGroup::Dev4) ,
 	STAGE_INFO("Go Test"           , Go::Stage , EStageGroup::Dev4) ,
 
-	STAGE_INFO("Shader Test"  , RenderGL::SampleStage , EStageGroup::FeatureDev,10),
+	STAGE_INFO("Shader Test"  , Render::SampleStage , EStageGroup::FeatureDev,10),
 };
 
 #undef INFO

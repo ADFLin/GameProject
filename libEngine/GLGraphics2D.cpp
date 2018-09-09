@@ -143,14 +143,10 @@ void GLGraphics2D::beginRender()
 {
 	glPushAttrib(GL_ENABLE_BIT | GL_VIEWPORT_BIT);
 
-	using namespace RenderGL;
+	using namespace Render;
 	RHISetDepthStencilState(StaticDepthDisableState::GetRHI());
 	RHISetBlendState(TStaticBlendState<>::GetRHI());
-	//RHISetRasterizerState(TStaticRasterizerState< ECullMode::None >::GetRHI());
-	
-	glDisable( GL_BLEND );
-	glDisable( GL_DEPTH_TEST );
-	glDisable( GL_CULL_FACE );
+	RHISetRasterizerState(TStaticRasterizerState< ECullMode::None >::GetRHI());
 
 	glViewport(0, 0, mWidth, mHeight);
 	glMatrixMode( GL_PROJECTION );
@@ -379,6 +375,10 @@ void GLGraphics2D::drawText(Vector2 const& pos , char const* str)
 
 void GLGraphics2D::drawText(Vector2 const& pos , Vector2 const& size , char const* str , bool beClip /*= false */)
 {
+#if	IGNORE_NSIGHT_UNSUPPORT_CODE
+	return;
+#endif
+
 	if ( !mFont || !mFont->isValid() )
 		return;
 	if( beClip )
@@ -396,6 +396,9 @@ void GLGraphics2D::drawText(Vector2 const& pos , Vector2 const& size , char cons
 
 void GLGraphics2D::drawTextImpl(float  ox, float  oy, char const* str)
 {
+#if	IGNORE_NSIGHT_UNSUPPORT_CODE
+	return;
+#endif
 	assert( mFont );
 	glColor4f( mColorFont.r , mColorFont.g , mColorFont.b , 1.0 );
 	mFont->draw( Vector2(int(ox),int(oy)) , str );
@@ -403,6 +406,10 @@ void GLGraphics2D::drawTextImpl(float  ox, float  oy, char const* str)
 
 void GLGraphics2D::drawPolygonBuffer()
 {
+#if	IGNORE_NSIGHT_UNSUPPORT_CODE
+	return;
+#endif
+
 	assert(!mBuffer.empty());
 	glEnableClientState(GL_VERTEX_ARRAY);
 	glVertexPointer(2, GL_FLOAT, 0, &mBuffer[0]);
@@ -421,6 +428,10 @@ void GLGraphics2D::drawPolygonBuffer()
 
 void GLGraphics2D::drawLineBuffer()
 {
+#if	IGNORE_NSIGHT_UNSUPPORT_CODE
+	return;
+#endif
+
 	if( mDrawPen )
 	{
 		glEnableClientState(GL_VERTEX_ARRAY);

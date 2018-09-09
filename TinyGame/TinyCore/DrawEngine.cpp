@@ -26,7 +26,7 @@ WORD GameWindow::getSmallIcon()
 	return IDI_ICON1;
 }
 
-using namespace RenderGL;
+using namespace Render;
 
 template< class T >
 class TGraphics2DProxy : public IGraphics2D
@@ -63,7 +63,7 @@ IGraphics2D& DrawEngine::getIGraphics()
 {
 	static TGraphics2DProxy< Graphics2D > proxyPlatform( *mPlatformGraphics );
 	static TGraphics2DProxy< GLGraphics2D > proxyGL( *mGLGraphics );
-	static TGraphics2DProxy< RenderGL::RHIGraphics2D > proxyRHI( *mRHIGraphics );
+	static TGraphics2DProxy< Render::RHIGraphics2D > proxyRHI( *mRHIGraphics );
 	if ( mRHIName == RHITargetName::OpenGL ) 
 		return proxyGL;
 	return proxyPlatform;
@@ -93,7 +93,7 @@ void DrawEngine::init( GameWindow& window )
 
 	mGLGraphics.reset(new GLGraphics2D);
 	mGLGraphics->init(mGameWindow->getWidth(), mGameWindow->getHeight());
-	mRHIGraphics.reset(new RenderGL::RHIGraphics2D);
+	mRHIGraphics.reset(new Render::RHIGraphics2D);
 	mRHIGraphics->init(mGameWindow->getWidth(), mGameWindow->getHeight());
 
 

@@ -24,7 +24,7 @@ public:
 class GLGraphics2D;
 
 
-namespace RenderGL
+namespace Render
 {
 	class RHIGraphics2D;
 }
@@ -58,7 +58,7 @@ public:
 	public:
 		virtual void visit( Graphics2D& g ) = 0;
 		virtual void visit( GLGraphics2D& g ) = 0;
-		virtual void visit( RenderGL::RHIGraphics2D& g) = 0;
+		virtual void visit( Render::RHIGraphics2D& g) = 0;
 	};
 	virtual void  accept( Visitor& visitor ) = 0;
 };
@@ -155,7 +155,7 @@ private:
 	RHITargetName mRHIName = RHITargetName::None;
 	WindowsGLContext*  mGLContext = nullptr;
 	std::unique_ptr< GLGraphics2D >   mGLGraphics;
-	std::unique_ptr< RenderGL::RHIGraphics2D > mRHIGraphics;
+	std::unique_ptr< Render::RHIGraphics2D > mRHIGraphics;
 
 };
 

@@ -58,9 +58,6 @@
     <Filter Include="OtherLib\Chaiscript">
       <UniqueIdentifier>{cfa139e1-645b-45db-b326-fc4e88816b02}</UniqueIdentifier>
     </Filter>
-    <Filter Include="MiscTest">
-      <UniqueIdentifier>{2ea4ee9d-b0aa-40ed-b988-80bd4e6bc739}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Shader\Game">
       <UniqueIdentifier>{ee644861-e77a-4284-98fc-54cb6cbc000b}</UniqueIdentifier>
     </Filter>
@@ -92,6 +89,9 @@
     </Filter>
     <Filter Include="SuperFractial">
       <UniqueIdentifier>{2bd4e754-18d3-4272-b809-e940ad7e966c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Stage\Test">
+      <UniqueIdentifier>{2ea4ee9d-b0aa-40ed-b988-80bd4e6bc739}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -218,9 +218,6 @@
     <ClCompile Include="Stage\MiscTestStage.cpp">
       <Filter>Stage</Filter>
     </ClCompile>
-    <ClCompile Include="MiscTest\MatrixTest.cpp">
-      <Filter>MiscTest</Filter>
-    </ClCompile>
     <ClCompile Include="Stage\SoftwareRenderStage.cpp">
       <Filter>Stage</Filter>
     </ClCompile>
@@ -229,18 +226,6 @@
     </ClCompile>
     <ClCompile Include="Stage\FluidSimStage.cpp">
       <Filter>Stage</Filter>
-    </ClCompile>
-    <ClCompile Include="MiscTest\BoneIKTest.cpp">
-      <Filter>MiscTest</Filter>
-    </ClCompile>
-    <ClCompile Include="Stage\AsyncWokTestStage.cpp">
-      <Filter>Stage</Filter>
-    </ClCompile>
-    <ClCompile Include="MiscTest\BehaviorTreeTest.cpp">
-      <Filter>MiscTest</Filter>
-    </ClCompile>
-    <ClCompile Include="AlarmClockTest.cpp">
-      <Filter>MiscTest</Filter>
     </ClCompile>
     <ClCompile Include="FlappyBird\FBLevel.cpp">
       <Filter>GameFlappyBird</Filter>
@@ -252,9 +237,6 @@
       <Filter>GameFlappyBird</Filter>
     </ClCompile>
     <ClCompile Include="Stage\TMechineStage.cpp">
-      <Filter>Stage</Filter>
-    </ClCompile>
-    <ClCompile Include="Stage\SpatialIndexTest.cpp">
       <Filter>Stage</Filter>
     </ClCompile>
     <ClCompile Include="Stage\LightingStage2D.cpp">
@@ -362,14 +344,32 @@
     <ClCompile Include="TinyCore\SingleStageMode.cpp">
       <Filter>StageMode</Filter>
     </ClCompile>
-    <ClCompile Include="Stage\D3DTestStage.cpp">
-      <Filter>Stage</Filter>
-    </ClCompile>
     <ClCompile Include="Stage\ParticleSimulationStage.cpp">
       <Filter>Stage</Filter>
     </ClCompile>
     <ClCompile Include="Stage\DistanceFieldStage.cpp">
       <Filter>Stage</Filter>
+    </ClCompile>
+    <ClCompile Include="Stage\Test\BoneIKTest.cpp">
+      <Filter>Stage\Test</Filter>
+    </ClCompile>
+    <ClCompile Include="Stage\Test\D3D11Test.cpp">
+      <Filter>Stage\Test</Filter>
+    </ClCompile>
+    <ClCompile Include="Stage\Test\MatrixTest.cpp">
+      <Filter>Stage\Test</Filter>
+    </ClCompile>
+    <ClCompile Include="Stage\Test\SpatialIndexTest.cpp">
+      <Filter>Stage\Test</Filter>
+    </ClCompile>
+    <ClCompile Include="Stage\Test\VulkanTest.cpp">
+      <Filter>Stage\Test</Filter>
+    </ClCompile>
+    <ClCompile Include="Stage\Test\AsyncWokTest.cpp">
+      <Filter>Stage\Test</Filter>
+    </ClCompile>
+    <ClCompile Include="Stage\Test\BehaviorTreeTest.cpp">
+      <Filter>Stage\Test</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -730,9 +730,6 @@
     <ClInclude Include="Stage\SoftwareRenderStage.h">
       <Filter>Stage</Filter>
     </ClInclude>
-    <ClInclude Include="Stage\SpatialIndexTest.h">
-      <Filter>Stage</Filter>
-    </ClInclude>
     <ClInclude Include="Stage\LightingStage2D.h">
       <Filter>Stage</Filter>
     </ClInclude>
@@ -828,6 +825,9 @@
     </ClInclude>
     <ClInclude Include="TinyCore\SingleStageMode.h">
       <Filter>StageMode</Filter>
+    </ClInclude>
+    <ClInclude Include="Stage\Test\SpatialIndexTest.h">
+      <Filter>Stage\Test</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -944,9 +944,6 @@
     <None Include="out\Shader\SimpleElement.sgc">
       <Filter>Shader</Filter>
     </None>
-    <None Include="out\Shader\SimpleSprite.sgc">
-      <Filter>Shader</Filter>
-    </None>
     <None Include="out\Shader\SSAO.sgc">
       <Filter>Shader</Filter>
     </None>
@@ -954,9 +951,6 @@
       <Filter>Shader</Filter>
     </None>
     <None Include="out\Shader\Tonemap.sgc">
-      <Filter>Shader</Filter>
-    </None>
-    <None Include="out\Shader\VertexProcess.sgc">
       <Filter>Shader</Filter>
     </None>
     <None Include="out\Shader\ViewParam.sgc">
@@ -1081,6 +1075,15 @@
     </None>
     <None Include="out\Shader\MeshCulling.sgc">
       <Filter>Shader</Filter>
+    </None>
+    <None Include="out\Shader\Game\Tessellation.sgc">
+      <Filter>Shader\Game</Filter>
+    </None>
+    <None Include="out\Shader\VertexFactoryProcess.sgc">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="out\Shader\Game\SimpleSprite.sgc">
+      <Filter>Shader\Game</Filter>
     </None>
   </ItemGroup>
 </Project>

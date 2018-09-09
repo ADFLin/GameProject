@@ -11,7 +11,7 @@
 //#MOVE
 
 
-namespace RenderGL
+namespace Render
 {
 	class VertexFactoryType;
 	class VertexFactory;
@@ -21,7 +21,7 @@ namespace RenderGL
 	public:
 		static void SetupShaderCompileOption(ShaderCompileOption& option)
 		{
-
+			option.addDefine(SHADER_PARAM(USE_MATERIAL), true);
 		}
 
 		struct ShaderParamBind
@@ -62,7 +62,7 @@ namespace RenderGL
 		CLASS::GetShaderFileName, \
 		CLASS::GetShaderEntries \
 	}; \
-	RenderGL::MaterialShaderProgramClass& CLASS::GetShaderClass(){ return gMaterialName##CLASS; }
+	Render::MaterialShaderProgramClass& CLASS::GetShaderClass(){ return gMaterialName##CLASS; }
 
 #define IMPLEMENT_MATERIAL_SHADER_T( TEMPLATE_ARGS , CLASS )\
 	TEMPLATE_ARGS\
@@ -72,6 +72,6 @@ namespace RenderGL
 
 
 
-}//namespace RenderGL
+}//namespace Render
 
 #endif // MaterialShader_H_B9594273_3899_4630_B560_D67F4FA887CE

@@ -888,7 +888,7 @@ namespace MV
 
 	void TestStage::renderDbgText( Vec2i const& pos )
 	{
-		GLGraphics2D& g = Global::GetGLGraphics2D();
+		GLGraphics2D& g = Global::GetRHIGraphics2D();
 		FixString< 256 > str;
 		glColor3f(1,1,0);
 		g.drawText( pos.x , pos.y , str.format("( %d %d %d ) dir = %d", pos2Dbg.x , pos2Dbg.y , pos2Dbg.z , (int)dirDBG ) );

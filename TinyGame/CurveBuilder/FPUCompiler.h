@@ -30,6 +30,7 @@ protected:
 	void pushCode(uint8 byte);
 	void pushCode(uint8 byte1,uint8 byte2);
 	void pushCode(uint8 byte1,uint8 byte2,uint8 byte3 );
+	void pushCode(uint8 const* data, int size);
 
 	void pushCode( uint32 val){  pushCodeT( val ); }
 	void pushCode( void* ptr ){  pushCodeT( ptr ); }

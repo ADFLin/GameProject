@@ -21,7 +21,7 @@
 
 namespace MV
 {
-	using namespace RenderGL;
+	using namespace Render;
 
 
 	struct BlockModel
@@ -126,7 +126,7 @@ namespace MV
 
 	protected:
 
-		RenderGL::SimpleCamera mCamera;
+		Render::SimpleCamera mCamera;
 		bool  bCameraView;
 
 		////////////////////////

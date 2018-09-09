@@ -6,18 +6,13 @@
 #include "ShaderCore.h"
 
 #include "D3D11Common.h"
-
 #include "FixString.h"
-
 #include "Core/ScopeExit.h"
-
 
 
 #include "D3D11Shader.h"
 #include "D3DX11async.h"
 #include "D3Dcompiler.h"
-
-
 
 #pragma comment(lib , "D3D11.lib")
 #pragma comment(lib , "D3DX11.lib")
@@ -30,7 +25,7 @@
 #define CODE_STRING( CODE_TEXT ) CODE_STRING_INNER( CODE(##CODE_TEXT)CODE );
 
 
-namespace RenderGL
+namespace Render
 {
 
 	template<class T>
@@ -128,7 +123,8 @@ namespace RenderGL
 		void  RHIUnlockBuffer(RHIVertexBuffer* buffer);
 		void* RHILockBuffer(RHIIndexBuffer* buffer, ELockAccess access, uint32 offset, uint32 size);
 		void  RHIUnlockBuffer(RHIIndexBuffer* buffer);
-
+		void* RHILockBuffer(RHIUniformBuffer* buffer, ELockAccess access, uint32 offset, uint32 size);
+		void  RHIUnlockBuffer(RHIUniformBuffer* buffer);
 
 		RHIFrameBuffer*   RHICreateFrameBuffer()
 		{
@@ -224,6 +220,15 @@ namespace RenderGL
 			}
 		}
 
+		void RHIDrawPrimitiveUP(PrimitiveType type, int numPrimitive, void* pVertices, int numVerex, int vetexStride)
+		{
+
+
+		}
+		void RHIDrawIndexedPrimitiveUP(PrimitiveType type, int numPrimitive, void* pVertices, int numVerex, int vetexStride, int* pIndices, int numIndex)
+		{
+
+		}
 
 
 		void RHISetupFixedPipelineState(Matrix4 const& matModelView, Matrix4 const& matProj, int numTexture, RHITexture2D** textures)
@@ -399,6 +404,6 @@ namespace RenderGL
 
 
 
-}//namespace RenderGL
+}//namespace Render
 
 #endif // D3D11Command_H_97458D19_2E17_42B7_89F9_A576B704814B

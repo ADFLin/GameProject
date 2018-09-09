@@ -10,8 +10,12 @@
 
 #include "SystemPlatform.h"
 
+#include "RHI/RHICommand.h"
+#include "GLGraphics2D.h"
+
 namespace FlappyBird
 {
+	using namespace Render;
 
 	LevelStage::LevelStage()
 	{
@@ -90,7 +94,7 @@ namespace FlappyBird
 
 	bool LevelStage::loadResource()
 	{
-		using namespace RenderGL;
+		using namespace Render;
 
 		char const* fileName[TextureID::Count] =
 		{
@@ -109,10 +113,10 @@ namespace FlappyBird
 			if( !mTextures[i].isValid() )
 				return false;
 
-			RenderGL::OpenGLCast::To(mTextures[i])->bind();
+			Render::OpenGLCast::To(mTextures[i])->bind();
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-			RenderGL::OpenGLCast::To(mTextures[i])->unbind();
+			Render::OpenGLCast::To(mTextures[i])->unbind();
 		}
 
 		return true;
@@ -543,9 +547,7 @@ namespace FlappyBird
 			if( frame >= frameNum )
 				frame = frameNum - frame + 1;
 			
-			glEnable(GL_BLEND);
-			//glAlphaFunc(GL_GREATER, 0.01f);
-			glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+			RHISetBlendState(TStaticBlendState<CWM_RGBA, Blend::eSrcAlpha, Blend::eOneMinusSrcAlpha>::GetRHI());
 			glPushMatrix();
 			{
 				glTranslatef(rPos.x, rPos.y, 0);
@@ -553,7 +555,7 @@ namespace FlappyBird
 				drawTexture(TextureID::Bird, Vector2(0,0), Vector2(size * sizeFactor , size ), Vector2(0.5, 0.5), Vec2i( frame , birdType), Vec2i(3, 3));
 			}
 			glPopMatrix();
-			glDisable(GL_BLEND);
+			RHISetBlendState(TStaticBlendState<>::GetRHI());
 		}
 	}
 
@@ -583,10 +585,9 @@ namespace FlappyBird
 				texPos.y += texSize.y;
 				texSize.y = -texSize.y;
 			}
-			glEnable(GL_BLEND);
-			glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+			RHISetBlendState(TStaticBlendState<CWM_RGBA , Blend::eSrcAlpha , Blend::eOneMinusSrcAlpha>::GetRHI());
 			drawTexture(TextureID::Pipe, rPos , rSize, Vector2(0, 0), texPos, texSize);
-			glDisable(GL_BLEND);
+			RHISetBlendState(TStaticBlendState<>::GetRHI());
 
 		}
 	}
@@ -605,18 +606,14 @@ namespace FlappyBird
 		float offset = 0.5 * width * (numDigial - 1);
 
 		Vector2 size = Vector2(width, 10 * width / getTextureSizeRatio(TextureID::Number));
-		glEnable(GL_BLEND);
-		//glAlphaFunc(GL_GREATER, 0.01f);
-		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
+		RHISetBlendState(TStaticBlendState<CWM_RGBA, Blend::eSrcAlpha, Blend::eOneMinusSrcAlpha>::GetRHI());
 		for( int i = 0; i < numDigial; ++i )
 		{
 			drawTexture(TextureID::Number, Vector2(offset - i * width , 0 ),  size, 
 						Vector2(0.5, 0.5), Vec2i(digials[i] , 0 ), Vec2i(10, 1));
 		}
-
-
-		glDisable(GL_BLEND);
+		RHISetBlendState(TStaticBlendState<>::GetRHI());
 	}
 
 }//namespace FlappyBird

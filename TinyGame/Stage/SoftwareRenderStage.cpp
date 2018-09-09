@@ -598,7 +598,7 @@ namespace SR
 			VertexData vd2 = { 0.4 , Vector2(1,1) ,LinearColor(0,0,1) };
 			DrawTriangle(mColorBuffer, Vector2(300, 400), Vector2(400, 500), Vector2(600, 300), vd0, vd1, vd2);
 		}
-		using namespace RenderGL;
+		using namespace Render;
 		Vec2i screenSize = ::Global::GetDrawEngine()->getScreenSize();
 		float aspect = float(screenSize.x) / screenSize.y;
 		mRenderer.worldToClip = Matrix4::Rotate(Vector3(0, 1, 0), angle) * LookAtMatrix(Vector3(0, 0, 20), Vector3(0, 0, -1), Vector3(0, 1, 0)) * PerspectiveMatrix(Math::Deg2Rad(90), aspect, 0.01, 500);

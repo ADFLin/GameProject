@@ -1,0 +1,297 @@
+#include "Common.sgc"
+#include "VertexFactoryProcess.sgc"
+
+#include "ViewParam.sgc"
+#include "PrimitiveParam.sgc"
+
+#ifndef USE_TESSELLATION
+#define USE_TESSELLATION 1
+#endif
+
+#ifndef USE_DISPLACEMENT_MAP
+#define USE_DISPLACEMENT_MAP 0
+#endif
+
+#ifndef USE_PN_TRIANGLE
+#define USE_PN_TRIANGLE 1
+#endif
+
+#ifndef USE_AEN
+#define USE_AEN 0
+#endif
+
+#ifndef USE_VIRTUAL_DISCING
+#define USE_VIRTUAL_DISCING 0
+#endif
+
+#if !USE_MATERIAL
+struct PassInterpolantsParam
+{
+	float3 data;
+};
+
+struct FactoryInterpolantsParam
+{
+	float3 pos;
+	float3 color;
+	float3 normal;
+	float2 uv;
+	float  id;
+};
+
+struct VertexOutputParamVSToPS
+{
+	FactoryInterpolantsParam   factoryInterpolants;
+	PassInterpolantsParam      passInterpolants;
+};
+#endif
+
+#if USE_TESSELLATION 
+#define OutputHS InputDS
+#else
+#define OutputVS OutputVS 
+#endif
+
+#if USE_TESSELLATION
+struct VertexOutputParamDS
+{
+	float3 pos;
+};
+#define VertexOutputParameters VertexOutputParamVSToPS
+#else
+#define VertexOutputParameters VertexOutputParamVSToPS
+#endif
+
+uniform mat4 XForm;
+
+#if VERTEX_SHADER
+
+layout( location = ATTRIBUTE_POSITION ) in float3 VertexInput_pos;
+layout( location = ATTRIBUTE_COLOR ) in float3 VertexInput_color;
+layout( location = ATTRIBUTE_NORMAL) in float3 VertexInput_normal;
+layout( location = ATTRIBUTE_TEXCOORD) in float2 VertexInput_uv;
+layout(location = 0) out VertexOutputParameters OutputVS;
+#if USE_TESSELLATION
+out VertexOutputParamDS VertexOuputDS;
+#endif
+void MainVS()
+{
+	OutputVS.passInterpolants.data = VertexInput_color;
+	OutputVS.factoryInterpolants.pos = float3( Primitive.localToWorld * float4(VertexInput_pos, 1) );
+	OutputVS.factoryInterpolants.color = VertexInput_color;
+	OutputVS.factoryInterpolants.normal = VertexInput_normal;
+	OutputVS.factoryInterpolants.uv = VertexInput_uv;
+
+#if USE_TESSELLATION
+	VertexOuputDS.pos = float3(Primitive.localToWorld * float4(VertexInput_pos, 1));
+#endif
+
+	gl_Position = XForm * float4( VertexInput_pos , 1 );
+}
+
+#endif //VERTEX_SHADER
+
+#if USE_TESSELLATION
+struct VertexOutputParamHSToDS
+{
+	VertexOutputParamVSToPS vetexParam;
+#if USE_PN_TRIANGLE
+	float3 pos[3];
+#else
+	float3 pos;
+#endif
+};
+
+#if USE_PN_TRIANGLE
+struct HullConstParam
+{
+	float3 P111;
+};
+#endif
+
+float3 CalcControlPoint(float3 start, float3 end, float3 startNormal)
+{
+	return (2 * start + end - dot(startNormal, end - start) * startNormal) / 3;
+}
+
+#if HULL_SHADER
+
+uniform int TessOuter;
+uniform int TessInner;
+
+layout(vertices = 3) out;
+layout(location = 0) in  VertexOutputParamVSToPS InputHS[];
+
+in  VertexOutputParamDS     VertexOuputDS[];
+out VertexOutputParamHSToDS OutputHS[];
+#if USE_PN_TRIANGLE
+patch out HullConstParam OutputConstHS;
+#endif
+
+void MainHS()
+{
+#define curIndex gl_InvocationID
+	OutputHS[curIndex].vetexParam.factoryInterpolants = InputHS[curIndex].factoryInterpolants;
+	OutputHS[curIndex].vetexParam.passInterpolants = InputHS[curIndex].passInterpolants;
+
+
+#if USE_PN_TRIANGLE
+	float3 curPos = VertexOuputDS[curIndex].pos;
+	float3 curNormal = InputHS[curIndex].factoryInterpolants.normal;
+	
+	int nextIndex = curIndex < 2 ? curIndex + 1 : 0;
+
+	float3 nextNormal = InputHS[nextIndex].factoryInterpolants.normal;
+	float3 nextPos = VertexOuputDS[nextIndex].pos;
+
+	OutputHS[curIndex].pos[0] = curPos;
+
+#if USE_AEN
+	int neighborIndex = 3 + 2 * curIndex;
+	int neighborNextIndex = 3 + 2 * curIndex + 1;
+
+	float3 neighborNormal = InputHS[neighborIndex].factoryInterpolants.normal;
+	//float3 neighborPos = VertexOuputDS[neighborIndex].pos;
+	float3 neighborNextNormal = InputHS[neighborNextIndex].factoryInterpolants.normal;
+	//float3 neighborNextPos = VertexOuputDS[neighborNextIndex].pos;
+
+	OutputHS[curIndex].pos[1] = 0.5 * ( CalcControlPoint(curPos, nextPos, curNormal) + CalcControlPoint(curPos, nextPos, neighborNormal) );
+	OutputHS[curIndex].pos[2] = 0.5 * ( CalcControlPoint(nextPos, curPos, nextNormal) + CalcControlPoint(nextPos, curPos, neighborNextNormal) );
+#else
+	OutputHS[curIndex].pos[1] = CalcControlPoint(curPos, nextPos, curNormal);
+	OutputHS[curIndex].pos[2] = CalcControlPoint(nextPos, curPos, nextNormal);
+#endif
+
+#else
+	OutputHS[curIndex].pos = VertexOuputDS[curIndex].pos;
+#endif
+
+#undef curIndex
+
+	barrier();
+	if ( gl_InvocationID == 0 )
+	{
+		gl_TessLevelOuter[0] = float(TessOuter);
+		gl_TessLevelOuter[1] = float(TessOuter);
+		gl_TessLevelOuter[2] = float(TessOuter);
+		gl_TessLevelInner[0] = float(TessInner);
+
+#if USE_PN_TRIANGLE
+		float3 P300 = InputDS[0].pos[0];
+		float3 P210 = InputDS[0].pos[1];
+		float3 P120 = InputDS[0].pos[2];
+		float3 P030 = InputDS[1].pos[0];
+		float3 P021 = InputDS[1].pos[1];
+		float3 P012 = InputDS[1].pos[2];
+		float3 P003 = InputDS[2].pos[0];
+		float3 P102 = InputDS[2].pos[1];
+		float3 P201 = InputDS[2].pos[2];
+		OutputConstHS.P111 = (P021 + P012 + P201 + P102 + P210 + P120) / 4 - (P300 + P030 + P003) / 6;
+#endif
+
+	}
+
+}
+
+#endif //HULL_SHADER
+
+#if DOMAIN_SHADER
+
+#define ComponentMulT( TYPE )\
+	TYPE ComponentMul(float2 b ,TYPE v0 ,TYPE v1 ){ return b.x * v0 + b.y * v1; }\
+	TYPE ComponentMul(float3 b, TYPE v0, TYPE v1, TYPE v2) { return b.x * v0 + b.y * v1 + b.z * v2; }\
+	TYPE ComponentMul(float4 b, TYPE v0, TYPE v1, TYPE v2, TYPE v3) { return b.x * v0 + b.y * v1 + b.z * v2 + b.w * v3; }
+
+VECTOR_FUNCTION_LIST(ComponentMulT)
+#undef  ComponentMulT
+
+
+layout(triangles, equal_spacing, ccw) in;
+
+uniform sampler2D DispTexture;
+uniform float DispFactor;
+
+
+in VertexOutputParamHSToDS  InputDS[];
+layout(location = 0) out VertexOutputParamVSToPS OutputDS;
+#if USE_PN_TRIANGLE
+patch in HullConstParam InputConstDS;
+#endif
+void MainDS()
+{
+#define INTERPOLATE_MEMBER( NAME ) ComponentMul(gl_TessCoord , InputDS[0].NAME,InputDS[1].NAME,InputDS[2].NAME)
+#define INTERPOLATE_VERTEX_PARAM_MEMBER( NAME ) OutputDS.NAME = INTERPOLATE_MEMBER( vetexParam.NAME );
+
+	
+	INTERPOLATE_VERTEX_PARAM_MEMBER(factoryInterpolants.color);
+	INTERPOLATE_VERTEX_PARAM_MEMBER(factoryInterpolants.uv);
+
+	//           B003
+	//            20
+	//           /  \
+	//    B102  21   12 B012
+	//         /      \
+	//  B201  22       11  B021
+	//       /          \ 
+	// B300 00__01__02__10  B030 
+	//        B210  B120
+
+#if USE_PN_TRIANGLE
+	float3 P300 = InputDS[0].pos[0];
+	float3 P210 = InputDS[0].pos[1];
+	float3 P120 = InputDS[0].pos[2];
+	float3 P030 = InputDS[1].pos[0];
+	float3 P021 = InputDS[1].pos[1];
+	float3 P012 = InputDS[1].pos[2];
+	float3 P003 = InputDS[2].pos[0];
+	float3 P102 = InputDS[2].pos[1];
+	float3 P201 = InputDS[2].pos[2];
+
+	float3 uvw = gl_TessCoord.xyz;
+	float3 uvw2 = uvw * uvw;
+	float3 uvw3 = uvw2 * uvw;
+	float u = uvw.x;
+	float v = uvw.y;
+	float w = uvw.z;
+
+	float3 pos = ComponentMul(uvw3, P300, P030, P003) 
+		      + 3 * ComponentMul(uvw2, (v * P210 + w * P201), u * P120 + w * P021, v * P012 + u * P102) 
+		      + 6 * u * v * w * InputConstDS.P111;
+
+	OutputDS.factoryInterpolants.pos = pos;
+#else
+	float3 pos = INTERPOLATE_MEMBER(pos);
+	INTERPOLATE_VERTEX_PARAM_MEMBER(factoryInterpolants.pos);
+#endif
+
+#if USE_DISPLACEMENT_MAP
+	float disp = texture2D(DispTexture, OutputDS.factoryInterpolants.uv).a;
+	float3 dispOffset = DispFactor * disp * float3(0, 0, 1);
+
+	OutputDS.factoryInterpolants.pos += dispOffset;
+	pos += dispOffset;
+#endif
+
+	OutputDS.factoryInterpolants.id = gl_PrimitiveID;
+	gl_Position = View.worldToClip * float4(pos, 1);
+}
+
+#endif //DOMAIN_SHADER
+
+#endif //USE_TESSELLATION
+
+#if PIXEL_SHADER
+
+
+layout(location = 0) in VertexOutputParamVSToPS InputPS;
+
+uniform sampler2D BaseTexture;
+
+out float4 OutColor;
+void MainPS()
+{
+	float4 texColor = texture2D(BaseTexture, InputPS.factoryInterpolants.uv);
+	OutColor = float4(/*InputPS.factoryInterpolants.color **/ texColor.xyz , 1);
+	//OutColor = float4(float3( float(InputPS.factoryInterpolants.id) / 32 ) , 1);
+}
+#endif

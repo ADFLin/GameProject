@@ -162,12 +162,12 @@ namespace MV
 
 		RenderParam mParam;
 
-		RenderGL::ShaderProgram mEffect;
+		Render::ShaderProgram mEffect;
 		int locDirX;
 		int locDirZ;
 		int locLocalScale;
 
-		RenderGL::Mesh mMesh[ NUM_MESH ];
+		Render::Mesh mMesh[ NUM_MESH ];
 
 		std::vector< float > mCacheBuffer;
 		float* useCacheBuffer( int len )

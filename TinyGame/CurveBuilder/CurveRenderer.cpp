@@ -9,7 +9,7 @@
 
 namespace CB
 {
-	using namespace RenderGL;
+	using namespace Render;
 
 	class CurveMeshBaseProgram : public GlobalShaderProgram
 	{

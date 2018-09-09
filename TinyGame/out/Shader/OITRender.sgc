@@ -2,14 +2,21 @@
 #include "Common.sgc"
 #include "ViewParam.sgc"
 
-#ifndef OIT_USE_MATERIAL
-#define OIT_USE_MATERIAL 0
-#endif
-
-#if OIT_USE_MATERIAL
+#if USE_MATERIAL
 #include "MaterialProcess.sgc"
-#include "VertexProcess.sgc"
-#endif
+#include "VertexFactoryProcess.sgc"
+
+struct PassInterpolantsParam
+{
+	float dump;
+};
+
+struct VertexOutputParamVSToPS
+{
+	FactoryInterpolantsParam   factoryInterpolants;
+	PassInterpolantsParam      passInterpolants;
+};
+#else
 
 struct OutputVSParam
 {
@@ -18,13 +25,14 @@ struct OutputVSParam
 	float4 viewPos;
 };
 
+#endif
+
 #if VERTEX_SHADER
 
-#if OIT_USE_MATERIAL
+#if USE_MATERIAL
 
-out VertexFactoryOutputVS VFOutputVS;
-
-#else //OIT_USE_MATERIAL
+layout(location = 0) out VertexOutputParameters OutputVS;
+#else //USE_MATERIAL
 
 out OutputVSParam OutputVS;
 uniform float4 BaseColor;
@@ -32,22 +40,22 @@ uniform mat4   WorldTransform;
 layout(location = ATTRIBUTE_POSITION) in float3 InPosition;
 layout(location = ATTRIBUTE_NORMAL) in float3 InNoraml;
 
-#endif //OIT_USE_MATERIAL
+#endif //USE_MATERIAL
 
 void BassPassVS()
 {
 
-#if OIT_USE_MATERIAL
-	VertexFactoryIntermediatesVS intermediates = GetVertexFactoryIntermediatesVS();
+#if USE_MATERIAL
+	VertexFactoryIntermediatesVS intermediates = VertexFactory_GetIntermediatesVS();
 
 	MaterialInputVS materialInput = InitMaterialInputVS();
-	MaterialParametersVS materialParameters = GetMaterialParameterVS(intermediates);
+	MaterialParametersVS materialParameters = VertexFactory_GetMaterialParameterVS(intermediates);
 
 	CalcMaterialInputVS(materialInput, materialParameters);
 
-	gl_Position = CalcVertexFactoryOutputVS(VFOutputVS, intermediates, materialInput, materialParameters);
+	gl_Position = VertexFactory_GetInterpolants(OutputVS.factoryInterpolants, intermediates, materialInput, materialParameters);
 
-#else //OIT_USE_MATERIAL
+#else //USE_MATERIAL
 	float4 worldPos = WorldTransform * float4(InPosition, 1.0);
 	OutputVS.pos = View.worldToClip * worldPos;
 	OutputVS.color = float4(clamp(InPosition / 10 , 0, 1), 0.2);
@@ -55,7 +63,7 @@ void BassPassVS()
 	OutputVS.color *= float4( 0.5 * normal + 0.5 , 1.0);
 	OutputVS.viewPos = View.worldToView * worldPos;
 	gl_Position = View.worldToClip * worldPos;
-#endif // OIT_USE_MATERIAL
+#endif // USE_MATERIAL
 }
 
 layout(location = 0) in float4 InScreenPos;
@@ -70,19 +78,18 @@ void ScreenVS()
 
 #include "OITCommon.sgc"
 
-#if OIT_USE_MATERIAL
-#define VFInputPS VFOutputVS
-in VertexFactoryIutputPS VFOutputVS;
-#else //OIT_USE_MATERIAL
+#if USE_MATERIAL
+layout(location = 0) in VertexOutputParamVSToPS InputPS;
+#else //USE_MATERIAL
 in OutputVSParam OutputVS;
-#endif //OIT_USE_MATERIAL
+#endif //USE_MATERIAL
 
 layout(early_fragment_tests) in;
 void BassPassPS()
 {
-#if OIT_USE_MATERIAL
+#if USE_MATERIAL
 	MaterialInputPS materialInput = InitMaterialInputPS();
-	MaterialParametersPS materialParameters = GetMaterialParameterPS(VFInputPS);
+	MaterialParametersPS materialParameters = VertexFactory_GetMaterialParameterPS(InputPS.factoryInterpolants);
 
 	CalcMaterialParameters(materialInput, materialParameters);
 
@@ -91,12 +98,12 @@ void BassPassPS()
 	pixelAlpha = 0.4;
 	//float  pixelDepth = materialParameters.screenPos.z;
 	float  pixelDepth = -(View.worldToView * float4(materialParameters.worldPos, 1)).z;
-#else //OIT_USE_MATERIAL
+#else //USE_MATERIAL
 	float3 pixelColor = OutputVS.color.rgb;
 	float  pixelAlpha = OutputVS.color.a;
 	float  pixelDepth = 0.5 * OutputVS.pos.z + 0.5;
 
-#endif //OIT_USE_MATERIAL
+#endif //USE_MATERIAL
 
 	OITProcessPS(float4(pixelColor, pixelAlpha), pixelDepth);
 }

@@ -34,7 +34,7 @@
 
 class Thread;
 
-namespace RenderGL
+namespace Render
 {
 	float const FLT_DIV_ZERO_EPSILON = 1e-6;
 
@@ -778,7 +778,7 @@ namespace RenderGL
 		CycleTrack mTracks[4];
 
 		Vector3 mPos;
-		RenderGL::SimpleCamera  mCamStorage[2];
+		Render::SimpleCamera  mCamStorage[2];
 		CameraMove  mCameraMove;
 		ViewFrustum mViewFrustum;
 
@@ -890,7 +890,7 @@ namespace RenderGL
 
 	};
 
-}//namespace RenderGL
+}//namespace Render
 
 
 #endif // RenderGLStage_H_A0BE1A79_C2DE_4703_A032_404ED3032080

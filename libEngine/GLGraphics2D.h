@@ -21,7 +21,7 @@ class GLTexture
 	
 };
 
-typedef RenderGL::FontDrawer GLFont;
+typedef Render::FontDrawer GLFont;
 
 class GLGraphics2D
 {

@@ -14,7 +14,7 @@
 
 namespace MV
 {
-	using namespace RenderGL;
+	using namespace Render;
 
 	struct MeshInfo
 	{

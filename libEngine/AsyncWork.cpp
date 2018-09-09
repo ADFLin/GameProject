@@ -164,7 +164,7 @@ unsigned PoolRunableThread::run()
 
 		IQueuedWork* currentWork = mWork;
 		mWork = nullptr;
-		SystemPlatform::MemoryBarrier();
+		SystemPlatform::MemoryStoreFence();
 		while( currentWork )
 		{
 			currentWork->executeWork();
@@ -180,7 +180,7 @@ void PoolRunableThread::doWork(IQueuedWork* work)
 {
 	Mutex::Locker locker(mWaitWorkMutex);
 	mWork = work;
-	SystemPlatform::MemoryBarrier();
+	SystemPlatform::MemoryStoreFence();
 
 	mWaitWorkCV.notifyOne();
 }

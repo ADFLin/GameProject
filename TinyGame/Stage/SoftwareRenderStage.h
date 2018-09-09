@@ -19,7 +19,7 @@
 
 namespace SR
 {
-	using namespace RenderGL;
+	using namespace Render;
 
 	typedef Math::Transform XForm;
 	struct Color

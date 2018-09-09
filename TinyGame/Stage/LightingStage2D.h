@@ -19,7 +19,7 @@
 
 namespace Lighting2D
 {
-	using namespace RenderGL;
+	using namespace Render;
 
 	typedef Math::Vector2 Vector2;
 	typedef Math::Vector3 Color;

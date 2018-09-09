@@ -10,7 +10,7 @@
 namespace Chai = chaiscript;
 
 
-namespace RenderGL
+namespace Render
 {
 	template< class ModuleType >
 	class TScriptCollector

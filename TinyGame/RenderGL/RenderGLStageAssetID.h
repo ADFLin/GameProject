@@ -1,4 +1,4 @@
-namespace RenderGL
+namespace Render
 {
 	namespace MaterialId
 	{

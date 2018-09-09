@@ -5,11 +5,94 @@
 #include "OpenGLCommon.h"
 
 #include "HashString.h"
+#include "FixString.h"
 
 #include <unordered_map>
 
-namespace RenderGL
+namespace Render
 {
+	class ShaderCompileOption
+	{
+	public:
+		ShaderCompileOption()
+		{
+			version = 0;
+		}
+
+		void addInclude(char const* name)
+		{
+			mIncludeFiles.push_back(name);
+		}
+		void addDefine(char const* name, bool value)
+		{
+			addDefine(name, value ? 1 : 0);
+		}
+		void addDefine(char const* name, int value)
+		{
+			ConfigVar var;
+			var.name = name;
+			FixString<128> str;
+			var.value = str.format("%d", value);
+			mConfigVars.push_back(var);
+		}
+		void addDefine(char const* name, float value)
+		{
+			ConfigVar var;
+			var.name = name;
+			FixString<128> str;
+			var.value = str.format("%f", value);
+			mConfigVars.push_back(var);
+		}
+		void addDefine(char const* name)
+		{
+			ConfigVar var;
+			var.name = name;
+			mConfigVars.push_back(var);
+		}
+		void addCode(char const* name)
+		{
+			mCodes.push_back(name);
+		}
+		struct ConfigVar
+		{
+			std::string name;
+			std::string value;
+		};
+
+		std::string getCode(char const* defCode = nullptr, char const* addionalCode = nullptr) const;
+
+		unsigned version;
+		bool     bShowComplieInfo = false;
+
+		std::vector< std::string > mCodes;
+		std::vector< ConfigVar >   mConfigVars;
+		std::vector< std::string > mIncludeFiles;
+	};
+
+	enum BlendMode
+	{
+		Blend_Opaque,
+		Blend_Masked,
+		Blend_Translucent,
+		Blend_Additive,
+		Blend_Modulate,
+
+		NumBlendMode,
+	};
+
+	enum class ETessellationMode
+	{
+		None,
+		Flat,
+		PNTriangle,
+	};
+
+	struct MaterialShaderCompileInfo
+	{
+		char const* name;
+		BlendMode blendMode;
+		ETessellationMode tessellationMode;
+	};
 
 	struct RMPShader
 	{
@@ -469,6 +552,6 @@ namespace RenderGL
 		int  mNextStorageSlot;
 	};
 
-}//namespace RenderGL
+}//namespace Render
 
 #endif // ShaderCore_H_999A5DE0_B9BF_41DF_8A7A_28D440730A62

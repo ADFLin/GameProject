@@ -27,7 +27,7 @@ REGISTER_STAGE("LeelaZero Learning", Go::LeelaZeroGoStage, EStageGroup::Test);
 
 namespace Go
 {
-	class UnderCurveAreaProgram : public RenderGL::GlobalShaderProgram
+	class UnderCurveAreaProgram : public Render::GlobalShaderProgram
 	{
 		DECLARE_GLOBAL_SHADER(UnderCurveAreaProgram)
 
@@ -144,7 +144,7 @@ namespace Go
 
 		VERIFY_INITRESULT(mBoardRenderer.initializeRHI());
 
-		using namespace RenderGL;
+		using namespace Render;
 #if 0
 		if( !DumpFunSymbol("Zen7.dump", "aa.txt") )
 			return false;
@@ -509,19 +509,18 @@ namespace Go
 
 	void LeelaZeroGoStage::onRender(float dFrame)
 	{
-		using namespace RenderGL;
+		using namespace Render;
 
 		using namespace Go;
 
-		glClear(GL_COLOR_BUFFER_BIT);
-		RHISetDepthStencilState(StaticDepthDisableState::GetRHI());
-
-		GLGraphics2D& g = ::Global::GetGLGraphics2D();
-		g.beginRender();
-
 		GpuProfiler::Get().beginFrame();
 
-		
+		glClear(GL_COLOR_BUFFER_BIT);
+
+		GLGraphics2D& g = ::Global::GetRHIGraphics2D();
+		g.beginRender();
+
+
 		auto& viewingGame = getViewingGame();
 
 		RenderContext context( viewingGame.getBoard() , BoardPos , RenderBoardScale );
@@ -567,7 +566,7 @@ namespace Go
 				float const ALPHA_SCALING_FACTOR = 5.0;
 
 
-				RenderUtility::SetFont(g, FONT_S8);
+				RenderUtility::SetFont(g, FONT_S8);	
 				for( auto const& info : analysisResult )
 				{
 					if ( info.nodeVisited == 0 )
@@ -644,9 +643,6 @@ namespace Go
 		}
 
 		GpuProfiler::Get().endFrame();
-		g.endRender();
-
-		g.beginRender();
 
 		FixString< 512 > str;
 
@@ -716,6 +712,7 @@ namespace Go
 
 		if ( bDrawFontCacheTexture )
 			DrawUtility::DrawTexture(FontCharCache::Get().mTextAtlas.getTexture(), Vector2(0, 0), Vector2(600, 600));
+
 		g.endRender();
 	}
 
@@ -1845,9 +1842,14 @@ namespace Go
 					setting.weightName = FileUtility::GetDirPathPos(weightName.c_str()) + 1;
 					setting.visits = atoi(findChildT<GTextCtrl>(id + UPARAM_VISITS)->getValue());
 					setting.bUseModifyVersion = true;
+					setting.seed = generateRandSeed();
 					if( bHavePlayerController )
 					{
 						setting.resignpct = 0;
+					}
+					else
+					{
+						setting.randomcnt = 5;
 					}
 					if( !matchData.players[i].initialize(types[i], &setting) )
 						return false;

@@ -8,7 +8,7 @@
 
 #include <memory>
 
-namespace RenderGL
+namespace Render
 {
 
 	class  Material;
@@ -138,7 +138,7 @@ namespace RenderGL
 		bool bNeedUpdatePrimitive;
 	};
 
-}//namespace RenderGL
+}//namespace Render
 
 
 #endif // Scene_H_62290B6B_2869_454C_8342_59EEB7959545

@@ -1,4 +1,4 @@
-#include "TestStageHeader.h"
+#include "Stage/TestStageHeader.h"
 
 #include "RHI/RHIDefine.h"
 #include "RHI/BaseType.h"
@@ -42,12 +42,10 @@ void MainPS(in VSOutput input, out float4 OutColor : SV_Target0 )
 );
 
 
-namespace RenderD3D
+namespace RenderD3D11
 {
 
-	using namespace RenderGL;
-
-
+	using namespace Render;
 
 	template < uint32 VertexFormat >
 	class TRenderRT_D3D
@@ -178,7 +176,7 @@ namespace RenderD3D
 		}
 
 		template< class ShaderType , class RealType >
-		bool SetShaderValue(char const* name, ShaderType* shader, RealType const& value )
+		bool SetShaderValue(ShaderType* shader, char const* name,  RealType const& value )
 		{
 			auto iter = mParameterMap.mMap.find(name);
 			if( iter == mParameterMap.mMap.end() )
@@ -280,15 +278,13 @@ namespace RenderD3D
 				bufferDesc.MiscFlags = 0;
 				bufferDesc.StructureByteStride = 0;
 
-			
-				VERIFY_D3D11RESULT_RETURN_FALSE(device->CreateBuffer(&bufferDesc, &initData, &mVertexBuffer));
-
+				VERIFY_INITRESULT( mVertexBuffer = RHICreateVertexBuffer(sizeof(MyVertex), ARRAY_SIZE(vertices), BCF_DefalutValue, vertices) );
 
 				InputLayoutDesc desc;
 				desc.addElement(0, Vertex::ATTRIBUTE0, Vertex::eFloat2);
 				desc.addElement(0, Vertex::ATTRIBUTE1, Vertex::eFloat3);
 				desc.addElement(0, Vertex::ATTRIBUTE2, Vertex::eFloat2);
-				mInputLayout = RHICreateInputLayout(desc);
+				VERIFY_INITRESULT( mInputLayout = RHICreateInputLayout(desc) );
 			}
 
 			{
@@ -314,7 +310,7 @@ namespace RenderD3D
 		}
 		TComPtr< ID3D11RenderTargetView > renderTargetView;
 		RHIInputLayoutRef mInputLayout;
-		TComPtr< ID3D11Buffer > mVertexBuffer;
+		RHIVertexBufferRef mVertexBuffer;
 		virtual void onEnd()
 		{
 			BaseClass::onEnd();
@@ -369,8 +365,8 @@ namespace RenderD3D
 
 			float c = 0.5 * Math::Sin(worldTime) + 0.5;
 			Matrix4 xform = Matrix4::Rotate(Vector3(0, 0, 1), angle) * Matrix4::Translate(Vector3(0.2, 0, 0));
-			SetShaderValue(SHADER_PARAM(XForm), mVertexShader.get(), xform);
-			SetShaderValue(SHADER_PARAM(Color), mPixelShader.get() , Color3f(c, c, c));
+			SetShaderValue(mVertexShader.get(), SHADER_PARAM(XForm),  xform);
+			SetShaderValue(mPixelShader.get(), SHADER_PARAM(Color),  Color3f(c, c, c));
 
 			{
 				for ( int idxShader = 0 ; idxShader < 2 ; ++idxShader )
@@ -400,7 +396,8 @@ namespace RenderD3D
 				UINT stride = sizeof(MyVertex);
 				UINT offset = 0;
 				context->IASetInputLayout(D3D11Cast::GetResource(mInputLayout));
-				context->IASetVertexBuffers(0, 1, &mVertexBuffer, &stride, &offset);	
+				ID3D11Buffer* buffers[] = { D3D11Cast::GetResource(mVertexBuffer) };
+				context->IASetVertexBuffers(0, 1, buffers, &stride, &offset);
 				RHIDrawPrimitive(PrimitiveType::TriangleStrip, 0 , 4 );
 			}
 			
@@ -456,6 +453,6 @@ namespace RenderD3D
 	};
 
 
-	REGISTER_STAGE("D3D Test", TestStage, EStageGroup::FeatureDev);
+	REGISTER_STAGE("D3D11 Test", TestStage, EStageGroup::FeatureDev);
 
 }

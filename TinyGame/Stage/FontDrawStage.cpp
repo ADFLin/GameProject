@@ -7,7 +7,7 @@
 #include "RHI/Font.h"
 
 
-using namespace RenderGL;
+using namespace Render;
 
 class FontDrawTestStage : public StageBase
 {
@@ -147,7 +147,7 @@ public:
 
 	void onRender(float dFrame)
 	{
-		GLGraphics2D& g = ::Global::GetGLGraphics2D();
+		GLGraphics2D& g = ::Global::GetRHIGraphics2D();
 		g.beginRender();
 
 		glClearColor(0.2, 0.2, 0.2, 0);

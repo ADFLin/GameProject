@@ -16,7 +16,7 @@
 
 #include "GLGraphics2D.h"
 
-namespace RenderGL
+namespace Render
 {
 	class BatchedDrawer
 	{

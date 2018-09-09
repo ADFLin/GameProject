@@ -24,13 +24,7 @@ bool IsInGameThead()
 
 uint64 generateRandSeed()
 {
-	uint64 result ;
-	__asm
-	{
-		rdtsc;
-		mov dword ptr result , eax;
-		mov dword ptr result + 4, edx;
-	}
+	uint64 result = __rdtsc();
 	return result;
 }
 
@@ -126,7 +120,7 @@ GUISystem& Global::GUI()
 	return system;
 }
 
-GLGraphics2D& Global::GetGLGraphics2D()
+GLGraphics2D& Global::GetRHIGraphics2D()
 {
 	return GetDrawEngine()->getGLGraphics();
 }

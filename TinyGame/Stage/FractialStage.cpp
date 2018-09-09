@@ -10,7 +10,7 @@
 
 #include "SuperFractial/SelectRectBase.h"
 
-using namespace RenderGL;
+using namespace Render;
 
 
 struct MandelbrotParam
@@ -348,7 +348,7 @@ public:
 
 	void onRender(float dFrame)
 	{
-		GLGraphics2D& g = Global::GetGLGraphics2D();
+		GLGraphics2D& g = Global::GetRHIGraphics2D();
 
 		GameWindow& window = Global::GetDrawEngine()->getWindow();
 

@@ -13,7 +13,7 @@
 #include <sstream>
 #include <iterator>
 
-namespace RenderGL
+namespace Render
 {
 
 	char const* ShaderPosfixNames[] =
@@ -73,10 +73,11 @@ namespace RenderGL
 	}
 
 	int ShaderManager::loadMaterialShaders(
-		char const* fileName , VertexFactoryType& vertexFactoryType,
+		MaterialShaderCompileInfo const& info, 
+		VertexFactoryType& vertexFactoryType,
 		MaterialShaderPairVec& outShaders )
 	{
-		std::string path = GetFilePath(fileName);
+		std::string path = GetFilePath(info.name);
 		std::vector< char > materialCode;
 		if( !FileUtility::LoadToBuffer(path.c_str(), materialCode, true) )
 			return 0;
@@ -88,6 +89,18 @@ namespace RenderGL
 			option.version = 430;
 			option.addCode(&materialCode[0]);
 			vertexFactoryType.getCompileOption(option);
+
+			switch( info.tessellationMode )
+			{
+			case ETessellationMode::Flat:
+				option.addDefine(SHADER_PARAM(USE_TESSELLATION), true);
+				break;
+			case ETessellationMode::PNTriangle:
+				option.addDefine(SHADER_PARAM(USE_TESSELLATION), true);
+				option.addDefine(SHADER_PARAM(USE_PN_TRIANGLE), true);
+				break;
+			}
+
 			MaterialShaderProgram* shaderProgram = (MaterialShaderProgram*)constructShaderInternal(*pShaderClass, ShaderClassType::Material, option );
 
 			if( shaderProgram )

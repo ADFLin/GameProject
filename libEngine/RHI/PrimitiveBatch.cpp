@@ -4,7 +4,7 @@
 #include "ShaderCompiler.h"
 #include "RHICommand.h"
 
-namespace RenderGL
+namespace Render
 {
 	void MeshBatch::draw(RenderContext& context)
 	{
@@ -188,4 +188,4 @@ namespace RenderGL
 		}
 	}
 
-}//namespace RenderGL
+}//namespace Render

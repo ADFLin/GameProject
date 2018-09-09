@@ -19,8 +19,9 @@
 #include <functional>
 #include <type_traits>
 
+#define IGNORE_NSIGHT_UNSUPPORT_CODE 0
 
-namespace RenderGL
+namespace Render
 {
 
 	template< class RMPolicy >
@@ -692,7 +693,7 @@ namespace RenderGL
 	};
 
 #define GL_BIND_LOCK_OBJECT( obj )\
-	RenderGL::TBindLockScope< std::remove_reference< decltype(obj) >::type >  ANONYMOUS_VARIABLE( BindLockObj )( obj );
+	Render::TBindLockScope< std::remove_reference< decltype(obj) >::type >  ANONYMOUS_VARIABLE( BindLockObj )( obj );
 
 
 

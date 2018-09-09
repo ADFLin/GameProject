@@ -31,7 +31,7 @@ struct ParticleParameters
 	float4 dynamic; // x : Friction , y : Restitution , z : vel dumping , w
 };
 
-layout(std140) uniform ParticleParamBlock
+layout(std140) cbuffer ParticleParamBlock
 {
 	ParticleParameters ParticleParam;
 };
@@ -43,7 +43,7 @@ struct ParticleInitParameters
 	float3 posMax;
 };
 
-layout(std140) uniform ParticleInitParamBlock
+layout(std140) cbuffer ParticleInitParamBlock
 {
 	ParticleInitParameters ParticleInitParam;
 };
@@ -83,7 +83,7 @@ struct CollisionPrimitive
 
 
 uniform int NumCollisionPrimitive = 1;
-layout(std140) uniform CollisionPrimitiveBlock
+layout(std140) cbuffer CollisionPrimitiveBlock
 {
 	CollisionPrimitive CollisionPrimitives[10];
 };

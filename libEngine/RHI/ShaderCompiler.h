@@ -14,7 +14,7 @@
 
 #define SHADER_FILE_SUBNAME ".sgc"
 
-namespace RenderGL
+namespace Render
 {
 	class MaterialShaderProgramClass;
 	class MaterialShaderProgram;
@@ -27,65 +27,6 @@ namespace RenderGL
 
 
 	};
-
-	class ShaderCompileOption
-	{
-	public:
-		ShaderCompileOption()
-		{
-			version = 0;
-		}
-
-		void addInclude(char const* name)
-		{
-			mIncludeFiles.push_back(name);
-		}
-		void addDefine(char const* name, bool value)
-		{
-			addDefine(name, value ? 1 : 0);
-		}
-		void addDefine(char const* name, int value)
-		{
-			ConfigVar var;
-			var.name = name;
-			FixString<128> str;
-			var.value = str.format("%d", value);
-			mConfigVars.push_back(var);
-		}
-		void addDefine(char const* name, float value)
-		{
-			ConfigVar var;
-			var.name = name;
-			FixString<128> str;
-			var.value = str.format("%f", value);
-			mConfigVars.push_back(var);
-		}
-		void addDefine(char const* name)
-		{
-			ConfigVar var;
-			var.name = name;
-			mConfigVars.push_back(var);
-		}
-		void addCode(char const* name)
-		{
-			mCodes.push_back(name);
-		}
-		struct ConfigVar
-		{
-			std::string name;
-			std::string value;
-		};
-
-		std::string getCode(char const* defCode = nullptr, char const* addionalCode = nullptr) const;
-
-		unsigned version;
-		bool     bShowComplieInfo = false;
-
-		std::vector< std::string > mCodes;
-		std::vector< ConfigVar >   mConfigVars;
-		std::vector< std::string > mIncludeFiles;
-	};
-
 
 	class ShaderCompiler
 	{
@@ -138,7 +79,7 @@ namespace RenderGL
 			return static_cast<ShaderType*>(constructShaderInternal(ShaderType::GetShaderClass(), ShaderClassType::Common , option ));
 		}
 
-		int loadMaterialShaders(char const* fileName  , VertexFactoryType& vertexFactoryType , MaterialShaderPairVec& outShaders );
+		int loadMaterialShaders(MaterialShaderCompileInfo const& info, VertexFactoryType& vertexFactoryType , MaterialShaderPairVec& outShaders );
 
 		GlobalShaderProgram* getGlobalShader(GlobalShaderProgramClass& shaderClass , bool bForceLoad );
 

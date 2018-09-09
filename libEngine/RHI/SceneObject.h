@@ -7,7 +7,7 @@
 #include "MeshUtility.h"
 #include "Scene.h"
 
-namespace RenderGL
+namespace Render
 {
 	class RenderContext;
 	class Material;

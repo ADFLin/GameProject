@@ -220,6 +220,7 @@ float4   texCUBE( samplerCUBE , float3 );
 
 
 float    dot( float4 , float4 );
+float    dot(float3, float3);
 vec3     cross( vec3 , vec3 );
 
 template< class T >

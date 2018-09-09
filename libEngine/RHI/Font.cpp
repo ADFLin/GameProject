@@ -7,7 +7,7 @@
 #include "BitmapDC.h"
 #endif //SYS_PLATFORM_WIN
 
-namespace RenderGL
+namespace Render
 {
 #if SYS_PLATFORM_WIN
 	class GDIFontCharDataProvider : public ICharDataProvider
@@ -411,5 +411,5 @@ namespace RenderGL
 		mSize = 0;
 	}
 
-}//namespace RenderGL
+}//namespace Render
 

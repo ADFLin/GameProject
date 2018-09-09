@@ -70,10 +70,12 @@ void MainGS()
 
 #if PIXEL_SHADER
 in OutputGSParam OutputGS;
-layout(location = 0) out float4 OutColor;
+
 
 #if USE_OIT
 layout(early_fragment_tests) in;
+#else
+layout(location = 0) out float4 OutColor;
 #endif
 
 void MainPS()
@@ -81,7 +83,6 @@ void MainPS()
 #if USE_OIT
 	float pixelDepth = -(View.worldToView * float4(OutputVS.pos, 1)).z;
 	OITProcessPS(OutputGS.color, pixelDepth);
-	OutColor = float4(0, 0, 0, 1);
 #else
 	OutColor = float4(1,0,0,1);
 #endif

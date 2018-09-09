@@ -10,7 +10,7 @@
 #define BIT( n ) ( 1 << ( n ) )
 #endif
 
-namespace RenderGL
+namespace Render
 {
 	enum RenderRTSemantic
 	{

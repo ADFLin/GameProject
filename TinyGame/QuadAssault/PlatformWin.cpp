@@ -1,5 +1,7 @@
 #include "PlatformWin.h"
 
+#include "PlatformConfig.h"
+
 int64 PlatformWin::GetTickCount()
 {
 	return  ::GetTickCount();
@@ -62,7 +64,13 @@ LRESULT CALLBACK GameWindowWin::DefaultProc( HWND hWnd, UINT message, WPARAM wPa
 	case WM_CREATE:
 		{
 			CREATESTRUCT* ps = (CREATESTRUCT*)lParam;
-			SetWindowLong( hWnd , GWL_USERDATA , (LONG)ps->lpCreateParams );
+			SetWindowLong( hWnd ,
+				#if TARGET_PLATFORM_64BITS
+						  GWLP_USERDATA, (LONG)ps->lpCreateParams
+				#else
+						  GWL_USERDATA, (LONG)ps->lpCreateParams
+				#endif
+			);
 		}
 		break;
 	case WM_DESTROY:
@@ -71,7 +79,13 @@ LRESULT CALLBACK GameWindowWin::DefaultProc( HWND hWnd, UINT message, WPARAM wPa
 
 	}
 
-	GameWindowWin* window = ( GameWindowWin* )GetWindowLong( hWnd , GWL_USERDATA );
+	GameWindowWin* window = ( GameWindowWin* )GetWindowLong( hWnd , 
+#if TARGET_PLATFORM_64BITS
+	GWLP_USERDATA
+#else
+	GWL_USERDATA
+#endif
+	);
 
 	if ( !window->procMsg( message , wParam , lParam ) )
 		return 0;

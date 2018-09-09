@@ -7,7 +7,7 @@
 int const BlockSize = 18;
 
 class GLGraphics2D;
-namespace RenderGL
+namespace Render
 {
 	class RHIGraphics2D;
 }
@@ -53,10 +53,10 @@ public:
 	static TINY_API void SetFont( GLGraphics2D& g , int fontID );
 	static TINY_API void SetFontColor( GLGraphics2D& g , int color , int type = COLOR_NORMAL );
 
-	static TINY_API void SetPen(RenderGL::RHIGraphics2D& g, int color, int type = COLOR_NORMAL);
-	static TINY_API void SetBrush(RenderGL::RHIGraphics2D& g, int color, int type = COLOR_NORMAL);
-	static TINY_API void SetFont(RenderGL::RHIGraphics2D& g, int fontID);
-	static TINY_API void SetFontColor(RenderGL::RHIGraphics2D& g, int color, int type = COLOR_NORMAL);
+	static TINY_API void SetPen(Render::RHIGraphics2D& g, int color, int type = COLOR_NORMAL);
+	static TINY_API void SetBrush(Render::RHIGraphics2D& g, int color, int type = COLOR_NORMAL);
+	static TINY_API void SetFont(Render::RHIGraphics2D& g, int fontID);
+	static TINY_API void SetFontColor(Render::RHIGraphics2D& g, int color, int type = COLOR_NORMAL);
 
 	static TINY_API void SetPen( IGraphics2D& g , int color , int type = COLOR_NORMAL );
 	static TINY_API void SetBrush( IGraphics2D& g , int color , int type = COLOR_NORMAL );

@@ -90,12 +90,58 @@ struct ConstValueInfo
 	ConstValueInfo(){}
 	ConstValueInfo(RealType value):layout(ValueLayout::Real), toReal(value){}
 
+	bool operator == (ConstValueInfo const& rhs ) const
+	{
+		if( layout != rhs.layout )
+			return false;
+
+		switch( layout )
+		{
+		case ValueLayout::Int32:  return toInt32 == rhs.toInt32;
+		case ValueLayout::Double: return toDouble == rhs.toDouble;
+		case ValueLayout::Float:  return toFloat == rhs.toFloat;
+		}
+
+		return true;
+	}
+
+	bool isSameValue (void* data) const
+	{
+		switch( layout )
+		{
+		case ValueLayout::Int32:  return *(int32*)data == toInt32;
+		case ValueLayout::Double: return *(double*)data == toDouble;
+		case ValueLayout::Float:  return *(float*)data == toFloat;
+		}
+		return false;
+	}
+
+	void assignTo(void* data) const
+	{
+		switch( layout )
+		{
+		case ValueLayout::Int32:  *(int32*)data = toInt32;
+		case ValueLayout::Double: *(double*)data = toDouble;
+		case ValueLayout::Float:  *(float*)data = toFloat;
+		}
+	}
 };
 
 struct VarValueInfo
 {
 	ValueLayout layout;
 	void* ptr;
+
+
+	void assignTo(void* data) const
+	{
+		switch( layout )
+		{
+		case ValueLayout::Int32:  *(int32*)data = *(int32*)ptr;
+		case ValueLayout::Double: *(double*)data = *(double*)ptr;
+		case ValueLayout::Float:  *(float*)data = *(float*)ptr;
+		}
+	}
 };
 
 

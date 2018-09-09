@@ -21,9 +21,9 @@ struct ViewParameters
 
 
 #if SHADER_COMPILING
-layout(std140) uniform ViewBlock
+layout(std140) cbuffer ViewBlock
 {
-	uniform ViewParameters View;
+	ViewParameters View;
 };
 #else
 uniform ViewParameters View;

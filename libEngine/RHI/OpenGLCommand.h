@@ -5,7 +5,7 @@
 
 #include "WGLContext.h"
 
-namespace RenderGL
+namespace Render
 {
 
 	struct GLDeviceState
@@ -65,6 +65,8 @@ namespace RenderGL
 		void  RHIUnlockBuffer(RHIVertexBuffer* buffer);
 		void* RHILockBuffer(RHIIndexBuffer* buffer, ELockAccess access, uint32 offset, uint32 size);
 		void  RHIUnlockBuffer(RHIIndexBuffer* buffer);
+		void* RHILockBuffer(RHIUniformBuffer* buffer, ELockAccess access, uint32 offset, uint32 size);
+		void  RHIUnlockBuffer(RHIUniformBuffer* buffer);
 
 		RHIFrameBuffer*   RHICreateFrameBuffer();
 		RHIInputLayout*   RHICreateInputLayout(InputLayoutDesc const& desc);
@@ -86,6 +88,17 @@ namespace RenderGL
 		void RHIDrawIndexedPrimitive(PrimitiveType type, ECompValueType indexType, int indexStart, int nIndex);
 		void RHIDrawPrimitiveIndirect(PrimitiveType type, RHIVertexBuffer* commandBuffer, int offset, int numCommand, int commandStride);
 		void RHIDrawIndexedPrimitiveIndirect(PrimitiveType type, ECompValueType indexType, RHIVertexBuffer* commandBuffer, int offset, int numCommand, int commandStride);
+
+		void RHIDrawPrimitiveUP(PrimitiveType type, int numPrimitive, void* pVertices, int numVerex, int vetexStride)
+		{
+
+
+		}
+
+		void RHIDrawIndexedPrimitiveUP(PrimitiveType type, int numPrimitive, void* pVertices, int numVerex, int vetexStride, int* pIndices, int numIndex)
+		{
+
+		}
 
 		void RHISetupFixedPipelineState(Matrix4 const& matModelView, Matrix4 const& matProj, int numTexture , RHITexture2D** textures);
 

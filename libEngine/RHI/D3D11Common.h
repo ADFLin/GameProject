@@ -17,7 +17,7 @@
 
 #define SAFE_RELEASE( PTR ) if ( PTR ){ PTR->Release(); PTR = nullptr; }
 
-namespace RenderGL
+namespace Render
 {
 	class D3D11Resource : public RHIResource
 	{
@@ -27,10 +27,25 @@ namespace RenderGL
 	template< class RHITextureType >
 	struct TD3D11TypeTraits { typedef void ImplType; };
 
+	class D3D11Texture2D;
+	class D3D11VertexBuffer;
+	class D3D11IndexBuffer;
+	class D3D11UniformBuffer;
+	class D3D11RasterizerState;
+	class D3D11BlendState;
+	class D3D11InputLayout;
+
 	template<>
-	struct TD3D11TypeTraits< RHITexture1D > { typedef ID3D11Texture1D ResourceType; };
+	struct TD3D11TypeTraits< RHITexture1D > 
+	{ 
+		typedef ID3D11Texture1D ResourceType; 
+	};
 	template<>
-	struct TD3D11TypeTraits< RHITexture2D > { typedef ID3D11Texture2D ResourceType; };
+	struct TD3D11TypeTraits< RHITexture2D >
+	{  
+		typedef ID3D11Texture2D ResourceType;  
+		typedef D3D11Texture2D ImplType;  
+	};
 	template<>
 	struct TD3D11TypeTraits< RHITexture3D > { typedef ID3D11Texture3D ResourceType; };
 	//template<>
@@ -38,17 +53,43 @@ namespace RenderGL
 	//template<>
 	//struct TD3D11TextureTraits< RHITextureDepth > { typedef ID3D11Texture2D ResourceType; };
 	template<>
-	struct TD3D11TypeTraits< RHIVertexBuffer > { typedef ID3D11Buffer ResourceType; };
+	struct TD3D11TypeTraits< RHIVertexBuffer > 
+	{ 
+		typedef ID3D11Buffer ResourceType;
+		typedef D3D11VertexBuffer ImplType; 
+	};
 	template<>
-	struct TD3D11TypeTraits< RHIIndexBuffer > { typedef ID3D11Buffer ResourceType; };
+	struct TD3D11TypeTraits< RHIIndexBuffer >
+	{
+		typedef ID3D11Buffer ResourceType; 
+		typedef D3D11IndexBuffer ImplType;
+	};
 	template<>
-	struct TD3D11TypeTraits< RHIUniformBuffer > { typedef ID3D11Buffer ResourceType; };
+	struct TD3D11TypeTraits< RHIUniformBuffer >
+	{
+		typedef ID3D11Buffer ResourceType; 
+		typedef D3D11UniformBuffer ImplType;
+	};
 	template<>
-	struct TD3D11TypeTraits< RHIRasterizerState > { typedef ID3D11RasterizerState ResourceType; };
+	struct TD3D11TypeTraits< RHIRasterizerState > 
+	{ 
+		typedef ID3D11RasterizerState ResourceType;
+		typedef D3D11RasterizerState ImplType;
+	};
 	template<>
-	struct TD3D11TypeTraits< RHIBlendState > { typedef ID3D11BlendState ResourceType; };
+	struct TD3D11TypeTraits< RHIBlendState > 
+	{ 
+		typedef ID3D11BlendState ResourceType;
+		typedef D3D11BlendState ImplType;
+	};
 	template<>
-	struct TD3D11TypeTraits< RHIInputLayout > { typedef ID3D11InputLayout ResourceType; };
+	struct TD3D11TypeTraits< RHIInputLayout > 
+	{ 
+		typedef ID3D11InputLayout ResourceType;
+		typedef D3D11InputLayout ImplType;
+	};
+
+
 	struct D3D11Conv
 	{
 		static D3D_PRIMITIVE_TOPOLOGY To(PrimitiveType type);
@@ -211,6 +252,12 @@ namespace RenderGL
 
 	};
 
+	class D3D11UniformBuffer : public TD3D11Buffer< RHIUniformBuffer >
+	{
+
+
+	};
+
 	class D3D11RasterizerState : public TD3D11Resource< RHIRasterizerState >
 	{
 	public:
@@ -240,12 +287,8 @@ namespace RenderGL
 
 	struct D3D11Cast
 	{
-		static D3D11Texture2D* To(RHITexture2D* tex) { return static_cast<D3D11Texture2D*>(tex); }
-		static D3D11VertexBuffer* To(RHIVertexBuffer* buffer) { return static_cast<D3D11VertexBuffer*>(buffer); }
-		static D3D11IndexBuffer* To(RHIIndexBuffer* buffer){ return static_cast<D3D11IndexBuffer*>(buffer); }
-		static D3D11BlendState* To(RHIBlendState* state) { return static_cast<D3D11BlendState*>(state); }
-		static D3D11RasterizerState* To(RHIRasterizerState* state) { return static_cast<D3D11RasterizerState*>(state); }
-		static D3D11InputLayout* To(RHIInputLayout* inputLayout) { return static_cast<D3D11InputLayout*>(inputLayout); }
+		template< class RHIResource >
+		static auto To(RHIResource* resource) { return static_cast< typename TD3D11TypeTraits< RHIResource >::ImplType*>(resource); }
 
 		template < class T >
 		static auto To(TRefCountPtr<T>& ptr) { return D3D11Cast::To(ptr.get()); }

@@ -1,6 +1,6 @@
 #include "D3D11Common.h"
 
-namespace RenderGL
+namespace Render
 {
 	D3D_PRIMITIVE_TOPOLOGY D3D11Conv::To(PrimitiveType type)
 	{
@@ -179,4 +179,4 @@ namespace RenderGL
 		return D3D11_MAP_READ_WRITE;
 	}
 
-}//namespace RenderGL
+}//namespace Render

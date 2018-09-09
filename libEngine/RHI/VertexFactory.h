@@ -5,7 +5,7 @@
 #include "RHICommon.h"
 #include "CoreShare.h"
 
-namespace RenderGL
+namespace Render
 {
 	class ShaderCompileOption;
 	class VertexFactoryShaderData;
@@ -69,6 +69,6 @@ namespace RenderGL
 	public:
 	};
 
-}//RenderGL
+}//Render
 
 #endif // VertexFactory_H_86132998_96CC_46B9_8772_AD134BCD249E

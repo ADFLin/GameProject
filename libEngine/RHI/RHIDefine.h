@@ -6,7 +6,7 @@
 #define SHADER_ENTRY( NAME ) #NAME
 #define SHADER_PARAM( NAME ) #NAME
 
-namespace RenderGL
+namespace Render
 {
 	enum ColorWriteMask
 	{
@@ -170,6 +170,6 @@ namespace RenderGL
 	};
 
 
-}//namespace RenderGL
+}//namespace Render
 
 #endif // RHIDefine_h__

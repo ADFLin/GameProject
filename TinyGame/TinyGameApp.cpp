@@ -508,14 +508,14 @@ void TinyGameApp::render( float dframe )
 			mRenderEffect->onRender(dt);
 
 		if( de->isOpenGLEnabled() )
-			::Global::GetGLGraphics2D().beginRender();
+			::Global::GetRHIGraphics2D().beginRender();
 
 		Global::GUI().render();
 	}
 	else
 	{
 		if( de->isOpenGLEnabled() )
-			::Global::GetGLGraphics2D().beginRender();
+			::Global::GetRHIGraphics2D().beginRender();
 	}
 
 	if( mConsoleShowMode == ConsoleShowMode::Screen )
@@ -536,7 +536,7 @@ void TinyGameApp::render( float dframe )
 	}
 
 	if( de->isOpenGLEnabled() )
-		::Global::GetGLGraphics2D().endRender();
+		::Global::GetRHIGraphics2D().endRender();
 		
 	de->endRender();
 }

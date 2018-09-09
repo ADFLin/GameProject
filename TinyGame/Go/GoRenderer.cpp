@@ -11,7 +11,7 @@
 
 namespace Go
 {
-	using namespace RenderGL;
+	using namespace Render;
 
 	bool BoardRenderer::initializeRHI()
 	{
@@ -56,10 +56,10 @@ namespace Go
 
 	void BoardRenderer::drawStoneSequence(RenderContext const& context, std::vector<int> const& vertices, int colorStart, float opacity)
 	{
-		using namespace RenderGL;
+		using namespace Render;
 		using namespace Go;
 
-		GLGraphics2D& g = ::Global::GetGLGraphics2D();
+		GLGraphics2D& g = ::Global::GetRHIGraphics2D();
 
 		{
 			GPU_PROFILE("Draw Stone");
@@ -116,7 +116,7 @@ namespace Go
 
 	void BoardRenderer::drawBorad(GLGraphics2D& g , RenderContext const& context)
 	{
-		using namespace RenderGL;
+		using namespace Render;
 		using namespace Go;
 
 		static char const* CoordStr = "ABCDEFGHJKLMNOPQRSTQV";
@@ -246,6 +246,7 @@ namespace Go
 			}
 
 			glDisable(GL_TEXTURE_2D);
+			RHISetBlendState(TStaticBlendState<>::GetRHI());
 #endif
 		}
 

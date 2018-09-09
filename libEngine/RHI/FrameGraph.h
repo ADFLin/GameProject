@@ -1,6 +1,6 @@
 
 
-namespace RenderGL
+namespace Render
 {
 
 	class FrameGraphBuilder;

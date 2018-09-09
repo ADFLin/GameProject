@@ -18,7 +18,7 @@
 
 #include <cassert>
 
-namespace RenderGL
+namespace Render
 {
 	using IntVector2 = TVector2<int>;
 	using IntVector3 = TVector3<int>;
@@ -220,6 +220,6 @@ namespace RenderGL
 	};
 
 
-}//namespace RenderGL
+}//namespace Render
 
 #endif // BaseType_H_555613C2_A1A0_4F14_8A87_AEB8AD797FF6

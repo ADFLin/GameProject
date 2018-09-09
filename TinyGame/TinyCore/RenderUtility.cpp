@@ -8,7 +8,7 @@
 
 #include <algorithm>
 
-using namespace RenderGL;
+using namespace Render;
 
 namespace
 {
@@ -152,7 +152,7 @@ void RenderUtility::SetFont(GLGraphics2D& g , int fontID)
 	g.setFont( FontGL[ fontID ] );
 }
 
-void RenderUtility::SetPen(RenderGL::RHIGraphics2D& g, int color, int type)
+void RenderUtility::SetPen(Render::RHIGraphics2D& g, int color, int type)
 {
 	if( color == EColor::Null )
 	{
@@ -165,7 +165,7 @@ void RenderUtility::SetPen(RenderGL::RHIGraphics2D& g, int color, int type)
 	}
 }
 
-void RenderUtility::SetBrush(RenderGL::RHIGraphics2D& g, int color, int type /*= COLOR_NORMAL */)
+void RenderUtility::SetBrush(Render::RHIGraphics2D& g, int color, int type /*= COLOR_NORMAL */)
 {
 	if( color == EColor::Null )
 	{
@@ -178,7 +178,7 @@ void RenderUtility::SetBrush(RenderGL::RHIGraphics2D& g, int color, int type /*=
 	}
 }
 
-void RenderUtility::SetFont(RenderGL::RHIGraphics2D& g, int fontID)
+void RenderUtility::SetFont(Render::RHIGraphics2D& g, int fontID)
 {
 	//#TODO
 	g.setFont(FontGL[fontID]);
@@ -190,7 +190,7 @@ void RenderUtility::SetPen(IGraphics2D& g , int color , int type )
 	{
 		virtual void visit(Graphics2D& g){  RenderUtility::SetPen(  g , color );  }
 		virtual void visit(GLGraphics2D& g){  RenderUtility::SetPen(  g , color );  }
-		virtual void visit(RenderGL::RHIGraphics2D& g) { RenderUtility::SetPen(g, color); }
+		virtual void visit(Render::RHIGraphics2D& g) { RenderUtility::SetPen(g, color); }
 		int color;
 		int type;
 	} visitor;
@@ -205,7 +205,7 @@ void RenderUtility::SetBrush(IGraphics2D& g , int color , int type /*= COLOR_NOR
 	{
 		virtual void visit(Graphics2D& g){  RenderUtility::SetBrush(  g , color , type  );  }
 		virtual void visit(GLGraphics2D& g){  RenderUtility::SetBrush(  g , color , type );  }
-		virtual void visit(RenderGL::RHIGraphics2D& g) { RenderUtility::SetBrush(g, color, type); }
+		virtual void visit(Render::RHIGraphics2D& g) { RenderUtility::SetBrush(g, color, type); }
 		int color;
 		int type;
 	} visitor;
@@ -220,7 +220,7 @@ void RenderUtility::SetFont(IGraphics2D& g , int fontID )
 	{
 		virtual void visit(Graphics2D& g){  RenderUtility::SetFont(  g , fontID );  }
 		virtual void visit(GLGraphics2D& g){  RenderUtility::SetFont(  g , fontID );  }
-		virtual void visit(RenderGL::RHIGraphics2D& g) { RenderUtility::SetFont(g, fontID); }
+		virtual void visit(Render::RHIGraphics2D& g) { RenderUtility::SetFont(g, fontID); }
 		int fontID;
 	} visitor;
 	visitor.fontID = fontID;
@@ -230,7 +230,7 @@ void RenderUtility::SetFont(IGraphics2D& g , int fontID )
 
 void RenderUtility::InitializeRHI()
 {
-	using namespace RenderGL;
+	using namespace Render;
 
 	HDC hDC = ::Global::GetDrawEngine()->getWindow().getHDC();
 	FontCharCache::Get().hDC = hDC;

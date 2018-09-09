@@ -127,11 +127,12 @@ private:
 	int32 mSecond;
 	int32 mMillisecond;
 };
+
 class SystemPlatform
 {
 public:
 	static int    GetProcessorNumber();
-	static void   MemoryBarrier();
+	static void   MemoryStoreFence();
 	static void   Sleep( uint32 millionSecond );
 
 	static double  GetHighResolutionTime();

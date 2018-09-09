@@ -19,7 +19,7 @@
 
 namespace CB
 {
-	using namespace RenderGL;
+	using namespace Render;
 
 	class TemplateTestStage : public StageBase
 	{
@@ -169,7 +169,7 @@ namespace CB
 		void onRender(float dFrame)
 		{
 			PROFILE_ENTRY("Stage.Render");
-			GLGraphics2D& g = Global::GetGLGraphics2D();
+			GLGraphics2D& g = Global::GetRHIGraphics2D();
 
 			int width = ::Global::GetDrawEngine()->getScreenWidth();
 			int height = ::Global::GetDrawEngine()->getScreenHeight();

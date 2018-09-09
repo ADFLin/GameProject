@@ -1,6 +1,6 @@
 #include "SceneObject.h"
 
-namespace RenderGL
+namespace Render
 {
 
 	void StaticMesh::render(Matrix4 const& worldTrans, RenderContext& context, Material* material)

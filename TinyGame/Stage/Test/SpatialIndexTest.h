@@ -2,7 +2,7 @@
 #ifndef SpatialIndexTest_H_BA852919_CF9F_4974_8913_2084D785180B
 #define SpatialIndexTest_H_BA852919_CF9F_4974_8913_2084D785180B
 
-#include "TestStageHeader.h"
+#include "Stage/TestStageHeader.h"
 
 #include "Template/ArrayView.h"
 #include "Math/Vector2.h"

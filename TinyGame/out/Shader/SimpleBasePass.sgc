@@ -1,7 +1,7 @@
 #include "Common.sgc"
 #include "ViewParam.sgc"
 #include "PrimitiveParam.sgc"
-#include "VertexProcess.sgc"
+#include "VertexFactoryProcess.sgc"
 #include "DeferredShadingCommon.sgc"
 
 struct VSOutputParam

@@ -108,7 +108,7 @@ namespace Phy2D
 
 	void CollideTestStage::onRender(float dFrame)
 	{
-		GLGraphics2D& g = Global::GetGLGraphics2D();
+		GLGraphics2D& g = Global::GetRHIGraphics2D();
 
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		g.beginRender();
@@ -309,7 +309,7 @@ namespace Phy2D
 
 	void WorldTestStage::onRender(float dFrame)
 	{
-		GLGraphics2D& g = Global::GetGLGraphics2D();
+		GLGraphics2D& g = Global::GetRHIGraphics2D();
 
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		g.beginRender();

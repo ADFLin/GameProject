@@ -3,7 +3,7 @@
 #include "LogSystem.h"
 
 
-namespace RenderGL
+namespace Render
 {
 
 	bool D3D11System::initialize(RHISystemInitParam const& initParam)
@@ -86,6 +86,16 @@ namespace RenderGL
 		mDeviceContext->Unmap(D3D11Cast::GetResource(*buffer), 0);
 	}
 
+	void* D3D11System::RHILockBuffer(RHIUniformBuffer* buffer, ELockAccess access, uint32 offset, uint32 size)
+	{
+		return lockBufferInternal(D3D11Cast::GetResource(*buffer), access, offset, size);
+	}
+
+	void D3D11System::RHIUnlockBuffer(RHIUniformBuffer* buffer)
+	{
+		mDeviceContext->Unmap(D3D11Cast::GetResource(*buffer), 0);
+	}
+
 	RHIInputLayout* D3D11System::RHICreateInputLayout(InputLayoutDesc const& desc)
 	{
 		std::vector< D3D11_INPUT_ELEMENT_DESC > descList;
@@ -148,7 +158,7 @@ namespace RenderGL
 		return new D3D11InputLayout(inputLayoutResource.release() );
 	}
 
-	RenderGL::RHIRasterizerState* D3D11System::RHICreateRasterizerState(RasterizerStateInitializer const& initializer)
+	Render::RHIRasterizerState* D3D11System::RHICreateRasterizerState(RasterizerStateInitializer const& initializer)
 	{
 		D3D11_RASTERIZER_DESC desc = {};
 		desc.FillMode = D3D11Conv::To(initializer.fillMode);
@@ -259,4 +269,4 @@ namespace RenderGL
 	}
 
 
-}//namespace RenderGL
+}//namespace Render

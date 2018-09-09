@@ -4,7 +4,7 @@
 
 #include "ShaderCore.h"
 
-namespace RenderGL
+namespace Render
 {
 	class ShaderCompileOption;
 	struct ShaderEntryInfo;
@@ -63,7 +63,7 @@ namespace RenderGL
 		static GlobalShaderProgram* CreateShader() { return new CLASS; }
 
 #define IMPLEMENT_GLOBAL_SHADER( CLASS )\
-	RenderGL::GlobalShaderProgramClass& CLASS::GetShaderClass()\
+	Render::GlobalShaderProgramClass& CLASS::GetShaderClass()\
 	{\
 		static GlobalShaderProgramClass staticClass\
 		{\
@@ -79,6 +79,6 @@ namespace RenderGL
 	TEMPLATE_ARGS\
 	IMPLEMENT_GLOBAL_SHADER( CLASS )
 
-}//namespace RenderGL
+}//namespace Render
 
 #endif // GlobalShader_H_99D977DA_B0C5_46A1_8282_C63EA1B52228

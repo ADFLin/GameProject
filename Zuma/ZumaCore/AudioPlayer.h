@@ -10,6 +10,7 @@
 struct FMOD_SYSTEM;
 struct FMOD_SOUND;
 struct FMOD_CHANNEL;
+struct FMOD_CHANNELGROUP;
 
 namespace Zuma
 {
@@ -61,6 +62,7 @@ namespace Zuma
 		float          mSoundVolume;
 		float          mMusicVolume;
 		FMOD_SYSTEM*   mFmodSys;
+		FMOD_CHANNELGROUP* mMasterGroup;
 		Channel*       mMusicChannels;
 		Channel*       mChannels[ MaxNumChannel ];
 		unsigned       mChannelSerial[ MaxNumChannel ];

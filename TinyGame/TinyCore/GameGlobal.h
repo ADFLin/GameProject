@@ -102,7 +102,7 @@ public:
 	
 	static TINY_API DrawEngine*   GetDrawEngine();
 	static TINY_API Graphics2D&   GetGraphics2D();
-	static TINY_API GLGraphics2D& GetGLGraphics2D();
+	static TINY_API GLGraphics2D& GetRHIGraphics2D();
 	static TINY_API IGraphics2D&  GetIGraphics2D();
 
 	static TINY_API UserProfile&  GetUserProfile();

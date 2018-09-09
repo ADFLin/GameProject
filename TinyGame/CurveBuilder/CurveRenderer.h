@@ -14,7 +14,7 @@
 
 namespace CB
 {
-	using namespace RenderGL;
+	using namespace Render;
 
 	class ShapeBase;
 	class Surface3D;

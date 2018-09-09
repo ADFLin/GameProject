@@ -1,7 +1,7 @@
 #include "MaterialShader.h"
 
 
-namespace RenderGL
+namespace Render
 {
 
 #if CORE_SHARE_CODE

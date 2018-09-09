@@ -9,7 +9,7 @@
 
 #include "stb/stb_image.h"
 
-namespace RenderGL
+namespace Render
 {
 	bool Texture2D::loadFile(char const* path , int numMipLevel )
 	{
@@ -176,14 +176,14 @@ namespace RenderGL
 	}
 
 
-	bool MaterialShaderMap::load(char const* name)
+	bool MaterialShaderMap::load(MaterialShaderCompileInfo const& info)
 	{
 		cleanup();
 
 		for( auto pVertexFactoryType : VertexFactoryType::TypeList )
 		{
 			MaterialShaderPairVec shaderPairs;
-			int numShader = ShaderManager::Get().loadMaterialShaders(name, *pVertexFactoryType, shaderPairs);
+			int numShader = ShaderManager::Get().loadMaterialShaders(info , *pVertexFactoryType, shaderPairs);
 
 			if( numShader == 0 )
 				return false;
@@ -196,5 +196,5 @@ namespace RenderGL
 
 		return true;
 	}
-}//namespace RenderGL
+}//namespace Render
 

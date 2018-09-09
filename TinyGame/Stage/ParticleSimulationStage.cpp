@@ -8,7 +8,7 @@
 #include "RHI/MeshUtility.h"
 
 
-namespace RenderGL
+namespace Render
 {
 	struct alignas(16) ParticleData
 	{
@@ -78,11 +78,11 @@ namespace RenderGL
 
 		T*   lock()
 		{
-			return (T*)OpenGLCast::To( mResource )->lock(ELockAccess::WriteOnly);
+			return (T*)RHILockBuffer( mResource , ELockAccess::WriteOnly);
 		}
 		void unlock()
 		{
-			OpenGLCast::To( mResource )->unlock();
+			RHIUnlockBuffer( mResource );
 		}
 	};
 
@@ -311,6 +311,61 @@ namespace RenderGL
 
 	IMPLEMENT_GLOBAL_SHADER(SplineProgram);
 
+	template< bool bEnable >
+	class TTessellationProgram : public GlobalShaderProgram
+	{
+	public:
+		DECLARE_GLOBAL_SHADER(TTessellationProgram);
+		typedef GlobalShaderProgram BaseClass;
+
+		void bindParameters(ShaderParameterMap& parameterMap)
+		{
+
+		}
+
+		void setParameters()
+		{
+
+		}
+
+		static void SetupShaderCompileOption(ShaderCompileOption& option)
+		{
+			BaseClass::SetupShaderCompileOption(option);
+			option.addDefine(SHADER_PARAM(USE_TESSELLATION), bEnable);
+		}
+
+		static char const* GetShaderFileName()
+		{
+			return "Shader/Game/Tessellation";
+		}
+
+		static ShaderEntryInfo const* GetShaderEntries()
+		{
+			if( bEnable )
+			{
+				static ShaderEntryInfo entriesWithTesselation[] =
+				{
+					{ Shader::eVertex , SHADER_ENTRY(MainVS) },
+					{ Shader::eHull   , SHADER_ENTRY(MainHS) },
+					{ Shader::eDomain , SHADER_ENTRY(MainDS) },
+					{ Shader::ePixel , SHADER_ENTRY(MainPS) },
+					{ Shader::eEmpty , nullptr },
+				};
+				return entriesWithTesselation;
+			}
+
+			static ShaderEntryInfo entries[] =
+			{
+				{ Shader::eVertex , SHADER_ENTRY(MainVS) },
+				{ Shader::ePixel , SHADER_ENTRY(MainPS) },
+				{ Shader::eEmpty , nullptr },
+			};
+			return entries;
+		}
+	};
+	IMPLEMENT_GLOBAL_SHADER(TTessellationProgram<true>);
+	IMPLEMENT_GLOBAL_SHADER(TTessellationProgram<false>);
+
 	struct alignas(16) WaterVertexData
 	{
 		//Vector3 normal;
@@ -477,58 +532,6 @@ namespace RenderGL
 		float mAspect;
 	};
 
-
-	struct FloatWidgetPropery
-	{
-		static float Get(GSlider* widget)
-		{
-			return widget->getValue();
-		}
-		static void Set(GSlider* widget, float value)
-		{
-			return widget->setValue(int(value));
-		}
-		static float Get(GTextCtrl* widget)
-		{
-			return std::atof(widget->getValue());
-		}
-		static void Set(GTextCtrl* widget, float value)
-		{
-			return widget->setValue(std::to_string(value).c_str());
-		}
-	};
-
-	struct IPropertyBinder
-	{
-		virtual ~IPropertyBinder() {}
-	};
-
-	struct FloatPropertyBinder : public IPropertyBinder
-	{
-		FloatPropertyBinder(GSlider* widget, float& valueRef, float min, float max )
-			:widgetBinded( widget ) , mValueRef(valueRef)
-		{
-			float constexpr scale = 0.001;
-			float len = max - min;
-			widget->setRange(0, len / scale);
-			FloatWidgetPropery::Set(widget, ( mValueRef - min ) / scale );
-			widget->onEvent = [this,scale, min](int event, GWidget* widget)
-			{
-				mValueRef = min + scale * FloatWidgetPropery::Get(widget->cast<GSlider>());
-				return false;
-			};
-		}
-
-
-		~FloatPropertyBinder()
-		{
-			widgetBinded->onEvent = 0;
-		}
-		GWidget* widgetBinded;
-		float&   mValueRef;
-	};
-
-
 	struct GPUParticleData
 	{
 
@@ -627,8 +630,6 @@ namespace RenderGL
 		GPUParticleTestStage() {}
 
 
-		SplineProgram* mProgSpline;
-
 
 		int mIndexWaterBufferUsing = 0;
 		TStructuredStorageBuffer< WaterVertexData > mWaterDataBuffers[2];
@@ -638,16 +639,28 @@ namespace RenderGL
 		
 
 		RHITexture2DRef mTexture;
+		RHITexture2DRef mBaseTexture;
+		RHITexture2DRef mNormalTexture;
 		ViewFrustum mViewFrustum;
 		SimpleCamera  mCamera;
 
 		Mesh mTileMesh;
 		int  mTileNum = 500;
+		Mesh mCube;
 
 		
-		std::vector < std::unique_ptr< IPropertyBinder > > mBinders;
 		float mWaterSpeed = 10;
 
+		Mesh mTilePlane;
+
+		int TessFactor1 = 5;
+		int TessFactor2 = 1;
+		int TessFactor3 = 1;
+		float mDispFactor = 1.0;
+
+		SplineProgram* mProgSpline;
+		bool bUseTessellation = true;
+		bool bWireframe = false;
 		virtual bool onInit()
 		{
 			if( !BaseClass::onInit() )
@@ -660,7 +673,10 @@ namespace RenderGL
 			
 			VERIFY_INITRESULT(mProgSpline = ShaderManager::Get().getGlobalShaderT< SplineProgram >(true));
 
-			mTexture = RHIUtility::LoadTexture2DFromFile("Texture/star.png");
+			VERIFY_INITRESULT(mTexture = RHIUtility::LoadTexture2DFromFile("Texture/star.png"));
+			VERIFY_INITRESULT(mBaseTexture = RHIUtility::LoadTexture2DFromFile("Texture/stones.bmp"));
+			VERIFY_INITRESULT(mNormalTexture = RHIUtility::LoadTexture2DFromFile("Texture/stones_NM_height.tga"));
+
 			VERIFY_INITRESULT(mTexture.isValid());
 			VERIFY_INITRESULT(ShaderManager::Get().loadFileSimple(mProgSphere, "Shader/Game/Sphere"));
 			Vector3 v[] =
@@ -675,6 +691,9 @@ namespace RenderGL
 			VERIFY_INITRESULT(mSpherePlane.createRHIResource(&v[0], 4, &idx[0], 6, true));
 
 			VERIFY_INITRESULT(MeshBuild::Tile(mTileMesh, mTileNum - 1, 100, false));
+			VERIFY_INITRESULT(MeshBuild::Tile(mTilePlane, 4, 1, false));
+			VERIFY_INITRESULT(MeshBuild::CubeShare(mCube,1));
+
 			VERIFY_INITRESULT(mWaterDataBuffers[0].initializeResource(mTileNum * mTileNum));
 			VERIFY_INITRESULT(mWaterDataBuffers[1].initializeResource(mTileNum * mTileNum));
 			VERIFY_INITRESULT(mProgWaterSimulation = ShaderManager::Get().getGlobalShaderT< WaterSimulationProgram >(true));
@@ -715,8 +734,17 @@ namespace RenderGL
 			::Global::GUI().cleanupWidget();
 
 			auto devFrame = WidgetUtility::CreateDevFrame();
+			devFrame->addText("Water Speed");
 			auto slider = devFrame->addSlider(UI_ANY);
-			mBinders.push_back(std::make_unique< FloatPropertyBinder >(slider, mWaterSpeed , 0 , 10 ) );
+			WidgetPropery::Bind(slider, mWaterSpeed, 0, 10);
+			devFrame->addText("TessFactor");
+			WidgetPropery::Bind(devFrame->addSlider(UI_ANY), TessFactor1, 0, 70);
+			WidgetPropery::Bind(devFrame->addSlider(UI_ANY), TessFactor2, 0, 70);
+			WidgetPropery::Bind(devFrame->addSlider(UI_ANY), TessFactor3, 0, 70);
+			WidgetPropery::Bind(devFrame->addCheckBox(UI_ANY, "UseTess"), bUseTessellation);
+			WidgetPropery::Bind(devFrame->addCheckBox(UI_ANY, "WireFrame"), bWireframe);
+			devFrame->addText("DispFactor");
+			WidgetPropery::Bind(devFrame->addSlider(UI_ANY), mDispFactor, 0, 10);
 			restart();
 
 			return true;
@@ -736,7 +764,7 @@ namespace RenderGL
 			mProgSphere.setParam(SHADER_PARAM(Sphere.radius), radius);
 			mProgSphere.setParam(SHADER_PARAM(Sphere.localPos), pos);
 			
-			mSpherePlane.draw();
+			mSpherePlane.drawShader();
 		}
 
 		void upateWaterData(float dt)
@@ -857,6 +885,7 @@ namespace RenderGL
 
 				RHISetDepthStencilState(StaticDepthDisableState::GetRHI());
 				RHISetBlendState(TStaticBlendState<>::GetRHI());
+
 				struct MyVertex
 				{
 					Vector2 pos;
@@ -873,10 +902,82 @@ namespace RenderGL
 				GL_BIND_LOCK_OBJECT(mProgSpline);
 				mProgSpline->setParam(SHADER_PARAM(XForm), OrthoMatrix(0, width, 0, height, -100, 100));
 				mProgSpline->setParam(SHADER_PARAM(TessOuter0), TessFactor2);
-				mProgSpline->setParam(SHADER_PARAM(TessOuter1), TessFactor);
+				mProgSpline->setParam(SHADER_PARAM(TessOuter1), TessFactor1);
 				glPatchParameteri(GL_PATCH_VERTICES, 4);
 				TRenderRT< RTVF_XY | RTVF_C > ::DrawShader( SplineProgram::UseTesselation ? PrimitiveType::Patchs : PrimitiveType::LineStrip , vertices, 4);
 	
+			}
+
+			{
+				int width = ::Global::GetDrawEngine()->getScreenWidth();
+				int height = ::Global::GetDrawEngine()->getScreenHeight();
+
+				RHISetDepthStencilState(TStaticDepthStencilState<>::GetRHI());
+				RHISetBlendState(TStaticBlendState<>::GetRHI());
+				if( bWireframe )
+				{
+					RHISetRasterizerState(TStaticRasterizerState<ECullMode::Back, EFillMode::Wireframe>::GetRHI());
+				}
+
+				ShaderProgram* program;
+				if( bUseTessellation )
+				{
+					program = ShaderManager::Get().getGlobalShaderT< TTessellationProgram<true> >();
+				}
+				else
+				{
+					program = ShaderManager::Get().getGlobalShaderT< TTessellationProgram<false> >();
+				}
+				GL_BIND_LOCK_OBJECT(program);
+
+				Matrix4 localToWorld = Matrix4::Scale(10) * Matrix4::Translate( -20 , - 20 , 10 );
+				Matrix4 worldToLocal;
+				float det;
+				localToWorld.inverseAffine(worldToLocal, det);
+				program->setParam(SHADER_PARAM(XForm), OrthoMatrix(0, width, 0, height, -100, 100));
+				program->setTexture(SHADER_PARAM(BaseTexture), *mBaseTexture);
+				program->setParam(SHADER_PARAM(Primitive.localToWorld), localToWorld );
+				program->setParam(SHADER_PARAM(Primitive.worldToLocal), worldToLocal );
+
+				mView.setupShader(*program);
+				if ( bUseTessellation )
+				{
+					program->setParam(SHADER_PARAM(TessOuter), TessFactor1);
+					program->setParam(SHADER_PARAM(TessInner), TessFactor2);
+					program->setTexture(SHADER_PARAM(DispTexture), *mNormalTexture);
+					program->setParam(SHADER_PARAM(DispFactor), mDispFactor);
+					glPatchParameteri(GL_PATCH_VERTICES, 3);
+				}
+
+#if 1
+				struct MyVertex
+				{
+					Vector3 pos;
+					Vector3 color;
+					Vector3 normal;
+					Vector2 uv;
+				};
+
+
+				MyVertex vertices[] =
+				{
+					Vector3(-1, -1,0), Vector3(1, 0, 0), Vector3(-1, -1,1 ).getNormal() , Vector2(0,0),
+					Vector3(1, -1,0), Vector3(0, 1, 0),   Vector3(1, -1,1).getNormal() ,Vector2(1,0),
+					Vector3(-1, 1,0),	Vector3(0, 0, 1),   Vector3(-1, 1,1).getNormal() ,Vector2(0,1),
+					Vector3(1, 1,0),	Vector3(1, 1, 1),   Vector3(1, 1,1).getNormal() ,Vector2(1,1),
+				};
+
+				int indices[] = { 0 , 1 , 2 , 1 , 3 , 2 };
+
+				TRenderRT< RTVF_XYZ_C_N_T2 > ::DrawIndexedShader( 
+					bUseTessellation ? PrimitiveType::Patchs : PrimitiveType::TriangleList, 
+					vertices, ARRAY_SIZE(vertices) , indices , ARRAY_SIZE(indices) );
+#else
+				//mTilePlane.drawTessellation();
+				mCube.drawTessellation();
+#endif
+				RHISetRasterizerState(TStaticRasterizerState<>::GetRHI());
+
 			}
 
 			g.beginRender();
@@ -884,8 +985,9 @@ namespace RenderGL
 			g.endRender();
 		}
 
-		int TessFactor = 5;
-		int TessFactor2 = 1;
+
+
+
 		bool onMouse(MouseMsg const& msg)
 		{
 			static Vec2i oldPos = msg.getPos();
@@ -919,8 +1021,8 @@ namespace RenderGL
 			case 'A': mCamera.moveRight(-1); break;
 			case 'Z': mCamera.moveUp(0.5); break;
 			case 'X': mCamera.moveUp(-0.5); break;
-			case Keyboard::eLEFT: --TessFactor; break;
-			case Keyboard::eRIGHT: ++TessFactor; break;
+			case Keyboard::eLEFT: --TessFactor1; break;
+			case Keyboard::eRIGHT: ++TessFactor1; break;
 			case Keyboard::eDOWN: --TessFactor2; break;
 			case Keyboard::eUP: ++TessFactor2; break;
 			case Keyboard::eR: restart(); break;

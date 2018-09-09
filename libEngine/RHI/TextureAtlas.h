@@ -6,7 +6,7 @@
 
 #include "Misc/ImageMergeHelper.h"
 
-namespace RenderGL
+namespace Render
 {
 
 	class TextureAtlas
@@ -31,6 +31,6 @@ namespace RenderGL
 		ImageMergeHelper mHelper;
 	};
 
-}//namespace RenderGL
+}//namespace Render
 
 #endif // TextureAtlas_H_991594F1_1108_4346_B634_187B185F2B8D

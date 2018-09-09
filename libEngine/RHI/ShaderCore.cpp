@@ -2,7 +2,7 @@
 
 #include "FileSystem.h"
 
-namespace RenderGL
+namespace Render
 {
 	bool RHIShader::loadFile(Shader::Type type, char const* path, char const* def)
 	{
@@ -270,4 +270,4 @@ namespace RenderGL
 		}
 	}
 
-}//namespace RenderGL
+}//namespace Render

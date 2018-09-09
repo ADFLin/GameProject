@@ -10,7 +10,7 @@
 #include "OpenGLCommon.h"
 #include "RHICommand.h"
 
-namespace RenderGL
+namespace Render
 {
 	DeviceVendorName gRHIDeviceVendorName = DeviceVendorName::Unknown;
 
@@ -473,4 +473,4 @@ namespace RenderGL
 
 
 
-}//namespace RenderGL
+}//namespace Render

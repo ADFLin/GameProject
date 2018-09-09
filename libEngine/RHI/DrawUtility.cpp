@@ -1,6 +1,6 @@
 #include "DrawUtility.h"
 
-namespace RenderGL
+namespace Render
 {
 	struct VertexXYZ_T1
 	{
@@ -29,7 +29,7 @@ namespace RenderGL
 	};
 
 
-	void RenderGL::DrawUtility::CubeLine()
+	void Render::DrawUtility::CubeLine()
 	{
 		static Vector3 const v[] =
 		{
@@ -43,7 +43,7 @@ namespace RenderGL
 		TRenderRT< RTVF_XYZ >::Draw(PrimitiveType::LineList, v, 4 * 6, sizeof(Vector3));
 	}
 
-	void RenderGL::DrawUtility::CubeMesh()
+	void Render::DrawUtility::CubeMesh()
 	{
 		static Vector3 const v[] =
 		{
@@ -69,7 +69,7 @@ namespace RenderGL
 		TRenderRT< RTVF_XYZ_N >::Draw(PrimitiveType::Quad, v, 4 * 6, 2 * sizeof(Vector3));
 	}
 
-	void RenderGL::DrawUtility::AixsLine()
+	void Render::DrawUtility::AixsLine()
 	{
 		static Vector3 const v[12] =
 		{
@@ -80,7 +80,7 @@ namespace RenderGL
 		TRenderRT< RTVF_XYZ_C >::Draw(PrimitiveType::LineList, v, 6, 2 * sizeof(Vector3));
 	}
 
-	void RenderGL::DrawUtility::Rect(int x, int y, int width, int height)
+	void Render::DrawUtility::Rect(int x, int y, int width, int height)
 	{
 		float x2 = x + width;
 		float y2 = y + height;
@@ -95,7 +95,7 @@ namespace RenderGL
 		TRenderRT< RTVF_XY_T2 >::Draw(PrimitiveType::Quad, vertices, 4);
 	}
 
-	void RenderGL::DrawUtility::Rect(int width, int height)
+	void Render::DrawUtility::Rect(int width, int height)
 	{
 		VertexXY_T1 vertices[] =
 		{

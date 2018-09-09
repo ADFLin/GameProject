@@ -6,7 +6,7 @@
 
 #include "Material.h"
 
-namespace RenderGL
+namespace Render
 {
 	class RenderContext;
 	class VertexFactory;
@@ -194,6 +194,6 @@ namespace RenderGL
 		bool            bBindAttrib;
 	};
 
-}//namespace RenderGL
+}//namespace Render
 
 #endif // RenderContext_H_6EE6BADB_9AEF_4C48_867D_600B4D1CF4DE

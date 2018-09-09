@@ -76,6 +76,14 @@ struct MaterialParametersPS
 #endif
 };
 
+#if USE_TESSELLATION
+struct MaterialInputDS
+{
+	float3 worldDispOffset;
+};
+
+#endif
+
 MaterialInputPS InitMaterialInputPS()
 {
 	MaterialInputPS input;

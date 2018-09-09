@@ -13,7 +13,7 @@ class GLGraphics2D;
 
 namespace Go
 {
-	using namespace RenderGL;
+	using namespace Render;
 
 	class Board;
 	class Game;
@@ -110,7 +110,7 @@ namespace Go
 
 			NumTexture,
 		};
-		RenderGL::RHITexture2DRef mTextures[NumTexture];
+		Render::RHITexture2DRef mTextures[NumTexture];
 
 		std::vector< Vector2 > mNoiseOffsets;
 		struct Vertex

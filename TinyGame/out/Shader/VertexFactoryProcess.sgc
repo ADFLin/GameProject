@@ -1,0 +1,32 @@
+#pragma once
+#include "Common.sgc"
+
+#if !SHADER_COMPILING
+
+
+struct VertexFactoryIntermediatesVS
+{
+
+};
+VertexFactoryIntermediatesVS VertexFactory_GetIntermediatesVS();
+
+
+struct FactoryInterpolantsParam
+{
+};
+
+float3 VertexFactory_GetWorldPos(in FactoryInterpolantsParam Param);
+#endif
+
+
+
+
+#if USE_TESSELLATION
+struct VertexOutputParamDS
+{
+	float3 pos;
+};
+#define VertexOutputParameters VertexOutputParamVSToPS
+#else
+#define VertexOutputParameters VertexOutputParamVSToPS
+#endif

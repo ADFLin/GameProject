@@ -8,7 +8,7 @@
 
 #include "Common.sgc"
 #include "MaterialProcess.sgc"
-#include "VertexProcess.sgc"
+#include "VertexFactoryProcess.sgc"
 #include "ShadowCommon.sgc"
 
 
@@ -18,35 +18,45 @@
 #endif
 uniform mat4 DepthShadowMatrix;
 
+
+struct PassInterpolantsParam
+{
+	float depth;
+};
+
+struct VertexOutputParamVSToPS
+{
+	FactoryInterpolantsParam   factoryInterpolants;
+	PassInterpolantsParam      passInterpolants;
+};
+
 #if VERTEX_SHADER
 
-out float Depth;
-
-out VertexFactoryOutputVS VFOutputVS;
+layout(location = 0) out VertexOutputParameters OutputVS;
 void MainVS()
 {
-	VertexFactoryIntermediatesVS intermediates = GetVertexFactoryIntermediatesVS();
+	VertexFactoryIntermediatesVS intermediates = VertexFactory_GetIntermediatesVS();
 
 	MaterialInputVS materialInput = InitMaterialInputVS();
-	MaterialParametersVS materialParameters = GetMaterialParameterVS(intermediates);
+	MaterialParametersVS materialParameters = VertexFactory_GetMaterialParameterVS(intermediates);
 
 	CalcMaterialInputVS(materialInput, materialParameters);
 
-	gl_Position = CalcVertexFactoryOutputVS(VFOutputVS, intermediates, materialInput, materialParameters);
-	float4 outPosition = DepthShadowMatrix * float4(VFOutputVS.worldPos , 1 );
+	gl_Position = VertexFactory_GetInterpolants(OutputVS.factoryInterpolants, intermediates, materialInput, materialParameters);
+	float4 outPosition = DepthShadowMatrix * float4( VertexFactory_GetWorldPos(OutputVS.factoryInterpolants) , 1 );
 
 #if 0
 	float4 viewOffset = View.worldToView * float4(VFOutputVS.worldPos, 1);
 #	if SHADOW_LIGHT_TYPE == LIGHTTYPE_POINT
-	Depth = (length(viewOffset.xyz) - DepthParam.x) / (DepthParam.y - DepthParam.x);
+	OutputVS.passInterpolants.depth = (length(viewOffset.xyz) - DepthParam.x) / (DepthParam.y - DepthParam.x);
 #	else
-	Depth = (-viewOffset.z - DepthParam.x) / (DepthParam.y - DepthParam.x);
+	OutputVS.passInterpolants.depth = (-viewOffset.z - DepthParam.x) / (DepthParam.y - DepthParam.x);
 #	endif
 #else
 #	if USE_PERSPECTIVE_DEPTH
-	Depth = outPosition.z / outPosition.w;
+	OutputVS.passInterpolants.depth = outPosition.z / outPosition.w;
 #	else
-	Depth = outPosition.z * ShadowParam.y;
+	OutputVS.passInterpolants.depth = outPosition.z * ShadowParam.y;
 #	endif
 #endif
 
@@ -73,25 +83,16 @@ void MainGS()
 
 #if PIXEL_SHADER
 
-#if SHADOW_DEPTH_ONE_PASS
-#define VFInputPS VFOutputGS
-#else
-#define VFInputPS VFOutputVS
-#endif  //SHADOW_DEPTH_ONE_PASS
-
-
-in VertexFactoryIutputPS VFInputPS;
-
-in float Depth;
+layout(location = 0) in VertexOutputParamVSToPS InputPS;
 void MainPS()
 {
 
 	MaterialInputPS materialInput = InitMaterialInputPS();
-	MaterialParametersPS materialParameters = GetMaterialParameterPS(VFInputPS);
+	MaterialParametersPS materialParameters = VertexFactory_GetMaterialParameterPS(InputPS.factoryInterpolants);
 
 	CalcMaterialParameters(materialInput, materialParameters);
 
-	float outDepth = Depth;
+	float outDepth = InputPS.passInterpolants.depth;
 
 #if MATERIAL_USE_DEPTH_OFFSET
 	float3 svPosition = materialParameters.clipPos;

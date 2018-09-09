@@ -17,7 +17,7 @@
 #include "GameSettingPanel.h"
 
 
-using namespace RenderGL;
+using namespace Render;
 
 #define DETECT_LEELA_PROCESS 0
 
@@ -320,7 +320,7 @@ namespace Go
 		virtual void onRender()
 		{
 			BaseClass::onRender();
-			GLGraphics2D& g = ::Global::GetGLGraphics2D();
+			GLGraphics2D& g = ::Global::GetRHIGraphics2D();
 			{
 				TGuardValue<bool> gurdValue(renderer->bDrawCoord , false);
 				renderer->drawBorad(g, renderContext);

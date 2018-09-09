@@ -8,7 +8,7 @@
 
 class QueueThreadPool;
 
-namespace RenderGL
+namespace Render
 {
 	extern bool gbOptimizeVertexCache;
 
@@ -49,19 +49,28 @@ namespace RenderGL
 	};
 
 
-	struct PositionReader
+	struct VertexElementReader
 	{
 		Vector3 const& get(int idx) const
 		{
 			return *(Vector3 const*)(pVertexData + idx * vertexDataStride);
 		}
-
+		Vector2 const& getV2(int idx) const
+		{
+			return *(Vector2 const*)(pVertexData + idx * vertexDataStride);
+		}
 		int32  getNum() const { return numVertex; }
 		uint8 const* pVertexData;
 		uint32 vertexDataStride;
 		int32  numVertex;
 	};
 
+
+	enum class EAdjacencyType
+	{
+		Vertex,
+		Tessellation,
+	};
 
 	class Mesh
 	{
@@ -75,6 +84,7 @@ namespace RenderGL
 		void draw(LinearColor const& color);
 
 		void drawAdjShader(LinearColor const& color);
+		void drawTessellation(bool bUseAdjBuffer = false);
 
 		void drawShader();
 		void drawShader(LinearColor const& color);
@@ -98,23 +108,36 @@ namespace RenderGL
 			glBindVertexArray(0);
 		}
 
-		PositionReader makePositionReader(uint8 const* pData)
+		VertexElementReader makePositionReader(uint8 const* pData)
 		{
-			PositionReader positionReader;
-			positionReader.numVertex = mVertexBuffer->getNumElements();
-			positionReader.vertexDataStride = mVertexBuffer->getElementSize();
-			positionReader.pVertexData = pData + mInputLayoutDesc.getSematicOffset(Vertex::ePosition);
-			return positionReader;
+			VertexElementReader result;
+			result.numVertex = mVertexBuffer->getNumElements();
+			result.vertexDataStride = mVertexBuffer->getElementSize();
+			result.pVertexData = pData + mInputLayoutDesc.getSematicOffset(Vertex::ePosition);
+			return result;
 		}
 
-		bool generateAdjacency();
+		VertexElementReader makeUVReader(uint8 const* pData)
+		{
+			VertexElementReader result;
+			result.numVertex = mVertexBuffer->getNumElements();
+			result.vertexDataStride = mVertexBuffer->getElementSize();
+			result.pVertexData = pData + mInputLayoutDesc.getSematicOffset(Vertex::eTexcoord);
+			return result;
+		}
+
+
+		bool generateVertexAdjacency();
+		bool generateTessellationAdjacency();
+		bool generateAdjacencyInternal(EAdjacencyType type, RHIIndexBufferRef& outIndexBuffer);
 
 		PrimitiveType       mType;
 		InputLayoutDesc     mInputLayoutDesc;
 		RHIInputLayoutRef   mInputLayout;
 		RHIVertexBufferRef  mVertexBuffer;
 		RHIIndexBufferRef   mIndexBuffer;
-		RHIIndexBufferRef   mAdjacencyIndexBuffer;
+		RHIIndexBufferRef   mVertexAdIndexBuffer;
+		RHIIndexBufferRef   mTessAdjIndexBuffer;
 		uint32              mVAO;
 
 		struct Section
@@ -132,7 +155,8 @@ namespace RenderGL
 		static bool UVSphere( Mesh& mesh , float radius , int rings, int sectors);
 		static bool IcoSphere( Mesh& mesh , float radius , int numDiv );
 		static bool SkyBox( Mesh& mesh );
-		static bool Cube( Mesh& mesh , float halfLen = 1.0f );
+		static bool CubeShare(Mesh& mesh, float halfLen = 1.0f);
+		static bool Cube(Mesh& mesh, float halfLen = 1.0f);
 		
 		static bool Cone(Mesh& mesh, float height, int numSide);
 		static bool Doughnut(Mesh& mesh , float radius , float ringRadius , int rings , int sectors);
@@ -195,10 +219,10 @@ namespace RenderGL
 	class MeshUtility
 	{
 	public:
-		static void CalcAABB(PositionReader const& positionReader, Vector3& outMin, Vector3& outMax);
+		static void CalcAABB(VertexElementReader const& positionReader, Vector3& outMin, Vector3& outMax);
 		static int* ConvertToTriangleList(PrimitiveType type, void* pIndexData, int numIndices ,bool bIntType, std::vector< int >& outConvertBuffer, int& outNumTriangles);
 		static bool BuildDistanceField(Mesh& mesh, DistanceFieldBuildSetting const& setting , DistanceFieldData& outResult);
-		static bool BuildDistanceField(PositionReader const& positionReader, int* pIndexData, int numTriangles, DistanceFieldBuildSetting const& setting, DistanceFieldData& outResult);
+		static bool BuildDistanceField(VertexElementReader const& positionReader, int* pIndexData, int numTriangles, DistanceFieldBuildSetting const& setting, DistanceFieldData& outResult);
 
 		static bool IsVertexEqual(Vector3 const& a, Vector3 const& b, float error = 1e-6)
 		{
@@ -206,7 +230,8 @@ namespace RenderGL
 			return diff.x < error && diff.y < error && diff.z < error;
 		}
 
-		static void BuildVertexAdjacency(PositionReader const& positionReader, int* triIndices, int numTirangle, std::vector<int>& outResult);
+		static void BuildTessellationAdjacency(VertexElementReader const& positionReader, int* triIndices, int numTirangle, std::vector<int>& outResult);
+		static void BuildVertexAdjacency(VertexElementReader const& positionReader, int* triIndices, int numTirangle, std::vector<int>& outResult);
 		static void OptimizeVertexCache(void* pIndices, int numIndex, bool bIntType);
 	};
 

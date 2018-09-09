@@ -18,7 +18,7 @@
 
 #include <algorithm>
 
-namespace RenderGL
+namespace Render
 {
 	int const OIT_StorageSize = 4096;
 
@@ -806,7 +806,7 @@ namespace RenderGL
 	};
 	IMPLEMENT_MATERIAL_SHADER(DeferredBasePassProgram);
 
-	RenderGL::MaterialShaderProgram* DeferredShadingTech::getMaterialShader(RenderContext& context, MaterialMaster& material, VertexFactory* vertexFactory)
+	MaterialShaderProgram* DeferredShadingTech::getMaterialShader(RenderContext& context, MaterialMaster& material, VertexFactory* vertexFactory)
 	{
 		//return &GSimpleBasePass;
 		return material.getShaderT<DeferredBasePassProgram>(vertexFactory);
@@ -1499,7 +1499,6 @@ namespace RenderGL
 		static void SetupShaderCompileOption(ShaderCompileOption& option)
 		{
 			BaseClass::SetupShaderCompileOption(option);
-			option.addDefine(SHADER_PARAM(OIT_USE_MATERIAL), true);
 			option.addDefine(SHADER_PARAM(OIT_STORAGE_SIZE), OIT_StorageSize);
 		}
 
@@ -2108,4 +2107,4 @@ namespace RenderGL
 		}
 	}
 
-}//namespace RenderGL
+}//namespace Render

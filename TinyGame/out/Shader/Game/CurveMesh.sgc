@@ -36,12 +36,13 @@ void MainVS()
 
 
 #if PIXEL_SHADER
-
 in OutputVSParam OutputVS;
-layout(location = 0) out float4 OutColor;
+
 
 #if USE_OIT
 layout(early_fragment_tests) in;
+#else
+layout(location = 0) out float4 OutColor;
 #endif
 
 void MainPS()
@@ -53,10 +54,8 @@ void MainPS()
 #if USE_OIT
 	float pixelDepth = -(View.worldToView * float4(OutputVS.pos, 1)).z;
 	OITProcessPS(float4(color , alpha), pixelDepth);
-	OutColor = float4(0, 0, 0, 1);
 #else
 	OutColor = float4(dot(normal, float3(0, 0, 1)) * OutputVS.color.rgb, OutputVS.color.a);
-
 	OutColor = float4((0.5 * normal + 0.5), 1);
 	//OutColor = float4(OutputVS.color.rgb, 1);
 #endif

@@ -2,7 +2,7 @@
 
 #include "FixString.h"
 
-namespace RenderGL
+namespace Render
 {
 
 	void GLGpuTiming::start()
@@ -130,6 +130,6 @@ namespace RenderGL
 		GpuProfiler::Get().endSample(sample);
 	}
 
-}//namespace RenderGL
+}//namespace Render
 
 

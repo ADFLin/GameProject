@@ -58,18 +58,47 @@ public:
 #define VALUE_PTR qword_ptr
 	static int const FpuRegNum = 8;
 
-	
-	std::vector< RealType > mConstTable;
-	Asmeta::Label           mConstLabel;
-
 	struct StackValue
 	{
 		ValueLayout layout;
-		SysInt  offset;
+		SysInt      offset;
 	};
-
 	std::vector< StackValue >  mInputStack;
 	std::vector< StackValue >  mConstStack;
+	Asmeta::Label           mConstLabel;
+	std::vector< uint8 >    mConstStorage;
+
+	int addConstValue(ConstValueInfo const& val)
+	{
+
+		int idx = 0;
+		int size = (int)mConstStack.size();
+		for( ; idx < size; ++idx )
+		{
+			auto const& stackValue = mConstStack[idx];
+			if( stackValue.layout == val.layout && val.isSameValue(&mConstStorage[stackValue.offset]) )
+				break;
+		}
+
+		if( idx == size )
+		{
+			StackValue stackValue;
+			stackValue.layout = val.layout;
+			if( mConstStack.empty() )
+			{
+				stackValue.offset = 0;
+			}
+			else
+			{
+				stackValue.offset = mConstStack.back().offset + GetLayoutSize(mConstStack.back().layout);
+			}
+			mConstStack.push_back(stackValue);
+			mConstStorage.resize(mConstStack.size() + GetLayoutSize(val.layout));
+			val.assignTo(&mConstStorage[stackValue.offset]);
+		}
+
+		return idx;
+	}
 
 	struct ValueInfo
 	{
@@ -98,6 +127,8 @@ public:
 			mInputStack[i].layout = inputLayouts[i];
 			mInputStack[i].offset = offset;
 		}
+		mConstStorage.clear();
+		mConstStack.clear();
 	}
 
 	template< class Type >
@@ -223,15 +254,17 @@ public:
 	{
 		switch( info.type )
 		{
-		case VALUE_CONST:
-			Asm::fld(VALUE_PTR(&mConstLabel, info.idxCV * sizeof(ValueType)));
-			return 1;
 		case VALUE_VARIABLE:
 			return emitLoadValueWithLayout(info.var->layout, info.var->ptr);
 		case VALUE_INPUT:
 			{
 				StackValue& inputValue = mInputStack[info.idxInput];
 				return emitLoadValueWithLayout(inputValue.layout, ebp, inputValue.offset);
+			}
+		case VALUE_CONST:
+			{
+				StackValue& constValue = mConstStack[info.idxCV];
+				return emitLoadValueWithLayout(constValue.layout, &mConstLabel, constValue.offset);
 			}
 		}
 
@@ -256,7 +289,7 @@ public:
 		mPrevValue.type = TOKEN_NONE;
 		mPrevValue.var = nullptr;
 
-		mConstTable.clear();
+
 		mData->clearCode();
 		Asm::clearLink();
 
@@ -274,19 +307,7 @@ public:
 		checkStackPrevValPtr();
 		//find if have the same value before
 
-		int idx = 0;
-		int size = (int)mConstTable.size();
-		for( ; idx < size; ++idx )
-		{
-			if( mConstTable[idx] == val.toReal )
-				break;
-		}
-
-		if( idx == size )
-		{
-			mConstTable.push_back(val.toReal);
-		}
-
+		int idx = addConstValue( val );
 
 		mPrevValue.type = VALUE_CONST;
 		mPrevValue.idxCV = idx;
@@ -399,11 +420,6 @@ public:
 			{
 				switch( mPrevValue.type )
 				{
-				case VALUE_CONST:
-					{
-						mNumInstruction += emitBOP(opType, isReverse, VALUE_PTR(&mConstLabel, mPrevValue.idxCV * sizeof(ValueType)));
-					}
-					break;
 				case VALUE_VARIABLE:
 					{
 						mNumInstruction += emitBOPWithLayout(opType, isReverse, mPrevValue.var->layout, mPrevValue.var->ptr);
@@ -412,7 +428,13 @@ public:
 				case VALUE_INPUT:
 					{
 						StackValue& inputValue = mInputStack[mPrevValue.idxInput];
-						mNumInstruction += emitBOPWithLayout(opType, isReverse, inputValue.layout, ebp , inputValue.offset);
+						mNumInstruction += emitBOPWithLayout(opType, isReverse, inputValue.layout, ebp, inputValue.offset);
+					}
+					break;
+				case VALUE_CONST:
+					{
+						StackValue& constValue = mConstStack[mPrevValue.idxCV];
+						mNumInstruction += emitBOPWithLayout(opType, isReverse, constValue.layout , &mConstLabel, constValue.offset);
 					}
 					break;
 				}
@@ -424,7 +446,7 @@ public:
 				if( mNumVarStack > FpuRegNum )
 				{
 					int32 offset = -(mNumVarStack - FpuRegNum) * sizeof(ValueType);
-					mNumInstruction += emitBOP(opType, isReverse, VALUE_PTR(ebp, int32(offset)));
+					mNumInstruction += emitBOP(opType, isReverse, VALUE_PTR(ebp, SysInt(offset)));
 
 					mRegStack.back().type = TOKEN_NONE;
 				}
@@ -468,9 +490,9 @@ public:
 		Asm::bind(&mConstLabel);
 
 		int   num = mData->getCodeLength();
-		for( int i = 0; i < mConstTable.size(); ++i )
+		if( !mConstStorage.empty() )
 		{
-			mData->pushCode(mConstTable[i]);
+			mData->pushCode(&mConstStorage[0], mConstStorage.size());
 		}
 
 		Asm::reloc(mData->mCode);
@@ -540,6 +562,8 @@ class FPUCodeGeneratorV1 : public FPUCodeGeneratorBase
 {
 
 public:
+	std::vector< RealType > mConstTable;
+
 	void codeInit(int numInput, ValueLayout inputLayouts[])
 	{
 		mNumInstruction = 0;
@@ -561,7 +585,7 @@ public:
 		Asm::mov(ebp, esp);
 		mNumInstruction += 2;
 	}
-	void codeConstValue(ValueType const&val)
+	void codeConstValue(RealType const&val)
 	{
 		int idx = 0;
 		int size = (int)mConstTable.size();
@@ -811,6 +835,13 @@ void ExecutableCode::pushCode( uint8 byte1,uint8 byte2,uint8 byte3 )
 	pushCodeInternal(byte1); 
 	pushCodeInternal(byte2);
 	pushCodeInternal(byte3);
+}
+
+void ExecutableCode::pushCode(uint8 const* data, int size)
+{
+	checkCodeSize(size);
+	memcpy(mCodeEnd, data, size);
+	mCodeEnd += size;
 }
 
 void ExecutableCode::pushCodeInternal( uint8 byte )

@@ -10,7 +10,7 @@
 #include <unordered_map>
 #include <memory>
 
-namespace RenderGL
+namespace Render
 {
 	struct GLGpuTiming
 	{
@@ -76,9 +76,9 @@ namespace RenderGL
 		GpuProfileSample* sample;
 	};
 
-}//namespace RenderGL
+}//namespace Render
 
-#define GPU_PROFILE( name ) RenderGL::GpuProfileScope ANONYMOUS_VARIABLE(GPUProfile)( RenderGL::GpuProfileScope::NoVA() , name );
-#define GPU_PROFILE_VA( name , ... ) RenderGL::GpuProfileScope ANONYMOUS_VARIABLE(GPUProfile)( name , __VA_ARGS__);
+#define GPU_PROFILE( name ) Render::GpuProfileScope ANONYMOUS_VARIABLE(GPUProfile)( Render::GpuProfileScope::NoVA() , name );
+#define GPU_PROFILE_VA( name , ... ) Render::GpuProfileScope ANONYMOUS_VARIABLE(GPUProfile)( name , __VA_ARGS__);
 
 #endif // GpuProfiler_H_5CF3071A_820F_435C_BC97_1975A2C6D546

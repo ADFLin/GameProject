@@ -2,6 +2,10 @@
 #define TextureManager_h__
 
 #include "Singleton.h"
+
+#include "HashString.h"
+
+
 #include <map>
 
 class Texture;
@@ -15,12 +19,14 @@ public:
 	~TextureManager();		
 
 	Texture* getEmptyTexture();
-	Texture* getTexture(int i);			
-	Texture* getTexture(char const* name);
-	void     destroyTexture(int i);		
-	void     destroyTexture(char const* name);
+	Texture* getTexture(HashString name);
+
+	void     destroyTexture(HashString name);
 	Texture* loadTexture(char const* name);
 	void     cleanup();
+
+	Texture* getTextureByIndex(int index);
+	void     destroyTextureByIndex(int index);
 };
 
 #endif // TextureManager_h__

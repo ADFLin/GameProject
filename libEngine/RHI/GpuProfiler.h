@@ -2,8 +2,6 @@
 #ifndef GpuProfiler_H_5CF3071A_820F_435C_BC97_1975A2C6D546
 #define GpuProfiler_H_5CF3071A_820F_435C_BC97_1975A2C6D546
 
-#include "GL/glew.h"
-#include "GLConfig.h"
 #include "Singleton.h"
 #include "Core/IntegerType.h"
 
@@ -12,20 +10,20 @@
 
 namespace Render
 {
-	struct GLGpuTiming
+
+	class RHIProfileCore
 	{
-		GLGpuTiming()
-		{
-			mStartHandle = 0;
-			mEndHandle = 0;
-		}
+	public:
+		virtual ~RHIProfileCore(){}
 
-		void start();
-		void end();
-		bool getTime(uint64& result);
+		virtual void beginFrame() = 0;
+		virtual void endFrame() = 0;
+		virtual uint32 fetchTiming() = 0;
 
-		GLuint mStartHandle;
-		GLuint mEndHandle;
+		virtual void startTiming(uint32 timingHandle) = 0;
+		virtual void endTiming(uint32 timingHandle) = 0;
+		virtual bool getTimingDurtion(uint32 timingHandle, uint64& outDurtion) = 0;
+		virtual double getCycleToSecond() = 0;
 	};
 
 	struct GpuProfileSample
@@ -33,22 +31,27 @@ namespace Render
 		std::string name;
 		int idxGroup;
 		int level;
-		GLGpuTiming timing;
+
+		uint32 timingHandle;
 		float time;
 	};
 
-	struct GpuProfiler : public SingletonT< GpuProfiler >
+	struct GpuProfiler
 	{
 	public:
 		GpuProfiler();
 
+		static CORE_API GpuProfiler& Get();
+
 		void beginFrame();
 		void endFrame();
 
-		int getSampleNum() { return numSampleUsed; }
+		int  getSampleNum() { return numSampleUsed; }
+		void setCore(RHIProfileCore* core);
 
 		GpuProfileSample* getSample(int idx) { return mSamples[idx].get(); }
 		GpuProfileSample* startSample(char const* name);
+		void endSample(GpuProfileSample& sample);
 
 		struct SampleGroup
 		{
@@ -56,13 +59,14 @@ namespace Render
 			float time;
 			int idxParent;
 		};
-		void endSample(GpuProfileSample* sample);
+		
 		std::vector< std::unique_ptr< GpuProfileSample > > mSamples;
 
-
-		bool bFrameStarted;
+		RHIProfileCore* mCore = nullptr;
+		bool bStartSampling = false;
 		int  mCurLevel;
 		int  numSampleUsed;
+		double cycleToSecond;
 	};
 
 

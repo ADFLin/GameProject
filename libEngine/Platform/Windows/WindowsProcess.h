@@ -99,6 +99,20 @@ public:
 		return false;
 	}
 
+	void waitToComplete()
+	{
+		::WaitForSingleObject(mProcess, INFINITE);
+	}
+
+	bool getExitCode(int32& outCode)
+	{
+		DWORD exitCode = 0;
+		if( !GetExitCodeProcess(mProcess, &exitCode) )
+			return false;
+
+		outCode = exitCode;
+		return true;
+	}
 };
 
 #endif // WindowsProcess_H_3E773242_ECA6_4021_A191_E5E7F911B4CA

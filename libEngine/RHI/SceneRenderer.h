@@ -291,9 +291,9 @@ namespace Render
 	};
 
 
-	struct TitledLightInfo
+	struct TiledLightInfo
 	{
-		DECLARE_BUFFER_STRUCT(TitledLightBlock);
+		DECLARE_BUFFER_STRUCT(TiledLightBlock);
 
 		Vector3 pos;
 		int32   type; 

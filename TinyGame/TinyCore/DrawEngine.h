@@ -4,12 +4,15 @@
 #include "GameConfig.h"
 #include "BitmapDC.h"
 
+#include "Math/Vector2.h"
 #include "glew/GL/glew.h"
 #include "WGLContext.h"
 #include "WinGDIRenderSystem.h"
 
 
 #include <memory>
+
+using Math::Vector2;
 
 
 #define OPENGL_RENDER_DIB 0
@@ -19,6 +22,17 @@ class Graphics2D : public WinGdiGraphics2D
 public:
 	Graphics2D( HDC hDC = NULL ):WinGdiGraphics2D(hDC){}
 
+	using WinGdiGraphics2D::drawPolygon;
+	void  drawPolygon(Vector2 pos[], int num)
+	{
+		Vec2i* pts = (Vec2i*)alloca(sizeof(Vec2i) * num);
+		for( int i = 0; i < num; ++i )
+		{
+			pts[i].x = Math::FloorToInt(pos[i].x);
+			pts[i].y = Math::FloorToInt(pos[i].y);
+		}
+		drawPolygon(pts, num);
+	}
 };
 
 class GLGraphics2D;
@@ -41,18 +55,22 @@ public:
 	virtual void  endBlend() = 0;
 	virtual void  setPen( Color3ub const& color ) = 0;
 	virtual void  setBrush( Color3ub const& color ) = 0;
-	virtual void  drawPixel  ( Vec2i const& p , Color3ub const& color )= 0;
-	virtual void  drawLine   ( Vec2i const& p1 , Vec2i const& p2 ) = 0;
-	virtual void  drawRect   ( int left , int top , int right , int bottom )= 0;
-	virtual void  drawRect   ( Vec2i const& pos , Vec2i const& size ) = 0;
-	virtual void  drawCircle ( Vec2i const& center , int r ) = 0;
-	virtual void  drawEllipse( Vec2i const& pos , Vec2i const& size ) = 0;
-	virtual void  drawRoundRect( Vec2i const& pos , Vec2i const& rectSize , Vec2i const& circleSize ) = 0;
-	virtual void  drawPolygon(Vec2i pos[], int num) = 0;
-	virtual void  setTextColor(Color3ub const& color) = 0;
-	virtual void  drawText( Vec2i const& pos , char const* str ) = 0;
-	virtual void  drawText( Vec2i const& pos , Vec2i const& size , char const* str , bool beClip = false ) = 0;
+	virtual void  drawPixel  (Vector2 const& p , Color3ub const& color )= 0;
+	virtual void  drawLine   (Vector2 const& p1 , Vector2 const& p2 ) = 0;
 
+	virtual void  drawRect   (Vector2 const& pos , Vector2 const& size ) = 0;
+	virtual void  drawCircle (Vector2 const& center , float radius ) = 0;
+	virtual void  drawEllipse(Vector2 const& pos , Vector2 const& size ) = 0;
+	virtual void  drawRoundRect(Vector2 const& pos , Vector2 const& rectSize , Vector2 const& circleSize ) = 0;
+	virtual void  drawPolygon(Vector2 pos[], int num) = 0;
+	virtual void  setTextColor(Color3ub const& color) = 0;
+	virtual void  drawText(Vector2 const& pos , char const* str ) = 0;
+	virtual void  drawText(Vector2 const& pos , Vector2 const& size , char const* str , bool beClip = false ) = 0;
+
+	void  drawRect(int left, int top, int right, int bottom)
+	{
+		drawRect(Vector2(left, top), Vector2(right - left, bottom - right));
+	}
 	class Visitor
 	{
 	public:
@@ -102,6 +120,7 @@ enum class RHITargetName
 	None   ,
 	OpenGL ,
 	D3D11 ,
+	Vulkan ,
 };
 class DrawEngine
 {
@@ -141,7 +160,7 @@ public:
 	TINY_API bool  beginRender();
 	TINY_API void  endRender();
 
-	bool        bUsePlatformBuffer = false;
+	bool        bUsePlatformBuffer = true;
 private:
 	void        setupBuffer( int w , int h );
 

@@ -23,24 +23,24 @@ public:
 		if( !BaseClass::onInit() )
 			return false;
 
-		VERIFY_INITRESULT(::Global::GetDrawEngine()->startOpenGL(4));
+		VERIFY_RETURN_FALSE(::Global::GetDrawEngine()->startOpenGL(4));
 
-		VERIFY_INITRESULT(FontCharCache::Get().initialize());
+		VERIFY_RETURN_FALSE(FontCharCache::Get().initialize());
 
 		{
 			FontFaceInfo fontFace;
 			fontFace.name = "微軟正黑體";
 			fontFace.size = 12;
-			VERIFY_INITRESULT(mCharDataSet = FontCharCache::Get().getCharDataSet(fontFace));
+			VERIFY_RETURN_FALSE(mCharDataSet = FontCharCache::Get().getCharDataSet(fontFace));
 		}
 		{
 			FontFaceInfo fontFace;
 			fontFace.name = "微軟正黑體";
 			fontFace.size = 1000;
-			VERIFY_INITRESULT( mBigCharDataSet = FontCharCache::Get().getCharDataSet(fontFace) );
+			VERIFY_RETURN_FALSE( mBigCharDataSet = FontCharCache::Get().getCharDataSet(fontFace) );
 
 			CharImageData data;
-			VERIFY_INITRESULT( mBigCharDataSet->mProvider->getCharData(L'冏', data) );
+			VERIFY_RETURN_FALSE( mBigCharDataSet->mProvider->getCharData(L'冏', data) );
 
 			int i = 1;
 		}
@@ -51,7 +51,7 @@ public:
 			Color4f(0,0,0) ,Color4f(1,0,0) ,
 			Color4f(0,1,0) ,Color4f(1,1,1) ,
 		};
-		VERIFY_INITRESULT( mTexture = RHICreateTexture2D(Texture::eFloatRGBA, 2, 2, 1, BCF_DefalutValue, colors) );
+		VERIFY_RETURN_FALSE( mTexture = RHICreateTexture2D(Texture::eFloatRGBA, 2, 2, 1, BCF_DefalutValue, colors) );
 
 		charData = mCharDataSet->findOrAddChar(L'籖');
 		charData = mCharDataSet->findOrAddChar(L'H');

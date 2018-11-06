@@ -100,7 +100,7 @@ bool ExpressionParser::analyzeTokenUnit( char const* expr , SymbolTable const& t
 			{
 			case '+':
 				{
-					if ( *tok.next() == '+' )
+					if ( tok.nextChar() == '+' )
 					{
 						type = UOP_INC_PRE;
 						tok.offset( 1 );
@@ -116,7 +116,7 @@ bool ExpressionParser::analyzeTokenUnit( char const* expr , SymbolTable const& t
 				break;
 			case '-': 
 				{
-					if ( *tok.next() == '-' )
+					if ( tok.nextChar() == '-' )
 					{
 						type = UOP_INC_PRE;
 						tok.offset( 1 );
@@ -138,21 +138,21 @@ bool ExpressionParser::analyzeTokenUnit( char const* expr , SymbolTable const& t
 			case ')': type = TOKEN_RBAR; break;
 			case '>':
 				{
-					if ( *tok.next() == '=' )
+					if ( tok.nextChar() == '=' )
 					{	type = BOP_BIGEQU; tok.offset( 1 );	}
 					else type = BOP_BIG;
 				}
 				break;
 			case '<':
 				{
-					if ( *tok.next() == '=' )
+					if ( tok.nextChar() == '=' )
 					{	type = BOP_SMLEQU; tok.offset( 1 );	}
 					else type = BOP_SML;
 				}
 				break;
 			case '=':
 				{
-					if ( *tok.next() == '=' )
+					if ( tok.nextChar() == '=' )
 					{	type = BOP_EQU; tok.offset( 1 ); }
 					else if ( typePrev == VALUE_VARIABLE )
 					{
@@ -163,7 +163,7 @@ bool ExpressionParser::analyzeTokenUnit( char const* expr , SymbolTable const& t
 				break;
 			case '!':
 				{
-					if ( *tok.next() == '=' )
+					if ( tok.nextChar() == '=' )
 					{	type = BOP_NEQU; tok.offset( 1 );}
 					else 
 					{

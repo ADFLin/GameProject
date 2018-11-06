@@ -430,16 +430,13 @@ namespace Tween
 		{
 			Impl* _this(){ return static_cast< Impl* >( this ); }
 
-
 		public:
 			template< class Fun , class T >
 			CTween< Fun , ValueAccess< T > >&
 				tweenValue( T& data , T const& from , T const& to , TimeType durtion , TimeType delay = 0 )
 			{
 				typedef CTween< Fun , ValueAccess< T >  > MyTween;
-				MyTween* t = new MyTween( data , from , to , durtion , delay );
-				_this()->addComponent( t );
-				return *t;
+				return createAndAddComponent< MyTween >(data, from, to, durtion, delay);
 			}
 
 			template< class Fun , class T , class FunParam >
@@ -447,11 +444,8 @@ namespace Tween
 				tweenValue( T& data , T const& from , T const& to  , TimeType durtion , TimeType delay  , FunParam const& param )
 			{
 				typedef CTween< Fun , ValueAccess< T > , FunParam  > MyTween;
-				MyTween* t = new MyTween( data , from , to , durtion , delay , param );
-				_this()->addComponent( t );
-				return *t;
+				return createAndAddComponent< MyTween >(data, from, to, durtion, delay , param);
 			}
-
 
 			template< class Fun  , class Access >
 			inline CTween< Fun , Access >&
@@ -461,9 +455,7 @@ namespace Tween
 				TimeType durtion , TimeType delay = 0 )
 			{
 				typedef CTween< Fun , Access > MyTween;
-				MyTween* t = new MyTween( data , from , to , durtion , delay );
-				_this()->addComponent( t );
-				return *t;
+				return createAndAddComponent< MyTween >(data, from, to, durtion, delay);
 			}
 
 			template< class Fun , class Access , class FunParam >
@@ -474,39 +466,27 @@ namespace Tween
 				TimeType durtion , TimeType delay , FunParam const& param )
 			{
 				typedef CTween< Fun , Access , FunParam > MyTween;
-				MyTween* t = new MyTween( data , from , to , durtion , delay , param );
-				_this()->addComponent( t );
-				return *t;
+				return createAndAddComponent< MyTween >(data, from, to, durtion, delay, param);
 			}
 
-			inline CMultiTween& 
-				tweenMulti( TimeType durtion , TimeType delay = 0 )
-			{
-				CMultiTween* t = new CMultiTween( durtion , delay );
-				_this()->addComponent( t );
-				return *t;
-			}
+			inline CMultiTween& tweenMulti(TimeType durtion, TimeType delay = 0) { return createAndAddComponent< CMultiTween >(durtion, delay); }
 
 			typedef GroupTweener< TimeType , CallbackPolicy >   CGroupTweener;
 			typedef SquenceTweener< TimeType , CallbackPolicy > CSquenceTweener;
 
-			inline CGroupTweener& 
-				group()
-			{
-				CGroupTweener* t = new CGroupTweener( false );
-				_this()->addComponent( t );
-				return *t;
-			}
+			inline CGroupTweener& group() { return createAndAddComponent< CGroupTweener >(false); }
+			inline CSquenceTweener& sequence(){  return createAndAddComponent< CSquenceTweener >();  }
 
-			inline CSquenceTweener&
-				sequence()
-			{
-				CSquenceTweener* t = new CSquenceTweener;
-				_this()->addComponent( t );
-				return *t;
-			}
 		protected:
 			void destroyComponent( IComponent* comp ){ delete comp; }
+
+			template< class T , class ...Args > 
+			T&   createAndAddComponent( Args&& ...args )
+			{
+				auto t = new T( std::forward< Args >( args )... );
+				_this()->addComponent(t);
+				return *t;
+			}
 			void addComponent( IComponent* comp );
 		};
 

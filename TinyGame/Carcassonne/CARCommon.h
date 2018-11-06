@@ -93,6 +93,7 @@ namespace CAR
 	struct FDir
 	{
 		static int const TotalNum = 4;
+
 		static int Inverse( int dir ){ return ( dir + TotalNum / 2 ) % TotalNum; }
 		static int ToLocal( int dir , int rotation )
 		{

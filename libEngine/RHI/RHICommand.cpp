@@ -14,6 +14,7 @@ namespace Render
 	RHISystem* gRHISystem = nullptr;
 #endif
 
+
 #define EXECUTE_RHIFUN( CODE ) gRHISystem->CODE
 
 	bool RHISystemInitialize(RHISytemName name, RHISystemInitParam const& initParam)
@@ -222,8 +223,12 @@ namespace Render
 		EXECUTE_RHIFUN(RHISetFrameBuffer(frameBuffer, overrideDepthTexture));
 	}
 
+	void RHISetIndexBuffer(RHIIndexBuffer* indexBuffer)
+	{
+		EXECUTE_RHIFUN(RHISetIndexBuffer(indexBuffer));
+	}
 
-	RHIRasterizerState& GetStaticRasterizerState(ECullMode cullMode , EFillMode fillMode)
+	RHIRasterizerState& GetStaticRasterizerState(ECullMode cullMode, EFillMode fillMode)
 	{
 #define SWITCH_CULL_MODE( FILL_MODE )\
 		switch( cullMode )\
@@ -260,7 +265,6 @@ namespace Render
 		if( !image )
 			return false;
 
-
 		RHITexture2D* result = nullptr;
 		//#TODO
 		switch( comp )
@@ -273,6 +277,7 @@ namespace Render
 			break;
 		}
 
+		stbi_image_free(image);
 		return result;
 	}
 

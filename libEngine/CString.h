@@ -28,6 +28,22 @@ struct TStringTraits< wchar_t >
 	typedef std::wstring StdString;
 };
 
+template <class CharT>
+struct TStringLiteral
+{
+	static CharT Select(char c, wchar_t) { return c; }
+	static CharT const* Select(char const* c, wchar_t const*) { return c; }
+};
+
+template <>
+struct TStringLiteral< wchar_t >
+{
+	static wchar_t Select(char, wchar_t c) { return c; }
+	static wchar_t const* Select(char const*, wchar_t const* c) { return c; }
+};
+
+#define STRING_LITERAL( TYPE , LITERAL ) TStringLiteral< TYPE >::Select( LITERAL , L##LITERAL );
+
 
 struct FCString
 {
@@ -53,6 +69,9 @@ struct FCString
 
 	static int    Compare(char const* s1, char const* s2) { return ::strcmp(s1, s2); }
 	static int    Compare(wchar_t const* s1, wchar_t const* s2) { return ::wcscmp(s1, s2); }
+
+	static int    CompareIgnoreCase(char const* s1, char const* s2) { return ::stricmp(s1, s2); }
+	static int    CompareIgnoreCase(wchar_t const* s1, wchar_t const* s2) { return ::wcsicmp(s1, s2); }
 
 	static int    CompareN(char const* s1, char const* s2 , size_t num ) { return ::strncmp(s1, s2 , num ); }
 	static int    CompareN(wchar_t const* s1, wchar_t const* s2 , size_t num ) { return ::wcsncmp(s1, s2 , num ); }
@@ -93,7 +112,7 @@ struct FCString
 	};
 
 	template< class CharT , int N , class ...Args>
-	static void  PrintfT(CharT(&str)[N], CharT const* fmt, Args ...args)
+	static void  PrintfT(CharT(&str)[N], CharT const* fmt, Args&& ...args)
 	{
 		static_assert(Meta::And< TIsValidFormatType< Args >... >::Value == true , "Arg Type Error");
 		FCString::PrintfImpl(str, fmt, args...);
@@ -107,39 +126,12 @@ struct FCString
 		va_end(argptr);
 	}
 
-	static void Stricpy(char * dest, char const* src)
-	{
-		assert(dest && src);
-		while( *src )
-		{
-			int c = ::tolower(*src);
-			*dest = c;
-			++dest;
-			++src;
-		}
-	}
+	static void Stricpy(char * dest, char const* src);
 
-	static uint32 StriHash(char const* str)
-	{
-		uint32 result = 5381;
-		while( *str )
-		{
-			uint32 c = (uint32)tolower(*str);
-			result = ((result << 5) + result) + c; /* hash * 33 + c */
-			++str;
-		}
-		return result;
-	}
+	static uint32 StriHash(char const* str);
 
 	
-	static std::wstring CharToWChar(const char *c)
-	{
-		const size_t cSize = strlen(c) + 1;
-		wchar_t buff[1024 * 256];
-		setlocale(LC_ALL, "cht");
-		mbstowcs(buff, c, cSize);
-		return buff;
-	}
+	static std::wstring CharToWChar(const char *c);
 };
 
 

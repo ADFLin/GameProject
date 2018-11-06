@@ -1,93 +1,87 @@
 #include "GpuProfiler.h"
 
 #include "FixString.h"
+#include <cstdarg>
 
 namespace Render
 {
 
-	void GLGpuTiming::start()
-	{
-		if( mStartHandle != 0 )
-		{
-			glDeleteQueries(1, &mStartHandle);
-			mStartHandle = 0;
-		}
-		glGenQueries(1, &mStartHandle);
-		glQueryCounter(mStartHandle, GL_TIMESTAMP);
-	}
-
-	void GLGpuTiming::end()
-	{
-		if( mEndHandle != 0 )
-		{
-			glDeleteQueries(1, &mEndHandle);
-			mEndHandle = 0;
-		}
-		glGenQueries(1, &mEndHandle);
-		glQueryCounter(mEndHandle, GL_TIMESTAMP);
-	}
-
-	bool GLGpuTiming::getTime(uint64& result)
-	{
-		GLuint isAvailable = GL_TRUE;
-		glGetQueryObjectuiv(mStartHandle, GL_QUERY_RESULT_AVAILABLE, &isAvailable);
-		if( isAvailable == GL_TRUE )
-		{
-			glGetQueryObjectuiv(mEndHandle, GL_QUERY_RESULT_AVAILABLE, &isAvailable);
-
-			if( isAvailable == GL_TRUE )
-			{
-				GLuint64 startTimeStamp;
-				glGetQueryObjectui64v(mStartHandle, GL_QUERY_RESULT, &startTimeStamp);
-				GLuint64 endTimeStamp;
-				glGetQueryObjectui64v(mEndHandle, GL_QUERY_RESULT, &endTimeStamp);
-
-				result = endTimeStamp - startTimeStamp;
-				return true;
-			}
-		}
-		return false;
-	}
-
 	GpuProfiler::GpuProfiler()
 	{
 		numSampleUsed = 0;
-		bFrameStarted = false;
+		bStartSampling = false;
 	}
+
+#if CORE_SHARE_CODE
+	GpuProfiler& GpuProfiler::Get()
+	{
+		static GpuProfiler sInstance;
+		return sInstance;
+	}
+#endif
 
 	void GpuProfiler::beginFrame()
 	{
 		numSampleUsed = 0;
 		mCurLevel = 0;
-		bFrameStarted = true;
+
+		if( mCore )
+		{
+			mCore->beginFrame();
+			bStartSampling = true;
+		}
 	}
+
 
 	void GpuProfiler::endFrame()
 	{
-		for( int i = 0; i < numSampleUsed; ++i )
+		if( mCore )
 		{
-			GpuProfileSample* sample = mSamples[i].get();
-			uint64 time;
-			while( !sample->timing.getTime(time) )
+			mCore->endFrame();
+
+			if ( bStartSampling )
 			{
+				for( int i = 0; i < numSampleUsed; ++i )
+				{
+					GpuProfileSample* sample = mSamples[i].get();
+					uint64 time;
+					while( !mCore->getTimingDurtion(sample->timingHandle, time) )
+					{
 
+					}
+					sample->time = double(time) * cycleToSecond;
+				}
 
+				bStartSampling = false;
 			}
-			sample->time = time / 1000000.0;
 		}
-		bFrameStarted = false;
+	}
+
+	void GpuProfiler::setCore(RHIProfileCore* core)
+	{
+		assert(!bStartSampling);
+		mCore = core;
+		if( mCore )
+		{
+			cycleToSecond = mCore->getCycleToSecond();
+		}
+		else
+		{
+			mSamples.clear();
+		}
 	}
 
 	GpuProfileSample* GpuProfiler::startSample(char const* name)
 	{
-		if( !bFrameStarted )
+		if( !bStartSampling )
 			return nullptr;
+
+		assert(mCore);
 		GpuProfileSample* sample;
 		if( numSampleUsed >= mSamples.size() )
 		{
 			mSamples.push_back(std::make_unique< GpuProfileSample>());
-			sample = mSamples.back().get();
-			
+			sample = mSamples.back().get();		
 		}
 		else
 		{
@@ -95,19 +89,17 @@ namespace Render
 		}
 		sample->name = name;
 		sample->level = mCurLevel;
+		sample->timingHandle = mCore->fetchTiming();
 		++mCurLevel;
 		++numSampleUsed;
-		sample->timing.start();
+		mCore->startTiming(sample->timingHandle);
 		return sample;
 	}
 
-	void GpuProfiler::endSample(GpuProfileSample* sample)
+	void GpuProfiler::endSample(GpuProfileSample& sample)
 	{
-		if ( sample )
-		{
-			sample->timing.end();
-			--mCurLevel;
-		}
+		mCore->endTiming(sample.timingHandle);
+		--mCurLevel;
 	}
 
 	GpuProfileScope::GpuProfileScope(NoVA, char const* name)
@@ -127,7 +119,8 @@ namespace Render
 
 	GpuProfileScope::~GpuProfileScope()
 	{
-		GpuProfiler::Get().endSample(sample);
+		if ( sample )
+			GpuProfiler::Get().endSample(*sample);
 	}
 
 }//namespace Render

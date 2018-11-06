@@ -142,7 +142,7 @@ namespace Render
 
 		static void registerAssetId(Chai::Module& module)
 		{
-			
+
 			Chai::utility::add_class< MaterialId::Enum >( module, SCRIPT_NAME(MaterialId),
 			{
 #define LIST_OP( NAME ) { MaterialId::NAME , SCRIPT_NAME( MaterialId_##NAME ) } ,
@@ -170,6 +170,7 @@ namespace Render
 		}
 		void registerSceneFun( Chai::ChaiScript& script)
 		{
+
 			script.add(Chai::fun(&SceneScriptImpl::StaticMesh, this), SCRIPT_NAME(StaticMesh));
 			script.add(Chai::fun(&SceneScriptImpl::SimpleMesh, this), SCRIPT_NAME(SimpleMesh));
 			script.add(Chai::fun(&SceneScriptImpl::PointLight, this), SCRIPT_NAME(PointLight));

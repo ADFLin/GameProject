@@ -2,11 +2,9 @@
 
 namespace BT
 {
-	BTTransform* TreeWalker::enter( BTNode& node , BTTransform* prevState )
+	BTNodeInstance* TreeWalker::enterNode( BTNode& node , BTNodeInstance* prevState )
 	{
-		BTTransform* result = node.buildTransform( this );
-
-		result->mWalker    = this;
+		BTNodeInstance* result = node.buildInstance( *this );
 		result->mNode      = &node;
 		result->mPrevState = prevState;
 
@@ -14,8 +12,8 @@ namespace BT
 			result->accept( *mInitializer );
 
 		Entry entry;
-		entry.state     = TS_RUNNING;
-		entry.transform = result;
+		entry.state = TS_RUNNING;
+		entry.node  = result;
 
 		mEntries.push_back( entry );
 		result->mEntry = &mEntries.back();
@@ -23,7 +21,7 @@ namespace BT
 		return result;
 	}
 
-	void TreeWalker::resume( BTTransform& transform )
+	void TreeWalker::resumeNode( BTNodeInstance& transform )
 	{
 		transform.mEntry->state = TS_RUNNING;
 	}
@@ -34,7 +32,7 @@ namespace BT
 		Entry& entry = mEntries.front();
 
 		if ( entry.state != TS_SUSPENDED )
-			entry.state = entry.transform->execute();
+			entry.state = entry.node->execute(*this);
 
 		bool result = false;
 
@@ -42,7 +40,7 @@ namespace BT
 		{
 		case TS_FAILED:
 		case TS_SUCCESS:
-			dispatchState( entry.transform , entry.state );
+			dispatchState( entry.node , entry.state );
 			break;
 		case TS_RUNNING:
 			mEntries.splice( mEntries.end() , mEntries , mEntries.begin() );
@@ -57,10 +55,10 @@ namespace BT
 	}
 
 
-	class RootTransform : public BTTransform
+	class RootNodeInstance : public BTNodeInstance
 	{
 	public:
-		bool onRecvChildState( BTTransform* child , TaskState& state )
+		bool resolveChildState( TreeWalker& walker , BTNodeInstance* child , TaskState& state )
 		{
 			return false;
 		}
@@ -70,35 +68,35 @@ namespace BT
 	{
 		if ( node == NULL )
 			return;
-		BTTransform* prevTransform = createTransform< RootTransform >();
-		enter( *node , prevTransform );
+		BTNodeInstance* prevTransform = createInstance< RootNodeInstance >();
+		enterNode( *node , prevTransform );
 	}
 
-	void TreeWalker::close( BTTransform* transform )
+	void TreeWalker::closeNode( BTNodeInstance* transform )
 	{
 		BTNode* node = transform->getNode< BTNode >();
 
 		for( EntryQueue::iterator iter = mEntries.begin();
 			iter != mEntries.end() ; ++iter )
 		{
-			if ( iter->transform == transform )
+			if ( iter->node == transform )
 			{
 				mEntries.erase( iter );
 				break;
 			}
 		}
-		destroyTransform( transform );
+		destroyInstance( transform );
 	}
 
-	void TreeWalker::dispatchState( BTTransform* transform , TaskState state )
+	void TreeWalker::dispatchState( BTNodeInstance* nodeInstance , TaskState state )
 	{
-		BTTransform* parent =  transform->mPrevState;
-		BTTransform* cur    =  transform;
+		BTNodeInstance* parent = nodeInstance->mPrevState;
+		BTNodeInstance* cur    = nodeInstance;
 		while( parent )
 		{
-			bool skip = !parent->onRecvChildState( cur , state );
+			bool skip = !parent->resolveChildState( *this , cur , state );
 
-			close( cur );
+			closeNode( cur );
 			if ( skip )
 				break;
 			cur    = parent;
@@ -106,48 +104,48 @@ namespace BT
 		}
 	}
 
-	TaskState SelectorTransform::execute()
+	TaskState SelectorNodeInstance::execute( TreeWalker& walker )
 	{
 		if ( mNodeIter == getNode< SelectorNode >()->_getChildren().end() )
 			return TS_FAILED;
 
-		mWalker->enter( **mNodeIter , this );
+		walker.enterNode( **mNodeIter , this );
 		++mNodeIter;
 		return TS_SUSPENDED;
 	}
 
-	bool SelectorTransform::onRecvChildState( BTTransform* child , TaskState& state )
+	bool SelectorNodeInstance::resolveChildState(TreeWalker& walker, BTNodeInstance* child , TaskState& state )
 	{
 		if ( state == TS_FAILED )
 		{
-			mWalker->resume( *this );
+			walker.resumeNode( *this );
 			return false;
 		}	
 		return true;
 	}
 
-	bool SequenceTransform::onRecvChildState( BTTransform* child , TaskState& state )
+	bool SequenceNodeInatance::resolveChildState(TreeWalker& walker, BTNodeInstance* child , TaskState& state )
 	{
 		if ( state == TS_SUCCESS )
 		{
-			mWalker->resume( *this );
+			walker.resumeNode( *this );
 			return false;
 		}
 		return true;
 	}
 
-	TaskState SequenceTransform::execute()
+	TaskState SequenceNodeInatance::execute(TreeWalker& walker)
 	{
 		if ( mNodeIter == getNode< SequenceNode >()->_getChildren().end() )
 			return TS_FAILED;
 
-		mWalker->enter( **mNodeIter , this );
+		walker.enterNode( **mNodeIter , this );
 		++mNodeIter;
 		return TS_SUSPENDED;
 	}
 
 
-	BT::TaskState ParallelTransform::execute()
+	TaskState ParallelNodeInstance::execute(TreeWalker& walker)
 	{
 		NodeList& children = getNode< ParallelNode >()->_getChildren();
 		if ( children.empty() )
@@ -157,12 +155,12 @@ namespace BT
 			iter != children.end(); ++iter )
 		{
 			BTNode* node = *iter;
-			mWalker->enter( *node , this );
+			walker.enterNode( *node , this );
 		}
 		return  TS_SUSPENDED;
 	}
 
-	bool ParallelTransform::onRecvChildState( BTTransform* child , TaskState& state )
+	bool ParallelNodeInstance::resolveChildState(TreeWalker& walker, BTNodeInstance* child , TaskState& state )
 	{
 		if ( state == TS_FAILED )
 			++mCountFailure;
@@ -174,8 +172,8 @@ namespace BT
 
 		if ( mCountSuccess + mCountFailure == childrenSize )
 		{
-			if ( ( node->mSuccessPolicy == RequireAll && mCountSuccess == childrenSize ) ||
-				( node->mSuccessPolicy == RequireOne && mCountSuccess > 0 ) )
+			if ( ( node->mSuccessCondition == RequireAll && mCountSuccess == childrenSize ) ||
+				 ( node->mSuccessCondition == RequireOne && mCountSuccess > 0 ) )
 				state = TS_SUCCESS;
 			else
 				state = TS_FAILED;
@@ -184,32 +182,32 @@ namespace BT
 		return false;
 	}
 	
-	ParallelTransform::ParallelTransform()
+	ParallelNodeInstance::ParallelNodeInstance()
 	{
 		mCountFailure = 0;
 		mCountSuccess = 0;
 	}
 
 
-	BTTransform* ParallelNode::buildTransform( TreeWalker* walker )
+	BTNodeInstance* ParallelNode::buildInstance( TreeWalker& walker )
 	{
-		return walker->createTransform< ParallelTransform >();
+		return walker.createInstance< ParallelNodeInstance >();
 	}
 
 
-	void SelectorNode::setupTransform( TransformType* transform )
+	void SelectorNode::setupInstance(SelectorNodeInstance& instnace )
 	{
-		transform->mNodeIter = mChildren.begin();
+		instnace.mNodeIter = mChildren.begin();
 	}
 
 
-	void SequenceNode::setupTransform( TransformType* transform )
+	void SequenceNode::setupInstance(SequenceNodeInatance& instnace)
 	{
-		transform->mNodeIter = mChildren.begin();
+		instnace.mNodeIter = mChildren.begin();
 	}
 
 
-	bool CountDecTransform::onRecvChildState( BTTransform* child , TaskState& state )
+	bool CountDecNodeInstance::resolveChildState(TreeWalker& walker, BTNodeInstance* child , TaskState& state )
 	{
 		++mExecCount;
 
@@ -223,12 +221,12 @@ namespace BT
 		{
 			return true;
 		}
-		mWalker->resume( *this );
+		walker.resumeNode( *this );
 		return false;
 	}
 
 
-	bool LoopDecTransform::onRecvChildState( BTTransform* child , TaskState& state )
+	bool LoopDecNodeInstance::resolveChildState(TreeWalker& walker, BTNodeInstance* child , TaskState& state )
 	{
 		++mExecCount;
 		if ( mExecCount >= getNode< Node >()->mMaxCount )
@@ -236,7 +234,7 @@ namespace BT
 			state = TS_SUCCESS;
 			return true;
 		}
-		mWalker->resume( *this );
+		walker.resumeNode( *this );
 		return false;
 	}
 

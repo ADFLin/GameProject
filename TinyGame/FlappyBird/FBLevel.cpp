@@ -115,13 +115,13 @@ namespace FlappyBird
 			float height = HeightMin + (HeightMax - HeightMin) * ::Global::Random() / float(RAND_MAX);
 			float const posProduce = WorldWidth + 1.0f;
 
-			PipeInfo block;
-			block.buttonHeight = height;
-			block.topHeight = height + BlockGap;
-			block.width = BlockWidth;
-			block.posX = posProduce;
+			PipeInfo pipe;
+			pipe.buttonHeight = height;
+			pipe.topHeight = height + BlockGap;
+			pipe.width = BlockWidth;
+			pipe.posX = posProduce;
+			addPipe(pipe);
 
-			GameLevel::addBlock(block);
 			mTimerProduce = BlockTimer;
 		}
 		else
@@ -134,27 +134,27 @@ namespace FlappyBird
 			overGame();
 	}
 
-	void GameLevel::addBlock(PipeInfo const& block)
+	void GameLevel::addPipe(PipeInfo const& pipe)
 	{
-		assert(block.topHeight > block.buttonHeight);
-		float gap = block.topHeight - block.buttonHeight;
+		assert(pipe.topHeight > pipe.buttonHeight);
+		float gap = pipe.topHeight - pipe.buttonHeight;
 		ColObject obj;
 		obj.type = CT_PIPE_BOTTOM;
-		obj.pos = Vector2(block.posX, 0);
-		obj.size = Vector2(block.width, block.buttonHeight);
+		obj.pos = Vector2(pipe.posX, 0);
+		obj.size = Vector2(pipe.width, pipe.buttonHeight);
 		mColObjects.push_back(obj);
 
 		float const ScoreWidth = 0.5f;
 		obj.type = CT_SCORE;
-		obj.pos = Vector2(block.posX + (block.width - ScoreWidth) / 2, block.buttonHeight);
+		obj.pos = Vector2(pipe.posX + (pipe.width - ScoreWidth) / 2, pipe.buttonHeight);
 		obj.size = Vector2(ScoreWidth, gap);
 		mColObjects.push_back(obj);
 
 		obj.type = CT_PIPE_TOP;
-		obj.pos = Vector2(block.posX, block.buttonHeight + gap);
-		obj.size = Vector2(block.width, WorldHeight - obj.pos.y);
+		obj.pos = Vector2(pipe.posX, pipe.buttonHeight + gap);
+		obj.size = Vector2(pipe.width, WorldHeight - obj.pos.y);
 		mColObjects.push_back(obj);
-		mPipes.push_back(block);
+		mPipes.push_back(pipe);
 	}
 
 	void GameLevel::addBird(BirdEntity& bird, IController* controller)

@@ -88,6 +88,13 @@ enum DefaultChannel
 	NEXT_CHANNEL ,
 };
 
+
+class  NetStateControl
+{
+
+
+
+};
 class  ComWorker
 {
 public:

@@ -4,24 +4,26 @@
 #include "GameGlobal.h"
 #include "SystemMessage.h"
 
+
 #include <cassert>
 #include <cstdio>
 #include <vector>
 
-typedef unsigned ControlAction;
+typedef uint32 ControlAction;
+typedef uint32 ActionPort;
 
 class IActionInput;
 class ActionProcessor;
 
-#define ERROR_ACTION_PORT (-1)
+#define ERROR_ACTION_PORT ActionPort(-1)
 
 struct ActionParam
 {
-	unsigned      port;
+	ActionPort    port;
 	ControlAction act;
 	void*         result;
-	bool          beUpdateFrame;
-	bool          bePeek;
+	bool          bUpdateFrame;
+	bool          bPeek;
 
 	template< class T >
 	void setResult( T* pVal )
@@ -48,8 +50,8 @@ struct ActionParam
 class ActionTrigger
 {
 public:
-	void      setPort( unsigned port ){ mParam.port = port;  }
-	unsigned  getPort() const { return  mParam.port;  }
+	void        setPort(ActionPort port ){ mParam.port = port;  }
+	ActionPort  getPort() const { return  mParam.port;  }
 
 	TINY_API bool      peek( ControlAction action );
 	template < class T >
@@ -65,7 +67,7 @@ public:
 		mParam.setResult( result );
 		return detect( action );
 	}
-	bool      haveUpdateFrame(){ return mParam.beUpdateFrame; }
+	bool      haveUpdateFrame(){ return mParam.bUpdateFrame; }
 private:
 	ActionParam      mParam;
 	ActionProcessor* mProcessor;
@@ -84,7 +86,7 @@ class IActionInput
 {
 public:
 	virtual ~IActionInput(){}
-	virtual bool scanInput( bool beUpdateFrame ) = 0;
+	virtual bool scanInput( bool bUpdateFrame ) = 0;
 	virtual bool checkAction( ActionParam& param ) = 0;
 };
 
@@ -118,7 +120,7 @@ public:
 	TINY_API void addListener( IActionListener& listener );
 	TINY_API bool removeListener(IActionListener& listener);
 	
-	TINY_API void addInput   ( IActionInput& input , unsigned targetPort = ERROR_ACTION_PORT );
+	TINY_API void addInput   ( IActionInput& input , ActionPort targetPort = ERROR_ACTION_PORT );
 	TINY_API bool removeInput( IActionInput& input );
 
 public:
@@ -136,11 +138,12 @@ private:
 		IActionInput* input;
 		unsigned     port;
 	};
+	std::vector< InputInfo >  mInputList;
+	std::vector< InputInfo* > mActiveInputs;
+
 	std::vector< IActionListener* > mListeners;
 
 	IActionLanucher* mLanucher;
-	InputList        mInputList;
-	InputList        mActiveInputs;
 };
 
 

@@ -1,0 +1,22 @@
+#pragma once
+
+#include "Common.sgc"
+
+struct TiledLightInfo
+{
+	float3 pos;
+	int   type;
+	float3 color;
+	float   intensity;
+	float3 dir;
+	float   radius;
+	float4 param; // x y: spotAngle  , z : shadowFactor
+	float4x4 worldToShadow;
+};
+
+layout(std140) buffer TiledLightBlock
+{
+	TiledLightInfo TiledLightList[];
+};
+
+uniform int TiledLightNum = 0;

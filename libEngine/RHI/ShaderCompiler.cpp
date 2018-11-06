@@ -66,7 +66,7 @@ namespace Render
 	//TODO: Remove
 	std::string GetFilePath(char const* name)
 	{
-		std::string path("Shader/Material/");
+		std::string path("Material/");
 		path += name;
 		path += SHADER_FILE_SUBNAME;
 		return path;

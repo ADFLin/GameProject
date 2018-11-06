@@ -904,9 +904,9 @@ namespace CAR
 		else
 			mCamera->setLookAt( offset + Vector3( 10 , 10 , 10 ) , offset , Vector3(0,0,1) );
 
-		mMatVP = mCamera->getViewMatrix() * mCamera->getProjectionMartix();
+		mWorldToClip = mCamera->getViewMatrix() * mCamera->getProjectionMartix();
 		float det;
-		mMatVP.inverse( mMatInvVP , det );
+		mWorldToClip.inverse( mClipToWorld , det );
 
 		for( int i = 0; i < mGameActionUI.size() ; ++i )
 		{
@@ -945,8 +945,8 @@ namespace CAR
 
 		float x = float( 2 * sPos.x ) / w - 1;
 		float y = 1 - float( 2 * sPos.y ) / h;
-		Vector3 rayStart = TransformPosition( Vector3( x , y , 0 ) , mMatInvVP );
-		Vector3 rayEnd = TransformPosition( Vector3( x , y , 1 ) , mMatInvVP );
+		Vector3 rayStart = TransformPosition( Vector3( x , y , 0 ) , mClipToWorld );
+		Vector3 rayEnd = TransformPosition( Vector3( x , y , 1 ) , mClipToWorld );
 		Vector3 dir = rayEnd - rayStart;
 		Vector3 temp = rayStart - ( rayStart.z / dir.z ) * ( dir );
 		return Vector2( temp.x , temp.y );
@@ -961,36 +961,46 @@ namespace CAR
 
 	Vector2 LevelStage::convertToScreenPos( Vector2 const& posMap )
 	{
-		using namespace CFly;
 
+		return (mb2DView) ? convertToScreenPos_2D(posMap) : convertToScreenPos_3D(posMap);
+	}
+
+	Vector2 LevelStage::convertToScreenPos_2D(Vector2 const& posMap)
+	{
+		using namespace CFly;
+		assert(mb2DView);
 		int h = ::Global::GetDrawEngine()->getScreenHeight();
 		int w = ::Global::GetDrawEngine()->getScreenWidth();
-		if ( mb2DView )
-		{
-			Vector2 pos = mRenderScale * ( mRenderOffset + posMap );
-			return Vector2( w / 2 + pos.x , h / 2 - pos.y );
-		}
+		Vector2 pos = mRenderScale * (mRenderOffset + posMap);
+		return Vector2(w / 2 + pos.x, h / 2 - pos.y);
+	}
+
+	Vector2 LevelStage::convertToScreenPos_3D(Vector2 const& posMap)
+	{
+		using namespace CFly;
+		assert(!mb2DView);
+		int h = ::Global::GetDrawEngine()->getScreenHeight();
+		int w = ::Global::GetDrawEngine()->getScreenWidth();
 		Vector3 pos;
 		pos.x = posMap.x;
 		pos.y = posMap.y;
 		pos.z = 0;
-		pos = TransformPosition( pos , mMatVP );
-
-		return  0.5f * Vector2( ( 1 + pos.x ) * w , ( 1 - pos.y ) * h );
+		pos = TransformPosition(pos, mWorldToClip);
+		return  0.5f * Vector2((1 + pos.x) * w, (1 - pos.y) * h);
 	}
 
-	void LevelStage::drawTileRect(Graphics2D& g , Vector2 const& mapPos)
+	void LevelStage::drawTileRect(Graphics2D& g, Vector2 const& mapPos)
 	{
 		if ( mb2DView )
 		{
-			g.drawRect( convertToScreenPos( mapPos ) - mRenderTileSize / 2 , mRenderTileSize );
+			g.drawRect( convertToScreenPos_2D( mapPos ) - mRenderTileSize / 2 , mRenderTileSize );
 		}
 		else
 		{
 			Vec2i pos[4];
 			for( int i = 0 ; i < 4 ; ++i )
 			{
-				pos[i] = convertToScreenPos( mapPos + CornerPos[i] );
+				pos[i] = convertToScreenPos_3D( mapPos + CornerPos[i] );
 			}
 			g.drawPolygon( pos , 4 );
 		}

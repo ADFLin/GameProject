@@ -1,0 +1,30 @@
+#define MATERIAL_TEXCOORD_NUM 2
+
+#include "MaterialCommon.sgc"
+#include "ViewParam.sgc"
+
+uniform sampler2D BaseTexture;
+uniform float3    BaseColor = float3(1,1,1);
+
+#if VERTEX_SHADER
+
+void  CalcMaterialInputVS(inout MaterialInputVS input, inout MaterialParametersVS parameters)
+{
+	input.worldOffset = float3(0.0);
+}
+
+#endif //VERTEX_SHADER
+
+#if PIXEL_SHADER
+
+void CalcMaterialInputPS(inout MaterialInputPS input, inout MaterialParametersPS parameters)
+{
+	input.shadingModel = SHADINGMODEL_DEFAULT_LIT;
+	float4 texColor = texture2D(BaseTexture, parameters.texCoords[0].xy);
+	input.baseColor = texColor.rgb *  BaseColor.rgb;
+	input.metallic = 0.9;
+	input.roughness = 0;
+	input.specular = 0.1;
+}
+
+#endif //PIXEL_SHADER

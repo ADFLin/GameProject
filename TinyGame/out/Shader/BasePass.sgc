@@ -4,6 +4,11 @@
 #include "DeferredShadingCommon.sgc"
 #include "ViewParam.sgc"
 
+#ifndef FORWARD_SHADING
+#define FORWARD_SHADING 0
+#endif //FORWARD_SHADING
+
+
 struct PassInterpolantsParam
 {
 	float dump;
@@ -46,7 +51,7 @@ void BasePassPS()
 
 	//float4 color = float4( materialParameters.vectexColor * 0.1 , 1 );
 	float4 color = float4(0.0);
-	//color.rgb += materialInput.emissiveColor;
+	color.rgb += materialInput.emissiveColor;
 	color.a = 1.0;
 
 
@@ -64,15 +69,18 @@ void BasePassPS()
 	float4 svPos = View.worldToClip * float4(materialParameters.worldPos, 1);
 	svPos = materialParameters.screenPos;
 	GBuffer.depth = -materialParameters.screenPos.z;
-	
+
+#if FORWARD_SHADING
+	gl_FragData[0] = float4( GBuffer.baseColor , 1 );
+#else
 	float4 GBufferA, GBufferB, GBufferC, GBufferD;
 	EncodeGBuffer(GBuffer, GBufferA, GBufferB, GBufferC, GBufferD);
-
 	gl_FragData[0] = color;
 	gl_FragData[1] = GBufferA;
 	gl_FragData[2] = GBufferB;
 	gl_FragData[3] = GBufferC;
 	gl_FragData[4] = GBufferD;
+#endif
 }
 
 

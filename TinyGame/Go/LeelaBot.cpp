@@ -219,6 +219,11 @@ namespace Go
 			char const* cur = buffer;
 			while( *cur != 0 )
 			{
+				if( cur - buffer >= bufferSize )
+				{
+					LogError("Parse logic error!!");
+					return 0;
+				}
 				int step;
 				char coord[32];
 				int numRead;
@@ -630,11 +635,11 @@ namespace Go
 			int vertex = -3;
 
 			uint8 pos[2];
-			if( coord == "Pass" )
+			if( FCString::CompareIgnoreCase( coord , "Pass" ) == 0 )
 			{
 				vertex = -1;
 			}
-			else if( coord == "Resign" )
+			else if( FCString::CompareIgnoreCase( coord , "Resign" ) == 0 )
 			{
 				vertex = -2;
 			}
@@ -650,12 +655,12 @@ namespace Go
 			int vertex = -3;
 
 			uint8 pos[2];
-			if( strcmp( buffer , "Pass" ) ==  0 )
+			if( FCString::CompareIgnoreCase( buffer , "Pass" ) ==  0 )
 			{
 				outRead = 4;
 				vertex = -1;
 			}
-			else if( strcmp( buffer , "Resign") == 0 )
+			else if( FCString::CompareIgnoreCase( buffer , "Resign") == 0 )
 			{
 				outRead = 6;
 				vertex = -2;
@@ -875,10 +880,13 @@ namespace Go
 		return inputCommand(com, { GTPCommand::eAdd , color });
 	}
 
-	bool GTPLikeAppRun::playPass()
+	bool GTPLikeAppRun::playPass(int color)
 	{
 		FixString<128> com;
-		com.format("play pass\n");
+		if ( color != StoneColor::eEmpty )
+			com.format("play %c pass\n" , (color == StoneColor::eBlack ? 'b' : 'w') );
+		else
+			com.format("play pass\n");
 		return inputProcessStream(com);
 	}
 
@@ -987,7 +995,10 @@ namespace Go
 	{
 		char const* name;
 		if( ::Global::GameConfig().tryGetStringValue("LeelaLastNetWeight", "Go", name) )
-			return name;
+		{
+			return std::string(name) + ".gz";
+			//return name;
+		}
 		return LeelaAppRun::GetLastWeightName();
 	}
 

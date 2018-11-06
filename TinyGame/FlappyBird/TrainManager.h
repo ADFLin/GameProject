@@ -32,6 +32,7 @@ namespace FlappyBird
 		void restart();
 		void tick();
 		void randomizeData(NNRand& random);
+		// IController
 		virtual void updateInput(GameLevel& world, BirdEntity& bird) override;
 
 		void getPipeInputs(NNScale inputs[], PipeInfo const& pipe );
@@ -40,7 +41,8 @@ namespace FlappyBird
 
 	struct TrainDataSetting
 	{
-		int numAgents;
+		int    numAgents;
+		uint64 initWeightSeed;
 
 		int numPoolDataSelectUsed;
 		int numTrainDataSelect;
@@ -51,12 +53,13 @@ namespace FlappyBird
 		TrainDataSetting()
 		{
 			numAgents = 200;
+			initWeightSeed = 0;
 			numPoolDataSelectUsed = 5;
 			numTrainDataSelect = 10;
 
 			mutationGeneProb = 0.8;
 			mutationValueProb = 0.5;
-			mutationValueDelta = 2.0;
+			mutationValueDelta = 1e-2;
 		}
 	};
 
@@ -136,7 +139,7 @@ namespace FlappyBird
 		GenePool genePool;
 		GameLevel* level = nullptr;
 		bool bManageLevel = false;
-		TrainManager* Manager = nullptr;
+		TrainManager* manager = nullptr;
 		int maxGeneration = 0;
 	};
 

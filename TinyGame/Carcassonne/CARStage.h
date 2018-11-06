@@ -175,7 +175,10 @@ namespace CAR
 		Vector2 calcActorMapPos( ActorPos const& pos , MapTile const& mapTile );
 		Vec2i convertToMapTilePos( Vec2i const& sPos );
 		Vector2 convertToMapPos(Vec2i const& sPos);
-		Vector2 convertToScreenPos(Vector2 const& pos);
+		Vector2 convertToScreenPos(Vector2 const& posMap);
+
+		Vector2 convertToScreenPos_2D(Vector2 const& posMap);
+		Vector2 convertToScreenPos_3D(Vector2 const& posMap);
 
 		void  onGamePrevAction( GameLogic& gameLogic, CGameInput& input );
 		void  onGameAction( GameLogic& gameLogic, CGameInput& input );
@@ -220,10 +223,10 @@ namespace CAR
 		std::vector< GWidget* > mGameActionUI;
 
 		float   mRenderScale;
-		Vector2   mRenderTileSize;
-		Vector2   mRenderOffset;
-		Matrix4 mMatVP;
-		Matrix4 mMatInvVP;
+		Vector2 mRenderTileSize;
+		Vector2 mRenderOffset;
+		Matrix4 mWorldToClip;
+		Matrix4 mClipToWorld;
 		bool    mb2DView;
 
 

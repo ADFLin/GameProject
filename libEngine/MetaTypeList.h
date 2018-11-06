@@ -56,7 +56,7 @@ namespace Meta
 		{
 			typedef typename Select< 
 				IsSameType< typename TList::TypeValue  , NullType >::Result ,
-				Count< N > , ListLenghImpl< typename TList::getNext , N + 1 >
+				Count< N > , ListLenghImpl< typename TList::Next, N + 1 >
 			>::ResultType ResultType;
 
 			enum { Result = ResultType::Result };
@@ -67,7 +67,7 @@ namespace Meta
 		{
 			typedef typename Select< 
 				IsSameType< typename TList::TypeValue  , T >::Result ,
-				TrueType , ListFindImpl< typename TList::getNext , T , N + 1 >
+				TrueType , ListFindImpl< typename TList::Next, T , N + 1 >
 			>::ResultType ResultType;
 
 			enum { Result = ResultType::Result };
@@ -76,7 +76,7 @@ namespace Meta
 				Index  = SelectValue< 
 				IsSameType< typename TList::TypeValue  , T >::Result  ,
 				N ,
-				ListFindImpl< typename TList::getNext , T , N + 1 >::Index 
+				ListFindImpl< typename TList::Next, T , N + 1 >::Index
 				>::Result 
 			};
 		};

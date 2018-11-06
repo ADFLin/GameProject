@@ -604,12 +604,12 @@ namespace Render
 		mLightBuffer.setDepth( sceneRenderTargets.getDepthTexture() );
 
 
-		VERIFY_INITRESULT(MeshBuild::LightSphere(mSphereMesh));
-		VERIFY_INITRESULT(MeshBuild::LightCone(mConeMesh));
+		VERIFY_RETURN_FALSE(MeshBuild::LightSphere(mSphereMesh));
+		VERIFY_RETURN_FALSE(MeshBuild::LightCone(mConeMesh));
 
 #define GET_LIGHTING_SHADER( LIGHT_TYPE , NAME )\
-		VERIFY_INITRESULT( mProgLightingScreenRect[(int)LIGHT_TYPE] = ShaderManager::Get().getGlobalShaderT< TDeferredLightingProgram< LIGHT_TYPE > >(true) );\
-		VERIFY_INITRESULT( mProgLighting[(int)LIGHT_TYPE] = ShaderManager::Get().getGlobalShaderT< DeferredLightingProgram##NAME >(true) );
+		VERIFY_RETURN_FALSE( mProgLightingScreenRect[(int)LIGHT_TYPE] = ShaderManager::Get().getGlobalShaderT< TDeferredLightingProgram< LIGHT_TYPE > >(true) );\
+		VERIFY_RETURN_FALSE( mProgLighting[(int)LIGHT_TYPE] = ShaderManager::Get().getGlobalShaderT< DeferredLightingProgram##NAME >(true) );
 
 		GET_LIGHTING_SHADER(LightType::Spot, Spot);
 		GET_LIGHTING_SHADER(LightType::Point , Point);
@@ -618,7 +618,7 @@ namespace Render
 
 #undef GET_LIGHTING_SHADER
 
-		VERIFY_INITRESULT(mProgLightingShowBound = ShaderManager::Get().getGlobalShaderT< LightingShowBoundProgram >(true));
+		VERIFY_RETURN_FALSE(mProgLightingShowBound = ShaderManager::Get().getGlobalShaderT< LightingShowBoundProgram >(true));
 		return true;
 	}
 
@@ -791,7 +791,7 @@ namespace Render
 
 		static char const* GetShaderFileName()
 		{
-			return "Shader/DeferredBasePass";
+			return "Shader/BasePass";
 		}
 		static ShaderEntryInfo const* GetShaderEntries()
 		{
@@ -1170,16 +1170,16 @@ namespace Render
 	bool OITShaderData::init(int storageSize, IntVector2 const& screenSize)
 	{
 		colorStorageTexture = RHICreateTexture2D(Texture::eRGBA16F, storageSize, storageSize);
-		VERIFY_INITRESULT(colorStorageTexture.isValid());
+		VERIFY_RETURN_FALSE(colorStorageTexture.isValid());
 
 		nodeAndDepthStorageTexture = RHICreateTexture2D(Texture::eRGBA32I, storageSize, storageSize);
-		VERIFY_INITRESULT(nodeAndDepthStorageTexture.isValid());
+		VERIFY_RETURN_FALSE(nodeAndDepthStorageTexture.isValid());
 
 		nodeHeadTexture = RHICreateTexture2D(Texture::eR32U, screenSize.x, screenSize.y);
-		VERIFY_INITRESULT(nodeHeadTexture.isValid());
+		VERIFY_RETURN_FALSE(nodeHeadTexture.isValid());
 
 		storageUsageCounter = RHICreateVertexBuffer(sizeof(uint32) , 1 , BCF_DefalutValue | BCF_UsageDynamic );
-		VERIFY_INITRESULT(storageUsageCounter.isValid());
+		VERIFY_RETURN_FALSE(storageUsageCounter.isValid());
 
 		return true;
 	}
@@ -1231,7 +1231,7 @@ namespace Render
 
 	bool OITTechnique::init(IntVector2 const& size)
 	{
-		VERIFY_INITRESULT(mShaderData.init(OIT_StorageSize, size));
+		VERIFY_RETURN_FALSE(mShaderData.init(OIT_StorageSize, size));
 
 		{
 			ShaderCompileOption option;
@@ -1243,7 +1243,7 @@ namespace Render
 				SHADER_ENTRY(BassPassVS), SHADER_ENTRY(BassPassPS),
 				option, nullptr) )
 				return false;
-			VERIFY_INITRESULT( mShaderResolve = ShaderManager::Get().loadGlobalShaderT< BMAResolveProgram >(option) );
+			VERIFY_RETURN_FALSE( mShaderResolve = ShaderManager::Get().loadGlobalShaderT< BMAResolveProgram >(option) );
 		}
 
 		BMA_InternalValMin[NumBMALevel - 1] = 1;
@@ -1255,7 +1255,7 @@ namespace Render
 			ShaderCompileOption option;
 			option.version = 430;
 			option.addDefine(SHADER_PARAM(OIT_MAX_PIXEL_COUNT) , BMA_MaxPixelCounts[i]);
-			VERIFY_INITRESULT(mShaderBMAResolves[i] = ShaderManager::Get().loadGlobalShaderT< BMAResolveProgram >(option));
+			VERIFY_RETURN_FALSE(mShaderBMAResolves[i] = ShaderManager::Get().loadGlobalShaderT< BMAResolveProgram >(option));
 		}
 
 		{
@@ -1974,15 +1974,15 @@ namespace Render
 		ShaderParameter mParamBufferRW;
 		ShaderParameter mParamClearValue;
 	};
+
 	struct VolumetricLightingParameter
 	{
 		RHITexture3D*     volumeBuffer[2];
 		RHITexture3D*     scatteringBuffer[2];
 		RHIVertexBuffer*  lightBuffer;
 		int               numLights;
-
-
 	};
+
 	class LightScatteringProgram : public GlobalShaderProgram
 	{
 		DECLARE_GLOBAL_SHADER(LightScatteringProgram);
@@ -1995,7 +1995,7 @@ namespace Render
 			parameterMap.bind(mParamVolumeBufferA, SHADER_PARAM(VolumeBufferA));
 			parameterMap.bind(mParamVolumeBufferB, SHADER_PARAM(VolumeBufferB));
 			parameterMap.bind(mParamScatteringRWBuffer, SHADER_PARAM(ScatteringRWBuffer));
-			parameterMap.bind(mParamTitledLightNum, SHADER_PARAM(TitledLightNum));
+			parameterMap.bind(mParamTiledLightNum, SHADER_PARAM(TiledLightNum));
 		}
 
 		void setParameters(ViewInfo& view , VolumetricLightingParameter& parameter )
@@ -2003,9 +2003,9 @@ namespace Render
 			setTexture(mParamVolumeBufferA, *parameter.volumeBuffer[0]);
 			setTexture(mParamVolumeBufferB, *parameter.volumeBuffer[1]);
 			setRWTexture(mParamScatteringRWBuffer, *parameter.scatteringBuffer[0], AO_WRITE_ONLY);
-			setStructuredBufferT<TitledLightInfo>(*parameter.lightBuffer);
+			setStructuredBufferT<TiledLightInfo>(*parameter.lightBuffer);
 			view.setupShader(*this);
-			setParam(mParamTitledLightNum, parameter.numLights);
+			setParam(mParamTiledLightNum, parameter.numLights);
 		}
 
 		static void SetupShaderCompileOption(ShaderCompileOption& option)
@@ -2030,7 +2030,7 @@ namespace Render
 		ShaderParameter mParamVolumeBufferA;
 		ShaderParameter mParamVolumeBufferB;
 		ShaderParameter mParamScatteringRWBuffer;
-		ShaderParameter mParamTitledLightNum;
+		ShaderParameter mParamTiledLightNum;
 	};
 
 	IMPLEMENT_GLOBAL_SHADER(ClearBufferProgram)
@@ -2060,7 +2060,7 @@ namespace Render
 		mVolumeBufferA = RHICreateTexture3D(Texture::eRGBA16F, nx, ny, depthSlices);
 		mVolumeBufferB = RHICreateTexture3D(Texture::eRGBA16F, nx, ny, depthSlices);
 		mScatteringBuffer = RHICreateTexture3D(Texture::eRGBA16F, nx, ny, depthSlices);
-		mTiledLightBuffer = RHICreateVertexBuffer(sizeof(TitledLightInfo) , MaxTiledLightNum);
+		mTiledLightBuffer = RHICreateVertexBuffer(sizeof(TiledLightInfo) , MaxTiledLightNum);
 
 		return mVolumeBufferA.isValid() && mVolumeBufferB.isValid() && mScatteringBuffer.isValid() && mTiledLightBuffer.isValid();
 	}
@@ -2074,7 +2074,7 @@ namespace Render
 			mProgClearBuffer->clearTexture(*mScatteringBuffer, Vector4(0, 0, 0, 0));
 		}
 
-		TitledLightInfo* pInfo = (TitledLightInfo*)RHILockBuffer( mTiledLightBuffer , ELockAccess::WriteOnly, 0, sizeof(TitledLightInfo) * lights.size());
+		TiledLightInfo* pInfo = (TiledLightInfo*)RHILockBuffer( mTiledLightBuffer , ELockAccess::WriteOnly, 0, sizeof(TiledLightInfo) * lights.size());
 		for( auto const& light : lights )
 		{
 			pInfo->pos = light.pos;

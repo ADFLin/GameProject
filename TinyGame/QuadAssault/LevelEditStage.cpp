@@ -19,6 +19,7 @@
 #include "RenderUtility.h"
 
 #include "FixString.h"
+#include "HashString.h"
 
 
 #include <iostream>

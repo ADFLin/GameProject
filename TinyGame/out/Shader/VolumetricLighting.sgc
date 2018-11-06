@@ -1,5 +1,6 @@
 #include "Common.sgc"
 
+#include "TiledLightCommon.sgc"
 //                                 o L
 //                                /  \
 //                               /     \  
@@ -37,24 +38,6 @@ float PhaseFunction_Schlick(float c, float g)
 	return (1 - Square(k)) * Square(1.0 / (1.0 + k * c));
 }
 
-struct TitledLightInfo
-{
-	float3 pos;
-	int   type;
-	float3 color;
-	float   intensity;
-	float3 dir;
-	float   radius;
-	float4 param; // x y: spotAngle  , z : shadowFactor
-	float4x4 worldToShadow;
-};
-
-layout(std140) buffer TitledLightBlock
-{
-	TitledLightInfo TitledLightList[];
-};
-
-uniform int TitledLightNum = 0;
 
 struct FroxelVolumeData
 {
@@ -106,9 +89,9 @@ float3 CellToViewPos(int3 cellPos , float3 cellOffset)
 layout(local_size_x = GROUP_SIZE_X, local_size_y = GROUP_SIZE_Y, local_size_z = 1) in;
 void LightScatteringCS()
 {
-	for( int i = 0; i < TitledLightNum; ++i )
+	for( int i = 0; i < TiledLightNum; ++i )
 	{
-		TitledLightInfo light = TitledLightList[i];
+		TiledLightInfo light = TiledLightList[i];
 
 
 

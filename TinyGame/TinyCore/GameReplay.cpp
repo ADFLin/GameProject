@@ -528,7 +528,7 @@ namespace OldVersion
 
 	void ReplayRecorder::onFireAction( ActionParam& param )
 	{
-		if ( !param.beUpdateFrame )
+		if ( !param.bUpdateFrame )
 			return;
 		mTemplate->listenAction( param );
 	}

@@ -28,23 +28,22 @@ void ActionProcessor::scanControl( IActionLanucher& lanucher , unsigned flag )
 {
 	ActionTrigger trigger;
 
-	bool beUpdateFrame = ( flag & CTF_FREEZE_FRAME ) == 0;
+	bool bUpdateFrame = ( flag & CTF_FREEZE_FRAME ) == 0;
 
-	trigger.mParam.beUpdateFrame = beUpdateFrame;
+	trigger.mParam.bUpdateFrame = bUpdateFrame;
 	trigger.mbAcceptFireAction   = ( flag & CTF_BLOCK_ACTION ) == 0;
 	trigger.mProcessor           = this;
 
 	for( auto listener : mListeners )
 	{
-		listener->onScanActionStart(beUpdateFrame);
+		listener->onScanActionStart(bUpdateFrame);
 	}
-
-	mActiveInputs.clear();
-	for( auto input : mInputList )
+	
+	for( auto info : mInputList )
 	{
-		if ( input->scanInput( beUpdateFrame ) )
+		if ( info.input->scanInput( bUpdateFrame ) )
 		{
-			mActiveInputs.push_back( input );
+			mActiveInputs.push_back( &info );
 		}
 	}
 
@@ -55,16 +54,17 @@ void ActionProcessor::scanControl( IActionLanucher& lanucher , unsigned flag )
 	{
 		listener->onScanActionEnd();
 	}
+
+	mActiveInputs.clear();
 }
 
 bool ActionProcessor::checkActionPrivate( ActionParam& param )
 {
 	bool result = false;
-	for( InputList::iterator iter = mActiveInputs.begin();
-		iter != mActiveInputs.end() ; ++iter )
+	for( auto pInfo : mActiveInputs )
 	{
-		IActionInput* input = *iter;
-		if ( input->checkAction( param ) )
+		IActionInput* input = pInfo->input;
+		if ( (pInfo->port == ERROR_ACTION_PORT || param.port == pInfo->port ) && input->checkAction( param ) )
 		{
 			result = true;
 		}
@@ -72,14 +72,18 @@ bool ActionProcessor::checkActionPrivate( ActionParam& param )
 	return result;
 }
 
-void ActionProcessor::addInput( IActionInput& input , unsigned targetPort )
+void ActionProcessor::addInput( IActionInput& input , ActionPort targetPort )
 {
-	mInputList.push_back( &input );
+	InputInfo info;
+	info.input = &input;
+	info.port = targetPort;
+	mInputList.push_back(info);
 }
 
 bool ActionProcessor::removeInput( IActionInput& input )
 {
-	InputList::iterator iter = std::find( mInputList.begin() , mInputList.end() , &input );
+	assert(mActiveInputs.empty());
+	auto iter = std::find_if(mInputList.begin(), mInputList.end(), [&input](InputInfo const& info) { return info.input == &input; } );
 	if ( iter == mInputList.end() )
 		return false;
 	mInputList.erase( iter );
@@ -130,7 +134,7 @@ void ActionProcessor::setLanucher( IActionLanucher* lanucher )
 bool ActionTrigger::detect( ControlAction action )
 {
 	mParam.act    = action;
-	mParam.bePeek = false;
+	mParam.bPeek = false;
 	if ( !mProcessor->checkActionPrivate( mParam ) )
 		return false;
 	
@@ -141,7 +145,7 @@ bool ActionTrigger::detect( ControlAction action )
 bool ActionTrigger::peek( ControlAction action )
 {
 	mParam.act    = action;
-	mParam.bePeek = true;
+	mParam.bPeek = true;
 	return mProcessor->checkActionPrivate( mParam );
 }
 
@@ -169,6 +173,7 @@ bool SimpleController::scanInput( bool beUpdateFrame )
 {
 	if ( mKeyBlocked )
 		return false;
+
 	::GetKeyboardState( mKeyState );
 	return true;
 }
@@ -270,7 +275,7 @@ bool SimpleController::checkActionKey( ActionParam& param )
 	ActionKey& key = actionKey[ param.act ];
 	char keyChar = key.keyChar[ cID ];
 
-	if ( param.bePeek )
+	if ( param.bPeek )
 		return peekKey( keyChar , mKeySen[ keyChar ] , key.sen );
 	else
 		return checkKey( keyChar , mKeySen[ keyChar ] , key.sen );

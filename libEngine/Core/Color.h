@@ -206,7 +206,6 @@ class FColorConv
 {
 public:
 	using Vector3 = Math::Vector3;
-
 	static Vector3 HSVToRGB(Vector3 hsv);
 };
 

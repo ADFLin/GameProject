@@ -17,6 +17,7 @@
 #include "FlappyBird/FBStage.h"
 #include "GGJStage.h"
 #include "RubiksStage.h"
+#include "RenderGL/RenderGLStage.h"
 
 #define STAGE_INFO( DECL , CLASS , ... )\
 	{ DECL , makeStageFactory< CLASS >() , __VA_ARGS__ } 

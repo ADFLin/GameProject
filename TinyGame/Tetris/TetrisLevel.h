@@ -164,11 +164,15 @@ namespace Tetris
 			       0 <= cy && cy < mSizeY;
 		}
 
+		typedef uint32 MarkMaskType;
+		static int MaxSizeX()
+		{
+			return 8 * sizeof(MarkMaskType);
+		}
 		
 	private:
 
-		typedef uint32 MarkMaskType;
-		MarkMaskType getFilledMask() const { assert(mSizeX <= 8 * sizeof(MarkMaskType)); return MarkMaskType(1 << mSizeX) - 1; }
+		MarkMaskType getFilledMask() const { assert(mSizeX <= MaxSizeX()); return MarkMaskType(1 << mSizeX) - 1; }
 
 		struct Layer
 		{

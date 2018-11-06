@@ -60,6 +60,16 @@ namespace Render
 		uint32 getElementNum() { return mResource->getSize() / sizeof(T); }
 
 		ResourceType* getRHI() { return mResource; }
+
+		T*   lock()
+		{
+			return (T*)RHILockBuffer(mResource, ELockAccess::WriteOnly);
+		}
+		void unlock()
+		{
+			RHIUnlockBuffer(mResource);
+		}
+
 		TRefCountPtr<ResourceType> mResource;
 	};
 
@@ -76,14 +86,7 @@ namespace Render
 			return true;
 		}
 
-		T*   lock()
-		{
-			return (T*)RHILockBuffer( mResource , ELockAccess::WriteOnly);
-		}
-		void unlock()
-		{
-			RHIUnlockBuffer( mResource );
-		}
+
 	};
 
 	template< class T >
@@ -96,15 +99,6 @@ namespace Render
 			if( !mResource.isValid() )
 				return false;
 			return true;
-		}
-
-		T*   lock()
-		{
-			return (T*)RHILockBuffer( mResource , ELockAccess::WriteOnly);
-		}
-		void unlock()
-		{
-			RHIUnlockBuffer( mResource );
 		}
 	};
 
@@ -538,14 +532,14 @@ namespace Render
 		bool initialize()
 		{
 			
-			VERIFY_INITRESULT(mProgInit = ShaderManager::Get().getGlobalShaderT< ParticleInitProgram >(true));
-			VERIFY_INITRESULT(mProgUpdate = ShaderManager::Get().getGlobalShaderT< ParticleUpdateProgram >(true));
+			VERIFY_RETURN_FALSE(mProgInit = ShaderManager::Get().getGlobalShaderT< ParticleInitProgram >(true));
+			VERIFY_RETURN_FALSE(mProgUpdate = ShaderManager::Get().getGlobalShaderT< ParticleUpdateProgram >(true));
 
-			VERIFY_INITRESULT(mProgParticleRender = ShaderManager::Get().getGlobalShaderT< SimpleSpriteParticleProgram >(true));
+			VERIFY_RETURN_FALSE(mProgParticleRender = ShaderManager::Get().getGlobalShaderT< SimpleSpriteParticleProgram >(true));
 
-			VERIFY_INITRESULT(mParticleBuffer.initializeResource(1000));
-			VERIFY_INITRESULT(mInitParamBuffer.initializeResource(1));
-			VERIFY_INITRESULT(mParamBuffer.initializeResource(1));
+			VERIFY_RETURN_FALSE(mParticleBuffer.initializeResource(1000));
+			VERIFY_RETURN_FALSE(mInitParamBuffer.initializeResource(1));
+			VERIFY_RETURN_FALSE(mParamBuffer.initializeResource(1));
 
 			{
 				ParticleParameters& parameters = *mParamBuffer.lock();
@@ -583,7 +577,7 @@ namespace Render
 					primitive.param = Vector4(-5, 0, 5, 15);
 					mPrimitives.push_back(primitive);
 				}
-				VERIFY_INITRESULT(mCollisionPrimitiveBuffer.initializeResource(mPrimitives.size()));
+				VERIFY_RETURN_FALSE(mCollisionPrimitiveBuffer.initializeResource(mPrimitives.size()));
 				CollisionPrimitive* pData = mCollisionPrimitiveBuffer.lock();
 				memcpy(pData, &mPrimitives[0], mPrimitives.size() * sizeof(CollisionPrimitive));
 				mCollisionPrimitiveBuffer.unlock();
@@ -669,16 +663,16 @@ namespace Render
 			if( !::Global::GetDrawEngine()->startOpenGL() )
 				return false;
 
-			VERIFY_INITRESULT(GPUParticleData::initialize());
+			VERIFY_RETURN_FALSE(GPUParticleData::initialize());
 			
-			VERIFY_INITRESULT(mProgSpline = ShaderManager::Get().getGlobalShaderT< SplineProgram >(true));
+			VERIFY_RETURN_FALSE(mProgSpline = ShaderManager::Get().getGlobalShaderT< SplineProgram >(true));
 
-			VERIFY_INITRESULT(mTexture = RHIUtility::LoadTexture2DFromFile("Texture/star.png"));
-			VERIFY_INITRESULT(mBaseTexture = RHIUtility::LoadTexture2DFromFile("Texture/stones.bmp"));
-			VERIFY_INITRESULT(mNormalTexture = RHIUtility::LoadTexture2DFromFile("Texture/stones_NM_height.tga"));
+			VERIFY_RETURN_FALSE(mTexture = RHIUtility::LoadTexture2DFromFile("Texture/star.png"));
+			VERIFY_RETURN_FALSE(mBaseTexture = RHIUtility::LoadTexture2DFromFile("Texture/stones.bmp"));
+			VERIFY_RETURN_FALSE(mNormalTexture = RHIUtility::LoadTexture2DFromFile("Texture/stones_NM_height.tga"));
 
-			VERIFY_INITRESULT(mTexture.isValid());
-			VERIFY_INITRESULT(ShaderManager::Get().loadFileSimple(mProgSphere, "Shader/Game/Sphere"));
+			VERIFY_RETURN_FALSE(mTexture.isValid());
+			VERIFY_RETURN_FALSE(ShaderManager::Get().loadFileSimple(mProgSphere, "Shader/Game/Sphere"));
 			Vector3 v[] =
 			{
 				Vector3(1,1,0),
@@ -688,17 +682,17 @@ namespace Render
 			};
 			int   idx[6] = { 0 , 1 , 2 , 0 , 2 , 3 };
 			mSpherePlane.mInputLayoutDesc.addElement(Vertex::ePosition, Vertex::eFloat3);
-			VERIFY_INITRESULT(mSpherePlane.createRHIResource(&v[0], 4, &idx[0], 6, true));
+			VERIFY_RETURN_FALSE(mSpherePlane.createRHIResource(&v[0], 4, &idx[0], 6, true));
 
-			VERIFY_INITRESULT(MeshBuild::Tile(mTileMesh, mTileNum - 1, 100, false));
-			VERIFY_INITRESULT(MeshBuild::Tile(mTilePlane, 4, 1, false));
-			VERIFY_INITRESULT(MeshBuild::CubeShare(mCube,1));
+			VERIFY_RETURN_FALSE(MeshBuild::Tile(mTileMesh, mTileNum - 1, 100, false));
+			VERIFY_RETURN_FALSE(MeshBuild::Tile(mTilePlane, 4, 1, false));
+			VERIFY_RETURN_FALSE(MeshBuild::CubeShare(mCube,1));
 
-			VERIFY_INITRESULT(mWaterDataBuffers[0].initializeResource(mTileNum * mTileNum));
-			VERIFY_INITRESULT(mWaterDataBuffers[1].initializeResource(mTileNum * mTileNum));
-			VERIFY_INITRESULT(mProgWaterSimulation = ShaderManager::Get().getGlobalShaderT< WaterSimulationProgram >(true));
-			VERIFY_INITRESULT(mProgWaterUpdateNormal = ShaderManager::Get().getGlobalShaderT< WaterUpdateNormalProgram >(true));
-			VERIFY_INITRESULT(mProgWater = ShaderManager::Get().getGlobalShaderT< WaterProgram >(true));
+			VERIFY_RETURN_FALSE(mWaterDataBuffers[0].initializeResource(mTileNum * mTileNum));
+			VERIFY_RETURN_FALSE(mWaterDataBuffers[1].initializeResource(mTileNum * mTileNum));
+			VERIFY_RETURN_FALSE(mProgWaterSimulation = ShaderManager::Get().getGlobalShaderT< WaterSimulationProgram >(true));
+			VERIFY_RETURN_FALSE(mProgWaterUpdateNormal = ShaderManager::Get().getGlobalShaderT< WaterUpdateNormalProgram >(true));
+			VERIFY_RETURN_FALSE(mProgWater = ShaderManager::Get().getGlobalShaderT< WaterProgram >(true));
 			{
 				auto pWaterData = mWaterDataBuffers[0].lock();
 				for( int i = 0; i < mTileNum * mTileNum; ++i )

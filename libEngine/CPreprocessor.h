@@ -133,7 +133,6 @@ namespace CPP
 		int EvalFrame;
 	};
 
-
 	class Preprocessor
 	{
 	public:
@@ -141,7 +140,7 @@ namespace CPP
 		~Preprocessor();
 
 		void translate( CodeInput& input );
-		void setOutput(CodeOutput& output);
+		void setOutput( CodeOutput& output);
 		void addSreachDir(char const* dir);
 		void define(char const* name, int value){}
 
@@ -245,7 +244,7 @@ namespace CPP
 		{
 			return false;
 		}
-		bool isCommand(CodeInput& input , Command com )
+		bool isCommand(CodeInput& input , Command& com )
 		{
 
 			return false;
@@ -263,9 +262,9 @@ namespace CPP
 					break;
 				case Command::Define:
 					break;
-				case CPP::Command::If:
+				case Command::If:
 					break;
-				case CPP::Command::Ifdef:
+				case Command::Ifdef:
 					{
 						if( execDefined(input) )
 						{
@@ -277,9 +276,9 @@ namespace CPP
 
 					}
 					break;
-				case CPP::Command::Endif:
+				case Command::Endif:
 					break;
-				case CPP::Command::Pragma:
+				case Command::Pragma:
 					break;
 				}
 			}

@@ -87,12 +87,12 @@ namespace GGJ
 	{
 	public:
 		
-		static int getRandomValueForProperty( Random& rand , ValueProperty prop );
-		static int getValuePropertyFlags( int value );
+		static int RandomValueForProperty( Random& rand , ValueProperty prop );
+		static int ValuePropertyFlags( int value );
 		static bool IsPrime( int value );
-		static int* makeRandSeq( Random& rand, int num, int start, int buf[] );
-		static bool* makeRandBool(Random& rand , int num , int numTrue , bool buf[] );
-		static uint8* makeRandBool(Random& rand, int num, int numTrue, uint8 buf[] );
+		static int* MakeRandSeq( Random& rand, int num, int start, int buf[] );
+		static bool* MakeRandBool(Random& rand , int num , int numTrue , bool buf[] );
+		static uint8* MakeRandBool(Random& rand, int num, int numTrue, uint8 buf[] );
 	};
 
 	class WorldCondition

@@ -24,6 +24,25 @@ int KeyValue::getInt() const
 	return mCacheGetValue.intValue;
 }
 
+bool KeyValue::getBool() const
+{
+	if( mCacheGetType != CacheInt )
+	{
+		if( FCString::CompareIgnoreCase(mValue.c_str(), "true") == 0 )
+			mCacheGetValue.intValue = 1;
+		else if( FCString::CompareIgnoreCase(mValue.c_str(), "true") == 0 )
+			mCacheGetValue.intValue = 1;
+		else if( FCString::CompareIgnoreCase(mValue.c_str(), "t") == 0 )
+			mCacheGetValue.intValue = 1;
+		else if( FCString::CompareIgnoreCase(mValue.c_str(), "f") == 0 )
+			mCacheGetValue.intValue = 1;
+		else 
+			mCacheGetValue.intValue = ::atoi(mValue.c_str());
+		mCacheGetType = CacheInt;
+	}
+	return mCacheGetValue.intValue;
+}
+
 void  KeyValue::setFloat( float value )
 { 
 	std::stringstream ss;

@@ -1,0 +1,66 @@
+Material SimpleA
+{
+	Shader SimpleTest
+	State
+	{
+
+
+
+	}
+
+	Param
+	{
+		BaseTexture = texture2d( "Texture/rocks.jpg" )
+		BaseColor = float3(1,0,0)
+	}
+}
+
+
+Material SimpleB
+{
+	Shader SimpleTest
+	State
+	{
+
+
+
+	}
+
+	Param
+	{
+		BaseTexture = texture2d( "Texture/Gird.png" )
+		BaseColor = float3(1,1,1)
+	}
+}
+
+Material SimpleC
+{
+	Shader SimpleTest2
+	State
+	{
+
+
+
+	}
+
+	Param
+	{
+		BaseColor = float3(0,1,0)
+	}
+}
+
+Material SimpleD
+{
+	Shader SimpleTest2
+	State
+	{
+
+
+
+	}
+
+	Param
+	{
+		BaseColor = float3(0,0.2,0.8)
+	}
+}

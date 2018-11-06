@@ -15,13 +15,13 @@ namespace Go
 
 	bool BoardRenderer::initializeRHI()
 	{
-		VERIFY_INITRESULT(mTextureAtlas.initialize(Texture::eRGBA8, 128, 128, 2));
-		VERIFY_INITRESULT(mTextureAtlas.addImageFile("Go/blackStone.png") == 0);
-		VERIFY_INITRESULT(mTextureAtlas.addImageFile("Go/WhiteStone.png") == 1);
+		VERIFY_RETURN_FALSE(mTextureAtlas.initialize(Texture::eRGBA8, 128, 128, 2));
+		VERIFY_RETURN_FALSE(mTextureAtlas.addImageFile("Go/blackStone.png") == 0);
+		VERIFY_RETURN_FALSE(mTextureAtlas.addImageFile("Go/WhiteStone.png") == 1);
 
 #define TEXTURE( ID , PATH )\
 			mTextures[ID] = RHIUtility::LoadTexture2DFromFile(PATH);\
-			VERIFY_INITRESULT( mTextures[ID].isValid() );
+			VERIFY_RETURN_FALSE( mTextures[ID].isValid() );
 
 		TEXTURE(TextureId::eBlockStone, "Go/blackStone.png");
 		TEXTURE(TextureId::eWhiteStone, "Go/WhiteStone.png");

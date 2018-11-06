@@ -252,7 +252,7 @@ namespace Go
 		virtual void setup(GameSetting const& setting) = 0;
 		virtual void playStone(int x, int y , int color ) = 0;
 		virtual void addStone(int x, int y, int color) = 0;
-		virtual void playPass() = 0;
+		virtual void playPass(int color) = 0;
 	};
 
 	class Game

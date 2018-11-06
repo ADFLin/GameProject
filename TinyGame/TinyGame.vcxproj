@@ -90,7 +90,7 @@
     <ClCompile>
       <AdditionalOptions>/MP %(AdditionalOptions)</AdditionalOptions>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>.;TinyCore;../libEngine;../OtherLib;../CFlyMain;../Zuma;../OtherLib/boost;../OtherLib/glew;../OtherLib/DirectX/Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>.;TinyCore;../libEngine;../OtherLib;../CFlyMain;../Zuma;../OtherLib/boost;../OtherLib/glew;../OtherLib/DirectX/Include;../OtherLib/Vulkan/Include;../OtherLib/Box2D;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;_WINDOWS;DEBUG;TG_DLL;CORE_SHARE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MinimalRebuild>false</MinimalRebuild>
       <BasicRuntimeChecks>Default</BasicRuntimeChecks>
@@ -108,7 +108,7 @@
     </ClCompile>
     <Link>
       <AdditionalDependencies>Msimg32.lib;d3d9.lib;d3dx9d.lib;dsound.lib;dinput8.lib;dxguid.lib;winmm.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>../OtherLib/Boost/lib/x86;../OtherLib/DirectX/Lib/x86;../OtherLib/PerfSDK;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>../OtherLib/Boost/lib/x86;../OtherLib/DirectX/Lib/x86;../OtherLib/PerfSDK;../OtherLib/Vulkan/Lib/x86;../OtherLib/Box2D/Lib/x86;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <GenerateDebugInformation>DebugFastLink</GenerateDebugInformation>
       <SubSystem>Windows</SubSystem>
       <RandomizedBaseAddress>false</RandomizedBaseAddress>
@@ -136,7 +136,7 @@ copy $(TargetDir)EngineShare.dll $(ProjectDir)out\</Command>
     <ClCompile>
       <AdditionalOptions>/MP %(AdditionalOptions)</AdditionalOptions>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>.;TinyCore;../libEngine;../OtherLib;../CFlyMain;../Zuma;../OtherLib/boost;../OtherLib/glew;../OtherLib/DirectX/Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>.;TinyCore;../libEngine;../OtherLib;../CFlyMain;../Zuma;../OtherLib/boost;../OtherLib/glew;../OtherLib/DirectX/Include;../OtherLib/Vulkan/Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>_WINDOWS;DEBUG;TG_DLL;CORE_SHARE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MinimalRebuild>false</MinimalRebuild>
       <BasicRuntimeChecks>Default</BasicRuntimeChecks>
@@ -182,7 +182,7 @@ copy $(TargetDir)EngineShare.dll $(ProjectDir)out\</Command>
       <AdditionalOptions>/MP %(AdditionalOptions)</AdditionalOptions>
       <Optimization>MaxSpeed</Optimization>
       <EnableFiberSafeOptimizations>true</EnableFiberSafeOptimizations>
-      <AdditionalIncludeDirectories>.;TinyCore;../libEngine;../OtherLib;../Zuma;../OtherLib/boost;../OtherLib/glew;../OtherLib/DirectX/Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>.;TinyCore;../libEngine;../OtherLib;../Zuma;../OtherLib/boost;../OtherLib/glew;../OtherLib/DirectX/Include;../OtherLib/Vulkan/Include;../OtherLib/Box2D;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>_SECURE_SCL=0;WIN32;_WINDOWS;NDEBUG;TG_DLL;CORE_SHARE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <StringPooling>true</StringPooling>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
@@ -197,8 +197,8 @@ copy $(TargetDir)EngineShare.dll $(ProjectDir)out\</Command>
       <EnableEnhancedInstructionSet>NotSet</EnableEnhancedInstructionSet>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>Msimg32.lib;Xaudio2.lib;fmodex_vc.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>../OtherLib/FMOD/lib;../OtherLib/Boost/lib/x86;../OtherLib/DirectX/Lib/x86;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>Msimg32.lib;Xaudio2.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>../OtherLib/FMOD/lib\x86;../OtherLib/Boost/lib/x86;../OtherLib/DirectX/Lib/x86;../OtherLib/Vulkan/Lib/x86;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Windows</SubSystem>
       <OptimizeReferences />
@@ -254,22 +254,9 @@ copy $(TargetDir)EngineShare.dll $(ProjectDir)out\</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="..\OtherLib\lodepng\lodepng.cpp">
-      <Optimization Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">MaxSpeed</Optimization>
-      <Optimization Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">MaxSpeed</Optimization>
-    </ClCompile>
-    <ClCompile Include="..\OtherLib\tinyobjloader\tiny_obj_loader.cc">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-      </PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-      </PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-      </PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-      </PrecompiledHeader>
-      <Optimization Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">MaxSpeed</Optimization>
-      <Optimization Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">MaxSpeed</Optimization>
-    </ClCompile>
+    <ClCompile Include="AngryBird\AngryBirdStage.cpp" />
+    <ClCompile Include="AngryBird\GameObject.cpp" />
+    <ClCompile Include="AngryBird\HeaderPCH.cpp" />
     <ClCompile Include="Bejeweled\BJLevel.cpp" />
     <ClCompile Include="Bejeweled\BJScene.cpp" />
     <ClCompile Include="Bejeweled\BJStage.cpp" />
@@ -464,7 +451,10 @@ copy $(TargetDir)EngineShare.dll $(ProjectDir)out\</Command>
     <ClCompile Include="Stage\Test\BehaviorTreeTest.cpp" />
     <ClCompile Include="Stage\Test\BoneIKTest.cpp" />
     <ClCompile Include="Stage\Test\D3D11Test.cpp" />
+    <ClCompile Include="Stage\Test\DrawCallOptimization.cpp" />
+    <ClCompile Include="Stage\Test\FunctionFitTest.cpp" />
     <ClCompile Include="Stage\Test\MatrixTest.cpp" />
+    <ClCompile Include="Stage\Test\PreprocessTest.cpp" />
     <ClCompile Include="Stage\Test\SpatialIndexTest.cpp" />
     <ClCompile Include="Stage\Test\VulkanTest.cpp" />
     <ClCompile Include="Stage\TMechineStage.cpp" />
@@ -533,9 +523,9 @@ copy $(TargetDir)EngineShare.dll $(ProjectDir)out\</Command>
     <ClInclude Include="..\OtherLib\chaiscript\utility\json_wrap.hpp" />
     <ClInclude Include="..\OtherLib\chaiscript\utility\static_string.hpp" />
     <ClInclude Include="..\OtherLib\chaiscript\utility\utility.hpp" />
-    <ClInclude Include="..\OtherLib\lodepng\lodepng.h" />
-    <ClInclude Include="..\OtherLib\tinyobjloader\tiny_obj_loader.h" />
     <ClInclude Include="..\va_stdafx.h" />
+    <ClInclude Include="AngryBird\GameObject.h" />
+    <ClInclude Include="AngryBird\HeaderPCH.h" />
     <ClInclude Include="Bejeweled\BJLevel.h" />
     <ClInclude Include="Bejeweled\BJScene.h" />
     <ClInclude Include="Bejeweled\BJStage.h" />
@@ -560,7 +550,6 @@ copy $(TargetDir)EngineShare.dll $(ProjectDir)out\</Command>
     <ClInclude Include="CurveBuilder\ShapeFun.h" />
     <ClInclude Include="CurveBuilder\ShapeMaker.h" />
     <ClInclude Include="CurveBuilder\Surface.h" />
-    <ClInclude Include="ECSModel\ECSBase.h" />
     <ClInclude Include="Fight\FightLevel.h" />
     <ClInclude Include="FlappyBird\FBLevel.h" />
     <ClInclude Include="FlappyBird\FBStage.h" />
@@ -648,13 +637,28 @@ copy $(TargetDir)EngineShare.dll $(ProjectDir)out\</Command>
   </ItemGroup>
   <ItemGroup>
     <None Include="out\Game.ini" />
+    <None Include="out\Material\Elephant.sgc" />
+    <None Include="out\Material\EmptyMaterial.sgc" />
+    <None Include="out\Material\Havoc.sgc" />
+    <None Include="out\Material\Lightning.sgc" />
+    <None Include="out\Material\Mario.sgc" />
+    <None Include="out\Material\MaterialTemplate.sgc" />
+    <None Include="out\Material\MetelA.sgc" />
+    <None Include="out\Material\POMTitle.sgc" />
+    <None Include="out\Material\SimpleTest.mat" />
+    <None Include="out\Material\Simple1.sgc" />
+    <None Include="out\Material\Simple2.sgc" />
+    <None Include="out\Material\Simple3.sgc" />
+    <None Include="out\Material\SimpleTest.sgc" />
+    <None Include="out\Material\SimpleTest2.sgc" />
+    <None Include="out\Material\Sphere.sgc" />
     <None Include="out\Script\SceneA.chai" />
     <None Include="out\Shader\BigNumberCommon.sgc" />
     <None Include="out\Shader\BufferUtility.sgc" />
     <None Include="out\Shader\Common.sgc" />
     <None Include="out\Shader\ComplexCommon.sgc" />
     <None Include="out\Shader\CopyTexture.sgc" />
-    <None Include="out\Shader\DeferredBasePass.sgc" />
+    <None Include="out\Shader\BasePass.sgc" />
     <None Include="out\Shader\DeferredLighting.sgc" />
     <None Include="out\Shader\DeferredShadingCommon.sgc" />
     <None Include="out\Shader\DistanceField.sgc" />
@@ -688,18 +692,6 @@ copy $(TargetDir)EngineShare.dll $(ProjectDir)out\</Command>
     <None Include="out\Shader\LocalVertexFactory.sgc" />
     <None Include="out\Shader\MaterialCommon.sgc" />
     <None Include="out\Shader\MaterialProcess.sgc" />
-    <None Include="out\Shader\Material\Elephant.sgc" />
-    <None Include="out\Shader\Material\EmptyMaterial.sgc" />
-    <None Include="out\Shader\Material\Havoc.sgc" />
-    <None Include="out\Shader\Material\Lightning.sgc" />
-    <None Include="out\Shader\Material\Mario.sgc" />
-    <None Include="out\Shader\Material\MaterialTemplate.sgc" />
-    <None Include="out\Shader\Material\MetelA.sgc" />
-    <None Include="out\Shader\Material\POMTitle.sgc" />
-    <None Include="out\Shader\Material\Simple1.sgc" />
-    <None Include="out\Shader\Material\Simple2.sgc" />
-    <None Include="out\Shader\Material\Simple3.sgc" />
-    <None Include="out\Shader\Material\Sphere.sgc" />
     <None Include="out\Shader\MeshCulling.sgc" />
     <None Include="out\Shader\NoiseCommon.sgc" />
     <None Include="out\Shader\OITCommon.sgc" />
@@ -724,10 +716,14 @@ copy $(TargetDir)EngineShare.dll $(ProjectDir)out\</Command>
     <None Include="out\Shader\GeometryTestCommon.sgc" />
     <None Include="out\Shader\SSAO.sgc" />
     <None Include="out\Shader\Terrain.sgc" />
+    <None Include="out\Shader\TiledLightCommon.sgc" />
+    <None Include="out\Shader\TiledLightInjection.sgc" />
     <None Include="out\Shader\Tonemap.sgc" />
     <None Include="out\Shader\VertexFactoryProcess.sgc" />
     <None Include="out\Shader\ViewParam.sgc" />
     <None Include="out\Shader\VolumetricLighting.sgc" />
+    <None Include="out\TestShader\Pixel.sgc" />
+    <None Include="out\TestShader\Vertex.sgc" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\libEngine\EngineShare.vcxproj">

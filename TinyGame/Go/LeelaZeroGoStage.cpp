@@ -142,7 +142,7 @@ namespace Go
 
 		//ILocalization::Get().changeLanguage(LAN_ENGLISH);
 
-		VERIFY_INITRESULT(mBoardRenderer.initializeRHI());
+		VERIFY_RETURN_FALSE(mBoardRenderer.initializeRHI());
 
 		using namespace Render;
 #if 0
@@ -150,7 +150,7 @@ namespace Go
 			return false;
 #endif
 
-		VERIFY_INITRESULT( mProgUnderCurveArea = ShaderManager::Get().getGlobalShaderT< UnderCurveAreaProgram >( true ) );
+		VERIFY_RETURN_FALSE( mProgUnderCurveArea = ShaderManager::Get().getGlobalShaderT< UnderCurveAreaProgram >( true ) );
 
 		LeelaAppRun::InstallDir = ::Global::GameConfig().getStringValue("LeelaZeroInstallDir", "Go" , "E:/Desktop/LeelaZero");
 		AQAppRun::InstallDir = ::Global::GameConfig().getStringValue("AQInstallDir", "Go", "E:/Desktop/AQ");
@@ -674,7 +674,7 @@ namespace Go
 				g.drawText(200, 50, str.format( "Last Game Result : %s" , mLastGameResult.c_str() ) );
 			}
 		}
-		else
+		else if( mGameMode == GameMode::Match )
 		{
 			if( mMatchData.bAutoRun )
 			{
@@ -686,8 +686,11 @@ namespace Go
 					g.drawText(200, y , str);
 					y += 15;
 				}
-				str.format( "Unknown = %d" ,unknownWinerCount );
-				g.drawText( 200, y , str );
+				if ( unknownWinerCount )
+				{
+					str.format("Unknown = %d", unknownWinerCount);
+					g.drawText(200, y, str);
+				}
 			}
 		}
 
@@ -1362,7 +1365,7 @@ namespace Go
 				{
 					LogMsg("GameEnd");
 					
-					if( bAutoSaveMatchSGF )
+					if( mMatchData.bSaveSGF )
 						saveMatchGameSGF();
 
 					if( mMatchData.players[0].type == ControllerType::eLeelaZero ||
@@ -1414,7 +1417,7 @@ namespace Go
 			{
 				LogMsg("GameEnd");
 
-				if( bAutoSaveMatchSGF )
+				if( mMatchData.bSaveSGF )
 					saveMatchGameSGF();
 
 				if( mMatchData.bAutoRun )
@@ -1579,9 +1582,9 @@ namespace Go
 			{
 				AI.addStone(x, y, color);
 			}
-			virtual void playPass() override
+			virtual void playPass(int color) override
 			{
-				AI.playPass();
+				AI.playPass(color);
 			}
 
 			LeelaAppRun& AI;
@@ -1767,10 +1770,41 @@ namespace Go
 		return true;
 	}
 
+	void MatchSettingPanel::addBaseWidget()
+	{
+		GChoice* choice;
+		choice = addPlayerChoice(0, "Player A");
+		choice->modifySelection(0);
+		choice = addPlayerChoice(1, "Player B");
+		choice->modifySelection(1);
+
+		int sortOrder = 5;
+		choice = addChoice(UI_FIXED_HANDICAP, "Fixed Handicap", 0, sortOrder);
+		for( int i = 0; i <= 9; ++i )
+		{
+			FixString<128> str;
+			choice->addItem(str.format("%d", i));
+		}
+		choice->setSelection(0);
+
+		addCheckBox(UI_AUTO_RUN, "Auto Run", 0, sortOrder);
+		addCheckBox(UI_SAVE_SGF, "Save SGF", 0, sortOrder)->bChecked = true;
+
+		adjustChildLayout();
+
+		Vec2i buttonSize = Vec2i(100, 20);
+		GButton* button;
+		button = new GButton(UI_PLAY, Vec2i(getSize().x / 2 - buttonSize.x, getSize().y - buttonSize.y - 5), buttonSize, this);
+		button->setTitle("Play");
+		button = new GButton(UI_CANCEL, Vec2i((getSize().x) / 2, getSize().y - buttonSize.y - 5), buttonSize, this);
+		button->setTitle("Cancel");
+	}
+
 	void MatchSettingPanel::addLeelaParamWidget(int id, int idxPlayer)
 	{
 		LeelaAISetting setting = LeelaAISetting::GetDefalut();
-		GTextCtrl* textCtrl = addTextCtrl(id + UPARAM_VISITS, "Visit Num", BIT(idxPlayer), idxPlayer);
+		GTextCtrl* textCtrl;
+		textCtrl = addTextCtrl(id + UPARAM_VISITS, "Visit Num", BIT(idxPlayer), idxPlayer);
 		textCtrl->setValue(std::to_string(setting.visits).c_str());
 		GFilePicker*  filePicker = addWidget< GFilePicker >(id + UPARAM_WEIGHT_NAME, "Weight Name", BIT(idxPlayer), idxPlayer);
 		filePicker->filePath.format("%s/" LEELA_NET_DIR "%s", LeelaAppRun::InstallDir, LeelaAppRun::GetBestWeightName().c_str());
@@ -1830,6 +1864,7 @@ namespace Go
 		bool bHavePlayerController = types[0] == ControllerType::ePlayer || types[1] == ControllerType::ePlayer;
 
 		matchData.bAutoRun = findChildT<GCheckBox>(UI_AUTO_RUN)->bChecked;
+		matchData.bSaveSGF = findChildT<GCheckBox>(UI_SAVE_SGF)->bChecked;
 		for( int i = 0; i < 2; ++i )
 		{
 			int id = (i) ? UI_CONTROLLER_TYPE_B : UI_CONTROLLER_TYPE_A;
@@ -1841,7 +1876,7 @@ namespace Go
 					std::string weightName = findChildT<GFilePicker>(id + UPARAM_WEIGHT_NAME)->filePath.c_str();
 					setting.weightName = FileUtility::GetDirPathPos(weightName.c_str()) + 1;
 					setting.visits = atoi(findChildT<GTextCtrl>(id + UPARAM_VISITS)->getValue());
-					setting.bUseModifyVersion = true;
+					//setting.bUseModifyVersion = true;
 					setting.seed = generateRandSeed();
 					if( bHavePlayerController )
 					{

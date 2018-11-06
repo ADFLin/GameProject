@@ -675,6 +675,8 @@ bool RenderSystem::prevRender()
 	if ( mContext && !mContext->setCurrent() )
 		return false;
 
+	glDisable(GL_CULL_FACE);
+	glDisable(GL_DEPTH_TEST);
 	return true;
 }
 

@@ -110,7 +110,7 @@ namespace Go
 		bool restart();
 		bool playStone(int x , int y, int color);
 		bool addStone(int x, int y, int color);
-		bool playPass();
+		bool playPass(int color = StoneColor::eEmpty );
 		bool thinkNextMove(int color);
 		bool undo();
 		bool requestUndo();
@@ -181,9 +181,15 @@ namespace Go
 				result += std::to_string(VALUE);\
 			}\
 
-			AddComValue(" -r ", resignpct);
+#define  AddComValueNoCheck( NAME , VALUE )\
+			{\
+				result += NAME;\
+				result += std::to_string(VALUE);\
+			}\
+
+			AddComValueNoCheck(" -r ", resignpct);
 			AddComValue(" -t ", numThread);
-			AddComValue(" -p ", playouts);
+			AddComValueNoCheck(" -p ", playouts);
 			AddComValue(" -v ", visits);
 			AddComValue(" -m ", randomcnt);
 			AddComValue(" -s ", seed );
@@ -305,6 +311,11 @@ namespace Go
 		virtual bool initilize(void* settingData) override;
 		virtual bool isGPUBased() const override { return true; }
 		virtual bool getMetaData(int id, uint8* dataBuffer, int size);
+
+		virtual bool playPass(int color) override
+		{
+			return mAI.playPass(color);
+		}
 
 	};
 

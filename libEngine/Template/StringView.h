@@ -27,7 +27,7 @@ public:
 		return !this->operator == (other);
 	}
 
-	operator T const* () const { return mData; }
+	//operator T const* () const { return mData; }
 
 	typedef T const* iterator;
 	iterator begin() { return mData; }
@@ -71,6 +71,36 @@ public:
 	
 	StdString toStdString() const { return StdString(mData, mNum); }
 
+	template< size_t BufferSize >
+	struct TCStringConvable
+	{
+		TCStringConvable(T const* data, size_t num)
+		{
+			if( data == nullptr || num == 0 )
+			{
+				mPtr = STRING_LITERAL(T, "");
+			}
+			else if( data[num] == 0 )
+			{
+				mPtr == data;
+			}
+			else
+			{
+				assert(ARRAY_SIZE(mBuffer) > num + 1);
+				FCString::CopyN(mBuffer, data, num);
+				mBuffer[num] = 0;
+				mPtr = mBuffer;
+			}
+		}
+
+		operator T const* () const { return mPtr; }
+
+		T const* mPtr;
+		T mBuffer[BufferSize];
+	};
+
+	template< size_t BufferSize = 256 >
+	TCStringConvable< BufferSize > toCString() const { return TCStringConvable<BufferSize>(mData, mNum); }
 
 	bool toFloat(float& value) const
 	{

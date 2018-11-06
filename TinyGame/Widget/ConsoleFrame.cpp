@@ -70,6 +70,8 @@ bool ConsoleFrame::onKeyMsg(unsigned key, bool isDown)
 	{
 
 	}
+
+	return true;
 }
 
 bool ConsoleFrame::onCharMsg(unsigned code)

@@ -3,17 +3,19 @@
 
 #include "Base.h"
 #include "Dependence.h"
+#include "RHI/RHICommon.h"
+#include "HashString.h"
 
 class Texture
 {
 public:
 	Texture();
-	Texture(char const* file, GLuint id);
 	~Texture();
 	void bind();
+	GLuint getHandle();
 
-	String file;
-	GLuint id;				
+	Render::RHITexture2DRef resource;
+	HashString fileName;	
 };
 
 #endif // Texture_h__

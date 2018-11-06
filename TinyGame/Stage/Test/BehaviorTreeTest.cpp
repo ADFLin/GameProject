@@ -42,7 +42,7 @@ namespace BT
 		ThisClass& text( char const* msg ){ mMsg = msg; return *this;  }
 		ThisClass& resultState( TaskState state ){ mResultState = state; return *this;  }
 
-		TaskState action( TransformType* transform )
+		TaskState action( NodeInstance* transform )
 		{
 #if 0
 			std::cout << mMsg << std::endl;
@@ -76,16 +76,16 @@ struct PlayerContext
 
 namespace BT
 {
-	class MyInitializer : public TreeInitializer
-		, public Visitor< ContextTransform< PlayerContext > >
-		, public Visitor< ContextTransform< long > >
+	class MyInitializer : public NodeInitializer
+		, public Visitor< ContextNodeInstance< PlayerContext > >
+		, public Visitor< ContextNodeInstance< long > >
 	{
 	public:
-		void visit( ContextTransform< long >& transform )
+		void visit( ContextNodeInstance< long >& transform )
 		{
 			transform.setHolder( &context->idleTime );
 		}
-		void visit( ContextTransform< PlayerContext >& transform )
+		void visit( ContextNodeInstance< PlayerContext >& transform )
 		{
 			transform.setHolder( context );
 		}
@@ -112,7 +112,7 @@ void TestBTMain()
 
 	long time;
 
-	BTNode* root = TreeBuilder::generate(
+	BTNode* root = TreeBuilder::Generate(
 	Node< SequenceNode >() >>
 		( Node< PrintActin >()->text("start")
 		| Filter< GreaterEqualCmp , int , &gVar >()->setValue( 0 ) >>

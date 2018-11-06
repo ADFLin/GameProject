@@ -52,9 +52,6 @@
     <Filter Include="StageMode">
       <UniqueIdentifier>{a7bcd586-f00e-4b97-80fa-078643775276}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Shader\Material">
-      <UniqueIdentifier>{203377aa-53e1-4229-a2bf-843c1d2331f3}</UniqueIdentifier>
-    </Filter>
     <Filter Include="OtherLib\Chaiscript">
       <UniqueIdentifier>{cfa139e1-645b-45db-b326-fc4e88816b02}</UniqueIdentifier>
     </Filter>
@@ -63,9 +60,6 @@
     </Filter>
     <Filter Include="GameFlappyBird">
       <UniqueIdentifier>{a78aeadd-3e03-4b7c-93fc-f730a7ca5cec}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="ECSModel">
-      <UniqueIdentifier>{b1ec9003-b01e-4075-9e33-6214e9ca409f}</UniqueIdentifier>
     </Filter>
     <Filter Include="Common">
       <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
@@ -92,6 +86,15 @@
     </Filter>
     <Filter Include="Stage\Test">
       <UniqueIdentifier>{2ea4ee9d-b0aa-40ed-b988-80bd4e6bc739}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Stage\Test\Shader">
+      <UniqueIdentifier>{4235a2ac-a5fb-48d9-9dc1-55905821b318}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Material">
+      <UniqueIdentifier>{7e8f7199-a2ee-4cf1-8c46-f1338cf76533}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="GameAngryBird">
+      <UniqueIdentifier>{8b774fc5-83e2-418a-88c6-c2b512c42746}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -154,12 +157,6 @@
     </ClCompile>
     <ClCompile Include="TripleTown\TTScene.cpp">
       <Filter>GameTripleTown</Filter>
-    </ClCompile>
-    <ClCompile Include="..\OtherLib\lodepng\lodepng.cpp">
-      <Filter>OtherLib</Filter>
-    </ClCompile>
-    <ClCompile Include="..\OtherLib\tinyobjloader\tiny_obj_loader.cc">
-      <Filter>OtherLib</Filter>
     </ClCompile>
     <ClCompile Include="Mario\MBLevel.cpp">
       <Filter>GameMario</Filter>
@@ -371,6 +368,24 @@
     <ClCompile Include="Stage\Test\BehaviorTreeTest.cpp">
       <Filter>Stage\Test</Filter>
     </ClCompile>
+    <ClCompile Include="Stage\Test\DrawCallOptimization.cpp">
+      <Filter>Stage\Test</Filter>
+    </ClCompile>
+    <ClCompile Include="Stage\Test\PreprocessTest.cpp">
+      <Filter>Stage\Test</Filter>
+    </ClCompile>
+    <ClCompile Include="AngryBird\GameObject.cpp">
+      <Filter>GameAngryBird</Filter>
+    </ClCompile>
+    <ClCompile Include="AngryBird\HeaderPCH.cpp">
+      <Filter>GameAngryBird</Filter>
+    </ClCompile>
+    <ClCompile Include="AngryBird\AngryBirdStage.cpp">
+      <Filter>GameAngryBird</Filter>
+    </ClCompile>
+    <ClCompile Include="Stage\Test\FunctionFitTest.cpp">
+      <Filter>Stage\Test</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Bsp2D.h">
@@ -486,12 +501,6 @@
     </ClInclude>
     <ClInclude Include="Sudoku\SudokuSolver.hpp">
       <Filter>GameSudoku</Filter>
-    </ClInclude>
-    <ClInclude Include="..\OtherLib\lodepng\lodepng.h">
-      <Filter>OtherLib</Filter>
-    </ClInclude>
-    <ClInclude Include="..\OtherLib\tinyobjloader\tiny_obj_loader.h">
-      <Filter>OtherLib</Filter>
     </ClInclude>
     <ClInclude Include="Mario\MBLevel.h">
       <Filter>GameMario</Filter>
@@ -721,9 +730,6 @@
     <ClInclude Include="FlappyBird\TrainManager.h">
       <Filter>GameFlappyBird</Filter>
     </ClInclude>
-    <ClInclude Include="ECSModel\ECSBase.h">
-      <Filter>ECSModel</Filter>
-    </ClInclude>
     <ClInclude Include="Stage\TMechineStage.h">
       <Filter>Stage</Filter>
     </ClInclude>
@@ -829,6 +835,12 @@
     <ClInclude Include="Stage\Test\SpatialIndexTest.h">
       <Filter>Stage\Test</Filter>
     </ClInclude>
+    <ClInclude Include="AngryBird\GameObject.h">
+      <Filter>GameAngryBird</Filter>
+    </ClInclude>
+    <ClInclude Include="AngryBird\HeaderPCH.h">
+      <Filter>GameAngryBird</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Image Include="Poker\cards.bmp">
@@ -861,9 +873,6 @@
       <Filter>Shader</Filter>
     </None>
     <None Include="out\Shader\CopyTexture.sgc">
-      <Filter>Shader</Filter>
-    </None>
-    <None Include="out\Shader\DeferredBasePass.sgc">
       <Filter>Shader</Filter>
     </None>
     <None Include="out\Shader\DeferredLighting.sgc">
@@ -959,42 +968,6 @@
     <None Include="out\Shader\VolumetricLighting.sgc">
       <Filter>Shader</Filter>
     </None>
-    <None Include="out\Shader\Material\MaterialTemplate.sgc">
-      <Filter>Shader\Material</Filter>
-    </None>
-    <None Include="out\Shader\Material\MetelA.sgc">
-      <Filter>Shader\Material</Filter>
-    </None>
-    <None Include="out\Shader\Material\POMTitle.sgc">
-      <Filter>Shader\Material</Filter>
-    </None>
-    <None Include="out\Shader\Material\Simple1.sgc">
-      <Filter>Shader\Material</Filter>
-    </None>
-    <None Include="out\Shader\Material\Simple2.sgc">
-      <Filter>Shader\Material</Filter>
-    </None>
-    <None Include="out\Shader\Material\Simple3.sgc">
-      <Filter>Shader\Material</Filter>
-    </None>
-    <None Include="out\Shader\Material\Sphere.sgc">
-      <Filter>Shader\Material</Filter>
-    </None>
-    <None Include="out\Shader\Material\Elephant.sgc">
-      <Filter>Shader\Material</Filter>
-    </None>
-    <None Include="out\Shader\Material\EmptyMaterial.sgc">
-      <Filter>Shader\Material</Filter>
-    </None>
-    <None Include="out\Shader\Material\Havoc.sgc">
-      <Filter>Shader\Material</Filter>
-    </None>
-    <None Include="out\Shader\Material\Lightning.sgc">
-      <Filter>Shader\Material</Filter>
-    </None>
-    <None Include="out\Shader\Material\Mario.sgc">
-      <Filter>Shader\Material</Filter>
-    </None>
     <None Include="out\Shader\Game\Mandelbrot.sgc">
       <Filter>Shader\Game</Filter>
     </None>
@@ -1084,6 +1057,66 @@
     </None>
     <None Include="out\Shader\Game\SimpleSprite.sgc">
       <Filter>Shader\Game</Filter>
+    </None>
+    <None Include="out\TestShader\Pixel.sgc">
+      <Filter>Stage\Test\Shader</Filter>
+    </None>
+    <None Include="out\TestShader\Vertex.sgc">
+      <Filter>Stage\Test\Shader</Filter>
+    </None>
+    <None Include="out\Shader\TiledLightCommon.sgc">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="out\Shader\TiledLightInjection.sgc">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="out\Shader\BasePass.sgc">
+      <Filter>Shader</Filter>
+    </None>
+    <None Include="out\Material\EmptyMaterial.sgc">
+      <Filter>Material</Filter>
+    </None>
+    <None Include="out\Material\Havoc.sgc">
+      <Filter>Material</Filter>
+    </None>
+    <None Include="out\Material\Lightning.sgc">
+      <Filter>Material</Filter>
+    </None>
+    <None Include="out\Material\Mario.sgc">
+      <Filter>Material</Filter>
+    </None>
+    <None Include="out\Material\MaterialTemplate.sgc">
+      <Filter>Material</Filter>
+    </None>
+    <None Include="out\Material\MetelA.sgc">
+      <Filter>Material</Filter>
+    </None>
+    <None Include="out\Material\POMTitle.sgc">
+      <Filter>Material</Filter>
+    </None>
+    <None Include="out\Material\Simple1.sgc">
+      <Filter>Material</Filter>
+    </None>
+    <None Include="out\Material\Simple2.sgc">
+      <Filter>Material</Filter>
+    </None>
+    <None Include="out\Material\Simple3.sgc">
+      <Filter>Material</Filter>
+    </None>
+    <None Include="out\Material\Sphere.sgc">
+      <Filter>Material</Filter>
+    </None>
+    <None Include="out\Material\Elephant.sgc">
+      <Filter>Material</Filter>
+    </None>
+    <None Include="out\Material\SimpleTest.mat">
+      <Filter>Material</Filter>
+    </None>
+    <None Include="out\Material\SimpleTest.sgc">
+      <Filter>Material</Filter>
+    </None>
+    <None Include="out\Material\SimpleTest2.sgc">
+      <Filter>Material</Filter>
     </None>
   </ItemGroup>
 </Project>

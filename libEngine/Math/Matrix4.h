@@ -111,6 +111,7 @@ namespace Math
 		operator const float* () const { return m_val; }
 
 		Vector4 row(int index) const { return Vector4(&m_m[index][0]); }
+		Vector4 col(int index) const { return Vector4(m_m[0][index], m_m[1][index], m_m[2][index], m_m[3][index]); }
 		void setTransform( Vector3 const& pos , Quaternion const& q );
 		void setScale( Vector3 const& factor )
 		{

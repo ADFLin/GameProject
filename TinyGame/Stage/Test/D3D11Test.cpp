@@ -278,13 +278,13 @@ namespace RenderD3D11
 				bufferDesc.MiscFlags = 0;
 				bufferDesc.StructureByteStride = 0;
 
-				VERIFY_INITRESULT( mVertexBuffer = RHICreateVertexBuffer(sizeof(MyVertex), ARRAY_SIZE(vertices), BCF_DefalutValue, vertices) );
+				VERIFY_RETURN_FALSE( mVertexBuffer = RHICreateVertexBuffer(sizeof(MyVertex), ARRAY_SIZE(vertices), BCF_DefalutValue, vertices) );
 
 				InputLayoutDesc desc;
 				desc.addElement(0, Vertex::ATTRIBUTE0, Vertex::eFloat2);
 				desc.addElement(0, Vertex::ATTRIBUTE1, Vertex::eFloat3);
 				desc.addElement(0, Vertex::ATTRIBUTE2, Vertex::eFloat2);
-				VERIFY_INITRESULT( mInputLayout = RHICreateInputLayout(desc) );
+				VERIFY_RETURN_FALSE( mInputLayout = RHICreateInputLayout(desc) );
 			}
 
 			{

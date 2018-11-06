@@ -56,6 +56,19 @@ double SystemPlatform::GetHighResolutionTime()
 #endif
 }
 
+char const* SystemPlatform::GetEnvironmentVariable(char const* key)
+{
+#if SYS_PLATFORM_WIN
+	static thread_local char buffer[32767];
+	DWORD num = ::GetEnvironmentVariableA(key, buffer , ARRAY_SIZE(buffer));
+	if( num == 0 )
+		return nullptr;
+	return buffer;
+#else
+	return std::getenv();
+#endif
+}
+
 int32 SystemPlatform::InterlockedExchange(volatile int32* ptr, int32 value)
 {
 #if SYS_PLATFORM_WIN

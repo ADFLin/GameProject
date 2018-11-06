@@ -1,6 +1,7 @@
 #include "OpenGLCommand.h"
 
 #include "OpenGLCommon.h"
+#include "RHI/GpuProfiler.h"
 
 namespace Render
 {
@@ -53,6 +54,102 @@ namespace Render
 		return result;
 	}
 
+	struct OpenGLTiming
+	{
+		OpenGLTiming()
+		{
+			mHandles[0] = mHandles[1] = 0;
+		}
+
+		void start()
+		{
+			release();
+			glGenQueries(2, mHandles);
+			glQueryCounter(mHandles[0], GL_TIMESTAMP);
+		}
+		void end()
+		{
+			glQueryCounter(mHandles[1], GL_TIMESTAMP);
+		}
+		bool getTime(uint64& result)
+		{
+			GLuint isAvailable = GL_TRUE;
+			glGetQueryObjectuiv(mHandles[0], GL_QUERY_RESULT_AVAILABLE, &isAvailable);
+			if( isAvailable == GL_TRUE )
+			{
+				glGetQueryObjectuiv(mHandles[1], GL_QUERY_RESULT_AVAILABLE, &isAvailable);
+
+				if( isAvailable == GL_TRUE )
+				{
+					GLuint64 startTimeStamp;
+					glGetQueryObjectui64v(mHandles[0], GL_QUERY_RESULT, &startTimeStamp);
+					GLuint64 endTimeStamp;
+					glGetQueryObjectui64v(mHandles[1], GL_QUERY_RESULT, &endTimeStamp);
+
+					result = endTimeStamp - startTimeStamp;
+					return true;
+				}
+			}
+			return false;
+		}
+		void release()
+		{
+			if( mHandles[0] != 0 )
+			{
+				glDeleteQueries(2, mHandles);
+				mHandles[0] = mHandles[1] = 0;
+			}
+		}
+
+		GLuint mHandles[2];
+	};
+
+	class OpenglProfileCore : public RHIProfileCore
+	{
+	public:
+		virtual void release()
+		{
+		}
+		virtual void beginFrame()
+		{
+
+		}
+		virtual void endFrame()
+		{
+
+		}
+		virtual uint32 fetchTiming()
+		{
+			uint32 result = mTimingStorage.size();
+			mTimingStorage.resize(mTimingStorage.size() + 1);
+			return result;
+		}
+
+		virtual void startTiming(uint32 timingHandle)
+		{
+			OpenGLTiming& timing = mTimingStorage[timingHandle];
+			timing.start();
+
+		}
+		virtual void endTiming(uint32 timingHandle)
+		{
+			OpenGLTiming& timing = mTimingStorage[timingHandle];
+			timing.end();
+		}
+
+		virtual bool getTimingDurtion(uint32 timingHandle, uint64& outDurtion)
+		{
+			OpenGLTiming& timing = mTimingStorage[timingHandle];
+			return timing.getTime(outDurtion);
+		}
+		virtual double getCycleToSecond()
+		{
+			return 1.0 / 1000000.0;
+		}
+		std::vector< OpenGLTiming > mTimingStorage;
+
+	};
+
 	bool OpenGLSystem::initialize(RHISystemInitParam const& initParam)
 	{
 		WGLPixelFormat format;
@@ -84,11 +181,23 @@ namespace Render
 			glEnable(GL_DEBUG_OUTPUT);
 			glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
 		}
+
+		if( 1 )
+		{
+			mProfileCore = new OpenglProfileCore;
+			GpuProfiler::Get().setCore(mProfileCore);
+		}
 		return true;
 	}
 
 	void OpenGLSystem::shutdown()
 	{
+		if( mProfileCore )
+		{
+			GpuProfiler::Get().setCore(nullptr);
+			delete mProfileCore;
+			mProfileCore = nullptr;
+		}
 		mGLContext.cleanup();
 	}
 
@@ -484,6 +593,11 @@ namespace Render
 				glBindTexture(GL_TEXTURE_2D, textures[i] ? OpenGLCast::GetHandle(*textures[i]) : 0);
 			}
 		}
+	}
+
+	void OpenGLSystem::RHISetIndexBuffer(RHIIndexBuffer* indexBuffer)
+	{
+		OpenGLCast::To(indexBuffer)->bind();
 	}
 
 	void OpenGLSystem::RHIDrawIndexedPrimitive(PrimitiveType type, ECompValueType indexType, int indexStart, int nIndex)

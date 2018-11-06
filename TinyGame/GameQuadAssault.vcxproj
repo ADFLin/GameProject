@@ -96,6 +96,7 @@
       <OutputFile>$(OutDir)$(ProjectName)D.dll</OutputFile>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <TargetMachine>MachineX86</TargetMachine>
+      <AdditionalLibraryDirectories>../OtherLib/DirectX/Lib/x86;</AdditionalLibraryDirectories>
     </Link>
     <PostBuildEvent>
       <Command>copy $(TargetDir)$(TargetName)D.dll $(ProjectDir)out\</Command>

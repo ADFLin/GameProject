@@ -17,7 +17,10 @@ namespace Math
 		explicit Vector4( Vector3 const& v , float w  = 1.0 )
 			:x(v.x),y(v.y),z(v.z),w(w){}
 
+
+		static Vector4 Zero() { return Vector4(0,0,0,0); }
 		void    setValue( float inX , float inY , float inZ , float inW ){  x = inX; y = inY ; z = inZ ; w = inW;  }
+
 
 		float   dot( Vector4 const& rhs ) const { return x * rhs.x + y * rhs.y + z * rhs.z + w * rhs.w; }
 		Vector4 mul( Vector4 const& rhs ) const { return Vector4( x * rhs.x , y * rhs.y , z * rhs.z , w * rhs.w ); }
@@ -28,6 +31,9 @@ namespace Math
 
 		Vector4& operator *= ( float v ) { x *= v ; y *= v; z *= v; w *= v; return *this; }
 		Vector4& operator /= ( float v ) { x /= v; y /= v; z /= v; w /= v; return *this; }
+
+		Vector4 operator + (Vector4 const& rhs) const { return Vector4(x + rhs.x, y + rhs.y, z + rhs.z, w + rhs.w); }
+		Vector4 operator - (Vector4 const& rhs) const { return Vector4(x - rhs.x, y - rhs.y, z - rhs.z, w - rhs.w); }
 
 		operator float*() { return &x; }
 		operator float const*() const { return &x; }

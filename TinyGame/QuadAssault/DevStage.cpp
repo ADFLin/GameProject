@@ -315,7 +315,7 @@ public:
 		glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 
 		mGeomSE.begin();
-		mGeomSE.setTexture( mTexBlock[RP_DIFFUSE]->id , mTexBlock[RP_NORMAL]->id , 0 );
+		mGeomSE.setTexture( mTexBlock[RP_DIFFUSE]->getHandle() , mTexBlock[RP_NORMAL]->getHandle(), 0 );
 
 		for( int j = 0 ; j < 10 ; ++j )
 		{
@@ -332,7 +332,7 @@ public:
 				glEnd();
 			}
 		}
-		mGeomSE.setTexture( mTexObject[RP_DIFFUSE]->id , mTexObject[RP_NORMAL]->id , mTexObject[ RP_GLOW ]->id );
+		mGeomSE.setTexture( mTexObject[RP_DIFFUSE]->getHandle(), mTexObject[RP_NORMAL]->getHandle(), mTexObject[ RP_GLOW ]->getHandle());
 		mGeomSE.setMaterial( ( 0 ) % 4 );
 
 		drawSprite( Vec2f( 200 + 64 * 1 , 100 ) , Vec2f( 64 , 64 ) , 0.0f );	

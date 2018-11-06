@@ -21,10 +21,6 @@
 #pragma comment(lib , "dxguid.lib")
 
 
-#define CODE_STRING_INNER( CODE_TEXT ) R#CODE_TEXT
-#define CODE_STRING( CODE_TEXT ) CODE_STRING_INNER( CODE(##CODE_TEXT)CODE );
-
-
 namespace Render
 {
 
@@ -239,6 +235,11 @@ namespace Render
 		void RHISetFrameBuffer(RHIFrameBuffer& frameBuffer, RHITextureDepth* overrideDepthTexture /*= nullptr*/)
 		{
 
+		}
+
+		void RHISetIndexBuffer(RHIIndexBuffer* indexBuffer)
+		{
+			mDeviceContext->IASetIndexBuffer(D3D11Cast::To(indexBuffer)->getResource(), indexBuffer->getSize() == 4 ? DXGI_FORMAT_R32_UINT : DXGI_FORMAT_R16_UINT, 0);
 		}
 
 		void* lockBufferInternal(ID3D11Resource* resource, ELockAccess access, uint32 offset, uint32 size)

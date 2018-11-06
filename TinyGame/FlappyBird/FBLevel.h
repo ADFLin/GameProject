@@ -164,7 +164,7 @@ namespace FlappyBird
 		{
 			return MakeIterator(mColObjects);
 		}
-		void addBlock(PipeInfo const& block);
+		void addPipe(PipeInfo const& block);
 		void addBird(BirdEntity& bird , IController* controller = nullptr );
 		void removeAllBird();
 

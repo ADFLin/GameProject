@@ -1,6 +1,8 @@
 #ifndef EasingFun_h__
 #define EasingFun_h__
 
+#include "Math/Base.h"
+
 // ==================================================================================================================================
 // TWEENING EQUATIONS functions -----------------------------------------------------------------------------------------------------
 // (the original equations are Robert Penner's work as mentioned on the disclaimer)
@@ -285,7 +287,7 @@ namespace Easing {
 		template<class T>
 		T operator()(float t, T const& b, T const& c, float const& d ) 
 		{
-            return static_cast<T>(c * (-cosf(t/d * (PI*2))+1)/2 + b);
+            return static_cast<T>(c * (-Math::Cos(t/d * (PI*2))+1)/2 + b);
         }
     };
 
@@ -298,7 +300,7 @@ namespace Easing {
 		template<class T>
 		T operator()(float t, T const& b, T const& c, float const& d ) 
 		{
-            return c * sinf(t/d * (PI/2)) + b;
+            return c * Math::Sin(t/d * (PI/2)) + b;
         }
     };
 
@@ -338,7 +340,7 @@ namespace Easing {
 		template<class T>
 		T operator()(float t, T const& b, T const& c, float const& d ) 
 		{
-            return (t==0) ? b : c * pow(2, 10 * (t/d - 1)) + b - c * 0.001f;
+            return (t==0) ? b : c * Math::Pow(2, 10 * (t/d - 1)) + b - c * 0.001f;
         }
     };
 
@@ -351,7 +353,7 @@ namespace Easing {
 		template<class T>
 		T operator()(float t, T const& b, T const& c, float const& d ) 
 		{
-            return (t==d) ? b+c : c * 1.001f * (-pow(2, -10 * t/d) + 1) + b;
+            return (t==d) ? b+c : c * 1.001f * (-Math::Pow(2, -10 * t/d) + 1) + b;
         }
     };
 
@@ -366,8 +368,8 @@ namespace Easing {
 		{
             if (t==0) return b;
             if (t==d) return b+c;
-            if ((t/=d/2) < 1) return c/2 * pow(2, 10 * (t - 1)) + b - c * 0.0005f;
-            return c/2 * 1.0005f * (-pow(2, -10 * --t) + 2) + b;
+            if ((t/=d/2) < 1) return c/2 * Math::Pow(2, 10 * (t - 1)) + b - c * 0.0005f;
+            return c/2 * 1.0005f * (-Math::Pow(2, -10 * --t) + 2) + b;
         }
     };
 
@@ -395,7 +397,7 @@ namespace Easing {
 		T operator()(float t, T const& b, T const& c, float const& d ) 
 		{
             t/=d;
-            return -c * (sqrt(1 - t*t) - 1) + b;
+            return -c * (Math::Sqrt(1 - t*t) - 1) + b;
         }
     };
 
@@ -409,7 +411,7 @@ namespace Easing {
 		T operator()(float t, T const& b, T const& c, float const& d ) 
 		{
             t=(t/d)-1;
-            return c * sqrt(1 - t*t) + b;
+            return c * Math::Sqrt(1 - t*t) + b;
         }
     };
 
@@ -422,9 +424,9 @@ namespace Easing {
 		template<class T>
 		T operator()(float t, T const& b, T const& c, float const& d ) 
 		{
-            if ((t/=d/2) < 1) return -c/2 * (sqrt(1 - t*t) - 1) + b;
+            if ((t/=d/2) < 1) return -c/2 * (Math::Sqrt(1 - t*t) - 1) + b;
             t-=2;
-            return c/2 * (sqrt(1 - t*t) + 1) + b;
+            return c/2 * (Math::Sqrt(1 - t*t) + 1) + b;
         }
     };
 
@@ -459,9 +461,9 @@ namespace Easing {
             float s = .0f;
 			float la = Length<T>().get(a), lc = Length<T>().get(c); bool sign = ((c/a) >= T()) ? true : false;
             if( la==.0f || la < lc ) { a=c; s=p/4; }
-            else s = p / (2*PI) * asinf (lc/la * (sign?1:-1));
+            else s = p / (2*PI) * Math::ASin(lc/la * (sign?1:-1));
             t-=1;
-            return -(a*pow(2,10*t) * sinf( (t*d-s)*(2*PI)/p )) + b;
+            return -(a*Math::Pow(2,10*t) * Math::Sin( (t*d-s)*(2*PI)/p )) + b;
         }
     };
 
@@ -491,8 +493,8 @@ namespace Easing {
             float s = .0f;
             float la = length(a), lc = length(c); bool sign = ((c/a) >= T()) ? true : false;
             if( la==.0f || la < lc ) { a=c; s=p/4; }
-            else s = p / (2*PI) * asinf (lc/la * (sign?1:-1));
-            return (a*pow(2,-10*t) * sinf( (t*d-s)*(2*PI)/p ) + c + b);
+            else s = p / (2*PI) * Math::ASin (lc/la * (sign?1:-1));
+            return (a*Math::Pow(2,-10*t) * Math::Sin( (t*d-s)*(2*PI)/p ) + c + b);
         }
     };
 
@@ -511,10 +513,10 @@ namespace Easing {
             float s = .0f;
             float la = length(a), lc = length(c); bool sign = ((c/a) >= T()) ? true : false;
             if ( length(a)==.0f || length(a) < length(c) ) { a=c; s=p/4; }
-            else s = p/(2*PI) * asinf (lc/la * (sign?1:-1));
+            else s = p/(2*PI) * Math::ASin (lc/la * (sign?1:-1));
             t-=1;
-            if (t < 1) return -.5*(a*pow(2,10*t) * sinf( (t*d-s)*(2*PI)/p )) + b;
-            return a*pow(2,-10*t) * sinf( (t*d-s)*(2*PI)/p )*.5 + c + b;
+            if (t < 1) return -.5*(a*pow(2,10*t) * Math::Sin( (t*d-s)*(2*PI)/p )) + b;
+            return a*Math::Pow(2,-10*t) * Math::Sin( (t*d-s)*(2*PI)/p )*.5 + c + b;
         }
     };
 

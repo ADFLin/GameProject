@@ -44,15 +44,18 @@ namespace FlappyBird
 		{
 			mTrainManager = std::make_unique<TrainManager>();
 
+			float mutationValueDelta = 0.7;
 			TrainWorkSetting setting;
 			setting.numWorker = 8;
 			setting.maxGeneration = 0;
+			setting.dataSetting.mutationValueDelta = mutationValueDelta;
 
 			mTrainManager->init(setting);
 			mTrainManager->startTrain();
 
 			TrainDataSetting dataSetting;
 			dataSetting.numAgents = 200;
+			dataSetting.mutationValueDelta = mutationValueDelta;
 			mTrainData = std::make_unique< TrainData >();
 			mTrainData->init(dataSetting);
 			mTrainData->addAgentToLevel(getLevel());
@@ -69,11 +72,42 @@ namespace FlappyBird
 
 		if( mbTrainMode )
 		{
-			frame->addButton(UI_TOGGLE_FAST_TICK, "Toggle Fast Tick");
-			frame->addButton(UI_SAVE_TRAIN_DATA, "Save Train Data");
-			frame->addButton(UI_LOAD_TRAIN_DATA, "Load Train Data");
-			frame->addButton(UI_USE_POOL_DATA, "Use Pool Data");
-			
+			frame->addButton("Toggle Fast Tick", [&](int event, GWidget* widget)
+			{
+				mbFastTick = !mbFastTick;
+				return false;
+			});
+			frame->addButton("Save Train Data", [&](int event, GWidget* widget)
+			{
+				if( mTrainManager )
+				{
+					mTrainManager->saveData("genepool_001.cpr", *mTrainData);
+				}
+				return false;
+			});
+			frame->addButton("Load Train Data", [&](int event, GWidget* widget)
+			{
+				if( mTrainManager )
+				{
+					removeTrainData();
+					mTrainManager->loadData("genepool_001.cpr", *mTrainData);
+					mTrainData->addAgentToLevel(getLevel());
+					restart();
+				}
+				return false;
+			});
+			frame->addButton("Use Pool Data", [&](int event, GWidget* widget)
+			{			
+				if( mTrainManager )
+				{
+					getLevel().removeAllBird();
+					TLockedObject< GenePool > pGenePool = mTrainManager->lockPool();
+					mTrainData->usePoolData(*pGenePool);
+					mTrainData->addAgentToLevel(getLevel());
+					restart();
+				}
+				return false;
+			});		
 		}
 		return true;
 	}
@@ -168,34 +202,6 @@ namespace FlappyBird
 		case UI_OK:
 			restart();
 			return false;
-		case UI_SAVE_TRAIN_DATA:
-			if( mTrainManager )
-			{
-				mTrainManager->saveData("genepool_001.cpr" , *mTrainData);
-			}
-			return false;
-		case UI_LOAD_TRAIN_DATA:
-			if( mTrainManager )
-			{
-				removeTrainData();
-				mTrainManager->loadData("genepool_001.cpr", *mTrainData);
-				mTrainData->addAgentToLevel(getLevel());
-				restart();
-			}
-			return false;
-		case UI_TOGGLE_FAST_TICK:
-			mbFastTick = !mbFastTick;
-			return false;
-		case UI_USE_POOL_DATA:
-			if ( mTrainManager )
-			{
-				getLevel().removeAllBird();
-				TLockedObject< GenePool > pGenePool = mTrainManager->lockPool();
-				mTrainData->usePoolData(*pGenePool);
-				mTrainData->addAgentToLevel(getLevel());
-				restart();
-			}
-			return false;
 		}
 		return true;
 	}
@@ -235,19 +241,25 @@ namespace FlappyBird
 		assert(&level == &mLevel);
 		if( mbTrainMode )
 		{
+			int64 time;
+			if( bRunPoolOnly )
 			{
-				int64 time;
-				{
-					ScopeTickCount scope(time);
-					TLockedObject< GenePool > genePool = mTrainManager->lockPool();
-					mTrainData->runEvolution(genePool);
-					if( !genePool->mStorage.empty() )
-						mTrainManager->topFitness = (*genePool)[0]->fitness;
-				}
-
-				LogMsg("lock time = %ld", time);
+				ScopeTickCount scope(time);
+				getLevel().removeAllBird();
+				TLockedObject< GenePool > pGenePool = mTrainManager->lockPool();
+				mTrainData->usePoolData(*pGenePool);
+				mTrainData->addAgentToLevel(getLevel());
 			}
+			else
+			{
+				ScopeTickCount scope(time);
+				TLockedObject< GenePool > genePool = mTrainManager->lockPool();
+				mTrainData->runEvolution(genePool);
+				if( !genePool->mStorage.empty() )
+					mTrainManager->topFitness = (*genePool)[0]->fitness;
 
+			}
+			LogMsg("lock time = %ld", time);
 			restart();
 		}
 		else

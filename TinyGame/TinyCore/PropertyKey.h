@@ -20,6 +20,7 @@ public:
 	float       getFloat() const;
 	int         getInt() const ;
 	char const* getString() const { return mValue.c_str();  }
+	bool        getBool() const;
 	void        setFloat( float value );
 	void        setInt( int value );
 	void        setChar(char value);

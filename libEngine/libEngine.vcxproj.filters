@@ -122,6 +122,9 @@
     <Filter Include="OtherLib\NvTess">
       <UniqueIdentifier>{2e129a27-6d6f-4020-8624-3122a56a91de}</UniqueIdentifier>
     </Filter>
+    <Filter Include="GameFramework\ECS">
+      <UniqueIdentifier>{b14a3fda-3a8a-4c7a-bd65-02192ee4dee8}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="AppEntry.cpp">
@@ -221,9 +224,6 @@
       <Filter>原始程式檔</Filter>
     </ClCompile>
     <ClCompile Include="HashString.cpp">
-      <Filter>原始程式檔</Filter>
-    </ClCompile>
-    <ClCompile Include="StringParse.cpp">
       <Filter>原始程式檔</Filter>
     </ClCompile>
     <ClCompile Include="CPreprocessor.cpp">
@@ -337,9 +337,6 @@
     <ClCompile Include="RHI\Font.cpp">
       <Filter>RHI</Filter>
     </ClCompile>
-    <ClCompile Include="..\OtherLib\stb\stb_image.cpp">
-      <Filter>OtherLib</Filter>
-    </ClCompile>
     <ClCompile Include="Hardware\GPUDeviceQuery.cpp">
       <Filter>Hardware</Filter>
     </ClCompile>
@@ -369,6 +366,24 @@
     </ClCompile>
     <ClCompile Include="..\OtherLib\NvTess\nvtess.cpp">
       <Filter>OtherLib\NvTess</Filter>
+    </ClCompile>
+    <ClCompile Include="..\OtherLib\tinyobjloader\tiny_obj_loader.cc">
+      <Filter>OtherLib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\OtherLib\stb\stb_compile.cpp">
+      <Filter>OtherLib</Filter>
+    </ClCompile>
+    <ClCompile Include="Json.cpp">
+      <Filter>原始程式檔</Filter>
+    </ClCompile>
+    <ClCompile Include="GameFramework\EntityManager.cpp">
+      <Filter>GameFramework\ECS</Filter>
+    </ClCompile>
+    <ClCompile Include="StringParse.cpp">
+      <Filter>Utility</Filter>
+    </ClCompile>
+    <ClCompile Include="CString.cpp">
+      <Filter>Utility</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -524,9 +539,6 @@
     </ClInclude>
     <ClInclude Include="GIFLoader.h">
       <Filter>Image</Filter>
-    </ClInclude>
-    <ClInclude Include="Game\Entity.h">
-      <Filter>GameFramework</Filter>
     </ClInclude>
     <ClInclude Include="Any.h">
       <Filter>Core</Filter>
@@ -944,6 +956,18 @@
     </ClInclude>
     <ClInclude Include="..\OtherLib\NvTess\nvtess.h">
       <Filter>OtherLib\NvTess</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OtherLib\tinyobjloader\tiny_obj_loader.h">
+      <Filter>OtherLib</Filter>
+    </ClInclude>
+    <ClInclude Include="..\OtherLib\stb\stb_image.h">
+      <Filter>OtherLib</Filter>
+    </ClInclude>
+    <ClInclude Include="Json.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="GameFramework\EntityManager.h">
+      <Filter>GameFramework\ECS</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

@@ -1,6 +1,6 @@
 ﻿#if !SHADER_COMPILING
 #define cbuffer namespace
-#define buffer namespace
+#define handle namespace
 #endif // SHADER_COMPILING
 
 #define in
@@ -26,6 +26,8 @@ struct TVec2
 	TVec2 operator - (TVec2);
 	TVec2 operator * (TVec2);
 	TVec2 operator / (TVec2);
+
+	T operator[](int);
 };
 
 template< class T >
@@ -42,6 +44,8 @@ struct TVec3 : TVec2<T>
 	TVec3 operator - (TVec3);
 	TVec3 operator * (TVec3);
 	TVec3 operator / (TVec3);
+
+	TVec3& operator += (TVec3);
 };
 
 template< class T >

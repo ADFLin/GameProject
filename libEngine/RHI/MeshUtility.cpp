@@ -155,7 +155,7 @@ namespace Render
 		bindVAO(color);
 		if( indexBuffer )
 		{
-			GL_BIND_LOCK_OBJECT(indexBuffer);
+			RHISetIndexBuffer(indexBuffer);
 			RHIDrawIndexedPrimitive(type, indexBuffer->isIntType() ? CVT_UInt : CVT_UShort, idxStart, num);
 		}
 		else
@@ -173,7 +173,7 @@ namespace Render
 		bindVAO(color);
 		if( indexBuffer )
 		{
-			GL_BIND_LOCK_OBJECT(indexBuffer);
+			RHISetIndexBuffer(indexBuffer);
 			RHIDrawIndexedPrimitive(mType, indexBuffer->isIntType() ? CVT_UInt : CVT_UShort, idxStart, num);
 		}
 		else

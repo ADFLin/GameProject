@@ -10,7 +10,7 @@
 namespace FlappyBird
 {
 #if INPUT_MODE == 0
-	int gDefaultTopology[] = { 4 , 8 , 8 , 8 , 4 , 1 };
+	int gDefaultTopology[] = { 3 , 5 , 7 , 5 , 3 , 1 };
 #elif INPUT_MODE == 1
 	int gDefaultTopology[] = { 5 , 7 , 4 , 1 };
 #else
@@ -71,12 +71,23 @@ namespace FlappyBird
 		{
 		case 2:
 			{
-				inputs[1] = 1;
+				inputs[0] = 1;
 				if( !world.mPipes.empty() )
 				{
 					PipeInfo& pipe = world.mPipes[0];
 					getPipeInputs(inputs, pipe);
 				}
+			}
+			break;
+		case 3:
+			{
+				inputs[0] = 1;
+				if( !world.mPipes.empty() )
+				{
+					PipeInfo& pipe = world.mPipes[0];
+					getPipeInputs(inputs, pipe);
+				}
+				inputs[2] = bird.getVel() / WorldHeight;
 			}
 			break;
 		case 4:
@@ -128,7 +139,7 @@ namespace FlappyBird
 		if( inputsAndSignals )
 		{
 			std::copy(inputs, inputs + FNN.getLayout().getInputNum(), inputsAndSignals);
-			FNN.calcForwardFeedbackSingnal(inputs, inputsAndSignals + FNN.getLayout().getInputNum());
+			FNN.calcForwardFeedbackSignal(inputs, inputsAndSignals + FNN.getLayout().getInputNum());
 		}
 	}
 
@@ -180,13 +191,31 @@ namespace FlappyBird
 	void TrainData::usePoolData(GenePool& pool)
 	{
 		setting.numAgents = pool.getDataSet().size();
+		if( mAgents.size() != setting.numAgents )
+		{
+			if( mAgents.size() > setting.numAgents )
+			{
+				mAgents.resize(pool.getDataSet().size());
+			}
+			else
+			{
+				int numNewAgents = setting.numAgents - mAgents.size();
+				for( int i = 0; i < numNewAgents; ++i )
+				{
+					auto pAgent = std::make_unique< Agent >();
+					pAgent->init( mNNLayout );
+					mAgents.push_back(std::move(pAgent));
+				}
+			}
+		}
 
-		assert(pool.getDataSet().size() <= mAgents.size());
-		mAgents.resize(pool.getDataSet().size());
+		assert(pool.getDataSet().size() == mAgents.size());
 		for( int i = 0; i < pool.getDataSet().size(); ++i )
 		{
 			mAgents[i]->setGenotype(pool[i]);
 		}
+
+		curBestAgent = nullptr;
 	}
 
 	void TrainData::runEvolution(GenePool* genePool)
@@ -340,12 +369,12 @@ namespace FlappyBird
 				float const fitnessError = 1e-3;
 				NNScale const dataError = 1e-6;
 
-				TLockedObject< GenePool > masterPool = Manager->lockPool();
+				TLockedObject< GenePool > masterPool = manager->lockPool();
 				numAdded = masterPool->appendWithCopy(genePool , fitnessError , dataError );
 
 				masterPool->removeEqual(fitnessError, dataError);
 				if( !masterPool->mStorage.empty() )
-					Manager->topFitness = (*masterPool)[0]->fitness;
+					manager->topFitness = (*masterPool)[0]->fitness;
 
 				lastUpdateTime = SystemPlatform::GetTickCount();
 			}
@@ -424,7 +453,7 @@ namespace FlappyBird
 		{
 			auto work = std::make_unique< TrainWork >();
 			work->index = i;
-			work->Manager = this;
+			work->manager = this;
 			work->trainData.init(setting.dataSetting);
 			work->maxGeneration = setting.maxGeneration;
 			work->genePool.maxPoolNum = setting.workerPoolNum;
@@ -600,7 +629,7 @@ namespace FlappyBird
 		normalOffset.x = dir.y;
 		normalOffset.y = -dir.x;
 		normalOffset *= halfWidth;
-		Vec2i v[4] = { p1 + normalOffset , p1 - normalOffset , p2 - normalOffset , p2 + normalOffset };
+		Vector2 v[4] = { p1 + normalOffset , p1 - normalOffset , p2 - normalOffset , p2 + normalOffset };
 		g.drawPolygon(v, 4);
 	}
 

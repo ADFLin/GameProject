@@ -95,7 +95,7 @@ void GeneticAlgorithm::mutateData(DataType& data, float valueMutationProb, NNSca
 	{
 		if( mRand.nextFloat() < valueMutationProb )
 		{
-			data[i] += mRand.nextScale() * (2 * valueDelta) - valueDelta;
+			data[i] += data[i] * (  mRand.nextScale() * (2 * valueDelta) - valueDelta );
 		}
 	}
 }

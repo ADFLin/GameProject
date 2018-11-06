@@ -30,6 +30,7 @@ namespace Render
 	};
 
 	//#MOVE
+	// N.dot( V ) = d
 	class  Plane
 	{
 	public:
@@ -57,6 +58,13 @@ namespace Render
 			, mDistance(d)
 		{
 			mNormal.normalize();
+		}
+
+		static Plane FrameVector4(Vector4 const& v)
+		{
+			Vector3 n = v.xyz();
+			float mag = n.normalize();
+			return Plane(n, -v.w / mag);
 		}
 
 #if 0

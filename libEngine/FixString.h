@@ -36,7 +36,7 @@ public:
 	void  clear() { mStr[0] = 0; }
 	
 	template< class ...Args>
-	FixString& format(CharT const* fmt, Args ...args)
+	FixString& format(CharT const* fmt, Args&& ...args)
 	{
 		FCString::PrintfT(mStr, fmt , args...);
 		return *this;

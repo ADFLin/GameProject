@@ -13,6 +13,8 @@
 
 #include <unordered_map>
 
+
+
 namespace Render
 {
 	struct CharImageData
@@ -30,9 +32,11 @@ namespace Render
 
 	struct FontFaceInfo
 	{
-		FontFaceInfo(){}
-		FontFaceInfo( char const* name , int size , bool bBold )
-			:name(name),size(size),bBold(bBold){ }
+		FontFaceInfo() {}
+		FontFaceInfo(char const* name, int size, bool bBold)
+			:name(name), size(size), bBold(bBold)
+		{
+		}
 
 		std::string name;
 		int  size;
@@ -55,15 +59,20 @@ namespace Render
 		bool operator == (FontFaceInfo const& rhs) const
 		{
 			return name == rhs.name &&
-				   size == rhs.size &&
-				   bBold == rhs.bBold &&
-				   bUnderLine == rhs.bUnderLine;
+				size == rhs.size &&
+				bBold == rhs.bBold &&
+				bUnderLine == rhs.bUnderLine;
 		}
 	private:
 		mutable uint32 cacheHash;
 		mutable bool   bHashComputed = false;
 	};
+}
 
+EXPORT_MEMBER_HASH_TO_STD(Render::FontFaceInfo)
+
+namespace Render
+{
 	class ICharDataProvider
 	{
 	public:
@@ -119,7 +128,7 @@ namespace Render
 		CharDataSet* getCharDataSet(FontFaceInfo const& fontFace);
 
 		TextureAtlas mTextAtlas;
-		std::unordered_map< FontFaceInfo , CharDataSet* , MemberFunHasher > mCharDataSetMap;
+		std::unordered_map< FontFaceInfo , CharDataSet* > mCharDataSetMap;
 		bool bInitialized = false;
 
 #if SYS_PLATFORM_WIN

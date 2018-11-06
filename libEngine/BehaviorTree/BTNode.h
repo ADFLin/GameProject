@@ -10,7 +10,7 @@
 namespace BT
 {
 	class BTNode;
-	class BTTransform;
+	class BTNodeInstance;
 	class TreeWalker;
 
 
@@ -26,7 +26,7 @@ namespace BT
 	};
 
 
-	class TreeInitializer : public BaseVisitor
+	class NodeInitializer : public BaseVisitor
 		                 // , public Visitor< BTTransform >
 	{
 	public:
@@ -38,8 +38,8 @@ namespace BT
 	public:
 
 		void  start( BTNode* node );
-		void  close( BTTransform* transform );
-		BTTransform* enter( BTNode& node , BTTransform* prevState );
+		void  closeNode( BTNodeInstance* transform );
+		BTNodeInstance* enterNode( BTNode& node , BTNodeInstance* prevState );
 
 		bool  step();
 		void  update()
@@ -49,32 +49,32 @@ namespace BT
 				step();
 			}
 		}
-		void  resume( BTTransform& transform );
+		void  resumeNode( BTNodeInstance& transform );
 
 		struct Entry
 		{
-			TaskState    state;
-			BTTransform* transform;
-			bool         beProcessing;
+			TaskState       state;
+			BTNodeInstance* node;
+			bool            bProcessing;
 		};
 
-		void setInitializer( TreeInitializer* init ){ mInitializer = init;  }
+		void setInitializer( NodeInitializer* init ){ mInitializer = init;  }
 
-		template< class Transform >
-		Transform* createTransform()
+		template< class NodeInstance >
+		NodeInstance* createInstance()
 		{
-			Transform* transform = new Transform;
-			return transform;
+			auto nodeInstance = new NodeInstance;
+			return nodeInstance;
 		}
-		template< class Transform >
-		void  destroyTransform( Transform* transform )
+		template< class NodeInstance >
+		void  destroyInstance( NodeInstance* nodeInstance)
 		{
-			delete transform;
+			delete nodeInstance;
 		}
 
-		void  dispatchState( BTTransform* transform , TaskState state );
+		void  dispatchState( BTNodeInstance* transform , TaskState state );
 		typedef std::list< Entry > EntryQueue;
-		TreeInitializer* mInitializer;
+		NodeInitializer* mInitializer;
 		EntryQueue       mEntries;
 
 	};
@@ -88,28 +88,26 @@ namespace BT
 		}
 		void    setParent( BTNode* node ){  mParent = node;  }
 		virtual void  construct( BTNode* child ){};
-		virtual BTTransform*  buildTransform( TreeWalker* walker ) = 0;
-		virtual bool  execute(){ return true; }
+		virtual BTNodeInstance*  buildInstance( TreeWalker& walker ) = 0;
 	private:
 		BTNode* mParent;
 	};
 
-	class BTTransform : public BaseVisitable< void >
+	class BTNodeInstance : public BaseVisitable< void >
 	{
 	public:
 		void  setNode( BTNode* node ){  mNode = node;  }
 
-		virtual TaskState execute(){ return TS_RUNNING; }
-		virtual bool onRecvChildState( BTTransform* child , TaskState& state ){  return true;  }
+		virtual TaskState execute(TreeWalker& walker){ return TS_RUNNING; }
+		virtual bool resolveChildState(TreeWalker& walker, BTNodeInstance* child , TaskState& state ){  return true;  }
 
 	protected:
 		template< class T >
 		T* getNode(){ return static_cast< T* >( mNode );  }
 
 		friend class TreeWalker;
-		TreeWalker*  mWalker;
-		BTTransform* mPrevState;
-		BTNode*      mNode;
+		BTNodeInstance* mPrevState;
+		BTNode*         mNode;
 	private:
 		TreeWalker::Entry* mEntry;
 	};
@@ -131,37 +129,36 @@ namespace BT
 	};
 
 
-	template< class NodeType , class Transform >
+	template< class NodeType , class NodeInstance >
 	class BaseCompositeNodeT : public CompositeNode
 	{
 	public:
-		typedef Transform TransformType;
-		BTTransform*  buildTransform( TreeWalker* walker )
+		BTNodeInstance*  buildInstance( TreeWalker& walker )
 		{
-			TransformType* transform =  walker->createTransform< TransformType >();
-			static_cast< NodeType* >( this )->setupTransform( transform );
-			return transform;
+			NodeInstance* instnace =  walker.createInstance< NodeInstance >();
+			static_cast< NodeType* >( this )->setupInstance( *instnace );
+			return instnace;
 		}
-		void setupTransform( TransformType* ){}
+		void setupInstance( NodeInstance& ){}
 	};
 
-	class SelectorTransform;
-	class SequenceTransform;
+	class SelectorNodeInstance;
+	class SequenceNodeInatance;
 
-	class SelectorTransform : public BTTransform
+	class SelectorNodeInstance : public BTNodeInstance
 	{
 	public:
-		TaskState execute();
-		bool      onRecvChildState( BTTransform* child , TaskState& state );
+		TaskState execute(TreeWalker& walker);
+		bool      resolveChildState(TreeWalker& walker, BTNodeInstance* child , TaskState& state );
 	protected:
 		friend class SelectorNode;
 		NodeList::iterator mNodeIter;
 	};
 
-	class SelectorNode : public BaseCompositeNodeT< SelectorNode , SelectorTransform >
+	class SelectorNode : public BaseCompositeNodeT< SelectorNode , SelectorNodeInstance >
 	{
 	public:
-		void setupTransform( TransformType* transform );
+		void setupInstance( SelectorNodeInstance& instnace);
 	};
 
 	class OrderedIterator
@@ -184,18 +181,18 @@ namespace BT
 
 
 
-	class SequenceNode : public BaseCompositeNodeT< SequenceNode , SequenceTransform >
+	class SequenceNode : public BaseCompositeNodeT< SequenceNode , SequenceNodeInatance >
 	{
 	public:
-		typedef SequenceTransform TransformType;
-		void setupTransform( TransformType* transform );
+		typedef SequenceNodeInatance TransformType;
+		void setupInstance(SequenceNodeInatance& instnace);
 	};
 
-	class SequenceTransform : public BTTransform
+	class SequenceNodeInatance : public BTNodeInstance
 	{
 	public:
-		TaskState execute();
-		bool onRecvChildState( BTTransform* child , TaskState& state );
+		TaskState execute(TreeWalker& walker);
+		bool resolveChildState(TreeWalker& walker, BTNodeInstance* child , TaskState& state );
 	protected:
 		friend class SequenceNode;
 		NodeList::iterator mNodeIter;
@@ -222,15 +219,15 @@ namespace BT
 
 
 	template< class Transform >
-	class BaseDecTransformT : public BTTransform
+	class BaseDecNodeInstanceT : public BTNodeInstance
 	{
 	public:
 		class Node : public DecoratorNode
 		{
 		protected:
-			BTTransform* buildTransform( TreeWalker* walker )
+			BTNodeInstance* buildInstance( TreeWalker& walker )
 			{
-				Transform* transform = walker->createTransform< Transform >();
+				Transform* transform = walker.createInstance< Transform >();
 				transform->init( mChild );
 				return transform;
 			}
@@ -238,20 +235,20 @@ namespace BT
 		typedef Node NodeType;
 
 		void init( BTNode* parent ){}
-		TaskState execute()
+		TaskState execute(TreeWalker& walker)
 		{ 
 			BTNode* node = getNode< DecoratorNode >()->getChild();
 			if ( !node )
 				return TS_FAILED;
-			mWalker->enter( *node , this );
+			walker.enterNode( *node , this );
 			return  TS_SUSPENDED;  
 		}
 	};
 
-	class NotDecTransform : public BaseDecTransformT< NotDecTransform >
+	class NotDecNodeInstance : public BaseDecNodeInstanceT< NotDecNodeInstance >
 	{
 	public:
-		bool onRecvChildState( BTTransform* child , TaskState& state )
+		bool resolveChildState(TreeWalker& walker, BTNodeInstance* child , TaskState& state )
 		{
 			if ( state == TS_FAILED )
 				state = TS_SUCCESS;
@@ -260,7 +257,7 @@ namespace BT
 			return true;
 		}
 	};
-	typedef NotDecTransform::NodeType NotDecNode;
+	typedef NotDecNodeInstance::NodeType NotDecNode;
 
 	class BTLeafNode : public BTNode
 	{
@@ -269,19 +266,19 @@ namespace BT
 		void construct( BTNode* child ){  assert( 0 );  }
 	};
 
-	template< class Transform >
+	template< class NodeInstance >
 	class TBaseLeafNode : public BTLeafNode
 	{
 	public:
-		BTTransform* buildTransform( TreeWalker* walker )
+		BTNodeInstance* buildInstance( TreeWalker& walker )
 		{
-			return walker->createTransform< Transform >();
+			return walker.createInstance< NodeInstance >();
 		}
 	};
 
 
-	template< class Transform >
-	class TBaseConditionNode : public TBaseLeafNode< Transform >
+	template< class NodeInstance >
+	class TBaseConditionNode : public TBaseLeafNode< NodeInstance >
 	{
 
 	};
@@ -304,7 +301,7 @@ namespace BT
 #undef DEFINE_COMP_OP
 
 	template< class Var , class CmpOp >
-	class TConditionTransform;
+	class TConditionNodeInstance;
 
 	template< class T , T* VAR >
 	struct ConstVarRef
@@ -401,7 +398,7 @@ namespace BT
 	public:
 		ContextHolder(){ mHolder = NULL; }
 		void  setHolder( Context* ptr ){ mHolder = ptr; }
-		bool  is(){ return mHolder != 0; }
+		bool  isValid(){ return mHolder != 0; }
 		template< class RetType , class RefType >
 		RetType _evalValue( RefType const& ref ) {  return ref( mHolder );  }
 	protected:
@@ -412,22 +409,22 @@ namespace BT
 	class ContextHolder< EmptyType >
 	{
 	public:
-		bool  is(){ return true; }
+		bool  isValid(){ return true; }
 		template< class RetType , class RefType >
 		RetType _evalValue( RefType const& ref ){  return ref();  }
 	protected:
 	};
 
 	template< class Context >
-	class ContextTransform : public BTTransform
-		                   , public ContextHolder< Context >
+	class ContextNodeInstance : public BTNodeInstance
+		                      , public ContextHolder< Context >
 	{
 	protected:
-		DEFNE_VISITABLE()
+		DEFINE_VISITABLE()
 	};
 
 	template< class RefType >
-	class TBaseBlackBoardTransform : public ContextTransform< typename RefType::Context >
+	class TBaseBlackBoardNodeInstance : public ContextNodeInstance< typename RefType::Context >
 	{
 	public:
 		typedef typename RefType::RetType   VarType;
@@ -465,10 +462,10 @@ namespace BT
 	};
 
 	template< class RefType , class CmpOp  >
-	class TConditionTransform : public TBaseBlackBoardTransform< RefType >
+	class TConditionNodeInstance : public TBaseBlackBoardNodeInstance< RefType >
 	{
 	public:
-		class Node : public  TBaseConditionNode< TConditionTransform< RefType , CmpOp > >
+		class Node : public  TBaseConditionNode< TConditionNodeInstance< RefType , CmpOp > >
 				   , public  NodeData< Node >
 		{
 		public:
@@ -478,9 +475,9 @@ namespace BT
 		typedef Node NodeType;
 
 	protected:
-		TaskState execute()
+		TaskState execute(TreeWalker& walker)
 		{
-			if ( !ContextHolder< Context >::is() )
+			if ( !ContextHolder< Context >::isValid() )
 				return TS_SUCCESS;
 			if ( CmpOp()( Eval< RefHolder >::evalValue( *this , *getNode< NodeType >() ) ,
 					      getNode< NodeType >()->getValue() ) )
@@ -490,7 +487,7 @@ namespace BT
 	};
 
 	template< class RefType , class CmpOp >
-	class TFilterTransform : public TBaseBlackBoardTransform< RefType >
+	class TFilterNodeInstance : public TBaseBlackBoardNodeInstance< RefType >
 	{
 	public:
 		class Node : public  DecoratorNode
@@ -499,37 +496,37 @@ namespace BT
 		public:
 			Node(){}
 			Node( RefHolder const& holder ):NodeData< Node >( holder ){}
-			BTTransform* buildTransform( TreeWalker* walker )
+			BTNodeInstance* buildInstance( TreeWalker& walker )
 			{
-				return walker->createTransform< TFilterTransform >();
+				return walker.createInstance< TFilterNodeInstance >();
 			}
 		};
 
 		typedef Node NodeType;
 
 	protected:
-		TaskState execute()
+		TaskState execute(TreeWalker& walker)
 		{
-			if ( ContextHolder< Context >::is() && 
+			if ( ContextHolder< Context >::isValid() &&
 				 !CmpOp()( Eval< RefHolder >::evalValue( *this , *getNode< NodeType >() ) ,
 				           getNode< NodeType >()->getValue() ) )
 				return TS_FAILED;
 			if ( !getNode< Node >()->getChild() )
 				return TS_FAILED;
-			mWalker->enter( *getNode< Node >()->getChild() , this );
+			walker.enterNode( *getNode< Node >()->getChild() , this );
 			return TS_SUSPENDED;
 		}
-		bool  onRecvChildState( BTTransform* child , TaskState& state )
+		bool  resolveChildState( BTNodeInstance* child , TaskState& state )
 		{
 			return true;
 		}
 	};
 
-	class CountDecTransform : public BaseDecTransformT< CountDecTransform >
+	class CountDecNodeInstance : public BaseDecNodeInstanceT< CountDecNodeInstance >
 	{
 		typedef int   CountType;
 	public:
-		class Node : public BaseDecTransformT< CountDecTransform >::Node
+		class Node : public BaseDecNodeInstanceT< CountDecNodeInstance >::Node
 		{
 			typedef int  CountType;
 			typedef Node ThisClass;
@@ -537,37 +534,37 @@ namespace BT
 			ThisClass& setMaxCount( CountType val ){ mMaxCount = val; return *this;  }
 			ThisClass& setConditionCount( CountType val ){ mConditionCount = val; return *this;  }
 		protected:
-			friend class CountDecTransform;
+			friend class CountDecNodeInstance;
 			CountType mMaxCount;
 			CountType mConditionCount;
 		};
 		typedef Node NodeType;
 
-		CountDecTransform()
+		CountDecNodeInstance()
 		{
 			mCurCount = 0;
 			mExecCount = 0;
 		}
 
-		bool onRecvChildState( BTTransform* child , TaskState& state );
+		bool resolveChildState(TreeWalker& walker, BTNodeInstance* child , TaskState& state );
 
 		CountType mExecCount;
 		CountType mCurCount;
 	};
 
-	typedef CountDecTransform::NodeType CountDecNode;
+	typedef CountDecNodeInstance::NodeType CountDecNode;
 
 
-	class LoopDecTransform : public BaseDecTransformT< LoopDecTransform >
+	class LoopDecNodeInstance : public BaseDecNodeInstanceT< LoopDecNodeInstance >
 	{
 		typedef int         CountType;
 	public:
-		LoopDecTransform()
+		LoopDecNodeInstance()
 		{
 			mExecCount = 0;
 		}
 
-		class Node : public BaseDecTransformT< LoopDecTransform >::Node
+		class Node : public BaseDecNodeInstanceT< LoopDecNodeInstance >::Node
 		{
 			typedef Node ThisClass;
 			typedef int  CountType;
@@ -581,22 +578,22 @@ namespace BT
 			CountType mMaxCount;
 		};
 		typedef Node NodeType;
-		bool onRecvChildState( BTTransform* child , TaskState& state );
+		bool resolveChildState(TreeWalker& walker, BTNodeInstance* child , TaskState& state );
 		CountType mExecCount;
 	};
 
-	typedef LoopDecTransform::NodeType LoopDecNode;
+	typedef LoopDecNodeInstance::NodeType LoopDecNode;
 
 
 	template< class Node ,class ActionData >
 	class BaseActionNodeT;
 
 	template< class Node , class ActionData >
-	class TActionTransform : public BTTransform
-		                  , public ActionData
+	class TActionNodeInstance : public BTNodeInstance
+		                      , public ActionData
 	{
 	public:
-		TaskState execute(){ return getNode< Node >()->action( this ); }
+		TaskState execute(TreeWalker& walker){ return getNode< Node >()->action( this ); }
 	};
 
 
@@ -604,19 +601,19 @@ namespace BT
 	class BaseActionNodeT : public BTLeafNode
 	{
 	public:
-		typedef TActionTransform< Node , ActionData > TransformType;
-		BTTransform* buildTransform( TreeWalker* walker )
+		typedef TActionNodeInstance< Node , ActionData > NodeInstance;
+		BTNodeInstance* buildInstance( TreeWalker& walker )
 		{
-			return walker->createTransform< TransformType >();
+			return walker.createInstance< NodeInstance >();
 		}
-		TaskState action( TransformType* transform )
+		TaskState action(NodeInstance* transform )
 		{
 			return TS_SUCCESS;
 		}
 	};
 
 
-	enum Policy
+	enum ConditionPolicy
 	{
 		RequireOne ,
 		RequireAll ,
@@ -624,19 +621,19 @@ namespace BT
 	class ParallelNode : public CompositeNode
 	{
 	public:
-		BTTransform* buildTransform( TreeWalker* walker );
-		ParallelNode& setSuccessPolicy( Policy p ){  mSuccessPolicy = p; return *this;  }
+		BTNodeInstance* buildInstance( TreeWalker& walker );
+		ParallelNode&   setSuccessPolicy(ConditionPolicy p ){ mSuccessCondition = p; return *this;  }
 	protected:
-		Policy mSuccessPolicy;
-		friend class ParallelTransform;
+		ConditionPolicy mSuccessCondition;
+		friend class ParallelNodeInstance;
 	};
 
-	class ParallelTransform : public BTTransform
+	class ParallelNodeInstance : public BTNodeInstance
 	{
 	public:
-		ParallelTransform();
-		TaskState execute();
-		bool onRecvChildState( BTTransform* child , TaskState& state );
+		ParallelNodeInstance();
+		TaskState execute(TreeWalker& walker);
+		bool resolveChildState(TreeWalker& walker, BTNodeInstance* child , TaskState& state );
 
 		int mCountFailure;
 		int mCountSuccess;

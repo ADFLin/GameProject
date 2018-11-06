@@ -51,6 +51,18 @@ namespace Render
 				xAxis.z, yAxis.z, zAxis.z,
 				-eyePos.dot(xAxis), -eyePos.dot(yAxis), -eyePos.dot(zAxis));
 		}
+
+		LookAtMatrix( Vector3 const& lookDir, Vector3 const& upDir)
+		{
+			Vector3 zAxis = -Math::GetNormal(lookDir);
+			Vector3 xAxis = Math::GetNormal(upDir.cross(zAxis));
+			Vector3 yAxis = zAxis.cross(xAxis);
+			setValue(
+				xAxis.x, yAxis.x, zAxis.x,
+				xAxis.y, yAxis.y, zAxis.y,
+				xAxis.z, yAxis.z, zAxis.z,
+				0, 0, 0);
+		}
 	};
 
 	class PerspectiveMatrix : public Matrix4

@@ -80,6 +80,7 @@ namespace FlappyBird
 
 		void removeTrainData();
 
+		bool bRunPoolOnly = true;
 		bool mbFastTick = false;
 		bool mbTrainMode = true;
 		float topFitness = 0;

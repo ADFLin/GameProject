@@ -137,6 +137,8 @@ public:
 
 	static double  GetHighResolutionTime();
 
+
+	static char const* GetEnvironmentVariable( char const* key );
 	static int32    InterlockedExchange(volatile int32* ptr, int32 value);
 	static int32    InterlockedExchangeAdd(volatile int32* ptr, int32 value);
 	static int32    InterlockedAdd(volatile int32* ptr, int32 value);

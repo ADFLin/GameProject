@@ -42,18 +42,17 @@ public:
 	virtual void endBlend() override { mImpl.endBlend(); }
 	virtual void setPen( Color3ub const& color ) override { mImpl.setPen( color ); }
 	virtual void setBrush( Color3ub const& color ) override { mImpl.setBrush( color ); }
-	virtual void drawPixel  ( Vec2i const& p , Color3ub const& color ) override { mImpl.drawPixel( p , color ); }
-	virtual void drawLine   ( Vec2i const& p1 , Vec2i const& p2 ) override { mImpl.drawLine( p1 , p2 ); }
-	virtual void drawRect   ( int left , int top , int right , int bottom ) override { mImpl.drawRect( left , top , right , bottom ); }
-	virtual void drawRect   ( Vec2i const& pos , Vec2i const& size ) override { mImpl.drawRect( pos , size ); }
-	virtual void drawCircle ( Vec2i const& center , int r ) override { mImpl.drawCircle( center ,  r ); }
-	virtual void drawEllipse( Vec2i const& pos , Vec2i const& size ) override { mImpl.drawEllipse(  pos ,  size ); }
-	virtual void drawRoundRect( Vec2i const& pos , Vec2i const& rectSize , Vec2i const& circleSize ) override { mImpl.drawRoundRect( pos , rectSize , circleSize ); }
-	virtual void drawPolygon(Vec2i pos[], int num) override { mImpl.drawPolygon(pos, num); }
+	virtual void drawPixel  ( Vector2 const& p , Color3ub const& color ) override { mImpl.drawPixel( p , color ); }
+	virtual void drawLine   (Vector2 const& p1 , Vector2 const& p2 ) override { mImpl.drawLine( p1 , p2 ); }
+	virtual void drawRect   (Vector2 const& pos , Vector2 const& size ) override { mImpl.drawRect( pos , size ); }
+	virtual void drawCircle (Vector2 const& center , float radius ) override { mImpl.drawCircle( center , radius); }
+	virtual void drawEllipse(Vector2 const& pos , Vector2 const& size ) override { mImpl.drawEllipse(  pos ,  size ); }
+	virtual void drawRoundRect(Vector2 const& pos , Vector2 const& rectSize , Vector2 const& circleSize ) override { mImpl.drawRoundRect( pos , rectSize , circleSize ); }
+	virtual void drawPolygon(Vector2 pos[], int num) override { mImpl.drawPolygon(pos, num); }
 
 	virtual void setTextColor(Color3ub const& color) override { mImpl.setTextColor(color);  }
-	virtual void drawText( Vec2i const& pos , char const* str ) override { mImpl.drawText( pos , str ); }
-	virtual void drawText( Vec2i const& pos , Vec2i const& size , char const* str , bool beClip ) override { mImpl.drawText( pos , size , str , beClip  ); }
+	virtual void drawText(Vector2 const& pos , char const* str ) override { mImpl.drawText( pos , str ); }
+	virtual void drawText(Vector2 const& pos , Vector2 const& size , char const* str , bool beClip ) override { mImpl.drawText( pos , size , str , beClip  ); }
 
 	virtual void accept( Visitor& visitor ) { visitor.visit( mImpl ); }
 	T& mImpl;
@@ -149,7 +148,7 @@ bool DrawEngine::initializeRHI(RHITargetName targetName, int numSamples)
 		RenderUtility::InitializeRHI();
 		mGLContext = &static_cast<OpenGLSystem*>(gRHISystem)->mGLContext;
 	}
-	
+	bUsePlatformBuffer = false;
 	return true;
 }
 
@@ -174,6 +173,7 @@ void DrawEngine::shutdownRHI(bool bDeferred)
 		bRHIShutdownDeferred = true;
 	}
 
+	bUsePlatformBuffer = true;
 	setupBuffer(getScreenWidth(), getScreenHeight());
 }
 
@@ -201,7 +201,7 @@ bool DrawEngine::beginRender()
 		
 	}
 
-	if( !isRHIEnabled() || bUsePlatformBuffer )
+	if( bUsePlatformBuffer )
 	{	
 		mBufferDC.clear();
 	}
@@ -218,7 +218,7 @@ void DrawEngine::endRender()
 	{
 		mPlatformGraphics->endRender();
 	}
-	if( !isRHIEnabled() || bUsePlatformBuffer )
+	if( bUsePlatformBuffer )
 	{
 		mBufferDC.bitBlt(getWindow().getHDC());
 	}

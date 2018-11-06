@@ -1168,7 +1168,7 @@ namespace Render
 				break;
 			case Vertex::eTexcoord:
 				haveTex = true;
-				glClientActiveTexture(GL_TEXTURE1 + e.idx);
+				glClientActiveTexture(GL_TEXTURE0 + e.idx);
 				glDisableClientState(GL_TEXTURE_COORD_ARRAY);
 				break;
 			}

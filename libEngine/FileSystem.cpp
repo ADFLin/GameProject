@@ -180,3 +180,12 @@ bool FileUtility::SaveFromBuffer(char const* path, char const* data, uint32 data
 	fs.close();
 	return true;
 }
+
+std::string FileUtility::GetFullPath(char const* path)
+{
+#if SYS_PLATFORM_WIN
+	char full_path[MAX_PATH];
+	GetFullPathNameA( path , MAX_PATH, full_path, NULL);
+	return full_path;
+#endif
+}

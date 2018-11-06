@@ -6,6 +6,8 @@
 #include "CARExpansion.h"
 #include "CARMapTile.h"
 
+#include "TypeHash.h"
+
 #include <map>
 #include <unordered_map>
 #include <set>
@@ -156,26 +158,11 @@ namespace CAR
 		};
 		struct VecHasher
 		{
-			static inline uint32 HashCombine(uint32 A, uint32 C)
-			{
-				uint32 B = 0x9e3779b9;
-				A += B;
-
-				A -= B; A -= C; A ^= (C >> 13);
-				B -= C; B -= A; B ^= (A << 8);
-				C -= A; C -= B; C ^= (B >> 13);
-				A -= B; A -= C; A ^= (C >> 12);
-				B -= C; B -= A; B ^= (A << 16);
-				C -= A; C -= B; C ^= (B >> 5);
-				A -= B; A -= C; A ^= (C >> 3);
-				B -= C; B -= A; B ^= (A << 10);
-				C -= A; C -= B; C ^= (B >> 15);
-
-				return C;
-			}
 			size_t operator()( Vec2i const& v) const
 			{
-				return HashCombine(v.x, v.y);
+				uint32 result = HashValue(v.x);
+				HashCombine(result, v.y);
+				return result;
 			}
 		};
 		typedef std::unordered_map< Vec2i , MapTile , VecHasher > WorldTileMap;

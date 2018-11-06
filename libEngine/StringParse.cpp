@@ -31,6 +31,13 @@ void Tokenizer::skipDropDelims()
 	}
 }
 
+int Tokenizer::skipToChar(char c)
+{
+	char const* prev = mPtr;
+	mPtr = FStringParse::FindChar(mPtr, c);
+	return mPtr - prev;
+}
+
 Tokenizer::TokenType Tokenizer::take(StringView& str)
 {
 	return FStringParse::StringToken(mPtr, *this, str);
@@ -588,6 +595,13 @@ StringView FStringParse::StringTokenLine(char const*& inoutStr)
 DelimsTable::DelimsTable()
 {
 	std::fill_n(mDelimsMap, ARRAY_SIZE(mDelimsMap), 0);
+}
+
+DelimsTable::DelimsTable(char const* dropDelims, char const* stopDelims)
+{
+	std::fill_n(mDelimsMap, ARRAY_SIZE(mDelimsMap), 0);
+	addDelims(dropDelims, DropMask);
+	addDelims(stopDelims, StopMask);
 }
 
 void DelimsTable::addDelims(char const* delims, uint8 mask)

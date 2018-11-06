@@ -34,7 +34,7 @@ namespace BT
 			}
 		}
 	
-	#define DEFNE_VISITABLE()\
+	#define DEFINE_VISITABLE()\
 		ReturnType accept( BaseVisitor& visitor )\
 		{\
 			return acceptImpl( *this , visitor );\

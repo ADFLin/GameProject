@@ -133,7 +133,7 @@ namespace Render
 		{
 			mbDataDirty = false;
 
-			void* ptr = OpenGLCast::To( mUniformBuffer )->lock(ELockAccess::WriteOnly);
+			void* ptr = RHILockBuffer(mUniformBuffer , ELockAccess::WriteDiscard );
 			ViewBufferData& data = *(ViewBufferData*)ptr;
 			data.worldPos = worldPos;
 			data.direction = direction;
@@ -148,8 +148,8 @@ namespace Render
 			data.rectPosAndSizeInv.x = rectOffset.x;
 			data.rectPosAndSizeInv.y = rectOffset.y;
 			data.rectPosAndSizeInv.z = 1.0 / float(rectSize.x);
-			data.rectPosAndSizeInv.w = 1.0 / float(rectSize.y);
-			OpenGLCast::To( mUniformBuffer )->unlock();
+			data.rectPosAndSizeInv.w = 1.0 / float(rectSize.y);	
+			RHIUnlockBuffer(mUniformBuffer);
 		}
 
 		program.setStructuredBufferT<ViewBufferData>(*mUniformBuffer);
@@ -165,13 +165,10 @@ namespace Render
 		program.setParam(SHADER_PARAM(View.clipToWorld), clipToWorld);
 		program.setParam(SHADER_PARAM(View.gameTime), gameTime);
 		program.setParam(SHADER_PARAM(View.realTime), realTime);
-		int values[4];
-		glGetIntegerv(GL_VIEWPORT, values);
-		Vector4 viewportParam;
-		viewportParam.x = values[0];
-		viewportParam.y = values[1];
-		viewportParam.z = 1.0 / values[2];
-		viewportParam.w = 1.0 / values[3];
+		viewportParam.x = rectOffset.x;
+		viewportParam.y = rectOffset.y;
+		viewportParam.z = 1.0 / float(rectSize.x);
+		viewportParam.w = 1.0 / float(rectSize.y);
 		program.setParam(SHADER_PARAM(View.viewportPosAndSizeInv), viewportParam);
 #endif
 	}
@@ -179,6 +176,7 @@ namespace Render
 	void ViewInfo::updateFrustumPlanes()
 	{
 		//#NOTE: Dependent RHI
+#if 0
 		Vector3 centerNearPos = (Vector4(0, 0, -1, 1) * clipToWorld).dividedVector();
 		Vector3 centerFarPos = (Vector4(0, 0, 1, 1) * clipToWorld).dividedVector();
 
@@ -191,8 +189,28 @@ namespace Render
 		frustumPlanes[1] = Plane(direction, centerFarPos); //ZNear
 		frustumPlanes[2] = Plane(worldPos, posRT, posLT); //top
 		frustumPlanes[3] = Plane(worldPos, posLB, posRB); //bottom
-		frustumPlanes[4] = Plane(worldPos, posLT, posLB); //left
-		frustumPlanes[5] = Plane(worldPos, posRB, posRT); //right
+		frustumPlanes[4] = Plane(worldPos, posRB, posRT); //right
+		frustumPlanes[5] = Plane(worldPos, posLT, posLB); //left
+
+#else
+
+		//    -1 < x / w < 1
+		//->   w < x < w
+		//-> -dot(col3,v) < dot(col0,v) < dot(col3,v)
+		//-> dot( col3 + col0 , v ) > 0  , dot( col3 - col0 , v ) > 0 
+		Vector4 col0 = clipToWorld.col(0);
+		Vector4 col1 = clipToWorld.col(1);
+		Vector4 col2 = clipToWorld.col(2);
+		Vector4 col3 = clipToWorld.col(3);
+
+		frustumPlanes[0] = Plane::FrameVector4(col3 - col2);  //zFar
+		frustumPlanes[1] = Plane::FrameVector4(col3 + col2);  //zNear
+		frustumPlanes[2] = Plane::FrameVector4(col3 - col0);  //top
+		frustumPlanes[3] = Plane::FrameVector4(col3 + col0);  //bottom
+		frustumPlanes[4] = Plane::FrameVector4(col3 - col0);  //right
+		frustumPlanes[4] = Plane::FrameVector4(col3 + col0);  //left
+
+#endif
 	}
 
 

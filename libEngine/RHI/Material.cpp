@@ -17,8 +17,6 @@ namespace Render
 		return mRHI.isValid();
 	}
 
-
-
 	void Material::bindShaderParamInternal(MaterialShaderProgram& shader, uint32 skipMask)
 	{
 		for( int i = 0; i < (int)mParams.size(); ++i )
@@ -77,6 +75,9 @@ namespace Render
 			case ParamType::eVector3:
 				shader.setParam(param.name, *reinterpret_cast<Vector3*>(&mParamDataStorage[param.offset]));
 				break;
+			case ParamType::eVector2:
+				shader.setParam(param.name, *reinterpret_cast<Vector2*>(&mParamDataStorage[param.offset]));
+				break;
 			case ParamType::eScale:
 				shader.setParam(param.name, *reinterpret_cast<float*>(&mParamDataStorage[param.offset]));
 				break;
@@ -112,6 +113,7 @@ namespace Render
 		case ParamType::eMatrix3: typeSize = 9 * sizeof(float); break;
 		case ParamType::eVector4:  typeSize = 4 * sizeof(float); break;
 		case ParamType::eVector3:  typeSize = 3 * sizeof(float); break;
+		case ParamType::eVector2:  typeSize = 2 * sizeof(float); break;
 		case ParamType::eScale:   typeSize = 1 * sizeof(float); break;
 		}
 
@@ -169,7 +171,7 @@ namespace Render
 
 	std::string MaterialShaderMap::GetFilePath(char const* name)
 	{
-		std::string path("Shader/Material/");
+		std::string path("Material/");
 		path += name;
 		path += SHADER_FILE_SUBNAME;
 		return path;

@@ -1,0 +1,38 @@
+#include "Common.sgc"
+
+#include "TiledLightCommon.sgc"
+#include "ViewParam.sgc"
+
+
+#if COMPUTE_SHADER
+
+
+layout(local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
+void MainCS()
+{
+
+	if( gl_LocalInvocationIndex == 0 )
+	{
+
+
+	}
+
+	float4 boundedPlanes[4];
+
+	float4 row0 = float4(View.viewToClip[0][0], View.viewToClip[1][0], View.viewToClip[2][0], View.viewToClip[3][0]);
+	float4 row1 = float4(View.viewToClip[0][1], View.viewToClip[1][1], View.viewToClip[2][1], View.viewToClip[3][1]);
+	float4 row3 = float4(View.viewToClip[0][3], View.viewToClip[1][3], View.viewToClip[2][3], View.viewToClip[3][3]);
+
+	TiledLightInfo lightInfo;
+
+	float4 viewPos = View.worldToView * float4(lightInfo.pos, 1);
+	for( int i = 0; i < 4; ++i )
+	{
+
+
+
+	}
+}
+
+
+#endif

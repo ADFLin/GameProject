@@ -152,6 +152,7 @@ namespace Go
 		int         idxPlayerTurn = 0;
 		bool        bSwapColor = false;
 		bool        bAutoRun = false;
+		bool        bSaveSGF = false;
 
 		MatchPlayer& getPlayer(int color)
 		{
@@ -214,7 +215,7 @@ namespace Go
 			UI_PLAY,
 			UI_CANCEL ,
 			UI_AUTO_RUN ,
-
+			UI_SAVE_SGF ,
 
 			UI_CONTROLLER_TYPE_A = UI_WIDGET_ID + 100,
 			UI_CONTROLLER_TYPE_B = UI_WIDGET_ID + 200,
@@ -232,38 +233,10 @@ namespace Go
 		MatchSettingPanel(int id, Vec2i const& pos, Vec2i const& size, GWidget* parent)
 			:BaseClass(id , pos , size , parent)
 		{
-			init();
+			addBaseWidget();
 		}
 
-		void init()
-		{
-			GChoice* choice;
-			choice = addPlayerChoice(0, "Player A");
-			choice->modifySelection(0);
-			choice = addPlayerChoice(1, "Player B");
-			choice->modifySelection(1);
-
-			int sortOrder = 5;
-			choice = addChoice(UI_FIXED_HANDICAP, "Fixed Handicap", 0, sortOrder);
-			for( int i = 0; i <= 9; ++i )
-			{
-				FixString<128> str;
-				choice->addItem(str.format("%d", i));
-			}
-			choice->setSelection(0);
-
-
-			addCheckBox(UI_AUTO_RUN, "Auto Run", 0 , sortOrder);
-
-			adjustChildLayout();
-
-			Vec2i buttonSize = Vec2i(100, 20);
-			GButton* button;
-			button = new GButton(UI_PLAY, Vec2i(getSize().x /2 - buttonSize.x , getSize().y - buttonSize.y - 5), buttonSize, this);
-			button->setTitle("Play");
-			button = new GButton(UI_CANCEL, Vec2i((getSize().x)/ 2, getSize().y - buttonSize.y - 5), buttonSize, this);
-			button->setTitle("Cancel");
-		}
+		void addBaseWidget();
 
 		void addLeelaParamWidget(int id , int idxPlayer );
 
@@ -444,7 +417,6 @@ namespace Go
 
 
 		bool bSwapEachMatch = true;
-		bool bAutoSaveMatchSGF = true;
 		int  unknownWinerCount = 0;
 		MatchGameData mMatchData;
 		FixString<32> mLastGameResult;

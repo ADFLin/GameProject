@@ -106,11 +106,13 @@ namespace Render
 		{
 			
 		}
+		void RHISetIndexBuffer(RHIIndexBuffer* buffer);
 
 		GLDeviceState mDeviceState;
 #if SYS_PLATFORM_WIN
 		WindowsGLContext mGLContext;
 #endif
+		class OpenglProfileCore* mProfileCore = nullptr;
 	};
 }
 

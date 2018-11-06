@@ -17,7 +17,7 @@ class DelimsTable
 {
 public:
 	DelimsTable();
-
+	DelimsTable(char const* dropDelims , char const* stopDelims );
 	enum
 	{
 		StopMask = 1 << 0,
@@ -98,12 +98,17 @@ public:
 	typedef FStringParse::TokenType TokenType;
 
 	void        reset(char const* str);
-	char const* next() { return mPtr; }
+	char        nextChar() { return *mPtr; }
 	void        offset(int off) { mPtr += off; }
 	void        skipDropDelims();
+	int         skipToChar(char c);
 
 
 	TokenType  take(StringView& str);
+	int        calcOffset(char const* ptr)
+	{
+		return mPtr - ptr;
+	}
 
 	char const* mPtr;
 };

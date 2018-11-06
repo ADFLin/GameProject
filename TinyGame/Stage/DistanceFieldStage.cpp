@@ -118,8 +118,8 @@ namespace Render
 			if( !::Global::GetDrawEngine()->startOpenGL() )
 				return false;
 
-			//VERIFY_INITRESULT(MeshBuild::Cube(mMesh, 1));
-			VERIFY_INITRESULT(MeshBuild::IcoSphere(mMesh, 1, 3));
+			//VERIFY_RETURN_FALSE(MeshBuild::Cube(mMesh, 1));
+			VERIFY_RETURN_FALSE(MeshBuild::IcoSphere(mMesh, 1, 3));
 			
 
 			char const* testDataPath = "DistField/test.data";
@@ -135,9 +135,9 @@ namespace Render
 				saveDistanceFieldData(testDataPath , mSDFData );
 			}
 
-			VERIFY_INITRESULT( mTextureSDF = RHICreateTexture3D( Texture::eR32F , mSDFData.gridSize.x , mSDFData.gridSize.y , mSDFData.gridSize.z , TCF_DefalutValue , &mSDFData.volumeData[0] ) );
+			VERIFY_RETURN_FALSE( mTextureSDF = RHICreateTexture3D( Texture::eR32F , mSDFData.gridSize.x , mSDFData.gridSize.y , mSDFData.gridSize.z , TCF_DefalutValue , &mSDFData.volumeData[0] ) );
 
-			VERIFY_INITRESULT(mProgRayMarching = ShaderManager::Get().getGlobalShaderT<RayMarchingProgram>());
+			VERIFY_RETURN_FALSE(mProgRayMarching = ShaderManager::Get().getGlobalShaderT<RayMarchingProgram>());
 			Vec2i screenSize = ::Global::GetDrawEngine()->getScreenSize();
 			mViewFrustum.mNear = 0.01;
 			mViewFrustum.mFar = 800.0;

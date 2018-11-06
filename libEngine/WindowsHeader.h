@@ -11,6 +11,7 @@
 #undef InterlockedExchangeAdd
 #undef InterlockedAdd
 #undef GetOpenFileName
+#undef GetEnvironmentVariable
 
 
 #endif // WindowsHeader_H_F167F40F_DEC3_4817_AE61_61F50A06BB51

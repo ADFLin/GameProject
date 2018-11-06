@@ -9,6 +9,7 @@
 #include "DrawEngine.h"
 #include "RenderUtility.h"
 #include "GameModule.h"
+#include "GameGlobal.h"
 
 #include "Widget/WidgetUtility.h"
 
@@ -65,7 +66,7 @@ public:
 
 	void onRender(float dFrame)
 	{
-		Graphics2D& g = Global::getGraphics2D();
+		Graphics2D& g = Global::GetGraphics2D();
 	}
 
 	bool onMouse(MouseMsg const& msg)

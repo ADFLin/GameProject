@@ -36,6 +36,12 @@ inline uint32 HashValue(T const& v)
 	return hasher(v);
 }
 
+template <class T>
+inline void HashCombine(uint32& seed, const T& v)
+{
+	std::hash<T> hasher;
+	seed ^= hasher(v) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+}
 
 struct MemberFunHasher
 {
@@ -43,11 +49,7 @@ struct MemberFunHasher
 	uint32 operator()(T const& value) const noexcept { return value.getHash(); }
 };
 
-template <class T>
-inline void HashCombine(uint32& seed, const T& v)
-{
-	std::hash<T> hasher;
-	seed ^= hasher(v) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
-}
+#define EXPORT_MEMBER_HASH_TO_STD( TYPE )\
+	namespace std { template<> struct hash<TYPE> { size_t operator()(TYPE const& value) const { return value.getHash(); } }; }
 
 #endif // TypeHash_h__

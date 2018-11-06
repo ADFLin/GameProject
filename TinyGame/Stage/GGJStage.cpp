@@ -3,7 +3,7 @@
 namespace GGJ
 {
 
-	int Utility::getRandomValueForProperty(Random& rand , ValueProperty prop)
+	int Utility::RandomValueForProperty(Random& rand , ValueProperty prop)
 	{
 		int result= 1;
 		switch (prop)
@@ -45,7 +45,7 @@ namespace GGJ
 		return result;
 	}
 
-	int Utility::getValuePropertyFlags(int value)
+	int Utility::ValuePropertyFlags(int value)
 	{
 		int result = 0;
 		if (IsPrime(value))
@@ -75,7 +75,7 @@ namespace GGJ
 		return true;
 	}
 
-	int* Utility::makeRandSeq(Random& rand, int num, int start, int buf[])
+	int* Utility::MakeRandSeq(Random& rand, int num, int start, int buf[])
 	{
 		int* result = buf;
 		for (int i = 0; i < num; ++i)
@@ -95,7 +95,7 @@ namespace GGJ
 		return result;
 	}
 
-	bool* Utility::makeRandBool(Random& rand , int num , int numTrue , bool buf[])
+	bool* Utility::MakeRandBool(Random& rand , int num , int numTrue , bool buf[])
 	{
 		bool* result = buf;
 		for (int i = 0; i < num; ++i)
@@ -116,7 +116,7 @@ namespace GGJ
 	}
 
 
-	uint8* Utility::makeRandBool(Random& rand, int num, int numTrue, uint8 buf[])
+	uint8* Utility::MakeRandBool(Random& rand, int num, int numTrue, uint8 buf[])
 	{
 		uint8* result = buf;
 		for( int i = 0; i < num; ++i )
@@ -228,7 +228,7 @@ namespace GGJ
 	void WorldCondition::generate(Random& rand)
 	{
 		int wallId[3];
-		Utility::makeRandSeq(rand, 3, 1, wallId);
+		Utility::MakeRandSeq(rand, 3, 1, wallId);
 		for (int i = 0; i < 4; ++i)
 		{
 			if (i == 0)
@@ -255,8 +255,8 @@ namespace GGJ
 		indexWallHaveLight = rand.nextInt() % 4;
 		int valuePropReq = rand.nextInt() % (int)ValueProperty::NumProp;
 
-		valueForNumberWall = Utility::getRandomValueForProperty( rand , (ValueProperty)valuePropReq );
-		valuePropertyFlags = Utility::getValuePropertyFlags(valueForNumberWall);
+		valueForNumberWall = Utility::RandomValueForProperty( rand , (ValueProperty)valuePropReq );
+		valuePropertyFlags = Utility::ValuePropertyFlags(valueForNumberWall);
 
 		for (int i = 0; i < 4; ++i)
 		{
@@ -272,7 +272,7 @@ namespace GGJ
 		mIdxContent = rand.nextInt() % 2;
 
 		int wallId[(int)WallName::Num];
-		Utility::makeRandSeq(rand, (int)WallName::Num, 0, wallId );
+		Utility::MakeRandSeq(rand, (int)WallName::Num, 0, wallId );
 
 		if (mIdxContent == 0 )
 		{
@@ -639,7 +639,7 @@ namespace GGJ
 	{
 		assert(numExpr <= TotalExprNum);
 		bool bufUseExprMap[TotalExprNum];
-		bool* useExprMap = Utility::makeRandBool(rand, TotalExprNum, numExpr, bufUseExprMap);
+		bool* useExprMap = Utility::MakeRandBool(rand, TotalExprNum, numExpr, bufUseExprMap);
 
 		int idx = 0;
 		for( int i = 0; i < TotalExprNum; ++i )
@@ -675,7 +675,7 @@ namespace GGJ
 		GenerateRandExprssion(rand, numExpr, &mExprList[0]);
 
 		TArrayHolder< bool > bufInMap(new bool[numExpr]);
-		bool* inMap = Utility::makeRandBool(rand, numExpr, numIn, bufInMap.get());
+		bool* inMap = Utility::MakeRandBool(rand, numExpr, numIn, bufInMap.get());
 		for( int i = 0; i < numExpr; ++i )
 		{
 			CondExpression* expr = mExprList[i];
@@ -707,9 +707,9 @@ namespace GGJ
 
 		int const MaxObjectId = 6;
 		int bufObjectIdMap[MaxObjectId];
-		int* objectIdMap = Utility::makeRandSeq( rand , MaxObjectId , 0 , bufObjectIdMap );
+		int* objectIdMap = Utility::MakeRandSeq( rand , MaxObjectId , 0 , bufObjectIdMap );
 		TArrayHolder< bool > bufMap( new bool[ numSelection ] );
-		bool* Map = Utility::makeRandBool( rand , numSelection , numCondition , bufMap.get() );
+		bool* Map = Utility::MakeRandBool( rand , numSelection , numCondition , bufMap.get() );
 		for( int i = 0 ; i < numSelection ; ++i )
 		{
 			if ( Map[i] )

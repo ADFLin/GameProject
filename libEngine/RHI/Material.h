@@ -34,9 +34,9 @@ namespace Render
 
 		bool loadFile(char const* path, int numMipLevel = 0);
 
-		RHITexture2D& getRHI() 
+		RHITexture2D& getRHI()
 		{
-			if ( mRHI )
+			if( mRHI )
 				return *mRHI.get();
 			return *GDefaultMaterialTexture2D;
 		}
@@ -48,17 +48,18 @@ namespace Render
 	{
 	public:
 
-		void setParameter(char const* name, RHITexture2D& texture){ setParameterRHITexture(name, ParamType::eTexture2DRHI, &texture); }
-		void setParameter(char const* name, RHITexture3D& texture){ setParameterRHITexture(name, ParamType::eTexture3DRHI, &texture); }
+		void setParameter(char const* name, RHITexture2D& texture) { setParameterRHITexture(name, ParamType::eTexture2DRHI, &texture); }
+		void setParameter(char const* name, RHITexture3D& texture) { setParameterRHITexture(name, ParamType::eTexture3DRHI, &texture); }
 		void setParameter(char const* name, RHITextureCube& texture) { setParameterRHITexture(name, ParamType::eTextureCubeRHI, &texture); }
-		void setParameter(char const* name, RHITextureDepth& texture){ setParameterRHITexture(name, ParamType::eTextureDepthRHI, &texture); }
+		void setParameter(char const* name, RHITextureDepth& texture) { setParameterRHITexture(name, ParamType::eTextureDepthRHI, &texture); }
 
-		void setParameter(char const* name, Texture2D& texture){ setParameterT(name, ParamType::eTexture2D, &texture); }
+		void setParameter(char const* name, Texture2D& texture) { setParameterT(name, ParamType::eTexture2D, &texture); }
 
-		void setParameter(char const* name, Matrix4 const& value){ setParameterT(name, ParamType::eMatrix4, value); }
-		void setParameter(char const* name, Matrix3 const& value){ setParameterT(name, ParamType::eMatrix3, value); }
-		void setParameter(char const* name, Vector4 const& value){ setParameterT(name, ParamType::eVector4, value); }
-		void setParameter(char const* name, Vector3 const& value){ setParameterT(name, ParamType::eVector3, value); }
+		void setParameter(char const* name, Matrix4 const& value) { setParameterT(name, ParamType::eMatrix4, value); }
+		void setParameter(char const* name, Matrix3 const& value) { setParameterT(name, ParamType::eMatrix3, value); }
+		void setParameter(char const* name, Vector4 const& value) { setParameterT(name, ParamType::eVector4, value); }
+		void setParameter(char const* name, Vector3 const& value) { setParameterT(name, ParamType::eVector3, value); }
+		void setParameter(char const* name, Vector2 const& value) { setParameterT(name, ParamType::eVector2, value); }
 		void setParameter(char const* name, float value) { setParameterT(name, ParamType::eScale, value); }
 
 		virtual MaterialMaster* getMaster() = 0;
@@ -73,6 +74,7 @@ namespace Render
 			eMatrix3,
 			eVector4,
 			eVector3,
+			eVector2,
 			eScale,
 
 			eTexture2DRHI,
@@ -137,7 +139,7 @@ namespace Render
 		MaterialShaderProgramClass* shaderClass;
 
 		MaterialShaderKey() {}
-		MaterialShaderKey(VertexFactoryType* inVertexFactoryType,  MaterialShaderProgramClass* inShaderClass)
+		MaterialShaderKey(VertexFactoryType* inVertexFactoryType, MaterialShaderProgramClass* inShaderClass)
 			:vertexFactoryType(inVertexFactoryType)
 			, shaderClass(inShaderClass)
 		{
@@ -156,6 +158,11 @@ namespace Render
 		}
 	};
 
+}
+
+EXPORT_MEMBER_HASH_TO_STD( Render::MaterialShaderKey )
+
+namespace Render {
 
 	class MaterialShaderMap
 	{
@@ -177,7 +184,7 @@ namespace Render
 
 		bool load(MaterialShaderCompileInfo const& info);
 
-		std::unordered_map< MaterialShaderKey, MaterialShaderProgram*, MemberFunHasher > mShaderMap;
+		std::unordered_map< MaterialShaderKey, MaterialShaderProgram* > mShaderMap;
 	};
 
 
@@ -209,7 +216,7 @@ namespace Render
 		template< class ShaderType >
 		ShaderType* getShaderT(VertexFactory* vertexFactory)
 		{
-			return mShaderMap.getShaderT< ShaderType >( vertexFactory );
+			return mShaderMap.getShaderT< ShaderType >(vertexFactory);
 		}
 
 		bool loadInternal()

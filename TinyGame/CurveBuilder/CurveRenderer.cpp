@@ -133,10 +133,10 @@ namespace CB
 
 	bool CurveRenderer::initialize( Vec2i const& screenSize )
 	{
-		VERIFY_INITRESULT( mProgCurveMesh = ShaderManager::Get().getGlobalShaderT< CurveMeshProgram >(true) );
-		VERIFY_INITRESULT( mProgCurveMeshOIT = ShaderManager::Get().getGlobalShaderT< CurveMeshOITProgram >(true) );
-		VERIFY_INITRESULT( mProgMeshNormalVisualize = ShaderManager::Get().getGlobalShaderT< MeshNormalVisualizeProgram >(true) );
-		VERIFY_INITRESULT( mOITTech.init(screenSize) );
+		VERIFY_RETURN_FALSE( mProgCurveMesh = ShaderManager::Get().getGlobalShaderT< CurveMeshProgram >(true) );
+		VERIFY_RETURN_FALSE( mProgCurveMeshOIT = ShaderManager::Get().getGlobalShaderT< CurveMeshOITProgram >(true) );
+		VERIFY_RETURN_FALSE( mProgMeshNormalVisualize = ShaderManager::Get().getGlobalShaderT< MeshNormalVisualizeProgram >(true) );
+		VERIFY_RETURN_FALSE( mOITTech.init(screenSize) );
 		return true;
 	}
 

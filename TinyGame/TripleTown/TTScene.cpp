@@ -7,7 +7,7 @@
 
 #include "EasingFun.h"
 
-#include "lodepng/lodepng.h"
+#include "stb/stb_image.h"
 #include "Core/IntegerType.h"
 #include <fstream>
 
@@ -317,18 +317,37 @@ namespace TripleTown
 		}
 	}
 
-	bool Scene::loadFile( char const* name , GLuint& tex , unsigned& w , unsigned& h )
+	bool Scene::loadFile( char const* name , GLuint& tex , unsigned& outWidth , unsigned& outHeight )
 	{
-		unsigned char* dataLoad;
-		unsigned error = lodepng_decode_file( &dataLoad , &w , &h , name , LCT_RGBA , 8 );
-		if ( error )
+		int w;
+		int h;
+		int comp;
+		unsigned char* image = stbi_load(name, &w, &h, &comp, STBI_default);
+
+		if( !image )
 			return false;
 
-		glGenTextures( 1 , &tex );
-		glBindTexture( GL_TEXTURE_2D , tex );
-		glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR );
-		glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_LINEAR );
-		glTexImage2D( GL_TEXTURE_2D , 0, GL_RGBA, w , h , 0, GL_RGBA, GL_UNSIGNED_BYTE , dataLoad );
+		outWidth = w;
+		outHeight = h;
+
+		glGenTextures(1, &tex);
+		glBindTexture(GL_TEXTURE_2D, tex);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		//#TODO
+		switch( comp )
+		{
+		case 3:
+			glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8, w, h, 0, GL_RGB, GL_UNSIGNED_BYTE, image);
+			glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
+			break;
+		case 4:
+			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, image);
+			break;
+		}
+		//glGenerateMipmap( GL_TEXTURE_2D );
+		stbi_image_free(image);
 		return true;
 	}
 

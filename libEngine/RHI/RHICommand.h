@@ -88,6 +88,7 @@ namespace Render
 	void* RHILockBuffer(RHIUniformBuffer* buffer, ELockAccess access, uint32 offset = 0, uint32 size = 0);
 	void  RHIUnlockBuffer(RHIUniformBuffer* buffer);
 
+
 	RHIFrameBuffer*  RHICreateFrameBuffer();
 
 	RHIInputLayout*  RHICreateInputLayout(InputLayoutDesc const& desc);
@@ -118,6 +119,7 @@ namespace Render
 	void RHISetupFixedPipelineState(Matrix4 const& matModelView, Matrix4 const& matProj, int numTexture = 0, RHITexture2D** textures = nullptr);
 	void RHISetFrameBuffer(RHIFrameBuffer& frameBuffer, RHITextureDepth* overrideDepthTexture = nullptr);
 
+	void RHISetIndexBuffer(RHIIndexBuffer* indexBuffer);
 
 
 #define RHIFUNCTION( FUN ) virtual FUN = 0
@@ -178,7 +180,7 @@ namespace Render
 		RHIFUNCTION(void RHIDrawIndexedPrimitiveUP(PrimitiveType type, int numPrimitive, void* pVertices, int numVerex, int vetexStride, int* pIndices, int numIndex));
 
 		RHIFUNCTION(void RHISetFrameBuffer(RHIFrameBuffer& frameBuffer, RHITextureDepth* overrideDepthTexture));
-
+		RHIFUNCTION(void RHISetIndexBuffer(RHIIndexBuffer* indexBuffer));
 		RHIFUNCTION(void RHISetupFixedPipelineState(Matrix4 const& matModelView, Matrix4 const& matProj, int numTexture , RHITexture2D** textures));
 
 	};

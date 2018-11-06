@@ -6,7 +6,11 @@
 
 #include <iostream>
 
-Texture gEmptyTexture( "EMPTY" , 0 );
+#include "RHI/RHICommand.h"
+#include "RHI/OpenGLCommon.h"
+
+
+Texture gEmptyTexture;
 
 #if USE_SFML
 #else
@@ -15,25 +19,22 @@ Texture gEmptyTexture( "EMPTY" , 0 );
 
 Texture::Texture()
 {
-	//file = NULL;
-	id   = 0;
-}
 
-Texture::Texture(char const* file, GLuint id)
-{
-	this->file=file;
-	this->id=id;
-}		
+}	
 
 void Texture::bind()
 {
-	glBindTexture(GL_TEXTURE_2D , id );
+	Render::OpenGLCast::To(resource)->bind();
+}
+
+GLuint Texture::getHandle()
+{
+	return Render::OpenGLCast::To(resource)->getHandle();
 }
 
 Texture::~Texture()
 {
-	if ( id )
-		glDeleteTextures( 1 , &id );
+
 
 }
 
@@ -57,16 +58,16 @@ void TextureManager::cleanup()
 	mTextures.clear();
 }
 
-Texture* TextureManager::getTexture(int i)
+Texture* TextureManager::getTextureByIndex(int index)
 {
-	return mTextures[i];
+	return mTextures[index];
 }
 
-Texture* TextureManager::getTexture(char const* name)
+Texture* TextureManager::getTexture(HashString name)
 {	
 	for(int i=0; i<mTextures.size(); i++)
 	{
-		if( mTextures[i]->file == name )
+		if( mTextures[i]->fileName == name )
 		{
 			return mTextures[i];
 		}
@@ -74,17 +75,17 @@ Texture* TextureManager::getTexture(char const* name)
 	return loadTexture(name);
 }
 
-void TextureManager::destroyTexture(int i)
+void TextureManager::destroyTextureByIndex(int index)
 {
-	delete mTextures[i];
-	mTextures.erase(mTextures.begin()+i);
+	delete mTextures[index];
+	mTextures.erase(mTextures.begin()+ index);
 }
 
-void TextureManager::destroyTexture(char const* name)
+void TextureManager::destroyTexture(HashString name)
 {
 	for(int i=0; i<mTextures.size(); i++)
 	{
-		if( mTextures[i]->file == name )
+		if( mTextures[i]->fileName == name )
 		{
 			delete mTextures[i];
 			mTextures.erase(mTextures.begin()+i);
@@ -95,75 +96,21 @@ void TextureManager::destroyTexture(char const* name)
 
 Texture* TextureManager::loadTexture(char const* name)
 {	
-	GLuint id;
-#if USE_SFML
-
-	sf::Image image;
 	String path = TEXTURE_DIR;
 	path += name;
-	if( !image.loadFromFile( path.c_str() ))
+	Render::RHITexture2D* textureResource = Render::RHIUtility::LoadTexture2DFromFile(path.c_str());
+
+	if( textureResource )
 	{
-		MessageBox(NULL,TEXT("Greska kod ucitavanja textura."),TEXT("Error."),MB_OK);
-		return &gEmptyTexture;
+		Texture* tex = new Texture;
+		tex->fileName = name;
+		tex->resource = textureResource;
+		mTextures.push_back(tex);
+		QA_LOG("Textura loaded : %s", name);
+		return tex;
 	}
-
-		
-	glGenTextures(1,&id);
-	glBindTexture(GL_TEXTURE_2D,id);
-
-	//gluBuild2DMipmaps(GL_TEXTURE_2D, GL_RGBA, image.getSize().x , image.getSize().y , GL_RGBA, GL_UNSIGNED_BYTE, image.getPixelsPtr());			
-	//glTexParameteri(GL_TEXTURE_2D, GL_GENERATE_MIPMAP, GL_TRUE);
-	glTexImage2D( GL_TEXTURE_2D, 0, GL_RGBA, image.getSize().x , image.getSize().y , 0,
-		GL_RGBA, GL_UNSIGNED_BYTE, image.getPixelsPtr() );
-
-
-	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-
-	//glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
-	//glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
-
-
-
-#else
-
-	int w;
-	int h;
-	int comp;
-
-	String path = TEXTURE_DIR;
-	path += name;
-	unsigned char* image = stbi_load(path.c_str(), &w, &h, &comp, STBI_default);
-
-	if( !image )
-		return &gEmptyTexture;
-
-	glGenTextures(1, &id);
-	glBindTexture(GL_TEXTURE_2D, id);
-
-	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-
-	//#TODO
-	switch( comp )
-	{
-	case 3:
-		glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8, w, h, 0, GL_RGB, GL_UNSIGNED_BYTE, image);
-		glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
-		break;
-	case 4:
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, image);
-		break;
-	}
-	stbi_image_free(image);
-
-#endif
-
-	Texture* tex = new Texture(name, id);
-	mTextures.push_back(tex);
-	QA_LOG( "Textura loaded : %s" ,  name );
-	return tex;
+	
+	return &gEmptyTexture;
 }
 
 Texture* TextureManager::getEmptyTexture()

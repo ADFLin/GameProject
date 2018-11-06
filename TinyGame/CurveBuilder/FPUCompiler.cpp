@@ -234,6 +234,7 @@ public:
 		default:
 			assert(0);
 		}
+		return 0;
 	}
 
 	template< class ...Args >

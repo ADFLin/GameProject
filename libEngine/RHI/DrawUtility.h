@@ -311,7 +311,7 @@ namespace Render
 		void setPos(Vector3 const& pos) { mPos = pos; }
 		void setViewDir(Vector3 const& forwardDir, Vector3 const& upDir)
 		{
-			LookAtMatrix mat(Vector3::Zero(), forwardDir, upDir);
+			LookAtMatrix mat(forwardDir, upDir);
 			mRotation.setMatrix(mat);
 			mRotation = mRotation.inverse();
 			Vector3 angle = mRotation.getEulerZYX();

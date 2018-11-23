@@ -154,7 +154,7 @@ namespace CAR
 
 		bool             mbWaitReply;
 		int              mNumActionInput;
-		GameLogic*      mGameLogic;
+		GameLogic*       mGameLogic;
 		PlayerAction     mAction;
 		GameActionData*  mActionData;
 		ExecType         mExec;

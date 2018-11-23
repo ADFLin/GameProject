@@ -152,11 +152,9 @@ namespace CAR
 
 		void    removeLinkMask( int dir )
 		{
-			unsigned mask = sideNodes[dir].linkMask;
-			int linkDir;
-			while( FBit::MaskIterator< FDir::TotalNum >( mask , linkDir ) )
+			for( auto iter = TBitMaskIterator< FDir::TotalNum >( sideNodes[dir].linkMask ); iter ; ++iter )
 			{
-				sideNodes[linkDir].linkMask &= ~BIT(dir);
+				sideNodes[iter.index].linkMask &= ~BIT(dir);
 			}
 		}
 

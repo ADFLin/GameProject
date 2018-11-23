@@ -376,8 +376,7 @@ namespace Render
 		TCF_CreateSRV = BIT(0),
 		TCF_CreateUAV = BIT(1),
 		TCF_RenderTarget = BIT(2),
-
-
+		TCF_RenderOnly  = BIT(3),
 
 		TCF_DefalutValue = TCF_CreateSRV,
 	};

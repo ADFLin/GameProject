@@ -121,9 +121,9 @@ namespace MV
 		NavSurfInfo surfInfo[ FACE_NAV_LINK_NUM ];
 	};
 
-	struct Object
+	struct GameObject
 	{
-		Object()
+		GameObject()
 		{
 			group = NULL;
 		}
@@ -133,7 +133,7 @@ namespace MV
 
 
 
-	class Block : public Object
+	class Block : public GameObject
 	{
 	public:
 		Block()
@@ -149,6 +149,7 @@ namespace MV
 		BlockSurface surfaces[ BLOCK_FACE_NUM ];
 		HookNode     mapHook;
 		uint32       updateCount;
+		Block*       cellNext;
 
 		BlockSurface& getLocalFace( Dir dir )
 		{
@@ -179,14 +180,14 @@ namespace MV
 	};
 
 
-	struct MeshObject : public Object
+	struct MeshObject : public GameObject
 	{
 		int      idMesh;
 		Vec3f    pos;
 		Vec3f    rotation;
 	};
 
-	struct Actor : public Object
+	struct Actor : public GameObject
 	{
 		Actor()
 		{
@@ -223,12 +224,12 @@ namespace MV
 
 	};
 
-	typedef TIntrList< Block , MemberHook< Object , &Object::groupHook > , PointerType > BlockList;
-	typedef TIntrList< Actor , MemberHook< Object , &Object::groupHook > , PointerType > ActorList;
-	typedef TIntrList< MeshObject , MemberHook< Object , &Object::groupHook > , PointerType > MeshList;
-	typedef TIntrList< ObjectGroup , MemberHook< Object , &Object::groupHook > , PointerType > GroupList;
+	typedef TIntrList< Block , MemberHook< GameObject , &GameObject::groupHook > , PointerType > BlockList;
+	typedef TIntrList< Actor , MemberHook< GameObject , &GameObject::groupHook > , PointerType > ActorList;
+	typedef TIntrList< MeshObject , MemberHook< GameObject , &GameObject::groupHook > , PointerType > MeshList;
+	typedef TIntrList< ObjectGroup , MemberHook< GameObject , &GameObject::groupHook > , PointerType > GroupList;
 
-	class ObjectGroup : public Object
+	class ObjectGroup : public GameObject
 	{
 	public:
 		ObjectGroup()
@@ -249,7 +250,7 @@ namespace MV
 
 #undef ADD_FUN
 
-		void remove( Object& obj )
+		void remove( GameObject& obj )
 		{
 			obj.groupHook.unlink();
 			obj.group = NULL;

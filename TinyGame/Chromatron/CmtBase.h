@@ -14,12 +14,12 @@
 
 namespace Chromatron
 {
-	typedef TVector2< int > Vec2D;
+	typedef TVector2< int > Vec2i;
 	typedef unsigned DeviceId;
 	typedef unsigned Color;
 	DeviceId const ErrorDeviceId = DeviceId( -1 );
 
-	inline bool isInRect( Vec2D const& pt , Vec2D const& rectPos , Vec2D const& rectSize )
+	inline bool isInRect( Vec2i const& pt , Vec2i const& rectPos , Vec2i const& rectSize )
 	{
 		return rectPos.x <= pt.x && pt.x < rectPos.x + rectSize.x && 
 			   rectPos.y <= pt.y && pt.y < rectPos.y + rectSize.y;

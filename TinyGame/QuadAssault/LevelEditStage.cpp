@@ -12,7 +12,7 @@
 #include "LightObject.h"
 #include "Player.h"
 #include "Trigger.h"
-#include "BlockType.h"
+#include "BlockId.h"
 
 #include "GlobalVariable.h"
 #include "DataPath.h"
@@ -302,12 +302,12 @@ bool LevelEditStage::saveLevel( char const* path )
 	for(int j=0; j< terrain.getSizeY(); j++)
 	{
 		Tile& tile = terrain.getData( i , j );
-		if ( tile.type == BID_FLAT && tile.meta == 0 )
+		if ( tile.id == BID_FLAT && tile.meta == 0 )
 			continue;
 
 		of << "block" << " "  
 		   << i << " "  << j << " " 
-		   << (int)tile.type << " " 
+		   << (int)tile.id << " " 
 		   << (int)tile.meta << "\n";		
 	}
 
@@ -371,10 +371,10 @@ void LevelEditStage::generateEmptyLevel()
 		for(int j=0; j< terrain.getSizeY(); j++)
 		{		
 			Tile& tile = terrain.getData( i , j );
-			tile.type = BID_FLAT;
+			tile.id = BID_FLAT;
 			tile.meta = 0;
 			if(i==0 || j==0 || i== terrain.getSizeX()-1 || j== terrain.getSizeY() -1 )
-				tile.type = BID_WALL;
+				tile.id = BID_WALL;
 		}	
 	}
 }
@@ -438,7 +438,7 @@ void TileEditMode::cleanup()
 
 }
 
-void TileEditMode::setEditType( BlockType type )
+void TileEditMode::setEditType( BlockId type )
 {
 	mEditTileType = type;
 	switch( type )
@@ -466,17 +466,17 @@ void TileEditMode::enumProp( IPropEditor& editor )
 #define ValueOp(A,...) A,
 	int tileValue[] = 
 	{ 
-		BLOCK_TYPE_LIST( ValueOp )
+		BLOCK_ID_LIST( ValueOp )
 	};
 #undef ValueOp
 #define StringOp(A,B,...) B,
 	char const* tileStr[] = 
 	{
-		BLOCK_TYPE_LIST( StringOp )
+		BLOCK_ID_LIST( StringOp )
 	};
 #undef StringOp
 
-	editor.addEnumProp( "Block Type" , mTile->type , ARRAY_SIZE( tileValue ) , tileValue , tileStr );
+	editor.addEnumProp( "Block Type" , mTile->id , ARRAY_SIZE( tileValue ) , tileValue , tileStr );
 	editor.addProp( "Meta" , mTile->meta );
 }
 
@@ -514,7 +514,7 @@ bool TileEditMode::onMouse( MouseMsg const& msg )
 	{				
 		if ( tile )
 		{
-			tile->type = mEditTileType;
+			tile->id = mEditTileType;
 			tile->meta = mEditTileMeta;
 
 			mTile = tile;

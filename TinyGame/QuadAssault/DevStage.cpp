@@ -7,11 +7,14 @@
 
 #include "GBuffer.h"
 #include "Texture.h"
-#include "Shader.h"
 #include "Renderer.h"
 #include "RenderUtility.h"
 
 #include "MenuStage.h"
+
+#include "RHI/ShaderCore.h"
+#include "RHI/RHICommand.h"
+#include "RHI/ShaderCompiler.h"
 
 class WidgetTest : public TestBase
 {
@@ -78,94 +81,74 @@ public:
 		float radius;
 	};
 
-	class ShaderEffect
+	class LightingShaderProgram : public Render::ShaderProgram
 	{
 	public:
-		ShaderEffect()
+
+		void bindParameters(Render::ShaderParameterMap& parameterMap)
 		{
-			mShader = NULL;
+			parameterMap.bind(paramTexMaterial, SHADER_PARAM(texMaterial));
+			parameterMap.bind(paramTexBaseColor, SHADER_PARAM(texBaseColor));
+			parameterMap.bind(paramTexNormal, SHADER_PARAM(texNormal));
+			parameterMap.bind(paramPos, SHADER_PARAM(gLight.pos));
+			parameterMap.bind(paramColor, SHADER_PARAM(gLight.color));
+			parameterMap.bind(paramRadius, SHADER_PARAM(gLight.radius));
+			parameterMap.bind(paramAmbIntensity, SHADER_PARAM(gLight.ambIntensity));
+			parameterMap.bind(paramDifIntensity, SHADER_PARAM(gLight.difIntensity));
+			parameterMap.bind(paramSpeIntensity, SHADER_PARAM(gLight.speIntensity));
 		}
-		void begin(){ mShader->bind(); }
-		void end(){ mShader->unbind(); }
-		Shader* mShader;
+
+		void setTextureParameters( GBuffer* buffer , Render::RHITexture1D& texMat )
+		{
+			setTexture(paramTexMaterial , texMat );
+			setTexture(paramTexBaseColor , *buffer->getTexture( GBuffer::eBASE_COLOR ) );
+			setTexture(paramTexNormal , *buffer->getTexture( GBuffer::eNORMAL ) );
+		}
+
+		void setLightParameters( Light& light )
+		{
+			setParam( paramPos , light.pos );
+			setParam( paramColor , light.color );
+			setParam( paramRadius , light.radius );
+			setParam( paramAmbIntensity , light.ambIntensity );
+			setParam( paramDifIntensity , light.difIntensity );
+			setParam( paramSpeIntensity , light.speIntensity );
+		}
+
+
+		Render::ShaderParameter paramTexMaterial;
+		Render::ShaderParameter paramTexBaseColor;
+		Render::ShaderParameter paramTexNormal;
+		Render::ShaderParameter paramPos;
+		Render::ShaderParameter paramColor;
+		Render::ShaderParameter paramRadius;
+		Render::ShaderParameter paramAmbIntensity;
+		Render::ShaderParameter paramDifIntensity;
+		Render::ShaderParameter paramSpeIntensity;
 	};
 
-	class LightingShaderEffect : public ShaderEffect
+	class GeomShaderProgram : public Render::ShaderProgram
 	{
 	public:
-
-		bool init()
+		void bindParameters(Render::ShaderParameterMap& parameterMap)
 		{
-			mShader = getRenderSystem()->createShader( "LightingPointVS.glsl" , "LightingPointFS.glsl" );
-			if ( !mShader )
-				return false;
-
-			locTexMaterial  = mShader->getParamLoc( "texMaterial" );
-			locTexBaseColor = mShader->getParamLoc( "texBaseColor" );
-			locTexNormal = mShader->getParamLoc( "texNormal" );
-			locPos = mShader->getParamLoc( "gLight.pos" );
-			locColor = mShader->getParamLoc( "gLight.color" );
-			locRadius = mShader->getParamLoc( "gLight.radius"  );
-			locAmbIntensity = mShader->getParamLoc( "gLight.ambIntensity" );
-			locDifIntensity = mShader->getParamLoc( "gLight.difIntensity" );
-			locSpeIntensity = mShader->getParamLoc( "gLight.speIntensity" );
-			return true;
+			parameterMap.bind(paramTexDiffuse , SHADER_PARAM(texDiffuse) );
+			parameterMap.bind(paramTexNormal , SHADER_PARAM(texNormal) );
+			parameterMap.bind(paramTexGlow ,SHADER_PARAM(texGlow) );
+			parameterMap.bind(paramMatId , SHADER_PARAM(matId) );
 		}
-
-		void setTexture( GBuffer* buffer , GLuint texMat )
+		void setTextureParameters(Render::RHITexture2D* texDif , Render::RHITexture2D* texN , Render::RHITexture2D* texG )
 		{
-			mShader->setTexture1D( locTexMaterial , texMat , 0 );
-			mShader->setTexture2D( locTexBaseColor , buffer->getTexture( GBuffer::eBASE_COLOR ) ,1 );
-			mShader->setTexture2D( locTexNormal , buffer->getTexture( GBuffer::eNORMAL ) , 2 );
+			setTexture( paramTexDiffuse , texDif ? *texDif : *Render::GBlackTexture2D );
+			setTexture( paramTexNormal, texN ? *texN : *Render::GBlackTexture2D);
+			setTexture( paramTexGlow, texG ? *texG : *Render::GBlackTexture2D);
 		}
+		void setMaterial( int id ){ setParam( paramMatId , MatId2TexCoord( id ) ); }
 
-		void setLight( Light& light )
-		{
-			mShader->setParam( locPos , light.pos );
-			mShader->setParam( locColor , light.color );
-			mShader->setParam( locRadius , light.radius );
-			mShader->setParam( locAmbIntensity , light.ambIntensity );
-			mShader->setParam( locDifIntensity , light.difIntensity );
-			mShader->setParam( locSpeIntensity , light.speIntensity );
-		}
-		int locTexMaterial;
-		int locTexBaseColor;
-		int locTexNormal;
-		int locPos;
-		int locColor;
-		int locRadius;
-		int locAmbIntensity;
-		int locDifIntensity;
-		int locSpeIntensity;
-	};
-
-	class GeomShaderEffect : public ShaderEffect
-	{
-	public:
-		bool init()
-		{
-			mShader = getRenderSystem()->createShader( "GeomDefaultVS.glsl" , "GeomDefaultFS.glsl" );
-			if ( !mShader )
-				return false;
-
-			locTexDiffuse = mShader->getParamLoc( "texDiffuse" );
-			locTexNormal  = mShader->getParamLoc( "texNormal" );
-			locTexGlow = mShader->getParamLoc( "texGlow" );
-			locMatId = mShader->getParamLoc( "matId" );
-			return true;
-		}
-		void setTexture( GLuint texDif , GLuint texN , GLuint texG )
-		{
-			mShader->setTexture2D( locTexDiffuse , texDif , 0 );
-			mShader->setTexture2D( locTexNormal , texN , 1 );
-			mShader->setTexture2D( locTexGlow , texG , 2 );
-		}
-		void setMaterial( int id ){ mShader->setParam( locMatId , MatId2TexCoord( id ) ); }
-
-		int locTexDiffuse;
-		int locTexNormal;
-		int locTexGlow;
-		int locMatId;
+		Render::ShaderParameter paramTexDiffuse;
+		Render::ShaderParameter paramTexNormal;
+		Render::ShaderParameter paramTexGlow;
+		Render::ShaderParameter paramMatId;
 	};
 
 	static int const MaxRegMaterialNum = 512;
@@ -200,20 +183,13 @@ public:
 		return x+1;
 	}
 
-	GLuint createMaterialTexture()
+	Render::RHITexture1DRef createMaterialTexture()
 	{
-		GLuint tex = 0;
-		glGenTextures( 1 , &tex );
-		glBindTexture( GL_TEXTURE_1D , tex );
-		glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MAG_FILTER, GL_NEAREST );
-		glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MIN_FILTER, GL_NEAREST );
-		glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_WRAP_S , GL_CLAMP_TO_EDGE );
-
-		std::vector< float > buf( 4 * MaxRegMaterialNum , 0.0f );
+		std::vector< float > buf(4 * MaxRegMaterialNum, 0.0f);
 
 		float* ptr = &buf[0];
-		for ( MaterialVec::iterator iter = mRegMatList.begin() , itEnd = mRegMatList.end();
-			iter != itEnd ; ++iter )
+		for( MaterialVec::iterator iter = mRegMatList.begin(), itEnd = mRegMatList.end();
+			iter != itEnd; ++iter )
 		{
 			Material& mat = *iter;
 			ptr[0] = mat.ka;
@@ -222,18 +198,22 @@ public:
 			ptr[3] = mat.power;
 			ptr += 4;
 		}
-		glTexImage1D(GL_TEXTURE_1D, 0, GL_RGBA32F , MaxRegMaterialNum , 0 , GL_RGBA , GL_FLOAT , &buf[0] );
-		return tex;
+
+		Render::RHITexture1DRef result = Render::RHICreateTexture1D(Render::Texture::eFloatRGBA, MaxRegMaterialNum, 0, Render::TCF_DefalutValue, &buf[0]);
+		Render::OpenGLCast::To(result)->bind();
+		glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MAG_FILTER, GL_NEAREST );
+		glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MIN_FILTER, GL_NEAREST );
+		glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_WRAP_S , GL_CLAMP_TO_EDGE );
+		Render::OpenGLCast::To(result)->unbind();
+		return result;
 	}
 	virtual bool onInit()
 	{
 		RenderSystem* renderSys = getRenderSystem();
 
-		mLightingGlowShader = renderSys->createShader( "LightingGlowVS.glsl" , "LightingGlowFS.glsl" );
-		if ( !mGeomSE.init() )
-			return false;
-		if ( !mLightingSE.init() )
-			return false;
+		VERIFY_RETURN_FALSE(Render::ShaderManager::Get().loadSimple(mProgLightingGlow, "LightingGlowVS", "LightingGlowFS") );
+		VERIFY_RETURN_FALSE(Render::ShaderManager::Get().loadSimple(mProgGeom, "GeomDefaultVS", "GeomDefaultFS"));
+		VERIFY_RETURN_FALSE(Render::ShaderManager::Get().loadSimple(mProgLighting, "LightingPointVS", "LightingPointFS"));
 
 		TextureManager* texMgr = getRenderSystem()->getTextureMgr();
 
@@ -314,14 +294,14 @@ public:
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 
-		mGeomSE.begin();
-		mGeomSE.setTexture( mTexBlock[RP_DIFFUSE]->getHandle() , mTexBlock[RP_NORMAL]->getHandle(), 0 );
+		mProgGeom.bind();
+		mProgGeom.setTextureParameters( mTexBlock[RP_DIFFUSE]->resource , mTexBlock[RP_NORMAL]->resource, nullptr );
 
 		for( int j = 0 ; j < 10 ; ++j )
 		{
 			for( int i = 0 ; i < 20 ; ++i )
 			{
-				mGeomSE.setMaterial( ( i ) % 4 );
+				mProgGeom.setMaterial( ( i ) % 4 );
 				Vec2f pos( 10 + BLOCK_SIZE * i , 10 + BLOCK_SIZE * j );
 				Vec2f size( BLOCK_SIZE , BLOCK_SIZE );
 				glBegin(GL_QUADS);
@@ -332,15 +312,13 @@ public:
 				glEnd();
 			}
 		}
-		mGeomSE.setTexture( mTexObject[RP_DIFFUSE]->getHandle(), mTexObject[RP_NORMAL]->getHandle(), mTexObject[ RP_GLOW ]->getHandle());
-		mGeomSE.setMaterial( ( 0 ) % 4 );
+		mProgGeom.setTextureParameters( mTexObject[RP_DIFFUSE]->resource, mTexObject[RP_NORMAL]->resource, mTexObject[ RP_GLOW ]->resource);
+		mProgGeom.setMaterial( ( 0 ) % 4 );
 
 		drawSprite( Vec2f( 200 + 64 * 1 , 100 ) , Vec2f( 64 , 64 ) , 0.0f );	
 		drawSprite( Vec2f( 300 + 64 * 2 , 210 ) , Vec2f( 64 , 64 ) , 0.0f );
 
-		mGeomSE.end();
-
-
+		mProgGeom.unbind();
 		mGBuffer->unbind();
 
 
@@ -352,9 +330,9 @@ public:
 
 		Vec2i size = getGame()->getScreenSize();
 
-		mLightingGlowShader->bind();
-		mLightingGlowShader->setTexture2D( "texBaseColor" , mGBuffer->getTexture( GBuffer::eBASE_COLOR ) , 0 );
-		mLightingGlowShader->setTexture2D( "texGlow" , mGBuffer->getTexture( GBuffer::eLIGHTING ) , 1 );
+		mProgLightingGlow.bind();
+		mProgLightingGlow.setTexture( SHADER_PARAM( texBaseColor ) , *mGBuffer->getTexture( GBuffer::eBASE_COLOR ) );
+		mProgLightingGlow.setTexture(SHADER_PARAM( texGlow ) , *mGBuffer->getTexture( GBuffer::eLIGHTING ) );
 
 		glBegin(GL_QUADS);
 		glTexCoord2f(0.0, 1.0); glVertex2f(0, 0);
@@ -362,16 +340,16 @@ public:
 		glTexCoord2f(1.0, 0.0); glVertex2f(size.x, size.y);
 		glTexCoord2f(0.0, 0.0); glVertex2f(0, size.y);
 		glEnd();
-		mLightingGlowShader->unbind();
+		mProgLightingGlow.unbind();
 
-		mLightingSE.begin();
-		mLightingSE.setTexture( mGBuffer , mTexMaterial );
+		mProgLighting.bind();
+		mProgLighting.setTextureParameters( mGBuffer , *mTexMaterial );
 
 		for( int i = 0 ; i < ARRAY_SIZE( mLights ) ; ++i )
 		{
 			Light& light = mLights[i];
 
-			mLightingSE.setLight( light );
+			mProgLighting.setLightParameters( light );
 
 			Vec2f halfRange =  Vec2f( light.radius , light.radius ); 
 
@@ -394,7 +372,7 @@ public:
 			glEnd();	
 
 		}
-		mLightingSE.end();
+		mProgLighting.unbind();
 
 
 		glDisable( GL_BLEND );
@@ -407,7 +385,7 @@ public:
 		{
 			Vec2i pos( 50 , 50 );
 			Vec2i size( 200 , 100 );
-			glBindTexture( GL_TEXTURE_2D , mGBuffer->getBuffer( GBuffer::eDIFFUSE ) );
+			glBindTexture( GL_TEXTURE_2D ,  Render::OpenGLCast::GetHandle( mGBuffer->getTexture( GBuffer::eBASE_COLOR) ) );
 			glBegin(GL_QUADS);
 			glTexCoord2f(0.0, 0.0); glVertex2f(pos.x, pos.y);
 			glTexCoord2f(1.0, 0.0); glVertex2f(pos.x+size.x, pos.y);
@@ -421,7 +399,7 @@ public:
 			Vec2i pos( 50 + 200 , 50 );
 			Vec2i size( 200 , 100 );
 			glEnable( GL_TEXTURE_2D );
-			glBindTexture( GL_TEXTURE_2D , mGBuffer->getBuffer( GBuffer::eNORMAL ) );
+			glBindTexture( GL_TEXTURE_2D , Render::OpenGLCast::GetHandle( mGBuffer->getTexture( GBuffer::eNORMAL ) ) );
 			glBegin(GL_QUADS);
 			glTexCoord2f(0.0, 0.0); glVertex2f(pos.x, pos.y);
 			glTexCoord2f(1.0, 0.0); glVertex2f(pos.x+size.x, pos.y);
@@ -441,13 +419,13 @@ public:
 
 	Texture*  mTexBlock[3];
 	Texture*  mTexObject[3];
-	GLuint    mTexMaterial;
+	Render::RHITexture1DRef mTexMaterial;
 	Light     mLights[ 3 ];
 
 	FPtr< GBuffer >  mGBuffer;
-	Shader*   mLightingGlowShader;
-	GeomShaderEffect     mGeomSE;
-	LightingShaderEffect mLightingSE;
+	Render::ShaderProgram  mProgLightingGlow;
+	GeomShaderProgram      mProgGeom;
+	LightingShaderProgram  mProgLighting;
 };
 
 DevStage::DevStage()
@@ -458,7 +436,7 @@ DevStage::DevStage()
 bool DevStage::onInit()
 {
 	mTexCursor = getRenderSystem()->getTextureMgr()->getTexture("cursor.tga");
-	mDevMsg.reset( IText::create( getGame()->getFont( 0 ) , 18 , Color(50,255,50) ) );
+	mDevMsg.reset( IText::create( getGame()->getFont( 0 ) , 18 , Color4ub(50,255,50) ) );
 
 	GUISystem::Get().cleanupWidget();
 

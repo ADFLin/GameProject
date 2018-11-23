@@ -25,9 +25,9 @@ namespace Math
 		{
 			return Math::Sqrt(length2());
 		}
-		bool isNormalize() const
+		bool isNormalized() const
 		{
-			return std::abs(1 - length2()) < 1e-5;
+			return Math::Abs(1 - length2()) < 1e-5;
 		}
 
 

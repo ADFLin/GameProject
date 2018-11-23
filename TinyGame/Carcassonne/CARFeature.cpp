@@ -238,10 +238,9 @@ namespace CAR
 		halfSepareteCount += otherData.halfSepareteCount;
 
 		unsigned mask = putData.getSideLinkMask( meta );
-		int dir;
-		while( FBit::MaskIterator< FDir::TotalNum >( mask , dir ) )
+		for( auto iter = TBitMaskIterator<FDir::TotalNum>(mask); iter; ++iter )
 		{
-			SideNode* nodeCon = putData.sideNodes[dir].outConnect;
+			SideNode* nodeCon = putData.sideNodes[iter.index].outConnect;
 			if ( nodeCon && nodeCon->group == other.group )
 			{
 				openCount -= 2;
@@ -267,11 +266,9 @@ namespace CAR
 	void SideFeature::addNode(MapTile& mapData , unsigned dirMask , SideNode* linkNode)
 	{
 		addMapTile( mapData );
-		unsigned mask = dirMask;
-		int dir = 0;
-		while ( FBit::MaskIterator< FDir::TotalNum >( mask , dir ) )
+		for( auto iter = TBitMaskIterator<FDir::TotalNum>(dirMask ); iter ; ++iter  )
 		{
-			SideNode& node = mapData.sideNodes[dir];
+			SideNode& node = mapData.sideNodes[iter.index];
 			if( node.group != ERROR_GROUP_ID )
 			{
 				assert(group == node.group);
@@ -423,11 +420,9 @@ namespace CAR
 
 		if ( mSetting->have( Rule::eInn ) )
 		{
-			unsigned mask = dirMask;
-			int dir;
-			while( FBit::MaskIterator< FDir::TotalNum >( mask , dir ) )
+			for( auto iter = TBitMaskIterator< FDir::TotalNum >( dirMask ) ; iter ; ++iter )
 			{
-				if ( mapData.getSideContnet( dir ) & SideContent::eInn )
+				if ( mapData.getSideContnet( iter.index ) & SideContent::eInn )
 				{
 					haveInn = true;
 					break;
@@ -591,11 +586,9 @@ namespace CAR
 	{
 		addMapTile( mapData );
 
-		unsigned mask = idxMask;
-		int idx;
-		while ( FBit::MaskIterator< TilePiece::NumFarm >( mask , idx ) )
+		for( auto iter = TBitMaskIterator< TilePiece::NumFarm >(idxMask); iter; ++iter )
 		{
-			FarmNode& node = mapData.farmNodes[idx];
+			FarmNode& node = mapData.farmNodes[iter.index];
 			if( node.group != ERROR_GROUP_ID )
 			{
 				assert(group == node.group);
@@ -733,10 +726,9 @@ namespace CAR
 		MapTile* mapTile = *mapTiles.begin();
 
 		unsigned roadMask = mapTile->calcSideRoadLinkMeskToCenter() & ~TilePiece::CenterMask;
-
-		int dir;
-		while( FBit::MaskIterator< FDir::TotalNum >( roadMask , dir ) )
+		for( auto iter = TBitMaskIterator< FDir::TotalNum >(roadMask); iter; ++iter )
 		{
+			int dir = iter.index;
 			SideNode* linkNode = mapTile->sideNodes[dir].outConnect;
 			if ( linkNode == nullptr )
 				continue;
@@ -832,10 +824,9 @@ namespace CAR
 		MapTile* mapTile = *mapTiles.begin();
 
 		unsigned roadMask = mapTile->calcSideRoadLinkMeskToCenter() & ~TilePiece::CenterMask;
-
-		int dir;
-		while( FBit::MaskIterator< FDir::TotalNum >( roadMask , dir ) )
+		for( auto iter = TBitMaskIterator< FDir::TotalNum >(roadMask); iter; ++iter )
 		{
+			int dir = iter.index;
 			SideNode* linkNode = mapTile->sideNodes[dir].outConnect;
 			if ( linkNode == nullptr )
 				continue;

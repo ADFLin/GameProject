@@ -18,15 +18,13 @@ enum class FileAction
 	Created,
 };
 
-class AssetBase
+class IAssetViewer
 {
 public:
 	virtual void getDependentFilePaths(std::vector< std::wstring >& paths) {}
 protected:
 	friend class AssetManager;
 	virtual void postFileModify(FileAction action){}
-
-
 };
 
 #if SYS_PLATFORM_WIN
@@ -118,8 +116,8 @@ public:
 	bool init();
 	void cleanup();
 	void tick(long time);
-	bool registerAsset(AssetBase* asset);
-	void unregisterAsset(AssetBase* asset);
+	bool registerViewer(IAssetViewer* asset);
+	void unregisterViewer(IAssetViewer* asset);
 
 	
 	struct StrCmp
@@ -129,7 +127,7 @@ public:
 			return ::wcscmp( s1 , s2 ) < 0;
 		}
 	};
-	typedef std::vector< AssetBase* > AssetList;
+	typedef std::vector< IAssetViewer* > AssetList;
 	typedef std::map< std::wstring , AssetList >  AssetMap;
 	AssetMap mAssetMap;
 

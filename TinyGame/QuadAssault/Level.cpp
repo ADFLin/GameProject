@@ -95,7 +95,7 @@ void Level::tick()
 	if ( mTopMessage )
 	{
 		mTopMessage->tick();
-		if ( mTopMessage->unisten )
+		if ( mTopMessage->needDestroy )
 		{
 			delete mTopMessage;
 			mMsgQueue.erase(mMsgQueue.begin());
@@ -115,10 +115,10 @@ void Level::setupTerrain( int w , int h )
 		{		
 			Tile& tile = mTerrain.getData( i , j );
 			tile.pos  = Vec2f( BLOCK_SIZE * i , BLOCK_SIZE * j );
-			tile.type = BID_FLAT;
+			tile.id = BID_FLAT;
 			tile.meta = 0;
 			if(i==0 || j==0 || i== w-1 || j== h-1)
-				tile.type = BID_WALL;
+				tile.id = BID_WALL;
 		}	
 	}
 }
@@ -220,42 +220,33 @@ int Level::random( int i1, int i2 )
 
 void Level::renderObjects( RenderPass pass )
 {
-	for( ItemList::iterator iter = mItems.begin() , itEnd = mItems.end(); 
-		iter != itEnd ; ++iter )
+	for( LevelObject* obj : mItems )
 	{
-		LevelObject* obj = *iter;
 		IObjectRenderer* renderer =  obj->getRenderer();
 		renderer->render( pass , obj );
 	}
 
-	for( MobList::iterator iter = mMobs.begin() , itEnd = mMobs.end(); 
-		iter != itEnd ; ++iter )
+
+	for( LevelObject* obj : mMobs )
 	{
-		LevelObject* obj = *iter;
 		IObjectRenderer* renderer =  obj->getRenderer();
 		renderer->render( pass , obj );
 	}
 
-	for( PlayerVec::iterator iter = mPlayers.begin() , itEnd = mPlayers.end();
-		 iter != itEnd ; ++iter )
+	for( Player* player : mPlayers )
 	{
-		Player* player = *iter;
 		IObjectRenderer* renderer = player->getRenderer();
 		renderer->render( pass , player );
 	}
 
-	for( BulletList::iterator iter = mBullets.begin() , itEnd = mBullets.end(); 
-		iter != itEnd ; ++iter )
+	for( LevelObject* obj : mBullets )
 	{
-		LevelObject* obj = *iter;
 		IObjectRenderer* renderer =  obj->getRenderer();
 		renderer->render( pass , obj );
 	}
 
-	for( ParticleList::iterator iter = mParticles.begin() , itEnd = mParticles.end(); 
-		iter != itEnd ; ++iter )
+	for( LevelObject* obj : mParticles )
 	{
-		LevelObject* obj = *iter;
 		IObjectRenderer* renderer =  obj->getRenderer();
 		renderer->render( pass , obj );
 	}

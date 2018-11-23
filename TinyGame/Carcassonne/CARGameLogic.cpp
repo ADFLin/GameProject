@@ -610,6 +610,12 @@ namespace CAR
 			//#TODO
 		}
 
+		if( mTileSetManager.haveUse(EXP_HALFLINGS_I) || mTileSetManager.haveUse(EXP_HALFLINGS_II) )
+		{
+
+
+
+		}
 		mIdxTile = 0;
 		mNumTileNeedMix = 0;
 
@@ -1788,11 +1794,6 @@ namespace CAR
 						idxCur = 0;
 				}
 
-				
-
-				PlayerBase* pBuyer;
-				PlayerBase* pSeller;
-
 				bool haveBuy = true;
 				if ( data.pIdCallMaxScore != data.pIdRound )
 				{
@@ -1803,6 +1804,8 @@ namespace CAR
 					haveBuy = !data.resultSkipAction; 
 				}
 
+				PlayerBase* pBuyer;
+				PlayerBase* pSeller;
 				if ( haveBuy )
 				{
 					pBuyer = mPlayerManager->getPlayer( data.pIdRound );
@@ -1840,11 +1843,7 @@ namespace CAR
 		{
 			LevelActor* actor = feature.mActors[i];
 			PlayerBase* player = actor->owner;
-			if ( player == nullptr )
-			{
-				//#TODO: 
-			}
-			else
+			if ( player  )
 			{
 				switch( actor->type )
 				{
@@ -1854,6 +1853,10 @@ namespace CAR
 				default:
 					otherGroup.push_back( actor );
 				}
+			}
+			else
+			{
+				//#TODO: 
 			}
 		}
 		//l)
@@ -1937,11 +1940,11 @@ namespace CAR
 	TurnResult GameLogic::resolvePrincess(IGameInput& input , MapTile* placeMapTile , bool& haveDone)
 	{
 		TurnResult result;
-		unsigned sideMask = TilePiece::AllSideMask;
-		int dir;
-		while( FBit::MaskIterator< FDir::TotalNum >( sideMask , dir ) )
+
+		for( auto iter = TBitMaskIterator< FDir::TotalNum >(TilePiece::AllSideMask); iter; ++iter )
 		{
-			sideMask &= ~placeMapTile->getSideLinkMask( dir );
+			int dir = iter.index;
+			iter.mask &= ~placeMapTile->getSideLinkMask( dir );
 
 			if ( ( placeMapTile->getSideContnet( dir ) & SideContent::ePrincess ) == 0 )
 				continue;
@@ -1957,9 +1960,9 @@ namespace CAR
 			assert( city->type == FeatureType::eCity );
 			unsigned followerMask = mSetting->getFollowerMask();
 
-			int iter = 0;
+			int iterActor = 0;
 			ActorList kinghts;
-			while( LevelActor* actor = city->iteratorActorMask(AllPlayerMask, KINGHT_MASK, iter) )
+			while( LevelActor* actor = city->iteratorActorMask(AllPlayerMask, KINGHT_MASK, iterActor) )
 			{
 				kinghts.push_back( actor );
 			}
@@ -1997,14 +2000,13 @@ namespace CAR
 		//update Build
 		{
 			FeatureBase* sideFeatures[ FDir::TotalNum ];
-			int numFeature;
+			int numFeature = 0;
 
-			unsigned maskAll = TilePiece::AllSideMask;
-			int dir;
-			while( FBit::MaskIterator< FDir::TotalNum >( maskAll , dir ) )
+			for( auto iter = TBitMaskIterator< FDir::TotalNum >(TilePiece::AllSideMask); iter; ++iter )
 			{
+				int dir = iter.index;
 				unsigned linkMask = mapTile.getSideLinkMask( dir );
-				maskAll &= ~linkMask;
+				iter.mask &= ~linkMask;
 
 				if( mapTile.getSideGroup(dir) != ERROR_GROUP_ID )
 					continue;
@@ -2086,14 +2088,14 @@ namespace CAR
 		}
 
 		{
-			unsigned maskAll = TilePiece::AllFarmMask;
-			int idx;
-			while( FBit::MaskIterator< TilePiece::NumFarm >( maskAll , idx ) )
+			for( auto iter = TBitMaskIterator< TilePiece::NumFarm >(TilePiece::AllFarmMask); iter; ++iter )
 			{
+				int idx = iter.index;
 				unsigned linkMask = mapTile.getFarmLinkMask( idx );
 				if ( linkMask == 0 )
 					continue;
-				maskAll &= ~linkMask;
+
+				iter.mask &= ~linkMask;
 
 				if (mapTile.getFarmGroup(idx) != ERROR_GROUP_ID )
 				{
@@ -2103,9 +2105,9 @@ namespace CAR
 				FarmFeature* farm = updateFarm( mapTile , linkMask );
 				unsigned cityLinkMask = mapTile.getCityLinkFarmMask( idx );
 				//unsigned cityLinkMaskCopy = cityLinkMask;
-				int dir;
-				while ( FBit::MaskIterator< FDir::TotalNum >( cityLinkMask , dir ) )
+				for( auto iter = TBitMaskIterator< FDir::TotalNum >(cityLinkMask); iter; ++iter )
 				{
+					int dir = iter.index;
 					if ( mapTile.getSideGroup( dir ) == -1 )
 					{
 						TileSet const& tileSet = mTileSetManager.getTileSet( mapTile.getId() );
@@ -2314,11 +2316,9 @@ namespace CAR
 		int linkGroup[ TilePiece::NumSide ];
 		SideNode* linkNodeFrist = nullptr;
 
-		unsigned mask = dirLinkMask;
-		int dir = 0;
-
-		while ( FBit::MaskIterator< FDir::TotalNum >( mask , dir ) )
+		for( auto iter = TBitMaskIterator<FDir::TotalNum >( dirLinkMask ) ; iter ; ++iter )
 		{
+			int dir = iter.index;
 			SideNode* linkNode = mapTile.sideNodes[ dir ].outConnect;
 
 			if ( linkNode == nullptr || linkNode->group == ABBEY_GROUP_ID )
@@ -2400,11 +2400,10 @@ namespace CAR
 		int numLinkGroup = 0;
 		int linkGroup[ TilePiece::NumFarm ];
 		FarmNode* linkNodeFrist = nullptr;
-		unsigned mask = idxLinkMask;
-		int idx = 0;
-		while ( FBit::MaskIterator< TilePiece::NumFarm >( mask , idx ) )
+
+		for( auto iter = TBitMaskIterator<TilePiece::NumFarm>(idxLinkMask); iter; ++iter )
 		{
-			FarmNode* linkNode = mapTile.farmNodes[ idx ].outConnect;
+			FarmNode* linkNode = mapTile.farmNodes[ iter.index ].outConnect;
 			if ( linkNode == nullptr )
 				continue;
 			if ( linkNode->group == ERROR_GROUP_ID )
@@ -2469,13 +2468,10 @@ namespace CAR
 
 		if ( haveUsePortal == false )
 		{
-			unsigned maskAll = 0;
-
-			maskAll = TilePiece::AllSideMask;
-			int dir;
-			while( FBit::MaskIterator< FDir::TotalNum >(maskAll, dir) )
+			for( auto iter = TBitMaskIterator< FDir::TotalNum >(TilePiece::AllSideMask); iter; ++iter )
 			{
-				maskAll &= ~mapTile.getSideLinkMask(dir);
+				int dir = iter.index;
+				iter.mask &= ~mapTile.getSideLinkMask(dir);
 
 				if( mapTile.getSideContnet(dir) & SideContent::eHalfSeparate )
 					continue;
@@ -2492,11 +2488,10 @@ namespace CAR
 				result += feature->getActorPutInfo(playerId, dir, mapTile, outInfo);
 			}
 
-			maskAll = TilePiece::AllFarmMask;
-			int idx;
-			while( FBit::MaskIterator< TilePiece::NumFarm >(maskAll, idx) )
+			for( auto iter = TBitMaskIterator< TilePiece::NumFarm >(TilePiece::AllFarmMask) ; iter ; ++iter )
 			{
-				maskAll &= ~mapTile.getFarmLinkMask(idx);
+				int idx = iter.index;
+				iter.mask &= ~mapTile.getFarmLinkMask(idx);
 				int group = mapTile.getFarmGroup(idx);
 				if( group == ERROR_GROUP_ID )
 					continue;
@@ -2828,10 +2823,8 @@ namespace CAR
 			info.feature = linkFeatures[n];
 			info.index   = mapTiles.size();
 			info.num     = 0;
-			for( MapTileSet::iterator iter = info.feature->mapTiles.begin() , itEnd = info.feature->mapTiles.end();
-				iter != itEnd ; ++iter )
+			for( MapTile* mapTile : info.feature->mapTiles)
 			{
-				MapTile* mapTile = *iter;
 				if ( !canDeployFollower( *mapTile ) )
 					continue;
 
@@ -2922,10 +2915,8 @@ namespace CAR
 
 	void GameLogic::checkCastleComplete(FeatureBase &feature, int score)
 	{
-		for( CastleInfoList::iterator iter = mCastles.begin() , itEnd = mCastles.end() ;
-			iter != itEnd ; ++iter )
+		for( CastleInfo* info : mCastles )
 		{
-			CastleInfo* info = *iter;
 			if ( ( BIT(feature.type) & CastleScoreTypeMask ) == 0 )
 				continue;
 
@@ -2936,7 +2927,6 @@ namespace CAR
 			s.feature = &feature;
 			s.value   = score;
 			info->featureScores.push_back( s );
-
 		}
 	}
 

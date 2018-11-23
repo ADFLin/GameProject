@@ -163,7 +163,7 @@ namespace Render
 				{
 
 				}
-				::Global::GetAssetManager().registerAsset(&mMaterialAssets[i]);
+				::Global::GetAssetManager().registerViewer(&mMaterialAssets[i]);
 				postLoading();
 			}
 

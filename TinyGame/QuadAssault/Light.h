@@ -29,8 +29,8 @@ public:
 	float  radius;
 	float  intensity;
 	Vec3f  color;
-	Vec2f  dir;   //normal u kojem dir je light okrenuto (baterija)
-	float  angle; //od 0.0 do 1.0, odredjuje angle djelovanja baterije
+	Vec2f  dir;
+	float  angle;
 
 	bool  isExplosion;
 	bool  drawShadow;

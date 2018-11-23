@@ -2109,7 +2109,6 @@ namespace Render
 
 		struct TrianglePair
 		{
-
 			int val[2];
 			TrianglePair()
 			{

@@ -3,7 +3,7 @@
 
 #include "Base.h"
 #include "DataStructure/Grid2D.h"
-#include "BlockType.h"
+#include "BlockId.h"
 
 Vec2f const gSimpleBlockSize = Vec2f( BLOCK_SIZE , BLOCK_SIZE );
 
@@ -24,10 +24,10 @@ enum BlockFlag
 	BF_NONSIMPLE     = BIT( 1 ),
 };
 
-typedef unsigned char BlockType;
+typedef unsigned char BlockId;
 struct Tile
 {
-	BlockType type;
+	BlockId   id;
 	int       meta;
 	Vec2f     pos;
 };
@@ -39,14 +39,17 @@ class Texture;
 
 class Block
 {
+public:
+	static void   Initialize();
+	static void   Cleanup();
+	static Block* Get(BlockId id);
 
 public:
-
 	virtual ~Block(){}
 	bool     checkFlag( unsigned checkBits ){ return ( mFlag & checkBits) != 0; }
 	unsigned getColMask(){ return mColMask; }
 
-	virtual void  init( BlockType type );
+	virtual void  init( BlockId type );
 	virtual void  onCollision( Tile& tile , Bullet* bullet );
 
 	virtual void  render( Tile const& tile );
@@ -62,12 +65,8 @@ public:
 
 	Texture* getTexture( int idx ){ return mTex[ idx ]; }
 
-	static void   initialize();
-	static void   cleanup();
-	static Block* FromType( BlockType type );
-	
 protected:
-	BlockType mType;
+	BlockId   mId;
 	unsigned  mFlag;
 	unsigned  mColMask;
 	Texture*  mTex[ NUM_RENDER_PASS ];

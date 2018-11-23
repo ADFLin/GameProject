@@ -83,7 +83,7 @@ public:
 
 	TileEditFrame* mFrame;
 
-	void  setEditType( BlockType type );
+	void  setEditType( BlockId type );
 	virtual void onEnable();
 	virtual void onDisable();
 	virtual void cleanup();

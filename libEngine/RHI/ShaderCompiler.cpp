@@ -7,7 +7,7 @@
 #include "FileSystem.h"
 #include "CPreprocessor.h"
 #include "BitUtility.h"
-
+#include "StdUtility.h"
 
 #include <fstream>
 #include <sstream>
@@ -253,7 +253,13 @@ namespace Render
 
 	bool ShaderManager::loadFile(ShaderProgram& shaderProgram, char const* fileName, ShaderEntryInfo const entries[], char const* def /*= nullptr*/, char const* additionalCode /*= nullptr*/)
 	{
-		return loadInternal(shaderProgram, fileName, entries, def, additionalCode, true);
+		char const* filePaths[Shader::NUM_SHADER_TYPE];
+		FixString< 256 > path;
+		path.format("%s%s", fileName, SHADER_FILE_SUBNAME);
+		for( int i = 0; entries[i].type != Shader::eEmpty; ++i )
+			filePaths[i] = path;
+
+		return loadInternal(shaderProgram, filePaths, entries, def, additionalCode);
 	}
 
 	bool ShaderManager::loadFile(ShaderProgram& shaderProgram, char const* fileName, ShaderEntryInfo const entries[], ShaderCompileOption const& option, char const* additionalCode /*= nullptr*/)
@@ -261,25 +267,22 @@ namespace Render
 		return loadInternal(shaderProgram, fileName, entries, option, additionalCode, true);
 	}
 
-	bool ShaderManager::loadInternal(ShaderProgram& shaderProgram, char const* fileName, uint8 shaderMask, char const* entryNames[], ShaderCompileOption const& option, char const* additionalCode, bool bSingle)
+	bool ShaderManager::loadInternal(ShaderProgram& shaderProgram, char const* fileName, uint8 shaderMask, char const* entryNames[], ShaderCompileOption const& option, char const* additionalCode, bool bSingleFile)
 	{
 		ShaderEntryInfo entries[Shader::NUM_SHADER_TYPE];
 		MakeEntryInfos(entries, shaderMask, entryNames);
-		return loadInternal(shaderProgram, fileName, entries, option, additionalCode, bSingle);
+		return loadInternal(shaderProgram, fileName, entries, option, additionalCode, bSingleFile);
 	}
 
-	bool ShaderManager::loadInternal(ShaderProgram& shaderProgram, char const* fileName, ShaderEntryInfo const entries[] , ShaderCompileOption const& option, char const* additionalCode, bool bSingle)
+	bool ShaderManager::loadInternal(ShaderProgram& shaderProgram, char const* fileName, ShaderEntryInfo const entries[] , ShaderCompileOption const& option, char const* additionalCode, bool bSingleFile)
 	{
 		removeFromShaderCompileMap(shaderProgram);
 
 		ShaderProgramCompileInfo* info = new ShaderProgramCompileInfo;
 
 		info->shaderProgram = &shaderProgram;
-		info->bSingleFile = bSingle;
-		info->fileName = fileName;
 		info->bShowComplieInfo = option.bShowComplieInfo;
-
-		generateCompileSetup(*info, entries, option, additionalCode);
+		generateCompileSetup(*info, entries, option, additionalCode , fileName , bSingleFile );
 
 		if( !updateShaderInternal(shaderProgram, *info) )
 		{
@@ -291,11 +294,27 @@ namespace Render
 		return true;
 	}
 
-	bool ShaderManager::loadInternal(ShaderProgram& shaderProgram, char const* fileName, uint8 shaderMask, char const* entryNames[], char const* def , char const* additionalCode, bool bSingle )
+	bool ShaderManager::loadInternal(ShaderProgram& shaderProgram, char const* fileName, uint8 shaderMask, char const* entryNames[], char const* def , char const* additionalCode, bool bSingleFile)
 	{
-		ShaderEntryInfo enties[Shader::NUM_SHADER_TYPE];
-		MakeEntryInfos(enties, shaderMask, entryNames);
-		return loadInternal(shaderProgram, fileName, enties, def, additionalCode, bSingle);
+		ShaderEntryInfo entries[Shader::NUM_SHADER_TYPE];
+		MakeEntryInfos(entries, shaderMask, entryNames);
+		char const* filePaths[Shader::NUM_SHADER_TYPE];
+		FixString< 256 > paths[Shader::NUM_SHADER_TYPE];
+		
+		for( int i = 0; entries[i].type != Shader::eEmpty; ++i )
+		{
+			if( bSingleFile )
+			{
+				paths[i].format("%s%s", filePaths[i], SHADER_FILE_SUBNAME);
+			}
+			else
+			{
+				paths[i].format("%s%s", fileName, ShaderPosfixNames[entries[i].type]);
+			}
+
+			filePaths[i] = paths[i];
+		}
+		return loadInternal(shaderProgram, filePaths, entries, def, additionalCode);
 	}
 
 	static void AddCommonHeadCode(std::string& inoutHeadCode , uint32 version , ShaderEntryInfo const& entry )
@@ -316,17 +335,15 @@ namespace Render
 			inoutHeadCode += " main\n";
 		}
 	}
-	bool ShaderManager::loadInternal(ShaderProgram& shaderProgram, char const* fileName, ShaderEntryInfo const entries[], char const* def, char const* additionalCode, bool bSingle)
+
+	bool ShaderManager::loadInternal(ShaderProgram& shaderProgram, char const* filePaths[], ShaderEntryInfo const entries[], char const* def, char const* additionalCode)
 	{
 		removeFromShaderCompileMap(shaderProgram);
 
 		ShaderProgramCompileInfo* info = new ShaderProgramCompileInfo;
 
 		info->shaderProgram = &shaderProgram;
-		info->bSingleFile = bSingle;
-		info->fileName = fileName;
 
-		int indexNameUsed = 0;
 		for( int i = 0; entries[i].type != Shader::eEmpty; ++i )
 		{
 			auto const& entry = entries[i];
@@ -348,7 +365,7 @@ namespace Render
 				headCode += '\n';
 			}
 
-			info->shaders.push_back({ entry.type, std::move(headCode) });
+			info->shaders.push_back({ entry.type, filePaths[i] , std::move(headCode) });
 		}
 
 		if( !updateShaderInternal(shaderProgram, *info) )
@@ -364,6 +381,22 @@ namespace Render
 	bool ShaderManager::loadMultiFile(ShaderProgram& shaderProgram, char const* fileName, char const* def, char const* additionalCode)
 	{
 		return loadInternal(shaderProgram, fileName, BIT(Shader::eVertex) | BIT(Shader::ePixel), nullptr, def, additionalCode, false);
+	}
+
+	bool ShaderManager::loadSimple(ShaderProgram& shaderProgram, char const* fileNameVS, char const* fileNamePS, char const* def, char const* additionalCode)
+	{
+		ShaderEntryInfo entries[3] =
+		{
+			{ Shader::eVertex , "main" },
+			{ Shader::ePixel , "main" },
+			{ Shader::eEmpty , nullptr },
+		};
+		FixString< 256 > paths[2];
+		paths[0].format("%s%s%s", mBaseDir.c_str(), fileNameVS, SHADER_FILE_SUBNAME);
+		paths[1].format("%s%s%s", mBaseDir.c_str(), fileNamePS, SHADER_FILE_SUBNAME);
+		char const* filePaths[2] = { paths[0] , paths[1] };
+
+		return loadInternal(shaderProgram, filePaths, entries, def, additionalCode);
 	}
 
 	bool ShaderManager::reloadShader(ShaderProgram& shaderProgram)
@@ -382,7 +415,7 @@ namespace Render
 			(*myClass.funSetupShaderCompileOption)(option);
 
 			info->shaders.clear();
-			generateCompileSetup(*info, (*myClass.funGetShaderEntries)(), option, nullptr);
+			generateCompileSetup(*info, (*myClass.funGetShaderEntries)(), option, nullptr,  (*myClass.funGetShaderFileName)(), true);
 		}
 
 		return updateShaderInternal(shaderProgram, *info);
@@ -408,28 +441,17 @@ namespace Render
 		int indexCode = 0;
 		for( ShaderCompileInfo const& shaderInfo : info.shaders )
 		{
-
-			FixString< 256 > path;
-			if( info.bSingleFile )
-			{
-				path.format("%s%s", info.fileName.c_str(), SHADER_FILE_SUBNAME );
-			}
-			else
-			{
-				path.format("%s%s", info.fileName.c_str(), ShaderPosfixNames[shaderInfo.type]);
-			}
-			
 			RHIShaderRef shader = shaderProgram.mShaders[shaderInfo.type];
 			if( shader == nullptr )
 			{
 				shader = new RHIShader;
-				if( !mCompiler.compileCode(shaderInfo.type, *shader, path, shaderInfo.headCode.c_str()) )
+				if( !mCompiler.compileCode(shaderInfo.type, *shader, shaderInfo.filePath.c_str(), shaderInfo.headCode.c_str()) )
 					return false;
 				shaderProgram.attachShader(*shader);
 			}
 			else
 			{
-				if( !mCompiler.compileCode(shaderInfo.type, *shader, path, shaderInfo.headCode.c_str()) )
+				if( !mCompiler.compileCode(shaderInfo.type, *shader, shaderInfo.filePath.c_str(), shaderInfo.headCode.c_str()) )
 					return false;
 			}
 
@@ -447,9 +469,9 @@ namespace Render
 		return true;
 	}
 
-	void ShaderManager::generateCompileSetup(ShaderProgramCompileInfo& compileInfo, ShaderEntryInfo const entries[], ShaderCompileOption const& option, char const* additionalCode)
+	void ShaderManager::generateCompileSetup(ShaderProgramCompileInfo& compileInfo, ShaderEntryInfo const entries[], ShaderCompileOption const& option, char const* additionalCode , char const* fileName , bool bSingleFile )
 	{
-		assert(compileInfo.shaders.empty());
+		assert( fileName &&  compileInfo.shaders.empty());
 
 		for( int i = 0; entries[i].type != Shader::eEmpty; ++i )
 		{
@@ -459,7 +481,17 @@ namespace Render
 			AddCommonHeadCode(defCode, option.version ? option.version : mDefaultVersion, entry);
 
 			std::string headCode = option.getCode(defCode.c_str(), additionalCode);
-			compileInfo.shaders.push_back({ entry.type , std::move(headCode) });
+
+			FixString< 256 > path;
+			if( bSingleFile )
+			{
+				path.format("%s%s%s", mBaseDir.c_str() , fileName, SHADER_FILE_SUBNAME);
+			}
+			else
+			{
+				path.format("%s%s%s", mBaseDir.c_str(), fileName, ShaderPosfixNames[entry.type]);
+			}
+			compileInfo.shaders.push_back({ entry.type , path.c_str() , std::move(headCode) });
 		}
 	}
 
@@ -558,23 +590,11 @@ namespace Render
 		return bSuccess;
 	}
 
-
-
 	void ShaderManager::ShaderProgramCompileInfo::getDependentFilePaths(std::vector<std::wstring>& paths)
 	{
-		FixString< 256 > path;
-		if( bSingleFile )
+		for( ShaderCompileInfo const& shaderInfo  : shaders )
 		{
-			path.format("%s%s", fileName.c_str(), SHADER_FILE_SUBNAME);
-			paths.push_back(FCString::CharToWChar(path));
-		}
-		else
-		{
-			for( ShaderCompileInfo const& shaderInfo  : shaders )
-			{
-				path.format("%s%s", fileName.c_str(), ShaderPosfixNames[shaderInfo.type]);
-				paths.push_back(FCString::CharToWChar(path));
-			}
+			AddUnique(paths, FCString::CharToWChar(shaderInfo.filePath.c_str()));
 		}
 	}
 

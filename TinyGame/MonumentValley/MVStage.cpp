@@ -816,10 +816,8 @@ namespace MV
 					glColor3f(1,0,1);
 					if ( !mSelectBlocks.empty() )
 					{
-						for( TVectorSet< Block* >::iterator iter = mSelectBlocks.begin() , itEnd = mSelectBlocks.end() ;
-							iter != itEnd ; ++iter )
+						for( Block* block : mSelectBlocks )
 						{
-							Block* block = *iter;
 							glPushMatrix();
 							glTranslatef( block->pos.x - 0.5 , block->pos.y - 0.5 , block->pos.z - 0.5 );
 							DrawUtility::CubeLine();

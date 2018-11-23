@@ -21,6 +21,6 @@ void Minigun::doFire( FireHelper& helper )
 	for(int i=0; i<1; i++)
 	{
 		Vec2f offset = -4 * helper.dir;
-		helper.fire( IBulletFactory::Make< MinigunBullet >()  , offset );		
+		helper.fireT< MinigunBullet >( offset );		
 	}
 }

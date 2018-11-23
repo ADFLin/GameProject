@@ -7,6 +7,8 @@
 #include "GameGUISystem.h"
 #include "Widget/WidgetUtility.h"
 
+#include "RHI/ShaderCompiler.h"
+
 EXPORT_GAME_MODULE( QuadAssaultModule )
 
 
@@ -24,6 +26,8 @@ public:
 		if (!::Global::GetDrawEngine()->startOpenGL(true) )
 			return false;
 
+		Render::InitGlobalRHIResource();
+		Render::ShaderManager::Get().setBaseDir("QuadAssault/shader/");
 		::Global::GUI().cleanupWidget();
 
 		Vec2i screenSize = ::Global::GetDrawEngine()->getScreenSize();
@@ -39,13 +43,13 @@ public:
 	virtual void onEnd() override
 	{
 		mGame->exit();
+		Render::ShaderManager::Get().setBaseDir("");
 	}
 
 	virtual void onUpdate(long time) override
 	{
 		mGame->tick(float(time) / 1000);
 	}
-
 
 	virtual void onRender(float dFrame) override
 	{
@@ -57,12 +61,10 @@ public:
 		return mGame->onChar(code);
 	}
 
-
 	virtual bool onMouse(MouseMsg const& msg) override
 	{
 		return mGame->onMouse(msg);
 	}
-
 
 	virtual bool onKey(unsigned key, bool isDown) override
 	{

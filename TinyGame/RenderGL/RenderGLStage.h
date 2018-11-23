@@ -110,7 +110,7 @@ namespace Render
 
 
 
-	class MaterialAsset : public AssetBase
+	class MaterialAsset : public IAssetViewer
 	{
 	public:
 		TLazyObjectGuid< Material > materialId;
@@ -136,7 +136,7 @@ namespace Render
 		}
 	};
 
-	class SceneAsset : public AssetBase
+	class SceneAsset : public IAssetViewer
 	{
 	public:
 		bool load(char const* name)
@@ -799,7 +799,7 @@ namespace Render
 			if( name )
 			{
 				sceneAsset->load(name);
-				::Global::GetAssetManager().registerAsset(mSceneAssets.back().get());
+				::Global::GetAssetManager().registerViewer(mSceneAssets.back().get());
 			}	
 			mSceneAssets.push_back(std::move(sceneAsset));
 			return mSceneAssets.back()->scene;

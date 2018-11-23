@@ -4,6 +4,8 @@
 #include "Base.h"
 #include "Dependence.h"
 
+#include "RHI/RHICommon.h"
+
 #include <iostream>
 
 class GBuffer
@@ -18,7 +20,7 @@ public:
 
 	void unbind();
 
-	GLuint getTexture( int idx ){ return mTexBuffers[idx]; }
+	Render::RHITexture2DRef& getTexture( int idx ){ return mTexBuffers[idx]; }
 
 	enum BufferType
 	{
@@ -28,7 +30,7 @@ public:
 		NUM_BUFFER_TYPE ,
 	};
 
-	GLuint mTexBuffers[ NUM_BUFFER_TYPE ];
+	Render::RHITexture2DRef mTexBuffers[ NUM_BUFFER_TYPE ];
 
 	GLuint mFBO;
 	GLuint mRBODepth;

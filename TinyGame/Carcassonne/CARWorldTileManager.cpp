@@ -698,9 +698,9 @@ namespace CAR
 #if _DEBUG
 			int idxStart = -1;
 #endif
-			int idx;
-			while( FBit::MaskIterator< 8 >(linkMask, idx) )
+			for( auto iter = TBitMaskIterator< 8 >(linkMask); iter; ++iter )
 			{
+				int idx = iter.index;
 #if _DEBUG
 				if( idxStart == -1 ) { idxStart = idx; }
 				assert(TilePiece::CanLink(tile.sides[idx].linkType, tile.sides[idxStart].linkType));
@@ -715,10 +715,9 @@ namespace CAR
 				break;
 
 			unsigned linkMask = tileDef.roadLink[i] & ~TilePiece::CenterMask;
-			int idx;
-			while( FBit::MaskIterator< 8 >(linkMask, idx) )
+			for( auto iter = TBitMaskIterator< 8 >(linkMask) ; iter ; ++iter )
 			{
-				tile.sides[idx].roadLinkDirMask |= tileDef.roadLink[i];
+				tile.sides[iter.index].roadLinkDirMask |= tileDef.roadLink[i];
 			}
 		}
 
@@ -782,10 +781,9 @@ namespace CAR
 
 			unsigned linkMask = usageFarmLink & ~noFarmIndexMask;
 			unsigned farmSideLink = calcFarmSideLinkMask(usageFarmLink);
-			unsigned mask = linkMask;
-			int idx;
-			while( FBit::MaskIterator< TilePiece::NumFarm >(mask, idx) )
+			for( auto iter = TBitMaskIterator< TilePiece::NumFarm >(linkMask); iter; ++iter )
 			{
+				int idx = iter.index;
 				tile.farms[idx].farmLinkMask = linkMask;
 				tile.farms[idx].sideLinkMask = farmSideLink;
 			}

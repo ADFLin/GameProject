@@ -6,7 +6,6 @@
 
 #include "TVector2.h"
 
-class Shader;
 class TextureManager;
 
 class IFont
@@ -23,12 +22,12 @@ class IText
 public:
 	virtual Vec2f getBoundSize() const = 0;
 	virtual void  setString( char const* str ) = 0;
-	virtual void  setColor( Color const& color ) = 0;
+	virtual void  setColor( Color4ub const& color ) = 0;
 	virtual void  setFont( IFont* font ) = 0;
 	virtual void  setCharSize( int size ) = 0;
 	virtual void  release() = 0;
 public:
-	static IText* create( IFont* font , int size , Color const& color );
+	static IText* create( IFont* font , int size , Color4ub const& color );
 	static IText* create();
 };
 
@@ -60,18 +59,11 @@ public:
 	bool prevRender();
 	void postRender();
 
-	Shader* createShader( char const* vsName , char const* fsName );
-	void    removeShader( Shader* shader );
-
-
 	TextureManager* getTextureMgr(){ return mTextureMgr; }
 	void drawText(  IText* text , Vec2f const& pos ,unsigned sideFlag = 0 );
 
 private:
 
-	typedef std::vector<Shader*> ShaderVec;
-
-	ShaderVec mShaders;
 	TextureManager* mTextureMgr;
 
 #if USE_SFML_WINDOW

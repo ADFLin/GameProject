@@ -17,16 +17,16 @@ namespace Chromatron
 	int const  StorageMapOffset     = CellLength + StorageMapCellGapLen;
 	int const  StorageMapRowSize    = 3;
 
-	Vec2D const DefaultWorldMapPos  = Vec2D( 140 , 80 );
-	Vec2D const WorldMapSize  = Vec2D( Level::MapSize * CellLength , Level::MapSize * CellLength );
-	Vec2D const StorageMapPosOffset = Vec2D( Level::MapSize * CellLength  + 30 , 80 );
-	Vec2D const StorageMapSize = Vec2D( StorageMapRowSize * StorageMapOffset  , 
+	Vec2i const DefaultWorldMapPos  = Vec2i( 140 , 80 );
+	Vec2i const WorldMapSize  = Vec2i( Level::MapSize * CellLength , Level::MapSize * CellLength );
+	Vec2i const StorageMapPosOffset = Vec2i( Level::MapSize * CellLength  + 30 , 80 );
+	Vec2i const StorageMapSize = Vec2i( StorageMapRowSize * StorageMapOffset  , 
 		                          Level::MaxNumUserDC / StorageMapRowSize * StorageMapOffset );
 
-	Vec2D const CellSize  = Vec2D( CellLength , CellLength );
-	Vec2D const CMToolPos = Vec2D( 100 , 550 );
+	Vec2i const CellSize  = Vec2i( CellLength , CellLength );
+	Vec2i const CMToolPos = Vec2i( 100 , 550 );
 	int   const CMToolGap = 3;
-	Vec2D const CMEditColorPos = Vec2D( 100 , 550 );
+	Vec2i const CMEditColorPos = Vec2i( 100 , 550 );
 	int   const CMEditColorGap = 3;
 
 	static int const gColorMap[] = 
@@ -84,7 +84,7 @@ namespace Chromatron
 		{
 			RenderUtility::SetPen( g , EColor::Gray );
 			RenderUtility::SetBrush( g , EColor::Blue , COLOR_LIGHT );
-			g.drawRoundRect( CMToolPos - Vec2D( 10 , 10 ) ,
+			g.drawRoundRect( CMToolPos - Vec2i( 10 , 10 ) ,
 				Vec2i( DC_DEVICE_NUM * ( CellLength + CMToolGap ) - CMToolGap + 2 * 10 , CellLength + 2 * 10 ) ,
 				Vec2i( 10 , 10 ) );
 			for( int i = 0 ; i < DC_DEVICE_NUM ; ++i )
@@ -105,9 +105,9 @@ namespace Chromatron
 		}
 	}
 
-	Device* Scene::getDevice( Vec2D const& pos )
+	Device* Scene::getDevice( Vec2i const& pos )
 	{
-		Vec2D cPos;
+		Vec2i cPos;
 		Level::PosType pt = getCellPos( pos.x , pos.y , cPos );
 		if ( pt == Level::PT_NONE )
 			return NULL;
@@ -144,7 +144,7 @@ namespace Chromatron
 			}
 			else if ( mDragDC )
 			{
-				Vec2D cPos;
+				Vec2i cPos;
 				Level::PosType pt = getCellPos( msg.x() , msg.y() , cPos );
 				bool haveMoveDC;
 				if(  mUpDC == NULL )
@@ -166,7 +166,7 @@ namespace Chromatron
 			}
 			else if ( mbCreateMdoe && mIdCreateDC != ErrorDeviceId )
 			{
-				Vec2D cPos;
+				Vec2i cPos;
 				Level::PosType pt = getCellPos( msg.x() , msg.y() , cPos );
 				if ( getLevel().createDevice( mIdCreateDC , pt , cPos , Dir(0) , COLOR_W , true ) )
 				{
@@ -523,7 +523,7 @@ namespace Chromatron
 		{
 			for (int j = 0; j<world.getMapSizeY(); ++j )
 			{
-				Tile const& tile = world.getTile( Vec2D(i,j) );
+				Tile const& tile = world.getTile( Vec2i(i,j) );
 
 				Vec2i cellPos = pos + CellLength * Vec2i( i , j );
 
@@ -544,7 +544,7 @@ namespace Chromatron
 				Device const* dc = tile.getDevice();
 
 
-				Vec2D centerPos  = cellPos + CellSize / 2;
+				Vec2i centerPos  = cellPos + CellSize / 2;
 
 				if( dc  )
 				{
@@ -599,7 +599,7 @@ namespace Chromatron
 			if ( color == COLOR_NULL ) 
 				continue;
 
-			Vec2D p2 = pos + ( (CellLength / 2) + 1 ) * LightTrace::GetDirOffset( dir );
+			Vec2i p2 = pos + ( (CellLength / 2) + 1 ) * LightTrace::GetDirOffset( dir );
 			RenderUtility::SetPen( g , gColorMap[ color ] );
 			g.drawLine( pos , p2 );
 		}
@@ -615,9 +615,9 @@ namespace Chromatron
 		}
 	}
 
-	Level::PosType Scene::getCellPos( int x , int y , Vec2D& result )
+	Level::PosType Scene::getCellPos( int x , int y , Vec2i& result )
 	{
-		Vec2D pos( x , y );
+		Vec2i pos( x , y );
 
 		pos -= mWorldPos;
 
@@ -630,10 +630,10 @@ namespace Chromatron
 		{
 			pos -= StorageMapPosOffset;
 
-			Vec2D temp( pos.x % StorageMapOffset , 
+			Vec2i temp( pos.x % StorageMapOffset , 
 				        pos.y % StorageMapOffset );
 
-			if ( isInRect( temp , Vec2D(0,0) , Vec2D( CellLength , CellLength ) ) )
+			if ( isInRect( temp , Vec2i(0,0) , Vec2i( CellLength , CellLength ) ) )
 			{
 				int idx = pos.x / StorageMapOffset + StorageMapRowSize * ( pos.y / StorageMapOffset );
 				assert( idx < Level::MaxNumUserDC );

@@ -31,7 +31,7 @@ IObjectRenderer::IObjectRenderer()
 
 void IObjectRenderer::renderGroup( RenderPass pass , int numObj, LevelObject* object )
 {
-	for( ; object ; object = nextObject( object ) )
+	for( ; object ; object = NextObject( object ) )
 	{
 		render( pass , object );
 	} 
@@ -39,7 +39,7 @@ void IObjectRenderer::renderGroup( RenderPass pass , int numObj, LevelObject* ob
 
 void IObjectRenderer::renderGroupMRT( int numObj , LevelObject* object )
 {
-	for( ; object ; object = nextObject( object ) )
+	for( ; object ; object = NextObject( object ) )
 	{
 		renderMRT( object );
 	} 
@@ -98,7 +98,7 @@ public:
 		}
 
 
-		for(int i=0; i<4; i++)
+		for(int i=0; i<4; ++i)
 		{
 			Weapon* weapon = player->mWeaponSlot[i];
 			if( weapon )
@@ -250,7 +250,7 @@ void MobRenderer::renderGroup( RenderPass pass , int numObj, LevelObject* object
 		glPushMatrix();		
 		glColor4f(0.0, 0.0, 0.0, 0.6);
 
-		for( LevelObject* cur = object; cur ; cur = nextObject( cur ) )
+		for( LevelObject* cur = object; cur ; cur = NextObject( cur ) )
 		{
 			Mob* mob = static_cast< Mob* >( cur );
 			drawSprite( mob->getRenderPos() + Vec2f(5,5), mob->getSize() , mob->getRotation() , tex );	
@@ -263,7 +263,7 @@ void MobRenderer::renderGroup( RenderPass pass , int numObj, LevelObject* object
 	}
 
 	glPushMatrix();	
-	for( LevelObject* cur = object; cur ; cur = nextObject( cur ) )
+	for( LevelObject* cur = object; cur ; cur = NextObject( cur ) )
 	{
 		Mob* mob = static_cast< Mob* >( cur );
 		drawSprite( mob->getRenderPos() , mob->getSize() , mob->getRotation() , tex );	
@@ -401,11 +401,11 @@ public:
 			if(pass==RP_NORMAL)
 				t=texN;	
 
-			float faktorSkaliranja = 0.5+ 0.5 * ( smoke->maxZivot / smoke->zivot );
+			float faktorSkaliranja = 0.5+ 0.5 * ( smoke->maxLife / smoke->life );
 			if( faktorSkaliranja > 2 )
 				faktorSkaliranja = 2;
 
-			float faktorBoje=smoke->zivot/smoke->maxZivot;
+			float faktorBoje=smoke->life/smoke->maxLife;
 
 			Vec2f center = smoke->getPos();
 			glPushMatrix();
@@ -460,7 +460,7 @@ public:
 			t=texN;
 		if(pass==RP_DIFFUSE)// || pass==NORMAL)
 		{
-			float factor = particle->zivot / particle->maxZivot;
+			float factor = particle->life / particle->maxLife;
 			glEnable(GL_BLEND);
 			glBlendFunc(GL_ONE, GL_ONE);
 			glColor3f( factor , factor , factor );
@@ -481,10 +481,10 @@ public:
 		{
 			glEnable(GL_BLEND);
 			glBlendFunc(GL_ONE, GL_ONE);
-			for( ; object ; object = nextObject( object ) )
+			for( ; object ; object = NextObject( object ) )
 			{
 				DebrisParticle* particle = object->cast< DebrisParticle >();
-				float factor = particle->zivot / particle->maxZivot;
+				float factor = particle->life / particle->maxLife;
 				glColor3f( factor , factor , factor );
 				drawSprite( particle->getRenderPos() , particle->getSize() , 0 ,t );
 			}

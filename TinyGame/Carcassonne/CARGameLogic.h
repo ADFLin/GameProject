@@ -187,7 +187,7 @@ namespace CAR
 		//
 		GamePlayerManager* mPlayerManager;
 		TileSetManager     mTileSetManager;
-		GameplaySetting*       mSetting;
+		GameplaySetting*   mSetting;
 		GameRandom         mRandom;
 		WorldTileManager   mWorld;
 		

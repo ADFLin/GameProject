@@ -1,7 +1,7 @@
 #ifndef BlockType_h__
 #define BlockType_h__
 
-#define BLOCK_TYPE_LIST( op )\
+#define BLOCK_ID_LIST( op )\
 	op( BID_FLAT , "Flat" )\
 	op( BID_WALL , "Wall" )\
 	op( BID_GAP  , "Gap" )\
@@ -10,9 +10,9 @@
 
 #define EnumOp( A ,...) A,
 
-enum BlockTypeEnum
+enum BlockIdEnum
 {
-	BLOCK_TYPE_LIST( EnumOp )
+	BLOCK_ID_LIST( EnumOp )
 	NUM_BLOCK_TYPE ,
 };
 

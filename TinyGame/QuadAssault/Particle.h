@@ -14,8 +14,8 @@ public:
 	virtual void onSpawn( unsigned flag );
 
 protected:
-	float zivot; //smanjuje se postepeno	
-	float maxZivot; //za rendering
+	float life;
+	float maxLife;
 
 	friend class SmokeRenderer;
 	friend class DebrisParticleRenderer;

@@ -60,10 +60,10 @@ namespace Chromatron
 		Device( DeviceInfo const& info , Dir dir, Color color = COLOR_NULL );
 
 		DeviceId     getId() const {  return mInfo->id;  }	
-		void         setPos( Vec2D const& pos){ mPos = pos; }
+		void         setPos( Vec2i const& pos){ mPos = pos; }
 		void         setColor(Color color)   {  mColor = color; }
 
-		Vec2D const& getPos()   const { return mPos; }
+		Vec2i const& getPos()   const { return mPos; }
 		Dir   const& getDir()   const { return mDir; }
 		Color        getColor() const { return mColor; }
 
@@ -95,7 +95,7 @@ namespace Chromatron
 	private:
 		DeviceInfo const* mInfo;
 		void*       mUserData;
-		Vec2D       mPos;
+		Vec2i       mPos;
 		Dir         mDir;
 		Color       mColor;
 		Flag        mFlag;

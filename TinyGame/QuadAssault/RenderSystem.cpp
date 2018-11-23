@@ -1,6 +1,5 @@
 #include "RenderSystem.h"
 
-#include "Shader.h"
 #include "TextureManager.h"
 
 #include "DataPath.h"
@@ -37,10 +36,10 @@ public:
 
 	}
 
-	CText( IFont* font , int size , Color const& color )
+	CText( IFont* font , int size , Color4ub const& color )
 		:mImpl( "" , static_cast< CFont* >( font )->mImpl , size )
 	{
-		mImpl.setColor( sf::Color( color.r , color.g , color.b ) );
+		mImpl.setColor( sf::Color4ub( color.r , color.g , color.b ) );
 	}
 	sf::Text mImpl;
 
@@ -53,9 +52,9 @@ public:
 	{
 		mImpl.setString( str );
 	}
-	virtual void setColor( Color const& color )
+	virtual void setColor( Color4ub const& color )
 	{
-		mImpl.setColor( sf::Color( color.r , color.g , color.b ) );
+		mImpl.setColor( sf::Color4ub( color.r , color.g , color.b ) );
 	}
 	virtual void setFont( IFont* font )
 	{
@@ -333,7 +332,7 @@ public:
 		mCharSize = 0;
 	}
 
-	CText( IFont* font , int size , Color const& color )
+	CText( IFont* font , int size , Color4ub const& color )
 		:mColor( color )
 		,mFont( static_cast< CFont* >( font ) )
 		,mCharSize( size )
@@ -542,13 +541,13 @@ public:
 	{
 
 	}
-	CText(IFont* font, int size, Color const& color)
+	CText(IFont* font, int size, Color4ub const& color)
 	{
 
 	}
 	virtual Vec2f getBoundSize() const { return Vec2f(0, 0); }
 	virtual void  setString(char const* str){}
-	virtual void  setColor(Color const& color) {}
+	virtual void  setColor(Color4ub const& color) {}
 	virtual void  setFont(IFont* font) {}
 	virtual void  setCharSize(int size){}
 	virtual void  release() {}
@@ -569,7 +568,7 @@ IFont* IFont::loadFont( char const* path )
 	return font;
 }
 
-IText* IText::create( IFont* font , int size , Color const& color )
+IText* IText::create( IFont* font , int size , Color4ub const& color )
 {
 	CText* text = new CText( font , size , color );
 	return text;
@@ -688,42 +687,8 @@ void RenderSystem::postRender()
 
 void RenderSystem::cleanup()
 {
-	for( ShaderVec::iterator iter = mShaders.begin() , itEnd = mShaders.end();
-		 iter != itEnd ; ++iter )
-	{
-		delete (*iter);
-	}
-	mShaders.clear();
-
 	mTextureMgr->cleanup();
 
 	if ( mContext )
 		mContext->release();
-}
-
-Shader* RenderSystem::createShader( char const* vsName , char const* fsName )
-{
-	String vsPath = SHADER_DIR;
-	vsPath += vsName;
-	String fsPath = SHADER_DIR;
-	fsPath += fsName;
-	Shader* shader = new Shader;
-	if ( !shader->create( vsPath.c_str() , fsPath.c_str() ) )
-	{
-		delete shader;
-		return NULL;
-	}
-	return shader;
-}
-
-void RenderSystem::removeShader( Shader* shader )
-{
-	ShaderVec::iterator iter = std::find( mShaders.begin() , mShaders.end() , shader );
-	if ( iter == mShaders.end() )
-	{
-		return;
-	}
-	mShaders.erase( iter );
-	delete shader;
-
 }

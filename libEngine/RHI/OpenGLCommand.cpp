@@ -7,6 +7,14 @@ namespace Render
 {
 	bool gForceInitState = true;
 
+	void WINAPI GLDebugCallback(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar* message, GLvoid* userParam)
+	{
+		if( type == GL_DEBUG_TYPE_OTHER )
+			return;
+
+		LogMsg(message);
+	}
+
 #define GL_STATE_VAR_TEST( NAME )  gForceInitState || ( deviceValue.##NAME != setupValue.##NAME )
 #define GL_STATE_VAR_ASSIGN( NAME ) deviceValue.##NAME = setupValue.##NAME 
 
@@ -32,15 +40,6 @@ namespace Render
 			glDisablei(param, index);
 		}
 	}
-
-	void WINAPI GLDebugCallback(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar* message, GLvoid* userParam)
-	{
-		if( type == GL_DEBUG_TYPE_OTHER )
-			return;
-
-		LogMsg(message);
-	}
-
 
 	template< class T, class ...Args >
 	T* CreateOpenGLResourceT(Args&& ...args)

@@ -25,7 +25,7 @@ Vec3f const& getDoorColor( int type )
 
 struct BlockInfo
 {
-	BlockType   type;
+	BlockId   type;
 	unsigned    colMask;
 	unsigned    flag;
 	char const* texDiffuse;
@@ -60,13 +60,13 @@ static BlockInfo const gInfo[] =
 	{ BID_ROCK , COL_OBJECT | COL_VIEW , BF_CAST_SHADOW , "vrataDiffuse.tga" , "vrataNormal.tga" , "vrataGlow.tga" } ,
 };
 
-void Block::init( BlockType type )
+void Block::init( BlockId type )
 {
 	BlockInfo const& info = gInfo[ type ];
 
 	assert( info.type == type );
 
-	mType = info.type;
+	mId = info.type;
 	mFlag = info.flag;
 	mColMask = info.colMask;
 	
@@ -99,16 +99,15 @@ void Block::renderNoTexture( Tile const& tile )
 	drawRect( tile.pos , gSimpleBlockSize );
 }
 
-Block* Block::FromType( unsigned char type )
+Block* Block::Get(BlockId id )
 {
-	return gBlockMap[ type ];
+	return gBlockMap[ id ];
 }
 
 
-void Block::initialize()
+void Block::Initialize()
 {
 	createBlockClass();
-
 	for( int i = 0 ; i < NUM_BLOCK_TYPE ; ++i )
 	{
 		gBlockMap[i]->init( i );
@@ -116,7 +115,7 @@ void Block::initialize()
 }
 
 
-void Block::cleanup()
+void Block::Cleanup()
 {
 	for(int i=0; i< NUM_BLOCK_TYPE; i++)
 	{
@@ -150,7 +149,7 @@ void RockBlock::onCollision( Tile& tile , Bullet* bullet )
 	tile.meta -= 100 * bullet->getDamage();
 	if ( tile.meta < 0 )
 	{
-		tile.type = BID_FLAT;
+		tile.id = BID_FLAT;
 		tile.meta = 0;
 
 		Explosion* e = bullet->getLevel()->createExplosion( tile.pos + 0.5 * gSimpleBlockSize , 128 );

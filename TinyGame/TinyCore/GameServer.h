@@ -209,7 +209,7 @@ public:
 	TINY_API void sendUdpCommand( IComPacket* cp );
 	void setListener( ServerPlayerListener* listener ){ mListener = listener; }
 
-	auto Lock() { return MakeLockedObjectHandle(*this, &mMutexPlayerTable); }
+	auto lock() { return MakeLockedObjectHandle(*this, &mMutexPlayerTable); }
 
 protected:
 	void insertPlayer( ServerPlayer* player , char const* name , PlayerType type );

@@ -12,8 +12,8 @@ Particle::Particle( Vec2f const& pos )
 
 void Particle::init()
 {
-	zivot=100;
-	maxZivot=zivot;	
+	life=100;
+	maxLife=life;	
 }
 
 void Particle::onSpawn( unsigned flag )
@@ -28,7 +28,7 @@ void Particle::onSpawn( unsigned flag )
 void Particle::tick()
 {
 	BaseClass::tick();
-	zivot -= TICK_TIME * 50;
-	if(zivot<=0.0)
+	life -= TICK_TIME * 50;
+	if(life<=0.0)
 		destroy();
 }

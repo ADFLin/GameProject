@@ -16,6 +16,12 @@ class FireHelper
 {
 public:
 	void fire( IBulletFactory& factory , Vec2f const& offset = Vec2f(0,0) );
+
+	template< class BulletType >
+	void fireT(Vec2f const& offset = Vec2f(0, 0))
+	{
+		fire(IBulletFactory::Make< BulletType >(), offset);
+	}
 	Vec2f pos;
 	Vec2f dir;
 	int   team;

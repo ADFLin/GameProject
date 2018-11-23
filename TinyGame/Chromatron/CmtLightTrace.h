@@ -8,7 +8,7 @@ namespace Chromatron
 	class LightTrace
 	{
 	public:
-		LightTrace( Vec2D const& start , Color color , 
+		LightTrace( Vec2i const& start , Color color , 
 			        Dir dir ,int param = 0 , int age = 0 );
 
 		void         advance(){  ++mAge; mEndPos += GetDirOffset( mDir );  }
@@ -17,15 +17,15 @@ namespace Chromatron
 		Color        getColor()    const { return mColor; }
 		int          getParam()    const { return mParam; }
 		Dir   const& getDir()      const { return mDir; }
-		Vec2D const& getStartPos() const { return mStartPos; }
-		Vec2D const& getEndPos()   const { return mEndPos; }
+		Vec2i const& getStartPos() const { return mStartPos; }
+		Vec2i const& getEndPos()   const { return mEndPos; }
 		int          getAge()      const { return mAge; }
 
-		static Vec2D GetDirOffset( Dir dir );
+		static Vec2i GetDirOffset( Dir dir );
 
 	private:
-		Vec2D mStartPos;
-		Vec2D mEndPos;
+		Vec2i mStartPos;
+		Vec2i mEndPos;
 		Color mColor;
 		Dir   mDir;
 		int   mParam;

@@ -5,6 +5,7 @@
 #include "RHICommon.h"
 
 #include "Material.h"
+#include "Math/GeometryPrimitive.h"
 
 namespace Render
 {
@@ -12,6 +13,7 @@ namespace Render
 	class VertexFactory;
 
 	class SceneLight;
+	using Math::Plane;
 
 	enum class LightType
 	{
@@ -29,62 +31,6 @@ namespace Render
 		virtual void renderTranslucent(RenderContext& param) = 0;
 	};
 
-	//#MOVE
-	// N.dot( V ) = d
-	class  Plane
-	{
-	public:
-		Plane() {}
-
-		Plane(Vector3 const& v0, Vector3 const& v1, Vector3 const&  v2)
-		{
-			Vector3 d1 = v1 - v0;
-			Vector3 d2 = v2 - v0;
-			mNormal = d1.cross(d2);
-			mNormal.normalize();
-
-			mDistance = mNormal.dot(v0);
-		}
-
-		Plane(Vector3 const& normal, Vector3 const& pos)
-			:mNormal(normal)
-		{
-			mNormal.normalize();
-			mDistance = mNormal.dot(pos);
-		}
-
-		Plane(Vector3 const& n, float d)
-			:mNormal(n)
-			, mDistance(d)
-		{
-			mNormal.normalize();
-		}
-
-		static Plane FrameVector4(Vector4 const& v)
-		{
-			Vector3 n = v.xyz();
-			float mag = n.normalize();
-			return Plane(n, -v.w / mag);
-		}
-
-#if 0
-		void swap(Plane& p)
-		{
-			using std::swap;
-
-			swap(mNormal, p.mNormal);
-			swap(mDistance, p.mDistance);
-		}
-#endif
-
-		float calcDistance(Vector3 const& p) const
-		{
-			return p.dot(mNormal) - mDistance;
-		}
-	private:
-		Vector3 mNormal;
-		float   mDistance;
-	};
 
 	struct ViewInfo
 	{

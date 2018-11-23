@@ -40,7 +40,7 @@ public:
 	void     setData( Vec2i&  data ){ mData = &data; mDataSize = sizeof(data); mType = PROP_VEC2I; }
 	void     setData( Vec2f&  data ){ mData = &data; mDataSize = sizeof(data); mType = PROP_VEC2F; }
 	void     setData( Vec3f&  data ){ mData = &data; mDataSize = sizeof(data); mType = PROP_VEC3F; }
-	void     setData( Color&  data ){ mData = &data; mDataSize = sizeof(data); mType = PROP_COLOR; }
+	void     setData( Color4ub&  data ){ mData = &data; mDataSize = sizeof(data); mType = PROP_COLOR; }
 	void     setData( String& data ){ mData = &data; mDataSize = sizeof(data); mType = PROP_STRING; }
 	void     setData( bool&   data ){ mData = &data; mDataSize = sizeof(data); mType = PROP_BOOL; }
 

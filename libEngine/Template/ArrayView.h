@@ -56,10 +56,10 @@ template< class T , int N >
 TArrayView<T> MakeView(T(&data)[N]) { return TArrayView<T>(data); }
 
 template< class T >
-TArrayView<T const> MakeView(std::vector< T > const& v) { assert(!v.empty()); TArrayView<T const>(&v[0], v.size()); }
+TArrayView<T const> MakeView(std::vector< T > const& v) { return TArrayView<T const>(v.data(), v.size()); }
 
 template< class T >
-TArrayView<T> MakeView(std::vector< T >& v) { assert(!v.empty()); TArrayView<T>(&v[0], v.size()); }
+TArrayView<T> MakeView(std::vector< T >& v) { return TArrayView<T>(v.data(), v.size()); }
 
 #define ARRAY_VIEW_REAONLY_DATA( TYPE , ... ) \
 	[](){ static TYPE const data[] = { __VA_ARGS__ }; return TArrayView< TYPE const >(data); }()

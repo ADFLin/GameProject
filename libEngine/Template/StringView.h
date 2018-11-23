@@ -27,6 +27,11 @@ public:
 		return !this->operator == (other);
 	}
 
+	bool operator < (TStringView const& rhs) const
+	{
+		return compare(rhs) < 0;
+	}
+
 	//operator T const* () const { return mData; }
 
 	typedef T const* iterator;
@@ -37,8 +42,7 @@ public:
 	const_iterator begin() const { return mData; }
 	const_iterator end() const { return mData + mNum; }
 
-	//T&        operator[](size_t idx) { assert(idx < mNum); return mData[idx]; }
-	//T const&  operator[](size_t idx) const { assert(idx < mNum); return mData[idx]; }
+	T  operator[](size_t idx) const { assert(idx < mNum); return mData[idx]; }
 
 	T const* data() const { return mData; }
 	size_t   size() const { return mNum; }

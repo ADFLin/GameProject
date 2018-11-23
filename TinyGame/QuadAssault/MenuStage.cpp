@@ -91,7 +91,7 @@ bool MenuStage::onInit()
 		"koristen scripting language GLSL. Not used outside engine, but it was written\n"
 		"own, special to the game.\n";
 
-	mTextAbout.reset( IText::create( font , 22 , Color(50,255,25) ) );
+	mTextAbout.reset( IText::create( font , 22 , Color4ub(50,255,25) ) );
 	mTextAbout->setString( text );
 	
 

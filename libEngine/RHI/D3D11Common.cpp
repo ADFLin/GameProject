@@ -12,10 +12,11 @@ namespace Render
 		case PrimitiveType::LineList: return D3D_PRIMITIVE_TOPOLOGY_LINELIST;
 		case PrimitiveType::LineStrip: return D3D_PRIMITIVE_TOPOLOGY_LINESTRIP;
 		case PrimitiveType::TriangleAdjacency: return D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST_ADJ;
+		case PrimitiveType::Patchs: return D3D_PRIMITIVE_TOPOLOGY_1_CONTROL_POINT_PATCHLIST;
 		case PrimitiveType::TriangleFan:
 		case PrimitiveType::LineLoop:
 		case PrimitiveType::Quad:
-		case PrimitiveType::Patchs:
+
 		default:
 			LogWarning(0, "D3D11 No Support Primitive %d", (int)type);
 			break;

@@ -16,15 +16,14 @@ public:
 	virtual void renderGroupMRT( int numObj , LevelObject* object );
 
 	int    getOrder(){ return mRenderOrder; }
-	static LevelObject* nextObject( LevelObject* obj ){ return obj->renderLink; }
+	static LevelObject* NextObject( LevelObject* obj ){ return obj->renderLink; }
 
 protected:
 	int mRenderOrder;
-
 };
 
 #define DEF_OBJ_RENDERER( CLASS , RENDERER )\
 	static RENDERER g##CLASS##Renderer;\
-	IObjectRenderer* CLASS::getRenderer(){  return &g##CLASS##Renderer;  }
+	IObjectRenderer* CLASS::getRenderer(){ return &g##CLASS##Renderer; }
 
 #endif // ObjectRenderer_h__

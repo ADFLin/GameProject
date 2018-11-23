@@ -49,11 +49,11 @@ namespace CAR
 		static unsigned RotateRight(unsigned bits, unsigned offset, unsigned numBit);
 		static unsigned RotateLeft( unsigned bits , unsigned offset , unsigned numBit );
 
-		template< unsigned BitNum >
+		template< unsigned NumBits >
 		static int ToIndex( unsigned bit )
 		{ 
 #if TARGET_PLATFORM_64BITS
-			if( BitNum > 32 )
+			if( NumBits > 32 )
 				return ToIndex64(bit);
 			else
 				return ToIndex32(bit);
@@ -66,17 +66,37 @@ namespace CAR
 		template<>
 		static int ToIndex<8>( unsigned bit ){ return ToIndex8( bit ); }
 
-		template< unsigned BitNum >
+		template< unsigned NumBits >
 		static bool MaskIterator( unsigned& mask , int& index )
 		{
 			if ( mask == 0 )
 				return false;
 			unsigned bit = FBit::Extract( mask );
-			index = FBit::ToIndex< BitNum >( bit );
+			index = FBit::ToIndex< NumBits >( bit );
 			mask &= ~bit;
 			return true;
 		}
 
+	};
+
+	template< unsigned NumBits >
+	struct TBitMaskIterator
+	{
+		unsigned mask;
+		int      index;
+
+		TBitMaskIterator(unsigned inMask)
+			:mask(inMask)
+			,index(-1)
+		{
+
+		}
+		operator bool()
+		{ 
+			return FBit::MaskIterator< NumBits >(mask, index);
+		}
+		void operator ++(int) {}
+		void operator ++(void){}
 	};
 
 	static Vec2i const gDirOffset[] =

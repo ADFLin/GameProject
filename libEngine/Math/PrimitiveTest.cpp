@@ -9,7 +9,7 @@ namespace Math
 	template< class VectorType >
 	bool LineBoxTestT(VectorType const& rayPos, VectorType const& rayDir, VectorType const& boxMin, VectorType const& boxMax, float outDistances[])
 	{
-		assert(rayDir.isNormalize());
+		assert(rayDir.isNormalized());
 
 		float dMin = Math::MinFloat; // 0 for ray
 		float dMax = Math::MaxFloat;
@@ -75,7 +75,7 @@ namespace Math
 
 	bool LineCircleTest(Vector2 const& rPos, Vector2 const& rDir, Vector2 const& cPos, float cRadius, float t[])
 	{
-		assert(rDir.isNormalize());
+		assert(rDir.isNormalized());
 
 		Vector2 offset = cPos - rPos;
 		float B = offset.dot(rDir);

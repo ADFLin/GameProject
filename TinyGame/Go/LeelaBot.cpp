@@ -38,7 +38,7 @@ namespace Go
 	public:
 		int32 mNumNewRead = 0;
 		int   mNumUsed = 0;
-		char  mBuffer[2048];
+		char  mBuffer[20480];
 
 		bool  bNeedRead = true;
 		bool  bLogMsg = true;
@@ -71,15 +71,19 @@ namespace Go
 					break;
 				}
 
+
 #if AUTO_GTP_DEBUG
-				debugString.insert(debugString.end(), pData, pData + numRead);
+				if( numRead )
+				{
+					debugString.insert(debugString.end(), pData, pData + numRead);
+
+					mNumNewRead = numRead;
+					mNumUsed += numRead;
+					mBuffer[mNumUsed] = 0;
+
+					bNeedRead = false;
+				}
 #endif
-
-				mNumNewRead = numRead;
-				mNumUsed += numRead;
-				mBuffer[mNumUsed] = 0;
-
-				bNeedRead = false;
 			}
 
 			return 0;

@@ -262,7 +262,6 @@
     <ClCompile Include="QuadAssault\Renderer.cpp" />
     <ClCompile Include="QuadAssault\RenderSystem.cpp" />
     <ClCompile Include="QuadAssault\RenderUtility.cpp" />
-    <ClCompile Include="QuadAssault\Shader.cpp" />
     <ClCompile Include="QuadAssault\SmokeParticle.cpp" />
     <ClCompile Include="QuadAssault\SoundManager.cpp" />
     <ClCompile Include="QuadAssault\TextureManager.cpp" />
@@ -275,7 +274,7 @@
     <ClInclude Include="QuadAssault\Actor.h" />
     <ClInclude Include="QuadAssault\Base.h" />
     <ClInclude Include="QuadAssault\Block.h" />
-    <ClInclude Include="QuadAssault\BlockType.h" />
+    <ClInclude Include="QuadAssault\BlockId.h" />
     <ClInclude Include="QuadAssault\Bullet.h" />
     <ClInclude Include="QuadAssault\ClassReflection.h" />
     <ClInclude Include="QuadAssault\ColBody.h" />
@@ -335,7 +334,6 @@
     <ClInclude Include="QuadAssault\Renderer.h" />
     <ClInclude Include="QuadAssault\RenderSystem.h" />
     <ClInclude Include="QuadAssault\RenderUtility.h" />
-    <ClInclude Include="QuadAssault\Shader.h" />
     <ClInclude Include="QuadAssault\SmokeParticle.h" />
     <ClInclude Include="QuadAssault\SoundManager.h" />
     <ClInclude Include="QuadAssault\Texture.h" />
@@ -352,18 +350,18 @@
     <Text Include="QuadAssault\Readme.txt" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="out\QuadAssault\shader\GeomDefaultFS.glsl" />
-    <None Include="out\QuadAssault\shader\GeomDefaultVS.glsl" />
-    <None Include="out\QuadAssault\shader\LightFS.glsl" />
-    <None Include="out\QuadAssault\shader\LightingGlowFS.glsl" />
-    <None Include="out\QuadAssault\shader\LightingGlowVS.glsl" />
-    <None Include="out\QuadAssault\shader\LightingPointFS.glsl" />
-    <None Include="out\QuadAssault\shader\LightingPointVS.glsl" />
-    <None Include="out\QuadAssault\shader\LightVS.glsl" />
-    <None Include="out\QuadAssault\shader\SceneFS.glsl" />
-    <None Include="out\QuadAssault\shader\SceneGeometryFS.glsl" />
-    <None Include="out\QuadAssault\shader\SceneLightingFS.glsl" />
-    <None Include="out\QuadAssault\shader\SceneVS.glsl" />
+    <None Include="out\QuadAssault\shader\GeomDefaultFS.sgc" />
+    <None Include="out\QuadAssault\shader\GeomDefaultVS.sgc" />
+    <None Include="out\QuadAssault\shader\LightFS.sgc" />
+    <None Include="out\QuadAssault\shader\LightingGlowFS.sgc" />
+    <None Include="out\QuadAssault\shader\LightingGlowVS.sgc" />
+    <None Include="out\QuadAssault\shader\LightingPointFS.sgc" />
+    <None Include="out\QuadAssault\shader\LightingPointVS.sgc" />
+    <None Include="out\QuadAssault\shader\LightVS.sgc" />
+    <None Include="out\QuadAssault\shader\SceneFS.sgc" />
+    <None Include="out\QuadAssault\shader\SceneGeometryFS.sgc" />
+    <None Include="out\QuadAssault\shader\SceneLightingFS.sgc" />
+    <None Include="out\QuadAssault\shader\SceneVS.sgc" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -125,7 +125,7 @@ public:
 };
 
 
-class GameConfigAsset : public AssetBase
+class GameConfigAsset : public IAssetViewer
 {
 public:
 	virtual void getDependentFilePaths(std::vector< std::wstring >& paths) 
@@ -176,7 +176,7 @@ bool TinyGameApp::onInit()
 
 	::Global::GetAssetManager().init();
 
-	::Global::GetAssetManager().registerAsset(&gGameConfigAsset);
+	::Global::GetAssetManager().registerViewer(&gGameConfigAsset);
 
 	exportUserProfile();
 

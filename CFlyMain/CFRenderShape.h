@@ -4,15 +4,14 @@
 #include "CFBase.h"
 #include "CFTypeDef.h"
 #include "CFVertexDecl.h"
+#include "CFGeomUtility.h"
 
 namespace CFly
 {
 	class VertexBuffer;
 	class IndexBuffer;
 	class MeshCreator;
-	class BoundSphere;
 	struct VertexInfo;
-
 
 	enum LineType
 	{

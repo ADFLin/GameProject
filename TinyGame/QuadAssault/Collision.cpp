@@ -439,7 +439,7 @@ Tile* CollisionManager::rayBlockTest( Vec2i const& tPos , Vec2f const& from , Ve
 		return NULL;
 
 	Tile& tile = mTerrain->getData( tPos.x , tPos.y );
-	Block* block = Block::FromType( tile.type );
+	Block* block = Block::Get( tile.id );
 
 	if ( ( block->getColMask() & typeMask ) == 0 )
 		return NULL;
@@ -467,7 +467,7 @@ Tile* CollisionManager::testTerrainCollision( Rect const& bBox , unsigned typeMa
 		for(int y = yMin; y <= yMax; ++y  )
 		{
 			Tile& tile = terrain.getData( x , y );
-			Block* block = Block::FromType( tile.type );
+			Block* block = Block::Get( tile.id );
 
 			if ( ( block->getColMask() & typeMask ) == 0 )
 				continue;

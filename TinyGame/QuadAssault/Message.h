@@ -22,7 +22,7 @@ public:
 
 	void renderFrame();
 	void render();
-	bool unisten;
+	bool needDestroy;
 private:	
 	FObjectPtr< IText >  p_text;
 	FObjectPtr< IText >  text;

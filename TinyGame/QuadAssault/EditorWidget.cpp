@@ -5,14 +5,14 @@
 #include "Block.h"
 
 #include "FixString.h"
-#include "BlockType.h"
+#include "BlockId.h"
 
 PorpTextCtrl::PorpTextCtrl( int id , Vec2i const& pos , Vec2i const& size , QWidget* parent ) 
 	:QTextCtrl( id , pos , size , parent )
 {
 	text->setCharSize( 20 );
 	text->setFont( getGame()->getFont(0) );
-	text->setColor( Color( 255 , 255 , 0 ) );
+	text->setColor( Color4ub( 255 , 255 , 0 ) );
 }
 
 PorpTextCtrl::~PorpTextCtrl()
@@ -99,7 +99,7 @@ void PropFrame::addPorpWidget( char const* name , QWidget* widget )
 {
 	PropInfo data;
 	data.widget = widget;
-	data.name   = IText::create( getGame()->getFont(0) , 20 , Color( 0 , 0 , 255 ) );
+	data.name   = IText::create( getGame()->getFont(0) , 20 , Color4ub( 0 , 0 , 255 ) );
 	data.name->setString( name );
 	mPorps.push_back( data );
 }
@@ -269,7 +269,7 @@ TileEditFrame::TileEditFrame( int id , Vec2f const& pos , QWidget* parent )
 #define StringOp( A , B , ... ) B ,
 	char const* blockName[] =
 	{
-		BLOCK_TYPE_LIST( StringOp )
+		BLOCK_ID_LIST( StringOp )
 	};
 #undef StringOp
 
@@ -279,7 +279,7 @@ TileEditFrame::TileEditFrame( int id , Vec2f const& pos , QWidget* parent )
 		pos.x = ( i % 2 ) * ( ButtonLength + 2 ) + 2;
 		pos.y = ( i / 2 ) * ( ButtonLength + 2 ) + TopSideHeight + 2;
 		QImageButton* button = new QImageButton( UI_TILE_SELECT , pos , Vec2i( ButtonLength , ButtonLength ) , this );
-		button->texImag = Block::FromType( i )->getTexture( 0 );
+		button->texImag = Block::Get( i )->getTexture( 0 );
 		button->setHelpText( blockName[i] );
 		button->setUserData( (void*)i );
 	}

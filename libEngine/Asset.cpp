@@ -289,7 +289,7 @@ void AssetManager::tick(long time)
 }
 
 
-bool AssetManager::registerAsset(AssetBase* asset)
+bool AssetManager::registerViewer(IAssetViewer* asset)
 {
 	assert(asset);
 
@@ -310,7 +310,7 @@ bool AssetManager::registerAsset(AssetBase* asset)
 	return true;
 }
 
-void AssetManager::unregisterAsset(AssetBase* asset)
+void AssetManager::unregisterViewer(IAssetViewer* asset)
 {
 	std::vector< std::wstring > paths;
 	asset->getDependentFilePaths(paths);
@@ -338,7 +338,7 @@ void AssetManager::procDirModify(wchar_t const* path, FileAction action)
 
 	if( iter != mAssetMap.end() )
 	{
-		for( AssetBase* asset : iter->second )
+		for( IAssetViewer* asset : iter->second )
 		{
 			asset->postFileModify(action);
 		}

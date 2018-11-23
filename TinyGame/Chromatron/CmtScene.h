@@ -27,7 +27,7 @@ namespace Chromatron
 
 		void procMouseMsg( MouseMsg const& msg );
 
-		Level::PosType getCellPos( int x , int y , Vec2D& result );
+		Level::PosType getCellPos( int x , int y , Vec2i& result );
 
 		Level& getLevel(){ return *mLevel;  }
 		void   setWorldPos( Vec2i const& pos ){ mWorldPos = pos; }
@@ -43,7 +43,7 @@ namespace Chromatron
 
 		DeviceId  getToolDevice( Vec2i const& pos );
 		Color     getEditColor( Vec2i const& pos );
-		Device*   getDevice( Vec2D const& pos );
+		Device*   getDevice( Vec2i const& pos );
 
 		Level*    mLevel;
 		Vec2i     mWorldPos;
@@ -52,7 +52,7 @@ namespace Chromatron
 		Device*   mUpDC;
 		Device*   mDragDC;
 		Device*   mRotateDC;
-		Vec2D     mOldPos;
+		Vec2i     mOldPos;
 
 		bool      mOldInWorld;
 		bool      mNeedUpdateLevel;

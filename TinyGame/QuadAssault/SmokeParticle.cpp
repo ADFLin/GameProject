@@ -14,8 +14,8 @@ SmokeParticle::SmokeParticle( Vec2f const& pos )
 void SmokeParticle::init()
 {
 	BaseClass::init();
-	maxZivot=45;
-	zivot=maxZivot;
+	maxLife=45;
+	life=maxLife;
 }
 
 void SmokeParticle::onSpawn( unsigned flag )

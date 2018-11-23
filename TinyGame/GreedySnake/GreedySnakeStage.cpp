@@ -135,7 +135,7 @@ namespace GreedySnake
 			{
 			case SMT_SINGLE_GAME:
 				::Global::GUI().showMessageBox( 
-					UI_RESTART_GAME , "Do You Want To Play Game Again ?" );
+					UI_RESTART_GAME , LOCTEXT("Do You Want To Play Game Again ?") );
 				break;
 			}
 			break;

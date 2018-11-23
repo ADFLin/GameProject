@@ -20,12 +20,12 @@ void Message::init( String const& sender, String const& content, float durstion,
 	mSoundName = soundName;
 	mDurstion  = durstion;
 	timer=0.0;
-	unisten=false;
+	needDestroy = false;
 
-	p_text.reset( IText::create( getGame()->getFont(0) , 24 , Color(25,255,25) ) );
+	p_text.reset( IText::create( getGame()->getFont(0) , 24 , Color4ub(25,255,25) ) );
 	p_text->setString( sender.c_str() );
 
-	text.reset( IText::create( getGame()->getFont(0) , 24 , Color(255,255,255) ) );
+	text.reset( IText::create( getGame()->getFont(0) , 24 , Color4ub(255,255,255) ) );
 	text->setString( content.c_str() );
 
 	portrait = getRenderSystem()->getTextureMgr()->getTexture("portrait2.tga");	
@@ -48,7 +48,7 @@ void Message::tick()
 	{
 		if( sound )
 			sound->stop();
-		unisten=true;		
+		needDestroy=true;		
 		sound=NULL;
 	}
 }

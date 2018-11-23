@@ -89,7 +89,7 @@ private:\
 	public:\
 	template < class ClassContextRegister >\
 	void reigsterContext( ClassContextRegister& ccr )\
-{
+	{
 
 #define BEGIN_CLASS_PROP()\
 	BEGIN_CLASS_PROP_NOBASE()\

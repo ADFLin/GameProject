@@ -13,8 +13,8 @@ struct Transform
 class IRenderable
 {
 public:
-	RenderProxy* createRenderProxy() = 0;
-	Transform    getTransform() = 0;
+	virtual RenderProxy* createRenderProxy() = 0;
+	virtual Transform    getTransform() = 0;
 };
 
 class RenderProxy

@@ -30,7 +30,7 @@ public:
 };
 
 template < class BASE >
-class ObjectCreatorT
+class TObjectCreator
 {
 	typedef BASE BaseType;
 public:
@@ -90,10 +90,10 @@ protected:
 class LevelObject;
 class Action;
 
-typedef ObjectCreatorT< LevelObject > ObjectCreator;
+typedef TObjectCreator< LevelObject > ObjectCreator;
 typedef ObjectCreator::FactoryMap     ObjectFactoryMap;
 
-typedef ObjectCreatorT< Action >      ActionCreator;
+typedef TObjectCreator< Action >      ActionCreator;
 typedef ActionCreator::FactoryMap     ActionFactoryMap;
 
 #endif // ObjectFactory_h__

@@ -159,7 +159,7 @@ void QWidget::doRenderAll()
 QTextButton::QTextButton( int id , Vec2i const& pos , Vec2i const& size , QWidget* parent ) 
 	:BaseClass( id , pos , size , parent )
 {
-	text.reset( IText::create( getGame()->getFont(0) , 24 , Color( 255 , 255 , 0 ) ) );
+	text.reset( IText::create( getGame()->getFont(0) , 24 , Color4ub( 255 , 255 , 0 ) ) );
 }
 
 QTextButton::~QTextButton()
@@ -207,9 +207,9 @@ void QTextButton::onRender()
 	glDisable(GL_BLEND);
 
 	if( isEnable() )
-		text->setColor(Color(50,255,50));
+		text->setColor(Color4ub(50,255,50));
 	else
-		text->setColor(Color(150,150,150));
+		text->setColor(Color4ub(150,150,150));
 
 	getRenderSystem()->drawText( text , pos  + size / 2  );
 
@@ -319,7 +319,7 @@ void QFrame::setTile( char const* name )
 {
 	if ( !mTile )
 	{
-		mTile = IText::create( getGame()->getFont(0) , 20 , Color( 255 , 255 , 0 ) );
+		mTile = IText::create( getGame()->getFont(0) , 20 , Color4ub( 255 , 255 , 0 ) );
 	}
 	mTile->setString( name );
 }
@@ -377,7 +377,7 @@ void QImageButton::setHelpText( char const* str )
 {
 	if ( !mHelpText )
 	{
-		mHelpText = IText::create( getGame()->getFont(0) , 24 , Color( 255 , 255 , 255 ) );
+		mHelpText = IText::create( getGame()->getFont(0) , 24 , Color4ub( 255 , 255 , 255 ) );
 	}
 	mHelpText->setString( str );
 }
@@ -426,9 +426,9 @@ void QTextCtrl::onRender()
 
 
 	if( isFocus() )
-		text->setColor(Color(50,255,50));
+		text->setColor(Color4ub(50,255,50));
 	else
-		text->setColor(Color(150,150,150));
+		text->setColor(Color4ub(150,150,150));
 
 	getRenderSystem()->drawText( text , pos + size / 2 );
 }
@@ -462,7 +462,7 @@ QChoice::QChoice( int id , Vec2i const& pos , Vec2i const& size , QWidget* paren
 
 void QChoice::onAddItem( Item& item )
 {
-	item.text = IText::create( getGame()->getFont( 0 ) , 20 , Color( 150,150,150 ) );
+	item.text = IText::create( getGame()->getFont( 0 ) , 20 , Color4ub( 150,150,150 ) );
 	item.text->setString( item.value.c_str() );
 }
 
@@ -527,7 +527,7 @@ QListCtrl::QListCtrl( int id , Vec2i const& pos , Vec2i const& size , QWidget* p
 
 void QListCtrl::onAddItem( Item& item )
 {
-	item.text = IText::create( getGame()->getFont( 0 ) , 20 , Color( 255 , 255 , 255 ) );
+	item.text = IText::create( getGame()->getFont( 0 ) , 20 , Color4ub( 255 , 255 , 255 ) );
 	item.text->setString( item.value.c_str() );
 }
 

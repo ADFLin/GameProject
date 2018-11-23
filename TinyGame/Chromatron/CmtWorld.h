@@ -49,9 +49,9 @@ namespace Chromatron
 		Device const* getDevice() const { return ( mDCData ) ? mDCData->dc : NULL ; }
 		Device*       getDevice()       { return ( mDCData ) ? mDCData->dc : NULL ; }
 
-		bool    canSetup()            const {  return ( mType & MT_CANT_SETUP ) == 0 && getDevice() == NULL; }
-		bool    blockLight()          const {  return ( mType & MT_BLOCK_LIGHT ) != 0; }
-		bool    blockRBConcerLight()  const {  return ( mType & MT_BLOCK_RB_CORNER_LIGHT ) != 0; }
+		bool    canSetup()            const { return ( mType & MT_CANT_SETUP ) == 0 && getDevice() == NULL; }
+		bool    blockLight()          const { return !!( mType & MT_BLOCK_LIGHT ); }
+		bool    blockRBConcerLight()  const { return !!(mType & MT_BLOCK_RB_CORNER_LIGHT); }
 
 		void    setDeviceData( DeviceTileData* data ){ mDCData = data ; }
 		void    setType( MapType type ){ mType = type; }
@@ -109,7 +109,7 @@ namespace Chromatron
 	{
 	public:
 		virtual bool prevEffectDevice(Device& dc, LightTrace const& light, int pass) = 0;
-		virtual bool prevAddLight(Vec2D const& pos, Color color, Dir dir, int param, int age) = 0;
+		virtual bool prevAddLight(Vec2i const& pos, Color color, Dir dir, int param, int age) = 0;
 	};
 
 	class World
@@ -118,16 +118,16 @@ namespace Chromatron
 		World(int sx ,int sy);
 		~World();
 
-		Tile const& getTile( Vec2D const& pos ) const;
-		Tile&       getTile( Vec2D const& pos );
-		bool        isValidRange( Vec2D const& pos ) const;
+		Tile const& getTile( Vec2i const& pos ) const;
+		Tile&       getTile( Vec2i const& pos );
+		bool        isValidRange( Vec2i const& pos ) const;
 		int         getMapSizeX() const { return mTileMap.getSizeX(); }
 		int         getMapSizeY() const { return mTileMap.getSizeY(); }
 		void        clearDevice();
 		void        fillMap( MapType type );
 		
-		bool        canSetup( Vec2D const& pos )   const  { return getTile( pos ).canSetup(); }
-		Device*     goNextDevice( Dir dir , Vec2D& curPos );
+		bool        canSetup( Vec2i const& pos )   const  { return getTile( pos ).canSetup(); }
+		Device*     goNextDevice( Dir dir , Vec2i& curPos );
 	public:
 
 
@@ -135,8 +135,8 @@ namespace Chromatron
 		TransmitStatus transmitLight( WorldUpdateContext& context );
 		void           clearLight();
 
-		int            countSameLighPathColortStepNum(Vec2D const& pos, Dir dir) const;
-		bool           isLightPathEndpoint(Vec2D const& pos, Dir dir) const;
+		int            countSameLighPathColortStepNum(Vec2i const& pos, Dir dir) const;
+		bool           isLightPathEndpoint(Vec2i const& pos, Dir dir) const;
 		
 	private:
 		
@@ -159,13 +159,13 @@ namespace Chromatron
 		{
 			return mWorld.transmitLightSync(*this, processor, transmitLights);
 		}
-		Tile&  getTile(Vec2D const& pos) { return mWorld.getTile(pos); }
-		void   addLight( Vec2D const& pos , Color color , Dir dir );
+		Tile&  getTile(Vec2i const& pos) { return mWorld.getTile(pos); }
+		void   addLight( Vec2i const& pos , Color color , Dir dir );
 		void   prevUpdate();
 
 		void   setLightParam( int param ){ mLightParam = param; }
-		void   setSyncMode( bool beS ){ mIsSyncMode = beS; }
-		bool   isSyncMode(){ return mIsSyncMode; }
+		void   setSyncMode( bool beS ){ mbSyncMode = beS; }
+		bool   isSyncMode(){ return mbSyncMode; }
 		void   notifyStatus( TransmitStatus status ){ mStatus = status;  }
 		int    getLightCount() const { return mLightCount; }
 
@@ -176,7 +176,7 @@ namespace Chromatron
 
 
 		int              mLightParam;
-		bool             mIsSyncMode;
+		bool             mbSyncMode;
 		int              mLightAge;
 		TransmitStatus   mStatus;
 		World&           mWorld;

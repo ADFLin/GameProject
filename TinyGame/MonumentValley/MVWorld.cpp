@@ -416,7 +416,7 @@ namespace MV
 				Dir destUpDirL = destBlock->rotation.toLocal( info.faceDir );
 				if ( destSurface.meta == destUpDirL )
 				{
-					int idx = getNeighborIndex( destFaceDirL , invertDir( destUpDirL ) );
+					int idx = FDir::NeighborIndex( destFaceDirL , invertDir( destUpDirL ) );
 					info.node->connect( destSurface.node[ info.nodeType ][idx] , info.block->group == destBlock->group );
 					return 1;
 				}

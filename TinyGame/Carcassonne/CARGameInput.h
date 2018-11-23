@@ -92,13 +92,9 @@ namespace CAR
 		unsigned resultIndex;
 		unsigned numSelection;
 
-		bool canSkip()
+		bool canSkip() const
 		{
-			if ( reason == SAR_MOVE_DRAGON ||
-				reason == SAR_EXCHANGE_PRISONERS ||
-				reason == SAR_MAGIC_PORTAL )
-				return false;
-			return true;
+			return !(BIT(reason) & (BIT(SAR_MOVE_DRAGON) | BIT(SAR_MAGIC_PORTAL) | BIT(SAR_EXCHANGE_PRISONERS)));
 		}
 
 		bool checkResult() const

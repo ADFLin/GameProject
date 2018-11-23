@@ -62,9 +62,9 @@ void KeyPickup::onPick( Player* player )
 	{
 		Tile& tile = terrain.getData( x , y );
 
-		if( tile.type == BID_DOOR && tile.meta == mId )
+		if( tile.id == BID_DOOR && tile.meta == mId )
 		{
-			tile.type = BID_FLAT;
+			tile.id = BID_FLAT;
 			tile.meta = 0;
 
 			Explosion* e=getLevel()->createExplosion( Vec2f(x*BLOCK_SIZE+BLOCK_SIZE/2, y*BLOCK_SIZE+BLOCK_SIZE/2), 128 );

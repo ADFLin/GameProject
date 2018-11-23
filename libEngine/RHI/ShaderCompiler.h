@@ -62,8 +62,7 @@ namespace Render
 
 		static CORE_API ShaderManager& Get();
 
-
-
+		void setBaseDir(char const* dir){  mBaseDir = dir;  }
 		void clearnupRHIResouse();
 
 
@@ -119,6 +118,9 @@ namespace Render
 
 
 		bool loadMultiFile(ShaderProgram& shaderProgram, char const* fileName, char const* def = nullptr, char const* additionalCode = nullptr);
+
+		bool loadSimple(ShaderProgram& shaderProgram, char const* fileNameVS, char const* fileNamePS, char const* def = nullptr, char const* additionalCode = nullptr);
+
 		bool reloadShader(ShaderProgram& shaderProgram);
 
 		void reloadAll();
@@ -127,7 +129,7 @@ namespace Render
 		{
 			for( auto pair : mShaderCompileMap )
 			{
-				assetManager.registerAsset(pair.second);
+				assetManager.registerViewer(pair.second);
 			}
 		}
 
@@ -135,14 +137,14 @@ namespace Render
 		{
 			for( auto pair : mShaderCompileMap )
 			{
-				assetManager.unregisterAsset(pair.second);
+				assetManager.unregisterViewer(pair.second);
 			}
 		}
 
-		bool loadInternal(ShaderProgram& shaderProgram, char const* fileName, uint8 shaderMask, char const* entryNames[], char const* def, char const* additionalCode, bool bSingle);
-		bool loadInternal(ShaderProgram& shaderProgram, char const* fileName, ShaderEntryInfo const entries[], char const* def, char const* additionalCode, bool bSingle);
-		bool loadInternal(ShaderProgram& shaderProgram, char const* fileName, ShaderEntryInfo const entries[], ShaderCompileOption const& option, char const* additionalCode, bool bSingle);
-		bool loadInternal(ShaderProgram& shaderProgram, char const* fileName, uint8 shaderMask, char const* entryNames[], ShaderCompileOption const& option, char const* additionalCode, bool bSingle);
+		bool loadInternal(ShaderProgram& shaderProgram, char const* fileName, uint8 shaderMask, char const* entryNames[], char const* def, char const* additionalCode, bool bSingleFile);
+		bool loadInternal(ShaderProgram& shaderProgram, char const* fileName, ShaderEntryInfo const entries[], ShaderCompileOption const& option, char const* additionalCode, bool bSingleFile);
+		bool loadInternal(ShaderProgram& shaderProgram, char const* fileName, uint8 shaderMask, char const* entryNames[], ShaderCompileOption const& option, char const* additionalCode, bool bSingleFile);
+		bool loadInternal(ShaderProgram& shaderProgram, char const* filePaths[], ShaderEntryInfo const entries[], char const* def, char const* additionalCode);
 
 		static void MakeEntryInfos(ShaderEntryInfo entries[], uint8 shaderMask, char const* entryNames[])
 		{
@@ -171,25 +173,22 @@ namespace Render
 
 		struct ShaderCompileInfo
 		{
+			std::string  filePath;
 			Shader::Type type;
 			std::string  headCode;
 
-			template< class S >
-			ShaderCompileInfo(Shader::Type inType, S&& inCode)
-				:type(inType) , headCode( std::forward<S>(inCode) )
+			template< class S1 , class S2 >
+			ShaderCompileInfo(Shader::Type inType, S1&& inFilePath ,  S2&& inCode)
+				:filePath( std::forward<S2>(inFilePath) ) , type(inType) , headCode( std::forward<S2>(inCode) )
 			{}
 
 			ShaderCompileInfo(){}
 		};
 
-
-
-		struct ShaderProgramCompileInfo : public AssetBase
+		struct ShaderProgramCompileInfo : public IAssetViewer
 		{
 			ShaderProgram* shaderProgram;
-			std::string    fileName;
 			std::vector< ShaderCompileInfo > shaders;
-			bool           bSingleFile;
 			bool           bShowComplieInfo = false;
 			
 			ShaderClassType classType = ShaderClassType::Common;
@@ -209,10 +208,14 @@ namespace Render
 			}
 		}
 
-		void  generateCompileSetup( ShaderProgramCompileInfo& compileInfo , ShaderEntryInfo const entries[], ShaderCompileOption const& option, char const* additionalCode);
+		void  generateCompileSetup( 
+			ShaderProgramCompileInfo& compileInfo , ShaderEntryInfo const entries[], 
+			ShaderCompileOption const& option, char const* additionalCode ,
+			char const* fileName , bool bSingleFile );
 
 		uint32         mDefaultVersion;
 		ShaderCompiler mCompiler;
+		std::string    mBaseDir;
 
 		std::unordered_map< ShaderProgram*, ShaderProgramCompileInfo* > mShaderCompileMap;
 		std::unordered_map< GlobalShaderProgramClass*, GlobalShaderProgram* > mGlobalShaderMap;

@@ -25,7 +25,7 @@ namespace Math
 			return length;
 		}
 
-		bool isNormalize() const
+		bool isNormalized() const
 		{
 			float lengthSqr = length2();
 			return Math::Abs(lengthSqr - 1) < 1e-6;
@@ -188,7 +188,7 @@ namespace Math
 
 	FORCEINLINE Vector3 Vector3::projectNormal(Vector3 const& dir) const
 	{
-		assert(dir.isNormalize());
+		assert(dir.isNormalized());
 		return dot(dir) * dir;
 	}
 	FORCEINLINE float DistanceSqure( Vector3 const& v1 , Vector3 const& v2 )

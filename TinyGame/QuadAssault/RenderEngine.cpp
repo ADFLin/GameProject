@@ -1,11 +1,15 @@
 #include "RenderEngine.h"
 
 #include "RenderSystem.h"
-#include "Shader.h"
 #include "Level.h"
 #include "Light.h"
 #include "ObjectRenderer.h"
 #include "Block.h"
+
+#include "RHI/ShaderCompiler.h"
+#include "RHI/RHICommand.h"
+
+#include "RHI/OpenGLCommon.h"
 
 #include <algorithm>
 
@@ -15,8 +19,6 @@ bool gUseMRT = true;
 RenderEngine::RenderEngine()
 	:mAllocator( 512 )
 {
-	mShaderLighting = NULL;
-	std::fill_n( mShaderScene , NumMode , (Shader*)NULL );
 
 }
 
@@ -32,12 +34,10 @@ bool RenderEngine::init( int width , int height )
 	if ( !setupFBO( width , height ) )
 		return false;
 
-
-	RenderSystem* system = getRenderSystem();
-	mShaderLighting = system->createShader( "LightVS.glsl", "LightFS.glsl" );
-	mShaderScene[ RM_ALL ]       = system->createShader( "SceneVS.glsl", "SceneFS.glsl" );
-	mShaderScene[ RM_GEOMETRY  ] = system->createShader( "SceneVS.glsl", "SceneGeometryFS.glsl" );
-	mShaderScene[ RM_LINGHTING ] = system->createShader( "SceneVS.glsl", "SceneLightingFS.glsl" );
+	VERIFY_RETURN_FALSE( Render::ShaderManager::Get().loadSimple( mShaderLighting ,"LightVS", "LightFS" ));
+	VERIFY_RETURN_FALSE( Render::ShaderManager::Get().loadSimple( mShaderScene[ RM_ALL ] , "SceneVS", "SceneFS" ));
+	VERIFY_RETURN_FALSE( Render::ShaderManager::Get().loadSimple( mShaderScene[ RM_GEOMETRY  ] , "SceneVS", "SceneGeometryFS" ));
+	VERIFY_RETURN_FALSE( Render::ShaderManager::Get().loadSimple( mShaderScene[ RM_LINGHTING ] , "SceneVS", "SceneLightingFS" ));
 
 	return true;
 }
@@ -46,9 +46,6 @@ void RenderEngine::cleanup()
 {
 	glDeleteFramebuffers(1,&mFBO);
 	glDeleteFramebuffers(1,&mRBODepth );
-	glDeleteTextures(1,&mTexLightmap);
-	glDeleteTextures(1,&mTexNormalMap);
-	glDeleteTextures(1,&mTexGeometry);
 }
 
 #include <iostream>
@@ -59,41 +56,35 @@ bool RenderEngine::setupFBO( int width , int height )
 
 	glGenFramebuffers(1,&mFBO);
 
-	glGenTextures(1,&mTexLightmap);
-	glBindTexture(GL_TEXTURE_2D,mTexLightmap);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width , height,
-		0, GL_RGBA, GL_UNSIGNED_BYTE, NULL); 
+
+	mTexLightmap = Render::RHICreateTexture2D(Render::Texture::eRGBA8, width, height);
+	Render::OpenGLCast::To(mTexLightmap)->bind();
 	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);  
 	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);  
-
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);  
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	//glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
 	//glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
-	glBindTexture(GL_TEXTURE_2D, 0);
+	Render::OpenGLCast::To(mTexLightmap)->unbind();
 
-	glGenTextures(1,&mTexNormalMap);
-	glBindTexture(GL_TEXTURE_2D,mTexNormalMap);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width ,height ,
-		0, GL_RGBA, GL_UNSIGNED_BYTE, NULL); 
+
+	mTexNormalMap = Render::RHICreateTexture2D(Render::Texture::eRGBA8, width, height);
+	Render::OpenGLCast::To(mTexNormalMap)->bind();
 	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);  
 	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);  
 	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
 	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
-	glBindTexture(GL_TEXTURE_2D, 0);
+	Render::OpenGLCast::To(mTexNormalMap)->unbind();
 
-	glGenTextures(1,&mTexGeometry);
-	glBindTexture(GL_TEXTURE_2D,mTexGeometry);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width ,height ,
-		0, GL_RGBA, GL_UNSIGNED_BYTE, NULL); 
+	mTexGeometry = Render::RHICreateTexture2D(Render::Texture::eRGBA8, width, height);
+	Render::OpenGLCast::To(mTexGeometry)->bind();
 	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);  
 	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);  
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);  
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	//glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
 	//glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
-	glBindTexture(GL_TEXTURE_2D, 0);
-
+	Render::OpenGLCast::To(mTexGeometry)->unbind();
 
 	glGenRenderbuffers(1, &mRBODepth );  
 	glBindRenderbuffer(GL_RENDERBUFFER, mRBODepth );  
@@ -158,7 +149,7 @@ void RenderEngine::renderScene( RenderParam& param )
 		glEnable(GL_TEXTURE_2D);
 
 		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_2D, mTexNormalMap );
+		glBindTexture(GL_TEXTURE_2D, Render::OpenGLCast::GetHandle(mTexNormalMap) );
 
 		glBegin(GL_QUADS);
 		glTexCoord2f(0.0, 1.0); glVertex2f(0.0, 0.0);
@@ -181,14 +172,14 @@ void RenderEngine::renderScene( RenderParam& param )
 
 void RenderEngine::renderSceneFinal( RenderParam& param )
 {
-	Shader* shader = mShaderScene[ param.mode ];
+	Render::ShaderProgram& shader = mShaderScene[ param.mode ];
 
-	shader->bind();
+	shader.bind();
 
 	glEnable(GL_TEXTURE_2D);
-	shader->setTexture2D( "texGeometry" , mTexGeometry , 0 );
-	shader->setTexture2D( "texLightmap" , mTexLightmap , 1 );
-	shader->setParam( "ambientLight" , mAmbientLight );
+	shader.setTexture( SHADER_PARAM( texGeometry ) , *mTexGeometry );
+	shader.setTexture(SHADER_PARAM( texLightmap) , *mTexLightmap );
+	shader.setParam(SHADER_PARAM(ambientLight) , mAmbientLight );
 
 	glBegin(GL_QUADS);
 	glTexCoord2f(0.0, 1.0); glVertex2f(0.0, 0.0);
@@ -197,7 +188,7 @@ void RenderEngine::renderSceneFinal( RenderParam& param )
 	glTexCoord2f(0.0, 0.0); glVertex2f(0.0 , mFrameHeight );
 	glEnd();
 
-	shader->unbind();
+	shader.unbind();
 
 	glActiveTexture(GL_TEXTURE0);
 	glDisable(GL_TEXTURE_2D);
@@ -210,7 +201,7 @@ void RenderEngine::renderTerrain( Level* level , TileRange const& range )
 	for(int j = range.yMin; j < range.yMax; ++j )
 	{
 		Tile const& tile = terrain.getData( i , j );
-		Block::FromType( tile.type )->render( tile );
+		Block::Get( tile.id )->render( tile );
 	}
 }
 
@@ -221,7 +212,7 @@ void RenderEngine::renderTerrainNormal( Level* level , TileRange const& range )
 	for(int j = range.yMin; j < range.yMax; ++j )
 	{		
 		Tile const& tile = terrain.getData( i , j );
-		Block::FromType( tile.type )->renderNormal( tile );
+		Block::Get( tile.id )->renderNormal( tile );
 	}
 }
 
@@ -232,7 +223,7 @@ void RenderEngine::renderTerrainGlow( Level* level , TileRange const& range )
 	for(int j = range.yMin; j < range.yMax; ++j )
 	{
 		Tile const& tile = terrain.getData( i , j );
-		Block::FromType( tile.type )->renderGlow( tile );
+		Block::Get( tile.id )->renderGlow( tile );
 	}
 }
 
@@ -241,12 +232,12 @@ void RenderEngine::renderLight( RenderParam& param , Vec2f const& lightPos , Lig
 {
 	Vec2f posLight = lightPos - param.camera->getPos();
 
-	mShaderLighting->bind();
+	mShaderLighting.bind();
 
-	mShaderLighting->setTexture2D( "texNormalMap" , mTexNormalMap , 0 );	
-	//mShaderLighting->setParam( "frameHeight", mFrameHeight );
-	//mShaderLighting->setParam( "scaleFactor" , param.scaleFactor );
-	mShaderLighting->setParam( "posLight" , posLight );
+	mShaderLighting.setTexture( SHADER_PARAM( texNormalMap ) , *mTexNormalMap );	
+	//mShaderLighting->setParam( SHADER_PARAM(frameHeight), mFrameHeight );
+	//mShaderLighting->setParam( SHADER_PARAM(scaleFactor) , param.scaleFactor );
+	mShaderLighting.setParam(SHADER_PARAM(posLight) , posLight );
 	setupLightShaderParam( mShaderLighting , light );
 
 #if 1
@@ -279,24 +270,24 @@ void RenderEngine::renderLight( RenderParam& param , Vec2f const& lightPos , Lig
 	glEnd();	
 #endif
 
-	mShaderLighting->unbind();	
+	mShaderLighting.unbind();	
 	glActiveTexture(GL_TEXTURE0);
 }
 
-void RenderEngine::setupLightShaderParam( Shader* shader , Light* light )
+void RenderEngine::setupLightShaderParam(Render::ShaderProgram& shader , Light* light )
 {
-	shader->setParam( "colorLight" , light->color );
-	shader->setParam( "dir" , light->dir );
-	shader->setParam( "angle" , light->angle );
-	shader->setParam( "radius", light->radius );
-	shader->setParam( "intensity" ,light->intensity );
-	shader->setParam( "isExplosion" , ( light->isExplosion ) ? 1 : 0 );
+	shader.setParam( SHADER_PARAM(colorLight) , light->color );
+	shader.setParam( SHADER_PARAM(dir) , light->dir );
+	shader.setParam( SHADER_PARAM(angle) , light->angle );
+	shader.setParam( SHADER_PARAM(radius), light->radius );
+	shader.setParam( SHADER_PARAM(intensity) ,light->intensity );
+	shader.setParam( SHADER_PARAM(isExplosion) , ( light->isExplosion ) ? 1 : 0 );
 }
 
 void RenderEngine::renderGeometryFBO( RenderParam& param )
 {
 	glBindFramebuffer(GL_FRAMEBUFFER ,mFBO);		
-	glFramebufferTexture2D(GL_FRAMEBUFFER , GL_COLOR_ATTACHMENT0 , GL_TEXTURE_2D, mTexGeometry, 0); 	
+	glFramebufferTexture2D(GL_FRAMEBUFFER , GL_COLOR_ATTACHMENT0 , GL_TEXTURE_2D, Render::OpenGLCast::GetHandle(mTexGeometry), 0);
 
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);	
 	glClearColor(0.0, 0.0, 0.0, 1.0f);
@@ -317,7 +308,7 @@ void RenderEngine::renderGeometryFBO( RenderParam& param )
 void RenderEngine::renderNormalFBO( RenderParam& param )
 {
 	glBindFramebuffer( GL_FRAMEBUFFER ,mFBO);		
-	glFramebufferTexture2D(GL_FRAMEBUFFER , GL_COLOR_ATTACHMENT0 , GL_TEXTURE_2D, mTexNormalMap, 0 ); 	
+	glFramebufferTexture2D(GL_FRAMEBUFFER , GL_COLOR_ATTACHMENT0 , GL_TEXTURE_2D, Render::OpenGLCast::GetHandle(mTexNormalMap), 0 );
 
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);	
 	glClearColor(0.0, 0.0, 0.0, 1.0f);
@@ -343,7 +334,7 @@ void RenderEngine::renderLightingFBO( RenderParam& param )
 	renderNormalFBO( param );
 
 	glBindFramebuffer(GL_FRAMEBUFFER ,mFBO);		
-	glFramebufferTexture2D(GL_FRAMEBUFFER , GL_COLOR_ATTACHMENT0 , GL_TEXTURE_2D, mTexLightmap, 0);
+	glFramebufferTexture2D(GL_FRAMEBUFFER , GL_COLOR_ATTACHMENT0 , GL_TEXTURE_2D, Render::OpenGLCast::GetHandle(mTexLightmap), 0);
 	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, mRBODepth ); 
 
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -371,7 +362,7 @@ void RenderEngine::renderLightingFBO( RenderParam& param )
 	float w = param.renderWidth;
 	float h = param.renderHeight;
 
-	Shader* shader = mShaderLighting;
+	Render::ShaderProgram& shader = mShaderLighting;
 
 	RenderLightList& lights = param.level->getRenderLights();
 	TileMap& terrain = param.level->getTerrain();
@@ -435,7 +426,7 @@ void RenderEngine::renderLightingFBO( RenderParam& param )
 			for(int j = param.terrainRange.yMin; j < param.terrainRange.yMax; ++j )
 			{
 				Tile const& tile = terrain.getData( i , j );
-				Block* block = Block::FromType( tile.type );
+				Block* block = Block::Get( tile.id );
 				if ( !block->checkFlag( BF_CAST_SHADOW ) )
 					continue;
 
@@ -478,7 +469,7 @@ void RenderEngine::renderTerrainShadow( Level* level , Vec2f const& lightPos , L
 	if ( terrain.checkRange( tpLight.x , tpLight.y ) )
 	{
 		Tile const& tile = terrain.getData( tpLight.x , tpLight.y );
-		Block* block = Block::FromType( tile.type );
+		Block* block = Block::Get( tile.id );
 		if ( block->checkFlag( BF_CAST_SHADOW ) )
 		{
 			if ( !block->checkFlag( BF_NONSIMPLE ) )
@@ -499,7 +490,7 @@ void RenderEngine::renderTerrainShadow( Level* level , Vec2f const& lightPos , L
 		for(int j = range.yMin; j < range.yMax; ++j )
 		{
 			Tile const& tile = terrain.getData( i , j );
-			Block* block = Block::FromType( tile.type );
+			Block* block = Block::Get( tile.id );
 
 			if ( !block->checkFlag( BF_CAST_SHADOW ) )
 				continue;
@@ -520,7 +511,7 @@ void RenderEngine::renderTerrainShadow( Level* level , Vec2f const& lightPos , L
 #if 1
 					if ( terrain.checkRange( nx , ny ) )
 					{
-						Block* block = Block::FromType( terrain.getData( nx , ny ).type );
+						Block* block = Block::Get( terrain.getData( nx , ny ).id );
 
 						if ( !block->checkFlag( BF_NONSIMPLE ) && 
 							block->checkFlag( BF_CAST_SHADOW ) )

@@ -100,7 +100,7 @@ typedef IGameModule* (*CreateGameModuleFun)();
 #define CREATE_GAME_MODULE_STR MAKE_STRING(CREATE_GAME_MODULE)
 
 #define EXPORT_GAME_MODULE( CLASS )\
-	extern "C" __declspec(dllexport) IGameModule* CREATE_GAME_MODULE()\
+	extern "C" DLLEXPORT IGameModule* CREATE_GAME_MODULE()\
 	{\
 		return new CLASS; \
 	}\

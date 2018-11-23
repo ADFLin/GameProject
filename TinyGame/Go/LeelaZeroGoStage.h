@@ -84,21 +84,8 @@ namespace Go
 		ControllerType type;
 		std::unique_ptr< IBotInterface > bot;
 		int winCount;
-		FixString< 128 > getName() const
-		{
-			FixString< 128 > result = GetControllerName(type);
-			if( type == ControllerType::eLeelaZero )
-			{
-				std::string weightName;
-				bot->getMetaDataT(LeelaBot::eWeightName, weightName);
-				result += " ";
-				if( weightName.length() > 10 )
-					result += weightName.substr(0, 5);
-				else
-					result += weightName;
-			}
-			return result;
-		}
+
+		FixString< 128 > getName() const;
 		bool isBot() const { return type != ControllerType::ePlayer; }
 		bool initialize(ControllerType inType , void* botSetting = nullptr);
 	};
@@ -379,6 +366,7 @@ namespace Go
 
 		void toggleAnalysisPonder();
 		bool tryEnableAnalysis();
+
 		bool canAnalysisPonder(MatchPlayer& player)
 		{
 			if( player.type == ControllerType::ePlayer )
@@ -389,23 +377,7 @@ namespace Go
 		}
 
 		template< class Fun >
-		void executeAnalysisAICommand(Fun&& fun, bool bKeepPonder = true)
-		{
-			assert(bAnalysisEnabled);
-
-			if( bAnalysisPondering )
-				mLeelaAIRun.stopPonder();
-
-			fun();
-
-			analysisResult.clear();
-			if( bAnalysisPondering && bKeepPonder )
-			{
-				analysisPonderColor = mGame.getNextPlayColor();
-				mLeelaAIRun.startPonder(analysisPonderColor);
-			}
-			
-		}
+		void executeAnalysisAICommand(Fun&& fun, bool bKeepPonder = true);
 
 		bool bAnalysisEnabled = false;
 		bool bAnalysisPondering;
@@ -529,6 +501,7 @@ namespace Go
 			return !mMatchData.players[color - 1].isBot();
 		}
 	};
+
 
 }//namespace Go
 

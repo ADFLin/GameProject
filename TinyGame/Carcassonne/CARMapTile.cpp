@@ -108,11 +108,10 @@ namespace CAR
 
 		unsigned mask = 0;
 		unsigned sideMask = mTile->farms[ idxLocal ].sideLinkMask;
-		int lDirTest;
-		while( FBit::MaskIterator< FDir::TotalNum >( sideMask , lDirTest ) )
+		for( auto iter = TBitMaskIterator< FDir::TotalNum >(sideMask); iter; ++iter )
 		{
-			if ( mTile->canLinkCity( lDirTest ) )
-				mask |= BIT( lDirTest );
+			if( mTile->canLinkCity(iter.index) )
+				mask |= BIT(iter.index);
 		}
 		return LocalToWorldSideLinkMask(mask, rotation);
 	}
@@ -262,27 +261,24 @@ namespace CAR
 		{
 			unsigned sideMask = mTile->sides[IndexHalflingSide].linkDirMask |
 				LocalToWorldSideLinkMask(tile.sides[IndexHalflingSide].linkDirMask, Rotation);
-			unsigned mask = sideMask;
-			int dir;
-			while( FBit::MaskIterator<FDir::TotalNum>(mask, dir) )
+
+			for(auto iter = TBitMaskIterator<FDir::TotalNum>(sideMask); iter; ++iter )
 			{
-				tileMerge->sides[dir].linkDirMask |= sideMask;
+				tileMerge->sides[iter.index].linkDirMask |= sideMask;
 			}
 		}
 
 		for( int i = 0 ; i < 2 ; ++i )
 		{
-
 			unsigned farmMask = mTile->farms[2 * IndexHalflingSide + i].farmLinkMask | 
 				LocalToWorldFarmLinkMask( tile.farms[2 * IndexHalflingSide + (1 - i)].farmLinkMask , Rotation);
 			unsigned sideMask = mTile->farms[2 * IndexHalflingSide + i].sideLinkMask |
 				LocalToWorldFarmLinkMask( tile.farms[2 * IndexHalflingSide + (1 - i)].sideLinkMask , Rotation);
-			unsigned mask = farmMask;
-			int idx;
-			while( FBit::MaskIterator<TilePiece::NumFarm>(mask, idx) )
+
+			for( auto iter = TBitMaskIterator<TilePiece::NumFarm>(farmMask); iter; ++iter )
 			{
-				tileMerge->farms[idx].farmLinkMask |= farmMask;
-				tileMerge->farms[idx].sideLinkMask |= sideMask;
+				tileMerge->farms[iter.index].farmLinkMask |= farmMask;
+				tileMerge->farms[iter.index].sideLinkMask |= sideMask;
 			}
 		}
 		tileMerge->contentFlag = ( TileContent::eTemp | ( mTile->contentFlag | tile.contentFlag ) ) & ~TileContent::eHalfling;
@@ -301,11 +297,9 @@ namespace CAR
 
 	void MapTile::updateSideLink(unsigned linkMask)
 	{
-		int dir;
-		unsigned mask = linkMask;
-		while ( FBit::MaskIterator< FDir::TotalNum >( mask , dir ) )
+		for( auto iter = TBitMaskIterator< FDir::TotalNum >( linkMask ) ; iter ; ++iter )
 		{
-			sideNodes[dir].linkMask = linkMask;
+			sideNodes[iter.index].linkMask = linkMask;
 		}
 	}
 

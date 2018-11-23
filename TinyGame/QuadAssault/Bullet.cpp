@@ -59,7 +59,7 @@ void Bullet::tick()
 
 void Bullet::onTileCollision( ColBody& self , Tile& tile )
 {
-	Block* block = Block::FromType( tile.type );
+	Block* block = Block::Get( tile.id );
 	block->onCollision( tile , this );
 }
 

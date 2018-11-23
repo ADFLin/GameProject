@@ -48,7 +48,7 @@ void Player::init()
 	shiftTrack=0.0;
 	rotation=0.0;
 
-	brzina=200;
+	vel=200;
 
 	mBody.setSize( getSize() - Vec2f(4,4) );
 	mBody.setTypeMask( COL_SOILD | COL_PLAYER | COL_RENDER );
@@ -82,7 +82,7 @@ void Player::update( Vec2f const& aimPos )
 	{
 		Vec2f moment = acceleration * GetDirection( rotation - Math::Deg2Rad(90) );
 
-		Vec2f off = ( brzina * TICK_TIME ) * moment;
+		Vec2f off = ( vel * TICK_TIME ) * moment;
 
 		Vec2f offset = Vec2f( 0 , 0 );
 
@@ -255,11 +255,12 @@ void Player::loseEnergy(float e)
 	if(mEnergy<0.0)
 		mEnergy=0.0;
 }
+
 void Player::addHP(float quantity)
 {
 	mHP += quantity;
-	if(mHP>100.0)
-		mHP=100.0;
+	if(mHP > getMaxHP() )
+		mHP = getMaxHP();
 }
 
 void Player::clearWeapons()

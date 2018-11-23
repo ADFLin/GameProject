@@ -5,6 +5,8 @@
 #include "CmtDeviceFactory.h"
 #include "CmtDeviceID.h"
 
+#include "Core/ScopeExit.h"
+
 #include <fstream>
 #include <algorithm>
 #include <iomanip>
@@ -68,7 +70,7 @@ namespace Chromatron
 	}
 
 
-	Device const* Level::getWorldDevice( Vec2D const& pos) const
+	Device const* Level::getWorldDevice( Vec2i const& pos) const
 	{
 		if( mWorld.isValidRange(pos) )
 			return mWorld.getTile(pos).getDevice();
@@ -91,13 +93,13 @@ namespace Chromatron
 		{
 			Device* dc = *iter;
 			dc->changeDir( Dir::ValueNoCheck( 0 ) );
-			installDevice( *dc , Vec2D( index , 0 ) , false );
+			installDevice( *dc , Vec2i( index , 0 ) , false );
 			++index;
 		}
 		updateWorld();
 	}
 
-	Device* Level::getDevice( PosType posType , Vec2D const& pos )
+	Device* Level::getDevice( PosType posType , Vec2i const& pos )
 	{
 		switch( posType )
 		{
@@ -109,7 +111,7 @@ namespace Chromatron
 		return NULL;
 	}
 
-	bool Level::moveDevice(Device& dc,const Vec2D& pos , bool inWorld ,bool beForce )
+	bool Level::moveDevice(Device& dc,const Vec2i& pos , bool inWorld ,bool beForce )
 	{
 		//assert( ( dc.getFlag() & FB_IS_USING ) != 0 ||
 		//	     ( (  dc.isInWorld() &&  getWorldMapDevice( dc.getPos()) == &dc ) ||
@@ -139,7 +141,7 @@ namespace Chromatron
 		return true;
 	}
 
-	bool Level::moveDevice( Device& dc , PosType posType , Vec2D const& pos , bool beForce )
+	bool Level::moveDevice( Device& dc , PosType posType , Vec2i const& pos , bool beForce )
 	{
 		switch( posType )
 		{
@@ -246,7 +248,7 @@ namespace Chromatron
 	}
 
 
-	Device* Level::createDevice( DeviceId id , PosType posType , Vec2D const& pos , Dir dir , Color color , bool beUserDC )
+	Device* Level::createDevice( DeviceId id , PosType posType , Vec2i const& pos , Dir dir , Color color , bool beUserDC )
 	{
 		if ( posType == PT_NONE )
 			return NULL;
@@ -254,7 +256,7 @@ namespace Chromatron
 		return createDevice( id , pos , dir , color , beUserDC , posType == PT_WORLD );
 	}
 
-	Device* Level::createDevice( DeviceId id , Vec2D const& pos , Dir dir ,Color color , bool beUserDC ,bool inWorld  )
+	Device* Level::createDevice( DeviceId id , Vec2i const& pos , Dir dir ,Color color , bool beUserDC ,bool inWorld  )
 	{
 		if ( !isValidRange( pos , inWorld ) )
 			return NULL;
@@ -283,7 +285,7 @@ namespace Chromatron
 		return dc;
 	}
 
-	void Level::setMapType( Vec2D const& pos , MapType type )
+	void Level::setMapType( Vec2i const& pos , MapType type )
 	{
 		assert( isValidRange( pos , true ) );
 
@@ -327,7 +329,7 @@ namespace Chromatron
 
 				for( unsigned i = 0 ; i < num ; ++i )
 				{
-					Vec2D pos( idx % getMapSize() , idx / getMapSize() );
+					Vec2i pos( idx % getMapSize() , idx / getMapSize() );
 					Device* dc = createDevice(  id , pos , dir , color , false , true );
 					assert( dc );
 					++idx;
@@ -341,7 +343,7 @@ namespace Chromatron
 
 				for( unsigned i = 0 ; i < num ; ++i )
 				{
-					Vec2D pos( idx % getMapSize() , idx / getMapSize() );
+					Vec2i pos( idx % getMapSize() , idx / getMapSize() );
 					mWorld.getTile( pos ).setType( type ); 
 					++idx;
 				}
@@ -400,7 +402,7 @@ namespace Chromatron
 		{
 			for( int i = 0; i < getMapSize() ; ++i )
 			{
-				Tile& tile = mWorld.getTile( Vec2D(i,j) );
+				Tile& tile = mWorld.getTile( Vec2i(i,j) );
 
 				Device* dc = tile.getDevice();
 
@@ -536,7 +538,7 @@ namespace Chromatron
 			Color color = Color( info.color );
 			for ( ; num ; --num )
 			{
-				Device* dc = createDevice(  id , Vec2D( idx , 0 ) , Dir(0) , color , true , false );
+				Device* dc = createDevice(  id , Vec2i( idx , 0 ) , Dir(0) , color , true , false );
 				++idx;
 			}
 			stream.peek();
@@ -577,7 +579,7 @@ namespace Chromatron
 
 		static int const offsetPos = 30;
 
-		void decode( char const* buf , Vec2D& pos , Dir& dir , bool& inWorld )
+		void decode( char const* buf , Vec2i& pos , Dir& dir , bool& inWorld )
 		{
 			int code = toInt( buf[0] ) + toInt( buf[1] ) * 52;
 
@@ -608,7 +610,7 @@ namespace Chromatron
 
 		void encode( char* buf , Device const& dc )
 		{
-			Vec2D const& pos = dc.getPos();
+			Vec2i const& pos = dc.getPos();
 
 			int code = dc.getDir();
 
@@ -663,7 +665,7 @@ namespace Chromatron
 	int  Level::loadDCStateFromCode( char const* code , int maxLen )
 	{
 		Dir   dir(0);
-		Vec2D pos;
+		Vec2i pos;
 		bool  inWorld;
 
 		int len = 0;
@@ -731,7 +733,7 @@ namespace Chromatron
 		return true;
 	}
 
-	bool Level::isValidRange( const Vec2D& pos , bool inWorld )
+	bool Level::isValidRange( const Vec2i& pos , bool inWorld )
 	{
 		if ( inWorld )
 			return mWorld.isValidRange( pos );
@@ -750,7 +752,7 @@ namespace Chromatron
 		DeviceFactory::Destroy( &dc );
 	}
 
-	void Level::installDevice( Device& dc , Vec2D const& pos , bool inWorld )
+	void Level::installDevice( Device& dc , Vec2i const& pos , bool inWorld )
 	{
 		assert( !inWorld || mWorld.canSetup( pos ) );
 		assert(  inWorld || ( 0 <= pos.x && pos.x < MaxNumUserDC ) );
@@ -798,7 +800,7 @@ namespace Chromatron
 		}
 	}
 
-	bool Level::saveLevelData( std::ostream& stream , Level*  level[] , int num )
+	bool Level::SaveData( std::ostream& stream , Level*  level[] , int num )
 	{
 		using std::ios;
 		unsigned gameHeaderSize = sizeof(GameInfoHeaderV2) + sizeof( unsigned ) * num ;
@@ -809,6 +811,11 @@ namespace Chromatron
 
 		if ( gameHeader == NULL )
 			return false;
+
+		ON_SCOPE_EXIT
+		{
+			free(gameHeader);
+		};
 
 		gameHeader->version = GAME_DATA_VERSION;
 		gameHeader->totalSize = gameHeaderSize;
@@ -839,13 +846,10 @@ namespace Chromatron
 		stream.write( (char*)gameHeader , gameHeaderSize );
 
 		stream.seekp( ios::end , 0 );
-
-		free( gameHeader );
-
 		return true;
 	}
 
-	int Level::loadLevelData( std::istream& stream , Level*  level[] , int num )
+	int Level::LoadData( std::istream& stream , Level*  level[] , int num )
 	{
 		using std::ios;
 		typedef GameInfoHeaderBaseV2 GameInfoHeaderBaseLD;
@@ -858,9 +862,13 @@ namespace Chromatron
 		stream.read( (char*) &tempHeader , sizeof(tempHeader) );
 
 		GameInfoHeaderLD* gameHeader = (GameInfoHeaderLD*) malloc( tempHeader.headerSize );
-
 		if ( gameHeader == NULL )
 			return 0;
+
+		ON_SCOPE_EXIT
+		{
+			free(gameHeader);
+		};
 
 		stream.seekg( pos );
 		stream.read( (char*)gameHeader , tempHeader.headerSize );
@@ -880,9 +888,6 @@ namespace Chromatron
 		}
 
 		num = gameHeader->numLevel;
-
-		free( gameHeader );
-
 		return num;
 	}
 
@@ -900,10 +905,13 @@ namespace Chromatron
 		stream.read((char*)&tempHeader, sizeof(tempHeader));
 
 		GameInfoHeaderLD* gameHeader = (GameInfoHeaderLD*)malloc(tempHeader.headerSize);
-
 		if (gameHeader == NULL)
 			return false;
 
+		ON_SCOPE_EXIT
+		{
+			free(gameHeader);
+		};
 		stream.seekg(pos);
 		stream.read((char*)gameHeader, tempHeader.headerSize);
 
@@ -916,8 +924,6 @@ namespace Chromatron
 		stream.seekg(gameHeader->offsetLevel[idxLevelData], ios::cur);
 
 		level.load(stream, gameHeader->version);
-
-		free(gameHeader);
 		return true;
 	}
 

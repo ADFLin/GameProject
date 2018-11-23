@@ -39,20 +39,20 @@ namespace Chromatron
 			PT_WORLD   ,
 			PT_STROAGE ,
 		};
-		bool    moveDevice( Device& dc , const Vec2D& pos , bool inWorld ,bool beForce = false );
-		bool    moveDevice( Device& dc , PosType posType , Vec2D const& pos ,  bool beForce = false );
+		bool    moveDevice( Device& dc , const Vec2i& pos , bool inWorld ,bool beForce = false );
+		bool    moveDevice( Device& dc , PosType posType , Vec2i const& pos ,  bool beForce = false );
 
-		Device* getDevice( PosType posType , Vec2D const& pos );
-		Device* createDevice( DeviceId id ,PosType posType , Vec2D const& pos , 
+		Device* getDevice( PosType posType , Vec2i const& pos );
+		Device* createDevice( DeviceId id ,PosType posType , Vec2i const& pos , 
 			                  Dir dir , Color color , bool beUserDC );
-		Device* createDevice( DeviceId id , Vec2D const& pos , Dir dir , 
+		Device* createDevice( DeviceId id , Vec2i const& pos , Dir dir , 
 			                  Color color , bool beUserDC ,bool inWorld = true );
 
 		int     getMapSize(){ return MapSize; }
 
-		Device const* getWorldDevice( Vec2D const& pos ) const;
+		Device const* getWorldDevice( Vec2i const& pos ) const;
 		Device const* getStorageDevice( int idx ) const { assert( 0 <= idx && idx < MaxNumUserDC ); return mStorgeMap[idx]; }
-		Device*  getWorldDevice(Vec2D const& pos) { return const_cast<Device*>(static_cast<Level const&>(*this).getWorldDevice(pos)); }
+		Device*  getWorldDevice(Vec2i const& pos) { return const_cast<Device*>(static_cast<Level const&>(*this).getWorldDevice(pos)); }
 		Device*  getStorageDevice(int idx) { return const_cast<Device*>(static_cast<Level const&>(*this).getStorageDevice(idx)); }
 
 		void    updateWorld();
@@ -61,7 +61,7 @@ namespace Chromatron
 
 		unsigned getUserDCNum(){ return mUserDC.size(); }
 
-		void     setMapType( Vec2D const& pos , MapType type );
+		void     setMapType( Vec2i const& pos , MapType type );
 		bool     tryModifyDeviceType( Device& dc , DeviceId id );
 		void     uninstallDevice( Device& dc );
 		void     destoryDevice( Device& dc );
@@ -72,7 +72,7 @@ namespace Chromatron
 		bool     tryToggleDeivceAccess( Device& dc );
 
 		bool     isGoal() const { return mIsGoal; }
-		bool     isValidRange( const Vec2D& pos , bool inWorld );
+		bool     isValidRange( const Vec2i& pos , bool inWorld );
 
 		World const&  getWorld() const { return mWorld;  }
 		void     restart();
@@ -102,8 +102,8 @@ namespace Chromatron
 		void     load( std::istream& stream , unsigned version);
 
 		static bool loadLevel(Level& level, std::istream& stream, int idxLevelData);
-		static bool saveLevelData( std::ostream& stream , Level* level[] , int num );
-		static int  loadLevelData( std::istream& stream , Level* level[] , int num );
+		static bool SaveData( std::ostream& stream , Level* level[] , int num );
+		static int  LoadData( std::istream& stream , Level* level[] , int num );
 		static bool loadDCState( std::istream& stream , Level* level[] , int numLevel );
 		static bool saveDCState( std::ostream& stream , Level* level[] , int numLevel );
 
@@ -115,7 +115,7 @@ namespace Chromatron
 		void     loadUserDC( LevelInfoHeader& header , std::istream& stream , unsigned version );
 
 
-		void     installDevice( Device& dc , Vec2D const& pos , bool inWorld );
+		void     installDevice( Device& dc , Vec2i const& pos , bool inWorld );
 
 		
 		void   resetDeviceFlag( bool beRestart );

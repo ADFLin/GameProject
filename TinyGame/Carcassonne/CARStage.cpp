@@ -1127,16 +1127,17 @@ namespace CAR
 					{
 						offset = Vector2(0,0.5);
 					}
-					unsigned mask = info.actorTypeMask;
-					int type;
-					for ( int num = 0; FBit::MaskIterator< 32 >( mask , type ) ; ++num )
+
+					int num = 0;
+					for( auto iter = TBitMaskIterator< 32 >(info.actorTypeMask); iter; ++iter )
 					{
 						ActorPosButton* button = new ActorPosButton( UI_ACTOR_POS_BUTTON ,  convertToScreenPos( pos + offset * num  ) - size / 2 , size , nullptr );
 						button->indexPos = i;
-						button->type     = ActorType( type );
+						button->type     = ActorType( iter.index );
 						button->info     = &info;
 						button->mapPos   = pos + offset * num;
 						addActionWidget( button );
+						++num;
 					}
 				}
 			}
@@ -1283,11 +1284,10 @@ namespace CAR
 			{
 				Vector2 offset = Vector2(0,0);
 				unsigned mask = mapTile.getFarmLinkMask( pos.meta );
-				int idx;
 				int count = 0;
-				while( FBit::MaskIterator< TilePiece::NumFarm >(mask,idx))
+				for( auto iter = TBitMaskIterator< TilePiece::NumFarm >(mask); iter; ++iter )
 				{
-					offset += FarmPos[idx];
+					offset += FarmPos[iter.index];
 					++count;
 				}
 				result += offset / count;
@@ -1300,11 +1300,10 @@ namespace CAR
 				{
 					Vector2 offset = Vector2(0,0);
 					unsigned mask = mapTile.getSideLinkMask( pos.meta );
-					int idx;
 					int count = 0;
-					while( FBit::MaskIterator< FDir::TotalNum >(mask,idx))
+					for( auto iter = TBitMaskIterator< FDir::TotalNum >(mask); iter; ++iter )
 					{
-						offset += SidePos[idx];
+						offset += SidePos[iter.index];
 						++count;
 					}
 					result += offset / count;

@@ -48,7 +48,7 @@
 
 void WorldData::build()
 {
-	Block::initialize();
+	Block::Initialize();
 	IRenderer::initialize();
 
 	mObjectCreator = new ObjectCreator;
@@ -67,7 +67,7 @@ void WorldData::build()
 void WorldData::cleanup()
 {
 	IRenderer::cleanup();
-	Block::cleanup();
+	Block::Cleanup();
 }
 
 void WorldData::reigsterObject()
@@ -102,7 +102,7 @@ bool LevelStageBase::onInit()
 	mPause    = false;
 	mTexCursor = getRenderSystem()->getTextureMgr()->getTexture("cursor.tga");
 
-	mDevMsg.reset( IText::create( getGame()->getFont( 0 ) , 18 , Color(50,255,50) ) );
+	mDevMsg.reset( IText::create( getGame()->getFont( 0 ) , 18 , Color4ub(50,255,50) ) );
 	return true;
 }
 
@@ -436,7 +436,7 @@ bool LevelStage::onKey( unsigned key , bool isDown )
 
 	switch( key )
 	{
-	case Keyboard::eF1:
+	case Keyboard::eF4:
 		{
 			LevelEditStage* stage = new LevelEditStage;
 			//FIXME
@@ -555,7 +555,7 @@ void LevelStage::loadLevel()
 					if ( terrain.checkRange( x , y ) )
 					{
 						Tile& tile = terrain.getData( x , y ); 
-						tile.type = type;
+						tile.id = type;
 						tile.meta = meta;
 					}
 				}
@@ -754,7 +754,7 @@ void LevelStage::renderLoading()
 	glLoadIdentity();
 	drawSprite(Vec2f(0.0, 0.0), Vec2f(getGame()->getScreenSize().x, getGame()->getScreenSize().y), texBG2 );	
 
-	IText* t = IText::create( getGame()->getFont(0) , 35 , Color(50,255,50) );
+	IText* t = IText::create( getGame()->getFont(0) , 35 , Color4ub(50,255,50) );
 	t->setString( "Loading Data..." );
 	Vec2i pos = getGame()->getScreenSize() / 2;
 	getRenderSystem()->drawText( t , pos );

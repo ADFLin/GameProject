@@ -6,12 +6,14 @@
 #include "FrameAllocator.h"
 #include "GBuffer.h"
 
+
+#include "RHI/ShaderCore.h"
+
 class ColBody;
 typedef std::vector< ColBody* > ColBodyVec;
 
 class Level;
 class Object;
-class Shader;
 class Light;
 class IObjectRenderer;
 
@@ -32,8 +34,6 @@ enum RenderMode
 
 	NUM_RENDER_MODE ,
 };
-
-
 
 struct RenderParam
 {
@@ -79,7 +79,7 @@ private:
 	void   renderTerrainShadow( Level* level , Vec2f const& lightPos , Light* light , TileRange const& range );
 	void   renderLight( RenderParam& param , Vec2f const& lightPos , Light* light );
 	bool   setupFBO( int width , int height );
-	void   setupLightShaderParam( Shader* shader , Light* light );
+	void   setupLightShaderParam(Render::ShaderProgram& shader , Light* light );
 
 	void   updateRenderGroup( RenderParam& param );
 
@@ -96,15 +96,17 @@ private:
 	float   mFrameWidth;
 	float   mFrameHeight;
 
-	Shader* mShaderLighting;
+	Render::ShaderProgram mShaderLighting;
 	static int const NumMode = 3;
-	Shader* mShaderScene[NumMode];
+	Render::ShaderProgram mShaderScene[NumMode];
 
 	GLuint mFBO;	
 	GLuint mRBODepth;
-	GLuint mTexLightmap;
-	GLuint mTexNormalMap;
-	GLuint mTexGeometry;
+
+	Render::RHITexture2DRef mTexLightmap;
+	Render::RHITexture2DRef mTexNormalMap;
+	Render::RHITexture2DRef mTexGeometry;
+
 	Vec3f  mAmbientLight;
 
 };

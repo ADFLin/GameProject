@@ -24,23 +24,23 @@ namespace Chromatron
 		mTileMap.resize( sx , sy );
 	}
 
-	bool World::isValidRange(Vec2D const& pos) const
+	bool World::isValidRange(Vec2i const& pos) const
 	{
 		return mTileMap.checkRange( pos.x , pos.y );
 	}
 
-	Tile const& World::getTile(Vec2D const& pos) const
+	Tile const& World::getTile(Vec2i const& pos) const
 	{
 		return mTileMap.getData( pos.x , pos.y );
 	}
 
-	Tile& World::getTile( Vec2D const& pos )
+	Tile& World::getTile( Vec2i const& pos )
 	{
 		return mTileMap.getData( pos.x , pos.y );
 	}
 
 
-	static Vec2D const gTestOffset[] = { Vec2D(0,-1) , Vec2D(-1,-1) , Vec2D(-1,0) , Vec2D(0,0) };
+	static Vec2i const gTestOffset[] = { Vec2i(0,-1) , Vec2i(-1,-1) , Vec2i(-1,0) , Vec2i(0,0) };
 
 	bool World::transmitLightStep( LightTrace& light , Tile** curTile )
 	{
@@ -50,7 +50,7 @@ namespace Chromatron
 
 		if ( light.getDir() % 2 == 1 )
 		{
-			Vec2D testPos = light.getEndPos() + gTestOffset[ light.getDir() / 2 ];
+			Vec2i testPos = light.getEndPos() + gTestOffset[ light.getDir() / 2 ];
 			if ( isValidRange( testPos ) && getTile( testPos ).blockRBConcerLight() )
 				return false;
 		}
@@ -128,7 +128,7 @@ namespace Chromatron
 						LightList::iterator lightIter = *eIter;
 						LightTrace& light = *lightIter;
 
-						Vec2D const& pos = light.getEndPos();
+						Vec2i const& pos = light.getEndPos();
 
 						assert( isValidRange( pos ) );
 
@@ -216,7 +216,7 @@ SyncEnd:
 		}
 	}
 
-	int World::countSameLighPathColortStepNum(Vec2D const& pos, Dir dir) const
+	int World::countSameLighPathColortStepNum(Vec2i const& pos, Dir dir) const
 	{
 		assert(isValidRange(pos));
 		Color color = getTile(pos).getLightPathColor(dir);
@@ -224,7 +224,7 @@ SyncEnd:
 			return 0;
 		int result = 1;
 		Dir invDir = dir.inverse();
-		Vec2D testPos = pos;
+		Vec2i testPos = pos;
 		for (;;)
 		{
 			testPos += LightTrace::GetDirOffset(dir);
@@ -253,7 +253,7 @@ SyncEnd:
 		return result;
 	}
 
-	bool World::isLightPathEndpoint(Vec2D const& pos, Dir dir) const
+	bool World::isLightPathEndpoint(Vec2i const& pos, Dir dir) const
 	{
 		assert(isValidRange(pos));
 
@@ -266,7 +266,7 @@ SyncEnd:
 			Dir invDir = dir.inverse();
 			if (color == tile.getLightPathColor(invDir))
 			{
-				Vec2D invPos = pos + LightTrace::GetDirOffset(invDir);
+				Vec2i invPos = pos + LightTrace::GetDirOffset(invDir);
 				if ( isValidRange( invPos ) && 
 					 getTile( invPos ).getLightPathColor( dir ) == color )
 					return false;
@@ -322,7 +322,7 @@ SyncEnd:
 		return context.mStatus;
 	}
 
-	Device* World::goNextDevice( Dir dir , Vec2D& curPos )
+	Device* World::goNextDevice( Dir dir , Vec2i& curPos )
 	{
 		for(;;)
 		{
@@ -358,10 +358,10 @@ SyncEnd:
 		mLightCount = 0;
 		mNormalLights.clear();
 		mStatus = TSS_OK;
-		mIsSyncMode = false;
+		mbSyncMode = false;
 	}
 
-	void WorldUpdateContext::addLight(Vec2D const& pos , Color color , Dir dir)
+	void WorldUpdateContext::addLight(Vec2i const& pos , Color color , Dir dir)
 	{
 		if ( color == COLOR_NULL )
 			return;

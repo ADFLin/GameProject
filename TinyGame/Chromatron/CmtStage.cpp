@@ -279,7 +279,7 @@ namespace Chromatron
 			assert( header->numLevel <= MaxNumLevel );
 			std::istringstream ss( str , std::ios::binary  );
 
-			mNumLevel = Level::loadLevelData( ss , mLevelStorage , MaxNumLevel );
+			mNumLevel = Level::LoadData( ss , mLevelStorage , MaxNumLevel );
 
 			if ( mNumLevel != header->numLevel )
 			{

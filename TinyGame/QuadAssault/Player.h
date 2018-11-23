@@ -56,16 +56,15 @@ private:
 
 	ColBody mBody;
 
-	float brzina; //najveca moguca brzina kretanja	
-
+	float vel;
 	bool  mIsDead;
 
 	float acceleration;
 
 	float rotationAim;
 
-	float mHP; //zdravlje	
-	float mEnergy; //za pucanje
+	float mHP;
+	float mEnergy;
 
 	static int const NUM_WEAPON_SLOT = 4;
 	Weapon* mWeaponSlot[ NUM_WEAPON_SLOT ];

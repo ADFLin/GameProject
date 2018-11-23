@@ -88,7 +88,7 @@ bool Game::init( char const* pathConfig , Vec2i const& screenSize , bool bCreate
 	mRenderEngine.reset( new RenderEngine );
 
 	QA_LOG("Initialize Render Engine...");
-	mRenderEngine->init( width , height );
+	VERIFY_RETURN_FALSE(mRenderEngine->init(width, height));
 		
 	mNeedEnd=false;
 	srand(time(NULL));
@@ -232,7 +232,7 @@ void Game::run()
 	
 	timeFrame = Platform::GetTickCount();
 	frameCount = 0;
-	text = IText::create( mFonts[0] , 18 , Color(255,255,25) );
+	text = IText::create( mFonts[0] , 18 , Color4ub(255,255,25) );
 
 	std::fill_n( fpsSamples , NUM_FPS_SAMPLES , 60.0f );
 

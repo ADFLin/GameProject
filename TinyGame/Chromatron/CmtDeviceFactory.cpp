@@ -211,7 +211,7 @@ namespace Chromatron
 		static int const QStatsUp   =  1;
 		static int const QStatsDown = -1;
 
-		void solve( Vec2D const& pos , LightTrace const& light )
+		void solve( Vec2i const& pos , LightTrace const& light )
 		{
 			Color color = light.getColor();
 
@@ -224,7 +224,7 @@ namespace Chromatron
 				keep = solveColor( pos , light.getDir() , COLOR_B );
 		}
 
-		bool solveColor( Vec2D const& pos , Dir const& dir , Color color )
+		bool solveColor( Vec2i const& pos , Dir const& dir , Color color )
 		{
 			if ( mContext.getTile( pos ).getReceivedLightColor( dir.inverse() ) & color )
 				return true;
@@ -281,7 +281,7 @@ namespace Chromatron
 			return result;
 		}
 
-		bool prevAddLight( Vec2D const& pos , Color color , Dir dir , int param , int age )
+		bool prevAddLight( Vec2i const& pos , Color color , Dir dir , int param , int age )
 		{
 			if ( param == 0 )
 			{
@@ -363,7 +363,7 @@ namespace Chromatron
 		WorldUpdateContext& mContext;
 		LightList  mTransmitLights;
 		LightList  mCheckLights;
-		Vec2D      mPos;
+		Vec2i      mPos;
 		Dir        mDir;
 		Color      mColor;
 	};
@@ -384,7 +384,7 @@ namespace Chromatron
 	public:
 		QRotatorEffectSolver( WorldUpdateContext& context ):mContext( context ){}
 
-		void solve( Vec2D const& pos , LightTrace const& light )
+		void solve( Vec2i const& pos , LightTrace const& light )
 		{
 			bool keep = true;
 		}
@@ -408,7 +408,7 @@ namespace Chromatron
 	void DeviceFun::Effect< DC_TELEPORTER >( Device& dc , WorldUpdateContext& context , LightTrace const& light )
 	{
 		Dir dir = light.getDir();
-		Vec2D pos = dc.getPos();
+		Vec2i pos = dc.getPos();
 
 		World& world = context.getWorld();
 		for(;;)

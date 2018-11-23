@@ -203,12 +203,12 @@ namespace Render
 		Vector4 col2 = clipToWorld.col(2);
 		Vector4 col3 = clipToWorld.col(3);
 
-		frustumPlanes[0] = Plane::FrameVector4(col3 - col2);  //zFar
-		frustumPlanes[1] = Plane::FrameVector4(col3 + col2);  //zNear
-		frustumPlanes[2] = Plane::FrameVector4(col3 - col0);  //top
-		frustumPlanes[3] = Plane::FrameVector4(col3 + col0);  //bottom
-		frustumPlanes[4] = Plane::FrameVector4(col3 - col0);  //right
-		frustumPlanes[4] = Plane::FrameVector4(col3 + col0);  //left
+		frustumPlanes[0] = Plane::FromVector4(col3 - col2);  //zFar
+		frustumPlanes[1] = Plane::FromVector4(col3 + col2);  //zNear
+		frustumPlanes[2] = Plane::FromVector4(col3 - col0);  //top
+		frustumPlanes[3] = Plane::FromVector4(col3 + col0);  //bottom
+		frustumPlanes[4] = Plane::FromVector4(col3 - col0);  //right
+		frustumPlanes[4] = Plane::FromVector4(col3 + col0);  //left
 
 #endif
 	}

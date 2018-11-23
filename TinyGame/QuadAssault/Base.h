@@ -24,6 +24,7 @@ typedef FixString< 512 > FString;
 #include "Holder.h"
 
 #include "Rect.h"
+#include "Core/Color.h"
 
 typedef TRect< float > Rect;
 
@@ -68,16 +69,6 @@ class Block;
 class AreaTrigger;
 
 class Texture;
-
-
-struct Color
-{
-	Color(){}
-	Color( uint8 r , uint8 g , uint8 b , uint8 a = 255 )
-		:r(r),g(g),b(b),a(a){}
-	uint8 r , g , b , a;
-};
-
 
 enum RenderPass
 {

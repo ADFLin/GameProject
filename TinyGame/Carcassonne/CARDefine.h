@@ -19,10 +19,13 @@ namespace CAR
 	class LevelActor;
 
 	typedef uint32 TileId;
+	typedef int    PlayerId;
+
 	TileId const FAIL_TILE_ID = TileId(-1);
 	TileId const TEMP_TILE_ID = TileId(-2);
 
-	int const FAIL_PLAYER_ID = 31;
+	PlayerId const CAR_ERROR_PLAYER_ID = PlayerId(-1);
+	PlayerId const FAIL_PLAYER_ID = PlayerId(31);
 
 	int const ERROR_GROUP_ID = -1;
 	int const ABBEY_GROUP_ID = -2;

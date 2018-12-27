@@ -106,10 +106,10 @@ template< class FrameData >
 class TKeyFrameActionTemplate : public FrameActionHelper< TKeyFrameActionTemplate< FrameData > >
 {
 public:
-	TKeyFrameActionTemplate( size_t dataMaxSize )
-		:mFrameData( new FrameData[ dataMaxSize ] )
-		,mPortDataMap( new unsigned[ dataMaxSize ] )
-		,mDataMaxSize( dataMaxSize )
+	TKeyFrameActionTemplate( size_t dataMaxNum )
+		:mFrameData( new FrameData[ dataMaxNum ] )
+		,mPortDataMap( new unsigned[ dataMaxNum ] )
+		,mDataMaxNum( dataMaxNum )
 	{
 
 	}
@@ -118,7 +118,7 @@ public:
 	{
 		unsigned const ERROR_DATA_ID = unsigned(-1);
 
-		for( size_t i = 0 ; i < mDataMaxSize ; ++i )
+		for( size_t i = 0 ; i < mDataMaxNum ; ++i )
 			mPortDataMap[i] = ERROR_DATA_ID;
 		mNumPort = 0;
 
@@ -204,7 +204,7 @@ public:
 	}
 
 protected:
-	size_t  mDataMaxSize;
+	size_t  mDataMaxNum;
 	size_t  mNumPort;
 	TArrayHolder<FrameData> mFrameData;
 	TArrayHolder<unsigned > mPortDataMap;
@@ -215,8 +215,8 @@ template< class FrameData >
 class TSVKeyFrameGenerator : public ServerFrameHelper< TKeyFrameActionTemplate<FrameData > >
 {
 public:
-	TSVKeyFrameGenerator( size_t dataMaxSize )
-		:ServerFrameHelper< TKeyFrameActionTemplate<FrameData > >( dataMaxSize ){}
+	TSVKeyFrameGenerator( size_t dataMaxNum )
+		:ServerFrameHelper< TKeyFrameActionTemplate<FrameData > >( dataMaxNum ){}
 
 	void recvClientData( unsigned pID , DataSteamBuffer& buffer )
 	{

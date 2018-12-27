@@ -145,7 +145,7 @@ namespace Render
 		static FontCharCache sInstance;
 		return sInstance;
 	}
-#endif //CORE_SHARE_CODE
+
 
 	bool FontCharCache::initialize()
 	{
@@ -210,6 +210,8 @@ namespace Render
 		}
 		return iter->second;
 	}
+
+#endif //CORE_SHARE_CODE
 
 	bool CharDataSet::initialize(FontFaceInfo const& font)
 	{

@@ -37,15 +37,15 @@ namespace CAR
 	public:
 		LevelActor()
 		{
+			ownerId = CAR_ERROR_PLAYER_ID;
 			feature = nullptr;
 			mapTile = nullptr;
-			owner   = nullptr;
 			userData = nullptr;
 			binder = nullptr;
 		}
 		ActorType   type;
 		
-		PlayerBase*  owner;
+		PlayerId     ownerId;
 		ActorPos     pos;
 		MapTile*     mapTile;
 		FeatureBase* feature;

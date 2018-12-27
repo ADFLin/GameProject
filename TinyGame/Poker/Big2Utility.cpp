@@ -4,7 +4,7 @@
 #include <algorithm>
 
 template <typename Iter>
-inline bool next_combination(const Iter first, Iter k, const Iter last)
+inline bool NextCombination(const Iter first, Iter k, const Iter last)
 {
 	if ((first == last) || (first == k) || (last == k))
 		return false;
@@ -44,7 +44,7 @@ inline bool next_combination(const Iter first, Iter k, const Iter last)
 void test()
 {
 	int n[] = { 0 , 1 , 2 , 3 , 4 };
-	//next_combination( n , n + 3 , n )
+	//NextCombination( n , n + 3 , n )
 }
 
 namespace Poker { namespace Big2 {
@@ -541,7 +541,7 @@ namespace Poker { namespace Big2 {
 					Card cards[5];
 					for( int i = 0 ; i < 5 ; ++ i )
 						cards[i] = mParseCards[ outIndex[i] ];
-					*power = TrickUtility::calcPower( CG_STRAIGHT , cards );
+					*power = FTrick::CalcPower( CG_STRAIGHT , cards );
 				}
 			}
 			break;
@@ -557,7 +557,7 @@ namespace Poker { namespace Big2 {
 					Card cards[5];
 					for( int i = 0 ; i < 5 ; ++ i )
 						cards[i] = mParseCards[ outIndex[i] ];
-					*power = TrickUtility::calcPower( CG_FLUSH , cards );
+					*power = FTrick::CalcPower( CG_FLUSH , cards );
 				}
 			}	
 			break;
@@ -572,7 +572,7 @@ namespace Poker { namespace Big2 {
 					Card cards[5];
 					for( int i = 0 ; i < 5 ; ++ i )
 						cards[i] = mParseCards[ outIndex[i] ];
-					*power = TrickUtility::calcPower( CG_FULL_HOUSE , cards );
+					*power = FTrick::CalcPower( CG_FULL_HOUSE , cards );
 				}
 			}
 			break;
@@ -589,7 +589,7 @@ namespace Poker { namespace Big2 {
 					Card cards[5];
 					for( int i = 0 ; i < 5 ; ++ i )
 						cards[i] = mParseCards[ outIndex[i] ];
-					*power = TrickUtility::calcPower( CG_FOUR_OF_KIND , cards );
+					*power = FTrick::CalcPower( CG_FOUR_OF_KIND , cards );
 				}	
 			}
 			break;
@@ -626,7 +626,7 @@ namespace Poker { namespace Big2 {
 					Card cards[5];
 					for( int i = 0 ; i < 5 ; ++ i )
 						cards[i] = mParseCards[ outIndex[i] ];
-					*power = TrickUtility::calcPower( CG_STRAIGHT_FLUSH , cards );
+					*power = FTrick::CalcPower( CG_STRAIGHT_FLUSH , cards );
 				}	
 			}
 			break;
@@ -661,7 +661,7 @@ namespace Poker { namespace Big2 {
 		outIndex[0] = mFaceGroups[ data.cur ].index + data.count;
 		if ( power )
 		{
-			*power = TrickUtility::calcPower( CG_SINGLE , mParseCards + outIndex[0] );
+			*power = FTrick::CalcPower( CG_SINGLE , mParseCards + outIndex[0] );
 		}
 	}
 
@@ -769,7 +769,7 @@ namespace Poker { namespace Big2 {
 				mParseCards[ outIndex[0] ] , 
 				mParseCards[ outIndex[1] ] ,
 			};
-			*power = TrickUtility::calcPower( CG_THREE_OF_KIND , cards );
+			*power = FTrick::CalcPower( CG_THREE_OF_KIND , cards );
 		}
 	}
 
@@ -870,7 +870,7 @@ namespace Poker { namespace Big2 {
 				mParseCards[ outIndex[1] ] ,
 				mParseCards[ outIndex[2] ] 
 			};
-			*power = TrickUtility::calcPower( CG_THREE_OF_KIND , cards );
+			*power = FTrick::CalcPower( CG_THREE_OF_KIND , cards );
 		}
 	}
 
@@ -926,13 +926,13 @@ namespace Poker { namespace Big2 {
 	{
 		mHelper = NULL;
 		mGroup  = CG_NONE;
-		mbe = false;
+		mbOK = false;
 	}
 
 	void TrickIterator::goNext()
 	{
-		mbe = mHelper->nextIterator( mGroup , mIterData );
-		if ( mbe )
+		mbOK = mHelper->nextIterator( mGroup , mIterData );
+		if ( mbOK )
 			mHelper->valueIterator( mGroup , mIterData , mIndex , NULL );
 	}
 
@@ -940,8 +940,8 @@ namespace Poker { namespace Big2 {
 	{
 		while( 1 )
 		{
-			mbe = mHelper->nextIterator( mGroup , mIterData );
-			if ( !mbe )
+			mbOK = mHelper->nextIterator( mGroup , mIterData );
+			if ( !mbOK )
 				break;
 
 			int curPower;
@@ -953,15 +953,15 @@ namespace Poker { namespace Big2 {
 
 	void TrickIterator::reset()
 	{
-		mbe = mHelper->initIterator( mGroup , mIterData );
-		if ( mbe )
+		mbOK = mHelper->initIterator( mGroup , mIterData );
+		if ( mbOK )
 			mHelper->valueIterator( mGroup , mIterData , mIndex , NULL );
 	}
 
 	bool TrickIterator::reset( int power )
 	{
-		mbe = mHelper->initIterator( mGroup , mIterData );
-		if ( !mbe )
+		mbOK = mHelper->initIterator( mGroup , mIterData );
+		if ( !mbOK )
 			return false;
 
 		while( 1 )
@@ -970,8 +970,8 @@ namespace Poker { namespace Big2 {
 			mHelper->valueIterator( mGroup , mIterData , mIndex , &curPower );
 			if ( curPower > power )
 				break;
-			mbe = mHelper->nextIterator( mGroup , mIterData );
-			if ( !mbe )
+			mbOK = mHelper->nextIterator( mGroup , mIterData );
+			if ( !mbOK )
 				break;
 		}
 
@@ -980,13 +980,13 @@ namespace Poker { namespace Big2 {
 
 	int* TrickIterator::getIndex( int& num )
 	{
-		num = TrickUtility::getGroupNum( mGroup ); 
+		num = FTrick::GetGroupNum( mGroup ); 
 		return mIndex;
 	}
 
 	bool TrickHelper::IterFace::nextCombine( int m , int n )
 	{
-		return next_combination( combine , combine + n , combine + m );
+		return NextCombination( combine , combine + n , combine + m );
 	}
 
 	void TrickHelper::IterFace::initCombine( int num )
@@ -997,7 +997,7 @@ namespace Poker { namespace Big2 {
 
 	bool TrickHelper::IterFlush::nextCombine( int m , int n )
 	{
-		return next_combination( combine , combine + n , combine + m );
+		return NextCombination( combine , combine + n , combine + m );
 	}
 
 	void TrickHelper::IterFlush::initCombine( int num )
@@ -1006,7 +1006,7 @@ namespace Poker { namespace Big2 {
 			combine[i] = i;
 	}
 
-	bool TrickUtility::canSuppress( TrickInfo const& info , TrickInfo const& prevInfo )
+	bool FTrick::CanSuppress( TrickInfo const& info , TrickInfo const& prevInfo )
 	{
 		switch ( info.group )
 		{
@@ -1027,50 +1027,50 @@ namespace Poker { namespace Big2 {
 		return false;
 	}
 
-	int TrickUtility::getRankPower( int rank )
+	int FTrick::GetRankPower( int rank )
 	{
 		int const big2Power[13] = { 12 , 13 , 1 , 2 , 3, 4 , 5 , 6 , 7 , 8 , 9 , 10 , 11 };
 		return big2Power[ rank ];
 	}
 
-	int TrickUtility::calcPower( Card const& card )
+	int FTrick::CalcPower( Card const& card )
 	{
-		return 4 * getRankPower( card.getFaceRank() ) + card.getSuit();
+		return 4 * GetRankPower( card.getFaceRank() ) + card.getSuit();
 	}
 
-	int TrickUtility::calcPower( CardGroup group , Card cards[] )
+	int FTrick::CalcPower( CardGroup group , Card cards[] )
 	{
 		switch( group )
 		{		
 		case CG_SINGLE:
-			return calcPower( cards[0] );
+			return CalcPower( cards[0] );
 		case CG_ONE_PAIR: 
-			return calcPower( cards[1] );
+			return CalcPower( cards[1] );
 		case CG_TWO_PAIR:
-			return calcPower( cards[4] );
+			return CalcPower( cards[4] );
 		case CG_THREE_OF_KIND:
-			return calcPower( cards[2] );
+			return CalcPower( cards[2] );
 		case CG_STRAIGHT:
 			if ( cards[0].getFace() == Card::eN2 )
-				return calcPower( cards[0] );
+				return CalcPower( cards[0] );
 			else
-				return calcPower( cards[4] );
+				return CalcPower( cards[4] );
 		case CG_FLUSH:
-			return calcPower( cards[4] );
+			return CalcPower( cards[4] );
 		case CG_FULL_HOUSE:
-			return calcPower( cards[4] );
+			return CalcPower( cards[4] );
 		case CG_FOUR_OF_KIND:
-			return 100000 + calcPower( cards[4] );
+			return 100000 + CalcPower( cards[4] );
 		case CG_STRAIGHT_FLUSH:
 			if ( cards[0].getFace() == Card::eN2 )
-				return 200000 + calcPower( cards[0] );
+				return 200000 + CalcPower( cards[0] );
 			else
-				return 200000 + calcPower( cards[4] );
+				return 200000 + CalcPower( cards[4] );
 		}
 		return 0;
 	}
 
-	bool TrickUtility::checkCard5( TrickInfo& info )
+	bool FTrick::CheckCard5( TrickInfo& info )
 	{
 		int groupIndex[5];
 		int groupNum[5];
@@ -1155,18 +1155,18 @@ namespace Poker { namespace Big2 {
 			break;
 		case 5:
 			{
-				bool beSquence = true;
+				bool bSquence = true;
 				int rank = info.card[1].getFaceRank() + 1;
 				for( int i = 2 ; i < 5 ; ++i )
 				{
 					if ( rank != info.card[i].getFaceRank() )
 					{
-						beSquence = false;
+						bSquence = false;
 						break;
 					}
 					++rank;
 				}
-				if ( beSquence )
+				if ( bSquence )
 				{
 					if (info.card[0].getFaceRank() + 1 != info.card[1].getFaceRank() )
 					{
@@ -1177,25 +1177,25 @@ namespace Poker { namespace Big2 {
 						}
 						else
 						{
-							beSquence = false;
+							bSquence = false;
 						}
 					}
 				}
 
 				int suit = info.card[0].getSuit();
-				bool beSameSuit = true;
+				bool bSameSuit = true;
 				for( int i = 1 ; i < 5 ; ++i )
 				{
 					if ( suit != info.card[i].getSuit() )
 					{
-						beSameSuit = false;
+						bSameSuit = false;
 						break;
 					}
 				}
 
-				if ( beSameSuit )
+				if ( bSameSuit )
 				{
-					if ( beSquence )
+					if ( bSquence )
 					{
 						info.group = CG_STRAIGHT_FLUSH;
 						return true;
@@ -1206,7 +1206,7 @@ namespace Poker { namespace Big2 {
 						return true;
 					}
 				}
-				else if ( beSquence )
+				else if ( bSquence )
 				{
 					info.group = CG_STRAIGHT;
 					return true;
@@ -1217,7 +1217,7 @@ namespace Poker { namespace Big2 {
 		return false;
 	}
 
-	bool TrickUtility::checkCard( Card const cards[] , int numCard , int index[] , int num , TrickInfo& info )
+	bool FTrick::CheckCard( Card const cards[] , int numCard , int index[] , int num , TrickInfo& info )
 	{
 		if ( num > numCard )
 			return false;
@@ -1277,7 +1277,7 @@ namespace Poker { namespace Big2 {
 				for( int i = 0 ; i < 5 ; ++i )
 					info.card[i] = cards[ index[i] ];
 				std::sort( info.card , info.card + 5 , CardSortCmp() );
-				if( checkCard5( info ) )
+				if( CheckCard5( info ) )
 					return true;
 			}
 			break;
@@ -1286,7 +1286,7 @@ namespace Poker { namespace Big2 {
 		return false;
 	}
 
-	int TrickUtility::getGroupNum( CardGroup group )
+	int FTrick::GetGroupNum( CardGroup group )
 	{
 		int const numMap[] = { 1 , 2 , 5 , 3 , 5 , 5 , 5 , 5 , 5 , 0 };
 		return numMap[ group ];

@@ -30,9 +30,9 @@ namespace Chromatron
 	struct DeviceTileData
 	{
 		Device*  dc;
-		unsigned emittedColor;
-		unsigned receivedColor;
-		unsigned lazyColor;
+		uint32   emittedColor;
+		uint32   receivedColor;
+		uint32   lazyColor;
 	};
 
 
@@ -46,10 +46,10 @@ namespace Chromatron
 
 
 		MapType       getType()   const { return mType; }
-		Device const* getDevice() const { return ( mDCData ) ? mDCData->dc : NULL ; }
-		Device*       getDevice()       { return ( mDCData ) ? mDCData->dc : NULL ; }
+		Device const* getDevice() const { return ( mDCData ) ? mDCData->dc : nullptr; }
+		Device*       getDevice()       { return ( mDCData ) ? mDCData->dc : nullptr; }
 
-		bool    canSetup()            const { return ( mType & MT_CANT_SETUP ) == 0 && getDevice() == NULL; }
+		bool    canSetup()            const { return ( mType & MT_CANT_SETUP ) == 0 && getDevice() == nullptr; }
 		bool    blockLight()          const { return !!( mType & MT_BLOCK_LIGHT ); }
 		bool    blockRBConcerLight()  const { return !!(mType & MT_BLOCK_RB_CORNER_LIGHT); }
 
@@ -57,17 +57,17 @@ namespace Chromatron
 		void    setType( MapType type ){ mType = type; }
 
 		void    clearLight();
-		Color   getLightPathColor    ( Dir dir )  const {  return getLightColor( mLightPathColor , dir );  }
-		Color   getEmittedLightColor ( Dir dir )  const {  assert( mDCData ); return getLightColor( mDCData->emittedColor , dir ); }
-		Color   getReceivedLightColor( Dir dir )  const {  assert( mDCData ); return getLightColor( mDCData->receivedColor , dir ); }
-		Color   getLazyLightColor    ( Dir dir )  const {  assert( mDCData ); return getLightColor( mDCData->lazyColor , dir ); }
+		Color   getLightPathColor    ( Dir dir )  const {  return GetLightColor( mLightPathColor , dir );  }
+		Color   getEmittedLightColor ( Dir dir )  const {  assert( mDCData ); return GetLightColor( mDCData->emittedColor , dir ); }
+		Color   getReceivedLightColor( Dir dir )  const {  assert( mDCData ); return GetLightColor( mDCData->receivedColor , dir ); }
+		Color   getLazyLightColor    ( Dir dir )  const {  assert( mDCData ); return GetLightColor( mDCData->lazyColor , dir ); }
 
-		void    addLightPathColor    ( Dir dir , Color color ){  addLightColor( mLightPathColor , color , dir );  }
-		void    addEmittedLightColor ( Dir dir , Color color ){  assert( mDCData ); addLightColor( mDCData->emittedColor , color , dir );  }
-		void    addReceivedLightColor( Dir dir , Color color ){  assert( mDCData ); addLightColor( mDCData->receivedColor , color , dir );  }
-		void    setLazyLightColor    ( Dir dir , Color color ){  assert( mDCData ); setLightColor( mDCData->lazyColor , color , dir ); }
+		void    addLightPathColor    ( Dir dir , Color color ){  AddLightColor( mLightPathColor , color , dir );  }
+		void    addEmittedLightColor ( Dir dir , Color color ){  assert( mDCData ); AddLightColor( mDCData->emittedColor , color , dir );  }
+		void    addReceivedLightColor( Dir dir , Color color ){  assert( mDCData ); AddLightColor( mDCData->receivedColor , color , dir );  }
+		void    setLazyLightColor    ( Dir dir , Color color ){  assert( mDCData ); SetLightColor( mDCData->lazyColor , color , dir ); }
 	private:
-		static void  setLightColor( unsigned& destColor , Color  srcColor , Dir dir )
+		static void  SetLightColor(uint32& destColor , Color  srcColor , Dir dir )
 		{
 			assert( ( srcColor & 0x8 ) == 0 );
 			int offset = 4 * int( dir );
@@ -75,13 +75,13 @@ namespace Chromatron
 			destColor |=  ( srcColor << offset );
 
 		}
-		static  void addLightColor( unsigned& destColor , Color  srcColor , Dir dir )
+		static  void AddLightColor(uint32& destColor , Color  srcColor , Dir dir )
 		{
 			assert( (srcColor & 0x8 ) == 0 );
 			destColor |= ( srcColor << ( 4 * int( dir ) ) );
 		}
 
-		static  Color getLightColor( unsigned  color , Dir dir )
+		static  Color GetLightColor(uint32  color , Dir dir )
 		{
 			Color out = ( color >> (4 * int( dir) ) ) & 0xf;
 			assert( (color & 0x8 ) == 0 );
@@ -108,7 +108,7 @@ namespace Chromatron
 	class LightSyncProcessor
 	{
 	public:
-		virtual bool prevEffectDevice(Device& dc, LightTrace const& light, int pass) = 0;
+		virtual bool prevEffectDevice(Device& dc, LightTrace const& light, int passStep) = 0;
 		virtual bool prevAddLight(Vec2i const& pos, Color color, Dir dir, int param, int age) = 0;
 	};
 
@@ -131,8 +131,6 @@ namespace Chromatron
 	public:
 
 
-		TransmitStatus transmitLightSync( WorldUpdateContext& context , LightSyncProcessor& processor , LightList& transmitLights );
-		TransmitStatus transmitLight( WorldUpdateContext& context );
 		void           clearLight();
 
 		int            countSameLighPathColortStepNum(Vec2i const& pos, Dir dir) const;
@@ -140,10 +138,7 @@ namespace Chromatron
 		
 	private:
 		
-		bool            transmitLightStep( LightTrace& light , Tile** curData );
-		
 		void            initData( int sx , int sy );
-		TransmitStatus  evalDeviceEffect( WorldUpdateContext& context , Device& dc , LightTrace const& light );
 
 		TGrid2D< Tile >  mTileMap;
 	};
@@ -155,12 +150,12 @@ namespace Chromatron
 
 		World& getWorld(){ return mWorld; }
 
-		TransmitStatus transmitLightSync( LightSyncProcessor& processor,LightList& transmitLights)
-		{
-			return mWorld.transmitLightSync(*this, processor, transmitLights);
-		}
+		TransmitStatus transmitLight();
+		TransmitStatus transmitLightSync( LightSyncProcessor& processor,LightList& transmitLights);
+		TransmitStatus evalDeviceEffect(Device& dc, LightTrace const& light);
+
 		Tile&  getTile(Vec2i const& pos) { return mWorld.getTile(pos); }
-		void   addLight( Vec2i const& pos , Color color , Dir dir );
+		void   addEffectLight( Vec2i const& pos , Color color , Dir dir );
 		void   prevUpdate();
 
 		void   setLightParam( int param ){ mLightParam = param; }
@@ -169,17 +164,48 @@ namespace Chromatron
 		void   notifyStatus( TransmitStatus status ){ mStatus = status;  }
 		int    getLightCount() const { return mLightCount; }
 
+	private:
+		bool transmitLightStep(LightTrace& light, Tile** curTile);
+
+		struct LightSyncScope
+		{
+			LightSyncScope(WorldUpdateContext& context, LightSyncProcessor& processor, LightList& transmitLights)
+				:context(context)
+			{
+				prevMode = context.isSyncMode();
+				prevProvider = context.mSyncProcessor;
+				prevLightList = context.mSyncLights;
+
+				context.mSyncProcessor = &processor;
+				context.mSyncLights = &transmitLights;
+				context.setSyncMode(true);
+			}
+
+			~LightSyncScope()
+			{
+				context.mSyncLights = prevLightList;
+				context.mSyncProcessor = prevProvider;
+				context.setSyncMode(prevMode);
+			}
+
+			WorldUpdateContext& context;
+			bool prevMode;
+			LightSyncProcessor* prevProvider;
+			LightList*     prevLightList;
+
+		};
+
+		int              mLightParam;
+		int              mLightAge;
+		TransmitStatus   mStatus;
+		World&           mWorld;
+
+		bool             mbSyncMode;
+
 		LightSyncProcessor*  mSyncProcessor;
 		LightList*       mSyncLights;
 		LightList        mNormalLights;
 		int              mLightCount;
-
-
-		int              mLightParam;
-		bool             mbSyncMode;
-		int              mLightAge;
-		TransmitStatus   mStatus;
-		World&           mWorld;
 
 		friend class World;
 	};

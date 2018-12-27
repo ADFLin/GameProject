@@ -163,12 +163,12 @@ namespace Poker { namespace Holdem {
 	{
 		if ( mServerLevel )
 		{
-			delete mServerLevel->getTransfer();
+			delete &mServerLevel->getTransfer();
 		}
 
 		if ( mClientLevel )
 		{
-			delete mClientLevel->getTransfer();
+			delete &mClientLevel->getTransfer();
 		}
 
 		mServerLevel.clear();

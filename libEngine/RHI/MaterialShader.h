@@ -5,11 +5,10 @@
 #include "GlobalShader.h"
 
 #include "TypeHash.h"
-
+#include "CoreShare.h"
 #include <unordered_map>
 
 //#MOVE
-
 
 namespace Render
 {
@@ -35,15 +34,11 @@ namespace Render
 	class MaterialShaderProgramClass : public GlobalShaderProgramClass
 	{
 	public:
-		MaterialShaderProgramClass(
+		CORE_API MaterialShaderProgramClass(
 			FunCreateShader inFunCreateShader,
 			FunSetupShaderCompileOption inFunSetupShaderCompileOption,
 			FunGetShaderFileName inFunGetShaderFileName,
-			FunGetShaderEntries inFunGetShaderEntries)
-			:GlobalShaderProgramClass(inFunCreateShader,inFunSetupShaderCompileOption,inFunGetShaderFileName,inFunGetShaderEntries)
-		{
-			ClassList.push_back(this);
-		}
+			FunGetShaderEntries inFunGetShaderEntries);
 
 		CORE_API static std::vector< MaterialShaderProgramClass* > ClassList;
 	};

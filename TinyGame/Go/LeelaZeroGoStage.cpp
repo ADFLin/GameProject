@@ -158,6 +158,7 @@ namespace Go
 		::Global::GUI().cleanupWidget();
 
 		mGame.setup(19);
+
 #if 1
 		if( !buildLearningMode() )
 			return false;
@@ -513,8 +514,6 @@ namespace Go
 
 		using namespace Go;
 
-		GpuProfiler::Get().beginFrame();
-
 		glClear(GL_COLOR_BUFFER_BIT);
 
 		GLGraphics2D& g = ::Global::GetRHIGraphics2D();
@@ -642,8 +641,6 @@ namespace Go
 			g.drawCircle(pos, 8);
 		}
 
-		GpuProfiler::Get().endFrame();
-
 		FixString< 512 > str;
 
 		g.setTextColor(Color3ub(255, 0, 0));
@@ -704,13 +701,6 @@ namespace Go
 		{
 			str.format("bUseBatchedRender = %s", mBoardRenderer.bUseBatchedRender ? "true" : "false");
 			g.drawText(textX, y += offset, str);
-			for( int i = 0; i < GpuProfiler::Get().getSampleNum(); ++i )
-			{
-				GpuProfileSample* sample = GpuProfiler::Get().getSample(i);
-				str.format("%.8lf => %s", sample->time, sample->name.c_str());
-				g.drawText(textX + 10 * sample->level, y += offset, str);
-
-			}
 		}
 
 		if ( bDrawFontCacheTexture )
@@ -1760,7 +1750,7 @@ namespace Go
 			bot->getMetaDataT(LeelaBot::eWeightName, weightName);
 			result += " ";
 			if( weightName.length() > 10 )
-				result += weightName.substr(0, 5);
+				result += weightName.substr(0, 8);
 			else
 				result += weightName;
 		}

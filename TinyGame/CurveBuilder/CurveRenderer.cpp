@@ -229,19 +229,19 @@ namespace CB
 			d = 1;
 			int nx = numDataU / d;
 			int ny = numDataV / d;
-			MyRender::BindVertexArray(data->getVertexData(), data->getVertexSize() , &color );
+			MyRender::BindVertexPointer(data->getVertexData(), data->getVertexSize() , &color );
 			for( int i = 0; i < ny; ++i )
 			{
 				glDrawArrays(GL_LINE_STRIP, numDataU * i, numDataU);
 			}
-			MyRender::UnbindVertexArray();
+			MyRender::UnbindVertexPointer(&color);
 
-			MyRender::BindVertexArray(data->getVertexData(), data->getVertexSize(), &color);
+			MyRender::BindVertexPointer(data->getVertexData(), data->getVertexSize(), &color);
 			for( int i = 0; i < nx; ++i )
 			{
 				glDrawArrays(GL_LINE_STRIP, numDataU * i, numDataU);
 			}
-			MyRender::UnbindVertexArray();
+			MyRender::UnbindVertexPointer(&color);
 		}
 	};
 

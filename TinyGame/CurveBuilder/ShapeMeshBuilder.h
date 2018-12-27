@@ -7,7 +7,6 @@
 #include "ColorMap.h"
 
 #include "Thread.h"
-#include "AsyncWork.h"
 
 #include <vector>
 #include <exception>
@@ -29,30 +28,27 @@ namespace CB
 
 	};
 
-	class ShapeMaker
+	class ShapeMeshBuilder
 	{
 	public:
-		ShapeMaker();
+		ShapeMeshBuilder();
 
 		void            updateCurveData(ShapeUpdateInfo const& info, SampleParam const& paramS);
 		void            updateSurfaceData(ShapeUpdateInfo const& info, SampleParam const& paramU, SampleParam const& paramV);
 		void            setTime(float t) { mVarTime = t; }
-#if USE_PARALLEL_UPDATE
-		auto            lockParser() { return MakeLockedObjectHandle(mParser, &mParserLock); }
-		void            addUpdateWork( std::function<void()> fun );
-		void            waitUpdateDone();
-#else
-		FunctionParser& getParser() { return mParser; }
-#endif
+		bool            parseFunction(ShapeFunBase& func);
+
 	private:
 		void  setColor(float p, float* color);
 
 		RealType        mVarTime;
-		ColorMap         mColorMap;
+		ColorMap        mColorMap;
 
 #if USE_PARALLEL_UPDATE
-		std::unique_ptr< QueueThreadPool > mUpdateThreadPool;
 		Mutex            mParserLock;
+#else
+		std::vector< Vector3 > mCacheNormal;
+		std::vector< int >     mCacheCount;
 #endif
 		FunctionParser   mParser;
 

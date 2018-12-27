@@ -3,7 +3,7 @@
 
 #include <algorithm>
 
-bool GrowThrowPolicy::checkFill( char*& data , size_t& max , size_t cur , size_t num  )
+bool GrowThrowPolicy::CheckFill( char*& data , size_t& max , size_t cur , size_t num  )
 {
 	if ( cur + num > max )
 	{
@@ -11,7 +11,7 @@ bool GrowThrowPolicy::checkFill( char*& data , size_t& max , size_t cur , size_t
 		char*  nData = new char[ nSize ];
 		if ( data )
 		{
-			memcpy( nData , data , cur );
+			::memcpy( nData , data , cur );
 			delete[] data;
 		}
 		data =  nData;
@@ -20,7 +20,7 @@ bool GrowThrowPolicy::checkFill( char*& data , size_t& max , size_t cur , size_t
 	return true;
 }
 
-bool GrowThrowPolicy::checkTake(char*& data , size_t& max , size_t cur , size_t num )
+bool GrowThrowPolicy::CheckTake(char*& data , size_t& max , size_t cur , size_t num )
 {
 	if ( cur + num > max )
 	{
@@ -113,7 +113,7 @@ void DataSteamBuffer::copy( DataSteamBuffer const& rhs )
 	mUseSize  = rhs.mUseSize;
 }
 
-void DataSteamBuffer::move( DataSteamBuffer& other )
+void DataSteamBuffer::moveData( DataSteamBuffer& other )
 {
 	mData     = other.mData;
 	mFillSize = other.mFillSize;

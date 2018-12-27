@@ -17,10 +17,34 @@
 * @return        The correct value.
 */
 
+#include "Math/Vector2.h"
+#include "Math/Vector3.h"
+
+
 namespace Easing {
 
 	template< class T >
-	class Length { float get( T& val ); };
+	class LengthTrait 
+	{};
+
+
+	template<>
+	class LengthTrait< float >
+	{
+		static float Get(float val) { return val; }
+	};
+
+	template<>
+	class LengthTrait< Math::Vector2 >
+	{
+		static float Get(Math::Vector2 const& val) { return val.length(); }
+	};
+
+	template<>
+	class LengthTrait< Math::Vector3 >
+	{
+		static float Get(Math::Vector3 const& val) { return val.length(); }
+	};
 
 	double const PI = 3.1415926535897932384;
 
@@ -29,7 +53,7 @@ namespace Easing {
 		template<class T>
 		T operator()(float t, T const& b, T const& c, float const& d ) 
 		{
-            return ( t / d ) * c + b;
+            return ( t / d) * c + b;
         }
     };
 
@@ -272,7 +296,7 @@ namespace Easing {
 		template<class T>
 		T operator()(float t, T const& b, T const& c, float const& d ) 
 		{
-            return -c * cosf(t/d * (PI/2)) + c + b;
+            return -c * Math::Cos(t/d * (PI/2)) + c + b;
         }
     };
 
@@ -313,7 +337,7 @@ namespace Easing {
 		template<class T>
 		T operator()(float t, T const& b, T const& c, float const& d ) 
 		{
-            return -c/2 * (cosf(PI*t/d) - 1) + b;
+            return -c/2 * (Math::Cos(PI*t/d) - 1) + b;
         }
     };
 
@@ -459,7 +483,7 @@ namespace Easing {
         {
             if(t==0) return b;  if((t/=d)==1) return b+c;  if(p==.0f) p=d*.3;
             float s = .0f;
-			float la = Length<T>().get(a), lc = Length<T>().get(c); bool sign = ((c/a) >= T()) ? true : false;
+			float la = LengthTrait<T>::Get(a), lc = LengthTrait<T>::Get(c); bool sign = ((c/a) >= T()) ? true : false;
             if( la==.0f || la < lc ) { a=c; s=p/4; }
             else s = p / (2*PI) * Math::ASin(lc/la * (sign?1:-1));
             t-=1;
@@ -491,7 +515,7 @@ namespace Easing {
         {
             if(t==0) return b;  if((t/=d)==1) return b+c;  if(p==.0f) p=d*.3;
             float s = .0f;
-            float la = length(a), lc = length(c); bool sign = ((c/a) >= T()) ? true : false;
+            float la = LengthTrait<T>::Get(a), lc = LengthTrait<T>::Get(c); bool sign = ((c/a) >= T()) ? true : false;
             if( la==.0f || la < lc ) { a=c; s=p/4; }
             else s = p / (2*PI) * Math::ASin (lc/la * (sign?1:-1));
             return (a*Math::Pow(2,-10*t) * Math::Sin( (t*d-s)*(2*PI)/p ) + c + b);
@@ -511,8 +535,8 @@ namespace Easing {
         {
             if (t==0) return b;  if ((t/=d/2)==2) return b+c;  if(p==.0f) p=d*(.3*1.5);
             float s = .0f;
-            float la = length(a), lc = length(c); bool sign = ((c/a) >= T()) ? true : false;
-            if ( length(a)==.0f || length(a) < length(c) ) { a=c; s=p/4; }
+            float la = LengthTrait<T>::Get(a), lc = LengthTrait<T>::Get(c); bool sign = ((c/a) >= T()) ? true : false;
+            if ( la ==.0f || la < lc ) { a=c; s=p/4; }
             else s = p/(2*PI) * Math::ASin (lc/la * (sign?1:-1));
             t-=1;
             if (t < 1) return -.5*(a*pow(2,10*t) * Math::Sin( (t*d-s)*(2*PI)/p )) + b;

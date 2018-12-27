@@ -32,114 +32,7 @@ namespace CAR
 		BIT( ActorType::eMayor ) | BIT( ActorType::ePhantom ) | BIT( ActorType::eAbbot ) |
 		BIT( ActorType::eShepherd ) | BIT( ActorType::eBuilder ) | BIT( ActorType::ePig ) |
 		BIT( ActorType::eMage ) | BIT( ActorType::eWitch );
-	unsigned const CastleScoreTypeMask = BIT( FeatureType::eCity ) | BIT( FeatureType::eCloister ) | BIT( FeatureType::eRoad ); 
-
-	struct WagonCompFun
-	{
-		bool operator()( LevelActor* lhs , LevelActor* rhs ) const
-		{
-			return calcOrder( lhs ) < calcOrder( rhs );
-		}
-		int calcOrder( LevelActor* actor ) const
-		{
-			int result = actor->owner->mPlayOrder - curPlayerOrder;
-			if ( result < 0 )
-				result += numPlayer;
-			return result;
-		}
-		int curPlayerOrder;
-		int numPlayer;
-	};
-
-	struct FieldProc
-	{
-		void exec( int type , int value );
-	};
-	template< class FieldProc >
-	void ProcField( GameplaySetting& setting , int numPlayer  , FieldProc& proc )
-	{
-#define FIELD_ACTOR( TYPE , VALUE )\
-	proc.exec( FieldType::Enum( FieldType::eActorStart + TYPE ) , VALUE )
-#define FIELD_VALUE( TYPE , VALUE )\
-	proc.exec( TYPE , VALUE )
-#define FIELD_ARRAY_VALUES( TYPE , VALUES , NUM )\
-	proc.exec( TYPE , VALUES , NUM )
-
-#define VALUE( NAME ) setting.##NAME
-
-		FIELD_ACTOR( ActorType::eMeeple , VALUE(MeeplePlayerOwnNum) );
-		
-		if( setting.have(Rule::eBigMeeple) )
-		{
-			FIELD_ACTOR( ActorType::eBigMeeple , VALUE(BigMeeplePlayerOwnNum) );
-		}
-		if( setting.have(Rule::eBuilder) )
-		{
-			FIELD_ACTOR(ActorType::eBuilder, VALUE(BuilderPlayerOwnNum) );
-		}
-		if( setting.have(Rule::ePig) )
-		{
-			FIELD_ACTOR(ActorType::ePig, VALUE(PigPlayerOwnNum) );
-		}
-		if( setting.have(Rule::eTraders) )
-		{
-			FIELD_VALUE(FieldType::eWine, 0);
-			FIELD_VALUE(FieldType::eGain, 0);
-			FIELD_VALUE(FieldType::eCloth, 0);
-		}
-		if( setting.have(Rule::eBarn) )
-		{
-			FIELD_ACTOR(ActorType::eBarn, VALUE(BarnPlayerOwnNum) );
-		}
-		if( setting.have(Rule::eWagon) )
-		{
-			FIELD_ACTOR(ActorType::eWagon, VALUE(WagonPlayerOwnNum) );
-		}
-		if( setting.have(Rule::eMayor) )
-		{
-			FIELD_ACTOR(ActorType::eMayor, VALUE(MayorPlayerOwnNum) );
-		}
-		if( setting.have(Rule::eHaveAbbeyTile) )
-		{
-			FIELD_VALUE(FieldType::eAbbeyPices, VALUE(AbbeyTilePlayerOwnNum) );
-		}
-		if( setting.have(Rule::eTower) )
-		{
-			FIELD_VALUE( FieldType::eTowerPices , VALUE(TowerPicesPlayerOwnNum[numPlayer-1]) );
-		}
-		if( setting.have(Rule::eBridge) )
-		{
-			FIELD_VALUE(FieldType::eBridgePices, VALUE(BridgePicesPlayerOwnNum[numPlayer-1]) );
-		}
-		if( setting.have(Rule::eCastleToken) )
-		{
-			FIELD_VALUE(FieldType::eCastleTokens, VALUE(CastleTokensPlayerOwnNum[numPlayer-1]) );
-		}
-		if( setting.have(Rule::eBazaar) )
-		{
-			FIELD_VALUE( FieldType::eTileIdAuctioned , FAIL_TILE_ID );
-		}
-		if ( setting.have(Rule::eShepherdAndSheep) )
-		{
-			FIELD_ACTOR( ActorType::eShepherd , VALUE(ShepherdPlayerOwnNum) );
-		}
-		if( setting.have(Rule::ePhantom) )
-		{
-			FIELD_ACTOR( ActorType::ePhantom , VALUE(PhantomPlayerOwnNum) );
-		}
-		if( setting.have(Rule::eHaveGermanCastleTile) )
-		{
-
-		}
-		if( setting.have(Rule::eHaveHalflingTile) )
-		{
-
-		}
-
-#undef FIELD_ACTOR
-#undef FIELD_VALUE
-#undef VALUE
-	}
+	unsigned const CastleScoreTypeMask = BIT( FeatureType::eCity ) | BIT( FeatureType::eCloister ) | BIT( FeatureType::eRoad );
 
 	GameLogic::GameLogic()
 		:mWorld( mTileSetManager )
@@ -237,7 +130,7 @@ namespace CAR
 			player->setupSetting( *mSetting );
 			player->mScore = 0;
 			proc.player = player;
-			ProcField( *mSetting , mPlayerManager->getPlayerNum() , proc );
+			ProcessFields( *mSetting , mPlayerManager->getPlayerNum() , proc );
 		}
 
 		if( beInit )
@@ -673,7 +566,7 @@ namespace CAR
 		//Step 1: Begin Turn
 		if ( mSetting->have( Rule::eFariy ))
 		{
-			if ( mFairy->binder && mFairy->binder->owner == curTrunPlayer )
+			if ( mFairy->binder && mFairy->binder->ownerId == curTrunPlayer->getId() )
 			{
 				CAR_LOG( "%d Score:Fairy Beginning Of A Turn Score" , curTrunPlayer->getId() );
 				modifyPlayerScore( curTrunPlayer->getId() , CAR_PARAM_VALUE(FairyBeginningOfATurnScore) );
@@ -1088,7 +981,7 @@ namespace CAR
 		assert( actor );
 		info.mapTile->addActor( *actor );
 		feature->addActor( *actor );
-		actor->owner   = curTrunPlayer;
+		actor->ownerId = curTrunPlayer->getId();
 		actor->pos     = info.pos;
 
 		switch( actor->type )
@@ -1146,8 +1039,8 @@ namespace CAR
 			LevelActor* actor = mFairy->binder;
 			if ( actor && actor->feature == &feature )
 			{
-				CAR_LOG("Score: %d FairyFearureScoringScore" , actor->owner->getId() );
-				modifyPlayerScore( actor->owner->getId() , CAR_PARAM_VALUE(FairyFearureScoringScore) );
+				CAR_LOG("Score: %d FairyFearureScoringScore" , actor->ownerId );
+				modifyPlayerScore( actor->ownerId , CAR_PARAM_VALUE(FairyFearureScoringScore) );
 			}
 		}
 		//d)
@@ -1207,7 +1100,7 @@ namespace CAR
 		if ( castleScore )
 		{
 			FeatureScoreInfo info;
-			info.playerId = feature.findActor( KINGHT_MASK )->owner->getId();
+			info.playerId = feature.findActor( KINGHT_MASK )->ownerId;
 			info.majority = 1;
 			info.score = castleScore->value;
 			scoreInfos.push_back( info );
@@ -1532,7 +1425,7 @@ namespace CAR
 				for( int i = 0 ; i < shepherds.size() ; ++i )
 				{
 					ShepherdActor* shepherd = shepherds[i];
-					modifyPlayerScore( shepherd->owner->getId() , score );
+					modifyPlayerScore( shepherd->ownerId , score );
 					returnActorToPlayer( shepherd );
 				}
 			}
@@ -1591,7 +1484,7 @@ namespace CAR
 					if ( mSetting->isFollower( actor->type ) == false )
 						continue;
 
-					if ( actor->owner == curTurnPlayer )
+					if ( actor->ownerId == curTurnPlayer->getId() )
 						continue;
 
 					if ( actor->feature->type == FeatureType::eCity &&
@@ -1624,7 +1517,7 @@ namespace CAR
 
 			LevelActor* actor = actors[selectActorData.resultIndex];
 			PrisonerInfo info;
-			info.playerId  = actor->owner->getId();
+			info.playerId  = actor->ownerId;
 			info.type = actor->type;
 			info.ownerId = curTurnPlayer->getId();
 
@@ -1842,7 +1735,7 @@ namespace CAR
 		for( int i = 0; i < feature.mActors.size(); ++i )
 		{
 			LevelActor* actor = feature.mActors[i];
-			PlayerBase* player = actor->owner;
+			PlayerBase* player = getOwnedPlayer(actor);
 			if ( player  )
 			{
 				switch( actor->type )
@@ -1879,9 +1772,30 @@ namespace CAR
 
 			if ( linkFeatures.empty() == false )
 			{
+				struct WagonCompFun
+				{
+					bool operator()(LevelActor* lhs, LevelActor* rhs) const
+					{
+						return calcOrder(lhs) < calcOrder(rhs);
+					}
+					int calcOrder(LevelActor* actor) const
+					{
+						PlayerBase* player = manager->getPlayer(actor->ownerId);
+						int result = player->mPlayOrder - curPlayerOrder;
+						if( result < 0 )
+							result += numPlayer;
+						return result;
+					}
+
+					GamePlayerManager* manager;
+					int curPlayerOrder;
+					int numPlayer;
+				};
+
 				WagonCompFun wagonFun;
 				wagonFun.curPlayerOrder = getTurnPlayer()->mPlayOrder;
 				wagonFun.numPlayer = mPlayerManager->getPlayerNum();
+				wagonFun.manager = mPlayerManager;
 				std::sort( wagonGroup.begin() , wagonGroup.end() , wagonFun );
 
 				std::vector< MapTile* > mapTiles;
@@ -2697,7 +2611,7 @@ namespace CAR
 			if ( actor == actorSkip )
 				continue;
 
-			if ( actor->owner && ( playerIdMask & BIT( actor->owner->getId() ) ) )
+			if ( actor->ownerId != CAR_ERROR_PLAYER_ID && ( playerIdMask & BIT( actor->ownerId ) ) )
 			{
 				if ( mSetting->isFollower( actor->type ) )
 				{
@@ -2711,8 +2625,8 @@ namespace CAR
 
 	void GameLogic::returnActorToPlayer(LevelActor* actor)
 	{
-		assert( actor->owner );
-		PlayerBase* player = actor->owner;
+		PlayerBase* player = getOwnedPlayer( actor );
+		assert(player);
 		CAR_LOG( "Actor type=%d Return To Player %d" , actor->type , player->getId() );
 		player->modifyActorValue( actor->type , 1 );
 
@@ -2728,7 +2642,7 @@ namespace CAR
 				{
 					int iter = 0;
 					LevelActor* newFollower = nullptr;
-					unsigned playerMask = BIT(actor->owner->getId());
+					unsigned playerMask = BIT(actor->ownerId);
 					unsigned actorMask = mSetting->getFollowerMask() & ~CANT_FOLLOW_ACTOR_MASK;
 					do
 					{
@@ -2940,11 +2854,11 @@ namespace CAR
 			return TurnResult::eOK;
 
 		LevelActor* kinght = city.findActor( KINGHT_MASK );
-		if ( kinght == nullptr || kinght->owner->getFieldValue( FieldType::eCastleTokens ) <= 0 )
+		if ( kinght == nullptr || getOwnedPlayer( kinght )->getFieldValue( FieldType::eCastleTokens ) <= 0 )
 			return TurnResult::eOK;
 
 		GameBuildCastleData data;
-		data.playerId = kinght->owner->getId();
+		data.playerId = kinght->ownerId;
 		data.city = &city;
 
 		input.requestBuildCastle( data );
@@ -2954,7 +2868,7 @@ namespace CAR
 		if ( data.resultSkipAction == false )
 		{
 			data.city->isCastle = true;
-			kinght->owner->modifyFieldValue( FieldType::eCastleTokens , -1 );
+			mPlayerManager->getPlayer(data.playerId)->modifyFieldValue( FieldType::eCastleTokens , -1 );
 			CastleInfo* info = new CastleInfo;
 			info->city = data.city;
 			
@@ -3157,7 +3071,7 @@ namespace CAR
 		proc.fieldInfos = mFieldInfos;
 		proc.indexOffset = 0;
 		proc.numFeild = 0;
-		ProcField( *this , numPlayer , proc );
+		ProcessFields( *this , numPlayer , proc );
 		mNumField = proc.numFeild;
 	}
 

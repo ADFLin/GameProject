@@ -23,7 +23,7 @@ public:
 		NetWorker*       netWorker;
 		ComWorker*       worker;
 		ActionProcessor* processor;
-		IGameModule*    game;
+		IGameModule*     game;
 		long             tickTime;
 	};
 	virtual bool build( BuildParam& buildParam ) = 0;

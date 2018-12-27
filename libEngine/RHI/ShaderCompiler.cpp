@@ -37,11 +37,13 @@ namespace Render
 	};
 
 #if CORE_SHARE_CODE
+
 	ShaderManager& ShaderManager::Get()
 	{
 		static ShaderManager sInatance;
 		return sInatance;
 	}
+
 #endif //CORE_SHARE_CODE
 
 	ShaderManager::ShaderManager()
@@ -649,18 +651,6 @@ namespace Render
 		return result;
 	}
 
-	GlobalShaderProgramClass::GlobalShaderProgramClass(
-		FunCreateShader inFunCreateShader ,
-		FunSetupShaderCompileOption inFunSetupShaderCompileOption, 
-		FunGetShaderFileName inFunGetShaderFileName, 
-		FunGetShaderEntries inFunGetShaderEntries) 
-		:funCreateShader(inFunCreateShader)
-		,funSetupShaderCompileOption(inFunSetupShaderCompileOption)
-		,funGetShaderFileName(inFunGetShaderFileName)
-		,funGetShaderEntries(inFunGetShaderEntries)
-	{
-		ShaderManager::Get().registerGlobalShader(*this);
-	}
 
 }//namespace GL
 

@@ -2054,8 +2054,8 @@ namespace G2D
 		SATSolver mSAT;
 		Vertices  mVA;
 		float     mR;
-		Vector2     mPA;
-		Vector2     mPB;
+		Vector2   mPA;
+		Vector2   mPB;
 		Vertices  mVB;
 
 	};
@@ -2145,10 +2145,6 @@ public:
 		switch( key )
 		{
 		case Keyboard::eR: restart(); break;
-		//case 'D': snake.changeMoveDir( DIR_WEST ); break;
-		//case 'A': snake.changeMoveDir( DIR_EAST ); break;
-		//case 'W': snake.changeMoveDir( DIR_NORTH ); break;
-		//case 'S': snake.changeMoveDir( DIR_SOUTH ); break;
 		}
 		return false;
 	}

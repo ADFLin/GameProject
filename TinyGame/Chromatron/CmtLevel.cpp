@@ -15,15 +15,15 @@ namespace Chromatron
 {
 	struct GameInfoHeaderBaseV2
 	{
-		unsigned  totalSize;
-		unsigned  headerSize;
-		uint8      version;
-		uint8      numLevel;
+		uint32   totalSize;
+		uint32   headerSize;
+		uint8    version;
+		uint8    numLevel;
 	};
 
 	struct GameInfoHeaderV2 : GameInfoHeaderBaseV2
 	{
-		unsigned  offsetLevel[];
+		uint32  offsetLevel[];
 	};
 
 	struct  UserDCInfo
@@ -50,9 +50,9 @@ namespace Chromatron
 
 	struct  LevelInfoHeader
 	{
-		unsigned totalSize;
-		unsigned mapDataSize;
-		uint8     numUserDC;
+		uint32  totalSize;
+		uint32  mapDataSize;
+		uint8   numUserDC;
 	};
 
 #define  GAME_DATA_VERSION 2
@@ -92,7 +92,7 @@ namespace Chromatron
 			iter != mUserDC.end() ; ++iter )
 		{
 			Device* dc = *iter;
-			dc->changeDir( Dir::ValueNoCheck( 0 ) );
+			dc->changeDir( Dir::ValueChecked( 0 ) );
 			installDevice( *dc , Vec2i( index , 0 ) , false );
 			++index;
 		}
@@ -182,7 +182,6 @@ namespace Chromatron
 
 	void Level::updateWorld()
 	{
-		
 		WorldUpdateContext context( mWorld );
 		resetDeviceFlag(true);
 		bool recalc;
@@ -197,7 +196,7 @@ namespace Chromatron
 				dc->update(context);
 			}
 
-			switch (mWorld.transmitLight(context))
+			switch ( context.transmitLight() )
 			{
 			case TSS_LOGIC_ERROR:
 			case TSS_RECALC:

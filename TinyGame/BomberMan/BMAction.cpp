@@ -6,7 +6,7 @@
 namespace BomberMan
 {
 
-	void evalPlayerAction( Player& player , ActionTrigger& trigger )
+	void EvalPlayerAction( Player& player , ActionTrigger& trigger )
 	{
 		switch( player.getState() )
 		{
@@ -105,7 +105,7 @@ namespace BomberMan
 		Player* player = mLevel.getPlayer( trigger.getPort() );
 		if ( player )
 		{
-			evalPlayerAction( *player , trigger );
+			EvalPlayerAction( *player , trigger );
 		}
 	}
 

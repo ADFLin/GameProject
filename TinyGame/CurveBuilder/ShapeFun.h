@@ -22,25 +22,23 @@ namespace CB
 		void setExpr(int axis, string const& expr)
 		{
 			assert(axis >= 0 && axis < 3);
-			mExpr[axis].setExprString(expr);
+			mCoordExpr[axis].setExprString(expr);
 		}
 		string const& getExprString(int axis)
 		{
 			assert(axis >= 0 && axis < 3);
-			return mExpr[axis].getExprString();
+			return mCoordExpr[axis].getExprString();
 		}
 
 		virtual Curve3DFun* clone();
 		virtual void acceptVisit(ShapeFunVisitor& visitor);
 	private:
 
-		Expression   mExpr[3];
+		Expression   mCoordExpr[3];
 	};
 
 	class SurfaceFun : public ShapeFunBase
 	{
-
-
 
 	};
 
@@ -59,7 +57,6 @@ namespace CB
 
 		virtual void acceptVisit(ShapeFunVisitor& visitor);
 		virtual SurfaceXYFun* clone();
-
 	private:
 		Expression   mExpr;
 	};
@@ -76,24 +73,24 @@ namespace CB
 		void setExpr(int axis, string const& expr)
 		{
 			assert(axis >= 0 && axis < 3);
-			mExpr[axis].setExprString(expr);
+			mAixsExpr[axis].setExprString(expr);
 		}
 		string const& getExprString(int axis)
 		{
 			assert(axis >= 0 && axis < 3);
-			return mExpr[axis].getExprString();
+			return mAixsExpr[axis].getExprString();
 		}
 		virtual SurfaceUVFun* clone();
 		virtual void acceptVisit(ShapeFunVisitor& visitor);
 	private:
-		Expression   mExpr[3];
+		Expression   mAixsExpr[3];
 
 	};
 
 	class SFImplicitFun : public SurfaceFun
 	{
 	private:
-		Expression m_Expr;
+		Expression mExpr;
 	};
 
 	class ShapeFunVisitor

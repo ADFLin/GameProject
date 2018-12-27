@@ -10,7 +10,7 @@ public:
 	virtual bool  scanInput( bool beUpdateFrame ){ return false;  }
 	virtual bool  checkAction( ActionParam& param  ){ return false;  }
 
-	virtual void  blockKeyEvent( bool beB ){}
+	virtual void  blockAllAction( bool beB ){}
 	virtual bool  haveLockMouse(){ return false;  }
 
 	virtual void  setPortControl( unsigned port , unsigned cID ){}
@@ -37,6 +37,14 @@ void IGameModule::beginPlay( StageModeType type, StageManager& manger )
 	{
 	case SMT_SINGLE_GAME: manger.changeStage( STAGE_SINGLE_GAME ); break;
 	case SMT_REPLAY: manger.changeStage( STAGE_REPLAY_GAME ); break;
-	case SMT_NET_GAME: /*manger.changeStage( STAGE_NET_GAME );*/ break;
+	case SMT_NET_GAME: 
+		{
+			AttribValue value(ATTR_NET_SUPPORT);
+			if( getAttribValue(value) && value.iVal )
+			{
+				manger.changeStage( STAGE_NET_GAME );
+			}
+		}
+		break;
 	}
 }

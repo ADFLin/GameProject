@@ -40,19 +40,19 @@ namespace Poker { namespace Big2 {
 		}
 	};
 
-	class TrickUtility
+	class FTrick
 	{
 	public:
-		static int     getGroupNum( CardGroup group );
+		static int     GetGroupNum( CardGroup group );
 	
-		static bool    canSuppress(  TrickInfo const& info ,  TrickInfo const& prevInfo );
-		static int     getRankPower( int rank );
-		static int     calcPower( Card const& card );
-		static int     calcPower( CardGroup group , Card cards[] );
-		static bool    checkCard( Card const cards[] , int numCard , int index[] , int num ,  TrickInfo& info );
+		static bool    CanSuppress(  TrickInfo const& info ,  TrickInfo const& prevInfo );
+		static int     GetRankPower( int rank );
+		static int     CalcPower( Card const& card );
+		static int     CalcPower( CardGroup group , Card cards[] );
+		static bool    CheckCard( Card const cards[] , int numCard , int index[] , int num ,  TrickInfo& info );
 
 	private:
-		static bool    checkCard5( TrickInfo& info );
+		static bool    CheckCard5( TrickInfo& info );
 	};
 
 	class TrickIterator;
@@ -170,7 +170,7 @@ namespace Poker { namespace Big2 {
 	public:
 		TrickIterator();
 		int*      getIndex( int& num );
-		bool      is(){ return mbe; }
+		bool      isOK(){ return mbOK; }
 		void      goNext();
 		void      goNext( int power );
 		void      reset();
@@ -181,7 +181,7 @@ namespace Poker { namespace Big2 {
 		friend class TrickHelper;
 		TrickIterator( TrickHelper& helper , CardGroup group );
 		CardGroup    mGroup;
-		bool         mbe;
+		bool         mbOK;
 		int          mIndex[ 5 ];
 		int          mPower;
 		IterData     mIterData;

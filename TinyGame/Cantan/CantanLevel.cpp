@@ -39,10 +39,10 @@ namespace Cantan
 
 		for( int i = 1 ; i < size ; ++i )
 		{
-			Vec2i pos = i * HexCellUtility::CellNeighborOffset( Dir::ValueNoCheck(4) );
+			Vec2i pos = i * HexCellUtility::CellNeighborOffset( Dir::ValueChecked(4) );
 			for( int d = 0 ; d < DirNum; ++d )
 			{
-				Vec2i offset = HexCellUtility::CellNeighborOffset( Dir::ValueNoCheck(d) );
+				Vec2i offset = HexCellUtility::CellNeighborOffset( Dir::ValueChecked(d) );
 				for( int n = 0 ; n < i ; ++n )
 				{
 					MapCell* cell = constructCell( pos , size );
@@ -63,7 +63,7 @@ namespace Cantan
 			int nE = 0;
 			for( int i = 0 ; i < DirNum ; ++i )
 			{
-				Vec2i nPos = v->pos + HexCellUtility::VertexNeighborOffset( Dir::ValueNoCheck(i) );
+				Vec2i nPos = v->pos + HexCellUtility::VertexNeighborOffset( Dir::ValueChecked(i) );
 				PosNodeMap::iterator iter = mPosMap.find( nPos );
 				if ( iter == mPosMap.end() )
 					continue;
@@ -114,7 +114,7 @@ namespace Cantan
 		mPosMap[ pos ] = cell;
 		for( int i = 0 ; i < DirNum ; ++i )
 		{
-			Vec2i vPos = pos + HexCellUtility::VertexNeighborOffset( Dir::ValueNoCheck( i ) );
+			Vec2i vPos = pos + HexCellUtility::VertexNeighborOffset( Dir::ValueChecked( i ) );
 			assert( HexCellUtility::IsVertex( vPos ) );
 
 			int dist = HexCellUtility::Distance( vPos , Vec2i(0,0) );

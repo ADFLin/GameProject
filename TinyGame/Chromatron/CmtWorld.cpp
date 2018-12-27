@@ -39,174 +39,6 @@ namespace Chromatron
 		return mTileMap.getData( pos.x , pos.y );
 	}
 
-
-	static Vec2i const gTestOffset[] = { Vec2i(0,-1) , Vec2i(-1,-1) , Vec2i(-1,0) , Vec2i(0,0) };
-
-	bool World::transmitLightStep( LightTrace& light , Tile** curTile )
-	{
-		assert( &getTile( light.getEndPos()  ) == *curTile );
-
-		(*curTile)->addLightPathColor( light.getDir(),light.getColor() );
-
-		if ( light.getDir() % 2 == 1 )
-		{
-			Vec2i testPos = light.getEndPos() + gTestOffset[ light.getDir() / 2 ];
-			if ( isValidRange( testPos ) && getTile( testPos ).blockRBConcerLight() )
-				return false;
-		}
-
-		light.advance();
-
-		if ( !isValidRange( light.getEndPos() ) ) 
-		{
-			*curTile = NULL;
-			return false;
-		}
-
-		Tile& tile = getTile( light.getEndPos() );
-		*curTile = &tile;
-
-		if ( tile.blockLight() )
-			return false;
-
-		tile.addLightPathColor( light.getDir().inverse() , light.getColor() );
-
-		if ( tile.getDevice() )
-			return false;
-
-		return true;
-	}
-
-	TransmitStatus World::transmitLightSync( WorldUpdateContext& context , LightSyncProcessor& processor , LightList& transmitLights )
-	{
-		bool prevMode = context.isSyncMode();
-		context.setSyncMode( true );
-
-		LightSyncProcessor* prevProvider  = context.mSyncProcessor;
-		LightList*     prevLightList = context.mSyncLights;
-
-		context.mSyncProcessor = &processor;
-		context.mSyncLights    = &transmitLights;
-
-		typedef std::list< LightList::iterator > IterList;
-		IterList   eraseIters;
-
-		int stepCount = 0;
-
-		while( !transmitLights.empty() )
-		{
-			for ( LightList::iterator iter = transmitLights.begin();
-				 iter != transmitLights.end() ;  )
-			{
-
-				LightTrace& curLight = (*iter);
-
-				Tile* pTile = &getTile( curLight.getEndPos() );
-				bool canKeep = transmitLightStep( curLight , &pTile );
-
-				Device* pDC = ( pTile ) ? ( pTile->getDevice() ) : NULL;
-
-				if ( pDC )
-					eraseIters.push_back( iter );
-
-				if ( canKeep || pDC )
-					++iter;
-				else
-					iter = transmitLights.erase( iter );
-
-			}
-
-			if ( !eraseIters.empty() )
-			{
-				int pass = 0;
-
-				do
-				{
-					for ( IterList::iterator eIter = eraseIters.begin();
-						eIter != eraseIters.end() ; )
-					{
-						LightList::iterator lightIter = *eIter;
-						LightTrace& light = *lightIter;
-
-						Vec2i const& pos = light.getEndPos();
-
-						assert( isValidRange( pos ) );
-
-						Tile& tile = getTile( pos );
-						Device* dc = tile.getDevice();
-						assert( dc );
-
-						if ( processor.prevEffectDevice( *dc , light , pass ) )
-						{
-							if ( evalDeviceEffect( context , *dc , light ) != TSS_OK )
-								goto SyncEnd;
-
-							transmitLights.erase( lightIter );
-							eIter = eraseIters.erase( eIter );
-						}
-						else
-						{
-							++eIter;
-						}
-					}
-
-					++pass;
-				}
-				while( !eraseIters.empty() );
-			}
-
-			++stepCount;
-			if ( stepCount > MaxTransmitStepCount )
-			{
-				context.notifyStatus( TSS_INFINITE_LOOP );
-				goto SyncEnd;
-			}
-		}
-
-SyncEnd:
-		context.mSyncLights    = prevLightList;
-		context.mSyncProcessor = prevProvider;
-		context.setSyncMode( prevMode );
-
-		return context.mStatus;
-	}
-
-
-	TransmitStatus World::transmitLight( WorldUpdateContext& context )
-	{
-		int loopCount = 0;
-		while( !context.mNormalLights.empty() )
-		{
-			LightTrace& light = context.mNormalLights.front();
-			
-			Tile* pTile = &getTile( light.getEndPos() );
-
-			for(;;)
-			{
-				if ( !transmitLightStep( light , &pTile ) )
-					break;
-			}
-
-			if ( pTile )
-			{
-				Device* dc = pTile->getDevice();
-				if ( dc )
-				{
-					TransmitStatus status = evalDeviceEffect( context , *dc , light );
-					if ( status != TSS_OK )
-						return status;
-				}
-			}
-
-			context.mNormalLights.pop_front();
-			++loopCount;
-
-			if ( loopCount > MaxTransmitLightNum )
-				return TSS_INFINITE_LOOP;
-		}
-		return TSS_OK;
-	}
-
 	void World::clearLight()
 	{
 		int length = getMapSizeX() * getMapSizeY();
@@ -270,10 +102,8 @@ SyncEnd:
 				if ( isValidRange( invPos ) && 
 					 getTile( invPos ).getLightPathColor( dir ) == color )
 					return false;
-			}
-				
+			}			
 		}
-
 		return true;
 	}
 
@@ -295,32 +125,6 @@ SyncEnd:
 		}
 	}
 
-	TransmitStatus World::evalDeviceEffect( WorldUpdateContext& context , Device& dc , LightTrace const& light )
-	{
-		Tile& tile = getTile( dc.getPos() );
-
-		Dir invDir = light.getDir().inverse();
-		tile.addReceivedLightColor( invDir , light.getColor() );
-
-		if ( dc.getFlag() & DFB_SHOT_DOWN )
-			return TSS_OK;
-
-		if ( dc.getFlag() & DFB_LAZY_EFFECT )
-		{
-			Color lazyColor = tile.getLazyLightColor( invDir );
-			if ( lazyColor && tile.getReceivedLightColor( invDir ) != lazyColor )
-				return TSS_OK;
-		}
-
-		context.mStatus   = TSS_OK;
-		int prevAge = context.mLightAge;
-		context.mLightAge = light.getAge();
-		
-		dc.effect( context , light );
-		
-		context.mLightAge = prevAge;
-		return context.mStatus;
-	}
 
 	Device* World::goNextDevice( Dir dir , Vec2i& curPos )
 	{
@@ -361,7 +165,182 @@ SyncEnd:
 		mbSyncMode = false;
 	}
 
-	void WorldUpdateContext::addLight(Vec2i const& pos , Color color , Dir dir)
+	TransmitStatus WorldUpdateContext::transmitLight()
+	{
+		int loopCount = 0;
+		while( !mNormalLights.empty() )
+		{
+			LightTrace& light = mNormalLights.front();
+
+			Tile* pTile = &getTile(light.getEndPos());
+
+			for( ;;)
+			{
+				if( !transmitLightStep(light, &pTile) )
+					break;
+			}
+
+			if( pTile )
+			{
+				Device* dc = pTile->getDevice();
+				if( dc )
+				{
+					TransmitStatus status = evalDeviceEffect(*dc, light);
+					if( status != TSS_OK )
+						return status;
+				}
+			}
+
+			mNormalLights.pop_front();
+			++loopCount;
+
+			if( loopCount > MaxTransmitLightNum )
+				return TSS_INFINITE_LOOP;
+		}
+		return TSS_OK;
+	}
+
+	TransmitStatus WorldUpdateContext::transmitLightSync(LightSyncProcessor& processor, LightList& transmitLights)
+	{
+		LightSyncScope syncScope(*this, processor, transmitLights);
+	
+		typedef std::list< LightList::iterator > IterList;
+		IterList   eraseIters;
+		int stepCount = 0;
+
+		while( !transmitLights.empty() )
+		{
+			for( LightList::iterator iter = transmitLights.begin();
+				iter != transmitLights.end(); )
+			{
+
+				LightTrace& curLight = (*iter);
+
+				Tile* pTile = &getTile(curLight.getEndPos());
+				bool canKeep = transmitLightStep(curLight, &pTile);
+
+				Device* pDC = (pTile) ? (pTile->getDevice()) : nullptr;
+
+				if( pDC )
+					eraseIters.push_back(iter);
+
+				if( canKeep || pDC )
+					++iter;
+				else
+					iter = transmitLights.erase(iter);
+
+			}
+
+			for( int passStep = 0; !eraseIters.empty(); ++passStep )
+			{
+				for( IterList::iterator eIter = eraseIters.begin();
+					eIter != eraseIters.end(); )
+				{
+					LightList::iterator lightIter = *eIter;
+					LightTrace& light = *lightIter;
+
+					Vec2i const& pos = light.getEndPos();
+
+					assert(getWorld().isValidRange(pos));
+
+					Tile& tile = getTile(pos);
+					Device* dc = tile.getDevice();
+					assert(dc);
+
+					if( processor.prevEffectDevice(*dc, light, passStep) )
+					{
+						if( evalDeviceEffect(*dc, light) != TSS_OK )
+							goto OutLoop;
+
+						transmitLights.erase(lightIter);
+						eIter = eraseIters.erase(eIter);
+					}
+					else
+					{
+						++eIter;
+					}
+				}
+			}
+
+			++stepCount;
+			if( stepCount > MaxTransmitStepCount )
+			{
+				notifyStatus(TSS_INFINITE_LOOP);
+				goto OutLoop;
+			}
+		}
+	OutLoop:
+		;
+
+		return mStatus;
+	}
+
+
+	static Vec2i const gTestOffset[] = { Vec2i(0,-1) , Vec2i(-1,-1) , Vec2i(-1,0) , Vec2i(0,0) };
+
+	bool WorldUpdateContext::transmitLightStep(LightTrace& light, Tile** curTile)
+	{
+		assert(&getTile(light.getEndPos()) == *curTile);
+
+		(*curTile)->addLightPathColor(light.getDir(), light.getColor());
+
+		if( light.getDir() % 2 == 1 )
+		{
+			Vec2i testPos = light.getEndPos() + gTestOffset[light.getDir() / 2];
+			if( getWorld().isValidRange(testPos) && getTile(testPos).blockRBConcerLight() )
+				return false;
+		}
+
+		light.advance();
+
+		if( !getWorld().isValidRange(light.getEndPos()) )
+		{
+			*curTile = NULL;
+			return false;
+		}
+
+		Tile& tile = getTile(light.getEndPos());
+		*curTile = &tile;
+
+		if( tile.blockLight() )
+			return false;
+
+		tile.addLightPathColor(light.getDir().inverse(), light.getColor());
+
+		if( tile.getDevice() )
+			return false;
+
+		return true;
+	}
+
+	TransmitStatus WorldUpdateContext::evalDeviceEffect(Device& dc, LightTrace const& light)
+	{
+		Tile& tile = getTile(dc.getPos());
+
+		Dir invDir = light.getDir().inverse();
+		tile.addReceivedLightColor(invDir, light.getColor());
+
+		if( dc.getFlag() & DFB_SHOT_DOWN )
+			return TSS_OK;
+
+		if( dc.getFlag() & DFB_LAZY_EFFECT )
+		{
+			Color lazyColor = tile.getLazyLightColor(invDir);
+			if( lazyColor && tile.getReceivedLightColor(invDir) != lazyColor )
+				return TSS_OK;
+		}
+
+		mStatus = TSS_OK;
+		int prevAge = mLightAge;
+		mLightAge = light.getAge();
+
+		dc.effect(*this, light);
+
+		mLightAge = prevAge;
+		return mStatus;
+	}
+
+	void WorldUpdateContext::addEffectLight(Vec2i const& pos, Color color, Dir dir)
 	{
 		if ( color == COLOR_NULL )
 			return;

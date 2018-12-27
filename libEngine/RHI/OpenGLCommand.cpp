@@ -141,7 +141,7 @@ namespace Render
 			OpenGLTiming& timing = mTimingStorage[timingHandle];
 			return timing.getTime(outDurtion);
 		}
-		virtual double getCycleToSecond()
+		virtual double getCycleToMillisecond()
 		{
 			return 1.0 / 1000000.0;
 		}

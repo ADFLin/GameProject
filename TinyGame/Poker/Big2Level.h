@@ -35,7 +35,7 @@ namespace Poker { namespace Big2 {
 		unsigned playerId;
 		int      money;
 		int      score;
-		bool     bePass;
+		bool     bPassed;
 	};
 
 
@@ -63,6 +63,16 @@ namespace Poker { namespace Big2 {
 	{
 		bool   isGameOver;
 		char   winner;
+
+		struct PlayerData
+		{
+			int32  money;
+			int32  score;
+			uint32 reason;
+			uint8  numCard;
+		};
+
+		PlayerData players[4];
 		int32  money[4];
 		int32  score[4];
 		uint32 reason[4];
@@ -81,7 +91,7 @@ namespace Poker { namespace Big2 {
 		SR_HAVE_STRAIGHT_FLUSH = BIT(6) ,
 
 		SR_LAST_SHOW_BIG_2     = BIT(7) ,
-		SR_LAST_FOUR_OF_KIND  = BIT(8) ,
+		SR_LAST_FOUR_OF_KIND   = BIT(8) ,
 		SR_LAST_STRAIGHT_FLUSH = BIT(9) ,
 	};
 
@@ -107,7 +117,7 @@ namespace Poker { namespace Big2 {
 		bool             checkShowCard( CardDeck& cards , int pIndex[] , int num , TrickInfo& info );
 
 		void             setupTransfer( IDataTransfer* transfer ){ assert( transfer ); mTransfer = transfer; doSetupTransfer(); }
-		IDataTransfer*   getTransfer(){ return mTransfer; }
+		IDataTransfer&   getTransfer(){ return *mTransfer; }
 
 		SlotStatus&      getSlotStatus( int slotId ){ return mSlotStatus[ slotId ]; }
 	protected:

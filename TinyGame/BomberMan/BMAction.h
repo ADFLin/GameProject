@@ -18,7 +18,7 @@ namespace BomberMan
 		ACT_BM_FUNCTION ,
 	};
 
-	void evalPlayerAction( Player& player , ActionTrigger& trigger );
+	void EvalPlayerAction( Player& player , ActionTrigger& trigger );
 
 	class CFrameActionTemplate : public TKeyFrameActionTemplate< KeyFrameData >
 	{

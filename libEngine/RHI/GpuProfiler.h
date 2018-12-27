@@ -23,7 +23,7 @@ namespace Render
 		virtual void startTiming(uint32 timingHandle) = 0;
 		virtual void endTiming(uint32 timingHandle) = 0;
 		virtual bool getTimingDurtion(uint32 timingHandle, uint64& outDurtion) = 0;
-		virtual double getCycleToSecond() = 0;
+		virtual double getCycleToMillisecond() = 0;
 	};
 
 	struct GpuProfileSample
@@ -43,15 +43,17 @@ namespace Render
 
 		static CORE_API GpuProfiler& Get();
 
-		void beginFrame();
-		void endFrame();
+		CORE_API void beginFrame();
+		CORE_API void endFrame();
 
-		int  getSampleNum() { return numSampleUsed; }
+		CORE_API GpuProfileSample* startSample(char const* name);
+		CORE_API void endSample(GpuProfileSample& sample);
+
+		int  getSampleNum() { return mNumSampleUsed; }
 		void setCore(RHIProfileCore* core);
 
 		GpuProfileSample* getSample(int idx) { return mSamples[idx].get(); }
-		GpuProfileSample* startSample(char const* name);
-		void endSample(GpuProfileSample& sample);
+
 
 		struct SampleGroup
 		{
@@ -63,10 +65,11 @@ namespace Render
 		std::vector< std::unique_ptr< GpuProfileSample > > mSamples;
 
 		RHIProfileCore* mCore = nullptr;
-		bool bStartSampling = false;
-		int  mCurLevel;
-		int  numSampleUsed;
-		double cycleToSecond;
+		GpuProfileSample* mRootSample;
+		bool   mbStartSampling = false;
+		int    mCurLevel;
+		int    mNumSampleUsed;
+		double mCycleToSecond;
 	};
 
 

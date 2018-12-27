@@ -978,7 +978,7 @@ bool NetLevelStageMode::onWidgetEvent(int event, int id, GWidget* ui)
 
 bool NetLevelStageMode::onKey(unsigned key, bool isDown)
 {
-	if( isDown && key == VK_TAB )
+	if( isDown && key == Keyboard::eTAB )
 	{
 		bool beShow = !mMsgPanel->isShow();
 		mMsgPanel->show(beShow);
@@ -987,7 +987,7 @@ bool NetLevelStageMode::onKey(unsigned key, bool isDown)
 			mMsgPanel->clearInputString();
 			mMsgPanel->makeFocus();
 		}
-		getGame()->getController().blockKeyEvent(beShow);
+		getGame()->getController().blockAllAction(beShow);
 		return false;
 	}
 

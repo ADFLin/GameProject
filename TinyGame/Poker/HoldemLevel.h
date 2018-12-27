@@ -94,7 +94,7 @@ namespace Poker { namespace Holdem {
 	public:
 		LevelBase();
 
-		IDataTransfer* getTransfer(){ return mTransfer; }
+		IDataTransfer& getTransfer(){ return *mTransfer; }
 		void           setupTransfer( IDataTransfer* transfer );
 
 		Rule const& getRule() const { return mRule; }

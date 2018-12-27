@@ -2,12 +2,13 @@
 
 #include "CurveBuilder/ShapeCommon.h"
 #include "CurveBuilder/ShapeFun.h"
-#include "CurveBuilder/ShapeMaker.h"
+#include "CurveBuilder/ShapeMeshBuilder.h"
 #include "CurveBuilder/Surface.h"
 
 #include "CurveBuilder/CurveRenderer.h"
 #include "CurveBuilder/FPUCompiler.h"
 
+#include "AsyncWork.h"
 #include "GLGraphics2D.h"
 #include "ProfileSystem.h"
 
@@ -21,17 +22,20 @@ namespace CB
 {
 	using namespace Render;
 
-	class TemplateTestStage : public StageBase
+	class TestStage : public StageBase
 	{
 		typedef StageBase BaseClass;
 	public:
 
-		std::unique_ptr<ShapeMaker>   mSurfaceMaker;
+		std::unique_ptr<ShapeMeshBuilder>   mMeshBuilder;
 		std::unique_ptr<CurveRenderer>   mRenderer;
 		SimpleCamera  mCamera;
 		std::vector<ShapeBase*> mSurfaceList;
+#if USE_PARALLEL_UPDATE
+		std::unique_ptr< QueueThreadPool > mUpdateThreadPool;
+#endif
 
-		TemplateTestStage() 
+		TestStage()
 		{
 
 		}
@@ -50,6 +54,11 @@ namespace CB
 			if( !ShaderHelper::Get().init() )
 				return false;
 
+#if USE_PARALLEL_UPDATE
+			int numThread = SystemPlatform::GetProcessorNumber();
+			mUpdateThreadPool.reset(new QueueThreadPool);
+			mUpdateThreadPool->init(numThread);
+#endif
 
 			Vec2i screenSize = ::Global::GetDrawEngine()->getScreenSize();
 			mRenderer.reset( new CurveRenderer );
@@ -59,7 +68,7 @@ namespace CB
 			mCamera.setPos(Vector3(20, 20, 20));
 			mCamera.setViewDir(Vector3(-1, -1, -1), Vector3(0, 0, 1));
 
-			mSurfaceMaker.reset( new ShapeMaker );
+			mMeshBuilder.reset( new ShapeMeshBuilder );
 
 			wglSwapIntervalEXT(0);
 			glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);
@@ -70,7 +79,7 @@ namespace CB
 			{
 				Surface3D* surface = createSurfaceXY("x + x", Color4f(0.2, 0.6, 0.4, 0.3));
 				//Surface3D* surface = createSurfaceXY("cos(0.1*(x*x+y*y) + 0.01*t)", Color4f(0.2, 0.6, 0.4, 0.3));
-				//surface = createSurfaceXY("sin(x)*cos(y+0.01*t)", Color4f(0.2, 0.6, 0.4, 0.5));
+				surface = createSurfaceXY("sin(x)*cos(y+0.01*t)", Color4f(0.2, 0.6, 0.4, 0.5));
 				//surface = createSurfaceXY("sin(0.1*(x*x+y*y) + 0.01*t)", Color4f(0.2, 0.6, 0.1, 0.3) );
 
 				GTextCtrl* textCtrl = new GTextCtrl(UI_ANY, Vec2i(100, 100), 200, nullptr);
@@ -114,7 +123,7 @@ namespace CB
 			surface->setDataSampleNum(NumX, NumY);
 			surface->setColor(color);
 			surface->visible(true);
-			surface->addUpdateBit(RUB_ALL_UPDATE_BIT);
+			surface->addUpdateBit(RUF_ALL_UPDATE_BIT);
 			mSurfaceList.push_back(surface);
 
 			return surface;
@@ -130,7 +139,7 @@ namespace CB
 		{
 			static float t = 0;
 			t += 1;
-			mSurfaceMaker->setTime(t);
+			mMeshBuilder->setTime(t);
 
 			{
 				PROFILE_ENTRY("Update Surface");
@@ -138,21 +147,22 @@ namespace CB
 #if USE_PARALLEL_UPDATE
 				for( ShapeBase* current : mSurfaceList )
 				{
-					mSurfaceMaker->addUpdateWork([&,current]
+					mUpdateThreadPool->addFunctionWork([this, current]()
 					{
-						current->update(*mSurfaceMaker);
+						current->update(*mMeshBuilder);
 					});
 				}
-				mSurfaceMaker->waitUpdateDone();
+				mUpdateThreadPool->waitAllWorkComplete();
 #else
 				for( ShapeBase* current : mSurfaceList )
 				{
-					current->update(*mSurfaceMaker);
+					current->update(*mMeshBuilder);
 				}
 #endif
 			}
 
 		}
+
 		void updateFrame(int frame) {}
 
 		virtual void onUpdate(long time)
@@ -248,9 +258,20 @@ namespace CB
 			case 'A': mCamera.moveRight(-moveDist); break;
 			case 'Z': mCamera.moveUp(0.5); break;
 			case 'X': mCamera.moveUp(-0.5); break;
-			case Keyboard::eF5: mRenderer->reloadShaer();
+			case Keyboard::eF5: mRenderer->reloadShaer(); break;
+			case Keyboard::eADD: modifyParamIncrement(0.5); break;
+			case Keyboard::eSUBTRACT: modifyParamIncrement(2); break;
 			}
 			return false;
+		}
+
+		void modifyParamIncrement( float modifyFactor )
+		{
+			for( auto surface : mSurfaceList )
+			{
+				auto surface3D = static_cast<Surface3D*>(surface);
+				surface3D->setIncrement(surface3D->getParamU().getIncrement() * modifyFactor, surface3D->getParamU().getIncrement() * modifyFactor);
+			}
 		}
 
 		virtual bool onWidgetEvent(int event, int id, GWidget* ui) override
@@ -270,4 +291,4 @@ namespace CB
 }//namespace CB
 
 
-REGISTER_STAGE("Curve Builder", CB::TemplateTestStage, EStageGroup::FeatureDev);
+REGISTER_STAGE("Curve Builder", CB::TestStage, EStageGroup::FeatureDev);

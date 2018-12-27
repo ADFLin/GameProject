@@ -19,7 +19,7 @@ namespace FCS
 		int       numPassibleMove;
 		MoveInfo* passibleMove;
 		MoveInfo  move;
-		unsigned char key[52];
+		uint8     key[52];
 	};
 
 	enum SearchResult

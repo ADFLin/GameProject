@@ -45,12 +45,12 @@ namespace Poker
 		struct Sprite
 		{
 			Vector2 pos;
-			bool  beAnim;
+			bool    bAnimating;
 		};
 
 		void undoMove();
-		void onAnimFinish( int idx , bool bUndoMove );
-		int  clickCard( StackCell& cell , Vec2i const& pos );
+		void onAnimFinish(int idx, int animType, int metaValue);
+		int  clickCard(StackCell& cell, Vec2i const& pos);
 		void drawCell( Graphics2D& g , Vec2i const& pos );
 		void drawSprite( Graphics2D& g , StackCell& cell );
 		void drawSprite( Graphics2D& g , Card const& card );
@@ -74,15 +74,15 @@ namespace Poker
 			STATE_END ,
 		};
 		State      mState;
-		bool       playAnim(  Card const& card , Vec2i const& to , float delay = 0.0f , int type = ANIM_MOVEING );
+		bool       playAnimation(  Card const& card , Vec2i const& to , float delay = 0.0f , int animType = ANIM_MOVEING );
 		Cell*      mSelectCell;
 		ICardDraw* mCardDraw;
 		Vec2i      mCardSize;
 		typedef Tween::GroupTweener< float > Tweener;
 		Tweener    mTweener;
 		int        mSeed;
-		bool       mShowAnim;
-		int        mIdxCellLook;
+		bool       mbShowAnimation;
+		Cell*      mCellLook;
 		int        mIdxCardLook;
 
 		struct MoveInfo

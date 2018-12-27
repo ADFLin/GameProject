@@ -10,6 +10,20 @@
 
 static Block* gBlockMap[ 256 ] = { 0 };
 
+struct BlockInfo;
+typedef Block* (*CreateBlockFun)(BlockId type);
+
+struct BlockInfo
+{
+	BlockId   type;
+	CreateBlockFun createFun;
+	unsigned    colMask;
+	unsigned    flag;
+	char const* texDiffuse;
+	char const* texNormal;
+	char const* texGlow;
+};
+
 
 static Vec3f gDoorColor[ NUM_DOOR_TYPE ] =
 {
@@ -21,60 +35,6 @@ static Vec3f gDoorColor[ NUM_DOOR_TYPE ] =
 Vec3f const& getDoorColor( int type )
 {
 	return gDoorColor[ type ];
-}
-
-struct BlockInfo
-{
-	BlockId   type;
-	unsigned    colMask;
-	unsigned    flag;
-	char const* texDiffuse;
-	char const* texNormal;
-	char const* texGlow;
-};
-
-static void createBlockClass();
-
-struct TexInfo
-{
-	char const* texName[3];
-};
-
-TexInfo FlatTexInfo[] =
-{
-	{ "pod1Diffuse.tga" , "prazninaNormal2.tga" , NULL } ,
-	{ "Bathroom.tga" , "BathroomN.tga" , NULL } ,
-	{ "Tile.tga" , "TileN.tga" , NULL } ,
-	{ "Metal1.tga" , "Metal1N.tga" , NULL } ,
-	{ "Weave.tga" , "WeaveN.tga" , NULL } ,
-	{ "Hex.tga" , "HexN.tga" , NULL } ,
-};
-
-static BlockInfo const gInfo[] = 
-{
-	{ BID_FLAT , 0 , 0 , "pod1Diffuse.tga" , "prazninaNormal2.tga" , NULL } ,
-	{ BID_WALL , COL_OBJECT | COL_VIEW , BF_CAST_SHADOW , "Block.tga" , "zid1Normal.tga" , NULL } ,
-	//{ BID_WALL , COL_OBJECT | COL_VIEW , BF_CAST_SHADOW , "Block.tga" , "SqureN.tga" , NULL } ,
-	{ BID_GAP  , COL_SOILD | COL_TRIGGER | COL_VIEW , 0 , "prazninaDiffuse.tga" , "prazninaNormal.tga" , NULL } ,
-	{ BID_DOOR , COL_OBJECT | COL_VIEW , BF_CAST_SHADOW , "vrataDiffuse.tga" , "vrataNormal.tga" , "vrataGlow.tga" } ,
-	{ BID_ROCK , COL_OBJECT | COL_VIEW , BF_CAST_SHADOW , "vrataDiffuse.tga" , "vrataNormal.tga" , "vrataGlow.tga" } ,
-};
-
-void Block::init( BlockId type )
-{
-	BlockInfo const& info = gInfo[ type ];
-
-	assert( info.type == type );
-
-	mId = info.type;
-	mFlag = info.flag;
-	mColMask = info.colMask;
-	
-	TextureManager* texMgr = getRenderSystem()->getTextureMgr();
-	
-	mTex[ RP_DIFFUSE ] = ( info.texDiffuse ) ? texMgr->getTexture( info.texDiffuse ) : NULL;
-	mTex[ RP_NORMAL  ] = ( info.texNormal ) ? texMgr->getTexture( info.texNormal ) : NULL;
-	mTex[ RP_GLOW    ] = ( info.texGlow ) ? texMgr->getTexture( info.texGlow ) : NULL;
 }
 
 void Block::render( Tile const& tile )
@@ -97,32 +57,6 @@ void Block::renderGlow( Tile const& tile )
 void Block::renderNoTexture( Tile const& tile )
 {
 	drawRect( tile.pos , gSimpleBlockSize );
-}
-
-Block* Block::Get(BlockId id )
-{
-	return gBlockMap[ id ];
-}
-
-
-void Block::Initialize()
-{
-	createBlockClass();
-	for( int i = 0 ; i < NUM_BLOCK_TYPE ; ++i )
-	{
-		gBlockMap[i]->init( i );
-	}
-}
-
-
-void Block::Cleanup()
-{
-	for(int i=0; i< NUM_BLOCK_TYPE; i++)
-	{
-		delete gBlockMap[i];
-		gBlockMap[i] = NULL;
-	}
-
 }
 
 void Block::onCollision( Tile& tile , Bullet* bullet )
@@ -182,12 +116,79 @@ void DoorBlock::renderGlow( Tile const& tile )
 }
 
 
-static void createBlockClass()
+struct TexInfo
 {
-	gBlockMap[ BID_FLAT ] = new Block;
-	gBlockMap[ BID_WALL ] = new Block;
-	gBlockMap[ BID_GAP  ] = new Block;
-	gBlockMap[ BID_DOOR ] = new DoorBlock;
-	gBlockMap[ BID_ROCK ] = new RockBlock;
+	char const* texName[3];
+};
+
+
+TexInfo FlatTexInfo[] =
+{
+	{ "pod1Diffuse.tga" , "prazninaNormal2.tga" , NULL } ,
+	{ "Bathroom.tga" , "BathroomN.tga" , NULL } ,
+	{ "Tile.tga" , "TileN.tga" , NULL } ,
+	{ "Metal1.tga" , "Metal1N.tga" , NULL } ,
+	{ "Weave.tga" , "WeaveN.tga" , NULL } ,
+	{ "Hex.tga" , "HexN.tga" , NULL } ,
+};
+
+template< class T >
+Block* CreateBlockT(BlockId type)
+{
+	T* block = new T;
+	block->init(type);
+	return block;
 }
 
+#define BLOCK_CALSS(T) &CreateBlockT<T>
+static BlockInfo const gInfo[] =
+{
+	{ BID_FLAT , BLOCK_CALSS(Block) , 0 , 0 , "pod1Diffuse.tga" , "prazninaNormal2.tga" , NULL } ,
+	{ BID_WALL , BLOCK_CALSS(Block) ,COL_OBJECT | COL_VIEW , BF_CAST_SHADOW , "Block.tga" , "zid1Normal.tga" , NULL } ,
+	//{ BID_WALL ,BLOCK_CALSS(Block), COL_OBJECT | COL_VIEW , BF_CAST_SHADOW , "Block.tga" , "SqureN.tga" , NULL } ,
+	{ BID_GAP  , BLOCK_CALSS(Block) ,COL_SOILD | COL_TRIGGER | COL_VIEW , 0 , "prazninaDiffuse.tga" , "prazninaNormal.tga" , NULL } ,
+	{ BID_DOOR , BLOCK_CALSS(DoorBlock) ,COL_OBJECT | COL_VIEW , BF_CAST_SHADOW , "vrataDiffuse.tga" , "vrataNormal.tga" , "vrataGlow.tga" } ,
+	{ BID_ROCK , BLOCK_CALSS(RockBlock) ,COL_OBJECT | COL_VIEW , BF_CAST_SHADOW , "vrataDiffuse.tga" , "vrataNormal.tga" , "vrataGlow.tga" } ,
+};
+
+void Block::init(BlockId type)
+{
+	BlockInfo const& info = gInfo[type];
+
+	assert(info.type == type);
+
+	mId = info.type;
+	mFlag = info.flag;
+	mColMask = info.colMask;
+
+	TextureManager* texMgr = getRenderSystem()->getTextureMgr();
+
+	mTex[RP_DIFFUSE] = (info.texDiffuse) ? texMgr->getTexture(info.texDiffuse) : NULL;
+	mTex[RP_NORMAL] = (info.texNormal) ? texMgr->getTexture(info.texNormal) : NULL;
+	mTex[RP_GLOW] = (info.texGlow) ? texMgr->getTexture(info.texGlow) : NULL;
+}
+
+Block* Block::Get(BlockId id)
+{
+	return gBlockMap[id];
+}
+
+void Block::Initialize()
+{
+	std::fill_n(gBlockMap, ARRAY_SIZE(gBlockMap), nullptr);
+	for( int i = 0; i < ARRAY_SIZE(gInfo); ++i )
+	{
+		auto const& info = gInfo[i];
+		gBlockMap[info.type] = (*info.createFun)(info.type);
+	}
+}
+
+void Block::Cleanup()
+{
+	for( int i = 0; i < NUM_BLOCK_TYPE; i++ )
+	{
+		delete gBlockMap[i];
+		gBlockMap[i] = NULL;
+	}
+
+}

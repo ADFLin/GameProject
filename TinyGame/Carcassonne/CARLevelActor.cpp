@@ -1,19 +1,17 @@
 #include "CAR_PCH.h"
 #include "CARLevelActor.h"
-
-#include "CARPlayer.h"
-
 #include <algorithm>
 
 namespace CAR
 {
+
 
 	bool ActorContainer::haveOtherActor(int playerId)
 	{
 		for( int i = 0 ; i < mActors.size() ; ++i )
 		{
 			LevelActor* actor = mActors[i];
-			if ( actor->owner && actor->owner->getId() != playerId )
+			if ( actor->ownerId != CAR_ERROR_PLAYER_ID &&  actor->ownerId != playerId )
 				return true;
 		}
 		return false;
@@ -40,9 +38,9 @@ namespace CAR
 		for( ; iter < mActors.size() ; ++iter )
 		{
 			LevelActor* actor = mActors[iter];
-			if ( actor->owner == nullptr )
+			if ( actor->ownerId == CAR_ERROR_PLAYER_ID )
 				continue;
-			if (( playerMask & BIT(actor->owner->getId()) ) == 0 )
+			if (( playerMask & BIT( actor->ownerId ) ) == 0 )
 				continue;
 
 			++iter;
@@ -56,9 +54,9 @@ namespace CAR
 		for( ; iter < mActors.size() ; ++iter )
 		{
 			LevelActor* actor = mActors[iter];
-			if ( actor->owner == nullptr )
+			if( actor->ownerId == CAR_ERROR_PLAYER_ID )
 				continue;
-			if (( playerMask & BIT(actor->owner->getId()) ) == 0 )
+			if( (playerMask & BIT(actor->ownerId)) == 0 )
 				continue;
 			if (( actorTypeMask & BIT(actor->type) ) == 0 )
 				continue;

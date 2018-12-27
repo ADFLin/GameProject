@@ -87,5 +87,8 @@ namespace CAR
 		}
 	};
 
+
+
+
 }//namespace CAR
 #endif // CARScore_h__f1f98b18_a3e7_48f7_b3f8_c6faff593bd6

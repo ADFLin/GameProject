@@ -165,7 +165,7 @@ public:
 	virtual bool  scanInput( bool beUpdateFrame ) = 0;
 	virtual bool  checkAction( ActionParam& param  ) = 0;
 
-	virtual void  blockKeyEvent( bool beB ) = 0;
+	virtual void  blockAllAction( bool beB ) = 0;
 	virtual bool  haveLockMouse(){ return false;  }
 
 	virtual void  setPortControl( unsigned port , unsigned cID ) = 0;
@@ -196,7 +196,7 @@ public:
 	TINY_API bool  checkKey( unsigned key , uint8 sen );
 	TINY_API void  recvMouseMsg( MouseMsg const& msg );
 
-	void  blockKeyEvent( bool beB ){ mKeyBlocked = beB;  }
+	void  blockAllAction( bool beB ){ mActionBlocked = beB;  }
 	
 	TINY_API void  clearFrameInput();
 	TINY_API Vec2i const& getLastMosuePos(){ return mLastMousePos;  }
@@ -209,6 +209,8 @@ protected:
 		MBUTTON ,
 		RBUTTON ,
 		MOVING ,
+
+		NUM_MOUSE_EVENT ,
 	};
 
 	TINY_API MouseMsg* getMouseEvent( int evt );
@@ -222,16 +224,16 @@ private:
 	static int const MaxControlerNum = 2;
 	static int const MaxActionKeyNum = 32;
 
-	unsigned mEventMask;
-	MouseMsg mMouseEvt[ 4 ]; 
+	unsigned mMouseEventMask;
+	MouseMsg mMouseEvt[ NUM_MOUSE_EVENT ];
 
 private:
-	bool    mKeyBlocked;
+	bool    mActionBlocked;
 	Vec2i   mLastMousePos;
 
 	uint8    mKeyState[ 256 ];
 	uint8    mKeySen[ 256 ];
-	int     mCMap[ MAX_PLAYER_NUM ];
+	int      mCMap[ MAX_PLAYER_NUM ];
 
 	struct ActionKey
 	{
@@ -241,7 +243,7 @@ private:
 	};
 
 
-	ActionKey actionKey[ MaxActionKeyNum ];
+	ActionKey mActionKeyMap[ MaxActionKeyNum ];
 	bool checkKey( uint8 k , uint8& keySen , uint8 sen /*= 2 */ );
 	bool peekKey( uint8 k , uint8 keySen , uint8 sen );
 };

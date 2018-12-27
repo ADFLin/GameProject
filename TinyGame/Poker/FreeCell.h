@@ -55,25 +55,25 @@ namespace Poker
 
 		}
 
-		void   clear(){ mCard = Card::None(); }
-		int    getCardNum() const { return (isEmpty())? 0 : 1 ; }
-		bool   isEmpty() const { return  mCard == Card::None();  }
-		Card const& getCard() const { return mCard; }
-		void   push(Card const& card ){ mCard = card; }
-		void   pop(){ mCard = Card::None(); }
+		int    getCardNum() const { return (isEmpty()) ? 0 : 1; }
+		void   clear() final { mCard = Card::None(); }
+		bool   isEmpty() const final { return  mCard == Card::None();  }
+		Card const& getCard() const final { return mCard; }
+		void   push(Card const& card) final { mCard = card; }
+
 	protected:
 		Card mCard;
 	};
 
 
-	class StackCell : public Cell 
+	class StackCell final : public Cell
 	{
 	public:
 		StackCell():Cell( Cell::eSTACK ){ mCards.reserve( 20 ); }
 
 		bool  isEmpty()    const { return mCards.empty(); }
 		int   getCardNum() const { return (int)mCards.size(); }
-		void  pop(){ deleteCard(1); }
+		void  pop(){ mCards.pop_back(); }
 		Card const& getCard() const {  return mCards.back(); }
 		
 		void  push( Card const& card ){	mCards.push_back( card );  }
@@ -81,25 +81,23 @@ namespace Poker
 
 		Card const& getCard(size_t idx) const {  return mCards[idx]; }
 
-		void moveCard(StackCell& to,int num);
-		void deleteCard(int num);
+		void  moveCard(StackCell& to,int num);
+		bool  testRule( Card const& card );
 
-		bool   testRule( Card const& card );
-
-
-		typedef std::vector< Card > CGroup;
-		typedef CGroup::iterator iterator;
-		CGroup   mCards;
+		std::vector< Card >   mCards;
 	};
 
-	class FreeCell : public SingleCell
+	class FreeCell final : public SingleCell
 	{
 	public:
 		FreeCell();
+
+		void   pop() { mCard = Card::None(); }
 		bool   testRule( Card const& card );
+
 	};
 
-	class GoalCell : public SingleCell
+	class GoalCell final : public SingleCell
 	{
 	public:
 		GoalCell();
@@ -118,11 +116,14 @@ namespace Poker
 
 		void      setupGame( int seed );
 		bool      tryMoveToFreeCell( StackCell& mc );
+		bool      tryMoveToGoalCell( StackCell& mc );
 		bool      tryMoveToStackCell( FreeCell& fc );
 		bool      tryMoveCard( Cell& from , Cell& to );
 		bool      moveToGoalCellAuto();
 
 		Cell&        getCell( int index ){ assert( 0 <= index && index < TotalCellNum ); return *mCells[index]; }
+		template< class T >
+		T&           getCellT(int index) { return static_cast<T&>(getCell(index)); }
 		GoalCell*    getGoalCell( Card::Suit suit );
 		StackCell&   getStackCell( int index ){ return mSCells[ index ]; }
 
@@ -155,6 +156,7 @@ namespace Poker
 
 	private:
 		
+		
 
 		Cell*   findEmptyCell( int index ,int num );
 		int     countEmptyCellNum( int index ,int num );
@@ -165,8 +167,9 @@ namespace Poker
 		virtual void moveSingleCard( Cell& from ,Cell& to );
 		virtual void moveCard( StackCell& form , StackCell& to , int num );
 
+		void getMinGoalCardRank(int& blackRank, int& redRank);
 		bool processMoveCard( Cell& from , Cell& to , int num );
-		bool moveToGoalCellAuto( Cell& cell , int blackRank , int redRank );
+		bool tryMoveToGoalCellInternal( Cell& cell , int blackRank , int redRank );
 
 	private:
 		StackCell  mSCells[ SCellNum ];

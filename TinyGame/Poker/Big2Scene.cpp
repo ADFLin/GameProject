@@ -557,7 +557,7 @@ namespace Poker { namespace Big2 {
 		TrickInfo info;
 		CardDeck& ownCards = getLevel().getOwnCards();
 		mButton[ ActionButton::eSHOW_CARD ]->enable( 
-			TrickUtility::checkCard( &ownCards[0] , ownCards.size() , index , num , info ) );
+			FTrick::CheckCard( &ownCards[0] , ownCards.size() , index , num , info ) );
 	}
 
 	void Scene::nextCombination( CardGroup group )
@@ -566,17 +566,17 @@ namespace Poker { namespace Big2 {
 		if ( mRestIterator || mIterator.getGroup() != group )
 		{
 			mIterator = mHelper.getIterator( group );
-			haveIter = mIterator.is();
+			haveIter = mIterator.isOK();
 			mRestIterator = false;
 		}
 		else if ( haveIter )
 		{
 			mIterator.goNext();
-			if ( !mIterator.is() )
+			if ( !mIterator.isOK() )
 				mIterator.reset();
 
 		}
-		if ( haveIter && mIterator.is() )
+		if ( haveIter && mIterator.isOK() )
 		{
 			int  num;
 			int* pIndex = mIterator.getIndex( num );
@@ -698,7 +698,7 @@ namespace Poker { namespace Big2 {
 			int index = localPos.x / NextOffset;
 			if ( index >= mClinetCards->size() )
 				index = mClinetCards->size() - 1;
-			if ( mbeSelected[ index ] )
+			if ( mbSelectedMap[ index ] )
 			{
 				if ( localPos.y > msCardSize.y )
 					return false;
@@ -710,7 +710,7 @@ namespace Poker { namespace Big2 {
 					return true;
 				}
 			}
-			mbeSelected[ index ] = toggleCardSelect( index , mbeSelected[ index ] );
+			mbSelectedMap[ index ] = toggleCardSelect( index , mbSelectedMap[ index ] );
 
 			if ( onChangeIndexSelected )
 				onChangeIndexSelected( mIndexSelected , mNumSelected );
@@ -738,7 +738,7 @@ namespace Poker { namespace Big2 {
 		{
 			addUnselectAnim( mIndexSelected[i] );
 		}
-		std::fill_n( mbeSelected , 13 , false );
+		std::fill_n( mbSelectedMap , 13 , false );
 		mNumSelected = 0;
 	}
 
@@ -780,21 +780,21 @@ namespace Poker { namespace Big2 {
 	void CardListUI::selectIndex( int pIndex[] , int num )
 	{
 		bool prevSelect[13];
-		std::copy( mbeSelected , mbeSelected + mClinetCards->size() , prevSelect );
+		std::copy( mbSelectedMap , mbSelectedMap + mClinetCards->size() , prevSelect );
 
-		std::fill_n( mbeSelected , 13 , false );
+		std::fill_n( mbSelectedMap , 13 , false );
 		mNumSelected = num;
 		for( int i = 0 ; i < num ; ++i )
 		{
 			int idx = pIndex[i];
 			mIndexSelected[i] = idx;
-			mbeSelected[ idx ] = true;
+			mbSelectedMap[ idx ] = true;
 			if ( !prevSelect[ idx ] )
 				addSelectAnim( idx );
 		}
 		for( int idx = 0 ; idx < mClinetCards->size() ; ++idx )
 		{
-			if ( prevSelect[idx] && !mbeSelected[idx] )
+			if ( prevSelect[idx] && !mbSelectedMap[idx] )
 				addUnselectAnim( idx );
 		}
 

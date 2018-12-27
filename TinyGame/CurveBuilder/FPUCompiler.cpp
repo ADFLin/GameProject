@@ -386,6 +386,7 @@ public:
 
 		mNumVarStack -= numParam - 1;
 		mPrevValue.type = TOKEN_FUN;
+		mPrevValue.idxStack = -1;
 	}
 
 	void codeBinaryOp(TokenType opType, bool isReverse)
@@ -460,6 +461,7 @@ public:
 			}
 		}
 		mPrevValue.type = TOKEN_BINARY_OP;
+		mPrevValue.idxStack = -1;
 	}
 
 	void codeUnaryOp(TokenType type)
@@ -474,6 +476,7 @@ public:
 		}
 
 		mPrevValue.type = TOKEN_FUN;
+		mPrevValue.idxStack = -1;
 	}
 
 	void codeEnd()
@@ -680,7 +683,6 @@ public:
 		mNumInstruction += 3;
 
 		Asm::bind(&mConstLabel);
-
 		int   num = mData->getCodeLength();
 		for( int i = 0; i < mConstTable.size(); ++i )
 		{

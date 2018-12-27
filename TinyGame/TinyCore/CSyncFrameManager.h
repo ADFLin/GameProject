@@ -129,6 +129,17 @@ private:
 		int      recvFrame;
 		int      sendFrame;
 		DataSteamBuffer buffer;
+
+		ClientFrameData() = default;
+		ClientFrameData(ClientFrameData const&) = delete;
+		ClientFrameData(ClientFrameData&& rhs)
+			:id(rhs.id)
+			,recvFrame(rhs.recvFrame)
+			,sendFrame(rhs.sendFrame)
+			,buffer(std::move(rhs.buffer))
+		{
+
+		}
 	};
 	typedef std::list< ClientFrameData > ClientFrameDataList;
 	ClientFrameDataList mFrameDataList;

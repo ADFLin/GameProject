@@ -9,8 +9,9 @@
 #include "TypeHash.h"
 
 #include <map>
-#include <unordered_map>
 #include <set>
+#include <unordered_map>
+#include <unordered_set>
 
 namespace CAR
 {
@@ -165,16 +166,17 @@ namespace CAR
 				return result;
 			}
 		};
-		typedef std::unordered_map< Vec2i , MapTile , VecHasher > WorldTileMap;
-		//typedef std::map< Vec2i , MapTile , VecCmp > WorldTileMap;
 
 		std::vector< MapTile* > mHalflingTiles;
+		typedef std::unordered_map< Vec2i, MapTile, VecHasher > WorldTileMap;
+		//typedef std::map< Vec2i , MapTile , VecCmp > WorldTileMap;
 		WorldTileMap    mMap;
-		TileSetManager* mTileSetManager;
-		uint32          mCheckCount;
-		typedef std::set< Vec2i , VecCmp > PosSet;
+		//typedef std::set< Vec2i , VecCmp > PosSet;
+		typedef std::unordered_set< Vec2i, VecHasher > PosSet;
 		PosSet          mEmptyLinkPosSet;
 
+		TileSetManager* mTileSetManager;
+		uint32          mCheckCount;
 	};
 
 

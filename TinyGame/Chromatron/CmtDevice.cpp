@@ -18,7 +18,7 @@ namespace Chromatron
 		mFlag.setValue( info.flag );
 
 		if ( !isRotatable() )
-			mDir = Dir::ValueNoCheck( 0 );
+			mDir = Dir::ValueChecked( 0 );
 
 		if ( ( getFlag() & DFB_USE_LOCKED_COLOR ) == 0 )
 			setColor( COLOR_NULL );

@@ -40,10 +40,10 @@ namespace Poker { namespace Big2 {
 			for( int i = 0 ; i < PlayerNum ; ++i )
 				delete mServerLevel->getSlotBot( i );
 
-			delete mServerLevel->getTransfer();
+			delete &mServerLevel->getTransfer();
 		}
 		if ( mClientLevel )
-			delete mClientLevel->getTransfer();
+			delete &mClientLevel->getTransfer();
 
 		delete mServerLevel;
 		delete mClientLevel;

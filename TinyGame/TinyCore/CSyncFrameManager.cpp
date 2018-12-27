@@ -21,7 +21,7 @@ void FrameDataManager::addFrameData( long frame , DataSteamBuffer& buffer )
 	if ( mLastDataFrame < frame )
 		mLastDataFrame = frame;
 
-	mDataList.push_front( buffer );
+	mDataList.push_front( std::move(buffer) );
 
 	FrameData fd;
 	fd.frame = frame;
@@ -320,13 +320,11 @@ void SVSyncFrameManager::procFrameData( IComPacket* cp )
 	}
 
 	ClientFrameData data;
+	data.id = id;
 	data.recvFrame = mFrameMgr.getFrame();
 	data.sendFrame = fp->frame;
-	data.buffer    = fp->buffer;
-	data.id        = id;
-
-
-	mFrameDataList.push_back( data );
+	data.buffer    = std::move(fp->buffer);
+	mFrameDataList.push_back(std::move(data));
 
 	if ( player->lastUpdateFrame < fp->frame )
 		player->lastUpdateFrame = fp->frame;

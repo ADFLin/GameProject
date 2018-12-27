@@ -312,12 +312,7 @@ class SymbolTable
 public:
 	// can redefine
 	void            defineConst( char const* name ,RealType val )  { mNameToEntryMap[name] = val; }
-	void            defineVar( char const* name , RealType* varPtr)
-	{ 
-		auto entry = mNameToEntryMap[name];
-		entry.varValue.layout = ValueLayout::Real;
-		entry.varValue.ptr = varPtr;
-	}
+	void            defineVar( char const* name , RealType* varPtr){  mNameToEntryMap[name] = varPtr; }
 	void            defineVarInput(char const* name, uint8 inputIndex) { mNameToEntryMap[name] = inputIndex; }
 	void            defineFun( char const* name , FunType0 fun ){  defineFunInternal(name,(void*)fun,0);  }
 	void            defineFun( char const* name , FunType1 fun ){  defineFunInternal(name,(void*)fun,1);  }
@@ -470,7 +465,8 @@ class ParseResult : public ExprParse
 public:
 	typedef ExprParse::Unit Unit;
 
-	bool   isUsingVar( char const* name );
+	bool   isUsingVar( char const* name ) const;
+	bool   isUsingInput(char const* name) const;
 	void   optimize();
 
 	template< class TCodeGenerator >

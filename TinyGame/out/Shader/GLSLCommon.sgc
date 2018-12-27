@@ -31,9 +31,6 @@
 
 #define gl_Tangent gl_MultiTexCoord7
 
-
-#define gl_Tangent gl_MultiTexCoord7
-
 #define lerp mix
 #define frac fract
 

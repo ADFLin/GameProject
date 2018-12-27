@@ -3,27 +3,33 @@
 
 namespace Poker { namespace Big2 {
 
-	enum
-	{
-		DATA2ID( SDGameInit )  ,
-		DATA2ID( SDRoundInit ) ,
-		DATA2ID( CDShowCard )  ,
-		DATA2ID( SDSlotTurn )  ,
-		DATA2ID( SDNextCycle ) ,
-		DATA2ID( SDRoundEnd )  ,
 
-		DATA_SDShowFail     ,
-		DATA_CDPlayerPass   ,
-		DATA_SDGameOver     ,
-	};
+#define DATA_LIST( op )\
+	op(SDGameInit )\
+	op(SDRoundInit)\
+	op(CDShowCard)\
+	op(SDSlotTurn)\
+	op(SDNextCycle)\
+	op(SDRoundEnd)
+
+#define COMMON_ID_LIST(op)\
+	op(DATA_SDShowFail)\
+	op(DATA_CDPlayerPass)\
+	op(DATA_SDGameOver)
+
+	DEFINE_DATA2ID( DATA_LIST , COMMON_ID_LIST )
+
+
+#undef DATA_LIST
+#undef COMMON_ID_LIST
 
 	bool LevelBase::checkShowCard( CardDeck& cards , int pIndex[] , int num ,  TrickInfo& info )
 	{
-		if ( !TrickUtility::checkCard( &cards[0] , (int)cards.size() , pIndex , num , info ) )
+		if ( !FTrick::CheckCard( &cards[0] , (int)cards.size() , pIndex , num , info ) )
 			return false;
 
 		info.num   = num;
-		info.power = TrickUtility::calcPower( info.group , info.card );
+		info.power = FTrick::CalcPower( info.group , info.card );
 
 		if ( mLastShowSlot == -1 )
 		{
@@ -39,7 +45,7 @@ namespace Poker { namespace Big2 {
 					return false;
 			}
 		}
-		else if ( !TrickUtility::canSuppress( info , mLastShowCard ) )
+		else if ( !FTrick::CanSuppress( info , mLastShowCard ) )
 		{
 			return false;
 		}
@@ -53,7 +59,7 @@ namespace Poker { namespace Big2 {
 		mNextShowSlot = slotId;
 		mLastShowSlot = -1;
 		for( int i = 0 ; i < PlayerNum ; ++i )
-			mSlotStatus[i].bePass = false;
+			mSlotStatus[i].bPassed = false;
 	}
 
 	void LevelBase::doRoundInit( int slotId )
@@ -62,7 +68,7 @@ namespace Poker { namespace Big2 {
 		mNextShowSlot = slotId ;
 		mLastShowSlot = -1;
 		for( int i = 0 ; i < PlayerNum ; ++i )
-			mSlotStatus[i].bePass = false;
+			mSlotStatus[i].bPassed = false;
 	}
 
 	void LevelBase::doSlotTurn( int slotId , bool beShow )
@@ -73,7 +79,7 @@ namespace Poker { namespace Big2 {
 		}
 		else
 		{
-			mSlotStatus[ slotId ].bePass = true;
+			mSlotStatus[ slotId ].bPassed = true;
 		}
 
 		for( int i = 0 ; i < 4 ; ++i )
@@ -81,7 +87,7 @@ namespace Poker { namespace Big2 {
 			mNextShowSlot += 1;
 			if ( mNextShowSlot == PlayerNum )
 				mNextShowSlot = 0;
-			if ( !mSlotStatus[ mNextShowSlot ].bePass )
+			if ( !mSlotStatus[ mNextShowSlot ].bPassed )
 				break;
 		}
 	}
@@ -150,7 +156,7 @@ namespace Poker { namespace Big2 {
 		}
 		sData.startMoney  = 500;
 
-		getTransfer()->sendData( SLOT_SERVER , DATA2ID( SDGameInit ) , sData );
+		TRANSFER_SEND( getTransfer() , SLOT_SERVER , sData );
 		if ( mListener )
 			mListener->onGameInit();
 
@@ -192,7 +198,7 @@ namespace Poker { namespace Big2 {
 			{
 				data.card[n] = cards[n].getIndex();
 			}
-			getTransfer()->sendData( i , DATA2ID( SDRoundInit ) , data );
+			TRANSFER_SEND( getTransfer(),  i , data );
 		}
 
 		for( int i = 0 ; i < PlayerNum ; ++i )
@@ -215,7 +221,7 @@ namespace Poker { namespace Big2 {
 		TrickInfo info;
 		if ( !checkShowCard( getSlotOwnCards( slotId ) , pIndex , numCard , info ) )
 		{
-			getTransfer()->sendData( slotId , DATA_SDShowFail , NULL , 0 );
+			getTransfer().sendData( slotId , DATA_SDShowFail , NULL , 0 );
 			return false;
 		}
 
@@ -235,7 +241,7 @@ namespace Poker { namespace Big2 {
 
 		doSlotTurn( slotId , true );
 
-		getTransfer()->sendData( SLOT_SERVER , DATA2ID( SDSlotTurn ) , sData );
+		TRANSFER_SEND( getTransfer(),  SLOT_SERVER , sData );
 		if ( mListener )
 			mListener->onSlotTurn( slotId , true );
 
@@ -298,13 +304,14 @@ namespace Poker { namespace Big2 {
 
 			if ( id != slotId )
 			{
-				endData.reason[id] = 0;
+				auto& playerData = endData.players[id];
+				playerData.reason = 0;
 				int score = factor * calcScore( otherCards , endData.reason[id] );
 				int decMoney = std::min( score , mSlotStatus[id].money );
 
 				mSlotStatus[id].money -= decMoney;
-				endData.money[ id ] = mSlotStatus[id].money;
-				endData.score[ id ] = score;
+				playerData.money = mSlotStatus[id].money;
+				playerData.score = score;
 				if ( mSlotStatus[id].money == 0 )
 				{
 					isGameOver = true;
@@ -321,15 +328,15 @@ namespace Poker { namespace Big2 {
 			}
 		}
 		endData.isGameOver = isGameOver;
-		endData.money[ slotId ] = mSlotStatus[ slotId ].money; 
-		getTransfer()->sendData( SLOT_SERVER , DATA2ID( SDRoundEnd ) , endData );
+		endData.players[ slotId ].money = mSlotStatus[ slotId ].money; 
+		TRANSFER_SEND( getTransfer(), SLOT_SERVER , endData );
 
 		if ( mListener )
 			mListener->onRoundEnd( isGameOver );
 
 		if ( isGameOver )
 		{
-			getTransfer()->sendData( SLOT_SERVER , DATA_SDGameOver , 0 , 0 );
+			getTransfer().sendData( SLOT_SERVER , DATA_SDGameOver , 0 , 0 );
 		}
 
 		return true;
@@ -349,7 +356,7 @@ namespace Poker { namespace Big2 {
 		SDSlotTurn sData;
 		sData.slotId = slotId;
 		sData.num    = 0;
-		getTransfer()->sendData( SLOT_SERVER , DATA2ID( SDSlotTurn ) , sData );
+		TRANSFER_SEND( getTransfer() , SLOT_SERVER , sData );
 		if ( mListener )
 			mListener->onSlotTurn( slotId , false );
 
@@ -362,7 +369,7 @@ namespace Poker { namespace Big2 {
 
 			SDNextCycle sData;
 			sData.slotId = startSlot;
-			getTransfer()->sendData( SLOT_SERVER , DATA2ID( SDNextCycle ) , sData );
+			TRANSFER_SEND( getTransfer() , SLOT_SERVER , sData );
 
 			if ( mListener )
 				mListener->onNewCycle();
@@ -392,7 +399,7 @@ namespace Poker { namespace Big2 {
 
 	void ServerLevel::doSetupTransfer()
 	{
-		getTransfer()->setRecvFun( RecvFun( this , &ServerLevel::onRecvData ) );
+		getTransfer().setRecvFun( RecvFun( this , &ServerLevel::onRecvData ) );
 	}
 
 	void ServerLevel::updateBot()
@@ -456,7 +463,7 @@ namespace Poker { namespace Big2 {
 		if ( getNextShowSlot() != getPlayerStatus().slotId )
 			return;
 
-		getTransfer()->sendData( SLOT_SERVER , DATA_CDPlayerPass , NULL , 0 );
+		getTransfer().sendData( SLOT_SERVER , DATA_CDPlayerPass , NULL , 0 );
 	}
 
 	bool ClientLevel::showCard( int idxSelect[] , int num )
@@ -475,7 +482,7 @@ namespace Poker { namespace Big2 {
 			sData.index[i] = idxSelect[i];
 			mLastShowIndex[i] = idxSelect[i];
 		}
-		getTransfer()->sendData( SLOT_SERVER , DATA2ID( CDShowCard ) , sData );
+		TRANSFER_SEND( getTransfer() , SLOT_SERVER , sData );
 
 		return true;
 	}
@@ -562,8 +569,7 @@ namespace Poker { namespace Big2 {
 				for( int i = 0 ; i < PlayerNum ; ++i )
 				{
 					SlotStatus& status = getSlotStatus( i );
-					status.money = myData->money[i];
-					//status.money = myData->money[i];
+					status.money = myData->players[i].money;
 				}
 				doRoundEnd();
 				mListener->onRoundEnd( *myData );
@@ -580,7 +586,7 @@ namespace Poker { namespace Big2 {
 
 	void ClientLevel::doSetupTransfer()
 	{
-		getTransfer()->setRecvFun( RecvFun( this , &ClientLevel::onRecvData ) );
+		getTransfer().setRecvFun( RecvFun( this , &ClientLevel::onRecvData ) );
 	}
 
 	TablePos ClientLevel::getTablePos( int slotId )

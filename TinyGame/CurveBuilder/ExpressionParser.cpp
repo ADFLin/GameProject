@@ -394,20 +394,36 @@ bool ExpressionParser::parse( char const* expr , SymbolTable const& table , Pars
 }
 
 
-bool ParseResult::isUsingVar( char const* name )
+bool ParseResult::isUsingVar( char const* name ) const
 {
-	if( mSymbolDefine == nullptr )
-		return false;
-
-	SymbolEntry const* symbol = mSymbolDefine->findSymbol(name);
-	if ( symbol == nullptr ) 
-		return false;
-
-	for ( int i = 0;i<mPFCodes.size();++i)
+	if( mSymbolDefine )
 	{
-		if ( mPFCodes[i].type == VALUE_VARIABLE && 
-			 mPFCodes[i].symbol == symbol )
-			return true;
+		SymbolEntry const* symbol = mSymbolDefine->findSymbol(name);
+		if( symbol )
+		{
+			for( int i = 0; i < mPFCodes.size(); ++i )
+			{
+				if( mPFCodes[i].type == VALUE_VARIABLE && mPFCodes[i].symbol == symbol )
+					return true;
+			}
+		}
+	}
+	return false;
+}
+
+bool ParseResult::isUsingInput(char const* name) const
+{
+	if( mSymbolDefine )
+	{
+		SymbolEntry const* symbol = mSymbolDefine->findSymbol(name);
+		if( symbol )
+		{
+			for( int i = 0; i < mPFCodes.size(); ++i )
+			{
+				if( mPFCodes[i].type == VALUE_INPUT && mPFCodes[i].symbol == symbol )
+					return true;
+			}
+		}
 	}
 	return false;
 }

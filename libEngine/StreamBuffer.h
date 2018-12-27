@@ -11,8 +11,8 @@
 
 class CheckPolicy
 {
-	static bool checkFill( char* data , size_t max , size_t cur ,  size_t num );
-	static bool checkTake( char* data , size_t max , size_t cur ,  size_t num );
+	static bool CheckFill( char* data , size_t max , size_t cur ,  size_t num );
+	static bool CheckTake( char* data , size_t max , size_t cur ,  size_t num );
 };
 
 class BufferException : public std::exception
@@ -23,12 +23,12 @@ public:
 
 struct AssertCheckPolicy 
 {
-	static bool checkFill( char* data , size_t max , size_t cur ,  size_t num )
+	static bool CheckFill( char* data , size_t max , size_t cur ,  size_t num )
 	{
 		assert( cur + num <= max );
 		return true;
 	}
-	static bool checkTake( char* data , size_t max , size_t cur ,  size_t num )
+	static bool CheckTake( char* data , size_t max , size_t cur ,  size_t num )
 	{
 		assert(cur + num <= max);
 		return true;
@@ -37,13 +37,13 @@ struct AssertCheckPolicy
 
 struct  FailCheckPolicy
 {
-	static bool checkFill( char* data , size_t max , size_t cur ,  size_t num )
+	static bool CheckFill( char* data , size_t max , size_t cur ,  size_t num )
 	{
 		if ( cur + num > max )
 			return false;
 		return true;
 	}
-	static bool checkTake( char* data , size_t max , size_t cur ,  size_t num  )
+	static bool CheckTake( char* data , size_t max , size_t cur ,  size_t num  )
 	{
 		if ( cur + num > max )
 			return false;
@@ -53,13 +53,13 @@ struct  FailCheckPolicy
 
 struct  ThrowCheckPolicy
 {
-	static bool checkFill( char* data , size_t max , size_t cur ,  size_t num )
+	static bool CheckFill( char* data , size_t max , size_t cur ,  size_t num )
 	{
 		if ( cur + num > max )
 			throw BufferException( "Overflow" );
 		return true;
 	}
-	static bool checkTake( char* data , size_t max , size_t cur ,  size_t num )
+	static bool CheckTake( char* data , size_t max , size_t cur ,  size_t num )
 	{
 		if ( cur + num > max )
 			throw BufferException( "No Enough Data" );
@@ -143,7 +143,7 @@ public:
 			MemcpyStrategy , AssignStrategy 
 		>::Type Strategy;
 
-		Strategy::fill( mData + mFillSize , val );
+		Strategy::Fill( mData + mFillSize , val );
 		mFillSize += sizeof( T );
 	}
 
@@ -158,7 +158,7 @@ public:
 			MemcpyStrategy , AssignStrategy 
 		>::Type Strategy;
 
-		Strategy::take( mData + mUseSize , val );
+		Strategy::Take( mData + mUseSize , val );
 		mUseSize += sizeof( T );
 	}
 
@@ -302,27 +302,27 @@ public:
 private:
 	bool checkFill( size_t num )
 	{
-		return CP::checkFill( mData , mMaxSize , mFillSize  , num  );
+		return CP::CheckFill( mData , mMaxSize , mFillSize  , num  );
 	}
 	bool checkTake( size_t num )
 	{
-		return CP::checkTake( mData , mFillSize  , mUseSize ,  num );
+		return CP::CheckTake( mData , mFillSize  , mUseSize ,  num );
 	}
 
 	struct AssignStrategy
 	{
 		template < class T >
-		static void fill( char* data , T  c ){  *((T*) data ) = c;  }
+		static void Fill( char* data , T  c ){  *((T*) data ) = c;  }
 		template < class T >
-		static void take( char* data , T& c ){  c = *((T*) data );  }
+		static void Take( char* data , T& c ){  c = *((T*) data );  }
 	};
 
 	struct MemcpyStrategy
 	{
 		template < class T >
-		static void fill( char* data , T const& c ){  memcpy( data , (char const*)&c , sizeof(c) );  }
+		static void Fill( char* data , T const& c ){  ::memcpy( data , (char const*)&c , sizeof(c) );  }
 		template < class T >
-		static void take( char* data , T& c ){  memcpy( (char*) &c , data , sizeof(c) );  }
+		static void Take( char* data , T& c ){  ::memcpy( (char*) &c , data , sizeof(c) );  }
 	};
 
 protected:

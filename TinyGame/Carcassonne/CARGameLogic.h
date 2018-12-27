@@ -24,7 +24,7 @@ namespace CAR
 	public:
 		GamePlayerManager();
 		int         getPlayerNum(){ return mNumPlayer; }
-		PlayerBase* getPlayer( int id ){ return mPlayerMap[id];}
+		PlayerBase* getPlayer(int id) { assert(id != CAR_ERROR_PLAYER_ID); return mPlayerMap[id]; }
 		void        addPlayer( PlayerBase* player );
 		void        clearAllPlayer( bool bDelete );
 
@@ -183,6 +183,11 @@ namespace CAR
 		
 		void cleanupData();
 
+		PlayerBase* getOwnedPlayer(LevelActor* actor)
+		{
+			assert(actor);
+			return mPlayerManager->getPlayer( actor->ownerId );
+		}
 
 		//
 		GamePlayerManager* mPlayerManager;
@@ -220,9 +225,9 @@ namespace CAR
 		void placeAllTileDebug( int numRow );
 		struct FeatureUpdateInfo
 		{
-			FeatureUpdateInfo( FeatureBase* aFeature , bool abAbbeyUpdate = false )
-				:feature( aFeature )
-				,bAbbeyUpdate( abAbbeyUpdate )
+			FeatureUpdateInfo( FeatureBase* inFeature , bool inbAbbeyUpdate = false )
+				:feature( inFeature )
+				,bAbbeyUpdate( inbAbbeyUpdate )
 			{
 			}
 			FeatureBase* feature;

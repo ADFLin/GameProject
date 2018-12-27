@@ -8,8 +8,8 @@ namespace Render
 
 	GpuProfiler::GpuProfiler()
 	{
-		numSampleUsed = 0;
-		bStartSampling = false;
+		mNumSampleUsed = 0;
+		mbStartSampling = false;
 	}
 
 #if CORE_SHARE_CODE
@@ -18,17 +18,17 @@ namespace Render
 		static GpuProfiler sInstance;
 		return sInstance;
 	}
-#endif
 
 	void GpuProfiler::beginFrame()
 	{
-		numSampleUsed = 0;
+		mNumSampleUsed = 0;
 		mCurLevel = 0;
 
 		if( mCore )
 		{
 			mCore->beginFrame();
-			bStartSampling = true;
+			mbStartSampling = true;
+			mRootSample = startSample("Frame");
 		}
 	}
 
@@ -37,11 +37,12 @@ namespace Render
 	{
 		if( mCore )
 		{
+			endSample(*mRootSample);
 			mCore->endFrame();
 
-			if ( bStartSampling )
+			if ( mbStartSampling )
 			{
-				for( int i = 0; i < numSampleUsed; ++i )
+				for( int i = 0; i < mNumSampleUsed; ++i )
 				{
 					GpuProfileSample* sample = mSamples[i].get();
 					uint64 time;
@@ -49,49 +50,36 @@ namespace Render
 					{
 
 					}
-					sample->time = double(time) * cycleToSecond;
+					sample->time = double(time) * mCycleToSecond;
 				}
 
-				bStartSampling = false;
+				mbStartSampling = false;
 			}
-		}
-	}
-
-	void GpuProfiler::setCore(RHIProfileCore* core)
-	{
-		assert(!bStartSampling);
-		mCore = core;
-		if( mCore )
-		{
-			cycleToSecond = mCore->getCycleToSecond();
-		}
-		else
-		{
-			mSamples.clear();
 		}
 	}
 
 	GpuProfileSample* GpuProfiler::startSample(char const* name)
 	{
-		if( !bStartSampling )
+		if( !mbStartSampling )
 			return nullptr;
 
 		assert(mCore);
 		GpuProfileSample* sample;
-		if( numSampleUsed >= mSamples.size() )
+		if( mNumSampleUsed >= mSamples.size() )
 		{
 			mSamples.push_back(std::make_unique< GpuProfileSample>());
-			sample = mSamples.back().get();		
+			sample = mSamples.back().get();
+			sample->timingHandle = mCore->fetchTiming();
 		}
 		else
 		{
-			sample = mSamples[numSampleUsed].get();
+			sample = mSamples[mNumSampleUsed].get();
 		}
+
 		sample->name = name;
 		sample->level = mCurLevel;
-		sample->timingHandle = mCore->fetchTiming();
 		++mCurLevel;
-		++numSampleUsed;
+		++mNumSampleUsed;
 		mCore->startTiming(sample->timingHandle);
 		return sample;
 	}
@@ -101,6 +89,23 @@ namespace Render
 		mCore->endTiming(sample.timingHandle);
 		--mCurLevel;
 	}
+
+#endif
+
+	void GpuProfiler::setCore(RHIProfileCore* core)
+	{
+		assert(!mbStartSampling);
+		mCore = core;
+		if( mCore )
+		{
+			mCycleToSecond = mCore->getCycleToMillisecond();
+		}
+		else
+		{
+			mSamples.clear();
+		}
+	}
+
 
 	GpuProfileScope::GpuProfileScope(NoVA, char const* name)
 	{

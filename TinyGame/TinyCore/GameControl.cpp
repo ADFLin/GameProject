@@ -10,11 +10,11 @@ namespace
 	{
 	public:
 		virtual void fireAction( ActionTrigger& trigger ){}
-	} gLanucher;
+	} gEmptyLanucher;
 }
 
 ActionProcessor::ActionProcessor() 
-	:mLanucher( &gLanucher )
+	:mLanucher( &gEmptyLanucher )
 {
 
 }
@@ -126,9 +126,7 @@ bool ActionProcessor::removeListener(IActionListener& listener)
 
 void ActionProcessor::setLanucher( IActionLanucher* lanucher )
 {
-	mLanucher = lanucher;
-	if ( mLanucher == NULL )
-		mLanucher = &gLanucher;
+	mLanucher = (lanucher) ? lanucher : &gEmptyLanucher;
 }
 
 bool ActionTrigger::detect( ControlAction action )
@@ -151,7 +149,7 @@ bool ActionTrigger::peek( ControlAction action )
 
 SimpleController::SimpleController()
 {
-	mKeyBlocked = false;
+	mActionBlocked = false;
 
 	for( int i = 0 ; i < MAX_PLAYER_NUM ; ++i )
 		mCMap[i] = -1;
@@ -162,26 +160,26 @@ SimpleController::SimpleController()
 
 void SimpleController::initKey( ControlAction act , int sen , uint8 key0 , uint8 key1 )
 {
-	actionKey[ act ].keyChar[0] = key0;
-	actionKey[ act ].keyChar[1] = key1;
-	actionKey[ act ].sen = sen;
-	actionKey[ act ].senCur[0] = 0;
-	actionKey[ act ].senCur[1] = 0;
+	ActionKey& key = mActionKeyMap[act];
+	key.keyChar[0] = key0;
+	key.keyChar[1] = key1;
+	key.sen = sen;
+	key.senCur[0] = 0;
+	key.senCur[1] = 0;
 }
 
 bool SimpleController::scanInput( bool beUpdateFrame )
 {
-	if ( mKeyBlocked )
+	if( mActionBlocked )
 		return false;
 
-	::GetKeyboardState( mKeyState );
-	return true;
+	return ::GetKeyboardState(mKeyState) || mMouseEventMask;
 }
 
 void SimpleController::setKey( unsigned cID , ControlAction action , unsigned key )
 {
 	assert( 0 <= cID && cID < MaxControlerNum );
-	actionKey[ action ].keyChar[ cID ] = key;
+	mActionKeyMap[ action ].keyChar[ cID ] = key;
 }
 
 bool SimpleController::checkKey( unsigned key )
@@ -260,8 +258,8 @@ bool SimpleController::checkKey( unsigned key , uint8 sen )
 
 bool SimpleController::checkKey( unsigned cID , ControlAction action )
 {
-	ActionKey& key = actionKey[ action ];
-	char keyChar = key.keyChar[ cID ];
+	ActionKey& key = mActionKeyMap[ action ];
+	uint8 keyChar = key.keyChar[ cID ];
 	return checkKey( keyChar , key.senCur[ cID ] , key.sen );
 }
 
@@ -272,8 +270,8 @@ bool SimpleController::checkActionKey( ActionParam& param )
 	if ( cID == -1 )
 		return false;
 
-	ActionKey& key = actionKey[ param.act ];
-	char keyChar = key.keyChar[ cID ];
+	ActionKey& key = mActionKeyMap[ param.act ];
+	uint8 keyChar = key.keyChar[ cID ];
 
 	if ( param.bPeek )
 		return peekKey( keyChar , mKeySen[ keyChar ] , key.sen );
@@ -298,7 +296,7 @@ void SimpleController::recvMouseMsg( MouseMsg const& msg )
 
 	if ( button != -1 )
 	{
-		mEventMask |= BIT( button );
+		mMouseEventMask |= BIT( button );
 		mMouseEvt[ button ] = msg;
 	}
 
@@ -307,12 +305,12 @@ void SimpleController::recvMouseMsg( MouseMsg const& msg )
 
 void SimpleController::removeMouseEvent( int evt )
 {
-	mEventMask &= ~evt;
+	mMouseEventMask &= ~evt;
 }
 
 MouseMsg* SimpleController::getMouseEvent( int evt )
 {
-	if ( mEventMask & BIT(evt ) )
+	if ( mMouseEventMask & BIT(evt ) )
 		return &mMouseEvt[ evt ];
 	return NULL;
 }
@@ -330,12 +328,12 @@ void SimpleController::setPortControl( unsigned port , unsigned cID )
 char SimpleController::getKey( unsigned cID , ControlAction action )
 {
 	assert( 0 <= cID && cID < MaxControlerNum );
-	return actionKey[ action ].keyChar[ cID ];
+	return mActionKeyMap[ action ].keyChar[ cID ];
 }
 
 void SimpleController::clearFrameInput()
 {
-	mEventMask = 0;
+	mMouseEventMask = 0;
 }
 
 void SimpleController::clearAllKey()

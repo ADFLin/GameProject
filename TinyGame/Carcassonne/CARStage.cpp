@@ -458,9 +458,9 @@ namespace CAR
 				break;
 			}
 
-			if ( actor->owner )
+			if ( actor->ownerId != CAR_ERROR_PLAYER_ID  )
 			{
-				RenderUtility::SetFontColor( g , ColorMap[actor->owner->getId()] , COLOR_DEEP );
+				RenderUtility::SetFontColor( g , ColorMap[actor->ownerId] , COLOR_DEEP );
 				g.drawText( screenPos - Vec2i( 20 , 20 ) / 2 , Vec2i( 20 , 20 ) , gActorShortNames[ actor->type ] );
 			}
 		}

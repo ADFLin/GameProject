@@ -38,18 +38,16 @@ namespace Go
 	public:
 		int32 mNumNewRead = 0;
 		int   mNumUsed = 0;
-		char  mBuffer[20480];
+		char  mBuffer[2048];
 
 		bool  bNeedRead = true;
 		bool  bLogMsg = true;
 		Mutex mMutexBuffer;
 		ConditionVariable mBufferProcessedCV;
 
-		
 #if AUTO_GTP_DEBUG
 		std::vector< char > debugString;
 #endif
-
 
 		unsigned run()
 		{
@@ -71,19 +69,23 @@ namespace Go
 					break;
 				}
 
-
-#if AUTO_GTP_DEBUG
 				if( numRead )
 				{
-					debugString.insert(debugString.end(), pData, pData + numRead);
+#if AUTO_GTP_DEBUG
+					if( debugString.size() > 100000 )
+					{
+						debugString.clear();
+					}
 
+					debugString.insert(debugString.end(), pData, pData + numRead);
+#endif
 					mNumNewRead = numRead;
 					mNumUsed += numRead;
 					mBuffer[mNumUsed] = 0;
 
 					bNeedRead = false;
 				}
-#endif
+
 			}
 
 			return 0;
@@ -310,11 +312,7 @@ namespace Go
 								GameCommand com;
 								com.id = GameCommand::eEnd;
 								com.winner = ParseResult(strResult, com.winNum);
-
 								addOutputCommand(com);
-#if AUTO_GTP_DEBUG
-								debugString.clear();
-#endif
 								bEngineStart = false;
 							}
 

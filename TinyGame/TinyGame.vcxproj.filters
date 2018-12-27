@@ -311,9 +311,6 @@
     <ClCompile Include="CurveBuilder\ShapeFun.cpp">
       <Filter>CurveBuilder</Filter>
     </ClCompile>
-    <ClCompile Include="CurveBuilder\ShapeMaker.cpp">
-      <Filter>CurveBuilder</Filter>
-    </ClCompile>
     <ClCompile Include="CurveBuilder\Surface.cpp">
       <Filter>CurveBuilder</Filter>
     </ClCompile>
@@ -385,6 +382,9 @@
     </ClCompile>
     <ClCompile Include="Stage\Test\FunctionFitTest.cpp">
       <Filter>Stage\Test</Filter>
+    </ClCompile>
+    <ClCompile Include="CurveBuilder\ShapeMeshBuilder.cpp">
+      <Filter>CurveBuilder</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -811,9 +811,6 @@
     <ClInclude Include="CurveBuilder\ShapeFun.h">
       <Filter>CurveBuilder</Filter>
     </ClInclude>
-    <ClInclude Include="CurveBuilder\ShapeMaker.h">
-      <Filter>CurveBuilder</Filter>
-    </ClInclude>
     <ClInclude Include="CurveBuilder\CurveRenderer.h">
       <Filter>CurveBuilder</Filter>
     </ClInclude>
@@ -840,6 +837,9 @@
     </ClInclude>
     <ClInclude Include="AngryBird\HeaderPCH.h">
       <Filter>GameAngryBird</Filter>
+    </ClInclude>
+    <ClInclude Include="CurveBuilder\ShapeMeshBuilder.h">
+      <Filter>CurveBuilder</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

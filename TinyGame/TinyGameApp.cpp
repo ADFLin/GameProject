@@ -36,6 +36,7 @@
 #include "Thread.h"
 #include "SystemPlatform.h"
 #include "RHI/MeshUtility.h"
+#include "RHI/GpuProfiler.h"
 
 #define GAME_SETTING_PATH "Game.ini"
 
@@ -488,6 +489,8 @@ void TinyGameApp::onTaskMessage( TaskBase* task , TaskMsg const& msg )
 
 void TinyGameApp::render( float dframe )
 {
+	using namespace Render;
+
 	if ( getNextStage() )
 		return;
 
@@ -495,6 +498,8 @@ void TinyGameApp::render( float dframe )
 
 	if ( !de->beginRender() )
 		return;
+
+	GpuProfiler::Get().beginFrame();
 
 	bool bDrawScene = ( mStageMode == nullptr ) || mStageMode->canRender();
 
@@ -510,7 +515,11 @@ void TinyGameApp::render( float dframe )
 		if( de->isOpenGLEnabled() )
 			::Global::GetRHIGraphics2D().beginRender();
 
-		Global::GUI().render();
+
+		{
+			GPU_PROFILE("GUI");
+			::Global::GUI().render();
+		}
 	}
 	else
 	{
@@ -523,6 +532,8 @@ void TinyGameApp::render( float dframe )
 		gLogPrinter.render(Vec2i(5, 25));
 	}
 
+
+	GpuProfiler::Get().endFrame();
 	
 	mFPSCalc.increaseFrame(getMillionSecond());
 	IGraphics2D& g = ::Global::GetIGraphics2D();
@@ -531,8 +542,43 @@ void TinyGameApp::render( float dframe )
 		FixString< 256 > str;
 		RenderUtility::SetFont(g, FONT_S8);
 		g.setTextColor(Color3ub(255, 255, 0));
-		g.drawText(Vec2i(5, 5), str.format("FPS = %f", mFPSCalc.getFPS()));
+		g.drawText(Vec2i(5, 5), str.format("FPS = %3.1f", mFPSCalc.getFPS()));
 		//g.drawText(Vec2i(5, 15), str.format("mode = %d", (int)mConsoleShowMode));
+	}
+
+	{
+
+		g.setTextColor(Color3ub(255, 0, 0));
+		RenderUtility::SetFont(g, FONT_S10);
+
+		int const offset = 15;
+		int textX = 500;
+		int y = 10;
+		FixString< 512 > str;
+		FixString< 512 > aa;
+		int curLevel = 0;
+		for( int i = 0; i < GpuProfiler::Get().getSampleNum(); ++i )
+		{
+			GpuProfileSample* sample = GpuProfiler::Get().getSample(i);
+
+			if( curLevel != sample->level )
+			{
+				if( sample->level > curLevel )
+				{
+					assert(curLevel == sample->level - 1);
+					aa += "  |";
+				}
+				else
+				{
+					aa[3 * sample->level] = 0;
+
+				}
+				curLevel = sample->level;
+			}
+
+			str.format("%7.4lf %s--> %s", sample->time, aa.c_str() , sample->name.c_str());
+			g.drawText( Vector2( textX , y += offset ), str);
+		}
 	}
 
 	if( de->isOpenGLEnabled() )

@@ -8,7 +8,7 @@
 
 namespace CB
 {
-	class ShapeMaker;
+	class ShapeMeshBuilder;
 
 	class ShapeVisitor;
 	class ShapeFunVisitor;
@@ -25,7 +25,7 @@ namespace CB
 	public:
 
 		bool               parseFunction(FunctionParser& parser);
-		bool               update(ShapeMaker& surfaceMaker);
+		bool               update(ShapeMeshBuilder& builder);
 		void               visible(bool visable) { mbVisible = visable; }
 		bool               isVisible() { return mbVisible; }
 		ShapeFunBase*      getFunction() const { return mShapeFun; }
@@ -39,7 +39,7 @@ namespace CB
 		virtual ShapeBase* clone() = 0;
 		virtual void       acceptVisit(ShapeVisitor& visitor) = 0;
 	protected:
-		virtual void       updateRenderData(ShapeUpdateInfo& info, ShapeMaker& maker) = 0;
+		virtual void       updateRenderData(ShapeUpdateInfo& info, ShapeMeshBuilder& builder) = 0;
 
 
 	protected:
@@ -66,7 +66,7 @@ namespace CB
 		void setFunction(SurfaceFun* fun);
 		int  getShapeType() { return mCurType; }
 		virtual Surface3D*  clone();
-		virtual void updateRenderData(ShapeUpdateInfo& info, ShapeMaker& maker);
+		virtual void updateRenderData(ShapeUpdateInfo& info, ShapeMeshBuilder& builder);
 		virtual void acceptVisit(ShapeVisitor& visitor);
 
 		void setDataSampleNum(int nu, int nv);
@@ -128,7 +128,7 @@ namespace CB
 		virtual void acceptVisit(ShapeVisitor& visitor);
 
 	protected:
-		virtual void updateRenderData(ShapeUpdateInfo& info, ShapeMaker& maker);
+		virtual void updateRenderData(ShapeUpdateInfo& info, ShapeMeshBuilder& builder);
 		Curve3D(Curve3D const& rhs);
 
 

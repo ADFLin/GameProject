@@ -119,7 +119,8 @@ namespace Poker
 
 		mNumAnim = 0;
 
-		if ( mSelectCell && !isStackCell( *mSelectCell ) )
+		bool const needDrawSelection = mSelectCell && !isStackCell(*mSelectCell);
+		if ( needDrawSelection )
 		{
 			drawSelectRect(g);
 		}
@@ -147,7 +148,7 @@ namespace Poker
 			{
 				Card card = cell.getCard();
 				int idx = card.getIndex();
-				if ( mSprites[ idx ].beAnim && card.getFace() != Card::eACE )
+				if ( mSprites[ idx ].bAnimating && card.getFace() != Card::eACE )
 				{
 					mCardDraw->draw( g , pos , Card( card.getSuit() , card.getFaceRank() - 1 ) );
 				}
@@ -170,13 +171,22 @@ namespace Poker
 
 	}
 
-	void FreeCellStage::drawSelectRect( Graphics2D &g )
+	void FreeCellStage::drawSelectRect( Graphics2D& g )
 	{
 		assert( mSelectCell );
 		Vec2i pos = calcCardPos( *mSelectCell );
 
-		if ( isStackCell( *mSelectCell ) )
-			pos.y -= SCellCardOffsetY;
+		if( isStackCell(*mSelectCell) )
+		{
+			if( mCellLook == mSelectCell )
+			{
+				pos = mSprites[mSelectCell->getCard().getIndex()].pos;
+			}
+			else
+			{
+				pos.y -= SCellCardOffsetY;
+			}
+		}
 
 		g.setBrush( Color3ub( 255 , 255 , 0 ) );
 		RenderUtility::SetPen( g , EColor::Null );
@@ -206,7 +216,7 @@ namespace Poker
 	{
 		int index = card.getIndex();
 		Sprite& spr = mSprites[ index ];
-		if ( spr.beAnim )
+		if ( spr.bAnimating )
 		{
 			mIndexAnim[ mNumAnim ] = index;
 			++mNumAnim;
@@ -263,8 +273,25 @@ namespace Poker
 			Cell* cell = clickCell( msg.getPos() );
 			if ( cell )
 			{
-				if ( ( isStackCell( *cell ) && tryMoveToFreeCell( static_cast< StackCell& >( *cell ) ) ) ||
-					 ( isFreeCell( *cell ) && tryMoveToStackCell( static_cast< FreeCell& >( *cell ) ) ) )
+				bool haveMoved = false;
+				if( isStackCell(*cell) )
+				{
+					if( tryMoveToGoalCell(static_cast<StackCell&>(*cell)) ||
+					    tryMoveToFreeCell(static_cast<StackCell&>(*cell)) )
+					{
+						haveMoved = true;
+					}
+
+				}
+				else if( isFreeCell(*cell) )
+				{
+					if( tryMoveToStackCell(static_cast<FreeCell&>(*cell)) )
+					{
+						haveMoved = true;
+					}
+				}
+
+				if ( haveMoved )
 				{
 					++mMoveStep;
 				}
@@ -295,7 +322,7 @@ namespace Poker
 			else
 			{
 				Cell* cell = clickCell( msg.getPos() );
-				if ( cell && cell->getType() != Cell::eGOAL && !cell->isEmpty() )
+				if ( cell && !isGoalCell( *cell ) && !cell->isEmpty() )
 				{
 					mSelectCell = cell;
 				}
@@ -303,17 +330,19 @@ namespace Poker
 		}
 		else if ( msg.onRightUp() )
 		{
+#if 0
 			if ( mIdxCellLook != -1 )
 			{
 				StackCell& lookCell = static_cast< StackCell& >( getCell( mIdxCellLook ) );
 				for( int i = mIdxCardLook + 1 ; i < lookCell.getCardNum() ; ++i )
 				{
 					Card const& card = lookCell.getCard( i );
-					playAnim( card , mSprites[ card.getIndex() ].pos - Vector2( 0 , 10 ) );
+					playAnimation( card , mSprites[ card.getIndex() ].pos - Vector2( 0 , 10 ) );
 				}
 				mIdxCellLook = -1;
 				mIdxCardLook = -1;
 			}
+#endif
 		}
 		else if ( msg.onRightDown() )
 		{
@@ -327,10 +356,11 @@ namespace Poker
 					for( int i = idx + 1 ; i < lookCell.getCardNum() ; ++i )
 					{
 						Card const& card = lookCell.getCard( i );
-						playAnim( card , mSprites[ card.getIndex() ].pos + Vector2( 0 , 15 ) , 0 , ANIM_LOOK );
+						playAnimation( card , mSprites[ card.getIndex() ].pos + Vector2( 0 , 15 ) , 0 , ANIM_LOOK );
 					}
-					//mIdxCellLook = cell->getIndex();
-					//mIdxCardLook = idx;
+
+					mCellLook = cell;
+					mIdxCardLook = idx;
 				}
 			}
 		}
@@ -396,7 +426,7 @@ namespace Poker
 		mMoveInfoVec.clear();
 		mbUndoMove  = false;
 		mIdxCardLook = -1;
-		mIdxCellLook = -1;
+		mCellLook = nullptr;
 		mState = STATE_PLAYING;
 
 		mTweener.clear();
@@ -408,7 +438,7 @@ namespace Poker
 			{
 				int idx = cell.getCard( n ).getIndex();
 				mSprites[ idx ].pos = SCellStartPos + Vec2i( i * ( SCellGap + mCardSize.x ) , n * SCellCardOffsetY );
-				mSprites[ idx ].beAnim = false;
+				mSprites[ idx ].bAnimating = false;
 			}
 		}
 	}
@@ -441,7 +471,7 @@ namespace Poker
 		if ( !mbUndoMove && !to.isEmpty() )
 		{
 			int idx = to.getCard().getIndex();
-			if ( mSprites[ idx ].beAnim )
+			if ( mSprites[ idx ].bAnimating )
 				return false;
 		}
 
@@ -451,7 +481,7 @@ namespace Poker
 		{
 			assert( isStackCell( from ) && isStackCell( to ) );
 
-			if ( mSprites[ from.getCard().getIndex() ].beAnim )
+			if ( mSprites[ from.getCard().getIndex() ].bAnimating )
 				return false;
 
 			StackCell& fCell = static_cast< StackCell& >( from );
@@ -459,7 +489,7 @@ namespace Poker
 			float delay = 0;
 			for( int i = 0 ; i < num ; ++i )
 			{
-				bool result = playAnim( fCell.getCard( idx + i ) , endPos , delay );
+				bool result = playAnimation( fCell.getCard( idx + i ) , endPos , delay );
 				assert( result );
 				endPos.y += SCellCardOffsetY;
 				delay += 40;
@@ -467,7 +497,7 @@ namespace Poker
 		}
 		else 
 		{
-		   if ( !playAnim( from.getCard() , endPos ) )
+		   if ( !playAnimation( from.getCard() , endPos ) )
 			   return false;
 		}
 
@@ -508,16 +538,16 @@ namespace Poker
 		}
 	}
 
-	bool FreeCellStage::playAnim( Card const& card , Vec2i const& to , float delay , int type )
+	bool FreeCellStage::playAnimation( Card const& card , Vec2i const& to , float delay , int animType)
 	{
 		typedef Easing::IOCubic MyFun;
 		int idx = card.getIndex();
 		Sprite& spr = mSprites[ idx ];
 
-		if ( spr.beAnim )
+		if ( spr.bAnimating )
 			return false;
 
-		switch ( type )
+		switch ( animType )
 		{
 		case ANIM_MOVEING:
 			{
@@ -528,34 +558,50 @@ namespace Poker
 					time = 150 + 0.4 * sqrt( ( spr.pos - Vector2( to ) ).length2() );
 
 				mTweener.tweenValue< MyFun >( spr.pos , spr.pos , Vector2( to ) ,  time )
-					.delay( delay ).finishCallback( std::tr1::bind( &FreeCellStage::onAnimFinish , this , idx , mbUndoMove ) );
+					.delay( delay ).finishCallback( std::bind( &FreeCellStage::onAnimFinish , this , idx , animType , mbUndoMove ) );
 			}
 			break;
 		case ANIM_LOOK:
 			{
 				mTweener.tweenValue< Easing::COCubic >( spr.pos , spr.pos , Vector2( to ) ,  300 )
-					.delay( delay ).finishCallback( std::tr1::bind( &FreeCellStage::onAnimFinish , this , idx , true ) );
+					.delay( delay ).finishCallback( std::bind( &FreeCellStage::onAnimFinish , this , idx , animType , 0  ) );
 			}
 			break;
 		}
 
-		spr.beAnim = true;
+		spr.bAnimating = true;
 		return true;
 	}
 
-	void FreeCellStage::onAnimFinish( int idx , bool bUndoMove )
+	void FreeCellStage::onAnimFinish( int idx , int animType , int metaValue )
 	{
 		Sprite& spr = mSprites[ idx ];
-		spr.beAnim = false;
-		if ( bUndoMove )
+		spr.bAnimating = false;
+
+		switch( animType )
 		{
-			if ( mbUndoMove )
-				undoMove();
+		case ANIM_MOVEING:
+			{
+				if( metaValue )
+				{
+					if( mbUndoMove )
+						undoMove();
+				}
+				else
+				{
+					checkMoveCard( !metaValue );
+				}
+			}
+			break;
+		case ANIM_LOOK:
+			{
+
+			}
+			break;
+		default:
+			break;
 		}
-		else
-		{
-			checkMoveCard( !bUndoMove );
-		}
+
 	}
 
 	void FreeCellStage::newGame()

@@ -50,13 +50,13 @@ namespace Render
 		FunGetShaderFileName funGetShaderFileName;
 		FunGetShaderEntries funGetShaderEntries;
 
-		GlobalShaderProgramClass(
+		CORE_API GlobalShaderProgramClass(
 			FunCreateShader inFunCreateShader,
 			FunSetupShaderCompileOption inFunSetupShaderCompileOption,
 			FunGetShaderFileName inFunGetShaderFileName,
 			FunGetShaderEntries inFunGetShaderEntries);
-
 	};
+
 #define DECLARE_GLOBAL_SHADER( CLASS )\
 	public:\
 		static GlobalShaderProgramClass& GetShaderClass();\

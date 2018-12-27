@@ -62,7 +62,7 @@ namespace Poker { namespace Big2 {
 		float      mCardPos[ PlayerCardNum ];
 		Vec2i      mBasePos;
 		CardDeck* mClinetCards;
-		bool       mbeSelected[ PlayerCardNum ];
+		bool       mbSelectedMap[ PlayerCardNum ];
 		static int const MaxNumSelected = PlayerCardNum;
 		int        mIndexSelected[ MaxNumSelected ];
 		int        mNumSelected;
@@ -125,14 +125,14 @@ namespace Poker { namespace Big2 {
 		int               mStateTime;
 		RenderState       mState;
 		BitmapDC          mShowCardBmp;
-		Vector2             mShowCardOffset[4];
+		Vector2           mShowCardOffset[4];
 		struct CardTrans
 		{
 			Vec2i offset;
 		};
 		CardTrans         mShowCardTrans[5];
 		int               mDealCardNum;
-		Vector2             mDealCardPos[4];
+		Vector2           mDealCardPos[4];
 
 		int               mIdxCard[4];
 		char              mCards[52];

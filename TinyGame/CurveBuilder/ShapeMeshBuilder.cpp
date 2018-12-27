@@ -1,4 +1,4 @@
-#include "ShapeMaker.h"
+#include "ShapeMeshBuilder.h"
 
 #include "Base.h"
 #include "ShapeCommon.h"
@@ -11,14 +11,13 @@
 namespace CB
 {
 
-	static void calculateNormal(Vector3& outValue, Vector3 const& v1,
-								Vector3 const& v2, Vector3 const& v3)
+	static void CalcNormal(Vector3& outValue, Vector3 const& v1,Vector3 const& v2, Vector3 const& v3)
 	{
 		outValue = (v2 - v1).cross(v3 - v1);
 		outValue.normalize();
 	}
 
-	ShapeMaker::ShapeMaker()
+	ShapeMeshBuilder::ShapeMeshBuilder()
 		:mColorMap(1000)
 		,mParser()
 	{
@@ -37,7 +36,7 @@ namespace CB
 
 	}
 
-	void ShapeMaker::setColor(float p, float* color)
+	void ShapeMeshBuilder::setColor(float p, float* color)
 	{
 		float r, g, b;
 		if( p < 0.5f )
@@ -59,7 +58,7 @@ namespace CB
 
 
 
-	void ShapeMaker::updateCurveData(ShapeUpdateInfo const& info, SampleParam const& paramS)
+	void ShapeMeshBuilder::updateCurveData(ShapeUpdateInfo const& info, SampleParam const& paramS)
 	{
 		assert(info.fun->getFunType() == TYPE_CURVE_3D);
 
@@ -105,7 +104,7 @@ namespace CB
 		}
 	}
 
-	void ShapeMaker::updateSurfaceData(ShapeUpdateInfo const& info, SampleParam const& paramU, SampleParam const& paramV)
+	void ShapeMeshBuilder::updateSurfaceData(ShapeUpdateInfo const& info, SampleParam const& paramU, SampleParam const& paramV)
 	{
 		PROFILE_ENTRY("UpdateSurfaceData");
 
@@ -131,42 +130,163 @@ namespace CB
 
 			uint8* posData = data->getVertexData() + data->getPositionOffset();
 
+			float du = paramU.getIncrement();
+			float dv = paramV.getIncrement();
+
 			if( info.fun->getFunType() == TYPE_SURFACE_UV )
 			{
 				SurfaceUVFun* fun = static_cast<SurfaceUVFun*>(info.fun);
 
-				float du = paramU.getIncrement();
-				float dv = paramV.getIncrement();
-				float u, v;
 
-				for( int j = 0; j < paramV.numData; ++j )
+				switch( fun->getUsedInputMask() )
 				{
-					for( int i = 0; i < paramU.numData; ++i )
+				case BIT(0):
 					{
-						float u = paramU.getRangeMin() + i * du;
-						float v = paramV.getRangeMin() + j * dv;
-						int idx = paramU.numData * j + i;
-						Vector3* pPos = (Vector3*)(posData + idx * data->getVertexSize());
-						fun->evalExpr(*pPos, u, v);
+						for( int i = 0; i < paramU.numData; ++i )
+						{
+							float u = paramU.getRangeMin() + i * du;
+							Vector3 value;
+							fun->evalExpr(value, u, 0);
+							for( int j = 0; j < paramV.numData; ++j )
+							{
+								float v = paramV.getRangeMin() + j * dv;
+								int idx = paramU.numData * j + i;
+								Vector3* pPos = (Vector3*)(posData + idx * data->getVertexSize());
+								*pPos = value;
+							}
+						}
 					}
+					break;
+				case BIT(1):
+					{
+						for( int j = 0; j < paramV.numData; ++j )
+						{
+							float v = paramV.getRangeMin() + j * dv;
+							Vector3 value;
+							fun->evalExpr(value, 0, v);
+							for( int i = 0; i < paramU.numData; ++i )
+							{
+								float u = paramU.getRangeMin() + i * du;
+								int idx = paramU.numData * j + i;
+								Vector3* pPos = (Vector3*)(posData + idx * data->getVertexSize());
+								*pPos = value;
+							}
+						}
+					}
+					break;
+				case BIT(0) | BIT(1):
+					{
+						for( int j = 0; j < paramV.numData; ++j )
+						{
+							float v = paramV.getRangeMin() + j * dv;
+							for( int i = 0; i < paramU.numData; ++i )
+							{
+								float u = paramU.getRangeMin() + i * du;		
+								int idx = paramU.numData * j + i;
+								Vector3* pPos = (Vector3*)(posData + idx * data->getVertexSize());
+								fun->evalExpr(*pPos, u, v);
+							}
+						}
+					}
+					break;
+				default:
+					{
+						Vector3 value;
+						fun->evalExpr(value, 0, 0);
+						for( int j = 0; j < paramV.numData; ++j )
+						{
+							float v = paramV.getRangeMin() + j * dv;
+							for( int i = 0; i < paramU.numData; ++i )
+							{
+								float u = paramU.getRangeMin() + i * du;
+								int idx = paramU.numData * j + i;
+								Vector3* pPos = (Vector3*)(posData + idx * data->getVertexSize());
+								*pPos = value;
+							}
+						}
+
+					}
+					break;
 				}
 			}
 			else if( info.fun->getFunType() == TYPE_SURFACE_XY )
 			{
 				SurfaceXYFun* fun = static_cast<SurfaceXYFun*>(info.fun);
 
-				float du = paramU.getIncrement();
-				float dv = paramV.getIncrement();
-				for( int j = 0; j < paramV.numData; ++j )
+				switch( fun->getUsedInputMask() )
 				{
-					for( int i = 0; i < paramU.numData; ++i )
+				case BIT(0):
 					{
-						float u = paramU.getRangeMin() + i * du;
-						float v = paramV.getRangeMin() + j * dv;
-						int idx = paramU.numData * j + i;
-						Vector3* pPos = (Vector3*)(posData + idx * data->getVertexSize());
-						fun->evalExpr(*pPos, u, v);
+						for( int i = 0; i < paramU.numData; ++i )	
+						{
+							float u = paramU.getRangeMin() + i * du;
+							Vector3 value;
+							fun->evalExpr(value, u, 0);
+
+							for( int j = 0; j < paramV.numData; ++j )
+							{
+								float v = paramV.getRangeMin() + j * dv;
+								int idx = paramU.numData * j + i;
+								Vector3* pPos = (Vector3*)(posData + idx * data->getVertexSize());
+								pPos->setValue( u , v , value.z);
+							}
+						}
 					}
+					break;
+				case BIT(1):
+					{
+						for( int j = 0; j < paramV.numData; ++j )
+						{
+							float v = paramV.getRangeMin() + j * dv;
+
+							Vector3 value;
+							fun->evalExpr(value, 0, v);
+
+							for( int i = 0; i < paramU.numData; ++i )
+							{
+								float u = paramU.getRangeMin() + i * du;
+
+								int idx = paramU.numData * j + i;
+								Vector3* pPos = (Vector3*)(posData + idx * data->getVertexSize());
+								pPos->setValue( u , v , value.z);
+							}
+						}
+					}
+					break;
+				case BIT(0) | BIT(1):
+					{
+						for( int j = 0; j < paramV.numData; ++j )
+						{
+							float v = paramV.getRangeMin() + j * dv;
+							for( int i = 0; i < paramU.numData; ++i )
+							{
+								float u = paramU.getRangeMin() + i * du;
+
+								int idx = paramU.numData * j + i;
+								Vector3* pPos = (Vector3*)(posData + idx * data->getVertexSize());
+								fun->evalExpr(*pPos, u, v);
+							}
+						}
+					}
+					break;
+				default:
+					{
+						Vector3 value;
+						fun->evalExpr(value, 0, 0);
+						for( int j = 0; j < paramV.numData; ++j )
+						{
+							float v = paramV.getRangeMin() + j * dv;
+							for( int i = 0; i < paramU.numData; ++i )
+							{
+								float u = paramU.getRangeMin() + i * du;
+								int idx = paramU.numData * j + i;
+								Vector3* pPos = (Vector3*)(posData + idx * data->getVertexSize());
+								pPos->setValue(u, v, value.z);
+							}
+						}
+
+					}
+					break;
 				}
 			}
 
@@ -193,11 +313,10 @@ namespace CB
 
 			if( data->getNormalOffset() != -1 )
 			{
+#if USE_PARALLEL_UPDATE
 				std::vector< Vector3 > mCacheNormal;
 				std::vector< int >     mCacheCount;
-
-				mCacheCount.clear();
-				mCacheNormal.clear();
+#endif
 				mCacheCount.resize(vertexNum, 0);
 				mCacheNormal.resize(vertexNum, Vector3(0, 0, 0));
 
@@ -213,7 +332,7 @@ namespace CB
 					Vector3* pPos1 = (Vector3*)(posData + idx1 * data->getVertexSize());
 					Vector3* pPos2 = (Vector3*)(posData + idx2 * data->getVertexSize());
 					Vector3 normal;
-					calculateNormal(normal, *pPos0, *pPos1, *pPos2);
+					CalcNormal(normal, *pPos0, *pPos1, *pPos2);
 					//normal = -normal;
 
 					mCacheNormal[idx0] += normal;
@@ -253,26 +372,17 @@ namespace CB
 		}
 	}
 
-#if USE_PARALLEL_UPDATE
-	void ShapeMaker::addUpdateWork(std::function<void()> fun)
+	bool ShapeMeshBuilder::parseFunction(ShapeFunBase& func)
 	{
-		if( mUpdateThreadPool == nullptr )
-		{
-			int numThread = SystemPlatform::GetProcessorNumber();
-			mUpdateThreadPool.reset( new QueueThreadPool );
-			mUpdateThreadPool->init(numThread);
-		}
-		mUpdateThreadPool->addFunctionWork(fun);
+#if USE_PARALLEL_UPDATE
+		Mutex::Locker locker(mParserLock);
+#endif
+		if( !func.parseExpression(mParser) )
+			return false;
+
+		return true;
 	}
 
-	void ShapeMaker::waitUpdateDone()
-	{
-		if( mUpdateThreadPool )
-		{
-			mUpdateThreadPool->waitAllWorkComplete();
-		}
-	}
-#endif
 
 	static bool calcDiv(float v, float v0, float v1, float& out) // throw( RealNanException )
 	{

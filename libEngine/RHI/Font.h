@@ -122,10 +122,10 @@ namespace Render
 	public:
 		static CORE_API FontCharCache& Get();
 
-		bool initialize();
-		void finalize();
-		void releaseRHI();
-		CharDataSet* getCharDataSet(FontFaceInfo const& fontFace);
+		CORE_API bool initialize();
+		CORE_API void finalize();
+		CORE_API void releaseRHI();
+		CORE_API CharDataSet* getCharDataSet(FontFaceInfo const& fontFace);
 
 		TextureAtlas mTextAtlas;
 		std::unordered_map< FontFaceInfo , CharDataSet* > mCharDataSetMap;

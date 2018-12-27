@@ -19,7 +19,7 @@ public:
 	virtual void onSpawn( unsigned flag );
 	virtual void onDestroy( unsigned flag );
 	
-	void setParam(float intensity, float brzinaRasta, float brzinaUmiranja);
+	void setParam(float intensity, float growthRate, float deathRate );
 	void setColor( Vec3f const& c );
 	
 
@@ -31,10 +31,11 @@ protected:
 	// if you die, the intensity is reduced, if not, then increases
 	bool  mbDead;
 	// the speed at which the intensity is increasing
-	float growthRate; 
+	float mGrowthRate; 
 	// the speed at which the intensity is decreasing
-	float deathRate;  
-	float intensity, maxIntensity;
+	float mDeathRate;  
+	float mCurIntensity;
+	float mMaxIntensity;
 	// light color
 	Vec3f  color;
 

@@ -115,7 +115,6 @@ namespace CAR
 	};
 
 
-
 }//namespace CAR
 
 #endif // CARGameplaySetting_h__85a4781f_a1e7_4eeb_a352_d8c9ee34798a

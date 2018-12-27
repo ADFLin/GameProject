@@ -19,7 +19,7 @@ namespace Chromatron
 	typedef unsigned Color;
 	DeviceId const ErrorDeviceId = DeviceId( -1 );
 
-	inline bool isInRect( Vec2i const& pt , Vec2i const& rectPos , Vec2i const& rectSize )
+	inline bool IsInRect( Vec2i const& pt , Vec2i const& rectPos , Vec2i const& rectSize )
 	{
 		return rectPos.x <= pt.x && pt.x < rectPos.x + rectSize.x && 
 			   rectPos.y <= pt.y && pt.y < rectPos.y + rectSize.y;
@@ -38,7 +38,7 @@ namespace Chromatron
 		
 	};
 
-	inline Color complementary( Color color ){ return Color( COLOR_W & (~color) );	 }
+	inline Color Complementary( Color color ){ return Color( COLOR_W & (~color) );	 }
 
 	int const NumDir = 8;
 	typedef TCycleNumber< NumDir , int > Dir;

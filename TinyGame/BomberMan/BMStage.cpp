@@ -249,7 +249,7 @@ namespace BomberMan
 		{
 			Player* player = world.getPlayer(i);
 			trigger.setPort( player->getId() );
-			evalPlayerAction( *player , trigger );
+			EvalPlayerAction( *player , trigger );
 		}
 	}
 

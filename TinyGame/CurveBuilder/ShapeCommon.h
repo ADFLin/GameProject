@@ -68,11 +68,13 @@ namespace CB
 		virtual void   acceptVisit(ShapeFunVisitor& visitor) = 0;
 		bool    isDynamic() { return mbDynamic; }
 		virtual ShapeFunBase* clone() = 0;
+		uint8   getUsedInputMask() const { return mUsedInputMask; }
 
 	protected:
+		uint8   mUsedInputMask;
 		void    setDynamic(bool bDynamic) { mbDynamic = bDynamic; }
 	private:
-		bool   mbDynamic;
+		bool    mbDynamic;
 	};
 
 	enum RenderUpdateFlag
@@ -81,7 +83,7 @@ namespace CB
 		RUF_DATA_SAMPLE = 1 << 1,
 		RUF_GEOM = 1 << 2,
 		RUF_COLOR = 1 << 3,
-		RUB_ALL_UPDATE_BIT = 0xffffffff,
+		RUF_ALL_UPDATE_BIT = 0xffffffff,
 	};
 
 	struct ShapeUpdateInfo

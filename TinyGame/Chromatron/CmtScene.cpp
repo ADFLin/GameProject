@@ -593,7 +593,7 @@ namespace Chromatron
 	{
 		for(int i = 0; i < Dir::RestNumber ; ++i)
 		{
-			Dir dir = Dir::ValueNoCheck( i );
+			Dir dir = Dir::ValueChecked( i );
 			int color = tile.getLightPathColor( dir );
 
 			if ( color == COLOR_NULL ) 
@@ -621,19 +621,19 @@ namespace Chromatron
 
 		pos -= mWorldPos;
 
-		if ( isInRect( pos , Vec2i(0,0) , WorldMapSize ) )
+		if ( IsInRect( pos , Vec2i(0,0) , WorldMapSize ) )
 		{	
 			result = pos / CellLength;
 			return Level::PT_WORLD;
 		}
-		else if ( isInRect( pos , StorageMapPosOffset , StorageMapSize ) )
+		else if ( IsInRect( pos , StorageMapPosOffset , StorageMapSize ) )
 		{
 			pos -= StorageMapPosOffset;
 
 			Vec2i temp( pos.x % StorageMapOffset , 
 				        pos.y % StorageMapOffset );
 
-			if ( isInRect( temp , Vec2i(0,0) , Vec2i( CellLength , CellLength ) ) )
+			if ( IsInRect( temp , Vec2i(0,0) , Vec2i( CellLength , CellLength ) ) )
 			{
 				int idx = pos.x / StorageMapOffset + StorageMapRowSize * ( pos.y / StorageMapOffset );
 				assert( idx < Level::MaxNumUserDC );
@@ -649,7 +649,7 @@ namespace Chromatron
 	DeviceId Scene::getToolDevice( Vec2i const& pos )
 	{
 		Vec2i const ToolRect = Vec2i( ( CellLength + CMToolGap ) * DC_DEVICE_NUM , CellLength );
-		if ( !isInRect( pos , CMToolPos , ToolRect ) )
+		if ( !IsInRect( pos , CMToolPos , ToolRect ) )
 			return ErrorDeviceId;
 
 		Vec2i lPos = pos - CMToolPos;

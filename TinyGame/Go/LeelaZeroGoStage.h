@@ -49,18 +49,17 @@ namespace Go
 	{
 		switch( type )
 		{
-
-		case Go::ControllerType::ePlayer:
+		case ControllerType::ePlayer:
 			return "Player";
-		case Go::ControllerType::eLeelaZero:
+		case ControllerType::eLeelaZero:
 			return "LeelaZero";
-		case Go::ControllerType::eAQ:
+		case ControllerType::eAQ:
 			return "AQ";
-		case Go::ControllerType::eZenV7:
+		case ControllerType::eZenV7:
 			return "Zen7";
-		case Go::ControllerType::eZenV6:
+		case ControllerType::eZenV6:
 			return "Zen6";
-		case Go::ControllerType::eZenV4:
+		case ControllerType::eZenV4:
 			return "Zen4";
 		}
 
@@ -359,7 +358,7 @@ namespace Go
 		bool bDrawFontCacheTexture = false;
 		BoardRenderer mBoardRenderer;
 		float const RenderBoardScale = 1.2;
-		Vector2 const BoardPos = Vector2(50, 50);
+		Vector2 BoardPos = Vector2(100, 55);
 
 		GameMode mGameMode = GameMode::None;
 		class UnderCurveAreaProgram* mProgUnderCurveArea = nullptr;

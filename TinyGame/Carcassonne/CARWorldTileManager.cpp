@@ -427,10 +427,8 @@ namespace CAR
 		switch ( tileSet.type )
 		{
 		case TileType::eSimple:
-			for( PosSet::iterator iter = mEmptyLinkPosSet.begin() , itEnd = mEmptyLinkPosSet.end();
-				iter != itEnd ; ++iter )
+			for( Vec2i const& pos : mEmptyLinkPosSet )
 			{
-				Vec2i const& pos = *iter;
 				for(int i = 0 ; i < FDir::TotalNum ; ++i )
 				{
 					if ( canPlaceTile( tileId , pos , i , param ) )
@@ -442,10 +440,8 @@ namespace CAR
 			}
 			break;
 		case TileType::eDouble:
-			for( PosSet::iterator iter = mEmptyLinkPosSet.begin() , itEnd = mEmptyLinkPosSet.end();
-				iter != itEnd ; ++iter )
+			for( Vec2i const& pos : mEmptyLinkPosSet )
 			{
-				Vec2i const& pos = *iter;
 				for( int n = 0 ; n < 2 ; ++n )
 				{
 					for(int i = 0 ; i < FDir::TotalNum ; ++i )
@@ -461,10 +457,8 @@ namespace CAR
 			MakeValueUnique( outPos ,idxStart );
 			break;
 		case TileType::eHalfling:
-			for( PosSet::iterator iter = mEmptyLinkPosSet.begin(), itEnd = mEmptyLinkPosSet.end();
-				iter != itEnd; ++iter )
+			for( Vec2i const& pos : mEmptyLinkPosSet )
 			{
-				Vec2i const& pos = *iter;
 				for( int i = 0; i < FDir::TotalNum; ++i )
 				{
 					if( canPlaceTile(tileId, pos, i, param) )

@@ -19,16 +19,12 @@
 namespace Render
 {
 
-
-
 	class MaterialAssetProvider
 	{
 	public:
 		virtual Material*     createMaterial(char const* name) = 0;
 		virtual RHITexture2D* getTexture2D(char const* name) = 0;
 	};
-
-
 
 	class MaterialFileParser
 	{
@@ -37,9 +33,7 @@ namespace Render
 			:mProvider(provider)
 		{
 
-
 		}
-
 
 		static bool TokenStringLiteral(Tokenizer& tokenizer, StringView& outString)
 		{
@@ -69,7 +63,6 @@ namespace Render
 
 			return true;
 		}
-
 
 		static bool VerifyTokenDelimChar(Tokenizer& tokenizer, char c)
 		{
@@ -114,7 +107,6 @@ namespace Render
 
 			return ExitBlock(tokenizer);
 		}
-
 
 		bool load(char const* pData, int dataSize, char const* targetMaterialName)
 		{
@@ -692,9 +684,6 @@ namespace Render
 
 		void onRender(float dFrame)
 		{
-
-			GpuProfiler::Get().beginFrame();
-
 			{
 				GPU_PROFILE("Frame");
 				GameWindow& window = Global::GetDrawEngine()->getWindow();
@@ -761,9 +750,6 @@ namespace Render
 				}
 			}
 
-			GpuProfiler::Get().endFrame();
-
-
 			GLGraphics2D& g = ::Global::GetRHIGraphics2D();
 
 			FixString< 512 > str;
@@ -771,17 +757,7 @@ namespace Render
 
 			g.beginRender();
 			
-			int const offset = 15;
-			int textX = 100;
-			int y = 10;
 
-			for( int i = 0; i < GpuProfiler::Get().getSampleNum(); ++i )
-			{
-				GpuProfileSample* sample = GpuProfiler::Get().getSample(i);
-				str.format("%.2lf => %s", sample->time, sample->name.c_str());
-				g.drawText(textX + 10 * sample->level, y += offset, str);
-
-			}
 			g.endRender();
 
 		}

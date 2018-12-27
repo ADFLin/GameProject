@@ -8,8 +8,8 @@
 
 struct  GrowThrowPolicy
 {
-	static bool checkFill( char*& data , size_t& max , size_t cur ,  size_t num );
-	static bool checkTake( char*& data , size_t& max , size_t cur ,  size_t num );
+	static bool CheckFill( char*& data , size_t& max , size_t cur ,  size_t num );
+	static bool CheckTake( char*& data , size_t& max , size_t cur ,  size_t num );
 };
 
 
@@ -19,11 +19,17 @@ public:
 	DataSteamBuffer();
 	DataSteamBuffer( size_t size );
 
-	DataSteamBuffer( DataSteamBuffer const& rhs ){ move( const_cast< DataSteamBuffer& >( rhs ) ); }
-	DataSteamBuffer& operator = ( DataSteamBuffer const& rhs ){ cleanup(); move( const_cast< DataSteamBuffer& >( rhs ) ); return *this;  }
+#if 0
+	DataSteamBuffer( DataSteamBuffer const& rhs ){ moveData( const_cast< DataSteamBuffer& >( rhs ) ); }
+	DataSteamBuffer& operator = ( DataSteamBuffer const& rhs ){ cleanup(); moveData( const_cast< DataSteamBuffer& >( rhs ) ); return *this;  }
+#else
+	DataSteamBuffer(DataSteamBuffer const& rhs) = delete;
+	DataSteamBuffer& operator = (DataSteamBuffer const& rhs) = delete;
+#endif
 
 #if CPP_RVALUE_REFENCE_SUPPORT
-	DataSteamBuffer( DataSteamBuffer&& rhs ){ move( rhs ); }
+	DataSteamBuffer(DataSteamBuffer&& rhs) { moveData(rhs); }
+	DataSteamBuffer& operator = (DataSteamBuffer&& rhs) { cleanup(); moveData(rhs); return *this; }
 #endif
 
 	~DataSteamBuffer();
@@ -41,7 +47,7 @@ public:
 	void copy( DataSteamBuffer const& rhs );
 
 private:
-	void move( DataSteamBuffer& other );
+	void moveData( DataSteamBuffer& other );
 };
 
 

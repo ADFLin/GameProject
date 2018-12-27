@@ -198,7 +198,7 @@ copy $(TargetDir)EngineShare.dll $(ProjectDir)out\</Command>
     </ClCompile>
     <Link>
       <AdditionalDependencies>Msimg32.lib;Xaudio2.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>../OtherLib/FMOD/lib\x86;../OtherLib/Boost/lib/x86;../OtherLib/DirectX/Lib/x86;../OtherLib/Vulkan/Lib/x86;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>../OtherLib/FMOD/lib\x86;../OtherLib/Boost/lib/x86;../OtherLib/DirectX/Lib/x86;../OtherLib/Vulkan/Lib/x86;../OtherLib/Box2D/Lib/x86;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Windows</SubSystem>
       <OptimizeReferences />
@@ -271,7 +271,7 @@ copy $(TargetDir)EngineShare.dll $(ProjectDir)out\</Command>
     <ClCompile Include="CurveBuilder\CurveRenderer.cpp" />
     <ClCompile Include="CurveBuilder\RenderData.cpp" />
     <ClCompile Include="CurveBuilder\ShapeFun.cpp" />
-    <ClCompile Include="CurveBuilder\ShapeMaker.cpp">
+    <ClCompile Include="CurveBuilder\ShapeMeshBuilder.cpp">
       <OpenMPSupport Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</OpenMPSupport>
       <OpenMPSupport Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</OpenMPSupport>
       <OpenMPSupport Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</OpenMPSupport>
@@ -548,7 +548,7 @@ copy $(TargetDir)EngineShare.dll $(ProjectDir)out\</Command>
     <ClInclude Include="CurveBuilder\RenderData.h" />
     <ClInclude Include="CurveBuilder\ShapeCommon.h" />
     <ClInclude Include="CurveBuilder\ShapeFun.h" />
-    <ClInclude Include="CurveBuilder\ShapeMaker.h" />
+    <ClInclude Include="CurveBuilder\ShapeMeshBuilder.h" />
     <ClInclude Include="CurveBuilder\Surface.h" />
     <ClInclude Include="Fight\FightLevel.h" />
     <ClInclude Include="FlappyBird\FBLevel.h" />

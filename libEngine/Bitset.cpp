@@ -1,5 +1,7 @@
 #include "Bitset.h"
 
+#include "BitUtility.h"
+
 Bitset::Bitset()
 {
 	mSize = 0;
@@ -71,73 +73,6 @@ void Bitset::flip( size_t pos )
 		mStorage[ pos ] |= bit;
 }
 
-#define TWO(c)     (0x1u << (c))
-#define MASK(c)    (((unsigned int)(-1)) / (TWO(TWO(c)) + 1u))
-#define COUNT(x,c) ((x) & MASK(c)) + (((x) >> (TWO(c))) & MASK(c))
-
-template< int N >
-struct BitCount {};
-
-template <>
-struct BitCount< 1 >
-{
-	template< class T >
-	static size_t calc( T n )
-	{
-		n = COUNT(n, 0) ;
-		n = COUNT(n, 1) ;
-		n = COUNT(n, 2) ;
-		return n;
-	}
-};
-
-
-template <>
-struct BitCount< 2 >
-{
-	template< class T >
-	static size_t calc( T n )
-	{
-		n = COUNT(n, 0) ;
-		n = COUNT(n, 1) ;
-		n = COUNT(n, 2) ;
-		n = COUNT(n, 3) ;
-		return n;
-	}
-};
-
-template <>
-struct BitCount< 4 >
-{
-	template< class T >
-	static size_t calc( T n )
-	{
-		n = COUNT(n, 0) ;
-		n = COUNT(n, 1) ;
-		n = COUNT(n, 2) ;
-		n = COUNT(n, 3) ;
-		n = COUNT(n, 4) ;
-		return n;
-	}
-};
-
-template <>
-struct BitCount< 8 >
-{
-	template< class T >
-	static size_t calc( T n )
-	{
-		n = COUNT(n, 0) ;
-		n = COUNT(n, 1) ;
-		n = COUNT(n, 2) ;
-		n = COUNT(n, 3) ;
-		n = COUNT(n, 4) ;
-		n = COUNT(n, 5) ;
-		return n;
-	}
-};
-
-
 size_t Bitset::count() const
 {
 	size_t result = 0;
@@ -145,10 +80,10 @@ size_t Bitset::count() const
 	size_t size = mSize / STORAGE_BIT_NUM;
 	size_t numBit = mSize % STORAGE_BIT_NUM;
 	for( size_t i = 0 ; i < size ; ++i )
-		result += BitCount< sizeof(StorageType ) >::calc( mStorage[i] );
+		result += BitUtility::CountSet( mStorage[i] );
 	
 	if ( numBit )
-		result += BitCount< sizeof(StorageType ) >::calc( mStorage[ size ] & ( ( 1 << (numBit+1) )- 1 ) );
+		result += BitUtility::CountSet(StorageType( mStorage[ size ] & (( 1 << (numBit+1) )- 1 )) );
 
 	return result;
 }

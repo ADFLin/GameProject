@@ -1,7 +1,6 @@
 #include "CAR_PCH.h"
 #include "CARFeature.h"
 
-#include "CARPlayer.h"
 #include "CARGameplaySetting.h"
 #include "CARParamValue.h"
 #include "CARLevelActor.h"
@@ -21,13 +20,13 @@ namespace CAR
 		for( int i = 0 ; i < mActors.size() ; ++i )
 		{
 			LevelActor* actor = mActors[i];
-			if ( actor->owner == nullptr )
+			if ( actor->ownerId == CAR_ERROR_PLAYER_ID )
 				continue;
 
-			if ( mActors[i]->owner->getId() != playerId )
-				actorTypeMaskOther |= BIT(mActors[i]->type);
+			if ( actor->ownerId != playerId )
+				actorTypeMaskOther |= BIT(actor->type);
 			else
-				actorTypeMask |= BIT(mActors[i]->type);
+				actorTypeMask |= BIT(actor->type);
 		}
 
 		if ( actorTypeMask == 0 && actorTypeMaskOther != 0 )
@@ -192,7 +191,7 @@ namespace CAR
 		for( int i = 0 ; i < mActors.size() ; ++i )
 		{
 			LevelActor* actor = mActors[i];
-			FeatureScoreInfo& info = scoreInfos[ actor->owner->getId() ];
+			FeatureScoreInfo& info = scoreInfos[ actor->ownerId ];
 			info.majority += getMajorityValue( actor->type );
 			if ( mSetting->isFollower( actor->type ) && actor->mapTile->haveHill )
 				info.hillFollowerCount += 1;
@@ -364,7 +363,7 @@ namespace CAR
 
 					if ( linkNode.group == -1 )
 					{
-						CAR_LOG("Warnning: No Link Feature In Road Link");
+						CAR_LOG("Waning: No Link Feature In Road Link");
 					}
 					else
 					{
@@ -711,7 +710,7 @@ namespace CAR
 			if ( majority > 0 )
 			{
 				scoreInfos.resize(1);
-				scoreInfos[0].playerId = actor->owner->getId();
+				scoreInfos[0].playerId = actor->ownerId;
 				scoreInfos[0].majority = majority;
 				scoreInfos[0].score = calcPlayerScore(scoreInfos[0].playerId);
 				return 1;
@@ -735,7 +734,7 @@ namespace CAR
 
 			if ( linkNode->group == -1 )
 			{
-				CAR_LOG("Warnning: No Link Feature In Road Link");
+				CAR_LOG("Warning: No Link Feature In Road Link");
 			}
 			else
 			{
@@ -809,9 +808,9 @@ namespace CAR
 			if ( majority > 0 )
 			{
 				scoreInfos.resize(1);
-				scoreInfos[0].playerId = actor->owner->getId();
+				scoreInfos[0].playerId = actor->ownerId;
 				scoreInfos[0].majority = majority;
-				scoreInfos[0].score = calcPlayerScore( actor->owner->getId() );
+				scoreInfos[0].score = calcPlayerScore( actor->ownerId );
 				return 1;
 			}
 		}
@@ -833,7 +832,7 @@ namespace CAR
 
 			if ( linkNode->group == -1 )
 			{
-				CAR_LOG("Warnning: No Link Feature In Road Link");
+				CAR_LOG("Warning: No Link Feature In Road Link");
 			}
 			else
 			{

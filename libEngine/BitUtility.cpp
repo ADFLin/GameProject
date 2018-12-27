@@ -24,7 +24,9 @@ int BitUtility::CountLeadingZeros(uint32 n)
 	return result;
 }
 
-int BitUtility::CountSet(uint8 x)
+
+template< class T >
+int BitCountSetGentic(T x)
 {
 	int count = 0;
 	for( ; x; ++count )
@@ -32,12 +34,49 @@ int BitUtility::CountSet(uint8 x)
 	return count;
 }
 
+#define TWO(c)     (0x1u << (c))
+#define MASK(c)    (((unsigned int)(-1)) / (TWO(TWO(c)) + 1u))
+#define COUNT(x,c) ((x) & MASK(c)) + (((x) >> (TWO(c))) & MASK(c))
+
+int BitUtility::CountSet(uint8 x)
+{
+	x = COUNT(x, 0);
+	x = COUNT(x, 1);
+	x = COUNT(x, 2);
+	return x;
+}
+
+
+int BitUtility::CountSet(uint16 x)
+{
+	x = COUNT(x, 0);
+	x = COUNT(x, 1);
+	x = COUNT(x, 2);
+	x = COUNT(x, 3);
+	return x;
+
+}
+
 int BitUtility::CountSet(uint32 x)
 {
-	int count = 0;
-	for( ; x; ++count )
-		x &= x - 1;
-	return count;
+	x = COUNT(x, 0);
+	x = COUNT(x, 1);
+	x = COUNT(x, 2);
+	x = COUNT(x, 3);
+	x = COUNT(x, 4);
+	return x;
+}
+
+
+int BitUtility::CountSet(uint64 x)
+{
+	x = COUNT(x, 0);
+	x = COUNT(x, 1);
+	x = COUNT(x, 2);
+	x = COUNT(x, 3);
+	x = COUNT(x, 4);
+	x = COUNT(x, 5);
+	return x;
 }
 
 uint32 BitUtility::NextNumberOfPow2(uint32 n)

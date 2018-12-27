@@ -196,25 +196,25 @@ namespace TowerDefend
 			
 				bool beOk = false;
 				move.offset.setValue( 0 , 0 );
-				if ( checkKey( VK_LEFT , (uint8)0 ) )
+				if ( checkKey( Keyboard::eLEFT , (uint8)0 ) )
 				{
 					move.mode   = CIViewportMove::eREL_MOVE;
 					move.offset.x -= VPScrolSpeed;
 					beOk = true;
 				}
-				else if ( checkKey( VK_RIGHT , (uint8)0 ) )
+				else if ( checkKey(Keyboard::eRIGHT , (uint8)0 ) )
 				{
 					move.mode   = CIViewportMove::eREL_MOVE;
 					move.offset.x += VPScrolSpeed;
 					beOk = true;
 				}
-				if ( checkKey( VK_UP , (uint8)0 ) )
+				if ( checkKey( Keyboard::eUP , (uint8)0 ) )
 				{
 					move.mode   = CIViewportMove::eREL_MOVE;
 					move.offset.y -= VPScrolSpeed;
 					beOk = true;
 				}
-				else if ( checkKey( VK_DOWN , (uint8)0 ) )
+				else if ( checkKey(Keyboard::eDOWN , (uint8)0 ) )
 				{
 					move.mode   = CIViewportMove::eREL_MOVE;
 					move.offset.y += VPScrolSpeed;

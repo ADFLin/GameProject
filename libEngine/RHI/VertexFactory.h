@@ -18,7 +18,7 @@ namespace Render
 		typedef VertexFactoryShaderData* (*CreateShaderDataFun)();
 		typedef void (*ModifyCompilationOptionFun)(ShaderCompileOption& opation);
 
-		VertexFactoryType(char const* inFileName , ModifyCompilationOptionFun MCO );
+		CORE_API VertexFactoryType(char const* inFileName , ModifyCompilationOptionFun MCO );
 		
 		char const* fileName;
 		ModifyCompilationOptionFun ModifyCompilationOption;
@@ -51,7 +51,7 @@ namespace Render
 #define DECL_VERTEX_FACTORY_TYPE( CLASS )\
 	friend class VertexFarcoryType;\
 	public:\
-		static VertexFactoryType StaticType;\
+		CORE_API static VertexFactoryType StaticType;\
 		virtual VertexFactoryType& getType() override { return StaticType; }
 
 #define IMPL_VERTEX_FACTORY_TYPE( CLASS , FILE_NAME )\

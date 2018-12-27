@@ -5,6 +5,8 @@
 #include "CmtWorld.h"
 #include "CmtLightTrace.h"
 
+#include "BitUtility.h"
+
 namespace Chromatron
 {
 	static DeviceInfo gDeviceInfo[ DC_DEVICE_NUM ];
@@ -60,13 +62,13 @@ namespace Chromatron
 	template<>
 	void DeviceFun::Update< DC_LIGHTSOURCE >( Device& dc , WorldUpdateContext& context )
 	{
-		context.addLight( dc.getPos() , dc.getColor() , dc.getDir() );
+		context.addEffectLight( dc.getPos() , dc.getColor() , dc.getDir() );
 	}
 
 	template<>
 	void DeviceFun::Effect< DC_PINWHEEL >( Device& dc , WorldUpdateContext& context , LightTrace const& light )
 	{
-		context.addLight( dc.getPos() , light.getColor() , light.getDir() );
+		context.addEffectLight( dc.getPos() , light.getColor() , light.getDir() );
 	}
 
 	template<>
@@ -80,7 +82,7 @@ namespace Chromatron
 
 		for(int i = 0 ; i < 4 ;++i )
 		{
-			Dir dir = Dir::ValueNoCheck( i );
+			Dir dir = Dir::ValueChecked( i );
 			Color c1 = tile.getLightPathColor( dir );
 			Color c2 = tile.getLightPathColor( dir.inverse() );
 			if ( ( c1 & invColor ) || ( c2 & invColor ) )
@@ -101,7 +103,7 @@ namespace Chromatron
 		//int dout=2*m_dir-arcdir;
 		dir = dc.getDir() - dir;
 
-		context.addLight( dc.getPos() ,light.getColor(),dir);
+		context.addEffectLight( dc.getPos() ,light.getColor(),dir);
 	}
 
 	template<>
@@ -110,7 +112,7 @@ namespace Chromatron
 		Dir dir = IncidentDir( dc, light );
 		if( dir == 0 || dir == 4 )
 		{
-			context.addLight( dc.getPos() , light.getColor(), light.getDir() );
+			context.addEffectLight( dc.getPos() , light.getColor(), light.getDir() );
 		}
 	}
 
@@ -125,9 +127,9 @@ namespace Chromatron
 		dir = dc.getDir() - dir;
 
 		//if ( dir != light.getDir().inverse() )
-		context.addLight( dc.getPos() , light.getColor(), dir );
+		context.addEffectLight( dc.getPos() , light.getColor(), dir );
 
-		context.addLight( dc.getPos() , light.getColor(), light.getDir() );
+		context.addEffectLight( dc.getPos() , light.getColor(), light.getDir() );
 	}
 
 	template<>
@@ -141,7 +143,7 @@ namespace Chromatron
 		//int dout=2*m_dir-arcdir+1;
 		dir = dc.getDir() - dir + Dir(1);
 
-		context.addLight( dc.getPos() , light.getColor(),dir);
+		context.addEffectLight( dc.getPos() , light.getColor(),dir);
 	}
 
 	template<>
@@ -159,17 +161,17 @@ namespace Chromatron
 		if( ( color & COLOR_R ) && outR[dir] != -1 )
 		{
 			Dir outDir = invDir + Dir( outR[dir] );
-			context.addLight( dc.getPos() , COLOR_R , outDir );
+			context.addEffectLight( dc.getPos() , COLOR_R , outDir );
 		}
 		if( ( color & COLOR_G ) && outG[dir] != -1 )
 		{
 			Dir outDir = invDir + Dir( outG[dir] );
-			context.addLight( dc.getPos() , COLOR_G , outDir );
+			context.addEffectLight( dc.getPos() , COLOR_G , outDir );
 		}
 		if( ( color & COLOR_B ) && outB[dir] != -1 )
 		{
 			Dir outDir = invDir + Dir( outB[dir] );
-			context.addLight( dc.getPos() , COLOR_B , outDir );
+			context.addEffectLight( dc.getPos() , COLOR_B , outDir );
 		}
 	}
 
@@ -184,7 +186,7 @@ namespace Chromatron
 		Color color = Color( light.getColor() & dc.getColor() );
 		if (  color )
 		{
-			context.addLight( dc.getPos() , color , light.getDir() );
+			context.addEffectLight( dc.getPos() , color , light.getDir() );
 		}
 	}
 
@@ -196,10 +198,10 @@ namespace Chromatron
 		if ( dir != 0 && dir != 4 )
 			return;
 
-		Color color =light.getColor();
-		Color outColor = DopplerColor( color , dir == Dir(0) );
+		Color color = light.getColor();
+		Color outColor = DopplerColor( color , dir == Dir::ValueChecked(0) );
 
-		context.addLight( dc.getPos() , outColor,light.getDir() );
+		context.addEffectLight( dc.getPos() , outColor,light.getDir() );
 	}
 
 	class QTangterEffectSolver : public LightSyncProcessor
@@ -217,38 +219,40 @@ namespace Chromatron
 
 			bool keep = true;
 			if ( keep && ( color & COLOR_R ) )
-				keep = solveColor( pos , light.getDir() , COLOR_R );
+				keep = solveSingleColor( pos , light.getDir() , COLOR_R );
 			if ( keep && ( color & COLOR_G ) )
-				keep = solveColor( pos , light.getDir() , COLOR_G );
+				keep = solveSingleColor( pos , light.getDir() , COLOR_G );
 			if ( keep && ( color & COLOR_B ) )
-				keep = solveColor( pos , light.getDir() , COLOR_B );
+				keep = solveSingleColor( pos , light.getDir() , COLOR_B );
 		}
 
-		bool solveColor( Vec2i const& pos , Dir const& dir , Color color )
+		bool solveSingleColor( Vec2i const& pos , Dir const& dir , Color color )
 		{
-			if ( mContext.getTile( pos ).getReceivedLightColor( dir.inverse() ) & color )
-				return true;
+			assert( BitUtility::CountSet((uint8)color) == 1 );
 
-			mTransmitLights.clear();
-			mCheckLights.clear();
+			if ( !( mContext.getTile( pos ).getReceivedLightColor( dir.inverse() ) & color ) )
+			{
+				mTransmitLights.clear();
+				mCheckLights.clear();
 
-			mTransmitLights.push_back( LightTrace( pos , color , dir + Dir::ValueNoCheck(2) , QStatsUp ) );
-			mTransmitLights.push_back( LightTrace( pos , color , dir - Dir::ValueNoCheck(2) , QStatsDown ) );
+				mTransmitLights.push_back(LightTrace(pos, color, dir + Dir::ValueChecked(2), QStatsUp));
+				mTransmitLights.push_back(LightTrace(pos, color, dir - Dir::ValueChecked(2), QStatsDown));
 
-			if ( mContext.transmitLightSync( *this , mTransmitLights ) != TSS_OK )
-				return false;
+				if( mContext.transmitLightSync(*this, mTransmitLights) != TSS_OK )
+					return false;
+			}
 
 			return true;
 		}
 
-		virtual bool prevEffectDevice( Device& dc  , LightTrace const& light , int pass )
+		virtual bool prevEffectDevice( Device& dc  , LightTrace const& light , int passStep )
 		{
 			bool result = true;
 
 			switch( dc.getId() )
 			{
 			case DC_DOPPLER:
-				if ( pass == 1 )
+				if ( passStep == 1 )
 				{
 					Dir dir = DeviceFun::IncidentDir( dc , light );
 					if ( dir == 0 || dir == 4 )
@@ -266,7 +270,7 @@ namespace Chromatron
 
 			if ( result )
 			{
-				if ( dc.getFlag() & DFB_REMOVE_QE )
+				if ( dc.getFlag() & DFB_REMOVE_QSTATS )
 				{
 					mContext.setSyncMode( false );
 					mContext.setLightParam( 0 );
@@ -283,22 +287,21 @@ namespace Chromatron
 
 		bool prevAddLight( Vec2i const& pos , Color color , Dir dir , int param , int age )
 		{
-			if ( param == 0 )
+			if ( param != QStatsUp && param != QStatsDown )
 			{
-				for ( LightList::iterator iter = mCheckLights.begin();
-					iter != mCheckLights.end() ; ++iter )
+				for( LightTrace const& light : mCheckLightsNotQStats )
 				{
-					if ( iter->getStartPos() == pos &&
-						iter->getColor()    == color &&
-						iter->getDir()      == dir &&
-						iter->getParam()    == param )
+					if( light.getStartPos() == pos &&
+					    light.getColor() == color &&
+					    light.getDir() == dir &&
+					    light.getParam() == param )
 					{
 						return false;
-					}
+					}	
 				}
 
 				LightTrace light( pos , color , dir , param );
-				mCheckLights.push_back( light );
+				mCheckLightsNotQStats.push_back( light );
 				return true;
 			}
 
@@ -306,11 +309,8 @@ namespace Chromatron
 			bool haveFound = false;
 			bool haveAnti  = false;
 
-			LightList&  lightList = mTransmitLights;
-			for( LightList::iterator iter = lightList.begin();
-				iter != lightList.end();++iter )
+			for( LightTrace const& light : mTransmitLights )
 			{
-				LightTrace const& light = *iter;
 				if ( light.getParam() == paramAnti )
 				{
 					haveAnti = true;
@@ -318,20 +318,18 @@ namespace Chromatron
 				}
 			}
 
-			for ( LightList::iterator iter = mCheckLights.begin();
-				iter != mCheckLights.end() ; ++iter )
+			for( LightTrace const& light : mCheckLights )
 			{
-				LightTrace const& light = *iter;
-
 				if ( light.getStartPos() == pos &&
-					light.getColor()    == color &&
-					light.getDir()      == dir &&
-					light.getParam()    == param )
+					 light.getColor()    == color &&
+					 light.getDir()      == dir &&
+					 light.getParam()    == param )
 				{
 					haveFound = true;
 					break;
 				}
 			}
+
 			int const MaxTransmitLightAge = 500;
 
 			if ( haveFound )
@@ -363,9 +361,7 @@ namespace Chromatron
 		WorldUpdateContext& mContext;
 		LightList  mTransmitLights;
 		LightList  mCheckLights;
-		Vec2i      mPos;
-		Dir        mDir;
-		Color      mColor;
+		LightList  mCheckLightsNotQStats;
 	};
 
 	template<>
@@ -419,7 +415,7 @@ namespace Chromatron
 
 			if ( pDC->getId() == DC_TELEPORTER )
 			{
-				context.addLight( pDC->getPos() , light.getColor(), dir );
+				context.addEffectLight( pDC->getPos() , light.getColor(), dir );
 				return;
 			}
 		}
@@ -434,7 +430,7 @@ namespace Chromatron
 
 		Color color = Color( light.getColor() & filterColor[select] );
 		if (color) 
-			context.addLight( dc.getPos() ,  color, light.getDir());
+			context.addEffectLight( dc.getPos() ,  color, light.getDir());
 
 	}
 
@@ -444,7 +440,7 @@ namespace Chromatron
 		Dir turnDir = ( dc.getFlag() & DFB_CLOCKWISE ) ?Dir(-2):Dir(2);
 		Dir outDir(light.getDir() + turnDir);
 
-		context.addLight( dc.getPos() , light.getColor(), outDir );
+		context.addEffectLight( dc.getPos() , light.getColor(), outDir );
 	}
 
 	template<>
@@ -455,14 +451,14 @@ namespace Chromatron
 			return;
 
 		dir = dc.getDir() - dir;
-		context.addLight( dc.getPos() , light.getColor(), dir );
+		context.addEffectLight( dc.getPos() , light.getColor(), dir );
 	}
 
 	template<>
 	void DeviceFun::Effect< DC_STARBURST >( Device& dc , WorldUpdateContext& context , LightTrace const& light )
 	{
 		for(int i= (light.getDir()+1)%2 ; i < NumDir ; i+=2 )
-			context.addLight( dc.getPos() , light.getColor(), Dir::ValueNoCheck( i ) );
+			context.addEffectLight( dc.getPos() , light.getColor(), Dir::ValueChecked( i ) );
 	}
 
 	template<>
@@ -475,14 +471,14 @@ namespace Chromatron
 
 		Tile& tile = context.getTile( dc.getPos() );
 
-		Color color = complementary( tile.getReceivedLightColor( light.getDir().inverse() ) );
+		Color color = Complementary( tile.getReceivedLightColor( light.getDir().inverse() ) );
 
 		Color prevColor = tile.getEmittedLightColor( light.getDir() );
 		if ( color != prevColor )
 		{
 			if ( !prevColor )
 			{
-				context.addLight( dc.getPos() , color, light.getDir() );
+				context.addEffectLight( dc.getPos() , color, light.getDir() );
 				//dc.removeFlagBit( FB_BLOCK_EFFECT );
 			}
 			else if ( dc.getFlag() & DFB_LAZY_EFFECT )
@@ -507,7 +503,7 @@ namespace Chromatron
 		Dir dir = IncidentDir( dc, light );
 		//int dout=2*m_dir-arcdir+1;
 		dir = dc.getDir() - dir + Dir(1);
-		context.addLight( dc.getPos() , light.getColor() , dir );
+		context.addEffectLight( dc.getPos() , light.getColor() , dir );
 	}
 
 	template<>
@@ -525,7 +521,7 @@ namespace Chromatron
 		Color color = Color( colorT & colorD );
 		if ( color )
 		{
-			context.addLight( dc.getPos() , color , dc.getDir().inverse() );
+			context.addEffectLight( dc.getPos() , color , dc.getDir().inverse() );
 		}
 	}
 
@@ -544,7 +540,7 @@ namespace Chromatron
 		Color color = Color( colorT & colorD );
 		if ( color == COLOR_R || color == COLOR_G || color == COLOR_B )
 		{
-			context.addLight( dc.getPos() , color , dc.getDir().inverse() );
+			context.addEffectLight( dc.getPos() , color , dc.getDir().inverse() );
 		}
 	}
 
@@ -563,7 +559,7 @@ namespace Chromatron
 		Color color = Color( colorT | colorD );
 		if ( color )
 		{
-			context.addLight( dc.getPos() , color , dc.getDir().inverse() );
+			context.addEffectLight( dc.getPos() , color , dc.getDir().inverse() );
 		}
 	}
 
@@ -585,17 +581,17 @@ namespace Chromatron
 		DC_INFO( DC_PRISM        , DFB_DRAW_FRIST )
 		DC_INFO( DC_FILTER       , DFB_USE_LOCKED_COLOR )
 		DC_INFO( DC_DOPPLER      , 0 )
-		DC_INFO( DC_QTANGLER     , DFB_REMOVE_QE )
+		DC_INFO( DC_QTANGLER     , DFB_REMOVE_QSTATS )
 		DC_INFO( DC_TELEPORTER   , DFB_UNROTATABLE )
 		DC_INFO( DC_MULTIFILTER  , 0 )
 		DC_INFO( DC_DUALREFLECTOR, DFB_DRAW_FRIST )
 		DC_INFO( DC_CONDUITS     , DFB_STATIC | DFB_DRAW_FRIST )
-		DC_INFO( DC_STARBURST    , DFB_REMOVE_QE | DFB_UNROTATABLE )
-		DC_INFO( DC_COMPLEMENTOR , DFB_REMOVE_QE )
+		DC_INFO( DC_STARBURST    , DFB_REMOVE_QSTATS | DFB_UNROTATABLE )
+		DC_INFO( DC_COMPLEMENTOR , DFB_REMOVE_QSTATS )
 		DC_INFO( DC_QUADBENDER   , DFB_DRAW_FRIST )
-		DC_INFO( DC_LOGICGATE_AND , DFB_REMOVE_QE )
-		DC_INFO( DC_LOGICGATE_AND_PRIMARY , DFB_REMOVE_QE )
-		DC_INFO( DC_LOGICGATE_OR  , DFB_REMOVE_QE )
+		DC_INFO( DC_LOGICGATE_AND , DFB_REMOVE_QSTATS )
+		DC_INFO( DC_LOGICGATE_AND_PRIMARY , DFB_REMOVE_QSTATS )
+		DC_INFO( DC_LOGICGATE_OR  , DFB_REMOVE_QSTATS )
 		DC_INFO( DC_QUANROTATOR   , 0 )
 	END_DC_INFO()
 

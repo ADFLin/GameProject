@@ -59,14 +59,24 @@ namespace CAR
 			float fValue;
 		};
 		Param params[ MaxParamNum ];
+
+		int getSendSize() const 
+		{
+			return sizeof(*this) - (MaxParamNum - numParam) * sizeof(Param);
+		}
 	};
 
-	enum
-	{
-		DATA2ID( SkipCom ) ,
-		DATA2ID( ActionCom ) ,
-	};
 
+#define DATA_LIST( op )\
+	op(SkipCom)\
+	op(ActionCom)
+
+#define COMMAND_LIST(op)
+
+	DEFINE_DATA2ID( DATA_LIST , COMMAND_LIST)
+
+#undef DATA_LIST
+#undef COMMAND_LIST
 
 
 	class CGameInput : public IGameInput
@@ -111,7 +121,7 @@ namespace CAR
 		void replyAction( ActionCom& com );
 		void applyAction( ActionCom& com );
 		void onRecvCommon( int slot , int dataId , void* data , int dataSize );
-		void doActionCom( ActionCom const& com );
+		bool executeActionCom( ActionCom const& com );
 		void doSkip();
 	public:
 

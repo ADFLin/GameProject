@@ -399,11 +399,11 @@ namespace Poker { namespace Holdem {
 		return makePower( CG_HIGH_HAND , power[0] , power[1] , power[2] , power[3] , power[4] );
 	}
 
-	static int nextPos( int pos )
+	static int NextPos( int pos )
 	{
 		return ( pos == MaxPlayerNum - 1 ) ? 0 : pos + 1;
 	}
-	static int prevPos( int pos )
+	static int PrevPos( int pos )
 	{
 		return ( pos == 0 ) ? MaxPlayerNum - 1 : pos - 1;
 	}
@@ -429,24 +429,30 @@ namespace Poker { namespace Holdem {
 
 	struct SDGameInfo
 	{
-		static int const BaseSize;
 		Rule       rule;
 		int        numPlayer;
 		SDSlotInfo info[ MaxPlayerNum ];
+
+		int getSendSize() const
+		{
+			return sizeof(*this) + ( numPlayer - MaxPlayerNum ) * sizeof(SDSlotInfo);
+		}
 	};
-	int const SDGameInfo::BaseSize = sizeof( SDGameInfo ) - sizeof( SDSlotInfo ) * MaxPlayerNum;
 
 	struct SDShowPocketCard
 	{
-		static int const BaseSize;
 		int  numPlayer;
 		struct
 		{
 			char pos;
 			char cards[2];
 		} pocketCardInfos[ MaxPlayerNum ];
+
+		int getSendSize() const
+		{
+			return sizeof(*this) + ( numPlayer - MaxPlayerNum ) * sizeof(SDShowPocketCard::pocketCardInfos[0]);
+		}
 	};
-	int const SDShowPocketCard::BaseSize = sizeof(SDGameInfo) - sizeof( SDShowPocketCard::pocketCardInfos[0] ) * MaxPlayerNum;
 
 	struct SDRoundInit
 	{
@@ -468,8 +474,12 @@ namespace Poker { namespace Holdem {
 		static int const BaseSize;
 		char numSlotTrick;
 		SlotTrickInfo info[ MaxPlayerNum ];
+
+		int getSendSize() const
+		{
+			return sizeof(*this) + ( numSlotTrick - MaxPlayerNum ) * sizeof(SlotTrickInfo);
+		}
 	};
-	int const SDTrickResult::BaseSize = sizeof( SDTrickResult ) - sizeof( SlotTrickInfo ) * MaxPlayerNum;
 
 	struct SDWinnerInfo
 	{
@@ -483,20 +493,25 @@ namespace Poker { namespace Holdem {
 		char         numPot;
 		char         numWinner[ MaxPlayerNum ];
 		SDWinnerInfo info[ MaxPlayerNum * MaxPlayerNum ];
+
 	};
 	int const SDWinnerResult::BaseSize = sizeof( SDWinnerResult ) - sizeof( SDWinnerInfo ) * MaxPlayerNum * MaxPlayerNum;
 
-	enum
-	{
-		DATA2ID( SDGameInfo ) ,
-		DATA2ID( SDRoundInit ) ,
-		DATA2ID( SDBetCall ) ,
-		DATA2ID( SCDBetInfo ),
-		DATA2ID( SDNextStep ) ,
-		DATA2ID( SDTrickResult ) ,
-		DATA2ID( SDWinnerResult ) ,
-		DATA2ID( SDShowPocketCard ) ,
-	};
+#define DATA_LIST( op )\
+		op(SDGameInfo)\
+	    op(SDRoundInit)\
+		op(SDBetCall)\
+		op(SCDBetInfo)\
+		op(SDNextStep)\
+		op(SDTrickResult)\
+		op(SDWinnerResult)\
+		op(SDShowPocketCard)
+
+#define COMMON_LIST(op)
+
+	DEFINE_DATA2ID( DATA_LIST , COMMON_LIST)
+
+#undef DATA_LIST
 
 	LevelBase::LevelBase()
 	{
@@ -619,7 +634,7 @@ namespace Poker { namespace Holdem {
 	{
 		do 
 		{ 
-			pos = nextPos( pos );
+			pos = NextPos( pos );
 		}
 		while ( getSlotInfo( pos ).state != SLOT_PLAY );
 		return pos;
@@ -629,7 +644,7 @@ namespace Poker { namespace Holdem {
 	{
 		do 
 		{ 
-			pos = prevPos( pos );
+			pos = PrevPos( pos );
 		}
 		while ( getSlotInfo( pos ).state != SLOT_PLAY );
 		return pos;
@@ -749,8 +764,8 @@ namespace Poker { namespace Holdem {
 			++data.numPlayer;
 		}
 
-		getTransfer()->sendData(SLOT_SERVER, DATA2ID(SDShowPocketCard), &data, 
-			SDShowPocketCard::BaseSize + data.numPlayer * sizeof(SDShowPocketCard::pocketCardInfos[0]));
+		TRANSFER_SEND( getTransfer(), SLOT_SERVER , data );
+
 	}
 
 	void ServerLevel::shuffle(IRandom& random)
@@ -812,8 +827,7 @@ namespace Poker { namespace Holdem {
 			}
 		}
 		data.numPlayer = num;
-		getTransfer()->sendData( SLOT_SERVER , DATA2ID( SDGameInfo ) , &data , 
-			SDGameInfo::BaseSize + num * sizeof( SDSlotInfo ) );
+		TRANSFER_SEND( getTransfer() , SLOT_SERVER , data );
 	}
 
 	ServerLevel::ServerLevel()
@@ -877,7 +891,7 @@ namespace Poker { namespace Holdem {
 
 		for ( int i = 0 ; i < MaxPlayerNum ; ++i )
 		{
-			posButton = nextPos( posButton );
+			posButton = NextPos( posButton );
 			SlotInfo& info = getSlotInfo( posButton );
 
 			if ( getSlotInfo( posButton ).state == SLOT_PLAY )
@@ -984,14 +998,14 @@ namespace Poker { namespace Holdem {
 						data.pocketCard[n] = -1;
 					}
 				}
-				getTransfer()->sendData(i, DATA2ID(SDRoundInit), data);
+				TRANSFER_SEND( getTransfer() , i, data);
 			}
 		}
 
 		{
 			SDBetCall data;
 			data.pos = mPosCurBet;
-			getTransfer()->sendData( SLOT_SERVER , DATA2ID( SDBetCall ) , data );
+			TRANSFER_SEND( getTransfer() , SLOT_SERVER , data );
 		}
 	}
 
@@ -1061,8 +1075,7 @@ namespace Poker { namespace Holdem {
 			data.type  = type;
 			data.step  = mBetStep;
 			data.money = betMoney;
-
-			getTransfer()->sendData( SLOT_SERVER , DATA2ID( SCDBetInfo ) , data );
+			TRANSFER_SEND( getTransfer(), SLOT_SERVER, data);
 		}
 		
 		if ( mNumBet == 1 )
@@ -1100,8 +1113,7 @@ namespace Poker { namespace Holdem {
 
 
 			doWinMoney( posWin , totalMoney );
-			getTransfer()->sendData( SLOT_SERVER , DATA2ID( SDWinnerResult ) , &data , 
-				SDWinnerResult::BaseSize + 1 * sizeof( SDWinnerInfo ) );
+			TRANSFER_SEND_SIZE( getTransfer() , SLOT_SERVER , data , SDWinnerResult::BaseSize + 1 * sizeof( SDWinnerInfo ) );
 
 			doRoundEnd();
 			if( mListener )
@@ -1136,7 +1148,7 @@ namespace Poker { namespace Holdem {
 			mPosCurBet = pos;
 			SDBetCall data;
 			data.pos = pos;
-			getTransfer()->sendData( SLOT_SERVER , DATA2ID( SDBetCall ) , data );
+			TRANSFER_SEND( getTransfer(), SLOT_SERVER , data );
 		}
 	}
 
@@ -1175,7 +1187,7 @@ namespace Poker { namespace Holdem {
 		mNumCall      = 0;
 		mPosLastBet   = -1;
 		doNextStep( step , data.card );
-		getTransfer()->sendData( SLOT_SERVER , DATA2ID( SDNextStep ) , data );
+		TRANSFER_SEND( getTransfer() ,SLOT_SERVER , data );
 
 		if ( mNumBet - mNumFinishBet > 1 )
 		{
@@ -1190,7 +1202,7 @@ namespace Poker { namespace Holdem {
 
 			SDBetCall data;
 			data.pos = mPosCurBet;
-			getTransfer()->sendData( SLOT_SERVER , DATA2ID( SDBetCall ) , data );
+			TRANSFER_SEND( getTransfer() ,  SLOT_SERVER , data );
 		}
 	}
 
@@ -1288,8 +1300,7 @@ namespace Poker { namespace Holdem {
 		}
 
 		trickResult.numSlotTrick = numTrick;
-		getTransfer()->sendData( SLOT_SERVER , DATA2ID( SDTrickResult ) ,  &trickResult , 
-			SDTrickResult::BaseSize + numTrick * sizeof( SlotTrickInfo ) );
+		TRANSFER_SEND( getTransfer() , SLOT_SERVER , trickResult );
 
 		std::sort( powerSorted , powerSorted + numPlayer , 
 			[](CardTrickInfo* i1, CardTrickInfo* i2)
@@ -1416,7 +1427,7 @@ namespace Poker { namespace Holdem {
 			for( int i = betOrderLast + 1 ; i < MaxPlayerNum ; ++i )
 				data.numWinner[ i ] = 0;
 			data.numPot = betOrderLast + 1;
-			getTransfer()->sendData( SLOT_SERVER , DATA2ID( SDWinnerResult ) , &data ,
+		 getTransfer().sendData( SLOT_SERVER , DATA2ID( SDWinnerResult ) , &data ,
 				SDWinnerResult::BaseSize + countInfo * sizeof( SDWinnerInfo ) );
 		}
 		else
@@ -1460,7 +1471,7 @@ namespace Poker { namespace Holdem {
 				doWinMoney( pos[i] , winMoney[i] );
 			}
 
-			getTransfer()->sendData( SLOT_SERVER , DATA2ID( SDWinnerResult ) , &data ,
+			getTransfer().sendData( SLOT_SERVER , DATA2ID( SDWinnerResult ) , &data ,
 				SDWinnerResult::BaseSize + numWinner * sizeof( SDWinnerInfo ) );
 		}
 	}
@@ -1674,7 +1685,7 @@ namespace Poker { namespace Holdem {
 			data.money = getMaxBetMoney() + money;
 			break;
 		}
-		getTransfer()->sendData( SLOT_SERVER , DATA2ID( SCDBetInfo ) , data );
+		TRANSFER_SEND( getTransfer() , SLOT_SERVER ,  data );
 	}
 
 }//namespace Holdem

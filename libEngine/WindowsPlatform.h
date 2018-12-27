@@ -201,7 +201,6 @@ bool WinFrameT<T>::setFullScreen( unsigned bits )
 template< class T >
 LRESULT CALLBACK WinFrameT<T>::DefaultProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam )
 {
-	HDC hDC;
 	switch (message)                  /* handle the messages */
 	{
 	case WM_DESTROY:

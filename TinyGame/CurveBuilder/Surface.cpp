@@ -1,7 +1,7 @@
 #include "Surface.h"
 
 #include "FunctionParser.h"
-#include "ShapeMaker.h"
+#include "ShapeMeshBuilder.h"
 #include "ShapeFun.h"
 
 #include <cassert>
@@ -12,7 +12,7 @@ namespace CB
 	ShapeBase::ShapeBase()
 		:mShapeFun(NULL)
 		, mbVisible(true)
-		, mUpdateBit(RUB_ALL_UPDATE_BIT)
+		, mUpdateBit(RUF_ALL_UPDATE_BIT)
 		, mColor(Color4f(1, 0, 0, 0.5f))
 		, mRenderData()
 	{
@@ -25,7 +25,7 @@ namespace CB
 		, mRenderData()
 	{
 		mShapeFun = rhs.mShapeFun->clone();
-		mUpdateBit = RUB_ALL_UPDATE_BIT;
+		mUpdateBit = RUF_ALL_UPDATE_BIT;
 	}
 
 	ShapeBase::~ShapeBase()
@@ -46,24 +46,15 @@ namespace CB
 		addUpdateBit(RUF_COLOR);
 	}
 
-	bool ShapeBase::update(ShapeMaker& surfaceMaker)
+	bool ShapeBase::update(ShapeMeshBuilder& builder)
 	{
 		if( mUpdateBit & RUF_FUNCTION )
 		{
 			mUpdateBit &= ~RUF_FUNCTION;
-
 			if( !getFunction()->isParsed() )
 			{
-#if USE_PARALLEL_UPDATE
-				{
-					TLockedObject< FunctionParser > parserLocked = surfaceMaker.lockParser();
-					if( !parseFunction(*parserLocked) )
-						return false;
-				}
-#else
-				if( !parseFunction(surfaceMaker.getParser()) )
+				if( !builder.parseFunction(*getFunction()) )
 					return false;
-#endif
 				mUpdateBit |= RUF_GEOM;
 			}
 		}
@@ -85,17 +76,13 @@ namespace CB
 			info.fun   = getFunction();
 
 			mUpdateBit = 0;
-			updateRenderData(info, surfaceMaker);
+			updateRenderData(info, builder);
 
 			return true;
 		}
 		return false;
 	}
 
-	bool ShapeBase::parseFunction(FunctionParser& parser)
-	{
-		return  getFunction()->parseExpression(parser);
-	}
 
 	Surface3D::Surface3D()
 		:ShapeBase()
@@ -120,9 +107,7 @@ namespace CB
 		, mParamV(rhs.mParamV)
 		, mCurType(rhs.mCurType)
 	{
-
 		setDataSampleNum(mParamU.numData, mParamV.numData);
-
 	}
 
 	Surface3D::~Surface3D()
@@ -153,9 +138,9 @@ namespace CB
 	}
 
 
-	void Surface3D::updateRenderData(ShapeUpdateInfo& info, ShapeMaker& maker)
+	void Surface3D::updateRenderData(ShapeUpdateInfo& info, ShapeMeshBuilder& builder)
 	{
-		maker.updateSurfaceData(info, mParamU, mParamV);
+		builder.updateSurfaceData(info, mParamU, mParamV);
 	}
 
 
@@ -211,9 +196,9 @@ namespace CB
 		return curve;
 	}
 
-	void Curve3D::updateRenderData(ShapeUpdateInfo& info, ShapeMaker& maker)
+	void Curve3D::updateRenderData(ShapeUpdateInfo& info, ShapeMeshBuilder& builder)
 	{
-		maker.updateCurveData(info, mParamS);
+		builder.updateCurveData(info, mParamS);
 	}
 
 

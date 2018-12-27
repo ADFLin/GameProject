@@ -52,19 +52,9 @@ namespace Poker
 	void StackCell::moveCard(StackCell& to, int num)
 	{
 		assert( num <= getCardNum() );
-
-		for(iterator iter = mCards.end() - num; 
-			iter != mCards.end() ; ++iter )
-		{	
-			to.push(*iter);	
-		}
-		deleteCard(num);
-	}
-
-	void StackCell::deleteCard( int num )
-	{
-		assert( num <= getCardNum() );
-		mCards.erase( mCards.end() - num , mCards.end() );
+		auto from = mCards.end() - num;
+		to.mCards.insert(to.mCards.end(), from, mCards.end());
+		mCards.erase(from, mCards.end());
 	}
 
 	bool StackCell::testRule(Card const& card)
@@ -262,7 +252,9 @@ namespace Poker
 	}
 
 
-	Cell* FreeCellLevel::findEmptyCell( int index ,int num )
+
+
+	Cell* FreeCellLevel::findEmptyCell(int index, int num)
 	{
 		int to = index + num;
 		for(int i = index ; i < to ; ++i )
@@ -288,38 +280,42 @@ namespace Poker
 		return NULL;
 	}
 
-	bool FreeCellLevel::moveToGoalCellAuto()
+	void FreeCellLevel::getMinGoalCardRank(int& blackRank, int& redRank)
 	{
-		int rank[4]={0,0,0,0};
-		for( int i = 0; i < 4 ; ++i )
+		int rank[4] = { 0,0,0,0 };
+		for( int i = 0; i < 4; ++i )
 		{
 			GoalCell& cell = mGCells[i];
-			if ( !cell.isEmpty() )
+			if( !cell.isEmpty() )
 			{
 				Card const& card = cell.getCard();
 				rank[card.getSuit()] = card.getFaceRank();
 			}
 		}
+		blackRank = std::min(rank[Card::eCLUBS], rank[Card::eSPADES]);
+		redRank = std::min(rank[Card::eHEARTS], rank[Card::eDIAMONDS]);
+	}
 
-		int blackRank = std::min( rank[ Card::eCLUBS ] , rank[ Card::eSPADES ] );
-		int redRank   = std::min( rank[ Card::eHEARTS ] , rank[ Card::eDIAMONDS ] );
-
+	bool FreeCellLevel::moveToGoalCellAuto()
+	{
+		int blackRank , redRank;
+		getMinGoalCardRank(blackRank, redRank);
 		for (int i = 0; i < SCellNum ; ++i )
 		{
-			if ( moveToGoalCellAuto( mSCells[i] , blackRank , redRank  ) )
+			if ( tryMoveToGoalCellInternal( mSCells[i] , blackRank , redRank  ) )
 				return true;
 		}
 
 		for (int i = 0; i < FCellNum ; ++i )
 		{
-			if ( moveToGoalCellAuto( mFCells[i] , blackRank , redRank  ) )
+			if ( tryMoveToGoalCellInternal( mFCells[i] , blackRank , redRank  ) )
 				return true;
 		}
 
 		return false;
 	}
 
-	bool FreeCellLevel::moveToGoalCellAuto( Cell& cell , int blackRank , int redRank )
+	bool FreeCellLevel::tryMoveToGoalCellInternal( Cell& cell , int blackRank , int redRank )
 	{
 		if ( cell.isEmpty() ) 
 			return false;
@@ -410,7 +406,18 @@ namespace Poker
 		return processMoveCard( mc , *cell , 1 );
 	}
 
-	bool FreeCellLevel::tryMoveCard( Cell& from , Cell& to )
+	bool FreeCellLevel::tryMoveToGoalCell( StackCell& mc )
+	{
+		if( mc.isEmpty() )
+			return false;
+
+		int blackRank, redRank;
+		getMinGoalCardRank(blackRank, redRank);
+
+		return tryMoveToGoalCellInternal( mc , blackRank, redRank);
+	}
+
+	bool FreeCellLevel::tryMoveCard(Cell& from, Cell& to)
 	{
 		if ( from.isEmpty() ) 
 			return false;
@@ -495,7 +502,7 @@ namespace Poker
 		int result = 0;
 		for( int i = SCellIndex ; i < SCellIndex + SCellNum ; ++i )
 		{
-			Cell& testCell = getCell( i );
+			StackCell& testCell = getCellT<StackCell>( i );
 			if ( testCell.isEmpty() )
 				continue;
 
@@ -507,7 +514,7 @@ namespace Poker
 		}
 		for( int i = FCellIndex ; i < FCellIndex + FCellNum ; ++i )
 		{
-			Cell& testCell = getCell( i );
+			FreeCell& testCell = getCellT<FreeCell>( i );
 			if ( testCell.isEmpty() )
 				continue;
 

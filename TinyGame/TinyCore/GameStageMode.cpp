@@ -36,7 +36,7 @@ void GameStageMode::restartImpl(bool bInit)
 {
 	uint64 seed;
 	onRestart(seed);
-	mCurStage->onRestart(seed, bInit);
+	mCurStage->onRestart(bInit);
 	mReplayFrame = 0;
 	changeState(GS_START);
 }

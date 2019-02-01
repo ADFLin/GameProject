@@ -27,7 +27,7 @@ public:
 	template< class T >
 	static T MakeStringHash(char const* pStr, T offsetBias = Table<T>::OffsetBias )
 	{
-		uint32 result = offsetBias;
+		T result = offsetBias;
 		while( *pStr )
 		{
 			result ^= uint8(*pStr);
@@ -40,7 +40,7 @@ public:
 	template< class T >
 	static T MakeHash(uint8 const* pValue, int num , T offsetBias = Table<T>::OffsetBias )
 	{
-		uint32 result = offsetBias;
+		T result = offsetBias;
 		for( ; num ; --num )
 		{
 			result ^= uint8(*pValue);

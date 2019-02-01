@@ -16,6 +16,9 @@
 #include "RHI/GpuProfiler.h"
 #include "RHI/ShaderCompiler.h"
 
+#define MATCH_RESULT_PATH "Go/MatchResult.data"
+
+
 REGISTER_STAGE("LeelaZero Learning", Go::LeelaZeroGoStage, EStageGroup::Test);
 
 #define DERAULT_LEELA_WEIGHT_NAME "6615567eaa3adc8ea695682fcfbd7eaa3bb557d3720d2b61610b66006104050e"
@@ -159,6 +162,7 @@ namespace Go
 
 		mGame.setup(19);
 
+		mMatchResultMap.load(MATCH_RESULT_PATH);
 #if 1
 		if( !buildLearningMode() )
 			return false;
@@ -676,10 +680,12 @@ namespace Go
 			if( mMatchData.bAutoRun )
 			{
 				int y = 20;
+				int totalMatchNum = mMatchData.players[0].winCount + mMatchData.players[1].winCount;
 				for( int i = 0; i < 2; ++i )
 				{
 					auto const& player = mMatchData.players[i];
-					str.format("%s (%s) = %d" , player.getName().c_str() , mMatchData.getPlayerColor(i) == StoneColor::eBlack ? "B" : "W" ,  player.winCount );
+					float winRate = totalMatchNum ? ( 100.f * float( player.winCount ) /  totalMatchNum ) : 0;
+					str.format("%s (%s) = %d ( %.1f %% , History = %d )" , player.getName().c_str() , mMatchData.getPlayerColor(i) == StoneColor::eBlack ? "B" : "W" ,  player.winCount , winRate , mMatchData.historyWinCounts[i] );
 					g.drawText(200, y , str);
 					y += 15;
 				}
@@ -1139,6 +1145,18 @@ namespace Go
 		mGameMode = GameMode::Match;
 
 		unknownWinerCount = 0;
+		bool bSwap;
+		auto matchResultData = mMatchResultMap.getMatchResult(mMatchData.players, setting , bSwap );
+		if( matchResultData )
+		{
+			mMatchData.historyWinCounts[0] = matchResultData->winCounts[bSwap ? 1 : 0];
+			mMatchData.historyWinCounts[1] = matchResultData->winCounts[bSwap ? 0 : 1];
+		}
+		else
+		{
+			mMatchData.historyWinCounts[0] = 0;
+			mMatchData.historyWinCounts[1] = 0;
+		}
 
 		bool haveBot = mMatchData.players[0].type != ControllerType::ePlayer ||
 			           mMatchData.players[1].type != ControllerType::ePlayer;
@@ -1191,6 +1209,7 @@ namespace Go
 		return true;
 	}
 
+
 	void LeelaZeroGoStage::cleanupModeData(bool bEndStage)
 	{
 		if( mGamePlayWidget )
@@ -1208,6 +1227,10 @@ namespace Go
 			mLeelaAIRun.stop();
 			break;
 		case GameMode::Match:
+			{
+				mMatchResultMap.addMatchResult(mMatchData.players, mGame.getSetting());
+				mMatchResultMap.save(MATCH_RESULT_PATH);
+			}
 			mMatchData.cleanup();
 			break;
 		}
@@ -1763,6 +1786,10 @@ namespace Go
 		winCount = 0;
 
 		bot.release();
+
+		paramString = GetParamString(inType, botSetting);
+		paramKey.setValue(paramString);
+
 		switch( type )
 		{
 		case ControllerType::ePlayer:
@@ -1793,6 +1820,33 @@ namespace Go
 			return false;
 		}
 		return true;
+	}
+
+	std::string MatchPlayer::GetParamString(ControllerType inType, void* botSetting)
+	{
+		std::string paramString = GetControllerName(inType);
+		switch( inType )
+		{
+		case ControllerType::ePlayer:
+			break;
+		case ControllerType::eLeelaZero:
+			{
+				auto mySetting = static_cast<LeelaAISetting*>(botSetting);
+				paramString += " ";
+				paramString += mySetting->toParamString();
+			}
+			break;
+		case ControllerType::eAQ:
+			break;
+		case ControllerType::eZenV7:
+		case ControllerType::eZenV6:
+		case ControllerType::eZenV4:
+			break;
+		default:
+			NEVER_REACH("Error Controller Type");
+		}
+
+		return paramString;
 	}
 
 	void MatchSettingPanel::addBaseWidget()

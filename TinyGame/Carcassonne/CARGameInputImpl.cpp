@@ -10,12 +10,33 @@
 
 namespace CAR
 {
+
+#define CAR_REPLAY_MAGIC MAKE_MAGIC_ID('C','A','R','R')
+
+	struct ReplayHeader
+	{
+		uint32 magic;
+		uint32 version;
+		uint32 dataSize;
+	};
+
+	namespace ReplayVerion
+	{
+		enum
+		{
+			Init,
+
+			LastVersionPlusOne,
+			LastVersion = LastVersionPlusOne - 1,
+		};
+	}
+
 	union ActionHeader 
 	{
 		struct
 		{
-			uint8 id;
-			uint8 numParam;
+			uint8  id;
+			uint16 numParam : 5;
 			uint16 reply : 1;
 			uint16 skip  : 1;
 			uint16 noInput: 1;
@@ -120,7 +141,12 @@ namespace CAR
 					for( int i = 0 ; i < com.numParam ; ++i )
 						mRecordAction.take( com.params[i] );
 
-					executeActionCom( com );
+					if( ! executeActionCom(com) )
+					{
+						CAR_LOG("Record Buffer Error Format");
+						mRecordAction.setFillSize(lastUsePos);
+						mbReplayMode = false;
+					}
 				}
 				while( header.reply == false );
 			}
@@ -208,13 +234,19 @@ namespace CAR
 		if ( !fs.is_open() )
 			return false;
 
-		size_t size;
-		fs.read( (char*)&size , sizeof( size ) );
-		if ( size )
+		ReplayHeader header;
+		fs.read( (char*)&header, sizeof(header) );
+		if( !fs )
+			return false;
+
+		if( header.magic != CAR_REPLAY_MAGIC )
+			return false;
+
+		if ( header.dataSize )
 		{
-			mRecordAction.resize( size );
-			fs.read( mRecordAction.getData() , size );
-			mRecordAction.setFillSize( size );
+			mRecordAction.resize(header.dataSize);
+			fs.read( mRecordAction.getData() , header.dataSize );
+			mRecordAction.setFillSize(header.dataSize);
 		}
 
 		mbReplayMode = true;
@@ -227,9 +259,12 @@ namespace CAR
 		if ( !fs.is_open() )
 			return false;
 
-		size_t size = mRecordAction.getFillSize();
-		fs.write( (char const*)&size , sizeof( size ) );
-		if ( size )
+		ReplayHeader header;
+		header.magic = CAR_REPLAY_MAGIC;
+		header.version = ReplayVerion::LastVersion;
+		header.dataSize = mRecordAction.getFillSize();
+		fs.write((char const*) &header , sizeof(header));
+		if ( header.dataSize )
 		{
 			fs.write( mRecordAction.getData() , mRecordAction.getFillSize() );
 		}
@@ -259,7 +294,7 @@ namespace CAR
 		replyAction( com );
 	}
 
-	void CGameInput::replySelect(int index)
+	void CGameInput::replySelection(int index)
 	{
 		assert( mAction == ACTION_SELECT_ACTOR || 
 			mAction == ACTION_SELECT_MAPTILE ||
@@ -278,6 +313,14 @@ namespace CAR
 		if ( index != -1 )
 			com.addParam( index );
 		replyAction( com );
+	}
+
+	void CGameInput::replyActorType(ActorType type)
+	{
+		assert(mAction == ACTION_EXCHANGE_ACTOR_POS);
+		ActionCom com;
+		com.addParam((int)type);
+		replyAction(com);
 	}
 
 	void CGameInput::replyDoIt()
@@ -304,9 +347,9 @@ namespace CAR
 					return false;
 
 				GamePlaceTileData* myData = static_cast< GamePlaceTileData* >( mActionData );
-				myData->resultPos.x = com.params[0].iValue;
-				myData->resultPos.y = com.params[1].iValue;
-				myData->resultRotation = com.params[2].iValue;
+				myData->resultPos.x = com.getInt(0);
+				myData->resultPos.y = com.getInt(1);
+				myData->resultRotation = com.getInt(2);
 			}
 			break;
 		case ACTION_DEPLOY_ACTOR:
@@ -315,8 +358,8 @@ namespace CAR
 					return false;
 
 				GameDeployActorData* myData = static_cast< GameDeployActorData* >( mActionData );
-				myData->resultIndex = com.params[0].iValue;
-				myData->resultType  = (ActorType) com.params[1].iValue;
+				myData->resultIndex = com.getInt(0);
+				myData->resultType  = (ActorType) com.getInt(1);
 			}
 			break;
 		case ACTION_SELECT_ACTOR:
@@ -327,7 +370,7 @@ namespace CAR
 					return false;
 
 				GameSelectActionData* myData = static_cast< GameSelectActionData* >( mActionData );
-				myData->resultIndex = com.params[0].iValue;
+				myData->resultIndex = com.getInt(0);
 			}
 			break;
 		case ACTION_AUCTION_TILE:
@@ -337,11 +380,20 @@ namespace CAR
 				if ( com.numParam != ( myData->playerId == myData->pIdRound ? 2 : 1 ) )
 					return false;
 
-				myData->resultRiseScore = com.params[0].iValue;
+				myData->resultRiseScore = com.getInt(0);
 				if ( myData->playerId == myData->pIdRound )
 				{
-					myData->resultIndexTileSelect = com.params[1].iValue;
+					myData->resultIndexTileSelect = com.getInt(1);
 				}
+			}
+			break;
+		case ACTION_EXCHANGE_ACTOR_POS:
+			{
+				if( com.numParam != 1 )
+					return false;
+
+				GameExchangeActorPosData* myData = static_cast<GameExchangeActorPosData*>(mActionData);
+				myData->resultActorType = (ActorType)com.getInt(0);
 			}
 			break;
 		case ACTION_BUILD_CASTLE:
@@ -357,9 +409,9 @@ namespace CAR
 				if ( com.numParam != 3 )
 					return false;
 				Vec2i pos;
-				pos.x = com.params[0].iValue;
-				pos.y = com.params[1].iValue;
-				int dir = com.params[2].iValue;
+				pos.x = com.getInt(0);
+				pos.y = com.getInt(1);
+				int dir = com.getInt(2);
 
 				if ( mGameLogic->buildBridge( pos , dir ) == false )
 					return false;
@@ -370,11 +422,12 @@ namespace CAR
 				if ( com.numParam != 1 )
 					return false;
 
-				TileId id = (TileId)com.params[0].iValue;
+				TileId id = (TileId)com.getInt(0);
 				if ( mGameLogic->changePlaceTile( id ) == false )
 					return false;
 			}
 			break;
+
 		default:
 			return false;
 		}

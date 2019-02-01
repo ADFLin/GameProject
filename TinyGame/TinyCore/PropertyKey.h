@@ -41,6 +41,9 @@ private:
 		float floatValue;
 	};
 	mutable SaveValue mCacheGetValue;
+	friend class KeySection;
+	friend class PropertyKey;
+	int  mSequenceOrder = -1;
 	std::string mValue;
 };
 
@@ -51,10 +54,11 @@ public:
 	KeyValue* getKeyValue( char const* keyName );
 
 	template< class T >
-	bool     addKeyValue( char const* keyName , T value )
+	KeyValue* addKeyValue( char const* keyName , T value )
 	{
-		mKeyMap[ keyName ] = KeyValue( value );
-		return true;
+		auto& keyValue = mKeyMap[keyName];
+		keyValue = KeyValue(value);
+		return &keyValue;
 	}
 	void serializtion( std::ostream& os );
 protected:
@@ -67,6 +71,8 @@ protected:
 		}
 	};
 	typedef std::map< std::string , KeyValue > KeyValueMap;
+	friend class PropertyKey;
+	int  mSequenceOrder = -1;
 	KeyValueMap mKeyMap;
 };
 
@@ -74,6 +80,7 @@ protected:
 class  PropertyKey
 {
 public:
+	PropertyKey();
 	KeyValue*   getKeyValue( char const* keyName , char const* group );
 
 	char        getCharValue  ( char const* keyName , char const* group , char defaultValue );
@@ -92,7 +99,18 @@ public:
 	template< class T >
 	void setKeyValue( char const* keyName , char const* group , T value )
 	{
-		mGourpMap[ group ].addKeyValue( keyName , value );
+		auto& section = mSectionMap[ group ];
+		if( section.mSequenceOrder == -1 )
+		{
+			section.mSequenceOrder = mNextSectionSeqOrder;
+			++mNextSectionSeqOrder;
+		}
+		KeyValue* keyValue = section.addKeyValue( keyName , value );
+		if( keyValue && keyValue->mSequenceOrder == -1 )
+		{
+			keyValue->mSequenceOrder = mNextValueSeqOrder;
+			++mNextValueSeqOrder;
+		}
 	}
 
 private:
@@ -103,9 +121,10 @@ private:
 
 	int   parseLine( char* buffer , KeySection** curSection );
 	typedef std::map< std::string , KeySection > KeySectionMap;
-	KeySectionMap mGourpMap;
+	KeySectionMap mSectionMap;
 
-
+	int mNextSectionSeqOrder;
+	int mNextValueSeqOrder;
 };
 
 

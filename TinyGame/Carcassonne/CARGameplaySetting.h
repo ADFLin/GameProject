@@ -1,65 +1,14 @@
 #ifndef CARGameplaySetting_h__85a4781f_a1e7_4eeb_a352_d8c9ee34798a
 #define CARGameplaySetting_h__85a4781f_a1e7_4eeb_a352_d8c9ee34798a
 
+#include "CARParamValue.h"
+#include "CARExpansion.h"
+
 #include <algorithm>
 #include "Flag.h"
-#include "CARParamValue.h"
 
 namespace CAR
 {
-	enum GameRule
-	{
-		eHardcore ,
-
-		eSmallCity ,
-		eDoubleTurnDrawImmediately ,
-		eCantMoveFairy ,
-		ePrincessTileMustRemoveKnightOrBuilder ,
-		eMoveDragonBeforeScoring ,
-		eTowerCaptureEverything ,
-	};
-
-	enum class Rule
-	{
-		eInn,
-		eCathedral,
-		eBigMeeple,
-		eBuilder,
-		eTraders,
-		ePig,
-		eKingAndRobber,
-		ePrinecess,
-		eDragon,
-		eFariy,
-		eTower,
-		
-		eWagon ,
-		eMayor,
-		eBarn,
-		ePhantom,
-		eUseHill ,
-		eShepherdAndSheep ,
-		eBazaar ,
-		eBridge ,
-		eCastleToken ,
-		eUseVineyard ,
-
-		eHaveGermanCastleTile ,
-		eHaveAbbeyTile ,
-		eHaveRiverTile ,
-		eHaveHalflingTile ,
-
-		//////////////
-		eHardcore,
-		eSmallCity,
-		eDoubleTurnDrawImmediately,
-		eCantMoveFairy,
-		ePrincessTileMustRemoveKnightOrBuilder,
-		eMoveDragonBeforeScoring,
-		eTowerCaptureEverything,
-
-		TotalNum,
-	};
 
 	class GameplaySetting : public GameParamCollection
 	{
@@ -68,17 +17,21 @@ namespace CAR
 
 		bool have( Rule ruleFunc ) const;
 		void addRule( Rule ruleFunc );
-		int  getFarmScoreVersion(){ return mFarmScoreVersion; }
+		void addExpansion(Expansion exp)
+		{
+			mUseExpansionMask.add(exp);
+		}
+		int  getFarmScoreVersion() const { return mFarmScoreVersion; }
 
-		void calcUsageField( int numPlayer );
+		void calcUsageOfField( int numPlayer );
 
-		unsigned getFollowerMask();
-		inline bool isFollower( ActorType type )
+		unsigned getFollowerMask()  const;
+		inline bool isFollower( ActorType type ) const
 		{
 			return ( getFollowerMask() & BIT( type ) ) != 0;
 		}
 
-		int getTotalFieldValueNum()
+		int getTotalFieldValueNum() const
 		{
 			int result = 0;
 			for( auto info : mFieldInfos )
@@ -87,19 +40,21 @@ namespace CAR
 			}
 			return result;
 		}
-		int getFieldNum()
+		int getFieldNum() const
 		{
 			return mNumField;
 		}
-		int getFieldIndex( FieldType::Enum type )
+		int getFieldIndex( FieldType::Enum type ) const
 		{
 			return mFieldInfos[type].index;
 		}
 
-		int getFieldValueNum(FieldType::Enum type)
+		int getFieldValueNum(FieldType::Enum type) const
 		{
 			return mFieldInfos[type].num;
 		}
+
+		bool use(Expansion exp) const { return mUseExpansionMask.check(exp); }
 
 		struct FieldInfo
 		{
@@ -111,7 +66,7 @@ namespace CAR
 		FieldInfo  mFieldInfos[FieldType::NUM];
 
 		FlagBits< (int)Rule::TotalNum > mRuleFlags;
-		unsigned mExpansionMask;
+		FlagBits< (int)NUM_EXPANSIONS > mUseExpansionMask;
 	};
 
 

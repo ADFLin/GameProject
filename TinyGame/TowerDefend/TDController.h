@@ -102,7 +102,7 @@ namespace TowerDefend
 			mIdxComMap = idx; 
 			mUIComID = id; 
 		}
-		bool  haveLockMouse();
+		bool  shouldLockMouse();
 
 		void  renderMouse( Renderer& renderer );
 

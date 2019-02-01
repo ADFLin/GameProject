@@ -118,6 +118,13 @@ namespace CAR
 		void   addActor( LevelActor& actor );
 		void   removeActor(LevelActor& actor);
 
+		bool canDeployFollower() const
+		{
+			if( towerHeight != 0 )
+				return false;
+			return true;
+		}
+
 		void connectSide( int dir , MapTile& data );
 		void connectFarm( int idx , MapTile& data );
 
@@ -215,10 +222,13 @@ namespace CAR
 		SideNode    sideNodes[ TilePiece::NumSide ];
 		FarmNode    farmNodes[ TilePiece::NumFarm ];
 		int         group;
+		//@TODO : compact those data
 		int         towerHeight;
+		int         goldPices;
 		uint8       bridgeMask;
-		void*       userData;
 		bool        haveHill;
+		//
+		void*       userData;
 		//HalflingTile
 		TileId      mergedTileId[2];
 

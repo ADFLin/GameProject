@@ -48,12 +48,11 @@ namespace GreedySnake
 		return true;
 	}
 
-	void LevelStage::onRestart( uint64 seed , bool beInit )
+	void LevelStage::onRestart( bool beInit )
 	{
 		if( beInit )
 		{
-			LogMsg("Seed = %ld", seed);
-			Global::RandSeedNet(seed);
+
 		}
 		mScene->restart( beInit );
 	}

@@ -20,8 +20,8 @@ bool CFrameActionEngine::build( BuildParam& buildParam )
 	mWorker   = buildParam.worker;
 	mTickTime = buildParam.tickTime;
 
-	buildParam.processor->addInput( *mNetFrameMgr );
-	mNetFrameMgr->getActionProcessor().addInput( buildParam.game->getController() );
+	mNetFrameMgr->setupInput(*buildParam.processor);
+	buildParam.game->getController().setupInput( mNetFrameMgr->getActionProcessor() );
 
 	return true;
 }

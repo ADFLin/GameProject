@@ -11,6 +11,7 @@
 #include "LeelaBot.h"
 #include "Widget/WidgetUtility.h"
 
+#include "Core/FNV1a.h"
 #include "Misc/Guid.h"
 #include "FileSystem.h"
 
@@ -45,6 +46,7 @@ namespace Go
 		Count ,
 	};
 
+
 	char const* GetControllerName(ControllerType type)
 	{
 		switch( type )
@@ -78,15 +80,39 @@ namespace Go
 		Guid guid;
 	};
 
+	struct MatchParamKey
+	{
+		uint64 mHash;
+		bool operator < (MatchParamKey const& other) const
+		{
+			return mHash < other.mHash;
+		}
+		bool operator == (MatchParamKey const& other) const
+		{
+			return mHash == other.mHash;
+		}
+
+		void setValue(std::string const&paramString)
+		{
+			mHash = FNV1a::MakeStringHash< uint64 >(paramString.c_str());
+		}
+	};
+
 	struct MatchPlayer
 	{
 		ControllerType type;
 		std::unique_ptr< IBotInterface > bot;
+		
+		std::string    paramString;
+		MatchParamKey  paramKey;
 		int winCount;
 
 		FixString< 128 > getName() const;
-		bool isBot() const { return type != ControllerType::ePlayer; }
-		bool initialize(ControllerType inType , void* botSetting = nullptr);
+		bool   isBot() const { return type != ControllerType::ePlayer; }
+		bool   initialize(ControllerType inType , void* botSetting = nullptr);
+
+
+		static std::string GetParamString(ControllerType inType, void* botSetting);
 	};
 
 	class GFilePicker : public GWidget
@@ -132,6 +158,119 @@ namespace Go
 
 
 
+
+	class MatchResultMap
+	{
+	public:
+		struct ResultData
+		{
+			std::string paramString;
+			uint32 winCounts[2];
+
+
+			template< class OP >
+			void serialize(OP op)
+			{
+				op & paramString & winCounts[0] & winCounts[1];
+			}
+
+			friend DataSerializer& operator << (DataSerializer& serializer, ResultData const& data)
+			{
+				const_cast<ResultData&>(data).serialize(DataSerializer::WriteOp(serializer));
+				return serializer;
+			}
+			friend DataSerializer& operator >> (DataSerializer& serializer, ResultData& data)
+			{
+				data.serialize(DataSerializer::ReadOp(serializer));
+				return serializer;
+			}
+			
+		};
+
+		struct MatchKey
+		{
+			MatchParamKey playerParamKeys[2];
+			bool setValue(MatchPlayer players[2] , GameSetting const& gameSetting )
+			{
+				playerParamKeys[0] = players[0].paramKey;
+				playerParamKeys[1] = players[1].paramKey;
+				if( playerParamKeys[1] < playerParamKeys[0] )
+				{
+					std::swap(playerParamKeys[0] , playerParamKeys[1]);
+					return true;
+				}
+				return false;
+			}
+
+			bool operator < (MatchKey const& other) const
+			{
+				assert(!(playerParamKeys[1] < playerParamKeys[0]));
+				assert(!(other.playerParamKeys[1] < other.playerParamKeys[0]));
+
+				if( playerParamKeys[1] < other.playerParamKeys[0] )
+					return true;
+				if( other.playerParamKeys[1] < playerParamKeys[0] )
+					return false;
+				return playerParamKeys[0] < other.playerParamKeys[0];
+			}
+		};
+
+		ResultData* getMatchResult(MatchPlayer players[2], GameSetting const& gameSetting , bool& bSwap )
+		{
+			MatchKey key;
+			bSwap = key.setValue(players, gameSetting);
+
+			auto iter = mDataMap.find(key);
+			if( iter == mDataMap.end() )
+				return nullptr;
+
+			return &iter->second;
+		}
+
+		void addMatchResult(MatchPlayer players[2] , GameSetting const& gameSetting )
+		{
+			MatchKey key;
+			key.setValue(players, gameSetting);
+
+			auto& resultData = mDataMap[key];
+			if( key.playerParamKeys[0] == players[0].paramKey )
+			{
+				resultData.winCounts[0] += players[0].winCount;
+				resultData.winCounts[1] += players[1].winCount;
+			}
+			else
+			{
+				resultData.winCounts[1] += players[0].winCount;
+				resultData.winCounts[0] += players[1].winCount;
+			}
+		}
+
+		bool save(char const* path)
+		{
+			OutputFileStream stream;
+			if( !stream.open(path) )
+				return false;
+
+			DataSerializer serializer(stream);
+			serializer << mDataMap;
+
+			return false;
+		}
+		bool load(char const* path)
+		{
+			InputFileStream stream;
+			if( !stream.open(path) )
+				return false;
+
+			DataSerializer serializer( stream );
+			serializer >> mDataMap;
+
+			return false;
+		}
+
+		std::map< MatchKey, ResultData > mDataMap;
+	};
+
 	struct MatchGameData
 	{
 		MatchPlayer players[2];
@@ -139,6 +278,8 @@ namespace Go
 		bool        bSwapColor = false;
 		bool        bAutoRun = false;
 		bool        bSaveSGF = false;
+		int         historyWinCounts[2];
+
 
 		MatchPlayer& getPlayer(int color)
 		{
@@ -184,6 +325,9 @@ namespace Go
 			return players[idxPlayerTurn].bot.get();
 		}
 	};
+
+
+
 
 	class MatchSettingPanel : public BaseSettingPanel
 	{
@@ -297,6 +441,8 @@ namespace Go
 			if( msg.onLeftDown() )
 			{
 				Vec2i pos = renderContext.getCoord(msg.getPos());
+				if( !game.canPlay(pos.x, pos.y) )
+					return false;
 				if ( game.playStone(pos.x, pos.y) )
 					return false;
 			}
@@ -353,6 +499,8 @@ namespace Go
 #endif
 
 		MyGame mGame;
+
+		MatchResultMap mMatchResultMap;
 
 		bool bDrawDebugMsg = false;
 		bool bDrawFontCacheTexture = false;

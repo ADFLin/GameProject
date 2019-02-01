@@ -5,7 +5,6 @@ namespace CAR
 
 	GameplaySetting::GameplaySetting()
 	{
-		mExpansionMask = 0;
 		mNumField = 0;
 		mFarmScoreVersion = 3;
 		for( auto& info : mFieldInfos )
@@ -18,7 +17,6 @@ namespace CAR
 
 	bool GameplaySetting::have(Rule ruleFunc) const
 	{
-
 		return mRuleFlags.check((unsigned)ruleFunc);
 	}
 
@@ -27,7 +25,7 @@ namespace CAR
 		mRuleFlags.add((unsigned)ruleFunc);
 	}
 
-	unsigned GameplaySetting::getFollowerMask()
+	unsigned GameplaySetting::getFollowerMask() const
 	{
 		unsigned const BaseFollowrMask =
 			BIT(ActorType::eMeeple) | BIT(ActorType::eBigMeeple) |

@@ -15,7 +15,7 @@ namespace GreedySnake
 
 		bool onInit();
 		void onEnd(){}
-		void onRestart( uint64 seed , bool beInit );
+		void onRestart( bool beInit );
 		
 		
 		void setupLocalGame( LocalPlayerManager& playerManager );

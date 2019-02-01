@@ -7,11 +7,10 @@
 class EmptyController : public GameController
 {
 public:
-	virtual bool  scanInput( bool beUpdateFrame ){ return false;  }
-	virtual bool  checkAction( ActionParam& param  ){ return false;  }
+	virtual void  setupInput(ActionProcessor& proccessor) {}
 
 	virtual void  blockAllAction( bool beB ){}
-	virtual bool  haveLockMouse(){ return false;  }
+	virtual bool  shouldLockMouse(){ return false;  }
 
 	virtual void  setPortControl( unsigned port , unsigned cID ){}
 	virtual void  setKey( unsigned cID , ControlAction action , unsigned key ){}

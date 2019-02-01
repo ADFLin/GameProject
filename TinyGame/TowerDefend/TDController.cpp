@@ -24,7 +24,7 @@ namespace TowerDefend
 		mUIComID = CID_NULL;
 	}
 
-	bool Controller::haveLockMouse()
+	bool Controller::shouldLockMouse()
 	{
 		return mEnableRectSelect && mRectSelectStep != STEP_NONE;
 	}

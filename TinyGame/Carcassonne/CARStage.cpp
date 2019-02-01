@@ -174,7 +174,7 @@ namespace CAR
 		mCurMapPos = Vec2i(0,0);
 		mIdxShowFeature = 0;
 
-		mGameLogic.mDebug = ::Global::GameConfig().getIntValue( "Debug" , "CAR" , 0 ) != 0;
+		mGameLogic.mDebugMode = ::Global::GameConfig().getIntValue( "DebugMode" , "CAR" , 0 );
 		mGameLogic.mListener = this;
 		
 		mInput.onAction = std::bind( &LevelStage::onGameAction , this , std::placeholders::_1 , std::placeholders::_2 );
@@ -207,7 +207,7 @@ namespace CAR
 #endif
 	}
 
-	void LevelStage::onRestart( uint64 seed , bool bInit)
+	void LevelStage::onRestart(bool bInit)
 	{
 		if ( !bInit )
 		{
@@ -507,6 +507,9 @@ namespace CAR
 					CASE(SAR_TOWER_CAPTURE_FOLLOWER, "Tower Capture Follower")
 					CASE(SAR_PRINCESS_REMOVE_KINGHT, "Princess Remove Kinght")
 					CASE(SAR_EXCHANGE_PRISONERS, "Exchange Prisoners")
+					CASE(SAR_PLACE_ABBEY_TILE , "Place Abbey Tile")
+					CASE(SAR_LA_PORXADA_SELF_FOLLOWER, "Select Self Follower")
+					CASE(SAR_LA_PORXADA_OTHER_PLAYER_FOLLOWER, "Select Self Follower")
 					}
 #undef CASE
 				}
@@ -829,7 +832,7 @@ namespace CAR
 								int rotation = ( mRotation + dir ) % FDir::TotalNum;
 								PutTileParam param;
 								param.checkRiverConnect = 1;
-								param.usageBridge = 0;
+								param.canUseBridge = 0;
 								if ( mGameLogic.getWorld().canPlaceTile( mGameLogic.mUseTileId , mCurMapPos , rotation , param ) )
 								{
 									mRotation = rotation;
@@ -860,7 +863,7 @@ namespace CAR
 							mRotation = ( mRotation + 1 ) % FDir::TotalNum;
 							PutTileParam param;
 							param.checkRiverConnect = 1;
-							param.usageBridge = 0;
+							param.canUseBridge = 0;
 							if ( mGameLogic.getWorld().canPlaceTile( mGameLogic.mUseTileId , mCurMapPos , mRotation , param ) )
 								break;
 						}
@@ -1024,7 +1027,7 @@ namespace CAR
 			{
 				int index = ui->cast< SelectButton >()->index;
 				removeGameActionUI();
-				CAR_INPUT_COMMAND({ mInput.replySelect(index); } , index );
+				CAR_INPUT_COMMAND({ mInput.replySelection(index); } , index );
 			}
 			return false;
 		case UI_ACTION_SKIP:
@@ -1146,7 +1149,7 @@ namespace CAR
 			{
 				GameSelectActorData* myData = data->cast< GameSelectActorData >();
 
-				if ( myData->canSkip() )
+				if ( myData->bCanSkip )
 				{
 					GButton* button = new GButton( UI_ACTION_SKIP , Vec2i( 20 , 270 ) , Vec2i( 50 , 20 ) , nullptr );
 					button->setTitle( "Skip" );
@@ -1171,7 +1174,7 @@ namespace CAR
 			{
 				GameSelectActorInfoData* myData = data->cast< GameSelectActorInfoData >();
 
-				if ( myData->canSkip() )
+				if ( myData->bCanSkip )
 				{
 					GButton* button = new GButton( UI_ACTION_SKIP , Vec2i( 20 , 270 ) , Vec2i( 50 , 20 ) , nullptr );
 					button->setTitle( "Skip" );
@@ -1193,7 +1196,7 @@ namespace CAR
 			{
 				GameSelectMapTileData* myData = data->cast< GameSelectMapTileData >();
 
-				if ( myData->canSkip() )
+				if ( myData->bCanSkip )
 				{
 					GButton* button = new GButton( UI_ACTION_SKIP , Vec2i( 20 , 270 ) , Vec2i( 50 , 20 ) , nullptr );
 					button->setTitle( "Skip" );
@@ -1234,6 +1237,13 @@ namespace CAR
 						addActionWidget( button );
 					}
 				}
+			}
+			break;
+		case ACTION_SELECT_ACTION_OPTION:
+			{
+				GameSelectActionOptionData* myData = data->cast< GameSelectActionOptionData >();
+
+
 			}
 			break;
 		case ACTION_AUCTION_TILE:
@@ -1482,19 +1492,24 @@ namespace CAR
 	void LevelStage::setupLocalGame(LocalPlayerManager& playerManager)
 	{
 		int numPlayer = 3;
-		mSetting.mExpansionMask = 
-			//BIT( EXP_THE_RIVER ) | 
-			//BIT( EXP_THE_RIVER_II ) | 
-			//BIT( EXP_TRADERS_AND_BUILDERS ) | 
-			//BIT( EXP_INNS_AND_CATHEDRALS ) |
-			//BIT( EXP_THE_PRINCESS_AND_THE_DRAGON ) |
-			//BIT( EXP_THE_TOWER ) |
-			//BIT( EXP_ABBEY_AND_MAYOR ) |
-			//BIT( EXP_KING_AND_ROBBER ) |
-			BIT( EXP_BRIDGES_CASTLES_AND_BAZAARS ) |
-			BIT( EXP_HILLS_AND_SHEEP ) |
-			BIT( EXP_CASTLES ) |
-			0;
+		Expansion const usageExpansions[] =
+		{
+			//EXP_THE_RIVER, 
+			//EXP_THE_RIVER_II,
+			//EXP_TRADERS_AND_BUILDERS, 
+			//EXP_INNS_AND_CATHEDRALS,
+			//EXP_THE_PRINCESS_AND_THE_DRAGON,
+			//EXP_THE_TOWER,
+			//EXP_ABBEY_AND_MAYOR,
+			//EXP_KING_AND_ROBBER,
+			EXP_BRIDGES_CASTLES_AND_BAZAARS,
+			EXP_HILLS_AND_SHEEP,
+			EXP_CASTLES,
+		};
+		for( auto exp : usageExpansions )
+		{
+			mSetting.addExpansion(exp);
+		}
 
 		for( int i = 0 ; i < numPlayer ; ++i )
 		{
@@ -1525,8 +1540,7 @@ namespace CAR
 			}
 		}
 
-		mGameLogic.mPlayerManager = &mPlayerManager;
-		mGameLogic.setupSetting( mSetting );
+		mGameLogic.setup( mSetting , mRandom , mPlayerManager );
 
 		for( int i = 0 ; i < FieldType::NUM ; ++i )
 		{
@@ -1559,6 +1573,7 @@ namespace CAR
 
 		return mGameLogic.getTurnPlayer()->getId();
 	}
+
 	void LevelStage::onRecvDataSV( int slot , int dataId , void* data , int dataSize )
 	{
 		if ( slot != getActionPlayerId() )

@@ -196,6 +196,7 @@
     <ClCompile Include="Carcassonne\CARDebug.cpp" />
     <ClCompile Include="Carcassonne\CARFeature.cpp" />
     <ClCompile Include="Carcassonne\CARGame.cpp" />
+    <ClCompile Include="Carcassonne\CARGameInput.cpp" />
     <ClCompile Include="Carcassonne\CARGameInputImpl.cpp" />
     <ClCompile Include="Carcassonne\CARGameLogic.cpp" />
     <ClCompile Include="Carcassonne\CARGameplaySetting.cpp" />

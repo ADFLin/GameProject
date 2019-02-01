@@ -46,7 +46,7 @@ namespace Tetris
 
 		bool onInit();
 		void onEnd();
-		void onRestart( uint64 seed , bool beInit);
+		void onRestart( bool beInit );
 		void onRender( float dFrame );
 
 		void tick();

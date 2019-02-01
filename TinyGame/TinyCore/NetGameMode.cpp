@@ -1124,7 +1124,7 @@ void NetLevelStageMode::procPlayerState(IComPacket* cp)
 		break;
 	case NAS_LEVEL_INIT:
 		{
-			restartImpl(true);
+			restart(true);
 			::Global::GUI().hideWidgets(false);
 			mWorker->changeState(NAS_LEVEL_INIT);
 		}
@@ -1133,7 +1133,7 @@ void NetLevelStageMode::procPlayerState(IComPacket* cp)
 		{
 			if( mNetEngine )
 				mNetEngine->restart();
-			restartImpl(false);
+			restart(false);
 			mWorker->changeState(NAS_LEVEL_RESTART);
 		}
 		break;

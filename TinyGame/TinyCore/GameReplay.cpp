@@ -292,7 +292,7 @@ void Replay::resetTrackPos()
 	mNextNodePos = 0;
 }
 
-bool Replay::is()
+bool Replay::isValid()
 {
 	return mFrameNodeVec.size() != 0;
 }
@@ -387,9 +387,9 @@ bool ReplayInput::isPlayEnd()
 	return totalFrame < mGameFrame;
 }
 
-bool ReplayInput::is()
+bool ReplayInput::isValid()
 {
-	return mReplay.is();
+	return mReplay.isValid();
 }
 
 void ReplayInput::restart()
@@ -505,7 +505,7 @@ namespace OldVersion
 		mHeader.clear( LastVersion );
 	}
 
-	bool Replay::is()
+	bool Replay::isValid()
 	{
 		return mNodeHeaders.size() != 0;
 	}
@@ -610,9 +610,9 @@ namespace OldVersion
 		return true;
 	}
 
-	bool ReplayInput::is()
+	bool ReplayInput::isValid()
 	{
-		return mTemplate && mReplay.is();
+		return mTemplate && mReplay.isValid();
 	}
 
 	bool ReplayInput::isPlayEnd()

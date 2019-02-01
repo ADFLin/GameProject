@@ -28,7 +28,7 @@ namespace TripleTown
 				return false;
 
 			mScene.setupLevel( mLevel );
-			onRestart( 0 , true );
+			onRestart( true );
 
 			WidgetUtility::CreateDevFrame();
 			return true; 
@@ -37,7 +37,7 @@ namespace TripleTown
 		{
 			::Global::GetDrawEngine()->stopOpenGL();
 		}
-		virtual void onRestart( uint64 seed , bool beInit )
+		virtual void onRestart( bool beInit )
 		{
 			if ( beInit )
 			{

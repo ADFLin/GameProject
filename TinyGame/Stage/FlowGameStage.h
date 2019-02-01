@@ -17,6 +17,8 @@ namespace Flow
 	{
 		Null = 0,
 		Source,
+		Bridge,
+		Hole ,
 	};
 
 
@@ -26,12 +28,15 @@ namespace Flow
 		{
 			::memset(this, 0, sizeof(*this));
 		}
-		ColorType    colors[4];
-		CellFun      fun;
-		uint8        funMeta;
-		uint8        blockMask;
-		uint8        padding;
 
+		int getColor(int dir) const { return colors[dir]; }
+
+		ColorType     colors[DirCount];
+		CellFun       fun;
+		uint8         funMeta;
+		uint8         blockMask;
+		mutable uint8 bFilledCached : 1;
+		mutable uint8 bFilledCachedDirty : 1;
 
 		void removeFlow(int dir)
 		{
@@ -45,31 +50,84 @@ namespace Flow
 			funMeta = color;
 		}
 
-
 		ColorType evalFlowOut(int dir) const 
 		{ 
 			if( colors[dir] )
 				return 0;
 
-			if( blockMask & BIT(dir) )
-				return 0;
-
 			return getFunFlowColor(dir);
 		}
 
-		int  getLinkedDirs(int outDirs[DirCount])
+		int  getNeedBreakDirs( int dir , int outDirs[DirCount])
 		{
 			int result = 0;
-			for( int i = 0; i < DirCount; ++i )
+			switch( fun )
 			{
-				if( colors[i] )
+			case CellFun::Null:
+				for( int i = 0; i < DirCount; ++i )
 				{
-					outDirs[result] = i;
-					++result;
+					if( colors[i] )
+					{
+						outDirs[result] = i;
+						++result;
+					}
+				}
+				break;
+			case CellFun::Source:
+				{
+					for( int i = 0; i < DirCount; ++i )
+					{
+						if( colors[i] )
+						{
+							assert(colors[i] == funMeta);
+							outDirs[result] = i;
+							++result;
+							break;
+						}
+					}
+				}
+				break;
+			case CellFun::Bridge:
+				{
+
+				}
+				break;
+			default:
+				break;
+			}
+			
+
+			return result;
+		}
+
+		bool isFilled() const
+		{
+			if ( bFilledCachedDirty )
+			{
+				bFilledCachedDirty = false;
+				int count = 0;
+				for( int i = 0; i < DirCount; ++i )
+				{
+					if( colors[i] )
+					{
+						++count;
+					}
+				}
+
+				switch( fun )
+				{
+				case CellFun::Null:
+					bFilledCached = count == 2;
+				case CellFun::Source:
+					bFilledCached =  count == 1;
+				case CellFun::Bridge:
+					bFilledCached =  count == DirCount;
+				default:
+					bFilledCached = true;
 				}
 			}
-			return result;
 
+			return bFilledCached;
 		}
 
 		int  getLinkedFlowDir(int dir) const
@@ -80,7 +138,6 @@ namespace Flow
 			case CellFun::Null:
 				{
 					int count = 0;
-					
 					assert(color);
 					for( int i = 0; i < DirCount; ++i )
 					{
@@ -88,13 +145,24 @@ namespace Flow
 							continue;
 
 						assert(colors[i] == color);
-
 						return i;
 					}
 				}
+				break;
 			case CellFun::Source:
 				assert(color == funMeta);
 				return -1;
+			case CellFun::Bridge:
+				{
+					int invDir = InverseDir(dir);
+					if( colors[invDir] )
+					{
+						assert(colors[invDir] == color);
+						return invDir;
+					}
+				}
+				break;
+
 			default:
 				assert(0);
 			}
@@ -102,7 +170,8 @@ namespace Flow
 			return -1;
 
 		}
-		ColorType getFunFlowColor( int dir , ColorType color = 0 ) const
+
+		ColorType getFunFlowColor( int dir = -1, ColorType color = 0 ) const
 		{
 			switch( fun )
 			{
@@ -127,20 +196,44 @@ namespace Flow
 
 					return outColor;
 				}
+				break;
 			case CellFun::Source:
-				for( int i = 0; i < DirCount; ++i )
 				{
-					if( colors[i] )
+					for( int i = 0; i < DirCount; ++i )
 					{
-						assert(colors[i] == funMeta);
+						if( colors[i] )
+						{
+							assert(colors[i] == funMeta);
+							return 0;
+						}
+					}
+
+					if( color && color != funMeta )
 						return 0;
+
+					return funMeta;
+				}
+				break;
+			case CellFun::Bridge:
+				{
+					if( dir == -1 )
+					{
+						for( int i = 0; i < DirCount; ++i )
+						{
+							if( colors[i] )
+								return colors[i];
+						}
+					}
+					else
+					{
+						int outColor = colors[InverseDir(dir)];
+						if( color && outColor != color )
+							return 0;
+
+						return outColor;
 					}
 				}
-
-				if( color && color != funMeta )
-					return 0;
-
-				return funMeta;
+				break;
 			default:
 				assert(0);
 			}
@@ -151,6 +244,7 @@ namespace Flow
 		void flowOut(int dir, ColorType color)
 		{
 			colors[dir] = color;
+			bFilledCachedDirty = true;
 		}
 
 		bool flowIn( int dir , ColorType color )
@@ -162,6 +256,7 @@ namespace Flow
 				return false;
 
 			colors[dir] = color;
+			bFilledCachedDirty = true;
 			return true;
 		}
 	};
@@ -190,6 +285,13 @@ namespace Flow
 			getCellChecked(pos).setSource(color);
 		}
 
+		void setCellBlocked(Vec2i const& pos, int dir )
+		{
+			Vec2i linkPos = getLinkPos(pos, dir);
+			getCellChecked(pos).blockMask |= BIT(dir);
+			getCellChecked(linkPos).blockMask |= BIT(InverseDir(dir));
+		}
+
 		Cell const& getCellChecked(Vec2i const& pos) const
 		{
 			return mCellMap.getData(pos.x, pos.y);
@@ -200,48 +302,141 @@ namespace Flow
 			return mCellMap.getData(pos.x, pos.y);
 		}
 
-		bool canFlowOut(Vec2i const& pos, int dir)
+		enum class BreakResult
 		{
-			ColorType color;
-			return !!evalFlowOut(pos, dir , color);
+			NoBreak,
+			HaveBreak ,
+			HaveBreakSameColor ,
+		};
+
+		int checkFilledCellCount() const
+		{
+			int count = 0;
+			for( int i = 0; i < mCellMap.getRawDataSize(); ++i )
+			{
+				if( mCellMap.getRawData()[i].isFilled() )
+					++count;
+			}
+			return count;
 		}
 
-		int breakFlow(Vec2i const& pos)
+		BreakResult breakFlow(Vec2i const& pos , int dir , ColorType curColor)
 		{
 			Cell& cell = getCellChecked( pos );
+			BreakResult result = BreakResult::NoBreak;
 
 			int linkDirs[DirCount];
-			int numDir = cell.getLinkedDirs(linkDirs);
+			int numDir = cell.getNeedBreakDirs( dir , linkDirs);
+
+			bool bBreakSameColor = false;
+			bool bHaveBreak = false;
+
 
 			for( int i = 0 ; i < numDir ; ++i )
 			{
-				if( findSourceCell(pos, linkDirs[i]) == nullptr )
+				int linkDir = linkDirs[i];
+				if ( linkDir == -1 )
+					continue;
+				
+				int dist = 0;
+				
+				ColorType linkColor = cell.colors[linkDir];
+				Cell* source = findSourceCell(pos, linkDir, dist);
+
+				auto TryRemoveToSource = [&]() -> bool
 				{
-					removeFlowToEnd(pos, linkDirs[i]);
+					for( int j = i + 1; j < numDir; ++j )
+					{
+						int otherLinkDir = linkDirs[j];
+						if ( otherLinkDir == -1 )
+							continue;
+						if( cell.colors[linkDirs[j]] == linkColor )
+						{
+							int distOther = 0;
+							Cell* otherSource = findSourceCell(pos, otherLinkDir, distOther);
+
+							if( otherSource )
+							{
+								int removeDir = (distOther < dist) ? otherLinkDir : linkDir;
+								removeFlowToEnd(pos, removeDir);
+								linkDirs[j] = -1;
+								return true;
+							}
+						}
+					}
+					return false;
+				};
+
+				if( source )
+				{
+					if( curColor == 0 )
+					{
+						if( dist == 0 )
+						{
+							removeFlowToEnd(pos, linkDirs[i]);
+						}
+						else
+						{
+							TryRemoveToSource();
+						}				
+					}
+					else if( linkColor != curColor )
+					{
+						if( TryRemoveToSource() == false )
+						{
+							removeFlowLink(pos, linkDir);
+						}
+					}
 				}
 				else
 				{
-					removeFlowLink(pos, linkDirs[i]);
+					bHaveBreak = true;
+					removeFlowToEnd(pos, linkDir);
+					if( linkColor == curColor )
+						bBreakSameColor = true;
 				}
 			}
 
-			return numDir;
+			if( bHaveBreak )
+			{
+				if( bBreakSameColor )
+				{
+					result = BreakResult::HaveBreakSameColor;
+				}
+				else
+				{
+					result = BreakResult::HaveBreak;
+				}
+			}
+
+			return result;
 		}
 
-		Cell* findSourceCell(Vec2i const& pos, int dir)
+		Cell* findSourceCell(Vec2i const& pos, int dir, int& outDist)
 		{
-			Vec2i curPos = getLinkPos(pos , dir);
-			for( ;; )
-			{
-				Cell& cell = getCellChecked(curPos);
-				if( cell.fun == CellFun::Source )
-					return &cell;
+			outDist = 0;
 
-				int linkDir = cell.getLinkedFlowDir(dir);
-				if( linkDir == -1 )
+			Vec2i curPos = pos;
+			int   curDir = dir;
+
+			Cell& cell = getCellChecked(pos);
+			if( cell.fun == CellFun::Source )
+				return &cell;
+
+			for(;;)
+			{
+				Vec2i linkPos = getLinkPos(curPos, curDir);
+				Cell& linkCell = getCellChecked(linkPos);
+				if( linkCell.fun == CellFun::Source )
+					return &linkCell;
+
+				int curDirInv = InverseDir(curDir);
+				curDir = linkCell.getLinkedFlowDir(curDirInv);
+				if( curDir == -1 )
 					break;
 
-				curPos = getLinkPos(curPos, linkDir);
+				curPos = linkPos;
+				++outDist;
 			}
 
 			return nullptr;
@@ -263,53 +458,48 @@ namespace Flow
 		{
 			Vec2i curPos = pos;
 			int   curDir = dir;
-			do
-			{
-				Cell& cell = getCellChecked(curPos);
-				cell.removeFlow(curDir);
 
+			Cell* curCell = &getCellChecked(pos);
+			for( ;;)
+			{
+				curCell->removeFlow(curDir);
 				Vec2i linkPos = getLinkPos(curPos, curDir);
 				Cell& linkCell = getCellChecked(linkPos);
 
 				int curDirInv = InverseDir(curDir);
-				linkCell.removeFlow(curDirInv);
-
 				curDir = linkCell.getLinkedFlowDir(curDirInv);
 
-			} 
-			while( curDir != -1 );
+				linkCell.removeFlow(curDirInv);
+
+				if ( curDir == -1 )
+					break;
+
+				curCell = &linkCell;
+				curPos = linkPos;
+			}
 		}
 
-		Cell* evalFlowOut(Vec2i const& pos, int dir , ColorType& outColor )
+
+		ColorType linkFlow( Vec2i const& pos , int dir )
 		{
-			Cell* cell = getCellInternal(pos);
-			if( cell == nullptr )
-				return nullptr;
+			Cell& cellOut = getCellChecked(pos);
 
-			outColor = cell->evalFlowOut(dir);
-			if( outColor == 0 )
-				return nullptr;
+			if( cellOut.blockMask & BIT(dir) )
+				return 0;
 
-			return cell;
-		}
-
-		bool linkFlow( Vec2i const& pos , int dir )
-		{
-			ColorType color;
-			Cell* cellOut = evalFlowOut(pos, dir, color);
-			if( cellOut == nullptr )
-				return false;
+			ColorType color = cellOut.evalFlowOut(dir);
+			if( color == 0 )
+				return 0;
 
 			Vec2i linkPos = getLinkPos(pos, dir);
-
-			Cell& tileIn = getCellChecked(linkPos);
+			Cell& cellIn = getCellChecked(linkPos);
 			
 			int dirIn = InverseDir(dir);
-			if ( !tileIn.flowIn( dirIn , color ) )
-				return false;
+			if ( !cellIn.flowIn( dirIn , color ) )
+				return 0;
 
-			cellOut->flowOut(dir, color);
-			return true;
+			cellOut.flowOut(dir, color);
+			return color;
 		}
 
 		static void WarpPos(int& p, int size)
@@ -385,7 +575,8 @@ namespace Flow
 
 
 
-		Vec2i flowOutCellPos;
+		Vec2i     flowOutCellPos;
+		ColorType flowOutColor;
 		bool  bStartFlowOut = false;
 
 
@@ -401,7 +592,9 @@ namespace Flow
 				if( mLevel.isValidCellPos(cPos) )
 				{
 					bStartFlowOut = true;
+					flowOutColor   = mLevel.getCellChecked(cPos).getFunFlowColor();
 					flowOutCellPos = cPos;
+					mLevel.breakFlow(cPos, 0, 0);
 				}
 			}
 			else if( msg.onLeftUp() )
@@ -439,11 +632,18 @@ namespace Flow
 							dir = 3;
 						}
 
-						mLevel.breakFlow(cPos);
-
-						if( mLevel.linkFlow(flowOutCellPos, dir) )
+						if( mLevel.breakFlow(cPos, dir, flowOutColor) == Level::BreakResult::HaveBreakSameColor )
 						{
 							flowOutCellPos = cPos;
+						}
+						else
+						{
+							ColorType linkColor = mLevel.linkFlow(flowOutCellPos, dir);
+							if( linkColor )
+							{
+								flowOutCellPos = cPos;
+								flowOutColor = linkColor;
+							}
 						}
 					}
 					else

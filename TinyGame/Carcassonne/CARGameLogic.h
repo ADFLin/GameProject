@@ -12,34 +12,20 @@
 
 #include <algorithm>
 
+#define CAR_LOGIC_DEBUG 1
+
 namespace CAR
 {
 	class GameplaySetting;
+	class GamePlayerManager;
 	class FeatureBase;
 	class IGameInput;
 	struct GameActionData;
 
-	class GamePlayerManager
-	{
-	public:
-		GamePlayerManager();
-		int         getPlayerNum(){ return mNumPlayer; }
-		PlayerBase* getPlayer(int id) { assert(id != CAR_ERROR_PLAYER_ID); return mPlayerMap[id]; }
-		void        addPlayer( PlayerBase* player );
-		void        clearAllPlayer( bool bDelete );
-
-
-		PlayerBase* mPlayerMap[ MaxPlayerNum ];
-		int mNumPlayer;
-	};
-
 	class GameRandom
 	{
 	public:
-		int getInt()
-		{
-			return ::rand();
-		}
+		virtual int getInt() = 0;
 	};
 
 	class IGameEventListener
@@ -51,19 +37,29 @@ namespace CAR
 		virtual void onConstructTower( MapTile& mapTile ){}
 	};
 
-	enum TurnResult
+	enum TurnStatus
 	{
-		eOK          ,
+		eKeep        ,
 		eFinishGame  ,
 		eExitGame    ,
 	};
+
+	namespace EDebugModeMask
+	{
+		enum
+		{
+			ShowAllTitles = BIT(0),
+			DrawTestTileFrist = BIT(1),
+			RemoveBasicTitles = BIT(2),
+		};
+	}
 
 	class GameLogic
 	{
 	public:
 		GameLogic();
 
-		void   setupSetting( GameplaySetting& setting );
+		void   setup( GameplaySetting& setting , GameRandom& random , GamePlayerManager& playerManager );
 		void   restart( bool bInit );
 		void   run(IGameInput& input);
 
@@ -72,7 +68,7 @@ namespace CAR
 
 		
 		bool   buildBridge( Vec2i const& pos , int dir );
-		bool   buyBackPrisoner( int ownerId , ActorType type );
+		bool   redeemPrisoner( int ownerId , ActorType type );
 		bool   changePlaceTile( TileId id );
 
 		
@@ -85,84 +81,104 @@ namespace CAR
 		void   checkReservedTileToMix();
 
 		void   randomPlayerPlayOrder();
-		TileId generatePlayTile();
+		TileId generatePlayTiles();
 
 		void   addFeaturePoints( FeatureBase& build , std::vector< FeatureScoreInfo >& featureControls , int numPlayer );
-		int    modifyPlayerScore( int id , int value );
+		enum class EScroeType
+		{
+			Normal ,
+			Woman ,
+		};
+		int    modifyPlayerScore( int playerId, int value , EScroeType scoreType = EScroeType::Normal );
 		void   calcFinalScore();
 
-		struct TrunContext
+		struct TurnContext
 		{
+			TurnContext(PlayerBase* inPlayer , IGameInput& inInput)
+				:player(inPlayer),input(inInput)
+			{
+				result = TurnStatus::eKeep;
+			}
 
+			PlayerBase* getPlayer() { return player; }
+			IGameInput& getInput() { return input; }
+
+
+			PlayerBase* player;
+			IGameInput& input;
+			TurnStatus  result;
+#if CAR_LOGIC_DEBUG
+			std::vector< std::string > returnStack;
+#endif
 		};
 
-		TurnResult resolvePlayerTurn( IGameInput& input , PlayerBase* curTrunPlayer );
-		TurnResult resolveDeployActor(IGameInput& input, PlayerBase* curTrunPlayer, MapTile* deployMapTiles[], int numDeployTile, unsigned actorMask, bool haveUsePortal, bool& haveDone);
-		TurnResult resolveMoveFairyToNextFollower(IGameInput &input, PlayerBase* curTrunPlayer, bool& haveDone);
-		TurnResult resolvePlaceTile(IGameInput& input , PlayerBase* curTrunPlayer , MapTile* placeMapTiles[] , int& numMapTile );
-		TurnResult resolvePortalUse( IGameInput& input, PlayerBase* curTrunPlayer, MapTile*& deployMapTile, bool& haveUsePortal);
-		TurnResult resolveExpendShepherdFarm( IGameInput& input , PlayerBase* curTrunPlayer , FeatureBase* feature );
-		TurnResult resolveCastleComplete( IGameInput& input );
-		TurnResult resolveDrawTile( IGameInput& input , PlayerBase* curTrunPlayer , bool& haveHillTile );
+		void resolvePlayerTurn(TurnContext& turnContext );
+		void resolveDeployActor(TurnContext& turnContext, MapTile* deployMapTiles[], int numDeployTile, unsigned actorMask, bool haveUsePortal, bool& haveDone);
+		void resolveMoveFairyToNextFollower(TurnContext& turnContext, bool& haveDone);
+		void resolvePlaceTile(TurnContext& turnContext, MapTile* placeMapTiles[] , int& numMapTile );
+		void resolvePortalUse(TurnContext& turnContext, MapTile*& deployMapTile, bool& haveUsePortal);
+		void resolveExpendShepherdFarm(TurnContext& turnContext, FeatureBase* feature );
+		void resolveCastleComplete(TurnContext& turnContext );
+		void resolveDrawTile(TurnContext& turnContext, bool& haveHillTile );
 		
 		struct CastleScoreInfo;
-		TurnResult resolveCompleteFeature( IGameInput& input , FeatureBase& feature , CastleScoreInfo* castleScore );
+		void resolveCompleteFeature(TurnContext& turnContext, FeatureBase& feature , CastleScoreInfo* castleScore );
 
-		TurnResult resolveBuildCastle(IGameInput& input , FeatureBase& feature , bool& haveBuild );
-		TurnResult resolveAbbey( IGameInput& input , PlayerBase* curTurnPlayer );
-		TurnResult resolveDragonMove( IGameInput& input , LevelActor& dragon );
-		TurnResult resolvePrincess( IGameInput& input , MapTile* placeMapTile , bool& haveDone );
-		TurnResult resolveTower(IGameInput& input , PlayerBase* curTurnPlayer , bool& haveDone );
-		TurnResult resolveAuction(IGameInput& input , PlayerBase* curTurnPlayer );
-		TurnResult resolveFeatureReturnPlayerActor( IGameInput& input , FeatureBase& feature );
-		
+		void resolveBuildCastle(TurnContext& turnContext, FeatureBase& feature , bool& haveBuild );
+		void resolveAbbey(TurnContext& turnContext );
+		void resolveDragonMove(TurnContext& turnContext, LevelActor& dragon );
+		void resolvePrincess(TurnContext& turnContext, MapTile* placeMapTile , bool& haveDone );
+		void resolveTower(TurnContext& turnContext, bool& haveDone );
+		void resolveAuction(TurnContext& turnContext );
+		void resolveFeatureReturnPlayerActor(TurnContext& turnContext, FeatureBase& feature );
+		void resolveLaPorxadaCommand(TurnContext& turnContext);
+		void resolveMoveMageOrWitch(TurnContext& turnContext);
+		void resolvePlaceGoldPieces(TurnContext& turnContext, MapTile* mapTile);
+		void resolveCropCircle(TurnContext& turnContext, FeatureType::Enum cropType );
+		void resolveScorePlayer(TurnContext& turnContext, int playerId, int value);
+		void resolveDrawMessageTile(TurnContext& turnContext);
+		void resolvePlaceLittleBuilding(TurnContext& turnContext, MapTile* placeTiles[] , int numPlaceTile , bool& haveDone);
 
 		struct UpdateTileFeatureResult
 		{
 			UpdateTileFeatureResult()
 			{
-
+				numSideFeatureMerged = 0;
 			}
+
+			int numSideFeatureMerged;
 		};
 
 		void updateTileFeature( MapTile& mapTile , UpdateTileFeatureResult& updateResult );
 		void checkCastleComplete(FeatureBase &feature, int score);
 		void expandSheepFlock(LevelActor* actor);
-		bool checkHaveBuilderFeatureExpend( PlayerBase* curTrunPlayer );
+		bool checkHaveBuilderFeatureExpend( PlayerBase* trunPlayer );
 		void updateBarnFarm(FarmFeature* farm);
-		bool checkGameState( GameActionData& actionData , TurnResult& result );
-
-		static bool canDeployFollower( MapTile const& mapTile )
-		{
-			if ( mapTile.towerHeight != 0 )
-				return false;
-			return true;
-		}
-
+		bool checkGameStatus( TurnStatus& result );
 
 		PlayerBase* getTurnPlayer(){ return mPlayerOrders[ mIdxPlayerTrun ]; }
 	
 		void  returnActorToPlayer( LevelActor* actor );
+		void  removeActor(LevelActor* actor)
+		{
+			moveActor(actor, ActorPos::None(), nullptr);
+		}
 		void  moveActor( LevelActor* actor , ActorPos const& pos , MapTile* mapTile );
 
 		void  shuffleTiles( TileId* begin , TileId* end );
-		int   findTagTileIndex( std::vector< TileId >& tiles , Expansion exp , TileTag tag );
 
 		int   getActorPutInfo(int playerId , MapTile& mapTile , bool bUsageMagicPortal , std::vector< ActorPosInfo >& outInfo);
 
-
-		void   getFeatureNeighborMapTile( FeatureBase& feature , MapTileSet& outMapTile );
+		void   getMinTitlesNoCompletedFeature(FeatureType::Enum type, unsigned playerMask, unsigned actorTypeMask, std::vector<FeatureBase*>& outFeatures);
+		void   getFeatureNeighborMapTile(FeatureBase& feature, MapTileSet& outMapTile);
 		int    getMaxFieldValuePlayer( FieldType::Enum type , PlayerBase* outPlayer[] , int& maxValue );
 		int    updatePosibleLinkPos( PutTileParam& param );
 		int    updatePosibleLinkPos();
 		typedef MapTile::FarmNode FarmNode;
 		typedef MapTile::SideNode SideNode;
 
-		static void FillActionData( struct GameFeatureTileSelectData& data , std::vector< FeatureBase* >& linkFeatures, std::vector< MapTile* >& mapTiles );
-
-
 		FarmFeature*  updateFarm( MapTile& mapTile , unsigned idxLinkMask );
-		FeatureBase*  updateBasicSideFeature( MapTile& mapTile, unsigned dirLinkMask, SideType linkType );
+		FeatureBase*  updateBasicSideFeature( MapTile& mapTile, unsigned dirLinkMask, SideType linkType , UpdateTileFeatureResult& updateResult);
 		SideFeature*  mergeHalfSeparateBasicSideFeature(MapTile& mapTile, int dir, FeatureBase* featureMerged[], int& numMerged);
 
 		FeatureBase*  getFeature( int group );
@@ -181,23 +197,20 @@ namespace CAR
 		void deleteActor( LevelActor* actor );
 		
 		
+
 		void cleanupData();
 
-		PlayerBase* getOwnedPlayer(LevelActor* actor)
-		{
-			assert(actor);
-			return mPlayerManager->getPlayer( actor->ownerId );
-		}
+		PlayerBase* getOwnedPlayer(LevelActor* actor);
 
 		//
 		GamePlayerManager* mPlayerManager;
 		TileSetManager     mTileSetManager;
 		GameplaySetting*   mSetting;
-		GameRandom         mRandom;
+		GameRandom*        mRandom;
 		WorldTileManager   mWorld;
 		
 		IGameEventListener* mListener;
-		bool     mDebug;
+		unsigned  mDebugMode;
 
 		ActorList mActorList;
 
@@ -206,7 +219,6 @@ namespace CAR
 			int score;
 		};
 
-		PlayerBase* mCurTurnPlayer;
 		int    mNumTrun;
 		bool   mbNeedShutdown;
 		bool   mIsRunning;
@@ -216,6 +228,7 @@ namespace CAR
 		int    mIdxTile;
 		int    mNumTileNeedMix;
 		bool   mbCanKeep;
+
 		std::vector< Vec2i >  mPlaceTilePosList;
 		std::vector< TileId > mTilesQueue;
 		std::vector< PlayerBase* > mPlayerOrders;
@@ -300,6 +313,15 @@ namespace CAR
 		
 		//EXP_CASTLES
 		std::vector< GermanCastleFeature* > mGermanCastles;
+
+
+		//EXP_MAGE_AND_WITCH
+		LevelActor* mMage;
+		LevelActor* mWitch;
+
+
+		//
+		bool mbUseLaPorxadaScoring;
 
 	};
 

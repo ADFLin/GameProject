@@ -276,7 +276,7 @@ namespace Voronoi
 		}
 
 		void inate(){ point = NULL; }
-		bool is() const { return point != NULL; }
+		bool isValid() const { return point != NULL; }
 		/*
 		function for comparing two events (by "y" property)
 		*/

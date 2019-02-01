@@ -36,11 +36,10 @@ namespace BomberMan
 	}
 
 
-	void LevelStage::onRestart( uint64 seed , bool beInit )
+	void LevelStage::onRestart( bool beInit )
 	{
 		mGameTime = 0;
 		setStep( STEP_READY , TimeReadyWait );
-		Global::RandSeedNet( seed );
 
 		mMode->restart( beInit );
 

@@ -4,6 +4,7 @@
 #include "CARGameplaySetting.h"
 #include "CARParamValue.h"
 #include "CARLevelActor.h"
+#include "CARPlayer.h"
 #include "CARWorldTileManager.h"
 #include "CARDebug.h"
 
@@ -99,14 +100,14 @@ namespace CAR
 		return actor;
 	}
 
-	int FeatureBase::calcScore(std::vector< FeatureScoreInfo >& scoreInfos)
+	int FeatureBase::calcScore(GamePlayerManager& playerManager , std::vector< FeatureScoreInfo >& scoreInfos)
 	{
-		initFeatureScoreInfo( scoreInfos );
+		InitFeatureScoreInfo(playerManager , scoreInfos );
 		addMajority( scoreInfos );
 		int numPlayer = evalMajorityControl( scoreInfos );
 		for( int i = 0 ; i < numPlayer ; ++i )
 		{
-			scoreInfos[i].score = calcPlayerScore( scoreInfos[i].playerId );
+			scoreInfos[i].score = calcPlayerScore( playerManager.getPlayer( scoreInfos[i].playerId ) );
 		}
 		return numPlayer;
 	}
@@ -198,10 +199,10 @@ namespace CAR
 		}
 	}
 
-	void FeatureBase::initFeatureScoreInfo(std::vector< FeatureScoreInfo > &scoreInfos)
+	void FeatureBase::InitFeatureScoreInfo(GamePlayerManager& playerManager , std::vector< FeatureScoreInfo > &scoreInfos)
 	{
-		scoreInfos.resize( MaxPlayerNum );
-		for( int i = 0 ; i < MaxPlayerNum ; ++i )
+		scoreInfos.resize(playerManager.getPlayerNum());
+		for( int i = 0 ; i < scoreInfos.size(); ++i )
 		{
 			scoreInfos[i].playerId = i;
 			scoreInfos[i].majority = 0;
@@ -329,7 +330,7 @@ namespace CAR
 		return result;
 	}
 
-	void SideFeature::generateRoadLinkFeatures( GroupSet& outFeatures )
+	void SideFeature::generateRoadLinkFeatures(GroupSet& outFeatures)
 	{
 		for( int i = 0 ; i < nodes.size() ; ++i )
 		{
@@ -435,7 +436,7 @@ namespace CAR
 		return openCount == 0;
 	}
 
-	int RoadFeature::calcPlayerScore(int playerId)
+	int RoadFeature::calcPlayerScore(PlayerBase* player)
 	{
 		int numTile = mapTiles.size();
 
@@ -457,6 +458,7 @@ namespace CAR
 	CityFeature::CityFeature()
 	{
 		haveCathedral = false;
+		haveLaPorxada = false;
 		isCastle = false;
 	}
 
@@ -474,10 +476,8 @@ namespace CAR
 		assert( other.type == type );
 		CityFeature& otherData = static_cast< CityFeature& >( other );
 		MergeData( linkedFarms , otherData.linkedFarms );
-		for( std::set< FarmFeature* >::iterator iter = otherData.linkedFarms.begin() , itEnd = otherData.linkedFarms.end();
-			iter != itEnd ; ++iter )
+		for( FarmFeature* farm : otherData.linkedFarms )
 		{
-			FarmFeature* farm = *iter;
 			farm->linkedCities.erase( &otherData );
 		}
 	}
@@ -493,6 +493,14 @@ namespace CAR
 				haveCathedral = true;
 			}
 		}
+
+		if( mSetting->have(Rule::eLaPorxada) )
+		{
+			if( mapData.have(TileContent::eLaPorxada) )
+			{
+				haveLaPorxada = true;
+			}
+		}
 	}
 
 	bool CityFeature::checkComplete()
@@ -500,7 +508,7 @@ namespace CAR
 		return openCount == 0 && halfSepareteCount == 0;
 	}
 
-	int CityFeature::calcPlayerScore( int playerId )
+	int CityFeature::calcPlayerScore(PlayerBase* player)
 	{
 		int numTile = mapTiles.size();
 		int factor = CAR_PARAM_VALUE(NonCompleteFactor);
@@ -518,7 +526,7 @@ namespace CAR
 				pennatFactor = 0;
 			}
 		}
-		else if ( checkComplete() )
+		else if ( checkComplete() || (getSetting().have(Rule::eLaPorxada) && player && player->getFieldValue(FieldType::eLaPorxadaFinishScoring)) )
 		{
 			factor = CAR_PARAM_VALUE(CityFactor);
 			pennatFactor = CAR_PARAM_VALUE(PennatFactor);
@@ -543,11 +551,11 @@ namespace CAR
 		return true;
 	}
 
-	int CityFeature::calcScore(std::vector< FeatureScoreInfo >& scoreInfos)
+	int CityFeature::calcScore( GamePlayerManager& playerManager , std::vector< FeatureScoreInfo >& scoreInfos )
 	{
 		if ( isCastle )
 			return -1;
-		return BaseClass::calcScore( scoreInfos );
+		return BaseClass::calcScore( playerManager , scoreInfos );
 	}
 
 	FarmFeature::FarmFeature()
@@ -557,7 +565,7 @@ namespace CAR
 
 	int FarmFeature::getActorPutInfo(int playerId , int posMeta , MapTile& mapTile, std::vector< ActorPosInfo >& outInfo)
 	{
-		if ( haveActorMask( BIT( ActorType::eBarn ) ) )
+		if ( haveActorFromType( BIT( ActorType::eBarn ) ) )
 			return 0;
 		unsigned actorMasks[DefaultActorMaskNum] = { 0 , BIT( ActorType::ePig ) , 0};
 		return getDefaultActorPutInfo( playerId , ActorPos( ActorPos::eFarmNode , posMeta ) , mapTile , actorMasks , outInfo );
@@ -571,10 +579,8 @@ namespace CAR
 		int idx = nodes.size();
 		MergeData( nodes , otherData.nodes );
 		MergeData( linkedCities , otherData.linkedCities );
-		for( std::set< CityFeature* >::iterator iter = otherData.linkedCities.begin() , itEnd = otherData.linkedCities.end();
-			iter != itEnd ; ++iter )
+		for( CityFeature* city : otherData.linkedCities )
 		{
-			CityFeature* city = *iter;
 			city->linkedFarms.erase( &otherData );
 		}
 		for( int i = idx ; i < nodes.size() ; ++i )
@@ -598,7 +604,7 @@ namespace CAR
 		}
 	}
 
-	int FarmFeature::calcPlayerScore( int playerId )
+	int FarmFeature::calcPlayerScore(PlayerBase* player)
 	{
 		int factor = CAR_PARAM_VALUE(FarmFactorV3);
 		switch ( mSetting->getFarmScoreVersion() )
@@ -611,11 +617,11 @@ namespace CAR
 		if ( haveBarn )
 			factor += CAR_PARAM_VALUE(BarnAddtionFactor);
 
-		return calcPlayerScoreInternal(playerId, factor);
+		return calcPlayerScoreInternal(player, factor);
 
 	}
 
-	int FarmFeature::calcScore(std::vector< FeatureScoreInfo >& scoreInfos)
+	int FarmFeature::calcScore(GamePlayerManager& playerManager , std::vector< FeatureScoreInfo >& scoreInfos)
 	{
 		switch( mSetting->getFarmScoreVersion() )
 		{
@@ -624,23 +630,21 @@ namespace CAR
 			return -1;
 		case 3:
 		default:
-			return BaseClass::calcScore( scoreInfos );
+			return BaseClass::calcScore(playerManager , scoreInfos );
 			break;
 		}
 
 		return 0;
 	}
 
-	int FarmFeature::calcPlayerScoreInternal(int playerId, int farmFactor)
+	int FarmFeature::calcPlayerScoreInternal( PlayerBase* player , int farmFactor)
 	{
 		int factor = farmFactor;
 		int numCityFinish = 0;
 		int numCastle = 0;
 
-		for( std::set< CityFeature* >::iterator iter = linkedCities.begin() , itEnd = linkedCities.end();
-			iter != itEnd ; ++iter )
+		for( CityFeature* city : linkedCities )
 		{
-			CityFeature* city = *iter;
 			if ( city->checkComplete() )
 			{
 				++numCityFinish;
@@ -651,16 +655,16 @@ namespace CAR
 
 		if ( mSetting->have(Rule::ePig) )
 		{
-			if ( havePlayerActor( playerId , ActorType::ePig ) )
+			if ( player && havePlayerActor(player->getId(), ActorType::ePig ) )
 				factor += CAR_PARAM_VALUE(PigAdditionFactor);
 		}
 
 		return numCityFinish * factor + numCastle;
 	}
 
-	int FarmFeature::calcPlayerScoreByBarnRemoveFarmer(int playerId)
+	int FarmFeature::calcPlayerScoreByBarnRemoveFarmer(PlayerBase* player)
 	{
-		return calcPlayerScoreInternal( playerId , (haveBarn)?(CAR_PARAM_VALUE(BarnRemoveFarmerFactor) ):(CAR_PARAM_VALUE(FarmFactorV3) ) );
+		return calcPlayerScoreInternal( player , (haveBarn)?(CAR_PARAM_VALUE(BarnRemoveFarmerFactor) ):(CAR_PARAM_VALUE(FarmFactorV3) ) );
 	}
 
 	CloisterFeature::CloisterFeature()
@@ -679,7 +683,7 @@ namespace CAR
 		return;
 	}
 
-	int CloisterFeature::calcPlayerScore( int playerId )
+	int CloisterFeature::calcPlayerScore(PlayerBase* player)
 	{
 		int result = ( neighborTiles.size() + 1 ) * CAR_PARAM_VALUE( CloisterFactor );
 		if ( checkComplete() )
@@ -699,7 +703,7 @@ namespace CAR
 		return result;
 	}
 
-	int CloisterFeature::calcScore(std::vector< FeatureScoreInfo >& scoreInfos)
+	int CloisterFeature::calcScore(GamePlayerManager& playerManager , std::vector< FeatureScoreInfo >& scoreInfos)
 	{
 		for( int i = 0 ; i < mActors.size() ; ++i )
 		{
@@ -712,7 +716,7 @@ namespace CAR
 				scoreInfos.resize(1);
 				scoreInfos[0].playerId = actor->ownerId;
 				scoreInfos[0].majority = majority;
-				scoreInfos[0].score = calcPlayerScore(scoreInfos[0].playerId);
+				scoreInfos[0].score = calcPlayerScore( playerManager.getPlayer(scoreInfos[0].playerId) );
 				return 1;
 			}
 		}
@@ -777,7 +781,7 @@ namespace CAR
 		return;
 	}
 
-	int GermanCastleFeature::calcPlayerScore( int playerId )
+	int GermanCastleFeature::calcPlayerScore(PlayerBase* player)
 	{
 		int result = ( neighborTiles.size() + 1 ) * CAR_PARAM_VALUE(CloisterFactor);
 		if ( checkComplete() )
@@ -797,7 +801,7 @@ namespace CAR
 		return result;
 	}
 
-	int GermanCastleFeature::calcScore(std::vector< FeatureScoreInfo >& scoreInfos)
+	int GermanCastleFeature::calcScore( GamePlayerManager& playerManager , std::vector< FeatureScoreInfo >& scoreInfos)
 	{
 		for( int i = 0 ; i < mActors.size() ; ++i )
 		{
@@ -810,7 +814,7 @@ namespace CAR
 				scoreInfos.resize(1);
 				scoreInfos[0].playerId = actor->ownerId;
 				scoreInfos[0].majority = majority;
-				scoreInfos[0].score = calcPlayerScore( actor->ownerId );
+				scoreInfos[0].score = calcPlayerScore( playerManager.getPlayer(actor->ownerId) );
 				return 1;
 			}
 		}

@@ -87,7 +87,7 @@ class IReplayInput : public IActionInput
 public:
 	virtual ~IReplayInput(){}
 	virtual void          restart() = 0;
-	virtual bool          is() = 0;
+	virtual bool          isValid() = 0;
 	virtual bool          isPlayEnd() = 0;
 	virtual bool          load( char const* path ) = 0;
 	virtual ReplayBase&   getReplay() = 0;
@@ -114,7 +114,7 @@ public:
 	void clear();
 
 	void resetTrackPos();
-	bool is();
+	bool isValid();
 
 protected:
 
@@ -163,7 +163,7 @@ public:
 	TINY_API ~ReplayInput();
 
 	void    restart();
-	bool    is();
+	bool    isValid();
 	bool    isPlayEnd();
 	bool    load( char const* path );
 	bool    scanInput( bool beUpdateFrame );
@@ -189,7 +189,7 @@ namespace OldVersion
 		static uint32 const LastVersion = MAKE_VERSION(0,0,2);
 		TINY_API Replay();
 
-		bool   is();
+		bool   isValid();
 		bool   save( char const* path );
 		bool   load( char const* path );
 
@@ -258,7 +258,7 @@ namespace OldVersion
 		void     restart();
 		bool     isPlayEnd();
 		bool     load( char const* path );
-		bool     is();
+		bool     isValid();
 
 		Replay&   getReplay(){  return mReplay;  }
 	private:

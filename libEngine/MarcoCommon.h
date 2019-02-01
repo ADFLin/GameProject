@@ -2,6 +2,8 @@
 #ifndef MarcoCommon_H_5F8ACEA8_F34E_4CAA_9C04_F663367A6F07
 #define MarcoCommon_H_5F8ACEA8_F34E_4CAA_9C04_F663367A6F07
 
+#include "Core/IntegerType.h"
+
 #ifndef BIT
 #define BIT( n ) ( 1 << ( n ) )
 #endif 
@@ -25,8 +27,9 @@ size_t array_size(T(&ar)[N]) { return N; }
 # define ANONYMOUS_VARIABLE(str) MARCO_NAME_COMBINE_2(str, __LINE__)
 #endif 
 
-#define MAKE_VERSION( a , b , c ) ( ( unsigned char(a)<< 24 ) | ( unsigned char(b)<< 16 ) | unsigned short(c) )
+#define MAKE_VERSION( a , b , c ) ( uint32( uint8(a)<< 24 ) | uint32( uint8(b)<< 16 ) | uint32(uint16(c)) )
 
+#define MAKE_MAGIC_ID(a,b,c,d) ( (uint32(d)<<24) | (uint32(c)<<16) | (uint32(b)<<8) | (a) )
 
 #define CHECK( EXPR ) assert( EXPR )
 #define NEVER_REACH( STR ) assert( !STR )

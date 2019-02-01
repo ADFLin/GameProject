@@ -62,7 +62,7 @@ class INetFrameGenerator : public IActionListener
 {
 public:
 	//ActionListener
-	virtual void onScanActionStart( bool bUpdateFrame ){}
+	virtual void  onScanActionStart( bool bUpdateFrame ){}
 	virtual void  onFireAction( ActionParam& param ) = 0;
 	virtual void  onScanActionEnd(){}
 
@@ -224,6 +224,7 @@ public:
 		DataSerializer serializer(dataStream);
 		KeyFrameData fd;
 		serializer.read( fd );
+
 
 		unsigned dataPos = mPortDataMap[ fd.port ];
 		mFrameData[ dataPos ].keyActBit |= fd.keyActBit;

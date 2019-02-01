@@ -26,11 +26,11 @@ namespace Poker { namespace Holdem {
 	public:
 		LevelStage();
 
-		void buildServerLevel( GameLevelInfo& info );
+		void buildServerLevel(GameLevelInfo& info);
 		void setupScene( IPlayerManager& playerManager );
 		void setupLocalGame( LocalPlayerManager& playerManager );
 
-		void onRestart( uint64 seed , bool beInit );
+		void onRestart( bool beInit );
 		void onEnd();
 		void onRender( float dFrame );
 		void tick();

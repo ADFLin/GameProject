@@ -57,10 +57,16 @@ namespace CAR
 			eBazaar          = BIT(8) , //EXP_BRIDGES_CASTLES_AND_BAZAARS
 			eHill            = BIT(9) , //EXP_HILLS_AND_SHEEP
 			eVineyard        = BIT(10), //EXP_HILLS_AND_SHEEP
-			eHalfling        = BIT(11),
-
+			eHalfling        = BIT(11), //EXP_HALFLINGS_I EXP_HALFLINGS_II
+			eLaPorxada       = BIT(12), //EXP_LA_PORXADA
+			eMage            = BIT(13), //EXP_MAGE_AND_WITCH
+			eGold            = BIT(14), //EXP_GOLDMINES
+			eFlyMachine      = BIT(15), //EXP_THE_FLY_MACHINES
+			eCropCirclePitchfork = BIT(16),
+			eCropCircleClub      = BIT(17),
+			eCropCircleShield    = BIT(18),
 			//runtime
-			eTemp            = BIT(12) ,
+			eTemp            = BIT(31) ,
 		};
 
 		static unsigned const FeatureMask = eCloister;
@@ -92,11 +98,14 @@ namespace CAR
 			eTile     ,
 			eTower    ,
 			eTileCorner ,
+			eNone ,
 		};
 		ActorPos( Enum aType , int aMeta )
 			:type( aType ),meta( aMeta ){}
 		ActorPos(){}
 
+		static ActorPos None() { return ActorPos(eNone, 0); }
+		static ActorPos Tile() { return ActorPos(eTile, 0); }
 		Enum type;
 		int  meta;
 
@@ -134,7 +143,7 @@ namespace CAR
 
 		NUM_ACTOR_TYPE  ,
 		NUM_PLAYER_ACTOR_TYPE = eDragon ,
-		eNone,
+		eNone = -1,
 	};
 
 	struct FieldType
@@ -158,8 +167,19 @@ namespace CAR
 			eTileIdAuctioned ,
 			//EXP_CASTLES
 			eGermanCastleTiles ,
+			//EXP_GOLDMINES
+			eGoldPieces ,
 			//EXP_HALFLINGS_I && EXP_HALFLINGS_II
 			eHalflingTiles ,
+			//EXP_LA_PORXADA
+			eLaPorxadaFinishScoring ,
+			//EXP_THE_MESSSAGES
+			eWomenScore ,
+
+			//EXP_LITTLE_BUILDINGS
+			eTowerBuildingTokens,
+			eHouseBuildingTokens,
+			eShedBuildingTokens,
 
 			NUM,
 		};
@@ -185,6 +205,21 @@ namespace CAR
 		eFour ,
 		
 		Num ,
+	};
+
+	namespace EMessageTile
+	{
+		enum Type
+		{
+			ScoreSmallestRoad,
+			ScoreSmallestCity,
+			ScoreSmallestCloister,
+			TwoPointsForEachPennant ,
+			TwoPointsForEachKnight ,
+			TwoPointsForEachFarmer ,
+			OneTile ,
+			ScoreAFollowerAndRemove ,
+		};
 	};
 
 	struct ActorInfo

@@ -17,23 +17,18 @@ namespace CAR
 		return false;
 	}
 
-	unsigned ActorContainer::getPlayerActorTypeMask( unsigned playerMask )
+	unsigned ActorContainer::getPlayerActorTypeMask( unsigned playerMask ) const
 	{
 		unsigned result = 0;
 		int idx = 0;
-		while ( LevelActor* actor = iteratorActorMask( playerMask , idx ) )
+		while ( LevelActor* actor = iteratorActorFromPlayer( playerMask , idx ) )
 		{ 
 			result |= BIT(actor->type);
 		}
 		return result;
 	}
 
-	bool ActorContainer::havePlayerActor(int playerId , ActorType type)
-	{
-		return havePlayerActorMask( BIT(playerId) , BIT(type) );
-	}
-
-	LevelActor* ActorContainer::iteratorActorMask(unsigned playerMask , int& iter)
+	LevelActor* ActorContainer::iteratorActorFromPlayer(unsigned playerMask , int& iter) const
 	{
 		for( ; iter < mActors.size() ; ++iter )
 		{
@@ -49,7 +44,20 @@ namespace CAR
 		return nullptr;
 	}
 
-	LevelActor* ActorContainer::iteratorActorMask(unsigned playerMask , unsigned actorTypeMask , int& iter)
+	LevelActor* ActorContainer::iteratorActorFromType( unsigned actorTypeMask, int& iter) const
+	{
+		for( ; iter < mActors.size(); ++iter )
+		{
+			LevelActor* actor = mActors[iter];
+			if( (actorTypeMask & BIT(actor->type)) == 0 )
+				continue;
+			++iter;
+			return actor;
+		}
+		return nullptr;
+	}
+
+	LevelActor* ActorContainer::iteratorActor(unsigned playerMask , unsigned actorTypeMask , int& iter)  const
 	{
 		for( ; iter < mActors.size() ; ++iter )
 		{
@@ -67,28 +75,24 @@ namespace CAR
 		return nullptr;
 	}
 
-	bool ActorContainer::havePlayerActorMask(unsigned playerMask , unsigned actorTypeMask )
+
+	LevelActor* ActorContainer::findActor(unsigned playerMask, unsigned actorTypeMask) const
 	{
-		int idx = 0;
-		while( LevelActor* actor = iteratorActorMask(playerMask, idx) )
-		{
-			if ( BIT( actor->type ) & actorTypeMask )
-				return true;
-		}
-		return false;
+		int iter = 0;
+		return iteratorActor(playerMask, actorTypeMask, iter);
 	}
 
-	bool ActorContainer::haveActorMask(unsigned actorTypeMask)
+	LevelActor* ActorContainer::findActorFromType(unsigned actorTypeMask) const
 	{
-		for(int idx = 0; idx < mActors.size(); ++idx )
-		{
-			LevelActor* actor = mActors[idx];
-			if ( BIT( actor->type ) & actorTypeMask )
-				return true;
-		}
-		return false;
+		int iter = 0;
+		return iteratorActorFromType(actorTypeMask, iter);
 	}
 
+	LevelActor* ActorContainer::findActorFromPlayer(unsigned playerMask) const
+	{
+		int iter = 0;
+		return iteratorActorFromPlayer(playerMask, iter);
+	}
 
 	LevelActor* ActorContainer::popActor()
 	{
@@ -99,30 +103,13 @@ namespace CAR
 		return actor;
 	}
 
-	LevelActor* ActorContainer::findActor(unsigned playerMask , unsigned actorTypeMask)
-	{
-		int iter = 0;
-		return iteratorActorMask( playerMask , actorTypeMask , iter );
-	}
-
-	LevelActor* ActorContainer::findActor(unsigned actorTypeMask)
-	{
-		int iter = 0;
-		for( ; iter < mActors.size() ; ++iter )
-		{
-			LevelActor* actor = mActors[iter];
-			if (( actorTypeMask & BIT(actor->type) ) == 0 )
-				continue;
-			return actor;
-		}
-		return nullptr;
-	}
 
 	LevelActor* LevelActor::popFollower()
 	{
 		if ( followers.empty() )
 			return nullptr;
 		LevelActor* actor = followers.back();
+		assert(actor->binder == this);
 		followers.pop_back();
 		actor->binder = nullptr;
 		return actor;

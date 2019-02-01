@@ -6,6 +6,7 @@
 
 #include "CARWorldTileManager.h"
 #include "CARGameplaySetting.h"
+#include "CARPlayer.h"
 #include "CARGameLogic.h"
 #include "CARDebug.h"
 #include "CARGameInputImpl.h"
@@ -107,6 +108,15 @@ namespace CAR
 	public:
 	};
 
+
+	class NetGameRandom : public GameRandom
+	{
+	public:
+		int getInt()
+		{
+			return ::Global::RandomNet();
+		}
+	};
 	class LevelStage : public GameStageBase
 		             , public IGameEventListener
 	{
@@ -119,7 +129,7 @@ namespace CAR
 
 
 
-		virtual void onRestart(uint64 seed, bool bInit);
+		virtual void onRestart(bool bInit);
 		virtual void onRender( float dFrame );
 		virtual bool onWidgetEvent(int event , int id , GWidget* ui);
 		virtual bool onKey( unsigned key , bool isDown );
@@ -131,10 +141,14 @@ namespace CAR
 		{
 			info.seed = 10;
 		}
+		virtual void setupLevel(GameLevelInfo const& info) override
+		{
+			Global::RandSeedNet(info.seed);
+		}
 
 		virtual void setupLocalGame( LocalPlayerManager& playerManager );
 		virtual void setupScene( IPlayerManager& playerManager );
-
+		
 		void tick();
 
 		void updateFrame( int frame )
@@ -207,6 +221,9 @@ namespace CAR
 		void cleanupGameData( bool bEndStage );
 
 
+
+
+
 	protected:
 
 
@@ -217,6 +234,7 @@ namespace CAR
 		GameLogic         mGameLogic;
 		GamePlayerManager mPlayerManager;
 		GameplaySetting   mSetting;
+		NetGameRandom     mRandom;
 
 		IDataTransfer*    mServerDataTranfser;
 

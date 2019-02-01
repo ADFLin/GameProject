@@ -18,6 +18,9 @@ namespace Flow
 		mLevel.setSize(Vec2i(10, 10));
 		mLevel.addSource(Vec2i(0, 0), 1);
 		mLevel.addSource(Vec2i(8, 8), 1);
+
+		mLevel.addSource(Vec2i(0, 3), 2);
+		mLevel.addSource(Vec2i(3, 3), 2);
 	}
 
 	Vec2i TestStage::ToScreenPos(Vec2i const& cellPos)
@@ -69,6 +72,7 @@ namespace Flow
 					RenderUtility::SetBrush(g, ColorMap[cell.funMeta]);
 					g.drawCircle( posCellLT + Vec2i(CellLength, CellLength) / 2, FlowSourceRadius );
 					break;
+				case CellFun::Bridge:
 				default:
 					break;
 				}
@@ -80,7 +84,6 @@ namespace Flow
 
 					RenderUtility::SetPen(g, ColorMap[cell.colors[dir]]);
 					RenderUtility::SetBrush(g, ColorMap[cell.colors[dir]]);
-
 
 					switch( dir )
 					{

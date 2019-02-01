@@ -158,15 +158,13 @@ enum GameAction
 	ACT_BUTTON2 = 2,
 };
 
-class  GameController : public IActionInput
+class  GameController
 {
 public:
-	//ActionInput
-	virtual bool  scanInput( bool beUpdateFrame ) = 0;
-	virtual bool  checkAction( ActionParam& param  ) = 0;
+	virtual void  setupInput(ActionProcessor& proccessor) = 0;
 
 	virtual void  blockAllAction( bool beB ) = 0;
-	virtual bool  haveLockMouse(){ return false;  }
+	virtual bool  shouldLockMouse(){ return false;  }
 
 	virtual void  setPortControl( unsigned port , unsigned cID ) = 0;
 	virtual void  setKey( unsigned cID , ControlAction action , unsigned key ) = 0;
@@ -180,11 +178,12 @@ public:
 
 
 class  SimpleController : public GameController
+	                    , public IActionInput
 {
 public:
 	TINY_API SimpleController();
 
-	
+
 	TINY_API void  clearAllKey();
 	TINY_API void  initKey( ControlAction act , int sen , uint8 key0 , uint8 key1 = 0xff );
 	TINY_API void  setKey( unsigned cID , ControlAction action , unsigned key );
@@ -218,6 +217,11 @@ protected:
 	TINY_API bool      checkActionKey( ActionParam& param );
 	TINY_API virtual bool checkAction( ActionParam& param ){ return checkActionKey( param ); }
 	TINY_API virtual bool scanInput( bool beUpdateFrame );
+
+	virtual void  setupInput(ActionProcessor& proccessor)
+	{
+		proccessor.addInput(*this);
+	}
 
 private:	
 

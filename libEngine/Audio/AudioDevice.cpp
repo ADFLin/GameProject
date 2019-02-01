@@ -1,5 +1,6 @@
 #include "AudioDevice.h"
 
+#include "MarcoCommon.h"
 #include <cassert>
 
 void SoundDSP::addInstance(uint64 hash, SoundWave& soundwave)
@@ -284,8 +285,6 @@ bool LoadWaveFile(char const* path, WaveFormatInfo& waveInfo, std::vector< uint8
 
 	WaveChunkHeader chunkHeader;
 	fs.read((char*)&chunkHeader, sizeof(chunkHeader));
-
-#define MAKE_MAGIC_ID(a,b,c,d) ( (int)(d)<<24 | (int)(c)<<16 | (b)<<8 | (a) )
 
 	if( chunkHeader.id != MAKE_MAGIC_ID('R', 'I', 'F', 'F') )
 		return false;

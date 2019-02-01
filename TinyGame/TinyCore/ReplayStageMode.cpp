@@ -279,10 +279,15 @@ bool ReplayStageMode::postStageInit()
 
 	::Global::GUI().cleanupWidget();
 
-	stage->setupScene(*mPlayerManager.get());
-
 	if( actionTemplate )
 		actionTemplate->setupPlayer(*mPlayerManager);
+
+
+	//GameLevelInfo info;
+	//mReplayInput->getLevelInfo(info);
+	
+	stage->setupScene(*mPlayerManager.get());
+
 
 	AttribValue attrPos(ATTR_REPLAY_UI_POS);
 	if( !stage->getAttribValue(attrPos) )
@@ -327,7 +332,7 @@ bool ReplayStageMode::postStageInit()
 	button->setTitle(">>");
 	//
 
-	restartImpl(true);
+	restart(true);
 	return true;
 }
 
@@ -349,7 +354,7 @@ void ReplayStageMode::onEnd()
 
 void ReplayStageMode::updateTime(long time)
 {
-	if( !mReplayInput->is() )
+	if( !mReplayInput->isValid() )
 		return;
 
 	if( mReplayInput->isPlayEnd() )
@@ -406,7 +411,7 @@ bool ReplayStageMode::onWidgetEvent(int event, int id, GWidget* ui)
 	switch( id )
 	{
 	case UI_REPLAY_RESTART:
-		restartImpl(true);
+		restart(false);
 		return false;
 	case UI_REPLAY_TOGGLE_PAUSE:
 		assert(event == EVT_BUTTON_CLICK);

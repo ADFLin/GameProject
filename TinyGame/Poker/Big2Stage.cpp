@@ -60,11 +60,8 @@ namespace Poker { namespace Big2 {
 		mScene->updateFrame( frame );
 	}
 
-	void LevelStage::onRestart( uint64 seed , bool beInit )
+	void LevelStage::onRestart( bool beInit )
 	{
-		if ( beInit )
-			::Global::RandSeedNet( seed );
-
 		if ( mServerLevel )
 			mServerLevel->restrat( mRand , beInit );
 

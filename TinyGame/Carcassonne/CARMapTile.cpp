@@ -11,6 +11,7 @@ namespace CAR
 		,userData(nullptr)
 		,towerHeight(0)
 		,bridgeMask(0)
+		,goldPices(0)
 		,group(-1)
 		,haveHill( false )
 		,mergedTileId { FAIL_TILE_ID , FAIL_TILE_ID }

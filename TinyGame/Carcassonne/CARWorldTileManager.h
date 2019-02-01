@@ -36,7 +36,7 @@ namespace CAR
 			eCommon ,
 			eRiver ,
 			eGermanCastle ,
-
+			eTest ,
 			NumGroup ,
 		};
 		Expansion      expansions;
@@ -49,6 +49,8 @@ namespace CAR
 	};
 
 	typedef std::vector< TileId > TileIdVec;
+
+
 	class TileSetManager
 	{
 	public:
@@ -56,9 +58,7 @@ namespace CAR
 		~TileSetManager();
 
 		void  addExpansion(Expansion exp);
-
-		bool  haveUse(Expansion exp) const { return (mUsageExpansionMask & BIT(exp)) != 0; }
-		void  import( ExpansionContent const& content );
+		void  importData(ExpansionContent const& content, Expansion exp = EXP_NONE);
 		
 		TileSet const& getTileSet( TileId tileId ) const {  return mTileMap[ tileId ];  }
 
@@ -73,7 +73,7 @@ namespace CAR
 
 	private:
 		void     setupTile( TilePiece& tile , TileDefine const& tileDef );
-		TileSet& createSingleTileSet( TileDefine const& tileDef );
+		TileSet& createSingleTileSet( TileDefine const& tileDef , TileSet::EGroup group = TileSet::eCommon );
 		TileSet& createDoubleTileSet(TileDefine const tileDef[] , TileSet::EGroup group );
 		unsigned calcFarmSideLinkMask( unsigned linkMask );
 		
@@ -92,7 +92,7 @@ namespace CAR
 
 		void init()
 		{
-			usageBridge = false;
+			canUseBridge = false;
 			checkRiverConnect = false;
 			checkRiverDirection = true;
 			checkDontNearSameTag = false;
@@ -100,13 +100,21 @@ namespace CAR
 			idxTileUseBridge = -1;
 		}
 
-		uint8 usageBridge : 1;
+		uint8 canUseBridge : 1;
 		uint8 checkRiverConnect : 1;
 		uint8 checkRiverDirection: 1;
 		uint8 checkDontNearSameTag : 1;
 
 		int   dirNeedUseBridge;
 		int   idxTileUseBridge;
+	};
+
+
+	struct TilePlacePos
+	{
+		Vec2i location;
+		uint8 dirMask;
+		uint8 requireBridgeMask;
 	};
 
 	class WorldTileManager

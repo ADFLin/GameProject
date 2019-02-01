@@ -50,7 +50,7 @@ struct FCString
 	template< int N >
 	static int    PrintfV(char(&str)[N], char const* fmt, va_list al) { return ::vsprintf_s(str, fmt, al); }
 	template< int N >
-	static void   PrintfV(wchar_t(&str)[N], wchar_t const* fmt, va_list al) { ::vswprintf_s(str, fmt, al); }
+	static int    PrintfV(wchar_t(&str)[N], wchar_t const* fmt, va_list al) { ::vswprintf_s(str, fmt, al); }
 
 	template< int N >
 	static void   Copy(char(&dst)[N], char const* src) { ::strcpy_s(dst, src); }
@@ -112,18 +112,19 @@ struct FCString
 	};
 
 	template< class CharT , int N , class ...Args>
-	static void  PrintfT(CharT(&str)[N], CharT const* fmt, Args&& ...args)
+	static int  PrintfT(CharT(&str)[N], CharT const* fmt, Args&& ...args)
 	{
 		static_assert(Meta::And< TIsValidFormatType< Args >... >::Value == true , "Arg Type Error");
-		FCString::PrintfImpl(str, fmt, args...);
+		return FCString::PrintfImpl(str, fmt, args...);
 	}
 	template< class CharT, int N>
-	static void  PrintfImpl(CharT(&str)[N], CharT const* fmt, ...)
+	static int  PrintfImpl(CharT(&str)[N], CharT const* fmt, ...)
 	{
 		va_list argptr;
 		va_start(argptr, fmt);
-		FCString::PrintfV(str, fmt, argptr);
+		int result = FCString::PrintfV(str, fmt, argptr);
 		va_end(argptr);
+		return result;
 	}
 
 	static void Stricpy(char * dest, char const* src);

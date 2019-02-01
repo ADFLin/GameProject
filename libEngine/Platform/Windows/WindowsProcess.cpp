@@ -131,7 +131,7 @@ DWORD FPlatformProcess::FindPIDByName(TCHAR const* name)
 	{
 		while( Process32Next(hSnapshot, &entry) == TRUE )
 		{
-			if( FCString::Compare(entry.szExeFile, name) == 0 )
+			if( FCString::CompareIgnoreCase(entry.szExeFile, name) == 0 )
 			{
 				result = entry.th32ProcessID;
 				break;

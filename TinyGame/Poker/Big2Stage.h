@@ -35,7 +35,7 @@ namespace Poker { namespace Big2 {
 			UI_TEST_PASS ,
 			UI_NEXT_ROUND ,
 		};
-		void onRestart( uint64 seed , bool beInit );
+		void onRestart( bool beInit );
 		bool onInit();
 		void onEnd();
 		void onRender( float dFrame );

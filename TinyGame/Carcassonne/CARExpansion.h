@@ -1,8 +1,8 @@
-#ifndef CARExpansion_h__
-#define CARExpansion_h__
+#pragma once
+#ifndef CARExpansion_H_2FF2081E_ECAB_4679_AEA1_97373D6DAFB8
+#define CARExpansion_H_2FF2081E_ECAB_4679_AEA1_97373D6DAFB8
 
 #include "CARDefine.h"
-#include "CARGameplaySetting.h"
 
 #include "Template/ArrayView.h"
 
@@ -27,14 +27,90 @@ namespace CAR
 		EXP_CASTLES,                     //?T ?CastleTile ?RoadCityScoring ?CastleFeature
 		EXP_PHANTOM,
 
+		EXP_ABBOT ,
+		EXP_CROP_CIRCLE_I,
+		EXP_CROP_CIRCLE_II,
+		EXP_THE_FLY_MACHINES,
+		EXP_GOLDMINES,
+
 		EXP_HALFLINGS_I ,                //?T
  		EXP_HALFLINGS_II ,               //?T
 
+		EXP_LA_PORXADA ,
+		EXP_LITTLE_BUILDINGS ,
+		EXP_MAGE_AND_WITCH ,
+		EXP_THE_MESSSAGES ,
+
+		NUM_EXPANSIONS,
+
+		EXP_NONE ,
 		EXP_BASIC,
 		EXP_TEST,
-		NUM_EXPANSIONS,
 	};
 
+	enum GameRule
+	{
+		eHardcore,
+
+		eSmallCity,
+		eDoubleTurnDrawImmediately,
+		eCantMoveFairy,
+		ePrincessTileMustRemoveKnightOrBuilder,
+		eMoveDragonBeforeScoring,
+		eTowerCaptureEverything,
+	};
+
+	enum class Rule
+	{
+		eInn,
+		eCathedral,
+		eBigMeeple,
+		eBuilder,
+		eTraders,
+		ePig,
+		eKingAndRobber,
+		ePrinecess,
+		eDragon,
+		eFariy,
+		eTower,
+
+		eWagon,
+		eMayor,
+		eBarn,
+		ePhantom,
+		eAbbot,
+
+		eUseHill,
+		eShepherdAndSheep,
+		eBazaar,
+		eBridge,
+		eLaPorxada,
+		eCastleToken,
+		eUseVineyard,
+		eLittleBuilding,
+		eMageAndWitch,
+		eMessage ,
+		eGold ,
+		eFlyMahine ,
+		eCropCircle ,
+		
+
+		eHaveGermanCastleTile,
+		eHaveAbbeyTile,
+		eHaveRiverTile,
+		eHaveHalflingTile,
+
+		//////////////
+		eHardcore,
+		eSmallCity,
+		eDoubleTurnDrawImmediately,
+		eCantMoveFairy,
+		ePrincessTileMustRemoveKnightOrBuilder,
+		eMoveDragonBeforeScoring,
+		eTowerCaptureEverything,
+
+		TotalNum,
+	};
 
 	struct TileDefine
 	{
@@ -63,4 +139,5 @@ namespace CAR
 
 }//namespace CAR
 
-#endif // CARExpansion_h__
+#endif // CARExpansion_H_2FF2081E_ECAB_4679_AEA1_97373D6DAFB8
+

@@ -120,7 +120,7 @@ namespace Voronoi
 			queue.pop();
 			mSweepY = e->point->y;
 
-			if ( e->is() )
+			if ( e->isValid() )
 			{
 				if(e->pe) 
 					InsertParabola(e->point);

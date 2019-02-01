@@ -62,7 +62,7 @@ namespace TowerDefend
 		{
 			delete mLevel;
 		}
-		virtual void onRestart( uint64 seed , bool beInit )
+		virtual void onRestart( bool beInit )
 		{
 			mLevel->restart();
 		}

@@ -62,6 +62,21 @@ namespace CAR
 		GameplaySetting* mSetting;
 	};
 
+
+	class GamePlayerManager
+	{
+	public:
+		GamePlayerManager();
+		int         getPlayerNum() { return mNumPlayer; }
+		PlayerBase* getPlayer(int id) { assert(id != CAR_ERROR_PLAYER_ID); return mPlayerMap[id]; }
+		void        addPlayer(PlayerBase* player);
+		void        clearAllPlayer(bool bDelete);
+
+
+		PlayerBase* mPlayerMap[MaxPlayerNum];
+		int mNumPlayer;
+	};
+
 	template< class FieldProc >
 	void ProcessFields(GameplaySetting& setting, int numPlayer, FieldProc& proc)
 	{
@@ -138,9 +153,27 @@ namespace CAR
 		{
 
 		}
+		if( setting.have(Rule::eGold) )
+		{
+			FIELD_VALUE(FieldType::eGoldPieces, 0);
+		}
 		if( setting.have(Rule::eHaveHalflingTile) )
 		{
 
+		}
+		if( setting.have(Rule::eLaPorxada) )
+		{
+			FIELD_VALUE(FieldType::eLaPorxadaFinishScoring, 0);
+		}
+		if( setting.have(Rule::eMessage) )
+		{
+			FIELD_VALUE(FieldType::eWomenScore, 0);
+		}
+		if( setting.have(Rule::eLittleBuilding) )
+		{
+			FIELD_VALUE(FieldType::eTowerBuildingTokens, VALUE(TowerBuildingTokensPlayerOwnNum));
+			FIELD_VALUE(FieldType::eHouseBuildingTokens, VALUE(HouseBuildingTokensPlayerOwnNum));
+			FIELD_VALUE(FieldType::eShedBuildingTokens, VALUE(ShedBuildingTokensPlayerOwnNum));
 		}
 
 #undef FIELD_ACTOR

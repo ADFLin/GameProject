@@ -180,10 +180,12 @@ namespace Tetris
 		info.seed = 10;
 	}
 
-	void LevelStage::onRestart(uint64 seed, bool beInit)
+	void LevelStage::onRestart(bool beInit)
 	{
+#if 0
 		if ( beInit )
 			Global::RandSeedNet( seed );
+#endif
 
 		mGameTime = 0;
 		mWorld->restart( beInit );

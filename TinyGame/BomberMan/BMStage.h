@@ -48,7 +48,7 @@ namespace BomberMan
 		bool onInit();
 		void onEnd();
 		void onRender( float dFrame );
-		void onRestart( uint64 seed , bool beInit );
+		void onRestart( bool beInit );
 
 		void setupLocalGame( LocalPlayerManager& playerManager );
 

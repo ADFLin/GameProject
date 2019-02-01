@@ -2,6 +2,8 @@
 #define CARGameInput_h__fc0b51d0_f649_490d_8b64_f49edd2550ac
 
 #include "CARDefine.h"
+#include "CARDebug.h"
+#include "CARFeature.h"
 
 #include <vector>
 
@@ -13,12 +15,14 @@ namespace CAR
 		GameActionData()
 		{
 			playerId = -1;
+			bCanSkip = true;
 			resultSkipAction = false;
 		}
 
 		template< class T >
 		T* cast(){ return static_cast< T* >( this ); }
 		int  playerId;
+		bool bCanSkip;
 		bool resultSkipAction;
 	};
 
@@ -40,17 +44,38 @@ namespace CAR
 	enum ActionOptionGroup
 	{
 		ACTOPT_GROUP_DRAW_TILE ,
-
+		ACTOPT_GROUP_SHEPHERD ,
+		ACTOPT_GROUP_LA_PORXADA,
+		ACTOPT_GROUP_MOVE_MAGE_OR_WITCH ,
+		ACTOPT_GROUP_MESSAGE ,
+		ACTOPT_GROUP_CROP_CIRCLE ,
+		ACTOPT_GROUP_SELECT_SCORE_TYPE ,
 	};
+
 	enum AcionOption
 	{
 		//ACTOPT_GROUP_DRAW_TILE
 		ACTOPT_TILE_USE_RANDOM_TILE ,
 		ACTOPT_TILE_USE_ABBEY ,
 		ACTOPT_TILE_USE_HALFLING_TILE ,
-		//
+		//ACTOPT_GROUP_SHEPHERD
 		ACTOPT_SHEPHERD_EXPAND_THE_FLOCK ,
 		ACTOPT_SHEPHERD_HERD_THE_FLOCK_INTO_THE_STABLE ,
+		//ACTOPT_GROUP_LA_PORXADA
+		ACTOPT_LA_PORXADA_EXCHANGE_FOLLOWER_POS ,
+		ACTOPT_LA_PORXADA_SCORING ,
+		//ACTOPT_GROUP_MOVE_MAGE_OR_WITCH
+		ACTOPT_MOVE_MAGE ,
+		ACTOPT_MOVE_WITCH ,
+		//ACTOPT_GROUP_MESSAGE
+		ACTOPT_MESSAGE_PERFORM_ACTION ,
+		ACTOPT_MESSAGE_SCORE_TWO_POINTS ,
+		//ACTOPT_GROUP_CROP_CIRCLE
+		ACTOPT_CROP_CIRCLE_DEPLOY_FOLLOWER ,
+		ACTOPT_CROP_CIRCLE_REMOVE_FOLLOWER,
+		//ACTOPT_GROUP_SELECT_SCORE_TYPE
+		ACTOPT_SCORE_NORMAL ,
+		ACTOPT_SCORE_WOMEN ,
 	};
 
 
@@ -59,6 +84,42 @@ namespace CAR
 		ActionOptionGroup group;
 		std::vector< AcionOption > options;
 		unsigned resultIndex;
+
+		void validateResult(char const* actionName)
+		{
+			if( resultIndex >= options.size() )
+			{
+				CAR_LOG("Warning!! %s have error action option result Index!!", actionName);
+				resultIndex = 0;
+			}
+		}
+	};
+
+	struct GameSelectCropCircleOptionData : public GameSelectActionOptionData
+	{
+		GameSelectCropCircleOptionData()
+		{
+			group = ACTOPT_GROUP_CROP_CIRCLE;
+			options = { ACTOPT_CROP_CIRCLE_DEPLOY_FOLLOWER , ACTOPT_CROP_CIRCLE_REMOVE_FOLLOWER };
+		}
+		FeatureType::Enum cropType;
+	};
+
+	struct GameSelectMessageOptionData : public GameSelectActionOptionData
+	{
+		GameSelectMessageOptionData()
+		{
+			group = ACTOPT_GROUP_MESSAGE;
+			options = { ACTOPT_MESSAGE_PERFORM_ACTION , ACTOPT_MESSAGE_SCORE_TWO_POINTS };
+		}
+
+		int messageScore;
+		union Object
+		{
+			LevelActor* actor;
+			FeatureBase* feature;
+		};
+		std::vector<Object> objects;
 	};
 
 
@@ -68,8 +129,11 @@ namespace CAR
 		SAR_CONSTRUCT_TOWER ,
 		SAR_MOVE_DRAGON ,
 		SAR_MAGIC_PORTAL ,
+		SAR_PLACE_GOLD_PIECES ,
 		//
 		SAR_WAGON_MOVE_TO_FEATURE ,
+
+
 		//Actor
 		SAR_FAIRY_MOVE_NEXT_TO_FOLLOWER ,
 		SAR_TOWER_CAPTURE_FOLLOWER ,
@@ -78,6 +142,10 @@ namespace CAR
 		SAR_EXCHANGE_PRISONERS ,
 		//MapPos
 		SAR_PLACE_ABBEY_TILE ,
+
+		//
+		SAR_LA_PORXADA_SELF_FOLLOWER,
+		SAR_LA_PORXADA_OTHER_PLAYER_FOLLOWER,
 	};
 
 
@@ -92,9 +160,13 @@ namespace CAR
 		unsigned resultIndex;
 		unsigned numSelection;
 
-		bool canSkip() const
+		void validateResult( char const* actionName )
 		{
-			return !(BIT(reason) & (BIT(SAR_MOVE_DRAGON) | BIT(SAR_MAGIC_PORTAL) | BIT(SAR_EXCHANGE_PRISONERS)));
+			if( !checkResult() )
+			{
+				CAR_LOG("Warning!! %s have error resultIndex!!", actionName);
+				resultIndex = 0;
+			}
 		}
 
 		bool checkResult() const
@@ -132,6 +204,7 @@ namespace CAR
 	{
 	public:
 	};
+
 	struct GameFeatureTileSelectData : public GameSelectMapTileData
 	{
 		struct Info
@@ -140,17 +213,11 @@ namespace CAR
 			int index;
 			int num;
 		};
+
+		void fill(std::vector<FeatureBase*> const& linkFeatures , std::vector<MapTile*>& mapTileStorage , bool bCheckCanDeployFollower );
+
 		std::vector< Info > infos;
-		FeatureBase* getResultFeature()
-		{
-			for( int i = 0 ;i < infos.size() ; ++i )
-			{
-				Info& info = infos[i];
-				if ( resultIndex < (unsigned)(info.index + info.num) )
-					return info.feature;
-			}
-			return nullptr;
-		}
+		FeatureBase* getResultFeature();
 	};
 
 	struct GameAuctionTileData : public GameActionData
@@ -171,6 +238,13 @@ namespace CAR
 		CityFeature* city;
 	};
 
+	struct GameExchangeActorPosData : public GameActionData
+	{
+		LevelActor* selfActor;
+		LevelActor* targetActor;
+		ActorType   resultActorType;
+	};
+
 	class GameLogic;
 
 	class IGameInput
@@ -187,7 +261,7 @@ namespace CAR
 		virtual void requestAuctionTile( GameAuctionTileData& data ) = 0;
 		virtual void requestBuyAuctionedTile( GameAuctionTileData& data ) = 0;
 		virtual void requestBuildCastle( GameBuildCastleData& data ) = 0;
-
+		virtual void requestExchangeActorPos(GameExchangeActorPosData& data) = 0;
 	};
 
 }//namespace CAR

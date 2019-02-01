@@ -28,14 +28,12 @@ bool KeyValue::getBool() const
 {
 	if( mCacheGetType != CacheInt )
 	{
-		if( FCString::CompareIgnoreCase(mValue.c_str(), "true") == 0 )
+		if( FCString::CompareIgnoreCase(mValue.c_str(), "true") == 0 ||
+		    FCString::CompareIgnoreCase(mValue.c_str(), "t") == 0)
 			mCacheGetValue.intValue = 1;
-		else if( FCString::CompareIgnoreCase(mValue.c_str(), "true") == 0 )
-			mCacheGetValue.intValue = 1;
-		else if( FCString::CompareIgnoreCase(mValue.c_str(), "t") == 0 )
-			mCacheGetValue.intValue = 1;
-		else if( FCString::CompareIgnoreCase(mValue.c_str(), "f") == 0 )
-			mCacheGetValue.intValue = 1;
+		else if( FCString::CompareIgnoreCase(mValue.c_str(), "false") == 0 ||
+				 FCString::CompareIgnoreCase(mValue.c_str(), "f") == 0 )
+			mCacheGetValue.intValue = 0;
 		else 
 			mCacheGetValue.intValue = ::atoi(mValue.c_str());
 		mCacheGetType = CacheInt;
@@ -84,11 +82,29 @@ KeyValue* KeySection::getKeyValue( char const* keyName )
 
 void KeySection::serializtion( std::ostream& os )
 {
+	std::vector< KeyValueMap::iterator > sortedValueIters;
+
 	for( KeyValueMap::iterator iter = mKeyMap.begin();
 		iter != mKeyMap.end() ; ++iter )
 	{
-		os << iter->first << " = " << iter->second.getString() << '\n'; 
+		sortedValueIters.push_back(iter);	
 	}
+
+	std::sort(sortedValueIters.begin(), sortedValueIters.end(), [](auto lhs, auto rhs)
+	{
+		return lhs->second.mSequenceOrder < rhs->second.mSequenceOrder;
+	});
+
+	for( auto iter : sortedValueIters )
+	{
+		os << iter->first << " = " << iter->second.getString() << '\n';
+	}
+}
+
+PropertyKey::PropertyKey()
+{
+	mNextSectionSeqOrder = 0;
+	mNextValueSeqOrder = 0;
 }
 
 KeyValue* PropertyKey::getKeyValue( char const* group, char const* keyName )
@@ -96,8 +112,8 @@ KeyValue* PropertyKey::getKeyValue( char const* group, char const* keyName )
 	if ( !group )
 		group = GLOBAL_SECTION;
 
-	KeySectionMap::iterator iter = mGourpMap.find( group );
-	if ( iter == mGourpMap.end() )
+	KeySectionMap::iterator iter = mSectionMap.find( group );
+	if ( iter == mSectionMap.end() )
 		return NULL;
 
 	return iter->second.getKeyValue( keyName );
@@ -182,24 +198,38 @@ bool PropertyKey::saveFile( char const* path )
 	if ( !fs )
 		return false;
 
-	KeySectionMap::iterator globalIter = mGourpMap.find( GLOBAL_SECTION );
+	KeySectionMap::iterator globalIter = mSectionMap.find( GLOBAL_SECTION );
 
-	if( globalIter != mGourpMap.end() )
+	if( globalIter != mSectionMap.end() )
 	{
 		globalIter->second.serializtion(fs);
 		fs << "\n";
 	}
 
-	for( KeySectionMap::iterator iter = mGourpMap.begin();
-		iter != mGourpMap.end() ; ++iter )
+	std::vector < KeySectionMap::iterator > sortedSectionIters;
+
+	for( KeySectionMap::iterator iter = mSectionMap.begin();
+		iter != mSectionMap.end() ; ++iter )
 	{
 		if ( iter == globalIter )
 			continue;
 
+		sortedSectionIters.push_back(iter);
+	}
+
+	std::sort( sortedSectionIters.begin() , sortedSectionIters.end() , 
+		[](auto lhs, auto rhs)
+		{
+			return lhs->second.mSequenceOrder < rhs->second.mSequenceOrder;
+		});
+
+	for( auto iter : sortedSectionIters )
+	{
 		fs << "[" << iter->first << "]" << "\n";
-		iter->second.serializtion( fs );
+		iter->second.serializtion(fs);
 		fs << "\n";
 	}
+
 	return true;
 }
 
@@ -267,7 +297,10 @@ int PropertyKey::parseLine( char* buffer , KeySection** curSection )
 		if ( *token != '\0' )
 			return PARSE_SECTION_ERROR;
 
-		*curSection = &mGourpMap[ sectionName ];
+		*curSection = &mSectionMap[ sectionName ];
+
+		(*curSection)->mSequenceOrder = mNextSectionSeqOrder;
+		++mNextSectionSeqOrder;
 	}
 	else if ( test = skipTo( token , '=' ) )
 	{
@@ -281,11 +314,17 @@ int PropertyKey::parseLine( char* buffer , KeySection** curSection )
 				cutBackSpace( token );
 
 				token = skipSpace( token + 1 );
-				char* keyValue = token;
+				char* keyValueString = token;
 
 				cutBackSpace( token + strlen( token ) );
 
-				(*curSection)->addKeyValue( keyName , keyValue );
+				auto pKeyValue = (*curSection)->addKeyValue( keyName , keyValueString );
+
+				if( pKeyValue )
+				{
+					pKeyValue->mSequenceOrder = mNextValueSeqOrder;
+					++mNextValueSeqOrder;
+				}
 			}
 			break;
 		}
@@ -300,12 +339,11 @@ int PropertyKey::parseLine( char* buffer , KeySection** curSection )
 
 bool PropertyKey::loadFile( char const* path )
 {
-	
 	std::ifstream fs( path );
 	if ( !fs.is_open() )
 		return false;
 
-	KeySection* curSection = &mGourpMap[ GLOBAL_SECTION ];
+	KeySection* curSection = &mSectionMap[ GLOBAL_SECTION ];
 
 	fs.peek();
 	while( fs.good() )

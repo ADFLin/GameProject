@@ -54,7 +54,7 @@ namespace CAR
 		//EXP_THE_TOWER
 		int TowerPicesTotalNum = 30;
 		int TowerPicesPlayerOwnNum[Value::MaxPlayerNum] = { 0 , 10 , 9 , 7 , 6 , 5 };
-		int PrisonerBuyBackScore = 3;
+		int PrisonerRedeemScore = 3;
 
 		//EXP_ABBEY_AND_MAYOR
 		int AbbeyTilePlayerOwnNum = 1;
@@ -79,6 +79,18 @@ namespace CAR
 
 		//EXP_PHANTOM
 		int PhantomPlayerOwnNum = 1;
+
+		//EXP_GOLDMINES
+		int GoldPiecesScoreFactor[4] = { 4 , 3 , 2 , 1 };
+		int GoldPiecesScoreFactorNum[4] = { 10 , 7 , 4 , 1 };
+
+		//EXP_LITTLE_BUILDINGS
+		int TowerBuildingTokenScoreFactor = 3;
+		int HouseBuildingTokenScoreFactor = 2;
+		int ShedBuildingTokenScoreFactor = 1;
+		int TowerBuildingTokensPlayerOwnNum = 1;
+		int HouseBuildingTokensPlayerOwnNum = 1;
+		int ShedBuildingTokensPlayerOwnNum = 1;
 
 		static GameParamCollection const& GetDefalut()
 		{

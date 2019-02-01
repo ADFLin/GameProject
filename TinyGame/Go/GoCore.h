@@ -168,7 +168,7 @@ namespace Go
 		int      calcConIndex( int idx , int dir ) const { return idx + mIndexOffset[ dir ]; }
 		int      offsetIndex( int idx , int ox , int oy ){  return idx + ox + oy * getDataSizeX(); }
 
-		char     getData( int idx )  const  { return mData[ idx ]; }
+		DataType getData( int idx )  const  { return mData[ idx ]; }
 		int      getDataSize()  const { return getDataSizeX() * getDataSizeY(); }
 		int      getDataSizeY() const { return mSize + 2; }
 		int      getDataSizeX() const { return mSize + 1; }
@@ -188,11 +188,11 @@ namespace Go
 		int      relink_R( int idx );
 		int      fillStone_R( int idx );
 		int      captureStone_R( int idx );
-		int      peekCaptureStoneDir(Pos const& p) const;
-		int      peekCaptureStoneDir_R( int idx ) const;
+		int      peekCaptureConStone(Pos const& p) const;
+		int      peekCaptureConStone_R( int idx ) const;
    
 
-		void     removeVisitedMark_R( int idx );
+		void     removeVisitedMark_R( int idx ) const;
 
 
 		struct IntersectionData

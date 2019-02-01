@@ -71,14 +71,19 @@ public:
 
 class  CSyncFrameManager : public INetFrameManager
 	                     , public IActionLanucher
+					     , public IActionInput
 {
 public:
 	CSyncFrameManager( IFrameActionTemplate* actionTemp , INetFrameGenerator* frameGenerator );
 	//NetFrameManager
 	int   evalFrame( IFrameUpdater& updater , int updateFrames , int maxDelayFrames );
+	void  setupInput(ActionProcessor& processor)
+	{
+		processor.addInput(*this);
+	}
 	ActionProcessor& getActionProcessor(){ return mProcessor; }
 	bool  sendFrameData() = 0;
-
+	//ActionInpput
 	bool  scanInput( bool beUpdateFrame );
 	bool  checkAction( ActionParam& param );
 
@@ -110,7 +115,7 @@ public:
 
 	void     fireAction( ActionTrigger& trigger );
 
-	void      resetFrameData();
+	void     resetFrameData();
 	void     release();
 
 private:

@@ -23,6 +23,7 @@ namespace CAR
 		ACTION_AUCTION_TILE ,
 		ACTION_BUY_AUCTIONED_TILE ,
 		ACTION_BUILD_CASTLE ,
+		ACTION_EXCHANGE_ACTOR_POS ,
 		///
 		ACTION_BUILD_BRIDGE ,
 		ACTION_TRUN_OVER ,
@@ -37,33 +38,64 @@ namespace CAR
 		uint8 action;
 	};
 
+#define ACTION_COM_TYPE_CHECK _DEBUG
 	struct ActionCom
 	{
 		ActionCom()
 		{
 			numParam = 0;
+			bReply   = false;
+#if ACTION_COM_TYPE_CHECK
+			floatParamMask = 0;
+#endif
 		}
-		void addParam( int value ){ assert( numParam < MaxParamNum ); params[ numParam++ ].iValue = value; }
-		void addParam( float value ){ assert( numParam < MaxParamNum ); params[ numParam++ ].fValue = value; }
-		void send( IDataTransfer& transfer , int slot , int dataId )
-		{
-			transfer.sendData( slot , dataId , this , sizeof( ActionCom ) - ( MaxParamNum - numParam ) * sizeof( Param ) );
+		void addParam( int value )
+		{ 
+			assert( numParam < MaxParamNum );
+			params[ numParam++ ].iValue = value; 
+		}
+		void addParam( float value )
+		{ 
+			assert( numParam < MaxParamNum );
+#if ACTION_COM_TYPE_CHECK
+			floatParamMask |= BIT(numParam);
+#endif
+			params[ numParam++ ].fValue = value;
+		}
+
+		float getFloat(int index) const 
+		{ 
+			assert(index < numParam);
+#if ACTION_COM_TYPE_CHECK
+			assert(floatParamMask & BIT(index));
+#endif
+			return params[index].fValue;
+		}
+		int   getInt(int index) const
+		{ 
+			assert(index < numParam); 
+			return params[index].iValue; 
 		}
 		static int const MaxParamNum = 16;
 		uint16 action;
-		uint8  numParam;
-		uint8  bReply : 1;
-		union Param
-		{
-			int   iValue;
-			float fValue;
-		};
-		Param params[ MaxParamNum ];
+		uint8  numParam : 5;
+		uint8  bReply   : 1;
+#if ACTION_COM_TYPE_CHECK
+		uint16 floatParamMask;
+#endif
 
 		int getSendSize() const 
 		{
 			return sizeof(*this) - (MaxParamNum - numParam) * sizeof(Param);
 		}
+
+		union Param
+		{
+			int   iValue;
+			float fValue;
+		};
+		Param params[MaxParamNum];
+
 	};
 
 
@@ -105,8 +137,9 @@ namespace CAR
 
 		void replyPlaceTile( Vec2i const& pos , int rotation );
 		void replyDeployActor( int index , ActorType type );
-		void replySelect( int index );
+		void replySelection( int index );
 		void replyAuctionTile( int riseScore , int index = -1 );
+		void replyActorType(ActorType type);
 
 		void replyDoIt();
 		void replySkip();
@@ -141,6 +174,7 @@ namespace CAR
 		REQUEST_ACTION( requestTurnOver , GameActionData , ACTION_TRUN_OVER );
 		REQUEST_ACTION( requestSelectMapPos , GameSelectMapPosData , ACTION_SELECT_MAP_POS );
 		REQUEST_ACTION( requestSelectActionOption , GameSelectActionOptionData , ACTION_SELECT_ACTION_OPTION );
+		REQUEST_ACTION( requestExchangeActorPos, GameExchangeActorPosData, ACTION_EXCHANGE_ACTOR_POS );
 
 
 #undef REQUEST_ACTION

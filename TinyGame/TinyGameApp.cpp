@@ -413,7 +413,7 @@ bool TinyGameApp::onMouse( MouseMsg const& msg )
 	{
 		GameController& controller = game->getController();
 
-		if ( !controller.haveLockMouse() )
+		if ( !controller.shouldLockMouse() )
 		{
 			result = ::Global::GUI().procMouseMsg( msg );
 		}

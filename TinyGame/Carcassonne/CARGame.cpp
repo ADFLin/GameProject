@@ -44,7 +44,7 @@ namespace CAR
 			return true;
 		case ATTR_SINGLE_SUPPORT:
 			value.iVal = true;
-			break;
+			return true;
 		}
 		return false;
 	}
@@ -79,7 +79,7 @@ namespace CAR
 		CNetRoomSettingHelper( GameModule* game )
 			:mGame( game )
 		{
-			mExpMask = 0;
+
 		}
 
 		enum
@@ -106,7 +106,7 @@ namespace CAR
 		}
 		virtual void doSetupSetting( bool beServer )
 		{
-			mExpMask = 0;
+			mExpMask.clear();
 			setMaxPlayerNum( CAR::MaxPlayerNum );
 			setupBaseUI();
 		}
@@ -117,11 +117,11 @@ namespace CAR
 			{
 				if ( widget->cast< GCheckBox >()->bChecked )
 				{
-					mExpMask |= BIT( id - UI_EXP );
+					mExpMask.add( id - UI_EXP );
 				}
 				else
 				{
-					mExpMask &= ~BIT( id - UI_EXP );
+					mExpMask.remove( id - UI_EXP );
 				}
 				modifyCallback( getSettingPanel() );
 				return false;
@@ -136,14 +136,14 @@ namespace CAR
 			for( int i = 0 ; i < ARRAY_SIZE( UsageExp ) ; ++i )
 			{
 				checkBox = mSettingPanel->addCheckBox( UI_EXP + UsageExp[i].exp , UsageExp[i].name , MASK_BASE );
-				checkBox->bChecked = ( mExpMask & BIT( UsageExp[i].exp ) ) != 0;
+				checkBox->bChecked = mExpMask.check( UsageExp[i].exp );
 			}
 		}
 
 		virtual void setupGame( StageManager& manager , StageBase* subStage )
 		{
 			LevelStage* myStage = static_cast< LevelStage* >( subStage );
-			myStage->getSetting().mExpansionMask = mExpMask;
+			myStage->getSetting().mUseExpansionMask = mExpMask;
 		}
 		virtual void doExportSetting( DataSteamBuffer& buffer )
 		{
@@ -157,7 +157,7 @@ namespace CAR
 			buffer.take( mExpMask );
 			setupBaseUI();
 		}
-		uint32       mExpMask;
+		FlagBits< (int)NUM_EXPANSIONS> mExpMask;
 		GameModule* mGame;
 	};
 

@@ -40,10 +40,12 @@ bool SingleStageMode::postStageInit()
 	}
 
 	ActionProcessor& processor = stage->getActionProcessor();
+	if( getGame() )
+	{
+		getGame()->getController().setupInput(processor);
+	}
 
-	if ( getGame() )
-		processor.addInput(getGame()->getController());
-	restartImpl(true);
+	restart(true);
 	return true;
 }
 
@@ -109,7 +111,7 @@ bool SingleStageMode::onWidgetEvent(int event, int id, GWidget* ui)
 	case UI_RESTART_GAME:
 		if( event == EVT_BOX_YES )
 		{
-			restartImpl(false);
+			restart(false);
 			return false;
 		}
 		else if( event == EVT_BOX_NO )
@@ -125,7 +127,7 @@ bool SingleStageMode::onWidgetEvent(int event, int id, GWidget* ui)
 			}
 			else
 			{
-				restartImpl(false);
+				restart(false);
 			}
 			return false;
 

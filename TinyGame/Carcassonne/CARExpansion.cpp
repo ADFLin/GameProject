@@ -52,6 +52,26 @@ namespace CAR
 			setting.addRule(Rule::eHaveGermanCastleTile);
 			break;
 		case EXP_PHANTOM:
+			setting.addRule(Rule::ePhantom);
+			break;
+		case EXP_CROP_CIRCLE_I:
+		case EXP_CROP_CIRCLE_II:
+			setting.addRule(Rule::eCropCircle);
+			break;
+		case EXP_THE_FLY_MACHINES:
+			setting.addRule(Rule::eFlyMahine);
+			break;
+		case EXP_GOLDMINES:
+			setting.addRule(Rule::eGold);
+			break;
+		case EXP_LA_PORXADA:
+			setting.addRule(Rule::eLaPorxada);
+			break;
+		case EXP_MAGE_AND_WITCH:
+			setting.addRule(Rule::eMageAndWitch);
+			break;
+		case EXP_THE_MESSSAGES:
+			setting.addRule(Rule::eMessage);
 			break;
 		case EXP_BASIC:
 			break;
@@ -79,7 +99,7 @@ namespace CAR
 #define SPR SideContent::ePrincess
 #define SNC SideContent::eNotSemiCircularCity
 #define SHS	SideContent::eHalfSeparate
-
+	
 #define TCL TileContent::eCloister
 #define TCA TileContent::eCathedral
 #define TMP TileContent::eMagicPortal
@@ -89,6 +109,9 @@ namespace CAR
 #define TBZ TileContent::eBazaar
 #define TVI TileContent::eVineyard
 #define THL TileContent::eHalfling
+#define TLP TileContent::eLaPorxada
+#define TMG TileContent::eMage
+#define TGL TileContent::eGold
 
 #define BIT2( A , B )     ( BIT(A)|BIT(B) )
 #define BIT3( A , B , C ) ( BIT(A)|BIT(B)|BIT(C) )
@@ -332,16 +355,17 @@ namespace CAR
 	static TileDefine DataHalflings1[] =
 	{
 // numPiece     linkType      sideLink       roadLink   content   sidecontent centerFarmMask farmLink tag
-/*00*/  { 1, { LF,LR,LF,LE }, SL2(0,2)     , SL_NONE      , THL, { 0 , 0 , 0 , 0 }, 0, { FL_RE } , TILE_HALFLING_TAG } ,
-/*01*/  { 1, { LR,LR,LF,LE }, SL_NONE      , SL_NONE      , THL, { 0 , 0 , 0 , 0 }, 0, { FL_RE } , TILE_HALFLING_TAG } ,
-/*02*/  { 1, { LR,LR,LF,LE }, SL2(0,1)     , SL_NONE      , THL, { 0 , 0 , 0 , 0 }, 0, { BIT2(1,2),FL_RE } , TILE_HALFLING_TAG } ,
-/*03*/  { 1, { LF,LF,LF,LE }, SL3(0,1,2)   , SL_NONE      , THL|TCL, { 0 , 0 , 0 , 0 }, 0, { FL_RE } , TILE_HALFLING_TAG } ,
-/*04*/  { 1, { LC,LR,LF,LE }, SL_NONE      , SL_NONE      , THL, { 0 , 0 , 0 , 0 }, 0, { FL_RE } , TILE_HALFLING_TAG } ,
+/*00*/  { 1, { LF,LR,LF,LE }, SL2(0,2)     , SL_NONE      ,THL, { 0 , 0 , 0 , 0 }, 0, { FL_RE } , TILE_HALFLING_TAG } ,
+/*01*/  { 1, { LR,LR,LF,LE }, SL_NONE      , SL_NONE      ,THL, { 0 , 0 , 0 , 0 }, 0, { FL_RE } , TILE_HALFLING_TAG } ,
+/*02*/  { 1, { LR,LR,LF,LE }, SL2(0,1)     , SL_NONE      ,THL, { 0 , 0 , 0 , 0 }, 0, { BIT2(1,2),FL_RE } , TILE_HALFLING_TAG } ,
+/*03*/  { 1, { LF,LF,LF,LE }, SL3(0,1,2)   , SL_NONE      ,THL|TCL, { 0 , 0 , 0 , 0 }, 0, { FL_RE } , TILE_HALFLING_TAG } ,
+/*04*/  { 1, { LC,LR,LF,LE }, SL_NONE      , SL_NONE      ,THL, { 0 , 0 , 0 , 0 }, 0, { FL_RE } , TILE_HALFLING_TAG } ,
 	};
 
 	static TileDefine DataTest[] =
 	{
 // numPiece     linkType      sideLink       roadLink   content   sidecontent centerFarmMask farmLink tag
+/*04*/  { 1, { LC,LC,LC,LC }, SL_ALL       , SL_NONE      ,TLP, { 0 , 0 , 0 , 0 }, 0, { FL_RE } , 0 } ,
 /*04*/ 	{ 1, { LC,LC,LF,LR }, SL2(0,1)     , SL3(0,1,3)   , 0, { 0 , 0 , 0 , 0 }, 0, { FL_RE } , 0 } ,
 /*00*/ 	{ 1, { LC,LC,LR,LC }, SL_NONE      , SL_NONE      , 0, { 0 , 0 , 0 , 0 }, 0, { FL_RE } , 0 } ,
 	};
@@ -392,7 +416,9 @@ namespace CAR
 #undef TTF
 #undef TBZ
 #undef TVI
-
+#undef TLP
+#undef TMG
+#undef TGL
 
 
 }//namespace CAR

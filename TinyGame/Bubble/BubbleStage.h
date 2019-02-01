@@ -39,9 +39,9 @@ namespace Bubble
 
 		virtual bool onInit();
 		virtual void onEnd();
-		virtual void onRestart( uint64 seed , bool beInit )
+		virtual void onRestart( bool beInit )
 		{
-			Global::RandSeedNet( seed );
+
 		}
 		void onRender( float dFrame );
 		void setupLocalGame( LocalPlayerManager& playerManager );

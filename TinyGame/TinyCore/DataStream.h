@@ -1,9 +1,12 @@
 #ifndef DataStream_h__
 #define DataStream_h__
 
-#include <vector>
 #include "DataBitSerialize.h"
 #include "MetaBase.h"
+
+#include <vector>
+#include <map>
+#include <string>
 
 class DataStream
 {
@@ -155,18 +158,20 @@ public:
 		}
 	}
 
+
 	template< class T >
 	void write( T const& value )
 	{
+		//static_assert( std::is_pod<T>::value || std::is_trivially_default_constructible<T>::value, "Pleasse overload serilize operator");
 		mStream.write( &value , sizeof( value ) );
 	}
+
 	template< class T >
 	void read( T& value )
 	{
+		//static_assert( std::is_pod<T>::value || std::is_trivially_default_constructible<T>::value, "Pleasse overload serilize operator");
 		mStream.read( &value , sizeof( value ) );
 	}
-
-
 
 	template< class T >
 	struct CanUseInputSequence : Meta::HaveResult< 
@@ -212,26 +217,80 @@ public:
 		}
 	}
 
-	template< class T >
-	void write( std::vector< T > const& vec )
+	template<  class T, class A >
+	void write( std::vector< T , A > const& value )
 	{
-		size_t size = vec.size();
+		size_t size = value.size();
 		this->write( size );
 		if( size )
 		{
-			this->write(&vec[0], size);
+			this->write( value.data() , size);
 		}
 	}
 
-	template< class T >
-	void read( std::vector< T >& vec )
+	template< class T , class A >
+	void read( std::vector< T , A >& value )
 	{
 		size_t size;
 		this->read( size );
 		if ( size )
 		{
-			vec.resize(size);
-			this->read(&vec[0], size);
+			value.resize(size);
+			this->read( value.data() , size);
+		}
+	}
+
+	template< class T>
+	void write(std::basic_string<T> const& value)
+	{
+		size_t size = value.size();
+		this->write(size);
+		if( size )
+		{
+			this->write(value.data(), size);
+		}
+	}
+
+	template< class T>
+	void read(std::basic_string<T>& value)
+	{
+		size_t size;
+		this->read(size);
+		if( size )
+		{
+			value.resize(size);
+			this->read(&value[0], size);
+		}
+	}
+	template< class K , class V  , class KF , class A >
+	void write(std::map< K , V , KF , A > const& mapValue)
+	{
+		size_t size = mapValue.size();
+		this->write(size);
+		if( size )
+		{
+			for( auto const& pair : mapValue )
+			{
+				(*this) << pair.first;
+				(*this) << pair.second;
+			}
+		}
+	}
+
+	template< class K, class V, class KF, class A >
+	void read(std::map< K, V, KF, A >& mapValue)
+	{
+		size_t size;
+		this->read(size);
+		if( size )
+		{
+			for( size_t i = 0; i < size; ++i )
+			{
+				std::pair< K , V > value;
+				(*this) >> value.first;
+				(*this) >> value.second;
+				mapValue[value.first] = value.second;
+			}
 		}
 	}
 

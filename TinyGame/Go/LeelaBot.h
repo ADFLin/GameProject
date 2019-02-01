@@ -164,10 +164,6 @@ namespace Go
 		bool bUseModifyVersion = false;
 		static LeelaAISetting GetDefalut();
 
-		std::string toString() const
-		{
-			std::string result;
-
 #define  AddCom( NAME , VALUE )\
 			if( VALUE )\
 			{\
@@ -187,6 +183,24 @@ namespace Go
 				result += std::to_string(VALUE);\
 			}\
 
+		std::string toParamString()
+		{
+			std::string result;
+			AddComValueNoCheck(" -p ", playouts);
+			AddComValue(" -v ", visits);
+			if( weightName )
+			{
+				result += " -w ";
+				result += weightName;
+			}
+			return result;
+		}
+
+		std::string toString() const
+		{
+			std::string result;
+
+
 			AddComValueNoCheck(" -r ", resignpct);
 			AddComValue(" -t ", numThread);
 			AddComValueNoCheck(" -p ", playouts);
@@ -204,10 +218,12 @@ namespace Go
 			AddCom(" -g", bGTPMode);
 			AddCom(" --noponder", bNoPonder);
 			AddCom(" -q", bQuiet);
-#undef AddCom
-#undef AddComValue
+
 			return result;
 		}
+
+#undef AddCom
+#undef AddComValue
 	};
 
 

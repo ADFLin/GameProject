@@ -7,7 +7,9 @@
 
 #include "INetEngine.h"
 
-class INetFrameManager : public IActionInput
+class ActionProcessor;
+
+class INetFrameManager
 {
 public:
 	virtual ActionProcessor& getActionProcessor() = 0;
@@ -15,9 +17,7 @@ public:
 	virtual int  evalFrame( IFrameUpdater& updater , int updateFrames , int maxDelayFrames )= 0;
 	virtual void resetFrameData() = 0;
 
-	//ActionInput
-	virtual bool scanInput( bool beUpdateFrame ) = 0;
-	virtual bool checkAction( ActionParam& param ) = 0;
+	virtual void setupInput(ActionProcessor& processor) = 0;
 
 	virtual void release() = 0;
 };

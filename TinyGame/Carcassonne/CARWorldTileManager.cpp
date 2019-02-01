@@ -159,7 +159,7 @@ namespace CAR
 			}
 			else
 			{
-				param.usageBridge = false;
+				param.canUseBridge = false;
 			}
 		}
 		else
@@ -194,7 +194,7 @@ namespace CAR
 				TilePiece const& tileCheck = getTile( dataCheck->getId() );
 				if ( !TilePiece::CanLink( tileCheck , lDirCheck , tile , lDir ) )
 				{
-					if ( param.usageBridge )
+					if ( param.canUseBridge )
 					{
 						if ( !tileCheck.canLinkRoad( lDirCheck ) )
 							return false;
@@ -256,7 +256,7 @@ namespace CAR
 			if ( !canPlaceTileInternal( getTile( tileId , i ) , curPos , rotation , param , result ) )
 				return false;
 
-			if ( param.usageBridge && param.idxTileUseBridge != -1 )
+			if ( param.canUseBridge && param.idxTileUseBridge != -1 )
 			{
 				if ( param.idxTileUseBridge != -1 )
 					return false;
@@ -365,7 +365,7 @@ namespace CAR
 			mapTilePlace->pos = pos;
 			mapTilePlace->rotation = rotation;
 
-			if( param.usageBridge && param.dirNeedUseBridge != -1 )
+			if( param.canUseBridge && param.dirNeedUseBridge != -1 )
 			{
 				mapTilePlace->addBridge(param.dirNeedUseBridge);
 			}
@@ -549,15 +549,12 @@ namespace CAR
 
 	void TileSetManager::addExpansion(Expansion exp)
 	{
-		assert(!haveUse(exp));
-		mUsageExpansionMask |= BIT(exp);
-
 		for( int idx = 0; idx < gAllExpansionTileContents.size() ; ++idx )
 		{
 			ExpansionContent const& content = gAllExpansionTileContents[idx];
 			if( content.exp == exp )
 			{
-				import(content);
+				importData(content, exp);
 				return;
 			}
 		}
@@ -589,7 +586,7 @@ namespace CAR
 		mTileMap.clear();
 	}
 
-	void TileSetManager::import( ExpansionContent const& content )
+	void TileSetManager::importData( ExpansionContent const& content , Expansion exp )
 	{
 		TileId id = 0;
 		int idxDefine = 0;
@@ -610,7 +607,7 @@ namespace CAR
 			}
 			else
 			{
-				tileSet = &createSingleTileSet( tileDef );
+				tileSet = &createSingleTileSet( tileDef , ( exp == EXP_TEST ) ? TileSet::eTest : TileSet::eCommon );
 			}
 			tileSet->expansions = content.exp;
 			tileSet->idxDefine = idxDefine++;
@@ -642,7 +639,7 @@ namespace CAR
 		return mTileMap[ id ];
 	}
 
-	TileSet& TileSetManager::createSingleTileSet(TileDefine const& tileDef)
+	TileSet& TileSetManager::createSingleTileSet(TileDefine const& tileDef , TileSet::EGroup group )
 	{
 		TilePiece* tile = new TilePiece;
 		
@@ -658,7 +655,6 @@ namespace CAR
 
 		mTileMap.push_back( tileSet );
 
-		TileSet::EGroup group = TileSet::eCommon;
 		if ( tile->haveRiver() )
 		{
 			group = TileSet::eRiver;

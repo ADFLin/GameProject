@@ -52,6 +52,7 @@ public:
 	GameStageBase();
 	virtual bool setupNetwork(NetWorker* worker, INetEngine** engine) { return true; }
 	virtual void buildServerLevel(GameLevelInfo& info) {}
+	virtual void buildLocalLevel(GameLevelInfo& info) {}
 
 	virtual void setupLocalGame(LocalPlayerManager& playerManager) {}
 	virtual void setupLevel(GameLevelInfo const& info) {}
@@ -63,7 +64,7 @@ public:
 
 	virtual bool onInit();
 	virtual void onEnd();
-	virtual void onRestart(uint64 seed, bool beInit) {}
+	virtual void onRestart(bool beInit) {}
 	virtual void onRender(float dFrame) {}
 	virtual void onUpdate(long time);
 

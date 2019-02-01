@@ -17,18 +17,25 @@ namespace CAR
 	{
 	public:
 		LevelActor* popActor();
-		bool        haveActor(){ return mActors.empty() == false; }
+		bool        haveActor(){ return !mActors.empty(); }
 		bool        haveOtherActor( int playerId );
-		bool        havePlayerActor( int playerId , ActorType type );
 
-		unsigned    getPlayerActorTypeMask( unsigned playerMask );
-		bool        haveActorMask( unsigned actorTypeMask );
-		bool        havePlayerActorMask(unsigned playerMask , unsigned actorTypeMask );
-		LevelActor* iteratorActorMask( unsigned playerMask , unsigned actorTypeMask , int& iter);
-		LevelActor* iteratorActorMask( unsigned playerMask , int& iter);
-		LevelActor* findActor( unsigned playerMask , unsigned actorTypeMask );
-		LevelActor* findActor( unsigned actorTypeMask );
+		bool        havePlayerActor(int playerId, ActorType type)
+		{
+			return haveActor(BIT(playerId), BIT(type));
+		}
+		unsigned    getPlayerActorTypeMask( unsigned playerMask ) const;
 
+		LevelActor* iteratorActor( unsigned playerMask , unsigned actorTypeMask , int& iter) const;
+		LevelActor* iteratorActorFromPlayer( unsigned playerMask , int& iter) const;
+		LevelActor* iteratorActorFromType(unsigned actorTypeMask, int& iter) const;
+		LevelActor* findActor( unsigned playerMask , unsigned actorTypeMask ) const;
+		LevelActor* findActorFromType( unsigned actorTypeMask ) const;
+		LevelActor* findActorFromPlayer(unsigned playerMask ) const;
+		bool        haveActor(unsigned playerMask, unsigned actorTypeMask) const { return findActor(playerMask, actorTypeMask) != nullptr; }
+		bool        haveActorFromType(unsigned actorTypeMask) const { return findActorFromType(actorTypeMask) != nullptr; }
+		bool        haveActorFromPlayer(unsigned playerMask) const { return findActorFromPlayer(playerMask) != nullptr; }
+		
 		ActorList mActors;
 	};
 

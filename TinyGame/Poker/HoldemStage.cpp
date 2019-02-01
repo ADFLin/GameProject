@@ -210,7 +210,7 @@ namespace Poker { namespace Holdem {
 		}
 	}
 
-	void LevelStage::onRestart(uint64 seed, bool beInit)
+	void LevelStage::onRestart( bool beInit )
 	{
 		if ( mServerLevel )
 		{

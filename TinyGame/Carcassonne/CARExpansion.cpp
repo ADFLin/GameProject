@@ -9,86 +9,13 @@
 namespace CAR
 {
 
-	void AddExpansionRule(GameplaySetting& setting, Expansion exp)
-	{
-		switch( exp )
-		{
-		case EXP_INNS_AND_CATHEDRALS:
-			setting.addRule(Rule::eInn);
-			setting.addRule(Rule::eCathedral);
-			break;
-		case EXP_TRADERS_AND_BUILDERS:
-			setting.addRule(Rule::eBuilder);
-			setting.addRule(Rule::eTraders);
-			break;
-		case EXP_THE_PRINCESS_AND_THE_DRAGON:
-			setting.addRule(Rule::eFariy);
-			setting.addRule(Rule::eDragon);
-			setting.addRule(Rule::ePrinecess);
-			break;
-		case EXP_THE_TOWER:
-			setting.addRule(Rule::eTower);
-			break;
-		case EXP_ABBEY_AND_MAYOR:
-			setting.addRule(Rule::eHaveAbbeyTile);
-			setting.addRule(Rule::eMayor);
-			setting.addRule(Rule::eBarn);
-			setting.addRule(Rule::eWagon);
-			break;
-		case EXP_KING_AND_ROBBER:
-			setting.addRule(Rule::eKingAndRobber);
-			break;
-		case EXP_BRIDGES_CASTLES_AND_BAZAARS:
-			setting.addRule(Rule::eBridge);
-			setting.addRule(Rule::eCastleToken);
-			setting.addRule(Rule::eBazaar);
-			break;
-		case EXP_HILLS_AND_SHEEP:
-			setting.addRule(Rule::eShepherdAndSheep);
-			setting.addRule(Rule::eUseHill);
-			setting.addRule(Rule::eUseVineyard);
-			break;
-		case EXP_CASTLES:
-			setting.addRule(Rule::eHaveGermanCastleTile);
-			break;
-		case EXP_PHANTOM:
-			setting.addRule(Rule::ePhantom);
-			break;
-		case EXP_CROP_CIRCLE_I:
-		case EXP_CROP_CIRCLE_II:
-			setting.addRule(Rule::eCropCircle);
-			break;
-		case EXP_THE_FLY_MACHINES:
-			setting.addRule(Rule::eFlyMahine);
-			break;
-		case EXP_GOLDMINES:
-			setting.addRule(Rule::eGold);
-			break;
-		case EXP_LA_PORXADA:
-			setting.addRule(Rule::eLaPorxada);
-			break;
-		case EXP_MAGE_AND_WITCH:
-			setting.addRule(Rule::eMageAndWitch);
-			break;
-		case EXP_THE_MESSSAGES:
-			setting.addRule(Rule::eMessage);
-			break;
-		case EXP_BASIC:
-			break;
-		case EXP_THE_RIVER:
-			break;
-		case EXP_THE_RIVER_II:
-			break;
-		}
-	}
-
 
 #define LF SideType::eField
 #define LC SideType::eCity
 #define LR SideType::eRoad
 #define LS SideType::eRiver
 #define LA SideType::eAbbey
-#define LG SideType::eGermanCastle
+#define LI SideType::eInsideLink
 #define LE SideType::eEmptySide
 
 #define SPE SideContent::ePennant
@@ -111,7 +38,8 @@ namespace CAR
 #define THL TileContent::eHalfling
 #define TLP TileContent::eLaPorxada
 #define TMG TileContent::eMage
-#define TGL TileContent::eGold
+#define TGO TileContent::eGold
+#define TSC	TileContent::eSchool
 
 #define BIT2( A , B )     ( BIT(A)|BIT(B) )
 #define BIT3( A , B , C ) ( BIT(A)|BIT(B)|BIT(C) )
@@ -348,8 +276,8 @@ namespace CAR
 	static TileDefine DataCastle[] =
 	{
 // numPiece     linkType      sideLink       roadLink   content   sidecontent centerFarmMask farmLink tag
-/*00*/ 	{ 1, { LG,LR,LR,LF }, SL_NONE      , SL3(0,1,2)   , 0, { 0 , 0 , 0 , 0 }, 0, { BIT2(1,2),BIT2(3,4),FL_RE } , TILE_GERMAN_CASTLE_TAG } ,
-/*--*/ 	{ 1, { LF,LC,LG,LR }, SL_NONE      , SL2(2,3)     , 0, { 0 , 0 , 0 , 0 }, 0, { BIT2(5,6),FL_RE } , TILE_GERMAN_CASTLE_TAG } ,
+/*00*/ 	{ 1, { LI,LR,LR,LF }, SL_NONE      , SL3(0,1,2)   , 0, { 0 , 0 , 0 , 0 }, 0, { BIT2(1,2),BIT2(3,4),FL_RE } , TILE_GERMAN_CASTLE_TAG } ,
+/*--*/ 	{ 1, { LF,LC,LI,LR }, SL_NONE      , SL2(2,3)     , 0, { 0 , 0 , 0 , 0 }, 0, { BIT2(5,6),FL_RE } , TILE_GERMAN_CASTLE_TAG } ,
 	};
 
 	static TileDefine DataHalflings1[] =
@@ -360,6 +288,13 @@ namespace CAR
 /*02*/  { 1, { LR,LR,LF,LE }, SL2(0,1)     , SL_NONE      ,THL, { 0 , 0 , 0 , 0 }, 0, { BIT2(1,2),FL_RE } , TILE_HALFLING_TAG } ,
 /*03*/  { 1, { LF,LF,LF,LE }, SL3(0,1,2)   , SL_NONE      ,THL|TCL, { 0 , 0 , 0 , 0 }, 0, { FL_RE } , TILE_HALFLING_TAG } ,
 /*04*/  { 1, { LC,LR,LF,LE }, SL_NONE      , SL_NONE      ,THL, { 0 , 0 , 0 , 0 }, 0, { FL_RE } , TILE_HALFLING_TAG } ,
+	};
+
+	static TileDefine DataSchool[] =
+	{
+// numPiece     linkType      sideLink       roadLink   content   sidecontent centerFarmMask farmLink tag
+/*00*/  { 1,{ LI,LR,LR,LR }, SL_NONE      , SL_NONE       ,TSC,{ 0 , 0 , 0 , 0 }, 0,{ BIT2(1,2),BIT2(3,4),FL_RE } , TILE_GERMAN_CASTLE_TAG } ,
+/*--*/  { 1,{ LR,LR,LI,LR }, SL_NONE      , SL_NONE       ,TSC,{ 0 , 0 , 0 , 0 }, 0,{ BIT2(5,6),FL_RE } , TILE_GERMAN_CASTLE_TAG } ,
 	};
 
 	static TileDefine DataTest[] =
@@ -386,6 +321,7 @@ namespace CAR
 		EXPDATA(EXP_HILLS_AND_SHEEP , DataHillsSheep)
 
 		EXPDATA(EXP_CASTLES , DataCastle)
+		EXPDATA(EXP_THE_SCHOOL, DataSchool)
 		EXPDATA(EXP_HALFLINGS_I , DataHalflings1 )
 
 		EXPDATA(EXP_TEST , DataTest)
@@ -397,7 +333,7 @@ namespace CAR
 #undef LR
 #undef LS
 #undef LA
-#undef LG
+#undef LI
 
 #undef SPE
 #undef SIN
@@ -418,7 +354,7 @@ namespace CAR
 #undef TVI
 #undef TLP
 #undef TMG
-#undef TGL
-
+#undef TGO
+#undef TSC
 
 }//namespace CAR

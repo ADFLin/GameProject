@@ -32,7 +32,9 @@ namespace CAR
 		EXP_CROP_CIRCLE_II,
 		EXP_THE_FLY_MACHINES,
 		EXP_GOLDMINES,
+		EXP_THE_SCHOOL ,
 
+		EXP_THE_ROBBERS ,
 		EXP_HALFLINGS_I ,                //?T
  		EXP_HALFLINGS_II ,               //?T
 
@@ -40,6 +42,7 @@ namespace CAR
 		EXP_LITTLE_BUILDINGS ,
 		EXP_MAGE_AND_WITCH ,
 		EXP_THE_MESSSAGES ,
+		EXP_MONASTERIES ,
 
 		NUM_EXPANSIONS,
 
@@ -73,12 +76,14 @@ namespace CAR
 		eDragon,
 		eFariy,
 		eTower,
+		eTeacher ,
 
 		eWagon,
 		eMayor,
 		eBarn,
 		ePhantom,
 		eAbbot,
+		eRobber ,
 
 		eUseHill,
 		eShepherdAndSheep,
@@ -94,11 +99,13 @@ namespace CAR
 		eFlyMahine ,
 		eCropCircle ,
 		
-
 		eHaveGermanCastleTile,
 		eHaveAbbeyTile,
 		eHaveRiverTile,
 		eHaveHalflingTile,
+		
+		eHaveMonaster,
+		eRemoveOriginalCloister ,
 
 		//////////////
 		eHardcore,
@@ -134,8 +141,6 @@ namespace CAR
 
 	extern TArrayView< ExpansionContent const > gAllExpansionTileContents;
 
-	class GameplaySetting;
-	void AddExpansionRule(GameplaySetting& setting, Expansion exp);
 
 }//namespace CAR
 

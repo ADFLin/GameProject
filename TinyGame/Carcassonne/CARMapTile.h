@@ -75,13 +75,13 @@ namespace CAR
 		}
 		static bool CanLinkFarm( SideType type )
 		{
-			unsigned const FarmLinkMask = BIT( SideType::eField ) | BIT( SideType::eRoad ) | BIT( SideType::eRiver ) | BIT( SideType::eGermanCastle );
+			unsigned const FarmLinkMask = BIT( SideType::eField ) | BIT( SideType::eRoad ) | BIT( SideType::eRiver ) | BIT( SideType::eInsideLink );
 			return !!( FarmLinkMask & BIT( type ) );
 		}
 
 		static bool CanRemoveFarm(SideType type)
 		{
-			return !!(BIT(type) & (BIT(SideType::eCity) | BIT(SideType::eGermanCastle)));
+			return !!(BIT(type) & (BIT(SideType::eCity) | BIT(SideType::eInsideLink)));
 		}
 
 		static bool CanLinkBridge( SideType type )
@@ -164,6 +164,7 @@ namespace CAR
 				sideNodes[iter.index].linkMask &= ~BIT(dir);
 			}
 		}
+		int     getFeatureGroup(ActorPos const& pos );
 
 		struct SideNode
 		{

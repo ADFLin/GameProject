@@ -43,12 +43,24 @@ namespace CAR
 		int       group;
 	};
 
-	struct FeatureScoreInfo
+	struct FeatureControllerScoreInfo
 	{
 		int  playerId;
 		int  score;
 		int  majority;
 		int  hillFollowerCount;
+	};
+
+	struct FeatureScoreInfo
+	{
+		FeatureBase* feature;
+		int numController;
+		std::vector< FeatureControllerScoreInfo > controllerScores;
+
+		FeatureScoreInfo()
+		{
+			numController = 0;
+		}
 	};
 
 	typedef std::unordered_set< MapTile* > MapTileSet;
@@ -75,21 +87,22 @@ namespace CAR
 		void        removeActor( LevelActor& actor );
 		LevelActor* removeActorByIndex( int index );
 		bool        testInRange( Vec2i const& min , Vec2i const& max );
-
+		int         calcScore(GamePlayerManager& playerManager, FeatureScoreInfo& outResult);
 		virtual bool checkComplete(){ return false; }
 		virtual int  getActorPutInfo( int playerId , int posMeta , MapTile& mapTile, std::vector< ActorPosInfo >& outInfo ) = 0;
-		virtual void generateRoadLinkFeatures( GroupSet& outFeatures ){ }
+		virtual void generateRoadLinkFeatures( WorldTileManager& worldTileManager, GroupSet& outFeatures ){ }
 		virtual bool updateForNeighborTile( MapTile& tile ){ return false; }
 		virtual void mergeData( FeatureBase& other , MapTile const& putData , int meta );
 		virtual int  calcPlayerScore( PlayerBase* player ) = 0;
-		virtual int  calcScore( GamePlayerManager& playerManager , std::vector< FeatureScoreInfo >& scoreInfos );
+		
+		virtual int  doCalcScore( GamePlayerManager& playerManager , FeatureScoreInfo& outResult);
 		virtual bool getActorPos( MapTile const& mapTile , ActorPos& actorPos ){ return false; }
 		virtual int  getScoreTileNum() const { return 0; }
 
-		static void InitFeatureScoreInfo(GamePlayerManager& playerManager , std::vector< FeatureScoreInfo > &scoreInfos);
+		int  generateController(std::vector< FeatureControllerScoreInfo >& controllerScores);
 		int  getMajorityValue( ActorType actorType);
-		void addMajority( std::vector< FeatureScoreInfo >& scoreInfos );
-		int  evalMajorityControl(std::vector< FeatureScoreInfo >& featureControls);
+		void generateMajority( std::vector< FeatureControllerScoreInfo >& controllerScores);
+		int  evalMajorityControl(std::vector< FeatureControllerScoreInfo >& controllerScores);
 		void addMapTile( MapTile& mapTile ){ mapTiles.insert( &mapTile ); }
 
 		template< class T >
@@ -135,7 +148,7 @@ namespace CAR
 		virtual void mergeData( FeatureBase& other , MapTile const& putData , int meta );
 		virtual void addNode( MapTile& mapData , unsigned dirMask , SideNode* linkNode );
 		virtual void addAbbeyNode( MapTile& mapData , int dir );
-		virtual void generateRoadLinkFeatures( GroupSet& outFeatures );
+		virtual void generateRoadLinkFeatures( WorldTileManager& worldTileManager, GroupSet& outFeatures );
 		virtual bool getActorPos( MapTile const& mapTile , ActorPos& actorPos );
 		virtual int  getScoreTileNum() const { return mapTiles.size(); }
 
@@ -186,7 +199,7 @@ namespace CAR
 		virtual bool checkComplete() override;
 		virtual int  calcPlayerScore( PlayerBase* player );
 
-		virtual int calcScore( GamePlayerManager& playerManager , std::vector< FeatureScoreInfo >& scoreInfos);
+		virtual int doCalcScore( GamePlayerManager& playerManager , FeatureScoreInfo& outResult) override;
 
 
 	};
@@ -203,7 +216,7 @@ namespace CAR
 		virtual void mergeData( FeatureBase& other , MapTile const& putData , int meta ) override;
 		virtual int  getActorPutInfo( int playerId , int posMeta , MapTile& mapTile, std::vector< ActorPosInfo >& outInfo ) override;
 		virtual bool checkComplete() override { return false; }
-		virtual int  calcScore( GamePlayerManager& playerManager , std::vector< FeatureScoreInfo >& scoreInfos );
+		virtual int  doCalcScore( GamePlayerManager& playerManager , FeatureScoreInfo& outResult) override;
 		virtual int  calcPlayerScore( PlayerBase* player );
 
 		int calcPlayerScoreByBarnRemoveFarmer(PlayerBase* player);
@@ -225,9 +238,9 @@ namespace CAR
 		virtual bool checkComplete(){ return neighborTiles.size() == 8; }
 		virtual int  getActorPutInfo( int playerId , int posMeta , MapTile& mapTile, std::vector< ActorPosInfo >& outInfo ) override;
 		virtual void mergeData( FeatureBase& other , MapTile const& putData , int meta );
-		virtual int  calcScore( GamePlayerManager& playerManager ,std::vector< FeatureScoreInfo >& scoreInfos );
+		virtual int  doCalcScore( GamePlayerManager& playerManager , FeatureScoreInfo& outResult) override;
 		virtual int  calcPlayerScore(PlayerBase* player);
-		virtual void generateRoadLinkFeatures( GroupSet& outFeatures );
+		virtual void generateRoadLinkFeatures( WorldTileManager& worldTileManager, GroupSet& outFeatures );
 		virtual bool updateForNeighborTile(MapTile& tile);
 		virtual bool getActorPos(MapTile const& mapTile , ActorPos& actorPos);
 		virtual int  getScoreTileNum() const { return neighborTiles.size() + 1; }
@@ -246,13 +259,11 @@ namespace CAR
 		virtual bool checkComplete(){ return neighborTiles.size() == 10; }
 		virtual int  getActorPutInfo( int playerId , int posMeta , MapTile& mapTile, std::vector< ActorPosInfo >& outInfo ) override;
 		virtual void mergeData( FeatureBase& other , MapTile const& putData , int meta );
-		virtual int  calcScore( GamePlayerManager& playerManager , std::vector< FeatureScoreInfo >& scoreInfos );
+		virtual int  doCalcScore( GamePlayerManager& playerManager , FeatureScoreInfo& outResult) override;
 		virtual int  calcPlayerScore(PlayerBase* player);
-		virtual void generateRoadLinkFeatures( GroupSet& outFeatures );
+		virtual void generateRoadLinkFeatures( WorldTileManager& worldTileManager, GroupSet& outFeatures );
 		virtual bool updateForNeighborTile(MapTile& tile);
 		virtual bool getActorPos(MapTile const& mapTile , ActorPos& actorPos);
-
-
 	};
 
 }//namespace CAR

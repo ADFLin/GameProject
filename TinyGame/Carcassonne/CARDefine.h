@@ -39,7 +39,7 @@ namespace CAR
 		eRiver ,
 		eCity  ,
 		eAbbey , //EXP_ABBEY_AND_MAYOR
-		eGermanCastle ,
+		eInsideLink ,
 
 		eEmptySide ,
 	};
@@ -65,6 +65,7 @@ namespace CAR
 			eCropCirclePitchfork = BIT(16),
 			eCropCircleClub      = BIT(17),
 			eCropCircleShield    = BIT(18),
+
 			//runtime
 			eTemp            = BIT(31) ,
 		};
@@ -85,7 +86,11 @@ namespace CAR
 			eNotSemiCircularCity = BIT(6) , //EXP_BRIDGES_CASTLES_AND_BAZAARS
 			eSheep      = BIT(7) ,  //EXP_HILLS_AND_SHEEP use
 			eHalfSeparate = BIT(8) , //EXP_HILLS_AND_SHEEP
+			eSchool       = BIT(9), //EXP_THE_SCHOOL
+			eGermanCastle = BIT(10),
 		};
+
+		static unsigned const InsideLinkTypeMask = eSchool | eGermanCastle;
 	};
 
 
@@ -98,6 +103,7 @@ namespace CAR
 			eTile     ,
 			eTower    ,
 			eTileCorner ,
+			ePlayer ,
 			eNone ,
 		};
 		ActorPos( Enum aType , int aMeta )
@@ -106,6 +112,7 @@ namespace CAR
 
 		static ActorPos None() { return ActorPos(eNone, 0); }
 		static ActorPos Tile() { return ActorPos(eTile, 0); }
+		static ActorPos Player(PlayerId id) { return ActorPos(ePlayer, id); }
 		Enum type;
 		int  meta;
 
@@ -131,8 +138,7 @@ namespace CAR
 		eShepherd , //EXP_HILLS_AND_SHEEP
 		ePhantom , //EXP_PHANTOM
 		eAbbot , //CII
-		eMage ,
-		eWitch ,
+
 
 		eBuilder ,  //EXP_TRADEERS_AND_BUILDERS
 		ePig ,     //EXP_TRADEERS_AND_BUILDERS
@@ -140,10 +146,25 @@ namespace CAR
 		//neutral
 		eDragon , //EXP_THE_PRINCESS_AND_THE_DRAGON
 		eFariy  , //EXP_THE_PRINCESS_AND_THE_DRAGON
+		eCount ,
+		eMage,  //EXP_MAGE_AND_WITCH
+		eWitch, //EXP_MAGE_AND_WITCH
+		eBigPinkPig ,
+		eTecher , //EXP_THE_SCHOOL
 
 		NUM_ACTOR_TYPE  ,
 		NUM_PLAYER_ACTOR_TYPE = eDragon ,
 		eNone = -1,
+	};
+
+	enum class EFollowerClass
+	{
+		Thief ,
+		Knight ,
+		Monk ,
+		Abbot ,
+		Heretic ,
+		Farmer ,
 	};
 
 	struct FieldType
@@ -175,6 +196,8 @@ namespace CAR
 			eLaPorxadaFinishScoring ,
 			//EXP_THE_MESSSAGES
 			eWomenScore ,
+			//EXP_THE_ROBBERS
+			eRobberScorePos,
 
 			//EXP_LITTLE_BUILDINGS
 			eTowerBuildingTokens,
@@ -194,6 +217,7 @@ namespace CAR
 		TILE_ABBEY_TAG , //EXP_ABBEY_AND_MAYOR
 		TILE_GERMAN_CASTLE_TAG ,
 		TILE_HALFLING_TAG ,
+		TILE_SCHOOL_TAG ,
 	};
 
 	enum SheepToken

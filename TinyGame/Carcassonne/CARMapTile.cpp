@@ -314,6 +314,19 @@ namespace CAR
 		return mTile->isSemiCircularCity(dirLocal);
 	}
 
+	int MapTile::getFeatureGroup(ActorPos const& pos)
+	{
+		switch( pos.type )
+		{
+		case ActorPos::eSideNode:
+			return sideNodes[pos.meta].group;
+		case ActorPos::eFarmNode:
+			return farmNodes[pos.meta].group;
+		}
+
+		return ERROR_GROUP_ID;
+	}
+
 	int MapTile::SideNode::getLocalDir() const
 	{
 		return FDir::ToLocal( index , getMapTile()->rotation );

@@ -83,11 +83,11 @@ namespace CAR
 		void   randomPlayerPlayOrder();
 		TileId generatePlayTiles();
 
-		void   addFeaturePoints( FeatureBase& build , std::vector< FeatureScoreInfo >& featureControls , int numPlayer );
 		enum class EScroeType
 		{
 			Normal ,
 			Woman ,
+			None ,
 		};
 		int    modifyPlayerScore( int playerId, int value , EScroeType scoreType = EScroeType::Normal );
 		void   calcFinalScore();
@@ -95,22 +95,24 @@ namespace CAR
 		struct TurnContext
 		{
 			TurnContext(PlayerBase* inPlayer , IGameInput& inInput)
-				:player(inPlayer),input(inInput)
+				:mPlayer(inPlayer),mInput(inInput)
 			{
 				result = TurnStatus::eKeep;
 			}
 
-			PlayerBase* getPlayer() { return player; }
-			IGameInput& getInput() { return input; }
+			PlayerBase* getPlayer() { return mPlayer; }
+			IGameInput& getInput() { return mInput; }
 
-
-			PlayerBase* player;
-			IGameInput& input;
 			TurnStatus  result;
 #if CAR_LOGIC_DEBUG
 			std::vector< std::string > returnStack;
 #endif
+		private:
+			PlayerBase* mPlayer;
+			IGameInput& mInput;
 		};
+
+		struct CastleScoreInfo;
 
 		void resolvePlayerTurn(TurnContext& turnContext );
 		void resolveDeployActor(TurnContext& turnContext, MapTile* deployMapTiles[], int numDeployTile, unsigned actorMask, bool haveUsePortal, bool& haveDone);
@@ -118,12 +120,9 @@ namespace CAR
 		void resolvePlaceTile(TurnContext& turnContext, MapTile* placeMapTiles[] , int& numMapTile );
 		void resolvePortalUse(TurnContext& turnContext, MapTile*& deployMapTile, bool& haveUsePortal);
 		void resolveExpendShepherdFarm(TurnContext& turnContext, FeatureBase* feature );
-		void resolveCastleComplete(TurnContext& turnContext );
+		void resolveCompletedCastles(TurnContext& turnContext , std::vector< FeatureScoreInfo >& featureScoreList );
 		void resolveDrawTile(TurnContext& turnContext, bool& haveHillTile );
-		
-		struct CastleScoreInfo;
-		void resolveCompleteFeature(TurnContext& turnContext, FeatureBase& feature , CastleScoreInfo* castleScore );
-
+		void resolveCompletedFeature(TurnContext& turnContext, FeatureBase& completedFeature, FeatureScoreInfo& featureScore, CastleScoreInfo* castleScore);
 		void resolveBuildCastle(TurnContext& turnContext, FeatureBase& feature , bool& haveBuild );
 		void resolveAbbey(TurnContext& turnContext );
 		void resolveDragonMove(TurnContext& turnContext, LevelActor& dragon );
@@ -135,7 +134,8 @@ namespace CAR
 		void resolveMoveMageOrWitch(TurnContext& turnContext);
 		void resolvePlaceGoldPieces(TurnContext& turnContext, MapTile* mapTile);
 		void resolveCropCircle(TurnContext& turnContext, FeatureType::Enum cropType );
-		void resolveScorePlayer(TurnContext& turnContext, int playerId, int value);
+
+		void resolveScorePlayer(TurnContext& turnContext, int playerId, int value, EScroeType* forceScoreType = nullptr);
 		void resolveDrawMessageTile(TurnContext& turnContext);
 		void resolvePlaceLittleBuilding(TurnContext& turnContext, MapTile* placeTiles[] , int numPlaceTile , bool& haveDone);
 
@@ -152,8 +152,8 @@ namespace CAR
 		void updateTileFeature( MapTile& mapTile , UpdateTileFeatureResult& updateResult );
 		void checkCastleComplete(FeatureBase &feature, int score);
 		void expandSheepFlock(LevelActor* actor);
-		bool checkHaveBuilderFeatureExpend( PlayerBase* trunPlayer );
-		void updateBarnFarm(FarmFeature* farm);
+		void updateBarnFarm(FarmFeature* farm, FeatureScoreInfo& featureScore);
+		bool checkHaveBuilderFeatureExpend(PlayerBase* trunPlayer);
 		bool checkGameStatus( TurnStatus& result );
 
 		PlayerBase* getTurnPlayer(){ return mPlayerOrders[ mIdxPlayerTrun ]; }
@@ -319,7 +319,10 @@ namespace CAR
 		LevelActor* mMage;
 		LevelActor* mWitch;
 
-
+		//EXP_THE_MESSSAGES
+		std::vector< EMessageTile::Type > mMessageStack;
+		int mIndexTopMessage;
+		EMessageTile::Type drawMessageTile();
 		//
 		bool mbUseLaPorxadaScoring;
 

@@ -100,19 +100,25 @@ namespace CAR
 		return actor;
 	}
 
-	int FeatureBase::calcScore(GamePlayerManager& playerManager , std::vector< FeatureScoreInfo >& scoreInfos)
+	int FeatureBase::doCalcScore(GamePlayerManager& playerManager , FeatureScoreInfo& outResult)
 	{
-		InitFeatureScoreInfo(playerManager , scoreInfos );
-		addMajority( scoreInfos );
-		int numPlayer = evalMajorityControl( scoreInfos );
-		for( int i = 0 ; i < numPlayer ; ++i )
+		int numController = generateController(outResult.controllerScores);
+		for( int i = 0 ; i < numController ; ++i )
 		{
-			scoreInfos[i].score = calcPlayerScore( playerManager.getPlayer( scoreInfos[i].playerId ) );
+			auto& controllerScore = outResult.controllerScores[i];
+			controllerScore.score = calcPlayerScore( playerManager.getPlayer( controllerScore.playerId ) );
 		}
-		return numPlayer;
+		return numController;
 	}
 
-	int FeatureBase::evalMajorityControl(std::vector< FeatureScoreInfo >& featureControls)
+	int FeatureBase::calcScore(GamePlayerManager& playerManager, FeatureScoreInfo& outResult)
+	{
+		outResult.feature = this;
+		outResult.numController = doCalcScore(playerManager, outResult);
+		return outResult.numController;
+	}
+
+	int FeatureBase::evalMajorityControl(std::vector< FeatureControllerScoreInfo >& controllerScores)
 	{
 		struct CmpFun
 		{
@@ -120,7 +126,7 @@ namespace CAR
 			{
 				useHomeRule = false;
 			}
-			bool operator() ( FeatureScoreInfo const& f1 , FeatureScoreInfo const& f2 ) const
+			bool operator() ( FeatureControllerScoreInfo const& f1 , FeatureControllerScoreInfo const& f2 ) const
 			{
 				if ( f1.hillFollowerCount || f2.hillFollowerCount )
 				{
@@ -132,7 +138,7 @@ namespace CAR
 				return f1.majority > f2.majority;
 			}
 
-			bool isEqual( FeatureScoreInfo const& f1 , FeatureScoreInfo const& f2 ) const
+			bool isEqual( FeatureControllerScoreInfo const& f1 , FeatureControllerScoreInfo const& f2 ) const
 			{
 				if ( useHomeRule )
 				{
@@ -153,29 +159,36 @@ namespace CAR
 
 
 		CmpFun fun;
-		std::sort( featureControls.begin() , featureControls.end() , fun );
+		std::sort( controllerScores.begin() , controllerScores.end() , fun );
 
-		int numPlayer = 0;
-		if ( featureControls[0].majority != 0 )
+		int numController = 0;
+		if ( controllerScores[0].majority != 0 )
 		{
-			++numPlayer;
-			for( int i = 1; i < featureControls.size() ; ++i )
+			++numController;
+			for( int i = 1; i < controllerScores.size() ; ++i )
 			{
-				if ( fun.isEqual( featureControls[0] , featureControls[i] ) == false )
+				if ( fun.isEqual( controllerScores[0] , controllerScores[i] ) == false )
 					break;
-				++numPlayer;
+				++numController;
 			}
 		}
-		return numPlayer;
+		return numController;
 	}
 
-	int FeatureBase::getMajorityValue( ActorType actorType )
+	int FeatureBase::generateController(std::vector< FeatureControllerScoreInfo >& controllerScores)
+	{
+		generateMajority(controllerScores);
+		return evalMajorityControl(controllerScores);
+	}
+
+	int FeatureBase::getMajorityValue(ActorType actorType)
 	{
 		switch( actorType )
 		{
-		case ActorType::eMeeple:    return 1; break;
-		case ActorType::eBigMeeple: return 2; break;
-		case ActorType::eWagon:     return 1; break;
+		case ActorType::eMeeple:    return 1; 
+		case ActorType::eBigMeeple: return 2; 
+		case ActorType::eWagon:     return 1; 
+		case ActorType::ePhantom:   return 1;
 		case ActorType::eMayor:
 			{
 				assert( type == FeatureType::eCity );
@@ -187,26 +200,39 @@ namespace CAR
 		return 0;
 	}
 
-	void FeatureBase::addMajority( std::vector< FeatureScoreInfo >& scoreInfos )
+	void FeatureBase::generateMajority( std::vector< FeatureControllerScoreInfo >& controllerScores )
 	{
-		for( int i = 0 ; i < mActors.size() ; ++i )
+		auto FindController = [&controllerScores](PlayerId id)-> FeatureControllerScoreInfo*
 		{
-			LevelActor* actor = mActors[i];
-			FeatureScoreInfo& info = scoreInfos[ actor->ownerId ];
-			info.majority += getMajorityValue( actor->type );
-			if ( mSetting->isFollower( actor->type ) && actor->mapTile->haveHill )
-				info.hillFollowerCount += 1;
-		}
-	}
+			for( auto& info : controllerScores )
+			{
+				if( info.playerId = id )
+					return &info;
+			}
+			return nullptr;
+		};
 
-	void FeatureBase::InitFeatureScoreInfo(GamePlayerManager& playerManager , std::vector< FeatureScoreInfo > &scoreInfos)
-	{
-		scoreInfos.resize(playerManager.getPlayerNum());
-		for( int i = 0 ; i < scoreInfos.size(); ++i )
+		for( LevelActor* actor : mActors )
 		{
-			scoreInfos[i].playerId = i;
-			scoreInfos[i].majority = 0;
-			scoreInfos[i].hillFollowerCount = 0;
+			int majorityValue = getMajorityValue(actor->type);
+			if( majorityValue <= 0 )
+				continue;
+
+			FeatureControllerScoreInfo* pInfo = FindController(actor->ownerId);
+			if ( pInfo == nullptr )
+			{
+				FeatureControllerScoreInfo newInfo;
+				newInfo.playerId = actor->ownerId;
+				newInfo.majority = 0;
+				newInfo.hillFollowerCount = 0;
+				newInfo.score = 0;
+				controllerScores.push_back(newInfo);
+				pInfo = &controllerScores.back();
+			}
+
+			pInfo->majority += majorityValue;
+			if ( mSetting->isFollower( actor->type ) && actor->mapTile->haveHill )
+				pInfo->hillFollowerCount += 1;
 		}
 	}
 
@@ -330,48 +356,76 @@ namespace CAR
 		return result;
 	}
 
-	void SideFeature::generateRoadLinkFeatures(GroupSet& outFeatures)
+	static void GenerateSideFeatureRoadLinkFeatures_R(WorldTileManager& worldTileManager, MapTile const* mapTile , int skipGroup , int dir , GroupSet& outFeatures)
+	{
+		unsigned roadMask = mapTile->getRoadLinkMask(node->index);
+		CAR_LOG("road Mask = %u", roadMask);
+
+		if( roadMask == 0 )
+			return;
+
+		if( roadMask & TilePiece::CenterMask )
+		{
+			//#TODO: use feature type check
+			switch( mapTile->getTileContent() & TileContent::FeatureMask )
+			{
+			case TileContent::eCloister:
+				outFeatures.insert(mapTile->group);
+				break;
+			}
+		}
+
+		int dir;
+		while( FBit::MaskIterator< FDir::TotalNum >(roadMask, dir) )
+		{
+			MapTile::SideNode const& linkNode = mapTile->sideNodes[dir];
+			if( linkNode.group == skipGroup )
+				continue;
+
+			if( linkNode.group == -1 )
+			{
+				if( linkNode.type == eInsideLink )
+				{
+					switch( mapTile->getSideContnet(dir) & SideContent::InsideLinkTypeMask )
+					{
+					case SideContent::eSchool:
+						{
+							Vec2i linkPos = FDir::LinkPos(mapTile->pos, dir);
+							MapTile* mapTileLink = worldTileManager.findMapTile(linkPos);
+
+							if( mapTileLink )
+							{
+								int invDir = FDir::Inverse(dir);
+								assert(mapTileLink->sideNodes[invDir].type == SideType::eInsideLink);
+								assert((mapTileLink->getSideContnet(invDir) & SideContent::InsideLinkTypeMask) == SideContent::eSchool);
+
+								unsigned roadMaskLink = mapTile->getRoadLinkMask(node->index);
+								int dir2;
+								while( FBit::MaskIterator< FDir::TotalNum >(roadMaskLink, dir2) )
+								{
+									GenerateSideFeatureRoadLinkFeatures_R(worldTileManager, mapTile, skipGroup, dir2, outFeatures);
+								}
+							}
+						}
+						break;
+					}
+				}
+				CAR_LOG("Waning: No Link Feature In Road Link");
+			}
+			else
+			{
+				outFeatures.insert(linkNode.group);
+			}
+		}
+	}
+
+	void SideFeature::generateRoadLinkFeatures(WorldTileManager& worldTileManager, GroupSet& outFeatures)
 	{
 		for( int i = 0 ; i < nodes.size() ; ++i )
 		{
 			SideNode* node = nodes[i];
 			MapTile const* mapTile = node->getMapTile();
-			unsigned roadMask = mapTile->getRoadLinkMask( node->index );
-
-			CAR_LOG("road Mask = %u" , roadMask );
-
-			if ( roadMask == 0 )
-				continue;
-			
-			if ( roadMask & TilePiece::CenterMask )
-			{
-				//#TODO: use feature type check
-				switch ( mapTile->getTileContent() & TileContent::FeatureMask )
-				{
-				case TileContent::eCloister:
-					outFeatures.insert( mapTile->group );
-					break;
-				}
-			}
-			else
-			{
-				int dir;
-				while( FBit::MaskIterator< FDir::TotalNum >(roadMask,dir) )
-				{
-					SideNode const& linkNode = mapTile->sideNodes[dir];
-					if ( linkNode.group == group )
-						continue;
-
-					if ( linkNode.group == -1 )
-					{
-						CAR_LOG("Waning: No Link Feature In Road Link");
-					}
-					else
-					{
-						outFeatures.insert( linkNode.group );
-					}
-				}
-			}
+			GenerateSideFeatureRoadLinkFeatures_R(worldTileManager, mapTile, group, node->index, outFeatures);
 		}
 	}
 
@@ -551,11 +605,11 @@ namespace CAR
 		return true;
 	}
 
-	int CityFeature::calcScore( GamePlayerManager& playerManager , std::vector< FeatureScoreInfo >& scoreInfos )
+	int CityFeature::doCalcScore( GamePlayerManager& playerManager , FeatureScoreInfo& outResult)
 	{
 		if ( isCastle )
 			return -1;
-		return BaseClass::calcScore( playerManager , scoreInfos );
+		return BaseClass::doCalcScore( playerManager , outResult);
 	}
 
 	FarmFeature::FarmFeature()
@@ -621,7 +675,7 @@ namespace CAR
 
 	}
 
-	int FarmFeature::calcScore(GamePlayerManager& playerManager , std::vector< FeatureScoreInfo >& scoreInfos)
+	int FarmFeature::doCalcScore(GamePlayerManager& playerManager , FeatureScoreInfo& outResult)
 	{
 		switch( mSetting->getFarmScoreVersion() )
 		{
@@ -630,7 +684,7 @@ namespace CAR
 			return -1;
 		case 3:
 		default:
-			return BaseClass::calcScore(playerManager , scoreInfos );
+			return BaseClass::doCalcScore(playerManager , outResult);
 			break;
 		}
 
@@ -703,7 +757,7 @@ namespace CAR
 		return result;
 	}
 
-	int CloisterFeature::calcScore(GamePlayerManager& playerManager , std::vector< FeatureScoreInfo >& scoreInfos)
+	int CloisterFeature::doCalcScore(GamePlayerManager& playerManager , FeatureScoreInfo& outResult)
 	{
 		for( int i = 0 ; i < mActors.size() ; ++i )
 		{
@@ -713,17 +767,18 @@ namespace CAR
 
 			if ( majority > 0 )
 			{
-				scoreInfos.resize(1);
-				scoreInfos[0].playerId = actor->ownerId;
-				scoreInfos[0].majority = majority;
-				scoreInfos[0].score = calcPlayerScore( playerManager.getPlayer(scoreInfos[0].playerId) );
+				outResult.controllerScores.resize(1);
+				auto& controllerScore = outResult.controllerScores[0];
+				controllerScore.playerId = actor->ownerId;
+				controllerScore.majority = majority;
+				controllerScore.score = calcPlayerScore( playerManager.getPlayer(controllerScore.playerId) );
 				return 1;
 			}
 		}
 		return 0;
 	}
 
-	void CloisterFeature::generateRoadLinkFeatures( GroupSet& outFeatures )
+	void CloisterFeature::generateRoadLinkFeatures( WorldTileManager& worldTileManager, GroupSet& outFeatures )
 	{
 		assert( mapTiles.empty() == false );
 		MapTile* mapTile = *mapTiles.begin();
@@ -801,7 +856,7 @@ namespace CAR
 		return result;
 	}
 
-	int GermanCastleFeature::calcScore( GamePlayerManager& playerManager , std::vector< FeatureScoreInfo >& scoreInfos)
+	int GermanCastleFeature::doCalcScore( GamePlayerManager& playerManager , FeatureScoreInfo& outResult)
 	{
 		for( int i = 0 ; i < mActors.size() ; ++i )
 		{
@@ -811,17 +866,18 @@ namespace CAR
 
 			if ( majority > 0 )
 			{
-				scoreInfos.resize(1);
-				scoreInfos[0].playerId = actor->ownerId;
-				scoreInfos[0].majority = majority;
-				scoreInfos[0].score = calcPlayerScore( playerManager.getPlayer(actor->ownerId) );
+				outResult.controllerScores.resize(1);
+				auto& constrollerScore = outResult.controllerScores[0];
+				constrollerScore.playerId = actor->ownerId;
+				constrollerScore.majority = majority;
+				constrollerScore.score = calcPlayerScore( playerManager.getPlayer(actor->ownerId) );
 				return 1;
 			}
 		}
 		return 0;
 	}
 
-	void GermanCastleFeature::generateRoadLinkFeatures( GroupSet& outFeatures )
+	void GermanCastleFeature::generateRoadLinkFeatures( WorldTileManager& worldTileManager, GroupSet& outFeatures )
 	{
 		assert( mapTiles.empty() == false );
 		MapTile* mapTile = *mapTiles.begin();

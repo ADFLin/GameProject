@@ -112,11 +112,11 @@ namespace CAR
 			group = ACTOPT_GROUP_MESSAGE;
 			options = { ACTOPT_MESSAGE_PERFORM_ACTION , ACTOPT_MESSAGE_SCORE_TWO_POINTS };
 		}
-
+		EMessageTile::Type token;
 		int messageScore;
 		union Object
 		{
-			LevelActor* actor;
+			LevelActor*  actor;
 			FeatureBase* feature;
 		};
 		std::vector<Object> objects;

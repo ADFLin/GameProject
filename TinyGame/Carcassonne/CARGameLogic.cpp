@@ -301,7 +301,7 @@ namespace CAR
 			if ( build->group == ERROR_GROUP_ID )
 				continue;
 
-			std::vector< FeatureScoreInfo > scoreInfos;
+			FeatureScoreInfo featureScore;
 			if ( build->checkComplete() )
 			{
 				if ( build->type == FeatureType::eCity )
@@ -311,10 +311,9 @@ namespace CAR
 					{
 					case 1:
 						{
-							FeatureBase::InitFeatureScoreInfo( *mPlayerManager , scoreInfos ); 
 							for( FarmFeature* farm : city->linkedFarms )
 							{
-								farm->addMajority( scoreInfos );
+								farm->generateMajority(featureScore.controllerScores);
 							}
 							//int numPlayer = FeatureBase::evalMajorityControl( scoreInfos );
 							//for( int i = 0 ; i < numPlayer ; ++i )
@@ -331,9 +330,16 @@ namespace CAR
 			}
 			else
 			{
-				int numPlayer = build->calcScore( *mPlayerManager , scoreInfos );
-				if ( numPlayer > 0 )
-					addFeaturePoints( *build , scoreInfos , numPlayer );
+				build->calcScore( *mPlayerManager , featureScore );
+				if( featureScore.numController > 0 )
+				{
+					for( int i = 0; i < featureScore.numController; ++i )
+					{
+						auto& controllerScore = featureScore.controllerScores[i];
+						modifyPlayerScore(controllerScore.playerId, controllerScore.score);
+					}
+				}
+					
 			}
 		}
 
@@ -979,11 +985,13 @@ namespace CAR
 				}
 			}
 
+			std::vector< FeatureScoreInfo > featureScoreList;
+
 			//Step 6: Identify Completed Features
-			for( FeatureUpdateInfoVec::iterator iter = mUpdateFeatures.begin(), itEnd = mUpdateFeatures.end();
-				iter != itEnd ; ++iter )
+			for( auto& updateInfo : mUpdateFeatures )
 			{
-				FeatureBase* feature = iter->feature;
+				FeatureBase* feature = updateInfo.feature;
+
 				if ( feature->group == ERROR_GROUP_ID )
 					continue;
 
@@ -992,28 +1000,103 @@ namespace CAR
 				{
 					CAR_LOG( "Feature %d complete by Player %d" , feature->group , turnContext.getPlayer()->getId()  );
 					//Step 7: Resolve Completed Features
-					CHECK_RESOLVE_RESULT( resolveCompleteFeature(turnContext, *feature , nullptr ) );
+
+					FeatureScoreInfo featureScore;
+					CHECK_RESOLVE_RESULT( resolveCompletedFeature(turnContext, *feature , featureScore , nullptr ) );
+
+					if(  featureScore.numController > 0 )
+					{
+						featureScoreList.push_back(std::move(featureScore));
+					}
 				}
 				else if ( feature->type == FeatureType::eFarm )
 				{
 					if ( mSetting->have( Rule::eBarn ) && feature->haveActorFromType( BIT( ActorType::eBarn ) ) )
 					{
 						FarmFeature* farm = static_cast< FarmFeature*>( feature );
-						updateBarnFarm(farm);
+						FeatureScoreInfo featureScore;
+						updateBarnFarm(farm , featureScore);
+
+						if( featureScore.numController > 0 )
+						{
+							featureScoreList.push_back(std::move(featureScore));
+						}
 					}
 				}
 			}
 
-
-
 			//castle complete
 			if ( mSetting->have(Rule::eCastleToken) )
 			{
-				CHECK_RESOLVE_RESULT( resolveCastleComplete(turnContext) );
+				CHECK_RESOLVE_RESULT( resolveCompletedCastles(turnContext, featureScoreList) );
 			}
 
+
 			//Step 8: Resolve the Tile
-			//d) dragon move
+			//a) Consider the total movement of your counting followers after all completed features are scored : MESSAGES
+
+			struct PlayerFeatureScoreInfo
+			{
+				FeatureBase* feature;
+				PlayerId     playerId;
+				int          score;
+			};
+
+			if ( !featureScoreList.empty() )
+			{
+				std::vector< PlayerFeatureScoreInfo > sortedPlayerScoreList;
+				for( auto& featureScore : featureScoreList )
+				{
+					assert(featureScore.numController > 0);
+					for( int i = 0; i < featureScore.numController; ++i )
+					{
+						auto& controllerScore = featureScore.controllerScores[i];
+						PlayerFeatureScoreInfo info;
+						info.playerId = controllerScore.playerId;
+						info.score = controllerScore.score;
+						info.feature = featureScore.feature;
+						sortedPlayerScoreList.push_back(info);
+						CHECK_RESOLVE_RESULT(resolveScorePlayer(turnContext, controllerScore.playerId, controllerScore.score));
+					}
+				}
+
+				std::sort(sortedPlayerScoreList.begin(), sortedPlayerScoreList.end(), [](auto const& lhs, auto const& rhs)
+				{
+					return lhs.playerId < rhs.playerId;
+				});
+
+				auto NeedConsiderScoreOrder = [&](PlayerId id)
+				{
+					PlayerBase* player = mPlayerManager->getPlayer(id);
+					return false;
+				};
+				PlayerFeatureScoreInfo* playerScoreStart = &sortedPlayerScoreList[0];
+				PlayerFeatureScoreInfo* scoreEnd = &sortedPlayerScoreList.back() + 1;
+				while( playerScoreStart != scoreEnd )
+				{
+					PlayerFeatureScoreInfo* playerScoreEnd = playerScoreStart + 1;
+					while( playerScoreEnd != scoreEnd )
+					{
+						if ( playerScoreEnd->playerId != playerScoreStart->playerId )
+							break;
+						++playerScoreEnd;
+					}
+
+					//@TODO : consider other player order
+
+					for ( ; playerScoreStart != playerScoreEnd ; ++playerScoreStart )
+					{
+						CHECK_RESOLVE_RESULT( resolveScorePlayer( turnContext , playerScoreStart->playerId, playerScoreStart->score) );
+					}
+				}
+			}
+			//b) If you played a gingerbread man tile on this turn, move the Gingerbread Man to a different incomplete city.
+			//   All players receive points for any knights they have in the city that the Gingerbread Man just left. MESSAGES ROBBERS
+
+			//c) If you did not score any points from placement of the tile this turn, but one or more opponents did, 
+			//   you may place a follower in the City of Carcassonne.Then you may move the Count to a quarter of your choice.
+
+			//d) RGG rules only : If a dragon symbol was on the placed tile, move the dragon.
 			if( mSetting->have(Rule::eDragon) )
 			{
 				if ( mSetting->have(Rule::eMoveDragonBeforeScoring ) == false )
@@ -1025,7 +1108,17 @@ namespace CAR
 					}
 				}
 			}
+			//e) If a fair symbol was on the placed tile, use the catapult. MESSAGES ROBBERS
+			
+			//f) If a crop circle was on the placed tile, you decide whether all players now 
+			//   ->A) may deploy a follower next to one already in play or 
+			//   ->B) must remove a follower.The type of follower is determined by the type of crop circle.
+			if( mSetting->have(Rule::eCropCircle) )
+			{
 
+
+
+			}
 			//Step 9: Resolve the Turn
 			//a) If you had a builder on a road or city that was extended by the placement of the tile, 
 			//   repeat Steps 2 through 8 once more and only once more.
@@ -1051,6 +1144,8 @@ namespace CAR
 				}
 			}
 
+			//c) You may remove one knight from a besieged city if a cloister directly borders any tile of that city(Cults & Sieges) or 
+			//   if a cloister directly borders a Cathar tile(TheCathars) or Besiegers tile(The Besiegers).
 			break;
 		}
 	}
@@ -1245,15 +1340,35 @@ namespace CAR
 		haveDone = true;
 	}
 
-	void GameLogic::resolveCompleteFeature(TurnContext& turnContext, FeatureBase& feature , CastleScoreInfo* castleScore )
+	void GameLogic::resolveCompletedFeature(TurnContext& turnContext, FeatureBase& completedFeature , FeatureScoreInfo& featureScore , CastleScoreInfo* castleScore )
 	{
-		assert( feature.checkComplete() );
+		assert( completedFeature.checkComplete() );
 
+		//a) If a town was created by the tile placement, the town maybe converted into a castle by the occupying player.
+		//   If converted, this feature's completion is considered to be resolved. Go to the next feature.
+		if( mSetting->have(Rule::eCastleToken) )
+		{
+			if( completedFeature.type == FeatureType::eCity )
+			{
+				bool haveBuild;
+				CHECK_RESOLVE_RESULT(resolveBuildCastle(turnContext, completedFeature, haveBuild));
+				if( haveBuild )
+					return;
+			}
+		}
+
+		//b) If the Gingerbread Man is in a completed city, all players with knights in the city receive points.
+		//   You then place the Gingerbread Man in an unfinished city of your choice. 
+		//  (How this would interact with a newly-formed castle is unknown.As a castle is no longer a city, 
+		//   the Gingerbread Man should likely be removed with no scoring.)
+
+
+		//?)
 		if( mSetting->have(Rule::eLaPorxada) && mbUseLaPorxadaScoring )
 		{
-			if( feature.type == FeatureType::eCity )
+			if( completedFeature.type == FeatureType::eCity )
 			{
-				CityFeature& city = static_cast<CityFeature&>(feature);
+				CityFeature& city = static_cast<CityFeature&>(completedFeature);
 
 				if( city.haveLaPorxada )
 				{
@@ -1269,32 +1384,21 @@ namespace CAR
 			}
 		}
 
-		if( mSetting->have(Rule::eCastleToken) )
-		{
-			if ( feature.type == FeatureType::eCity )
-			{
-				bool haveBuild;
-				CHECK_RESOLVE_RESULT( resolveBuildCastle(turnContext, feature, haveBuild ) );
-				if ( haveBuild )
-					return;
-			}
-		}
-
-		//c)
+		//c) If a fairy is next to a follower in the completed feature, that follower¡¦s owner receives 3 points.
 		if ( mSetting->have(Rule::eFariy) )
 		{
 			LevelActor* actor = mFairy->binder;
-			if ( actor && actor->feature == &feature )
+			if ( actor && actor->feature == &completedFeature )
 			{
 				CAR_LOG("Score: %d FairyFearureScoringScore" , actor->ownerId );
 				modifyPlayerScore( actor->ownerId , CAR_PARAM_VALUE(FairyFearureScoringScore) );
 			}
 		}
-		//d)
-		//->Collect any trade good tokens
-		if ( feature.type == FeatureType::eCity )
+		//d) Rewards for completing the featur
+		//  - Collect any trade good tokens
+		if ( completedFeature.type == FeatureType::eCity )
 		{
-			CityFeature& city = static_cast< CityFeature& >( feature );
+			CityFeature& city = static_cast< CityFeature& >( completedFeature );
 			if ( mSetting->have( Rule::eTraders ) )
 			{
 				for( std::vector< SideNode* >::iterator iter = city.nodes.begin() , itEnd = city.nodes.end();
@@ -1318,49 +1422,91 @@ namespace CAR
 				}
 			}
 		}
-		//->King or Robber Baron
+		//  - If the completed feature is a city or road, check to see if it is the new largest one and, if so, 
+		//    receive the King or Robber Baron
 		if ( mSetting->have( Rule::eKingAndRobber ) )
 		{
-			if ( feature.type == FeatureType::eCity && castleScore == nullptr )
+			if ( completedFeature.type == FeatureType::eCity && castleScore == nullptr )
 			{
-				if ( feature.mapTiles.size() > mMaxCityTileNum )
+				if ( completedFeature.mapTiles.size() > mMaxCityTileNum )
 				{
-					mMaxCityTileNum = feature.mapTiles.size();
+					mMaxCityTileNum = completedFeature.mapTiles.size();
 					mIdKing = getTurnPlayer()->getId();
 				}
 			}
-			else if ( feature.type == FeatureType::eRoad )
+			else if ( completedFeature.type == FeatureType::eRoad )
 			{
 
-				if ( feature.mapTiles.size() > mMaxRoadTileNum )
+				if ( completedFeature.mapTiles.size() > mMaxRoadTileNum )
 				{
-					mMaxCityTileNum = feature.mapTiles.size();
+					mMaxCityTileNum = completedFeature.mapTiles.size();
 					mIdRobberBaron = getTurnPlayer()->getId();
 				}
 			}
 		}
-
+		//e) The player to your left may move one or more followers from the City of Carcassonne to the current feature. 
+		//   Everyone has this opportunity in turn,ending with you.
+		
+		
 		//f - h)
-
 		int numController = 0;
-		std::vector< FeatureScoreInfo > scoreInfos;
 		if ( castleScore )
 		{
-			FeatureScoreInfo info;
-			info.playerId = feature.findActorFromType( KINGHT_MASK )->ownerId;
+			FeatureControllerScoreInfo info;
+			info.playerId = completedFeature.findActorFromType( KINGHT_MASK )->ownerId;
 			info.majority = 1;
 			info.score = castleScore->value;
-			scoreInfos.push_back( info );
-			numController = 1;
+			featureScore.controllerScores.push_back( info );
+			featureScore.numController = 1;
 		}
 		else
 		{
-			numController = feature.calcScore( *mPlayerManager , scoreInfos );
+			//f)  Resolve control of the completed feature
+			numController = completedFeature.calcScore( *mPlayerManager , featureScore );
 		}
-		if ( numController > 0 )
+
+
+		if ( featureScore.numController > 0 )
 		{
+			//g) If there is at least one gold piece on a tile with the completed structure, 
+			//   gold pieces are distributed to the controlling player(s)
+			if( mSetting->have(Rule::eGold) )
+			{
+				int numGoldPieces = 0;
+				switch( completedFeature.type )
+				{
+				case FeatureType::eCity:
+				case FeatureType::eRoad:
+					for( auto mapTile : completedFeature.mapTiles )
+					{
+						if( mapTile->goldPices )
+						{
+							numGoldPieces += mapTile->goldPices;
+						}
+					}
+					break;
+
+				case FeatureType::eCloister:
+					for( auto mapTile : completedFeature.mapTiles )
+					{
+						if( mapTile->goldPices )
+						{
+							numGoldPieces += mapTile->goldPices;
+						}
+					}
+					for( auto mapTile : static_cast<CloisterFeature&>(completedFeature).neighborTiles )
+					{
+						if( mapTile->goldPices )
+						{
+							numGoldPieces += mapTile->goldPices;
+						}
+					}
+					break;
+				}
+			}
+			//h) Tally points and award points to the controlling player(s) ROBBER CHOICE
 			if ( mSetting->have( Rule::eHaveGermanCastleTile ) &&
-				 ( feature.type == FeatureType::eCity || feature.type == FeatureType::eRoad ) )
+				 ( completedFeature.type == FeatureType::eCity || completedFeature.type == FeatureType::eRoad ) )
 			{
 				int numNeighborCastle = 0;
 				for( int i = 0 ; i < mGermanCastles.size() ; ++i )
@@ -1387,7 +1533,7 @@ namespace CAR
 						if ( min.y > max.y )
 							std::swap( min.y , max.y );
 					}
-					if ( feature.testInRange( min , max ) )
+					if ( completedFeature.testInRange( min , max ) )
 					{
 						++numNeighborCastle;
 					}
@@ -1397,72 +1543,71 @@ namespace CAR
 				{
 					for( int i = 0 ; i < numController ; ++i )
 					{
-						scoreInfos[i].score += numNeighborCastle * CAR_PARAM_VALUE(GermanCastleAdditionFactor);
+						featureScore.controllerScores[i].score += numNeighborCastle * CAR_PARAM_VALUE(GermanCastleAdditionFactor);
 					}
 				}
 			}
 
-			addFeaturePoints( feature , scoreInfos , numController );
-		}
+			//i) If a player has the teacher, that player scores the same number of points that were awarded. 
+			//   (If more than one player is receiving points simultaneously, the holder of the teacher can choose which points to receive.) 
+			//   The teacher is then returned to the school. ROBBER CHOICE
 
-		if( mSetting->have(Rule::eGold) )
-		{
-			int numGoldPieces = 0;
-			switch( feature.type )
+
+			//j)  Remove the mage or witch if they were involved in the scoring of this feature.
+			if( mSetting->have(Rule::eMageAndWitch) )
 			{
-			case FeatureType::eCity:
-			case FeatureType::eRoad:
-				for( auto mapTile : feature.mapTiles )
+				assert(mMage->feature == nullptr || mMage->feature != mWitch->feature);
+				if( mMage->feature == &completedFeature )
 				{
-					if( mapTile->goldPices )
+					int numTiles = completedFeature.mapTiles.size();
+					for( auto& info : featureScore.controllerScores )
 					{
-						numGoldPieces += mapTile->goldPices;
+						info.score += numTiles;
 					}
+					removeActor(mMage);
 				}
-				break;
-
-			case FeatureType::eCloister:
-				for( auto mapTile : feature.mapTiles )
+				else if( mWitch->feature == &completedFeature )
 				{
-					if( mapTile->goldPices )
+					for( auto& info : featureScore.controllerScores )
 					{
-						numGoldPieces += mapTile->goldPices;
+						info.score = ( info.score + 1 ) / 2;
 					}
+					removeActor(mWitch);
 				}
-				for( auto mapTile : static_cast<CloisterFeature&>(feature).neighborTiles )
-				{
-					if( mapTile->goldPices )
-					{
-						numGoldPieces += mapTile->goldPices;
-					}
-				}
-				break;
 			}
+
+			//k) If a heretic or monk completes its feature, determine if a ¡§race to completion¡¨ has been won.
+			//   If so, return the losing follower to its owner.
+
+
+			//l) Move any wagons on the completed feature to any adjoining unoccupied uncompleted feature.
+			//   If more than one wagon can move, you move first, and then order of movement proceeds clockwise.
+			//m) Return all remaining followers on the completed feature to their owners.
+			CHECK_RESOLVE_RESULT(resolveFeatureReturnPlayerActor(turnContext, completedFeature));
 		}
 
-		if ( mSetting->have( Rule::eCastleToken ) )
+
+		if ( mSetting->have(Rule::eCastleToken) )
 		{
 			int score = 0;
-			if ( numController > 0 )
+			if ( featureScore.numController > 0 )
 			{
-				for( int i = 0 ; i < numController ; ++i )
+				for( int i = 0 ; i < featureScore.numController; ++i )
 				{
-					if ( score < scoreInfos[i].score )
-						score = scoreInfos[i].score;
+					if ( score < featureScore.controllerScores[i].score )
+						score = featureScore.controllerScores[i].score;
 				}
 			}
 			else
 			{
-				score = feature.calcPlayerScore( nullptr );
+				score = completedFeature.calcPlayerScore( nullptr );
 			}
 
-			checkCastleComplete( feature , score );
+			checkCastleComplete( completedFeature , score );
 		}
-
-		CHECK_RESOLVE_RESULT( resolveFeatureReturnPlayerActor(turnContext, feature ) );
 	}
 
-	void GameLogic::resolveCastleComplete(TurnContext& turnContext)
+	void GameLogic::resolveCompletedCastles(TurnContext& turnContext, std::vector< FeatureScoreInfo >& featureScoreList)
 	{
 		std::vector< CastleInfo* > castleGroup;
 		do
@@ -1498,7 +1643,13 @@ namespace CAR
 					}
 				}
 
-				CHECK_RESOLVE_RESULT( resolveCompleteFeature(turnContext, *info->city , scoreInfo ) );
+				FeatureScoreInfo featureScore;
+				featureScore.feature = info->city;
+				CHECK_RESOLVE_RESULT( resolveCompletedFeature(turnContext, *info->city , featureScore , scoreInfo ) );
+				if( featureScore.numController )
+				{
+					featureScoreList.push_back(std::move(featureScore));
+				}
 
 				delete info;
 			}
@@ -1688,7 +1839,7 @@ namespace CAR
 					ShepherdActor* shepherd = shepherds[i];
 					PlayerId ownerId = shepherd->ownerId;
 					returnActorToPlayer(shepherd);
-					resolveScorePlayer(turnContext, ownerId, score);
+					CHECK_RESOLVE_RESULT( resolveScorePlayer(turnContext, ownerId, score) );
 				}
 			}
 			break;
@@ -1996,7 +2147,7 @@ namespace CAR
 		if ( mSetting->have( Rule::eWagon ) && !wagonGroup.empty() )
 		{
 			GroupSet linkFeatureGroups;
-			feature.generateRoadLinkFeatures( linkFeatureGroups );
+			feature.generateRoadLinkFeatures( mWorld , linkFeatureGroups );
 
 			std::vector< FeatureBase* > linkFeatures;
 			for( auto group : linkFeatureGroups )
@@ -2373,7 +2524,7 @@ namespace CAR
 						build = updateBasicSideFeature( mapTile , linkMask , linkType, updateResult );
 					}
 					break;
-				case SideType::eGermanCastle:
+				case SideType::eInsideLink:
 					{
 
 					}
@@ -2506,17 +2657,6 @@ namespace CAR
 					mUpdateFeatures.push_back( FeatureUpdateInfo(feature) );
 				}
 			}
-		}
-	}
-
-	void GameLogic::addFeaturePoints( FeatureBase& feature , std::vector< FeatureScoreInfo >& featureControls , int numPlayer )
-	{
-		for( int i = 0 ; i < numPlayer ; ++i )
-		{
-			FeatureScoreInfo& info = featureControls[i];
-			
-			modifyPlayerScore( info.playerId, info.score );
-			CAR_LOG( "Player %d add Score %d " , info.playerId, info.score );
 		}
 	}
 
@@ -3058,22 +3198,33 @@ namespace CAR
 		}
 	}	
 	
-	void GameLogic::resolveScorePlayer(TurnContext& turnContext, int playerId, int value)
+	void GameLogic::resolveScorePlayer(TurnContext& turnContext, int playerId, int value , EScroeType* forceScoreType )
 	{
 		assert(value > 0);
 
 
 		if( mSetting->have(Rule::eMessage) )
 		{
-			GameSelectActionOptionData data;
-			data.playerId = playerId;
-			data.options = { ACTOPT_SCORE_NORMAL , ACTOPT_SCORE_WOMEN };
-			data.group = ACTOPT_GROUP_SELECT_SCORE_TYPE;
-			data.bCanSkip = false;
+			EScroeType scoreType;
+			if( forceScoreType == nullptr || *forceScoreType == EScroeType::None )
+			{
+				GameSelectActionOptionData data;
+				data.playerId = playerId;
+				data.options = { ACTOPT_SCORE_NORMAL , ACTOPT_SCORE_WOMEN };
+				data.group = ACTOPT_GROUP_SELECT_SCORE_TYPE;
+				data.bCanSkip = false;
+				CHECK_INPUT_RESULT(turnContext.getInput().requestSelectActionOption(data));
+				data.validateResult("ScorePlayer");
+				scoreType = (data.resultIndex == 0) ? EScroeType::Normal : EScroeType::Woman;
+				if( forceScoreType )
+					*forceScoreType = scoreType;
 
-			CHECK_INPUT_RESULT(turnContext.getInput().requestSelectActionOption(data));
-			data.validateResult("ScorePlayer");
-			EScroeType scoreType = (data.resultIndex == 0) ? EScroeType::Normal : EScroeType::Woman;
+			}
+			else
+			{
+				scoreType = *forceScoreType;
+			}
+
 			modifyPlayerScore(playerId, value, scoreType);
 
 			int const DarkNumberSpaceOffset = 5;
@@ -3093,7 +3244,11 @@ namespace CAR
 	void GameLogic::resolveDrawMessageTile(TurnContext& turnContext)
 	{
 		//@TODO: Draw message token
-		EMessageTile::Type token;
+		EMessageTile::Type token = drawMessageTile();
+
+
+		GameSelectMessageOptionData data;
+		data.token = token;
 		switch( token )
 		{
 		case EMessageTile::ScoreSmallestRoad:
@@ -3101,20 +3256,20 @@ namespace CAR
 		case EMessageTile::ScoreSmallestCloister:
 			{
 				std::vector< FeatureBase* > minScoreTilefeatures;
-				FeatureType::Enum SelectFeatureType;
+				FeatureType::Enum selectFeatureType;
 				switch( token )
 				{
 				case EMessageTile::ScoreSmallestRoad:
-					SelectFeatureType = FeatureType::eRoad;
+					selectFeatureType = FeatureType::eRoad;
 					break;
 				case EMessageTile::ScoreSmallestCity:
-					SelectFeatureType = FeatureType::eCity;
+					selectFeatureType = FeatureType::eCity;
 					break;
 				case EMessageTile::ScoreSmallestCloister:
-					SelectFeatureType = FeatureType::eCloister;
+					selectFeatureType = FeatureType::eCloister;
 					break;
 				}
-				getMinTitlesNoCompletedFeature(SelectFeatureType, BIT(turnContext.getPlayer()->getId()), mSetting->getFollowerMask(), minScoreTilefeatures);
+				getMinTitlesNoCompletedFeature(selectFeatureType, BIT(turnContext.getPlayer()->getId()), mSetting->getFollowerMask(), minScoreTilefeatures);
 
 				if( minScoreTilefeatures.empty() )
 				{
@@ -3209,6 +3364,33 @@ namespace CAR
 		case EMessageTile::ScoreAFollowerAndRemove:
 			break;
 		}
+
+		CHECK_INPUT_RESULT(turnContext.getInput().requestSelectActionOption(data));
+		data.validateResult("MessageSelectAction");
+
+		if ( data.options[ data.resultSkipAction] == ACTOPT_MESSAGE_PERFORM_ACTION )
+		{
+			switch( token )
+			{
+			case EMessageTile::ScoreSmallestRoad:
+			case EMessageTile::ScoreSmallestCity:
+			case EMessageTile::ScoreSmallestCloister:
+			case EMessageTile::TwoPointsForEachPennant:
+			case EMessageTile::TwoPointsForEachKnight:
+			case EMessageTile::TwoPointsForEachFarmer:
+			case EMessageTile::ScoreAFollowerAndRemove:
+				modifyPlayerScore(turnContext.getPlayer()->getId(), data.messageScore);
+				break;
+			case EMessageTile::OneTile:
+				//@TODO
+				break;
+			}
+		}
+		else
+		{
+			modifyPlayerScore(turnContext.getPlayer()->getId(), CAR_PARAM_VALUE(MessageSkipActionScore) );
+		}
+
 	}
 
 	void GameLogic::resolvePlaceLittleBuilding(TurnContext& turnContext, MapTile* placeTiles[], int numPlaceTile, bool& haveDone)
@@ -3318,10 +3500,23 @@ namespace CAR
 	{
 		assert( actor );
 		actor->pos = pos;
-		if ( mapTile )
-			mapTile->addActor( *actor );
-		else if ( actor->mapTile )
-			actor->mapTile->removeActor( *actor );
+		if( mapTile )
+		{
+			mapTile->addActor(*actor);
+			int group = mapTile->getFeatureGroup(pos);
+			if( group != ERROR_GROUP_ID )
+			{
+				getFeature(group)->addActor(*actor);
+			}
+		}
+		else if( actor->mapTile )
+		{
+			if( actor->feature )
+			{
+				actor->feature->removeActor(*actor);
+			}
+			actor->mapTile->removeActor(*actor);
+		}
 
 		for( int i = 0 ; i < actor->followers.size(); ++i )
 		{
@@ -3374,6 +3569,15 @@ namespace CAR
 				updateTileFeature( *placeMapTiles[i] , updateResult );
 			}
 		}
+	}
+
+	EMessageTile::Type GameLogic::drawMessageTile()
+	{
+		EMessageTile::Type result = mMessageStack[mIndexTopMessage];
+		++mIndexTopMessage;
+		if( mIndexTopMessage == mMessageStack.size() )
+			mIndexTopMessage = 0;
+		return result;
 	}
 
 	void GameLogic::resolveAbbey(TurnContext& turnContext)
@@ -3581,24 +3785,22 @@ namespace CAR
 		}
 	}
 
-	void GameLogic::updateBarnFarm(FarmFeature* farm)
+	void GameLogic::updateBarnFarm(FarmFeature* farm , FeatureScoreInfo& featureScore)
 	{
 		bool haveFarmer = farm->haveActorFromType( FARMER_MASK );
 		if ( haveFarmer == false )
 			return;
 
-		std::vector< FeatureScoreInfo > scoreInfos;
-		FeatureBase::InitFeatureScoreInfo( *mPlayerManager , scoreInfos );
-		farm->addMajority( scoreInfos );
-		int numPlayer = farm->evalMajorityControl( scoreInfos );
-		assert( numPlayer > 0 );
-		for( int i = 0; i < numPlayer ; ++i )
+		featureScore.feature = farm;
+		featureScore.numController = farm->generateController(featureScore.controllerScores);
+		assert(featureScore.numController > 0 );
+		for( int i = 0; i < featureScore.numController; ++i )
 		{
-			scoreInfos[i].score = farm->calcPlayerScoreByBarnRemoveFarmer( mPlayerManager->getPlayer( scoreInfos[i].playerId ) );
+			featureScore.controllerScores[i].score = farm->calcPlayerScoreByBarnRemoveFarmer( mPlayerManager->getPlayer(featureScore.controllerScores[i].playerId ) );
 		}
-		addFeaturePoints( *farm , scoreInfos , numPlayer );
-		farm->haveBarn = true;
+		
 
+		farm->haveBarn = true;
 		for( int i = 0 ; i < farm->mActors.size() ;  )
 		{
 			LevelActor* actor = farm->mActors[i];

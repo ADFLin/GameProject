@@ -92,6 +92,8 @@ namespace CAR
 		int HouseBuildingTokensPlayerOwnNum = 1;
 		int ShedBuildingTokensPlayerOwnNum = 1;
 
+		//EXP_THE_MESSSAGES
+		int MessageSkipActionScore = 2;
 		static GameParamCollection const& GetDefalut()
 		{
 			static GameParamCollection const sDefalutValue;

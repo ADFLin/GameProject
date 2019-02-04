@@ -628,6 +628,19 @@ namespace CAR
 		return haveTileContent(TileContent::eBesieger);
 	}
 
+	bool CityFeature::haveAdjacentCloister() const
+	{
+		for (auto farm : linkedFarms)
+		{
+			for (auto mapTile : farm->mapTiles)
+			{
+				if (mapTile->have(TileContent::eCloister))
+					return true;
+			}
+		}
+		return false;
+	}
+
 	int CityFeature::doCalcScore(GamePlayerManager& playerManager, FeatureScoreInfo& outResult)
 	{
 		if ( isCastle )

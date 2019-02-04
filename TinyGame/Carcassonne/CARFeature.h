@@ -195,18 +195,7 @@ namespace CAR
 
 		bool isSamllCircular() const;
 		bool isBesieged() const;
-		bool haveAdjacentCloister() const 
-		{
-			for (auto farm : linkedFarms)
-			{
-				for (auto mapTile : farm->mapTiles)
-				{
-					if (mapTile->have(TileContent::eCloister))
-						return true;
-				}
-			}
-			return false;
-		}
+		bool haveAdjacentCloister() const;
 
 
 		virtual void mergeData( FeatureBase& other , MapTile const& putData , int meta ) override;

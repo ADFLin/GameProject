@@ -104,7 +104,7 @@ namespace CAR
 		Vec2i(1,0) , Vec2i(0,1) , Vec2i(-1,0) , Vec2i(0,-1)
 	};
 
-	static Vec2i const gNeighborOffset[] =
+	static Vec2i const gAdjacentOffset[] =
 	{
 		Vec2i(1,0) , Vec2i(1,1) , Vec2i(0,1) , Vec2i(-1,1),
 		Vec2i(-1,0) , Vec2i(-1,-1) , Vec2i(0,-1) , Vec2i(1,-1),
@@ -140,7 +140,7 @@ namespace CAR
 		static int const NeighborNum = 8;
 		static Vec2i const& NeighborOffset( int idx )
 		{
-			return gNeighborOffset[ idx ];
+			return gAdjacentOffset[ idx ];
 		}
 	};
 

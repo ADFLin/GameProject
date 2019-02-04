@@ -26,7 +26,7 @@ namespace CAR
 
 		EXP_CASTLES,                     //?T ?CastleTile ?RoadCityScoring ?CastleFeature
 		EXP_PHANTOM,
-
+		EXP_HERETICS_AND_SHRINES,
 		EXP_ABBOT ,
 		EXP_CROP_CIRCLE_I,
 		EXP_CROP_CIRCLE_II,

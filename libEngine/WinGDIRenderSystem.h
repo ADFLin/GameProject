@@ -37,6 +37,7 @@ public:
 
 
 	void  releaseReources();
+
 	void  beginXForm();
 	void  finishXForm();
 
@@ -85,17 +86,13 @@ public:
 
 	Vec2i calcTextExtentSize( char const* str , int num );
 
-	void  beginRender()
-	{ 
-
-	}
-	void  endRender()
-	{
-		assert( mBlendCount == 0 );
-		mhDCRender = mhDCTarget;
-	}
+	void  beginRender();
+	void  endRender();
 
 private:
+
+	void  releaseUsedResources();
+
 	void  setPenImpl( HPEN hPen , bool beManaged );
 	void  setBrushImpl( HBRUSH hBrush , bool beManaged );
 	void  setFontImpl( HFONT hFont , bool beManaged );

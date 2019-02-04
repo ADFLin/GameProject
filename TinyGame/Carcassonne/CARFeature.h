@@ -30,6 +30,8 @@ namespace CAR
 			eCity ,
 			eRoad ,
 			eCloister ,
+			eChrine ,
+			eGarden ,
 			eGermanCastle ,
 		};
 	};
@@ -88,10 +90,10 @@ namespace CAR
 		LevelActor* removeActorByIndex( int index );
 		bool        testInRange( Vec2i const& min , Vec2i const& max );
 		int         calcScore(GamePlayerManager& playerManager, FeatureScoreInfo& outResult);
-		virtual bool checkComplete(){ return false; }
+		virtual bool checkComplete() const { return false; }
 		virtual int  getActorPutInfo( int playerId , int posMeta , MapTile& mapTile, std::vector< ActorPosInfo >& outInfo ) = 0;
 		virtual void generateRoadLinkFeatures( WorldTileManager& worldTileManager, GroupSet& outFeatures ){ }
-		virtual bool updateForNeighborTile( MapTile& tile ){ return false; }
+		virtual bool updateForAdjacentTile( MapTile& tile ){ return false; }
 		virtual void mergeData( FeatureBase& other , MapTile const& putData , int meta );
 		virtual int  calcPlayerScore( PlayerBase* player ) = 0;
 		
@@ -104,6 +106,7 @@ namespace CAR
 		void generateMajority( std::vector< FeatureControllerScoreInfo >& controllerScores);
 		int  evalMajorityControl(std::vector< FeatureControllerScoreInfo >& controllerScores);
 		void addMapTile( MapTile& mapTile ){ mapTiles.insert( &mapTile ); }
+		bool haveTileContent(unsigned contentMask) const;
 
 		template< class T >
 		static void MergeData( T& to , T const& src )
@@ -169,7 +172,7 @@ namespace CAR
 		virtual void mergeData( FeatureBase& other , MapTile const& putData , int meta ) override;
 		virtual void addNode( MapTile& mapData , unsigned dirMask , SideNode* linkNode ) override;
 		virtual int  getActorPutInfo( int playerId , int posMeta , MapTile& mapTile, std::vector< ActorPosInfo >& outInfo ) override;
-		virtual bool checkComplete() override;
+		virtual bool checkComplete() const override;
 		virtual int  calcPlayerScore(PlayerBase* player);
 		virtual int  getScoreTileNum() const { return mapTiles.size(); }
 
@@ -190,17 +193,29 @@ namespace CAR
 		int  cloisterGroup;
 		std::unordered_set< FarmFeature* > linkedFarms;
 
-		bool isSamllCircular();
+		bool isSamllCircular() const;
+		bool isBesieged() const;
+		bool haveAdjacentCloister() const 
+		{
+			for (auto farm : linkedFarms)
+			{
+				for (auto mapTile : farm->mapTiles)
+				{
+					if (mapTile->have(TileContent::eCloister))
+						return true;
+				}
+			}
+			return false;
+		}
 
 
 		virtual void mergeData( FeatureBase& other , MapTile const& putData , int meta ) override;
 		virtual void addNode( MapTile& mapData , unsigned dirMask , SideNode* linkNode ) override;
 		virtual int  getActorPutInfo( int playerId , int posMeta , MapTile& mapTile, std::vector< ActorPosInfo >& outInfo ) override;
-		virtual bool checkComplete() override;
+		virtual bool checkComplete() const override;
 		virtual int  calcPlayerScore( PlayerBase* player );
 
 		virtual int doCalcScore( GamePlayerManager& playerManager , FeatureScoreInfo& outResult) override;
-
 
 	};
 
@@ -215,7 +230,7 @@ namespace CAR
 		void addNode( MapTile& mapData , unsigned idxMask , FarmNode* linkNode );
 		virtual void mergeData( FeatureBase& other , MapTile const& putData , int meta ) override;
 		virtual int  getActorPutInfo( int playerId , int posMeta , MapTile& mapTile, std::vector< ActorPosInfo >& outInfo ) override;
-		virtual bool checkComplete() override { return false; }
+		virtual bool checkComplete() const override { return false; }
 		virtual int  doCalcScore( GamePlayerManager& playerManager , FeatureScoreInfo& outResult) override;
 		virtual int  calcPlayerScore( PlayerBase* player );
 
@@ -227,24 +242,41 @@ namespace CAR
 		std::unordered_set< CityFeature* > linkedCities;
 	};
 
-	class CloisterFeature : public FeatureBase
+
+	class AdjacentTileScoringFeature : public FeatureBase
+	{
+	public:
+		std::vector< MapTile* > neighborTiles;
+		virtual bool checkComplete() const { return neighborTiles.size() == 8; }
+		virtual int  getScoreTileNum() const { return neighborTiles.size() + 1; }
+		virtual void mergeData(FeatureBase& other, MapTile const& putData, int meta) { NEVER_REACH("Feature can't be merged!!"); }
+		virtual int doCalcScore(GamePlayerManager& playerManager, FeatureScoreInfo& outResult) override;
+		virtual bool updateForAdjacentTile(MapTile& tile) override;
+
+		virtual bool getActorPos(MapTile const& mapTile, ActorPos& actorPos) override;
+	};
+
+	class CloisterFeature : public AdjacentTileScoringFeature
 	{
 	public:
 		static int const Type = FeatureType::eCloister;
 		CloisterFeature();
 
-		std::vector< MapTile* > neighborTiles;
+		CloisterFeature* challenger;
 
-		virtual bool checkComplete(){ return neighborTiles.size() == 8; }
-		virtual int  getActorPutInfo( int playerId , int posMeta , MapTile& mapTile, std::vector< ActorPosInfo >& outInfo ) override;
-		virtual void mergeData( FeatureBase& other , MapTile const& putData , int meta );
-		virtual int  doCalcScore( GamePlayerManager& playerManager , FeatureScoreInfo& outResult) override;
-		virtual int  calcPlayerScore(PlayerBase* player);
-		virtual void generateRoadLinkFeatures( WorldTileManager& worldTileManager, GroupSet& outFeatures );
-		virtual bool updateForNeighborTile(MapTile& tile);
-		virtual bool getActorPos(MapTile const& mapTile , ActorPos& actorPos);
-		virtual int  getScoreTileNum() const { return neighborTiles.size() + 1; }
+		virtual int  getActorPutInfo(int playerId, int posMeta, MapTile& mapTile, std::vector< ActorPosInfo >& outInfo) override;
+		virtual int  calcPlayerScore(PlayerBase* player) override;
+		virtual void generateRoadLinkFeatures(WorldTileManager& worldTileManager, GroupSet& outFeatures) override;
+	};
 
+	class GardenFeature : public AdjacentTileScoringFeature
+	{
+	public:
+		static int const Type = FeatureType::eGarden;
+		GardenFeature();
+		virtual int  getActorPutInfo(int playerId, int posMeta, MapTile& mapTile, std::vector< ActorPosInfo >& outInfo) override;
+		virtual int  calcPlayerScore(PlayerBase* player) override;
+		virtual void generateRoadLinkFeatures(WorldTileManager& worldTileManager, GroupSet& outFeatures) override;
 	};
 
 	class GermanCastleFeature : public FeatureBase
@@ -256,14 +288,14 @@ namespace CAR
 
 		std::vector< MapTile* > neighborTiles;
 
-		virtual bool checkComplete(){ return neighborTiles.size() == 10; }
+		virtual bool checkComplete() const override { return neighborTiles.size() == 10; }
 		virtual int  getActorPutInfo( int playerId , int posMeta , MapTile& mapTile, std::vector< ActorPosInfo >& outInfo ) override;
 		virtual void mergeData( FeatureBase& other , MapTile const& putData , int meta );
 		virtual int  doCalcScore( GamePlayerManager& playerManager , FeatureScoreInfo& outResult) override;
-		virtual int  calcPlayerScore(PlayerBase* player);
-		virtual void generateRoadLinkFeatures( WorldTileManager& worldTileManager, GroupSet& outFeatures );
-		virtual bool updateForNeighborTile(MapTile& tile);
-		virtual bool getActorPos(MapTile const& mapTile , ActorPos& actorPos);
+		virtual int  calcPlayerScore(PlayerBase* player) override;
+		virtual void generateRoadLinkFeatures( WorldTileManager& worldTileManager, GroupSet& outFeatures ) override;
+		virtual bool updateForAdjacentTile(MapTile& tile) override;
+		virtual bool getActorPos(MapTile const& mapTile , ActorPos& actorPos) override;
 	};
 
 }//namespace CAR

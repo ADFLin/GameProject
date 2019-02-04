@@ -2391,10 +2391,8 @@ namespace CAR
 
 		mapTile->goldPices += 1;
 
-		Vec2i neighborOffset[] ={ Vec2i(1,0) , Vec2i(1,1) ,Vec2i(0,1),Vec2i(-1,1),Vec2i(-1,0),Vec2i(-1,-1),Vec2i(0,-1),Vec2i(1,-1) };
-
 		std::vector< MapTile* > neighborTiles;
-		for ( auto const& offset : neighborOffset)
+		for ( auto const& offset : gAdjacentOffset)
 		{
 			Vec2i neighborPos = mapTile->pos + offset;
 			MapTile* neighborTile = mWorld.findMapTile(neighborPos);
@@ -2638,7 +2636,7 @@ namespace CAR
 				MapTile* dataCheck = mWorld.findMapTile( posCheck );
 				if ( dataCheck )
 				{
-					haveUpdate |= cloister->updateForNeighborTile( *dataCheck );
+					haveUpdate |= cloister->updateForAdjacentTile( *dataCheck );
 				}
 			}
 			if ( haveUpdate )
@@ -2652,7 +2650,7 @@ namespace CAR
 			if ( dataCheck && dataCheck->group != ERROR_GROUP_ID )
 			{
 				FeatureBase* feature = getFeature( dataCheck->group );
-				if ( feature->updateForNeighborTile( mapTile ) )
+				if ( feature->updateForAdjacentTile( mapTile ) )
 				{
 					mUpdateFeatures.push_back( FeatureUpdateInfo(feature) );
 				}

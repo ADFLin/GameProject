@@ -175,6 +175,16 @@ namespace CAR
 		return numController;
 	}
 
+	bool FeatureBase::haveTileContent(unsigned contentMask) const
+	{
+		for (auto mapTile : mapTiles)
+		{
+			if (mapTile->getTileContent() & contentMask)
+				return true;
+		}
+		return false;
+	}
+
 	int FeatureBase::generateController(std::vector< FeatureControllerScoreInfo >& controllerScores)
 	{
 		generateMajority(controllerScores);
@@ -358,7 +368,7 @@ namespace CAR
 
 	static void GenerateSideFeatureRoadLinkFeatures_R(WorldTileManager& worldTileManager, MapTile const* mapTile , int skipGroup , int dir , GroupSet& outFeatures)
 	{
-		unsigned roadMask = mapTile->getRoadLinkMask(node->index);
+		unsigned roadMask = mapTile->getRoadLinkMask(dir);
 		CAR_LOG("road Mask = %u", roadMask);
 
 		if( roadMask == 0 )
@@ -375,10 +385,10 @@ namespace CAR
 			}
 		}
 
-		int dir;
-		while( FBit::MaskIterator< FDir::TotalNum >(roadMask, dir) )
+		int dir1;
+		while( FBit::MaskIterator< FDir::TotalNum >(roadMask, dir1) )
 		{
-			MapTile::SideNode const& linkNode = mapTile->sideNodes[dir];
+			MapTile::SideNode const& linkNode = mapTile->sideNodes[dir1];
 			if( linkNode.group == skipGroup )
 				continue;
 
@@ -386,20 +396,20 @@ namespace CAR
 			{
 				if( linkNode.type == eInsideLink )
 				{
-					switch( mapTile->getSideContnet(dir) & SideContent::InsideLinkTypeMask )
+					switch( mapTile->getSideContnet(dir1) & SideContent::InsideLinkTypeMask )
 					{
 					case SideContent::eSchool:
 						{
-							Vec2i linkPos = FDir::LinkPos(mapTile->pos, dir);
+							Vec2i linkPos = FDir::LinkPos(mapTile->pos, dir1);
 							MapTile* mapTileLink = worldTileManager.findMapTile(linkPos);
 
 							if( mapTileLink )
 							{
-								int invDir = FDir::Inverse(dir);
+								int invDir = FDir::Inverse(dir1);
 								assert(mapTileLink->sideNodes[invDir].type == SideType::eInsideLink);
 								assert((mapTileLink->getSideContnet(invDir) & SideContent::InsideLinkTypeMask) == SideContent::eSchool);
 
-								unsigned roadMaskLink = mapTile->getRoadLinkMask(node->index);
+								unsigned roadMaskLink = mapTileLink->getRoadLinkMask(invDir);
 								int dir2;
 								while( FBit::MaskIterator< FDir::TotalNum >(roadMaskLink, dir2) )
 								{
@@ -485,7 +495,7 @@ namespace CAR
 		}
 	}
 
-	bool RoadFeature::checkComplete()
+	bool RoadFeature::checkComplete() const
 	{
 		return openCount == 0;
 	}
@@ -529,6 +539,9 @@ namespace CAR
 
 		assert( other.type == type );
 		CityFeature& otherData = static_cast< CityFeature& >( other );
+
+		haveCathedral |= otherData.haveCathedral;
+		haveLaPorxada |= otherData.haveLaPorxada;
 		MergeData( linkedFarms , otherData.linkedFarms );
 		for( FarmFeature* farm : otherData.linkedFarms )
 		{
@@ -557,7 +570,7 @@ namespace CAR
 		}
 	}
 
-	bool CityFeature::checkComplete()
+	bool CityFeature::checkComplete() const
 {
 		return openCount == 0 && halfSepareteCount == 0;
 	}
@@ -586,12 +599,17 @@ namespace CAR
 			pennatFactor = CAR_PARAM_VALUE(PennatFactor);
 		}
 
+		if (isBesieged())
+		{
+			factor = std::max(0, factor - 1);
+		}
+
 		int numPennats = getSideContentNum( SideContent::ePennant );
 
 		return numTile * factor + numPennats * pennatFactor;
 	}
 
-	bool CityFeature::isSamllCircular()
+	bool CityFeature::isSamllCircular() const
 	{
 		assert( checkComplete() );
 		if ( nodes.size() != 2 )
@@ -605,7 +623,12 @@ namespace CAR
 		return true;
 	}
 
-	int CityFeature::doCalcScore( GamePlayerManager& playerManager , FeatureScoreInfo& outResult)
+	bool CityFeature::isBesieged() const
+	{
+		return haveTileContent(TileContent::eBesieger);
+	}
+
+	int CityFeature::doCalcScore(GamePlayerManager& playerManager, FeatureScoreInfo& outResult)
 	{
 		if ( isCastle )
 			return -1;
@@ -652,7 +675,7 @@ namespace CAR
 			{
 				assert(group == node.group);
 				continue;
-			}
+			} 
 			node.group = group;
 			nodes.push_back( &node );
 		}
@@ -721,9 +744,47 @@ namespace CAR
 		return calcPlayerScoreInternal( player , (haveBarn)?(CAR_PARAM_VALUE(BarnRemoveFarmerFactor) ):(CAR_PARAM_VALUE(FarmFactorV3) ) );
 	}
 
+	int AdjacentTileScoringFeature::doCalcScore(GamePlayerManager& playerManager, FeatureScoreInfo& outResult)
+	{
+		for (int i = 0; i < mActors.size(); ++i)
+		{
+			LevelActor* actor = mActors[i];
+
+			int majority = getMajorityValue(actor->type);
+
+			if (majority > 0)
+			{
+				outResult.controllerScores.resize(1);
+				auto& controllerScore = outResult.controllerScores[0];
+				controllerScore.playerId = actor->ownerId;
+				controllerScore.majority = majority;
+				controllerScore.score = calcPlayerScore(playerManager.getPlayer(controllerScore.playerId));
+				return 1;
+			}
+		}
+		return 0;
+	}
+
+	bool AdjacentTileScoringFeature::updateForAdjacentTile(MapTile& tile)
+	{
+		neighborTiles.push_back(&tile);
+		return true;
+	}
+
+	bool AdjacentTileScoringFeature::getActorPos(MapTile const& mapTile, ActorPos& actorPos)
+	{
+		if (mapTile.group == group)
+		{
+			actorPos.type = ActorPos::eTile;
+			actorPos.meta = 0;
+			return true;
+		}
+		return false;
+	}
+
 	CloisterFeature::CloisterFeature()
 	{
-		
+		challenger = nullptr;
 	}
 
 	int CloisterFeature::getActorPutInfo(int playerId , int posMeta , MapTile& mapTile , std::vector< ActorPosInfo >& outInfo)
@@ -732,10 +793,6 @@ namespace CAR
 		return getDefaultActorPutInfo( playerId , ActorPos( ActorPos::eTile , posMeta ) , mapTile, actorMasks , outInfo );
 	}
 
-	void CloisterFeature::mergeData(FeatureBase& other , MapTile const& putData , int meta)
-	{
-		return;
-	}
 
 	int CloisterFeature::calcPlayerScore(PlayerBase* player)
 	{
@@ -755,27 +812,6 @@ namespace CAR
 			}
 		}
 		return result;
-	}
-
-	int CloisterFeature::doCalcScore(GamePlayerManager& playerManager , FeatureScoreInfo& outResult)
-	{
-		for( int i = 0 ; i < mActors.size() ; ++i )
-		{
-			LevelActor* actor = mActors[i];
-
-			int majority = getMajorityValue( actor->type );
-
-			if ( majority > 0 )
-			{
-				outResult.controllerScores.resize(1);
-				auto& controllerScore = outResult.controllerScores[0];
-				controllerScore.playerId = actor->ownerId;
-				controllerScore.majority = majority;
-				controllerScore.score = calcPlayerScore( playerManager.getPlayer(controllerScore.playerId) );
-				return 1;
-			}
-		}
-		return 0;
 	}
 
 	void CloisterFeature::generateRoadLinkFeatures( WorldTileManager& worldTileManager, GroupSet& outFeatures )
@@ -802,21 +838,27 @@ namespace CAR
 		}
 	}
 
-	bool CloisterFeature::updateForNeighborTile(MapTile& tile)
+	GardenFeature::GardenFeature()
 	{
-		neighborTiles.push_back( &tile );
-		return true;
+
 	}
 
-	bool CloisterFeature::getActorPos(MapTile const& mapTile , ActorPos& actorPos)
+	int GardenFeature::getActorPutInfo(int playerId, int posMeta, MapTile& mapTile, std::vector< ActorPosInfo >& outInfo)
 	{
-		if ( mapTile.group == group )
-		{
-			actorPos.type = ActorPos::eTile;
-			actorPos.meta = 0;
-			return true;
-		}
-		return false;
+		unsigned actorMasks[DefaultActorMaskNum] = { BIT(ActorType::eAbbot) , 0 , 0 };
+		return getActorPutInfoInternal(playerId, ActorPos(ActorPos::eTile, posMeta), mapTile, actorMasks, DefaultActorMaskNum, outInfo);
+	}
+
+	int GardenFeature::calcPlayerScore(PlayerBase* player)
+	{
+		int result = (neighborTiles.size() + 1) * CAR_PARAM_VALUE(CloisterFactor);
+
+		return result;
+	}
+
+	void GardenFeature::generateRoadLinkFeatures(WorldTileManager& worldTileManager, GroupSet& outFeatures)
+	{
+
 	}
 
 	GermanCastleFeature::GermanCastleFeature()
@@ -902,7 +944,7 @@ namespace CAR
 	}
 
 
-	bool GermanCastleFeature::updateForNeighborTile(MapTile& tile)
+	bool GermanCastleFeature::updateForAdjacentTile(MapTile& tile)
 	{
 		return AddUnique( neighborTiles , &tile );
 	}
@@ -920,4 +962,5 @@ namespace CAR
 		}
 		return false;
 	}
+
 }//namespace CAR

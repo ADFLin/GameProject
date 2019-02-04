@@ -153,7 +153,7 @@ namespace Tetris
 		int              scanConnectRecursive( int cx , int cy , short color );
 		int              scanFilledLayer( int yMax , int yMin , int removeLayer[] );
 
-		inline bool isRange(int cx,int cy)
+		inline bool isValidRange(int cx,int cy)
 		{
 			return 0 <= cx && cx < mSizeX &&
 				   0 <= cy && cy < getExtendSizeY();
@@ -163,23 +163,14 @@ namespace Tetris
 			return 0 <= cx && cx < mSizeX &&
 			       0 <= cy && cy < mSizeY;
 		}
-
-		typedef uint32 MarkMaskType;
-		static int MaxSizeX()
-		{
-			return 8 * sizeof(MarkMaskType);
-		}
 		
 	private:
 
-		MarkMaskType getFilledMask() const { assert(mSizeX <= MaxSizeX()); return MarkMaskType(1 << mSizeX) - 1; }
-
 		struct Layer
 		{
-			MarkMaskType markMask;
 			BlockType*   blocks;
-
-			bool  isEmpty() const {  return markMask == 0;  }
+			uint32       filledCount;
+			bool  isEmpty() const {  return filledCount == 0;  }
 		};
 
 		friend class Scene;

@@ -2,6 +2,7 @@
 
 #include <cmath>
 
+#include "LogSystem.h"
 #if 1
 #	include "ProfileSystem.h"
 #	define  GDI_PROFILE( name )  PROFILE_ENTRY( name )
@@ -29,24 +30,7 @@ WinGdiGraphics2D::WinGdiGraphics2D( HDC hDC )
 
 void WinGdiGraphics2D::releaseReources()
 {
-	if( mbFontManaged )
-	{
-		::DeleteObject(mhCurFont);
-		mhCurFont = NULL;
-		mbFontManaged = false;
-	}
-	if( mbBrushManaged )
-	{
-		::DeleteObject(mhCurBrush);
-		mhCurBrush = NULL;
-		mbBrushManaged = false;
-	}
-	if( mbPenManaged )
-	{
-		::DeleteObject(mhCurPen);
-		mhCurPen = NULL;
-		mbPenManaged = false;
-	}
+	releaseUsedResources();
 
 	for( auto& pair : mCachedBrushMap )
 	{
@@ -58,6 +42,34 @@ void WinGdiGraphics2D::releaseReources()
 		::DeleteObject(pair.second);
 	}
 	mCachedPenMap.clear();
+}
+
+void WinGdiGraphics2D::releaseUsedResources()
+{
+	if (mbFontManaged)
+	{
+		::DeleteObject(mhCurFont);
+		mhCurFont = NULL;
+		mbFontManaged = false;
+	}
+	if (mbBrushManaged)
+	{
+		::DeleteObject(mhCurBrush);
+		mhCurBrush = NULL;
+		mbBrushManaged = false;
+	}
+	if (mbPenManaged)
+	{
+		::DeleteObject(mhCurPen);
+		mhCurPen = NULL;
+		mbPenManaged = false;
+	}
+	if ( mhClipRegion )
+	{
+		LogWarning(0, "Forget Call end clip!!");
+		::DeleteObject(mhClipRegion);
+		mhClipRegion = NULL;
+	}
 }
 
 void WinGdiGraphics2D::setPenImpl( HPEN hPen , bool beManaged  )
@@ -152,6 +164,11 @@ void WinGdiGraphics2D::beginClip(Vec2i const& pos, Vec2i const& size)
 
 void WinGdiGraphics2D::endClip()
 {
+	if (mhClipRegion == NULL)
+	{
+		LogWarning(0, "You no call beginClip before call endClip");
+		return;
+	}
 	::SelectClipRgn(getRenderDC(), NULL);
 	::DeleteObject(mhClipRegion);
 	mhClipRegion = NULL;
@@ -330,6 +347,18 @@ Vec2i WinGdiGraphics2D::calcTextExtentSize( char const* str , int num )
 	SIZE rSize;
 	::GetTextExtentPoint( getRenderDC() , str , num , &rSize );
 	return Vec2i( rSize.cx , rSize.cy );
+}
+
+void WinGdiGraphics2D::beginRender()
+{
+
+}
+
+void WinGdiGraphics2D::endRender()
+{
+	assert(mBlendCount == 0);
+	mhDCRender = mhDCTarget;
+	releaseUsedResources();
 }
 
 void WinGdiGraphics2D::setTargetDC( HDC hDC )

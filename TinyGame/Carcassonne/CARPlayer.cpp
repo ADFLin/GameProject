@@ -48,13 +48,4 @@ namespace CAR
 		return mFieldValues[ idx ] += value;
 	}
 
-	void AddExpansionRule(GameplaySetting& setting, Expansion exp)
-	{
-		auto& MyProc = [&setting](Rule rule)
-		{
-			setting.addRule(rule);
-		};
-		ProcExpansionRule(exp, MyProc);
-	}
-
 }//namespace CAR

@@ -62,10 +62,10 @@ namespace CAR
 			eMage            = BIT(13), //EXP_MAGE_AND_WITCH
 			eGold            = BIT(14), //EXP_GOLDMINES
 			eFlyMachine      = BIT(15), //EXP_THE_FLY_MACHINES
-			eCropCirclePitchfork = BIT(16),
-			eCropCircleClub      = BIT(17),
-			eCropCircleShield    = BIT(18),
-
+			eCropCirclePitchfork = BIT(16), //EXP_CROP_CIRCLE_I EXP_CROP_CIRCLE_II
+			eCropCircleClub      = BIT(17), //EXP_CROP_CIRCLE_I EXP_CROP_CIRCLE_II
+			eCropCircleShield    = BIT(18), //EXP_CROP_CIRCLE_I EXP_CROP_CIRCLE_II
+			eBesieger       = BIT(19),
 			//runtime
 			eTemp            = BIT(31) ,
 		};

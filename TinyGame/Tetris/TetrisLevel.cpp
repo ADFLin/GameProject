@@ -209,7 +209,7 @@ namespace Tetris
 		memset( blocks , 0 , sizeof( BlockType ) * extendMapSizeY * mSizeX );
 		for( int i = 0 ; i < extendMapSizeY ; ++i )
 		{
-			mLayerMap[i].markMask = 0;
+			mLayerMap[i].filledCount = 0;
 		}
 	}
 
@@ -252,7 +252,7 @@ namespace Tetris
 			int xPos = x + block.getX();
 			int yPos = y + block.getY();
 
-			if ( isRange( xPos , yPos ) )
+			if ( isValidRange( xPos , yPos ) )
 			{
 				setBlock( xPos , yPos , block.getType() );
 			}
@@ -305,19 +305,15 @@ namespace Tetris
 		{
 			Layer& layer = mLayerMap[yFill];
 			layer.blocks = savedBlocks[i];
-			layer.markMask = 0;
+			layer.filledCount = 0;
 			std::fill_n(layer.blocks, mSizeX, 0);
 			++yFill;
 		}
 	}
 
-
 	void BlockStorage::removeLayer(int y)
 	{
 		int extendMapSizeY = getExtendSizeY();
-		
-		mLayerMap[y].markMask = 0;
-		std::fill_n(mLayerMap[y].blocks , mSizeX , 0 );
 
 		BlockType* savedBlock = mLayerMap[y].blocks;
 		Layer cLayer = mLayerMap[y];
@@ -326,13 +322,13 @@ namespace Tetris
 
 		Layer& layer = mLayerMap[extendMapSizeY - 1];
 		layer.blocks = savedBlock;
-		layer.markMask = 0;
+		layer.filledCount = 0;
 		std::fill_n(layer.blocks, mSizeX, 0);
 	}
 
 	bool BlockStorage::isLayerFilled( int y )
 	{
-		return mLayerMap[y].markMask == getFilledMask();
+		return mLayerMap[y].filledCount == mSizeX;
 	}
 
 	int BlockStorage::scanFilledLayer( int yMax , int yMin , int removeLayer[] )
@@ -461,14 +457,16 @@ namespace Tetris
 			return false;
 
 		Layer layer = mLayerMap[extendMapSizeY - 1];
+		int filledCount = 0;
 		for( int i = 0; i < mSizeX; ++i )
 		{
 			if( leakBit & BIT(i) )
 				continue;
 
 			layer.blocks[i] = block;
+			++filledCount;
 		}
-		layer.markMask = getFilledMask() & (~leakBit);
+		layer.filledCount = filledCount;
 
 		for( int j = extendMapSizeY - 1 ; j > y ; --j )
 			mLayerMap[j] = mLayerMap[j-1];
@@ -483,18 +481,15 @@ namespace Tetris
 		
 		Layer& layer = mLayerMap[y];
 		layer.blocks[x] = val;
-
-		assert( x <= sizeof( layer.markMask ) * 8 );
-		layer.markMask |= ( 1 << x );
+		++layer.filledCount;
 	}
 
 	void BlockStorage::emptyBlock( int x , int y )
 	{
 		Layer& layer = mLayerMap[y];
+		assert(layer.blocks[x]);
 		layer.blocks[x] = 0;
-
-		assert( x <= sizeof( layer.markMask ) * 8 );
-		layer.markMask &= ~( 1 << x );
+		--layer.filledCount;
 	}
 
 	void BlockStorage::fixPiecePos( Piece& piece , int& cx , int& cy , int dy )
@@ -699,11 +694,11 @@ namespace Tetris
 					if ( numLayer )
 						return LVS_REMOVE_MAPLINE;
 #if 0
-					int tx = mXPosMP + getMovePiece().getBlock(i).x;
-					int ty = mYPosMP + getMovePiece().getBlock(i).y;
+					int tx = mXPosMP + getMovePiece().getBlock(0).x;
+					int ty = mYPosMP + getMovePiece().getBlock(0).y;
 					int numCon = mStorage.scanConnect( tx , ty , mConMap );
 					if ( numCon  >= 10 )
-						return LV_REMOVE_CONNECT;
+						return LVS_REMOVE_CONNECT;
 #endif
 
 					mListener->onMarkPiece( this ,mRemoveLayer , mRemoveLayerNum );

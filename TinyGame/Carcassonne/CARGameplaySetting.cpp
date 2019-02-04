@@ -2,6 +2,14 @@
 
 namespace CAR
 {
+	void AddExpansionRule(GameplaySetting& setting, Expansion exp)
+	{
+		auto& MyProc = [&setting](Rule rule)
+		{
+			setting.addRule(rule);
+		};
+		ProcExpansionRule(exp, MyProc);
+	}
 
 	GameplaySetting::GameplaySetting()
 	{
@@ -34,6 +42,7 @@ namespace CAR
 
 		return BaseFollowrMask;
 	}
+
 
 }//namespace CAR
 

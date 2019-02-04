@@ -1,7 +1,6 @@
 #include "CAR_PCH.h"
 #include "CARExpansion.h"
 #include "CARDefine.h"
-#include "CARGameplaySetting.h"
 
 #include "Template/ArrayView.h"
 
@@ -26,7 +25,8 @@ namespace CAR
 #define SPR SideContent::ePrincess
 #define SNC SideContent::eNotSemiCircularCity
 #define SHS	SideContent::eHalfSeparate
-	
+#define SSC	SideContent::eSchool
+
 #define TCL TileContent::eCloister
 #define TCA TileContent::eCathedral
 #define TMP TileContent::eMagicPortal
@@ -39,7 +39,7 @@ namespace CAR
 #define TLP TileContent::eLaPorxada
 #define TMG TileContent::eMage
 #define TGO TileContent::eGold
-#define TSC	TileContent::eSchool
+#define TBE TileContent::eBesieger
 
 #define BIT2( A , B )     ( BIT(A)|BIT(B) )
 #define BIT3( A , B , C ) ( BIT(A)|BIT(B)|BIT(C) )
@@ -293,8 +293,8 @@ namespace CAR
 	static TileDefine DataSchool[] =
 	{
 // numPiece     linkType      sideLink       roadLink   content   sidecontent centerFarmMask farmLink tag
-/*00*/  { 1,{ LI,LR,LR,LR }, SL_NONE      , SL_NONE       ,TSC,{ 0 , 0 , 0 , 0 }, 0,{ BIT2(1,2),BIT2(3,4),FL_RE } , TILE_GERMAN_CASTLE_TAG } ,
-/*--*/  { 1,{ LR,LR,LI,LR }, SL_NONE      , SL_NONE       ,TSC,{ 0 , 0 , 0 , 0 }, 0,{ BIT2(5,6),FL_RE } , TILE_GERMAN_CASTLE_TAG } ,
+/*00*/  { 1, { LI,LR,LR,LR }, SL_NONE      , SL_NONE       ,0 ,{ SSC , 0 , 0 , 0 }, 0,{ BIT2(1,2) , BIT2(3,4) , BIT2(5,6) , BIT2(7,0) } , TILE_SCHOOL_TAG } ,
+/*01*/  { 1, { LR,LR,LI,LR }, SL_NONE      , SL_NONE       ,0 ,{ 0 , 0 , SSC , 0 }, 0,{ BIT2(1,2) , BIT2(3,4) , BIT2(5,6) , BIT2(7,0) } , TILE_SCHOOL_TAG } ,
 	};
 
 	static TileDefine DataTest[] =
@@ -343,6 +343,7 @@ namespace CAR
 #undef SPR
 #undef SNC
 #undef SHS
+#undef SSC
 
 #undef TCL
 #undef TCA
@@ -355,6 +356,6 @@ namespace CAR
 #undef TLP
 #undef TMG
 #undef TGO
-#undef TSC
+#undef TBE
 
 }//namespace CAR

@@ -14,6 +14,11 @@ namespace CAR
 {
 	int const DefaultActorMaskNum = 3;
 
+	GameParamCollection& FeatureBase::GetParamCollection(FeatureBase& t)
+	{
+		return t.getSetting();
+	}
+
 	int FeatureBase::getActorPutInfoInternal(int playerId , ActorPos const& actorPos , MapTile& mapTile, unsigned actorMasks[] , int numMask , std::vector< ActorPosInfo >& outInfo)
 	{
 		unsigned actorTypeMask = 0;
@@ -56,7 +61,7 @@ namespace CAR
 		return 1;
 	}
 
-	int FeatureBase::getDefaultActorPutInfo(int playerId , ActorPos const& actorPos , MapTile& mapTile, unsigned actorMasks[] , std::vector< ActorPosInfo >& outInfo )
+	int FeatureBase::getDefaultActorPutInfo(int playerId, ActorPos const& actorPos, MapTile& mapTile, unsigned actorMasks[], std::vector< ActorPosInfo >& outInfo)
 	{
 		actorMasks[0] |= BIT(ActorType::eMeeple) | BIT( ActorType::ePhantom ) | BIT( ActorType::eBigMeeple );
 		return getActorPutInfoInternal( playerId , actorPos , mapTile , actorMasks , DefaultActorMaskNum , outInfo );

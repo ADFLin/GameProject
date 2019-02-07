@@ -98,6 +98,7 @@ namespace CAR
 		eGold ,
 		eFlyMahine ,
 		eCropCircle ,
+		eShrine ,
 		
 		eHaveGermanCastleTile,
 		eHaveAbbeyTile,

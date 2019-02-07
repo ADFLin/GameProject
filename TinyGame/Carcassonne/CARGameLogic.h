@@ -17,6 +17,7 @@
 namespace CAR
 {
 	class GameplaySetting;
+	class GameParamCollection;
 	class GamePlayerManager;
 	class FeatureBase;
 	class IGameInput;
@@ -172,7 +173,7 @@ namespace CAR
 		void   getMinTitlesNoCompletedFeature(FeatureType::Enum type, unsigned playerMask, unsigned actorTypeMask, std::vector<FeatureBase*>& outFeatures);
 		void   getFeatureNeighborMapTile(FeatureBase& feature, MapTileSet& outMapTile);
 		int    getMaxFieldValuePlayer( FieldType::Enum type , PlayerBase* outPlayer[] , int& maxValue );
-		int    updatePosibleLinkPos( PutTileParam& param );
+		int    updatePosibleLinkPos( PlaceTileParam& param );
 		int    updatePosibleLinkPos();
 		typedef MapTile::FarmNode FarmNode;
 		typedef MapTile::SideNode SideNode;
@@ -202,6 +203,7 @@ namespace CAR
 
 		PlayerBase* getOwnedPlayer(LevelActor* actor);
 
+		static GameParamCollection& GetParamCollection(GameLogic& logic);
 		//
 		GamePlayerManager* mPlayerManager;
 		TileSetManager     mTileSetManager;

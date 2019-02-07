@@ -5,6 +5,11 @@
 
 namespace CAR
 {
+	GameParamCollection& PlayerBase::GetParamCollection(PlayerBase& t)
+	{
+		return *mSetting;
+	}
+
 	void PlayerBase::setupSetting(GameplaySetting& setting)
 	{
 		mSetting = &setting;
@@ -47,5 +52,7 @@ namespace CAR
 			return 0;
 		return mFieldValues[ idx ] += value;
 	}
+
+
 
 }//namespace CAR

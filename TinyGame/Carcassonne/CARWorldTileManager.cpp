@@ -75,14 +75,14 @@ namespace CAR
 		mEmptyLinkPosSet.clear();
 	}
 
-	int WorldTileManager::placeTile(TileId tileId , Vec2i const& pos , int rotation , PutTileParam& param , MapTile* outMapTile[] )
+	int WorldTileManager::placeTile(TileId tileId , Vec2i const& pos , int rotation , PlaceTileParam& param , MapTile* outMapTile[] )
 	{
 		if ( !canPlaceTile( tileId , pos , rotation , param ) )
 			return 0;
 		return placeTileNoCheck( tileId , pos , rotation , param , outMapTile );
 	}
 
-	bool WorldTileManager::canPlaceTile( TileId tileId , Vec2i const& pos , int rotation , PutTileParam& param )
+	bool WorldTileManager::canPlaceTile( TileId tileId , Vec2i const& pos , int rotation , PlaceTileParam& param )
 	{
 		TileSet const& tileSet = mTileSetManager->getTileSet( tileId );
 
@@ -138,7 +138,7 @@ namespace CAR
 		return true;
 	}
 
-	bool WorldTileManager::canPlaceTileInternal( TilePiece const& tile , Vec2i const& pos , int rotation , PutTileParam& param , PlaceResult& result  )
+	bool WorldTileManager::canPlaceTileInternal( TilePiece const& tile , Vec2i const& pos , int rotation , PlaceTileParam& param , PlaceResult& result  )
 	{
 		int numSideCheck = FDir::TotalNum;
 		int deltaDir = 0;
@@ -240,7 +240,7 @@ namespace CAR
 		return true;
 	}
 
-	bool WorldTileManager::canPlaceTileList(TileId tileId, int numTile, Vec2i const& pos, int rotation, PutTileParam& param)
+	bool WorldTileManager::canPlaceTileList(TileId tileId, int numTile, Vec2i const& pos, int rotation, PlaceTileParam& param)
 	{
 		assert( param.checkRiverConnect == false );
 		assert( param.idxTileUseBridge == -1 );
@@ -299,7 +299,7 @@ namespace CAR
 		return true;
 	}
 
-	int WorldTileManager::placeTileNoCheck( TileId tileId , Vec2i const& pos , int rotation , PutTileParam& param , MapTile* outMapTile[] )
+	int WorldTileManager::placeTileNoCheck( TileId tileId , Vec2i const& pos , int rotation , PlaceTileParam& param , MapTile* outMapTile[] )
 	{
 		TileSet const& tileSet = mTileSetManager->getTileSet( tileId );
 		switch( tileSet.type )
@@ -326,7 +326,7 @@ namespace CAR
 	}
 
 
-	MapTile* WorldTileManager::placeTileInternal( TilePiece const& tile , Vec2i const& pos , int rotation , PutTileParam& param )
+	MapTile* WorldTileManager::placeTileInternal( TilePiece const& tile , Vec2i const& pos , int rotation , PlaceTileParam& param )
 	{
 
 		MapTile* mapTilePlace = nullptr;
@@ -419,7 +419,7 @@ namespace CAR
 		return tileSet.tiles[idx];
 	}
 
-	int WorldTileManager::getPosibleLinkPos( TileId tileId , std::vector< Vec2i >& outPos , PutTileParam& param )
+	int WorldTileManager::getPosibleLinkPos( TileId tileId , std::vector< Vec2i >& outPos , PlaceTileParam& param )
 	{
 		TileSet const& tileSet = mTileSetManager->getTileSet( tileId );
 
@@ -514,9 +514,9 @@ namespace CAR
 		switch( tileSet.type )
 		{
 		case TileType::eDouble:
-			for( int i = 0 ; i < FDir::NeighborNum ; ++i )
+			for( int i = 0 ; i < FDir::TotalNum ; ++i )
 			{
-				if ( isEmptyLinkPos( pos + FDir::NeighborOffset(i) ) )
+				if ( isEmptyLinkPos( pos + FDir::LinkOffset(i) ) )
 					return true;
 			}
 			return false;
@@ -609,7 +609,7 @@ namespace CAR
 			{
 				tileSet = &createSingleTileSet( tileDef , ( exp == EXP_TEST ) ? TileSet::eTest : TileSet::eCommon );
 			}
-			tileSet->expansions = content.exp;
+			tileSet->expansion = content.exp;
 			tileSet->idxDefine = idxDefine++;
 		}
 	}

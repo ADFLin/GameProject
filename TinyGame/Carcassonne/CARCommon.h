@@ -111,7 +111,7 @@ namespace CAR
 	};
 
 	struct FDir
-	{
+ 	{
 		static int const TotalNum = 4;
 
 		static int Inverse( int dir ){ return ( dir + TotalNum / 2 ) % TotalNum; }
@@ -120,7 +120,7 @@ namespace CAR
 			assert( 0 <= rotation && rotation < TotalNum );
 			return ( dir - rotation + TotalNum ) % TotalNum;
 		}
-
+		 
 		static int ToWorld( int lDir , int rotation )		
 		{
 			assert( 0 <= rotation && rotation < TotalNum );

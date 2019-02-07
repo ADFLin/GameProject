@@ -7,19 +7,11 @@
 #include <algorithm>
 #include "Flag.h"
 
-#if CAR_USE_CONST_PARAMVALUE
-#define CAR_PARAM_VALUE( NAME ) GameParamCollection::NAME
-#else
-#define CAR_PARAM_VALUE( NAME ) getSetting().NAME
-#endif
 
 namespace CAR
 {
 
-	class GameplaySetting
-#if !CAR_USE_CONST_PARAMVALUE 
-		: public GameParamCollection
-#endif
+	class GameplaySetting : public GameParamCollection
 	{
 	public:
 		GameplaySetting();

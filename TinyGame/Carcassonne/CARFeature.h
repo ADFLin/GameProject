@@ -10,6 +10,7 @@
 
 namespace CAR
 {
+	class GameParamCollection;
 	class GameplaySetting;
 	class GamePlayerManager;
 	class PlayerBase;
@@ -134,6 +135,7 @@ namespace CAR
 		//	return mSetting->haveRule(ruleFunc);
 		//}
 
+		static GameParamCollection& GetParamCollection(FeatureBase& t);
 		GameplaySetting& getSetting() { return *mSetting; }
 		GameplaySetting* mSetting;
 	};

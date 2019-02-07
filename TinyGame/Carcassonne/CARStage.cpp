@@ -730,6 +730,17 @@ namespace CAR
 				tempPos.y += offsetY;
 			}
 			break;
+		case FeatureType::eGarden:
+			{
+				GardenFeature* myFeature = static_cast<GardenFeature*>(build);
+				g.drawText(tempPos, str.format(" Garden: LinkTile=%d", myFeature->neighborTiles.size()));
+				tempPos.y += offsetY;
+			}
+			break;
+		case FeatureType::eChrine:
+		case FeatureType::eGermanCastle:
+		default:
+			break;
 		}
 		return tempPos;
 	}
@@ -830,7 +841,7 @@ namespace CAR
 							for(  ; dir < FDir::TotalNum ; ++dir )
 							{
 								int rotation = ( mRotation + dir ) % FDir::TotalNum;
-								PutTileParam param;
+								PlaceTileParam param;
 								param.checkRiverConnect = 1;
 								param.canUseBridge = 0;
 								if ( mGameLogic.getWorld().canPlaceTile( mGameLogic.mUseTileId , mCurMapPos , rotation , param ) )
@@ -861,7 +872,7 @@ namespace CAR
 						for( int dir = 0 ; dir < FDir::TotalNum ; ++dir )
 						{
 							mRotation = ( mRotation + 1 ) % FDir::TotalNum;
-							PutTileParam param;
+							PlaceTileParam param;
 							param.checkRiverConnect = 1;
 							param.canUseBridge = 0;
 							if ( mGameLogic.getWorld().canPlaceTile( mGameLogic.mUseTileId , mCurMapPos , mRotation , param ) )
@@ -1616,7 +1627,7 @@ namespace CAR
 	{
 		TileSet const& tileSet = mGameLogic.mTileSetManager.getTileSet( id );
 		char const* dir = nullptr;
-		switch( tileSet.expansions )
+		switch( tileSet.expansion )
 		{
 		case EXP_BASIC: dir = "Basic"; break;
 		case EXP_INNS_AND_CATHEDRALS: dir = "InnCathedral"; break;

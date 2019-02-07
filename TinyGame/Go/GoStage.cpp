@@ -154,7 +154,7 @@ namespace Go
 			}
 			else if ( msg.onMiddleDown() )
 			{
-				const_cast< Board& >( mGame.getBoard() ).fillStone(  bPos , StoneColor::eBlack );
+				const_cast< Board& >( mGame.getBoard() ).fillLinkedStone(  bPos , StoneColor::eBlack );
 			}
 			else if ( msg.onRightDown() || msg.onRightDClick() )
 			{

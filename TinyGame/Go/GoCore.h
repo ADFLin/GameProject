@@ -114,7 +114,7 @@ namespace Go
 			outCoord[1] = idx / getDataSizeX() - 1;
 		}
 
-		bool     getConPos( Pos const& pos , int dir , Pos& result ) const;
+		bool     getLinkPos( Pos const& pos , int dir , Pos& result ) const;
 
 		DataType getData( int x , int y ) const;
 		DataType getData( Pos const& p ) const { return DataType( getData( p.toIndex() ) ); }
@@ -129,9 +129,9 @@ namespace Go
 		int      getCaptureCount( int x , int y ) const;
 
 		void     putStone( Pos const& p , DataType color ){ putStone( p.toIndex()  , color ); }
-		int      fillStone( Pos const& p , DataType color );
+		int      fillLinkedStone( Pos const& p , DataType color );
 		void     removeStone( Pos const& p );
-		int      captureStone( Pos const& p );
+		int      captureLinkedStone( Pos const& p );
 
 		int      peekCaptureStone( Pos const& p , unsigned& bitDir) const;
 
@@ -165,7 +165,7 @@ namespace Go
 	private:
 		typedef short LinkType;
 
-		int      calcConIndex( int idx , int dir ) const { return idx + mIndexOffset[ dir ]; }
+		int      calcLinkIndex( int idx , int dir ) const { return idx + mIndexOffset[ dir ]; }
 		int      offsetIndex( int idx , int ox , int oy ){  return idx + ox + oy * getDataSizeX(); }
 
 		DataType getData( int idx )  const  { return mData[ idx ]; }
@@ -186,10 +186,10 @@ namespace Go
 		int      getLinkToRootDist(int idx) const;
 
 		int      relink_R( int idx );
-		int      fillStone_R( int idx );
-		int      captureStone_R( int idx );
+		int      fillLinkedStone_R( int idx );
+		int      captureLinkedStone_R( int idx );
 		int      peekCaptureConStone(Pos const& p) const;
-		int      peekCaptureConStone_R( int idx ) const;
+		int      peekCaptureLinkedStone_R( int idx ) const;
    
 
 		void     removeVisitedMark_R( int idx ) const;
@@ -292,10 +292,20 @@ namespace Go
 			}
 		}
 
+		struct KOState
+		{
+			int    index;
+			uint64 hash;
+			static KOState Invalid() { return{ -1 , 0 }; }
+
+			bool operator == (KOState const& rhs) const
+			{
+				return index == rhs.index && hash == rhs.hash;
+			}
+		};
 		struct StepInfo
 		{
-			int16  idxPos;
-			int16  idxKO;
+			int16   idxPos;
 			union
 			{
 				uint8    captureDirMask;
@@ -331,8 +341,7 @@ namespace Go
 		void    reviewNextStep(int numStep = 1);
 		void    reviewLastStep();
 
-
-
+		bool    isKOStateReached(Pos const& pos, DataType playColor, KOState const& koState) const;
 	private:
 		
 		void     doRestart( bool beClearBoard , bool bClearStepHistory = true);
@@ -341,11 +350,8 @@ namespace Go
 		void     addStoneInternal(Pos const& pos, DataType color, bool bReviewing);
 
 		bool     undoInternal(bool bReviewing);
-
-		Pos      getFristConPos(Board::Pos const& pos, unsigned bitDir) const;
-
 		
-		int      captureStone(Board::Pos const& pos, unsigned& bitDir);
+		int      captureStone( Pos const& pos, unsigned& bitDir);
 		void     advanceStepFromHistory();
 
 		GameSetting mSetting;
@@ -353,10 +359,15 @@ namespace Go
 		int       mNumBlackCaptured;
 		int       mNumWhiteCaptured;
 		mutable Board mBoard;
-		int       mIdxKoPos;
+		
 		DataType  mNextPlayColor;
 
+		KOState   calcKOState(Pos const& pos) const;
+		void      addKOState( DataType playColor, Pos const* pos , int numCapture, KOState const& koState);
+		void      removeKOState( DataType playColor , Pos const* pos );
 
+		int       mIdxKoPos;
+		std::vector< KOState >   mSimpleKOStates;
 
 		typedef std::vector< StepInfo > StepVec;
 		StepVec   mStepHistory;

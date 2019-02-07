@@ -39,7 +39,7 @@ namespace CAR
 			eTest ,
 			NumGroup ,
 		};
-		Expansion      expansions;
+		Expansion      expansion;
 		TileType::Enum type;
 		int            idxDefine;
 		TilePiece*     tiles;
@@ -86,9 +86,9 @@ namespace CAR
 
 
 
-	struct PutTileParam
+	struct PlaceTileParam
 	{
-		PutTileParam(){ init(); }
+		PlaceTileParam(){ init(); }
 
 		void init()
 		{
@@ -124,10 +124,10 @@ namespace CAR
 		void       restart();
 
 		TilePiece const& getTile( TileId id , int idx = 0 ) const;
-		int         placeTile( TileId tileId , Vec2i const& pos , int rotation , PutTileParam& param , MapTile* outMapTile[] );
-		int         placeTileNoCheck( TileId tileId , Vec2i const& pos , int rotation , PutTileParam& param , MapTile* outMapTile[] );
-		bool        canPlaceTile( TileId tileId , Vec2i const& pos , int rotation , PutTileParam& param );
-		int         getPosibleLinkPos( TileId tileId , std::vector< Vec2i >& outPos , PutTileParam& param );
+		int         placeTile( TileId tileId , Vec2i const& pos , int rotation , PlaceTileParam& param , MapTile* outMapTile[] );
+		int         placeTileNoCheck( TileId tileId , Vec2i const& pos , int rotation , PlaceTileParam& param , MapTile* outMapTile[] );
+		bool        canPlaceTile( TileId tileId , Vec2i const& pos , int rotation , PlaceTileParam& param );
+		int         getPosibleLinkPos( TileId tileId , std::vector< Vec2i >& outPos , PlaceTileParam& param );
 		MapTile*    findMapTile( Vec2i const& pos );
 		bool        isEmptyLinkPos( Vec2i const& pos );
 
@@ -138,9 +138,9 @@ namespace CAR
 		auto        createEmptyLinkPosIterator() const { return MakeIterator(mEmptyLinkPosSet); }
 
 	private:
-		bool        canPlaceTileList( TileId tileId , int numTile , Vec2i const& pos , int rotation , PutTileParam& param );
+		bool        canPlaceTileList( TileId tileId , int numTile , Vec2i const& pos , int rotation , PlaceTileParam& param );
 		
-		MapTile*    placeTileInternal( TilePiece const& tile , Vec2i const& pos , int rotation , PutTileParam& param );
+		MapTile*    placeTileInternal( TilePiece const& tile , Vec2i const& pos , int rotation , PlaceTileParam& param );
 
 
 		//
@@ -152,8 +152,8 @@ namespace CAR
 			bool bNeedCheckRiverConnectDir;
 			MapTile* riverLink;
 		};
-		bool        canPlaceTileInternal( TilePiece const& tile , Vec2i const& pos , int rotation , PutTileParam& param , PlaceResult& result );
-		bool        canMergeHalflingTile(TilePiece const& tile, MapTile* halflingTile, PutTileParam& param);
+		bool        canPlaceTileInternal( TilePiece const& tile , Vec2i const& pos , int rotation , PlaceTileParam& param , PlaceResult& result );
+		bool        canMergeHalflingTile(TilePiece const& tile, MapTile* halflingTile, PlaceTileParam& param);
 		bool        checkRiverLinkDirection( Vec2i const& pos , int dirLink , int dir );
 		void        incCheckCount();
 

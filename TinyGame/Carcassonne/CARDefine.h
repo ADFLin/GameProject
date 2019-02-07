@@ -48,26 +48,28 @@ namespace CAR
 	{
 		enum Enum
 		{
-			eCloister        = BIT(0) ,
-			eCathedral       = BIT(1) , //EXP_INNS_AND_CATHEDRALS
-			eVolcano         = BIT(2) , //EXP_THE_PRINCESS_AND_THE_DRAGON 
-			eTheDragon       = BIT(3) , //EXP_THE_PRINCESS_AND_THE_DRAGON 
-			eMagicPortal     = BIT(4) , //EXP_THE_PRINCESS_AND_THE_DRAGON
-			eTowerFoundation = BIT(7) , //EXP_THE_TOWER
-			eBazaar          = BIT(8) , //EXP_BRIDGES_CASTLES_AND_BAZAARS
-			eHill            = BIT(9) , //EXP_HILLS_AND_SHEEP
-			eVineyard        = BIT(10), //EXP_HILLS_AND_SHEEP
-			eHalfling        = BIT(11), //EXP_HALFLINGS_I EXP_HALFLINGS_II
-			eLaPorxada       = BIT(12), //EXP_LA_PORXADA
-			eMage            = BIT(13), //EXP_MAGE_AND_WITCH
-			eGold            = BIT(14), //EXP_GOLDMINES
-			eFlyMachine      = BIT(15), //EXP_THE_FLY_MACHINES
+			eCloister            = BIT(0) ,
+			eCathedral           = BIT(1) , //EXP_INNS_AND_CATHEDRALS
+			eVolcano             = BIT(2) , //EXP_THE_PRINCESS_AND_THE_DRAGON 
+			eTheDragon           = BIT(3) , //EXP_THE_PRINCESS_AND_THE_DRAGON 
+			eMagicPortal         = BIT(4) , //EXP_THE_PRINCESS_AND_THE_DRAGON
+			eTowerFoundation     = BIT(7) , //EXP_THE_TOWER
+			eBazaar              = BIT(8) , //EXP_BRIDGES_CASTLES_AND_BAZAARS
+			eHill                = BIT(9) , //EXP_HILLS_AND_SHEEP
+			eVineyard            = BIT(10), //EXP_HILLS_AND_SHEEP
+			eHalfling            = BIT(11), //EXP_HALFLINGS_I EXP_HALFLINGS_II
+			eLaPorxada           = BIT(12), //EXP_LA_PORXADA
+			eMage                = BIT(13), //EXP_MAGE_AND_WITCH
+			eGold                = BIT(14), //EXP_GOLDMINES
+			eFlyMachine          = BIT(15), //EXP_THE_FLY_MACHINES
 			eCropCirclePitchfork = BIT(16), //EXP_CROP_CIRCLE_I EXP_CROP_CIRCLE_II
 			eCropCircleClub      = BIT(17), //EXP_CROP_CIRCLE_I EXP_CROP_CIRCLE_II
 			eCropCircleShield    = BIT(18), //EXP_CROP_CIRCLE_I EXP_CROP_CIRCLE_II
-			eBesieger       = BIT(19),
+			eBesieger            = BIT(19),
+			eShrine              = BIT(20), //EXP_HERETICS_AND_SHRINES
+			eMonastery           = BIT(21),
 			//runtime
-			eTemp            = BIT(31) ,
+			eTemp                = BIT(31) ,
 		};
 
 		static unsigned const FeatureMask = eCloister;

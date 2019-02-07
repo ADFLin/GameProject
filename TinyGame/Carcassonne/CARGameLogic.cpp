@@ -43,6 +43,11 @@ namespace CAR
 		BIT( ActorType::eMage ) | BIT( ActorType::eWitch );
 	unsigned const CastleScoreTypeMask = BIT( FeatureType::eCity ) | BIT( FeatureType::eCloister ) | BIT( FeatureType::eRoad );
 
+	GameParamCollection& GameLogic::GetParamCollection(GameLogic& logic)
+	{
+		return logic.getSetting();
+	}
+
 	GameLogic::GameLogic()
 		:mWorld( mTileSetManager )
 	{
@@ -220,7 +225,7 @@ namespace CAR
 					startId = drawPlayTile();
 				}
 
-				PutTileParam param;
+				PlaceTileParam param;
 				param.checkRiverConnect = true;
 				param.canUseBridge = false;
 
@@ -430,7 +435,7 @@ namespace CAR
 			for( int idx = 0; idx < specialTileList.size(); ++idx )
 			{
 				TileSet const& tileSet = mTileSetManager.getTileSet(specialTileList[idx]);
-				if( tileSet.expansions == exp && tileSet.tag == tag )
+				if( tileSet.expansion == exp && tileSet.tag == tag )
 					return idx;
 			}
 			return -1;
@@ -1154,7 +1159,7 @@ namespace CAR
 	{
 		//a)  If you have a tile from a previous bazaar auction, you must use that tile.
 		//b)  If you have an abbey tile, you may draw it in place of drawing a regular tile.
-		//c)  If you have aHalflingtile and did not play an abbey tile, you may choose it in place of drawing a regular tile.
+		//c)  If you have a Halfling tile and did not play an abbey tile, you may choose it in place of drawing a regular tile.
 		//d)  If you did not perform a - c, randomly draw a tile.
 		//e)  Show the tile to all players.
 		//f)  If a Wheel of Fortune icon is on the tile, resolve Wheel of Fortune. MESSAGES ROBBERS
@@ -1215,12 +1220,47 @@ namespace CAR
 				}
 			}
 
-			PutTileParam param;
+			TileSet const& tileSet = mTileSetManager.getTileSet(mUseTileId);
+
+			PlaceTileParam param;
 			param.canUseBridge = 0;
 			param.checkRiverConnect = 1;
-			if ( updatePosibleLinkPos( param ) == 0 )
+			int numPos = updatePosibleLinkPos(param);
+			if (numPos)
 			{
-				TileSet const& tileSet = mTileSetManager.getTileSet(mUseTileId);
+				if (mSetting->have(Rule::eShrine))
+				{
+					TilePiece& piece = tileSet.tiles[0];
+					if ( piece.contentFlag & ( TileContent::eCloister| TileContent::eShrine) )
+					{
+
+						for ( auto iter = mPlaceTilePosList.begin(); iter != mPlaceTilePosList.end(); )
+						{
+							Vec2i pos = *iter;
+							unsigned neighborCotent = 0;
+							int cloisterLikeCount = 0;
+							int shrineLikeCount = 0;
+							for (int i = 0; i < FDir::NeighborNum; ++i)
+							{
+								MapTile* mapTile = getWorld().findMapTile(pos + FDir::NeighborOffset(i));
+								if (mapTile)
+								{
+									if (mapTile->getTileContent() & (TileContent::eCloister))
+										++cloisterLikeCount;
+									if (mapTile->getTileContent() & (TileContent::eShrine))
+										++shrineLikeCount;
+								}
+							}
+
+							++iter;
+						}
+					}
+				}
+			}
+
+			if ( numPos == 0 )
+			{
+
 
 				if( tileSet.group == TileSet::eRiver )
 				{
@@ -1266,7 +1306,7 @@ namespace CAR
 				putTileData.resultRotation = 0;
 			}
 
-			PutTileParam param;
+			PlaceTileParam param;
 			param.canUseBridge = 0;
 			param.checkRiverConnect = 1;
 			numMapTile = mWorld.placeTile( mUseTileId , putTileData.resultPos , putTileData.resultRotation , param , placeMapTiles );
@@ -2611,7 +2651,7 @@ namespace CAR
 					if ( mapTile.getSideGroup( dir ) == -1 )
 					{
 						TileSet const& tileSet = mTileSetManager.getTileSet( mapTile.getId() );
-						CAR_LOG("Error:Farm Side Mask Error Tile exp=%d index =%d" , (int)tileSet.expansions , tileSet.idxDefine );
+						CAR_LOG("Error:Farm Side Mask Error Tile exp=%d index =%d" , (int)tileSet.expansion , tileSet.idxDefine );
 						continue;
 					}
 					CityFeature* city = static_cast< CityFeature* >( getFeature( mapTile.getSideGroup( dir ) ) );
@@ -2658,7 +2698,7 @@ namespace CAR
 		}
 	}
 
-	int GameLogic::updatePosibleLinkPos(PutTileParam& param)
+	int GameLogic::updatePosibleLinkPos(PlaceTileParam& param)
 	{
 		mPlaceTilePosList.clear();
 		return mWorld.getPosibleLinkPos( mUseTileId , mPlaceTilePosList , param );
@@ -2666,7 +2706,7 @@ namespace CAR
 
 	int GameLogic::updatePosibleLinkPos()
 	{
-		PutTileParam param;
+		PlaceTileParam param;
 		param.canUseBridge = 0;
 		param.checkRiverConnect = 1;
 		return updatePosibleLinkPos( param );
@@ -3552,7 +3592,7 @@ namespace CAR
 
 	void GameLogic::placeAllTileDebug( int numRow )
 	{
-		PutTileParam param;
+		PlaceTileParam param;
 		param.checkRiverConnect = 0;
 		param.canUseBridge = 0;
 

@@ -855,27 +855,9 @@ namespace Go
 		{
 			Vec2i pos = RenderContext::CalcCoord(msg.getPos() , BoardPos , RenderBoardScale);
 
-			if( !getViewingGame().canPlay(pos.x, pos.y) )
+			if( !mGame.getBoard().checkRange(pos.x, pos.y) )
 				return false;
 
-			if( mGameMode == GameMode::Analysis )
-			{
-				int color = mGame.getNextPlayColor();
-				if( InputManager::Get().isKeyDown(Keyboard::eCONTROL) )
-				{
-					if ( mGame.addStone(pos.x , pos.y, color) )
-					{
-						executeAnalysisAICommand([this, pos, color] {  mLeelaAIRun.addStone(pos.x, pos.y, color); });
-					}
-				}
-				else
-				{
-					if( mGame.playStone(pos.x, pos.y) )
-					{
-						executeAnalysisAICommand([this ,pos, color]{  mLeelaAIRun.playStone(pos.x, pos.y, color); });
-					}
-				}
-			}
 			if( bTryPlayingGame )
 			{
 				mTryPlayGame.playStone(pos.x, pos.y);
@@ -884,7 +866,8 @@ namespace Go
 			{
 				if( canPlay() )
 				{
-					execPlayStoneCommand(pos);
+					if ( mGame.canPlay(pos.x , pos.y) )
+						execPlayStoneCommand(pos);
 				}
 				else if ( mGameMode == GameMode::Match )
 				{
@@ -894,21 +877,40 @@ namespace Go
 						auto bot = mMatchData.getCurTurnBot();
 					}
 				}
+				else if( mGameMode == GameMode::Analysis )
+				{
+					int color = mGame.getNextPlayColor();
+					if( InputManager::Get().isKeyDown(Keyboard::eCONTROL) )
+					{
+						if( mGame.addStone(pos.x, pos.y, color) )
+						{
+							executeAnalysisAICommand([this, pos, color] {  mLeelaAIRun.addStone(pos.x, pos.y, color); });
+						}
+					}
+					else
+					{
+						if( mGame.playStone(pos.x, pos.y) )
+						{
+							executeAnalysisAICommand([this, pos, color] {  mLeelaAIRun.playStone(pos.x, pos.y, color); });
+						}
+					}
+				}
 			}
 		}
 		else if( msg.onRightDown() )
 		{
-			if( mGameMode == GameMode::Analysis )
+			if( bTryPlayingGame )
+			{
+				mTryPlayGame.undo();
+			}
+			else if( mGameMode == GameMode::Analysis )
 			{
 				if( mGame.undo() )
 				{
 					executeAnalysisAICommand([this] { mLeelaAIRun.undo(); });
 				}
 			}
-			if( bTryPlayingGame )
-			{
-				mTryPlayGame.undo();
-			}
+
 		}
 		else if( msg.onMoving() )
 		{

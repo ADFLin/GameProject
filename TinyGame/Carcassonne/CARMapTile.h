@@ -144,7 +144,7 @@ namespace CAR
 			return !!(mTile->contentFlag & context);
 		}
 		unsigned getSideContnet( int dir ) const;
-		unsigned getTileContent() const;
+		uint32   getTileContent() const;
 
 		unsigned calcSideRoadLinkMeskToCenter() const;
 

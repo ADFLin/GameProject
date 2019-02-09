@@ -33,11 +33,14 @@ namespace CAR
 		EXP_THE_FLY_MACHINES,
 		EXP_GOLDMINES,
 		EXP_THE_SCHOOL ,
+		EXP_THE_FESTIVAL ,
 
 		EXP_THE_ROBBERS ,
 		EXP_HALFLINGS_I ,                //?T
  		EXP_HALFLINGS_II ,               //?T
 
+
+		EXP_THE_COUNT_OF_CARCASSONNE ,
 		EXP_LA_PORXADA ,
 		EXP_LITTLE_BUILDINGS ,
 		EXP_MAGE_AND_WITCH ,
@@ -99,6 +102,8 @@ namespace CAR
 		eFlyMahine ,
 		eCropCircle ,
 		eShrine ,
+
+		eFestival ,
 		
 		eHaveGermanCastleTile,
 		eHaveAbbeyTile,
@@ -126,7 +131,7 @@ namespace CAR
 		uint8  linkType[4];
 		uint8  sideLink[2];
 		uint16 roadLink[2];
-		uint16 content;
+		uint32 content;
 		uint16 sideContent[4];
 		uint8  centerFarmMask;
 		uint8  farmLink[6];

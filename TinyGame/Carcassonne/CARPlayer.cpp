@@ -16,7 +16,7 @@ namespace CAR
 		mFieldValues.resize( setting.getTotalFieldValueNum() , 0 );
 	}
 
-	int PlayerBase::getFieldValue(FieldType::Enum type , int index )
+	int PlayerBase::getFieldValue(FieldType::Enum type , int index ) const
 	{
 		int idx = mSetting->getFieldIndex( type );
 		if ( idx == -1 )

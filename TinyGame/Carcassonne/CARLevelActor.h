@@ -59,6 +59,7 @@ namespace CAR
 		LevelActor*  binder;
 		ActorList    followers;
 		void*        userData;
+		EFollowerClassName className;
 
 		LevelActor* popFollower();
 		void removeFollower( LevelActor& actor );

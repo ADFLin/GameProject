@@ -55,7 +55,7 @@ namespace CAR
 		};
 	}
 
-	class GameLogic
+	class GameLogic : public ActorContainer
 	{
 	public:
 		GameLogic();
@@ -213,8 +213,6 @@ namespace CAR
 		
 		IGameEventListener* mListener;
 		unsigned  mDebugMode;
-
-		ActorList mActorList;
 
 		struct Team
 		{

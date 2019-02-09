@@ -223,6 +223,7 @@ namespace CAR
 		CASE(EXP_THE_MESSSAGES, Rule::eMessage);
 		CASE(EXP_THE_ROBBERS, Rule::eRobber);
 		CASE(EXP_THE_SCHOOL, Rule::eTeacher);
+		CASE(EXP_THE_FESTIVAL, Rule::eFestival);
 		}
 #undef CASE
 	}

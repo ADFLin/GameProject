@@ -26,7 +26,7 @@ namespace CAR
 
 		void setupSetting( GameplaySetting& setting );
 
-		unsigned getUsageActorMask()
+		unsigned getSupportActorMask()
 		{
 			unsigned result = 0;
 			for( int i = 0 ; i < NUM_PLAYER_ACTOR_TYPE ; ++i )
@@ -37,15 +37,15 @@ namespace CAR
 			return result;
 		}
 
-		bool haveActor( ActorType type ){ return getActorValue( type ) != 0; }
-		int  getActorValue( ActorType type )
+		bool haveActor( ActorType type ) const { return getActorValue( type ) != 0; }
+		int  getActorValue( ActorType type ) const
 		{ return getFieldValue( FieldType::Enum( FieldType::eActorStart + type ) ); }
 		void setActorValue( ActorType type , int value )
 		{  setFieldValue( FieldType::Enum( FieldType::eActorStart + type ) , value );  }
 		int  modifyActorValue( ActorType type , int value = 1 )
 		{  return modifyFieldValue( FieldType::Enum( FieldType::eActorStart + type ) , value ); }
 
-		int  getFieldValue( FieldType::Enum type , int index = 0 );
+		int  getFieldValue( FieldType::Enum type , int index = 0 ) const;
 		void setFieldArrayValues(FieldType::Enum type, int* values, int num);
 		void setFieldValue(FieldType::Enum type, int value , int index = 0 );
 		int  modifyFieldValue( FieldType::Enum type , int value = 1 );

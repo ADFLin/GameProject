@@ -87,12 +87,17 @@ namespace CAR
 		}
 		actor.feature = this;
 		mActors.push_back( &actor );
+		if (mSetting->isFollower(actor.type))
+		{
+			onAddFollower(actor);
+		}
 	}
 
 	void FeatureBase::removeActor( LevelActor& actor )
 	{
 		assert( actor.feature == this );
 		actor.feature = nullptr;
+		actor.className = EFollowerClassName::Undefined;
 		mActors.erase( std::find( mActors.begin() , mActors.end() , &actor ) );
 	}
 

@@ -48,17 +48,20 @@ namespace CAR
 
 	CGameInput::CGameInput()
 	{
+		mYeild = nullptr;
 		reset();
 	}
 
 	void CGameInput::reset()
 	{
+		assert(mYeild == nullptr);
 		mbReplayMode = false;
 		mAction = ACTION_NONE;
 		mActionData = nullptr;
 		mDataTransfer = nullptr;
 		mGameLogic = nullptr;
 		mNumActionInput = 0;
+		mRecordAction.clear();
 	}
 
 	void CGameInput::clearReplyAction()
@@ -80,6 +83,7 @@ namespace CAR
 			mYeild = &yeild;
 			mGameLogic->run( *this );
 			mYeild = nullptr;
+			mGameLogic = nullptr;
 		} 
 		catch(const boost::coroutines::detail::forced_unwind&) 
 		{

@@ -365,8 +365,6 @@ namespace Go
 		KOState   calcKOState(Pos const& pos) const;
 		void      addKOState( DataType playColor, Pos const* pos , int numCapture, KOState const& koState);
 		void      removeKOState( DataType playColor , Pos const* pos );
-
-		int       mIdxKoPos;
 		std::vector< KOState >   mSimpleKOStates;
 
 		typedef std::vector< StepInfo > StepVec;

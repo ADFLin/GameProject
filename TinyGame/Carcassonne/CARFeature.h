@@ -34,6 +34,7 @@ namespace CAR
 			eChrine ,
 			eGarden ,
 			eGermanCastle ,
+			eCarcassonne ,
 		};
 	};
 
@@ -91,16 +92,17 @@ namespace CAR
 		LevelActor* removeActorByIndex( int index );
 		bool        testInRange( Vec2i const& min , Vec2i const& max );
 		int         calcScore(GamePlayerManager& playerManager, FeatureScoreInfo& outResult);
+
 		virtual bool checkComplete() const { return false; }
 		virtual int  getActorPutInfo( int playerId , int posMeta , MapTile& mapTile, std::vector< ActorPosInfo >& outInfo ) = 0;
 		virtual void generateRoadLinkFeatures( WorldTileManager& worldTileManager, GroupSet& outFeatures ){ }
 		virtual bool updateForAdjacentTile( MapTile& tile ){ return false; }
 		virtual void mergeData( FeatureBase& other , MapTile const& putData , int meta );
 		virtual int  calcPlayerScore( PlayerBase* player ) = 0;
-		
 		virtual int  doCalcScore( GamePlayerManager& playerManager , FeatureScoreInfo& outResult);
 		virtual bool getActorPos( MapTile const& mapTile , ActorPos& actorPos ){ return false; }
 		virtual int  getScoreTileNum() const { return 0; }
+		virtual void onAddFollower(LevelActor& actor){}
 
 		int  generateController(std::vector< FeatureControllerScoreInfo >& controllerScores);
 		int  getMajorityValue( ActorType actorType);
@@ -175,9 +177,9 @@ namespace CAR
 		virtual void addNode( MapTile& mapData , unsigned dirMask , SideNode* linkNode ) override;
 		virtual int  getActorPutInfo( int playerId , int posMeta , MapTile& mapTile, std::vector< ActorPosInfo >& outInfo ) override;
 		virtual bool checkComplete() const override;
-		virtual int  calcPlayerScore(PlayerBase* player);
+		virtual int  calcPlayerScore(PlayerBase* player) override;
 		virtual int  getScoreTileNum() const { return mapTiles.size(); }
-
+		virtual void onAddFollower(LevelActor& actor) override { actor.className = EFollowerClassName::Thief; }
 		bool      haveInn;
 	};
 
@@ -205,7 +207,10 @@ namespace CAR
 		virtual int  getActorPutInfo( int playerId , int posMeta , MapTile& mapTile, std::vector< ActorPosInfo >& outInfo ) override;
 		virtual bool checkComplete() const override;
 		virtual int  calcPlayerScore( PlayerBase* player );
-
+		virtual void onAddFollower(LevelActor& actor) override 
+		{ 
+			actor.className = EFollowerClassName::Knight;
+		}
 		virtual int doCalcScore( GamePlayerManager& playerManager , FeatureScoreInfo& outResult) override;
 
 	};
@@ -224,7 +229,10 @@ namespace CAR
 		virtual bool checkComplete() const override { return false; }
 		virtual int  doCalcScore( GamePlayerManager& playerManager , FeatureScoreInfo& outResult) override;
 		virtual int  calcPlayerScore( PlayerBase* player );
-
+		virtual void onAddFollower(LevelActor& actor) override
+		{
+			actor.className = EFollowerClassName::Farmer;
+		}
 		int calcPlayerScoreByBarnRemoveFarmer(PlayerBase* player);
 		int calcPlayerScoreInternal(PlayerBase* player, int farmFactor);
 
@@ -258,6 +266,10 @@ namespace CAR
 		virtual int  getActorPutInfo(int playerId, int posMeta, MapTile& mapTile, std::vector< ActorPosInfo >& outInfo) override;
 		virtual int  calcPlayerScore(PlayerBase* player) override;
 		virtual void generateRoadLinkFeatures(WorldTileManager& worldTileManager, GroupSet& outFeatures) override;
+		virtual void onAddFollower(LevelActor& actor) override
+		{
+			actor.className = EFollowerClassName::Monk;
+		}
 	};
 
 	class GardenFeature : public AdjacentTileScoringFeature
@@ -268,6 +280,11 @@ namespace CAR
 		virtual int  getActorPutInfo(int playerId, int posMeta, MapTile& mapTile, std::vector< ActorPosInfo >& outInfo) override;
 		virtual int  calcPlayerScore(PlayerBase* player) override;
 		virtual void generateRoadLinkFeatures(WorldTileManager& worldTileManager, GroupSet& outFeatures) override;
+		virtual void onAddFollower(LevelActor& actor) override
+		{
+			assert(actor.type == ActorType::eAbbot);
+			actor.className = EFollowerClassName::Abbot;
+		}
 	};
 
 	class GermanCastleFeature : public FeatureBase
@@ -287,8 +304,27 @@ namespace CAR
 		virtual void generateRoadLinkFeatures( WorldTileManager& worldTileManager, GroupSet& outFeatures ) override;
 		virtual bool updateForAdjacentTile(MapTile& tile) override;
 		virtual bool getActorPos(MapTile const& mapTile , ActorPos& actorPos) override;
+		virtual void onAddFollower(LevelActor& actor) override
+		{
+			actor.className = EFollowerClassName::Lord;
+		}
 	};
 
+	class CarcassonneFeature : public FeatureBase
+	{
+	public:
+		virtual bool checkComplete() const { return false; }
+		virtual int  getActorPutInfo(int playerId, int posMeta, MapTile& mapTile, std::vector< ActorPosInfo >& outInfo) { return 0; }
+		virtual void generateRoadLinkFeatures(WorldTileManager& worldTileManager, GroupSet& outFeatures) { }
+		virtual bool updateForAdjacentTile(MapTile& tile) { return false; }
+		virtual void mergeData(FeatureBase& other, MapTile const& putData, int meta) { NEVER_REACH(""); }
+		virtual int  calcPlayerScore(PlayerBase* player) { return 0; }
+		virtual int  doCalcScore(GamePlayerManager& playerManager, FeatureScoreInfo& outResult) { return -1; }
+		virtual bool getActorPos(MapTile const& mapTile, ActorPos& actorPos) { return false; }
+		virtual int  getScoreTileNum() const { return 0; }
+		virtual void onAddFollower(LevelActor& actor) {}
+
+	};
 }//namespace CAR
 
 #endif // CARFeature_h__b8a5bc79_4d4a_4362_80be_82b096535e7c

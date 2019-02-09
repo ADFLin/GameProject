@@ -62,11 +62,11 @@ namespace CAR
 
 	void GameLogic::cleanupData()
 	{
-		for( int i = 0 ; i < mActorList.size() ; ++i )
+		for( int i = 0 ; i < mActors.size() ; ++i )
 		{
-			deleteActor( mActorList[i] );
+			deleteActor( mActors[i] );
 		}
-		mActorList.clear();
+		mActors.clear();
 
 		for( int i = 0 ; i < mFeatureMap.size() ; ++i )
 		{
@@ -742,6 +742,14 @@ namespace CAR
 			bool havePlagueSource = false;
 			bool skipAllActorStep = false;
 
+
+			uint32 allTileConstent = 0;
+			for (int i = 0; i < numPlaceTile; ++i)
+			{
+				allTileConstent |= placeMapTiles[i]->getTileContent();
+			}
+
+
 			//c)  If a volcano symbol is on the tile, place the dragon on this tile.
 			if( mSetting->have(Rule::eDragon) )
 			{
@@ -815,13 +823,7 @@ namespace CAR
 			//
 			if( mSetting->have(Rule::eLaPorxada) )
 			{
-				bool bHaveLaPorxadaContent = false;
-				for( int i = 0; i < numPlaceTile; ++i )
-				{
-					bHaveLaPorxadaContent |= !!(placeMapTiles[i]->getTileContent() & TileContent::eLaPorxada);
-				}
-
-				if( bHaveLaPorxadaContent )
+				if(allTileConstent & TileContent::eLaPorxada)
 				{
 					CHECK_RESOLVE_RESULT(resolveLaPorxadaCommand(turnContext));
 				}
@@ -860,7 +862,7 @@ namespace CAR
 							unsigned actorMask;
 							if ( step == 0 )
 							{
-								actorMask = turnContext.getPlayer()->getUsageActorMask() & ~BIT( ActorType::ePhantom );
+								actorMask = turnContext.getPlayer()->getSupportActorMask() & ~BIT( ActorType::ePhantom );
 							}
 							else if ( step == 1 )
 							{
@@ -891,6 +893,7 @@ namespace CAR
 								if( haveUsePortal )
 									actorMask &= mSetting->getFollowerMask();
 
+								//a-c) follower and other figures
 								CHECK_RESOLVE_RESULT( resolveDeployActor(turnContext, deployMapTiles , numDeployTile , actorMask , haveUsePortal, haveDone ) );
 
 								if ( haveDone )
@@ -903,9 +906,21 @@ namespace CAR
 					}
 					//d) Perform a special action
 					// - Place a follower on the Wheel of Fortune
-					// - Remove a figure from anywhere in the playing area if the festival symbol was on the played tile
-					// - Remove your abbot(C II) and score its points MESSAGE SROBBERS
 
+					// - Remove a figure from anywhere in the playing area if the festival symbol was on the played tile
+					if (mSetting->have(Rule::eFestival))
+					{
+						if (allTileConstent & TileContent::eFestival)
+						{
+
+						}
+					}
+
+					// - Remove your abbot(C II) and score its points MESSAGE SROBBERS
+					if (mSetting->have(Rule::eAbbot))
+					{
+
+					}
 
 					{
 
@@ -1321,7 +1336,6 @@ namespace CAR
 
 	void GameLogic::resolveDeployActor(TurnContext& turnContext, MapTile* deployMapTiles[] , int numDeployTile , unsigned actorMask , bool haveUsePortal , bool& haveDone)
 	{
-		//a-c) follower and other figures
 		calcPlayerDeployActorPos(*turnContext.getPlayer(), deployMapTiles , numDeployTile , actorMask , haveUsePortal );
 
 		GameDeployActorData deployActorData;
@@ -2286,15 +2300,11 @@ namespace CAR
 			{
 				std::vector< LevelActor* > selfFollowers;
 				std::vector< LevelActor* > otherFollowers;
-				for( auto actor : mActorList )
+
+				int iter = 0;
+				while ( auto actor = iteratorActorFromType( mSetting->getFollowerMask() , iter ) )
 				{
-					if ( actor->ownerId == CAR_ERROR_PLAYER_ID )
-						continue;
-
-					if ( !( BIT(actor->type) & mSetting->getFollowerMask() ) )
-						continue;
-
-					if( actor->ownerId == turnContext.getPlayer()->getId() )
+					if (actor->ownerId == turnContext.getPlayer()->getId())
 					{
 						otherFollowers.push_back(actor);
 					}
@@ -3197,7 +3207,7 @@ namespace CAR
 		}
 		assert( actor );
 		actor->type = type;
-		mActorList.push_back( actor );
+		mActors.push_back( actor );
 		return actor;
 	}
 
@@ -3220,7 +3230,7 @@ namespace CAR
 				break;
 			}
 		}
-		mActorList.erase( std::find( mActorList.begin() , mActorList.end() , actor ));
+		mActors.erase( std::find(mActors.begin() , mActors.end() , actor ));
 		deleteActor( actor );
 	}
 
@@ -3453,9 +3463,9 @@ namespace CAR
 	int GameLogic::getFollowers(unsigned playerIdMask , ActorList& outActors , LevelActor* actorSkip )
 	{
 		int result = 0;
-		for( int i = 0 ; i < mActorList.size() ; ++i )
+		for( int i = 0 ; i < mActors.size() ; ++i )
 		{
-			LevelActor* actor = mActorList[i];
+			LevelActor* actor = mActors[i];
 			if ( actor == actorSkip )
 				continue;
 

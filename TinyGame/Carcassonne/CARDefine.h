@@ -68,6 +68,7 @@ namespace CAR
 			eBesieger            = BIT(19),
 			eShrine              = BIT(20), //EXP_HERETICS_AND_SHRINES
 			eMonastery           = BIT(21),
+			eFestival            = BIT(22), //EXP_THE_FESTIVAL
 			//runtime
 			eTemp                = BIT(31) ,
 		};
@@ -95,6 +96,16 @@ namespace CAR
 		static unsigned const InsideLinkTypeMask = eSchool | eGermanCastle;
 	};
 
+	namespace ECityQuarter
+	{
+		enum Type
+		{
+			Castle ,
+			Market ,
+			Blacksmith ,
+			Cathedral ,
+		};
+	}
 
 	struct ActorPos
 	{
@@ -106,6 +117,7 @@ namespace CAR
 			eTower    ,
 			eTileCorner ,
 			ePlayer ,
+			eCityQuarter ,
 			eNone ,
 		};
 		ActorPos( Enum aType , int aMeta )
@@ -159,14 +171,16 @@ namespace CAR
 		eNone = -1,
 	};
 
-	enum class EFollowerClass
+	enum class EFollowerClassName
 	{
+		Undefined ,
 		Thief ,
 		Knight ,
 		Monk ,
 		Abbot ,
 		Heretic ,
 		Farmer ,
+		Lord ,
 	};
 
 	struct FieldType

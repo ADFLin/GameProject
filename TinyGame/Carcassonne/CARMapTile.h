@@ -18,10 +18,12 @@ namespace CAR
 		static unsigned const AllFarmMask = 0xff;
 		static unsigned const CenterMask = BIT( FDir::TotalNum );
 
+
+
 		struct SideData
 		{
 			SideType linkType;
-			uint32   contentFlag;
+			SideContentType   contentFlag;
 			uint32   linkDirMask;
 			uint32   roadLinkDirMask;
 		};
@@ -35,7 +37,7 @@ namespace CAR
 		TileId    id;
 		SideData  sides[ NumSide ];
 		FarmData  farms[ NumFarm ];
-		uint32    contentFlag;
+		TileContentType    contentFlag;
 
 		SideType getLinkType( int lDir ) const{  return sides[lDir].linkType;  }
 
@@ -143,8 +145,8 @@ namespace CAR
 		{
 			return !!(mTile->contentFlag & context);
 		}
-		unsigned getSideContnet( int dir ) const;
-		uint32   getTileContent() const;
+		SideContentType getSideContnet( int dir ) const;
+		TileContentType getTileContent() const;
 
 		unsigned calcSideRoadLinkMeskToCenter() const;
 

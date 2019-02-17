@@ -38,7 +38,7 @@ namespace Go
 	public:
 		int32 mNumNewRead = 0;
 		int   mNumUsed = 0;
-		char  mBuffer[2048];
+		char  mBuffer[20480];
 
 		bool  bNeedRead = true;
 		bool  bLogMsg = true;
@@ -483,6 +483,7 @@ namespace Go
 		}
 
 		bool bDumping = false;
+
 		bool parseLine(char* buffer, int num)
 		{
 			//LogMsg("%s", buffer);
@@ -544,6 +545,7 @@ namespace Go
 						addOutputCommand(gameCom);
 					}
 					break;
+
 				default:
 					break;
 				}
@@ -589,6 +591,7 @@ namespace Go
 
 		LeelaThinkInfoVec thinkResults[2];
 		int  indexResultWrite = 0;
+		bool bPondering = false;
 
 		virtual void dumpCommandMsgBegin(GTPCommand com) 
 		{
@@ -602,7 +605,6 @@ namespace Go
 				break;
 			case GTPCommand::eGenmove:
 			case GTPCommand::eStopPonder:
-				//LogMsg("Clear Think Result");
 				indexResultWrite = 1 - indexResultWrite;
 				thinkResults[indexResultWrite].clear();
 				break;
@@ -622,10 +624,15 @@ namespace Go
 		{
 			switch( com.id )
 			{
-			case GTPCommand::eStopPonder:
+			case GTPCommand::eStartPonder:
 				{
-					//LogMsg("Send Think Result");
-					sendUsageThinkResult();
+					bPondering = true;
+				}
+				break;
+			case GTPCommand::eStopPonder:
+				if( bPondering )
+				{
+					bPondering = false;
 				}
 				break;
 			}
@@ -730,28 +737,49 @@ namespace Go
 			switch( com.id )
 			{
 			case GTPCommand::eNone:
+				if ( bPondering )
 				{
-					if( bRecvThinkInfo )
+#define INFO_MOVE_STR "info move"
+					while( StartWith(buffer, "info move") )
 					{
-						if( strcmp(buffer, "~end") == 0 )
+						FixString<128>  coord;
+						int   visits = 0;
+						int   winrate = 0;
+						int   prior = 0;
+						int   order = 0;
+						int   numRead = 0;
+						if( sscanf(buffer, "info move %s visits %d winrate %d prior %d order %d pv%n", coord.data(), &visits, &winrate, &prior, &order, &numRead) == 5 )
 						{
-							sendUsageThinkResult();
-							bRecvThinkInfo = false;
-						}
-						else if( readThinkInfo(buffer, num) )
-						{
+							int vertex = GetVertex(coord);
+							if( vertex == -3 )
+							{
+								//LogWarning(0, "Error Think Str = %s", buffer);
+								//return;
+							}
 
+							LeelaThinkInfo info;
+							info.v = vertex;
+							info.nodeVisited = visits;
+							info.winRate = float(winrate)/100.0f;
+							info.evalValue = prior;
+							buffer = const_cast<char*>(FStringParse::SkipSpace(buffer + numRead));
+							
+							while( *buffer != 0 || !StartWith(buffer,INFO_MOVE_STR))
+							{
+								int v = ReadVertex(buffer, numRead);
+								if( numRead == 0 )
+									break;
+
+								info.vSeq.push_back(v);
+								buffer = const_cast<char*>( FStringParse::SkipSpace(buffer + numRead) );
+							}
+							thinkResults[indexResultWrite].push_back(info);
 						}
 					}
-					else 
-					{
-						if( strcmp(buffer, "~begin") == 0 )
-						{
-							indexResultWrite = 1 - indexResultWrite;
-							thinkResults[indexResultWrite].clear();
-							bRecvThinkInfo = true;
-						}
-					}
+
+					sendUsageThinkResult();
+					indexResultWrite = 1 - indexResultWrite;
+					thinkResults[indexResultWrite].clear();
 				}
 				break;
 			case GTPCommand::eStopPonder:
@@ -1021,10 +1049,7 @@ namespace Go
 		mUseWeightName = setting.weightName;
 
 		FixString<256> path;
-		if ( setting.bUseModifyVersion )
-			path.format("%s/%s", InstallDir, "/leelazModify.exe");
-		else
-			path.format("%s/%s", InstallDir, "/leelaz.exe");
+		path.format("%s/%s", InstallDir, "/leelaz.exe");
 
 		LogMsg("Play weight = %s", setting.weightName);
 
@@ -1034,19 +1059,22 @@ namespace Go
 		return result;
 	}
 
+
 	bool LeelaAppRun::buildAnalysisGame( bool bUseELF )
 	{
 		LeelaAISetting setting;
 		mUseWeightName = LeelaAppRun::GetBestWeightName();
 		setting.weightName = mUseWeightName.c_str();
 		setting.bNoise = false;
+		setting.bDumbPass = false;
+		setting.bNoPonder = true;
 		setting.seed = generateRandSeed();
-		setting.bNoPonder = false;
+		
 		setting.playouts = 0;
 		setting.visits = 0;
 		setting.randomcnt = 0;
 		setting.resignpct = 0;
-		setting.bUseModifyVersion = true;
+
 		if( bUseELF )
 		{
 			setting.weightName = "ELF2";
@@ -1060,10 +1088,11 @@ namespace Go
 		return result;
 	}
 
-	void LeelaAppRun::startPonder(int color )
+
+	void LeelaAppRun::startPonder( int color )
 	{
 		FixString<128> com;
-		com.format("time_left %c 0 0\n", color == StoneColor::eBlack ? 'b' : 'w');
+		com.format("lz-analyze %c 10\n", color == StoneColor::eBlack ? 'b' : 'w');
 		inputCommand(com, { GTPCommand::eStartPonder , 0 });
 	}
 
@@ -1140,4 +1169,74 @@ namespace Go
 		return setting;
 	}
 
+#define  AddCom( NAME , VALUE )\
+			if( VALUE )\
+			{\
+				result += NAME;\
+			}\
+
+#define  AddComValue( NAME , VALUE )\
+			if( VALUE )\
+			{\
+				result += NAME;\
+				result += std::to_string(VALUE);\
+			}\
+
+#define  AddComValueNoCheck( NAME , VALUE )\
+			{\
+				result += NAME;\
+				result += std::to_string(VALUE);\
+			}\
+
+	std::string LeelaAISetting::toParamString() const
+	{
+		std::string result;
+		AddComValueNoCheck(" -p ", playouts);
+		AddComValue(" -v ", visits);
+		if( weightName )
+		{
+			result += " -w ";
+			char const* subName = FileUtility::GetSubName(weightName);
+			if( subName )
+			{
+				result += weightName;
+				result.resize(result.size() - strlen(subName) - 1);
+			}
+			else
+			{
+				result += weightName;
+			}
+		}
+		return result;
+	}
+
+	std::string LeelaAISetting::toString() const
+	{
+		std::string result;
+
+
+		AddComValueNoCheck(" -r ", resignpct);
+		AddComValue(" -t ", numThread);
+		AddComValueNoCheck(" -p ", playouts);
+		AddComValue(" -v ", visits);
+		AddComValue(" -m ", randomcnt);
+		AddComValue(" -s ", seed);
+		if( weightName )
+		{
+			result += " -w " LEELA_NET_DIR;
+			result += weightName;
+		}
+		AddCom(" -q", bQuiet);
+		AddCom(" -d", bDumbPass);
+		AddCom(" -n", bNoise);
+		AddCom(" -g", bGTPMode);
+		AddCom(" --noponder", bNoPonder);
+		AddCom(" -q", bQuiet);
+
+		return result;
+	}
+
 }
+
+#undef AddCom
+#undef AddComValue

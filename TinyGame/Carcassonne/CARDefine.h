@@ -30,7 +30,14 @@ namespace CAR
 	int const ERROR_GROUP_ID = -1;
 	int const ABBEY_GROUP_ID = -2;
 
+	template< class T >
+	constexpr int BitMaskToIndex(T mask)
+	{
+		return (mask >> 1) ? 1 + BitMaskToIndex(mask >> 1) : 0;
+	}
+
 	enum Expansion : uint8;
+
 
 	enum SideType : uint8
 	{
@@ -43,6 +50,10 @@ namespace CAR
 
 		eEmptySide ,
 	};
+
+
+	typedef uint16 SideContentType;
+	typedef uint32 TileContentType;
 
 	struct TileContent
 	{
@@ -69,32 +80,53 @@ namespace CAR
 			eShrine              = BIT(20), //EXP_HERETICS_AND_SHRINES
 			eMonastery           = BIT(21),
 			eFestival            = BIT(22), //EXP_THE_FESTIVAL
+			eWindRose_W          = BIT(23),
+			eWindRose_N          = BIT(24),
+			eWindRose_S          = BIT(25),
+			eWindRose_E          = BIT(26),
+			eBlueWindRose        = BIT(27),
+			eFair                = BIT(28),
 			//runtime
 			eTemp                = BIT(31) ,
+
+			LastMaskPlusOne,
+			MaxMaskIndex = BitMaskToIndex<uint32>(LastMaskPlusOne - 1),
 		};
 
-		static unsigned const FeatureMask = eCloister;
+		static uint32 const FeatureMask = eCloister | eShrine | eMonastery;
+		static uint32 const CropCircleMask = eCropCirclePitchfork | eCropCircleClub | eCropCircleShield;
+		static uint32 const OrangeWindRoseMask = eWindRose_W | eWindRose_N | eWindRose_S | eWindRose_E;
+		static uint32 const WindRoseMask = OrangeWindRoseMask | eBlueWindRose;
 	};
 
 	struct  SideContent
 	{
 		enum Enum
 		{
-			ePennant    = BIT(0) ,
-			eInn        = BIT(1) , //EXP_INNS_AND_CATHEDRALS
-			eWineHouse  = BIT(2) , //9 //EXP_TRADEERS_AND_BUILDERS
-			eGrainHouse = BIT(3) , //6 //EXP_TRADEERS_AND_BUILDERS
-			eClothHouse = BIT(4) , //5 //EXP_TRADEERS_AND_BUILDERS
-			ePrincess   = BIT(5) , //EXP_THE_PRINCESS_AND_THE_DRAGON
+			ePennant             = BIT(0) ,
+			eInn                 = BIT(1) , //EXP_INNS_AND_CATHEDRALS
+			eWineHouse           = BIT(2) , //EXP_TRADEERS_AND_BUILDERS
+			eGrainHouse          = BIT(3) , //EXP_TRADEERS_AND_BUILDERS
+			eClothHouse          = BIT(4) , //EXP_TRADEERS_AND_BUILDERS
+			ePrincess            = BIT(5) , //EXP_THE_PRINCESS_AND_THE_DRAGON
 			eNotSemiCircularCity = BIT(6) , //EXP_BRIDGES_CASTLES_AND_BAZAARS
-			eSheep      = BIT(7) ,  //EXP_HILLS_AND_SHEEP use
-			eHalfSeparate = BIT(8) , //EXP_HILLS_AND_SHEEP
-			eSchool       = BIT(9), //EXP_THE_SCHOOL
-			eGermanCastle = BIT(10),
+			eSheep               = BIT(7) , //EXP_HILLS_AND_SHEEP
+			eHalfSeparate        = BIT(8) , //EXP_HILLS_AND_SHEEP
+			eSchool              = BIT(9) , //EXP_THE_SCHOOL
+			eGermanCastle        = BIT(10),
+			eCityOfCarcassonne   = BIT(11),
+
+			LastMaskPlusOne ,
+			MaxMaskIndex = BitMaskToIndex<uint16>( LastMaskPlusOne - 1 ),
 		};
 
 		static unsigned const InsideLinkTypeMask = eSchool | eGermanCastle;
 	};
+
+
+	static_assert(SideContent::MaxMaskIndex < 8 * sizeof(SideContentType), "SideContentType can't set all SideContent enum");
+	static_assert(TileContent::MaxMaskIndex < 8 * sizeof(TileContentType), "TileContentType can't set all TileContent enum");
+
 
 	namespace ECityQuarter
 	{
@@ -141,6 +173,18 @@ namespace CAR
 	};
 
 
+	enum class EFollowerClassName
+	{
+		Undefined,
+		Thief,
+		Knight,
+		Monk,
+		Abbot,
+		Heretic,
+		Farmer,
+		Lord,
+	};
+
 	enum ActorType
 	{
 		//follower
@@ -169,18 +213,6 @@ namespace CAR
 		NUM_ACTOR_TYPE  ,
 		NUM_PLAYER_ACTOR_TYPE = eDragon ,
 		eNone = -1,
-	};
-
-	enum class EFollowerClassName
-	{
-		Undefined ,
-		Thief ,
-		Knight ,
-		Monk ,
-		Abbot ,
-		Heretic ,
-		Farmer ,
-		Lord ,
 	};
 
 	struct FieldType
@@ -228,6 +260,8 @@ namespace CAR
 	{
 		TILE_NO_TAG = 0,
 		TILE_START_TAG ,
+		TILE_START_SEQ_BEGIN_TAG ,
+		TILE_START_SEQ_END_TAG ,
 		TILE_FRIST_PLAY_TAG ,
 		TILE_END_TAG ,
 		TILE_ABBEY_TAG , //EXP_ABBEY_AND_MAYOR

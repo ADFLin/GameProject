@@ -551,11 +551,12 @@ void TinyGameApp::render( float dframe )
 		g.setTextColor(Color3ub(255, 0, 0));
 		RenderUtility::SetFont(g, FONT_S10);
 
-		int const offset = 15;
-		int textX = 500;
-		int y = 10;
+		SimpleTextLayout textlayout;
+		textlayout.offset = 15;
+		textlayout.posX = 500;
+		textlayout.posY = 25;
 		FixString< 512 > str;
-		FixString< 512 > aa;
+		FixString< 512 > temp;
 		int curLevel = 0;
 		for( int i = 0; i < GpuProfiler::Get().getSampleNum(); ++i )
 		{
@@ -566,18 +567,16 @@ void TinyGameApp::render( float dframe )
 				if( sample->level > curLevel )
 				{
 					assert(curLevel == sample->level - 1);
-					aa += "  |";
+					temp += "  |";
 				}
 				else
 				{
-					aa[3 * sample->level] = 0;
+					temp[3 * sample->level] = 0;
 
 				}
 				curLevel = sample->level;
 			}
-
-			str.format("%7.4lf %s--> %s", sample->time, aa.c_str() , sample->name.c_str());
-			g.drawText( Vector2( textX , y += offset ), str);
+			textlayout.show( g , "%7.4lf %s--> %s", sample->time, temp.c_str() , sample->name.c_str());
 		}
 	}
 

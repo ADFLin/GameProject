@@ -70,7 +70,10 @@ namespace Go
 		bool bUseNoiseOffset = true;
 		bool bDrawLinkInfo = false;
 		bool bDrawStepNum = true;
-
+		BoardRenderer()
+		{
+			mNoiseOffsets.resize(1, Vector2::Zero());
+		}
 
 		bool initializeRHI();
 

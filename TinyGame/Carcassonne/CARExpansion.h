@@ -47,6 +47,8 @@ namespace CAR
 		EXP_THE_MESSSAGES ,
 		EXP_MONASTERIES ,
 
+		EXP_THE_WIND_ROSES,             //+T ?StartTile
+
 		NUM_EXPANSIONS,
 
 		EXP_NONE ,
@@ -104,7 +106,8 @@ namespace CAR
 		eShrine ,
 
 		eFestival ,
-		
+		eWindRose ,
+
 		eHaveGermanCastleTile,
 		eHaveAbbeyTile,
 		eHaveRiverTile,
@@ -143,6 +146,7 @@ namespace CAR
 		Expansion   exp;
 		TileDefine* defines;
 		size_t      numDefines;
+		int         startTileOrder;
 	};
 
 	extern TArrayView< ExpansionContent const > gAllExpansionTileContents;

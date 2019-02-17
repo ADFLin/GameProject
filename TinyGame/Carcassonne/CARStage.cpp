@@ -73,6 +73,7 @@ namespace CAR
 		"Abbot" ,
 		"Builder" ,
 		"Pig" ,
+
 		"Gain" ,
 		"Wine" ,
 		"Cloth" ,
@@ -82,12 +83,19 @@ namespace CAR
 		"Castle" ,
 		"AuctionedTile" ,
 		"GermanCastleTiles" ,
+		"Gold",
 		"HalflingTiles" ,
+		"LaPorxadaFinishScoring",
+		"WomenScore",
+		"RobberScorePos",
+		"TowerBuilding",
+		"HouseBuilding",
+		"ShedBuilding",
 	};
 
 	char const* gActorShortNames[] =
 	{
-		"M" , "BM" , "MY" , "WG" , "BN" , "SH" , "PH" , "AB" , "BR" , "PG" , "DG" , "FR" ,
+		"M" , "BM" , "MY" , "WG" , "BN" , "SH" , "PH" , "AB" , "BR" , "PG" , "DG" , "FR" , "CO" , "MA" , "WI" , "BPP" , "TE" 
 	};
 
 	bool LevelStage::onInit()
@@ -174,7 +182,6 @@ namespace CAR
 		mCurMapPos = Vec2i(0,0);
 		mIdxShowFeature = 0;
 
-		mGameLogic.mDebugMode = ::Global::GameConfig().getIntValue( "DebugMode" , "CAR" , 0 );
 		mGameLogic.mListener = this;
 		
 		mInput.onAction = std::bind( &LevelStage::onGameAction , this , std::placeholders::_1 , std::placeholders::_2 );
@@ -375,9 +382,9 @@ namespace CAR
 
 		}
 
-		for( int i = 0 ; i < mGameLogic.mActorList.size() ; ++i )
+		for( int i = 0 ; i < mGameLogic.mActors.size() ; ++i )
 		{
-			LevelActor* actor = mGameLogic.mActorList[i];
+			LevelActor* actor = mGameLogic.mActors[i];
 
 			if ( actor->mapTile == nullptr )
 				continue;
@@ -1513,15 +1520,17 @@ namespace CAR
 			//EXP_THE_TOWER,
 			//EXP_ABBEY_AND_MAYOR,
 			//EXP_KING_AND_ROBBER,
-			EXP_BRIDGES_CASTLES_AND_BAZAARS,
-			EXP_HILLS_AND_SHEEP,
-			EXP_CASTLES,
+			//EXP_BRIDGES_CASTLES_AND_BAZAARS,
+			//EXP_HILLS_AND_SHEEP,
+			//EXP_CASTLES,
+			EXP_THE_WIND_ROSES ,
 		};
 		for( auto exp : usageExpansions )
 		{
 			mSetting.addExpansion(exp);
 		}
-
+		mGameLogic.mDebugMode = ::Global::GameConfig().getIntValue("DebugMode", "CAR", 0);
+		mGameLogic.mDebugMode |= EDebugModeMask::ShowAllTitles;
 		for( int i = 0 ; i < numPlayer ; ++i )
 		{
 			GamePlayer* player = playerManager.createPlayer(i);
@@ -1643,6 +1652,7 @@ namespace CAR
 		case EXP_CASTLES: dir = "Castle"; break;
 		case EXP_HALFLINGS_I: dir = "Halfling1"; break;
 		case EXP_HALFLINGS_II: dir = "Halfling2"; break;
+		case EXP_THE_WIND_ROSES: dir = "WindRose"; break;
 		}
 
 		if ( dir )

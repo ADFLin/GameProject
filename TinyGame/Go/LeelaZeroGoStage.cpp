@@ -27,9 +27,107 @@ REGISTER_STAGE("LeelaZero Learning", Go::LeelaZeroGoStage, EStageGroup::Test);
 #pragma comment (lib,"Dbghelp.lib")
 
 
-
 namespace Go
 {
+	struct WeightInfo
+	{
+		int version;
+		std::string date;
+		std::string time;
+		std::string name;
+		std::string format;
+		int elo;
+		int games;
+		int training;
+	};
+
+
+	bool LoadWeightTable(char const* path, std::vector< WeightInfo >& outTable)
+	{
+		std::ifstream fs(path);
+		if( !fs.is_open() )
+			return false;
+
+		while( fs.good() )
+		{
+			WeightInfo info;
+			fs >> info.version >> info.date >> info.time >> info.name >> info.format >> info.elo >> info.games >> info.training;
+
+			outTable.push_back(std::move(info));
+		}
+
+		return true;
+
+	}
+
+	void RunConvertWeight()
+	{
+		std::vector< WeightInfo > table;
+		{
+			FixString<256> path;
+			path.format("%s/%s", LeelaAppRun::InstallDir, LEELA_NET_DIR"table.txt");
+			if( !LoadWeightTable(path, table) )
+			{
+				LogError("Can't Load Table");
+				return;
+			}
+		}
+
+		std::unordered_map< std::string, WeightInfo* > weightMap;
+		for( auto& info : table )
+		{
+			weightMap.emplace(info.name, &info);
+		}
+
+		{
+			FileIterator fileIter;
+			FixString<256> dir;
+			dir.format("%s/%s", LeelaAppRun::InstallDir, LEELA_NET_DIR);
+
+			std::string bestWeightName = LeelaAppRun::GetBestWeightName();
+			if( FileSystem::FindFiles(dir, nullptr, fileIter) )
+			{
+				for( ; fileIter.haveMore(); fileIter.goNext() )
+				{
+					char const* subName = FileUtility::GetSubName(fileIter.getFileName());
+
+					if ( strcmp( fileIter.getFileName() , bestWeightName.c_str() ) == 0 )
+						continue;
+
+					if( subName )
+					{
+						subName -= 1;
+						if( strlen(fileIter.getFileName()) != 64 + 3 )
+							continue;
+					}
+					else
+					{
+						if( strlen(fileIter.getFileName()) != 64 )
+							continue;
+					}
+
+					FixString< 32 > weightName;
+					weightName.assign(fileIter.getFileName(), 8);
+
+					auto iter = weightMap.find(weightName.c_str());
+					if( iter != weightMap.end() )
+					{
+						FixString<256> newName;
+						newName.format("#%03d-%s-%s", iter->second->version, iter->second->format.c_str(), weightName.c_str());
+						FixString<256> filePath;
+						filePath.format("%s%s", dir.c_str(), fileIter.getFileName());
+						if( subName )
+						{
+							newName += subName;
+						}
+						FileSystem::RenameFile(filePath, newName);
+						int i = 1;
+					}
+				}
+			}
+		}
+	}
+
 	class UnderCurveAreaProgram : public Render::GlobalShaderProgram
 	{
 		DECLARE_GLOBAL_SHADER(UnderCurveAreaProgram)
@@ -162,7 +260,20 @@ namespace Go
 
 		mGame.setup(19);
 
+		auto GameActionFun = [&](GameProxy& game)
+		{
+			if( bShowTerritory && &game == &getViewingGame() )
+			{
+				updateViewGameTerritory();
+			}
+		};
+
+		mGame.onStateChanged = GameActionFun;
+		mReviewGame.onStateChanged = GameActionFun;
+		mTryPlayGame.onStateChanged = GameActionFun;
+
 		mMatchResultMap.load(MATCH_RESULT_PATH);
+#if 0
 #if 1
 		if( !buildLearningMode() )
 			return false;
@@ -170,12 +281,13 @@ namespace Go
 		if( !buildPlayMode() )
 			return false;
 #endif
+#endif
 
 		auto devFrame = WidgetUtility::CreateDevFrame( Vec2i(150, 200 + 55) );
 
 		devFrame->addButton("Save SGF", [&](int eventId, GWidget* widget) -> bool
 		{
-			mGame.saveSGF("Game.sgf");
+			mGame.getInstance().saveSGF("Game.sgf");
 			return false;
 		});
 
@@ -203,13 +315,15 @@ namespace Go
 			}
 			return false;
 		});
+
+#if 0
 		devFrame->addButton("Run Leela/Leela Match", [&](int eventId, GWidget* widget) -> bool
 		{
 			cleanupModeData();
 			buildLeelaMatchMode();
 			return false;
 		});
-#if 0
+
 		devFrame->addButton("Run Leela/Zen Match", [&](int eventId, GWidget* widget) -> bool
 		{
 			cleanupModeData();
@@ -217,6 +331,12 @@ namespace Go
 			return false;
 		});
 #endif
+		devFrame->addButton("Run Covert Weight", [&](int eventId, GWidget* widget) -> bool
+		{
+			RunConvertWeight();
+			return false;
+		});
+
 		devFrame->addButton("Run Custom Match", [&](int eventId, GWidget* widget) ->bool 
 		{
 			MatchSettingPanel* panel = new MatchSettingPanel( UI_ANY , Vec2i( 100 , 100 ) , Vec2i(300 , 400 ) , nullptr );
@@ -270,7 +390,6 @@ namespace Go
 
 			if( bReviewingGame )
 			{
-				mReviewGame.guid = mGame.guid;
 				mReviewGame.copy(mGame);
 				widget->cast<GCheckBox>()->setTitle("Close Review");
 				Vec2i screenSize = ::Global::GetDrawEngine()->getScreenSize();
@@ -298,7 +417,7 @@ namespace Go
 				{
 					if( mGame.guid == mReviewGame.guid )
 					{
-						mReviewGame.updateHistory(mGame);
+						mGame.synchronizeHistory(mReviewGame);
 					}
 					mReviewGame.reviewNextStep(1);
 					return false;
@@ -308,7 +427,7 @@ namespace Go
 				{
 					if( mGame.guid == mReviewGame.guid )
 					{
-						mReviewGame.updateHistory(mGame);
+						mGame.synchronizeHistory(mReviewGame);
 					}
 					mReviewGame.reviewNextStep(10);
 					return false;
@@ -318,7 +437,7 @@ namespace Go
 				{
 					if( mGame.guid == mReviewGame.guid )
 					{
-						mReviewGame.updateHistory(mGame);
+						mGame.synchronizeHistory(mReviewGame);
 					}
 					
 					mReviewGame.reviewLastStep();
@@ -346,11 +465,9 @@ namespace Go
 			}
 			else
 			{
-				MyGame& Gamelooking = bReviewingGame ? mReviewGame : mGame;
-				mTryPlayWidget = new BoardFrame( UI_ANY , mTryPlayWidgetPos, Vec2i(600,600) , nullptr );
-				mTryPlayWidget->game.guid = Gamelooking.guid;
-				mTryPlayWidget->game.copy(Gamelooking);
-				mTryPlayWidget->game.removeUnplayedHistory();
+				GameProxy& Gamelooking = bReviewingGame ? mReviewGame : mGame;
+				mTryPlayWidget = new TryPlayBoardFrame( UI_ANY , mTryPlayWidgetPos, Vec2i(600,600) , nullptr );
+				mTryPlayWidget->game.copy(Gamelooking , true );
 				mTryPlayWidget->renderer = &mBoardRenderer;
 				::Global::GUI().addWidget(mTryPlayWidget);
 				widget->cast<GCheckBox>()->setTitle("End Play");
@@ -361,8 +478,7 @@ namespace Go
 
 			if( bTryPlayingGame )
 			{
-				MyGame& Gamelooking = bReviewingGame ? mReviewGame : mGame;
-				mTryPlayGame.guid = Gamelooking.guid;
+				GameProxy& Gamelooking = bReviewingGame ? mReviewGame : mGame;
 				mTryPlayGame.copy(Gamelooking);
 				mTryPlayGame.removeUnplayedHistory();
 				widget->cast<GCheckBox>()->setTitle("End Play");
@@ -374,7 +490,15 @@ namespace Go
 #endif
 			return false;
 		});
-
+		devFrame->addCheckBox("Show Territory", [&](int eventId, GWidget* widget) ->bool
+		{
+			bShowTerritory = !bShowTerritory;
+			if( bShowTerritory )
+			{
+				updateViewGameTerritory();
+			}
+			return false;
+		});
 		return true;
 	}
 
@@ -467,7 +591,7 @@ namespace Go
 			mLeelaAIRun.update();
 			auto ProcFun = [&](GameCommand& com)
 			{
-				int color = mGame.getNextPlayColor();
+				int color = mGame.getInstance().getNextPlayColor();
 				switch( com.id )
 				{
 				case GameCommand::eParam:
@@ -530,8 +654,13 @@ namespace Go
 
 		mBoardRenderer.drawBorad( g , context );
 
+		if( bShowTerritory )
+		{
+			DrawTerritoryStatus(mBoardRenderer, context, mShowTerritoryInfo);
+		}
+
 		int lastPlayPos[2] = { -1,-1 };
-		viewingGame.getCurrentStepPos(lastPlayPos);
+		viewingGame.getInstance().getLastStepPos(lastPlayPos);
 		if( lastPlayPos[0] != -1 && lastPlayPos[1] != -1 )
 		{
 			Vector2 pos = mBoardRenderer.getStonePos(context, lastPlayPos[0], lastPlayPos[1]);
@@ -540,100 +669,16 @@ namespace Go
 			g.drawCircle(pos, context.stoneRadius / 2);
 		}
 
-		if( bAnalysisEnabled && bAnalysisPondering && analysisPonderColor == mGame.getNextPlayColor() )
+		if( bAnalysisEnabled && bAnalysisPondering && analysisPonderColor == mGame.getInstance().getNextPlayColor() )
 		{
-			auto iter = analysisResult.end();
-			
-			if ( showBranchVertex != -1 )
-			{
-				iter = std::find_if(analysisResult.begin(), analysisResult.end(),
-									[this](auto const& info) { return info.v == showBranchVertex; });
-			}
-			if( iter != analysisResult.end() )
-			{
-				mBoardRenderer.drawStoneSequence(context, iter->vSeq, mGame.getNextPlayColor(), 0.7);
-			}
-			else
-			{
-				int maxVisited = 0;
-				for( auto const& info : analysisResult )
-				{
-					if( info.nodeVisited > maxVisited )
-						maxVisited = info.nodeVisited;
-				}
-
-				float const MIN_ALPHA = 32 / 255.0;
-				float const MIN_ALPHA_TO_DISPLAY_TEXT = 64 / 255.0;
-				float const MAX_ALPHA = 240 / 255.0;
-				float const HUE_SCALING_FACTOR = 3.0;
-				float const ALPHA_SCALING_FACTOR = 5.0;
-
-
-				RenderUtility::SetFont(g, FONT_S8);	
-				for( auto const& info : analysisResult )
-				{
-					if ( info.nodeVisited == 0 )
-						continue;
-
-					int x = info.v % LeelaGoSize;
-					int y = info.v / LeelaGoSize;
-
-					float percentVsisted = float(info.nodeVisited) / maxVisited;
-					float hue = (float)(120 * std::max(0.0f , Math::Log(percentVsisted) / HUE_SCALING_FACTOR + 1));
-					float saturation = 0.75f; //saturation
-					float brightness = 0.85f; //brightness
-					float alpha = MIN_ALPHA + (MAX_ALPHA - MIN_ALPHA) * std::max(0.0f, Math::Log(percentVsisted) /
-																					 ALPHA_SCALING_FACTOR + 1);
-
-					Vector3 color = FColorConv::HSVToRGB(Vector3(hue, saturation, brightness));
-
-					Vector2 pos = context.getIntersectionPos(x, y);
-					g.beginBlend(Vector2(0, 0), Vector2(0, 0), alpha);
-
-					g.setPen(Color3f(color));
-					g.setBrush(Color3f(color));
-					g.drawCircle(pos, context.stoneRadius);
-					g.endBlend();
-
-					if ( alpha > MIN_ALPHA_TO_DISPLAY_TEXT )
-					{
-						FixString<128> str;
-						str.format("%g", info.winRate);
-						float len = context.cellLength;
-						g.drawText(pos - 0.5 * Vector2(len, len), Vector2(len, 0.5 * len), str);
-
-						if( info.nodeVisited >= 1000000 )
-						{
-							float fVisited = float(info.nodeVisited) / 100000; // 1234567 -> 12.34567
-							str.format("%gm", Math::Round(fVisited) / 10.0);
-						}
-						else if( info.nodeVisited >= 10000 )
-						{
-							float fVisited = float(info.nodeVisited) / 1000; // 13265 -> 13.265
-							str.format("%gk", Math::Round(fVisited) );
-						}
-						else if( info.nodeVisited >= 1000 )
-						{
-							float fVisited = float(info.nodeVisited) / 100; // 1265 -> 12.65
-							str.format("%gk", Math::Round(fVisited) / 10.0);
-						}
-						else
-						{
-							str.format("%d", info.nodeVisited);
-						}
-
-						g.drawText(pos - 0.5 * Vector2(len, 0), Vector2(len, 0.5 * len), str);
-					}
-				}
-			}
-
+			drawAnalysis( g , context );
 		}
 
 		if( bestMoveVertex >= 0 )
 		{
 			if( showBranchVertex == bestMoveVertex && !bestThinkInfo.vSeq.empty() )
 			{
-				mBoardRenderer.drawStoneSequence(context, bestThinkInfo.vSeq, mGame.getNextPlayColor(), 0.7);
+				mBoardRenderer.drawStoneSequence(context, bestThinkInfo.vSeq, mGame.getInstance().getNextPlayColor(), 0.7);
 			}
 
 			int x = bestMoveVertex % LeelaGoSize;
@@ -648,71 +693,170 @@ namespace Go
 		FixString< 512 > str;
 
 		g.setTextColor(Color3ub(255, 0, 0));
-		RenderUtility::SetFont(g, FONT_S10);
-		if( mGameMode == GameMode::Learning )
+
+		SimpleTextLayout textLayout;
 		{
-			g.drawText(200, 20, str.format("Num Game Completed = %d", numGameCompleted));
-			if ( bMatchJob )
+			textLayout.posX = 100;
+			textLayout.posY = 10;
+			textLayout.offset = 15;
+			RenderUtility::SetFont(g, FONT_S10);
+			if( mGameMode == GameMode::Learning )
 			{
-				if ( matchChallenger != StoneColor::eEmpty )
+				textLayout.show(g, "Num Game Completed = %d", numGameCompleted);
+				if( bMatchJob )
 				{
-					str.format("Job Type = Match , Challenger = %s",
-							   matchChallenger == StoneColor::eBlack ? "B" : "W");
+					if( matchChallenger != StoneColor::eEmpty )
+					{
+						textLayout.show(g, "Job Type = Match , Challenger = %s",
+										matchChallenger == StoneColor::eBlack ? "B" : "W");
+					}
+					else
+					{
+						textLayout.show(g, "Job Type = Match");
+					}
 				}
 				else
 				{
-					str.format("Job Type = Match");
+					textLayout.show(g, "Job Type = Self Play , Weight = %s", mUsedWeight.c_str());
 				}
-			}
-			else
-			{
-				str.format("Job Type = Self Play , Weight = %s" , mUsedWeight.c_str() );
-			}
-			g.drawText(200, 35, str);
 
-			if( !mLastGameResult.empty() )
-			{
-				g.drawText(200, 50, str.format( "Last Game Result : %s" , mLastGameResult.c_str() ) );
-			}
-		}
-		else if( mGameMode == GameMode::Match )
-		{
-			if( mMatchData.bAutoRun )
-			{
-				int y = 20;
-				int totalMatchNum = mMatchData.players[0].winCount + mMatchData.players[1].winCount;
-				for( int i = 0; i < 2; ++i )
+				if( !mLastGameResult.empty() )
 				{
-					auto const& player = mMatchData.players[i];
-					float winRate = totalMatchNum ? ( 100.f * float( player.winCount ) /  totalMatchNum ) : 0;
-					str.format("%s (%s) = %d ( %.1f %% , History = %d )" , player.getName().c_str() , mMatchData.getPlayerColor(i) == StoneColor::eBlack ? "B" : "W" ,  player.winCount , winRate , mMatchData.historyWinCounts[i] );
-					g.drawText(200, y , str);
-					y += 15;
+					textLayout.show(g, "Last Game Result : %s", mLastGameResult.c_str());
 				}
-				if ( unknownWinerCount )
+			}
+			else if( mGameMode == GameMode::Match )
+			{
+				if( mMatchData.bAutoRun )
 				{
-					str.format("Unknown = %d", unknownWinerCount);
-					g.drawText(200, y, str);
+					int totalMatchNum = mMatchData.players[0].winCount + mMatchData.players[1].winCount;
+					for( int i = 0; i < 2; ++i )
+					{
+						auto const& player = mMatchData.players[i];
+						float winRate = totalMatchNum ? (100.f * float(player.winCount) / totalMatchNum) : 0;
+						textLayout.show(g, "%s (%s) = %d ( %.1f %% , History = %d )", 
+										player.getName().c_str(), mMatchData.getPlayerColor(i) == StoneColor::eBlack ? "B" : "W", 
+										player.winCount, winRate, mMatchData.historyWinCounts[i]);
+					}
+					if( unknownWinerCount )
+					{
+						textLayout.show(g, "Unknown = %d", unknownWinerCount);
+					}
 				}
 			}
 		}
 
-		g.setTextColor(Color3ub(255, 0, 0));
-		RenderUtility::SetFont(g, FONT_S10);
-		int const offset = 15;
-		int textX = 350;
-		int y = 10;
-
-		if ( bDrawDebugMsg )
 		{
-			str.format("bUseBatchedRender = %s", mBoardRenderer.bUseBatchedRender ? "true" : "false");
-			g.drawText(textX, y += offset, str);
+			g.setTextColor(Color3ub(255, 0, 0));
+			RenderUtility::SetFont(g, FONT_S10);
+
+			textLayout.offset = 15;
+			textLayout.posX = 750;
+			textLayout.posY = 25;
+
+			if( bShowTerritory )
+			{
+				textLayout.show(g, "B = %d , W = %d", mShowTerritoryInfo.fieldCounts[0], mShowTerritoryInfo.fieldCounts[1]);
+			}
+			if( bDrawDebugMsg )
+			{
+				textLayout.show(g, "bUseBatchedRender = %s", mBoardRenderer.bUseBatchedRender ? "true" : "false");
+			}
 		}
 
 		if ( bDrawFontCacheTexture )
 			DrawUtility::DrawTexture(FontCharCache::Get().mTextAtlas.getTexture(), Vector2(0, 0), Vector2(600, 600));
 
 		g.endRender();
+	}
+
+	void LeelaZeroGoStage::drawAnalysis(GLGraphics2D& g, RenderContext &context)
+	{
+		GPU_PROFILE("Draw Analysis");
+
+		auto iter = analysisResult.end();
+		if( showBranchVertex != -1 )
+		{
+			iter = std::find_if(analysisResult.begin(), analysisResult.end(),
+								[this](auto const& info) { return info.v == showBranchVertex; });
+		}
+		if( iter != analysisResult.end() )
+		{
+			mBoardRenderer.drawStoneSequence(context, iter->vSeq, mGame.getInstance().getNextPlayColor(), 0.7);
+		}
+		else
+		{
+			int maxVisited = 0;
+			for( auto const& info : analysisResult )
+			{
+				if( info.nodeVisited > maxVisited )
+					maxVisited = info.nodeVisited;
+			}
+
+			float const MIN_ALPHA = 32 / 255.0;
+			float const MIN_ALPHA_TO_DISPLAY_TEXT = 64 / 255.0;
+			float const MAX_ALPHA = 240 / 255.0;
+			float const HUE_SCALING_FACTOR = 3.0;
+			float const ALPHA_SCALING_FACTOR = 5.0;
+
+
+			RenderUtility::SetFont(g, FONT_S8);
+			for( auto const& info : analysisResult )
+			{
+				if( info.nodeVisited == 0 )
+					continue;
+
+				int x = info.v % LeelaGoSize;
+				int y = info.v / LeelaGoSize;
+
+				float percentVsisted = float(info.nodeVisited) / maxVisited;
+				float hue = (float)(120 * std::max(0.0f, Math::Log(percentVsisted) / HUE_SCALING_FACTOR + 1));
+				float saturation = 0.75f; //saturation
+				float brightness = 0.85f; //brightness
+				float alpha = MIN_ALPHA + (MAX_ALPHA - MIN_ALPHA) * std::max(0.0f, Math::Log(percentVsisted) /
+																			 ALPHA_SCALING_FACTOR + 1);
+
+				Vector3 color = FColorConv::HSVToRGB(Vector3(hue, saturation, brightness));
+
+				Vector2 pos = context.getIntersectionPos(x, y);
+				g.beginBlend(Vector2(0, 0), Vector2(0, 0), alpha);
+
+				g.setPen(Color3f(color));
+				g.setBrush(Color3f(color));
+				g.drawCircle(pos, context.stoneRadius);
+				g.endBlend();
+
+				if( alpha > MIN_ALPHA_TO_DISPLAY_TEXT )
+				{
+					FixString<128> str;
+					str.format("%g", info.winRate);
+					float len = context.cellLength;
+					g.drawText(pos - 0.5 * Vector2(len, len), Vector2(len, 0.5 * len), str);
+
+					if( info.nodeVisited >= 1000000 )
+					{
+						float fVisited = float(info.nodeVisited) / 100000; // 1234567 -> 12.34567
+						str.format("%gm", Math::Round(fVisited) / 10.0);
+					}
+					else if( info.nodeVisited >= 10000 )
+					{
+						float fVisited = float(info.nodeVisited) / 1000; // 13265 -> 13.265
+						str.format("%gk", Math::Round(fVisited));
+					}
+					else if( info.nodeVisited >= 1000 )
+					{
+						float fVisited = float(info.nodeVisited) / 100; // 1265 -> 12.65
+						str.format("%gk", Math::Round(fVisited) / 10.0);
+					}
+					else
+					{
+						str.format("%d", info.nodeVisited);
+					}
+
+					g.drawText(pos - 0.5 * Vector2(len, 0), Vector2(len, 0.5 * len), str);
+				}
+			}
+		}
 	}
 
 	void LeelaZeroGoStage::drawWinRateDiagram(Vec2i const& renderPos, Vec2i const& renderSize)
@@ -730,7 +874,7 @@ namespace Go
 			glMatrixMode(GL_PROJECTION);
 
 			float const xMin = 0;
-			float const xMax = (mGame.getCurrentStep() + 1) / 2 + 1;
+			float const xMax = (mGame.getInstance().getCurrentStep() + 1) / 2 + 1;
 			float const yMin = 0;
 			float const yMax = 100;
 			Matrix4 matProj = OrthoMatrix(xMin - 1, xMax, yMin - 5, yMax + 5, -1, 1);
@@ -805,7 +949,7 @@ namespace Go
 
 			if( bReviewingGame )
 			{
-				int posX = ( mReviewGame.getCurrentStep() + 1 ) / 2;
+				int posX = ( mReviewGame.getInstance().getCurrentStep() + 1 ) / 2;
 				Vector2 const lines[] = { Vector2(posX , yMin) , Vector2(posX , yMax) };
 
 				RHISetBlendState(TStaticBlendState< CWM_RGBA, Blend::eOne, Blend::eOne >::GetRHI());
@@ -813,6 +957,64 @@ namespace Go
 			}
 
 			RHISetBlendState(TStaticBlendState<>::GetRHI());
+		}
+	}
+
+	void LeelaZeroGoStage::DrawTerritoryStatus(BoardRenderer& renderer, RenderContext const& context, Zen::TerritoryInfo const& info)
+	{
+		GPU_PROFILE("Draw Territory");
+
+		GLGraphics2D& g = ::Global::GetRHIGraphics2D();
+
+		Vector2 cellSize = Vector2(context.cellLength, context.cellLength);
+		RenderUtility::SetFont(g, FONT_S8);
+
+		for( int i = 0; i < 19; ++i )
+		{
+			for( int j = 0; j < 19; ++j )
+			{
+				int value = info.map[j][i];
+				if( value == 0 )
+					continue;
+
+				int color = context.board.getData(i, j);
+				if( value > 0 )
+				{
+					if( color == StoneColor::eBlack )
+						continue;
+					g.setTextColor(Color3ub(255, 0, 0));
+					g.setBrush(Color3ub(0, 0, 0));
+					g.setPen(Color3ub(255, 255, 255));
+
+				}
+				else
+				{
+					if( color == StoneColor::eWhite )
+						continue;
+					g.setTextColor(Color3ub(0, 0, 255));
+					g.setBrush(Color3ub(255, 255, 255));
+					g.setPen(Color3ub(0, 0, 0));
+					value = -value;
+				}
+
+				float sizeFactor = Math::Min( 1.0f , value / float(Zen::TerritoryInfo::FieldValue) );
+
+				Vector2 pos = renderer.getIntersectionPos(context, i, j);
+				Vector2 size = 0.5 * sizeFactor * cellSize;
+				if( value >= Zen::TerritoryInfo::FieldValue )
+				{
+					g.drawRect(pos - 0.5 * size, size);
+				}
+				else
+				{
+					g.drawCircle(pos, 0.5 * size.x);
+				}
+#if 0
+				FixString<128> str;
+				str.format("%d", value);
+				g.drawText( pos - 0.5 * cellSize, cellSize, str);
+#endif
+			}
 		}
 	}
 
@@ -841,7 +1043,7 @@ namespace Go
 		analysisResult.clear();
 		if( bAnalysisPondering && bKeepPonder )
 		{
-			analysisPonderColor = mGame.getNextPlayColor();
+			analysisPonderColor = mGame.getInstance().getNextPlayColor();
 			mLeelaAIRun.startPonder(analysisPonderColor);
 		}
 	}
@@ -879,7 +1081,7 @@ namespace Go
 				}
 				else if( mGameMode == GameMode::Analysis )
 				{
-					int color = mGame.getNextPlayColor();
+					int color = mGame.getInstance().getNextPlayColor();
 					if( InputManager::Get().isKeyDown(Keyboard::eCONTROL) )
 					{
 						if( mGame.addStone(pos.x, pos.y, color) )
@@ -944,7 +1146,7 @@ namespace Go
 		case Keyboard::eX:
 			if( !bAnalysisEnabled && mGameMode == GameMode::Match )
 			{
-				tryEnableAnalysis();
+				tryEnableAnalysis(true);
 			}
 			if( bAnalysisEnabled )
 			{
@@ -991,7 +1193,7 @@ namespace Go
 
 	bool LeelaZeroGoStage::buildAnalysisMode()
 	{
-		if( !tryEnableAnalysis() )
+		if( !tryEnableAnalysis(false) )
 			return false;
 
 		mGameMode = GameMode::Analysis;
@@ -1205,7 +1407,7 @@ namespace Go
 		IBotInterface* bot = mMatchData.getCurTurnBot();
 		if( bot )
 		{
-			bot->thinkNextMove(mGame.getNextPlayColor());
+			bot->thinkNextMove(mGame.getInstance().getNextPlayColor());
 		}
 
 		return true;
@@ -1291,7 +1493,7 @@ namespace Go
 			if( mbRestartLearning )
 				return;
 
-			int color = mGame.getNextPlayColor();
+			int color = mGame.getInstance().getNextPlayColor();
 			switch( com.id )
 			{
 			case GameCommand::eStart:
@@ -1369,7 +1571,7 @@ namespace Go
 						LogMsg("Warning:Can't Play step : [%d,%d]", com.pos[0], com.pos[1]);
 					}
 
-					if( mGame.getCurrentStep() - 1 >= ::Global::GameConfig().getIntValue( "LeelaLearnMaxSetp" , "Go" , 400 ) )
+					if( mGame.getInstance().getCurrentStep() - 1 >= ::Global::GameConfig().getIntValue( "LeelaLearnMaxSetp" , "Go" , 400 ) )
 					{
 						mbRestartLearning = true;
 						return;
@@ -1385,7 +1587,7 @@ namespace Go
 
 	void LeelaZeroGoStage::notifyPlayerCommand(int indexPlayer , GameCommand const& com)
 	{
-		int color = mGame.getNextPlayColor();
+		int color = mGame.getInstance().getNextPlayColor();
 		switch( com.id )
 		{
 		case GameCommand::ePass:
@@ -1395,7 +1597,7 @@ namespace Go
 				LogMsg("Pass");
 				mGame.playPass();
 
-				if( mGame.getLastPassCount() >= 2 )
+				if( mGame.getInstance().getLastPassCount() >= 2 )
 				{
 					LogMsg("GameEnd");
 					
@@ -1421,7 +1623,7 @@ namespace Go
 					if( bot )
 					{
 						bot->playPass(color);
-						bot->thinkNextMove(mGame.getNextPlayColor());
+						bot->thinkNextMove(mGame.getInstance().getNextPlayColor());
 					}
 					if( bAnalysisEnabled )
 					{
@@ -1524,7 +1726,7 @@ namespace Go
 				if ( !bPrevGameCom )
 				{
 					Vector2 v;
-					v.x = ( mGame.getCurrentStep() + 1 ) / 2;
+					v.x = ( mGame.getInstance().getCurrentStep() + 1 ) / 2;
 					v.y = com.floatParam;
 					mWinRateHistory[indexPlayer].push_back(v);
 
@@ -1566,7 +1768,7 @@ namespace Go
 					if( bot )
 					{
 						bot->playStone(com.pos[0], com.pos[1], color);
-						bot->thinkNextMove(mGame.getNextPlayColor());
+						bot->thinkNextMove(mGame.getInstance().getNextPlayColor());
 					}
 					if( bAnalysisEnabled )
 					{
@@ -1585,65 +1787,74 @@ namespace Go
 		}
 	}
 
-	bool LeelaZeroGoStage::tryEnableAnalysis()
+	bool LeelaZeroGoStage::tryEnableAnalysis(bool bCopyGame)
 	{
 		if( mGameMode == GameMode::Learning )
 			return false;
 		if( bAnalysisEnabled )
 			return true;
 
-		if( !mLeelaAIRun.buildAnalysisGame( true ) )
+		if( !mLeelaAIRun.buildAnalysisGame( false ) )
 			return false;
 
 		bAnalysisPondering = false;
 		analysisResult.clear();
 		bAnalysisEnabled = true;
 
-		class MyCopier : public IGameCopier
+		if ( bCopyGame )
 		{
-		public:
-			MyCopier(LeelaAppRun& AI) :AI(AI) {}
+			class MyCopier : public IGameCopier
+			{
+			public:
+				MyCopier(LeelaAppRun& AI) :AI(AI) {}
 
-			virtual void setup(GameSetting const& setting) override
-			{
-				AI.setupGame(setting);
-			}
-			virtual void playStone(int x, int y, int color) override
-			{
-				AI.playStone(x, y, color);
-			}
-			virtual void addStone(int x, int y, int color) override
-			{
-				AI.addStone(x, y, color);
-			}
-			virtual void playPass(int color) override
-			{
-				AI.playPass(color);
-			}
+				virtual void emitSetup(GameSetting const& setting) override
+				{
+					AI.setupGame(setting);
+				}
+				virtual void emitPlayStone(int x, int y, int color) override
+				{
+					AI.playStone(x, y, color);
+				}
+				virtual void emitAddStone(int x, int y, int color) override
+				{
+					AI.addStone(x, y, color);
+				}
+				virtual void emitPlayPass(int color) override
+				{
+					AI.playPass(color);
+				}
+				virtual void emitUndo()
+				{
+					AI.undo();
+				}
 
-			LeelaAppRun& AI;
-		};
-		MyCopier copier( mLeelaAIRun );
-		mGame.copyTo( copier );
+				LeelaAppRun& AI;
+			};
+			MyCopier copier(mLeelaAIRun);
+			mGame.getInstance().synchronizeState(copier , true);
+		}
 
 		return true;
 	}
 
 
-	void LeelaZeroGoStage::toggleAnalysisPonder()
+	bool LeelaZeroGoStage::toggleAnalysisPonder()
 	{
 		assert(bAnalysisEnabled);
 		bAnalysisPondering = !bAnalysisPondering;
 
 		if( bAnalysisPondering )
 		{
-			analysisPonderColor = mGame.getNextPlayColor();
+			analysisPonderColor = mGame.getInstance().getNextPlayColor();
 			mLeelaAIRun.startPonder(analysisPonderColor);
 		}
 		else
 		{
 			mLeelaAIRun.stopPonder();
 		}
+
+		return bAnalysisPondering;
 	}
 
 	bool LeelaZeroGoStage::saveMatchGameSGF()
@@ -1660,7 +1871,7 @@ namespace Go
 		description.whiteName = mMatchData.getPlayer(StoneColor::eWhite).getName();
 		description.date = dateString.c_str();
 
-		return mGame.saveSGF(path, &description);
+		return mGame.getInstance().saveSGF(path, &description);
 	}
 
 	void LeelaZeroGoStage::restartAutoMatch()
@@ -1690,7 +1901,7 @@ namespace Go
 		IBotInterface* bot = mMatchData.getCurTurnBot();
 		if( bot )
 		{
-			bot->thinkNextMove(mGame.getNextPlayColor());
+			bot->thinkNextMove(mGame.getInstance().getNextPlayColor());
 		}
 	}
 
@@ -1705,7 +1916,7 @@ namespace Go
 
 			devFrame->addButton("Play Pass", [&](int eventId, GWidget* widget) -> bool
 			{
-				int color = mGame.getNextPlayColor();
+				int color = mGame.getInstance().getNextPlayColor();
 				if( canPlay() )
 				{
 					execPassCommand();
@@ -1714,7 +1925,7 @@ namespace Go
 			});
 			devFrame->addButton("Undo", [&](int eventId, GWidget* widget) -> bool
 			{
-				int color = mGame.getNextPlayColor();
+				int color = mGame.getInstance().getNextPlayColor();
 				if( canPlay() )
 				{
 					execUndoCommand();
@@ -1736,7 +1947,7 @@ namespace Go
 
 	void LeelaZeroGoStage::execPlayStoneCommand(Vec2i const& pos)
 	{
-		int color = mGame.getNextPlayColor();
+		int color = mGame.getInstance().getNextPlayColor();
 		assert(isPlayerControl(color));
 
 		GameCommand com;
@@ -1749,7 +1960,7 @@ namespace Go
 
 	void LeelaZeroGoStage::execPassCommand()
 	{
-		int color = mGame.getNextPlayColor();
+		int color = mGame.getInstance().getNextPlayColor();
 		assert(isPlayerControl(color));
 		GameCommand com;
 		com.id = GameCommand::ePass;
@@ -1758,7 +1969,7 @@ namespace Go
 
 	void LeelaZeroGoStage::execUndoCommand()
 	{
-		int color = mGame.getNextPlayColor();
+		int color = mGame.getInstance().getNextPlayColor();
 		//assert(isPlayerControl(color));
 		GameCommand com;
 		com.id = GameCommand::eUndo;
@@ -2002,5 +2213,6 @@ namespace Go
 		}
 		return true;
 	}
+
 
 }//namespace Go

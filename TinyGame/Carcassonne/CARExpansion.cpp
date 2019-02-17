@@ -41,6 +41,12 @@ namespace CAR
 #define TGO TileContent::eGold
 #define TBE TileContent::eBesieger
 
+#define TWE	TileContent::eWindRose_E
+#define TWN TileContent::eWindRose_N
+#define TWW TileContent::eWindRose_W
+#define TWS	TileContent::eWindRose_S
+#define TBW	TileContent::eBlueWindRose
+
 #define BIT2( A , B )     ( BIT(A)|BIT(B) )
 #define BIT3( A , B , C ) ( BIT(A)|BIT(B)|BIT(C) )
 #define BIT4( A , B , C , D ) ( BIT(A)|BIT(B)|BIT(C)|BIT(D) )
@@ -297,6 +303,17 @@ namespace CAR
 /*01*/  { 1, { LR,LR,LI,LR }, SL_NONE      , SL_NONE       ,0 ,{ 0 , 0 , SSC , 0 }, 0,{ BIT2(1,2) , BIT2(3,4) , BIT2(5,6) , BIT2(7,0) } , TILE_SCHOOL_TAG } ,
 	};
 
+	static TileDefine DataWindRose[] = 
+	{
+// numPiece     linkType      sideLink       roadLink   content   sidecontent centerFarmMask farmLink tag
+/*00*/  { 1,{ LF,LF,LR,LR }, SL22(0,1,2,3), SL_NONE      , TBW,{ 0 , 0 , 0 , 0 }, 0,{ BIT2(5,6) , FL_RE } , 0 } ,
+/*01*/  { 1,{ LC,LF,LR,LF }, SL_NONE      , SL2(0,3)     , TWE|TWN|TWS|TWW,{ 0 , 0 , 0 , 0 }, 0,{ BIT4(1,2,3,4) , FL_RE } , TILE_START_TAG } ,
+/*02*/  { 1,{ LF,LC,LC,LF }, SL22(0,3,1,2), SL_NONE      , TWN|TWE,{ 0 , 0 , 0 , 0 }, 0,{ FL_RE } , 0 } ,
+/*03*/  { 1,{ LF,LC,LF,LC }, SL2(1,3)     , SL_NONE      , TWN|TWW,{ 0 , 0 , 0 , 0 }, 0,{ BIT2(0,1) , BIT2(4,5) } , 0 } ,
+/*04*/  { 1,{ LF,LC,LC,LF }, SL2(0,3)     , SL_NONE      , TWS|TWE,{ 0 , 0 , 0 , 0 }, 0,{ FL_RE } , 0 } ,
+/*05*/  { 1,{ LF,LC,LR,LR }, SL2(2,3)     , SL_NONE      , TWS|TWW,{ 0 , 0 , 0 , 0 }, 0,{ BIT2(5,6) , FL_RE } , 0 } ,
+	};
+
 	static TileDefine DataTest[] =
 	{
 // numPiece     linkType      sideLink       roadLink   content   sidecontent centerFarmMask farmLink tag
@@ -304,27 +321,28 @@ namespace CAR
 /*04*/ 	{ 1, { LC,LC,LF,LR }, SL2(0,1)     , SL3(0,1,3)   , 0, { 0 , 0 , 0 , 0 }, 0, { FL_RE } , 0 } ,
 /*00*/ 	{ 1, { LC,LC,LR,LC }, SL_NONE      , SL_NONE      , 0, { 0 , 0 , 0 , 0 }, 0, { FL_RE } , 0 } ,
 	};
-#define EXPDATA( NAME , DATA ) { NAME , DATA , ARRAY_SIZE( DATA ) } ,
+#define EXPDATA( ORDER, NAME , DATA ) { NAME , DATA , ARRAY_SIZE( DATA ) , ORDER } ,
 	TArrayView< ExpansionContent const > gAllExpansionTileContents =
 	ARRAY_VIEW_REAONLY_DATA(ExpansionContent ,
 
-		EXPDATA(EXP_BASIC , DataBasic)
-		EXPDATA(EXP_INNS_AND_CATHEDRALS , DataInnCathedral)
-		EXPDATA(EXP_TRADERS_AND_BUILDERS , DataTraderBuilder)
-		EXPDATA(EXP_KING_AND_ROBBER , DataKingRobber)
-		EXPDATA(EXP_THE_RIVER , DataRiver1)
-		EXPDATA(EXP_THE_PRINCESS_AND_THE_DRAGON , DataPrincessDragon)
-		EXPDATA(EXP_THE_TOWER , DataTower)
-		EXPDATA(EXP_ABBEY_AND_MAYOR , DataAbbeyMayor)
-		EXPDATA(EXP_THE_RIVER_II , DataRiver2)
-		EXPDATA(EXP_BRIDGES_CASTLES_AND_BAZAARS , DataBrigeCastleBazaar)
-		EXPDATA(EXP_HILLS_AND_SHEEP , DataHillsSheep)
+		EXPDATA(0, EXP_BASIC , DataBasic)
+		EXPDATA(0, EXP_INNS_AND_CATHEDRALS , DataInnCathedral)
+		EXPDATA(0, EXP_TRADERS_AND_BUILDERS , DataTraderBuilder)
+		EXPDATA(0, EXP_KING_AND_ROBBER , DataKingRobber)
+		EXPDATA(0, EXP_THE_RIVER , DataRiver1)
+		EXPDATA(0, EXP_THE_PRINCESS_AND_THE_DRAGON , DataPrincessDragon)
+		EXPDATA(0, EXP_THE_TOWER , DataTower)
+		EXPDATA(0, EXP_ABBEY_AND_MAYOR , DataAbbeyMayor)
+		EXPDATA(0, EXP_THE_RIVER_II , DataRiver2)
+		EXPDATA(0, EXP_BRIDGES_CASTLES_AND_BAZAARS , DataBrigeCastleBazaar)
+		EXPDATA(0, EXP_HILLS_AND_SHEEP , DataHillsSheep)
 
-		EXPDATA(EXP_CASTLES , DataCastle)
-		EXPDATA(EXP_THE_SCHOOL, DataSchool)
-		EXPDATA(EXP_HALFLINGS_I , DataHalflings1 )
+		EXPDATA(0, EXP_CASTLES , DataCastle)
+		EXPDATA(0, EXP_THE_SCHOOL, DataSchool)
+		EXPDATA(0, EXP_HALFLINGS_I , DataHalflings1 )
 
-		EXPDATA(EXP_TEST , DataTest)
+		EXPDATA(0, EXP_THE_WIND_ROSES , DataWindRose)
+		EXPDATA(0, EXP_TEST , DataTest)
 	);
 #undef EXPDATA
 
@@ -357,5 +375,11 @@ namespace CAR
 #undef TMG
 #undef TGO
 #undef TBE
+
+#undef TWE
+#undef TWN
+#undef TWW
+#undef TWS
+#undef TBW
 
 }//namespace CAR

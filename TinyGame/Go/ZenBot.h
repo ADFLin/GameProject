@@ -35,7 +35,9 @@ namespace Zen
 
 	struct TerritoryInfo
 	{
+		static int const FieldValue = 500;
 		int map[19][19];
+		int fieldCounts[2];
 	};
 
 	struct CoreSetting
@@ -239,10 +241,11 @@ namespace Zen
 		bool mbCaputured;
 
 
-		static typename std::enable_if< !Lib::IsSingleton , TBotCore* >::type
+		template< class T = TBotCore<Version, Lib > >
+		static typename std::enable_if< !Lib::IsSingleton , T* >::type
 		Create()
 		{
-			return new TBotCore;
+			return new T;
 		}
 
 		static TBotCore& Get()
@@ -351,11 +354,26 @@ namespace Zen
 		void  getTerritoryStatictics(TerritoryInfo& info)
 		{
 			ZenGetTerritoryStatictics(info.map);
+			info.fieldCounts[0] = info.fieldCounts[1] = 0;
 			for( int i = 0; i < 19; ++i )
 			{
 				for( int j = 0; j < 19; ++j )
 				{
-
+					int value = info.map[j][i];
+					int index;
+					if( value > 0 )
+					{
+						index = 0;
+					}
+					else
+					{
+						index = 1;
+						value = -value;
+					}
+					if( value >= TerritoryInfo::FieldValue )
+					{
+						++info.fieldCounts[index];
+					}
 				}
 			}
 		}
@@ -379,6 +397,10 @@ namespace Zen
 		bool playStone(int x, int y, Color color)
 		{
 			return ZenPlay(x, y, (int)color);
+		}
+		bool addStone(int x, int y, Color color)
+		{
+			return ZenAddStone(x, y, (int)color);
 		}
 		void playPass(Color color)
 		{
@@ -424,7 +446,7 @@ namespace Zen
 		Color getNextColor() { return Color(ZenGetNextColor()); }
 
 
-	private:
+	protected:
 		int mBoardSize;
 		TBotCore() {}
 

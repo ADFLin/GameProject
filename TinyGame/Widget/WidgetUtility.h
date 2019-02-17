@@ -18,6 +18,8 @@ public:
 private:
 	template< class T >
 	T* addWidget(int id , char const* title);
+	template< class T, class LAMBDA >
+	T* addWidget( LAMBDA Lambda);
 	template< class T >
 	T* addWidget(char const* title, WidgetEventDelegate delegate);
 	int mNextWidgetPosY;

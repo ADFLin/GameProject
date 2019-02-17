@@ -142,6 +142,30 @@ namespace CAR
 		{
 			return gAdjacentOffset[ idx ];
 		}
+
+		static Vec2i ToLocal(Vec2i const& offset, int rotation)
+		{
+			assert(0 <= rotation && rotation < TotalNum);
+			switch( rotation )
+			{
+			case 1: return Vec2i(offset.y, -offset.x); 
+			case 2: return -offset;
+			case 3: return Vec2i(-offset.y, offset.x);
+			}
+			return offset;
+		}
+
+		static Vec2i ToWorld(Vec2i const& offset, int rotation)
+		{
+			assert(0 <= rotation && rotation < TotalNum);
+			switch( rotation )
+			{
+			case 1: return Vec2i(-offset.y, offset.x);
+			case 2: return -offset;
+			case 3: return Vec2i( offset.y, -offset.x);
+			}
+			return offset;
+		}
 	};
 
 

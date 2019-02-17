@@ -34,7 +34,7 @@ namespace CAR
 			eChrine ,
 			eGarden ,
 			eGermanCastle ,
-			eCarcassonne ,
+			eCityOfCarcassonne ,
 		};
 	};
 
@@ -212,7 +212,23 @@ namespace CAR
 			actor.className = EFollowerClassName::Knight;
 		}
 		virtual int doCalcScore( GamePlayerManager& playerManager , FeatureScoreInfo& outResult) override;
+	};
 
+	class CityOfCarcassonneFeature : public FeatureBase
+	{
+	public:
+		static int const Type = FeatureType::eCityOfCarcassonne;
+
+		virtual bool checkComplete() const { return true; }
+		virtual int  getActorPutInfo(int playerId, int posMeta, MapTile& mapTile, std::vector< ActorPosInfo >& outInfo) { return 0; }
+		virtual void generateRoadLinkFeatures(WorldTileManager& worldTileManager, GroupSet& outFeatures) {}
+		virtual bool updateForAdjacentTile(MapTile& tile) { return false; }
+		virtual void mergeData(FeatureBase& other, MapTile const& putData, int meta) { NEVER_REACH("City of Carcassonne can't be merged"); }
+		virtual int  calcPlayerScore(PlayerBase* player) { return 0; }
+		virtual int  doCalcScore(GamePlayerManager& playerManager, FeatureScoreInfo& outResult) { return -1; }
+		virtual bool getActorPos(MapTile const& mapTile, ActorPos& actorPos) { return false; }
+		virtual int  getScoreTileNum() const { return 0; }
+		virtual void onAddFollower(LevelActor& actor) {}
 	};
 
 	class FarmFeature : public FeatureBase
@@ -238,7 +254,7 @@ namespace CAR
 
 		bool haveBarn;
 		std::vector< FarmNode* > nodes;
-		std::unordered_set< CityFeature* > linkedCities;
+		std::unordered_set< FeatureBase* > linkedCities;
 	};
 
 
@@ -310,21 +326,7 @@ namespace CAR
 		}
 	};
 
-	class CarcassonneFeature : public FeatureBase
-	{
-	public:
-		virtual bool checkComplete() const { return false; }
-		virtual int  getActorPutInfo(int playerId, int posMeta, MapTile& mapTile, std::vector< ActorPosInfo >& outInfo) { return 0; }
-		virtual void generateRoadLinkFeatures(WorldTileManager& worldTileManager, GroupSet& outFeatures) { }
-		virtual bool updateForAdjacentTile(MapTile& tile) { return false; }
-		virtual void mergeData(FeatureBase& other, MapTile const& putData, int meta) { NEVER_REACH(""); }
-		virtual int  calcPlayerScore(PlayerBase* player) { return 0; }
-		virtual int  doCalcScore(GamePlayerManager& playerManager, FeatureScoreInfo& outResult) { return -1; }
-		virtual bool getActorPos(MapTile const& mapTile, ActorPos& actorPos) { return false; }
-		virtual int  getScoreTileNum() const { return 0; }
-		virtual void onAddFollower(LevelActor& actor) {}
 
-	};
 }//namespace CAR
 
 #endif // CARFeature_h__b8a5bc79_4d4a_4362_80be_82b096535e7c

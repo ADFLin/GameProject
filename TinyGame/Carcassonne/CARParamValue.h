@@ -106,6 +106,8 @@ namespace CAR
 
 		//EXP_THE_MESSSAGES
 		CAR_PARAM_QUALIFIER int MessageSkipActionScore = 2;
+		//EXP_THE_WIND_ROSES
+		CAR_PARAM_QUALIFIER int WindRoseScore = 3;
 
 	};
 

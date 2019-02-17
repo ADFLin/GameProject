@@ -95,4 +95,27 @@ public:
 };
 
 
+struct SimpleTextLayout
+{
+	template< class Graphics2D, class ...Args>
+	void show(Graphics2D& g, char const* format, Args&& ...args)
+	{
+		FixString< 512 > str;
+		str.format(format, args...);
+		g.drawText(Vector2( posX, posY ), str);
+		posY += offset;
+	}
+	template< class Graphics2D, class ...Args>
+	void show(Graphics2D& g, char const* str)
+	{
+		g.drawText(Vector2(posX, posY), str);
+		posY += offset;
+	}
+	int posX = 100;
+	int posY = 10;
+	int offset = 15;
+};
+
+
+
 #endif // RenderUtility_h__

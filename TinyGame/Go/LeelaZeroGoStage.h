@@ -14,6 +14,7 @@
 #include "Core/FNV1a.h"
 #include "Misc/Guid.h"
 #include "FileSystem.h"
+#include "Delegate.h"
 
 #include "GameSettingPanel.h"
 
@@ -25,7 +26,7 @@ using namespace Render;
 namespace Go
 {
 
-	class GoReaplyFrame : public GFrame
+	class GoReplayFrame : public GFrame
 	{
 		typedef GFrame BaseClass;
 
@@ -68,16 +69,120 @@ namespace Go
 		return "Unknown";
 	}
 
-	class MyGame : public Go::Game
+
+	class GameProxy;
+
+	typedef std::function< void(GameProxy& game) > GameEventDelegate;
+	
+	class GameProxy
 	{
 
 	public:
-		void restart()
+		GameProxy()
 		{
-			Go::Game::restart();
 			guid = Guid::New();
 		}
+
 		Guid guid;
+		GameEventDelegate onStateChanged;
+
+		void setup(int size) { mGame.setup(size); }
+		void setSetting(GameSetting const& setting) { mGame.setSetting(setting); }
+		void restart()
+		{
+			guid = Guid::New();
+			mGame.restart();
+			if( onStateChanged )
+				onStateChanged(*this);
+		}
+		bool canPlay(int x, int y) const { return mGame.canPlay(x, y); }
+		bool playStone(int x, int y)
+		{
+			if( mGame.playStone(x, y) )
+			{
+				if( onStateChanged )
+					onStateChanged(*this);
+				return true;
+			}
+			return false;
+		}
+		bool addStone(int x, int y, int color)
+		{
+			if( mGame.addStone(x, y, color) )
+			{
+				if( onStateChanged )
+					onStateChanged(*this);
+				return true;
+			}
+			return false;
+		}
+		void    playPass()
+		{
+			mGame.playPass();
+			if( onStateChanged )
+				onStateChanged(*this);
+		}
+		bool undo()
+		{
+			if( mGame.undo() )
+			{
+				if( onStateChanged )
+					onStateChanged(*this);
+				return true;
+			}
+			return false;
+		}
+
+		int reviewBeginStep()
+		{ 
+			int result = mGame.reviewBeginStep();
+			if( result && onStateChanged )
+				onStateChanged(*this);
+			return result;
+		}
+		int reviewPrevSetp(int numStep = 1) 
+		{ 
+			int result = mGame.reviewPrevSetp(numStep);
+			if( result && onStateChanged )
+				onStateChanged(*this);
+			return result;
+		}
+		int reviewNextStep(int numStep = 1)
+		{ 
+			int result = mGame.reviewNextStep(numStep);
+			if( result && onStateChanged )
+				onStateChanged(*this);
+			return result;
+		}
+		int reviewLastStep()
+		{
+			int result = mGame.reviewLastStep();
+			if( result && onStateChanged )
+				onStateChanged(*this);
+			return result;
+		}
+		void copy(GameProxy& otherGame, bool bRemoveUnplayedHistory = false)
+		{
+			guid = otherGame.guid;
+			mGame.copy(otherGame.mGame);
+			if( bRemoveUnplayedHistory )
+				mGame.removeUnplayedHistory();
+		}
+		void synchronizeHistory(GameProxy& other)
+		{
+			if( guid != other.guid )
+			{
+				LogWarning(0 , "Can't synchronize step history");
+				return;
+			}
+			mGame.synchronizeHistory(other.mGame);
+		}
+		Board const& getBoard() const { return mGame.getBoard(); }
+		GameSetting const& getSetting() const { return mGame.getSetting(); }
+		Game const& getInstance() { return mGame; }
+
+	private:
+		Game mGame;
 	};
 
 	struct MatchParamKey
@@ -162,16 +267,25 @@ namespace Go
 	class MatchResultMap
 	{
 	public:
+		enum Version
+		{
+
+			DATA_LAST_VERSION_PLUS_ONE ,
+			DATA_LAST_VERSION = DATA_LAST_VERSION_PLUS_ONE - 1,
+		};
 		struct ResultData
 		{
-			std::string paramString;
+			std::string playerSetting[2];
+			std::string gameSetting;
 			uint32 winCounts[2];
-
 
 			template< class OP >
 			void serialize(OP op)
 			{
-				op & paramString & winCounts[0] & winCounts[1];
+				int version = DATA_LAST_VERSION;
+				op & version;
+				op & winCounts[0] & winCounts[1];
+				op & gameSetting & playerSetting[0] & playerSetting[1];
 			}
 
 			friend DataSerializer& operator << (DataSerializer& serializer, ResultData const& data)
@@ -184,7 +298,6 @@ namespace Go
 				data.serialize(DataSerializer::ReadOp(serializer));
 				return serializer;
 			}
-			
 		};
 
 		struct MatchKey
@@ -209,9 +322,9 @@ namespace Go
 
 				if( playerParamKeys[1] < other.playerParamKeys[0] )
 					return true;
-				if( other.playerParamKeys[1] < playerParamKeys[0] )
-					return false;
-				return playerParamKeys[0] < other.playerParamKeys[0];
+				if ( !( playerParamKeys[0] < other.playerParamKeys[0] ) )
+					return playerParamKeys[1] < other.playerParamKeys[1];
+				return false;
 			}
 		};
 
@@ -227,21 +340,37 @@ namespace Go
 			return &iter->second;
 		}
 
+		static std::string ToString(GameSetting const& gameSetting)
+		{
+			FixString<128> result;
+			result.format("size=%d handicap=%d komi=%f start=%c",
+						  gameSetting.boardSize, gameSetting.numHandicap,
+						  gameSetting.komi, gameSetting.bBlackFrist ? 'b' : 'w');
+			return result.c_str();
+		}
+
 		void addMatchResult(MatchPlayer players[2] , GameSetting const& gameSetting )
 		{
 			MatchKey key;
 			key.setValue(players, gameSetting);
 
 			auto& resultData = mDataMap[key];
+
+			resultData.gameSetting = ToString( gameSetting );
+
 			if( key.playerParamKeys[0] == players[0].paramKey )
 			{
 				resultData.winCounts[0] += players[0].winCount;
 				resultData.winCounts[1] += players[1].winCount;
+				resultData.playerSetting[0] = players[0].paramString;
+				resultData.playerSetting[1] = players[1].paramString;
 			}
 			else
 			{
 				resultData.winCounts[1] += players[0].winCount;
 				resultData.winCounts[0] += players[1].winCount;
+				resultData.playerSetting[1] = players[0].paramString;
+				resultData.playerSetting[0] = players[1].paramString;
 			}
 		}
 
@@ -396,15 +525,14 @@ namespace Go
 		bool setupMatchSetting(MatchGameData& matchData , GameSetting& setting);
 	};
 
-
 	class BoardFrame : public GFrame
 	{
 	public:
 		typedef GFrame BaseClass;
 
-		BoardFrame(int id, Vec2i const& pos, Vec2i const size, GWidget* parent)
+		BoardFrame( GameProxy& game , int id, Vec2i const& pos, Vec2i const size, GWidget* parent)
 			:GFrame(id, pos, size, parent)
-			,renderContext( game.getBoard() , getWorldPos() + GetBorder(), CalcRenderScale(size) )
+			,renderContext(game.getBoard(), getWorldPos() + GetBorder(), CalcRenderScale(size))
 		{
 
 		}
@@ -425,7 +553,7 @@ namespace Go
 			BaseClass::onRender();
 			GLGraphics2D& g = ::Global::GetRHIGraphics2D();
 			{
-				TGuardValue<bool> gurdValue(renderer->bDrawCoord , false);
+				TGuardValue<bool> gurdValue(renderer->bDrawCoord, false);
 				renderer->drawBorad(g, renderContext);
 			}
 		}
@@ -434,7 +562,20 @@ namespace Go
 			BaseClass::onChangePos(pos, bParentMove);
 			renderContext.renderPos = getWorldPos() + GetBorder();
 		}
+		RenderContext  renderContext;
+		BoardRenderer* renderer;
+	};
 
+	class TryPlayBoardFrame : public BoardFrame
+	{
+	public:
+		typedef BoardFrame BaseClass;
+
+		TryPlayBoardFrame(int id, Vec2i const& pos, Vec2i const size, GWidget* parent)
+			:BoardFrame(game , id, pos, size, parent)
+		{
+
+		}
 
 		virtual bool onMouseMsg(MouseMsg const& msg)
 		{
@@ -457,10 +598,10 @@ namespace Go
 
 			return true;
 		}
-		MyGame game;
-		RenderContext  renderContext;
-		BoardRenderer* renderer;
+
+		GameProxy game;
 	};
+
 
 	class LeelaZeroGoStage : public StageBase
 	{
@@ -498,7 +639,7 @@ namespace Go
 		long   mLeelaRebootTimer = LeelaRebootTime;
 #endif
 
-		MyGame mGame;
+		GameProxy mGame;
 
 		MatchResultMap mMatchResultMap;
 
@@ -511,8 +652,8 @@ namespace Go
 		GameMode mGameMode = GameMode::None;
 		class UnderCurveAreaProgram* mProgUnderCurveArea = nullptr;
 
-		void toggleAnalysisPonder();
-		bool tryEnableAnalysis();
+		bool toggleAnalysisPonder();
+		bool tryEnableAnalysis(bool bCopyGame);
 
 		bool canAnalysisPonder(MatchPlayer& player)
 		{
@@ -540,9 +681,102 @@ namespace Go
 		MatchGameData mMatchData;
 		FixString<32> mLastGameResult;
 
-
 		void drawWinRateDiagram( Vec2i const& renderPos ,  Vec2i const& renderSize );
 
+		class GameStatusQuery : public IGameCopier
+		{
+		public:
+			GameStatusQuery()
+			{
+				mLastQueryId = Guid::New();
+			}
+			bool queryTerritory(GameProxy& game, Zen::TerritoryInfo& info)
+			{
+				if( !ensureBotInitialized() )
+					return false;
+				
+				copyGame(game);
+				mBot->getTerritoryStatictics(info);
+			}
+
+			void copyGame(GameProxy& game)
+			{
+				if( mLastQueryId != game.guid || mNextCopyStep > game.getInstance().getCurrentStep() )
+				{
+					game.getInstance().synchronizeState(*this, true);
+					mLastQueryId = game.guid;
+				}
+				else if( mNextCopyStep == game.getInstance().getCurrentStep() )
+				{
+					return;
+				}
+				else
+				{
+					game.getInstance().synchronizeStateKeep(*this, mNextCopyStep, true);
+				}
+				mNextCopyStep = game.getInstance().getCurrentStep();
+			}
+
+			~GameStatusQuery()
+			{
+				if( mBot )
+				{
+					mBot->release();
+				}
+			}
+			virtual void emitSetup(GameSetting const& setting) override
+			{
+				mBot->startGame(setting);
+			}
+			virtual void emitPlayStone(int x, int y, int color) override
+			{
+				mBot->playStone(x, y, color == StoneColor::eBlack ? Zen::Color::Black : Zen::Color::White);
+			}
+			virtual void emitAddStone(int x, int y, int color) override
+			{
+				mBot->addStone(x, y, color == StoneColor::eBlack ? Zen::Color::Black : Zen::Color::White);
+			}
+			virtual void emitPlayPass(int color) override
+			{
+				mBot->playPass(color == StoneColor::eBlack ? Zen::Color::Black : Zen::Color::White);
+			}
+			virtual void emitUndo() override
+			{
+				mBot->undo();
+			}
+
+			bool ensureBotInitialized()
+			{
+				if( mBot == nullptr )
+				{
+					mBot.reset(Zen::TBotCore<7>::Create<Zen::TBotCore<7>>());
+					if( !mBot->initialize() )
+					{
+						mBot.release();
+						return false;
+					}
+				}
+				return true;
+			}
+			Guid mLastQueryId;
+			int  mNextCopyStep;
+			std::unique_ptr< Zen::TBotCore<7> > mBot;
+
+
+
+		};
+
+		bool bShowTerritory = false;
+
+		Zen::TerritoryInfo mShowTerritoryInfo;
+		GameStatusQuery mStatusQuery;
+
+		bool updateViewGameTerritory()
+		{
+			return mStatusQuery.queryTerritory(getViewingGame(), mShowTerritoryInfo);
+		}
+
+		static void DrawTerritoryStatus( BoardRenderer& renderer , RenderContext const& context ,  Zen::TerritoryInfo const& info);
 
 
 		std::vector< Vector2 > mWinRateHistory[2];
@@ -550,17 +784,17 @@ namespace Go
 		int     bestMoveVertex;
 		
 		bool    bReviewingGame = false;
-		MyGame  mReviewGame;
+		GameProxy  mReviewGame;
 		bool    bTryPlayingGame = false;
-		MyGame  mTryPlayGame;
-		BoardFrame* mTryPlayWidget = nullptr;
+		GameProxy  mTryPlayGame;
+		TryPlayBoardFrame* mTryPlayWidget = nullptr;
 		Vec2i   mTryPlayWidgetPos = Vec2i(0,0);
 
 		GWidget* mGamePlayWidget = nullptr;
 		GWidget* mWinRateWidget = nullptr;
 		bool    mbRestartLearning = false;
 
-		MyGame& getViewingGame()
+		GameProxy& getViewingGame()
 		{
 			if( bTryPlayingGame )
 				return mTryPlayGame;
@@ -577,6 +811,8 @@ namespace Go
 		virtual void onUpdate(long time);
 
 		void onRender(float dFrame);
+
+		void drawAnalysis(GLGraphics2D& g , RenderContext &context);
 
 
 		virtual bool onWidgetEvent(int event, int id, GWidget* ui) override;
@@ -640,7 +876,7 @@ namespace Go
 		void execUndoCommand();
 		bool isBotTurn()
 		{
-			return !isPlayerControl(mGame.getNextPlayColor());
+			return !isPlayerControl(mGame.getInstance().getNextPlayColor());
 		}
 
 		bool isPlayerControl(int color)

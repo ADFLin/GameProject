@@ -200,7 +200,7 @@ namespace CAR
 		mActors.erase( std::find( mActors.begin() , mActors.end() , &actor ) );
 	}
 
-	unsigned MapTile::getSideContnet(int dir) const
+	SideContentType MapTile::getSideContnet(int dir) const
 	{
 		int dirLocal = FDir::ToLocal(dir, rotation);
 		if( mTile->isHalflingType() && dirLocal >= TilePiece::NumSide / 2 )
@@ -209,7 +209,7 @@ namespace CAR
 		return mTile->sides[dirLocal].contentFlag;
 	}
 
-	unsigned MapTile::getTileContent() const
+	TileContentType MapTile::getTileContent() const
 	{
 		return mTile->contentFlag;
 	}

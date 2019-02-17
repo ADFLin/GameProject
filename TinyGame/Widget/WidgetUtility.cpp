@@ -15,17 +15,31 @@ DevFrame::DevFrame( int id , Vec2i const& pos , Vec2i const& size , GWidget* par
 }
 
 
-template< class T >
-T* DevFrame::addWidget(int id, char const* title)
+template< class T , class LAMBDA >
+T* DevFrame::addWidget( LAMBDA Lambda )
 {
 	Vec2i widgetSize = Vec2i(getSize().x - 2 * WidgetPosOffset, 20);
 	Vec2i widgetPos(6, mNextWidgetPosY);
 
-	T* widget = new T(id, widgetPos, widgetSize, this);
-	widget->setTitle(title);
+	T* widget = Lambda(widgetPos , widgetSize);
 
 	mNextWidgetPosY += widget->getSize().y + WidgetGapY;
+	if( getSize().y < mNextWidgetPosY )
+	{
+		setSize(Vec2i(getSize().x, mNextWidgetPosY));
+	}
 	return widget;
+}
+
+template< class T >
+T* DevFrame::addWidget(int id, char const* title)
+{
+	return addWidget<T>([&](Vec2i const& widgetPos, Vec2i const& widgetSize) ->auto
+	{
+		T* widget = new T(id, widgetPos, widgetSize, this);
+		widget->setTitle(title);
+		return widget;
+	});
 }
 
 GButton* DevFrame::addButton( int id , char const* title )
@@ -41,16 +55,13 @@ GCheckBox* DevFrame::addCheckBox(int id, char const* title)
 template< class T >
 T* DevFrame::addWidget(char const* title, WidgetEventDelegate delegate)
 {
-	Vec2i widgetSize = Vec2i(getSize().x - 2 * WidgetPosOffset, 20);
-	Vec2i widgetPos(6, mNextWidgetPosY);
-
-	T* widget = new T(UI_ANY, widgetPos, widgetSize, this);
-	widget->setTitle(title);
-	widget->onEvent = delegate;
-
-	mNextWidgetPosY += widget->getSize().y + WidgetGapY;
-
-	return widget;
+	return addWidget<T>([&](Vec2i const& widgetPos, Vec2i const& widgetSize) ->auto
+	{
+		T* widget = new T(UI_ANY, widgetPos, widgetSize, this);
+		widget->setTitle(title);
+		widget->onEvent = delegate;
+		return widget;
+	});
 }
 
 GButton* DevFrame::addButton(char const* title, WidgetEventDelegate delegate)
@@ -65,24 +76,21 @@ GCheckBox* DevFrame::addCheckBox(char const* title, WidgetEventDelegate delegate
 
 GSlider* DevFrame::addSlider(int id)
 {
-	Vec2i widgetSize = Vec2i(getSize().x - 2 * WidgetPosOffset, 20);
-	Vec2i widgetPos(6, mNextWidgetPosY);
-	GSlider* widget = new GSlider(id, widgetPos, widgetSize.x , true , this);
-
-	mNextWidgetPosY += widget->getSize().y + WidgetGapY;
-	return widget;
+	return addWidget<GSlider>([&](Vec2i const& widgetPos, Vec2i const& widgetSize) ->auto
+	{
+		GSlider* widget = new GSlider(id, widgetPos, widgetSize.x, true, this);
+		return widget;
+	});
 }
 
 GText* DevFrame::addText(char const* pText)
 {
-	Vec2i widgetSize = Vec2i(getSize().x - 2 * WidgetPosOffset, 10);
-	Vec2i widgetPos(6, mNextWidgetPosY);
-
-	GText* widget = new GText( widgetPos, widgetSize, this);
-	widget->setText(pText);
-
-	mNextWidgetPosY += widget->getSize().y + WidgetGapY;
-	return widget;
+	return addWidget<GText>([&](Vec2i const& widgetPos , Vec2i const& widgetSize ) ->auto
+	{
+		GText* widget = new GText(widgetPos, widgetSize, this);
+		widget->setText(pText);
+		return widget;
+	});
 }
 
 DevFrame* WidgetUtility::CreateDevFrame( Vec2i const& size )

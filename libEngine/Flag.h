@@ -31,9 +31,11 @@ public:
 	operator T() const { return mValue; }
 	FlagValue& operator = (T value) { mValue = value; return *this; }
 
+#if 0
 	FlagValue operator | (FlagValue const& rhs) const { return FlagValue(mValue | rhs.mValue); }
 	FlagValue operator & (FlagValue const& rhs) const { return FlagValue(mValue & rhs.mValue); }
 	FlagValue operator ^ (FlagValue const& rhs) const { return FlagValue(mValue ^ rhs.mValue); }
+#endif
 	FlagValue& operator |= (FlagValue const& rhs) { mValue |= rhs.mValue; return *this; }
 	FlagValue& operator &= (FlagValue const& rhs) { mValue &= rhs.mValue; return *this; }
 	FlagValue& operator ^= (FlagValue const& rhs) { mValue ^= rhs.mValue; return *this; }

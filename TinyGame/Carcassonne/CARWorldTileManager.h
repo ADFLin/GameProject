@@ -58,7 +58,7 @@ namespace CAR
 		~TileSetManager();
 
 		void  addExpansion(Expansion exp);
-		void  importData(ExpansionContent const& content, Expansion exp = EXP_NONE);
+		void  importData(ExpansionContent const& content);
 		
 		TileSet const& getTileSet( TileId tileId ) const {  return mTileMap[ tileId ];  }
 
@@ -80,8 +80,6 @@ namespace CAR
 
 		TileIdVec mSetMap[ TileSet::NumGroup ];
 		std::vector< TileSet > mTileMap;
-
-		unsigned mUsageExpansionMask;
 	};
 
 
@@ -162,7 +160,7 @@ namespace CAR
 		{
 			bool operator() ( Vec2i const& v1 , Vec2i const& v2 ) const
 			{
-				return ( v1.x < v2.x ) || ( v1.x == v2.x && v1.y < v2.y );
+				return ( v1.x < v2.x ) || ( !(v1.x == v2.x) && v1.y < v2.y );
 			}
 		};
 		struct VecHasher

@@ -319,12 +319,17 @@ namespace CAR
 		LevelActor* mMage;
 		LevelActor* mWitch;
 
+
+
 		//EXP_THE_MESSSAGES
 		std::vector< EMessageTile::Type > mMessageStack;
 		int mIndexTopMessage;
 		EMessageTile::Type drawMessageTile();
 		//
 		bool mbUseLaPorxadaScoring;
+
+		//EXP_THE_WIND_ROSES
+		MapTile* mBaseWindRose;
 
 	};
 

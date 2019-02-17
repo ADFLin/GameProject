@@ -538,9 +538,8 @@ namespace CAR
 
 	TileSetManager::TileSetManager()
 	{
-		mUsageExpansionMask = 0;
-	}
 
+	}
 
 	TileSetManager::~TileSetManager()
 	{
@@ -554,7 +553,7 @@ namespace CAR
 			ExpansionContent const& content = gAllExpansionTileContents[idx];
 			if( content.exp == exp )
 			{
-				importData(content, exp);
+				importData(content);
 				return;
 			}
 		}
@@ -586,7 +585,7 @@ namespace CAR
 		mTileMap.clear();
 	}
 
-	void TileSetManager::importData( ExpansionContent const& content , Expansion exp )
+	void TileSetManager::importData( ExpansionContent const& content )
 	{
 		TileId id = 0;
 		int idxDefine = 0;
@@ -607,7 +606,7 @@ namespace CAR
 			}
 			else
 			{
-				tileSet = &createSingleTileSet( tileDef , ( exp == EXP_TEST ) ? TileSet::eTest : TileSet::eCommon );
+				tileSet = &createSingleTileSet( tileDef , (content.exp == EXP_TEST ) ? TileSet::eTest : TileSet::eCommon );
 			}
 			tileSet->expansion = content.exp;
 			tileSet->idxDefine = idxDefine++;

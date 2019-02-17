@@ -679,9 +679,13 @@ namespace CAR
 		int idx = nodes.size();
 		MergeData( nodes , otherData.nodes );
 		MergeData( linkedCities , otherData.linkedCities );
-		for( CityFeature* city : otherData.linkedCities )
+		for( FeatureBase* feature : otherData.linkedCities )
 		{
-			city->linkedFarms.erase( &otherData );
+			if( feature->type == FeatureType::eCity )
+			{
+				static_cast< CityFeature* >( feature )->linkedFarms.erase(&otherData);
+			}
+
 		}
 		for( int i = idx ; i < nodes.size() ; ++i )
 			nodes[i]->group = group;
@@ -743,12 +747,13 @@ namespace CAR
 		int numCityFinish = 0;
 		int numCastle = 0;
 
-		for( CityFeature* city : linkedCities )
+		for( FeatureBase* linkFeatrue : linkedCities )
 		{
-			if ( city->checkComplete() )
+			if ( linkFeatrue->checkComplete() )
 			{
 				++numCityFinish;
-				if ( city->isCastle )
+				if ( linkFeatrue->type == FeatureType::eCity &&  
+					 static_cast< CityFeature* >( linkFeatrue )->isCastle )
 					++numCastle;
 			}
 		}

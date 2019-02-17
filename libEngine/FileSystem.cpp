@@ -2,6 +2,7 @@
 #include "PlatformConfig.h"
 
 #include "CString.h"
+#include "FixString.h"
 
 #include <tchar.h>
 #include <stdio.h>
@@ -89,10 +90,23 @@ bool FileSystem::GetFileSize( char const* path , int64& size )
 bool FileSystem::DeleteFile(char const* path)
 {
 #if SYS_PLATFORM_WIN
-	return ::DeleteFileA(path) == TRUE;
+	return !!::DeleteFileA(path);
 #endif
 	return false;
 
+}
+
+bool FileSystem::RenameFile(char const* path , char const* newFileName)
+{
+#if SYS_PLATFORM_WIN
+	FixString< MAX_PATH > newPath;
+	char const* fileDirEnd = FileUtility::GetDirPathPos(path);
+	newPath.assign(path, FileUtility::GetDirPathPos(path) - path);
+	newPath += "/";
+	newPath += newFileName;
+	return !!::MoveFileA(path , newPath);
+#endif
+	return false;
 }
 
 #ifdef SYS_PLATFORM_WIN

@@ -232,9 +232,19 @@ namespace Go
 		{
 			boardSize = 19;
 			numHandicap = 0;
-			bFixedHandicap = true;
 			komi = 6.5;
 			bBlackFrist = true;
+			bFixedHandicap = true;
+		}
+
+	
+		bool operator == (GameSetting const& rhs)
+		{
+			return boardSize == rhs.boardSize &&
+				numHandicap == rhs.numHandicap &&
+				komi == rhs.komi &&
+				bBlackFrist == rhs.bBlackFrist 	&& 
+				bFixedHandicap == rhs.boardSize;
 		}
 	};
 
@@ -249,10 +259,11 @@ namespace Go
 	class IGameCopier
 	{
 	public:
-		virtual void setup(GameSetting const& setting) = 0;
-		virtual void playStone(int x, int y , int color ) = 0;
-		virtual void addStone(int x, int y, int color) = 0;
-		virtual void playPass(int color) = 0;
+		virtual void emitSetup(GameSetting const& setting) = 0;
+		virtual void emitPlayStone(int x, int y , int color ) = 0;
+		virtual void emitAddStone(int x, int y, int color) = 0;
+		virtual void emitPlayPass(int color) = 0;
+		virtual void emitUndo() = 0;
 	};
 
 	class Game
@@ -264,7 +275,7 @@ namespace Go
 		Game();
 
 		void    setup( int size );
-		GameSetting const& getSetting() { return mSetting; }
+		GameSetting const& getSetting() const { return mSetting; }
 		void    setSetting(GameSetting const& setting) { mSetting = setting; }
 		void    restart();
 		bool    canPlay(int x, int y) const;
@@ -277,12 +288,15 @@ namespace Go
 		bool    undo() { assert(!isReviewing()); return undoInternal(false); }
 
 		void    copy(Game const& other);
-		void    copyTo(IGameCopier& copier);
-
-		void    updateHistory(Game const& other)
+		void    synchronizeState(IGameCopier& copier, bool bReviewOnly = false) const;
+		void    synchronizeStateKeep(IGameCopier& copier, int startStep, bool bReviewOnly = false) const;
+		
+		void    synchronizeHistory(Game& other) const
 		{
 			if( mStepHistory.size() != other.mStepHistory.size() )
-				mStepHistory.insert(mStepHistory.end(), other.mStepHistory.begin() + mStepHistory.size(), other.mStepHistory.end());
+			{
+				other.mStepHistory.insert(other.mStepHistory.end(), mStepHistory.begin() + other.mStepHistory.size(), mStepHistory.end());
+			}
 		}
 		void    removeUnplayedHistory()
 		{
@@ -315,8 +329,8 @@ namespace Go
 		};
 		std::vector< StepInfo > const& getStepHistory() const { return mStepHistory; }
 
-		DataType getNextPlayColor() { return mNextPlayColor; }
-		DataType getFristPlayColor() { return mSetting.bBlackFrist ? StoneColor::eBlack : StoneColor::eWhite; }
+		DataType getNextPlayColor() const { return mNextPlayColor; }
+		DataType getFristPlayColor() const { return mSetting.bBlackFrist ? StoneColor::eBlack : StoneColor::eWhite; }
 		Board const& getBoard() const { return mBoard; }
 
 		int     getBlackCapturedNum() const { return mNumBlackCaptured; }
@@ -324,22 +338,22 @@ namespace Go
 
 		void    print( int x , int y );
 
-		bool    saveSGF( char const* path , GameDescription const* description = nullptr );
+		bool    saveSGF( char const* path , GameDescription const* description = nullptr ) const;
 
 		int     getCurrentStep() const	{  return mCurrentStep; }
 		int     getLastStep() const  {  return mStepHistory.size() - 1;  }
 		bool    getStepPos(int step, int outPos[2]) const;
-		bool    getCurrentStepPos(int outPos[2]) const { return getStepPos(getCurrentStep() - 1, outPos); }
+		bool    getLastStepPos(int outPos[2]) const { return getStepPos(getCurrentStep() - 1, outPos); }
 
-		int     getLastPassCount();
+		int     getLastPassCount() const;
 
 		//review
 		bool    isReviewing() const;
-		void    reviewBeginStep();
-		void    reviewPrevSetp(int numStep = 1);
+		int     reviewBeginStep();
+		int     reviewPrevSetp(int numStep = 1);
 		
-		void    reviewNextStep(int numStep = 1);
-		void    reviewLastStep();
+		int     reviewNextStep(int numStep = 1);
+		int     reviewLastStep();
 
 		bool    isKOStateReached(Pos const& pos, DataType playColor, KOState const& koState) const;
 	private:

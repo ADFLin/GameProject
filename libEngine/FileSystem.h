@@ -77,6 +77,7 @@ public:
 	static bool IsExist( char const* path );
 	static bool GetFileSize( char const* path , int64& size );
 	static bool DeleteFile(char const* path);
+	static bool RenameFile(char const* path, char const* newFileName);
 };
 
 

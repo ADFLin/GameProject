@@ -161,69 +161,13 @@ namespace Go
 
 		bool bGTPMode = true;
 
-		bool bUseModifyVersion = false;
 		static LeelaAISetting GetDefalut();
 
-#define  AddCom( NAME , VALUE )\
-			if( VALUE )\
-			{\
-				result += NAME;\
-			}\
+		std::string toParamString() const;
 
-#define  AddComValue( NAME , VALUE )\
-			if( VALUE )\
-			{\
-				result += NAME;\
-				result += std::to_string(VALUE);\
-			}\
-
-#define  AddComValueNoCheck( NAME , VALUE )\
-			{\
-				result += NAME;\
-				result += std::to_string(VALUE);\
-			}\
-
-		std::string toParamString()
-		{
-			std::string result;
-			AddComValueNoCheck(" -p ", playouts);
-			AddComValue(" -v ", visits);
-			if( weightName )
-			{
-				result += " -w ";
-				result += weightName;
-			}
-			return result;
-		}
-
-		std::string toString() const
-		{
-			std::string result;
+		std::string toString() const;
 
 
-			AddComValueNoCheck(" -r ", resignpct);
-			AddComValue(" -t ", numThread);
-			AddComValueNoCheck(" -p ", playouts);
-			AddComValue(" -v ", visits);
-			AddComValue(" -m ", randomcnt);
-			AddComValue(" -s ", seed );
-			if( weightName )
-			{
-				result += " -w " LEELA_NET_DIR;
-				result += weightName;
-			}
-			AddCom(" -q", bQuiet);
-			AddCom(" -d", bDumbPass);
-			AddCom(" -n", bNoise);
-			AddCom(" -g", bGTPMode);
-			AddCom(" --noponder", bNoPonder);
-			AddCom(" -q", bQuiet);
-
-			return result;
-		}
-
-#undef AddCom
-#undef AddComValue
 	};
 
 

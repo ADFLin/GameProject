@@ -58,6 +58,7 @@ namespace CAR
 		mDragon = nullptr;
 		mFairy = nullptr;
 		mIsStartGame = false;
+		mBaseWindRose = nullptr;
 	}
 
 	void GameLogic::cleanupData()
@@ -191,7 +192,6 @@ namespace CAR
 			mPrisoners.clear();
 			mSheepBags.clear();
 			mWorld.restart();
-
 		}
 
 		mbUseLaPorxadaScoring = false;
@@ -427,10 +427,18 @@ namespace CAR
 	TileId GameLogic::generatePlayTiles()
 	{
 		int numTile = mTileSetManager.getRegisterTileNum();
-		std::vector< int > tilePieceMap( numTile );
+		std::vector< int > tilePieceMap { numTile };
 		std::vector< TileId > specialTileList;
-
-		auto FindSpecialTileIndex = [&]( Expansion exp, TileTag tag) -> int
+		for( int i = 0 ; i < numTile ; ++i )
+		{
+			TileSet const& tileSet = mTileSetManager.getTileSet( TileId(i) );
+			if ( tileSet.tag != 0 )
+				specialTileList.push_back( tileSet.tiles[0].id );
+				
+			tilePieceMap[i] = tileSet.numPiece;
+		}
+	
+		auto FindSpecialTileIndex = [&](Expansion exp, TileTag tag) -> int
 		{
 			for( int idx = 0; idx < specialTileList.size(); ++idx )
 			{
@@ -441,23 +449,18 @@ namespace CAR
 			return -1;
 		};
 
-		for( int i = 0 ; i < numTile ; ++i )
-		{
-			TileSet const& tileSet = mTileSetManager.getTileSet( TileId(i) );
-			if ( tileSet.tag != 0 )
-				specialTileList.push_back( tileSet.tiles[0].id );
-				
-			tilePieceMap[i] = tileSet.numPiece;
-		}
-	
-
 		bool bUseTestTiles = !!(mDebugMode & EDebugModeMask::DrawTestTileFrist);
-		bool bUseRiver = mSetting->use( EXP_THE_RIVER ) || mSetting->use( EXP_THE_RIVER_II );
+		bool bUseRiver = false;
+		if( mSetting->have(Rule::eHaveRiverTile) )
+		{
+			bUseRiver = true;
+		}
 
 		//River
 		TileId tileIdStart = FAIL_TILE_ID;
 		TileId tileIdRiverEnd = FAIL_TILE_ID;
 		TileId tileIdFristPlay = FAIL_TILE_ID;
+
 		if ( bUseRiver )
 		{
 			if ( mSetting->use( EXP_THE_RIVER_II ) )
@@ -554,6 +557,12 @@ namespace CAR
 				PushShuffleGroup(false);
 			}
 		}
+
+		if( mSetting->have(Rule::eWindRose) )
+		{
+
+
+		}
 		//Common
 		if ( tileIdStart == FAIL_TILE_ID )
 		{
@@ -601,7 +610,7 @@ namespace CAR
 			idxPrev = idx;
 		}
 
-		if ( mSetting->use( EXP_ABBEY_AND_MAYOR ) )
+		if ( mSetting->have(Rule::eHaveAbbeyTile) )
 		{
 			int idx = FindSpecialTileIndex( EXP_ABBEY_AND_MAYOR , TILE_ABBEY_TAG );
 			if ( idx != 0 )
@@ -615,14 +624,14 @@ namespace CAR
 			}
 		}
 
-		if ( mSetting->use( EXP_CASTLES ) )
+		if ( mSetting->have( Rule::eCastleToken ) )
 		{
 			TileIdVec const& castales = mTileSetManager.getGroup( TileSet::eGermanCastle );
 			int numCastalePlayer = mPlayerManager->getPlayerNum() > 3 ? 1 : 2;
 			//#TODO
 		}
 
-		if( mSetting->use(EXP_HALFLINGS_I) || mSetting->use(EXP_HALFLINGS_II) )
+		if( mSetting->have( Rule::eHaveHalflingTile ) )
 		{
 
 
@@ -818,6 +827,35 @@ namespace CAR
 
 			//i)  If there is a quarter-wind rose on the tile and you place the tile in the appropriate quadrant of the playing field, 
 			//    you score 3 points. MESSAGES ROBBERS 
+			if( mSetting->have(Rule::eWindRose) )
+			{
+				assert(mBaseWindRose);
+				for( int i = 0; i < numPlaceTile; ++i )
+				{
+					if( placeMapTiles[i]->getTileContent() & TileContent::OrangeWindRoseMask )
+					{
+						Vec2i offsetLocal = FDir::ToLocal( placeMapTiles[i]->pos - mBaseWindRose->pos , mBaseWindRose->rotation );
+
+						if( (placeMapTiles[i]->getTileContent() & TileContent::eWindRose_E) == 0 || offsetLocal.x >= 0 )
+						{
+							if( (placeMapTiles[i]->getTileContent() & TileContent::eWindRose_W) == 0 || offsetLocal.x <= 0 )
+							{
+								if( (placeMapTiles[i]->getTileContent() & TileContent::eWindRose_N) == 0 || offsetLocal.y >= 0 )
+								{
+									if( (placeMapTiles[i]->getTileContent() & TileContent::eWindRose_S) == 0 || offsetLocal.y <= 0 )
+									{
+										resolveScorePlayer(turnContext, turnContext.getPlayer()->getId(), CAR_PARAM_VALUE(WindRoseScore));
+									}
+								}
+							}
+						}	
+					}
+					else if( placeMapTiles[i]->getTileContent() & TileContent::eBlueWindRose )
+					{
+						mBaseWindRose = placeMapTiles[i];
+					}
+				}
+			}
 
 			//j)  If a hill is on the tile, place the hill tile while keeping the face - down second tile underneath it.
 			//
@@ -1502,7 +1540,6 @@ namespace CAR
 		//   Everyone has this opportunity in turn,ending with you.
 		
 		
-		//f - h)
 		int numController = 0;
 		if ( castleScore )
 		{

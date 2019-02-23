@@ -764,7 +764,7 @@ namespace Poker { namespace Holdem {
 			++data.numPlayer;
 		}
 
-		TRANSFER_SEND( getTransfer(), SLOT_SERVER , data );
+		getTransfer().sendData( SLOT_SERVER , data );
 
 	}
 
@@ -827,7 +827,7 @@ namespace Poker { namespace Holdem {
 			}
 		}
 		data.numPlayer = num;
-		TRANSFER_SEND( getTransfer() , SLOT_SERVER , data );
+		getTransfer().sendData( SLOT_SERVER , data );
 	}
 
 	ServerLevel::ServerLevel()
@@ -998,14 +998,14 @@ namespace Poker { namespace Holdem {
 						data.pocketCard[n] = -1;
 					}
 				}
-				TRANSFER_SEND( getTransfer() , i, data);
+				getTransfer().sendData( i, data);
 			}
 		}
 
 		{
 			SDBetCall data;
 			data.pos = mPosCurBet;
-			TRANSFER_SEND( getTransfer() , SLOT_SERVER , data );
+			getTransfer().sendData( SLOT_SERVER , data );
 		}
 	}
 
@@ -1075,7 +1075,7 @@ namespace Poker { namespace Holdem {
 			data.type  = type;
 			data.step  = mBetStep;
 			data.money = betMoney;
-			TRANSFER_SEND( getTransfer(), SLOT_SERVER, data);
+			getTransfer().sendData( SLOT_SERVER, data);
 		}
 		
 		if ( mNumBet == 1 )
@@ -1111,9 +1111,8 @@ namespace Poker { namespace Holdem {
 			data.info[0].pos   = pos;
 			data.info[0].money = totalMoney;
 
-
 			doWinMoney( posWin , totalMoney );
-			TRANSFER_SEND_SIZE( getTransfer() , SLOT_SERVER , data , SDWinnerResult::BaseSize + 1 * sizeof( SDWinnerInfo ) );
+			getTransfer().sendData( SLOT_SERVER , data , SDWinnerResult::BaseSize + 1 * sizeof( SDWinnerInfo ) );
 
 			doRoundEnd();
 			if( mListener )
@@ -1148,7 +1147,7 @@ namespace Poker { namespace Holdem {
 			mPosCurBet = pos;
 			SDBetCall data;
 			data.pos = pos;
-			TRANSFER_SEND( getTransfer(), SLOT_SERVER , data );
+			getTransfer().sendData( SLOT_SERVER , data );
 		}
 	}
 
@@ -1187,7 +1186,7 @@ namespace Poker { namespace Holdem {
 		mNumCall      = 0;
 		mPosLastBet   = -1;
 		doNextStep( step , data.card );
-		TRANSFER_SEND( getTransfer() ,SLOT_SERVER , data );
+		getTransfer().sendData( SLOT_SERVER , data );
 
 		if ( mNumBet - mNumFinishBet > 1 )
 		{
@@ -1202,7 +1201,7 @@ namespace Poker { namespace Holdem {
 
 			SDBetCall data;
 			data.pos = mPosCurBet;
-			TRANSFER_SEND( getTransfer() ,  SLOT_SERVER , data );
+			getTransfer().sendData( SLOT_SERVER , data );
 		}
 	}
 
@@ -1300,7 +1299,7 @@ namespace Poker { namespace Holdem {
 		}
 
 		trickResult.numSlotTrick = numTrick;
-		TRANSFER_SEND( getTransfer() , SLOT_SERVER , trickResult );
+		getTransfer().sendData( SLOT_SERVER , trickResult );
 
 		std::sort( powerSorted , powerSorted + numPlayer , 
 			[](CardTrickInfo* i1, CardTrickInfo* i2)
@@ -1685,7 +1684,7 @@ namespace Poker { namespace Holdem {
 			data.money = getMaxBetMoney() + money;
 			break;
 		}
-		TRANSFER_SEND( getTransfer() , SLOT_SERVER ,  data );
+		getTransfer().sendData( SLOT_SERVER ,  data );
 	}
 
 }//namespace Holdem

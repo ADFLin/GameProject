@@ -25,7 +25,7 @@
 
 StageInfo gPreRegisterStageGroup[] =
 {
-	STAGE_INFO("Misc Test" , MiscTestStage , EStageGroup::GraphicsTest) ,
+	STAGE_INFO("Misc Test" , MiscTestStage , EStageGroup::Main) ,
 	STAGE_INFO("Cantan Test" , Cantan::LevelStage , EStageGroup::GraphicsTest) ,
 	STAGE_INFO("GGJ Test" , GGJ::TestStage , EStageGroup::GraphicsTest) ,
 	STAGE_INFO("2D Lighting Test"     , Lighting2D::TestStage , EStageGroup::GraphicsTest) ,

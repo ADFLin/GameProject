@@ -119,7 +119,6 @@ namespace Poker { namespace Big2 {
 		void         changeState( RenderState state );
 		void         drawLastCardOnBitmap();
 		
-
 		IPlayerManager*   mPlayerManager;
 
 		int               mStateTime;

@@ -58,7 +58,7 @@ public:
 
 protected:
 
-	void restartImpl(bool bInit);
+	void doRestart(bool bInit);
 };
 
 

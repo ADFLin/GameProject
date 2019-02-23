@@ -100,7 +100,7 @@ namespace Tetris
 			eMainGroup   = 0,
 		};
 		bool onInit();
-		void doChangeGroup( StageGroupID group );
+		void doChangeWidgetGroup( StageGroupID group );
 		void onUpdate( long time );
 		void onRender( float dFrame );
 		bool onWidgetEvent( int event , int id , GWidget* ui );

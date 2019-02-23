@@ -440,11 +440,8 @@ void NetRoomStage::procPlayerState( IComPacket* cp )
 			assert( Global::GameManager().getRunningGame() );
 
 			Global::GameManager().getRunningGame()->beginPlay( SMT_NET_GAME , *getManager() );
-			
 
-			StageBase* nextStage = NULL;
-
-			nextStage = getManager()->createStage(STAGE_NET_GAME);
+			StageBase* nextStage = getManager()->getNextStage();
 			if( nextStage )
 			{
 				//#TODO
@@ -463,7 +460,6 @@ void NetRoomStage::procPlayerState( IComPacket* cp )
 					mHelper->sendPlayerStatusSV();
 				}
 
-				getManager()->setNextStage(nextStage);
 				mWorker->changeState(NAS_LEVEL_SETUP);
 			}
 			else
@@ -649,24 +645,32 @@ void NetRoomStage::setupGame( char const* name )
 {
 	IGameModule* game = Global::GameManager().changeGame( name );
 
-	SettingHepler* helper = game->createSettingHelper( SHT_NET_ROOM_HELPER );
-	assert( dynamic_cast< NetRoomSettingHelper* >( helper ) );
-	if ( helper )
+	if( game )
 	{
-		if ( mHelper )
+		SettingHepler* helper = game->createSettingHelper(SHT_NET_ROOM_HELPER);
+		assert(dynamic_cast<NetRoomSettingHelper*>(helper));
+		if( helper )
 		{
-			mHelper->clearUserUI();
-			mSettingPanel->adjustChildLayout();
+			if( mHelper )
+			{
+				mHelper->clearUserUI();
+				mSettingPanel->adjustChildLayout();
+			}
+
+			mHelper.reset(static_cast<NetRoomSettingHelper*>(helper));
+
+			mHelper->addGUIControl(mPlayerPanel);
+			mHelper->addGUIControl(mSettingPanel);
+			mHelper->setListener(this);
+			mHelper->setupSetting(mServer);
+
 		}
-
-		mHelper.reset( static_cast< NetRoomSettingHelper* >( helper ) );
-
-		mHelper->addGUIControl( mPlayerPanel );
-		mHelper->addGUIControl( mSettingPanel );
-		mHelper->setListener( this );
-		mHelper->setupSetting( mServer );
-		
 	}
+	else
+	{
+		LogWarning(0, "Can't Setup Game");
+	}
+
 }
 
 void NetRoomStage::onModify( GWidget* ui )
@@ -1124,7 +1128,7 @@ void NetLevelStageMode::procPlayerState(IComPacket* cp)
 		break;
 	case NAS_LEVEL_INIT:
 		{
-			restart(true);
+			doRestart(true);
 			::Global::GUI().hideWidgets(false);
 			mWorker->changeState(NAS_LEVEL_INIT);
 		}
@@ -1133,7 +1137,7 @@ void NetLevelStageMode::procPlayerState(IComPacket* cp)
 		{
 			if( mNetEngine )
 				mNetEngine->restart();
-			restart(false);
+			doRestart(false);
 			mWorker->changeState(NAS_LEVEL_RESTART);
 		}
 		break;
@@ -1178,7 +1182,9 @@ void NetLevelStageMode::restart(bool beInit)
 {
 	//TODO
 	if( mServer )
+	{
 		mServer->changeState(NAS_LEVEL_RESTART);
+	}
 }
 
 void NetLevelStageMode::procMsg(IComPacket* cp)

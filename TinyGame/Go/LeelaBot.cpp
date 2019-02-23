@@ -1003,7 +1003,7 @@ namespace Go
 		std::string result;
 		for( ; fileIter.haveMore(); fileIter.goNext() )
 		{
-			if( FileUtility::GetSubName(fileIter.getFileName()) != nullptr )
+			if( FileUtility::GetExtension(fileIter.getFileName()) != nullptr )
 				continue;
 
 			if( strlen(fileIter.getFileName()) != 64 )
@@ -1196,7 +1196,7 @@ namespace Go
 		if( weightName )
 		{
 			result += " -w ";
-			char const* subName = FileUtility::GetSubName(weightName);
+			char const* subName = FileUtility::GetExtension(weightName);
 			if( subName )
 			{
 				result += weightName;

@@ -29,10 +29,10 @@ bool GameStageMode::changeState(GameState state)
 
 void GameStageMode::restart(bool beInit)
 {
-	restartImpl(beInit);
+	doRestart(beInit);
 }
 
-void GameStageMode::restartImpl(bool bInit)
+void GameStageMode::doRestart(bool bInit)
 {
 	uint64 seed;
 	onRestart(seed);

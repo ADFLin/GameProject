@@ -109,6 +109,9 @@
     <ClInclude Include="Widget\GameRoomUI.h">
       <Filter>GUI</Filter>
     </ClInclude>
+    <ClInclude Include="TinyCore\MiscTestRegister.h">
+      <Filter>Common</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="TinyCore\GameControl.cpp">
@@ -188,6 +191,9 @@
     </ClCompile>
     <ClCompile Include="Widget\GameRoomUI.cpp">
       <Filter>GUI</Filter>
+    </ClCompile>
+    <ClCompile Include="TinyCore\MiscTestRegister.cpp">
+      <Filter>Common</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

@@ -55,6 +55,9 @@
     <ProjectReference Include="GameZuma.vcxproj">
       <Project>{bae631bc-abee-40a7-9e56-c21d1b72058c}</Project>
     </ProjectReference>
+    <ProjectReference Include="MiscTest.vcxproj">
+      <Project>{c1ca0f43-5c21-4b67-b516-cee82a329333}</Project>
+    </ProjectReference>
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{7E445617-BA57-48B1-8C08-52BA40C53663}</ProjectGuid>

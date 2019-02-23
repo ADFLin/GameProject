@@ -67,12 +67,20 @@ public:
 	virtual ~IGameInstance(){}
 };
 
-class IGameModule
+class IModuleInterface
 {
 public:
-	virtual ~IGameModule(){}
-	virtual bool initialize(){ return true; }
-	virtual void cleanup(){}
+	virtual ~IModuleInterface() {}
+	virtual bool initialize() { return true; }
+	virtual void cleanup() {}
+	virtual bool isGameModule() const = 0;
+
+	virtual void  deleteThis() = 0;
+};
+
+class IGameModule : public IModuleInterface
+{
+public:
 
 	virtual void enter(){}
 	virtual void exit(){} 
@@ -80,9 +88,9 @@ public:
 	virtual void beginPlay( StageModeType type, StageManager& manger );
 	virtual void endPlay(){}
 
-	virtual void  deleteThis() = 0;
-
 	virtual IGameInstance*        createInstance() { return nullptr; }
+
+	virtual bool isGameModule() const override { return true; }
 public:
 	virtual char const*           getName() = 0;
 	virtual GameController&       getController() = 0;
@@ -94,16 +102,19 @@ public:
 	virtual ReplayTemplate*       createReplayTemplate( unsigned version ){ return nullptr; }
 };
 
-typedef IGameModule* (*CreateGameModuleFun)();
+typedef IModuleInterface* (*CreateModuleFun)();
 
-#define CREATE_GAME_MODULE CreateGameModule
-#define CREATE_GAME_MODULE_STR MAKE_STRING(CREATE_GAME_MODULE)
+#define CREATE_MODULE CreateModule
+#define CREATE_MODULE_STR MAKE_STRING(CREATE_MODULE)
 
-#define EXPORT_GAME_MODULE( CLASS )\
-	extern "C" DLLEXPORT IGameModule* CREATE_GAME_MODULE()\
+#define EXPORT_MODULE( CLASS )\
+	extern "C" DLLEXPORT IModuleInterface* CREATE_MODULE()\
 	{\
 		return new CLASS; \
 	}\
+
+#define EXPORT_GAME_MODULE( CLASS )\
+	EXPORT_MODULE(CLASS)
 
 #endif // GameModule_H_5E5B32B4_50E2_43F3_B7AB_58F84870E299
 

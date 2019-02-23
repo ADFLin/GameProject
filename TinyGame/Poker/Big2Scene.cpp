@@ -229,6 +229,7 @@ namespace Poker { namespace Big2 {
 
 	void Scene::render( Graphics2D& g )
 	{
+
 		Vec2i sSize = ::Global::GetDrawEngine()->getScreenSize();
 
 		int yOffset = 50;
@@ -620,16 +621,19 @@ namespace Poker { namespace Big2 {
 		SlotStatus& status = getLevel().getSlotStatus( slotId );
 		GamePlayer* player = mPlayerManager->getPlayer( status.playerId );
 
-		FixString< 128 > str;
-		RenderUtility::SetFont( g , FONT_S10 );
-		g.drawText( renderPos , player->getName() );
-		renderPos.y += 12;
-		str.format( "Money = %d" , status.money );
-		g.drawText( renderPos , str );
-		renderPos.y += 12;
-		str.format( "Card Num = %d" , getLevel().getSlotCardNum( slotId ) );
-		g.drawText( renderPos , str );
-		renderPos.y += 12;
+		if ( player )
+		{
+			FixString< 128 > str;
+			RenderUtility::SetFont(g, FONT_S10);
+			g.drawText(renderPos, player->getName());
+			renderPos.y += 12;
+			str.format("Money = %d", status.money);
+			g.drawText(renderPos, str);
+			renderPos.y += 12;
+			str.format("Card Num = %d", getLevel().getSlotCardNum(slotId));
+			g.drawText(renderPos, str);
+			renderPos.y += 12;
+		}
 	}
 
 	Vec2i      CardListUI::msCardSize;

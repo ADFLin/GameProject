@@ -109,4 +109,6 @@ bool ConsoleFrame::onChildEvent(int event, int id, GWidget* ui)
 	default:
 		break;
 	}
+
+	return true;
 }

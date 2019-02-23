@@ -3,25 +3,45 @@
 #include "GameControl.h"
 #include "WindowsHeader.h"
 
-bool GameModuleManager::registerGame( IGameModule* game , HMODULE hModule )
+#include "FileSystem.h"
+
+
+bool GameModuleManager::registerModule( IModuleInterface* module , char const* loadedModuleName 
+#if SYS_PLATFORM_WIN
+									   , HMODULE hModule 
+#endif
+)
 {
-	assert( game );
+	assert(module);
 
-	if ( findGame( game->getName() ) )
-		return false;
-
-	if ( !game->initialize() )
-		return false;
-
-	if ( !mPackageMap.insert( std::make_pair( game->getName() , game ) ).second )
+	IGameModule* gameModule = nullptr;
+	if( module->isGameModule() )
 	{
-		game->cleanup();
-		return false;
+		gameModule = static_cast<IGameModule*>(module);
 	}
 
-	AttribValue attrSetting( ATTR_CONTROLLER_DEFUAULT_SETTING );
-	game->getAttribValue( attrSetting );
-	mGameInfos.push_back({ game , hModule });
+	char const* registerName = ( gameModule ) ? gameModule->getName() : loadedModuleName;
+	if( findModule(registerName) )
+		return false;
+
+	if( !module->initialize() )
+		return false;
+
+	bool bInserted = mNameToModuleMap.insert(std::make_pair(registerName, module)).second;
+	assert(bInserted);
+	mModuleDataList.push_back(
+		{   module
+#if SYS_PLATFORM_WIN
+          , hModule
+#endif
+		});
+
+	if( gameModule )
+	{
+		AttribValue attrSetting(ATTR_CONTROLLER_DEFUAULT_SETTING);
+		gameModule->getAttribValue(attrSetting);
+	}
+
 	return true;
 }
 
@@ -31,7 +51,7 @@ void GameModuleManager::cleanup()
 		mGameRunning->exit();
 	mGameRunning = NULL;
 
-	visitInternal( [](GameInfo& info) ->bool
+	visitInternal( [](ModuleData& info) ->bool
 	{
 		info.instance->cleanup();
 		info.instance->deleteThis();
@@ -39,55 +59,64 @@ void GameModuleManager::cleanup()
 		return true;
 	});
 
-	mPackageMap.clear();
-	mGameInfos.clear();
+	mNameToModuleMap.clear();
+	mModuleDataList.clear();
 }
 
 void GameModuleManager::classifyGame( int attrID , GameModuleVec& games )
 {
-	visitInternal( [ attrID , &games ](GameInfo& info)-> bool
+	visitInternal( [ attrID , &games ](ModuleData& info)-> bool
 	{
 		AttribValue    attrValue(attrID);
-		if( info.instance->getAttribValue(attrValue) )
+
+		if( info.instance->isGameModule() )
 		{
-			if( attrValue.iVal )
+			IGameModule* gameModule = static_cast<IGameModule*>(info.instance);
+			if( gameModule->getAttribValue(attrValue) )
 			{
-				games.push_back(info.instance);
+				if( attrValue.iVal )
+				{
+					games.push_back(gameModule);
+				}
 			}
 		}
 		return true;
 	});
 }
 
-IGameModule* GameModuleManager::findGame( char const* name )
+IModuleInterface* GameModuleManager::findModule( char const* name )
 {
-	PackageMap::iterator iter = mPackageMap.find( name );
-	if ( iter != mPackageMap.end() )
+	ModuleMap::iterator iter = mNameToModuleMap.find( name );
+	if ( iter != mNameToModuleMap.end() )
 		return iter->second;
 	return NULL;
 }
 
 IGameModule* GameModuleManager::changeGame( char const* name )
 {
-	IGameModule* game = findGame( name );
+	IModuleInterface* module = findModule( name );
 
-	if( changeGame(game) )
-		return game;
+	if ( module && module->isGameModule() )
+	{
+		IGameModule* gameModule = static_cast<IGameModule*>(module);
+		if( changeGame(gameModule) )
+			return gameModule;
+	}
 
 	return nullptr;
 }
 
-bool GameModuleManager::changeGame(IGameModule* game)
+bool GameModuleManager::changeGame(IGameModule* gameModule)
 {
-	if( !game )
+	if( !gameModule )
 		return false;
 
-	if( mGameRunning != game )
+	if( mGameRunning != gameModule )
 	{
 		if( mGameRunning )
 			mGameRunning->exit();
 
-		mGameRunning = game;
+		mGameRunning = gameModule;
 
 		try
 		{
@@ -141,42 +170,45 @@ public:
 
 
 
-bool GameModuleManager::loadGame( char const* path )
+bool GameModuleManager::loadModule( char const* path )
 {
 #if SYS_PLATFORM_WIN
 	HMODULE hModule = ::LoadLibrary( path );
 	if ( hModule == NULL )
 		return false;
-
 	struct ModouleReleasePolicy
 	{
 		static void Release(HMODULE handle) { ::FreeLibrary(handle); }
 	};
 
 	TScopeRelease< HMODULE, ModouleReleasePolicy > scopeRelease( hModule );
+	char const* funName = CREATE_MODULE_STR;
+	CreateModuleFun createFun = (CreateModuleFun)GetProcAddress(hModule, CREATE_MODULE_STR);
+#else
 
-	char const* funName = CREATE_GAME_MODULE_STR;
-	CreateGameModuleFun createFun = (CreateGameModuleFun)GetProcAddress(hModule, CREATE_GAME_MODULE_STR);
-
+	CreateModuleFun createFun = nullptr;
+#endif 
 	if( !createFun )
 		return false;
 
-	IGameModule* game = (*createFun)();
-	if( !game )
+	IModuleInterface* module = (*createFun)();
+	if( !module )
 		return false;
 
-	if( !registerGame( game , hModule ) )
-
+	StringView loadName = FileUtility::CutDirAndExtension(path);
+	if( !registerModule( module , loadName.toCString() 
+#if SYS_PLATFORM_WIN
+						, hModule 
+#endif
+	) )
 	{
-		game->deleteThis();
+		module->deleteThis();
 		return false;
 	}
 
+#if SYS_PLATFORM_WIN
 	scopeRelease.release();
-	
-#else
-#error "Not impl yet"
-#endif 
+#endif
 
 	return true;
 }

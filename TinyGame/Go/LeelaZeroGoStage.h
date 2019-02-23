@@ -249,7 +249,7 @@ namespace Go
 			g.beginClip(pos, getSize() - Vec2i(20, 0));
 			if( bShowFileNameOnly )
 			{
-				char const* fileName = FileUtility::GetDirPathPos(filePath) + 1;
+				char const* fileName = FileUtility::GetFileName(filePath);
 				g.drawText(pos + Vec2i(2,3), fileName);
 			}
 			else
@@ -771,10 +771,7 @@ namespace Go
 		Zen::TerritoryInfo mShowTerritoryInfo;
 		GameStatusQuery mStatusQuery;
 
-		bool updateViewGameTerritory()
-		{
-			return mStatusQuery.queryTerritory(getViewingGame(), mShowTerritoryInfo);
-		}
+		void updateViewGameTerritory();
 
 		static void DrawTerritoryStatus( BoardRenderer& renderer , RenderContext const& context ,  Zen::TerritoryInfo const& info);
 
@@ -833,28 +830,8 @@ namespace Go
 		void notifyPlayerCommand(int indexPlayer, GameCommand const& com);
 
 		bool bPrevGameCom = false;
-		void resetGameParam()
-		{
-			bPrevGameCom = true;
-			mGame.restart();
-			mBoardRenderer.generateNoiseOffset(mGame.getBoard().getSize());
-
-			resetTurnParam();
-			for( int i = 0 ; i < 2 ; ++i )
-			{
-				mWinRateHistory[i].clear();
-				mWinRateHistory[i].push_back(Vector2(0, 50));
-			}
-			if( mWinRateWidget )
-			{
-				mWinRateWidget->destroy();
-				mWinRateWidget = nullptr;
-			}
-		}
-		void resetTurnParam()
-		{
-			bestMoveVertex = -3;
-		}
+		void resetGameParam();
+		void resetTurnParam();
 		void restartAutoMatch();
 
 		bool buildLearningMode();

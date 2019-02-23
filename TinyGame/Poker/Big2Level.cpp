@@ -156,7 +156,7 @@ namespace Poker { namespace Big2 {
 		}
 		sData.startMoney  = 500;
 
-		TRANSFER_SEND( getTransfer() , SLOT_SERVER , sData );
+		getTransfer().sendData( SLOT_SERVER , sData );
 		if ( mListener )
 			mListener->onGameInit();
 
@@ -198,7 +198,7 @@ namespace Poker { namespace Big2 {
 			{
 				data.card[n] = cards[n].getIndex();
 			}
-			TRANSFER_SEND( getTransfer(),  i , data );
+			getTransfer().sendData( i , data );
 		}
 
 		for( int i = 0 ; i < PlayerNum ; ++i )
@@ -241,7 +241,7 @@ namespace Poker { namespace Big2 {
 
 		doSlotTurn( slotId , true );
 
-		TRANSFER_SEND( getTransfer(),  SLOT_SERVER , sData );
+		getTransfer().sendData( SLOT_SERVER , sData );
 		if ( mListener )
 			mListener->onSlotTurn( slotId , true );
 
@@ -329,7 +329,7 @@ namespace Poker { namespace Big2 {
 		}
 		endData.isGameOver = isGameOver;
 		endData.players[ slotId ].money = mSlotStatus[ slotId ].money; 
-		TRANSFER_SEND( getTransfer(), SLOT_SERVER , endData );
+		getTransfer().sendData( SLOT_SERVER , endData );
 
 		if ( mListener )
 			mListener->onRoundEnd( isGameOver );
@@ -356,7 +356,7 @@ namespace Poker { namespace Big2 {
 		SDSlotTurn sData;
 		sData.slotId = slotId;
 		sData.num    = 0;
-		TRANSFER_SEND( getTransfer() , SLOT_SERVER , sData );
+		getTransfer().sendData( SLOT_SERVER , sData );
 		if ( mListener )
 			mListener->onSlotTurn( slotId , false );
 
@@ -369,7 +369,7 @@ namespace Poker { namespace Big2 {
 
 			SDNextCycle sData;
 			sData.slotId = startSlot;
-			TRANSFER_SEND( getTransfer() , SLOT_SERVER , sData );
+			getTransfer().sendData( SLOT_SERVER , sData );
 
 			if ( mListener )
 				mListener->onNewCycle();
@@ -482,7 +482,7 @@ namespace Poker { namespace Big2 {
 			sData.index[i] = idxSelect[i];
 			mLastShowIndex[i] = idxSelect[i];
 		}
-		TRANSFER_SEND( getTransfer() , SLOT_SERVER , sData );
+		getTransfer().sendData( SLOT_SERVER , sData );
 
 		return true;
 	}

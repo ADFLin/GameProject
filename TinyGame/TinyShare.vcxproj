@@ -231,6 +231,7 @@
     <ClInclude Include="TinyCore\INetEngine.h" />
     <ClInclude Include="TinyCore\InputManager.h" />
     <ClInclude Include="TinyCore\Localization.h" />
+    <ClInclude Include="TinyCore\MiscTestRegister.h" />
     <ClInclude Include="TinyCore\RenderUtility.h" />
     <ClInclude Include="TinyCore\StageRegister.h" />
     <ClInclude Include="TinyGamePCH.h" />
@@ -259,6 +260,7 @@
     <ClCompile Include="TinyCore\GameWorker.cpp" />
     <ClCompile Include="TinyCore\InputManager.cpp" />
     <ClCompile Include="TinyCore\Localization.cpp" />
+    <ClCompile Include="TinyCore\MiscTestRegister.cpp" />
     <ClCompile Include="TinyCore\RenderUtility.cpp" />
     <ClCompile Include="TinyCore\StageRegister.cpp" />
     <ClCompile Include="TinyGamePCH.cpp">

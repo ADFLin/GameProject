@@ -1096,7 +1096,7 @@ namespace RenderVulkan
 		{
 #if 1
 			std::string fullPath = FileUtility::GetFullPath(path);
-			char const* dirEndPos = FileUtility::GetDirPathPos(fullPath.c_str());
+			char const* dirEndPos = FileUtility::GetFileName(fullPath.c_str());
 			std::string outPath = fullPath.substr(0, dirEndPos - &fullPath[0]) + "/shader.tmp";
 			if( !compileShader(fullPath.c_str() , outPath.c_str(), type) )
 				return VK_NULL_HANDLE;

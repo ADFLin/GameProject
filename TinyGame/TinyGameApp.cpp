@@ -16,6 +16,7 @@
 #include "GameStage.h"
 #include "GameStageMode.h"
 #include "GameGlobal.h"
+#include "MiscTestRegister.h"
 
 #include "GameServer.h"
 #include "GameClient.h"
@@ -204,6 +205,13 @@ bool TinyGameApp::onInit()
 	::Global::GUI().addWidget(mConsoleWidget);
 
 	loadGamePackage();
+	Global::GameManager().loadModule(
+#if _DEBUG
+		"MiscTestD.dll"
+#else
+		"MiscTest.dll"
+#endif
+	);
 
 	setupStage();
 
@@ -246,6 +254,7 @@ void TinyGameApp::cleanup()
 	//cleanup widget before delete game instance
 	Global::GUI().cleanupWidget(true , true);
 
+	MiscTestRegister::GetList().clear();
 	Global::GameManager().cleanup();
 
 	Global::GUI().finalize();
@@ -326,7 +335,7 @@ void TinyGameApp::loadGamePackage()
 				continue;
 #endif
 
-			Global::GameManager().loadGame( fileName );
+			Global::GameManager().loadModule( fileName );
 		}
 	}
 }

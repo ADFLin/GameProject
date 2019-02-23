@@ -8,6 +8,7 @@
 #include "TaskBase.h"
 #include "GameWidget.h"
 #include "GameWidgetID.h"
+#include "GameConfig.h"
 
 #include "GameClient.h"
 #include "GameReplay.h"
@@ -15,6 +16,7 @@
 #include "RenderUtility.h"
 
 #include "StringParse.h"
+#include "MiscTestRegister.h"
 
 namespace MRT
 {
@@ -1523,32 +1525,11 @@ REGISTER_MISC_TEST("Class Tree", TestClassTree);
 REGISTER_MISC_TEST("Big Number", TestBigNumber);
 REGISTER_MISC_TEST("Cycle Queue", TestCycleQueue);
 
-#include <functional>
-
-struct MiscTestEntry
-{
-	FixString< 128 > name;
-	std::function< void () > fun;
-};
-
-std::vector< MiscTestEntry>& GetRegisterMiscTestEntries()
-{
-	static std::vector< MiscTestEntry> gRegisterMiscTestEntries;
-	return gRegisterMiscTestEntries;
-}
-
-MiscTestRegister::MiscTestRegister(char const* name, std::function< void() > const& fun )
-{
-	GetRegisterMiscTestEntries().push_back({ name , fun });
-}
-
 bool MiscTestStage::onInit()
 {
 	::Global::GUI().cleanupWidget();
 
-
-
-	auto& entries = GetRegisterMiscTestEntries();
+	auto& const entries = MiscTestRegister::GetList();
 	for( auto entry : entries )
 	{
 		addTest(entry.name, entry.fun);

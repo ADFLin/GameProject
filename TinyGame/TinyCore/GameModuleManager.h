@@ -13,27 +13,32 @@ public:
 	GameModuleManager();
 	~GameModuleManager();
 
-	TINY_API bool            loadGame( char const* path );
+	TINY_API bool            loadModule( char const* path );
 	TINY_API void            cleanup();
 	TINY_API void            classifyGame( int attrID , GameModuleVec& games );
-	TINY_API IGameModule*  changeGame( char const* name );
+	TINY_API IGameModule*    changeGame( char const* name );
 	TINY_API bool            changeGame(IGameModule* game);
 
 	IGameModule*  getRunningGame(){ return mGameRunning; }
 
 private:
 
-	IGameModule*  findGame( char const* name );
+	IModuleInterface*  findModule( char const* name );
+
+	bool          registerModule(
+		IModuleInterface* game,
+		char const* loadedModuleName ,
 #if SYS_PLATFORM_WIN
-	bool            registerGame(IGameModule* game, HMODULE hModule);
+		HMODULE hModule
 #endif
+	);
+
 	template< class Visitor >
 	void  visitInternal( Visitor& visitor )
 	{
-		for( GameInfoVec::iterator iter = mGameInfos.begin() ;
-			iter != mGameInfos.end() ;++iter )
+		for( auto& data : mModuleDataList )
 		{
-			if ( !visitor( *iter ) )
+			if ( !visitor( data ) )
 				return;
 		}
 	}
@@ -46,17 +51,18 @@ private:
 		}
 	};
 
-	struct GameInfo
+	struct ModuleData
 	{
-		IGameModule* instance;
-		HMODULE        hModule;
+		IModuleInterface* instance;
+#if SYS_PLATFORM_WIN
+		HMODULE      hModule;
+#endif
 	};
-	typedef std::map< char const* , IGameModule* , StrCmp > PackageMap;
+	typedef std::map< HashString , IModuleInterface* > ModuleMap;
 
-	typedef std::vector< GameInfo > GameInfoVec;
-	GameInfoVec     mGameInfos;
-	PackageMap      mPackageMap;
-	IGameModule*  mGameRunning;
+	std::vector< ModuleData >   mModuleDataList;
+	ModuleMap        mNameToModuleMap;
+	IGameModule*     mGameRunning;
 };
 
 

@@ -19,6 +19,11 @@ struct THaveGetSendSizeFuncImpl
 
 
 template< class T >
+struct DataTransferTypeToId {};
+
+
+
+template< class T >
 struct THaveGetSendSizeFunc : Meta::HaveResult< THaveGetSendSizeFuncImpl<T>::Value >{};
 
 typedef fastdelegate::FastDelegate< void ( int recvId , int dataId , void* data , int dataSize ) > RecvFun;
@@ -29,6 +34,17 @@ public:
 	virtual void sendData( int recvId , int dataId , void* data , int num ) = 0;
 	virtual void setRecvFun( RecvFun fun ) = 0;
 
+	template< class T >
+	void sendData(int recvId, T& data)
+	{
+		sendData(recvId, ::DataTransferTypeToId< std::remove_reference< decltype(data) >::type >::Result , data );
+	}
+
+	template< class T >
+	void sendData(int recvId, T& data , int dataSize )
+	{
+		sendData(recvId, ::DataTransferTypeToId< std::remove_reference< decltype(data) >::type >::Result, &data, dataSize );
+	}
 
 	template< class T >
 	void sendData( int recvId , int dataId , T& data )
@@ -53,18 +69,13 @@ public:
 
 #define ENUM_OP( A )  A,
 #define DATA2ID_ENUM_OP( TYPE ) DATA2ID( TYPE ),
-#define DATA2ID_MAP_OP( TYPE ) template<> struct DataToIdMap< TYPE >{ static int const Result = DATA2ID( TYPE ); };
+#define DATA2ID_MAP_OP( TYPE ) template<> struct ::DataTransferTypeToId< TYPE >{ static int const Result = DATA2ID( TYPE ); };
 #define DEFINE_DATA2ID( DATA_LIST , COMMAND_LIST )\
 	enum\
 	{\
 		DATA_LIST(DATA2ID_ENUM_OP)\
 		COMMAND_LIST(ENUM_OP)\
 	};\
-	template< class T >\
-	struct DataToIdMap {};\
-	DATA_LIST(DATA2ID_MAP_OP)\
-
-#define TRANSFER_SEND( T , RECVID , DATA ) (T).sendData( RECVID , DataToIdMap< std::remove_reference< decltype(DATA) >::type >::Result , DATA );
-#define TRANSFER_SEND_SIZE( T , RECVID , DATA , SIZE ) (T).sendData( RECVID , DataToIdMap< std::remove_reference< decltype(DATA) >::type>::Result , &DATA , SIZE );
+	DATA_LIST(DATA2ID_MAP_OP)
 
 #endif // DataTransfer_h__

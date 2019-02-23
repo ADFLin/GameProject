@@ -57,7 +57,7 @@ bool MainMenuStage::onInit()
 	::Global::getGUI().getManager().addUI( button );
 #endif
 
-	changeGroup( UI_MAIN_GROUP );
+	changeWidgetGroup( UI_MAIN_GROUP );
 	return true;
 }
 
@@ -156,10 +156,10 @@ int const MenuYOffset = 30;
 #define CREATE_BUTTON_POS_DELAY( ID , NAME , X , Y , DELAY )\
 	createButton( DELAY  , ID  , NAME  , Vec2i( X , Y ) , MenuBtnSize )
 
-void MainMenuStage::doChangeGroup( StageGroupID group )
+void MainMenuStage::doChangeWidgetGroup( StageGroupID group )
 {
 	int xUI = ( Global::GetDrawEngine()->getScreenWidth() - MenuBtnSize.x ) / 2 ;
-	int yUI = 200;
+	int yUI = 100;
 	int offset = 30;
 	int delay = 0;
 
@@ -176,7 +176,9 @@ void MainMenuStage::doChangeGroup( StageGroupID group )
 		CREATE_BUTTON( UI_GAME_DEV4_GROUP  , "Dev Test"   );
 		CREATE_BUTTON( UI_GRAPHIC_TEST_GROUP , "Graphic Test" );
 		CREATE_BUTTON( UI_TEST_GROUP      , "Test" );
-		CREATE_BUTTON(UI_FEATURE_DEV_GROUP, "Feature Dev");
+		CREATE_BUTTON( UI_FEATURE_DEV_GROUP, "Feature Dev");
+		changeStageGroup(EStageGroup::Main);
+		createStageGroupButton(delay, xUI, yUI);
 		CREATE_BUTTON( UI_SINGLEPLAYER  , LOCTEXT("SinglePlayer")  );
 		CREATE_BUTTON( UI_MULTIPLAYER   , LOCTEXT("MultiPlayer")   );
 		CREATE_BUTTON( UI_VIEW_REPLAY   , LOCTEXT("View Replay")   );
@@ -341,6 +343,9 @@ bool MainMenuStage::onWidgetEvent( int event , int id , GWidget* ui )
 				getManager()->changeStage( STAGE_SINGLE_GAME );
 			}
 			return false;
+		case UI_MISC_TEST_GROUP:
+
+			return false;
 		case UI_CARD_GAME_DEV_GROUP:
 		case UI_SINGLEPLAYER:
 		case UI_MULTIPLAYER:
@@ -351,10 +356,10 @@ bool MainMenuStage::onWidgetEvent( int event , int id , GWidget* ui )
 		case UI_TEST_GROUP:
 		case UI_GRAPHIC_TEST_GROUP:
 		case UI_FEATURE_DEV_GROUP:
-			pushGroup( id );
+			pushWidgetGroup( id );
 			return false;
 		case UI_BACK_GROUP:
-			popGroup();
+			popWidgetGroup();
 			return false;
 		case UI_VIEW_REPLAY:
 			getManager()->changeStage( STAGE_REPLAY_EDIT );

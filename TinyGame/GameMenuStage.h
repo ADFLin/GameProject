@@ -29,32 +29,32 @@ public:
 	bool onMouse( MouseMsg const& msg );
 
 
-	void changeGroup( StageGroupID group )
+	void changeWidgetGroup( StageGroupID group )
 	{
 		mCurGroup = group;
-		doChangeGroup( group );
+		doChangeWidgetGroup( group );
 	}
 
-	void pushGroup( StageGroupID group )
+	void pushWidgetGroup( StageGroupID group )
 	{
 		if( group == mCurGroup )
 			return;
 
 		mGroupStack.push_back( mCurGroup );
 		mCurGroup = group;
-		doChangeGroup( group );
+		doChangeWidgetGroup( group );
 		
 	}
-	void popGroup()
+	void popWidgetGroup()
 	{
 		if ( mGroupStack.empty() )
 			return;
 		mCurGroup = mGroupStack.back();
 		mGroupStack.pop_back();
-		doChangeGroup( mCurGroup );
+		doChangeWidgetGroup( mCurGroup );
 	}
 
-	virtual void doChangeGroup( StageGroupID group ){}
+	virtual void doChangeWidgetGroup( StageGroupID group ){}
 
 	void     fadeoutGroup( int dDelay );
 	GWidget* createButton( int delay , int id , char const* title , Vec2i const& pos , Vec2i const& size );

@@ -14,18 +14,7 @@
 #include "Widget/WidgetUtility.h"
 
 #include "Core/IntegerType.h"
-
-class MiscTestRegister
-{
-public:
-	TINY_API MiscTestRegister(char const* name, std::function< void() > const& fun);
-};
-
-#define  REGISTER_MISC_TEST_INNER( name , fun )\
-	static MiscTestRegister ANONYMOUS_VARIABLE( MARCO_NAME_COMBINE_2( g_MiscTest , __LINE__ ) )( name , fun );
-
-#define  REGISTER_MISC_TEST( name , fun )\
-	REGISTER_MISC_TEST_INNER( name , fun )
+#include "MiscTestRegister.h"
 
 
 #if 0

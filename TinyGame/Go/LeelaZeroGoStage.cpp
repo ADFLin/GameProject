@@ -89,7 +89,7 @@ namespace Go
 			{
 				for( ; fileIter.haveMore(); fileIter.goNext() )
 				{
-					char const* subName = FileUtility::GetSubName(fileIter.getFileName());
+					char const* subName = FileUtility::GetExtension(fileIter.getFileName());
 
 					if ( strcmp( fileIter.getFileName() , bestWeightName.c_str() ) == 0 )
 						continue;
@@ -262,9 +262,15 @@ namespace Go
 
 		auto GameActionFun = [&](GameProxy& game)
 		{
-			if( bShowTerritory && &game == &getViewingGame() )
+			if( &game == &getViewingGame() )
 			{
 				updateViewGameTerritory();
+
+			}
+
+			if( bReviewingGame && &game == &mGame && mGame.guid == mReviewGame.guid )
+			{
+				mGame.synchronizeHistory(mReviewGame);
 			}
 		};
 
@@ -415,31 +421,18 @@ namespace Go
 
 				frame->addButton(">", [&](int eventId, GWidget* widget) ->bool
 				{
-					if( mGame.guid == mReviewGame.guid )
-					{
-						mGame.synchronizeHistory(mReviewGame);
-					}
 					mReviewGame.reviewNextStep(1);
 					return false;
 				});
 
 				frame->addButton(">>", [&](int eventId, GWidget* widget) ->bool
 				{
-					if( mGame.guid == mReviewGame.guid )
-					{
-						mGame.synchronizeHistory(mReviewGame);
-					}
 					mReviewGame.reviewNextStep(10);
 					return false;
 				});
 
 				frame->addButton("[>]", [&](int eventId, GWidget* widget) ->bool
 				{
-					if( mGame.guid == mReviewGame.guid )
-					{
-						mGame.synchronizeHistory(mReviewGame);
-					}
-					
 					mReviewGame.reviewLastStep();
 					return false;
 				});
@@ -448,6 +441,7 @@ namespace Go
 			else
 			{
 				::Global::GUI().findTopWidget(UI_REPLAY_FRAME)->destroy();
+				updateViewGameTerritory();
 				widget->cast<GCheckBox>()->setTitle("Review Game");
 			}
 			return false;
@@ -471,7 +465,6 @@ namespace Go
 				mTryPlayWidget->renderer = &mBoardRenderer;
 				::Global::GUI().addWidget(mTryPlayWidget);
 				widget->cast<GCheckBox>()->setTitle("End Play");
-
 			}
 #else
 			bTryPlayingGame = !bTryPlayingGame;
@@ -485,6 +478,7 @@ namespace Go
 			}
 			else
 			{
+				updateViewGameTerritory();
 				widget->cast<GCheckBox>()->setTitle("Try Play");
 			}
 #endif
@@ -493,10 +487,7 @@ namespace Go
 		devFrame->addCheckBox("Show Territory", [&](int eventId, GWidget* widget) ->bool
 		{
 			bShowTerritory = !bShowTerritory;
-			if( bShowTerritory )
-			{
-				updateViewGameTerritory();
-			}
+			updateViewGameTerritory();
 			return false;
 		});
 		return true;
@@ -960,6 +951,17 @@ namespace Go
 		}
 	}
 
+	void LeelaZeroGoStage::updateViewGameTerritory()
+	{
+		if( !bShowTerritory )
+			return;
+
+		if( !mStatusQuery.queryTerritory(getViewingGame(), mShowTerritoryInfo) )
+		{
+			::LogWarning(0, "Can't get QueryTerritory");
+		}
+	}
+
 	void LeelaZeroGoStage::DrawTerritoryStatus(BoardRenderer& renderer, RenderContext const& context, Zen::TerritoryInfo const& info)
 	{
 		GPU_PROFILE("Draw Territory");
@@ -1246,7 +1248,7 @@ namespace Go
 		path.replace('/', '\\');
 		if( SystemPlatform::OpenFileName(path, path.max_size(), nullptr) )
 		{
-			weightNameA = FileUtility::GetDirPathPos(path) + 1;
+			weightNameA = FileUtility::GetFileName(path);
 			::Global::GameConfig().setKeyValue("LeelaLastOpenWeight", "Go", weightNameA);
 		}
 
@@ -1308,7 +1310,7 @@ namespace Go
 
 			if( SystemPlatform::OpenFileName(path, path.max_size(), nullptr) )
 			{
-				setting.weightName = FileUtility::GetDirPathPos(path) + 1;
+				setting.weightName = FileUtility::GetFileName(path);
 			}
 			else
 			{
@@ -1484,106 +1486,6 @@ namespace Go
 		}
 #endif
 	}
-
-	void LeelaZeroGoStage::processLearningCommand()
-	{
-		assert(mGameMode == GameMode::Learning);
-		auto ProcFun = [&](GameCommand& com)
-		{
-			if( mbRestartLearning )
-				return;
-
-			int color = mGame.getInstance().getNextPlayColor();
-			switch( com.id )
-			{
-			case GameCommand::eStart:
-				{
-					LogMsg("GameStart");
-					mGame.restart();
-					mBoardRenderer.generateNoiseOffset(mGame.getBoard().getSize());
-#if DETECT_LEELA_PROCESS
-					mPIDLeela = -1;
-					mLeelaRebootTimer = LeelaRebootStartTime;
-#endif	
-				}
-				break;
-			case GameCommand::ePass:
-				{
-					LogMsg("Pass");
-					mGame.playPass();
-				}
-				break;
-			case GameCommand::eResign:
-				{
-					char const* name = (color == StoneColor::eBlack) ? "Black" : "White";
-					LogMsg("%s Resigned", name);
-				}
-				break;
-			case GameCommand::eEnd:
-				{
-					LogMsg("Game End");
-					++numGameCompleted;
-					bMatchJob = false;
-
-					if ( com.winNum == 0 )
-						mLastGameResult.format("%s+Resign" , com.winner == StoneColor::eBlack ? "B" : "W" );
-					else
-						mLastGameResult.format("%s+%.1f", com.winner == StoneColor::eBlack ? "B" : "W" , com.winNum);
-#if DETECT_LEELA_PROCESS
-					mPIDLeela = -1;
-					mLeelaRebootTimer = LeelaRebootStartTime;
-#endif	
-				}
-				break;
-			case GameCommand::eParam:
-				{
-					switch( com.paramId )
-					{
-					case LeelaGameParam::eJobMode:
-						bMatchJob = com.intParam;
-						break;
-					case LeelaGameParam::eMatchChallengerColor:
-						matchChallenger = com.intParam;
-						break;
-					case LeelaGameParam::eNetWeight:
-						{	
-							mUsedWeight = StringView(com.strParam, 8);
-							for( int i = 0; i < ELFWeights.size(); ++i )
-							{
-								if( strcmp(com.strParam, ELFWeights[i]) != 0 )
-									::Global::GameConfig().setKeyValue("LeelaLastNetWeight", "Go", com.strParam);
-							}
-
-						}
-						break;
-					}
-				}
-				break;
-			case GameCommand::ePlayStone:
-			default:
-				{
-					if( mGame.playStone(com.pos[0], com.pos[1]) )
-					{
-
-					}
-					else
-					{
-						LogMsg("Warning:Can't Play step : [%d,%d]", com.pos[0], com.pos[1]);
-					}
-
-					if( mGame.getInstance().getCurrentStep() - 1 >= ::Global::GameConfig().getIntValue( "LeelaLearnMaxSetp" , "Go" , 400 ) )
-					{
-						mbRestartLearning = true;
-						return;
-					}
-				}
-				break;
-			}
-		};
-
-		mLeelaAIRun.outputThread->procOutputCommand(ProcFun);
-	}
-
 
 	void LeelaZeroGoStage::notifyPlayerCommand(int indexPlayer , GameCommand const& com)
 	{
@@ -1787,6 +1689,125 @@ namespace Go
 		}
 	}
 
+	void LeelaZeroGoStage::processLearningCommand()
+	{
+		assert(mGameMode == GameMode::Learning);
+		auto ProcFun = [&](GameCommand& com)
+		{
+			if( mbRestartLearning )
+				return;
+
+			int color = mGame.getInstance().getNextPlayColor();
+			switch( com.id )
+			{
+			case GameCommand::eStart:
+				{
+					LogMsg("GameStart");
+					mGame.restart();
+					mBoardRenderer.generateNoiseOffset(mGame.getBoard().getSize());
+#if DETECT_LEELA_PROCESS
+					mPIDLeela = -1;
+					mLeelaRebootTimer = LeelaRebootStartTime;
+#endif	
+				}
+				break;
+			case GameCommand::ePass:
+				{
+					LogMsg("Pass");
+					mGame.playPass();
+				}
+				break;
+			case GameCommand::eResign:
+				{
+					char const* name = (color == StoneColor::eBlack) ? "Black" : "White";
+					LogMsg("%s Resigned", name);
+				}
+				break;
+			case GameCommand::eEnd:
+				{
+					LogMsg("Game End");
+					++numGameCompleted;
+					bMatchJob = false;
+
+					if ( com.winNum == 0 )
+						mLastGameResult.format("%s+Resign" , com.winner == StoneColor::eBlack ? "B" : "W" );
+					else
+						mLastGameResult.format("%s+%.1f", com.winner == StoneColor::eBlack ? "B" : "W" , com.winNum);
+#if DETECT_LEELA_PROCESS
+					mPIDLeela = -1;
+					mLeelaRebootTimer = LeelaRebootStartTime;
+#endif	
+				}
+				break;
+			case GameCommand::eParam:
+				{
+					switch( com.paramId )
+					{
+					case LeelaGameParam::eJobMode:
+						bMatchJob = com.intParam;
+						break;
+					case LeelaGameParam::eMatchChallengerColor:
+						matchChallenger = com.intParam;
+						break;
+					case LeelaGameParam::eNetWeight:
+						{	
+							mUsedWeight = StringView(com.strParam, 8);
+							for( int i = 0; i < ELFWeights.size(); ++i )
+							{
+								if( strcmp(com.strParam, ELFWeights[i]) != 0 )
+									::Global::GameConfig().setKeyValue("LeelaLastNetWeight", "Go", com.strParam);
+							}
+
+						}
+						break;
+					}
+				}
+				break;
+			case GameCommand::ePlayStone:
+			default:
+				{
+					if( mGame.playStone(com.pos[0], com.pos[1]) )
+					{
+
+					}
+					else
+					{
+						LogMsg("Warning:Can't Play step : [%d,%d]", com.pos[0], com.pos[1]);
+					}
+
+					if( mGame.getInstance().getCurrentStep() - 1 >= ::Global::GameConfig().getIntValue( "LeelaLearnMaxSetp" , "Go" , 400 ) )
+					{
+						mbRestartLearning = true;
+						return;
+					}
+				}
+				break;
+			}
+		};
+
+		mLeelaAIRun.outputThread->procOutputCommand(ProcFun);
+	}
+
+
+	void LeelaZeroGoStage::resetGameParam()
+	{
+		bPrevGameCom = true;
+		mGame.restart();
+		mBoardRenderer.generateNoiseOffset(mGame.getBoard().getSize());
+
+		resetTurnParam();
+		for( int i = 0; i < 2; ++i )
+		{
+			mWinRateHistory[i].clear();
+			mWinRateHistory[i].push_back(Vector2(0, 50));
+		}
+		if( mWinRateWidget )
+		{
+			mWinRateWidget->destroy();
+			mWinRateWidget = nullptr;
+		}
+	}
+
 	bool LeelaZeroGoStage::tryEnableAnalysis(bool bCopyGame)
 	{
 		if( mGameMode == GameMode::Learning )
@@ -1976,6 +1997,10 @@ namespace Go
 		notifyPlayerCommand(mMatchData.idxPlayerTurn, com);
 	}
 
+	void LeelaZeroGoStage::resetTurnParam()
+	{
+		bestMoveVertex = -3;
+	}
 
 	FixString< 128 > MatchPlayer::getName() const
 	{
@@ -2166,7 +2191,7 @@ namespace Go
 				{
 					LeelaAISetting setting = LeelaAISetting::GetDefalut();
 					std::string weightName = findChildT<GFilePicker>(id + UPARAM_WEIGHT_NAME)->filePath.c_str();
-					setting.weightName = FileUtility::GetDirPathPos(weightName.c_str()) + 1;
+					setting.weightName = FileUtility::GetFileName(weightName.c_str());
 					setting.visits = atoi(findChildT<GTextCtrl>(id + UPARAM_VISITS)->getValue());
 					//setting.bUseModifyVersion = true;
 					setting.seed = generateRandSeed();

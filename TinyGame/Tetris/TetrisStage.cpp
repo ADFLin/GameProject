@@ -455,7 +455,7 @@ namespace Tetris
 
 		::Global::GUI().cleanupWidget();
 
-		changeGroup( eMainGroup );
+		changeWidgetGroup( eMainGroup );
 
 		offsetBG.setValue( 0 , 0 );
 
@@ -541,7 +541,7 @@ namespace Tetris
 			getManager()->changeStage( STAGE_ABOUT_GAME );
 			break;
 		case UI_BACK_GROUP:
-			popGroup();
+			popWidgetGroup();
 			return false;
 
 		case UI_GAME_OPTION:
@@ -611,7 +611,7 @@ namespace Tetris
 		return true;
 	}
 
-	void MenuStage::doChangeGroup( StageGroupID group )
+	void MenuStage::doChangeWidgetGroup( StageGroupID group )
 	{
 		Vec2i btnSize( 120 , 25 );
 		int xUi = ( Global::GetDrawEngine()->getScreenWidth() - btnSize.x ) / 2 ;

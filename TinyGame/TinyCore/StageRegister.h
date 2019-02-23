@@ -15,6 +15,8 @@ enum class EStageGroup
 	Dev4 ,
 	FeatureDev,
 
+	Main ,
+
 	NumGroup ,
 };
 

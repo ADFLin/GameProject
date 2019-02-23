@@ -446,7 +446,7 @@ namespace CAR
 		{
 			SkipCom com;
 			com.action = getReplyAction();
-			TRANSFER_SEND( *mDataTransfer ,  SLOT_SERVER , com );
+			mDataTransfer->sendData( SLOT_SERVER , com );
 		}
 		else
 		{
@@ -496,7 +496,7 @@ namespace CAR
 		com.bReply = false;
 		if ( mDataTransfer )
 		{
-			TRANSFER_SEND( *mDataTransfer , SLOT_SERVER , com );
+			mDataTransfer->sendData( SLOT_SERVER , com );
 		}
 		else
 		{
@@ -512,7 +512,7 @@ namespace CAR
 
 		if ( mDataTransfer )
 		{
-			TRANSFER_SEND(*mDataTransfer, SLOT_SERVER , com );
+			mDataTransfer->sendData(SLOT_SERVER , com );
 		}
 		else
 		{

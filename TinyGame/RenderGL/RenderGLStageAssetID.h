@@ -40,7 +40,7 @@ namespace Render
 	op(MarioS, "Model/marioS.png")\
 	\
 	op(Terrain , "Terrain/colormap.bmp")\
-
+	op(WaterMark, "Texture/WaterMark.jpg")\
 
 #define EnumOp( NAME , PATH ) NAME ,
 			TEXTURE_LIST(EnumOp)

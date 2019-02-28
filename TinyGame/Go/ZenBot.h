@@ -14,8 +14,8 @@ namespace Zen
 	enum class Color
 	{
 		Empty = 0,
-		Black = 2,
 		White = 1,
+		Black = 2,
 	};
 
 	struct ThinkResult
@@ -26,18 +26,20 @@ namespace Zen
 		int  winRate;
 	};
 
+	using PlayVertex = ::Go::PlayVertex;
 	struct ThinkInfo
 	{
-		int v;
+		PlayVertex v;
 		float winRate;
-		std::vector< int > vSeq;
+		std::vector< PlayVertex > vSeq;
 	};
 
 	struct TerritoryInfo
 	{
-		static int const FieldValue = 500;
+		static int const FieldValue = 300;
 		int map[19][19];
 		int fieldCounts[2];
+		int totalRemainFields[2];
 	};
 
 	struct CoreSetting
@@ -328,7 +330,8 @@ namespace Zen
 				if( x == -4 )
 					return false;
 
-				info.v = y * mBoardSize + x;
+				info.v.x = x;
+				info.v.y = y;
 
 				char* pData = buf;
 				while( 1 )
@@ -339,7 +342,10 @@ namespace Zen
 						break;
 					
 					pos[1] = mBoardSize - ( pos[1] + 1 );
-					int vertex = pos[1] * mBoardSize + pos[0];
+
+					PlayVertex vertex;
+					vertex.x = pos[0];
+					vertex.y = pos[1];
 					info.vSeq.push_back(vertex);
 
 					pData += numRead;
@@ -351,13 +357,63 @@ namespace Zen
 			}
 			return true;
 		}
+
 		void  getTerritoryStatictics(TerritoryInfo& info)
 		{
+			if( mBoardSize == 0 )
+				return;
+
 			ZenGetTerritoryStatictics(info.map);
-			info.fieldCounts[0] = info.fieldCounts[1] = 0;
-			for( int i = 0; i < 19; ++i )
+
+#if 0
+			Color mapColor[19][19];
+			for( int j = 0; j < mBoardSize; ++j )
 			{
-				for( int j = 0; j < 19; ++j )
+				for( int i = 0; i < mBoardSize; ++i )
+				{
+					int value = info.map[j][i];
+					Color color;
+					if( value > TerritoryInfo::FieldValue )
+					{
+						color = Color::Black;
+					}
+					else if( value < -TerritoryInfo::FieldValue )
+					{
+						color = Color::White;
+					}
+					else
+					{
+						color = Color::Empty;
+					}
+
+					mapColor[j][i] = color;
+				}
+			}
+
+			for( int j = 0; j < mBoardSize; ++j )
+			{
+				for( int i = 0; i < mBoardSize; ++i )
+				{
+					if( ZenGetBoardColor(i, j) == (int)Color::Empty )
+					{
+						Color color = mapColor[j][i];
+						if( ( i > 0 && mapColor[j][i-1] != color )  ||
+							( i < mBoardSize - 1 && mapColor[j][i+1] != color) ||
+						    ( j > 0 && mapColor[j-1][i] != color) ||
+						    ( j < mBoardSize - 1 && mapColor[j+1][i] != color) )
+						{
+							info.map[j][i] = 0;
+						}
+					}
+				}
+			}
+#endif
+
+			info.fieldCounts[0] = info.fieldCounts[1] = 0;
+			info.totalRemainFields[0] = info.totalRemainFields[1] = 0;
+			for( int j = 0; j < mBoardSize; ++j )
+			{
+				for( int i = 0; i < mBoardSize; ++i )
 				{
 					int value = info.map[j][i];
 					int index;
@@ -374,9 +430,14 @@ namespace Zen
 					{
 						++info.fieldCounts[index];
 					}
+					else
+					{
+						info.totalRemainFields[index] += value;
+					}
 				}
 			}
 		}
+
 		void startThink(Color color) override
 		{
 			if( color == Color::Empty )
@@ -448,7 +509,10 @@ namespace Zen
 
 	protected:
 		int mBoardSize;
-		TBotCore() {}
+		TBotCore()
+		{
+			mBoardSize = 0;
+		}
 
 		TBotCore(TBotCore const&) = delete;
 		TBotCore& operator = (TBotCore const&) = delete;

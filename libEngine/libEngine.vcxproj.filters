@@ -154,9 +154,6 @@
     <ClCompile Include="BitmapDC.cpp">
       <Filter>Platform</Filter>
     </ClCompile>
-    <ClCompile Include="Thread.cpp">
-      <Filter>Platform</Filter>
-    </ClCompile>
     <ClCompile Include="WGLContext.cpp">
       <Filter>Platform</Filter>
     </ClCompile>
@@ -385,6 +382,9 @@
     <ClCompile Include="CString.cpp">
       <Filter>Utility</Filter>
     </ClCompile>
+    <ClCompile Include="PlatformThread.cpp">
+      <Filter>Platform</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ConsoleSystem.h">
@@ -466,9 +466,6 @@
       <Filter>Platform</Filter>
     </ClInclude>
     <ClInclude Include="Graphics2DBase.h">
-      <Filter>Platform</Filter>
-    </ClInclude>
-    <ClInclude Include="Thread.h">
       <Filter>Platform</Filter>
     </ClInclude>
     <ClInclude Include="WGLContext.h">
@@ -968,6 +965,12 @@
     </ClInclude>
     <ClInclude Include="GameFramework\EntityManager.h">
       <Filter>GameFramework\ECS</Filter>
+    </ClInclude>
+    <ClInclude Include="PlatformThread.h">
+      <Filter>Platform</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\LockFreeList.h">
+      <Filter>Core</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

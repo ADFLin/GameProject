@@ -2,7 +2,7 @@
 #include "DrawEngine.h"
 
 #include "ProfileSystem.h"
-#include "Thread.h"
+#include "PlatformThread.h"
 
 #include "RHI/RHIGraphics2D.h"
 #include "RHI/RHICommand.h"

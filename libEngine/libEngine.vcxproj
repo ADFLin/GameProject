@@ -289,7 +289,7 @@
     <ClCompile Include="StringParse.cpp" />
     <ClCompile Include="SystemPlatform.cpp" />
     <ClCompile Include="TaskBase.cpp" />
-    <ClCompile Include="Thread.cpp" />
+    <ClCompile Include="PlatformThread.cpp" />
     <ClCompile Include="TileRegion.cpp" />
     <ClCompile Include="NetSocket.cpp" />
     <ClCompile Include="UnitTest\TestClass.cpp" />
@@ -327,6 +327,7 @@
     <ClInclude Include="Collision2D\SATSolver.h" />
     <ClInclude Include="Core\Color.h" />
     <ClInclude Include="Core\FNV1a.h" />
+    <ClInclude Include="Core\LockFreeList.h" />
     <ClInclude Include="Core\MD5.h" />
     <ClInclude Include="Core\ScopeExit.h" />
     <ClInclude Include="Core\ThreadSafeCounter.h" />
@@ -465,7 +466,7 @@
     <ClInclude Include="TCycleNumber.h" />
     <ClInclude Include="TGrid2D.h" />
     <ClInclude Include="Holder.h" />
-    <ClInclude Include="Thread.h" />
+    <ClInclude Include="PlatformThread.h" />
     <ClInclude Include="TileRegion.h" />
     <ClInclude Include="TQTPortalAStar.h" />
     <ClInclude Include="TQuadTree.h" />

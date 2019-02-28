@@ -46,7 +46,7 @@ bool ChildProcess::create(char const* path, char const* command /*= nullptr*/)
 	STARTUPINFO startInfo;
 	BOOL bSuccess = FALSE;
 	FixString<  MAX_PATH, TCHAR > workDir;
-	workDir.assign(path, FileUtility::GetDirPathPos(path) - path);
+	workDir.assign(path, FileUtility::GetFileName(path) - path);
 
 	FixString< MAX_PATH, TCHAR > commandLine;
 	if( command )

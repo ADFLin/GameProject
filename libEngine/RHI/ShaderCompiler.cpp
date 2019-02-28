@@ -529,7 +529,11 @@ namespace Render
 				char const* DefaultDir = "Shader";
 				preporcessor.setOutput(codeOutput);
 				preporcessor.addSreachDir(DefaultDir);
-				char const* dirPathEnd = FileUtility::GetDirPathPos(path);
+				char const* dirPathEnd = FileUtility::GetFileName(path);
+				if( dirPathEnd != path )
+				{
+					--dirPathEnd;
+				}
 				if( strncmp(DefaultDir, path, dirPathEnd - path) != 0 )
 				{
 					std::string dir(path, dirPathEnd);

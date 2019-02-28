@@ -386,6 +386,9 @@
     <ClCompile Include="CurveBuilder\ShapeMeshBuilder.cpp">
       <Filter>CurveBuilder</Filter>
     </ClCompile>
+    <ClCompile Include="Go\MatchGame.cpp">
+      <Filter>GameGo</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Bsp2D.h">
@@ -840,6 +843,9 @@
     </ClInclude>
     <ClInclude Include="CurveBuilder\ShapeMeshBuilder.h">
       <Filter>CurveBuilder</Filter>
+    </ClInclude>
+    <ClInclude Include="Go\MatchGame.h">
+      <Filter>GameGo</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

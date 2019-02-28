@@ -2,7 +2,7 @@
 #ifndef AsyncWork_H_A8DF845F_D24D_4A7E_AA91_4093CD084011
 #define AsyncWork_H_A8DF845F_D24D_4A7E_AA91_4093CD084011
 
-#include "Thread.h"
+#include "PlatformThread.h"
 #include "Core/IntegerType.h"
 
 #include <vector>

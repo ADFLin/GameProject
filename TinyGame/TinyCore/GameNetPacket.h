@@ -22,6 +22,7 @@ enum NetPacketID
 	CP_LOGIN ,
 	CP_ECHO  ,
 	CP_UPD_CON ,
+	CP_NET_CONTROL_REPLAY ,
 	CP_NEXT_ID ,
 	//// Client and Server ///////////
 	CSP_START_ID = 100 ,
@@ -38,6 +39,7 @@ enum NetPacketID
 	SP_LEVEL_INFO ,
 	SP_SERVER_INFO ,
 	SP_SLOT_STATE ,
+	SP_NET_CONTROL_REQUEST ,
 	
 	SP_NEXT_ID ,
 	///////////////////////////////
@@ -314,18 +316,19 @@ public:
 class CSPPlayerState : public GamePacket< CSPPlayerState , CSP_PLAYER_STATE >
 {
 public:
-	unsigned playerID;
+	unsigned playerId;
 	uint8    state;
+	uint8    action;
 
 	void setServerState( uint8 inState )
 	{
-		playerID = ERROR_PLAYER_ID;
+		playerId = SERVER_PLAYER_ID;
 		state = inState;
 	}
 	template < class BufferOP >
 	void  operateBuffer( BufferOP& op )
 	{
-		op & playerID & state;
+		op & playerId & state & action;
 	}
 
 };
@@ -481,6 +484,20 @@ public:
 
 private:
 	bool needFree;
+};
+
+class SPNetControlRequest : public GamePacket< SPNetControlRequest, SP_NET_CONTROL_REQUEST >
+{
+public:
+	uint8 action;
+};
+
+class CPNetControlReply : public GamePacket< CPNetControlReply, CP_NET_CONTROL_REPLAY >
+{
+public:
+	uint32 playerId;
+	uint8  action;
+	uint   result;
 };
 
 

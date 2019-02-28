@@ -154,7 +154,7 @@ class Navigator
 public:
 	Navigator():mWorker(NULL){}
 	void     setWorker( rcWorker* worker );
-	typedef fastdelegate::FastDelegate1< rcWorker* , void > CallBackFun;
+	typedef fastdelegate::FastDelegate< void ( rcWorker*) > CallBackFun;
 	CallBackFun onTile;
 protected:
 	float     mDistNextRoute;

@@ -78,10 +78,28 @@ int32 SystemPlatform::InterlockedExchange(volatile int32* ptr, int32 value)
 #endif
 }
 
+int64 SystemPlatform::InterlockedExchange(volatile int64* ptr, int64 value)
+{
+#if SYS_PLATFORM_WIN
+	return (int64)::_InterlockedExchange64((volatile __int64*)ptr, (__int64)value);
+#else
+#error no impl
+#endif
+}
+
 int32 SystemPlatform::InterlockedExchangeAdd(volatile int32* ptr, int32 value)
 {
 #if SYS_PLATFORM_WIN
 	return (int32)::_InterlockedExchangeAdd((volatile long*)ptr, (long)value);
+#else
+#error no impl
+#endif
+}
+
+int64 SystemPlatform::InterlockedExchangeAdd(volatile int64* ptr, int64 value)
+{
+#if SYS_PLATFORM_WIN
+	return (int64)::_InterlockedExchangeAdd64((volatile __int64*)ptr, (__int64)value);
 #else
 #error no impl
 #endif
@@ -96,10 +114,82 @@ int32 SystemPlatform::InterlockedAdd(volatile int32* ptr, int32 value)
 #endif
 }
 
+int64 SystemPlatform::InterlockedAdd(volatile int64* ptr, int64 value)
+{
+#if SYS_PLATFORM_WIN
+	return (int64)::_InterlockedAdd64((volatile __int64*)ptr, (__int64)value);
+#else
+#error no impl
+#endif
+}
+
+int32 SystemPlatform::InterlockedCompareExchange(volatile int32* ptr, int32 exchange, int32 comperand)
+{
+#if SYS_PLATFORM_WIN
+	return (int32)::_InterlockedCompareExchange((volatile long*)ptr, (long)exchange,(long)comperand);
+#else
+#error no impl
+#endif
+}
+
+int64 SystemPlatform::InterlockedCompareExchange(volatile int64* ptr, int64 exchange, int64 comperand)
+{
+#if SYS_PLATFORM_WIN
+	return (int64)::_InterlockedCompareExchange64((volatile __int64*)ptr, (__int64)exchange, (__int64)comperand);
+#else
+#error no impl
+#endif
+}
+
+int32 SystemPlatform::InterlockedIncrement(volatile int32* ptr)
+{
+#if SYS_PLATFORM_WIN
+	return ::_InterlockedIncrement((volatile long*)ptr);
+#else
+#error no impl
+#endif
+}
+
+int64 SystemPlatform::InterlockedIncrement(volatile int64* ptr)
+{
+#if SYS_PLATFORM_WIN
+	return ::_InterlockedIncrement64((volatile __int64*)ptr);
+#else
+#error no impl
+#endif
+}
+
+int32 SystemPlatform::InterlockedDecrement(volatile int32* ptr)
+{
+#if SYS_PLATFORM_WIN
+	return ::_InterlockedDecrement((volatile long*)ptr);
+#else
+#error no impl
+#endif
+}
+
+int64 SystemPlatform::InterlockedDecrement(volatile int64* ptr)
+{
+#if SYS_PLATFORM_WIN
+	return ::_InterlockedDecrement64((volatile __int64*)ptr);
+#else
+#error no impl
+#endif
+}
+
 int32 SystemPlatform::AtomicRead(volatile int32* ptr)
 {
 #if SYS_PLATFORM_WIN
 	return ::_InterlockedCompareExchange((volatile long*)ptr ,0 ,0);
+#else
+#error no impl
+#endif
+}
+
+int64 SystemPlatform::AtomicRead(volatile int64* ptr)
+{
+#if SYS_PLATFORM_WIN
+	return (int64)::_InterlockedCompareExchange64((volatile __int64*)ptr, 0, 0);
 #else
 #error no impl
 #endif
@@ -155,7 +245,7 @@ bool SystemPlatform::OpenFileName(char inoutPath[], int pathSize, char const* in
 	ofn.nMaxFileTitle = 0;
 	ofn.lpstrInitialDir = initDir;
 	if( inoutPath )
-		ofn.nFileOffset = FileUtility::GetDirPathPos(inoutPath) - inoutPath + 1;
+		ofn.nFileOffset = FileUtility::GetFileName(inoutPath) - inoutPath;
 	ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST | OFN_NOCHANGEDIR;
 	
 	if( !GetOpenFileNameA(&ofn) )

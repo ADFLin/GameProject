@@ -20,6 +20,7 @@ uint32 const WAIT_TIME_INFINITE = 0xffffffff;
 #include "WindowsHeader.h"
 #include <process.h>
 
+#define ERROR_THREAD_ID (-1)
 class WinThread
 {
 public:

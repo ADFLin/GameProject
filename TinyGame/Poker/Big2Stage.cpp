@@ -48,6 +48,8 @@ namespace Poker { namespace Big2 {
 		delete mServerLevel;
 		delete mClientLevel;
 		delete mScene;
+
+		BaseClass::onEnd();
 	}
 
 	void LevelStage::tick()

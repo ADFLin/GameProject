@@ -85,7 +85,7 @@ bool GameStageBase::onInit()
 void GameStageBase::onEnd()
 {
 	mStageMode->onEnd();
-	delete mStageMode;
+	mStageMode->mCurStage = nullptr;
 	getManager()->setTickTime(gDefaultTickTime);
 	BaseClass::onEnd();
 }

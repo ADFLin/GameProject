@@ -109,6 +109,35 @@ namespace Go
 		}
 	};
 
+	class PorxyBot : public IBotInterface
+	{
+	public:
+		PorxyBot(IBotInterface& inBot, bool inbUseInMatch)
+			:mBot(&inBot), bUsedInMatch(inbUseInMatch)
+		{
+		}
+
+		virtual bool initilize(void* settingData) override { return true; }
+		virtual void destroy() override {}
+		virtual bool setupGame(GameSetting const& setting) override { if( bUsedInMatch ) return true; return mBot->setupGame(setting); }
+		virtual bool restart() override { if( bUsedInMatch ) return true; return mBot->restart(); }
+		virtual bool playStone(int x, int y, int color) override { if( bUsedInMatch ) return true; return mBot->playStone(x, y, color); }
+		virtual bool playPass(int color) override { if( bUsedInMatch ) return true; return mBot->playPass(color); }
+		virtual bool undo() override { if( bUsedInMatch ) return true; return mBot->undo(); }
+		virtual bool requestUndo() override { if( bUsedInMatch ) return true; return mBot->requestUndo();  }
+		virtual bool thinkNextMove(int color) override { return mBot->thinkNextMove(color);  }
+		virtual bool isThinking() override { return mBot->isThinking(); }
+		virtual void update(IGameCommandListener& listener) override { mBot->update(listener); }
+		virtual bool getMetaData(int id, uint8* dataBuffer, int size) { return mBot->getMetaData(id , dataBuffer , size); }
+		virtual bool isGPUBased() const { return mBot->isGPUBased(); }
+
+	private:
+
+		IBotInterface* mBot;
+		bool bUsedInMatch = false;
+
+	};
+
 
 
 }//namespace Go

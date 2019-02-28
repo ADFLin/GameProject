@@ -2,7 +2,7 @@
 #include "GoStage.h"
 
 #include "RenderUtility.h"
-#include "Thread.h"
+#include "PlatformThread.h"
 #include "SystemPlatform.h"
 #include "ZenBot.h"
 #include "FixString.h"

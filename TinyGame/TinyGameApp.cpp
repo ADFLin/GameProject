@@ -34,7 +34,7 @@
 #include "SingleStageMode.h"
 #include "ReplayStageMode.h"
 
-#include "Thread.h"
+#include "PlatformThread.h"
 #include "SystemPlatform.h"
 #include "RHI/MeshUtility.h"
 #include "RHI/GpuProfiler.h"
@@ -283,10 +283,16 @@ long TinyGameApp::onUpdate( long shouldTime )
 	{
 		ProfileSystem::Get().incrementFrameCount();
 
+		if( mStageMode && mStageMode->getStage() == nullptr )
+		{
+			delete mStageMode;
+			mStageMode = nullptr;
+		}
+		checkNewStage();
+
 		if ( mNetWorker )
 			mNetWorker->update( getUpdateTime() );
 
-		checkNewStage();
 		runTask( getUpdateTime() );
 
 		getCurStage()->update( getUpdateTime() );
@@ -320,7 +326,10 @@ void TinyGameApp::onRender()
 void TinyGameApp::loadGamePackage()
 {
 	FileIterator fileIter;
-	if ( FileSystem::FindFiles( "" , ".dll" , fileIter ) )
+	FixString<MAX_PATH + 1> dir;
+	::GetModuleFileName(NULL, dir.data(), dir.max_size());
+	
+	if ( FileSystem::FindFiles( FileUtility::GetDirectory(dir).toCString() , ".dll" , fileIter ) )
 	{
 		for ( ; fileIter.haveMore() ; fileIter.goNext() )
 		{
@@ -454,6 +463,10 @@ bool TinyGameApp::onKey( unsigned key , bool isDown )
 		else if( key == Keyboard::eOEM3 )
 		{
 			setConsoleShowMode( ConsoleShowMode(( int(mConsoleShowMode) + 1 ) % int(ConsoleShowMode::Count) ) );
+		}
+		if( key == Keyboard::eX )
+		{
+			loadGamePackage();
 		}
 	}
 	bool result = ::Global::GUI().procKeyMsg( key , isDown );
@@ -697,6 +710,7 @@ GameStageMode* TinyGameApp::createGameStageMode(StageID stageId)
 
 StageBase* TinyGameApp::resolveChangeStageFail( FailReason reason )
 {
+	LogMsg("Change Stage Fail!!");
 	switch( reason )
 	{
 	case FailReason::InitFail:

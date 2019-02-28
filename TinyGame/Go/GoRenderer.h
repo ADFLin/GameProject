@@ -17,6 +17,7 @@ namespace Go
 
 	class Board;
 	class Game;
+	struct PlayVertex;
 
 	struct RenderContext
 	{
@@ -87,7 +88,7 @@ namespace Go
 			return mNoiseOffsets[(i * boradSize + j) % mNoiseOffsets.size()];
 		}
 
-		void drawStoneSequence(RenderContext const& context, std::vector<int> const& vertices , int colorStart , float opacity);
+		void drawStoneSequence(RenderContext const& context, std::vector<PlayVertex> const& vertices , int colorStart , float opacity);
 		void drawStoneNumber(RenderContext const& context, int number)
 		{
 

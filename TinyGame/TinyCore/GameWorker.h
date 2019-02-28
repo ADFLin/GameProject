@@ -1,8 +1,10 @@
-#ifndef NetWorker_h__
-#define NetWorker_h__
+#pragma once
+#ifndef GameWorker_H_414D91B7_E6B1_4BF0_9900_CF50D7AA77F2
+#define GameWorker_H_414D91B7_E6B1_4BF0_9900_CF50D7AA77F2
 
+#include "GameShare.h"
 #include "ComPacket.h"
-#include "Thread.h"
+#include "PlatformThread.h"
 
 #include "GameNetConnect.h"
 #include "SocketBuffer.h"
@@ -28,6 +30,8 @@ enum NetActionState
 	NAS_CONNECT     ,
 	NAS_RECONNECT   ,
 
+
+	//TODO# split
 	NAS_TIME_SYNC   ,
 
 	NAS_ROOM_ENTER  ,
@@ -36,13 +40,26 @@ enum NetActionState
 
 	NAS_LEVEL_SETUP   ,
 	NAS_LEVEL_LOAD    ,
-	NAS_LEVEL_LOAD_FAIL ,
+
 	NAS_LEVEL_INIT    ,
 	NAS_LEVEL_RESTART ,
 	NAS_LEVEL_RUN     ,
 	NAS_LEVEL_PAUSE   ,
-	NAS_LEVEL_STOP    ,
 	NAS_LEVEL_EXIT    ,
+
+	NAS_LEVEL_LOAD_FAIL,
+};
+
+enum class NetControlAction
+{
+	LevelSetup ,
+	LevelLoad ,
+	LevelInit ,
+	LevelRun ,
+	LevelPause ,
+	LevelRestart ,
+	LevelExit ,
+	LevelChange ,
 };
 
 enum LoginResult
@@ -71,7 +88,7 @@ public:
 class ComListener : public ComVisitor
 {
 public:
-	virtual void prevProcCommand(){}
+	virtual bool prevProcCommand() { return true; }
 	virtual void postProcCommand(){}
 };
 
@@ -155,7 +172,10 @@ class Channel
 	Type getType();
 };
 
-TINY_API bool IsInSocketThread();
+typedef std::function< void() > NetCommandDelegate;
+
+
+
 class  NetWorker : public ComWorker
 {
 public:
@@ -175,8 +195,19 @@ protected:
 
 	virtual bool  doStartNetwork() = 0;
 	virtual void  doCloseNetwork() = 0;
-	virtual bool  updateSocket( long time ) = 0;
-
+	virtual void  clenupNetResource(){}
+	virtual bool  update_NetThread(long time)
+	{
+		processNetThreadCommnads();
+		return true;
+	}
+	virtual void  doUpdate(long time) 
+	{
+#if !TINY_USE_NET_THREAD
+		update_NetThread(time);
+#endif
+		processGameThreadCommnads();
+	}
 protected:
 	typedef fastdelegate::FastDelegate< void ( )> SocketFun;
 	typedef TFunctionThread< SocketFun > SocketThread;
@@ -185,6 +216,35 @@ protected:
 	typedef std::vector< INetStateListener* > NetMsgListenerVec;
 	INetStateListener* mNetListener;
 
+	void processGameThreadCommnads()
+	{
+		processThreadCommandInternal(mGameThreadCommands
+#if TINY_USE_NET_THREAD
+									 , mMutexGameThreadCommands
+#endif
+		);
+	}
+	template< class Fun >
+	void addGameThreadCommnad(Fun&& fun)
+	{
+		MUTEX_LOCK(mMutexGameThreadCommands);
+		mGameThreadCommands.push_back(std::forward<Fun>(fun));
+	}
+	void processNetThreadCommnads()
+	{
+		assert(IsInNetThread());
+		processThreadCommandInternal(mNetThreadCommands
+#if TINY_USE_NET_THREAD
+									 , mMutexNetThreadCommands
+#endif
+		);
+	}
+	template< class Fun >
+	void addNetThreadCommnad(Fun&& fun)
+	{
+		MUTEX_LOCK(mMutexNetThreadCommands);
+		mNetThreadCommands.push_back(std::forward<Fun>(fun));
+	}
 
 private:
 	struct UdpCom
@@ -200,7 +260,32 @@ private:
 	long          mNetRunningTime;
 
 
-	void  procSocketThread();
+
+
+	DEFINE_MUTEX(mMutexNetThreadCommands)
+	std::vector< NetCommandDelegate > mNetThreadCommands;
+
+	DEFINE_MUTEX(mMutexGameThreadCommands)
+	std::vector< NetCommandDelegate > mGameThreadCommands;
+
+
+	void processThreadCommandInternal(std::vector< NetCommandDelegate >& commands
+#if TINY_USE_NET_THREAD
+								,Mutex& MutexCommands
+#endif
+	)
+	{
+		MUTEX_LOCK(MutexCommands);
+		for( auto const& command : commands )
+		{
+			command();
+		}
+		commands.clear();
+	}
+#if TINY_USE_NET_THREAD
+	volatile int32 mbRequestExitNetThread;
+	void  entryNetThread();
+#endif
 };
 
 
@@ -208,4 +293,4 @@ bool EvalCommand( UdpChain& chain , ComEvaluator& evaluator , SocketBuffer& buff
 unsigned WriteComToBuffer( NetBufferOperator& bufferCtrl , IComPacket* cp );
 unsigned WriteComToBuffer( SocketBuffer& buffer , IComPacket* cp );
 
-#endif // NetWorker_h__
+#endif // GameWorker_H_414D91B7_E6B1_4BF0_9900_CF50D7AA77F2

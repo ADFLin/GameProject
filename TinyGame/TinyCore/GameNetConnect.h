@@ -1,12 +1,13 @@
 #ifndef GameNetConnect_h__
 #define GameNetConnect_h__
 
-#include "Thread.h"
+#include "PlatformThread.h"
 #include "NetSocket.h"
 #include "SocketBuffer.h"
 #include "Core/IntegerType.h"
 #include "SystemPlatform.h"
 
+#include "Core/LockFreeList.h"
 #include <deque>
 
 class NetConnection;
@@ -47,24 +48,25 @@ enum NetBufferOperation
 class INetConnectListener
 {
 public:
-	virtual void onConnectExcept( NetConnection* con ){}
+	virtual void notifyConnectionExcept( NetConnection* con ){}
 	//TCP Server
-	virtual void onConnectAccpet( NetConnection* con ){}
+	virtual void notifyConnectionAccpet( NetConnection* con ){}
 	//TCP Client
-	virtual void onConnectFail( NetConnection* con ){}
-	virtual void onConnectOpen( NetConnection* con ){}
-	virtual void onConnectClose( NetConnection* con , NetCloseReason reason ){}
+	virtual void notifyConnectionFail( NetConnection* con ){}
+	virtual void notifyConnectionOpen( NetConnection* con ){}
+	virtual void notifyConnectClose( NetConnection* con , NetCloseReason reason ){}
 
 	//UDP Server/Client
-	virtual void onSendData( NetConnection* con ){}
+	virtual void notifyConnectionSend( NetConnection* con ){}
 	//UDP & TCP
-	virtual bool onRecvData( NetConnection* con , SocketBuffer& buffer , NetAddress* addr  = NULL ){ return true; }
+	virtual bool notifyConnectionRecv( NetConnection* con , SocketBuffer& buffer , NetAddress* addr  = NULL ){ return true; }
 };
 
 class NetBufferOperator
 {
 public:
-	NetBufferOperator( int bufferSize ): mBuffer( bufferSize ){}
+	NetBufferOperator(int bufferSize)
+		: mBuffer(bufferSize){}
 
 	SocketBuffer& getBuffer(){ return mBuffer; }
 	void     clear();
@@ -74,7 +76,8 @@ public:
 	bool     sendData( NetSocket& socket , NetAddress* addr = NULL );
 	bool     recvData( NetSocket& socket , int len , NetAddress* addr = NULL );
 private:
-	SocketBuffer  mBuffer;
+
+	SocketBuffer   mBuffer;
 	DEFINE_MUTEX( mMutexBuffer )
 };
 
@@ -98,7 +101,7 @@ public:
 	
 protected:
 
-	bool checkConnect( long time );
+	bool checkConnectStatus( long time );
 	virtual void  doUpdateSocket( long time ){}
 
 	//SocketDetector

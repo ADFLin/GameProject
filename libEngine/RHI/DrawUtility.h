@@ -290,8 +290,8 @@ namespace Render
 		static void Sprite(Vector2 const& pos, Vector2 const& size, Vector2 const& pivot, IntVector2 const& framePos, IntVector2 const& frameDim);
 		static void Sprite(Vector2 const& pos, Vector2 const& size, Vector2 const& pivot, Vector2 const& texPos, Vector2 const& texSize);
 
-		static void DrawTexture(RHITexture2D& texture, IntVector2 const& pos, IntVector2 const& size);
-		static void DrawTexture(RHITexture2D& texture, RHISamplerState& sampler , IntVector2 const& pos, IntVector2 const& size);
+		static void DrawTexture(RHITexture2D& texture, IntVector2 const& pos, IntVector2 const& size, LinearColor const& color = LinearColor(1, 1, 1, 1));
+		static void DrawTexture(RHITexture2D& texture, RHISamplerState& sampler , IntVector2 const& pos, IntVector2 const& size , LinearColor const& color = LinearColor(1,1,1,1));
 		static void DrawCubeTexture(RHITextureCube& texCube, IntVector2 const& pos, int length);
 
 	};

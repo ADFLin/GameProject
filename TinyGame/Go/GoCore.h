@@ -69,6 +69,43 @@ namespace Go
 		return 2;
 	}
 
+	struct PlayVertex
+	{
+		union
+		{
+			struct
+			{
+				short x;
+				short y;
+			};
+			int data;
+		};
+
+		bool operator == (PlayVertex const& rhs) const { return data == rhs.data; }
+		bool operator != (PlayVertex const& rhs) const { return !this->operator==(rhs); }
+
+		bool isOnBoard() const { return data > 0; }
+
+		static PlayVertex Pass()
+		{
+			PlayVertex result; 
+			result.data = -2;
+			return result;
+		}
+		static PlayVertex Resign()
+		{
+			PlayVertex result;
+			result.data = -3;
+			return result;
+		}
+		static PlayVertex Undefiend()
+		{
+			PlayVertex result;
+			result.data = -1;
+			return result;
+		}
+	};
+
 	class Board
 	{
 	public:

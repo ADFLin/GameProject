@@ -17,7 +17,7 @@ public:
 
 	/// Returns the time in ms since the last call to reset or since 
 	/// the btClock was created.
-	unsigned long int getTimeMilliseconds();
+	unsigned long int getTimeMilliseconds() { return getTimeMicroseconds() / 1000; }
 	unsigned long int getTimeMicroseconds();
 
 private:

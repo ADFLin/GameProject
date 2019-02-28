@@ -14,9 +14,11 @@ void ComWorker::update( long time )
 {
 	if ( mComListener )
 	{
-		mComListener->prevProcCommand();
-		mCPEvaluator.procCommand( *mComListener );
-		mComListener->postProcCommand();
+		if( mComListener->prevProcCommand() )
+		{
+			mCPEvaluator.procCommand(*mComListener);
+			mComListener->postProcCommand();
+		}
 	}
 	else
 	{
@@ -26,11 +28,40 @@ void ComWorker::update( long time )
 	doUpdate( time );
 }
 
+char const* NetActionStateStrings[] =
+{
+	"NAS_DISSCONNECT" ,
+	"NAS_LOGIN"      ,
+	"NAS_ACCPET"      , //Server
+	"NAS_CONNECT"     ,
+	"NAS_RECONNECT"   ,
+
+
+	//TODO# split
+	"NAS_TIME_SYNC"   ,
+
+	"NAS_ROOM_ENTER"  ,
+	"NAS_ROOM_READY"  ,
+	"NAS_ROOM_WAIT"   ,
+
+	"NAS_LEVEL_SETUP"   ,
+	"NAS_LEVEL_LOAD"    ,
+
+	"NAS_LEVEL_INIT"    ,
+	"NAS_LEVEL_RESTART" ,
+	"NAS_LEVEL_RUN"     ,
+	"NAS_LEVEL_PAUSE"   ,
+	"NAS_LEVEL_EXIT"    ,
+
+	"NAS_LEVEL_LOAD_FAIL",
+};
+
 void ComWorker::changeState( NetActionState state )
 {
 	if ( state == mNAState )
 		return;
 
+	LogMsg("Change Net State : %s", NetActionStateStrings[state]);
 	NetActionState oldState = mNAState;
 	mNAState = state;
 	postChangeState( oldState );
@@ -38,7 +69,9 @@ void ComWorker::changeState( NetActionState state )
 
 NetWorker::NetWorker() 
 	:mUdpSendBuffer( 1024 )
-	,mSocketThread( SocketFun( this , &NetWorker::procSocketThread ) )
+#if TINY_USE_NET_THREAD
+	,mSocketThread( SocketFun( this , &NetWorker::entryNetThread ) )
+#endif
 {
 	mNetListener = NULL;
 }
@@ -49,24 +82,32 @@ NetWorker::~NetWorker()
 		MUTEX_LOCK( mMutexUdpComList );
 		mUdpComList.clear();
 	}
+#if TINY_USE_NET_THREAD
 	mSocketThread.stop();
 	NetSocket::exitSystem();
+#endif
 }
 
 uint32 gSocketThreadId = 0;
-bool IsInSocketThread()
+bool IsInNetThread()
 {
+#if TINY_USE_NET_THREAD
 	return gSocketThreadId == PlatformThread::GetCurrentThreadId();
+#else
+	return IsInGameThead();
+#endif
 }
 
-void NetWorker::procSocketThread()
+void NetWorker::entryNetThread()
 {
 	gSocketThreadId = PlatformThread::GetCurrentThreadId();
+
+	SystemPlatform::InterlockedExchange(&mbRequestExitNetThread, 0);
 
 	mNetRunningTime = 0;
 	int64 beforeTime = SystemPlatform::GetTickCount();
 
-	while( 1 )
+	while( mbRequestExitNetThread == 0 )
 	{
 		int64 intervalTime = SystemPlatform::GetTickCount() - beforeTime;
 
@@ -75,7 +116,7 @@ void NetWorker::procSocketThread()
 
 		try
 		{
-			if ( !updateSocket( mNetRunningTime ) )
+			if ( !update_NetThread( mNetRunningTime ) )
 				break;
 
 			SystemPlatform::Sleep(0);
@@ -97,6 +138,8 @@ void NetWorker::procSocketThread()
 			LogMsg( e.what() );
 		}
 	}
+
+	clenupNetResource();
 }
 
 bool NetWorker::startNetwork()
@@ -124,10 +167,16 @@ bool NetWorker::startNetwork()
 
 void NetWorker::closeNetwork()
 {
-	MUTEX_LOCK( mMutexUdpComList );
-	mUdpComList.clear();
+	{
+		MUTEX_LOCK(mMutexUdpComList);
+		mUdpComList.clear();
+	}
 
-	mSocketThread.stop();
+#if TINY_USE_NET_THREAD
+	SystemPlatform::InterlockedExchange(&mbRequestExitNetThread, 1);
+	mSocketThread.join();
+#endif
+
 	doCloseNetwork();
 
 	NetSocket::exitSystem();

@@ -14,7 +14,7 @@ namespace GreedySnake
 		~LevelStage();
 
 		bool onInit();
-		void onEnd(){}
+		void onEnd();
 		void onRestart( bool beInit );
 		
 		

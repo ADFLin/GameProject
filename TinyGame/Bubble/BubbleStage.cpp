@@ -38,6 +38,8 @@ namespace Bubble
 	{
 		getActionProcessor().setLanucher( nullptr );
 		delete mMode;
+
+		BaseClass::onEnd();
 	}
 
 

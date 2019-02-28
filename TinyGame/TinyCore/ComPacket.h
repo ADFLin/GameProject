@@ -4,7 +4,7 @@
 #include "CppVersion.h"
 #include "Core/IntegerType.h"
 
-#include "Thread.h"
+#include "PlatformThread.h"
 #include "FastDelegate/FastDelegate.h"
 
 #include <map>
@@ -79,7 +79,7 @@ class ComVisitor
 {
 public:
 	virtual ~ComVisitor(){}
-	virtual ComVisitResult visit( IComPacket* cp ){ return CVR_DISCARD; }
+	virtual ComVisitResult visitComPacket( IComPacket* cp ){ return CVR_DISCARD; }
 };
 
 class ComLibrary

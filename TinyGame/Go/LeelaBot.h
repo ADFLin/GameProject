@@ -4,11 +4,11 @@
 
 #include "GoBot.h"
 
-#include "Thread.h"
+#include "PlatformThread.h"
 #include "Platform/Windows/WindowsProcess.h"
 
 #include "Template/ArrayView.h"
-#define LEELA_NET_DIR "networks/"
+#define LEELA_NET_DIR_NAME "networks"
 
 namespace Go
 {
@@ -167,18 +167,15 @@ namespace Go
 
 		std::string toString() const;
 
-
 	};
-
-
 
 	struct LeelaThinkInfo
 	{
-		int   v;
+		PlayVertex v;
 		int   nodeVisited;
 		float winRate;
 		float evalValue;
-		std::vector< int > vSeq;
+		std::vector< PlayVertex > vSeq;
 	};
 
 	typedef std::vector< LeelaThinkInfo >  LeelaThinkInfoVec;

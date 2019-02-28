@@ -16,7 +16,7 @@ enum ThinkMode
 class Thinkable;
 struct ThinkContent;
 
-typedef fastdelegate::FastDelegate1< ThinkContent& , void > ThinkFun;
+typedef fastdelegate::FastDelegate< void ( ThinkContent& ) > ThinkFun;
 struct ThinkContent
 {
 public:

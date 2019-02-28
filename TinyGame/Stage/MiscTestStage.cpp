@@ -1554,7 +1554,7 @@ void MiscTestStage::addTest(char const* name , TestFun const& fun)
 	mInfos.push_back( info );
 }
 
-#include "Thread.h"
+#include "PlatformThread.h"
 #include "boost/thread.hpp"
 bool MiscTestStage::onWidgetEvent(int event , int id , GWidget* ui)
 {

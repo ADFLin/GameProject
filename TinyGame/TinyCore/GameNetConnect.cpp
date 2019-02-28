@@ -13,7 +13,7 @@ void NetConnection::recvData( NetBufferOperator& bufCtrl , int len , NetAddress*
 				return;
 			}
 
-			if ( mListener->onRecvData( this , bufCtrl.getBuffer() , addr ) )
+			if ( mListener->notifyConnectionRecv( this , bufCtrl.getBuffer() , addr ) )
 			{
 				bufCtrl.clear();
 			}
@@ -37,12 +37,12 @@ void NetConnection::updateSocket( long time )
 	doUpdateSocket( time );
 }
 
-bool NetConnection::checkConnect( long time )
+bool NetConnection::checkConnectStatus( long time )
 {
 	long const TimeOut = 30 * 1000;
 	if ( time - mLastRespondTime > TimeOut )
 	{
-		mListener->onConnectClose( this , NetCloseReason::Timeout );
+		mListener->notifyConnectClose( this , NetCloseReason::Timeout );
 		return false;
 	}
 	return true;
@@ -50,7 +50,7 @@ bool NetConnection::checkConnect( long time )
 
 void NetConnection::resolveExcept()
 {
-	mListener->onConnectExcept( this );
+	mListener->notifyConnectionExcept( this );
 }
 
 UdpConnection::UdpConnection( int recvSize ) :mRecvCtrl( recvSize )
@@ -99,7 +99,7 @@ void UdpClient::setServerAddr( char const* addrName , unsigned port )
 void UdpClient::onSendable( NetSocket& socket )
 {
 	sendData( socket );
-	mListener->onSendData( this );
+	mListener->notifyConnectionSend( this );
 }
 
 void UdpClient::onReadable( NetSocket& socket , int len )
@@ -144,7 +144,7 @@ void UdpServer::run( unsigned port )
 
 void UdpServer::onSendable( NetSocket& socket )
 {
-	mListener->onSendData( this );
+	mListener->notifyConnectionSend( this );
 }
 
 
@@ -180,25 +180,25 @@ void TcpClient::onSendable( NetSocket& socket )
 void TcpClient::onConnectFailed( NetSocket& socket )
 {
 	LogMsg( "Connect Failed" );
-	mListener->onConnectFail( this );
+	mListener->notifyConnectionFail( this );
 }
 
 void TcpClient::onConnect( NetSocket& socket )
 {
 	LogMsg( "Connect success" );
-	mListener->onConnectOpen( this );
+	mListener->notifyConnectionOpen( this );
 }
 
 void TcpClient::onClose( NetSocket& socket , bool beGraceful )
 {
 	LogMsg( "Connection close" );
-	mListener->onConnectClose( this , NetCloseReason::ShutDown );
+	mListener->notifyConnectClose( this , NetCloseReason::ShutDown );
 }
 
 void TcpServer::onAcceptable( NetSocket& socket )
 {
 	LogMsg( "Client Connection" );
-	mListener->onConnectAccpet( this );
+	mListener->notifyConnectionAccpet( this );
 }
 
 void NetBufferOperator::fillBuffer( SocketBuffer& buffer , unsigned num )
@@ -267,9 +267,11 @@ bool NetBufferOperator::sendData( NetSocket& socket , NetAddress* addr )
 
 bool NetBufferOperator::recvData( NetSocket& socket , int len , NetAddress* addr /*= NULL */ )
 {
+	MUTEX_LOCK(mMutexBuffer);
+
 	try 
 	{
-		MUTEX_LOCK( mMutexBuffer );
+
 		int num = 0;
 
 		if ( addr )

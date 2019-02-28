@@ -4,7 +4,7 @@
 #include "ZBase.h"
 #include "IRenderSystem.h"
 
-#include "Thread.h"
+#include "PlatformThread.h"
 
 #include <gl\gl.h>
 #include <gl\glu.h>

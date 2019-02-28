@@ -29,7 +29,7 @@ REGISTER_STAGE("LeelaZero Learning", Go::LeelaZeroGoStage, EStageGroup::Test);
 
 namespace Go
 {
-	struct WeightInfo
+	struct OfficialLeelaWeightInfo
 	{
 		int version;
 		std::string date;
@@ -39,50 +39,85 @@ namespace Go
 		int elo;
 		int games;
 		int training;
+
+		static bool Load(char const* path, std::vector< OfficialLeelaWeightInfo >& outTable)
+		{
+			std::ifstream fs(path);
+			if( !fs.is_open() )
+				return false;
+
+			while( fs.good() )
+			{
+				OfficialLeelaWeightInfo info;
+				fs >> info.version >> info.date >> info.time >> info.name >> info.format >> info.elo >> info.games >> info.training;
+
+				outTable.push_back(std::move(info));
+			}
+			return true;
+		}
+	};
+
+	class OfficialLeelaWeightTable
+	{
+	public:
+		bool load(char const path)
+		{
+			std::vector< OfficialLeelaWeightInfo > table;
+			{
+				FixString<256> path;
+				path.format("%s/%s/%s", LeelaAppRun::InstallDir, LEELA_NET_DIR_NAME, "table.txt");
+				if( !OfficialLeelaWeightInfo::Load(path, table) )
+				{
+					LogError("Can't Load Table");
+					return false;
+				}
+			}
+
+			std::unordered_map< std::string, OfficialLeelaWeightInfo* > weightMap;
+			for( auto& info : table )
+			{
+				weightMap.emplace(info.name, &info);
+			}
+			return true;
+		}
+
+
+		std::unordered_map< std::string, OfficialLeelaWeightInfo* > weightMap;
 	};
 
 
-	bool LoadWeightTable(char const* path, std::vector< WeightInfo >& outTable)
-	{
-		std::ifstream fs(path);
-		if( !fs.is_open() )
-			return false;
-
-		while( fs.good() )
-		{
-			WeightInfo info;
-			fs >> info.version >> info.date >> info.time >> info.name >> info.format >> info.elo >> info.games >> info.training;
-
-			outTable.push_back(std::move(info));
-		}
-
-		return true;
-
-	}
-
 	void RunConvertWeight()
 	{
-		std::vector< WeightInfo > table;
+		std::vector< OfficialLeelaWeightInfo > table;
 		{
 			FixString<256> path;
-			path.format("%s/%s", LeelaAppRun::InstallDir, LEELA_NET_DIR"table.txt");
-			if( !LoadWeightTable(path, table) )
+			path.format("%s/%s/%s", LeelaAppRun::InstallDir, LEELA_NET_DIR_NAME , "table.txt");
+			if( !OfficialLeelaWeightInfo::Load(path, table) )
 			{
 				LogError("Can't Load Table");
 				return;
 			}
 		}
 
-		std::unordered_map< std::string, WeightInfo* > weightMap;
+		int index = 0;
+		std::unordered_map< std::string, OfficialLeelaWeightInfo* > weightMap;
 		for( auto& info : table )
 		{
+			if ( index == 0)
+			{
+				++index;
+				continue;
+			}
+
 			weightMap.emplace(info.name, &info);
+			++index;
+			
 		}
 
 		{
 			FileIterator fileIter;
 			FixString<256> dir;
-			dir.format("%s/%s", LeelaAppRun::InstallDir, LEELA_NET_DIR);
+			dir.format("%s/%s", LeelaAppRun::InstallDir, LEELA_NET_DIR_NAME);
 
 			std::string bestWeightName = LeelaAppRun::GetBestWeightName();
 			if( FileSystem::FindFiles(dir, nullptr, fileIter) )
@@ -115,7 +150,7 @@ namespace Go
 						FixString<256> newName;
 						newName.format("#%03d-%s-%s", iter->second->version, iter->second->format.c_str(), weightName.c_str());
 						FixString<256> filePath;
-						filePath.format("%s%s", dir.c_str(), fileIter.getFileName());
+						filePath.format("%s/%s", dir.c_str(), fileIter.getFileName());
 						if( subName )
 						{
 							newName += subName;
@@ -484,9 +519,18 @@ namespace Go
 #endif
 			return false;
 		});
-		devFrame->addCheckBox("Show Territory", [&](int eventId, GWidget* widget) ->bool
+		devFrame->addButton("Show Territory", [&](int eventId, GWidget* widget) ->bool
 		{
-			bShowTerritory = !bShowTerritory;
+			if( bUpdateTerritory )
+			{
+				bShowTerritory = !bShowTerritory;
+				if( !bShowTerritory )
+					bUpdateTerritory = false;
+			}
+			else
+			{
+				bUpdateTerritory = true;
+			}
 			updateViewGameTerritory();
 			return false;
 		});
@@ -665,17 +709,14 @@ namespace Go
 			drawAnalysis( g , context );
 		}
 
-		if( bestMoveVertex >= 0 )
+		if( bestMoveVertex.isOnBoard() )
 		{
 			if( showBranchVertex == bestMoveVertex && !bestThinkInfo.vSeq.empty() )
 			{
 				mBoardRenderer.drawStoneSequence(context, bestThinkInfo.vSeq, mGame.getInstance().getNextPlayColor(), 0.7);
 			}
 
-			int x = bestMoveVertex % LeelaGoSize;
-			int y = bestMoveVertex / LeelaGoSize;
-			Vector2 pos = context.getIntersectionPos(x, y);
-
+			Vector2 pos = context.getIntersectionPos(bestMoveVertex.x, bestMoveVertex.y);
 			RenderUtility::SetPen(g, EColor::Red);
 			RenderUtility::SetBrush(g, EColor::Red);
 			g.drawCircle(pos, 8);
@@ -745,9 +786,24 @@ namespace Go
 			textLayout.posX = 750;
 			textLayout.posY = 25;
 
-			if( bShowTerritory )
+			if( bUpdateTerritory )
 			{
-				textLayout.show(g, "B = %d , W = %d", mShowTerritoryInfo.fieldCounts[0], mShowTerritoryInfo.fieldCounts[1]);
+				for( int i = 0; i < 2; ++i )
+				{
+					textLayout.show(g, "%c = %d , %.2f",
+									i == 0 ? 'B' : 'W' ,
+									mShowTerritoryInfo.fieldCounts[i], 
+									float(mShowTerritoryInfo.totalRemainFields[i])/ Zen::TerritoryInfo::FieldValue );
+				}
+				float score = mShowTerritoryInfo.fieldCounts[0] - mShowTerritoryInfo.fieldCounts[1] - getViewingGame().getSetting().komi;
+				float score2 = score + float(mShowTerritoryInfo.totalRemainFields[0] - mShowTerritoryInfo.totalRemainFields[1]) / Zen::TerritoryInfo::FieldValue;
+#if 1
+				textLayout.show(g, "%c +%.1f" ,score > 0 ? 'B' : 'W' , Math::Abs(score) );
+#else
+				textLayout.show(g, "%c +%.1f , %c +%.1f",
+								score > 0 ? 'B' : 'W', Math::Abs(score),
+								score2 > 0 ? 'B' : 'W', Math::Abs(score2));
+#endif
 			}
 			if( bDrawDebugMsg )
 			{
@@ -766,7 +822,7 @@ namespace Go
 		GPU_PROFILE("Draw Analysis");
 
 		auto iter = analysisResult.end();
-		if( showBranchVertex != -1 )
+		if( showBranchVertex != PlayVertex::Undefiend() )
 		{
 			iter = std::find_if(analysisResult.begin(), analysisResult.end(),
 								[this](auto const& info) { return info.v == showBranchVertex; });
@@ -797,8 +853,8 @@ namespace Go
 				if( info.nodeVisited == 0 )
 					continue;
 
-				int x = info.v % LeelaGoSize;
-				int y = info.v / LeelaGoSize;
+				int x = info.v.x;
+				int y = info.v.y;
 
 				float percentVsisted = float(info.nodeVisited) / maxVisited;
 				float hue = (float)(120 * std::max(0.0f, Math::Log(percentVsisted) / HUE_SCALING_FACTOR + 1));
@@ -953,7 +1009,7 @@ namespace Go
 
 	void LeelaZeroGoStage::updateViewGameTerritory()
 	{
-		if( !bShowTerritory )
+		if( !bUpdateTerritory )
 			return;
 
 		if( !mStatusQuery.queryTerritory(getViewingGame(), mShowTerritoryInfo) )
@@ -1123,11 +1179,12 @@ namespace Go
 
 			if( mGame.getBoard().checkRange(pos.x, pos.y) )
 			{
-				showBranchVertex = mGame.getBoard().getSize() * pos.y + pos.x;
+				showBranchVertex.x = pos.x;
+				showBranchVertex.y = pos.y; 
 			}
 			else
 			{
-				showBranchVertex = -1;
+				showBranchVertex = PlayVertex::Undefiend();
 			}
 		}
 		return true;
@@ -1244,7 +1301,7 @@ namespace Go
 		char const* weightNameA = ::Global::GameConfig().getStringValue( "LeelaLastOpenWeight" , "Go" , DERAULT_LEELA_WEIGHT_NAME );
 
 		FixString<256> path;
-		path.format("%s/" LEELA_NET_DIR "%s" , LeelaAppRun::InstallDir , weightNameA );
+		path.format("%s/%s/%s" , LeelaAppRun::InstallDir , LEELA_NET_DIR_NAME ,  weightNameA );
 		path.replace('/', '\\');
 		if( SystemPlatform::OpenFileName(path, path.max_size(), nullptr) )
 		{
@@ -1304,7 +1361,7 @@ namespace Go
 			LeelaAISetting setting = LeelaAISetting::GetDefalut();
 			std::string bestWeigetName = LeelaAppRun::GetBestWeightName();
 			FixString<256> path;
-			path.format("%s/" LEELA_NET_DIR "%s", LeelaAppRun::InstallDir, bestWeigetName.c_str());
+			path.format("%s/%s/%s", LeelaAppRun::InstallDir, LEELA_NET_DIR_NAME , bestWeigetName.c_str());
 			path.replace('/', '\\');
 
 
@@ -1999,92 +2056,7 @@ namespace Go
 
 	void LeelaZeroGoStage::resetTurnParam()
 	{
-		bestMoveVertex = -3;
-	}
-
-	FixString< 128 > MatchPlayer::getName() const
-	{
-		FixString< 128 > result = GetControllerName(type);
-		if( type == ControllerType::eLeelaZero )
-		{
-			std::string weightName;
-			bot->getMetaDataT(LeelaBot::eWeightName, weightName);
-			result += " ";
-			if( weightName.length() > 10 )
-				result += weightName.substr(0, 8);
-			else
-				result += weightName;
-		}
-		return result;
-	}
-
-	bool MatchPlayer::initialize(ControllerType inType, void* botSetting /*= nullptr*/)
-	{
-		type = inType;
-		winCount = 0;
-
-		bot.release();
-
-		paramString = GetParamString(inType, botSetting);
-		paramKey.setValue(paramString);
-
-		switch( type )
-		{
-		case ControllerType::ePlayer:
-			return true;
-		case ControllerType::eLeelaZero:
-			bot.reset(new LeelaBot());
-			break;
-		case ControllerType::eAQ:
-			bot.reset(new AQBot());
-			break;
-		case ControllerType::eZenV7:
-			bot.reset(new ZenBot(7));
-			break;
-		case ControllerType::eZenV6:
-			bot.reset(new ZenBot(6));
-			break;
-		case ControllerType::eZenV4:
-			bot.reset(new ZenBot(4));
-			break;
-		}
-
-		if( !bot )
-			return false;
-
-		if( !bot->initilize(botSetting) )
-		{
-			bot.release();
-			return false;
-		}
-		return true;
-	}
-
-	std::string MatchPlayer::GetParamString(ControllerType inType, void* botSetting)
-	{
-		std::string paramString = GetControllerName(inType);
-		switch( inType )
-		{
-		case ControllerType::ePlayer:
-			break;
-		case ControllerType::eLeelaZero:
-			{
-				auto mySetting = static_cast<LeelaAISetting*>(botSetting);
-				paramString += " ";
-				paramString += mySetting->toParamString();
-			}
-			break;
-		case ControllerType::eAQ:
-			break;
-		case ControllerType::eZenV7:
-		case ControllerType::eZenV6:
-		case ControllerType::eZenV4:
-			break;
-		default:
-			NEVER_REACH("Error Controller Type");
-		}
-
-		return paramString;
+		bestMoveVertex = PlayVertex::Undefiend();
 	}
 
 	void MatchSettingPanel::addBaseWidget()
@@ -2124,7 +2096,7 @@ namespace Go
 		textCtrl = addTextCtrl(id + UPARAM_VISITS, "Visit Num", BIT(idxPlayer), idxPlayer);
 		textCtrl->setValue(std::to_string(setting.visits).c_str());
 		GFilePicker*  filePicker = addWidget< GFilePicker >(id + UPARAM_WEIGHT_NAME, "Weight Name", BIT(idxPlayer), idxPlayer);
-		filePicker->filePath.format("%s/" LEELA_NET_DIR "%s", LeelaAppRun::InstallDir, LeelaAppRun::GetBestWeightName().c_str());
+		filePicker->filePath.format("%s/%s/%s", LeelaAppRun::InstallDir, LEELA_NET_DIR_NAME ,LeelaAppRun::GetBestWeightName().c_str());
 		filePicker->filePath.replace('/', '\\');
 	}
 
@@ -2185,6 +2157,7 @@ namespace Go
 		for( int i = 0; i < 2; ++i )
 		{
 			int id = (i) ? UI_CONTROLLER_TYPE_B : UI_CONTROLLER_TYPE_A;
+			MatchPlayer* otherPlayer = (i) ? &matchData.players[0] : nullptr;
 			switch( types[i] )
 			{
 			case ControllerType::eLeelaZero:
@@ -2203,7 +2176,7 @@ namespace Go
 					{
 						setting.randomcnt = 5;
 					}
-					if( !matchData.players[i].initialize(types[i], &setting) )
+					if( !matchData.players[i].initialize(types[i], &setting, otherPlayer) )
 						return false;
 				}
 				break;
@@ -2214,12 +2187,12 @@ namespace Go
 					Zen::CoreSetting setting = ZenBot::GetCoreConfigSetting();
 					setting.numSimulations = atoi(findChildT<GTextCtrl>(id + UPARAM_SIMULATIONS_NUM)->getValue());
 					setting.maxTime = atof(findChildT<GTextCtrl>(id + UPARAM_MAX_TIME)->getValue());
-					if( !matchData.players[i].initialize(types[i], &setting) )
+					if( !matchData.players[i].initialize(types[i], &setting, otherPlayer) )
 						return false;
 				}
 				break;
 			default:
-				if( !matchData.players[i].initialize(types[i]) )
+				if( !matchData.players[i].initialize(types[i],nullptr, otherPlayer) )
 					return false;
 				break;
 			}

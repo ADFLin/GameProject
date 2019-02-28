@@ -196,6 +196,8 @@ namespace CAR
 		if ( mSurfaceBufferTake )
 			mSurfaceBufferTake->Release();
 		CFly::cleanupSystem();
+
+		BaseClass::onEnd();
 	}
 
 	void LevelStage::cleanupGameData(bool bEndStage)

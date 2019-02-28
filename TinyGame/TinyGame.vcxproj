@@ -284,6 +284,7 @@ copy $(TargetDir)EngineShare.dll $(ProjectDir)out\</Command>
     <ClCompile Include="Go\GoRenderer.cpp" />
     <ClCompile Include="Go\LeelaBot.cpp" />
     <ClCompile Include="Go\LeelaZeroGoStage.cpp" />
+    <ClCompile Include="Go\MatchGame.cpp" />
     <ClCompile Include="NesEmulator.cpp">
       <Optimization Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">MaxSpeed</Optimization>
       <Optimization Condition="'$(Configuration)|$(Platform)'=='Release|x64'">MaxSpeed</Optimization>
@@ -558,6 +559,7 @@ copy $(TargetDir)EngineShare.dll $(ProjectDir)out\</Command>
     <ClInclude Include="Go\GoRenderer.h" />
     <ClInclude Include="Go\LeelaBot.h" />
     <ClInclude Include="Go\LeelaZeroGoStage.h" />
+    <ClInclude Include="Go\MatchGame.h" />
     <ClInclude Include="NesEmulator.h" />
     <ClInclude Include="RandomUtility.h" />
     <ClInclude Include="RenderGL\RenderGLStage.h" />

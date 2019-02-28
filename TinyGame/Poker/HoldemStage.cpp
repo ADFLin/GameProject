@@ -174,6 +174,8 @@ namespace Poker { namespace Holdem {
 		mServerLevel.clear();
 		mClientLevel.clear();
 		mScene.clear();
+
+		BaseClass::onEnd();
 	}
 
 	void LevelStage::onRender( float dFrame )

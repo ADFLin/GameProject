@@ -200,17 +200,17 @@ void ComEvaluator::procCommand(  ComVisitor& visitor )
 		if ( com.factory->userFun )
 			( com.factory->userFun )( com.cp );
 
-		switch ( visitor.visit( com.cp ) )
+		switch ( visitor.visitComPacket(com.cp) )
 		{
 		case CVR_DISCARD: 
 			delete com.cp;
 			iter = mProcCPList.erase( iter );
 			break;
-		case CVR_RESERVE:
-			++iter;
-			break;
 		case CVR_TAKE:
 			iter = mProcCPList.erase( iter );
+			break;
+		case CVR_RESERVE:
+			++iter;
 			break;
 		}
 	}

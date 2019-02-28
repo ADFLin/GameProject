@@ -3,7 +3,7 @@
 //#include "TMessageShow.h"
 
 #include "Clock.h"
-#include "Thread.h"
+#include "PlatformThread.h"
 
 #include <atomic>
 

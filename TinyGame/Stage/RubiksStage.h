@@ -17,7 +17,7 @@
 #include <unordered_set>
 #include <deque>
 
-#include "Thread.h"
+#include "PlatformThread.h"
 
 namespace Rubiks
 {

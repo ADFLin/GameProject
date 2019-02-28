@@ -2,7 +2,7 @@
 #include "RenderGLStage.h"
 #include "RenderGLStageAssetID.h"
 
-#include "Thread.h"
+#include "PlatformThread.h"
 #include "RHI/ShaderCompiler.h"
 #include "RHI/RHICommand.h"
 #include "SceneScript.h"

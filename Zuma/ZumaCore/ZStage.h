@@ -5,7 +5,7 @@
 
 #include "CRSpline.h"
 
-#include "Thread.h"
+#include "PlatformThread.h"
 
 #include "ZLevel.h"
 #include "ZPath.h"

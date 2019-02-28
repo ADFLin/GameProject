@@ -47,7 +47,7 @@ namespace CFly
 		}
 		else if ( fileName )
 		{
-			char const* subName = FileUtility::GetSubName( fileName );
+			char const* subName = FileUtility::GetExtension( fileName );
 			for ( LinkerMap::iterator iter( mLinkerMap.begin() ) , end( mLinkerMap.end() );
 				iter != end ; ++iter )
 			{

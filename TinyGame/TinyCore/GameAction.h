@@ -69,13 +69,13 @@ public:
 	virtual void  generate( DataSerializer & serializer ) = 0;
 
 	//for server
-	virtual void  prevProcCommand(){}
+	virtual bool  prevProcCommand() override { return true; }
 	virtual void  recvClientData( unsigned pID , DataSteamBuffer& stream ){}
 	virtual void  reflashPlayer( IPlayerManager& playerManager ){}
 };
 
 #define DEF_SERVER_FRAME_GENERATOR_FUN( ACTION_TEMP )\
-	void  prevProcCommand(){  ACTION_TEMP::prevListenAction();  }\
+	bool  prevProcCommand(){  ACTION_TEMP::prevListenAction();  return true; }\
 	void  onFireAction( ActionParam& param ){  ACTION_TEMP::listenAction( param );  }\
 	void  generate( DataSerializer& serializer ){  ACTION_TEMP::translateData( serializer );  }\
 	void  firePortAction( ActionTrigger& trigger ){ assert(  0 && "No Need Call This Fun!");  }

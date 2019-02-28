@@ -161,24 +161,24 @@ namespace Render
 		TRenderRT< RTVF_XY_T2 >::Draw(PrimitiveType::Quad, vertices, 4);
 	}
 
-	void DrawUtility::DrawTexture(RHITexture2D& texture, IntVector2 const& pos, IntVector2 const& size)
+	void DrawUtility::DrawTexture(RHITexture2D& texture, IntVector2 const& pos, IntVector2 const& size, LinearColor const& color)
 	{
 		glEnable(GL_TEXTURE_2D);
 		{
 			GL_BIND_LOCK_OBJECT(texture);
-			glColor3f(1, 1, 1);
+			glColor4fv(color);
 			DrawUtility::Rect(pos.x, pos.y, size.x, size.y);
 		}
 		glDisable(GL_TEXTURE_2D);
 	}
 
-	void DrawUtility::DrawTexture(RHITexture2D& texture, RHISamplerState& sampler, IntVector2 const& pos, IntVector2 const& size)
+	void DrawUtility::DrawTexture(RHITexture2D& texture, RHISamplerState& sampler, IntVector2 const& pos, IntVector2 const& size, LinearColor const& color)
 	{
 		glEnable(GL_TEXTURE_2D);
 		{
 			GL_BIND_LOCK_OBJECT(texture);
 			glBindSampler( 0 , OpenGLCast::GetHandle(sampler) );
-			glColor3f(1, 1, 1);
+			glColor4fv(color);
 			DrawUtility::Rect(pos.x, pos.y, size.x, size.y);
 		}
 		glDisable(GL_TEXTURE_2D);

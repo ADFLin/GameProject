@@ -54,7 +54,7 @@ namespace Go
 	}
 
 
-	void BoardRenderer::drawStoneSequence(RenderContext const& context, std::vector<int> const& vertices, int colorStart, float opacity)
+	void BoardRenderer::drawStoneSequence(RenderContext const& context, std::vector<PlayVertex> const& vertices, int colorStart, float opacity)
 	{
 		using namespace Render;
 		using namespace Go;
@@ -71,15 +71,18 @@ namespace Go
 			glActiveTexture(GL_TEXTURE0);
 #endif
 			int color = colorStart;
-			for( int v : vertices)
+			for( PlayVertex const& v : vertices)
 			{
-				int x = v % context.board.getSize();
-				int y = v / context.board.getSize();
+				if ( v.isOnBoard() )
+				{
+					int x = v.x;
+					int y = v.y;
 
 
-				Vector2 pos = getStonePos(context, x, y);
-				drawStone(g, pos, color, context.stoneRadius , context.scale , opacity);
-				color = StoneColor::Opposite(color);
+					Vector2 pos = getStonePos(context, x, y);
+					drawStone(g, pos, color, context.stoneRadius, context.scale, opacity);
+					color = StoneColor::Opposite(color);
+				}
 			}
 
 #if DRAW_TEXTURE

@@ -68,9 +68,9 @@ bool ServerWorker::doStartNetwork()
 	COM_THIS_PACKET_SET( CPEcho        , procEcho )
 	COM_THIS_PACKET_SET( CSPMsg        , procMsg )
 
-	COM_THIS_PACKET_SET_2( CPUdpCon       , procUdpCon , procUdpConNet )
-	COM_THIS_PACKET_SET_2( CSPClockSynd   , procClockSynd , procClockSyndNet )
-	COM_THIS_PACKET_SET_2( CSPComMsg      , procComMsg    , procComMsgNet )
+	COM_THIS_PACKET_SET_2( CPUdpCon       , procUdpCon , procUdpCon_NetThread )
+	COM_THIS_PACKET_SET_2( CSPClockSynd   , procClockSynd , procClockSynd_NetThread )
+	COM_THIS_PACKET_SET_2( CSPComMsg      , procComMsg    , procComMsg_NetThread )
 
 	COM_THIS_PACKET_SET ( CSPPlayerState , procPlayerState )
 
@@ -86,8 +86,12 @@ bool ServerWorker::doStartNetwork()
 
 void ServerWorker::doCloseNetwork()
 {
-	mClientManager.removeAllClient();
 	mPlayerManager->cleanup();
+}
+
+void ServerWorker::clenupNetResource()
+{
+	mClientManager.cleanup();
 	mTcpServer.close();
 	mUdpServer.close();
 }
@@ -102,7 +106,6 @@ void ServerWorker::postChangeState( NetActionState oldState )
 	case NAS_ROOM_ENTER:
 		{
 			mPlayerManager->removePlayerFlag( ServerPlayer::eReady );
-			//mPlayerManager->removePlayerFlag( ServerPlayer::eReady );
 		}
 		break;
 	case NAS_TIME_SYNC:
@@ -141,7 +144,7 @@ void ServerWorker::postChangeState( NetActionState oldState )
 }
 
 
-bool ServerWorker::onRecvData( NetConnection* connection , SocketBuffer& buffer , NetAddress* clientAddr )
+bool ServerWorker::notifyConnectionRecv( NetConnection* connection , SocketBuffer& buffer , NetAddress* clientAddr )
 {
 	if( clientAddr )
 	{
@@ -191,16 +194,21 @@ bool ServerWorker::onRecvData( NetConnection* connection , SocketBuffer& buffer 
 }
 
 
-bool ServerWorker::updateSocket( long time )
+bool ServerWorker::update_NetThread( long time )
 {
+	BaseClass::update_NetThread(time);
+
+	if( mLocalWorker )
+		mLocalWorker->update_NetThread(time);
+
 	mTcpServer.updateSocket( time );
 	mUdpServer.updateSocket( time );
-	mClientManager.updateNet( time );
+	mClientManager.update( time );
 
 	return true;
 }
 
-void ServerWorker::onSendData( NetConnection* con )
+void ServerWorker::notifyConnectionSend( NetConnection* con )
 {
 	assert( con == &mUdpServer );
 	sendUdpCom( mUdpServer.getSocket() );
@@ -208,7 +216,7 @@ void ServerWorker::onSendData( NetConnection* con )
 }
 
 
-void ServerWorker::onConnectAccpet( NetConnection* con )
+void ServerWorker::notifyConnectionAccpet( NetConnection* con )
 {
 	assert( con == &mTcpServer );
 
@@ -223,13 +231,13 @@ void ServerWorker::onConnectAccpet( NetConnection* con )
 	if( client )
 	{
 		client->reconnect(conSocket);
-		if( client->player )
+		if( client->ownerId != ERROR_PLAYER_ID )
 		{
 			if( mEventResolver )
-				mEventResolver->resolvePlayerReconnect(client->player->getId());
+				mEventResolver->resolveReconnect_NetThread( ServerResolveContext( *this , client->ownerId) );
 
 			CSPPlayerState com;
-			com.playerID = client->player->getId();
+			com.playerId = client->ownerId;
 			com.state = NAS_RECONNECT;
 			sendTcpCommand(&com);
 		}
@@ -255,41 +263,51 @@ void ServerWorker::onConnectAccpet( NetConnection* con )
 	}
 }
 
-void ServerWorker::onConnectClose( NetConnection* con , NetCloseReason reason )
+void ServerWorker::notifyConnectClose( NetConnection* con , NetCloseReason reason )
 {
 	NetClientData* client  = static_cast< NetClientData::TCPClient* >( con )->client;
-	SNetPlayer* netPlayer = client ->player; 
+	PlayerId playerId = client->ownerId;
 
-	PlayerDisconnectMode mode = PlayerDisconnectMode::Remove;
+	PlayerConnetionClosedAction mode = PlayerConnetionClosedAction::Remove;
 
-	if( mEventResolver && netPlayer )
-		mode = mEventResolver->resolvePlayerClose( netPlayer->getId() , reason);
+	if( mEventResolver && playerId != ERROR_PLAYER_ID )
+		mode = mEventResolver->resolveConnectClosed_NetThread( ServerResolveContext( *this , playerId) , reason);
 
 	switch( mode )
 	{
-	case PlayerDisconnectMode::Remove:
-		removeConnect(client , true);
-		break;
-	case PlayerDisconnectMode::ChangeToLocal:
+	case PlayerConnetionClosedAction::Remove:
 		{
-			unsigned id = netPlayer->getId();
-			removeConnect(client , false);
+			removeConnect_NetThread(client, true);
+			addGameThreadCommnad([this, playerId]
 			{
-				MUTEX_LOCK(mMutexPlayerChangeInfoVec);
-				PlayerChangeInfo changeInfo;
-				changeInfo.changeType = PlayerChangeInfo::eSweepToLocal;
-				changeInfo.player = netPlayer;
-				mPlayerChangeInfoVec.push_back(changeInfo);
-			}
+				mPlayerManager->removePlayer(playerId);
+			});
 		}
 		break;
-	case PlayerDisconnectMode::WaitReconnect:
+	case PlayerConnetionClosedAction::ChangeToLocal:
 		{
-			netPlayer->getStateFlag().add(ServerPlayer::eDissconnect);
-			CSPPlayerState com;
-			com.playerID = netPlayer->getId();
-			com.state = NAS_DISSCONNECT;
-			sendTcpCommand(&com);
+			removeConnect_NetThread(client , false);
+			addGameThreadCommnad([this, playerId]
+			{
+				auto player = static_cast<SNetPlayer*>( getPlayerManager()->getPlayer(playerId) );
+				getPlayerManager()->swepNetPlayerToLocal(player);
+				if( mNetListener )
+					mNetListener->onPlayerStateMsg(playerId, PSM_CHANGE_TO_LOCAL);
+			});
+		}
+		break;
+	case PlayerConnetionClosedAction::WaitReconnect:
+		{
+			addGameThreadCommnad([this, playerId]
+			{
+				auto player = static_cast<SNetPlayer*>(getPlayerManager()->getPlayer(playerId));
+				player->getStateFlag().add(ServerPlayer::eDissconnect);
+
+				CSPPlayerState com;
+				com.playerId = playerId;
+				com.state = NAS_DISSCONNECT;
+				sendTcpCommand(&com);
+			});
 		}
 		break;
 	}
@@ -300,9 +318,9 @@ void ServerWorker::onConnectClose( NetConnection* con , NetCloseReason reason )
 	sendTcpCommand( &infoCom );
 }
 
-void ServerWorker::procUdpConNet( IComPacket* cp )
+void ServerWorker::procUdpCon_NetThread( IComPacket* cp )
 {
-	assert(IsInSocketThread());
+	assert(IsInNetThread());
 
 	if ( cp->getUserData() && cp->getGroup() == -1 )
 	{
@@ -329,28 +347,38 @@ void ServerWorker::procLogin( IComPacket* cp)
 	}
 
 	SNetPlayer* player = getPlayerManager()->createNetPlayer( this , com->name , client );
-
-	if ( player == NULL )
+	if( player )
 	{
-		mClientManager.removeClient( client );
+
+		PlayerId playerId = player->getId();
+		addNetThreadCommnad([client, playerId]
+		{
+			client->ownerId = playerId;
+		});
+
+		{
+			//SPPlayerStatus PSCom;
+			//generatePlayerStatus( PSCom );
+			//sendTcpCommand( &PSCom );
+
+			CSPPlayerState stateCom;
+			stateCom.playerId = player->getId();
+			stateCom.state = NAS_ACCPET;
+			player->sendTcpCommand(&stateCom);
+
+			stateCom.playerId = player->getId();
+			stateCom.state = NAS_CONNECT;
+			sendTcpCommand(&stateCom);
+		}
+	}
+	else
+	{
+		addNetThreadCommnad([this,client]
+		{
+			mClientManager.removeClient(client);
+		});
 		return;
 	}
-
-	{
-		//SPPlayerStatus PSCom;
-		//generatePlayerStatus( PSCom );
-		//sendTcpCommand( &PSCom );
-
-		CSPPlayerState stateCom;
-		stateCom.playerID = player->getId();
-		stateCom.state    = NAS_ACCPET;
-		player->sendTcpCommand( &stateCom );
-
-		stateCom.playerID = player->getId();
-		stateCom.state    = NAS_CONNECT;
-		sendTcpCommand( &stateCom );
-	}
-
 }
 
 
@@ -369,25 +397,37 @@ void ServerWorker::procMsg( IComPacket* cp)
 }
 
 
-void ServerWorker::procClockSyndNet( IComPacket* cp )
+void ServerWorker::procClockSynd_NetThread( IComPacket* cp )
 {
 	NetClientData* client = static_cast< NetClientData*>( cp->getUserData() );
 	if ( client == nullptr )
 		return;
 
 	CSPClockSynd* com = cp->cast< CSPClockSynd >();
-	SNetPlayer*   player = client->player;
-
 	switch( com->code )
 	{
 	case CSPClockSynd::eREQUEST:
 		{
+			LogMsg("ClockSynd Request");
 			CSPClockSynd packet;
 			packet.code = CSPClockSynd::eREPLY;
-			player->sendTcpCommand( &packet );
+			sendClientTcpCommand(*client, &packet);
 		}
 		break;
 	case CSPClockSynd::eDONE:
+		{
+			LogMsg("ClockSynd Done");
+			PlayerId playerId = client->ownerId;
+			long latency = com->latency;
+			addGameThreadCommnad([this,playerId, latency]
+			{		
+				LogMsg("Player %d synd done , ping = %u", playerId, latency);
+				auto player = mPlayerManager->getPlayer(playerId);
+
+				player->getStateFlag().add(ServerPlayer::eSyndDone);
+				player->latency = latency;
+			});
+		}
 		break;
 	}
 }
@@ -396,16 +436,14 @@ void ServerWorker::procClockSynd( IComPacket* cp )
 {
 	CSPClockSynd* com = cp->cast< CSPClockSynd >();
 
-	ServerPlayer* player;
+
 	if ( cp->getUserData() )
 	{
 		NetClientData* client = static_cast< NetClientData*>(cp->getUserData());
-		player = client->player;
 	}
 	else
 	{
-		unsigned id = getPlayerManager()->getUserID();
-		player = getPlayerManager()->getPlayer( id );
+
 	}
 
 	switch( com->code )
@@ -417,9 +455,7 @@ void ServerWorker::procClockSynd( IComPacket* cp )
 		break;
 	case CSPClockSynd::eDONE:
 		{
-			LogMsg( "Player %d synd done , ping = %u" , player->getId() , com->latency );
-			player->getStateFlag().add( ServerPlayer::eSyndDone );
-			player->latency = com->latency;
+
 		}
 		break;
 	}
@@ -431,12 +467,12 @@ void ServerWorker::procPlayerState( IComPacket* cp )
 
 	NetClientData* client = static_cast< NetClientData*>(cp->getUserData());
 
-	if ( com->playerID == ERROR_PLAYER_ID )
+	if ( com->playerId == ERROR_PLAYER_ID || com->playerId == SERVER_PLAYER_ID )
 	{
 		return;
 	}
 
-	ServerPlayer* player = getPlayerManager()->getPlayer( com->playerID );
+	ServerPlayer* player = getPlayerManager()->getPlayer( com->playerId );
 	
 	if ( !player )
 		return;
@@ -533,7 +569,7 @@ void ServerWorker::procPlayerState( IComPacket* cp )
 	}
 }
 
-void ServerWorker::procComMsgNet( IComPacket* cp)
+void ServerWorker::procComMsg_NetThread( IComPacket* cp)
 {
 	if( cp->getUserData() == nullptr )
 		return;
@@ -544,34 +580,37 @@ void ServerWorker::procComMsgNet( IComPacket* cp)
 	{
 		FixString< 256 > hostname;
 		
-		NetAddress* sendAddr = (NetAddress*)com->getUserData();
+		NetAddress sendAddr = *(NetAddress*)com->getUserData();
 		if( cp->getGroup() == CLIENT_GROUP )
 		{
-			sendAddr = &static_cast<NetClientData*>(cp->getUserData())->udpAddr;
+			sendAddr = static_cast<NetClientData*>(cp->getUserData())->udpAddr;
 		}
 		else
 		{
-			sendAddr = (NetAddress*)com->getUserData();
+			sendAddr = *(NetAddress*)com->getUserData();
 		}
 
 		if( gethostname(hostname, 256) == 0 )
 		{
-			//#TODO
-			TLockedObject< SVPlayerManager > playerManager = mPlayerManager->lock();
-			SPServerInfo info;
-			ServerPlayer* player = playerManager->getPlayer(playerManager->getUserID());
-			if( player )
-			{
-				info.name.format("%s's Game", player->getName());
-			}
-			else
-			{
-				info.name = "server";
-			}
-
 			hostent* hn = gethostbyname(hostname);
-			info.ip = inet_ntoa(*(struct in_addr *)hn->h_addr_list[0]);
-			addUdpCom(&info, *sendAddr);
+			FixString<32> ip = inet_ntoa(*(struct in_addr *)hn->h_addr_list[0]);
+
+			addGameThreadCommnad([this, ip, sendAddr]
+			{
+				SPServerInfo info;
+				ServerPlayer* player = mPlayerManager->getPlayer(mPlayerManager->getUserID());
+				if( player )
+				{
+					info.name.format("%s's Game", player->getName());
+				}
+				else
+				{
+					info.name = "server";
+				}
+				info.ip = ip;
+				addUdpCom(&info, sendAddr);
+			});
+
 		}
 	}
 }
@@ -588,60 +627,47 @@ void ServerWorker::procUdpAddress( IComPacket* cp)
 
 }
 
-void ServerWorker::removeConnect( NetClientData* client , bool bRMPlayer )
+void ServerWorker::removeConnect_NetThread( NetClientData* client , bool bRMPlayer )
 {
-	if ( client->player )
-	{
-		if ( !client->player->getStateFlag().check( ServerPlayer::eDissconnect ) )
-		{
-			CSPPlayerState com;
-			com.playerID = client->player->getId();
-			com.state    = NAS_DISSCONNECT;
-			sendTcpCommand( &com );
-		}
+	assert(IsInNetThread());
 
-		if ( bRMPlayer )
+	if( client->ownerId != ERROR_PLAYER_ID )
+	{
+		PlayerId playerId = client->ownerId;
+		if( bRMPlayer )
 		{
-			MUTEX_LOCK( mMutexPlayerChangeInfoVec );
-			PlayerChangeInfo changeInfo;
-			changeInfo.changeType = PlayerChangeInfo::eRemove;
-			changeInfo.player = client->player;
-			mPlayerChangeInfoVec.push_back( changeInfo );
-			client->player = NULL;
+			client->ownerId = ERROR_PLAYER_ID;
 		}
+		mClientManager.removeClient(client);
+		addGameThreadCommnad([this, playerId, bRMPlayer]
+		{
+			auto player = mPlayerManager->getPlayer(playerId);
+			if ( player )
+			{
+				if( bRMPlayer )
+				{
+					mPlayerManager->removePlayer(playerId);
+				}
+
+				if( !player->getStateFlag().check(ServerPlayer::eDissconnect) )
+				{
+					CSPPlayerState com;
+					com.playerId = playerId;
+					com.state = NAS_DISSCONNECT;
+					sendTcpCommand(&com);
+				}
+			}
+		});
 	}
-	mClientManager.removeClient( client );
 }
 
 
 void ServerWorker::doUpdate( long time )
 {
 	BaseClass::doUpdate( time );
+
 	if ( mLocalWorker )
 		mLocalWorker->update( time );
-
-	{
-		MUTEX_LOCK( mMutexPlayerChangeInfoVec );
-		for( PlayerChangeInfoVec::iterator iter = mPlayerChangeInfoVec.begin() , itEnd = mPlayerChangeInfoVec.end();
-			iter != itEnd ; ++iter )
-		{
-			switch( iter->changeType )
-			{
-			case PlayerChangeInfo::eRemove:
-				mPlayerManager->removePlayer( iter->player->getId() );
-				break;
-			case PlayerChangeInfo::eSweepToLocal:
-				{
-					PlayerId id = iter->player->getId();
-					getPlayerManager()->swepNetPlayerToLocal( iter->player );
-					if ( mNetListener )
-						mNetListener->onPlayerStateMsg( id , PSM_CHANGE_TO_LOCAL );
-				}
-				break;
-			}
-		}
-		mPlayerChangeInfoVec.clear();
-	}
 }
 
 bool ServerWorker::kickPlayer( unsigned id )
@@ -656,7 +682,11 @@ bool ServerWorker::kickPlayer( unsigned id )
 	if ( player->isNetwork() )
 	{
 		SNetPlayer* netPlayer = static_cast< SNetPlayer*>( player );
-		removeConnect( &netPlayer->getClient() , true );
+		auto client = &netPlayer->getClient();
+		addNetThreadCommnad([this,client]
+		{
+			removeConnect_NetThread(client, true);
+		});
 	}
 	else
 	{
@@ -966,12 +996,19 @@ ServerClientManager::ServerClientManager()
 
 ServerClientManager::~ServerClientManager()
 {
-	cleanup();
+	if( IsInNetThread() )
+	{
+		cleanup();
+	}
+	else
+	{
+		assert(mSessionMap.empty() && mAddrMap.empty());
+	}
 }
 
 void ServerClientManager::sendUdpData( long time , UdpServer& server )
 {
-	MUTEX_LOCK( mMutexClientMap );
+	assert(IsInNetThread());
 
 	for( SessionMap::iterator iter = mSessionMap.begin();
 		iter != mSessionMap.end(); ++iter )
@@ -983,13 +1020,13 @@ void ServerClientManager::sendUdpData( long time , UdpServer& server )
 
 NetClientData* ServerClientManager::createClient( NetSocket& socket  )
 {
-	MUTEX_LOCK( mMutexClientMap );
+	assert(IsInNetThread());
 
 	NetClientData* client = new NetClientData( socket );
 
 	client->id      = getNewSessionId();
+	client->ownerId = ERROR_PLAYER_ID;
 	//client->udpAddr.setPort( TG_UDP_PORT );
-	client->player = NULL;
 	mSessionMap.insert( std::make_pair( client->id , client ) );
 
 	return client;
@@ -997,9 +1034,9 @@ NetClientData* ServerClientManager::createClient( NetSocket& socket  )
 
 bool ServerClientManager::doRemoveClient( SessionId id )
 {
-	MUTEX_LOCK( mMutexClientMap );
-	SessionMap::iterator iter = mSessionMap.find( id );
+	assert(IsInNetThread());
 
+	SessionMap::iterator iter = mSessionMap.find( id );
 	if ( iter == mSessionMap.end() )
 		return false;
 
@@ -1016,7 +1053,7 @@ bool ServerClientManager::doRemoveClient( SessionId id )
 
 bool ServerClientManager::removeClient( NetClientData* info )
 {
-	MUTEX_LOCK( mMutexClientMap );
+	assert(IsInNetThread());
 	mRemoveList.push_back( info );
 	return true;
 }
@@ -1030,7 +1067,7 @@ void ServerClientManager::cleanupClient( NetClientData* info )
 
 NetClientData* ServerClientManager::findClient( NetAddress const& addr )
 {
-	MUTEX_LOCK( mMutexClientMap );
+	assert(IsInNetThread());
 	AddrMap::iterator iter = mAddrMap.find( &addr );
 
 	if ( iter != mAddrMap.end() )
@@ -1041,7 +1078,7 @@ NetClientData* ServerClientManager::findClient( NetAddress const& addr )
 
 NetClientData* ServerClientManager::findClient( SessionId id )
 {
-	MUTEX_LOCK( mMutexClientMap );
+	assert(IsInNetThread());
 	SessionMap::iterator iter = mSessionMap.find( id );
 
 	if ( iter != mSessionMap.end() )
@@ -1050,9 +1087,9 @@ NetClientData* ServerClientManager::findClient( SessionId id )
 	return NULL;
 }
 
-void ServerClientManager::updateNet( long time )
+void ServerClientManager::update( long time )
 {
-	MUTEX_LOCK( mMutexClientMap );
+	assert(IsInNetThread());
 	for( SessionMap::iterator iter = mSessionMap.begin();
 		iter != mSessionMap.end(); ++iter )
 	{
@@ -1071,7 +1108,7 @@ void ServerClientManager::updateNet( long time )
 
 void ServerClientManager::sendTcpCommand( ComEvaluator& evaluator , IComPacket* cp )
 {
-	MUTEX_LOCK( mMutexClientMap );
+	assert(IsInNetThread());
 	for( SessionMap::iterator iter = mSessionMap.begin();
 		iter != mSessionMap.end(); ++iter )
 	{
@@ -1082,7 +1119,7 @@ void ServerClientManager::sendTcpCommand( ComEvaluator& evaluator , IComPacket* 
 
 void ServerClientManager::sendUdpCommand( ComEvaluator& evaluator , IComPacket* cp )
 {
-	MUTEX_LOCK( mMutexClientMap );
+	assert(IsInNetThread());
 	for( SessionMap::iterator iter = mSessionMap.begin();
 		iter != mSessionMap.end(); ++iter )
 	{
@@ -1093,7 +1130,7 @@ void ServerClientManager::sendUdpCommand( ComEvaluator& evaluator , IComPacket* 
 
 void ServerClientManager::cleanup()
 {
-	MUTEX_LOCK( mMutexClientMap );
+	assert(IsInNetThread());
 	for( SessionMap::iterator iter = mSessionMap.begin() ; 
 		iter != mSessionMap.end() ; ++iter )
 	{
@@ -1174,7 +1211,7 @@ void LocalWorker::procPlayerState( IComPacket* cp)
 {
 	CSPPlayerState* com = cp->cast< CSPPlayerState >();
 
-	if ( com->playerID == ERROR_PLAYER_ID )
+	if ( com->playerId == SERVER_PLAYER_ID )
 	{
 		//changeState( ( NetActionState )com->state );
 	}
@@ -1198,22 +1235,21 @@ void LocalWorker::postChangeState( NetActionState oldState )
 {
 
 	CSPPlayerState com;
-	com.playerID = mPlayerMgr->getUserID();
+	com.playerId = mPlayerMgr->getUserID();
 	com.state    = getActionState();
 	sendTcpCommand( &com );
 
 }
-
-void LocalWorker::doUpdate( long time )
+void LocalWorker::doUpdate(long time)
 {
+	//MUTEX_LOCK(mMutexBuffer);
 	try
 	{
 		while( mSendBuffer.getAvailableSize() )
-		{		
-			if ( !mServer->getEvaluator().evalCommand( mSendBuffer ) )
+		{
+			if( !mServer->getEvaluator().evalCommand(mSendBuffer) )
 				break;
 		}
-
 	}
 	catch( ComException& )
 	{
@@ -1227,7 +1263,7 @@ void LocalWorker::doUpdate( long time )
 	{
 		while( mRecvBuffer.getAvailableSize() )
 		{
-			if ( !getEvaluator().evalCommand( mRecvBuffer ) )
+			if( !getEvaluator().evalCommand(mRecvBuffer) )
 				break;
 		}
 	}
@@ -1238,16 +1274,23 @@ void LocalWorker::doUpdate( long time )
 
 	}
 	mRecvBuffer.clear();
+}
+
+
+void LocalWorker::update_NetThread(long time)
+{
 
 }
 
 void LocalWorker::sendCommand(int channel , IComPacket* cp , unsigned flag)
 {
+	//MUTEX_LOCK(mMutexBuffer);
 	::WriteComToBuffer( mSendBuffer , cp );
 }
 
 void LocalWorker::recvCommand(IComPacket* cp)
 {
+	//MUTEX_LOCK(mMutexBuffer);
 	::WriteComToBuffer( mRecvBuffer , cp );
 }
 
@@ -1283,5 +1326,4 @@ SNetPlayer::SNetPlayer( ServerWorker* server , NetClientData* client )
 {
 	mServer     = server;
 	mClient     = client;
-	client->player = this;
 }

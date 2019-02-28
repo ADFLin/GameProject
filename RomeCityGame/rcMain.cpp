@@ -5,7 +5,7 @@
 #include "SystemPlatform.h"
 #include "WindowsMessageHander.h"
 #include "ProfileSystem.h"
-#include "Thread.h"
+#include "PlatformThread.h"
 
 #include "rcBase.h"
 

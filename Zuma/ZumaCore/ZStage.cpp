@@ -8,7 +8,7 @@
 #include "ResID.h"
 #include "ZTask.h"
 
-#include "Thread.h"
+#include "PlatformThread.h"
 #include "SystemMessage.h"
 #include "SystemPlatform.h"
 #include <fstream>

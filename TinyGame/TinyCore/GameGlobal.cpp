@@ -9,7 +9,7 @@
 #include "UserProfile.h"
 #include "Asset.h"
 
-#include "Thread.h"
+#include "PlatformThread.h"
 
 #include <cstdlib>
 

@@ -45,8 +45,14 @@ public:
 
 
 	uint32 getIndex() const { return mIndex;  }
-	
 
+
+	// support std::map
+	bool operator < (HashString const& rhs) const
+	{
+		return mIndex < rhs.mIndex || (!(rhs.mIndex < mIndex) && mNumber < rhs.mNumber);
+	}
+	
 	CORE_API friend uint32 hash_value(HashString const & string);
 private:
 	uint32 getSlotIndex() const { return mIndex >> 1;  }

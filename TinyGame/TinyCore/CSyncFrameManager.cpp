@@ -303,7 +303,7 @@ void SVSyncFrameManager::procFrameData( IComPacket* cp )
 		return;
 	}
 
-	PlayerId id  = info->player->getId();
+	PlayerId id = info->ownerId;
 	GDPFrameStream* fp = cp->cast< GDPFrameStream >();
 	ServerPlayer* player = mWorker->getPlayerManager()->getPlayer( id );
 

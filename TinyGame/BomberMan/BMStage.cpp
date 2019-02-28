@@ -33,6 +33,8 @@ namespace BomberMan
 
 		delete &mMode->getMapGenerator(); 
 		delete mMode;
+
+		BaseClass::onEnd();
 	}
 
 

@@ -95,14 +95,14 @@ public:
 	void setupWorkerProcFun( ComEvaluator& evaluator );
 
 	void  setupGame( char const* name );
-	bool  setupUI();
+	bool  setupUI(bool bFullSetting);
 
 	static int const SETTING_DATA_ID = 1;
 	static int const PLAYER_LIST_DATA_ID = 2; 
 	void generateSetting( CSPRawData& com );
 protected:
 	bool taskDestroyServerListPanelCL( long time );
-	void sendGameSetting( unsigned pID = ERROR_PLAYER_ID );
+	void sendGameSetting( unsigned pID = SERVER_PLAYER_ID);
 
 	void procPlayerStateSv( IComPacket* cp);
 	void procPlayerState  ( IComPacket* cp);
@@ -114,14 +114,15 @@ protected:
 	TPtrHolder< NetRoomSettingHelper >  mHelper;
 
 
-	ServerListPanel*    mConnectPanel;
+	ServerListPanel*    mConnectPanel = nullptr;
 	int64               mLastSendSetting;
-	GameSettingPanel*   mSettingPanel;
-	PlayerListPanel*    mPlayerPanel;
-	ComMsgPanel*        mMsgPanel;
+	GameSettingPanel*   mSettingPanel = nullptr;
+	PlayerListPanel*    mPlayerPanel = nullptr;
+	ComMsgPanel*        mMsgPanel = nullptr;
 	GButton*            mReadyButton;
 	GButton*            mExitButton;
 	bool                mNeedSendSetting;
+
 
 };
 
@@ -168,6 +169,7 @@ public:
 	void procPlayerState  (IComPacket* cp);
 	void procLevelInfo    (IComPacket* cp);
 	void procMsg          (IComPacket* cp);
+	void procNetControlRequest(IComPacket* cp);
 
 	virtual void onServerEvent(EventID event, unsigned msg);
 
@@ -181,8 +183,8 @@ public:
 	bool             mbReconnectMode;
 
 	//ServerEventResolver
-	virtual PlayerDisconnectMode resolvePlayerClose(PlayerId id, NetCloseReason reason) override;
-	virtual void resolvePlayerReconnect(PlayerId id) override;
+	virtual PlayerConnetionClosedAction resolveConnectClosed_NetThread(ServerResolveContext& context, NetCloseReason reason) override;
+	virtual void resolveReconnect_NetThread(ServerResolveContext& context) override;
 
 };
 

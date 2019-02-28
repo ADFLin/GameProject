@@ -10,6 +10,7 @@
 typedef unsigned PlayerId;
 typedef int      SlotId;
 #define ERROR_PLAYER_ID  PlayerId(-1)
+#define SERVER_PLAYER_ID PlayerId(-2)
 #define ERROR_SLOT_ID    SlotId(-1)
 
 enum PlayerType

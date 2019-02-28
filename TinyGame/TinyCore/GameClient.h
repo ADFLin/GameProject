@@ -46,18 +46,17 @@ public:
 
 protected:
 	
-	void  onConnectOpen( NetConnection* con );
-	void  onConnectClose( NetConnection* con , NetCloseReason reason );
-	void  onConnectFail( NetConnection* con );
-	void  onSendData(NetConnection* con);
-	bool  onRecvData( NetConnection* con , SocketBuffer& buffer , NetAddress* clientAddr );
+	void  notifyConnectionOpen( NetConnection* con );
+	void  notifyConnectClose( NetConnection* con , NetCloseReason reason );
+	void  notifyConnectionFail( NetConnection* con );
+	void  notifyConnectionSend(NetConnection* con);
+	bool  notifyConnectionRecv( NetConnection* con , SocketBuffer& buffer , NetAddress* clientAddr );
 
 	//NetWorker
 	bool  doStartNetwork();
 	void  doCloseNetwork();
-	void  doUpdate( long time );
-
-	bool  updateSocket( long time );
+	virtual void  doUpdate( long time ) override;
+	virtual bool  update_NetThread( long time ) override;
 
 	void  postChangeState( NetActionState oldState );
 
@@ -66,7 +65,7 @@ protected:
 	void  procClockSynd   ( IComPacket* cp);
 	void  procPlayerStatus( IComPacket* cp);
 	void  procPlayerState ( IComPacket* cp);
-	void  procClockSyndNet( IComPacket* cp);
+	void  procClockSynd_NetThread( IComPacket* cp);
 	
 
 	/////////////////////////////////
@@ -149,8 +148,8 @@ public:
 	TINY_API ~DelayClientWorker();
 
 	TINY_API void setDelay(long delay, long delayRand = 0);
-	bool updateSocket(long time);
-	virtual bool  onRecvData( NetConnection* connection , SocketBuffer& buffer , NetAddress* clientAddr );
+	bool update_NetThread(long time);
+	virtual bool  notifyConnectionRecv( NetConnection* connection , SocketBuffer& buffer , NetAddress* clientAddr );
 	virtual void  sendCommand( int channel , IComPacket* cp , unsigned flag );
 protected:
 	SendDelayCtrl mSDCTcp;

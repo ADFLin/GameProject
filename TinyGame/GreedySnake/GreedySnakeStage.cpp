@@ -48,7 +48,12 @@ namespace GreedySnake
 		return true;
 	}
 
-	void LevelStage::onRestart( bool beInit )
+	void LevelStage::onEnd()
+	{
+		BaseClass::onEnd();
+	}
+
+	void LevelStage::onRestart(bool beInit)
 	{
 		if( beInit )
 		{

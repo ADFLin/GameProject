@@ -100,9 +100,7 @@ bool FileSystem::RenameFile(char const* path , char const* newFileName)
 {
 #if SYS_PLATFORM_WIN
 	FixString< MAX_PATH > newPath;
-	char const* fileDirEnd = FileUtility::GetDirPathPos(path);
-	newPath.assign(path, FileUtility::GetDirPathPos(path) - path);
-	newPath += "/";
+	newPath.assign(path, FileUtility::GetFileName(path) - path);
 	newPath += newFileName;
 	return !!::MoveFileA(path , newPath);
 #endif
@@ -132,32 +130,46 @@ void FileIterator::goNext()
 }
 #endif
 
-char const* FileUtility::GetSubName( char const* fileName )
+template< class CharT >
+CharT const* GetExtensionImpl(CharT const* fileName)
 {
-	char const* pos = FCString::Strrchr( fileName , '.' );
-	if ( pos )
+	CharT const* pos = FCString::Strrchr(fileName, STRING_LITERAL(CharT, '.'));
+	if( pos )
 	{
 		++pos;
-		if ( *pos != '/' || *pos != '\\' )
+		if( *pos != STRING_LITERAL(CharT, '/') || *pos != STRING_LITERAL(CharT, '\\') )
 			return pos;
 	}
 	return nullptr;
 }
 
-char const* FileUtility::GetDirPathPos( char const* filePath )
+char const* FileUtility::GetExtension( char const* fileName )
 {
-	char const* pos = FCString::Strrchr( filePath , '\\' );
-	if ( !pos )
-		pos = FCString::Strrchr( filePath , '/' );
-	return pos;
+	return GetExtensionImpl(fileName);
 }
 
-wchar_t const* FileUtility::GetDirPathPos(wchar_t const* filePath)
+template< class CharT >
+CharT const* GetFileNameImpl(CharT const* filePath)
 {
-	wchar_t const* pos = FCString::Strrchr(filePath, L'\\');
-	if( !pos )
-		pos = FCString::Strrchr(filePath, L'/');
-	return pos;
+	CharT const* pos = FCString::Strrchr(filePath, STRING_LITERAL(CharT ,'\\'));
+	if( pos == nullptr )
+	{
+		pos = FCString::Strrchr(filePath, STRING_LITERAL(CharT, '/'));
+		if( pos == nullptr )
+			return filePath;
+	}
+	return pos + 1;
+}
+
+
+char const* FileUtility::GetFileName( char const* filePath )
+{
+	return GetFileNameImpl(filePath);
+}
+
+wchar_t const* FileUtility::GetFileName(wchar_t const* filePath)
+{
+	return GetFileNameImpl(filePath);
 }
 
 
@@ -202,4 +214,28 @@ std::string FileUtility::GetFullPath(char const* path)
 	GetFullPathNameA( path , MAX_PATH, full_path, NULL);
 	return full_path;
 #endif
+}
+
+StringView FileUtility::GetDirectory(char const* filePath)
+{
+	char const* fileName = GetFileName(filePath);
+	if( fileName != filePath )
+	{
+		--fileName;
+		char c =*( fileName - 1 );
+		if( c == '/' || c == '\\' )
+			--fileName;
+	}
+	return StringView(filePath, fileName - filePath);
+}
+
+StringView FileUtility::CutDirAndExtension(char const* filePath)
+{
+	char const* fileName = GetFileName(filePath);
+	char const* subName = GetExtension(fileName);
+	if( subName )
+	{
+		return StringView(fileName, subName - fileName - 1);
+	}
+	return StringView(fileName);
 }

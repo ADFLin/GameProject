@@ -42,7 +42,7 @@ struct TStringLiteral< wchar_t >
 	static wchar_t const* Select(char const*, wchar_t const* c) { return c; }
 };
 
-#define STRING_LITERAL( TYPE , LITERAL ) TStringLiteral< TYPE >::Select( LITERAL , L##LITERAL );
+#define STRING_LITERAL( TYPE , LITERAL ) TStringLiteral< TYPE >::Select( LITERAL , L##LITERAL )
 
 
 struct FCString

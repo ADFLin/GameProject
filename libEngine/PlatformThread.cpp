@@ -1,4 +1,4 @@
-#include "Thread.h"
+#include "PlatformThread.h"
 
 #if SYS_PLATFORM_WIN
 

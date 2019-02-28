@@ -7,6 +7,7 @@
 #include "PlatformConfig.h"
 #include "SystemPlatform.h"
 #include "Core/IntegerType.h"
+#include "Template/StringView.h"
 
 
 #ifdef SYS_PLATFORM_WIN
@@ -16,12 +17,14 @@
 class FileUtility
 {
 public:
-	static char const*    GetSubName( char const* fileName );
-	static char const*    GetDirPathPos(char const* filePath);
-	static wchar_t const* GetDirPathPos(wchar_t const* filePath);
+	static char const*    GetExtension( char const* fileName );
+	static char const*    GetFileName(char const* filePath);
+	static wchar_t const* GetFileName(wchar_t const* filePath);
 	static bool LoadToBuffer(char const* path, std::vector< char >& outBuffer , bool bAppendZeroAfterEnd = false);
 	static bool SaveFromBuffer(char const* path, char const* data, uint32 dataSize);
-	static std::string   GetFullPath(char const* path);
+	static std::string    GetFullPath(char const* path);
+	static StringView     GetDirectory(char const* filePath);
+	static StringView     CutDirAndExtension(char const* filePath);
 };
 
 class FilePath

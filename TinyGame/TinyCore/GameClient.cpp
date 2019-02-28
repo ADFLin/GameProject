@@ -37,7 +37,7 @@ bool ClientWorker::doStartNetwork()
 	COM_THIS_PACKET_SET ( SPConSetting , procConSetting )
 	COM_THIS_PACKET_SET ( SPPlayerStatus , procPlayerStatus )
 	COM_THIS_PACKET_SET ( CSPPlayerState , procPlayerState )
-	COM_THIS_PACKET_SET_2( CSPClockSynd  , procClockSynd  , procClockSyndNet )
+	COM_THIS_PACKET_SET_2( CSPClockSynd  , procClockSynd  , procClockSynd_NetThread )
 
 #undef  COM_PACKET_SET
 #undef  COM_THIS_PACKET_SET
@@ -45,11 +45,23 @@ bool ClientWorker::doStartNetwork()
 	return true;
 }
 
-bool ClientWorker::updateSocket( long time )
+void ClientWorker::doUpdate( long time )
 {
+	BaseClass::doUpdate( time ); 
+	
+	if( getActionState() == NAS_DISSCONNECT )
+	{
+		mUdpClient.updateSocket(getNetRunningTime());
+	}
+}
+
+bool ClientWorker::update_NetThread( long time )
+{
+	if( !BaseClass::update_NetThread(time) )
+		return false;
+
 	mTcpClient.updateSocket( time );
 	mUdpClient.updateSocket( time );
-
 	return true;
 }
 
@@ -58,7 +70,7 @@ void ClientWorker::postChangeState( NetActionState oldState )
 	if ( getActionState() != NAS_DISSCONNECT )
 	{
 		CSPPlayerState com;
-		com.playerID = getPlayerManager()->getUserID();
+		com.playerId = getPlayerManager()->getUserID();
 		com.state    = getActionState();
 		sendTcpCommand( &com );
 	}
@@ -73,7 +85,7 @@ void ClientWorker::postChangeState( NetActionState oldState )
 		mNetListener->onChangeActionState( getActionState() );
 }
 
-void ClientWorker::onConnectOpen( NetConnection* con )
+void ClientWorker::notifyConnectionOpen( NetConnection* con )
 {
 	assert( con == &mTcpClient );
 	try 
@@ -86,13 +98,17 @@ void ClientWorker::onConnectOpen( NetConnection* con )
 		CPLogin com;
 		com.id   = mSessoionId;
 		com.name = mLoginName;
-		
 		sendTcpCommand( &com );
 
-		changeState( NAS_LOGIN );
-
-		if ( mClientListener )
-			mClientListener->onServerEvent( ClientListener::eCON_RESULT , 1 );
+		addGameThreadCommnad([this]
+		{
+			changeState(NAS_LOGIN);
+			if( mClientListener )
+			{
+				mClientListener->onServerEvent(ClientListener::eCON_RESULT, 1);
+			}
+		});
+			
 	}
 	catch ( std::exception& e )
 	{
@@ -100,18 +116,21 @@ void ClientWorker::onConnectOpen( NetConnection* con )
 	}
 }
 
-void ClientWorker::onConnectClose( NetConnection* con , NetCloseReason reason )
+void ClientWorker::notifyConnectClose( NetConnection* con , NetCloseReason reason )
 {
 	assert( con == &mTcpClient );
 
 	mSessoionId = 0;
-	if ( mClientListener )
-	{
-		mClientListener->onServerEvent( ClientListener::eCON_CLOSE , (unsigned)reason );
-	}
+	addGameThreadCommnad([this,reason]
+	{	
+		if( mClientListener )
+		{
+			mClientListener->onServerEvent(ClientListener::eCON_CLOSE, (unsigned)reason);
+		}
+	});
 }
 
-bool ClientWorker::onRecvData( NetConnection* con , SocketBuffer& buffer , NetAddress* clientAddr  )
+bool ClientWorker::notifyConnectionRecv( NetConnection* con , SocketBuffer& buffer , NetAddress* clientAddr  )
 {
 	if ( clientAddr )
 	{
@@ -145,13 +164,16 @@ bool ClientWorker::onRecvData( NetConnection* con , SocketBuffer& buffer , NetAd
 	}
 }
 
-void ClientWorker::onConnectFail( NetConnection* con )
+void ClientWorker::notifyConnectionFail( NetConnection* con )
 {
-	if ( mClientListener )
-		mClientListener->onServerEvent( ClientListener::eCON_RESULT , 0 );
+	addGameThreadCommnad([this]
+	{
+		if( mClientListener )
+			mClientListener->onServerEvent(ClientListener::eCON_RESULT, 0);
+	});
 }
 
-void ClientWorker::procClockSyndNet( IComPacket* cp)
+void ClientWorker::procClockSynd_NetThread( IComPacket* cp)
 {
 	CSPClockSynd* com = cp->cast< CSPClockSynd >();
 
@@ -159,6 +181,7 @@ void ClientWorker::procClockSyndNet( IComPacket* cp)
 	{
 	case CSPClockSynd::eSTART:
 		{
+			LogMsg("ClockSynd Start");
 			mCalculator.clear();
 			mNumSampleTest = com->numSample;
 			mCalculator.markRequest();
@@ -171,6 +194,7 @@ void ClientWorker::procClockSyndNet( IComPacket* cp)
 	case CSPClockSynd::eREPLY:
 		{
 			mCalculator.markReply();
+			LogMsg("ClockSynd Reply %d", mCalculator.getSampleNum());
 			CSPClockSynd sendCom;
 			if ( mCalculator.getSampleNum() > mNumSampleTest )
 			{
@@ -220,14 +244,14 @@ void ClientWorker::procPlayerState( IComPacket* cp)
 {
 	CSPPlayerState* com = cp->cast< CSPPlayerState >();
 
-	if ( com->playerID == ERROR_PLAYER_ID )
+	if ( com->playerId == SERVER_PLAYER_ID )
 	{
 		mNextState = (NetActionState) com->state;
 	}
 	switch( com->state )
 	{
 	case NAS_ACCPET:
-		getPlayerManager()->setUserID( com->playerID );
+		getPlayerManager()->setUserID( com->playerId );
 		if ( mClientListener )
 			mClientListener->onServerEvent( ClientListener::eLOGIN_RESULT , 1 );
 		break;
@@ -235,8 +259,8 @@ void ClientWorker::procPlayerState( IComPacket* cp)
 		changeState( NAS_ROOM_WAIT );
 		break;
 	case NAS_DISSCONNECT:
-		if ( com->playerID == getPlayerManager()->getUserID() || 
-			 com->playerID == ERROR_PLAYER_ID )
+		if ( com->playerId == getPlayerManager()->getUserID() || 
+			 com->playerId == SERVER_PLAYER_ID )
 		{
 			if ( mClientListener )
 				mClientListener->onServerEvent(ClientListener::eCON_CLOSE, (unsigned)NetCloseReason::ShutDown);
@@ -246,7 +270,7 @@ void ClientWorker::procPlayerState( IComPacket* cp)
 	case NAS_TIME_SYNC:
 		break;
 	case NAS_LEVEL_RUN:
-		assert( com->playerID == ERROR_PLAYER_ID );
+		assert( com->playerId == SERVER_PLAYER_ID );
 		changeState( NAS_LEVEL_RUN );
 		break;
 	}
@@ -296,19 +320,10 @@ void ClientWorker::sreachLanServer()
 	addUdpCom( &com , addr );
 }
 
-void ClientWorker::onSendData( NetConnection* con )
+void ClientWorker::notifyConnectionSend( NetConnection* con )
 {
 	assert( con == &mUdpClient );
 	sendUdpCom( mUdpClient.getSocket() );
-}
-
-void ClientWorker::doUpdate( long time )
-{
-	if ( getActionState() == NAS_DISSCONNECT )
-	{
-		mUdpClient.updateSocket( getNetRunningTime() );
-	}
-	BaseClass::doUpdate( time ); 
 }
 
 void ClientWorker::connect( char const* hostName , char const* loginName )
@@ -385,7 +400,7 @@ void DelayClientWorker::sendCommand( int channel , IComPacket* cp , unsigned fla
 	}	
 }
 
-bool DelayClientWorker::onRecvData( NetConnection* con , SocketBuffer& buffer , NetAddress* clientAddr )
+bool DelayClientWorker::notifyConnectionRecv( NetConnection* con , SocketBuffer& buffer , NetAddress* clientAddr )
 {
 	if ( clientAddr )
 	{
@@ -401,12 +416,12 @@ bool DelayClientWorker::onRecvData( NetConnection* con , SocketBuffer& buffer , 
 	return true;
 }
 
-bool DelayClientWorker::updateSocket( long time )
+bool DelayClientWorker::update_NetThread( long time )
 {
 	mSDCTcp.update( time );
 	mSDCUdp.update( time );
 
-	if ( !BaseClass::updateSocket( time ) )
+	if ( !BaseClass::update_NetThread( time ) )
 		return false;
 
 	mRDCTcp.update( time , mUdpClient , getEvaluator() );

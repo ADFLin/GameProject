@@ -1,7 +1,6 @@
 #ifndef GameGlobal_h__
 #define GameGlobal_h__
 
-#include "GameConfig.h"
 #include "GameShare.h"
 
 #include "TVector2.h"
@@ -63,7 +62,7 @@ class NetWorker;
 
 TINY_API uint64 generateRandSeed();
 
-TINY_API bool IsInGameThead();
+
 
 class IGameNetInterface
 {

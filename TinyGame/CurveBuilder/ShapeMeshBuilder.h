@@ -6,7 +6,7 @@
 #include "FunctionParser.h"
 #include "ColorMap.h"
 
-#include "Thread.h"
+#include "PlatformThread.h"
 
 #include <vector>
 #include <exception>

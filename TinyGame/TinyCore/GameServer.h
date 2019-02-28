@@ -13,6 +13,14 @@ class ServerWorker;
 
 class SPPlayerStatus;
 
+
+struct LocalClientData
+{
+
+
+
+};
+
 struct NetClientData
 {
 	typedef UdpServer::Client UdpClient;
@@ -32,6 +40,7 @@ struct NetClientData
 		:tcpChannel( socket )
 	{
 		tcpChannel.client = this;
+		ownerId = ERROR_PLAYER_ID;
 	}
 
 	void reconnect(NetSocket& socket)
@@ -40,12 +49,12 @@ struct NetClientData
 		tcpChannel.clearBuffer();
 		udpChannel.clearBuffer();
 	}
-
+	volatile int32 locked;
 	SessionId    id;
 	TCPClient    tcpChannel;
 	UdpClient    udpChannel;
 	NetAddress   udpAddr;
-	SNetPlayer*  player;
+	PlayerId     ownerId;
 };
 
 
@@ -98,7 +107,7 @@ public:
 	void  sendUdpCommand( IComPacket* cp );
 	void  sendCommand( int channel , IComPacket* cp );
 protected:
-	ServerWorker* mServer;
+	ServerWorker*    mServer;
 	NetClientData*   mClient;
 };
 
@@ -130,13 +139,14 @@ public:
 	ServerClientManager();
 	~ServerClientManager();
 
-	void        updateNet( long time );
+	void        update( long time );
 	void        sendUdpData( long time , UdpServer& server );
 	NetClientData* findClient( NetAddress const& addr );
 	NetClientData* findClient( SessionId id );
 	NetClientData* createClient( NetSocket& socket );
 
-	void        removeAllClient(){  cleanup();  }
+	void        cleanup();
+
 	bool        removeClient( NetClientData* client );
 	void        sendTcpCommand( ComEvaluator& evaluator , IComPacket* cp );
 	void        sendUdpCommand( ComEvaluator& evaluator , IComPacket* cp );
@@ -146,7 +156,7 @@ public:
 protected:
 
 	SessionId   getNewSessionId();
-	void        cleanup();
+	
 	bool        doRemoveClient( SessionId id );
 	void        cleanupClient( NetClientData* client );
 
@@ -169,7 +179,6 @@ protected:
 
 	SessionId  mNextId;
 	ClientList mRemoveList;
-	DEFINE_MUTEX( mMutexClientMap )
 	AddrMap    mAddrMap;
 	SessionMap mSessionMap;
 };
@@ -209,7 +218,7 @@ public:
 	TINY_API void sendUdpCommand( IComPacket* cp );
 	void setListener( ServerPlayerListener* listener ){ mListener = listener; }
 
-	auto lock() { return MakeLockedObjectHandle(*this, &mMutexPlayerTable); }
+	//auto lock() { return MakeLockedObjectHandle(*this, &mMutexPlayerTable); }
 
 protected:
 	void insertPlayer( ServerPlayer* player , char const* name , PlayerType type );
@@ -226,19 +235,33 @@ protected:
 
 class LocalWorker;
 
-enum class PlayerDisconnectMode
+enum class PlayerConnetionClosedAction
 {
 	WaitReconnect ,
 	ChangeToLocal ,
 	Remove ,
 };
 
+struct ServerResolveContext
+{
+	ServerResolveContext( ServerWorker& inServer , PlayerId inId )
+		:server(inServer),id(inId){ }
+
+	PlayerId id;
+	template< class Func >
+	void addGameCommand(Func&& func)
+	{
+		server.addGameThreadCommnad(std::forward<Func>(func));
+	}
+
+	ServerWorker& server;
+};
 class ServerEventResolver
 {
 public:
 	//Socket Thread
-	virtual PlayerDisconnectMode resolvePlayerClose( PlayerId id , NetCloseReason reason) { return PlayerDisconnectMode::Remove;  }
-	virtual void resolvePlayerReconnect( PlayerId id ){}
+	virtual PlayerConnetionClosedAction resolveConnectClosed_NetThread( ServerResolveContext& context , NetCloseReason reason) { return PlayerConnetionClosedAction::Remove;  }
+	virtual void                 resolveReconnect_NetThread( ServerResolveContext& context ){}
 };
 
 class  ServerWorker : public NetWorker, public INetConnectListener
@@ -261,21 +284,22 @@ protected:
 	//NetWorker
 	void  postChangeState( NetActionState oldState );
 	bool  doStartNetwork();
-	bool  updateSocket( long time );
+	bool  update_NetThread( long time );
 	void  doCloseNetwork();
+	void  clenupNetResource();
 	bool  swapServer();
 	void  doUpdate( long time );
 
 
-	// ConListener
-	virtual void onSendData( NetConnection* con );
-	virtual bool onRecvData( NetConnection* con , SocketBuffer& buffer ,NetAddress* clientAddr );
-	virtual void onConnectAccpet( NetConnection* con );
-	virtual void onConnectClose( NetConnection* con , NetCloseReason reason );
+	// INetConnectListener
+	virtual void notifyConnectionSend( NetConnection* con );
+	virtual bool notifyConnectionRecv( NetConnection* con , SocketBuffer& buffer ,NetAddress* clientAddr );
+	virtual void notifyConnectionAccpet( NetConnection* con );
+	virtual void notifyConnectClose( NetConnection* con , NetCloseReason reason );
 
 public:
 	TINY_API bool kickPlayer( unsigned id );
-	void removeConnect( NetClientData* client, bool bRMPlayer = true );
+	void removeConnect_NetThread( NetClientData* client, bool bRMPlayer = true );
 
 	SVPlayerManager* getPlayerManager(){ return mPlayerManager; }
 
@@ -292,29 +316,15 @@ protected:
 	void procComMsg     ( IComPacket* cp);
 	void procUdpCon     ( IComPacket* cp);
 
-	void procEchoNet     ( IComPacket* cp);
-	void procClockSyndNet( IComPacket* cp);
-	void procComMsgNet   ( IComPacket* cp);
-	void procUdpConNet   ( IComPacket* cp);
+	void procClockSynd_NetThread( IComPacket* cp);
+	void procComMsg_NetThread   ( IComPacket* cp);
+	void procUdpCon_NetThread   ( IComPacket* cp);
 	
 	/////////////////////////////////////////
 
 	TPtrHolder< SVPlayerManager >  mPlayerManager;
 	TPtrHolder< LocalWorker >      mLocalWorker;
 
-	DEFINE_MUTEX( mMutexPlayerChangeInfoVec );
-	struct PlayerChangeInfo
-	{
-		enum ChangeType
-		{
-			eRemove ,
-			eSweepToLocal ,
-		};
-		ChangeType  changeType;
-		SNetPlayer* player;
-	};
-	typedef std::vector< PlayerChangeInfo > PlayerChangeInfoVec;
-	PlayerChangeInfoVec  mPlayerChangeInfoVec;
 	bool                 mbEnableUDPChain;
 	TcpServer            mTcpServer;
 	UdpServer            mUdpServer;
@@ -333,15 +343,16 @@ public:
 	void  recvCommand( IComPacket* cp );
 protected:
 
-	void  doUpdate( long time );
+	void  doUpdate(long time);
 	void  postChangeState( NetActionState oldState );
+	void  update_NetThread(long time);
 protected:
 	LocalWorker( ServerWorker* worker );
 	void procPlayerState( IComPacket* cp);
 	void procClockSynd  ( IComPacket* cp);
 	friend class ServerWorker;
 protected:
-
+	DEFINE_MUTEX(mMutexBuffer);
 	SocketBuffer      mSendBuffer;
 	SocketBuffer      mRecvBuffer;
 	SVPlayerManager*  mPlayerMgr;

@@ -638,48 +638,39 @@ namespace Go
 			}
 		}
 
-
-		static int GetVertex(FixString<128> const& coord)
+		static PlayVertex ReadVertex(char const* buffer , int& outRead)
 		{
-			int vertex = -3;
+			PlayVertex vertex = PlayVertex::Undefiend();
 
-			uint8 pos[2];
-			if( FCString::CompareIgnoreCase( coord , "Pass" ) == 0 )
-			{
-				vertex = -1;
-			}
-			else if( FCString::CompareIgnoreCase( coord , "Resign" ) == 0 )
-			{
-				vertex = -2;
-			}
-			else if( Go::ReadCoord(coord, pos) )
-			{
-				vertex = LeelaGoSize * pos[1] + pos[0];
-			}
-			return vertex;
-		}
-
-		static int ReadVertex(char const* buffer , int& outRead)
-		{
-			int vertex = -3;
-
-			uint8 pos[2];
 			if( FCString::CompareIgnoreCase( buffer , "Pass" ) ==  0 )
 			{
 				outRead = 4;
-				vertex = -1;
+				return PlayVertex::Pass();
 			}
 			else if( FCString::CompareIgnoreCase( buffer , "Resign") == 0 )
 			{
 				outRead = 6;
-				vertex = -2;
-			}
-			outRead = Go::ReadCoord(buffer, pos);
-			if ( outRead )
+				return PlayVertex::Resign();
+			}			
+			else
 			{
-				vertex = LeelaGoSize * pos[1] + pos[0];
+				uint8 pos[2];
+				outRead = Go::ReadCoord(buffer, pos);
+				if( outRead )
+				{
+					PlayVertex vertex;
+					vertex.x = pos[0];
+					vertex.y = pos[1];
+					return vertex;
+				}
 			}
-			return vertex;
+			return PlayVertex::Undefiend();
+		}
+
+		static PlayVertex GetVertex(FixString<128> const& coord)
+		{
+			int numRead;
+			return ReadVertex(coord.c_str(), numRead);
 		}
 
 		bool readThinkInfo(char* buffer, int num)
@@ -694,8 +685,8 @@ namespace Go
 			if( sscanf(buffer, "%s -> %d (V: %f%%) (N: %f%%)%n", coord.data(), &nodeVisited, &winRate, &evalValue, &numRead) != 4 )
 				return false;
 
-			int vertex = GetVertex(coord);
-			if( vertex == -3 )
+			PlayVertex vertex = GetVertex(coord);
+			if( vertex == PlayVertex::Undefiend() )
 			{
 				//LogWarning(0, "Error Think Str = %s", buffer);
 				//return;
@@ -711,7 +702,7 @@ namespace Go
 
 			while( *vBuffer != 0 )
 			{
-				int v = ReadVertex(vBuffer, numRead);
+				PlayVertex v = ReadVertex(vBuffer, numRead);
 				if( numRead == 0 )
 					break;
 
@@ -750,8 +741,8 @@ namespace Go
 						int   numRead = 0;
 						if( sscanf(buffer, "info move %s visits %d winrate %d prior %d order %d pv%n", coord.data(), &visits, &winrate, &prior, &order, &numRead) == 5 )
 						{
-							int vertex = GetVertex(coord);
-							if( vertex == -3 )
+							PlayVertex vertex = GetVertex(coord);
+							if( vertex == PlayVertex::Undefiend() )
 							{
 								//LogWarning(0, "Error Think Str = %s", buffer);
 								//return;
@@ -766,7 +757,7 @@ namespace Go
 							
 							while( *buffer != 0 || !StartWith(buffer,INFO_MOVE_STR))
 							{
-								int v = ReadVertex(buffer, numRead);
+								PlayVertex v = ReadVertex(buffer, numRead);
 								if( numRead == 0 )
 									break;
 
@@ -793,8 +784,8 @@ namespace Go
 					int   numRead;
 					if( sscanf( buffer , "Playouts: %d, Win: %f%% , PV: %s%n" , &playout , &winRate , coord.data() , &numRead ) == 3 )
 					{
-						int vertex = GetVertex(coord);
-						if( vertex == -3 )
+						PlayVertex vertex = GetVertex(coord);
+						if( vertex == PlayVertex::Undefiend() )
 						{
 							LogWarning(0, "Error Think Str = %s", buffer);
 							return;
@@ -810,7 +801,7 @@ namespace Go
 						char const* vBuffer = FStringParse::SkipSpace(buffer + numRead);
 						while( *vBuffer != 0 )
 						{
-							int v = ReadVertex(vBuffer, numRead);
+							PlayVertex v = ReadVertex(vBuffer, numRead);
 							if( numRead == 0 )
 								break;
 
@@ -992,7 +983,7 @@ namespace Go
 	{
 		FileIterator fileIter;
 		FixString<256> path;
-		path.format("%s/%s" , InstallDir , LEELA_NET_DIR );
+		path.format("%s/%s" , InstallDir , LEELA_NET_DIR_NAME );
 		if( !FileSystem::FindFiles(path, nullptr, fileIter) )
 		{
 			return "";
@@ -1036,7 +1027,7 @@ namespace Go
 	{
 
 		FixString<256> path;
-		path.format("%s/%s", InstallDir, "/autogtp.exe");
+		path.format("%s/%s", InstallDir, "autogtp.exe");
 		bool result = buildProcessT< AutoGTPOutputThread >( path , nullptr );
 		return result;
 	}
@@ -1049,7 +1040,7 @@ namespace Go
 		mUseWeightName = setting.weightName;
 
 		FixString<256> path;
-		path.format("%s/%s", InstallDir, "/leelaz.exe");
+		path.format("%s/%s", InstallDir, "leelaz.exe");
 
 		LogMsg("Play weight = %s", setting.weightName);
 
@@ -1137,7 +1128,7 @@ namespace Go
 	bool AQAppRun::buildPlayGame()
 	{
 		FixString<256> path;
-		path.format("%s/%s", InstallDir, "/AQ.exe");
+		path.format("%s/%s", InstallDir, "AQ.exe");
 		FixString<512> command;
 		return buildProcessT< GTPOutputThread >(path, command);
 	}
@@ -1223,7 +1214,7 @@ namespace Go
 		AddComValue(" -s ", seed);
 		if( weightName )
 		{
-			result += " -w " LEELA_NET_DIR;
+			result += " -w " LEELA_NET_DIR_NAME "/";
 			result += weightName;
 		}
 		AddCom(" -q", bQuiet);

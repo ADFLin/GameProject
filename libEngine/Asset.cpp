@@ -302,7 +302,7 @@ bool AssetManager::registerViewer(IAssetViewer* asset)
 		assert(std::find(assetList.begin(), assetList.end(), asset) == assetList.end());
 		assetList.push_back(asset);
 #if SYS_PLATFORM_WIN
-		wchar_t const* pathPos = FileUtility::GetDirPathPos(path.c_str());
+		wchar_t const* pathPos = FileUtility::GetFileName(path.c_str());
 		std::wstring dir = pathPos ? std::wstring(path.c_str(),pathPos - path.c_str()) : std::wstring();
 		mFileModifyMonitor.addDirectoryPath(dir.c_str(), false);
 #endif

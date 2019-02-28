@@ -249,9 +249,9 @@ public:
 
 
 
-TDelegate< void(int) > delegate;
-std::function< void(int) > delegate2;
-fastdelegate::FastDelegate< void(int) > delegate3;
+thread_local TDelegate< void(int) > delegate;
+thread_local std::function< void(int) > delegate2;
+thread_local fastdelegate::FastDelegate< void(int) > delegate3;
 
 template< class Fun , class ...Args >
 void RunTest(char const* name , HighResClock& clock , Fun& fun , Args... args )

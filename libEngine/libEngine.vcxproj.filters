@@ -125,6 +125,9 @@
     <Filter Include="GameFramework\ECS">
       <UniqueIdentifier>{b14a3fda-3a8a-4c7a-bd65-02192ee4dee8}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Core\String">
+      <UniqueIdentifier>{c35e934b-8c4e-407e-a754-c855f1697aae}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="AppEntry.cpp">
@@ -384,6 +387,9 @@
     </ClCompile>
     <ClCompile Include="PlatformThread.cpp">
       <Filter>Platform</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\StringConv.cpp">
+      <Filter>Core\String</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -971,6 +977,12 @@
     </ClInclude>
     <ClInclude Include="Core\LockFreeList.h">
       <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\StringConv.h">
+      <Filter>Core\String</Filter>
+    </ClInclude>
+    <ClInclude Include="Template\TypeFormatTraits.h">
+      <Filter>Template</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

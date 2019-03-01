@@ -541,7 +541,6 @@ namespace Go
 	{
 		cleanupModeData( true );
 		mBoardRenderer.releaseRHI();
-		ShaderManager::Get().clearnupRHIResouse();
 		::Global::GetDrawEngine()->stopOpenGL(true);
 		BaseClass::onEnd();
 	}

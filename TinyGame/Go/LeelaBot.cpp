@@ -4,6 +4,7 @@
 #include "FileSystem.h"
 #include "DataStructure/CycleQueue.h"
 #include "Template/StringView.h"
+#include "Core/StringConv.h"
 
 #include "GameGlobal.h"
 #include "PropertyKey.h"
@@ -1170,13 +1171,13 @@ namespace Go
 			if( VALUE )\
 			{\
 				result += NAME;\
-				result += std::to_string(VALUE);\
+				result += FStringConv::From(VALUE);\
 			}\
 
 #define  AddComValueNoCheck( NAME , VALUE )\
 			{\
 				result += NAME;\
-				result += std::to_string(VALUE);\
+				result += FStringConv::From(VALUE);\
 			}\
 
 	std::string LeelaAISetting::toParamString() const
@@ -1204,7 +1205,6 @@ namespace Go
 	std::string LeelaAISetting::toString() const
 	{
 		std::string result;
-
 
 		AddComValueNoCheck(" -r ", resignpct);
 		AddComValue(" -t ", numThread);

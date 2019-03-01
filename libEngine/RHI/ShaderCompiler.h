@@ -11,6 +11,7 @@
 #include "FixString.h"
 
 #include <unordered_map>
+#include <map>
 
 #define SHADER_FILE_SUBNAME ".sgc"
 
@@ -80,7 +81,7 @@ namespace Render
 
 		int loadMaterialShaders(MaterialShaderCompileInfo const& info, VertexFactoryType& vertexFactoryType , MaterialShaderPairVec& outShaders );
 
-		GlobalShaderProgram* getGlobalShader(GlobalShaderProgramClass& shaderClass , bool bForceLoad );
+		CORE_API GlobalShaderProgram* getGlobalShader(GlobalShaderProgramClass& shaderClass , bool bForceLoad );
 
 		bool registerGlobalShader(GlobalShaderProgramClass& shaderClass);
 
@@ -217,8 +218,13 @@ namespace Render
 		ShaderCompiler mCompiler;
 		std::string    mBaseDir;
 
+#if 1
 		std::unordered_map< ShaderProgram*, ShaderProgramCompileInfo* > mShaderCompileMap;
 		std::unordered_map< GlobalShaderProgramClass*, GlobalShaderProgram* > mGlobalShaderMap;
+#else
+		std::map< ShaderProgram*, ShaderProgramCompileInfo* > mShaderCompileMap;
+		std::map< GlobalShaderProgramClass*, GlobalShaderProgram* > mGlobalShaderMap;
+#endif
 
 	};
 

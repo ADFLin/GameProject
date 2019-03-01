@@ -233,6 +233,7 @@
     <ClCompile Include="CoreShare.cpp" />
     <ClCompile Include="Core\Color.cpp" />
     <ClCompile Include="Core\MD5.cpp" />
+    <ClCompile Include="Core\StringConv.cpp" />
     <ClCompile Include="CPreprocessor.cpp" />
     <ClCompile Include="CRSpline.cpp" />
     <ClCompile Include="CString.cpp" />
@@ -330,6 +331,7 @@
     <ClInclude Include="Core\LockFreeList.h" />
     <ClInclude Include="Core\MD5.h" />
     <ClInclude Include="Core\ScopeExit.h" />
+    <ClInclude Include="Core\StringConv.h" />
     <ClInclude Include="Core\ThreadSafeCounter.h" />
     <ClInclude Include="CPreprocessor.h" />
     <ClInclude Include="CString.h" />
@@ -461,6 +463,7 @@
     <ClInclude Include="TemplateMisc.h" />
     <ClInclude Include="Template\ArrayView.h" />
     <ClInclude Include="Template\StringView.h" />
+    <ClInclude Include="Template\TypeFormatTraits.h" />
     <ClInclude Include="WindowsMessageHander.h" />
     <ClInclude Include="TaskBase.h" />
     <ClInclude Include="TCycleNumber.h" />

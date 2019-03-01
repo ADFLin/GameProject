@@ -126,7 +126,8 @@
     </Link>
     <PostBuildEvent>
       <Command>copy $(TargetPath) $(ProjectDir)out\
-copy $(TargetDir)EngineShare.dll $(ProjectDir)out\</Command>
+copy $(TargetDir)TinyShare.dll  $(ProjectDir)out\
+copy $(TargetDir)EngineShare.dll  $(ProjectDir)out\</Command>
     </PostBuildEvent>
     <Bscmake>
       <PreserveSbr>true</PreserveSbr>
@@ -171,7 +172,8 @@ copy $(TargetDir)EngineShare.dll $(ProjectDir)out\</Command>
     </Link>
     <PostBuildEvent>
       <Command>copy $(TargetPath) $(ProjectDir)out\
-copy $(TargetDir)EngineShare.dll $(ProjectDir)out\</Command>
+copy $(TargetDir)TinyShare.dll  $(ProjectDir)out\
+copy $(TargetDir)EngineShare.dll  $(ProjectDir)out\</Command>
     </PostBuildEvent>
     <Bscmake>
       <PreserveSbr>true</PreserveSbr>
@@ -211,7 +213,9 @@ copy $(TargetDir)EngineShare.dll $(ProjectDir)out\</Command>
       </IgnoreSpecificDefaultLibraries>
     </Link>
     <PostBuildEvent>
-      <Command>copy $(TargetPath) $(ProjectDir)out\</Command>
+      <Command>copy $(TargetPath) $(ProjectDir)out\
+copy $(TargetDir)TinyShare.dll  $(ProjectDir)out\
+copy $(TargetDir)EngineShare.dll  $(ProjectDir)out\</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -250,7 +254,9 @@ copy $(TargetDir)EngineShare.dll $(ProjectDir)out\</Command>
       </IgnoreSpecificDefaultLibraries>
     </Link>
     <PostBuildEvent>
-      <Command>copy $(TargetPath) $(ProjectDir)out\</Command>
+      <Command>copy $(TargetPath) $(ProjectDir)out\
+copy $(TargetDir)TinyShare.dll  $(ProjectDir)out\
+copy $(TargetDir)EngineShare.dll  $(ProjectDir)out\</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>

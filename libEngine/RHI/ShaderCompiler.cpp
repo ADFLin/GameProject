@@ -44,7 +44,23 @@ namespace Render
 		return sInatance;
 	}
 
+	GlobalShaderProgram* ShaderManager::getGlobalShader(GlobalShaderProgramClass& shaderClass, bool bForceLoad)
+	{
+		GlobalShaderProgram* result = mGlobalShaderMap[&shaderClass];
+		if( result == nullptr && bForceLoad )
+		{
+			result = constructGlobalShader(shaderClass);
+			if( result )
+			{
+				mGlobalShaderMap[&shaderClass] = result;
+			}
+		}
+		return result;
+	}
+
 #endif //CORE_SHARE_CODE
+
+
 
 	ShaderManager::ShaderManager()
 	{
@@ -115,19 +131,7 @@ namespace Render
 		return result;
 	}
 
-	GlobalShaderProgram* ShaderManager::getGlobalShader(GlobalShaderProgramClass& shaderClass, bool bForceLoad)
-	{
-		GlobalShaderProgram* result = mGlobalShaderMap[&shaderClass];
-		if( result == nullptr && bForceLoad )
-		{
-			result = constructGlobalShader(shaderClass);
-			if( result )
-			{
-				mGlobalShaderMap[&shaderClass] = result;
-			}
-		}
-		return result;
-	}
+
 
 	bool ShaderManager::registerGlobalShader(GlobalShaderProgramClass& shaderClass)
 	{

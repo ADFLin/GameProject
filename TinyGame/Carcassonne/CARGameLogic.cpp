@@ -231,7 +231,7 @@ namespace CAR
 
 				MapTile* placeMapTiles[ 9 ];
 				int numMapTile = mWorld.placeTileNoCheck( startId , Vec2i(0,0) , 0 , param , placeMapTiles );
-				mListener->onPutTile( startId , placeMapTiles , numMapTile );
+				mListener->notifyPlaceTiles( startId , placeMapTiles , numMapTile );
 				mUpdateFeatures.clear();
 				for( int i = 0 ; i < numMapTile ; ++i )
 				{
@@ -1366,7 +1366,7 @@ namespace CAR
 			if ( numMapTile != 0 )
 			{
 				CAR_LOG("Player %d Place Tile %d rotation=%d" , turnContext.getPlayer()->getId() , mUseTileId , putTileData.resultRotation );
-				mListener->onPutTile( mUseTileId , placeMapTiles , numMapTile );
+				mListener->notifyPlaceTiles( mUseTileId , placeMapTiles , numMapTile );
 				break;
 			}
 		}
@@ -1419,7 +1419,7 @@ namespace CAR
 
 		}
 
-		mListener->onDeployActor( *actor );
+		mListener->notifyDeployActor( *actor );
 		CAR_LOG( "Player %d deploy Actor : type = %d  " , turnContext.getPlayer()->getId() , actor->type );
 
 		switch( actor->type )
@@ -1962,7 +1962,7 @@ namespace CAR
 		turnContext.getPlayer()->modifyFieldValue( FieldType::eTowerPices , -1 );
 
 		haveDone = true;
-		mListener->onConstructTower( *mapTile );
+		mListener->notifyConstructTower( *mapTile );
 
 		std::vector< LevelActor* > actors;
 		for( int i = 0 ; i <= mapTile->towerHeight ; ++i )
@@ -3647,7 +3647,7 @@ namespace CAR
 		{
 			MapTile* placeMapTiles[ 8 ];
 			int numMapTile = mWorld.placeTileNoCheck( i , Vec2i( 2 *(i/numRow),2*(i%numRow) ) , 0 , param  , placeMapTiles );
-			mListener->onPutTile( i , placeMapTiles , numMapTile );
+			mListener->notifyPlaceTiles( i , placeMapTiles , numMapTile );
 			for( int i = 0 ; i < numMapTile ; ++i )
 			{
 				UpdateTileFeatureResult updateResult;

@@ -1030,6 +1030,10 @@ namespace Go
 		FixString<256> path;
 		path.format("%s/%s", InstallDir, "autogtp.exe");
 		bool result = buildProcessT< AutoGTPOutputThread >( path , nullptr );
+		if (result)
+		{
+			mProcessExrcuteCommand = path;
+		}
 		return result;
 	}
 
@@ -1047,6 +1051,12 @@ namespace Go
 
 		std::string opitions = setting.toString();
 		bool result = buildProcessT< LeelaOutputThread >(path, opitions.c_str());
+		if (result)
+		{
+			mProcessExrcuteCommand = path;
+			mProcessExrcuteCommand += " ";
+			mProcessExrcuteCommand += opitions;
+		}
 
 		return result;
 	}

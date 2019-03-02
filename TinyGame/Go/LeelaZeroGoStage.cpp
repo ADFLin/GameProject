@@ -761,13 +761,15 @@ namespace Go
 				if( mMatchData.bAutoRun )
 				{
 					int totalMatchNum = mMatchData.players[0].winCount + mMatchData.players[1].winCount;
+					int totalMatchNumHistory = totalMatchNum + mMatchData.historyWinCounts[0] + mMatchData.historyWinCounts[1];
 					for( int i = 0; i < 2; ++i )
 					{
 						auto const& player = mMatchData.players[i];
 						float winRate = totalMatchNum ? (100.f * float(player.winCount) / totalMatchNum) : 0;
-						textLayout.show(g, "%s (%s) = %d ( %.1f %% , History = %d )", 
+						float winRateHistory = totalMatchNumHistory ? (100.f * float(player.winCount + mMatchData.historyWinCounts[i]) / totalMatchNumHistory) : 0;
+						textLayout.show(g, "%s (%s) = %d ( %.1f %% , History = %d , %.1f %% )", 
 										player.getName().c_str(), mMatchData.getPlayerColor(i) == StoneColor::eBlack ? "B" : "W", 
-										player.winCount, winRate, mMatchData.historyWinCounts[i]);
+										player.winCount, winRate, mMatchData.historyWinCounts[i], winRateHistory);
 					}
 					if( unknownWinerCount )
 					{

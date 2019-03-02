@@ -32,10 +32,10 @@ namespace CAR
 	class IGameEventListener
 	{
 	public:
-		virtual void onPutTile( TileId id , MapTile* mapTiles[] , int numMapTile ){}
-		virtual void onDeployActor( LevelActor& actor ){}
-		virtual void onActorMove( LevelActor& actor , MapTile* oldMapTile ){}
-		virtual void onConstructTower( MapTile& mapTile ){}
+		virtual void notifyPlaceTiles( TileId id , MapTile* mapTiles[] , int numMapTile ){}
+		virtual void notifyDeployActor( LevelActor& actor ){}
+		virtual void notifyActorMove( LevelActor& actor , MapTile* oldMapTile ){}
+		virtual void notifyConstructTower( MapTile& mapTile ){}
 	};
 
 	enum TurnStatus

@@ -194,6 +194,7 @@ namespace Go
 		void stopPonder();
 
 		std::string mUseWeightName;
+		std::string mProcessExrcuteCommand;
 
 	};
 

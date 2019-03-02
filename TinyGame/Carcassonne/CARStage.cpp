@@ -1362,7 +1362,7 @@ namespace CAR
 		return Vector2(0,0);
 	}
 
-	void LevelStage::onPutTile( TileId id , MapTile* mapTiles[] , int numMapTile )
+	void LevelStage::notifyPlaceTile( TileId id , MapTile* mapTiles[] , int numMapTile )
 	{
 		mTileShowObject->show( false );
 		

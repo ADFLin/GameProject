@@ -1,4 +1,3 @@
-
 #include "RenderGLStage.h"
 #include "RenderGLStageAssetID.h"
 

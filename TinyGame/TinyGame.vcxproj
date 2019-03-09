@@ -90,7 +90,7 @@
     <ClCompile>
       <AdditionalOptions>/MP %(AdditionalOptions)</AdditionalOptions>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>.;TinyCore;../libEngine;../OtherLib;../CFlyMain;../Zuma;../OtherLib/boost;../OtherLib/glew;../OtherLib/DirectX/Include;../OtherLib/Vulkan/Include;../OtherLib/Box2D;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>.;TinyCore;../libEngine;../OtherLib;../CFlyMain;../Zuma;../OtherLib/boost;../OtherLib/glew;../OtherLib/DirectX/Include;../OtherLib/Box2D;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;_WINDOWS;DEBUG;TG_DLL;CORE_SHARE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MinimalRebuild>false</MinimalRebuild>
       <BasicRuntimeChecks>Default</BasicRuntimeChecks>
@@ -137,7 +137,7 @@ copy $(TargetDir)EngineShare.dll  $(ProjectDir)out\</Command>
     <ClCompile>
       <AdditionalOptions>/MP %(AdditionalOptions)</AdditionalOptions>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>.;TinyCore;../libEngine;../OtherLib;../CFlyMain;../Zuma;../OtherLib/boost;../OtherLib/glew;../OtherLib/DirectX/Include;../OtherLib/Vulkan/Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>.;TinyCore;../libEngine;../OtherLib;../CFlyMain;../Zuma;../OtherLib/boost;../OtherLib/glew;../OtherLib/DirectX/Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>_WINDOWS;DEBUG;TG_DLL;CORE_SHARE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MinimalRebuild>false</MinimalRebuild>
       <BasicRuntimeChecks>Default</BasicRuntimeChecks>
@@ -295,16 +295,6 @@ copy $(TargetDir)EngineShare.dll  $(ProjectDir)out\</Command>
       <Optimization Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">MaxSpeed</Optimization>
       <Optimization Condition="'$(Configuration)|$(Platform)'=='Release|x64'">MaxSpeed</Optimization>
     </ClCompile>
-    <ClCompile Include="RenderGL\RenderGLStage.cpp" />
-    <ClCompile Include="RenderGL\RenderGLStageScene.cpp" />
-    <ClCompile Include="RenderGL\SceneScript.cpp">
-      <Optimization Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">MaxSpeed</Optimization>
-      <Optimization Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">MaxSpeed</Optimization>
-      <Optimization Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">MaxSpeed</Optimization>
-      <Optimization Condition="'$(Configuration)|$(Platform)'=='Release|x64'">MaxSpeed</Optimization>
-      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Release|x64'">/bigobj %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">/bigobj %(AdditionalOptions)</AdditionalOptions>
-    </ClCompile>
     <ClCompile Include="Go\GoCore.cpp" />
     <ClCompile Include="Go\GoStage.cpp" />
     <ClCompile Include="Go\ZenBot.cpp" />
@@ -318,7 +308,6 @@ copy $(TargetDir)EngineShare.dll  $(ProjectDir)out\</Command>
     <ClCompile Include="Stage\FractialStage.cpp" />
     <ClCompile Include="Stage\NesEmulatorStage.cpp" />
     <ClCompile Include="Stage\AudioTestStage.cpp" />
-    <ClCompile Include="Stage\ParticleSimulationStage.cpp" />
     <ClCompile Include="Stage\GlobalStageRegister.cpp" />
     <ClCompile Include="Stage\StickMoveStage.cpp" />
     <ClCompile Include="Stage\MainMenuStage.cpp" />
@@ -457,13 +446,10 @@ copy $(TargetDir)EngineShare.dll  $(ProjectDir)out\</Command>
     <ClCompile Include="Stage\Test\AsyncWokTest.cpp" />
     <ClCompile Include="Stage\Test\BehaviorTreeTest.cpp" />
     <ClCompile Include="Stage\Test\BoneIKTest.cpp" />
-    <ClCompile Include="Stage\Test\D3D11Test.cpp" />
-    <ClCompile Include="Stage\Test\DrawCallOptimization.cpp" />
     <ClCompile Include="Stage\Test\FunctionFitTest.cpp" />
     <ClCompile Include="Stage\Test\MatrixTest.cpp" />
     <ClCompile Include="Stage\Test\PreprocessTest.cpp" />
     <ClCompile Include="Stage\Test\SpatialIndexTest.cpp" />
-    <ClCompile Include="Stage\Test\VulkanTest.cpp" />
     <ClCompile Include="Stage\TMechineStage.cpp" />
     <ClCompile Include="Stage\MiscTestStage.cpp" />
     <ClCompile Include="Sudoku\SudokuStage.cpp" />
@@ -568,9 +554,6 @@ copy $(TargetDir)EngineShare.dll  $(ProjectDir)out\</Command>
     <ClInclude Include="Go\MatchGame.h" />
     <ClInclude Include="NesEmulator.h" />
     <ClInclude Include="RandomUtility.h" />
-    <ClInclude Include="RenderGL\RenderGLStage.h" />
-    <ClInclude Include="RenderGL\RenderGLStageAssetID.h" />
-    <ClInclude Include="RenderGL\SceneScript.h" />
     <ClInclude Include="Geometry2d.h" />
     <ClInclude Include="Go\GoCore.h" />
     <ClInclude Include="Go\GoStage.h" />
@@ -660,7 +643,6 @@ copy $(TargetDir)EngineShare.dll  $(ProjectDir)out\</Command>
     <None Include="out\Material\SimpleTest.sgc" />
     <None Include="out\Material\SimpleTest2.sgc" />
     <None Include="out\Material\Sphere.sgc" />
-    <None Include="out\Script\SceneA.chai" />
     <None Include="out\Shader\BigNumberCommon.sgc" />
     <None Include="out\Shader\BufferUtility.sgc" />
     <None Include="out\Shader\Common.sgc" />

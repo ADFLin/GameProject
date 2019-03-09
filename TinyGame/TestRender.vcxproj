@@ -19,10 +19,9 @@
     </ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup Label="Globals">
-    <ProjectGuid>{C1CA0F43-5C21-4B67-B516-CEE82A329333}</ProjectGuid>
-    <RootNamespace>TestMisc</RootNamespace>
+    <ProjectGuid>{3AB44AFB-E463-4506-B2A1-62AC45B58A17}</ProjectGuid>
+    <RootNamespace>TestRender</RootNamespace>
     <WindowsTargetPlatformVersion>8.1</WindowsTargetPlatformVersion>
-    <ProjectName>TestMisc</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
@@ -78,27 +77,26 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>.;TinyCore;../libEngine;../OtherLib;../TestMisc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>.;TinyCore;../libEngine;../OtherLib;TestRender;../OtherLib/glew;../OtherLib/Vulkan/Include;../OtherLib/DirectX/Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;_WINDOWS;DEBUG;TG_DLL;CORE_SHARE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MinimalRebuild>false</MinimalRebuild>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
       <PrecompiledHeader>Use</PrecompiledHeader>
-      <PrecompiledHeaderFile>TestMiscPCH.h</PrecompiledHeaderFile>
+      <PrecompiledHeaderFile>TestRenderPCH.h</PrecompiledHeaderFile>
       <ProgramDataBaseFileName>$(IntDir)vc$(PlatformToolsetVersion).pdb</ProgramDataBaseFileName>
       <WarningLevel>Level3</WarningLevel>
       <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <BrowseInformation>true</BrowseInformation>
-      <DisableSpecificWarnings>
-      </DisableSpecificWarnings>
-      <ForcedIncludeFiles>TestMiscPCH.h</ForcedIncludeFiles>
+      <ForcedIncludeFiles>TestRenderPCH.h</ForcedIncludeFiles>
     </ClCompile>
     <Link>
       <AdditionalDependencies>Msimg32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <OutputFile>$(OutDir)$(ProjectName)D.dll</OutputFile>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <TargetMachine>MachineX86</TargetMachine>
+      <AdditionalLibraryDirectories>../OtherLib/DirectX/Lib/x86;../OtherLib/PerfSDK;../OtherLib/Vulkan/Lib/x86</AdditionalLibraryDirectories>
     </Link>
     <PostBuildEvent>
       <Command>copy $(TargetDir)$(TargetName)D.dll $(ProjectDir)out\</Command>
@@ -110,23 +108,26 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>.;TinyCore;../libEngine;../OtherLib;../TestMisc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>.;TinyCore;../libEngine;../OtherLib;TestRender;../OtherLib/glew;../OtherLib/Vulkan/Include;../OtherLib/DirectX/Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;_WINDOWS;DEBUG;TG_DLL;CORE_SHARE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MinimalRebuild>false</MinimalRebuild>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
       <PrecompiledHeader>Use</PrecompiledHeader>
-      <PrecompiledHeaderFile>TestMiscPCH.h</PrecompiledHeaderFile>
+      <PrecompiledHeaderFile>TestRenderPCH.h</PrecompiledHeaderFile>
       <ProgramDataBaseFileName>$(IntDir)vc$(PlatformToolsetVersion).pdb</ProgramDataBaseFileName>
       <WarningLevel>Level3</WarningLevel>
-      <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <BrowseInformation>true</BrowseInformation>
+      <ForcedIncludeFiles>TestRenderPCH.h</ForcedIncludeFiles>
     </ClCompile>
     <Link>
       <AdditionalDependencies>Msimg32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <OutputFile>$(OutDir)$(ProjectName)D.dll</OutputFile>
       <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalLibraryDirectories>
+      </AdditionalLibraryDirectories>
     </Link>
     <PostBuildEvent>
       <Command>copy $(TargetDir)$(TargetName)D.dll $(ProjectDir)out\</Command>
@@ -139,20 +140,18 @@
     <ClCompile>
       <Optimization>MaxSpeed</Optimization>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <AdditionalIncludeDirectories>.;TinyCore;../libEngine;../OtherLib;../TestMisc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>.;TinyCore;../libEngine;../OtherLib;TestRender;../OtherLib/glew;../OtherLib/Vulkan/Include;../OtherLib/DirectX/Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>_SECURE_SCL=0;WIN32;_WINDOWS;NDEBUG;TG_DLL;CORE_SHARE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <StringPooling>true</StringPooling>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <PrecompiledHeader>Use</PrecompiledHeader>
-      <PrecompiledHeaderFile>TestMiscPCH.h</PrecompiledHeaderFile>
+      <PrecompiledHeaderFile>TestRenderPCH.h</PrecompiledHeaderFile>
       <ProgramDataBaseFileName>$(IntDir)vc$(PlatformToolsetVersion).pdb</ProgramDataBaseFileName>
       <WarningLevel>Level3</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
-      <DisableSpecificWarnings>
-      </DisableSpecificWarnings>
-      <ForcedIncludeFiles>TestMiscPCH.h</ForcedIncludeFiles>
+      <ForcedIncludeFiles>TestRenderPCH.h</ForcedIncludeFiles>
     </ClCompile>
     <Link>
       <AdditionalDependencies>Msimg32.lib;%(AdditionalDependencies)</AdditionalDependencies>
@@ -161,6 +160,7 @@
       <OptimizeReferences>true</OptimizeReferences>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <TargetMachine>MachineX86</TargetMachine>
+      <AdditionalLibraryDirectories>../OtherLib/DirectX/Lib/x86;../OtherLib/PerfSDK;../OtherLib/Vulkan/Lib/x86</AdditionalLibraryDirectories>
     </Link>
     <PostBuildEvent>
       <Command>copy $(TargetPath) $(ProjectDir)out\</Command>
@@ -170,17 +170,18 @@
     <ClCompile>
       <Optimization>MaxSpeed</Optimization>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <AdditionalIncludeDirectories>.;TinyCore;../libEngine;../OtherLib;../TestMisc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>.;TinyCore;../libEngine;../OtherLib;TestRender;../OtherLib/glew;../OtherLib/Vulkan/Include;../OtherLib/DirectX/Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>_SECURE_SCL=0;WIN32;_WINDOWS;NDEBUG;TG_DLL;CORE_SHARE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <StringPooling>true</StringPooling>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <PrecompiledHeader>Use</PrecompiledHeader>
-      <PrecompiledHeaderFile>TestMiscPCH.h</PrecompiledHeaderFile>
+      <PrecompiledHeaderFile>TestRenderPCH.h</PrecompiledHeaderFile>
       <ProgramDataBaseFileName>$(IntDir)vc$(PlatformToolsetVersion).pdb</ProgramDataBaseFileName>
       <WarningLevel>Level3</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <ForcedIncludeFiles>TestRenderPCH.h</ForcedIncludeFiles>
     </ClCompile>
     <Link>
       <AdditionalDependencies>Msimg32.lib;%(AdditionalDependencies)</AdditionalDependencies>
@@ -188,6 +189,8 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <OptimizeReferences>true</OptimizeReferences>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <AdditionalLibraryDirectories>
+      </AdditionalLibraryDirectories>
     </Link>
     <PostBuildEvent>
       <Command>copy $(TargetPath) $(ProjectDir)out\</Command>
@@ -211,16 +214,29 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="TestMisc\TestMiscPCH.h" />
+    <ClCompile Include="TestRender\SceneScript.cpp" />
+    <ClCompile Include="TestRender\Stage\D3D11Test.cpp" />
+    <ClCompile Include="TestRender\Stage\DrawCallOptimization.cpp" />
+    <ClCompile Include="TestRender\Stage\ParticleSimulationStage.cpp" />
+    <ClCompile Include="TestRender\Stage\RenderGLStage.cpp" />
+    <ClCompile Include="TestRender\Stage\RenderGLStageScene.cpp" />
+    <ClCompile Include="TestRender\Stage\VulkanTest.cpp" />
+    <ClCompile Include="TestRender\TestRender.cpp" />
+    <ClCompile Include="TestRender\TestRenderPCH.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="TestMisc\DelegateTest.cpp" />
-    <ClCompile Include="TestMisc\TestMisc.cpp" />
-    <ClCompile Include="TestMisc\TestMiscPCH.cpp">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
-    </ClCompile>
-    <ClCompile Include="TestMisc\MultiThreadTest.cpp" />
+    <ClInclude Include="TestRender\RenderGLStageAssetID.h" />
+    <ClInclude Include="TestRender\SceneScript.h" />
+    <ClInclude Include="TestRender\Stage\RenderGLStage.h" />
+    <ClInclude Include="TestRender\TestRenderPCH.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="out\Script\SceneA.chai" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

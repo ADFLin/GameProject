@@ -216,7 +216,10 @@
   <ItemGroup>
     <ClCompile Include="TestRender\SceneScript.cpp" />
     <ClCompile Include="TestRender\Stage\D3D11Test.cpp" />
+    <ClCompile Include="TestRender\Stage\DistanceFieldStage.cpp" />
     <ClCompile Include="TestRender\Stage\DrawCallOptimization.cpp" />
+    <ClCompile Include="TestRender\Stage\LightingStage2D.cpp" />
+    <ClCompile Include="TestRender\Stage\NoiseTestStage.cpp" />
     <ClCompile Include="TestRender\Stage\ParticleSimulationStage.cpp" />
     <ClCompile Include="TestRender\Stage\RenderGLStage.cpp" />
     <ClCompile Include="TestRender\Stage\RenderGLStageScene.cpp" />
@@ -230,8 +233,9 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="TestRender\RenderGLStageAssetID.h" />
+    <ClInclude Include="TestRender\RenderAssetId.h" />
     <ClInclude Include="TestRender\SceneScript.h" />
+    <ClInclude Include="TestRender\Stage\LightingStage2D.h" />
     <ClInclude Include="TestRender\Stage\RenderGLStage.h" />
     <ClInclude Include="TestRender\TestRenderPCH.h" />
   </ItemGroup>

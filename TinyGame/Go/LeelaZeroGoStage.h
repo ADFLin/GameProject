@@ -231,7 +231,6 @@ namespace Go
 	public:
 		LeelaZeroGoStage() {}
 
-
 		enum
 		{
 			UI_REPLAY_FRAME = BaseClass::NEXT_UI_ID,

@@ -9,7 +9,6 @@
 #include "Shoot2D/FlightGame.h"
 #include "Go/GoStage.h"
 
-#include "LightingStage2D.h"
 #include "MiscTestStage.h"
 #include "Phy2DStage.h"
 #include "BloxorzStage.h"
@@ -17,7 +16,6 @@
 #include "FlappyBird/FBStage.h"
 #include "GGJStage.h"
 #include "RubiksStage.h"
-#include "RenderGL/RenderGLStage.h"
 
 #define STAGE_INFO( DECL , CLASS , ... )\
 	{ DECL , makeStageFactory< CLASS >() , __VA_ARGS__ } 
@@ -28,7 +26,6 @@ StageInfo gPreRegisterStageGroup[] =
 	STAGE_INFO("Misc Test" , MiscTestStage , EStageGroup::Main) ,
 	STAGE_INFO("Cantan Test" , Cantan::LevelStage , EStageGroup::GraphicsTest) ,
 	STAGE_INFO("GGJ Test" , GGJ::TestStage , EStageGroup::GraphicsTest) ,
-	STAGE_INFO("2D Lighting Test"     , Lighting2D::TestStage , EStageGroup::GraphicsTest) ,
 	STAGE_INFO("GLGraphics2D Test"   , GLGraphics2DTestStage , EStageGroup::GraphicsTest) ,
 	STAGE_INFO("B-Spline Test"   , BSplineTestStage , EStageGroup::GraphicsTest) ,
 
@@ -60,7 +57,6 @@ StageInfo gPreRegisterStageGroup[] =
 	STAGE_INFO("Shoot2D Test"      , Shoot2D::TestStage , EStageGroup::Dev4) ,
 	STAGE_INFO("Go Test"           , Go::Stage , EStageGroup::Dev4) ,
 
-	STAGE_INFO("Shader Test"  , Render::SampleStage , EStageGroup::FeatureDev,10),
 };
 
 #undef INFO

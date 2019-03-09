@@ -1,3 +1,7 @@
+#pragma once
+#ifndef RenderAssetId_H_92C9292D_6CB1_4D90_A00A_5B66C93612BC
+#define RenderAssetId_H_92C9292D_6CB1_4D90_A00A_5B66C93612BC
+
 namespace Render
 {
 	namespace MaterialId
@@ -72,3 +76,5 @@ namespace Render
 		};
 	}
 }
+
+#endif // RenderAssetId_H_92C9292D_6CB1_4D90_A00A_5B66C93612BC

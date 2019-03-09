@@ -1,5 +1,5 @@
 #include "RenderGLStage.h"
-#include "RenderGLStageAssetID.h"
+#include "RenderAssetId.h"
 
 #include "PlatformThread.h"
 #include "RHI/ShaderCompiler.h"

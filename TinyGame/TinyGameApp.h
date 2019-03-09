@@ -158,7 +158,7 @@ public:
 	void  onTaskMessage( TaskBase* task , TaskMsg const& msg );
 
 private:
-	void               loadGamePackage();
+	void               loadModules();
 	void               render( float dframe );
 	void               cleanup();
 

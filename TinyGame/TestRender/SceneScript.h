@@ -29,6 +29,7 @@ namespace Render
 		virtual DebugGeometryObject* getDebugGeometryObject() { return nullptr; }
 	};
 
+
 	class ISceneScript
 	{
 	public:

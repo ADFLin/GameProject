@@ -313,3 +313,6 @@ namespace Lighting2D
 	}
 
 }//namespace Lighting
+
+
+REGISTER_STAGE("2D Lighting Test", Lighting2D::TestStage, EStageGroup::GraphicsTest);

@@ -301,7 +301,6 @@ copy $(TargetDir)EngineShare.dll  $(ProjectDir)out\</Command>
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Stage\CurveBuilderStage.cpp" />
     <ClCompile Include="Stage\DeviceInfoStage.cpp" />
-    <ClCompile Include="Stage\DistanceFieldStage.cpp" />
     <ClCompile Include="Stage\FlowGameStage.cpp" />
     <ClCompile Include="Stage\FluidSimStage.cpp" />
     <ClCompile Include="Stage\FontDrawStage.cpp" />
@@ -435,7 +434,6 @@ copy $(TargetDir)EngineShare.dll  $(ProjectDir)out\</Command>
     <ClCompile Include="Stage\BloxorzStage.cpp" />
     <ClCompile Include="Stage\CompressionTestStage.cpp" />
     <ClCompile Include="Stage\GGJStage.cpp" />
-    <ClCompile Include="Stage\LightingStage2D.cpp" />
     <ClCompile Include="Stage\RubiksStage.cpp" />
     <ClCompile Include="Stage\SoftwareRenderStage.cpp">
       <OpenMPSupport Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</OpenMPSupport>
@@ -469,53 +467,6 @@ copy $(TargetDir)EngineShare.dll  $(ProjectDir)out\</Command>
     <ClCompile Include="Voronoi.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\OtherLib\chaiscript\chaiscript.hpp" />
-    <ClInclude Include="..\OtherLib\chaiscript\chaiscript_basic.hpp" />
-    <ClInclude Include="..\OtherLib\chaiscript\chaiscript_defines.hpp" />
-    <ClInclude Include="..\OtherLib\chaiscript\chaiscript_stdlib.hpp" />
-    <ClInclude Include="..\OtherLib\chaiscript\chaiscript_threading.hpp" />
-    <ClInclude Include="..\OtherLib\chaiscript\dispatchkit\any.hpp" />
-    <ClInclude Include="..\OtherLib\chaiscript\dispatchkit\bad_boxed_cast.hpp" />
-    <ClInclude Include="..\OtherLib\chaiscript\dispatchkit\bind_first.hpp" />
-    <ClInclude Include="..\OtherLib\chaiscript\dispatchkit\bootstrap.hpp" />
-    <ClInclude Include="..\OtherLib\chaiscript\dispatchkit\bootstrap_stl.hpp" />
-    <ClInclude Include="..\OtherLib\chaiscript\dispatchkit\boxed_cast.hpp" />
-    <ClInclude Include="..\OtherLib\chaiscript\dispatchkit\boxed_cast_helper.hpp" />
-    <ClInclude Include="..\OtherLib\chaiscript\dispatchkit\boxed_number.hpp" />
-    <ClInclude Include="..\OtherLib\chaiscript\dispatchkit\boxed_value.hpp" />
-    <ClInclude Include="..\OtherLib\chaiscript\dispatchkit\callable_traits.hpp" />
-    <ClInclude Include="..\OtherLib\chaiscript\dispatchkit\dispatchkit.hpp" />
-    <ClInclude Include="..\OtherLib\chaiscript\dispatchkit\dynamic_object.hpp" />
-    <ClInclude Include="..\OtherLib\chaiscript\dispatchkit\dynamic_object_detail.hpp" />
-    <ClInclude Include="..\OtherLib\chaiscript\dispatchkit\exception_specification.hpp" />
-    <ClInclude Include="..\OtherLib\chaiscript\dispatchkit\function_call.hpp" />
-    <ClInclude Include="..\OtherLib\chaiscript\dispatchkit\function_call_detail.hpp" />
-    <ClInclude Include="..\OtherLib\chaiscript\dispatchkit\handle_return.hpp" />
-    <ClInclude Include="..\OtherLib\chaiscript\dispatchkit\operators.hpp" />
-    <ClInclude Include="..\OtherLib\chaiscript\dispatchkit\proxy_constructors.hpp" />
-    <ClInclude Include="..\OtherLib\chaiscript\dispatchkit\proxy_functions.hpp" />
-    <ClInclude Include="..\OtherLib\chaiscript\dispatchkit\proxy_functions_detail.hpp" />
-    <ClInclude Include="..\OtherLib\chaiscript\dispatchkit\register_function.hpp" />
-    <ClInclude Include="..\OtherLib\chaiscript\dispatchkit\short_alloc.hpp" />
-    <ClInclude Include="..\OtherLib\chaiscript\dispatchkit\type_conversions.hpp" />
-    <ClInclude Include="..\OtherLib\chaiscript\dispatchkit\type_info.hpp" />
-    <ClInclude Include="..\OtherLib\chaiscript\language\chaiscript_algebraic.hpp" />
-    <ClInclude Include="..\OtherLib\chaiscript\language\chaiscript_common.hpp" />
-    <ClInclude Include="..\OtherLib\chaiscript\language\chaiscript_engine.hpp" />
-    <ClInclude Include="..\OtherLib\chaiscript\language\chaiscript_eval.hpp" />
-    <ClInclude Include="..\OtherLib\chaiscript\language\chaiscript_optimizer.hpp" />
-    <ClInclude Include="..\OtherLib\chaiscript\language\chaiscript_parser.hpp" />
-    <ClInclude Include="..\OtherLib\chaiscript\language\chaiscript_posix.hpp" />
-    <ClInclude Include="..\OtherLib\chaiscript\language\chaiscript_prelude.hpp" />
-    <ClInclude Include="..\OtherLib\chaiscript\language\chaiscript_prelude_docs.hpp" />
-    <ClInclude Include="..\OtherLib\chaiscript\language\chaiscript_tracer.hpp" />
-    <ClInclude Include="..\OtherLib\chaiscript\language\chaiscript_unknown.hpp" />
-    <ClInclude Include="..\OtherLib\chaiscript\language\chaiscript_windows.hpp" />
-    <ClInclude Include="..\OtherLib\chaiscript\utility\fnv1a.hpp" />
-    <ClInclude Include="..\OtherLib\chaiscript\utility\json.hpp" />
-    <ClInclude Include="..\OtherLib\chaiscript\utility\json_wrap.hpp" />
-    <ClInclude Include="..\OtherLib\chaiscript\utility\static_string.hpp" />
-    <ClInclude Include="..\OtherLib\chaiscript\utility\utility.hpp" />
     <ClInclude Include="..\va_stdafx.h" />
     <ClInclude Include="AngryBird\GameObject.h" />
     <ClInclude Include="AngryBird\HeaderPCH.h" />
@@ -595,7 +546,6 @@ copy $(TargetDir)EngineShare.dll  $(ProjectDir)out\</Command>
     <ClInclude Include="Stage\AStarStage.h" />
     <ClInclude Include="Stage\BloxorzStage.h" />
     <ClInclude Include="Stage\GGJStage.h" />
-    <ClInclude Include="Stage\LightingStage2D.h" />
     <ClInclude Include="Stage\RubiksStage.h" />
     <ClInclude Include="Stage\SoftwareRenderStage.h" />
     <ClInclude Include="Stage\StickMoveStage.h" />

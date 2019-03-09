@@ -204,14 +204,7 @@ bool TinyGameApp::onInit()
 	mConsoleWidget->addChannel(LOG_WARNING);
 	::Global::GUI().addWidget(mConsoleWidget);
 
-	loadGamePackage();
-	Global::GameManager().loadModule(
-#if _DEBUG
-		"MiscTestD.dll"
-#else
-		"MiscTest.dll"
-#endif
-	);
+	loadModules();
 
 	setupStage();
 
@@ -323,7 +316,7 @@ void TinyGameApp::onRender()
 	render( 0.0f );
 }
 
-void TinyGameApp::loadGamePackage()
+void TinyGameApp::loadModules()
 {
 	FileIterator fileIter;
 	FixString<MAX_PATH + 1> dir;
@@ -334,13 +327,14 @@ void TinyGameApp::loadGamePackage()
 		for ( ; fileIter.haveMore() ; fileIter.goNext() )
 		{
 			char const* fileName = fileIter.getFileName();
-			if ( strncmp( fileName , "Game" , 4 ) != 0 )
+			if ( FCString::CompareN( fileName, "Game" , 4 ) != 0 &&
+				 FCString::CompareN( fileName, "Test", 4) != 0  )
 				continue;
 #if _DEBUG
-			if ( fileName[ strlen( fileName ) - 5 ] != 'D' )
+			if ( fileName[ FCString::Strlen( fileName ) - 5 ] != 'D' )
 				continue;
 #else 
-			if ( fileName[ strlen( fileName ) - 5 ] == 'D' )
+			if ( fileName[ FCString::Strlen( fileName ) - 5 ] == 'D' )
 				continue;
 #endif
 
@@ -466,7 +460,7 @@ bool TinyGameApp::onKey( unsigned key , bool isDown )
 		}
 		if( key == Keyboard::eX )
 		{
-			loadGamePackage();
+			loadModules();
 		}
 	}
 	bool result = ::Global::GUI().procKeyMsg( key , isDown );

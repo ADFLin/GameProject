@@ -237,6 +237,7 @@
     <ClCompile Include="CPreprocessor.cpp" />
     <ClCompile Include="CRSpline.cpp" />
     <ClCompile Include="CString.cpp" />
+    <ClCompile Include="DataStructure\ClassTree.cpp" />
     <ClCompile Include="FlowSystem.cpp" />
     <ClCompile Include="GameFramework\EntityManager.cpp" />
     <ClCompile Include="Hardware\GPUDeviceQuery.cpp" />
@@ -342,6 +343,7 @@
     <ClInclude Include="CacheAllocator.h" />
     <ClInclude Include="DataStructure\Array.h" />
     <ClInclude Include="DataStructure\AVLTree.h" />
+    <ClInclude Include="DataStructure\ClassTree.h" />
     <ClInclude Include="DataStructure\CycleQueue.h" />
     <ClInclude Include="DataStructure\FixVector.h" />
     <ClInclude Include="DataStructure\HashMap.h" />

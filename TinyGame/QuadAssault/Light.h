@@ -51,7 +51,7 @@ public:
 	}
 private:
 	Vec2f    cachePos;
-	HookNode mHook;
+	LinkHook mHook;
 	friend class Level;
 	friend class RenderEngine;	
 };

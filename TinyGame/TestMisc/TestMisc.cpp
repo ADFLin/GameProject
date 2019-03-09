@@ -1,6 +1,6 @@
 #include "GameModule.h"
 
-class MiscTestModule : public IModuleInterface
+class TestMiscModule : public IModuleInterface
 {
 public:
 	virtual bool initialize() override
@@ -23,4 +23,4 @@ public:
 };
 
 
-EXPORT_MODULE(MiscTestModule);
+EXPORT_MODULE(TestMiscModule);

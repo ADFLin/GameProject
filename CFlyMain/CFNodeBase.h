@@ -13,7 +13,7 @@ namespace CFly
 	class NodeHookData
 	{
 	protected:
-		HookNode     mChildHook;
+		LinkHook     mChildHook;
 	};
 	
 	class NodeBase : public NodeHookData

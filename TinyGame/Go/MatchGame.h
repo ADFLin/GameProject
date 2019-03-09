@@ -6,6 +6,8 @@
 #include "Core/FNV1a.h"
 #include "Misc/Guid.h"
 
+#include <unordered_map>
+#include <algorithm>
 
 namespace Go
 {
@@ -195,13 +197,84 @@ namespace Go
 	};
 
 
+	struct LeelaWeightInfo
+	{
+		static int const DefaultNameLength = 8;
+		int version;
+		std::string date;
+		std::string time;
+		std::string name;
+		std::string format;
+		int elo;
+		int games;
+		int training;
+
+		void getFormattedName(FixString< 128 >& outName)
+		{
+			outName.format("#%03d-%s-%s", version, format.c_str(), name.c_str());
+		}
+
+		static bool Load(char const* path, std::vector< LeelaWeightInfo >& outTable)
+		{
+			std::ifstream fs(path);
+			if( !fs.is_open() )
+				return false;
+
+			while( fs.good() )
+			{
+				LeelaWeightInfo info;
+				fs >> info.version >> info.date >> info.time >> info.name >> info.format >> info.elo >> info.games >> info.training;
+
+				outTable.push_back(std::move(info));
+			}
+			return true;
+		}
+
+	};
+
+	class LeelaWeightTable
+	{
+	public:
+		static bool IsOfficialFormat( StringView const& weightName , StringView const& subName )
+		{
+			return weightName.length() - subName.length() == 64;
+		}
+
+		bool load(char const* path)
+		{		
+			table.clear();
+			weightMap.clear();
+			if( !LeelaWeightInfo::Load(path, table) )
+			{
+				LogError("Can't Load Table");
+				return false;
+			}
+
+			for( auto& info : table )
+			{
+				weightMap.emplace(info.name, &info);
+			}
+			return true;
+		}
+
+
+		LeelaWeightInfo* find(char const* weightName) const
+		{
+			auto iter = weightMap.find(weightName);
+			if( iter == weightMap.end() )
+				return nullptr;
+			return iter->second;
+		}
+		std::vector< LeelaWeightInfo > table;
+		std::unordered_map< std::string, LeelaWeightInfo* > weightMap;
+	};
 
 	class MatchResultMap
 	{
 	public:
 		enum Version
 		{
-
+			DATA_SAVE_VALUE_ONLY ,
 			DATA_LAST_VERSION_PLUS_ONE,
 			DATA_LAST_VERSION = DATA_LAST_VERSION_PLUS_ONE - 1,
 		};
@@ -211,11 +284,16 @@ namespace Go
 			std::string gameSetting;
 			uint32 winCounts[2];
 
+			void swapPlayerData()
+			{
+				using std::swap;
+				swap(playerSetting[0], playerSetting[1]);
+				swap(winCounts[0], winCounts[1]);
+			}
+
 			template< class OP >
 			void serialize(OP op)
 			{
-				int version = DATA_LAST_VERSION;
-				op & version;
 				op & winCounts[0] & winCounts[1];
 				op & gameSetting & playerSetting[0] & playerSetting[1];
 			}
@@ -235,6 +313,17 @@ namespace Go
 		struct MatchKey
 		{
 			MatchParamKey playerParamKeys[2];
+			bool setValue(ResultData const& data)
+			{
+				playerParamKeys[0].setValue(data.playerSetting[0]);
+				playerParamKeys[1].setValue(data.playerSetting[1]);
+				if( playerParamKeys[1] < playerParamKeys[0] )
+				{
+					std::swap(playerParamKeys[0], playerParamKeys[1]);
+					return true;
+				}
+				return false;
+			}
 			bool setValue(MatchPlayer players[2], GameSetting const& gameSetting)
 			{
 				playerParamKeys[0] = players[0].paramKey;
@@ -247,15 +336,26 @@ namespace Go
 				return false;
 			}
 
-			bool operator < (MatchKey const& other) const
+			bool operator == (MatchKey const& rhs ) const
+			{
+				return playerParamKeys[0] == rhs.playerParamKeys[0] &&
+					playerParamKeys[1] == rhs.playerParamKeys[1];
+			}
+
+			bool operator != (MatchKey const& rhs) const
+			{
+				return !this->operator==(rhs);
+			}
+
+			bool operator < (MatchKey const& rhs) const
 			{
 				assert(!(playerParamKeys[1] < playerParamKeys[0]));
-				assert(!(other.playerParamKeys[1] < other.playerParamKeys[0]));
+				assert(!(rhs.playerParamKeys[1] < rhs.playerParamKeys[0]));
 
-				if( playerParamKeys[0] < other.playerParamKeys[0] )
+				if( playerParamKeys[0] < rhs.playerParamKeys[0] )
 					return true;
-				if( !(other.playerParamKeys[0] < playerParamKeys[0]) )
-					return playerParamKeys[1] < other.playerParamKeys[1];
+				if( !(rhs.playerParamKeys[0] < playerParamKeys[0]) )
+					return playerParamKeys[1] < rhs.playerParamKeys[1];
 				return false;
 			}
 		};
@@ -282,6 +382,20 @@ namespace Go
 		}
 
 		void addMatchResult(MatchPlayer players[2], GameSetting const& gameSetting);
+
+		void checkMapValid()
+		{
+			for( auto& pair : mDataMap )
+			{
+				MatchKey key;
+				key.setValue(pair.second);
+				if( pair.first != key )
+				{
+					int i = 1;
+				}
+			}
+		}
+		bool convertLeelaWeight( LeelaWeightTable const& table );
 
 		bool save(char const* path);
 		bool load(char const* path);

@@ -148,14 +148,14 @@ public:
 
 
 
-class HookNode : public ListNode
+class LinkHook : public ListNode
 {
 public:
 	typedef ListNodeTraits NodeTraits;
 	typedef CycleListAlgorithm< NodeTraits > Algorithm;
 
-	HookNode() {  Algorithm::initNode( this );  }
-	~HookNode()
+	LinkHook() {  Algorithm::initNode( this );  }
+	~LinkHook()
 	{ 
 		if ( isLinked() ) 
 			unlink();  
@@ -163,8 +163,8 @@ public:
 	bool      isLinked() const { return Algorithm::isLinked( this );  }
 	void      unlink(){  Algorithm::unlink( this );  }
 
-	template< class T , HookNode T::*Member >
-	static T& cast( HookNode& node ){ return *TypeCast::memberToClass( &node , Member ); }
+	template< class T , LinkHook T::*Member >
+	static T& cast( LinkHook& node ){ return *TypeCast::memberToClass( &node , Member ); }
 };
 
 struct HookTraits
@@ -173,17 +173,17 @@ struct HookTraits
 	class NodeTraits;
 };
 
-template< class Base , HookNode Base::*Member >
+template< class Base , LinkHook Base::*Member >
 struct MemberHook
 {
 	typedef ListNode NodeType;
-	typedef HookNode::NodeTraits NodeTraits;
+	typedef LinkHook::NodeTraits NodeTraits;
 	
 	template< class T >
 	static T& castValue( NodeType& node )
 	{ 
 		return static_cast< T& >( 
-			HookNode::cast< Base , Member >( static_cast< HookNode& >( node ) ) 
+			LinkHook::cast< Base , Member >( static_cast< LinkHook& >( node ) ) 
 		); 
 	}
 	template< class T >
@@ -326,10 +326,10 @@ private:
 		typedef RType     reference;
 		typedef BaseType* pointer;
 
-		Iterator( Node* node ):mNode( node ){}
+		Iterator(NodePtr node ):mNode( node ){}
 
-		Iterator  operator++(){ Node* node = mNode; mNode = NodeTraits::getNext( mNode ); return Iterator( node ); }
-		Iterator  operator--(){ Node* node = mNode; mNode = NodeTraits::getPrev( mNode ); return Iterator( node ); }
+		Iterator  operator++(){ NodePtr node = mNode; mNode = NodeTraits::getNext( mNode ); return Iterator( node ); }
+		Iterator  operator--(){ NodePtr node = mNode; mNode = NodeTraits::getPrev( mNode ); return Iterator( node ); }
 		Iterator& operator++( int ){ mNode = NodeTraits::getNext( mNode ); return *this; }
 		Iterator& operator--( int ){ mNode = NodeTraits::getPrev( mNode ); return *this; }
 
@@ -349,10 +349,10 @@ private:
 		typedef RType     reference;
 		typedef BaseType* pointer;
 
-		ReverseIterator(Node* node) :mNode(node) {}
+		ReverseIterator(NodePtr node) :mNode(node) {}
 
-		ReverseIterator  operator--() { Node* node = mNode; mNode = NodeTraits::getNext(mNode); return ReverseIterator(node); }
-		ReverseIterator  operator++() { Node* node = mNode; mNode = NodeTraits::getPrev(mNode); return ReverseIterator(node); }
+		ReverseIterator  operator--() { NodePtr node = mNode; mNode = NodeTraits::getNext(mNode); return ReverseIterator(node); }
+		ReverseIterator  operator++() { NodePtr node = mNode; mNode = NodeTraits::getPrev(mNode); return ReverseIterator(node); }
 		ReverseIterator& operator--(int) { mNode = NodeTraits::getNext(mNode); return *this; }
 		ReverseIterator& operator++(int) { mNode = NodeTraits::getPrev(mNode); return *this; }
 
@@ -372,6 +372,12 @@ public:
 	iterator end()    { return iterator(&mHeader); }
 	reverse_iterator rbegin() { return reverse_iterator(NodeTraits::getPrev(&mHeader)); }
 	reverse_iterator rend()   { return reverse_iterator(&mHeader); }
+
+	iterator beginNode(InType value)
+	{
+		NodePtr node = &HookTraits::castNode(TP::fix(value));
+		return iterator(node);
+	}
 	
 	iterator erase( iterator iter )
 	{

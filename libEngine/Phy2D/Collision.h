@@ -50,7 +50,7 @@ namespace Phy2D
 		XForm2D  mXForm;
 		Shape* mShape;
 		CollisionProxy* mProxy;
-		HookNode hook;
+		LinkHook hook;
 	};
 
 	struct Contact
@@ -113,7 +113,7 @@ namespace Phy2D
 		CollideObject*  object;
 		AABB aabb;
 
-		HookNode hook;
+		LinkHook hook;
 		std::vector< ProxyPair* > pairs;
 		void remove( ProxyPair* pair )
 		{
@@ -127,7 +127,7 @@ namespace Phy2D
 	{
 		CollisionProxy* proxy[2];
 		ContactManifold manifold;
-		HookNode hook;
+		LinkHook hook;
 	};
 
 

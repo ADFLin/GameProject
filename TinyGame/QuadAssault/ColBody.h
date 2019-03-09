@@ -36,8 +36,8 @@ private:
 	int          idxCell;
 	LevelObject* object;
 
-	HookNode     cellHook;
-	HookNode     managerHook;
+	LinkHook     cellHook;
+	LinkHook     managerHook;
 };
 
 #endif // ColBody_h__

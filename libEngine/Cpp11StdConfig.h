@@ -4,7 +4,7 @@
 #include "CppVersion.h"
 #include "CompilerConfig.h"
 
-#if !CPP_C11_STDLIB_SUPPORT
+#if !CPP_11_STDLIB_SUPPORT
 #	if 0//CPP_TR1_SUPPORT
 
 namespace std { namespace tr1 {} }

@@ -117,9 +117,9 @@ namespace Rich
 	protected:
 
 		friend class Tile;
-		HookNode   tileHook;
+		LinkHook   tileHook;
 		friend class Level;
-		HookNode   levelHook;
+		LinkHook   levelHook;
 		ActorId    mId;
 		MapCoord   mPos;
 		MapCoord   mPosPrev;

@@ -1124,5 +1124,8 @@
     <None Include="out\Material\SimpleTest2.sgc">
       <Filter>Material</Filter>
     </None>
+    <None Include="out\Shader\Game\NoiseTest.sgc">
+      <Filter>Shader\Game</Filter>
+    </None>
   </ItemGroup>
 </Project>

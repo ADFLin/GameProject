@@ -21,7 +21,6 @@
 namespace MRT
 {
 
-
 	char const* StationData =
 		"A2=B3=C2\n"
 		"C4=B1\n"
@@ -1190,262 +1189,25 @@ static void TestBigNumber()
 
 }
 
-class ClassTreeNode
-{
-public:
-	ClassTreeNode( ClassTreeNode* parent );
-	~ClassTreeNode();
+#include "DataStructure/ClassTree.h"
 
-	bool isChildOf( ClassTreeNode* testParent );
-	void changeParent( ClassTreeNode* newParent );
 
-private:
-	void offsetQueryIndex( int offset );
-#if _DEBUG
-	int  idDbg;
-#endif
-	int  indexParentSlot;
-	int  indexQuery;
-	unsigned numTotalChildren;
-	ClassTreeNode* parent;
-	std::vector< ClassTreeNode* > children;
 
-	struct RootConstruct {};
-	ClassTreeNode( RootConstruct );
-	friend class ClassTree;
-};
-
-class ClassTree
-{
-public:
-	static ClassTree& getInstance();
-	void registerClass( ClassTreeNode* node );
-	void unregisterClass( ClassTreeNode* node , bool bReregister );
-	void unregisterAllClass();
-
-private:
-	void unregisterAllNode_R( ClassTreeNode* node );
-	bool ate()
-	{
-		int numTotalChildren;
-		return ateChild_R(&mRoot , numTotalChildren );
-	}
-
-	bool ateChild_R( ClassTreeNode* parent , int& numTotalChildren )
-	{
-		numTotalChildren = 0;
-		for (int i = 0;i< parent->children.size();++i )
-		{
-			ClassTreeNode* node = parent->children[i];
-			if ( node->indexParentSlot != i )
-				return false;
-			if ( node->indexQuery != numTotalChildren + parent->indexQuery + 1 )
-				return false;
-			int num;
-			if ( !ateChild_R( node , num ) )
-				return false;
-			numTotalChildren += num + 1;
-		}
-		if ( parent->numTotalChildren != numTotalChildren )
-			return false;
-		return true;
-	}
-	ClassTree();
-	ClassTree( ClassTree const& );
-	~ClassTree();
-	ClassTreeNode mRoot;
-};
-
-void ClassTreeNode::offsetQueryIndex(int offset)
-{
-	indexQuery += offset;
-	for( int i = 0 ; i < children.size() ; ++i )
-	{
-		ClassTreeNode* child = children[i];
-		child->offsetQueryIndex( offset );
-	}
-}
-
-ClassTreeNode::ClassTreeNode(ClassTreeNode* parent) 
-	:parent(parent)
-	,numTotalChildren(0)
-	,indexParentSlot(-1)
-	,indexQuery(-1)
-{
-
-#if _DEBUG
-	static int gIdDbg = 0;
-	idDbg = gIdDbg++ ;
-#endif
-	ClassTree::getInstance().registerClass( this );
-}
-
-ClassTreeNode::ClassTreeNode( RootConstruct )
-	:parent(nullptr)
-	,numTotalChildren(0)
-	,indexParentSlot(-1)
-	,indexQuery(-1)
-{
-#if _DEBUG
-	idDbg = -1;
-#endif
-}
-
-ClassTreeNode::~ClassTreeNode()
-{
-	if ( indexParentSlot != -1 )
-		ClassTree::getInstance().unregisterClass( this , false );
-}
-
-bool ClassTreeNode::isChildOf(ClassTreeNode* testParent)
-{
-	assert( indexParentSlot != -1 && testParent->indexParentSlot != -1 );
-	return unsigned( indexQuery - testParent->indexQuery ) <= testParent->numTotalChildren;
-}
-
-void ClassTreeNode::changeParent(ClassTreeNode* newParent)
-{
-	if ( newParent == parent )
-		return;
-
-	ClassTree::getInstance().unregisterClass( this , true );
-	parent = newParent;
-	ClassTree::getInstance().registerClass( this );
-}
-
-void ClassTree::unregisterAllNode_R(ClassTreeNode* node)
-{
-	for ( int i = 0 ; i < node->children.size() ; ++i )
-	{
-		ClassTreeNode* child = node->children[i];
-		unregisterAllNode_R( child );
-	}
-	node->children.clear();
-	node->indexParentSlot = -1;
-	node->indexQuery = -1;
-	node->numTotalChildren = 0;
-}
-
-ClassTree::ClassTree() 
-	:mRoot( ClassTreeNode::RootConstruct() )
-{
-
-}
-
-ClassTree::~ClassTree()
-{
-	unregisterAllClass();
-}
-
-ClassTree& ClassTree::getInstance()
-{
-	static ClassTree sClassTree;
-	return sClassTree;
-}
-
-void ClassTree::registerClass(ClassTreeNode* node)
-{
-	assert( node->indexParentSlot == -1 );
-	if ( node->parent == nullptr )
-	{
-		node->parent = &mRoot;
-	}
-	ClassTreeNode* parent = node->parent;
-	assert( parent != node );
-
-	node->indexParentSlot = parent->children.size();
-	if ( node->indexQuery != -1 )
-	{
-		int offset = ( parent->indexQuery + parent->numTotalChildren + 1 ) - node->indexQuery;
-		if ( offset )
-			node->offsetQueryIndex(offset);
-	}
-	else
-	{
-		node->indexQuery = parent->indexQuery + parent->numTotalChildren + 1;
-	}
-	parent->children.push_back( node );
-	ClassTreeNode* super = parent;
-
-	int numChildren = 1 + node->numTotalChildren;
-	for(;;)
-	{
-		super->numTotalChildren += numChildren;
-		if ( super->parent == nullptr )
-			break;
-
-		int indexSlot = super->indexParentSlot + 1;
-		super = super->parent;
-		for( int i = indexSlot; i < super->children.size(); ++i )
-		{
-			super->children[i]->offsetQueryIndex(numChildren);
-		}
-	}
-
-	assert( ate() );
-}
-
-void ClassTree::unregisterClass( ClassTreeNode* node , bool bReregister )
-{
-	assert( node->indexParentSlot != - 1 );
-
-	ClassTreeNode* parent = node->parent;
-	assert( parent );
-
-	int numChildren = 1 + node->numTotalChildren;
-	for( int i = node->indexParentSlot + 1 ; i < parent->children.size() ; ++i )
-	{
-		ClassTreeNode* tempNode = parent->children[i];
-		tempNode->indexParentSlot -= 1;
-		tempNode->offsetQueryIndex(-numChildren);
-	}
-	parent->children.erase( parent->children.begin() + node->indexParentSlot );
-	node->indexParentSlot = -1;
-	ClassTreeNode* super = parent;
-
-	
-	for(;;)
-	{
-		super->numTotalChildren -= numChildren;
-
-		if ( super->parent == nullptr )
-			break;
-
-		int indexSlot = super->indexParentSlot + 1;
-		super = super->parent;
-		for( int i = indexSlot; i < super->children.size(); ++i )
-		{
-			super->children[i]->offsetQueryIndex(-numChildren);
-		}
-	}
-
-	assert( ate() );
-	
-	if ( !bReregister )
-	{
-		for( size_t i = 0 ; i < node->children.size() ; ++i )
-		{
-			ClassTreeNode* child = node->children[i];
-			child->indexParentSlot = -1;
-			child->parent = nullptr;
-			registerClass( child );
-		}
-	}
-}
-
-void ClassTree::unregisterAllClass()
-{
-	for ( int i = 0 ; i < mRoot.children.size() ; ++i )
-	{
-		ClassTreeNode* child = mRoot.children[i];
-		unregisterAllNode_R( child );
-	}
-}
 
 static void TestClassTree()
 {
+#define GENERATE_CHECK_FAIL_MSG( EXPR , EXPR_RESULT , VALUE , FILE , LINE ) LogMsg("Check Result Fail => File = %s Line = %s : %s ", FILE, #LINE, #EXPR);
+#define CHECK_RESULT_INNER( EXPR , VALUE , FILE , LINE )\
+	{\
+		auto result = EXPR;\
+		if ( result != VALUE )\
+		{\
+			GENERATE_CHECK_FAIL_MSG( EXPR , result , VALUE , FILE , LINE );\
+		}\
+	}
+#define CHECK_RESULT( EXPR , VALUE ) CHECK_RESULT_INNER( EXPR ,VALUE , __FILE__ , __LINE__ )
 
-	ClassTree& tree = ClassTree::getInstance();
+	ClassTree& tree = ClassTree::Get();
 	TPtrHolder< ClassTreeNode > root = new ClassTreeNode( nullptr );
 	TPtrHolder< ClassTreeNode > a = new ClassTreeNode( root );
 	TPtrHolder< ClassTreeNode > b = new ClassTreeNode( root );
@@ -1453,10 +1215,10 @@ static void TestClassTree()
 	TPtrHolder< ClassTreeNode > d = new ClassTreeNode( a );
 	TPtrHolder< ClassTreeNode > e = new ClassTreeNode( b );
 
-	e->isChildOf( a );
-	e->isChildOf( d );
-	c->isChildOf( e );
-	c->isChildOf( a );
+	CHECK_RESULT(e->isChildOf( a ), false);
+	CHECK_RESULT(e->isChildOf( d ), false);
+	CHECK_RESULT(c->isChildOf( e ), false);
+	CHECK_RESULT(c->isChildOf( a ), true);
 
 	TPtrHolder< ClassTreeNode > f = new ClassTreeNode( d );
 	TPtrHolder< ClassTreeNode > g = new ClassTreeNode( a );

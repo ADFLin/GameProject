@@ -391,6 +391,9 @@
     <ClCompile Include="Core\StringConv.cpp">
       <Filter>Core\String</Filter>
     </ClCompile>
+    <ClCompile Include="DataStructure\ClassTree.cpp">
+      <Filter>DataStructure</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ConsoleSystem.h">
@@ -983,6 +986,9 @@
     </ClInclude>
     <ClInclude Include="Template\TypeFormatTraits.h">
       <Filter>Template</Filter>
+    </ClInclude>
+    <ClInclude Include="DataStructure\ClassTree.h">
+      <Filter>DataStructure</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

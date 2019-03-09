@@ -109,7 +109,7 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "EngineShare", "libEngine\En
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "GameQuadAssault", "TinyGame\GameQuadAssault.vcxproj", "{157FDB21-AC42-4791-9C3B-310D3C6E7BA0}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "MiscTest", "TinyGame\MiscTest.vcxproj", "{C1CA0F43-5C21-4B67-B516-CEE82A329333}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "TestMisc", "TinyGame\TestMisc.vcxproj", "{C1CA0F43-5C21-4B67-B516-CEE82A329333}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

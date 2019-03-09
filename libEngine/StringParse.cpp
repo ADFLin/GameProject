@@ -260,6 +260,17 @@ char const* FStringParse::SkipChar(char const* str, char const* skipChars)
 	return str;
 }
 
+char const* FStringParse::SkipChar(char const* str, char skipChar)
+{
+	while( *str != 0 )
+	{
+		if( *str != skipChar )
+			break;
+		++str;
+	}
+	return str;
+}
+
 char const* FStringParse::SkipSpace(char const* str)
 {
 	char const* p = str;

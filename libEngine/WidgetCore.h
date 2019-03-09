@@ -57,7 +57,7 @@ class WidgetCoreBase
 {
 public:
 	virtual ~WidgetCoreBase(){}
-	HookNode       mLinkHook;
+	LinkHook       mLinkHook;
 };
 
 template< class T >

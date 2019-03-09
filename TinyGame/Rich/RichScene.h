@@ -94,7 +94,7 @@ namespace Rich
 		virtual void destroy(){ delete this; }
 
 		Vector2    pos;
-		HookNode hook;
+		LinkHook hook;
 	};
 
 	class ActorRenderComp : public RenderComp

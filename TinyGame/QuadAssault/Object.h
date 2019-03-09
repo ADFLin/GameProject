@@ -138,8 +138,8 @@ protected:
 
 private:
 	friend class Level;
-	HookNode baseHook;
-	HookNode typeHook;
+	LinkHook baseHook;
+	LinkHook typeHook;
 
 private:
 	friend class RenderEngine;

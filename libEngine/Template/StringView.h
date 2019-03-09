@@ -13,7 +13,7 @@ public:
 	TStringView():mData(nullptr),mNum(0){}
 
 	TStringView(T const* str)
-		:mData(str), mNum( FCString::Strlen(str) ){}
+		:mData(str), mNum( str ? FCString::Strlen(str) : 0 ){}
 
 	TStringView( T const* str , size_t num )
 		:mData(str),mNum(num){}
@@ -72,7 +72,8 @@ public:
 	}
 
 
-	
+	//void resize(size_t inSize) { assert(mNum >= inSize); mNum = inSize; }
+
 	StdString toStdString() const { return StdString(mData, mNum); }
 
 	template< size_t BufferSize >

@@ -289,7 +289,7 @@ namespace CAR
 		};
 		struct CastleInfo
 		{
-			HookNode node;
+			LinkHook node;
 			CityFeature* city;
 			Vec2i min;
 			Vec2i max;

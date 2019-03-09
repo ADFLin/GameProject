@@ -51,7 +51,7 @@ namespace CFly
 		float  mWeight;
 		String mName;
 
-		HookNode mActiveHook;
+		LinkHook mActiveHook;
 		BlendAnimation* mManager;
 		friend class BlendAnimation;
 	};

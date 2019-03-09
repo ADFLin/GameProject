@@ -29,138 +29,55 @@ REGISTER_STAGE("LeelaZero Learning", Go::LeelaZeroGoStage, EStageGroup::Test);
 
 namespace Go
 {
-	struct OfficialLeelaWeightInfo
+
+
+
+	void RunConvertWeight(LeelaWeightTable const& table)
 	{
-		int version;
-		std::string date;
-		std::string time;
-		std::string name;
-		std::string format;
-		int elo;
-		int games;
-		int training;
 
-		static bool Load(char const* path, std::vector< OfficialLeelaWeightInfo >& outTable)
+		FileIterator fileIter;
+		FixString<256> dir;
+		dir.format("%s/%s", LeelaAppRun::InstallDir, LEELA_NET_DIR_NAME);
+
+		std::string bestWeightName = LeelaAppRun::GetBestWeightName();
+		if( FileSystem::FindFiles(dir, nullptr, fileIter) )
 		{
-			std::ifstream fs(path);
-			if( !fs.is_open() )
-				return false;
-
-			while( fs.good() )
+			for( ; fileIter.haveMore(); fileIter.goNext() )
 			{
-				OfficialLeelaWeightInfo info;
-				fs >> info.version >> info.date >> info.time >> info.name >> info.format >> info.elo >> info.games >> info.training;
+				if ( FCString::Compare( fileIter.getFileName() , bestWeightName.c_str() ) == 0 )
+					continue;
 
-				outTable.push_back(std::move(info));
-			}
-			return true;
-		}
-	};
-
-	class OfficialLeelaWeightTable
-	{
-	public:
-		bool load(char const path)
-		{
-			std::vector< OfficialLeelaWeightInfo > table;
-			{
-				FixString<256> path;
-				path.format("%s/%s/%s", LeelaAppRun::InstallDir, LEELA_NET_DIR_NAME, "table.txt");
-				if( !OfficialLeelaWeightInfo::Load(path, table) )
+				char const* subName = FileUtility::GetExtension(fileIter.getFileName());
+				if( subName )
 				{
-					LogError("Can't Load Table");
-					return false;
+					--subName;
 				}
-			}
 
-			std::unordered_map< std::string, OfficialLeelaWeightInfo* > weightMap;
-			for( auto& info : table )
-			{
-				weightMap.emplace(info.name, &info);
-			}
-			return true;
-		}
+				if( !LeelaWeightTable::IsOfficialFormat(fileIter.getFileName(), subName) )
+					continue;
 
 
-		std::unordered_map< std::string, OfficialLeelaWeightInfo* > weightMap;
-	};
+				FixString< 32 > weightName;
+				weightName.assign(fileIter.getFileName(), LeelaWeightInfo::DefaultNameLength);
 
-
-	void RunConvertWeight()
-	{
-		std::vector< OfficialLeelaWeightInfo > table;
-		{
-			FixString<256> path;
-			path.format("%s/%s/%s", LeelaAppRun::InstallDir, LEELA_NET_DIR_NAME , "table.txt");
-			if( !OfficialLeelaWeightInfo::Load(path, table) )
-			{
-				LogError("Can't Load Table");
-				return;
-			}
-		}
-
-		int index = 0;
-		std::unordered_map< std::string, OfficialLeelaWeightInfo* > weightMap;
-		for( auto& info : table )
-		{
-			if ( index == 0)
-			{
-				++index;
-				continue;
-			}
-
-			weightMap.emplace(info.name, &info);
-			++index;
-			
-		}
-
-		{
-			FileIterator fileIter;
-			FixString<256> dir;
-			dir.format("%s/%s", LeelaAppRun::InstallDir, LEELA_NET_DIR_NAME);
-
-			std::string bestWeightName = LeelaAppRun::GetBestWeightName();
-			if( FileSystem::FindFiles(dir, nullptr, fileIter) )
-			{
-				for( ; fileIter.haveMore(); fileIter.goNext() )
+				auto info = table.find(weightName.c_str());
+				if( info )
 				{
-					char const* subName = FileUtility::GetExtension(fileIter.getFileName());
-
-					if ( strcmp( fileIter.getFileName() , bestWeightName.c_str() ) == 0 )
-						continue;
-
+					FixString<128> newName;
+					info->getFormattedName(newName);
 					if( subName )
 					{
-						subName -= 1;
-						if( strlen(fileIter.getFileName()) != 64 + 3 )
-							continue;
-					}
-					else
-					{
-						if( strlen(fileIter.getFileName()) != 64 )
-							continue;
+						newName += subName;
 					}
 
-					FixString< 32 > weightName;
-					weightName.assign(fileIter.getFileName(), 8);
+					FixString<256> filePath;
+					filePath.format("%s/%s", dir.c_str(), fileIter.getFileName());
 
-					auto iter = weightMap.find(weightName.c_str());
-					if( iter != weightMap.end() )
-					{
-						FixString<256> newName;
-						newName.format("#%03d-%s-%s", iter->second->version, iter->second->format.c_str(), weightName.c_str());
-						FixString<256> filePath;
-						filePath.format("%s/%s", dir.c_str(), fileIter.getFileName());
-						if( subName )
-						{
-							newName += subName;
-						}
-						FileSystem::RenameFile(filePath, newName);
-						int i = 1;
-					}
+					FileSystem::RenameFile(filePath, newName);
 				}
 			}
 		}
+
 	}
 
 	class UnderCurveAreaProgram : public Render::GlobalShaderProgram
@@ -314,6 +231,7 @@ namespace Go
 		mTryPlayGame.onStateChanged = GameActionFun;
 
 		mMatchResultMap.load(MATCH_RESULT_PATH);
+		mMatchResultMap.checkMapValid();
 #if 0
 #if 1
 		if( !buildLearningMode() )
@@ -374,7 +292,15 @@ namespace Go
 #endif
 		devFrame->addButton("Run Covert Weight", [&](int eventId, GWidget* widget) -> bool
 		{
-			RunConvertWeight();
+			LeelaWeightTable table;
+
+			FixString<256> path;
+			path.format("%s/%s/%s", LeelaAppRun::InstallDir, LEELA_NET_DIR_NAME, "table.txt");
+			if( !table.load(path) )
+				return false;
+
+			RunConvertWeight( table );
+			mMatchResultMap.convertLeelaWeight(table);
 			return false;
 		});
 

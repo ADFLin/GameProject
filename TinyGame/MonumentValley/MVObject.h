@@ -128,7 +128,7 @@ namespace MV
 			group = NULL;
 		}
 		ObjectGroup* group;
-		HookNode     groupHook;
+		LinkHook     groupHook;
 	};
 
 
@@ -147,7 +147,7 @@ namespace MV
 		AxisRoataion rotation;
 		ObjectGroup* group;
 		BlockSurface surfaces[ BLOCK_FACE_NUM ];
-		HookNode     mapHook;
+		LinkHook     mapHook;
 		uint32       updateCount;
 		Block*       cellNext;
 
@@ -295,7 +295,7 @@ namespace MV
 		GroupList      children;
 
 		IGroupModifier*    node;
-		HookNode       spaceHook;
+		LinkHook       spaceHook;
 	};
 
 

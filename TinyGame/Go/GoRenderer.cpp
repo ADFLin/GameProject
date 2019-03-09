@@ -26,7 +26,6 @@ namespace Go
 		TEXTURE(TextureId::eBlockStone, "Go/blackStone.png");
 		TEXTURE(TextureId::eWhiteStone, "Go/WhiteStone.png");
 		TEXTURE(TextureId::eBoardA, "Go/badukpan4.png");
-
 #undef TEXTURE
 
 		return true;

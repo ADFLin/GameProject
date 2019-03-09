@@ -4,6 +4,7 @@
 #include "LeelaBot.h"
 
 #include "FileSystem.h"
+#include "StringParse.h"
 
 namespace Go
 {
@@ -131,6 +132,77 @@ namespace Go
 		}
 	}
 
+	bool MatchResultMap::convertLeelaWeight(LeelaWeightTable const& table)
+	{
+		std::vector< ResultData > requireUpdatedData;
+		StringView leelaZeroName{ GetControllerName(ControllerType::eLeelaZero) };
+
+		std::string bestWeightName = LeelaAppRun::GetBestWeightName();
+
+		for( auto iter = mDataMap.begin(); iter != mDataMap.end(); )
+		{
+			ResultData& data = iter->second;
+
+			bool bModified = false;
+			for( int i = 0; i < 2; ++i )
+			{
+				char const* playerSettingStr = data.playerSetting[i].c_str();
+
+				if( FCString::CompareN( playerSettingStr, leelaZeroName.data() , leelaZeroName.length() ) != 0 )
+					continue;
+
+				char const* pFind = strstr(playerSettingStr, "-w");
+				if( pFind )
+				{
+					pFind += 2;
+					char const* pWeightStart = FStringParse::SkipChar(pFind, ' ');
+					char const* pWeightEnd = FStringParse::FindChar(pWeightStart, ' ');
+
+					StringView weightName { pWeightStart, size_t( pWeightEnd - pWeightStart ) };
+
+					if( FCString::CompareN(bestWeightName.c_str() , weightName.data() , weightName.size()) == 0 )
+						continue;
+
+					if( LeelaWeightTable::IsOfficialFormat(weightName , StringView()) )
+					{
+						int offset = pWeightStart - data.playerSetting[i].data();
+
+						auto weightInfo = table.find( StringView( weightName.data() , LeelaWeightInfo::DefaultNameLength).toCString() );
+						if( weightInfo )
+						{
+							data.playerSetting[i].erase(offset, weightName.length());
+							FixString<128> newWeightName;
+							weightInfo->getFormattedName(newWeightName);
+							data.playerSetting[i].insert(offset, newWeightName);
+							bModified = true;
+						}			
+					}
+				}
+			}
+
+			if( bModified )
+			{
+				requireUpdatedData.push_back(std::move(data));
+				iter = mDataMap.erase(iter);
+			}
+			else
+			{
+				++iter;
+			}
+		}
+
+		for( auto& data : requireUpdatedData )
+		{
+			MatchKey key;
+			if( key.setValue(data) )
+			{
+				data.swapPlayerData();
+			}
+			mDataMap.insert({ key , std::move(data) });
+		}
+		return true;
+	}
+
 	bool MatchResultMap::save(char const* path)
 	{
 		OutputFileStream stream;
@@ -138,8 +210,14 @@ namespace Go
 			return false;
 
 		DataSerializer serializer(stream);
-		serializer << mDataMap;
-
+		int num = mDataMap.size();
+		int version = DATA_LAST_VERSION;
+		serializer << version;
+		serializer << num;
+		for( auto const& pair : mDataMap )
+		{
+			serializer << pair.second;
+		}
 		return false;
 	}
 
@@ -150,8 +228,22 @@ namespace Go
 			return false;
 
 		DataSerializer serializer(stream);
-		serializer >> mDataMap;
-
+		
+		int version = DATA_LAST_VERSION;
+		int num;
+		serializer >> version;
+		serializer >> num;
+		for( int i = 0; i < num; ++i )
+		{
+			ResultData data;
+			serializer >> data;
+			MatchKey key;
+			if( key.setValue(data) )
+			{
+				data.swapPlayerData();
+			}
+			mDataMap.insert({ key , std::move(data) });
+		}
 		return false;
 	}
 

@@ -48,6 +48,7 @@ public:
 
 
 	static char const* SkipChar(char const* str, char const* skipChars);
+	static char const* SkipChar(char const* str, char skipChar);
 	static char const* SkipSpace(char const* str);
 	static char const* SkipToNextLine(char const* str);
 

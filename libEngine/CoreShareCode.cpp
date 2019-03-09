@@ -11,6 +11,7 @@
 #include "RHI/Font.cpp"
 #include "RHI/GpuProfiler.cpp"
 #include "UnitTest/TestClass.cpp"
+#include "DataStructure/ClassTree.cpp"
 #endif
 
 #define EXPORT_FUN(fun) static auto MARCO_NAME_COMBINE_2( GExportFun , __LINE__ ) = &fun;

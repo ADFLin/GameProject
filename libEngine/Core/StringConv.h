@@ -5,6 +5,9 @@
 #include "CString.h"
 #include "Template/TypeFormatTraits.h"
 
+#if CPP_CHARCONV_SUPPORT
+#include <charconv>
+#endif
 template< class T >
 struct TStringFormatInitializer
 {
@@ -12,7 +15,12 @@ struct TStringFormatInitializer
 	template< class CharT, uint32 N >
 	void operator()( CharT(&data)[N] ) const
 	{
+#if CPP_CHARCONV_SUPPORT
+		std::to_chars(data, data + N, value);
+#else
 		FCString::PrintfT(data, TTypeFormatTraits<T>::GetString(), value);
+#endif
+		
 	}
 };
 

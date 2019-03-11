@@ -176,7 +176,7 @@ Win32FileModifyMonitor::Status Win32FileModifyMonitor::checkDirectoryStatus(uint
 
 		std::wstring wstrFilename(pIter->FileName , pIter->FileNameLength / sizeof(WCHAR));
 		//wstrFilename += L'\0';
-		std::wstring filePath = pDirFind->dirPath + L"/" + wstrFilename;
+		std::wstring filePath = pDirFind->dirPath + wstrFilename;
 
 		// If it could be a short filename, expand it.
 		LPCWSTR wszFilename = ::PathFindFileNameW(filePath.c_str());

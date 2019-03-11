@@ -2,7 +2,7 @@
 #ifndef SoftwareRenderStage_H_6E10EA7D_C3B2_4E62_B6A5_67718B8C304F
 #define SoftwareRenderStage_H_6E10EA7D_C3B2_4E62_B6A5_67718B8C304F
 
-#include "TestStageHeader.h"
+#include "Stage/TestStageHeader.h"
 
 #include "WindowsHeader.h"
 #include "Widget/WidgetUtility.h"

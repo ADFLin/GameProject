@@ -159,6 +159,7 @@ namespace Render
 			auto iter = mMap.find(name);
 			if( iter == mMap.end() )
 			{
+				param = ShaderParameter();
 				return false;
 			}
 			param = iter->second;
@@ -338,7 +339,7 @@ namespace Render
 #endif
 
 
-#define CHECK_PARAMETER( PARAM , CODE ) if ( !param.isBound() ){ LogWarning( 0 ,"Shader Param not bounded" ); } CODE
+#define CHECK_PARAMETER( PARAM , CODE ) if ( !param.isBound() ){ LogWarning( 0 ,"Shader Param not bounded" ); return; } CODE
 
 		void setParam(ShaderParameter const& param, int v1) { CHECK_PARAMETER(param, setParam(param.mLoc, v1)); }
 		void setParam(ShaderParameter const& param, IntVector2 const& v ) { CHECK_PARAMETER(param, setParam(param.mLoc, v.x, v.y)); }

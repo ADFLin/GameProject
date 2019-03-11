@@ -6,6 +6,8 @@
 #include "TTLevel.h"
 #include "TTScene.h"
 
+#include "StageRegister.h"
+
 #include "Widget/WidgetUtility.h"
 
 namespace TripleTown
@@ -15,24 +17,7 @@ namespace TripleTown
 	{
 		typedef StageBase BaseClass;
 	public:
-		virtual bool onInit()
-		{ 
-			::Global::GUI().cleanupWidget();
-
-			if ( !::Global::GetDrawEngine()->startOpenGL() )
-				return false;
-
-			GameWindow& window = ::Global::GetDrawEngine()->getWindow();
-
-			if ( !mScene.init() )
-				return false;
-
-			mScene.setupLevel( mLevel );
-			onRestart( true );
-
-			WidgetUtility::CreateDevFrame();
-			return true; 
-		}
+		virtual bool onInit();
 		virtual void onEnd()
 		{
 			::Global::GetDrawEngine()->stopOpenGL();
@@ -104,6 +89,9 @@ namespace TripleTown
 	};
 
 
-
 }
+
+
+REGISTER_STAGE("Triple Town Test", TripleTown::LevelStage, EStageGroup::Dev);
+
 #endif // TTStage_h__

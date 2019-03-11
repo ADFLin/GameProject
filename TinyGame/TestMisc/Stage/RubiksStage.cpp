@@ -1,4 +1,5 @@
 #include "RubiksStage.h"
+#include "StageRegister.h"
 
 namespace Rubiks
 {
@@ -154,3 +155,6 @@ namespace Rubiks
 	}
 
 }//namespace Rubiks
+
+
+REGISTER_STAGE("Rubiks Test", Rubiks::TestStage, EStageGroup::Dev4);

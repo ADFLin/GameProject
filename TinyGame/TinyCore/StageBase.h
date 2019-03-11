@@ -104,6 +104,7 @@ protected:
 private:
 	StageBase*      mNextStage;
 	StageBase*      mCurStage;
+
 };
 
 

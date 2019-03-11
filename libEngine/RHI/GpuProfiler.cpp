@@ -1,6 +1,6 @@
 #include "GpuProfiler.h"
 
-#include "FixString.h"
+
 #include <cstdarg>
 
 namespace Render
@@ -107,18 +107,8 @@ namespace Render
 	}
 
 
-	GpuProfileScope::GpuProfileScope(NoVA, char const* name)
+	void GpuProfileScope::init(char const* name)
 	{
-		sample = GpuProfiler::Get().startSample(name);
-	}
-
-	GpuProfileScope::GpuProfileScope(char const* format, ...)
-	{
-		FixString< 256 > name;
-		va_list argptr;
-		va_start(argptr, format);
-		name.formatVA(format, argptr);
-		va_end(argptr);
 		sample = GpuProfiler::Get().startSample(name);
 	}
 

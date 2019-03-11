@@ -155,13 +155,12 @@ namespace Render
 		{
 			return "Shader/ShadowDepthRender";
 		}
-		static ShaderEntryInfo const* GetShaderEntries()
+		static TArrayView< ShaderEntryInfo const > GetShaderEntries()
 		{
 			static ShaderEntryInfo const entries[] =
 			{
 				{ Shader::eVertex , SHADER_ENTRY(MainVS) },
 				{ Shader::ePixel  , SHADER_ENTRY(MainPS) },
-				{ Shader::eEmpty  , nullptr },
 			};
 			return entries;
 		}
@@ -494,13 +493,12 @@ namespace Render
 			return "Shader/DeferredLighting";
 		}
 
-		static ShaderEntryInfo const* GetShaderEntries()
+		static TArrayView< ShaderEntryInfo const > GetShaderEntries()
 		{
 			static ShaderEntryInfo const entries[] =
 			{
 				{ Shader::eVertex , SHADER_ENTRY(ScreenVS) },
 				{ Shader::ePixel  , SHADER_ENTRY(LightingPassPS) },
-				{ Shader::eEmpty  , nullptr },
 			};
 			return entries;
 		}
@@ -513,7 +511,7 @@ namespace Render
 		DECLARE_GLOBAL_SHADER( TDeferredLightingProgram )
 		typedef DeferredLightingProgram BaseClass;
 
-		static ShaderEntryInfo const* GetShaderEntries()
+		static TArrayView< ShaderEntryInfo const > GetShaderEntries()
 		{
 			if( bUseBoundShape )
 			{
@@ -521,7 +519,6 @@ namespace Render
 				{
 					{ Shader::eVertex , SHADER_ENTRY(LightingPassVS) },
 					{ Shader::ePixel  , SHADER_ENTRY(LightingPassPS) },
-					{ Shader::eEmpty  , nullptr },
 				};
 				return entriesUseBoundShape;
 			}
@@ -530,7 +527,6 @@ namespace Render
 			{
 				{ Shader::eVertex , SHADER_ENTRY(ScreenVS) },
 				{ Shader::ePixel  , SHADER_ENTRY(LightingPassPS) },
-				{ Shader::eEmpty  , nullptr },
 			};
 			return entries;
 		}
@@ -566,13 +562,12 @@ namespace Render
 			option.addDefine(SHADER_PARAM(DEFERRED_SHADING_USE_BOUND_SHAPE), true);
 		}
 
-		static ShaderEntryInfo const* GetShaderEntries()
+		static TArrayView< ShaderEntryInfo const > GetShaderEntries()
 		{
 			static ShaderEntryInfo const entries[] =
 			{
 				{ Shader::eVertex , SHADER_ENTRY(LightingPassVS) },
 				{ Shader::ePixel  , SHADER_ENTRY(ShowBoundPS) },
-				{ Shader::eEmpty  , nullptr },
 			};
 			return entries;
 		}
@@ -793,13 +788,12 @@ namespace Render
 		{
 			return "Shader/BasePass";
 		}
-		static ShaderEntryInfo const* GetShaderEntries()
+		static TArrayView< ShaderEntryInfo const > GetShaderEntries()
 		{
 			static ShaderEntryInfo const entries[] =
 			{
 				{ Shader::eVertex , SHADER_ENTRY(BassPassVS) },
 				{ Shader::ePixel  , SHADER_ENTRY(BasePassPS) },
-				{ Shader::eEmpty  , nullptr },
 			};
 			return entries;
 		}
@@ -904,13 +898,12 @@ namespace Render
 		{
 			return "Shader/SSAO";
 		}
-		static ShaderEntryInfo const* GetShaderEntries()
+		static TArrayView< ShaderEntryInfo const > GetShaderEntries()
 		{
 			static ShaderEntryInfo const entries[] =
 			{
 				{ Shader::eVertex , SHADER_ENTRY(ScreenVS) },
 				{ Shader::ePixel  , SHADER_ENTRY(GeneratePS) },
-				{ Shader::eEmpty  , nullptr },
 			};
 			return entries;
 		}
@@ -935,13 +928,12 @@ namespace Render
 		{
 			return "Shader/SSAO";
 		}
-		static ShaderEntryInfo const* GetShaderEntries()
+		static TArrayView< ShaderEntryInfo const > GetShaderEntries()
 		{
 			static ShaderEntryInfo const entries[] =
 			{
 				{ Shader::eVertex , SHADER_ENTRY(ScreenVS) },
 				{ Shader::ePixel  , SHADER_ENTRY(BlurPS) },
-				{ Shader::eEmpty  , nullptr },
 			};
 			return entries;
 		}
@@ -962,13 +954,12 @@ namespace Render
 		{
 			return "Shader/SSAO";
 		}
-		static ShaderEntryInfo const* GetShaderEntries()
+		static TArrayView< ShaderEntryInfo const > GetShaderEntries()
 		{
 			static ShaderEntryInfo const entries[] =
 			{
 				{ Shader::eVertex , SHADER_ENTRY(ScreenVS) },
 				{ Shader::ePixel  , SHADER_ENTRY(AmbientPS) },
-				{ Shader::eEmpty  , nullptr },
 			};
 			return entries;
 		}
@@ -1215,13 +1206,12 @@ namespace Render
 		{
 			return "Shader/OITResolve";
 		}
-		static ShaderEntryInfo const* GetShaderEntries()
+		static TArrayView< ShaderEntryInfo const > GetShaderEntries()
 		{
 			static ShaderEntryInfo const entries[] =
 			{
 				{ Shader::eVertex , SHADER_ENTRY(ScreenVS) },
 				{ Shader::ePixel  , SHADER_ENTRY(ResolvePS) },
-				{ Shader::eEmpty  , nullptr },
 			};
 			return entries;
 		}
@@ -1456,7 +1446,7 @@ namespace Render
 				
 				for( int i = 0; i < NumBMALevel; ++i )
 				{
-					GPU_PROFILE_VA("BMA=%d", BMA_MaxPixelCounts[i]);
+					GPU_PROFILE("BMA=%d", BMA_MaxPixelCounts[i]);
 					RHISetDepthStencilState(
 						TStaticDepthStencilState< bWriteDepth, ECompareFun::Always ,
 							true , ECompareFun::LessEqual , Stencil::eKeep , Stencil::eZero , Stencil::eZero , 0xff 
@@ -1506,13 +1496,12 @@ namespace Render
 		{
 			return "Shader/OITRender";
 		}
-		static ShaderEntryInfo const* GetShaderEntries()
+		static TArrayView< ShaderEntryInfo const > GetShaderEntries()
 		{
 			static ShaderEntryInfo const entries[] =
 			{
 				{ Shader::eVertex , SHADER_ENTRY(BassPassVS) },
 				{ Shader::ePixel  , SHADER_ENTRY(BassPassPS) },
-				{ Shader::eEmpty  , nullptr },
 			};
 			return entries;
 		}
@@ -1776,13 +1765,12 @@ namespace Render
 			option.addDefine(SHADER_PARAM( DOF_PASS_STEP ), 1);
 		}
 
-		static ShaderEntryInfo const* GetShaderEntries()
+		static TArrayView< ShaderEntryInfo const > GetShaderEntries()
 		{
 			static ShaderEntryInfo const entries[] =
 			{
 				{ Shader::eVertex , SHADER_ENTRY(ScreenVS) },
 				{ Shader::ePixel  , SHADER_ENTRY(MainBlurV) },
-				{ Shader::eEmpty  , nullptr },
 			};
 			return entries;
 		}
@@ -1798,13 +1786,12 @@ namespace Render
 			option.addDefine(SHADER_PARAM(DOF_PASS_STEP), 2);
 		}
 
-		static ShaderEntryInfo const* GetShaderEntries()
+		static TArrayView< ShaderEntryInfo const > GetShaderEntries()
 		{
 			static ShaderEntryInfo const entries[] =
 			{
 				{ Shader::eVertex , SHADER_ENTRY(ScreenVS) },
 				{ Shader::ePixel  , SHADER_ENTRY(MainBlurHAndCombine) },
-				{ Shader::eEmpty  , nullptr },
 			};
 			return entries;
 		}
@@ -1961,12 +1948,11 @@ namespace Render
 		{
 			return "Shader/BufferUtility";
 		}
-		static ShaderEntryInfo const* GetShaderEntries()
+		static TArrayView< ShaderEntryInfo const > GetShaderEntries()
 		{
 			static ShaderEntryInfo entries[] =
 			{
 				{ Shader::eCompute , SHADER_ENTRY(BufferClearCS) },
-				{ Shader::eEmpty , nullptr },
 			};
 			return entries;
 		}
@@ -2017,12 +2003,11 @@ namespace Render
 		{
 			return "Shader/VolumetricLighting";
 		}
-		static ShaderEntryInfo const* GetShaderEntries()
+		static TArrayView< ShaderEntryInfo const > GetShaderEntries()
 		{
 			static ShaderEntryInfo entries[] =
 			{
 				{ Shader::eCompute , SHADER_ENTRY(LightScatteringCS) },
-				{ Shader::eEmpty , nullptr },
 			};
 			return entries;
 		}

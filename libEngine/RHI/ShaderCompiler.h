@@ -94,7 +94,7 @@ namespace Render
 
 		bool loadFileSimple(ShaderProgram& shaderProgram, char const* fileName, char const* def = nullptr, char const* additionalCode = nullptr);
 
-		bool loadFile(ShaderProgram& shaderProgram, char const* fileName,ShaderEntryInfo const entries[],
+		bool loadFile(ShaderProgram& shaderProgram, char const* fileName, TArrayView< ShaderEntryInfo const > entries,
 					  char const* def = nullptr, char const* additionalCode = nullptr);
 
 		bool loadFile(ShaderProgram& shaderProgram, char const* fileName, 
@@ -110,7 +110,7 @@ namespace Render
 					  ShaderCompileOption const& option, char const* additionalCode = nullptr);
 
 
-		bool loadFile(ShaderProgram& shaderProgram, char const* fileName, ShaderEntryInfo const entries[],
+		bool loadFile(ShaderProgram& shaderProgram, char const* fileName, TArrayView< ShaderEntryInfo const > entries,
 					  ShaderCompileOption const& option, char const* additionalCode = nullptr);
 
 		bool loadFile(ShaderProgram& shaderProgram, char const* fileName,
@@ -143,11 +143,11 @@ namespace Render
 		}
 
 		bool loadInternal(ShaderProgram& shaderProgram, char const* fileName, uint8 shaderMask, char const* entryNames[], char const* def, char const* additionalCode, bool bSingleFile);
-		bool loadInternal(ShaderProgram& shaderProgram, char const* fileName, ShaderEntryInfo const entries[], ShaderCompileOption const& option, char const* additionalCode, bool bSingleFile);
+		bool loadInternal(ShaderProgram& shaderProgram, char const* fileName, TArrayView< ShaderEntryInfo const > entries, ShaderCompileOption const& option, char const* additionalCode, bool bSingleFile);
 		bool loadInternal(ShaderProgram& shaderProgram, char const* fileName, uint8 shaderMask, char const* entryNames[], ShaderCompileOption const& option, char const* additionalCode, bool bSingleFile);
-		bool loadInternal(ShaderProgram& shaderProgram, char const* filePaths[], ShaderEntryInfo const entries[], char const* def, char const* additionalCode);
+		bool loadInternal(ShaderProgram& shaderProgram, char const* filePaths[], TArrayView< ShaderEntryInfo const > entries, char const* def, char const* additionalCode);
 
-		static void MakeEntryInfos(ShaderEntryInfo entries[], uint8 shaderMask, char const* entryNames[])
+		static TArrayView< ShaderEntryInfo const > MakeEntryInfos(ShaderEntryInfo entries[], uint8 shaderMask, char const* entryNames[])
 		{
 			int indexUsed = 0;
 			for( int i = 0; i < Shader::NUM_SHADER_TYPE; ++i )
@@ -158,8 +158,7 @@ namespace Render
 				entries[indexUsed].name = (entryNames) ? entryNames[indexUsed] : nullptr;
 				++indexUsed;
 			}
-			entries[indexUsed].type = Shader::eEmpty;
-			entries[indexUsed].name = nullptr;
+			return{ entries , indexUsed };
 		}
 
 		struct ShaderCache
@@ -210,7 +209,7 @@ namespace Render
 		}
 
 		void  generateCompileSetup( 
-			ShaderProgramCompileInfo& compileInfo , ShaderEntryInfo const entries[], 
+			ShaderProgramCompileInfo& compileInfo , TArrayView< ShaderEntryInfo const > entries,
 			ShaderCompileOption const& option, char const* additionalCode ,
 			char const* fileName , bool bSingleFile );
 

@@ -143,12 +143,11 @@ namespace Render
 			BaseClass::SetupShaderCompileOption(option);
 		}
 
-		static ShaderEntryInfo const* GetShaderEntries()
+		static TArrayView< ShaderEntryInfo const > GetShaderEntries()
 		{
 			static ShaderEntryInfo entries[] =
 			{
 				{ Shader::eCompute , SHADER_ENTRY(MainInitCS) },
-				{ Shader::eEmpty , nullptr },
 			};
 			return entries;
 		}
@@ -185,12 +184,11 @@ namespace Render
 
 		}
 
-		static ShaderEntryInfo const* GetShaderEntries()
+		static TArrayView< ShaderEntryInfo const > GetShaderEntries()
 		{
 			static ShaderEntryInfo entries[] =
 			{
 				{ Shader::eCompute , SHADER_ENTRY(MainUpdateCS) },
-				{ Shader::eEmpty , nullptr },
 			};
 			return entries;
 		}
@@ -231,14 +229,13 @@ namespace Render
 			return "Shader/Game/SimpleSpriteParticle";
 		}
 
-		static ShaderEntryInfo const* GetShaderEntries()
+		static TArrayView< ShaderEntryInfo const > GetShaderEntries()
 		{
 			static ShaderEntryInfo entries[] =
 			{
 				{ Shader::eVertex , SHADER_ENTRY(MainVS) },
 				{ Shader::eGeometry , SHADER_ENTRY(MainGS) },
 				{ Shader::ePixel , SHADER_ENTRY(MainPS) },
-				{ Shader::eEmpty , nullptr },
 			};
 			return entries;
 		}
@@ -277,7 +274,7 @@ namespace Render
 			return "Shader/Game/Spline";
 		}
 
-		static ShaderEntryInfo const* GetShaderEntries()
+		static TArrayView< ShaderEntryInfo const > GetShaderEntries()
 		{
 			if ( UseTesselation )
 			{
@@ -287,7 +284,6 @@ namespace Render
 					{ Shader::eHull   , SHADER_ENTRY(MainHS) },
 					{ Shader::eDomain , SHADER_ENTRY(MainDS) },
 					{ Shader::ePixel , SHADER_ENTRY(MainPS) },
-					{ Shader::eEmpty , nullptr },
 				};
 				return entriesWithTesselation;
 			}
@@ -296,7 +292,6 @@ namespace Render
 			{
 				{ Shader::eVertex , SHADER_ENTRY(MainVS) },
 				{ Shader::ePixel , SHADER_ENTRY(MainPS) },
-				{ Shader::eEmpty , nullptr },
 			};
 			return entries;
 		}
@@ -332,7 +327,7 @@ namespace Render
 			return "Shader/Game/Tessellation";
 		}
 
-		static ShaderEntryInfo const* GetShaderEntries()
+		static TArrayView< ShaderEntryInfo const > GetShaderEntries()
 		{
 			if( bEnable )
 			{
@@ -342,7 +337,6 @@ namespace Render
 					{ Shader::eHull   , SHADER_ENTRY(MainHS) },
 					{ Shader::eDomain , SHADER_ENTRY(MainDS) },
 					{ Shader::ePixel , SHADER_ENTRY(MainPS) },
-					{ Shader::eEmpty , nullptr },
 				};
 				return entriesWithTesselation;
 			}
@@ -351,7 +345,6 @@ namespace Render
 			{
 				{ Shader::eVertex , SHADER_ENTRY(MainVS) },
 				{ Shader::ePixel , SHADER_ENTRY(MainPS) },
-				{ Shader::eEmpty , nullptr },
 			};
 			return entries;
 		}
@@ -402,12 +395,11 @@ namespace Render
 			return "Shader/Game/WaterSimulation";
 		}
 
-		static ShaderEntryInfo const* GetShaderEntries()
+		static TArrayView< ShaderEntryInfo const > GetShaderEntries()
 		{
 			static ShaderEntryInfo entries[] =
 			{
 				{ Shader::eCompute , SHADER_ENTRY(MainUpdateCS) },
-				{ Shader::eEmpty , nullptr },
 			};
 			return entries;
 		}
@@ -447,12 +439,11 @@ namespace Render
 			return "Shader/Game/WaterSimulation";
 		}
 
-		static ShaderEntryInfo const* GetShaderEntries()
+		static TArrayView< ShaderEntryInfo const > GetShaderEntries()
 		{
 			static ShaderEntryInfo entries[] =
 			{
 				{ Shader::eCompute , SHADER_ENTRY(MainUpdateNormal) },
-				{ Shader::eEmpty , nullptr },
 			};
 			return entries;
 		}
@@ -492,13 +483,12 @@ namespace Render
 			return "Shader/Game/Water";
 		}
 
-		static ShaderEntryInfo const* GetShaderEntries()
+		static TArrayView< ShaderEntryInfo const > GetShaderEntries()
 		{
 			static ShaderEntryInfo entries[] =
 			{
 				{ Shader::eVertex , SHADER_ENTRY(MainVS) },
 				{ Shader::ePixel , SHADER_ENTRY(MainPS) },
-				{ Shader::eEmpty , nullptr },
 			};
 			return entries;
 		}

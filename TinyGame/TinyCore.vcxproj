@@ -164,11 +164,29 @@
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="CurveBuilder\AsmetaBase.h" />
+    <ClInclude Include="CurveBuilder\Assembler.h" />
+    <ClInclude Include="CurveBuilder\Base.h" />
+    <ClInclude Include="CurveBuilder\ColorMap.h" />
+    <ClInclude Include="CurveBuilder\CurveRenderer.h" />
+    <ClInclude Include="CurveBuilder\DifferentialParser.h" />
+    <ClInclude Include="CurveBuilder\Expression.h" />
+    <ClInclude Include="CurveBuilder\ExpressionParser.h" />
+    <ClInclude Include="CurveBuilder\FPUCompiler.h" />
+    <ClInclude Include="CurveBuilder\FunctionParser.h" />
+    <ClInclude Include="CurveBuilder\RenderData.h" />
+    <ClInclude Include="CurveBuilder\ShapeCommon.h" />
+    <ClInclude Include="CurveBuilder\ShapeFun.h" />
+    <ClInclude Include="CurveBuilder\ShapeMeshBuilder.h" />
+    <ClInclude Include="CurveBuilder\Surface.h" />
     <ClInclude Include="GameMenuStage.h" />
+    <ClInclude Include="SuperFractial\SelectRectBase.h" />
     <ClInclude Include="TinyCore\GameStageMode.h" />
     <ClInclude Include="Widget\ConsoleFrame.h" />
     <ClInclude Include="Widget\WidgetLayout.h" />
     <ClInclude Include="Widget\WidgetUtility.h" />
+    <None Include="out\Shader\Game\CurveMesh.sgc" />
+    <None Include="out\Shader\Game\MeshNormalVisualize.sgc" />
     <None Include="TinyCore\ColorName.h" />
     <ClInclude Include="TinyCore\DataStream.h" />
     <ClInclude Include="TinyCore\DataSteamBuffer.h" />
@@ -188,7 +206,24 @@
     <ClInclude Include="Widget\ServerListPanel.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="CurveBuilder\ColorMap.cpp" />
+    <ClCompile Include="CurveBuilder\CurveRenderer.cpp" />
+    <ClCompile Include="CurveBuilder\DifferentialParser.cpp" />
+    <ClCompile Include="CurveBuilder\Expression.cpp" />
+    <ClCompile Include="CurveBuilder\ExpressionParser.cpp" />
+    <ClCompile Include="CurveBuilder\FPUCompiler.cpp" />
+    <ClCompile Include="CurveBuilder\FunctionParser.cpp" />
+    <ClCompile Include="CurveBuilder\RenderData.cpp" />
+    <ClCompile Include="CurveBuilder\ShapeFun.cpp" />
+    <ClCompile Include="CurveBuilder\ShapeMeshBuilder.cpp">
+      <OpenMPSupport Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</OpenMPSupport>
+      <OpenMPSupport Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</OpenMPSupport>
+      <OpenMPSupport Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">false</OpenMPSupport>
+      <OpenMPSupport Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</OpenMPSupport>
+    </ClCompile>
+    <ClCompile Include="CurveBuilder\Surface.cpp" />
     <ClCompile Include="GameMenuStage.cpp" />
+    <ClCompile Include="SuperFractial\SelectRectBase.cpp" />
     <ClCompile Include="TinyCore\DataSteamBuffer.cpp" />
     <ClCompile Include="TinyCore\DataStream.cpp" />
     <ClCompile Include="TinyCore\DataTransferImpl.cpp" />

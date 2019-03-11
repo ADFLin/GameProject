@@ -64,8 +64,6 @@ private:
 
 	std::vector< ColorPoint > mSortedCPoints;
 	std::vector< Color3f > mColorData;
-
-
 	
 };
 

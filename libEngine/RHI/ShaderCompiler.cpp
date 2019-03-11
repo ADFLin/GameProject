@@ -187,14 +187,17 @@ namespace Render
 				result = nullptr;
 			}
 
-			if( classType == ShaderClassType::Material )
+			if ( result )
 			{
-				removeFromShaderCompileMap(*result);
+				if( classType == ShaderClassType::Material )
+				{
+					removeFromShaderCompileMap(*result);
+				}
+				else
+				{
+					mShaderCompileMap[result]->classType = classType;
+				}
 			}
-			else
-			{
-				mShaderCompileMap[result]->classType = classType;
-			}			
 		}
 		else
 		{
@@ -220,7 +223,6 @@ namespace Render
 		{
 			{ Shader::eVertex , SHADER_ENTRY(MainVS) } ,
 			{ Shader::ePixel , SHADER_ENTRY(MainPS) } ,
-			{ Shader::eEmpty , nullptr } ,
 		};
 		return loadFile(shaderProgram , fileName, entries , def, additionalCode);
 	}
@@ -231,7 +233,6 @@ namespace Render
 		{
 			{ Shader::eVertex , vertexEntryName } ,
 			{ Shader::ePixel , pixelEntryName } ,
-			{ Shader::eEmpty , nullptr } ,
 		};
 		return loadFile(shaderProgram, fileName, entries, def, additionalCode);
 	}
@@ -252,23 +253,22 @@ namespace Render
 		{
 			{ Shader::eVertex , vertexEntryName } ,
 			{ Shader::ePixel , pixelEntryName } ,
-			{ Shader::eEmpty , nullptr } ,
 		};
 		return loadFile(shaderProgram, fileName, entries, option, additionalCode);
 	}
 
-	bool ShaderManager::loadFile(ShaderProgram& shaderProgram, char const* fileName, ShaderEntryInfo const entries[], char const* def /*= nullptr*/, char const* additionalCode /*= nullptr*/)
+	bool ShaderManager::loadFile(ShaderProgram& shaderProgram, char const* fileName, TArrayView< ShaderEntryInfo const > entries, char const* def /*= nullptr*/, char const* additionalCode /*= nullptr*/)
 	{
 		char const* filePaths[Shader::NUM_SHADER_TYPE];
 		FixString< 256 > path;
 		path.format("%s%s", fileName, SHADER_FILE_SUBNAME);
-		for( int i = 0; entries[i].type != Shader::eEmpty; ++i )
+		for( int i = 0; i < entries.size(); ++i )
 			filePaths[i] = path;
 
 		return loadInternal(shaderProgram, filePaths, entries, def, additionalCode);
 	}
 
-	bool ShaderManager::loadFile(ShaderProgram& shaderProgram, char const* fileName, ShaderEntryInfo const entries[], ShaderCompileOption const& option, char const* additionalCode /*= nullptr*/)
+	bool ShaderManager::loadFile(ShaderProgram& shaderProgram, char const* fileName, TArrayView< ShaderEntryInfo const > entries, ShaderCompileOption const& option, char const* additionalCode /*= nullptr*/)
 	{
 		return loadInternal(shaderProgram, fileName, entries, option, additionalCode, true);
 	}
@@ -276,11 +276,10 @@ namespace Render
 	bool ShaderManager::loadInternal(ShaderProgram& shaderProgram, char const* fileName, uint8 shaderMask, char const* entryNames[], ShaderCompileOption const& option, char const* additionalCode, bool bSingleFile)
 	{
 		ShaderEntryInfo entries[Shader::NUM_SHADER_TYPE];
-		MakeEntryInfos(entries, shaderMask, entryNames);
-		return loadInternal(shaderProgram, fileName, entries, option, additionalCode, bSingleFile);
+		return loadInternal(shaderProgram, fileName, MakeEntryInfos(entries, shaderMask, entryNames) , option, additionalCode, bSingleFile);
 	}
 
-	bool ShaderManager::loadInternal(ShaderProgram& shaderProgram, char const* fileName, ShaderEntryInfo const entries[] , ShaderCompileOption const& option, char const* additionalCode, bool bSingleFile)
+	bool ShaderManager::loadInternal(ShaderProgram& shaderProgram, char const* fileName, TArrayView< ShaderEntryInfo const > entries , ShaderCompileOption const& option, char const* additionalCode, bool bSingleFile)
 	{
 		removeFromShaderCompileMap(shaderProgram);
 
@@ -302,12 +301,14 @@ namespace Render
 
 	bool ShaderManager::loadInternal(ShaderProgram& shaderProgram, char const* fileName, uint8 shaderMask, char const* entryNames[], char const* def , char const* additionalCode, bool bSingleFile)
 	{
+
 		ShaderEntryInfo entries[Shader::NUM_SHADER_TYPE];
-		MakeEntryInfos(entries, shaderMask, entryNames);
+		auto entriesView = MakeEntryInfos(entries, shaderMask, entryNames);
+
 		char const* filePaths[Shader::NUM_SHADER_TYPE];
 		FixString< 256 > paths[Shader::NUM_SHADER_TYPE];
-		
-		for( int i = 0; entries[i].type != Shader::eEmpty; ++i )
+
+		for( int i = 0; i < entriesView.size() ; ++i )
 		{
 			if( bSingleFile )
 			{
@@ -319,8 +320,8 @@ namespace Render
 			}
 
 			filePaths[i] = paths[i];
-		}
-		return loadInternal(shaderProgram, filePaths, entries, def, additionalCode);
+		}	
+		return loadInternal(shaderProgram, filePaths, entriesView , def, additionalCode);
 	}
 
 	static void AddCommonHeadCode(std::string& inoutHeadCode , uint32 version , ShaderEntryInfo const& entry )
@@ -342,7 +343,7 @@ namespace Render
 		}
 	}
 
-	bool ShaderManager::loadInternal(ShaderProgram& shaderProgram, char const* filePaths[], ShaderEntryInfo const entries[], char const* def, char const* additionalCode)
+	bool ShaderManager::loadInternal(ShaderProgram& shaderProgram, char const* filePaths[], TArrayView< ShaderEntryInfo const > entries, char const* def, char const* additionalCode)
 	{
 		removeFromShaderCompileMap(shaderProgram);
 
@@ -350,7 +351,7 @@ namespace Render
 
 		info->shaderProgram = &shaderProgram;
 
-		for( int i = 0; entries[i].type != Shader::eEmpty; ++i )
+		for( int i = 0; i < entries.size(); ++i )
 		{
 			auto const& entry = entries[i];
 
@@ -395,7 +396,6 @@ namespace Render
 		{
 			{ Shader::eVertex , "main" },
 			{ Shader::ePixel , "main" },
-			{ Shader::eEmpty , nullptr },
 		};
 		FixString< 256 > paths[2];
 		paths[0].format("%s%s%s", mBaseDir.c_str(), fileNameVS, SHADER_FILE_SUBNAME);
@@ -475,13 +475,12 @@ namespace Render
 		return true;
 	}
 
-	void ShaderManager::generateCompileSetup(ShaderProgramCompileInfo& compileInfo, ShaderEntryInfo const entries[], ShaderCompileOption const& option, char const* additionalCode , char const* fileName , bool bSingleFile )
+	void ShaderManager::generateCompileSetup(ShaderProgramCompileInfo& compileInfo, TArrayView< ShaderEntryInfo const > entries, ShaderCompileOption const& option, char const* additionalCode , char const* fileName , bool bSingleFile )
 	{
 		assert( fileName &&  compileInfo.shaders.empty());
 
-		for( int i = 0; entries[i].type != Shader::eEmpty; ++i )
+		for( auto const& entry : entries )
 		{
-			auto const& entry = entries[i];
 			std::string defCode;
 
 			AddCommonHeadCode(defCode, option.version ? option.version : mDefaultVersion, entry);

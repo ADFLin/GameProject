@@ -4,19 +4,25 @@
 
 //reference :https://github.com/TheAllenChou/unity-cj-lib/blob/master/Unity%20CJ%20Lib/Assets/CjLib/Shader/Noise/RandomNoise.cginc
 
-float Rand(float s)
+float PseudoRandom(float s)
 {
 	return frac(sin(mod(s, 6.2831853)) * 43758.5453123);
 }
 
-float Rand(float2 s)
+float PseudoRandom(float2 s)
 {
+#if 0
 	float d = dot(s + 0.1234567, float2(1111112.9819837, 78.237173));
 	float m = mod(d, 6.2831853);
 	return frac(sin(m) * 43758.5453123);
+#else
+	return frac(sin(dot(s.xy,
+						float2(12.9898, 78.233)))*
+				43758.5453123);
+#endif
 }
 
-float Rand(float3 s)
+float PseudoRandom(float3 s)
 {
 	float d = dot(s + 0.1234567, float3(11112.9819837, 378.237173, 3971977.9173179));
 	float m = mod(d, 6.2831853);
@@ -25,17 +31,17 @@ float Rand(float3 s)
 
 float RandRange(float s, float a, float b)
 {
-	return a + (b - a) * Rand(s);
+	return a + (b - a) * PseudoRandom(s);
 }
 
 float2 RandRange(float2 s, float2 a, float2 b)
 {
-	return a + (b - a) * Rand(s);
+	return a + (b - a) * PseudoRandom(s);
 }
 
 float3 RandRange(float3 s, float3 a, float3 b)
 {
-	return a + (b - a) * Rand(s);
+	return a + (b - a) * PseudoRandom(s);
 }
 
 float3 RandRangeSeparate(float3 s, float3 a, float3 b)
@@ -50,20 +56,31 @@ float3 RandRangeSeparate(float3 s, float3 a, float3 b)
 
 float2 RandUVec(float2 s)
 {
-	return normalize(float2(Rand(s), Rand(s * 1.23456789)) - 0.5);
+	return normalize(float2(PseudoRandom(s), PseudoRandom(s * 1.23456789)) - 0.5);
 }
 
 float3 RandUVec(float3 s)
 {
-	return normalize(float3(Rand(s), Rand(s * 1.23456789), Rand(s * 9876.54321)) - 0.5);
+	return normalize(float3(PseudoRandom(s), PseudoRandom(s * 1.23456789), PseudoRandom(s * 9876.54321)) - 0.5);
 }
 
 float2 RandVec(float2 s)
 {
-	return RandUVec(s) * Rand(s * 9876.54321);
+	return RandUVec(s) * PseudoRandom(s * 9876.54321);
 }
 
 float3 RandVec(float3 s)
 {
-	return RandUVec(s) * Rand(s * 1357975.31313);
+	return RandUVec(s) * PseudoRandom(s * 1357975.31313);
+}
+
+
+#define PerlinFadeT( TYPE ) TYPE PerlinFade( TYPE x ){ return x * x * (3.0 - 2.0 * x); }
+//#define PerlinFadeT( TYPE ) TYPE PerlinFade( TYPE x ){ TYPE x2 = x * x; return x2 * x * (6.0 * x2 - 15.0 * x + 10.0); }
+VECTOR_FUNCTION_LIST(PerlinFadeT)
+#undef PerlinFadeT
+
+float PerlinGrad( float s )
+{
+	return 0;
 }

@@ -1326,8 +1326,6 @@ void NetLevelStageMode::procMsg(IComPacket* cp)
 	}
 }
 
-
-
 void NetLevelStageMode::onServerEvent(EventID event, unsigned msg)
 {
 	FixString< 256 > str;

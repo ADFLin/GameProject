@@ -36,13 +36,12 @@ namespace CB
 	{
 		DECLARE_GLOBAL_SHADER(CurveMeshProgram)
 		typedef CurveMeshBaseProgram BaseClass;
-		static ShaderEntryInfo const* GetShaderEntries()
+		static TArrayView< ShaderEntryInfo const > GetShaderEntries()
 		{
 			static ShaderEntryInfo const enties[] =
 			{
 				{ Shader::eVertex ,  SHADER_ENTRY(MainVS) },
 				{ Shader::ePixel ,  SHADER_ENTRY(MainPS) },
-				{ Shader::eEmpty ,  nullptr },
 			};
 			return enties;
 		}
@@ -82,14 +81,13 @@ namespace CB
 		{
 			return "Shader/Game/MeshNormalVisualize";
 		}
-		static ShaderEntryInfo const* GetShaderEntries()
+		static TArrayView< ShaderEntryInfo const > GetShaderEntries()
 		{
 			static ShaderEntryInfo const enties[] =
 			{
 				{ Shader::eVertex ,  SHADER_ENTRY(MainVS) },
 				{ Shader::eGeometry ,  SHADER_ENTRY(MainGS) },
 				{ Shader::ePixel ,  SHADER_ENTRY(MainPS) },
-				{ Shader::eEmpty ,  nullptr },
 			};
 			return enties;
 		}

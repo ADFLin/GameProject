@@ -1,6 +1,6 @@
 #include "StickMoveStage.h"
 
-#include "TestStageHeader.h"
+#include "Stage/TestStageHeader.h"
 
 
 #include "GameSettingPanel.h"

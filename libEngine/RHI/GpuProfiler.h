@@ -4,9 +4,11 @@
 
 #include "Singleton.h"
 #include "Core/IntegerType.h"
+#include "FixString.h"
 
-#include <unordered_map>
+#include <vector>
 #include <memory>
+#include <string>
 
 namespace Render
 {
@@ -75,17 +77,27 @@ namespace Render
 
 	struct GpuProfileScope
 	{
-		struct NoVA {};
-		GpuProfileScope(NoVA, char const* name);
-		GpuProfileScope(char const* format, ...);
-		~GpuProfileScope();
+		GpuProfileScope(char const* name)
+		{
+			init(name);
+		}
 
+		template< class ...Args>
+		GpuProfileScope(char const* format, Args&& ...args)
+		{
+			FixString< 256 > name;
+			name.format(format, std::forward< Args >(args)...);
+			init(name);
+		}
+
+		~GpuProfileScope();
+	private:
+		void init(char const* name);
 		GpuProfileSample* sample;
 	};
 
 }//namespace Render
 
-#define GPU_PROFILE( name ) Render::GpuProfileScope ANONYMOUS_VARIABLE(GPUProfile)( Render::GpuProfileScope::NoVA() , name );
-#define GPU_PROFILE_VA( name , ... ) Render::GpuProfileScope ANONYMOUS_VARIABLE(GPUProfile)( name , __VA_ARGS__);
+#define GPU_PROFILE( name , ... ) Render::GpuProfileScope ANONYMOUS_VARIABLE(GPUProfile)( name , __VA_ARGS__);
 
 #endif // GpuProfiler_H_5CF3071A_820F_435C_BC97_1975A2C6D546

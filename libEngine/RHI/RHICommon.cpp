@@ -236,13 +236,12 @@ namespace Render
 		{
 			return "Shader/CopyTexture";
 		}
-		static ShaderEntryInfo const* GetShaderEntries()
+		static TArrayView< ShaderEntryInfo const > GetShaderEntries()
 		{
 			static ShaderEntryInfo const entries[] =
 			{
 				{ Shader::eVertex , SHADER_ENTRY(ScreenVS) },
 				{ Shader::ePixel  , SHADER_ENTRY(CopyTexturePS) },
-				{ Shader::eEmpty  , nullptr },
 			};
 			return entries;
 		}
@@ -270,13 +269,12 @@ namespace Render
 		{
 			return "Shader/CopyTexture";
 		}
-		static ShaderEntryInfo const* GetShaderEntries()
+		static TArrayView< ShaderEntryInfo const > GetShaderEntries()
 		{
 			static ShaderEntryInfo const entries[] =
 			{
 				{ Shader::eVertex , SHADER_ENTRY(ScreenVS) },
 				{ Shader::ePixel  , SHADER_ENTRY(CopyTextureMaskPS) },
-				{ Shader::eEmpty  , nullptr },
 			};
 			return entries;
 		}
@@ -306,13 +304,12 @@ namespace Render
 		{
 			return "Shader/CopyTexture";
 		}
-		static ShaderEntryInfo const* GetShaderEntries()
+		static TArrayView< ShaderEntryInfo const > GetShaderEntries()
 		{
 			static ShaderEntryInfo const entries[] =
 			{
 				{ Shader::eVertex , SHADER_ENTRY(ScreenVS) },
 				{ Shader::ePixel  , SHADER_ENTRY(CopyTextureBaisPS) },
-				{ Shader::eEmpty  , nullptr },
 			};
 			return entries;
 		}
@@ -344,13 +341,12 @@ namespace Render
 		{
 			return "Shader/CopyTexture";
 		}
-		static ShaderEntryInfo const* GetShaderEntries()
+		static TArrayView< ShaderEntryInfo const > GetShaderEntries()
 		{
 			static ShaderEntryInfo const entries[] =
 			{
 				{ Shader::eVertex , SHADER_ENTRY(ScreenVS) },
 				{ Shader::ePixel  , SHADER_ENTRY(MappingTextureColorPS) },
-				{ Shader::eEmpty  , nullptr },
 			};
 			return entries;
 		}

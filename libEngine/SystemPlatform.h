@@ -163,7 +163,7 @@ public:
 
 
 struct ScopeTickCount
-{
+	{
 	ScopeTickCount(int64& time):mTime(time)
 	{
 		mTime = SystemPlatform::GetTickCount();

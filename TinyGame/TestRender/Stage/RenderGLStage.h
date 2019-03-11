@@ -126,8 +126,11 @@ namespace Render
 	protected:
 		virtual void getDependentFilePaths(std::vector<std::wstring>& paths) override
 		{
-			std::string cPath = MaterialShaderMap::GetFilePath( material->mName.c_str() );
-			paths.push_back(FCString::CharToWChar(cPath.c_str()));
+			if ( material )
+			{
+				std::string cPath = MaterialShaderMap::GetFilePath(material->mName.c_str());
+				paths.push_back(FCString::CharToWChar(cPath.c_str()));
+			}
 		}
 		virtual void postFileModify(FileAction action) override
 		{

@@ -104,6 +104,7 @@ class TinyGameApp : public GameLoopT< TinyGameApp , WindowsPlatform >
 				  , public TaskListener
 				  , public IGUIDelegate
 				  , public IGameNetInterface
+	              , public IGameWindowSupporter
 {
 public:
 
@@ -121,6 +122,12 @@ public:
 	//IGUIDelegate
 	virtual void addGUITask(TaskBase* task, bool bGlobal) override;
 	virtual void dispatchWidgetEvent(int event, int id, GWidget* ui) override;
+
+	//IGameWindowSupporter
+	virtual GameWindow& getGameWindow() override;
+	virtual GameWindow& reconstructGameWindow() override;
+
+	bool createWindowInternal(int width , int height);
 
 protected:
 	//StageManager
@@ -185,6 +192,7 @@ private:
 	void setConsoleShowMode(ConsoleShowMode mode);
 
 	class ConsoleFrame* mConsoleWidget = nullptr;
+	bool            mbInitializingStage = false;
 };
 
 #endif // TinyGameApp_h__

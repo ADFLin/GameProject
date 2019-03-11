@@ -89,14 +89,13 @@ namespace Go
 		{
 			return "Shader/Game/UnderCurveArea";
 		}
-		static ShaderEntryInfo const* GetShaderEntries()
+		static TArrayView< ShaderEntryInfo const > GetShaderEntries()
 		{
 			static ShaderEntryInfo const enties[] =
 			{
 				{ Shader::eVertex ,  SHADER_ENTRY(MainVS) },
 				{ Shader::ePixel ,  SHADER_ENTRY(MainPS) },
 				{ Shader::eGeometry ,  SHADER_ENTRY(MainGS) },
-				{ Shader::eEmpty ,  nullptr },
 			};
 			return enties;
 		}

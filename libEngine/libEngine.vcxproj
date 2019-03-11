@@ -280,6 +280,7 @@
     <ClCompile Include="RHI\RHICommand.cpp" />
     <ClCompile Include="RHI\RHICommon.cpp" />
     <ClCompile Include="RHI\RHIGraphics2D.cpp" />
+    <ClCompile Include="RHI\RHIStaticStateObject.cpp" />
     <ClCompile Include="RHI\Scene.cpp" />
     <ClCompile Include="RHI\SceneObject.cpp" />
     <ClCompile Include="RHI\SceneRenderer.cpp" />
@@ -446,6 +447,7 @@
     <ClInclude Include="RHI\RHICommon.h" />
     <ClInclude Include="RHI\RHIDefine.h" />
     <ClInclude Include="RHI\RHIGraphics2D.h" />
+    <ClInclude Include="RHI\RHIStaticStateObject.h" />
     <ClInclude Include="RHI\Scene.h" />
     <ClInclude Include="RHI\SceneObject.h" />
     <ClInclude Include="RHI\SceneRenderer.h" />

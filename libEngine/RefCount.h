@@ -74,11 +74,13 @@ private:
 	void init( T* ptr ){ mPtr = ptr; if ( mPtr ) mPtr->incRef(); }
 	void cleanup()
 	{
-		if( mPtr && mPtr->decRef() )
+		if( mPtr )
 		{
-			mPtr->destroyThis();
+			if ( mPtr->decRef() )
+				mPtr->destroyThis();
+
+			mPtr = nullptr;
 		}  
-		mPtr = nullptr;
 	}
 	void assign( T* ptr )
 	{

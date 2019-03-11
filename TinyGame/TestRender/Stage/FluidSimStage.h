@@ -2,7 +2,7 @@
 #ifndef FluidSimStage_H_94B85E62_A880_4677_B764_39C27A8D7B77
 #define FluidSimStage_H_94B85E62_A880_4677_B764_39C27A8D7B77
 
-#include "TestStageHeader.h"
+#include "Stage/TestStageHeader.h"
 
 #include "Phy2D/Base.h"
 

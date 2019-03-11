@@ -188,10 +188,10 @@ bool TinyGameApp::onInit()
 	gLogPrinter.addChannel( LOG_MSG );
 	gLogPrinter.addChannel( LOG_ERROR  );
 
-	if ( !mGameWindow.create( TEXT("Tiny Game") , gDefaultScreenWidth , gDefaultScreenHeight , WindowsMessageHandler::MsgProc  ) )
+	if ( !createWindowInternal( gDefaultScreenWidth , gDefaultScreenHeight ) )
 		return false;
 
-	::Global::GetDrawEngine()->init( mGameWindow );
+	::Global::GetDrawEngine()->initialize( *this );
 
 	::Global::GUI().initialize( *this );
 
@@ -483,7 +483,12 @@ bool TinyGameApp::onChar( unsigned code )
 
 void TinyGameApp::onDestroy()
 {
-	setLoopOver(true);
+	if( !mGameWindow.getHWnd() )
+	{
+		setLoopOver(true);
+		WindowsMessageHandler::onDestroy();
+
+	}	
 }
 
 void TinyGameApp::onTaskMessage( TaskBase* task , TaskMsg const& msg )
@@ -507,7 +512,7 @@ void TinyGameApp::render( float dframe )
 {
 	using namespace Render;
 
-	if ( getNextStage() )
+	if ( getNextStage() || mbInitializingStage )
 		return;
 
 	DrawEngine* de = Global::GetDrawEngine();
@@ -723,6 +728,8 @@ StageBase* TinyGameApp::resolveChangeStageFail( FailReason reason )
 
 bool TinyGameApp::initializeStage(StageBase* stage)
 {
+	TGuardValue< bool > initializingStageGuard(mbInitializingStage, true);
+
 	if( auto gameStage = dynamic_cast<GameStageBase*>(stage) )
 	{
 		mStageMode = gameStage->getStageMode();
@@ -885,6 +892,34 @@ void TinyGameApp::dispatchWidgetEvent( int event , int id , GWidget* ui )
 	}
 
 	return;
+}
+
+GameWindow& TinyGameApp::getGameWindow()
+{
+	return mGameWindow;
+}
+
+GameWindow& TinyGameApp::reconstructGameWindow()
+{
+	int width = mGameWindow.getWidth();
+	int height = mGameWindow.getHeight();
+	
+	mGameWindow.destroy();
+	if( createWindowInternal(width, height) )
+	{
+
+
+	}
+
+	return mGameWindow;
+}
+
+bool TinyGameApp::createWindowInternal(int width, int height)
+{
+	if( !mGameWindow.create(TEXT("Tiny Game"), width, height, WindowsMessageHandler::MsgProc) )
+		return false;
+
+	return true;
 }
 
 FadeInEffect::FadeInEffect( int _color , long time )

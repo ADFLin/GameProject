@@ -122,13 +122,22 @@ enum class RHITargetName
 	D3D11 ,
 	Vulkan ,
 };
+
+class IGameWindowSupporter
+{
+public:
+	virtual ~IGameWindowSupporter(){}
+	virtual GameWindow& getGameWindow() = 0;
+	virtual GameWindow& reconstructGameWindow() = 0;
+};
+
 class DrawEngine
 {
 public:
 	TINY_API DrawEngine();
 	TINY_API ~DrawEngine();
 
-	TINY_API void  init( GameWindow& window );
+	TINY_API void  initialize( IGameWindowSupporter& supporter );
 	TINY_API void  release();
 	TINY_API void  changeScreenSize( int w , int h );
 	TINY_API void  update(long deltaTime);
@@ -166,7 +175,9 @@ private:
 
 	bool        mbInitialized;
 	bool        bRHIShutdownDeferred;
+	bool        bHasUseRHI = false;
 	
+	IGameWindowSupporter* mWindowSupporter = nullptr;
 	GameWindow* mGameWindow;
 	BitmapDC    mBufferDC;
 	std::unique_ptr< Graphics2D > mPlatformGraphics;

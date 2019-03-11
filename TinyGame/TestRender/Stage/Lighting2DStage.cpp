@@ -1,5 +1,4 @@
-#include "TinyGamePCH.h"
-#include "LightingStage2D.h"
+#include "Lighting2DStage.h"
 
 #include "GameGUISystem.h"
 #include "Widget/WidgetUtility.h"
@@ -29,7 +28,6 @@ namespace Lighting2D
 			ShaderEntryInfo entries[] =
 			{
 				{ Shader::ePixel , SHADER_ENTRY(LightingPS) } ,
-				{ Shader::eEmpty , nullptr },
 			};
 			if( !ShaderManager::Get().loadFile(
 				mProgLighting, "Shader/Game/lighting2D", entries ) )
@@ -45,7 +43,6 @@ namespace Lighting2D
 				{ Shader::eVertex , SHADER_ENTRY(MainVS) },
 				{ Shader::ePixel , SHADER_ENTRY(MainPS) } ,
 				{ Shader::eGeometry , SHADER_ENTRY(MainGS) },
-				{ Shader::eEmpty , nullptr },
 			};
 			if( !ShaderManager::Get().loadFile(
 				mProgShadow, "Shader/Game/Lighting2DShadow", entries, option ) )

@@ -61,6 +61,9 @@
     <ProjectReference Include="TestRender.vcxproj">
       <Project>{3ab44afb-e463-4506-b2a1-62ac45b58a17}</Project>
     </ProjectReference>
+    <ProjectReference Include="TestWorking.vcxproj">
+      <Project>{08264290-5951-496c-87f1-17681a758d17}</Project>
+    </ProjectReference>
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{7E445617-BA57-48B1-8C08-52BA40C53663}</ProjectGuid>

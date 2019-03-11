@@ -4,6 +4,8 @@
 
 #include "ShaderCore.h"
 
+#include "Template/ArrayView.h"
+
 namespace Render
 {
 	class ShaderCompileOption;
@@ -19,7 +21,7 @@ namespace Render
 			assert(0);
 			return nullptr;
 		}
-		static ShaderEntryInfo const* GetShaderEntries()
+		static TArrayView< ShaderEntryInfo const > GetShaderEntries()
 		{
 			assert(0);
 #if 0
@@ -27,10 +29,11 @@ namespace Render
 			{
 				{ Shader::eVertex , SHADER_ENTRY(MainVS) },
 				{ Shader::ePixel  , SHADER_ENTRY(MainPS) },
-				{ Shader::eEmpty  , nullptr },
 			};
+			return entries;
+#else
+			return TArrayView< ShaderEntryInfo const >();
 #endif
-			return nullptr;
 		}
 		class GlobalShaderProgramClass* myClass;
 	};
@@ -43,7 +46,7 @@ namespace Render
 		typedef GlobalShaderProgram* (*FunCreateShader)();
 		typedef void(*FunSetupShaderCompileOption)(ShaderCompileOption&);
 		typedef char const* (*FunGetShaderFileName)();
-		typedef ShaderEntryInfo const* (*FunGetShaderEntries)();
+		typedef TArrayView< ShaderEntryInfo const > (*FunGetShaderEntries)();
 
 		FunCreateShader funCreateShader;
 		FunSetupShaderCompileOption funSetupShaderCompileOption;

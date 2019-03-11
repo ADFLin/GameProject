@@ -51,7 +51,7 @@ public:
 	bool onChar( unsigned code ){ return true; }
 	bool onActivate( bool beA ){ return true; }
 	void onPaint( HDC hDC ){}
-	void onDestroy(){}
+	void onDestroy(){ ::PostQuitMessage(0); }
 	bool onIMEChar(){ return true;}
 	bool onPaste(){ return true; }
 
@@ -169,7 +169,6 @@ LRESULT CALLBACK WindowsMessageHandlerT<T, MSG>::MsgProc( HWND hWnd , UINT msg ,
 			typename Select< ( MSG & MSG_DESTROY ) != 0 , EvalFun< &ThisType::_procDestroyMsg > , DefaultEval >::Type evaler;
 			evaler( s_MsgHandler , hWnd , msg , wParam , lParam , result );
 		}
-		::PostQuitMessage (0);
 		break;
 	case WM_IME_CHAR:
 		{

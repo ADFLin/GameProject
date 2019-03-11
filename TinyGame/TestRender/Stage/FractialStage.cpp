@@ -1,4 +1,4 @@
-#include "TestStageHeader.h"
+#include "Stage/TestStageHeader.h"
 
 #include "GLGraphics2D.h"
 
@@ -108,12 +108,11 @@ class MandelbrotProgram : public GlobalShaderProgram
 	{
 		return "Shader/Game/Mandelbrot";
 	}
-	static ShaderEntryInfo const* GetShaderEntries()
+	static TArrayView< ShaderEntryInfo const > GetShaderEntries()
 	{
 		static ShaderEntryInfo entries[] =
 		{
 			{ Shader::eCompute , SHADER_ENTRY(MainCS) },
-			{ Shader::eEmpty , nullptr },
 		};
 		return entries;
 	}

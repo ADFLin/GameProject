@@ -1,4 +1,5 @@
 #include "GGJStage.h"
+#include "StageRegister.h"
 
 namespace GGJ
 {
@@ -871,3 +872,6 @@ namespace GGJ
 	}
 
 }//namespace GGJ
+
+
+REGISTER_STAGE("GGJ Test", GGJ::TestStage, EStageGroup::GraphicsTest);

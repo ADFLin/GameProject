@@ -3,6 +3,7 @@
 #define RHICommand_H_C0CC3E6C_43AE_4582_8203_41997F0A4C7D
 
 #include "RHICommon.h"
+#include "RHIStaticStateObject.h"
 
 #include "CoreShare.h"
 
@@ -200,50 +201,36 @@ namespace Render
 		Sampler::AddressMode AddressU = Sampler::eWarp ,
 		Sampler::AddressMode AddressV = Sampler::eWarp ,
 		Sampler::AddressMode AddressW = Sampler::eWarp >
-	class TStaticSamplerState
+	class TStaticSamplerState : public StaticRHIStateT < 
+		TStaticSamplerState< Filter, AddressU, AddressV, AddressW >
+		, RHISamplerState >
 	{
 	public:
-		static RHISamplerState& GetRHI()
+		static RHISamplerStateRef CreateRHI()
 		{
-			struct StaticConstructor
-			{
-				RHISamplerStateRef RHI;
-				StaticConstructor()
-				{
-					SamplerStateInitializer initializer;
-					initializer.filter = Filter;
-					initializer.addressU = AddressU;
-					initializer.addressV = AddressV;
-					initializer.addressW = AddressW;
-					RHI = RHICreateSamplerState(initializer);
-				}
-			};
-			static StaticConstructor sConstructor;
-			return *sConstructor.RHI;
+			SamplerStateInitializer initializer;
+			initializer.filter = Filter;
+			initializer.addressU = AddressU;
+			initializer.addressV = AddressV;
+			initializer.addressW = AddressW;
+			return RHICreateSamplerState(initializer);
 		}
 	};
 
 	template<
 		ECullMode CullMode = ECullMode::Back,
 		EFillMode FillMode = EFillMode::Solid >
-	class TStaticRasterizerState
+	class TStaticRasterizerState : public StaticRHIStateT< 
+		TStaticRasterizerState< CullMode, FillMode >, 
+		RHIRasterizerState >
 	{
 	public:
-		static RHIRasterizerState& GetRHI()
+		static RHIRasterizerStateRef CreateRHI()
 		{
-			struct StaticConstructor
-			{
-				RHIRasterizerStateRef RHI;
-				StaticConstructor()
-				{
-					RasterizerStateInitializer initializer;
-					initializer.fillMode = FillMode;
-					initializer.cullMode = CullMode;
-					RHI = RHICreateRasterizerState(initializer);
-				}
-			};
-			static StaticConstructor sConstructor;
-			return *sConstructor.RHI;
+			RasterizerStateInitializer initializer;
+			initializer.fillMode = FillMode;
+			initializer.cullMode = CullMode;
+			return RHICreateRasterizerState(initializer);
 		}
 	};
 
@@ -264,36 +251,31 @@ namespace Render
 		Stencil::Operation BackZPassOp = Stencil::eKeep,
 		uint32 StencilReadMask = -1,
 		uint32 StencilWriteMask = -1 >
-		class TStaticDepthStencilSeparateState
+	class TStaticDepthStencilSeparateState : public StaticRHIStateT<
+		TStaticDepthStencilSeparateState< 
+			bWriteDepth, DepthFun, bEnableStencilTest, StencilFun , StencilFailOp ,
+		    ZFailOp , ZPassOp, BackStencilFun , BackStencilFailOp, BackZFailOp ,BackZPassOp ,
+		    StencilReadMask ,StencilWriteMask >, 
+		RHIDepthStencilState >
 	{
 	public:
-		static RHIDepthStencilState& GetRHI()
+		static RHIDepthStencilStateRef CreateRHI()
 		{
-			struct StaticConstructor
-			{
-				RHIDepthStencilStateRef RHI;
-
-				StaticConstructor()
-				{
-					DepthStencilStateInitializer initializer;
-					initializer.bWriteDepth = bWriteDepth;
-					initializer.depthFun = DepthFun;
-					initializer.bEnableStencilTest = bEnableStencilTest;
-					initializer.stencilFun = StencilFun;
-					initializer.stencilFailOp = StencilFailOp;
-					initializer.zFailOp = ZFailOp;
-					initializer.zPassOp = ZPassOp;
-					initializer.stencilFunBack = BackStencilFun;
-					initializer.stencilFailOpBack = BackStencilFailOp;
-					initializer.zFailOpBack = BackZFailOp;
-					initializer.zPassOpBack = BackZPassOp;
-					initializer.stencilReadMask = StencilReadMask;
-					initializer.stencilWriteMask = StencilWriteMask;
-					RHI = RHICreateDepthStencilState(initializer);
-				}
-			};
-			static StaticConstructor sConstructor;
-			return *sConstructor.RHI;
+			DepthStencilStateInitializer initializer;
+			initializer.bWriteDepth = bWriteDepth;
+			initializer.depthFun = DepthFun;
+			initializer.bEnableStencilTest = bEnableStencilTest;
+			initializer.stencilFun = StencilFun;
+			initializer.stencilFailOp = StencilFailOp;
+			initializer.zFailOp = ZFailOp;
+			initializer.zPassOp = ZPassOp;
+			initializer.stencilFunBack = BackStencilFun;
+			initializer.stencilFailOpBack = BackStencilFailOp;
+			initializer.zFailOpBack = BackZFailOp;
+			initializer.zPassOpBack = BackZPassOp;
+			initializer.stencilReadMask = StencilReadMask;
+			initializer.stencilWriteMask = StencilWriteMask;
+			return RHICreateDepthStencilState(initializer);
 		}
 	};
 
@@ -326,18 +308,15 @@ namespace Render
 		Blend::Factor SrcAlphaFactor0 = Blend::eOne,
 		Blend::Factor DestAlphaFactor0 = Blend::eZero ,
 		Blend::Operation AlphaOp0 = Blend::eAdd >
-	class TStaticBlendSeparateState
+	class TStaticBlendSeparateState : public StaticRHIStateT< 
+		TStaticBlendSeparateState< WriteColorMask0 , SrcColorFactor0 , DestColorFactor0 ,ColorOp0 , SrcAlphaFactor0 ,DestAlphaFactor0, AlphaOp0  >,
+		RHIBlendState >
 	{
 	public:
-		static RHIBlendState& GetRHI()
+		static RHIBlendStateRef CreateRHI()
 		{
-			struct StaticConstructor
-			{
-				RHIBlendStateRef RHI;
 
-				StaticConstructor()
-				{
-					BlendStateInitializer initializer;
+			BlendStateInitializer initializer;
 #define SET_TRAGET_VALUE( INDEX )\
 		initializer.targetValues[INDEX].writeMask = WriteColorMask##INDEX;\
 		initializer.targetValues[INDEX].op = ColorOp##INDEX;\
@@ -347,14 +326,11 @@ namespace Render
 		initializer.targetValues[INDEX].srcAlpha = SrcAlphaFactor##INDEX;\
 		initializer.targetValues[INDEX].destAlpha = DestAlphaFactor##INDEX;
 
-					SET_TRAGET_VALUE(0);
+			SET_TRAGET_VALUE(0);
 
 #undef SET_TRAGET_VALUE
-					RHI = RHICreateBlendState(initializer);
-				}
-			};
-			static StaticConstructor sConstructor;
-			return *sConstructor.RHI;
+			return RHICreateBlendState(initializer);
+
 		}
 	};
 

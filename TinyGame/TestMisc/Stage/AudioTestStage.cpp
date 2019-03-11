@@ -1,6 +1,6 @@
 #include "AudioTestStage.h"
 
-#include "TestStageHeader.h"
+#include "Stage/TestStageHeader.h"
 
 #include "Platform/Windows/MediaFoundationHeader.h"
 #include "Audio/XAudio2/XAudio2Device.h"

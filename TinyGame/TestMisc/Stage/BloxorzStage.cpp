@@ -1,5 +1,5 @@
-#include "TinyGamePCH.h"
 #include "BloxorzStage.h"
+#include "StageRegister.h"
 
 #include "EasingFun.h"
 #include "DrawEngine.h"
@@ -602,3 +602,6 @@ namespace Bloxorz
 	}
 
 }//namespace Bloxorz
+
+
+REGISTER_STAGE2("Bloxorz Test", Bloxorz::TestStage, EStageGroup::Dev, 2);

@@ -83,10 +83,11 @@ DrawEngine::~DrawEngine()
 
 }
 
-void DrawEngine::init( GameWindow& window )
+void DrawEngine::initialize(IGameWindowSupporter& supporter)
 {
-	mGameWindow = &window;
-	mBufferDC.initialize( window.getHDC() , window.getHWnd() );
+	mWindowSupporter = &supporter;
+	mGameWindow = &supporter.getGameWindow();
+	mBufferDC.initialize(mGameWindow->getHDC() , mGameWindow->getHWnd() );
 	mPlatformGraphics.reset ( new Graphics2D( mBufferDC.getDC() ) );
 	RenderUtility::Initialize();
 
@@ -123,6 +124,11 @@ bool DrawEngine::initializeRHI(RHITargetName targetName, int numSamples)
 	if( isRHIEnabled() )
 		return true;
 
+	if( bHasUseRHI )
+	{
+		mGameWindow = &mWindowSupporter->reconstructGameWindow();
+	}
+
 	setupBuffer(getScreenWidth(), getScreenHeight());
 
 	RHISystemInitParam initParam;
@@ -148,6 +154,7 @@ bool DrawEngine::initializeRHI(RHITargetName targetName, int numSamples)
 		RenderUtility::InitializeRHI();
 		mGLContext = &static_cast<OpenGLSystem*>(gRHISystem)->mGLContext;
 	}
+	bHasUseRHI = true;
 	bUsePlatformBuffer = false;
 	return true;
 }

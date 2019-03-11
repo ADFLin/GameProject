@@ -318,6 +318,7 @@ namespace Go
 				
 				copyGame(game);
 				mBot->getTerritoryStatictics(info);
+				return true;
 			}
 
 			void copyGame(GameProxy& game)

@@ -5,6 +5,8 @@
 #include "OpenGLCommand.h"
 #include "D3D11Command.h"
 
+#include "ShaderCompiler.h"
+
 #include <cassert>
 #include "stb/stb_image.h"
 
@@ -32,6 +34,11 @@ namespace Render
 				delete gRHISystem;
 				gRHISystem = nullptr;
 			}
+
+			if( gRHISystem )
+			{
+				StaticRHIResourceObjectBase::RestoreAllResource();
+			}		
 		}
 		
 		return gRHISystem != nullptr;
@@ -39,7 +46,9 @@ namespace Render
 
 
 	void RHISystemShutdown()
-	{
+	{	
+		ShaderManager::Get().clearnupRHIResouse();
+		StaticRHIResourceObjectBase::ReleaseAllResource();
 		gRHISystem->shutdown();
 		gRHISystem = nullptr;
 	}

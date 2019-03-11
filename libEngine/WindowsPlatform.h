@@ -42,6 +42,7 @@ public:
 		               WNDPROC wndProc = DefaultProc ,
 				       bool fullscreen = false , 
 					   unsigned colorBits = 32 );
+	void      destroy();
 	HDC       getHDC() const { return m_hDC; }
 	HWND      getHWnd() const { return m_hWnd; }
 
@@ -98,7 +99,10 @@ private:
 	HDC       m_hDC;
 	unsigned  m_colorBits;
 	bool      m_fullscreen;
+
+	bool      mbHasRegisterClass = false;
 };
+
 
 template< class T >
 WinFrameT<T>::WinFrameT()
@@ -124,16 +128,20 @@ bool WinFrameT<T>::create( LPTSTR szTitle, int iWidth , int iHeight, WNDPROC wnd
 	m_iHeight   = iHeight;
 	m_colorBits = colorBits;
 
-	if ( !registerWindow(
+	if (!mbHasRegisterClass )
+	{
+		if( !registerWindow(
 			wndProc,
-			_this()->getIcon() ,
+			_this()->getIcon(),
 			_this()->getSmallIcon()
 		) )
-	{
-		MessageBox ( NULL, TEXT("RegisterClassEx failed!"),
-			_this()->getWinClassName() , MB_ICONERROR
-		);
-		return false;
+		{
+			MessageBox(NULL, TEXT("RegisterClassEx failed!"),
+					   _this()->getWinClassName(), MB_ICONERROR
+			);
+			return false;
+		}
+		mbHasRegisterClass = true;
 	}
 
 	if ( !createWindow( szTitle , fullscreen ) )
@@ -146,6 +154,32 @@ bool WinFrameT<T>::create( LPTSTR szTitle, int iWidth , int iHeight, WNDPROC wnd
 	UpdateWindow ( getHWnd());
 
 	return true;
+
+}
+
+template< class T >
+void WinFrameT<T>::destroy()
+{
+
+	_this()->destoryWindow();
+
+	if( m_fullscreen )
+	{
+		::ChangeDisplaySettings(NULL, 0);
+		m_fullscreen = false;
+	}
+
+	if( m_hDC )
+	{
+		::ReleaseDC(m_hWnd, m_hDC);
+		m_hDC = NULL;
+	}
+
+	if( m_hWnd )
+	{
+		::DestroyWindow(m_hWnd);
+		m_hWnd = NULL;
+	}
 
 }
 
@@ -213,14 +247,7 @@ LRESULT CALLBACK WinFrameT<T>::DefaultProc( HWND hWnd, UINT message, WPARAM wPar
 template< class T >
 void WinFrameT<T>::destoryWindow()
 {
-	if ( m_fullscreen )
-		::ChangeDisplaySettings( NULL , 0 );
 
-	if ( m_hDC )
-		::ReleaseDC( m_hWnd , m_hDC );
-
-	if ( m_hWnd )
-		::DestroyWindow( m_hWnd );
 }
 
 

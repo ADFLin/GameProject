@@ -46,13 +46,12 @@ namespace Render
 			return "Shader/DistanceField";
 		}
 
-		static ShaderEntryInfo const* GetShaderEntries()
+		static TArrayView< ShaderEntryInfo const > GetShaderEntries()
 		{
 			static ShaderEntryInfo const entries[] =
 			{
 				{ Shader::eVertex , SHADER_ENTRY(ScreenVS) },
 				{ Shader::ePixel  , SHADER_ENTRY(RayMarchingPS) },
-				{ Shader::eEmpty  , nullptr },
 			};
 			return entries;
 		}

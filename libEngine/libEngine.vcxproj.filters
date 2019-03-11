@@ -394,6 +394,9 @@
     <ClCompile Include="DataStructure\ClassTree.cpp">
       <Filter>DataStructure</Filter>
     </ClCompile>
+    <ClCompile Include="RHI\RHIStaticStateObject.cpp">
+      <Filter>RHI</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ConsoleSystem.h">
@@ -989,6 +992,9 @@
     </ClInclude>
     <ClInclude Include="DataStructure\ClassTree.h">
       <Filter>DataStructure</Filter>
+    </ClInclude>
+    <ClInclude Include="RHI\RHIStaticStateObject.h">
+      <Filter>RHI</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

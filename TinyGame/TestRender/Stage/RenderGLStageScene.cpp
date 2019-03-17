@@ -145,9 +145,9 @@ namespace Render
 			std::function< void() > exitFun;
 		};
 
-		DrawEngine* de = ::Global::GetDrawEngine();
-		HGLRC hRC = de->getGLContext()->getHandle();
-		HGLRC hLoadRC = wglCreateContext(de->getWindow().getHDC());
+		DrawEngine& de = ::Global::GetDrawEngine();
+		HGLRC hRC = de.getGLContext()->getHandle();
+		HGLRC hLoadRC = wglCreateContext(de.getWindow().getHDC());
 		wglShareLists( hRC , hLoadRC );
 
 
@@ -241,7 +241,7 @@ namespace Render
 			mGpuSync.bUseFence = false;
 			mLoadingThread = nullptr;
 		};
-		loadingTask->hDC = de->getWindow().getHDC();
+		loadingTask->hDC = de.getWindow().getHDC();
 		loadingTask->hLoadRC = hLoadRC;
 		mLoadingThread = loadingTask;
 		loadingTask->start();

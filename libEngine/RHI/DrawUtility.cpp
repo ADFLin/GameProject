@@ -29,7 +29,7 @@ namespace Render
 	};
 
 
-	void Render::DrawUtility::CubeLine()
+	void DrawUtility::CubeLine()
 	{
 		static Vector3 const v[] =
 		{
@@ -43,7 +43,7 @@ namespace Render
 		TRenderRT< RTVF_XYZ >::Draw(PrimitiveType::LineList, v, 4 * 6, sizeof(Vector3));
 	}
 
-	void Render::DrawUtility::CubeMesh()
+	void DrawUtility::CubeMesh()
 	{
 		static Vector3 const v[] =
 		{
@@ -69,7 +69,7 @@ namespace Render
 		TRenderRT< RTVF_XYZ_N >::Draw(PrimitiveType::Quad, v, 4 * 6, 2 * sizeof(Vector3));
 	}
 
-	void Render::DrawUtility::AixsLine()
+	void DrawUtility::AixsLine()
 	{
 		static Vector3 const v[12] =
 		{
@@ -80,7 +80,7 @@ namespace Render
 		TRenderRT< RTVF_XYZ_C >::Draw(PrimitiveType::LineList, v, 6, 2 * sizeof(Vector3));
 	}
 
-	void Render::DrawUtility::Rect(int x, int y, int width, int height)
+	void DrawUtility::Rect(int x, int y, int width, int height)
 	{
 		float x2 = x + width;
 		float y2 = y + height;

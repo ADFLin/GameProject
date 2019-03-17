@@ -274,7 +274,7 @@ public:
 		if( !BaseClass::onInit() )
 			return false;
 
-		if( !::Global::GetDrawEngine()->startOpenGL() )
+		if( !::Global::GetDrawEngine().startOpenGL() )
 			return false;
 		::Global::GUI().cleanupWidget();
 
@@ -282,7 +282,7 @@ public:
 		if( mProgMandelbrot == nullptr )
 			return false;
 
-		Vec2i screenSize = Global::GetDrawEngine()->getScreenSize();
+		Vec2i screenSize = Global::GetDrawEngine().getScreenSize();
 		
 		ColorMap colorMap( 1024 );
 		colorMap.addPoint(0, Color3ub(0, 7, 100));
@@ -349,7 +349,7 @@ public:
 	{
 		GLGraphics2D& g = Global::GetRHIGraphics2D();
 
-		GameWindow& window = Global::GetDrawEngine()->getWindow();
+		GameWindow& window = Global::GetDrawEngine().getWindow();
 
 		glMatrixMode(GL_PROJECTION);
 		glLoadIdentity();
@@ -360,7 +360,7 @@ public:
 		glClearColor(0.2, 0.2, 0.2, 1);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
-		Vec2i screenSize = Global::GetDrawEngine()->getScreenSize();
+		Vec2i screenSize = Global::GetDrawEngine().getScreenSize();
 		DrawUtility::DrawTexture(*mTexture, Vec2i(0, 0), screenSize);
 		g.beginRender();
 

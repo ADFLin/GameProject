@@ -9,6 +9,7 @@
 #include "DataStructure/KDTree.h"
 #include "Math/PrimitiveTest.h"
 #include "AsyncWork.h"
+#include "Serialize/DataStream.h"
 
 #include "tinyobjloader/tiny_obj_loader.h"
 #include "NvTriStrip/NvTriStrip.h"
@@ -18,6 +19,7 @@
 #include <memory>
 #include <fstream>
 #include <algorithm>
+
 
 namespace Render
 {
@@ -80,9 +82,9 @@ namespace Render
 
 	void Mesh::drawAdjShader(LinearColor const& color)
 	{
-		if( mVertexBuffer == nullptr || mVertexAdIndexBuffer == nullptr )
+		if( mVertexBuffer == nullptr || mVertexAdjIndexBuffer == nullptr )
 			return;
-		drawShaderInternalEx( PrimitiveType::TriangleAdjacency, 0, mVertexAdIndexBuffer->getNumElements(), mVertexAdIndexBuffer, &color);
+		drawShaderInternalEx( PrimitiveType::TriangleAdjacency, 0, mVertexAdjIndexBuffer->getNumElements(), mVertexAdjIndexBuffer, &color);
 	}
 
 	void Mesh::drawTessellation(bool bUseAdjBuffer )
@@ -115,7 +117,7 @@ namespace Render
 	{
 		if( mVertexBuffer == nullptr )
 			return;
-		Section& section = mSections[idx];
+		MeshSection& section = mSections[idx];
 		if( bUseVAO )
 		{
 			drawShaderInternal(section.start, section.num);
@@ -210,7 +212,7 @@ namespace Render
 
 	bool Mesh::generateVertexAdjacency()
 	{	
-		return generateAdjacencyInternal(EAdjacencyType::Vertex, mVertexAdIndexBuffer);
+		return generateAdjacencyInternal(EAdjacencyType::Vertex, mVertexAdjIndexBuffer);
 	}
 
 	bool Mesh::generateTessellationAdjacency()
@@ -256,6 +258,44 @@ namespace Render
 
 		outIndexBuffer = RHICreateIndexBuffer(adjIndices.size(), true, 0, &adjIndices[0]);
 		return outIndexBuffer.isValid();
+	}
+
+	bool Mesh::save(IStreamSerializer& serializer)
+	{
+
+		serializer << (uint8)mType;
+		uint8* pVertex = (uint8*)RHILockBuffer(mVertexBuffer, ELockAccess::ReadOnly);
+		uint32 vertexDataSize = mVertexBuffer->getSize();
+		uint8* pIndex = (uint8*)RHILockBuffer(mIndexBuffer, ELockAccess::ReadOnly);
+		uint32 indexDataSize = mIndexBuffer->getSize();
+		ON_SCOPE_EXIT
+		{
+			RHIUnlockBuffer(mVertexBuffer);
+			RHIUnlockBuffer(mIndexBuffer);
+		};
+		bool bIntType = mIndexBuffer->isIntType();
+		serializer << vertexDataSize;
+		serializer.write(pVertex, vertexDataSize);
+		serializer << bIntType;
+		serializer << indexDataSize;
+		serializer.write(pIndex, indexDataSize);
+
+		serializer << mInputLayoutDesc;
+		serializer << mSections;
+
+		return true;
+
+	}
+
+	bool Mesh::load(IStreamSerializer& serializer)
+	{
+		uint8 type;
+		serializer >> type;
+		mType = PrimitiveType(type);
+
+
+		return true;
+
 	}
 
 	void calcTangent(uint8* v0, uint8* v1, uint8* v2, int texOffset, Vector3& tangent, Vector3& binormal)
@@ -1227,12 +1267,12 @@ namespace Render
 #define USE_SAME_MATERIAL_MERGE 1
 
 #if USE_SAME_MATERIAL_MERGE
-		struct MeshSection
+		struct ObjMeshSection
 		{
 			int matId;
 			std::vector< int > indices;
 		};
-		std::map< int , MeshSection > meshSectionMap;
+		std::map< int , ObjMeshSection > meshSectionMap;
 #endif
 		int vOffset = 0;
 		nSkip = 0;
@@ -1249,7 +1289,7 @@ namespace Render
 			int nvCur = vOffset / vertexSize;
 			
 #if USE_SAME_MATERIAL_MERGE
-			MeshSection& meshSection = meshSectionMap[objMesh.material_ids[0]];
+			ObjMeshSection& meshSection = meshSectionMap[objMesh.material_ids[0]];
 			meshSection.matId = objMesh.material_ids[0];
 			int startIndex = meshSection.indices.size();
 			meshSection.indices.insert(meshSection.indices.end(), objMesh.indices.begin(), objMesh.indices.end());
@@ -1264,7 +1304,7 @@ namespace Render
 
 #else
 			
-			Mesh::Section section;
+			MeshSection section;
 			section.num = objMesh.indices.size();
 			section.start = sizeof(int32) * startIndex;
 			mesh.mSections.push_back(section);
@@ -1329,19 +1369,19 @@ namespace Render
 		}
 
 #if USE_SAME_MATERIAL_MERGE
-		std::vector< MeshSection* > sortedMeshSctions;
+		std::vector< ObjMeshSection* > sortedMeshSctions;
 		for( auto& pair : meshSectionMap )
 		{
 			sortedMeshSctions.push_back(&pair.second);
 		}
 		std::sort( sortedMeshSctions.begin() , sortedMeshSctions.end() , 
-			[](MeshSection const* m1, MeshSection const* m2) -> bool 
+			[](ObjMeshSection const* m1, ObjMeshSection const* m2) -> bool
 			{
 				return m1->matId < m2->matId;
 			});
 		for( auto meshSection : sortedMeshSctions )
 		{
-			Mesh::Section section;
+			MeshSection section;
 			section.num = meshSection->indices.size();
 			section.start = sizeof(int32) * indices.size();
 			mesh.mSections.push_back(section);

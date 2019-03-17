@@ -126,6 +126,15 @@ namespace Render
 		return nullptr;
 	}
 
+	void InputLayoutDesc::updateVertexSize()
+	{
+		std::fill_n(mVertexSizes, MAX_INPUT_STREAM_NUM, 0);
+		for( auto const& e : mElements )
+		{
+			mVertexSizes[e.idxStream] = Vertex::GetFormatSize(e.format);
+		}
+	}
+
 	int InputLayoutDesc::getSematicOffset(Vertex::Semantic s) const
 	{
 		InputElement const* info = findBySematic(s);

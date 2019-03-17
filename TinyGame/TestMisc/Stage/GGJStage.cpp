@@ -831,7 +831,7 @@ namespace GGJ
 
 	bool TestStage::onInit()
 	{
-		//if ( !::Global::getDrawEngine()->startOpenGL() )
+		//if ( !::Global::GetDrawEngine().startOpenGL() )
 		//return false;
 		::srand(2);
 

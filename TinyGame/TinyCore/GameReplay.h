@@ -3,16 +3,17 @@
 
 #include "GameGlobal.h"
 #include "GameControl.h"
-#include "DataStream.h"
-#include <vector>
-#include "Flag.h"
 
-#define  REPLAY_SUB_FILE_NAME ".rpf"
+#include "Serialize/DataStream.h"
+#include "FixString.h"
+
+#include "Flag.h"
 
 #include <vector>
 #include <string>
 
-#include "FixString.h"
+#define  REPLAY_SUB_FILE_NAME ".rpf"
+
 
 class IFrameActionTemplate;
 
@@ -98,7 +99,7 @@ public:
 
 
 class  Replay : public ReplayBase 
-	          , public DataStream
+	          , public IStreamSerializer
 {
 public:
 	static uint32 const LastVersion = MAKE_VERSION(0,1,0);

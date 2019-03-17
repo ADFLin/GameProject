@@ -27,14 +27,14 @@ namespace Phy2D
 		if( !BaseClass::onInit() )
 			return false;
 		::Global::GUI().cleanupWidget();
-		if( !::Global::GetDrawEngine()->startOpenGL() )
+		if( !::Global::GetDrawEngine().startOpenGL() )
 			return false;
 		return true;
 	}
 
 	void Phy2DStageBase::onEnd()
 	{
-		::Global::GetDrawEngine()->stopOpenGL();
+		::Global::GetDrawEngine().stopOpenGL();
 		BaseClass::onEnd();
 	}
 

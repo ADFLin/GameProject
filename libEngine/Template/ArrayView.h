@@ -2,6 +2,8 @@
 #ifndef ArrayView_H_90099AAD_213F_44A6_8A18_900243D39026
 #define ArrayView_H_90099AAD_213F_44A6_8A18_900243D39026
 
+#include <vector>
+
 template< class T >
 class TArrayView
 {

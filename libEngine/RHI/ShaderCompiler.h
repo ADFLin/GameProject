@@ -161,7 +161,7 @@ namespace Render
 			return{ entries , indexUsed };
 		}
 
-		struct ShaderCache
+		struct ShaderCacheData
 		{
 			RHIShaderRef shader;
 			std::string filePath;
@@ -216,6 +216,9 @@ namespace Render
 		uint32         mDefaultVersion;
 		ShaderCompiler mCompiler;
 		std::string    mBaseDir;
+		class ShaderCache* mShaderCache = nullptr;
+
+		ShaderCache* getCache();
 
 #if 1
 		std::unordered_map< ShaderProgram*, ShaderProgramCompileInfo* > mShaderCompileMap;

@@ -59,6 +59,7 @@ class PropertyKey;
 class GUISystem;
 struct UserProfile;
 class NetWorker;
+class DataCacheInterface;
 
 TINY_API uint64 generateRandSeed();
 
@@ -83,6 +84,9 @@ public:
 class Global
 {
 public:
+	static TINY_API void Initialize();
+	static TINY_API void Finalize();
+
 	static TINY_API int  RandomNet();
 	static TINY_API void RandSeedNet( uint64 seed );
 	static TINY_API int  Random();
@@ -99,12 +103,14 @@ public:
 	static TINY_API PropertyKey&         GameConfig();
 	static TINY_API GUISystem&           GUI();
 	
-	static TINY_API DrawEngine*   GetDrawEngine();
+	static TINY_API DrawEngine&   GetDrawEngine();
 	static TINY_API Graphics2D&   GetGraphics2D();
 	static TINY_API GLGraphics2D& GetRHIGraphics2D();
 	static TINY_API IGraphics2D&  GetIGraphics2D();
 
 	static TINY_API UserProfile&  GetUserProfile();
+
+	static TINY_API DataCacheInterface&  DataCache();
 
 };
 

@@ -160,10 +160,10 @@ namespace Bloxorz
 	{
 		::Global::GUI().cleanupWidget();
 
-		if ( !::Global::GetDrawEngine()->startOpenGL() )
+		if ( !::Global::GetDrawEngine().startOpenGL() )
 			return false;
 
-		GameWindow& window = ::Global::GetDrawEngine()->getWindow();
+		GameWindow& window = ::Global::GetDrawEngine().getWindow();
 
 		glClearColor( 0 , 0 , 0 , 0 );
 
@@ -209,7 +209,7 @@ namespace Bloxorz
 	void TestStage::onEnd()
 	{
 		glDeleteLists( mCubeList , 1 );
-		::Global::GetDrawEngine()->stopOpenGL();
+		::Global::GetDrawEngine().stopOpenGL();
 	}
 
 	void TestStage::restart()
@@ -250,7 +250,7 @@ namespace Bloxorz
 
 	void TestStage::onRender(float dFrame)
 	{
-		GameWindow& window = Global::GetDrawEngine()->getWindow();
+		GameWindow& window = Global::GetDrawEngine().getWindow();
 		glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
 
 		glLoadIdentity();

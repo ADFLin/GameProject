@@ -5,7 +5,7 @@
 #include "FBLevel.h"
 
 #include "RenderUtility.h"
-#include "DataStream.h"
+#include "Serialize/DataStream.h"
 
 #include "AI/NeuralNetwork.h"
 #include "AI/GeneticAlgorithm.h"
@@ -76,8 +76,8 @@ namespace FlappyBird
 
 		void addAgentToLevel(GameLevel& level);
 
-		void inputData(DataSerializer::ReadOp& op );
-		void outputData(DataSerializer::WriteOp& op );
+		void inputData(IStreamSerializer::ReadOp& op );
+		void outputData(IStreamSerializer::WriteOp& op );
 
 		void randomizeData();
 		void clearData();

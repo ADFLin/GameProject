@@ -34,7 +34,7 @@ namespace Shoot2D
 
 		mFrameCount = 0;
 		mFPS   = 0;
-		GameWindow& window = ::Global::GetDrawEngine()->getWindow();
+		GameWindow& window = ::Global::GetDrawEngine().getWindow();
 
 		ResourcesLoader::Get().setDC( window.getHDC() );
 		ResourcesLoader::Get().load();

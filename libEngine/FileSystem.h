@@ -76,8 +76,11 @@ class FileSystem
 {
 public:
 	static bool FindFiles( char const* dir , char const* subName , FileIterator& iterator );
+
 	static bool IsExist( FilePath const& path ){ return IsExist( path.getString() ); }
 	static bool IsExist( char const* path );
+	static bool CreateDirectory(char const* pathDir);
+	static bool CreateDirectorySequence(char const* pathDir);
 	static bool GetFileSize( char const* path , int64& size );
 	static bool DeleteFile(char const* path);
 	static bool RenameFile(char const* path, char const* newFileName);

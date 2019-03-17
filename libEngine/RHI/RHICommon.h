@@ -7,8 +7,11 @@
 
 #include "MarcoCommon.h"
 #include "RefCount.h"
+#include "Serialize/DataStream.h"
 
 #include <vector>
+
+class IStreamSerializer;
 
 namespace Render
 {
@@ -428,6 +431,22 @@ namespace Render
 
 		std::vector< InputElement > mElements;
 		uint8   mVertexSizes[MAX_INPUT_STREAM_NUM];
+
+		void updateVertexSize();
+
+
+		friend IStreamSerializer& operator << (IStreamSerializer& serializer , InputLayoutDesc const& data )
+		{
+			serializer << data.mElements;
+			return serializer;
+		}
+
+		friend IStreamSerializer& operator >> (IStreamSerializer& serializer, InputLayoutDesc& data)
+		{
+			serializer >> data.mElements;
+			data.updateVertexSize();
+			return serializer;
+		}
 	};
 
 	class RHIInputLayout : public RHIResource

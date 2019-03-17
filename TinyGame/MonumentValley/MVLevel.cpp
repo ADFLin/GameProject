@@ -1,6 +1,6 @@
 #include "MVLevel.h"
 
-#include "DataStream.h"
+#include "Serialize/DataStream.h"
 
 #include <cmath>
 #include <unordered_map>
@@ -12,9 +12,9 @@ namespace MV
 		cleanup( true );
 	}
 
-	void Level::save(DataSerializer& sr)
+	void Level::save(IStreamSerializer& sr)
 	{
-		DataSerializer::WriteOp op( sr );
+		IStreamSerializer::WriteOp op( sr );
 
 		uint32 const version = 4;
 		op & version;
@@ -148,11 +148,11 @@ namespace MV
 		NFT_PASS_VIEW ,
 	};
 
-	void Level::load( DataSerializer& sr )
+	void Level::load(IStreamSerializer& sr )
 	{
 		cleanup( false );
 
-		DataSerializer::ReadOp op( sr );
+		IStreamSerializer::ReadOp op( sr );
 
 		uint32 version = 0;
 		op & version;

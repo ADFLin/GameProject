@@ -4,8 +4,8 @@
 
 #include "GameGUISystem.h"
 #include "InputManager.h"
-#include "DataStream.h"
 
+#include "Serialize/FileStream.h"
 #include "Widget/WidgetUtility.h"
 #include "RenderUtility.h"
 #include "GLGraphics2D.h"
@@ -39,10 +39,10 @@ namespace MV
 	{
 		::Global::GUI().cleanupWidget();
 
-		if ( !Global::GetDrawEngine()->startOpenGL() )
+		if ( !Global::GetDrawEngine().startOpenGL() )
 			return false;
 
-		GameWindow& window = Global::GetDrawEngine()->getWindow();
+		GameWindow& window = Global::GetDrawEngine().getWindow();
 		//testRotation();
 
 
@@ -108,7 +108,7 @@ namespace MV
 	void TestStage::onEnd()
 	{
 		cleanup( true );
-		Global::GetDrawEngine()->stopOpenGL();
+		Global::GetDrawEngine().stopOpenGL();
 	}
 
 	void TestStage::cleanup( bool beDestroy )
@@ -157,7 +157,7 @@ namespace MV
 				{
 					int idxX = 1;
 					int idxY = 2;
-					GameWindow& window = Global::GetDrawEngine()->getWindow();
+					GameWindow& window = Global::GetDrawEngine().getWindow();
 					float x = msg.getPos().x;
 					float y = window.getHeight() - msg.getPos().y;
 					if ( x > window.getWidth() / 2 )
@@ -587,7 +587,7 @@ namespace MV
 
 	void TestStage::onRender(float dFrame)
 	{
-		GameWindow& window = Global::GetDrawEngine()->getWindow();
+		GameWindow& window = Global::GetDrawEngine().getWindow();
 
 		glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
 
@@ -689,7 +689,7 @@ namespace MV
 		}
 
 
-		GLGraphics2D& g = ::Global::GetDrawEngine()->getGLGraphics();
+		GLGraphics2D& g = ::Global::GetDrawEngine().getRHIGraphics();
 
 		g.beginRender();
 
@@ -896,7 +896,7 @@ namespace MV
 
 	int TestStage::findBlockFromScreenPos( Vec2i const& pos ,Vec3f const& viewPos , Dir& outDir )
 	{
-		GameWindow& window = Global::GetDrawEngine()->getWindow();
+		GameWindow& window = Global::GetDrawEngine().getWindow();
 		float x = pos.x;
 		float y = window.getHeight() - pos.y;
 		float dx = mViewWidth * (  x / window.getWidth() - 0.5 );
@@ -1044,11 +1044,11 @@ namespace MV
 
 	bool TestStage::loadLevel(char const* path)
 	{
-		InputFileStream sf;
+		InputFileSerializer sf;
 		if ( !sf.open( path ) )
 			return false;
 
-		Level::load( DataSerializer( sf ) );
+		Level::load( sf );
 		if ( !mModifiers.empty() )
 			mControllor.addNode( *mModifiers[0] , 1 );
 
@@ -1115,11 +1115,11 @@ namespace MV
 
 	bool TestStage::saveLevel( char const* path )
 	{
-		OutputFileStream sf;
+		OutputFileSerializer sf;
 		if ( !sf.open( path ) )
 			return false;
 	
-		Level::save( DataSerializer( sf ) );
+		Level::save( sf );
 		return true;
 	}
 

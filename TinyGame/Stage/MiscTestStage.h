@@ -845,12 +845,12 @@ public:
 
 	virtual bool onInit()
 	{
-		::Global::GetDrawEngine()->changeScreenSize(1600, 1200);
+		::Global::GetDrawEngine().changeScreenSize(1600, 1200);
 		::Global::GUI().cleanupWidget();
-		if ( !::Global::GetDrawEngine()->startOpenGL() )
+		if ( !::Global::GetDrawEngine().startOpenGL() )
 			return false;
 
-		GameWindow& window = ::Global::GetDrawEngine()->getWindow();
+		GameWindow& window = ::Global::GetDrawEngine().getWindow();
 
 		restart();
 
@@ -860,7 +860,7 @@ public:
 
 	virtual void onEnd()
 	{
-		::Global::GetDrawEngine()->stopOpenGL();
+		::Global::GetDrawEngine().stopOpenGL();
 	}
 
 	virtual void onUpdate( long time )
@@ -1155,8 +1155,8 @@ namespace TankGame
 		{
 			::Global::GUI().cleanupWidget();
 
-			Global::GetDrawEngine()->startOpenGL();
-			GameWindow& window = Global::GetDrawEngine()->getWindow();
+			Global::GetDrawEngine().startOpenGL();
+			GameWindow& window = Global::GetDrawEngine().getWindow();
 
 			restart();
 			return true;
@@ -1164,7 +1164,7 @@ namespace TankGame
 
 		virtual void onEnd()
 		{
-			Global::GetDrawEngine()->stopOpenGL();
+			Global::GetDrawEngine().stopOpenGL();
 		}
 
 		virtual void onUpdate( long time )
@@ -1541,7 +1541,7 @@ namespace G2D
 
 			RenderUtility::SetPen( g , EColor::Gray );
 			RenderUtility::SetBrush( g, EColor::Gray );
-			g.drawRect( Vec2i(0,0) , Global::GetDrawEngine()->getScreenSize() );
+			g.drawRect( Vec2i(0,0) , Global::GetDrawEngine().getScreenSize() );
 
 
 			RenderUtility::SetPen( g , EColor::Yellow );
@@ -1757,7 +1757,7 @@ namespace G2D
 
 			RenderUtility::SetBrush( g , EColor::Gray );
 			RenderUtility::SetPen( g , EColor::Gray );
-			g.drawRect( Vec2i(0,0) , ::Global::GetDrawEngine()->getScreenSize() );
+			g.drawRect( Vec2i(0,0) , ::Global::GetDrawEngine().getScreenSize() );
 
 			if ( mSAT.haveSA )
 			{

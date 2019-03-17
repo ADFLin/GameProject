@@ -66,8 +66,8 @@ void FrameDataManager::restoreData( IFrameActionTemplate* actionTemp  )
 	for( FrameDataVec::iterator iter = mProcessData.begin();
 		iter != mProcessData.end() ; ++iter )
 	{
-		auto dataSteam = MakeBufferDataSteam(*(iter->iter));
-		actionTemp->restoreData( DataSerializer( dataSteam ) );
+		auto dataSteam = MakeBufferSerializer(*(iter->iter));
+		actionTemp->restoreData( dataSteam );
 	}
 
 	actionTemp->debugMessage(mCurFrame);
@@ -276,8 +276,8 @@ bool SVSyncFrameManager::sendFrameData()
 	mFrameStream->buffer.clear();
 	mFrameStream->frame = mFrameMgr.getFrame() + 1;
 
-	auto dataSteam = MakeBufferDataSteam(mFrameStream->buffer);
-	mFrameGenerator->generate( DataSerializer( dataSteam ) );
+	auto dataSteam = MakeBufferSerializer(mFrameStream->buffer);
+	mFrameGenerator->generate( dataSteam );
 
 	//DevMsg( 10 ,"Send Frame Data frame = %d" , fp->frame  );
 	mWorker->sendCommand( UseChannel , mFrameStream.get() , WSF_IGNORE_LOCAL );
@@ -426,8 +426,8 @@ bool CLSyncFrameManager::sendFrameData()
 	mFrameStream->frame = mFrameMgr.getFrame() + 1;
 	mFrameStream->buffer.clear();
 
-	auto dataStream = MakeBufferDataSteam(mFrameStream->buffer);
-	mFrameGenerator->generate( DataSerializer(dataStream) );
+	auto dataStream = MakeBufferSerializer(mFrameStream->buffer);
+	mFrameGenerator->generate( dataStream );
 
 
 #if 0

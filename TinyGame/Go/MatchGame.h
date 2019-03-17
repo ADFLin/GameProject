@@ -1,7 +1,7 @@
 #include "GoCore.h"
 #include "GoBot.h"
 
-#include "DataStream.h"
+#include "Serialize/FileStream.h"
 
 #include "Core/FNV1a.h"
 #include "Misc/Guid.h"
@@ -298,14 +298,14 @@ namespace Go
 				op & gameSetting & playerSetting[0] & playerSetting[1];
 			}
 
-			friend DataSerializer& operator << (DataSerializer& serializer, ResultData const& data)
+			friend IStreamSerializer& operator << (IStreamSerializer& serializer, ResultData const& data)
 			{
-				const_cast<ResultData&>(data).serialize(DataSerializer::WriteOp(serializer));
+				const_cast<ResultData&>(data).serialize(IStreamSerializer::WriteOp(serializer));
 				return serializer;
 			}
-			friend DataSerializer& operator >> (DataSerializer& serializer, ResultData& data)
+			friend IStreamSerializer& operator >> (IStreamSerializer& serializer, ResultData& data)
 			{
-				data.serialize(DataSerializer::ReadOp(serializer));
+				data.serialize(IStreamSerializer::ReadOp(serializer));
 				return serializer;
 			}
 		};

@@ -1,4 +1,4 @@
-#include "Stage/TestStageHeader.h"
+#include "TestRenderStageBase.h"
 
 #include "RHI/RHICommon.h"
 #include "RHI/ShaderCompiler.h"
@@ -11,26 +11,11 @@
 #include "AsyncWork.h"
 
 #include "FileSystem.h"
-#include "DataStream.h"
+#include "Serialize/FileStream.h"
 
 
 namespace Render
 {
-
-
-	class ViewFrustum
-	{
-	public:
-		Matrix4 getPerspectiveMatrix()
-		{
-			return PerspectiveMatrix(mYFov, mAspect, mNear, mFar);
-		}
-
-		float mNear;
-		float mFar;
-		float mYFov;
-		float mAspect;
-	};
 
 	class RayMarchingProgram : public GlobalShaderProgram
 	{
@@ -60,18 +45,15 @@ namespace Render
 
 	IMPLEMENT_GLOBAL_SHADER(RayMarchingProgram);
 
-	class DistanceFieldTestStage : public StageBase
+	class DistanceFieldTestStage : public TestRenderStageBase
 	{
-		typedef StageBase BaseClass;
+		typedef TestRenderStageBase BaseClass;
 	public:
 		DistanceFieldTestStage() {}
 
 		RHITexture3DRef mTextureSDF;
 		Mesh mMesh;
-		ViewInfo mView;
 		
-		ViewFrustum mViewFrustum;
-		SimpleCamera  mCamera;
 		DistanceFieldData mSDFData;
 		class RayMarchingProgram* mProgRayMarching;
 
@@ -84,24 +66,22 @@ namespace Render
 
 		bool loadDistanceFieldData(char const* path , DistanceFieldData& data)
 		{
-			InputFileStream stream;
-			if( !stream.open(path) )
+			InputFileSerializer serializer;
+			if( !serializer.open(path) )
 				return false;
 
-			DataSerializer serializer(stream);
-			DataSerializer::ReadOp op(serializer);
+			IStreamSerializer::ReadOp op(serializer);
 			serialize(data , op);
 			return true;
 		}
 
 		bool saveDistanceFieldData(char const* path , DistanceFieldData& data)
 		{
-			OutputFileStream stream;
-			if( !stream.open(path) )
+			OutputFileSerializer serializer;
+			if( !serializer.open(path) )
 				return false;
 
-			DataSerializer serializer(stream);
-			DataSerializer::WriteOp op(serializer);
+			IStreamSerializer::WriteOp op(serializer);
 			serialize(data , op);
 			return true;
 		}
@@ -112,9 +92,6 @@ namespace Render
 		virtual bool onInit()
 		{
 			if( !BaseClass::onInit() )
-				return false;
-
-			if( !::Global::GetDrawEngine()->startOpenGL() )
 				return false;
 
 			//VERIFY_RETURN_FALSE(MeshBuild::Cube(mMesh, 1));
@@ -129,7 +106,11 @@ namespace Render
 				pool.init(SystemPlatform::GetProcessorNumber() - 1);
 				DistanceFieldBuildSetting setting;
 				setting.WorkTaskPool = &pool;
+#if _DEBUG
+				setting.gridLength = 0.2;
+#else
 				setting.gridLength = 0.02;
+#endif
 				MeshUtility::BuildDistanceField(mMesh, setting , mSDFData);
 				saveDistanceFieldData(testDataPath , mSDFData );
 			}
@@ -137,14 +118,8 @@ namespace Render
 			VERIFY_RETURN_FALSE( mTextureSDF = RHICreateTexture3D( Texture::eR32F , mSDFData.gridSize.x , mSDFData.gridSize.y , mSDFData.gridSize.z , TCF_DefalutValue , &mSDFData.volumeData[0] ) );
 
 			VERIFY_RETURN_FALSE(mProgRayMarching = ShaderManager::Get().getGlobalShaderT<RayMarchingProgram>());
-			Vec2i screenSize = ::Global::GetDrawEngine()->getScreenSize();
-			mViewFrustum.mNear = 0.01;
-			mViewFrustum.mFar = 800.0;
-			mViewFrustum.mAspect = float(screenSize.x) / screenSize.y;
-			mViewFrustum.mYFov = Math::Deg2Rad(60 / mViewFrustum.mAspect);
+			Vec2i screenSize = ::Global::GetDrawEngine().getScreenSize();
 
-			mCamera.setPos(Vector3(20, 0, 20));
-			mCamera.setViewDir(Vector3(-1, 0, 0), Vector3(0, 0, 1));
 			::Global::GUI().cleanupWidget();
 
 			auto devFrame = WidgetUtility::CreateDevFrame();
@@ -182,28 +157,9 @@ namespace Render
 		{
 			Graphics2D& g = Global::GetGraphics2D();
 
-			GameWindow& window = Global::GetDrawEngine()->getWindow();
+			GameWindow& window = Global::GetDrawEngine().getWindow();
 
-			mView.gameTime = 0;
-			mView.realTime = 0;
-			mView.rectOffset = IntVector2(0, 0);
-			mView.rectSize = IntVector2(window.getWidth(), window.getHeight());
-
-			Matrix4 matView = mCamera.getViewMatrix();
-			mView.setupTransform(matView, mViewFrustum.getPerspectiveMatrix());
-
-			glMatrixMode(GL_PROJECTION);
-			glLoadMatrixf(mView.viewToClip);
-			glMatrixMode(GL_MODELVIEW);
-			glLoadMatrixf(mView.worldToView);
-
-			glClearColor(0.2, 0.2, 0.2, 1);
-			glClearDepth(1.0);
-			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
-
-			RHISetViewport(mView.rectOffset.x, mView.rectOffset.y, mView.rectSize.x, mView.rectSize.y);
-			RHISetDepthStencilState(TStaticDepthStencilState<>::GetRHI());
-			RHISetBlendState(TStaticBlendState<>::GetRHI());
+			initializeRenderState();
 
 
 			RHISetupFixedPipelineState(mView.worldToView, mView.viewToClip);
@@ -235,18 +191,6 @@ namespace Render
 		{
 			static Vec2i oldPos = msg.getPos();
 
-			if( msg.onLeftDown() )
-			{
-				oldPos = msg.getPos();
-			}
-			if( msg.onMoving() && msg.isLeftDown() )
-			{
-				float rotateSpeed = 0.01;
-				Vector2 off = rotateSpeed * Vector2(msg.getPos() - oldPos);
-				mCamera.rotateByMouse(off.x, off.y);
-				oldPos = msg.getPos();
-			}
-
 			if( !BaseClass::onMouse(msg) )
 				return false;
 			return true;
@@ -254,29 +198,23 @@ namespace Render
 
 		bool onKey(unsigned key, bool isDown)
 		{
-			if( !isDown )
-				return false;
-			switch( key )
+			if( isDown )
 			{
-			case 'W': mCamera.moveFront(1); break;
-			case 'S': mCamera.moveFront(-1); break;
-			case 'D': mCamera.moveRight(1); break;
-			case 'A': mCamera.moveRight(-1); break;
-			case 'Z': mCamera.moveUp(0.5); break;
-			case 'X': mCamera.moveUp(-0.5); break;
-			case Keyboard::eLEFT: --TessFactor; break;
-			case Keyboard::eRIGHT: ++TessFactor; break;
-			case Keyboard::eDOWN: --TessFactor2; break;
-			case Keyboard::eUP: ++TessFactor2; break;
-			case Keyboard::eR: restart(); break;
-			case Keyboard::eF2:
+				switch( key )
 				{
-					ShaderManager::Get().reloadAll();
-					//initParticleData();
+				case Keyboard::eLEFT: --TessFactor; break;
+				case Keyboard::eRIGHT: ++TessFactor; break;
+				case Keyboard::eDOWN: --TessFactor2; break;
+				case Keyboard::eUP: ++TessFactor2; break;
+				case Keyboard::eF2:
+					{
+						ShaderManager::Get().reloadAll();
+						//initParticleData();
+					}
+					break;
 				}
-				break;
 			}
-			return false;
+			return BaseClass::onKey(key , isDown);
 		}
 
 		virtual bool onWidgetEvent(int event, int id, GWidget* ui) override

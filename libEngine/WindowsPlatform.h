@@ -38,7 +38,7 @@ public:
 	 WinFrameT();
 	~WinFrameT();
 
-	bool      create( LPTSTR szTitle, int iWidth , int iHeight,
+	bool      create( TCHAR const* szTitle, int iWidth , int iHeight,
 		               WNDPROC wndProc = DefaultProc ,
 				       bool fullscreen = false , 
 					   unsigned colorBits = 32 );
@@ -90,7 +90,7 @@ protected:
 	bool      setFullScreen( unsigned bits );
 
 private:
-	bool      createWindow( LPTSTR szTitle , bool fullscreen );
+	bool      createWindow( TCHAR const* szTitle , bool fullscreen );
 	bool      registerWindow( WNDPROC wndProc , DWORD wIcon ,WORD wSIcon );
 
 	int       m_iWidth;
@@ -121,7 +121,7 @@ WinFrameT<T>::~WinFrameT()
 }
 
 template< class T >
-bool WinFrameT<T>::create( LPTSTR szTitle, int iWidth , int iHeight, WNDPROC wndProc,
+bool WinFrameT<T>::create( TCHAR const* szTitle, int iWidth , int iHeight, WNDPROC wndProc,
 							       bool fullscreen , unsigned colorBits )
 {
 	m_iWidth    = iWidth;
@@ -177,8 +177,9 @@ void WinFrameT<T>::destroy()
 
 	if( m_hWnd )
 	{
-		::DestroyWindow(m_hWnd);
+		HWND hWndToDestroy = m_hWnd;
 		m_hWnd = NULL;
+		::DestroyWindow(hWndToDestroy);
 	}
 
 }
@@ -252,7 +253,7 @@ void WinFrameT<T>::destoryWindow()
 
 
 template< class T >
-bool WinFrameT<T>::createWindow( LPTSTR szTitle , bool fullscreen )
+bool WinFrameT<T>::createWindow( TCHAR const* szTitle , bool fullscreen )
 {
 	m_fullscreen = fullscreen;
 

@@ -10,6 +10,9 @@
 #include <Strsafe.h>
 #include <fstream>
 
+#if SYS_PLATFORM_WIN
+#include "WindowsHeader.h"
+#endif
 
 bool FileSystem::IsExist( char const* path )
 {
@@ -24,6 +27,60 @@ bool FileSystem::IsExist( char const* path )
 #else
 	return false;
 #endif
+}
+
+bool FileSystem::CreateDirectory(char const* pathDir)
+{
+#ifdef SYS_PLATFORM_WIN
+	if( !::CreateDirectoryA(pathDir, NULL) )
+	{
+		switch( GetLastError() )
+		{
+		case ERROR_ALREADY_EXISTS:
+			return false;
+		case ERROR_PATH_NOT_FOUND:
+			return false;
+		} 
+		return false;
+	}
+#else
+	return false;
+#endif
+}
+
+bool FileSystem::CreateDirectorySequence(char const* pathDir)
+{
+	if( IsExist(pathDir) )
+		return true;
+
+	FixString<MAX_PATH> path = pathDir;
+	char* cur = path.data();
+	while( *cur != 0 )
+	{
+		if( *cur == '\\' || *cur == '/' )
+		{
+			char temp = *cur;
+			*cur = 0;
+			if( !IsExist(path) )
+			{
+				if( !CreateDirectory(path) )
+				{
+					return false;
+				}
+			}
+			*cur = temp;
+			if( cur[1] == '/' || cur[1] == '\\' )
+				++cur;
+		}
+
+		++cur;
+	}
+
+	if( !CreateDirectory(pathDir) )
+	{
+		return false;
+	}
+	return true;
 }
 
 bool FileSystem::FindFiles( char const* dir , char const* subName , FileIterator& iter )

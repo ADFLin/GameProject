@@ -205,11 +205,10 @@ namespace Go
 
 	bool MatchResultMap::save(char const* path)
 	{
-		OutputFileStream stream;
-		if( !stream.open(path) )
+		OutputFileSerializer serializer;
+		if( !serializer.open(path) )
 			return false;
 
-		DataSerializer serializer(stream);
 		int num = mDataMap.size();
 		int version = DATA_LAST_VERSION;
 		serializer << version;
@@ -223,11 +222,9 @@ namespace Go
 
 	bool MatchResultMap::load(char const* path)
 	{
-		InputFileStream stream;
-		if( !stream.open(path) )
+		InputFileSerializer serializer;
+		if( !serializer.open(path) )
 			return false;
-
-		DataSerializer serializer(stream);
 		
 		int version = DATA_LAST_VERSION;
 		int num;

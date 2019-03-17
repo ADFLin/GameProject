@@ -67,16 +67,16 @@ void RenderUtility::Initialize()
 		hCPen[COLOR_LIGHT][i] = CreatePen(PS_SOLID, 1, gColorMap[COLOR_LIGHT][i].toXBGR() );
 	}
 
-	DrawEngine* de = Global::GetDrawEngine();
+	DrawEngine& de = Global::GetDrawEngine();
 
-	HFONT badFont = de->createFont( 20 , TEXT("華康中圓體") , true , false );
+	HFONT badFont = de.createFont( 20 , TEXT("華康中圓體") , true , false );
 	DeleteObject( badFont );
 
-	hFont[ FONT_S8 ]  = de->createFont(  8 , TEXT("華康中圓體") , true , false );
-	hFont[ FONT_S10 ] = de->createFont( 10 , TEXT("華康中圓體") , true , false );
-	hFont[ FONT_S12 ] = de->createFont( 12 , TEXT("華康中圓體") , true , false );
-	hFont[ FONT_S16 ] = de->createFont( 16 , TEXT("華康中圓體") , true , false );
-	hFont[ FONT_S24 ] = de->createFont( 24 , TEXT("華康中圓體") , true , false );
+	hFont[ FONT_S8 ]  = de.createFont(  8 , TEXT("華康中圓體") , true , false );
+	hFont[ FONT_S10 ] = de.createFont( 10 , TEXT("華康中圓體") , true , false );
+	hFont[ FONT_S12 ] = de.createFont( 12 , TEXT("華康中圓體") , true , false );
+	hFont[ FONT_S16 ] = de.createFont( 16 , TEXT("華康中圓體") , true , false );
+	hFont[ FONT_S24 ] = de.createFont( 24 , TEXT("華康中圓體") , true , false );
 
 }
 
@@ -232,7 +232,7 @@ void RenderUtility::InitializeRHI()
 {
 	using namespace Render;
 
-	HDC hDC = ::Global::GetDrawEngine()->getWindow().getHDC();
+	HDC hDC = ::Global::GetDrawEngine().getWindow().getHDC();
 	FontCharCache::Get().hDC = hDC;
 	FontCharCache::Get().initialize();
 

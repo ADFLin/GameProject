@@ -45,7 +45,7 @@ namespace CB
 			if( !BaseClass::onInit() )
 				return false;
 
-			if( !::Global::GetDrawEngine()->startOpenGL(4) )
+			if( !::Global::GetDrawEngine().startOpenGL(4) )
 				return false;
 
 			if( !InitGlobalRHIResource() )
@@ -60,7 +60,7 @@ namespace CB
 			mUpdateThreadPool->init(numThread);
 #endif
 
-			Vec2i screenSize = ::Global::GetDrawEngine()->getScreenSize();
+			Vec2i screenSize = ::Global::GetDrawEngine().getScreenSize();
 			mRenderer.reset( new CurveRenderer );
 			if( !mRenderer->initialize(screenSize) )
 				return false;
@@ -181,8 +181,8 @@ namespace CB
 			PROFILE_ENTRY("Stage.Render");
 			GLGraphics2D& g = Global::GetRHIGraphics2D();
 
-			int width = ::Global::GetDrawEngine()->getScreenWidth();
-			int height = ::Global::GetDrawEngine()->getScreenHeight();
+			int width = ::Global::GetDrawEngine().getScreenWidth();
+			int height = ::Global::GetDrawEngine().getScreenHeight();
 
 
 			glClearDepth(1.0f);							// Depth Buffer Setup
@@ -218,7 +218,7 @@ namespace CB
 
 			g.beginRender();
 
-			::Global::GetDrawEngine()->drawProfile(Vec2i(400, 20));
+			::Global::GetDrawEngine().drawProfile(Vec2i(400, 20));
 			g.endRender();
 		}
 

@@ -30,8 +30,8 @@ void GUISystem::finalize()
 Vec2i GUISystem::calcScreenCenterPos( Vec2i const& size )
 {
 	Vec2i pos;
-	pos.x = ( Global::GetDrawEngine()->getScreenWidth() - size.x ) / 2;
-	pos.y = ( Global::GetDrawEngine()->getScreenHeight() - size.y ) / 2;
+	pos.x = ( Global::GetDrawEngine().getScreenWidth() - size.x ) / 2;
+	pos.y = ( Global::GetDrawEngine().getScreenHeight() - size.y ) / 2;
 	return pos;
 }
 
@@ -102,7 +102,7 @@ GWidget* GUISystem::showMessageBox( int id , char const* msg , unsigned flag /*=
 	return box;
 }
 
-int GUISystem::getModalID()
+int GUISystem::getModalId()
 {
 	GWidget* ui = getManager().getModalWidget();
 	if ( ui )

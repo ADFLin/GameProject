@@ -186,9 +186,9 @@ namespace Go
 		if( !BaseClass::onInit() )
 			return false;
 
-		::Global::GetDrawEngine()->changeScreenSize(1080, 720);
+		::Global::GetDrawEngine().changeScreenSize(1080, 720);
 
-		if( !::Global::GetDrawEngine()->startOpenGL(8) )
+		if( !::Global::GetDrawEngine().startOpenGL(8) )
 			return false;
 
 
@@ -358,7 +358,7 @@ namespace Go
 			{
 				mReviewGame.copy(mGame);
 				widget->cast<GCheckBox>()->setTitle("Close Review");
-				Vec2i screenSize = ::Global::GetDrawEngine()->getScreenSize();
+				Vec2i screenSize = ::Global::GetDrawEngine().getScreenSize();
 				Vec2i widgetSize = Vec2i(100, 300);
 				auto frame = new DevFrame(UI_REPLAY_FRAME, Vec2i(screenSize.x - widgetSize.x - 5, 300) , widgetSize , nullptr);
 				frame->addButton("[<]", [&](int eventId, GWidget* widget) ->bool
@@ -466,7 +466,7 @@ namespace Go
 	{
 		cleanupModeData( true );
 		mBoardRenderer.releaseRHI();
-		::Global::GetDrawEngine()->stopOpenGL(true);
+		::Global::GetDrawEngine().stopOpenGL(true);
 		BaseClass::onEnd();
 	}
 
@@ -840,7 +840,7 @@ namespace Go
 
 			ViewportSaveScope viewportSave;
 
-			Vec2i screenSize = ::Global::GetDrawEngine()->getScreenSize();
+			Vec2i screenSize = ::Global::GetDrawEngine().getScreenSize();
 
 			RHISetViewport(renderPos.x, screenSize.y - ( renderPos.y + renderSize.y ) , renderSize.x, renderSize.y);
 			MatrixSaveScope matrixSaveScope;
@@ -1617,7 +1617,7 @@ namespace Go
 
 					if( mWinRateWidget == nullptr )
 					{
-						Vec2i screenSize = ::Global::GetDrawEngine()->getScreenSize();
+						Vec2i screenSize = ::Global::GetDrawEngine().getScreenSize();
 						Vec2i widgetSize = { 260 , 310 };
 						Vec2i widgetPos = { screenSize.x - (widgetSize.x + 20), screenSize.y - ( widgetSize.y + 20 ) };
 						mWinRateWidget = new GFrame( UI_ANY , widgetPos , widgetSize , nullptr );
@@ -1625,7 +1625,7 @@ namespace Go
 						mWinRateWidget->setRenderCallback(
 							RenderCallBack::Create([this](GWidget* widget)
 							{
-								Vec2i screenSize = ::Global::GetDrawEngine()->getScreenSize();
+								Vec2i screenSize = ::Global::GetDrawEngine().getScreenSize();
 								Vec2i diagramPos  = widget->getWorldPos() + Vec2i(5, 5);
 								Vec2i diagramSize = widget->getSize() - 2 * Vec2i(5, 5);
 								drawWinRateDiagram(diagramPos, diagramSize);
@@ -1913,7 +1913,7 @@ namespace Go
 	{
 		if( mGamePlayWidget == nullptr )
 		{
-			Vec2i screenSize = Global::GetDrawEngine()->getScreenSize();
+			Vec2i screenSize = Global::GetDrawEngine().getScreenSize();
 
 			Vec2i size = Vec2i(150,200);
 			auto devFrame = new DevFrame(UI_ANY, Vec2i(screenSize.x - size.x - 5, 300), size , NULL);

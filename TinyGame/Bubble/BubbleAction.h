@@ -55,7 +55,7 @@ namespace Bubble
 		typedef TCLKeyFrameGenerator< BuFrameData > BaseClass;
 	public:
 		virtual void  onFireAction( ActionParam& param );
-		virtual void  generate( DataSerializer & serializer );
+		virtual void  generate( IStreamSerializer& serializer );
 	};
 
 	class CServerFrameGenerator : public TSVKeyFrameGenerator< BuFrameData >

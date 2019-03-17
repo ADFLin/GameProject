@@ -20,7 +20,7 @@ namespace TripleTown
 		virtual bool onInit();
 		virtual void onEnd()
 		{
-			::Global::GetDrawEngine()->stopOpenGL();
+			::Global::GetDrawEngine().stopOpenGL();
 		}
 		virtual void onRestart( bool beInit )
 		{
@@ -32,7 +32,7 @@ namespace TripleTown
 		}
 		virtual void onRender( float dFrame )
 		{
-			GameWindow& window = ::Global::GetDrawEngine()->getWindow();
+			GameWindow& window = ::Global::GetDrawEngine().getWindow();
 			mScene.render();
 		}
 

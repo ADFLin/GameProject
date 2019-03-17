@@ -34,6 +34,7 @@ public:
 	void  assign(CharT const* str) { FCString::Copy(mData, str); }
 	void  assign(CharT const* str, int num) { FCString::CopyN(mData, str, num); }
 	void  clear() { mData[0] = 0; }
+	size_t length() const { return FCString::Strlen(mData); }
 	
 	template< class ...Args>
 	FixString& format(CharT const* fmt, Args&& ...args)

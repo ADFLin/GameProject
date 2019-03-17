@@ -35,6 +35,7 @@ namespace Math
 	inline float Frac(float val) { float temp; return ::modf(val, &temp); }
 	inline float Log(float val) { return ::logf(val); }
 
+	inline double FloorToInt(double val) { return ::floor(val); }
 	inline double Abs(double val) { return ::abs(val); }
 	inline double Tanh(double val) { return ::tanh(val); }
 	inline double Exp(double val) { return ::exp(val); }

@@ -128,6 +128,9 @@
     <Filter Include="Core\String">
       <UniqueIdentifier>{c35e934b-8c4e-407e-a754-c855f1697aae}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Serialize">
+      <UniqueIdentifier>{0666c421-5573-437b-9242-765ac0d902aa}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="AppEntry.cpp">
@@ -396,6 +399,15 @@
     </ClCompile>
     <ClCompile Include="RHI\RHIStaticStateObject.cpp">
       <Filter>RHI</Filter>
+    </ClCompile>
+    <ClCompile Include="DataCacheInterface.cpp">
+      <Filter>原始程式檔</Filter>
+    </ClCompile>
+    <ClCompile Include="Serialize\DataStream.cpp">
+      <Filter>Serialize</Filter>
+    </ClCompile>
+    <ClCompile Include="Serialize\FileStream.cpp">
+      <Filter>Serialize</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -995,6 +1007,21 @@
     </ClInclude>
     <ClInclude Include="RHI\RHIStaticStateObject.h">
       <Filter>RHI</Filter>
+    </ClInclude>
+    <ClInclude Include="DataCacheInterface.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="Serialize\DataStream.h">
+      <Filter>Serialize</Filter>
+    </ClInclude>
+    <ClInclude Include="Serialize\DataBitSerialize.h">
+      <Filter>Serialize</Filter>
+    </ClInclude>
+    <ClInclude Include="Serialize\StreamBuffer.h">
+      <Filter>Serialize</Filter>
+    </ClInclude>
+    <ClInclude Include="Serialize\FileStream.h">
+      <Filter>Serialize</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

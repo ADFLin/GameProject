@@ -97,7 +97,7 @@ namespace Rich
 
 		RenderUtility::SetPen( g , EColor::Gray );
 		RenderUtility::SetBrush( g , EColor::Gray );
-		g.drawRect( Vec2i(0,0) , ::Global::GetDrawEngine()->getScreenSize() );
+		g.drawRect( Vec2i(0,0) , ::Global::GetDrawEngine().getScreenSize() );
 		
 
 		AreaRenderer drawer( g );

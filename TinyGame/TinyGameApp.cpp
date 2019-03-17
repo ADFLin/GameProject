@@ -45,7 +45,6 @@ int g_DevMsgLevel = 10;
 
 TINY_API IGameNetInterface* gGameNetInterfaceImpl;
 TINY_API IDebugInterface*   gDebugInterfaceImpl;
-TINY_API uint32 gGameThreadId;
 
 TConsoleVariable< bool > gbShowFPS(false, "ShowFPS");
 
@@ -164,9 +163,11 @@ TinyGameApp::~TinyGameApp()
 
 bool TinyGameApp::onInit()
 {
-	gGameThreadId = PlatformThread::GetCurrentThreadId();
-
 	ConsoleSystem::Get().initialize();
+
+	::Global::Initialize();
+
+
 
 	GameLoop::setUpdateTime( gDefaultTickTime );
 
@@ -188,10 +189,10 @@ bool TinyGameApp::onInit()
 	gLogPrinter.addChannel( LOG_MSG );
 	gLogPrinter.addChannel( LOG_ERROR  );
 
-	if ( !createWindowInternal( gDefaultScreenWidth , gDefaultScreenHeight ) )
+	if ( !createWindowInternal( mGameWindow, gDefaultScreenWidth , gDefaultScreenHeight, TEXT("Tiny Game") ) )
 		return false;
 
-	::Global::GetDrawEngine()->initialize( *this );
+	::Global::GetDrawEngine().initialize( *this );
 
 	::Global::GUI().initialize( *this );
 
@@ -252,7 +253,7 @@ void TinyGameApp::cleanup()
 
 	Global::GUI().finalize();
 
-	Global::GetDrawEngine()->release();
+	Global::GetDrawEngine().release();
 
 	Global::GetAssetManager().cleanup();
 
@@ -261,6 +262,8 @@ void TinyGameApp::cleanup()
 	Global::GameConfig().saveFile(GAME_SETTING_PATH);
 
 	ILocalization::Get().saveTranslateAsset("LocText.txt");
+
+	Global::Finalize();
 }
 
 long TinyGameApp::onUpdate( long shouldTime )
@@ -270,7 +273,7 @@ long TinyGameApp::onUpdate( long shouldTime )
 	
 	::Global::GetAssetManager().tick(updateTime);
 
-	::Global::GetDrawEngine()->update(updateTime);
+	::Global::GetDrawEngine().update(updateTime);
 
 	for( int i = 0 ; i < numFrame ; ++i )
 	{
@@ -481,14 +484,27 @@ bool TinyGameApp::onChar( unsigned code )
 	return result;
 }
 
-void TinyGameApp::onDestroy()
+bool TinyGameApp::onDestroy(HWND hWnd )
 {
-	if( !mGameWindow.getHWnd() )
+	if( mGameWindow.getHWnd() == hWnd )
 	{
 		setLoopOver(true);
-		WindowsMessageHandler::onDestroy();
-
+		return true;
 	}	
+	return false;
+}
+
+void TinyGameApp::onPaint(HDC hDC)
+{
+	if( !::Global::GetDrawEngine().isInitialized() )
+		return;
+
+	render(0.0f);
+}
+
+bool TinyGameApp::onActivate( bool beA )
+{
+	return true;
 }
 
 void TinyGameApp::onTaskMessage( TaskBase* task , TaskMsg const& msg )
@@ -515,9 +531,9 @@ void TinyGameApp::render( float dframe )
 	if ( getNextStage() || mbInitializingStage )
 		return;
 
-	DrawEngine* de = Global::GetDrawEngine();
+	DrawEngine& de = Global::GetDrawEngine();
 
-	if ( !de->beginRender() )
+	if ( !de.beginRender() )
 		return;
 
 	GpuProfiler::Get().beginFrame();
@@ -533,7 +549,7 @@ void TinyGameApp::render( float dframe )
 		if( mRenderEffect )
 			mRenderEffect->onRender(dt);
 
-		if( de->isOpenGLEnabled() )
+		if( de.isRHIEnabled() )
 			::Global::GetRHIGraphics2D().beginRender();
 
 
@@ -544,7 +560,7 @@ void TinyGameApp::render( float dframe )
 	}
 	else
 	{
-		if( de->isOpenGLEnabled() )
+		if( de.isRHIEnabled() )
 			::Global::GetRHIGraphics2D().beginRender();
 	}
 
@@ -601,10 +617,10 @@ void TinyGameApp::render( float dframe )
 		}
 	}
 
-	if( de->isOpenGLEnabled() )
+	if( de.isRHIEnabled() )
 		::Global::GetRHIGraphics2D().endRender();
 		
-	de->endRender();
+	de.endRender();
 }
 
 void TinyGameApp::exportUserProfile()
@@ -713,9 +729,9 @@ StageBase* TinyGameApp::resolveChangeStageFail( FailReason reason )
 	switch( reason )
 	{
 	case FailReason::InitFail:
-		if( ::Global::GetDrawEngine()->isOpenGLEnabled() )
+		if( ::Global::GetDrawEngine().isOpenGLEnabled() )
 		{
-			::Global::GetDrawEngine()->stopOpenGL();
+			::Global::GetDrawEngine().stopOpenGL();
 		}
 		break;
 	case FailReason::NoStage:
@@ -753,14 +769,14 @@ bool TinyGameApp::initializeStage(StageBase* stage)
 
 void TinyGameApp::prevStageChange()
 {
-	DrawEngine* de = ::Global::GetDrawEngine();
+	DrawEngine& de = ::Global::GetDrawEngine();
 	Graphics2D& g = ::Global::GetGraphics2D();
-	if ( de->beginRender() )
+	if ( de.beginRender() )
 	{
 		RenderUtility::SetBrush( g , EColor::Black );
 		RenderUtility::SetPen( g , EColor::Black );
-		g.drawRect( Vec2i(0,0) , ::Global::GetDrawEngine()->getScreenSize() );
-		de->endRender();
+		g.drawRect( Vec2i(0,0) , ::Global::GetDrawEngine().getScreenSize() );
+		de.endRender();
 	}
 }
 
@@ -777,19 +793,6 @@ void TinyGameApp::postStageChange( StageBase* stage )
 		//::Global::getGUI().showMessageBox( UI_ANY , mErrorMsg.c_str() , GMB_OK );
 		mShowErrorMsg = false;
 	}
-}
-
-bool TinyGameApp::onActivate( bool beA )
-{
-	return true;
-}
-
-void TinyGameApp::onPaint(HDC hDC)
-{
-	if( !::Global::GetDrawEngine()->isInitialized() )
-		return;
-
-	render(0.0f);
 }
 
 NetWorker* TinyGameApp::buildNetwork( bool beServer )
@@ -894,29 +897,33 @@ void TinyGameApp::dispatchWidgetEvent( int event , int id , GWidget* ui )
 	return;
 }
 
-GameWindow& TinyGameApp::getGameWindow()
+GameWindow& TinyGameApp::getMainWindow()
 {
 	return mGameWindow;
 }
 
-GameWindow& TinyGameApp::reconstructGameWindow()
+bool TinyGameApp::reconstructWindow( GameWindow& window )
 {
-	int width = mGameWindow.getWidth();
-	int height = mGameWindow.getHeight();
-	
-	mGameWindow.destroy();
-	if( createWindowInternal(width, height) )
+	int width = window.getWidth();
+	int height = window.getHeight();
+	TCHAR const* title = TEXT("Tiny Game");
+	window.destroy();
+	if( !createWindowInternal(window , width, height , title) )
 	{
-
-
+		return false;
 	}
 
-	return mGameWindow;
+	return true;
 }
 
-bool TinyGameApp::createWindowInternal(int width, int height)
+GameWindow* TinyGameApp::createWindow(Vec2i const& pos, Vec2i const& size, char const* title)
 {
-	if( !mGameWindow.create(TEXT("Tiny Game"), width, height, WindowsMessageHandler::MsgProc) )
+	return nullptr;
+}
+
+bool TinyGameApp::createWindowInternal(GameWindow& window , int width, int height ,TCHAR const* title)
+{
+	if( !window.create(title, width, height, WindowsMessageHandler::MsgProc) )
 		return false;
 
 	return true;
@@ -931,9 +938,9 @@ FadeInEffect::FadeInEffect( int _color , long time )
 
 void FadeInEffect::onRender( long dt )
 {
-	DrawEngine* de = Global::GetDrawEngine();
+	DrawEngine& de = Global::GetDrawEngine();
 
-	Vec2i size = de->getScreenSize() + Vec2i(5,5); 
+	Vec2i size = de.getScreenSize() + Vec2i(5,5); 
 	Graphics2D& g = Global::GetGraphics2D();
 
 	g.beginBlend( Vec2i(0,0) , size , float( getLifeTime() - dt ) / totalTime  ); 

@@ -1,15 +1,10 @@
-#include "Stage/TestStageHeader.h"
-
-#include "RHI/RHICommon.h"
-#include "RHI/ShaderCompiler.h"
-#include "RHI/RenderContext.h"
-#include "RHI/DrawUtility.h"
-#include "RHI/MeshUtility.h"
+#include "TestRenderStageBase.h"
 
 
 namespace Render
 {
-	struct alignas(16) ParticleData
+
+	struct GPU_BUFFER_ALIGN ParticleData
 	{
 		DECLARE_BUFFER_STRUCT(ParticleDataBlock);
 
@@ -22,7 +17,7 @@ namespace Render
 		float   lifeTimeScale;	
 	};
 
-	struct alignas(16) ParticleParameters
+	struct GPU_BUFFER_ALIGN ParticleParameters
 	{
 		DECLARE_BUFFER_STRUCT(ParticleParamBlock);
 		Vector3  gravity;
@@ -30,75 +25,19 @@ namespace Render
 		Vector4  dynamic;
 	};
 
-	struct alignas(16) ParticleInitParameters
+	struct GPU_BUFFER_ALIGN ParticleInitParameters
 	{
 		DECLARE_BUFFER_STRUCT(ParticleInitParamBlock);
 		Vector3 posMin;
 		Vector3 posMax;
 	};
 
-	struct alignas(16) CollisionPrimitive
+	struct GPU_BUFFER_ALIGN CollisionPrimitive
 	{
 		DECLARE_BUFFER_STRUCT(CollisionPrimitiveBlock);
 		Vector3 velocity;
 		int32   type;
 		Vector4 param;
-	};
-
-	template< class T , class ResourceType >
-	class TStructuredBufferBase
-	{
-	public:
-
-		void releaseResources()
-		{
-			mResource->release();
-		}
-
-
-		uint32 getElementNum() { return mResource->getSize() / sizeof(T); }
-
-		ResourceType* getRHI() { return mResource; }
-
-		T*   lock()
-		{
-			return (T*)RHILockBuffer(mResource, ELockAccess::WriteOnly);
-		}
-		void unlock()
-		{
-			RHIUnlockBuffer(mResource);
-		}
-
-		TRefCountPtr<ResourceType> mResource;
-	};
-
-
-	template< class T >
-	class TStructuredUniformBuffer : public TStructuredBufferBase< T , RHIUniformBuffer >
-	{
-	public:
-		bool initializeResource(uint32 numElement)
-		{
-			mResource = RHICreateUniformBuffer(sizeof(T) , numElement );
-			if( !mResource.isValid() )
-				return false;
-			return true;
-		}
-
-
-	};
-
-	template< class T >
-	class TStructuredStorageBuffer : public TStructuredBufferBase< T , RHIVertexBuffer >
-	{
-	public:
-		bool initializeResource(uint32 numElement)
-		{
-			mResource = RHICreateVertexBuffer(sizeof(T) , numElement );
-			if( !mResource.isValid() )
-				return false;
-			return true;
-		}
 	};
 
 	class ParticleSimBaseProgram : public GlobalShaderProgram
@@ -501,20 +440,6 @@ namespace Render
 	IMPLEMENT_GLOBAL_SHADER(WaterUpdateNormalProgram);
 	IMPLEMENT_GLOBAL_SHADER(WaterProgram);
 
-	class ViewFrustum
-	{
-	public:
-		Matrix4 getPerspectiveMatrix()
-		{
-			return PerspectiveMatrix(mYFov, mAspect, mNear, mFar);
-		}
-
-		float mNear;
-		float mFar;
-		float mYFov;
-		float mAspect;
-	};
-
 	struct GPUParticleData
 	{
 
@@ -605,10 +530,10 @@ namespace Render
 
 
 
-	class GPUParticleTestStage : public StageBase
+	class GPUParticleTestStage : public TestRenderStageBase
 		                       , public GPUParticleData
 	{
-		typedef StageBase BaseClass;
+		typedef TestRenderStageBase BaseClass;
 	public:
 		GPUParticleTestStage() {}
 
@@ -624,8 +549,6 @@ namespace Render
 		RHITexture2DRef mTexture;
 		RHITexture2DRef mBaseTexture;
 		RHITexture2DRef mNormalTexture;
-		ViewFrustum mViewFrustum;
-		SimpleCamera  mCamera;
 
 		Mesh mTileMesh;
 		int  mTileNum = 500;
@@ -647,9 +570,6 @@ namespace Render
 		virtual bool onInit()
 		{
 			if( !BaseClass::onInit() )
-				return false;
-
-			if( !::Global::GetDrawEngine()->startOpenGL() )
 				return false;
 
 			VERIFY_RETURN_FALSE(GPUParticleData::initialize());
@@ -706,14 +626,7 @@ namespace Render
 			}
 
 
-			Vec2i screenSize = ::Global::GetDrawEngine()->getScreenSize();
-			mViewFrustum.mNear = 0.01;
-			mViewFrustum.mFar = 800.0;
-			mViewFrustum.mAspect = float(screenSize.x) / screenSize.y;
-			mViewFrustum.mYFov = Math::Deg2Rad(60 / mViewFrustum.mAspect);
-
-			mCamera.setPos(Vector3(20, 0, 20));
-			mCamera.setViewDir(Vector3(-1, 0, 0), Vector3(0, 0, 1));
+			Vec2i screenSize = ::Global::GetDrawEngine().getScreenSize();
 			::Global::GUI().cleanupWidget();
 
 			auto devFrame = WidgetUtility::CreateDevFrame();
@@ -780,23 +693,14 @@ namespace Render
 		{
 			BaseClass::onUpdate(time);
 
-			int frame = time / gDefaultTickTime;
-			for( int i = 0; i < frame; ++i )
-				tick();
-
 			float dt = float(time) / 1000;
 			updateParticleData(dt);
 			upateWaterData(dt);
-
-			updateFrame(frame);
 		}
 
 		ShaderProgram mProgSphere;
 		Mesh mSpherePlane;
-
 		ShaderProgram mProgSimpleParticle;
-		ViewInfo mView;
-
 
 
 		void onRender(float dFrame)
@@ -804,29 +708,9 @@ namespace Render
 			Graphics2D& g = Global::GetGraphics2D();
 
 
-			GameWindow& window = Global::GetDrawEngine()->getWindow();
+			GameWindow& window = Global::GetDrawEngine().getWindow();
 
-			mView.gameTime = 0;
-			mView.realTime = 0;
-			mView.rectOffset = IntVector2(0, 0);
-			mView.rectSize = IntVector2(window.getWidth(), window.getHeight());
-
-			Matrix4 matView = mCamera.getViewMatrix();
-			mView.setupTransform(matView, mViewFrustum.getPerspectiveMatrix());
-
-
-			glMatrixMode(GL_PROJECTION);
-			glLoadMatrixf(mView.viewToClip);
-			glMatrixMode(GL_MODELVIEW);
-			glLoadMatrixf(mView.worldToView);
-
-			glClearColor(0.2, 0.2, 0.2, 1);
-			glClearDepth(1.0);
-			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
-
-			RHISetViewport(mView.rectOffset.x, mView.rectOffset.y, mView.rectSize.x, mView.rectSize.y);
-			RHISetDepthStencilState(TStaticDepthStencilState<>::GetRHI());
-			RHISetBlendState(TStaticBlendState<>::GetRHI());
+			initializeRenderState();
 
 			{
 				GL_BIND_LOCK_OBJECT(mProgWater);
@@ -863,8 +747,8 @@ namespace Render
 
 
 			{
-				int width = ::Global::GetDrawEngine()->getScreenWidth();
-				int height = ::Global::GetDrawEngine()->getScreenHeight();
+				int width = ::Global::GetDrawEngine().getScreenWidth();
+				int height = ::Global::GetDrawEngine().getScreenHeight();
 
 				RHISetDepthStencilState(StaticDepthDisableState::GetRHI());
 				RHISetBlendState(TStaticBlendState<>::GetRHI());
@@ -892,8 +776,8 @@ namespace Render
 			}
 
 			{
-				int width = ::Global::GetDrawEngine()->getScreenWidth();
-				int height = ::Global::GetDrawEngine()->getScreenHeight();
+				int width = ::Global::GetDrawEngine().getScreenWidth();
+				int height = ::Global::GetDrawEngine().getScreenHeight();
 
 				RHISetDepthStencilState(TStaticDepthStencilState<>::GetRHI());
 				RHISetBlendState(TStaticBlendState<>::GetRHI());
@@ -969,24 +853,8 @@ namespace Render
 		}
 
 
-
-
 		bool onMouse(MouseMsg const& msg)
 		{
-			static Vec2i oldPos = msg.getPos();
-
-			if( msg.onLeftDown() )
-			{
-				oldPos = msg.getPos();
-			}
-			if( msg.onMoving() && msg.isLeftDown() )
-			{
-				float rotateSpeed = 0.01;
-				Vector2 off = rotateSpeed * Vector2(msg.getPos() - oldPos);
-				mCamera.rotateByMouse(off.x, off.y);
-				oldPos = msg.getPos();
-			}
-
 			if( !BaseClass::onMouse(msg) )
 				return false;
 			return true;
@@ -994,29 +862,23 @@ namespace Render
 
 		bool onKey(unsigned key, bool isDown)
 		{
-			if( !isDown )
-				return false;
-			switch( key )
+			if( isDown )
 			{
-			case 'W': mCamera.moveFront(1); break;
-			case 'S': mCamera.moveFront(-1); break;
-			case 'D': mCamera.moveRight(1); break;
-			case 'A': mCamera.moveRight(-1); break;
-			case 'Z': mCamera.moveUp(0.5); break;
-			case 'X': mCamera.moveUp(-0.5); break;
-			case Keyboard::eLEFT: --TessFactor1; break;
-			case Keyboard::eRIGHT: ++TessFactor1; break;
-			case Keyboard::eDOWN: --TessFactor2; break;
-			case Keyboard::eUP: ++TessFactor2; break;
-			case Keyboard::eR: restart(); break;
-			case Keyboard::eF2:
+				switch( key )
 				{
-					ShaderManager::Get().reloadAll();
-					//initParticleData();
+				case Keyboard::eLEFT: --TessFactor1; break;
+				case Keyboard::eRIGHT: ++TessFactor1; break;
+				case Keyboard::eDOWN: --TessFactor2; break;
+				case Keyboard::eUP: ++TessFactor2; break;
+				case Keyboard::eF2:
+					{
+						ShaderManager::Get().reloadAll();
+						//initParticleData();
+					}
+					break;
 				}
-				break;
 			}
-			return false;
+			return BaseClass::onKey(key , isDown);
 		}
 
 		virtual bool onWidgetEvent(int event, int id, GWidget* ui) override

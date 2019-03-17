@@ -8,10 +8,10 @@ namespace TripleTown
 
 		::Global::GUI().cleanupWidget();
 
-		if( !::Global::GetDrawEngine()->startOpenGL() )
+		if( !::Global::GetDrawEngine().startOpenGL() )
 			return false;
 
-		GameWindow& window = ::Global::GetDrawEngine()->getWindow();
+		GameWindow& window = ::Global::GetDrawEngine().getWindow();
 
 		if( !mScene.init() )
 			return false;

@@ -224,7 +224,7 @@ namespace Tetris
 		int x0 = posPanel.x + 10;
 		int y0 = posPanel.y + 5;
 
-		DrawEngine* de = Global::GetDrawEngine();
+		DrawEngine& de = Global::GetDrawEngine();
 
 		LevelData* lvData = reinterpret_cast< LevelData* >( ui->getUserData() );
 		Level* level  = lvData->getLevel();

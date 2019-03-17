@@ -73,13 +73,13 @@ namespace BomberMan
 			{
 				RenderUtility::SetFont( g , FONT_S24 );
 				g.setTextColor(Color3ub(255 , 255 , 255) );
-				g.drawText( Vec2i(0,0) , Global::GetDrawEngine()->getScreenSize() , "Ready" );
+				g.drawText( Vec2i(0,0) , Global::GetDrawEngine().getScreenSize() , "Ready" );
 			}
 			else
 			{
 				RenderUtility::SetFont( g , FONT_S24 );
 				g.setTextColor(Color3ub(255 , 0 , 0 ));
-				g.drawText( Vec2i(0,0) , Global::GetDrawEngine()->getScreenSize() , "Go!" );
+				g.drawText( Vec2i(0,0) , Global::GetDrawEngine().getScreenSize() , "Go!" );
 			}
 		}
 	}

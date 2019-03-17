@@ -73,9 +73,9 @@ namespace Zuma
 		//GameInitializer
 		virtual bool           setupWindow( char const* title , int w , int h )
 		{
-			DrawEngine* drawEngine = ::Global::GetDrawEngine();
-			mOldSize = drawEngine->getScreenSize();
-			drawEngine->changeScreenSize( w , h );
+			DrawEngine& drawEngine = ::Global::GetDrawEngine();
+			mOldSize = drawEngine.getScreenSize();
+			drawEngine.changeScreenSize( w , h );
 			
 
 			return true;
@@ -83,16 +83,16 @@ namespace Zuma
 
 		virtual IRenderSystem* createRenderSystem()
 		{
-			DrawEngine* drawEngine = ::Global::GetDrawEngine();
-			GameWindow& window = drawEngine->getWindow();
+			DrawEngine& drawEngine = ::Global::GetDrawEngine();
+			GameWindow& window = drawEngine.getWindow();
 
 			//HDC hDC = ::Global::getGraphics2D().getTargetDC();
 			HDC hDC = window.getHDC();
-			drawEngine->startOpenGL( false );
+			drawEngine.startOpenGL( false );
 
 			GLRenderSystem* renderSys = new GLRenderSystem;
 			renderSys->mNeedSweepBuffer = false;
-			renderSys->init( window.getHWnd(), hDC , drawEngine->getGLContext()->getHandle() );
+			renderSys->init( window.getHWnd(), hDC , drawEngine.getGLContext()->getHandle() );
 
 			return renderSys;
 		}
@@ -120,8 +120,8 @@ namespace Zuma
 		{
 			mGameCore->cleanup();
 
-			::Global::GetDrawEngine()->stopOpenGL();
-			::Global::GetDrawEngine()->changeScreenSize( mOldSize.x , mOldSize.y );
+			::Global::GetDrawEngine().stopOpenGL();
+			::Global::GetDrawEngine().changeScreenSize( mOldSize.x , mOldSize.y );
 
 			BaseClass::onEnd();
 

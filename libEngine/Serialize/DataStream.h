@@ -8,63 +8,22 @@
 #include <map>
 #include <string>
 
-class DataStream
+
+SUPPORT_BINARY_OPERATOR(HaveSerializerOutput, operator<<, &, const&);
+SUPPORT_BINARY_OPERATOR(HaveSerializerInput, operator >> , &, &);
+SUPPORT_BINARY_OPERATOR(HaveBitDataOutput, operator<<, &, const &);
+SUPPORT_BINARY_OPERATOR(HaveBitDataInput, operator >> , &, &);
+
+class IStreamSerializer
 {
 public:
-	virtual void read( void* ptr , size_t num ) = 0;
-	virtual void write( void const* ptr , size_t num ) = 0;
-};
-
-#include <fstream>
-
-class InputFileStream : public DataStream
-{
-public:
-	bool open( char const* path );
-	virtual void read( void* ptr , size_t num ) override;
-	virtual void write( void const* ptr , size_t num ) override;
-protected:
-	std::ifstream mFS;
-};
-
-class OutputFileStream : public DataStream
-{
-public:
-	bool open( char const* path );
-	virtual void read( void* ptr , size_t num ) override;
-	virtual void write( void const* ptr , size_t num ) override;
-protected:
-	std::ofstream mFS;
-};
-
-class FileStream : public DataStream
-{
-public:
-	bool open( char const* path , bool bRemoveOldData = false );
-	virtual void read( void* ptr , size_t num );
-	virtual void write( void const* ptr , size_t num );
-
-	size_t getSize();
-protected:
-	std::fstream mFS;
-};
-
-class DataSerializer;
-SUPPORT_BINARY_OPERATOR(HaveSerializerOutput, operator<< , &, const&);
-SUPPORT_BINARY_OPERATOR(HaveSerializerInput, operator>> , &, &);
-SUPPORT_BINARY_OPERATOR(HaveBitDataOutput, operator<< , &, const &);
-SUPPORT_BINARY_OPERATOR(HaveBitDataInput, operator>> , &, &);
-
-class DataSerializer
-{
-public:
-	DataSerializer( DataStream& stream ):mStream( stream ){}
-
-	DataStream& getStream() { return mStream;  }
+	virtual ~IStreamSerializer() {}
+	virtual void read(void* ptr, size_t num) = 0;
+	virtual void write(void const* ptr, size_t num) = 0;
 
 	struct StreamDataPolicy
 	{
-		typedef DataStream DataType;
+		typedef IStreamSerializer DataType;
 		static void Fill(DataType& buffer, uint8 value)
 		{
 			buffer.write(&value, 1);
@@ -88,12 +47,12 @@ public:
 	};
 
 	template< class T >
-	typename Meta::EnableIf< HaveBitDataOutput< BitWriter , T >::Value >::Type
+	typename Meta::EnableIf< HaveBitDataOutput< BitWriter, T >::Value >::Type
 	write(TArrayBitData<T> const& data)
 	{
 		if( data.length )
 		{
-			BitWriter writer(mStream);
+			BitWriter writer(*this);
 			for( size_t i = 0; i < data.length; ++i )
 			{
 				writer << data.ptr[i];
@@ -103,24 +62,24 @@ public:
 	}
 
 	template< class T >
-	typename Meta::EnableIf< !HaveBitDataOutput< BitWriter , T >::Value >::Type
-    write(TArrayBitData<T> const& data )
+	typename Meta::EnableIf< !HaveBitDataOutput< BitWriter, T >::Value >::Type
+	write(TArrayBitData<T> const& data)
 	{
 		if( data.length )
 		{
-			BitWriter writer(mStream);
+			BitWriter writer(*this);
 			writer.fillArray(data.ptr, data.num, data.length, data.numBit);
 			writer.finalize();
 		}
 	}
 
 	template< class T>
-	typename Meta::EnableIf< HaveBitDataInput< BitReader , T >::Value >::Type
+	typename Meta::EnableIf< HaveBitDataInput< BitReader, T >::Value >::Type
 	read(TArrayBitData<T> const& data)
 	{
 		if( data.length )
 		{
-			BitReader reader(mStream);
+			BitReader reader(*this);
 			for( size_t i = 0; i < data.length; ++i )
 			{
 				reader >> data.ptr[i];
@@ -134,15 +93,15 @@ public:
 	{
 		if( data.length )
 		{
-			BitReader reader(mStream);
+			BitReader reader(*this);
 			reader.takeArray(data.ptr, data.num, data.length, data.numBit);
 		}
 	}
 
 	template< class T >
-	static TArrayBitData<T> MakeArrayBit(T* data, size_t length , uint32 numBit )
+	static TArrayBitData<T> MakeArrayBit(T* data, size_t length, uint32 numBit)
 	{
-		return { data , sizeof(T) , length , numBit };
+		return{ data , sizeof(T) , length , numBit };
 	}
 
 	template< class T >
@@ -160,39 +119,41 @@ public:
 
 
 	template< class T >
-	void write( T const& value )
+	void write(T const& value)
 	{
 		//static_assert( std::is_pod<T>::value || std::is_trivially_default_constructible<T>::value, "Pleasse overload serilize operator");
-		mStream.write( &value , sizeof( value ) );
+		write(&value, sizeof(value));
 	}
 
 	template< class T >
-	void read( T& value )
+	void read(T& value)
 	{
 		//static_assert( std::is_pod<T>::value || std::is_trivially_default_constructible<T>::value, "Pleasse overload serilize operator");
-		mStream.read( &value , sizeof( value ) );
+		read(&value, sizeof(value));
 	}
 
 	template< class T >
-	struct CanUseInputSequence : Meta::HaveResult< 
-		(!HaveSerializerInput<DataSerializer , T>::Value) && Meta::IsPod<T>::Value >
-	{};
+	struct CanUseInputSequence : Meta::HaveResult<
+		(!HaveSerializerInput<IStreamSerializer, T>::Value) && Meta::IsPod<T>::Value >
+	{
+	};
 
 	template< class T >
 	struct CanUseOutputSequence : Meta::HaveResult<
-		(!HaveSerializerOutput<DataSerializer, T>::Value) && Meta::IsPod<T>::Value >
-	{};
+		(!HaveSerializerOutput<IStreamSerializer, T>::Value) && Meta::IsPod<T>::Value >
+	{
+	};
 
 	template < class T >
 	typename Meta::EnableIf< CanUseInputSequence<T>::Value >::Type
-	read( T* ptr , size_t num  )
+	readSequence(T* ptr, size_t num)
 	{
-		mStream.read( ptr , num * sizeof(T) );
+		read((void*)ptr, num * sizeof(T));
 	}
 
 	template < class T >
 	typename Meta::EnableIf< !CanUseInputSequence<T>::Value >::Type
-	read(T* ptr, size_t num)
+	readSequence(T* ptr, size_t num)
 	{
 		for( size_t i = 0; i < num; ++i )
 		{
@@ -202,14 +163,14 @@ public:
 
 	template< class T >
 	typename Meta::EnableIf< CanUseOutputSequence<T>::Value >::Type
-	write(T const* ptr, size_t num)
+	writeSequence(T const* ptr, size_t num)
 	{
-		mStream.write(ptr, num * sizeof(T));
+		write((void const*)ptr, num * sizeof(T));
 	}
 
 	template< class T >
 	typename Meta::EnableIf< !CanUseOutputSequence<T>::Value >::Type
-	write(T const* ptr, size_t num)
+	writeSequence(T const* ptr, size_t num)
 	{
 		for( size_t i = 0; i < num; ++i )
 		{
@@ -218,25 +179,25 @@ public:
 	}
 
 	template<  class T, class A >
-	void write( std::vector< T , A > const& value )
+	void write(std::vector< T, A > const& value)
 	{
 		size_t size = value.size();
-		this->write( size );
+		this->write(size);
 		if( size )
 		{
-			this->write( value.data() , size);
+			this->writeSequence(value.data(), size);
 		}
 	}
 
-	template< class T , class A >
-	void read( std::vector< T , A >& value )
+	template< class T, class A >
+	void read(std::vector< T, A >& value)
 	{
 		size_t size;
-		this->read( size );
-		if ( size )
+		this->read(size);
+		if( size )
 		{
 			value.resize(size);
-			this->read( value.data() , size);
+			this->readSequence(value.data(), size);
 		}
 	}
 
@@ -259,11 +220,11 @@ public:
 		if( size )
 		{
 			value.resize(size);
-			this->read(&value[0], size);
+			this->readSequence(&value[0], size);
 		}
 	}
-	template< class K , class V  , class KF , class A >
-	void write(std::map< K , V , KF , A > const& mapValue)
+	template< class K, class V, class KF, class A >
+	void write(std::map< K, V, KF, A > const& mapValue)
 	{
 		size_t size = mapValue.size();
 		this->write(size);
@@ -286,7 +247,7 @@ public:
 		{
 			for( size_t i = 0; i < size; ++i )
 			{
-				std::pair< K , V > value;
+				std::pair< K, V > value;
 				(*this) >> value.first;
 				(*this) >> value.second;
 				mapValue[value.first] = value.second;
@@ -295,52 +256,52 @@ public:
 	}
 
 	template< class T >
-	DataSerializer& operator >> (T& value)
+	IStreamSerializer& operator >> (T& value)
 	{
 		this->read(value);
 		return *this;
 	}
 
 	template< class T >
-	DataSerializer& operator << (T const& value)
+	IStreamSerializer& operator << (T const& value)
 	{
 		this->write(value);
 		return *this;
 	}
 
-	DataStream& mStream;
-
 	class ReadOp
 	{
 	public:
-		enum { isRead = 1 , isWrite = 0 };
-		ReadOp( DataSerializer& s ):serializer(s){}
+		enum { isRead = 1, isWrite = 0 };
+		ReadOp(IStreamSerializer& s) :serializer(s) {}
 		typedef ReadOp ThisOp;
 		template< class T >
-		ThisOp& operator & ( T& value ){ serializer >> value; return *this;  }
+		ThisOp& operator & (T& value) { serializer >> value; return *this; }
 		template< class T >
 		ThisOp& operator << (T& value) { return *this; }
 		template< class T >
 		ThisOp& operator >> (T& value) { serializer >> value; return *this; }
-		DataSerializer& serializer;
+
+		IStreamSerializer& serializer;
 	};
 
 	class WriteOp
 	{
 	public:
-		enum { isRead = 0 , isWrite = 1 };
+		enum { isRead = 0, isWrite = 1 };
 		typedef WriteOp ThisOp;
-		WriteOp( DataSerializer& s ):serializer(s){}
+		WriteOp(IStreamSerializer& s) :serializer(s) {}
 		template< class T >
-		ThisOp& operator & ( T const& value ){ serializer << value; return *this;  }
+		ThisOp& operator & (T const& value) { serializer << value; return *this; }
 		template< class T >
 		ThisOp& operator << (T const& value) { serializer << value; return *this; }
 		template< class T >
 		ThisOp& operator >> (T const& value) { return *this; }
 
-		DataSerializer& serializer;
+		IStreamSerializer& serializer;
 	};
 };
+
 
 
 

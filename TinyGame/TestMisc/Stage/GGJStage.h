@@ -336,7 +336,7 @@ namespace GGJ
 		virtual void onEnd()
 		{
 
-			//::Global::getDrawEngine()->stopOpenGL();
+			//::Global::GetDrawEngine().stopOpenGL();
 		}
 
 		virtual void onUpdate( long time )

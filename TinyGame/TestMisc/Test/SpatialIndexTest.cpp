@@ -9,7 +9,7 @@ void SpatialIndexTestStage::onRender(float dFrame)
 
 	RenderUtility::SetPen(g, EColor::Null);
 	RenderUtility::SetBrush(g, EColor::Gray);
-	g.drawRect(Vec2i(0, 0), ::Global::GetDrawEngine()->getScreenSize());
+	g.drawRect(Vec2i(0, 0), ::Global::GetDrawEngine().getScreenSize());
 
 	static int const ColorMap[] =
 	{

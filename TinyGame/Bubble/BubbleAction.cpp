@@ -51,9 +51,9 @@ namespace Bubble
 		}
 	}
 
-	void CClientFrameGenerator::generate( DataSerializer & serializer )
+	void CClientFrameGenerator::generate( IStreamSerializer& serializer )
 	{
-		DataSerializer::WriteOp op( serializer );
+		IStreamSerializer::WriteOp op( serializer );
 		mFrameData.serialize( op );
 	}
 
@@ -66,9 +66,8 @@ namespace Bubble
 	void CServerFrameGenerator::recvClientData( unsigned pID , DataSteamBuffer& buffer )
 	{
 		BuFrameData data;
-		auto dataStream = MakeBufferDataSteam(buffer);
-		DataSerializer serializer(dataStream);
-		DataSerializer::ReadOp op( serializer );
+		auto serializer = MakeBufferSerializer(buffer);
+		IStreamSerializer::ReadOp op( serializer );
 		data.serialize( op );
 
 		unsigned dataPos = mPortDataMap[ data.port ];

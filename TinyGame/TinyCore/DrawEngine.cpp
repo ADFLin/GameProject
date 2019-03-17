@@ -83,10 +83,10 @@ DrawEngine::~DrawEngine()
 
 }
 
-void DrawEngine::initialize(IGameWindowSupporter& supporter)
+void DrawEngine::initialize(IGameWindowProvider& provider)
 {
-	mWindowSupporter = &supporter;
-	mGameWindow = &supporter.getGameWindow();
+	mWindowProvider = &provider;
+	mGameWindow = &provider.getMainWindow();
 	mBufferDC.initialize(mGameWindow->getHDC() , mGameWindow->getHWnd() );
 	mPlatformGraphics.reset ( new Graphics2D( mBufferDC.getDC() ) );
 	RenderUtility::Initialize();
@@ -126,7 +126,10 @@ bool DrawEngine::initializeRHI(RHITargetName targetName, int numSamples)
 
 	if( bHasUseRHI )
 	{
-		mGameWindow = &mWindowSupporter->reconstructGameWindow();
+		if( !mWindowProvider->reconstructWindow(*mGameWindow) )
+		{
+			return false;
+		}
 	}
 
 	setupBuffer(getScreenWidth(), getScreenHeight());

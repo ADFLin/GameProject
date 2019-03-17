@@ -51,7 +51,7 @@ public:
 	bool onChar( unsigned code ){ return true; }
 	bool onActivate( bool beA ){ return true; }
 	void onPaint( HDC hDC ){}
-	void onDestroy(){ ::PostQuitMessage(0); }
+	bool onDestroy( HWND hWnd ){}
 	bool onIMEChar(){ return true;}
 	bool onPaste(){ return true; }
 
@@ -96,7 +96,10 @@ private:
 
 	bool _procDestroyMsg( HWND hWnd ,UINT msg , WPARAM , LPARAM , LRESULT& result )
 	{
-		 _this()->onDestroy();
+		if( _this()->onDestroy(hWnd) )
+		{
+			::PostQuitMessage(0);
+		}
 		return true;
 	}
 

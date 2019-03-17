@@ -104,7 +104,7 @@ class TinyGameApp : public GameLoopT< TinyGameApp , WindowsPlatform >
 				  , public TaskListener
 				  , public IGUIDelegate
 				  , public IGameNetInterface
-	              , public IGameWindowSupporter
+	              , public IGameWindowProvider
 {
 public:
 
@@ -124,10 +124,10 @@ public:
 	virtual void dispatchWidgetEvent(int event, int id, GWidget* ui) override;
 
 	//IGameWindowSupporter
-	virtual GameWindow& getGameWindow() override;
-	virtual GameWindow& reconstructGameWindow() override;
-
-	bool createWindowInternal(int width , int height);
+	virtual GameWindow& getMainWindow() override;
+	virtual bool  reconstructWindow(GameWindow& window) override;
+	virtual GameWindow* createWindow(Vec2i const& pos, Vec2i const& size, char const* title) override;
+	bool createWindowInternal(GameWindow& window, int width , int height, TCHAR const* title);
 
 protected:
 	//StageManager
@@ -159,7 +159,7 @@ public:
 	bool  onChar( unsigned code );
 	bool  onActivate( bool beA );
 	void  onPaint( HDC hDC );
-	void  onDestroy();
+	bool  onDestroy( HWND hWnd );
 
 	// TaskHandler
 	void  onTaskMessage( TaskBase* task , TaskMsg const& msg );

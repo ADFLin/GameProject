@@ -51,7 +51,7 @@ namespace Mario
 
 		void drawTriangle(Graphics2D& g, Vector2 const& p1, Vector2 const& p2, Vector2 const& p3)
 		{
-			int frameHeight = ::Global::GetDrawEngine()->getScreenHeight();
+			int frameHeight = ::Global::GetDrawEngine().getScreenHeight();
 
 			Vec2i v[3] = { p1 , p2 , p3 };
 			v[0].y = frameHeight - v[0].y;
@@ -62,7 +62,7 @@ namespace Mario
 
 		void drawRect(Graphics2D& g, Vector2 const& pos, Vector2 const& size)
 		{
-			int frameHeight = ::Global::GetDrawEngine()->getScreenHeight();
+			int frameHeight = ::Global::GetDrawEngine().getScreenHeight();
 			Vector2 rPos;
 			rPos.x = pos.x;
 			rPos.y = frameHeight - pos.y - size.y;

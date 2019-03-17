@@ -1,8 +1,8 @@
 #ifndef DataStreamBuffer_h__
 #define DataStreamBuffer_h__
 
-#include "StreamBuffer.h"
-#include "DataStream.h"
+#include "Serialize/StreamBuffer.h"
+#include "Serialize/DataStream.h"
 
 #include "CppVersion.h"
 
@@ -51,32 +51,5 @@ private:
 };
 
 
-template < class BufferType >
-class TBufferDataStream : public DataStream
-{
-public:
-	TBufferDataStream(BufferType& buffer)
-		:mBuffer(buffer)
-	{
-	}
-
-	virtual void read(void* ptr, size_t num) override
-	{
-		mBuffer.take(ptr, num);
-	}
-
-	virtual void write(void const* ptr, size_t num) override
-	{
-		mBuffer.fill(ptr, num);
-	}
-private:
-	BufferType& mBuffer;
-};
-
-template< class BufferType >
-auto MakeBufferDataSteam(BufferType& buffer)
-{
-	return TBufferDataStream< BufferType >(buffer);
-}
 
 #endif // DataStreamBuffer_h__

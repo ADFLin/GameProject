@@ -8,6 +8,7 @@
 
 #include <string>
 #include <cassert>
+#include <stdarg.h>
 
 typedef char TChar;
 

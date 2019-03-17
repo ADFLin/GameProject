@@ -221,7 +221,7 @@ bool Replay::load( char const* path )
 void Replay::recordFrame( long frame , IFrameActionTemplate* temp )
 {
 	size_t oldPos = mData.size();
-	temp->translateData( DataSerializer( *this ) );
+	temp->translateData( *this );
 	if ( oldPos != mData.size() )
 	{
 		FrameNode node;
@@ -363,7 +363,7 @@ bool ReplayInput::scanInput( bool beUpdateFrame )
 	mTemplate->prevCheckAction();
 	if ( mReplay.advanceFrame( mGameFrame ) )
 	{
-		mTemplate->restoreData( DataSerializer( mReplay ) );
+		mTemplate->restoreData( mReplay );
 	}
 
 	return true;

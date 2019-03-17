@@ -130,7 +130,7 @@ public:
 
 		//RenderUtility::setBrush(g, EColor::eWhite);
 		//RenderUtility::setPen(g, EColor::eWhite);
-		//g.drawRect(Vec2i(0, 0), ::Global::getDrawEngine()->getScreenSize());
+		//g.drawRect(Vec2i(0, 0), ::Global::GetDrawEngine().getScreenSize());
 
 		int const CellSize = 50;
 		int const TotalSize = CellSize * SudokuSolver::NumberNum;

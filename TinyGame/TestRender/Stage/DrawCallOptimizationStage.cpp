@@ -577,7 +577,7 @@ namespace Render
 			if( !BaseClass::onInit() )
 				return false;
 
-			if( !Global::GetDrawEngine()->startOpenGL() )
+			if( !Global::GetDrawEngine().startOpenGL() )
 				return false;
 
 			wglSwapIntervalEXT(0);
@@ -648,7 +648,7 @@ namespace Render
 			});
 #endif
 
-			Vec2i screenSize = ::Global::GetDrawEngine()->getScreenSize();
+			Vec2i screenSize = ::Global::GetDrawEngine().getScreenSize();
 			mViewFrustum.mNear = 0.01;
 			mViewFrustum.mFar = 800.0;
 			mViewFrustum.mAspect = float(screenSize.x) / screenSize.y;
@@ -685,7 +685,7 @@ namespace Render
 		{
 			{
 				GPU_PROFILE("Frame");
-				GameWindow& window = Global::GetDrawEngine()->getWindow();
+				GameWindow& window = Global::GetDrawEngine().getWindow();
 
 				mView.gameTime = 0;
 				mView.realTime = 0;

@@ -202,7 +202,7 @@ namespace RenderD3D11
 			if( !BaseClass::onInit() )
 				return false;
 
-			if ( !::Global::GetDrawEngine()->initializeRHI(RHITargetName::D3D11 , 1 ) )
+			if ( !::Global::GetDrawEngine().initializeRHI(RHITargetName::D3D11 , 1 ) )
 			{
 				LogWarning( 0 , "Can't Initialize RHI System! ");
 				return false;
@@ -210,8 +210,8 @@ namespace RenderD3D11
 
 			mRHISystem = static_cast<D3D11System*>(gRHISystem);
 
-			GameWindow& window = ::Global::GetDrawEngine()->getWindow();
-			::Global::GetDrawEngine()->bUsePlatformBuffer = true;
+			GameWindow& window = ::Global::GetDrawEngine().getWindow();
+			::Global::GetDrawEngine().bUsePlatformBuffer = true;
 			if( !mRHISystem->createFrameSwapChain(window.getHWnd(), window.getWidth(), window.getHeight(), true, mSwapChain) )
 			{
 				return false;
@@ -346,7 +346,7 @@ namespace RenderD3D11
 			Graphics2D& g = Global::GetGraphics2D();
 			TComPtr< ID3D11DeviceContext >& context = mRHISystem->mDeviceContext;
 			TComPtr< ID3D11Device >& device = mRHISystem->mDevice;
-			GameWindow& window = ::Global::GetDrawEngine()->getWindow();
+			GameWindow& window = ::Global::GetDrawEngine().getWindow();
 
 			context->ClearRenderTargetView(renderTargetView ,Vector4(0.2, 0.2, 0.2,1));
 			context->OMSetRenderTargets(1, &renderTargetView, NULL);
@@ -403,7 +403,7 @@ namespace RenderD3D11
 			
 			context->Flush();
 
-			if( !::Global::GetDrawEngine()->bUsePlatformBuffer )
+			if( !::Global::GetDrawEngine().bUsePlatformBuffer )
 			{
 				mSwapChain.ptr->Present(1, 0);
 			}
@@ -414,8 +414,8 @@ namespace RenderD3D11
 				HDC hDC;
 				VERIFY_D3D11RESULT( surface->GetDC(FALSE, &hDC) , );
 
-				int w = ::Global::GetDrawEngine()->getScreenWidth();
-				int h = ::Global::GetDrawEngine()->getScreenHeight();
+				int w = ::Global::GetDrawEngine().getScreenWidth();
+				int h = ::Global::GetDrawEngine().getScreenHeight();
 				::BitBlt(g.getRenderDC(), 0, 0, w, h, hDC, 0, 0, SRCCOPY);
 				VERIFY_D3D11RESULT( surface->ReleaseDC(NULL) , );
 			}

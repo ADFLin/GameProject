@@ -23,14 +23,14 @@ public:
 	{
 		if( !BaseClass::onInit() )
 			return false;
-		if (!::Global::GetDrawEngine()->startOpenGL(true) )
+		if (!::Global::GetDrawEngine().startOpenGL(true) )
 			return false;
 
 		Render::InitGlobalRHIResource();
 		Render::ShaderManager::Get().setBaseDir("QuadAssault/shader/");
 		::Global::GUI().cleanupWidget();
 
-		Vec2i screenSize = ::Global::GetDrawEngine()->getScreenSize();
+		Vec2i screenSize = ::Global::GetDrawEngine().getScreenSize();
 		mGame = new Game();
 		if( !mGame->init("config.txt" , screenSize , false ) )
 			return false;

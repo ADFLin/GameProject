@@ -188,7 +188,6 @@
     <None Include="out\Shader\Game\CurveMesh.sgc" />
     <None Include="out\Shader\Game\MeshNormalVisualize.sgc" />
     <None Include="TinyCore\ColorName.h" />
-    <ClInclude Include="TinyCore\DataStream.h" />
     <ClInclude Include="TinyCore\DataSteamBuffer.h" />
     <ClInclude Include="TinyCore\DataTransfer.h" />
     <ClInclude Include="TinyCore\DataTransferImpl.h" />
@@ -225,7 +224,6 @@
     <ClCompile Include="GameMenuStage.cpp" />
     <ClCompile Include="SuperFractial\SelectRectBase.cpp" />
     <ClCompile Include="TinyCore\DataSteamBuffer.cpp" />
-    <ClCompile Include="TinyCore\DataStream.cpp" />
     <ClCompile Include="TinyCore\DataTransferImpl.cpp" />
     <ClCompile Include="TinyCore\GameModule.cpp" />
     <ClCompile Include="TinyCore\GameStage.cpp" />

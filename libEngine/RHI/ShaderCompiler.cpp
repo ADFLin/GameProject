@@ -16,6 +16,36 @@
 namespace Render
 {
 
+	class ShaderCache : public IAssetViewer
+	{
+	public:
+		ShaderCache()
+		{
+
+			
+
+
+		}
+
+		static bool IsSupport()
+		{
+			int numFormat = 0;
+			glGetIntegerv(GL_NUM_PROGRAM_BINARY_FORMATS, &numFormat);
+			return numFormat != 0;
+		}
+
+		static void EnumFormat()
+		{
+			int numFormat = 0;
+			glGetIntegerv(GL_NUM_PROGRAM_BINARY_FORMATS, &numFormat);
+			if ( numFormat )
+			{
+				std::vector< GLenum > formats( numFormat );
+				glGetIntegerv(GL_PROGRAM_BINARY_FORMATS, (GLint*)formats.data());
+			}
+		}
+	};
+
 	char const* ShaderPosfixNames[] =
 	{
 		"VS" SHADER_FILE_SUBNAME ,
@@ -46,6 +76,7 @@ namespace Render
 
 	GlobalShaderProgram* ShaderManager::getGlobalShader(GlobalShaderProgramClass& shaderClass, bool bForceLoad)
 	{
+
 		GlobalShaderProgram* result = mGlobalShaderMap[&shaderClass];
 		if( result == nullptr && bForceLoad )
 		{
@@ -498,6 +529,15 @@ namespace Render
 			}
 			compileInfo.shaders.push_back({ entry.type , path.c_str() , std::move(headCode) });
 		}
+	}
+
+	ShaderCache* ShaderManager::getCache()
+	{
+		if( mShaderCache == nullptr )
+		{
+			mShaderCache = new ShaderCache;
+		}
+		return mShaderCache;
 	}
 
 	bool ShaderCompiler::compileCode(Shader::Type type, RHIShader& shader, char const* path, char const* def)

@@ -106,7 +106,7 @@ namespace Cube
 			mScene->render( mCamera );
 
 
-			GameWindow& window = Global::GetDrawEngine()->getWindow();
+			GameWindow& window = Global::GetDrawEngine().getWindow();
 		}
 
 

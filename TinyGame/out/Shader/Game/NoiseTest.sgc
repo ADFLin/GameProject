@@ -4,6 +4,8 @@
 
 uniform float Time;
 uniform sampler2D RandTexture;
+uniform sampler2D NoiseTexture;
+uniform sampler3D VolumeTexture;
 
 #ifndef USE_RAND_TEXTURE
 #define USE_RAND_TEXTURE 1
@@ -129,6 +131,45 @@ void MainPS()
 	
 
 	//OutColor = float4(1, v, v, 1);
+}
+
+float FBMTest(float2 uv , int octaves)
+{
+	float result = 0;
+	float amp = 1.0;
+	float total = 0;
+
+	float2 shift = float2(FBMFactor.x);
+	// Rotate to reduce axial bias
+
+	float c, s;
+	sincos(FBMFactor.z, s, c);
+	float2x2 rot = FBMFactor.y * float2x2(c, s,
+										  -s,c);
+
+	for( int i = 0; i < octaves; ++i )
+	{
+		result += amp *  texture2D(NoiseTexture, uv).x;
+		uv = rot * uv * 2.0 + shift;
+		//uv *= 2;
+		total += amp;
+		amp *= 0.5;
+	}
+	return result / total;
+}
+
+void TestPS()
+{
+
+	float noise = texture2D(NoiseTexture, vsOutput.UVs).x;
+	OutColor = float4(noise.xxx, 1);
+
+
+	OutColor = float4(FBMTest(vsOutput.UVs, 3).xxx, 1);
+	float v = texture3D(VolumeTexture, float3(vsOutput.UVs,0.5)).x;
+	OutColor = float4(v.xxx, 1);
+	//OutColor = float4(1,1,0, 1);
+
 }
 
 #endif

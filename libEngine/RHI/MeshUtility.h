@@ -7,6 +7,7 @@
 #include <string>
 
 class QueueThreadPool;
+class IStreamSerializer;
 
 namespace Render
 {
@@ -72,6 +73,12 @@ namespace Render
 		Tessellation,
 	};
 
+	struct MeshSection
+	{
+		int start;
+		int num;
+	};
+
 	class Mesh
 	{
 	public:
@@ -131,21 +138,18 @@ namespace Render
 		bool generateTessellationAdjacency();
 		bool generateAdjacencyInternal(EAdjacencyType type, RHIIndexBufferRef& outIndexBuffer);
 
+		bool save(IStreamSerializer& serializer);
+		bool load(IStreamSerializer& serializer);
 		PrimitiveType       mType;
 		InputLayoutDesc     mInputLayoutDesc;
 		RHIInputLayoutRef   mInputLayout;
 		RHIVertexBufferRef  mVertexBuffer;
 		RHIIndexBufferRef   mIndexBuffer;
-		RHIIndexBufferRef   mVertexAdIndexBuffer;
+		RHIIndexBufferRef   mVertexAdjIndexBuffer;
 		RHIIndexBufferRef   mTessAdjIndexBuffer;
 		uint32              mVAO;
 
-		struct Section
-		{
-			int start;
-			int num;
-		};
-		std::vector< Section > mSections;
+		std::vector< MeshSection > mSections;
 	};
 
 	class MeshBuild

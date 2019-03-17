@@ -1169,9 +1169,9 @@ namespace RenderVulkan
 				return false;
 			::Global::GUI().cleanupWidget();
 
-			::Global::GetDrawEngine()->bUsePlatformBuffer = false;
+			::Global::GetDrawEngine().bUsePlatformBuffer = false;
 
-			VERIFY_RETURN_FALSE( initializeSystem( ::Global::GetDrawEngine()->getWindow().getHWnd() ) );
+			VERIFY_RETURN_FALSE( initializeSystem( ::Global::GetDrawEngine().getWindow().getHWnd() ) );
 			VERIFY_RETURN_FALSE( createWindowSwapchain() );
 			VERIFY_RETURN_FALSE( createSimplePipepline() );
 			VERIFY_RETURN_FALSE( createSwapchainFrameBuffers() );

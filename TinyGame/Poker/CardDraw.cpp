@@ -183,7 +183,7 @@ namespace Poker {
 		switch( type )
 		{
 		case eWin7:		
-			return new Win7CardShow( Global::GetDrawEngine()->getWindow().getHDC() );
+			return new Win7CardShow( Global::GetDrawEngine().getWindow().getHDC() );
 		case eWinXP:
 			if ( CardLib::isInitilized() )
 				return new CCardDraw;

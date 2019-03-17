@@ -3,6 +3,7 @@
 
 #include "MetaBase.h"
 #include "CompilerConfig.h"
+#include "DataStream.h"
 
 #include <exception>
 #include <memory>
@@ -342,6 +343,34 @@ protected:
 
 };
 
+template < class BufferType >
+class TBufferSerializer : public IStreamSerializer
+{
+public:
+	TBufferSerializer(BufferType& buffer)
+		:mBuffer(buffer)
+	{
+	}
 
+	virtual void read(void* ptr, size_t num) override
+	{
+		mBuffer.take(ptr, num);
+	}
+
+	virtual void write(void const* ptr, size_t num) override
+	{
+		mBuffer.fill(ptr, num);
+	}
+	using IStreamSerializer::read;
+	using IStreamSerializer::write;
+private:
+	BufferType& mBuffer;
+};
+
+template< class BufferType >
+auto MakeBufferSerializer(BufferType& buffer)
+{
+	return TBufferSerializer< BufferType >(buffer);
+}
 
 #endif // StreamBuffer_h__

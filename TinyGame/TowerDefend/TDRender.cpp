@@ -29,8 +29,8 @@ namespace TowerDefend
 
 	void Renderer::drawGrid()
 	{
-		DrawEngine* de = Global::GetDrawEngine();
-		Vec2i nSize = de->getScreenSize() / gMapCellLength;
+		DrawEngine& de = Global::GetDrawEngine();
+		Vec2i nSize = de.getScreenSize() / gMapCellLength;
 
 		Graphics2D& g = getGraphics();
 
@@ -44,12 +44,12 @@ namespace TowerDefend
 		for( int n = 0 ; n <= nSize.x ; ++n )
 		{
 			int x = int ( n * gMapCellLength );
-			g.drawLine( offset + Vec2i( x , 0  ) ,  offset + Vec2i( x , de->getScreenHeight() ) );
+			g.drawLine( offset + Vec2i( x , 0  ) ,  offset + Vec2i( x , de.getScreenHeight() ) );
 		}
 		for( int n = 0 ; n <= nSize.x ; ++n )
 		{
 			int y = int ( n * gMapCellLength );
-			g.drawLine( offset + Vec2i( 0 , y  ) ,  offset + Vec2i( de->getScreenWidth() , y ) );
+			g.drawLine( offset + Vec2i( 0 , y  ) ,  offset + Vec2i( de.getScreenWidth() , y ) );
 		}
 	}
 
@@ -150,7 +150,7 @@ namespace TowerDefend
 
 
 		int offset = 15;
-		int px = ::Global::GetDrawEngine()->getScreenWidth() - 200;
+		int px = ::Global::GetDrawEngine().getScreenWidth() - 200;
 		int py = 5 - offset;
 		FixString< 256 > str;
 		str.format( "Gold = %4d  Wood = %4d" , mPlayerInfo.gold , mPlayerInfo.wood );

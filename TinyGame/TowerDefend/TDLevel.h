@@ -184,8 +184,8 @@ namespace TowerDefend
 			getEntityMgr().listenEvent( EntityEventFun( this , &Level::onPlayerEvent ) , filter );
 
 
-			DrawEngine* de = ::Global::GetDrawEngine();
-			getCtrlViewport().setScreenRange( de->getScreenSize() );
+			DrawEngine& de = ::Global::GetDrawEngine();
+			getCtrlViewport().setScreenRange( de.getScreenSize() );
 
 			testPos.setValue( 100 , 100 );
 

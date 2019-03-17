@@ -1,7 +1,7 @@
 #ifndef SocketBuffer_h__
 #define SocketBuffer_h__
 
-#include "StreamBuffer.h"
+#include "Serialize/StreamBuffer.h"
 
 #include <cassert>
 #include <memory>

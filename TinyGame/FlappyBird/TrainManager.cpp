@@ -1,6 +1,6 @@
 #include "TrainManager.h"
 
-#include "DataStream.h"
+#include "Serialize/FileStream.h"
 #include "SystemPlatform.h"
 
 #include <algorithm>
@@ -289,7 +289,7 @@ namespace FlappyBird
 		}
 	}
 
-	void TrainData::inputData(DataSerializer::ReadOp& op)
+	void TrainData::inputData(IStreamSerializer::ReadOp& op)
 	{
 		int numAgentData;
 		op & numAgentData;
@@ -317,7 +317,7 @@ namespace FlappyBird
 		}
 	}
 
-	void TrainData::outputData(DataSerializer::WriteOp& op)
+	void TrainData::outputData(IStreamSerializer::WriteOp& op)
 	{
 		int numAgentData = mAgents.size();
 		op & numAgentData;
@@ -470,14 +470,13 @@ namespace FlappyBird
 
 	bool TrainManager::loadData(char const* path, TrainData& data)
 	{
-		InputFileStream fs;
-		if( !fs.open(path) )
+		InputFileSerializer serializer;
+		if( !serializer.open(path) )
 		{
 			return false;
 		}
 
-		DataSerializer serializer(fs);
-		DataSerializer::ReadOp op(serializer);
+		InputFileSerializer::ReadOp op(serializer);
 
 		{
 			Mutex::Locker locker(mPoolMutex);
@@ -507,14 +506,12 @@ namespace FlappyBird
 
 	bool TrainManager::saveData(char const* path, TrainData& data )
 	{
-		OutputFileStream fs;
-		if( !fs.open(path) )
+		OutputFileSerializer serializer;
+		if( !serializer.open(path) )
 		{
 			return false;
 		}
-
-		DataSerializer serializer(fs);
-		DataSerializer::WriteOp op(serializer);
+		InputFileSerializer::WriteOp op(serializer);
 
 		{
 			Mutex::Locker locker(mPoolMutex);

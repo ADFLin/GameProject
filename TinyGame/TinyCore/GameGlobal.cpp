@@ -9,13 +9,17 @@
 #include "UserProfile.h"
 #include "Asset.h"
 
+#include "DataCacheInterface.h"
 #include "PlatformThread.h"
 
 #include <cstdlib>
 
+
 TINY_API IGameNetInterface* gGameNetInterfaceImpl = nullptr;
 TINY_API IDebugInterface* gDebugInterfaceImpl = nullptr;
 TINY_API uint32 gGameThreadId = 0;
+
+DataCacheInterface* gGameDataCache = nullptr;
 
 bool IsInGameThead()
 {
@@ -32,6 +36,18 @@ uint64 generateRandSeed()
 static int g_RandCount = 0;
 using Random::Well512;
 static Well512 gWellRng;
+
+void Global::Initialize()
+{
+	gGameThreadId = PlatformThread::GetCurrentThreadId();
+	gGameDataCache = DataCacheInterface::Create("DataCache");
+}
+
+void Global::Finalize()
+{
+	gGameDataCache->release();
+	gGameDataCache = nullptr;
+}
 
 int Global::RandomNet()
 {
@@ -74,15 +90,25 @@ PropertyKey& Global::GameConfig()
 	return settingKey;
 }
 
-DrawEngine* Global::GetDrawEngine()
+DrawEngine& Global::GetDrawEngine()
 {
 	static DrawEngine drawEngine;
-	return &drawEngine;
+	return drawEngine;
 }
 
 Graphics2D& Global::GetGraphics2D()
 {
-	return GetDrawEngine()->getScreenGraphics();
+	return GetDrawEngine().getPlatformGraphics();
+}
+
+GLGraphics2D& Global::GetRHIGraphics2D()
+{
+	return GetDrawEngine().getRHIGraphics();
+}
+
+IGraphics2D& Global::GetIGraphics2D()
+{
+	return GetDrawEngine().getIGraphics();
 }
 
 GameModuleManager& Global::GameManager()
@@ -120,19 +146,14 @@ GUISystem& Global::GUI()
 	return system;
 }
 
-GLGraphics2D& Global::GetRHIGraphics2D()
-{
-	return GetDrawEngine()->getGLGraphics();
-}
-
-IGraphics2D& Global::GetIGraphics2D()
-{
-	return GetDrawEngine()->getIGraphics();
-}
-
 UserProfile& Global::GetUserProfile()
 {
 	static UserProfile profile;
 	return profile;
+}
+
+DataCacheInterface& Global::DataCache()
+{
+	return *gGameDataCache;
 }
 

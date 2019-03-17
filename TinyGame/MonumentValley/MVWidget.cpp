@@ -24,7 +24,7 @@ namespace MV
 
 		Vec2i wPos = getWorldPos();
 		Vec2i size = getSize();
-		Vec2i screenSize = ::Global::GetDrawEngine()->getScreenSize();
+		Vec2i screenSize = ::Global::GetDrawEngine().getScreenSize();
 		glPushAttrib( GL_VIEWPORT_BIT );
 
 		glEnable( GL_DEPTH_TEST );

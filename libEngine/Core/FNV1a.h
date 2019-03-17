@@ -4,6 +4,12 @@
 
 #include "Core/IntegerType.h"
 
+struct Uint128
+{
+	uint64 low;
+	uint64 high;
+};
+
 class FNV1a
 {
 public:
@@ -13,15 +19,22 @@ public:
 	template<>
 	struct Table< uint32 >
 	{
-		static uint32 const Prime = 16777619u;
-		static uint32 const OffsetBias = 0x811c9dc5u;
+		static uint32 constexpr Prime = 16777619u;
+		static uint32 constexpr OffsetBias = 0x811c9dc5u;
 	};
 
 	template<>
 	struct Table< uint64 >
 	{
-		static uint64 const Prime = 1099511628211LLU;
-		static uint64 const OffsetBias = 0xcbf29ce484222325LLU;
+		static uint64 constexpr Prime = 1099511628211LLU;
+		static uint64 constexpr OffsetBias = 0xcbf29ce484222325LLU;
+	};
+
+	template<>
+	struct Table< Uint128 >
+	{
+		static Uint128 constexpr Prime = { 0x000000000000013bLLU , 0x0000000001000000LLU };
+		static Uint128 constexpr OffsetBias = { 0x62B821756295C58DLLU , 0x6C62272E07BB0142LLU  };
 	};
 
 	template< class T >

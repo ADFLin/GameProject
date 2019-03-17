@@ -237,6 +237,7 @@
     <ClCompile Include="CPreprocessor.cpp" />
     <ClCompile Include="CRSpline.cpp" />
     <ClCompile Include="CString.cpp" />
+    <ClCompile Include="DataCacheInterface.cpp" />
     <ClCompile Include="DataStructure\ClassTree.cpp" />
     <ClCompile Include="FlowSystem.cpp" />
     <ClCompile Include="GameFramework\EntityManager.cpp" />
@@ -288,6 +289,8 @@
     <ClCompile Include="RHI\ShaderCore.cpp" />
     <ClCompile Include="RHI\TextureAtlas.cpp" />
     <ClCompile Include="RHI\VertexFactory.cpp" />
+    <ClCompile Include="Serialize\DataStream.cpp" />
+    <ClCompile Include="Serialize\FileStream.cpp" />
     <ClCompile Include="SocketBuffer.cpp" />
     <ClCompile Include="StringParse.cpp" />
     <ClCompile Include="SystemPlatform.cpp" />
@@ -342,6 +345,7 @@
     <ClInclude Include="Bitset.h" />
     <ClInclude Include="BitUtility.h" />
     <ClInclude Include="CacheAllocator.h" />
+    <ClInclude Include="DataCacheInterface.h" />
     <ClInclude Include="DataStructure\Array.h" />
     <ClInclude Include="DataStructure\AVLTree.h" />
     <ClInclude Include="DataStructure\ClassTree.h" />
@@ -455,6 +459,10 @@
     <ClInclude Include="RHI\ShaderCore.h" />
     <ClInclude Include="RHI\TextureAtlas.h" />
     <ClInclude Include="RHI\VertexFactory.h" />
+    <ClInclude Include="Serialize\DataBitSerialize.h" />
+    <ClInclude Include="Serialize\DataStream.h" />
+    <ClInclude Include="Serialize\FileStream.h" />
+    <ClInclude Include="Serialize\StreamBuffer.h" />
     <ClInclude Include="Singleton.h" />
     <ClInclude Include="SocketBuffer.h" />
     <ClInclude Include="SortFunction.h" />

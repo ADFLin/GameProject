@@ -21,18 +21,18 @@ public:
 
 	virtual void  debugMessage(long frame){}
 
-	void translateData( DataSerializer& serializer )
+	void translateData(IStreamSerializer& serializer )
 	{
 		outputData( serializer );
 	}
-	void restoreData( DataSerializer& serializer )
+	void restoreData(IStreamSerializer& serializer )
 	{
 		inputData( serializer );
 	}
 protected:
 	//IDataStreamPort
-	virtual void  inputData( DataSerializer& serializer ) = 0;
-	virtual void  outputData( DataSerializer& serializer ) = 0;
+	virtual void  inputData(IStreamSerializer& serializer ) = 0;
+	virtual void  outputData(IStreamSerializer& serializer ) = 0;
 };
 
 
@@ -42,14 +42,14 @@ class FrameActionHelper : public IFrameActionTemplate
 	T* _this(){ return static_cast<T*>( this ); }
 protected:
 	//IDataStreamPort
-	void  inputData( DataSerializer& serializer )
+	void  inputData(IStreamSerializer& serializer )
 	{
-		DataSerializer::ReadOp op( serializer );
+		IStreamSerializer::ReadOp op( serializer );
 		_this()->serialize( op );
 	}
-	void  outputData( DataSerializer& serializer )
+	void  outputData(IStreamSerializer& serializer )
 	{
-		DataSerializer::WriteOp op( serializer );
+		IStreamSerializer::WriteOp op( serializer );
 		_this()->serialize( op );
 	}
 	template< class OP >
@@ -66,7 +66,7 @@ public:
 	virtual void  onFireAction( ActionParam& param ) = 0;
 	virtual void  onScanActionEnd(){}
 
-	virtual void  generate( DataSerializer & serializer ) = 0;
+	virtual void  generate(IStreamSerializer & serializer ) = 0;
 
 	//for server
 	virtual bool  prevProcCommand() override { return true; }
@@ -77,7 +77,7 @@ public:
 #define DEF_SERVER_FRAME_GENERATOR_FUN( ACTION_TEMP )\
 	bool  prevProcCommand(){  ACTION_TEMP::prevListenAction();  return true; }\
 	void  onFireAction( ActionParam& param ){  ACTION_TEMP::listenAction( param );  }\
-	void  generate( DataSerializer& serializer ){  ACTION_TEMP::translateData( serializer );  }\
+	void  generate( IStreamSerializer& serializer ){  ACTION_TEMP::translateData( serializer );  }\
 	void  firePortAction( ActionTrigger& trigger ){ assert(  0 && "No Need Call This Fun!");  }
 
 template< class FrameActionTemplate >
@@ -220,8 +220,7 @@ public:
 
 	void recvClientData( unsigned pID , DataSteamBuffer& buffer )
 	{
-		auto dataStream = MakeBufferDataSteam(buffer);
-		DataSerializer serializer(dataStream);
+		auto serializer = MakeBufferSerializer(buffer);
 		KeyFrameData fd;
 		serializer.read( fd );
 
@@ -252,7 +251,7 @@ public:
 		assert( mFrameData.port == param.port );
 		mFrameData.keyActBit |= BIT( param.act );
 	}
-	void generate( DataSerializer& serializer )
+	void generate(IStreamSerializer& serializer )
 	{
 		if ( mFrameData.port == ERROR_ACTION_PORT )
 			return;

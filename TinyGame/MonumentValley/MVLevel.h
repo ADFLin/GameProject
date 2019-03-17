@@ -21,8 +21,8 @@ namespace MV
 	public:
 		~Level();
 
-		void save(DataSerializer& sr);
-		void load(DataSerializer& sr);
+		void save(IStreamSerializer& sr);
+		void load(IStreamSerializer& sr);
 
 		void cleanup( bool beDestroy );
 

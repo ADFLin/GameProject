@@ -301,7 +301,7 @@ namespace Render
 		void setParam(char const* name, Vector4 const v[], int num) { setVector4(name, (float*)&v[0], num); }
 
 		template < class RHITextureType >
-		void setRWTexture(char const* name, RHITextureType& tex, EAccessOperator op = AO_READ_AND_WRITE, int idx = -1)
+		void setRWTexture(char const* name, RHITextureType const& tex, EAccessOperator op = AO_READ_AND_WRITE, int idx = -1)
 		{
 			int loc = getParamLoc(name);
 			if( loc == -1 )
@@ -310,7 +310,7 @@ namespace Render
 		}
 		
 		template < class RHITextureType >
-		void setTexture(char const* name, RHITextureType& tex, RHISamplerState& sampler, int idx = -1)
+		void setTexture(char const* name, RHITextureType const& tex, RHISamplerState const& sampler, int idx = -1)
 		{
 			int loc = getParamLoc(name);
 			if( loc == -1 )
@@ -319,7 +319,7 @@ namespace Render
 		}
 
 		template < class RHITextureType >
-		void setTexture(char const* name, RHITextureType& tex, int idx = -1)
+		void setTexture(char const* name, RHITextureType const& tex, int idx = -1)
 		{
 			int loc = getParamLoc(name);
 			if( loc == -1 )
@@ -355,19 +355,19 @@ namespace Render
 		void setParam(ShaderParameter const& param, Vector4 const v[], int num) { CHECK_PARAMETER(param, setVector4(param.mLoc, (float*)&v[0], num)); }
 
 		template < class RHITextureType >
-		void setRWTexture(ShaderParameter const& param, RHITextureType& tex, EAccessOperator op = AO_READ_AND_WRITE, int idx = -1)
+		void setRWTexture(ShaderParameter const& param, RHITextureType const& tex, EAccessOperator op = AO_READ_AND_WRITE, int idx = -1)
 		{
 			CHECK_PARAMETER(param, setRWTextureInternal(param.mLoc, tex.getFormat(), OpenGLCast::GetHandle(tex), op, idx));
 		}
 
 		template < class RHITextureType >
-		void setTexture(ShaderParameter const& param, RHITextureType& tex, int idx = -1)
+		void setTexture(ShaderParameter const& param, RHITextureType const& tex, int idx = -1)
 		{
 			CHECK_PARAMETER(param, setTextureInternal(param.mLoc, OpenGLTextureTraits< RHITextureType >::EnumValue, OpenGLCast::GetHandle(tex), idx));
 		}
 
 		template < class RHITextureType >
-		void setTexture(ShaderParameter const& param, RHITextureType& tex, RHISamplerState& sampler, int idx = -1)
+		void setTexture(ShaderParameter const& param, RHITextureType const& tex, RHISamplerState& sampler, int idx = -1)
 		{
 			CHECK_PARAMETER(param, setTextureInternal(param.mLoc, OpenGLTextureTraits< RHITextureType >::EnumValue, OpenGLCast::GetHandle(tex), OpenGLCast::GetHandle(sampler), idx));
 		}
@@ -378,9 +378,7 @@ namespace Render
 		void setAtomicCounterBuffer(char const* name, RHIVertexBuffer& buffer);
 
 
-		
-
-
+	
 		class StructuredBlockInfo
 		{
 		public:

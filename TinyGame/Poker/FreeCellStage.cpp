@@ -115,7 +115,7 @@ namespace Poker
 
 		g.setBrush( Color3ub( 0 , 125 , 0 ) );
 		g.setPen( Color3ub( 0 , 125 , 0 ) );
-		g.drawRect( Vec2i(0,0) , Global::GetDrawEngine()->getScreenSize() );
+		g.drawRect( Vec2i(0,0) , Global::GetDrawEngine().getScreenSize() );
 
 		mNumAnim = 0;
 

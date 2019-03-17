@@ -123,12 +123,13 @@ enum class RHITargetName
 	Vulkan ,
 };
 
-class IGameWindowSupporter
+class IGameWindowProvider
 {
 public:
-	virtual ~IGameWindowSupporter(){}
-	virtual GameWindow& getGameWindow() = 0;
-	virtual GameWindow& reconstructGameWindow() = 0;
+	virtual ~IGameWindowProvider(){}
+	virtual GameWindow& getMainWindow() = 0;
+	virtual bool        reconstructWindow(GameWindow& window) = 0;
+	virtual GameWindow* createWindow(Vec2i const& pos, Vec2i const& size, char const* title) = 0;
 };
 
 class DrawEngine
@@ -137,7 +138,7 @@ public:
 	TINY_API DrawEngine();
 	TINY_API ~DrawEngine();
 
-	TINY_API void  initialize( IGameWindowSupporter& supporter );
+	TINY_API void  initialize( IGameWindowProvider& provider);
 	TINY_API void  release();
 	TINY_API void  changeScreenSize( int w , int h );
 	TINY_API void  update(long deltaTime);
@@ -145,8 +146,8 @@ public:
 	Vec2i         getScreenSize(){ return Vec2i( mBufferDC.getWidth() , mBufferDC.getHeight() ); }
 	int           getScreenWidth(){ return mBufferDC.getWidth(); }
 	int           getScreenHeight(){ return mBufferDC.getHeight(); }
-	Graphics2D&   getScreenGraphics(){ return *mPlatformGraphics; }
-	GLGraphics2D& getGLGraphics(){ return *mGLGraphics; }
+	Graphics2D&   getPlatformGraphics(){ return *mPlatformGraphics; }
+	GLGraphics2D& getRHIGraphics(){ return *mGLGraphics; }
 
 	TINY_API IGraphics2D&  getIGraphics();
 
@@ -177,7 +178,7 @@ private:
 	bool        bRHIShutdownDeferred;
 	bool        bHasUseRHI = false;
 	
-	IGameWindowSupporter* mWindowSupporter = nullptr;
+	IGameWindowProvider* mWindowProvider = nullptr;
 	GameWindow* mGameWindow;
 	BitmapDC    mBufferDC;
 	std::unique_ptr< Graphics2D > mPlatformGraphics;

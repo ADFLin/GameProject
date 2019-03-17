@@ -3,15 +3,6 @@
 
 #include "IntegerType.h"
 
-class DataSerializer
-{
-
-
-
-
-
-};
-
 class LevelFile
 {
 public:

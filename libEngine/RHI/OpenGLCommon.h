@@ -115,7 +115,7 @@ namespace Render
 	class TOpenGLResource : public RHIResourceType
 	{
 	public:
-		GLuint getHandle() { return mGLObject.mHandle; }
+		GLuint getHandle() const { return mGLObject.mHandle; }
 
 		virtual void incRef() { mGLObject.incRef();  }
 		virtual bool decRef() { return mGLObject.decRef();  }
@@ -629,6 +629,12 @@ namespace Render
 		static GLuint GetHandle(T& RHIObject)
 		{
 			return OpenGLCast::To(&RHIObject)->getHandle();
+		}
+
+		template < class T >
+		static GLuint GetHandle(T const& RHIObject)
+		{
+			return OpenGLCast::To(const_cast<T*>(&RHIObject))->getHandle();
 		}
 		template < class T >
 		static GLuint GetHandle(TRefCountPtr<T>& refPtr )

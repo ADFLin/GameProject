@@ -34,7 +34,7 @@ namespace CFly
 		NodeBase*     getParent() const { return mParent; }
 		int           getChildrenNum(){ return mChildren.size(); }
 		//ChildIterator getChildren(){ return ChildIterator( mChildren ); }
-		char const*   getName(){ return mName.toString(); }
+		char const*   getName(){ return mName.c_str(); }
 		bool          registerName( char const* name );
 
 		bool          checkFlag    ( unsigned flag ) const { return ( mFlag & BIT( flag ) ) != 0; }

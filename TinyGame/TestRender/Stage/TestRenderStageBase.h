@@ -10,11 +10,45 @@
 #include "Core/ScopeExit.h"
 #include "Math/PrimitiveTest.h"
 
+#include "DataCacheInterface.h"
+
 #define GPU_BUFFER_ALIGN alignas(16)
 
 namespace Render
 {
+	template< class Func, class ...Args >
+	bool BuildMesh(Mesh& mesh, char const* meshName, Func FuncMeshCreate, Args&& ...args)
+	{
+		DataCacheKey key;
+		key.typeName = "MESH";
+		key.version = "155CABB4-4F63-4B6C-9249-5BB7861F67E6";
+		key.keySuffix.addArgs(meshName, std::forward<Args>(args)...);
 
+		auto MeshLoad = [&mesh](IStreamSerializer& serializer) -> bool
+		{
+			return mesh.load(serializer);
+		};
+
+		auto MeshSave = [&mesh](IStreamSerializer& serializer) -> bool
+		{
+			return mesh.save(serializer);
+		};
+
+		if( !::Global::DataCache().loadDelegate(key, MeshLoad) )
+		{
+			if( !FuncMeshCreate(mesh, std::forward<Args>(args)...) )
+			{
+				return false;
+			}
+
+			if( !::Global::DataCache().saveDelegate(key, MeshSave) )
+			{
+
+			}
+		}
+
+		return true;
+	}
 
 	template< class T, class ResourceType >
 	class TStructuredBufferBase

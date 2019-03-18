@@ -3,6 +3,7 @@
 #define CPreprocessor_H_09DCE0C0_9F70_44E8_A8B4_1C2DF2BC8685
 
 #include "StringParse.h"
+#include "HashString.h"
 
 #include <vector>
 #include <set>
@@ -73,7 +74,7 @@ namespace CPP
 		}
 
 		std::vector< char > mBuffer;
-		std::string   mFileName;
+		HashString    mFilePath;
 		char const*   mCur;
 	};
 
@@ -143,6 +144,8 @@ namespace CPP
 		void setOutput( CodeOutput& output);
 		void addSreachDir(char const* dir);
 		void define(char const* name, int value){}
+
+		void getIncludeFiles(std::vector< HashString >& outFiles);
 
 		bool bSupportMarcoArg = false;
 		bool bCanRedefineMarco = false;
@@ -330,7 +333,7 @@ namespace CPP
 				return nullptr;
 			return &iter->second;
 		}
-		std::set< std::string >  mParamOnceSet;
+		std::set< HashString >  mParamOnceSet;
 
 		struct State
 		{
@@ -340,7 +343,7 @@ namespace CPP
 
 		std::vector< State >       mStateStack;
 		std::vector< std::string > mFileSreachDirs;
-		std::vector< CodeInput* >  mLoadedInput;
+		std::vector< CodeInput* >  mLoadedInputs;
 
 
 

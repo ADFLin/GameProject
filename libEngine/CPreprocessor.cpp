@@ -4,6 +4,7 @@
 #include "FileSystem.h"
 #include "Holder.h"
 
+
 #define SYNTAX_ERROR( MSG ) throw SyntaxError( MSG );
 #define FUNCTION_CHECK( fun ) fun
 
@@ -51,11 +52,11 @@ namespace CPP
 
 	Preprocessor::~Preprocessor()
 	{
-		for( auto input : mLoadedInput )
+		for( auto input : mLoadedInputs )
 		{
 			delete input;
 		}
-		mLoadedInput.clear();
+		mLoadedInputs.clear();
 	}
 
 	CPP::TokenInfo Preprocessor::nextToken(CodeInput& input)
@@ -104,18 +105,18 @@ namespace CPP
 
 		StringView path{ token.str.data() + 1 , token.str.size() - 2 };
 
-		if( mParamOnceSet.find(path.toStdString()) == mParamOnceSet.end() )
-		{
-			std::string fullPath;
-			if ( !findFile(path.toStdString() , fullPath ) )
-				SYNTAX_ERROR("Can't find include file");
+		std::string fullPath;
+		if( !findFile(path.toStdString(), fullPath) )
+			SYNTAX_ERROR("Can't find include file");
 
+		if( mParamOnceSet.find(HashString(fullPath.c_str())) == mParamOnceSet.end() )
+		{
 			TPtrHolder< CodeInput > includeInput( new CodeInput );
 			if( !includeInput->loadFile(fullPath.c_str()) )
 			{
 				SYNTAX_ERROR("Can't open include file");
 			}
-			includeInput->mFileName = path.toStdString();
+			includeInput->mFilePath = fullPath.c_str();
 			includeInput->resetSeek();
 
 			if( bCommentIncludeFileName )
@@ -134,7 +135,7 @@ namespace CPP
 				mOutput->push( path );
 				mOutput->pushNewline();
 			}
-			mLoadedInput.push_back(includeInput.release());
+			mLoadedInputs.push_back(includeInput.release());
 		}
 
 		input.skipLine();
@@ -398,8 +399,8 @@ namespace CPP
 
 					if( token.str == "once" )
 					{
-						if( !input.mFileName.empty() )
-							mParamOnceSet.insert(input.mFileName);
+						if( !input.mFilePath.empty() )
+							mParamOnceSet.insert(input.mFilePath);
 					}
 					else
 					{
@@ -493,6 +494,14 @@ namespace CPP
 		if( dirAdd[dirAdd.length() - 1] != '/' )
 		{
 			dirAdd += '/';
+		}
+	}
+
+	void Preprocessor::getIncludeFiles(std::vector< HashString >& outFiles)
+	{
+		for( auto input : mLoadedInputs )
+		{
+			outFiles.push_back(input->mFilePath);
 		}
 	}
 

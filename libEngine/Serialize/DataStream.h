@@ -121,14 +121,14 @@ public:
 	template< class T >
 	void write(T const& value)
 	{
-		//static_assert( std::is_pod<T>::value || std::is_trivially_default_constructible<T>::value, "Pleasse overload serilize operator");
+		static_assert( std::is_pod<T>::value || std::is_trivial<T>::value, "Pleasse overload serilize operator");
 		write(&value, sizeof(value));
 	}
 
 	template< class T >
 	void read(T& value)
 	{
-		//static_assert( std::is_pod<T>::value || std::is_trivially_default_constructible<T>::value, "Pleasse overload serilize operator");
+		static_assert( std::is_pod<T>::value || std::is_trivial<T>::value, "Pleasse overload serilize operator");
 		read(&value, sizeof(value));
 	}
 

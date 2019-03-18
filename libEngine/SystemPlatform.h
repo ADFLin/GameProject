@@ -35,15 +35,14 @@ enum class EDateWeekOfDay
 
 struct TimeSpan
 {
-	uint64 usec;
+	int64 usec;
 };
 struct DateTime
 {
 public:
-	DateTime()
-	{
+	DateTime() = default;
 
-	}
+
 	DateTime(int32 year, int32 month, int32 day, int32 hour, int32 minute, int32 sec, int32 millisecond)
 	{
 		mYear = year;

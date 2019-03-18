@@ -164,6 +164,24 @@ bool FileSystem::RenameFile(char const* path , char const* newFileName)
 	return false;
 }
 
+bool FileSystem::GetFileAttributes(char const* path, FileAttributes& outAttributes)
+{
+	WIN32_FILE_ATTRIBUTE_DATA fad;
+	if( !::GetFileAttributesExA(path, GetFileExInfoStandard, &fad) )
+	{
+		return false;
+	}
+	LARGE_INTEGER temp;
+	temp.HighPart = fad.nFileSizeHigh;
+	temp.LowPart = fad.nFileSizeLow;
+
+	outAttributes.size = temp.QuadPart;
+	SYSTEMTIME systemTime;
+	::FileTimeToSystemTime(&fad.ftLastWriteTime, &systemTime);
+	outAttributes.lastWrite = DateTime(systemTime.wYear, systemTime.wMonth, systemTime.wDay, systemTime.wHour, systemTime.wMinute, systemTime.wSecond, systemTime.wMilliseconds);
+	return true;
+}
+
 #ifdef SYS_PLATFORM_WIN
 FileIterator::FileIterator()
 {

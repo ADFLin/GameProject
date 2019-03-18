@@ -8,7 +8,7 @@ namespace Math
 	class  Vector3
 	{
 	public:
-		Vector3(){}
+		Vector3() = default;
 		Vector3( float const v[] ){ setValue( v[0] , v[1] , v[2] ); }
 		Vector3(float sx,float sy,float sz);
 		Vector3(float value):x(value),y(value),z(value){}

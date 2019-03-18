@@ -28,8 +28,10 @@ public:
 		mNumber = 0;
 	}
 
-	CORE_API HashString(char const* str, bool bCaseSensitive = true);
-
+	HashString(char const* str, bool bCaseSensitive = true)
+	{
+		init(str, bCaseSensitive);
+	}
 	bool operator == (HashString const& rhs) const
 	{
 		return mIndex == rhs.mIndex && mNumber == rhs.mNumber;
@@ -37,13 +39,15 @@ public:
 	CORE_API bool operator == (char const* str ) const;
 	bool operator != (char const* str) { return !operator == (str); }
 
-	CORE_API char const* toString() const;
-	operator char const* () const { return toString(); }
+	CORE_API char const* c_str() const;
+	operator char const* () const { return c_str(); }
 
 	bool operator == (EName name) const { return mIndex == uint32(name) << 1; }
 	bool operator != (EName name) const { return !operator == ( name ); }
 
+	bool empty() const {  return mIndex == 0;  }
 
+	HashString& operator = (char const* other) { init(other); return *this; }
 	uint32 getIndex() const { return mIndex;  }
 
 
@@ -55,6 +59,7 @@ public:
 	
 	CORE_API friend uint32 hash_value(HashString const & string);
 private:
+	CORE_API void init(char const* str, bool bCaseSensitive = true);
 	uint32 getSlotIndex() const { return mIndex >> 1;  }
 	bool   isCastSensitive() const { return !(mIndex & 0x1);  }
 	CORE_API HashString(EName name, char const* str);

@@ -113,14 +113,15 @@ namespace Render
 	}
 
 	
-	bool ShaderProgram::updateShader(bool bForce)
+	bool ShaderProgram::updateShader(bool bForce , bool bNoLink)
 	{
 		if( !mNeedLink && !bForce )
 			return true;
 
 		GLchar buffer[4096 * 32];
 
-		glLinkProgram(mHandle);
+		if ( !bNoLink )
+			glLinkProgram(mHandle);
 
 		GLint value;
 		glGetProgramiv(mHandle, GL_LINK_STATUS, &value);

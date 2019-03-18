@@ -30,10 +30,10 @@ public:
 	void getFilePath(DataCacheKey const& key, FixString<512>& outPath)
 	{
 		FixString<512> fileName;
-		fileName.format("%s_%s_%llx", key.typeName, key.version, key.keySuffix.value);
+		fileName.format("%s_%s_%llX", key.typeName, key.version, key.keySuffix.value);
 		uint32 nameHash = HashValue(fileName.data(), fileName.length());
 
-		outPath.format("%s/%d/%d/%d/%s.ddc", mCacheDir.c_str(), nameHash % 10, (nameHash / 10) % 10, (nameHash / 10) % 100, fileName.c_str());
+		outPath.format("%s/%d/%d/%d/%s.ddc", mCacheDir.c_str(), nameHash % 10, (nameHash / 10) % 10, (nameHash / 10) % 10, fileName.c_str());
 	}
 	virtual bool save(DataCacheKey const& key, TArrayView<uint8> saveData) override
 	{
@@ -72,7 +72,10 @@ public:
 			if( !fs.open(filePath, true) )
 				return false;
 		}
-		inDelegate(fs);
+		if( !inDelegate(fs) )
+		{
+			return false;
+		}
 		fs.close();
 		return true;
 	}
@@ -91,7 +94,10 @@ public:
 			return false;
 		}
 
-		inDelegate(fs);
+		if( !inDelegate(fs) )
+		{
+			return false;
+		}
 		fs.close();
 		return true;
 	}

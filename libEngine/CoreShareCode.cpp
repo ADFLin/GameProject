@@ -4,6 +4,7 @@
 #include "ProfileSystem.cpp"
 #include "LogSystem.cpp"
 #include "ConsoleSystem.cpp"
+#include "HashString.cpp"
 
 #include "UnitTest/TestClass.cpp"
 #include "DataStructure/ClassTree.cpp"

@@ -20,7 +20,8 @@ namespace MV
 	class Vec3f : public Math::Vector3
 	{
 	public:
-		Vec3f(){}
+		Vec3f() = default;
+
 		Vec3f( Vec3i const& v ):Math::Vector3(v.x , v.y , v.z ){}
 		Vec3f( float x , float y , float z ):Math::Vector3(x , y , z ){}
 		Vec3f( Math::Vector3 const& v ):Math::Vector3(v.x , v.y , v.z ){}

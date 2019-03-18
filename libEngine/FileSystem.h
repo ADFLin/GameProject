@@ -25,6 +25,8 @@ public:
 	static std::string    GetFullPath(char const* path);
 	static StringView     GetDirectory(char const* filePath);
 	static StringView     CutDirAndExtension(char const* filePath);
+
+
 };
 
 class FilePath
@@ -72,6 +74,12 @@ private:
 #endif
 };
 
+struct FileAttributes
+{
+	int64   size;
+	DateTime lastWrite;
+};
+
 class FileSystem
 {
 public:
@@ -84,6 +92,8 @@ public:
 	static bool GetFileSize( char const* path , int64& size );
 	static bool DeleteFile(char const* path);
 	static bool RenameFile(char const* path, char const* newFileName);
+
+	static bool GetFileAttributes(char const* path , FileAttributes& outAttributes);
 };
 
 

@@ -133,6 +133,7 @@ void MainPS()
 	//OutColor = float4(1, v, v, 1);
 }
 
+
 float FBMTest(float2 uv , int octaves)
 {
 	float result = 0;

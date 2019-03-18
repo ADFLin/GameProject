@@ -10,7 +10,9 @@ class TVector2
 public:
 	typedef T ScaleType;
 	
-	TVector2(){}
+	TVector2() = default;
+	TVector2(TVector2 const& rhs) = default;
+
 	TVector2( RefConstType x ,RefConstType y){ setValue(x,y); }
 
 	template< class Q >

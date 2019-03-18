@@ -236,6 +236,22 @@ namespace Render
 		}
 	};
 
+	struct V3
+	{
+		V3() = default;
+		float x, y, z;
+	};
+
+	struct Foo
+	{
+		int a;
+		int c;
+		Vector3 v;
+	};
+	static_assert(std::is_standard_layout<Foo>::value, "aa");
+	static_assert(std::is_trivially_constructible<Foo>::value, "cc");
+	static_assert(std::is_trivial<Foo>::value, "bb");
+
 	class NoiseShaderProgramBase : public GlobalShaderProgram
 	{
 		DECLARE_GLOBAL_SHADER(NoiseShaderProgramBase);

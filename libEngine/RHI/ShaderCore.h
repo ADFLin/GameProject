@@ -211,7 +211,7 @@ namespace Render
 
 		RHIShader* removeShader(Shader::Type type);
 		void    attachShader(RHIShader& shader);
-		bool    updateShader(bool bForce = false);
+		bool    updateShader(bool bForce = false , bool bNoLink = false);
 
 
 		void    bind();

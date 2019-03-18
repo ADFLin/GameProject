@@ -131,7 +131,7 @@ namespace Render
 		std::fill_n(mVertexSizes, MAX_INPUT_STREAM_NUM, 0);
 		for( auto const& e : mElements )
 		{
-			mVertexSizes[e.idxStream] = Vertex::GetFormatSize(e.format);
+			mVertexSizes[e.idxStream] += Vertex::GetFormatSize(e.format);
 		}
 	}
 

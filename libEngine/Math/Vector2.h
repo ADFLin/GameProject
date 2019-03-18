@@ -9,7 +9,9 @@ namespace Math
 	class Vector2 : public TVector2< float >
 	{
 	public:
-		Vector2() {}
+		Vector2() = default;
+		Vector2(Vector2 const& rhs) = default;
+
 		template< class T >
 		Vector2(TVector2< T > const& rhs) :TVector2<float>(rhs) {}
 		Vector2(float x, float y) :TVector2<float>(x, y) {}

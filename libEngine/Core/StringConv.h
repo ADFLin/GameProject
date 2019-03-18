@@ -54,7 +54,10 @@ public:
 	}
 
 	template< class CharT = TChar >
-	FORCEINLINE CharT const* From(bool value) { return (value) ? STRING_LITERAL(CharT, "1") : STRING_LITERAL(CharT, "0"); }
+	FORCEINLINE static CharT const* From(bool value) { return (value) ? STRING_LITERAL(CharT, "1") : STRING_LITERAL(CharT, "0"); }
+
+	template< class CharT = TChar >
+	FORCEINLINE static CharT const* From(TChar const* str) { return str; }
 
 };
 #endif // StringConv_H_1F1C04BF_8321_4E8A_BFBA_5C015EE4EAE4

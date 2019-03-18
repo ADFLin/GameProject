@@ -282,9 +282,7 @@ namespace Render
 
 		serializer << mInputLayoutDesc;
 		serializer << mSections;
-
 		return true;
-
 	}
 
 	bool Mesh::load(IStreamSerializer& serializer)
@@ -292,8 +290,33 @@ namespace Render
 		uint8 type;
 		serializer >> type;
 		mType = PrimitiveType(type);
+		std::vector<uint8> vertexData;
+		std::vector<uint8> indexData;
 
+		uint32 vertexDataSize;
+		serializer >> vertexDataSize;
+		if( vertexDataSize )
+		{
+			vertexData.resize(vertexDataSize);
+			serializer.read(vertexData.data(), vertexDataSize);
+		}
+		uint32 indexDataSize;
+		bool bIntType;
+		serializer >> bIntType;
+		serializer >> indexDataSize;
+		if( indexDataSize )
+		{
+			indexData.resize(indexDataSize);
+			serializer.read(indexData.data(), indexDataSize);
+		}
 
+		serializer >> mInputLayoutDesc;
+		serializer >> mSections;
+		if( !createRHIResource(vertexData.data(), vertexDataSize / mInputLayoutDesc.getVertexSize(), 
+							   indexData.data(), bIntType ? indexDataSize / sizeof(uint32) : indexDataSize / sizeof(uint16), bIntType) )
+		{
+			return false;
+		}
 		return true;
 
 	}

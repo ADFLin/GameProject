@@ -2,7 +2,7 @@
 #ifndef RenderGLStage_H_A0BE1A79_C2DE_4703_A032_404ED3032080
 #define RenderGLStage_H_A0BE1A79_C2DE_4703_A032_404ED3032080
 
-#include "StageBase.h"
+#include "TestRenderStageBase.h"
 
 #include "HashString.h"
 #include "GL/glew.h"
@@ -379,19 +379,6 @@ namespace Render
 		Vector3&  mValue;
 	};
 
-	class ViewFrustum
-	{
-	public:
-		Matrix4 getPerspectiveMatrix()
-		{
-			return PerspectiveMatrix(mYFov, mAspect, mNear, mFar);
-		}
-
-		float mNear;
-		float mFar;
-		float mYFov;
-		float mAspect;
-	};
 
 	struct AABB
 	{

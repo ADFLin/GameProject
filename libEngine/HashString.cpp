@@ -118,6 +118,8 @@ TChunkArray< NameSlot, 2 * 1024 * 4 , 256 > gNameSlots;
 NameSlot* NameSlot::sHashHead[NameSlotHashBucketSize];
 NameSlot* NameSlot::sHashTail[NameSlotHashBucketSize];
 
+#if CORE_SHARE_CODE
+
 void HashString::Initialize()
 {
 	std::fill_n(NameSlot::sHashHead, NameSlotHashBucketSize, nullptr);
@@ -127,7 +129,8 @@ void HashString::Initialize()
 	}
 }
 
-HashString::HashString(char const* str , bool bCaseSensitive )
+
+void HashString::init(char const* str, bool bCaseSensitive)
 {
 	if( str == nullptr )
 	{
@@ -150,7 +153,7 @@ HashString::HashString(char const* str , bool bCaseSensitive )
 	NameSlot* slot = NameSlot::sHashHead[idxHash];
 	for( ; slot; slot = slot->next )
 	{
-		if ( hashValue == slot->hashValue && slot->compare( str , bCaseSensitive ) == 0)
+		if( hashValue == slot->hashValue && slot->compare(str, bCaseSensitive) == 0 )
 			break;
 	}
 
@@ -166,7 +169,7 @@ HashString::HashString(char const* str , bool bCaseSensitive )
 		slot->next = nullptr;
 
 		//#TODO : thread-safe
-		if ( NameSlot::sHashTail[idxHash] )
+		if( NameSlot::sHashTail[idxHash] )
 			NameSlot::sHashTail[idxHash]->next = slot;
 		NameSlot::sHashTail[idxHash] = slot;
 
@@ -180,11 +183,10 @@ HashString::HashString(char const* str , bool bCaseSensitive )
 	mNumber = 0;
 }
 
-
-HashString::HashString(EName name, char const* str )
+HashString::HashString(EName name, char const* str)
 	:HashString(str)
 {
-	assert((mIndex >> 1 )== (uint32)name);
+	assert((mIndex >> 1) == (uint32)name);
 }
 
 uint32 hash_value(HashString const & string)
@@ -193,7 +195,7 @@ uint32 hash_value(HashString const & string)
 	return slot.hashValue;
 }
 
-char const* HashString::toString() const
+char const* HashString::c_str() const
 {
 	if( mIndex == 0 )
 		return "";
@@ -207,4 +209,9 @@ bool HashString::operator==(char const* str) const
 	NameSlot& slot = gNameSlots[getSlotIndex()];
 	return slot.compare(str, isCastSensitive()) == 0;
 }
+
+#endif
+
+
+
 

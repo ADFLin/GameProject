@@ -15,29 +15,14 @@
 
 #define SHADER_FILE_SUBNAME ".sgc"
 
+class DataCacheInterface;
+
 namespace Render
 {
 	class MaterialShaderProgramClass;
 	class MaterialShaderProgram;
 	class VertexFactoryType;
 
-
-	enum ShaderFreature
-	{
-
-
-
-	};
-
-	class ShaderCompiler
-	{
-	public:
-		bool compileCode( Shader::Type type , RHIShader& shader , char const* path, char const* def = nullptr );
-
-		bool bRecompile = true;
-		bool bUsePreprocess = true;
-
-	};
 
 	struct ShaderEntryInfo
 	{
@@ -51,6 +36,55 @@ namespace Render
 		Global,
 		Material,
 	};
+
+	enum ShaderFreature
+	{
+
+
+
+	};
+
+	struct ShaderCompileInfo
+	{
+		HashString  filePath;
+		Shader::Type type;
+		std::string  headCode;
+		std::vector< HashString > includeFiles;
+
+		template< class S2 >
+		ShaderCompileInfo(Shader::Type inType, HashString inFilePath, S2&& inCode)
+			:filePath(inFilePath), type(inType), headCode(std::forward<S2>(inCode))
+		{
+		}
+
+		ShaderCompileInfo() {}
+	};
+
+	struct ShaderProgramCompileInfo : public IAssetViewer
+	{
+		ShaderProgram*  shaderProgram;
+		ShaderClassType classType = ShaderClassType::Common;
+		std::vector< ShaderCompileInfo > shaders;
+		bool           bShowComplieInfo = false;
+		
+		
+	protected:
+		virtual void getDependentFilePaths(std::vector<std::wstring>& paths) override;
+		virtual void postFileModify(FileAction action) override;
+	};
+
+
+	class ShaderCompiler
+	{
+	public:
+		bool compileCode( Shader::Type type , RHIShader& shader , char const* path, ShaderCompileInfo* compileInfo = nullptr, char const* def = nullptr );
+
+		bool bRecompile = true;
+		bool bUsePreprocess = true;
+
+	};
+
+
 
 	typedef std::vector< std::pair< MaterialShaderProgramClass*, MaterialShaderProgram* > > MaterialShaderPairVec;
 
@@ -66,6 +100,7 @@ namespace Render
 		void setBaseDir(char const* dir){  mBaseDir = dir;  }
 		void clearnupRHIResouse();
 
+		void setDataCache(DataCacheInterface* dataCache);
 
 		template< class ShaderType >
 		ShaderType* getGlobalShaderT(bool bForceLoad = true)
@@ -142,10 +177,10 @@ namespace Render
 			}
 		}
 
-		bool loadInternal(ShaderProgram& shaderProgram, char const* fileName, uint8 shaderMask, char const* entryNames[], char const* def, char const* additionalCode, bool bSingleFile);
-		bool loadInternal(ShaderProgram& shaderProgram, char const* fileName, TArrayView< ShaderEntryInfo const > entries, ShaderCompileOption const& option, char const* additionalCode, bool bSingleFile);
-		bool loadInternal(ShaderProgram& shaderProgram, char const* fileName, uint8 shaderMask, char const* entryNames[], ShaderCompileOption const& option, char const* additionalCode, bool bSingleFile);
-		bool loadInternal(ShaderProgram& shaderProgram, char const* filePaths[], TArrayView< ShaderEntryInfo const > entries, char const* def, char const* additionalCode);
+		bool loadInternal(ShaderProgram& shaderProgram, char const* fileName, uint8 shaderMask, char const* entryNames[], char const* def, char const* additionalCode, bool bSingleFile, ShaderClassType classType = ShaderClassType::Common);
+		bool loadInternal(ShaderProgram& shaderProgram, char const* fileName, TArrayView< ShaderEntryInfo const > entries, ShaderCompileOption const& option, char const* additionalCode, bool bSingleFile, ShaderClassType classType = ShaderClassType::Common);
+		bool loadInternal(ShaderProgram& shaderProgram, char const* fileName, uint8 shaderMask, char const* entryNames[], ShaderCompileOption const& option, char const* additionalCode, bool bSingleFile, ShaderClassType classType = ShaderClassType::Common);
+		bool loadInternal(ShaderProgram& shaderProgram, char const* filePaths[], TArrayView< ShaderEntryInfo const > entries, char const* def, char const* additionalCode, ShaderClassType classType = ShaderClassType::Common);
 
 		static TArrayView< ShaderEntryInfo const > MakeEntryInfos(ShaderEntryInfo entries[], uint8 shaderMask, char const* entryNames[])
 		{
@@ -167,35 +202,8 @@ namespace Render
 			std::string filePath;
 			std::string define;
 		};
+		bool updateShaderInternal(ShaderProgram& shaderProgram, ShaderProgramCompileInfo& info , bool bForceReload = false );
 
-		struct ShaderProgramCompileInfo;
-		bool updateShaderInternal(ShaderProgram& shaderProgram, ShaderProgramCompileInfo& info);
-
-		struct ShaderCompileInfo
-		{
-			std::string  filePath;
-			Shader::Type type;
-			std::string  headCode;
-
-			template< class S1 , class S2 >
-			ShaderCompileInfo(Shader::Type inType, S1&& inFilePath ,  S2&& inCode)
-				:filePath( std::forward<S2>(inFilePath) ) , type(inType) , headCode( std::forward<S2>(inCode) )
-			{}
-
-			ShaderCompileInfo(){}
-		};
-
-		struct ShaderProgramCompileInfo : public IAssetViewer
-		{
-			ShaderProgram* shaderProgram;
-			std::vector< ShaderCompileInfo > shaders;
-			bool           bShowComplieInfo = false;
-			
-			ShaderClassType classType = ShaderClassType::Common;
-		protected:
-			virtual void getDependentFilePaths(std::vector<std::wstring>& paths) override;
-			virtual void postFileModify(FileAction action) override;
-		};
 
 		void removeFromShaderCompileMap( ShaderProgram& shader )
 		{

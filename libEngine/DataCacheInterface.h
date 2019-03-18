@@ -7,17 +7,33 @@
 #include "Serialize/StreamBuffer.h"
 #include "Serialize/DataStream.h"
 
+#include "Core/StringConv.h"
+
 #include <vector>
 #include <functional>
 
-typedef std::function< void(IStreamSerializer&) > SerializeDelegate;
+typedef std::function< bool (IStreamSerializer&) > SerializeDelegate;
 struct DataCacheArg
 {
 	DataCacheArg();
 	void add(char const* str);
 
+	template< class T , class ...Args >
+	void addArgs( T t , Args&& ...args)
+	{
+		add(FStringConv::From(t));
+		add("-");
+		addArgs(std::forward<Args>(args)...);
+	}
+
+	template< class T >
+	void addArgs(T t)
+	{
+		add(FStringConv::From(t));
+	}
+
 	template< class ...Args >
-	void addFormat(char const* format, Args ...args)
+	void addFormat(char const* format, Args&& ...args)
 	{
 		FixString< 512 > str;
 		str.format(format, std::forward<Args>(args)...);
@@ -58,6 +74,7 @@ public:
 		return saveDelegate(key, [&data](IStreamSerializer& serializer)
 		{
 			serializer << data;
+			return true;
 		});
 	}
 
@@ -67,6 +84,7 @@ public:
 		return loadDelegate(key, [&data](IStreamSerializer& serializer)
 		{
 			serializer >> data;
+			return true;
 		});
 	}
 

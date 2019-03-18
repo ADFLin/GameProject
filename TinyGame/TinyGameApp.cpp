@@ -36,8 +36,11 @@
 
 #include "PlatformThread.h"
 #include "SystemPlatform.h"
+
+
 #include "RHI/MeshUtility.h"
 #include "RHI/GpuProfiler.h"
+#include "RHI/ShaderCompiler.h"
 
 #define GAME_SETTING_PATH "Game.ini"
 
@@ -168,6 +171,7 @@ bool TinyGameApp::onInit()
 	::Global::Initialize();
 
 
+	Render::ShaderManager::Get().setDataCache(&::Global::DataCache());
 
 	GameLoop::setUpdateTime( gDefaultTickTime );
 

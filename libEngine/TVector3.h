@@ -8,7 +8,9 @@ public:
 	typedef T InputType;
 	typedef T ScaleType;
 
-	TVector3(){}
+	TVector3() = default;
+	TVector3(TVector3 const&) = default;
+
 	TVector3( T v[] ){ setValue( v[0] , v[1] , v[2] ); }
 	TVector3( InputType sx,InputType sy, InputType sz);
 

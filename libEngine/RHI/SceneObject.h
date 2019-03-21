@@ -241,7 +241,7 @@ namespace Render
 		}
 
 		void render(Matrix4 const& worldTrans, RenderContext& context, Material* material);
-		void render(Matrix4 const& worldTrans, RenderContext& context );
+		void render(Matrix4 const& worldTrans, RenderContext& context);
 
 		void setMaterial(int idx, MaterialPtr material)
 		{

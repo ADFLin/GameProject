@@ -2,7 +2,6 @@
 
 namespace Render
 {
-
 	void StaticMesh::render(Matrix4 const& worldTrans, RenderContext& context, Material* material)
 	{
 		context.setMaterial(material);
@@ -24,7 +23,7 @@ namespace Render
 			{
 				char const* matName = material ? material->getMaster()->mName.c_str() : "DefalutMaterial";
 				//GPU_PROFILE( "MeshDraw %s %s %d" , name.c_str() , matName , mSections[i].num);
-				drawSection(i , true);
+				drawSection(i, true);
 			}
 		}
 	}

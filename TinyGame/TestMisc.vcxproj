@@ -140,7 +140,7 @@
     <ClCompile>
       <Optimization>MaxSpeed</Optimization>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <AdditionalIncludeDirectories>.;TinyCore;../libEngine;../OtherLib;TestMisc;../OtherLib/glew;../OtherLib/boost/Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>.;TinyCore;../libEngine;../OtherLib;TestMisc;../OtherLib/glew;../OtherLib/boost;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>_SECURE_SCL=0;WIN32;_WINDOWS;NDEBUG;TG_DLL;CORE_SHARE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <StringPooling>true</StringPooling>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>

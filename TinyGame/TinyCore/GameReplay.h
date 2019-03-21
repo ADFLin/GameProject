@@ -115,7 +115,7 @@ public:
 	void clear();
 
 	void resetTrackPos();
-	bool isValid();
+	bool isValid() const;
 
 protected:
 

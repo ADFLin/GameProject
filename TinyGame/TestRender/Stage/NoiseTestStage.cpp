@@ -378,6 +378,9 @@ namespace Render
 			if( !BaseClass::onInit() )
 				return false;
 
+			Mesh mesh;
+			VERIFY_RETURN_FALSE(BuildMesh(mesh, "PlaneZ", MeshBuild::PlaneZ, 10, 1));
+
 			mProgNoise = ShaderManager::Get().getGlobalShaderT< TNoiseShaderProgram<true,false> >(true);
 			mProgNoiseUseTexture = ShaderManager::Get().getGlobalShaderT< TNoiseShaderProgram<true,true> >(true);
 			mProgNoiseTest = ShaderManager::Get().getGlobalShaderT< NoiseShaderTestProgram >(true);

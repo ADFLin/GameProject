@@ -1048,7 +1048,13 @@ namespace MV
 		if ( !sf.open( path ) )
 			return false;
 
-		Level::load( sf );
+		Level::load(sf);
+
+		if( !sf.isValid() )
+		{
+
+			return false;
+		}
 		if ( !mModifiers.empty() )
 			mControllor.addNode( *mModifiers[0] , 1 );
 
@@ -1118,8 +1124,13 @@ namespace MV
 		OutputFileSerializer sf;
 		if ( !sf.open( path ) )
 			return false;
-	
-		Level::save( sf );
+
+		Level::save(sf);
+
+		if( !sf.isValid() )
+		{
+			return false;
+		}
 		return true;
 	}
 

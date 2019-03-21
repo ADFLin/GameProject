@@ -462,6 +462,7 @@
     <ClInclude Include="Serialize\DataBitSerialize.h" />
     <ClInclude Include="Serialize\DataStream.h" />
     <ClInclude Include="Serialize\FileStream.h" />
+    <ClInclude Include="Serialize\SerializeFwd.h" />
     <ClInclude Include="Serialize\StreamBuffer.h" />
     <ClInclude Include="Singleton.h" />
     <ClInclude Include="SocketBuffer.h" />

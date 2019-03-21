@@ -9,6 +9,7 @@
 
 #include "Core/ScopeExit.h"
 #include "Math/PrimitiveTest.h"
+#include "Serialize/SerializeFwd.h"
 
 #include "DataCacheInterface.h"
 
@@ -16,13 +17,16 @@
 
 namespace Render
 {
+	class StaticMesh;
+
+	bool LoadObjectMesh(StaticMesh& mesh , char const* path );
 	template< class Func, class ...Args >
 	bool BuildMesh(Mesh& mesh, char const* meshName, Func FuncMeshCreate, Args&& ...args)
 	{
 		DataCacheKey key;
 		key.typeName = "MESH";
 		key.version = "155CABB4-4F63-4B6C-9249-5BB7861F67E6";
-		key.keySuffix.addArgs(meshName, std::forward<Args>(args)...);
+		key.keySuffix.add(meshName, std::forward<Args>(args)...);
 
 		auto MeshLoad = [&mesh](IStreamSerializer& serializer) -> bool
 		{
@@ -45,6 +49,17 @@ namespace Render
 			{
 
 			}
+#if 0
+			else
+			{
+				Mesh temp;
+				::Global::DataCache().loadDelegate(key, [&temp](IStreamSerializer& serializer) -> bool
+				{
+					return temp.load(serializer);
+				});
+
+			}
+#endif
 		}
 
 		return true;

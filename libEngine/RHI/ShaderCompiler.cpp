@@ -16,8 +16,10 @@
 #include <sstream>
 #include <iterator>
 
-
+extern CORE_API TConsoleVariable< bool > gbUseShaderCacheCom;
+#if CORE_SHARE_CODE
 TConsoleVariable< bool > gbUseShaderCacheCom( true , "bUseShaderCache" );
+#endif
 
 namespace Render
 {
@@ -42,10 +44,10 @@ namespace Render
 				FileAttributes fileAttributes;
 				if( !FileSystem::GetFileAttributes(path.c_str(), fileAttributes) )
 					return false;
-				Asset asset;
-				asset.lastModifyTime = fileAttributes.lastWrite;
-				asset.file = path.c_str();
-				assetDependences.push_back(std::move(asset));
+				ShaderFile file;
+				file.lastModifyTime = fileAttributes.lastWrite;
+				file.path = path.c_str();
+				assetDependences.push_back(std::move(file));
 			}
 			
 			return true;
@@ -61,7 +63,7 @@ namespace Render
 		static bool GetProgramBinary(GLuint handle, std::vector<uint8>& outBinary)
 		{
 			//glProgramParameteri(handle, GL_PROGRAM_BINARY_RETRIEVABLE_HINT, GL_TRUE);
-			// pull binary from linked program
+
 			GLint binaryLength = -1;
 			glGetProgramiv(handle, GL_PROGRAM_BINARY_LENGTH, &binaryLength);
 			if( binaryLength <= 0 )
@@ -86,7 +88,7 @@ namespace Render
 			for( auto const& asset : assetDependences )
 			{
 				FileAttributes fileAttributes;
-				if( !FileSystem::GetFileAttributes(asset.file.c_str(), fileAttributes) )
+				if( !FileSystem::GetFileAttributes(asset.path.c_str(), fileAttributes) )
 					return false;
 				if( fileAttributes.lastWrite > asset.lastModifyTime )
 					return false;
@@ -102,7 +104,6 @@ namespace Render
 			glProgramBinary(program.mHandle, format, binaryCode.data() + sizeof(GLenum), binaryCode.size() - sizeof(GLenum));
 			if( glGetError() != GL_NO_ERROR )
 			{
-
 				return false;
 			}
 			if( !program.updateShader(true, true) )
@@ -111,37 +112,30 @@ namespace Render
 			}
 			return true;
 		}
-		struct Asset
+		struct ShaderFile
 		{
-			std::string file;
+			std::string path;
 			DateTime    lastModifyTime;
 
-			friend IStreamSerializer& operator >> (IStreamSerializer& serializer, Asset& data)
+			template< class Op >
+			void serialize(Op op)
 			{
-				serializer >> data.file >> data.lastModifyTime;
-				return serializer;
-			}
-			friend IStreamSerializer& operator << (IStreamSerializer& serializer, Asset const& data)
-			{
-				serializer << data.file << data.lastModifyTime;
-				return serializer;
+				op & path & lastModifyTime;
 			}
 		};
 
-		std::vector< Asset > assetDependences;
+		std::vector< ShaderFile > assetDependences;
 		std::vector< uint8 > binaryCode;
 
-		friend IStreamSerializer& operator >> (IStreamSerializer& serializer, ShaderCacheBinaryData& data)
+		template< class Op >
+		void serialize(Op op)
 		{
-			serializer >> data.assetDependences >> data.binaryCode;
-			return serializer;
-		}
-		friend IStreamSerializer& operator << (IStreamSerializer& serializer, ShaderCacheBinaryData const& data)
-		{
-			serializer << data.assetDependences << data.binaryCode;
-			return serializer;
+			op & assetDependences & binaryCode;
 		}
 	};
+
+	TYPE_SUPPORT_SERIALIZE_FUNC(ShaderCacheBinaryData);
+	TYPE_SUPPORT_SERIALIZE_FUNC(ShaderCacheBinaryData::ShaderFile);
 
 	class ShaderCache : public IAssetViewer
 	{
@@ -165,20 +159,25 @@ namespace Render
 				break;
 			}
 			outKey.version = "4DAA6D50-0D2A-4955-BDE2-676C6D7353AE";
+			if( info.classType == ShaderClassType::Material )
+			{
+
+
+
+			}
 			for( auto const& shaderInfo : info.shaders )
 			{
-				outKey.keySuffix.addArgs((uint8)shaderInfo.type, shaderInfo.filePath.c_str(), shaderInfo.headCode.c_str());
+				outKey.keySuffix.add((uint8)shaderInfo.type, shaderInfo.filePath.c_str(), shaderInfo.headCode.c_str());
 			}
 
 		}
 		bool saveCacheData(ShaderProgramCompileInfo const& info)
 		{
-
+			ShaderCacheBinaryData binaryData;
 			DataCacheKey key;
 			GetShaderCacheKey(info, key);
-			bool result = mDataCache->saveDelegate(key, [&info](IStreamSerializer& serializer)
-			{
-				ShaderCacheBinaryData binaryData;
+			bool result = mDataCache->saveDelegate(key, [&info,&binaryData](IStreamSerializer& serializer)
+			{			
 				if( !binaryData.initialize(info) )
 				{
 					return false;
@@ -186,7 +185,18 @@ namespace Render
 				serializer << binaryData;
 				return true;
 			});
-		
+#if 0
+			ShaderCacheBinaryData temp;
+			if ( result )
+			{
+				
+				result = mDataCache->loadDelegate(key, [&info,&temp](IStreamSerializer& serializer)
+				{
+					serializer >> temp;
+					return true;
+				});
+			}
+#endif
 			return result;
 		}
 
@@ -211,7 +221,7 @@ namespace Render
 
 				for( auto const& asset : binaryData.assetDependences )
 				{
-					info.shaders.front().includeFiles.push_back(asset.file.c_str());
+					info.shaders.front().includeFiles.push_back(asset.path.c_str());
 				}
 				return true;
 			});
@@ -313,7 +323,13 @@ namespace Render
 		std::vector< char > materialCode;
 		if( !FileUtility::LoadToBuffer(path.c_str(), materialCode, true) )
 			return 0;
-
+#if 0
+		std::vector< std::string > classNames;
+		for( auto pShaderClass : MaterialShaderProgramClass::ClassList )
+		{
+			classNames.push_back((pShaderClass->funGetShaderFileName)());
+		}
+#endif
 		int result = 0;
 		for( auto pShaderClass : MaterialShaderProgramClass::ClassList )
 		{

@@ -7,7 +7,7 @@
 
 #include "MarcoCommon.h"
 #include "RefCount.h"
-#include "Serialize/DataStream.h"
+#include "Serialize/SerializeFwd.h"
 
 #include <vector>
 
@@ -435,19 +435,18 @@ namespace Render
 		void updateVertexSize();
 
 
-		friend IStreamSerializer& operator << (IStreamSerializer& serializer , InputLayoutDesc const& data )
+		template< class Op >
+		void serialize(Op op)
 		{
-			serializer << data.mElements;
-			return serializer;
-		}
-
-		friend IStreamSerializer& operator >> (IStreamSerializer& serializer, InputLayoutDesc& data)
-		{
-			serializer >> data.mElements;
-			data.updateVertexSize();
-			return serializer;
+			op & mElements;
+			if( Op::IsLoading )
+			{
+				updateVertexSize();
+			}
 		}
 	};
+
+	TYPE_SUPPORT_SERIALIZE_FUNC(InputLayoutDesc);
 
 	class RHIInputLayout : public RHIResource
 	{

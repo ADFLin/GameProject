@@ -351,7 +351,7 @@ public:
 		:mBuffer(buffer)
 	{
 	}
-
+	//virtual bool isValid() const override { return true; }
 	virtual void read(void* ptr, size_t num) override
 	{
 		mBuffer.take(ptr, num);

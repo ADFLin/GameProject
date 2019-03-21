@@ -12,7 +12,7 @@ DataCacheArg::DataCacheArg()
 	value = FNV1a::Table<uint64>::OffsetBias;
 }
 
-void DataCacheArg::add(char const* str)
+void DataCacheArg::addString(char const* str)
 {
 	value = FNV1a::MakeStringHash(str, value);
 }
@@ -30,7 +30,7 @@ public:
 	void getFilePath(DataCacheKey const& key, FixString<512>& outPath)
 	{
 		FixString<512> fileName;
-		fileName.format("%s_%s_%llX", key.typeName, key.version, key.keySuffix.value);
+		fileName.format("%s_%s_%0llX", key.typeName, key.version, key.keySuffix.value);
 		uint32 nameHash = HashValue(fileName.data(), fileName.length());
 
 		outPath.format("%s/%d/%d/%d/%s.ddc", mCacheDir.c_str(), nameHash % 10, (nameHash / 10) % 10, (nameHash / 10) % 10, fileName.c_str());
@@ -51,7 +51,13 @@ public:
 			if( !fs.open(filePath, true) )
 				return false;
 		}
+
 		fs.write(saveData.data(), saveData.size());
+
+		if( !fs.isValid() )
+		{
+			return false;
+		}
 		fs.close();
 		return true;
 	}
@@ -72,7 +78,12 @@ public:
 			if( !fs.open(filePath, true) )
 				return false;
 		}
+
 		if( !inDelegate(fs) )
+		{
+			return false;
+		}
+		if( !fs.isValid() )
 		{
 			return false;
 		}
@@ -94,7 +105,12 @@ public:
 			return false;
 		}
 
+
 		if( !inDelegate(fs) )
+		{
+			return false;
+		}
+		if( !fs.isValid() )
 		{
 			return false;
 		}
@@ -114,11 +130,17 @@ public:
 		{
 			return false;
 		}
+
 		size_t fileSize = fs.getSize();
 		if( fileSize )
 		{
 			outBuffer.resize(fileSize);
 			fs.read(outBuffer.data(), fileSize);
+		}
+
+		if( !fs.isValid() )
+		{
+			return false;
 		}
 		return true;
 	}

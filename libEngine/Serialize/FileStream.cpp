@@ -14,12 +14,14 @@ bool IOFileSerializer::open(char const* path, bool bRemoveOldData /*= false */)
 
 void IOFileSerializer::read(void* ptr, size_t num)
 {
-	mFS.read((char*)ptr, (std::streamsize) num);
+	if( mFS.good() )
+		mFS.read((char*)ptr, (std::streamsize) num);
 }
 
 void IOFileSerializer::write(void const* ptr, size_t num)
 {
-	mFS.write((char const*)ptr, (std::streamsize) num);
+	if( mFS.good() )
+		mFS.write((char const*)ptr, (std::streamsize) num);
 }
 
 size_t IOFileSerializer::getSize()
@@ -40,7 +42,8 @@ bool InputFileSerializer::open(char const* path)
 
 void InputFileSerializer::read(void* ptr, size_t num)
 {
-	mFS.read((char*)ptr, (std::streamsize) num);
+	if( mFS.good() )
+		mFS.read((char*)ptr, (std::streamsize) num);
 }
 
 void InputFileSerializer::write(void const* ptr, size_t num)
@@ -62,5 +65,6 @@ void OutputFileSerializer::read(void* ptr, size_t num)
 
 void OutputFileSerializer::write(void const* ptr, size_t num)
 {
-	mFS.write((char const*)ptr, (std::streamsize) num);
+	if( mFS.good() )
+		mFS.write((char const*)ptr, (std::streamsize) num);
 }

@@ -16,30 +16,31 @@ typedef std::function< bool (IStreamSerializer&) > SerializeDelegate;
 struct DataCacheArg
 {
 	DataCacheArg();
-	void add(char const* str);
-
-	template< class T , class ...Args >
-	void addArgs( T t , Args&& ...args)
-	{
-		add(FStringConv::From(t));
-		add("-");
-		addArgs(std::forward<Args>(args)...);
-	}
+	void add(char const* str) { addString(str); }
 
 	template< class T >
-	void addArgs(T t)
+	void add(T&& t)
 	{
-		add(FStringConv::From(t));
+		addString(FStringConv::From(std::forward<T>(t)));
 	}
+
+	template< class T , class ...Args >
+	void add( T&& t , Args&& ...args)
+	{
+		add(std::forward<T>(t));
+		addString("-");
+		add(std::forward<Args>(args)...);
+	}
+
 
 	template< class ...Args >
 	void addFormat(char const* format, Args&& ...args)
 	{
 		FixString< 512 > str;
 		str.format(format, std::forward<Args>(args)...);
-		add(str);
+		addString(str);
 	}
-
+	void addString(char const* str);
 	uint64 value;
 };
 

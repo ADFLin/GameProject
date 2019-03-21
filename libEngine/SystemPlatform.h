@@ -4,7 +4,7 @@
 
 #include "PlatformConfig.h"
 #include "Core/IntegerType.h"
-
+#include "Serialize/SerializeFwd.h"
 
 enum class EDateMonth
 {
@@ -24,7 +24,7 @@ enum class EDateMonth
 
 enum class EDateWeekOfDay
 {
-	Sunday ,
+	Sunday = 0,
 	Monday ,
 	Tuesday ,
 	Wednesday ,
@@ -40,7 +40,10 @@ struct TimeSpan
 struct DateTime
 {
 public:
-	DateTime() = default;
+	DateTime()
+	{
+		mCachedDayOfWeek = -1;
+	}
 
 
 	DateTime(int32 year, int32 month, int32 day, int32 hour, int32 minute, int32 sec, int32 millisecond)
@@ -52,11 +55,19 @@ public:
 		mMinute = minute;
 		mSecond = sec;
 		mMillisecond = mMillisecond;
+		mCachedDayOfWeek = -1;
 	}
 	int32 getYear() const { return mYear; }
 	int32 getMonth() const { return mMonth; }
 	int32 getDay() const { return mDay; }
-	int32 getDayOfWeek() const{ return mDayOfWeek; }
+	EDateWeekOfDay getDayOfWeek() const
+	{ 
+		if( mCachedDayOfWeek == -1 )
+		{
+			//TODO
+		}
+		return EDateWeekOfDay(mCachedDayOfWeek); 
+	}
 	int32 getHour() const { return mHour; }
 	int32 getMinute() const { return mMinute; }
 	int32 getSecond() const { return mSecond; }
@@ -117,14 +128,16 @@ public:
 private:
 
 	int32 mYear;
-	int32 mMonth;
-	int32 mDayOfWeek;
-	int32 mDay;
-	int32 mHour;
-	int32 mMinute;
-	int32 mSecond;
+	uint8 mMonth;
+	mutable int8 mCachedDayOfWeek;
+	uint8 mDay;
+	uint8 mHour;
+	uint8 mMinute;
+	uint8 mSecond;
 	int32 mMillisecond;
 };
+
+TYPE_SERIALIZE_AS_RAW_DATA(DateTime);
 
 class SystemPlatform
 {

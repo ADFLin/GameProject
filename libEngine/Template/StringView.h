@@ -87,7 +87,7 @@ public:
 			}
 			else if( data[num] == 0 )
 			{
-				mPtr == data;
+				mPtr = data;
 			}
 			else
 			{

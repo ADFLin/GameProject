@@ -1,6 +1,7 @@
 #ifndef DataStream_h__
 #define DataStream_h__
 
+#include "SerializeFwd.h"
 #include "DataBitSerialize.h"
 #include "MetaBase.h"
 
@@ -9,15 +10,11 @@
 #include <string>
 
 
-SUPPORT_BINARY_OPERATOR(HaveSerializerOutput, operator<<, &, const&);
-SUPPORT_BINARY_OPERATOR(HaveSerializerInput, operator >> , &, &);
-SUPPORT_BINARY_OPERATOR(HaveBitDataOutput, operator<<, &, const &);
-SUPPORT_BINARY_OPERATOR(HaveBitDataInput, operator >> , &, &);
-
 class IStreamSerializer
 {
 public:
 	virtual ~IStreamSerializer() {}
+	//virtual bool isValid() const = 0;
 	virtual void read(void* ptr, size_t num) = 0;
 	virtual void write(void const* ptr, size_t num) = 0;
 
@@ -116,31 +113,47 @@ public:
 			return{ &data[0] , sizeof(T) , data.size() , numBit };
 		}
 	}
-
-
-	template< class T >
-	void write(T const& value)
+	template < class T >
+	typename Meta::EnableIf< TTypeSupportSerializeOPFunc<T>::Value >::Type
+	write(T const& value)
 	{
-		static_assert( std::is_pod<T>::value || std::is_trivial<T>::value, "Pleasse overload serilize operator");
+		const_cast<T&>(value).serialize(WriteOp(*this));
+	}
+
+	template < class T >
+	typename Meta::EnableIf< TTypeSupportSerializeOPFunc<T>::Value >::Type
+	read(T& value)
+	{
+		value.serialize(ReadOp(*this));
+	}
+
+
+	template < class T >
+	typename Meta::EnableIf< !TTypeSupportSerializeOPFunc<T>::Value >::Type
+	write(T const& value)
+	{
+		static_assert( std::is_pod<T>::value || std::is_trivial<T>::value || TTypeSerializeAsRawData<T>::Value, "Pleasse overload serilize operator");
 		write(&value, sizeof(value));
 	}
 
-	template< class T >
-	void read(T& value)
+
+	template < class T >
+	typename Meta::EnableIf< !TTypeSupportSerializeOPFunc<T>::Value >::Type
+	read(T& value)
 	{
-		static_assert( std::is_pod<T>::value || std::is_trivial<T>::value, "Pleasse overload serilize operator");
+		static_assert( std::is_pod<T>::value || std::is_trivial<T>::value || TTypeSerializeAsRawData<T>::Value, "Pleasse overload serilize operator");
 		read(&value, sizeof(value));
 	}
 
 	template< class T >
-	struct CanUseInputSequence : Meta::HaveResult<
-		(!HaveSerializerInput<IStreamSerializer, T>::Value) && Meta::IsPod<T>::Value >
+	struct CanUseInputSequence : Meta::HaveResult< Meta::IsPod<T>::Value &&
+		 !( HaveSerializerInput<IStreamSerializer, T>::Value || TTypeSupportSerializeOPFunc<T>::Value) >
 	{
 	};
 
 	template< class T >
-	struct CanUseOutputSequence : Meta::HaveResult<
-		(!HaveSerializerOutput<IStreamSerializer, T>::Value) && Meta::IsPod<T>::Value >
+	struct CanUseOutputSequence : Meta::HaveResult < Meta::IsPod<T>::Value &&
+		! (HaveSerializerOutput<IStreamSerializer, T>::Value || TTypeSupportSerializeOPFunc<T>::Value) >
 	{
 	};
 
@@ -192,7 +205,7 @@ public:
 	template< class T, class A >
 	void read(std::vector< T, A >& value)
 	{
-		size_t size;
+		size_t size = 0;
 		this->read(size);
 		if( size )
 		{
@@ -215,7 +228,7 @@ public:
 	template< class T>
 	void read(std::basic_string<T>& value)
 	{
-		size_t size;
+		size_t size = 0;
 		this->read(size);
 		if( size )
 		{
@@ -241,7 +254,7 @@ public:
 	template< class K, class V, class KF, class A >
 	void read(std::map< K, V, KF, A >& mapValue)
 	{
-		size_t size;
+		size_t size = 0;
 		this->read(size);
 		if( size )
 		{
@@ -272,7 +285,7 @@ public:
 	class ReadOp
 	{
 	public:
-		enum { isRead = 1, isWrite = 0 };
+		enum { IsLoading = 1, IsSaving = 0 };
 		ReadOp(IStreamSerializer& s) :serializer(s) {}
 		typedef ReadOp ThisOp;
 		template< class T >
@@ -288,7 +301,7 @@ public:
 	class WriteOp
 	{
 	public:
-		enum { isRead = 0, isWrite = 1 };
+		enum { IsLoading = 0, IsSaving = 1 };
 		typedef WriteOp ThisOp;
 		WriteOp(IStreamSerializer& s) :serializer(s) {}
 		template< class T >

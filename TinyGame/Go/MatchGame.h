@@ -269,6 +269,30 @@ namespace Go
 		std::unordered_map< std::string, LeelaWeightInfo* > weightMap;
 	};
 
+	struct MatchResultData
+	{
+		std::string playerSetting[2];
+		std::string gameSetting;
+		uint32 winCounts[2];
+
+		void swapPlayerData()
+		{
+			using std::swap;
+			swap(playerSetting[0], playerSetting[1]);
+			swap(winCounts[0], winCounts[1]);
+		}
+
+		template< class OP >
+		void serialize(OP op)
+		{
+			op & winCounts[0] & winCounts[1];
+			op & gameSetting & playerSetting[0] & playerSetting[1];
+		}
+
+	};
+
+	TYPE_SUPPORT_SERIALIZE_FUNC(MatchResultData);
+
 	class MatchResultMap
 	{
 	public:
@@ -278,42 +302,11 @@ namespace Go
 			DATA_LAST_VERSION_PLUS_ONE,
 			DATA_LAST_VERSION = DATA_LAST_VERSION_PLUS_ONE - 1,
 		};
-		struct ResultData
-		{
-			std::string playerSetting[2];
-			std::string gameSetting;
-			uint32 winCounts[2];
-
-			void swapPlayerData()
-			{
-				using std::swap;
-				swap(playerSetting[0], playerSetting[1]);
-				swap(winCounts[0], winCounts[1]);
-			}
-
-			template< class OP >
-			void serialize(OP op)
-			{
-				op & winCounts[0] & winCounts[1];
-				op & gameSetting & playerSetting[0] & playerSetting[1];
-			}
-
-			friend IStreamSerializer& operator << (IStreamSerializer& serializer, ResultData const& data)
-			{
-				const_cast<ResultData&>(data).serialize(IStreamSerializer::WriteOp(serializer));
-				return serializer;
-			}
-			friend IStreamSerializer& operator >> (IStreamSerializer& serializer, ResultData& data)
-			{
-				data.serialize(IStreamSerializer::ReadOp(serializer));
-				return serializer;
-			}
-		};
 
 		struct MatchKey
 		{
 			MatchParamKey playerParamKeys[2];
-			bool setValue(ResultData const& data)
+			bool setValue(MatchResultData const& data)
 			{
 				playerParamKeys[0].setValue(data.playerSetting[0]);
 				playerParamKeys[1].setValue(data.playerSetting[1]);
@@ -360,7 +353,7 @@ namespace Go
 			}
 		};
 
-		ResultData* getMatchResult(MatchPlayer players[2], GameSetting const& gameSetting, bool& bSwap)
+		MatchResultData* getMatchResult(MatchPlayer players[2], GameSetting const& gameSetting, bool& bSwap)
 		{
 			MatchKey key;
 			bSwap = key.setValue(players, gameSetting);
@@ -400,8 +393,11 @@ namespace Go
 		bool save(char const* path);
 		bool load(char const* path);
 
-		std::map< MatchKey, ResultData > mDataMap;
+		std::map< MatchKey, MatchResultData > mDataMap;
 	};
+
+
+
 
 	struct MatchGameData
 	{

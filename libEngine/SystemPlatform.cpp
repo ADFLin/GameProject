@@ -198,7 +198,7 @@ int64 SystemPlatform::AtomicRead(volatile int64* ptr)
 DateTime SystemPlatform::GetUTCTime()
 {
 #if SYS_PLATFORM_WIN
-	SYSTEMTIME systemTime;
+	SYSTEMTIME systemTime = { 0 };
 	::GetSystemTime(&systemTime);
 	return DateTime(systemTime.wYear, systemTime.wMonth, systemTime.wDay, systemTime.wHour, systemTime.wMinute, systemTime.wSecond, systemTime.wMilliseconds);
 #else
@@ -214,7 +214,7 @@ DateTime SystemPlatform::GetUTCTime()
 DateTime SystemPlatform::GetLocalTime()
 {
 #if SYS_PLATFORM_WIN
-	SYSTEMTIME WinSysTime;
+	SYSTEMTIME WinSysTime = { 0 };
 	::GetLocalTime(&WinSysTime);
 	return DateTime(WinSysTime.wYear, WinSysTime.wMonth, WinSysTime.wDay, WinSysTime.wHour, WinSysTime.wMinute, WinSysTime.wSecond, WinSysTime.wMilliseconds);
 #else

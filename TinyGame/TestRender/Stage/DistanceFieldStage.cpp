@@ -71,7 +71,13 @@ namespace Render
 				return false;
 
 			IStreamSerializer::ReadOp op(serializer);
+
 			serialize(data , op);
+
+			if( !serializer.isValid() )
+			{
+				return false;
+			}
 			return true;
 		}
 
@@ -83,11 +89,12 @@ namespace Render
 
 			IStreamSerializer::WriteOp op(serializer);
 			serialize(data , op);
+			if( !serializer.isValid() )
+			{
+				return false;
+			}
 			return true;
 		}
-
-		
-
 
 		virtual bool onInit()
 		{

@@ -162,7 +162,6 @@ namespace Render
 				{
 
 				}
-				::Global::GetAssetManager().registerViewer(&mMaterialAssets[i]);
 				postLoading();
 			}
 
@@ -237,7 +236,6 @@ namespace Render
 		};
 		loadingTask->exitFun = [this]()
 		{
-			ShaderManager::Get().registerShaderAssets( ::Global::GetAssetManager() );
 			mGpuSync.bUseFence = false;
 			mLoadingThread = nullptr;
 		};

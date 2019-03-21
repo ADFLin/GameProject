@@ -1023,6 +1023,9 @@
     <ClInclude Include="Serialize\FileStream.h">
       <Filter>Serialize</Filter>
     </ClInclude>
+    <ClInclude Include="Serialize\SerializeFwd.h">
+      <Filter>Serialize</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="ObjectHandle.cpp">

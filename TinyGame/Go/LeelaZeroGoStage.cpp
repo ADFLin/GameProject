@@ -1735,12 +1735,16 @@ namespace Go
 					case LeelaGameParam::eNetWeight:
 						{	
 							mUsedWeight = StringView(com.strParam, 8);
-							for( int i = 0; i < ELFWeights.size(); ++i )
+							int index = 0;
+							for(  ;index < ELFWeights.size(); ++index )
 							{
-								if( strcmp(com.strParam, ELFWeights[i]) != 0 )
-									::Global::GameConfig().setKeyValue("LeelaLastNetWeight", "Go", com.strParam);
+								if( FCString::Compare(com.strParam, ELFWeights[index]) == 0 )
+									break;
 							}
-
+							if( index == ELFWeights.size() )
+							{
+								::Global::GameConfig().setKeyValue("LeelaLastNetWeight", "Go", com.strParam);
+							}
 						}
 						break;
 					}

@@ -10,6 +10,7 @@ template< class FileSteamType >
 class TFileFileSerializer : public IStreamSerializer
 {
 public:
+	bool isValid() const { return mFS.good(); }
 	void close()
 	{
 		mFS.close();

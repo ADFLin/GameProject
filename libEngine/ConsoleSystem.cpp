@@ -124,11 +124,11 @@ bool ConsoleSystem::executeCommand(char const* comStr)
 	bool result = executeCommandImpl(comStr);
 	if( result )
 	{
-		::LogMsg("Com \"%s\"", comStr);
+		::LogMsg("Com : \"%s\"", comStr);
 	}
 	else
 	{
-		::LogMsg("Com fail \"%s\" : %s", comStr, mLastErrorMsg.c_str());
+		::LogMsg("Com : Fail \"%s\" : %s", comStr, mLastErrorMsg.c_str());
 	}
 	return result;
 }

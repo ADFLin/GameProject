@@ -32,7 +32,7 @@ public:
 	template< class T >
 	TInlineStringData(TStringFormatInitializer<T> const& initializer) { initializer(mData); }
 
-	TInlineStringData() {};
+	TInlineStringData() = default;
 	TInlineStringData(TInlineStringData const& other) = default;
 	TInlineStringData& operator = (TInlineStringData const& other) = default;
 
@@ -57,7 +57,6 @@ public:
 	FORCEINLINE static CharT const* From(bool value) { return (value) ? STRING_LITERAL(CharT, "1") : STRING_LITERAL(CharT, "0"); }
 
 	template< class CharT = TChar >
-	FORCEINLINE static CharT const* From(TChar const* str) { return str; }
-
+	FORCEINLINE static CharT const* From(CharT const* value) { return value; }
 };
 #endif // StringConv_H_1F1C04BF_8321_4E8A_BFBA_5C015EE4EAE4

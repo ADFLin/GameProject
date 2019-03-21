@@ -53,7 +53,7 @@ public:
 	char const* getFileName() const { return mFindData.cFileName; }
 	DateTime getLastModifyDate() const
 	{
-		SYSTEMTIME systemTime;
+		SYSTEMTIME systemTime = { 0 };
 		::FileTimeToSystemTime(&mFindData.ftLastWriteTime, &systemTime);
 		return DateTime(systemTime.wYear, systemTime.wMonth, systemTime.wDay, systemTime.wHour, systemTime.wMinute, systemTime.wSecond, systemTime.wMilliseconds);
 	}

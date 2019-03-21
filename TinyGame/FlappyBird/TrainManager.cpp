@@ -476,7 +476,7 @@ namespace FlappyBird
 			return false;
 		}
 
-		InputFileSerializer::ReadOp op(serializer);
+		IStreamSerializer::ReadOp op(serializer);
 
 		{
 			Mutex::Locker locker(mPoolMutex);
@@ -500,6 +500,10 @@ namespace FlappyBird
 
 		data.inputData(op);
 
+		if( !serializer.isValid() )
+		{
+			return false;
+		}
 
 		return true;
 	}
@@ -511,7 +515,8 @@ namespace FlappyBird
 		{
 			return false;
 		}
-		InputFileSerializer::WriteOp op(serializer);
+
+		IStreamSerializer::WriteOp op(serializer);
 
 		{
 			Mutex::Locker locker(mPoolMutex);
@@ -529,6 +534,11 @@ namespace FlappyBird
 		}
 
 		data.outputData(op);
+
+		if( !serializer.isValid() )
+		{
+			return false;
+		}
 		return true;
 	}
 

@@ -134,14 +134,14 @@ namespace Go
 
 	bool MatchResultMap::convertLeelaWeight(LeelaWeightTable const& table)
 	{
-		std::vector< ResultData > requireUpdatedData;
+		std::vector< MatchResultData > requireUpdatedData;
 		StringView leelaZeroName{ GetControllerName(ControllerType::eLeelaZero) };
 
 		std::string bestWeightName = LeelaAppRun::GetBestWeightName();
 
 		for( auto iter = mDataMap.begin(); iter != mDataMap.end(); )
 		{
-			ResultData& data = iter->second;
+			MatchResultData& data = iter->second;
 
 			bool bModified = false;
 			for( int i = 0; i < 2; ++i )
@@ -217,6 +217,10 @@ namespace Go
 		{
 			serializer << pair.second;
 		}
+		if( !serializer.isValid() )
+		{
+			return false;
+		}
 		return false;
 	}
 
@@ -228,11 +232,12 @@ namespace Go
 		
 		int version = DATA_LAST_VERSION;
 		int num;
+	
 		serializer >> version;
 		serializer >> num;
 		for( int i = 0; i < num; ++i )
 		{
-			ResultData data;
+			MatchResultData data;
 			serializer >> data;
 			MatchKey key;
 			if( key.setValue(data) )
@@ -241,7 +246,13 @@ namespace Go
 			}
 			mDataMap.insert({ key , std::move(data) });
 		}
-		return false;
+
+		if( !serializer.isValid() )
+		{
+			return false;
+		}
+
+		return true;
 	}
 
 }//namespace Go

@@ -292,7 +292,7 @@ void Replay::resetTrackPos()
 	mNextNodePos = 0;
 }
 
-bool Replay::isValid()
+bool Replay::isValid() const
 {
 	return mFrameNodeVec.size() != 0;
 }

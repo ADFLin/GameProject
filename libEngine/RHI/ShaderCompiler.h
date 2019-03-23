@@ -116,14 +116,14 @@ namespace Render
 
 		int loadMaterialShaders(MaterialShaderCompileInfo const& info, VertexFactoryType& vertexFactoryType , MaterialShaderPairVec& outShaders );
 
-		CORE_API GlobalShaderProgram* getGlobalShader(GlobalShaderProgramClass& shaderClass , bool bForceLoad );
+		CORE_API GlobalShaderProgram* getGlobalShader(GlobalShaderProgramClass const& shaderClass , bool bForceLoad );
 
 		bool registerGlobalShader(GlobalShaderProgramClass& shaderClass);
 
 		int  loadAllGlobalShaders();
 
-		GlobalShaderProgram* constructGlobalShader(GlobalShaderProgramClass& shaderClass);
-		GlobalShaderProgram* constructShaderInternal(GlobalShaderProgramClass& shaderClass, ShaderClassType classType, ShaderCompileOption& option );
+		GlobalShaderProgram* constructGlobalShader(GlobalShaderProgramClass const& shaderClass);
+		GlobalShaderProgram* constructShaderInternal(GlobalShaderProgramClass const& shaderClass, ShaderClassType classType, ShaderCompileOption& option );
 
 		void cleanupGlobalShader();
 
@@ -230,10 +230,10 @@ namespace Render
 
 #if 1
 		std::unordered_map< ShaderProgram*, ShaderProgramCompileInfo* > mShaderCompileMap;
-		std::unordered_map< GlobalShaderProgramClass*, GlobalShaderProgram* > mGlobalShaderMap;
+		std::unordered_map< GlobalShaderProgramClass const*, GlobalShaderProgram* > mGlobalShaderMap;
 #else
 		std::map< ShaderProgram*, ShaderProgramCompileInfo* > mShaderCompileMap;
-		std::map< GlobalShaderProgramClass*, GlobalShaderProgram* > mGlobalShaderMap;
+		std::map< GlobalShaderProgramClass const*, GlobalShaderProgram* > mGlobalShaderMap;
 #endif
 
 	};

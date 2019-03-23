@@ -97,6 +97,37 @@ namespace Render
 			return  m[14] / (m[10] - 1);
 		}
 	};
+
+
+	class ReverseZPerspectiveMatrix : public Matrix4
+	{
+	public:
+		ReverseZPerspectiveMatrix(float yFov, float aspect, float zNear, float zFar)
+		{
+			float f = 1.0 / Math::Tan(yFov / 2);
+			float dz = zNear - zFar;
+			setValue(
+				f / aspect, 0, 0, 0,
+				0, f, 0, 0,
+				0, 0, -(zFar + zNear) / dz, -1,
+				0, 0, -2 * zFar * zNear / dz, 0);
+		}
+
+		ReverseZPerspectiveMatrix(float left, float right, float bottom, float top, float zNear, float zFar)
+		{
+			float dz = zNear - zFar;
+			float xFactor = 1 / (right - left);
+			float yFactor = 1 / (top - bottom);
+			float n2 = 2 * zNear;
+			setValue(
+				n2 * xFactor, 0, 0, 0,
+				0, n2 * yFactor, 0, 0,
+				(right + left) * xFactor, (top + bottom) * yFactor, -(zFar + zNear) / dz, -1,
+				0, 0, -2 * zFar * zNear / dz, 0);
+		}
+	};
+
+
 	class OrthoMatrix : public Matrix4
 	{
 	public:

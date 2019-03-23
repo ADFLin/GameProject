@@ -278,12 +278,12 @@ namespace Render
 
 		virtual void getPrimitives(PrimitivesCollection& primitiveCollection);
 
-		REF_OBJECT_COLLECTION_BEGIN(SimpleMeshObject)
+		REFLECT_OBJECT_BEGIN(SimpleMeshObject)
 			REF_PROPERTY(mesh)
 			REF_PROPERTY(worldTransform)
 			REF_PROPERTY(color)
 			REF_PROPERTY(material)
-		REF_OBJECT_COLLECTION_END()
+		REFLECT_OBJECT_END()
 	};
 
 	class DebugGeometryObject : public SceneObject

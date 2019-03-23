@@ -13,6 +13,8 @@
 
 class IStreamSerializer;
 
+#define GPU_BUFFER_ALIGN alignas(16)
+
 namespace Render
 {
 	enum class DeviceVendorName

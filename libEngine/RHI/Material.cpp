@@ -148,7 +148,7 @@ namespace Render
 		cleanup();
 	}
 
-	MaterialShaderProgram* MaterialShaderMap::getShader(VertexFactory* vertexFactory , MaterialShaderProgramClass& shaderClass )
+	MaterialShaderProgram* MaterialShaderMap::getShader(VertexFactory* vertexFactory , MaterialShaderProgramClass const& shaderClass )
 	{
 		MaterialShaderKey key{ (vertexFactory) ? &vertexFactory->getType() : VertexFactoryType::DefaultType , &shaderClass };
 		auto iter = mShaderMap.find(key);

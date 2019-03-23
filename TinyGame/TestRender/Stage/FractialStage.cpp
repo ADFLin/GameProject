@@ -61,7 +61,7 @@ struct MandelbrotParam
 
 class MandelbrotProgram : public GlobalShaderProgram
 {
-	DECLARE_GLOBAL_SHADER(MandelbrotProgram);
+	DECLARE_SHADER_PROGRAM(MandelbrotProgram, Global);
 
 	static int constexpr SizeX = 16;
 	static int constexpr SizeY = 16;
@@ -127,7 +127,7 @@ class MandelbrotProgram : public GlobalShaderProgram
 
 };
 
-IMPLEMENT_GLOBAL_SHADER(MandelbrotProgram);
+IMPLEMENT_SHADER_PROGRAM(MandelbrotProgram);
 
 class FractialTestStage : public StageBase
 {

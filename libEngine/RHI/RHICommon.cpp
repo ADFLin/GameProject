@@ -238,7 +238,7 @@ namespace Render
 
 	class CopyTextureProgram : public GlobalShaderProgram
 	{
-		DECLARE_GLOBAL_SHADER(CopyTextureProgram)
+		DECLARE_SHADER_PROGRAM(CopyTextureProgram, Global)
 
 		static void SetupShaderCompileOption(ShaderCompileOption&) {}
 		static char const* GetShaderFileName()
@@ -272,7 +272,7 @@ namespace Render
 
 	class CopyTextureMaskProgram : public GlobalShaderProgram
 	{
-		DECLARE_GLOBAL_SHADER(CopyTextureMaskProgram)
+		DECLARE_SHADER_PROGRAM(CopyTextureMaskProgram, Global)
 		static void SetupShaderCompileOption(ShaderCompileOption&) {}
 		static char const* GetShaderFileName()
 		{
@@ -306,7 +306,7 @@ namespace Render
 
 	class CopyTextureBiasProgram : public GlobalShaderProgram
 	{
-		DECLARE_GLOBAL_SHADER(CopyTextureBiasProgram)
+		DECLARE_SHADER_PROGRAM(CopyTextureBiasProgram, Global)
 
 		static void SetupShaderCompileOption(ShaderCompileOption&) {}
 		static char const* GetShaderFileName()
@@ -343,7 +343,7 @@ namespace Render
 
 	class MappingTextureColorProgram : public GlobalShaderProgram
 	{
-		DECLARE_GLOBAL_SHADER(MappingTextureColorProgram)
+		DECLARE_SHADER_PROGRAM(MappingTextureColorProgram, Global)
 
 		static void SetupShaderCompileOption(ShaderCompileOption&) {}
 		static char const* GetShaderFileName()
@@ -379,10 +379,10 @@ namespace Render
 		ShaderParameter mParamValueFactor;
 	};
 
-	IMPLEMENT_GLOBAL_SHADER(CopyTextureProgram);
-	IMPLEMENT_GLOBAL_SHADER(CopyTextureMaskProgram);
-	IMPLEMENT_GLOBAL_SHADER(CopyTextureBiasProgram);
-	IMPLEMENT_GLOBAL_SHADER(MappingTextureColorProgram);
+	IMPLEMENT_SHADER_PROGRAM(CopyTextureProgram);
+	IMPLEMENT_SHADER_PROGRAM(CopyTextureMaskProgram);
+	IMPLEMENT_SHADER_PROGRAM(CopyTextureBiasProgram);
+	IMPLEMENT_SHADER_PROGRAM(MappingTextureColorProgram);
 
 	bool ShaderHelper::init()
 	{

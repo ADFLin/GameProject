@@ -19,7 +19,7 @@ namespace Render
 
 	class RayMarchingProgram : public GlobalShaderProgram
 	{
-		DECLARE_GLOBAL_SHADER(RayMarchingProgram);
+		DECLARE_SHADER_PROGRAM(RayMarchingProgram, Global);
 	public:
 		static void SetupShaderCompileOption(ShaderCompileOption& option) 
 		{
@@ -43,7 +43,7 @@ namespace Render
 		
 	};
 
-	IMPLEMENT_GLOBAL_SHADER(RayMarchingProgram);
+	IMPLEMENT_SHADER_PROGRAM(RayMarchingProgram);
 
 	class DistanceFieldTestStage : public TestRenderStageBase
 	{

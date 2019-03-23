@@ -16,6 +16,7 @@
 #include "RHI/Font.cpp"
 #include "RHI/GpuProfiler.cpp"
 #include "RHI/RHIStaticStateObject.cpp"
+#include "RHI/SceneRenderer.cpp"
 #endif
 
 #define EXPORT_FUN(fun) static auto MARCO_NAME_COMBINE_2( GExportFun , __LINE__ ) = &fun;

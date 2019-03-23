@@ -82,6 +82,21 @@ struct WidgetPropery
 		};
 	}
 
+
+	static void Bind(GSlider* widget, float& valueRef, float min, float max , float power)
+	{
+		float constexpr scale = 0.001;
+		widget->setRange(0, 1 / scale);
+		float delta = max - min;
+		WidgetPropery::Set(widget, Math::Exp( Math::Log( (valueRef - min ) / delta ) / power ) / scale );
+		widget->onEvent = [&valueRef, scale, min , delta , power ](int event, GWidget* widget)
+		{
+			float factor = scale * WidgetPropery::Get<float>(widget->cast<GSlider>());
+			valueRef = min + delta * Math::Pow(factor, power);
+			return false;
+		};
+	}
+
 	static void Bind(GSlider* widget, int& valueRef, int min, int max )
 	{
 		widget->setRange(min, max);

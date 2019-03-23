@@ -6,6 +6,8 @@
 #include "RHI/DrawUtility.h"
 #include "RHI/MeshUtility.h"
 #include "RHI/GpuProfiler.h"
+#include "RHI/ShaderCore.h"
+#include "RHI/Scene.h"
 
 #include "Core/ScopeExit.h"
 #include "Math/PrimitiveTest.h"
@@ -13,7 +15,8 @@
 
 #include "DataCacheInterface.h"
 
-#define GPU_BUFFER_ALIGN alignas(16)
+
+
 
 namespace Render
 {
@@ -126,9 +129,13 @@ namespace Render
 	public:
 		Matrix4 getPerspectiveMatrix()
 		{
+			if( bUseReverse )
+				return ReverseZPerspectiveMatrix(mYFov, mAspect, mNear, mFar);
+				       
 			return PerspectiveMatrix(mYFov, mAspect, mNear, mFar);
 		}
 
+		bool  bUseReverse = false;
 		float mNear;
 		float mFar;
 		float mYFov;
@@ -136,7 +143,37 @@ namespace Render
 	};
 
 
+	struct TINY_API SharedAssetData
+	{
+		bool createCommonShader();
+		bool createSimpleMesh();
+
+		struct SimpleMeshId
+		{
+			enum
+			{
+				Tile,
+				Sphere,
+				Sphere2,
+				SpherePlane,
+				Box,
+				Plane,
+				Doughnut,
+				SkyBox,
+				SimpleSkin,
+				Terrain,
+				NumSimpleMesh,
+			};
+		};
+
+		ShaderProgram mProgSphere;
+
+		Mesh   mSimpleMeshs[SimpleMeshId::NumSimpleMesh];
+	};
+
+
 	class TINY_API TestRenderStageBase : public StageBase
+		                               , public SharedAssetData
 	{
 		typedef StageBase BaseClass;
 	public:
@@ -219,11 +256,13 @@ namespace Render
 			glLoadMatrixf(mView.worldToView);
 
 			glClearColor(0.2, 0.2, 0.2, 1);
-			glClearDepth(1.0);
+			glClearDepth(mViewFrustum.bUseReverse ? 0 : 1);
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
 			RHISetViewport(mView.rectOffset.x, mView.rectOffset.y, mView.rectSize.x, mView.rectSize.y);
-			RHISetDepthStencilState(TStaticDepthStencilState<>::GetRHI());
+			RHISetDepthStencilState( mViewFrustum.bUseReverse ?
+				TStaticDepthStencilState< true , ECompareFun::Greater >::GetRHI() :
+				TStaticDepthStencilState<>::GetRHI());
 			RHISetBlendState(TStaticBlendState<>::GetRHI());
 
 		}
@@ -272,6 +311,7 @@ namespace Render
 			return false;
 		}
 
+
 		virtual bool onWidgetEvent(int event, int id, GWidget* ui) override
 		{
 			switch( id )
@@ -282,7 +322,11 @@ namespace Render
 
 			return BaseClass::onWidgetEvent(event, id, ui);
 		}
-	protected:
+
+
+		void drawLightPoints(ViewInfo& view, TArrayView< LightInfo > lights);
+
+
 	};
 
 }//namespace Render

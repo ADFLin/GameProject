@@ -32,7 +32,8 @@ namespace Render
 
 		bool testVisible(ViewInfo const& view) const;
 
-		REF_OBJECT_COLLECTION_BEGIN(LightInfo)
+		REFLECT_OBJECT_BEGIN(LightInfo)
+			REF_PROPERTY(type)
 			REF_PROPERTY(pos)
 			REF_PROPERTY(color)
 			REF_PROPERTY(dir)
@@ -40,7 +41,7 @@ namespace Render
 			REF_PROPERTY(intensity)
 			REF_PROPERTY(radius)
 			REF_PROPERTY(bCastShadow)
-		REF_OBJECT_COLLECTION_END()
+		REFLECT_OBJECT_END()
 	};
 
 	class SceneLight

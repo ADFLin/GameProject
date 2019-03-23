@@ -8,6 +8,7 @@
 #include "MeshUtility.h"
 #include "RenderContext.h"
 
+
 namespace Render
 {
 
@@ -291,7 +292,7 @@ namespace Render
 	};
 
 
-	struct TiledLightInfo
+	struct GPU_BUFFER_ALIGN TiledLightInfo
 	{
 		DECLARE_BUFFER_STRUCT(TiledLightBlock);
 

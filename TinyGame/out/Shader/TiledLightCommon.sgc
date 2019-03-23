@@ -4,19 +4,25 @@
 
 struct TiledLightInfo
 {
-	float3 pos;
-	int   type;
-	float3 color;
+	float3  pos;
+	int     type;
+	float3  color;
 	float   intensity;
-	float3 dir;
+	float3  dir;
 	float   radius;
-	float4 param; // x y: spotAngle  , z : shadowFactor
+	float4  param; // x y: spotAngle  , z : shadowFactor
 	float4x4 worldToShadow;
 };
 
+
+#if SHADER_COMPILING
 layout(std140) buffer TiledLightBlock
 {
 	TiledLightInfo TiledLightList[];
 };
+
+#else
+TiledLightInfo TiledLightList[];
+#endif
 
 uniform int TiledLightNum = 0;

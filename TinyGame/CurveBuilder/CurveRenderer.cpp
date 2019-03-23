@@ -34,7 +34,7 @@ namespace CB
 
 	class CurveMeshProgram : public CurveMeshBaseProgram
 	{
-		DECLARE_GLOBAL_SHADER(CurveMeshProgram)
+		DECLARE_SHADER_PROGRAM(CurveMeshProgram, Global)
 		typedef CurveMeshBaseProgram BaseClass;
 		static TArrayView< ShaderEntryInfo const > GetShaderEntries()
 		{
@@ -49,7 +49,7 @@ namespace CB
 
 	class CurveMeshOITProgram : public CurveMeshProgram
 	{
-		DECLARE_GLOBAL_SHADER(CurveMeshOITProgram)
+		DECLARE_SHADER_PROGRAM(CurveMeshOITProgram, Global)
 
 		typedef CurveMeshProgram BaseClass;
 		static void SetupShaderCompileOption(ShaderCompileOption& option)
@@ -74,7 +74,7 @@ namespace CB
 
 	class MeshNormalVisualizeProgram : public CurveMeshBaseProgram
 	{
-		DECLARE_GLOBAL_SHADER(MeshNormalVisualizeProgram)
+		DECLARE_SHADER_PROGRAM(MeshNormalVisualizeProgram, Global)
 
 		static void SetupShaderCompileOption(ShaderCompileOption&) {}
 		static char const* GetShaderFileName()
@@ -113,9 +113,9 @@ namespace CB
 	};
 
 
-	IMPLEMENT_GLOBAL_SHADER(CurveMeshProgram);
-	IMPLEMENT_GLOBAL_SHADER(CurveMeshOITProgram);
-	IMPLEMENT_GLOBAL_SHADER(MeshNormalVisualizeProgram);
+	IMPLEMENT_SHADER_PROGRAM(CurveMeshProgram);
+	IMPLEMENT_SHADER_PROGRAM(CurveMeshOITProgram);
+	IMPLEMENT_SHADER_PROGRAM(MeshNormalVisualizeProgram);
 
 	CurveRenderer::CurveRenderer()
 	{

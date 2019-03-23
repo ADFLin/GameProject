@@ -136,10 +136,10 @@ namespace Render
 	struct MaterialShaderKey
 	{
 		VertexFactoryType*          vertexFactoryType;
-		MaterialShaderProgramClass* shaderClass;
+		MaterialShaderProgramClass const* shaderClass;
 
 		MaterialShaderKey() {}
-		MaterialShaderKey(VertexFactoryType* inVertexFactoryType, MaterialShaderProgramClass* inShaderClass)
+		MaterialShaderKey(VertexFactoryType* inVertexFactoryType, MaterialShaderProgramClass const* inShaderClass)
 			:vertexFactoryType(inVertexFactoryType)
 			, shaderClass(inShaderClass)
 		{
@@ -170,7 +170,7 @@ namespace Render {
 		~MaterialShaderMap();
 
 
-		MaterialShaderProgram* getShader(VertexFactory* vertexFactory, MaterialShaderProgramClass& shaderClass);
+		MaterialShaderProgram* getShader(VertexFactory* vertexFactory, MaterialShaderProgramClass const& shaderClass);
 
 		template< class ShaderType >
 		ShaderType* getShaderT(VertexFactory* vertexFactory)

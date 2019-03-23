@@ -43,30 +43,6 @@ namespace Render
 		CORE_API static std::vector< MaterialShaderProgramClass* > ClassList;
 	};
 
-
-#define DECLARE_MATERIAL_SHADER( CLASS ) \
-	public: \
-		static MaterialShaderProgramClass& GetShaderClass(); \
-		static CLASS* CreateShader() { return new CLASS; }
-
-#define IMPLEMENT_MATERIAL_SHADER( CLASS )\
-	static MaterialShaderProgramClass gMaterialName##CLASS = \
-	MaterialShaderProgramClass{ \
-		(GlobalShaderProgramClass::FunCreateShader) &CLASS::CreateShader,\
-		CLASS::SetupShaderCompileOption,\
-		CLASS::GetShaderFileName, \
-		CLASS::GetShaderEntries \
-	}; \
-	Render::MaterialShaderProgramClass& CLASS::GetShaderClass(){ return gMaterialName##CLASS; }
-
-#define IMPLEMENT_MATERIAL_SHADER_T( TEMPLATE_ARGS , CLASS )\
-	TEMPLATE_ARGS\
-	IMPLEMENT_MATERIAL_SHADER( CLASS )
-
-
-
-
-
 }//namespace Render
 
 #endif // MaterialShader_H_B9594273_3899_4630_B560_D67F4FA887CE

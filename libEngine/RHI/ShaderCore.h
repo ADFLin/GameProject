@@ -80,6 +80,7 @@ namespace Render
 		NumBlendMode,
 	};
 
+
 	enum class ETessellationMode
 	{
 		None,
@@ -202,6 +203,13 @@ namespace Render
 	class ShaderProgram : public TOpenGLObject< RMPShaderProgram >
 	{
 	public:
+
+		enum EClassTypeName
+		{
+			Global ,
+			Material ,
+		};
+
 		ShaderProgram();
 
 		virtual ~ShaderProgram();
@@ -550,6 +558,33 @@ namespace Render
 		int  mNextUniformSlot;
 		int  mNextStorageSlot;
 	};
+
+
+	class MaterialShaderProgramClass;
+	class GlobalShaderProgramClass;
+
+#define DECLARE_EXPORTED_SHADER_PROGRAM( CLASS , CALSS_TYPE_NAME , API , ...)\
+	public: \
+		using ShaderClassType = CALSS_TYPE_NAME##ShaderProgramClass; \
+		static API ShaderClassType ShaderClass; \
+		static ShaderClassType const& GetShaderClass(){ return ShaderClass; }\
+		static CLASS* CreateShader() { return new CLASS; }
+
+#define DECLARE_SHADER_PROGRAM( CLASS , CALSS_TYPE_NAME , ...) DECLARE_EXPORTED_SHADER_PROGRAM( CLASS , CALSS_TYPE_NAME , , __VA_ARGS__ )
+
+#define IMPLEMENT_SHADER_PROGRAM( CLASS )\
+	CLASS::ShaderClassType CLASS::ShaderClass\
+	(\
+		(GlobalShaderProgramClass::FunCreateShader) &CLASS::CreateShader,\
+		CLASS::SetupShaderCompileOption,\
+		CLASS::GetShaderFileName, \
+		CLASS::GetShaderEntries \
+	);
+
+
+#define IMPLEMENT_SHADER_PROGRAM_T( TEMPLATE_ARGS , CLASS )\
+	TEMPLATE_ARGS \
+	IMPLEMENT_SHADER_PROGRAM( CLASS )
 
 }//namespace Render
 

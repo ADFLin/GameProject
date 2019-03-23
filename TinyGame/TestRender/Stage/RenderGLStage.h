@@ -588,6 +588,7 @@ namespace Render
 		              , public SceneInterface
 		              , public IAssetProvider
 		              , public SceneListener
+		              , public SharedAssetData
 	{
 		typedef StageBase BaseClass;
 		
@@ -629,7 +630,7 @@ namespace Render
 
 		void renderScene(RenderContext& param);
 
-		void showLight(ViewInfo& view);
+		void showLights(ViewInfo& view);
 		
 		void buildScene1(Scene& scene);
 
@@ -705,7 +706,6 @@ namespace Render
 		}
 
 		ShaderProgram mProgPlanet;
-		ShaderProgram mProgSphere;
 		ShaderProgram mProgBump;
 		ShaderProgram mProgParallax;
 		ShaderProgram mEffectSphereSM;
@@ -716,28 +716,6 @@ namespace Render
 		ShaderProgram mProgTerrain;
 
 		class ShadowVolumeProgram* mProgShadowVolume;
-
-
-		struct SimpleMeshId
-		{
-			enum
-			{
-				Tile,
-				Sphere,
-				Sphere2,
-				SpherePlane,
-				Box,
-				Plane,
-				Doughnut,
-				SkyBox ,
-				SimpleSkin ,
-				Terrain ,
-				NumSimpleMesh,
-			};
-		};
-
-
-		Mesh   mSimpleMeshs[ SimpleMeshId::NumSimpleMesh ];
 
 		Mesh   mFrustumMesh;
 		Mesh   mSpritePosMesh;

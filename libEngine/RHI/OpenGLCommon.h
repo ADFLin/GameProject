@@ -284,6 +284,7 @@ namespace Render
 		int  addTextureLayer(RHITextureCube& target);
 		int  addTexture(RHITextureCube& target, Texture::Face face);
 		int  addTexture( RHITexture2D& target);
+		int  addScreenBuffer();
 		void setTexture( int idx , RHITexture2D& target );
 		void setTexture(int idx, RHITextureCube& target, Texture::Face face);
 
@@ -308,6 +309,7 @@ namespace Render
 				bool   bTexture;
 			};
 		};
+		void setRenderBufferInternal(GLuint handle);
 		void setTextureInternal(int idx, GLuint handle, GLenum texType);
 		void setDepthInternal(RHIResource& resource, GLuint handle, Texture::DepthFormat format, bool bTexture);
 

@@ -441,7 +441,7 @@ namespace Render
 	{
 		typedef MaterialShaderProgram BaseClass;
 
-		DECLARE_MATERIAL_SHADER(ForwordLightingProgram);
+		DECLARE_SHADER_PROGRAM(ForwordLightingProgram ,Material);
 
 		static void SetupShaderCompileOption(ShaderCompileOption& option)
 		{
@@ -464,7 +464,7 @@ namespace Render
 		}
 	};
 
-	IMPLEMENT_MATERIAL_SHADER(ForwordLightingProgram);
+	IMPLEMENT_SHADER_PROGRAM(ForwordLightingProgram);
 
 	class DrawCallOptimizationStage : public StageBase
 		                            , public MaterialAssetProvider

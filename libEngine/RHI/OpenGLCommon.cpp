@@ -290,7 +290,18 @@ namespace Render
 		return idx;
 	}
 
-	void OpenGLFrameBuffer::setTexture( int idx , RHITexture2D& target )
+	int OpenGLFrameBuffer::addScreenBuffer()
+	{
+		int idx = mTextures.size();
+		BufferInfo info;
+		info.bufferRef = nullptr;
+		info.idxFace = 0;
+		mTextures.push_back(info);
+		setRenderBufferInternal(0);
+		return idx;
+	}
+
+	void OpenGLFrameBuffer::setTexture(int idx, RHITexture2D& target)
 	{
 		assert( idx < mTextures.size() );
 		BufferInfo& info = mTextures[idx];
@@ -308,6 +319,18 @@ namespace Render
 		setTextureInternal( idx , OpenGLCast::GetHandle( target ) , GL_TEXTURE_CUBE_MAP_POSITIVE_X + info.idxFace );
 	}
 
+	void OpenGLFrameBuffer::setRenderBufferInternal( GLuint handle )
+	{
+		assert(getHandle());
+		glBindFramebuffer(GL_FRAMEBUFFER, getHandle());
+		glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 , GL_RENDERBUFFER, handle);
+		GLenum Status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+		if( Status != GL_FRAMEBUFFER_COMPLETE )
+		{
+			LogWarning(0, "Texture Can't Attach to FrameBuffer");
+		}
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	}
 
 	void OpenGLFrameBuffer::setTextureInternal(int idx, GLuint handle , GLenum texType)
 	{
@@ -394,7 +417,8 @@ namespace Render
 		}
 	}
 
-	void OpenGLFrameBuffer::setDepthInternal( RHIResource& resource , GLuint handle, Texture::DepthFormat format, bool bTexture )
+
+	void OpenGLFrameBuffer::setDepthInternal(RHIResource& resource, GLuint handle, Texture::DepthFormat format, bool bTexture)
 	{
 		removeDepthBuffer();
 

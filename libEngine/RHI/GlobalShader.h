@@ -35,7 +35,7 @@ namespace Render
 			return TArrayView< ShaderEntryInfo const >();
 #endif
 		}
-		class GlobalShaderProgramClass* myClass;
+		class GlobalShaderProgramClass const* myClass;
 	};
 
 
@@ -60,27 +60,6 @@ namespace Render
 			FunGetShaderEntries inFunGetShaderEntries);
 	};
 
-#define DECLARE_GLOBAL_SHADER( CLASS )\
-	public:\
-		static GlobalShaderProgramClass& GetShaderClass();\
-		static GlobalShaderProgram* CreateShader() { return new CLASS; }
-
-#define IMPLEMENT_GLOBAL_SHADER( CLASS )\
-	Render::GlobalShaderProgramClass& CLASS::GetShaderClass()\
-	{\
-		static GlobalShaderProgramClass staticClass\
-		{\
-			CLASS::CreateShader,\
-			CLASS::SetupShaderCompileOption,\
-			CLASS::GetShaderFileName,\
-			CLASS::GetShaderEntries,\
-		};\
-		return staticClass;\
-	}
-
-#define IMPLEMENT_GLOBAL_SHADER_T( TEMPLATE_ARGS , CLASS )\
-	TEMPLATE_ARGS\
-	IMPLEMENT_GLOBAL_SHADER( CLASS )
 
 }//namespace Render
 

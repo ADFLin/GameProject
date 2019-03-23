@@ -4,10 +4,10 @@ struct LightParameters
 {
 	float4   worldPosAndRadius;
 	float3   color;
-	float3   dir;
-	float3   spotParam;
 	int      type;
+	float3   dir;
 	int      bCastShadow;
+	float3   spotParam;
 };
 
 uniform LightParameters GLight;

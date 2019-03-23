@@ -4,17 +4,14 @@
 #include "RHICommand.h"
 #include "OpenGLCommon.h"
 
-
-
 #include "ShaderCompiler.h"
 #include "VertexFactory.h"
 #include "MaterialShader.h"
-
 #include "DrawUtility.h"
-
 #include "Scene.h"
 
 #include "FixString.h"
+#include "CoreShare.h"
 
 #include <algorithm>
 
@@ -143,7 +140,7 @@ namespace Render
 	{
 	public:
 		typedef MaterialShaderProgram BaseClass;
-		DECLARE_MATERIAL_SHADER(ShadowDepthProgram);
+		DECLARE_EXPORTED_SHADER_PROGRAM(ShadowDepthProgram , Material , CORE_API );
 
 
 		static void SetupShaderCompileOption(ShaderCompileOption& option)
@@ -166,7 +163,6 @@ namespace Render
 		}
 
 	};
-	IMPLEMENT_MATERIAL_SHADER(ShadowDepthProgram);
 
 	MaterialShaderProgram* ShadowDepthTech::getMaterialShader(RenderContext& context, MaterialMaster& material, VertexFactory* vertexFactory)
 	{
@@ -508,7 +504,7 @@ namespace Render
 	template< LightType LIGHT_TYPE , bool bUseBoundShape = false >
 	class TDeferredLightingProgram : public DeferredLightingProgram
 	{
-		DECLARE_GLOBAL_SHADER( TDeferredLightingProgram )
+		DECLARE_SHADER_PROGRAM( TDeferredLightingProgram, Global)
 		typedef DeferredLightingProgram BaseClass;
 
 		static TArrayView< ShaderEntryInfo const > GetShaderEntries()
@@ -541,9 +537,9 @@ namespace Render
 
 
 #define IMPLEMENT_DEFERRED_SHADER( LIGHT_TYPE , NAME )\
-	IMPLEMENT_GLOBAL_SHADER_T(template<>, TDeferredLightingProgram< LIGHT_TYPE >);\
+	IMPLEMENT_SHADER_PROGRAM_T(template<>, TDeferredLightingProgram< LIGHT_TYPE >);\
 	typedef TDeferredLightingProgram< LIGHT_TYPE , true > DeferredLightingProgram##NAME;\
-	IMPLEMENT_GLOBAL_SHADER_T(template<>, DeferredLightingProgram##NAME);
+	IMPLEMENT_SHADER_PROGRAM_T(template<>, DeferredLightingProgram##NAME);
 
 	IMPLEMENT_DEFERRED_SHADER(LightType::Spot, Spot);
 	IMPLEMENT_DEFERRED_SHADER(LightType::Point, Point);
@@ -553,7 +549,7 @@ namespace Render
 
 	class LightingShowBoundProgram : public DeferredLightingProgram
 	{
-		DECLARE_GLOBAL_SHADER(LightingShowBoundProgram)
+		DECLARE_SHADER_PROGRAM(LightingShowBoundProgram, Global)
 		typedef DeferredLightingProgram BaseClass;
 
 		static void SetupShaderCompileOption(ShaderCompileOption& option)
@@ -574,7 +570,7 @@ namespace Render
 	};
 
 
-	IMPLEMENT_GLOBAL_SHADER(LightingShowBoundProgram)
+	IMPLEMENT_SHADER_PROGRAM(LightingShowBoundProgram)
 
 	bool DeferredShadingTech::init( SceneRenderTargets& sceneRenderTargets )
 	{
@@ -777,7 +773,7 @@ namespace Render
 	class DeferredBasePassProgram : public MaterialShaderProgram
 	{
 		typedef MaterialShaderProgram BaseClass;
-		DECLARE_MATERIAL_SHADER(DeferredBasePassProgram);
+		DECLARE_EXPORTED_SHADER_PROGRAM(DeferredBasePassProgram, Material, CORE_API);
 
 		static void SetupShaderCompileOption(ShaderCompileOption& option)
 		{
@@ -798,7 +794,6 @@ namespace Render
 			return entries;
 		}
 	};
-	IMPLEMENT_MATERIAL_SHADER(DeferredBasePassProgram);
 
 	MaterialShaderProgram* DeferredShadingTech::getMaterialShader(RenderContext& context, MaterialMaster& material, VertexFactory* vertexFactory)
 	{
@@ -891,7 +886,7 @@ namespace Render
 
 	class SSAOGenerateProgram : public GlobalShaderProgram
 	{
-		DECLARE_GLOBAL_SHADER(SSAOGenerateProgram)
+		DECLARE_SHADER_PROGRAM(SSAOGenerateProgram, Global)
 
 		static void SetupShaderCompileOption(ShaderCompileOption&) {}
 		static char const* GetShaderFileName()
@@ -917,11 +912,11 @@ namespace Render
 		ShaderParameter mParamOcclusionRadius;
 	};
 
-	IMPLEMENT_GLOBAL_SHADER(SSAOGenerateProgram);
+	IMPLEMENT_SHADER_PROGRAM(SSAOGenerateProgram);
 
 	class SSAOBlurProgram : public GlobalShaderProgram
 	{
-		DECLARE_GLOBAL_SHADER(SSAOBlurProgram)
+		DECLARE_SHADER_PROGRAM(SSAOBlurProgram, Global)
 
 		static void SetupShaderCompileOption(ShaderCompileOption&) {}
 		static char const* GetShaderFileName()
@@ -944,11 +939,11 @@ namespace Render
 		ShaderParameter mParamTextureSSAO;
 	};
 
-	IMPLEMENT_GLOBAL_SHADER(SSAOBlurProgram);
+	IMPLEMENT_SHADER_PROGRAM(SSAOBlurProgram);
 
 	class SSAOAmbientProgram : public GlobalShaderProgram
 	{
-		DECLARE_GLOBAL_SHADER(SSAOAmbientProgram)
+		DECLARE_SHADER_PROGRAM(SSAOAmbientProgram, Global)
 		static void SetupShaderCompileOption(ShaderCompileOption&) {}
 		static char const* GetShaderFileName()
 		{
@@ -971,7 +966,7 @@ namespace Render
 		ShaderParameter mParamTextureSSAO;
 	};
 
-	IMPLEMENT_GLOBAL_SHADER(SSAOAmbientProgram)
+	IMPLEMENT_SHADER_PROGRAM(SSAOAmbientProgram)
 
 	bool PostProcessSSAO::init(IntVector2 const& size)
 	{
@@ -1188,7 +1183,7 @@ namespace Render
 	{
 	public:
 
-		DECLARE_GLOBAL_SHADER(BMAResolveProgram);
+		DECLARE_SHADER_PROGRAM(BMAResolveProgram, Global);
 
 		void bindParameters(ShaderParameterMap& parameterMap);
 
@@ -1217,7 +1212,7 @@ namespace Render
 		}
 	};
 
-	IMPLEMENT_GLOBAL_SHADER(BMAResolveProgram);
+	IMPLEMENT_SHADER_PROGRAM(BMAResolveProgram);
 
 	bool OITTechnique::init(IntVector2 const& size)
 	{
@@ -1484,7 +1479,7 @@ namespace Render
 	class OITBBasePassProgram : public MaterialShaderProgram
 	{
 		typedef MaterialShaderProgram BaseClass;
-		DECLARE_MATERIAL_SHADER(OITBBasePassProgram);
+		DECLARE_EXPORTED_SHADER_PROGRAM(OITBBasePassProgram , Material, CORE_API);
 
 		static void SetupShaderCompileOption(ShaderCompileOption& option)
 		{
@@ -1519,8 +1514,6 @@ namespace Render
 
 		OITCommonParameter mParamOITCommon;
 	};
-
-	IMPLEMENT_MATERIAL_SHADER(OITBBasePassProgram);
 
 	void OITTechnique::setupShader(ShaderProgram& program)
 	{
@@ -1627,12 +1620,12 @@ namespace Render
 
 	class DOFGenerateCoC : public GlobalShaderProgram
 	{
-		DECLARE_GLOBAL_SHADER(DOFGenerateCoC);
+		DECLARE_SHADER_PROGRAM(DOFGenerateCoC, Global);
 
 
 	};
 
-	IMPLEMENT_GLOBAL_SHADER(DOFGenerateCoC);
+	IMPLEMENT_SHADER_PROGRAM(DOFGenerateCoC);
 
 	class DOFBlurBaseProgram : public GlobalShaderProgram
 	{
@@ -1758,7 +1751,7 @@ namespace Render
 	class DOFBlurVProgram : public DOFBlurBaseProgram
 	{
 
-		DECLARE_GLOBAL_SHADER(DOFBlurVProgram);
+		DECLARE_SHADER_PROGRAM(DOFBlurVProgram, Global);
 		static void SetupShaderCompileOption(ShaderCompileOption& option)
 		{
 			DOFBlurBaseProgram::SetupShaderCompileOption(option);
@@ -1779,7 +1772,7 @@ namespace Render
 
 	class DOFBlurHAndCombineProgram : public DOFBlurBaseProgram
 	{
-		DECLARE_GLOBAL_SHADER(DOFBlurHAndCombineProgram);
+		DECLARE_SHADER_PROGRAM(DOFBlurHAndCombineProgram, Global);
 		static void SetupShaderCompileOption(ShaderCompileOption& option)
 		{
 			DOFBlurBaseProgram::SetupShaderCompileOption(option);
@@ -1818,8 +1811,8 @@ namespace Render
 		ShaderParameter mParamTextureB;
 	};
 
-	IMPLEMENT_GLOBAL_SHADER(DOFBlurVProgram);
-	IMPLEMENT_GLOBAL_SHADER(DOFBlurHAndCombineProgram);
+	IMPLEMENT_SHADER_PROGRAM(DOFBlurVProgram);
+	IMPLEMENT_SHADER_PROGRAM(DOFBlurHAndCombineProgram);
 
 	bool PostProcessDOF::init(IntVector2 const& size)
 	{
@@ -1909,7 +1902,7 @@ namespace Render
 
 	class ClearBufferProgram : public GlobalShaderProgram
 	{
-		DECLARE_GLOBAL_SHADER(ClearBufferProgram);
+		DECLARE_SHADER_PROGRAM(ClearBufferProgram, Global);
 
 		static int constexpr SizeX = 8;
 		static int constexpr SizeY = 8;
@@ -1971,7 +1964,7 @@ namespace Render
 
 	class LightScatteringProgram : public GlobalShaderProgram
 	{
-		DECLARE_GLOBAL_SHADER(LightScatteringProgram);
+		DECLARE_SHADER_PROGRAM(LightScatteringProgram, Global);
 
 		static int constexpr GroupSizeX = 8;
 		static int constexpr GroupSizeY = 8;
@@ -2018,8 +2011,8 @@ namespace Render
 		ShaderParameter mParamTiledLightNum;
 	};
 
-	IMPLEMENT_GLOBAL_SHADER(ClearBufferProgram)
-	IMPLEMENT_GLOBAL_SHADER(LightScatteringProgram)
+	IMPLEMENT_SHADER_PROGRAM(ClearBufferProgram)
+	IMPLEMENT_SHADER_PROGRAM(LightScatteringProgram)
 
 	bool VolumetricLightingTech::init(IntVector2 const& screenSize)
 	{
@@ -2092,4 +2085,10 @@ namespace Render
 		}
 	}
 
+	
+#if CORE_SHARE_CODE
+	IMPLEMENT_SHADER_PROGRAM(ShadowDepthProgram);
+	IMPLEMENT_SHADER_PROGRAM(DeferredBasePassProgram);
+	IMPLEMENT_SHADER_PROGRAM(OITBBasePassProgram);
+#endif
 }//namespace Render

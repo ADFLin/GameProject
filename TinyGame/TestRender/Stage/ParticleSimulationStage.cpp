@@ -61,7 +61,7 @@ namespace Render
 
 	class ParticleInitProgram : public ParticleSimBaseProgram
 	{
-		DECLARE_GLOBAL_SHADER(ParticleInitProgram);
+		DECLARE_SHADER_PROGRAM(ParticleInitProgram, Global);
 		typedef ParticleSimBaseProgram BaseClass;
 
 
@@ -96,7 +96,7 @@ namespace Render
 	class ParticleUpdateProgram : public ParticleSimBaseProgram
 	{
 
-		DECLARE_GLOBAL_SHADER(ParticleUpdateProgram);
+		DECLARE_SHADER_PROGRAM(ParticleUpdateProgram, Global);
 		typedef ParticleSimBaseProgram BaseClass;
 
 		void bindParameters(ShaderParameterMap& parameterMap)
@@ -137,13 +137,13 @@ namespace Render
 	};
 
 
-	IMPLEMENT_GLOBAL_SHADER(ParticleInitProgram);
-	IMPLEMENT_GLOBAL_SHADER(ParticleUpdateProgram);
+	IMPLEMENT_SHADER_PROGRAM(ParticleInitProgram);
+	IMPLEMENT_SHADER_PROGRAM(ParticleUpdateProgram);
 
 	class SimpleSpriteParticleProgram : public GlobalShaderProgram
 	{
 	public:
-		DECLARE_GLOBAL_SHADER(SimpleSpriteParticleProgram);
+		DECLARE_SHADER_PROGRAM(SimpleSpriteParticleProgram, Global);
 		typedef GlobalShaderProgram BaseClass;
 
 		void bindParameters(ShaderParameterMap& parameterMap)
@@ -182,12 +182,12 @@ namespace Render
 		ShaderParameter mParamBaseTexture;
 	};
 
-	IMPLEMENT_GLOBAL_SHADER(SimpleSpriteParticleProgram);
+	IMPLEMENT_SHADER_PROGRAM(SimpleSpriteParticleProgram);
 
 	class SplineProgram : public GlobalShaderProgram
 	{
 	public:
-		DECLARE_GLOBAL_SHADER(SplineProgram);
+		DECLARE_SHADER_PROGRAM(SplineProgram, Global);
 		typedef GlobalShaderProgram BaseClass;
 
 		static bool constexpr UseTesselation = true;
@@ -236,13 +236,13 @@ namespace Render
 		}
 	};
 
-	IMPLEMENT_GLOBAL_SHADER(SplineProgram);
+	IMPLEMENT_SHADER_PROGRAM(SplineProgram);
 
 	template< bool bEnable >
 	class TTessellationProgram : public GlobalShaderProgram
 	{
 	public:
-		DECLARE_GLOBAL_SHADER(TTessellationProgram);
+		DECLARE_SHADER_PROGRAM(TTessellationProgram, Global);
 		typedef GlobalShaderProgram BaseClass;
 
 		void bindParameters(ShaderParameterMap& parameterMap)
@@ -288,8 +288,8 @@ namespace Render
 			return entries;
 		}
 	};
-	IMPLEMENT_GLOBAL_SHADER(TTessellationProgram<true>);
-	IMPLEMENT_GLOBAL_SHADER(TTessellationProgram<false>);
+	IMPLEMENT_SHADER_PROGRAM_T( template<>, TTessellationProgram<true>);
+	IMPLEMENT_SHADER_PROGRAM_T( template<>, TTessellationProgram<false>);
 
 	struct alignas(16) WaterVertexData
 	{
@@ -302,7 +302,7 @@ namespace Render
 
 	class WaterSimulationProgram : public GlobalShaderProgram
 	{
-		DECLARE_GLOBAL_SHADER(WaterSimulationProgram);
+		DECLARE_SHADER_PROGRAM(WaterSimulationProgram, Global);
 		typedef GlobalShaderProgram BaseClass;
 
 		void bindParameters(ShaderParameterMap& parameterMap)
@@ -351,7 +351,7 @@ namespace Render
 
 	class WaterUpdateNormalProgram : public GlobalShaderProgram
 	{
-		DECLARE_GLOBAL_SHADER(WaterUpdateNormalProgram);
+		DECLARE_SHADER_PROGRAM(WaterUpdateNormalProgram, Global);
 		typedef GlobalShaderProgram BaseClass;
 
 		void bindParameters(ShaderParameterMap& parameterMap)
@@ -394,7 +394,7 @@ namespace Render
 
 	class WaterProgram : public GlobalShaderProgram
 	{
-		DECLARE_GLOBAL_SHADER(WaterProgram);
+		DECLARE_SHADER_PROGRAM(WaterProgram, Global);
 		typedef GlobalShaderProgram BaseClass;
 
 		void bindParameters(ShaderParameterMap& parameterMap)
@@ -436,9 +436,9 @@ namespace Render
 		ShaderParameter mParamTileNum;
 	};
 
-	IMPLEMENT_GLOBAL_SHADER(WaterSimulationProgram);
-	IMPLEMENT_GLOBAL_SHADER(WaterUpdateNormalProgram);
-	IMPLEMENT_GLOBAL_SHADER(WaterProgram);
+	IMPLEMENT_SHADER_PROGRAM(WaterSimulationProgram);
+	IMPLEMENT_SHADER_PROGRAM(WaterUpdateNormalProgram);
+	IMPLEMENT_SHADER_PROGRAM(WaterProgram);
 
 	struct GPUParticleData
 	{

@@ -403,6 +403,7 @@ copy $(TargetDir)EngineShare.dll  $(ProjectDir)out\</Command>
     <None Include="out\Shader\ParticleSimulation.sgc" />
     <None Include="out\Shader\PrimitiveParam.sgc" />
     <None Include="out\Shader\Reflection.sgc" />
+    <None Include="out\Shader\ScatteringCommon.sgc" />
     <None Include="out\Shader\ScreenSpaceReflection.sgc" />
     <None Include="out\Shader\ScreenVertexShader.sgc" />
     <None Include="out\Shader\Shader.sgc" />

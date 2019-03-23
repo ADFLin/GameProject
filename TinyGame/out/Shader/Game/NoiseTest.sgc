@@ -1,11 +1,18 @@
 #include "Common.sgc"
+
 #include "ScreenVertexShader.sgc"
 #include "NoiseCommon.sgc"
+#include "ViewParam.sgc"
+#include "GeometryTestCommon.sgc"
+#include "TiledLightCommon.sgc"
+#include "LightingCommon.sgc"
+#include "ScatteringCommon.sgc"
 
 uniform float Time;
 uniform sampler2D RandTexture;
 uniform sampler2D NoiseTexture;
 uniform sampler3D VolumeTexture;
+uniform sampler3D NoiseVolumeTexture;
 
 #ifndef USE_RAND_TEXTURE
 #define USE_RAND_TEXTURE 1
@@ -167,10 +174,165 @@ void TestPS()
 
 
 	OutColor = float4(FBMTest(vsOutput.UVs, 3).xxx, 1);
-	float v = texture3D(VolumeTexture, float3(vsOutput.UVs,0.5)).x;
+	float v = texture3D(NoiseVolumeTexture, float3(vsOutput.UVs,0.5)).x;
 	OutColor = float4(v.xxx, 1);
 	//OutColor = float4(1,1,0, 1);
 
+}
+
+
+#if 1
+float GetFBM(float3 pos, const float maxOctaves, const float frequency, bool turbulence = false)
+{
+	const float normalizationFactorNoise3DTex = 1.66f;
+
+	const float3x3 rot = float3x3(0.0f, 0.8f, 0.6f, -0.8f, 0.36f, -0.48f, -0.6f, -0.48f, 0.64f);
+	pos.xyz = pos.xyz* rot;
+
+	float f = 0.0f;
+	float amplitude = 1.0f;
+	float sum = 0.0f;
+
+	for( float i = 0.0f; i < maxOctaves; ++i )
+	{
+		float value = texture3D(NoiseVolumeTexture, pos).x;
+		if( turbulence )
+		{
+			//f += amplitude * (noiseTex.SampleLevel(noiseSampler, pos.xyz, 0.0f).w * 2.0f - 1.0f);
+			f += amplitude * abs(value * 2.0f - 1.0f) * normalizationFactorNoise3DTex;
+		}
+		else
+		{
+			//f += amplitude * (noiseTex.SampleLevel(noiseSampler, pos.xyz, 0.0f).w * 2.0f - 1.0f);
+			f += amplitude * (value * 2.0f - 1.0f) * normalizationFactorNoise3DTex;
+		}
+		sum += amplitude;
+
+		amplitude *= 0.5f;
+		//amplitude *= 1.0f/frequency;
+
+		pos.xyz = (pos.xyz * rot);
+		pos.xyz *= frequency;
+		//frequency += 0.011f;
+	}
+
+	f /= sum;
+
+	return f;
+}
+#endif
+
+
+uniform float3 VolumeMin;
+uniform float3 VolumeSize;
+uniform sampler2D DepthBuffer;
+float3 WorldToSamplePos(float3 worldPos)
+{
+	return float3(worldPos - VolumeMin) / (VolumeSize);
+}
+
+uniform float4 ScatterFactor;
+
+
+void CloudRenderPS()
+{
+	float2 screenUV = vsOutput.UVs;
+
+	float deviceDepth = texture2D(DepthBuffer, screenUV).x;
+	float3 worldPos = StoreWorldPos(screenUV, deviceDepth);
+
+	float sceneDepth = BufferDepthToSceneDepth(deviceDepth);
+	OutColor = float4(abs(View.viewToClip[2][3]).xxx , 0.0);
+	//return;
+
+
+	float4 temp = View.clipToWorld * float4(2 * screenUV - 1, 1, 1);
+	float3 cameraDir = normalize(temp.xyz / temp.w - View.worldPos);
+
+	float2 intersection;
+	if( !RayAABBTest(View.worldPos, cameraDir, VolumeMin, VolumeMin + VolumeSize, intersection) )
+	{
+		OutColor = float4(0, 0, 0, 1);
+		return;
+	}
+#if 1
+	float distDepth = sceneDepth / dot(View.direction, cameraDir);
+#else
+	float distDepth = length(worldPos - View.worldPos);
+#endif
+	float distStart = max(0, intersection.x);
+	float distEnd = max( distStart , intersection.y );
+	distEnd = min(distDepth, distEnd);
+	float stepLen = 0.08;
+	float stepNum = floor( (distEnd - distStart) / stepLen);
+
+	if( distDepth < distStart )
+	{
+		stepNum = 0;
+	}
+
+
+	float opticalThinkness = 0;
+	float transmittance = 1;
+	float extinctionCoefficient = 1.2;
+	float scatterCoefficient;
+
+
+	float IndexStep = 0;
+	float3 inScatter = float3(0,0,0);
+	for( ; IndexStep < stepNum; ++IndexStep )
+	{
+		float3 tracePos = View.worldPos + ( distStart + IndexStep * stepLen ) * cameraDir;
+		float3 samplePos = WorldToSamplePos(tracePos);
+
+		float density = ScatterFactor.x * texture3D(VolumeTexture, samplePos).x;
+		density *= GetFBM(0.03 * tracePos + 0.01 * Time, 3, 2, true);
+		float stepSize = stepLen;
+
+		float3 lightColor = float3(0, 0, 0);
+		for( int i = 0 ; i < TiledLightNum ; ++i )
+		{
+			TiledLightInfo light = TiledLightList[i];
+			float3 tracePosToLight = light.pos.xyz - tracePos;
+			float LightDist = length(tracePosToLight);
+			float LoE = dot(cameraDir, tracePosToLight / LightDist);
+
+#if 0
+			float phase = PhaseFunction_HG(LoE, ScatterFactor.y);
+#else
+			float phase = PhaseFunction_Schlick(LoE, ScatterFactor.y);
+#endif
+			phase += PhaseFunction_Mei(LoE);
+			phase *= 0.5;
+
+			float attenuation = CalcRaidalAttenuation(LightDist, 1.0 / light.radius);
+			lightColor += phase * density * light.color * light.intensity *attenuation;
+		}
+
+		opticalThinkness += extinctionCoefficient * density * stepSize;
+
+#if 1
+		float muE = max(0.000000001f, extinctionCoefficient * density);
+		float trns = exp(-muE * stepSize);
+		float3 sint = ((-lightColor * trns) + lightColor) / muE;// integral of attenuated inscattering within voxel
+#else
+		float3 sint = lightColor * stepSize;
+		float trns = exp(-extinctionCoefficient * density * stepSize);
+#endif
+		inScatter += transmittance * sint;
+		transmittance *= trns;
+
+		if( transmittance < 0.001 )
+		{
+			break;
+		}
+	}
+
+
+
+	OutColor = float4(inScatter, transmittance);
+	//OutColor = float4(stepNum.xxx / 100 , 0);
+	//OutColor = float4(IndexStep.xxx / 300 , 0);
 }
 
 #endif

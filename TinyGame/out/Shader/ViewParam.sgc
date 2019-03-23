@@ -32,6 +32,15 @@ uniform ViewParameters View;
 
 uniform sampler2D FrameDepthTexture;
 
+float BufferDepthToClipZ(float bufferDepth)
+{
+#if COMPILER_GLSL
+	return 2 * bufferDepth - 1;
+#else
+	return bufferDepth;
+#endif
+}
+
 float2 ScreenUVToBufferUV(float2 screenUVs)
 {
 	return screenUVs + View.rectPosAndSizeInv.xy * View.rectPosAndSizeInv.zw;
@@ -40,11 +49,15 @@ float2 BufferUVToScreenUV(float2 bufferUVs)
 {
 	return bufferUVs - View.rectPosAndSizeInv.xy * View.rectPosAndSizeInv.zw;
 }
+
 float BufferDepthToSceneDepth(float depth)
 {
-	float sceneDepth = (depth - View.viewToClip[3][2]) / View.viewToClip[2][2];
-	//return depth;
+	float sceneDepth = View.viewToClip[3][2] / (BufferDepthToClipZ(depth) + View.viewToClip[2][2]);
+#if USE_RIGHT_HAND_COORD
 	return sceneDepth;
+#else
+	return -sceneDepth;
+#endif
 }
 
 float ScreenUVToSceneDepth(float2 screenUVs)
@@ -55,9 +68,8 @@ float ScreenUVToSceneDepth(float2 screenUVs)
 
 float3 StoreWorldPos(float2 screenUVs, float bufferDepth)
 {
-	float sceneDepth = BufferDepthToSceneDepth(bufferDepth);
 	float2 screenPos = (2.0 * screenUVs - 1.0);
-	float4 clipPos = float4(bufferDepth * screenPos, bufferDepth, 1);
+	float4 clipPos = float4(screenPos, BufferDepthToClipZ( bufferDepth ), 1);
 	float4 pos = View.clipToWorld * clipPos;
 	return pos.xyz / pos.w;
 }

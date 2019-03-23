@@ -1,6 +1,7 @@
 #include "Common.sgc"
 
 #include "TiledLightCommon.sgc"
+#include "ScatteringCommon.sgc"
 //                                 o L
 //                                /  \
 //                               /     \  
@@ -19,25 +20,6 @@
 // g = g_m + g_k : phase
 // g_mei = 1/4pi
 // g_r = HG or schlick
-
-
-float PhaseFunction_Mei(float c)
-{
-	return 1.0 / (4 * PI);
-}
-
-float PhaseFunction_HG(float c , float g )
-{
-	float g2 = Square(g);
-	return (1.0 - g2) / pow((1.0 + g2 + 2*g*c), 1.5 );
-}
-
-float PhaseFunction_Schlick(float c, float g)
-{
-	float k = ( 1.55 - 0.55 * g * g ) * g;
-	return (1 - Square(k)) * Square(1.0 / (1.0 + k * c));
-}
-
 
 struct FroxelVolumeData
 {

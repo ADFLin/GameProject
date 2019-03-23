@@ -10,7 +10,7 @@ class ReflectionCollector
 	void addProperty(T var, char const* name);
 };
 
-#define REF_OBJECT_COLLECTION_BEGIN( CLASS )\
+#define REFLECT_OBJECT_BEGIN( CLASS )\
 	template< class ReflectionCollector >\
 	static void CollectReflection(ReflectionCollector& collector)\
 	{\
@@ -22,7 +22,7 @@ class ReflectionCollector
 #define REF_PROPERTY( VAR )\
 		collector.addProperty( &ThisClass::VAR , #VAR );
 
-#define REF_OBJECT_COLLECTION_END()\
+#define REFLECT_OBJECT_END()\
 	}
 
 

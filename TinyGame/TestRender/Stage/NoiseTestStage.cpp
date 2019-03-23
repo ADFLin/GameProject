@@ -1,8 +1,13 @@
 #include "TestRenderStageBase.h"
 
+#include "RHI/Scene.h"
+#include "RHI/SceneRenderer.h"
+
 #include "Random.h"
 #include "DataCacheInterface.h"
 #include "DataSteamBuffer.h"
+
+
 
 
 namespace Render
@@ -227,6 +232,7 @@ namespace Render
 		RHITexture2DRef randTexture;
 		RHITexture2DRef noiseTexture;
 		RHITexture3DRef volumeTexture;
+		RHITexture3DRef NoiseVolumeTexture;
 		
 
 		NoiseShaderParamsData()
@@ -254,7 +260,7 @@ namespace Render
 
 	class NoiseShaderProgramBase : public GlobalShaderProgram
 	{
-		DECLARE_GLOBAL_SHADER(NoiseShaderProgramBase);
+		DECLARE_SHADER_PROGRAM(NoiseShaderProgramBase, Global);
 	public:
 		static void SetupShaderCompileOption(ShaderCompileOption& option) 
 		{
@@ -283,7 +289,7 @@ namespace Render
 			parameterMap.bind(mParamRandTexture, SHADER_PARAM(RandTexture));
 			parameterMap.bind(mParamNoiseTexture, SHADER_PARAM(NoiseTexture));
 			parameterMap.bind(mParamVolumeTexture, SHADER_PARAM(VolumeTexture));
-			
+			parameterMap.bind(mParamNoiseVolumeTexture, SHADER_PARAM(NoiseVolumeTexture));
 			
 		}
 
@@ -309,6 +315,10 @@ namespace Render
 			{
 				setTexture(mParamVolumeTexture, *data.volumeTexture, TStaticSamplerState<Sampler::eBilinear>::GetRHI());
 			}
+			if( mParamNoiseVolumeTexture.isBound() )
+			{
+				setTexture(mParamNoiseVolumeTexture, *data.NoiseVolumeTexture, TStaticSamplerState<Sampler::eBilinear>::GetRHI());
+			}
 
 		}
 
@@ -317,13 +327,14 @@ namespace Render
 		ShaderParameter mParamRandTexture;
 		ShaderParameter mParamNoiseTexture;
 		ShaderParameter mParamVolumeTexture;
+		ShaderParameter mParamNoiseVolumeTexture;
 		ShaderParameter mParamFBMFactor;
 	};
 
 	class NoiseShaderTestProgram : public NoiseShaderProgramBase
 	{
 		typedef NoiseShaderProgramBase BaseClass;
-		DECLARE_GLOBAL_SHADER(NoiseShaderTestProgram);
+		DECLARE_SHADER_PROGRAM(NoiseShaderTestProgram, Global);
 	public:
 		static TArrayView< ShaderEntryInfo const > GetShaderEntries()
 		{
@@ -336,13 +347,13 @@ namespace Render
 		}
 	};
 
-	IMPLEMENT_GLOBAL_SHADER(NoiseShaderTestProgram);
+	IMPLEMENT_SHADER_PROGRAM(NoiseShaderTestProgram);
 
 	template< bool bUseRandTexture , bool bUseFBMFactor = true >
 	class TNoiseShaderProgram : public NoiseShaderProgramBase
 	{
 		typedef NoiseShaderProgramBase BaseClass;
-		DECLARE_GLOBAL_SHADER(TNoiseShaderProgram);
+		DECLARE_SHADER_PROGRAM(TNoiseShaderProgram, Global);
 	public:
 		static void SetupShaderCompileOption(ShaderCompileOption& option)
 		{
@@ -354,14 +365,55 @@ namespace Render
 
 #define IMPLEMENT_NOISE_SHADER( T1 , T2 )\
 	typedef TNoiseShaderProgram< T1 , T2 > NoiseShaderProgram##T1##T2;\
-	IMPLEMENT_GLOBAL_SHADER( NoiseShaderProgram##T1##T2 );
+	IMPLEMENT_SHADER_PROGRAM( NoiseShaderProgram##T1##T2 );
 
 	IMPLEMENT_NOISE_SHADER(false, false);
 	IMPLEMENT_NOISE_SHADER(false, true);
 	IMPLEMENT_NOISE_SHADER(true, false);
 	IMPLEMENT_NOISE_SHADER(true, true);
 
+
+	class CloudRenderTestProgram : public NoiseShaderProgramBase
+	{
+		typedef NoiseShaderProgramBase BaseClass;
+		DECLARE_SHADER_PROGRAM(CloudRenderTestProgram, Global);
+	public:
+		static TArrayView< ShaderEntryInfo const > GetShaderEntries()
+		{
+			static ShaderEntryInfo const entries[] =
+			{
+				{ Shader::eVertex , SHADER_ENTRY(ScreenVS) },
+				{ Shader::ePixel  , SHADER_ENTRY(CloudRenderPS) },
+			};
+			return entries;
+		}
+
+		virtual void bindParameters(ShaderParameterMap& parameterMap) override
+		{
+			BaseClass::bindParameters(parameterMap);
+			parameterMap.bind(mParamVolumeMin, SHADER_PARAM(VolumeMin));
+			parameterMap.bind(mParamVolumeSize, SHADER_PARAM(VolumeSize));
+			parameterMap.bind(mParamScatterFactor, SHADER_PARAM(ScatterFactor));
+		}
+
+		void setParameters(ViewInfo& view, NoiseShaderParamsData& data, Vector3 volumeCenter, Vector3 volumeSize ,  float densityFactor , float phaseG )
+		{
+			BaseClass::setParameters(data);
+			view.setupShader(*this);
+			setParam(mParamVolumeMin, volumeCenter - 0.5 * volumeSize);
+			setParam(mParamVolumeSize, volumeSize);
+			setParam(mParamScatterFactor, Vector4( densityFactor , phaseG , 0 , 0 ) );
+		}
+
+		ShaderParameter mParamVolumeMin;
+		ShaderParameter mParamVolumeSize;
+		ShaderParameter mParamScatterFactor;
+	};
+
+	IMPLEMENT_SHADER_PROGRAM(CloudRenderTestProgram);
+
 	class NoiseTestStage : public TestRenderStageBase
+
 	{
 		typedef TestRenderStageBase BaseClass;
 	public:
@@ -372,18 +424,46 @@ namespace Render
 		NoiseShaderProgramBase* mProgNoise;
 		NoiseShaderProgramBase* mProgNoiseUseTexture;
 		NoiseShaderProgramBase* mProgNoiseTest;
+		CloudRenderTestProgram* mProgCloudRender;
 
+		TStructuredStorageBuffer< TiledLightInfo > mLightsBuffer;
+
+
+		OpenGLFrameBuffer  mFrameBuffer;
+		RHITextureDepthRef mDepthBuffer;
+		RHITexture2DRef    mScreenBuffer;
+		float mDensityFactor = 1.0;
+		float mPhaseG = 0.3;
+		std::vector< LightInfo > mLights;
 		virtual bool onInit()
 		{
 			if( !BaseClass::onInit() )
 				return false;
 
-			Mesh mesh;
-			VERIFY_RETURN_FALSE(BuildMesh(mesh, "PlaneZ", MeshBuild::PlaneZ, 10, 1));
+			if( !InitGlobalRHIResource() )
+				return false;
+
+			if( !ShaderHelper::Get().init() )
+				return false;
+
+			mViewFrustum.bUseReverse = false;
+
+			IntVector2 screenSize = ::Global::GetDrawEngine().getScreenSize();
+			VERIFY_RETURN_FALSE(SharedAssetData::createSimpleMesh());
+
+			VERIFY_RETURN_FALSE(SharedAssetData::createCommonShader());
+
+			VERIFY_RETURN_FALSE(mDepthBuffer = RHICreateTextureDepth(Texture::eDepth32F, screenSize.x, screenSize.y));
+			VERIFY_RETURN_FALSE(mScreenBuffer = RHICreateTexture2D(Texture::eFloatRGBA, screenSize.x, screenSize.y, 1, TCF_DefalutValue | TCF_RenderTarget));
+			VERIFY_RETURN_FALSE(mFrameBuffer.create());
+			mFrameBuffer.addTexture(*mScreenBuffer);
+			mFrameBuffer.setDepth(*mDepthBuffer);
 
 			mProgNoise = ShaderManager::Get().getGlobalShaderT< TNoiseShaderProgram<true,false> >(true);
 			mProgNoiseUseTexture = ShaderManager::Get().getGlobalShaderT< TNoiseShaderProgram<true,true> >(true);
 			mProgNoiseTest = ShaderManager::Get().getGlobalShaderT< NoiseShaderTestProgram >(true);
+			mProgCloudRender = ShaderManager::Get().getGlobalShaderT< CloudRenderTestProgram >(true);
+
 			{
 				Random::Well512 rand;
 				int randSize = 512;
@@ -429,7 +509,7 @@ namespace Render
 				int textureSize = 128;
 				DataCacheKey cacheKey;
 				cacheKey.typeName = "VOLUME-NOISE";
-				cacheKey.version = "E84081BD-7F97-42D1-AA4A-54693DF96D2F";
+				cacheKey.version = "2F7B7D13-7DF5-454B-809E-4D0FD4D0DDFD";
 				cacheKey.keySuffix.addFormat("%d", textureSize);
 
 				std::vector< float > data;
@@ -442,8 +522,16 @@ namespace Render
 						{
 							for( int i = 0; i < textureSize; ++i )
 							{
-								float value = (Vector3(i, j, k) / float(textureSize - 1) - Vector3(0.5)).length();
-								data[i + (j + k * textureSize) * textureSize] = value;
+								float value = ((Vector3(i, j, k) + Vector3(0.5)) / float(textureSize) - Vector3(0.5)).length();
+								if( value < 0.5 )
+								{
+									data[i + (j + k * textureSize) * textureSize] = 0.5 - value;
+
+								}
+								else
+								{
+									data[i + (j + k * textureSize) * textureSize] = 0;
+								}		
 							}
 						}
 					}
@@ -451,6 +539,81 @@ namespace Render
 				}
 				mData.volumeTexture = RHICreateTexture3D(Texture::eR32F, textureSize, textureSize, textureSize , TCF_DefalutValue, data.data() );
 			}
+
+
+			{
+
+				int textureSize = 128;
+				int noiseSize = 24;
+				int cellSize = 32;
+				DataCacheKey cacheKey;
+				cacheKey.typeName = "VOLUME-NOISE";
+				cacheKey.version = "2F7B7D13-7DF5-454B-809E-4D0FD4D0DDFD";
+				cacheKey.keySuffix.add( textureSize , "Perlin", noiseSize , cellSize);
+
+				TPerlinNoise<true> noise;
+				noise.repeat = noiseSize;
+
+				std::vector< float > data;
+				if( !::Global::DataCache().loadT(cacheKey, data) )
+				{
+					data.resize(textureSize * textureSize * textureSize);
+					for( int k = 0; k < textureSize; ++k )
+					{
+						for( int j = 0; j < textureSize; ++j )
+						{
+							for( int i = 0; i < textureSize; ++i )
+							{
+								float nv = noise.getValue(noiseSize * i / float(textureSize - 1), noiseSize * j / float(textureSize - 1), noiseSize * k / float(textureSize - 1));
+								data[i + (j + k * textureSize) * textureSize] = 0.5 + 0.5 * nv;
+							}
+						}
+					}
+					::Global::DataCache().saveT(cacheKey, data);
+				}
+				mData.NoiseVolumeTexture = RHICreateTexture3D(Texture::eR32F, textureSize, textureSize, textureSize, TCF_DefalutValue, data.data());
+			}
+
+		
+			mLights.resize(4);
+			{
+				auto& light = mLights[0];
+				light.type = LightType::Point;
+				light.pos = Vector3(5, 5, 5);
+				light.color = Vector3(1, 0, 0);
+				light.radius = 50;
+				light.intensity = 20;
+			}
+
+			{
+				auto& light = mLights[1];
+				light.type = LightType::Point;
+				light.pos = Vector3(5, -5, 5);
+				light.color = Vector3(0, 1, 0);
+				light.radius = 50;
+				light.intensity = 20;
+			}
+
+			{
+				auto& light = mLights[2];
+				light.type = LightType::Point;
+				light.pos = Vector3(-5, 5, 5);
+				light.color = Vector3(0, 0, 1);
+				light.radius = 50;
+				light.intensity = 20;
+			}
+			{
+				auto& light = mLights[3];
+				light.type = LightType::Point;
+				light.pos = Vector3(0, 0, 0);
+				light.color = Vector3(1, 1, 1);
+				light.radius = 50;
+				light.intensity = 2;
+			}
+
+
+			VERIFY_RETURN_FALSE(mLightsBuffer.initializeResource(mLights.size()));
+			updateLightToBuffer();
 
 			ShaderManager::Get().registerShaderAssets(::Global::GetAssetManager());
 
@@ -462,6 +625,10 @@ namespace Render
 			WidgetPropery::Bind(devFrame->addSlider(UI_ANY), mData.FBMFactor.z, 0, 2);
 			WidgetPropery::Bind(devFrame->addSlider(UI_ANY), mData.FBMFactor.w, 0, 20);
 
+			devFrame->addText("DensityFactor");
+			WidgetPropery::Bind(devFrame->addSlider(UI_ANY), mDensityFactor, 0, 40, 2);
+			devFrame->addText("PhaseG");
+			WidgetPropery::Bind(devFrame->addSlider(UI_ANY), mPhaseG, -1, 1);
 			restart();
 
 			return true;
@@ -474,7 +641,18 @@ namespace Render
 			BaseClass::onEnd();
 		}
 
-
+		void updateLightToBuffer()
+		{
+			TiledLightInfo* pLightInfo = mLightsBuffer.lock();
+			for( int i = 0; i < mLights.size(); ++i )
+			{
+				pLightInfo[i].color = mLights[i].color;
+				pLightInfo[i].pos = mLights[i].pos;
+				pLightInfo[i].radius = mLights[i].radius;
+				pLightInfo[i].intensity = mLights[i].intensity;
+			}
+			mLightsBuffer.unlock();
+		}
 		void drawNoiseImage(IntVector2 const& pos, IntVector2 const& size, NoiseShaderProgramBase& shader)
 		{
 			GPU_PROFILE("drawNoiseImage");
@@ -503,15 +681,52 @@ namespace Render
 			initializeRenderState();
 
 			{
+				mFrameBuffer.setDepth(*mDepthBuffer);
+				GL_BIND_LOCK_OBJECT(mFrameBuffer);
+
+				glClearDepth( mViewFrustum.bUseReverse ? 0 : 1 );
+				glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
 				GPU_PROFILE("Scene");
 				RHISetupFixedPipelineState(mView.worldToView, mView.viewToClip);
 				DrawUtility::AixsLine();
+
+				RHISetupFixedPipelineState(Matrix4::Scale(1.5) * Matrix4::Translate(2,2,2) * mView.worldToView, mView.viewToClip);
+				mSimpleMeshs[SimpleMeshId::Doughnut].draw(LinearColor(1, 0.5, 0));
+
+				{
+					GPU_PROFILE("LightPoints");
+					//FIXME
+					RHISetupFixedPipelineState(mView.worldToView, mView.viewToClip);
+					drawLightPoints(mView, MakeView(mLights));
+				}
+			}
+
+			{
+				mFrameBuffer.removeDepthBuffer();
+				GL_BIND_LOCK_OBJECT(mFrameBuffer);
+				GPU_PROFILE("Cloud");
+				RHISetRasterizerState(TStaticRasterizerState< ECullMode::None >::GetRHI());
+				RHISetBlendState(TStaticBlendState<CWM_RGB, Blend::eOne, Blend::eSrcAlpha >::GetRHI());
+				RHISetDepthStencilState(StaticDepthDisableState::GetRHI());
+
+				GL_BIND_LOCK_OBJECT(*mProgCloudRender);
+				mProgCloudRender->setParameters(mView , mData, Vector3(0, 0, 0), Vector3(10, 10, 10), mDensityFactor , mPhaseG );
+				mProgCloudRender->setStructuredBufferT< TiledLightInfo >(*mLightsBuffer.getRHI());
+				mProgCloudRender->setParam(SHADER_PARAM(TiledLightNum), (int)mLights.size());
+				mProgCloudRender->setTexture(SHADER_PARAM(DepthBuffer), *mDepthBuffer);
+				DrawUtility::ScreenRectShader();
+			}
+
+			{
+				GPU_PROFILE("CopyToScreen");
+				ShaderHelper::Get().copyTextureToBuffer(*mScreenBuffer);
 			}
 
 
 			RHISetDepthStencilState(StaticDepthDisableState::GetRHI());
 			RHISetRasterizerState(TStaticRasterizerState<ECullMode::None>::GetRHI());
-
+			RHISetBlendState(TStaticBlendState<>::GetRHI());
 			Vec2i screenSize = ::Global::GetDrawEngine().getScreenSize();
 			auto gameWindow = ::Global::GetDrawEngine().getWindow();
 

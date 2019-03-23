@@ -262,7 +262,7 @@ namespace Render
 		return sInatance;
 	}
 
-	GlobalShaderProgram* ShaderManager::getGlobalShader(GlobalShaderProgramClass& shaderClass, bool bForceLoad)
+	GlobalShaderProgram* ShaderManager::getGlobalShader(GlobalShaderProgramClass const& shaderClass, bool bForceLoad)
 	{
 
 		GlobalShaderProgram* result = mGlobalShaderMap[&shaderClass];
@@ -375,7 +375,7 @@ namespace Render
 		for( auto& pair : mGlobalShaderMap )
 		{
 			GlobalShaderProgram* program = pair.second;
-			GlobalShaderProgramClass* shaderClass = pair.first;
+			GlobalShaderProgramClass const* shaderClass = pair.first;
 			if( program == nullptr )
 			{
 				program = constructGlobalShader(*shaderClass);
@@ -389,14 +389,14 @@ namespace Render
 		return numFailLoad;
 	}
 
-	GlobalShaderProgram* ShaderManager::constructGlobalShader(GlobalShaderProgramClass& shaderClass)
+	GlobalShaderProgram* ShaderManager::constructGlobalShader(GlobalShaderProgramClass const& shaderClass)
 	{
 		ShaderCompileOption option;
 		option.version = mDefaultVersion;
 		return constructShaderInternal(shaderClass, ShaderClassType::Global, option);
 	}
 
-	GlobalShaderProgram* ShaderManager::constructShaderInternal(GlobalShaderProgramClass& shaderClass , ShaderClassType classType , ShaderCompileOption& option )
+	GlobalShaderProgram* ShaderManager::constructShaderInternal(GlobalShaderProgramClass const& shaderClass , ShaderClassType classType , ShaderCompileOption& option )
 	{
 		GlobalShaderProgram* result = (*shaderClass.funCreateShader)();
 		if( result )
@@ -643,7 +643,7 @@ namespace Render
 			ShaderCompileOption option;
 			option.version = mDefaultVersion;
 
-			GlobalShaderProgramClass& myClass = *static_cast<GlobalShaderProgram&>(shaderProgram).myClass;
+			GlobalShaderProgramClass const& myClass = *static_cast<GlobalShaderProgram&>(shaderProgram).myClass;
 			(*myClass.funSetupShaderCompileOption)(option);
 
 			info->shaders.clear();

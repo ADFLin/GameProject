@@ -82,7 +82,7 @@ namespace Go
 
 	class UnderCurveAreaProgram : public Render::GlobalShaderProgram
 	{
-		DECLARE_GLOBAL_SHADER(UnderCurveAreaProgram)
+		DECLARE_SHADER_PROGRAM(UnderCurveAreaProgram, Global);
 
 		static void SetupShaderCompileOption(ShaderCompileOption&) {}
 		static char const* GetShaderFileName()
@@ -119,7 +119,7 @@ namespace Go
 		ShaderParameter mParamLowerColor;
 	};
 
-	IMPLEMENT_GLOBAL_SHADER( UnderCurveAreaProgram )
+	IMPLEMENT_SHADER_PROGRAM( UnderCurveAreaProgram )
 
 	bool DumpFunSymbol( char const* path , char const* outPath )
 	{

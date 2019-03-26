@@ -91,7 +91,7 @@ float F(float2 uv, int numOctaves)
 
 #if PIXEL_SHADER
 
-in VSOutput vsOutput;
+in VSOutputParameters VSOutput;
 layout(location = 0) out float4 OutColor;
 void MainPS()
 {
@@ -100,7 +100,7 @@ void MainPS()
 #else
 	int numOctaves = 5;
 #endif
-	float2 st = vsOutput.UVs * 10.;
+	float2 st = VSOutput.UVs * 10.;
 	// st += st * abs(sin(u_time*0.1)*3.0);
 	float3 color = float3(0.0);
 
@@ -126,9 +126,9 @@ void MainPS()
 				vec3(0.666667, 1, 1),
 				clamp(length(r.x), 0.0, 1.0));
 
-	float v = MyRandom(0.01*vsOutput.UVs);
+	float v = MyRandom(0.01*VSOutput.UVs);
 
-	v = SimpleNoise(5*vsOutput.UVs);
+	v = SimpleNoise(5*VSOutput.UVs);
 
 	v = FBM(st, numOctaves);
 	v = F(st + Time, numOctaves);
@@ -169,12 +169,12 @@ float FBMTest(float2 uv , int octaves)
 void TestPS()
 {
 
-	float noise = texture2D(NoiseTexture, vsOutput.UVs).x;
+	float noise = texture2D(NoiseTexture, VSOutput.UVs).x;
 	OutColor = float4(noise.xxx, 1);
 
 
-	OutColor = float4(FBMTest(vsOutput.UVs, 3).xxx, 1);
-	float v = texture3D(NoiseVolumeTexture, float3(vsOutput.UVs,0.5)).x;
+	OutColor = float4(FBMTest(VSOutput.UVs, 3).xxx, 1);
+	float v = texture3D(NoiseVolumeTexture, float3(VSOutput.UVs, Time * 0.05 )).x;
 	OutColor = float4(v.xxx, 1);
 	//OutColor = float4(1,1,0, 1);
 
@@ -222,28 +222,70 @@ float GetFBM(float3 pos, const float maxOctaves, const float frequency, bool tur
 }
 #endif
 
+#ifndef FRAME_GROUP_SIZE
+#define FRAME_GROUP_SIZE 1
+#endif
+
+#define USE_CORRECT_SCENE_DEPTH_ARTIFACTS 1
+// We can't disable this because of delta distance of each pixel is very different
+#define USE_FIXED_STEP_SIZE 1
+#define USE_TEMPORAL_JITTER 1
 
 uniform float3 VolumeMin;
 uniform float3 VolumeSize;
-uniform sampler2D DepthBuffer;
+uniform sampler2D SceneDepthTexture;
 float3 WorldToSamplePos(float3 worldPos)
 {
 	return float3(worldPos - VolumeMin) / (VolumeSize);
 }
 
 uniform float4 ScatterFactor;
+uniform float StepSize;
 
-
-void CloudRenderPS()
+float3 GetLightEngry( float3 worldPos , float3 cameraDir )
 {
-	float2 screenUV = vsOutput.UVs;
+	float3 lightColor = float3(0, 0, 0);
+	for( int i = 0; i < TiledLightNum; ++i )
+	{
+		TiledLightInfo light = TiledLightList[i];
+		float3 tracePosToLight = light.pos.xyz - worldPos;
+		float LightDist = length(tracePosToLight);
+		float LoV = dot(cameraDir, tracePosToLight / LightDist);
 
-	float deviceDepth = texture2D(DepthBuffer, screenUV).x;
-	float3 worldPos = StoreWorldPos(screenUV, deviceDepth);
+#if 0
+		float phase = PhaseFunction_HG(LoV, ScatterFactor.y);
+#else
+		float phase = PhaseFunction_Schlick(LoV, ScatterFactor.y);
+#endif
+		phase += PhaseFunction_Mei(LoV);
+		phase *= 0.5;
 
-	float sceneDepth = BufferDepthToSceneDepth(deviceDepth);
-	OutColor = float4(abs(View.viewToClip[2][3]).xxx , 0.0);
-	//return;
+		float attenuation = CalcRaidalAttenuation(LightDist, 1.0 / light.radius);
+		lightColor += phase * light.color * light.intensity *attenuation;
+	}
+
+
+	return lightColor;
+}
+
+float GetStepSize( float indexStep , float stepNum , float distStart , float distDelta )
+{
+	float t = rcp(stepNum);
+	return distStart + distDelta * pow(saturate(indexStep * t), 2);
+}
+
+float GetJitter(float2 pixelCoord, float2 temporalJitter)
+{
+	float2 n = pixelCoord.xy + temporalJitter.xy;
+	float3 magic = { 0.06711056f, 0.00583715f, 52.9829189f };
+	float jitter = frac(magic.z * frac(dot(n.xy, magic.xy)));
+	return jitter;
+}
+
+layout(location = 1) out float OutDepth;
+void SmokeRenderPS()
+{
+	float2 screenUV = VSOutput.UVs;
 
 
 	float4 temp = View.clipToWorld * float4(2 * screenUV - 1, 1, 1);
@@ -255,84 +297,153 @@ void CloudRenderPS()
 		OutColor = float4(0, 0, 0, 1);
 		return;
 	}
+
+	float2 pixelPos = screenUV / View.rectPosAndSizeInv.zw - float2(0.5, 0.5);
+
+#if USE_TEMPORAL_JITTER
+	const float jitter = GetJitter(pixelPos, (View.frameCount.xx) % 1024);
+#else
+	const float jitter = 0;
+#endif
+
+	float deviceDepth = texture2D(SceneDepthTexture, screenUV).x;
+	float sceneDepth = BufferDepthToSceneDepth(deviceDepth);
+
 #if 1
 	float distDepth = sceneDepth / dot(View.direction, cameraDir);
 #else
+	float3 worldPos = StoreWorldPos(screenUV, deviceDepth);
 	float distDepth = length(worldPos - View.worldPos);
+
+	//OutColor = float4(worldPos / 10, 0.0);
 #endif
+
 	float distStart = max(0, intersection.x);
 	float distEnd = max( distStart , intersection.y );
 	distEnd = min(distDepth, distEnd);
-	float stepLen = 0.08;
-	float stepNum = floor( (distEnd - distStart) / stepLen);
+
+	const float distDelta = distEnd - distStart;
+#if 0
+	float stepNum = distDelta / StepSize + 1;
+	//Note : don't floor step size
+	float fixedStepSize = distDelta / ( stepNum );
+#else
+	float stepNum = floor( distDelta / StepSize ) + 1;
+	float fixedStepSize = StepSize;
+#endif
 
 	if( distDepth < distStart )
 	{
 		stepNum = 0;
 	}
 
+	const float scatterCoefficient = ScatterFactor.z;
+	const float extinctionCoefficient = ScatterFactor.w;
 
+	
+	float3 inScatter = float3(0,0,0);
 	float opticalThinkness = 0;
 	float transmittance = 1;
-	float extinctionCoefficient = 1.2;
-	float scatterCoefficient;
 
-
-	float IndexStep = 0;
-	float3 inScatter = float3(0,0,0);
-	for( ; IndexStep < stepNum; ++IndexStep )
+	float indexStep = 0;
+	for( ; indexStep < stepNum; ++indexStep )
 	{
-		float3 tracePos = View.worldPos + ( distStart + IndexStep * stepLen ) * cameraDir;
-		float3 samplePos = WorldToSamplePos(tracePos);
-
-		float density = ScatterFactor.x * texture3D(VolumeTexture, samplePos).x;
-		density *= GetFBM(0.03 * tracePos + 0.01 * Time, 3, 2, true);
-		float stepSize = stepLen;
-
-		float3 lightColor = float3(0, 0, 0);
-		for( int i = 0 ; i < TiledLightNum ; ++i )
-		{
-			TiledLightInfo light = TiledLightList[i];
-			float3 tracePosToLight = light.pos.xyz - tracePos;
-			float LightDist = length(tracePosToLight);
-			float LoE = dot(cameraDir, tracePosToLight / LightDist);
-
-#if 0
-			float phase = PhaseFunction_HG(LoE, ScatterFactor.y);
-#else
-			float phase = PhaseFunction_Schlick(LoE, ScatterFactor.y);
-#endif
-			phase += PhaseFunction_Mei(LoE);
-			phase *= 0.5;
-
-			float attenuation = CalcRaidalAttenuation(LightDist, 1.0 / light.radius);
-			lightColor += phase * density * light.color * light.intensity *attenuation;
-		}
-
-		opticalThinkness += extinctionCoefficient * density * stepSize;
-
-#if 1
-		float muE = max(0.000000001f, extinctionCoefficient * density);
-		float trns = exp(-muE * stepSize);
-		float3 sint = ((-lightColor * trns) + lightColor) / muE;// integral of attenuated inscattering within voxel
-#else
-		float3 sint = lightColor * stepSize;
-		float trns = exp(-extinctionCoefficient * density * stepSize);
-#endif
-		inScatter += transmittance * sint;
-		transmittance *= trns;
-
 		if( transmittance < 0.001 )
 		{
 			break;
 		}
+#if USE_FIXED_STEP_SIZE
+		float distCurrent = distStart + ( indexStep + jitter ) * fixedStepSize;
+#else
+		float distCurrent = GetStepSize(indexStep + jitter , stepNum, distStart, distDelta);
+#endif
+		if ( distCurrent > distEnd )
+			break;
+		float3 tracePos = View.worldPos + distCurrent * cameraDir;
+		float3 samplePos = WorldToSamplePos(tracePos);
+
+		float density =  pow( texture3D(VolumeTexture, samplePos).x , 2 );
+
+		if( density > 0 )
+		{
+
+#if USE_FIXED_STEP_SIZE
+#if USE_CORRECT_SCENE_DEPTH_ARTIFACTS
+			float distNext = min(distStart + (indexStep + jitter + 1) * fixedStepSize , distDepth);
+			float stepSize = distNext - distCurrent;
+#else
+			float stepSize = fixedStepSize;
+#endif
+#else
+			float distNext = min(GetStepSize(indexStep + jitter + 1, stepNum, distStart, distDelta), distDepth);
+			float stepSize = distNext - distCurrent;
+#endif
+			const float omega = 0.03;
+			const float amplitude = ( tracePos.z - VolumeMin.z ) * 10;
+			const float3 offset = 0.01 * float3(amplitude * 2 * sin(omega * 3 * Time), amplitude * cos(omega * 7 * Time), -10 * Time);
+			density *= ScatterFactor.x * GetFBM(0.03 * ( tracePos + offset) , 3, 2, true);
+	
+			float3 lightColor = GetLightEngry( tracePos , cameraDir );
+
+			opticalThinkness += extinctionCoefficient * density * stepSize;
+			lightColor *= scatterCoefficient * density;
+#if 1
+			float muE = max(0.000000001f, extinctionCoefficient * density);
+			float trns = exp(-muE * stepSize);
+			// integral{ L + step , L }( exp(-kx) ) dx = exp(-kL) / ( -k ) * ( exp(-k * step ) - 1 ) 
+			float3 sint = ((-lightColor * trns) + lightColor) / muE;// integral of attenuated inscattering within voxel
+#else
+			float3 sint = lightColor * stepSize;
+			float trns = exp(-extinctionCoefficient * density * stepSize);
+#endif
+			inScatter += transmittance * sint;
+			transmittance *= trns;
+		}
 	}
 
-
-
 	OutColor = float4(inScatter, transmittance);
+	OutDepth = (stepNum > 0) ? distStart : 0;
 	//OutColor = float4(stepNum.xxx / 100 , 0);
 	//OutColor = float4(IndexStep.xxx / 300 , 0);
+}
+
+uniform sampler2D FrameTexture;
+uniform sampler2D HistroyTexture;
+uniform sampler2D DepthTexture;
+
+#define USE_REPROJECTION 1
+void SomkeBlendPS()
+{
+	float2 screenUV = VSOutput.UVs;
+
+	float4 frameColor = texture2D(FrameTexture, screenUV);
+
+	float weight = 0.95;
+#if USE_REPROJECTION
+	float4 temp = View.clipToWorld * float4(2 * screenUV - 1, 1, 1);
+	float3 cameraDir = normalize(temp.xyz / temp.w - View.worldPos);
+	float depthDist = texture2D(DepthTexture, screenUV).r;
+	weight = (depthDist == 0) ? 1 : weight;
+	float3 worldPos = View.worldPos + depthDist * cameraDir;
+	float4 clipPrev = View.worldToClipPrev * float4( worldPos , 1 );
+	float2 screenUVPrev = 0.5 *(clipPrev.xy / clipPrev.w + float2(1, 1));
+	float4 historyColor = texture2D(HistroyTexture, screenUVPrev);
+
+	if( any( greaterThan(float2(0, 0)  , screenUVPrev) ) || any(greaterThan(screenUVPrev, float2(1, 1) ) ) )
+	{
+		weight = 1;
+	}
+#else
+	float4 historyColor = texture2D(HistroyTexture, screenUV);
+#endif
+
+	OutColor = lerp( historyColor , frameColor , weight );
+	//OutColor.a = frameColor.a;
+	//OutColor = float4(abs(screenUV -screenUVPrev), 0, 0);
+	//OutColor = historyColor;
+	//OutColor = float4(worldPos, 0.5 );
+	//OutColor = float4(texture2D(DepthTexture, screenUV).r , 0 , 0, 0);
+
 }
 
 #endif

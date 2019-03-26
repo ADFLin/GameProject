@@ -1,0 +1,65 @@
+#include "Common.sgc"
+#include "ViewParam.sgc"
+
+struct VSOutputParameters
+{
+	float3 UVs;
+};
+
+
+
+#if VERTEX_SHADER && !CUBE_RENDER
+
+out VSOutputParameters VSOutput;
+
+layout(location = ATTRIBUTE_POSITION) in float3 InPosition;
+layout(location = ATTRIBUTE_TEXCOORD) in float3 InUV;
+
+void MainVS()
+{
+	VSOutput.UVs = InUV;
+	float4 viewPos = View.worldToView * float4(InPosition, 0);
+	gl_Position = View.viewToClip * float4(viewPos.xyz, 1);
+}
+
+#endif
+
+#define  USE_CUBE_TEXTURE 0
+
+#if PIXEL_SHADER
+
+uniform sampler2D Texture;
+uniform samplerCube CubeTexture;
+
+in VSOutputParameters VSOutput;
+
+const float2 invAtan = float2(0.1591, 0.3183);
+float2 EquirectangularCoord(float3 v)
+{
+	float2 uv = float2(atan(v.x, v.y), asin(v.z));
+	uv *= invAtan;
+	uv += 0.5;
+	return uv;
+}
+
+float3 GetEnvRadiance(float3 dir)
+{
+#if USE_CUBE_TEXTURE
+	return texture(CubeTexture, dir).rgb;
+#else
+	return texture2D(Texture, EquirectangularCoord(dir)).rgb;
+#endif
+}
+
+layout(location = 0) out float4 OutColor;
+void MainPS()
+{
+	float3 color = GetEnvRadiance(VSOutput.UVs);
+	OutColor = float4(color, 1);
+	//OutColor = float4(color, 1);
+	//OutColor = float4(1,1,1, 1);
+}
+
+
+
+#endif

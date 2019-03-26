@@ -83,6 +83,7 @@ namespace CPP
 
 		Token_String ,
 		Token_Eof ,
+		Token_Unknown ,
 	};
 
 	struct TokenInfo

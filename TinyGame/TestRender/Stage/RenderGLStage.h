@@ -517,7 +517,7 @@ namespace Render
 				return false;
 
 			mTexEnv = RHICreateTextureCube();
-			if( !mTexEnv->create(Texture::eFloatRGBA, MapSize, MapSize) )
+			if( !mTexEnv->create(Texture::eFloatRGBA, MapSize) )
 				return false;
 #if USE_DepthRenderBuffer
 			RHIDepthRenderBufferRef depthBuffer = new RHIDepthRenderBuffer;
@@ -708,7 +708,6 @@ namespace Render
 		ShaderProgram mProgPlanet;
 		ShaderProgram mProgBump;
 		ShaderProgram mProgParallax;
-		ShaderProgram mEffectSphereSM;
 		ShaderProgram mEffectSimple;
 
 		ShaderProgram mProgSimpleSprite;

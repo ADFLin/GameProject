@@ -61,27 +61,33 @@ namespace Render
 	class SceneRenderTargets
 	{
 	public:
-		bool init(IntVector2 const& size);
+		bool initializeRHI(IntVector2 const& size);
 
-		RHITexture2D&  getRenderFrameTexture() { return *mFrameTextures[mIdxRenderFrameTexture]; }
-		RHITexture2D&  getPrevRenderFrameTexture() { return *mFrameTextures[1 - mIdxRenderFrameTexture]; }
-		void swapFrameBufferTexture()
+		RHITexture2D&  getFrameTexture() { return *mFrameTextures[mIdxRenderFrameTexture]; }
+		RHITexture2D&  getPrevFrameTexture() { return *mFrameTextures[1 - mIdxRenderFrameTexture]; }
+		void swapFrameTexture()
 		{
 			mIdxRenderFrameTexture = 1 - mIdxRenderFrameTexture;
-			mFrameBuffer.setTexture(0, getRenderFrameTexture());
+			mFrameBuffer.setTexture(0, getFrameTexture());
 		}
 
 		GBufferParamData&   getGBuffer() { return mGBuffer; }
 		RHITextureDepth&    getDepthTexture() { return *mDepthTexture; }
 
+
+
 		OpenGLFrameBuffer& getFrameBuffer() { return mFrameBuffer; }
+
+		void attachDepthTexture() { mFrameBuffer.setDepth(*mDepthTexture); }
+		void detachDepthTexture() { mFrameBuffer.removeDepthBuffer(); }
+
 
 		void drawDepthTexture(int x, int y, int width, int height);
 
-		GBufferParamData mGBuffer;
-		RHITexture2DRef  mFrameTextures[2];
-		int              mIdxRenderFrameTexture;
-		OpenGLFrameBuffer      mFrameBuffer;
+		GBufferParamData   mGBuffer;
+		RHITexture2DRef    mFrameTextures[2];
+		int                mIdxRenderFrameTexture;
+		OpenGLFrameBuffer  mFrameBuffer;
 		RHITextureDepthRef mDepthTexture;
 	};
 
@@ -304,6 +310,8 @@ namespace Render
 		float   radius;
 		Vector4 param; // x y: spotAngle  , z : shadowFactor
 		Matrix4 worldToShadow;
+
+		void setValue(LightInfo const& light);
 	};
 
 

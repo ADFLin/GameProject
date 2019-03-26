@@ -9,6 +9,7 @@ struct ViewParameters
 	mat4   viewToClip;
 	mat4   clipToView;
 	mat4   clipToWorld;
+	mat4   worldToClipPrev;
 
 	float4 rectPosAndSizeInv;
 	float3 worldPos;
@@ -16,6 +17,8 @@ struct ViewParameters
 
 	float3 direction;
 	float  gameTime;
+
+	int    frameCount;
 
 };
 
@@ -35,7 +38,7 @@ uniform sampler2D FrameDepthTexture;
 float BufferDepthToClipZ(float bufferDepth)
 {
 #if COMPILER_GLSL
-	return 2 * bufferDepth - 1;
+	return 2 * bufferDepth / gl_DepthRange.diff - 1;
 #else
 	return bufferDepth;
 #endif
@@ -52,11 +55,10 @@ float2 BufferUVToScreenUV(float2 bufferUVs)
 
 float BufferDepthToSceneDepth(float depth)
 {
-	float sceneDepth = View.viewToClip[3][2] / (BufferDepthToClipZ(depth) + View.viewToClip[2][2]);
 #if USE_RIGHT_HAND_COORD
-	return sceneDepth;
+	return View.viewToClip[3][2] / (BufferDepthToClipZ(depth) + View.viewToClip[2][2]);
 #else
-	return -sceneDepth;
+	return View.viewToClip[3][2] / (BufferDepthToClipZ(depth) - View.viewToClip[2][2]);
 #endif
 }
 

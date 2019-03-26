@@ -12,7 +12,7 @@ bool RaySphereTest(float3 pos, float3 dirNormalized, float3 center, float radius
 	float c = dot(offset, offset) - radius * radius;
 	float d = b * b - c;
 
-	if( d < 0 || b > 0 )
+	if( d < 0 )
 	{
 		return false;
 	}

@@ -1,0 +1,187 @@
+#include "ComplexCommon.sgc"
+#include "ViewParam.sgc"
+#include "GeometryTestCommon.sgc"
+#include "LightingCommon.sgc"
+
+struct LightProbeVisualizeParameters
+{
+	float3  xAxis;
+	float   gridSize;
+	float3  yAxis;
+	float   probeRadius;
+	float3  startPos;
+	float   dummy2;
+	int2    gridNum;
+};
+
+#if SHADER_COMPILING
+layout(std140) cbuffer LightProbeVisualizeParamsBlock
+{
+	LightProbeVisualizeParameters LPV;
+};
+#else
+LightProbeVisualizeParameters LPV;
+#endif
+
+struct VSOutputParameters
+{
+	float3 cameraOffset;
+	float3 probePos;
+};
+
+
+#if VERTEX_SHADER
+
+float CalcVertexOffset(float2 p, float r, float factor)
+{
+	float rf = r * factor;
+#if 1
+	if( p.y > -r )
+	{
+		// m = ( x * y (-/+) r * sqrt( d ) ) / ( d - y * y ); d = x*x + y*y - r*r
+		// 1 / m = ( x * y (+/-) r * sqrt( d ) ) / ( d - x * x );
+		float d = dot(p, p) - r * r;
+		if( d > 0 )
+		{
+			if( p.y > r || p.x * factor < 0 )
+			{
+				float a = p.x * p.y + rf * sqrt(d);
+				float b = d - p.x * p.x;
+				if( b != 0 )
+					return (p.y + r) * a / b - p.x + 0.01 * rf;
+			}
+		}
+		else
+		{
+			return 4 * rf;
+		}
+	}
+#else
+	float d = dot(p, p) - r * r;
+	if( d > 0 )
+	{
+
+	}
+	else
+	{
+		return 4 * rf;
+	}
+
+#endif
+	return 3 * rf;
+}
+
+const float2 VertexMap[] =
+{
+	float2(1,  1),
+	float2(-1,  1),
+	float2(-1, -1),
+	float2(1, -1),
+};
+
+out VSOutputParameters VSOutput;
+out flat int GridId;
+void MainVS()
+{
+	int gridId = gl_InstanceID;
+
+	float2 vertexPos = VertexMap[ gl_VertexID ];
+	float3 probePos = LPV.startPos + LPV.gridSize * (float(gridId % LPV.gridNum.x ) * LPV.xAxis + float(gridId / LPV.gridNum.x) * LPV.yAxis);
+
+	float3 spherePosInView = float3(View.worldToView * vec4(probePos, 1.0));
+	float3 offsetInView = float3(
+		CalcVertexOffset(float2(spherePosInView.x, -spherePosInView.z), LPV.probeRadius, vertexPos.x),
+		CalcVertexOffset(float2(spherePosInView.y, -spherePosInView.z), LPV.probeRadius, vertexPos.y),
+		-LPV.probeRadius);
+
+	GridId = gridId;
+	VSOutput.cameraOffset = probePos + float3(View.viewToWorld * float4(offsetInView, 0)) - View.worldPos;
+	VSOutput.probePos = probePos;
+	gl_Position = View.viewToClip * float4(spherePosInView + offsetInView, 1.0);
+
+}
+
+#endif
+
+
+#if PIXEL_SHADER
+
+in VSOutputParameters VSOutput;
+in flat int GridId;
+out float4 OutColor;
+
+uniform sampler2D NormalTexture;
+uniform samplerCube IrradianceCubeTexture;
+struct MaterialInfo
+{
+	float3  baseColor;
+	float   specular;
+	float   roughness;
+	float   metallic; 
+	float   ao;
+};
+
+void MainPS()
+{
+	float3  cameraDir = normalize(VSOutput.cameraOffset);
+	float t;
+	if( !RaySphereTest(View.worldPos, cameraDir, VSOutput.probePos, LPV.probeRadius, t) )
+	{
+		discard;
+	}
+
+	float3 worldPos = View.worldPos + cameraDir * t;
+
+	float4 NDC = View.worldToClip * vec4(worldPos, 1.0);
+	WritePixelDepth(NDC.z / NDC.w);
+
+	float2 gridPos;
+	gridPos.x = GridId % LPV.gridNum.x;
+	gridPos.y = GridId / LPV.gridNum.x;
+	float2 posFactor = float2(gridPos) / (LPV.gridNum - 1);
+
+	MaterialInfo material;
+	material.baseColor = float3(1.000, 0.766, 0.336);
+	material.specular = 0.5;
+	material.roughness = lerp(1.0, 0.0, posFactor.x);
+	material.metallic = lerp(0.0, 1.0, posFactor.y);
+	material.ao = 1;
+
+	float3 zAxis = normalize(worldPos - VSOutput.probePos);
+	float3 yAxis = float3(0, 0, 1);
+	float3 xAxis = normalize( cross(yAxis, zAxis) );
+	yAxis = normalize(cross(zAxis, yAxis));
+
+	float3x3 TBN = float3x3(xAxis, yAxis, zAxis);
+	float2 xy = normalize(zAxis.xy);
+	float2 uv = float2( 4 , 2 ) * float2(atan(xy.y, xy.x) / ( 2 * PI ) , 2*(acos(zAxis.z) / PI - 0.5) );
+	
+	float3  N = normalize( TBN * ( 2 * texture2D(NormalTexture , uv).xyz -1 ) );
+	//float3  N = TBN * float3(0,0,1);
+	float3  V = normalize(View.worldPos - worldPos);
+	float3  L = normalize(float3(1, 1, 2));
+	//float3  L = normalize(float3(10, 10, 10)- worldPos);
+
+	float NoL = saturate(dot(N, L));
+
+	float3 diffuseColor = material.baseColor * ( 1 - material.metallic);
+	float3 specularColor = lerp(float3(0.08 * material.specular), material.baseColor, material.metallic);
+
+	float3 roughness = float3(material.roughness, material.roughness, 1);
+	roughness = max(roughness, 0.04);
+
+	float3 shading =  StandardShading(diffuseColor, specularColor, roughness, float3(1), L, V, N);
+
+	float3 radiance = 1 * float3(5, 5, 5);
+
+	float3 Lo = NoL * shading * radiance;
+
+	float3 ambient = texture( IrradianceCubeTexture , N ).rgb * material.baseColor * material.ao;
+	//ambient *= 0.0;
+	float3 color = ambient + Lo;
+
+	OutColor = float4(color, 1);
+}
+
+
+#endif

@@ -309,6 +309,11 @@ namespace Render
 			updateInternal();
 		}
 		void setPos(Vector3 const& pos) { mPos = pos; }
+		void lookAt(Vector3 const& pos, Vector3 const& posTarget, Vector3 const& upDir)
+		{
+			mPos = pos;
+			setViewDir(posTarget - pos, upDir);
+		}
 		void setViewDir(Vector3 const& forwardDir, Vector3 const& upDir)
 		{
 			LookAtMatrix mat(forwardDir, upDir);

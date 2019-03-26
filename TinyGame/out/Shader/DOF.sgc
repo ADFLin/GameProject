@@ -25,7 +25,7 @@
 
 #if PIXEL_SHADER
 
-in VSOutput vsOutput;
+in VSOutputParameters VSOutput;
 
 #if MAKE_VISIBLE
 //define in c++
@@ -50,7 +50,7 @@ layout(location = 0) out float4 OutColorNear;
 layout(location = 1) out float4 OutColorFar;
 void MainGenCoc()
 {
-	float2 ScreenUVs = vsOutput.UVs;
+	float2 ScreenUVs = VSOutput.UVs;
 	float depth = ScreenUVToSceneDepth(ScreenUVs);
 	float4 color = texture2D(Texture, ScreenUVs);
 	
@@ -99,7 +99,7 @@ layout(location = 1) out float4 OutColorG;
 layout(location = 2) out float4 OutColorB;
 void MainBlurV()
 {
-	float2 ScreenUVs = vsOutput.UVs;
+	float2 ScreenUVs = VSOutput.UVs;
 	float radius = DefaultRadius;
 
 
@@ -138,7 +138,7 @@ uniform sampler2D TextureB;
 layout(location = 0) out float4 OutColor;
 void MainBlurHAndCombine()
 {
-	float2 ScreenUVs = vsOutput.UVs;
+	float2 ScreenUVs = VSOutput.UVs;
 	float radius = DefaultRadius;
 
 	float2 duv = float2(radius) / textureSize(TextureR, 0).xy;

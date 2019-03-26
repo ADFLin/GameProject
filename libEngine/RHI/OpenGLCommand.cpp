@@ -640,4 +640,10 @@ namespace Render
 		glBindBuffer(GL_DRAW_INDIRECT_BUFFER, 0);
 	}
 
+	void OpenGLSystem::RHIDrawPrimitiveInstanced(PrimitiveType type, int vStart, int nv, int numInstance)
+	{
+		GLenum priType = GLConvert::To(type);
+		glDrawArraysInstanced(priType, vStart, nv, numInstance);
+	}
+
 }

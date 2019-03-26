@@ -78,6 +78,8 @@ namespace Render
 
 	void ViewInfo::setupTransform(Matrix4 const& inViewMatrix, Matrix4 const& inProjectMatrix)
 	{
+		worldToClipPrev = worldToClip;
+
 		worldToView = inViewMatrix;
 		float det;
 		worldToView.inverse(viewToWorld, det);
@@ -88,7 +90,7 @@ namespace Render
 		viewToClip.inverse(clipToView, det);
 		clipToWorld = clipToView * viewToWorld;
 
-		direction = TransformVector(Vector3(0, 0, -1), viewToWorld);
+		direction = getViewForwardDir();
 
 		updateFrustumPlanes();
 
@@ -106,7 +108,7 @@ namespace Render
 	{
 		//ref ViewParam.sgc
 #if 1
-		struct ViewBufferData
+		struct GPU_BUFFER_ALIGN ViewBufferData
 		{
 			DECLARE_BUFFER_STRUCT(ViewBlock);
 
@@ -116,12 +118,14 @@ namespace Render
 			Matrix4  viewToClip;
 			Matrix4  clipToView;
 			Matrix4  clipToWorld;
+			Matrix4  worldToClipPrev;
 			Vector4  rectPosAndSizeInv;
 			Vector3 worldPos;
 			float  realTime;
 			Vector3 direction;
 			float  gameTime;
-
+			int    frameCount;
+			int    dummy[3];
 		};
 
 		if( !mUniformBuffer.isValid() )
@@ -143,12 +147,14 @@ namespace Render
 			data.viewToClip = viewToClip;
 			data.clipToView = clipToView;
 			data.clipToWorld = clipToWorld;
+			data.worldToClipPrev = worldToClipPrev;
 			data.gameTime = gameTime;
 			data.realTime = realTime;
 			data.rectPosAndSizeInv.x = rectOffset.x;
 			data.rectPosAndSizeInv.y = rectOffset.y;
 			data.rectPosAndSizeInv.z = 1.0 / float(rectSize.x);
 			data.rectPosAndSizeInv.w = 1.0 / float(rectSize.y);	
+			data.frameCount = frameCount;
 			RHIUnlockBuffer(mUniformBuffer);
 		}
 

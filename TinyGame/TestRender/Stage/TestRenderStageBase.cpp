@@ -86,25 +86,52 @@ namespace Render
 		return true;
 	}
 
+	bool TestRenderStageBase::onInit()
+	{
+		if( !BaseClass::onInit() )
+			return false;
+
+		if( !::Global::GetDrawEngine().initializeRHI(RHITargetName::OpenGL, 4) )
+			return false;
+
+		mView.gameTime = 0;
+		mView.realTime = 0;
+		mView.frameCount = 0;
+
+		mbGamePased = false;
+
+		Vec2i screenSize = ::Global::GetDrawEngine().getScreenSize();
+		mViewFrustum.mNear = 0.01;
+		mViewFrustum.mFar = 800.0;
+		mViewFrustum.mAspect = float(screenSize.x) / screenSize.y;
+		mViewFrustum.mYFov = Math::Deg2Rad(60 / mViewFrustum.mAspect);
+
+		mCamera.lookAt(Vector3(20, 20, 20) , Vector3(0, 0, 0), Vector3(0, 0, 1));
+
+		return true;
+	}
+
+	void TestRenderStageBase::onEnd()
+	{
+		::Global::GetDrawEngine().shutdownRHI(true);
+		BaseClass::onEnd();
+	}
+
 	void TestRenderStageBase::drawLightPoints(ViewInfo& view, TArrayView< LightInfo > lights)
 	{
-		GL_BIND_LOCK_OBJECT(mProgSphere);
-
 		RHISetBlendState(TStaticBlendState<>::GetRHI());
 		RHISetDepthStencilState(TStaticDepthStencilState<>::GetRHI());
 
 		float radius = 0.15f;
-		view.setupShader(mProgSphere);
-		mProgSphere.setParam(SHADER_PARAM(Primitive.worldToLocal), Matrix4::Identity());
-		mProgSphere.setParam(SHADER_PARAM(Sphere.radius), radius);
-
-
 		for( auto const& light : lights )
 		{
 			if( !light.testVisible(view) )
 				return;
 
-			mProgSphere.setParam(SHADER_PARAM(Sphere.localPos), light.pos);
+			GL_BIND_LOCK_OBJECT(mProgSphere);
+			view.setupShader(mProgSphere);
+			mProgSphere.setParam(SHADER_PARAM(Sphere.radius), radius);
+			mProgSphere.setParam(SHADER_PARAM(Sphere.worldPos), light.pos);
 			mProgSphere.setParam(SHADER_PARAM(Sphere.baseColor), light.color);
 			mSimpleMeshs[SimpleMeshId::SpherePlane].draw();
 		}

@@ -181,10 +181,10 @@ namespace Render
 		if( !GBlackTexture2D.isValid() )
 			return false;
 		GWhiteTextureCube = RHICreateTextureCube();
-		if( !GWhiteTextureCube->create(Texture::eRGBA8, 2, 2, colorW) )
+		if( !GWhiteTextureCube->create(Texture::eRGBA8, 2, colorW) )
 			return false;
 		GBlackTextureCube = RHICreateTextureCube();
-		if( !GBlackTextureCube->create(Texture::eRGBA8, 2, 2, colorB) )
+		if( !GBlackTextureCube->create(Texture::eRGBA8, 2, colorB) )
 			return false;
 
 		OpenGLCast::To(GWhiteTextureCube)->bind();
@@ -475,7 +475,26 @@ namespace Render
 		ShaderManager::Get().reloadShader(*mProgCopyTextureBias);
 	}
 
+	Vector3 Texture::GetFaceDir(Face face)
+	{
+		static Vector3 const CubeFaceDir[] =
+		{
+			Vector3(1,0,0),Vector3(-1,0,0),
+			Vector3(0,1,0),Vector3(0,-1,0),
+			Vector3(0,0,1),Vector3(0,0,-1),
+		};
+		return CubeFaceDir[face];
+	}
 
-
+	Vector3 Texture::GetFaceUpDir(Face face)
+	{
+		static Vector3 const CubeUpDir[] =
+		{
+			Vector3(0,-1,0),Vector3(0,-1,0),
+			Vector3(0,0,1),Vector3(0,0,-1),
+			Vector3(0,-1,0),Vector3(0,-1,0),
+		};
+		return CubeUpDir[face];
+	}
 
 }//namespace Render

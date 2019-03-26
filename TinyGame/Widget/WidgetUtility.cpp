@@ -16,14 +16,14 @@ DevFrame::DevFrame( int id , Vec2i const& pos , Vec2i const& size , GWidget* par
 
 
 template< class T , class LAMBDA >
-T* DevFrame::addWidget( LAMBDA Lambda )
+T* DevFrame::addWidget( LAMBDA Lambda, bool bUseBroder )
 {
 	Vec2i widgetSize = Vec2i(getSize().x - 2 * WidgetPosOffset, 20);
 	Vec2i widgetPos(6, mNextWidgetPosY);
 
 	T* widget = Lambda(widgetPos , widgetSize);
 
-	mNextWidgetPosY += widget->getSize().y + WidgetGapY;
+	mNextWidgetPosY += widget->getSize().y + ((bUseBroder) ? WidgetGapY : 0 );
 	if( getSize().y < mNextWidgetPosY )
 	{
 		setSize(Vec2i(getSize().x, mNextWidgetPosY));
@@ -83,14 +83,15 @@ GSlider* DevFrame::addSlider(int id)
 	});
 }
 
-GText* DevFrame::addText(char const* pText)
+
+GText* DevFrame::addText(char const* pText, bool bUseBroder)
 {
 	return addWidget<GText>([&](Vec2i const& widgetPos , Vec2i const& widgetSize ) ->auto
 	{
 		GText* widget = new GText(widgetPos, widgetSize, this);
 		widget->setText(pText);
 		return widget;
-	});
+	} , bUseBroder);
 }
 
 DevFrame* WidgetUtility::CreateDevFrame( Vec2i const& size )

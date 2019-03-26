@@ -64,23 +64,26 @@ void GameLoopT< T , PP >::run()
 		if ( intervalTime < mUpdateTime )
 		{
 			_this()->onIdle( mUpdateTime - intervalTime );
-		}
-		else if( intervalTime > mBusyTime )
-		{
-			_this()->onLoopBusy(intervalTime);
-			beforeTime = presentTime;
+
 		}
 		else
 		{
-			if ( !Platform::updateSystem() )
+			if( intervalTime > mBusyTime )
+			{
+				_this()->onLoopBusy(intervalTime);
+				beforeTime = presentTime - mUpdateTime;
+				intervalTime = mUpdateTime;
+			}
+
+			if( !Platform::updateSystem() )
 			{
 				mIsOver = true;
 			}
 
-			if ( mIsOver )
+			if( mIsOver )
 				break;
 
-			long updateTime = _this()->onUpdate( intervalTime );
+			long updateTime = _this()->onUpdate(intervalTime);
 			_this()->onRender();
 
 			beforeTime += updateTime;

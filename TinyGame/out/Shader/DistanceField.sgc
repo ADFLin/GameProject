@@ -13,11 +13,11 @@ uniform float3 BoundMax;
 uniform float3 BoundMin;
 uniform float  DistanceFactor;
 
-in  VSOutput vsOutput;
+in  VSOutputParameters VSOutput;
 layout(location = 0) out float4 OutColor;
 void RayMarchingPS()
 {
-	float4 NDC = float4( 2 * vsOutput.UVs.xy - 1 , 1 , 1 );
+	float4 NDC = float4( 2 * VSOutput.UVs.xy - 1 , 1 , 1 );
 	float4 rayDestLocal = WorldToLocal * View.clipToWorld * NDC;
 	rayDestLocal /= rayDestLocal.w;
 	float3 rayPosLocal = ( WorldToLocal * float4( View.worldPos , 1 ) ).xyz;
@@ -50,7 +50,7 @@ void RayMarchingPS()
 		}
 	}
 
-	OutColor.xyz += float3(texture3D(DistanceFieldTexture, float3(vsOutput.UVs, 0.5)).r);
+	OutColor.xyz += float3(texture3D(DistanceFieldTexture, float3(VSOutput.UVs, 0.5)).r);
 #else
 	
 	float dist;

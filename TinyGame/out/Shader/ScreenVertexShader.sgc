@@ -1,6 +1,6 @@
 #include "Common.sgc"
 
-struct VSOutput
+struct VSOutputParameters
 {
 	float2 UVs;
 };
@@ -10,12 +10,12 @@ struct VSOutput
 layout(location = ATTRIBUTE_POSITION) in float4 InPosition;
 layout(location = ATTRIBUTE_TEXCOORD) in float2 InUV;
 
-out VSOutput vsOutput;
+out VSOutputParameters VSOutput;
 
 void ScreenVS()
 {
 	gl_Position = InPosition;
-	vsOutput.UVs = InUV;
+	VSOutput.UVs = InUV;
 }
 
 #endif

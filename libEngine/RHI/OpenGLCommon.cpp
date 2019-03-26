@@ -197,10 +197,13 @@ namespace Render
 		return true;
 	}
 
-	bool OpenGLTextureCube::create(Texture::Format format, int width, int height , void* data )
+	bool OpenGLTextureCube::create(Texture::Format format, int size , void* data, int faceDataOffset)
 	{
 		if( !mGLObject.fetchHandle() )
 			return false;
+
+		mSize = size;
+		mFormat = format;
 
 		bind();
 		for( int i = 0; i < 6; ++i )
@@ -208,8 +211,9 @@ namespace Render
 			glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 			glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 			glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, 
-						 GLConvert::To(format), width, height, 0,
-						 GLConvert::BaseFormat(format), GLConvert::TextureComponentType(format), data );
+						 GLConvert::To(format), size, size, 0,
+						 GLConvert::BaseFormat(format), GLConvert::TextureComponentType(format), 
+						 (uint8*)(data) + i * faceDataOffset );
 		}
 		unbind();
 		return true;
@@ -565,6 +569,9 @@ namespace Render
 		TEXTURE_INFO(Texture::eRGBA32U ,GL_RGBA32UI,4,GL_UNSIGNED_INT)
 		TEXTURE_INFO(Texture::eRGBA16U ,GL_RGBA16UI,4,GL_UNSIGNED_SHORT)
 		TEXTURE_INFO(Texture::eRGBA8U  ,GL_RGBA8UI ,4,GL_UNSIGNED_BYTE)
+
+		TEXTURE_INFO(Texture::eSRGB   ,GL_SRGB8 ,3,GL_UNSIGNED_BYTE)
+		TEXTURE_INFO(Texture::eSRGBA  ,GL_SRGB8_ALPHA8 ,4,GL_UNSIGNED_BYTE)
 			
 		
 #undef TEXTURE_INFO
@@ -854,9 +861,9 @@ namespace Render
 	{
 		switch( format )
 		{
-		case Texture::eRGB8: case Texture::eRGB32F:case Texture::eRGB16F:
+		case Texture::eRGB8: case Texture::eRGB32F:case Texture::eRGB16F: case Texture::eSRGB:
 			return GL_RGB;
-		case Texture::eRGBA8:case Texture::eRGBA32F:case Texture::eRGBA16F:
+		case Texture::eRGBA8:case Texture::eRGBA32F:case Texture::eRGBA16F: case  Texture::eSRGBA:
 			return GL_RGBA;
 		case Texture::eR32F: case Texture::eR16: case Texture::eR8:
 			return GL_RED;
@@ -887,12 +894,12 @@ namespace Render
 		case Texture::eRG8I:case Texture::eRG16I:case Texture::eRG32I:
 		case Texture::eRG8U:case Texture::eRG16U:case Texture::eRG32U:
 			return GL_RG;
-		case Texture::eRGB8:
+		case Texture::eRGB8: case Texture::eSRGB:
 		case Texture::eRGB32F:case Texture::eRGB16F:
 		case Texture::eRGB8I:case Texture::eRGB16I:case Texture::eRGB32I:
 		case Texture::eRGB8U:case Texture::eRGB16U:case Texture::eRGB32U:
 			return GL_RGB;
-		case Texture::eRGBA8:
+		case Texture::eRGBA8: case Texture::eSRGBA:
 		case Texture::eRGBA32F:case Texture::eRGBA16F:
 		case Texture::eRGBA8I:case Texture::eRGBA16I:case Texture::eRGBA32I:
 		case Texture::eRGBA8U:case Texture::eRGBA16U:case Texture::eRGBA32U:
@@ -930,6 +937,15 @@ namespace Render
 			return GL_UNSIGNED_INT_IMAGE_2D;
 		}
 		return 0;
+	}
+
+	GLenum GLConvert::BufferUsageEnum(uint32 creationFlags)
+	{
+		if( creationFlags & BCF_UsageDynamic )
+			return GL_DYNAMIC_DRAW;
+		else if( creationFlags & BCF_UsageStage )
+			return GL_STREAM_DRAW;
+		return GL_STATIC_DRAW;
 	}
 
 	int Vertex::GetFormatSize(uint8 format)

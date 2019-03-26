@@ -3,7 +3,7 @@
 
 struct SphereData
 {
-	vec3   localPos;
+	vec3   worldPos;
 	float  radius;
 	float3 baseColor;
 };
@@ -14,26 +14,15 @@ uniform vec2   DepthParam;
 uniform vec3   LightPos[] = vec3[]( vec3( 0 , 10 , 10 ) , vec3( 0 , -10 , 10 ) , vec3( 0 , 0 , -30 ) , vec3( -30 , 0 , 10 ) );
 uniform vec3   LightColor[] = vec3[]( vec3( 0.3 , 0 , 0 ) , vec3( 0 , 0.4 , 0 ) , vec3( 0 , 0 , 0.5 ) , vec3( 0.1 , 0 , 0.2 ) );
 
-struct PrimitiveParameters
-{
-	mat4 localToWorld;
-	mat4 worldToLocal;
-};
-uniform PrimitiveParameters Primitive = PrimitiveParameters( 
-   mat4( 1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1 ) ,
-   mat4( 1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1 ) );
 
-struct VSOutput
+struct VSOutputParameters
 {
-	vec3 viewOffsetL;
-#ifdef USE_SHADOW_MAP
-	vec3 viewOffsetV;
-#endif
+	vec3 cameraOffset;
 };
 
 #if VERTEX_SHADER
 
-float calcOffset( vec2 p , float r , float factor )
+float CalcVertexOffset(float2 p , float r , float factor )
 {
 	float rf = r * factor;
 #if 1
@@ -72,25 +61,19 @@ float calcOffset( vec2 p , float r , float factor )
 	return 3 * rf;
 }
 
-vec4 VSOutputMain( out VSOutput outVS )
-{
-	vec3 camPosL = vec3( gl_ModelViewMatrixInverse * vec4(0.0, 0.0, 0.0, 1.0) );
-	vec3 spherePosV = vec3( gl_ModelViewMatrix * vec4( Sphere.localPos , 1.0 ) );
-	vec3 offsetV = vec3( 
-		calcOffset( vec2( spherePosV.x , -spherePosV.z ) , Sphere.radius , gl_Vertex.x ),
-		calcOffset( vec2( spherePosV.y , -spherePosV.z ) , Sphere.radius , gl_Vertex.y ), 
-		-Sphere.radius );
-	outVS.viewOffsetL = Sphere.localPos + ( gl_ModelViewMatrixInverse * vec4( offsetV , 0 ) ).xyz - camPosL;
-#ifdef USE_SHADOW_MAP
-	outVS.viewOffsetV = offsetV;
-#endif
-	return gl_ProjectionMatrix * vec4( spherePosV + offsetV , 1.0 );
-}
+layout(location = ATTRIBUTE_POSITION) in float4 InPosition;
 
-out VSOutput vsOutput;
+out VSOutputParameters VSOutput;
 void MainVS()
 {
-	gl_Position = VSOutputMain( vsOutput );
+	float3 spherePosInView = float3(View.worldToView * vec4(Sphere.worldPos, 1.0));
+	float3 offsetInView = float3(
+		CalcVertexOffset(float2(spherePosInView.x, -spherePosInView.z), Sphere.radius, InPosition.x),
+		CalcVertexOffset(float2(spherePosInView.y, -spherePosInView.z), Sphere.radius, InPosition.y),
+		-Sphere.radius);
+
+	VSOutput.cameraOffset = Sphere.worldPos + float3(View.viewToWorld * float4(offsetInView, 0)) - View.worldPos;
+	gl_Position = View.viewToClip * float4(spherePosInView + offsetInView, 1.0);
 }
 
 #endif //VERTEX_SHADER
@@ -102,82 +85,56 @@ struct FSInput
 {
 	float3 viewDir;
 	float3 normal;
-	float3 vertex;
-#if USE_SHADOW_MAP
-	float3 viewOffsetV;
-#endif
+	float3 worldPos;
 };
 
-in VSOutput vsOutput;
-bool FSInputMain( in VSOutput inVS , out FSInput outFS )
+in VSOutputParameters VSOutput;
+bool FSInputMain( in VSOutputParameters inVS , out FSInput outFS )
 {
-	float3 viewPosL = vec3( gl_ModelViewMatrixInverse * vec4(0.0, 0.0, 0.0, 1.0) );
 
-	float3  vd = normalize(inVS.viewOffsetL);
+	float3  cameraDir = normalize(inVS.cameraOffset);
 	float t;
-	if( !RaySphereTest(viewPosL, vd, Sphere.localPos, Sphere.radius, t) )
+	if( !RaySphereTest(View.worldPos, cameraDir, Sphere.worldPos, Sphere.radius, t) )
 	{
 #define USE_DEBUG_SHOW 1
 #if USE_DEBUG_SHOW
 		discard;
 #else
-		float4 depth = gl_ModelViewProjectionMatrix * vec4(viewPosL + vsOutput.viewOffsetL, 1.0);
-		WritePixelDepth(depth.z / depth.w);
+		float4 NDC = View.worldToClip * vec4(View.worldPos + VSOutput.cameraOffset, 1.0);
+		WritePixelDepth(NDC.z / NDC.w);
 		//gl_FragColor = vec4( 0.5 * vd + 0.5 , 1.0 );
 		gl_FragColor = vec4(1.0, 1.0, 0, 1.0);
 		return false;
 #endif
 	}
 
-	vec3 vL = viewPosL + vd * t;
-	outFS.vertex  = vL;
-	outFS.normal  = ( vL - Sphere.localPos ) / Sphere.radius;
-	outFS.viewDir = normalize( viewPosL - vL );
-#if USE_SHADOW_MAP
-	outFS.viewOffsetV = inVS.viewOffsetV;
-#endif
+	float3 vL = View.worldPos + cameraDir * t;
+	outFS.worldPos  = vL;
+	outFS.normal = normalize(vL - Sphere.worldPos);
+	outFS.viewDir = normalize(View.worldPos - vL );
 	return true;
 }
 
 void FSDepthCorrect( in FSInput inFS )
 {
-	vec4 v = gl_ModelViewProjectionMatrix * vec4( inFS.vertex , 1.0 );
-	float depth = v.z / v.w;
-	gl_FragDepth = ( gl_DepthRange.diff * depth + gl_DepthRange.near + gl_DepthRange.far ) * 0.5;
+	float4 NDC = View.worldToClip * vec4( inFS.worldPos , 1.0 );
+	WritePixelDepth(NDC.z / NDC.w);
 }
 
-vec3 FSLightOffset( vec3 lightPos , vec3 V )
-{
-#ifdef FSINPUT_LIGHT_POS_TRANSFORMED
-	return lightPos  - V;
-#elif defined( FSINPUT_LOCAL_SPACE )
-	return vec3( Primitive.worldToLocal * vec4( lightPos , 1 ) ) - V;
-#elif defined( FSINPUT_WORLD_SPACE )
-	return lightPos  - V;
-#elif defined(FSINPUT_VIEW_SPACE )
-	return vec3( View.worldToView * vec4( lightPos , 1 ) ) - V;
-#elif defined(FSINPUT_VIEW_TSPACE )
-	return lightPos  - V;
-#elif defined( FSINPUT_LOCAL_TSPACE )
-	return lightPos  - V;
-#endif
-}
-
-vec3 FSLighting( in FSInput inFS )
+float3 FSLighting( in FSInput inFS )
 {
 	float power = 0.8;
 	float factor = -dot( View.direction , inFS.normal );
 	return pow( factor , power ) * Sphere.baseColor;
 
-	vec3 V = inFS.vertex;
-	vec3 N = inFS.normal;
-	vec3 E = inFS.viewDir;
+	float3 P = inFS.worldPos;
+	float3 N = inFS.normal;
+	float3 E = inFS.viewDir;
 
 	vec3 color = vec3(0,0,0);
 	for( int i = 0 ; i < 4 ; ++i )
 	{
-		vec3 L = FSLightOffset( LightPos[i] , V );
-		L = normalize( L );
+		vec3 L = normalize( LightPos[i] );
 		float diff = clamp( dot( L , N ) , 0.0 , 1.0 );
 		float spec = 0;
 
@@ -193,37 +150,18 @@ vec3 FSLighting( in FSInput inFS )
 	return color;
 }
 
+out float4 OutColor;
 
-#if USE_SHADOW_MAP
 void MainPS() 
 {
 	FSInput inFS;
-	if ( !FSInputMain( vsOutput , inFS ) )
+	if ( !FSInputMain( VSOutput , inFS ) )
 		return;
 
 	FSDepthCorrect( inFS );
 
-#if USE_POINT_LIGHT
-	float depth = ( length( inFS.viewOffsetV ) - DepthParam.x ) / ( DepthParam.y - DepthParam.x );
-#else
-	float depth = ( -inFS.viewOffsetV.z  - DepthParam.x ) / ( DepthParam.y - DepthParam.x );
-#endif
-	gl_FragData[0] = vec4(depth,depth,depth,1);
-
+	float3 color = FSLighting( inFS );
+	OutColor = vec4( color , 1.0 );
 }
-#else
-void MainPS() 
-{
-	FSInput inFS;
-	if ( !FSInputMain( vsOutput , inFS ) )
-		return;
-
-	FSDepthCorrect( inFS );
-
-	//gl_FragColor = vec4( 0.5 * N + 0.5 , 1.0 );
-	vec3 color = FSLighting( inFS );
-	gl_FragColor = vec4( color , 1.0 );
-}
-#endif
 
 #endif //PIXEL_SHADER

@@ -212,6 +212,11 @@ namespace Render
 		EXECUTE_RHIFUN(RHIDrawIndexedPrimitiveIndirect(type, indexType, commandBuffer, offset , numCommand, commandStride));
 	}
 
+	void RHIDrawPrimitiveInstanced(PrimitiveType type, int vStart, int nv, int numInstance)
+	{
+		EXECUTE_RHIFUN(RHIDrawPrimitiveInstanced(type, vStart, nv, numInstance));
+	}
+
 	void RHIDrawPrimitiveUP(PrimitiveType type, int numPrimitive, void* pVertices, int numVerex, int vetexStride)
 	{
 		EXECUTE_RHIFUN(RHIDrawPrimitiveUP(type, numPrimitive, pVertices, numVerex, vetexStride));
@@ -264,29 +269,48 @@ namespace Render
 #undef SWITCH_CULL_MODE
 	}
 
-	RHITexture2D* RHIUtility::LoadTexture2DFromFile(char const* path , int numMipLevel , uint32 creationFlags )
+	RHITexture2D* RHIUtility::LoadTexture2DFromFile(char const* path , TextureLoadOption const& option )
 	{
 		int w;
 		int h;
 		int comp;
-		unsigned char* image = stbi_load(path, &w, &h, &comp, STBI_default);
-
-		if( !image )
-			return false;
-
 		RHITexture2D* result = nullptr;
-		//#TODO
-		switch( comp )
+		stbi_set_flip_vertically_on_load(option.bReverseH);
+		if( option.bHDR )
 		{
-		case 3:
-			result = RHICreateTexture2D(Texture::eRGB8, w, h, numMipLevel, creationFlags, image, 1);
-			break;
-		case 4:
-			result = RHICreateTexture2D(Texture::eRGBA8, w, h, numMipLevel, creationFlags, image);
-			break;
+			
+			float* image = stbi_loadf(path, &w, &h, &comp, STBI_default);
+			switch( comp )
+			{
+			case 3:
+				result = RHICreateTexture2D(Texture::eRGB16F, w, h, option.numMipLevel, option.creationFlags, image, 1);
+				break;
+			case 4:
+				result = RHICreateTexture2D( Texture::eRGBA16F, w, h, option.numMipLevel, option.creationFlags, image);
+				break;
+			}
+			stbi_image_free(image);
 		}
+		else
+		{
+			unsigned char* image = stbi_load(path, &w, &h, &comp, STBI_default);
 
-		stbi_image_free(image);
+			if( !image )
+				return false;	
+			//#TODO
+			switch( comp )
+			{
+			case 3:
+				result = RHICreateTexture2D( option.bSRGB ? Texture::eSRGB : Texture::eRGB8, w, h, option.numMipLevel, option.creationFlags, image, 1);
+				break;
+			case 4:
+				result = RHICreateTexture2D( option.bSRGB ? Texture::eSRGBA : Texture::eRGBA8, w, h, option.numMipLevel, option.creationFlags, image);
+				break;
+			}
+
+			stbi_image_free(image);
+		}
+		stbi_set_flip_vertically_on_load(false);
 		return result;
 	}
 

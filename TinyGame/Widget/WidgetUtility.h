@@ -13,13 +13,13 @@ public:
 	GCheckBox* addCheckBox(int id, char const* tile);
 	GCheckBox* addCheckBox(char const* title, WidgetEventDelegate delegate);
 	GSlider*   addSlider( int id );
-	GText*     addText(char const* pText);
+	GText*     addText(char const* pText, bool bUseBroder = false);
 
 private:
 	template< class T >
 	T* addWidget(int id , char const* title);
 	template< class T, class LAMBDA >
-	T* addWidget( LAMBDA Lambda);
+	T* addWidget( LAMBDA Lambda , bool bUseBroder = true );
 	template< class T >
 	T* addWidget(char const* title, WidgetEventDelegate delegate);
 	int mNextWidgetPosY;
@@ -83,16 +83,20 @@ struct WidgetPropery
 	}
 
 
-	static void Bind(GSlider* widget, float& valueRef, float min, float max , float power)
+	static void Bind(GSlider* widget, float& valueRef, float min, float max , float power , std::function< void (float) > inDelegate = std::function< void(float) >() )
 	{
 		float constexpr scale = 0.001;
 		widget->setRange(0, 1 / scale);
 		float delta = max - min;
 		WidgetPropery::Set(widget, Math::Exp( Math::Log( (valueRef - min ) / delta ) / power ) / scale );
-		widget->onEvent = [&valueRef, scale, min , delta , power ](int event, GWidget* widget)
+		widget->onEvent = [&valueRef, scale, min , delta , power , inDelegate](int event, GWidget* widget)
 		{
 			float factor = scale * WidgetPropery::Get<float>(widget->cast<GSlider>());
 			valueRef = min + delta * Math::Pow(factor, power);
+			if( inDelegate )
+			{
+				inDelegate(valueRef);
+			}
 			return false;
 		};
 	}

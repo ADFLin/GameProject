@@ -202,7 +202,7 @@ namespace Render
 	{
 	public:
 		bool loadFile(char const* path[]);
-		bool create(Texture::Format format, int width, int height, void* data );
+		bool create(Texture::Format format, int size, void* data , int faceDataOffset );
 	};
 
 
@@ -244,6 +244,8 @@ namespace Render
 		static GLenum PixelFormat(Texture::Format format);
 		static GLenum TextureComponentType(Texture::Format format);
 		static GLenum Image2DType(Texture::Format format);
+
+		static GLenum BufferUsageEnum(uint32 creationFlags);
 
 		static GLenum VertexComponentType(uint8 format)
 		{
@@ -387,7 +389,7 @@ namespace Render
 		bool resetDataInternal(uint32 elementSize, uint32 numElements, uint32 creationFlags, void* initData)
 		{
 			glBindBuffer(GLBufferType, getHandle());
-			glBufferData(GLBufferType, elementSize * numElements , initData, GetUsageEnum(creationFlags));
+			glBufferData(GLBufferType, elementSize * numElements , initData, GLConvert::BufferUsageEnum(creationFlags));
 			glBindBuffer(GLBufferType, 0);
 
 			mCreationFlags = creationFlags;
@@ -395,17 +397,6 @@ namespace Render
 			mElementSize = elementSize;
 			return true;
 		}
-
-
-		static GLenum GetUsageEnum(uint32 creationFlags)
-		{
-			if( creationFlags & BCF_UsageDynamic )
-				return GL_DYNAMIC_DRAW;
-			else if( creationFlags & BCF_UsageStage )
-				return GL_STREAM_DRAW;
-			return GL_STATIC_DRAW;
-		}
-		
 	};
 
 	class OpenGLVertexBuffer : public TOpenGLBuffer< RHIVertexBuffer >

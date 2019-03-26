@@ -206,11 +206,13 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="TestRender\Stage\BRDFTestStage.cpp" />
     <ClCompile Include="TestRender\Stage\NoiseTestStage.cpp" />
     <ClCompile Include="TestWorking\TestWorking.cpp" />
     <ClCompile Include="TestWorking\TestWorkingPCH.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="TestRender\Stage\NoiseTestStage.h" />
     <ClInclude Include="TestWorking\TestWorkingPCH.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

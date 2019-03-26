@@ -76,6 +76,8 @@ namespace CPP
 		case FStringParse::eNoToken:
 			result.type = Token_Eof;
 			break;
+		default:
+			result.type = Token_Unknown;
 		};
 		return result;
 	}
@@ -104,6 +106,10 @@ namespace CPP
 		}
 
 		StringView path{ token.str.data() + 1 , token.str.size() - 2 };
+		if( path.size() == 0 )
+		{
+			SYNTAX_ERROR("No include file Name");
+		}
 
 		std::string fullPath;
 		if( !findFile(path.toStdString(), fullPath) )

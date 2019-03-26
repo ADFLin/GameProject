@@ -108,6 +108,9 @@ namespace Render
 			eRGBA16U,
 			eRGBA8U,
 
+			eSRGB ,
+			eSRGBA ,
+
 			eFloatRGBA = eRGBA16F,
 		};
 
@@ -119,9 +122,14 @@ namespace Render
 			eFaceInvY = 3,
 			eFaceZ = 4,
 			eFaceInvZ = 5,
+
+
+			FaceCount ,
 		};
 
+		static Vector3 GetFaceDir(Face face);
 
+		static Vector3 GetFaceUpDir(Face face);
 		static uint32 GetFormatSize(Format format);
 		static uint32 GetComponentNum(Format format);
 
@@ -227,9 +235,9 @@ namespace Render
 	class RHITexture3D : public RHITextureBase
 	{
 	public:
-		int  getSizeX() { return mSizeX; }
-		int  getSizeY() { return mSizeY; }
-		int  getSizeZ() { return mSizeZ; }
+		int  getSizeX() const  { return mSizeX; }
+		int  getSizeY() const  { return mSizeY; }
+		int  getSizeZ() const  { return mSizeZ; }
 
 
 		virtual RHITexture3D* getTexture3D() override { return this; }
@@ -245,9 +253,14 @@ namespace Render
 	{
 	public:
 		virtual bool loadFile(char const* path[]) = 0;
-		virtual bool create(Texture::Format format, int width, int height, void* data = nullptr) = 0;
+		virtual bool create(Texture::Format format, int size , void* data = nullptr, int faceDataOffset = 0) = 0;
+
+		int getSize() const { return mSize; }
 
 		virtual RHITextureCube* getTextureCube() override { return this; }
+
+	protected:
+		int mSize;
 	};
 
 	class RHIFrameBuffer : public RHIResource

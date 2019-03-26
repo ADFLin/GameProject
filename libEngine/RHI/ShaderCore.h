@@ -335,6 +335,11 @@ namespace Render
 			return setTextureInternal(loc, OpenGLTextureTraits< RHITextureType >::EnumValue, OpenGLCast::GetHandle(tex), idx);
 		}
 
+		template < class RHITextureType >
+		void setTexture(char const* name, TRefCountPtr<RHITextureType> const& tex, int idx = -1)
+		{
+			setTexture(name, *tex, idx);
+		}
 
 #if 0 //#TODO Can't Bind to texture 2d
 		void setTexture2D(char const* name, TextureCube& tex, Texture::Face face, int idx = -1)

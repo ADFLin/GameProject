@@ -15,7 +15,7 @@ uniform PrimitiveParameters Primitive = PrimitiveParameters(
    mat4( 1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1 ) ,
    mat4( 1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1 ) );
 
-struct VSOutput
+struct VSOutputParameters
 {
 	vec3 vertex;
 	vec3 worldNormal;
@@ -23,7 +23,7 @@ struct VSOutput
 
 #if VERTEX_SHADER
 
-vec4 VSOutputMain( out VSOutput outVS )
+vec4 VSOutputMain( out VSOutputParameters outVS )
 {
 	vec3 v = vec3(0,0,0);
 #if USE_NORMAL
@@ -64,10 +64,10 @@ vec4 VSOutputMain( out VSOutput outVS )
 	return ftransform();
 }
 
-out VSOutput vsOutput;
+out VSOutputParameters VSOutput;
 void MainVS()
 {
-	gl_Position = VSOutputMain( vsOutput );
+	gl_Position = VSOutputMain( VSOutput );
 }
 
 #endif //VERTEX_SHADER
@@ -82,8 +82,8 @@ struct FSInput
 	vec3 vertex;
 };
 
-in VSOutput vsOutput;
-bool FSInputMain( in VSOutput inVS , out FSInput outFS )
+in VSOutputParameters VSOutput;
+bool FSInputMain( in VSOutputParameters inVS , out FSInput outFS )
 {
 	return true;
 }
@@ -141,7 +141,7 @@ vec3 FSLighting( in FSInput inFS )
 void MainPS() 
 {
 	FSInput inFS;
-	if ( !FSInputMain( vsOutput , inFS ) )
+	if ( !FSInputMain( VSOutput , inFS ) )
 		return;
 
 	FSDepthCorrect( inFS );

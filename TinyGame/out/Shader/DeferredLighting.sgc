@@ -39,7 +39,7 @@ uniform mat4 ProjectShadowMatrix[8];
 #if DEFERRED_SHADING_USE_BOUND_SHAPE
 //layout(early_fragment_tests) in;
 #else
-in VSOutput vsOutput;
+in VSOutputParameters VSOutput;
 #endif
 
 void ShowBoundPS()
@@ -53,7 +53,7 @@ void LightingPassPS()
 #if DEFERRED_SHADING_USE_BOUND_SHAPE
 	float2 ScreenUVs = (gl_FragCoord.xy + View.rectPosAndSizeInv.xy) * View.rectPosAndSizeInv.zw;
 #else
-	float2 ScreenUVs = vsOutput.UVs;
+	float2 ScreenUVs = VSOutput.UVs;
 #endif
 
 	GBufferData GBuffer = GetGBufferData(ScreenUVs);

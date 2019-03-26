@@ -365,6 +365,7 @@ copy $(TargetDir)EngineShare.dll  $(ProjectDir)out\</Command>
     <None Include="out\Shader\DeferredShadingCommon.sgc" />
     <None Include="out\Shader\DistanceField.sgc" />
     <None Include="out\Shader\DOF.sgc" />
+    <None Include="out\Shader\EnvLightTextureGen.sgc" />
     <None Include="out\Shader\Game\BumpPS.sgc" />
     <None Include="out\Shader\Game\BumpVS.sgc" />
     <None Include="out\Shader\Game\NoiseTest.sgc" />
@@ -390,6 +391,7 @@ copy $(TargetDir)EngineShare.dll  $(ProjectDir)out\</Command>
     <None Include="out\Shader\GPUSkinVertexFactory.sgc" />
     <None Include="out\Shader\LightingCommon.sgc" />
     <None Include="out\Shader\LightParam.sgc" />
+    <None Include="out\Shader\LightProbeVisualize.sgc" />
     <None Include="out\Shader\LocalVertexFactory.sgc" />
     <None Include="out\Shader\MaterialCommon.sgc" />
     <None Include="out\Shader\MaterialProcess.sgc" />
@@ -401,6 +403,7 @@ copy $(TargetDir)EngineShare.dll  $(ProjectDir)out\</Command>
     <None Include="out\Shader\ParallaxOcclusionCommon.sgc" />
     <None Include="out\Shader\ParticleCommon.sgc" />
     <None Include="out\Shader\ParticleSimulation.sgc" />
+    <None Include="out\Shader\PostProcessCommon.sgc" />
     <None Include="out\Shader\PrimitiveParam.sgc" />
     <None Include="out\Shader\Reflection.sgc" />
     <None Include="out\Shader\ScatteringCommon.sgc" />
@@ -416,6 +419,7 @@ copy $(TargetDir)EngineShare.dll  $(ProjectDir)out\</Command>
     <None Include="out\Shader\SimpleBasePass.sgc" />
     <None Include="out\Shader\SimpleElement.sgc" />
     <None Include="out\Shader\GeometryTestCommon.sgc" />
+    <None Include="out\Shader\SkyBox.sgc" />
     <None Include="out\Shader\SSAO.sgc" />
     <None Include="out\Shader\Terrain.sgc" />
     <None Include="out\Shader\TiledLightCommon.sgc" />

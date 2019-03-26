@@ -100,14 +100,13 @@ namespace Render
 	class TStructuredUniformBuffer : public TStructuredBufferBase< T, RHIUniformBuffer >
 	{
 	public:
-		bool initializeResource(uint32 numElement)
+		bool initializeResource(uint32 numElement, uint32 creationFlags = BCF_DefalutValue)
 		{
-			mResource = RHICreateUniformBuffer(sizeof(T), numElement);
+			mResource = RHICreateUniformBuffer(sizeof(T), numElement, creationFlags);
 			if( !mResource.isValid() )
 				return false;
 			return true;
 		}
-
 
 	};
 
@@ -115,9 +114,9 @@ namespace Render
 	class TStructuredStorageBuffer : public TStructuredBufferBase< T, RHIVertexBuffer >
 	{
 	public:
-		bool initializeResource(uint32 numElement)
+		bool initializeResource(uint32 numElement , uint32 creationFlags = BCF_DefalutValue )
 		{
-			mResource = RHICreateVertexBuffer(sizeof(T), numElement);
+			mResource = RHICreateVertexBuffer(sizeof(T), numElement , creationFlags );
 			if( !mResource.isValid() )
 				return false;
 			return true;
@@ -184,36 +183,9 @@ namespace Render
 		SimpleCamera  mCamera;
 		bool          mbGamePased;
 
-		virtual bool onInit()
-		{
-			if( !BaseClass::onInit() )
-				return false;
+		virtual bool onInit();
 
-			if( !::Global::GetDrawEngine().initializeRHI( RHITargetName::OpenGL , 1 ) )
-				return false;
-
-			mView.gameTime = 0;
-			mView.realTime = 0;
-
-			mbGamePased = false;
-
-			Vec2i screenSize = ::Global::GetDrawEngine().getScreenSize();
-			mViewFrustum.mNear = 0.01;
-			mViewFrustum.mFar = 800.0;
-			mViewFrustum.mAspect = float(screenSize.x) / screenSize.y;
-			mViewFrustum.mYFov = Math::Deg2Rad(60 / mViewFrustum.mAspect);
-
-			mCamera.setPos(Vector3(20, 0, 20));
-			mCamera.setViewDir(Vector3(-1, 0, 0), Vector3(0, 0, 1));
-
-			return true;
-		}
-
-		virtual void onEnd()
-		{
-			::Global::GetDrawEngine().shutdownRHI(true);
-			BaseClass::onEnd();
-		}
+		virtual void onEnd();
 
 		virtual void restart(){}
 		virtual void tick() {}
@@ -242,6 +214,8 @@ namespace Render
 
 		void initializeRenderState()
 		{
+			mView.frameCount += 1;
+
 			GameWindow& window = Global::GetDrawEngine().getWindow();
 
 			mView.rectOffset = IntVector2(0, 0);

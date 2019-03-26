@@ -4,7 +4,7 @@
 #include "VertexFactoryProcess.sgc"
 #include "DeferredShadingCommon.sgc"
 
-struct VSOutputParam
+struct VSOutputParameters
 {
 	float4 color;
 	float4 worldPos;
@@ -13,7 +13,7 @@ struct VSOutputParam
 
 #if VERTEX_SHADER
 
-out VSOutputParam VSOutput;
+out VSOutputParameters VSOutput;
 void BassPassVS()
 {
 	VSOutput.color = gl_Color;
@@ -26,7 +26,7 @@ void BassPassVS()
 
 #if PIXEL_SHADER
 
-in VSOutputParam VSOutput;
+in VSOutputParameters VSOutput;
 void BasePassPS()
 {
 	GBufferData GBuffer;

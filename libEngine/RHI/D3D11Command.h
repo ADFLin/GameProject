@@ -215,7 +215,10 @@ namespace Render
 				//
 			}
 		}
-
+		void RHIDrawPrimitiveInstanced(PrimitiveType type, int vStart, int nv, int numInstance)
+		{
+			mDeviceContext->DrawInstanced(nv, numInstance, vStart, 0);
+		}
 		void RHIDrawPrimitiveUP(PrimitiveType type, int numPrimitive, void* pVertices, int numVerex, int vetexStride)
 		{
 

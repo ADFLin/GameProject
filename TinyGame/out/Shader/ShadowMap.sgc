@@ -5,17 +5,17 @@
 
 uniform float2 DepthParam;
 
-struct VSOutput
+struct VSOutputParameters
 {
-	float3 viewOffsetV;
+	float3 cameraOffsetInView;
 };
 
 #if VERTEX_SHADER
 
-out VSOutput vsOutput;
+out VSOutputParameters VSOutput;
 void MainVS()
 {
-	vsOutput.viewOffsetV = float3(gl_ModelViewMatrix * gl_Vertex);
+	VSOutput.cameraOffsetInView = float3(gl_ModelViewMatrix * gl_Vertex);
 	gl_Position = ftransform();
 }
 
@@ -23,13 +23,13 @@ void MainVS()
 
 #if PIXEL_SHADER
 
-in VSOutput vsOutput;
+in VSOutputParameters VSOutput;
 void MainPS() 
 {
 #if USE_POINT_LIGHT
-	float depth = ( length(vsOutput.viewOffsetV) - DepthParam.x ) / ( DepthParam.y - DepthParam.x );
+	float depth = ( length(VSOutput.cameraOffsetInView) - DepthParam.x ) / ( DepthParam.y - DepthParam.x );
 #else
-	float depth = ( -vsOutput.viewOffsetV.z  - DepthParam.x ) / ( DepthParam.y - DepthParam.x );
+	float depth = ( -VSOutput.cameraOffsetInView.z  - DepthParam.x ) / ( DepthParam.y - DepthParam.x );
 #endif
 	//depth = 1.0;
 	gl_FragColor = vec4(depth,depth,depth,1);

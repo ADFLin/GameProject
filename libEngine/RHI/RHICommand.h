@@ -113,6 +113,7 @@ namespace Render
 	void RHIDrawIndexedPrimitive(PrimitiveType type, ECompValueType indexType, int indexStart, int nIndex);
 	void RHIDrawPrimitiveIndirect(PrimitiveType type, RHIVertexBuffer* commandBuffer, int offset = 0, int numCommand = 1, int commandStride = 0);
 	void RHIDrawIndexedPrimitiveIndirect(PrimitiveType type, ECompValueType indexType , RHIVertexBuffer* commandBuffer, int offset = 0, int numCommand = 1, int commandStride = 0);
+	void RHIDrawPrimitiveInstanced(PrimitiveType type, int vStart, int nv, int numInstance );
 
 	void RHIDrawPrimitiveUP(PrimitiveType type, int numPrimitive, void* pVertices, int numVerex, int vetexStride);
 	void RHIDrawIndexedPrimitiveUP(PrimitiveType type, int numPrimitive, void* pVertices, int numVerex, int vetexStride , int* pIndices , int numIndex );
@@ -176,6 +177,7 @@ namespace Render
 		RHIFUNCTION(void RHIDrawIndexedPrimitive(PrimitiveType type, ECompValueType indexType, int indexStart, int nIndex));
 		RHIFUNCTION(void RHIDrawPrimitiveIndirect(PrimitiveType type, RHIVertexBuffer* commandBuffer, int offset, int numCommand, int commandStride));
 		RHIFUNCTION(void RHIDrawIndexedPrimitiveIndirect(PrimitiveType type, ECompValueType indexType, RHIVertexBuffer* commandBuffer, int offset , int numCommand, int commandStride));
+		RHIFUNCTION(void RHIDrawPrimitiveInstanced(PrimitiveType type, int vStart, int nv, int numInstance));
 
 		RHIFUNCTION(void RHIDrawPrimitiveUP(PrimitiveType type, int numPrimitive, void* pVertices, int numVerex, int vetexStride));
 		RHIFUNCTION(void RHIDrawIndexedPrimitiveUP(PrimitiveType type, int numPrimitive, void* pVertices, int numVerex, int vetexStride, int* pIndices, int numIndex));
@@ -188,11 +190,24 @@ namespace Render
 
 
 
+	struct TextureLoadOption
+	{
+		bool   bHDR = false;
+		bool   bSRGB = false;
+		bool   bReverseH = false;
+		int    numMipLevel = 0;
+		uint32 creationFlags = TCF_DefalutValue;
+
+		TextureLoadOption& ReverseH(bool value = true) { bReverseH = value; return *this; }
+		TextureLoadOption& HDR(bool value = true) { bHDR = value; return *this; }
+		TextureLoadOption& SRGB(bool value = true) { bSRGB = value; return *this; }
+		TextureLoadOption& MinpLevel(int value = 0){  numMipLevel = value;  return *this;  }
+	};
 
 	class RHIUtility
 	{
 	public:
-		static RHITexture2D* LoadTexture2DFromFile(char const* path, int numMipLevel = 0, uint32 creationFlags = TCF_DefalutValue);
+		static RHITexture2D* LoadTexture2DFromFile(char const* path, TextureLoadOption const& option = TextureLoadOption() );
 	};
 
 

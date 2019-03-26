@@ -41,8 +41,11 @@ namespace Render
 		Matrix4 clipToWorld;
 		Matrix4 clipToView;
 
+		Matrix4  worldToClipPrev;
+
 		Vector3 worldPos;
 		Vector3 direction;
+		int     frameCount;
 		float   gameTime;
 		float   realTime;
 

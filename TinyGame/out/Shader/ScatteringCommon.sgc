@@ -1,20 +1,26 @@
 #pragma once
 #include "Common.sgc"
 
+//Absorption coefficient £ma(x)
+//Scattering coefficient £ms(x)
+//Phase function p(x, w, w¡¦)
+//extinction coefficient k(x) : £ma(x) + £ms(x) gives net loss in radiance
+//Albedo : £N = £ms(x) / (£ma(x) + £ms(x))
+
 // g = [-1,1]
-float PhaseFunction_Mei(float LoE)
+float PhaseFunction_Mei(float LoV)
 {
 	return 1.0 / (4 * PI);
 }
 
-float PhaseFunction_HG(float LoE, float g)
+float PhaseFunction_HG(float LoV, float g)
 {
 	float g2 = Square(g);
-	return (1.0 - g2) / pow((1.0 + g2 - 2 * g*LoE), 1.5);
+	return (1.0 - g2) / pow((1.0 + g2 - 2 * g*LoV), 1.5);
 }
 
-float PhaseFunction_Schlick(float LoE, float g)
+float PhaseFunction_Schlick(float LoV, float g)
 {
 	float k = (1.55 - 0.55 * g * g) * g;
-	return (1 - Square(k)) * Square(1.0 / (1.0 - k * LoE));
+	return (1 - Square(k)) * Square(1.0 / (1.0 - k * LoV));
 }

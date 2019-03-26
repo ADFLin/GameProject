@@ -98,8 +98,12 @@ namespace Render
 
 		bool setupProgram(ShaderProgram& program)
 		{
+			if( binaryCode.empty() )
+				return false;
+
 			if( !program.create() )
 				return false;
+
 			GLenum format = *(GLenum*)binaryCode.data();
 			glProgramBinary(program.mHandle, format, binaryCode.data() + sizeof(GLenum), binaryCode.size() - sizeof(GLenum));
 			if( glGetError() != GL_NO_ERROR )

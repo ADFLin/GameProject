@@ -658,7 +658,7 @@ namespace Render
 			GL_BIND_LOCK_OBJECT(mProgSphere);
 			mView.setupShader(mProgSphere);
 			mProgSphere.setParam(SHADER_PARAM(Sphere.radius), radius);
-			mProgSphere.setParam(SHADER_PARAM(Sphere.localPos), pos);
+			mProgSphere.setParam(SHADER_PARAM(Sphere.worldPos), pos);
 			
 			mSpherePlane.drawShader();
 		}

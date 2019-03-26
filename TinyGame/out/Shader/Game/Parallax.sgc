@@ -22,11 +22,11 @@ varying vec3 tangentZ;
 varying vec3 lightOffset;
 varying vec3 viewOffset;
 
-struct VSOutput
+struct VSOutputParameters
 {
-	vec3 viewOffsetL;
+	vec3 cameraOffset;
 #ifdef USE_SHADOW_MAP
-	vec3 viewOffsetV;
+	vec3 cameraOffsetInView;
 #endif
 };
 

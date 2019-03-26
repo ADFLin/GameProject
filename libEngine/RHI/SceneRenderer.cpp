@@ -19,6 +19,19 @@ namespace Render
 {
 	int const OIT_StorageSize = 4096;
 
+	void TiledLightInfo::setValue(LightInfo const& light)
+	{
+		pos = light.pos;
+		type = (int32)light.type;
+		color = light.color;
+		intensity = light.intensity;
+		dir = light.dir;
+		radius = light.radius;
+		float angleInner = Math::Min(light.spotAngle.x, light.spotAngle.y);
+		param.x = Math::Cos(Math::Deg2Rad(Math::Min<float>(89.9, angleInner)));
+		param.y = Math::Cos(Math::Deg2Rad(Math::Min<float>(89.9, light.spotAngle.y)));
+	}
+
 	void LightInfo::setupShaderGlobalParam(ShaderProgram& shader) const
 	{
 		shader.setParam(SHADER_PARAM(GLight.worldPosAndRadius), Vector4(pos, radius));
@@ -40,7 +53,7 @@ namespace Render
 			return false;
 
 		mShadowMap = RHICreateTextureCube();
-		if( !mShadowMap->create(Texture::eFloatRGBA, ShadowTextureSize, ShadowTextureSize) )
+		if( !mShadowMap->create(Texture::eFloatRGBA, ShadowTextureSize) )
 			return false;
 
 
@@ -390,7 +403,7 @@ namespace Render
 					glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 				}
 
-				worldToLight = LookAtMatrix(light.pos, CubeFaceDir[i], CubeUpDir[i]);
+				worldToLight = LookAtMatrix(light.pos, Texture::GetFaceDir(Texture::Face(i)), Texture::GetFaceUpDir(Texture::Face(i)));
 				mShadowMatrix = worldToLight * shadowProject * biasMatrix;
 				shadowProjectParam.shadowMatrix[i] = mShadowMatrix;
 
@@ -591,7 +604,7 @@ namespace Render
 
 		mBassPassBuffer.setDepth(sceneRenderTargets.getDepthTexture());
 
-		mLightBuffer.addTexture( sceneRenderTargets.getRenderFrameTexture());
+		mLightBuffer.addTexture( sceneRenderTargets.getFrameTexture() );
 		mLightBuffer.setDepth( sceneRenderTargets.getDepthTexture() );
 
 
@@ -615,7 +628,7 @@ namespace Render
 
 	void DeferredShadingTech::renderBassPass(ViewInfo& view, SceneInterface& scene)
 	{
-		mBassPassBuffer.setTexture(0, mSceneRenderTargets->getRenderFrameTexture());
+		mBassPassBuffer.setTexture(0, mSceneRenderTargets->getFrameTexture());
 		GL_BIND_LOCK_OBJECT(mBassPassBuffer);
 		float const depthValue = 1.0;
 		{
@@ -648,7 +661,7 @@ namespace Render
 		{
 			DeferredLightingProgram* lightShader = (debugMode == DebugMode::eNone) ? mProgLighting[ (int)light.type ] : mProgLightingShowBound;
 
-			mLightBuffer.setTexture(0, mSceneRenderTargets->getRenderFrameTexture());
+			mLightBuffer.setTexture(0, mSceneRenderTargets->getFrameTexture());
 
 			Mesh* boundMesh;
 			Matrix4 lightXForm;
@@ -1108,7 +1121,7 @@ namespace Render
 		}
 	}
 
-	bool SceneRenderTargets::init(IntVector2 const& size)
+	bool SceneRenderTargets::initializeRHI(IntVector2 const& size)
 	{
 		mIdxRenderFrameTexture = 0;
 		for( int i = 0; i < 2; ++i )
@@ -1137,7 +1150,7 @@ namespace Render
 
 		if( !mFrameBuffer.create() )
 			return false;
-		mFrameBuffer.addTexture(getRenderFrameTexture());
+		mFrameBuffer.addTexture(getFrameTexture());
 		return true;
 	}
 
@@ -1872,7 +1885,7 @@ namespace Render
 
 		{
 			GL_BIND_LOCK_OBJECT(mFrameBufferBlur);
-			RHITexture2D& frameTexture = sceneRenderTargets.getRenderFrameTexture();
+			RHITexture2D& frameTexture = sceneRenderTargets.getFrameTexture();
 
 			RHISetViewport(0, 0, frameTexture.getSizeX(), frameTexture.getSizeY());
 			RHISetBlendState(TStaticBlendState<>::GetRHI());
@@ -1888,7 +1901,7 @@ namespace Render
 			//sceneRenderTargets.swapFrameBufferTexture();
 			GL_BIND_LOCK_OBJECT(sceneRenderTargets.getFrameBuffer());
 
-			RHITexture2D& frameTexture = sceneRenderTargets.getPrevRenderFrameTexture();
+			RHITexture2D& frameTexture = sceneRenderTargets.getPrevFrameTexture();
 			RHISetViewport(0, 0, frameTexture.getSizeX(), frameTexture.getSizeY());
 			RHISetBlendState(TStaticBlendState<>::GetRHI());
 			RHISetDepthStencilState(StaticDepthDisableState::GetRHI());
@@ -2091,4 +2104,7 @@ namespace Render
 	IMPLEMENT_SHADER_PROGRAM(DeferredBasePassProgram);
 	IMPLEMENT_SHADER_PROGRAM(OITBBasePassProgram);
 #endif
+
+
+
 }//namespace Render

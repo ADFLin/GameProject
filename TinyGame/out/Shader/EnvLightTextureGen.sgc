@@ -1,0 +1,82 @@
+#include "Common.sgc"
+#include "ScreenVertexShader.sgc"
+
+#define  USE_CUBE_TEXTURE 0
+
+#if PIXEL_SHADER
+
+in VSOutputParameters VSOutput;
+layout(location = 0) out float4 OutColor;
+
+uniform float3 FaceDir;
+uniform float3 FaceUpDir;
+
+uniform sampler2D Texture;
+uniform samplerCube CubeTexture;
+
+const float2 invAtan = float2(0.1591, 0.3183);
+float2 EquirectangularCoord(float3 v)
+{
+	float2 uv = float2(atan(v.x, v.y), asin(v.z));
+	uv *= invAtan;
+	uv += 0.5;
+	return uv;
+}
+
+float3 GetEnvRadiance(float3 dir)
+{
+#if USE_CUBE_TEXTURE
+	return texture(CubeTexture, dir).rgb;
+#else
+	return texture2D(Texture, EquirectangularCoord(dir)).rgb;
+#endif
+}
+
+void IrradianceGemPS()
+{
+	float2 NDC = 2 * VSOutput.UVs - 1;
+
+	float3 faceRightDir = cross(FaceDir, FaceUpDir);
+
+	float3 axisZ = normalize(FaceDir + NDC.x * faceRightDir + NDC.y * FaceUpDir);
+
+	float3 axisY = float3(0, 0, 1);
+	float ZoY = dot(axisZ, axisY);
+	if( abs(ZoY) < 1.0e-5 )
+	{
+		axisY = float3(0, 1, 0);
+		ZoY = dot(axisZ, axisY);
+	}
+	axisY = normalize(axisZ - ZoY * axisY);
+	float3 axisX = normalize(cross(axisZ, axisY));
+
+	float3 N = axisZ;
+	float3x3 R = float3x3(axisX, axisY, axisZ);
+
+	const int SampleM = 40;
+	const int SampleN = 40;
+
+	float dPhi = 2.0 * PI / SampleM;
+	float dTheta = 0.5 * PI / SampleN;
+
+	float3 irradiance = float3(0, 0, 0);
+	for( int m = 0; m < SampleM; ++m )
+	{
+		float2 csPhi;
+		sincos(float(m) * dPhi, csPhi.y, csPhi.x);
+		for( int n = 0; n < SampleN; ++n )
+		{
+			float2 csTheta;
+			sincos(float(n) * dTheta, csTheta.y, csTheta.x);
+			float3 L = normalize(R * float3(csTheta.y * csPhi, csTheta.x));
+			irradiance += csTheta.x * csTheta.y * GetEnvRadiance(L);
+		}
+	}
+
+	irradiance *= PI / (SampleN * SampleM);
+	OutColor = float4(irradiance, 1);
+
+}
+
+
+#endif

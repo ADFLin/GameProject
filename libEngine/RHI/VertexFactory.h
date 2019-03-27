@@ -10,6 +10,7 @@ namespace Render
 	class ShaderCompileOption;
 	class VertexFactoryShaderData;
 	class VertexFactoryType;
+	class MaterialShaderProgram;
 
 	class VertexFactoryType
 	{

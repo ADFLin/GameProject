@@ -7,6 +7,7 @@
 
 #include "VertexFactory.h"
 #include "MaterialShader.h"
+#include "RHIGlobalResource.h"
 
 #include <functional>
 #include <memory>

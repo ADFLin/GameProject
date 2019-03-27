@@ -59,9 +59,9 @@ VECTOR_FUNCTION_LIST(SincosT)
 #undef SincosT
 
 #if PIXEL_SHADER
-void WritePixelDepth(float depth)
+void WritePixelDepth(float NDCz)
 {
-	gl_FragDepth = (gl_DepthRange.diff * depth + gl_DepthRange.near + gl_DepthRange.far) * 0.5;
+	gl_FragDepth = (gl_DepthRange.diff * NDCz + gl_DepthRange.near + gl_DepthRange.far) * 0.5;
 }
 #endif
 

@@ -38,7 +38,7 @@ void BasePassPS()
 	GBuffer.specular = 0.5;
 	GBuffer.shadingModel = SHADINGMODEL_DEFAULT_LIT;
 	float4 clipPos = View.worldToClip * float4(GBuffer.worldPos, 1);
-	GBuffer.depth = -clipPos.z;
+	GBuffer.sceneDepth = -clipPos.z;
 
 	float4 GBufferA, GBufferB, GBufferC, GBufferD;
 
@@ -47,9 +47,9 @@ void BasePassPS()
 	GBufferC = float4(0);
 	GBufferD = float4(0);
 
-	GBufferA = float4(GBuffer.worldPos, GBuffer.depth);
-	GBufferB = float4(GBuffer.normal, GBuffer.depth);
-	GBufferC = float4(GBuffer.baseColor, GBuffer.depth);
+	GBufferA = float4(GBuffer.worldPos, GBuffer.sceneDepth);
+	GBufferB = float4(GBuffer.normal, GBuffer.sceneDepth);
+	GBufferC = float4(GBuffer.baseColor, GBuffer.sceneDepth);
 
 	GBufferD.r = GBuffer.metallic;
 	GBufferD.g = GBuffer.roughness;

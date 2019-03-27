@@ -228,8 +228,8 @@ MaterialParametersPS VertexFactory_GetMaterialParameterPS(in FactoryInterpolants
 	parameters.vectexColor = vertexFactoryInput.vertexColor;
 	parameters.worldPos = vertexFactoryInput.worldPos;
 	parameters.worldNormal = worldNormal;
-	parameters.screenPos = vertexFactoryInput.clipPos;
-	parameters.clipPos = parameters.screenPos.xyz / parameters.screenPos.w;
+	parameters.clipPos = vertexFactoryInput.clipPos;
+	parameters.NDC = parameters.clipPos / parameters.clipPos.w;
 	parameters.tangentToWorld = tangentToWorld;
 #if MATERIAL_TEXCOORD_NUM
 	for( int i = 0; i < MATERIAL_TEXCOORD_NUM; ++i )

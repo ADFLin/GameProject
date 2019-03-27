@@ -28,7 +28,7 @@ namespace Render
 		return true;
 	}
 
-	bool LoadFileInternal(char const* path, GLenum texType , GLenum texImageType, IntVector2& outSize , Texture::Format& outFormat)
+	bool LoadFileInternal(char const* path, GLenum texImageType, IntVector2& outSize , Texture::Format& outFormat)
 	{
 		int w;
 		int h;
@@ -40,10 +40,6 @@ namespace Render
 
 		outSize.x = w;
 		outSize.y = h;
-
-		glTexParameteri( texType, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
-		glTexParameteri( texType, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
-
 		//#TODO
 		switch( comp )
 		{
@@ -63,7 +59,37 @@ namespace Render
 		return true;
 	}
 
-	bool OpenGLTexture1D::create(Texture::Format format, int length, int numMipLevel /*= 0*/, void* data /*= nullptr*/)
+	bool  UpdateTexture(GLenum textureEnum, int ox, int oy, int w, int h, Texture::Format format, void* data, int level)
+	{
+		glTexSubImage2D(textureEnum, level, ox, oy, w, h, GLConvert::PixelFormat(format), GLConvert::TextureComponentType(format), data);
+		bool result = CheckGLStateValid();
+		return result;
+
+	}
+
+	bool  UpdateTexture(GLenum textureEnum, int ox, int oy, int w, int h, Texture::Format format, int pixelStride, void* data, int level)
+	{
+#if 1
+		::glPixelStorei(GL_UNPACK_ROW_LENGTH, pixelStride);
+		glTexSubImage2D(textureEnum, level, ox, oy, w, h, GLConvert::PixelFormat(format), GLConvert::TextureComponentType(format), data);
+		bool result = CheckGLStateValid();
+		::glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
+#else
+		GLenum formatGL = GLConvert::PixelFormat(format);
+		GLenum typeGL = GLConvert::TextureComponentType(format);
+		uint8* pData = (uint8*)data;
+		int dataStride = pixelStride * Texture::GetFormatSize(format);
+		for( int dy = 0; dy < h; ++dy )
+		{
+			glTexSubImage2D(textureEnum, level, ox, oy + dy, w, 1, formatGL, typeGL, pData);
+			pData += dataStride;
+		}
+		bool result = CheckGLStateValid();
+#endif
+		return result;
+	}
+
+	bool OpenGLTexture1D::create(Texture::Format format, int length, int numMipLevel , uint32 creationFlags, void* data )
 	{
 		if( !mGLObject.fetchHandle() )
 			return false;
@@ -95,7 +121,7 @@ namespace Render
 	}
 
 
-	bool OpenGLTexture2D::create(Texture::Format format, int width, int height, int numMipLevel, void* data , int alignment )
+	bool OpenGLTexture2D::create(Texture::Format format, int width, int height, int numMipLevel, uint32 creationFlags, void* data , int alignment )
 	{
 		if( !mGLObject.fetchHandle() )
 			return false;
@@ -132,8 +158,11 @@ namespace Render
 			return false;
 
 		bind();
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
 		IntVector2 size;
-		bool result = LoadFileInternal( path , GL_TEXTURE_2D , GL_TEXTURE_2D , size , mFormat );
+		bool result = LoadFileInternal( path , GL_TEXTURE_2D , size , mFormat );
 		if( result )
 		{
 			mSizeX = size.x;
@@ -147,8 +176,7 @@ namespace Render
 	bool OpenGLTexture2D::update(int ox, int oy, int w, int h, Texture::Format format , void* data , int level )
 	{
 		bind();
-		glTexSubImage2D(GL_TEXTURE_2D, level, ox, oy, w, h, GLConvert::PixelFormat(format), GLConvert::TextureComponentType(format), data);
-		bool result = CheckGLStateValid();
+		bool result = UpdateTexture(GL_TEXTURE_2D, ox, oy, w, h, format, data, level);
 		unbind();
 		return result;
 	}
@@ -156,28 +184,12 @@ namespace Render
 	bool OpenGLTexture2D::update(int ox, int oy, int w, int h, Texture::Format format, int pixelStride, void* data, int level /*= 0 */)
 	{
 		bind();
-#if 1
-		::glPixelStorei(GL_UNPACK_ROW_LENGTH, pixelStride);
-		glTexSubImage2D(GL_TEXTURE_2D, level, ox, oy, w, h, GLConvert::PixelFormat(format), GLConvert::TextureComponentType(format), data);
-		bool result = CheckGLStateValid();
-		::glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
-#else
-		GLenum formatGL = GLConvert::PixelFormat(format);
-		GLenum typeGL = GLConvert::TextureComponentType(format);
-		uint8* pData = (uint8*)data;
-		int dataStride = pixelStride * Texture::GetFormatSize(format);
-		for( int dy = 0; dy < h; ++dy )
-		{
-			glTexSubImage2D(GL_TEXTURE_2D, level, ox, oy+dy , w, 1, formatGL , typeGL,pData);
-			pData += dataStride;
-		}
-		bool result = CheckGLStateValid();
-#endif
+		bool result = UpdateTexture(GL_TEXTURE_2D, ox, oy, w, h, format, pixelStride, data, level);
 		unbind();
 		return result;
 	}
 
-	bool OpenGLTexture3D::create(Texture::Format format, int sizeX, int sizeY, int sizeZ, void* data)
+	bool OpenGLTexture3D::create(Texture::Format format, int sizeX, int sizeY, int sizeZ, int numMipLevel, uint32 creationFlags, void* data)
 	{
 		if( !mGLObject.fetchHandle() )
 			return false;
@@ -187,17 +199,27 @@ namespace Render
 		mSizeZ = sizeZ;
 		mFormat = format;
 
+		if( numMipLevel == 0 )
+			numMipLevel = 1;
+
+		glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MAX_LEVEL, numMipLevel - 1);
+
 		bind();
 		glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 		glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 		glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MAX_LEVEL, 0);
 		glTexImage3D(GL_TEXTURE_3D, 0, GLConvert::To(format), sizeX, sizeY , sizeZ, 0, 
 					 GLConvert::BaseFormat(format), GLConvert::TextureComponentType(format), data);
+
+		if( numMipLevel > 1 )
+		{
+			glGenerateMipmap(GL_TEXTURE_3D);
+		}
 		unbind();
 		return true;
 	}
 
-	bool OpenGLTextureCube::create(Texture::Format format, int size , void* data, int faceDataOffset)
+	bool OpenGLTextureCube::create(Texture::Format format, int size, int numMipLevel, uint32 creationFlags, void* data[])
 	{
 		if( !mGLObject.fetchHandle() )
 			return false;
@@ -205,18 +227,45 @@ namespace Render
 		mSize = size;
 		mFormat = format;
 
+		if( numMipLevel == 0 )
+			numMipLevel = 1;
+
+		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAX_LEVEL, numMipLevel - 1);
+
 		bind();
 		for( int i = 0; i < 6; ++i )
 		{
 			glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 			glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-			glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, 
+			glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0,
 						 GLConvert::To(format), size, size, 0,
 						 GLConvert::BaseFormat(format), GLConvert::TextureComponentType(format), 
-						 (uint8*)(data) + i * faceDataOffset );
+						 data ? data[i] : nullptr );
+		}
+
+		if( numMipLevel > 1 )
+		{
+			glGenerateMipmap(GL_TEXTURE_CUBE_MAP);
 		}
 		unbind();
 		return true;
+	}
+
+
+	bool OpenGLTextureCube::update(Texture::Face face, int ox, int oy, int w, int h, Texture::Format format, void* data, int level)
+	{
+		bind();
+		bool result = UpdateTexture(GL_TEXTURE_CUBE_MAP_POSITIVE_X + face, ox, oy, w, h, format, data, level);
+		unbind();
+		return result;
+	}
+
+	bool OpenGLTextureCube::update(Texture::Face face, int ox, int oy, int w, int h, Texture::Format format, int pixelStride, void* data, int level)
+	{
+		bind();
+		bool result = UpdateTexture(GL_TEXTURE_CUBE_MAP_POSITIVE_X + face, ox, oy, w, h, format, pixelStride , data, level);
+		unbind();
+		return result;
 	}
 
 	bool OpenGLTextureCube::loadFile(char const* path[])
@@ -225,11 +274,15 @@ namespace Render
 			return false;
 
 		bind();
+
+		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
 		bool result = true; 
 		for( int i = 0 ; i < 6 ; ++i )
 		{
 			IntVector2 size;
-			if ( !LoadFileInternal( path[i] , GL_TEXTURE_CUBE_MAP , GL_TEXTURE_CUBE_MAP_POSITIVE_X + i , size , mFormat) )
+			if ( !LoadFileInternal( path[i] , GL_TEXTURE_CUBE_MAP_POSITIVE_X + i , size , mFormat) )
 			{
 				result = false;
 			}
@@ -268,28 +321,30 @@ namespace Render
 		mTextures.clear();
 	}
 
-	int OpenGLFrameBuffer::addTexture( RHITextureCube& target , Texture::Face face  )
+	int OpenGLFrameBuffer::addTexture( RHITextureCube& target , Texture::Face face, int level)
 	{
 		int idx = mTextures.size();
 
 		BufferInfo info;
 		info.bufferRef = &target;
 		info.idxFace   = face;
+		info.level = level;
 		mTextures.push_back( info );
 		
-		setTextureInternal( idx , OpenGLCast::GetHandle( target ) , GL_TEXTURE_CUBE_MAP_POSITIVE_X + info.idxFace );
+		setTextureInternal( idx , OpenGLCast::GetHandle( target ) , GL_TEXTURE_CUBE_MAP_POSITIVE_X + info.idxFace , level );
 		return idx;
 	}
 
-	int OpenGLFrameBuffer::addTexture( RHITexture2D& target )
+	int OpenGLFrameBuffer::addTexture( RHITexture2D& target, int level)
 	{
 		int idx = mTextures.size();
 
 		BufferInfo info;
 		info.bufferRef = &target;
 		info.idxFace  = 0;
+		info.level = level;
 		mTextures.push_back( info );
-		setTextureInternal( idx , OpenGLCast::GetHandle( target ) , GL_TEXTURE_2D );
+		setTextureInternal( idx , OpenGLCast::GetHandle( target ) , GL_TEXTURE_2D, level );
 		
 		return idx;
 	}
@@ -300,27 +355,40 @@ namespace Render
 		BufferInfo info;
 		info.bufferRef = nullptr;
 		info.idxFace = 0;
+		info.level = 0;
 		mTextures.push_back(info);
 		setRenderBufferInternal(0);
 		return idx;
 	}
 
-	void OpenGLFrameBuffer::setTexture(int idx, RHITexture2D& target)
+	void OpenGLFrameBuffer::setTexture(int idx, RHITexture2D& target, int level)
 	{
-		assert( idx < mTextures.size() );
+		assert( idx <= mTextures.size());
+		if( idx == mTextures.size() )
+		{
+			mTextures.push_back(BufferInfo());
+		}
+
 		BufferInfo& info = mTextures[idx];
 		info.bufferRef = &target;
-		info.idxFace  = 0;
-		setTextureInternal( idx , OpenGLCast::GetHandle( target ) , GL_TEXTURE_2D );
+		info.idxFace = 0;
+		info.level = level;
+		setTextureInternal( idx , OpenGLCast::GetHandle( target ) , GL_TEXTURE_2D , level );
 	}
 
-	void OpenGLFrameBuffer::setTexture( int idx , RHITextureCube& target , Texture::Face face )
+	void OpenGLFrameBuffer::setTexture( int idx , RHITextureCube& target , Texture::Face face, int level)
 	{
-		assert( idx < mTextures.size() );
+		assert( idx <= mTextures.size() );
+		if( idx == mTextures.size() )
+		{
+			mTextures.push_back(BufferInfo());
+		}
+
 		BufferInfo& info = mTextures[idx];
 		info.bufferRef = &target;
-		info.idxFace   = face;
-		setTextureInternal( idx , OpenGLCast::GetHandle( target ) , GL_TEXTURE_CUBE_MAP_POSITIVE_X + info.idxFace );
+		info.idxFace = 0;
+		info.level = level;
+		setTextureInternal( idx , OpenGLCast::GetHandle( target ) , GL_TEXTURE_CUBE_MAP_POSITIVE_X + face , level );
 	}
 
 	void OpenGLFrameBuffer::setRenderBufferInternal( GLuint handle )
@@ -336,11 +404,11 @@ namespace Render
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	}
 
-	void OpenGLFrameBuffer::setTextureInternal(int idx, GLuint handle , GLenum texType)
+	void OpenGLFrameBuffer::setTextureInternal(int idx, GLuint handle , GLenum texType, int level)
 	{
 		assert( getHandle() );
 		glBindFramebuffer( GL_FRAMEBUFFER , getHandle() );
-		glFramebufferTexture2D( GL_FRAMEBUFFER , GL_COLOR_ATTACHMENT0 + idx , texType , handle , 0 );
+		glFramebufferTexture2D( GL_FRAMEBUFFER , GL_COLOR_ATTACHMENT0 + idx , texType , handle , level );
 		GLenum Status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
 		if( Status != GL_FRAMEBUFFER_COMPLETE )
 		{
@@ -386,7 +454,7 @@ namespace Render
 		return true;
 	}
 
-	int OpenGLFrameBuffer::addTextureLayer(RHITextureCube& target)
+	int OpenGLFrameBuffer::addTextureLayer(RHITextureCube& target, int level )
 	{
 		int idx = mTextures.size();
 		BufferInfo info;

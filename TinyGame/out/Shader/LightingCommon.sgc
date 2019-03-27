@@ -54,20 +54,36 @@ float Vis_SmithJointApprox(float roughness, float NoV, float NoL)
 	return 0.5 * rcp( Vis_SmithV + Vis_SmithL + 0.1 );
 }
 
+float Vis_SchlickGGX(float NoV, float roughness, float k)
+{
+	float num = NoV;
+	float denom = NoV * (1.0 - k) + k;
+	return num / denom;
+}
+
 float Vis_SchlickGGX(float NoV, float roughness)
 {
 	float r = (roughness + 1.0);
 	float k = (r*r) / 8.0;
-	float num = NoV;
-	float denom = NoV * (1.0 - k) + k;
-
-	return num / denom;
+	return Vis_SchlickGGX(NoV, roughness, k);
 }
+
 
 float Vis_Smith( float roughness , float NoV , float NoL )
 {
-	float ggx2 = Vis_SchlickGGX(NoV, roughness);
-	float ggx1 = Vis_SchlickGGX(NoL, roughness);
+	float r = (roughness + 1.0);
+	float k = (r*r) / 8.0;
+	float ggx2 = Vis_SchlickGGX(NoV, roughness,k);
+	float ggx1 = Vis_SchlickGGX(NoL, roughness,k);
+
+	return ggx1 * ggx2;
+}
+
+float Vis_SmithIBL(float roughness, float NoV, float NoL)
+{
+	float k = (roughness*roughness) / 2.0;
+	float ggx2 = Vis_SchlickGGX(NoV, roughness, k);
+	float ggx1 = Vis_SchlickGGX(NoL, roughness, k);
 
 	return ggx1 * ggx2;
 }
@@ -89,8 +105,14 @@ float3 F_Schlick2(float3 SpecularColor, float VoH)
 {
 	float Fc = Pow5(1.0 - VoH);					// 1 sub, 3 mul
 	return Fc + (1 - Fc) * SpecularColor;		// 1 add, 3 mad
-
 }
+
+vec3 F_SchlickRoughness(float VoH, float3 SpecularColor, float roughness)
+{
+	return SpecularColor + (max(float3(1.0 - roughness), SpecularColor) - SpecularColor) * pow(1.0 - VoH, 5.0);
+}
+
+
 float3 StandardShading(float3 diffuseColor, float3 specularColor, float3 lobeRoughness, float3 lobeEnergy, float3 L, float3 V, float3 N)
 {
 	float3 H = normalize(V + L);

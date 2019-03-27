@@ -582,8 +582,6 @@ namespace Render
 
 			wglSwapIntervalEXT(0);
 
-			if( !InitGlobalRHIResource() )
-				return false;
 
 			if( !ShaderHelper::Get().init() )
 				return false;

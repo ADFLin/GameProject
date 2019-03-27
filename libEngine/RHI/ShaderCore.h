@@ -155,7 +155,7 @@ namespace Render
 			mMap.emplace(name, entry);
 		}
 
-		bool bind(ShaderParameter& param, char const* name)
+		bool bind(ShaderParameter& param, char const* name) const
 		{
 			auto iter = mMap.find(name);
 			if( iter == mMap.end() )
@@ -327,6 +327,12 @@ namespace Render
 		}
 
 		template < class RHITextureType >
+		void setTexture(char const* name, TRefCountPtr< RHITextureType > const& tex, RHISamplerState const& sampler, int idx = -1)
+		{
+			setTexture(name, *tex, sampler, idx);
+		}
+
+		template < class RHITextureType >
 		void setTexture(char const* name, RHITextureType const& tex, int idx = -1)
 		{
 			int loc = getParamLoc(name);
@@ -383,6 +389,18 @@ namespace Render
 		void setTexture(ShaderParameter const& param, RHITextureType const& tex, RHISamplerState& sampler, int idx = -1)
 		{
 			CHECK_PARAMETER(param, setTextureInternal(param.mLoc, OpenGLTextureTraits< RHITextureType >::EnumValue, OpenGLCast::GetHandle(tex), OpenGLCast::GetHandle(sampler), idx));
+		}
+
+		template < class RHITextureType >
+		void setTexture(ShaderParameter const& param, TRefCountPtr<RHITextureType> const& tex, int idx = -1)
+		{
+			setTexture(param, *tex, idx);
+		}
+
+		template < class RHITextureType >
+		void setTexture(ShaderParameter const& param, TRefCountPtr<RHITextureType> const& tex, RHISamplerState& sampler, int idx = -1)
+		{
+			setTexture(param, *tex, sampler, idx);
 		}
 
 		void setBuffer(ShaderParameter const& param, RHIUniformBuffer& buffer);

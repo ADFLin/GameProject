@@ -516,9 +516,7 @@ namespace Render
 			if( !mBuffer.create() )
 				return false;
 
-			mTexEnv = RHICreateTextureCube();
-			if( !mTexEnv->create(Texture::eFloatRGBA, MapSize) )
-				return false;
+			mTexEnv = RHICreateTextureCube(Texture::eFloatRGBA, MapSize);
 #if USE_DepthRenderBuffer
 			RHIDepthRenderBufferRef depthBuffer = new RHIDepthRenderBuffer;
 			if( !depthBuffer->create(MapSize, MapSize, Texture::eDepth24) )

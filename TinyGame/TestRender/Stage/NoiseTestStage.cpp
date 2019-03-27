@@ -23,9 +23,6 @@ namespace Render
 		if( !BaseClass::onInit() )
 			return false;
 
-		if( !InitGlobalRHIResource() )
-			return false;
-
 		if( !ShaderHelper::Get().init() )
 			return false;
 
@@ -130,7 +127,7 @@ namespace Render
 				}
 				::Global::DataCache().saveT(cacheKey, data);
 			}
-			mData.volumeTexture = RHICreateTexture3D(Texture::eR32F, textureSize, textureSize, textureSize, TCF_DefalutValue, data.data());
+			mData.volumeTexture = RHICreateTexture3D(Texture::eR32F, textureSize, textureSize, textureSize, 1 , TCF_DefalutValue, data.data());
 		}
 
 
@@ -164,7 +161,7 @@ namespace Render
 				}
 				::Global::DataCache().saveT(cacheKey, data);
 			}
-			mData.NoiseVolumeTexture = RHICreateTexture3D(Texture::eR32F, textureSize, textureSize, textureSize, TCF_DefalutValue, data.data());
+			mData.NoiseVolumeTexture = RHICreateTexture3D(Texture::eR32F, textureSize, textureSize, textureSize, 1 , TCF_DefalutValue, data.data());
 		}
 
 

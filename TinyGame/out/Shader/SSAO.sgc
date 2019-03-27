@@ -49,7 +49,7 @@ void GeneratePS()
 		float2 screenUV = 0.5 + 0.5 * sampleClipPos.xy / sampleClipPos.w;
 
 		GBufferData sampleGBuffer = GetGBufferData(screenUV);
-		float checkSceneDepth = BufferDepthToSceneDepth(sampleGBuffer.depth);
+		float checkSceneDepth = BufferDepthToSceneDepth(sampleGBuffer.sceneDepth);
 
 		float radiusCheck = smoothstep(0.0, 1.0, OcclusionRadius / abs( checkSceneDepth + viewPos.z ) );
 		occlusion += radiusCheck * ((checkSceneDepth * ( 1 + DepthBiasFactor.x) + DepthBiasFactor.y >= -sampleViewPos.z ) ? 0 : 1);

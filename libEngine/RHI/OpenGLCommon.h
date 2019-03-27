@@ -169,13 +169,14 @@ namespace Render
 			glBindTexture(TypeNameGL, 0);
 		}
 
+
 	};
 
 
 	class OpenGLTexture1D : public TOpengGLTexture< RHITexture1D >
 	{
 	public:
-		bool create(Texture::Format format, int length, int numMipLevel , void* data );
+		bool create(Texture::Format format, int length, int numMipLevel , uint32 createFlags, void* data );
 		bool update(int offset, int length, Texture::Format format, void* data, int level );
 	};
 
@@ -184,7 +185,7 @@ namespace Render
 	{
 	public:
 		bool loadFromFile(char const* path);
-		bool create(Texture::Format format, int width, int height, int numMipLevel, void* data, int alignment);
+		bool create(Texture::Format format, int width, int height, int numMipLevel, uint32 createFlags, void* data, int alignment);
 
 		bool update(int ox, int oy, int w, int h, Texture::Format format, void* data, int level);
 		bool update(int ox, int oy, int w, int h, Texture::Format format, int pixelStride, void* data, int level);
@@ -194,17 +195,18 @@ namespace Render
 	class OpenGLTexture3D : public TOpengGLTexture< RHITexture3D >
 	{
 	public:
-		bool create(Texture::Format format, int sizeX, int sizeY, int sizeZ , void* data);
+		bool create(Texture::Format format, int sizeX, int sizeY, int sizeZ , int numMipLevel, uint32 createFlags, void* data);
 	};
-
 
 	class OpenGLTextureCube : public TOpengGLTexture< RHITextureCube >
 	{
 	public:
+		bool create(Texture::Format format, int size, int numMipLevel, uint32 creationFlags, void* data[]);
+		bool update(Texture::Face face, int ox, int oy, int w, int h, Texture::Format format, void* data, int level );
+		bool update(Texture::Face face, int ox, int oy, int w, int h, Texture::Format format, int pixelStride, void* data, int level );
 		bool loadFile(char const* path[]);
-		bool create(Texture::Format format, int size, void* data , int faceDataOffset );
+		
 	};
-
 
 	class RHITextureDepth : public RHITextureBase
 	{
@@ -283,12 +285,12 @@ namespace Render
 
 		bool create();
 
-		int  addTextureLayer(RHITextureCube& target);
-		int  addTexture(RHITextureCube& target, Texture::Face face);
-		int  addTexture( RHITexture2D& target);
+		int  addTextureLayer(RHITextureCube& target , int level = 0 );
+		int  addTexture(RHITextureCube& target, Texture::Face face, int level = 0);
+		int  addTexture( RHITexture2D& target, int level = 0);
 		int  addScreenBuffer();
-		void setTexture( int idx , RHITexture2D& target );
-		void setTexture(int idx, RHITextureCube& target, Texture::Face face);
+		void setTexture(int idx, RHITexture2D& target, int level = 0);
+		void setTexture(int idx, RHITextureCube& target, Texture::Face face, int level = 0);
 
 		void bindDepthOnly();
 		void bind();
@@ -305,6 +307,7 @@ namespace Render
 		struct BufferInfo
 		{
 			RHIResourceRef bufferRef;
+			uint8 level;
 			union 
 			{
 				uint8  idxFace;
@@ -312,7 +315,7 @@ namespace Render
 			};
 		};
 		void setRenderBufferInternal(GLuint handle);
-		void setTextureInternal(int idx, GLuint handle, GLenum texType);
+		void setTextureInternal(int idx, GLuint handle, GLenum texType, int level);
 		void setDepthInternal(RHIResource& resource, GLuint handle, Texture::DepthFormat format, bool bTexture);
 
 

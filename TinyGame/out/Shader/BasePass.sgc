@@ -66,9 +66,9 @@ void BasePassPS()
 	GBuffer.roughness = materialInput.roughness;
 	GBuffer.specular = materialInput.specular;
 	GBuffer.shadingModel = materialInput.shadingModel;
-	float4 svPos = View.worldToClip * float4(materialParameters.worldPos, 1);
-	svPos = materialParameters.screenPos;
-	GBuffer.depth = -materialParameters.screenPos.z;
+	float4 clipPos = View.worldToClip * float4(materialParameters.worldPos, 1);
+	clipPos = materialParameters.clipPos;
+	GBuffer.sceneDepth = -materialParameters.clipPos.z;
 
 #if FORWARD_SHADING
 	gl_FragData[0] = float4( GBuffer.baseColor , 1 );

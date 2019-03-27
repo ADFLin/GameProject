@@ -48,9 +48,6 @@ namespace CB
 			if( !::Global::GetDrawEngine().startOpenGL(4) )
 				return false;
 
-			if( !InitGlobalRHIResource() )
-				return false;
-
 			if( !ShaderHelper::Get().init() )
 				return false;
 

@@ -67,8 +67,8 @@ struct MaterialParametersPS
 {
 	float4 vectexColor;
 	float3 worldPos;
-	float4 screenPos;
-	float3 clipPos;
+	float4 clipPos;
+	float4 NDC;
 	float3 worldNormal;
 	mat3   tangentToWorld;
 #if MATERIAL_TEXCOORD_NUM

@@ -34,14 +34,14 @@ float3 GetMaterialWorldPositionAndCheckDepthOffset(in MaterialInputPS input, ino
 {
 	float3 worldPos = parameters.worldPos;
 #if MATERIAL_USE_DEPTH_OFFSET
-	float3 clipPos = parameters.clipPos;
+	float4 NDC = parameters.NDC;
 	if( input.depthOffset != 0 )
 	{
-		clipPos.z += input.depthOffset;
-		float4 worldPosH = View.clipToWorld * float4( clipPos , 1 );
+		NDC.z += input.depthOffset;
+		float4 worldPosH = View.clipToWorld * NDC;
 		worldPos = worldPosH.xyz / worldPosH.w;
 	}
-	WritePixelDepth(clipPos.z);
+	WritePixelDepth(NDC.z);
 #endif
 	return worldPos;
 	
@@ -49,9 +49,6 @@ float3 GetMaterialWorldPositionAndCheckDepthOffset(in MaterialInputPS input, ino
 
 void CalcMaterialParameters(inout MaterialInputPS input, inout MaterialParametersPS parameters)
 {
-
-
-
 
 	CalcMaterialInputPS(input, parameters);
 

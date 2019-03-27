@@ -15,7 +15,7 @@
 #include "RHI/RHICommand.cpp"
 #include "RHI/Font.cpp"
 #include "RHI/GpuProfiler.cpp"
-#include "RHI/RHIStaticStateObject.cpp"
+#include "RHI/RHIGlobalResource.cpp"
 #include "RHI/SceneRenderer.cpp"
 #endif
 

@@ -389,6 +389,7 @@ copy $(TargetDir)EngineShare.dll  $(ProjectDir)out\</Command>
     <None Include="out\Shader\GLSLCommon.sgc" />
     <None Include="out\Shader\GPUSkinCommon.sgc" />
     <None Include="out\Shader\GPUSkinVertexFactory.sgc" />
+    <None Include="out\Shader\IBLCommon.sgc" />
     <None Include="out\Shader\LightingCommon.sgc" />
     <None Include="out\Shader\LightParam.sgc" />
     <None Include="out\Shader\LightProbeVisualize.sgc" />

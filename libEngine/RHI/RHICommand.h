@@ -3,7 +3,7 @@
 #define RHICommand_H_C0CC3E6C_43AE_4582_8203_41997F0A4C7D
 
 #include "RHICommon.h"
-#include "RHIStaticStateObject.h"
+#include "RHIGlobalResource.h"
 
 #include "CoreShare.h"
 
@@ -73,10 +73,12 @@ namespace Render
 
 	RHITexture2D*    RHICreateTexture2D(Texture::Format format, int w, int h, 
 										int numMipLevel = 0 , uint32 creationFlags = TCF_DefalutValue, void* data = nullptr, int dataAlign = 0);
-	RHITexture3D*    RHICreateTexture3D(Texture::Format format, int sizeX, int sizeY, int sizeZ , uint32 creationFlags = TCF_DefalutValue , void* data = nullptr);
+	RHITexture3D*    RHICreateTexture3D(Texture::Format format, int sizeX, int sizeY, int sizeZ , int numMipLevel = 0, uint32 creationFlags = TCF_DefalutValue , void* data = nullptr);
 
-	RHITextureDepth* RHICreateTextureDepth(Texture::DepthFormat format, int w, int );
-	RHITextureCube*  RHICreateTextureCube();
+	RHITextureCube*  RHICreateTextureCube(Texture::Format format, int size, int numMipLevel = 0, uint32 creationFlags = TCF_DefalutValue, void* data[] = nullptr);
+
+	RHITextureDepth* RHICreateTextureDepth(Texture::DepthFormat format, int w, int h );
+
 
 	RHIVertexBuffer*  RHICreateVertexBuffer(uint32 vertexSize, uint32 numVertices, uint32 creationFlags = BCF_DefalutValue, void* data = nullptr);
 	RHIIndexBuffer*   RHICreateIndexBuffer(uint32 nIndices, bool bIntIndex, uint32 creationFlags = BCF_DefalutValue, void* data = nullptr);
@@ -142,9 +144,10 @@ namespace Render
 		RHIFUNCTION(RHITexture2D*    RHICreateTexture2D(
 			Texture::Format format, int w, int h,
 			int numMipLevel, uint32 creationFlag, void* data, int dataAlign));
-		RHIFUNCTION(RHITexture3D*    RHICreateTexture3D(Texture::Format format, int sizeX, int sizeY, int sizeZ, uint32 creationFlag , void* data));
+		RHIFUNCTION(RHITexture3D*    RHICreateTexture3D(Texture::Format format, int sizeX, int sizeY, int sizeZ, int numMipLevel, uint32 creationFlag , void* data));
+		RHIFUNCTION(RHITextureCube*  RHICreateTextureCube(Texture::Format format, int size, int numMipLevel, uint32 creationFlags, void* data[]));
 		RHIFUNCTION(RHITextureDepth* RHICreateTextureDepth(Texture::DepthFormat format, int w, int h) );
-		RHIFUNCTION(RHITextureCube*  RHICreateTextureCube() );
+		
 		RHIFUNCTION(RHIVertexBuffer*  RHICreateVertexBuffer(uint32 vertexSize, uint32 numVertices, uint32 creationFlag, void* data));
 		RHIFUNCTION(RHIIndexBuffer*   RHICreateIndexBuffer(uint32 nIndices, bool bIntIndex, uint32 creationFlag, void* data));
 		RHIFUNCTION(RHIUniformBuffer* RHICreateUniformBuffer(uint32 elementSize, uint32 numElement, uint32 creationFlag, void* data));
@@ -198,6 +201,9 @@ namespace Render
 		int    numMipLevel = 0;
 		uint32 creationFlags = TCF_DefalutValue;
 
+
+		Texture::Format getFormat( int numComponent ) const;
+
 		TextureLoadOption& ReverseH(bool value = true) { bReverseH = value; return *this; }
 		TextureLoadOption& HDR(bool value = true) { bHDR = value; return *this; }
 		TextureLoadOption& SRGB(bool value = true) { bSRGB = value; return *this; }
@@ -208,6 +214,7 @@ namespace Render
 	{
 	public:
 		static RHITexture2D* LoadTexture2DFromFile(char const* path, TextureLoadOption const& option = TextureLoadOption() );
+		static RHITextureCube* LoadTextureCubeFromFile(char const* paths[], TextureLoadOption const& option = TextureLoadOption() );
 	};
 
 

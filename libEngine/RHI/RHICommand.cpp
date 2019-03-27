@@ -37,7 +37,7 @@ namespace Render
 
 			if( gRHISystem )
 			{
-				StaticRHIResourceObjectBase::RestoreAllResource();
+				InitGlobalRHIResource();
 			}		
 		}
 		
@@ -48,7 +48,9 @@ namespace Render
 	void RHISystemShutdown()
 	{	
 		ShaderManager::Get().clearnupRHIResouse();
-		StaticRHIResourceObjectBase::ReleaseAllResource();
+
+		ReleaseGlobalRHIResource();
+
 		gRHISystem->shutdown();
 		gRHISystem = nullptr;
 	}
@@ -79,19 +81,19 @@ namespace Render
 		return EXECUTE_RHIFUN( RHICreateTexture2D(format, w, h, numMipLevel, creationFlags , data, dataAlign) );
 	}
 
-	RHITexture3D* RHICreateTexture3D(Texture::Format format, int sizeX ,int sizeY , int sizeZ , uint32 creationFlags , void* data)
+	RHITexture3D* RHICreateTexture3D(Texture::Format format, int sizeX ,int sizeY , int sizeZ , int numMipLevel, uint32 creationFlags , void* data)
 	{
-		return EXECUTE_RHIFUN( RHICreateTexture3D(format, sizeX, sizeY, sizeZ, creationFlags, data) );
+		return EXECUTE_RHIFUN( RHICreateTexture3D(format, sizeX, sizeY, sizeZ, numMipLevel ,creationFlags, data) );
+	}
+
+	RHITextureCube* RHICreateTextureCube(Texture::Format format, int size, int numMipLevel, uint32 creationFlags, void* data[])
+	{
+		return EXECUTE_RHIFUN(RHICreateTextureCube(format, size, numMipLevel, creationFlags, data));
 	}
 
 	RHITextureDepth* RHICreateTextureDepth(Texture::DepthFormat format, int w, int h)
 	{
 		return EXECUTE_RHIFUN( RHICreateTextureDepth(format, w, h) );
-	}
-
-	RHITextureCube* RHICreateTextureCube()
-	{
-		return EXECUTE_RHIFUN( RHICreateTextureCube() );
 	}
 
 	RHIVertexBuffer* RHICreateVertexBuffer(uint32 vertexSize, uint32 numVertices, uint32 creationFlags, void* data)
@@ -269,51 +271,87 @@ namespace Render
 #undef SWITCH_CULL_MODE
 	}
 
+	struct STBImageData
+	{
+		STBImageData()
+		{
+			data = nullptr;
+		}
+
+		~STBImageData()
+		{
+			if( data )
+			{
+				stbi_image_free(data);
+			}
+		}
+		int   width;
+		int   height;
+		int   numComponent;
+		void* data;
+
+		bool load(char const* path, TextureLoadOption const& option)
+		{
+			stbi_set_flip_vertically_on_load(option.bReverseH);
+			if( option.bHDR )
+			{
+				data = stbi_loadf(path, &width, &height, &numComponent, STBI_default);
+			}
+			else
+			{
+				data = stbi_load(path, &width, &height, &numComponent, STBI_default);
+			}
+			stbi_set_flip_vertically_on_load(false);
+			return data != nullptr;
+		}
+	};
+
 	RHITexture2D* RHIUtility::LoadTexture2DFromFile(char const* path , TextureLoadOption const& option )
 	{
-		int w;
-		int h;
-		int comp;
-		RHITexture2D* result = nullptr;
-		stbi_set_flip_vertically_on_load(option.bReverseH);
-		if( option.bHDR )
+		STBImageData imageData;
+		if( !imageData.load(path, option) )
+			return false;
+
+		return RHICreateTexture2D(option.getFormat(imageData.numComponent), imageData.width, imageData.height, option.numMipLevel, option.creationFlags, imageData.data, 1);
+	}
+
+	RHITextureCube* RHIUtility::LoadTextureCubeFromFile(char const* paths[], TextureLoadOption const& option)
+	{
+		STBImageData imageDatas[Texture::FaceCount];
+
+		void* data[Texture::FaceCount];
+		for( int i = 0; i < Texture::FaceCount; ++i )
 		{
-			
-			float* image = stbi_loadf(path, &w, &h, &comp, STBI_default);
-			switch( comp )
+			if( !imageDatas[i].load(paths[i], option) )
+				return false;
+
+			data[i] = imageDatas[i].data;
+		}
+
+		return RHICreateTextureCube(option.getFormat(imageDatas[0].numComponent), imageDatas[0].width, option.numMipLevel, option.creationFlags, data);
+	}
+
+	Render::Texture::Format TextureLoadOption::getFormat(int numComponent) const
+	{
+		if( bHDR )
+		{
+			switch( numComponent )
 			{
-			case 3:
-				result = RHICreateTexture2D(Texture::eRGB16F, w, h, option.numMipLevel, option.creationFlags, image, 1);
-				break;
-			case 4:
-				result = RHICreateTexture2D( Texture::eRGBA16F, w, h, option.numMipLevel, option.creationFlags, image);
-				break;
+			case 1: return Texture::eR32F;
+			case 3: return Texture::eRGB16F;
+			case 4: return Texture::eRGBA16F;
 			}
-			stbi_image_free(image);
 		}
 		else
 		{
-			unsigned char* image = stbi_load(path, &w, &h, &comp, STBI_default);
-
-			if( !image )
-				return false;	
 			//#TODO
-			switch( comp )
+			switch( numComponent )
 			{
-			case 3:
-				result = RHICreateTexture2D( option.bSRGB ? Texture::eSRGB : Texture::eRGB8, w, h, option.numMipLevel, option.creationFlags, image, 1);
-				break;
-			case 4:
-				result = RHICreateTexture2D( option.bSRGB ? Texture::eSRGBA : Texture::eRGBA8, w, h, option.numMipLevel, option.creationFlags, image);
-				break;
+			case 3: return bSRGB ? Texture::eSRGB : Texture::eRGB8;
+			case 4: return bSRGB ? Texture::eSRGBA : Texture::eRGBA8;
 			}
-
-			stbi_image_free(image);
 		}
-		stbi_set_flip_vertically_on_load(false);
-		return result;
+		return Texture::eR8;
 	}
-
-
 
 }

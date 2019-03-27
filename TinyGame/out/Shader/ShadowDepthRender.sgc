@@ -95,12 +95,12 @@ void MainPS()
 	float outDepth = InputPS.passInterpolants.depth;
 
 #if MATERIAL_USE_DEPTH_OFFSET
-	float3 svPosition = materialParameters.clipPos;
+	float4 NDC = materialParameters.NDC;
 	if( materialInput.depthOffset != 0 )
 	{
-		svPosition.z += materialInput.depthOffset;
+		NDC.z += materialInput.depthOffset;
 
-		float4 worldPos = View.clipToWorld * float4( svPosition , 1 );
+		float4 worldPos = View.clipToWorld * NDC;
 		float4 outPosition = DepthShadowMatrix * float4( worldPos.xyz / worldPos.w , 1);
 #if USE_PERSPECTIVE_DEPTH
 		outDepth = outPosition.z / outPosition.w;
@@ -108,7 +108,7 @@ void MainPS()
 		outDepth = outPosition.z * ShadowParam.y;
 #endif
 	}
-	WritePixelDepth(svPosition.z);
+	WritePixelDepth(NDC.z);
 
 #endif
 	//depth = 0.5;

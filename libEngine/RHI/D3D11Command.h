@@ -81,23 +81,26 @@ namespace Render
 		{
 			return nullptr;
 		}
-		virtual RHITexture2D*    RHICreateTexture2D(
+
+		RHITexture2D*    RHICreateTexture2D(
 			Texture::Format format, int w, int h,
 			int numMipLevel, uint32 createFlags, void* data, int dataAlign);
 
-		virtual RHITexture3D*    RHICreateTexture3D(Texture::Format format, int sizeX, int sizeY, int sizeZ, uint32 createFlags, void* data)
+		RHITexture3D*    RHICreateTexture3D(Texture::Format format, int sizeX, int sizeY, int sizeZ, int numMipLevel, uint32 createFlags, void* data)
 		{
 			return nullptr;
 		}
+
+
+		RHITextureCube*  RHICreateTextureCube(Texture::Format format, int size, int numMipLevel, uint32 creationFlags, void* data[])
+		{
+
+			return nullptr;
+		}
+
 
 		RHITextureDepth* RHICreateTextureDepth(Texture::DepthFormat format, int w, int h)
 		{
-			return nullptr;
-		}
-
-		RHITextureCube*  RHICreateTextureCube()
-		{
-
 			return nullptr;
 		}
 

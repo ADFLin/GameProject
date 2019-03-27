@@ -2,6 +2,11 @@
 #include "ViewParam.sgc"
 #include "GeometryTestCommon.sgc"
 #include "LightingCommon.sgc"
+#include "IBLCommon.sgc"
+
+#if USE_MATERIAL
+#include "MaterialCommon.sgc"
+#endif
 
 struct LightProbeVisualizeParameters
 {
@@ -111,7 +116,7 @@ in flat int GridId;
 out float4 OutColor;
 
 uniform sampler2D NormalTexture;
-uniform samplerCube IrradianceCubeTexture;
+
 struct MaterialInfo
 {
 	float3  baseColor;
@@ -132,8 +137,10 @@ void MainPS()
 
 	float3 worldPos = View.worldPos + cameraDir * t;
 
-	float4 NDC = View.worldToClip * vec4(worldPos, 1.0);
-	WritePixelDepth(NDC.z / NDC.w);
+	float4 clipPos = View.worldToClip * vec4(worldPos, 1.0);
+	float4 NDC = clipPos / clipPos.w;
+	
+	WritePixelDepth(NDC.z);
 
 	float2 gridPos;
 	gridPos.x = GridId % LPV.gridNum.x;
@@ -157,12 +164,28 @@ void MainPS()
 	float2 uv = float2( 4 , 2 ) * float2(atan(xy.y, xy.x) / ( 2 * PI ) , 2*(acos(zAxis.z) / PI - 0.5) );
 	
 	float3  N = normalize( TBN * ( 2 * texture2D(NormalTexture , uv).xyz -1 ) );
-	//float3  N = TBN * float3(0,0,1);
+	N = TBN * float3(0,0,1);
 	float3  V = normalize(View.worldPos - worldPos);
 	float3  L = normalize(float3(1, 1, 2));
+
+	float3 R = reflect(-V, N);
 	//float3  L = normalize(float3(10, 10, 10)- worldPos);
 
+#if USE_MATERIAL	
+	MaterialInputPS materialInput = InitMaterialInputPS();
+	MaterialParametersPS materialParameters;
+	materialParameters.worldPos = worldPos;
+	materialParameters.texCoords[0] = uv;
+	materialParameters.tangentToWorld = TBN;
+	materialParameters.vectexColor = float3(1, 1, 1, 1);
+	materialParameters.worldNormal = N;
+	materialParameters.clipPos = clipPos;
+	materialParameters.clipPos = 
+	CalcMaterialParameters(materialInput, materialParameters);
+#endif
+
 	float NoL = saturate(dot(N, L));
+	float NoV = saturate(dot(N, V));
 
 	float3 diffuseColor = material.baseColor * ( 1 - material.metallic);
 	float3 specularColor = lerp(float3(0.08 * material.specular), material.baseColor, material.metallic);
@@ -176,7 +199,8 @@ void MainPS()
 
 	float3 Lo = NoL * shading * radiance;
 
-	float3 ambient = texture( IrradianceCubeTexture , N ).rgb * material.baseColor * material.ao;
+	float3 envSpecular = GetIBLSpecularColor(specularColor, R, NoV, material.roughness);
+	float3 ambient = ( GetIrradianceColor( N ) * material.baseColor + envSpecular )  * material.ao;
 	//ambient *= 0.0;
 	float3 color = ambient + Lo;
 

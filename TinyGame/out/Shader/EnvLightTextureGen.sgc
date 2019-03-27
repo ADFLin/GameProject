@@ -1,7 +1,8 @@
 #include "Common.sgc"
 #include "ScreenVertexShader.sgc"
+#include "LightingCommon.sgc"
 
-#define  USE_CUBE_TEXTURE 0
+#define  USE_CUBE_TEXTURE 1
 
 #if PIXEL_SHADER
 
@@ -32,13 +33,23 @@ float3 GetEnvRadiance(float3 dir)
 #endif
 }
 
+float3 GetFaceCameraDir(float2 faceUV)
+{
+	float2 NDC = 2 * faceUV - 1;
+	float3 faceRightDir = cross(FaceDir, FaceUpDir);
+	return normalize(FaceDir + NDC.x * faceRightDir + NDC.y * FaceUpDir);
+}
+
+void EquirectangularToCubePS()
+{
+	float3 dir = GetFaceCameraDir(VSOutput.UVs);
+	float3 color = texture2D(Texture, EquirectangularCoord(dir)).rgb;
+	OutColor = float4(color, 1);
+}
+
 void IrradianceGemPS()
 {
-	float2 NDC = 2 * VSOutput.UVs - 1;
-
-	float3 faceRightDir = cross(FaceDir, FaceUpDir);
-
-	float3 axisZ = normalize(FaceDir + NDC.x * faceRightDir + NDC.y * FaceUpDir);
+	float3 axisZ = GetFaceCameraDir(VSOutput.UVs);
 
 	float3 axisY = float3(0, 0, 1);
 	float ZoY = dot(axisZ, axisY);
@@ -53,8 +64,8 @@ void IrradianceGemPS()
 	float3 N = axisZ;
 	float3x3 R = float3x3(axisX, axisY, axisZ);
 
-	const int SampleM = 40;
-	const int SampleN = 40;
+	const int SampleM = 100;
+	const int SampleN = 100;
 
 	float dPhi = 2.0 * PI / SampleM;
 	float dTheta = 0.5 * PI / SampleN;
@@ -79,4 +90,118 @@ void IrradianceGemPS()
 }
 
 
+float RadicalInverse_VdC(uint bits)
+{
+	bits = (bits << 16u) | (bits >> 16u);
+	bits = ((bits & 0x55555555u) << 1u) | ((bits & 0xAAAAAAAAu) >> 1u);
+	bits = ((bits & 0x33333333u) << 2u) | ((bits & 0xCCCCCCCCu) >> 2u);
+	bits = ((bits & 0x0F0F0F0Fu) << 4u) | ((bits & 0xF0F0F0F0u) >> 4u);
+	bits = ((bits & 0x00FF00FFu) << 8u) | ((bits & 0xFF00FF00u) >> 8u);
+	return float(bits) * 2.3283064365386963e-10; // / 0x100000000
+}
+// ----------------------------------------------------------------------------
+float2 Hammersley(uint i, uint N)
+{
+	return float2(float(i) / float(N), RadicalInverse_VdC(i));
+}
+
+float3 ImportanceSampleGGX(float2 Xi, float3 N, float roughness)
+{
+	float a = roughness*roughness;
+
+	float phi = 2.0 * PI * Xi.x;
+	float cosTheta = sqrt((1.0 - Xi.y) / (1.0 + (a*a - 1.0) * Xi.y));
+	float sinTheta = sqrt(1.0 - cosTheta*cosTheta);
+
+	// from spherical coordinates to cartesian coordinates
+	float3 H;
+	H.x = cos(phi) * sinTheta;
+	H.y = sin(phi) * sinTheta;
+	H.z = cosTheta;
+
+	// from tangent-space vector to world-space sample vector
+	float3 up = abs(N.z) < 0.999 ? float3(0.0, 0.0, 1.0) : float3(1.0, 0.0, 0.0);
+	float3 tangent = normalize(cross(up, N));
+	float3 bitangent = cross(N, tangent);
+
+	float3 sampleVec = tangent * H.x + bitangent * H.y + N * H.z;
+	return normalize(sampleVec);
+}
+
+
+uniform float Roughness;
+
+void PrefilteredGenPS()
+{
+
+	float3 N = GetFaceCameraDir(VSOutput.UVs);
+	float3 R = N;
+	float3 V = R;
+
+	const uint SAMPLE_COUNT = 1024u;
+	float totalWeight = 0.0;
+	float3 prefilteredColor = float3(0.0);
+	for( uint i = 0u; i < SAMPLE_COUNT; ++i )
+	{
+		float2 Xi = Hammersley(i, SAMPLE_COUNT);
+		float3 H = ImportanceSampleGGX(Xi, N, Roughness);
+		float3 L = normalize(2.0 * dot(V, H) * H - V);
+
+		float NoL = saturate(dot(N, L));
+		if( NoL > 0.0 )
+		{
+			prefilteredColor += GetEnvRadiance(L).rgb * NoL;
+			totalWeight += NoL;
+		}
+	}
+	prefilteredColor = prefilteredColor / totalWeight;
+
+	OutColor = vec4(prefilteredColor, 1.0);
+}
+
+
+float2 IntegrateBRDF(float NoV, float roughness)
+{
+	float3 V;
+	V.x = sqrt(1.0 - NoV*NoV);
+	V.y = 0.0;
+	V.z = NoV;
+
+	float A = 0.0;
+	float B = 0.0;
+
+	float3 N = float3(0.0, 0.0, 1.0);
+
+	const uint SAMPLE_COUNT = 1024u;
+	for( uint i = 0u; i < SAMPLE_COUNT; ++i )
+	{
+		float2 Xi = Hammersley(i, SAMPLE_COUNT);
+		float3 H = ImportanceSampleGGX(Xi, N, roughness);
+		float3 L = normalize(2.0 * dot(V, H) * H - V);
+
+		float NoL = saturate(L.z);
+		float NoH = saturate(H.z);
+		float VoH = saturate(dot(V, H));
+
+		if( NoL > 0.0 )
+		{
+			float G = Vis_SmithIBL(roughness, NoV, NoL);
+			float G_Vis = (G * VoH) / (NoH * NoV);
+			float Fc = pow(1.0 - VoH, 5.0);
+
+			A += (1.0 - Fc) * G_Vis;
+			B += Fc * G_Vis;
+		}
+	}
+	A /= float(SAMPLE_COUNT);
+	B /= float(SAMPLE_COUNT);
+	return float2(A, B);
+}
+
+
+void PreIntegrateBRDFGenPS()
+{
+	float2 integratedBRDF = IntegrateBRDF( VSOutput.UVs.x , VSOutput.UVs.y );
+	OutColor = float4( integratedBRDF , 0 , 1 );
+}
 #endif

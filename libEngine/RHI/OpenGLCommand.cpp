@@ -232,27 +232,27 @@ namespace Render
 
 	RHITexture1D* OpenGLSystem::RHICreateTexture1D(Texture::Format format, int length, int numMipLevel, uint32 createFlags, void* data)
 	{
-		return CreateOpenGLResourceT< OpenGLTexture1D >(format, length, numMipLevel, data);
+		return CreateOpenGLResourceT< OpenGLTexture1D >(format, length, numMipLevel, createFlags, data);
 	}
 
 	RHITexture2D* OpenGLSystem::RHICreateTexture2D(Texture::Format format, int w, int h, int numMipLevel, uint32 createFlags, void* data, int dataAlign)
 	{
-		return CreateOpenGLResourceT< OpenGLTexture2D >(format, w, h, numMipLevel, data, dataAlign);
+		return CreateOpenGLResourceT< OpenGLTexture2D >(format, w, h, numMipLevel, createFlags, data, dataAlign);
 	}
 
-	RHITexture3D* OpenGLSystem::RHICreateTexture3D(Texture::Format format, int sizeX, int sizeY, int sizeZ, uint32 createFlags, void* data)
+	RHITexture3D* OpenGLSystem::RHICreateTexture3D(Texture::Format format, int sizeX, int sizeY, int sizeZ, int numMipLevel, uint32 createFlags, void* data)
 	{
-		return CreateOpenGLResourceT< OpenGLTexture3D >(format, sizeX, sizeY, sizeZ, data);
+		return CreateOpenGLResourceT< OpenGLTexture3D >(format, sizeX, sizeY, sizeZ, numMipLevel, createFlags , data);
+	}
+
+	RHITextureCube* OpenGLSystem::RHICreateTextureCube(Texture::Format format, int size, int numMipLevel, uint32 creationFlags, void* data[])
+	{
+		return CreateOpenGLResourceT< OpenGLTextureCube >( format , size , numMipLevel , creationFlags , data );
 	}
 
 	RHITextureDepth* OpenGLSystem::RHICreateTextureDepth(Texture::DepthFormat format, int w, int h)
 	{
 		return CreateOpenGLResourceT< OpenGLTextureDepth >(format, w , h );
-	}
-
-	RHITextureCube* OpenGLSystem::RHICreateTextureCube()
-	{
-		return new OpenGLTextureCube;
 	}
 
 	RHIVertexBuffer* OpenGLSystem::RHICreateVertexBuffer(uint32 vertexSize, uint32 numVertices, uint32 creationFlags, void* data)

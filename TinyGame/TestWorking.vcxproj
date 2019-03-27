@@ -212,6 +212,7 @@
     <ClCompile Include="TestWorking\TestWorkingPCH.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="TestRender\Stage\BRDFTestStage.h" />
     <ClInclude Include="TestRender\Stage\NoiseTestStage.h" />
     <ClInclude Include="TestWorking\TestWorkingPCH.h" />
   </ItemGroup>

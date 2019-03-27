@@ -52,8 +52,8 @@ namespace Render
 		if( !mShadowBuffer.create() )
 			return false;
 
-		mShadowMap = RHICreateTextureCube();
-		if( !mShadowMap->create(Texture::eFloatRGBA, ShadowTextureSize) )
+		mShadowMap = RHICreateTextureCube(Texture::eFloatRGBA, ShadowTextureSize);
+		if( !mShadowMap.isValid())
 			return false;
 
 

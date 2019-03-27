@@ -205,7 +205,6 @@ namespace Render
 	class RHITexture1D : public RHITextureBase
 	{
 	public:
-		virtual bool create(Texture::Format format, int length, int numMipLevel = 0, void* data = nullptr) = 0;
 		virtual bool update(int offset, int length, Texture::Format format, void* data, int level = 0) = 0;
 
 		int  getSize() const { return mSize; }
@@ -253,8 +252,8 @@ namespace Render
 	{
 	public:
 		virtual bool loadFile(char const* path[]) = 0;
-		virtual bool create(Texture::Format format, int size , void* data = nullptr, int faceDataOffset = 0) = 0;
-
+		virtual bool update(Texture::Face face, int ox, int oy, int w, int h, Texture::Format format, void* data, int level = 0) = 0;
+		virtual bool update(Texture::Face face, int ox, int oy, int w, int h, Texture::Format format, int pixelStride, void* data, int level = 0) = 0;
 		int getSize() const { return mSize; }
 
 		virtual RHITextureCube* getTextureCube() override { return this; }
@@ -266,11 +265,11 @@ namespace Render
 	class RHIFrameBuffer : public RHIResource
 	{
 	public:
-		virtual int  addTextureLayer(RHITextureCube& target) = 0;
-		virtual int  addTexture(RHITextureCube& target, Texture::Face face) = 0;
-		virtual int  addTexture(RHITexture2D& target) = 0;
-		virtual void setTexture(int idx, RHITexture2D& target) = 0;
-		virtual void setTexture(int idx, RHITextureCube& target, Texture::Face face) = 0;
+		virtual int  addTextureLayer(RHITextureCube& target, int level = 0 ) = 0;
+		virtual int  addTexture(RHITextureCube& target, Texture::Face face, int level = 0) = 0;
+		virtual int  addTexture(RHITexture2D& target, int level = 0) = 0;
+		virtual void setTexture(int idx, RHITexture2D& target, int level = 0) = 0;
+		virtual void setTexture(int idx, RHITextureCube& target, Texture::Face face, int level = 0) = 0;
 	};
 
 
@@ -613,28 +612,7 @@ namespace Render
 	typedef TRefCountPtr< RHIDepthStencilState > RHIDepthStencilStateRef;
 	typedef TRefCountPtr< RHIBlendState > RHIBlendStateRef;
 
-	extern RHITexture2DRef    GDefaultMaterialTexture2D;
-	extern RHITexture2DRef    GWhiteTexture2D;
-	extern RHITexture2DRef    GBlackTexture2D;
-	extern RHITextureCubeRef  GWhiteTextureCube;
-	extern RHITextureCubeRef  GBlackTextureCube;
 
-	class ShaderCompileOption;
-	class MaterialShaderProgram;
-
-	extern class MaterialMaster* GDefalutMaterial;
-	extern MaterialShaderProgram GSimpleBasePass;
-
-	template< class RHIResourceType >
-	class TGlobalRHIResource
-	{
-
-
-
-	};
-
-	bool InitGlobalRHIResource();
-	void ReleaseGlobalRHIResource();
 
 
 }//namespace Render

@@ -19,7 +19,7 @@ struct GBufferData
 	uint  shadingModel;
 	
 	float3 diffuseColor;
-	float  depth;
+	float  sceneDepth;
 	float3 specularColor;
 };
 
@@ -45,9 +45,9 @@ void EncodeGBuffer(in GBufferData GBuffer ,
 				   out float4 GBufferC,
 				   out float4 GBufferD)
 {
-	GBufferA = float4(GBuffer.worldPos, GBuffer.depth);
-	GBufferB = float4(GBuffer.normal, GBuffer.depth);
-	GBufferC = float4(GBuffer.baseColor, GBuffer.depth);
+	GBufferA = float4(GBuffer.worldPos, GBuffer.sceneDepth);
+	GBufferB = float4(GBuffer.normal, GBuffer.sceneDepth);
+	GBufferC = float4(GBuffer.baseColor, GBuffer.sceneDepth);
 
 	GBufferD.r = GBuffer.metallic;
 	GBufferD.g = GBuffer.roughness;
@@ -59,7 +59,7 @@ GBufferData DecodeGBuffer(in float4 GBufferA, in float4 GBufferB, in float4 GBuf
 {
 	GBufferData GBuffer;
 	GBuffer.worldPos = GBufferA.rgb;
-	GBuffer.depth = GBufferC.a;
+	GBuffer.sceneDepth = GBufferC.a;
 	GBuffer.normal = GBufferB.rgb;
 	GBuffer.baseColor = GBufferC.rgb;
 

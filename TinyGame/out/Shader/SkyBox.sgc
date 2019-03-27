@@ -24,13 +24,13 @@ void MainVS()
 
 #endif
 
-#define  USE_CUBE_TEXTURE 0
+#define  USE_CUBE_TEXTURE 1
 
 #if PIXEL_SHADER
 
 uniform sampler2D Texture;
 uniform samplerCube CubeTexture;
-
+uniform float CubeLevel;
 in VSOutputParameters VSOutput;
 
 const float2 invAtan = float2(0.1591, 0.3183);
@@ -42,10 +42,12 @@ float2 EquirectangularCoord(float3 v)
 	return uv;
 }
 
+
+
 float3 GetEnvRadiance(float3 dir)
 {
 #if USE_CUBE_TEXTURE
-	return texture(CubeTexture, dir).rgb;
+	return textureLod(CubeTexture, dir , CubeLevel).rgb;
 #else
 	return texture2D(Texture, EquirectangularCoord(dir)).rgb;
 #endif

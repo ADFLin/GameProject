@@ -160,6 +160,7 @@ namespace Render
 			mResource->GetDesc(&desc);
 			mSizeX = desc.Width;
 			mSizeY = desc.Height;
+			mNumSamples = desc.SampleDesc.Count;
 		}
 
 

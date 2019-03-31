@@ -346,7 +346,7 @@ namespace Render
 		binormal = Math::GetNormal( factor * ( s[0] * d2 - s[1] * d1 ) );
 	}
 
-	void fillNormal_TriangleList(InputLayoutDesc const& desc, void* pVertex, int nV, int* idx, int nIdx)
+	void FillNormal_TriangleList(InputLayoutDesc const& desc, void* pVertex, int nV, int* idx, int nIdx)
 	{
 		assert(desc.getSematicFormat(Vertex::ePosition) == Vertex::eFloat3);
 		assert(desc.getSematicFormat(Vertex::eNormal) == Vertex::eFloat3);
@@ -388,7 +388,7 @@ namespace Render
 		}
 	}
 
-	void fillNormalTangent_TriangleList( InputLayoutDesc const& desc , void* pVertex , int nV , int* idx , int nIdx )
+	void FillNormalTangent_TriangleList( InputLayoutDesc const& desc , void* pVertex , int nV , int* idx , int nIdx )
 	{
 		assert( desc.getSematicFormat( Vertex::ePosition ) == Vertex::eFloat3 );
 		assert( desc.getSematicFormat( Vertex::eNormal ) == Vertex::eFloat3 );
@@ -459,7 +459,7 @@ namespace Render
 	}
 
 
-	void fillTangent_TriangleList( InputLayoutDesc const& desc , void* pVertex , int nV , int* idx , int nIdx )
+	void FillTangent_TriangleList( InputLayoutDesc const& desc , void* pVertex , int nV , int* idx , int nIdx )
 	{
 		assert( desc.getSematicFormat( Vertex::ePosition ) == Vertex::eFloat3 );
 		assert( desc.getSematicFormat( Vertex::eNormal ) == Vertex::eFloat3 );
@@ -532,7 +532,7 @@ namespace Render
 			dest += 6;
 			src += 4;
 		}
-		fillTangent_TriangleList( desc , pVertex , nV , &indices[0] , indices.size() );
+		FillTangent_TriangleList( desc , pVertex , nV , &indices[0] , indices.size() );
 	}
 
 
@@ -800,7 +800,7 @@ namespace Render
 			i += 3;
 		}
 
-		//fillTangent_TriangleList(mesh.mDecl, &vertex[0], nV, &indices[0], indices.size());
+		//FillTangent_TriangleList(mesh.mDecl, &vertex[0], nV, &indices[0], indices.size());
 		if ( !mesh.createRHIResource( &vertex[0] , nV , &indices[0] , indices.size() , true ) )
 			return false;
 
@@ -876,7 +876,7 @@ namespace Render
 			3 , 2 , 6 ,3 , 6 , 5 , //-z
 		};
 
-		fillNormalTangent_TriangleList(mesh.mInputLayoutDesc, &v[0], ARRAY_SIZE(v), &indices[0], ARRAY_SIZE(indices));
+		FillNormalTangent_TriangleList(mesh.mInputLayoutDesc, &v[0], ARRAY_SIZE(v), &indices[0], ARRAY_SIZE(indices));
 		mesh.mType = PrimitiveType::TriangleList;
 		if( !mesh.createRHIResource(&v[0], ARRAY_SIZE(v), &indices[0], ARRAY_SIZE(indices), true) )
 			return false;
@@ -940,7 +940,7 @@ namespace Render
 			20 , 21 , 22 , 20 , 22 , 23 ,
 		};
 
-		fillTangent_TriangleList(mesh.mInputLayoutDesc, &v[0], 6 * 4, &indices[0], 6 * 6);
+		FillTangent_TriangleList(mesh.mInputLayoutDesc, &v[0], 6 * 4, &indices[0], 6 * 6);
 		mesh.mType = PrimitiveType::TriangleList;
 		if( !mesh.createRHIResource(&v[0], 6 * 4, &indices[0], 6 * 6, true) )
 			return false;
@@ -1096,7 +1096,7 @@ namespace Render
 
 		int   idx[6] = { 0 , 1 , 2 , 0 , 2 , 3 };
 
-		fillTangent_TriangleList( mesh.mInputLayoutDesc , &v[0] , 4  , &idx[0] , 6 );
+		FillTangent_TriangleList( mesh.mInputLayoutDesc , &v[0] , 4  , &idx[0] , 6 );
 		if ( !mesh.createRHIResource( &v[0] , 4  , &idx[0] , 6 , true ) )
 			return false;
 
@@ -1425,9 +1425,9 @@ namespace Render
 				}
 			}
 			if ( !shapes[0].mesh.texcoords.empty() )
-				fillNormalTangent_TriangleList(mesh.mInputLayoutDesc, &vertices[0], numVertex, (int*)&indices[0], indices.size());
+				FillNormalTangent_TriangleList(mesh.mInputLayoutDesc, &vertices[0], numVertex, (int*)&indices[0], indices.size());
 			else
-				fillNormal_TriangleList(mesh.mInputLayoutDesc, &vertices[0], numVertex, (int*)&indices[0], indices.size());
+				FillNormal_TriangleList(mesh.mInputLayoutDesc, &vertices[0], numVertex, (int*)&indices[0], indices.size());
 		}
 		else
 		{
@@ -1456,7 +1456,7 @@ namespace Render
 				}
 			}
 			if( !shapes[0].mesh.texcoords.empty() )
-				fillTangent_TriangleList(mesh.mInputLayoutDesc, &vertices[0], numVertex, (int*)&indices[0], indices.size());
+				FillTangent_TriangleList(mesh.mInputLayoutDesc, &vertices[0], numVertex, (int*)&indices[0], indices.size());
 		}
 		if( !mesh.createRHIResource(&vertices[0], numVertex, &indices[0], indices.size(), true) )
 			return false;
@@ -1523,7 +1523,7 @@ namespace Render
 
 		int   idx[6] = { 0 , 1 , 2 , 0 , 2 , 3 };
 
-		fillTangent_TriangleList( mesh.mInputLayoutDesc , &v[0] , 4  , &idx[0] , 6 );
+		FillTangent_TriangleList( mesh.mInputLayoutDesc , &v[0] , 4  , &idx[0] , 6 );
 		if ( !mesh.createRHIResource( &v[0] , 4  , &idx[0] , 6 , true ) )
 			return false;
 
@@ -2327,5 +2327,21 @@ namespace Render
 
 		delete[] groups;
 	}
+
+	void MeshUtility::FillTriangleListNormalAndTangent(InputLayoutDesc const& desc, void* pVertex, int nV, int* idx, int nIdx)
+	{
+		FillNormalTangent_TriangleList(desc, pVertex, nV, idx, nIdx);
+	}
+
+	void MeshUtility::FillTriangleListTangent(InputLayoutDesc const& desc, void* pVertex, int nV, int* idx, int nIdx)
+	{
+		FillTangent_TriangleList(desc, pVertex, nV, idx, nIdx);
+	}
+
+	void MeshUtility::FillTriangleListNormal(InputLayoutDesc const& desc, void* pVertex, int nV, int* idx, int nIdx)
+	{
+		FillNormal_TriangleList(desc, pVertex, nV, idx, nIdx);
+	}
+
 
 }//namespace GL

@@ -1,19 +1,15 @@
 #pragma once
 
-
-#define COMPILER_GLSL 1
+#ifndef SHADER_COMPILING
+#define SHADER_COMPILING 0
+#endif
 
 #ifndef COMPILER_GLSL
-#define COMPILER_GLSL 0
+#define COMPILER_GLSL 1
 #endif
 
 #ifndef COMPILER_HLSL
 #define COMPILER_HLSL 0
-#endif
-
-
-#ifndef SHADER_COMPILING
-#define SHADER_COMPILING 0
 #endif
 
 #if SHADER_COMPILING
@@ -51,81 +47,14 @@
 #define DOMAIN_SHADER 1
 #define COMPUTE_SHADER 1
 
-#include "ShaderDefine.sgc"
-
 #endif
 
-#define ATTRIBUTE0 0
-#define ATTRIBUTE1 1
-#define ATTRIBUTE2 2
-#define ATTRIBUTE3 3
-#define ATTRIBUTE4 4
-#define ATTRIBUTE5 5
-#define ATTRIBUTE6 6
-#define ATTRIBUTE7 7
-#define ATTRIBUTE8 8 
-#define ATTRIBUTE9 9
-#define ATTRIBUTE10 10
-#define ATTRIBUTE11 11
-#define ATTRIBUTE12 12
-#define ATTRIBUTE13 13
-#define ATTRIBUTE14 14
-#define ATTRIBUTE15 15
-
-#define ATTRIBUTE_POSITION ATTRIBUTE0
-#define ATTRIBUTE_TANGENT ATTRIBUTE15
-#define ATTRIBUTE_NORMAL ATTRIBUTE2
-#define ATTRIBUTE_COLOR ATTRIBUTE3
-#define ATTRIBUTE_TEXCOORD ATTRIBUTE8
-#define ATTRIBUTE_TEXCOORD1 ATTRIBUTE9
-#define ATTRIBUTE_TEXCOORD2 ATTRIBUTE10
-#define ATTRIBUTE_TEXCOORD3 ATTRIBUTE11
-#define ATTRIBUTE_TEXCOORD4 ATTRIBUTE12
-#define ATTRIBUTE_TEXCOORD5 ATTRIBUTE13
-#define ATTRIBUTE_TEXCOORD6 ATTRIBUTE14
-//#define ATTRIBUTE_TEXCOORD7 ATTRIBUTE15
-
-#define PI 3.1415926535897932
-#define VECTOR_FUNCTION_LIST( NAME )\
-	NAME( float )\
-	NAME( float2 )\
-	NAME( float3 )\
-	NAME( float4 )
-#define DEFINE_FUNCTION_INNER( TYPE , NAME , CODE ) TYPE NAME( TYPE x ) CODE
-#define DEFINE_VECTOR_FUNCTION( NAME , CODE )\
-	DEFINE_FUNCTION_INNER( float2 , NAME , CODE )\
-	DEFINE_FUNCTION_INNER( float3 , NAME , CODE )\
-	DEFINE_FUNCTION_INNER( float4 , NAME , CODE )
+#include "ShaderDefine.sgc"
 
 #if COMPILER_GLSL
 #define USE_RIGHT_HAND_COORD 1
-#include "GLSLCommon.sgc"
 #elif COMPILER_HLSL
 #endif
-
-float Square(float x){ return x * x; }
-DEFINE_VECTOR_FUNCTION(Square, { return x * x; })
-float Pow3(float x){ return x * x * x; }
-DEFINE_VECTOR_FUNCTION(Pow3, { return x * x * x; })
-
-#define Pow4T( TYPE )\
-	TYPE Pow4( TYPE x )\
-	{\
-		TYPE x2 = x*x;\
-		return x2 * x2;\
-	}
-VECTOR_FUNCTION_LIST(Pow4T)
-#undef Pow4T
-
-#define Pow5T( TYPE )\
-	TYPE Pow5( TYPE x )\
-	{\
-		TYPE x2 = x*x;\
-		return x2 * x2 * x;\
-	}
-VECTOR_FUNCTION_LIST(Pow5T)
-#undef Pow5T
-
 
 //#undef VECTOR_FUNCTION_LIST
 #undef DEFINE_FUNCTION_INNER
@@ -137,4 +66,11 @@ VECTOR_FUNCTION_LIST(Pow5T)
 
 #ifndef USE_MATERIAL
 #define USE_MATERIAL 0
+#endif
+
+
+#if USE_RIGHT_HAND_COORD
+#define SCENE_DEPTH_FACTOR (-1.0)
+#else
+#define SCENE_DEPTH_FACTOR (1.0)
 #endif

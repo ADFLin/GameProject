@@ -51,11 +51,11 @@ namespace Render
 			int numMipLevel , uint32 createFlags, void* data);
 		RHITexture2D*    RHICreateTexture2D(
 			Texture::Format format, int w, int h,
-			int numMipLevel, uint32 createFlags, void* data, int dataAlign);
-		RHITexture3D*    RHICreateTexture3D(Texture::Format format, int sizeX, int sizeY, int sizeZ, int numMipLevel, uint32 createFlags, void* data);
+			int numMipLevel, int numSamples, uint32 createFlags, void* data, int dataAlign);
+		RHITexture3D*    RHICreateTexture3D(Texture::Format format, int sizeX, int sizeY, int sizeZ, int numMipLevel, int numSamples, uint32 createFlags, void* data);
 		RHITextureCube*  RHICreateTextureCube(Texture::Format format, int size, int numMipLevel, uint32 creationFlags, void* data[]);
 
-		RHITextureDepth* RHICreateTextureDepth(Texture::DepthFormat format, int w, int h);
+		RHITextureDepth* RHICreateTextureDepth(Texture::DepthFormat format, int w, int h, int numMipLevel, int numSamples);
 		
 
 		RHIVertexBuffer*  RHICreateVertexBuffer(uint32 vertexSize, uint32 numVertices, uint32 creationFlags, void* data);

@@ -31,10 +31,10 @@ namespace Render
 		uint32 colorW[4] = { 0xffffffff , 0xffffffff , 0xffffffff , 0xffffffff };
 		uint32 colorB[4] = { 0, 0 , 0 , 0 };
 
-		GWhiteTexture2D = RHICreateTexture2D(Texture::eRGBA8, 2, 2, 0, BCF_DefalutValue, colorW);
+		GWhiteTexture2D = RHICreateTexture2D(Texture::eRGBA8, 2, 2, 0, 1, BCF_DefalutValue, colorW);
 		if( !GWhiteTexture2D.isValid() )
 			return false;
-		GBlackTexture2D = RHICreateTexture2D(Texture::eRGBA8, 2, 2, 0, BCF_DefalutValue, colorB);
+		GBlackTexture2D = RHICreateTexture2D(Texture::eRGBA8, 2, 2, 0, 1, BCF_DefalutValue, colorB);
 		if( !GBlackTexture2D.isValid() )
 			return false;
 		void* cubeWData[] = { colorW , colorW , colorW , colorW , colorW , colorW };

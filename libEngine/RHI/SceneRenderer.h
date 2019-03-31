@@ -49,7 +49,7 @@ namespace Render
 		RHITexture2DRef textures[NumBuffer];
 		RHITextureDepthRef depthTexture;
 
-		bool init(IntVector2 const& size);
+		bool initializeRHI(IntVector2 const& size , int numSamples );
 		void setupShader(ShaderProgram& program);
 
 		void drawTextures(IntVector2 const& size, IntVector2 const& gapSize);
@@ -57,11 +57,16 @@ namespace Render
 		void drawTexture(int x, int y, int width, int height, int idxBuffer, Vector4 const& colorMask);
 	};
 
+	struct RenderTargetResource
+	{
+		RHITexture2DRef renderTargetTexture;
+		RHITexture2DRef resolvedTexture;
+	};
 
 	class SceneRenderTargets
 	{
 	public:
-		bool initializeRHI(IntVector2 const& size);
+		bool initializeRHI(IntVector2 const& size, int numSamples = 1);
 
 		RHITexture2D&  getFrameTexture() { return *mFrameTextures[mIdxRenderFrameTexture]; }
 		RHITexture2D&  getPrevFrameTexture() { return *mFrameTextures[1 - mIdxRenderFrameTexture]; }
@@ -89,6 +94,7 @@ namespace Render
 		int                mIdxRenderFrameTexture;
 		OpenGLFrameBuffer  mFrameBuffer;
 		RHITextureDepthRef mDepthTexture;
+		RHITextureDepthRef mResolvedDepthTexture;
 	};
 
 

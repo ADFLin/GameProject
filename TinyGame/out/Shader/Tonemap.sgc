@@ -37,12 +37,12 @@ void MainPS()
 {
 	float4 color = texture2D(TextureInput0, VSOutput.UVs);
 
-	color.rgb = lumaBasedReinhardToneMapping(color.rgb);
+	//color.rgb = lumaBasedReinhardToneMapping(color.rgb);
 
 	OutColor.rgb = color.rgb;
-	//OutColor.r = LinearToSRGB(color.r);
-	//OutColor.g = LinearToSRGB(color.g);
-	//OutColor.b = LinearToSRGB(color.b);
+	OutColor.r = LinearToSRGB(color.r);
+	OutColor.g = LinearToSRGB(color.g);
+	OutColor.b = LinearToSRGB(color.b);
 	OutColor.a = color.a;
 }
 

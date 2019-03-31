@@ -1,26 +1,93 @@
-#include "TestRenderStageBase.h"
+#pragma once
+#ifndef BRDFTestStage_H_7A995FB3_7E3D_4113_8393_AD185D2EDB89
+#define BRDFTestStage_H_7A995FB3_7E3D_4113_8393_AD185D2EDB89
 
+#include "TestRenderStageBase.h"
 #include "RHI/SceneRenderer.h"
 
 namespace Render
 {
+
+	struct ImageBaseLightingData;
+
 	struct IBLResource
 	{
 		static int const NumPerFilteredLevel = 5;
 		RHITextureCubeRef texture;
 		RHITextureCubeRef irradianceTexture;
 		RHITextureCubeRef perfilteredTexture;
-		static TGlobalRHIResource<  RHITexture2D > SharedBRDFTexture;
+		static TGlobalRHIResource< RHITexture2D > SharedBRDFTexture;
 
-		bool initializeRHI()
+		static bool InitializeBRDFTexture(void* data)
 		{
-			VERIFY_RETURN_FALSE(texture = RHICreateTextureCube(Texture::eFloatRGBA, 1024));
-			VERIFY_RETURN_FALSE(irradianceTexture = RHICreateTextureCube(Texture::eFloatRGBA, 256));
-			VERIFY_RETURN_FALSE(perfilteredTexture = RHICreateTextureCube(Texture::eFloatRGBA, 256, NumPerFilteredLevel));
+			SharedBRDFTexture.Initialize(RHICreateTexture2D(Texture::eFloatRGBA, 512, 512, 1, 0 , TCF_DefalutValue , data ) );
+			return SharedBRDFTexture.isValid();
+		}
+		static void FillSharedBRDFData(std::vector< uint8 >& outData)
+		{
+			return GetTextureData(*IBLResource::SharedBRDFTexture.getRHI(), Texture::eFloatRGBA, 0, outData);
 
-			return true;
+		}
+		bool initializeRHI(ImageBaseLightingData* IBLData);
+
+		void fillData(ImageBaseLightingData& outData);
+		static void GetCubeMapData(std::vector< uint8 >& data , Texture::Format format, int size , int level, void* outData[])
+		{
+			int formatSize = Texture::GetFormatSize(format);
+			int textureSize = Math::Max(size >> level, 1);
+			int faceDataSize = textureSize * textureSize * formatSize;
+
+			for( int i = 0; i < Texture::FaceCount; ++i )
+				outData[i] = &data[i * faceDataSize];
+		}
+
+
+
+		static void GetTextureData(RHITextureCube& texture, Texture::Format format, int level, std::vector< uint8 >& outData)
+		{
+			int formatSize = Texture::GetFormatSize(format);
+			int textureSize = Math::Max(texture.getSize() >> level, 1);
+			int faceDataSize = textureSize * textureSize * formatSize;
+			outData.resize(Texture::FaceCount * faceDataSize);
+			OpenGLCast::To(&texture)->bind();
+			for( int i = 0; i < Texture::FaceCount; ++i )
+			{
+				glGetTexImage(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, level, GLConvert::BaseFormat(format), GLConvert::TextureComponentType(format), &outData[faceDataSize*i]);
+			}
+			OpenGLCast::To(&texture)->unbind();
+		}
+
+		static void GetTextureData(RHITexture2D& texture, Texture::Format format, int level, std::vector< uint8 >& outData)
+		{
+			int formatSize = Texture::GetFormatSize(format);
+			int dataSize = Math::Max(texture.getSizeX() >> level, 1) * Math::Max(texture.getSizeY() >> level, 1) * formatSize;
+			outData.resize(dataSize);
+			OpenGLCast::To(&texture)->bind();
+			glGetTexImage(GL_TEXTURE_2D, level, GLConvert::BaseFormat(format), GLConvert::TextureComponentType(format), &outData[0]);
+			OpenGLCast::To(&texture)->unbind();
 		}
 	};
+
+	struct ImageBaseLightingData
+	{
+		int envMapSize;
+		std::vector< uint8 > envMap;
+		int irradianceSize;
+		std::vector< uint8 > irradiance;
+		int perFilteredSize;
+		std::vector< uint8 > perFiltered[IBLResource::NumPerFilteredLevel];
+
+		template< class OP >
+		void serialize(OP op)
+		{
+			op & envMapSize & irradianceSize & perFilteredSize;
+			op & envMap;
+			op & irradiance;
+			op & perFiltered;
+		}
+	};
+
+	TYPE_SUPPORT_SERIALIZE_FUNC(ImageBaseLightingData);
 
 	class IBLShaderParameters
 	{
@@ -75,6 +142,179 @@ namespace Render
 		}
 	};
 
+
+	class LightProbeVisualizeProgram : public GlobalShaderProgram
+	{
+	public:
+		typedef GlobalShaderProgram BaseClass;
+		DECLARE_SHADER_PROGRAM(LightProbeVisualizeProgram, Global);
+
+		static char const* GetShaderFileName()
+		{
+			return "Shader/LightProbeVisualize";
+		}
+		static TArrayView< ShaderEntryInfo const > GetShaderEntries()
+		{
+			static ShaderEntryInfo const entries[] =
+			{
+				{ Shader::eVertex , SHADER_ENTRY(MainVS) },
+				{ Shader::ePixel  , SHADER_ENTRY(MainPS) },
+			};
+			return entries;
+		}
+
+		void bindParameters(ShaderParameterMap& parameterMap)
+		{
+			mParamIBL.bindParameters(parameterMap);
+		}
+
+		void setParameters(IBLResource const& IBL)
+		{
+			mParamIBL.setParameters(*this, IBL);
+		}
+
+		IBLShaderParameters mParamIBL;
+	};
+
+	struct PostProcessContext
+	{
+	public:
+		RHITexture2D* getTexture(int slot = 0) const { return mInputTexture[slot]; }
+		RHITexture2DRef mInputTexture[4];
+	};
+
+
+	struct PostProcessParameters
+	{
+		void bindParameters(ShaderParameterMap& parameterMap)
+		{
+			for( int i = 0; i < MaxInputNum; ++i )
+			{
+				FixString<128> name;
+				parameterMap.bind(mParamTextureInput[i], name.format("TextureInput%d", i));
+			}
+		}
+
+		void setParameters(ShaderProgram& shader, PostProcessContext const& context)
+		{
+			for( int i = 0; i < MaxInputNum; ++i )
+			{
+				if( !mParamTextureInput[i].isBound() )
+					break;
+				if( context.getTexture(i) )
+					shader.setTexture(mParamTextureInput[i], *context.getTexture(i));
+			}
+		}
+
+		static int const MaxInputNum = 4;
+
+		ShaderParameter mParamTextureInput[MaxInputNum];
+
+
+	};
+
+	class BloomDownsample : public GlobalShaderProgram
+	{
+	public:
+
+		typedef GlobalShaderProgram BaseClass;
+		DECLARE_SHADER_PROGRAM(BloomDownsample, Global);
+
+		static char const* GetShaderFileName()
+		{
+			return "Shader/Bloom";
+		}
+		static TArrayView< ShaderEntryInfo const > GetShaderEntries()
+		{
+			static ShaderEntryInfo const entries[] =
+			{
+				{ Shader::eVertex , SHADER_ENTRY(ScreenVS) },
+				{ Shader::ePixel  , SHADER_ENTRY(DownsamplePS) },
+			};
+			return entries;
+		}
+
+		void bindParameters(ShaderParameterMap& parameterMap)
+		{
+			parameterMap.bind(mParamTargetTexture, SHADER_PARAM(TargetTexture));
+		}
+		void setParameters(PostProcessContext const& context, RHITexture2D& targetTexture)
+		{
+			setTexture(mParamTargetTexture, targetTexture, TStaticSamplerState< Sampler::ePoint, Sampler::eClamp, Sampler::eClamp >::GetRHI());
+		}
+
+		ShaderParameter mParamTargetTexture;
+	};
+
+	class TonemapProgram : public GlobalShaderProgram
+	{
+	public:
+		typedef GlobalShaderProgram BaseClass;
+		DECLARE_SHADER_PROGRAM(TonemapProgram, Global);
+
+
+		static char const* GetShaderFileName()
+		{
+			return "Shader/Tonemap";
+		}
+		static TArrayView< ShaderEntryInfo const > GetShaderEntries()
+		{
+			static ShaderEntryInfo const entries[] =
+			{
+				{ Shader::eVertex , SHADER_ENTRY(ScreenVS) },
+				{ Shader::ePixel  , SHADER_ENTRY(MainPS) },
+			};
+			return entries;
+		}
+
+		void bindParameters(ShaderParameterMap& parameterMap)
+		{
+			mParamPostProcess.bindParameters(parameterMap);
+		}
+		void setParameters(PostProcessContext const& context)
+		{
+			mParamPostProcess.setParameters(*this, context);
+		}
+		PostProcessParameters mParamPostProcess;
+
+	};
+
+
+	class SkyBoxProgram : public GlobalShaderProgram
+	{
+	public:
+		typedef GlobalShaderProgram BaseClass;
+		DECLARE_SHADER_PROGRAM(SkyBoxProgram, Global);
+
+		static char const* GetShaderFileName()
+		{
+			return "Shader/SkyBox";
+		}
+		static TArrayView< ShaderEntryInfo const > GetShaderEntries()
+		{
+			static ShaderEntryInfo const entries[] =
+			{
+				{ Shader::eVertex , SHADER_ENTRY(MainVS) },
+				{ Shader::ePixel  , SHADER_ENTRY(MainPS) },
+			};
+			return entries;
+		}
+	};
+
+	class IBLResourceBuilder
+	{
+	public:
+		bool loadOrBuildResource( DataCacheInterface& dataCache , char const* path, RHITexture2D& HDRImage , IBLResource& resource);
+		bool buildIBLResource(RHITexture2D& envTexture, IBLResource& resource);
+		bool initializeShaderProgram();
+
+		class EquirectangularToCubeProgram* mProgEquirectangularToCube = nullptr;
+		class IrradianceGenProgram* mProgIrradianceGen = nullptr;
+		class PrefilteredGenProgram* mProgPrefilterdGen = nullptr;
+		class PreIntegrateBRDFGenProgram* mProgPreIntegrateBRDFGen = nullptr;
+	};
+
+
 	class BRDFTestStage : public TestRenderStageBase
 	{
 		typedef TestRenderStageBase BaseClass;
@@ -83,13 +323,11 @@ namespace Render
 
 		LightProbeVisualizeParams mParams;
 
+		IBLResourceBuilder mBuilder;
+
 		class LightProbeVisualizeProgram* mProgVisualize;
 		class TonemapProgram* mProgTonemap;
 		class SkyBoxProgram* mProgSkyBox;
-		class EquirectangularToCubeProgram* mProgEquirectangularToCube;
-		class IrradianceGenProgram* mProgIrradianceGen;
-		class PrefilteredGenProgram* mProgPrefilterdGen;
-		class PreIntegrateBRDFGenProgram* mProgPreIntegrateBRDFGen;
 
 		TStructuredUniformBuffer< LightProbeVisualizeParams > mParamBuffer;
 
@@ -101,66 +339,12 @@ namespace Render
 
 		Mesh mSkyBox;
 
-		template< class Func >
-		void UpdateCubeTexture(OpenGLFrameBuffer& frameBuffer , RHITextureCube& cubeTexture, ShaderProgram& updateShader, int level , Func shaderSetup)
-		{
-			
-			int size = cubeTexture.getSize() >> level;
 
-			RHISetViewport(0, 0, size, size);
-			RHISetRasterizerState(TStaticRasterizerState< ECullMode::None >::GetRHI());
-			RHISetDepthStencilState(StaticDepthDisableState::GetRHI());
-			RHISetBlendState(TStaticBlendState< CWM_RGBA >::GetRHI());
-			for( int i = 0; i < Texture::FaceCount; ++i )
-			{
-				frameBuffer.setTexture(0, cubeTexture, Texture::Face(i) , level );
-				GL_BIND_LOCK_OBJECT(frameBuffer);
-				GL_BIND_LOCK_OBJECT(updateShader);
-				updateShader.setParam(SHADER_PARAM(FaceDir), Texture::GetFaceDir(Texture::Face(i)));
-				updateShader.setParam(SHADER_PARAM(FaceUpDir), Texture::GetFaceUpDir(Texture::Face(i)));
-				shaderSetup();
-				DrawUtility::ScreenRectShader();
-			}
-		}
-
-		static void GetTextureData(RHITextureCube& texture, Texture::Format format, int level , std::vector< uint8 >& outData)
-		{
-			int formatSize = Texture::GetFormatSize(format);
-			int textureSize = texture.getSize() >> level;
-			int faceDataSize = textureSize * textureSize * formatSize;
-			outData.resize(6 * faceDataSize);
-			OpenGLCast::To(&texture)->bind();
-			for( int i = 0; i < Texture::FaceCount; ++i )
-			{
-				glGetTexImage(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GLConvert::BaseFormat(format), GLConvert::TextureComponentType(format), &outData[faceDataSize*i]);
-			}
-			OpenGLCast::To(&texture)->unbind();
-		}
-
-		static void GetTextureData(RHITexture2D& texture, Texture::Format format, int level , std::vector< uint8 >& outData  )
-		{
-			int formatSize = Texture::GetFormatSize(format);
-			int dataSize = ( texture.getSizeX() >> level ) * ( texture.getSizeY() >> level ) * formatSize;
-			outData.resize(dataSize);
-			OpenGLCast::To(&texture)->bind();
-			glGetTexImage(GL_TEXTURE_2D , level , GLConvert::BaseFormat(format), GLConvert::TextureComponentType(format), &outData[0]);
-			OpenGLCast::To(&texture)->unbind();
-		}
-
-		struct ImageBaseLightingData
-		{
-			std::string fileName;
-			std::vector< uint8 > EnvMap;
-			std::vector< uint8 > diffuseEnvMap;
-			std::vector< uint8 > perFilteredEnvMap;
-			std::vector< uint8 > envBRDF;
-		};
 
 
 
 		IBLResource mIBLResource;
 
-		void buildIBLResource(RHITexture2D& EnvTexture, IBLResource& resource );
 		virtual bool onInit();
 
 		virtual void onEnd()
@@ -222,7 +406,9 @@ namespace Render
 			switch( key )
 			{
 			case Keyboard::eX:
-				buildIBLResource( *mHDRImage , mIBLResource );
+
+
+				
 				break;
 			default:
 				break;
@@ -243,8 +429,6 @@ namespace Render
 	protected:
 	};
 
-
-
-
-
 }
+
+#endif // BRDFTestStage_H_7A995FB3_7E3D_4113_8393_AD185D2EDB89

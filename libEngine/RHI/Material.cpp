@@ -13,7 +13,7 @@ namespace Render
 {
 	bool Texture2D::loadFile(char const* path , int numMipLevel )
 	{
-		mRHI = RHIUtility::LoadTexture2DFromFile(path, TextureLoadOption().MinpLevel(numMipLevel));
+		mRHI = RHIUtility::LoadTexture2DFromFile(path, TextureLoadOption().MipLevel(numMipLevel));
 		return mRHI.isValid();
 	}
 

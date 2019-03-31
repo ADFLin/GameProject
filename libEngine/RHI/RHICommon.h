@@ -189,6 +189,11 @@ namespace Render
 	class RHITextureBase : public RHIResource
 	{
 	public:
+		RHITextureBase()
+		{
+			mNumSamples = 0;
+			mNumMipLevel = 0;
+		}
 		virtual ~RHITextureBase() {}
 		virtual RHITexture1D* getTexture1D() { return nullptr; }
 		virtual RHITexture2D* getTexture2D() { return nullptr; }
@@ -196,7 +201,11 @@ namespace Render
 		virtual RHITextureCube* getTextureCube() { return nullptr; }
 
 		Texture::Format getFormat() const { return mFormat; }
+		int getNumSamples() const { return mNumSamples; }
+		int getNumMipLevel() const { return mNumMipLevel; }
 	protected:
+		int mNumSamples;
+		int mNumMipLevel;
 		Texture::Format mFormat;
 	};
 
@@ -251,7 +260,6 @@ namespace Render
 	class RHITextureCube : public RHITextureBase
 	{
 	public:
-		virtual bool loadFile(char const* path[]) = 0;
 		virtual bool update(Texture::Face face, int ox, int oy, int w, int h, Texture::Format format, void* data, int level = 0) = 0;
 		virtual bool update(Texture::Face face, int ox, int oy, int w, int h, Texture::Format format, int pixelStride, void* data, int level = 0) = 0;
 		int getSize() const { return mSize; }

@@ -141,35 +141,57 @@ namespace Render
 	struct OpenGLTextureTraits {};
 
 	template<>
-	struct OpenGLTextureTraits< RHITexture1D >{ static GLenum constexpr EnumValue = GL_TEXTURE_1D; };
+	struct OpenGLTextureTraits< RHITexture1D >
+	{
+		static GLenum constexpr EnumValue = GL_TEXTURE_1D; 
+		static GLenum constexpr EnumValueMultisample = GL_TEXTURE_1D;
+	};
 	template<>
-	struct OpenGLTextureTraits< RHITexture2D >{ static GLenum constexpr EnumValue = GL_TEXTURE_2D; };
+	struct OpenGLTextureTraits< RHITexture2D >
+	{
+		static GLenum constexpr EnumValue = GL_TEXTURE_2D; 
+		static GLenum constexpr EnumValueMultisample = GL_TEXTURE_2D_MULTISAMPLE;
+	};
 	template<>
-	struct OpenGLTextureTraits< RHITexture3D >{ static GLenum constexpr EnumValue = GL_TEXTURE_3D; };
+	struct OpenGLTextureTraits< RHITexture3D >
+	{
+		static GLenum constexpr EnumValue = GL_TEXTURE_3D;
+		static GLenum constexpr EnumValueMultisample = GL_TEXTURE_2D_MULTISAMPLE_ARRAY;
+	};
 	template<>
-	struct OpenGLTextureTraits< RHITextureCube >{ static GLenum constexpr EnumValue = GL_TEXTURE_CUBE_MAP; };
+	struct OpenGLTextureTraits< RHITextureCube >
+	{
+		static GLenum constexpr EnumValue = GL_TEXTURE_CUBE_MAP; 
+		static GLenum constexpr EnumValueMultisample = GL_TEXTURE_CUBE_MAP;
+	};
 	template<>
-	struct OpenGLTextureTraits< RHITextureDepth >{ static GLenum constexpr EnumValue = GL_TEXTURE_2D; };
+	struct OpenGLTextureTraits< RHITextureDepth >
+	{
+		static GLenum constexpr EnumValue = GL_TEXTURE_2D; 
+		static GLenum constexpr EnumValueMultisample = GL_TEXTURE_2D_MULTISAMPLE;
+	};
 
 
 	template< class RHITextureType >
 	class TOpengGLTexture : public TOpenGLResource< RHITextureType , RMPTexture >
 	{
 	protected:
-		static GLenum const TypeNameGL = OpenGLTextureTraits< RHITextureType >::EnumValue;
-
+		static GLenum const TypeEnumGL = OpenGLTextureTraits< RHITextureType >::EnumValue;
+		static GLenum const TypeEnumGLMultisample = OpenGLTextureTraits< RHITextureType >::EnumValueMultisample;
 	public:
+		GLenum getGLTypeEnum() const
+		{
+			return (mNumSamples > 1) ? TypeEnumGLMultisample : TypeEnumGL;
+		}
 		void bind()
 		{
-			glBindTexture(TypeNameGL, getHandle());
+			glBindTexture(getGLTypeEnum(), getHandle());
 		}
 
 		void unbind()
 		{
-			glBindTexture(TypeNameGL, 0);
+			glBindTexture(getGLTypeEnum(), 0);
 		}
-
-
 	};
 
 
@@ -184,8 +206,7 @@ namespace Render
 	class OpenGLTexture2D : public TOpengGLTexture< RHITexture2D >
 	{
 	public:
-		bool loadFromFile(char const* path);
-		bool create(Texture::Format format, int width, int height, int numMipLevel, uint32 createFlags, void* data, int alignment);
+		bool create(Texture::Format format, int width, int height, int numMipLevel, int numSamples, uint32 createFlags, void* data, int alignment);
 
 		bool update(int ox, int oy, int w, int h, Texture::Format format, void* data, int level);
 		bool update(int ox, int oy, int w, int h, Texture::Format format, int pixelStride, void* data, int level);
@@ -195,7 +216,7 @@ namespace Render
 	class OpenGLTexture3D : public TOpengGLTexture< RHITexture3D >
 	{
 	public:
-		bool create(Texture::Format format, int sizeX, int sizeY, int sizeZ , int numMipLevel, uint32 createFlags, void* data);
+		bool create(Texture::Format format, int sizeX, int sizeY, int sizeZ , int numMipLevel, int numSamples, uint32 createFlags, void* data);
 	};
 
 	class OpenGLTextureCube : public TOpengGLTexture< RHITextureCube >
@@ -204,14 +225,12 @@ namespace Render
 		bool create(Texture::Format format, int size, int numMipLevel, uint32 creationFlags, void* data[]);
 		bool update(Texture::Face face, int ox, int oy, int w, int h, Texture::Format format, void* data, int level );
 		bool update(Texture::Face face, int ox, int oy, int w, int h, Texture::Format format, int pixelStride, void* data, int level );
-		bool loadFile(char const* path[]);
-		
+	
 	};
 
 	class RHITextureDepth : public RHITextureBase
 	{
 	public:
-		virtual bool create(Texture::DepthFormat format, int width, int height) = 0;
 		Texture::DepthFormat getFormat() { return mFromat; }
 		Texture::DepthFormat mFromat;
 	};
@@ -219,7 +238,7 @@ namespace Render
 	class OpenGLTextureDepth : public TOpengGLTexture< RHITextureDepth >
 	{
 	public:
-		bool create(Texture::DepthFormat format, int width, int height);
+		bool create(Texture::DepthFormat format, int width, int height, int numMipLevel, int numSamples);
 	};
 	typedef TRefCountPtr< RHITextureDepth > RHITextureDepthRef;
 
@@ -286,9 +305,8 @@ namespace Render
 		bool create();
 
 		int  addTextureLayer(RHITextureCube& target , int level = 0 );
-		int  addTexture(RHITextureCube& target, Texture::Face face, int level = 0);
+		int  addTexture( RHITextureCube& target, Texture::Face face, int level = 0);
 		int  addTexture( RHITexture2D& target, int level = 0);
-		int  addScreenBuffer();
 		void setTexture(int idx, RHITexture2D& target, int level = 0);
 		void setTexture(int idx, RHITextureCube& target, Texture::Face face, int level = 0);
 
@@ -302,21 +320,19 @@ namespace Render
 		void removeDepthBuffer();
 
 		void clearBuffer( Vector4 const* colorValue, float const* depthValue = nullptr, uint8 stencilValue = 0);
+		void blitToScreenBuffer();
 
 		
 		struct BufferInfo
 		{
 			RHIResourceRef bufferRef;
-			uint8 level;
-			union 
-			{
-				uint8  idxFace;
-				bool   bTexture;
-			};
+			GLenum typeEnumGL;
+			uint8  level;
+			uint8  idxFace;
 		};
 		void setRenderBufferInternal(GLuint handle);
 		void setTextureInternal(int idx, GLuint handle, GLenum texType, int level);
-		void setDepthInternal(RHIResource& resource, GLuint handle, Texture::DepthFormat format, bool bTexture);
+		void setDepthInternal(RHIResource& resource, GLuint handle, Texture::DepthFormat format, GLenum typeEnumGL);
 
 
 		std::vector< BufferInfo > mTextures;

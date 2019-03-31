@@ -77,16 +77,21 @@ namespace Render
 		}
 		RHITexture1D*    RHICreateTexture1D(
 			Texture::Format format, int length,
-			int numMipLevel, uint32 createFlags , void* data)
+			int numMipLevel, uint32 createFlags ,
+			void* data)
 		{
 			return nullptr;
 		}
 
 		RHITexture2D*    RHICreateTexture2D(
 			Texture::Format format, int w, int h,
-			int numMipLevel, uint32 createFlags, void* data, int dataAlign);
+			int numMipLevel, int numSamples, uint32 createFlags, 
+			void* data, int dataAlign);
 
-		RHITexture3D*    RHICreateTexture3D(Texture::Format format, int sizeX, int sizeY, int sizeZ, int numMipLevel, uint32 createFlags, void* data)
+		RHITexture3D*    RHICreateTexture3D(
+			Texture::Format format, int sizeX, int sizeY, int sizeZ, 
+			int numMipLevel, int numSamples , uint32 createFlags, 
+			void* data)
 		{
 			return nullptr;
 		}
@@ -99,7 +104,7 @@ namespace Render
 		}
 
 
-		RHITextureDepth* RHICreateTextureDepth(Texture::DepthFormat format, int w, int h)
+		RHITextureDepth* RHICreateTextureDepth(Texture::DepthFormat format, int w, int h, int numMipLevel, int numSamples)
 		{
 			return nullptr;
 		}
@@ -255,7 +260,7 @@ namespace Render
 			return (uint8*)mappedData.pData + offset;
 		}
 
-		bool createTexture2DInternal( DXGI_FORMAT format, int width, int height, int numMipLevel, uint32 creationFlag, void* data, uint32 pixelSize , Texture2DCreationResult& outResult );
+		bool createTexture2DInternal( DXGI_FORMAT format, int width, int height, int numMipLevel, int numSamples, uint32 creationFlag, void* data, uint32 pixelSize , Texture2DCreationResult& outResult );
 
 		bool createFrameSwapChain(HWND hWnd, int w, int h, bool bWindowed, FrameSwapChain& outResult)
 		{

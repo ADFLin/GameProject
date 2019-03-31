@@ -54,6 +54,17 @@ public:
 	}
 
 	TINY_API GWidget* findTopWidget( int id );
+	template< class WidgetClass >
+	WidgetClass* findTopWidget()
+	{
+		for( auto child = mUIManager.createTopWidgetIterator(); child; ++child )
+		{
+			auto widget = dynamic_cast<WidgetClass*>(&*child);
+			if( widget )
+				return widget;
+		}
+		return nullptr;
+	}
 	TINY_API static Vec2i  calcScreenCenterPos( Vec2i const& size );
 
 	void  skipMouseEvent(bool bSkip) { mbSkipMouseEvent = bSkip;  }

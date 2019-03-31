@@ -214,9 +214,9 @@ MaterialParametersPS VertexFactory_GetMaterialParameterPS(in FactoryInterpolants
 	{
 		float normalFactor = 1.0; // gl_FrontFacing ? 1.0 : -1.0;
 		float3 tangentX = normalize(vertexFactoryInput.tangent.xyz);
-		tangentX = normalize(tangentX - dot(tangentX, worldNormal));
+		tangentX = normalize(tangentX - dot(tangentX, worldNormal) * worldNormal );
 		float3 tangentZ = normalFactor * worldNormal;
-		float3 tangentY = cross(tangentZ, tangentX);
+		float3 tangentY = normalYSign * cross(tangentZ, tangentX);
 		tangentToWorld = mat3(tangentX, tangentY, tangentZ);
 	}
 	else

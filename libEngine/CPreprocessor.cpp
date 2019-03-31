@@ -2,6 +2,7 @@
 
 #include "MarcoCommon.h"
 #include "FileSystem.h"
+#include "FixString.h"
 #include "Holder.h"
 
 
@@ -67,7 +68,10 @@ namespace CPP
 		switch( FStringParse::StringToken(input.mCur, mDelimsTable, str) )
 		{
 		case FStringParse::eDelimsType:
-
+			if( str[0] == '\n' )
+			{
+				++input.mLine;
+			}
 			break;
 		case FStringParse::eStringType:
 			result.type = Token_String;
@@ -125,6 +129,7 @@ namespace CPP
 			includeInput->mFilePath = fullPath.c_str();
 			includeInput->resetSeek();
 
+
 			if( bCommentIncludeFileName )
 			{
 				mOutput->push("//Include ");
@@ -132,19 +137,30 @@ namespace CPP
 				mOutput->pushNewline();
 			}
 
+			if( bAddLineMarco )
+			{
+				FixString< 512 > lineMarco;
+				lineMarco.format("#line %d \"%s\"\n", 1, includeInput->mFilePath.c_str());
+				mOutput->push(lineMarco);
+			}
 			translate(*includeInput);
 			mOutput->pushNewline();
-
 			if( bCommentIncludeFileName )
 			{
 				mOutput->push("//~Include ");
 				mOutput->push( path );
 				mOutput->pushNewline();
 			}
+			if( bAddLineMarco )
+			{
+				FixString< 512 > lineMarco;
+				lineMarco.format("#line %d \"%s\"\n", input.mLine , input.mFilePath.c_str());
+				mOutput->push(lineMarco);
+			}
 			mLoadedInputs.push_back(includeInput.release());
 		}
 
-		input.skipLine();
+		input.skipToNextLine();
 		return true;
 	}
 
@@ -220,6 +236,7 @@ namespace CPP
 				str = FStringParse::FindChar(str, '\n');
 				if( *str != 0 )
 				{
+					++input.mLine;
 					++str;
 				}
 			}
@@ -235,6 +252,10 @@ namespace CPP
 
 				char const* ptr = str + 1;
 				str = FStringParse::FindChar(str, " \r\n");
+				if( *str == '\n' )
+				{
+					++input.mLine;
+				}
 				StringView strCom{ ptr , size_t(str - ptr) };
 
 				auto iter = sCommandMap.find(strCom);
@@ -284,8 +305,19 @@ namespace CPP
 	{
 		//TODO : Skip Comment
 		StringView str;
-		if( !FStringParse::StringToken(input.mCur, mExprDelimsTable, str) )
-			return ExprToken(ExprToken::eEof);
+		do
+		{
+			if( !FStringParse::StringToken(input.mCur, mExprDelimsTable, str) )
+			   return ExprToken(ExprToken::eEof);
+
+			if( str[0] == '\n' )
+			{
+				++input.mLine;
+				continue;
+			}
+			break;
+		} while( 1 );
+			
 
 		if( isalpha(str[0]) )
 			return ExprToken(str);
@@ -413,7 +445,7 @@ namespace CPP
 						SYNTAX_ERROR("Unknown Param Command");
 					}
 
-					input.skipLine();
+					input.skipToNextLine();
 				}
 				break;
 			case Command::Define:

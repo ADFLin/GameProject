@@ -33,16 +33,16 @@ namespace Render
 		VERIFY_RETURN_FALSE(SharedAssetData::createCommonShader());
 
 		VERIFY_RETURN_FALSE(mDepthBuffer = RHICreateTextureDepth(Texture::eDepth32F, screenSize.x, screenSize.y));
-		VERIFY_RETURN_FALSE(mScreenBuffer = RHICreateTexture2D(Texture::eFloatRGBA, screenSize.x, screenSize.y, 1, TCF_DefalutValue | TCF_RenderTarget));
+		VERIFY_RETURN_FALSE(mScreenBuffer = RHICreateTexture2D(Texture::eFloatRGBA, screenSize.x, screenSize.y, 1, 1, TCF_DefalutValue | TCF_RenderTarget));
 		VERIFY_RETURN_FALSE(mFrameBuffer.create());
 		mFrameBuffer.addTexture(*mScreenBuffer);
 		mFrameBuffer.setDepth(*mDepthBuffer);
 
 		for( int i = 0; i < 2; ++i )
 		{
-			VERIFY_RETURN_FALSE(mSmokeFrameTextures[i] = RHICreateTexture2D(Texture::eFloatRGBA, screenSize.x, screenSize.y, 1, TCF_DefalutValue | TCF_RenderTarget));
+			VERIFY_RETURN_FALSE(mSmokeFrameTextures[i] = RHICreateTexture2D(Texture::eFloatRGBA, screenSize.x, screenSize.y, 1, 1, TCF_DefalutValue | TCF_RenderTarget));
 		}
-		VERIFY_RETURN_FALSE(mSmokeDepthTexture = RHICreateTexture2D(Texture::eR32F, screenSize.x, screenSize.y, 1, TCF_DefalutValue | TCF_RenderTarget));
+		VERIFY_RETURN_FALSE(mSmokeDepthTexture = RHICreateTexture2D(Texture::eR32F, screenSize.x, screenSize.y, 1, 1, TCF_DefalutValue | TCF_RenderTarget));
 		VERIFY_RETURN_FALSE(mSmokeFrameBuffer.create());
 		mSmokeFrameBuffer.addTexture(*mSmokeFrameTextures[0]);
 		mSmokeFrameBuffer.addTexture(*mSmokeDepthTexture);
@@ -62,7 +62,7 @@ namespace Render
 			{
 				v = double(rand.rand()) / double(std::numeric_limits<uint32>::max());
 			}
-			mData.randTexture = RHICreateTexture2D(Texture::eR32F, randSize, randSize, 1, TCF_DefalutValue, randomData.data(), 1);
+			mData.randTexture = RHICreateTexture2D(Texture::eR32F, randSize, randSize, 1, 1, TCF_DefalutValue, randomData.data(), 1);
 		}
 
 		{
@@ -90,7 +90,7 @@ namespace Render
 				}
 				::Global::DataCache().saveT(cacheKey, data);
 			}
-			mData.noiseTexture = RHICreateTexture2D(Texture::eR32F, textureSize, textureSize, 1, TCF_DefalutValue, data.data(), 1);
+			mData.noiseTexture = RHICreateTexture2D(Texture::eR32F, textureSize, textureSize, 1, 1, TCF_DefalutValue, data.data(), 1);
 		}
 
 
@@ -127,7 +127,7 @@ namespace Render
 				}
 				::Global::DataCache().saveT(cacheKey, data);
 			}
-			mData.volumeTexture = RHICreateTexture3D(Texture::eR32F, textureSize, textureSize, textureSize, 1 , TCF_DefalutValue, data.data());
+			mData.volumeTexture = RHICreateTexture3D(Texture::eR32F, textureSize, textureSize, textureSize, 1 , 1, TCF_DefalutValue, data.data());
 		}
 
 
@@ -161,7 +161,7 @@ namespace Render
 				}
 				::Global::DataCache().saveT(cacheKey, data);
 			}
-			mData.NoiseVolumeTexture = RHICreateTexture3D(Texture::eR32F, textureSize, textureSize, textureSize, 1 , TCF_DefalutValue, data.data());
+			mData.NoiseVolumeTexture = RHICreateTexture3D(Texture::eR32F, textureSize, textureSize, textureSize, 1 , 1, TCF_DefalutValue, data.data());
 		}
 
 

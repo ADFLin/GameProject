@@ -130,10 +130,10 @@ namespace Render
 		void  drawPolygon(Vec2i pos[], int num);
 		void  drawRoundRect(Vector2 const& pos, Vector2 const& rectSize, Vector2 const& circleSize);
 
-		void  drawTexture(GLTexture& texture, Vector2 const& pos);
-		void  drawTexture(GLTexture& texture, Vector2 const& pos, Color3ub const& color);
-		void  drawTexture(GLTexture& texture, Vector2 const& pos, Vector2 const& texPos, Vector2 const& texSize);
-		void  drawTexture(GLTexture& texture, Vector2 const& pos, Vector2 const& texPos, Vector2 const& texSize, Color3ub const& color);
+		void  drawTexture(RHITexture2D& texture, Vector2 const& pos);
+		void  drawTexture(RHITexture2D& texture, Vector2 const& pos, Color3ub const& color);
+		void  drawTexture(RHITexture2D& texture, Vector2 const& pos, Vector2 const& texPos, Vector2 const& texSize);
+		void  drawTexture(RHITexture2D& texture, Vector2 const& pos, Vector2 const& texPos, Vector2 const& texSize, Color3ub const& color);
 
 		void  setFont(FontDrawer& font)
 		{

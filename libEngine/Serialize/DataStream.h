@@ -191,6 +191,18 @@ public:
 		}
 	}
 
+	template< class T, int N >
+	void write(T const(&value)[N])
+	{
+		writeSequence(&value[0], N);
+	}
+
+	template< class T, int N >
+	void read(T(&value)[N])
+	{
+		readSequence(&value[0], N);
+	}
+
 	template<  class T, class A >
 	void write(std::vector< T, A > const& value)
 	{

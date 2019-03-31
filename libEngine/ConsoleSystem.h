@@ -38,7 +38,7 @@ struct TMemberFunConsoleCommand : public ConsoleCommandBase
 	T*     mObject;
 
 	TMemberFunConsoleCommand( char const* inName , FunSig inFun, T* inObj = NULL )
-		:ConsoleCommandBase(inName, inObj,
+		:ConsoleCommandBase(inName,
 			detail::FunTraits<FunSig>::NumParam ,
 			detail::FunTraits<FunSig>::getParam() )
 		,fun(inFun), mObject(inObj)
@@ -119,21 +119,21 @@ public:
 	char const* getErrorMsg() const { return mLastErrorMsg.c_str(); }
 
 	template < class T >
-	static void registerVar( char const* name , T* obj )
+	void registerVar( char const* name , T* obj )
 	{
 		auto* command = new TVariableConsoleCommad<T>( name , obj );
 		insertCommand(command);
 	}
 
 	template < class FunSig , class T >
-	static void registerCommand( char const* name , FunSig fun , T* obj )
+	 void registerCommand( char const* name , FunSig fun , T* obj )
 	{
 		auto* command = new TMemberFunConsoleCommand<FunSig , T >( name ,fun , obj );
 		insertCommand(command);
 	}
 
 	template < class FunSig >
-	static void registerCommand( char const* name , FunSig fun )
+	void registerCommand( char const* name , FunSig fun )
 	{
 		auto* command = new BaseFunCom<FunSig>( name ,fun );
 		insertCommand(command);

@@ -26,7 +26,6 @@ public:
 		if (!::Global::GetDrawEngine().startOpenGL(true) )
 			return false;
 
-		Render::InitGlobalRHIResource();
 		Render::ShaderManager::Get().setBaseDir("QuadAssault/shader/");
 		::Global::GUI().cleanupWidget();
 

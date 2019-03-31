@@ -1,17 +1,58 @@
-﻿#if !SHADER_COMPILING
+﻿#ifndef SHADER_COMPILING
+#define SHADER_COMPILING 0
+#endif
+
+#define ATTRIBUTE0 0
+#define ATTRIBUTE1 1
+#define ATTRIBUTE2 2
+#define ATTRIBUTE3 3
+#define ATTRIBUTE4 4
+#define ATTRIBUTE5 5
+#define ATTRIBUTE6 6
+#define ATTRIBUTE7 7
+#define ATTRIBUTE8 8 
+#define ATTRIBUTE9 9
+#define ATTRIBUTE10 10
+#define ATTRIBUTE11 11
+#define ATTRIBUTE12 12
+#define ATTRIBUTE13 13
+#define ATTRIBUTE14 14
+#define ATTRIBUTE15 15
+
+#define ATTRIBUTE_POSITION ATTRIBUTE0
+#define ATTRIBUTE_TANGENT ATTRIBUTE15
+#define ATTRIBUTE_NORMAL ATTRIBUTE2
+#define ATTRIBUTE_COLOR ATTRIBUTE3
+#define ATTRIBUTE_TEXCOORD ATTRIBUTE8
+#define ATTRIBUTE_TEXCOORD1 ATTRIBUTE9
+#define ATTRIBUTE_TEXCOORD2 ATTRIBUTE10
+#define ATTRIBUTE_TEXCOORD3 ATTRIBUTE11
+#define ATTRIBUTE_TEXCOORD4 ATTRIBUTE12
+#define ATTRIBUTE_TEXCOORD5 ATTRIBUTE13
+#define ATTRIBUTE_TEXCOORD6 ATTRIBUTE14
+//#define ATTRIBUTE_TEXCOORD7 ATTRIBUTE15
+
+#define PI 3.1415926535897932
+
+#define VECTOR_FUNCTION_LIST( NAME )\
+	NAME( float )\
+	NAME( float2 )\
+	NAME( float3 )\
+	NAME( float4 )
+#define DEFINE_FUNCTION_INNER( TYPE , NAME , CODE ) TYPE NAME( TYPE x ) CODE
+#define DEFINE_VECTOR_FUNCTION( NAME , CODE )\
+	DEFINE_FUNCTION_INNER( float2 , NAME , CODE )\
+	DEFINE_FUNCTION_INNER( float3 , NAME , CODE )\
+	DEFINE_FUNCTION_INNER( float4 , NAME , CODE )
+
+#if !SHADER_COMPILING
+
 #define cbuffer namespace
 #define handle namespace
-#endif // SHADER_COMPILING
 
 #define in
 #define out
 #define inout
-
-
-class SamplerState;
-class Texture1D;
-class Texture2D;
-class Texture3D;
 
 template< class T >
 struct TVec2
@@ -36,6 +77,7 @@ struct TVec3 : TVec2<T>
 	TVec3(T);
 	TVec3(T, T, T);
 	TVec3(TVec2, T);
+	TVec3 xxx, yyy, zzz, xyz;
 	TVec2 xy, st;
 	TVec2 xz, yz;
 	T  z, b, p;
@@ -52,8 +94,8 @@ template< class T >
 struct TVec4 : TVec3<T>
 {
 	TVec4(T);
-	TVec4(T,T,T,T);
-	TVec4(TVec3,T);
+	TVec4(T, T, T, T);
+	TVec4(TVec3, T);
 	TVec3 xyz, rgb, stp;
 	T  w, a, q;
 
@@ -86,6 +128,7 @@ template< class T >
 struct TMat4x4
 {
 	TVec4<T> operator[](int);
+	operator TMat3x3<T>();
 };
 
 typedef TVec4<float> float4;
@@ -118,10 +161,56 @@ typedef TMat4x4<half> half4x4;
 
 
 template< class T >
-TVec3<T> operator * ( TMat3x3<T>, TVec3<T> );
+TVec3<T> operator * (TMat3x3<T>, TVec3<T>);
 template< class T >
-TVec4<T> operator * ( TMat4x4<T>, TVec3<T> );
+TVec4<T> operator * (TMat4x4<T>, TVec3<T>);
 
+#endif
+
+
+#if COMPILER_GLSL
+#include "GLSLDefine.sgc"
+#elif COMPILER_HLSL
+#endif
+
+float Square(float x) { return x * x; }
+DEFINE_VECTOR_FUNCTION(Square, { return x * x; })
+float Pow3(float x) { return x * x * x; }
+DEFINE_VECTOR_FUNCTION(Pow3, { return x * x * x; })
+
+#define Pow4T( TYPE )\
+	TYPE Pow4( TYPE x )\
+	{\
+		TYPE x2 = x*x;\
+		return x2 * x2;\
+	}
+VECTOR_FUNCTION_LIST(Pow4T)
+#undef Pow4T
+
+#define Pow5T( TYPE )\
+	TYPE Pow5( TYPE x )\
+	{\
+		TYPE x2 = x*x;\
+		return x2 * x2 * x;\
+	}
+VECTOR_FUNCTION_LIST(Pow5T)
+#undef Pow5T
+
+#if SHADER_COMPILING
+
+
+#else
+
+
+template< class T >
+bool any(T);
+template< class T >
+bool all(T);
+
+class SamplerState;
+class Texture1D;
+class Texture2D;
+class Texture3D;
 
 template< class T >
 float    dot(T, T);
@@ -144,14 +233,6 @@ T   lerp(T, T, float);
 float4x4 transpose(float4x4);
 float4x4 inverse(float4x4);
 
-
-float4   tex2D(sampler2D, float2);
-float4   texCUBE(samplerCUBE, float3);
-
-template< class T >
-T        mix(T a, T b, float f);
-
-
 template< class T >
 class Buffer
 {
@@ -164,430 +245,7 @@ class Buffer
 //  GLSL
 //
 
-class sampler1D;
-class sampler2D;
-class sampler3D;
-class samplerCUBE;
-class texture;
-class sampler_state;
 
-class sampler1D;
-class sampler2D;
-class sampler3D;
-class samplerCube;
 
 
-typedef float2 vec2;
-typedef float3 vec3;
-typedef float4 vec4;
-typedef uint2 uvec2;
-typedef uint3 uvec3;
-typedef uint4 uvec4;
-typedef int2 ivec2;
-typedef int3 ivec3;
-typedef int4 ivec4;
-typedef bool2 bvec2;
-typedef bool3 bvec3;
-typedef bool4 bvec4;
-
-typedef float3x3 mat3;
-typedef float4x4 mat4;
-
-vec4 texture1D(sampler1D, float);
-vec4 texture2D(sampler2D, vec2);
-vec4 texture3D(sampler3D, vec3);
-
-vec4 texture(sampler1D, float);
-vec4 texture(sampler2D, vec2);
-vec4 texture(sampler3D, vec3);
-vec4 texture(samplerCube, vec3);
-
-
-int textureSize(sampler1D, int);
-template< class T >
-T dFdx(T);
-template< class T >
-T dFdy(T);
-
-template< class T >
-T lessThan(T, T);
-template< class T >
-T lessThanEqual(T, T);
-template< class T >
-T greaterThan(T, T);
-template< class T >
-T greaterThanEqual(T, T);
-template< class T >
-T equal(T, T);
-template< class T >
-T notEqual(T, T);
-template< class T >
-bool any(T);
-template< class T >
-bool all(T);
-template< class T >
-bool not(T);
-
-#define uniform
-#define attribute
-#define varying
-#define discard
-#define layout(...)
-
-//BUILT-IN CONSTANTS (7.4 p44) 
-
-const int gl_MaxVertexUniformComponents;
-const int gl_MaxFragmentUniformComponents;
-const int gl_MaxVertexAttribs;
-const int gl_MaxVaryingFloats;
-const int gl_MaxDrawBuffers;
-const int gl_MaxTextureCoords;
-const int gl_MaxTextureUnits;
-const int gl_MaxTextureImageUnits;
-const int gl_MaxVertexTextureImageUnits;
-const int gl_MaxCombinedTextureImageUnits;
-const int gl_MaxLights;
-const int gl_MaxClipPlanes;
-
-//VERTEX SHADER VARIABLES 
-
-vec4 ftransform();
-
-
-//Attribute Inputs (7.3 p44) access=RO
-attribute vec4 gl_Vertex;
-attribute vec3 gl_Normal;
-attribute vec4 gl_Color;
-attribute vec4 gl_SecondaryColor;
-attribute vec4 gl_MultiTexCoord0;
-attribute vec4 gl_MultiTexCoord1;
-attribute vec4 gl_MultiTexCoord2;
-attribute vec4 gl_MultiTexCoord3;
-attribute vec4 gl_MultiTexCoord4;
-attribute vec4 gl_MultiTexCoord5;
-attribute vec4 gl_MultiTexCoord6;
-attribute vec4 gl_MultiTexCoord7;
-attribute vec4 gl_FogCoord;
-
-//Special Output Variables (7.1 p42) access=RW 
-vec4  gl_Position;  //shader must write 
-float gl_PointSize;  //enable GL_VERTEX_PROGRAM_POINT_SIZE 
-vec4  gl_ClipVertex;
-//Varying Outputs (7.6 p48) access=RW
-varying vec4  gl_FrontColor;
-varying vec4  gl_BackColor; //enable GL_VERTEX_PROGRAM_TWO_SIDE 
-varying vec4  gl_FrontSecondaryColor;
-varying vec4  gl_BackSecondaryColor;
-varying vec4  gl_TexCoord[gl_MaxTextureCoords];
-varying float gl_FogFragCoord;
-
-//FRAGMENT SHADER VARIABLES 
-
-//Varying Inputs (7.6 p48) access=RO 
-varying vec4  gl_Color;
-varying vec4  gl_SecondaryColor;
-varying vec4  gl_TexCoord[gl_MaxTextureCoords];
-varying float gl_FogFragCoord;
-//Special Input Variables (7.2 p43) access=RO 
-vec4 gl_FragCoord; //pixel coordinates 
-bool gl_FrontFacing;
-//Special Output Variables (7.2 p43) access=RW 
-vec4  gl_FragColor;
-vec4  gl_FragData[gl_MaxDrawBuffers];
-float gl_FragDepth; //DEFAULT=glFragCoord.z
-
-
-					//BUILT-IN UNIFORMs (7.5 p45) access=RO 
-uniform mat4 gl_ModelViewMatrix;
-uniform mat4 gl_ModelViewProjectionMatrix;
-uniform mat4 gl_ProjectionMatrix;
-uniform mat4 gl_TextureMatrix[gl_MaxTextureCoords];
-
-uniform mat4 gl_ModelViewMatrixInverse;
-uniform mat4 gl_ModelViewProjectionMatrixInverse;
-uniform mat4 gl_ProjectionMatrixInverse;
-uniform mat4 gl_TextureMatrixInverse[gl_MaxTextureCoords];
-
-uniform mat4 gl_ModelViewMatrixTranspose;
-uniform mat4 gl_ModelViewProjectionMatrixTranspose;
-uniform mat4 gl_ProjectionMatrixTranspose;
-uniform mat4 gl_TextureMatrixTranspose[gl_MaxTextureCoords];
-
-uniform mat4 gl_ModelViewMatrixInverseTranspose;
-uniform mat4 gl_ModelViewProjectionMatrixInverseTranspose;
-uniform mat4 gl_ProjectionMatrixInverseTranspose;
-uniform mat4 gl_TextureMatrixInverseTranspose[gl_MaxTextureCoords];
-
-uniform mat3  gl_NormalMatrix;
-uniform float gl_NormalScale;
-
-struct gl_DepthRangeParameters
-{
-	float near;
-	float far;
-	float diff;
-};
-uniform gl_DepthRangeParameters gl_DepthRange;
-
-struct gl_FogParameters
-{
-	vec4 color;
-	float density;
-	float start;
-	float end;
-	float scale;
-};
-uniform gl_FogParameters gl_Fog;
-
-struct gl_LightSourceParameters
-{
-	vec4 ambient;
-	vec4 diffuse;
-	vec4 specular;
-	vec4 position;
-	vec4 halfVector;
-	vec3 spotDirection;
-	float spotExponent;
-	float spotCutoff;
-	float spotCosCutoff;
-	float constantAttenuation;
-	float linearAttenuation;
-	float quadraticAttenuation;
-};
-uniform gl_LightSourceParameters gl_LightSource[gl_MaxLights];
-
-
-struct gl_LightModelProductParams
-{
-	vec4 sceneColor; // Derived. Ecm + Acm * Acs  
-};
-
-
-uniform gl_LightModelProductParams gl_FrontLightModelProduct;
-uniform gl_LightModelProductParams gl_BackLightModelProduct;
-
-struct gl_LightProductParams
-{
-	vec4 ambient;    // Acm * Acli    
-	vec4 diffuse;    // Dcm * Dcli   
-	vec4 specular;   // Scm * Scli  
-};
-
-
-uniform gl_LightProductParams gl_FrontLightProduct[gl_MaxLights];
-uniform gl_LightProductParams gl_BackLightProduct[gl_MaxLights];
-
-
-//Vertex Shader
-in int gl_VertexID;
-in int gl_InstanceID;
-in int gl_DrawID; // Requires GLSL 4.60 or ARB_shader_draw_parameters
-in int gl_BaseVertex; // Requires GLSL 4.60 or ARB_shader_draw_parameters
-in int gl_BaseInstance; // Requires GLSL 4.60 or ARB_shader_draw_parameters
-
-out struct gl_PerVertex
-{
-	vec4 gl_Position;
-	float gl_PointSize;
-	float gl_ClipDistance[];
-};
-
-#define patch
-
-//Tessellation control shader 
-
-//layout(vertices = n) out;
-in int gl_PatchVerticesIn;
-in int gl_PrimitiveID;
-in int gl_InvocationID;
-
-in gl_PerVertex gl_in[gl_MaxPatchVertices];
-
-/*patch*/ out float gl_TessLevelOuter[4];
-/*patch*/ out float gl_TessLevelInner[2];
-
-out gl_PerVertex gl_out[];
-
-void barrier();
-
-//Tessellation evaluation shader
-
-enum PatchType
-{
-	isolines ,
-	triangles ,
-	quads ,
-};
-
-enum SpacingType
-{
-	equal_spacing ,
-	fractional_even_spacing ,
-	fractional_odd_spacing ,
-};
-
-enum WindingOrder
-{
-	cw , 
-	ccw ,
-};
-
-in vec3 gl_TessCoord;
-in int gl_PatchVerticesIn;
-in int gl_PrimitiveID;
-
-/*patch*/ in float gl_TessLevelOuter[4];
-/*patch*/ in float gl_TessLevelInner[2];
-
-in gl_PerVertex gl_in[gl_MaxPatchVertices];
-
-out struct gl_PerVertex
-{
-	vec4  gl_Position;
-	float gl_PointSize;
-	float gl_ClipDistance[];
-};
-
-//Geometry Shader
-
-in gl_PerVertex gl_in[];
-
-in int gl_PrimitiveIDIn;
-in int gl_InvocationID;  //Requires GLSL 4.0 or ARB_gpu_shader5
-
-
-out int gl_PrimitiveID;
-out int gl_Layer;
-out int gl_ViewportIndex; //Requires GL 4.1 or ARB_viewport_array.
-
-						  //Layered rendering
-						  //layout(points, invocations = 1) in;
-						  //layout(line_strip, max_vertices = 2) out;
-						  //key
-int max_vertices;
-int invocations;
-enum
-{
-	points,
-	lines,
-	lines_adjacency,
-	triangles,
-	triangles_adjacency,
-};
-
-enum
-{
-	points,
-	line_strip,
-	triangle_strip,
-};
-
-#define shared
-
-void EmitVertex();
-void EndPrimitive();
-
-//Pixel Shader
-in vec4 gl_FragCoord;
-in bool gl_FrontFacing;
-in vec2 gl_PointCoord;
-in int gl_SampleID; //OpenGL 4.0
-in vec2 gl_SamplePosition; //OpenGL 4.0
-in int gl_SampleMaskIn[]; //OpenGL 4.0
-in int gl_Layer; //OpenGL 4.3
-in int gl_ViewportIndex; //OpenGL 4.3
-
-
-						 //layout (depth_<condition>) out float gl_FragDepth;
-out float gl_FragDepth;
-
-enum
-{
-	any,
-	greater,
-	less,
-	unchanged,
-};
-
-out int gl_SampleMask[];
-
-//Compute Shader
-
-//layout(local_size_x = SIZE_X, local_size_y = SIZE_Y, local_size_z = 1) in;
-int local_size_x;
-int local_size_y;
-int local_size_z;
-
-in uvec3 gl_NumWorkGroups;
-in uvec3 gl_WorkGroupID;
-in uvec3 gl_WorkGroupSize;
-in uvec3 gl_LocalInvocationID;
-in uvec3 gl_GlobalInvocationID;
-in uint  gl_LocalInvocationIndex;
-
-const uvec3 gl_WorkGroupSize;   // GLSL ≥ 4.30
-
-								//
-class image1D;
-class image2D;
-class image3D;
-class iimage1D;
-class iimage2D;
-class iimage3D;
-class uimage1D;
-class uimage2D;
-class uimage3D;
-
-enum
-{
-	rgba32f,
-	rgba16f,
-	r32i,
-	rg32i,
-	rgb32i,
-	rgba32i,
-	r32ui,
-	rg32ui,
-	rgb32ui,
-	rgba32ui,
-};
-
-
-#define coherent
-#define volatile
-#define restrict
-#define readonly
-#define writeonly
-
-template< class gimage >
-ivec2 imageSize(gimage image​);
-template< class gimage, class CoordType >
-vec4 imageLoad(gimage image​, CoordType);
-template< class gimage, class CoordType >
-void imageStore(gimage image​, CoordType, vec4 data​);
-
-template< class gimage >
-uint imageAtomicAdd(gimage image​, uint data);
-template< class gimage >
-uint imageAtomicMin(gimage image​, uint data);
-template< class gimage >
-uint imageAtomicMax(gimage image​, uint data);
-template< class gimage >
-uint imageAtomicAnd(gimage image​, uint data);
-template< class gimage >
-uint imageAtomicOr(gimage image​, uint data);
-template< class gimage >
-uint imageAtomicXor(gimage image​, uint data);
-template< class gimage >
-uint imageAtomicExchange(gimage image​, uint data);
-template< class gimage >
-uint imageAtomicCompSwap(gimage image​, uint compare, uint data);
-
-template< class gimage >
-float4 texelFetch(gimage image, int32 data);
-
-//Atomic Counter
-
-uint atomicCounter(atomic_uint c​);
-uint atomicCounterIncrement(atomic_uint c​);
-uint atomicCounterDecrement(atomic_uint c​);
+#endif // SHADER_COMPILING

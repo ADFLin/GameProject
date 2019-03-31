@@ -444,24 +444,38 @@ void GLGraphics2D::drawLineBuffer()
 	}
 }
 
-void GLGraphics2D::drawTexture(GLTexture& texture , Vector2 const& pos)
-{
 
+void GLGraphics2D::drawTexture(GLTexture2D& texture, Vector2 const& pos, Color3ub const& color /*= Color3ub(255, 255, 255)*/)
+{
+	drawTexture(texture, pos, Vector2(texture.getSizeX(), texture.getSizeY()), color);
 }
 
-void GLGraphics2D::drawTexture(GLTexture& texture , Vector2 const& pos , Color3ub const& color)
+void GLGraphics2D::drawTexture(GLTexture2D& texture, Vector2 const& pos, Vector2 const& size, Color3ub const& color /*= Color3ub(255,255,255) */)
 {
-
+	glEnable(GL_TEXTURE_2D);
+	{
+		GL_BIND_LOCK_OBJECT(texture);
+		glColor4fv(Color4f(Color3f(color), mAlpha));
+		Render::DrawUtility::Sprite(pos, size, Vector2(0, 0), Vector2(0, 0), Vector2(1, 1));
+	}
+	glDisable(GL_TEXTURE_2D);
 }
 
-void GLGraphics2D::drawTexture(GLTexture& texture , Vector2 const& pos , Vector2 const& texPos , Vector2 const& texSize)
+void GLGraphics2D::drawTexture(GLTexture2D& texture, Vector2 const& pos, Vector2 const& texPos, Vector2 const& texSize, Color3ub const& color)
 {
-
+	drawTexture(texture, pos, Vector2(texture.getSizeX(), texture.getSizeY()), texPos , texSize , color);
 }
 
-void GLGraphics2D::drawTexture(GLTexture& texture , Vector2 const& pos , Vector2 const& texPos , Vector2 const& texSize , Color3ub const& color)
+void GLGraphics2D::drawTexture(GLTexture2D& texture, Vector2 const& pos, Vector2 const& size, Vector2 const& texPos, Vector2 const& texSize, Color3ub const& color)
 {
-
+	glEnable(GL_TEXTURE_2D);
+	{
+		GL_BIND_LOCK_OBJECT(texture);
+		glColor4fv( Color4f( Color3f(color), mAlpha) );
+		Vector2 textureSize = Vector2(texture.getSizeX(), texture.getSizeY());
+		Render::DrawUtility::Sprite(pos, size, Vector2(0, 0), Vector2( texPos.div(textureSize) ), Vector2( texSize.div(textureSize) ));
+	}
+	glDisable(GL_TEXTURE_2D);
 }
 
 void GLGraphics2D::beginBlend(Vector2 const& pos , Vector2 const& size , float alpha)

@@ -123,11 +123,11 @@ namespace Render
 		if ( !bNoLink )
 			glLinkProgram(mHandle);
 
-		GLint value;
+		GLint value = 0;
 		glGetProgramiv(mHandle, GL_LINK_STATUS, &value);
 		if( value != GL_TRUE )
 		{
-			GLsizei size;
+			GLsizei size = 0;
 			glGetProgramInfoLog(mHandle, ARRAY_SIZE(buffer), &size, buffer);
 			LogMsg("Can't Link Program : %s", buffer);
 			return false;

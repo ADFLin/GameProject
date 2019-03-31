@@ -122,7 +122,7 @@ namespace Render
 				saveDistanceFieldData(testDataPath , mSDFData );
 			}
 
-			VERIFY_RETURN_FALSE( mTextureSDF = RHICreateTexture3D( Texture::eR32F , mSDFData.gridSize.x , mSDFData.gridSize.y , mSDFData.gridSize.z , 1 , TCF_DefalutValue , &mSDFData.volumeData[0] ) );
+			VERIFY_RETURN_FALSE( mTextureSDF = RHICreateTexture3D( Texture::eR32F , mSDFData.gridSize.x , mSDFData.gridSize.y , mSDFData.gridSize.z , 1 , 1, TCF_DefalutValue , &mSDFData.volumeData[0] ) );
 
 			VERIFY_RETURN_FALSE(mProgRayMarching = ShaderManager::Get().getGlobalShaderT<RayMarchingProgram>());
 			Vec2i screenSize = ::Global::GetDrawEngine().getScreenSize();

@@ -1,4 +1,4 @@
-#include "ComplexCommon.sgc"
+#include "Common.sgc"
 #include "ViewParam.sgc"
 #include "GeometryTestCommon.sgc"
 #include "LightingCommon.sgc"
@@ -7,6 +7,7 @@
 #if USE_MATERIAL
 #include "MaterialCommon.sgc"
 #endif
+
 
 struct LightProbeVisualizeParameters
 {
@@ -95,8 +96,8 @@ void MainVS()
 
 	float3 spherePosInView = float3(View.worldToView * vec4(probePos, 1.0));
 	float3 offsetInView = float3(
-		CalcVertexOffset(float2(spherePosInView.x, -spherePosInView.z), LPV.probeRadius, vertexPos.x),
-		CalcVertexOffset(float2(spherePosInView.y, -spherePosInView.z), LPV.probeRadius, vertexPos.y),
+		CalcVertexOffset(float2(spherePosInView.x, SCENE_DEPTH_FACTOR * spherePosInView.z), LPV.probeRadius, vertexPos.x),
+		CalcVertexOffset(float2(spherePosInView.y, SCENE_DEPTH_FACTOR * spherePosInView.z), LPV.probeRadius, vertexPos.y),
 		-LPV.probeRadius);
 
 	GridId = gridId;
@@ -147,12 +148,6 @@ void MainPS()
 	gridPos.y = GridId / LPV.gridNum.x;
 	float2 posFactor = float2(gridPos) / (LPV.gridNum - 1);
 
-	MaterialInfo material;
-	material.baseColor = float3(1.000, 0.766, 0.336);
-	material.specular = 0.5;
-	material.roughness = lerp(1.0, 0.0, posFactor.x);
-	material.metallic = lerp(0.0, 1.0, posFactor.y);
-	material.ao = 1;
 
 	float3 zAxis = normalize(worldPos - VSOutput.probePos);
 	float3 yAxis = float3(0, 0, 1);
@@ -174,15 +169,32 @@ void MainPS()
 #if USE_MATERIAL	
 	MaterialInputPS materialInput = InitMaterialInputPS();
 	MaterialParametersPS materialParameters;
-	materialParameters.worldPos = worldPos;
-	materialParameters.texCoords[0] = uv;
-	materialParameters.tangentToWorld = TBN;
 	materialParameters.vectexColor = float3(1, 1, 1, 1);
-	materialParameters.worldNormal = N;
+	materialParameters.worldPos = worldPos;
 	materialParameters.clipPos = clipPos;
-	materialParameters.clipPos = 
+	materialParameters.NDC = NDC;
+	materialParameters.worldNormal = N;
+	materialParameters.tangentToWorld = TBN;
+	materialParameters.texCoords[0] = uv;
 	CalcMaterialParameters(materialInput, materialParameters);
 #endif
+
+	MaterialInfo material;
+#if USE_MATERIAL	
+	material.baseColor = materialInput.baseColor;
+	material.specular =  materialInput.specular;
+	material.roughness = materialInput.roughness * lerp(1.0, 0.0, posFactor.x);
+	material.metallic = materialInput.metallic * lerp(0.0, 1.0, posFactor.y);
+	material.ao = 1;
+
+#else
+	material.baseColor = float3(1.000, 0.766, 0.336);
+	material.specular = 0.5;
+	material.roughness = lerp(1.0, 0.0, posFactor.x);
+	material.metallic  = lerp(0.0, 1.0, posFactor.y);
+	material.ao = 1;
+#endif
+
 
 	float NoL = saturate(dot(N, L));
 	float NoV = saturate(dot(N, V));
@@ -205,6 +217,7 @@ void MainPS()
 	float3 color = ambient + Lo;
 
 	OutColor = float4(color, 1);
+
 }
 
 

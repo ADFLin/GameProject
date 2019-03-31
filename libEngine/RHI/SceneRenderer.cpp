@@ -824,11 +824,11 @@ namespace Render
 		ShaderManager::Get().reloadShader(*mProgLightingShowBound);
 	}
 
-	bool GBufferParamData::init(IntVector2 const& size)
+	bool GBufferParamData::initializeRHI(IntVector2 const& size, int numSamples)
 	{
 		for( int i = 0; i < NumBuffer; ++i )
 		{
-			textures[i] = RHICreateTexture2D(Texture::eFloatRGBA, size.x, size.y);
+			textures[i] = RHICreateTexture2D(Texture::eFloatRGBA, size.x, size.y , 1 , numSamples , TCF_DefalutValue | TCF_RenderTarget );
 
 			if( !textures[i].isValid() )
 				return false;
@@ -1121,24 +1121,34 @@ namespace Render
 		}
 	}
 
-	bool SceneRenderTargets::initializeRHI(IntVector2 const& size)
+	bool SceneRenderTargets::initializeRHI(IntVector2 const& size , int numSamples )
 	{
 		mIdxRenderFrameTexture = 0;
 		for( int i = 0; i < 2; ++i )
 		{
-			mFrameTextures[i] = RHICreateTexture2D(Texture::eFloatRGBA, size.x, size.y);
+			mFrameTextures[i] = RHICreateTexture2D(Texture::eFloatRGBA, size.x, size.y , 1 , numSamples , TCF_DefalutValue | TCF_RenderTarget );
 			if( !mFrameTextures[i].isValid() )
 				return false;
 		}
 
-		if( !mGBuffer.init(size) )
+		if( !mGBuffer.initializeRHI(size , numSamples) )
 			return false;
 		
-		mDepthTexture = RHICreateTextureDepth(Texture::eD32FS8, size.x, size.y);
+		mDepthTexture = RHICreateTextureDepth(Texture::eD32FS8, size.x, size.y, 1, numSamples );
 		if( !mDepthTexture.isValid() )
 			return false;
 
-		OpenGLCast::To(mDepthTexture)->bind();
+		if( numSamples > 1 )
+		{
+
+
+
+		}
+		else
+		{
+			mResolvedDepthTexture = mDepthTexture;
+		}
+		OpenGLCast::To(mResolvedDepthTexture)->bind();
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
@@ -1146,7 +1156,7 @@ namespace Render
 		glTexParameteri(GL_TEXTURE_2D, GL_DEPTH_TEXTURE_MODE, GL_INTENSITY);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_R_TO_TEXTURE);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_FUNC, GL_LEQUAL);
-		OpenGLCast::To(mDepthTexture)->unbind();
+		OpenGLCast::To(mResolvedDepthTexture)->unbind();
 
 		if( !mFrameBuffer.create() )
 			return false;

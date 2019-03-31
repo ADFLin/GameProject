@@ -1,8 +1,81 @@
 #include "TestRenderStageBase.h"
 
+#include "GLGraphics2D.h"
+#include "ConsoleSystem.h"
 
 namespace Render
 {
+
+	void TextureShowFrame::onRender()
+	{
+		GLGraphics2D& g = Global::GetDrawEngine().getRHIGraphics();
+		g.drawTexture(*texture, getWorldPos(), getSize());
+
+		if( isFocus() )
+		{
+			g.enableBrush(false);
+			g.setPen(Color3f(1, 1, 0));
+			g.drawRect(getWorldPos(), getSize());
+		}
+	}
+
+	bool TextureShowFrame::onMouseMsg(MouseMsg const& msg)
+	{
+
+		static bool sbScaling = false;
+		static bool sbMoving = false;
+		static Vec2i sRefPos = Vec2i(0, 0);
+		static Vec2i sPoivtPos = Vec2i(0,0);
+
+		if( msg.onLeftDown() )
+		{
+			int borderSize = 10;
+			
+			Vec2i offset = msg.getPos() - getWorldPos();
+			bool isInEdge = offset.x < borderSize || offset.x > getSize().x - borderSize ||
+				offset.y < borderSize || offset.y > getSize().y - borderSize;
+
+			if( isInEdge )
+			{
+				sbScaling = true;
+			}
+			else
+			{
+				sbMoving = true;
+				sRefPos = getWorldPos();
+				sPoivtPos = msg.getPos();
+			}
+
+			getManager()->captureMouse(this);
+		}
+		else if( msg.onLeftUp() )
+		{
+			getManager()->releaseMouse();
+			sbScaling = false;
+			sbMoving = false;
+		}
+		else if( msg.onRightDClick() )
+		{
+			if ( isFocus() )
+				destroy();
+		}
+
+		if( msg.isDraging() && msg.isLeftDown() )
+		{
+			if( sbScaling )
+			{
+
+			}
+			else if( sbMoving )
+			{
+				Vec2i offset = msg.getPos() - sPoivtPos;
+				setPos(sRefPos + offset);
+			}
+		}
+
+
+		return false;
+	}
 
 	struct OBJMaterialSaveInfo
 	{
@@ -91,7 +164,7 @@ namespace Render
 		if( !BaseClass::onInit() )
 			return false;
 
-		if( !::Global::GetDrawEngine().initializeRHI(RHITargetName::OpenGL, 4) )
+		if( !::Global::GetDrawEngine().initializeRHI(RHITargetName::OpenGL, 1) )
 			return false;
 
 		mView.gameTime = 0;
@@ -108,11 +181,15 @@ namespace Render
 
 		mCamera.lookAt(Vector3(20, 20, 20) , Vector3(0, 0, 0), Vector3(0, 0, 1));
 
+		ConsoleSystem::Get().registerCommand("ShowTexture", &TestRenderStageBase::executeShowTexture, this);
+
 		return true;
 	}
 
 	void TestRenderStageBase::onEnd()
 	{
+		ConsoleSystem::Get().unregisterCommandByName("ShowTexture");
+
 		::Global::GetDrawEngine().shutdownRHI(true);
 		BaseClass::onEnd();
 	}
@@ -136,5 +213,6 @@ namespace Render
 			mSimpleMeshs[SimpleMeshId::SpherePlane].draw();
 		}
 	}
+
 
 }//namespace Render

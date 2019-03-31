@@ -1,3 +1,7 @@
+#pragma once
+#ifndef TestRenderStageBase_H_E5786E12_7554_40DA_A42E_924732B7AB5D
+#define TestRenderStageBase_H_E5786E12_7554_40DA_A42E_924732B7AB5D
+
 #include "Stage/TestStageHeader.h"
 
 #include "RHI/RHICommon.h"
@@ -15,12 +19,26 @@
 
 #include "DataCacheInterface.h"
 
-
-
-
 namespace Render
 {
 	class StaticMesh;
+
+	class TINY_API TextureShowFrame : public GWidget
+	{
+		typedef GWidget BaseClass;
+	public:
+		TextureShowFrame(int id, Vec2i const& pos, Vec2i const& size, GWidget* parent)
+			:BaseClass(pos, size, parent)
+		{
+			mID = id;
+		}
+
+		RHITexture2DRef texture;
+	
+		virtual void onRender() override;
+		virtual bool onMouseMsg(MouseMsg const& msg) override;
+
+	};
 
 	bool LoadObjectMesh(StaticMesh& mesh , char const* path );
 	template< class Func, class ...Args >
@@ -300,7 +318,28 @@ namespace Render
 
 		void drawLightPoints(ViewInfo& view, TArrayView< LightInfo > lights);
 
+		void executeShowTexture(char const* name)
+		{
+			auto iter = mTextureMap.find(name);
+			if( iter != mTextureMap.end() )
+			{
+				TextureShowFrame* textureFrame = new TextureShowFrame(UI_ANY, Vec2i(0, 0), Vec2i(200, 200), nullptr);
+				textureFrame->texture = iter->second;
+				::Global::GUI().addWidget(textureFrame);
+			}
+		}
+
+		void reigsterTexture(char const* name, RHITexture2D& texture)
+		{
+			mTextureMap.emplace(name, &texture);
+		}
+
+		std::unordered_map< HashString, RHITexture2DRef > mTextureMap;
+
+
 
 	};
 
 }//namespace Render
+
+#endif // TestRenderStageBase_H_E5786E12_7554_40DA_A42E_924732B7AB5D

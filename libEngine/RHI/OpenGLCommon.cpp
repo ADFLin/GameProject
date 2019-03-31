@@ -3,12 +3,6 @@
 #include "GpuProfiler.h"
 #include "MarcoCommon.h"
 #include "Core/IntegerType.h"
-#include "FileSystem.h"
-
-#include "stb/stb_image.h"
-
-#include <fstream>
-#include <sstream>
 
 namespace Render
 {
@@ -28,36 +22,6 @@ namespace Render
 		return true;
 	}
 
-	bool LoadFileInternal(char const* path, GLenum texImageType, IntVector2& outSize , Texture::Format& outFormat)
-	{
-		int w;
-		int h;
-		int comp;
-		unsigned char* image = stbi_load( path , &w, &h, &comp, STBI_default );
-
-		if( !image )
-			return false;
-
-		outSize.x = w;
-		outSize.y = h;
-		//#TODO
-		switch( comp )
-		{
-		case 3:
-			glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-			glTexImage2D(texImageType, 0, GL_RGB8, w, h, 0, GL_RGB, GL_UNSIGNED_BYTE, image);
-			glPixelStorei(GL_UNPACK_ALIGNMENT, GLDefalutUnpackAlignment);
-			outFormat = Texture::eRGB8;
-			break;
-		case 4:
-			glTexImage2D(texImageType, 0, GL_RGBA8, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, image);
-			outFormat = Texture::eRGBA8;
-			break;
-		}
-		//glGenerateMipmap( texType);
-		stbi_image_free(image);
-		return true;
-	}
 
 	bool  UpdateTexture(GLenum textureEnum, int ox, int oy, int w, int h, Texture::Format format, void* data, int level)
 	{
@@ -96,15 +60,28 @@ namespace Render
 		mSize = length;
 
 		mFormat = format;
+		mNumMipLevel = numMipLevel;
+
+		if( numMipLevel < 1 )
+			numMipLevel = 1;
 
 		bind();
-		glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-		glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-		if( numMipLevel )
-			glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MAX_LEVEL, numMipLevel - 1);
 
-		glTexImage1D(GL_TEXTURE_1D, 0, GLConvert::To(format), length, 0,
+		glTexParameteri(TypeEnumGL, GL_TEXTURE_BASE_LEVEL, 0);
+		glTexParameteri(TypeEnumGL, GL_TEXTURE_MAX_LEVEL, numMipLevel - 1);
+		glTexImage1D(TypeEnumGL, 0, GLConvert::To(format), length, 0,
 					 GLConvert::BaseFormat(format), GLConvert::TextureComponentType(format), data);
+
+		if( numMipLevel > 1 )
+		{
+			glGenerateMipmap(TypeEnumGL);
+			glTexParameteri(TypeEnumGL, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+		}
+		else
+		{
+			glTexParameteri(TypeEnumGL, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		}
+		glTexParameteri(TypeEnumGL, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
 		CheckGLStateValid();
 		unbind();
@@ -114,107 +91,144 @@ namespace Render
 	bool OpenGLTexture1D::update(int offset, int length, Texture::Format format, void* data, int level /*= 0*/)
 	{
 		bind();
-		glTexSubImage1D(GL_TEXTURE_1D, level, offset, length, GLConvert::PixelFormat(format), GLConvert::TextureComponentType(format), data);
+		glTexSubImage1D(TypeEnumGL, level, offset, length, GLConvert::PixelFormat(format), GLConvert::TextureComponentType(format), data);
 		bool result = CheckGLStateValid();
 		unbind();
 		return result;
 	}
 
 
-	bool OpenGLTexture2D::create(Texture::Format format, int width, int height, int numMipLevel, uint32 creationFlags, void* data , int alignment )
+	bool OpenGLTexture2D::create(Texture::Format format, int width, int height, int numMipLevel,int numSamples, uint32 creationFlags, void* data , int alignment )
 	{
 		if( !mGLObject.fetchHandle() )
 			return false;
 
+		if( numMipLevel < 1 )
+			numMipLevel = 1;
+		if( numSamples < 1 )
+			numSamples = 1;
+
 		mSizeX = width;
 		mSizeY = height;
 		mFormat = format;
+		mNumMipLevel = numMipLevel;
+		mNumSamples = numSamples;
 
 		bind();
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-		if ( numMipLevel )
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, numMipLevel - 1);
-		if ( alignment && alignment != GLDefalutUnpackAlignment )
+
+		if( numSamples > 1 )
 		{
-			glPixelStorei(GL_UNPACK_ALIGNMENT, alignment);
-			glTexImage2D(GL_TEXTURE_2D, 0, GLConvert::To(format), width, height, 0,
-						 GLConvert::BaseFormat(format), GLConvert::TextureComponentType(format), data);
-			glPixelStorei(GL_UNPACK_ALIGNMENT, GLDefalutUnpackAlignment);
+			glTexImage2DMultisample(TypeEnumGLMultisample, numSamples, GLConvert::To(format), width, height, true);
 		}
 		else
 		{
-			glTexImage2D(GL_TEXTURE_2D, 0, GLConvert::To(format), width, height, 0,
-						 GLConvert::BaseFormat(format), GLConvert::TextureComponentType(format), data);
+			glTexParameteri(TypeEnumGL, GL_TEXTURE_BASE_LEVEL, 0);
+			glTexParameteri(TypeEnumGL, GL_TEXTURE_MAX_LEVEL, numMipLevel - 1);
+
+
+			if( alignment && alignment != GLDefalutUnpackAlignment )
+			{
+				glPixelStorei(GL_UNPACK_ALIGNMENT, alignment);
+				glTexImage2D(TypeEnumGL, 0, GLConvert::To(format), width, height, 0,
+							 GLConvert::BaseFormat(format), GLConvert::TextureComponentType(format), data);
+				glPixelStorei(GL_UNPACK_ALIGNMENT, GLDefalutUnpackAlignment);
+			}
+			else
+			{
+				glTexImage2D(TypeEnumGL, 0, GLConvert::To(format), width, height, 0,
+							 GLConvert::BaseFormat(format), GLConvert::TextureComponentType(format), data);
+			}
+
+
+			if( numMipLevel > 1 )
+			{
+				glGenerateMipmap(TypeEnumGL);
+				glTexParameteri(TypeEnumGL, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+			}
+			else
+			{
+				glTexParameteri(TypeEnumGL, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+			}
+			glTexParameteri(TypeEnumGL, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
 		}
+
 		CheckGLStateValid();
 		unbind();
 		return true;
 	}
 
-	bool OpenGLTexture2D::loadFromFile(char const* path)
-	{
-		if ( !mGLObject.fetchHandle() )
-			return false;
-
-		bind();
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-		IntVector2 size;
-		bool result = LoadFileInternal( path , GL_TEXTURE_2D , size , mFormat );
-		if( result )
-		{
-			mSizeX = size.x;
-			mSizeY = size.y;
-		}
-		unbind();
-		return result;
-	}
-
 
 	bool OpenGLTexture2D::update(int ox, int oy, int w, int h, Texture::Format format , void* data , int level )
 	{
+		if( mNumSamples > 1 )
+		{
+			return false;
+		}
 		bind();
-		bool result = UpdateTexture(GL_TEXTURE_2D, ox, oy, w, h, format, data, level);
+		bool result = UpdateTexture(TypeEnumGL, ox, oy, w, h, format, data, level);
 		unbind();
 		return result;
 	}
 
 	bool OpenGLTexture2D::update(int ox, int oy, int w, int h, Texture::Format format, int pixelStride, void* data, int level /*= 0 */)
 	{
+		if( mNumSamples > 1 )
+		{
+			return false;
+		}
+
 		bind();
-		bool result = UpdateTexture(GL_TEXTURE_2D, ox, oy, w, h, format, pixelStride, data, level);
+		bool result = UpdateTexture(TypeEnumGL, ox, oy, w, h, format, pixelStride, data, level);
 		unbind();
 		return result;
 	}
 
-	bool OpenGLTexture3D::create(Texture::Format format, int sizeX, int sizeY, int sizeZ, int numMipLevel, uint32 creationFlags, void* data)
+	bool OpenGLTexture3D::create(Texture::Format format, int sizeX, int sizeY, int sizeZ, int numMipLevel, int numSamples, uint32 creationFlags, void* data)
 	{
 		if( !mGLObject.fetchHandle() )
 			return false;
-		
+
+		if( numMipLevel < 1 )
+			numMipLevel = 1;
+		if( numSamples < 1 )
+			numSamples = 1;
+
 		mSizeX = sizeX;
 		mSizeY = sizeY;
 		mSizeZ = sizeZ;
 		mFormat = format;
-
-		if( numMipLevel == 0 )
-			numMipLevel = 1;
-
-		glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MAX_LEVEL, numMipLevel - 1);
+		mNumMipLevel = numMipLevel;
+		mNumSamples = numSamples;
 
 		bind();
-		glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-		glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-		glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MAX_LEVEL, 0);
-		glTexImage3D(GL_TEXTURE_3D, 0, GLConvert::To(format), sizeX, sizeY , sizeZ, 0, 
-					 GLConvert::BaseFormat(format), GLConvert::TextureComponentType(format), data);
 
-		if( numMipLevel > 1 )
+		GLenum typeEnumGL = getGLTypeEnum();
+
+		if( numSamples > 1 )
 		{
-			glGenerateMipmap(GL_TEXTURE_3D);
+			glTexImage3DMultisample(TypeEnumGLMultisample, numSamples, GLConvert::To(format), sizeX, sizeY, sizeZ, true);
 		}
+		else
+		{
+			glTexParameteri(TypeEnumGL, GL_TEXTURE_BASE_LEVEL, 0);
+			glTexParameteri(TypeEnumGL, GL_TEXTURE_MAX_LEVEL, numMipLevel - 1);
+
+			glTexImage3D(TypeEnumGL, 0, GLConvert::To(format), sizeX, sizeY, sizeZ, 0,
+						 GLConvert::BaseFormat(format), GLConvert::TextureComponentType(format), data);
+
+			if( numMipLevel > 1 )
+			{
+				glGenerateMipmap(TypeEnumGL);
+				glTexParameteri(TypeEnumGL, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+			}
+			else
+			{
+				glTexParameteri(TypeEnumGL, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+			}
+			glTexParameteri(TypeEnumGL, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		}
+
 		unbind();
 		return true;
 	}
@@ -226,17 +240,17 @@ namespace Render
 
 		mSize = size;
 		mFormat = format;
+		mNumMipLevel = numMipLevel;
 
-		if( numMipLevel == 0 )
+		if( numMipLevel < 1 )
 			numMipLevel = 1;
 
-		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAX_LEVEL, numMipLevel - 1);
-
 		bind();
+		glTexParameteri(TypeEnumGL, GL_TEXTURE_BASE_LEVEL, 0);
+		glTexParameteri(TypeEnumGL, GL_TEXTURE_MAX_LEVEL, numMipLevel - 1);
 		for( int i = 0; i < 6; ++i )
 		{
-			glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-			glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
 			glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0,
 						 GLConvert::To(format), size, size, 0,
 						 GLConvert::BaseFormat(format), GLConvert::TextureComponentType(format), 
@@ -245,8 +259,15 @@ namespace Render
 
 		if( numMipLevel > 1 )
 		{
-			glGenerateMipmap(GL_TEXTURE_CUBE_MAP);
+			glGenerateMipmap(TypeEnumGL);
+			glTexParameteri(TypeEnumGL, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
 		}
+		else
+		{
+			glTexParameteri(TypeEnumGL, GL_TEXTURE_MIN_FILTER, GL_LINEAR);		
+		}
+		glTexParameteri(TypeEnumGL, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
 		unbind();
 		return true;
 	}
@@ -268,45 +289,31 @@ namespace Render
 		return result;
 	}
 
-	bool OpenGLTextureCube::loadFile(char const* path[])
-	{
-		if ( !mGLObject.fetchHandle() )
-			return false;
-
-		bind();
-
-		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-		bool result = true; 
-		for( int i = 0 ; i < 6 ; ++i )
-		{
-			IntVector2 size;
-			if ( !LoadFileInternal( path[i] , GL_TEXTURE_CUBE_MAP_POSITIVE_X + i , size , mFormat) )
-			{
-				result = false;
-			}
-		}
-		unbind();
-		return result;
-	}
-
-	bool OpenGLTextureDepth::create(Texture::DepthFormat format, int width, int height)
+	bool OpenGLTextureDepth::create(Texture::DepthFormat format, int width, int height, int numMipLevel, int numSamples)
 	{
 		if( !mGLObject.fetchHandle() )
 			return false;
 		
+		if( numMipLevel < 1 )
+			numMipLevel = 1;
+		if( numSamples < 1 )
+			numSamples = 1;
+
 		mFromat = format;
+		mNumMipLevel = numMipLevel;
 
 		bind();
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-		glTexImage2D(GL_TEXTURE_2D, 0, GLConvert::To(format), width, height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
-
-		GLenum error = glGetError();
-		if( error != GL_NO_ERROR )
+		if( numSamples > 1 )
 		{
+			glTexImage2DMultisample(TypeEnumGLMultisample, numSamples, GLConvert::To(format), width, height, true);
 		}
+		else
+		{
+			glTexParameteri(TypeEnumGL, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+			glTexParameteri(TypeEnumGL, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+			glTexImage2D(TypeEnumGL, 0, GLConvert::To(format), width, height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+		}
+		CheckGLStateValid();
 		unbind();
 		return true;	
 	}
@@ -328,7 +335,8 @@ namespace Render
 		BufferInfo info;
 		info.bufferRef = &target;
 		info.idxFace   = face;
-		info.level = level;
+		info.level     = level;
+		info.typeEnumGL = GL_TEXTURE_CUBE_MAP_POSITIVE_X + face;
 		mTextures.push_back( info );
 		
 		setTextureInternal( idx , OpenGLCast::GetHandle( target ) , GL_TEXTURE_CUBE_MAP_POSITIVE_X + info.idxFace , level );
@@ -341,25 +349,15 @@ namespace Render
 
 		BufferInfo info;
 		info.bufferRef = &target;
-		info.idxFace  = 0;
+		info.idxFace  = -1;
 		info.level = level;
+		info.typeEnumGL = OpenGLCast::To(&target)->getGLTypeEnum();
 		mTextures.push_back( info );
-		setTextureInternal( idx , OpenGLCast::GetHandle( target ) , GL_TEXTURE_2D, level );
+		setTextureInternal( idx , OpenGLCast::GetHandle( target ) , OpenGLCast::To(&target)->getGLTypeEnum() , level );
 		
 		return idx;
 	}
 
-	int OpenGLFrameBuffer::addScreenBuffer()
-	{
-		int idx = mTextures.size();
-		BufferInfo info;
-		info.bufferRef = nullptr;
-		info.idxFace = 0;
-		info.level = 0;
-		mTextures.push_back(info);
-		setRenderBufferInternal(0);
-		return idx;
-	}
 
 	void OpenGLFrameBuffer::setTexture(int idx, RHITexture2D& target, int level)
 	{
@@ -371,9 +369,10 @@ namespace Render
 
 		BufferInfo& info = mTextures[idx];
 		info.bufferRef = &target;
-		info.idxFace = 0;
+		info.idxFace = -1;
 		info.level = level;
-		setTextureInternal( idx , OpenGLCast::GetHandle( target ) , GL_TEXTURE_2D , level );
+		info.typeEnumGL = OpenGLCast::To(&target)->getGLTypeEnum();
+		setTextureInternal( idx , OpenGLCast::GetHandle( target ) , OpenGLCast::To(&target)->getGLTypeEnum(), level );
 	}
 
 	void OpenGLFrameBuffer::setTexture( int idx , RHITextureCube& target , Texture::Face face, int level)
@@ -386,8 +385,9 @@ namespace Render
 
 		BufferInfo& info = mTextures[idx];
 		info.bufferRef = &target;
-		info.idxFace = 0;
+		info.idxFace = face;
 		info.level = level;
+		info.typeEnumGL = GL_TEXTURE_CUBE_MAP_POSITIVE_X + face;
 		setTextureInternal( idx , OpenGLCast::GetHandle( target ) , GL_TEXTURE_CUBE_MAP_POSITIVE_X + face , level );
 	}
 
@@ -459,10 +459,11 @@ namespace Render
 		int idx = mTextures.size();
 		BufferInfo info;
 		info.bufferRef = &target;
-		info.idxFace = 0;
+		info.idxFace = -1;
+		info.typeEnumGL = GL_TEXTURE_CUBE_MAP;
 		mTextures.push_back(info);
 		glBindFramebuffer(GL_FRAMEBUFFER, getHandle());
-		glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, OpenGLCast::GetHandle( target ), 0);
+		glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, OpenGLCast::GetHandle( target ), level);
 		GLenum Status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
 		if( Status != GL_FRAMEBUFFER_COMPLETE )
 		{
@@ -490,12 +491,41 @@ namespace Render
 	}
 
 
-	void OpenGLFrameBuffer::setDepthInternal(RHIResource& resource, GLuint handle, Texture::DepthFormat format, bool bTexture)
+	void OpenGLFrameBuffer::blitToScreenBuffer()
+	{
+		int width, height;
+		assert(mTextures.size() == 1);
+		switch( mTextures[0].typeEnumGL )
+		{
+		case GL_TEXTURE_CUBE_MAP:
+
+			break;
+		case GL_TEXTURE_2D_MULTISAMPLE:
+		case GL_TEXTURE_2D:
+			{
+				RHITexture2D* texture2d = (RHITexture2D*)mTextures[0].bufferRef.get();
+				width = texture2d->getSizeX();
+				height = texture2d->getSizeY();
+			}
+			break;
+
+		case GL_RENDERBUFFER:
+		default:
+			return;
+		}
+		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);   // Make sure no FBO is set as the draw framebuffer
+		glBindFramebuffer(GL_READ_FRAMEBUFFER, getHandle()); // Make sure your multisampled FBO is the read framebuffer
+		glDrawBuffer(GL_BACK);                       // Set the back buffer as the draw buffer
+		glBlitFramebuffer(0, 0, width, height, 0, 0, width, height, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+		glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
+	}
+
+	void OpenGLFrameBuffer::setDepthInternal(RHIResource& resource, GLuint handle, Texture::DepthFormat format, GLenum typeEnumGL)
 	{
 		removeDepthBuffer();
 
 		mDepth.bufferRef = &resource;
-		mDepth.bTexture = bTexture;
+		mDepth.typeEnumGL = typeEnumGL;
 
 		if( handle )
 		{
@@ -510,15 +540,14 @@ namespace Render
 					attachType = GL_STENCIL_ATTACHMENT;
 			}
 
-			if( bTexture )
-			{
-				glFramebufferTexture2D(GL_FRAMEBUFFER, attachType , GL_TEXTURE_2D, handle, 0);
-			}
-			else
+			if( typeEnumGL == GL_RENDERBUFFER )
 			{
 				glFramebufferRenderbuffer(GL_FRAMEBUFFER, attachType, GL_RENDERBUFFER, handle);
 			}
-
+			else
+			{
+				glFramebufferTexture2D(GL_FRAMEBUFFER, attachType , typeEnumGL, handle, 0);
+			}
 
 			GLenum status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
 			if( status != GL_FRAMEBUFFER_COMPLETE )
@@ -532,13 +561,13 @@ namespace Render
 #if USE_DepthRenderBuffer
 	void OpenGLFrameBuffer::setDepth( RHIDepthRenderBuffer& buffer)
 	{
-		setDepthInternal( buffer , buffer.mHandle , buffer.getFormat() , false );
+		setDepthInternal( buffer , buffer.mHandle , buffer.getFormat() , GL_RENDERBUFFER );
 	}
 #endif
 
 	void OpenGLFrameBuffer::setDepth(RHITextureDepth& target)
 	{
-		setDepthInternal( target , OpenGLCast::GetHandle( target ) , target.getFormat(), true );
+		setDepthInternal( target , OpenGLCast::GetHandle( target ) , target.getFormat(), OpenGLCast::To(&target)->getGLTypeEnum() );
 	}
 
 	void OpenGLFrameBuffer::removeDepthBuffer()
@@ -547,14 +576,15 @@ namespace Render
 		{
 			mDepth.bufferRef = nullptr;
 			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, getHandle());
-			if( mDepth.bTexture )
-			{
-				glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_TEXTURE_2D, 0, 0);
-			}
-			else
+			if( mDepth.typeEnumGL == GL_RENDERBUFFER )
 			{
 				glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, 0);
 			}
+			else
+			{
+				glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, mDepth.typeEnumGL, 0, 0);
+			}
+
 			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
 		}
 	}
@@ -884,7 +914,7 @@ namespace Render
 		case Sampler::eTrilinear:
 			return GL_LINEAR_MIPMAP_LINEAR;
 		case Sampler::eAnisotroicPoint:
-			return GL_NEAREST;
+			return GL_LINEAR;
 		case Sampler::eAnisotroicLinear:
 			return GL_LINEAR_MIPMAP_LINEAR;
 		}

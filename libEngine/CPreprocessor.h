@@ -61,21 +61,37 @@ namespace CPP
 		void resetSeek()
 		{
 			mCur = &mBuffer[0];
+			mLine = 0;
 		}
-		void skipLine()
+
+		void skipToNextLine()
 		{
 			mCur = FStringParse::FindChar(mCur, '\n');
 			if( *mCur != 0 )
+			{
+				++mLine;
 				++mCur;
+			}
 		}
 		void skipSpace()
 		{
-			mCur = FStringParse::SkipSpace(mCur);
+			while( *mCur )
+			{
+				if( !::isspace(*mCur) )
+					break;
+
+				if( *mCur == '\n' )
+					++mLine;
+				++mCur;
+			}
 		}
 
+	private:
+		friend class Preprocessor;
 		std::vector< char > mBuffer;
 		HashString    mFilePath;
 		char const*   mCur;
+		int mLine;
 	};
 
 	enum TokenType
@@ -151,6 +167,7 @@ namespace CPP
 		bool bSupportMarcoArg = false;
 		bool bCanRedefineMarco = false;
 		bool bCommentIncludeFileName = true;
+		bool bAddLineMarco = false;
 
 	private:
 

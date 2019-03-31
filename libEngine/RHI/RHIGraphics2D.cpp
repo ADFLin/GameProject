@@ -325,26 +325,6 @@ namespace Render
 		mBuffer.clear();
 	}
 
-	void RHIGraphics2D::drawTexture(GLTexture& texture, Vector2 const& pos)
-	{
-
-	}
-
-	void RHIGraphics2D::drawTexture(GLTexture& texture, Vector2 const& pos, Color3ub const& color)
-	{
-
-	}
-
-	void RHIGraphics2D::drawTexture(GLTexture& texture, Vector2 const& pos, Vector2 const& texPos, Vector2 const& texSize)
-	{
-
-	}
-
-	void RHIGraphics2D::drawTexture(GLTexture& texture, Vector2 const& pos, Vector2 const& texPos, Vector2 const& texSize, Color3ub const& color)
-	{
-
-	}
-
 	void RHIGraphics2D::beginBlend(Vector2 const& pos, Vector2 const& size, float alpha)
 	{
 		flushCommand();

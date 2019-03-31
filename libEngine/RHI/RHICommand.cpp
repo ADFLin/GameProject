@@ -76,14 +76,14 @@ namespace Render
 		return EXECUTE_RHIFUN( RHICreateTexture1D(format, length, numMipLevel, creationFlags , data) );
 	}
 
-	RHITexture2D* RHICreateTexture2D(Texture::Format format, int w, int h, int numMipLevel, uint32 creationFlags, void* data , int dataAlign)
+	RHITexture2D* RHICreateTexture2D(Texture::Format format, int w, int h, int numMipLevel, int numSamples, uint32 creationFlags, void* data , int dataAlign)
 	{
-		return EXECUTE_RHIFUN( RHICreateTexture2D(format, w, h, numMipLevel, creationFlags , data, dataAlign) );
+		return EXECUTE_RHIFUN( RHICreateTexture2D(format, w, h, numMipLevel, numSamples, creationFlags , data, dataAlign) );
 	}
 
-	RHITexture3D* RHICreateTexture3D(Texture::Format format, int sizeX ,int sizeY , int sizeZ , int numMipLevel, uint32 creationFlags , void* data)
+	RHITexture3D* RHICreateTexture3D(Texture::Format format, int sizeX ,int sizeY , int sizeZ , int numMipLevel, int numSamples, uint32 creationFlags , void* data)
 	{
-		return EXECUTE_RHIFUN( RHICreateTexture3D(format, sizeX, sizeY, sizeZ, numMipLevel ,creationFlags, data) );
+		return EXECUTE_RHIFUN( RHICreateTexture3D(format, sizeX, sizeY, sizeZ, numMipLevel , numSamples, creationFlags, data) );
 	}
 
 	RHITextureCube* RHICreateTextureCube(Texture::Format format, int size, int numMipLevel, uint32 creationFlags, void* data[])
@@ -91,9 +91,9 @@ namespace Render
 		return EXECUTE_RHIFUN(RHICreateTextureCube(format, size, numMipLevel, creationFlags, data));
 	}
 
-	RHITextureDepth* RHICreateTextureDepth(Texture::DepthFormat format, int w, int h)
+	RHITextureDepth* RHICreateTextureDepth(Texture::DepthFormat format, int w, int h, int numMipLevel, int numSamples)
 	{
-		return EXECUTE_RHIFUN( RHICreateTextureDepth(format, w, h) );
+		return EXECUTE_RHIFUN( RHICreateTextureDepth(format, w, h, numMipLevel, numSamples) );
 	}
 
 	RHIVertexBuffer* RHICreateVertexBuffer(uint32 vertexSize, uint32 numVertices, uint32 creationFlags, void* data)
@@ -312,7 +312,7 @@ namespace Render
 		if( !imageData.load(path, option) )
 			return false;
 
-		return RHICreateTexture2D(option.getFormat(imageData.numComponent), imageData.width, imageData.height, option.numMipLevel, option.creationFlags, imageData.data, 1);
+		return RHICreateTexture2D(option.getFormat(imageData.numComponent), imageData.width, imageData.height, option.numMipLevel, 1 , option.creationFlags, imageData.data, 1);
 	}
 
 	RHITextureCube* RHIUtility::LoadTextureCubeFromFile(char const* paths[], TextureLoadOption const& option)

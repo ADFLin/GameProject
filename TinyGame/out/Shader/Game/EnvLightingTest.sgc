@@ -1,0 +1,98 @@
+#include "Common.sgc"
+#include "PrimitiveParam.sgc"
+#include "ViewParam.sgc"
+#include "LightingCommon.sgc"
+#include "IBLCommon.sgc"
+
+struct VSOutputParameters
+{
+	float3 worldPos;
+	float3 normal;
+	float4 tangent;
+	float2 UVs;
+};
+
+
+#if VERTEX_SHADER
+
+out VSOutputParameters VSOutput;
+
+DECLARE_VERTEX_INPUT(float4, position, ATTRIBUTE_POSITION)
+DECLARE_VERTEX_INPUT(float3, normal, ATTRIBUTE_NORMAL)
+DECLARE_VERTEX_INPUT(float4, color, ATTRIBUTE_COLOR)
+DECLARE_VERTEX_INPUT(float4, tangent, ATTRIBUTE_TANGENT)
+DECLARE_VERTEX_INPUT(float2, texCoord0, ATTRIBUTE_TEXCOORD)
+
+void MainVS()
+{
+	VSOutput.worldPos = ( /*Primitive.localToWorld * */float4( VERTEX_INPUT(position).xyz , 1 ) ).xyz;
+	VSOutput.normal   = /*float3x3(Primitive.localToWorld) **/ VERTEX_INPUT(normal);
+	VSOutput.tangent = VERTEX_INPUT(tangent);
+	VSOutput.UVs = VERTEX_INPUT(texCoord0);
+	gl_Position = View.worldToClip * float4(VSOutput.worldPos, 1);
+}
+
+#endif
+
+#if PIXEL_SHADER
+
+uniform sampler2D DiffuseTexture;
+uniform sampler2D NormalTexture;
+uniform sampler2D MetalTexture;
+uniform sampler2D RoughnessTexture;
+uniform float SkyLightInstensity = 1.0;
+in VSOutputParameters VSOutput;
+layout(location = 0) out float4 OutColor;
+void MainPS()
+{
+	float2 uv = VSOutput.UVs;
+
+	float3 worldNormal = normalize(VSOutput.normal.xyz);
+
+	float3 tangentX = normalize(VSOutput.tangent.xyz);
+	tangentX = normalize(tangentX - dot(tangentX, worldNormal) * worldNormal);
+	float3 tangentZ = VSOutput.normal;
+	float normalYSign = sign(VSOutput.tangent.w);
+	float3 tangentY = normalYSign * cross(tangentZ, tangentX);
+	float3x3 tangentToWorld = mat3(tangentX, tangentY, tangentZ);
+
+	float3 baseColor = texture(DiffuseTexture, uv).xyz;
+	
+	float  metallic =  texture(MetalTexture, uv).r;
+
+	float  roughnessF = texture(RoughnessTexture, uv).r;
+	//metallic = pow(metallic, float(1 / 2.2));
+	//roughnessF = 0.01;
+	float3 N = tangentToWorld * (2 * texture(NormalTexture, uv).xyz - 1);
+	//N = tangentZ;
+	float3 V = normalize(View.worldPos - VSOutput.worldPos);
+	float3 L = normalize(float3(1, 1, 2));
+	float3 R = reflect(-V, N);
+	float specular = 0.5;
+	float NoV = saturate(dot(N, V));
+	float NoL = saturate(dot(N, L));
+
+	float3 diffuseColor = baseColor * (1 - metallic);
+	float3 specularColor = lerp(float3(0.08 * specular), baseColor, metallic);
+
+	float3 roughness = float3(roughnessF, roughnessF, 1);
+	roughness = max(roughness, 0.04);
+
+	float3 shading = StandardShading(diffuseColor, specularColor, roughness, float3(1), L, V, N);
+
+	float3 radiance = 0.0 * float3(5, 2, 1);
+
+	float3 envSpecular = GetIBLSpecularColor(specularColor, R, NoV, roughnessF);
+	float3 ambient = SkyLightInstensity * ( 0 * GetIrradianceColor(N) * baseColor + envSpecular);
+
+	float3 color = radiance * NoL * shading + ambient;
+	//color = pow(color, float3(1. / 2.2));
+	
+	OutColor = float4(NoV.xxx, 1);
+	OutColor = float4(baseColor, 1);
+	OutColor = float4(color, 1);
+	//OutColor = float4(N*float3(1,-1,1), 1);
+	//OutColor = float4(pow(metallic.xxx ,float3(1/2.2)), 1);
+}
+
+#endif

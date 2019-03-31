@@ -29,10 +29,10 @@ namespace Render
 		return true;
 	}
 
-	RHITexture2D* D3D11System::RHICreateTexture2D(Texture::Format format, int w, int h, int numMipLevel, uint32 createFlags, void* data, int dataAlign)
+	RHITexture2D* D3D11System::RHICreateTexture2D(Texture::Format format, int w, int h, int numMipLevel, int numSamples, uint32 createFlags, void* data, int dataAlign)
 	{
 		Texture2DCreationResult creationResult;
-		if ( createTexture2DInternal(D3D11Conv::To(format), w, h, numMipLevel, createFlags , data, Texture::GetFormatSize(format), creationResult ) )
+		if ( createTexture2DInternal(D3D11Conv::To(format), w, h, numMipLevel, numSamples, createFlags , data, Texture::GetFormatSize(format), creationResult ) )
 		{
 			return new D3D11Texture2D(format, creationResult);
 		}
@@ -221,7 +221,7 @@ namespace Render
 		return nullptr;
 	}
 
-	bool D3D11System::createTexture2DInternal(DXGI_FORMAT format, int width, int height, int numMipLevel, uint32 creationFlag, void* data, uint32 pixelSize, Texture2DCreationResult& outResult)
+	bool D3D11System::createTexture2DInternal(DXGI_FORMAT format, int width, int height, int numMipLevel, int numSamples, uint32 creationFlag, void* data, uint32 pixelSize, Texture2DCreationResult& outResult)
 	{
 		D3D11_TEXTURE2D_DESC desc = {};
 		desc.Format = format;
@@ -240,7 +240,7 @@ namespace Render
 			desc.BindFlags |= D3D11_BIND_UNORDERED_ACCESS;
 
 
-		desc.SampleDesc.Count = 1;
+		desc.SampleDesc.Count = numSamples;
 		desc.SampleDesc.Quality = 0;
 		desc.CPUAccessFlags = 0;
 

@@ -14,14 +14,8 @@
 #include <vector>
 
 typedef Math::Vector2 Vector2;
-
-class GLTexture
-{
-
-	
-};
-
 typedef Render::FontDrawer GLFont;
+typedef Render::RHITexture2D GLTexture2D; 
 
 class GLGraphics2D
 {
@@ -99,10 +93,10 @@ public:
 	void  drawPolygon( Vec2i pos[] , int num );
 	void  drawRoundRect( Vector2 const& pos , Vector2 const& rectSize , Vector2 const& circleSize );
 
-	void  drawTexture( GLTexture& texture , Vector2 const& pos );
-	void  drawTexture( GLTexture& texture , Vector2 const& pos , Color3ub const& color );
-	void  drawTexture( GLTexture& texture , Vector2 const& pos , Vector2 const& texPos , Vector2 const& texSize );
-	void  drawTexture( GLTexture& texture , Vector2 const& pos , Vector2 const& texPos , Vector2 const& texSize , Color3ub const& color );
+	void  drawTexture(GLTexture2D& texture, Vector2 const& pos, Color3ub const& color = Color3ub(255, 255, 255));
+	void  drawTexture(GLTexture2D& texture, Vector2 const& pos, Vector2 const& size , Color3ub const& color = Color3ub(255,255,255) );
+	void  drawTexture(GLTexture2D& texture, Vector2 const& pos, Vector2 const& texPos, Vector2 const& texSize, Color3ub const& color);
+	void  drawTexture(GLTexture2D& texture, Vector2 const& pos, Vector2 const& size, Vector2 const& texPos , Vector2 const& texSize , Color3ub const& color );
 
 	void  setFont( GLFont& font )
 	{

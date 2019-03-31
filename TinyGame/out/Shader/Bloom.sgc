@@ -1,0 +1,25 @@
+#include "Common.sgc"
+#include "ScreenVertexShader.sgc"
+
+
+#if PIXEL_SHADER
+
+
+sampler2D TargetTexture;
+void DownsamplePS()
+{
+	float3 color;
+	for( int j = 0 ; j < 2 ; ++j )
+	{
+		for( int i = 0; i < 2; ++i )
+		{
+			//texelFetch(TargetTexture , )
+		}
+	}
+
+
+
+}
+
+#endif
+

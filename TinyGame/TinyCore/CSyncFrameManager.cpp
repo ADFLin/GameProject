@@ -10,13 +10,14 @@
 #define RESET_DATA_FRAME (-1)
 int const UseChannel = CHANNEL_GAME_NET_UDP_CHAIN;
 
+
 FrameDataManager::FrameDataManager()
 {
 	mCurFrame = 0;
 	mLastDataFrame = 0;
 }
 
-void FrameDataManager::addFrameData( long frame , DataSteamBuffer& buffer )
+void FrameDataManager::addFrameData(int32 frame , DataSteamBuffer& buffer )
 {
 	if ( mLastDataFrame < frame )
 		mLastDataFrame = frame;
@@ -66,8 +67,10 @@ void FrameDataManager::restoreData( IFrameActionTemplate* actionTemp  )
 	for( FrameDataVec::iterator iter = mProcessData.begin();
 		iter != mProcessData.end() ; ++iter )
 	{
+		auto& buffer = *iter->iter;
 		auto dataSteam = MakeBufferSerializer(*(iter->iter));
-		actionTemp->restoreData( dataSteam );
+		actionTemp->restoreFrameData( dataSteam , buffer.getAvailableSize() != 0);
+
 	}
 
 	actionTemp->debugMessage(mCurFrame);
@@ -83,12 +86,13 @@ void FrameDataManager::endFrame()
 	mProcessData.clear();
 }
 
-CSyncFrameManager::CSyncFrameManager( IFrameActionTemplate* actionTemp , INetFrameGenerator* frameGenerator) 
+CSyncFrameManager::CSyncFrameManager( IFrameActionTemplate* actionTemp , INetFrameCollector* frameCollector) 
 {
 	mActionTemplate = actionTemp;
-	mFrameGenerator = frameGenerator;
+	mFrameCollector = frameCollector;
 	mProcessor.setLanucher( this );
-	mProcessor.addListener( *frameGenerator );
+
+	mFrameCollector->setupAction(mProcessor);
 	bClearData = false;
 	
 }
@@ -101,7 +105,6 @@ bool CSyncFrameManager::scanInput( bool beUpdateFrame )
 		return false;
 
 	mFrameMgr.restoreData( mActionTemplate );
-	mActionTemplate->prevCheckAction();
 	return true;
 }
 
@@ -149,18 +152,18 @@ int CSyncFrameManager::evalFrame( IFrameUpdater& updater , int updateFrames , in
 }
 
 
-SVSyncFrameManager::SVSyncFrameManager( NetWorker* worker , IFrameActionTemplate* actionTemp , INetFrameGenerator* frameGenerator ) 
-	:CSyncFrameManager( actionTemp , frameGenerator )
+SVSyncFrameManager::SVSyncFrameManager( NetWorker* worker , IFrameActionTemplate* actionTemp , INetFrameCollector* frameCollector ) 
+	:CSyncFrameManager( actionTemp , frameCollector )
 	,mFrameStream( new GDPFrameStream )
 {
 	assert( worker->isServer() );
 	mWorker = static_cast< ServerWorker* >( worker );
 
 	mWorker->setNetListener( this );
-	mWorker->setComListener( frameGenerator );
+	mWorker->setComListener( frameCollector );
 	mWorker->getEvaluator().setUserFun< GDPFrameStream >( this , &SVSyncFrameManager::procFrameData );
 
-	frameGenerator->reflashPlayer( *mWorker->getPlayerManager() );
+	frameCollector->reflashPlayer( *mWorker->getPlayerManager() );
 
 	mCheckDataBits = 0;
 	mLocalDataBits = 0;
@@ -174,9 +177,9 @@ SVSyncFrameManager::SVSyncFrameManager( NetWorker* worker , IFrameActionTemplate
 		if ( !player->isNetwork() )
 			mLocalDataBits |= BIT( player->getId() );
 
-		player->lastUpdateFrame = -1;
-		player->lastRecvFrame   = -1;
-		player->lastSendFrame   = -1;
+		player->lastUpdateFrame = 0;
+		player->lastRecvFrame   = 0;
+		player->lastSendFrame   = 0;
 	}
 
 	mUpdateDataBit = mCheckDataBits;
@@ -195,6 +198,8 @@ bool SVSyncFrameManager::sendFrameData()
 	for( ClientFrameDataList::iterator iter = mFrameDataList.begin();
 		 iter != mFrameDataList.end() ; )
 	{
+		//LogDevMsg(0, "Process Player Frame Data Start" );
+
 		ClientFrameData& data = *iter;
 
 		ServerPlayer* player = mWorker->getPlayerManager()->getPlayer( data.id );
@@ -218,8 +223,8 @@ bool SVSyncFrameManager::sendFrameData()
 			{
 				try
 				{
-					mFrameGenerator->recvClientData(data.id, data.buffer);
-
+					
+					mFrameCollector->processClientFrameData(data.id, data.buffer);
 				}
 				catch( BufferException& )
 				{
@@ -245,7 +250,7 @@ bool SVSyncFrameManager::sendFrameData()
 	int const MaxWaitDiffFrame = 30;
 	if ( mCheckDataBits != mUpdateDataBit )
 	{
-		bool needStop = false;
+		bool bNeedFreezeFrame = false;
 
 		for( auto iter = mWorker->getPlayerManager()->createIterator(); iter; ++iter )
 		{
@@ -256,14 +261,17 @@ bool SVSyncFrameManager::sendFrameData()
 
 			if ( (int)mFrameMgr.getFrame() - player->lastUpdateFrame > MaxWaitDiffFrame  )
 			{
-				//Msg( "Data Delay %d (%d %d)" , mCountDataDelay , player->lastUpdateFrame ,(int) mFrameMgr.getFrame() );
-				needStop = true;
+				//LogMsg( "Data Delay %d (%d %d)" , mCountDataDelay , player->lastUpdateFrame ,(int) mFrameMgr.getFrame() );
+				bNeedFreezeFrame = true;
 				break;
 			}
 		}
 
-		if(  needStop )
+		if( bNeedFreezeFrame )
 		{
+#if DEBUG_SHOW_FRAME_DATA_TRANSITION
+			LogDevMsg(0, "Freeze Frame !!!");
+#endif
 			mUpdateDataBit = 0;
 			++mCountDataDelay;
 			mProcessor.endAction();
@@ -273,13 +281,18 @@ bool SVSyncFrameManager::sendFrameData()
 
 	mCountDataDelay = 0;
 
+	int32 frame = mFrameMgr.getFrame() + 1;
 	mFrameStream->buffer.clear();
-	mFrameStream->frame = mFrameMgr.getFrame() + 1;
+	mFrameStream->frame = frame;
 
 	auto dataSteam = MakeBufferSerializer(mFrameStream->buffer);
-	mFrameGenerator->generate( dataSteam );
-
-	//DevMsg( 10 ,"Send Frame Data frame = %d" , fp->frame  );
+	if( mFrameCollector->haveFrameData(frame) )
+	{
+		mFrameCollector->collectFrameData(dataSteam);
+	}
+#if DEBUG_SHOW_FRAME_DATA_TRANSITION
+	//LogDevMsg( 0 ,"Send Frame Data : frame = %u" , frame);
+#endif
 	mWorker->sendCommand( UseChannel , mFrameStream.get() , WSF_IGNORE_LOCAL );
 
 	DataSteamBuffer buffer;
@@ -303,19 +316,28 @@ void SVSyncFrameManager::procFrameData( IComPacket* cp )
 		return;
 	}
 
+
 	PlayerId id = info->ownerId;
 	GDPFrameStream* fp = cp->cast< GDPFrameStream >();
 	ServerPlayer* player = mWorker->getPlayerManager()->getPlayer( id );
 
-	int maxDiscardDifFrame = 5;
-	if ( player->lastUpdateFrame >= fp->frame + maxDiscardDifFrame ||
-		 fp->frame >= player->lastUpdateFrame + maxDiscardDifFrame )
-		return;
+#if DEBUG_SHOW_FRAME_DATA_TRANSITION
+	if( fp->buffer.getAvailableSize() )
+	{
+		LogDevMsg(0, "==Recv Frame Data : %d %d %d==", (int)mFrameMgr.getFrame(), (int)fp->frame, (int)fp->buffer.getAvailableSize());
+	}
+	
+#endif
 
+	int maxDiscardDifFrame = 5;
+	if( player->lastUpdateFrame >= fp->frame + maxDiscardDifFrame ||
+	    fp->frame >= player->lastUpdateFrame + maxDiscardDifFrame )
+	{
+		return;
+	}
 	static int count = 0;
 	if ( fp->buffer.getAvailableSize() && count <= 10  )
 	{
-		LogMsg( "==%d %d %d==" , (int)mFrameMgr.getFrame() , (int)fp->frame , (int)fp->buffer.getAvailableSize() );
 		count += 1;
 	}
 
@@ -359,7 +381,7 @@ void SVSyncFrameManager::refreshPlayerState()
 
 void SVSyncFrameManager::onPlayerStateMsg( unsigned pID , PlayerStateMsg state )
 {
-	mFrameGenerator->reflashPlayer( *mWorker->getPlayerManager() );
+	mFrameCollector->reflashPlayer( *mWorker->getPlayerManager() );
 	refreshPlayerState();
 }
 
@@ -399,8 +421,8 @@ void SVSyncFrameManager::release()
 	delete this;
 }
 
-CLSyncFrameManager::CLSyncFrameManager( NetWorker* worker , IFrameActionTemplate* actionTemp , INetFrameGenerator* frameGenerator ) 
-	:CSyncFrameManager( actionTemp , frameGenerator )
+CLSyncFrameManager::CLSyncFrameManager( NetWorker* worker , IFrameActionTemplate* actionTemp , INetFrameCollector* frameCollector ) 
+	:CSyncFrameManager( actionTemp , frameCollector )
 	,mCalcuator( 20 )
 	,mFrameStream( new GDPFrameStream )
 {
@@ -423,15 +445,24 @@ bool CLSyncFrameManager::sendFrameData()
 {
 	mProcessor.beginAction( CTF_BLOCK_ACTION );
 
-	mFrameStream->frame = mFrameMgr.getFrame() + 1;
+	int32 frame = mFrameMgr.getFrame() + 1;
+	mFrameStream->frame = frame;
 	mFrameStream->buffer.clear();
 
-	auto dataStream = MakeBufferSerializer(mFrameStream->buffer);
-	mFrameGenerator->generate( dataStream );
+	if ( mFrameCollector->haveFrameData(frame) )
+	{
+		auto dataStream = MakeBufferSerializer(mFrameStream->buffer);
+		mFrameCollector->collectFrameData(dataStream);
+	}
 
 
-#if 0
-	DevMsg( 10 ,"Send Frame Data frame = %d" , mFrameStream->frame   );
+#if DEBUG_SHOW_FRAME_DATA_TRANSITION
+	//if( (mFrameStream->frame % 40) == 0 )
+	if ( mFrameStream->buffer.getAvailableSize() )
+	{
+		LogDevMsg(0, "Send Frame Data : frame = %d", mFrameStream->frame);
+	}
+	
 #endif
 
 	mWorker->sendCommand( UseChannel , mFrameStream.get() , 0 );
@@ -466,8 +497,12 @@ void CLSyncFrameManager::procFrameData( IComPacket* cp)
 		}
 	}
 
-	if ( mFrameStream->frame % 40 == 0 )
-		LogDevMsg(  10 , "Recv Frame Data frame = %d %d %d" , data->frame , mFrameMgr.getFrame() , data->frame - mFrameMgr.getFrame() );
+	//if( mFrameStream->frame % 40 == 0 )
+	{
+#if DEBUG_SHOW_FRAME_DATA_TRANSITION
+		//LogDevMsg(10, "Recv Frame Data frame = %u %d %d", data->frame, mFrameMgr.getFrame(), data->frame - mFrameMgr.getFrame());
+#endif
+	}
 	mLastRecvDataFrame = data->frame;
 	mFrameMgr.addFrameData( data->frame , data->buffer );
 	return;
@@ -477,6 +512,7 @@ void CLSyncFrameManager::fireAction( ActionTrigger& trigger )
 {
 	if ( mUserPlayer->getInfo().actionPort == ERROR_ACTION_PORT )
 		return;
+
 	trigger.setPort( mUserPlayer->getInfo().actionPort );
 	mActionTemplate->firePortAction( trigger );
 }

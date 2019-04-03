@@ -968,7 +968,7 @@ bool NetLevelStageMode::onWidgetEvent(int event, int id, GWidget* ui)
 		}
 		else if( event == EVT_BOX_NO )
 		{
-			if( haveServer() && getGameState() == GS_END )
+			if( haveServer() && getGameState() == GameState::End )
 			{
 				mServer->changeState(NAS_ROOM_ENTER);
 			}
@@ -978,7 +978,7 @@ bool NetLevelStageMode::onWidgetEvent(int event, int id, GWidget* ui)
 		{
 			if( haveServer() )
 			{
-				if( getGameState() == GS_END )
+				if( getGameState() == GameState::End )
 				{
 					mServer->changeState(NAS_LEVEL_RESTART);
 				}
@@ -1048,7 +1048,7 @@ bool NetLevelStageMode::tryChangeState(GameState state)
 {
 	switch( getGameState() )
 	{
-	case GS_START:
+	case GameState::Start:
 		if( mWorker->getActionState() != NAS_LEVEL_RUN )
 			return false;
 	}
@@ -1072,7 +1072,7 @@ void NetLevelStageMode::tick()
 	unsigned flag = 0;
 	switch( getGameState() )
 	{
-	case GS_RUN:
+	case GameState::Run:
 		++mReplayFrame;
 		break;
 	default:

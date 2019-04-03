@@ -164,8 +164,9 @@ namespace Bubble
 		{
 #define CASE_STAGE( ID , TYPE ) \
 	case ID : return new TYPE;
-			CASE_STAGE( STAGE_SINGLE_GAME , LevelStage )
-			CASE_STAGE( STAGE_REPLAY_GAME , LevelStage )
+		CASE_STAGE( STAGE_SINGLE_GAME , LevelStage )
+		CASE_STAGE( STAGE_REPLAY_GAME , LevelStage )
+		CASE_STAGE( STAGE_NET_GAME , LevelStage )
 #undef  CASE_STAGE
 		}
 		return NULL;

@@ -20,12 +20,12 @@ namespace Render
 
 		static bool InitializeBRDFTexture(void* data)
 		{
-			SharedBRDFTexture.Initialize(RHICreateTexture2D(Texture::eFloatRGBA, 512, 512, 1, 0 , TCF_DefalutValue , data ) );
+			SharedBRDFTexture.initialize(RHICreateTexture2D(Texture::eFloatRGBA, 512, 512, 1, 0 , TCF_DefalutValue , data ) );
 			return SharedBRDFTexture.isValid();
 		}
 		static void FillSharedBRDFData(std::vector< uint8 >& outData)
 		{
-			return GetTextureData(*IBLResource::SharedBRDFTexture.getRHI(), Texture::eFloatRGBA, 0, outData);
+			return GetTextureData(*IBLResource::SharedBRDFTexture , Texture::eFloatRGBA, 0, outData);
 
 		}
 		bool initializeRHI(ImageBaseLightingData* IBLData);
@@ -104,9 +104,9 @@ namespace Render
 			shader.setTexture(mParamPrefilteredTexture , resource.perfilteredTexture,
 							  TStaticSamplerState< Sampler::eTrilinear, Sampler::eClamp, Sampler::eClamp, Sampler::eClamp > ::GetRHI());
 
-			if ( resource.SharedBRDFTexture.getRHI() )
+			if ( resource.SharedBRDFTexture.isValid() )
 			{
-				shader.setTexture(mParamPreIntegratedBRDFTexture, *resource.SharedBRDFTexture.getRHI(),
+				shader.setTexture(mParamPreIntegratedBRDFTexture, *resource.SharedBRDFTexture ,
 								  TStaticSamplerState< Sampler::eBilinear, Sampler::eClamp, Sampler::eClamp > ::GetRHI());
 			}
 		}

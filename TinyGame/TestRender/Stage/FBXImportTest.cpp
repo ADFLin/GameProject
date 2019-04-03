@@ -577,18 +577,9 @@ namespace Render
 				}
 				else
 				{
-					mSceneRenderTargets.getFrameBuffer().blitToScreenBuffer();
+					mSceneRenderTargets.getFrameBuffer().blitToBackBuffer();
 				}
 			}
-
-			if( IBLResource::SharedBRDFTexture.getRHI() && 0 )
-			{
-				RHISetViewport(0, 0, screenSize.x, screenSize.y);
-				OrthoMatrix matProj(0, screenSize.x, 0, screenSize.y, -1, 1);
-				MatrixSaveScope matScope(matProj);
-				DrawUtility::DrawTexture(*IBLResource::SharedBRDFTexture.getRHI(), IntVector2(10, 10), IntVector2(512, 512));
-			}
-
 		}
 
 	};

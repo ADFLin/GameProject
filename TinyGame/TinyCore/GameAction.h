@@ -5,6 +5,9 @@
 #include "GameNetPacket.h"
 #include "GameWorker.h"
 #include "Holder.h"
+#include "BitUtility.h"
+
+#define DEBUG_SHOW_FRAME_DATA_TRANSITION 0
 
 class IFrameActionTemplate
 {
@@ -16,23 +19,29 @@ public:
 	virtual void  prevListenAction() = 0;
 	virtual void  listenAction( ActionParam& param ) = 0;
 	//
-	virtual void  prevCheckAction() = 0;
+	virtual void  prevRestoreData(bool bhaveData) = 0;
 	virtual bool  checkAction( ActionParam& param ) = 0;
-
+	virtual void  postRestoreData(bool bhaveData) = 0;
 	virtual void  debugMessage(long frame){}
 
-	void translateData(IStreamSerializer& serializer )
+	virtual bool  haveFrameData(int32 frame) { return true; }
+
+	void collectFrameData(IStreamSerializer& serializer )
 	{
-		outputData( serializer );
+		serializeOutputData( serializer );
 	}
-	void restoreData(IStreamSerializer& serializer )
+	void restoreFrameData( IStreamSerializer& serializer , bool bhaveData)
 	{
-		inputData( serializer );
+		prevRestoreData(bhaveData);
+		if( bhaveData )
+		{
+			serializeInputData(serializer);
+		}
+		postRestoreData(bhaveData);
 	}
 protected:
-	//IDataStreamPort
-	virtual void  inputData(IStreamSerializer& serializer ) = 0;
-	virtual void  outputData(IStreamSerializer& serializer ) = 0;
+	virtual void  serializeInputData(IStreamSerializer& serializer ) = 0;
+	virtual void  serializeOutputData(IStreamSerializer& serializer ) = 0;
 };
 
 
@@ -41,13 +50,12 @@ class FrameActionHelper : public IFrameActionTemplate
 {
 	T* _this(){ return static_cast<T*>( this ); }
 protected:
-	//IDataStreamPort
-	void  inputData(IStreamSerializer& serializer )
+	void  serializeInputData(IStreamSerializer& serializer )
 	{
 		IStreamSerializer::ReadOp op( serializer );
 		_this()->serialize( op );
 	}
-	void  outputData(IStreamSerializer& serializer )
+	void  serializeOutputData(IStreamSerializer& serializer )
 	{
 		IStreamSerializer::WriteOp op( serializer );
 		_this()->serialize( op );
@@ -57,48 +65,15 @@ protected:
 };
 
 
-class INetFrameGenerator : public IActionListener
-	                     , public ComListener
-{
-public:
-	//ActionListener
-	virtual void  onScanActionStart( bool bUpdateFrame ){}
-	virtual void  onFireAction( ActionParam& param ) = 0;
-	virtual void  onScanActionEnd(){}
-
-	virtual void  generate(IStreamSerializer & serializer ) = 0;
-
-	//for server
-	virtual bool  prevProcCommand() override { return true; }
-	virtual void  recvClientData( unsigned pID , DataSteamBuffer& stream ){}
-	virtual void  reflashPlayer( IPlayerManager& playerManager ){}
-};
-
-#define DEF_SERVER_FRAME_GENERATOR_FUN( ACTION_TEMP )\
-	bool  prevProcCommand(){  ACTION_TEMP::prevListenAction();  return true; }\
-	void  onFireAction( ActionParam& param ){  ACTION_TEMP::listenAction( param );  }\
-	void  generate( IStreamSerializer& serializer ){  ACTION_TEMP::translateData( serializer );  }\
-	void  firePortAction( ActionTrigger& trigger ){ assert(  0 && "No Need Call This Fun!");  }
-
-template< class FrameActionTemplate >
-class ServerFrameHelper : public  INetFrameGenerator
-	                    , protected FrameActionTemplate
-{
-public:
-	ServerFrameHelper(){}
-	template< class T1 >
-	ServerFrameHelper( T1 t1 ):FrameActionTemplate( t1 ){}
-	template< class T1 , class T2 >
-	ServerFrameHelper( T1 t1 , T2 t2 ):FrameActionTemplate( t1 , t2 ){}
-
-	DEF_SERVER_FRAME_GENERATOR_FUN( FrameActionTemplate )
-};
-
-
 struct KeyFrameData
 {
 	unsigned  port;
 	unsigned  keyActBit;
+
+	bool haveData() const
+	{
+		return keyActBit != 0;
+	}
 };
 
 
@@ -111,7 +86,8 @@ public:
 		,mPortDataMap( new unsigned[ dataMaxNum ] )
 		,mDataMaxNum( dataMaxNum )
 	{
-
+		mNumPort = 0;
+		mActivePortMask = 0;
 	}
 
 	void setupPlayer( IPlayerManager& playerManager )
@@ -137,45 +113,78 @@ public:
 			}
 		}
 	}
+	
 	void prevListenAction()
 	{
+		mActivePortMask = 0;
 		for( size_t i = 0 ; i < mNumPort ; ++i )
 		{
 			mFrameData[i].keyActBit = 0;
 		}
 	}
+
 	void  listenAction( ActionParam& param )
 	{
+		mActivePortMask |= BIT(param.port);
 		unsigned dataPos = mPortDataMap[ param.port ];
 		mFrameData[ dataPos ].keyActBit |= BIT( param.act );
 	}
 
-	void prevCheckAction()
-	{
-		for( size_t i = 0 ; i < mNumPort ; ++i )
-		{
-			mPortDataMap[ mFrameData[i].port ] = (unsigned)i;
-		}
-	}
-
 	bool checkAction( ActionParam& param )
 	{
-		unsigned dataPos = mPortDataMap[ param.port ];
-		if (  mFrameData[ dataPos ].keyActBit & BIT( param.act ) )
-			return true;
+		if ( mActivePortMask & BIT(param.port) )
+		{
+			unsigned dataPos = mPortDataMap[param.port];
+			if( mFrameData[dataPos].keyActBit & BIT(param.act) )
+				return true;
+		}
 
 		return false;
+	}
+
+	virtual bool  haveFrameData(int32 frame) { return mActivePortMask != 0; }
+
+	void prevRestoreData(bool bHaveData)
+	{
+		mNumPort = 0;
+		mActivePortMask = 0;
+	}
+
+	void postRestoreData(bool bHaveData)
+	{
+		for( size_t i = 0; i < mNumPort; ++i )
+		{
+			mPortDataMap[mFrameData[i].port] = (unsigned)i;
+		}
 	}
 
 	template< class T >
 	void serialize( T& op )
 	{
-		op & mNumPort;
-		for( size_t i = 0 ; i < mNumPort ; ++i )
+		op & mActivePortMask;
+		if( mActivePortMask )
 		{
-			op & mFrameData[i];
+			if ( T::IsSaving )
+			{
+				for( size_t i = 0; i < mNumPort; ++i )
+				{
+					if( mActivePortMask & BIT(mFrameData[i].port) )
+					{
+						op & mFrameData[i];
+					}
+				}
+			}
+			else
+			{
+				mNumPort = BitUtility::CountSet(mActivePortMask);
+				for( size_t i = 0; i < mNumPort; ++i )
+				{
+					op & mFrameData[i];
+				}
+			}
 		}
 	}
+
 
 	virtual void firePortAction( ActionTrigger& trigger ) = 0;
 
@@ -204,40 +213,94 @@ public:
 	}
 
 protected:
+	uint32  mActivePortMask;
 	size_t  mDataMaxNum;
 	size_t  mNumPort;
 	TArrayHolder<FrameData> mFrameData;
 	TArrayHolder<unsigned > mPortDataMap;
+
+	template< class FrameActionTemplate >
+	friend class TServerKeyFrameCollector;
+};
+
+
+class INetFrameCollector : public ComListener
+{
+public:
+	virtual void  setupAction(ActionProcessor& processer){}
+	virtual bool  haveFrameData(int32 frame) { return true; }
+	virtual void  collectFrameData(IStreamSerializer & serializer) = 0;
+
+	//for server
+	virtual bool  prevProcCommand() override { return true; }
+	virtual void  processClientFrameData(unsigned pID, DataSteamBuffer& stream) {}
+	virtual void  reflashPlayer(IPlayerManager& playerManager) {}
+};
+
+
+template< class FrameActionTemplate >
+class TServerFrameCollector : public  INetFrameCollector
+	                        , protected FrameActionTemplate
+							, public IActionListener
+{
+public:
+	template< class ...Args >
+	TServerFrameCollector(Args ...args) : FrameActionTemplate(std::forward<Args>(args)...) {}
+
+	bool  prevProcCommand() { FrameActionTemplate::prevListenAction();  return true; }
+	virtual void  onFireAction(ActionParam& param) override { FrameActionTemplate::listenAction(param); }
+	bool  haveFrameData(int32 frame){  return FrameActionTemplate::haveFrameData(frame);  }
+	void  collectFrameData(IStreamSerializer& serializer) { FrameActionTemplate::collectFrameData(serializer); }
+	virtual void  firePortAction(ActionTrigger& trigger) override { NEVER_REACH("Don't call this function!"); }
+	virtual void  setupAction(ActionProcessor& processer)
+	{
+		processer.addListener(*this);
+	}
 };
 
 
 template< class FrameData >
-class TSVKeyFrameGenerator : public ServerFrameHelper< TKeyFrameActionTemplate<FrameData > >
+class TServerKeyFrameCollector : public TServerFrameCollector< TKeyFrameActionTemplate<FrameData > >
 {
 public:
-	TSVKeyFrameGenerator( size_t dataMaxNum )
-		:ServerFrameHelper< TKeyFrameActionTemplate<FrameData > >( dataMaxNum ){}
-
-	void recvClientData( unsigned pID , DataSteamBuffer& buffer )
+	TServerKeyFrameCollector( size_t dataMaxNum )
+		:TServerFrameCollector< TKeyFrameActionTemplate<FrameData > >( dataMaxNum )
 	{
-		auto serializer = MakeBufferSerializer(buffer);
-		KeyFrameData fd;
-		serializer.read( fd );
 
-
-		unsigned dataPos = mPortDataMap[ fd.port ];
-		mFrameData[ dataPos ].keyActBit |= fd.keyActBit;
 	}
+
+	void processClientFrameData( unsigned pID , DataSteamBuffer& buffer )
+	{
+		if ( buffer.getAvailableSize() )
+		{
+			auto serializer = MakeBufferSerializer(buffer);
+			FrameData fd;
+			serializer.read(fd);
+#if DEBUG_SHOW_FRAME_DATA_TRANSITION
+			LogDevMsg(0, "Process Client Frame Data : %d %d" , fd.port , fd.keyActBit );
+#endif
+			unsigned dataPos = mPortDataMap[fd.port];
+			mActivePortMask |= BIT(fd.port);
+			mFrameData[dataPos].keyActBit |= fd.keyActBit;
+		}
+	}
+
 	void  reflashPlayer( IPlayerManager& playerManager )
 	{
-		TKeyFrameActionTemplate< FrameData >::setupPlayer( playerManager );
+		TServerFrameCollector< TKeyFrameActionTemplate<FrameData > >::setupPlayer( playerManager );
 	}
 };
 
 template< class FrameData >
-class TCLKeyFrameGenerator : public INetFrameGenerator
+class TClientKeyFrameCollector : public INetFrameCollector
+	                           , public IActionListener
 {
 public:
+	virtual void  setupAction(ActionProcessor& processer) 
+	{
+		processer.addListener(*this);
+	}
+
 	void onScanActionStart( bool bUpdateFrame )
 	{
 		mFrameData.port = ERROR_ACTION_PORT;
@@ -251,18 +314,24 @@ public:
 		assert( mFrameData.port == param.port );
 		mFrameData.keyActBit |= BIT( param.act );
 	}
-	void generate(IStreamSerializer& serializer )
+	void collectFrameData(IStreamSerializer& serializer )
 	{
 		if ( mFrameData.port == ERROR_ACTION_PORT )
 			return;
 		serializer.write( mFrameData );
 	}
 	FrameData  mFrameData;
+
+	virtual bool haveFrameData(int32 frame) override
+	{
+		return mFrameData.port != ERROR_ACTION_PORT && mFrameData.keyActBit;
+	}
+
 };
 
 
-typedef TKeyFrameActionTemplate< KeyFrameData > KeyFrameActionTemplate;
-typedef TSVKeyFrameGenerator< KeyFrameData >    SVKeyFrameGenerator;
-typedef TCLKeyFrameGenerator< KeyFrameData >    CLKeyFrameGenerator;
+typedef TKeyFrameActionTemplate< KeyFrameData >     KeyFrameActionTemplate;
+typedef TServerKeyFrameCollector< KeyFrameData >    ServerKeyFrameCollector;
+typedef TClientKeyFrameCollector< KeyFrameData >    ClientKeyFrameCollector;
 
 #endif // GameAction_h__

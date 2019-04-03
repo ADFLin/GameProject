@@ -43,7 +43,25 @@ struct ReplayInfo
 		gameInfoData = new char[ size ];
 		dataSize     = size;
 	}
+
+	template< class OP >
+	void serialize(OP op)
+	{
+		op & IStreamSerializer::MakeSequence( name.data() , name.max_size() );
+		op & gameVersion &  templateVersion & dataSize;
+
+		if( OP::IsLoading )
+		{
+			setGameData(dataSize);
+		}
+		if( dataSize )
+		{
+			op & IStreamSerializer::MakeSequence(gameInfoData, dataSize);
+		}
+	}
 };
+
+TYPE_SUPPORT_SERIALIZE_FUNC(ReplayInfo);
 
 struct ReplayHeader
 {
@@ -119,8 +137,8 @@ public:
 
 protected:
 
-	template< class T >
-	void serialize( T& op );
+	template< class OP >
+	void serialize( OP& op );
 
 	void setupHeader();
 	struct FrameNode
@@ -154,6 +172,8 @@ protected:
 	IFrameActionTemplate* mTemplate;
 	Replay      mReplay;
 	long&       mGameFrame;
+	long        mPrevFrame = -1;
+	bool        mbUpdateFrame;
 
 };
 
@@ -175,6 +195,7 @@ protected:
 	IFrameActionTemplate* mTemplate;
 	Replay mReplay;
 	long&  mGameFrame;
+	long   mPrevFrame = -1;
 };
 
 

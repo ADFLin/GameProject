@@ -1064,18 +1064,18 @@ namespace Render
 		return true;
 	}
 
-	bool MeshBuild::Plane(Mesh& mesh , Vector3 const& offset , Vector3 const& normal , Vector3 const& dir , float len, float texFactor)
+	bool MeshBuild::Plane(Mesh& mesh , Vector3 const& offset , Vector3 const& normal , Vector3 const& dirY , Vector2 const& size, float texFactor)
 	{
 		mesh.mInputLayoutDesc.addElement( Vertex::ePosition , Vertex::eFloat3 );
 		mesh.mInputLayoutDesc.addElement( Vertex::eNormal   , Vertex::eFloat3 );
 		mesh.mInputLayoutDesc.addElement( Vertex::eTexcoord , Vertex::eFloat2 , 0 );
 		mesh.mInputLayoutDesc.addElement( Vertex::eTangent , Vertex::eFloat4 );
 
-		Vector3 n = Math::GetNormal( normal );
-		Vector3 f = dir - n * ( n.dot( dir ) );
-		f.normalize();
-		Vector3 r = n.cross( f );
-
+		Vector3 axisZ = Math::GetNormal( normal );
+		Vector3 axisY = dirY - axisZ * ( axisZ.dot(dirY) );
+		axisY.normalize();
+		Vector3 axisX = axisY.cross( axisZ );
+		axisX.normalize();
 		struct MyVertex 
 		{
 			Vector3 v;
@@ -1084,14 +1084,14 @@ namespace Render
 			float tangent[4];
 		};
 
-		Vector3 v1 = f + r;
-		Vector3 v2 = r - f;
+		Vector3 v1 = size.x * axisX + size.y * axisY;
+		Vector3 v2 = -size.x * axisX + size.y * axisY;
 		MyVertex v[] =
 		{ 
-			{ offset + len * v1 , n , { texFactor , texFactor } , } , 
-			{ offset + len * v2 , n , { 0 , texFactor } ,  } ,
-			{ offset - len * v1 , n , { 0 , 0 } , } ,
-			{ offset - len * v2 , n , { texFactor , 0 } , } ,
+			{ offset + v1 , axisZ , { texFactor , texFactor } , } ,
+			{ offset + v2 , axisZ , { 0 , texFactor } ,  } ,
+			{ offset - v1 , axisZ , { 0 , 0 } , } ,
+			{ offset - v2 , axisZ , { texFactor , 0 } , } ,
 		};
 
 		int   idx[6] = { 0 , 1 , 2 , 0 , 2 , 3 };

@@ -191,6 +191,29 @@ public:
 		}
 	}
 
+	template< class T >
+	struct TDataSequence
+	{
+		T const* data;
+		int num;
+	};
+	template< class T >
+	static TDataSequence<T> MakeSequence(T const* data, int num)
+	{
+		return{ data , num };
+	}
+	template< class T>
+	void write(TDataSequence<T> const& dataSequence)
+	{
+		writeSequence(dataSequence.data, dataSequence.num);
+	}
+
+	template< class T>
+	void read(TDataSequence<T>& dataSequence)
+	{
+		readSequence( const_cast< T* >( dataSequence.data ), dataSequence.num);
+	}
+
 	template< class T, int N >
 	void write(T const(&value)[N])
 	{
@@ -206,7 +229,7 @@ public:
 	template<  class T, class A >
 	void write(std::vector< T, A > const& value)
 	{
-		size_t size = value.size();
+		uint32 size = value.size();
 		this->write(size);
 		if( size )
 		{
@@ -217,7 +240,7 @@ public:
 	template< class T, class A >
 	void read(std::vector< T, A >& value)
 	{
-		size_t size = 0;
+		uint32 size = 0;
 		this->read(size);
 		if( size )
 		{
@@ -229,7 +252,7 @@ public:
 	template< class T>
 	void write(std::basic_string<T> const& value)
 	{
-		size_t size = value.size();
+		uint32 size = value.size();
 		this->write(size);
 		if( size )
 		{
@@ -240,7 +263,7 @@ public:
 	template< class T>
 	void read(std::basic_string<T>& value)
 	{
-		size_t size = 0;
+		uint32 size = 0;
 		this->read(size);
 		if( size )
 		{
@@ -251,7 +274,7 @@ public:
 	template< class K, class V, class KF, class A >
 	void write(std::map< K, V, KF, A > const& mapValue)
 	{
-		size_t size = mapValue.size();
+		uint32 size = mapValue.size();
 		this->write(size);
 		if( size )
 		{
@@ -266,11 +289,11 @@ public:
 	template< class K, class V, class KF, class A >
 	void read(std::map< K, V, KF, A >& mapValue)
 	{
-		size_t size = 0;
+		uint32 size = 0;
 		this->read(size);
 		if( size )
 		{
-			for( size_t i = 0; i < size; ++i )
+			for( uint32 i = 0; i < size; ++i )
 			{
 				std::pair< K, V > value;
 				(*this) >> value.first;

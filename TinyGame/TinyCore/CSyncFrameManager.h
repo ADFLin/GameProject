@@ -12,7 +12,7 @@
 
 class INetFrameHelper;
 class IFrameActionTemplate;
-class INetFrameGenerator;
+class INetFrameCollector;
 class CSyncFrameManager;
 
 
@@ -29,10 +29,10 @@ public:
 
 	void       beginFrame();
 	void       endFrame();
-	void       addFrameData( long frame , DataSteamBuffer& buffer );
+	void       addFrameData(int32 frame , DataSteamBuffer& buffer );
 	bool       canAdvanceFrame();
-	void       setFrame( unsigned frame ){ mCurFrame = frame; }
-	long       getFrame(){ return mCurFrame; }
+	void       setFrame(int32 frame ){ mCurFrame = frame; }
+	int32      getFrame(){ return mCurFrame; }
 
 	void       restoreData( IFrameActionTemplate* actionTemp );
 	bool       haveFrameData(){ return !mProcessData.empty();  }
@@ -48,7 +48,7 @@ public:
 	typedef std::list< DataSteamBuffer > DataList;
 	struct FrameData
 	{
-		long               frame;
+		int32              frame;
 		DataList::iterator iter;
 	};
 	struct DataCmp
@@ -65,8 +65,8 @@ public:
 
 	FrameDataVec   mProcessData;
 	FrameDataQueue mDataQueue;
-	long           mLastDataFrame;
-	long           mCurFrame;
+	int32          mLastDataFrame;
+	int32          mCurFrame;
 };
 
 class  CSyncFrameManager : public INetFrameManager
@@ -74,7 +74,7 @@ class  CSyncFrameManager : public INetFrameManager
 					     , public IActionInput
 {
 public:
-	CSyncFrameManager( IFrameActionTemplate* actionTemp , INetFrameGenerator* frameGenerator );
+	CSyncFrameManager( IFrameActionTemplate* actionTemp , INetFrameCollector* frameCollector );
 	//NetFrameManager
 	int   evalFrame( IFrameUpdater& updater , int updateFrames , int maxDelayFrames );
 	void  setupInput(ActionProcessor& processor)
@@ -94,7 +94,7 @@ protected:
 	ActionProcessor       mProcessor;
 	FrameDataManager      mFrameMgr;
 	IFrameActionTemplate* mActionTemplate;
-	INetFrameGenerator*   mFrameGenerator;
+	INetFrameCollector*   mFrameCollector;
 };
 
 class SVSyncFrameManager : public CSyncFrameManager
@@ -102,7 +102,7 @@ class SVSyncFrameManager : public CSyncFrameManager
 {
 	typedef CSyncFrameManager BaseClass;
 public:
-	TINY_API SVSyncFrameManager( NetWorker* worker , IFrameActionTemplate* actionTemp , INetFrameGenerator* frameGenerator );
+	TINY_API SVSyncFrameManager( NetWorker* worker , IFrameActionTemplate* actionTemp , INetFrameCollector* frameCollector );
 	TINY_API ~SVSyncFrameManager();
 
 	bool     sendFrameData();
@@ -155,7 +155,7 @@ private:
 class  CLSyncFrameManager : public CSyncFrameManager
 {
 public:
-	TINY_API CLSyncFrameManager( NetWorker* worker , IFrameActionTemplate* actionTemp , INetFrameGenerator* frameGenerator );
+	TINY_API CLSyncFrameManager( NetWorker* worker , IFrameActionTemplate* actionTemp , INetFrameCollector* frameCollector );
 	TINY_API ~CLSyncFrameManager();
 
 	bool sendFrameData();

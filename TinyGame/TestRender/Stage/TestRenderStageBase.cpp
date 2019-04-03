@@ -203,7 +203,7 @@ namespace Render
 		for( auto const& light : lights )
 		{
 			if( !light.testVisible(view) )
-				return;
+				continue;
 
 			GL_BIND_LOCK_OBJECT(mProgSphere);
 			view.setupShader(mProgSphere);

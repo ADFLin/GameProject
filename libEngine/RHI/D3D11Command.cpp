@@ -185,7 +185,7 @@ namespace Render
 	{
 	
 		D3D11_BLEND_DESC desc = { 0 };
-		desc.AlphaToCoverageEnable = FALSE;
+		desc.AlphaToCoverageEnable = initializer.bEnableAlphaToCoverage;
 		desc.IndependentBlendEnable = true;
 		for( int i = 0; i < NumBlendStateTarget; ++i )
 		{

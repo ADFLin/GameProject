@@ -155,6 +155,10 @@ SimpleController::SimpleController()
 	std::fill_n( mKeySen , ARRAY_SIZE( mKeySen ) , 0 );
 }
 
+void SimpleController::restart()
+{
+	std::fill_n(mKeySen, ARRAY_SIZE(mKeySen), 0);
+}
 
 void SimpleController::initKey( ControlAction act , int sen , uint8 key0 , uint8 key1 )
 {

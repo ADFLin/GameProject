@@ -51,31 +51,46 @@ namespace Bubble
 		}
 	}
 
-	void CClientFrameGenerator::generate( IStreamSerializer& serializer )
+	void CClientFrameGenerator::collectFrameData( IStreamSerializer& serializer )
 	{
 		IStreamSerializer::WriteOp op( serializer );
 		mFrameData.serialize( op );
 	}
 
-	CServerFrameGenerator::CServerFrameGenerator() 
+	bool CClientFrameGenerator::haveFrameData(int32 frame)
+	{
+		if( !BaseClass::haveFrameData(frame) )
+			return false;
+		return mFrameData.mouseOffset != 0;
+	}
+
+	CServerFrameCollector::CServerFrameCollector()
 		:BaseClass( gBubbleMaxPlayerNum )
 	{
 
 	}
 
-	void CServerFrameGenerator::recvClientData( unsigned pID , DataSteamBuffer& buffer )
+	void CServerFrameCollector::processClientFrameData( unsigned pID , DataSteamBuffer& buffer )
 	{
-		BuFrameData data;
-		auto serializer = MakeBufferSerializer(buffer);
-		IStreamSerializer::ReadOp op( serializer );
-		data.serialize( op );
-
-		unsigned dataPos = mPortDataMap[ data.port ];
-
-		mFrameData[ dataPos ].keyActBit |= data.keyActBit;
-		if ( data.keyActBit & BIT( ACT_BB_MOUSE_ROTATE ) )
+		if( buffer.getAvailableSize() )
 		{
-			mFrameData[ dataPos ].mouseOffset = data.mouseOffset;
+			BuFrameData data;
+			auto serializer = MakeBufferSerializer(buffer);
+			IStreamSerializer::ReadOp op(serializer);
+			data.serialize(op);
+			if( data.port == ERROR_ACTION_PORT )
+			{
+
+
+			}
+
+			unsigned dataPos = mPortDataMap[data.port];
+			mActivePortMask |= BIT(data.port);
+			mFrameData[dataPos].keyActBit |= data.keyActBit;
+			if( data.keyActBit & BIT(ACT_BB_MOUSE_ROTATE) )
+			{
+				mFrameData[dataPos].mouseOffset = data.mouseOffset;
+			}
 		}
 	}
 }//namespace Bubble

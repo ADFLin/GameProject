@@ -50,20 +50,21 @@ namespace Bubble
 		PlayerDataManager* mManager;
 	};
 
-	class CClientFrameGenerator : public TCLKeyFrameGenerator< BuFrameData >
+	class CClientFrameGenerator : public TClientKeyFrameCollector< BuFrameData >
 	{
-		typedef TCLKeyFrameGenerator< BuFrameData > BaseClass;
+		typedef TClientKeyFrameCollector< BuFrameData > BaseClass;
 	public:
 		virtual void  onFireAction( ActionParam& param );
-		virtual void  generate( IStreamSerializer& serializer );
+		virtual void  collectFrameData( IStreamSerializer& serializer );
+		virtual bool  haveFrameData(int32 frame) override;
 	};
 
-	class CServerFrameGenerator : public TSVKeyFrameGenerator< BuFrameData >
+	class CServerFrameCollector : public TServerKeyFrameCollector< BuFrameData >
 	{
-		typedef TSVKeyFrameGenerator< BuFrameData > BaseClass;
+		typedef TServerKeyFrameCollector< BuFrameData > BaseClass;
 	public:
-		CServerFrameGenerator();
-		void recvClientData( unsigned pID , DataSteamBuffer& buffer );
+		CServerFrameCollector();
+		void processClientFrameData( unsigned pID , DataSteamBuffer& buffer );
 	};
 
 }// namespace Bubble

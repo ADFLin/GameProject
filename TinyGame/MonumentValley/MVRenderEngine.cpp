@@ -79,7 +79,7 @@ namespace MV
 		{
 			if ( !MeshBuild::Cube( mMesh[ MESH_BOX ] , 0.5f ) ||
 				!MeshBuild::UVSphere( mMesh[ MESH_SPHERE ] , 0.3 , 10 , 10 ) ||
-				!MeshBuild::Plane( mMesh[ MESH_PLANE ] , Vector3(0.5,0,0) ,Vector3(1,0,0) , Vector3(0,1,0) , 0.5 , 1 ) )
+				!MeshBuild::Plane( mMesh[ MESH_PLANE ] , Vector3(0.5,0,0) ,Vector3(1,0,0) , Vector3(0,1,0) , Vector2( 0.5 , 0.5) , 1 ) )
 				return false;
 
 			for( int i = 0 ; i < ARRAY_SIZE( gMeshInfo ) ; ++i )

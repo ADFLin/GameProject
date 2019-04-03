@@ -584,6 +584,7 @@ namespace Render
 			Blend::Factor    srcAlpha;
 			Blend::Factor    destAlpha;
 		};
+		bool bEnableAlphaToCoverage;
 		TargetValue    targetValues[NumBlendStateTarget];
 	};
 

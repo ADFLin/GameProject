@@ -403,6 +403,7 @@ void SmokeRenderPS()
 
 	OutColor = float4(inScatter, transmittance);
 	OutDepth = (stepNum > 0) ? distStart : 0;
+	//OutColor = float4(abs(deviceDepth.xxx), 1);
 	//OutColor = float4(stepNum.xxx / 100 , 0);
 	//OutColor = float4(IndexStep.xxx / 300 , 0);
 }

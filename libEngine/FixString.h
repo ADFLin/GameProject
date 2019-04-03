@@ -78,4 +78,5 @@ private:
 	CharT mData[ N ];
 };
 
+
 #endif // FixString_h__

@@ -27,7 +27,7 @@ public:
 			unsigned flag = 0;
 			switch( getGameState() )
 			{
-			case GS_RUN:
+			case GameState::Run:
 				break;
 			default:
 				flag |= CTF_FREEZE_FRAME;

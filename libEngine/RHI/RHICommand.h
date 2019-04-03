@@ -122,7 +122,7 @@ namespace Render
 	void RHIDrawPrimitiveUP(PrimitiveType type, int numPrimitive, void* pVertices, int numVerex, int vetexStride);
 	void RHIDrawIndexedPrimitiveUP(PrimitiveType type, int numPrimitive, void* pVertices, int numVerex, int vetexStride , int* pIndices , int numIndex );
 
-	void RHISetupFixedPipelineState(Matrix4 const& matModelView, Matrix4 const& matProj, int numTexture = 0, RHITexture2D** textures = nullptr);
+	void RHISetupFixedPipelineState(Matrix4 const& matModelView, Matrix4 const& matProj, int numTexture = 0, RHITexture2D const** textures = nullptr);
 	void RHISetFrameBuffer(RHIFrameBuffer& frameBuffer, RHITextureDepth* overrideDepthTexture = nullptr);
 
 	void RHISetIndexBuffer(RHIIndexBuffer* indexBuffer);
@@ -198,7 +198,7 @@ namespace Render
 
 		RHIFUNCTION(void RHISetFrameBuffer(RHIFrameBuffer& frameBuffer, RHITextureDepth* overrideDepthTexture));
 		RHIFUNCTION(void RHISetIndexBuffer(RHIIndexBuffer* indexBuffer));
-		RHIFUNCTION(void RHISetupFixedPipelineState(Matrix4 const& matModelView, Matrix4 const& matProj, int numTexture , RHITexture2D** textures));
+		RHIFUNCTION(void RHISetupFixedPipelineState(Matrix4 const& matModelView, Matrix4 const& matProj, int numTexture , RHITexture2D const** textures));
 
 	};
 
@@ -340,9 +340,10 @@ namespace Render
 		Blend::Operation ColorOp0 = Blend::eAdd ,
 		Blend::Factor SrcAlphaFactor0 = Blend::eOne,
 		Blend::Factor DestAlphaFactor0 = Blend::eZero ,
-		Blend::Operation AlphaOp0 = Blend::eAdd >
+		Blend::Operation AlphaOp0 = Blend::eAdd ,
+		bool bEnableAlphaToCoverage = false >
 	class TStaticBlendSeparateState : public StaticRHIStateT< 
-		TStaticBlendSeparateState< WriteColorMask0 , SrcColorFactor0 , DestColorFactor0 ,ColorOp0 , SrcAlphaFactor0 ,DestAlphaFactor0, AlphaOp0  >,
+		TStaticBlendSeparateState< WriteColorMask0 , SrcColorFactor0 , DestColorFactor0 ,ColorOp0 , SrcAlphaFactor0 ,DestAlphaFactor0, AlphaOp0 , bEnableAlphaToCoverage >,
 		RHIBlendState >
 	{
 	public:
@@ -360,7 +361,7 @@ namespace Render
 		initializer.targetValues[INDEX].destAlpha = DestAlphaFactor##INDEX;
 
 			SET_TRAGET_VALUE(0);
-
+			initializer.bEnableAlphaToCoverage = bEnableAlphaToCoverage;
 #undef SET_TRAGET_VALUE
 			return RHICreateBlendState(initializer);
 
@@ -372,9 +373,17 @@ namespace Render
 		ColorWriteMask WriteColorMask0 = CWM_RGBA,
 		Blend::Factor SrcFactor0 = Blend::eOne,
 		Blend::Factor DestFactor0 = Blend::eZero ,
-		Blend::Operation Op0 = Blend::eAdd >
+		Blend::Operation Op0 = Blend::eAdd,
+		bool bEnableAlphaToCoverage = false >
 	class TStaticBlendState : public TStaticBlendSeparateState<
-		WriteColorMask0 , SrcFactor0 , DestFactor0 , Op0 , SrcFactor0, DestFactor0, Op0 >
+		WriteColorMask0 , SrcFactor0 , DestFactor0 , Op0 , SrcFactor0, DestFactor0, Op0 , bEnableAlphaToCoverage >
+	{
+	};
+
+	template<
+		ColorWriteMask WriteColorMask0 = CWM_RGBA >
+		class TStaticAlphaToCoverageBlendState : public TStaticBlendState<
+		WriteColorMask0, Blend::eOne, Blend::eZero, Blend::eAdd, true >
 	{
 	};
 }//namespace Render

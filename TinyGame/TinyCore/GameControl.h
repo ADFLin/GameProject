@@ -161,6 +161,7 @@ enum GameAction
 class  GameController
 {
 public:
+	virtual void  restart(){}
 	virtual void  setupInput(ActionProcessor& proccessor) = 0;
 
 	virtual void  blockAllAction( bool beB ) = 0;
@@ -183,7 +184,7 @@ class  SimpleController : public GameController
 public:
 	TINY_API SimpleController();
 
-
+	TINY_API void  restart();
 	TINY_API void  clearAllKey();
 	TINY_API void  initKey( ControlAction act , int sen , uint8 key0 , uint8 key1 = 0xff );
 	TINY_API void  setKey( unsigned cID , ControlAction action , unsigned key );

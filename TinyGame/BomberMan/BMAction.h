@@ -30,8 +30,8 @@ namespace BomberMan
 		World& mLevel;
 	};
 
-	typedef SVKeyFrameGenerator CServerFrameGenerator;
-	typedef CLKeyFrameGenerator CClientFrameGenerator;
+	typedef ServerKeyFrameCollector CServerFrameGenerator;
+	typedef ClientKeyFrameCollector CClientFrameGenerator;
 
 }//namespace BomberMan
 

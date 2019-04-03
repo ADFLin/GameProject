@@ -3,7 +3,7 @@
 #include "GameModule.h"
 #include "GameAction.h"
 
-#include <fstream>
+#include "Serialize/FileStream.h"
 #include <vector>
 
 
@@ -30,7 +30,25 @@ struct ReplayInfoV0_0_1
 		gameInfoData = new char[ size ];
 		dataSize     = size;
 	}
+
+	template< class OP >
+	void serialize(OP op)
+	{
+		op & name & gameVersion &  dataSize;
+
+		if( OP::IsLoading )
+		{
+			setGameData(dataSize);
+		}
+		if( dataSize )
+		{
+			op & IStreamSerializer::MakeSequence(gameInfoData, dataSize);
+		}
+	}
 };
+
+
+TYPE_SUPPORT_SERIALIZE_FUNC(ReplayInfoV0_0_1);
 
 void ReplayHeader::clear( uint32 version )
 {
@@ -41,115 +59,14 @@ void ReplayHeader::clear( uint32 version )
 	dataOffset = 0;
 }
 
-class IStreamOpteraion
-{
-public:
-	IStreamOpteraion( std::ifstream& fs ):mFS(fs){}
-	enum { isInput = 1 , isOutput = 0 };
-	template < class T >
-	IStreamOpteraion& operator & ( T const& val )
-	{
-		mFS.read( (char*) &val , sizeof( val ) );
-		return *this;
-	}
-
-	template < class T >
-	IStreamOpteraion& operator & ( std::vector< T >& val )
-	{
-		size_t num;
-		mFS.read( (char*) &num , sizeof( num ) );
-		if ( num )
-		{
-			val.resize( num );
-			mFS.read( (char*) &val[0] , std::streamsize( sizeof( T ) * num ) );
-		}
-		return *this;
-	}
-
-	IStreamOpteraion& operator & ( ReplayInfo& info )
-	{
-		mFS.read( (char*) info.name , sizeof( info.name ) );
-
-		(*this) & info.gameVersion & info.templateVersion;
-		mFS.read( (char*) &info.dataSize    , sizeof( info.dataSize ) );
-		info.setGameData( info.dataSize );
-		mFS.read( (char*) info.gameInfoData    , info.dataSize );
-		return *this;
-	}
-
-	IStreamOpteraion& operator & ( ReplayInfoV0_0_1& info )
-	{
-		mFS.read( (char*) info.name , sizeof( info.name ) );
-		mFS.read( (char*) &info.gameVersion , sizeof( info.gameVersion ) );
-		mFS.read( (char*) &info.dataSize    , sizeof( info.dataSize ) );
-		info.setGameData( info.dataSize );
-		mFS.read( (char*) info.gameInfoData    , info.dataSize );
-		return *this;
-	}
-private:
-	std::ifstream& mFS;
-};
-
-class OStreamOpteraion
-{
-public:
-	OStreamOpteraion( std::ofstream& fs ):mFS(fs){}
-	enum { isOutput = 1 , isInput = 0 };
-	template < class T >
-	OStreamOpteraion& operator & ( T const& val )
-	{
-		mFS.write( (char*) &val , sizeof( val ) );
-		return *this;
-	}
-	template < class T >
-	OStreamOpteraion& operator & ( std::vector< T > const& val )
-	{
-		size_t num = val.size();
-		mFS.write( (char*) &num , sizeof( num ) );
-		if ( num )
-			mFS.write( (char*) &val[0] , std::streamsize( sizeof( T ) * num ) );
-
-		return *this;
-	}
-
-	OStreamOpteraion& operator & ( ReplayInfo const& info )
-	{
-		mFS.write( (char const*) info.name , sizeof( info.name ) );
-
-		(*this) & info.gameVersion & info.templateVersion;
-
-		mFS.write( (char*) &info.dataSize    , sizeof( info.dataSize ) );
-
-		if ( info.dataSize )
-			mFS.write( (char*) info.gameInfoData    , info.dataSize );
-
-		return *this;
-	}
-
-	OStreamOpteraion& operator & ( ReplayInfoV0_0_1 const& info )
-	{
-		mFS.write( (char*) info.name , sizeof( info.name ) );
-		mFS.write( (char*) &info.gameVersion , sizeof( info.gameVersion ) );
-		mFS.write( (char*) &info.dataSize    , sizeof( info.dataSize ) );
-
-		mFS.write( (char*) &info.dataSize    , sizeof( info.dataSize ) );
-
-		if ( info.dataSize )
-			mFS.write( (char*) info.gameInfoData    , info.dataSize );
-
-		return *this;
-	}
-private:
-	std::ofstream& mFS;
-};
-
-
 bool ReplayBase::loadReplayInfo( char const* path , ReplayHeader& header , ReplayInfo& info )
 {
-	std::ifstream fs( path , std::ios::binary );
-	if ( !fs )
+	InputFileSerializer fs;
+	if( !fs.open(path) )
 		return false;
-	IStreamOpteraion op( fs );
+
+	IStreamSerializer::ReadOp op(fs);
+
 	op & header;
 	if ( header.version == MAKE_VERSION(0,0,1) )
 	{
@@ -185,50 +102,49 @@ template< class T >
 void Replay::serialize( T& op )
 {
 	op & mHeader;
-	assert( mHeader.version >= LastVersion );
 	op & mInfo;
-	op & mFrameNodeVec & mData;
+	op & mFrameNodeVec;
+	op & mData;
 }
-
 
 bool Replay::save( char const* path )
 {
-	std::ofstream fs( path , std::ios::binary );
-
-	if ( !fs )
+	OutputFileSerializer fs;
+	if ( !fs.open(path) )
 		return false;
 
 	setupHeader();
-	OStreamOpteraion op( fs );
-	serialize( op );
 
-
-	return true;
+	serialize(IStreamSerializer::WriteOp(fs));
+	return fs.isValid();
 }
 
 bool Replay::load( char const* path )
 {
 	clear();
-	std::ifstream fs( path , std::ios::binary );
-	if ( !fs )
+	InputFileSerializer fs;
+	if ( !fs.open( path ) )
 		return false;
-	IStreamOpteraion op( fs );
-	serialize( op );
-	return true;
+
+	serialize(IStreamSerializer::ReadOp(fs));
+	return fs.isValid();
 }
 
 
-void Replay::recordFrame( long frame , IFrameActionTemplate* temp )
+void Replay::recordFrame( long frame , IFrameActionTemplate* actionTemp)
 {
-	size_t oldPos = mData.size();
-	temp->translateData( *this );
-	if ( oldPos != mData.size() )
+	if ( actionTemp->haveFrameData(frame) )
 	{
-		FrameNode node;
-		node.frame = frame;
-		node.pos   = ( uint32 )oldPos;
+		size_t oldPos = mData.size();
+		actionTemp->collectFrameData(*this);
+		if( oldPos != mData.size() )
+		{
+			FrameNode node;
+			node.frame = frame;
+			node.pos = (uint32)oldPos;
 
-		mFrameNodeVec.push_back( node );
+			mFrameNodeVec.push_back(node);
+		}
 	}
 }
 
@@ -237,16 +153,21 @@ bool Replay::advanceFrame( long frame )
 	while( mNextNodePos < mFrameNodeVec.size() )
 	{
 		FrameNode& node = mFrameNodeVec[ mNextNodePos ];
+
+		if( node.frame > frame )
+			break;
+
 		if ( node.frame == frame )
 		{
 			++mNextNodePos;
 			mLoadPos = node.pos;
 			return true;
 		}
-		if ( mFrameNodeVec[ mLoadPos ].frame > frame )
-			break;
-
-		++mNextNodePos;
+		else
+		{
+			LogWarning( 0, "Replay Error");
+			++mNextNodePos;
+		}
 	}
 
 	return false;
@@ -275,6 +196,7 @@ void Replay::clear()
 
 void Replay::setupHeader()
 {
+	mHeader.version = LastVersion;
 	mHeader.totalSize = 0 ;
 	mHeader.totalSize += sizeof( mHeader );
 
@@ -297,15 +219,12 @@ bool Replay::isValid() const
 	return mFrameNodeVec.size() != 0;
 }
 
-
-
 ReplayRecorder::ReplayRecorder( IFrameActionTemplate* actionTemp , long& gameFrame ) 
 	:mTemplate( actionTemp ) 
 	,mGameFrame( gameFrame )
 {
 
 }
-
 
 ReplayRecorder::~ReplayRecorder()
 {
@@ -316,6 +235,7 @@ void ReplayRecorder::start( uint64 seed )
 {
 	mReplay.clear();
 	mReplay.getHeader().seed = seed;
+	mPrevFrame = -1;
 }
 
 void ReplayRecorder::stop()
@@ -330,17 +250,31 @@ bool ReplayRecorder::save( char const* path )
 
 void ReplayRecorder::onScanActionStart(bool bUpdateFrame)
 {
+	mbUpdateFrame = bUpdateFrame;
 	mTemplate->prevListenAction();
 }
 
 void ReplayRecorder::onFireAction( ActionParam& param )
 {
+	assert(mbUpdateFrame);
 	mTemplate->listenAction( param );
 }
 
 void ReplayRecorder::onScanActionEnd()
 {
-	mReplay.recordFrame( mGameFrame , mTemplate );
+	if( mbUpdateFrame )
+	{
+		if( mPrevFrame == -1 )
+		{
+			mPrevFrame = mGameFrame;
+		}
+		else
+		{
+			assert(mGameFrame - mPrevFrame == 1);
+			mPrevFrame = mGameFrame;
+		}
+		mReplay.recordFrame(mGameFrame, mTemplate);
+	}
 }
 
 ReplayInput::ReplayInput( IFrameActionTemplate* actionTemp , long& gameFrame ) 
@@ -360,13 +294,20 @@ bool ReplayInput::scanInput( bool beUpdateFrame )
 	if ( !beUpdateFrame )
 		return false;
 
-	mTemplate->prevCheckAction();
-	if ( mReplay.advanceFrame( mGameFrame ) )
+	if( mPrevFrame == -1 )
 	{
-		mTemplate->restoreData( mReplay );
+		mPrevFrame = mGameFrame;
+	}
+	else
+	{
+		assert(mGameFrame - mPrevFrame == 1);
+		mPrevFrame = mGameFrame;
 	}
 
-	return true;
+	bool bHaveData = mReplay.advanceFrame(mGameFrame);
+	
+	mTemplate->restoreFrameData( mReplay , bHaveData );
+	return bHaveData;
 }
 
 bool ReplayInput::checkAction( ActionParam& param )
@@ -395,6 +336,7 @@ bool ReplayInput::isValid()
 void ReplayInput::restart()
 {
 	mReplay.resetTrackPos();
+	mPrevFrame = -1;
 }
 
 
@@ -409,7 +351,7 @@ namespace OldVersion
 	void Replay::serialize( T& op )
 	{
 		op & mHeader;
-		if ( T::isInput && mHeader.version != LastVersion )
+		if ( T::IsLoading && mHeader.version != LastVersion )
 		{
 			switch( mHeader.version )
 			{
@@ -439,30 +381,30 @@ namespace OldVersion
 
 	bool Replay::save( char const* path )
 	{
-		std::ofstream fs( path , std::ios::binary );
-
-		if ( !fs )
+		setupHeader();
+		OutputFileSerializer fs;
+		if( !fs.open(path) )
 			return false;
 
-		setupHeader();
-		OStreamOpteraion op( fs );
-		serialize( op );
+		serialize(IStreamSerializer::WriteOp(fs));
 		return true;
 	}
 
 	bool Replay::load( char const* path )
 	{
 		clear();
-		std::ifstream fs( path , std::ios::binary );
-		if ( !fs )
+		InputFileSerializer fs;
+		if( !fs.open(path) )
 			return false;
-		IStreamOpteraion op( fs );
-		serialize( op );
+
+		serialize(IStreamSerializer::ReadOp(fs));
 		return true;
 	}
 
 	void Replay::setupHeader()
 	{
+		mHeader.version = LastVersion;
+
 		mHeader.totalSize = 0 ;
 		mHeader.totalSize += sizeof( mHeader );
 
@@ -570,6 +512,9 @@ namespace OldVersion
 
 	bool ReplayInput::scanInput( bool beUpdateFrame )
 	{
+		if( !beUpdateFrame )
+			return false;
+
 		size_t size = mReplay.mNodeHeaders.size();
 
 		if ( mNextIdx >= size )

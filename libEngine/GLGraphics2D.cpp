@@ -148,6 +148,8 @@ void GLGraphics2D::beginRender()
 	RHISetBlendState(TStaticBlendState<>::GetRHI());
 	RHISetRasterizerState(TStaticRasterizerState< ECullMode::None >::GetRHI());
 
+	glDisable(GL_TEXTURE_2D);
+
 	glViewport(0, 0, mWidth, mHeight);
 	glMatrixMode( GL_PROJECTION );
 	glPushMatrix();

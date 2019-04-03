@@ -296,12 +296,12 @@ namespace Render
 			ShaderHelper::Get().copyTextureToBuffer(mSceneRenderTargets.getFrameTexture());
 		}
 
-		if ( IBLResource::SharedBRDFTexture.getRHI() && 0 )
+		if ( IBLResource::SharedBRDFTexture.isValid() && 0 )
 		{
 			RHISetViewport(0, 0, screenSize.x, screenSize.y);
 			OrthoMatrix matProj(0, screenSize.x, 0, screenSize.y, -1, 1);
 			MatrixSaveScope matScope(matProj);
-			DrawUtility::DrawTexture(*IBLResource::SharedBRDFTexture.getRHI(), IntVector2(10, 10), IntVector2(512, 512));
+			DrawUtility::DrawTexture(*IBLResource::SharedBRDFTexture , IntVector2(10, 10), IntVector2(512, 512));
 		}
 	}
 
@@ -448,8 +448,8 @@ namespace Render
 		{
 			IBLResource::InitializeBRDFTexture(nullptr);
 
-			frameBuffer.setTexture(0, *resource.SharedBRDFTexture.getRHI());
-			RHISetViewport(0, 0, resource.SharedBRDFTexture.getRHI()->getSizeX(), resource.SharedBRDFTexture.getRHI()->getSizeY());
+			frameBuffer.setTexture(0, *resource.SharedBRDFTexture);
+			RHISetViewport(0, 0, resource.SharedBRDFTexture->getSizeX(), resource.SharedBRDFTexture->getSizeY());
 			RHISetRasterizerState(TStaticRasterizerState< ECullMode::None >::GetRHI());
 			RHISetDepthStencilState(StaticDepthDisableState::GetRHI());
 			RHISetBlendState(TStaticBlendState< CWM_RGBA >::GetRHI());

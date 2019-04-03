@@ -14,6 +14,7 @@ bool RaySphereTest(float3 pos, float3 dirNormalized, float3 center, float radius
 
 	if( d < 0 )
 	{
+		outT = length(offset - b * dirNormalized);
 		return false;
 	}
 	outT = -b - sqrt(d);

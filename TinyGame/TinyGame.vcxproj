@@ -370,6 +370,7 @@ copy $(TargetDir)EngineShare.dll  $(ProjectDir)out\</Command>
     <None Include="out\Shader\Game\BumpPS.sgc" />
     <None Include="out\Shader\Game\BumpVS.sgc" />
     <None Include="out\Shader\Game\EnvLightingTest.sgc" />
+    <None Include="out\Shader\Game\Grass.sgc" />
     <None Include="out\Shader\Game\NoiseTest.sgc" />
     <None Include="out\Shader\Game\SimpleSprite.sgc" />
     <None Include="out\Shader\Game\Tessellation.sgc" />

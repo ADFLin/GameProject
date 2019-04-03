@@ -229,7 +229,7 @@ namespace Render
 		EXECUTE_RHIFUN(RHIDrawIndexedPrimitiveUP(type, numPrimitive, pVertices, numVerex, vetexStride, pIndices, numIndex));
 	}
 
-	void RHISetupFixedPipelineState(Matrix4 const& matModelView, Matrix4 const& matProj, int numTexture /*= 0*/, RHITexture2D** textures /*= nullptr*/)
+	void RHISetupFixedPipelineState(Matrix4 const& matModelView, Matrix4 const& matProj, int numTexture /*= 0*/, RHITexture2D const** textures /*= nullptr*/)
 	{
 		EXECUTE_RHIFUN(RHISetupFixedPipelineState(matModelView, matProj, numTexture, textures));
 	}

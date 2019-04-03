@@ -17,8 +17,8 @@ namespace Tetris
 		GameWorld& mWorld;
 	};
 
-	typedef SVKeyFrameGenerator CServerFrameGenerator;
-	typedef CLKeyFrameGenerator CClientFrameGenerator;
+	typedef ServerKeyFrameCollector CServerFrameGenerator;
+	typedef ClientKeyFrameCollector CClientFrameGenerator;
 
 } //namespace Tetris
 

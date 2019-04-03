@@ -21,8 +21,8 @@ namespace GreedySnake
 		Scene* mScene;
 	};
 
-	typedef SVKeyFrameGenerator ServerFrameGenerator;
-	typedef CLKeyFrameGenerator ClientFrameGenerator;
+	typedef ServerKeyFrameCollector ServerFrameCollector;
+	typedef ClientKeyFrameCollector ClientFrameCollector;
 
 }//namespace GreedySnake
 

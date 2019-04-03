@@ -89,13 +89,13 @@ namespace GreedySnake
 	{
 		switch( getGameState() )
 		{
-		case GS_START:
-			changeState( GS_RUN );
+		case GameState::Start:
+			changeState( GameState::Run );
 			break;
-		case GS_RUN:
+		case GameState::Run:
 			mScene->tick();
 			if ( mScene->isOver() )
-				changeState( GS_END );
+				changeState( GameState::End );
 			break;
 		}
 	}
@@ -134,7 +134,7 @@ namespace GreedySnake
 	{
 		switch ( state )
 		{
-		case GS_END:
+		case GameState::End:
 			switch( getModeType() )
 			{
 			case SMT_SINGLE_GAME:
@@ -169,13 +169,13 @@ namespace GreedySnake
 		INetFrameManager* netFrameMgr;
 		if ( netWorker->isServer() )
 		{
-			ServerFrameGenerator* frameGenerator = new ServerFrameGenerator( gMaxPlayerNum );
-			netFrameMgr = new SVSyncFrameManager( netWorker , actionTemplate , frameGenerator );
+			ServerFrameCollector* frameCollector = new ServerFrameCollector( gMaxPlayerNum );
+			netFrameMgr = new SVSyncFrameManager( netWorker , actionTemplate , frameCollector );
 		}
 		else
 		{
-			ClientFrameGenerator* frameGenerator = new ClientFrameGenerator;
-			netFrameMgr = new CLSyncFrameManager( netWorker , actionTemplate , frameGenerator );
+			ClientFrameCollector* frameCollector = new ClientFrameCollector;
+			netFrameMgr = new CLSyncFrameManager( netWorker , actionTemplate , frameCollector );
 		}
 		*engine = new CFrameActionEngine( netFrameMgr );
 		return true;

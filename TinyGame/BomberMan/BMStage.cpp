@@ -148,7 +148,7 @@ namespace BomberMan
 			switch( mStep )
 			{
 			case STEP_READY:
-				if ( changeState( GS_RUN ))
+				if ( changeState( GameState::Run ))
 				{
 					setStep( STEP_RUN , -1 );
 				}
@@ -182,15 +182,15 @@ namespace BomberMan
 		}
 		switch( getGameState() )
 		{
-		case GS_RUN:
+		case GameState::Run:
 			mMode->tick();
 			if ( mMode->getState() != Mode::eRUN )
 			{
 				setStep( STEP_ROUND_RESULT , 3000 );
-				changeState( GS_END );
+				changeState( GameState::End );
 			}
 			break;
-		case GS_END:
+		case GameState::End:
 			break;
 		}
 	}
@@ -229,13 +229,13 @@ namespace BomberMan
 		INetFrameManager* netFrameMgr;
 		if ( netWorker->isServer() )
 		{
-			CServerFrameGenerator* frameGenerator = new CServerFrameGenerator( gMaxPlayerNum );
-			netFrameMgr = new SVSyncFrameManager( netWorker , actionTemplate , frameGenerator );
+			CServerFrameGenerator* frameCollector = new CServerFrameGenerator( gMaxPlayerNum );
+			netFrameMgr = new SVSyncFrameManager( netWorker , actionTemplate , frameCollector );
 		}
 		else
 		{
-			CClientFrameGenerator* frameGenerator = new CClientFrameGenerator;
-			netFrameMgr = new CLSyncFrameManager( netWorker , actionTemplate , frameGenerator );
+			CClientFrameGenerator* frameCollector = new CClientFrameGenerator;
+			netFrameMgr = new CLSyncFrameManager( netWorker , actionTemplate , frameCollector );
 
 		}
 		*engine  = new CFrameActionEngine( netFrameMgr );

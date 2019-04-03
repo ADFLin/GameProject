@@ -301,6 +301,7 @@ namespace Render
 
 		mFromat = format;
 		mNumMipLevel = numMipLevel;
+		mNumSamples = numSamples;
 
 		bind();
 		if( numSamples > 1 )
@@ -491,21 +492,25 @@ namespace Render
 	}
 
 
-	void OpenGLFrameBuffer::blitToScreenBuffer()
+	void OpenGLFrameBuffer::blitToBackBuffer(int index)
 	{
 		int width, height;
-		assert(mTextures.size() == 1);
-		switch( mTextures[0].typeEnumGL )
+		assert(index < mTextures.size());
+		switch( mTextures[index].typeEnumGL )
 		{
 		case GL_TEXTURE_CUBE_MAP:
-
+			{
+				RHITextureCube* texture = (RHITextureCube*)mTextures[index].bufferRef.get();
+				width = texture->getSize();
+				height = texture->getSize();
+			}
 			break;
 		case GL_TEXTURE_2D_MULTISAMPLE:
 		case GL_TEXTURE_2D:
 			{
-				RHITexture2D* texture2d = (RHITexture2D*)mTextures[0].bufferRef.get();
-				width = texture2d->getSizeX();
-				height = texture2d->getSizeY();
+				RHITexture2D* texture = (RHITexture2D*)mTextures[index].bufferRef.get();
+				width = texture->getSizeX();
+				height = texture->getSizeY();
 			}
 			break;
 
@@ -513,9 +518,10 @@ namespace Render
 		default:
 			return;
 		}
-		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);   // Make sure no FBO is set as the draw framebuffer
-		glBindFramebuffer(GL_READ_FRAMEBUFFER, getHandle()); // Make sure your multisampled FBO is the read framebuffer
-		glDrawBuffer(GL_BACK);                       // Set the back buffer as the draw buffer
+		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+		glBindFramebuffer(GL_READ_FRAMEBUFFER, getHandle());
+		glDrawBuffer(GL_BACK);
+		glReadBuffer(GL_COLOR_ATTACHMENT0 + index);		
 		glBlitFramebuffer(0, 0, width, height, 0, 0, width, height, GL_COLOR_BUFFER_BIT, GL_NEAREST);
 		glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
 	}
@@ -1112,6 +1118,7 @@ namespace Render
 
 	OpenGLBlendState::OpenGLBlendState(BlendStateInitializer const& initializer)
 	{
+		mStateValue.bEnableAlphaToCoverage = initializer.bEnableAlphaToCoverage;
 		for( int i = 0; i < NumBlendStateTarget; ++i )
 		{
 			auto const& targetValue = initializer.targetValues[i];

@@ -171,7 +171,7 @@ class FramePacket : public IComPacket
 {
 public:
 	FramePacket( ComID id ):IComPacket( id ){}
-	long  frame;
+	int32  frame;
 };
 
 template< class T , int ID >

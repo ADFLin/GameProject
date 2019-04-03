@@ -160,14 +160,14 @@ namespace Tetris
 		if ( netWorker->isServer() )
 		{
 			ServerWorker* server = static_cast< ServerWorker*>( netWorker );
-			CServerFrameGenerator* frameGenerator = new CServerFrameGenerator( gTetrisMaxPlayerNum );
-			netFrameMgr = new SVSyncFrameManager( server , actionTemplate , frameGenerator );
+			CServerFrameGenerator* frameCollector = new CServerFrameGenerator( gTetrisMaxPlayerNum );
+			netFrameMgr = new SVSyncFrameManager( server , actionTemplate , frameCollector );
 		}
 		else
 		{
 			ClientWorker* client = static_cast< ClientWorker* >( netWorker );
-			CClientFrameGenerator* frameGenerator = new CClientFrameGenerator;
-			netFrameMgr = new CLSyncFrameManager( client , actionTemplate , frameGenerator );
+			CClientFrameGenerator* frameCollector = new CClientFrameGenerator;
+			netFrameMgr = new CLSyncFrameManager( client , actionTemplate , frameCollector );
 
 		}
 		*engine = new CFrameActionEngine( netFrameMgr );
@@ -193,21 +193,21 @@ namespace Tetris
 
 	void LevelStage::tick()
 	{
-		if ( getGameState() == GS_RUN )
+		if ( getGameState() == GameState::Run )
 		{
 			mWorld->tick();
 			if ( mWorld->isGameEnd() )
-				changeState( GS_END );
+				changeState( GameState::End );
 		}
 
-		if ( getGameState() != GS_PAUSE )
+		if ( getGameState() != GameState::Pause )
 			mGameTime += gDefaultTickTime;
 
 		switch( getGameState() )
 		{
-		case GS_START:
+		case GameState::Start:
 			if ( mGameTime > 2500 || getModeType() == SMT_REPLAY )
-				changeState( GS_RUN );
+				changeState( GameState::Run );
 			break;
 		}
 	}
@@ -222,7 +222,7 @@ namespace Tetris
 	{
 		switch( state )
 		{
-		case GS_END:
+		case GameState::End:
 			switch( getModeType() )
 			{
 			case  SMT_SINGLE_GAME:
@@ -232,7 +232,7 @@ namespace Tetris
 						getRecordManager(),
 						playerManager->getPlayer( playerManager->getUserID() ) );
 
-					if ( mLastGameOrder < 10 && mGameMode->getModeID() == MODE_TS_CHALLENGE )
+					if ( /*mLastGameOrder < 10 &&*/ mGameMode->getModeID() == MODE_TS_CHALLENGE )
 					{
 						FixString< 256 > str;
 
@@ -271,7 +271,7 @@ namespace Tetris
 
 		mWorld->render( g );
 
-		if ( getGameState() == GS_START )
+		if ( getGameState() == GameState::Start )
 		{
 			RenderUtility::SetFont( g , FONT_S24 );
 			Vec2i pos( de.getScreenWidth() / 2 , de.getScreenHeight() / 2 );

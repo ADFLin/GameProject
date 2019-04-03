@@ -358,9 +358,9 @@ void ReplayStageMode::updateTime(long time)
 		return;
 
 	if( mReplayInput->isPlayEnd() )
-		changeState(GS_END);
+		changeState(GameState::End);
 
-	int numFrame = time / gDefaultTickTime;
+	int numFrame = time / mCurStage->getTickTime();
 
 	int numGameFrame = 0;
 
@@ -369,7 +369,7 @@ void ReplayStageMode::updateTime(long time)
 	{
 		switch( getGameState() )
 		{
-		case GS_RUN:
+		case GameState::Run:
 			mReplayUpdateCount += mReplaySpeed;
 			while( mReplayUpdateCount >= g_ReplayNormalSpeed )
 			{
@@ -381,7 +381,7 @@ void ReplayStageMode::updateTime(long time)
 				processor.endAction();
 
 				mReplayUpdateCount -= g_ReplayNormalSpeed;
-				if( getGameState() == GS_END )
+				if( getGameState() == GameState::End )
 					break;
 			}
 			break;
@@ -417,7 +417,7 @@ bool ReplayStageMode::onWidgetEvent(int event, int id, GWidget* ui)
 		assert(event == EVT_BUTTON_CLICK);
 		if( togglePause() )
 		{
-			GUI::CastFast< GButton >(ui)->setTitle((getGameState() == GS_PAUSE) ? "->" : "=");
+			GUI::CastFast< GButton >(ui)->setTitle((getGameState() == GameState::Pause) ? "->" : "=");
 		}
 		return false;
 	case UI_REPLAY_FAST:

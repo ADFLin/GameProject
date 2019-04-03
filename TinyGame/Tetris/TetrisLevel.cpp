@@ -610,9 +610,10 @@ namespace Tetris
 
 	void Level::produceRandomPiece( Piece& piece )
 	{
+		piece.resetRotation();
 		PieceTemplateSet* set = LevelRule::getPieceTemplateSet();
-		set->setTemplate( Global::Random() % set->getTemplateNum() , piece );
-		int rotateTime = Global::Random() % piece.getDirectionNum();
+		set->setTemplate( Global::RandomNet() % set->getTemplateNum() , piece );
+		int rotateTime = Global::RandomNet() % piece.getDirectionNum();
 		piece.rotate( rotateTime );
 	}
 

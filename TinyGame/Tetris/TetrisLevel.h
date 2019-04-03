@@ -60,6 +60,7 @@ namespace Tetris
 		int          getRotationSize() const {  return getTemplate().rotationSize;  }
 		int          getDirectionNum()  const {  return getTemplate().directionNum; }
 		int          getDirection()     const {  return mDirection; }
+		void         resetRotation() { mDirection = 0; }
 		void         setBlockType( int idx , BlockType type ){ mBlock[ idx ].type = type; }
 		void         getBoundRect( int x[] , int y[] );
 		int          getBlockNum() const { return mNumBlock; }

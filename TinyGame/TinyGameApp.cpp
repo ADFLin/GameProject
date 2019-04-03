@@ -44,7 +44,7 @@
 
 #define GAME_SETTING_PATH "Game.ini"
 
-int g_DevMsgLevel = 10;
+int g_DevMsgLevel = -1;
 
 TINY_API IGameNetInterface* gGameNetInterfaceImpl;
 TINY_API IDebugInterface*   gDebugInterfaceImpl;

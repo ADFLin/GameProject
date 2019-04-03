@@ -323,7 +323,7 @@ namespace Render
 			int loc = getParamLoc(name);
 			if( loc == -1 )
 				return;
-			return setTextureInternal(loc, OpenGLTextureTraits< RHITextureType >::EnumValue , OpenGLCast::GetHandle(tex), OpenGLCast::GetHandle(sampler), idx);
+			return setTextureInternal(loc, OpenGLCast::To(&tex)->getGLTypeEnum(), OpenGLCast::GetHandle(tex), OpenGLCast::GetHandle(sampler), idx);
 		}
 
 		template < class RHITextureType >
@@ -338,7 +338,7 @@ namespace Render
 			int loc = getParamLoc(name);
 			if( loc == -1 )
 				return;
-			return setTextureInternal(loc, OpenGLTextureTraits< RHITextureType >::EnumValue, OpenGLCast::GetHandle(tex), idx);
+			return setTextureInternal(loc, OpenGLCast::To(&tex)->getGLTypeEnum(), OpenGLCast::GetHandle(tex), idx);
 		}
 
 		template < class RHITextureType >
@@ -382,13 +382,13 @@ namespace Render
 		template < class RHITextureType >
 		void setTexture(ShaderParameter const& param, RHITextureType const& tex, int idx = -1)
 		{
-			CHECK_PARAMETER(param, setTextureInternal(param.mLoc, OpenGLTextureTraits< RHITextureType >::EnumValue, OpenGLCast::GetHandle(tex), idx));
+			CHECK_PARAMETER(param, setTextureInternal(param.mLoc, OpenGLCast::To(&tex)->getGLTypeEnum(), OpenGLCast::GetHandle(tex), idx));
 		}
 
 		template < class RHITextureType >
 		void setTexture(ShaderParameter const& param, RHITextureType const& tex, RHISamplerState& sampler, int idx = -1)
 		{
-			CHECK_PARAMETER(param, setTextureInternal(param.mLoc, OpenGLTextureTraits< RHITextureType >::EnumValue, OpenGLCast::GetHandle(tex), OpenGLCast::GetHandle(sampler), idx));
+			CHECK_PARAMETER(param, setTextureInternal(param.mLoc, OpenGLCast::To(&tex)->getGLTypeEnum(), OpenGLCast::GetHandle(tex), OpenGLCast::GetHandle(sampler), idx));
 		}
 
 		template < class RHITextureType >

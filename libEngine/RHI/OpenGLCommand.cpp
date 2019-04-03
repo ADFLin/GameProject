@@ -374,8 +374,17 @@ namespace Render
 			return;
 
 		mDeviceState.blendStateUsage = &blendState;
-
 		OpenGLBlendState& BlendStateGL = static_cast<OpenGLBlendState&>(blendState);
+
+		{
+			auto& deviceValue = mDeviceState.blendStateValue;
+			auto const& setupValue = BlendStateGL.mStateValue;
+			if( GL_STATE_VAR_TEST(bEnableAlphaToCoverage) )
+			{
+				GL_STATE_VAR_ASSIGN(bEnableAlphaToCoverage);
+				EnableGLState(GL_SAMPLE_ALPHA_TO_COVERAGE, setupValue.bEnableAlphaToCoverage);
+			}
+		}
 
 		for( int i = 0; i < NumBlendStateTarget; ++i )
 		{
@@ -577,7 +586,7 @@ namespace Render
 		glDrawArrays(GLConvert::To(type), start, nv);
 	}
 
-	void OpenGLSystem::RHISetupFixedPipelineState(Matrix4 const& matModelView, Matrix4 const& matProj, int numTexture , RHITexture2D** textures )
+	void OpenGLSystem::RHISetupFixedPipelineState(Matrix4 const& matModelView, Matrix4 const& matProj, int numTexture , RHITexture2D const** textures )
 	{
 		glMatrixMode(GL_PROJECTION);
 		glLoadMatrixf(matProj);
@@ -585,12 +594,17 @@ namespace Render
 		glLoadMatrixf(matModelView);
 		if( numTexture )
 		{
-			glEnable(GL_TEXTURE);
+			glEnable(GL_TEXTURE_2D);
 			for( int i = 0; i < numTexture; ++i )
 			{
-				glEnable(GL_TEXTURE0 + i);
+				glActiveTexture(GL_TEXTURE0 + i);
 				glBindTexture(GL_TEXTURE_2D, textures[i] ? OpenGLCast::GetHandle(*textures[i]) : 0);
 			}
+			glActiveTexture(GL_TEXTURE0);
+		}
+		else
+		{
+			glDisable(GL_TEXTURE_2D);
 		}
 	}
 

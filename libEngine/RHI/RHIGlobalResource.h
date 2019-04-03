@@ -7,11 +7,7 @@
 
 namespace Render
 {
-	CORE_API extern RHITexture2DRef    GDefaultMaterialTexture2D;
-	CORE_API extern RHITexture2DRef    GWhiteTexture2D;
-	CORE_API extern RHITexture2DRef    GBlackTexture2D;
-	CORE_API extern RHITextureCubeRef  GWhiteTextureCube;
-	CORE_API extern RHITextureCubeRef  GBlackTextureCube;
+
 
 	class ShaderCompileOption;
 	class MaterialShaderProgram;
@@ -43,15 +39,23 @@ namespace Render
 	{
 	public:
 		bool isValid() const { return mResource.isValid(); }
-		bool Initialize(RHIResourceType* resource)
+		bool initialize(RHIResourceType* resource)
 		{
 			mResource = resource;
-			return isValid();
+			return mResource.isValid();
 		}
 		virtual void restoreRHI() override {}
 		virtual void releaseRHI() override { mResource.release(); }
-	
-		RHIResourceType* getRHI() { return mResource; }
+
+		RHIResourceType* getResource() { return mResource; }
+
+		operator RHIResourceType* (void) { return mResource.get(); }
+		operator RHIResourceType* (void) const { return mResource.get(); }
+		RHIResourceType*       operator->() { return mResource.get(); }
+		RHIResourceType const* operator->() const { return mResource.get(); }
+		RHIResourceType&       operator *(void) { return *mResource.get(); }
+		RHIResourceType const& operator *(void) const { return *mResource.get(); }
+
 		TRefCountPtr< RHIResourceType > mResource;
 	};
 
@@ -93,6 +97,15 @@ namespace Render
 	
 	};
 
+	CORE_API extern TGlobalRHIResource<RHITexture2D>    GDefaultMaterialTexture2D;
+	CORE_API extern TGlobalRHIResource<RHITexture1D>    GWhiteTexture1D;
+	CORE_API extern TGlobalRHIResource<RHITexture1D>    GBlackTexture1D;
+	CORE_API extern TGlobalRHIResource<RHITexture2D>    GWhiteTexture2D;
+	CORE_API extern TGlobalRHIResource<RHITexture2D>    GBlackTexture2D;
+	CORE_API extern TGlobalRHIResource<RHITexture3D>    GWhiteTexture3D;
+	CORE_API extern TGlobalRHIResource<RHITexture3D>    GBlackTexture3D;
+	CORE_API extern TGlobalRHIResource<RHITextureCube>  GWhiteTextureCube;
+	CORE_API extern TGlobalRHIResource<RHITextureCube>  GBlackTextureCube;
 
 }//namespace Render
 

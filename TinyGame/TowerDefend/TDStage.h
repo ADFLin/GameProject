@@ -34,11 +34,11 @@ namespace TowerDefend
 
 			switch( getGameState() )
 			{
-			case GS_RUN:
+			case GameState::Run:
 				mLevel->tick();
 				break;
-			case GS_START:
-				changeState( GS_RUN );
+			case GameState::Start:
+				changeState( GameState::Run );
 				break;
 			}
 		}

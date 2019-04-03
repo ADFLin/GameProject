@@ -320,7 +320,7 @@ namespace Render
 		void removeDepthBuffer();
 
 		void clearBuffer( Vector4 const* colorValue, float const* depthValue = nullptr, uint8 stencilValue = 0);
-		void blitToScreenBuffer();
+		void blitToBackBuffer(int index = 0);
 
 		
 		struct BufferInfo
@@ -328,7 +328,11 @@ namespace Render
 			RHIResourceRef bufferRef;
 			GLenum typeEnumGL;
 			uint8  level;
-			uint8  idxFace;
+			union
+			{
+				int    layer;
+				uint8  idxFace;
+			};
 		};
 		void setRenderBufferInternal(GLuint handle);
 		void setTextureInternal(int idx, GLuint handle, GLenum texType, int level);
@@ -561,10 +565,12 @@ namespace Render
 
 	struct GLBlendStateValue
 	{
+		bool bEnableAlphaToCoverage;
 		GLTargetBlendValue targetValues[NumBlendStateTarget];
 		GLBlendStateValue() {}
 		GLBlendStateValue(EForceInit)
 		{
+			bEnableAlphaToCoverage = false;
 			for( int i = 0; i < NumBlendStateTarget; ++i )
 				targetValues[0] = GLTargetBlendValue(ForceInit);
 		}
@@ -622,6 +628,12 @@ namespace Render
 		static OpenGLTexture3D* To(RHITexture3D* tex) { return static_cast<OpenGLTexture3D*>(tex); }
 		static OpenGLTextureCube* To(RHITextureCube* tex) { return static_cast<OpenGLTextureCube*>(tex); }
 		static OpenGLTextureDepth* To(RHITextureDepth* tex) { return static_cast<OpenGLTextureDepth*>(tex); }
+
+		static OpenGLTexture1D const* To(RHITexture1D const* tex) { return static_cast<OpenGLTexture1D const*>(tex); }
+		static OpenGLTexture2D const* To(RHITexture2D const* tex) { return static_cast<OpenGLTexture2D const*>(tex); }
+		static OpenGLTexture3D const* To(RHITexture3D const* tex) { return static_cast<OpenGLTexture3D const*>(tex); }
+		static OpenGLTextureCube const* To(RHITextureCube const* tex) { return static_cast<OpenGLTextureCube const*>(tex); }
+		static OpenGLTextureDepth const* To(RHITextureDepth const* tex) { return static_cast<OpenGLTextureDepth const*>(tex); }
 
 		static OpenGLVertexBuffer* To(RHIVertexBuffer* buffer) { return static_cast<OpenGLVertexBuffer*>(buffer); }
 		static OpenGLIndexBuffer* To(RHIIndexBuffer* buffer) { return static_cast<OpenGLIndexBuffer*>(buffer); }

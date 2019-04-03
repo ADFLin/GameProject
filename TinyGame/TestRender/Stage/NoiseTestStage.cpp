@@ -20,6 +20,7 @@ namespace Render
 	bool NoiseTestStage::onInit()
 	{
 		::Global::GetDrawEngine().changeScreenSize(1024, 768);
+
 		if( !BaseClass::onInit() )
 			return false;
 
@@ -32,8 +33,9 @@ namespace Render
 		VERIFY_RETURN_FALSE(SharedAssetData::createSimpleMesh());
 		VERIFY_RETURN_FALSE(SharedAssetData::createCommonShader());
 
-		VERIFY_RETURN_FALSE(mDepthBuffer = RHICreateTextureDepth(Texture::eDepth32F, screenSize.x, screenSize.y));
-		VERIFY_RETURN_FALSE(mScreenBuffer = RHICreateTexture2D(Texture::eFloatRGBA, screenSize.x, screenSize.y, 1, 1, TCF_DefalutValue | TCF_RenderTarget));
+		int numSamples = 8;
+		VERIFY_RETURN_FALSE(mDepthBuffer = RHICreateTextureDepth(Texture::eDepth32F, screenSize.x, screenSize.y, 1, numSamples));
+		VERIFY_RETURN_FALSE(mScreenBuffer = RHICreateTexture2D(Texture::eFloatRGBA, screenSize.x, screenSize.y, 1, numSamples, TCF_DefalutValue | TCF_RenderTarget));
 		VERIFY_RETURN_FALSE(mFrameBuffer.create());
 		mFrameBuffer.addTexture(*mScreenBuffer);
 		mFrameBuffer.setDepth(*mDepthBuffer);
@@ -47,6 +49,9 @@ namespace Render
 		mSmokeFrameBuffer.addTexture(*mSmokeFrameTextures[0]);
 		mSmokeFrameBuffer.addTexture(*mSmokeDepthTexture);
 
+		mGrassTexture = RHIUtility::LoadTexture2DFromFile("Texture/Grass.png", TextureLoadOption().SRGB().MipLevel(10).ReverseH());
+		MeshBuild::Plane(mGrassPlane, Vector3(0, 0, 0), Vector3(1, 0, 0), Vector3(0, 0, 1), Vector2(1, float(mGrassTexture->getSizeY()) / mGrassTexture->getSizeX()), 1);
+		ShaderManager::Get().loadFileSimple(mProgGrass, "Shader/Game/Grass");
 
 		mProgNoise = ShaderManager::Get().getGlobalShaderT< TNoiseShaderProgram<true, false> >(true);
 		mProgNoiseUseTexture = ShaderManager::Get().getGlobalShaderT< TNoiseShaderProgram<true, true> >(true);
@@ -274,12 +279,40 @@ namespace Render
 				RHISetupFixedPipelineState(Matrix4::Scale(1) * Matrix4::Translate(7, 2, -2) * mView.worldToView, mView.viewToClip);
 				mSimpleMeshs[SimpleMeshId::Box].draw(LinearColor(0.25, 0.5, 1));
 
+
+				{
+					RHISetBlendState(TStaticAlphaToCoverageBlendState<>::GetRHI());
+					//RHITexture2D const* textures[] = { mGrassTexture.get() };
+					//RHISetupFixedPipelineState(Matrix4::Scale(1) * Matrix4::Translate(0, 0, 12) * mView.worldToView, mView.viewToClip , 1 , textures);
+					GL_BIND_LOCK_OBJECT(mProgGrass);
+					mView.setupShader(mProgGrass);
+					mProgGrass.setTexture(SHADER_PARAM(Texture), *mGrassTexture , TStaticSamplerState< Sampler::eTrilinear > ::GetRHI());
+
+					for( int n = 0 ; n < 100 ; ++n )
+					{
+						for( int i = 0; i < 10; ++i )
+						{
+							mProgGrass.setParam(SHADER_PARAM(Primitive.localToWorld), Matrix4::Rotate(Vector3(0, 0, 1), 2 * PI * i / 10) * Matrix4::Scale(1) * Matrix4::Translate( n / 10 , n % 10 , 12));
+							mGrassPlane.drawShader();
+						}
+					}
+				}
+
 				{
 					GPU_PROFILE("LightPoints");
 					//FIXME
 					RHISetupFixedPipelineState(mView.worldToView, mView.viewToClip);
 					drawLightPoints(mView, MakeView(mLights));
+
 				}
+			}
+
+
+			{
+				GPU_PROFILE("CopyToScreen");
+				mFrameBuffer.blitToBackBuffer();
+				//ShaderHelper::Get().copyTextureToBuffer(*mScreenBuffer);
+				return;
 			}
 
 			{
@@ -317,11 +350,6 @@ namespace Render
 				mProgSmokeBlend->setTexture(SHADER_PARAM(DepthTexture), *mSmokeDepthTexture);
 				DrawUtility::ScreenRectShader();
 			}
-		}
-
-		{
-			GPU_PROFILE("CopyToScreen");
-			ShaderHelper::Get().copyTextureToBuffer(*mScreenBuffer);
 		}
 
 

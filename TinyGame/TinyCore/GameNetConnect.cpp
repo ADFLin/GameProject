@@ -404,6 +404,11 @@ bool UdpChain::sendPacket( long time , NetSocket& socket , SocketBuffer& buffer 
 		{
 			int numSend = mBufferCache.take( socket , addr );
 
+			if( numSend )
+			{
+				//LogDevMsg(0, "Send UDP Data : size = %d", numSend);
+			}
+
 			++count;
 			if ( count == 10 )
 			{
@@ -418,7 +423,7 @@ bool UdpChain::sendPacket( long time , NetSocket& socket , SocketBuffer& buffer 
 		return false;
 	}
 
-	//Msg( "sendPacket %u %u %u" , outgoing , incoming , bufSize );
+	//LogMsg( "sendPacket %u %u %u" , outgoing , incoming , bufSize );
 	return true;
 
 }

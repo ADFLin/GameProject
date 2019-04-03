@@ -496,6 +496,10 @@ namespace Render
 		RHITextureDepthRef mDepthBuffer;
 		RHITexture2DRef    mScreenBuffer;
 
+		RHITexture2DRef    mGrassTexture;
+		Mesh  mGrassPlane;
+		ShaderProgram    mProgGrass;
+
 		SmokeParams mSmokeParams;
 		float mDensityFactor = 1.0;
 		float mPhaseG = 0.3;

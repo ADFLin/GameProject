@@ -51,7 +51,8 @@ bool SingleStageMode::postStageInit()
 
 void SingleStageMode::onRestart(uint64& seed)
 {
-	seed = ::generateRandSeed();
+	//seed = ::generateRandSeed();
+	seed = 0;
 	BaseClass::onRestart(seed);
 }
 
@@ -65,7 +66,7 @@ void SingleStageMode::updateTime(long time)
 		unsigned flag = 0;
 		switch( getGameState() )
 		{
-		case GS_RUN:
+		case GameState::Run:
 			++mReplayFrame;
 			break;
 		default:
@@ -120,7 +121,7 @@ bool SingleStageMode::onWidgetEvent(int event, int id, GWidget* ui)
 		}
 		else
 		{
-			if( getGameState() != GS_END )
+			if( getGameState() != GameState::End )
 			{
 				::Global::GUI().showMessageBox(
 					UI_RESTART_GAME, LOCTEXT("Do you Want to Stop Current Game?"));
@@ -142,7 +143,7 @@ bool SingleStageMode::tryChangeState(GameState state)
 {
 	switch( state )
 	{
-	case GS_END:
+	case GameState::End:
 		saveReplay(LAST_REPLAY_NAME);
 		break;
 	}

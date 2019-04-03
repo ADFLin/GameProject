@@ -8,7 +8,7 @@
 GameStageMode::GameStageMode(StageModeType mode) 
 	:mStageMode(mode)
 	, mCurStage(nullptr)
-	, mGameState(GameState::GS_END)
+	, mGameState(GameState::End)
 	, mReplayFrame(0)
 {
 
@@ -29,6 +29,7 @@ bool GameStageMode::changeState(GameState state)
 
 void GameStageMode::restart(bool beInit)
 {
+	getGame()->getController().restart();
 	doRestart(beInit);
 }
 
@@ -36,17 +37,18 @@ void GameStageMode::doRestart(bool bInit)
 {
 	uint64 seed;
 	onRestart(seed);
+	::Global::RandSeedNet(seed);
 	mCurStage->onRestart(bInit);
 	mReplayFrame = 0;
-	changeState(GS_START);
+	changeState(GameState::Start);
 }
 
 bool GameStageMode::togglePause()
 {
-	if( getGameState() == GS_RUN )
-		return changeState(GS_PAUSE);
-	else if( getGameState() == GS_PAUSE )
-		return changeState(GS_RUN);
+	if( getGameState() == GameState::Run )
+		return changeState(GameState::Pause);
+	else if( getGameState() == GameState::Pause )
+		return changeState(GameState::Run);
 	return false;
 }
 
@@ -59,7 +61,7 @@ LevelStageMode::LevelStageMode(StageModeType mode)
 
 bool LevelStageMode::saveReplay(char const* name)
 {
-	if( getGameState() == GS_START )
+	if( getGameState() == GameState::Start )
 		return false;
 
 	if( !mReplayRecorder.get() )

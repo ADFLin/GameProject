@@ -1,8 +1,9 @@
 #include "SocketBuffer.h"
 
 #include "NetSocket.h"
+#include "LogSystem.h"
 #include <cstring>
-
+#include <algorithm>
 
 SocketBuffer::SocketBuffer( size_t maxSize ) 
 {
@@ -160,10 +161,16 @@ int SocketBuffer::take( NetSocket& socket , size_t num , NetAddress& addr )
 
 int SocketBuffer::take( NetSocket& socket  , NetAddress& addr )
 {
-	int numSend = socket.sendData( mData + mUseSize , mFillSize - mUseSize , addr );
+	size_t MAX_UDP_DATA_SIZE = 65507u;
+	size_t sendSize = std::min(mFillSize - mUseSize, MAX_UDP_DATA_SIZE);
+
+	int numSend = socket.sendData( mData + mUseSize , sendSize , addr );
 	
-	if ( numSend == SOCKET_ERROR )
+	if( numSend == SOCKET_ERROR )
+	{
+		LogWarning(0, "Socket can't send UDP data");
 		return 0;
+	}
 
 	mUseSize += numSend;
 	return numSend;

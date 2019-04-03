@@ -89,39 +89,15 @@ struct FSInput
 };
 
 in VSOutputParameters VSOutput;
-bool FSInputMain( in VSOutputParameters inVS , out FSInput outFS )
+out float4 OutColor;
+
+float Remap(float v, float is, float ie, float os, float oe)
 {
+	return lerp(os, oe, (v - is) / (ie - is));
 
-	float3  cameraDir = normalize(inVS.cameraOffset);
-	float t;
-	if( !RaySphereTest(View.worldPos, cameraDir, Sphere.worldPos, Sphere.radius, t) )
-	{
-#define USE_DEBUG_SHOW 1
-#if USE_DEBUG_SHOW
-		discard;
-#else
-		float4 NDC = View.worldToClip * vec4(View.worldPos + VSOutput.cameraOffset, 1.0);
-		WritePixelDepth(NDC.z / NDC.w);
-		//gl_FragColor = vec4( 0.5 * vd + 0.5 , 1.0 );
-		gl_FragColor = vec4(1.0, 1.0, 0, 1.0);
-		return false;
-#endif
-	}
-
-	float3 vL = View.worldPos + cameraDir * t;
-	outFS.worldPos  = vL;
-	outFS.normal = normalize(vL - Sphere.worldPos);
-	outFS.viewDir = normalize(View.worldPos - vL );
-	return true;
 }
 
-void FSDepthCorrect( in FSInput inFS )
-{
-	float4 NDC = View.worldToClip * vec4( inFS.worldPos , 1.0 );
-	WritePixelDepth(NDC.z / NDC.w);
-}
-
-float3 FSLighting( in FSInput inFS )
+float3 CalcLighting( in FSInput inFS )
 {
 	float power = 0.8;
 	float factor = -dot( View.direction , inFS.normal );
@@ -150,18 +126,48 @@ float3 FSLighting( in FSInput inFS )
 	return color;
 }
 
-out float4 OutColor;
+
 
 void MainPS() 
 {
-	FSInput inFS;
-	if ( !FSInputMain( VSOutput , inFS ) )
+	float3  cameraDir = normalize(VSOutput.cameraOffset);
+	float t;
+	if( !RaySphereTest(View.worldPos, cameraDir, Sphere.worldPos, Sphere.radius, t) )
+	{
+#define USE_ALPHA_TO_COVERAGE 1
+		float alpha = saturate(Remap(abs(Sphere.radius - t), 0, 0.19, 1, 0));
+
+#if USE_ALPHA_TO_COVERAGE
+		OutColor = float4(Sphere.baseColor * 0.5 , 0);
+		discard;
+#else
+#define USE_DEBUG_SHOW 1
+#if USE_DEBUG_SHOW
+		discard;
+#else
+		float4 NDC = View.worldToClip * vec4(View.worldPos + VSOutput.cameraOffset, 1.0);
+		WritePixelDepth(NDC.z / NDC.w);
+		//gl_FragColor = vec4( 0.5 * vd + 0.5 , 1.0 );
+		OutColor = float4(1.0, 1.0, 0, 1.0);
 		return;
+#endif
+#endif
+	}
 
-	FSDepthCorrect( inFS );
+	FSInput inFS;
+	float3 vL = View.worldPos + cameraDir * t;
+	inFS.worldPos = vL;
+	inFS.normal = normalize(vL - Sphere.worldPos);
+	inFS.viewDir = normalize(View.worldPos - vL);
 
-	float3 color = FSLighting( inFS );
-	OutColor = vec4( color , 1.0 );
+	float4 NDC = View.worldToClip * vec4(inFS.worldPos, 1.0);
+	WritePixelDepth(NDC.z / NDC.w);
+
+	float3 color = CalcLighting( inFS );
+	OutColor = vec4( color , 1 );
+
+
+	//OutColor = vec4( 1,1,1, 1);
 }
 
 #endif //PIXEL_SHADER

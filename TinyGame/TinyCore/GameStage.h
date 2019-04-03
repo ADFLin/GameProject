@@ -15,12 +15,12 @@ struct AttribValue;
 #define  LAST_REPLAY_NAME     "LastReplay.rpf"
 #define  REPLAY_DIR           "Replay"
 
-enum GameState
+enum class GameState
 {
-	GS_START,
-	GS_RUN,
-	GS_PAUSE,
-	GS_END,
+	Start,
+	Run,
+	Pause,
+	End,
 };
 
 

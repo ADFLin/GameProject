@@ -11,6 +11,8 @@
 #include "GameWidgetID.h"
 #include "Widget/WidgetUtility.h"
 
+#include <vector>
+
 namespace Bubble
 {
 	LevelStage::LevelStage()
@@ -56,6 +58,7 @@ namespace Bubble
 		
 		int numLevel = 0;
 		PlayerData* mainViewPlayer = NULL;
+		std::vector< PlayerData* > otherPlayersData;
 		for( auto iter = playerManager.createIterator(); iter; ++iter )
 		{
 			GamePlayer* player = iter.getElement();
@@ -70,9 +73,13 @@ namespace Bubble
 					mainViewPlayer = data;
 					controller.setPortControl( data->getId() , 0 );
 				}
-				else if ( mainViewPlayer == NULL )
+				else if ( playerManager.getUser()->getType() == PT_SPECTATORS && mainViewPlayer == NULL )
 				{
 					mainViewPlayer = data;
+				}
+				else
+				{
+					otherPlayersData.push_back(data);
 				}
 			}
 		}
@@ -80,9 +87,12 @@ namespace Bubble
 		switch( numLevel )
 		{
 		case 1:
-			mainViewPlayer->getScene().setSurfacePos( Vec2i( 200 , 30 ) );
+			mainViewPlayer->getScene().setSurfacePos(Vec2i(200 , 30 ) );
 			break;
 		case 2:
+			mainViewPlayer->getScene().setSurfacePos(Vec2i(100, 30));
+			otherPlayersData[0]->getScene().setSurfacePos(Vec2i(450, 30));
+			break;
 		case 3:
 		case 4:
 		case 5:
@@ -114,7 +124,7 @@ namespace Bubble
 		switch ( id )
 		{
 		case UI_RESTART_GAME:
-			if ( getGameState() != GS_END )
+			if ( getGameState() != GameState::End )
 			{
 				::Global::GUI().showMessageBox( 
 					UI_RESTART_GAME , LOCTEXT("Do you Want to Stop Current Game?") );
@@ -149,10 +159,10 @@ namespace Bubble
 	{
 		switch( getGameState() )
 		{
-		case GS_START:
-			changeState( GS_RUN );
+		case GameState::Start:
+			changeState( GameState::Run );
 			break;
-		case GS_RUN:
+		case GameState::Run:
 			mDataManager.tick();
 			break;
 		}
@@ -175,13 +185,13 @@ namespace Bubble
 		INetFrameManager* netFrameMgr;
 		if ( netWorker->isServer() )
 		{
-			CServerFrameGenerator* frameGenerator = new CServerFrameGenerator;
-			netFrameMgr = new SVSyncFrameManager( netWorker , actionTemplate , frameGenerator );
+			CServerFrameCollector* frameCollector = new CServerFrameCollector;
+			netFrameMgr = new SVSyncFrameManager( netWorker , actionTemplate , frameCollector );
 		}
 		else
 		{
-			CClientFrameGenerator* frameGenerator = new CClientFrameGenerator;
-			netFrameMgr = new CLSyncFrameManager( netWorker , actionTemplate , frameGenerator );
+			CClientFrameGenerator* frameCollector = new CClientFrameGenerator;
+			netFrameMgr = new CLSyncFrameManager( netWorker , actionTemplate , frameCollector );
 
 		}
 		*engine = new CFrameActionEngine( netFrameMgr );

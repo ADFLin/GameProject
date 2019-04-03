@@ -1,0 +1,57 @@
+#include "Common.sgc"
+#include "ViewParam.sgc"
+#include "PrimitiveParam.sgc"
+
+struct VSOutputParameters
+{
+	float2 UVs;
+};
+#if VERTEX_SHADER
+
+DECLARE_VERTEX_INPUT(float3, Pos, ATTRIBUTE_POSITION)
+DECLARE_VERTEX_INPUT(float2, UVs, ATTRIBUTE_TEXCOORD)
+out VSOutputParameters VSOutput;
+void MainVS()
+{
+	VSOutput.UVs = VERTEX_INPUT(UVs);
+
+	float4 worldPos = Primitive.localToWorld * float4(VERTEX_INPUT(Pos), 1);
+	gl_Position = View.worldToClip * worldPos;
+}
+
+#endif
+
+#if PIXEL_SHADER
+
+float mip_map_level(float2 texture_coordinate)
+{
+	float2  dx_vtc = dFdx(texture_coordinate);
+	float2  dy_vtc = dFdy(texture_coordinate);
+	float delta_max_sqr = max(dot(dx_vtc, dx_vtc), dot(dy_vtc, dy_vtc));
+	return 0.5 * log2(delta_max_sqr);
+}
+
+uniform sampler2D Texture;
+in VSOutputParameters VSOutput;
+layout(location = 0) out float4 OutColor;
+void MainPS()
+{
+	float mipScale = 0.01;
+	float4 color = texture(Texture, VSOutput.UVs);
+
+	if( color.a < 0.3 )
+	{
+		//discard;
+	}
+	
+#if 1
+	float2 texSize = textureSize(Texture, 0);
+	color.a *= 1 + max(0, mip_map_level(VSOutput.UVs * texSize)) * mipScale;
+	color.a = (color.a - 0.85) / max(fwidth(color.a), 0.0001) + 0.5;
+#endif
+	OutColor = color;
+	
+}
+
+
+#endif

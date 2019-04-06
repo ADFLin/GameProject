@@ -97,12 +97,12 @@ public:
 	void          recvData( NetBufferOperator& bufCtrl , int len , NetAddress* addr );
 	void          close();
 
-	void          updateSocket( long time );
+	void          updateSocket( long time , NetSelectSet* pNetSelect = nullptr  );
 	
 protected:
 
 	bool checkConnectStatus( long time );
-	virtual void  doUpdateSocket( long time ){}
+	virtual void  doUpdateSocket( long time , NetSelectSet* pNetSelect){}
 
 	//SocketDetector
 	virtual void onReadable( NetSocket& socket , int len ){ assert(0); }
@@ -128,7 +128,7 @@ class UdpChain
 {
 public:
 	UdpChain();
-	bool sendPacket( long time , NetSocket& socket , SocketBuffer& buffer , NetAddress& addr );
+	bool sendPacket( long time , NetSocket& socket , SocketBuffer& buffer , NetAddress* csaddr );
 	bool readPacket( SocketBuffer& buffer , uint32& readSize );
 
 private:
@@ -149,12 +149,12 @@ private:
 	long    mTimeLastUpdate;
 	long    mTimeResendRel;
 
+	bool    mbNeedSendAck;
 	SocketBuffer mBufferCache;
 	SocketBuffer mBufferRel;
 	uint32  mIncomingAck;
 	uint32  mOutgoingSeq;
 	uint32  mOutgoingAck;
-	uint32  mOutgoingRel;
 };
 
 class ServerBase
@@ -168,7 +168,7 @@ class UdpConnection : public NetConnection
 public:
 	UdpConnection( int recvSize );
 
-	void doUpdateSocket( long time ){   mSocket.detectUDP( *this );  }
+	void doUpdateSocket( long time, NetSelectSet* pNetSelect){  mSocket.detectUDP( *this , pNetSelect);  }
 	void onReadable( NetSocket& socket , int len );
 
 protected:
@@ -179,8 +179,8 @@ class TcpConnection : public NetConnection
 {
 public:
 	TcpConnection(){}
-	bool isConnected(){ return mSocket.getState() == SKS_CONNECT; }
-	void doUpdateSocket( long time ){  mSocket.detectTCP( *this );  }
+	bool isConnected(){ return mSocket.getState() == SKS_CONNECTED; }
+	void doUpdateSocket( long time, NetSelectSet* pNetSelect){  mSocket.detectTCP( *this , pNetSelect);  }
 	void onExcept( NetSocket& socket ){ resolveExcept(); }
 };
 
@@ -215,12 +215,12 @@ class UdpClient : public UdpConnection
 {
 public:
 	UdpClient();
-	void init();
+	void initialize();
 	void setServerAddr( char const* addrName , unsigned port );
-	void doUpdateSocket( long time )
+	void doUpdateSocket( long time , NetSelectSet* pNetSelect)
 	{
 		mNetTime = time;
-		UdpConnection::doUpdateSocket( time );
+		UdpConnection::doUpdateSocket( time , pNetSelect );
 	}
 	void onSendable( NetSocket& socket );
 	void onReadable( NetSocket& socket , int len );
@@ -271,14 +271,21 @@ public:
 	{
 	public:
 		Client():mSendCtrl( USC_SEND_BUFSIZE){}
+
+		NetSocket& getSocket() { return mSocket; }
 		NetBufferOperator&  getSendCtrl(){ return mSendCtrl; }
 
-		bool processSendData( long time , NetSocket& socket , NetAddress& addr )
+		bool processSendData( long time )
 		{
 			TLockedObject< SocketBuffer > buffer = mSendCtrl.lockBuffer();
-			return mChain.sendPacket( time , socket , *buffer , addr );
+			return mChain.sendPacket( time , mSocket, *buffer , nullptr );
 		}
 
+		bool processSendData(long time, NetSocket& socket, NetAddress& addr)
+		{
+			TLockedObject< SocketBuffer > buffer = mSendCtrl.lockBuffer();
+			return mChain.sendPacket(time, socket, *buffer, &addr);
+		}
 		operator UdpChain&(){ return mChain; } 
 
 		void clearBuffer()
@@ -288,13 +295,18 @@ public:
 		}
 
 	private:
+		NetSocket           mSocket;
 		NetBufferOperator   mSendCtrl;
-		UdpChain        mChain;
+		UdpChain            mChain;
 	};
 
-	void sendPacket( long time , Client& client , NetAddress& addr )
+	void sendPacket( long time , Client& client )
 	{
-		client.processSendData( time , getSocket() ,  addr );
+		client.processSendData( time );
+	}
+	void sendPacket(long time, Client& client, NetAddress& addr)
+	{
+		client.processSendData(time, getSocket(), addr);
 	}
 protected:
 	virtual void onSendable( NetSocket& socket );

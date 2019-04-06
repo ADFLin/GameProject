@@ -23,7 +23,8 @@ ClientWorker::~ClientWorker()
 
 bool ClientWorker::doStartNetwork()
 {
-	mUdpClient.init();
+	mUdpClient.initialize();
+	mNetSelect.addSocket(mUdpClient.getSocket());
 
 #define COM_PACKET_SET( Class , Processer , Fun , Fun2 )\
 	getEvaluator().setWorkerFun< Class >( Processer , Fun , Fun2 );
@@ -59,9 +60,19 @@ bool ClientWorker::update_NetThread( long time )
 {
 	if( !BaseClass::update_NetThread(time) )
 		return false;
+#if 0
+	mNetSelect.clear();
+	if ( mTcpClient.getSocket().getState() != SKS_CLOSE )
+		mNetSelect.addSocket(mTcpClient.getSocket());
+	mNetSelect.addSocket(mUdpClient.getSocket());
+#endif
 
-	mTcpClient.updateSocket( time );
-	mUdpClient.updateSocket( time );
+	if (mNetSelect.select(0, 0))
+	{
+		mTcpClient.updateSocket(time, &mNetSelect);
+		mUdpClient.updateSocket(time, &mNetSelect);
+	}
+
 	return true;
 }
 
@@ -153,14 +164,22 @@ bool ClientWorker::notifyConnectionRecv( NetConnection* con , SocketBuffer& buff
 	}
 	else
 	{
-		while( buffer.getAvailableSize() )
+		if (con == &mUdpClient)
 		{
-			if ( !getEvaluator().evalCommand( buffer ) )
-			{
-				return false;
-			}
+			return EvalCommand(mUdpClient, getEvaluator(), buffer);
 		}
-		return true;
+		else
+		{
+			while (buffer.getAvailableSize())
+			{
+				if (!getEvaluator().evalCommand(buffer))
+				{
+					return false;
+				}
+			}
+			return true;
+		}
+
 	}
 }
 
@@ -333,6 +352,7 @@ void ClientWorker::connect( char const* hostName , char const* loginName )
 	else
 		mLoginName = "Player";
 	mTcpClient.connect( hostName , TG_TCP_PORT );
+	mNetSelect.addSocket( mTcpClient.getSocket() );
 }
 
 void CLPlayerManager::updatePlayer( PlayerInfo* info[] , int num )

@@ -1,5 +1,10 @@
 #include "TinyGamePCH.h"
 #include "GameNetConnect.h"
+#include "ConsoleSystem.h"
+
+#include <algorithm>
+
+TConsoleVariable<bool> CVarClUseConnectedUDP(true, "cl.UseConnectedUDP");
 
 void NetConnection::recvData( NetBufferOperator& bufCtrl , int len , NetAddress* addr )
 {
@@ -32,9 +37,9 @@ void NetConnection::close()
 	mSocket.close();
 }
 
-void NetConnection::updateSocket( long time )
+void NetConnection::updateSocket( long time , NetSelectSet* pNetSelect )
 {
-	doUpdateSocket( time );
+	doUpdateSocket( time , pNetSelect);
 }
 
 bool NetConnection::checkConnectStatus( long time )
@@ -61,7 +66,13 @@ UdpConnection::UdpConnection( int recvSize ) :mRecvCtrl( recvSize )
 void UdpConnection::onReadable( NetSocket& socket , int len )
 {
 	NetAddress clientAddr;
-	recvData( mRecvCtrl , len , &clientAddr );
+	recvData( mRecvCtrl , len ,
+#if 1
+		&clientAddr
+#else
+		socket.getState() == SKS_UDP ? &clientAddr : nullptr 
+#endif
+	);
 }
 
 UdpClient::UdpClient() 
@@ -72,10 +83,10 @@ UdpClient::UdpClient()
 }
 
 
-void UdpClient::init()
+void UdpClient::initialize()
 {
 	if ( !mSocket.createUDP() )
-		throw SocketException("Can't Create UDP");
+		throw SocketException("Can't create UDP");
 
 	if ( !mSocket.setBroadcast() )
 	{
@@ -84,16 +95,25 @@ void UdpClient::init()
 }
 void UdpClient::setServerAddr( char const* addrName , unsigned port )
 {
+#if 0
 	if ( !mSocket.createUDP() )
-		throw SocketException("Can't Create UDP");
+		throw SocketException("Can't create UDP");
+#endif
 
 	if ( !mServerAddr.setInternet( addrName , port ) )
-		throw SocketException("Can't Get Server Address");
+		throw SocketException("Can't get server address");
 
+	if (!mSocket.connect(mServerAddr))
+	{
+		throw SocketException("Can't connect to server");
+	}
+
+#if 0
 	if ( !mSocket.setBroadcast() )
 	{
 		LogWarning( 0 , "Socket can't broadcast");
 	}
+#endif
 }
 
 void UdpClient::onSendable( NetSocket& socket )
@@ -105,13 +125,19 @@ void UdpClient::onSendable( NetSocket& socket )
 void UdpClient::onReadable( NetSocket& socket , int len )
 {
 	NetAddress clientAddr;
-	recvData( mRecvCtrl , len , &clientAddr );
+	if (CVarClUseConnectedUDP && socket.getState() == SKS_CONNECTED_UDP )
+		recvData( mRecvCtrl, len, nullptr);
+	else
+		recvData( mRecvCtrl , len , &clientAddr );
 }
 
 bool UdpClient::sendData(NetSocket& socket)
 {
 	TLockedObject< SocketBuffer > buffer = mSendCtrl.lockBuffer();
-	return mChain.sendPacket(mNetTime, socket, *buffer, mServerAddr);
+
+	return mChain.sendPacket(mNetTime, socket, *buffer,
+		CVarClUseConnectedUDP ? nullptr : &mServerAddr
+	);
 }
 
 void UdpClient::clearBuffer()
@@ -150,6 +176,8 @@ void UdpServer::onSendable( NetSocket& socket )
 
 void TcpClient::connect( char const* addrName , unsigned port )
 {
+	if ( !mSocket.createTCP(true) )
+		throw SocketException("Can't create TCP");
 	if ( !mSocket.connect( addrName , port ) )
 		throw SocketException("Can't Connect Sever" );
 }
@@ -239,7 +267,7 @@ bool NetBufferOperator::sendData( NetSocket& socket , NetAddress* addr )
 		}
 		else
 		{
-			numSend = mBuffer.take( socket );         //TCP
+			numSend = mBuffer.take( socket );         //TCP or Connected UDP
 		}
 
 		if ( !numSend )
@@ -265,36 +293,40 @@ bool NetBufferOperator::sendData( NetSocket& socket , NetAddress* addr )
 	return true;
 }
 
-bool NetBufferOperator::recvData( NetSocket& socket , int len , NetAddress* addr /*= NULL */ )
+bool NetBufferOperator::recvData(NetSocket& socket, int len, NetAddress* addr /*= NULL */)
 {
 	MUTEX_LOCK(mMutexBuffer);
 
-	try 
+	int count = 0;
+	while (count < 10)
 	{
-
-		int num = 0;
-
-		if ( addr )
+		try
 		{
-			num = mBuffer.fill( socket , len , *addr  );
+			int num = 0;
 
+			if (addr)
+			{
+				num = mBuffer.fill(socket, len, *addr);
+
+			}
+			else
+			{
+				num = mBuffer.fill(socket, len);
+			}
+			return num != 0;
 		}
-		else
+		catch (std::exception& e)
 		{
-			num = mBuffer.fill( socket , len );	
+			++count;
+			mBuffer.resize(std::min<int>(len, mBuffer.getMaxSize() * 3 / 2));
+			LogMsg("%s(%d) : %s", __FILE__, __LINE__, e.what());
+			//LogError(e.what());
+			
+			//cout << e.what() << endl;
 		}
-		return num != 0;
-	}
-	catch( std::exception& e )
-	{
-		mBuffer.clear();
-		LogMsg( "%s(%d) : %s" , __FILE__ , __LINE__ ,e.what() );
-		LogError( e.what() );
-		return false;
-		//cout << e.what() << endl;
 	}
 	
-	return true;
+	return false;
 }
 
 void NetBufferOperator::clear()
@@ -309,10 +341,11 @@ UdpChain::UdpChain()
 {
 	mIncomingAck = 0;
 	mOutgoingSeq = 0;
+	mOutgoingSeq = 0;
 	mOutgoingAck = 0;
-	mOutgoingRel = 0;
 	mTimeLastUpdate = 0;
-	mTimeResendRel  = 15;
+	mTimeResendRel  = 5;
+	mbNeedSendAck = false;
 }
 
 struct DBGData
@@ -345,21 +378,20 @@ int checkBuffer( char const* buf , int num )
 	return num;
 }
 
-bool UdpChain::sendPacket( long time , NetSocket& socket , SocketBuffer& buffer , NetAddress& addr  )
+bool UdpChain::sendPacket( long time , NetSocket& socket , SocketBuffer& buffer , NetAddress* addr  )
 {
-	if ( buffer.getFillSize() == 0 && time - mTimeLastUpdate > mTimeResendRel )
-	{
-		if ( mBufferRel.getFillSize() == 0 )
-			return false;
-	}
 
-	uint32  outgoing = ++mOutgoingSeq;
-	uint32  incoming = mIncomingAck;
+	bool bNeedSendRelData = mBufferRel.getFillSize() && ( time - mTimeLastUpdate > mTimeResendRel );
+	bool bNeedSend = buffer.getFillSize() != 0 || mbNeedSendAck || bNeedSendRelData;
+
+	if (!bNeedSend)
+		return false;
 
 	uint32 bufSize = (uint32)buffer.getFillSize();
-
 	if ( bufSize )
 	{
+		++mOutgoingSeq;
+
 		if ( mBufferRel.getFreeSize() < bufSize )
 		{
 			mBufferRel.grow( mBufferRel.getMaxSize() * 2 );
@@ -368,8 +400,8 @@ bool UdpChain::sendPacket( long time , NetSocket& socket , SocketBuffer& buffer 
 
 		size_t oldSize = mBufferRel.getFillSize();
 
-		mBufferRel.fill( outgoing );
-		mBufferRel.fill( incoming );
+		mBufferRel.fill( mOutgoingSeq );
+		mBufferRel.fill( mIncomingAck );
 		mBufferRel.fill( bufSize );
 		mBufferRel.append( buffer );
 
@@ -377,36 +409,47 @@ bool UdpChain::sendPacket( long time , NetSocket& socket , SocketBuffer& buffer 
 
 		DataInfo info;
 		info.size     = (uint32)( mBufferRel.getFillSize() - oldSize );
-		info.sequence = outgoing;
+		info.sequence = mOutgoingSeq;
 		mInfoList.push_back( info );
 
 		buffer.clear();
-		mOutgoingAck = outgoing;
 	}
 
 
 	mBufferCache.clear();
 	try
 	{
-		if ( mOutgoingRel < mOutgoingAck )
+		if ( mOutgoingAck < mOutgoingSeq )
 		{
 			mBufferCache.append( mBufferRel );
 		}
 		else
 		{
-			mBufferCache.fill( outgoing );
-			mBufferCache.fill( incoming );
+			mBufferCache.fill( mOutgoingSeq );
+			mBufferCache.fill( mIncomingAck );
 			mBufferCache.fill( 0 );
 		}
 
 		int count = 0;
 		while( mBufferCache.getAvailableSize() )
 		{
-			int numSend = mBufferCache.take( socket , addr );
+			int numSend;
+			if (addr)
+			{
+				numSend = mBufferCache.take(socket, *addr);
+			}
+			else
+			{
+				numSend = mBufferCache.take(socket);
+			}
 
 			if( numSend )
 			{
 				//LogDevMsg(0, "Send UDP Data : size = %d", numSend);
+			}
+			else
+			{
+				LogDevMsg(0, "Can't send UDP Data");
 			}
 
 			++count;
@@ -465,25 +508,29 @@ bool UdpChain::readPacket( SocketBuffer& buffer , uint32& readSize )
 		else if ( incoming > mIncomingAck )
 		{
 			mIncomingAck = incoming;
-
-			if ( readSize )
+			mbNeedSendAck = true;
+			if (readSize)
+			{
 				break;
+			}
 		}
 
 		++count;
 	}
 
+
+	
 	refrushReliableData( maxOutgoing );
-	//Msg( "readPacket %u %u %u" , outgoing , incoming , readSize );
+	LogMsg( "readPacket %u %u %u" , outgoing , incoming , readSize );
 	return buffer.getAvailableSize() != 0;
 }
 
 void UdpChain::refrushReliableData( unsigned outgoing )
 {
-	if ( mOutgoingRel == mOutgoingAck )
+	if ( mOutgoingAck == mOutgoingSeq )
 		return;
 
-	mOutgoingRel = outgoing;
+	mOutgoingAck = outgoing;
 
 	uint32 endPos = 0;
 	DataInfoList::iterator iter = mInfoList.begin();
@@ -491,7 +538,7 @@ void UdpChain::refrushReliableData( unsigned outgoing )
 	{
 		DataInfo& info = *iter;
 
-		if ( info.sequence > mOutgoingRel )
+		if ( info.sequence > mOutgoingAck )
 			break;
 
 		endPos += info.size;

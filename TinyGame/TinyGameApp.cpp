@@ -369,7 +369,7 @@ ServerWorker* TinyGameApp::createServer()
 	if ( !server->startNetwork() )
 	{
 		::Global::GUI().showMessageBox( 
-			UI_ANY , LOCTEXT("Can't Create Server") );
+			UI_ANY , LOCTEXT("Can't Create Server") , GMB_OK );
 		delete server;
 		return NULL;
 	}
@@ -399,7 +399,7 @@ ClientWorker* TinyGameApp::createClinet()
 	if ( !worker->startNetwork() )
 	{
 		delete worker;
-		::Global::GUI().showMessageBox( UI_ANY , LOCTEXT("Can't Create Client") );
+		::Global::GUI().showMessageBox( UI_ANY , LOCTEXT("Can't Create Client") ,  GMB_OK);
 		return NULL;
 	}
 

@@ -22,7 +22,10 @@
 #include "GameSettingHelper.h"
 
 #include "EasingFun.h"
+#include "InputManager.h"
+
 #include <cmath>
+
 
 class EmptyNetEngine : public INetEngine
 {
@@ -445,6 +448,25 @@ void NetRoomStage::onServerEvent( EventID event , unsigned msg )
 
 void NetRoomStage::onUpdate( long time )
 {
+	if (mServer)
+	{
+		static bool bFired = false;
+		if (InputManager::Get().isKeyDown(Keyboard::eX))
+		{
+			if ( !bFired )
+			{
+				bFired = true;
+				CSPMsg com;
+				com.type = CSPMsg::eSERVER;
+				com.content = "UDP Send Test";
+				mServer->sendUdpCommand(&com);
+			}
+		}
+		else
+		{
+			bFired = false;
+		}
+	}
 	BaseClass::onUpdate( time );
 	if ( mNeedSendSetting && SystemPlatform::GetTickCount() - mLastSendSetting > 500 )
 	{

@@ -13,6 +13,7 @@
 #error "NetSockt not supported"
 #endif
 #include <exception>
+#include <vector>
 
 #define NET_INIT_OK 0
 
@@ -94,8 +95,9 @@ enum SocketState
 	SKS_CONNECTING ,
 	SKS_CLOSE      ,
 	SKS_LISTING    ,
-	SKS_CONNECT    ,
+	SKS_CONNECTED  ,
 	SKS_UDP        ,
+	SKS_CONNECTED_UDP ,
 };
 
 
@@ -159,6 +161,30 @@ public:
 	SOCKET       mHandle;
 };
 
+class NetSocket;
+
+struct NetSelectSet
+{
+	NetSelectSet()
+	{
+		clear();
+	}
+	void clear();
+	void addSocket(NetSocket& socket);
+	void removeSocket(NetSocket& socket);
+
+	bool select(long sec, long usec);
+
+	bool canRead(NetSocket& socket);
+	bool canWrite(NetSocket& socket);
+	bool haveExcept(NetSocket& socket);
+
+	std::vector< NetSocket* > mSockets;
+	fd_set mRead;
+	fd_set mWrite;
+	fd_set mExcept;
+};
+
 class NetSocket
 {
 public:
@@ -182,10 +208,9 @@ public:
 	void move( NetSocket& socket );
 public:	// TCP
 	bool createTCP( bool beNB );
-	bool detectTCP( SocketDetector& detector );
+	bool detectTCP( SocketDetector& detector , NetSelectSet* pSelectSet = nullptr );
 
-
-	bool listen( unsigned port , int maxWaitClient );
+	bool listen(unsigned port, int maxWaitClient);
 	bool connect( NetAddress const& addr );
 	bool connect( char const* addrName , unsigned port );
 
@@ -198,9 +223,8 @@ public:	// TCP
 public: 	//UDP
 
 	bool createUDP();
-	bool detectUDP( SocketDetector& detector );
-
-	int  recvData( char* data , size_t maxNum , sockaddr* addrInfo , int addrLength );
+	bool detectUDP(SocketDetector& detector, NetSelectSet* pSelectSet = nullptr);
+	int  recvData(char* data, size_t maxNum, sockaddr* addrInfo, int addrLength);
 	int  recvData( char* data , size_t maxNum , NetAddress& addr  )
 	{
 		return recvData(  data ,  maxNum , (sockaddr*)&addr.mAddr , sizeof( addr.mAddr ) );
@@ -216,6 +240,8 @@ public: 	//UDP
 
 	SOCKET getHandle() const { return mHandle; }
 protected:
+	bool detectTCPInternal(SocketDetector& detector,NetSelectSet& selectSet);
+	bool detectUDPInternal(SocketDetector& detector,NetSelectSet& selectSet);
 
 	friend class NetAddress;
 	

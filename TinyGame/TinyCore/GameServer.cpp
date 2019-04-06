@@ -2,9 +2,11 @@
 
 #include "GameServer.h"
 #include "GameNetPacket.h"
-
+#include "ConsoleSystem.h"
 int const CLIENT_GROUP = 1;
+#define SERVER_USE_CONNECTED_UDP 1
 
+TConsoleVariable<bool> CVarSvUseConnectedUDP(false, "sv.UseConnectedUDP");
 ServerWorker::ServerWorker()
 	:NetWorker()
 	,mEventResolver( nullptr )
@@ -45,6 +47,8 @@ bool ServerWorker::doStartNetwork()
 	{
 		mTcpServer.run( TG_TCP_PORT );
 		mUdpServer.run( TG_UDP_PORT );
+		mNetSelect.addSocket(mTcpServer.getSocket());
+		mNetSelect.addSocket(mUdpServer.getSocket());
 	}
 	catch ( ... )
 	{
@@ -201,9 +205,12 @@ bool ServerWorker::update_NetThread( long time )
 	if( mLocalWorker )
 		mLocalWorker->update_NetThread(time);
 
-	mTcpServer.updateSocket( time );
-	mUdpServer.updateSocket( time );
-	mClientManager.update( time );
+	if ( mNetSelect.select(0,0))
+	{
+		mTcpServer.updateSocket(time);
+		mUdpServer.updateSocket(time);
+	}
+	mClientManager.updateSocket( time , &mNetSelect );
 
 	return true;
 }
@@ -212,7 +219,10 @@ void ServerWorker::notifyConnectionSend( NetConnection* con )
 {
 	assert( con == &mUdpServer );
 	sendUdpCom( mUdpServer.getSocket() );
-	mClientManager.sendUdpData( getNetRunningTime() , mUdpServer );
+#if SERVER_USE_CONNECTED_UDP
+	if (!CVarSvUseConnectedUDP)
+		mClientManager.sendUdpData( getNetRunningTime() , mUdpServer );
+#endif
 }
 
 
@@ -248,7 +258,7 @@ void ServerWorker::notifyConnectionAccpet( NetConnection* con )
 		if( client )
 		{
 			client->tcpChannel.setListener(this);
-
+			//mNetSelect.addSocket(client->tcpChannel.getSocket());
 			SPConSetting com;
 			com.result = SPConSetting::eNEW_CON;
 			com.id = client->id;
@@ -326,7 +336,11 @@ void ServerWorker::procUdpCon_NetThread( IComPacket* cp )
 	{
 		NetAddress* sendAddr = (NetAddress*)cp->getUserData();
 		CPUdpCon* com = cp->cast< CPUdpCon >();
-		mClientManager.setClientUdpAddr(com->id, *sendAddr);
+		NetClientData* client = mClientManager.setClientUdpAddr(com->id, *sendAddr);
+		if (client)
+		{
+			//mNetSelect.addSocket(client->udpChannel.getSocket());
+		}
 	}
 	//::Msg("procUdpConNet");
 }
@@ -375,7 +389,10 @@ void ServerWorker::procLogin( IComPacket* cp)
 	{
 		addNetThreadCommnad([this,client]
 		{
+			mNetSelect.removeSocket(client->tcpChannel.getSocket());
+			mNetSelect.removeSocket(client->udpChannel.getSocket());
 			mClientManager.removeClient(client);
+			
 		});
 		return;
 	}
@@ -423,8 +440,6 @@ void ServerWorker::procClockSynd_NetThread( IComPacket* cp )
 			{		
 				LogMsg("Player %d synd done , ping = %u", playerId, latency);
 				auto player = mPlayerManager->getPlayer(playerId);
-
-				player->getStateFlag().add(ServerPlayer::eSyndDone);
 				player->latency = latency;
 			});
 		}
@@ -536,6 +551,7 @@ void ServerWorker::procPlayerState( IComPacket* cp )
 		break;
 	case NAS_TIME_SYNC:
 		{
+			player->getStateFlag().add(ServerPlayer::eSyndDone);
 			if ( mPlayerManager->checkPlayerFlag( ServerPlayer::eSyndDone , true ) )
 			{
 				changeState( NAS_LEVEL_RUN );
@@ -638,7 +654,10 @@ void ServerWorker::removeConnect_NetThread( NetClientData* client , bool bRMPlay
 		{
 			client->ownerId = ERROR_PLAYER_ID;
 		}
+		mNetSelect.removeSocket(client->tcpChannel.getSocket());
+		mNetSelect.removeSocket(client->udpChannel.getSocket());
 		mClientManager.removeClient(client);
+
 		addGameThreadCommnad([this, playerId, bRMPlayer]
 		{
 			auto player = mPlayerManager->getPlayer(playerId);
@@ -1006,15 +1025,15 @@ ServerClientManager::~ServerClientManager()
 	}
 }
 
-void ServerClientManager::sendUdpData( long time , UdpServer& server )
+void ServerClientManager::sendUdpData(long time, UdpServer& server)
 {
 	assert(IsInNetThread());
 
-	for( SessionMap::iterator iter = mSessionMap.begin();
-		iter != mSessionMap.end(); ++iter )
+	for (SessionMap::iterator iter = mSessionMap.begin();
+		iter != mSessionMap.end(); ++iter)
 	{
 		NetClientData* client = iter->second;
-		server.sendPacket( time , client->udpChannel , client->udpAddr );
+		server.sendPacket(time, client->udpChannel,client->udpAddr);
 	}
 }
 
@@ -1087,14 +1106,24 @@ NetClientData* ServerClientManager::findClient( SessionId id )
 	return NULL;
 }
 
-void ServerClientManager::update( long time )
+void ServerClientManager::updateSocket( long time , NetSelectSet* pNetSelect)
 {
 	assert(IsInNetThread());
+	pNetSelect = nullptr;
+#if SERVER_USE_CONNECTED_UDP
+	if (CVarSvUseConnectedUDP)
+	for (SessionMap::iterator iter = mSessionMap.begin();
+		iter != mSessionMap.end(); ++iter)
+	{
+		NetClientData* client = iter->second;
+		client->updateUdpSocket(time, pNetSelect);
+	}
+#endif
 	for( SessionMap::iterator iter = mSessionMap.begin();
 		iter != mSessionMap.end(); ++iter )
 	{
 		NetClientData* client = iter->second;
-		client->tcpChannel.updateSocket( time );
+		client->tcpChannel.updateSocket( time , pNetSelect );
 	}
 
 	for( ClientList::iterator iter = mRemoveList.begin() ;
@@ -1147,14 +1176,17 @@ SessionId ServerClientManager::getNewSessionId()
 	return id;
 }
 
-void ServerClientManager::setClientUdpAddr( SessionId id , NetAddress const& addr )
+NetClientData* ServerClientManager::setClientUdpAddr( SessionId id , NetAddress const& addr )
 {
 	NetClientData* client = findClient( id );
 	if ( !client )
-		return;
-	client->udpAddr = addr;
+		return nullptr;
+
+	client->setUDPAddress(addr);
+
 	bool isOk = mAddrMap.insert( std::make_pair( &client->udpAddr , client ) ).second;
 	assert( isOk );
+	return client;
 }
 
 SUserPlayer::SUserPlayer( LocalWorker* worker ) 

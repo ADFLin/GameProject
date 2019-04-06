@@ -92,8 +92,6 @@ void SocketBuffer::append( SocketBuffer const& buffer )
 	fill(  (void*)buffer.getData() , buffer.getFillSize()  );
 }
 
-
-
 void SocketBuffer::take( char* str )
 {
 	size_t avialable = getAvailableSize();

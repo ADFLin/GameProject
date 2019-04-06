@@ -31,7 +31,7 @@ public:
 	TINY_API ~ClientWorker();
 
 	TINY_API void connect(char const* hostName, char const* loginName);
-	TINY_API void  sreachLanServer();
+	TINY_API void sreachLanServer();
 
 	//NetWorker
 	bool  isServer(){   return false;  }
@@ -76,6 +76,7 @@ protected:
 	SessionId           mSessoionId;
 	TcpClient           mTcpClient;
 	UdpClient           mUdpClient;
+	NetSelectSet        mNetSelect;
 	NetActionState      mNextState;
 	ClientListener*     mClientListener;
 	LatencyCalculator   mCalculator;

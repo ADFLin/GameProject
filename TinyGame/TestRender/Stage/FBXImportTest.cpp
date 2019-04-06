@@ -1,3 +1,4 @@
+#if 0
 #include "BRDFTestStage.h"
 #include "TestRenderStageBase.h"
 
@@ -589,3 +590,4 @@ namespace Render
 
 
 }
+#endif

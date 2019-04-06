@@ -21,7 +21,7 @@ struct LocalClientData
 
 };
 
-struct NetClientData
+struct NetClientData : public SocketDetector
 {
 	typedef UdpServer::Client UdpClient;
 
@@ -49,12 +49,42 @@ struct NetClientData
 		tcpChannel.clearBuffer();
 		udpChannel.clearBuffer();
 	}
+
+	void setUDPAddress(NetAddress const& address)
+	{
+		udpAddr = address;
+		if (udpChannel.getSocket().createUDP())
+		{
+			if (!udpChannel.getSocket().connect(address))
+			{
+
+			}
+		}
+		else
+		{
+
+		}
+	}
+
+
+	void updateUdpSocket(long time, NetSelectSet* pNetSelect)
+	{
+		mTime = time;
+		udpChannel.getSocket().detectUDP(*this, pNetSelect);
+	}
 	volatile int32 locked;
 	SessionId    id;
 	TCPClient    tcpChannel;
 	UdpClient    udpChannel;
 	NetAddress   udpAddr;
 	PlayerId     ownerId;
+	long         mTime;
+
+	virtual void onSendable(NetSocket& socket) override
+	{
+		udpChannel.processSendData(mTime);
+	}
+
 };
 
 
@@ -139,7 +169,7 @@ public:
 	ServerClientManager();
 	~ServerClientManager();
 
-	void        update( long time );
+	void        updateSocket( long time , NetSelectSet* pNetSelect = nullptr );
 	void        sendUdpData( long time , UdpServer& server );
 	NetClientData* findClient( NetAddress const& addr );
 	NetClientData* findClient( SessionId id );
@@ -151,7 +181,7 @@ public:
 	void        sendTcpCommand( ComEvaluator& evaluator , IComPacket* cp );
 	void        sendUdpCommand( ComEvaluator& evaluator , IComPacket* cp );
 
-	void        setClientUdpAddr( SessionId id , NetAddress const& addr );
+	NetClientData* setClientUdpAddr( SessionId id , NetAddress const& addr );
 
 protected:
 
@@ -326,6 +356,7 @@ protected:
 	TPtrHolder< LocalWorker >      mLocalWorker;
 
 	bool                 mbEnableUDPChain;
+	NetSelectSet         mNetSelect;
 	TcpServer            mTcpServer;
 	UdpServer            mUdpServer;
 	TcpClient            mGuideClient;

@@ -1,7 +1,10 @@
 #include "NetSocket.h"
 
+#include "LogSystem.h"
+
 #include <cstdlib>
 #include <cassert>
+#include <corecrt_io.h>
 
 WORD  gSockVersion = MAKEWORD(1,1);
 
@@ -21,7 +24,6 @@ NetSocket::~NetSocket()
 
 bool NetSocket::connect( char const* addrName  , unsigned  port )
 {
-	assert( mHandle == INVALID_SOCKET );
 	NetAddress addr;
 	if ( !addr.setInternet( addrName , port ) )
 		return false;
@@ -31,12 +33,7 @@ bool NetSocket::connect( char const* addrName  , unsigned  port )
 
 bool NetSocket::connect( NetAddress const& addr )
 {
-
-	if ( !createTCP( true ) )
-	{
-		return false;
-	}
-
+	assert(mHandle != INVALID_SOCKET);
 	int result = ::connect( getHandle() , (sockaddr*)&addr.get() , sizeof( addr.get() ) );
 
 	if ( result == SOCKET_ERROR && WSAGetLastError() != WSAEWOULDBLOCK )
@@ -44,7 +41,15 @@ bool NetSocket::connect( NetAddress const& addr )
 		socketError("Failed connect()");
 		return  false;
 	}
-	mState = SKS_CONNECTING;
+	if (mState == SKS_UDP)
+	{
+		mState = SKS_CONNECTED_UDP;
+	}
+	else
+	{
+		mState = SKS_CONNECTING;
+	}
+	
 	return true;
 }
 
@@ -192,134 +197,93 @@ bool NetSocket::accept( NetSocket& clientSocket , sockaddr* addr , int addrLengt
 	if ( clientSocket.mHandle == INVALID_SOCKET )
 		return false;
 
-	clientSocket.mState  = SKS_CONNECT;
+	clientSocket.mState  = SKS_CONNECTED;
 	return  true;
 }
 
-struct NetSelectSet 
-{
-	NetSelectSet()
-	{
-		clear();
-	}
-	void clear()
-	{
-		numFD = 0;
-		FD_ZERO(&read);
-		FD_ZERO(&write);
-		FD_ZERO(&except);
-	}
-	void addSocket(NetSocket& socket)
-	{
-		SOCKET hSocket = socket.getHandle();
-		FD_SET(hSocket, &read);
-		FD_SET(hSocket, &write);
-		FD_SET(hSocket, &except);
-		++numFD;
-	}
 
-	int select(long sec, long usec)
-	{
-		timeval TimeOut;
-		TimeOut.tv_sec = sec;
-		TimeOut.tv_usec = usec;
-		return ::select(numFD, &read, &write, &except, &TimeOut);
-	}
-
-	bool canRead(NetSocket& socket)
-	{
-		return FD_ISSET( socket.getHandle() , &read );
-	}
-	bool canWrite(NetSocket& socket)
-	{
-		return FD_ISSET(socket.getHandle(), &write);
-	}
-	bool haveExcept(NetSocket& socket)
-	{
-		return FD_ISSET(socket.getHandle(), &except);
-	}
-
-	int numFD;
-	fd_set read;
-	fd_set write;
-	fd_set except;
-};
-
-bool NetSocket::detectTCP( SocketDetector& detector )
+bool NetSocket::detectTCP( SocketDetector& detector , NetSelectSet *pSelectSet )
 {
 	if ( mState == SKS_CLOSE )
 		return false;
 
-	int rVal;
+	if (pSelectSet)
+	{
+		return detectTCPInternal(detector, *pSelectSet);
+	}
 
 	NetSelectSet selectSet;
 	selectSet.addSocket(*this);
-	rVal = selectSet.select( 0 , 0 );
-	if( rVal == SOCKET_ERROR)
-	{
+	if (!selectSet.select(0, 0))
 		return false;
-	}
 
+	return detectTCPInternal(detector , selectSet);
+}
+
+bool NetSocket::detectTCPInternal(SocketDetector& detector, NetSelectSet& selectSet)
+{
+	if (mState == SKS_CLOSE)
+		return false;
 
 	SOCKET hSocket = getHandle();
-	switch ( mState )
+	switch (mState)
 	{
-	case  SKS_CONNECT:
-		if( selectSet.canRead( *this ))
+	case  SKS_CONNECTED:
+		if (selectSet.canRead(*this))
 		{
 			int length = 0;
-			rVal = ioctlsocket( hSocket , FIONREAD ,(unsigned long *)&length); 
+			int rVal = ioctlsocket(hSocket, FIONREAD, (unsigned long *)&length);
 			// connection is be gracefully closed
-			if( length == 0 )
-			{ 
-				detector.onClose( *this , true );
+			if (length == 0)
+			{
+				detector.onClose(*this, true);
 				close();
 				return true;
 				// connection is not be gracefully closeed
 			}
-			else if( recv( hSocket ,0,0,0) == SOCKET_ERROR )
-			{ 
-				detector.onClose( *this , false );
+			else if (recv(hSocket, 0, 0, 0) == SOCKET_ERROR)
+			{
+				detector.onClose(*this, false);
 				close();
 				return true;
 			}
 			else
 			{
-				detector.onReadable( *this , length );
+				detector.onReadable(*this, length);
 			}
 		}
 
-		if( selectSet.canWrite(*this) )
+		if (selectSet.canWrite(*this))
 		{
-			detector.onSendable( *this );
+			detector.onSendable(*this);
 		}
 
-		if( selectSet.haveExcept( *this ) )
-		{	
-			detector.onExcept( *this );
+		if (selectSet.haveExcept(*this))
+		{
+			detector.onExcept(*this);
 		}
 		break;
 	case SKS_LISTING:
-		if( selectSet.canRead(*this) )
+		if (selectSet.canRead(*this))
 		{
-			detector.onAcceptable( *this );
+			detector.onAcceptable(*this);
 		}
 		break;
 	case SKS_CONNECTING:
-		if( selectSet.canWrite(*this) )
+		if (selectSet.canWrite(*this))
 		{
 			sockaddr_in Address;
-			memset(&Address,0,sizeof(Address));
-			mState = SKS_CONNECT;
+			memset(&Address, 0, sizeof(Address));
+			mState = SKS_CONNECTED;
 
-			detector.onConnect( *this );
+			detector.onConnect(*this);
 
 		}
 		// connect failed
-		if( selectSet.canRead(*this) )
-		{	
+		if (selectSet.canRead(*this))
+		{
 			mState = SKS_CLOSE;
-			detector.onConnectFailed(*this); 
+			detector.onConnectFailed(*this);
 		}
 		break;
 	}
@@ -327,45 +291,50 @@ bool NetSocket::detectTCP( SocketDetector& detector )
 	return true;
 }
 
-bool NetSocket::detectUDP( SocketDetector& detector )
+bool NetSocket::detectUDP( SocketDetector& detector , NetSelectSet* pSelectSet)
 {
 	if ( mState == SKS_CLOSE )
 		return false;
 
-	assert( mState == SKS_UDP );
+	assert( mState == SKS_UDP || mState == SKS_CONNECTED_UDP );
 
-	int rVal;
+	if (pSelectSet)
+	{
+		return detectUDPInternal(detector, *pSelectSet);
+	}
 
 	NetSelectSet selectSet;
 	selectSet.addSocket(*this);
-	rVal = selectSet.select(0, 0);
-
-	if( rVal == SOCKET_ERROR)
-	{
+	if (!selectSet.select(0, 0))
 		return false;
-	}
 
+	return detectUDPInternal(detector, selectSet);
+
+}
+
+bool NetSocket::detectUDPInternal(SocketDetector& detector , NetSelectSet& selectSet)
+{
 	SOCKET hSocket = getHandle();
 
-	if ( selectSet.canRead( *this ) )
+	if (selectSet.canRead(*this))
 	{
-		while ( 1 )
+		while (1)
 		{
 			unsigned long length = 0;
-			rVal = ioctlsocket( hSocket , FIONREAD ,(unsigned long *)&length);
+			int rVal = ioctlsocket(hSocket, FIONREAD, (unsigned long *)&length);
 
-			if ( rVal == SOCKET_ERROR || length == 0 )
+			if (rVal == SOCKET_ERROR || length == 0)
 				break;
-			detector.onReadable( *this , length );
+			detector.onReadable(*this, length);
 		}
 	}
-	if ( selectSet.canWrite( *this ) )
+	if (selectSet.canWrite(*this))
 	{
-		detector.onSendable( *this );
+		detector.onSendable(*this);
 	}
-	if ( selectSet.haveExcept( *this ) )
+	if (selectSet.haveExcept(*this))
 	{
-		detector.onExcept( *this );
+		detector.onExcept(*this);
 	}
 
 	return true;
@@ -453,4 +422,78 @@ void NetAddress::setBroadcast( unsigned port )
 	mAddr.sin_port = htons( port );
 
 	ZeroMemory( mAddr.sin_zero , 8 );
+}
+
+void NetSelectSet::clear()
+{
+	mSockets.clear();
+}
+
+void NetSelectSet::addSocket(NetSocket& socket)
+{
+#if _DEBUG
+	auto iter = std::find(mSockets.begin(), mSockets.end(), &socket);
+	if (iter != mSockets.end())
+	{
+		LogWarning(0, "Socket object added select set twice");
+		return;
+	}
+#endif
+	mSockets.push_back(&socket);
+}
+
+void NetSelectSet::removeSocket(NetSocket& socket)
+{
+	auto iter = std::find(mSockets.begin(), mSockets.end(), &socket);
+	if (iter != mSockets.end())
+	{
+		mSockets.erase(iter);
+	}
+}
+
+bool NetSelectSet::select(long sec, long usec)
+{
+	timeval TimeOut;
+	TimeOut.tv_sec = sec;
+	TimeOut.tv_usec = usec;
+
+	FD_ZERO(&mRead);
+	FD_ZERO(&mWrite);
+	FD_ZERO(&mExcept);
+
+	int numSockets = 0;
+
+	for( auto pSocket : mSockets )
+	{
+		SOCKET hSocket = pSocket->getHandle();
+		FD_SET(hSocket, &mRead);
+		FD_SET(hSocket, &mWrite);
+		FD_SET(hSocket, &mExcept);
+		++numSockets;
+	}
+
+	int num = ::select(numSockets, &mRead, &mWrite, &mExcept, &TimeOut);
+	if (num < 0)
+	{
+		return false;
+	}
+	if (num == 0)
+		return false;
+
+	return true;
+}
+
+bool NetSelectSet::canRead(NetSocket& socket)
+{
+	return !!FD_ISSET(socket.getHandle(), &mRead);
+}
+
+bool NetSelectSet::canWrite(NetSocket& socket)
+{
+	return !!FD_ISSET(socket.getHandle(), &mWrite);
+}
+
+bool NetSelectSet::haveExcept(NetSocket& socket)
+{
+	return !!FD_ISSET(socket.getHandle(), &mExcept);
 }

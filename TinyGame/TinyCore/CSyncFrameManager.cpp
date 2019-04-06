@@ -321,8 +321,8 @@ void SVSyncFrameManager::procFrameData( IComPacket* cp )
 	GDPFrameStream* fp = cp->cast< GDPFrameStream >();
 	ServerPlayer* player = mWorker->getPlayerManager()->getPlayer( id );
 
-#if DEBUG_SHOW_FRAME_DATA_TRANSITION
-	if( fp->buffer.getAvailableSize() )
+#if 1 || DEBUG_SHOW_FRAME_DATA_TRANSITION
+	//if( fp->buffer.getAvailableSize() )
 	{
 		LogDevMsg(0, "==Recv Frame Data : %d %d %d==", (int)mFrameMgr.getFrame(), (int)fp->frame, (int)fp->buffer.getAvailableSize());
 	}

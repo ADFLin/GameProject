@@ -1,0 +1,24 @@
+#include "Common.sgc"
+#include "ScreenVertexShader.sgc"
+#include "ViewParam.sgc"
+
+#if PIXEL_SHADER
+in VSOutputParameters VSOutput;
+uniform sampler2DMS UnsolvedDepthTexture;
+void ResolveDepthPS()
+{
+	int2 IntUV = int2( trunc( VSOutput.UVs ) );
+	float ResolvedDepth = texelFetch(UnsolvedDepthTexture, IntUV , 0 ).r;
+
+#if 1
+	for( int SampleIndex = 1; SampleIndex < 8; ++SampleIndex )
+	{
+		float Sample = texelFetch(UnsolvedDepthTexture, IntUV, SampleIndex).r;
+		ResolvedDepth = min(ResolvedDepth, Sample);
+	}
+
+#endif
+	WritePixelRawDepth(ResolvedDepth);
+}
+
+#endif

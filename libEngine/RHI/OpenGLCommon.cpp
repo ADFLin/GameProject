@@ -23,7 +23,7 @@ namespace Render
 	}
 
 
-	bool  UpdateTexture(GLenum textureEnum, int ox, int oy, int w, int h, Texture::Format format, void* data, int level)
+	bool  UpdateTexture2D(GLenum textureEnum, int ox, int oy, int w, int h, Texture::Format format, void* data, int level)
 	{
 		glTexSubImage2D(textureEnum, level, ox, oy, w, h, GLConvert::PixelFormat(format), GLConvert::TextureComponentType(format), data);
 		bool result = CheckGLStateValid();
@@ -31,7 +31,7 @@ namespace Render
 
 	}
 
-	bool  UpdateTexture(GLenum textureEnum, int ox, int oy, int w, int h, Texture::Format format, int pixelStride, void* data, int level)
+	bool  UpdateTexture2D(GLenum textureEnum, int ox, int oy, int w, int h, Texture::Format format, int pixelStride, void* data, int level)
 	{
 #if 1
 		::glPixelStorei(GL_UNPACK_ROW_LENGTH, pixelStride);
@@ -166,7 +166,7 @@ namespace Render
 			return false;
 		}
 		bind();
-		bool result = UpdateTexture(TypeEnumGL, ox, oy, w, h, format, data, level);
+		bool result = UpdateTexture2D(TypeEnumGL, ox, oy, w, h, format, data, level);
 		unbind();
 		return result;
 	}
@@ -179,7 +179,7 @@ namespace Render
 		}
 
 		bind();
-		bool result = UpdateTexture(TypeEnumGL, ox, oy, w, h, format, pixelStride, data, level);
+		bool result = UpdateTexture2D(TypeEnumGL, ox, oy, w, h, format, pixelStride, data, level);
 		unbind();
 		return result;
 	}
@@ -276,7 +276,7 @@ namespace Render
 	bool OpenGLTextureCube::update(Texture::Face face, int ox, int oy, int w, int h, Texture::Format format, void* data, int level)
 	{
 		bind();
-		bool result = UpdateTexture(GL_TEXTURE_CUBE_MAP_POSITIVE_X + face, ox, oy, w, h, format, data, level);
+		bool result = UpdateTexture2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + face, ox, oy, w, h, format, data, level);
 		unbind();
 		return result;
 	}
@@ -284,9 +284,60 @@ namespace Render
 	bool OpenGLTextureCube::update(Texture::Face face, int ox, int oy, int w, int h, Texture::Format format, int pixelStride, void* data, int level)
 	{
 		bind();
-		bool result = UpdateTexture(GL_TEXTURE_CUBE_MAP_POSITIVE_X + face, ox, oy, w, h, format, pixelStride , data, level);
+		bool result = UpdateTexture2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + face, ox, oy, w, h, format, pixelStride , data, level);
 		unbind();
 		return result;
+	}
+
+	bool OpenGLTexture2DArray::create(Texture::Format format, int width, int height, int layerSize, int numMipLevel, int numSamples, uint32 createFlags, void* data )
+	{
+		if( !mGLObject.fetchHandle() )
+			return false;
+
+		if( layerSize < 1 )
+			layerSize = 1;
+		if( numMipLevel < 1 )
+			numMipLevel = 1;
+		if( numSamples < 1 )
+			numSamples = 1;
+
+		mSizeX = width;
+		mSizeY = height;
+		mLayerNum = layerSize;
+		mFormat = format;
+		mNumMipLevel = numMipLevel;
+		mNumSamples = numSamples;
+
+		bind();
+
+		if( numSamples > 1 )
+		{
+			glTexImage3DMultisample(TypeEnumGLMultisample, numSamples, GLConvert::To(format), width, height , layerSize, true);
+		}
+		else
+		{
+			glTexParameteri(TypeEnumGL, GL_TEXTURE_BASE_LEVEL, 0);
+			glTexParameteri(TypeEnumGL, GL_TEXTURE_MAX_LEVEL, numMipLevel - 1);
+
+			glTexImage3D(TypeEnumGL, 0, GLConvert::To(format), width, height, layerSize, 0,
+						 GLConvert::BaseFormat(format), GLConvert::TextureComponentType(format), data);
+
+			if( numMipLevel > 1 )
+			{
+				glGenerateMipmap(TypeEnumGL);
+				glTexParameteri(TypeEnumGL, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+			}
+			else
+			{
+				glTexParameteri(TypeEnumGL, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+			}
+			glTexParameteri(TypeEnumGL, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+		}
+
+		CheckGLStateValid();
+		unbind();
+		return true;
 	}
 
 	bool OpenGLTextureDepth::create(Texture::DepthFormat format, int width, int height, int numMipLevel, int numSamples)
@@ -302,6 +353,8 @@ namespace Render
 		mFromat = format;
 		mNumMipLevel = numMipLevel;
 		mNumSamples = numSamples;
+		mSizeX = width;
+		mSizeY = height;
 
 		bind();
 		if( numSamples > 1 )
@@ -332,33 +385,24 @@ namespace Render
 	int OpenGLFrameBuffer::addTexture( RHITextureCube& target , Texture::Face face, int level)
 	{
 		int idx = mTextures.size();
-
-		BufferInfo info;
-		info.bufferRef = &target;
-		info.idxFace   = face;
-		info.level     = level;
-		info.typeEnumGL = GL_TEXTURE_CUBE_MAP_POSITIVE_X + face;
-		mTextures.push_back( info );
-		
-		setTextureInternal( idx , OpenGLCast::GetHandle( target ) , GL_TEXTURE_CUBE_MAP_POSITIVE_X + info.idxFace , level );
+		setTexture(idx, target, face , level);
 		return idx;
 	}
 
 	int OpenGLFrameBuffer::addTexture( RHITexture2D& target, int level)
 	{
 		int idx = mTextures.size();
-
-		BufferInfo info;
-		info.bufferRef = &target;
-		info.idxFace  = -1;
-		info.level = level;
-		info.typeEnumGL = OpenGLCast::To(&target)->getGLTypeEnum();
-		mTextures.push_back( info );
-		setTextureInternal( idx , OpenGLCast::GetHandle( target ) , OpenGLCast::To(&target)->getGLTypeEnum() , level );
-		
+		setTexture(idx , target, level);	
 		return idx;
 	}
 
+
+	int OpenGLFrameBuffer::addTexture(RHITexture2DArray& target, int idexLayer, int level /*= 0*/)
+	{
+		int idx = mTextures.size();
+		setTexture(idx, target, idexLayer , level);
+		return idx;
+	}
 
 	void OpenGLFrameBuffer::setTexture(int idx, RHITexture2D& target, int level)
 	{
@@ -373,7 +417,7 @@ namespace Render
 		info.idxFace = -1;
 		info.level = level;
 		info.typeEnumGL = OpenGLCast::To(&target)->getGLTypeEnum();
-		setTextureInternal( idx , OpenGLCast::GetHandle( target ) , OpenGLCast::To(&target)->getGLTypeEnum(), level );
+		setTexture2DInternal( idx , OpenGLCast::GetHandle( target ) , info.typeEnumGL, level );
 	}
 
 	void OpenGLFrameBuffer::setTexture( int idx , RHITextureCube& target , Texture::Face face, int level)
@@ -389,33 +433,61 @@ namespace Render
 		info.idxFace = face;
 		info.level = level;
 		info.typeEnumGL = GL_TEXTURE_CUBE_MAP_POSITIVE_X + face;
-		setTextureInternal( idx , OpenGLCast::GetHandle( target ) , GL_TEXTURE_CUBE_MAP_POSITIVE_X + face , level );
+		setTexture2DInternal( idx , OpenGLCast::GetHandle( target ) , GL_TEXTURE_CUBE_MAP_POSITIVE_X + face , level );
 	}
 
-	void OpenGLFrameBuffer::setRenderBufferInternal( GLuint handle )
+	void OpenGLFrameBuffer::setTexture(int idx, RHITexture2DArray& target, int idexLayer, int level /*= 0*/)
+	{
+		assert(idx <= mTextures.size());
+		if( idx == mTextures.size() )
+		{
+			mTextures.push_back(BufferInfo());
+		}
+
+		BufferInfo& info = mTextures[idx];
+		info.bufferRef = &target;
+		info.idxLayer = idexLayer;
+		info.level = level;
+		info.typeEnumGL = OpenGLCast::To(&target)->getGLTypeEnum();
+		setTextureLayerInternal(idx, OpenGLCast::GetHandle(target), info.typeEnumGL , level , idexLayer );
+	}
+
+
+	void OpenGLFrameBuffer::setRenderBufferInternal(GLuint handle)
 	{
 		assert(getHandle());
 		glBindFramebuffer(GL_FRAMEBUFFER, getHandle());
 		glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 , GL_RENDERBUFFER, handle);
-		GLenum Status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
-		if( Status != GL_FRAMEBUFFER_COMPLETE )
-		{
-			LogWarning(0, "Texture Can't Attach to FrameBuffer");
-		}
+		checkStates();
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	}
 
-	void OpenGLFrameBuffer::setTextureInternal(int idx, GLuint handle , GLenum texType, int level)
+	void OpenGLFrameBuffer::setTexture2DInternal(int idx, GLuint handle , GLenum texType, int level)
 	{
 		assert( getHandle() );
 		glBindFramebuffer( GL_FRAMEBUFFER , getHandle() );
 		glFramebufferTexture2D( GL_FRAMEBUFFER , GL_COLOR_ATTACHMENT0 + idx , texType , handle , level );
-		GLenum Status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
-		if( Status != GL_FRAMEBUFFER_COMPLETE )
-		{
-			LogWarning(0,"Texture Can't Attach to FrameBuffer");
-		}
+		checkStates();
 		glBindFramebuffer(GL_FRAMEBUFFER, 0 );
+	}
+
+	void OpenGLFrameBuffer::setTexture3DInternal(int idx, GLuint handle, GLenum texType, int level, int idxLayer)
+	{
+		assert(getHandle());
+		glBindFramebuffer(GL_FRAMEBUFFER, getHandle());
+		glFramebufferTexture3D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + idx, texType, handle, level , idxLayer);
+		checkStates();
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	}
+
+
+	void OpenGLFrameBuffer::setTextureLayerInternal(int idx, GLuint handle, GLenum texType, int level, int idxLayer)
+	{
+		assert(getHandle());
+		glBindFramebuffer(GL_FRAMEBUFFER, getHandle());
+		glFramebufferTextureLayer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + idx, handle, level, idxLayer);
+		checkStates();
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	}
 
 	void OpenGLFrameBuffer::bindDepthOnly()
@@ -455,8 +527,9 @@ namespace Render
 		return true;
 	}
 
-	int OpenGLFrameBuffer::addTextureLayer(RHITextureCube& target, int level )
+	void OpenGLFrameBuffer::setupTextureLayer(RHITextureCube& target, int level )
 	{
+		mTextures.clear();
 		int idx = mTextures.size();
 		BufferInfo info;
 		info.bufferRef = &target;
@@ -465,13 +538,8 @@ namespace Render
 		mTextures.push_back(info);
 		glBindFramebuffer(GL_FRAMEBUFFER, getHandle());
 		glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, OpenGLCast::GetHandle( target ), level);
-		GLenum Status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
-		if( Status != GL_FRAMEBUFFER_COMPLETE )
-		{
-			LogWarning(0,"Texture Can't Attach to FrameBuffer");
-		}
+		checkStates();
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
-		return idx;
 	}
 
 	void OpenGLFrameBuffer::clearBuffer(Vector4 const* colorValue, float const* depthValue, uint8 stencilValue)
@@ -513,7 +581,12 @@ namespace Render
 				height = texture->getSizeY();
 			}
 			break;
+		case GL_TEXTURE_2D_MULTISAMPLE_ARRAY:
+		case GL_TEXTURE_2D_ARRAY:
+			{
 
+			}
+			break;
 		case GL_RENDERBUFFER:
 		default:
 			return;
@@ -1094,13 +1167,6 @@ namespace Render
 	}
 
 
-	bool OpenGLUniformBuffer::create(uint32 elementSize, uint32 numElements, uint32 creationFlags, void* data)
-	{
-		if( !createInternal(elementSize , numElements , creationFlags , data) )
-			return false;
-		return true;
-	}
-
 	bool OpenGLSamplerState::create(SamplerStateInitializer const& initializer)
 	{
 		if( !mGLObject.fetchHandle() )
@@ -1169,7 +1235,8 @@ namespace Render
 
 	OpenGLRasterizerState::OpenGLRasterizerState(RasterizerStateInitializer const& initializer)
 	{
-		mStateValue.bEnalbeCull = initializer.cullMode != ECullMode::None;
+		mStateValue.bEnableCull = initializer.cullMode != ECullMode::None;
+		mStateValue.bEnableScissor = initializer.bEnableScissor;
 		mStateValue.cullFace = GLConvert::To(initializer.cullMode);
 		mStateValue.fillMode = GLConvert::To(initializer.fillMode);
 	}
@@ -1326,5 +1393,7 @@ namespace Render
 		if( haveTex )
 			glClientActiveTexture(GL_TEXTURE0);
 	}
+
+
 
 }//namespace GL

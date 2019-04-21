@@ -235,8 +235,7 @@ namespace Render
 		RHITexture2DRef randTexture;
 		RHITexture2DRef noiseTexture;
 		RHITexture3DRef volumeTexture;
-		RHITexture3DRef NoiseVolumeTexture;
-
+		RHITexture3DRef noiseVolumeTexture;
 
 		NoiseShaderParamsData()
 		{
@@ -296,31 +295,31 @@ namespace Render
 
 		}
 
-		void setParameters(NoiseShaderParamsData& data)
+		void setParameters(RHICommandList& commandList, NoiseShaderParamsData& data)
 		{
 			if( mParamTime.isBound() )
 			{
-				setParam(mParamTime, data.time);
+				setParam(commandList, mParamTime, data.time);
 			}
 			if( mParamFBMFactor.isBound() )
 			{
-				setParam(mParamFBMFactor, data.FBMFactor);
+				setParam(commandList, mParamFBMFactor, data.FBMFactor);
 			}
 			if( mParamRandTexture.isBound() )
 			{
-				setTexture(mParamRandTexture, *data.randTexture, TStaticSamplerState<Sampler::ePoint>::GetRHI());
+				setTexture(commandList, mParamRandTexture, *data.randTexture, TStaticSamplerState<Sampler::ePoint>::GetRHI());
 			}
 			if( mParamNoiseTexture.isBound() )
 			{
-				setTexture(mParamNoiseTexture, *data.noiseTexture, TStaticSamplerState<Sampler::eBilinear>::GetRHI());
+				setTexture(commandList, mParamNoiseTexture, *data.noiseTexture, TStaticSamplerState<Sampler::eBilinear>::GetRHI());
 			}
 			if( mParamVolumeTexture.isBound() )
 			{
-				setTexture(mParamVolumeTexture, *data.volumeTexture, TStaticSamplerState<Sampler::eBilinear>::GetRHI());
+				setTexture(commandList, mParamVolumeTexture, *data.volumeTexture, TStaticSamplerState<Sampler::eBilinear>::GetRHI());
 			}
 			if( mParamNoiseVolumeTexture.isBound() )
 			{
-				setTexture(mParamNoiseVolumeTexture, *data.NoiseVolumeTexture, TStaticSamplerState<Sampler::eBilinear>::GetRHI());
+				setTexture(commandList, mParamNoiseVolumeTexture, *data.noiseVolumeTexture, TStaticSamplerState<Sampler::eBilinear>::GetRHI());
 			}
 
 		}
@@ -409,20 +408,20 @@ namespace Render
 			SHADER_BIND_PARAM(StepSize);
 		}
 
-		void setParameters(ViewInfo& view, NoiseShaderParamsData& data, Vector3 volumeCenter, Vector3 volumeSize, SmokeParams const& smokeParams)
+		void setParameters(RHICommandList& commandList, ViewInfo& view, NoiseShaderParamsData& data, Vector3 volumeCenter, Vector3 volumeSize, SmokeParams const& smokeParams)
 		{
-			BaseClass::setParameters(data);
-			view.setupShader(*this);
-			setParam(mParamVolumeMin, volumeCenter - 0.5 * volumeSize);
-			setParam(mParamVolumeSize, volumeSize);
+			BaseClass::setParameters(commandList, data);
+			view.setupShader(commandList, *this);
+			setParam(commandList, mParamVolumeMin, volumeCenter - 0.5 * volumeSize);
+			setParam(commandList, mParamVolumeSize, volumeSize);
 
 			Vector4 scatterFactor;
 			scatterFactor.x = smokeParams.densityFactor;
 			scatterFactor.y = smokeParams.phaseG;
 			scatterFactor.z = smokeParams.scatterCoefficient;
 			scatterFactor.w = smokeParams.scatterCoefficient / smokeParams.albedo;
-			setParam(mParamScatterFactor, scatterFactor);
-			setParam(mParamStepSize, smokeParams.stepSize);
+			setParam(commandList, mParamScatterFactor, scatterFactor);
+			setParam(commandList, mParamStepSize, smokeParams.stepSize);
 		}
 
 		ShaderParameter mParamVolumeMin;
@@ -460,16 +459,40 @@ namespace Render
 			SHADER_BIND_PARAM(HistroyTexture);
 		}
 
-		void setParameters(ViewInfo& view, RHITexture2D& frameTexture, RHITexture2D& historyTexture)
+		void setParameters(RHICommandList& commandList, ViewInfo& view, RHITexture2D& frameTexture, RHITexture2D& historyTexture)
 		{
-			view.setupShader(*this);
-			setTexture(mParamFrameTexture, frameTexture, TStaticSamplerState<Sampler::eBilinear>::GetRHI());
-			setTexture(mParamHistroyTexture, historyTexture, TStaticSamplerState<Sampler::eBilinear>::GetRHI());
+			view.setupShader(commandList, *this);
+			setTexture(commandList, mParamFrameTexture, frameTexture, TStaticSamplerState<Sampler::eBilinear>::GetRHI());
+			setTexture(commandList, mParamHistroyTexture, historyTexture, TStaticSamplerState<Sampler::eBilinear>::GetRHI());
 		}
 
 		ShaderParameter mParamFrameTexture;
 		ShaderParameter mParamHistroyTexture;
 	};
+
+
+	class ResovleDepthProgram : public GlobalShaderProgram
+	{
+		typedef GlobalShaderProgram BaseClass;
+		DECLARE_SHADER_PROGRAM(ResovleDepthProgram, Global);
+	public:
+		static char const* GetShaderFileName()
+		{
+			return "Shader/ResolveRenderTarget";
+		}
+
+		static TArrayView< ShaderEntryInfo const > GetShaderEntries()
+		{
+			static ShaderEntryInfo const entries[] =
+			{
+				{ Shader::eVertex , SHADER_ENTRY(ScreenVS) },
+				{ Shader::ePixel  , SHADER_ENTRY(ResolveDepthPS) },
+			};
+			return entries;
+		}
+	};
+
+	IMPLEMENT_SHADER_PROGRAM(ResovleDepthProgram);
 
 	class NoiseTestStage : public TestRenderStageBase
 
@@ -486,14 +509,19 @@ namespace Render
 		SmokeRenderProgram*     mProgSmokeRender;
 		SmokeBlendProgram*      mProgSmokeBlend;
 
-		TStructuredStorageBuffer< TiledLightInfo > mLightsBuffer;
+		ResovleDepthProgram*    mProgResolveDepth;
+
+		TStructuredBuffer< TiledLightInfo > mLightsBuffer;
 
 		int indexFrameTexture = 1;
 		RHITexture2DRef    mSmokeFrameTextures[2];
 		RHITexture2DRef    mSmokeDepthTexture;
-		OpenGLFrameBuffer  mSmokeFrameBuffer;
+		RHIFrameBufferRef  mSmokeFrameBuffer;
+		RHIFrameBufferRef  mResolveFrameBuffer;
+
 		OpenGLFrameBuffer  mFrameBuffer;
 		RHITextureDepthRef mDepthBuffer;
+		RHITextureDepthRef mResolvedDepthBuffer;
 		RHITexture2DRef    mScreenBuffer;
 
 		RHITexture2DRef    mGrassTexture;
@@ -520,13 +548,13 @@ namespace Render
 			mLightsBuffer.unlock();
 		}
 
-		void drawNoiseImage(IntVector2 const& pos, IntVector2 const& size, NoiseShaderProgramBase& shader)
+		void drawNoiseImage(RHICommandList& commandList, IntVector2 const& pos, IntVector2 const& size, NoiseShaderProgramBase& shader)
 		{
 			GPU_PROFILE("drawNoiseImage");
-			RHISetViewport(pos.x, pos.y, size.x, size.y);
+			RHISetViewport(commandList, pos.x, pos.y, size.x, size.y);
 			GL_BIND_LOCK_OBJECT(shader);
-			shader.setParameters(mData);
-			DrawUtility::ScreenRectShader();
+			shader.setParameters(commandList, mData);
+			DrawUtility::ScreenRectShader(commandList);
 		}
 
 

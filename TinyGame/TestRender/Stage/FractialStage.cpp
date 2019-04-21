@@ -78,7 +78,7 @@ class MandelbrotProgram : public GlobalShaderProgram
 		parameterMap.bind(mParamColorMapTexture, SHADER_PARAM(ColorMapTexture));
 	}
 
-	void setParameters(MandelbrotParam const& param , RHITexture2D& colorTexture , RHITexture1D& colorMapTexture )
+	void setParameters(RHICommandList& commandList, MandelbrotParam const& param , RHITexture2D& colorTexture , RHITexture1D& colorMapTexture )
 	{
 
 		Vector4 rectParam;
@@ -86,17 +86,17 @@ class MandelbrotProgram : public GlobalShaderProgram
 		rectParam.y = param.center.y;
 		rectParam.z = param.center.x - 0.5 * param.viewSize.x * param.getRatioX();
 		rectParam.w = param.center.y - 0.5 * param.viewSize.y * param.getRatioY();
-		setParam(mParamCoordParam, rectParam);
+		setParam(commandList, mParamCoordParam, rectParam);
 		Vector4 rectParam2;
 		rectParam2.x = param.getRatioX();
 		rectParam2.y = param.getRatioY();
 		Math::SinCos( param.rotationAngle , rectParam2.w, rectParam2.z);
-		setParam(mParamCoordParam2, rectParam2);
-		setParam(mParamTextureSize, param.viewSize);
-		setParam(mParamMaxIteration, param.maxIteration);
-		setParam(mParamColorMapParam, Vector4(1,0,param.bailoutValue * param.bailoutValue,0));
-		setRWTexture(mParamColorRWTexture, colorTexture, AO_WRITE_ONLY);
-		setTexture(mParamColorMapTexture, colorMapTexture , TStaticSamplerState< Sampler::eBilinear , Sampler::eWarp >::GetRHI());
+		setParam(commandList, mParamCoordParam2, rectParam2);
+		setParam(commandList, mParamTextureSize, param.viewSize);
+		setParam(commandList, mParamMaxIteration, param.maxIteration);
+		setParam(commandList, mParamColorMapParam, Vector4(1,0,param.bailoutValue * param.bailoutValue,0));
+		setRWTexture(commandList, mParamColorRWTexture, colorTexture, AO_WRITE_ONLY);
+		setTexture(commandList, mParamColorMapTexture, colorMapTexture , TStaticSamplerState< Sampler::eBilinear , Sampler::eWarp >::GetRHI());
 
 	}
 	static void SetupShaderCompileOption(ShaderCompileOption& option)
@@ -209,6 +209,8 @@ public:
 		{
 			if( !mbEnable ) return;
 
+			RHICommandList& commandList = RHICommandList::GetImmediateList();
+
 			Vector2 sizeHalf = 0.5 * Vector2(getSize());
 
 			Vector2 points[6] =
@@ -227,7 +229,7 @@ public:
 			}
 
 
-			RHISetBlendState(TStaticBlendState< CWM_RGBA , Blend::eOneMinusDestColor , Blend::eZero >::GetRHI());
+			RHISetBlendState(commandList, TStaticBlendState< CWM_RGBA , Blend::eOneMinusDestColor , Blend::eZero >::GetRHI());
 			g.setBrush(Color3f(1, 1, 1));
 			g.enablePen(false);
 			auto DrawLine = [&](Vector2 const& p1, Vector2 const& p2)
@@ -246,7 +248,7 @@ public:
 			}
 			DrawLine( points[4], points[5] );
 
-			RHISetBlendState(TStaticBlendState<>::GetRHI());
+			RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
 			g.enablePen(true);
 			g.setPen(Color3f(0, 0, 0));
 			g.setBrush(Color3f(1, 1, 1));
@@ -313,8 +315,9 @@ public:
 
 	void updateTexture()
 	{
+		RHICommandList& commandList = RHICommandList::GetImmediateList();
 		GL_BIND_LOCK_OBJECT(*mProgMandelbrot);
-		mProgMandelbrot->setParameters(mParam, *mTexture, *mColorMap );
+		mProgMandelbrot->setParameters(commandList, mParam, *mTexture, *mColorMap );
 		int nx = (mTexture->getSizeX() + MandelbrotProgram::SizeX - 1) / MandelbrotProgram::SizeX;
 		int ny = (mTexture->getSizeY() + MandelbrotProgram::SizeY - 1) / MandelbrotProgram::SizeY;
 		glDispatchCompute(nx, ny, 1);
@@ -351,6 +354,8 @@ public:
 
 		GameWindow& window = Global::GetDrawEngine().getWindow();
 
+		RHICommandList& commandList = RHICommandList::GetImmediateList();
+
 		glMatrixMode(GL_PROJECTION);
 		glLoadIdentity();
 		glOrtho(0, window.getWidth(), window.getHeight(), 0 ,  1, -1);
@@ -361,7 +366,7 @@ public:
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
 		Vec2i screenSize = Global::GetDrawEngine().getScreenSize();
-		DrawUtility::DrawTexture(*mTexture, Vec2i(0, 0), screenSize);
+		DrawUtility::DrawTexture(commandList, *mTexture, Vec2i(0, 0), screenSize);
 		g.beginRender();
 
 		mSelectRect.draw(g);

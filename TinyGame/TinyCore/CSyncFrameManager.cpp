@@ -403,8 +403,7 @@ void SVSyncFrameManager::fireAction( ActionTrigger& trigger )
 			if ( player->getInfo().actionPort == ERROR_ACTION_PORT )
 				continue;
 
-			trigger.setPort( player->getInfo().actionPort );
-			mActionTemplate->firePortAction( trigger );
+			mActionTemplate->firePortAction(player->getInfo().actionPort,  trigger );
 		}
 	}
 }
@@ -513,8 +512,7 @@ void CLSyncFrameManager::fireAction( ActionTrigger& trigger )
 	if ( mUserPlayer->getInfo().actionPort == ERROR_ACTION_PORT )
 		return;
 
-	trigger.setPort( mUserPlayer->getInfo().actionPort );
-	mActionTemplate->firePortAction( trigger );
+	mActionTemplate->firePortAction(mUserPlayer->getInfo().actionPort , trigger );
 }
 
 void CLSyncFrameManager::resetFrameData()

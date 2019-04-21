@@ -13,7 +13,7 @@ class IFrameActionTemplate
 {
 public:
 	virtual ~IFrameActionTemplate(){}
-	virtual void  firePortAction( ActionTrigger& trigger ) = 0;
+	virtual void  firePortAction( ActionPort port, ActionTrigger& trigger ) = 0;
 	virtual void  setupPlayer( IPlayerManager& playerManager ) = 0;
 	//
 	virtual void  prevListenAction() = 0;
@@ -186,7 +186,7 @@ public:
 	}
 
 
-	virtual void firePortAction( ActionTrigger& trigger ) = 0;
+	virtual void firePortAction( ActionPort port, ActionTrigger& trigger ) = 0;
 
 
 	virtual void debugMessage(long frame)
@@ -251,7 +251,7 @@ public:
 	virtual void  onFireAction(ActionParam& param) override { FrameActionTemplate::listenAction(param); }
 	bool  haveFrameData(int32 frame){  return FrameActionTemplate::haveFrameData(frame);  }
 	void  collectFrameData(IStreamSerializer& serializer) { FrameActionTemplate::collectFrameData(serializer); }
-	virtual void  firePortAction(ActionTrigger& trigger) override { NEVER_REACH("Don't call this function!"); }
+	virtual void  firePortAction(ActionPort port, ActionTrigger& trigger) override { NEVER_REACH("Don't call this function!"); }
 	virtual void  setupAction(ActionProcessor& processer)
 	{
 		processer.addListener(*this);

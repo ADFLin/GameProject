@@ -4,14 +4,14 @@
 #include <fstream>
 #include <cassert>
 
-#include "StreamBuffer.h"
+#include "Serialize/StreamBuffer.h"
 #include "FileSystem.h"
 
 int const PIXEL_OFFSET = 4;
 
-typedef TStreamBuffer<> SBuf;
+typedef TStreamBuffer<> SreamBuffer;
 
-static uint32 decode555(uint16 color) 
+static uint32 Decode555(uint16 color) 
 {
 	uint32 rgb = 0xff000000;
 	// Red
@@ -25,14 +25,14 @@ static uint32 decode555(uint16 color)
 }
 
 
-static inline void fillB8G8R8( char* buff , uint16 color )
+static inline void FillB8G8R8( char* buff , uint16 color )
 {
 	buff[2] = ((color & 0x7c00) >> 7 ) | ((color & 0x7000) >> 12 );
 	buff[1] = ((color & 0x3e0) >> 2 ) | ( (color & 0x300) >> 8 );
 	buff[0] = ((color & 0x1f) << 3) | ((color & 0x1c) >> 2);
 }
 
-void readTitleBitmap( SBuf& buffer , SgxImageInfo const& bmpInfo , char* buf )
+void ReadTitleBitmap( SreamBuffer& buffer , SgxImageInfo const& bmpInfo , char* buf )
 {
 	uint32 offset;
 
@@ -44,7 +44,7 @@ void readTitleBitmap( SBuf& buffer , SgxImageInfo const& bmpInfo , char* buf )
 		{
 			uint16 c;
 			buffer.take( c );
-			fillB8G8R8( temp , c );	
+			FillB8G8R8( temp , c );	
 			temp += PIXEL_OFFSET;
 		}
 		buf += offset;
@@ -60,14 +60,14 @@ void readTitleBitmap( SBuf& buffer , SgxImageInfo const& bmpInfo , char* buf )
 		{
 			uint16 c;
 			buffer.take( c );
-			fillB8G8R8( temp , c );	
+			FillB8G8R8( temp , c );	
 			temp += PIXEL_OFFSET;
 		}
 		buf += offset;
 	}
 }
 
-void readCompressedBitmap( SBuf& buffer , int len , char* buf )
+void ReadCompressedBitmap( SreamBuffer& buffer , int len , char* buf )
 {
 	while( len > 0 )
 	{
@@ -81,7 +81,7 @@ void readCompressedBitmap( SBuf& buffer , int len , char* buf )
 			{
 				uint16 c;
 				buffer.take( c );
-				fillB8G8R8( buf , c );
+				FillB8G8R8( buf , c );
 				buf += PIXEL_OFFSET;
 			}
 		}
@@ -97,7 +97,7 @@ void readCompressedBitmap( SBuf& buffer , int len , char* buf )
 }
 
 
-void readIsometricBitmap( SBuf& buffer , SgxImageInfo const& bmpInfo , char* buf )
+void readIsometricBitmap( SreamBuffer& buffer , SgxImageInfo const& bmpInfo , char* buf )
 {
 	uint16 size = bmpInfo.width / tileWidth;
 
@@ -115,7 +115,7 @@ void readIsometricBitmap( SBuf& buffer , SgxImageInfo const& bmpInfo , char* buf
 
 		for(  uint16 i = 0 ; i < iMax ; ++i  )
 		{
-			readTitleBitmap( buffer , bmpInfo , tileBuf );
+			ReadTitleBitmap( buffer , bmpInfo , tileBuf );
 			tileBuf += PIXEL_OFFSET * (  tileWidth + 2  ) ;
 		}
 
@@ -125,11 +125,11 @@ void readIsometricBitmap( SBuf& buffer , SgxImageInfo const& bmpInfo , char* buf
 	if ( bmpInfo.sizeTotal != bmpInfo.sizeCompressed )
 	{
 		int length = bmpInfo.width * ( bmpInfo.height - ( bmpInfo.width + 2 )/ 4 - 1 );
-		readCompressedBitmap( buffer , length , buf );
+		ReadCompressedBitmap( buffer , length , buf );
 	}
 }
 
-void readPlainBitmap( SBuf& buffer , SgxImageInfo const& bmpInfo , char* buf )
+void ReadPlainBitmap( SreamBuffer& buffer , SgxImageInfo const& bmpInfo , char* buf )
 {
 	uint16 const maskColor = 0xf81f;
 	unsigned len = bmpInfo.width * bmpInfo.height;
@@ -138,7 +138,7 @@ void readPlainBitmap( SBuf& buffer , SgxImageInfo const& bmpInfo , char* buf )
 		uint16 c;
 		buffer.take( c );
 		if ( c != maskColor )
-			fillB8G8R8( buf , c );
+			FillB8G8R8( buf , c );
 		buf += PIXEL_OFFSET;
 	}
 }
@@ -216,15 +216,15 @@ bool SgxFileLoader::readBitmap( int idx , char* buf )
 
 	data += imageInfo->offset;
 
-	SBuf buffer( (char*) data , imageInfo->sizeTotal );
+	SreamBuffer buffer( (char*) data , imageInfo->sizeTotal );
 
 	switch( imageInfo->type )
 	{
 	case 0: case 1: case 10: case 12: case 13:
-		readPlainBitmap( buffer , *imageInfo , buf ); 
+		ReadPlainBitmap( buffer , *imageInfo , buf ); 
 		break;
 	case 256: case 257: case 276:
-		readCompressedBitmap( buffer , imageInfo->width * imageInfo->height , buf ); 
+		ReadCompressedBitmap( buffer , imageInfo->width * imageInfo->height , buf ); 
 		break;
 	case 30:
 		readIsometricBitmap( buffer , *imageInfo , buf ); 

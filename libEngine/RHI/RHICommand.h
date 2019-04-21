@@ -78,21 +78,18 @@ namespace Render
 										int numMipLevel = 0, int numSamples = 1, uint32 creationFlags = TCF_DefalutValue , void* data = nullptr);
 
 	RHITextureCube*  RHICreateTextureCube(Texture::Format format, int size, int numMipLevel = 0, uint32 creationFlags = TCF_DefalutValue, void* data[] = nullptr);
-
+	RHITexture2DArray* RHICreateTexture2DArray(Texture::Format format, int w, int h, int layerSize,
+											   int numMipLevel = 0, int numSamples = 1, uint32 creationFlags = TCF_DefalutValue, void* data = nullptr);
 	RHITextureDepth* RHICreateTextureDepth(Texture::DepthFormat format, int w, int h , int numMipLevel = 1 , int numSamples = 1);
 
 
 	RHIVertexBuffer*  RHICreateVertexBuffer(uint32 vertexSize, uint32 numVertices, uint32 creationFlags = BCF_DefalutValue, void* data = nullptr);
 	RHIIndexBuffer*   RHICreateIndexBuffer(uint32 nIndices, bool bIntIndex, uint32 creationFlags = BCF_DefalutValue, void* data = nullptr);
-	RHIUniformBuffer* RHICreateUniformBuffer(uint32 elementSize, uint32 numElement, uint32 creationFlags = BCF_DefalutValue, void* data = nullptr);
 
 	void* RHILockBuffer(RHIVertexBuffer* buffer, ELockAccess access, uint32 offset = 0, uint32 size = 0 );
 	void  RHIUnlockBuffer(RHIVertexBuffer* buffer);
 	void* RHILockBuffer(RHIIndexBuffer* buffer, ELockAccess access, uint32 offset = 0, uint32 size = 0);
 	void  RHIUnlockBuffer(RHIIndexBuffer* buffer);
-	void* RHILockBuffer(RHIUniformBuffer* buffer, ELockAccess access, uint32 offset = 0, uint32 size = 0);
-	void  RHIUnlockBuffer(RHIUniformBuffer* buffer);
-
 
 	RHIFrameBuffer*  RHICreateFrameBuffer();
 
@@ -104,31 +101,38 @@ namespace Render
 	RHIBlendState* RHICreateBlendState(BlendStateInitializer const& initializer);
 	RHIDepthStencilState* RHICreateDepthStencilState(DepthStencilStateInitializer const& initializer);
 
-	//
-	void RHISetRasterizerState(RHIRasterizerState& rasterizerState);
-	void RHISetBlendState(RHIBlendState& blendState);
-	void RHISetDepthStencilState(RHIDepthStencilState& depthStencilState, uint32 stencilRef = -1);
+	class RHICommandList
+	{
+	public:
+		virtual ~RHICommandList() {}
+		static RHICommandList& GetImmediateList();
+	};
 
-	void RHISetViewport(int x, int y, int w, int h);
-	void RHISetScissorRect(bool bEnable, int x = 0, int y = 0, int w = 0, int h = 0);
+
+	//
+	void RHISetRasterizerState(RHICommandList& commandList , RHIRasterizerState& rasterizerState);
+	void RHISetBlendState(RHICommandList& commandList , RHIBlendState& blendState);
+	void RHISetDepthStencilState(RHICommandList& commandList, RHIDepthStencilState& depthStencilState, uint32 stencilRef = -1);
+
+	void RHISetViewport(RHICommandList& commandList, int x, int y, int w, int h);
+	void RHISetScissorRect(RHICommandList& commandList , bool bEnable, int x = 0, int y = 0, int w = 0, int h = 0);
 
 	
-	void RHIDrawPrimitive(PrimitiveType type, int vStart, int nv);
-	void RHIDrawIndexedPrimitive(PrimitiveType type, ECompValueType indexType, int indexStart, int nIndex);
-	void RHIDrawPrimitiveIndirect(PrimitiveType type, RHIVertexBuffer* commandBuffer, int offset = 0, int numCommand = 1, int commandStride = 0);
-	void RHIDrawIndexedPrimitiveIndirect(PrimitiveType type, ECompValueType indexType , RHIVertexBuffer* commandBuffer, int offset = 0, int numCommand = 1, int commandStride = 0);
-	void RHIDrawPrimitiveInstanced(PrimitiveType type, int vStart, int nv, int numInstance );
+	void RHIDrawPrimitive(RHICommandList& commandList, PrimitiveType type, int vStart, int nv);
+	void RHIDrawIndexedPrimitive(RHICommandList& commandList, PrimitiveType type, ECompValueType indexType, int indexStart, int nIndex);
+	void RHIDrawPrimitiveIndirect(RHICommandList& commandList, PrimitiveType type, RHIVertexBuffer* commandBuffer, int offset = 0, int numCommand = 1, int commandStride = 0);
+	void RHIDrawIndexedPrimitiveIndirect(RHICommandList& commandList, PrimitiveType type, ECompValueType indexType , RHIVertexBuffer* commandBuffer, int offset = 0, int numCommand = 1, int commandStride = 0);
+	void RHIDrawPrimitiveInstanced(RHICommandList& commandList, PrimitiveType type, int vStart, int nv, int numInstance );
 
-	void RHIDrawPrimitiveUP(PrimitiveType type, int numPrimitive, void* pVertices, int numVerex, int vetexStride);
-	void RHIDrawIndexedPrimitiveUP(PrimitiveType type, int numPrimitive, void* pVertices, int numVerex, int vetexStride , int* pIndices , int numIndex );
+	void RHIDrawPrimitiveUP(RHICommandList& commandList, PrimitiveType type, int numPrimitive, void* pVertices, int numVerex, int vetexStride);
+	void RHIDrawIndexedPrimitiveUP(RHICommandList& commandList, PrimitiveType type, int numPrimitive, void* pVertices, int numVerex, int vetexStride , int* pIndices , int numIndex );
 
-	void RHISetupFixedPipelineState(Matrix4 const& matModelView, Matrix4 const& matProj, int numTexture = 0, RHITexture2D const** textures = nullptr);
-	void RHISetFrameBuffer(RHIFrameBuffer& frameBuffer, RHITextureDepth* overrideDepthTexture = nullptr);
+	void RHISetupFixedPipelineState(RHICommandList& commandList, Matrix4 const& matModelView, Matrix4 const& matProj, int numTexture = 0, RHITexture2D const** textures = nullptr);
+	void RHISetFrameBuffer(RHICommandList& commandList, RHIFrameBuffer& frameBuffer, RHITextureDepth* overrideDepthTexture = nullptr);
 
-	void RHISetIndexBuffer(RHIIndexBuffer* indexBuffer);
+	void RHISetIndexBuffer(RHICommandList& commandList, RHIIndexBuffer* indexBuffer);
 
-
-#define RHIFUNCTION( FUN ) virtual FUN = 0
+#define RHI_FUNC( FUN ) virtual FUN = 0
 
 	class RHISystem
 	{
@@ -136,73 +140,87 @@ namespace Render
 		virtual bool initialize(RHISystemInitParam const& initParam) { return true; }
 		virtual void shutdown(){}
 		
-		RHIFUNCTION(RHIRenderWindow* RHICreateRenderWindow(PlatformWindowInfo const& info));
-		RHIFUNCTION(bool RHIBeginRender());
-		RHIFUNCTION(void RHIEndRender(bool bPresent));
+		RHI_FUNC(RHICommandList& getImmediateCommandList());
+		RHI_FUNC(RHIRenderWindow* RHICreateRenderWindow(PlatformWindowInfo const& info));
+		RHI_FUNC(bool RHIBeginRender());
+		RHI_FUNC(void RHIEndRender(bool bPresent));
 
-		RHIFUNCTION(RHITexture1D*    RHICreateTexture1D(
+		RHI_FUNC(RHITexture1D*    RHICreateTexture1D(
 			Texture::Format format, int length,
 			int numMipLevel, uint32 creationFlag, void* data));
-		RHIFUNCTION(RHITexture2D*    RHICreateTexture2D(
+		RHI_FUNC(RHITexture2D*    RHICreateTexture2D(
 			Texture::Format format, int w, int h,
 			int numMipLevel, int numSamples, uint32 creationFlag,
 			void* data, int dataAlign));
-		RHIFUNCTION(RHITexture3D*    RHICreateTexture3D(
+		RHI_FUNC(RHITexture3D*    RHICreateTexture3D(
 			Texture::Format format, int sizeX, int sizeY, int sizeZ,
 			int numMipLevel, int numSamples , uint32 creationFlag , 
 			void* data));
-		RHIFUNCTION(RHITextureCube*  RHICreateTextureCube(
+		RHI_FUNC(RHITextureCube*  RHICreateTextureCube(
 			Texture::Format format, int size, 
 			int numMipLevel, uint32 creationFlags, 
 			void* data[]));
-		RHIFUNCTION(RHITextureDepth* RHICreateTextureDepth(
+
+		RHI_FUNC(RHITexture2DArray* RHICreateTexture2DArray(
+			Texture::Format format, int w, int h, int layerSize,
+			int numMipLevel, int numSamples, uint32 creationFlags,
+			void* data));
+
+		RHI_FUNC(RHITextureDepth* RHICreateTextureDepth(
 			Texture::DepthFormat format, int w, int h , 
 			int numMipLevel, int numSamples ) );
 		
-		RHIFUNCTION(RHIVertexBuffer*  RHICreateVertexBuffer(uint32 vertexSize, uint32 numVertices, uint32 creationFlag, void* data));
-		RHIFUNCTION(RHIIndexBuffer*   RHICreateIndexBuffer(uint32 nIndices, bool bIntIndex, uint32 creationFlag, void* data));
-		RHIFUNCTION(RHIUniformBuffer* RHICreateUniformBuffer(uint32 elementSize, uint32 numElement, uint32 creationFlag, void* data));
+		RHI_FUNC(RHIVertexBuffer*  RHICreateVertexBuffer(uint32 vertexSize, uint32 numVertices, uint32 creationFlag, void* data));
+		RHI_FUNC(RHIIndexBuffer*   RHICreateIndexBuffer(uint32 nIndices, bool bIntIndex, uint32 creationFlag, void* data));
 
-		RHIFUNCTION(void* RHILockBuffer(RHIVertexBuffer* buffer, ELockAccess access, uint32 offset, uint32 size));
-		RHIFUNCTION(void  RHIUnlockBuffer(RHIVertexBuffer* buffer));
-		RHIFUNCTION(void* RHILockBuffer(RHIIndexBuffer* buffer, ELockAccess access, uint32 offset, uint32 size));
-		RHIFUNCTION(void  RHIUnlockBuffer(RHIIndexBuffer* buffer));
-		RHIFUNCTION(void* RHILockBuffer(RHIUniformBuffer* buffer, ELockAccess access, uint32 offset, uint32 size));
-		RHIFUNCTION(void  RHIUnlockBuffer(RHIUniformBuffer* buffer));
+		RHI_FUNC(void* RHILockBuffer(RHIVertexBuffer* buffer, ELockAccess access, uint32 offset, uint32 size));
+		RHI_FUNC(void  RHIUnlockBuffer(RHIVertexBuffer* buffer));
+		RHI_FUNC(void* RHILockBuffer(RHIIndexBuffer* buffer, ELockAccess access, uint32 offset, uint32 size));
+		RHI_FUNC(void  RHIUnlockBuffer(RHIIndexBuffer* buffer));
 
-		RHIFUNCTION(RHIFrameBuffer*  RHICreateFrameBuffer());
+		RHI_FUNC(RHIFrameBuffer*  RHICreateFrameBuffer());
 
-		RHIFUNCTION(RHIInputLayout*  RHICreateInputLayout(InputLayoutDesc const& desc));
+		RHI_FUNC(RHIInputLayout*  RHICreateInputLayout(InputLayoutDesc const& desc));
 
-		RHIFUNCTION(RHISamplerState* RHICreateSamplerState(SamplerStateInitializer const& initializer));
+		RHI_FUNC(RHISamplerState* RHICreateSamplerState(SamplerStateInitializer const& initializer));
 
-		RHIFUNCTION(RHIRasterizerState* RHICreateRasterizerState(RasterizerStateInitializer const& initializer));
-		RHIFUNCTION(RHIBlendState* RHICreateBlendState(BlendStateInitializer const& initializer));
-		RHIFUNCTION(RHIDepthStencilState* RHICreateDepthStencilState(DepthStencilStateInitializer const& initializer));
-
-		RHIFUNCTION(void RHISetRasterizerState(RHIRasterizerState& rasterizerState));
-		RHIFUNCTION(void RHISetBlendState(RHIBlendState& blendState));
-		RHIFUNCTION(void RHISetDepthStencilState(RHIDepthStencilState& depthStencilState, uint32 stencilRef = -1));
-		
-		RHIFUNCTION(void RHISetViewport(int x, int y, int w, int h));
-		RHIFUNCTION(void RHISetScissorRect(bool bEnable, int x , int y , int w , int h ));
-
-		RHIFUNCTION(void RHIDrawPrimitive(PrimitiveType type, int vStart, int nv));
-		RHIFUNCTION(void RHIDrawIndexedPrimitive(PrimitiveType type, ECompValueType indexType, int indexStart, int nIndex));
-		RHIFUNCTION(void RHIDrawPrimitiveIndirect(PrimitiveType type, RHIVertexBuffer* commandBuffer, int offset, int numCommand, int commandStride));
-		RHIFUNCTION(void RHIDrawIndexedPrimitiveIndirect(PrimitiveType type, ECompValueType indexType, RHIVertexBuffer* commandBuffer, int offset , int numCommand, int commandStride));
-		RHIFUNCTION(void RHIDrawPrimitiveInstanced(PrimitiveType type, int vStart, int nv, int numInstance));
-
-		RHIFUNCTION(void RHIDrawPrimitiveUP(PrimitiveType type, int numPrimitive, void* pVertices, int numVerex, int vetexStride));
-		RHIFUNCTION(void RHIDrawIndexedPrimitiveUP(PrimitiveType type, int numPrimitive, void* pVertices, int numVerex, int vetexStride, int* pIndices, int numIndex));
-
-		RHIFUNCTION(void RHISetFrameBuffer(RHIFrameBuffer& frameBuffer, RHITextureDepth* overrideDepthTexture));
-		RHIFUNCTION(void RHISetIndexBuffer(RHIIndexBuffer* indexBuffer));
-		RHIFUNCTION(void RHISetupFixedPipelineState(Matrix4 const& matModelView, Matrix4 const& matProj, int numTexture , RHITexture2D const** textures));
-
+		RHI_FUNC(RHIRasterizerState* RHICreateRasterizerState(RasterizerStateInitializer const& initializer));
+		RHI_FUNC(RHIBlendState* RHICreateBlendState(BlendStateInitializer const& initializer));
+		RHI_FUNC(RHIDepthStencilState* RHICreateDepthStencilState(DepthStencilStateInitializer const& initializer));
 	};
 
+	template< class T >
+	class TStructuredBuffer
+	{
+	public:
+		bool initializeResource(uint32 numElement, uint32 creationFlags = BCF_DefalutValue)
+		{
+			mResource = RHICreateVertexBuffer(sizeof(T), numElement, creationFlags);
+			if( !mResource.isValid() )
+				return false;
+			return true;
+		}
 
+		void releaseResources()
+		{
+			mResource->release();
+		}
+
+		uint32 getElementNum() { return mResource->getSize() / sizeof(T); }
+
+		RHIVertexBuffer* getRHI() { return mResource; }
+
+		T*   lock()
+		{
+			return (T*)RHILockBuffer(mResource, ELockAccess::WriteOnly);
+		}
+		void unlock()
+		{
+			RHIUnlockBuffer(mResource);
+		}
+
+		TRefCountPtr<RHIVertexBuffer> mResource;
+	};
 
 	struct TextureLoadOption
 	{
@@ -252,9 +270,10 @@ namespace Render
 
 	template<
 		ECullMode CullMode = ECullMode::Back,
-		EFillMode FillMode = EFillMode::Solid >
+		EFillMode FillMode = EFillMode::Solid,
+		bool bEnableScissor = false >
 	class TStaticRasterizerState : public StaticRHIStateT< 
-		TStaticRasterizerState< CullMode, FillMode >, 
+		TStaticRasterizerState< CullMode, FillMode, bEnableScissor >,
 		RHIRasterizerState >
 	{
 	public:
@@ -263,6 +282,7 @@ namespace Render
 			RasterizerStateInitializer initializer;
 			initializer.fillMode = FillMode;
 			initializer.cullMode = CullMode;
+			initializer.bEnableScissor = bEnableScissor;
 			return RHICreateRasterizerState(initializer);
 		}
 	};

@@ -172,14 +172,15 @@ void RenderEngine::renderScene( RenderParam& param )
 
 void RenderEngine::renderSceneFinal( RenderParam& param )
 {
+	Render::RHICommandList& commandList = Render::RHICommandList::GetImmediateList();
 	Render::ShaderProgram& shader = mShaderScene[ param.mode ];
 
 	shader.bind();
 
 	glEnable(GL_TEXTURE_2D);
-	shader.setTexture( SHADER_PARAM( texGeometry ) , *mTexGeometry );
-	shader.setTexture(SHADER_PARAM( texLightmap) , *mTexLightmap );
-	shader.setParam(SHADER_PARAM(ambientLight) , mAmbientLight );
+	shader.setTexture(commandList, SHADER_PARAM( texGeometry ) , *mTexGeometry );
+	shader.setTexture(commandList, SHADER_PARAM( texLightmap) , *mTexLightmap );
+	shader.setParam(commandList, SHADER_PARAM(ambientLight) , mAmbientLight );
 
 	glBegin(GL_QUADS);
 	glTexCoord2f(0.0, 1.0); glVertex2f(0.0, 0.0);
@@ -230,14 +231,16 @@ void RenderEngine::renderTerrainGlow( Level* level , TileRange const& range )
 
 void RenderEngine::renderLight( RenderParam& param , Vec2f const& lightPos , Light* light )
 {
+	Render::RHICommandList& commandList = Render::RHICommandList::GetImmediateList();
+
 	Vec2f posLight = lightPos - param.camera->getPos();
 
 	mShaderLighting.bind();
 
-	mShaderLighting.setTexture( SHADER_PARAM( texNormalMap ) , *mTexNormalMap );	
+	mShaderLighting.setTexture(commandList, SHADER_PARAM( texNormalMap ) , *mTexNormalMap );
 	//mShaderLighting->setParam( SHADER_PARAM(frameHeight), mFrameHeight );
 	//mShaderLighting->setParam( SHADER_PARAM(scaleFactor) , param.scaleFactor );
-	mShaderLighting.setParam(SHADER_PARAM(posLight) , posLight );
+	mShaderLighting.setParam(commandList, SHADER_PARAM(posLight) , posLight );
 	setupLightShaderParam( mShaderLighting , light );
 
 #if 1
@@ -276,12 +279,13 @@ void RenderEngine::renderLight( RenderParam& param , Vec2f const& lightPos , Lig
 
 void RenderEngine::setupLightShaderParam(Render::ShaderProgram& shader , Light* light )
 {
-	shader.setParam( SHADER_PARAM(colorLight) , light->color );
-	shader.setParam( SHADER_PARAM(dir) , light->dir );
-	shader.setParam( SHADER_PARAM(angle) , light->angle );
-	shader.setParam( SHADER_PARAM(radius), light->radius );
-	shader.setParam( SHADER_PARAM(intensity) ,light->intensity );
-	shader.setParam( SHADER_PARAM(isExplosion) , ( light->isExplosion ) ? 1 : 0 );
+	Render::RHICommandList& commandList = Render::RHICommandList::GetImmediateList();
+	shader.setParam(commandList, SHADER_PARAM(colorLight) , light->color );
+	shader.setParam(commandList, SHADER_PARAM(dir) , light->dir );
+	shader.setParam(commandList, SHADER_PARAM(angle) , light->angle );
+	shader.setParam(commandList, SHADER_PARAM(radius), light->radius );
+	shader.setParam(commandList, SHADER_PARAM(intensity) ,light->intensity );
+	shader.setParam(commandList, SHADER_PARAM(isExplosion) , ( light->isExplosion ) ? 1 : 0 );
 }
 
 void RenderEngine::renderGeometryFBO( RenderParam& param )

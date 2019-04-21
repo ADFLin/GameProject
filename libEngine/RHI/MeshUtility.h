@@ -87,28 +87,28 @@ namespace Render
 		~Mesh();
 
 		bool createRHIResource(void* pVertex, int nV, void* pIdx = nullptr, int nIndices = 0, bool bIntIndex = false);
-		void draw();
-		void draw(LinearColor const& color);
+		void draw(RHICommandList& commandList);
+		void draw(RHICommandList& commandList, LinearColor const& color);
 
-		void drawAdjShader(LinearColor const& color);
-		void drawTessellation(bool bUseAdjBuffer = false);
+		void drawAdjShader(RHICommandList& commandList, LinearColor const& color);
+		void drawTessellation(RHICommandList& commandList, bool bUseAdjBuffer = false);
 
-		void drawShader();
-		void drawShader(LinearColor const& color);
+		void drawShader(RHICommandList& commandList);
+		void drawShader(RHICommandList& commandList, LinearColor const& color);
 
-		void drawSection(int idx, bool bUseVAO = false);
+		void drawSection(RHICommandList& commandList, int idx, bool bUseVAO = false);
 
-		void drawInternal(int idxStart, int num, LinearColor const* color = nullptr)
+		void drawInternal(RHICommandList& commandList, int idxStart, int num, LinearColor const* color = nullptr)
 		{
-			drawInternal(idxStart, num, mIndexBuffer, color);
+			drawInternal(commandList ,idxStart, num, mIndexBuffer, color);
 		}
-		void drawInternal(int idxStart, int num, RHIIndexBuffer* indexBuffer, LinearColor const* color);
-		void drawShaderInternal(int idxStart, int num, LinearColor const* color = nullptr)
+		void drawInternal(RHICommandList& commandList, int idxStart, int num, RHIIndexBuffer* indexBuffer, LinearColor const* color);
+		void drawShaderInternal(RHICommandList& commandList, int idxStart, int num, LinearColor const* color = nullptr)
 		{
-			drawShaderInternal(idxStart, num, mIndexBuffer, color);
+			drawShaderInternal(commandList, idxStart, num, mIndexBuffer, color);
 		}
-		void drawShaderInternal(int idxStart, int num, RHIIndexBuffer* indexBuffer, LinearColor const* color /*= nullptr*/);
-		void drawShaderInternalEx(PrimitiveType type, int idxStart, int num, RHIIndexBuffer* indexBuffer, LinearColor const* color /*= nullptr*/);
+		void drawShaderInternal(RHICommandList& commandList, int idxStart, int num, RHIIndexBuffer* indexBuffer, LinearColor const* color /*= nullptr*/);
+		void drawShaderInternalEx(RHICommandList& commandList, PrimitiveType type, int idxStart, int num, RHIIndexBuffer* indexBuffer, LinearColor const* color /*= nullptr*/);
 		void bindVAO(LinearColor const* color = nullptr);
 		void unbindVAO()
 		{

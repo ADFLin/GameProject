@@ -86,60 +86,6 @@ namespace Render
 		return true;
 	}
 
-	template< class T, class ResourceType >
-	class TStructuredBufferBase
-	{
-	public:
-
-		void releaseResources()
-		{
-			mResource->release();
-		}
-
-
-		uint32 getElementNum() { return mResource->getSize() / sizeof(T); }
-
-		ResourceType* getRHI() { return mResource; }
-
-		T*   lock()
-		{
-			return (T*)RHILockBuffer(mResource, ELockAccess::WriteOnly);
-		}
-		void unlock()
-		{
-			RHIUnlockBuffer(mResource);
-		}
-
-		TRefCountPtr<ResourceType> mResource;
-	};
-
-
-	template< class T >
-	class TStructuredUniformBuffer : public TStructuredBufferBase< T, RHIUniformBuffer >
-	{
-	public:
-		bool initializeResource(uint32 numElement, uint32 creationFlags = BCF_DefalutValue)
-		{
-			mResource = RHICreateUniformBuffer(sizeof(T), numElement, creationFlags);
-			if( !mResource.isValid() )
-				return false;
-			return true;
-		}
-
-	};
-
-	template< class T >
-	class TStructuredStorageBuffer : public TStructuredBufferBase< T, RHIVertexBuffer >
-	{
-	public:
-		bool initializeResource(uint32 numElement , uint32 creationFlags = BCF_DefalutValue )
-		{
-			mResource = RHICreateVertexBuffer(sizeof(T), numElement , creationFlags );
-			if( !mResource.isValid() )
-				return false;
-			return true;
-		}
-	};
 
 	class ViewFrustum
 	{
@@ -232,6 +178,8 @@ namespace Render
 
 		void initializeRenderState()
 		{
+			RHICommandList& commandList = RHICommandList::GetImmediateList();
+
 			mView.frameCount += 1;
 
 			GameWindow& window = Global::GetDrawEngine().getWindow();
@@ -251,11 +199,11 @@ namespace Render
 			glClearDepth(mViewFrustum.bUseReverse ? 0 : 1);
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
-			RHISetViewport(mView.rectOffset.x, mView.rectOffset.y, mView.rectSize.x, mView.rectSize.y);
-			RHISetDepthStencilState( mViewFrustum.bUseReverse ?
+			RHISetViewport(commandList, mView.rectOffset.x, mView.rectOffset.y, mView.rectSize.x, mView.rectSize.y);
+			RHISetDepthStencilState(commandList, mViewFrustum.bUseReverse ?
 				TStaticDepthStencilState< true , ECompareFun::Greater >::GetRHI() :
 				TStaticDepthStencilState<>::GetRHI());
-			RHISetBlendState(TStaticBlendState<>::GetRHI());
+			RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
 
 		}
 
@@ -316,7 +264,7 @@ namespace Render
 		}
 
 
-		void drawLightPoints(ViewInfo& view, TArrayView< LightInfo > lights);
+		void drawLightPoints(RHICommandList& commandList, ViewInfo& view, TArrayView< LightInfo > lights);
 
 		void executeShowTexture(char const* name)
 		{

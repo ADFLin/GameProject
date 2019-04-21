@@ -21,17 +21,16 @@ namespace GreedySnake
 		for( int i = 0 ; i < mLevel.getSnakeNum() ; ++i )
 		{
 			Snake& snake = mLevel.getSnake( i );
-			trigger.setPort( snake.id );
-			fireSnakeAction( trigger );
+			fireSnakeAction(snake.id , trigger );
 		}
 	}
 
 
-	void Scene::fireSnakeAction( ActionTrigger& trigger )
+	void Scene::fireSnakeAction(ActionPort port, ActionTrigger& trigger )
 	{
-		Snake& snake = mLevel.getSnake(trigger.getPort());
+		Snake& snake = mLevel.getSnake(port);
 #define CHECK_MOVE_ACTION( ACT , DIR )\
-	if ( trigger.detect( ACT )  )\
+	if ( trigger.detect( port, ACT )  )\
 	{\
 		snake.changeMoveDir( DIR );\
 		LogMsg("%d : %u change dir %d", mFrame, snake.id, (int)DIR);\

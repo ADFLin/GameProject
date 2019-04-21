@@ -22,16 +22,24 @@ public:
 
 	}
 
-	TComPtr<IXAudio2SourceVoice, VoiceDeleter > pSourceVoice;
-	XAudio2Device* mDevice;
-
 	virtual bool doInitialize(SoundInstance& instance) override;
 	virtual void update(float deltaT) override;
-	virtual void stop() override;
+	virtual void endPlay() override;
 	virtual void pause() override;
 
 
-	void notifyPlayEnd();
+	void notifyBufferStart();
+	void notifyBufferEnd();
+	void noitfyStreamEnd();
+	
+	TComPtr<IXAudio2SourceVoice, VoiceDeleter > pSourceVoice;
+	XAudio2Device* mDevice;
+
+
+	bool commitStreamingData( bool bInit = false);
+	// pos = -1 , no data need commit;
+	int64 mNextStreamSampleFrame = -1;
+	std::vector< uint32 > mUsedSampleHandles;
 };
 
 class XAudio2SourceCallback : public IXAudio2VoiceCallback

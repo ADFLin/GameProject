@@ -75,7 +75,7 @@ namespace Render
 	class TRenderRT
 	{
 	public:
-		FORCEINLINE static void Draw(PrimitiveType type, RHIVertexBuffer& buffer , int nV, int vertexStride = GetVertexSize())
+		FORCEINLINE static void Draw(RHICommandList& commandList, PrimitiveType type, RHIVertexBuffer& buffer , int nV, int vertexStride = GetVertexSize())
 		{
 			BindVertexPointer((uint8 const*)0, vertexStride);
 			buffer.bind();
@@ -84,60 +84,60 @@ namespace Render
 			UnbindVertexPointer();
 		}
 
-		FORCEINLINE static void Draw(PrimitiveType type, RHIVertexBuffer& buffer,  int nV, LinearColor const& color, int vertexStride = GetVertexSize())
+		FORCEINLINE static void Draw(RHICommandList& commandList, PrimitiveType type, RHIVertexBuffer& buffer,  int nV, LinearColor const& color, int vertexStride = GetVertexSize())
 		{
 			BindVertexPointer((uint8 const*)0, vertexStride ,&color);
 			buffer.bind();
-			RHIDrawPrimitive(type, 0, nV);
+			RHIDrawPrimitive(commandList, type, 0, nV);
 			buffer.unbind();
 			UnbindVertexPointer(&color);
 		}
 
-		FORCEINLINE static void DrawShader(PrimitiveType type, RHIVertexBuffer& buffer, int nV, int vertexStride = GetVertexSize())
+		FORCEINLINE static void DrawShader(RHICommandList& commandList, PrimitiveType type, RHIVertexBuffer& buffer, int nV, int vertexStride = GetVertexSize())
 		{
 			BindVertexAttrib((uint8 const*)0, vertexStride);
 			buffer.bind();
-			RHIDrawPrimitive(type, 0, nV);
+			RHIDrawPrimitive(commandList, type, 0, nV);
 			buffer.unbind();
 			UnbindVertexAttrib();
 		}
 
-		FORCEINLINE static void Draw(PrimitiveType type, void const* vetrices, int nV, LinearColor const& color, int vertexStride = GetVertexSize())
+		FORCEINLINE static void Draw(RHICommandList& commandList, PrimitiveType type, void const* vetrices, int nV, LinearColor const& color, int vertexStride = GetVertexSize())
 		{
 			BindVertexPointer((uint8 const*)vetrices, vertexStride , &color );
-			RHIDrawPrimitive(type, 0, nV);
+			RHIDrawPrimitive(commandList, type, 0, nV);
 			UnbindVertexPointer(&color);
 		}
 
-		FORCEINLINE static void Draw(PrimitiveType type, void const* vetrices, int nV, int vertexStride = GetVertexSize())
+		FORCEINLINE static void Draw(RHICommandList& commandList, PrimitiveType type, void const* vetrices, int nV, int vertexStride = GetVertexSize())
 		{
 			BindVertexPointer((uint8 const*)vetrices, vertexStride);
-			RHIDrawPrimitive(type, 0, nV);
+			RHIDrawPrimitive(commandList, type, 0, nV);
 			UnbindVertexPointer();
 		}
 
-		FORCEINLINE static void DrawShader(PrimitiveType type, void const* vetrices, int nV, int vertexStride = GetVertexSize())
+		FORCEINLINE static void DrawShader(RHICommandList& commandList, PrimitiveType type, void const* vetrices, int nV, int vertexStride = GetVertexSize())
 		{
 			BindVertexAttrib((uint8 const*)vetrices, vertexStride);
-			RHIDrawPrimitive(type, 0, nV);
+			RHIDrawPrimitive(commandList, type, 0, nV);
 			UnbindVertexAttrib();
 		}
 
-		FORCEINLINE static void DrawIndexed(PrimitiveType type, void const* vetrices, int nV, int const* indices, int nIndex, int vertexStride = GetVertexSize())
+		FORCEINLINE static void DrawIndexed(RHICommandList& commandList, PrimitiveType type, void const* vetrices, int nV, int const* indices, int nIndex, int vertexStride = GetVertexSize())
 		{
 			BindVertexPointer((uint8 const*)vetrices, vertexStride);
 			glDrawElements(GLConvert::To(type), nIndex, GL_UNSIGNED_INT, indices);
 			UnbindVertexPointer();
 		}
 
-		FORCEINLINE static void DrawIndexed(PrimitiveType type, void const* vetrices, int nV, int const* indices, int nIndex, LinearColor const& color , int vertexStride = GetVertexSize())
+		FORCEINLINE static void DrawIndexed(RHICommandList& commandList, PrimitiveType type, void const* vetrices, int nV, int const* indices, int nIndex, LinearColor const& color , int vertexStride = GetVertexSize())
 		{
 			BindVertexPointer((uint8 const*)vetrices, vertexStride, &color );
 			glDrawElements(GLConvert::To(type), nIndex, GL_UNSIGNED_INT, indices);
 			UnbindVertexPointer(&color);
 		}
 
-		FORCEINLINE static void DrawIndexedShader(PrimitiveType type, void const* vetrices, int nV, int const* indices, int nIndex, int vertexStride = GetVertexSize())
+		FORCEINLINE static void DrawIndexedShader(RHICommandList& commandList, PrimitiveType type, void const* vetrices, int nV, int const* indices, int nIndex, int vertexStride = GetVertexSize())
 		{
 			BindVertexAttrib((uint8 const*)vetrices, vertexStride);
 			glDrawElements(GLConvert::To(type), nIndex, GL_UNSIGNED_INT, indices);
@@ -274,25 +274,26 @@ namespace Render
 	{
 	public:
 		//draw (0,0,0) - (1,1,1) cube
-		static void CubeLine();
+		static void CubeLine(RHICommandList& commandList);
 		//draw (0,0,0) - (1,1,1) cube
-		static void CubeMesh();
+		static void CubeMesh(RHICommandList& commandList);
 
-		static void AixsLine();
+		static void AixsLine(RHICommandList& commandList);
 
-		static void Rect(int x , int y , int width, int height);
-		static void Rect( int width, int height );
-		static void RectShader(int width, int height);
-		static void ScreenRect();
-		static void ScreenRectShader();
+		static void Rect(RHICommandList& commandList, int x , int y , int width, int height);
+		static void Rect(RHICommandList& commandList, int width, int height );
+		static void RectShader(RHICommandList& commandList, int width, int height);
+		static void ScreenRect(RHICommandList& commandList);
+		static void ScreenRectShader(RHICommandList& commandList);
+		static void ScreenRectShader(RHICommandList& commandList, int with, int height);
 
-		static void Sprite(Vector2 const& pos, Vector2 const& size, Vector2 const& pivot);
-		static void Sprite(Vector2 const& pos, Vector2 const& size, Vector2 const& pivot, IntVector2 const& framePos, IntVector2 const& frameDim);
-		static void Sprite(Vector2 const& pos, Vector2 const& size, Vector2 const& pivot, Vector2 const& texPos, Vector2 const& texSize);
+		static void Sprite(RHICommandList& commandList, Vector2 const& pos, Vector2 const& size, Vector2 const& pivot);
+		static void Sprite(RHICommandList& commandList, Vector2 const& pos, Vector2 const& size, Vector2 const& pivot, IntVector2 const& framePos, IntVector2 const& frameDim);
+		static void Sprite(RHICommandList& commandList, Vector2 const& pos, Vector2 const& size, Vector2 const& pivot, Vector2 const& texPos, Vector2 const& texSize);
 
-		static void DrawTexture(RHITexture2D& texture, IntVector2 const& pos, IntVector2 const& size, LinearColor const& color = LinearColor(1, 1, 1, 1));
-		static void DrawTexture(RHITexture2D& texture, RHISamplerState& sampler , IntVector2 const& pos, IntVector2 const& size , LinearColor const& color = LinearColor(1,1,1,1));
-		static void DrawCubeTexture(RHITextureCube& texCube, IntVector2 const& pos, int length);
+		static void DrawTexture(RHICommandList& commandList, RHITexture2D& texture, IntVector2 const& pos, IntVector2 const& size, LinearColor const& color = LinearColor(1, 1, 1, 1));
+		static void DrawTexture(RHICommandList& commandList, RHITexture2D& texture, RHISamplerState& sampler , IntVector2 const& pos, IntVector2 const& size , LinearColor const& color = LinearColor(1,1,1,1));
+		static void DrawCubeTexture(RHICommandList& commandList, RHITextureCube& texCube, IntVector2 const& pos, int length);
 
 	};
 
@@ -434,17 +435,19 @@ namespace Render
 
 	struct ViewportSaveScope
 	{
-		ViewportSaveScope()
+		ViewportSaveScope(RHICommandList& commandList)
+			:mCommandList(commandList)
 		{
 			glGetIntegerv(GL_VIEWPORT, value);
 		}
 		~ViewportSaveScope()
 		{
-			RHISetViewport(value[0], value[1], value[2], value[3]);
+			RHISetViewport(mCommandList, value[0], value[1], value[2], value[3]);
 		}
 
 		int operator[](int idx) const { return value[idx]; }
 		int value[4];
+		RHICommandList& mCommandList;
 	};
 
 
@@ -453,15 +456,15 @@ namespace Render
 	public:
 		bool init();
 
-		void copyTextureToBuffer(RHITexture2D& copyTexture);
-		void copyTextureMaskToBuffer(RHITexture2D& copyTexture, Vector4 const& colorMask);
-		void copyTextureBiasToBuffer(RHITexture2D& copyTexture, float colorBais[2]);
-		void mapTextureColorToBuffer(RHITexture2D& copyTexture, Vector4 const& colorMask, float valueFactor[2]);
-		void copyTexture(RHITexture2D& destTexture, RHITexture2D& srcTexture);
+		void copyTextureToBuffer(RHICommandList& commandList, RHITexture2D& copyTexture);
+		void copyTextureMaskToBuffer(RHICommandList& commandList, RHITexture2D& copyTexture, Vector4 const& colorMask);
+		void copyTextureBiasToBuffer(RHICommandList& commandList, RHITexture2D& copyTexture, float colorBais[2]);
+		void mapTextureColorToBuffer(RHICommandList& commandList, RHITexture2D& copyTexture, Vector4 const& colorMask, float valueFactor[2]);
+		void copyTexture(RHICommandList& commandList, RHITexture2D& destTexture, RHITexture2D& srcTexture);
 
-		void clearBuffer(RHITexture2D& texture, float clearValue[]);
-		void clearBuffer(RHITexture2D& texture, uint32 clearValue[]);
-		void clearBuffer(RHITexture2D& texture, int32 clearValue[]);
+		void clearBuffer(RHICommandList& commandList, RHITexture2D& texture, float clearValue[]);
+		void clearBuffer(RHICommandList& commandList, RHITexture2D& texture, uint32 clearValue[]);
+		void clearBuffer(RHICommandList& commandList, RHITexture2D& texture, int32 clearValue[]);
 
 		void reload();
 

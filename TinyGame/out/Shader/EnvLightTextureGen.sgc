@@ -24,6 +24,16 @@ float2 EquirectangularCoord(float3 v)
 	return uv;
 }
 
+
+float3x3 TangentToWorldTransform(float3 N)
+{
+	float3 up = abs(N.z) < 0.999 ? float3(0.0, 0.0, 1.0) : float3(1.0, 0.0, 0.0);
+	float3 tangent = normalize(cross(up, N));
+	float3 bitangent = cross(N, tangent);
+
+	return float3x3(tangent, bitangent, N);
+}
+
 float3 GetEnvRadiance(float3 dir)
 {
 #if USE_CUBE_TEXTURE
@@ -36,7 +46,7 @@ float3 GetEnvRadiance(float3 dir)
 float3 GetFaceCameraDir(float2 faceUV)
 {
 	float2 NDC = 2 * faceUV - 1;
-	float3 faceRightDir = cross(FaceDir, FaceUpDir);
+	float3 faceRightDir = normalize( cross(FaceDir, FaceUpDir) );
 	return normalize(FaceDir + NDC.x * faceRightDir + NDC.y * FaceUpDir);
 }
 
@@ -47,44 +57,47 @@ void EquirectangularToCubePS()
 	OutColor = float4(color, 1);
 }
 
-void IrradianceGemPS()
+uniform int2 IrrianceSampleCount = int2( 256 , 200 );
+
+void IrradianceGenPS()
 {
-	float3 axisZ = GetFaceCameraDir(VSOutput.UVs);
+	float3 N = GetFaceCameraDir(VSOutput.UVs);
+	float3x3 tangentToWorld = TangentToWorldTransform(N);
 
-	float3 axisY = float3(0, 0, 1);
-	float ZoY = dot(axisZ, axisY);
-	if( abs(ZoY) < 1.0e-5 )
-	{
-		axisY = float3(0, 1, 0);
-		ZoY = dot(axisZ, axisY);
-	}
-	axisY = normalize(axisZ - ZoY * axisY);
-	float3 axisX = normalize(cross(axisZ, axisY));
-
-	float3 N = axisZ;
-	float3x3 R = float3x3(axisX, axisY, axisZ);
-
-	const int SampleM = 128;
-	const int SampleN = 100;
-
-	float dPhi = 2.0 * PI / SampleM;
-	float dTheta = 0.5 * PI / SampleN;
-
+	float dPhi = 2.0 * PI / IrrianceSampleCount.x;
+	float dTheta = 0.5 * PI / IrrianceSampleCount.y;
 	float3 irradiance = float3(0, 0, 0);
-	for( int m = 0; m < SampleM; ++m )
+#if 0
+	
+	for( int m = 0; m < IrrianceSampleCount.x; ++m )
 	{
 		float2 csPhi;
 		sincos(float(m) * dPhi, csPhi.y, csPhi.x);
-		for( int n = 0; n < SampleN; ++n )
+		for( int n = 0; n < IrrianceSampleCount.y; ++n )
 		{
 			float2 csTheta;
 			sincos(float(n) * dTheta, csTheta.y, csTheta.x);
-			float3 L = normalize(R * float3(csTheta.y * csPhi, csTheta.x));
+			float3 L = normalize(tangentToWorld * float3(csTheta.y * csPhi, csTheta.x));
 			irradiance += csTheta.x * csTheta.y * GetEnvRadiance(L);
 		}
 	}
+#else
 
-	irradiance *= PI / (SampleN * SampleM);
+	for( float phi = 0; phi <  2.0 * PI; phi += dPhi )
+	{
+		float2 csPhi;
+		sincos(phi, csPhi.y, csPhi.x);
+		for( float theta = 0; theta < 0.5 * PI; theta += dTheta )
+		{
+			float2 csTheta;
+			sincos(theta, csTheta.y, csTheta.x);
+			float3 L = normalize(tangentToWorld * float3(csTheta.y * csPhi, csTheta.x));
+			irradiance += csTheta.x * csTheta.y * GetEnvRadiance(L);
+		}
+	}
+#endif
+
+	irradiance *= PI / (IrrianceSampleCount.x * IrrianceSampleCount.y);
 	OutColor = float4(irradiance, 1);
 
 }
@@ -105,7 +118,8 @@ float2 Hammersley(uint i, uint N)
 	return float2(float(i) / float(N), RadicalInverse_VdC(i));
 }
 
-float3 ImportanceSampleGGX(float2 Xi, float3 N, float roughness)
+
+float3 ImportanceSampleGGX(float2 Xi,float roughness)
 {
 	float a = roughness*roughness;
 
@@ -119,18 +133,10 @@ float3 ImportanceSampleGGX(float2 Xi, float3 N, float roughness)
 	H.y = sin(phi) * sinTheta;
 	H.z = cosTheta;
 
-	// from tangent-space vector to world-space sample vector
-	float3 up = abs(N.z) < 0.999 ? float3(0.0, 0.0, 1.0) : float3(1.0, 0.0, 0.0);
-	float3 tangent = normalize(cross(up, N));
-	float3 bitangent = cross(N, tangent);
-
-	float3 sampleVec = tangent * H.x + bitangent * H.y + N * H.z;
-	return normalize(sampleVec);
+	return H;
 }
-
-
 uniform float Roughness;
-
+uniform int PrefilterSampleCount = 2048;
 void PrefilteredGenPS()
 {
 
@@ -138,13 +144,14 @@ void PrefilteredGenPS()
 	float3 R = N;
 	float3 V = R;
 
-	const uint SAMPLE_COUNT = 2048u;
+	float3x3 tangentToWorld = TangentToWorldTransform(N);
+
 	float totalWeight = 0.0;
 	float3 prefilteredColor = float3(0.0);
-	for( uint i = 0u; i < SAMPLE_COUNT; ++i )
+	for( uint i = 0u; i < PrefilterSampleCount; ++i )
 	{
-		float2 Xi = Hammersley(i, SAMPLE_COUNT);
-		float3 H = ImportanceSampleGGX(Xi, N, Roughness);
+		float2 Xi = Hammersley(i, PrefilterSampleCount);
+		float3 H = normalize( tangentToWorld * ImportanceSampleGGX(Xi, Roughness) );
 		float3 L = normalize(2.0 * dot(V, H) * H - V);
 
 		float NoL = saturate(dot(N, L));
@@ -160,6 +167,7 @@ void PrefilteredGenPS()
 }
 
 
+uniform int BRDFSampleCount = 1024;
 float2 IntegrateBRDF(float NoV, float roughness)
 {
 	float3 V;
@@ -171,12 +179,11 @@ float2 IntegrateBRDF(float NoV, float roughness)
 	float B = 0.0;
 
 	float3 N = float3(0.0, 0.0, 1.0);
-
-	const uint SAMPLE_COUNT = 1024u;
-	for( uint i = 0u; i < SAMPLE_COUNT; ++i )
+	float3x3 tangentToWorld = TangentToWorldTransform(N);
+	for( uint i = 0u; i < BRDFSampleCount; ++i )
 	{
-		float2 Xi = Hammersley(i, SAMPLE_COUNT);
-		float3 H = ImportanceSampleGGX(Xi, N, roughness);
+		float2 Xi = Hammersley(i, BRDFSampleCount);
+		float3 H = normalize(tangentToWorld * ImportanceSampleGGX(Xi, Roughness));
 		float3 L = normalize(2.0 * dot(V, H) * H - V);
 
 		float NoL = saturate(L.z);
@@ -193,8 +200,8 @@ float2 IntegrateBRDF(float NoV, float roughness)
 			B += Fc * G_Vis;
 		}
 	}
-	A /= float(SAMPLE_COUNT);
-	B /= float(SAMPLE_COUNT);
+	A /= float(BRDFSampleCount);
+	B /= float(BRDFSampleCount);
 	return float2(A, B);
 }
 

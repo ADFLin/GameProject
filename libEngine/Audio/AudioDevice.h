@@ -41,18 +41,18 @@ struct ActiveSound
 	bool        bPlay2d;
 	bool        bLoop;
 
-	std::vector< SoundInstance* > playingInstance;
+	std::vector< SoundInstance* > playingInstances;
 
 	bool isPlaying() const
 	{
-		return !playingInstance.empty();
+		return !playingInstances.empty();
 	}
 
 	void removeInstance(SoundInstance* instance)
 	{
-		auto iter = std::find(playingInstance.begin(), playingInstance.end(), instance);
-		if (iter != playingInstance.end())
-			playingInstance.erase(iter);
+		auto iter = std::find(playingInstances.begin(), playingInstances.end(), instance);
+		if (iter != playingInstances.end())
+			playingInstances.erase(iter);
 	}
 
 	ActiveSound()
@@ -91,14 +91,18 @@ struct SoundInstance
 	float        pitch;
 	float        volume;
 
+	uint64       startSamplePos;
+	uint64       samplesPlayed;
 	SoundInstance()
 	{
+		startSamplePos = 0;
 		bUsed = false;
 		bPlaying = false;
 		sourceId = -1;
 		soundwave = nullptr;
 		activeSound = nullptr;
 		usageFrame = 0;
+		samplesPlayed = 0;
 	}
 };
 
@@ -158,15 +162,55 @@ public:
 	}
 };
 
+struct AudioStreamSample
+{
+	uint32 handle;
+	uint8* data;
+	int64  dataSize;
+};
+
+enum class EAudioStreamStatus
+{
+	Ok ,
+	Error ,
+	NoSample ,
+	Eof ,
+};
+
+class IAudioStreamSource
+{
+public:
+	virtual void  seekSamplePosition(int64 samplePos) = 0;
+	virtual void  getWaveFormat(WaveFormatInfo& outFormat) = 0;
+	virtual int64 getTotalSampleNum() = 0;
+	virtual EAudioStreamStatus  generatePCMData( int64 samplePos , AudioStreamSample& outSample , int requiredMinSameleNum ) = 0;
+	virtual void  releaseSampleData(uint32 sampleHadle){}
+};
+
+
 class SoundWave : public SoundBase
 {
 public:
 
-	bool loadFromWaveFile(char const* path)
+	bool loadFromWaveFile(char const* path , bool bStreaming = false )
 	{
-		if( !LoadWaveFile(path, format, PCMData) )
-			return false;
+		if( bStreaming )
+		{
+
+		}
+		else
+		{
+			if( !LoadWaveFile(path, format, PCMData) )
+				return false;
+		}
 		return true;
+	}
+
+	void setupStream(IAudioStreamSource* inStreamSource)
+	{
+		streamSource = inStreamSource;
+		streamSource->getWaveFormat(format);
+		PCMData.clear();
 	}
 
 	virtual void process(SoundDSP& dsp, uint64 hash) override
@@ -176,26 +220,29 @@ public:
 
 	float getDurtion()
 	{
+		if( streamSource )
+			return float( streamSource->getTotalSampleNum() ) / format.sampleRate;
+
 		return float( PCMData.size() ) / format.byteRate;
 	}
 
+	bool isStreaming() const { return streamSource != nullptr; }
 
-	void fillStreamingData()
-	{
-
-
-
-	}
-	bool bStreaming = false;
 
 	std::string assertPath;
 	WaveFormatInfo format;
+
+	bool bSaveStreamingPCMData = false;
 	std::vector< uint8 > PCMData;
+
+	IAudioStreamSource* streamSource = nullptr;
 };
 
 class AudioSource
 {
 public:
+
+
 	bool initialize(SoundInstance& instance);
 
 	virtual bool doInitialize(SoundInstance& instance) { return true; }
@@ -204,7 +251,7 @@ public:
 
 
 	}
-	virtual void stop() {}
+	virtual void endPlay() {}
 	virtual void pause() {}
 
 protected:
@@ -236,7 +283,7 @@ public:
 
 	virtual AudioSource* createSource();
 
-	int fetchIdleSource();
+	int fetchIdleSource(SoundInstance& instance);
 
 
 	void stopAllSound();

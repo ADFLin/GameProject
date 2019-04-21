@@ -309,7 +309,7 @@ namespace Bubble
 		getLevel().roteRight( delta );
 	}
 
-	void Scene::fireAction( ActionTrigger& trigger )
+	void Scene::fireAction(ActionPort port, ActionTrigger& trigger )
 	{
 		if ( !trigger.haveUpdateFrame() )
 			return;
@@ -319,18 +319,18 @@ namespace Bubble
 
 		int offset = 0;
 
-		if ( trigger.detect( ACT_BB_SHOOT ) )
+		if ( trigger.detect(port, ACT_BB_SHOOT ) )
 			shoot();
 
-		if ( trigger.detect( ACT_BB_ROTATE_LEFT ) )
+		if ( trigger.detect(port, ACT_BB_ROTATE_LEFT ) )
 		{
 			roteRight( angle );
 		}
-		else if ( trigger.detect( ACT_BB_ROTATE_RIGHT ) )
+		else if ( trigger.detect(port, ACT_BB_ROTATE_RIGHT ) )
 		{
 			roteRight( -angle );
 		}
-		else if ( trigger.detect( ACT_BB_MOUSE_ROTATE , &offset ) )
+		else if ( trigger.detect(port, ACT_BB_MOUSE_ROTATE , &offset ) )
 		{
 			roteRight( mouseAngle * offset );
 		}

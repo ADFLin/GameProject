@@ -87,10 +87,27 @@ DEFINE_VECTOR_FUNCTION(saturate, { return clamp(x, 0.0, 1.0); })
 VECTOR_FUNCTION_LIST(SincosT)
 #undef SincosT
 
+float BufferDepthToClipZ(float bufferDepth)
+{
+#if COMPILER_GLSL
+	return 2 * bufferDepth / gl_DepthRange.diff - 1;
+#else
+	return bufferDepth;
+#endif
+}
+
+
 #if PIXEL_SHADER
+
+
 void WritePixelDepth(float NDCz)
 {
 	gl_FragDepth = (gl_DepthRange.diff * NDCz + gl_DepthRange.near + gl_DepthRange.far) * 0.5;
+}
+
+void WritePixelRawDepth(float value)
+{
+	gl_FragDepth = value;
 }
 #endif
 
@@ -127,6 +144,8 @@ class sampler_state;
 class sampler1D;
 class sampler2D;
 class sampler3D;
+class sampler2DMS;
+class sampler2DArray;
 class samplerCube;
 
 vec4 texture1D(sampler1D, float);
@@ -138,14 +157,17 @@ vec4 texture(sampler2D, vec2);
 vec4 texture(sampler3D, vec3);
 vec4 texture(samplerCube, vec3);
 
+template< class gsampler>
+float4 texelFetch(gsampler sampler​, int3 texCoord​, int sample​);
+
 float4   tex2D(sampler2D, float2);
 float4   texCUBE(samplerCUBE, float3);
 
 template< class T >
 T        mix(T a, T b, float f);
 
-
-int textureSize(sampler1D, int);
+template< class gsampler>
+int textureSize(gsampler, int);
 template< class T >
 T dFdx(T);
 template< class T >

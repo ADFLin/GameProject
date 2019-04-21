@@ -289,6 +289,8 @@ namespace Render
 	void SampleStage::renderScene(RenderContext& context)
 	{
 
+		RHICommandList& commandList = context.getCommnadList();
+
 		ViewInfo const& viewInfo = context.getView();
 		getScene(0).render(context);
 
@@ -309,13 +311,13 @@ namespace Render
 			auto shader = context.setMaterial(material);
 			if  (shader )
 			{
-				shader->setTexture(SHADER_PARAM(TextureD), getTexture(TextureId::MarioD).getRHI());
-				shader->setTexture(SHADER_PARAM(TextureS), getTexture(TextureId::MarioS).getRHI());
+				shader->setTexture(commandList, SHADER_PARAM(TextureD), getTexture(TextureId::MarioD).getRHI());
+				shader->setTexture(commandList, SHADER_PARAM(TextureS), getTexture(TextureId::MarioS).getRHI());
 			}
 			Mesh& mesh = getMesh(MeshId::Mario);
 			matWorld = Matrix4::Translate(Vector3(8, -8, 0));
 			context.setWorld(matWorld);
-			mesh.draw(LinearColor(0.7, 0.7, 0.7));
+			mesh.draw(commandList, LinearColor(0.7, 0.7, 0.7));
 		}
 
 		{
@@ -324,12 +326,12 @@ namespace Render
 			auto shader = context.setMaterial(material);
 			if( shader )
 			{
-				shader->setTexture(SHADER_PARAM(BaseTexture), getTexture(TextureId::Metel).getRHI());
+				shader->setTexture(commandList, SHADER_PARAM(BaseTexture), getTexture(TextureId::Metel).getRHI());
 			}
 			matWorld = Matrix4::Translate(Vector3(-2.6, -2.6, 3));
 			//matWorld = Matrix4::Translate(Vector3(0, 0, 7));
 			context.setWorld(matWorld);
-			mSimpleMeshs[SimpleMeshId::Sphere].draw( LinearColor(1,1,1) );
+			mSimpleMeshs[SimpleMeshId::Sphere].draw(commandList, LinearColor(1,1,1) );
 			//RHISetRasterizerState(TStaticRasterizerState<>::GetRHI());
 		}
 		{
@@ -356,7 +358,7 @@ namespace Render
 				context.setMaterial(getMaterial(MaterialId::Simple1));
 				matWorld = Matrix4::Rotate(Vector3(1, 1, 1), Math::Deg2Rad(45)) * Matrix4::Translate(Vector3(-7, -6, 7));
 				context.setWorld(matWorld);
-				mSimpleMeshs[SimpleMeshId::Box].draw(LinearColor(0.3, 0.3, 1));
+				mSimpleMeshs[SimpleMeshId::Box].draw(commandList, LinearColor(0.3, 0.3, 1));
 
 			}
 
@@ -367,7 +369,7 @@ namespace Render
 				material->setParameter(SHADER_PARAM(Sphere.radius), 2.0f);
 				context.setMaterial(material);
 				context.setWorld(Matrix4::Identity());
-				mSimpleMeshs[SimpleMeshId::SpherePlane].draw(LinearColor(1, 0, 0) );
+				mSimpleMeshs[SimpleMeshId::SpherePlane].draw(commandList, LinearColor(1, 0, 0) );
 			}
 		}
 
@@ -379,12 +381,12 @@ namespace Render
 			auto shader = context.setMaterial(material);
 			if( shader )
 			{
-				shader->setTexture(SHADER_PARAM(BaseTexture), getTexture(TextureId::Metel).getRHI());
+				shader->setTexture(commandList, SHADER_PARAM(BaseTexture), getTexture(TextureId::Metel).getRHI());
 			}
 			Mesh& mesh = getMesh(MeshId::Dragon);
 			matWorld = Matrix4::Rotate(Vector3(0, 0, 1), Math::Deg2Rad(45 + 180)) * Matrix4::Translate(Vector3(20, 0, 4));
 			context.setWorld(matWorld);
-			mesh.draw( Vector4(0.7, 0.7, 0.7, 1) );
+			mesh.draw(commandList, Vector4(0.7, 0.7, 0.7, 1) );
 		}
 
 		if(1)
@@ -393,18 +395,18 @@ namespace Render
 			auto shader = context.setMaterial(material);
 			if (shader)
 			{
-				shader->setParam(SHADER_PARAM(DispFactor), Vector3(1, 0, 0));
+				shader->setParam(commandList, SHADER_PARAM(DispFactor), Vector3(1, 0, 0));
 #if 0
-				shader->setTexture(SHADER_PARAM(BaseTexture), getTexture(TextureId::RocksD).getRHI());
-				shader->setTexture(SHADER_PARAM(NoramlTexture), getTexture(TextureId::RocksNH).getRHI());
+				shader->setTexture(commandList, SHADER_PARAM(BaseTexture), getTexture(TextureId::RocksD).getRHI());
+				shader->setTexture(commandList, SHADER_PARAM(NoramlTexture), getTexture(TextureId::RocksNH).getRHI());
 #else
-				shader->setTexture(SHADER_PARAM(BaseTexture), getTexture(TextureId::Base).getRHI());
-				shader->setTexture(SHADER_PARAM(NoramlTexture), getTexture(TextureId::Normal).getRHI());
+				shader->setTexture(commandList, SHADER_PARAM(BaseTexture), getTexture(TextureId::Base).getRHI());
+				shader->setTexture(commandList, SHADER_PARAM(NoramlTexture), getTexture(TextureId::Normal).getRHI());
 #endif
 			}
 			matWorld = Matrix4::Scale(0.5) * Matrix4::Translate(Vector3(-12, 0, 2));
 			context.setWorld(matWorld);
-			mSimpleMeshs[SimpleMeshId::Plane].draw(LinearColor(0.7, 0.7, 0.7));
+			mSimpleMeshs[SimpleMeshId::Plane].draw(commandList, LinearColor(0.7, 0.7, 0.7));
 		}
 
 
@@ -414,12 +416,12 @@ namespace Render
 			auto shader = context.setMaterial(material);
 			if( shader )
 			{
-				shader->setTexture(SHADER_PARAM(BaseTexture), getTexture(TextureId::Metel).getRHI());
+				shader->setTexture(commandList, SHADER_PARAM(BaseTexture), getTexture(TextureId::Metel).getRHI());
 			}
 			Mesh& mesh = getMesh(MeshId::Dragon2);
 			matWorld = Matrix4::Rotate(Vector3(0, 0, 1), Math::Deg2Rad(45 + 180)) * Matrix4::Translate(Vector3(6, -6, 4));
 			context.setWorld(matWorld);
-			mesh.draw(LinearColor(0.7, 0.7, 0.7,1.0) );
+			mesh.draw(commandList, LinearColor(0.7, 0.7, 0.7,1.0) );
 		}
 
 		{
@@ -448,12 +450,12 @@ namespace Render
 			auto shader = context.setMaterial(material);
 			if ( shader )
 			{
-				shader->setTexture(SHADER_PARAM(BaseTexture), getTexture(TextureId::Metel).getRHI());
+				shader->setTexture(commandList, SHADER_PARAM(BaseTexture), getTexture(TextureId::Metel).getRHI());
 			}
 			Mesh& mesh = getMesh(MeshId::Skeleton);
 			matWorld = Matrix4::Translate(Vector3(0, -10, 5));
 			context.setWorld(matWorld);
-			mesh.draw(LinearColor(0.7, 0.7, 0.7));
+			mesh.draw(commandList, LinearColor(0.7, 0.7, 0.7));
 		}
 
 
@@ -464,7 +466,7 @@ namespace Render
 			matWorld = Matrix4::Rotate(Vector3(0, 0, -1), Math::Deg2Rad(45 + 180)) * Matrix4::Translate(Vector3(-6, 6, 4));
 			Mesh& mesh = getMesh(MeshId::Teapot);
 			context.setWorld(matWorld);
-			mesh.draw(LinearColor(0.7, 0.7, 0.7, 1.0));
+			mesh.draw(commandList, LinearColor(0.7, 0.7, 0.7, 1.0));
 		}
 
 
@@ -473,22 +475,22 @@ namespace Render
 
 		matWorld = Matrix4::Translate(Vector3(-3, 3, 5));
 		context.setWorld(matWorld);
-		mSimpleMeshs[SimpleMeshId::Box].draw(LinearColor(0.3, 0.3, 1));
+		mSimpleMeshs[SimpleMeshId::Box].draw(commandList, LinearColor(0.3, 0.3, 1));
 
 
 		matWorld = Matrix4::Scale(1) * Matrix4::Translate(Vector3(1, 3, 14));
 		context.setWorld(matWorld);
-		mSimpleMeshs[SimpleMeshId::Doughnut].draw(LinearColor(1, 1, 0));
+		mSimpleMeshs[SimpleMeshId::Doughnut].draw(commandList, LinearColor(1, 1, 0));
 
 		matWorld = Matrix4::Scale(1) * Matrix4::Translate(Vector3(6, 6, 5));
 		context.setWorld(matWorld);
-		mSimpleMeshs[SimpleMeshId::Box].draw(LinearColor(1, 1, 0));
+		mSimpleMeshs[SimpleMeshId::Box].draw(commandList, LinearColor(1, 1, 0));
 
 		context.setMaterial(getMaterial((int)MaterialId::Simple2));
 
 		matWorld = Matrix4::Rotate(Vector3(0.5, 1, 0), Math::Deg2Rad(-80)) * Matrix4::Scale(3) * Matrix4::Translate(Vector3(0.5 * 20, 0, 20));
 		context.setWorld(matWorld);
-		mSimpleMeshs[SimpleMeshId::Box].draw();
+		mSimpleMeshs[SimpleMeshId::Box].draw(commandList);
 #endif
 		context.setMaterial(getMaterial(MaterialId::Simple2));
 
@@ -500,19 +502,19 @@ namespace Render
 		{
 			matWorld = Matrix4::Scale(10.0) * Matrix4::Translate(Vector3(0, 0, 0));
 			context.setWorld(matWorld);
-			mSimpleMeshs[SimpleMeshId::Plane].draw(LinearColor(1, 1, 1));
+			mSimpleMeshs[SimpleMeshId::Plane].draw(commandList, LinearColor(1, 1, 1));
 
 			matWorld = Matrix4::Rotate(Vector3(1, 0, 0), Math::Deg2Rad(90)) * Matrix4::Scale(scale) * Matrix4::Translate(Vector3(0, len, len));
 			context.setWorld(matWorld);
-			mSimpleMeshs[SimpleMeshId::Plane].draw(LinearColor(0.5 , 1 , 0 ));
+			mSimpleMeshs[SimpleMeshId::Plane].draw(commandList, LinearColor(0.5 , 1 , 0 ));
 	
 			matWorld = Matrix4::Rotate(Vector3(1, 0, 0), Math::Deg2Rad(-90)) * Matrix4::Scale(scale) * Matrix4::Translate(Vector3(0, -len, len));
 			context.setWorld(matWorld);
-			mSimpleMeshs[SimpleMeshId::Plane].draw(LinearColor(1, 0.5, 1));
+			mSimpleMeshs[SimpleMeshId::Plane].draw(commandList, LinearColor(1, 0.5, 1));
 	
 			matWorld = Matrix4::Rotate(Vector3(0, 1, 0), Math::Deg2Rad(-90)) * Matrix4::Scale(scale) * Matrix4::Translate(Vector3(len, 0, len));
 			context.setWorld(matWorld);
-			mSimpleMeshs[SimpleMeshId::Plane].draw(LinearColor(1, 1, 1));
+			mSimpleMeshs[SimpleMeshId::Plane].draw(commandList, LinearColor(1, 1, 1));
 	
 	
 			{
@@ -521,20 +523,20 @@ namespace Render
 				auto shader = context.setMaterial(material);
 				if ( shader )
 				{
-					shader->setParam(SHADER_PARAM(DispFactor), Vector3(-1, 1, 0));
+					shader->setParam(commandList, SHADER_PARAM(DispFactor), Vector3(-1, 1, 0));
 #if 1
-					shader->setTexture2D(SHADER_PARAM(BaseTexture), getTexture(TextureId::RocksD).getRHI());
-					shader->setTexture2D(SHADER_PARAM(NoramlTexture), getTexture(TextureId::RocksNH).getRHI());
+					shader->setTexture(commandList, SHADER_PARAM(BaseTexture), getTexture(TextureId::RocksD).getRHI());
+					shader->setTexture(commandList, SHADER_PARAM(NoramlTexture), getTexture(TextureId::RocksNH).getRHI());
 #else
-					shader->setTexture2D(SHADER_PARAM(BaseTexture), getTexture(TextureId::Base).getRHI());
-					shader->setTexture2D(SHADER_PARAM(NoramlTexture), getTexture(TextureId::Normal).getRHI());
+					shader->setTexture(commandList, SHADER_PARAM(BaseTexture), getTexture(TextureId::Base).getRHI());
+					shader->setTexture(commandList, SHADER_PARAM(NoramlTexture), getTexture(TextureId::Normal).getRHI());
 #endif
 				}
 #endif
 	
 				matWorld = Matrix4::Rotate(Vector3(0, 1, 0), Math::Deg2Rad(90)) * Matrix4::Scale(scale) * Matrix4::Translate(Vector3(-len, 0, len));
 				context.setWorld(matWorld);
-				mSimpleMeshs[SimpleMeshId::Plane].draw(LinearColor(1, 1, 0.5) );
+				mSimpleMeshs[SimpleMeshId::Plane].draw(commandList, LinearColor(1, 1, 0.5) );
 			}
 		}
 

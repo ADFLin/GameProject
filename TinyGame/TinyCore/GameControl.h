@@ -10,7 +10,14 @@
 #include <vector>
 
 typedef uint32 ControlAction;
-typedef uint32 ActionPort;
+struct ActionPort
+{
+	ActionPort() = default;
+	ActionPort( uint32 inValue ): value(inValue){}
+
+	operator uint32() const { return value; }
+	uint32 value;
+};
 
 class IActionInput;
 class ActionProcessor;
@@ -50,22 +57,21 @@ struct ActionParam
 class ActionTrigger
 {
 public:
-	void        setPort(ActionPort port ){ mParam.port = port;  }
-	ActionPort  getPort() const { return  mParam.port;  }
 
-	TINY_API bool      peek( ControlAction action );
+	TINY_API bool      peek(ActionPort port, ControlAction action );
 	template < class T >
-	bool      peek( ControlAction action , T* result )
+	bool      peek(ActionPort port, ControlAction action , T* result )
 	{
 		mParam.setResult( result );
-		return peek( action );
+		return peek( port , action );
 	}
-	TINY_API bool      detect( ControlAction action );
+
+	TINY_API bool      detect(ActionPort port , ControlAction action);
 	template < class T >
-	bool      detect( ControlAction action , T* result )
+	bool      detect(ActionPort port, ControlAction action, T* result)
 	{
-		mParam.setResult( result );
-		return detect( action );
+		mParam.setResult(result);
+		return detect(port, action);
 	}
 	bool      haveUpdateFrame(){ return mParam.bUpdateFrame; }
 private:

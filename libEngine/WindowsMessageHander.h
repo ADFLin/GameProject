@@ -51,7 +51,7 @@ public:
 	bool onChar( unsigned code ){ return true; }
 	bool onActivate( bool beA ){ return true; }
 	void onPaint( HDC hDC ){}
-	bool onDestroy( HWND hWnd ){}
+	bool onDestroy(HWND hWnd) { return true; }
 	bool onIMEChar(){ return true;}
 	bool onPaste(){ return true; }
 

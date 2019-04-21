@@ -59,12 +59,12 @@ namespace Go
 		using namespace Go;
 
 		GLGraphics2D& g = ::Global::GetRHIGraphics2D();
-
+		RHICommandList& commandList = RHICommandList::GetImmediateList();
 		{
 			GPU_PROFILE("Draw Stone");
 
 #if DRAW_TEXTURE
-			RHISetBlendState(TStaticBlendState< CWM_RGBA, Blend::eSrcAlpha, Blend::eOneMinusSrcAlpha >::GetRHI());
+			RHISetBlendState(commandList, TStaticBlendState< CWM_RGBA, Blend::eSrcAlpha, Blend::eOneMinusSrcAlpha >::GetRHI());
 
 			glEnable(GL_TEXTURE_2D);
 			glActiveTexture(GL_TEXTURE0);
@@ -90,14 +90,14 @@ namespace Go
 				if( !mSpriteVertices.empty() )
 				{
 					GL_BIND_LOCK_OBJECT(mTextureAtlas.getTexture());
-					TRenderRT< RTVF_XY_CA_T2 >::Draw(PrimitiveType::Quad, &mSpriteVertices[0], mSpriteVertices.size());
+					TRenderRT< RTVF_XY_CA_T2 >::Draw(commandList, PrimitiveType::Quad, &mSpriteVertices[0], mSpriteVertices.size());
 					mSpriteVertices.clear();
 				}
 			}
 
 			glDisable(GL_TEXTURE_2D);
 
-			RHISetBlendState( TStaticBlendState<>::GetRHI() );
+			RHISetBlendState(commandList, TStaticBlendState<>::GetRHI() );
 #endif
 		}
 	}
@@ -130,7 +130,10 @@ namespace Go
 		float const border = 0.5 * context.cellLength + (( bDrawCoord ) ? 30 : 0 );
 		float const boardRenderLength = length + 2 * border;
 
-		RHISetBlendState(TStaticBlendState<>::GetRHI());
+		RHICommandList& commandList = RHICommandList::GetImmediateList();
+
+
+		RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
 
 #if DRAW_TEXTURE
 		glColor3f(1, 1, 1);
@@ -139,7 +142,7 @@ namespace Go
 		glActiveTexture(GL_TEXTURE0);
 		{
 			GL_BIND_LOCK_OBJECT(mTextures[TextureId::eBoardA]);
-			DrawUtility::Sprite(
+			DrawUtility::Sprite(commandList,
 				context.renderPos - Vector2(border, border), Vector2(boardRenderLength, boardRenderLength), Vector2(0, 0),
 				Vector2(0, 0), 2 * Vector2(1, 1));
 		}
@@ -218,7 +221,7 @@ namespace Go
 			GPU_PROFILE("Draw Stone");
 
 #if DRAW_TEXTURE
-			RHISetBlendState(TStaticBlendState< CWM_RGBA, Blend::eSrcAlpha, Blend::eOneMinusSrcAlpha >::GetRHI());
+			RHISetBlendState(commandList, TStaticBlendState< CWM_RGBA, Blend::eSrcAlpha, Blend::eOneMinusSrcAlpha >::GetRHI());
 
 			glEnable(GL_TEXTURE_2D);
 			glActiveTexture(GL_TEXTURE0);
@@ -242,13 +245,13 @@ namespace Go
 				if( !mSpriteVertices.empty() )
 				{
 					GL_BIND_LOCK_OBJECT(mTextureAtlas.getTexture());
-					TRenderRT< RTVF_XY_CA_T2 >::Draw(PrimitiveType::Quad, &mSpriteVertices[0], mSpriteVertices.size());
+					TRenderRT< RTVF_XY_CA_T2 >::Draw(commandList, PrimitiveType::Quad, &mSpriteVertices[0], mSpriteVertices.size());
 					mSpriteVertices.clear();
 				}
 			}
 
 			glDisable(GL_TEXTURE_2D);
-			RHISetBlendState(TStaticBlendState<>::GetRHI());
+			RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
 #endif
 		}
 
@@ -310,6 +313,8 @@ namespace Go
 
 	void BoardRenderer::drawStone(GLGraphics2D& g, Vector2 const& pos, int color , float stoneRadius , float scale , float opaticy)
 	{
+		RHICommandList& commandList = RHICommandList::GetImmediateList();
+
 #if DRAW_TEXTURE
 		if( bUseBatchedRender )
 		{
@@ -324,10 +329,10 @@ namespace Go
 				GL_BIND_LOCK_OBJECT(mTextures[id]);
 
 				glColor4f(0, 0, 0, 0.2 * opaticy);
-				DrawUtility::Sprite(pos + scale * Vector2(2, 2), 2.1 * Vector2(stoneRadius, stoneRadius), Vector2(0.5, 0.5));
+				DrawUtility::Sprite(commandList, pos + scale * Vector2(2, 2), 2.1 * Vector2(stoneRadius, stoneRadius), Vector2(0.5, 0.5));
 
 				glColor4f(1, 1, 1 , opaticy);
-				DrawUtility::Sprite(pos, 2 * Vector2(stoneRadius, stoneRadius), Vector2(0.5, 0.5));
+				DrawUtility::Sprite(commandList, pos, 2 * Vector2(stoneRadius, stoneRadius), Vector2(0.5, 0.5));
 
 			}
 		}

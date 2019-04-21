@@ -16,9 +16,9 @@ namespace Tetris
 
 	}
 
-	void CFrameActionTemplate::firePortAction( ActionTrigger& trigger )
+	void CFrameActionTemplate::firePortAction(ActionPort port, ActionTrigger& trigger )
 	{
-		mWorld.fireLevelAction( trigger );
+		mWorld.fireLevelAction( port , trigger );
 	}
 
 }//namespace Tetris

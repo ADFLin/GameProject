@@ -26,7 +26,7 @@ namespace BomberMan
 		static unsigned const LastVersion = MAKE_VERSION(0,0,1);
 
 		CFrameActionTemplate( World& level );
-		virtual void firePortAction( ActionTrigger& trigger );
+		virtual void firePortAction( ActionPort port , ActionTrigger& trigger ) override;
 		World& mLevel;
 	};
 

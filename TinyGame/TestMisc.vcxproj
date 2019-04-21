@@ -213,6 +213,7 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\libEngine\Algo\FFT.h" />
     <ClInclude Include="Bejeweled\BJLevel.h" />
     <ClInclude Include="Bejeweled\BJScene.h" />
     <ClInclude Include="Bejeweled\BJStage.h" />
@@ -265,6 +266,7 @@
     <ClInclude Include="TripleTown\TTStage.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\libEngine\Algo\FFT.cpp" />
     <ClCompile Include="Bejeweled\BJLevel.cpp" />
     <ClCompile Include="Bejeweled\BJScene.cpp" />
     <ClCompile Include="Bejeweled\BJStage.cpp" />

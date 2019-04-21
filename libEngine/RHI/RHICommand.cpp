@@ -17,7 +17,7 @@ namespace Render
 #endif
 
 
-#define EXECUTE_RHIFUN( CODE ) gRHISystem->CODE
+#define EXECUTE_RHI_FUNC( CODE ) gRHISystem->CODE
 
 	bool RHISystemInitialize(RHISytemName name, RHISystemInitParam const& initParam)
 	{
@@ -58,190 +58,107 @@ namespace Render
 
 	bool RHIBeginRender()
 	{
-		return EXECUTE_RHIFUN( RHIBeginRender() );
+		return EXECUTE_RHI_FUNC( RHIBeginRender() );
 	}
 
 	void RHIEndRender(bool bPresent)
 	{
-		EXECUTE_RHIFUN( RHIEndRender(bPresent) );
+		EXECUTE_RHI_FUNC( RHIEndRender(bPresent) );
 	}
 
 	RHIRenderWindow* RHICreateRenderWindow(PlatformWindowInfo const& info)
 	{
-		return EXECUTE_RHIFUN( RHICreateRenderWindow(info) );
+		return EXECUTE_RHI_FUNC( RHICreateRenderWindow(info) );
 	}
 
 	RHITexture1D* RHICreateTexture1D(Texture::Format format, int length, int numMipLevel, uint32 creationFlags, void* data)
 	{
-		return EXECUTE_RHIFUN( RHICreateTexture1D(format, length, numMipLevel, creationFlags , data) );
+		return EXECUTE_RHI_FUNC( RHICreateTexture1D(format, length, numMipLevel, creationFlags , data) );
 	}
 
 	RHITexture2D* RHICreateTexture2D(Texture::Format format, int w, int h, int numMipLevel, int numSamples, uint32 creationFlags, void* data , int dataAlign)
 	{
-		return EXECUTE_RHIFUN( RHICreateTexture2D(format, w, h, numMipLevel, numSamples, creationFlags , data, dataAlign) );
+		return EXECUTE_RHI_FUNC( RHICreateTexture2D(format, w, h, numMipLevel, numSamples, creationFlags , data, dataAlign) );
 	}
 
 	RHITexture3D* RHICreateTexture3D(Texture::Format format, int sizeX ,int sizeY , int sizeZ , int numMipLevel, int numSamples, uint32 creationFlags , void* data)
 	{
-		return EXECUTE_RHIFUN( RHICreateTexture3D(format, sizeX, sizeY, sizeZ, numMipLevel , numSamples, creationFlags, data) );
+		return EXECUTE_RHI_FUNC( RHICreateTexture3D(format, sizeX, sizeY, sizeZ, numMipLevel , numSamples, creationFlags, data) );
 	}
 
 	RHITextureCube* RHICreateTextureCube(Texture::Format format, int size, int numMipLevel, uint32 creationFlags, void* data[])
 	{
-		return EXECUTE_RHIFUN(RHICreateTextureCube(format, size, numMipLevel, creationFlags, data));
+		return EXECUTE_RHI_FUNC(RHICreateTextureCube(format, size, numMipLevel, creationFlags, data));
+	}
+
+	RHITexture2DArray* RHICreateTexture2DArray(Texture::Format format, int w, int h, int layerSize, int numMipLevel, int numSamples, uint32 creationFlags, void* data)
+	{
+		return EXECUTE_RHI_FUNC(RHICreateTexture2DArray(format, w, h, layerSize, numMipLevel, numSamples , creationFlags, data) );
 	}
 
 	RHITextureDepth* RHICreateTextureDepth(Texture::DepthFormat format, int w, int h, int numMipLevel, int numSamples)
 	{
-		return EXECUTE_RHIFUN( RHICreateTextureDepth(format, w, h, numMipLevel, numSamples) );
+		return EXECUTE_RHI_FUNC( RHICreateTextureDepth(format, w, h, numMipLevel, numSamples) );
 	}
 
 	RHIVertexBuffer* RHICreateVertexBuffer(uint32 vertexSize, uint32 numVertices, uint32 creationFlags, void* data)
 	{
-		return EXECUTE_RHIFUN( RHICreateVertexBuffer(vertexSize, numVertices, creationFlags, data) );
+		return EXECUTE_RHI_FUNC( RHICreateVertexBuffer(vertexSize, numVertices, creationFlags, data) );
 	}
 
 	RHIIndexBuffer* RHICreateIndexBuffer(uint32 nIndices, bool bIntIndex, uint32 creationFlags, void* data)
 	{
-		return EXECUTE_RHIFUN( RHICreateIndexBuffer(nIndices, bIntIndex, creationFlags, data) );
-	}
-
-	RHIUniformBuffer* RHICreateUniformBuffer(uint32 elementSize, uint32 numElement, uint32 creationFlags, void* data)
-	{
-		return EXECUTE_RHIFUN( RHICreateUniformBuffer(elementSize , numElement, creationFlags, data) );
+		return EXECUTE_RHI_FUNC( RHICreateIndexBuffer(nIndices, bIntIndex, creationFlags, data) );
 	}
 
 	void* RHILockBuffer(RHIVertexBuffer* buffer, ELockAccess access, uint32 offset, uint32 size)
 	{
-		return EXECUTE_RHIFUN(RHILockBuffer(buffer, access , offset, size));
+		return EXECUTE_RHI_FUNC(RHILockBuffer(buffer, access , offset, size));
 	}
 
 	void RHIUnlockBuffer(RHIVertexBuffer* buffer)
 	{
-		return EXECUTE_RHIFUN(RHIUnlockBuffer(buffer));
+		return EXECUTE_RHI_FUNC(RHIUnlockBuffer(buffer));
 	}
 
 	void* RHILockBuffer(RHIIndexBuffer* buffer, ELockAccess access, uint32 offset, uint32 size)
 	{
-		return EXECUTE_RHIFUN(RHILockBuffer(buffer, access, offset, size));
+		return EXECUTE_RHI_FUNC(RHILockBuffer(buffer, access, offset, size));
 	}
 
 	void RHIUnlockBuffer(RHIIndexBuffer* buffer)
 	{
-		return EXECUTE_RHIFUN(RHIUnlockBuffer(buffer));
-	}
-
-	void* RHILockBuffer(RHIUniformBuffer* buffer, ELockAccess access, uint32 offset /*= 0*/, uint32 size /*= 0*/)
-	{
-		return EXECUTE_RHIFUN(RHILockBuffer(buffer, access, offset, size));
-	}
-
-	void RHIUnlockBuffer(RHIUniformBuffer* buffer)
-	{
-		return EXECUTE_RHIFUN(RHIUnlockBuffer(buffer));
+		return EXECUTE_RHI_FUNC(RHIUnlockBuffer(buffer));
 	}
 
 	RHIFrameBuffer* RHICreateFrameBuffer()
 	{
-		return EXECUTE_RHIFUN( RHICreateFrameBuffer() );
+		return EXECUTE_RHI_FUNC( RHICreateFrameBuffer() );
 	}
 
 	RHIInputLayout* RHICreateInputLayout(InputLayoutDesc const& desc)
 	{
-		return EXECUTE_RHIFUN(RHICreateInputLayout(desc));
+		return EXECUTE_RHI_FUNC(RHICreateInputLayout(desc));
 	}
 
 	RHIRasterizerState* RHICreateRasterizerState(RasterizerStateInitializer const& initializer)
 	{
-		return EXECUTE_RHIFUN(RHICreateRasterizerState(initializer));
+		return EXECUTE_RHI_FUNC(RHICreateRasterizerState(initializer));
 	}
 
 	RHISamplerState* RHICreateSamplerState(SamplerStateInitializer const& initializer)
 	{
-		return EXECUTE_RHIFUN(RHICreateSamplerState(initializer));
+		return EXECUTE_RHI_FUNC(RHICreateSamplerState(initializer));
 	}
 
 	RHIDepthStencilState* RHICreateDepthStencilState(DepthStencilStateInitializer const& initializer)
 	{
-		return EXECUTE_RHIFUN(RHICreateDepthStencilState(initializer));
+		return EXECUTE_RHI_FUNC(RHICreateDepthStencilState(initializer));
 	}
 
 	RHIBlendState* RHICreateBlendState(BlendStateInitializer const& initializer)
 	{
-		return EXECUTE_RHIFUN(RHICreateBlendState(initializer));
-	}
-
-	void RHISetRasterizerState(RHIRasterizerState& rasterizerState)
-	{
-		EXECUTE_RHIFUN(RHISetRasterizerState(rasterizerState));
-	}
-	void RHISetBlendState(RHIBlendState& blendState)
-	{
-		EXECUTE_RHIFUN(RHISetBlendState(blendState));
-	}
-	void RHISetDepthStencilState(RHIDepthStencilState& depthStencilState, uint32 stencilRef)
-	{
-		EXECUTE_RHIFUN(RHISetDepthStencilState(depthStencilState, stencilRef));
-	}
-
-	void RHISetViewport(int x, int y, int w, int h)
-	{
-		EXECUTE_RHIFUN( RHISetViewport(x, y, w, h) );
-	}
-
-	void RHISetScissorRect(bool bEnable, int x, int y, int w, int h)
-	{
-		EXECUTE_RHIFUN( RHISetScissorRect(bEnable, x, y, w, h));
-	}
-
-	void RHIDrawPrimitive(PrimitiveType type , int start, int nv)
-	{
-		EXECUTE_RHIFUN(RHIDrawPrimitive(type, start, nv));
-	}
-
-	void RHIDrawIndexedPrimitive(PrimitiveType type, ECompValueType indexType , int indexStart, int nIndex)
-	{
-		EXECUTE_RHIFUN(RHIDrawIndexedPrimitive(type, indexType, indexStart, nIndex));
-	}
-
-	void RHIDrawPrimitiveIndirect(PrimitiveType type, RHIVertexBuffer* commandBuffer, int offset, int numCommand, int commandStride)
-	{
-		EXECUTE_RHIFUN(RHIDrawPrimitiveIndirect(type, commandBuffer, offset, numCommand, commandStride));
-	}
-
-	void RHIDrawIndexedPrimitiveIndirect(PrimitiveType type, ECompValueType indexType, RHIVertexBuffer* commandBuffer, int offset, int numCommand, int commandStride)
-	{
-		EXECUTE_RHIFUN(RHIDrawIndexedPrimitiveIndirect(type, indexType, commandBuffer, offset , numCommand, commandStride));
-	}
-
-	void RHIDrawPrimitiveInstanced(PrimitiveType type, int vStart, int nv, int numInstance)
-	{
-		EXECUTE_RHIFUN(RHIDrawPrimitiveInstanced(type, vStart, nv, numInstance));
-	}
-
-	void RHIDrawPrimitiveUP(PrimitiveType type, int numPrimitive, void* pVertices, int numVerex, int vetexStride)
-	{
-		EXECUTE_RHIFUN(RHIDrawPrimitiveUP(type, numPrimitive, pVertices, numVerex, vetexStride));
-	}
-
-	void RHIDrawIndexedPrimitiveUP(PrimitiveType type, int numPrimitive, void* pVertices, int numVerex, int vetexStride, int* pIndices, int numIndex)
-	{
-		EXECUTE_RHIFUN(RHIDrawIndexedPrimitiveUP(type, numPrimitive, pVertices, numVerex, vetexStride, pIndices, numIndex));
-	}
-
-	void RHISetupFixedPipelineState(Matrix4 const& matModelView, Matrix4 const& matProj, int numTexture /*= 0*/, RHITexture2D const** textures /*= nullptr*/)
-	{
-		EXECUTE_RHIFUN(RHISetupFixedPipelineState(matModelView, matProj, numTexture, textures));
-	}
-
-	void RHISetFrameBuffer(RHIFrameBuffer& frameBuffer, RHITextureDepth* overrideDepthTexture /*= nullptr*/)
-	{
-		EXECUTE_RHIFUN(RHISetFrameBuffer(frameBuffer, overrideDepthTexture));
-	}
-
-	void RHISetIndexBuffer(RHIIndexBuffer* indexBuffer)
-	{
-		EXECUTE_RHIFUN(RHISetIndexBuffer(indexBuffer));
+		return EXECUTE_RHI_FUNC(RHICreateBlendState(initializer));
 	}
 
 	RHIRasterizerState& GetStaticRasterizerState(ECullMode cullMode, EFillMode fillMode)
@@ -331,7 +248,7 @@ namespace Render
 		return RHICreateTextureCube(option.getFormat(imageDatas[0].numComponent), imageDatas[0].width, option.numMipLevel, option.creationFlags, data);
 	}
 
-	Render::Texture::Format TextureLoadOption::getFormat(int numComponent) const
+	Texture::Format TextureLoadOption::getFormat(int numComponent) const
 	{
 		if( bHDR )
 		{
@@ -352,6 +269,11 @@ namespace Render
 			}
 		}
 		return Texture::eR8;
+	}
+
+	RHICommandList& RHICommandList::GetImmediateList()
+	{
+		return gRHISystem->getImmediateCommandList();
 	}
 
 }

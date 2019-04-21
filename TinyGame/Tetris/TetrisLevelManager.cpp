@@ -66,43 +66,45 @@ namespace Tetris
 	{
 		Level* level = getLevel();
 		Scene* scene = getScene();
+		
+		ActionPort port = getId();
 		if ( level->getState() == LVS_NORMAL )
 		{
-			if( trigger.detect( ACT_MOVE_LEFT ) ) 
+			if( trigger.detect(port, ACT_MOVE_LEFT ) )
 			{
 				level->movePiece( -1 , 0 );
 				if ( scene )
 					scene->notifyMovePiece( -1 );
 			}
-			else if( trigger.detect( ACT_MOVE_RIGHT) )   
+			else if( trigger.detect(port, ACT_MOVE_RIGHT) )
 			{
 				level->movePiece( 1 , 0 );
 				if ( scene )
 					scene->notifyMovePiece( 1 );
 			}
 
-			if( trigger.detect( ACT_MOVE_DOWN ) ) 
+			if( trigger.detect(port, ACT_MOVE_DOWN ) )
 			{
 				level->moveDown();
 				if ( scene )
 					scene->notifyMoveDown();
 			}
 
-			if( trigger.detect( ACT_ROTATE_CCW ) )
+			if( trigger.detect(port, ACT_ROTATE_CCW ) )
 			{
 				int orgDir = level->getMovePiece().getDirection();
 				level->rotatePiece( true );
 				if ( scene )
 					scene->notifyRotatePiece( orgDir , true );
 			}
-			else if( trigger.detect( ACT_ROTATE_CW ) )
+			else if( trigger.detect(port, ACT_ROTATE_CW ) )
 			{
 				int orgDir = level->getMovePiece().getDirection();
 				level->rotatePiece( false );
 				if ( scene )
 					scene->notifyRotatePiece( orgDir , false );
 			}
-			else if ( trigger.detect( ACT_FALL_PIECE ) )
+			else if ( trigger.detect(port, ACT_FALL_PIECE ) )
 			{
 				level->fallPiece();
 				if ( scene )
@@ -112,7 +114,7 @@ namespace Tetris
 
 		if ( getLevel()->getState() != LVS_OVER )
 		{
-			if ( trigger.detect( ACT_HOLD_PIECE ) )
+			if ( trigger.detect(port, ACT_HOLD_PIECE ) )
 			{
 				level->holdPiece();
 				if ( scene )
@@ -298,15 +300,14 @@ namespace Tetris
 		for( int i = 0 ; i < mNumLevel ; ++ i )
 		{
 			LevelData& data = getUsingData( i );
-			trigger.setPort( data.getId() );
 			mModePlaying->fireAction( data , trigger  );
 		}
 	}
 
 
-	void GameWorld::fireLevelAction( ActionTrigger& trigger )
+	void GameWorld::fireLevelAction(ActionPort port, ActionTrigger& trigger )
 	{
-		LevelData& data = *getLevelData( trigger.getPort() );
+		LevelData& data = *getLevelData(port);
 		mModePlaying->fireAction( data , trigger );
 	}
 

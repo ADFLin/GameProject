@@ -1,4 +1,3 @@
-#if 0
 #include "BRDFTestStage.h"
 #include "TestRenderStageBase.h"
 
@@ -469,7 +468,7 @@ namespace Render
 		{
 
 			Vec2i screenSize = ::Global::GetDrawEngine().getScreenSize();
-
+			RHICommandList& commandList = RHICommandList::GetImmediateList();
 			initializeRenderState();
 
 			{
@@ -484,71 +483,71 @@ namespace Render
 
 				{
 					GPU_PROFILE("SkyBox");
-					RHISetDepthStencilState(StaticDepthDisableState::GetRHI());
-					RHISetRasterizerState(TStaticRasterizerState< ECullMode::None >::GetRHI());
+					RHISetDepthStencilState(commandList, StaticDepthDisableState::GetRHI());
+					RHISetRasterizerState(commandList, TStaticRasterizerState< ECullMode::None >::GetRHI());
 
 					GL_BIND_LOCK_OBJECT(mProgSkyBox);
-					mProgSkyBox->setTexture(SHADER_PARAM(Texture), *mHDRImage);
+					mProgSkyBox->setTexture(commandList, SHADER_PARAM(Texture), *mHDRImage);
 					switch( SkyboxShowIndex )
 					{
 					case ESkyboxShow::Normal:
-						mProgSkyBox->setTexture(SHADER_PARAM(CubeTexture), mIBLResource.texture);
-						mProgSkyBox->setParam(SHADER_PARAM(CubeLevel), float(0));
+						mProgSkyBox->setTexture(commandList, SHADER_PARAM(CubeTexture), mIBLResource.texture);
+						mProgSkyBox->setParam(commandList, SHADER_PARAM(CubeLevel), float(0));
 						break;
 					case ESkyboxShow::Irradiance:
-						mProgSkyBox->setTexture(SHADER_PARAM(CubeTexture), mIBLResource.irradianceTexture);
-						mProgSkyBox->setParam(SHADER_PARAM(CubeLevel), float(0));
+						mProgSkyBox->setTexture(commandList, SHADER_PARAM(CubeTexture), mIBLResource.irradianceTexture);
+						mProgSkyBox->setParam(commandList, SHADER_PARAM(CubeLevel), float(0));
 						break;
 					default:
-						mProgSkyBox->setTexture(SHADER_PARAM(CubeTexture), mIBLResource.perfilteredTexture,
+						mProgSkyBox->setTexture(commandList, SHADER_PARAM(CubeTexture), mIBLResource.perfilteredTexture,
 												TStaticSamplerState< Sampler::eTrilinear, Sampler::eClamp, Sampler::eClamp, Sampler::eClamp > ::GetRHI());
-						mProgSkyBox->setParam(SHADER_PARAM(CubeLevel), float(SkyboxShowIndex - ESkyboxShow::Prefiltered_0));
+						mProgSkyBox->setParam(commandList, SHADER_PARAM(CubeLevel), float(SkyboxShowIndex - ESkyboxShow::Prefiltered_0));
 					}
 
-					mView.setupShader(*mProgSkyBox);
-					mSkyBox.drawShader();
+					mView.setupShader(commandList, *mProgSkyBox);
+					mSkyBox.drawShader(commandList);
 				}
 
-				RHISetDepthStencilState(TStaticDepthStencilState<>::GetRHI());
+				RHISetDepthStencilState(commandList, TStaticDepthStencilState<>::GetRHI());
 				{
-					RHISetupFixedPipelineState(mView.worldToView, mView.viewToClip);
-					DrawUtility::AixsLine();
+					RHISetupFixedPipelineState(commandList, mView.worldToView, mView.viewToClip);
+					DrawUtility::AixsLine(commandList);
 				}
 
 				{
 					GL_BIND_LOCK_OBJECT(mTestShader);
-					mView.setupShader(mTestShader);
+					mView.setupShader(commandList, mTestShader);
 
 					auto& samplerState = (mbUseMipMap) ? TStaticSamplerState<Sampler::eTrilinear>::GetRHI() : TStaticSamplerState<Sampler::eBilinear>::GetRHI();
-					mTestShader.setTexture(SHADER_PARAM(DiffuseTexture), mDiffuseTexture , samplerState);
-					mTestShader.setTexture(SHADER_PARAM(NormalTexture), mNormalTexture, samplerState);
-					mTestShader.setTexture(SHADER_PARAM(MetalTexture), mMetalTexture, samplerState);
-					mTestShader.setTexture(SHADER_PARAM(RoughnessTexture), mRoughnessTexture, samplerState);
-					mTestShader.setParam(SHADER_PARAM(SkyLightInstensity), mSkyLightInstensity);
-					mTestShader.mParamIBL.setParameters( mTestShader, mIBLResource);
-					mMesh.drawShader();
+					mTestShader.setTexture(commandList, SHADER_PARAM(DiffuseTexture), mDiffuseTexture , samplerState);
+					mTestShader.setTexture(commandList, SHADER_PARAM(NormalTexture), mNormalTexture, samplerState);
+					mTestShader.setTexture(commandList, SHADER_PARAM(MetalTexture), mMetalTexture, samplerState);
+					mTestShader.setTexture(commandList, SHADER_PARAM(RoughnessTexture), mRoughnessTexture, samplerState);
+					mTestShader.setParam(commandList, SHADER_PARAM(SkyLightInstensity), mSkyLightInstensity);
+					mTestShader.mParamIBL.setParameters(commandList, mTestShader, mIBLResource);
+					mMesh.drawShader(commandList);
 				}
 				if ( 0 )
 				{
 					GPU_PROFILE("LightProbe Visualize");
 
 					GL_BIND_LOCK_OBJECT(*mProgVisualize);
-					mProgVisualize->setStructuredBufferT< LightProbeVisualizeParams >(*mParamBuffer.getRHI());
-					mProgVisualize->setTexture(SHADER_PARAM(NormalTexture), mNormalTexture);
-					mView.setupShader(*mProgVisualize);
-					mProgVisualize->setParameters(mIBLResource);
-					RHIDrawPrimitiveInstanced(PrimitiveType::Quad, 0, 4, mParams.gridNum.x * mParams.gridNum.y);
+					mProgVisualize->setStructuredUniformBufferT< LightProbeVisualizeParams >(commandList, *mParamBuffer.getRHI());
+					mProgVisualize->setTexture(commandList, SHADER_PARAM(NormalTexture), mNormalTexture);
+					mView.setupShader(commandList, *mProgVisualize);
+					mProgVisualize->setParameters(commandList, mIBLResource);
+					RHIDrawPrimitiveInstanced(commandList, PrimitiveType::Quad, 0, 4, mParams.gridNum.x * mParams.gridNum.y);
 				}
 
 			}
 
 
-			RHISetDepthStencilState(StaticDepthDisableState::GetRHI());
+			RHISetDepthStencilState(commandList, StaticDepthDisableState::GetRHI());
 			{
-				RHISetViewport(0, 0, screenSize.x, screenSize.y);
+				RHISetViewport(commandList, 0, 0, screenSize.x, screenSize.y);
 				OrthoMatrix matProj(0, screenSize.x, 0, screenSize.y, -1, 1);
 				MatrixSaveScope matScope(matProj);
-				DrawUtility::DrawTexture(*mHDRImage, IntVector2(10, 10), IntVector2(512, 512));
+				DrawUtility::DrawTexture(commandList, *mHDRImage, IntVector2(10, 10), IntVector2(512, 512));
 			}
 
 			if( bEnableTonemap )
@@ -563,18 +562,18 @@ namespace Render
 
 				GL_BIND_LOCK_OBJECT(mProgTonemap);
 
-				RHISetRasterizerState(TStaticRasterizerState< ECullMode::None >::GetRHI());
-				RHISetDepthStencilState(StaticDepthDisableState::GetRHI());
-				RHISetBlendState(TStaticBlendState< CWM_RGB >::GetRHI());
-				mProgTonemap->setParameters(context);
-				DrawUtility::ScreenRectShader();
+				RHISetRasterizerState(commandList, TStaticRasterizerState< ECullMode::None >::GetRHI());
+				RHISetDepthStencilState(commandList, StaticDepthDisableState::GetRHI());
+				RHISetBlendState(commandList, TStaticBlendState< CWM_RGB >::GetRHI());
+				mProgTonemap->setParameters(commandList, context);
+				DrawUtility::ScreenRectShader(commandList);
 			}
 
 			{
 				GPU_PROFILE("Blit To Screen");
 				if( mbUseShaderBlit )
 				{
-					ShaderHelper::Get().copyTextureToBuffer(mSceneRenderTargets.getFrameTexture());
+					ShaderHelper::Get().copyTextureToBuffer(commandList, mSceneRenderTargets.getFrameTexture());
 				}
 				else
 				{
@@ -587,7 +586,4 @@ namespace Render
 
 	REGISTER_STAGE2("FBX Import Test", FBXImportTestStage, EStageGroup::FeatureDev, 1);
 
-
-
 }
-#endif

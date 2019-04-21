@@ -48,14 +48,14 @@ namespace Render
 			return "Shader/ParticleSimulation";
 		}
 
-		void setParameters(
-			TStructuredStorageBuffer< ParticleData >& particleBuffer,
-			TStructuredUniformBuffer< ParticleParameters >& paramBuffer,
-			TStructuredUniformBuffer< ParticleInitParameters >& paramInitBuffer)
+		void setParameters(RHICommandList& commandList,
+			TStructuredBuffer< ParticleData >& particleBuffer,
+			TStructuredBuffer< ParticleParameters >& paramBuffer,
+			TStructuredBuffer< ParticleInitParameters >& paramInitBuffer)
 		{
-			setStructuredBufferT< ParticleData >(*particleBuffer.getRHI());
-			setStructuredBufferT< ParticleInitParameters >(*paramInitBuffer.getRHI());
-			setStructuredBufferT< ParticleParameters >(*paramBuffer.getRHI());
+			setStructuredStorageBufferT< ParticleData >(commandList, *particleBuffer.getRHI());
+			setStructuredUniformBufferT< ParticleInitParameters >(commandList, *paramInitBuffer.getRHI());
+			setStructuredUniformBufferT< ParticleParameters >(commandList, *paramBuffer.getRHI());
 		}
 	};
 
@@ -69,12 +69,12 @@ namespace Render
 		{
 		}
 
-		void setParameters(
-			TStructuredStorageBuffer< ParticleData >& particleBuffer,
-			TStructuredUniformBuffer< ParticleParameters >& paramBuffer,
-			TStructuredUniformBuffer< ParticleInitParameters >& paramInitBuffer)
+		void setParameters(RHICommandList& commandList,
+			TStructuredBuffer< ParticleData >& particleBuffer,
+			TStructuredBuffer< ParticleParameters >& paramBuffer,
+			TStructuredBuffer< ParticleInitParameters >& paramInitBuffer)
 		{
-			BaseClass::setParameters(particleBuffer, paramBuffer, paramInitBuffer);
+			BaseClass::setParameters(commandList, particleBuffer, paramBuffer, paramInitBuffer);
 		}
 
 		static void SetupShaderCompileOption(ShaderCompileOption& option)
@@ -106,15 +106,15 @@ namespace Render
 			parameterMap.bind( mParamNumCollisionPrimitive , SHADER_PARAM(NumCollisionPrimitive));
 		}
 
-		void setParameters(
-			TStructuredStorageBuffer< ParticleData >& particleBuffer,
-			TStructuredUniformBuffer< ParticleParameters >& paramBuffer,
-			TStructuredUniformBuffer< ParticleInitParameters >& paramInitBuffer,
+		void setParameters(RHICommandList& commandList,
+			TStructuredBuffer< ParticleData >& particleBuffer,
+			TStructuredBuffer< ParticleParameters >& paramBuffer,
+			TStructuredBuffer< ParticleInitParameters >& paramInitBuffer,
 			float deltaTime , int32 numCol )
 		{
-			BaseClass::setParameters(particleBuffer, paramBuffer, paramInitBuffer);
-			setParam(mParamDeltaTime, deltaTime);
-			setParam(mParamNumCollisionPrimitive, numCol);
+			BaseClass::setParameters(commandList, particleBuffer, paramBuffer, paramInitBuffer);
+			setParam(commandList, mParamDeltaTime, deltaTime);
+			setParam(commandList, mParamNumCollisionPrimitive, numCol);
 		}
 
 		static void SetupShaderCompileOption(ShaderCompileOption& option)
@@ -151,11 +151,11 @@ namespace Render
 			parameterMap.bind(mParamBaseTexture, SHADER_PARAM(BaseTexture));
 		}
 
-		void setParameters(
-			TStructuredStorageBuffer< ParticleData >& particleBuffer , RHITexture2D& texture )
+		void setParameters(RHICommandList& commandList,
+			TStructuredBuffer< ParticleData >& particleBuffer , RHITexture2D& texture )
 		{
-			setStructuredBufferT< ParticleData >(*particleBuffer.getRHI());
-			setTexture(mParamBaseTexture, texture);
+			setStructuredStorageBufferT< ParticleData >(commandList, *particleBuffer.getRHI());
+			setTexture(commandList, mParamBaseTexture, texture);
 		}
 
 		static void SetupShaderCompileOption(ShaderCompileOption& option)
@@ -314,12 +314,12 @@ namespace Render
 			parameterMap.bind(mParamTileNum, SHADER_PARAM(TileNum));
 		}
 
-		void setParameters( Vector4 const& param , int TileNum , RHIVertexBuffer& DataIn , RHIVertexBuffer& DataOut )
+		void setParameters(RHICommandList& commandList, Vector4 const& param , int TileNum , RHIVertexBuffer& DataIn , RHIVertexBuffer& DataOut )
 		{
-			setStorageBuffer(mParamDataIn, DataIn);
-			setStorageBuffer(mParamDataOut, DataOut);
-			setParam(mParamWaterParam, param);
-			setParam(mParamTileNum, TileNum);
+			setStorageBuffer(commandList, mParamDataIn, DataIn);
+			setStorageBuffer(commandList, mParamDataOut, DataOut);
+			setParam(commandList, mParamWaterParam, param);
+			setParam(commandList, mParamTileNum, TileNum);
 		}
 
 
@@ -361,10 +361,10 @@ namespace Render
 			parameterMap.bind(mParamTileNum, SHADER_PARAM(TileNum));
 		}
 
-		void setParameters(int TileNum, RHIVertexBuffer& Data)
+		void setParameters(RHICommandList& commandList, int TileNum, RHIVertexBuffer& Data)
 		{
-			setStorageBuffer(mParamData, Data);
-			setParam(mParamTileNum, TileNum);
+			setStorageBuffer(commandList, mParamData, Data);
+			setParam(commandList, mParamTileNum, TileNum);
 		}
 
 		static void SetupShaderCompileOption(ShaderCompileOption& option)
@@ -404,10 +404,10 @@ namespace Render
 			parameterMap.bind(mParamTileNum, SHADER_PARAM(TileNum));
 		}
 
-		void setParameters(int TileNum, RHIVertexBuffer& DataIn)
+		void setParameters(RHICommandList& commandList, int TileNum, RHIVertexBuffer& DataIn)
 		{
-			setStorageBuffer(mParamDataIn, DataIn);
-			setParam(mParamTileNum, TileNum);
+			setStorageBuffer(commandList, mParamDataIn, DataIn);
+			setParam(commandList, mParamTileNum, TileNum);
 		}
 
 
@@ -501,25 +501,25 @@ namespace Render
 		}
 
 
-		void initParticleData()
+		void initParticleData(RHICommandList& commandList)
 		{
 			GL_BIND_LOCK_OBJECT(mProgInit);
-			mProgInit->setParameters(mParticleBuffer, mParamBuffer, mInitParamBuffer);
+			mProgInit->setParameters(commandList, mParticleBuffer, mParamBuffer, mInitParamBuffer);
 			glDispatchCompute(mParticleBuffer.getElementNum(), 1, 1);
 		}
 
-		void updateParticleData(float dt)
+		void updateParticleData(RHICommandList& commandList, float dt)
 		{
 			GL_BIND_LOCK_OBJECT(mProgUpdate);
-			mProgUpdate->setParameters(mParticleBuffer, mParamBuffer, mInitParamBuffer, dt, mPrimitives.size());
-			mProgUpdate->setStructuredBufferT<CollisionPrimitive>(*mCollisionPrimitiveBuffer.getRHI());
+			mProgUpdate->setParameters(commandList, mParticleBuffer, mParamBuffer, mInitParamBuffer, dt, mPrimitives.size());
+			mProgUpdate->setStructuredUniformBufferT<CollisionPrimitive>(commandList, *mCollisionPrimitiveBuffer.getRHI());
 			glDispatchCompute(mParticleBuffer.getElementNum(), 1, 1);
 		}
 
-		TStructuredUniformBuffer< ParticleInitParameters > mInitParamBuffer;
-		TStructuredUniformBuffer< ParticleParameters >     mParamBuffer;
-		TStructuredStorageBuffer< ParticleData > mParticleBuffer;
-		TStructuredUniformBuffer< CollisionPrimitive > mCollisionPrimitiveBuffer;
+		TStructuredBuffer< ParticleInitParameters > mInitParamBuffer;
+		TStructuredBuffer< ParticleParameters >     mParamBuffer;
+		TStructuredBuffer< ParticleData > mParticleBuffer;
+		TStructuredBuffer< CollisionPrimitive > mCollisionPrimitiveBuffer;
 
 		ParticleInitProgram* mProgInit;
 		ParticleUpdateProgram* mProgUpdate;
@@ -540,7 +540,7 @@ namespace Render
 
 
 		int mIndexWaterBufferUsing = 0;
-		TStructuredStorageBuffer< WaterVertexData > mWaterDataBuffers[2];
+		TStructuredBuffer< WaterVertexData > mWaterDataBuffers[2];
 		WaterSimulationProgram* mProgWaterSimulation;
 		WaterUpdateNormalProgram* mProgWaterUpdateNormal;
 		WaterProgram* mProgWater;
@@ -651,19 +651,19 @@ namespace Render
 			BaseClass::onEnd();
 		}
 
-		void drawSphere(Vector3 const& pos, float radius)
+		void drawSphere(RHICommandList& commandList, Vector3 const& pos, float radius)
 		{
-			RHISetBlendState(TStaticBlendState<>::GetRHI());
+			RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
 
 			GL_BIND_LOCK_OBJECT(mProgSphere);
-			mView.setupShader(mProgSphere);
-			mProgSphere.setParam(SHADER_PARAM(Sphere.radius), radius);
-			mProgSphere.setParam(SHADER_PARAM(Sphere.worldPos), pos);
+			mView.setupShader(commandList, mProgSphere);
+			mProgSphere.setParam(commandList, SHADER_PARAM(Sphere.radius), radius);
+			mProgSphere.setParam(commandList, SHADER_PARAM(Sphere.worldPos), pos);
 			
-			mSpherePlane.drawShader();
+			mSpherePlane.drawShader(commandList);
 		}
 
-		void upateWaterData(float dt)
+		void upateWaterData(RHICommandList& commandList, float dt)
 		{
 			mIndexWaterBufferUsing = 1 - mIndexWaterBufferUsing;
 			{
@@ -672,19 +672,19 @@ namespace Render
 				waterParam.x = dt;
 				waterParam.y = mWaterSpeed * dt * mTileNum / 10;
 				waterParam.z = 1;
-				mProgWaterSimulation->setParameters(waterParam, mTileNum, *mWaterDataBuffers[1 - mIndexWaterBufferUsing].getRHI(), *mWaterDataBuffers[mIndexWaterBufferUsing].getRHI());
+				mProgWaterSimulation->setParameters(commandList, waterParam, mTileNum, *mWaterDataBuffers[1 - mIndexWaterBufferUsing].getRHI(), *mWaterDataBuffers[mIndexWaterBufferUsing].getRHI());
 				glDispatchCompute(mTileNum, mTileNum, 1);
 			}
 			{
 				GL_BIND_LOCK_OBJECT(mProgWaterUpdateNormal);
-				mProgWaterUpdateNormal->setParameters(mTileNum, *mWaterDataBuffers[mIndexWaterBufferUsing].getRHI());
+				mProgWaterUpdateNormal->setParameters(commandList, mTileNum, *mWaterDataBuffers[mIndexWaterBufferUsing].getRHI());
 				glDispatchCompute(mTileNum, mTileNum, 1);
 
 			}
 		}
 		void restart() 
 		{
-			initParticleData();
+			initParticleData(RHICommandList::GetImmediateList());
 		}
 		void tick() {}
 		void updateFrame(int frame) {}
@@ -694,8 +694,8 @@ namespace Render
 			BaseClass::onUpdate(time);
 
 			float dt = float(time) / 1000;
-			updateParticleData(dt);
-			upateWaterData(dt);
+			updateParticleData(RHICommandList::GetImmediateList() , dt);
+			upateWaterData(RHICommandList::GetImmediateList(), dt);
 		}
 
 		ShaderProgram mProgSphere;
@@ -709,15 +709,17 @@ namespace Render
 
 
 			GameWindow& window = Global::GetDrawEngine().getWindow();
+			RHICommandList& commandList = RHICommandList::GetImmediateList();
+
 
 			initializeRenderState();
 
 			{
 				GL_BIND_LOCK_OBJECT(mProgWater);
-				mProgWater->setParameters(mTileNum, *mWaterDataBuffers[mIndexWaterBufferUsing].getRHI());
-				mView.setupShader(*mProgWater);
+				mProgWater->setParameters(commandList, mTileNum, *mWaterDataBuffers[mIndexWaterBufferUsing].getRHI());
+				mView.setupShader(commandList, *mProgWater);
 				//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-				mTileMesh.drawShader(LinearColor(1, 0, 0));
+				mTileMesh.drawShader(commandList, LinearColor(1, 0, 0));
 				glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 			}
 
@@ -728,7 +730,7 @@ namespace Render
 				case 0:
 					break;
 				case 1:
-					drawSphere(primitive.param.xyz(), primitive.param.w);
+					drawSphere( commandList, primitive.param.xyz(), primitive.param.w);
 					break;
 				}
 			}
@@ -737,10 +739,10 @@ namespace Render
 			{
 				glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 
-				RHISetBlendState(TStaticBlendState< CWM_RGBA, Blend::eSrcAlpha, Blend::eOne >::GetRHI());
+				RHISetBlendState(commandList, TStaticBlendState< CWM_RGBA, Blend::eSrcAlpha, Blend::eOne >::GetRHI());
 				GL_BIND_LOCK_OBJECT(mProgParticleRender);
-				mView.setupShader(*mProgParticleRender);
-				mProgParticleRender->setParameters(mParticleBuffer, *mTexture);
+				mView.setupShader(commandList, *mProgParticleRender);
+				mProgParticleRender->setParameters(commandList, mParticleBuffer, *mTexture);
 				glDrawArrays(GL_POINTS , 0, mParticleBuffer.getElementNum() - 2);
 			}
 
@@ -750,8 +752,8 @@ namespace Render
 				int width = ::Global::GetDrawEngine().getScreenWidth();
 				int height = ::Global::GetDrawEngine().getScreenHeight();
 
-				RHISetDepthStencilState(StaticDepthDisableState::GetRHI());
-				RHISetBlendState(TStaticBlendState<>::GetRHI());
+				RHISetDepthStencilState(commandList, StaticDepthDisableState::GetRHI());
+				RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
 
 				struct MyVertex
 				{
@@ -767,11 +769,11 @@ namespace Render
 					Vector2(400, 400), Vector3(1, 1, 1),
 				};
 				GL_BIND_LOCK_OBJECT(mProgSpline);
-				mProgSpline->setParam(SHADER_PARAM(XForm), OrthoMatrix(0, width, 0, height, -100, 100));
-				mProgSpline->setParam(SHADER_PARAM(TessOuter0), TessFactor2);
-				mProgSpline->setParam(SHADER_PARAM(TessOuter1), TessFactor1);
+				mProgSpline->setParam(commandList, SHADER_PARAM(XForm), OrthoMatrix(0, width, 0, height, -100, 100));
+				mProgSpline->setParam(commandList, SHADER_PARAM(TessOuter0), TessFactor2);
+				mProgSpline->setParam(commandList, SHADER_PARAM(TessOuter1), TessFactor1);
 				glPatchParameteri(GL_PATCH_VERTICES, 4);
-				TRenderRT< RTVF_XY | RTVF_C > ::DrawShader( SplineProgram::UseTesselation ? PrimitiveType::Patchs : PrimitiveType::LineStrip , vertices, 4);
+				TRenderRT< RTVF_XY | RTVF_C > ::DrawShader(commandList, SplineProgram::UseTesselation ? PrimitiveType::Patchs : PrimitiveType::LineStrip , vertices, 4);
 	
 			}
 
@@ -779,11 +781,11 @@ namespace Render
 				int width = ::Global::GetDrawEngine().getScreenWidth();
 				int height = ::Global::GetDrawEngine().getScreenHeight();
 
-				RHISetDepthStencilState(TStaticDepthStencilState<>::GetRHI());
-				RHISetBlendState(TStaticBlendState<>::GetRHI());
+				RHISetDepthStencilState(commandList, TStaticDepthStencilState<>::GetRHI());
+				RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
 				if( bWireframe )
 				{
-					RHISetRasterizerState(TStaticRasterizerState<ECullMode::Back, EFillMode::Wireframe>::GetRHI());
+					RHISetRasterizerState(commandList, TStaticRasterizerState<ECullMode::Back, EFillMode::Wireframe>::GetRHI());
 				}
 
 				ShaderProgram* program;
@@ -801,18 +803,18 @@ namespace Render
 				Matrix4 worldToLocal;
 				float det;
 				localToWorld.inverseAffine(worldToLocal, det);
-				program->setParam(SHADER_PARAM(XForm), OrthoMatrix(0, width, 0, height, -100, 100));
-				program->setTexture(SHADER_PARAM(BaseTexture), *mBaseTexture);
-				program->setParam(SHADER_PARAM(Primitive.localToWorld), localToWorld );
-				program->setParam(SHADER_PARAM(Primitive.worldToLocal), worldToLocal );
+				program->setParam(commandList, SHADER_PARAM(XForm), OrthoMatrix(0, width, 0, height, -100, 100));
+				program->setTexture(commandList, SHADER_PARAM(BaseTexture), *mBaseTexture);
+				program->setParam(commandList, SHADER_PARAM(Primitive.localToWorld), localToWorld );
+				program->setParam(commandList, SHADER_PARAM(Primitive.worldToLocal), worldToLocal );
 
-				mView.setupShader(*program);
+				mView.setupShader(commandList, *program);
 				if ( bUseTessellation )
 				{
-					program->setParam(SHADER_PARAM(TessOuter), TessFactor1);
-					program->setParam(SHADER_PARAM(TessInner), TessFactor2);
-					program->setTexture(SHADER_PARAM(DispTexture), *mNormalTexture);
-					program->setParam(SHADER_PARAM(DispFactor), mDispFactor);
+					program->setParam(commandList, SHADER_PARAM(TessOuter), TessFactor1);
+					program->setParam(commandList, SHADER_PARAM(TessInner), TessFactor2);
+					program->setTexture(commandList, SHADER_PARAM(DispTexture), *mNormalTexture);
+					program->setParam(commandList, SHADER_PARAM(DispFactor), mDispFactor);
 					glPatchParameteri(GL_PATCH_VERTICES, 3);
 				}
 
@@ -836,14 +838,14 @@ namespace Render
 
 				int indices[] = { 0 , 1 , 2 , 1 , 3 , 2 };
 
-				TRenderRT< RTVF_XYZ_C_N_T2 > ::DrawIndexedShader( 
+				TRenderRT< RTVF_XYZ_C_N_T2 > ::DrawIndexedShader(commandList,
 					bUseTessellation ? PrimitiveType::Patchs : PrimitiveType::TriangleList, 
 					vertices, ARRAY_SIZE(vertices) , indices , ARRAY_SIZE(indices) );
 #else
-				//mTilePlane.drawTessellation();
-				mCube.drawTessellation();
+				//mTilePlane.drawTessellation(commandList);
+				mCube.drawTessellation(commandList);
 #endif
-				RHISetRasterizerState(TStaticRasterizerState<>::GetRHI());
+				RHISetRasterizerState(commandList, TStaticRasterizerState<>::GetRHI());
 
 			}
 
@@ -873,7 +875,7 @@ namespace Render
 				case Keyboard::eF2:
 					{
 						ShaderManager::Get().reloadAll();
-						//initParticleData();
+						//initParticleData(RHICommandList::GetImmediateList());
 					}
 					break;
 				}

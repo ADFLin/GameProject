@@ -129,13 +129,15 @@ namespace Lighting2D
 	{
 		GameWindow& window = Global::GetDrawEngine().getWindow();
 
+		RHICommandList& commandList = RHICommandList::GetImmediateList();
+
 		glMatrixMode(GL_PROJECTION);
 		glLoadIdentity();
 		glOrtho(0, window.getWidth(), 0 , window.getHeight(), 1, -1);
 		glMatrixMode(GL_MODELVIEW);
 		glLoadIdentity();
 
-		RHISetRasterizerState(TStaticRasterizerState< ECullMode::None > ::GetRHI());
+		RHISetRasterizerState(commandList, TStaticRasterizerState< ECullMode::None > ::GetRHI());
 		glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT );
 
 		int w = window.getWidth();
@@ -151,20 +153,20 @@ namespace Lighting2D
 		for ( Light& light : lights )
 		{
 
-			RHISetDepthStencilState( 
+			RHISetDepthStencilState(commandList,
 				TStaticDepthStencilState<
 					true , ECompareFun::Always ,
 					true , ECompareFun::Always , 
 					Stencil::eKeep , Stencil::eKeep , Stencil::eReplace ,0x1 
 				>::GetRHI(), 0x1 );
 			
-			RHISetBlendState(TStaticBlendState< CWM_NONE >::GetRHI());
+			RHISetBlendState(commandList, TStaticBlendState< CWM_NONE >::GetRHI());
 
 			{
 
 #if SHADOW_USE_GEOMETRY_SHADER
 				GL_BIND_LOCK_OBJECT(mProgShadow);
-				mProgShadow.setParameters(light.pos);
+				mProgShadow.setParameters(commandList, light.pos);
 #endif
 
 #if !SHADOW_USE_GEOMETRY_SHADER
@@ -178,25 +180,25 @@ namespace Lighting2D
 				if( !mBuffers.empty() )
 				{
 #if SHADOW_USE_GEOMETRY_SHADER
-					TRenderRT< RTVF_XY >::DrawShader(PrimitiveType::LineList, &mBuffers[0], mBuffers.size());
+					TRenderRT< RTVF_XY >::DrawShader(commandList, PrimitiveType::LineList, &mBuffers[0], mBuffers.size());
 #else
-					TRenderRT< RTVF_XY >::DrawShader(PrimitiveType::Quad, &mBuffers[0], mBuffers.size());
+					TRenderRT< RTVF_XY >::DrawShader(commandList, PrimitiveType::Quad, &mBuffers[0], mBuffers.size());
 #endif
 				}
 			}
 			
-			RHISetDepthStencilState(
+			RHISetDepthStencilState(commandList,
 				TStaticDepthStencilState<
 					true, ECompareFun::Always,
 					true, ECompareFun::Equal, 
 					Stencil::eKeep, Stencil::eKeep, Stencil::eKeep,0x1 
 				>::GetRHI(), 0x0);
 
-			RHISetBlendState(TStaticBlendState< CWM_RGBA, Blend::eOne, Blend::eOne >::GetRHI());
+			RHISetBlendState(commandList, TStaticBlendState< CWM_RGBA, Blend::eOne, Blend::eOne >::GetRHI());
 			{
 				GL_BIND_LOCK_OBJECT(mProgLighting);
-				mProgLighting.setParameters(light.pos, light.color);
-				DrawUtility::RectShader(w, h);
+				mProgLighting.setParameters(commandList, light.pos, light.color);
+				DrawUtility::RectShader(commandList, w, h);
 			}
 			
 			
@@ -204,8 +206,8 @@ namespace Lighting2D
 			glClear(GL_STENCIL_BUFFER_BIT);
 		}
 
-		RHISetDepthStencilState(StaticDepthDisableState::GetRHI());
-		RHISetBlendState(TStaticBlendState<>::GetRHI());
+		RHISetDepthStencilState(commandList, StaticDepthDisableState::GetRHI());
+		RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
 
 #if 0
 		glColor3f(1, 0, 0);

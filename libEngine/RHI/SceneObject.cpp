@@ -8,7 +8,7 @@ namespace Render
 		context.setWorld(worldTrans);
 		{
 			//GPU_PROFILE("MeshDraw %s", name.c_str());
-			drawShader();
+			drawShader(context.getCommnadList());
 		}
 	}
 
@@ -23,7 +23,7 @@ namespace Render
 			{
 				char const* matName = material ? material->getMaster()->mName.c_str() : "DefalutMaterial";
 				//GPU_PROFILE( "MeshDraw %s %s %d" , name.c_str() , matName , mSections[i].num);
-				drawSection(i, true);
+				drawSection(context.getCommnadList(),i, true);
 			}
 		}
 	}

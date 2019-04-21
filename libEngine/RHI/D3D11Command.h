@@ -3,6 +3,7 @@
 #define D3D11Command_H_97458D19_2E17_42B7_89F9_A576B704814B
 
 #include "RHICommand.h"
+#include "RHICommandListImpl.h"
 #include "ShaderCore.h"
 
 #include "D3D11Common.h"
@@ -41,8 +42,25 @@ namespace Render
 	};
 
 
-	union ShaderVariantD3D11
+	struct D3D11ShaderResource
 	{
+		Shader::Type type;
+		union
+		{
+			ID3D11DeviceChild*    resource;
+			ID3D11VertexShader*   vertex;
+			ID3D11PixelShader*    pixel;
+			ID3D11GeometryShader* geometry;
+			ID3D11ComputeShader*  compute;
+			ID3D11HullShader*     hull;
+			ID3D11DomainShader*   domain;
+		};
+	};
+
+	union D3D11ShaderVariant
+	{
+		ID3D11DeviceChild*    resource;
+
 		ID3D11VertexShader*   vertex;
 		ID3D11PixelShader*    pixel;
 		ID3D11GeometryShader* geometry;
@@ -51,110 +69,14 @@ namespace Render
 		ID3D11DomainShader*   domain;
 	};
 
-
-
-	class D3D11System : public RHISystem
+	class D3D11Context : public RHIContext
 	{
 	public:
-
-		bool initialize(RHISystemInitParam const& initParam);
-		void shutdown(){}
-
-
-
-		bool RHIBeginRender()
-		{
-			return true;
-		}
-
-		void RHIEndRender(bool bPresent)
-		{
-
-		}
-		RHIRenderWindow* RHICreateRenderWindow(PlatformWindowInfo const& info)
-		{
-			return nullptr;
-		}
-		RHITexture1D*    RHICreateTexture1D(
-			Texture::Format format, int length,
-			int numMipLevel, uint32 createFlags ,
-			void* data)
-		{
-			return nullptr;
-		}
-
-		RHITexture2D*    RHICreateTexture2D(
-			Texture::Format format, int w, int h,
-			int numMipLevel, int numSamples, uint32 createFlags, 
-			void* data, int dataAlign);
-
-		RHITexture3D*    RHICreateTexture3D(
-			Texture::Format format, int sizeX, int sizeY, int sizeZ, 
-			int numMipLevel, int numSamples , uint32 createFlags, 
-			void* data)
-		{
-			return nullptr;
-		}
-
-
-		RHITextureCube*  RHICreateTextureCube(Texture::Format format, int size, int numMipLevel, uint32 creationFlags, void* data[])
-		{
-
-			return nullptr;
-		}
-
-
-		RHITextureDepth* RHICreateTextureDepth(Texture::DepthFormat format, int w, int h, int numMipLevel, int numSamples)
-		{
-			return nullptr;
-		}
-
-		RHIVertexBuffer*  RHICreateVertexBuffer(uint32 vertexSize, uint32 numVertices, uint32 creationFlag, void* data);
-
-		RHIIndexBuffer*   RHICreateIndexBuffer(uint32 nIndices, bool bIntIndex, uint32 creationFlag, void* data)
-		{
-
-			return nullptr;
-		}
-
-		RHIUniformBuffer* RHICreateUniformBuffer(uint32 elementSize, uint32 numElement, uint32 creationFlag, void* data)
-		{
-
-			return nullptr;
-		}
-
-		void* RHILockBuffer(RHIVertexBuffer* buffer, ELockAccess access, uint32 offset, uint32 size);
-		void  RHIUnlockBuffer(RHIVertexBuffer* buffer);
-		void* RHILockBuffer(RHIIndexBuffer* buffer, ELockAccess access, uint32 offset, uint32 size);
-		void  RHIUnlockBuffer(RHIIndexBuffer* buffer);
-		void* RHILockBuffer(RHIUniformBuffer* buffer, ELockAccess access, uint32 offset, uint32 size);
-		void  RHIUnlockBuffer(RHIUniformBuffer* buffer);
-
-		RHIFrameBuffer*   RHICreateFrameBuffer()
-		{
-			return nullptr;
-		}
-
-		RHIInputLayout*   RHICreateInputLayout(InputLayoutDesc const& desc);
-
-		RHISamplerState* RHICreateSamplerState(SamplerStateInitializer const& initializer)
-		{
-			return nullptr;
-		}
-
-		RHIRasterizerState* RHICreateRasterizerState(RasterizerStateInitializer const& initializer);
-		RHIBlendState* RHICreateBlendState(BlendStateInitializer const& initializer);
-
-		RHIDepthStencilState* RHICreateDepthStencilState(DepthStencilStateInitializer const& initializer)
-		{
-			return nullptr;
-		}
-
 		void RHISetRasterizerState(RHIRasterizerState& rasterizerState)
 		{
 			mDeviceContext->RSSetState(D3D11Cast::GetResource(rasterizerState));
 		}
-		
+
 		void RHISetBlendState(RHIBlendState& blendState)
 		{
 			mDeviceContext->OMSetBlendState(D3D11Cast::GetResource(blendState), Vector4(0, 0, 0, 0), 0xffffffff);
@@ -192,7 +114,7 @@ namespace Render
 			{
 				mDeviceContext->RSSetScissorRects(0, nullptr);
 			}
-			
+
 		}
 
 
@@ -207,11 +129,11 @@ namespace Render
 
 		}
 
-		void RHIDrawPrimitiveIndirect(PrimitiveType type, RHIVertexBuffer* commandBuffer, int offset ,int numCommand, int commandStride)
+		void RHIDrawPrimitiveIndirect(PrimitiveType type, RHIVertexBuffer* commandBuffer, int offset, int numCommand, int commandStride)
 		{
 
 		}
-		void RHIDrawIndexedPrimitiveIndirect(PrimitiveType type, ECompValueType indexType, RHIVertexBuffer* commandBuffer, int offset , int numCommand, int commandStride)
+		void RHIDrawIndexedPrimitiveIndirect(PrimitiveType type, ECompValueType indexType, RHIVertexBuffer* commandBuffer, int offset, int numCommand, int commandStride)
 		{
 			mDeviceContext->IASetPrimitiveTopology(D3D11Conv::To(type));
 			if( numCommand )
@@ -252,6 +174,108 @@ namespace Render
 		{
 			mDeviceContext->IASetIndexBuffer(D3D11Cast::To(indexBuffer)->getResource(), indexBuffer->getSize() == 4 ? DXGI_FORMAT_R32_UINT : DXGI_FORMAT_R16_UINT, 0);
 		}
+
+		ID3D11DeviceContext* mDeviceContext;
+	};
+
+
+	class D3D11System : public RHISystem
+	{
+	public:
+
+		bool initialize(RHISystemInitParam const& initParam);
+		void shutdown(){}
+
+
+
+		bool RHIBeginRender()
+		{
+			return true;
+		}
+
+		void RHIEndRender(bool bPresent)
+		{
+
+		}
+		RHICommandList&  getImmediateCommandList()
+		{
+			return *mImmediateCommandList;
+		}
+		RHIRenderWindow* RHICreateRenderWindow(PlatformWindowInfo const& info)
+		{
+			return nullptr;
+		}
+		RHITexture1D*    RHICreateTexture1D(
+			Texture::Format format, int length,
+			int numMipLevel, uint32 createFlags ,
+			void* data)
+		{
+			return nullptr;
+		}
+
+		RHITexture2D*    RHICreateTexture2D(
+			Texture::Format format, int w, int h,
+			int numMipLevel, int numSamples, uint32 createFlags, 
+			void* data, int dataAlign);
+
+		RHITexture3D*    RHICreateTexture3D(
+			Texture::Format format, int sizeX, int sizeY, int sizeZ, 
+			int numMipLevel, int numSamples , uint32 createFlags, 
+			void* data)
+		{
+			return nullptr;
+		}
+
+		RHITextureCube*  RHICreateTextureCube(Texture::Format format, int size, int numMipLevel, uint32 creationFlags, void* data[])
+		{
+
+			return nullptr;
+		}
+
+		RHITexture2DArray* RHICreateTexture2DArray(Texture::Format format, int w, int h, int layerSize, int numMipLevel, int numSamples, uint32 creationFlags, void* data)
+		{
+			return nullptr;
+		}
+
+		RHITextureDepth* RHICreateTextureDepth(Texture::DepthFormat format, int w, int h, int numMipLevel, int numSamples)
+		{
+			return nullptr;
+		}
+
+		RHIVertexBuffer*  RHICreateVertexBuffer(uint32 vertexSize, uint32 numVertices, uint32 creationFlag, void* data);
+
+		RHIIndexBuffer*   RHICreateIndexBuffer(uint32 nIndices, bool bIntIndex, uint32 creationFlag, void* data)
+		{
+
+			return nullptr;
+		}
+
+
+		void* RHILockBuffer(RHIVertexBuffer* buffer, ELockAccess access, uint32 offset, uint32 size);
+		void  RHIUnlockBuffer(RHIVertexBuffer* buffer);
+		void* RHILockBuffer(RHIIndexBuffer* buffer, ELockAccess access, uint32 offset, uint32 size);
+		void  RHIUnlockBuffer(RHIIndexBuffer* buffer);
+
+		RHIFrameBuffer*   RHICreateFrameBuffer()
+		{
+			return nullptr;
+		}
+
+		RHIInputLayout*   RHICreateInputLayout(InputLayoutDesc const& desc);
+
+		RHISamplerState* RHICreateSamplerState(SamplerStateInitializer const& initializer)
+		{
+			return nullptr;
+		}
+
+		RHIRasterizerState* RHICreateRasterizerState(RasterizerStateInitializer const& initializer);
+		RHIBlendState* RHICreateBlendState(BlendStateInitializer const& initializer);
+
+		RHIDepthStencilState* RHICreateDepthStencilState(DepthStencilStateInitializer const& initializer)
+		{
+			return nullptr;
+		}
+
 
 		void* lockBufferInternal(ID3D11Resource* resource, ELockAccess access, uint32 offset, uint32 size)
 		{
@@ -315,7 +339,7 @@ namespace Render
 		}
 
 
-		bool compileShader(Shader::Type type, char const* code, int codeLen, char const* entryName, ShaderParameterMap& parameterMap, ShaderVariantD3D11& shaderResult, TComPtr< ID3D10Blob >* pOutbyteCode = nullptr)
+		bool compileShader(Shader::Type type, char const* code, int codeLen, char const* entryName, ShaderParameterMap& parameterMap, D3D11ShaderVariant& shaderResult, TComPtr< ID3D10Blob >* pOutbyteCode = nullptr)
 		{
 
 			TComPtr< ID3D10Blob > errorCode;
@@ -408,10 +432,11 @@ namespace Render
 			return true;
 		}
 
-
+		D3D11Context mDrawContext;
 		FrameSwapChain mSwapChain;
 		TComPtr< ID3D11Device > mDevice;
 		TComPtr< ID3D11DeviceContext > mDeviceContext;
+		RHICommandListImpl* mImmediateCommandList = nullptr;
 	};
 
 

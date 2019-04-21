@@ -681,9 +681,11 @@ namespace Render
 
 		void onRender(float dFrame)
 		{
+
 			{
 				GPU_PROFILE("Frame");
 				GameWindow& window = Global::GetDrawEngine().getWindow();
+				RHICommandList& commandList = RHICommandList::GetImmediateList();
 
 				mView.gameTime = 0;
 				mView.realTime = 0;
@@ -703,9 +705,9 @@ namespace Render
 				glClearDepth(1.0);
 				glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
-				RHISetViewport(mView.rectOffset.x, mView.rectOffset.y, mView.rectSize.x, mView.rectSize.y);
-				RHISetDepthStencilState(TStaticDepthStencilState<>::GetRHI());
-				RHISetBlendState(TStaticBlendState<>::GetRHI());
+				RHISetViewport(commandList, mView.rectOffset.x, mView.rectOffset.y, mView.rectSize.x, mView.rectSize.y);
+				RHISetDepthStencilState(commandList, TStaticDepthStencilState<>::GetRHI());
+				RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
 
 
 				{
@@ -722,19 +724,19 @@ namespace Render
 							curProgram->unbind();
 							curProgram = program;
 							curProgram->bind();
-							mView.setupShader(*curProgram);
+							mView.setupShader(commandList, *curProgram);
 						}
 
 						curProgram->mIdxTextureAutoBind = 2;
 
-						object.material->setupShader(*curProgram);
-						curProgram->setParam(SHADER_PARAM(Primitive.localToWorld), object.param.localToWorld);
+						object.material->setupShader(commandList, *curProgram);
+						curProgram->setParam(commandList, SHADER_PARAM(Primitive.localToWorld), object.param.localToWorld);
 						Matrix4 worldToLocal;
 						float det;
 						object.param.localToWorld.inverseAffine(worldToLocal, det);
-						curProgram->setParam(SHADER_PARAM(Primitive.worldToLocal), worldToLocal);
+						curProgram->setParam(commandList, SHADER_PARAM(Primitive.worldToLocal), worldToLocal);
 
-						object.mesh->drawShader();
+						object.mesh->drawShader(commandList);
 
 						++indexObject;
 					}

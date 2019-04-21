@@ -409,6 +409,9 @@
     <ClCompile Include="RHI\RHIGlobalResource.cpp">
       <Filter>RHI</Filter>
     </ClCompile>
+    <ClCompile Include="RHI\RHICommandListImpl.cpp">
+      <Filter>RHI</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ConsoleSystem.h">
@@ -1024,6 +1027,9 @@
       <Filter>Serialize</Filter>
     </ClInclude>
     <ClInclude Include="RHI\RHIGlobalResource.h">
+      <Filter>RHI</Filter>
+    </ClInclude>
+    <ClInclude Include="RHI\RHICommandListImpl.h">
       <Filter>RHI</Filter>
     </ClInclude>
   </ItemGroup>

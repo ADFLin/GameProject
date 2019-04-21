@@ -34,7 +34,7 @@ namespace CB
 
 		bool initialize( Vec2i const& screenSize );
 
-		void beginRender();
+		void beginRender(RHICommandList& commandList);
 		void endRender();
 
 		void drawVertexPoint(ShapeBase& shape);
@@ -75,8 +75,9 @@ namespace CB
 		class CurveMeshProgram* mProgCurveMesh;
 		class CurveMeshOITProgram* mProgCurveMeshOIT;
 		class MeshNormalVisualizeProgram* mProgMeshNormalVisualize;
-		std::vector< std::function< void() > > mTranslucentDraw;
+		std::vector< std::function< void(RHICommandList&) > > mTranslucentDraw;
 		OITTechnique mOITTech;
+		RHICommandList* mCommandList;
 	};
 
 }//namespace CB

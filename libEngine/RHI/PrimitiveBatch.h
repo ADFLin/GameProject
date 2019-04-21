@@ -8,6 +8,7 @@
 
 namespace Render
 {
+	class RHICommandList;
 
 	class  Material;
 	struct ViewInfo;
@@ -35,7 +36,7 @@ namespace Render
 		//#TODO
 		GLuint VAOHandle;
 
-		void draw(RenderContext& context);
+		void draw( RenderContext& context);
 
 		MeshBatch()
 		{

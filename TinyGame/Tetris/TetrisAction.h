@@ -13,7 +13,7 @@ namespace Tetris
 		static unsigned const LastVersion = MAKE_VERSION(0,0,1);
 
 		CFrameActionTemplate( GameWorld& world );
-		void  firePortAction( ActionTrigger& trigger );
+		void  firePortAction(ActionPort port, ActionTrigger& trigger );
 		GameWorld& mWorld;
 	};
 

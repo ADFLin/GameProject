@@ -15,7 +15,7 @@ namespace Chromatron
 		DFB_UNROTATABLE       = BIT(0),
 		DFB_STATIC            = BIT(1),
 		DFB_USE_LOCKED_COLOR  = BIT(2),
-		DFB_REMOVE_QSTATS     = BIT(4),
+		DFB_REMOVE_QSTATE     = BIT(4),
 		DFB_DRAW_FRIST        = BIT(6),
 		DFB_CLOCKWISE         = BIT(7),
 		//runtime flag

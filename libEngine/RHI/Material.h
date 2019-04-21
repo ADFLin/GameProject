@@ -65,7 +65,7 @@ namespace Render
 
 		virtual MaterialMaster* getMaster() = 0;
 
-		void setupShader(MaterialShaderProgram& shader) { doSetupShader(shader, 0); }
+		void setupShader(RHICommandList& commandList, MaterialShaderProgram& shader) { doSetupShader(commandList, shader, 0); }
 
 	protected:
 
@@ -119,11 +119,11 @@ namespace Render
 		}
 
 
-		virtual void doSetupShader(MaterialShaderProgram& shader, uint32 skipMask) = 0;
+		virtual void doSetupShader(RHICommandList& commandList, MaterialShaderProgram& shader, uint32 skipMask) = 0;
 
 
 		friend class MaterialInstance;
-		void bindShaderParamInternal(MaterialShaderProgram& shader, uint32 skipMask);
+		void bindShaderParamInternal(RHICommandList& commandList, MaterialShaderProgram& shader, uint32 skipMask);
 		ParamSlot& fetchParam(char const* name, ParamType type);
 
 		int        findParam(ParamSlot const& slot);
@@ -204,7 +204,7 @@ namespace Render {
 		}
 
 
-		void doSetupShader(MaterialShaderProgram& shader, uint32 skipMask) override { bindShaderParamInternal(shader, 0); }
+		void doSetupShader(RHICommandList& commandList, MaterialShaderProgram& shader, uint32 skipMask) override { bindShaderParamInternal(commandList, shader, 0); }
 
 		void releaseRHI()
 		{
@@ -255,10 +255,10 @@ namespace Render {
 		}
 
 
-		void doSetupShader(MaterialShaderProgram& shader, uint32 skipMask) override
+		void doSetupShader(RHICommandList& commandList, MaterialShaderProgram& shader, uint32 skipMask) override
 		{
-			bindShaderParamInternal(shader, skipMask);
-			mParent->bindShaderParamInternal(shader, mOverwriteMask);
+			bindShaderParamInternal(commandList, shader, skipMask);
+			mParent->bindShaderParamInternal(commandList, shader, mOverwriteMask);
 		}
 
 		MaterialMaster* getMaster() override

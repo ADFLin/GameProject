@@ -144,7 +144,7 @@ namespace MV
 			matView.inverse( matViewInv , det );
 			glLoadMatrixf( matView );
 			mEffect.bind();
-			mEffect.setParam( "Global.matViewInv" , matViewInv );
+			mEffect.setParam( *mCommandList, SHADER_PARAM(Global.matViewInv) , matViewInv );
 		}
 
 		void endRender()
@@ -162,6 +162,7 @@ namespace MV
 
 		RenderParam mParam;
 
+		Render::RHICommandList* mCommandList;
 		Render::ShaderProgram mEffect;
 		int locDirX;
 		int locDirZ;

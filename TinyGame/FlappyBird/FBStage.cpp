@@ -319,7 +319,7 @@ namespace FlappyBird
 		glActiveTexture(GL_TEXTURE0);
 		{
 			GL_BIND_LOCK_OBJECT(mTextures[id]);
-			DrawUtility::Sprite(pos, size, pivot, framePos, frameDim);
+			DrawUtility::Sprite(RHICommandList::GetImmediateList(), pos, size, pivot, framePos, frameDim);
 		}
 		glDisable(GL_TEXTURE_2D);
 	}
@@ -330,7 +330,7 @@ namespace FlappyBird
 		glActiveTexture(GL_TEXTURE0);
 		{
 			GL_BIND_LOCK_OBJECT(mTextures[id]);
-			DrawUtility::Sprite(pos, size, pivot, texPos, texSize);
+			DrawUtility::Sprite(RHICommandList::GetImmediateList(), pos, size, pivot, texPos, texSize);
 		}
 		glDisable(GL_TEXTURE_2D);
 		
@@ -512,6 +512,8 @@ namespace FlappyBird
 
 	void LevelStage::drawBird(IGraphics2D& g, BirdEntity& bird)
 	{
+		RHICommandList& commandList = RHICommandList::GetImmediateList();
+
 		Vec2i rPos = convertToScreen(bird.getPos());
 		float size = BirdRadius * GScale;
 		Vector2 dir = Vector2(BirdVelX, -bird.getVel());
@@ -559,7 +561,7 @@ namespace FlappyBird
 			if( frame >= frameNum )
 				frame = frameNum - frame + 1;
 			
-			RHISetBlendState(TStaticBlendState<CWM_RGBA, Blend::eSrcAlpha, Blend::eOneMinusSrcAlpha>::GetRHI());
+			RHISetBlendState(commandList, TStaticBlendState<CWM_RGBA, Blend::eSrcAlpha, Blend::eOneMinusSrcAlpha>::GetRHI());
 			glPushMatrix();
 			{
 				glTranslatef(rPos.x, rPos.y, 0);
@@ -567,7 +569,7 @@ namespace FlappyBird
 				drawTexture(TextureID::Bird, Vector2(0,0), Vector2(size * sizeFactor , size ), Vector2(0.5, 0.5), Vec2i( frame , birdType), Vec2i(3, 3));
 			}
 			glPopMatrix();
-			RHISetBlendState(TStaticBlendState<>::GetRHI());
+			RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
 		}
 	}
 
@@ -575,6 +577,8 @@ namespace FlappyBird
 
 	void LevelStage::drawPipe(IGraphics2D& g, ColObject const& obj)
 	{
+		RHICommandList& commandList = RHICommandList::GetImmediateList();
+
 		Vector2 rPos = convertToScreen(obj.pos);
 		
 		Vector2 rSize = Vector2(GScale * obj.size);
@@ -597,15 +601,16 @@ namespace FlappyBird
 				texPos.y += texSize.y;
 				texSize.y = -texSize.y;
 			}
-			RHISetBlendState(TStaticBlendState<CWM_RGBA , Blend::eSrcAlpha , Blend::eOneMinusSrcAlpha>::GetRHI());
+			RHISetBlendState(commandList, TStaticBlendState<CWM_RGBA , Blend::eSrcAlpha , Blend::eOneMinusSrcAlpha>::GetRHI());
 			drawTexture(TextureID::Pipe, rPos , rSize, Vector2(0, 0), texPos, texSize);
-			RHISetBlendState(TStaticBlendState<>::GetRHI());
+			RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
 
 		}
 	}
 
 	void LevelStage::drawNumber(IGraphics2D& g, int number, float width )
 	{
+		RHICommandList& commandList = RHICommandList::GetImmediateList();
 		int digials[32];
 		int numDigial = 0;
 		do
@@ -619,13 +624,13 @@ namespace FlappyBird
 
 		Vector2 size = Vector2(width, 10 * width / getTextureSizeRatio(TextureID::Number));
 
-		RHISetBlendState(TStaticBlendState<CWM_RGBA, Blend::eSrcAlpha, Blend::eOneMinusSrcAlpha>::GetRHI());
+		RHISetBlendState(commandList, TStaticBlendState<CWM_RGBA, Blend::eSrcAlpha, Blend::eOneMinusSrcAlpha>::GetRHI());
 		for( int i = 0; i < numDigial; ++i )
 		{
 			drawTexture(TextureID::Number, Vector2(offset - i * width , 0 ),  size, 
 						Vector2(0.5, 0.5), Vec2i(digials[i] , 0 ), Vec2i(10, 1));
 		}
-		RHISetBlendState(TStaticBlendState<>::GetRHI());
+		RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
 	}
 
 }//namespace FlappyBird

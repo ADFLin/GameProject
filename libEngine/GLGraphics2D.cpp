@@ -144,9 +144,12 @@ void GLGraphics2D::beginRender()
 	glPushAttrib(GL_ENABLE_BIT | GL_VIEWPORT_BIT);
 
 	using namespace Render;
-	RHISetDepthStencilState(StaticDepthDisableState::GetRHI());
-	RHISetBlendState(TStaticBlendState<>::GetRHI());
-	RHISetRasterizerState(TStaticRasterizerState< ECullMode::None >::GetRHI());
+	RHICommandList& commandList = RHICommandList::GetImmediateList();
+
+
+	RHISetDepthStencilState(commandList, StaticDepthDisableState::GetRHI());
+	RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
+	RHISetRasterizerState(commandList, TStaticRasterizerState< ECullMode::None >::GetRHI());
 
 	glDisable(GL_TEXTURE_2D);
 
@@ -458,7 +461,7 @@ void GLGraphics2D::drawTexture(GLTexture2D& texture, Vector2 const& pos, Vector2
 	{
 		GL_BIND_LOCK_OBJECT(texture);
 		glColor4fv(Color4f(Color3f(color), mAlpha));
-		Render::DrawUtility::Sprite(pos, size, Vector2(0, 0), Vector2(0, 0), Vector2(1, 1));
+		Render::DrawUtility::Sprite( Render::RHICommandList::GetImmediateList(), pos, size, Vector2(0, 0), Vector2(0, 0), Vector2(1, 1));
 	}
 	glDisable(GL_TEXTURE_2D);
 }
@@ -475,7 +478,7 @@ void GLGraphics2D::drawTexture(GLTexture2D& texture, Vector2 const& pos, Vector2
 		GL_BIND_LOCK_OBJECT(texture);
 		glColor4fv( Color4f( Color3f(color), mAlpha) );
 		Vector2 textureSize = Vector2(texture.getSizeX(), texture.getSizeY());
-		Render::DrawUtility::Sprite(pos, size, Vector2(0, 0), Vector2( texPos.div(textureSize) ), Vector2( texSize.div(textureSize) ));
+		Render::DrawUtility::Sprite(Render::RHICommandList::GetImmediateList(), pos, size, Vector2(0, 0), Vector2( texPos.div(textureSize) ), Vector2( texSize.div(textureSize) ));
 	}
 	glDisable(GL_TEXTURE_2D);
 }

@@ -65,11 +65,11 @@ namespace Render
 	{
 		glPushAttrib(GL_ENABLE_BIT | GL_VIEWPORT_BIT);
 		
-		RHISetDepthStencilState(TStaticDepthStencilState<>::GetRHI());
+		RHISetDepthStencilState(RHICommandList::GetImmediateList(), TStaticDepthStencilState<>::GetRHI());
 		//glDisable(GL_DEPTH_TEST);
 		glDisable(GL_CULL_FACE);
 
-		RHISetViewport(0, 0, mWidth, mHeight);
+		RHISetViewport(RHICommandList::GetImmediateList(), 0, 0, mWidth, mHeight);
 		glMatrixMode(GL_PROJECTION);
 		glPushMatrix();
 		glLoadIdentity();
@@ -328,14 +328,14 @@ namespace Render
 	void RHIGraphics2D::beginBlend(Vector2 const& pos, Vector2 const& size, float alpha)
 	{
 		flushCommand();
-		RHISetBlendState(TStaticBlendState< CWM_RGBA , Blend::eSrcAlpha , Blend::eOneMinusSrcAlpha >::GetRHI());
+		RHISetBlendState(RHICommandList::GetImmediateList(), TStaticBlendState< CWM_RGBA , Blend::eSrcAlpha , Blend::eOneMinusSrcAlpha >::GetRHI());
 		mAlpha = alpha;
 	}
 
 	void RHIGraphics2D::endBlend()
 	{
 		flushCommand();
-		RHISetBlendState(TStaticBlendState<>::GetRHI());
+		RHISetBlendState(RHICommandList::GetImmediateList(), TStaticBlendState<>::GetRHI());
 		mAlpha = 1.0f;
 	}
 
@@ -344,7 +344,7 @@ namespace Render
 		if( !mSurfaceVertices.empty() && !mSurfaceIndices.empty() )
 		{
 			MyRender::BindVertexPointer((uint8*)&mSurfaceVertices[0], MyRender::GetVertexSize());
-			RHIDrawIndexedPrimitive(PrimitiveType::TriangleList, CVT_UInt, (int)&mSurfaceIndices[0] , mSurfaceIndices.size());
+			RHIDrawIndexedPrimitive(RHICommandList::GetImmediateList(), PrimitiveType::TriangleList, CVT_UInt, (int)&mSurfaceIndices[0] , mSurfaceIndices.size());
 			MyRender::UnbindVertexPointer();
 
 			mSurfaceVertices.clear();
@@ -354,7 +354,7 @@ namespace Render
 		if( !mLinesVertices.empty() && !mLineIndices.empty() )
 		{
 			MyRender::BindVertexPointer((uint8*)&mLinesVertices[0], MyRender::GetVertexSize());
-			RHIDrawIndexedPrimitive(PrimitiveType::LineList, CVT_UInt, (int)&mLineIndices[0], mLineIndices.size());
+			RHIDrawIndexedPrimitive(RHICommandList::GetImmediateList(), PrimitiveType::LineList, CVT_UInt, (int)&mLineIndices[0], mLineIndices.size());
 			MyRender::UnbindVertexPointer();
 
 			mLinesVertices.clear();

@@ -177,6 +177,7 @@ namespace CB
 		{
 			PROFILE_ENTRY("Stage.Render");
 			GLGraphics2D& g = Global::GetRHIGraphics2D();
+			RHICommandList& commandList = RHICommandList::GetImmediateList();
 
 			int width = ::Global::GetDrawEngine().getScreenWidth();
 			int height = ::Global::GetDrawEngine().getScreenHeight();
@@ -186,10 +187,10 @@ namespace CB
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 			glClearColor(0.7f, 0.7f, 0.7f, 1.0f);
 
-			RHISetViewport(0, 0, width, height);
-			RHISetRasterizerState(TStaticRasterizerState<>::GetRHI());
-			RHISetBlendState(TStaticBlendState<>::GetRHI());
-			RHISetDepthStencilState(TStaticDepthStencilState<>::GetRHI());
+			RHISetViewport(commandList, 0, 0, width, height);
+			RHISetRasterizerState(commandList, TStaticRasterizerState<>::GetRHI());
+			RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
+			RHISetDepthStencilState(commandList, TStaticDepthStencilState<>::GetRHI());
 
 			glMatrixMode(GL_PROJECTION);
 			Matrix4 matProj = PerspectiveMatrix( Math::Deg2Rad(45.0f) , (GLdouble)width / (GLdouble)height, 0.1f, 1000.0f);
@@ -200,7 +201,7 @@ namespace CB
 			glLoadMatrixf(matView);
 
 			mRenderer->getViewInfo().setupTransform(matView, matProj);
-			mRenderer->beginRender();
+			mRenderer->beginRender(commandList);
 			{
 				mRenderer->drawAxis();
 				for( ShapeBase* current : mSurfaceList )

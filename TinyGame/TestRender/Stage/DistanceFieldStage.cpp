@@ -163,27 +163,28 @@ namespace Render
 		void onRender(float dFrame)
 		{
 			Graphics2D& g = Global::GetGraphics2D();
+			RHICommandList& commandList = RHICommandList::GetImmediateList();
 
 			GameWindow& window = Global::GetDrawEngine().getWindow();
 
 			initializeRenderState();
 
 
-			RHISetupFixedPipelineState(mView.worldToView, mView.viewToClip);
-			mMesh.draw(LinearColor(0, 1, 0, 1));
+			RHISetupFixedPipelineState(commandList, mView.worldToView, mView.viewToClip);
+			mMesh.draw(commandList, LinearColor(0, 1, 0, 1));
 
 
 			{
-				RHISetBlendState(TStaticBlendState< CWM_RGBA, Blend::eOne, Blend::eOne >::GetRHI());
+				RHISetBlendState(commandList, TStaticBlendState< CWM_RGBA, Blend::eOne, Blend::eOne >::GetRHI());
 				GL_BIND_LOCK_OBJECT(mProgRayMarching);
-				mProgRayMarching->setParam(SHADER_PARAM(WorldToLocal), Matrix4::Identity());
-				mProgRayMarching->setParam(SHADER_PARAM(BoundMax), mSDFData.boundMax);
-				mProgRayMarching->setParam(SHADER_PARAM(BoundMin), mSDFData.boundMin);
-				mProgRayMarching->setParam(SHADER_PARAM(DistanceFactor), mSDFData.maxDistance);
+				mProgRayMarching->setParam(commandList, SHADER_PARAM(WorldToLocal), Matrix4::Identity());
+				mProgRayMarching->setParam(commandList, SHADER_PARAM(BoundMax), mSDFData.boundMax);
+				mProgRayMarching->setParam(commandList, SHADER_PARAM(BoundMin), mSDFData.boundMin);
+				mProgRayMarching->setParam(commandList, SHADER_PARAM(DistanceFactor), mSDFData.maxDistance);
 				auto& sampler = TStaticSamplerState< Sampler::eBilinear, Sampler::eClamp, Sampler::eClamp, Sampler::eClamp >::GetRHI();
-				mProgRayMarching->setTexture(SHADER_PARAM(DistanceFieldTexture), *mTextureSDF, sampler);
-				mView.setupShader(*mProgRayMarching);
-				DrawUtility::ScreenRectShader();
+				mProgRayMarching->setTexture(commandList, SHADER_PARAM(DistanceFieldTexture), *mTextureSDF, sampler);
+				mView.setupShader(commandList, *mProgRayMarching);
+				DrawUtility::ScreenRectShader(commandList);
 			}
 
 

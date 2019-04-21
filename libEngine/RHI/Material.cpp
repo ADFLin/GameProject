@@ -17,7 +17,7 @@ namespace Render
 		return mRHI.isValid();
 	}
 
-	void Material::bindShaderParamInternal(MaterialShaderProgram& shader, uint32 skipMask)
+	void Material::bindShaderParamInternal(RHICommandList& commandList, MaterialShaderProgram& shader, uint32 skipMask)
 	{
 		for( int i = 0; i < (int)mParams.size(); ++i )
 		{
@@ -32,54 +32,54 @@ namespace Render
 				{
 					RHITextureBase* texture = *reinterpret_cast<RHITextureBase**>(&mParamDataStorage[param.offset]);
 					if ( texture )
-						shader.setTexture(param.name, *(RHITexture2D*)texture);
+						shader.setTexture(commandList, param.name, *(RHITexture2D*)texture);
 				}
 				break;
 			case ParamType::eTexture3DRHI:
 				{
 					RHITextureBase* texture = *reinterpret_cast<RHITextureBase**>(&mParamDataStorage[param.offset]);
 					if( texture )
-						shader.setTexture(param.name, *(RHITexture3D*)texture);
+						shader.setTexture(commandList, param.name, *(RHITexture3D*)texture);
 				}
 				break;
 			case ParamType::eTextureCubeRHI:
 				{
 					RHITextureBase* texture = *reinterpret_cast<RHITextureBase**>(&mParamDataStorage[param.offset]);
 					if( texture )
-						shader.setTexture(param.name, *(RHITextureCube*)texture);
+						shader.setTexture(commandList, param.name, *(RHITextureCube*)texture);
 				}
 				break;
 			case ParamType::eTextureDepthRHI:
 				{
 					RHITextureBase* texture = *reinterpret_cast<RHITextureBase**>(&mParamDataStorage[param.offset]);
 					if( texture )
-						shader.setTexture(param.name, *(RHITextureDepth*)texture);
+						shader.setTexture(commandList, param.name, *(RHITextureDepth*)texture);
 				}
 				break;
 			case ParamType::eTexture2D:
 				{
 					Texture2D* texture = *reinterpret_cast<Texture2D**>(&mParamDataStorage[param.offset]);
 					if( texture )
-						shader.setTexture(param.name, texture->getRHI());
+						shader.setTexture(commandList, param.name, texture->getRHI());
 				}
 				break;
 			case ParamType::eMatrix4:
-				shader.setParam(param.name, *reinterpret_cast<Matrix4*>(&mParamDataStorage[param.offset]));
+				shader.setParam(commandList, param.name, *reinterpret_cast<Matrix4*>(&mParamDataStorage[param.offset]));
 				break;
 			case ParamType::eMatrix3:
-				shader.setParam(param.name, *reinterpret_cast<Matrix3*>(&mParamDataStorage[param.offset]));
+				shader.setParam(commandList, param.name, *reinterpret_cast<Matrix3*>(&mParamDataStorage[param.offset]));
 				break;
 			case ParamType::eVector4:
-				shader.setParam(param.name, *reinterpret_cast<Vector4*>(&mParamDataStorage[param.offset]));
+				shader.setParam(commandList, param.name, *reinterpret_cast<Vector4*>(&mParamDataStorage[param.offset]));
 				break;
 			case ParamType::eVector3:
-				shader.setParam(param.name, *reinterpret_cast<Vector3*>(&mParamDataStorage[param.offset]));
+				shader.setParam(commandList, param.name, *reinterpret_cast<Vector3*>(&mParamDataStorage[param.offset]));
 				break;
 			case ParamType::eVector2:
-				shader.setParam(param.name, *reinterpret_cast<Vector2*>(&mParamDataStorage[param.offset]));
+				shader.setParam(commandList, param.name, *reinterpret_cast<Vector2*>(&mParamDataStorage[param.offset]));
 				break;
 			case ParamType::eScale:
-				shader.setParam(param.name, *reinterpret_cast<float*>(&mParamDataStorage[param.offset]));
+				shader.setParam(commandList, param.name, *reinterpret_cast<float*>(&mParamDataStorage[param.offset]));
 				break;
 			}
 		}

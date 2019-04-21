@@ -32,19 +32,19 @@ namespace Render
 		param.y = Math::Cos(Math::Deg2Rad(Math::Min<float>(89.9, light.spotAngle.y)));
 	}
 
-	void LightInfo::setupShaderGlobalParam(ShaderProgram& shader) const
+	void LightInfo::setupShaderGlobalParam(RHICommandList& commandList, ShaderProgram& shader) const
 	{
-		shader.setParam(SHADER_PARAM(GLight.worldPosAndRadius), Vector4(pos, radius));
-		shader.setParam(SHADER_PARAM(GLight.color), intensity * color);
-		shader.setParam(SHADER_PARAM(GLight.type), int(type));
-		shader.setParam(SHADER_PARAM(GLight.bCastShadow), int(bCastShadow));
-		shader.setParam(SHADER_PARAM(GLight.dir), Math::GetNormal(dir));
+		shader.setParam(commandList, SHADER_PARAM(GLight.worldPosAndRadius), Vector4(pos, radius));
+		shader.setParam(commandList, SHADER_PARAM(GLight.color), intensity * color);
+		shader.setParam(commandList, SHADER_PARAM(GLight.type), int(type));
+		shader.setParam(commandList, SHADER_PARAM(GLight.bCastShadow), int(bCastShadow));
+		shader.setParam(commandList, SHADER_PARAM(GLight.dir), Math::GetNormal(dir));
 
 		Vector3 spotParam;
 		float angleInner = Math::Min(spotAngle.x, spotAngle.y);
 		spotParam.x = Math::Cos(Math::Deg2Rad(Math::Min<float>(89.9, angleInner)));
 		spotParam.y = Math::Cos(Math::Deg2Rad(Math::Min<float>(89.9, spotAngle.y)));
-		shader.setParam(SHADER_PARAM(GLight.spotParam), spotParam);
+		shader.setParam(commandList, SHADER_PARAM(GLight.spotParam), spotParam);
 	}
 
 	bool ShadowDepthTech::init()
@@ -115,9 +115,9 @@ namespace Render
 		return true;
 	}
 
-	void ShadowDepthTech::drawShadowTexture(LightType type , IntVector2 const& pos , int length )
+	void ShadowDepthTech::drawShadowTexture(RHICommandList& commandList, LightType type , IntVector2 const& pos , int length )
 	{
-		ViewportSaveScope vpScope;
+		ViewportSaveScope vpScope(commandList);
 
 		Matrix4 porjectMatrix = OrthoMatrix(0, vpScope[2], 0, vpScope[3], -1, 1);
 
@@ -126,14 +126,14 @@ namespace Render
 		switch( type )
 		{
 		case LightType::Spot:
-			DrawUtility::DrawTexture(*mShadowMap2, pos, IntVector2(length, length));
+			DrawUtility::DrawTexture(commandList, *mShadowMap2, pos, IntVector2(length, length));
 			break;
 		case LightType::Directional:
-			DrawUtility::DrawTexture(*mCascadeTexture, pos, IntVector2(length * CascadedShadowNum, length));
+			DrawUtility::DrawTexture(commandList, *mCascadeTexture, pos, IntVector2(length * CascadedShadowNum, length));
 			break;
 		case LightType::Point:
-			DrawUtility::DrawCubeTexture(*mShadowMap, pos, length / 2);
-			//ShaderHelper::drawCubeTexture(GWhiteTextureCube, Vec2i(0, 0), length / 2);
+			DrawUtility::DrawCubeTexture(commandList, *mShadowMap, pos, length / 2);
+			//ShaderHelper::drawCubeTexture(commandList, GWhiteTextureCube, Vec2i(0, 0), length / 2);
 		default:
 			break;
 		}
@@ -188,40 +188,40 @@ namespace Render
 #endif
 	}
 
-	void ShadowDepthTech::renderLighting(ViewInfo& view, SceneInterface& scene, LightInfo const& light, bool bMultiple)
+	void ShadowDepthTech::renderLighting(RHICommandList& commandList, ViewInfo& view, SceneInterface& scene, LightInfo const& light, bool bMultiple)
 	{
 
 		ShadowProjectParam shadowPrjectParam;
 		shadowPrjectParam.setupLight(light);
-		renderShadowDepth(view, scene, shadowPrjectParam);
+		renderShadowDepth(commandList, view, scene, shadowPrjectParam);
 
 		GL_BIND_LOCK_OBJECT(mProgLighting);
 		//mProgLighting.setTexture(SHADER_PARAM(texSM) , mShadowMap2 , 0 );
 
-		view.setupShader(mProgLighting);
-		light.setupShaderGlobalParam(mProgLighting);
+		view.setupShader(commandList, mProgLighting);
+		light.setupShaderGlobalParam(commandList, mProgLighting);
 
 		//mProgLighting.setParam(SHADER_PARAM(worldToLightView) , worldToLightView );
-		mProgLighting.setTexture(SHADER_PARAM(ShadowTextureCube), *mShadowMap);
-		mProgLighting.setParam(SHADER_PARAM(DepthParam), Vector2( depthParam[0], depthParam[1] ));
+		mProgLighting.setTexture(commandList, SHADER_PARAM(ShadowTextureCube), *mShadowMap);
+		mProgLighting.setParam(commandList, SHADER_PARAM(DepthParam), Vector2( depthParam[0], depthParam[1] ));
 
 		mEffectCur = &mProgLighting;
 
 		if( bMultiple )
 		{
 			//glDepthFunc(GL_EQUAL);
-			RHISetDepthStencilState(TStaticDepthStencilState< true , ECompareFun::Equal >::GetRHI());
-			RHISetBlendState(TStaticBlendState< CWM_RGBA , Blend::eOne, Blend::eOne >::GetRHI());
-			RenderContext context(view, *this);
-			scene.render( context);
-			RHISetBlendState(TStaticBlendState<>::GetRHI());
-			RHISetDepthStencilState(TStaticDepthStencilState< true, ECompareFun::Less >::GetRHI());
+			RHISetDepthStencilState(commandList, TStaticDepthStencilState< true , ECompareFun::Equal >::GetRHI());
+			RHISetBlendState(commandList, TStaticBlendState< CWM_RGBA , Blend::eOne, Blend::eOne >::GetRHI());
+			RenderContext context(commandList, view, *this);
+			scene.render(context);
+			RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
+			RHISetDepthStencilState(commandList, TStaticDepthStencilState< true, ECompareFun::Less >::GetRHI());
 			//glDepthFunc(GL_LESS);
 		}
 		else
 		{
-			RenderContext context(view, *this);
-			scene.render( context);
+			RenderContext context(commandList, view, *this);
+			scene.render(context);
 		}
 		mEffectCur = nullptr;
 	}
@@ -234,7 +234,7 @@ namespace Render
 		return dir.cross(Vector3(0, 0, 1)).cross(dir);
 	}
 
-	void ShadowDepthTech::renderShadowDepth(ViewInfo& view, SceneInterface& scene, ShadowProjectParam& shadowProjectParam)
+	void ShadowDepthTech::renderShadowDepth(RHICommandList& commandList, ViewInfo& view, SceneInterface& scene, ShadowProjectParam& shadowProjectParam)
 	{
 		//RHISetRasterizerState(TStaticRasterizerState< ECullMode::None >::GetRHI());
 		LightInfo const& light = *shadowProjectParam.light;
@@ -262,7 +262,7 @@ namespace Render
 		Matrix4  worldToLight;
 		Matrix4 shadowProject;
 
-		RHISetBlendState(TStaticBlendState<>::GetRHI());
+		RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
 
 		if( light.type == LightType::Directional )
 		{
@@ -294,7 +294,7 @@ namespace Render
 			glClearColor(1, 1, 1, 1.0);
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-			RHISetDepthStencilState(TStaticDepthStencilState<>::GetRHI());
+			RHISetDepthStencilState(commandList, TStaticDepthStencilState<>::GetRHI());
 
 			for( int i = 0; i < CascadedShadowNum; ++i )
 			{
@@ -311,8 +311,8 @@ namespace Render
 
 				MatrixSaveScope matScope(shadowProject);
 
-				ViewportSaveScope vpScope;
-				RHISetViewport(i*CascadeTextureSize, 0, CascadeTextureSize, CascadeTextureSize);
+				ViewportSaveScope vpScope(commandList);
+				RHISetViewport(commandList, i*CascadeTextureSize, 0, CascadeTextureSize, CascadeTextureSize);
 
 				lightView.setupTransform(worldToLight, shadowProject);
 
@@ -324,7 +324,7 @@ namespace Render
 				mShadowMatrix = worldToLight * shadowProject * biasMatrix;
 
 				shadowProjectParam.shadowMatrix[i] = mShadowMatrix * corpMatrix;
-				RenderContext context(lightView, *this);
+				RenderContext context(commandList, lightView, *this);
 				scene.render( context );
 			}
 		}
@@ -346,15 +346,15 @@ namespace Render
 			mShadowBuffer.setTexture(0, *mShadowMap2);
 			GL_BIND_LOCK_OBJECT(mShadowBuffer);
 
-			ViewportSaveScope vpScope;
-			RHISetViewport(0, 0, ShadowTextureSize, ShadowTextureSize);
-			RHISetDepthStencilState(TStaticDepthStencilState<>::GetRHI());
+			ViewportSaveScope vpScope(commandList);
+			RHISetViewport(commandList, 0, 0, ShadowTextureSize, ShadowTextureSize);
+			RHISetDepthStencilState(commandList, TStaticDepthStencilState<>::GetRHI());
 			glClearDepth(1);
 			glClearColor(1, 1, 1, 1.0);
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 			lightView.setupTransform(worldToLight, shadowProject);
-			RenderContext context(lightView, *this);
+			RenderContext context(commandList, lightView, *this);
 			scene.render( context );
 
 		}
@@ -385,12 +385,12 @@ namespace Render
 
 			shadowProjectParam.shadowTexture = mShadowMap;
 
-			ViewportSaveScope vpScope;
-			RHISetViewport(0, 0, ShadowTextureSize, ShadowTextureSize);
+			ViewportSaveScope vpScope(commandList);
+			RHISetViewport(commandList, 0, 0, ShadowTextureSize, ShadowTextureSize);
 #if USE_DepthRenderBuffer
 			mShadowBuffer.setDepth(*depthBuffer2);
 #endif
-			RHISetDepthStencilState(TStaticDepthStencilState<>::GetRHI());
+			RHISetDepthStencilState(commandList, TStaticDepthStencilState<>::GetRHI());
 			for( int i = 0; i < 6; ++i )
 			{
 				//GPU_PROFILE("Face");
@@ -410,7 +410,7 @@ namespace Render
 				{
 					//GPU_PROFILE("DrawMesh");
 					lightView.setupTransform(worldToLight, shadowProject);
-					RenderContext context(lightView, *this);
+					RenderContext context(commandList, lightView, *this);
 					scene.render( context );
 				}
 
@@ -486,9 +486,9 @@ namespace Render
 		{
 			mParamGBuffer.bindParameters(parameterMap, true);
 		}
-		void setParamters(SceneRenderTargets& sceneRenderTargets)
+		void setParamters(RHICommandList& commandList, SceneRenderTargets& sceneRenderTargets)
 		{
-			mParamGBuffer.setParameters(*this, sceneRenderTargets);
+			mParamGBuffer.setParameters(commandList, *this, sceneRenderTargets);
 		}
 
 		GBufferShaderParameters mParamGBuffer;
@@ -626,7 +626,7 @@ namespace Render
 		return true;
 	}
 
-	void DeferredShadingTech::renderBassPass(ViewInfo& view, SceneInterface& scene)
+	void DeferredShadingTech::renderBassPass(RHICommandList& commandList, ViewInfo& view, SceneInterface& scene)
 	{
 		mBassPassBuffer.setTexture(0, mSceneRenderTargets->getFrameTexture());
 		GL_BIND_LOCK_OBJECT(mBassPassBuffer);
@@ -635,26 +635,26 @@ namespace Render
 			GPU_PROFILE("Clear Buffer");
 			mBassPassBuffer.clearBuffer(&Vector4(0, 0, 0, 1), &depthValue);
 		}
-		RHISetDepthStencilState(TStaticDepthStencilState<>::GetRHI());
-		RenderContext context(view, *this);
-		scene.render( context );
+		RHISetDepthStencilState(commandList, TStaticDepthStencilState<>::GetRHI());
+		RenderContext context(commandList, view, *this);
+		scene.render(context);
 	}
 	
 
-	void DeferredShadingTech::prevRenderLights(ViewInfo& view)
+	void DeferredShadingTech::prevRenderLights(RHICommandList& commandList, ViewInfo& view)
 	{
 
 	}
 
-	void DeferredShadingTech::renderLight(ViewInfo& view, LightInfo const& light, ShadowProjectParam const& shadowProjectParam)
+	void DeferredShadingTech::renderLight(RHICommandList& commandList, ViewInfo& view, LightInfo const& light, ShadowProjectParam const& shadowProjectParam)
 	{
 
-		auto const BindShaderParam = [this , &view , &light , &shadowProjectParam](DeferredLightingProgram& program)
+		auto const BindShaderParam = [this , &view , &light , &shadowProjectParam](RHICommandList& commandList, DeferredLightingProgram& program)
 		{
-			program.setParamters(*mSceneRenderTargets);
-			shadowProjectParam.setupShader(program);
-			view.setupShader(program);
-			light.setupShaderGlobalParam(program);
+			program.setParamters(commandList, *mSceneRenderTargets);
+			shadowProjectParam.setupShader(commandList, program);
+			view.setupShader(commandList, program);
+			light.setupShaderGlobalParam(commandList, program);
 		};
 
 		if( boundMethod != LBM_SCREEN_RECT && light.type != LightType::Directional )
@@ -682,11 +682,11 @@ namespace Render
 
 			assert(boundMesh);
 
-			auto const DrawBoundShape = [this,boundMesh,&lightXForm]( bool bUseShader )
+			auto const DrawBoundShape = [this,boundMesh,&lightXForm](RHICommandList& commandList, bool bUseShader )
 			{
 				glPushMatrix();
 				glLoadMatrixf(lightXForm);
-				boundMesh->draw();
+				boundMesh->draw(commandList);
 				glPopMatrix();
 			};
 
@@ -700,11 +700,11 @@ namespace Render
 				glClear(GL_STENCIL_BUFFER_BIT);
 				mLightBuffer.unbind();
 
-				RHISetBlendState(TStaticBlendState< CWM_NONE >::GetRHI());
+				RHISetBlendState(commandList, TStaticBlendState< CWM_NONE >::GetRHI());
 				//if ( debugMode != DebugMode::eShowVolume )
 				{
-					RHISetRasterizerState(TStaticRasterizerState< ECullMode::Back >::GetRHI());
-					RHISetDepthStencilState(
+					RHISetRasterizerState(commandList, TStaticRasterizerState< ECullMode::Back >::GetRHI());
+					RHISetDepthStencilState(commandList,
 						TStaticDepthStencilState<
 							bWriteDepth, ECompareFun::Greater,
 							bEnableStencilTest, ECompareFun::Always,
@@ -712,15 +712,15 @@ namespace Render
 						>::GetRHI(), 0x0);
 
 					mLightBuffer.bindDepthOnly();
-					DrawBoundShape(false);
+					DrawBoundShape(commandList, false);
 					mLightBuffer.unbind();
 
 				}
 
-				RHISetBlendState(TStaticBlendState< CWM_RGBA >::GetRHI());
+				RHISetBlendState(commandList, TStaticBlendState< CWM_RGBA >::GetRHI());
 				if( debugMode == DebugMode::eShowVolume )
 				{
-					RHISetDepthStencilState(
+					RHISetDepthStencilState(commandList,
 						TStaticDepthStencilState<
 							bWriteDepth, ECompareFun::Always,
 							bEnableStencilTest, ECompareFun::Equal,
@@ -729,7 +729,7 @@ namespace Render
 				}
 				else
 				{
-					RHISetDepthStencilState(
+					RHISetDepthStencilState(commandList,
 						TStaticDepthStencilState<
 							bWriteDepth, ECompareFun::GeraterEqual,
 							bEnableStencilTest, ECompareFun::Equal,
@@ -741,40 +741,40 @@ namespace Render
 			{
 				if( debugMode == DebugMode::eShowVolume )
 				{
-					RHISetDepthStencilState(TStaticDepthStencilState<bWriteDepth, ECompareFun::Always >::GetRHI());
+					RHISetDepthStencilState(commandList, TStaticDepthStencilState<bWriteDepth, ECompareFun::Always >::GetRHI());
 
 				}
 				else
 				{
-					RHISetDepthStencilState(TStaticDepthStencilState<bWriteDepth, ECompareFun::GeraterEqual >::GetRHI());
+					RHISetDepthStencilState(commandList, TStaticDepthStencilState<bWriteDepth, ECompareFun::GeraterEqual >::GetRHI());
 				}
 			}
 
-			RHISetBlendState(TStaticBlendState< CWM_RGBA , Blend::eOne, Blend::eOne >::GetRHI());
-			RHISetRasterizerState(TStaticRasterizerState< ECullMode::Front >::GetRHI());
+			RHISetBlendState(commandList, TStaticBlendState< CWM_RGBA , Blend::eOne, Blend::eOne >::GetRHI());
+			RHISetRasterizerState(commandList, TStaticRasterizerState< ECullMode::Front >::GetRHI());
 			{
 				GL_BIND_LOCK_OBJECT(mLightBuffer);
 				GL_BIND_LOCK_OBJECT(lightShader);
 				//if( debugMode == DebugMode::eNone )
 				{
-					BindShaderParam(*lightShader);
+					BindShaderParam(commandList, *lightShader);
 				}
-				lightShader->setParam(SHADER_PARAM(BoundTransform), lightXForm);
-				DrawBoundShape(true);
+				lightShader->setParam(commandList, SHADER_PARAM(BoundTransform), lightXForm);
+				DrawBoundShape(commandList, true);
 			}
-			RHISetRasterizerState(TStaticRasterizerState<>::GetRHI());
+			RHISetRasterizerState(commandList, TStaticRasterizerState<>::GetRHI());
 		}
 		else
 		{
-			RHISetDepthStencilState(StaticDepthDisableState::GetRHI());
-			RHISetBlendState(TStaticBlendState< CWM_RGBA, Blend::eOne, Blend::eOne >::GetRHI());
+			RHISetDepthStencilState(commandList, StaticDepthDisableState::GetRHI());
+			RHISetBlendState(commandList, TStaticBlendState< CWM_RGBA, Blend::eOne, Blend::eOne >::GetRHI());
 			{
 				GL_BIND_LOCK_OBJECT(mSceneRenderTargets->getFrameBuffer());
 				//MatrixSaveScope matrixScope(Matrix4::Identity());
 				DeferredLightingProgram* program = mProgLightingScreenRect[(int)light.type];
 				GL_BIND_LOCK_OBJECT(program);
-				BindShaderParam(*program);
-				DrawUtility::ScreenRectShader();
+				BindShaderParam(commandList, *program);
+				DrawUtility::ScreenRectShader(commandList);
 
 				//glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
 			}
@@ -845,16 +845,16 @@ namespace Render
 		return true;
 	}
 
-	void GBufferParamData::setupShader(ShaderProgram& program)
+	void GBufferParamData::setupShader(RHICommandList& commandList, ShaderProgram& program)
 	{
-		program.setTexture(SHADER_PARAM(GBufferTextureA), *textures[BufferA]);
-		program.setTexture(SHADER_PARAM(GBufferTextureB), *textures[BufferB]);
-		program.setTexture(SHADER_PARAM(GBufferTextureC), *textures[BufferC]);
-		program.setTexture(SHADER_PARAM(GBufferTextureD), *textures[BufferD]);
+		program.setTexture(commandList, SHADER_PARAM(GBufferTextureA), *textures[BufferA]);
+		program.setTexture(commandList, SHADER_PARAM(GBufferTextureB), *textures[BufferB]);
+		program.setTexture(commandList, SHADER_PARAM(GBufferTextureC), *textures[BufferC]);
+		program.setTexture(commandList, SHADER_PARAM(GBufferTextureD), *textures[BufferD]);
 
 	}
 
-	void GBufferParamData::drawTextures(IntVector2 const& size , IntVector2 const& gapSize )
+	void GBufferParamData::drawTextures(RHICommandList& commandList, IntVector2 const& size , IntVector2 const& gapSize )
 	{
 		int width = size.x;
 		int height = size.y;
@@ -863,38 +863,38 @@ namespace Render
 		int drawWidth = width - 2 * gapX;
 		int drawHeight = height - 2 * gapY;
 
-		drawTexture(0 * width + gapX, 0 * height + gapY, drawWidth, drawHeight, BufferA);
+		drawTexture(commandList, 0 * width + gapX, 0 * height + gapY, drawWidth, drawHeight, BufferA);
 		{
-			ViewportSaveScope vpScope;
-			RHISetViewport(1 * width + gapX, 0 * height + gapY, drawWidth, drawHeight);
+			ViewportSaveScope vpScope(commandList);
+			RHISetViewport(commandList, 1 * width + gapX, 0 * height + gapY, drawWidth, drawHeight);
 			float colorBias[2] = { 0.5 , 0.5 };
-			ShaderHelper::Get().copyTextureBiasToBuffer(*textures[BufferB], colorBias);
+			ShaderHelper::Get().copyTextureBiasToBuffer(commandList, *textures[BufferB], colorBias);
 
 		}
 		//drawTexture(1 * width + gapX, 0 * height + gapY, drawWidth, drawHeight, BufferB);
-		drawTexture(2 * width + gapX, 0 * height + gapY, drawWidth, drawHeight, BufferC);
-		drawTexture(3 * width + gapX, 3 * height + gapY, drawWidth, drawHeight, BufferD, Vector4(1, 0, 0, 0));
-		drawTexture(3 * width + gapX, 2 * height + gapY, drawWidth, drawHeight, BufferD, Vector4(0, 1, 0, 0));
-		drawTexture(3 * width + gapX, 1 * height + gapY, drawWidth, drawHeight, BufferD, Vector4(0, 0, 1, 0));
+		drawTexture(commandList, 2 * width + gapX, 0 * height + gapY, drawWidth, drawHeight, BufferC);
+		drawTexture(commandList, 3 * width + gapX, 3 * height + gapY, drawWidth, drawHeight, BufferD, Vector4(1, 0, 0, 0));
+		drawTexture(commandList, 3 * width + gapX, 2 * height + gapY, drawWidth, drawHeight, BufferD, Vector4(0, 1, 0, 0));
+		drawTexture(commandList, 3 * width + gapX, 1 * height + gapY, drawWidth, drawHeight, BufferD, Vector4(0, 0, 1, 0));
 		{
-			ViewportSaveScope vpScope;
-			RHISetViewport(3 * width + gapX, 0 * height + gapY, drawWidth, drawHeight);
+			ViewportSaveScope vpScope(commandList);
+			RHISetViewport(commandList, 3 * width + gapX, 0 * height + gapY, drawWidth, drawHeight);
 			float valueFactor[2] = { 255 , 0 };
-			ShaderHelper::Get().mapTextureColorToBuffer(*textures[BufferD], Vector4(0, 0, 0, 1), valueFactor);
+			ShaderHelper::Get().mapTextureColorToBuffer(commandList, *textures[BufferD], Vector4(0, 0, 0, 1), valueFactor);
 		}
 		//renderDepthTexture(width , 3 * height, width, height);
 	}
 
-	void GBufferParamData::drawTexture(int x, int y, int width, int height, int idxBuffer)
+	void GBufferParamData::drawTexture(RHICommandList& commandList, int x, int y, int width, int height, int idxBuffer)
 	{
-		DrawUtility::DrawTexture(*textures[idxBuffer], IntVector2(x, y), IntVector2(width, height));
+		DrawUtility::DrawTexture(commandList, *textures[idxBuffer], IntVector2(x, y), IntVector2(width, height));
 	}
 
-	void GBufferParamData::drawTexture(int x, int y, int width, int height, int idxBuffer, Vector4 const& colorMask)
+	void GBufferParamData::drawTexture(RHICommandList& commandList, int x, int y, int width, int height, int idxBuffer, Vector4 const& colorMask)
 	{
-		ViewportSaveScope vpScope;
-		RHISetViewport(x, y, width, height);
-		ShaderHelper::Get().copyTextureMaskToBuffer(*textures[idxBuffer], colorMask);
+		ViewportSaveScope vpScope(commandList);
+		RHISetViewport(commandList, x, y, width, height);
+		ShaderHelper::Get().copyTextureMaskToBuffer(commandList, *textures[idxBuffer], colorMask);
 	}
 
 	class SSAOGenerateProgram : public GlobalShaderProgram
@@ -917,7 +917,7 @@ namespace Render
 		}
 	public:
 		void bindParameters(ShaderParameterMap& parameterMap);
-		void setParameters(SceneRenderTargets& sceneRenderTargets, Vector3 kernelVectors[], int numKernelVector);
+		void setParameters(RHICommandList& commandList, SceneRenderTargets& sceneRenderTargets, Vector3 kernelVectors[], int numKernelVector);
 
 		GBufferShaderParameters mParamGBuffer;
 		ShaderParameter mParamKernelNum;
@@ -947,7 +947,7 @@ namespace Render
 		}
 	public:
 		void bindParameters(ShaderParameterMap& parameterMap);
-		void setParameters(RHITexture2D& SSAOTexture);
+		void setParameters(RHICommandList& commandList, RHITexture2D& SSAOTexture);
 
 		ShaderParameter mParamTextureSSAO;
 	};
@@ -973,7 +973,7 @@ namespace Render
 		}
 	public:
 		void bindParameters(ShaderParameterMap& parameterMap);
-		void setParameters(SceneRenderTargets& sceneRenderTargets, RHITexture2D& SSAOTexture);
+		void setParameters(RHICommandList& commandList, SceneRenderTargets& sceneRenderTargets, RHITexture2D& SSAOTexture);
 
 		GBufferShaderParameters mParamGBuffer;
 		ShaderParameter mParamTextureSSAO;
@@ -1026,17 +1026,17 @@ namespace Render
 		return true;
 	}
 
-	void PostProcessSSAO::render(ViewInfo& view, SceneRenderTargets& sceneRenderTargets)
+	void PostProcessSSAO::render(RHICommandList& commandList, ViewInfo& view, SceneRenderTargets& sceneRenderTargets)
 	{
-		RHISetDepthStencilState(StaticDepthDisableState::GetRHI());
+		RHISetDepthStencilState(commandList, StaticDepthDisableState::GetRHI());
 		{
 			GPU_PROFILE("SSAO-Generate");
 			mFrameBuffer.setTexture(0, *mSSAOTexture);
 			GL_BIND_LOCK_OBJECT(mFrameBuffer);
 			GL_BIND_LOCK_OBJECT(mProgSSAOGenerate);
-			view.setupShader(*mProgSSAOGenerate);
-			mProgSSAOGenerate->setParameters( sceneRenderTargets , &mKernelVectors[0], mKernelVectors.size());
-			DrawUtility::ScreenRectShader();
+			view.setupShader(commandList, *mProgSSAOGenerate);
+			mProgSSAOGenerate->setParameters(commandList, sceneRenderTargets , &mKernelVectors[0], mKernelVectors.size());
+			DrawUtility::ScreenRectShader(commandList);
 		}
 
 
@@ -1045,26 +1045,26 @@ namespace Render
 			mFrameBuffer.setTexture(0, *mSSAOTextureBlur);
 			GL_BIND_LOCK_OBJECT(mFrameBuffer);
 			GL_BIND_LOCK_OBJECT(mProgSSAOBlur);
-			mProgSSAOBlur->setParameters(*mSSAOTexture);
-			DrawUtility::ScreenRectShader();
+			mProgSSAOBlur->setParameters(commandList, *mSSAOTexture);
+			DrawUtility::ScreenRectShader(commandList);
 		}
 
 		{
 			GPU_PROFILE("SSAO-Ambient");
 				//sceneRenderTargets.swapFrameBufferTexture();
 
-			RHISetBlendState(TStaticBlendState< CWM_RGBA , Blend::eOne, Blend::eOne >::GetRHI());
+			RHISetBlendState(commandList, TStaticBlendState< CWM_RGBA , Blend::eOne, Blend::eOne >::GetRHI());
 			GL_BIND_LOCK_OBJECT(sceneRenderTargets.getFrameBuffer());
 			GL_BIND_LOCK_OBJECT(mProgAmbient);
-			mProgAmbient->setParameters(sceneRenderTargets, *mSSAOTextureBlur);
-			DrawUtility::ScreenRectShader();
+			mProgAmbient->setParameters(commandList, sceneRenderTargets, *mSSAOTextureBlur);
+			DrawUtility::ScreenRectShader(commandList);
 			
 		}
 	}
 
-	void PostProcessSSAO::drawSSAOTexture(IntVector2 const& pos, IntVector2 const& size)
+	void PostProcessSSAO::drawSSAOTexture(RHICommandList& commandList, IntVector2 const& pos, IntVector2 const& size)
 	{
-		DrawUtility::DrawTexture(*mSSAOTextureBlur, pos, size);
+		DrawUtility::DrawTexture(commandList, *mSSAOTextureBlur, pos, size);
 	}
 
 	void PostProcessSSAO::reload()
@@ -1090,33 +1090,33 @@ namespace Render
 		}
 	}
 
-	void ShadowProjectParam::setupShader(ShaderProgram& program) const
+	void ShadowProjectParam::setupShader(RHICommandList& commandList, ShaderProgram& program) const
 	{
-		program.setParam(SHADER_PARAM(ShadowParam), Vector2( shadowParam.x, shadowParam.y ));
+		program.setParam(commandList, SHADER_PARAM(ShadowParam), Vector2( shadowParam.x, shadowParam.y ));
 		switch( light->type )
 		{
 		case LightType::Spot:
-			program.setParam(SHADER_PARAM(ProjectShadowMatrix), shadowMatrix, 1);
+			program.setParam(commandList, SHADER_PARAM(ProjectShadowMatrix), shadowMatrix, 1);
 			if( light->bCastShadow )
-				program.setTexture(SHADER_PARAM(ShadowTexture2D), *(RHITexture2D*)shadowTexture);
+				program.setTexture(commandList, SHADER_PARAM(ShadowTexture2D), *(RHITexture2D*)shadowTexture);
 			else
-				program.setTexture(SHADER_PARAM(ShadowTexture2D), *GWhiteTexture2D);
+				program.setTexture(commandList, SHADER_PARAM(ShadowTexture2D), *GWhiteTexture2D);
 			break;
 		case LightType::Point:
-			program.setParam(SHADER_PARAM(ProjectShadowMatrix), shadowMatrix, 6);
+			program.setParam(commandList, SHADER_PARAM(ProjectShadowMatrix), shadowMatrix, 6);
 			if( light->bCastShadow )
-				program.setTexture(SHADER_PARAM(ShadowTextureCube), *(RHITextureCube*)shadowTexture);
+				program.setTexture(commandList, SHADER_PARAM(ShadowTextureCube), *(RHITextureCube*)shadowTexture);
 			else
-				program.setTexture(SHADER_PARAM(ShadowTextureCube), *GWhiteTextureCube);
+				program.setTexture(commandList, SHADER_PARAM(ShadowTextureCube), *GWhiteTextureCube);
 			break;
 		case LightType::Directional:
-			program.setParam(SHADER_PARAM(ProjectShadowMatrix), shadowMatrix, numCascade);
+			program.setParam(commandList, SHADER_PARAM(ProjectShadowMatrix), shadowMatrix, numCascade);
 			if( light->bCastShadow )
-				program.setTexture(SHADER_PARAM(ShadowTexture2D), *(RHITexture2D*)shadowTexture);
+				program.setTexture(commandList, SHADER_PARAM(ShadowTexture2D), *(RHITexture2D*)shadowTexture);
 			else
-				program.setTexture(SHADER_PARAM(ShadowTexture2D), *GWhiteTexture2D);
-			program.setParam(SHADER_PARAM(NumCascade), numCascade);
-			program.setParam(SHADER_PARAM(CacadeDepth), cacadeDepth, numCascade);
+				program.setTexture(commandList, SHADER_PARAM(ShadowTexture2D), *GWhiteTexture2D);
+			program.setParam(commandList, SHADER_PARAM(NumCascade), numCascade);
+			program.setParam(commandList, SHADER_PARAM(CacadeDepth), cacadeDepth, numCascade);
 			break;
 		}
 	}
@@ -1164,14 +1164,14 @@ namespace Render
 		return true;
 	}
 
-	void SceneRenderTargets::drawDepthTexture(int x, int y, int width, int height)
+	void SceneRenderTargets::drawDepthTexture(RHICommandList& commandList, int x, int y, int width, int height)
 	{
 		//PROB
 		glLoadIdentity();
 		glEnable(GL_TEXTURE_2D);
 		glBindTexture(GL_TEXTURE_2D, OpenGLCast::GetHandle(mDepthTexture));
 		glColor3f(1, 1, 1);
-		DrawUtility::Rect(x, y, width, height);
+		DrawUtility::Rect(commandList, x, y, width, height);
 		glBindTexture(GL_TEXTURE_2D, 0);
 		glDisable(GL_TEXTURE_2D);
 	}
@@ -1210,7 +1210,7 @@ namespace Render
 
 		void bindParameters(ShaderParameterMap& parameterMap);
 
-		void setParameters(OITShaderData& data);
+		void setParameters(RHICommandList& commandList, OITShaderData& data);
 
 		ShaderParameter mParamColorStorageTexture;
 		ShaderParameter mParamNodeAndDepthStorageTexture;
@@ -1285,34 +1285,34 @@ namespace Render
 		return true;
 	}
 
-	void OITTechnique::render(ViewInfo& view, SceneInterface& scnenRender, SceneRenderTargets* sceneRenderTargets)
+	void OITTechnique::render(RHICommandList& commandList, ViewInfo& view, SceneInterface& scnenRender, SceneRenderTargets* sceneRenderTargets)
 	{
 
-		auto DrawFun = [this, &view, &scnenRender]()
+		auto DrawFun = [this, &view, &scnenRender](RHICommandList& commandList)
 		{
-			RenderContext context(view, *this);
+			RenderContext context(commandList, view, *this);
 			scnenRender.renderTranslucent(context);
 		};
 
-		renderInternal( view, DrawFun , sceneRenderTargets );
+		renderInternal(commandList, view, DrawFun , sceneRenderTargets );
 
 		if( 1 )
 		{
 			glMemoryBarrier(GL_ALL_BARRIER_BITS);
-			ViewportSaveScope vpScope;
+			ViewportSaveScope vpScope(commandList);
 			OrthoMatrix matProj(0, vpScope[2], 0, vpScope[3], -1, 1);
 			MatrixSaveScope matScope(matProj);
 
-			RHISetDepthStencilState(StaticDepthDisableState::GetRHI());
-			DrawUtility::DrawTexture(*mShaderData.colorStorageTexture, IntVector2(0, 0), IntVector2(200, 200));
+			RHISetDepthStencilState(commandList, StaticDepthDisableState::GetRHI());
+			DrawUtility::DrawTexture(commandList, *mShaderData.colorStorageTexture, IntVector2(0, 0), IntVector2(200, 200));
 			glMemoryBarrier(GL_ALL_BARRIER_BITS);
 
 		}
 	}
 
-	void OITTechnique::renderTest(ViewInfo& view, SceneRenderTargets& sceneRenderTargets, Mesh& mesh, Material* material)
+	void OITTechnique::renderTest(RHICommandList& commandList, ViewInfo& view, SceneRenderTargets& sceneRenderTargets, Mesh& mesh, Material* material)
 	{
-		auto DrawFun = [this , &view , &mesh , material ]()
+		auto DrawFun = [this , &view , &mesh , material ](RHICommandList& commandList)
 		{
 			//GL_BIND_LOCK_OBJECT(sceneRenderTargets.getFrameBuffer());
 
@@ -1328,42 +1328,42 @@ namespace Render
 			};
 
 			GL_BIND_LOCK_OBJECT(mShaderBassPassTest);
-			view.setupShader(mShaderBassPassTest);
-			mShaderBassPassTest.setRWTexture(SHADER_PARAM(ColorStorageRWTexture), *mShaderData.colorStorageTexture, AO_WRITE_ONLY);
-			mShaderBassPassTest.setRWTexture(SHADER_PARAM(NodeAndDepthStorageRWTexture), *mShaderData.nodeAndDepthStorageTexture, AO_READ_AND_WRITE);
-			mShaderBassPassTest.setRWTexture(SHADER_PARAM(NodeHeadRWTexture), *mShaderData.nodeHeadTexture, AO_READ_AND_WRITE);
-			mShaderBassPassTest.setAtomicCounterBuffer(SHADER_PARAM(NextIndex), *mShaderData.storageUsageCounter);
+			view.setupShader(commandList, mShaderBassPassTest);
+			mShaderBassPassTest.setRWTexture(commandList, SHADER_PARAM(ColorStorageRWTexture), *mShaderData.colorStorageTexture, AO_WRITE_ONLY);
+			mShaderBassPassTest.setRWTexture(commandList, SHADER_PARAM(NodeAndDepthStorageRWTexture), *mShaderData.nodeAndDepthStorageTexture, AO_READ_AND_WRITE);
+			mShaderBassPassTest.setRWTexture(commandList, SHADER_PARAM(NodeHeadRWTexture), *mShaderData.nodeHeadTexture, AO_READ_AND_WRITE);
+			mShaderBassPassTest.setAtomicCounterBuffer(commandList, SHADER_PARAM(NextIndex), *mShaderData.storageUsageCounter);
 
 
 			//
-			mShaderBassPassTest.setParam(SHADER_PARAM(BaseColor), color[0]);
+			mShaderBassPassTest.setParam(commandList, SHADER_PARAM(BaseColor), color[0]);
 
-			mShaderBassPassTest.setParam(SHADER_PARAM(WorldTransform), Matrix4::Identity());
-			mesh.drawShader();
+			mShaderBassPassTest.setParam(commandList, SHADER_PARAM(WorldTransform), Matrix4::Identity());
+			mesh.drawShader(commandList);
 			glMemoryBarrier(GL_ALL_BARRIER_BITS);
 
-			mShaderBassPassTest.setParam(SHADER_PARAM(WorldTransform), Matrix4::Translate(Vector3(10,0,0)));
-			mesh.drawShader();
+			mShaderBassPassTest.setParam(commandList, SHADER_PARAM(WorldTransform), Matrix4::Translate(Vector3(10,0,0)));
+			mesh.drawShader(commandList);
 			glMemoryBarrier(GL_ALL_BARRIER_BITS);
 
-			mShaderBassPassTest.setParam(SHADER_PARAM(WorldTransform), Matrix4::Translate(Vector3(-10, 0, 0)));
-			mesh.drawShader();
+			mShaderBassPassTest.setParam(commandList, SHADER_PARAM(WorldTransform), Matrix4::Translate(Vector3(-10, 0, 0)));
+			mesh.drawShader(commandList);
 			glMemoryBarrier(GL_ALL_BARRIER_BITS);
 			
 		};
 
-		renderInternal(view, DrawFun);
+		renderInternal(commandList, view, DrawFun);
 
 
 		if (1)
 		{
 			glMemoryBarrier(GL_ALL_BARRIER_BITS);
-			ViewportSaveScope vpScope;
+			ViewportSaveScope vpScope(commandList);
 			OrthoMatrix matProj(0, vpScope[2], 0, vpScope[3], -1, 1);
 			MatrixSaveScope matScope(matProj);
 
-			RHISetDepthStencilState(StaticDepthDisableState::GetRHI());
-			DrawUtility::DrawTexture(*mShaderData.colorStorageTexture, IntVector2(0, 0), IntVector2(200,200));
+			RHISetDepthStencilState(commandList, StaticDepthDisableState::GetRHI());
+			DrawUtility::DrawTexture(commandList, *mShaderData.colorStorageTexture, IntVector2(0, 0), IntVector2(200,200));
 			glMemoryBarrier(GL_ALL_BARRIER_BITS);
 
 		}
@@ -1378,11 +1378,11 @@ namespace Render
 			ShaderManager::Get().reloadShader(*mShaderBMAResolves[i]);
 	}
 
-	void OITTechnique::renderInternal(ViewInfo& view, std::function< void() > drawFuncion , SceneRenderTargets* sceneRenderTargets )
+	void OITTechnique::renderInternal(RHICommandList& commandList, ViewInfo& view, std::function< void(RHICommandList&) > drawFuncion , SceneRenderTargets* sceneRenderTargets )
 	{
 		GPU_PROFILE("OIT");
 		
-		RHISetRasterizerState(TStaticRasterizerState< ECullMode::None >::GetRHI());
+		RHISetRasterizerState(commandList, TStaticRasterizerState< ECullMode::None >::GetRHI());
 		constexpr bool bWriteDepth = false;
 
 		if ( 1 )
@@ -1396,21 +1396,21 @@ namespace Render
 			{
 				if( 1 )
 				{
-					ShaderHelper::Get().clearBuffer(*mShaderData.colorStorageTexture, clearValueA);
-					ShaderHelper::Get().clearBuffer(*mShaderData.nodeAndDepthStorageTexture, clearValueB);
+					ShaderHelper::Get().clearBuffer(commandList, *mShaderData.colorStorageTexture, clearValueA);
+					ShaderHelper::Get().clearBuffer(commandList, *mShaderData.nodeAndDepthStorageTexture, clearValueB);
 				}
 				else
 				{
 					GL_BIND_LOCK_OBJECT(mFrameBuffer);
-					ViewportSaveScope vpScope;
-					RHISetViewport(0, 0, OIT_StorageSize, OIT_StorageSize);
+					ViewportSaveScope vpScope(commandList);
+					RHISetViewport(commandList, 0, 0, OIT_StorageSize, OIT_StorageSize);
 					glClearBufferfv(GL_COLOR, 0, clearValueA);
 					glClearBufferiv(GL_COLOR, 1, clearValueB);
 					//glClearBufferuiv(GL_COLOR, 2, clearValueC);
 				}
 			}
 
-			ShaderHelper::Get().clearBuffer(*mShaderData.nodeHeadTexture, clearValueC);
+			ShaderHelper::Get().clearBuffer(commandList, *mShaderData.nodeHeadTexture, clearValueC);
 			glMemoryBarrier(GL_ALL_BARRIER_BITS);
 		}
 
@@ -1422,7 +1422,7 @@ namespace Render
 			glClearStencil(0);
 			glClear(GL_STENCIL_BUFFER_BIT);
 
-			RHISetDepthStencilState(
+			RHISetDepthStencilState(commandList,
 				TStaticDepthStencilState< 
 					bWriteDepth , ECompareFun::Less , 
 					true , ECompareFun::Always , Stencil::eKeep , Stencil::eKeep , Stencil::eIncr , 0xff
@@ -1431,12 +1431,12 @@ namespace Render
 		}
 		else
 		{
-			RHISetDepthStencilState( TStaticDepthStencilState< bWriteDepth >::GetRHI());
+			RHISetDepthStencilState(commandList, TStaticDepthStencilState< bWriteDepth >::GetRHI());
 		}
 		if( 1 )
 		{
 			GPU_PROFILE("BasePass");
-			RHISetBlendState(TStaticBlendState<CWM_NONE>::GetRHI());
+			RHISetBlendState(commandList, TStaticBlendState<CWM_NONE>::GetRHI());
 
 			uint32* value = (uint32*)RHILockBuffer(mShaderData.storageUsageCounter , ELockAccess::WriteOnly);
 			*value = 0;
@@ -1444,7 +1444,7 @@ namespace Render
 			glMemoryBarrier(GL_ALL_BARRIER_BITS);
 
 			//GL_BIND_LOCK_OBJECT(sceneRenderTargets.getFrameBuffer());
-			drawFuncion();
+			drawFuncion(commandList);
 			glFlush();
 			glMemoryBarrier(GL_ALL_BARRIER_BITS);
 
@@ -1454,8 +1454,8 @@ namespace Render
 		{
 			GPU_PROFILE("Resolve");
 
-			RHISetBlendState(TStaticBlendState<CWM_RGBA, Blend::eSrcAlpha, Blend::eOneMinusSrcAlpha >::GetRHI());
-			ViewportSaveScope vpScope;
+			RHISetBlendState(commandList, TStaticBlendState<CWM_RGBA, Blend::eSrcAlpha, Blend::eOneMinusSrcAlpha >::GetRHI());
+			ViewportSaveScope vpScope(commandList);
 			OrthoMatrix matProj(0, vpScope[2], 0, vpScope[3], -1, 1);
 			MatrixSaveScope matScope(matProj);
 
@@ -1465,26 +1465,26 @@ namespace Render
 				for( int i = 0; i < NumBMALevel; ++i )
 				{
 					GPU_PROFILE("BMA=%d", BMA_MaxPixelCounts[i]);
-					RHISetDepthStencilState(
+					RHISetDepthStencilState(commandList,
 						TStaticDepthStencilState< bWriteDepth, ECompareFun::Always ,
 							true , ECompareFun::LessEqual , Stencil::eKeep , Stencil::eZero , Stencil::eZero , 0xff 
 						>::GetRHI() , BMA_InternalValMin[i]);
 
 					BMAResolveProgram* shaderprogram = mShaderBMAResolves[i];
 					GL_BIND_LOCK_OBJECT(shaderprogram);
-					shaderprogram->setParameters( mShaderData );
-					mScreenMesh.drawShader();
+					shaderprogram->setParameters(commandList, mShaderData );
+					mScreenMesh.drawShader(commandList);
 				}
 
 			}
 			else
 			{
-				RHISetDepthStencilState(TStaticDepthStencilState< bWriteDepth , ECompareFun::Always >::GetRHI());
+				RHISetDepthStencilState(commandList, TStaticDepthStencilState< bWriteDepth , ECompareFun::Always >::GetRHI());
 
 				BMAResolveProgram* shaderprogram = mShaderBMAResolves[0];
 				GL_BIND_LOCK_OBJECT(shaderprogram);
-				shaderprogram->setParameters(mShaderData);
-				mScreenMesh.drawShader();
+				shaderprogram->setParameters(commandList, mShaderData);
+				mScreenMesh.drawShader(commandList);
 			}
 
 			
@@ -1493,9 +1493,9 @@ namespace Render
 		if( sceneRenderTargets )
 			sceneRenderTargets->getFrameBuffer().unbind();
 
-		RHISetBlendState(TStaticBlendState<>::GetRHI());
-		RHISetDepthStencilState(TStaticDepthStencilState<>::GetRHI());
-		RHISetRasterizerState(TStaticRasterizerState<>::GetRHI());
+		RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
+		RHISetDepthStencilState(commandList, TStaticDepthStencilState<>::GetRHI());
+		RHISetRasterizerState(commandList, TStaticRasterizerState<>::GetRHI());
 	}
 
 
@@ -1530,20 +1530,20 @@ namespace Render
 			mParamOITCommon.bindParameters(parameterMap);
 		}
 
-		void setParameters( OITShaderData& data )
+		void setParameters(RHICommandList& commandList, OITShaderData& data )
 		{
-			mParamOITCommon.setParameters(*this, data);
+			mParamOITCommon.setParameters(commandList, *this, data);
 		}
 
 		OITCommonParameter mParamOITCommon;
 	};
 
-	void OITTechnique::setupShader(ShaderProgram& program)
+	void OITTechnique::setupShader(RHICommandList& commandList, ShaderProgram& program)
 	{
-		program.setRWTexture(SHADER_PARAM(ColorStorageRWTexture), *mShaderData.colorStorageTexture, AO_WRITE_ONLY);
-		program.setRWTexture(SHADER_PARAM(NodeAndDepthStorageRWTexture), *mShaderData.nodeAndDepthStorageTexture, AO_READ_AND_WRITE);
-		program.setRWTexture(SHADER_PARAM(NodeHeadRWTexture), *mShaderData.nodeHeadTexture, AO_READ_AND_WRITE);
-		program.setAtomicCounterBuffer(SHADER_PARAM(NextIndex), *mShaderData.storageUsageCounter);
+		program.setRWTexture(commandList, SHADER_PARAM(ColorStorageRWTexture), *mShaderData.colorStorageTexture, AO_WRITE_ONLY);
+		program.setRWTexture(commandList, SHADER_PARAM(NodeAndDepthStorageRWTexture), *mShaderData.nodeAndDepthStorageTexture, AO_READ_AND_WRITE);
+		program.setRWTexture(commandList, SHADER_PARAM(NodeHeadRWTexture), *mShaderData.nodeHeadTexture, AO_READ_AND_WRITE);
+		program.setAtomicCounterBuffer(commandList, SHADER_PARAM(NextIndex), *mShaderData.storageUsageCounter);
 	}
 
 	MaterialShaderProgram* OITTechnique::getMaterialShader(RenderContext& context, MaterialMaster& material, VertexFactory* vertexFactory)
@@ -1553,7 +1553,7 @@ namespace Render
 
 	void OITTechnique::setupMaterialShader(RenderContext& context, MaterialShaderProgram& program)
 	{
-		static_cast<OITBBasePassProgram&>(program).setParameters(mShaderData);
+		static_cast<OITBBasePassProgram&>(program).setParameters(context.getCommnadList(), mShaderData);
 	}
 
 	void BMAResolveProgram::bindParameters(ShaderParameterMap& parameterMap)
@@ -1563,11 +1563,11 @@ namespace Render
 		parameterMap.bind(mParamNodeHeadTexture, SHADER_PARAM(NodeHeadTexture));
 	}
 
-	void BMAResolveProgram::setParameters( OITShaderData& data )
+	void BMAResolveProgram::setParameters(RHICommandList& commandList, OITShaderData& data )
 	{
-		setRWTexture(mParamColorStorageTexture, *data.colorStorageTexture, AO_READ_AND_WRITE);
-		setRWTexture(mParamNodeAndDepthStorageTexture, *data.nodeAndDepthStorageTexture, AO_READ_AND_WRITE);
-		setRWTexture(mParamNodeHeadTexture, *data.nodeHeadTexture, AO_READ_AND_WRITE);
+		setRWTexture(commandList, mParamColorStorageTexture, *data.colorStorageTexture, AO_READ_AND_WRITE);
+		setRWTexture(commandList, mParamNodeAndDepthStorageTexture, *data.nodeAndDepthStorageTexture, AO_READ_AND_WRITE);
+		setRWTexture(commandList, mParamNodeHeadTexture, *data.nodeHeadTexture, AO_READ_AND_WRITE);
 	}
 
 	void SSAOGenerateProgram::bindParameters(ShaderParameterMap& parameterMap)
@@ -1578,12 +1578,12 @@ namespace Render
 		parameterMap.bind(mParamOcclusionRadius, SHADER_PARAM(OcclusionRadius));
 	}
 
-	void SSAOGenerateProgram::setParameters(SceneRenderTargets& sceneRenderTargets, Vector3 kernelVectors[], int numKernelVector)
+	void SSAOGenerateProgram::setParameters(RHICommandList& commandList, SceneRenderTargets& sceneRenderTargets, Vector3 kernelVectors[], int numKernelVector)
 	{
-		mParamGBuffer.setParameters(*this, sceneRenderTargets);
-		setParam(mParamKernelNum, (int)numKernelVector);
-		setParam(mParamKernelVectors, &kernelVectors[0], numKernelVector);
-		setParam(mParamOcclusionRadius, 0.5f);
+		mParamGBuffer.setParameters(commandList, *this, sceneRenderTargets);
+		setParam(commandList, mParamKernelNum, (int)numKernelVector);
+		setParam(commandList, mParamKernelVectors, &kernelVectors[0], numKernelVector);
+		setParam(commandList, mParamOcclusionRadius, 0.5f);
 	}
 
 	void SSAOBlurProgram::bindParameters(ShaderParameterMap& parameterMap)
@@ -1591,9 +1591,9 @@ namespace Render
 		parameterMap.bind(mParamTextureSSAO, SHADER_PARAM(TextureSSAO));
 	}
 
-	void SSAOBlurProgram::setParameters(RHITexture2D& SSAOTexture)
+	void SSAOBlurProgram::setParameters(RHICommandList& commandList, RHITexture2D& SSAOTexture)
 	{
-		setTexture(mParamTextureSSAO, SSAOTexture);
+		setTexture(commandList, mParamTextureSSAO, SSAOTexture);
 	}
 
 	void SSAOAmbientProgram::bindParameters(ShaderParameterMap& parameterMap)
@@ -1602,10 +1602,10 @@ namespace Render
 		parameterMap.bind(mParamTextureSSAO, SHADER_PARAM(TextureSSAO));
 	}
 
-	void SSAOAmbientProgram::setParameters(SceneRenderTargets& sceneRenderTargets, RHITexture2D& SSAOTexture)
+	void SSAOAmbientProgram::setParameters(RHICommandList& commandList, SceneRenderTargets& sceneRenderTargets, RHITexture2D& SSAOTexture)
 	{
-		mParamGBuffer.setParameters(*this, sceneRenderTargets.getGBuffer());
-		setTexture(mParamTextureSSAO, SSAOTexture);
+		mParamGBuffer.setParameters(commandList, *this, sceneRenderTargets.getGBuffer());
+		setTexture(commandList, mParamTextureSSAO, SSAOTexture);
 	}
 
 	void GBufferShaderParameters::bindParameters(ShaderParameterMap& parameterMap, bool bUseDepth /*= false */)
@@ -1620,24 +1620,24 @@ namespace Render
 		}
 	}
 
-	void GBufferShaderParameters::setParameters(ShaderProgram& program, GBufferParamData& GBufferData)
+	void GBufferShaderParameters::setParameters(RHICommandList& commandList, ShaderProgram& program, GBufferParamData& GBufferData)
 	{
 		if( mParamGBufferTextureA.isBound() )
-			program.setTexture(mParamGBufferTextureA, *GBufferData.textures[GBufferParamData::BufferA]);
+			program.setTexture(commandList, mParamGBufferTextureA, *GBufferData.textures[GBufferParamData::BufferA]);
 		if( mParamGBufferTextureB.isBound() )
-			program.setTexture(mParamGBufferTextureB, *GBufferData.textures[GBufferParamData::BufferB]);
+			program.setTexture(commandList, mParamGBufferTextureB, *GBufferData.textures[GBufferParamData::BufferB]);
 		if( mParamGBufferTextureC.isBound() )
-			program.setTexture(mParamGBufferTextureC, *GBufferData.textures[GBufferParamData::BufferC]);
+			program.setTexture(commandList, mParamGBufferTextureC, *GBufferData.textures[GBufferParamData::BufferC]);
 		if( mParamGBufferTextureD.isBound() )
-			program.setTexture(mParamGBufferTextureD, *GBufferData.textures[GBufferParamData::BufferD]);
+			program.setTexture(commandList, mParamGBufferTextureD, *GBufferData.textures[GBufferParamData::BufferD]);
 	}
 
-	void GBufferShaderParameters::setParameters(ShaderProgram& program, SceneRenderTargets& sceneRenderTargets)
+	void GBufferShaderParameters::setParameters(RHICommandList& commandList, ShaderProgram& program, SceneRenderTargets& sceneRenderTargets)
 	{
-		setParameters(program, sceneRenderTargets.getGBuffer());
+		setParameters(commandList, program, sceneRenderTargets.getGBuffer());
 		if( mParamFrameDepthTexture.isBound() )
 		{
-			program.setTexture(mParamFrameDepthTexture, sceneRenderTargets.getDepthTexture());
+			program.setTexture(commandList, mParamFrameDepthTexture, sceneRenderTargets.getDepthTexture());
 		}
 	}
 
@@ -1818,15 +1818,15 @@ namespace Render
 			parameterMap.bind(mParamTextureB, SHADER_PARAM(TextureB));
 		}
 
-		void setParameters(RHITexture2D& textureR, RHITexture2D& textureG, RHITexture2D& textureB)
+		void setParameters(RHICommandList& commandList, RHITexture2D& textureR, RHITexture2D& textureG, RHITexture2D& textureB)
 		{
 			auto& sampler = TStaticSamplerState< Sampler::eBilinear, Sampler::eClamp, Sampler::eClamp, Sampler::eClamp >::GetRHI();
 			if ( mParamTextureR.isBound() )
-			setTexture(mParamTextureR, textureR, sampler);
+			setTexture(commandList, mParamTextureR, textureR, sampler);
 			if( mParamTextureG.isBound() )
-			setTexture(mParamTextureG, textureG, sampler);
+			setTexture(commandList, mParamTextureG, textureG, sampler);
 			if( mParamTextureB.isBound() )
-			setTexture(mParamTextureB, textureB, sampler);
+			setTexture(commandList, mParamTextureB, textureB, sampler);
 		}
 
 		ShaderParameter mParamTextureR;
@@ -1887,24 +1887,24 @@ namespace Render
 	}
 
 
-	void PostProcessDOF::render(ViewInfo& view, SceneRenderTargets& sceneRenderTargets)
+	void PostProcessDOF::render(RHICommandList& commandList, ViewInfo& view, SceneRenderTargets& sceneRenderTargets)
 	{
 
 		auto& sampler = TStaticSamplerState< Sampler::eBilinear, Sampler::eClamp, Sampler::eClamp , Sampler::eClamp >::GetRHI();
-		ViewportSaveScope vpScope;
+		ViewportSaveScope vpScope(commandList);
 
 		{
 			GL_BIND_LOCK_OBJECT(mFrameBufferBlur);
 			RHITexture2D& frameTexture = sceneRenderTargets.getFrameTexture();
 
-			RHISetViewport(0, 0, frameTexture.getSizeX(), frameTexture.getSizeY());
-			RHISetBlendState(TStaticBlendState<>::GetRHI());
-			RHISetDepthStencilState(StaticDepthDisableState::GetRHI());
+			RHISetViewport(commandList, 0, 0, frameTexture.getSizeX(), frameTexture.getSizeY());
+			RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
+			RHISetDepthStencilState(commandList, StaticDepthDisableState::GetRHI());
 
 			GL_BIND_LOCK_OBJECT(*mProgBlurV);
-			mProgBlurV->setTexture(SHADER_PARAM(Texture), frameTexture , sampler);
+			mProgBlurV->setTexture(commandList, SHADER_PARAM(Texture), frameTexture , sampler);
 
-			DrawUtility::ScreenRectShader();
+			DrawUtility::ScreenRectShader(commandList);
 		}
 
 		{
@@ -1912,14 +1912,14 @@ namespace Render
 			GL_BIND_LOCK_OBJECT(sceneRenderTargets.getFrameBuffer());
 
 			RHITexture2D& frameTexture = sceneRenderTargets.getPrevFrameTexture();
-			RHISetViewport(0, 0, frameTexture.getSizeX(), frameTexture.getSizeY());
-			RHISetBlendState(TStaticBlendState<>::GetRHI());
-			RHISetDepthStencilState(StaticDepthDisableState::GetRHI());
+			RHISetViewport(commandList, 0, 0, frameTexture.getSizeX(), frameTexture.getSizeY());
+			RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
+			RHISetDepthStencilState(commandList, StaticDepthDisableState::GetRHI());
 
 			GL_BIND_LOCK_OBJECT(*mProgBlurHAndCombine);
-			mProgBlurHAndCombine->setParameters(*mTextureBlurR, *mTextureBlurG, *mTextureBlurB);
+			mProgBlurHAndCombine->setParameters(commandList, *mTextureBlurR, *mTextureBlurG, *mTextureBlurB);
 			//mProgBlurHAndCombine->setTexture(SHADER_PARAM(Texture), frameTexture, sampler);
-			DrawUtility::ScreenRectShader();
+			DrawUtility::ScreenRectShader(commandList);
 		}	
 	}
 
@@ -1938,19 +1938,19 @@ namespace Render
 			parameterMap.bind(mParamClearValue, SHADER_PARAM(ClearValue));
 		}
 
-		void setParameters(RHITexture3D& Buffer , Vector4 const& clearValue)
+		void setParameters(RHICommandList& commandList, RHITexture3D& Buffer , Vector4 const& clearValue)
 		{
-			setRWTexture(mParamBufferRW, Buffer, AO_WRITE_ONLY);
-			setParam(mParamClearValue, clearValue);
+			setRWTexture(commandList, mParamBufferRW, Buffer, AO_WRITE_ONLY);
+			setParam(commandList, mParamClearValue, clearValue);
 		}
 		
-		void clearTexture(RHITexture3D& buffer , Vector4 const& clearValue)
+		void clearTexture(RHICommandList& commandList, RHITexture3D& buffer , Vector4 const& clearValue)
 		{
 			int nx = (buffer.getSizeX() + SizeX - 1) / SizeX;
 			int ny = (buffer.getSizeY() + SizeY - 1) / SizeY;
 			int nz = (buffer.getSizeZ() + SizeZ - 1) / SizeZ;
 			GL_BIND_LOCK_OBJECT(*this)
-			setParameters(buffer, clearValue);
+			setParameters(commandList, buffer, clearValue);
 			glDispatchCompute(nx, ny, nz);
 		}
 
@@ -2000,14 +2000,14 @@ namespace Render
 			parameterMap.bind(mParamTiledLightNum, SHADER_PARAM(TiledLightNum));
 		}
 
-		void setParameters(ViewInfo& view , VolumetricLightingParameter& parameter )
+		void setParameters(RHICommandList& commandList, ViewInfo& view , VolumetricLightingParameter& parameter )
 		{
-			setTexture(mParamVolumeBufferA, *parameter.volumeBuffer[0]);
-			setTexture(mParamVolumeBufferB, *parameter.volumeBuffer[1]);
-			setRWTexture(mParamScatteringRWBuffer, *parameter.scatteringBuffer[0], AO_WRITE_ONLY);
-			setStructuredBufferT<TiledLightInfo>(*parameter.lightBuffer);
-			view.setupShader(*this);
-			setParam(mParamTiledLightNum, parameter.numLights);
+			setTexture(commandList, mParamVolumeBufferA, *parameter.volumeBuffer[0]);
+			setTexture(commandList, mParamVolumeBufferB, *parameter.volumeBuffer[1]);
+			setRWTexture(commandList, mParamScatteringRWBuffer, *parameter.scatteringBuffer[0], AO_WRITE_ONLY);
+			setStructuredStorageBufferT<TiledLightInfo>(commandList, *parameter.lightBuffer);
+			view.setupShader(commandList, *this);
+			setParam(commandList, mParamTiledLightNum, parameter.numLights);
 		}
 
 		static void SetupShaderCompileOption(ShaderCompileOption& option)
@@ -2066,13 +2066,13 @@ namespace Render
 		return mVolumeBufferA.isValid() && mVolumeBufferB.isValid() && mScatteringBuffer.isValid() && mTiledLightBuffer.isValid();
 	}
 
-	void VolumetricLightingTech::render(ViewInfo& view, std::vector< LightInfo > const& lights)
+	void VolumetricLightingTech::render(RHICommandList& commandList, ViewInfo& view, std::vector< LightInfo > const& lights)
 	{
 		{
 			GPU_PROFILE("ClearBuffer");
-			mProgClearBuffer->clearTexture(*mVolumeBufferA, Vector4(0, 0, 0, 0));
-			mProgClearBuffer->clearTexture(*mVolumeBufferB, Vector4(0, 0, 0, 0));
-			mProgClearBuffer->clearTexture(*mScatteringBuffer, Vector4(0, 0, 0, 0));
+			mProgClearBuffer->clearTexture(commandList, *mVolumeBufferA, Vector4(0, 0, 0, 0));
+			mProgClearBuffer->clearTexture(commandList, *mVolumeBufferB, Vector4(0, 0, 0, 0));
+			mProgClearBuffer->clearTexture(commandList, *mScatteringBuffer, Vector4(0, 0, 0, 0));
 		}
 
 		TiledLightInfo* pInfo = (TiledLightInfo*)RHILockBuffer( mTiledLightBuffer , ELockAccess::WriteOnly, 0, sizeof(TiledLightInfo) * lights.size());
@@ -2104,7 +2104,7 @@ namespace Render
 		{
 			GPU_PROFILE("LightScattering");
 			GL_BIND_LOCK_OBJECT(*mProgLightScattering);
-			mProgLightScattering->setParameters(view , parameter);
+			mProgLightScattering->setParameters(commandList, view , parameter);
 		}
 	}
 

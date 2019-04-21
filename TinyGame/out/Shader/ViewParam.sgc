@@ -35,14 +35,6 @@ uniform ViewParameters View;
 
 uniform sampler2D FrameDepthTexture;
 
-float BufferDepthToClipZ(float bufferDepth)
-{
-#if COMPILER_GLSL
-	return 2 * bufferDepth / gl_DepthRange.diff - 1;
-#else
-	return bufferDepth;
-#endif
-}
 
 float2 ScreenUVToBufferUV(float2 screenUVs)
 {

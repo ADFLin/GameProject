@@ -6,6 +6,7 @@
 
 class Graphics2D;
 class ActionTrigger;
+struct ActionPort;
 
 namespace Bubble
 {
@@ -33,7 +34,7 @@ namespace Bubble
 		void   roteRight( float delta );
 		void   render( Graphics2D& g );
 
-		void   fireAction( ActionTrigger& tigger );
+		void   fireAction(ActionPort port, ActionTrigger& tigger );
 
 		void onUpdateShootBubble( Level::Bubble* bubble , unsigned result );
 		void onRemoveShootBubble( Level::Bubble* bubble );

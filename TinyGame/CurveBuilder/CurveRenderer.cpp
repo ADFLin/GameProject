@@ -64,9 +64,9 @@ namespace CB
 			mParamOITCommon.bindParameters(parameterMap);
 		}
 
-		void setParameters(OITShaderData& data)
+		void setParameters(RHICommandList& commandList, OITShaderData& data)
 		{
-			mParamOITCommon.setParameters(*this, data);
+			mParamOITCommon.setParameters(commandList, *this, data);
 		}
 
 		OITCommonParameter mParamOITCommon;
@@ -99,12 +99,12 @@ namespace CB
 			parameterMap.bind(mParamDensityAndSize, SHADER_PARAM(DensityAndSize));
 		}
 
-		void setParameters( Vector4 const& inColor , float inNormalLength , int inDensity , int inSize )
+		void setParameters(RHICommandList& commandList, Vector4 const& inColor , float inNormalLength , int inDensity , int inSize )
 		{
-			setParam(mParamNormalLength, inNormalLength);
+			setParam(commandList, mParamNormalLength, inNormalLength);
 			if ( mParamNormalColor.isBound() )
-				setParam(mParamNormalColor, inColor);
-			setParam(mParamDensityAndSize, IntVector2( inDensity , inSize ) );
+				setParam(commandList, mParamNormalColor, inColor);
+			setParam(commandList, mParamDensityAndSize, IntVector2( inDensity , inSize ) );
 		}
 
 		ShaderParameter mParamDensityAndSize;
@@ -138,8 +138,9 @@ namespace CB
 		return true;
 	}
 
-	void CurveRenderer::beginRender()
+	void CurveRenderer::beginRender(RHICommandList& commandList)
 	{
+		mCommandList = &commandList;
 		mTranslucentDraw.clear();
 
 		//#TODO : REMOVE
@@ -153,14 +154,14 @@ namespace CB
 	{
 		if( !mTranslucentDraw.empty() )
 		{
-			auto DrawFun = [this]()
+			auto DrawFun = [this](RHICommandList& commandList)
 			{
 				for( auto& fun : mTranslucentDraw )
 				{
-					fun();
+					fun(commandList);
 				}
 			};
-			mOITTech.renderInternal(mViewInfo, DrawFun, nullptr);
+			mOITTech.renderInternal(*mCommandList , mViewInfo, DrawFun, nullptr);
 		}
 	}
 
@@ -171,6 +172,7 @@ namespace CB
 		if( !surface.getFunction()->isParsed() )
 			return;
 
+		RHICommandList& commandList = *mCommandList;
 		if( surface.needDrawLine() )
 		{
 			glEnable(GL_POLYGON_OFFSET_FILL);
@@ -178,7 +180,7 @@ namespace CB
 
 			Color4f const& surfaceColor = surface.getColor();
 			Color4f const color = Color4f(1 - surfaceColor.r, 1 - surfaceColor.g, 1 - surfaceColor.b);
-			RHISetupFixedPipelineState(mViewInfo.worldToView, mViewInfo.viewToClip);
+			RHISetupFixedPipelineState(commandList, mViewInfo.worldToView, mViewInfo.viewToClip);
 			drawMeshLine( surface , color );
 
 			glDisable(GL_POLYGON_OFFSET_FILL);
@@ -188,12 +190,12 @@ namespace CB
 		{
 			if( surface.getColor().a < 1.0 )
 			{
-				auto DrawFun = [this, &surface]()
+				auto DrawFun = [this, &surface](RHICommandList& commandList)
 				{
 					GL_BIND_LOCK_OBJECT(*mProgCurveMeshOIT);
-					mViewInfo.setupShader(*mProgCurveMeshOIT);
-					mProgCurveMeshOIT->setParameters(mOITTech.mShaderData);
-					RHISetRasterizerState(TStaticRasterizerState<ECullMode::None>::GetRHI());					
+					mViewInfo.setupShader(commandList, *mProgCurveMeshOIT);
+					mProgCurveMeshOIT->setParameters(commandList, mOITTech.mShaderData);
+					RHISetRasterizerState(commandList, TStaticRasterizerState<ECullMode::None>::GetRHI());
 					drawMesh(surface);
 				};
 				mTranslucentDraw.push_back(DrawFun);
@@ -202,7 +204,7 @@ namespace CB
 			else
 			{
 				GL_BIND_LOCK_OBJECT(*mProgCurveMesh);
-				mViewInfo.setupShader(*mProgCurveMesh);
+				mViewInfo.setupShader(commandList, *mProgCurveMesh);
 				drawMesh(surface);
 			}
 		}
@@ -299,11 +301,11 @@ namespace CB
 		int const stride = data->getVertexSize();
 		if( data->getNormalOffset() != -1 )
 		{
-			TRenderRT< RTVF_XYZ_CA_N >::DrawIndexedShader(PrimitiveType::TriangleList, vertexData, data->getVertexNum(), data->getIndexData(), data->getIndexNum() , data->getVertexSize());
+			TRenderRT< RTVF_XYZ_CA_N >::DrawIndexedShader(*mCommandList, PrimitiveType::TriangleList, vertexData, data->getVertexNum(), data->getIndexData(), data->getIndexNum() , data->getVertexSize());
 		}
 		else
 		{
-			TRenderRT< RTVF_XYZ_CA >::DrawIndexedShader(PrimitiveType::TriangleList, vertexData, data->getVertexNum(), data->getIndexData(), data->getIndexNum(), data->getVertexSize());
+			TRenderRT< RTVF_XYZ_CA >::DrawIndexedShader(*mCommandList, PrimitiveType::TriangleList, vertexData, data->getVertexNum(), data->getIndexData(), data->getIndexNum(), data->getVertexSize());
 		}
 	}
 
@@ -374,7 +376,7 @@ namespace CB
 	{
 		RenderData* data = shape.getRenderData();
 		assert(data);
-		TRenderRT< RTVF_XYZ_CA >::Draw(PrimitiveType::Points, data->getVertexData(), data->getVertexNum(), data->getVertexSize());
+		TRenderRT< RTVF_XYZ_CA >::Draw(*mCommandList, PrimitiveType::Points, data->getVertexData(), data->getVertexNum(), data->getVertexSize());
 	}
 
 
@@ -386,11 +388,12 @@ namespace CB
 		if( data->getNormalOffset() == -1 )
 			return;
 
+
 		int d = std::max(1, int(1.0f / surface.getMeshLineDensity()));
 		GL_BIND_LOCK_OBJECT(*mProgMeshNormalVisualize);
-		mProgMeshNormalVisualize->setParameters( Vector4(1,0,0,1) , length , d , surface.getParamU().getNumData());
-		mViewInfo.setupShader(*mProgMeshNormalVisualize);
-		TRenderRT< RTVF_XYZ_CA_N >::DrawShader(PrimitiveType::Points, data->getVertexData(), data->getVertexNum(), data->getVertexSize());
+		mProgMeshNormalVisualize->setParameters(*mCommandList, Vector4(1,0,0,1) , length , d , surface.getParamU().getNumData());
+		mViewInfo.setupShader(*mCommandList, *mProgMeshNormalVisualize);
+		TRenderRT< RTVF_XYZ_CA_N >::DrawShader(*mCommandList , PrimitiveType::Points, data->getVertexData(), data->getVertexNum(), data->getVertexSize());
 
 	}
 
@@ -484,7 +487,7 @@ namespace CB
 		RenderData* data = curve.getRenderData();
 		assert(data);
 		glLineWidth(2);
-		TRenderRT< RTVF_XYZ_CA >::Draw(PrimitiveType::LineStrip, data->getVertexData(), data->getVertexNum(), data->getVertexSize());
+		TRenderRT< RTVF_XYZ_CA >::Draw(*mCommandList, PrimitiveType::LineStrip, data->getVertexData(), data->getVertexNum(), data->getVertexSize());
 		glLineWidth(1);
 	}
 

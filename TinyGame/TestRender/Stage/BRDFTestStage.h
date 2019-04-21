@@ -41,8 +41,6 @@ namespace Render
 				outData[i] = &data[i * faceDataSize];
 		}
 
-
-
 		static void GetTextureData(RHITextureCube& texture, Texture::Format format, int level, std::vector< uint8 >& outData)
 		{
 			int formatSize = Texture::GetFormatSize(format);
@@ -98,15 +96,19 @@ namespace Render
 			parameterMap.bind(mParamPrefilteredTexture, SHADER_PARAM(PrefilteredTexture));
 			parameterMap.bind(mParamPreIntegratedBRDFTexture, SHADER_PARAM(PreIntegratedBRDFTexture));
 		}
-		void setParameters( ShaderProgram& shader , IBLResource const& resource)
+		void setParameters(RHICommandList& commandList, ShaderProgram& shader , IBLResource const& resource)
 		{
-			shader.setTexture(mParamIrradianceTexture, resource.irradianceTexture);
-			shader.setTexture(mParamPrefilteredTexture , resource.perfilteredTexture,
+			if( mParamIrradianceTexture.isBound() )
+			{
+				shader.setTexture(commandList, mParamIrradianceTexture, resource.irradianceTexture);
+			}
+
+			shader.setTexture(commandList, mParamPrefilteredTexture , resource.perfilteredTexture,
 							  TStaticSamplerState< Sampler::eTrilinear, Sampler::eClamp, Sampler::eClamp, Sampler::eClamp > ::GetRHI());
 
 			if ( resource.SharedBRDFTexture.isValid() )
 			{
-				shader.setTexture(mParamPreIntegratedBRDFTexture, *resource.SharedBRDFTexture ,
+				shader.setTexture(commandList, mParamPreIntegratedBRDFTexture, *resource.SharedBRDFTexture ,
 								  TStaticSamplerState< Sampler::eBilinear, Sampler::eClamp, Sampler::eClamp > ::GetRHI());
 			}
 		}
@@ -168,9 +170,9 @@ namespace Render
 			mParamIBL.bindParameters(parameterMap);
 		}
 
-		void setParameters(IBLResource const& IBL)
+		void setParameters(RHICommandList& commandList, IBLResource const& IBL)
 		{
-			mParamIBL.setParameters(*this, IBL);
+			mParamIBL.setParameters(commandList, *this, IBL);
 		}
 
 		IBLShaderParameters mParamIBL;
@@ -195,14 +197,14 @@ namespace Render
 			}
 		}
 
-		void setParameters(ShaderProgram& shader, PostProcessContext const& context)
+		void setParameters(RHICommandList& commandList, ShaderProgram& shader, PostProcessContext const& context)
 		{
 			for( int i = 0; i < MaxInputNum; ++i )
 			{
 				if( !mParamTextureInput[i].isBound() )
 					break;
 				if( context.getTexture(i) )
-					shader.setTexture(mParamTextureInput[i], *context.getTexture(i));
+					shader.setTexture(commandList, mParamTextureInput[i], *context.getTexture(i));
 			}
 		}
 
@@ -238,9 +240,9 @@ namespace Render
 		{
 			parameterMap.bind(mParamTargetTexture, SHADER_PARAM(TargetTexture));
 		}
-		void setParameters(PostProcessContext const& context, RHITexture2D& targetTexture)
+		void setParameters(RHICommandList& commandList, PostProcessContext const& context, RHITexture2D& targetTexture)
 		{
-			setTexture(mParamTargetTexture, targetTexture, TStaticSamplerState< Sampler::ePoint, Sampler::eClamp, Sampler::eClamp >::GetRHI());
+			setTexture(commandList, mParamTargetTexture, targetTexture, TStaticSamplerState< Sampler::ePoint, Sampler::eClamp, Sampler::eClamp >::GetRHI());
 		}
 
 		ShaderParameter mParamTargetTexture;
@@ -271,9 +273,9 @@ namespace Render
 		{
 			mParamPostProcess.bindParameters(parameterMap);
 		}
-		void setParameters(PostProcessContext const& context)
+		void setParameters(RHICommandList& commandList, PostProcessContext const& context)
 		{
-			mParamPostProcess.setParameters(*this, context);
+			mParamPostProcess.setParameters(commandList, *this, context);
 		}
 		PostProcessParameters mParamPostProcess;
 
@@ -301,11 +303,26 @@ namespace Render
 		}
 	};
 
+
+	struct IBLBuildSetting
+	{
+		int irradianceSampleCount[2];
+		int prefilterSampleCount;
+		int BRDFSampleCount;
+
+		IBLBuildSetting()
+		{
+			irradianceSampleCount[0] = 128;
+			irradianceSampleCount[1] = 64;
+			prefilterSampleCount = 2048;
+			BRDFSampleCount = 2048;
+		}
+	};
 	class IBLResourceBuilder
 	{
 	public:
-		bool loadOrBuildResource( DataCacheInterface& dataCache , char const* path, RHITexture2D& HDRImage , IBLResource& resource);
-		bool buildIBLResource(RHITexture2D& envTexture, IBLResource& resource);
+		bool loadOrBuildResource(DataCacheInterface& dataCache, char const* path, RHITexture2D& HDRImage, IBLResource& resource, IBLBuildSetting const& setting = IBLBuildSetting() );
+		bool buildIBLResource(RHITexture2D& envTexture, IBLResource& resource , IBLBuildSetting const& setting );
 		bool initializeShaderProgram();
 
 		class EquirectangularToCubeProgram* mProgEquirectangularToCube = nullptr;
@@ -329,7 +346,7 @@ namespace Render
 		class TonemapProgram* mProgTonemap;
 		class SkyBoxProgram* mProgSkyBox;
 
-		TStructuredUniformBuffer< LightProbeVisualizeParams > mParamBuffer;
+		TStructuredBuffer< LightProbeVisualizeParams > mParamBuffer;
 
 		SceneRenderTargets mSceneRenderTargets;
 

@@ -20,6 +20,7 @@ namespace Math
 	inline int FloorToInt(float val) { return (int)::floor(val); }
 	inline int CeilToInt(float val) { return (int)::ceil(val); }
 
+	inline float Square(float val) { return val * val; }
 	inline float Floor( float val ){ return ::floor( val ); }
 	inline float Sqrt( float val ){ return ::sqrt( val ); }
 	inline float InvSqrt( float val ){ return 1.0f / Sqrt( val ); }
@@ -34,6 +35,7 @@ namespace Math
 	inline float ATan2( float y , float x ){ return ::atan2( y ,x ); }
 	inline float Frac(float val) { float temp; return ::modf(val, &temp); }
 	inline float Log(float val) { return ::logf(val); }
+	inline float LogX(float base, float value) { return Log(value) / Log(base); }
 
 	inline double FloorToInt(double val) { return ::floor(val); }
 	inline double Abs(double val) { return ::abs(val); }

@@ -186,6 +186,9 @@ namespace Render
 			mProfileCore = new OpenglProfileCore;
 			GpuProfiler::Get().setCore(mProfileCore);
 		}
+
+		mDrawContext.initialize();
+		mImmediateCommandList = new RHICommandListImpl(mDrawContext);
 		return true;
 	}
 
@@ -197,6 +200,9 @@ namespace Render
 			delete mProfileCore;
 			mProfileCore = nullptr;
 		}
+
+		delete mImmediateCommandList;
+
 		mGLContext.cleanup();
 	}
 
@@ -208,9 +214,9 @@ namespace Render
 		if( 1 )
 		{
 			gForceInitState = true;
-			RHISetDepthStencilState(TStaticDepthStencilState<>::GetRHI(), 0xff);
-			RHISetBlendState(TStaticBlendState<>::GetRHI());
-			RHISetRasterizerState(TStaticRasterizerState<>::GetRHI());
+			RHISetDepthStencilState(*mImmediateCommandList, TStaticDepthStencilState<>::GetRHI(), 0xff);
+			RHISetBlendState(*mImmediateCommandList, TStaticBlendState<>::GetRHI());
+			RHISetRasterizerState(*mImmediateCommandList, TStaticRasterizerState<>::GetRHI());
 			//gForceInitState = false;
 		}
 
@@ -250,7 +256,12 @@ namespace Render
 		return CreateOpenGLResourceT< OpenGLTextureCube >( format , size , numMipLevel , creationFlags , data );
 	}
 
-	RHITextureDepth* OpenGLSystem::RHICreateTextureDepth(Texture::DepthFormat format, int w, int h , int numMipLevel, int numSamples)
+	RHITexture2DArray* OpenGLSystem::RHICreateTexture2DArray(Texture::Format format, int w, int h, int layerSize, int numMipLevel, int numSamples, uint32 creationFlags, void* data)
+	{
+		return CreateOpenGLResourceT< OpenGLTexture2DArray >(format, w, h, layerSize, numMipLevel, numSamples, creationFlags, data);
+	}
+
+	RHITextureDepth* OpenGLSystem::RHICreateTextureDepth(Texture::DepthFormat format, int w, int h, int numMipLevel, int numSamples)
 	{
 		return CreateOpenGLResourceT< OpenGLTextureDepth >(format, w , h , numMipLevel, numSamples);
 	}
@@ -263,11 +274,6 @@ namespace Render
 	RHIIndexBuffer* OpenGLSystem::RHICreateIndexBuffer(uint32 nIndices, bool bIntIndex, uint32 creationFlags, void* data)
 	{
 		return CreateOpenGLResourceT< OpenGLIndexBuffer >(nIndices, bIntIndex, creationFlags, data);
-	}
-
-	RHIUniformBuffer* OpenGLSystem::RHICreateUniformBuffer(uint32 elementSize , uint32 numElement , uint32 creationFlags, void* data)
-	{
-		return CreateOpenGLResourceT< OpenGLUniformBuffer >(elementSize , numElement, creationFlags, data);
 	}
 
 	void* OpenGLSystem::RHILockBuffer(RHIVertexBuffer* buffer, ELockAccess access, uint32 offset, uint32 size)
@@ -294,19 +300,7 @@ namespace Render
 		OpenGLCast::To(buffer)->unlock();
 	}
 
-	void* OpenGLSystem::RHILockBuffer(RHIUniformBuffer* buffer, ELockAccess access, uint32 offset, uint32 size)
-	{
-		if( size )
-			return OpenGLCast::To(buffer)->lock(access, offset, size);
-		return OpenGLCast::To(buffer)->lock(access);
-	}
-
-	void OpenGLSystem::RHIUnlockBuffer(RHIUniformBuffer* buffer)
-	{
-		OpenGLCast::To(buffer)->unlock();
-	}
-
-	Render::RHIInputLayout* OpenGLSystem::RHICreateInputLayout(InputLayoutDesc const& desc)
+	RHIInputLayout* OpenGLSystem::RHICreateInputLayout(InputLayoutDesc const& desc)
 	{
 		return new OpenGLInputLayout(desc);
 	}
@@ -336,7 +330,7 @@ namespace Render
 		return new OpenGLDepthStencilState(initializer);
 	}
 
-	void OpenGLSystem::RHISetRasterizerState(RHIRasterizerState& rasterizerState)
+	void OpenGLContext::RHISetRasterizerState(RHIRasterizerState& rasterizerState)
 	{
 		if( !gForceInitState && &rasterizerState == mDeviceState.rasterizerStateUsage )
 		{
@@ -354,10 +348,16 @@ namespace Render
 			glPolygonMode(GL_FRONT_AND_BACK, setupValue.fillMode);
 		}
 
-		if( GL_STATE_VAR_TEST(bEnalbeCull) )
+		if( GL_STATE_VAR_TEST(bEnableScissor) )
 		{
-			GL_STATE_VAR_ASSIGN(bEnalbeCull);
-			EnableGLState(GL_CULL_FACE, setupValue.bEnalbeCull);
+			GL_STATE_VAR_ASSIGN(bEnableScissor);
+			EnableGLState(GL_SCISSOR_TEST, setupValue.bEnableScissor);
+		}
+
+		if( GL_STATE_VAR_TEST(bEnableCull) )
+		{
+			GL_STATE_VAR_ASSIGN(bEnableCull);
+			EnableGLState(GL_CULL_FACE, setupValue.bEnableCull);
 
 			if( GL_STATE_VAR_TEST(cullFace) )
 			{
@@ -367,7 +367,7 @@ namespace Render
 		}
 	}
 
-	void OpenGLSystem::RHISetBlendState(RHIBlendState& blendState)
+	void OpenGLContext::RHISetBlendState(RHIBlendState& blendState)
 	{
 
 		if( !gForceInitState && &blendState == mDeviceState.blendStateUsage )
@@ -438,7 +438,7 @@ namespace Render
 		}
 	}
 
-	void OpenGLSystem::RHISetDepthStencilState(RHIDepthStencilState& depthStencilState, uint32 stencilRef)
+	void OpenGLContext::RHISetDepthStencilState(RHIDepthStencilState& depthStencilState, uint32 stencilRef)
 	{
 		auto& deviceValue = mDeviceState.depthStencilStateValue;
 		if( !gForceInitState && &depthStencilState == mDeviceState.depthStencilStateUsage )
@@ -563,12 +563,12 @@ namespace Render
 		}
 	}
 
-	void OpenGLSystem::RHISetViewport(int x, int y, int w, int h)
+	void OpenGLContext::RHISetViewport(int x, int y, int w, int h)
 	{
 		glViewport(x, y, w, h);
 	}
 
-	void OpenGLSystem::RHISetScissorRect(bool bEnable, int x, int y, int w, int h)
+	void OpenGLContext::RHISetScissorRect(bool bEnable, int x, int y, int w, int h)
 	{
 		if( mDeviceState.bScissorRectEnabled != bEnable )
 		{
@@ -581,12 +581,12 @@ namespace Render
 		}
 	}
 
-	void OpenGLSystem::RHIDrawPrimitive(PrimitiveType type, int start, int nv)
+	void OpenGLContext::RHIDrawPrimitive(PrimitiveType type, int start, int nv)
 	{
 		glDrawArrays(GLConvert::To(type), start, nv);
 	}
 
-	void OpenGLSystem::RHISetupFixedPipelineState(Matrix4 const& matModelView, Matrix4 const& matProj, int numTexture , RHITexture2D const** textures )
+	void OpenGLContext::RHISetupFixedPipelineState(Matrix4 const& matModelView, Matrix4 const& matProj, int numTexture , RHITexture2D const** textures )
 	{
 		glMatrixMode(GL_PROJECTION);
 		glLoadMatrixf(matProj);
@@ -608,19 +608,19 @@ namespace Render
 		}
 	}
 
-	void OpenGLSystem::RHISetIndexBuffer(RHIIndexBuffer* indexBuffer)
+	void OpenGLContext::RHISetIndexBuffer(RHIIndexBuffer* indexBuffer)
 	{
 		OpenGLCast::To(indexBuffer)->bind();
 	}
 
-	void OpenGLSystem::RHIDrawIndexedPrimitive(PrimitiveType type, ECompValueType indexType, int indexStart, int nIndex)
+	void OpenGLContext::RHIDrawIndexedPrimitive(PrimitiveType type, ECompValueType indexType, int indexStart, int nIndex)
 	{
 		assert(indexType == CVT_UInt || indexType == CVT_UShort);
 		glDrawElements(GLConvert::To(type), nIndex, GLConvert::To(indexType), (void*)indexStart);
 	}
 
 
-	void OpenGLSystem::RHIDrawPrimitiveIndirect(PrimitiveType type, RHIVertexBuffer* commandBuffer, int offset , int numCommand, int commandStride )
+	void OpenGLContext::RHIDrawPrimitiveIndirect(PrimitiveType type, RHIVertexBuffer* commandBuffer, int offset , int numCommand, int commandStride )
 	{
 		assert(commandBuffer);
 		GLenum priType = GLConvert::To(type);
@@ -637,7 +637,7 @@ namespace Render
 		glBindBuffer(GL_DRAW_INDIRECT_BUFFER, 0);
 	}
 
-	void OpenGLSystem::RHIDrawIndexedPrimitiveIndirect(PrimitiveType type, ECompValueType indexType, RHIVertexBuffer* commandBuffer, int offset , int numCommand, int commandStride)
+	void OpenGLContext::RHIDrawIndexedPrimitiveIndirect(PrimitiveType type, ECompValueType indexType, RHIVertexBuffer* commandBuffer, int offset , int numCommand, int commandStride)
 	{
 		assert(commandBuffer);
 		GLenum priType = GLConvert::To(type);
@@ -654,7 +654,7 @@ namespace Render
 		glBindBuffer(GL_DRAW_INDIRECT_BUFFER, 0);
 	}
 
-	void OpenGLSystem::RHIDrawPrimitiveInstanced(PrimitiveType type, int vStart, int nv, int numInstance)
+	void OpenGLContext::RHIDrawPrimitiveInstanced(PrimitiveType type, int vStart, int nv, int numInstance)
 	{
 		GLenum priType = GLConvert::To(type);
 		glDrawArraysInstanced(priType, vStart, nv, numInstance);

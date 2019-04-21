@@ -31,7 +31,7 @@ namespace Render
 	};
 
 
-	void DrawUtility::CubeLine()
+	void DrawUtility::CubeLine(RHICommandList& commandList)
 	{
 		static Vector3 const v[] =
 		{
@@ -42,10 +42,10 @@ namespace Render
 			Vector3(0,0,0),Vector3(1,0,0),Vector3(0,1,0),Vector3(1,1,0),
 			Vector3(0,1,1),Vector3(1,1,1),Vector3(0,0,1),Vector3(1,0,1),
 		};
-		TRenderRT< RTVF_XYZ >::Draw(PrimitiveType::LineList, v, 4 * 6, sizeof(Vector3));
+		TRenderRT< RTVF_XYZ >::Draw(commandList, PrimitiveType::LineList, v, 4 * 6, sizeof(Vector3));
 	}
 
-	void DrawUtility::CubeMesh()
+	void DrawUtility::CubeMesh(RHICommandList& commandList)
 	{
 		static Vector3 const v[] =
 		{
@@ -68,10 +68,10 @@ namespace Render
 			Vector3(1,0,0),Vector3(0,0,-1),Vector3(0,0,0),Vector3(0,0,-1),
 			Vector3(0,1,0),Vector3(0,0,-1),Vector3(1,1,0),Vector3(0,0,-1),
 		};
-		TRenderRT< RTVF_XYZ_N >::Draw(PrimitiveType::Quad, v, 4 * 6, 2 * sizeof(Vector3));
+		TRenderRT< RTVF_XYZ_N >::Draw(commandList, PrimitiveType::Quad, v, 4 * 6, 2 * sizeof(Vector3));
 	}
 
-	void DrawUtility::AixsLine()
+	void DrawUtility::AixsLine(RHICommandList& commandList)
 	{
 		static Vector3 const v[12] =
 		{
@@ -79,10 +79,10 @@ namespace Render
 			Vector3(0,0,0),Vector3(0,1,0), Vector3(0,1,0),Vector3(0,1,0),
 			Vector3(0,0,0),Vector3(0,0,1), Vector3(0,0,1),Vector3(0,0,1),
 		};
-		TRenderRT< RTVF_XYZ_C >::Draw(PrimitiveType::LineList, v, 6, 2 * sizeof(Vector3));
+		TRenderRT< RTVF_XYZ_C >::Draw(commandList, PrimitiveType::LineList, v, 6, 2 * sizeof(Vector3));
 	}
 
-	void DrawUtility::Rect(int x, int y, int width, int height)
+	void DrawUtility::Rect(RHICommandList& commandList, int x, int y, int width, int height)
 	{
 		float x2 = x + width;
 		float y2 = y + height;
@@ -94,10 +94,10 @@ namespace Render
 			{ Vector2(x , y2 ) , Vector2(0,1) },
 		};
 
-		TRenderRT< RTVF_XY_T2 >::Draw(PrimitiveType::Quad, vertices, 4);
+		TRenderRT< RTVF_XY_T2 >::Draw(commandList, PrimitiveType::Quad, vertices, 4);
 	}
 
-	void Render::DrawUtility::Rect(int width, int height)
+	void Render::DrawUtility::Rect(RHICommandList& commandList, int width, int height)
 	{
 		VertexXY_T1 vertices[] =
 		{
@@ -106,10 +106,10 @@ namespace Render
 			{ Vector2(width , height ) , Vector2(1,1) },
 			{ Vector2(0 , height ) , Vector2(0,1) },
 		};
-		TRenderRT< RTVF_XY_T2 >::Draw(PrimitiveType::Quad, vertices, 4);
+		TRenderRT< RTVF_XY_T2 >::Draw(commandList, PrimitiveType::Quad, vertices, 4);
 	}
 
-	void DrawUtility::RectShader(int width, int height)
+	void DrawUtility::RectShader(RHICommandList& commandList, int width, int height)
 	{
 		VertexXY_T1 vertices[] =
 		{
@@ -118,33 +118,45 @@ namespace Render
 			{ Vector2(width , height) , Vector2(1,1) },
 			{ Vector2(0 , height) , Vector2(0,1) },
 		};
-		TRenderRT< RTVF_XY_T2 >::DrawShader(PrimitiveType::Quad, vertices, 4);
+		TRenderRT< RTVF_XY_T2 >::DrawShader(commandList, PrimitiveType::Quad, vertices, 4);
 	}
 
-	void DrawUtility::ScreenRect()
+	void DrawUtility::ScreenRect(RHICommandList& commandList)
 	{
-		TRenderRT< RTVF_XYZW_T2 >::Draw(PrimitiveType::Quad, GScreenVertices, 4);
+		TRenderRT< RTVF_XYZW_T2 >::Draw(commandList, PrimitiveType::Quad, GScreenVertices, 4);
 	}
 
-	void DrawUtility::ScreenRectShader()
+	void DrawUtility::ScreenRectShader(RHICommandList& commandList)
 	{
-		TRenderRT< RTVF_XYZW_T2 >::DrawShader(PrimitiveType::Quad, GScreenVertices, 4);
+		TRenderRT< RTVF_XYZW_T2 >::DrawShader(commandList, PrimitiveType::Quad, GScreenVertices, 4);
 	}
 
-	void DrawUtility::Sprite(Vector2 const& pos, Vector2 const& size, Vector2 const& pivot)
+	void DrawUtility::ScreenRectShader(RHICommandList& commandList, int with, int height)
 	{
-		Sprite( pos, size, pivot, Vector2(0, 0), Vector2(1, 1));
+		VertexXYZW_T1 screenVertices[] =
+		{
+			{ Vector4(-1 , -1 , 0 , 1) , Vector2(0,0) },
+			{ Vector4(1 , -1 , 0 , 1) , Vector2(with,0) },
+			{ Vector4(1, 1 , 0 , 1) , Vector2(with,height) },
+			{ Vector4(-1, 1, 0 , 1) , Vector2(0,height) },
+		};
+		TRenderRT< RTVF_XYZW_T2 >::DrawShader(commandList, PrimitiveType::Quad, screenVertices, 4);
 	}
 
-	void DrawUtility::Sprite(Vector2 const& pos, Vector2 const& size, Vector2 const& pivot, IntVector2 const& framePos, IntVector2 const& frameDim)
+	void DrawUtility::Sprite(RHICommandList& commandList, Vector2 const& pos, Vector2 const& size, Vector2 const& pivot)
+	{
+		Sprite(commandList, pos, size, pivot, Vector2(0, 0), Vector2(1, 1));
+	}
+
+	void DrawUtility::Sprite(RHICommandList& commandList, Vector2 const& pos, Vector2 const& size, Vector2 const& pivot, IntVector2 const& framePos, IntVector2 const& frameDim)
 	{
 		Vector2 dtex = Vector2(1.0 / frameDim.x, 1.0 / frameDim.y);
 		Vector2 texLT = Vector2(framePos).mul(dtex);
 
-		Sprite( pos, size, pivot, texLT, dtex);
+		Sprite(commandList, pos, size, pivot, texLT, dtex);
 	}
 
-	void DrawUtility::Sprite(Vector2 const& pos, Vector2 const& size, Vector2 const& pivot, Vector2 const& texPos, Vector2 const& texSize)
+	void DrawUtility::Sprite(RHICommandList& commandList, Vector2 const& pos, Vector2 const& size, Vector2 const& pivot, Vector2 const& texPos, Vector2 const& texSize)
 	{
 		Vector2 posLT = pos - size.mul(pivot);
 		Vector2 posRB = posLT + size;
@@ -160,33 +172,33 @@ namespace Render
 			{ Vector2(posLT.x, posRB.y) , Vector2(texLT.x, texRB.y) },
 		};
 
-		TRenderRT< RTVF_XY_T2 >::Draw(PrimitiveType::Quad, vertices, 4);
+		TRenderRT< RTVF_XY_T2 >::Draw(commandList, PrimitiveType::Quad, vertices, 4);
 	}
 
-	void DrawUtility::DrawTexture(RHITexture2D& texture, IntVector2 const& pos, IntVector2 const& size, LinearColor const& color)
+	void DrawUtility::DrawTexture(RHICommandList& commandList, RHITexture2D& texture, IntVector2 const& pos, IntVector2 const& size, LinearColor const& color)
 	{
 		glEnable(GL_TEXTURE_2D);
 		{
 			GL_BIND_LOCK_OBJECT(texture);
 			glColor4fv(color);
-			DrawUtility::Rect(pos.x, pos.y, size.x, size.y);
+			DrawUtility::Rect(commandList, pos.x, pos.y, size.x, size.y);
 		}
 		glDisable(GL_TEXTURE_2D);
 	}
 
-	void DrawUtility::DrawTexture(RHITexture2D& texture, RHISamplerState& sampler, IntVector2 const& pos, IntVector2 const& size, LinearColor const& color)
+	void DrawUtility::DrawTexture(RHICommandList& commandList, RHITexture2D& texture, RHISamplerState& sampler, IntVector2 const& pos, IntVector2 const& size, LinearColor const& color)
 	{
 		glEnable(GL_TEXTURE_2D);
 		{
 			GL_BIND_LOCK_OBJECT(texture);
 			glBindSampler( 0 , OpenGLCast::GetHandle(sampler) );
 			glColor4fv(color);
-			DrawUtility::Rect(pos.x, pos.y, size.x, size.y);
+			DrawUtility::Rect(commandList, pos.x, pos.y, size.x, size.y);
 		}
 		glDisable(GL_TEXTURE_2D);
 	}
 
-	void DrawUtility::DrawCubeTexture(RHITextureCube& texCube, IntVector2 const& pos, int length)
+	void DrawUtility::DrawCubeTexture(RHICommandList& commandList, RHITextureCube& texCube, IntVector2 const& pos, int length)
 	{
 		int offset = 10;
 
@@ -257,7 +269,7 @@ namespace Render
 		{
 			GL_BIND_LOCK_OBJECT(texCube);
 			glColor3f(1, 1, 1);
-			TRenderRT< RTVF_XY | RTVF_TEX_UVW >::Draw(PrimitiveType::Quad, vertices, ARRAY_SIZE(vertices));
+			TRenderRT< RTVF_XY | RTVF_TEX_UVW >::Draw(commandList, PrimitiveType::Quad, vertices, ARRAY_SIZE(vertices));
 		}
 		glDisable(GL_TEXTURE_CUBE_MAP);
 	}
@@ -359,9 +371,9 @@ namespace Render
 			parameterMap.bind(mParamCopyTexture, SHADER_PARAM(CopyTexture));
 		}
 
-		void setParameters(RHITexture2D& copyTexture)
+		void setParameters(RHICommandList& commandList, RHITexture2D& copyTexture)
 		{
-			setTexture(mParamCopyTexture, copyTexture);
+			setTexture(commandList, mParamCopyTexture, copyTexture);
 		}
 
 		ShaderParameter mParamCopyTexture;
@@ -392,10 +404,10 @@ namespace Render
 			parameterMap.bind(mParamCopyTexture, SHADER_PARAM(CopyTexture));
 			parameterMap.bind(mParamColorMask, SHADER_PARAM(ColorMask));
 		}
-		void setParameters(RHITexture2D& copyTexture, Vector4 const& colorMask)
+		void setParameters(RHICommandList& commandList, RHITexture2D& copyTexture, Vector4 const& colorMask)
 		{
-			setTexture(mParamCopyTexture, copyTexture);
-			setParam(mParamColorMask, colorMask);
+			setTexture(commandList, mParamCopyTexture, copyTexture);
+			setParam(commandList, mParamColorMask, colorMask);
 		}
 
 		ShaderParameter mParamColorMask;
@@ -429,10 +441,10 @@ namespace Render
 			parameterMap.bind(mParamCopyTexture, SHADER_PARAM(CopyTexture));
 			parameterMap.bind(mParamColorBais, SHADER_PARAM(ColorBais));
 		}
-		void setParameters(RHITexture2D& copyTexture, float colorBais[2])
+		void setParameters(RHICommandList& commandList, RHITexture2D& copyTexture, float colorBais[2])
 		{
-			setTexture(mParamCopyTexture, copyTexture);
-			setParam(mParamColorBais, Vector2(colorBais[0], colorBais[1]));
+			setTexture(commandList, mParamCopyTexture, copyTexture);
+			setParam(commandList, mParamColorBais, Vector2(colorBais[0], colorBais[1]));
 		}
 
 		ShaderParameter mParamColorBais;
@@ -466,11 +478,11 @@ namespace Render
 			parameterMap.bind(mParamValueFactor, SHADER_PARAM(ValueFactor));
 		}
 
-		void setParameters(RHITexture2D& copyTexture, Vector4 const& colorMask, float valueFactor[2])
+		void setParameters(RHICommandList& commandList, RHITexture2D& copyTexture, Vector4 const& colorMask, float valueFactor[2])
 		{
-			setTexture(mParamCopyTexture, copyTexture);
-			setParam(mParamColorMask, colorMask);
-			setParam(mParamValueFactor, Vector2(valueFactor[0], valueFactor[1]));
+			setTexture(commandList, mParamCopyTexture, copyTexture);
+			setParam(commandList, mParamColorMask, colorMask);
+			setParam(commandList, mParamValueFactor, Vector2(valueFactor[0], valueFactor[1]));
 		}
 
 		ShaderParameter mParamCopyTexture;
@@ -508,21 +520,21 @@ namespace Render
 		return true;
 	}
 
-	void ShaderHelper::clearBuffer(RHITexture2D& texture, float clearValue[])
+	void ShaderHelper::clearBuffer(RHICommandList& commandList, RHITexture2D& texture, float clearValue[])
 	{
 		mFrameBuffer.setTexture(0, texture);
 		GL_BIND_LOCK_OBJECT(mFrameBuffer);
 		glClearBufferfv(GL_COLOR, 0, (float const*)clearValue);
 	}
 
-	void ShaderHelper::clearBuffer(RHITexture2D& texture, uint32 clearValue[])
+	void ShaderHelper::clearBuffer(RHICommandList& commandList, RHITexture2D& texture, uint32 clearValue[])
 	{
 		mFrameBuffer.setTexture(0, texture);
 		GL_BIND_LOCK_OBJECT(mFrameBuffer);
 		glClearBufferuiv(GL_COLOR, 0, clearValue);
 	}
 
-	void ShaderHelper::clearBuffer(RHITexture2D& texture, int32 clearValue[])
+	void ShaderHelper::clearBuffer(RHICommandList& commandList, RHITexture2D& texture, int32 clearValue[])
 	{
 		mFrameBuffer.setTexture(0, texture);
 		GL_BIND_LOCK_OBJECT(mFrameBuffer);
@@ -530,39 +542,39 @@ namespace Render
 	}
 
 
-	void ShaderHelper::copyTextureToBuffer(RHITexture2D& copyTexture)
+	void ShaderHelper::copyTextureToBuffer(RHICommandList& commandList, RHITexture2D& copyTexture)
 	{
 		GL_BIND_LOCK_OBJECT(mProgCopyTexture);
-		mProgCopyTexture->setParameters(copyTexture);
-		DrawUtility::ScreenRectShader();
+		mProgCopyTexture->setParameters(commandList, copyTexture);
+		DrawUtility::ScreenRectShader(commandList);
 	}
 
-	void ShaderHelper::copyTextureMaskToBuffer(RHITexture2D& copyTexture, Vector4 const& colorMask)
+	void ShaderHelper::copyTextureMaskToBuffer(RHICommandList& commandList, RHITexture2D& copyTexture, Vector4 const& colorMask)
 	{
 		GL_BIND_LOCK_OBJECT(mProgCopyTextureMask);
-		mProgCopyTextureMask->setParameters(copyTexture, colorMask);
-		DrawUtility::ScreenRectShader();
+		mProgCopyTextureMask->setParameters(commandList, copyTexture, colorMask);
+		DrawUtility::ScreenRectShader(commandList);
 	}
 
-	void ShaderHelper::copyTextureBiasToBuffer(RHITexture2D& copyTexture, float colorBais[2])
+	void ShaderHelper::copyTextureBiasToBuffer(RHICommandList& commandList, RHITexture2D& copyTexture, float colorBais[2])
 	{
 		GL_BIND_LOCK_OBJECT(mProgCopyTextureBias);
-		mProgCopyTextureBias->setParameters(copyTexture, colorBais);
-		DrawUtility::ScreenRectShader();
+		mProgCopyTextureBias->setParameters(commandList, copyTexture, colorBais);
+		DrawUtility::ScreenRectShader(commandList);
 	}
 
-	void ShaderHelper::mapTextureColorToBuffer(RHITexture2D& copyTexture, Vector4 const& colorMask, float valueFactor[2])
+	void ShaderHelper::mapTextureColorToBuffer(RHICommandList& commandList, RHITexture2D& copyTexture, Vector4 const& colorMask, float valueFactor[2])
 	{
 		GL_BIND_LOCK_OBJECT(mProgMappingTextureColor);
-		mProgMappingTextureColor->setParameters(copyTexture, colorMask, valueFactor);
-		DrawUtility::ScreenRectShader();
+		mProgMappingTextureColor->setParameters(commandList, copyTexture, colorMask, valueFactor);
+		DrawUtility::ScreenRectShader(commandList);
 	}
 
-	void ShaderHelper::copyTexture(RHITexture2D& destTexture, RHITexture2D& srcTexture)
+	void ShaderHelper::copyTexture(RHICommandList& commandList, RHITexture2D& destTexture, RHITexture2D& srcTexture)
 	{
 		mFrameBuffer.setTexture(0, destTexture);
 		mFrameBuffer.bind();
-		copyTextureToBuffer(srcTexture);
+		copyTextureToBuffer(commandList, srcTexture);
 		mFrameBuffer.unbind();
 	}
 

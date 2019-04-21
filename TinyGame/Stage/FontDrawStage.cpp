@@ -76,7 +76,7 @@ public:
 		mBuffer.push_back({ posMax , uvMax });
 		mBuffer.push_back({ Vector2(pos.x , posMax.y) , Vector2(uvMin.x , uvMax.y) });
 	}
-	void drawText(Vec2i const& pos, wchar_t const* str)
+	void drawText( RHICommandList& commandList, Vec2i const& pos, wchar_t const* str)
 	{
 		mBuffer.clear();
 		Vector2 curPos = pos;
@@ -109,14 +109,14 @@ public:
 		}
 		if( !mBuffer.empty() )
 		{
-			RHISetBlendState(TStaticBlendState< CWM_RGBA , Blend::eSrcAlpha, Blend::eOneMinusSrcAlpha >::GetRHI());
+			RHISetBlendState(commandList, TStaticBlendState< CWM_RGBA , Blend::eSrcAlpha, Blend::eOneMinusSrcAlpha >::GetRHI());
 			{
 				glEnable(GL_TEXTURE_2D);
 				GL_BIND_LOCK_OBJECT(mCharDataSet->getTexture());
-				TRenderRT< RTVF_XY_T2 >::Draw(PrimitiveType::Quad, &mBuffer[0], mBuffer.size());
+				TRenderRT< RTVF_XY_T2 >::Draw(commandList, PrimitiveType::Quad, &mBuffer[0], mBuffer.size());
 				glDisable(GL_TEXTURE_2D);
 			}
-			RHISetBlendState(TStaticBlendState<>::GetRHI());
+			RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
 		}
 			
 	}
@@ -148,12 +148,13 @@ public:
 	void onRender(float dFrame)
 	{
 		GLGraphics2D& g = ::Global::GetRHIGraphics2D();
+		RHICommandList& commandList = RHICommandList::GetImmediateList();
 		g.beginRender();
 
 		glClearColor(0.2, 0.2, 0.2, 0);
 		glClear(GL_COLOR_BUFFER_BIT);
 
-		DrawUtility::DrawTexture(mCharDataSet->getTexture(), Vec2i(0, 0), Vec2i(400, 400));
+		DrawUtility::DrawTexture(commandList, mCharDataSet->getTexture(), Vec2i(0, 0), Vec2i(400, 400));
 
 		wchar_t const* str =
 			L"作詞：陳宏宇作曲：G.E.M. 編曲：Lupo Groinig 監製：Lupo Groinig\n"
@@ -191,7 +192,7 @@ public:
 			"凋謝最紅的玫瑰　眼淚化作塞納河水\n";
 
 		glColor3f(1, 0.5, 0);
-		drawText(Vec2i(100, 50), str);
+		drawText(commandList, Vec2i(100, 50), str);
 
 		g.beginClip(Vec2i(50, 50), Vec2i(100, 100));
 		g.setBrush(Color3f(1, 0, 0));
@@ -210,10 +211,8 @@ public:
 		{
 			0,1,2,0,2,3,
 		};
-		TRenderRT<RTVF_XY>::DrawIndexed(PrimitiveType::TriangleList, vertices, 4, indices, 6);
-
-
-		DrawUtility::DrawTexture(*mTexture, TStaticSamplerState< Sampler::eBilinear , Sampler::eClamp , Sampler::eClamp >::GetRHI() , Vec2i(0, 0), Vec2i(200, 200));
+		TRenderRT<RTVF_XY>::DrawIndexed(commandList, PrimitiveType::TriangleList, vertices, 4, indices, 6);
+		DrawUtility::DrawTexture(commandList, *mTexture, TStaticSamplerState< Sampler::eBilinear , Sampler::eClamp , Sampler::eClamp >::GetRHI() , Vec2i(0, 0), Vec2i(200, 200));
 		g.endRender();
 
 	}

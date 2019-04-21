@@ -165,6 +165,12 @@ namespace Render
 		static GLenum constexpr EnumValueMultisample = GL_TEXTURE_CUBE_MAP;
 	};
 	template<>
+	struct OpenGLTextureTraits< RHITexture2DArray >
+	{
+		static GLenum constexpr EnumValue = GL_TEXTURE_2D_ARRAY;
+		static GLenum constexpr EnumValueMultisample = GL_TEXTURE_2D_MULTISAMPLE_ARRAY;
+	};
+	template<>
 	struct OpenGLTextureTraits< RHITextureDepth >
 	{
 		static GLenum constexpr EnumValue = GL_TEXTURE_2D; 
@@ -225,14 +231,12 @@ namespace Render
 		bool create(Texture::Format format, int size, int numMipLevel, uint32 creationFlags, void* data[]);
 		bool update(Texture::Face face, int ox, int oy, int w, int h, Texture::Format format, void* data, int level );
 		bool update(Texture::Face face, int ox, int oy, int w, int h, Texture::Format format, int pixelStride, void* data, int level );
-	
 	};
 
-	class RHITextureDepth : public RHITextureBase
+	class OpenGLTexture2DArray : public TOpengGLTexture< RHITexture2DArray >
 	{
 	public:
-		Texture::DepthFormat getFormat() { return mFromat; }
-		Texture::DepthFormat mFromat;
+		bool create(Texture::Format format, int width, int height, int layerSize, int numMipLevel, int numSamples, uint32 createFlags, void* data);
 	};
 
 	class OpenGLTextureDepth : public TOpengGLTexture< RHITextureDepth >
@@ -240,7 +244,6 @@ namespace Render
 	public:
 		bool create(Texture::DepthFormat format, int width, int height, int numMipLevel, int numSamples);
 	};
-	typedef TRefCountPtr< RHITextureDepth > RHITextureDepthRef;
 
 	class GLConvert
 	{
@@ -304,12 +307,16 @@ namespace Render
 
 		bool create();
 
-		int  addTextureLayer(RHITextureCube& target , int level = 0 );
-		int  addTexture( RHITextureCube& target, Texture::Face face, int level = 0);
-		int  addTexture( RHITexture2D& target, int level = 0);
+		void setupTextureLayer(RHITextureCube& target, int level = 0);
+
+		int  addTexture(RHITexture2D& target, int level = 0);
+		int  addTexture(RHITextureCube& target, Texture::Face face, int level = 0);
+		int  addTexture(RHITexture2DArray& target, int idexLayer, int level = 0);
 		void setTexture(int idx, RHITexture2D& target, int level = 0);
 		void setTexture(int idx, RHITextureCube& target, Texture::Face face, int level = 0);
+		void setTexture(int idx, RHITexture2DArray& target, int idexLayer, int level = 0);
 
+		
 		void bindDepthOnly();
 		void bind();
 		void unbind();
@@ -330,14 +337,24 @@ namespace Render
 			uint8  level;
 			union
 			{
-				int    layer;
 				uint8  idxFace;
+				int    idxLayer;
 			};
 		};
 		void setRenderBufferInternal(GLuint handle);
-		void setTextureInternal(int idx, GLuint handle, GLenum texType, int level);
+		void setTexture2DInternal(int idx, GLuint handle, GLenum texType, int level);
+		void setTexture3DInternal(int idx, GLuint handle, GLenum texType, int level, int idxLayer);
+		void setTextureLayerInternal(int idx, GLuint handle, GLenum texType, int level, int idxLayer);
 		void setDepthInternal(RHIResource& resource, GLuint handle, Texture::DepthFormat format, GLenum typeEnumGL);
 
+		void checkStates()
+		{
+			GLenum Status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+			if( Status != GL_FRAMEBUFFER_COMPLETE )
+			{
+				LogWarning(0, "Texture Can't Attach to FrameBuffer");
+			}
+		}
 
 		std::vector< BufferInfo > mTextures;
 		BufferInfo  mDepth;
@@ -352,8 +369,6 @@ namespace Render
 	struct OpenGLBufferTraits< RHIVertexBuffer >{  static GLenum constexpr EnumValue = GL_ARRAY_BUFFER;  };
 	template<>
 	struct OpenGLBufferTraits< RHIIndexBuffer > { static GLenum constexpr EnumValue = GL_ELEMENT_ARRAY_BUFFER; };
-	template<>
-	struct OpenGLBufferTraits< RHIUniformBuffer > { static GLenum constexpr EnumValue = GL_UNIFORM_BUFFER; };
 
 	template < class RHIBufferType >
 	class TOpenGLBuffer : public TOpenGLResource< RHIBufferType, RMPBufferObject >
@@ -443,12 +458,6 @@ namespace Render
 		}
 	};
 
-	class OpenGLUniformBuffer : public TOpenGLBuffer< RHIUniformBuffer >
-	{
-	public:
-		bool create(uint32 elementSize, uint32 numElements, uint32 creationFlags, void* data);
-	};
-
 	class OpenGLSamplerState : public TOpenGLResource< RHISamplerState, RMPSamplerObject >
 	{
 	public:
@@ -457,14 +466,16 @@ namespace Render
 
 	struct GLRasterizerStateValue
 	{
-		bool   bEnalbeCull;
+		bool   bEnableCull;
+		bool   bEnableScissor;
 		GLenum fillMode;
 		GLenum cullFace;
 
 		GLRasterizerStateValue() {}
 		GLRasterizerStateValue(EForceInit)
 		{
-			bEnalbeCull = false;
+			bEnableCull = false;
+			bEnableScissor = false;
 			fillMode = GL_FILL;
 			cullFace = GL_BACK;
 		}
@@ -627,20 +638,22 @@ namespace Render
 		static OpenGLTexture2D* To(RHITexture2D* tex) { return static_cast<OpenGLTexture2D*>(tex); }
 		static OpenGLTexture3D* To(RHITexture3D* tex) { return static_cast<OpenGLTexture3D*>(tex); }
 		static OpenGLTextureCube* To(RHITextureCube* tex) { return static_cast<OpenGLTextureCube*>(tex); }
+		static OpenGLTexture2DArray* To(RHITexture2DArray* tex) { return static_cast<OpenGLTexture2DArray*>(tex); }
 		static OpenGLTextureDepth* To(RHITextureDepth* tex) { return static_cast<OpenGLTextureDepth*>(tex); }
 
 		static OpenGLTexture1D const* To(RHITexture1D const* tex) { return static_cast<OpenGLTexture1D const*>(tex); }
 		static OpenGLTexture2D const* To(RHITexture2D const* tex) { return static_cast<OpenGLTexture2D const*>(tex); }
 		static OpenGLTexture3D const* To(RHITexture3D const* tex) { return static_cast<OpenGLTexture3D const*>(tex); }
 		static OpenGLTextureCube const* To(RHITextureCube const* tex) { return static_cast<OpenGLTextureCube const*>(tex); }
+		static OpenGLTexture2DArray const* To(RHITexture2DArray const* tex) { return static_cast<OpenGLTexture2DArray const*>(tex); }
 		static OpenGLTextureDepth const* To(RHITextureDepth const* tex) { return static_cast<OpenGLTextureDepth const*>(tex); }
-
+		
 		static OpenGLVertexBuffer* To(RHIVertexBuffer* buffer) { return static_cast<OpenGLVertexBuffer*>(buffer); }
 		static OpenGLIndexBuffer* To(RHIIndexBuffer* buffer) { return static_cast<OpenGLIndexBuffer*>(buffer); }
-		static OpenGLUniformBuffer* To(RHIUniformBuffer* buffer) { return static_cast<OpenGLUniformBuffer*>(buffer); }
 
 		static OpenGLInputLayout*  To(RHIInputLayout* inputLayout) { return static_cast<OpenGLInputLayout*>(inputLayout); }
 		static OpenGLSamplerState* To(RHISamplerState* state ) { return static_cast<OpenGLSamplerState*>(state); }
+		static OpenGLFrameBuffer*  To(RHIFrameBuffer* frameBuffer) { return static_cast<OpenGLFrameBuffer*>(frameBuffer); }
 
 		static RHIShader* To(RHIShader* shader) { return shader; }
 		static ShaderProgram* To(ShaderProgram* shader) { return shader; }

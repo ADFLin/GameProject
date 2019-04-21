@@ -7,6 +7,8 @@
 #include <mfidl.h>
 #include <mfapi.h>
 #include <mfreadwrite.h>
+#include <propvarutil.h>
+#include <cguid.h>
 #pragma comment(lib,"mfplat.lib")
 #pragma comment(lib,"mfreadwrite.lib")
 
@@ -39,6 +41,8 @@ struct MediaFoundationScope
 	}
 	bool bInit;
 };
+
+
 
 
 #endif // MediaFoundationHeader_H_43F7AC50_CE6A_43E6_96D4_35375489EF6D

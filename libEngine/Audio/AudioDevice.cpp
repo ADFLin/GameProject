@@ -102,16 +102,17 @@ void AudioDevice::update( float deltaT )
 	{
 		SoundInstance* instance = iter->second;
 
-		bool bDestroy = false;
-		if( instance->usageFrame != mSourceUsageFrame )
+		if( instance->usageFrame != mSourceUsageFrame || instance->activeSound == nullptr )
 		{
 			if( instance->sourceId != -1 )
 			{
-				mAudioSources[instance->sourceId]->stop();
+				mAudioSources[instance->sourceId]->endPlay();
 				mIdleSources.push_back(instance->sourceId);
 			}
 
-			instance->activeSound->removeInstance(instance);
+			if ( instance->activeSound )
+				instance->activeSound->removeInstance(instance);
+
 			delete instance;
 
 			iter = mPlayingInstances.erase(iter);
@@ -121,14 +122,14 @@ void AudioDevice::update( float deltaT )
 			if( instance->sourceId == -1 )
 			{
 				instance->bPlaying = false;
-				instance->sourceId = fetchIdleSource();
+				instance->sourceId = fetchIdleSource(*instance);
 
 				if( instance->sourceId != -1 )
 				{
 					if( mAudioSources[instance->sourceId]->initialize(*instance) )
 					{
 						instance->bPlaying = true;
-						instance->activeSound->playingInstance.push_back(instance);
+						instance->activeSound->playingInstances.push_back(instance);
 					}
 				}
 			}
@@ -194,7 +195,7 @@ AudioSource* AudioDevice::createSource()
 	return nullptr;
 }
 
-int AudioDevice::fetchIdleSource()
+int AudioDevice::fetchIdleSource(SoundInstance& instance)
 {
 	if( !mIdleSources.empty() )
 	{
@@ -252,9 +253,10 @@ void AudioDevice::destroyActiveSound(ActiveSound* activeSound)
 
 	if( !activeSound->bFinished )
 	{
-		//TODO
-
-
+		for( auto soundInstance : activeSound->playingInstances )
+		{
+			soundInstance->activeSound = nullptr;
+		}
 	}
 
 	delete activeSound;

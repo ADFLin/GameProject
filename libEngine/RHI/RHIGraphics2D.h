@@ -107,11 +107,11 @@ namespace Render
 
 		void  beginClip(Vec2i const& pos, Vec2i const& size)
 		{
-			RHISetScissorRect(true, pos.x, pos.y, size.x, size.y);
+			RHISetScissorRect(RHICommandList::GetImmediateList(), true, pos.x, pos.y, size.x, size.y);
 		}
 		void  endClip()
 		{
-			RHISetScissorRect(false);
+			RHISetScissorRect(RHICommandList::GetImmediateList(), false);
 		}
 
 		void  beginBlend(Vector2 const& pos, Vector2 const& size, float alpha);

@@ -249,7 +249,6 @@ namespace BomberMan
 		for( int i = 0 ; i < world.getPlayerNum() ; ++i )
 		{
 			Player* player = world.getPlayer(i);
-			trigger.setPort( player->getId() );
 			EvalPlayerAction( *player , trigger );
 		}
 	}

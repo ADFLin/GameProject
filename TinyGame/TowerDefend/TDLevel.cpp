@@ -149,8 +149,9 @@ namespace TowerDefend
 		if ( !trigger.haveUpdateFrame() )
 			return;
 
+		ActionPort port = 0;
 		CIViewportMove vpMoveInfo;
-		if ( trigger.detect( ACT_TD_VIEWPORT_MOVE , & vpMoveInfo ) )
+		if ( trigger.detect( port, ACT_TD_VIEWPORT_MOVE , & vpMoveInfo ) )
 		{
 			if ( vpMoveInfo.mode == CIViewportMove::eREL_MOVE )
 				mVPCtrl.setCenterViewPos( mVPCtrl.getCenterViewPos() + vpMoveInfo.offset );
@@ -168,7 +169,7 @@ namespace TowerDefend
 		CIComID comInfo;
 		comInfo.comMapID = mCurComMapID;
 
-		if ( trigger.detect( ACT_TD_CHOICE_COM_ID , &comInfo ) )
+		if ( trigger.detect(port, ACT_TD_CHOICE_COM_ID , &comInfo ) )
 		{
 			mControlUI->onFireCom( comInfo.idxComMap , comInfo.chioceID );
 
@@ -238,7 +239,7 @@ namespace TowerDefend
 		switch( mSelectMode )
 		{
 		case SM_NORMAL:
-			if ( trigger.detect( ACT_TD_SELECT_UNIT_GROUP , &mouseInfo ) )
+			if ( trigger.detect(port, ACT_TD_SELECT_UNIT_GROUP , &mouseInfo ) )
 			{
 				Vector2 wPos = getCtrlViewport().convertToWorldPos( mouseInfo.pos );
 
@@ -257,7 +258,7 @@ namespace TowerDefend
 					selectActorInRange( rect , actor->getActorID() );
 				}
 			}
-			else if ( trigger.detect( ACT_TD_SELECT_UNIT_RANGE , &srInfo )  )
+			else if ( trigger.detect(port, ACT_TD_SELECT_UNIT_RANGE , &srInfo )  )
 			{
 				if ( !( srInfo.opFlag & CF_OP_APPEND ) )
 				{
@@ -269,7 +270,7 @@ namespace TowerDefend
 
 			{
 
-				if ( trigger.detect( ACT_TD_MOUSE_COM , &mouseInfo )  )
+				if ( trigger.detect(port, ACT_TD_MOUSE_COM , &mouseInfo )  )
 				{
 					Vector2 wPos = getCtrlViewport().convertToWorldPos( mouseInfo.pos );
 					Actor* target = getTargetActor( wPos );
@@ -287,7 +288,7 @@ namespace TowerDefend
 			}
 			break;
 		case SM_LOCK_POS:
-			if ( trigger.detect( ACT_TD_TARGET_CHOICE , &mouseInfo )  )
+			if ( trigger.detect(port, ACT_TD_TARGET_CHOICE , &mouseInfo )  )
 			{
 				Vector2 wPos = getCtrlViewport().convertToWorldPos( mouseInfo.pos );
 				switch( mComID )
@@ -313,7 +314,7 @@ namespace TowerDefend
 
 			break;
 		case SM_LOCK_ACTOR_POS:
-			if ( trigger.detect( ACT_TD_TARGET_CHOICE , &mouseInfo )  )
+			if ( trigger.detect(port, ACT_TD_TARGET_CHOICE , &mouseInfo )  )
 			{
 				assert( mComID != CID_NULL );
 
@@ -350,7 +351,7 @@ namespace TowerDefend
 
 		if ( mSelectMode != SM_NORMAL )
 		{
-			if ( trigger.detect( ACT_TD_CANCEL_COM_MODE ) )
+			if ( trigger.detect(port, ACT_TD_CANCEL_COM_MODE ) )
 			{
 				changeBaseComMap( groupActorID );
 			}

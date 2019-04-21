@@ -8,49 +8,224 @@
 
 #include "SystemPlatform.h"
 #include "Core/ScopeExit.h"
+#include "BitUtility.h"
+#include "Algo/FFT.h"
+
 
 
 constexpr int16 MaxInt16 = 32767l;
 
-double GTime = 0;
 
-
-
-
-void CalcFreq(SoundWave& sound, float t, float dt, int freqOffset , std::vector< float >& outValues )
+float GetFFTInValue(const int16 SampleValue, const int16 sampleIndex, const int16 sampleCount)
 {
-	float numData = 16384 * 4;//sound.format.sampleRate * dt;
-	float idxStart = sound.format.numChannels * Math::FloorToInt(sound.format.sampleRate * t);
+	float FFTValue = SampleValue;
+	//Hann window
+	FFTValue *= 0.5f * (1 - Math::Cos(2 * PI * sampleIndex / (sampleCount - 1)));
 
-	std::vector< float > data(numData , 0.0f);
+	return FFTValue;
+}
 
-	assert(sound.format.bitsPerSample == 16);
-	int16* pSampleData = (int16*)&sound.PCMData[idxStart];
-	for( int i = 0; i < numData; ++i )
+bool CalcFrequencySpectrum(SoundWave& sound, float t, int samplesToRead, int numFreqGroup , std::vector< float >& outValues )
+{
+
+	int   firstSample = Math::FloorToInt(sound.format.sampleRate * t);
+	int   lastSample = firstSample + samplesToRead;
+
+	int   sampleCount = 8 * sound.PCMData.size() / sound.format.bitsPerSample;
+	firstSample = Math::Min(sampleCount, firstSample);
+	lastSample = Math::Min(sampleCount, lastSample);
+
+	samplesToRead = lastSample - firstSample;
+
+	if( samplesToRead <= 0 )
+		return false;
+
+	int pot = BitUtility::NextNumberOfPow2(samplesToRead);
+	firstSample = Math::Max(0, firstSample - (pot - samplesToRead) / 2);
+	samplesToRead = pot;
+	lastSample = firstSample + samplesToRead;
+	if( lastSample > sampleCount )
 	{
-		for( int n = 0; n < sound.format.numChannels; ++n )
+		firstSample = lastSample - samplesToRead;
+	}
+	if( firstSample < 0 )
+	{
+		return false;
+	}
+	int numChannel = sound.format.numChannels;
+
+	std::vector< float > data(samplesToRead, 0.0f);
+	const int16* samplePtr = reinterpret_cast<const int16*>(sound.PCMData.data()) + numChannel * firstSample;
+
+	for( int32 indexFreqSample = 0; indexFreqSample < samplesToRead; ++indexFreqSample )
+	{
+		for( int32 indexChannel = 0; indexChannel < numChannel; ++indexChannel )
 		{
-			data[i] += float(*pSampleData);
-			++pSampleData;
+			data[indexFreqSample] += GetFFTInValue(*samplePtr, indexFreqSample, samplesToRead);
+			++samplePtr;
 		}
 	}
 
 	double time = SystemPlatform::GetHighResolutionTime();
-	std::vector< Complex > outFeq( numData );
-	DFFT::Transform(&data[0], numData, &outFeq[0]);
+	std::vector< Complex > outFeq(samplesToRead);
+	FFT::Transform(&data[0], samplesToRead, &outFeq[0]);
 	time = SystemPlatform::GetHighResolutionTime() - time;
-	GTime = time;
-	LogMsg("FFT = %lf", time);
+	LogMsg("FFT = %lf , %d ", time, firstSample);
 
-	int numGroup = ( numData - 1 )/ freqOffset + 1;
-	outValues.resize(numGroup , 0.0f );
 
-	for( int n = 0 ; n < numData; ++n )
+	int numSampleInGroup = samplesToRead / ( 2 * numFreqGroup );
+	int numSampleRes = samplesToRead % ( 2 * numFreqGroup );
+
+	outValues.resize(numFreqGroup, 0.0f);
+	int indexFreqSample = 0;
+	for( int indexGroup = 0; indexGroup < numFreqGroup; ++indexGroup )
 	{
-		int group = n / freqOffset;
-		outValues[group] += outFeq[n].length();
+		int numFreqSamples = numSampleInGroup;
+		if( numSampleRes > 0 )
+			++numSampleRes;
+		--numSampleRes;
+		float sampleFreqSum = 0;
+		for( int i = 0; i < numFreqSamples; ++i )
+		{
+			float PostScaledR = outFeq[indexFreqSample].r * 2.f / samplesToRead;
+			float PostScaledI = outFeq[indexFreqSample].i * 2.f / samplesToRead;
+			float val = 10.f * ( Math::LogX(10.f, 10 + Math::Square(PostScaledR) + Math::Square(PostScaledI)) - 1 );
+			++indexFreqSample;
+			sampleFreqSum += val;
+		}
+		outValues[indexGroup] = sampleFreqSum / numFreqSamples;
 	}
+
+	return true;
 }
+
+struct WavePattern_Triangle
+{
+	float amplitude;
+	float freq;
+	float operator()(float t) const
+	{
+		float x = Math::Frac(t * freq);
+		float value = (x > 0.5) ? 1 - x : x;
+		value = 4 * value - 1;
+		return amplitude * value;
+	}
+};
+
+
+struct WavePattern_Sine
+{
+	float amplitude;
+	float freq;
+	float operator()(float t) const
+	{
+		float x = t * freq;
+		float value = -Math::Sin(3 * Math::PI * x) / 4 + Math::Sin( Math::PI * x) / 4 + Math::Sqrt(3) * Math::Cos( Math::PI * x) / 2;
+		return value * amplitude;
+		//float value =  Math::Pow(Math::Sin(Math::PI * x), 3) + Math::Sin(Math::PI*(x + 2.0 / 3.0));
+		return amplitude * Math::Sin(2 * Math::PI * t * freq);
+	}
+};
+
+class WaveSampleBuffer
+{
+public:
+	struct SampleData
+	{
+		std::vector<uint8> data;
+	};
+	std::vector< uint32 > mFreeSampleDataIndices;
+	std::vector< std::unique_ptr< SampleData > > mSampleDataList;
+	SampleData* getSampleData(uint32 idx) { return mSampleDataList[idx].get(); }
+
+	uint32 fetchSampleData()
+	{
+		uint32 result;
+		if( mFreeSampleDataIndices.size() )
+		{
+			result = mFreeSampleDataIndices.back();
+			mFreeSampleDataIndices.pop_back();
+			return result;
+		}
+
+		result = mSampleDataList.size();
+		auto sampleData = std::make_unique<SampleData>();
+		mSampleDataList.push_back(std::move(sampleData));
+		return result;
+
+	}
+
+	void releaseSampleData(uint32 sampleHadle)
+	{
+		auto& sampleData = mSampleDataList[sampleHadle];
+		sampleData->data.clear();
+		mFreeSampleDataIndices.push_back(sampleHadle);
+	}
+};
+
+class ProceduralWaveStreamSource : public IAudioStreamSource
+{
+public:
+
+	WaveFormatInfo mFormat;
+	ProceduralWaveStreamSource()
+	{
+		mWaveGenerator.amplitude = 0.25;
+		mWaveGenerator.freq = 1000;
+
+		mFormat.tag = WAVE_FORMAT_PCM;
+		mFormat.numChannels = 1;
+		mFormat.sampleRate = 4 * 44100 + 44100/2;
+		mFormat.bitsPerSample = 8 * sizeof(int16);
+		mFormat.blockAlign = mFormat.numChannels * mFormat.bitsPerSample / 8;
+		mFormat.byteRate = mFormat.bitsPerSample * mFormat.sampleRate * mFormat.numChannels / 8;
+	}
+
+	virtual void seekSamplePosition(int64 samplePos) override
+	{
+
+	}
+
+	virtual void getWaveFormat(WaveFormatInfo& outFormat) override
+	{
+		outFormat = mFormat;
+	}
+
+
+	virtual int64 getTotalSampleNum() override
+	{
+		return 100000 * mFormat.sampleRate;
+	}
+
+	virtual EAudioStreamStatus generatePCMData(int64 samplePos, AudioStreamSample& outSample, int requiredMinSameleNum) override
+	{
+		outSample.handle = mSampleBuffer.fetchSampleData();
+		WaveSampleBuffer::SampleData* sampleData = mSampleBuffer.getSampleData(outSample.handle);
+		sampleData->data.resize( requiredMinSameleNum * mFormat.byteRate / mFormat.sampleRate );
+
+		float dt = float( requiredMinSameleNum ) / mFormat.sampleRate;
+		int16* pData = (int16*) sampleData->data.data();
+		for( int i = 0; i < requiredMinSameleNum; ++i )
+		{
+			float t = double(samplePos + i) / mFormat.sampleRate;
+			float value = mWaveGenerator(t);
+			pData[i] = int16( float( MaxInt16 ) * Math::Clamp< float>(value , -1 , 1 ) );
+		}
+		outSample.data = sampleData->data.data();
+		outSample.dataSize = sampleData->data.size();
+
+		return EAudioStreamStatus::Ok;
+	}
+
+	virtual void releaseSampleData(uint32 sampleHadle) override
+	{
+		mSampleBuffer.releaseSampleData(sampleHadle);
+	}
+
+	WavePattern_Sine mWaveGenerator;
+	WaveSampleBuffer mSampleBuffer;
+};
+
 
 void GenerateSineWave(float duration, int numSamplePerSec, float waveFreq, std::vector< uint8 >& outSampleData)
 {
@@ -149,14 +324,30 @@ static void  FillData(WaveFormatInfo& formatInfo, WAVEFORMATEX const& format)
 	formatInfo.blockAlign = format.nBlockAlign;
 }
 
+int64 GetSourceDuration(IMFSourceReader *pReader)
+{
+	PROPVARIANT DurationAttrib;
+	{
+		const HRESULT Result = pReader->GetPresentationAttribute(MF_SOURCE_READER_MEDIASOURCE, MF_PD_DURATION, &DurationAttrib);
+		if( FAILED(Result) )
+		{
+			return 0;
+		}
+	}
+	const int64 Duration = (DurationAttrib.vt == VT_UI8) ? (int64)DurationAttrib.uhVal.QuadPart : 0;
+	::PropVariantClear(&DurationAttrib);
+	return Duration;
+}
+
 static bool WriteWaveFile(IMFSourceReader *pReader, WaveFormatInfo& outWaveFormat, std::vector<uint8>& outSampleData)
 {
+
+
 	HRESULT hr = S_OK;
 	TComPtr< IMFMediaType > pAudioType;    // Represents the PCM audio format.
 										   // Configure the source reader to get uncompressed PCM audio from the source file.
 	if( !ConfigureAudioStream(pReader, &pAudioType) )
 		return false;
-
 
 	DWORD cbHeader = 0;         // Size of the WAVE file header, in bytes.
 	DWORD cbAudioData = 0;      // Total bytes of PCM audio data written to the file.
@@ -170,6 +361,10 @@ static bool WriteWaveFile(IMFSourceReader *pReader, WaveFormatInfo& outWaveForma
 		FillData(outWaveFormat, *pWavFormat);
 		CoTaskMemFree(pWavFormat);
 	}
+
+	int64 durtion = GetSourceDuration(pReader);
+	int64 dataSize = outWaveFormat.byteRate * durtion;
+	LogMsg("%lld", dataSize);
 
 	{
 		HRESULT hr = S_OK;
@@ -242,14 +437,202 @@ static bool LoadWaveFile(char const* path, WaveFormatInfo& outWaveFormat, std::v
 	return true;
 }
 
-
-class IDataStreaming
+class MFAudioStreamSource : public IAudioStreamSource
 {
+public:
+
+	bool initialize(char const* path)
+	{
+		const size_t cSize = strlen(path) + 1;
+		wchar_t wPath[MAX_PATH];
+		mbstowcs(wPath, path, cSize);
+		CHECK_RETRUN(MFCreateSourceReaderFromURL(wPath, NULL, &mSourceReader), false);
+
+		HRESULT hr = S_OK;
+		TComPtr< IMFMediaType > pAudioType;    // Represents the PCM audio format.
+											   // Configure the source reader to get uncompressed PCM audio from the source file.
+		if( !ConfigureAudioStream(mSourceReader, &pAudioType) )
+			return false;
+
+		DWORD cbHeader = 0;         // Size of the WAVE file header, in bytes.
+		DWORD cbAudioData = 0;      // Total bytes of PCM audio data written to the file.
+		DWORD cbMaxAudioData = 0;
+
+		{
+			WAVEFORMATEX *pWavFormat = NULL;
+			UINT32 cbFormat = 0;
+			// Convert the PCM audio format into a WAVEFORMATEX structure.
+			CHECK_RETRUN(MFCreateWaveFormatExFromMFMediaType(pAudioType, &pWavFormat, &cbFormat), false);
+			FillData(mWaveFormat, *pWavFormat);
+			CoTaskMemFree(pWavFormat);
+		}
+
+		int64 durtion = GetSourceDuration(mSourceReader);
+		mTotalSampleNum = mWaveFormat.sampleRate * durtion  / 10000000;
+
+		return true;
+	}
+
+	int64 mTotalSampleNum;
+	WaveFormatInfo mWaveFormat;
+	TComPtr< IMFSourceReader  > mSourceReader;
 
 
+	virtual void seekSamplePosition(int64 samplePos) override
+	{
+		int64 duration = 10000000 * samplePos / mWaveFormat.byteRate;
+		PROPVARIANT var;
+		HRESULT hr = InitPropVariantFromInt64(duration, &var);
+		hr = mSourceReader->SetCurrentPosition(GUID_NULL, var);
+		PropVariantClear(&var);
+
+	}
+	virtual void getWaveFormat(WaveFormatInfo& outFormat) override
+	{
+		outFormat = mWaveFormat;
+	}
+
+
+	virtual int64 getTotalSampleNum() override
+	{
+		return mTotalSampleNum;
+	}
+#define USE_COM_BUFFER 0
+
+	virtual EAudioStreamStatus generatePCMData(int64 samplePos, AudioStreamSample& outSample, int requiredMinSameleNum) override
+	{
+		HRESULT hr = S_OK;
+
+		EAudioStreamStatus result = EAudioStreamStatus::Ok;
+		// Get audio samples from the source reader.
+
+		int genertatedSampleNum = 0;
+
+		uint32 idxSampleData = fetchSampleData();
+		auto& sampleData = mSampleDataList[idxSampleData];
+		assert(sampleData->data.empty());
+		for(;;)
+		{
+			DWORD dwFlags = 0;
+			TComPtr<IMFSample> pSample;
+			// Read the next sample.
+			hr = mSourceReader->ReadSample(MF_SOURCE_READER_FIRST_AUDIO_STREAM, 0, NULL, &dwFlags, NULL, &pSample);
+
+			if( FAILED(hr) )
+			{
+				result = EAudioStreamStatus::Error;
+				break;
+			}
+
+			if( dwFlags & MF_SOURCE_READERF_CURRENTMEDIATYPECHANGED )
+			{
+				LogWarning(0, "Type change - not supported by WAVE file format.\n");
+				return EAudioStreamStatus::Error;
+				break;
+			}
+			if( dwFlags & MF_SOURCE_READERF_ENDOFSTREAM )
+			{
+				result = EAudioStreamStatus::Eof;
+				break;
+			}
+
+			if( pSample == nullptr )
+			{
+				result = EAudioStreamStatus::NoSample;
+				break;
+			}
+
+			TComPtr<IMFMediaBuffer> buffer;
+			hr = pSample->ConvertToContiguousBuffer(&buffer);
+			if( FAILED(hr) )
+			{
+				result = EAudioStreamStatus::Error;
+				break;
+			}
+
+			DWORD cbBuffer = 0;
+			BYTE *pAudioData = NULL;
+
+			hr = buffer->Lock(&pAudioData, NULL, &cbBuffer);
+			assert((cbBuffer % mWaveFormat.bitsPerSample) == 0);
+			sampleData->data.insert( sampleData->data.begin() , pAudioData, pAudioData + cbBuffer);
+
+			buffer->Unlock();
+
+			genertatedSampleNum += cbBuffer * mWaveFormat.sampleRate / mWaveFormat.byteRate;
+
+			if ( genertatedSampleNum > requiredMinSameleNum )
+				break;
+		}
+
+		switch( result )
+		{
+		case EAudioStreamStatus::Ok:
+			break;
+		case EAudioStreamStatus::Error:
+			releaseSampleData(idxSampleData);
+			break;
+		case EAudioStreamStatus::NoSample:
+		case EAudioStreamStatus::Eof:
+			if( sampleData->data.empty() )
+			{
+				releaseSampleData(idxSampleData);
+			}
+			break;
+		}
+
+		if ( !sampleData->data.empty() )
+		{
+			outSample.handle = idxSampleData;
+			outSample.data = sampleData->data.data();
+			outSample.dataSize = sampleData->data.size();
+		}
+		else
+		{
+
+			outSample.handle = -1;
+			outSample.data = nullptr;
+			outSample.dataSize = 0;
+		}
+
+		return result;
+	}
+
+
+	struct SampleData
+	{
+		std::vector<uint8> data;
+	};
+	std::vector< uint32 > mFreeSampleDataIndices;
+	std::vector< std::unique_ptr< SampleData > > mSampleDataList;
+
+	uint32 fetchSampleData()
+	{
+		uint32 result;
+		if( mFreeSampleDataIndices.size() )
+		{
+			result = mFreeSampleDataIndices.back();
+			mFreeSampleDataIndices.pop_back();
+			return result;
+		}
+
+		result = mSampleDataList.size();
+		auto sampleData = std::make_unique<SampleData>();
+		mSampleDataList.push_back(std::move(sampleData));
+		return result;
+
+	}
+
+	void releaseSampleData(uint32 sampleHadle)
+	{
+		auto& sampleData = mSampleDataList[sampleHadle];
+		sampleData->data.clear();
+		mFreeSampleDataIndices.push_back(sampleHadle);
+	}
 
 
 };
+
 class AudioTestStage : public StageBase
 {
 	typedef StageBase BaseClass;
@@ -258,15 +641,15 @@ public:
 
 	enum
 	{
-		UI_AUDIO_VOLUME = BaseClass::NEXT_UI_ID ,
-		UI_AUDIO_PITCH ,
+		UI_AUDIO_VOLUME = BaseClass::NEXT_UI_ID,
+		UI_AUDIO_PITCH,
 	};
 
 	AudioDevice* mAudioDevice;
 	SoundWave    mSoundWave;
 
 	AudioHandle  mAudioHandle;
-
+	GSlider* mTimeWidget;
 	float prevRadius;
 	float nextRadius;
 	Vector2 prevPos;
@@ -277,83 +660,9 @@ public:
 	float moveDeltaT;
 	int step = 0;
 
-	virtual bool onInit()
-	{
-		if( !BaseClass::onInit() )
-			return false;
-
-		mAudioDevice = AudioDevice::Create();
-		if( mAudioDevice == nullptr )
-			return false;
-
-#if 0
-		if( !mSoundWave.loadFromWaveFile("Sounds/Test.wav") )
-		{
-			return false;
-		}
-#else
-#if 0
-		{
-			WaveFormatInfo& format = mSoundWave.format;
-			format.tag = WAVE_FORMAT_PCM;
-			format.numChannels = 1;
-			format.sampleRate = 8000;
-			format.bitsPerSample = sizeof(int16) * 8;
-			format.byteRate = (format.bitsPerSample * format.sampleRate) / 8;
-			format.blockAlign = (format.numChannels * format.bitsPerSample) / 8;
-			GenerateTriangleWave(3, format.sampleRate, 500, mSoundWave.PCMData);
-		}
-#else
-
-		{
-			if( !LoadWaveFile("Sounds/gem.mp3", mSoundWave.format, mSoundWave.PCMData) )
-				return false;
-		}
-#endif
-
-#endif
-
-		std::vector< float > values;
-		CalcFreq(mSoundWave, 0, 1, 200, values);
-		mAudioHandle = mAudioDevice->playSound2D(&mSoundWave, 1.0 , false);
-
-		::Global::GUI().cleanupWidget();
-
-		DevFrame* frame = WidgetUtility::CreateDevFrame();
-
-		//frame->addButton(UI_RESTART_GAME, "Restart");
-		GSlider* slider;
-		frame->addText("Volume");
-		slider = frame->addSlider(UI_AUDIO_VOLUME);
-		slider->setRange(0, 500);
-		slider->setValue(100);
-		slider->onEvent = [&](int event, GWidget* ui)-> bool
-		{
-			int value = GUI::CastFast<GSlider>(ui)->getValue();
-			mAudioDevice->setAudioVolumeMultiplier(mAudioHandle, float(value) / 100);
-			return false;
-		};
-
-		frame->addText("Pitch");
-		auto sliderPitch = frame->addSlider(UI_AUDIO_PITCH);
-		sliderPitch->setRange(0, 200);
-		sliderPitch->setValue(100);
-		sliderPitch->onEvent = [&](int event, GWidget* ui)-> bool
-		{
-			int value = GUI::CastFast<GSlider>(ui)->getValue();
-			mAudioDevice->setAudioPitchMultiplier(mAudioHandle, float(value) / 100);
-			return false;
-		};
-
-		frame->addButton("Reset pitch", [&,sliderPitch](int event, GWidget* ui)-> bool
-		{
-			sliderPitch->setValue(100);
-			mAudioDevice->setAudioPitchMultiplier(mAudioHandle, 1);
-			return false;
-		});
-		restart();
-		return true;
-	}
+	ProceduralWaveStreamSource  mSineWaveStreamSource;
+	MFAudioStreamSource         mAudioStreamSource;
+	virtual bool onInit();
 
 	virtual void onEnd()
 	{
@@ -362,13 +671,13 @@ public:
 		BaseClass::onEnd();
 	}
 
-	void restart() 
+	void restart()
 	{
 		bMoving = false;
 		step = 0;
 	}
 
-	void tick() 
+	void tick()
 	{
 		if( bMoving )
 		{
@@ -377,7 +686,7 @@ public:
 
 			if( factor > 1 )
 			{
-			
+
 				bMoving = false;
 				curPos = prevPos = nextPos;
 				curRadius = prevRadius = nextRadius;
@@ -393,43 +702,21 @@ public:
 	}
 	void updateFrame(int frame) {}
 
-	virtual void onUpdate(long time)
+	float mTime = 0;
+	int   mNumFreqGroup = 50;
+	float mScale = 5;
+	std::vector< float > mFreqValues;
+	struct HistroyData
 	{
-		BaseClass::onUpdate(time);
+		float value;
+		float vel;
+		float lastUpdateTime;
+	};
+	std::vector< HistroyData > mHistoryDatas;
 
-		mAudioDevice->update(float(time) / 1000);
+	virtual void onUpdate(long time);
 
-		int frame = time / gDefaultTickTime;
-		for( int i = 0; i < frame; ++i )
-			tick();
-
-		updateFrame(frame);
-	}
-
-	void onRender(float dFrame)
-	{
-		Graphics2D& g = Global::GetGraphics2D();
-
-		if( step > 0 )
-		{
-			RenderUtility::SetBrush(g, EColor::Null);
-			RenderUtility::SetPen(g, EColor::Blue);
-			g.drawCircle(curPos, curRadius);
-			if( step > 1 && bMoving )
-			{
-				RenderUtility::SetBrush(g, EColor::Null);
-				RenderUtility::SetPen(g, EColor::Red);
-				g.drawCircle(nextPos, nextRadius);
-
-				RenderUtility::SetPen(g, EColor::Null);
-				RenderUtility::SetBrush(g, EColor::Red, COLOR_LIGHT);
-				g.beginBlend(nextPos - Vector2(nextRadius, nextRadius), 2 * Vector2(nextRadius , nextRadius ) , 0.5 );
-				g.drawCircle(nextPos, nextRadius);
-				g.endBlend();
-			}
-		}
-
-	}
+	virtual void onRender(float dFrame) override;
 
 
 	virtual bool onWidgetEvent(int event, int id, GWidget* ui) override
@@ -449,48 +736,252 @@ public:
 		return BaseClass::onWidgetEvent(event, id, ui);
 	}
 
-	bool onMouse(MouseMsg const& msg)
-	{
-		if( !BaseClass::onMouse(msg) )
-			return false;
+	bool onMouse(MouseMsg const& msg);
 
-		if( msg.onLeftDown() && !bMoving )
-		{
-			if( step == 0 )
-			{
-				curRadius = prevRadius = 300;
-				curPos = prevPos = msg.getPos();
-			}
-			else
-			{
-				nextPos = msg.getPos();
-				nextRadius = 0.5 * prevRadius;
-				bMoving = true;
-				moveDeltaT = 0;
-			}
-			++step;
-		}
-		return true;
-	}
-
-	bool onKey(unsigned key, bool isDown)
-	{
-		if( !isDown )
-			return false;
-		switch( key )
-		{
-		case Keyboard::eR: restart(); break;
-		case Keyboard::eB:
-			mAudioHandle = mAudioDevice->playSound2D(&mSoundWave, 1.0, false);
-			break;
-		}
-		return false;
-	}
+	bool onKey(unsigned key, bool isDown);
 
 
 protected:
 };
 
-
-
 REGISTER_STAGE("Audio Test", AudioTestStage, EStageGroup::FeatureDev);
+
+bool AudioTestStage::onInit()
+{
+	if( !BaseClass::onInit() )
+		return false;
+
+	mAudioDevice = AudioDevice::Create();
+	if( mAudioDevice == nullptr )
+		return false;
+
+	HRESULT hr = MFStartup(MF_VERSION);
+#if 0
+	if( !mSoundWave.loadFromWaveFile("Sounds/Test.wav") )
+	{
+		return false;
+	}
+#else
+#if 0
+	{
+		WaveFormatInfo& format = mSoundWave.format;
+		format.tag = WAVE_FORMAT_PCM;
+		format.numChannels = 1;
+		format.sampleRate = 8000;
+		format.bitsPerSample = sizeof(int16) * 8;
+		format.byteRate = (format.bitsPerSample * format.sampleRate) / 8;
+		format.blockAlign = (format.numChannels * format.bitsPerSample) / 8;
+		GenerateTriangleWave(3, format.sampleRate, 500, mSoundWave.PCMData);
+	}
+#else
+
+#if 0
+	{
+		if( !LoadWaveFile("Sounds/gem2.mp3", mSoundWave.format, mSoundWave.PCMData) )
+			return false;
+	}
+#else
+	mAudioStreamSource.initialize("Sounds/gem2.mp3");
+	mSoundWave.bSaveStreamingPCMData = true;
+	mSoundWave.setupStream(&mSineWaveStreamSource);
+	//mSoundWave.setupStream(&mAudioStreamSource);
+#endif
+#endif
+
+#endif
+
+
+	mAudioHandle = mAudioDevice->playSound2D(&mSoundWave, 0.3, false);
+
+	::Global::GUI().cleanupWidget();
+
+	DevFrame* frame = WidgetUtility::CreateDevFrame();
+
+	//frame->addButton(UI_RESTART_GAME, "Restart");
+	GSlider* slider;
+	frame->addText("Volume");
+	slider = frame->addSlider(UI_AUDIO_VOLUME);
+	slider->setRange(0, 500);
+	slider->setValue(10);
+	slider->onEvent = [&](int event, GWidget* ui)-> bool
+	{
+		int value = GUI::CastFast<GSlider>(ui)->getValue();
+		mAudioDevice->setAudioVolumeMultiplier(mAudioHandle, float(value) / 100);
+		return false;
+	};
+
+	frame->addText("Pitch");
+	auto sliderPitch = frame->addSlider(UI_AUDIO_PITCH);
+	sliderPitch->setRange(0, 200);
+	sliderPitch->setValue(100);
+	sliderPitch->onEvent = [&](int event, GWidget* ui)-> bool
+	{
+		int value = GUI::CastFast<GSlider>(ui)->getValue();
+		mAudioDevice->setAudioPitchMultiplier(mAudioHandle, float(value) / 100);
+		return false;
+	};
+
+	frame->addButton("Reset pitch", [&, sliderPitch](int event, GWidget* ui)-> bool
+	{
+		sliderPitch->setValue(100);
+		mAudioDevice->setAudioPitchMultiplier(mAudioHandle, 1);
+		return false;
+	});
+
+
+	mTimeWidget = frame->addSlider(UI_ANY);
+	mTimeWidget->setRange(0, 1000);
+
+	frame->addText("Freq");
+	WidgetPropery::Bind(frame->addSlider(UI_ANY), mSineWaveStreamSource.mWaveGenerator.freq, 20, 15100, 2);
+
+
+	restart();
+	return true;
+}
+
+void AudioTestStage::onUpdate(long time)
+{
+	BaseClass::onUpdate(time);
+
+	float deltaTime = float(time) / 1000;
+	mAudioDevice->update(deltaTime);
+	mTime += deltaTime;
+	ActiveSound* sound = mAudioDevice->getActiveSound(mAudioHandle);
+	if( sound && !sound->playingInstances.empty() )
+	{
+
+		SoundInstance* soundInstance = sound->playingInstances[0];
+		auto const& format = soundInstance->soundwave->format;
+		double timePos = double(soundInstance->samplesPlayed) / format.sampleRate;
+
+		//LogMsg("%lld", soundInstance->samplesPlayed);
+		mTimeWidget->setValue(timePos / soundInstance->soundwave->getDurtion() * (mTimeWidget->getMaxValue() - mTimeWidget->getMinValue()));
+
+		if( CalcFrequencySpectrum(*soundInstance->soundwave, timePos, 1024 * 4, mNumFreqGroup, mFreqValues) )
+		{
+			if( mHistoryDatas.size() != mFreqValues.size() )
+			{
+				HistroyData data;
+				data.value = 0;
+				data.lastUpdateTime = mTime;
+				mHistoryDatas.resize(mFreqValues.size(), data);
+			}
+
+			for( int i = 0; i < mHistoryDatas.size(); ++i )
+			{
+				HistroyData& data = mHistoryDatas[i];
+				float curValue = mScale * mFreqValues[i];
+				if( data.value < curValue )
+				{
+					data.value = curValue;
+					data.lastUpdateTime = mTime;
+					data.vel = 0;
+				}
+				else if( (mTime - data.lastUpdateTime) > 0.05 )
+				{
+					data.vel -= 200 * deltaTime;
+					data.value += deltaTime * data.vel;
+				}
+			}
+		}
+		else
+		{
+			mFreqValues.clear();
+		}
+	}
+
+	int frame = time / gDefaultTickTime;
+	for( int i = 0; i < frame; ++i )
+		tick();
+
+	updateFrame(frame);
+}
+
+void AudioTestStage::onRender(float dFrame)
+{
+	Graphics2D& g = Global::GetGraphics2D();
+
+	if( step > 0 )
+	{
+		RenderUtility::SetBrush(g, EColor::Null);
+		RenderUtility::SetPen(g, EColor::Blue);
+		g.drawCircle(curPos, curRadius);
+		if( step > 1 && bMoving )
+		{
+			RenderUtility::SetBrush(g, EColor::Null);
+			RenderUtility::SetPen(g, EColor::Red);
+			g.drawCircle(nextPos, nextRadius);
+
+			RenderUtility::SetPen(g, EColor::Null);
+			RenderUtility::SetBrush(g, EColor::Red, COLOR_LIGHT);
+			g.beginBlend(nextPos - Vector2(nextRadius, nextRadius), 2 * Vector2(nextRadius, nextRadius), 0.5);
+			g.drawCircle(nextPos, nextRadius);
+			g.endBlend();
+		}
+	}
+	RenderUtility::SetBrush(g, EColor::Yellow);
+	RenderUtility::SetPen(g, EColor::Black);
+
+	Vector2 org = Vector2(200, 500);
+	for( int i = 0; i < mFreqValues.size(); ++i )
+	{
+		Vector2 pos = org + Vector2(i * 5, 0);
+		Vector2 size = Vector2(5, mScale * mFreqValues[i]);
+		g.drawRect(pos - Vector2(0, int(size.y)), size);
+	}
+
+	float FallDownDelay = 0.5;
+	for( int i = 0; i < mHistoryDatas.size(); ++i )
+	{
+		HistroyData& data = mHistoryDatas[i];
+		Vector2 pos = org + Vector2(i * 5, -int(data.value));
+		Vector2 size = Vector2(5, 4);
+		g.drawRect(pos - Vector2(0, int(size.y)), size);
+	}
+	RenderUtility::SetBrush(g, EColor::Yellow);
+	RenderUtility::SetPen(g, EColor::Black);
+	g.drawRect(org, Vector2(mNumFreqGroup * 5, 10));
+}
+
+bool AudioTestStage::onKey(unsigned key, bool isDown)
+{
+	if( !isDown )
+		return false;
+	switch( key )
+	{
+	case Keyboard::eR: restart(); break;
+	case Keyboard::eB:
+		mAudioDevice->stopAllSound();
+		mAudioHandle = mAudioDevice->playSound2D(&mSoundWave, 1.0, false);
+		break;
+	case Keyboard::eZ:
+		mSoundWave.PCMData.clear();
+		break;
+	}
+	return false;
+}
+
+bool AudioTestStage::onMouse(MouseMsg const& msg)
+{
+	if( !BaseClass::onMouse(msg) )
+		return false;
+
+	if( msg.onLeftDown() && !bMoving )
+	{
+		if( step == 0 )
+		{
+			curRadius = prevRadius = 300;
+			curPos = prevPos = msg.getPos();
+		}
+		else
+		{
+			nextPos = msg.getPos();
+			nextRadius = 0.5 * prevRadius;
+			bMoving = true;
+			moveDeltaT = 0;
+		}
+		++step;
+	}
+	return true;
+}

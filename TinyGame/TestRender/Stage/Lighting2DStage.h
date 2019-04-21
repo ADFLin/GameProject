@@ -60,11 +60,11 @@ namespace Lighting2D
 			parameterMap.bind(mParamLightAttenuation, SHADER_PARAM(LightAttenuation));
 		}
 
-		void setParameters(Vector2 const& lightPos , Color const& lightColor )
+		void setParameters(RHICommandList& commandList, Vector2 const& lightPos , Color const& lightColor )
 		{
-			setParam(mParamLightLocation, lightPos);
-			setParam(mParamLightColor, lightColor);
-			setParam(mParamLightAttenuation, Vector3( 0.0, 1 / 5.0, 0.0 ));
+			setParam(commandList, mParamLightLocation, lightPos);
+			setParam(commandList, mParamLightColor, lightColor);
+			setParam(commandList, mParamLightAttenuation, Vector3( 0.0, 1 / 5.0, 0.0 ));
 		}
 		ShaderParameter mParamLightLocation;
 		ShaderParameter mParamLightColor;
@@ -80,9 +80,9 @@ namespace Lighting2D
 			parameterMap.bind(mParamLightLocation, SHADER_PARAM(LightLocation));
 		}
 
-		void setParameters(Vector2 const& lightPos)
+		void setParameters(RHICommandList& commandList, Vector2 const& lightPos)
 		{
-			setParam(mParamLightLocation, lightPos);
+			setParam(commandList, mParamLightLocation, lightPos);
 		}
 
 		ShaderParameter mParamLightLocation;

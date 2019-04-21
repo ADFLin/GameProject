@@ -744,6 +744,8 @@ namespace MV
 
 	void TestStage::renderScene( Mat4 const& matView)
 	{
+		RHICommandList& commandList = RHICommandList::GetImmediateList();
+
 		RenderParam& param = mRenderEngine.mParam;
 		param.world = &mWorld;
 
@@ -767,7 +769,7 @@ namespace MV
 			else
 				glTranslatef( editPos.x - 0.5 , editPos.y - 0.5 , editPos.z - 0.5 );
 			glColor3f(1,1,1);
-			DrawUtility::CubeLine();
+			DrawUtility::CubeLine(commandList);
 			glPopMatrix();
 
 			//glDisable( GL_POLYGON_OFFSET_LINE );
@@ -792,13 +794,13 @@ namespace MV
 					v[0] = -len; v[1] = p; v[2] = z; v += 3;
 					v[0] =  len; v[1] = p; v[2] = z; v += 3;
 				}
-				TRenderRT< RTVF_XYZ >::Draw( PrimitiveType::LineList , buffer , size / 3 );
+				TRenderRT< RTVF_XYZ >::Draw(commandList, PrimitiveType::LineList , buffer , size / 3 );
 			}
 
 			{
 				glPushMatrix();
 				glScalef( len , len , len );
-				DrawUtility::AixsLine();
+				DrawUtility::AixsLine(commandList);
 				glPopMatrix();
 			}
 
@@ -820,7 +822,7 @@ namespace MV
 						{
 							glPushMatrix();
 							glTranslatef( block->pos.x - 0.5 , block->pos.y - 0.5 , block->pos.z - 0.5 );
-							DrawUtility::CubeLine();
+							DrawUtility::CubeLine(commandList);
 							glPopMatrix();
 						}
 					}
@@ -839,7 +841,7 @@ namespace MV
 						MeshObject* mesh = Level::mMeshVec[ editIdxMeshSelect ];
 						glPushMatrix();
 						glTranslatef( mesh->pos.x - 0.5 , mesh->pos.y - 0.5 , mesh->pos.z - 0.5 );
-						DrawUtility::CubeLine();
+						DrawUtility::CubeLine(commandList);
 						glPopMatrix();
 					}
 				}
@@ -861,7 +863,7 @@ namespace MV
 								glPushMatrix();
 								glTranslatef( rotator->mPos.x - 0.5 , rotator->mPos.y - 0.5 , rotator->mPos.z - 0.5 );
 								glScalef( 1.3 , 1.3 , 1.3 );
-								DrawUtility::CubeLine();
+								DrawUtility::CubeLine(commandList);
 								glPopMatrix();
 							}
 							break;

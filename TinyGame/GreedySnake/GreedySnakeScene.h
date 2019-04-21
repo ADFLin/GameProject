@@ -89,7 +89,7 @@ namespace GreedySnake
 		void onCollideTerrain( Snake& snake , int type );
 		//~Level::Listener
 
-		void  fireSnakeAction(ActionTrigger& trigger);
+		void  fireSnakeAction(ActionPort port, ActionTrigger& trigger);
 		void  fireAction( ActionTrigger& trigger );
 
 		void  killSnake( unsigned id );

@@ -83,6 +83,10 @@ namespace SIMD
 		{
 			return _mm_cvtss_f32(_mm_dp_ps(reg, rhs.reg, 0x71));
 		}
+		FORCEINLINE float lengthSquare() const
+		{
+			return _mm_cvtss_f32(_mm_dp_ps(reg, reg, 0x71));
+		}
 		FORCEINLINE float length() const
 		{
 			return _mm_cvtss_f32(_mm_sqrt_ss(_mm_dp_ps(reg, reg, 0x71)));
@@ -108,7 +112,10 @@ namespace SIMD
 			:SBase(r, i, 0, 0)
 		{
 		}
-
+		FORCEINLINE float lengthSquare() const
+		{
+			return _mm_cvtss_f32(_mm_dp_ps(reg, reg, 0x31));
+		}
 		FORCEINLINE float length() const
 		{
 			return _mm_cvtss_f32(_mm_sqrt_ss(_mm_dp_ps(reg, reg, 0x31)));

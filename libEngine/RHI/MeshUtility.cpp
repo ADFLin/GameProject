@@ -65,29 +65,29 @@ namespace Render
 		return true;
 	}
 
-	void Mesh::draw()
+	void Mesh::draw(RHICommandList& commandList)
 	{
 		if( mVertexBuffer == nullptr )
 			return;
 
-		drawInternal(0, (mIndexBuffer) ? mIndexBuffer->getNumElements() : mVertexBuffer->getNumElements());
+		drawInternal(commandList, 0, (mIndexBuffer) ? mIndexBuffer->getNumElements() : mVertexBuffer->getNumElements());
 	}
 
-	void Mesh::draw(LinearColor const& color)
+	void Mesh::draw(RHICommandList& commandList, LinearColor const& color)
 	{
 		if( mVertexBuffer == nullptr )
 			return;
-		drawInternal(0, (mIndexBuffer) ? mIndexBuffer->getNumElements() : mVertexBuffer->getNumElements(), &color);
+		drawInternal(commandList, 0, (mIndexBuffer) ? mIndexBuffer->getNumElements() : mVertexBuffer->getNumElements(), &color);
 	}
 
-	void Mesh::drawAdjShader(LinearColor const& color)
+	void Mesh::drawAdjShader(RHICommandList& commandList, LinearColor const& color)
 	{
 		if( mVertexBuffer == nullptr || mVertexAdjIndexBuffer == nullptr )
 			return;
-		drawShaderInternalEx( PrimitiveType::TriangleAdjacency, 0, mVertexAdjIndexBuffer->getNumElements(), mVertexAdjIndexBuffer, &color);
+		drawShaderInternalEx(commandList, PrimitiveType::TriangleAdjacency, 0, mVertexAdjIndexBuffer->getNumElements(), mVertexAdjIndexBuffer, &color);
 	}
 
-	void Mesh::drawTessellation(bool bUseAdjBuffer )
+	void Mesh::drawTessellation(RHICommandList& commandList, bool bUseAdjBuffer )
 	{
 		if( mVertexBuffer == nullptr )
 			return;
@@ -96,39 +96,39 @@ namespace Render
 		if ( indexBuffer == nullptr  )
 			return;
 
-		drawShaderInternalEx(PrimitiveType::Patchs, 0, indexBuffer->getNumElements(), indexBuffer, nullptr);
+		drawShaderInternalEx(commandList, PrimitiveType::Patchs, 0, indexBuffer->getNumElements(), indexBuffer, nullptr);
 	}
 
-	void Mesh::drawShader()
+	void Mesh::drawShader(RHICommandList& commandList)
 	{
 		if( mVertexBuffer == nullptr )
 			return;
-		drawShaderInternal(0, (mIndexBuffer) ? mIndexBuffer->getNumElements() : mVertexBuffer->getNumElements());
+		drawShaderInternal(commandList, 0, (mIndexBuffer) ? mIndexBuffer->getNumElements() : mVertexBuffer->getNumElements());
 	}
 
-	void Mesh::drawShader(LinearColor const& color)
+	void Mesh::drawShader(RHICommandList& commandList, LinearColor const& color)
 	{
 		if( mVertexBuffer == nullptr )
 			return;
-		drawShaderInternal(0, (mIndexBuffer) ? mIndexBuffer->getNumElements() : mVertexBuffer->getNumElements(), &color);
+		drawShaderInternal(commandList, 0, (mIndexBuffer) ? mIndexBuffer->getNumElements() : mVertexBuffer->getNumElements(), &color);
 	}
 
-	void Mesh::drawSection(int idx, bool bUseVAO)
+	void Mesh::drawSection(RHICommandList& commandList, int idx, bool bUseVAO)
 	{
 		if( mVertexBuffer == nullptr )
 			return;
 		MeshSection& section = mSections[idx];
 		if( bUseVAO )
 		{
-			drawShaderInternal(section.start, section.num);
+			drawShaderInternal(commandList, section.start, section.num);
 		}
 		else
 		{
-			drawInternal(section.start, section.num);
+			drawInternal(commandList, section.start, section.num);
 		}
 	}
 
-	void Mesh::drawInternal(int idxStart, int num, RHIIndexBuffer* indexBuffer , LinearColor const* color)
+	void Mesh::drawInternal(RHICommandList& commandList, int idxStart, int num, RHIIndexBuffer* indexBuffer , LinearColor const* color)
 	{
 		assert(mVertexBuffer != nullptr);
 		OpenGLCast::To(mVertexBuffer)->bind();
@@ -136,12 +136,12 @@ namespace Render
 
 		if( indexBuffer )
 		{
-			GL_BIND_LOCK_OBJECT(indexBuffer);
-			RHIDrawIndexedPrimitive(mType, indexBuffer->isIntType() ? CVT_UInt : CVT_UShort, idxStart, num);
+			RHISetIndexBuffer(commandList, indexBuffer);
+			RHIDrawIndexedPrimitive(commandList, mType, indexBuffer->isIntType() ? CVT_UInt : CVT_UShort, idxStart, num);
 		}
 		else
 		{
-			RHIDrawPrimitive(mType, idxStart, num);
+			RHIDrawPrimitive(commandList, mType, idxStart, num);
 		}
 
 		CheckGLStateValid();
@@ -151,36 +151,36 @@ namespace Render
 	}
 
 
-	void Mesh::drawShaderInternalEx(PrimitiveType type , int idxStart, int num, RHIIndexBuffer* indexBuffer, LinearColor const* color /*= nullptr*/)
+	void Mesh::drawShaderInternalEx(RHICommandList& commandList, PrimitiveType type , int idxStart, int num, RHIIndexBuffer* indexBuffer, LinearColor const* color /*= nullptr*/)
 	{
 		assert(mVertexBuffer != nullptr);
 		bindVAO(color);
 		if( indexBuffer )
 		{
-			RHISetIndexBuffer(indexBuffer);
-			RHIDrawIndexedPrimitive(type, indexBuffer->isIntType() ? CVT_UInt : CVT_UShort, idxStart, num);
+			RHISetIndexBuffer(commandList, indexBuffer);
+			RHIDrawIndexedPrimitive(commandList, type, indexBuffer->isIntType() ? CVT_UInt : CVT_UShort, idxStart, num);
 		}
 		else
 		{
-			RHIDrawPrimitive(type, idxStart, num);
+			RHIDrawPrimitive(commandList, type, idxStart, num);
 		}
 
 		CheckGLStateValid();
 		unbindVAO();
 	}
-	void Mesh::drawShaderInternal(int idxStart, int num, RHIIndexBuffer* indexBuffer, LinearColor const* color /*= nullptr*/)
+	void Mesh::drawShaderInternal(RHICommandList& commandList, int idxStart, int num, RHIIndexBuffer* indexBuffer, LinearColor const* color /*= nullptr*/)
 	{
 		assert(mVertexBuffer != nullptr);
 
 		bindVAO(color);
 		if( indexBuffer )
 		{
-			RHISetIndexBuffer(indexBuffer);
-			RHIDrawIndexedPrimitive(mType, indexBuffer->isIntType() ? CVT_UInt : CVT_UShort, idxStart, num);
+			RHISetIndexBuffer(commandList, indexBuffer);
+			RHIDrawIndexedPrimitive(commandList, mType, indexBuffer->isIntType() ? CVT_UInt : CVT_UShort, idxStart, num);
 		}
 		else
 		{
-			RHIDrawPrimitive(mType, idxStart, num);
+			RHIDrawPrimitive(commandList, mType, idxStart, num);
 		}
 
 		CheckGLStateValid();

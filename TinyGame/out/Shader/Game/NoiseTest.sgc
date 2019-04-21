@@ -318,6 +318,9 @@ void SmokeRenderPS()
 	//OutColor = float4(worldPos / 10, 0.0);
 #endif
 
+	float3 worldPosDepth = View.worldPos + sceneDepth * cameraDir;
+	//distDepth = 1000000;
+
 	float distStart = max(0, intersection.x);
 	float distEnd = max( distStart , intersection.y );
 	distEnd = min(distDepth, distEnd);
@@ -403,7 +406,7 @@ void SmokeRenderPS()
 
 	OutColor = float4(inScatter, transmittance);
 	OutDepth = (stepNum > 0) ? distStart : 0;
-	//OutColor = float4(abs(deviceDepth.xxx), 1);
+	//OutColor = float4(worldPosDepth, 1);
 	//OutColor = float4(stepNum.xxx / 100 , 0);
 	//OutColor = float4(IndexStep.xxx / 300 , 0);
 }
@@ -412,14 +415,14 @@ uniform sampler2D FrameTexture;
 uniform sampler2D HistroyTexture;
 uniform sampler2D DepthTexture;
 
-#define USE_REPROJECTION 1
+#define USE_REPROJECTION 0
 void SomkeBlendPS()
 {
 	float2 screenUV = VSOutput.UVs;
 
 	float4 frameColor = texture2D(FrameTexture, screenUV);
 
-	float weight = 0.95;
+	float weight = 1;
 #if USE_REPROJECTION
 	float4 temp = View.clipToWorld * float4(2 * screenUV - 1, 1, 1);
 	float3 cameraDir = normalize(temp.xyz / temp.w - View.worldPos);
@@ -443,7 +446,7 @@ void SomkeBlendPS()
 	//OutColor = float4(abs(screenUV -screenUVPrev), 0, 0);
 	//OutColor = historyColor;
 	//OutColor = float4(worldPos, 0.5 );
-	//OutColor = float4(texture2D(DepthTexture, screenUV).r , 0 , 0, 0);
+	//OutColor = float4(depthDist / 1000, 0 , 0, 0);
 
 }
 

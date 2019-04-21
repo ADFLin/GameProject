@@ -34,20 +34,33 @@ namespace Render
 		VERIFY_RETURN_FALSE(SharedAssetData::createCommonShader());
 
 		int numSamples = 8;
+
 		VERIFY_RETURN_FALSE(mDepthBuffer = RHICreateTextureDepth(Texture::eDepth32F, screenSize.x, screenSize.y, 1, numSamples));
 		VERIFY_RETURN_FALSE(mScreenBuffer = RHICreateTexture2D(Texture::eFloatRGBA, screenSize.x, screenSize.y, 1, numSamples, TCF_DefalutValue | TCF_RenderTarget));
 		VERIFY_RETURN_FALSE(mFrameBuffer.create());
 		mFrameBuffer.addTexture(*mScreenBuffer);
+		
 		mFrameBuffer.setDepth(*mDepthBuffer);
+
+		if( numSamples != 1 )
+		{
+			VERIFY_RETURN_FALSE(mResolvedDepthBuffer = RHICreateTextureDepth(Texture::eDepth32F, screenSize.x, screenSize.y, 1, 1));
+		}
+		else
+		{
+			mResolvedDepthBuffer = mDepthBuffer;
+		}
+		mResolveFrameBuffer = RHICreateFrameBuffer();
+		mResolveFrameBuffer->setDepth(*mResolvedDepthBuffer);
 
 		for( int i = 0; i < 2; ++i )
 		{
 			VERIFY_RETURN_FALSE(mSmokeFrameTextures[i] = RHICreateTexture2D(Texture::eFloatRGBA, screenSize.x, screenSize.y, 1, 1, TCF_DefalutValue | TCF_RenderTarget));
 		}
 		VERIFY_RETURN_FALSE(mSmokeDepthTexture = RHICreateTexture2D(Texture::eR32F, screenSize.x, screenSize.y, 1, 1, TCF_DefalutValue | TCF_RenderTarget));
-		VERIFY_RETURN_FALSE(mSmokeFrameBuffer.create());
-		mSmokeFrameBuffer.addTexture(*mSmokeFrameTextures[0]);
-		mSmokeFrameBuffer.addTexture(*mSmokeDepthTexture);
+		VERIFY_RETURN_FALSE(mSmokeFrameBuffer = RHICreateFrameBuffer() );
+		mSmokeFrameBuffer->addTexture(*mSmokeFrameTextures[0]);
+		mSmokeFrameBuffer->addTexture(*mSmokeDepthTexture);
 
 		mGrassTexture = RHIUtility::LoadTexture2DFromFile("Texture/Grass.png", TextureLoadOption().SRGB().MipLevel(10).ReverseH());
 		MeshBuild::Plane(mGrassPlane, Vector3(0, 0, 0), Vector3(1, 0, 0), Vector3(0, 0, 1), Vector2(1, float(mGrassTexture->getSizeY()) / mGrassTexture->getSizeX()), 1);
@@ -58,6 +71,7 @@ namespace Render
 		mProgNoiseTest = ShaderManager::Get().getGlobalShaderT< NoiseShaderTestProgram >(true);
 		mProgSmokeRender = ShaderManager::Get().getGlobalShaderT< SmokeRenderProgram >(true);
 		mProgSmokeBlend = ShaderManager::Get().getGlobalShaderT< SmokeBlendProgram >(true);
+		mProgResolveDepth = ShaderManager::Get().getGlobalShaderT< ResovleDepthProgram >(true);
 
 		{
 			Random::Well512 rand;
@@ -166,7 +180,7 @@ namespace Render
 				}
 				::Global::DataCache().saveT(cacheKey, data);
 			}
-			mData.NoiseVolumeTexture = RHICreateTexture3D(Texture::eR32F, textureSize, textureSize, textureSize, 1 , 1, TCF_DefalutValue, data.data());
+			mData.noiseVolumeTexture = RHICreateTexture3D(Texture::eR32F, textureSize, textureSize, textureSize, 1 , 1, TCF_DefalutValue, data.data());
 		}
 
 
@@ -257,6 +271,7 @@ namespace Render
 	{
 		initializeRenderState();
 
+		RHICommandList& commandList = RHICommandList::GetImmediateList();
 		indexFrameTexture = 1 - indexFrameTexture;
 
 		{
@@ -264,36 +279,36 @@ namespace Render
 			GPU_PROFILE("Scene");
 
 			{
-				//mFrameBuffer.setDepth(*mDepthBuffer);
+				mFrameBuffer.setDepth(*mDepthBuffer);
 				GL_BIND_LOCK_OBJECT(mFrameBuffer);
 
 				glClearDepth(mViewFrustum.bUseReverse ? 0 : 1);
 				glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-				RHISetupFixedPipelineState(mView.worldToView, mView.viewToClip);
-				DrawUtility::AixsLine();
+				RHISetupFixedPipelineState(commandList, mView.worldToView, mView.viewToClip);
+				DrawUtility::AixsLine(commandList);
 
-				RHISetupFixedPipelineState(Matrix4::Scale(1.5) * Matrix4::Translate(2, 2, 2) * mView.worldToView, mView.viewToClip);
-				mSimpleMeshs[SimpleMeshId::Doughnut].draw(LinearColor(1, 0.5, 0));
+				RHISetupFixedPipelineState(commandList, Matrix4::Scale(1.5) * Matrix4::Translate(2, 2, 2) * mView.worldToView, mView.viewToClip);
+				mSimpleMeshs[SimpleMeshId::Doughnut].draw(commandList, LinearColor(1, 0.5, 0));
 
-				RHISetupFixedPipelineState(Matrix4::Scale(1) * Matrix4::Translate(7, 2, -2) * mView.worldToView, mView.viewToClip);
-				mSimpleMeshs[SimpleMeshId::Box].draw(LinearColor(0.25, 0.5, 1));
+				RHISetupFixedPipelineState(commandList, Matrix4::Scale(1) * Matrix4::Translate(7, 2, -2) * mView.worldToView, mView.viewToClip);
+				mSimpleMeshs[SimpleMeshId::Box].draw(commandList, LinearColor(0.25, 0.5, 1));
 
 
 				{
-					RHISetBlendState(TStaticAlphaToCoverageBlendState<>::GetRHI());
+					RHISetBlendState(commandList, TStaticAlphaToCoverageBlendState<>::GetRHI());
 					//RHITexture2D const* textures[] = { mGrassTexture.get() };
 					//RHISetupFixedPipelineState(Matrix4::Scale(1) * Matrix4::Translate(0, 0, 12) * mView.worldToView, mView.viewToClip , 1 , textures);
 					GL_BIND_LOCK_OBJECT(mProgGrass);
-					mView.setupShader(mProgGrass);
-					mProgGrass.setTexture(SHADER_PARAM(Texture), *mGrassTexture , TStaticSamplerState< Sampler::eTrilinear > ::GetRHI());
+					mView.setupShader(commandList, mProgGrass);
+					mProgGrass.setTexture(commandList, SHADER_PARAM(Texture), *mGrassTexture , TStaticSamplerState< Sampler::eTrilinear > ::GetRHI());
 
 					for( int n = 0 ; n < 100 ; ++n )
 					{
 						for( int i = 0; i < 10; ++i )
 						{
-							mProgGrass.setParam(SHADER_PARAM(Primitive.localToWorld), Matrix4::Rotate(Vector3(0, 0, 1), 2 * PI * i / 10) * Matrix4::Scale(1) * Matrix4::Translate( n / 10 , n % 10 , 12));
-							mGrassPlane.drawShader();
+							mProgGrass.setParam(commandList, SHADER_PARAM(Primitive.localToWorld), Matrix4::Rotate(Vector3(0, 0, 1), 2 * PI * i / 10) * Matrix4::Scale(1) * Matrix4::Translate( n / 10 , n % 10 , 12));
+							mGrassPlane.drawShader(commandList);
 						}
 					}
 				}
@@ -301,8 +316,8 @@ namespace Render
 				{
 					GPU_PROFILE("LightPoints");
 					//FIXME
-					RHISetupFixedPipelineState(mView.worldToView, mView.viewToClip);
-					drawLightPoints(mView, MakeView(mLights));
+					RHISetupFixedPipelineState(commandList, mView.worldToView, mView.viewToClip);
+					drawLightPoints(commandList, mView, MakeView(mLights));
 
 				}
 			}
@@ -312,13 +327,27 @@ namespace Render
 				GPU_PROFILE("CopyToScreen");
 				mFrameBuffer.blitToBackBuffer();
 				//ShaderHelper::Get().copyTextureToBuffer(*mScreenBuffer);
-				return;
+				//return;
+			}
+
+			if( mDepthBuffer->getNumSamples() != 1 )
+			{
+				RHISetFrameBuffer(commandList, *mResolveFrameBuffer);
+
+				GPU_PROFILE("ResolveDepth");
+				RHISetRasterizerState(commandList, TStaticRasterizerState< ECullMode::None >::GetRHI());
+				RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
+				RHISetDepthStencilState(commandList, TStaticDepthStencilState< true , ECompareFun::Always >::GetRHI());
+				GL_BIND_LOCK_OBJECT(mProgResolveDepth);
+
+				mProgResolveDepth->setTexture(commandList, SHADER_PARAM(UnsolvedDepthTexture), *mDepthBuffer);
+				DrawUtility::ScreenRectShader(commandList, mDepthBuffer->getSizeX() , mDepthBuffer->getSizeY());
 			}
 
 			{
-				mSmokeFrameBuffer.setTexture(0, *mSmokeFrameTextures[indexFrameTexture]);		
+				mSmokeFrameBuffer->setTexture(0, *mSmokeFrameTextures[indexFrameTexture]);		
 				//mFrameBuffer.removeDepthBuffer();
-				GL_BIND_LOCK_OBJECT(mSmokeFrameBuffer);
+				RHISetFrameBuffer(commandList, *mSmokeFrameBuffer);
 				glClearColor(0, 0, 0, 1);
 				GLfloat clearValueA[] = { 0 ,0, 0, 1 };
 				GLfloat clearValueB[] = { 0 ,0, 0, 1 };
@@ -326,36 +355,40 @@ namespace Render
 				glClearBufferfv(GL_COLOR, 1, clearValueB);
 
 				GPU_PROFILE("SmokeRender");
-				RHISetRasterizerState(TStaticRasterizerState< ECullMode::None >::GetRHI());
-				RHISetBlendState(TStaticBlendState<>::GetRHI());
-				RHISetDepthStencilState(StaticDepthDisableState::GetRHI());
+				RHISetRasterizerState(commandList, TStaticRasterizerState< ECullMode::None >::GetRHI());
+				RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
+				RHISetDepthStencilState(commandList, StaticDepthDisableState::GetRHI());
 
 				GL_BIND_LOCK_OBJECT(*mProgSmokeRender);
-				mProgSmokeRender->setParameters(mView, mData, Vector3(0, 0, 0), Vector3(20, 20, 20), mSmokeParams);
-				mProgSmokeRender->setStructuredBufferT< TiledLightInfo >(*mLightsBuffer.getRHI());
-				mProgSmokeRender->setParam(SHADER_PARAM(TiledLightNum), (int)mLights.size());
-				mProgSmokeRender->setTexture(SHADER_PARAM(SceneDepthTexture), *mDepthBuffer);
-				DrawUtility::ScreenRectShader();
+				mProgSmokeRender->setParameters(commandList, mView, mData, Vector3(0, 0, 0), Vector3(20, 20, 20), mSmokeParams);
+				mProgSmokeRender->setStructuredStorageBufferT< TiledLightInfo >(commandList, *mLightsBuffer.getRHI());
+				mProgSmokeRender->setParam(commandList, SHADER_PARAM(TiledLightNum), (int)mLights.size());
+				mProgSmokeRender->setTexture(commandList, SHADER_PARAM(SceneDepthTexture), *mResolvedDepthBuffer);
+				DrawUtility::ScreenRectShader(commandList);
 			}
 
 			{
-				GL_BIND_LOCK_OBJECT(mFrameBuffer);
+				mFrameBuffer.unbind();
+				//GL_BIND_LOCK_OBJECT(mFrameBuffer);
 				GPU_PROFILE("SmokeBlend");
-				RHISetRasterizerState(TStaticRasterizerState< ECullMode::None >::GetRHI());
-				RHISetBlendState(TStaticBlendState<CWM_RGB, Blend::eOne, Blend::eSrcAlpha >::GetRHI());
-				RHISetDepthStencilState(StaticDepthDisableState::GetRHI());
+				RHISetRasterizerState(commandList, TStaticRasterizerState< ECullMode::None >::GetRHI());
+				RHISetBlendState(commandList, TStaticBlendState<CWM_RGB, Blend::eOne, Blend::eSrcAlpha >::GetRHI());
+				RHISetDepthStencilState(commandList, StaticDepthDisableState::GetRHI());
 
 				GL_BIND_LOCK_OBJECT(*mProgSmokeBlend);
-				mProgSmokeBlend->setParameters(mView, *mSmokeFrameTextures[indexFrameTexture], *mSmokeFrameTextures[1 - indexFrameTexture]);
-				mProgSmokeBlend->setTexture(SHADER_PARAM(DepthTexture), *mSmokeDepthTexture);
-				DrawUtility::ScreenRectShader();
+				mProgSmokeBlend->setParameters(commandList, mView, *mSmokeFrameTextures[indexFrameTexture], *mSmokeFrameTextures[1 - indexFrameTexture]);
+				mProgSmokeBlend->setTexture(commandList, SHADER_PARAM(DepthTexture), *mSmokeDepthTexture);
+				DrawUtility::ScreenRectShader(commandList);
 			}
 		}
 
 
-		RHISetDepthStencilState(StaticDepthDisableState::GetRHI());
-		RHISetRasterizerState(TStaticRasterizerState<ECullMode::None>::GetRHI());
-		RHISetBlendState(TStaticBlendState<>::GetRHI());
+
+
+
+		RHISetDepthStencilState(commandList, StaticDepthDisableState::GetRHI());
+		RHISetRasterizerState(commandList, TStaticRasterizerState<ECullMode::None>::GetRHI());
+		RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
 		Vec2i screenSize = ::Global::GetDrawEngine().getScreenSize();
 		auto gameWindow = ::Global::GetDrawEngine().getWindow();
 
@@ -364,16 +397,16 @@ namespace Render
 		int imageSize = Math::Min<int>(150, (gameWindow.getWidth() - 5 * (noiseShaders.size() + 1)) / noiseShaders.size());
 		for( int i = 0; i < noiseShaders.size(); ++i )
 		{
-			drawNoiseImage(IntVector2(5 + (imageSize + 5) * i, 5), IntVector2(imageSize, imageSize), *noiseShaders[i]);
+			drawNoiseImage(commandList, IntVector2(5 + (imageSize + 5) * i, 5), IntVector2(imageSize, imageSize), *noiseShaders[i]);
 
 		}
 
 		if( 0 )
 		{
-			RHISetViewport(0, 0, screenSize.x, screenSize.y);
+			RHISetViewport(commandList, 0, 0, screenSize.x, screenSize.y);
 			OrthoMatrix matProj(0, screenSize.x, 0, screenSize.y, -1, 1);
 			MatrixSaveScope matScope(matProj);
-			DrawUtility::DrawTexture(*mSmokeDepthTexture, IntVector2(10, 10), IntVector2(512, 512));
+			DrawUtility::DrawTexture(commandList, *mSmokeDepthTexture, IntVector2(10, 10), IntVector2(512, 512));
 		}
 	}
 

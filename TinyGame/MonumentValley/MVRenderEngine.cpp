@@ -72,6 +72,8 @@ namespace MV
 		if ( !ShaderManager::Get().loadFileSimple(mEffect , "Shader/Game/MVPiece") )
 			return false;
 
+		mCommandList = &RHICommandList::GetImmediateList();
+
 		locDirX = mEffect.getParamLoc( "dirX" );
 		locDirZ = mEffect.getParamLoc( "dirZ" );
 		locLocalScale = mEffect.getParamLoc( "localScale" );
@@ -106,11 +108,12 @@ namespace MV
 
 	void RenderEngine::renderScene(Mat4 const& matView)
 	{
+		RHICommandList& commandList = *mCommandList;
 		Mat4 matViewInv;
 		float det;
 		matView.inverse( matViewInv , det );
 		mEffect.bind();
-		mEffect.setParam( SHADER_PARAM(View.viewToWorld) , matViewInv );
+		mEffect.setParam(commandList, SHADER_PARAM(View.viewToWorld) , matViewInv );
 
 		glLoadMatrixf( matView );
 		renderGroup( mParam.world->mRootGroup );
@@ -120,6 +123,7 @@ namespace MV
 
 	void RenderEngine::renderBlock(Block& block , Vec3i const& pos)
 	{
+		RHICommandList& commandList = *mCommandList;
 		if ( mParam.bShowGroupColor )
 		{
 			int idx = ( block.group == &mParam.world->mRootGroup ) ? 0 : ( block.group->idx );
@@ -132,9 +136,9 @@ namespace MV
 
 		glPushMatrix();
 		glTranslatef( pos.x , pos.y , pos.z );
-		mEffect.setParam( locDirX , (int)block.rotation[0] );
-		mEffect.setParam( locDirZ , (int)block.rotation[2] );
-		mMesh[ block.idMesh ].draw();
+		mEffect.setParam(commandList, locDirX , (int)block.rotation[0] );
+		mEffect.setParam(commandList, locDirZ , (int)block.rotation[2] );
+		mMesh[ block.idMesh ].draw(commandList);
 
 		for( int i = 0 ; i < 6 ; ++i )
 		{
@@ -143,7 +147,7 @@ namespace MV
 			{
 				Vec3f offset = 0.5 * FDir::OffsetF( block.rotation.toWorld( Dir(i) ) );
 				glTranslatef( offset.x , offset.y , offset.z );
-				mMesh[ MESH_LADDER ].draw();
+				mMesh[ MESH_LADDER ].draw(commandList);
 			}
 		}
 		glPopMatrix();
@@ -151,29 +155,32 @@ namespace MV
 
 	void RenderEngine::renderPath( Path& path , PointVec& points)
 	{
+		RHICommandList& commandList = *mCommandList;
 		if ( !points.empty() )
-			TRenderRT< RTVF_XYZ >::Draw( PrimitiveType::LineStrip , &points[0] , points.size() , sizeof( Vec3f ) );
+			TRenderRT< RTVF_XYZ >::Draw(commandList, PrimitiveType::LineStrip , &points[0] , points.size() , sizeof( Vec3f ) );
 	}
 
 	void RenderEngine::renderMesh(int idMesh , Vec3f const& pos , Vec3f const& rotation)
 	{
+		RHICommandList& commandList = *mCommandList;
 		glPushMatrix();
 		glTranslatef( pos.x , pos.y , pos.z );
-		mEffect.setParam( locDirX , (int)Dir::X );
-		mEffect.setParam( locDirZ , (int)Dir::Z );
+		mEffect.setParam(commandList, locDirX , (int)Dir::X );
+		mEffect.setParam(commandList, locDirZ , (int)Dir::Z );
 		Quat q; q.setEulerZYX( rotation.z , rotation.y , rotation.x );
 		glMultMatrixf( Matrix4::Rotate( q ) );
-		mMesh[ idMesh ].draw();
+		mMesh[ idMesh ].draw(commandList);
 		glPopMatrix();
 	}
 
 	void RenderEngine::renderMesh(int idMesh , Vec3f const& pos , AxisRoataion const& rotation)
 	{
+		RHICommandList& commandList = *mCommandList;
 		glPushMatrix();
 		glTranslatef( pos.x , pos.y , pos.z );
-		mEffect.setParam( locDirX , (int)rotation[0] );
-		mEffect.setParam( locDirZ , (int)rotation[2] );
-		mMesh[ idMesh ].draw();
+		mEffect.setParam(commandList, locDirX , (int)rotation[0] );
+		mEffect.setParam(commandList, locDirZ , (int)rotation[2] );
+		mMesh[ idMesh ].draw(commandList);
 		glPopMatrix();
 	}
 
@@ -236,6 +243,8 @@ namespace MV
 
 	void RenderEngine::renderActor(Actor& actor)
 	{
+		RHICommandList& commandList = *mCommandList;
+
 		glPushMatrix();
 
 		Vec3f pos = actor.renderPos + 0.5 * FDir::OffsetF( actor.actFaceDir );
@@ -249,21 +258,21 @@ namespace MV
 		}
 		glTranslatef( pos.x , pos.y , pos.z );
 
-		mEffect.setParam( locDirX , (int)actor.rotation[0] );
-		mEffect.setParam( locDirZ , (int)actor.rotation[2] );
+		mEffect.setParam(commandList, locDirX , (int)actor.rotation[0] );
+		mEffect.setParam(commandList, locDirZ , (int)actor.rotation[2] );
 
 		glColor3f( 0.5 , 0.5 , 0.5 );
 
 		glPushMatrix();
-		mEffect.setParam( locLocalScale , Vec3f( 0.4 , 0.6 , 1.0 ) );
-		mMesh[ MESH_BOX ].draw();
-		mEffect.setParam( locLocalScale , Vec3f( 1.0 , 1.0 , 1.0 ) );
+		mEffect.setParam(commandList, locLocalScale , Vec3f( 0.4 , 0.6 , 1.0 ) );
+		mMesh[ MESH_BOX ].draw(commandList);
+		mEffect.setParam(commandList, locLocalScale , Vec3f( 1.0 , 1.0 , 1.0 ) );
 		glPopMatrix();
 
 		//Vector3 offset = actor.moveOffset * cast( frontOffset ) - 0.2 * cast( upOffset );
 		glTranslatef( 0.9 * upOffset.x, 0.9 * upOffset.y, 0.9 * upOffset.z );
 
-		mMesh[ MESH_SPHERE ].draw();
+		mMesh[ MESH_SPHERE ].draw(*mCommandList);
 
 		mEffect.unbind();
 
@@ -325,7 +334,7 @@ namespace MV
 				}
 			}
 		}
-		TRenderRT< RTVF_XYZ_C >::Draw( PrimitiveType::LineList, buffer , nV  );
+		TRenderRT< RTVF_XYZ_C >::Draw(*mCommandList, PrimitiveType::LineList, buffer , nV  );
 		mEffect.bind();
 	}
 

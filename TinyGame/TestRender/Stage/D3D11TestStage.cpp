@@ -80,6 +80,76 @@ namespace RenderD3D11
 	};
 
 
+	class D3D11Shader
+	{
+
+
+
+
+	};
+
+
+	class D3D11ShaderProgram
+	{
+
+
+
+
+
+		void addShaderParameterMap( Shader::Type shaderType , ShaderParameterMap const& parameterMap)
+		{
+			for( auto const& pair : parameterMap.mMap )
+			{
+				auto& param = mParameterMap.mMap[ pair.first ];
+				
+				if( param.mLoc == -1 )
+				{
+					param.mLoc = mParamEntryMap.size();
+					ParameterEntry entry;
+					entry.shaderMask = 0;
+					entry.numEntry = 0;
+					entry.entryIndex = mDataEntries.size();
+					mParamEntryMap.push_back(entry);
+				}
+
+				ParameterEntry& entry = mParamEntryMap[param.mLoc];
+
+				assert(entry.shaderMask < BIT(shaderType));
+				entry.shaderMask |= BIT(shaderType);
+				entry.numEntry += 1;
+
+				DataEntry dataEntry;
+				dataEntry.offst = pair.second.offset;
+				dataEntry.size  = pair.second.size;
+				mDataEntries.push_back(dataEntry);
+			}
+		}
+
+		
+		ShaderParameterMap mParameterMap;
+
+		struct ParameterEntry
+		{
+			uint8  shaderMask;
+			uint8  numEntry;
+			uint16 entryIndex;
+
+			ParameterEntry()
+			{
+
+			}
+		};
+
+		struct DataEntry
+		{
+			uint16 size;
+			uint16 offst;
+		};
+		std::vector< ParameterEntry > mParamEntryMap;
+		std::vector< DataEntry > mDataEntries;
+		D3D11ShaderResource mShaderResources[5];
+	};
+
 
 	class TestStage : public StageBase
 	{
@@ -218,7 +288,7 @@ namespace RenderD3D11
 			}
 
 			{
-				ShaderVariantD3D11 shaderVariant;
+				D3D11ShaderVariant shaderVariant;
 				ShaderParameterMap parameterMap;
 				if( !mRHISystem->compileShader(Shader::eVertex, Code, strlen(Code), SHADER_ENTRY(MainVS), parameterMap, shaderVariant , mVertexShaderByteCode.address() ) )
 					return false;
@@ -226,7 +296,7 @@ namespace RenderD3D11
 			}
 
 			{
-				ShaderVariantD3D11 shaderVariant;
+				D3D11ShaderVariant shaderVariant;
 				if( !mRHISystem->compileShader(Shader::ePixel, Code, strlen(Code), SHADER_ENTRY(MainPS), mParameterMap, shaderVariant) )
 					return false;
 				mPixelShader.initialize(shaderVariant.pixel);
@@ -265,19 +335,6 @@ namespace RenderD3D11
 					
 				};
 
-				D3D11_SUBRESOURCE_DATA initData = { 0 };
-				initData.pSysMem = vertices;
-				initData.SysMemPitch = 0;
-				initData.SysMemSlicePitch = 0;
-
-				D3D11_BUFFER_DESC bufferDesc = { 0 };
-				bufferDesc.ByteWidth = sizeof(MyVertex) * ARRAY_SIZE(vertices);
-				bufferDesc.Usage = D3D11_USAGE_DEFAULT;
-				bufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-				bufferDesc.CPUAccessFlags = 0;
-				bufferDesc.MiscFlags = 0;
-				bufferDesc.StructureByteStride = 0;
-
 				VERIFY_RETURN_FALSE( mVertexBuffer = RHICreateVertexBuffer(sizeof(MyVertex), ARRAY_SIZE(vertices), BCF_DefalutValue, vertices) );
 
 				InputLayoutDesc desc;
@@ -285,23 +342,6 @@ namespace RenderD3D11
 				desc.addElement(0, Vertex::ATTRIBUTE1, Vertex::eFloat3);
 				desc.addElement(0, Vertex::ATTRIBUTE2, Vertex::eFloat2);
 				VERIFY_RETURN_FALSE( mInputLayout = RHICreateInputLayout(desc) );
-			}
-
-			{
-				D3D11_RASTERIZER_DESC desc = {};
-				desc.FillMode = D3D11_FILL_SOLID;
-				desc.CullMode = D3D11_CULL_NONE;
-				desc.FrontCounterClockwise = TRUE;
-				desc.DepthBias = 0;
-				desc.DepthBiasClamp = 0;
-				desc.SlopeScaledDepthBias = 0;
-				desc.DepthClipEnable = FALSE;
-				desc.ScissorEnable = FALSE;
-				desc.MultisampleEnable = FALSE;
-				desc.AntialiasedLineEnable = FALSE;
-				TComPtr<ID3D11RasterizerState> state;
-				VERIFY_D3D11RESULT_RETURN_FALSE(device->CreateRasterizerState(&desc, &state));
-				//context->RSSetState(state);
 			}
 
 			::Global::GUI().cleanupWidget();
@@ -344,6 +384,9 @@ namespace RenderD3D11
 		void onRender(float dFrame)
 		{
 			Graphics2D& g = Global::GetGraphics2D();
+
+			RHICommandList& commandList = RHICommandList::GetImmediateList();
+
 			TComPtr< ID3D11DeviceContext >& context = mRHISystem->mDeviceContext;
 			TComPtr< ID3D11Device >& device = mRHISystem->mDevice;
 			GameWindow& window = ::Global::GetDrawEngine().getWindow();
@@ -351,10 +394,10 @@ namespace RenderD3D11
 			context->ClearRenderTargetView(renderTargetView ,Vector4(0.2, 0.2, 0.2,1));
 			context->OMSetRenderTargets(1, &renderTargetView, NULL);
 
-			RHISetViewport(0, 0, window.getWidth(), window.getHeight());
+			RHISetViewport(commandList, 0, 0, window.getWidth(), window.getHeight());
 
-
-			RHISetBlendState(TStaticBlendState< CWM_RGBA, Blend::eOne, Blend::eOne >::GetRHI());
+			RHISetRasterizerState(commandList, TStaticRasterizerState<>::GetRHI());
+			RHISetBlendState(commandList, TStaticBlendState< CWM_RGBA, Blend::eOne, Blend::eOne >::GetRHI());
 
 			context->VSSetShader(mVertexShader, nullptr, 0);
 			context->PSSetShader(mPixelShader, nullptr, 0);
@@ -398,7 +441,7 @@ namespace RenderD3D11
 				context->IASetInputLayout(D3D11Cast::GetResource(mInputLayout));
 				ID3D11Buffer* buffers[] = { D3D11Cast::GetResource(mVertexBuffer) };
 				context->IASetVertexBuffers(0, 1, buffers, &stride, &offset);
-				RHIDrawPrimitive(PrimitiveType::TriangleStrip, 0 , 4 );
+				RHIDrawPrimitive(commandList, PrimitiveType::TriangleStrip, 0 , 4 );
 			}
 			
 			context->Flush();

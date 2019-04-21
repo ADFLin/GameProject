@@ -26,6 +26,8 @@ namespace Render
 		case 0x1002: gRHIDeviceVendorName = DeviceVendorName::ATI; break;
 		}
 
+		mDrawContext.mDeviceContext = mDeviceContext.get();
+		mImmediateCommandList = new RHICommandListImpl(mDrawContext);
 		return true;
 	}
 
@@ -82,16 +84,6 @@ namespace Render
 	}
 
 	void D3D11System::RHIUnlockBuffer(RHIIndexBuffer* buffer)
-	{
-		mDeviceContext->Unmap(D3D11Cast::GetResource(*buffer), 0);
-	}
-
-	void* D3D11System::RHILockBuffer(RHIUniformBuffer* buffer, ELockAccess access, uint32 offset, uint32 size)
-	{
-		return lockBufferInternal(D3D11Cast::GetResource(*buffer), access, offset, size);
-	}
-
-	void D3D11System::RHIUnlockBuffer(RHIUniformBuffer* buffer)
 	{
 		mDeviceContext->Unmap(D3D11Cast::GetResource(*buffer), 0);
 	}
@@ -158,7 +150,7 @@ namespace Render
 		return new D3D11InputLayout(inputLayoutResource.release() );
 	}
 
-	Render::RHIRasterizerState* D3D11System::RHICreateRasterizerState(RasterizerStateInitializer const& initializer)
+	RHIRasterizerState* D3D11System::RHICreateRasterizerState(RasterizerStateInitializer const& initializer)
 	{
 		D3D11_RASTERIZER_DESC desc = {};
 		desc.FillMode = D3D11Conv::To(initializer.fillMode);
@@ -168,7 +160,7 @@ namespace Render
 		desc.DepthBiasClamp = 0;
 		desc.SlopeScaledDepthBias = 0;
 		desc.DepthClipEnable = FALSE;
-		desc.ScissorEnable = FALSE;
+		desc.ScissorEnable = initializer.bEnableScissor;
 		desc.MultisampleEnable = FALSE;
 		desc.AntialiasedLineEnable = FALSE;
 

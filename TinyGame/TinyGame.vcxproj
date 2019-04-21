@@ -364,6 +364,7 @@ copy $(TargetDir)EngineShare.dll  $(ProjectDir)out\</Command>
     <None Include="out\Shader\BasePass.sgc" />
     <None Include="out\Shader\DeferredLighting.sgc" />
     <None Include="out\Shader\DeferredShadingCommon.sgc" />
+    <None Include="out\Shader\DFFTCommon.sgc" />
     <None Include="out\Shader\DistanceField.sgc" />
     <None Include="out\Shader\DOF.sgc" />
     <None Include="out\Shader\EnvLightTextureGen.sgc" />
@@ -410,6 +411,7 @@ copy $(TargetDir)EngineShare.dll  $(ProjectDir)out\</Command>
     <None Include="out\Shader\PostProcessCommon.sgc" />
     <None Include="out\Shader\PrimitiveParam.sgc" />
     <None Include="out\Shader\Reflection.sgc" />
+    <None Include="out\Shader\ResolveRenderTarget.sgc" />
     <None Include="out\Shader\ScatteringCommon.sgc" />
     <None Include="out\Shader\ScreenSpaceReflection.sgc" />
     <None Include="out\Shader\ScreenVertexShader.sgc" />

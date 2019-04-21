@@ -682,9 +682,9 @@ namespace Go
 			float winRate;
 			float evalValue;
 			int   playout;
-			int numRead;
+			int   numRead;
 
-			if( sscanf(buffer, "%s -> %d (LCB: %f%%) (V: %f%%) (N: %f%%)%n", coord.data(), &nodeVisited, &LCB, &winRate, &evalValue, &numRead) != 4 )
+			if( sscanf(buffer, "%s -> %d (V: %f%%) (LCB: %f%%) (N: %f%%)%n", coord.data(), &nodeVisited,  &winRate, &LCB, &evalValue, &numRead) != 5 )
 				return false;
 
 			PlayVertex vertex = GetVertex(coord);

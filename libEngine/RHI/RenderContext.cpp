@@ -12,8 +12,8 @@ namespace Render
 			Matrix4 matInv;
 			float det;
 			mat.inverseAffine(matInv, det);
-			context.mUsageProgram->setParam(SHADER_PARAM(Primitive.localToWorld), mat);
-			context.mUsageProgram->setParam(SHADER_PARAM(Primitive.worldToLocal), matInv);
+			context.mUsageProgram->setParam(context.getCommnadList(), SHADER_PARAM(Primitive.localToWorld), mat);
+			context.mUsageProgram->setParam(context.getCommnadList(), SHADER_PARAM(Primitive.worldToLocal), matInv);
 		}
 		else
 		{
@@ -38,6 +38,8 @@ namespace Render
 	MaterialShaderProgram* RenderContext::setMaterial( Material* material , VertexFactory* vertexFactory )
 	{
 		MaterialShaderProgram* program;
+		RHICommandList& commandList = getCommnadList();
+
 		if( material )
 		{
 			program = mTechique->getMaterialShader(*this,*material->getMaster() , vertexFactory );
@@ -67,10 +69,10 @@ namespace Render
 			mUsageProgram = program;
 			mbUseMaterialShader = true;
 			program->bind();
-			mCurView->setupShader(*program);
+			mCurView->setupShader(commandList, *program);
 			mTechique->setupMaterialShader(*this, *program);
 		}
-		material->setupShader(*program);
+		material->setupShader(commandList, *program);
 
 		return program;
 	}
@@ -104,7 +106,7 @@ namespace Render
 		return IntVector2(values[2], values[3]);
 	}
 
-	void ViewInfo::setupShader(ShaderProgram& program)
+	void ViewInfo::setupShader(RHICommandList& commandList, ShaderProgram& program)
 	{
 		//ref ViewParam.sgc
 #if 1
@@ -130,7 +132,7 @@ namespace Render
 
 		if( !mUniformBuffer.isValid() )
 		{
-			mUniformBuffer = RHICreateUniformBuffer(sizeof(ViewBufferData) , 1 , BCF_UsageDynamic );
+			mUniformBuffer = RHICreateVertexBuffer(sizeof(ViewBufferData) , 1 , BCF_UsageDynamic );
 		}
 
 		if( mbDataDirty )
@@ -158,24 +160,24 @@ namespace Render
 			RHIUnlockBuffer(mUniformBuffer);
 		}
 
-		program.setStructuredBufferT<ViewBufferData>(*mUniformBuffer);
+		program.setStructuredUniformBufferT<ViewBufferData>(commandList, *mUniformBuffer);
 
 #else
-		program.setParam(SHADER_PARAM(View.worldPos), worldPos);
-		program.setParam(SHADER_PARAM(View.direction), direction);
-		program.setParam(SHADER_PARAM(View.worldToView), worldToView);
-		program.setParam(SHADER_PARAM(View.worldToClip), worldToClip);
-		program.setParam(SHADER_PARAM(View.viewToWorld), viewToWorld);
-		program.setParam(SHADER_PARAM(View.viewToClip), viewToClip);
-		program.setParam(SHADER_PARAM(View.clipToView), clipToView);
-		program.setParam(SHADER_PARAM(View.clipToWorld), clipToWorld);
-		program.setParam(SHADER_PARAM(View.gameTime), gameTime);
-		program.setParam(SHADER_PARAM(View.realTime), realTime);
+		program.setParam(commandList, SHADER_PARAM(View.worldPos), worldPos);
+		program.setParam(commandList, SHADER_PARAM(View.direction), direction);
+		program.setParam(commandList, SHADER_PARAM(View.worldToView), worldToView);
+		program.setParam(commandList, SHADER_PARAM(View.worldToClip), worldToClip);
+		program.setParam(commandList, SHADER_PARAM(View.viewToWorld), viewToWorld);
+		program.setParam(commandList, SHADER_PARAM(View.viewToClip), viewToClip);
+		program.setParam(commandList, SHADER_PARAM(View.clipToView), clipToView);
+		program.setParam(commandList, SHADER_PARAM(View.clipToWorld), clipToWorld);
+		program.setParam(commandList, SHADER_PARAM(View.gameTime), gameTime);
+		program.setParam(commandList, SHADER_PARAM(View.realTime), realTime);
 		viewportParam.x = rectOffset.x;
 		viewportParam.y = rectOffset.y;
 		viewportParam.z = 1.0 / float(rectSize.x);
 		viewportParam.w = 1.0 / float(rectSize.y);
-		program.setParam(SHADER_PARAM(View.viewportPosAndSizeInv), viewportParam);
+		program.setParam(commandList, SHADER_PARAM(View.viewportPosAndSizeInv), viewportParam);
 #endif
 	}
 

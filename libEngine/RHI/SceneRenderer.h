@@ -50,11 +50,11 @@ namespace Render
 		RHITextureDepthRef depthTexture;
 
 		bool initializeRHI(IntVector2 const& size , int numSamples );
-		void setupShader(ShaderProgram& program);
+		void setupShader(RHICommandList& commandList, ShaderProgram& program);
 
-		void drawTextures(IntVector2 const& size, IntVector2 const& gapSize);
-		void drawTexture(int x, int y, int width, int height, int idxBuffer);
-		void drawTexture(int x, int y, int width, int height, int idxBuffer, Vector4 const& colorMask);
+		void drawTextures(RHICommandList& commandList, IntVector2 const& size, IntVector2 const& gapSize);
+		void drawTexture(RHICommandList& commandList, int x, int y, int width, int height, int idxBuffer);
+		void drawTexture(RHICommandList& commandList, int x, int y, int width, int height, int idxBuffer, Vector4 const& colorMask);
 	};
 
 	struct RenderTargetResource
@@ -87,7 +87,7 @@ namespace Render
 		void detachDepthTexture() { mFrameBuffer.removeDepthBuffer(); }
 
 
-		void drawDepthTexture(int x, int y, int width, int height);
+		void drawDepthTexture(RHICommandList& commandList, int x, int y, int width, int height);
 
 		GBufferParamData   mGBuffer;
 		RHITexture2DRef    mFrameTextures[2];
@@ -103,8 +103,8 @@ namespace Render
 	public:
 		void bindParameters(ShaderParameterMap& parameterMap, bool bUseDepth = false);
 
-		void setParameters(ShaderProgram& program, GBufferParamData& GBufferData);
-		void setParameters(ShaderProgram& program, SceneRenderTargets& sceneRenderTargets);
+		void setParameters(RHICommandList& commandList, ShaderProgram& program, GBufferParamData& GBufferData);
+		void setParameters(RHICommandList& commandList, ShaderProgram& program, SceneRenderTargets& sceneRenderTargets);
 
 		ShaderParameter mParamGBufferTextureA;
 		ShaderParameter mParamGBufferTextureB;
@@ -127,7 +127,7 @@ namespace Render
 
 		void setupLight(LightInfo const& inLight);
 
-		void setupShader(ShaderProgram& program) const;
+		void setupShader(RHICommandList& commandList, ShaderProgram& program) const;
 	};
 
 
@@ -159,22 +159,23 @@ namespace Render
 			mCascadeMaxDist = 40;
 		}
 		bool init();
-		void renderLighting(ViewInfo& view, SceneInterface& scene, LightInfo const& light, bool bMultiple);
-		void renderShadowDepth(ViewInfo& view, SceneInterface& scene, ShadowProjectParam& shadowProjectParam);
+		void renderLighting(RHICommandList& commandList, ViewInfo& view, SceneInterface& scene, LightInfo const& light, bool bMultiple);
+		void renderShadowDepth(RHICommandList& commandList, ViewInfo& view, SceneInterface& scene, ShadowProjectParam& shadowProjectParam);
 		void calcCascadeShadowProjectInfo(ViewInfo &view, LightInfo const &light, float depthParam[2], Matrix4 &worldToLight, Matrix4 &shadowProject);
 
 		static void determineCascadeSplitDist(float nearDist, float farDist, int numCascade, float lambda, float outDist[]);
 
-		void drawShadowTexture(LightType type, IntVector2 const& pos, int length);
+		void drawShadowTexture(RHICommandList& commandList, LightType type, IntVector2 const& pos, int length);
 		void reload();
 
 		//RenderTechnique
 		virtual void setupWorld(RenderContext& context , Matrix4 const& mat) override
 		{
+			RHICommandList& commandList = context.getCommnadList();
 			RenderTechnique::setupWorld( context , mat);
 			if( mEffectCur == &mProgLighting )
 			{
-				mEffectCur->setParam(SHADER_PARAM(Primitive.localToWorld), mat);
+				mEffectCur->setParam(commandList, SHADER_PARAM(Primitive.localToWorld), mat);
 			}
 		}
 
@@ -182,8 +183,9 @@ namespace Render
 
 		virtual void setupMaterialShader(RenderContext& context, MaterialShaderProgram& shader) override
 		{
-			shader.setParam(SHADER_PARAM(DepthShadowMatrix), mShadowMatrix);
-			shader.setParam(SHADER_PARAM(ShadowParam), shadowParam.x, shadowParam.y);
+			RHICommandList& commandList = context.getCommnadList();
+			shader.setParam(commandList, SHADER_PARAM(DepthShadowMatrix), mShadowMatrix);
+			shader.setParam(commandList, SHADER_PARAM(ShadowParam), shadowParam.x, shadowParam.y);
 		}
 
 		float         depthParam[2];
@@ -229,8 +231,8 @@ namespace Render
 
 		bool init(IntVector2 const& size);
 
-		void render(ViewInfo& view, SceneRenderTargets& sceneRenderTargets);
-		void drawSSAOTexture(IntVector2 const& pos , IntVector2 const& size );
+		void render(RHICommandList& commandList, ViewInfo& view, SceneRenderTargets& sceneRenderTargets);
+		void drawSSAOTexture(RHICommandList& commandList, IntVector2 const& pos , IntVector2 const& size );
 
 		void reload();
 	private:
@@ -269,7 +271,7 @@ namespace Render
 	{
 	public:
 		bool init(IntVector2 const& size);
-		void render(ViewInfo& view, SceneRenderTargets& sceneRenderTargets);
+		void render(RHICommandList& commandList, ViewInfo& view, SceneRenderTargets& sceneRenderTargets);
 
 		OpenGLFrameBuffer mFrameBufferGen;
 		RHITexture2DRef mTextureNear;
@@ -346,7 +348,7 @@ namespace Render
 		bool setupBuffer(IntVector2 const& screenSize, int sizeFactor, int depthSlices);
 
 
-		void render(ViewInfo& view, std::vector< LightInfo > const& lights);
+		void render(RHICommandList& commandList, ViewInfo& view, std::vector< LightInfo > const& lights);
 		RHITexture3DRef mVolumeBufferA;
 		RHITexture3DRef mVolumeBufferB;
 		RHITexture3DRef mScatteringBuffer;
@@ -376,10 +378,10 @@ namespace Render
 
 		bool init(SceneRenderTargets& sceneRenderTargets);
 
-		void renderBassPass(ViewInfo& view, SceneInterface& scene);
+		void renderBassPass(RHICommandList& commandList, ViewInfo& view, SceneInterface& scene);
 
-		void prevRenderLights(ViewInfo& view);
-		void renderLight(ViewInfo& view, LightInfo const& light, ShadowProjectParam const& shadowProjectParam );
+		void prevRenderLights(RHICommandList& commandList, ViewInfo& view);
+		void renderLight(RHICommandList& commandList, ViewInfo& view, LightInfo const& light, ShadowProjectParam const& shadowProjectParam );
 
 		OpenGLFrameBuffer   mBassPassBuffer;
 		OpenGLFrameBuffer   mLightBuffer;
@@ -420,12 +422,12 @@ namespace Render
 			parameterMap.bind(mParamNextIndex, SHADER_PARAM(NextIndex));
 		}
 
-		void setParameters( ShaderProgram& shader , OITShaderData& data)
+		void setParameters(RHICommandList& commandList, ShaderProgram& shader , OITShaderData& data)
 		{
-			shader.setRWTexture(mParamColorStorageTexture, *data.colorStorageTexture, AO_WRITE_ONLY);
-			shader.setRWTexture(mParamNodeAndDepthStorageTexture, *data.nodeAndDepthStorageTexture, AO_READ_AND_WRITE);
-			shader.setRWTexture(mParamNodeHeadTexture, *data.nodeHeadTexture, AO_READ_AND_WRITE);
-			shader.setAtomicCounterBuffer(mParamNextIndex, *data.storageUsageCounter);
+			shader.setRWTexture(commandList, mParamColorStorageTexture, *data.colorStorageTexture, AO_WRITE_ONLY);
+			shader.setRWTexture(commandList, mParamNodeAndDepthStorageTexture, *data.nodeAndDepthStorageTexture, AO_READ_AND_WRITE);
+			shader.setRWTexture(commandList, mParamNodeHeadTexture, *data.nodeHeadTexture, AO_READ_AND_WRITE);
+			shader.setAtomicCounterBuffer(commandList, mParamNextIndex, *data.storageUsageCounter);
 		}
 
 		ShaderParameter mParamColorStorageTexture;
@@ -449,11 +451,11 @@ namespace Render
 
 		bool init(IntVector2 const& screenSize);
 
-		void render(ViewInfo& view, SceneInterface& scnenRender , SceneRenderTargets* sceneRenderTargets );
-		void renderTest(ViewInfo& view, SceneRenderTargets& sceneRenderTargets, Mesh& mesh , Material* material );
+		void render(RHICommandList& commandList, ViewInfo& view, SceneInterface& scnenRender , SceneRenderTargets* sceneRenderTargets );
+		void renderTest(RHICommandList& commandList, ViewInfo& view, SceneRenderTargets& sceneRenderTargets, Mesh& mesh , Material* material );
 		void reload();
 
-		void renderInternal(ViewInfo& view , std::function< void() > drawFuncion , SceneRenderTargets* sceneRenderTargets = nullptr );
+		void renderInternal(RHICommandList& commandList, ViewInfo& view , std::function< void(RHICommandList&) > drawFuncion , SceneRenderTargets* sceneRenderTargets = nullptr );
 
 		
 		static constexpr int BMA_MaxPixelCounts[] =
@@ -479,7 +481,7 @@ namespace Render
  
 		OpenGLFrameBuffer mFrameBuffer;
 
-		void setupShader(ShaderProgram& program);
+		void setupShader(RHICommandList& commandList, ShaderProgram& program);
 		virtual MaterialShaderProgram* getMaterialShader( RenderContext& context , MaterialMaster& material , VertexFactory* vertexFactory) override;
 		virtual void setupMaterialShader(RenderContext& context, MaterialShaderProgram& program) override;
 

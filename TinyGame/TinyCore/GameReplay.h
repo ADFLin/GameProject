@@ -266,9 +266,11 @@ namespace OldVersion
 		virtual void onFireAction( ActionParam& param );
 		virtual void onScanActionEnd();
 
+		ReplayHeader    mReplayHeader;
+		Replay          mReplay;
 		long&           mGameFrame;
 		ReplayTemplate* mTemplate;
-		Replay          mReplay;
+		
 	};
 
 
@@ -288,12 +290,13 @@ namespace OldVersion
 		virtual bool scanInput( bool beUpdateFrame );
 		virtual bool checkAction( ActionParam& param );
 
-
+		ReplayHeader mReplayHeader;
+		Replay       mReplay;
 		ReplayTemplate* mTemplate;
 		unsigned   mNextIdx;
 		size_t     mDataOffset;
 		long&      mGameFrame;
-		Replay     mReplay;
+		
 	};
 
 }//namespace OldVersion

@@ -158,7 +158,7 @@ namespace Tetris
 
 		// IActionLanucher
 		void         fireAction( ActionTrigger& trigger );
-		void         fireLevelAction( ActionTrigger& trigger );
+		void         fireLevelAction(ActionPort port, ActionTrigger& trigger );
 
 		LevelMode*   getLevelMode() { return mModePlaying; }
 		void         setLevelMode( LevelMode* mode );

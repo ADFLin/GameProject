@@ -28,7 +28,7 @@ namespace Render
 		Vector3   upDir;
 		bool      bCastShadow;
 
-		void setupShaderGlobalParam(ShaderProgram& shader) const;
+		void setupShaderGlobalParam(RHICommandList& commandList, ShaderProgram& shader) const;
 
 		bool testVisible(ViewInfo const& view) const;
 
@@ -79,7 +79,7 @@ namespace Render
 		void prepareRender(ViewInfo& info);
 
 
-		virtual void render( RenderContext& context ) override;
+		virtual void render(RenderContext& context ) override;
 		virtual void renderTranslucent(RenderContext& context) override;
 
 		void addLight(SceneLight* light)

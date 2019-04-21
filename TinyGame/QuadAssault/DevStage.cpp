@@ -98,21 +98,21 @@ public:
 			parameterMap.bind(paramSpeIntensity, SHADER_PARAM(gLight.speIntensity));
 		}
 
-		void setTextureParameters( GBuffer* buffer , Render::RHITexture1D& texMat )
+		void setTextureParameters(Render::RHICommandList& commandList, GBuffer* buffer , Render::RHITexture1D& texMat )
 		{
-			setTexture(paramTexMaterial , texMat );
-			setTexture(paramTexBaseColor , *buffer->getTexture( GBuffer::eBASE_COLOR ) );
-			setTexture(paramTexNormal , *buffer->getTexture( GBuffer::eNORMAL ) );
+			setTexture(commandList, paramTexMaterial , texMat );
+			setTexture(commandList, paramTexBaseColor , *buffer->getTexture( GBuffer::eBASE_COLOR ) );
+			setTexture(commandList, paramTexNormal , *buffer->getTexture( GBuffer::eNORMAL ) );
 		}
 
-		void setLightParameters( Light& light )
+		void setLightParameters(Render::RHICommandList& commandList, Light& light )
 		{
-			setParam( paramPos , light.pos );
-			setParam( paramColor , light.color );
-			setParam( paramRadius , light.radius );
-			setParam( paramAmbIntensity , light.ambIntensity );
-			setParam( paramDifIntensity , light.difIntensity );
-			setParam( paramSpeIntensity , light.speIntensity );
+			setParam(commandList, paramPos , light.pos );
+			setParam(commandList, paramColor , light.color );
+			setParam(commandList, paramRadius , light.radius );
+			setParam(commandList, paramAmbIntensity , light.ambIntensity );
+			setParam(commandList, paramDifIntensity , light.difIntensity );
+			setParam(commandList, paramSpeIntensity , light.speIntensity );
 		}
 
 
@@ -137,13 +137,13 @@ public:
 			parameterMap.bind(paramTexGlow ,SHADER_PARAM(texGlow) );
 			parameterMap.bind(paramMatId , SHADER_PARAM(matId) );
 		}
-		void setTextureParameters(Render::RHITexture2D* texDif , Render::RHITexture2D* texN , Render::RHITexture2D* texG )
+		void setTextureParameters(Render::RHICommandList& commandList, Render::RHITexture2D* texDif , Render::RHITexture2D* texN , Render::RHITexture2D* texG )
 		{
-			setTexture( paramTexDiffuse , texDif ? *texDif : *Render::GBlackTexture2D );
-			setTexture( paramTexNormal, texN ? *texN : *Render::GBlackTexture2D);
-			setTexture( paramTexGlow, texG ? *texG : *Render::GBlackTexture2D);
+			setTexture(commandList, paramTexDiffuse , texDif ? *texDif : *Render::GBlackTexture2D );
+			setTexture(commandList, paramTexNormal, texN ? *texN : *Render::GBlackTexture2D);
+			setTexture(commandList, paramTexGlow, texG ? *texG : *Render::GBlackTexture2D);
 		}
-		void setMaterial( int id ){ setParam( paramMatId , MatId2TexCoord( id ) ); }
+		void setMaterial(Render::RHICommandList& commandList, int id ){ setParam(commandList, paramMatId , MatId2TexCoord( id ) ); }
 
 		Render::ShaderParameter paramTexDiffuse;
 		Render::ShaderParameter paramTexNormal;
@@ -290,18 +290,20 @@ public:
 		
 		mGBuffer->bind();
 
+		Render::RHICommandList& commandList = Render::RHICommandList::GetImmediateList();
+
 		//glDepthMask(GL_TRUE);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 
 		mProgGeom.bind();
-		mProgGeom.setTextureParameters( mTexBlock[RP_DIFFUSE]->resource , mTexBlock[RP_NORMAL]->resource, nullptr );
+		mProgGeom.setTextureParameters(commandList, mTexBlock[RP_DIFFUSE]->resource , mTexBlock[RP_NORMAL]->resource, nullptr );
 
 		for( int j = 0 ; j < 10 ; ++j )
 		{
 			for( int i = 0 ; i < 20 ; ++i )
 			{
-				mProgGeom.setMaterial( ( i ) % 4 );
+				mProgGeom.setMaterial(commandList, ( i ) % 4 );
 				Vec2f pos( 10 + BLOCK_SIZE * i , 10 + BLOCK_SIZE * j );
 				Vec2f size( BLOCK_SIZE , BLOCK_SIZE );
 				glBegin(GL_QUADS);
@@ -312,8 +314,8 @@ public:
 				glEnd();
 			}
 		}
-		mProgGeom.setTextureParameters( mTexObject[RP_DIFFUSE]->resource, mTexObject[RP_NORMAL]->resource, mTexObject[ RP_GLOW ]->resource);
-		mProgGeom.setMaterial( ( 0 ) % 4 );
+		mProgGeom.setTextureParameters(commandList, mTexObject[RP_DIFFUSE]->resource, mTexObject[RP_NORMAL]->resource, mTexObject[ RP_GLOW ]->resource);
+		mProgGeom.setMaterial(commandList, ( 0 ) % 4 );
 
 		drawSprite( Vec2f( 200 + 64 * 1 , 100 ) , Vec2f( 64 , 64 ) , 0.0f );	
 		drawSprite( Vec2f( 300 + 64 * 2 , 210 ) , Vec2f( 64 , 64 ) , 0.0f );
@@ -331,8 +333,8 @@ public:
 		Vec2i size = getGame()->getScreenSize();
 
 		mProgLightingGlow.bind();
-		mProgLightingGlow.setTexture( SHADER_PARAM( texBaseColor ) , *mGBuffer->getTexture( GBuffer::eBASE_COLOR ) );
-		mProgLightingGlow.setTexture(SHADER_PARAM( texGlow ) , *mGBuffer->getTexture( GBuffer::eLIGHTING ) );
+		mProgLightingGlow.setTexture(commandList, SHADER_PARAM( texBaseColor ) , *mGBuffer->getTexture( GBuffer::eBASE_COLOR ) );
+		mProgLightingGlow.setTexture(commandList, SHADER_PARAM( texGlow ) , *mGBuffer->getTexture( GBuffer::eLIGHTING ) );
 
 		glBegin(GL_QUADS);
 		glTexCoord2f(0.0, 1.0); glVertex2f(0, 0);
@@ -343,13 +345,13 @@ public:
 		mProgLightingGlow.unbind();
 
 		mProgLighting.bind();
-		mProgLighting.setTextureParameters( mGBuffer , *mTexMaterial );
+		mProgLighting.setTextureParameters(commandList, mGBuffer , *mTexMaterial );
 
 		for( int i = 0 ; i < ARRAY_SIZE( mLights ) ; ++i )
 		{
 			Light& light = mLights[i];
 
-			mProgLighting.setLightParameters( light );
+			mProgLighting.setLightParameters(commandList, light );
 
 			Vec2f halfRange =  Vec2f( light.radius , light.radius ); 
 

@@ -9,6 +9,7 @@
 
 namespace Render
 {
+	class RHICommandList;
 	class RenderContext;
 	class VertexFactory;
 
@@ -26,9 +27,9 @@ namespace Render
 	class SceneInterface
 	{
 	public:
-		virtual void render(RenderContext& param) = 0;
+		virtual void render( RenderContext& param) = 0;
 		//virtual void renderShadow(LightInfo const& info , RenderContext& param) = 0;
-		virtual void renderTranslucent(RenderContext& param) = 0;
+		virtual void renderTranslucent( RenderContext& param) = 0;
 	};
 
 
@@ -55,7 +56,7 @@ namespace Render
 
 		Plane frustumPlanes[6];
 
-		RHIUniformBufferRef mUniformBuffer;
+		RHIVertexBufferRef mUniformBuffer;
 		bool   mbDataDirty = true;
 
 		bool frustumTest(Vector3 const& pos, float radius) const
@@ -84,7 +85,7 @@ namespace Render
 		void setupTransform(Matrix4 const& inViewMatrix, Matrix4 const& inProjectMatrix);
 
 		IntVector2 getViewportSize() const;
-		void  setupShader(ShaderProgram& program);
+		void  setupShader(RHICommandList& commandList, ShaderProgram& program);
 
 
 		void updateFrustumPlanes();
@@ -104,15 +105,16 @@ namespace Render
 	class RenderContext
 	{
 	public:
-		RenderContext( ViewInfo& view , RenderTechnique& techique)
-			:mTechique(&techique)
+		RenderContext(RHICommandList& commandList, ViewInfo& view , RenderTechnique& techique)
+			:mCommandList(&commandList)
+			,mTechique(&techique)
 			,mCurView( &view )
 		{
 			bBindAttrib  = techique.isShaderPipline();
 			mUsageProgram = nullptr;
 			bBindAttrib  = false;
 		}
-
+		RHICommandList& getCommnadList() { return *mCommandList; }
 		ViewInfo& getView() { return *mCurView; }
 
 		void setupTechique(RenderTechnique& techique)
@@ -143,12 +145,14 @@ namespace Render
 		void setShader(ShaderProgram& program);
 		MaterialShaderProgram* setMaterial(Material* material, VertexFactory* vertexFactory = nullptr);
 
+
+		RHICommandList*  mCommandList;
 		RenderTechnique* mTechique;
-		ViewInfo*       mCurView;
-		VertexFactory*  mUsageVertexFactory;
-		ShaderProgram*  mUsageProgram;
-		bool            mbUseMaterialShader;
-		bool            bBindAttrib;
+		ViewInfo*        mCurView;
+		VertexFactory*   mUsageVertexFactory;
+		ShaderProgram*   mUsageProgram;
+		bool             mbUseMaterialShader;
+		bool             bBindAttrib;
 	};
 
 }//namespace Render

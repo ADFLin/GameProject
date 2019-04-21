@@ -62,9 +62,12 @@ bool ActionProcessor::checkActionPrivate( ActionParam& param )
 	for( auto pInfo : mActiveInputs )
 	{
 		IActionInput* input = pInfo->input;
-		if ( (pInfo->port == ERROR_ACTION_PORT || param.port == pInfo->port ) && input->checkAction( param ) )
+		if ( pInfo->port == ERROR_ACTION_PORT || param.port == pInfo->port  )
 		{
-			result = true;
+			if( input->checkAction(param) )
+			{
+				result = true;
+			}
 		}
 	}
 	return result;
@@ -127,20 +130,22 @@ void ActionProcessor::setLanucher( IActionLanucher* lanucher )
 	mLanucher = (lanucher) ? lanucher : &gEmptyLanucher;
 }
 
-bool ActionTrigger::detect( ControlAction action )
+bool ActionTrigger::detect(ActionPort port, ControlAction action)
 {
-	mParam.act    = action;
+	mParam.act = action;
+	mParam.port = port;
 	mParam.bPeek = false;
-	if ( !mProcessor->checkActionPrivate( mParam ) )
+	if( !mProcessor->checkActionPrivate(mParam) )
 		return false;
-	
-	mProcessor->prevFireActionPrivate( mParam );
+
+	mProcessor->prevFireActionPrivate(mParam);
 	return mbAcceptFireAction;
 }
 
-bool ActionTrigger::peek( ControlAction action )
+bool ActionTrigger::peek(ActionPort port, ControlAction action )
 {
-	mParam.act    = action;
+	mParam.act = action;
+	mParam.port = port;
 	mParam.bPeek = true;
 	return mProcessor->checkActionPrivate( mParam );
 }

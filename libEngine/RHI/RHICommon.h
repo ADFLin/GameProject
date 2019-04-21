@@ -30,13 +30,13 @@ namespace Render
 
 	class RHITexture1D;
 	class RHITexture2D;
-	class RHITexture3D;
-	class RHITextureDepth;
+	class RHITexture3D; 
 	class RHITextureCube;
-
+	class RHITexture2DArray;
+	class RHITextureDepth;
+	
 	class RHIVertexBuffer;
 	class RHIIndexBuffer;
-	class RHIUniformBuffer;
 
 	enum ECompValueType
 	{
@@ -199,7 +199,7 @@ namespace Render
 		virtual RHITexture2D* getTexture2D() { return nullptr; }
 		virtual RHITexture3D* getTexture3D() { return nullptr; }
 		virtual RHITextureCube* getTextureCube() { return nullptr; }
-
+		virtual RHITexture2DArray* getTexture2DArray() { return nullptr; }
 		Texture::Format getFormat() const { return mFormat; }
 		int getNumSamples() const { return mNumSamples; }
 		int getNumMipLevel() const { return mNumMipLevel; }
@@ -256,7 +256,6 @@ namespace Render
 		int mSizeZ;
 	};
 
-
 	class RHITextureCube : public RHITextureBase
 	{
 	public:
@@ -270,14 +269,48 @@ namespace Render
 		int mSize;
 	};
 
+	class RHITexture2DArray : public RHITextureBase
+	{
+	public:
+		int  getSizeX() const { return mSizeX; }
+		int  getSizeY() const { return mSizeY; }
+		int  getLayerNum() const { return mLayerNum; }
+
+		virtual RHITexture2DArray* getTexture2DArray() override { return this; }
+	protected:
+
+		int mSizeX;
+		int mSizeY;
+		int mLayerNum;
+	};
+
+
+
+	class RHITextureDepth : public RHITextureBase
+	{
+	public:
+		Texture::DepthFormat getFormat() { return mFromat; }
+		int  getSizeX() const { return mSizeX; }
+		int  getSizeY() const { return mSizeY; }
+
+		Texture::DepthFormat mFromat;
+		int mSizeX;
+		int mSizeY;
+	};
+
+
 	class RHIFrameBuffer : public RHIResource
 	{
 	public:
-		virtual int  addTextureLayer(RHITextureCube& target, int level = 0 ) = 0;
+		virtual void setupTextureLayer(RHITextureCube& target, int level = 0 ) = 0;
 		virtual int  addTexture(RHITextureCube& target, Texture::Face face, int level = 0) = 0;
 		virtual int  addTexture(RHITexture2D& target, int level = 0) = 0;
+		virtual int  addTexture(RHITexture2DArray& target, int idexLayer, int level = 0) = 0;
 		virtual void setTexture(int idx, RHITexture2D& target, int level = 0) = 0;
 		virtual void setTexture(int idx, RHITextureCube& target, Texture::Face face, int level = 0) = 0;
+		virtual void setTexture(int idx, RHITexture2DArray& target, int idexLayer, int level = 0) = 0;
+
+		virtual void setDepth(RHITextureDepth& target) = 0; 
 	};
 
 
@@ -534,11 +567,6 @@ namespace Render
 		bool  isIntType() const { return mElementSize == 4; }
 	};
 
-	class RHIUniformBuffer : public RHIBufferBase
-	{
-	public:
-	};
-
 	struct SamplerStateInitializer
 	{
 		Sampler::Filter filter;
@@ -551,6 +579,8 @@ namespace Render
 	{
 		EFillMode fillMode;
 		ECullMode cullMode;
+
+		bool      bEnableScissor;
 	};
 
 	struct DepthStencilStateInitializer
@@ -612,10 +642,11 @@ namespace Render
 	typedef TRefCountPtr< RHITexture2D > RHITexture2DRef;
 	typedef TRefCountPtr< RHITexture3D > RHITexture3DRef;
 	typedef TRefCountPtr< RHITextureCube > RHITextureCubeRef;
+	typedef TRefCountPtr< RHITexture2DArray > RHITexture2DArrayRef;
+	typedef TRefCountPtr< RHITextureDepth > RHITextureDepthRef;
 	typedef TRefCountPtr< RHIFrameBuffer > RHIFrameBufferRef;
 	typedef TRefCountPtr< RHIVertexBuffer > RHIVertexBufferRef;
 	typedef TRefCountPtr< RHIIndexBuffer >  RHIIndexBufferRef;
-	typedef TRefCountPtr< RHIUniformBuffer > RHIUniformBufferRef;
 	typedef TRefCountPtr< RHISamplerState > RHISamplerStateRef;
 	typedef TRefCountPtr< RHIRasterizerState > RHIRasterizerStateRef;
 	typedef TRefCountPtr< RHIDepthStencilState > RHIDepthStencilStateRef;

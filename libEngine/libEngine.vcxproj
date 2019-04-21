@@ -279,6 +279,7 @@
     <ClCompile Include="RHI\PrimitiveBatch.cpp" />
     <ClCompile Include="RHI\RenderContext.cpp" />
     <ClCompile Include="RHI\RHICommand.cpp" />
+    <ClCompile Include="RHI\RHICommandListImpl.cpp" />
     <ClCompile Include="RHI\RHICommon.cpp" />
     <ClCompile Include="RHI\RHIGraphics2D.cpp" />
     <ClCompile Include="RHI\RHIGlobalResource.cpp" />
@@ -448,6 +449,7 @@
     <ClInclude Include="RHI\PrimitiveBatch.h" />
     <ClInclude Include="RHI\RenderContext.h" />
     <ClInclude Include="RHI\RHICommand.h" />
+    <ClInclude Include="RHI\RHICommandListImpl.h" />
     <ClInclude Include="RHI\RHICommon.h" />
     <ClInclude Include="RHI\RHIDefine.h" />
     <ClInclude Include="RHI\RHIGraphics2D.h" />

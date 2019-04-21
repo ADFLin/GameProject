@@ -85,9 +85,14 @@ namespace Bubble
 			iter != mPlayerDataVec.end() ; ++iter )
 		{
 			PlayerData* data = *iter;
-			trigger.setPort( data->getId() );
-			data->getScene().fireAction( trigger );
+			data->getScene().fireAction( data->getId() , trigger );
 		}
+	}
+
+	void PlayerDataManager::firePlayerAction(ActionPort port, ActionTrigger& trigger)
+	{
+		PlayerData* data = mPlayerDataVec[port];
+		data->getScene().fireAction(port, trigger);
 	}
 
 	PlayerData* PlayerDataManager::createData()
@@ -109,10 +114,5 @@ namespace Bubble
 		}
 	}
 
-	void PlayerDataManager::firePlayerAction( ActionTrigger& trigger )
-	{
-		PlayerData* data = mPlayerDataVec[ trigger.getPort() ];
-		data->getScene().fireAction( trigger );
-	}
 
 }//namespace Bubble

@@ -2,10 +2,10 @@
 #define BubbleMode_h__
 
 #include "BubbleLevel.h"
-
 #include <vector>
 
 class ActionTrigger;
+struct ActionPort;
 class Graphics2D;
 
 namespace Bubble
@@ -72,7 +72,7 @@ namespace Bubble
 		void        tick();
 		void        updateFrame( int frame );
 		void        fireAction( ActionTrigger& trigger );
-		void        firePlayerAction( ActionTrigger& trigger );
+		void        firePlayerAction(ActionPort port, ActionTrigger& trigger );
 		void        render( Graphics2D& g );
 		PlayerData* createData();
 		PlayerData* getPlayerData( unsigned id )

@@ -11,6 +11,8 @@
 
 namespace Render
 {
+	class RHICommandList;
+
 	class ShaderCompileOption
 	{
 	public:
@@ -191,9 +193,6 @@ namespace Render
 		return sMyStruct;\
 	}
 
-	class RHIUniformBuffer;
-
-
 	struct RMPShaderProgram
 	{
 		static void Create(GLuint& handle) { handle = glCreateProgram(); }
@@ -225,57 +224,79 @@ namespace Render
 		void    bind();
 		void    unbind();
 
-		void setParam(char const* name, float v1)
-		{
-			int loc = getParamLoc(name);
-			if( loc == -1 )
-				return;
-			glUniform1f(loc, v1);
-		}
-		void setParam(char const* name, float v1, float v2)
-		{
-			int loc = getParamLoc(name);
-			if( loc == -1 )
-				return;
-			glUniform2f(loc, v1, v2);
-		}
-		void setParam(char const* name, float v1, float v2, float v3)
-		{
-			int loc = getParamLoc(name);
-			if( loc == -1 )
-				return;
-			glUniform3f(loc, v1, v2, v3);
-		}
-		void setParam(char const* name, float v1, float v2, float v3, float v4)
-		{
-			int loc = getParamLoc(name);
-			if( loc == -1 )
-				return;
-			glUniform4f(loc, v1, v2, v3, v4);
-		}
-		void setParam(char const* name, int v1)
+		void setParam(RHICommandList& commandList, char const* name, int v1)
 		{
 			int loc = getParamLoc(name);
 			if( loc == -1 )
 				return;
 			glUniform1i(loc, v1);
 		}
+		void setParam(RHICommandList& commandList, char const* name, int v1, int v2)
+		{
+			int loc = getParamLoc(name);
+			if( loc == -1 )
+				return;
+			glUniform2i(loc, v1, v2);
+		}
+		void setParam(RHICommandList& commandList, char const* name, int v1, int v2, int v3)
+		{
+			int loc = getParamLoc(name);
+			if( loc == -1 )
+				return;
+			glUniform3i(loc, v1, v2, v3);
+		}
+		void setParam(RHICommandList& commandList, char const* name, int v1, int v2, int v3, int v4)
+		{
+			int loc = getParamLoc(name);
+			if( loc == -1 )
+				return;
+			glUniform4i(loc, v1, v2, v3, v4);
+		}
 
-		void setMatrix33(char const* name, float const* value, int num = 1)
+		void setParam(RHICommandList& commandList, char const* name, float v1)
+		{
+			int loc = getParamLoc(name);
+			if( loc == -1 )
+				return;
+			glUniform1f(loc, v1);
+		}
+		void setParam(RHICommandList& commandList, char const* name, float v1, float v2)
+		{
+			int loc = getParamLoc(name);
+			if( loc == -1 )
+				return;
+			glUniform2f(loc, v1, v2);
+		}
+		void setParam(RHICommandList& commandList, char const* name, float v1, float v2, float v3)
+		{
+			int loc = getParamLoc(name);
+			if( loc == -1 )
+				return;
+			glUniform3f(loc, v1, v2, v3);
+		}
+		void setParam(RHICommandList& commandList, char const* name, float v1, float v2, float v3, float v4)
+		{
+			int loc = getParamLoc(name);
+			if( loc == -1 )
+				return;
+			glUniform4f(loc, v1, v2, v3, v4);
+		}
+
+		void setMatrix33(RHICommandList& commandList, char const* name, float const* value, int num = 1)
 		{
 			int loc = getParamLoc(name);
 			if( loc == -1 )
 				return;
 			glUniformMatrix3fv(loc, num, false, value);
 		}
-		void setMatrix44(char const* name, float const* value, int num = 1)
+		void setMatrix44(RHICommandList& commandList, char const* name, float const* value, int num = 1)
 		{
 			int loc = getParamLoc(name);
 			if( loc == -1 )
 				return;
 			glUniformMatrix4fv(loc, num, false, value);
 		}
-		void setParam(char const* name, float const v[], int num)
+		void setParam(RHICommandList& commandList, char const* name, float const v[], int num)
 		{
 			int loc = getParamLoc(name);
 			if( loc == -1 )
@@ -283,7 +304,7 @@ namespace Render
 			glUniform1fv(loc, num, v);
 		}
 
-		void setVector3(char const* name, float const v[], int num)
+		void setVector3(RHICommandList& commandList, char const* name, float const v[], int num)
 		{
 			int loc = getParamLoc(name);
 			if( loc == -1 )
@@ -291,7 +312,7 @@ namespace Render
 			glUniform3fv(loc, num, v);
 		}
 
-		void setVector4(char const* name, float const v[], int num)
+		void setVector4(RHICommandList& commandList, char const* name, float const v[], int num)
 		{
 			int loc = getParamLoc(name);
 			if( loc == -1 )
@@ -299,56 +320,56 @@ namespace Render
 			glUniform4fv(loc, num, v);
 		}
 
-		void setParam(char const* name, Vector2 const& v) { setParam(name, v.x, v.y); }
-		void setParam(char const* name, Vector3 const& v) { setParam(name, v.x, v.y, v.z); }
-		void setParam(char const* name, Vector4 const& v) { setParam(name, v.x, v.y, v.z, v.w); }
-		void setParam(char const* name, Matrix4 const& m) { setMatrix44(name, m, 1); }
-		void setParam(char const* name, Matrix3 const& m) { setMatrix33(name, m, 1); }
-		void setParam(char const* name, Matrix4 const v[], int num) { setMatrix44(name, v[0], num); }
-		void setParam(char const* name, Vector3 const v[], int num) { setVector3(name, (float*)&v[0], num); }
-		void setParam(char const* name, Vector4 const v[], int num) { setVector4(name, (float*)&v[0], num); }
+		void setParam(RHICommandList& commandList, char const* name, Vector2 const& v) { setParam(commandList, name, v.x, v.y); }
+		void setParam(RHICommandList& commandList, char const* name, Vector3 const& v) { setParam(commandList, name, v.x, v.y, v.z); }
+		void setParam(RHICommandList& commandList, char const* name, Vector4 const& v) { setParam(commandList, name, v.x, v.y, v.z, v.w); }
+		void setParam(RHICommandList& commandList, char const* name, Matrix4 const& m) { setMatrix44(commandList, name, m, 1); }
+		void setParam(RHICommandList& commandList, char const* name, Matrix3 const& m) { setMatrix33(commandList, name, m, 1); }
+		void setParam(RHICommandList& commandList, char const* name, Matrix4 const v[], int num) { setMatrix44(commandList, name, v[0], num); }
+		void setParam(RHICommandList& commandList, char const* name, Vector3 const v[], int num) { setVector3(commandList, name, (float*)&v[0], num); }
+		void setParam(RHICommandList& commandList, char const* name, Vector4 const v[], int num) { setVector4(commandList, name, (float*)&v[0], num); }
 
 		template < class RHITextureType >
-		void setRWTexture(char const* name, RHITextureType const& tex, EAccessOperator op = AO_READ_AND_WRITE, int idx = -1)
+		void setRWTexture(RHICommandList& commandList, char const* name, RHITextureType const& tex, EAccessOperator op = AO_READ_AND_WRITE, int idx = -1)
 		{
 			int loc = getParamLoc(name);
 			if( loc == -1 )
 				return;
-			setRWTextureInternal(loc, tex.getFormat(), OpenGLCast::GetHandle(tex), op, idx);
+			setRWTextureInternal(commandList, loc, tex.getFormat(), OpenGLCast::GetHandle(tex), op, idx);
 		}
 		
 		template < class RHITextureType >
-		void setTexture(char const* name, RHITextureType const& tex, RHISamplerState const& sampler, int idx = -1)
+		void setTexture(RHICommandList& commandList, char const* name, RHITextureType const& tex, RHISamplerState const& sampler, int idx = -1)
 		{
 			int loc = getParamLoc(name);
 			if( loc == -1 )
 				return;
-			return setTextureInternal(loc, OpenGLCast::To(&tex)->getGLTypeEnum(), OpenGLCast::GetHandle(tex), OpenGLCast::GetHandle(sampler), idx);
+			return setTextureInternal(commandList, loc, OpenGLCast::To(&tex)->getGLTypeEnum(), OpenGLCast::GetHandle(tex), OpenGLCast::GetHandle(sampler), idx);
 		}
 
 		template < class RHITextureType >
-		void setTexture(char const* name, TRefCountPtr< RHITextureType > const& tex, RHISamplerState const& sampler, int idx = -1)
+		void setTexture(RHICommandList& commandList, char const* name, TRefCountPtr< RHITextureType > const& tex, RHISamplerState const& sampler, int idx = -1)
 		{
-			setTexture(name, *tex, sampler, idx);
+			setTexture(commandList, name, *tex, sampler, idx);
 		}
 
 		template < class RHITextureType >
-		void setTexture(char const* name, RHITextureType const& tex, int idx = -1)
+		void setTexture(RHICommandList& commandList, char const* name, RHITextureType const& tex, int idx = -1)
 		{
 			int loc = getParamLoc(name);
 			if( loc == -1 )
 				return;
-			return setTextureInternal(loc, OpenGLCast::To(&tex)->getGLTypeEnum(), OpenGLCast::GetHandle(tex), idx);
+			return setTextureInternal(commandList, loc, OpenGLCast::To(&tex)->getGLTypeEnum(), OpenGLCast::GetHandle(tex), idx);
 		}
 
 		template < class RHITextureType >
-		void setTexture(char const* name, TRefCountPtr<RHITextureType> const& tex, int idx = -1)
+		void setTexture(RHICommandList& commandList, char const* name, TRefCountPtr<RHITextureType> const& tex, int idx = -1)
 		{
-			setTexture(name, *tex, idx);
+			setTexture(commandList, name, *tex, idx);
 		}
 
 #if 0 //#TODO Can't Bind to texture 2d
-		void setTexture2D(char const* name, TextureCube& tex, Texture::Face face, int idx = -1)
+		void setTexture2D(RHICommandList& commandList, char const* name, TextureCube& tex, Texture::Face face, int idx = -1)
 		{
 			glActiveTexture(GL_TEXTURE0 + idx);
 			glBindTexture(GL_TEXTURE_CUBE_MAP_POSITIVE_X + face, tex.mHandle);
@@ -360,53 +381,53 @@ namespace Render
 
 #define CHECK_PARAMETER( PARAM , CODE ) if ( !param.isBound() ){ LogWarning( 0 ,"Shader Param not bounded" ); return; } CODE
 
-		void setParam(ShaderParameter const& param, int v1) { CHECK_PARAMETER(param, setParam(param.mLoc, v1)); }
-		void setParam(ShaderParameter const& param, IntVector2 const& v ) { CHECK_PARAMETER(param, setParam(param.mLoc, v.x, v.y)); }
-		void setParam(ShaderParameter const& param, IntVector3 const& v ) { CHECK_PARAMETER(param, setParam(param.mLoc, v.x, v.y, v.z)); }
-		void setParam(ShaderParameter const& param, float v1) { CHECK_PARAMETER(param, setParam(param.mLoc, v1)); }
-		void setParam(ShaderParameter const& param, Vector2 const& v) { CHECK_PARAMETER(param, setParam(param.mLoc, v.x, v.y)); }
-		void setParam(ShaderParameter const& param, Vector3 const& v) { CHECK_PARAMETER(param, setParam(param.mLoc, v.x, v.y, v.z)); }
-		void setParam(ShaderParameter const& param, Vector4 const& v) { CHECK_PARAMETER(param, setParam(param.mLoc, v.x, v.y, v.z, v.w)); }
-		void setParam(ShaderParameter const& param, Matrix4 const& m) { CHECK_PARAMETER(param, setMatrix44(param.mLoc, m, 1)); }
-		void setParam(ShaderParameter const& param, Matrix3 const& m) { CHECK_PARAMETER(param, setMatrix33(param.mLoc, m, 1)); }
-		void setParam(ShaderParameter const& param, Matrix4 const v[], int num) { CHECK_PARAMETER(param, setMatrix44(param.mLoc, v[0], num)); }
-		void setParam(ShaderParameter const& param, Vector3 const v[], int num) { CHECK_PARAMETER(param, setVector3(param.mLoc, (float*)&v[0], num)); }
-		void setParam(ShaderParameter const& param, Vector4 const v[], int num) { CHECK_PARAMETER(param, setVector4(param.mLoc, (float*)&v[0], num)); }
+		void setParam(RHICommandList& commandList, ShaderParameter const& param, int v1) { CHECK_PARAMETER(param, setParam(commandList, param.mLoc, v1)); }
+		void setParam(RHICommandList& commandList, ShaderParameter const& param, IntVector2 const& v ) { CHECK_PARAMETER(param, setParam(commandList, param.mLoc, v.x, v.y)); }
+		void setParam(RHICommandList& commandList, ShaderParameter const& param, IntVector3 const& v ) { CHECK_PARAMETER(param, setParam(commandList, param.mLoc, v.x, v.y, v.z)); }
+		void setParam(RHICommandList& commandList, ShaderParameter const& param, float v1) { CHECK_PARAMETER(param, setParam(commandList, param.mLoc, v1)); }
+		void setParam(RHICommandList& commandList, ShaderParameter const& param, Vector2 const& v) { CHECK_PARAMETER(param, setParam(commandList, param.mLoc, v.x, v.y)); }
+		void setParam(RHICommandList& commandList, ShaderParameter const& param, Vector3 const& v) { CHECK_PARAMETER(param, setParam(commandList, param.mLoc, v.x, v.y, v.z)); }
+		void setParam(RHICommandList& commandList, ShaderParameter const& param, Vector4 const& v) { CHECK_PARAMETER(param, setParam(commandList, param.mLoc, v.x, v.y, v.z, v.w)); }
+		void setParam(RHICommandList& commandList, ShaderParameter const& param, Matrix4 const& m) { CHECK_PARAMETER(param, setMatrix44(commandList, param.mLoc, m, 1)); }
+		void setParam(RHICommandList& commandList, ShaderParameter const& param, Matrix3 const& m) { CHECK_PARAMETER(param, setMatrix33(commandList, param.mLoc, m, 1)); }
+		void setParam(RHICommandList& commandList, ShaderParameter const& param, Matrix4 const v[], int num) { CHECK_PARAMETER(param, setMatrix44(commandList, param.mLoc, v[0], num)); }
+		void setParam(RHICommandList& commandList, ShaderParameter const& param, Vector3 const v[], int num) { CHECK_PARAMETER(param, setVector3(commandList, param.mLoc, (float*)&v[0], num)); }
+		void setParam(RHICommandList& commandList, ShaderParameter const& param, Vector4 const v[], int num) { CHECK_PARAMETER(param, setVector4(commandList, param.mLoc, (float*)&v[0], num)); }
 
 		template < class RHITextureType >
-		void setRWTexture(ShaderParameter const& param, RHITextureType const& tex, EAccessOperator op = AO_READ_AND_WRITE, int idx = -1)
+		void setRWTexture(RHICommandList& commandList, ShaderParameter const& param, RHITextureType const& tex, EAccessOperator op = AO_READ_AND_WRITE, int idx = -1)
 		{
-			CHECK_PARAMETER(param, setRWTextureInternal(param.mLoc, tex.getFormat(), OpenGLCast::GetHandle(tex), op, idx));
+			CHECK_PARAMETER(param, setRWTextureInternal(commandList, param.mLoc, tex.getFormat(), OpenGLCast::GetHandle(tex), op, idx));
 		}
 
 		template < class RHITextureType >
-		void setTexture(ShaderParameter const& param, RHITextureType const& tex, int idx = -1)
+		void setTexture(RHICommandList& commandList, ShaderParameter const& param, RHITextureType const& tex, int idx = -1)
 		{
-			CHECK_PARAMETER(param, setTextureInternal(param.mLoc, OpenGLCast::To(&tex)->getGLTypeEnum(), OpenGLCast::GetHandle(tex), idx));
+			CHECK_PARAMETER(param, setTextureInternal(commandList, param.mLoc, OpenGLCast::To(&tex)->getGLTypeEnum(), OpenGLCast::GetHandle(tex), idx));
 		}
 
 		template < class RHITextureType >
-		void setTexture(ShaderParameter const& param, RHITextureType const& tex, RHISamplerState& sampler, int idx = -1)
+		void setTexture(RHICommandList& commandList, ShaderParameter const& param, RHITextureType const& tex, RHISamplerState& sampler, int idx = -1)
 		{
-			CHECK_PARAMETER(param, setTextureInternal(param.mLoc, OpenGLCast::To(&tex)->getGLTypeEnum(), OpenGLCast::GetHandle(tex), OpenGLCast::GetHandle(sampler), idx));
+			CHECK_PARAMETER(param, setTextureInternal(commandList, param.mLoc, OpenGLCast::To(&tex)->getGLTypeEnum(), OpenGLCast::GetHandle(tex), OpenGLCast::GetHandle(sampler), idx));
 		}
 
 		template < class RHITextureType >
-		void setTexture(ShaderParameter const& param, TRefCountPtr<RHITextureType> const& tex, int idx = -1)
+		void setTexture(RHICommandList& commandList, ShaderParameter const& param, TRefCountPtr<RHITextureType> const& tex, int idx = -1)
 		{
-			setTexture(param, *tex, idx);
+			setTexture(commandList, param, *tex, idx);
 		}
 
 		template < class RHITextureType >
-		void setTexture(ShaderParameter const& param, TRefCountPtr<RHITextureType> const& tex, RHISamplerState& sampler, int idx = -1)
+		void setTexture(RHICommandList& commandList, ShaderParameter const& param, TRefCountPtr<RHITextureType> const& tex, RHISamplerState& sampler, int idx = -1)
 		{
-			setTexture(param, *tex, sampler, idx);
+			setTexture(commandList, param, *tex, sampler, idx);
 		}
 
-		void setBuffer(ShaderParameter const& param, RHIUniformBuffer& buffer);
-		void setStorageBuffer(ShaderParameter const& param, RHIVertexBuffer& buffer);
-		void setAtomicCounterBuffer(ShaderParameter const& param, RHIVertexBuffer& buffer);
-		void setAtomicCounterBuffer(char const* name, RHIVertexBuffer& buffer);
+		void setUniformBuffer(RHICommandList& commandList, ShaderParameter const& param, RHIVertexBuffer& buffer);
+		void setStorageBuffer(RHICommandList& commandList, ShaderParameter const& param, RHIVertexBuffer& buffer);
+		void setAtomicCounterBuffer(RHICommandList& commandList, ShaderParameter const& param, RHIVertexBuffer& buffer);
+		void setAtomicCounterBuffer(RHICommandList& commandList, char const* name, RHIVertexBuffer& buffer);
 
 
 	
@@ -414,26 +435,25 @@ namespace Render
 		{
 		public:
 
-			template< class RHIBufferType >
-			bool bindT(GLuint handle, char const* name);
-			template<>
-			bool bindT< RHIUniformBuffer >(GLuint handle, char const* name)
-			{ 
-				index = glGetProgramResourceIndex(handle, GL_UNIFORM_BLOCK, name);
-				return index != -1;
-			}
-			template<>
-			bool bindT< RHIVertexBuffer >(GLuint handle, char const* name) 
-			{ 
-				index = glGetProgramResourceIndex(handle, GL_SHADER_STORAGE_BLOCK, name);
-				return index != -1;
-			}
-
-			template< class T, class RHIBufferType >
-			bool bindStructT(GLuint handle, RHIBufferType& buffer)
+			template< class T >
+			bool bindUniformT(GLuint handle)
 			{
 				auto& bufferStruct = T::GetStruct();
-				if( bindT< RHIBufferType >(handle, bufferStruct.blockName) )
+				index = glGetProgramResourceIndex(handle, GL_UNIFORM_BLOCK, bufferStruct.blockName);
+				if( index != -1 )
+				{
+					structInfo = &bufferStruct;
+					return true;
+				}
+				return false;
+			}
+
+			template< class T >
+			bool bindStorageT(GLuint handle)
+			{
+				auto& bufferStruct = T::GetStruct();
+				index = glGetProgramResourceIndex(handle, GL_SHADER_STORAGE_BLOCK, bufferStruct.blockName);
+				if( index != -1 )
 				{
 					structInfo = &bufferStruct;
 					return true;
@@ -446,37 +466,60 @@ namespace Render
 		};
 
 
-		void setStructedBuffer(StructuredBlockInfo const& param, RHIUniformBuffer& buffer)
+		void setStructedUniformBuffer(RHICommandList& commandList, StructuredBlockInfo const& param, RHIVertexBuffer& buffer)
 		{
 			glUniformBlockBinding(mHandle, param.index, mNextUniformSlot);
 			glBindBufferBase(GL_UNIFORM_BUFFER, mNextUniformSlot, OpenGLCast::GetHandle(buffer));
 			++mNextUniformSlot;
 		}
 
-		void setStructedBuffer(StructuredBlockInfo const& param, RHIVertexBuffer& buffer)
+		void setStructedStorageBuffer(RHICommandList& commandList, StructuredBlockInfo const& param, RHIVertexBuffer& buffer)
 		{
 			glShaderStorageBlockBinding(mHandle, param.index, mNextStorageSlot);
 			glBindBufferBase(GL_SHADER_STORAGE_BUFFER, mNextStorageSlot, OpenGLCast::GetHandle(buffer));
 			++mNextStorageSlot;
 		}
-		template< class T , class RHIBufferType >
-		void setStructuredBufferT(RHIBufferType& buffer)
+
+
+		template< class T >
+		void setStructuredUniformBufferT(RHICommandList& commandList, RHIVertexBuffer& buffer)
 		{
 			auto& bufferStruct = T::GetStruct();
 			for( auto const& param : mBoundedBlocks )
 			{
 				if( param.structInfo == &bufferStruct )
 				{
-					setStructedBuffer(param, buffer);
+					setStructedUniformBuffer(commandList, param, buffer);
 					return;
 				}
 			}
 
 			StructuredBlockInfo param;
-			if( param.bindStructT< T >(mHandle , buffer ) )
+			if( param.bindUniformT< T >(mHandle) )
 			{
 				mBoundedBlocks.push_back(param);
-				setStructedBuffer(param, buffer);
+				setStructedUniformBuffer(commandList, param, buffer);
+			}
+		}
+
+		template< class T >
+		void setStructuredStorageBufferT(RHICommandList& commandList, RHIVertexBuffer& buffer)
+		{
+			auto& bufferStruct = T::GetStruct();
+			for( auto const& param : mBoundedBlocks )
+			{
+				if( param.structInfo == &bufferStruct )
+				{
+					setStructedStorageBuffer(commandList, param, buffer);
+					return;
+				}
+			}
+
+			StructuredBlockInfo param;
+			if( param.bindStorageT< T >(mHandle) )
+			{
+				mBoundedBlocks.push_back(param);
+				setStructedStorageBuffer(commandList, param, buffer);
 			}
 		}
 
@@ -484,47 +527,47 @@ namespace Render
 
 #undef CHECK_PARAMETER
 
-		void setRWTexture(int loc, RHITexture2D& tex, EAccessOperator op = AO_READ_AND_WRITE, int idx = -1)
+		void setRWTexture(RHICommandList& commandList, int loc, RHITexture2D& tex, EAccessOperator op = AO_READ_AND_WRITE, int idx = -1)
 		{
-			setRWTextureInternal(loc, tex.getFormat(), OpenGLCast::GetHandle(tex) , op, idx);
+			setRWTextureInternal(commandList, loc, tex.getFormat(), OpenGLCast::GetHandle(tex) , op, idx);
 		}
-		void setTexture(int loc, RHITexture2D& tex, int idx = -1)
+		void setTexture(RHICommandList& commandList, int loc, RHITexture2D& tex, int idx = -1)
 		{
-			setTextureInternal(loc, GL_TEXTURE_2D, OpenGLCast::GetHandle(tex), idx);
+			setTextureInternal(commandList, loc, GL_TEXTURE_2D, OpenGLCast::GetHandle(tex), idx);
 		}
-		void setTexture(int loc, RHITextureDepth& tex, int idx = -1)
+		void setTexture(RHICommandList& commandList, int loc, RHITextureDepth& tex, int idx = -1)
 		{
-			setTextureInternal(loc, GL_TEXTURE_2D, OpenGLCast::GetHandle(tex), idx);
+			setTextureInternal(commandList, loc, GL_TEXTURE_2D, OpenGLCast::GetHandle(tex), idx);
 		}
-		void setTexture(int loc, RHITextureCube& tex, int idx = -1)
+		void setTexture(RHICommandList& commandList, int loc, RHITextureCube& tex, int idx = -1)
 		{
-			setTextureInternal(loc, GL_TEXTURE_CUBE_MAP, OpenGLCast::GetHandle(tex), idx);
+			setTextureInternal(commandList, loc, GL_TEXTURE_CUBE_MAP, OpenGLCast::GetHandle(tex), idx);
 		}
-		void setTexture(int loc, RHITexture3D& tex, int idx = -1)
+		void setTexture(RHICommandList& commandList, int loc, RHITexture3D& tex, int idx = -1)
 		{
-			setTextureInternal(loc, GL_TEXTURE_3D, OpenGLCast::GetHandle(tex), idx);
+			setTextureInternal(commandList, loc, GL_TEXTURE_3D, OpenGLCast::GetHandle(tex), idx);
 		}
 
 
-		void setParam(int loc, float v1) { glUniform1f(loc, v1); }
-		void setParam(int loc, float v1, float v2) { glUniform2f(loc, v1, v2); }
-		void setParam(int loc, float v1, float v2, float v3) { glUniform3f(loc, v1, v2, v3); }
-		void setParam(int loc, float v1, float v2, float v3, float v4) { glUniform4f(loc, v1, v2, v3, v4); }
-		void setParam(int loc, int v1) { glUniform1i(loc, v1); }
-		void setParam(int loc, int v1, int v2) { glUniform2i(loc, v1, v2); }
-		void setParam(int loc, int v1, int v2, int v3) { glUniform3i(loc, v1, v2, v3); }
+		void setParam(RHICommandList& commandList, int loc, float v1) { glUniform1f(loc, v1); }
+		void setParam(RHICommandList& commandList, int loc, float v1, float v2) { glUniform2f(loc, v1, v2); }
+		void setParam(RHICommandList& commandList, int loc, float v1, float v2, float v3) { glUniform3f(loc, v1, v2, v3); }
+		void setParam(RHICommandList& commandList, int loc, float v1, float v2, float v3, float v4) { glUniform4f(loc, v1, v2, v3, v4); }
+		void setParam(RHICommandList& commandList, int loc, int v1) { glUniform1i(loc, v1); }
+		void setParam(RHICommandList& commandList, int loc, int v1, int v2) { glUniform2i(loc, v1, v2); }
+		void setParam(RHICommandList& commandList, int loc, int v1, int v2, int v3) { glUniform3i(loc, v1, v2, v3); }
 
-		void setParam(int loc, Vector3 const& v) { glUniform3f(loc, v.x, v.y, v.z); }
-		void setParam(int loc, Vector4 const& v) { glUniform4f(loc, v.x, v.y, v.z, v.w); }
+		void setParam(RHICommandList& commandList, int loc, Vector3 const& v) { glUniform3f(loc, v.x, v.y, v.z); }
+		void setParam(RHICommandList& commandList, int loc, Vector4 const& v) { glUniform4f(loc, v.x, v.y, v.z, v.w); }
 
-		void setMatrix33(int loc, float const* value, int num = 1) { glUniformMatrix3fv(loc, num, false, value); }
-		void setMatrix44(int loc, float const* value, int num = 1) { glUniformMatrix4fv(loc, num, false, value); }
-		void setParam(int loc, float const v[], int num) { glUniform1fv(loc, num, v); }
-		void setVector3(int loc, float const v[], int num) { glUniform3fv(loc, num, v); }
-		void setVector4(int loc, float const v[], int num) { glUniform4fv(loc, num, v); }
+		void setMatrix33(RHICommandList& commandList, int loc, float const* value, int num = 1) { glUniformMatrix3fv(loc, num, false, value); }
+		void setMatrix44(RHICommandList& commandList, int loc, float const* value, int num = 1) { glUniformMatrix4fv(loc, num, false, value); }
+		void setParam(RHICommandList& commandList, int loc, float const v[], int num) { glUniform1fv(loc, num, v); }
+		void setVector3(RHICommandList& commandList, int loc, float const v[], int num) { glUniform3fv(loc, num, v); }
+		void setVector4(RHICommandList& commandList, int loc, float const v[], int num) { glUniform4fv(loc, num, v); }
 
 		static int const IdxTextureAutoBindStart = 2;
-		void setTextureInternal(int loc, GLenum texType, GLuint idTex, int idx)
+		void setTextureInternal(RHICommandList& commandList, int loc, GLenum texType, GLuint idTex, int idx)
 		{
 			if( idx < 0 || idx >= IdxTextureAutoBindStart )
 			{
@@ -534,11 +577,11 @@ namespace Render
 			glActiveTexture(GL_TEXTURE0 + idx);
 			glBindTexture(texType, idTex);
 			glBindSampler(idx, 0);
-			setParam(loc, idx);
+			setParam(commandList, loc, idx);
 			glActiveTexture(GL_TEXTURE0);
 		}
 
-		void setTextureInternal(int loc, GLenum texType, GLuint idTex, GLuint idSampler , int idx)
+		void setTextureInternal(RHICommandList& commandList, int loc, GLenum texType, GLuint idTex, GLuint idSampler , int idx)
 		{
 			if( idx < 0 || idx >= IdxTextureAutoBindStart )
 			{
@@ -548,11 +591,11 @@ namespace Render
 			glActiveTexture(GL_TEXTURE0 + idx);
 			glBindTexture(texType, idTex);
 			glBindSampler(idx, idSampler);
-			setParam(loc, idx);
+			setParam(commandList, loc, idx);
 			glActiveTexture(GL_TEXTURE0);
 		}
 
-		void setRWTextureInternal(int loc, Texture::Format format, GLuint idTex, EAccessOperator op, int idx)
+		void setRWTextureInternal(RHICommandList& commandList, int loc, Texture::Format format, GLuint idTex, EAccessOperator op, int idx)
 		{
 			if( idx < 0 || idx >= IdxTextureAutoBindStart )
 			{
@@ -560,7 +603,7 @@ namespace Render
 				++mIdxTextureAutoBind;
 			}
 			glBindImageTexture(idx, idTex, 0, GL_FALSE, 0, GLConvert::To(op), GLConvert::To(format));
-			setParam(loc, idx);
+			setParam(commandList, loc, idx);
 		}
 
 

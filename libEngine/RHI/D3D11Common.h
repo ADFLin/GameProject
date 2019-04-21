@@ -65,12 +65,6 @@ namespace Render
 		typedef D3D11IndexBuffer ImplType;
 	};
 	template<>
-	struct TD3D11TypeTraits< RHIUniformBuffer >
-	{
-		typedef ID3D11Buffer ResourceType; 
-		typedef D3D11UniformBuffer ImplType;
-	};
-	template<>
 	struct TD3D11TypeTraits< RHIRasterizerState > 
 	{ 
 		typedef ID3D11RasterizerState ResourceType;
@@ -248,12 +242,6 @@ namespace Render
 	};
 
 	class D3D11IndexBuffer : public TD3D11Buffer< RHIIndexBuffer >
-	{
-
-
-	};
-
-	class D3D11UniformBuffer : public TD3D11Buffer< RHIUniformBuffer >
 	{
 
 

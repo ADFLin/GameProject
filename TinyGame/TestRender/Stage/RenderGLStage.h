@@ -545,12 +545,12 @@ namespace Render
 		static int const MapSize = 512;
 		bool init();
 
-		void render(ViewInfo& view, SceneInterface& scene)
+		void render(RHICommandList& commandList, ViewInfo& view, SceneInterface& scene)
 		{
 			NormalizePlane(waterPlane);
 
-			ViewportSaveScope vpScope;
-			RHISetViewport(0, 0, MapSize, MapSize);
+			ViewportSaveScope vpScope(commandList);
+			RHISetViewport(commandList, 0, 0, MapSize, MapSize);
 			glPushMatrix();
 			ReflectMatrix matReflect(waterPlane.xyz(), waterPlane.w);
 			glMultMatrixf(matReflect);
@@ -615,20 +615,20 @@ namespace Render
 
 		void onRender( float dFrame );
 
-		void render_SpherePlane( ViewInfo& view );
-		void render_ParallaxMapping( ViewInfo& view );
-		void renderTest2( ViewInfo& view );
-		void render_RaycastTest( ViewInfo& view );
-		void render_DeferredLighting( ViewInfo& view );
-		void render_Sprite( ViewInfo& view );
-		void render_OIT( ViewInfo& view );
-		void render_Terrain( ViewInfo& view );
-		void render_Portal(ViewInfo& view);
-		void render_ShadowVolume(ViewInfo& view);
+		void render_SpherePlane(RHICommandList& commandList, ViewInfo& view );
+		void render_ParallaxMapping(RHICommandList& commandList, ViewInfo& view );
+		void renderTest2(RHICommandList& commandList, ViewInfo& view );
+		void render_RaycastTest(RHICommandList& commandList, ViewInfo& view );
+		void render_DeferredLighting(RHICommandList& commandList, ViewInfo& view );
+		void render_Sprite(RHICommandList& commandList, ViewInfo& view );
+		void render_OIT(RHICommandList& commandList, ViewInfo& view );
+		void render_Terrain(RHICommandList& commandList, ViewInfo& view );
+		void render_Portal(RHICommandList& commandList, ViewInfo& view);
+		void render_ShadowVolume(RHICommandList& commandList, ViewInfo& view);
 
 		void renderScene(RenderContext& param);
 
-		void showLights(ViewInfo& view);
+		void showLights(RHICommandList& commandList, ViewInfo& view);
 		
 		void buildScene1(Scene& scene);
 
@@ -657,16 +657,17 @@ namespace Render
 
 		void reloadMaterials();
 
-		void drawAxis(float len);
-		void drawSky();
+		void drawAxis(RHICommandList& commandList, float len);
+		void drawSky(RHICommandList& commandList);
 
 		bool createFrustum( Mesh& mesh , Matrix4 const& matProj );
 
 
 		void calcViewRay( float x , float y );
 
-		virtual void render( RenderContext& context) override;
-		virtual void renderTranslucent( RenderContext& context) override;
+		//SceneInterface
+		virtual void render(RenderContext& context) override;
+		virtual void renderTranslucent(RenderContext& context) override;
 		
 		template< class Fun >
 		void visitLights( Fun& fun )
@@ -847,7 +848,7 @@ namespace Render
 		struct SampleTest
 		{
 			char const* name;
-			std::function< void (ViewInfo&) > renderFun;
+			std::function< void (RHICommandList&, ViewInfo&) > renderFun;
 		};
 		std::vector< SampleTest > mSampleTests;
 		int    mIdxTestChioce;

@@ -8,6 +8,8 @@ namespace Render
 {
 	void MeshBatch::draw(RenderContext& context)
 	{
+		RHICommandList& commandList = context.getCommnadList();
+
 		GLenum primitivTypeGL = GLConvert::To(primitiveType);
 
 		context.setMaterial(material);
@@ -30,12 +32,12 @@ namespace Render
 				context.setWorld(meshElement.world);
 				if( meshElement.indexBuffer )
 				{
-					GL_BIND_LOCK_OBJECT(*meshElement.indexBuffer);
-					RHIDrawIndexedPrimitive(primitiveType, meshElement.indexBuffer->isIntType() ? CVT_UInt : CVT_UShort, meshElement.idxStart, meshElement.numElement);
+					RHISetIndexBuffer(commandList, meshElement.indexBuffer);
+					RHIDrawIndexedPrimitive(commandList, primitiveType, meshElement.indexBuffer->isIntType() ? CVT_UInt : CVT_UShort, meshElement.idxStart, meshElement.numElement);
 				}
 				else
 				{
-					RHIDrawPrimitive(primitiveType, meshElement.idxStart, meshElement.numElement);
+					RHIDrawPrimitive(commandList, primitiveType, meshElement.idxStart, meshElement.numElement);
 				}
 			}
 			//checkGLError();
@@ -52,12 +54,12 @@ namespace Render
 				context.setWorld(meshElement.world);
 				if( meshElement.indexBuffer )
 				{
-					GL_BIND_LOCK_OBJECT(*meshElement.indexBuffer);
-					RHIDrawIndexedPrimitive(primitiveType, meshElement.indexBuffer->isIntType() ? CVT_UInt : CVT_UShort , meshElement.idxStart , meshElement.numElement );
+					RHISetIndexBuffer(commandList, meshElement.indexBuffer);
+					RHIDrawIndexedPrimitive(commandList, primitiveType, meshElement.indexBuffer->isIntType() ? CVT_UInt : CVT_UShort , meshElement.idxStart , meshElement.numElement );
 				}
 				else
 				{
-					RHIDrawPrimitive(primitiveType, meshElement.idxStart, meshElement.numElement);
+					RHIDrawPrimitive(commandList, primitiveType, meshElement.idxStart, meshElement.numElement);
 				}
 			}
 			//checkGLError();
@@ -93,13 +95,15 @@ namespace Render
 
 	void SimpleElementRenderer::draw( RenderContext& context , SimpleVertex* vertices, int numVertices)
 	{
+		RHICommandList& commandList = context.getCommnadList();
+
 		void* pData = RHILockBuffer( mVertexBuffer , ELockAccess::WriteOnly);
 		memcpy(pData, vertices, numVertices * mVertexBuffer->getElementSize());
 		RHIUnlockBuffer(mVertexBuffer);
 
 		glBindVertexArray(mVAO);
 		context.setShader(mShader);
-		mShader.setParam(SHADER_PARAM(VertexTransform), context.getView().worldToClip);
+		mShader.setParam(commandList, SHADER_PARAM(VertexTransform), context.getView().worldToClip);
 		glDrawArrays(GLConvert::To(PrimitiveType::TriangleList), 0, numVertices);
 		glBindVertexArray(0);
 	}
@@ -109,6 +113,7 @@ namespace Render
 
 	void PrimitivesCollection::drawDynamic(RenderContext& context)
 	{
+		RHICommandList& commandList = context.getCommnadList();
 		static bool bInit = false;
 		if( !bInit )
 		{
@@ -126,7 +131,7 @@ namespace Render
 
 			IntVector2 screenSize = context.getView().getViewportSize();
 
-			RHISetRasterizerState(TStaticRasterizerState< ECullMode::None >::GetRHI());
+			RHISetRasterizerState(commandList, TStaticRasterizerState< ECullMode::None >::GetRHI());
 			int idxLine = 0;
 			{
 				for( ; idxLine < mLineBatchs.size(); ++idxLine )
@@ -184,7 +189,7 @@ namespace Render
 				gSimpleElementRender.draw(context, &mCacheBuffer[0], mCacheBuffer.size());
 
 			}
-			RHISetRasterizerState(TStaticRasterizerState<>::GetRHI());
+			RHISetRasterizerState(commandList, TStaticRasterizerState<>::GetRHI());
 		}
 	}
 

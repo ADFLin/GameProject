@@ -45,7 +45,7 @@ namespace Bubble
 			}
 		}
 
-		void firePortAction( ActionTrigger& trigger );
+		void firePortAction(ActionPort port, ActionTrigger& trigger );
 
 		PlayerDataManager* mManager;
 	};

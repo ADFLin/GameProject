@@ -5,22 +5,22 @@
 int BitUtility::CountTrailingZeros(uint32 n)
 {
 	int result = 0;
-	if( (n & 0x0000ffff) == 0 ) { result += 16; n >>= 16; }
-	if( (n & 0x000000ff) == 0 ) { result += 8; n >>= 8; }
-	if( (n & 0x0000000f) == 0 ) { result += 4; n >>= 4; }
-	if( (n & 0x00000004) == 0 ) { result += 2; n >>= 2; }
-	if( (n & 0x00000002) == 0 ) { result += 1; n >>= 1; }
-	return result + (n & 0x1);
+	if( !(n & 0x0000ffff) ) { result += 16; n >>= 16; }
+	if( !(n & 0x000000ff) ) { result += 8; n >>= 8; }
+	if( !(n & 0x0000000f) ) { result += 4; n >>= 4; }
+	if( !(n & 0x00000003) ) { result += 2; n >>= 2; }
+	if( !(n & 0x00000001) ) { result += 1; n >>= 1; }
+	return result;
 }
 
 int BitUtility::CountLeadingZeros(uint32 n)
 {
 	int result = 0;
-	if( (n & 0xffff0000) != 0 ) { result += 16; n <<= 16; }
-	if( (n & 0xff000000) != 0 ) { result += 8; n <<= 8; }
-	if( (n & 0xf0000000) != 0 ) { result += 4; n <<= 4; }
-	if( (n & 0xc0000000) != 0 ) { result += 2; n <<= 2; }
-	if( (n & 0x80000000) != 0 ) { result += 1; }
+	if( (n & 0xffff0000) ) { result += 16; n <<= 16; }
+	if( (n & 0xff000000) ) { result += 8; n <<= 8; }
+	if( (n & 0xf0000000) ) { result += 4; n <<= 4; }
+	if( (n & 0xc0000000) ) { result += 2; n <<= 2; }
+	if( (n & 0x80000000) ) { result += 1; }
 	return result;
 }
 

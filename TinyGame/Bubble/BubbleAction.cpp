@@ -37,9 +37,9 @@ namespace Bubble
 		return false;
 	}
 
-	void CFrameActionTemplate::firePortAction( ActionTrigger& trigger )
+	void CFrameActionTemplate::firePortAction(ActionPort port, ActionTrigger& trigger )
 	{
-		mManager->firePlayerAction( trigger );
+		mManager->firePlayerAction(port, trigger );
 	}
 
 	void CClientFrameGenerator::onFireAction( ActionParam& param )

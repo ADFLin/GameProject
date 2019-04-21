@@ -14,9 +14,9 @@ namespace GreedySnake
 			,mScene( scene )
 		{}
 
-		void firePortAction( ActionTrigger& trigger )
+		void firePortAction(ActionPort port, ActionTrigger& trigger )
 		{
-			mScene->fireSnakeAction( trigger );
+			mScene->fireSnakeAction( port, trigger );
 		}
 		Scene* mScene;
 	};

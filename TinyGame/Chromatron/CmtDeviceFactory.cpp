@@ -210,8 +210,8 @@ namespace Chromatron
 		QTangterEffectSolver( WorldUpdateContext& context ):mContext( context ){}
 		~QTangterEffectSolver(){}
 
-		static int const QStatsUp   =  1;
-		static int const QStatsDown = -1;
+		static int const QSpinUp   =  1;
+		static int const QSpinDown = -1;
 
 		void solve( Vec2i const& pos , LightTrace const& light )
 		{
@@ -235,8 +235,8 @@ namespace Chromatron
 				mTransmitLights.clear();
 				mCheckLights.clear();
 
-				mTransmitLights.push_back(LightTrace(pos, color, dir + Dir::ValueChecked(2), QStatsUp));
-				mTransmitLights.push_back(LightTrace(pos, color, dir - Dir::ValueChecked(2), QStatsDown));
+				mTransmitLights.push_back(LightTrace(pos, color, dir + Dir::ValueChecked(2), QSpinUp));
+				mTransmitLights.push_back(LightTrace(pos, color, dir - Dir::ValueChecked(2), QSpinDown));
 
 				if( mContext.transmitLightSync(*this, mTransmitLights) != TSS_OK )
 					return false;
@@ -270,7 +270,7 @@ namespace Chromatron
 
 			if ( result )
 			{
-				if ( dc.getFlag() & DFB_REMOVE_QSTATS )
+				if ( dc.getFlag() & DFB_REMOVE_QSTATE )
 				{
 					mContext.setSyncMode( false );
 					mContext.setLightParam( 0 );
@@ -287,9 +287,9 @@ namespace Chromatron
 
 		bool prevAddLight( Vec2i const& pos , Color color , Dir dir , int param , int age )
 		{
-			if ( param != QStatsUp && param != QStatsDown )
+			if ( param != QSpinUp && param != QSpinDown )
 			{
-				for( LightTrace const& light : mCheckLightsNotQStats )
+				for( LightTrace const& light : mCheckLightsNotQState )
 				{
 					if( light.getStartPos() == pos &&
 					    light.getColor() == color &&
@@ -301,11 +301,11 @@ namespace Chromatron
 				}
 
 				LightTrace light( pos , color , dir , param );
-				mCheckLightsNotQStats.push_back( light );
+				mCheckLightsNotQState.push_back( light );
 				return true;
 			}
 
-			int  paramAnti = ( param != QStatsUp ) ? QStatsUp : QStatsDown;
+			int  paramAnti = ( param != QSpinUp ) ? QSpinUp : QSpinDown;
 			bool haveFound = false;
 			bool haveAnti  = false;
 
@@ -361,7 +361,7 @@ namespace Chromatron
 		WorldUpdateContext& mContext;
 		LightList  mTransmitLights;
 		LightList  mCheckLights;
-		LightList  mCheckLightsNotQStats;
+		LightList  mCheckLightsNotQState;
 	};
 
 	template<>
@@ -581,17 +581,17 @@ namespace Chromatron
 		DC_INFO( DC_PRISM        , DFB_DRAW_FRIST )
 		DC_INFO( DC_FILTER       , DFB_USE_LOCKED_COLOR )
 		DC_INFO( DC_DOPPLER      , 0 )
-		DC_INFO( DC_QTANGLER     , DFB_REMOVE_QSTATS )
+		DC_INFO( DC_QTANGLER     , DFB_REMOVE_QSTATE )
 		DC_INFO( DC_TELEPORTER   , DFB_UNROTATABLE )
 		DC_INFO( DC_MULTIFILTER  , 0 )
 		DC_INFO( DC_DUALREFLECTOR, DFB_DRAW_FRIST )
 		DC_INFO( DC_CONDUITS     , DFB_STATIC | DFB_DRAW_FRIST )
-		DC_INFO( DC_STARBURST    , DFB_REMOVE_QSTATS | DFB_UNROTATABLE )
-		DC_INFO( DC_COMPLEMENTOR , DFB_REMOVE_QSTATS )
+		DC_INFO( DC_STARBURST    , DFB_REMOVE_QSTATE | DFB_UNROTATABLE )
+		DC_INFO( DC_COMPLEMENTOR , DFB_REMOVE_QSTATE )
 		DC_INFO( DC_QUADBENDER   , DFB_DRAW_FRIST )
-		DC_INFO( DC_LOGICGATE_AND , DFB_REMOVE_QSTATS )
-		DC_INFO( DC_LOGICGATE_AND_PRIMARY , DFB_REMOVE_QSTATS )
-		DC_INFO( DC_LOGICGATE_OR  , DFB_REMOVE_QSTATS )
+		DC_INFO( DC_LOGICGATE_AND , DFB_REMOVE_QSTATE )
+		DC_INFO( DC_LOGICGATE_AND_PRIMARY , DFB_REMOVE_QSTATE )
+		DC_INFO( DC_LOGICGATE_OR  , DFB_REMOVE_QSTATE )
 		DC_INFO( DC_QUANROTATOR   , 0 )
 	END_DC_INFO()
 

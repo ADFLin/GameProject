@@ -194,10 +194,10 @@ namespace Render
 		BaseClass::onEnd();
 	}
 
-	void TestRenderStageBase::drawLightPoints(ViewInfo& view, TArrayView< LightInfo > lights)
+	void TestRenderStageBase::drawLightPoints(RHICommandList& commandList, ViewInfo& view, TArrayView< LightInfo > lights)
 	{
-		RHISetBlendState(TStaticBlendState<>::GetRHI());
-		RHISetDepthStencilState(TStaticDepthStencilState<>::GetRHI());
+		RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
+		RHISetDepthStencilState(commandList, TStaticDepthStencilState<>::GetRHI());
 
 		float radius = 0.15f;
 		for( auto const& light : lights )
@@ -206,11 +206,11 @@ namespace Render
 				continue;
 
 			GL_BIND_LOCK_OBJECT(mProgSphere);
-			view.setupShader(mProgSphere);
-			mProgSphere.setParam(SHADER_PARAM(Sphere.radius), radius);
-			mProgSphere.setParam(SHADER_PARAM(Sphere.worldPos), light.pos);
-			mProgSphere.setParam(SHADER_PARAM(Sphere.baseColor), light.color);
-			mSimpleMeshs[SimpleMeshId::SpherePlane].draw();
+			view.setupShader(commandList, mProgSphere);
+			mProgSphere.setParam(commandList, SHADER_PARAM(Sphere.radius), radius);
+			mProgSphere.setParam(commandList, SHADER_PARAM(Sphere.worldPos), light.pos);
+			mProgSphere.setParam(commandList, SHADER_PARAM(Sphere.baseColor), light.color);
+			mSimpleMeshs[SimpleMeshId::SpherePlane].draw(commandList);
 		}
 	}
 

@@ -106,12 +106,12 @@ namespace Go
 			parameterMap.bind(mParamUpperColor, SHADER_PARAM(UpperColor));
 			parameterMap.bind(mParamLowerColor, SHADER_PARAM(LowerColor));
 		}
-		void setParameters(float axisValue, Matrix4 const& projMatrix, Vector4 const& upperColor, Vector4 const& lowerColor)
+		void setParameters(RHICommandList& commandList, float axisValue, Matrix4 const& projMatrix, Vector4 const& upperColor, Vector4 const& lowerColor)
 		{
-			setParam(mParamAxisValue, axisValue);
-			setParam(mParamProjMatrix, projMatrix);
-			setParam(mParamUpperColor, upperColor);
-			setParam(mParamLowerColor, lowerColor);
+			setParam(commandList, mParamAxisValue, axisValue);
+			setParam(commandList, mParamProjMatrix, projMatrix);
+			setParam(commandList, mParamUpperColor, upperColor);
+			setParam(commandList, mParamLowerColor, lowerColor);
 		}
 		ShaderParameter mParamAxisValue;
 		ShaderParameter mParamProjMatrix;
@@ -604,6 +604,8 @@ namespace Go
 		glClear(GL_COLOR_BUFFER_BIT);
 
 		GLGraphics2D& g = ::Global::GetRHIGraphics2D();
+		RHICommandList& commandList = RHICommandList::GetImmediateList();
+
 		g.beginRender();
 
 
@@ -738,7 +740,7 @@ namespace Go
 		}
 
 		if ( bDrawFontCacheTexture )
-			DrawUtility::DrawTexture(FontCharCache::Get().mTextAtlas.getTexture(), Vector2(0, 0), Vector2(600, 600));
+			DrawUtility::DrawTexture(commandList, FontCharCache::Get().mTextAtlas.getTexture(), Vector2(0, 0), Vector2(600, 600));
 
 		g.endRender();
 	}
@@ -834,15 +836,17 @@ namespace Go
 
 	void LeelaZeroGoStage::drawWinRateDiagram(Vec2i const& renderPos, Vec2i const& renderSize)
 	{
+		RHICommandList& commandList = RHICommandList::GetImmediateList();
+
 		if( mWinRateHistory[0].size() > 1 || mWinRateHistory[1].size() > 1 )
 		{
 			GPU_PROFILE("Draw WinRate Diagram");
 
-			ViewportSaveScope viewportSave;
+			ViewportSaveScope viewportSave(commandList);
 
 			Vec2i screenSize = ::Global::GetDrawEngine().getScreenSize();
 
-			RHISetViewport(renderPos.x, screenSize.y - ( renderPos.y + renderSize.y ) , renderSize.x, renderSize.y);
+			RHISetViewport(commandList, renderPos.x, screenSize.y - ( renderPos.y + renderSize.y ) , renderSize.x, renderSize.y);
 			MatrixSaveScope matrixSaveScope;
 			glMatrixMode(GL_PROJECTION);
 
@@ -868,24 +872,24 @@ namespace Go
 				{
 					if( i == 0 )
 					{
-						RHISetBlendState(TStaticBlendState< CWM_RGBA, Blend::eSrcAlpha, Blend::eOneMinusSrcAlpha >::GetRHI());
+						RHISetBlendState(commandList, TStaticBlendState< CWM_RGBA, Blend::eSrcAlpha, Blend::eOneMinusSrcAlpha >::GetRHI());
 					}
 					else
 					{
-						RHISetBlendState(TStaticBlendState< CWM_RGBA, Blend::eSrcAlpha, Blend::eOne >::GetRHI());
+						RHISetBlendState(commandList, TStaticBlendState< CWM_RGBA, Blend::eSrcAlpha, Blend::eOne >::GetRHI());
 					}
 
 					GL_BIND_LOCK_OBJECT(mProgUnderCurveArea);
 
-					mProgUnderCurveArea->setParameters(
+					mProgUnderCurveArea->setParameters(commandList,
 						float(50), matProj,
 						Vector4(colors[i], alpha[i]),
 						Vector4(0.3 * colors[i], alpha[i]));
 
-					TRenderRT< RTVF_XY >::DrawShader(PrimitiveType::LineStrip, &winRateHistory[0], winRateHistory.size());
+					TRenderRT< RTVF_XY >::DrawShader(commandList, PrimitiveType::LineStrip, &winRateHistory[0], winRateHistory.size());
 				}
-				RHISetBlendState(TStaticBlendState<>::GetRHI());
-				TRenderRT< RTVF_XY >::Draw(PrimitiveType::LineStrip, &winRateHistory[0], winRateHistory.size(), colors[i]);
+				RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
+				TRenderRT< RTVF_XY >::Draw(commandList, PrimitiveType::LineStrip, &winRateHistory[0], winRateHistory.size(), colors[i]);
 			}
 
 			static std::vector<Vector2> buffer;
@@ -904,8 +908,8 @@ namespace Go
 
 			if( !buffer.empty() )
 			{
-				RHISetBlendState(TStaticBlendState< CWM_RGBA, Blend::eOne , Blend::eOne >::GetRHI());
-				TRenderRT< RTVF_XY >::Draw(PrimitiveType::LineList, &buffer[0], buffer.size(), LinearColor(0.3, 0.3, 0.3));
+				RHISetBlendState(commandList, TStaticBlendState< CWM_RGBA, Blend::eOne , Blend::eOne >::GetRHI());
+				TRenderRT< RTVF_XY >::Draw(commandList, PrimitiveType::LineList, &buffer[0], buffer.size(), LinearColor(0.3, 0.3, 0.3));
 			}
 
 			{
@@ -916,8 +920,8 @@ namespace Go
 					Vector2(0,yMin) , Vector2(xMax,yMin),
 					Vector2(0,yMax) , Vector2(xMax,yMax),
 				};
-				RHISetBlendState(TStaticBlendState<>::GetRHI());
-				TRenderRT< RTVF_XY >::Draw(PrimitiveType::LineList, &lines[0], ARRAY_SIZE(lines), LinearColor(0, 0, 1));
+				RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
+				TRenderRT< RTVF_XY >::Draw(commandList, PrimitiveType::LineList, &lines[0], ARRAY_SIZE(lines), LinearColor(0, 0, 1));
 			}
 
 			if( bReviewingGame )
@@ -925,11 +929,11 @@ namespace Go
 				int posX = ( mReviewGame.getInstance().getCurrentStep() + 1 ) / 2;
 				Vector2 const lines[] = { Vector2(posX , yMin) , Vector2(posX , yMax) };
 
-				RHISetBlendState(TStaticBlendState< CWM_RGBA, Blend::eOne, Blend::eOne >::GetRHI());
-				TRenderRT< RTVF_XY >::Draw(PrimitiveType::LineList, &lines[0], ARRAY_SIZE(lines), LinearColor(1, 1, 0));
+				RHISetBlendState(commandList, TStaticBlendState< CWM_RGBA, Blend::eOne, Blend::eOne >::GetRHI());
+				TRenderRT< RTVF_XY >::Draw(commandList, PrimitiveType::LineList, &lines[0], ARRAY_SIZE(lines), LinearColor(1, 1, 0));
 			}
 
-			RHISetBlendState(TStaticBlendState<>::GetRHI());
+			RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
 		}
 	}
 
@@ -1124,6 +1128,7 @@ namespace Go
 		{
 		case Keyboard::eL: mBoardRenderer.bDrawLinkInfo = !mBoardRenderer.bDrawLinkInfo; break;
 		case Keyboard::eZ: mBoardRenderer.bUseBatchedRender = !mBoardRenderer.bUseBatchedRender; break;
+		case Keyboard::eN: mBoardRenderer.bUseNoiseOffset = !mBoardRenderer.bUseNoiseOffset; break;
 		case Keyboard::eF2: bDrawDebugMsg = !bDrawDebugMsg; break;
 		case Keyboard::eF5: saveMatchGameSGF(); break;
 		case Keyboard::eF6: restartAutoMatch(); break;

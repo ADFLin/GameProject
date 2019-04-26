@@ -6,8 +6,7 @@
 #include "FrameAllocator.h"
 #include "GBuffer.h"
 
-
-#include "RHI/ShaderCore.h"
+#include "RHI/ShaderProgram.h"
 
 class ColBody;
 typedef std::vector< ColBody* > ColBodyVec;

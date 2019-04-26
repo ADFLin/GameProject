@@ -286,9 +286,6 @@
     <ClCompile Include="CRSpline.cpp">
       <Filter>Math</Filter>
     </ClCompile>
-    <ClCompile Include="RHI\ShaderCompiler.cpp">
-      <Filter>RHI</Filter>
-    </ClCompile>
     <ClCompile Include="RHI\ShaderCore.cpp">
       <Filter>RHI</Filter>
     </ClCompile>
@@ -410,6 +407,15 @@
       <Filter>RHI</Filter>
     </ClCompile>
     <ClCompile Include="RHI\RHICommandListImpl.cpp">
+      <Filter>RHI</Filter>
+    </ClCompile>
+    <ClCompile Include="RHI\OpenGLShader.cpp">
+      <Filter>RHI\OpenGL</Filter>
+    </ClCompile>
+    <ClCompile Include="RHI\ShaderProgram.cpp">
+      <Filter>RHI</Filter>
+    </ClCompile>
+    <ClCompile Include="RHI\ShaderManager.cpp">
       <Filter>RHI</Filter>
     </ClCompile>
   </ItemGroup>
@@ -873,9 +879,6 @@
     <ClInclude Include="Core\ThreadSafeCounter.h">
       <Filter>Core</Filter>
     </ClInclude>
-    <ClInclude Include="RHI\ShaderCompiler.h">
-      <Filter>RHI</Filter>
-    </ClInclude>
     <ClInclude Include="RHI\ShaderCore.h">
       <Filter>RHI</Filter>
     </ClInclude>
@@ -1030,6 +1033,18 @@
       <Filter>RHI</Filter>
     </ClInclude>
     <ClInclude Include="RHI\RHICommandListImpl.h">
+      <Filter>RHI</Filter>
+    </ClInclude>
+    <ClInclude Include="RHI\OpenGLShader.h">
+      <Filter>RHI\OpenGL</Filter>
+    </ClInclude>
+    <ClInclude Include="RHI\ShaderProgram.h">
+      <Filter>RHI</Filter>
+    </ClInclude>
+    <ClInclude Include="RHI\ShaderManager.h">
+      <Filter>RHI</Filter>
+    </ClInclude>
+    <ClInclude Include="RHI\ShaderFormat.h">
       <Filter>RHI</Filter>
     </ClInclude>
   </ItemGroup>

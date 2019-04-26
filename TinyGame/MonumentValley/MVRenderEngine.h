@@ -9,11 +9,8 @@
 #include "GL/glew.h"
 #include "GLConfig.h"
 
-#include "RHI/OpenGLCommon.h"
 #include "RHI/DrawUtility.h"
-#include "RHI/ShaderCore.h"
-
-
+#include "RHI/ShaderProgram.h"
 
 namespace MV
 {
@@ -143,13 +140,14 @@ namespace MV
 			float det;
 			matView.inverse( matViewInv , det );
 			glLoadMatrixf( matView );
-			mEffect.bind();
+
+			RHISetShaderProgram(*mCommandList, mEffect.getRHIResource());
 			mEffect.setParam( *mCommandList, SHADER_PARAM(Global.matViewInv) , matViewInv );
 		}
 
 		void endRender()
 		{
-			mEffect.unbind();
+			RHISetShaderProgram(*mCommandList, nullptr);
 		}
 
 		void renderBlock(Block& block , Vec3i const& pos );
@@ -163,10 +161,10 @@ namespace MV
 		RenderParam mParam;
 
 		Render::RHICommandList* mCommandList;
-		Render::ShaderProgram mEffect;
-		int locDirX;
-		int locDirZ;
-		int locLocalScale;
+		Render::ShaderProgram   mEffect;
+		Render::ShaderParameter paramDirX;
+		Render::ShaderParameter paramDirZ;
+		Render::ShaderParameter paramLocalScale;
 
 		Render::Mesh mMesh[ NUM_MESH ];
 

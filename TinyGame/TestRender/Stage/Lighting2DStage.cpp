@@ -6,7 +6,7 @@
 
 #include "GLGraphics2D.h"
 
-#include "RHI/ShaderCompiler.h"
+#include "RHI/ShaderManager.h"
 #include "RHI/DrawUtility.h"
 #include "RHI/RHICommand.h"
 
@@ -165,7 +165,7 @@ namespace Lighting2D
 			{
 
 #if SHADOW_USE_GEOMETRY_SHADER
-				GL_BIND_LOCK_OBJECT(mProgShadow);
+				RHISetShaderProgram(commandList, mProgShadow.getRHIResource());
 				mProgShadow.setParameters(commandList, light.pos);
 #endif
 
@@ -196,7 +196,7 @@ namespace Lighting2D
 
 			RHISetBlendState(commandList, TStaticBlendState< CWM_RGBA, Blend::eOne, Blend::eOne >::GetRHI());
 			{
-				GL_BIND_LOCK_OBJECT(mProgLighting);
+				RHISetShaderProgram(commandList, mProgLighting.getRHIResource());
 				mProgLighting.setParameters(commandList, light.pos, light.color);
 				DrawUtility::RectShader(commandList, w, h);
 			}

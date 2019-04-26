@@ -307,19 +307,19 @@ namespace Render
 			}
 			if( mParamRandTexture.isBound() )
 			{
-				setTexture(commandList, mParamRandTexture, *data.randTexture, TStaticSamplerState<Sampler::ePoint>::GetRHI());
+				setTexture(commandList, mParamRandTexture, *data.randTexture, mParamRandTexture, TStaticSamplerState<Sampler::ePoint>::GetRHI());
 			}
 			if( mParamNoiseTexture.isBound() )
 			{
-				setTexture(commandList, mParamNoiseTexture, *data.noiseTexture, TStaticSamplerState<Sampler::eBilinear>::GetRHI());
+				setTexture(commandList, mParamNoiseTexture, *data.noiseTexture, mParamNoiseTexture, TStaticSamplerState<Sampler::eBilinear>::GetRHI());
 			}
 			if( mParamVolumeTexture.isBound() )
 			{
-				setTexture(commandList, mParamVolumeTexture, *data.volumeTexture, TStaticSamplerState<Sampler::eBilinear>::GetRHI());
+				setTexture(commandList, mParamVolumeTexture, *data.volumeTexture, mParamVolumeTexture, TStaticSamplerState<Sampler::eBilinear>::GetRHI());
 			}
 			if( mParamNoiseVolumeTexture.isBound() )
 			{
-				setTexture(commandList, mParamNoiseVolumeTexture, *data.noiseVolumeTexture, TStaticSamplerState<Sampler::eBilinear>::GetRHI());
+				setTexture(commandList, mParamNoiseVolumeTexture, *data.noiseVolumeTexture, mParamNoiseVolumeTexture, TStaticSamplerState<Sampler::eBilinear>::GetRHI());
 			}
 
 		}
@@ -447,7 +447,7 @@ namespace Render
 			static ShaderEntryInfo const entries[] =
 			{
 				{ Shader::eVertex , SHADER_ENTRY(ScreenVS) },
-				{ Shader::ePixel  , SHADER_ENTRY(SomkeBlendPS) },
+				{ Shader::ePixel  , SHADER_ENTRY(SmokeBlendPS) },
 			};
 			return entries;
 		}
@@ -462,12 +462,14 @@ namespace Render
 		void setParameters(RHICommandList& commandList, ViewInfo& view, RHITexture2D& frameTexture, RHITexture2D& historyTexture)
 		{
 			view.setupShader(commandList, *this);
-			setTexture(commandList, mParamFrameTexture, frameTexture, TStaticSamplerState<Sampler::eBilinear>::GetRHI());
-			setTexture(commandList, mParamHistroyTexture, historyTexture, TStaticSamplerState<Sampler::eBilinear>::GetRHI());
+			setTexture(commandList, mParamFrameTexture, frameTexture, mParamFrameTextureSampler, TStaticSamplerState<Sampler::eBilinear>::GetRHI());
+			setTexture(commandList, mParamHistroyTexture, historyTexture, mParamHistroyTextureSampler, TStaticSamplerState<Sampler::eBilinear>::GetRHI());
 		}
 
 		ShaderParameter mParamFrameTexture;
 		ShaderParameter mParamHistroyTexture;
+		ShaderParameter mParamFrameTextureSampler;
+		ShaderParameter mParamHistroyTextureSampler;
 	};
 
 
@@ -552,7 +554,7 @@ namespace Render
 		{
 			GPU_PROFILE("drawNoiseImage");
 			RHISetViewport(commandList, pos.x, pos.y, size.x, size.y);
-			GL_BIND_LOCK_OBJECT(shader);
+			RHISetShaderProgram(commandList, shader.getRHIResource());
 			shader.setParameters(commandList, mData);
 			DrawUtility::ScreenRectShader(commandList);
 		}

@@ -1,6 +1,9 @@
 #include "OpenGLCommand.h"
 
 #include "OpenGLCommon.h"
+#include "OpenGLShader.h"
+
+#include "RHI/ShaderCore.h"
 #include "RHI/GpuProfiler.h"
 
 namespace Render
@@ -206,6 +209,11 @@ namespace Render
 		mGLContext.cleanup();
 	}
 
+	class ShaderFormat* OpenGLSystem::createShaderFormat()
+	{
+		return new ShaderFormatGLSL;
+	}
+
 	bool OpenGLSystem::RHIBeginRender()
 	{
 		if( !mGLContext.makeCurrent() )
@@ -328,6 +336,16 @@ namespace Render
 	RHIDepthStencilState* OpenGLSystem::RHICreateDepthStencilState(DepthStencilStateInitializer const& initializer)
 	{
 		return new OpenGLDepthStencilState(initializer);
+	}
+
+	RHIShader* OpenGLSystem::RHICreateShader(Shader::Type type)
+	{
+		return CreateOpenGLResourceT< OpenGLShader >(type);
+	}
+
+	RHIShaderProgram* OpenGLSystem::RHICreateShaderProgram()
+	{
+		return CreateOpenGLResourceT< OpenGLShaderProgram >();
 	}
 
 	void OpenGLContext::RHISetRasterizerState(RHIRasterizerState& rasterizerState)
@@ -568,17 +586,9 @@ namespace Render
 		glViewport(x, y, w, h);
 	}
 
-	void OpenGLContext::RHISetScissorRect(bool bEnable, int x, int y, int w, int h)
+	void OpenGLContext::RHISetScissorRect(int x, int y, int w, int h)
 	{
-		if( mDeviceState.bScissorRectEnabled != bEnable )
-		{
-			EnableGLState(GL_SCISSOR_TEST, bEnable);
-			mDeviceState.bScissorRectEnabled = bEnable;
-			if( bEnable )
-			{
-				glScissor(x, y, w, h);
-			}
-		}
+		glScissor(x, y, w, h);
 	}
 
 	void OpenGLContext::RHIDrawPrimitive(PrimitiveType type, int start, int nv)
@@ -588,6 +598,8 @@ namespace Render
 
 	void OpenGLContext::RHISetupFixedPipelineState(Matrix4 const& matModelView, Matrix4 const& matProj, int numTexture , RHITexture2D const** textures )
 	{
+		RHISetShaderProgram(nullptr);
+
 		glMatrixMode(GL_PROJECTION);
 		glLoadMatrixf(matProj);
 		glMatrixMode(GL_MODELVIEW);
@@ -613,12 +625,19 @@ namespace Render
 		OpenGLCast::To(indexBuffer)->bind();
 	}
 
-	void OpenGLContext::RHIDrawIndexedPrimitive(PrimitiveType type, ECompValueType indexType, int indexStart, int nIndex)
+	void OpenGLContext::RHIDrawIndexedPrimitive(PrimitiveType type, ECompValueType indexType, int indexStart, int nIndex , uint32 baseVertex )
 	{
 		assert(indexType == CVT_UInt || indexType == CVT_UShort);
-		glDrawElements(GLConvert::To(type), nIndex, GLConvert::To(indexType), (void*)indexStart);
+		if( baseVertex )
+		{
+			glDrawElementsBaseVertex(GLConvert::To(type), nIndex, GLConvert::To(indexType), (void*)indexStart, baseVertex);
+		}
+		else
+		{
+			glDrawElements(GLConvert::To(type), nIndex, GLConvert::To(indexType), (void*)indexStart);
+		}
+		
 	}
-
 
 	void OpenGLContext::RHIDrawPrimitiveIndirect(PrimitiveType type, RHIVertexBuffer* commandBuffer, int offset , int numCommand, int commandStride )
 	{
@@ -658,6 +677,175 @@ namespace Render
 	{
 		GLenum priType = GLConvert::To(type);
 		glDrawArraysInstanced(priType, vStart, nv, numInstance);
+	}
+
+	void OpenGLContext::RHIDispatchCompute(uint32 numGroupX, uint32 numGroupY, uint32 numGroupZ)
+	{
+		glDispatchCompute(numGroupX, numGroupY, numGroupZ);
+	}
+
+
+	void OpenGLContext::RHISetShaderProgram(RHIShaderProgram* shaderProgram)
+	{
+		if( mLastShaderProgram.isValid() )
+			static_cast<OpenGLShaderProgram&>(*mLastShaderProgram).unbind();
+
+		if( shaderProgram )
+		{
+			static_cast<OpenGLShaderProgram&>(*shaderProgram).bind();
+			resetBindIndex();
+			mLastShaderProgram = shaderProgram;
+		}
+	}
+
+#define CHECK_PARAMETER( PARAM ) assert( PARAM.isBound() );
+
+
+	void OpenGLContext::setParam(RHIShaderProgram& shaderProgram, ShaderParameter const& param, int const val[], int dim)
+	{
+		CHECK_PARAMETER(param);
+		switch( dim )
+		{
+		case 1: glUniform1i(param.mLoc, val[0]); break;
+		case 2: glUniform2i(param.mLoc, val[0], val[1]); break;
+		case 3: glUniform3i(param.mLoc, val[0], val[1], val[2]); break;
+		case 4: glUniform4i(param.mLoc, val[0], val[1], val[2], val[3]); break;
+		}
+	}
+
+	void OpenGLContext::setParam(RHIShaderProgram& shaderProgram, ShaderParameter const& parameter, float const val[], int dim)
+	{
+		CHECK_PARAMETER(parameter);
+		switch( dim )
+		{
+		case 1: glUniform1f(parameter.mLoc, val[0]); break;
+		case 2: glUniform2f(parameter.mLoc, val[0], val[1]); break;
+		case 3: glUniform3f(parameter.mLoc, val[0], val[1], val[2]); break;
+		case 4: glUniform4f(parameter.mLoc, val[0], val[1], val[2], val[3]); break;
+		}
+	}
+
+	void OpenGLContext::setParam(RHIShaderProgram& shaderProgram, ShaderParameter const& param, Matrix3 const val[], int dim)
+	{
+		CHECK_PARAMETER(param);
+		glUniformMatrix3fv(param.mLoc, dim, false, (float const *)val);
+	}
+
+	void OpenGLContext::setParam(RHIShaderProgram& shaderProgram, ShaderParameter const& param, Matrix4 const val[], int dim)
+	{
+		CHECK_PARAMETER(param);
+		glUniformMatrix4fv(param.mLoc, dim, false, (float const *)val);
+	}
+
+	void OpenGLContext::setParam(RHIShaderProgram& shaderProgram, ShaderParameter const& param, Vector3 const val[], int dim)
+	{
+		CHECK_PARAMETER(param);
+		glUniform3fv(param.mLoc, dim, (float const *)val);
+	}
+
+	void OpenGLContext::setParam(RHIShaderProgram& shaderProgram, ShaderParameter const& param, Vector4 const val[], int dim)
+	{
+		CHECK_PARAMETER(param);
+		glUniform4fv(param.mLoc, dim, (float const *)val);
+	}
+
+	void OpenGLContext::setMatrix22(RHIShaderProgram& shaderProgram, ShaderParameter const& param, float const val[], int dim)
+	{
+		CHECK_PARAMETER(param);
+		glUniformMatrix2fv(param.mLoc, dim, false, (float const *)val);
+	}
+
+	void OpenGLContext::setMatrix43(RHIShaderProgram& shaderProgram, ShaderParameter const& param, float const val[], int dim)
+	{
+		CHECK_PARAMETER(param);
+		glUniformMatrix4x3fv(param.mLoc, dim, false, (float const *)val);
+	}
+
+	void OpenGLContext::setMatrix34(RHIShaderProgram& shaderProgram, ShaderParameter const& param, float const val[], int dim)
+	{
+		CHECK_PARAMETER(param);
+		glUniformMatrix3x4fv(param.mLoc, dim, false, (float const *)val);
+	}
+
+	void OpenGLContext::setResourceView(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHIShaderResourceView const& resourceView)
+	{
+		CHECK_PARAMETER(param);
+	}
+
+	void OpenGLContext::setTexture(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHITextureBase& texture)
+	{
+		CHECK_PARAMETER(param);
+
+		OpenGLShaderResourceView const&  resourceViewImpl = static_cast<OpenGLShaderResourceView const&>(*texture.getBaseResourceView());
+		int idx = mIdxTextureAutoBind;
+		++mIdxTextureAutoBind;
+		glActiveTexture(GL_TEXTURE0 + idx);
+		glBindTexture(resourceViewImpl.typeEnum, resourceViewImpl.handle);
+		glBindSampler(idx, 0);
+		glUniform1i(param.mLoc, idx);
+		glActiveTexture(GL_TEXTURE0);
+	}
+
+	void OpenGLContext::setTexture(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHITextureBase& texture, ShaderParameter const& paramSampler, RHISamplerState & sampler)
+	{
+		CHECK_PARAMETER(param);
+		CHECK_PARAMETER(paramSampler);
+		OpenGLShaderResourceView const&  resourceViewImpl = static_cast<OpenGLShaderResourceView const&>(*texture.getBaseResourceView());
+		OpenGLSamplerState const&  samplerImpl = static_cast<OpenGLSamplerState const&>(sampler);
+		int idx = mIdxTextureAutoBind;
+		++mIdxTextureAutoBind;
+		glActiveTexture(GL_TEXTURE0 + idx);
+		glBindTexture(resourceViewImpl.typeEnum, resourceViewImpl.handle);
+		glBindSampler(idx, samplerImpl.getHandle());
+		glUniform1i(param.mLoc, idx);
+		glActiveTexture(GL_TEXTURE0);
+	}
+
+	void OpenGLContext::setSampler(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHISamplerState const& sampler)
+	{
+		CHECK_PARAMETER(param);
+#if 0
+		OpenGLSamplerState const&  samplerImpl = static_cast<OpenGLSamplerState const&>(sampler);
+
+		glActiveTexture(GL_TEXTURE0 + idx);
+		glBindSampler(idx, 0);
+		glUniform1i(param.mLoc, idx);
+		glActiveTexture(GL_TEXTURE0);
+#endif
+	}
+
+	void OpenGLContext::setRWTexture(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHITextureBase& texture, EAccessOperator op)
+	{
+		CHECK_PARAMETER(param);
+		OpenGLShaderResourceView const& resourceViewImpl = static_cast<OpenGLShaderResourceView const&>(*texture.getBaseResourceView());
+		int idx = mIdxTextureAutoBind;
+		++mIdxTextureAutoBind;
+		glBindImageTexture(idx, resourceViewImpl.handle, 0, GL_FALSE, 0, GLConvert::To(op), GLConvert::To(texture.getFormat()));
+		glUniform1i(param.mLoc, idx);
+	}
+
+	void OpenGLContext::setUniformBuffer(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHIVertexBuffer& buffer)
+	{
+		CHECK_PARAMETER(param);
+		auto& shaderProgramImpl = static_cast<OpenGLShaderProgram&>(shaderProgram);
+		glUniformBlockBinding(shaderProgramImpl.getHandle(), param.mLoc, mNextUniformSlot);
+		glBindBufferBase(GL_UNIFORM_BUFFER, mNextUniformSlot, OpenGLCast::GetHandle(buffer));
+		++mNextUniformSlot;
+	}
+
+	void OpenGLContext::setStorageBuffer(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHIVertexBuffer& buffer)
+	{
+		CHECK_PARAMETER(param);
+		auto& shaderProgramImpl = static_cast<OpenGLShaderProgram&>(shaderProgram);
+		glShaderStorageBlockBinding(shaderProgramImpl.getHandle(), param.mLoc, mNextStorageSlot);
+		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, mNextStorageSlot, OpenGLCast::GetHandle(buffer));
+		++mNextStorageSlot;
+	}
+
+	void OpenGLContext::setAtomicCounterBuffer(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHIVertexBuffer& buffer)
+	{
+		CHECK_PARAMETER(param);
+		glBindBufferBase(GL_ATOMIC_COUNTER_BUFFER, param.mLoc, OpenGLCast::GetHandle(buffer));
 	}
 
 }

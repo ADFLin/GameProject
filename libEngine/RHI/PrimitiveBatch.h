@@ -3,7 +3,7 @@
 #define PrimitiveBatch_H_F2A726E4_2D4A_4BC8_B509_6B46823689A1
 
 #include "OpenGLCommon.h"
-#include "ShaderCore.h"
+#include "ShaderProgram.h"
 #include <vector>
 
 namespace Render

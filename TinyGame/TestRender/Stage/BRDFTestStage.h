@@ -96,19 +96,19 @@ namespace Render
 			parameterMap.bind(mParamPrefilteredTexture, SHADER_PARAM(PrefilteredTexture));
 			parameterMap.bind(mParamPreIntegratedBRDFTexture, SHADER_PARAM(PreIntegratedBRDFTexture));
 		}
-		void setParameters(RHICommandList& commandList, ShaderProgram& shader , IBLResource const& resource)
+		void setParameters(RHICommandList& commandList, ShaderProgram& shader , IBLResource& resource)
 		{
 			if( mParamIrradianceTexture.isBound() )
 			{
 				shader.setTexture(commandList, mParamIrradianceTexture, resource.irradianceTexture);
 			}
 
-			shader.setTexture(commandList, mParamPrefilteredTexture , resource.perfilteredTexture,
+			shader.setTexture(commandList, mParamPrefilteredTexture , resource.perfilteredTexture, mParamPrefilteredTexture,
 							  TStaticSamplerState< Sampler::eTrilinear, Sampler::eClamp, Sampler::eClamp, Sampler::eClamp > ::GetRHI());
 
 			if ( resource.SharedBRDFTexture.isValid() )
 			{
-				shader.setTexture(commandList, mParamPreIntegratedBRDFTexture, *resource.SharedBRDFTexture ,
+				shader.setTexture(commandList, mParamPreIntegratedBRDFTexture, *resource.SharedBRDFTexture , mParamPreIntegratedBRDFTexture,
 								  TStaticSamplerState< Sampler::eBilinear, Sampler::eClamp, Sampler::eClamp > ::GetRHI());
 			}
 		}
@@ -170,7 +170,7 @@ namespace Render
 			mParamIBL.bindParameters(parameterMap);
 		}
 
-		void setParameters(RHICommandList& commandList, IBLResource const& IBL)
+		void setParameters(RHICommandList& commandList, IBLResource& IBL)
 		{
 			mParamIBL.setParameters(commandList, *this, IBL);
 		}
@@ -242,9 +242,10 @@ namespace Render
 		}
 		void setParameters(RHICommandList& commandList, PostProcessContext const& context, RHITexture2D& targetTexture)
 		{
-			setTexture(commandList, mParamTargetTexture, targetTexture, TStaticSamplerState< Sampler::ePoint, Sampler::eClamp, Sampler::eClamp >::GetRHI());
+			setTexture(commandList, mParamTargetTexture, targetTexture, 
+					   mParamTargetTextureSampler, TStaticSamplerState< Sampler::ePoint, Sampler::eClamp, Sampler::eClamp >::GetRHI());
 		}
-
+		ShaderParameter mParamTargetTextureSampler;
 		ShaderParameter mParamTargetTexture;
 	};
 

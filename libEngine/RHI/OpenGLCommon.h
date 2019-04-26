@@ -124,10 +124,15 @@ namespace Render
 		TOpenGLObject< RMPolicy > mGLObject;
 	};
 
+	enum EResourceHold
+	{
+		EnumValue ,
+	};
 	template< class RHIResourceType >
 	class TOpenGLSimpleResource : public RHIResourceType
 	{
 	public:
+		TOpenGLSimpleResource(EResourceHold) { mRefcount = 10000; }
 		TOpenGLSimpleResource() { mRefcount = 0; }
 
 		virtual void incRef() { ++mRefcount; }
@@ -178,12 +183,32 @@ namespace Render
 	};
 
 
+	class OpenGLShaderResourceView : public TOpenGLSimpleResource< RHIShaderResourceView >
+	{
+	public:
+		OpenGLShaderResourceView(EResourceHold):TOpenGLSimpleResource< RHIShaderResourceView >(EResourceHold::EnumValue){}
+
+		GLuint handle;
+		GLenum typeEnum;
+	};
+
 	template< class RHITextureType >
 	class TOpengGLTexture : public TOpenGLResource< RHITextureType , RMPTexture >
 	{
 	protected:
+		TOpengGLTexture()
+			:mView(EResourceHold::EnumValue)
+		{}
+		
 		static GLenum const TypeEnumGL = OpenGLTextureTraits< RHITextureType >::EnumValue;
 		static GLenum const TypeEnumGLMultisample = OpenGLTextureTraits< RHITextureType >::EnumValueMultisample;
+
+		RHIShaderResourceView* getBaseResourceView()
+		{ 
+			mView.handle = mGLObject.mHandle;
+			mView.typeEnum = getGLTypeEnum();
+			return &mView; 
+		}
 	public:
 		GLenum getGLTypeEnum() const
 		{
@@ -198,6 +223,8 @@ namespace Render
 		{
 			glBindTexture(getGLTypeEnum(), 0);
 		}
+
+		OpenGLShaderResourceView mView;
 	};
 
 
@@ -629,7 +656,7 @@ namespace Render
 		int32 numElement;
 	};
 
-	class RHIShader;
+	class OpenGLShader;
 	class ShaderProgram;
 
 	struct OpenGLCast
@@ -655,8 +682,6 @@ namespace Render
 		static OpenGLSamplerState* To(RHISamplerState* state ) { return static_cast<OpenGLSamplerState*>(state); }
 		static OpenGLFrameBuffer*  To(RHIFrameBuffer* frameBuffer) { return static_cast<OpenGLFrameBuffer*>(frameBuffer); }
 
-		static RHIShader* To(RHIShader* shader) { return shader; }
-		static ShaderProgram* To(ShaderProgram* shader) { return shader; }
 		static OpenGLFrameBuffer* To(OpenGLFrameBuffer* buffer) { return buffer; }
 
 		template < class T >

@@ -101,6 +101,10 @@ namespace Render
 	RHIBlendState* RHICreateBlendState(BlendStateInitializer const& initializer);
 	RHIDepthStencilState* RHICreateDepthStencilState(DepthStencilStateInitializer const& initializer);
 
+	RHIShader*        RHICreateShader(Shader::Type type);
+	RHIShaderProgram* RHICreateShaderProgram();
+
+
 	class RHICommandList
 	{
 	public:
@@ -115,11 +119,11 @@ namespace Render
 	void RHISetDepthStencilState(RHICommandList& commandList, RHIDepthStencilState& depthStencilState, uint32 stencilRef = -1);
 
 	void RHISetViewport(RHICommandList& commandList, int x, int y, int w, int h);
-	void RHISetScissorRect(RHICommandList& commandList , bool bEnable, int x = 0, int y = 0, int w = 0, int h = 0);
+	void RHISetScissorRect(RHICommandList& commandList , int x = 0, int y = 0, int w = 0, int h = 0);
 
 	
 	void RHIDrawPrimitive(RHICommandList& commandList, PrimitiveType type, int vStart, int nv);
-	void RHIDrawIndexedPrimitive(RHICommandList& commandList, PrimitiveType type, ECompValueType indexType, int indexStart, int nIndex);
+	void RHIDrawIndexedPrimitive(RHICommandList& commandList, PrimitiveType type, ECompValueType indexType, int indexStart, int nIndex, uint32 baseVertex = 0);
 	void RHIDrawPrimitiveIndirect(RHICommandList& commandList, PrimitiveType type, RHIVertexBuffer* commandBuffer, int offset = 0, int numCommand = 1, int commandStride = 0);
 	void RHIDrawIndexedPrimitiveIndirect(RHICommandList& commandList, PrimitiveType type, ECompValueType indexType , RHIVertexBuffer* commandBuffer, int offset = 0, int numCommand = 1, int commandStride = 0);
 	void RHIDrawPrimitiveInstanced(RHICommandList& commandList, PrimitiveType type, int vStart, int nv, int numInstance );
@@ -132,13 +136,17 @@ namespace Render
 
 	void RHISetIndexBuffer(RHICommandList& commandList, RHIIndexBuffer* indexBuffer);
 
+	void RHIDispatchCompute(RHICommandList& commandList, uint32 numGroupX, uint32 numGroupY, uint32 numGroupZ );
+	void RHISetShaderProgram(RHICommandList& commandList, RHIShaderProgram* shaderProgram);
 #define RHI_FUNC( FUN ) virtual FUN = 0
 
 	class RHISystem
 	{
 	public:
+
 		virtual bool initialize(RHISystemInitParam const& initParam) { return true; }
 		virtual void shutdown(){}
+		virtual class ShaderFormat* createShaderFormat() { return nullptr; }
 		
 		RHI_FUNC(RHICommandList& getImmediateCommandList());
 		RHI_FUNC(RHIRenderWindow* RHICreateRenderWindow(PlatformWindowInfo const& info));
@@ -187,13 +195,16 @@ namespace Render
 		RHI_FUNC(RHIRasterizerState* RHICreateRasterizerState(RasterizerStateInitializer const& initializer));
 		RHI_FUNC(RHIBlendState* RHICreateBlendState(BlendStateInitializer const& initializer));
 		RHI_FUNC(RHIDepthStencilState* RHICreateDepthStencilState(DepthStencilStateInitializer const& initializer));
+
+		RHI_FUNC(RHIShader* RHICreateShader(Shader::Type type));
+		RHI_FUNC(RHIShaderProgram* RHICreateShaderProgram());
 	};
 
 	template< class T >
 	class TStructuredBuffer
 	{
 	public:
-		bool initializeResource(uint32 numElement, uint32 creationFlags = BCF_DefalutValue)
+		bool initializeResource(uint32 numElement, uint32 creationFlags = BCF_DefalutValue | BCF_CreateSRV )
 		{
 			mResource = RHICreateVertexBuffer(sizeof(T), numElement, creationFlags);
 			if( !mResource.isValid() )

@@ -1,7 +1,7 @@
 #include "TestRenderStageBase.h"
 
 #include "RHI/RHICommon.h"
-#include "RHI/ShaderCompiler.h"
+#include "RHI/ShaderManager.h"
 #include "RHI/RenderContext.h"
 #include "RHI/DrawUtility.h"
 #include "RHI/MeshUtility.h"
@@ -176,7 +176,7 @@ namespace Render
 
 			{
 				RHISetBlendState(commandList, TStaticBlendState< CWM_RGBA, Blend::eOne, Blend::eOne >::GetRHI());
-				GL_BIND_LOCK_OBJECT(mProgRayMarching);
+				RHISetShaderProgram(commandList, mProgRayMarching->getRHIResource());
 				mProgRayMarching->setParam(commandList, SHADER_PARAM(WorldToLocal), Matrix4::Identity());
 				mProgRayMarching->setParam(commandList, SHADER_PARAM(BoundMax), mSDFData.boundMax);
 				mProgRayMarching->setParam(commandList, SHADER_PARAM(BoundMin), mSDFData.boundMin);

@@ -299,7 +299,7 @@ namespace Render
 					RHISetBlendState(commandList, TStaticAlphaToCoverageBlendState<>::GetRHI());
 					//RHITexture2D const* textures[] = { mGrassTexture.get() };
 					//RHISetupFixedPipelineState(Matrix4::Scale(1) * Matrix4::Translate(0, 0, 12) * mView.worldToView, mView.viewToClip , 1 , textures);
-					GL_BIND_LOCK_OBJECT(mProgGrass);
+					RHISetShaderProgram(commandList, mProgGrass.getRHIResource());
 					mView.setupShader(commandList, mProgGrass);
 					mProgGrass.setTexture(commandList, SHADER_PARAM(Texture), *mGrassTexture , TStaticSamplerState< Sampler::eTrilinear > ::GetRHI());
 
@@ -338,8 +338,8 @@ namespace Render
 				RHISetRasterizerState(commandList, TStaticRasterizerState< ECullMode::None >::GetRHI());
 				RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
 				RHISetDepthStencilState(commandList, TStaticDepthStencilState< true , ECompareFun::Always >::GetRHI());
-				GL_BIND_LOCK_OBJECT(mProgResolveDepth);
 
+				RHISetShaderProgram(commandList, mProgResolveDepth->getRHIResource());
 				mProgResolveDepth->setTexture(commandList, SHADER_PARAM(UnsolvedDepthTexture), *mDepthBuffer);
 				DrawUtility::ScreenRectShader(commandList, mDepthBuffer->getSizeX() , mDepthBuffer->getSizeY());
 			}
@@ -359,7 +359,7 @@ namespace Render
 				RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
 				RHISetDepthStencilState(commandList, StaticDepthDisableState::GetRHI());
 
-				GL_BIND_LOCK_OBJECT(*mProgSmokeRender);
+				RHISetShaderProgram(commandList, mProgSmokeRender->getRHIResource());
 				mProgSmokeRender->setParameters(commandList, mView, mData, Vector3(0, 0, 0), Vector3(20, 20, 20), mSmokeParams);
 				mProgSmokeRender->setStructuredStorageBufferT< TiledLightInfo >(commandList, *mLightsBuffer.getRHI());
 				mProgSmokeRender->setParam(commandList, SHADER_PARAM(TiledLightNum), (int)mLights.size());
@@ -375,7 +375,7 @@ namespace Render
 				RHISetBlendState(commandList, TStaticBlendState<CWM_RGB, Blend::eOne, Blend::eSrcAlpha >::GetRHI());
 				RHISetDepthStencilState(commandList, StaticDepthDisableState::GetRHI());
 
-				GL_BIND_LOCK_OBJECT(*mProgSmokeBlend);
+				RHISetShaderProgram(commandList, mProgSmokeBlend->getRHIResource());
 				mProgSmokeBlend->setParameters(commandList, mView, *mSmokeFrameTextures[indexFrameTexture], *mSmokeFrameTextures[1 - indexFrameTexture]);
 				mProgSmokeBlend->setTexture(commandList, SHADER_PARAM(DepthTexture), *mSmokeDepthTexture);
 				DrawUtility::ScreenRectShader(commandList);

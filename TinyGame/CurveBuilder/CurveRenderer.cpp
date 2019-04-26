@@ -4,7 +4,7 @@
 #include "RenderData.h"
 
 #include "RHI/DrawUtility.h"
-#include "RHI/ShaderCompiler.h"
+#include "RHI/ShaderManager.h"
 #include "RHI/RHICommand.h"
 
 namespace CB
@@ -192,7 +192,7 @@ namespace CB
 			{
 				auto DrawFun = [this, &surface](RHICommandList& commandList)
 				{
-					GL_BIND_LOCK_OBJECT(*mProgCurveMeshOIT);
+					RHISetShaderProgram(commandList, mProgCurveMeshOIT->getRHIResource());
 					mViewInfo.setupShader(commandList, *mProgCurveMeshOIT);
 					mProgCurveMeshOIT->setParameters(commandList, mOITTech.mShaderData);
 					RHISetRasterizerState(commandList, TStaticRasterizerState<ECullMode::None>::GetRHI());
@@ -203,7 +203,7 @@ namespace CB
 			}
 			else
 			{
-				GL_BIND_LOCK_OBJECT(*mProgCurveMesh);
+				RHISetShaderProgram(commandList, mProgCurveMesh->getRHIResource());
 				mViewInfo.setupShader(commandList, *mProgCurveMesh);
 				drawMesh(surface);
 			}
@@ -382,6 +382,7 @@ namespace CB
 
 	void CurveRenderer::drawMeshNormal(Surface3D& surface , float length )
 	{
+		RHICommandList& commandList = *mCommandList;
 		RenderData* data = surface.getRenderData();
 		assert(data);
 
@@ -390,10 +391,10 @@ namespace CB
 
 
 		int d = std::max(1, int(1.0f / surface.getMeshLineDensity()));
-		GL_BIND_LOCK_OBJECT(*mProgMeshNormalVisualize);
-		mProgMeshNormalVisualize->setParameters(*mCommandList, Vector4(1,0,0,1) , length , d , surface.getParamU().getNumData());
-		mViewInfo.setupShader(*mCommandList, *mProgMeshNormalVisualize);
-		TRenderRT< RTVF_XYZ_CA_N >::DrawShader(*mCommandList , PrimitiveType::Points, data->getVertexData(), data->getVertexNum(), data->getVertexSize());
+		RHISetShaderProgram(commandList, mProgMeshNormalVisualize->getRHIResource());
+		mProgMeshNormalVisualize->setParameters(commandList, Vector4(1,0,0,1) , length , d , surface.getParamU().getNumData());
+		mViewInfo.setupShader(commandList, *mProgMeshNormalVisualize);
+		TRenderRT< RTVF_XYZ_CA_N >::DrawShader(commandList, PrimitiveType::Points, data->getVertexData(), data->getVertexNum(), data->getVertexSize());
 
 	}
 

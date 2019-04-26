@@ -14,7 +14,7 @@
 #include "RHI/RHICommand.h"
 #include "RHI/DrawUtility.h"
 #include "RHI/GpuProfiler.h"
-#include "RHI/ShaderCompiler.h"
+#include "RHI/ShaderManager.h"
 
 #define MATCH_RESULT_PATH "Go/MatchResult.data"
 
@@ -270,6 +270,25 @@ namespace Go
 			{
 				cleanupModeData();
 				buildAnalysisMode();
+
+				mReviewGame.copy(mGame);
+				Vec2i screenSize = ::Global::GetDrawEngine().getScreenSize();
+				Vec2i widgetSize = Vec2i(150, 10);
+				auto frame = new DevFrame(UI_ANY, Vec2i(screenSize.x - widgetSize.x - 5, 300), widgetSize, nullptr);
+				auto GetPonderingButtonString = [&]()
+				{
+					return bAnalysisPondering ? "Stop Pondering" : "Start Pondering";
+				};
+				frame->addButton(GetPonderingButtonString(),
+								 [&, GetPonderingButtonString](int eventId, GWidget* widget) ->bool
+				{
+					toggleAnalysisPonder();
+					widget->cast<GButton>()->setTitle(GetPonderingButtonString());
+					return false;
+				});
+				WidgetPropery::Bind(frame->addCheckBox(UI_ANY, "Show Analysis"), bShowAnalysis);
+				::Global::GUI().addWidget(frame);
+
 			}
 			return false;
 		});
@@ -630,7 +649,7 @@ namespace Go
 			g.drawCircle(pos, context.stoneRadius / 2);
 		}
 
-		if( bAnalysisEnabled && bAnalysisPondering && analysisPonderColor == mGame.getInstance().getNextPlayColor() )
+		if( bAnalysisEnabled && bShowAnalysis && analysisPonderColor == mGame.getInstance().getNextPlayColor() )
 		{
 			drawAnalysis( g , context );
 		}
@@ -879,14 +898,14 @@ namespace Go
 						RHISetBlendState(commandList, TStaticBlendState< CWM_RGBA, Blend::eSrcAlpha, Blend::eOne >::GetRHI());
 					}
 
-					GL_BIND_LOCK_OBJECT(mProgUnderCurveArea);
-
+					RHISetShaderProgram(commandList, mProgUnderCurveArea->getRHIResource());
 					mProgUnderCurveArea->setParameters(commandList,
 						float(50), matProj,
 						Vector4(colors[i], alpha[i]),
 						Vector4(0.3 * colors[i], alpha[i]));
 
 					TRenderRT< RTVF_XY >::DrawShader(commandList, PrimitiveType::LineStrip, &winRateHistory[0], winRateHistory.size());
+					RHISetShaderProgram(commandList, nullptr);
 				}
 				RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
 				TRenderRT< RTVF_XY >::Draw(commandList, PrimitiveType::LineStrip, &winRateHistory[0], winRateHistory.size(), colors[i]);

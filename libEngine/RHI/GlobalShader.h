@@ -2,7 +2,7 @@
 #ifndef GlobalShader_H_99D977DA_B0C5_46A1_8282_C63EA1B52228
 #define GlobalShader_H_99D977DA_B0C5_46A1_8282_C63EA1B52228
 
-#include "ShaderCore.h"
+#include "ShaderProgram.h"
 
 #include "Template/ArrayView.h"
 

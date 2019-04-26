@@ -22,16 +22,21 @@ namespace Render
 		}
 	}
 
+	void RenderContext::endRender()
+	{
+		if( mUsageProgram )
+		{
+			RHISetShaderProgram(getCommnadList(), nullptr);
+			mUsageProgram = nullptr;
+		}
+	}
+
 	void RenderContext::setShader(ShaderProgram& program)
 	{
 		if( mUsageProgram != &program )
 		{
-			if( mUsageProgram )
-			{
-				mUsageProgram->unbind();
-			}
 			mUsageProgram = &program;
-			mUsageProgram->bind();
+			RHISetShaderProgram( getCommnadList() , program.getRHIResource());
 		}
 	}
 
@@ -43,7 +48,7 @@ namespace Render
 		if( material )
 		{
 			program = mTechique->getMaterialShader(*this,*material->getMaster() , vertexFactory );
-			if( program == nullptr || !program->isValid() )
+			if( program == nullptr || !program->getRHIResource() )
 			{
 				material = nullptr;
 			}
@@ -62,13 +67,9 @@ namespace Render
 
 		if( mUsageProgram != program )
 		{
-			if( mUsageProgram )
-			{
-				mUsageProgram->unbind();
-			}
 			mUsageProgram = program;
 			mbUseMaterialShader = true;
-			program->bind();
+			RHISetShaderProgram(commandList, program->getRHIResource());
 			mCurView->setupShader(commandList, *program);
 			mTechique->setupMaterialShader(*this, *program);
 		}

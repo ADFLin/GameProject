@@ -34,9 +34,15 @@ namespace Render
 	class RHITextureCube;
 	class RHITexture2DArray;
 	class RHITextureDepth;
+
+	class RHIShaderResourceView;
+	class RHIUnorderedAccessView;
 	
 	class RHIVertexBuffer;
 	class RHIIndexBuffer;
+
+	class RHIShader;
+	class RHIShaderProgram;
 
 	enum ECompValueType
 	{
@@ -186,6 +192,14 @@ namespace Render
 		static uint32 TotalCount;
 	};
 
+
+	class RHIShaderResourceView : public RHIResource
+	{
+	};
+
+	typedef TRefCountPtr< RHIShaderResourceView > RHIShaderResourceViewRef;
+
+
 	class RHITextureBase : public RHIResource
 	{
 	public:
@@ -200,6 +214,7 @@ namespace Render
 		virtual RHITexture3D* getTexture3D() { return nullptr; }
 		virtual RHITextureCube* getTextureCube() { return nullptr; }
 		virtual RHITexture2DArray* getTexture2DArray() { return nullptr; }
+		virtual RHIShaderResourceView* getBaseResourceView() { return nullptr; }
 		Texture::Format getFormat() const { return mFormat; }
 		int getNumSamples() const { return mNumSamples; }
 		int getNumMipLevel() const { return mNumMipLevel; }
@@ -508,8 +523,6 @@ namespace Render
 
 	};
 
-	typedef TRefCountPtr< RHIInputLayout > RHIInputLayoutRef;
-
 
 	struct InputStreamDefine
 	{
@@ -651,8 +664,7 @@ namespace Render
 	typedef TRefCountPtr< RHIRasterizerState > RHIRasterizerStateRef;
 	typedef TRefCountPtr< RHIDepthStencilState > RHIDepthStencilStateRef;
 	typedef TRefCountPtr< RHIBlendState > RHIBlendStateRef;
-
-
+	typedef TRefCountPtr< RHIInputLayout > RHIInputLayoutRef;
 
 
 }//namespace Render

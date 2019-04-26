@@ -2,7 +2,7 @@
 
 #include "RHI/OpenGLCommon.h"
 #include "RHI/DrawUtility.h"
-#include "RHI/ShaderCompiler.h"
+#include "RHI/ShaderManager.h"
 
 #include "FixString.h"
 
@@ -74,14 +74,15 @@ namespace MV
 
 		mCommandList = &RHICommandList::GetImmediateList();
 
-		locDirX = mEffect.getParamLoc( "dirX" );
-		locDirZ = mEffect.getParamLoc( "dirZ" );
-		locLocalScale = mEffect.getParamLoc( "localScale" );
+		//mEffect.getParameter( )
+		mEffect.getParameter( "dirX" , paramDirX );
+		mEffect.getParameter( "dirZ" , paramDirZ );
+		mEffect.getParameter( "localScale", paramLocalScale );
 
 		{
 			if ( !MeshBuild::Cube( mMesh[ MESH_BOX ] , 0.5f ) ||
-				!MeshBuild::UVSphere( mMesh[ MESH_SPHERE ] , 0.3 , 10 , 10 ) ||
-				!MeshBuild::Plane( mMesh[ MESH_PLANE ] , Vector3(0.5,0,0) ,Vector3(1,0,0) , Vector3(0,1,0) , Vector2( 0.5 , 0.5) , 1 ) )
+				 !MeshBuild::UVSphere( mMesh[ MESH_SPHERE ] , 0.3 , 10 , 10 ) ||
+				 !MeshBuild::Plane( mMesh[ MESH_PLANE ] , Vector3(0.5,0,0) ,Vector3(1,0,0) , Vector3(0,1,0) , Vector2( 0.5 , 0.5) , 1 ) )
 				return false;
 
 			for( int i = 0 ; i < ARRAY_SIZE( gMeshInfo ) ; ++i )
@@ -112,13 +113,13 @@ namespace MV
 		Mat4 matViewInv;
 		float det;
 		matView.inverse( matViewInv , det );
-		mEffect.bind();
+
+		RHISetShaderProgram(commandList, mEffect.getRHIResource());
 		mEffect.setParam(commandList, SHADER_PARAM(View.viewToWorld) , matViewInv );
 
 		glLoadMatrixf( matView );
 		renderGroup( mParam.world->mRootGroup );
-
-		mEffect.unbind();
+		RHISetShaderProgram(commandList, nullptr);
 	}
 
 	void RenderEngine::renderBlock(Block& block , Vec3i const& pos)
@@ -136,8 +137,8 @@ namespace MV
 
 		glPushMatrix();
 		glTranslatef( pos.x , pos.y , pos.z );
-		mEffect.setParam(commandList, locDirX , (int)block.rotation[0] );
-		mEffect.setParam(commandList, locDirZ , (int)block.rotation[2] );
+		mEffect.setParam(commandList, paramDirX , (int)block.rotation[0] );
+		mEffect.setParam(commandList, paramDirZ , (int)block.rotation[2] );
 		mMesh[ block.idMesh ].draw(commandList);
 
 		for( int i = 0 ; i < 6 ; ++i )
@@ -165,8 +166,8 @@ namespace MV
 		RHICommandList& commandList = *mCommandList;
 		glPushMatrix();
 		glTranslatef( pos.x , pos.y , pos.z );
-		mEffect.setParam(commandList, locDirX , (int)Dir::X );
-		mEffect.setParam(commandList, locDirZ , (int)Dir::Z );
+		mEffect.setParam(commandList, paramDirX , (int)Dir::X );
+		mEffect.setParam(commandList, paramDirZ , (int)Dir::Z );
 		Quat q; q.setEulerZYX( rotation.z , rotation.y , rotation.x );
 		glMultMatrixf( Matrix4::Rotate( q ) );
 		mMesh[ idMesh ].draw(commandList);
@@ -178,8 +179,8 @@ namespace MV
 		RHICommandList& commandList = *mCommandList;
 		glPushMatrix();
 		glTranslatef( pos.x , pos.y , pos.z );
-		mEffect.setParam(commandList, locDirX , (int)rotation[0] );
-		mEffect.setParam(commandList, locDirZ , (int)rotation[2] );
+		mEffect.setParam(commandList, paramDirX , (int)rotation[0] );
+		mEffect.setParam(commandList, paramDirZ , (int)rotation[2] );
 		mMesh[ idMesh ].draw(commandList);
 		glPopMatrix();
 	}
@@ -258,15 +259,15 @@ namespace MV
 		}
 		glTranslatef( pos.x , pos.y , pos.z );
 
-		mEffect.setParam(commandList, locDirX , (int)actor.rotation[0] );
-		mEffect.setParam(commandList, locDirZ , (int)actor.rotation[2] );
+		mEffect.setParam(commandList, paramDirX , (int)actor.rotation[0] );
+		mEffect.setParam(commandList, paramDirZ , (int)actor.rotation[2] );
 
 		glColor3f( 0.5 , 0.5 , 0.5 );
 
 		glPushMatrix();
-		mEffect.setParam(commandList, locLocalScale , Vec3f( 0.4 , 0.6 , 1.0 ) );
+		mEffect.setParam(commandList, paramLocalScale , Vec3f( 0.4 , 0.6 , 1.0 ) );
 		mMesh[ MESH_BOX ].draw(commandList);
-		mEffect.setParam(commandList, locLocalScale , Vec3f( 1.0 , 1.0 , 1.0 ) );
+		mEffect.setParam(commandList, paramLocalScale , Vec3f( 1.0 , 1.0 , 1.0 ) );
 		glPopMatrix();
 
 		//Vector3 offset = actor.moveOffset * cast( frontOffset ) - 0.2 * cast( upOffset );
@@ -274,20 +275,19 @@ namespace MV
 
 		mMesh[ MESH_SPHERE ].draw(*mCommandList);
 
-		mEffect.unbind();
-
+		RHISetShaderProgram(commandList, nullptr);
 		glBegin( GL_LINES );
 		glColor3f(1,0,0); glVertex3f(0,0,0); glVertex3f(frontOffset.x,frontOffset.y,frontOffset.z);
 		glColor3f(0,0,1); glVertex3f(0,0,0); glVertex3f(upOffset.x,upOffset.y,upOffset.z); 
 		glEnd();
-		mEffect.bind();
+		RHISetShaderProgram(commandList, mEffect.getRHIResource());
 		glPopMatrix();
 	}
 
 	void RenderEngine::renderNav(ObjectGroup &group)
 	{
-		mEffect.unbind();
-
+		RHICommandList& commandList = *mCommandList;
+		RHISetShaderProgram(commandList, nullptr);
 		float* buffer = useCacheBuffer( group.blocks.size() * 6 * 4 * 2 * 2 * 6 );
 
 		float* v = buffer;
@@ -334,8 +334,8 @@ namespace MV
 				}
 			}
 		}
-		TRenderRT< RTVF_XYZ_C >::Draw(*mCommandList, PrimitiveType::LineList, buffer , nV  );
-		mEffect.bind();
+		TRenderRT< RTVF_XYZ_C >::Draw(commandList, PrimitiveType::LineList, buffer , nV  );
+		RHISetShaderProgram(commandList, mEffect.getRHIResource());
 	}
 
 }//namespace MV

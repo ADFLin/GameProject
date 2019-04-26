@@ -1,6 +1,6 @@
 #include "DrawUtility.h"
 
-#include "ShaderCompiler.h"
+#include "ShaderManager.h"
 
 namespace Render
 {
@@ -544,28 +544,28 @@ namespace Render
 
 	void ShaderHelper::copyTextureToBuffer(RHICommandList& commandList, RHITexture2D& copyTexture)
 	{
-		GL_BIND_LOCK_OBJECT(mProgCopyTexture);
+		RHISetShaderProgram(commandList, mProgCopyTexture->getRHIResource());
 		mProgCopyTexture->setParameters(commandList, copyTexture);
 		DrawUtility::ScreenRectShader(commandList);
 	}
 
 	void ShaderHelper::copyTextureMaskToBuffer(RHICommandList& commandList, RHITexture2D& copyTexture, Vector4 const& colorMask)
 	{
-		GL_BIND_LOCK_OBJECT(mProgCopyTextureMask);
+		RHISetShaderProgram(commandList, mProgCopyTextureMask->getRHIResource());
 		mProgCopyTextureMask->setParameters(commandList, copyTexture, colorMask);
 		DrawUtility::ScreenRectShader(commandList);
 	}
 
 	void ShaderHelper::copyTextureBiasToBuffer(RHICommandList& commandList, RHITexture2D& copyTexture, float colorBais[2])
 	{
-		GL_BIND_LOCK_OBJECT(mProgCopyTextureBias);
+		RHISetShaderProgram(commandList, mProgCopyTextureBias->getRHIResource());
 		mProgCopyTextureBias->setParameters(commandList, copyTexture, colorBais);
 		DrawUtility::ScreenRectShader(commandList);
 	}
 
 	void ShaderHelper::mapTextureColorToBuffer(RHICommandList& commandList, RHITexture2D& copyTexture, Vector4 const& colorMask, float valueFactor[2])
 	{
-		GL_BIND_LOCK_OBJECT(mProgMappingTextureColor);
+		RHISetShaderProgram(commandList, mProgMappingTextureColor->getRHIResource());
 		mProgMappingTextureColor->setParameters(commandList, copyTexture, colorMask, valueFactor);
 		DrawUtility::ScreenRectShader(commandList);
 	}

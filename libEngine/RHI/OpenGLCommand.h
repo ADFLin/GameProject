@@ -1,6 +1,7 @@
 #include "RHICommand.h"
 #include "RHICommandListImpl.h"
 
+#include "ShaderCore.h"
 #include "glew/GL/glew.h"
 #include "OpenGLCommon.h"
 
@@ -8,7 +9,7 @@
 
 namespace Render
 {
-
+	
 	struct OpenGLDeviceState
 	{
 		OpenGLDeviceState()
@@ -49,11 +50,11 @@ namespace Render
 		void RHISetDepthStencilState(RHIDepthStencilState& depthStencilState, uint32 stencilRef);
 
 		void RHISetViewport(int x, int y, int w, int h);
-		void RHISetScissorRect(bool bEnable, int x, int y, int w, int h);
+		void RHISetScissorRect(int x, int y, int w, int h);
 
 
 		void RHIDrawPrimitive(PrimitiveType type, int start, int nv);
-		void RHIDrawIndexedPrimitive(PrimitiveType type, ECompValueType indexType, int indexStart, int nIndex);
+		void RHIDrawIndexedPrimitive(PrimitiveType type, ECompValueType indexType, int indexStart, int nIndex, uint32 baseVertex);
 		void RHIDrawPrimitiveIndirect(PrimitiveType type, RHIVertexBuffer* commandBuffer, int offset, int numCommand, int commandStride);
 		void RHIDrawIndexedPrimitiveIndirect(PrimitiveType type, ECompValueType indexType, RHIVertexBuffer* commandBuffer, int offset, int numCommand, int commandStride);
 		void RHIDrawPrimitiveInstanced(PrimitiveType type, int vStart, int nv, int numInstance);
@@ -84,8 +85,54 @@ namespace Render
 				OpenGLCast::To(mLastFrameBuffer)->bind();
 			}
 		}
-		void RHISetIndexBuffer(RHIIndexBuffer* buffer);
 
+		void RHIClearRenderTarget( int numColor )
+		{
+
+
+		}
+
+		void RHISetIndexBuffer(RHIIndexBuffer* buffer);
+		void RHIDispatchCompute(uint32 numGroupX, uint32 numGroupY, uint32 numGroupZ);
+
+
+		//Shader
+		void RHISetShaderProgram(RHIShaderProgram* shaderProgram);
+
+		void setParam(RHIShaderProgram& shaderProgram, ShaderParameter const& param, int const val[], int dim);
+		void setParam(RHIShaderProgram& shaderProgram, ShaderParameter const& parameter, float const val[], int dim);
+		void setParam(RHIShaderProgram& shaderProgram, ShaderParameter const& param, Matrix3 const val[], int dim);
+		void setParam(RHIShaderProgram& shaderProgram, ShaderParameter const& param, Matrix4 const val[], int dim);
+		void setParam(RHIShaderProgram& shaderProgram, ShaderParameter const& param, Vector3 const val[], int dim);
+		void setParam(RHIShaderProgram& shaderProgram, ShaderParameter const& param, Vector4 const val[], int dim);
+		void setMatrix22(RHIShaderProgram& shaderProgram, ShaderParameter const& param, float const val[], int dim);
+		void setMatrix43(RHIShaderProgram& shaderProgram, ShaderParameter const& param, float const val[], int dim);
+		void setMatrix34(RHIShaderProgram& shaderProgram, ShaderParameter const& param, float const val[], int dim);
+
+		void setResourceView(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHIShaderResourceView const& resourceView);
+
+		void setTexture(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHITextureBase& texture);
+		void setTexture(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHITextureBase& texture, ShaderParameter const& paramSampler, RHISamplerState & sampler);
+		void setSampler(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHISamplerState const& sampler);
+		void setRWTexture(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHITextureBase& texture, EAccessOperator op);
+
+		void setUniformBuffer(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHIVertexBuffer& buffer);
+		void setStorageBuffer(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHIVertexBuffer& buffer);
+		void setAtomicCounterBuffer(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHIVertexBuffer& buffer);
+
+		static int const IdxTextureAutoBindStart = 2;
+		void resetBindIndex()
+		{
+			mIdxTextureAutoBind = IdxTextureAutoBindStart;
+			mNextUniformSlot = 0;
+			mNextStorageSlot = 0;
+		}
+
+		int  mIdxTextureAutoBind;
+		int  mNextUniformSlot;
+		int  mNextStorageSlot;
+
+		RHIShaderProgramRef mLastShaderProgram;
 		RHIFrameBufferRef mLastFrameBuffer;
 		OpenGLDeviceState mDeviceState;
 
@@ -96,7 +143,7 @@ namespace Render
 	public:
 		virtual bool initialize(RHISystemInitParam const& initParam) override;
 		virtual void shutdown();
-
+		virtual class ShaderFormat* createShaderFormat();
 		bool RHIBeginRender();
 		void RHIEndRender(bool bPresent);
 		RHICommandList&  getImmediateCommandList()
@@ -131,6 +178,9 @@ namespace Render
 		RHIRasterizerState* RHICreateRasterizerState(RasterizerStateInitializer const& initializer);
 		RHIBlendState* RHICreateBlendState(BlendStateInitializer const& initializer);
 		RHIDepthStencilState* RHICreateDepthStencilState(DepthStencilStateInitializer const& initializer);
+
+		RHIShader* RHICreateShader(Shader::Type type);
+		RHIShaderProgram* RHICreateShaderProgram();
 
 		RHICommandListImpl* mImmediateCommandList = nullptr;
 		class OpenglProfileCore* mProfileCore = nullptr;

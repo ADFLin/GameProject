@@ -416,7 +416,7 @@ uniform sampler2D HistroyTexture;
 uniform sampler2D DepthTexture;
 
 #define USE_REPROJECTION 0
-void SomkeBlendPS()
+void SmokeBlendPS()
 {
 	float2 screenUV = VSOutput.UVs;
 

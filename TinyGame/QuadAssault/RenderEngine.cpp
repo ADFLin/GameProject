@@ -6,7 +6,7 @@
 #include "ObjectRenderer.h"
 #include "Block.h"
 
-#include "RHI/ShaderCompiler.h"
+#include "RHI/ShaderManager.h"
 #include "RHI/RHICommand.h"
 
 #include "RHI/OpenGLCommon.h"
@@ -175,7 +175,7 @@ void RenderEngine::renderSceneFinal( RenderParam& param )
 	Render::RHICommandList& commandList = Render::RHICommandList::GetImmediateList();
 	Render::ShaderProgram& shader = mShaderScene[ param.mode ];
 
-	shader.bind();
+	RHISetShaderProgram(commandList, shader.getRHIResource());
 
 	glEnable(GL_TEXTURE_2D);
 	shader.setTexture(commandList, SHADER_PARAM( texGeometry ) , *mTexGeometry );
@@ -189,7 +189,7 @@ void RenderEngine::renderSceneFinal( RenderParam& param )
 	glTexCoord2f(0.0, 0.0); glVertex2f(0.0 , mFrameHeight );
 	glEnd();
 
-	shader.unbind();
+	RHISetShaderProgram(commandList, nullptr);
 
 	glActiveTexture(GL_TEXTURE0);
 	glDisable(GL_TEXTURE_2D);
@@ -235,8 +235,7 @@ void RenderEngine::renderLight( RenderParam& param , Vec2f const& lightPos , Lig
 
 	Vec2f posLight = lightPos - param.camera->getPos();
 
-	mShaderLighting.bind();
-
+	RHISetShaderProgram(commandList, mShaderLighting.getRHIResource());
 	mShaderLighting.setTexture(commandList, SHADER_PARAM( texNormalMap ) , *mTexNormalMap );
 	//mShaderLighting->setParam( SHADER_PARAM(frameHeight), mFrameHeight );
 	//mShaderLighting->setParam( SHADER_PARAM(scaleFactor) , param.scaleFactor );
@@ -273,7 +272,7 @@ void RenderEngine::renderLight( RenderParam& param , Vec2f const& lightPos , Lig
 	glEnd();	
 #endif
 
-	mShaderLighting.unbind();	
+	RHISetShaderProgram(commandList, nullptr);
 	glActiveTexture(GL_TEXTURE0);
 }
 

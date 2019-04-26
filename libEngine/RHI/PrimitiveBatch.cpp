@@ -1,7 +1,7 @@
 #include "PrimitiveBatch.h"
 
 #include "RenderContext.h"
-#include "ShaderCompiler.h"
+#include "ShaderManager.h"
 #include "RHICommand.h"
 
 namespace Render

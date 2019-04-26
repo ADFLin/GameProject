@@ -7,7 +7,7 @@
 #include "GameGUISystem.h"
 #include "Widget/WidgetUtility.h"
 
-#include "RHI/ShaderCompiler.h"
+#include "RHI/ShaderManager.h"
 
 EXPORT_GAME_MODULE( QuadAssaultModule )
 

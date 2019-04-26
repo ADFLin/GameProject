@@ -99,22 +99,14 @@ namespace Render
 			mDeviceContext->RSSetViewports(1, &vp);
 		}
 
-		void RHISetScissorRect(bool bEnable, int x, int y, int w, int h)
+		void RHISetScissorRect(int x, int y, int w, int h)
 		{
-			if( bEnable )
-			{
-				D3D11_RECT rect;
-				rect.top = x;
-				rect.left = y;
-				rect.bottom = x + w;
-				rect.right = y + h;
-				mDeviceContext->RSSetScissorRects(1, &rect);
-			}
-			else
-			{
-				mDeviceContext->RSSetScissorRects(0, nullptr);
-			}
-
+			D3D11_RECT rect;
+			rect.top = x;
+			rect.left = y;
+			rect.bottom = x + w;
+			rect.right = y + h;
+			mDeviceContext->RSSetScissorRects(1, &rect);
 		}
 
 
@@ -124,14 +116,15 @@ namespace Render
 			mDeviceContext->Draw(nv, start);
 		}
 
-		void RHIDrawIndexedPrimitive(PrimitiveType type, ECompValueType indexType, int indexStart, int nIndex)
+		void RHIDrawIndexedPrimitive(PrimitiveType type, ECompValueType indexType, int indexStart, int nIndex, uint32 baseVertex)
 		{
-
+			mDeviceContext->IASetPrimitiveTopology(D3D11Conv::To(type));
+			mDeviceContext->DrawIndexed(nIndex , indexStart , baseVertex);
 		}
 
 		void RHIDrawPrimitiveIndirect(PrimitiveType type, RHIVertexBuffer* commandBuffer, int offset, int numCommand, int commandStride)
 		{
-
+			mDeviceContext->IASetPrimitiveTopology(D3D11Conv::To(type));
 		}
 		void RHIDrawIndexedPrimitiveIndirect(PrimitiveType type, ECompValueType indexType, RHIVertexBuffer* commandBuffer, int offset, int numCommand, int commandStride)
 		{
@@ -174,6 +167,34 @@ namespace Render
 		{
 			mDeviceContext->IASetIndexBuffer(D3D11Cast::To(indexBuffer)->getResource(), indexBuffer->getSize() == 4 ? DXGI_FORMAT_R32_UINT : DXGI_FORMAT_R16_UINT, 0);
 		}
+
+		void RHIDispatchCompute(uint32 numGroupX, uint32 numGroupY, uint32 numGroupZ)
+		{
+			mDeviceContext->Dispatch(numGroupX, numGroupY, numGroupZ);
+		}
+
+		void RHISetShaderProgram(RHIShaderProgram* shaderProgram){}
+		void setParam(RHIShaderProgram& shaderProgram, ShaderParameter const& param, int const val[], int dim){}
+		void setParam(RHIShaderProgram& shaderProgram, ShaderParameter const& parameter, float const val[], int dim) {}
+		void setParam(RHIShaderProgram& shaderProgram, ShaderParameter const& param, Matrix3 const val[], int dim) {}
+		void setParam(RHIShaderProgram& shaderProgram, ShaderParameter const& param, Matrix4 const val[], int dim) {}
+		void setParam(RHIShaderProgram& shaderProgram, ShaderParameter const& param, Vector3 const val[], int dim) {}
+		void setParam(RHIShaderProgram& shaderProgram, ShaderParameter const& param, Vector4 const val[], int dim) {}
+		void setMatrix22(RHIShaderProgram& shaderProgram, ShaderParameter const& param, float const val[], int dim) {}
+		void setMatrix43(RHIShaderProgram& shaderProgram, ShaderParameter const& param, float const val[], int dim) {}
+		void setMatrix34(RHIShaderProgram& shaderProgram, ShaderParameter const& param, float const val[], int dim) {}
+
+		void setResourceView(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHIShaderResourceView const& resourceView) {}
+
+		void setTexture(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHITextureBase& texture) {}
+		void setTexture(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHITextureBase& texture, ShaderParameter const& paramSampler, RHISamplerState & sampler) {}
+		void setSampler(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHISamplerState const& sampler) {}
+		void setRWTexture(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHITextureBase& texture, EAccessOperator op) {}
+
+		void setUniformBuffer(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHIVertexBuffer& buffer) {}
+		void setStorageBuffer(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHIVertexBuffer& buffer) {}
+		void setAtomicCounterBuffer(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHIVertexBuffer& buffer) {}
+
 
 		ID3D11DeviceContext* mDeviceContext;
 	};
@@ -276,7 +297,14 @@ namespace Render
 			return nullptr;
 		}
 
-
+		RHIShader* RHICreateShader(Shader::Type type)
+		{
+			return nullptr;
+		}
+		RHIShaderProgram* RHICreateShaderProgram()
+		{
+			return nullptr;
+		}
 		void* lockBufferInternal(ID3D11Resource* resource, ELockAccess access, uint32 offset, uint32 size)
 		{
 			D3D11_MAPPED_SUBRESOURCE mappedData;
@@ -432,7 +460,7 @@ namespace Render
 			return true;
 		}
 
-		D3D11Context mDrawContext;
+		D3D11Context   mDrawContext;
 		FrameSwapChain mSwapChain;
 		TComPtr< ID3D11Device > mDevice;
 		TComPtr< ID3D11DeviceContext > mDeviceContext;

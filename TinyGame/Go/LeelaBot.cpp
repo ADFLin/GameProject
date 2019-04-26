@@ -684,8 +684,11 @@ namespace Go
 			int   playout;
 			int   numRead;
 
-			if( sscanf(buffer, "%s -> %d (V: %f%%) (LCB: %f%%) (N: %f%%)%n", coord.data(), &nodeVisited,  &winRate, &LCB, &evalValue, &numRead) != 5 )
+			if( sscanf(buffer, "%s -> %d (V: %f%%) (LCB: %f%%) (N: %f%%)%n", coord.data(), &nodeVisited, &winRate, &LCB, &evalValue, &numRead) != 5 )
+			{
+				LogWarning(0, "Leela Output : Parse Think Info fail : %s", buffer);
 				return false;
+			}
 
 			PlayVertex vertex = GetVertex(coord);
 			if( vertex == PlayVertex::Undefiend() )
@@ -739,9 +742,10 @@ namespace Go
 						int   visits = 0;
 						int   winrate = 0;
 						int   prior = 0;
+						int   lcb = 0;
 						int   order = 0;
 						int   numRead = 0;
-						if( sscanf(buffer, "info move %s visits %d winrate %d prior %d order %d pv%n", coord.data(), &visits, &winrate, &prior, &order, &numRead) == 5 )
+						if( sscanf(buffer, "info move %s visits %d winrate %d prior %d lcb %d order %d pv%n", coord.data(), &visits, &winrate, &prior, &lcb , &order, &numRead) == 6 )
 						{
 							PlayVertex vertex = GetVertex(coord);
 							if( vertex == PlayVertex::Undefiend() )
@@ -767,6 +771,10 @@ namespace Go
 								buffer = const_cast<char*>( FStringParse::SkipSpace(buffer + numRead) );
 							}
 							thinkResults[indexResultWrite].push_back(info);
+						}
+						else
+						{
+							LogWarning(0, "Leela Output : Parse 'info move' fail : %s" , buffer );
 						}
 					}
 

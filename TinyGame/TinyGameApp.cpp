@@ -40,7 +40,7 @@
 
 #include "RHI/MeshUtility.h"
 #include "RHI/GpuProfiler.h"
-#include "RHI/ShaderCompiler.h"
+#include "RHI/ShaderManager.h"
 
 #define GAME_SETTING_PATH "Game.ini"
 

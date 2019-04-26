@@ -2,7 +2,7 @@
 #include "RenderAssetId.h"
 
 #include "PlatformThread.h"
-#include "RHI/ShaderCompiler.h"
+#include "RHI/ShaderManager.h"
 #include "RHI/RHICommand.h"
 #include "SceneScript.h"
 

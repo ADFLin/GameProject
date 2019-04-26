@@ -503,17 +503,17 @@ namespace Render
 
 		void initParticleData(RHICommandList& commandList)
 		{
-			GL_BIND_LOCK_OBJECT(mProgInit);
+			RHISetShaderProgram(commandList, mProgInit->getRHIResource());
 			mProgInit->setParameters(commandList, mParticleBuffer, mParamBuffer, mInitParamBuffer);
-			glDispatchCompute(mParticleBuffer.getElementNum(), 1, 1);
+			RHIDispatchCompute(commandList, mParticleBuffer.getElementNum(), 1, 1);
 		}
 
 		void updateParticleData(RHICommandList& commandList, float dt)
 		{
-			GL_BIND_LOCK_OBJECT(mProgUpdate);
+			RHISetShaderProgram(commandList, mProgUpdate->getRHIResource());
 			mProgUpdate->setParameters(commandList, mParticleBuffer, mParamBuffer, mInitParamBuffer, dt, mPrimitives.size());
 			mProgUpdate->setStructuredUniformBufferT<CollisionPrimitive>(commandList, *mCollisionPrimitiveBuffer.getRHI());
-			glDispatchCompute(mParticleBuffer.getElementNum(), 1, 1);
+			RHIDispatchCompute(commandList, mParticleBuffer.getElementNum(), 1, 1);
 		}
 
 		TStructuredBuffer< ParticleInitParameters > mInitParamBuffer;
@@ -655,7 +655,7 @@ namespace Render
 		{
 			RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
 
-			GL_BIND_LOCK_OBJECT(mProgSphere);
+			RHISetShaderProgram(commandList, mProgSphere.getRHIResource());
 			mView.setupShader(commandList, mProgSphere);
 			mProgSphere.setParam(commandList, SHADER_PARAM(Sphere.radius), radius);
 			mProgSphere.setParam(commandList, SHADER_PARAM(Sphere.worldPos), pos);
@@ -667,18 +667,18 @@ namespace Render
 		{
 			mIndexWaterBufferUsing = 1 - mIndexWaterBufferUsing;
 			{
-				GL_BIND_LOCK_OBJECT(mProgWaterSimulation);
+				RHISetShaderProgram(commandList, mProgWaterSimulation->getRHIResource());
 				Vector4 waterParam;
 				waterParam.x = dt;
 				waterParam.y = mWaterSpeed * dt * mTileNum / 10;
 				waterParam.z = 1;
 				mProgWaterSimulation->setParameters(commandList, waterParam, mTileNum, *mWaterDataBuffers[1 - mIndexWaterBufferUsing].getRHI(), *mWaterDataBuffers[mIndexWaterBufferUsing].getRHI());
-				glDispatchCompute(mTileNum, mTileNum, 1);
+				RHIDispatchCompute(commandList, mTileNum, mTileNum, 1);
 			}
 			{
-				GL_BIND_LOCK_OBJECT(mProgWaterUpdateNormal);
+				RHISetShaderProgram(commandList, mProgWaterUpdateNormal->getRHIResource());
 				mProgWaterUpdateNormal->setParameters(commandList, mTileNum, *mWaterDataBuffers[mIndexWaterBufferUsing].getRHI());
-				glDispatchCompute(mTileNum, mTileNum, 1);
+				RHIDispatchCompute(commandList, mTileNum, mTileNum, 1);
 
 			}
 		}
@@ -715,7 +715,7 @@ namespace Render
 			initializeRenderState();
 
 			{
-				GL_BIND_LOCK_OBJECT(mProgWater);
+				RHISetShaderProgram(commandList, mProgWater->getRHIResource());
 				mProgWater->setParameters(commandList, mTileNum, *mWaterDataBuffers[mIndexWaterBufferUsing].getRHI());
 				mView.setupShader(commandList, *mProgWater);
 				//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
@@ -740,7 +740,7 @@ namespace Render
 				glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 
 				RHISetBlendState(commandList, TStaticBlendState< CWM_RGBA, Blend::eSrcAlpha, Blend::eOne >::GetRHI());
-				GL_BIND_LOCK_OBJECT(mProgParticleRender);
+				RHISetShaderProgram(commandList, mProgParticleRender->getRHIResource());
 				mView.setupShader(commandList, *mProgParticleRender);
 				mProgParticleRender->setParameters(commandList, mParticleBuffer, *mTexture);
 				glDrawArrays(GL_POINTS , 0, mParticleBuffer.getElementNum() - 2);
@@ -768,7 +768,8 @@ namespace Render
 					Vector2(100, 400),	Vector3(0, 0, 1),
 					Vector2(400, 400), Vector3(1, 1, 1),
 				};
-				GL_BIND_LOCK_OBJECT(mProgSpline);
+
+				RHISetShaderProgram(commandList, mProgSpline->getRHIResource());
 				mProgSpline->setParam(commandList, SHADER_PARAM(XForm), OrthoMatrix(0, width, 0, height, -100, 100));
 				mProgSpline->setParam(commandList, SHADER_PARAM(TessOuter0), TessFactor2);
 				mProgSpline->setParam(commandList, SHADER_PARAM(TessOuter1), TessFactor1);
@@ -797,8 +798,8 @@ namespace Render
 				{
 					program = ShaderManager::Get().getGlobalShaderT< TTessellationProgram<false> >();
 				}
-				GL_BIND_LOCK_OBJECT(program);
 
+				RHISetShaderProgram(commandList, program->getRHIResource());
 				Matrix4 localToWorld = Matrix4::Scale(10) * Matrix4::Translate( -20 , - 20 , 10 );
 				Matrix4 worldToLocal;
 				float det;

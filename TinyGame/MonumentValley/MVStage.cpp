@@ -12,7 +12,7 @@
 
 #include "RHI/RHICommand.h"
 #include "RHI/DrawUtility.h"
-#include "RHI/ShaderCompiler.h"
+#include "RHI/ShaderManager.h"
 
 #include <limits>
 

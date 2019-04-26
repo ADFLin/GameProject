@@ -22,9 +22,9 @@ namespace Render
 		RHI_COMMAND_FUNC(commandList, RHISetViewport(x, y, w, h));
 	}
 
-	void RHISetScissorRect(RHICommandList& commandList, bool bEnable, int x, int y, int w, int h)
+	void RHISetScissorRect(RHICommandList& commandList, int x, int y, int w, int h)
 	{
-		RHI_COMMAND_FUNC(commandList, RHISetScissorRect(bEnable, x, y, w, h));
+		RHI_COMMAND_FUNC(commandList, RHISetScissorRect(x, y, w, h));
 	}
 
 	void RHIDrawPrimitive(RHICommandList& commandList, PrimitiveType type, int start, int nv)
@@ -32,9 +32,9 @@ namespace Render
 		RHI_COMMAND_FUNC(commandList, RHIDrawPrimitive(type, start, nv));
 	}
 
-	void RHIDrawIndexedPrimitive(RHICommandList& commandList, PrimitiveType type, ECompValueType indexType, int indexStart, int nIndex)
+	void RHIDrawIndexedPrimitive(RHICommandList& commandList, PrimitiveType type, ECompValueType indexType, int indexStart, int nIndex, uint32 baseVertex)
 	{
-		RHI_COMMAND_FUNC(commandList, RHIDrawIndexedPrimitive(type, indexType, indexStart, nIndex));
+		RHI_COMMAND_FUNC(commandList, RHIDrawIndexedPrimitive(type, indexType, indexStart, nIndex, baseVertex));
 	}
 
 	void RHIDrawPrimitiveIndirect(RHICommandList& commandList, PrimitiveType type, RHIVertexBuffer* commandBuffer, int offset, int numCommand, int commandStride)
@@ -76,5 +76,16 @@ namespace Render
 	{
 		RHI_COMMAND_FUNC(commandList, RHISetIndexBuffer(indexBuffer));
 	}
+
+	void RHIDispatchCompute(RHICommandList& commandList, uint32 numGroupX, uint32 numGroupY, uint32 numGroupZ)
+	{
+		RHI_COMMAND_FUNC(commandList, RHIDispatchCompute(numGroupX, numGroupY, numGroupZ));
+	}
+
+	void RHISetShaderProgram(RHICommandList& commandList, RHIShaderProgram* shaderProgram)
+	{
+		RHI_COMMAND_FUNC(commandList, RHISetShaderProgram(shaderProgram));
+	}
+
 
 }//namespace Render

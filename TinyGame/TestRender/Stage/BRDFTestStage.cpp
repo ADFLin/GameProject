@@ -227,7 +227,7 @@ namespace Render
 				RHISetDepthStencilState(commandList, StaticDepthDisableState::GetRHI());
 				RHISetRasterizerState(commandList, TStaticRasterizerState< ECullMode::None >::GetRHI());
 
-				GL_BIND_LOCK_OBJECT(mProgSkyBox);
+				RHISetShaderProgram(commandList, mProgSkyBox->getRHIResource());
 				mProgSkyBox->setTexture(commandList, SHADER_PARAM(Texture), *mHDRImage);
 				switch( SkyboxShowIndex )
 				{
@@ -257,7 +257,7 @@ namespace Render
 			{
 				GPU_PROFILE("LightProbe Visualize");
 
-				GL_BIND_LOCK_OBJECT(*mProgVisualize);
+				RHISetShaderProgram(commandList, mProgVisualize->getRHIResource());
 				mProgVisualize->setStructuredUniformBufferT< LightProbeVisualizeParams >(commandList, *mParamBuffer.getRHI());
 				mProgVisualize->setTexture(commandList, SHADER_PARAM(NormalTexture), mNormalTexture);
 				mView.setupShader(commandList, *mProgVisualize);
@@ -286,8 +286,7 @@ namespace Render
 
 			GL_BIND_LOCK_OBJECT(mSceneRenderTargets.getFrameBuffer());
 
-			GL_BIND_LOCK_OBJECT(mProgTonemap);
-
+			RHISetShaderProgram(commandList, mProgTonemap->getRHIResource());
 			RHISetRasterizerState(commandList, TStaticRasterizerState< ECullMode::None >::GetRHI());
 			RHISetDepthStencilState(commandList, StaticDepthDisableState::GetRHI());
 			RHISetBlendState(commandList, TStaticBlendState< CWM_RGB >::GetRHI());
@@ -411,7 +410,8 @@ namespace Render
 		{
 			frameBuffer.setTexture(0, cubeTexture, Texture::Face(i), level);
 			GL_BIND_LOCK_OBJECT(frameBuffer);
-			GL_BIND_LOCK_OBJECT(updateShader);
+
+			RHISetShaderProgram(commandList, updateShader.getRHIResource());
 			updateShader.setParam(commandList, SHADER_PARAM(FaceDir), Texture::GetFaceDir(Texture::Face(i)));
 			updateShader.setParam(commandList, SHADER_PARAM(FaceUpDir), Texture::GetFaceUpDir(Texture::Face(i)));
 			shaderSetup(commandList);
@@ -463,7 +463,8 @@ namespace Render
 			RHISetBlendState(commandList, TStaticBlendState< CWM_RGBA >::GetRHI());
 
 			GL_BIND_LOCK_OBJECT(frameBuffer);
-			GL_BIND_LOCK_OBJECT(*mProgPreIntegrateBRDFGen);
+
+			RHISetShaderProgram(commandList, mProgPreIntegrateBRDFGen->getRHIResource());
 			mProgPreIntegrateBRDFGen->setParam(commandList, SHADER_PARAM(BRDFSampleCount), setting.BRDFSampleCount);
 			DrawUtility::ScreenRectShader(commandList);
 		}

@@ -9,7 +9,7 @@
 #include "UnitTest/TestClass.cpp"
 #include "DataStructure/ClassTree.cpp"
 
-#include "RHI/ShaderCompiler.cpp"
+#include "RHI/ShaderManager.cpp"
 #include "RHI/MaterialShader.cpp"
 #include "RHI/VertexFactory.cpp"
 #include "RHI/RHICommand.cpp"

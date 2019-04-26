@@ -2,9 +2,9 @@
 #ifndef ShaderCompiler_H_7817AD1B_28BB_41DC_B037_0D75389E42A2
 #define ShaderCompiler_H_7817AD1B_28BB_41DC_B037_0D75389E42A2
 
-#include "OpenGLCommon.h"
-#include "ShaderCore.h"
+#include "ShaderFormat.h"
 #include "GlobalShader.h"
+
 #include "Singleton.h"
 #include "Asset.h"
 
@@ -13,22 +13,16 @@
 #include <unordered_map>
 #include <map>
 
-#define SHADER_FILE_SUBNAME ".sgc"
+
 
 class DataCacheInterface;
 
 namespace Render
 {
+	class ShaderProgram;
 	class MaterialShaderProgramClass;
 	class MaterialShaderProgram;
 	class VertexFactoryType;
-
-
-	struct ShaderEntryInfo
-	{
-		Shader::Type type;
-		char const*  name;
-	};
 
 	enum class ShaderClassType
 	{
@@ -37,27 +31,10 @@ namespace Render
 		Material,
 	};
 
-	enum ShaderFreature
+	struct ShaderEntryInfo
 	{
-
-
-
-	};
-
-	struct ShaderCompileInfo
-	{
-		HashString  filePath;
 		Shader::Type type;
-		std::string  headCode;
-		std::vector< HashString > includeFiles;
-
-		template< class S2 >
-		ShaderCompileInfo(Shader::Type inType, HashString inFilePath, S2&& inCode)
-			:filePath(inFilePath), type(inType), headCode(std::forward<S2>(inCode))
-		{
-		}
-
-		ShaderCompileInfo() {}
+		char const*  name;
 	};
 
 	struct ShaderProgramCompileInfo : public IAssetViewer
@@ -66,24 +43,10 @@ namespace Render
 		ShaderClassType classType = ShaderClassType::Common;
 		std::vector< ShaderCompileInfo > shaders;
 		bool           bShowComplieInfo = false;
-		
-		
 	protected:
 		virtual void getDependentFilePaths(std::vector<std::wstring>& paths) override;
 		virtual void postFileModify(FileAction action) override;
 	};
-
-
-	class ShaderCompiler
-	{
-	public:
-		bool compileCode( Shader::Type type , RHIShader& shader , char const* path, ShaderCompileInfo* compileInfo = nullptr, char const* def = nullptr );
-
-		bool bRecompile = true;
-		bool bUsePreprocess = true;
-
-	};
-
 
 
 	typedef std::vector< std::pair< MaterialShaderProgramClass*, MaterialShaderProgram* > > MaterialShaderPairVec;
@@ -221,9 +184,9 @@ namespace Render
 			ShaderCompileOption const& option, char const* additionalCode ,
 			char const* fileName , bool bSingleFile );
 
-		uint32         mDefaultVersion;
-		ShaderCompiler mCompiler;
-		std::string    mBaseDir;
+		uint32          mDefaultVersion;
+		ShaderFormat*   mShaderFormat = nullptr;
+		std::string     mBaseDir;
 		class ShaderCache* mShaderCache = nullptr;
 
 		ShaderCache* getCache();

@@ -1,0 +1,448 @@
+#include "OpenGLShader.h"
+
+#include "ShaderProgram.h"
+
+#include "CPreprocessor.h"
+
+#include <fstream>
+#include <sstream>
+#include "FileSystem.h"
+
+namespace Render
+{
+
+	OpenGLShaderProgram::OpenGLShaderProgram()
+	{
+
+	}
+
+	OpenGLShaderProgram::~OpenGLShaderProgram()
+	{
+
+	}
+
+	bool OpenGLShaderProgram::create()
+	{
+		if( !mGLObject.fetchHandle() )
+			return false;
+
+		return true;
+	}
+
+
+	bool OpenGLShaderProgram::updateShader(bool bNoLink)
+	{
+		uint32 handle = getHandle();
+
+		GLchar buffer[4096 * 32];
+
+		if( !bNoLink )
+			glLinkProgram(handle);
+
+		GLint value = 0;
+		glGetProgramiv(handle, GL_LINK_STATUS, &value);
+		if( value != GL_TRUE )
+		{
+			GLsizei size = 0;
+			glGetProgramInfoLog(handle, ARRAY_SIZE(buffer), &size, buffer);
+			LogMsg("Can't Link Program : %s", buffer);
+			return false;
+		}
+
+		glValidateProgram(handle);
+		glGetProgramiv(handle, GL_VALIDATE_STATUS, &value);
+		if( value != GL_TRUE )
+		{
+			GLsizei size;
+			glGetProgramInfoLog(handle, ARRAY_SIZE(buffer), &size, buffer);
+			LogMsg("Can't Link Program : %s", buffer);
+		}
+
+#if 0
+		ShaderParameterMap parameterMap;
+		generateParameterMap(parameterMap);
+		bindParameters(parameterMap);
+#endif
+
+		return true;
+	}
+
+	bool OpenGLShaderProgram::setupShaders(RHIShader* shaders[], int numShader)
+	{
+		for( int i = 0; i < numShader; ++i )
+		{
+			assert(shaders[i]);
+			glAttachShader(getHandle(), static_cast< OpenGLShader*>( shaders[i] )->getHandle());
+		}
+		return updateShader();
+	}
+
+	bool OpenGLShaderProgram::getParameter(char const* name, ShaderParameter& parameter)
+	{
+		int loc = getParamLoc(name);
+		if( loc == -1 )
+			return false;
+		parameter.mLoc = loc;
+		return true;
+	}
+
+	bool OpenGLShaderProgram::getResourceParameter(EShaderResourceType type, char const* name, ShaderParameter& parameter)
+	{
+		int index = -1;
+		switch( type )
+		{
+		case EShaderResourceType::Uniform:
+			index = glGetProgramResourceIndex(getHandle(), GL_UNIFORM_BLOCK, name);
+			break;
+		case EShaderResourceType::Storage:
+			index = glGetProgramResourceIndex(getHandle(), GL_SHADER_STORAGE_BLOCK, name);
+			break;
+		case EShaderResourceType::AtomicCounter:
+			{
+				int indexTemp = glGetProgramResourceIndex(getHandle(), GL_UNIFORM, name);
+				if( indexTemp != -1 )
+				{
+					GLint loc = -1;
+					const GLenum properties[] = { GL_ATOMIC_COUNTER_BUFFER_INDEX };
+					glGetProgramResourceiv(getHandle(), GL_UNIFORM, indexTemp, ARRAY_SIZE(properties), properties, ARRAY_SIZE(properties), NULL, &loc);
+					index = loc;
+				}
+			}
+			break;
+		}
+		if( index == -1 )
+			return false;
+		parameter.mLoc = index;
+		return true;
+	}
+
+
+
+	void OpenGLShaderProgram::generateParameterMap(ShaderParameterMap& parameterMap)
+	{
+		uint32 handle = getHandle();
+
+		auto GetBlockParameterFun = [&](GLenum BlockTypeInterface)
+		{
+			GLint numBlocks = 0;
+			glGetProgramInterfaceiv(handle, BlockTypeInterface, GL_ACTIVE_RESOURCES, &numBlocks);
+			for( int idxBlock = 0; idxBlock < numBlocks; ++idxBlock )
+			{
+				GLint values[1] = { 0 };
+				const GLenum blockProperties[] = { GL_NAME_LENGTH };
+				glGetProgramResourceiv(handle, BlockTypeInterface, idxBlock, ARRAY_SIZE(blockProperties), blockProperties, ARRAY_SIZE(blockProperties), NULL, values);
+
+				char name[1024];
+				assert(values[0] < ARRAY_SIZE(name));
+				glGetProgramResourceName(handle, BlockTypeInterface, idxBlock, ARRAY_SIZE(name), NULL, &name[0]);
+				parameterMap.addParameter(name, idxBlock);
+			}
+		};
+
+		GetBlockParameterFun(GL_UNIFORM_BLOCK);
+		GetBlockParameterFun(GL_SHADER_STORAGE_BLOCK);
+
+#if 0
+
+		GLint numParam = 0;
+		glGetProgramiv(handle, GL_ACTIVE_UNIFORMS, &numParam);
+		for( int i = 0; i < numParam; ++i )
+		{
+			int name_len = -1, num = -1;
+			GLenum type = GL_ZERO;
+			char name[100];
+			glGetActiveUniform(handle, GLuint(i), sizeof(name) - 1,
+							   &name_len, &num, &type, name);
+
+			GLuint location = glGetUniformLocation(mHandle, name);
+
+			if( location == -1 )
+				continue;
+
+			parameterMap.addParameter(name, location);
+
+		}
+#else
+
+		GLint numParam = 0;
+		glGetProgramInterfaceiv(handle, GL_UNIFORM, GL_ACTIVE_RESOURCES, &numParam);
+		for( int paramIndex = 0; paramIndex < numParam; ++paramIndex )
+		{
+			GLint values[5] = { 0,0 ,0 ,0,0 };
+			const GLenum properties[] = { GL_NAME_LENGTH , GL_LOCATION , GL_ATOMIC_COUNTER_BUFFER_INDEX , GL_OFFSET , GL_BLOCK_INDEX };
+			glGetProgramResourceiv(handle, GL_UNIFORM, paramIndex, ARRAY_SIZE(properties), properties, ARRAY_SIZE(properties), NULL, values);
+
+			char name[1024];
+			assert(values[0] < ARRAY_SIZE(name));
+			glGetProgramResourceName(handle, GL_UNIFORM, paramIndex, ARRAY_SIZE(name), NULL, &name[0]);
+
+			if( values[1] == -1 )
+			{
+				if( values[2] != -1 )
+				{
+					parameterMap.addParameter(name, values[2]);
+				}
+			}
+			else
+			{
+				parameterMap.addParameter(name, values[1]);
+			}
+		}
+#endif
+	}
+
+	void OpenGLShaderProgram::bind()
+	{
+		if( getHandle() )
+		{
+			glUseProgram(getHandle());
+		}
+	}
+
+	void OpenGLShaderProgram::unbind()
+	{
+		glUseProgram(0);
+	}
+
+
+	Shader::Type OpenGLShader::getType()
+	{
+		if( getHandle() )
+		{
+			switch( getGLParam(GL_SHADER_TYPE) )
+			{
+			case GL_VERTEX_SHADER:   return Shader::eVertex;
+			case GL_FRAGMENT_SHADER: return Shader::ePixel;
+			case GL_GEOMETRY_SHADER: return Shader::eGeometry;
+			case GL_COMPUTE_SHADER:  return Shader::eCompute;
+			case GL_TESS_CONTROL_SHADER: return Shader::eHull;
+			case GL_TESS_EVALUATION_SHADER: return Shader::eDomain;
+			}
+		}
+		return Shader::eEmpty;
+	}
+
+
+	bool OpenGLShader::loadFile(Shader::Type type, char const* path, char const* def)
+	{
+		std::vector< char > codeBuffer;
+		if( !FileUtility::LoadToBuffer(path, codeBuffer, true) )
+			return false;
+		int num = 0;
+		char const* src[2];
+		if( def )
+		{
+			src[num] = def;
+			++num;
+		}
+		src[num] = &codeBuffer[0];
+		++num;
+
+		bool result = compileCode(type, src, num);
+		return result;
+
+	}
+
+	bool OpenGLShader::compileCode(Shader::Type type, char const* src[], int num)
+	{
+		if( !create(type) )
+			return false;
+
+		glShaderSource(getHandle(), num, src, 0);
+		glCompileShader(getHandle());
+
+		if( getGLParam(GL_COMPILE_STATUS) == GL_FALSE )
+		{
+			return false;
+		}
+		return true;
+	}
+
+	bool OpenGLShader::create(Shader::Type type)
+	{
+		if( getHandle() )
+		{
+			if( getType() == type )
+				return true;
+			mGLObject.destroyHandle();
+		}
+		return mGLObject.fetchHandle(GLConvert::To(type));
+	}
+
+	GLuint OpenGLShader::getGLParam(GLuint val)
+	{
+		GLint status;
+		glGetShaderiv(getHandle(), val, &status);
+		return status;
+	}
+
+
+	static bool GetProgramBinary(GLuint handle, std::vector<uint8>& outBinary)
+	{
+		//glProgramParameteri(handle, GL_PROGRAM_BINARY_RETRIEVABLE_HINT, GL_TRUE);
+
+		GLint binaryLength = -1;
+		glGetProgramiv(handle, GL_PROGRAM_BINARY_LENGTH, &binaryLength);
+		if( binaryLength <= 0 )
+		{
+
+			return false;
+		}
+
+		outBinary.resize(binaryLength + sizeof(GLenum));
+		uint8* pData = outBinary.data();
+		// BinaryFormat is stored at the start of ProgramBinary array
+		glGetProgramBinary(handle, binaryLength, &binaryLength, (GLenum*)pData, pData + sizeof(GLenum));
+		if( glGetError() != GL_NO_ERROR )
+		{
+
+			return false;
+		}
+		return true;
+	}
+
+	static bool IsBinarySupport()
+	{
+		int numFormat = 0;
+		glGetIntegerv(GL_NUM_PROGRAM_BINARY_FORMATS, &numFormat);
+		return numFormat != 0;
+	}
+
+	bool ShaderFormatGLSL::getBinaryCode(RHIShaderProgram& shaderProgram, std::vector<uint8>& outBinaryCode)
+	{
+		auto& shaderProgramImpl = static_cast<OpenGLShaderProgram&>(shaderProgram);
+		return GetProgramBinary(shaderProgramImpl.getHandle(), outBinaryCode);
+	}
+
+	bool ShaderFormatGLSL::setupProgram(RHIShaderProgram& shaderProgram, std::vector<uint8> const& binaryCode)
+	{
+		auto& shaderProgramImpl = static_cast<OpenGLShaderProgram&>(shaderProgram);
+
+		GLenum format = *(GLenum*)binaryCode.data();
+		glProgramBinary(shaderProgramImpl.getHandle(), format, binaryCode.data() + sizeof(GLenum), binaryCode.size() - sizeof(GLenum));
+		if( glGetError() != GL_NO_ERROR )
+		{
+			return false;
+		}
+		if( !shaderProgramImpl.updateShader(true) )
+		{
+			return false;
+		}
+		return true;
+	}
+
+	bool ShaderFormatGLSL::compileCode(Shader::Type type, RHIShader& shader, char const* path, ShaderCompileInfo* compileInfo, char const* def)
+	{
+		bool bSuccess;
+		do
+		{
+			bSuccess = false;
+			std::vector< char > codeBuffer;
+			if( !FileUtility::LoadToBuffer(path, codeBuffer, true) )
+				return false;
+			int numSourceCodes = 0;
+			char const* sourceCodes[2];
+
+			if( bUsePreprocess )
+			{
+				CPP::CodeInput sourceInput;
+
+				if( def )
+				{
+					sourceInput.appendString(def);
+				}
+				sourceInput.appendString(&codeBuffer[0]);
+
+				sourceInput.resetSeek();
+
+				CPP::Preprocessor preporcessor;
+
+				std::stringstream oss;
+				CPP::CodeOutput codeOutput(oss);
+
+				char const* DefaultDir = "Shader";
+				preporcessor.setOutput(codeOutput);
+				preporcessor.addSreachDir(DefaultDir);
+				char const* dirPathEnd = FileUtility::GetFileName(path);
+				if( dirPathEnd != path )
+				{
+					--dirPathEnd;
+				}
+				if( strncmp(DefaultDir, path, dirPathEnd - path) != 0 )
+				{
+					std::string dir(path, dirPathEnd);
+					preporcessor.addSreachDir(dir.c_str());
+				}
+
+				try
+				{
+					preporcessor.translate(sourceInput);
+				}
+				catch( std::exception& e )
+				{
+					e.what();
+					return false;
+				}
+
+				if( compileInfo )
+				{
+					preporcessor.getIncludeFiles(compileInfo->includeFiles);
+				}
+#if 1
+				codeBuffer.assign(std::istreambuf_iterator< char >(oss), std::istreambuf_iterator< char >());
+#else
+				std::string code = oss.str();
+				codeBuffer.assign(code.begin(), code.end());
+#endif
+				codeBuffer.push_back(0);
+				sourceCodes[numSourceCodes] = &codeBuffer[0];
+				++numSourceCodes;
+			}
+			else
+			{
+				if( def )
+				{
+					sourceCodes[numSourceCodes] = def;
+					++numSourceCodes;
+				}
+				sourceCodes[numSourceCodes] = &codeBuffer[0];
+				++numSourceCodes;
+			}
+
+
+			auto& shaderImpl = static_cast<OpenGLShader&>(shader);
+			bSuccess = shaderImpl.compileCode(type, sourceCodes, numSourceCodes);
+
+			if( !bSuccess && bUsePreprocess )
+			{
+				{
+					std::ofstream of("temp" SHADER_FILE_SUBNAME, std::ios::binary);
+					if( of.is_open() )
+					{
+						of.write(&codeBuffer[0], codeBuffer.size());
+					}
+				}
+
+				int maxLength;
+				glGetShaderiv(shaderImpl.getHandle(), GL_INFO_LOG_LENGTH, &maxLength);
+				std::vector< char > buf(maxLength);
+				int logLength = 0;
+				glGetShaderInfoLog(shaderImpl.getHandle(), maxLength, &logLength, &buf[0]);
+				::MessageBoxA(NULL, &buf[0], "Shader Compile Error", 0);
+			}
+
+		} while( !bSuccess && bRecompile );
+
+		return bSuccess;
+	}
+
+
+	void ShaderFormatGLSL::setupParameters(ShaderProgram& shaderProgram)
+	{
+		auto& shaderProgramImpl = static_cast<OpenGLShaderProgram&>(*shaderProgram.mRHIResource);
+		ShaderParameterMap parameterMap;
+		shaderProgramImpl.generateParameterMap(parameterMap);
+		shaderProgram.bindParameters(parameterMap);
+	}
+
+}

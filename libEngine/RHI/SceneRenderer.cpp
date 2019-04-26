@@ -4,7 +4,7 @@
 #include "RHICommand.h"
 #include "OpenGLCommon.h"
 
-#include "ShaderCompiler.h"
+#include "ShaderManager.h"
 #include "VertexFactory.h"
 #include "MaterialShader.h"
 #include "DrawUtility.h"
@@ -195,7 +195,7 @@ namespace Render
 		shadowPrjectParam.setupLight(light);
 		renderShadowDepth(commandList, view, scene, shadowPrjectParam);
 
-		GL_BIND_LOCK_OBJECT(mProgLighting);
+		RHISetShaderProgram(commandList, mProgLighting.getRHIResource());
 		//mProgLighting.setTexture(SHADER_PARAM(texSM) , mShadowMap2 , 0 );
 
 		view.setupShader(commandList, mProgLighting);
@@ -249,7 +249,7 @@ namespace Render
 		lightView.mUniformBuffer = nullptr;
 
 #if !USE_MATERIAL_SHADOW
-		GL_BIND_LOCK_OBJECT(mProgShadowDepth);
+		RHISetShaderProgram(commandList, mProgShadowDepth->getRHIResource());
 		mEffectCur = &mProgShadowDepth[LIGHTTYPE_POINT];
 		mEffectCur->setParam(SHADER_PARAM(DepthParam), depthParam[0], depthParam[1]);
 #endif
@@ -754,7 +754,7 @@ namespace Render
 			RHISetRasterizerState(commandList, TStaticRasterizerState< ECullMode::Front >::GetRHI());
 			{
 				GL_BIND_LOCK_OBJECT(mLightBuffer);
-				GL_BIND_LOCK_OBJECT(lightShader);
+				RHISetShaderProgram(commandList, lightShader->getRHIResource());
 				//if( debugMode == DebugMode::eNone )
 				{
 					BindShaderParam(commandList, *lightShader);
@@ -772,7 +772,7 @@ namespace Render
 				GL_BIND_LOCK_OBJECT(mSceneRenderTargets->getFrameBuffer());
 				//MatrixSaveScope matrixScope(Matrix4::Identity());
 				DeferredLightingProgram* program = mProgLightingScreenRect[(int)light.type];
-				GL_BIND_LOCK_OBJECT(program);
+				RHISetShaderProgram(commandList, program->getRHIResource());
 				BindShaderParam(commandList, *program);
 				DrawUtility::ScreenRectShader(commandList);
 
@@ -1033,7 +1033,7 @@ namespace Render
 			GPU_PROFILE("SSAO-Generate");
 			mFrameBuffer.setTexture(0, *mSSAOTexture);
 			GL_BIND_LOCK_OBJECT(mFrameBuffer);
-			GL_BIND_LOCK_OBJECT(mProgSSAOGenerate);
+			RHISetShaderProgram(commandList, mProgSSAOGenerate->getRHIResource());
 			view.setupShader(commandList, *mProgSSAOGenerate);
 			mProgSSAOGenerate->setParameters(commandList, sceneRenderTargets , &mKernelVectors[0], mKernelVectors.size());
 			DrawUtility::ScreenRectShader(commandList);
@@ -1044,7 +1044,7 @@ namespace Render
 			GPU_PROFILE("SSAO-Blur");
 			mFrameBuffer.setTexture(0, *mSSAOTextureBlur);
 			GL_BIND_LOCK_OBJECT(mFrameBuffer);
-			GL_BIND_LOCK_OBJECT(mProgSSAOBlur);
+			RHISetShaderProgram(commandList, mProgSSAOBlur->getRHIResource());
 			mProgSSAOBlur->setParameters(commandList, *mSSAOTexture);
 			DrawUtility::ScreenRectShader(commandList);
 		}
@@ -1055,7 +1055,7 @@ namespace Render
 
 			RHISetBlendState(commandList, TStaticBlendState< CWM_RGBA , Blend::eOne, Blend::eOne >::GetRHI());
 			GL_BIND_LOCK_OBJECT(sceneRenderTargets.getFrameBuffer());
-			GL_BIND_LOCK_OBJECT(mProgAmbient);
+			RHISetShaderProgram(commandList, mProgAmbient->getRHIResource());
 			mProgAmbient->setParameters(commandList, sceneRenderTargets, *mSSAOTextureBlur);
 			DrawUtility::ScreenRectShader(commandList);
 			
@@ -1327,7 +1327,7 @@ namespace Render
 				Vector4(1,1,1,0.1),
 			};
 
-			GL_BIND_LOCK_OBJECT(mShaderBassPassTest);
+			RHISetShaderProgram(commandList, mShaderBassPassTest.getRHIResource());
 			view.setupShader(commandList, mShaderBassPassTest);
 			mShaderBassPassTest.setRWTexture(commandList, SHADER_PARAM(ColorStorageRWTexture), *mShaderData.colorStorageTexture, AO_WRITE_ONLY);
 			mShaderBassPassTest.setRWTexture(commandList, SHADER_PARAM(NodeAndDepthStorageRWTexture), *mShaderData.nodeAndDepthStorageTexture, AO_READ_AND_WRITE);
@@ -1471,7 +1471,7 @@ namespace Render
 						>::GetRHI() , BMA_InternalValMin[i]);
 
 					BMAResolveProgram* shaderprogram = mShaderBMAResolves[i];
-					GL_BIND_LOCK_OBJECT(shaderprogram);
+					RHISetShaderProgram(commandList, shaderprogram->getRHIResource());
 					shaderprogram->setParameters(commandList, mShaderData );
 					mScreenMesh.drawShader(commandList);
 				}
@@ -1482,7 +1482,7 @@ namespace Render
 				RHISetDepthStencilState(commandList, TStaticDepthStencilState< bWriteDepth , ECompareFun::Always >::GetRHI());
 
 				BMAResolveProgram* shaderprogram = mShaderBMAResolves[0];
-				GL_BIND_LOCK_OBJECT(shaderprogram);
+				RHISetShaderProgram(commandList, shaderprogram->getRHIResource());
 				shaderprogram->setParameters(commandList, mShaderData);
 				mScreenMesh.drawShader(commandList);
 			}
@@ -1822,11 +1822,11 @@ namespace Render
 		{
 			auto& sampler = TStaticSamplerState< Sampler::eBilinear, Sampler::eClamp, Sampler::eClamp, Sampler::eClamp >::GetRHI();
 			if ( mParamTextureR.isBound() )
-			setTexture(commandList, mParamTextureR, textureR, sampler);
+				setTexture(commandList, mParamTextureR, textureR, mParamTextureR, sampler);
 			if( mParamTextureG.isBound() )
-			setTexture(commandList, mParamTextureG, textureG, sampler);
+				setTexture(commandList, mParamTextureG, textureG, mParamTextureG, sampler);
 			if( mParamTextureB.isBound() )
-			setTexture(commandList, mParamTextureB, textureB, sampler);
+				setTexture(commandList, mParamTextureB, textureB, mParamTextureB, sampler);
 		}
 
 		ShaderParameter mParamTextureR;
@@ -1901,7 +1901,8 @@ namespace Render
 			RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
 			RHISetDepthStencilState(commandList, StaticDepthDisableState::GetRHI());
 
-			GL_BIND_LOCK_OBJECT(*mProgBlurV);
+
+			RHISetShaderProgram(commandList, mProgBlurV->getRHIResource());
 			mProgBlurV->setTexture(commandList, SHADER_PARAM(Texture), frameTexture , sampler);
 
 			DrawUtility::ScreenRectShader(commandList);
@@ -1916,7 +1917,7 @@ namespace Render
 			RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
 			RHISetDepthStencilState(commandList, StaticDepthDisableState::GetRHI());
 
-			GL_BIND_LOCK_OBJECT(*mProgBlurHAndCombine);
+			RHISetShaderProgram(commandList, mProgBlurHAndCombine->getRHIResource());
 			mProgBlurHAndCombine->setParameters(commandList, *mTextureBlurR, *mTextureBlurG, *mTextureBlurB);
 			//mProgBlurHAndCombine->setTexture(SHADER_PARAM(Texture), frameTexture, sampler);
 			DrawUtility::ScreenRectShader(commandList);
@@ -1949,9 +1950,9 @@ namespace Render
 			int nx = (buffer.getSizeX() + SizeX - 1) / SizeX;
 			int ny = (buffer.getSizeY() + SizeY - 1) / SizeY;
 			int nz = (buffer.getSizeZ() + SizeZ - 1) / SizeZ;
-			GL_BIND_LOCK_OBJECT(*this)
+			RHISetShaderProgram(commandList, getRHIResource());
 			setParameters(commandList, buffer, clearValue);
-			glDispatchCompute(nx, ny, nz);
+			RHIDispatchCompute(commandList, nx, ny, nz);
 		}
 
 		static void SetupShaderCompileOption(ShaderCompileOption& option)
@@ -2103,7 +2104,7 @@ namespace Render
 
 		{
 			GPU_PROFILE("LightScattering");
-			GL_BIND_LOCK_OBJECT(*mProgLightScattering);
+			RHISetShaderProgram(commandList, mProgLightScattering->getRHIResource());
 			mProgLightScattering->setParameters(commandList, view , parameter);
 		}
 	}

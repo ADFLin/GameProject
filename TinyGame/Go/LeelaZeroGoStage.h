@@ -290,6 +290,7 @@ namespace Go
 
 		bool bAnalysisEnabled = false;
 		bool bAnalysisPondering;
+		bool bShowAnalysis = true;
 		LeelaThinkInfoVec analysisResult;
 		LeelaThinkInfo bestThinkInfo;
 

@@ -159,8 +159,9 @@ namespace RenderD3D11
 		D3D11System* mRHISystem;
 
 		TComPtr< ID3D11VertexShader > mVertexShader;
-		TComPtr< ID3D10Blob >         mVertexShaderByteCode;
 		TComPtr< ID3D11PixelShader >  mPixelShader;
+		TComPtr< ID3D10Blob >         mVertexShaderByteCode;
+		
 		ShaderParameterMap mParameterMap;
 
 

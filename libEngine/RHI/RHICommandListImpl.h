@@ -7,6 +7,8 @@
 
 namespace Render
 {
+	class RHIShaderProgram;
+	class ShaderParameter;
 
 	class RHIContext
 	{
@@ -16,10 +18,10 @@ namespace Render
 		RHI_FUNC(void RHISetDepthStencilState(RHIDepthStencilState& depthStencilState, uint32 stencilRef = -1));
 
 		RHI_FUNC(void RHISetViewport(int x, int y, int w, int h));
-		RHI_FUNC(void RHISetScissorRect(bool bEnable, int x, int y, int w, int h));
+		RHI_FUNC(void RHISetScissorRect(int x, int y, int w, int h));
 
 		RHI_FUNC(void RHIDrawPrimitive(PrimitiveType type, int vStart, int nv));
-		RHI_FUNC(void RHIDrawIndexedPrimitive(PrimitiveType type, ECompValueType indexType, int indexStart, int nIndex));
+		RHI_FUNC(void RHIDrawIndexedPrimitive(PrimitiveType type, ECompValueType indexType, int indexStart, int nIndex, uint32 baseVertex));
 		RHI_FUNC(void RHIDrawPrimitiveIndirect(PrimitiveType type, RHIVertexBuffer* commandBuffer, int offset, int numCommand, int commandStride));
 		RHI_FUNC(void RHIDrawIndexedPrimitiveIndirect(PrimitiveType type, ECompValueType indexType, RHIVertexBuffer* commandBuffer, int offset, int numCommand, int commandStride));
 		RHI_FUNC(void RHIDrawPrimitiveInstanced(PrimitiveType type, int vStart, int nv, int numInstance));
@@ -30,6 +32,35 @@ namespace Render
 		RHI_FUNC(void RHISetFrameBuffer(RHIFrameBuffer& frameBuffer, RHITextureDepth* overrideDepthTexture));
 		RHI_FUNC(void RHISetIndexBuffer(RHIIndexBuffer* indexBuffer));
 		RHI_FUNC(void RHISetupFixedPipelineState(Matrix4 const& matModelView, Matrix4 const& matProj, int numTexture, RHITexture2D const** textures));
+
+		RHI_FUNC(void RHIDispatchCompute(uint32 numGroupX, uint32 numGroupY, uint32 numGroupZ));
+
+		//Shader
+		RHI_FUNC(void RHISetShaderProgram(RHIShaderProgram* shaderProgram));
+
+		RHI_FUNC(void setParam(RHIShaderProgram& shaderProgram, ShaderParameter const& param, int const val[], int dim));
+		RHI_FUNC(void setParam(RHIShaderProgram& shaderProgram, ShaderParameter const& parameter, float const val[], int dim));
+		RHI_FUNC(void setParam(RHIShaderProgram& shaderProgram, ShaderParameter const& param, Matrix3 const val[], int dim));
+		RHI_FUNC(void setParam(RHIShaderProgram& shaderProgram, ShaderParameter const& param, Matrix4 const val[], int dim));
+		RHI_FUNC(void setParam(RHIShaderProgram& shaderProgram, ShaderParameter const& param, Vector3 const val[], int dim));
+		RHI_FUNC(void setParam(RHIShaderProgram& shaderProgram, ShaderParameter const& param, Vector4 const val[], int dim));
+		RHI_FUNC(void setMatrix22(RHIShaderProgram& shaderProgram, ShaderParameter const& param, float const  val[], int dim));
+		RHI_FUNC(void setMatrix43(RHIShaderProgram& shaderProgram, ShaderParameter const& param, float const val[], int dim));
+		RHI_FUNC(void setMatrix34(RHIShaderProgram& shaderProgram, ShaderParameter const& param, float const val[], int dim));
+
+		RHI_FUNC(void setResourceView(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHIShaderResourceView const& resourceView));
+
+		RHI_FUNC(void setTexture(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHITextureBase& texture));
+		RHI_FUNC(void setTexture(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHITextureBase& texture, ShaderParameter const& paramSampler, RHISamplerState & sampler));
+		RHI_FUNC(void setSampler(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHISamplerState const& sampler));
+		RHI_FUNC(void setRWTexture(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHITextureBase& texture, EAccessOperator op));
+
+		RHI_FUNC(void setUniformBuffer(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHIVertexBuffer& buffer));
+		RHI_FUNC(void setStorageBuffer(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHIVertexBuffer& buffer));
+		RHI_FUNC(void setAtomicCounterBuffer(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHIVertexBuffer& buffer));
+
+
+
 	};
 
 

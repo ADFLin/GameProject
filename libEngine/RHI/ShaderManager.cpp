@@ -1,19 +1,16 @@
-#include "ShaderCompiler.h"
+#include "ShaderManager.h"
 
+#include "RHICommand.h"
 #include "MaterialShader.h"
 #include "GlobalShader.h"
 #include "VertexFactory.h"
 
 #include "FileSystem.h"
-#include "CPreprocessor.h"
 #include "BitUtility.h"
 #include "StdUtility.h"
 #include "DataCacheInterface.h"
 #include "ConsoleSystem.h"
 
-
-#include <fstream>
-#include <sstream>
 #include <iterator>
 
 extern CORE_API TConsoleVariable< bool > gbUseShaderCacheCom;
@@ -26,11 +23,9 @@ namespace Render
 	struct ShaderCacheBinaryData
 	{
 	public:
-		bool initialize(ShaderProgramCompileInfo const& info)
+		bool initialize( ShaderFormat& format , ShaderProgramCompileInfo const& info)
 		{
-			GLuint handle = info.shaderProgram->mHandle;
-
-			if( !GetProgramBinary(handle, binaryCode) )
+			if( !format.getBinaryCode( *info.shaderProgram->mRHIResource , binaryCode) )
 				return false;
 
 			std::set< HashString > assetFilePaths;
@@ -53,36 +48,7 @@ namespace Render
 			return true;
 		}
 
-		static bool IsSupport()
-		{
-			int numFormat = 0;
-			glGetIntegerv(GL_NUM_PROGRAM_BINARY_FORMATS, &numFormat);
-			return numFormat != 0;
-		}
 
-		static bool GetProgramBinary(GLuint handle, std::vector<uint8>& outBinary)
-		{
-			//glProgramParameteri(handle, GL_PROGRAM_BINARY_RETRIEVABLE_HINT, GL_TRUE);
-
-			GLint binaryLength = -1;
-			glGetProgramiv(handle, GL_PROGRAM_BINARY_LENGTH, &binaryLength);
-			if( binaryLength <= 0 )
-			{
-
-				return false;
-			}
-
-			outBinary.resize(binaryLength + sizeof(GLenum));
-			uint8* pData = outBinary.data();
-			// BinaryFormat is stored at the start of ProgramBinary array
-			glGetProgramBinary(handle, binaryLength, &binaryLength, (GLenum*)pData, pData + sizeof(GLenum));
-			if( glGetError() != GL_NO_ERROR )
-			{
-
-				return false;
-			}
-			return true;
-		}
 		bool checkAssetNoModified()
 		{
 			for( auto const& asset : assetDependences )
@@ -96,26 +62,23 @@ namespace Render
 			return true;
 		}
 
-		bool setupProgram(ShaderProgram& program)
+		bool setupProgram(ShaderFormat& format, ShaderProgram& program)
 		{
 			if( binaryCode.empty() )
 				return false;
 
-			if( !program.create() )
-				return false;
+			if( !program.mRHIResource.isValid() )
+			{
+				program.mRHIResource = RHICreateShaderProgram();
+				if( !program.mRHIResource.isValid() )
+					return false;
+			}
 
-			GLenum format = *(GLenum*)binaryCode.data();
-			glProgramBinary(program.mHandle, format, binaryCode.data() + sizeof(GLenum), binaryCode.size() - sizeof(GLenum));
-			if( glGetError() != GL_NO_ERROR )
-			{
-				return false;
-			}
-			if( !program.updateShader(true, true) )
-			{
-				return false;
-			}
+			format.setupParameters(program);
 			return true;
 		}
+
+
 		struct ShaderFile
 		{
 			std::string path;
@@ -152,7 +115,7 @@ namespace Render
 
 		}
 
-		static void GetShaderCacheKey(ShaderProgramCompileInfo const& info, DataCacheKey& outKey)
+		static void GetShaderCacheKey(ShaderFormat& format, ShaderProgramCompileInfo const& info, DataCacheKey& outKey)
 		{
 			switch( info.classType )
 			{
@@ -171,18 +134,18 @@ namespace Render
 			}
 			for( auto const& shaderInfo : info.shaders )
 			{
-				outKey.keySuffix.add((uint8)shaderInfo.type, shaderInfo.filePath.c_str(), shaderInfo.headCode.c_str());
+				outKey.keySuffix.add((uint8)shaderInfo.type, format.getName() , shaderInfo.filePath.c_str(), shaderInfo.headCode.c_str());
 			}
 
 		}
-		bool saveCacheData(ShaderProgramCompileInfo const& info)
+		bool saveCacheData( ShaderFormat& format, ShaderProgramCompileInfo const& info)
 		{
 			ShaderCacheBinaryData binaryData;
 			DataCacheKey key;
-			GetShaderCacheKey(info, key);
-			bool result = mDataCache->saveDelegate(key, [&info,&binaryData](IStreamSerializer& serializer)
+			GetShaderCacheKey(format, info, key);
+			bool result = mDataCache->saveDelegate(key, [&info,&binaryData,&format](IStreamSerializer& serializer)
 			{			
-				if( !binaryData.initialize(info) )
+				if( !binaryData.initialize(format, info) )
 				{
 					return false;
 				}
@@ -204,15 +167,16 @@ namespace Render
 			return result;
 		}
 
-		bool loadCacheData(ShaderProgramCompileInfo& info)
+
+		bool loadCacheData(ShaderFormat& format, ShaderProgramCompileInfo& info)
 		{
 			if( !gbUseShaderCacheCom.getValue() )
 				return false;
 
 			DataCacheKey key;
-			GetShaderCacheKey(info, key);
+			GetShaderCacheKey(format, info, key);
 
-			bool result = mDataCache->loadDelegate(key, [&info](IStreamSerializer& serializer)
+			bool result = mDataCache->loadDelegate(key, [&info,&format](IStreamSerializer& serializer)
 			{
 				ShaderCacheBinaryData binaryData;
 				serializer >> binaryData;
@@ -220,7 +184,7 @@ namespace Render
 				if( !binaryData.checkAssetNoModified() )
 					return false;
 
-				if( !binaryData.setupProgram(*info.shaderProgram) )
+				if( !binaryData.setupProgram(format, *info.shaderProgram) )
 					return false;
 
 				for( auto const& asset : binaryData.assetDependences )
@@ -300,6 +264,11 @@ namespace Render
 
 	void ShaderManager::clearnupRHIResouse()
 	{
+		if( mShaderFormat )
+		{
+			delete mShaderFormat;
+			mShaderFormat = nullptr;
+		}
 		cleanupGlobalShader();
 	}
 
@@ -668,45 +637,53 @@ namespace Render
 
 	bool ShaderManager::updateShaderInternal(ShaderProgram& shaderProgram, ShaderProgramCompileInfo& info , bool bForceReload )
 	{
-		if( !shaderProgram.isValid() )
+		if( !bForceReload && getCache()->loadCacheData(*mShaderFormat, info) )
+			return true;
+
+		if( !shaderProgram.mRHIResource.isValid() )
 		{
-			if( !shaderProgram.create() )
+			shaderProgram.mRHIResource = RHICreateShaderProgram();
+			if( !shaderProgram.mRHIResource.isValid() )
 				return false;
 		}
 		
-		if( !bForceReload && getCache()->loadCacheData(info) )
-			return true;
-
-		int indexCode = 0;
+		RHIShader* shaders[Shader::NUM_SHADER_TYPE];
+		int numShader = 0;
+		bool bFailed = false;
 		for( ShaderCompileInfo& shaderInfo : info.shaders )
 		{
-			RHIShaderRef shader = shaderProgram.mShaders[shaderInfo.type];
-			if( shader == nullptr )
+			shaders[numShader] = RHICreateShader( shaderInfo.type );
+			if( !mShaderFormat->compileCode(shaderInfo.type, *shaders[numShader] , shaderInfo.filePath.c_str(), &shaderInfo, shaderInfo.headCode.c_str()) )
 			{
-				shader = new RHIShader;
-				if( !mCompiler.compileCode(shaderInfo.type, *shader, shaderInfo.filePath.c_str(), &shaderInfo , shaderInfo.headCode.c_str()) )
-					return false;
-				shaderProgram.attachShader(*shader);
-			}
-			else
-			{
-				if( !mCompiler.compileCode(shaderInfo.type, *shader, shaderInfo.filePath.c_str(), &shaderInfo,  shaderInfo.headCode.c_str()) )
-					return false;
+				bFailed = true;
+				break;
 			}
 
 			if( info.bShowComplieInfo )
 			{
 
 			}
-			++indexCode;
+			++numShader;
 		}
 
-		if( !shaderProgram.updateShader(true) )
+		if( bFailed )
 		{
-
+			for( int i = 0; i < numShader; ++i )
+			{
+				shaders[i]->releaseResource();
+				delete shaders[i];
+			}
+			return false;
 		}
 
-		getCache()->saveCacheData(info);
+		if( !shaderProgram.mRHIResource->setupShaders(shaders, numShader) )
+		{
+			return false;
+		}
+
+		mShaderFormat->setupParameters(shaderProgram);
+
+		getCache()->saveCacheData(*mShaderFormat, info);
 		return true;
 	}
 
@@ -744,109 +721,6 @@ namespace Render
 		return mShaderCache;
 	}
 
-	bool ShaderCompiler::compileCode(Shader::Type type, RHIShader& shader, char const* path, ShaderCompileInfo* compileInfo , char const* def)
-	{
-		bool bSuccess;
-		do
-		{
-			bSuccess = false;
-			std::vector< char > codeBuffer;
-			if( !FileUtility::LoadToBuffer(path, codeBuffer, true) )
-				return false;
-			int numSourceCodes = 0;
-			char const* sourceCodes[2];
-
-			if( bUsePreprocess )
-			{
-				CPP::CodeInput sourceInput;
-
-				if( def )
-				{
-					sourceInput.appendString(def);
-				}
-				sourceInput.appendString(&codeBuffer[0]);
-
-				sourceInput.resetSeek();
-
-				CPP::Preprocessor preporcessor;
-
-				std::stringstream oss;
-				CPP::CodeOutput codeOutput(oss);
-
-				char const* DefaultDir = "Shader";
-				preporcessor.setOutput(codeOutput);
-				preporcessor.addSreachDir(DefaultDir);
-				char const* dirPathEnd = FileUtility::GetFileName(path);
-				if( dirPathEnd != path )
-				{
-					--dirPathEnd;
-				}
-				if( strncmp(DefaultDir, path, dirPathEnd - path) != 0 )
-				{
-					std::string dir(path, dirPathEnd);
-					preporcessor.addSreachDir(dir.c_str());
-				}
-
-				try
-				{
-					preporcessor.translate(sourceInput);
-				}
-				catch( std::exception& e )
-				{
-					e.what();
-					return false;
-				}
-
-				if( compileInfo )
-				{
-					preporcessor.getIncludeFiles(compileInfo->includeFiles);
-				}
-#if 1
-				codeBuffer.assign(std::istreambuf_iterator< char >(oss), std::istreambuf_iterator< char >());
-#else
-				std::string code = oss.str();
-				codeBuffer.assign(code.begin(), code.end());
-#endif
-				codeBuffer.push_back(0);
-				sourceCodes[numSourceCodes] = &codeBuffer[0];
-				++numSourceCodes;
-			}
-			else
-			{
-				if( def )
-				{
-					sourceCodes[numSourceCodes] = def;
-					++numSourceCodes;
-				}
-				sourceCodes[numSourceCodes] = &codeBuffer[0];
-				++numSourceCodes;
-			}
-
-			bSuccess = shader.compileCode(type, sourceCodes, numSourceCodes);
-
-			if( !bSuccess && bUsePreprocess )
-			{
-				{
-					std::ofstream of("temp" SHADER_FILE_SUBNAME, std::ios::binary);
-					if( of.is_open() )
-					{
-						of.write(&codeBuffer[0], codeBuffer.size());
-					}
-				}
-
-				int maxLength;
-				glGetShaderiv( OpenGLCast::GetHandle( shader ), GL_INFO_LOG_LENGTH, &maxLength);
-				std::vector< char > buf(maxLength);
-				int logLength = 0;
-				glGetShaderInfoLog( OpenGLCast::GetHandle(shader ), maxLength, &logLength, &buf[0]);
-				::MessageBoxA(NULL, &buf[0], "Shader Compile Error", 0);
-			}
-
-		} 
-		while( !bSuccess && bRecompile );
-
-		return bSuccess;
-	}
 
 	void ShaderProgramCompileInfo::getDependentFilePaths(std::vector<std::wstring>& paths)
 	{

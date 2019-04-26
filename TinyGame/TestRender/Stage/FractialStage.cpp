@@ -3,7 +3,7 @@
 #include "GLGraphics2D.h"
 
 #include "RHI/RHICommand.h"
-#include "RHI/ShaderCompiler.h"
+#include "RHI/ShaderManager.h"
 #include "RHI/DrawUtility.h"
 
 #include "CurveBuilder/ColorMap.h"
@@ -96,7 +96,7 @@ class MandelbrotProgram : public GlobalShaderProgram
 		setParam(commandList, mParamMaxIteration, param.maxIteration);
 		setParam(commandList, mParamColorMapParam, Vector4(1,0,param.bailoutValue * param.bailoutValue,0));
 		setRWTexture(commandList, mParamColorRWTexture, colorTexture, AO_WRITE_ONLY);
-		setTexture(commandList, mParamColorMapTexture, colorMapTexture , TStaticSamplerState< Sampler::eBilinear , Sampler::eWarp >::GetRHI());
+		setTexture(commandList, mParamColorMapTexture, colorMapTexture , mParamColorMapTextureSampler ,TStaticSamplerState< Sampler::eBilinear , Sampler::eWarp >::GetRHI());
 
 	}
 	static void SetupShaderCompileOption(ShaderCompileOption& option)
@@ -124,6 +124,7 @@ class MandelbrotProgram : public GlobalShaderProgram
 	ShaderParameter mParamColorMapParam;
 	ShaderParameter mParamColorRWTexture;
 	ShaderParameter mParamColorMapTexture;
+	ShaderParameter mParamColorMapTextureSampler;
 
 };
 
@@ -316,11 +317,11 @@ public:
 	void updateTexture()
 	{
 		RHICommandList& commandList = RHICommandList::GetImmediateList();
-		GL_BIND_LOCK_OBJECT(*mProgMandelbrot);
+		RHISetShaderProgram(commandList, mProgMandelbrot->getRHIResource());
 		mProgMandelbrot->setParameters(commandList, mParam, *mTexture, *mColorMap );
 		int nx = (mTexture->getSizeX() + MandelbrotProgram::SizeX - 1) / MandelbrotProgram::SizeX;
 		int ny = (mTexture->getSizeY() + MandelbrotProgram::SizeY - 1) / MandelbrotProgram::SizeY;
-		glDispatchCompute(nx, ny, 1);
+		RHIDispatchCompute(commandList, nx, ny, 1);
 	}
 
 	virtual void onEnd()

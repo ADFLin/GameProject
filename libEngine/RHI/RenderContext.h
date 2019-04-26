@@ -133,14 +133,7 @@ namespace Render
 			mUsageProgram = nullptr;
 			mbUseMaterialShader = false;
 		}
-		void endRender()
-		{
-			if( mUsageProgram )
-			{
-				mUsageProgram->unbind();
-				mUsageProgram = nullptr;
-			}
-		}
+		void endRender();
 
 		void setShader(ShaderProgram& program);
 		MaterialShaderProgram* setMaterial(Material* material, VertexFactory* vertexFactory = nullptr);

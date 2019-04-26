@@ -5,7 +5,7 @@
 #include "RHI/DrawUtility.h"
 #include "RHI/RenderContext.h"
 #include "RHI/MaterialShader.h"
-#include "RHI/ShaderCompiler.h"
+#include "RHI/ShaderManager.h"
 #include "RHI/GpuProfiler.h"
 
 #include "GLGraphics2D.h"
@@ -721,13 +721,10 @@ namespace Render
 
 						if( curProgram != program )
 						{
-							curProgram->unbind();
+							RHISetShaderProgram(commandList, curProgram->getRHIResource());
 							curProgram = program;
-							curProgram->bind();
 							mView.setupShader(commandList, *curProgram);
 						}
-
-						curProgram->mIdxTextureAutoBind = 2;
 
 						object.material->setupShader(commandList, *curProgram);
 						curProgram->setParam(commandList, SHADER_PARAM(Primitive.localToWorld), object.param.localToWorld);
@@ -743,7 +740,7 @@ namespace Render
 
 					if( curProgram )
 					{
-						curProgram->unbind();
+						RHISetShaderProgram(commandList, nullptr);
 						curProgram = nullptr;
 					}
 				}

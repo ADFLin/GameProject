@@ -5,7 +5,7 @@
 #include "OpenGLCommand.h"
 #include "D3D11Command.h"
 
-#include "ShaderCompiler.h"
+#include "ShaderManager.h"
 
 #include <cassert>
 #include "stb/stb_image.h"
@@ -37,6 +37,9 @@ namespace Render
 
 			if( gRHISystem )
 			{
+				ShaderFormat* shaderFormat = gRHISystem->createShaderFormat();
+				ShaderManager::Get().mShaderFormat = shaderFormat;
+
 				InitGlobalRHIResource();
 			}		
 		}
@@ -159,6 +162,16 @@ namespace Render
 	RHIBlendState* RHICreateBlendState(BlendStateInitializer const& initializer)
 	{
 		return EXECUTE_RHI_FUNC(RHICreateBlendState(initializer));
+	}
+
+	RHIShader* RHICreateShader(Shader::Type type)
+	{
+		return EXECUTE_RHI_FUNC( RHICreateShader(type) );
+	}
+
+	RHIShaderProgram* RHICreateShaderProgram()
+	{
+		return EXECUTE_RHI_FUNC( RHICreateShaderProgram() );
 	}
 
 	RHIRasterizerState& GetStaticRasterizerState(ECullMode cullMode, EFillMode fillMode)

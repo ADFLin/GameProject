@@ -276,6 +276,7 @@
     <ClCompile Include="RHI\MaterialShader.cpp" />
     <ClCompile Include="RHI\MeshUtility.cpp" />
     <ClCompile Include="RHI\OpenGLCommand.cpp" />
+    <ClCompile Include="RHI\OpenGLShader.cpp" />
     <ClCompile Include="RHI\PrimitiveBatch.cpp" />
     <ClCompile Include="RHI\RenderContext.cpp" />
     <ClCompile Include="RHI\RHICommand.cpp" />
@@ -286,8 +287,9 @@
     <ClCompile Include="RHI\Scene.cpp" />
     <ClCompile Include="RHI\SceneObject.cpp" />
     <ClCompile Include="RHI\SceneRenderer.cpp" />
-    <ClCompile Include="RHI\ShaderCompiler.cpp" />
+    <ClCompile Include="RHI\ShaderManager.cpp" />
     <ClCompile Include="RHI\ShaderCore.cpp" />
+    <ClCompile Include="RHI\ShaderProgram.cpp" />
     <ClCompile Include="RHI\TextureAtlas.cpp" />
     <ClCompile Include="RHI\VertexFactory.cpp" />
     <ClCompile Include="Serialize\DataStream.cpp" />
@@ -446,6 +448,7 @@
     <ClInclude Include="RHI\MaterialShader.h" />
     <ClInclude Include="RHI\MeshUtility.h" />
     <ClInclude Include="RHI\OpenGLCommand.h" />
+    <ClInclude Include="RHI\OpenGLShader.h" />
     <ClInclude Include="RHI\PrimitiveBatch.h" />
     <ClInclude Include="RHI\RenderContext.h" />
     <ClInclude Include="RHI\RHICommand.h" />
@@ -457,8 +460,10 @@
     <ClInclude Include="RHI\Scene.h" />
     <ClInclude Include="RHI\SceneObject.h" />
     <ClInclude Include="RHI\SceneRenderer.h" />
-    <ClInclude Include="RHI\ShaderCompiler.h" />
+    <ClInclude Include="RHI\ShaderManager.h" />
     <ClInclude Include="RHI\ShaderCore.h" />
+    <ClInclude Include="RHI\ShaderFormat.h" />
+    <ClInclude Include="RHI\ShaderProgram.h" />
     <ClInclude Include="RHI\TextureAtlas.h" />
     <ClInclude Include="RHI\VertexFactory.h" />
     <ClInclude Include="Serialize\DataBitSerialize.h" />

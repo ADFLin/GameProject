@@ -2,7 +2,7 @@
 
 
 #include "RHICommand.h"
-#include "ShaderCompiler.h"
+#include "ShaderManager.h"
 #include "VertexFactory.h"
 #include "FileSystem.h"
 
@@ -163,7 +163,6 @@ namespace Render
 	{
 		for( auto& pair : mShaderMap )
 		{
-			pair.second->destroyHandle();
 			delete pair.second;
 		}
 		mShaderMap.clear();

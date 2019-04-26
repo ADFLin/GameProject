@@ -205,7 +205,7 @@ namespace Render
 			if( !light.testVisible(view) )
 				continue;
 
-			GL_BIND_LOCK_OBJECT(mProgSphere);
+			RHISetShaderProgram( commandList , mProgSphere.getRHIResource());
 			view.setupShader(commandList, mProgSphere);
 			mProgSphere.setParam(commandList, SHADER_PARAM(Sphere.radius), radius);
 			mProgSphere.setParam(commandList, SHADER_PARAM(Sphere.worldPos), light.pos);

@@ -14,7 +14,7 @@
 
 #include "RHI/ShaderCore.h"
 #include "RHI/RHICommand.h"
-#include "RHI/ShaderCompiler.h"
+#include "RHI/ShaderManager.h"
 
 class WidgetTest : public TestBase
 {
@@ -296,7 +296,7 @@ public:
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 
-		mProgGeom.bind();
+		RHISetShaderProgram(commandList, mProgGeom.getRHIResource());
 		mProgGeom.setTextureParameters(commandList, mTexBlock[RP_DIFFUSE]->resource , mTexBlock[RP_NORMAL]->resource, nullptr );
 
 		for( int j = 0 ; j < 10 ; ++j )
@@ -320,7 +320,7 @@ public:
 		drawSprite( Vec2f( 200 + 64 * 1 , 100 ) , Vec2f( 64 , 64 ) , 0.0f );	
 		drawSprite( Vec2f( 300 + 64 * 2 , 210 ) , Vec2f( 64 , 64 ) , 0.0f );
 
-		mProgGeom.unbind();
+		RHISetShaderProgram(commandList, nullptr);
 		mGBuffer->unbind();
 
 
@@ -332,7 +332,7 @@ public:
 
 		Vec2i size = getGame()->getScreenSize();
 
-		mProgLightingGlow.bind();
+		RHISetShaderProgram(commandList, mProgLightingGlow.getRHIResource());
 		mProgLightingGlow.setTexture(commandList, SHADER_PARAM( texBaseColor ) , *mGBuffer->getTexture( GBuffer::eBASE_COLOR ) );
 		mProgLightingGlow.setTexture(commandList, SHADER_PARAM( texGlow ) , *mGBuffer->getTexture( GBuffer::eLIGHTING ) );
 
@@ -342,9 +342,8 @@ public:
 		glTexCoord2f(1.0, 0.0); glVertex2f(size.x, size.y);
 		glTexCoord2f(0.0, 0.0); glVertex2f(0, size.y);
 		glEnd();
-		mProgLightingGlow.unbind();
 
-		mProgLighting.bind();
+		RHISetShaderProgram(commandList, mProgLighting.getRHIResource());
 		mProgLighting.setTextureParameters(commandList, mGBuffer , *mTexMaterial );
 
 		for( int i = 0 ; i < ARRAY_SIZE( mLights ) ; ++i )
@@ -374,8 +373,7 @@ public:
 			glEnd();	
 
 		}
-		mProgLighting.unbind();
-
+		RHISetShaderProgram(commandList, nullptr);
 
 		glDisable( GL_BLEND );
 

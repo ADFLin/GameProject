@@ -2,7 +2,7 @@
 
 #include "RHICommand.h"
 #include "Material.h"
-#include "ShaderCompiler.h"
+#include "ShaderManager.h"
 
 //#TODO: Remove Me
 #include "OpenGLCommon.h"
@@ -90,7 +90,7 @@ namespace Render
 		delete GDefalutMaterial;
 		GDefalutMaterial = nullptr;
 
-		GSimpleBasePass.destroyHandle();
+		GSimpleBasePass.releaseRHI();
 
 		GlobalRHIResourceBase::ReleaseAllResource();
 	}

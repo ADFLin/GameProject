@@ -1291,12 +1291,15 @@ bool MiscTestStage::onInit()
 {
 	::Global::GUI().cleanupWidget();
 
+	auto frame = WidgetUtility::CreateDevFrame();
+
 	auto& const entries = MiscTestRegister::GetList();
 	for( auto entry : entries )
 	{
 		addTest(entry.name, entry.fun);
 	}
 	restart();
+
 	return true;
 }
 

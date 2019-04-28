@@ -5,6 +5,9 @@
 #include "RHI/RHICommon.h"
 #include "RHI/D3D11Command.h"
 
+#include "RHI/ShaderProgram.h"
+#include "RHI/ShaderManager.h"
+
 
 char const* Code = CODE_STRING(
 struct VSInput
@@ -24,7 +27,8 @@ float4x4 XForm;
 
 void MainVS(in VSInput input, out VSOutput output)
 {
-	output.svPosition = mul( XForm , float4(input.pos.xy, 0.5, 1) );
+	//output.svPosition = mul(XForm, float4(input.pos.xy, 0.5, 1));
+	output.svPosition = float4(input.pos.xy, 0.5, 1);
 	output.color = input.color;
 	output.uv = input.uv;
 }
@@ -33,11 +37,11 @@ void MainVS(in VSInput input, out VSOutput output)
 Texture2D Texture;
 SamplerState Sampler;
 float3 Color;
-void MainPS(in VSOutput input, out float4 OutColor : SV_Target0 )
+void MainPS(in VSOutput input, out float4 OutColor : SV_Target0)
 {
 	float4 color = Texture.Sample(Sampler, input.uv);
-	OutColor = float4(Color * input.color * color.rgb  , 1 );
-	//OutColor = float4( Color , 1 );
+	OutColor = float4(Color * input.color * color.rgb, 1);
+	//OutColor = float4(Color, 1);
 }
 );
 
@@ -80,76 +84,6 @@ namespace RenderD3D11
 	};
 
 
-	class D3D11Shader
-	{
-
-
-
-
-	};
-
-
-	class D3D11ShaderProgram
-	{
-
-
-
-
-
-		void addShaderParameterMap( Shader::Type shaderType , ShaderParameterMap const& parameterMap)
-		{
-			for( auto const& pair : parameterMap.mMap )
-			{
-				auto& param = mParameterMap.mMap[ pair.first ];
-				
-				if( param.mLoc == -1 )
-				{
-					param.mLoc = mParamEntryMap.size();
-					ParameterEntry entry;
-					entry.shaderMask = 0;
-					entry.numEntry = 0;
-					entry.entryIndex = mDataEntries.size();
-					mParamEntryMap.push_back(entry);
-				}
-
-				ParameterEntry& entry = mParamEntryMap[param.mLoc];
-
-				assert(entry.shaderMask < BIT(shaderType));
-				entry.shaderMask |= BIT(shaderType);
-				entry.numEntry += 1;
-
-				DataEntry dataEntry;
-				dataEntry.offst = pair.second.offset;
-				dataEntry.size  = pair.second.size;
-				mDataEntries.push_back(dataEntry);
-			}
-		}
-
-		
-		ShaderParameterMap mParameterMap;
-
-		struct ParameterEntry
-		{
-			uint8  shaderMask;
-			uint8  numEntry;
-			uint16 entryIndex;
-
-			ParameterEntry()
-			{
-
-			}
-		};
-
-		struct DataEntry
-		{
-			uint16 size;
-			uint16 offst;
-		};
-		std::vector< ParameterEntry > mParamEntryMap;
-		std::vector< DataEntry > mDataEntries;
-		D3D11ShaderResource mShaderResources[5];
-	};
-
 
 	class TestStage : public StageBase
 	{
@@ -158,109 +92,14 @@ namespace RenderD3D11
 		TestStage() {}
 		D3D11System* mRHISystem;
 
-		TComPtr< ID3D11VertexShader > mVertexShader;
-		TComPtr< ID3D11PixelShader >  mPixelShader;
-		TComPtr< ID3D10Blob >         mVertexShaderByteCode;
-		
-		ShaderParameterMap mParameterMap;
-
-
-		template< class ShaderType , class RHITextureType >
-		bool SetShaderTexture(char const* name , ShaderType* shader , RHITextureType& texture )
-		{
-			auto iter = mParameterMap.mMap.find(name);
-			if( iter == mParameterMap.mMap.end() )
-				return false;
-			SetShaderResourceInternal< ToShaderEnum< ShaderType >::Result >(iter->second, D3D11Cast::To(texture)->mSRV);
-			return true;
-		}
-
-		template< Shader::Type TypeValue >
-		void SetShaderResourceInternal(ShaderParameter const parameter, ID3D11ShaderResourceView* view)
-		{
-			switch( TypeValue )
-			{
-			case Shader::eVertex:   mRHISystem->mDeviceContext->VSSetShaderResources(parameter.bindIndex, 1, &view); break;
-			case Shader::ePixel:    mRHISystem->mDeviceContext->PSSetShaderResources(parameter.bindIndex, 1, &view); break;
-			case Shader::eGeometry: mRHISystem->mDeviceContext->GSSetShaderResources(parameter.bindIndex, 1, &view); break;
-			case Shader::eCompute:  mRHISystem->mDeviceContext->CSSetShaderResources(parameter.bindIndex, 1, &view); break;
-			case Shader::eHull:     mRHISystem->mDeviceContext->HSSetShaderResources(parameter.bindIndex, 1, &view); break;
-			case Shader::eDomain:   mRHISystem->mDeviceContext->DSSetShaderResources(parameter.bindIndex, 1, &view); break;
-			}
-			
-		}
+		ShaderProgram mProgTest;
 
 		static int constexpr MaxConstBufferNum = 1;
-
-		struct ShaderConstDataBuffer
-		{
-			TComPtr< ID3D11Buffer > resource;
-			std::vector< uint8 >    updateData;
-			uint32 updateDataSize = 0;
-
-			bool initializeResource( ID3D11Device* device )
-			{
-				D3D11_BUFFER_DESC bufferDesc = { 0 };
-				ZeroMemory(&bufferDesc, sizeof(bufferDesc));
-				bufferDesc.ByteWidth = 512;
-				bufferDesc.Usage = D3D11_USAGE_DEFAULT;
-				bufferDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
-				bufferDesc.CPUAccessFlags = 0;
-				bufferDesc.MiscFlags = 0;
-				VERIFY_D3D11RESULT_RETURN_FALSE(device->CreateBuffer(&bufferDesc, NULL, &resource));
-				return true;
-			}
-
-			void setUpdateValue(ShaderParameter const parameter, void const* value , int valueSize )
-			{
-				int idxDataEnd = parameter.offset + parameter.size;
-				if( updateData.size() <= idxDataEnd )
-				{
-					updateData.resize(idxDataEnd);
-				}
-
-				::memcpy(&updateData[parameter.offset], value, parameter.size);
-				if( idxDataEnd > updateDataSize )
-				{
-					updateDataSize = idxDataEnd;
-				}
-			}
-
-			void updateResource(ID3D11DeviceContext* context)
-			{
-				if( updateDataSize )
-				{
-					context->UpdateSubresource(resource, 0, NULL, &updateData[0], updateDataSize, updateDataSize);
-					updateDataSize = 0;
-				}
-			}
-		};
-
-		ShaderConstDataBuffer mConstBuffers[Shader::NUM_SHADER_TYPE][MaxConstBufferNum];
-
-
-		template< Shader::Type TypeValue >
-		void SetShaderValueInternal(ShaderParameter const parameter, void const* value, int valueSize)
-		{
-			assert(parameter.bindIndex < MaxConstBufferNum);
-			mConstBuffers[TypeValue][parameter.bindIndex].setUpdateValue(parameter, value, valueSize);
-		}
-
-		template< class ShaderType , class RealType >
-		bool SetShaderValue(ShaderType* shader, char const* name,  RealType const& value )
-		{
-			auto iter = mParameterMap.mMap.find(name);
-			if( iter == mParameterMap.mMap.end() )
-				return false;
-			SetShaderValueInternal< ToShaderEnum< ShaderType >::Result >( iter->second, &value , sizeof( value ) );
-			return true;
-		}
-
 
 		FrameSwapChain mSwapChain;
 
 		RHITexture2DRef mTexture;
-		TComPtr< ID3D11ShaderResourceView > mTextureView;
+
 		struct MyVertex
 		{
 			Vector2 pos;
@@ -288,20 +127,7 @@ namespace RenderD3D11
 				return false;
 			}
 
-			{
-				D3D11ShaderVariant shaderVariant;
-				ShaderParameterMap parameterMap;
-				if( !mRHISystem->compileShader(Shader::eVertex, Code, strlen(Code), SHADER_ENTRY(MainVS), parameterMap, shaderVariant , mVertexShaderByteCode.address() ) )
-					return false;
-				mVertexShader.initialize(shaderVariant.vertex);
-			}
-
-			{
-				D3D11ShaderVariant shaderVariant;
-				if( !mRHISystem->compileShader(Shader::ePixel, Code, strlen(Code), SHADER_ENTRY(MainPS), mParameterMap, shaderVariant) )
-					return false;
-				mPixelShader.initialize(shaderVariant.pixel);
-			}
+			ShaderManager::Get().loadFile(mProgTest, "Shader/Game/HLSLTest", SHADER_ENTRY(MainVS), SHADER_ENTRY(MainPS));
 
 			mTexture = RHIUtility::LoadTexture2DFromFile("Texture/rocks.png");
 			if( !mTexture.isValid() )
@@ -314,15 +140,6 @@ namespace RenderD3D11
 
 			VERIFY_D3D11RESULT_RETURN_FALSE( device->CreateRenderTargetView( backBuffer , NULL, &renderTargetView) );
 			TComPtr< ID3D11DeviceContext >& context = mRHISystem->mDeviceContext;
-
-			for( int i = 0 ; i < MaxConstBufferNum ; ++i )
-			{
-				for( int idxShader = 0 ; idxShader < 2 ; ++idxShader )
-				{
-					if( !mConstBuffers[idxShader][i].initializeResource( device ) )
-						return false;
-				}
-			}
 
 			{
 
@@ -397,54 +214,29 @@ namespace RenderD3D11
 
 			RHISetViewport(commandList, 0, 0, window.getWidth(), window.getHeight());
 
-			RHISetRasterizerState(commandList, TStaticRasterizerState<>::GetRHI());
+			RHISetRasterizerState(commandList, TStaticRasterizerState< ECullMode::None >::GetRHI());
 			RHISetBlendState(commandList, TStaticBlendState< CWM_RGBA, Blend::eOne, Blend::eOne >::GetRHI());
 
-			context->VSSetShader(mVertexShader, nullptr, 0);
-			context->PSSetShader(mPixelShader, nullptr, 0);
-
-
-			SetShaderTexture(SHADER_PARAM(Texture), mPixelShader.get(), mTexture);
+			RHISetShaderProgram(commandList, mProgTest.getRHIResource());
 
 
 			float c = 0.5 * Math::Sin(worldTime) + 0.5;
 			Matrix4 xform = Matrix4::Rotate(Vector3(0, 0, 1), angle) * Matrix4::Translate(Vector3(0.2, 0, 0));
-			SetShaderValue(mVertexShader.get(), SHADER_PARAM(XForm),  xform);
-			SetShaderValue(mPixelShader.get(), SHADER_PARAM(Color),  Color3f(c, c, c));
+			mProgTest.setTexture(commandList, SHADER_PARAM(Texture), *mTexture );
+			mProgTest.setParam(commandList, SHADER_PARAM(XForm), xform);
+			mProgTest.setParam(commandList, SHADER_PARAM(Color), Vector3(c, c, c));
 
-			{
-				for ( int idxShader = 0 ; idxShader < 2 ; ++idxShader )
-				{
-					ID3D11Buffer* constBuffers[MaxConstBufferNum];
-					for( int i = 0; i < MaxConstBufferNum; ++i )
-					{
-						mConstBuffers[idxShader][i].updateResource(context);
-						constBuffers[i] = mConstBuffers[idxShader][i].resource.get();
-					}
 
-					switch( idxShader )
-					{
-					case Shader::eVertex: context->VSSetConstantBuffers(0, MaxConstBufferNum, constBuffers); break;
-					case Shader::ePixel: context->PSSetConstantBuffers(0, MaxConstBufferNum, constBuffers); break;
-					case Shader::eGeometry: context->GSSetConstantBuffers(0, MaxConstBufferNum, constBuffers); break;
-					case Shader::eHull: context->HSSetConstantBuffers(0, MaxConstBufferNum, constBuffers); break;
-					case Shader::eDomain: context->DSSetConstantBuffers(0, MaxConstBufferNum, constBuffers); break;
-					case Shader::eCompute: context->CSSetConstantBuffers(0, MaxConstBufferNum, constBuffers); break;
-					}
-
-				}
-			}
-
-			
 			{
 				UINT stride = sizeof(MyVertex);
 				UINT offset = 0;
 				context->IASetInputLayout(D3D11Cast::GetResource(mInputLayout));
 				ID3D11Buffer* buffers[] = { D3D11Cast::GetResource(mVertexBuffer) };
 				context->IASetVertexBuffers(0, 1, buffers, &stride, &offset);
-				RHIDrawPrimitive(commandList, PrimitiveType::TriangleStrip, 0 , 4 );
+				RHIDrawPrimitive(commandList, PrimitiveType::TriangleStrip, 0, 4);
 			}
-			
+
+
 			context->Flush();
 
 			if( !::Global::GetDrawEngine().bUsePlatformBuffer )

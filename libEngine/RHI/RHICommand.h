@@ -143,7 +143,7 @@ namespace Render
 	class RHISystem
 	{
 	public:
-
+		virtual RHISytemName getName() const = 0;
 		virtual bool initialize(RHISystemInitParam const& initParam) { return true; }
 		virtual void shutdown(){}
 		virtual class ShaderFormat* createShaderFormat() { return nullptr; }

@@ -1,6 +1,8 @@
-﻿#ifndef SHADER_COMPILING
+#ifndef SHADER_COMPILING
 #define SHADER_COMPILING 0
 #endif
+
+#if (!SHADER_COMPILING) || COMPILER_GLSL
 
 #define ATTRIBUTE0 0
 #define ATTRIBUTE1 1
@@ -18,6 +20,8 @@
 #define ATTRIBUTE13 13
 #define ATTRIBUTE14 14
 #define ATTRIBUTE15 15
+
+#endif
 
 #define ATTRIBUTE_POSITION ATTRIBUTE0
 #define ATTRIBUTE_TANGENT ATTRIBUTE15
@@ -237,15 +241,5 @@ template< class T >
 class Buffer
 {
 };
-
-
-
-
-//
-//  GLSL
-//
-
-
-
 
 #endif // SHADER_COMPILING

@@ -40,7 +40,9 @@ namespace Render
 				ShaderFormat* shaderFormat = gRHISystem->createShaderFormat();
 				ShaderManager::Get().mShaderFormat = shaderFormat;
 
-				InitGlobalRHIResource();
+				//#FIXME
+				if( gRHISystem->getName() != RHISytemName::D3D11 )
+					InitGlobalRHIResource();
 			}		
 		}
 		
@@ -52,7 +54,9 @@ namespace Render
 	{	
 		ShaderManager::Get().clearnupRHIResouse();
 
-		ReleaseGlobalRHIResource();
+		//#FIXME
+		if( gRHISystem->getName() != RHISytemName::D3D11 )
+			ReleaseGlobalRHIResource();
 
 		gRHISystem->shutdown();
 		gRHISystem = nullptr;

@@ -666,7 +666,6 @@ namespace Render
 	typedef TRefCountPtr< RHIBlendState > RHIBlendStateRef;
 	typedef TRefCountPtr< RHIInputLayout > RHIInputLayoutRef;
 
-
 }//namespace Render
 
 #endif // RHICommon_H_F71942CB_2583_4990_B63B_D7B4FC78E1DB

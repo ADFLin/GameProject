@@ -11,13 +11,14 @@
 #include "Core/ScopeExit.h"
 
 
-#include "D3D11Shader.h"
-#include "D3DX11async.h"
-#include "D3Dcompiler.h"
+#include <D3D11Shader.h>
+
+
+#include <D3Dcompiler.h>
+#include <D3DX11async.h>
 
 #pragma comment(lib , "D3D11.lib")
 #pragma comment(lib , "D3DX11.lib")
-#pragma comment(lib , "D3dcompiler.lib")
 #pragma comment(lib , "DXGI.lib")
 #pragma comment(lib , "dxguid.lib")
 
@@ -34,44 +35,158 @@ namespace Render
 	template<> struct ToShaderEnum< ID3D11HullShader > { static Shader::Type constexpr Result = Shader::eHull; };
 	template<> struct ToShaderEnum< ID3D11DomainShader > { static Shader::Type constexpr Result = Shader::eDomain; };
 
-
 	struct FrameSwapChain
 	{
 
 		TComPtr<IDXGISwapChain> ptr;
 	};
-
-
-	struct D3D11ShaderResource
+	struct ShaderConstDataBuffer
 	{
-		Shader::Type type;
-		union
+		TComPtr< ID3D11Buffer > resource;
+		std::vector< uint8 >    updateData;
+		uint32 updateDataSize = 0;
+
+		bool initializeResource(ID3D11Device* device)
 		{
-			ID3D11DeviceChild*    resource;
-			ID3D11VertexShader*   vertex;
-			ID3D11PixelShader*    pixel;
-			ID3D11GeometryShader* geometry;
-			ID3D11ComputeShader*  compute;
-			ID3D11HullShader*     hull;
-			ID3D11DomainShader*   domain;
-		};
+			D3D11_BUFFER_DESC bufferDesc = { 0 };
+			ZeroMemory(&bufferDesc, sizeof(bufferDesc));
+			bufferDesc.ByteWidth = 512;
+			bufferDesc.Usage = D3D11_USAGE_DEFAULT;
+			bufferDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+			bufferDesc.CPUAccessFlags = 0;
+			bufferDesc.MiscFlags = 0;
+			VERIFY_D3D11RESULT_RETURN_FALSE(device->CreateBuffer(&bufferDesc, NULL, &resource));
+			return true;
+		}
+
+		void setUpdateValue(ShaderParameter const parameter, void const* value, int valueSize)
+		{
+			int idxDataEnd = parameter.offset + parameter.size;
+			if( updateData.size() <= idxDataEnd )
+			{
+				updateData.resize(idxDataEnd);
+			}
+
+			::memcpy(&updateData[parameter.offset], value, parameter.size);
+			if( idxDataEnd > updateDataSize )
+			{
+				updateDataSize = idxDataEnd;
+			}
+		}
+
+		void updateResource(ID3D11DeviceContext* context)
+		{
+			if( updateDataSize )
+			{
+				context->UpdateSubresource(resource, 0, NULL, &updateData[0], updateDataSize, updateDataSize);
+				updateDataSize = 0;
+			}
+		}
 	};
 
-	union D3D11ShaderVariant
+
+	struct D3D11ShaderBoundState
 	{
-		ID3D11DeviceChild*    resource;
+		static int constexpr MaxConstBufferNum = 1;
+		
+		D3D11ShaderBoundState()
+		{
+			
+		}
 
-		ID3D11VertexShader*   vertex;
-		ID3D11PixelShader*    pixel;
-		ID3D11GeometryShader* geometry;
-		ID3D11ComputeShader*  compute;
-		ID3D11HullShader*     hull;
-		ID3D11DomainShader*   domain;
+		bool initialize(TComPtr< ID3D11Device >& device, TComPtr<ID3D11DeviceContext >& deviceContext)
+		{
+			::memset(this, 0, sizeof(*this));
+			for( int i = 0; i < MaxConstBufferNum; ++i )
+			{
+				if( !mConstBuffers[i].initializeResource(device) )
+				{
+					return false;
+				}
+			}
+
+			return true;
+		}
+		uint32 mConstBufferDirtyMask;
+		uint32 mConstBufferValueDirtyMask;
+
+		ShaderConstDataBuffer mConstBuffers[MaxConstBufferNum];
+
+		static int constexpr MaxSimulatedBoundedBufferNum = 16;
+		ID3D11Buffer* mBoundedBuffers[MaxSimulatedBoundedBufferNum];
+
+		static int constexpr MaxSimulatedBoundedSRVNum = 16;
+		ID3D11ShaderResourceView* mBoundedSRVs[MaxSimulatedBoundedSRVNum];
+		uint32 mSRVDirtyMask;
+
+		static int constexpr MaxSimulatedBoundedUAVNum = 16;
+		ID3D11ShaderResourceView* mBoundedUAVs[MaxSimulatedBoundedUAVNum];
+		uint32 mUAVDirtyMask;
+
+		static int constexpr MaxSimulatedBoundedSamplerNum = 16;
+		ID3D11SamplerState* mBoundedSamplers[MaxSimulatedBoundedSamplerNum];
+		uint32 mSamplerDirtyMask;
+
+		void clear()
+		{
+			mConstBufferValueDirtyMask = 0;
+			mConstBufferDirtyMask = 0;
+			mSRVDirtyMask = 0;
+			mUAVDirtyMask = 0;
+			mSamplerDirtyMask = 0;
+		}
+
+		void setTexture(ShaderParameter const& parameter, RHITextureBase& texture)
+		{
+			auto resViewImpl = static_cast<D3D11ShaderResourceView*>( texture.getBaseResourceView() );
+			if( resViewImpl )
+			{
+				if( mBoundedSRVs[parameter.mLoc] != resViewImpl->getResource() )
+				{
+					mBoundedSRVs[parameter.mLoc] = resViewImpl->getResource();
+					mSRVDirtyMask |= BIT(parameter.mLoc);
+				}
+			}
+		}
+
+		void setUniformBuffer(ShaderParameter const& parameter, RHITextureBase& bufferResource)
+		{
+
+		}
+
+		void setShaderValue(ShaderParameter const parameter, void const* value, int valueSize)
+		{
+			assert(parameter.bindIndex < MaxConstBufferNum);
+			mConstBuffers[parameter.bindIndex].setUpdateValue(parameter, value, valueSize);
+			mConstBufferValueDirtyMask |= BIT(parameter.bindIndex);
+			if( mConstBuffers[parameter.bindIndex].resource.get() != mBoundedBuffers[parameter.bindIndex] )
+			{
+				mBoundedBuffers[parameter.bindIndex] = mConstBuffers[parameter.bindIndex].resource.get();
+				mConstBufferDirtyMask |= BIT(parameter.bindIndex);
+			}
+		}
+
+
+		template< Shader::Type TypeValue >
+		void commitState( ID3D11DeviceContext* context);
+
 	};
+
 
 	class D3D11Context : public RHIContext
 	{
 	public:
+
+		bool initialize(TComPtr< ID3D11Device >&  device , TComPtr<ID3D11DeviceContext >& deviceContext)
+		{
+			mDeviceContext = deviceContext;
+			for( int i = 0; i < Shader::Count; ++i )
+			{
+				mBoundedShaders[i].resource = nullptr;
+				mShaderBoundState[i].initialize(device, deviceContext);
+			}
+			return true;
+		}
 		void RHISetRasterizerState(RHIRasterizerState& rasterizerState)
 		{
 			mDeviceContext->RSSetState(D3D11Cast::GetResource(rasterizerState));
@@ -109,25 +224,28 @@ namespace Render
 			mDeviceContext->RSSetScissorRects(1, &rect);
 		}
 
-
 		void RHIDrawPrimitive(PrimitiveType type, int start, int nv)
 		{
+			commitRenderShaderState();
 			mDeviceContext->IASetPrimitiveTopology(D3D11Conv::To(type));
 			mDeviceContext->Draw(nv, start);
 		}
 
 		void RHIDrawIndexedPrimitive(PrimitiveType type, ECompValueType indexType, int indexStart, int nIndex, uint32 baseVertex)
 		{
+			commitRenderShaderState();
 			mDeviceContext->IASetPrimitiveTopology(D3D11Conv::To(type));
 			mDeviceContext->DrawIndexed(nIndex , indexStart , baseVertex);
 		}
 
 		void RHIDrawPrimitiveIndirect(PrimitiveType type, RHIVertexBuffer* commandBuffer, int offset, int numCommand, int commandStride)
 		{
+			commitRenderShaderState();
 			mDeviceContext->IASetPrimitiveTopology(D3D11Conv::To(type));
 		}
 		void RHIDrawIndexedPrimitiveIndirect(PrimitiveType type, ECompValueType indexType, RHIVertexBuffer* commandBuffer, int offset, int numCommand, int commandStride)
 		{
+			commitRenderShaderState();
 			mDeviceContext->IASetPrimitiveTopology(D3D11Conv::To(type));
 			if( numCommand )
 			{
@@ -140,16 +258,20 @@ namespace Render
 		}
 		void RHIDrawPrimitiveInstanced(PrimitiveType type, int vStart, int nv, int numInstance)
 		{
+			commitRenderShaderState();
 			mDeviceContext->DrawInstanced(nv, numInstance, vStart, 0);
 		}
+
 		void RHIDrawPrimitiveUP(PrimitiveType type, int numPrimitive, void* pVertices, int numVerex, int vetexStride)
 		{
+			commitRenderShaderState();
 
 
 		}
+
 		void RHIDrawIndexedPrimitiveUP(PrimitiveType type, int numPrimitive, void* pVertices, int numVerex, int vetexStride, int* pIndices, int numIndex)
 		{
-
+			commitRenderShaderState();
 		}
 
 
@@ -170,42 +292,60 @@ namespace Render
 
 		void RHIDispatchCompute(uint32 numGroupX, uint32 numGroupY, uint32 numGroupZ)
 		{
+			commitComputeState();
 			mDeviceContext->Dispatch(numGroupX, numGroupY, numGroupZ);
 		}
 
-		void RHISetShaderProgram(RHIShaderProgram* shaderProgram){}
-		void setParam(RHIShaderProgram& shaderProgram, ShaderParameter const& param, int const val[], int dim){}
-		void setParam(RHIShaderProgram& shaderProgram, ShaderParameter const& parameter, float const val[], int dim) {}
-		void setParam(RHIShaderProgram& shaderProgram, ShaderParameter const& param, Matrix3 const val[], int dim) {}
-		void setParam(RHIShaderProgram& shaderProgram, ShaderParameter const& param, Matrix4 const val[], int dim) {}
-		void setParam(RHIShaderProgram& shaderProgram, ShaderParameter const& param, Vector3 const val[], int dim) {}
-		void setParam(RHIShaderProgram& shaderProgram, ShaderParameter const& param, Vector4 const val[], int dim) {}
-		void setMatrix22(RHIShaderProgram& shaderProgram, ShaderParameter const& param, float const val[], int dim) {}
-		void setMatrix43(RHIShaderProgram& shaderProgram, ShaderParameter const& param, float const val[], int dim) {}
-		void setMatrix34(RHIShaderProgram& shaderProgram, ShaderParameter const& param, float const val[], int dim) {}
-
-		void setResourceView(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHIShaderResourceView const& resourceView) {}
-
-		void setTexture(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHITextureBase& texture) {}
-		void setTexture(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHITextureBase& texture, ShaderParameter const& paramSampler, RHISamplerState & sampler) {}
-		void setSampler(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHISamplerState const& sampler) {}
-		void setRWTexture(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHITextureBase& texture, EAccessOperator op) {}
-
-		void setUniformBuffer(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHIVertexBuffer& buffer) {}
-		void setStorageBuffer(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHIVertexBuffer& buffer) {}
-		void setAtomicCounterBuffer(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHIVertexBuffer& buffer) {}
+		void RHISetShaderProgram(RHIShaderProgram* shaderProgram);
 
 
-		ID3D11DeviceContext* mDeviceContext;
+		void commitRenderShaderState();
+
+		void commitComputeState();
+
+
+		template< Shader::Type TypeValue >
+		void setShader(D3D11ShaderVariant const& shaderVariant);
+
+		template < class ValueType >
+		void setShaderValueT(RHIShaderProgram& shaderProgram, ShaderParameter const& param, ValueType const val[], int dim);
+
+		void setShaderValue(RHIShaderProgram& shaderProgram, ShaderParameter const& param, int32 const val[], int dim);
+		void setShaderValue(RHIShaderProgram& shaderProgram, ShaderParameter const& param, float const val[], int dim);
+		void setShaderValue(RHIShaderProgram& shaderProgram, ShaderParameter const& param, Matrix3 const val[], int dim);
+		void setShaderValue(RHIShaderProgram& shaderProgram, ShaderParameter const& param, Matrix4 const val[], int dim);
+		void setShaderValue(RHIShaderProgram& shaderProgram, ShaderParameter const& param, Vector3 const val[], int dim);
+		void setShaderValue(RHIShaderProgram& shaderProgram, ShaderParameter const& param, Vector4 const val[], int dim);
+		void setShaderMatrix22(RHIShaderProgram& shaderProgram, ShaderParameter const& param, float const val[], int dim);
+		void setShaderMatrix43(RHIShaderProgram& shaderProgram, ShaderParameter const& param, float const val[], int dim);
+		void setShaderMatrix34(RHIShaderProgram& shaderProgram, ShaderParameter const& param, float const val[], int dim);
+
+		void setShaderResourceView(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHIShaderResourceView const& resourceView) {}
+
+		void setShaderTexture(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHITextureBase& texture);
+		void setShaderTexture(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHITextureBase& texture, ShaderParameter const& paramSampler, RHISamplerState & sampler) {}
+		void setShaderSampler(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHISamplerState const& sampler) {}
+		void setShaderRWTexture(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHITextureBase& texture, EAccessOperator op) {}
+
+		void setShaderUniformBuffer(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHIVertexBuffer& buffer) {}
+		void setShaderStorageBuffer(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHIVertexBuffer& buffer) {}
+		void setShaderAtomicCounterBuffer(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHIVertexBuffer& buffer) {}
+
+		uint32                mBoundedShaderMask = 0;
+		uint32                mBoundedShaderDirtyMask = 0;
+		D3D11ShaderVariant    mBoundedShaders[Shader::Count];
+		D3D11ShaderBoundState mShaderBoundState[Shader::Count];
+		TComPtr< ID3D11DeviceContext >  mDeviceContext;
 	};
 
 
 	class D3D11System : public RHISystem
 	{
 	public:
-
+		RHISytemName getName() const { return RHISytemName::D3D11; }
 		bool initialize(RHISystemInitParam const& initParam);
 		void shutdown(){}
+		virtual ShaderFormat* createShaderFormat();
 
 
 
@@ -297,14 +437,8 @@ namespace Render
 			return nullptr;
 		}
 
-		RHIShader* RHICreateShader(Shader::Type type)
-		{
-			return nullptr;
-		}
-		RHIShaderProgram* RHICreateShaderProgram()
-		{
-			return nullptr;
-		}
+		RHIShader* RHICreateShader(Shader::Type type);
+		RHIShaderProgram* RHICreateShaderProgram();
 		void* lockBufferInternal(ID3D11Resource* resource, ELockAccess access, uint32 offset, uint32 size)
 		{
 			D3D11_MAPPED_SUBRESOURCE mappedData;
@@ -339,47 +473,20 @@ namespace Render
 			return true;
 		}
 
-		FixString<32> GetShaderProfile(Shader::Type type)
-		{
-			char const* ShaderNames[] = { "vs" , "ps" , "gs" , "cs" , "hs" , "ds" };
-			char const* featureName = nullptr;
-			switch( mDevice->GetFeatureLevel() )
-			{
-			case D3D_FEATURE_LEVEL_9_1:
-			case D3D_FEATURE_LEVEL_9_2:
-			case D3D_FEATURE_LEVEL_9_3:
-				featureName = "2_0";
-				break;
-			case D3D_FEATURE_LEVEL_10_0:
-				featureName = "4_0";
-				break;
-			case D3D_FEATURE_LEVEL_10_1:
-				featureName = "5_0";
-				break;
-			case D3D_FEATURE_LEVEL_11_0:
-				featureName = "5_0";
-				break;
-			}
-			FixString<32> result = ShaderNames[type];
-			result += "_";
-			result += featureName;
-			return result;
-		}
-
 
 		bool compileShader(Shader::Type type, char const* code, int codeLen, char const* entryName, ShaderParameterMap& parameterMap, D3D11ShaderVariant& shaderResult, TComPtr< ID3D10Blob >* pOutbyteCode = nullptr)
 		{
 
 			TComPtr< ID3D10Blob > errorCode;
 			TComPtr< ID3D10Blob > byteCode;
-			FixString<32> profileName = GetShaderProfile(type);
+			FixString<32> profileName = FD3D11Utility::GetShaderProfile( mDevice , type );
 
 			uint32 compileFlag = 0 /*| D3D10_SHADER_PACK_MATRIX_ROW_MAJOR*/;
 			VERIFY_D3D11RESULT(
 				D3DX11CompileFromMemory(code, codeLen, "ShaderCode", NULL, NULL, entryName, profileName, compileFlag, 0, NULL, &byteCode, &errorCode, NULL),
 				{
 					LogWarning(0, "Compile Error %s", errorCode->GetBufferPointer());
-					return false;
+			return false;
 				}
 			);
 
@@ -460,7 +567,8 @@ namespace Render
 			return true;
 		}
 
-		D3D11Context   mDrawContext;
+
+		D3D11Context   mRenderContext;
 		FrameSwapChain mSwapChain;
 		TComPtr< ID3D11Device > mDevice;
 		TComPtr< ID3D11DeviceContext > mDeviceContext;

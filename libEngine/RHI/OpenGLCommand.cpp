@@ -1,7 +1,7 @@
 #include "OpenGLCommand.h"
 
 #include "OpenGLCommon.h"
-#include "OpenGLShader.h"
+#include "OpenGLShaderCommon.h"
 
 #include "RHI/ShaderCore.h"
 #include "RHI/GpuProfiler.h"
@@ -701,7 +701,7 @@ namespace Render
 #define CHECK_PARAMETER( PARAM ) assert( PARAM.isBound() );
 
 
-	void OpenGLContext::setParam(RHIShaderProgram& shaderProgram, ShaderParameter const& param, int const val[], int dim)
+	void OpenGLContext::setShaderValue(RHIShaderProgram& shaderProgram, ShaderParameter const& param, int32 const val[], int dim)
 	{
 		CHECK_PARAMETER(param);
 		switch( dim )
@@ -713,7 +713,7 @@ namespace Render
 		}
 	}
 
-	void OpenGLContext::setParam(RHIShaderProgram& shaderProgram, ShaderParameter const& parameter, float const val[], int dim)
+	void OpenGLContext::setShaderValue(RHIShaderProgram& shaderProgram, ShaderParameter const& parameter, float const val[], int dim)
 	{
 		CHECK_PARAMETER(parameter);
 		switch( dim )
@@ -725,54 +725,54 @@ namespace Render
 		}
 	}
 
-	void OpenGLContext::setParam(RHIShaderProgram& shaderProgram, ShaderParameter const& param, Matrix3 const val[], int dim)
+	void OpenGLContext::setShaderValue(RHIShaderProgram& shaderProgram, ShaderParameter const& param, Matrix3 const val[], int dim)
 	{
 		CHECK_PARAMETER(param);
 		glUniformMatrix3fv(param.mLoc, dim, false, (float const *)val);
 	}
 
-	void OpenGLContext::setParam(RHIShaderProgram& shaderProgram, ShaderParameter const& param, Matrix4 const val[], int dim)
+	void OpenGLContext::setShaderValue(RHIShaderProgram& shaderProgram, ShaderParameter const& param, Matrix4 const val[], int dim)
 	{
 		CHECK_PARAMETER(param);
 		glUniformMatrix4fv(param.mLoc, dim, false, (float const *)val);
 	}
 
-	void OpenGLContext::setParam(RHIShaderProgram& shaderProgram, ShaderParameter const& param, Vector3 const val[], int dim)
+	void OpenGLContext::setShaderValue(RHIShaderProgram& shaderProgram, ShaderParameter const& param, Vector3 const val[], int dim)
 	{
 		CHECK_PARAMETER(param);
 		glUniform3fv(param.mLoc, dim, (float const *)val);
 	}
 
-	void OpenGLContext::setParam(RHIShaderProgram& shaderProgram, ShaderParameter const& param, Vector4 const val[], int dim)
+	void OpenGLContext::setShaderValue(RHIShaderProgram& shaderProgram, ShaderParameter const& param, Vector4 const val[], int dim)
 	{
 		CHECK_PARAMETER(param);
 		glUniform4fv(param.mLoc, dim, (float const *)val);
 	}
 
-	void OpenGLContext::setMatrix22(RHIShaderProgram& shaderProgram, ShaderParameter const& param, float const val[], int dim)
+	void OpenGLContext::setShaderMatrix22(RHIShaderProgram& shaderProgram, ShaderParameter const& param, float const val[], int dim)
 	{
 		CHECK_PARAMETER(param);
 		glUniformMatrix2fv(param.mLoc, dim, false, (float const *)val);
 	}
 
-	void OpenGLContext::setMatrix43(RHIShaderProgram& shaderProgram, ShaderParameter const& param, float const val[], int dim)
+	void OpenGLContext::setShaderMatrix43(RHIShaderProgram& shaderProgram, ShaderParameter const& param, float const val[], int dim)
 	{
 		CHECK_PARAMETER(param);
 		glUniformMatrix4x3fv(param.mLoc, dim, false, (float const *)val);
 	}
 
-	void OpenGLContext::setMatrix34(RHIShaderProgram& shaderProgram, ShaderParameter const& param, float const val[], int dim)
+	void OpenGLContext::setShaderMatrix34(RHIShaderProgram& shaderProgram, ShaderParameter const& param, float const val[], int dim)
 	{
 		CHECK_PARAMETER(param);
 		glUniformMatrix3x4fv(param.mLoc, dim, false, (float const *)val);
 	}
 
-	void OpenGLContext::setResourceView(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHIShaderResourceView const& resourceView)
+	void OpenGLContext::setShaderResourceView(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHIShaderResourceView const& resourceView)
 	{
 		CHECK_PARAMETER(param);
 	}
 
-	void OpenGLContext::setTexture(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHITextureBase& texture)
+	void OpenGLContext::setShaderTexture(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHITextureBase& texture)
 	{
 		CHECK_PARAMETER(param);
 
@@ -786,10 +786,10 @@ namespace Render
 		glActiveTexture(GL_TEXTURE0);
 	}
 
-	void OpenGLContext::setTexture(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHITextureBase& texture, ShaderParameter const& paramSampler, RHISamplerState & sampler)
+	void OpenGLContext::setShaderTexture(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHITextureBase& texture, ShaderParameter const& paramSampler, RHISamplerState & sampler)
 	{
 		CHECK_PARAMETER(param);
-		CHECK_PARAMETER(paramSampler);
+		//CHECK_PARAMETER(paramSampler);
 		OpenGLShaderResourceView const&  resourceViewImpl = static_cast<OpenGLShaderResourceView const&>(*texture.getBaseResourceView());
 		OpenGLSamplerState const&  samplerImpl = static_cast<OpenGLSamplerState const&>(sampler);
 		int idx = mIdxTextureAutoBind;
@@ -801,7 +801,7 @@ namespace Render
 		glActiveTexture(GL_TEXTURE0);
 	}
 
-	void OpenGLContext::setSampler(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHISamplerState const& sampler)
+	void OpenGLContext::setShaderSampler(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHISamplerState const& sampler)
 	{
 		CHECK_PARAMETER(param);
 #if 0
@@ -814,7 +814,7 @@ namespace Render
 #endif
 	}
 
-	void OpenGLContext::setRWTexture(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHITextureBase& texture, EAccessOperator op)
+	void OpenGLContext::setShaderRWTexture(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHITextureBase& texture, EAccessOperator op)
 	{
 		CHECK_PARAMETER(param);
 		OpenGLShaderResourceView const& resourceViewImpl = static_cast<OpenGLShaderResourceView const&>(*texture.getBaseResourceView());
@@ -824,7 +824,7 @@ namespace Render
 		glUniform1i(param.mLoc, idx);
 	}
 
-	void OpenGLContext::setUniformBuffer(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHIVertexBuffer& buffer)
+	void OpenGLContext::setShaderUniformBuffer(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHIVertexBuffer& buffer)
 	{
 		CHECK_PARAMETER(param);
 		auto& shaderProgramImpl = static_cast<OpenGLShaderProgram&>(shaderProgram);
@@ -833,7 +833,7 @@ namespace Render
 		++mNextUniformSlot;
 	}
 
-	void OpenGLContext::setStorageBuffer(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHIVertexBuffer& buffer)
+	void OpenGLContext::setShaderStorageBuffer(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHIVertexBuffer& buffer)
 	{
 		CHECK_PARAMETER(param);
 		auto& shaderProgramImpl = static_cast<OpenGLShaderProgram&>(shaderProgram);
@@ -842,7 +842,7 @@ namespace Render
 		++mNextStorageSlot;
 	}
 
-	void OpenGLContext::setAtomicCounterBuffer(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHIVertexBuffer& buffer)
+	void OpenGLContext::setShaderAtomicCounterBuffer(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHIVertexBuffer& buffer)
 	{
 		CHECK_PARAMETER(param);
 		glBindBufferBase(GL_ATOMIC_COUNTER_BUFFER, param.mLoc, OpenGLCast::GetHandle(buffer));

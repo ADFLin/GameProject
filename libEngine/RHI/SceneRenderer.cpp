@@ -1243,7 +1243,6 @@ namespace Render
 
 		{
 			ShaderCompileOption option;
-			option.version = 430;
 			option.addDefine(SHADER_PARAM(OIT_STORAGE_SIZE), OIT_StorageSize);
 			option.bShowComplieInfo = true;
 			if( !ShaderManager::Get().loadFile(
@@ -1261,7 +1260,6 @@ namespace Render
 				BMA_InternalValMin[i] = BMA_MaxPixelCounts[i + 1] + 1;
 
 			ShaderCompileOption option;
-			option.version = 430;
 			option.addDefine(SHADER_PARAM(OIT_MAX_PIXEL_COUNT) , BMA_MaxPixelCounts[i]);
 			VERIFY_RETURN_FALSE(mShaderBMAResolves[i] = ShaderManager::Get().loadGlobalShaderT< BMAResolveProgram >(option));
 		}

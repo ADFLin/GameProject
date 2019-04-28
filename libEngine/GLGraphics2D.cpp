@@ -146,7 +146,7 @@ void GLGraphics2D::beginRender()
 	using namespace Render;
 	RHICommandList& commandList = RHICommandList::GetImmediateList();
 
-
+	RHISetShaderProgram(commandList, nullptr);
 	RHISetDepthStencilState(commandList, StaticDepthDisableState::GetRHI());
 	RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
 	RHISetRasterizerState(commandList, TStaticRasterizerState< ECullMode::None >::GetRHI());

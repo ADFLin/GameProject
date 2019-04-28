@@ -180,4 +180,31 @@ namespace Render
 		return D3D11_MAP_READ_WRITE;
 	}
 
+	FixString<32> FD3D11Utility::GetShaderProfile(ID3D11Device* device, Shader::Type type)
+	{
+		char const* ShaderNames[] = { "vs" , "ps" , "gs" , "cs" , "hs" , "ds" };
+		char const* featureName = nullptr;
+		switch( device->GetFeatureLevel() )
+		{
+		case D3D_FEATURE_LEVEL_9_1:
+		case D3D_FEATURE_LEVEL_9_2:
+		case D3D_FEATURE_LEVEL_9_3:
+			featureName = "2_0";
+			break;
+		case D3D_FEATURE_LEVEL_10_0:
+			featureName = "4_0";
+			break;
+		case D3D_FEATURE_LEVEL_10_1:
+			featureName = "5_0";
+			break;
+		case D3D_FEATURE_LEVEL_11_0:
+			featureName = "5_0";
+			break;
+		}
+		FixString<32> result = ShaderNames[type];
+		result += "_";
+		result += featureName;
+		return result;
+	}
+
 }//namespace Render

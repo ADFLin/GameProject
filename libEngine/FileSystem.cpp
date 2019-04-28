@@ -248,12 +248,13 @@ wchar_t const* FileUtility::GetFileName(wchar_t const* filePath)
 }
 
 
-bool FileUtility::LoadToBuffer(char const* path, std::vector< char >& outBuffer , bool bAppendZeroAfterEnd)
+bool FileUtility::LoadToBuffer(char const* path, std::vector< char >& outBuffer , bool bAppendZeroAfterEnd , bool bAppendToBuffer )
 {
 	std::ifstream fs(path , std::ios::binary);
 
 	if( !fs.is_open() )
 		return false;
+
 
 	int64 size = 0;
 
@@ -262,10 +263,21 @@ bool FileUtility::LoadToBuffer(char const* path, std::vector< char >& outBuffer 
 	fs.seekg(0, std::ios::beg);
 	size -= fs.tellg();
 
-	outBuffer.resize( bAppendZeroAfterEnd ? (size + 1) : size);
-	fs.read(&outBuffer[0], size);
+	if( bAppendToBuffer )
+	{
+		int64 oldSize = outBuffer.size();
+		outBuffer.resize(bAppendZeroAfterEnd ? (oldSize + size + 1) : oldSize + size);
+		fs.read(&outBuffer[oldSize], size);
+	}
+	else
+	{
+		outBuffer.resize(bAppendZeroAfterEnd ? (size + 1) : size);
+		fs.read(&outBuffer[0], size);
+	}
+
+
 	if( bAppendZeroAfterEnd )
-		outBuffer[size] = '\0';
+		outBuffer[size] = 0;
 
 	fs.close();
 	return true;

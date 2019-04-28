@@ -409,14 +409,17 @@
     <ClCompile Include="RHI\RHICommandListImpl.cpp">
       <Filter>RHI</Filter>
     </ClCompile>
-    <ClCompile Include="RHI\OpenGLShader.cpp">
-      <Filter>RHI\OpenGL</Filter>
-    </ClCompile>
     <ClCompile Include="RHI\ShaderProgram.cpp">
       <Filter>RHI</Filter>
     </ClCompile>
     <ClCompile Include="RHI\ShaderManager.cpp">
       <Filter>RHI</Filter>
+    </ClCompile>
+    <ClCompile Include="RHI\D3D11ShaderCommon.cpp">
+      <Filter>RHI\D3D11</Filter>
+    </ClCompile>
+    <ClCompile Include="RHI\OpenGLShaderCommon.cpp">
+      <Filter>RHI\OpenGL</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -1035,9 +1038,6 @@
     <ClInclude Include="RHI\RHICommandListImpl.h">
       <Filter>RHI</Filter>
     </ClInclude>
-    <ClInclude Include="RHI\OpenGLShader.h">
-      <Filter>RHI\OpenGL</Filter>
-    </ClInclude>
     <ClInclude Include="RHI\ShaderProgram.h">
       <Filter>RHI</Filter>
     </ClInclude>
@@ -1046,6 +1046,12 @@
     </ClInclude>
     <ClInclude Include="RHI\ShaderFormat.h">
       <Filter>RHI</Filter>
+    </ClInclude>
+    <ClInclude Include="RHI\D3D11ShaderCommon.h">
+      <Filter>RHI\D3D11</Filter>
+    </ClInclude>
+    <ClInclude Include="RHI\OpenGLShaderCommon.h">
+      <Filter>RHI\OpenGL</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

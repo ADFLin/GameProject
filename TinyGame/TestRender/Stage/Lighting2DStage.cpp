@@ -37,7 +37,6 @@ namespace Lighting2D
 		{
 			FixString< 128 > defineStr;
 			ShaderCompileOption option;
-			option.version = 430;
 			ShaderEntryInfo entries[] =
 			{ 
 				{ Shader::eVertex , SHADER_ENTRY(MainVS) },

@@ -498,8 +498,6 @@ namespace Render
 	bool ShaderHelper::init()
 	{
 		ShaderCompileOption option;
-		option.version = 430;
-
 		mProgCopyTexture = ShaderManager::Get().getGlobalShaderT<CopyTextureProgram>(true);
 		if( mProgCopyTexture == nullptr )
 			return false;

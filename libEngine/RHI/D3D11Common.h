@@ -3,6 +3,8 @@
 #include "LogSystem.h"
 #include "Platform/Windows/ComUtility.h"
 
+#include "FixString.h"
+
 #include "D3D11.h"
 
 #define ERROR_MSG_GENERATE( HR , CODE , FILE , LINE )\
@@ -34,6 +36,7 @@ namespace Render
 	class D3D11RasterizerState;
 	class D3D11BlendState;
 	class D3D11InputLayout;
+	class D3D11ShaderResourceView;
 
 	template<>
 	struct TD3D11TypeTraits< RHITexture1D > 
@@ -82,7 +85,12 @@ namespace Render
 		typedef ID3D11InputLayout ResourceType;
 		typedef D3D11InputLayout ImplType;
 	};
-
+	template<>
+	struct TD3D11TypeTraits< RHIShaderResourceView >
+	{
+		typedef ID3D11ShaderResourceView ResourceType;
+		typedef D3D11ShaderResourceView ImplType;
+	};
 
 	struct D3D11Conv
 	{
@@ -110,26 +118,39 @@ namespace Render
 		ResourceType* mResource;
 	};
 
+
+	class D3D11ShaderResourceView : public TD3D11Resource< RHIShaderResourceView >
+	{
+	public:
+		D3D11ShaderResourceView(ID3D11ShaderResourceView* resource)
+		{
+			mResource = resource;
+		}
+	};
+
 	template< class RHITextureType >
 	class TD3D11Texture : public TD3D11Resource< RHITextureType >
 	{
 	protected:
 		TD3D11Texture(ID3D11RenderTargetView* RTV, ID3D11ShaderResourceView* SRV, ID3D11UnorderedAccessView* UAV)
-			:mRTV(RTV), mSRV(SRV), mUAV(UAV)
+			:mSRV(SRV), mRTV(RTV), mUAV(UAV)
 		{
-
+			if ( SRV )
+				SRV->AddRef();
 		}
 
 		virtual void releaseResource()
 		{
+			SAFE_RELEASE(mSRV.mResource);
 			SAFE_RELEASE(mRTV);
-			SAFE_RELEASE(mSRV);
+			
 			SAFE_RELEASE(mUAV);
 			TD3D11Resource< RHITextureType >::releaseResource();
 		}
+		virtual RHIShaderResourceView* getBaseResourceView() { return &mSRV; }
 	public:
-		ID3D11RenderTargetView* mRTV;
-		ID3D11ShaderResourceView* mSRV;
+		D3D11ShaderResourceView  mSRV;
+		ID3D11RenderTargetView*  mRTV;
 		ID3D11UnorderedAccessView* mUAV;
 	};
 
@@ -139,7 +160,6 @@ namespace Render
 		TComPtr< ID3D11RenderTargetView >    RTV;
 		TComPtr< ID3D11ShaderResourceView >  SRV;
 		TComPtr< ID3D11UnorderedAccessView > UAV;
-
 	};
 
 	class D3D11Texture2D : public TD3D11Texture< RHITexture2D >
@@ -155,6 +175,7 @@ namespace Render
 			mSizeX = desc.Width;
 			mSizeY = desc.Height;
 			mNumSamples = desc.SampleDesc.Count;
+			mNumMipLevel = desc.MipLevels;
 		}
 
 
@@ -287,6 +308,27 @@ namespace Render
 
 		template< class T >
 		static auto GetResource(TRefCountPtr<T>& refPtr) { return D3D11Cast::To(refPtr)->getResource(); }
+	};
+
+
+	class FD3D11Utility
+	{
+	public:
+		static FixString<32> GetShaderProfile( ID3D11Device* device , Shader::Type type);
+	};
+
+
+
+	union D3D11ShaderVariant
+	{
+		ID3D11DeviceChild*    resource;
+
+		ID3D11VertexShader*   vertex;
+		ID3D11PixelShader*    pixel;
+		ID3D11GeometryShader* geometry;
+		ID3D11ComputeShader*  compute;
+		ID3D11HullShader*     hull;
+		ID3D11DomainShader*   domain;
 	};
 
 }

@@ -61,6 +61,14 @@ namespace CPP
 		void resetSeek()
 		{
 			mCur = &mBuffer[0];
+			//skip BOM
+			if( mCur[0] == '\xef' &&
+			    mCur[1] == '\xbb' &&
+			    mCur[2] == '\xbF' )
+			{
+				mCur += 3;
+			}
+
 			mLine = 0;
 		}
 

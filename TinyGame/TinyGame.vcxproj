@@ -359,6 +359,7 @@ copy $(TargetDir)EngineShare.dll  $(ProjectDir)out\</Command>
     <None Include="out\Shader\Bloom.sgc" />
     <None Include="out\Shader\BufferUtility.sgc" />
     <None Include="out\Shader\Common.sgc" />
+    <None Include="out\Shader\CommonHLSL.sgc" />
     <None Include="out\Shader\ComplexCommon.sgc" />
     <None Include="out\Shader\CopyTexture.sgc" />
     <None Include="out\Shader\BasePass.sgc" />
@@ -370,6 +371,7 @@ copy $(TargetDir)EngineShare.dll  $(ProjectDir)out\</Command>
     <None Include="out\Shader\EnvLightTextureGen.sgc" />
     <None Include="out\Shader\Game\BumpPS.sgc" />
     <None Include="out\Shader\Game\BumpVS.sgc" />
+    <None Include="out\Shader\Game\HLSLTest.sgc" />
     <None Include="out\Shader\Game\EnvLightingTest.sgc" />
     <None Include="out\Shader\Game\Grass.sgc" />
     <None Include="out\Shader\Game\NoiseTest.sgc" />

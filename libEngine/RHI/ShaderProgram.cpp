@@ -34,7 +34,7 @@ namespace Render
 		samplerName += name;
 		samplerName += "Sampler";
 		getParameter(samplerName, paramSampler);
-		GetContext(commandList).setTexture(*mRHIResource, param, texture, paramSampler, sampler);
+		GetContext(commandList).setShaderTexture(*mRHIResource, param, texture, paramSampler, sampler);
 	}
 
 	void ShaderProgram::setTexture(RHICommandList& commandList, char const* name, RHITextureBase& texture)
@@ -48,13 +48,13 @@ namespace Render
 	void ShaderProgram::setTexture(RHICommandList& commandList, ShaderParameter const& param, RHITextureBase& texture)
 	{
 		CHECK_PARAMETER(param);
-		GetContext(commandList).setTexture(*mRHIResource, param, texture);
+		GetContext(commandList).setShaderTexture(*mRHIResource, param, texture);
 	}
 
 	void ShaderProgram::setTexture(RHICommandList& commandList, ShaderParameter const& param, RHITextureBase& texture, ShaderParameter const& paramSampler, RHISamplerState& sampler)
 	{
 		CHECK_PARAMETER(param);
-		GetContext(commandList).setTexture(*mRHIResource, param, texture, paramSampler, sampler);
+		GetContext(commandList).setShaderTexture(*mRHIResource, param, texture, paramSampler, sampler);
 	}
 
 	void ShaderProgram::setRWTexture(RHICommandList& commandList, char const* name, RHITextureBase& texture, EAccessOperator op /*= AO_READ_AND_WRITE*/)
@@ -62,13 +62,13 @@ namespace Render
 		ShaderParameter param;
 		if( !getParameter(name, param) )
 			return;
-		GetContext(commandList).setRWTexture(*mRHIResource, param, texture, op);
+		GetContext(commandList).setShaderRWTexture(*mRHIResource, param, texture, op);
 	}
 
 	void ShaderProgram::setRWTexture(RHICommandList& commandList, ShaderParameter const& param, RHITextureBase& texture, EAccessOperator op /*= AO_READ_AND_WRITE*/, int idx /*= -1*/)
 	{
 		CHECK_PARAMETER(param);
-		GetContext(commandList).setRWTexture(*mRHIResource, param, texture, op);
+		GetContext(commandList).setShaderRWTexture(*mRHIResource, param, texture, op);
 	}
 
 
@@ -77,7 +77,7 @@ namespace Render
 		ShaderParameter param;
 		if( !getParameter(name, param) )
 			return;
-		GetContext(commandList).setParam(*mRHIResource, param, &v1, 1);
+		GetContext(commandList).setShaderValue(*mRHIResource, param, &v1, 1);
 	}
 
 	void ShaderProgram::setParam(RHICommandList& commandList, char const* name, int v1, int v2)
@@ -86,7 +86,7 @@ namespace Render
 		if( !getParameter(name, param) )
 			return;
 		int values[] = { v1 , v2 };
-		GetContext(commandList).setParam(*mRHIResource, param, values, 2);
+		GetContext(commandList).setShaderValue(*mRHIResource, param, values, 2);
 	}
 
 	void ShaderProgram::setParam(RHICommandList& commandList, char const* name, int v1, int v2, int v3)
@@ -95,7 +95,7 @@ namespace Render
 		if( !getParameter(name, param) )
 			return;
 		int values[] = { v1 , v2 , v3 };
-		GetContext(commandList).setParam(*mRHIResource, param, values, 3);
+		GetContext(commandList).setShaderValue(*mRHIResource, param, values, 3);
 	}
 
 	void ShaderProgram::setParam(RHICommandList& commandList, char const* name, int v1, int v2, int v3, int v4)
@@ -104,7 +104,7 @@ namespace Render
 		if( !getParameter(name, param) )
 			return;
 		int values[] = { v1 , v2 , v3 , v4 };
-		GetContext(commandList).setParam(*mRHIResource, param, values, 4);
+		GetContext(commandList).setShaderValue(*mRHIResource, param, values, 4);
 	}
 
 	void ShaderProgram::setParam(RHICommandList& commandList, char const* name, float v1)
@@ -144,79 +144,79 @@ namespace Render
 		ShaderParameter param;
 		if( !getParameter(name, param) )
 			return;
-		GetContext(commandList).setParam(*mRHIResource, param, v, num);
+		GetContext(commandList).setShaderValue(*mRHIResource, param, v, num);
 	}
 
 	void ShaderProgram::setParam(RHICommandList& commandList, ShaderParameter const& param, int v1)
 	{
 		CHECK_PARAMETER(param);
-		GetContext(commandList).setParam(*mRHIResource, param, &v1, 1);
+		GetContext(commandList).setShaderValue(*mRHIResource, param, &v1, 1);
 	}
 
 	void ShaderProgram::setParam(RHICommandList& commandList, ShaderParameter const& param, IntVector2 const& v)
 	{
 		CHECK_PARAMETER(param);
-		GetContext(commandList).setParam(*mRHIResource, param, (int const*)&v, 2);
+		GetContext(commandList).setShaderValue(*mRHIResource, param, (int const*)&v, 2);
 	}
 
 	void ShaderProgram::setParam(RHICommandList& commandList, ShaderParameter const& param, IntVector3 const& v)
 	{
 		CHECK_PARAMETER(param);
-		GetContext(commandList).setParam(*mRHIResource, param, (int const*)&v, 3);
+		GetContext(commandList).setShaderValue(*mRHIResource, param, (int const*)&v, 3);
 	}
 
 	void ShaderProgram::setParam(RHICommandList& commandList, ShaderParameter const& param, float v1)
 	{
 		CHECK_PARAMETER(param);
-		GetContext(commandList).setParam(*mRHIResource, param, &v1, 1);
+		GetContext(commandList).setShaderValue(*mRHIResource, param, &v1, 1);
 	}
 
 	void ShaderProgram::setParam(RHICommandList& commandList, ShaderParameter const& param, Vector2 const& v)
 	{
 		CHECK_PARAMETER(param);
-		GetContext(commandList).setParam(*mRHIResource, param, (float const*)&v, 2);
+		GetContext(commandList).setShaderValue(*mRHIResource, param, (float const*)&v, 2);
 	}
 
 	void ShaderProgram::setParam(RHICommandList& commandList, ShaderParameter const& param, Vector3 const& v)
 	{
 		CHECK_PARAMETER(param);
-		GetContext(commandList).setParam(*mRHIResource, param, (float const*)&v, 3);
+		GetContext(commandList).setShaderValue(*mRHIResource, param, (float const*)&v, 3);
 	}
 
 	void ShaderProgram::setParam(RHICommandList& commandList, ShaderParameter const& param, Vector4 const& v)
 	{
 		CHECK_PARAMETER(param);
-		GetContext(commandList).setParam(*mRHIResource, param, (float const*)&v, 4);
+		GetContext(commandList).setShaderValue(*mRHIResource, param, (float const*)&v, 4);
 	}
 
 	void ShaderProgram::setParam(RHICommandList& commandList, ShaderParameter const& param, Matrix4 const& m)
 	{
 		CHECK_PARAMETER(param);
-		GetContext(commandList).setParam(*mRHIResource, param, &m, 1);
+		GetContext(commandList).setShaderValue(*mRHIResource, param, &m, 1);
 	}
 
 	void ShaderProgram::setParam(RHICommandList& commandList, ShaderParameter const& param, Matrix3 const& m)
 	{
 		CHECK_PARAMETER(param);
-		GetContext(commandList).setParam(*mRHIResource, param, &m, 1);
+		GetContext(commandList).setShaderValue(*mRHIResource, param, &m, 1);
 	}
 
 	void ShaderProgram::setParam(RHICommandList& commandList, ShaderParameter const& param, Matrix4 const v[], int num)
 	{
 		CHECK_PARAMETER(param);
-		GetContext(commandList).setParam(*mRHIResource, param, v, num);
+		GetContext(commandList).setShaderValue(*mRHIResource, param, v, num);
 	}
 
 	void ShaderProgram::setParam(RHICommandList& commandList, ShaderParameter const& param, Vector3 const v[], int num)
 	{
 		CHECK_PARAMETER(param);
-		GetContext(commandList).setParam(*mRHIResource, param, v, num);
+		GetContext(commandList).setShaderValue(*mRHIResource, param, v, num);
 	}
 
 	void ShaderProgram::setParam(RHICommandList& commandList, ShaderParameter const& param, Vector4 const v[], int num)
 	{
 		CHECK_PARAMETER(param);
-		GetContext(commandList).setParam(*mRHIResource, param, v, num);
+		GetContext(commandList).setShaderValue(*mRHIResource, param, v, num);
 	}
 
 	void ShaderProgram::setVector3(RHICommandList& commandList, char const* name, float const v[], int num)
@@ -224,7 +224,7 @@ namespace Render
 		ShaderParameter param;
 		if( !getParameter(name, param) )
 			return;
-		GetContext(commandList).setParam(*mRHIResource, param, (Vector3 const*)v, num);
+		GetContext(commandList).setShaderValue(*mRHIResource, param, (Vector3 const*)v, num);
 	}
 
 	void ShaderProgram::setVector4(RHICommandList& commandList, char const* name, float const v[], int num)
@@ -232,7 +232,7 @@ namespace Render
 		ShaderParameter param;
 		if( !getParameter(name, param) )
 			return;
-		GetContext(commandList).setParam(*mRHIResource, param, (Vector4 const*)v, num);
+		GetContext(commandList).setShaderValue(*mRHIResource, param, (Vector4 const*)v, num);
 	}
 
 	void ShaderProgram::setMatrix33(RHICommandList& commandList, char const* name, float const* value, int num /*= 1*/)
@@ -240,32 +240,31 @@ namespace Render
 		ShaderParameter param;
 		if( !getParameter(name, param) )
 			return;
-		GetContext(commandList).setParam(*mRHIResource, param, (Matrix3 const*)value, num);
+		GetContext(commandList).setShaderValue(*mRHIResource, param, (Matrix3 const*)value, num);
 	}
 
 
 	bool ShaderProgram::getParameter(char const* name, ShaderParameter& outParam)
 	{
-		ShaderParameter param;
-		return mRHIResource->getParameter(name, param);
+		return mRHIResource->getParameter(name, outParam);
 	}
 
 	void ShaderProgram::setUniformBuffer(RHICommandList& commandList, ShaderParameter const& param, RHIVertexBuffer& buffer)
 	{
 		CHECK_PARAMETER(param);
-		GetContext(commandList).setUniformBuffer(*mRHIResource, param, buffer);
+		GetContext(commandList).setShaderUniformBuffer(*mRHIResource, param, buffer);
 	}
 
 	void ShaderProgram::setStorageBuffer(RHICommandList& commandList, ShaderParameter const& param, RHIVertexBuffer& buffer)
 	{
 		CHECK_PARAMETER(param);
-		GetContext(commandList).setStorageBuffer(*mRHIResource, param, buffer);
+		GetContext(commandList).setShaderStorageBuffer(*mRHIResource, param, buffer);
 	}
 
 	void ShaderProgram::setAtomicCounterBuffer(RHICommandList& commandList, ShaderParameter const& param, RHIVertexBuffer& buffer)
 	{
 		CHECK_PARAMETER(param);
-		GetContext(commandList).setAtomicCounterBuffer(*mRHIResource, param, buffer);
+		GetContext(commandList).setShaderAtomicCounterBuffer(*mRHIResource, param, buffer);
 	}
 
 	void ShaderProgram::setAtomicCounterBuffer(RHICommandList& commandList, char const* name, RHIVertexBuffer& buffer)
@@ -281,6 +280,6 @@ namespace Render
 		ShaderParameter param;
 		if( !getParameter(name, param) )
 			return;
-		GetContext(commandList).setParam(*mRHIResource, param, (Matrix4 const*)value, num);
+		GetContext(commandList).setShaderValue(*mRHIResource, param, (Matrix4 const*)value, num);
 	}
 }//namespace Render

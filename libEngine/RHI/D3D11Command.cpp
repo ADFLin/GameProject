@@ -1,14 +1,15 @@
 #include "D3D11Command.h"
 
-#include "LogSystem.h"
+#include "D3D11ShaderCommon.h"
 
+#include "LogSystem.h"
 
 namespace Render
 {
 
 	bool D3D11System::initialize(RHISystemInitParam const& initParam)
 	{
-		uint32 flag = D3D11_CREATE_DEVICE_BGRA_SUPPORT;
+		uint32 flag = D3D11_CREATE_DEVICE_BGRA_SUPPORT | D3D11_CREATE_DEVICE_DEBUG;
 		VERIFY_D3D11RESULT_RETURN_FALSE(D3D11CreateDevice(NULL, D3D_DRIVER_TYPE_HARDWARE, NULL, flag, NULL, 0, D3D11_SDK_VERSION, &mDevice, NULL, &mDeviceContext));
 
 		TComPtr< IDXGIDevice > pDXGIDevice;
@@ -26,9 +27,14 @@ namespace Render
 		case 0x1002: gRHIDeviceVendorName = DeviceVendorName::ATI; break;
 		}
 
-		mDrawContext.mDeviceContext = mDeviceContext.get();
-		mImmediateCommandList = new RHICommandListImpl(mDrawContext);
+		mRenderContext.initialize(mDevice, mDeviceContext);
+		mImmediateCommandList = new RHICommandListImpl(mRenderContext);
 		return true;
+	}
+
+	ShaderFormat* D3D11System::createShaderFormat()
+	{
+		return new ShaderFormatHLSL( mDevice );
 	}
 
 	RHITexture2D* D3D11System::RHICreateTexture2D(Texture::Format format, int w, int h, int numMipLevel, int numSamples, uint32 createFlags, void* data, int dataAlign)
@@ -130,7 +136,7 @@ namespace Render
 
 		TComPtr< ID3D10Blob > errorCode;
 		TComPtr< ID3D10Blob > byteCode;
-		FixString<32> profileName = GetShaderProfile(Shader::eVertex);
+		FixString<32> profileName = FD3D11Utility::GetShaderProfile( mDevice , Shader::eVertex);
 
 		uint32 compileFlag = 0 /*| D3D10_SHADER_PACK_MATRIX_ROW_MAJOR*/;
 		VERIFY_D3D11RESULT(
@@ -213,6 +219,16 @@ namespace Render
 		return nullptr;
 	}
 
+	RHIShader* D3D11System::RHICreateShader(Shader::Type type)
+	{
+		return new D3D11Shader;
+	}
+
+	RHIShaderProgram* D3D11System::RHICreateShaderProgram()
+	{
+		return new D3D11ShaderProgram;
+	}
+
 	bool D3D11System::createTexture2DInternal(DXGI_FORMAT format, int width, int height, int numMipLevel, int numSamples, uint32 creationFlag, void* data, uint32 pixelSize, Texture2DCreationResult& outResult)
 	{
 		D3D11_TEXTURE2D_DESC desc = {};
@@ -260,5 +276,256 @@ namespace Render
 		return true;
 	}
 
+
+	template< Shader::Type TypeValue >
+	void D3D11ShaderBoundState::commitState(ID3D11DeviceContext* context)
+	{
+#if 0
+		mConstBufferValueDirtyMask = 0xf;
+		mConstBufferDirtyMask = 0xf;
+		mSRVDirtyMask = 0xf;
+#endif
+
+		if( mConstBufferValueDirtyMask )
+		{
+			uint32 mask = mConstBufferValueDirtyMask;
+			mConstBufferValueDirtyMask = 0;
+			for( int index = 0; index < MaxConstBufferNum && mask; ++index )
+			{
+				if( mask & BIT(index) )
+				{
+					mask &= ~BIT(index);
+					mConstBuffers[index].updateResource(context);
+				}
+			}
+		}
+
+		if( mConstBufferDirtyMask )
+		{
+			uint32 mask = mConstBufferDirtyMask;
+			mConstBufferDirtyMask = 0;
+			for( int index = 0; index < MaxSimulatedBoundedBufferNum && mask; ++index )
+			{
+				if( mask & BIT(index) )
+				{
+					mask &= ~BIT(index);
+					switch( TypeValue )
+					{
+					case Shader::eVertex:   context->VSSetConstantBuffers(index, 1, mBoundedBuffers + index); break;
+					case Shader::ePixel:    context->PSSetConstantBuffers(index, 1, mBoundedBuffers + index); break;
+					case Shader::eGeometry: context->GSSetConstantBuffers(index, 1, mBoundedBuffers + index); break;
+					case Shader::eHull:     context->HSSetConstantBuffers(index, 1, mBoundedBuffers + index); break;
+					case Shader::eDomain:   context->DSSetConstantBuffers(index, 1, mBoundedBuffers + index); break;
+					case Shader::eCompute:  context->CSSetConstantBuffers(index, 1, mBoundedBuffers + index); break;
+					}
+				}
+			}
+		}
+
+		if( mSRVDirtyMask)
+		{
+			uint32 mask = mSRVDirtyMask;
+			mSRVDirtyMask = 0;
+			for( int index = 0; index < MaxSimulatedBoundedSRVNum && mask; ++index )
+			{
+				if( mask & BIT(index) )
+				{
+					mask &= ~BIT(index);
+					switch( TypeValue )
+					{
+					case Shader::eVertex:   context->VSSetShaderResources(index, 1, mBoundedSRVs + index); break;
+					case Shader::ePixel:    context->PSSetShaderResources(index, 1, mBoundedSRVs + index); break;
+					case Shader::eGeometry: context->GSSetShaderResources(index, 1, mBoundedSRVs + index); break;
+					case Shader::eHull:     context->HSSetShaderResources(index, 1, mBoundedSRVs + index); break;
+					case Shader::eDomain:   context->DSSetShaderResources(index, 1, mBoundedSRVs + index); break;
+					case Shader::eCompute:  context->CSSetShaderResources(index, 1, mBoundedSRVs + index); break;
+					}
+				}
+			}
+		}
+
+		if( mSamplerDirtyMask )
+		{
+			uint32 mask = mSamplerDirtyMask;
+			mSamplerDirtyMask = 0;
+			for( int index = 0; index < MaxSimulatedBoundedSamplerNum && mask; ++index )
+			{
+				if( mask & BIT(index) )
+				{
+					mask &= ~BIT(index);
+					switch( TypeValue )
+					{
+					case Shader::eVertex:   context->VSSetSamplers(index, 1, mBoundedSamplers + index); break;
+					case Shader::ePixel:    context->PSSetSamplers(index, 1, mBoundedSamplers + index); break;
+					case Shader::eGeometry: context->GSSetSamplers(index, 1, mBoundedSamplers + index); break;
+					case Shader::eHull:     context->HSSetSamplers(index, 1, mBoundedSamplers + index); break;
+					case Shader::eDomain:   context->DSSetSamplers(index, 1, mBoundedSamplers + index); break;
+					case Shader::eCompute:  context->CSSetSamplers(index, 1, mBoundedSamplers + index); break;
+					}
+				}
+			}
+		}
+	}
+
+	void D3D11Context::RHISetShaderProgram(RHIShaderProgram* shaderProgram)
+	{
+		if( shaderProgram == nullptr )
+		{
+			mBoundedShaderMask = 0;
+			for( int i = 0; i < Shader::Count; ++i )
+			{
+				if( mBoundedShaders[i].resource )
+				{
+					mBoundedShaderDirtyMask |= BIT(i);
+					mBoundedShaders[i].resource = nullptr;
+				}
+			}
+		}
+		else
+		{
+			mBoundedShaderMask = 0;
+			auto& shaderProgramImpl = static_cast<D3D11ShaderProgram&>(*shaderProgram);
+			for( int i = 0; i < Shader::Count; ++i )
+			{
+				if( !shaderProgramImpl.mShaders[i].isValid() )
+					break;
+
+				auto& shaderImpl = static_cast<D3D11Shader&>(*shaderProgramImpl.mShaders[i]);
+				auto  type = shaderImpl.mResource.type;
+
+				mBoundedShaderMask |= BIT(type);
+				if( mBoundedShaders[type].resource != shaderImpl.mResource.ptr )
+				{
+					mBoundedShaders[type].resource = shaderImpl.mResource.ptr;
+					mBoundedShaderDirtyMask |= BIT(type);
+				}
+			}
+		}
+	}
+
+	template< Shader::Type TypeValue >
+	void D3D11Context::setShader(D3D11ShaderVariant  const& shaderVariant)
+	{
+		switch( TypeValue )
+		{
+		case Shader::eVertex:   mDeviceContext->VSSetShader(shaderVariant.vertex, nullptr, 0); break;
+		case Shader::ePixel:    mDeviceContext->PSSetShader(shaderVariant.pixel, nullptr, 0); break;
+		case Shader::eGeometry: mDeviceContext->GSSetShader(shaderVariant.geometry, nullptr, 0); break;
+		case Shader::eHull:     mDeviceContext->HSSetShader(shaderVariant.hull, nullptr, 0); break;
+		case Shader::eDomain:   mDeviceContext->DSSetShader(shaderVariant.domain, nullptr, 0); break;
+		case Shader::eCompute:  mDeviceContext->CSSetShader(shaderVariant.compute, nullptr, 0); break;
+		}
+	}
+
+	template < class ValueType >
+	void D3D11Context::setShaderValueT(RHIShaderProgram& shaderProgram, ShaderParameter const& param, ValueType const val[], int dim)
+	{
+		auto& shaderProgramImpl = static_cast<D3D11ShaderProgram&>(shaderProgram);
+		shaderProgramImpl.setupShader(param, [this, val, dim](Shader::Type type, ShaderParameter const& shaderParam)
+		{
+			mShaderBoundState[type].setShaderValue(shaderParam, val, sizeof(ValueType) * dim);
+		});
+	}
+
+	void D3D11Context::setShaderValue(RHIShaderProgram& shaderProgram, ShaderParameter const& param, int32 const val[], int dim)
+	{
+		setShaderValueT(shaderProgram, param, val, dim);
+	}
+
+	void D3D11Context::setShaderValue(RHIShaderProgram& shaderProgram, ShaderParameter const& param, float const val[], int dim)
+	{
+		setShaderValueT(shaderProgram, param, val, dim);
+	}
+
+	void D3D11Context::setShaderValue(RHIShaderProgram& shaderProgram, ShaderParameter const& param, Matrix3 const val[], int dim)
+	{
+		//valid layout ?
+		setShaderValueT(shaderProgram, param, val, dim);
+	}
+
+	void D3D11Context::setShaderValue(RHIShaderProgram& shaderProgram, ShaderParameter const& param, Matrix4 const val[], int dim)
+	{
+		setShaderValueT(shaderProgram, param, val, dim);
+	}
+
+	void D3D11Context::setShaderValue(RHIShaderProgram& shaderProgram, ShaderParameter const& param, Vector3 const val[], int dim)
+	{
+		//valid layout ?
+		setShaderValueT(shaderProgram, param, val, dim);
+	}
+
+	void D3D11Context::setShaderValue(RHIShaderProgram& shaderProgram, ShaderParameter const& param, Vector4 const val[], int dim)
+	{
+		setShaderValueT(shaderProgram, param, val, dim);
+	}
+
+	void D3D11Context::setShaderMatrix22(RHIShaderProgram& shaderProgram, ShaderParameter const& param, float const val[], int dim)
+	{
+		//valid layout ?
+		setShaderValueT(shaderProgram, param, val, 2 * 2 * dim);
+	}
+
+	void D3D11Context::setShaderMatrix43(RHIShaderProgram& shaderProgram, ShaderParameter const& param, float const val[], int dim)
+	{
+		setShaderValueT(shaderProgram, param, val, 4 * 3 * dim);
+	}
+
+	void D3D11Context::setShaderMatrix34(RHIShaderProgram& shaderProgram, ShaderParameter const& param, float const val[], int dim)
+	{
+		//valid layout ?
+		setShaderValueT(shaderProgram, param, val, 3 * 4 * dim);
+	}
+
+	void D3D11Context::setShaderTexture(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHITextureBase& texture)
+	{
+		auto& shaderProgramImpl = static_cast<D3D11ShaderProgram&>(shaderProgram);
+		shaderProgramImpl.setupShader(param, [this, &texture](Shader::Type type, ShaderParameter const& shaderParam)
+		{
+			mShaderBoundState[type].setTexture(shaderParam, texture);
+		});
+	}
+
+	void D3D11Context::commitRenderShaderState()
+	{
+#define SET_SHADER( SHADER_TYPE )\
+			if( mBoundedShaderDirtyMask & BIT(SHADER_TYPE) )\
+			{\
+				setShader< SHADER_TYPE >( mBoundedShaders[SHADER_TYPE] );\
+			}
+
+		if( mBoundedShaderDirtyMask )
+		{
+			SET_SHADER(Shader::eVertex);
+			SET_SHADER(Shader::ePixel);
+			SET_SHADER(Shader::eGeometry);
+			SET_SHADER(Shader::eHull);
+			SET_SHADER(Shader::eDomain);
+			mBoundedShaderDirtyMask = ( mBoundedShaderDirtyMask & BIT(Shader::eCompute) );
+		}
+#define COMMIT_SHADER_STATE( SHADER_TYPE )\
+		if( mBoundedShaderMask & BIT(SHADER_TYPE) )\
+		{\
+			mShaderBoundState[SHADER_TYPE].commitState<SHADER_TYPE>(mDeviceContext.get());\
+		}
+
+		COMMIT_SHADER_STATE(Shader::eVertex);
+		COMMIT_SHADER_STATE(Shader::ePixel);
+		COMMIT_SHADER_STATE(Shader::eGeometry);
+		COMMIT_SHADER_STATE(Shader::eHull);
+		COMMIT_SHADER_STATE(Shader::eDomain);
+
+#undef SET_SHADER
+#undef COMMIT_SHADER_STATE
+	}
+
+	void D3D11Context::commitComputeState()
+	{
+		if( mBoundedShaderDirtyMask & BIT(Shader::eCompute) )
+		{
+			setShader<Shader::eCompute>(mBoundedShaders[Shader::eCompute]);
+			mBoundedShaderDirtyMask &= ~BIT(Shader::eCompute);
+		}
+		mShaderBoundState[Shader::eCompute].commitState<Shader::eCompute>(mDeviceContext.get());
+	}
 
 }//namespace Render

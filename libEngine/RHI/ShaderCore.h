@@ -14,13 +14,14 @@ namespace Render
 {
 	class RHICommandList;
 	class RHIContext;
+	struct ShaderEntryInfo;
 
 	class ShaderCompileOption
 	{
 	public:
 		ShaderCompileOption()
 		{
-			version = 0;
+
 		}
 
 		void addInclude(char const* name)
@@ -57,20 +58,41 @@ namespace Render
 		{
 			mCodes.push_back(name);
 		}
+
+		void addMeta(HashString key, char const* value)
+		{
+			mMetaMap[key] = value;
+		}
+		char const* getMeta(HashString key) const
+		{
+			auto iter = mMetaMap.find(key);
+			if( iter == mMetaMap.end() )
+				return nullptr;
+			return iter->second.c_str();
+		}
+
+		bool isMetaMatch(HashString key, char const* value) const
+		{
+			char const* str = getMeta(key);
+			if( str == nullptr )
+				return false;
+			return FCString::CompareIgnoreCase(str, value) == 0;
+		}
+
 		struct ConfigVar
 		{
 			std::string name;
 			std::string value;
 		};
 
-		std::string getCode(char const* defCode = nullptr, char const* addionalCode = nullptr) const;
+		std::string getCode(ShaderEntryInfo const& entry, char const* defCode = nullptr , char const* addionalCode = nullptr ) const;
 
-		unsigned version;
 		bool     bShowComplieInfo = false;
 
 		std::vector< std::string > mCodes;
 		std::vector< ConfigVar >   mConfigVars;
 		std::vector< std::string > mIncludeFiles;
+		std::unordered_map< HashString, std::string > mMetaMap;
 	};
 
 	enum BlendMode
@@ -98,9 +120,6 @@ namespace Render
 		BlendMode blendMode;
 		ETessellationMode tessellationMode;
 	};
-
-
-
 
 	class ShaderParameter
 	{
@@ -195,16 +214,17 @@ namespace Render
 
 
 	};
+	typedef TRefCountPtr< RHIShader > RHIShaderRef;
 
 	class RHIShaderProgram : public RHIResource
 	{
 	public:
-		virtual bool setupShaders(RHIShader* shaders[], int numShader) = 0;
+		virtual bool setupShaders(RHIShaderRef shaders[], int numShader) = 0;
 		virtual bool getParameter(char const* name, ShaderParameter& outParam) = 0;
 		virtual bool getResourceParameter(EShaderResourceType resourceType, char const* name, ShaderParameter& outParam) = 0;
 	};
 
-	typedef TRefCountPtr< RHIShader > RHIShaderRef;
+	
 	typedef TRefCountPtr< RHIShaderProgram > RHIShaderProgramRef;
 
 	class ShaderResource

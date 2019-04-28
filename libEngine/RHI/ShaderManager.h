@@ -31,11 +31,6 @@ namespace Render
 		Material,
 	};
 
-	struct ShaderEntryInfo
-	{
-		Shader::Type type;
-		char const*  name;
-	};
 
 	struct ShaderProgramCompileInfo : public IAssetViewer
 	{
@@ -148,7 +143,7 @@ namespace Render
 		static TArrayView< ShaderEntryInfo const > MakeEntryInfos(ShaderEntryInfo entries[], uint8 shaderMask, char const* entryNames[])
 		{
 			int indexUsed = 0;
-			for( int i = 0; i < Shader::NUM_SHADER_TYPE; ++i )
+			for( int i = 0; i < Shader::Count; ++i )
 			{
 				if( (shaderMask & BIT(i)) == 0 )
 					continue;

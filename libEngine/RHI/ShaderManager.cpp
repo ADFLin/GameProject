@@ -74,6 +74,9 @@ namespace Render
 					return false;
 			}
 
+			if( !format.setupProgram(*program.getRHIResource(), binaryCode) )
+				return false;
+
 			format.setupParameters(program);
 			return true;
 		}
@@ -140,6 +143,8 @@ namespace Render
 		}
 		bool saveCacheData( ShaderFormat& format, ShaderProgramCompileInfo const& info)
 		{
+			if( !format.isSupportBinaryCode() )
+				return false;
 			ShaderCacheBinaryData binaryData;
 			DataCacheKey key;
 			GetShaderCacheKey(format, info, key);
@@ -170,6 +175,9 @@ namespace Render
 
 		bool loadCacheData(ShaderFormat& format, ShaderProgramCompileInfo& info)
 		{
+			if( !format.isSupportBinaryCode() )
+				return false;
+
 			if( !gbUseShaderCacheCom.getValue() )
 				return false;
 
@@ -202,7 +210,7 @@ namespace Render
 
 
 
-	char const* ShaderPosfixNames[] =
+	const char const* ShaderPosfixNames[] =
 	{
 		"VS" SHADER_FILE_SUBNAME ,
 		"PS" SHADER_FILE_SUBNAME ,
@@ -212,7 +220,7 @@ namespace Render
 		"DS" SHADER_FILE_SUBNAME ,
 	};
 
-	char const* gShaderDefines[] =
+	const char const* gShaderDefines[] =
 	{
 		"#define VERTEX_SHADER 1\n" ,
 		"#define PIXEL_SHADER 1\n" ,
@@ -221,8 +229,8 @@ namespace Render
 		"#define HULL_SHADER 1\n" ,
 		"#define DOMAIN_SHADER 1\n" ,
 	};
-
 #if CORE_SHARE_CODE
+
 
 	ShaderManager& ShaderManager::Get()
 	{
@@ -251,7 +259,7 @@ namespace Render
 
 	ShaderManager::ShaderManager()
 	{
-		mDefaultVersion = 430;
+
 	}
 
 	ShaderManager::~ShaderManager()
@@ -307,7 +315,7 @@ namespace Render
 		for( auto pShaderClass : MaterialShaderProgramClass::ClassList )
 		{
 			ShaderCompileOption option;
-			option.version = 430;
+			mShaderFormat->setupShaderCompileOption(option);
 			option.addCode(&materialCode[0]);
 			vertexFactoryType.getCompileOption(option);
 
@@ -365,7 +373,7 @@ namespace Render
 	GlobalShaderProgram* ShaderManager::constructGlobalShader(GlobalShaderProgramClass const& shaderClass)
 	{
 		ShaderCompileOption option;
-		option.version = mDefaultVersion;
+		mShaderFormat->setupShaderCompileOption(option);
 		return constructShaderInternal(shaderClass, ShaderClassType::Global, option);
 	}
 
@@ -375,10 +383,6 @@ namespace Render
 		if( result )
 		{
 			result->myClass = &shaderClass;
-			if( option.version == 0 )
-			{
-				option.version = mDefaultVersion;
-			}
 			
 			(*shaderClass.funSetupShaderCompileOption)(option);
 
@@ -458,7 +462,7 @@ namespace Render
 
 	bool ShaderManager::loadFile(ShaderProgram& shaderProgram, char const* fileName, TArrayView< ShaderEntryInfo const > entries, char const* def /*= nullptr*/, char const* additionalCode /*= nullptr*/)
 	{
-		char const* filePaths[Shader::NUM_SHADER_TYPE];
+		char const* filePaths[Shader::Count];
 		FixString< 256 > path;
 		path.format("%s%s", fileName, SHADER_FILE_SUBNAME);
 		for( int i = 0; i < entries.size(); ++i )
@@ -474,7 +478,7 @@ namespace Render
 
 	bool ShaderManager::loadInternal(ShaderProgram& shaderProgram, char const* fileName, uint8 shaderMask, char const* entryNames[], ShaderCompileOption const& option, char const* additionalCode, bool bSingleFile, ShaderClassType classType)
 	{
-		ShaderEntryInfo entries[Shader::NUM_SHADER_TYPE];
+		ShaderEntryInfo entries[Shader::Count];
 		return loadInternal(shaderProgram, fileName, MakeEntryInfos(entries, shaderMask, entryNames) , option, additionalCode, bSingleFile);
 	}
 
@@ -501,11 +505,11 @@ namespace Render
 	bool ShaderManager::loadInternal(ShaderProgram& shaderProgram, char const* fileName, uint8 shaderMask, char const* entryNames[], char const* def , char const* additionalCode, bool bSingleFile, ShaderClassType classType)
 	{
 
-		ShaderEntryInfo entries[Shader::NUM_SHADER_TYPE];
+		ShaderEntryInfo entries[Shader::Count];
 		auto entriesView = MakeEntryInfos(entries, shaderMask, entryNames);
 
-		char const* filePaths[Shader::NUM_SHADER_TYPE];
-		FixString< 256 > paths[Shader::NUM_SHADER_TYPE];
+		char const* filePaths[Shader::Count];
+		FixString< 256 > paths[Shader::Count];
 
 		for( int i = 0; i < entriesView.size() ; ++i )
 		{
@@ -533,7 +537,7 @@ namespace Render
 		inoutHeadCode += "#define COMPILER_GLSL 1\n";
 		inoutHeadCode += "#define SHADER_COMPILING 1\n";
 
-		inoutHeadCode += gShaderDefines[entry.type];
+		
 		if( entry.name )
 		{
 			inoutHeadCode += "#define ";
@@ -554,24 +558,18 @@ namespace Render
 		{
 			auto const& entry = entries[i];
 
+			ShaderCompileOption option;
+			mShaderFormat->setupShaderCompileOption(option);
 			std::string headCode;
-			AddCommonHeadCode(headCode, mDefaultVersion, entry);
+			mShaderFormat->getHeadCode(headCode, option, entry);
 
 			if( def )
 			{
 				headCode += def;
-				headCode += '\n';
 			}
+			headCode = option.getCode(entry, headCode.c_str(), additionalCode);
 
-			headCode += "#include \"Common" SHADER_FILE_SUBNAME "\"\n";
-
-			if( additionalCode )
-			{
-				headCode += additionalCode;
-				headCode += '\n';
-			}
-
-			info->shaders.push_back({ entry.type, filePaths[i]  , std::move(headCode) });
+			info->shaders.push_back({ entry.type, filePaths[i]  , std::move(headCode) , entry.name });
 		}
 
 		if( !updateShaderInternal(shaderProgram, *info) )
@@ -614,7 +612,7 @@ namespace Render
 		if( info->classType == ShaderClassType::Global )
 		{
 			ShaderCompileOption option;
-			option.version = mDefaultVersion;
+			mShaderFormat->setupShaderCompileOption(option);
 
 			GlobalShaderProgramClass const& myClass = *static_cast<GlobalShaderProgram&>(shaderProgram).myClass;
 			(*myClass.funSetupShaderCompileOption)(option);
@@ -647,7 +645,7 @@ namespace Render
 				return false;
 		}
 		
-		RHIShader* shaders[Shader::NUM_SHADER_TYPE];
+		RHIShaderRef shaders[Shader::Count];
 		int numShader = 0;
 		bool bFailed = false;
 		for( ShaderCompileInfo& shaderInfo : info.shaders )
@@ -668,11 +666,6 @@ namespace Render
 
 		if( bFailed )
 		{
-			for( int i = 0; i < numShader; ++i )
-			{
-				shaders[i]->releaseResource();
-				delete shaders[i];
-			}
 			return false;
 		}
 
@@ -682,7 +675,6 @@ namespace Render
 		}
 
 		mShaderFormat->setupParameters(shaderProgram);
-
 		getCache()->saveCacheData(*mShaderFormat, info);
 		return true;
 	}
@@ -694,10 +686,9 @@ namespace Render
 		for( auto const& entry : entries )
 		{
 			std::string defCode;
+			mShaderFormat->getHeadCode(defCode, option, entry);
 
-			AddCommonHeadCode(defCode, option.version ? option.version : mDefaultVersion, entry);
-
-			std::string headCode = option.getCode(defCode.c_str(), additionalCode);
+			std::string headCode = option.getCode( entry , defCode.c_str(), additionalCode);
 
 			FixString< 256 > path;
 			if( bSingleFile )
@@ -708,7 +699,7 @@ namespace Render
 			{
 				path.format("%s%s%s", mBaseDir.c_str(), fileName, ShaderPosfixNames[entry.type]);
 			}
-			compileInfo.shaders.push_back({ entry.type , path.c_str() , std::move(headCode) });
+			compileInfo.shaders.push_back({ entry.type , path.c_str() , std::move(headCode) , entry.name });
 		}
 	}
 
@@ -743,13 +734,16 @@ namespace Render
 			ShaderManager::Get().updateShaderInternal(*shaderProgram, *this, true);
 	}
 
-	std::string ShaderCompileOption::getCode(char const* defCode /*= nullptr */, char const* addionalCode /*= nullptr */) const
+	std::string ShaderCompileOption::getCode( ShaderEntryInfo const& entry , char const* defCode /*= nullptr */, char const* addionalCode /*= nullptr */) const
 	{
 		std::string result;
 		if( defCode )
 		{
 			result += defCode;
 		}
+
+		result += "#define SHADER_COMPILING 1\n";
+		result += gShaderDefines[entry.type];
 
 		for( auto const& var : mConfigVars )
 		{
@@ -763,7 +757,7 @@ namespace Render
 			result += "\n";
 		}
 
-		result += "#include \"Common" SHADER_FILE_SUBNAME "\"\n" ;
+		result += "#include \"Common" SHADER_FILE_SUBNAME "\"\n";
 
 		if( addionalCode )
 		{

@@ -384,8 +384,6 @@ namespace Render
 
 
 
-
-
 		RHISetDepthStencilState(commandList, StaticDepthDisableState::GetRHI());
 		RHISetRasterizerState(commandList, TStaticRasterizerState<ECullMode::None>::GetRHI());
 		RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
@@ -400,6 +398,8 @@ namespace Render
 			drawNoiseImage(commandList, IntVector2(5 + (imageSize + 5) * i, 5), IntVector2(imageSize, imageSize), *noiseShaders[i]);
 
 		}
+
+		RHISetShaderProgram(commandList, nullptr);
 
 		if( 0 )
 		{

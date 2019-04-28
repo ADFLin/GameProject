@@ -103,12 +103,12 @@ namespace Render
 				shader.setTexture(commandList, mParamIrradianceTexture, resource.irradianceTexture);
 			}
 
-			shader.setTexture(commandList, mParamPrefilteredTexture , resource.perfilteredTexture, mParamPrefilteredTexture,
+			shader.setTexture(commandList, mParamPrefilteredTexture , resource.perfilteredTexture, mParamPrefilteredTextureSampler,
 							  TStaticSamplerState< Sampler::eTrilinear, Sampler::eClamp, Sampler::eClamp, Sampler::eClamp > ::GetRHI());
 
 			if ( resource.SharedBRDFTexture.isValid() )
 			{
-				shader.setTexture(commandList, mParamPreIntegratedBRDFTexture, *resource.SharedBRDFTexture , mParamPreIntegratedBRDFTexture,
+				shader.setTexture(commandList, mParamPreIntegratedBRDFTexture, *resource.SharedBRDFTexture , mParamPreIntegratedBRDFTextureSampler,
 								  TStaticSamplerState< Sampler::eBilinear, Sampler::eClamp, Sampler::eClamp > ::GetRHI());
 			}
 		}
@@ -116,6 +116,8 @@ namespace Render
 		ShaderParameter mParamIrradianceTexture;
 		ShaderParameter mParamPrefilteredTexture;
 		ShaderParameter mParamPreIntegratedBRDFTexture;
+		ShaderParameter mParamPrefilteredTextureSampler;
+		ShaderParameter mParamPreIntegratedBRDFTextureSampler;
 	};
 
 	struct GPU_BUFFER_ALIGN LightProbeVisualizeParams

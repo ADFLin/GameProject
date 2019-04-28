@@ -46,32 +46,33 @@ namespace Render
 		void* cubeBData[] = { colorB , colorB , colorB , colorB , colorB , colorB };
 		VERIFY_RETURN_FALSE(GBlackTextureCube.initialize( RHICreateTextureCube(Texture::eRGBA8, 2, 0, BCF_DefalutValue, cubeBData) ) );
 
+		if( gRHISystem->getName() == RHISytemName::Opengl )
+		{
+			OpenGLCast::To(GWhiteTextureCube)->bind();
+			glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+			glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+			glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+			glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+			glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+			OpenGLCast::To(GWhiteTextureCube)->unbind();
 
-		OpenGLCast::To(GWhiteTextureCube)->bind();
-		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
-		OpenGLCast::To(GWhiteTextureCube)->unbind();
-
-		OpenGLCast::To(GWhiteTexture2D)->bind();
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-		OpenGLCast::To(GWhiteTexture2D)->unbind();
+			OpenGLCast::To(GWhiteTexture2D)->bind();
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+			OpenGLCast::To(GWhiteTexture2D)->unbind();
+		}
 
 		GDefalutMaterial = new MaterialMaster;
 		if( !GDefalutMaterial->loadFile("EmptyMaterial") )
 			return false;
 
-		GDefaultMaterialTexture2D.initialize( RHIUtility::LoadTexture2DFromFile("Texture/Gird.png") );
+		GDefaultMaterialTexture2D.initialize(RHIUtility::LoadTexture2DFromFile("Texture/Gird.png"));
 		if( !GDefaultMaterialTexture2D.isValid() )
 			return false;
 
 		ShaderCompileOption option;
-		option.version = 430;
 		VertexFactoryType::DefaultType->getCompileOption(option);
 
 		if( !ShaderManager::Get().loadFile(
@@ -80,15 +81,17 @@ namespace Render
 			SHADER_ENTRY(BassPassVS), SHADER_ENTRY(BasePassPS), option, nullptr) )
 			return false;
 
-
 		return true;
 	}
 
 	void ReleaseGlobalRHIResource()
 	{
-		GDefalutMaterial->releaseRHI();
-		delete GDefalutMaterial;
-		GDefalutMaterial = nullptr;
+		if ( GDefalutMaterial )
+		{
+			GDefalutMaterial->releaseRHI();
+			delete GDefalutMaterial;
+			GDefalutMaterial = nullptr;
+		}
 
 		GSimpleBasePass.releaseRHI();
 

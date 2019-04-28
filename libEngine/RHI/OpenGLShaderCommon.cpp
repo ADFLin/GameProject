@@ -1,5 +1,6 @@
-#include "OpenGLShader.h"
+#include "OpenGLShaderCommon.h"
 
+#include "ShaderCore.h"
 #include "ShaderProgram.h"
 
 #include "CPreprocessor.h"
@@ -7,6 +8,7 @@
 #include <fstream>
 #include <sstream>
 #include "FileSystem.h"
+#include "Core\StringConv.h"
 
 namespace Render
 {
@@ -58,23 +60,19 @@ namespace Render
 			LogMsg("Can't Link Program : %s", buffer);
 		}
 
-#if 0
-		ShaderParameterMap parameterMap;
-		generateParameterMap(parameterMap);
-		bindParameters(parameterMap);
-#endif
-
 		return true;
 	}
 
-	bool OpenGLShaderProgram::setupShaders(RHIShader* shaders[], int numShader)
+	bool OpenGLShaderProgram::setupShaders(RHIShaderRef shaders[], int numShader)
 	{
 		for( int i = 0; i < numShader; ++i )
 		{
 			assert(shaders[i]);
-			glAttachShader(getHandle(), static_cast< OpenGLShader*>( shaders[i] )->getHandle());
+			glAttachShader(getHandle(), static_cast< OpenGLShader& >( *shaders[i] ).getHandle());
 		}
-		return updateShader();
+		bool result = updateShader();
+
+		return result;
 	}
 
 	bool OpenGLShaderProgram::getParameter(char const* name, ShaderParameter& parameter)
@@ -301,11 +299,41 @@ namespace Render
 		return true;
 	}
 
-	static bool IsBinarySupport()
+
+	void ShaderFormatGLSL::setupShaderCompileOption(ShaderCompileOption& option)
+	{
+		option.addMeta("ShaderFormat", getName());
+	}
+
+	bool ShaderFormatGLSL::isSupportBinaryCode() const
 	{
 		int numFormat = 0;
 		glGetIntegerv(GL_NUM_PROGRAM_BINARY_FORMATS, &numFormat);
 		return numFormat != 0;
+	}
+
+	void ShaderFormatGLSL::getHeadCode(std::string& inoutCode, ShaderCompileOption const& option, ShaderEntryInfo const& entry)
+	{
+		inoutCode += "#version ";
+		char const* versionString = option.getMeta("GLSLVersion");
+		if( versionString )
+		{
+			inoutCode += option.getMeta("GLSLVersion");
+		}
+		else
+		{
+			inoutCode += FStringConv::From(mDefaultVersion);
+		}
+		inoutCode += " compatibility\n";
+
+		inoutCode += "#define COMPILER_GLSL 1\n";
+
+		if( entry.name )
+		{
+			inoutCode += "#define ";
+			inoutCode += entry.name;
+			inoutCode += " main\n";
+		}
 	}
 
 	bool ShaderFormatGLSL::getBinaryCode(RHIShaderProgram& shaderProgram, std::vector<uint8>& outBinaryCode)

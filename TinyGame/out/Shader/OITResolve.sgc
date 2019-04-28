@@ -1,4 +1,4 @@
-﻿//#include "Common.sgc"
+//#include "Common.sgc"
 #include "OITCommon.sgc"
 
 #if VERTEX_SHADER

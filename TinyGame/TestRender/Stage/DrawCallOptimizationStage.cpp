@@ -547,7 +547,7 @@ namespace Render
 			std::vector< char > buffer;
 			if( !FileUtility::LoadToBuffer(path, buffer, true) )
 				return false;
-
+			buffer.push_back(0);
 			MaterialFileParser parser(*this);
 			bool bOk = parser.load(buffer.data(), buffer.size(), nullptr);
 

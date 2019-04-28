@@ -99,26 +99,26 @@ namespace Render
 		//Shader
 		void RHISetShaderProgram(RHIShaderProgram* shaderProgram);
 
-		void setParam(RHIShaderProgram& shaderProgram, ShaderParameter const& param, int const val[], int dim);
-		void setParam(RHIShaderProgram& shaderProgram, ShaderParameter const& parameter, float const val[], int dim);
-		void setParam(RHIShaderProgram& shaderProgram, ShaderParameter const& param, Matrix3 const val[], int dim);
-		void setParam(RHIShaderProgram& shaderProgram, ShaderParameter const& param, Matrix4 const val[], int dim);
-		void setParam(RHIShaderProgram& shaderProgram, ShaderParameter const& param, Vector3 const val[], int dim);
-		void setParam(RHIShaderProgram& shaderProgram, ShaderParameter const& param, Vector4 const val[], int dim);
-		void setMatrix22(RHIShaderProgram& shaderProgram, ShaderParameter const& param, float const val[], int dim);
-		void setMatrix43(RHIShaderProgram& shaderProgram, ShaderParameter const& param, float const val[], int dim);
-		void setMatrix34(RHIShaderProgram& shaderProgram, ShaderParameter const& param, float const val[], int dim);
+		void setShaderValue(RHIShaderProgram& shaderProgram, ShaderParameter const& param, int32 const val[], int dim);
+		void setShaderValue(RHIShaderProgram& shaderProgram, ShaderParameter const& parameter, float const val[], int dim);
+		void setShaderValue(RHIShaderProgram& shaderProgram, ShaderParameter const& param, Matrix3 const val[], int dim);
+		void setShaderValue(RHIShaderProgram& shaderProgram, ShaderParameter const& param, Matrix4 const val[], int dim);
+		void setShaderValue(RHIShaderProgram& shaderProgram, ShaderParameter const& param, Vector3 const val[], int dim);
+		void setShaderValue(RHIShaderProgram& shaderProgram, ShaderParameter const& param, Vector4 const val[], int dim);
+		void setShaderMatrix22(RHIShaderProgram& shaderProgram, ShaderParameter const& param, float const val[], int dim);
+		void setShaderMatrix43(RHIShaderProgram& shaderProgram, ShaderParameter const& param, float const val[], int dim);
+		void setShaderMatrix34(RHIShaderProgram& shaderProgram, ShaderParameter const& param, float const val[], int dim);
 
-		void setResourceView(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHIShaderResourceView const& resourceView);
+		void setShaderResourceView(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHIShaderResourceView const& resourceView);
 
-		void setTexture(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHITextureBase& texture);
-		void setTexture(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHITextureBase& texture, ShaderParameter const& paramSampler, RHISamplerState & sampler);
-		void setSampler(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHISamplerState const& sampler);
-		void setRWTexture(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHITextureBase& texture, EAccessOperator op);
+		void setShaderTexture(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHITextureBase& texture);
+		void setShaderTexture(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHITextureBase& texture, ShaderParameter const& paramSampler, RHISamplerState & sampler);
+		void setShaderSampler(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHISamplerState const& sampler);
+		void setShaderRWTexture(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHITextureBase& texture, EAccessOperator op);
 
-		void setUniformBuffer(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHIVertexBuffer& buffer);
-		void setStorageBuffer(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHIVertexBuffer& buffer);
-		void setAtomicCounterBuffer(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHIVertexBuffer& buffer);
+		void setShaderUniformBuffer(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHIVertexBuffer& buffer);
+		void setShaderStorageBuffer(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHIVertexBuffer& buffer);
+		void setShaderAtomicCounterBuffer(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHIVertexBuffer& buffer);
 
 		static int const IdxTextureAutoBindStart = 2;
 		void resetBindIndex()
@@ -141,9 +141,10 @@ namespace Render
 	class OpenGLSystem : public RHISystem
 	{
 	public:
-		virtual bool initialize(RHISystemInitParam const& initParam) override;
-		virtual void shutdown();
-		virtual class ShaderFormat* createShaderFormat();
+		RHISytemName getName() const  { return RHISytemName::Opengl; }
+		bool initialize(RHISystemInitParam const& initParam);
+		void shutdown();
+		class ShaderFormat* createShaderFormat();
 		bool RHIBeginRender();
 		void RHIEndRender(bool bPresent);
 		RHICommandList&  getImmediateCommandList()

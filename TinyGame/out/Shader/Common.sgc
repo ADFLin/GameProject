@@ -4,15 +4,15 @@
 #define SHADER_COMPILING 0
 #endif
 
+#if SHADER_COMPILING
+
 #ifndef COMPILER_GLSL
-#define COMPILER_GLSL 1
+#define COMPILER_GLSL 0
 #endif
 
 #ifndef COMPILER_HLSL
 #define COMPILER_HLSL 0
 #endif
-
-#if SHADER_COMPILING
 
 #ifndef VERTEX_SHADER
 #define VERTEX_SHADER 0
@@ -40,6 +40,8 @@
 
 #else
 
+#define COMPILER_GLSL 1
+#define COMPILER_HLSL 1
 #define VERTEX_SHADER 1
 #define PIXEL_SHADER 1
 #define GEOMETRY_SHADER 1

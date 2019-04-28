@@ -142,7 +142,7 @@ namespace Render
 			eHull = 4,
 			eDomain = 5,
 
-			NUM_SHADER_TYPE,
+			Count,
 			eEmpty = -1,
 		};
 	};

@@ -475,6 +475,16 @@ namespace Render
 		uint8 semantic;
 		uint8 idx;
 		bool  bNormalize;
+
+		bool operator == (InputElement const& rhs) const
+		{
+			return idxStream == rhs.idxStream && 
+				   attribute == rhs.attribute &&
+				   format == rhs.format &&
+				   offset == rhs.offset &&
+				   idx == rhs.idx &&
+				   bNormalize == rhs.bNormalize;
+		}
 	};
 
 	int constexpr MAX_INPUT_STREAM_NUM = 8;

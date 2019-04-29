@@ -53,12 +53,13 @@ namespace Render
 
 		void setRWTexture(RHICommandList& commandList, char const* name, RHITextureBase& texture, EAccessOperator op = AO_READ_AND_WRITE);
 
-		void setTexture(RHICommandList& commandList, char const* name, RHITextureBase& texture, RHISamplerState& sampler);
+
+		void setTexture(RHICommandList& commandList, char const* name, RHITextureBase& texture, char const* samplerName, RHISamplerState& sampler);
 
 		template< class RHITextureType >
-		void setTexture(RHICommandList& commandList, char const* name, TRefCountPtr<RHITextureType>& texturePtr, RHISamplerState& sampler)
+		void setTexture(RHICommandList& commandList, char const* name, TRefCountPtr<RHITextureType>& texturePtr, char const* samplerName, RHISamplerState& sampler)
 		{
-			setTexture(commandList, name, *texturePtr, sampler);
+			setTexture(commandList, name, *texturePtr, samplerName , sampler);
 		}
 
 		void setTexture(RHICommandList& commandList, char const* name, RHITextureBase& texture);

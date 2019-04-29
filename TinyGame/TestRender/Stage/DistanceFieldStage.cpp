@@ -182,7 +182,7 @@ namespace Render
 				mProgRayMarching->setParam(commandList, SHADER_PARAM(BoundMin), mSDFData.boundMin);
 				mProgRayMarching->setParam(commandList, SHADER_PARAM(DistanceFactor), mSDFData.maxDistance);
 				auto& sampler = TStaticSamplerState< Sampler::eBilinear, Sampler::eClamp, Sampler::eClamp, Sampler::eClamp >::GetRHI();
-				mProgRayMarching->setTexture(commandList, SHADER_PARAM(DistanceFieldTexture), *mTextureSDF, sampler);
+				mProgRayMarching->setTexture(commandList, SHADER_PARAM(DistanceFieldTexture), *mTextureSDF, SHADER_PARAM(DistanceFieldTextureSampler), sampler);
 				mView.setupShader(commandList, *mProgRayMarching);
 				DrawUtility::ScreenRectShader(commandList);
 			}

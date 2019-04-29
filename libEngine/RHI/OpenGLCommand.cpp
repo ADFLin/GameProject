@@ -801,7 +801,7 @@ namespace Render
 		glActiveTexture(GL_TEXTURE0);
 	}
 
-	void OpenGLContext::setShaderSampler(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHISamplerState const& sampler)
+	void OpenGLContext::setShaderSampler(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHISamplerState& sampler)
 	{
 		CHECK_PARAMETER(param);
 #if 0

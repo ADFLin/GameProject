@@ -175,6 +175,7 @@ TVec4<T> operator * (TMat4x4<T>, TVec3<T>);
 #if COMPILER_GLSL
 #include "GLSLDefine.sgc"
 #elif COMPILER_HLSL
+#include "HLSLDefine.sgc"
 #endif
 
 float Square(float x) { return x * x; }

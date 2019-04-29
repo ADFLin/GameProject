@@ -232,6 +232,7 @@
     <ClCompile Include="ConsoleSystem.cpp" />
     <ClCompile Include="CoreShare.cpp" />
     <ClCompile Include="Core\Color.cpp" />
+    <ClCompile Include="Core\CRC.cpp" />
     <ClCompile Include="Core\MD5.cpp" />
     <ClCompile Include="Core\StringConv.cpp" />
     <ClCompile Include="CPreprocessor.cpp" />
@@ -336,6 +337,7 @@
     <ClInclude Include="BehaviorTree\Visitor.h" />
     <ClInclude Include="Collision2D\SATSolver.h" />
     <ClInclude Include="Core\Color.h" />
+    <ClInclude Include="Core\CRC.h" />
     <ClInclude Include="Core\FNV1a.h" />
     <ClInclude Include="Core\LockFreeList.h" />
     <ClInclude Include="Core\MD5.h" />

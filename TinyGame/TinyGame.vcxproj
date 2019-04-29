@@ -359,7 +359,6 @@ copy $(TargetDir)EngineShare.dll  $(ProjectDir)out\</Command>
     <None Include="out\Shader\Bloom.sgc" />
     <None Include="out\Shader\BufferUtility.sgc" />
     <None Include="out\Shader\Common.sgc" />
-    <None Include="out\Shader\CommonHLSL.sgc" />
     <None Include="out\Shader\ComplexCommon.sgc" />
     <None Include="out\Shader\CopyTexture.sgc" />
     <None Include="out\Shader\BasePass.sgc" />
@@ -395,6 +394,7 @@ copy $(TargetDir)EngineShare.dll  $(ProjectDir)out\</Command>
     <None Include="out\Shader\GLSLDefine.sgc" />
     <None Include="out\Shader\GPUSkinCommon.sgc" />
     <None Include="out\Shader\GPUSkinVertexFactory.sgc" />
+    <None Include="out\Shader\HLSLDefine.sgc" />
     <None Include="out\Shader\IBLCommon.sgc" />
     <None Include="out\Shader\LightingCommon.sgc" />
     <None Include="out\Shader\LightParam.sgc" />

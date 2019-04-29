@@ -301,7 +301,7 @@ namespace Render
 					//RHISetupFixedPipelineState(Matrix4::Scale(1) * Matrix4::Translate(0, 0, 12) * mView.worldToView, mView.viewToClip , 1 , textures);
 					RHISetShaderProgram(commandList, mProgGrass.getRHIResource());
 					mView.setupShader(commandList, mProgGrass);
-					mProgGrass.setTexture(commandList, SHADER_PARAM(Texture), *mGrassTexture , TStaticSamplerState< Sampler::eTrilinear > ::GetRHI());
+					mProgGrass.setTexture(commandList, SHADER_PARAM(Texture), *mGrassTexture , SHADER_PARAM(TextureSampler) , TStaticSamplerState< Sampler::eTrilinear > ::GetRHI());
 
 					for( int n = 0 ; n < 100 ; ++n )
 					{

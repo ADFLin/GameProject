@@ -60,6 +60,12 @@ namespace Render
 
 		gRHISystem->shutdown();
 		gRHISystem = nullptr;
+
+
+		if( 1 )
+		{
+			::LogMsg("%d RHI Resource not release" , RHIResource::TotalCount );
+		}
 	}
 
 

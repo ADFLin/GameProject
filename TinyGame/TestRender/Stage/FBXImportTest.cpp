@@ -499,7 +499,7 @@ namespace Render
 						mProgSkyBox->setParam(commandList, SHADER_PARAM(CubeLevel), float(0));
 						break;
 					default:
-						mProgSkyBox->setTexture(commandList, SHADER_PARAM(CubeTexture), mIBLResource.perfilteredTexture,
+						mProgSkyBox->setTexture(commandList, SHADER_PARAM(CubeTexture), mIBLResource.perfilteredTexture, SHADER_PARAM(CubeTextureSampler),
 												TStaticSamplerState< Sampler::eTrilinear, Sampler::eClamp, Sampler::eClamp, Sampler::eClamp > ::GetRHI());
 						mProgSkyBox->setParam(commandList, SHADER_PARAM(CubeLevel), float(SkyboxShowIndex - ESkyboxShow::Prefiltered_0));
 					}
@@ -519,10 +519,10 @@ namespace Render
 					mView.setupShader(commandList, mTestShader);
 
 					auto& samplerState = (mbUseMipMap) ? TStaticSamplerState<Sampler::eTrilinear>::GetRHI() : TStaticSamplerState<Sampler::eBilinear>::GetRHI();
-					mTestShader.setTexture(commandList, SHADER_PARAM(DiffuseTexture), mDiffuseTexture , samplerState);
-					mTestShader.setTexture(commandList, SHADER_PARAM(NormalTexture), mNormalTexture, samplerState);
-					mTestShader.setTexture(commandList, SHADER_PARAM(MetalTexture), mMetalTexture, samplerState);
-					mTestShader.setTexture(commandList, SHADER_PARAM(RoughnessTexture), mRoughnessTexture, samplerState);
+					mTestShader.setTexture(commandList, SHADER_PARAM(DiffuseTexture), mDiffuseTexture , SHADER_PARAM(DiffuseTextureSampler), samplerState);
+					mTestShader.setTexture(commandList, SHADER_PARAM(NormalTexture), mNormalTexture, SHADER_PARAM(NormalTextureSampler), samplerState);
+					mTestShader.setTexture(commandList, SHADER_PARAM(MetalTexture), mMetalTexture, SHADER_PARAM(MetalTextureSampler), samplerState);
+					mTestShader.setTexture(commandList, SHADER_PARAM(RoughnessTexture), mRoughnessTexture, SHADER_PARAM(RoughnessTextureSampler), samplerState);
 					mTestShader.setParam(commandList, SHADER_PARAM(SkyLightInstensity), mSkyLightInstensity);
 					mTestShader.mParamIBL.setParameters(commandList, mTestShader, mIBLResource);
 					mMesh.drawShader(commandList);

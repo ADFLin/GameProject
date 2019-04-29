@@ -240,7 +240,7 @@ namespace Render
 					mProgSkyBox->setParam(commandList, SHADER_PARAM(CubeLevel), float(0));
 					break;
 				default:
-					mProgSkyBox->setTexture(commandList, SHADER_PARAM(CubeTexture), mIBLResource.perfilteredTexture ,
+					mProgSkyBox->setTexture(commandList, SHADER_PARAM(CubeTexture), mIBLResource.perfilteredTexture , SHADER_PARAM(CubeTextureSampler),
 											TStaticSamplerState< Sampler::eTrilinear , Sampler::eClamp , Sampler::eClamp , Sampler ::eClamp > ::GetRHI() );
 					mProgSkyBox->setParam(commandList, SHADER_PARAM(CubeLevel), float(SkyboxShowIndex - ESkyboxShow::Prefiltered_0));
 				}
@@ -432,13 +432,15 @@ namespace Render
 
 		RenderCubeTexture( commandList, frameBuffer, *resource.texture, *mProgEquirectangularToCube, 0, [&](RHICommandList& commandList)
 		{
-			mProgEquirectangularToCube->setTexture(commandList, SHADER_PARAM(Texture), envTexture, TStaticSamplerState<Sampler::eBilinear, Sampler::eClamp, Sampler::eClamp >::GetRHI());
+			mProgEquirectangularToCube->setTexture(commandList, 
+				SHADER_PARAM(Texture), envTexture, 
+				SHADER_PARAM(TextureSampler) ,TStaticSamplerState<Sampler::eBilinear, Sampler::eClamp, Sampler::eClamp >::GetRHI());
 		});
 
 		//IrradianceTexture
 		RenderCubeTexture( commandList, frameBuffer, *resource.irradianceTexture, *mProgIrradianceGen, 0, [&](RHICommandList& commandList)
 		{
-			mProgIrradianceGen->setTexture(commandList, SHADER_PARAM(CubeTexture), resource.texture, TStaticSamplerState<Sampler::eBilinear, Sampler::eClamp, Sampler::eClamp >::GetRHI());
+			mProgIrradianceGen->setTexture(commandList, SHADER_PARAM(CubeTexture), *resource.texture, SHADER_PARAM(CubeTextureSampler) , TStaticSamplerState<Sampler::eBilinear, Sampler::eClamp, Sampler::eClamp >::GetRHI());
 			mProgIrradianceGen->setParam(commandList, SHADER_PARAM(IrrianceSampleCount), setting.irradianceSampleCount[0], setting.irradianceSampleCount[1]);
 		});
 
@@ -447,7 +449,7 @@ namespace Render
 			RenderCubeTexture(commandList, frameBuffer, *resource.perfilteredTexture, *mProgPrefilterdGen, level, [&](RHICommandList& commandList)
 			{
 				mProgPrefilterdGen->setParam(commandList, SHADER_PARAM(Roughness), float(level) / (IBLResource::NumPerFilteredLevel - 1));
-				mProgPrefilterdGen->setTexture(commandList, SHADER_PARAM(CubeTexture), resource.texture, TStaticSamplerState<Sampler::eBilinear, Sampler::eClamp, Sampler::eClamp >::GetRHI());
+				mProgPrefilterdGen->setTexture(commandList, SHADER_PARAM(CubeTexture), resource.texture, SHADER_PARAM(CubeTextureSampler), TStaticSamplerState<Sampler::eBilinear, Sampler::eClamp, Sampler::eClamp >::GetRHI());
 				mProgPrefilterdGen->setParam(commandList, SHADER_PARAM(PrefilterSampleCount), setting.prefilterSampleCount);
 			});
 		}

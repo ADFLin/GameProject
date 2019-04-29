@@ -421,6 +421,9 @@
     <ClCompile Include="RHI\OpenGLShaderCommon.cpp">
       <Filter>RHI\OpenGL</Filter>
     </ClCompile>
+    <ClCompile Include="Core\CRC.cpp">
+      <Filter>Core</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ConsoleSystem.h">
@@ -1052,6 +1055,9 @@
     </ClInclude>
     <ClInclude Include="RHI\OpenGLShaderCommon.h">
       <Filter>RHI\OpenGL</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\CRC.h">
+      <Filter>Core</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

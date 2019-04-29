@@ -56,21 +56,53 @@ namespace Render
 
 		D3D11_BUFFER_DESC bufferDesc = { 0 };
 		bufferDesc.ByteWidth = vertexSize * numVertices;
-		bufferDesc.Usage = D3D11_USAGE_DEFAULT;
+		bufferDesc.Usage = (creationFlag & BCF_UsageDynamic) ? D3D11_USAGE_DYNAMIC : D3D11_USAGE_DEFAULT;
 		bufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-		bufferDesc.CPUAccessFlags = 0;
+		if ( creationFlag & BCF_CreateSRV )
+			bufferDesc.BindFlags |= D3D11_BIND_SHADER_RESOURCE;
+
+		bufferDesc.CPUAccessFlags = (creationFlag & BCF_UsageDynamic) ? D3D11_CPU_ACCESS_WRITE : 0;
 		bufferDesc.MiscFlags = 0;
 		bufferDesc.StructureByteStride = 0;
 
 		TComPtr<ID3D11Buffer> BufferResource;
 		VERIFY_D3D11RESULT( 
-			mDevice->CreateBuffer(&bufferDesc, &initData, &BufferResource) ,
+			mDevice->CreateBuffer(&bufferDesc, data ? &initData : nullptr , &BufferResource) ,
 			{
 				return nullptr;
 			});
 
-		D3D11VertexBuffer* buffer = new D3D11VertexBuffer( mDevice , BufferResource.release() , creationFlag );
+		D3D11VertexBuffer* buffer = new D3D11VertexBuffer( mDevice , BufferResource.release() , numVertices , vertexSize , creationFlag );
 
+		return buffer;
+	}
+
+	Render::RHIIndexBuffer* D3D11System::RHICreateIndexBuffer(uint32 nIndices, bool bIntIndex, uint32 creationFlag, void* data)
+	{
+		D3D11_SUBRESOURCE_DATA initData = { 0 };
+		initData.pSysMem = data;
+		initData.SysMemPitch = 0;
+		initData.SysMemSlicePitch = 0;
+
+		D3D11_BUFFER_DESC bufferDesc = { 0 };
+		bufferDesc.ByteWidth = nIndices * ( bIntIndex ? 4 : 2 );
+		bufferDesc.Usage = (creationFlag & BCF_UsageDynamic) ? D3D11_USAGE_DYNAMIC : D3D11_USAGE_DEFAULT;
+		bufferDesc.BindFlags = D3D11_BIND_INDEX_BUFFER;
+		if( creationFlag & BCF_CreateSRV )
+			bufferDesc.BindFlags |= D3D11_BIND_SHADER_RESOURCE;
+
+		bufferDesc.CPUAccessFlags = (creationFlag & BCF_UsageDynamic) ? D3D11_CPU_ACCESS_WRITE : 0;
+		bufferDesc.MiscFlags = 0;
+		bufferDesc.StructureByteStride = 0;
+
+		TComPtr<ID3D11Buffer> BufferResource;
+		VERIFY_D3D11RESULT(
+			mDevice->CreateBuffer(&bufferDesc, data ? &initData : nullptr, &BufferResource),
+			{
+				return nullptr;
+			});
+
+		D3D11IndexBuffer* buffer = new D3D11IndexBuffer(mDevice, BufferResource.release(), nIndices , bIntIndex , creationFlag);
 		return buffer;
 	}
 
@@ -94,26 +126,18 @@ namespace Render
 		mDeviceContext->Unmap(D3D11Cast::GetResource(*buffer), 0);
 	}
 
+
 	RHIInputLayout* D3D11System::RHICreateInputLayout(InputLayoutDesc const& desc)
 	{
-		std::vector< D3D11_INPUT_ELEMENT_DESC > descList;
-		for( auto const& e : desc.mElements )
+		TComPtr< ID3D11InputLayout > inputLayoutResource;
+		
+		InputLayoutKey key(desc);
+		auto iter = mInputLayoutMap.find(key);
+		if( iter == mInputLayoutMap.end() )
 		{
-			D3D11_INPUT_ELEMENT_DESC element;
 
-			element.SemanticName = "ATTRIBUTE";
-			element.SemanticIndex = e.attribute;
-			element.Format = D3D11Conv::To(Vertex::Format( e.format ), e.bNormalize);
-			element.InputSlot = e.idxStream;
-			element.AlignedByteOffset = e.offset;
-			element.InputSlotClass = D3D11_INPUT_PER_VERTEX_DATA;
-			element.InstanceDataStepRate = 0;
-
-			descList.push_back(element);
-		}
-
-		char const* FakeCodeTemplate = CODE_STRING(
-			struct VSInput
+			char const* FakeCodeTemplate = CODE_STRING(
+				struct VSInput
 			{
 				%s
 			};
@@ -121,39 +145,77 @@ namespace Render
 			{
 				svPosition = float4(0, 0, 0, 1);
 			}
-		);
+			);
 
-
-		std::string vertexCode;
-		for( auto const& desc : descList )
-		{
-			FixString< 128 > str;
-			str.format("%s v%d : ATTRIBUTE%d;", "float4", desc.SemanticIndex, desc.SemanticIndex);
-			vertexCode += str.c_str();
-		}
-		FixString<512> fakeCode;
-		fakeCode.format(FakeCodeTemplate, vertexCode.c_str());
-
-		TComPtr< ID3D10Blob > errorCode;
-		TComPtr< ID3D10Blob > byteCode;
-		FixString<32> profileName = FD3D11Utility::GetShaderProfile( mDevice , Shader::eVertex);
-
-		uint32 compileFlag = 0 /*| D3D10_SHADER_PACK_MATRIX_ROW_MAJOR*/;
-		VERIFY_D3D11RESULT(
-			D3DX11CompileFromMemory(fakeCode, FCString::Strlen(fakeCode), "ShaderCode", NULL, NULL, SHADER_ENTRY(MainVS), profileName, compileFlag, 0, NULL, &byteCode, &errorCode, NULL),
+			std::string vertexCode;
+			for( auto const& e : key.elements )
 			{
-				LogWarning(0, "Compile Error %s", errorCode->GetBufferPointer());
-				return nullptr;
+				FixString< 128 > str;
+				str.format("%s v%d : ATTRIBUTE%d;", "float4", e.attribute, e.attribute);
+				vertexCode += str.c_str();
 			}
-		);
+			FixString<512> fakeCode;
+			fakeCode.format(FakeCodeTemplate, vertexCode.c_str());
 
-		TComPtr< ID3D11InputLayout > inputLayoutResource;
-		VERIFY_D3D11RESULT(
-			mDevice->CreateInputLayout(&descList[0], descList.size(), byteCode->GetBufferPointer(), byteCode->GetBufferSize(), &inputLayoutResource),
-			return nullptr;
-		);
+			TComPtr< ID3D10Blob > errorCode;
+			TComPtr< ID3D10Blob > byteCode;
+			FixString<32> profileName = FD3D11Utility::GetShaderProfile(mDevice, Shader::eVertex);
 
-		return new D3D11InputLayout(inputLayoutResource.release() );
+			uint32 compileFlag = 0 /*| D3D10_SHADER_PACK_MATRIX_ROW_MAJOR*/;
+			VERIFY_D3D11RESULT(
+				D3DX11CompileFromMemory(fakeCode, FCString::Strlen(fakeCode), "ShaderCode", NULL, NULL, SHADER_ENTRY(MainVS), profileName, compileFlag, 0, NULL, &byteCode, &errorCode, NULL),
+				{
+					LogWarning(0, "Compile Error %s", errorCode->GetBufferPointer());
+					return nullptr;
+				}
+			);
+
+			std::vector< D3D11_INPUT_ELEMENT_DESC > descList;
+			for( auto const& e : desc.mElements )
+			{
+				D3D11_INPUT_ELEMENT_DESC element;
+
+				element.SemanticName = "ATTRIBUTE";
+				element.SemanticIndex = e.attribute;
+				element.Format = D3D11Conv::To(Vertex::Format(e.format), e.bNormalize);
+				element.InputSlot = e.idxStream;
+				element.AlignedByteOffset = e.offset;
+				element.InputSlotClass = D3D11_INPUT_PER_VERTEX_DATA;
+				element.InstanceDataStepRate = 0;
+
+				descList.push_back(element);
+			}
+
+			VERIFY_D3D11RESULT(
+				mDevice->CreateInputLayout(&descList[0], descList.size(), byteCode->GetBufferPointer(), byteCode->GetBufferSize(), &inputLayoutResource),
+				return nullptr;
+			);
+
+			mInputLayoutMap.emplace(key, inputLayoutResource);
+		}
+		else
+		{
+			inputLayoutResource = iter->second;
+		}
+
+		return new D3D11InputLayout( inputLayoutResource.release() );
+	}
+
+	RHISamplerState* D3D11System::RHICreateSamplerState(SamplerStateInitializer const& initializer)
+	{
+		D3D11_SAMPLER_DESC desc = {};
+		desc.Filter = D3D11Conv::To(initializer.filter);
+		desc.AddressU = D3D11Conv::To(initializer.addressU);
+		desc.AddressV = D3D11Conv::To(initializer.addressV);
+		desc.AddressW = D3D11Conv::To(initializer.addressW);
+
+		TComPtr<ID3D11SamplerState> samplerResource;
+		VERIFY_D3D11RESULT( mDevice->CreateSamplerState(&desc , &samplerResource) , );
+		if( samplerResource )
+		{
+			return new D3D11SamplerState(samplerResource.release());
+		}
+		return nullptr;
 	}
 
 	RHIRasterizerState* D3D11System::RHICreateRasterizerState(RasterizerStateInitializer const& initializer)
@@ -170,11 +232,11 @@ namespace Render
 		desc.MultisampleEnable = FALSE;
 		desc.AntialiasedLineEnable = FALSE;
 
-		TComPtr<ID3D11RasterizerState> state;
-		VERIFY_D3D11RESULT(mDevice->CreateRasterizerState(&desc, &state) , );
-		if( state )
+		TComPtr<ID3D11RasterizerState> stateResource;
+		VERIFY_D3D11RESULT(mDevice->CreateRasterizerState(&desc, &stateResource) , );
+		if( stateResource )
 		{
-			return new D3D11RasterizerState(state.release());
+			return new D3D11RasterizerState(stateResource.release());
 		}
 		return nullptr;
 	}
@@ -277,6 +339,66 @@ namespace Render
 	}
 
 
+	bool D3D11ShaderBoundState::initialize(TComPtr< ID3D11Device >& device, TComPtr<ID3D11DeviceContext >& deviceContext)
+	{
+		::memset(this, 0, sizeof(*this));
+		for( int i = 0; i < MaxConstBufferNum; ++i )
+		{
+			if( !mConstBuffers[i].initializeResource(device) )
+			{
+				return false;
+			}
+		}
+
+		return true;
+	}
+
+	void D3D11ShaderBoundState::setTexture(ShaderParameter const& parameter, RHITextureBase& texture)
+	{
+		auto resViewImpl = static_cast<D3D11ShaderResourceView*>(texture.getBaseResourceView());
+		if( resViewImpl )
+		{
+			if( mBoundedSRVs[parameter.mLoc] != resViewImpl->getResource() )
+			{
+				mBoundedSRVs[parameter.mLoc] = resViewImpl->getResource();
+				mSRVDirtyMask |= BIT(parameter.mLoc);
+			}
+		}
+	}
+
+	void D3D11ShaderBoundState::setSampler(ShaderParameter const& parameter, RHISamplerState& sampler)
+	{
+		auto& samplerImpl = D3D11Cast::To(sampler);
+		if( mBoundedSamplers[parameter.mLoc] != samplerImpl.getResource() )
+		{
+			mBoundedSamplers[parameter.mLoc] = samplerImpl.getResource();
+			mSamplerDirtyMask |= BIT(parameter.mLoc);
+		}
+	}
+
+	void D3D11ShaderBoundState::setUniformBuffer(ShaderParameter const& parameter, RHIVertexBuffer& buffer)
+	{
+		D3D11VertexBuffer& bufferImpl = D3D11Cast::To(buffer);
+		if( mBoundedConstBuffers[parameter.mLoc] != bufferImpl.mResource )
+		{
+			mBoundedConstBuffers[parameter.mLoc] = bufferImpl.mResource;
+			mConstBufferDirtyMask |= BIT(parameter.mLoc);
+		}
+
+	}
+
+	void D3D11ShaderBoundState::setShaderValue(ShaderParameter const parameter, void const* value, int valueSize)
+	{
+		assert(parameter.bindIndex < MaxConstBufferNum);
+		mConstBuffers[parameter.bindIndex].setUpdateValue(parameter, value, valueSize);
+		mConstBufferValueDirtyMask |= BIT(parameter.bindIndex);
+		if( mConstBuffers[parameter.bindIndex].resource.get() != mBoundedConstBuffers[parameter.bindIndex] )
+		{
+			mBoundedConstBuffers[parameter.bindIndex] = mConstBuffers[parameter.bindIndex].resource.get();
+			mConstBufferDirtyMask |= BIT(parameter.bindIndex);
+		}
+	}
+
 	template< Shader::Type TypeValue >
 	void D3D11ShaderBoundState::commitState(ID3D11DeviceContext* context)
 	{
@@ -311,12 +433,12 @@ namespace Render
 					mask &= ~BIT(index);
 					switch( TypeValue )
 					{
-					case Shader::eVertex:   context->VSSetConstantBuffers(index, 1, mBoundedBuffers + index); break;
-					case Shader::ePixel:    context->PSSetConstantBuffers(index, 1, mBoundedBuffers + index); break;
-					case Shader::eGeometry: context->GSSetConstantBuffers(index, 1, mBoundedBuffers + index); break;
-					case Shader::eHull:     context->HSSetConstantBuffers(index, 1, mBoundedBuffers + index); break;
-					case Shader::eDomain:   context->DSSetConstantBuffers(index, 1, mBoundedBuffers + index); break;
-					case Shader::eCompute:  context->CSSetConstantBuffers(index, 1, mBoundedBuffers + index); break;
+					case Shader::eVertex:   context->VSSetConstantBuffers(index, 1, mBoundedConstBuffers + index); break;
+					case Shader::ePixel:    context->PSSetConstantBuffers(index, 1, mBoundedConstBuffers + index); break;
+					case Shader::eGeometry: context->GSSetConstantBuffers(index, 1, mBoundedConstBuffers + index); break;
+					case Shader::eHull:     context->HSSetConstantBuffers(index, 1, mBoundedConstBuffers + index); break;
+					case Shader::eDomain:   context->DSSetConstantBuffers(index, 1, mBoundedConstBuffers + index); break;
+					case Shader::eCompute:  context->CSSetConstantBuffers(index, 1, mBoundedConstBuffers + index); break;
 					}
 				}
 			}
@@ -482,6 +604,24 @@ namespace Render
 		shaderProgramImpl.setupShader(param, [this, &texture](Shader::Type type, ShaderParameter const& shaderParam)
 		{
 			mShaderBoundState[type].setTexture(shaderParam, texture);
+		});
+	}
+
+	void D3D11Context::setShaderSampler(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHISamplerState& sampler)
+	{
+		auto& shaderProgramImpl = static_cast<D3D11ShaderProgram&>(shaderProgram);
+		shaderProgramImpl.setupShader(param, [this, &sampler](Shader::Type type, ShaderParameter const& shaderParam)
+		{
+			mShaderBoundState[type].setSampler(shaderParam, sampler);
+		});
+	}
+
+	void D3D11Context::setShaderUniformBuffer(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHIVertexBuffer& buffer)
+	{
+		auto& shaderProgramImpl = static_cast<D3D11ShaderProgram&>(shaderProgram);
+		shaderProgramImpl.setupShader(param, [this, &buffer](Shader::Type type, ShaderParameter const& shaderParam)
+		{
+			mShaderBoundState[type].setUniformBuffer(shaderParam, buffer);
 		});
 	}
 

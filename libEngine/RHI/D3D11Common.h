@@ -37,6 +37,7 @@ namespace Render
 	class D3D11BlendState;
 	class D3D11InputLayout;
 	class D3D11ShaderResourceView;
+	class D3D11SamplerState;
 
 	template<>
 	struct TD3D11TypeTraits< RHITexture1D > 
@@ -91,6 +92,12 @@ namespace Render
 		typedef ID3D11ShaderResourceView ResourceType;
 		typedef D3D11ShaderResourceView ImplType;
 	};
+	template<>
+	struct TD3D11TypeTraits< RHISamplerState >
+	{
+		typedef ID3D11SamplerState ResourceType;
+		typedef D3D11SamplerState ImplType;
+	};
 
 	struct D3D11Conv
 	{
@@ -102,6 +109,8 @@ namespace Render
 		static D3D11_CULL_MODE To(ECullMode mode);
 		static D3D11_FILL_MODE To(EFillMode mode);
 		static D3D11_MAP To(ELockAccess access);
+		static D3D11_FILTER To(Sampler::Filter filter);
+		static D3D11_TEXTURE_ADDRESS_MODE To(Sampler::AddressMode mode);
 	};
 
 	template< class RHIResoureType >
@@ -223,9 +232,14 @@ namespace Render
 		TD3D11Buffer(ID3D11Device* device, ID3D11Buffer* resource, uint32 creationFlag)
 		{
 			mResource = resource;
+			mCreationFlags = creationFlag;
 			if( creationFlag & BCF_CreateSRV )
 			{
-				device->CreateShaderResourceView(resource, NULL, &mSRVResource);
+				HRESULT hr = device->CreateShaderResourceView(resource, NULL, &mSRVResource);
+				if( hr != S_OK )
+				{
+					::LogWarning(0, "Can't buffer's SRV ! error code : %d", hr);
+				}
 			}
 			if( creationFlag & BCF_CreateUAV )
 			{
@@ -241,7 +255,12 @@ namespace Render
 	{
 	public:
 		using TD3D11Buffer< RHIVertexBuffer >::TD3D11Buffer;
-
+		D3D11VertexBuffer(ID3D11Device* device, ID3D11Buffer* resource, int numVertices , int vertexSize , uint32 creationFlag)
+			:TD3D11Buffer< RHIVertexBuffer >(device, resource, creationFlag)
+		{
+			mNumElements = numVertices;
+			mElementSize = vertexSize;
+		}
 		virtual void  resetData(uint32 vertexSize, uint32 numVertices, uint32 creationFlags, void* data)
 		{
 
@@ -264,26 +283,42 @@ namespace Render
 
 	class D3D11IndexBuffer : public TD3D11Buffer< RHIIndexBuffer >
 	{
-
+	public:
+		D3D11IndexBuffer(ID3D11Device* device, ID3D11Buffer* resource, int numIndices, bool bIntType , uint32 creationFlag)
+			:TD3D11Buffer< RHIIndexBuffer >(device, resource, creationFlag)
+		{
+			mNumElements = numIndices;
+			mElementSize = bIntType ? 4 : 2;
+		}
 
 	};
 
 	class D3D11RasterizerState : public TD3D11Resource< RHIRasterizerState >
 	{
 	public:
-		D3D11RasterizerState(ID3D11RasterizerState* rasterizerResource)
+		D3D11RasterizerState(ID3D11RasterizerState* inResource)
 		{
-			mResource = rasterizerResource;
+			mResource = inResource;
 		}
 	};
 
 	class D3D11BlendState : public TD3D11Resource< RHIBlendState >
 	{
 	public:
-		D3D11BlendState(ID3D11BlendState* blendStateResource)
+		D3D11BlendState(ID3D11BlendState* inResource)
 		{
-			mResource = blendStateResource;
+			mResource = inResource;
 		}
+	};
+
+	class D3D11SamplerState : public TD3D11Resource< RHISamplerState >
+	{
+	public:
+		D3D11SamplerState(ID3D11SamplerState* inResource)
+		{
+			mResource = inResource;
+		}
+
 	};
 
 	class D3D11InputLayout : public TD3D11Resource< RHIInputLayout >
@@ -297,8 +332,11 @@ namespace Render
 
 	struct D3D11Cast
 	{
-		template< class RHIResource >
-		static auto To(RHIResource* resource) { return static_cast< typename TD3D11TypeTraits< RHIResource >::ImplType*>(resource); }
+		template< class TRHIResource >
+		static auto To(TRHIResource* resource) { return static_cast< typename TD3D11TypeTraits< TRHIResource >::ImplType*>(resource); }
+		
+		template< class TRHIResource >
+		static auto To(TRHIResource& resource) { return static_cast<typename TD3D11TypeTraits< TRHIResource >::ImplType& >(resource); }
 
 		template < class T >
 		static auto To(TRefCountPtr<T>& ptr) { return D3D11Cast::To(ptr.get()); }

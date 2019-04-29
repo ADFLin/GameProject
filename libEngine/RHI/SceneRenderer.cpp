@@ -1901,7 +1901,7 @@ namespace Render
 
 
 			RHISetShaderProgram(commandList, mProgBlurV->getRHIResource());
-			mProgBlurV->setTexture(commandList, SHADER_PARAM(Texture), frameTexture , sampler);
+			mProgBlurV->setTexture(commandList, SHADER_PARAM(Texture), frameTexture , SHADER_PARAM(TextureSampler), sampler);
 
 			DrawUtility::ScreenRectShader(commandList);
 		}

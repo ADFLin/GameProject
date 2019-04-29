@@ -164,8 +164,11 @@ namespace Render
 		if( !BaseClass::onInit() )
 			return false;
 
-		if( !::Global::GetDrawEngine().initializeRHI(RHITargetName::OpenGL, 1) )
+		if( !::Global::GetDrawEngine().initializeRHI(getRHITargetName(), 1) )
+		{
+			LogWarning(0, "Can't Initialize RHI System! ");
 			return false;
+		}
 
 		mView.gameTime = 0;
 		mView.realTime = 0;

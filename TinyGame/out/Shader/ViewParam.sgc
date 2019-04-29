@@ -33,6 +33,10 @@ uniform ViewParameters View;
 #endif
 
 
+
+//#FIXME
+#if !COMPILER_HLSL
+
 uniform sampler2D FrameDepthTexture;
 
 
@@ -73,3 +77,4 @@ float3 ScreenUVToWorldPos(float2 screenUVs)
 	return StoreWorldPos(screenUVs, texture2D(FrameDepthTexture, ScreenUVToBufferUV(screenUVs)).r);
 }
 
+#endif

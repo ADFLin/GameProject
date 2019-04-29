@@ -154,7 +154,6 @@ namespace Render
 		virtual void restart(){}
 		virtual void tick() {}
 		virtual void updateFrame(int frame) {}
-
 		virtual void onUpdate(long time)
 		{
 			BaseClass::onUpdate(time);
@@ -175,6 +174,8 @@ namespace Render
 			float dt = float(time) / 1000;
 			updateFrame(frame);
 		}
+
+		virtual RHITargetName getRHITargetName() { return RHITargetName::OpenGL; }
 
 		void initializeRenderState()
 		{

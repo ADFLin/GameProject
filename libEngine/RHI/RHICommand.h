@@ -204,7 +204,7 @@ namespace Render
 	class TStructuredBuffer
 	{
 	public:
-		bool initializeResource(uint32 numElement, uint32 creationFlags = BCF_DefalutValue | BCF_CreateSRV )
+		bool initializeResource(uint32 numElement, uint32 creationFlags = BCF_DefalutValue | BCF_CreateSRV | BCF_UsageDynamic )
 		{
 			mResource = RHICreateVertexBuffer(sizeof(T), numElement, creationFlags);
 			if( !mResource.isValid() )
@@ -223,7 +223,7 @@ namespace Render
 
 		T*   lock()
 		{
-			return (T*)RHILockBuffer(mResource, ELockAccess::WriteOnly);
+			return (T*)RHILockBuffer(mResource, ELockAccess::WriteDiscard);
 		}
 		void unlock()
 		{

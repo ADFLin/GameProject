@@ -3,7 +3,7 @@
 #define TypeHash_h__
 
 #include "Core/IntegerType.h"
-
+#include "Core/CRC.h"
 inline uint32 HashValue(char const* str)
 {
 	int32 hash = 5381;
@@ -27,6 +27,11 @@ inline uint32 HashValue(char const* str, int num)
 		--num;
 	}
 	return hash;
+}
+
+inline uint32 HashValue(void const* pData, int num)
+{
+	return FCRC::Value32((uint8 const*)pData, num);
 }
 
 template< class T >

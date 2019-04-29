@@ -1,0 +1,27 @@
+#ifndef SHADER_COMPILING
+#define SHADER_COMPILING 0
+#endif
+
+
+#if SHADER_COMPILING
+
+#define layout( x )
+#define uniform
+
+#define mat4 float4x4
+#define mat3 float3x3
+
+#else
+
+#define SV_POSITION
+#define TEXCOORD0
+#define TEXCOORD1
+#define TEXCOORD2
+#define TEXCOORD3
+#define TEXCOORD4
+#define TEXCOORD5
+#define TEXCOORD6
+#define TEXCOORD7
+#define TEXCOORD8
+
+#endif

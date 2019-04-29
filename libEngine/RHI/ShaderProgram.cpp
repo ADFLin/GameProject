@@ -24,15 +24,12 @@ namespace Render
 
 	}
 
-	void ShaderProgram::setTexture(RHICommandList& commandList, char const* name, RHITextureBase& texture, RHISamplerState& sampler)
+	void ShaderProgram::setTexture(RHICommandList& commandList, char const* name, RHITextureBase& texture, char const* samplerName, RHISamplerState& sampler)
 	{
 		ShaderParameter param;
 		if( !getParameter(name, param) )
 			return;
 		ShaderParameter paramSampler;
-		FixString<128> samplerName;
-		samplerName += name;
-		samplerName += "Sampler";
 		getParameter(samplerName, paramSampler);
 		GetContext(commandList).setShaderTexture(*mRHIResource, param, texture, paramSampler, sampler);
 	}

@@ -1,4 +1,4 @@
-#include "Stage/TestStageHeader.h"
+#include "TestRenderStageBase.h"
 
 #include "RHI/RHIDefine.h"
 #include "RHI/BaseType.h"
@@ -7,50 +7,11 @@
 
 #include "RHI/ShaderProgram.h"
 #include "RHI/ShaderManager.h"
+#include "RHI/RenderContext.h"
 
 
-char const* Code = CODE_STRING(
-struct VSInput
+namespace Render
 {
-	float3 pos   : ATTRIBUTE0;
-	float3 color : ATTRIBUTE1;
-	float2 uv    : ATTRIBUTE2;
-};
-struct VSOutput
-{
-	float4 svPosition : SV_POSITION;
-	float3 color : TEXCOORD0;
-	float2 uv : TEXCOORD1;
-};
-
-float4x4 XForm;
-
-void MainVS(in VSInput input, out VSOutput output)
-{
-	//output.svPosition = mul(XForm, float4(input.pos.xy, 0.5, 1));
-	output.svPosition = float4(input.pos.xy, 0.5, 1);
-	output.color = input.color;
-	output.uv = input.uv;
-}
-
-
-Texture2D Texture;
-SamplerState Sampler;
-float3 Color;
-void MainPS(in VSOutput input, out float4 OutColor : SV_Target0)
-{
-	float4 color = Texture.Sample(Sampler, input.uv);
-	OutColor = float4(Color * input.color * color.rgb, 1);
-	//OutColor = float4(Color, 1);
-}
-);
-
-
-namespace RenderD3D11
-{
-
-	using namespace Render;
-
 	template < uint32 VertexFormat >
 	class TRenderRT_D3D
 	{
@@ -83,22 +44,33 @@ namespace RenderD3D11
 #undef VETEX_ELEMENT_OFFSET
 	};
 
-
-
-	class TestStage : public StageBase
+	struct GPU_BUFFER_ALIGN ColourBuffer
 	{
-		typedef StageBase BaseClass;
+		DECLARE_BUFFER_STRUCT(ColourBufferBlock)
+		float red;
+		float green;
+		float blue;
+	};
+
+	
+
+
+	class TestD3D11Stage : public TestRenderStageBase
+	{
+		typedef TestRenderStageBase BaseClass;
 	public:
-		TestStage() {}
+		TestD3D11Stage() {}
 		D3D11System* mRHISystem;
 
 		ShaderProgram mProgTest;
-
 		static int constexpr MaxConstBufferNum = 1;
 
 		FrameSwapChain mSwapChain;
 
 		RHITexture2DRef mTexture;
+		TStructuredBuffer< ColourBuffer > mCBuffer;
+
+		virtual RHITargetName getRHITargetName() { return RHITargetName::D3D11; }
 
 		struct MyVertex
 		{
@@ -112,11 +84,7 @@ namespace RenderD3D11
 			if( !BaseClass::onInit() )
 				return false;
 
-			if ( !::Global::GetDrawEngine().initializeRHI(RHITargetName::D3D11 , 1 ) )
-			{
-				LogWarning( 0 , "Can't Initialize RHI System! ");
-				return false;
-			}
+			//VERIFY_RETURN_FALSE( createSimpleMesh() );
 
 			mRHISystem = static_cast<D3D11System*>(gRHISystem);
 
@@ -128,6 +96,17 @@ namespace RenderD3D11
 			}
 
 			ShaderManager::Get().loadFile(mProgTest, "Shader/Game/HLSLTest", SHADER_ENTRY(MainVS), SHADER_ENTRY(MainPS));
+
+			{
+				VERIFY_RETURN_FALSE(mCBuffer.initializeResource(1));
+				auto pData = mCBuffer.lock();
+
+				pData->red = 1;
+				pData->green = 0;
+				pData->blue = 0.5;
+
+				mCBuffer.unlock();
+			}
 
 			mTexture = RHIUtility::LoadTexture2DFromFile("Texture/rocks.png");
 			if( !mTexture.isValid() )
@@ -142,15 +121,12 @@ namespace RenderD3D11
 			TComPtr< ID3D11DeviceContext >& context = mRHISystem->mDeviceContext;
 
 			{
-
-
 				MyVertex vertices[] =
 				{
 					Vector2(0.5, 0.5),Vector3(1, 1, 1),Vector2(1, 1),
 					Vector2(0.5,-0.5),Vector3(0, 0, 1),Vector2(1, 0),
 					Vector2(-0.5,0.5),Vector3(0, 1, 0),Vector2(0, 1),
-					Vector2(-0.5,-0.5),Vector3(1, 0, 0),Vector2(0, 0),
-					
+					Vector2(-0.5,-0.5),Vector3(1, 0, 0),Vector2(0, 0),			
 				};
 
 				VERIFY_RETURN_FALSE( mVertexBuffer = RHICreateVertexBuffer(sizeof(MyVertex), ARRAY_SIZE(vertices), BCF_DefalutValue, vertices) );
@@ -205,9 +181,16 @@ namespace RenderD3D11
 
 			RHICommandList& commandList = RHICommandList::GetImmediateList();
 
+			GameWindow& window = Global::GetDrawEngine().getWindow();
+
+			mView.rectOffset = IntVector2(0, 0);
+			mView.rectSize = IntVector2(window.getWidth(), window.getHeight());
+
+			Matrix4 matView = mCamera.getViewMatrix();
+			mView.setupTransform(matView, mViewFrustum.getPerspectiveMatrix());
+
 			TComPtr< ID3D11DeviceContext >& context = mRHISystem->mDeviceContext;
 			TComPtr< ID3D11Device >& device = mRHISystem->mDevice;
-			GameWindow& window = ::Global::GetDrawEngine().getWindow();
 
 			context->ClearRenderTargetView(renderTargetView ,Vector4(0.2, 0.2, 0.2,1));
 			context->OMSetRenderTargets(1, &renderTargetView, NULL);
@@ -222,10 +205,11 @@ namespace RenderD3D11
 
 			float c = 0.5 * Math::Sin(worldTime) + 0.5;
 			Matrix4 xform = Matrix4::Rotate(Vector3(0, 0, 1), angle) * Matrix4::Translate(Vector3(0.2, 0, 0));
-			mProgTest.setTexture(commandList, SHADER_PARAM(Texture), *mTexture );
+			mProgTest.setTexture(commandList, SHADER_PARAM(Texture), *mTexture, SHADER_PARAM(TextureSampler), TStaticSamplerState < Sampler::eTrilinear >::GetRHI());
 			mProgTest.setParam(commandList, SHADER_PARAM(XForm), xform);
 			mProgTest.setParam(commandList, SHADER_PARAM(Color), Vector3(c, c, c));
-
+			mProgTest.setStructuredUniformBufferT< ColourBuffer >(commandList, *mCBuffer.getRHI());
+			mView.setupShader(commandList, mProgTest);
 
 			{
 				UINT stride = sizeof(MyVertex);
@@ -264,31 +248,10 @@ namespace RenderD3D11
 			return true;
 		}
 
-		bool onKey(unsigned key, bool isDown)
-		{
-			if( !isDown )
-				return false;
-			switch( key )
-			{
-			case Keyboard::eR: restart(); break;
-			}
-			return false;
-		}
-
-		virtual bool onWidgetEvent(int event, int id, GWidget* ui) override
-		{
-			switch( id )
-			{
-			default:
-				break;
-			}
-
-			return BaseClass::onWidgetEvent(event, id, ui);
-		}
 	protected:
 	};
 
 
-	REGISTER_STAGE("D3D11 Test", TestStage, EStageGroup::FeatureDev);
+	REGISTER_STAGE("D3D11 Test", TestD3D11Stage, EStageGroup::FeatureDev);
 
 }

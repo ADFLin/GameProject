@@ -180,6 +180,39 @@ namespace Render
 		return D3D11_MAP_READ_WRITE;
 	}
 
+	D3D11_FILTER D3D11Conv::To(Sampler::Filter filter)
+	{
+		switch( filter )
+		{
+		case Sampler::ePoint:
+			return D3D11_FILTER_MIN_MAG_MIP_POINT;
+		case Sampler::eBilinear:
+			return D3D11_FILTER_MIN_MAG_LINEAR_MIP_POINT;
+		case Sampler::eTrilinear:
+			return D3D11_FILTER_MIN_MAG_MIP_LINEAR;
+		case Sampler::eAnisotroicPoint:
+		case Sampler::eAnisotroicLinear:
+			return D3D11_FILTER_ANISOTROPIC;
+		}
+		return D3D11_FILTER_MIN_MAG_MIP_POINT;
+	}
+
+	D3D11_TEXTURE_ADDRESS_MODE D3D11Conv::To(Sampler::AddressMode mode)
+	{
+		switch( mode )
+		{
+		case Sampler::eWarp:
+			return D3D11_TEXTURE_ADDRESS_WRAP;
+		case Sampler::eClamp:
+			return D3D11_TEXTURE_ADDRESS_CLAMP;
+		case Sampler::eMirror:
+			return D3D11_TEXTURE_ADDRESS_MIRROR;
+		case Sampler::eBorder:
+			return D3D11_TEXTURE_ADDRESS_BORDER;
+		}
+		return D3D11_TEXTURE_ADDRESS_WRAP;
+	}
+
 	FixString<32> FD3D11Utility::GetShaderProfile(ID3D11Device* device, Shader::Type type)
 	{
 		char const* ShaderNames[] = { "vs" , "ps" , "gs" , "cs" , "hs" , "ds" };

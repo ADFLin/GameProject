@@ -131,34 +131,56 @@ namespace Render
 	void Mesh::drawInternal(RHICommandList& commandList, int idxStart, int num, RHIIndexBuffer* indexBuffer , LinearColor const* color)
 	{
 		assert(mVertexBuffer != nullptr);
+#if 1
+		InputStreamInfo inputStream;
+		inputStream.vertexBuffer = mVertexBuffer;
+		RHISetInputStream(commandList, *mInputLayout, &inputStream, 1);
+#else
 		OpenGLCast::To(mVertexBuffer)->bind();
 		OpenGLCast::To(mInputLayout)->bindPointer(color);
-
+#endif
 		if( indexBuffer )
 		{
 			RHISetIndexBuffer(commandList, indexBuffer);
-			RHIDrawIndexedPrimitive(commandList, mType, indexBuffer->isIntType() ? CVT_UInt : CVT_UShort, idxStart, num);
+			RHIDrawIndexedPrimitive(commandList, mType, idxStart, num);
 		}
 		else
 		{
 			RHIDrawPrimitive(commandList, mType, idxStart, num);
 		}
+#if 1
 
+#else
 		CheckGLStateValid();
 
 		OpenGLCast::To(mInputLayout)->unbindPointer(color);
 		OpenGLCast::To(mVertexBuffer)->unbind();
+#endif
 	}
 
 
 	void Mesh::drawShaderInternalEx(RHICommandList& commandList, PrimitiveType type , int idxStart, int num, RHIIndexBuffer* indexBuffer, LinearColor const* color /*= nullptr*/)
 	{
+#if 1
+		InputStreamInfo inputStream;
+		inputStream.vertexBuffer = mVertexBuffer;
+		RHISetInputStream(commandList, *mInputLayout, &inputStream, 1);
+		if( indexBuffer )
+		{
+			RHISetIndexBuffer(commandList, indexBuffer);
+			RHIDrawIndexedPrimitive(commandList, type, idxStart, num);
+		}
+		else
+		{
+			RHIDrawPrimitive(commandList, type, idxStart, num);
+		}
+#else
 		assert(mVertexBuffer != nullptr);
 		bindVAO(color);
 		if( indexBuffer )
 		{
 			RHISetIndexBuffer(commandList, indexBuffer);
-			RHIDrawIndexedPrimitive(commandList, type, indexBuffer->isIntType() ? CVT_UInt : CVT_UShort, idxStart, num);
+			RHIDrawIndexedPrimitive(commandList, type, idxStart, num);
 		}
 		else
 		{
@@ -167,24 +189,11 @@ namespace Render
 
 		CheckGLStateValid();
 		unbindVAO();
+#endif
 	}
 	void Mesh::drawShaderInternal(RHICommandList& commandList, int idxStart, int num, RHIIndexBuffer* indexBuffer, LinearColor const* color /*= nullptr*/)
 	{
-		assert(mVertexBuffer != nullptr);
-
-		bindVAO(color);
-		if( indexBuffer )
-		{
-			RHISetIndexBuffer(commandList, indexBuffer);
-			RHIDrawIndexedPrimitive(commandList, mType, indexBuffer->isIntType() ? CVT_UInt : CVT_UShort, idxStart, num);
-		}
-		else
-		{
-			RHIDrawPrimitive(commandList, mType, idxStart, num);
-		}
-
-		CheckGLStateValid();
-		unbindVAO();
+		drawShaderInternalEx(commandList, mType , idxStart, num, indexBuffer, color);
 	}
 
 	void Mesh::bindVAO(LinearColor const* color)
@@ -196,7 +205,9 @@ namespace Render
 
 
 			RHIVertexBuffer* vertexBuffer = mVertexBuffer;
-			OpenGLCast::To( mInputLayout )->bindAttrib(&vertexBuffer , 1 , color);
+			InputStreamInfo inputStream;
+			inputStream.vertexBuffer = vertexBuffer;
+			OpenGLCast::To( mInputLayout )->bindAttrib(&inputStream, 1 , color);
 
 			//if( mIndexBuffer )
 			//	OpenGLCast::To( mIndexBuffer )->bind();

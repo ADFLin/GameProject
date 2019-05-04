@@ -68,6 +68,29 @@ namespace Render
 		return DXGI_FORMAT_UNKNOWN;
 	}
 
+	DXGI_FORMAT D3D11Conv::To(Texture::DepthFormat format)
+	{
+		switch( format )
+		{
+		case Texture::eDepth16: return DXGI_FORMAT_D16_UNORM;
+		case Texture::eDepth24: return DXGI_FORMAT_R24_UNORM_X8_TYPELESS;
+		case Texture::eDepth32: return DXGI_FORMAT_R32_UINT;
+		case Texture::eDepth32F: return DXGI_FORMAT_D32_FLOAT;
+		case Texture::eD24S8:    return DXGI_FORMAT_D24_UNORM_S8_UINT;
+		case Texture::eD32FS8:   return DXGI_FORMAT_D32_FLOAT_S8X24_UINT;
+		case Texture::eStencil1:
+		case Texture::eStencil4:
+		case Texture::eStencil8:
+		case Texture::eStencil16: return DXGI_FORMAT_X24_TYPELESS_G8_UINT;
+		default:
+			LogWarning(0, "D3D11 No Support Texture DepthFormat %d", (int)format);
+			break;
+		}
+
+		return DXGI_FORMAT_UNKNOWN;
+
+	}
+
 	D3D11_BLEND D3D11Conv::To(Blend::Factor factor)
 	{
 		switch( factor )
@@ -108,8 +131,8 @@ namespace Render
 		switch( mode )
 		{
 		case ECullMode::Front: return D3D11_CULL_FRONT;
-		case ECullMode::Back: return D3D11_CULL_BACK;
-		case ECullMode::None: return D3D11_CULL_NONE;
+		case ECullMode::Back:  return D3D11_CULL_BACK;
+		case ECullMode::None:  return D3D11_CULL_NONE;
 		}
 		return D3D11_CULL_NONE;
 	}
@@ -168,6 +191,7 @@ namespace Render
 		return DXGI_FORMAT_UNKNOWN;
 	}
 
+
 	D3D11_MAP D3D11Conv::To(ELockAccess access)
 	{
 		switch( access )
@@ -212,6 +236,40 @@ namespace Render
 		}
 		return D3D11_TEXTURE_ADDRESS_WRAP;
 	}
+
+	D3D11_COMPARISON_FUNC D3D11Conv::To(ECompareFun func)
+	{
+		switch( func )
+		{
+		case ECompareFun::Never: return D3D11_COMPARISON_NEVER;
+		case ECompareFun::Less:  return D3D11_COMPARISON_LESS;
+		case ECompareFun::Equal: return D3D11_COMPARISON_EQUAL;
+		case ECompareFun::NotEqual: return D3D11_COMPARISON_NOT_EQUAL;
+		case ECompareFun::LessEqual: return D3D11_COMPARISON_LESS_EQUAL;
+		case ECompareFun::Greater: return D3D11_COMPARISON_GREATER;
+		case ECompareFun::GeraterEqual: return D3D11_COMPARISON_GREATER_EQUAL;
+		case ECompareFun::Always: return D3D11_COMPARISON_ALWAYS;
+		}
+		return D3D11_COMPARISON_NEVER;
+	}
+
+	D3D11_STENCIL_OP D3D11Conv::To(Stencil::Operation op)
+	{
+		switch( op )
+		{
+		case Stencil::eKeep: return D3D11_STENCIL_OP_KEEP;
+		case Stencil::eZero: return D3D11_STENCIL_OP_ZERO;
+		case Stencil::eReplace:return D3D11_STENCIL_OP_REPLACE;
+		case Stencil::eIncr:   return D3D11_STENCIL_OP_INCR_SAT;
+		case Stencil::eIncrWarp:return D3D11_STENCIL_OP_INCR;
+		case Stencil::eDecr:return D3D11_STENCIL_OP_DECR_SAT;
+		case Stencil::eDecrWarp:return D3D11_STENCIL_OP_DECR;
+		case Stencil::eInvert:return D3D11_STENCIL_OP_INVERT;
+		}
+		return D3D11_STENCIL_OP_KEEP;
+	}
+
+
 
 	FixString<32> FD3D11Utility::GetShaderProfile(ID3D11Device* device, Shader::Type type)
 	{

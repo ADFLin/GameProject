@@ -27,6 +27,8 @@ namespace Render
 		case 0x1002: gRHIDeviceVendorName = DeviceVendorName::ATI; break;
 		}
 
+		gRHIClipZMin = 0;
+		gRHIProjectYSign = -1;
 		mRenderContext.initialize(mDevice, mDeviceContext);
 		mImmediateCommandList = new RHICommandListImpl(mRenderContext);
 		return true;
@@ -40,10 +42,22 @@ namespace Render
 	RHITexture2D* D3D11System::RHICreateTexture2D(Texture::Format format, int w, int h, int numMipLevel, int numSamples, uint32 createFlags, void* data, int dataAlign)
 	{
 		Texture2DCreationResult creationResult;
-		if ( createTexture2DInternal(D3D11Conv::To(format), w, h, numMipLevel, numSamples, createFlags , data, Texture::GetFormatSize(format), creationResult ) )
+		if ( createTexture2DInternal(D3D11Conv::To(format), w, h, numMipLevel, numSamples, createFlags , data, Texture::GetFormatSize(format), false ,creationResult ) )
 		{
 			return new D3D11Texture2D(format, creationResult);
 		}
+		return nullptr;
+	}
+
+	RHITextureDepth* D3D11System::RHICreateTextureDepth(Texture::DepthFormat format, int w, int h, int numMipLevel, int numSamples)
+	{
+		uint32 creationFlag = 0;
+		Texture2DCreationResult creationResult;
+		if( createTexture2DInternal(D3D11Conv::To(format), w, h, numMipLevel, numSamples, creationFlag, nullptr, 0, true, creationResult) )
+		{
+			return new D3D11TextureDepth(format, creationResult);
+		}
+
 		return nullptr;
 	}
 
@@ -104,6 +118,17 @@ namespace Render
 
 		D3D11IndexBuffer* buffer = new D3D11IndexBuffer(mDevice, BufferResource.release(), nIndices , bIntIndex , creationFlag);
 		return buffer;
+	}
+
+	void* D3D11System::lockBufferInternal(ID3D11Resource* resource, ELockAccess access, uint32 offset, uint32 size)
+	{
+		D3D11_MAPPED_SUBRESOURCE mappedData;
+		HRESULT hr = mDeviceContext->Map(resource, 0, D3D11Conv::To(access), 0, &mappedData);
+		if( hr != S_OK )
+		{
+			return nullptr;
+		}
+		return (uint8*)mappedData.pData + offset;
 	}
 
 	void* D3D11System::RHILockBuffer(RHIVertexBuffer* buffer, ELockAccess access, uint32 offset, uint32 size)
@@ -281,6 +306,35 @@ namespace Render
 		return nullptr;
 	}
 
+	Render::RHIDepthStencilState* D3D11System::RHICreateDepthStencilState(DepthStencilStateInitializer const& initializer)
+	{
+		D3D11_DEPTH_STENCIL_DESC desc;
+		desc.DepthEnable = (initializer.depthFun != ECompareFun::Always) || (initializer.bWriteDepth);
+		desc.DepthWriteMask = initializer.bWriteDepth ? D3D11_DEPTH_WRITE_MASK_ALL : D3D11_DEPTH_WRITE_MASK_ZERO;
+		desc.DepthFunc = D3D11Conv::To( initializer.depthFun );
+		desc.StencilEnable = initializer.bEnableStencilTest;
+		desc.StencilReadMask = initializer.stencilReadMask;
+		desc.StencilWriteMask = initializer.stencilWriteMask;
+
+		desc.FrontFace.StencilFunc = D3D11Conv::To(initializer.stencilFun);
+		desc.FrontFace.StencilPassOp = D3D11Conv::To(initializer.zPassOp);
+		desc.FrontFace.StencilDepthFailOp = D3D11Conv::To( initializer.zFailOp );
+		desc.FrontFace.StencilFailOp = D3D11Conv::To( initializer.stencilFailOp );
+	
+		desc.BackFace.StencilFunc = D3D11Conv::To(initializer.stencilFunBack);
+		desc.BackFace.StencilPassOp = D3D11Conv::To(initializer.zPassOpBack);
+		desc.BackFace.StencilDepthFailOp = D3D11Conv::To(initializer.zFailOpBack);
+		desc.BackFace.StencilFailOp = D3D11Conv::To(initializer.stencilFailOpBack);
+		
+		TComPtr< ID3D11DepthStencilState > stateResource;
+		VERIFY_D3D11RESULT(mDevice->CreateDepthStencilState(&desc, &stateResource), );
+		if( stateResource )
+		{
+			return new D3D11DepthStencilState(stateResource.release());
+		}
+		return nullptr;
+	}
+
 	RHIShader* D3D11System::RHICreateShader(Shader::Type type)
 	{
 		return new D3D11Shader;
@@ -291,7 +345,7 @@ namespace Render
 		return new D3D11ShaderProgram;
 	}
 
-	bool D3D11System::createTexture2DInternal(DXGI_FORMAT format, int width, int height, int numMipLevel, int numSamples, uint32 creationFlag, void* data, uint32 pixelSize, Texture2DCreationResult& outResult)
+	bool D3D11System::createTexture2DInternal(DXGI_FORMAT format, int width, int height, int numMipLevel, int numSamples, uint32 creationFlag, void* data, uint32 pixelSize, bool bDepth , Texture2DCreationResult& outResult)
 	{
 		D3D11_TEXTURE2D_DESC desc = {};
 		desc.Format = format;
@@ -301,7 +355,7 @@ namespace Render
 		desc.ArraySize = 1;
 
 		desc.Usage = D3D11_USAGE_DEFAULT;
-		desc.BindFlags = 0;
+		desc.BindFlags = (bDepth) ? D3D11_BIND_DEPTH_STENCIL : 0;
 		if( creationFlag & TCF_RenderTarget )
 			desc.BindFlags |= D3D11_BIND_RENDER_TARGET;
 		if( creationFlag & TCF_CreateSRV )
@@ -322,7 +376,7 @@ namespace Render
 			initData.SysMemSlicePitch = width * height * pixelSize;
 		}
 
-		VERIFY_D3D11RESULT_RETURN_FALSE(mDevice->CreateTexture2D(&desc, &initData, &outResult.resource));
+		VERIFY_D3D11RESULT_RETURN_FALSE(mDevice->CreateTexture2D(&desc, data ? &initData : nullptr , &outResult.resource));
 		if( creationFlag & TCF_RenderTarget )
 		{
 			VERIFY_D3D11RESULT_RETURN_FALSE(mDevice->CreateRenderTargetView(outResult.resource, nullptr, &outResult.RTV));
@@ -425,7 +479,7 @@ namespace Render
 		if( mConstBufferDirtyMask )
 		{
 			uint32 mask = mConstBufferDirtyMask;
-			mConstBufferDirtyMask = 0;
+			//mConstBufferDirtyMask = 0;
 			for( int index = 0; index < MaxSimulatedBoundedBufferNum && mask; ++index )
 			{
 				if( mask & BIT(index) )
@@ -488,6 +542,25 @@ namespace Render
 			}
 		}
 	}
+
+	template< Render::Shader::Type TypeValue >
+	void Render::D3D11ShaderBoundState::clearState(ID3D11DeviceContext* context)
+	{
+		for( int index = 0; index < 2; ++index )
+		{
+			ID3D11Buffer* emptyBuffer = nullptr;
+			switch( TypeValue )
+			{
+			case Shader::eVertex:   context->VSSetConstantBuffers(index, 1, &emptyBuffer); break;
+			case Shader::ePixel:    context->PSSetConstantBuffers(index, 1, &emptyBuffer); break;
+			case Shader::eGeometry: context->GSSetConstantBuffers(index, 1, &emptyBuffer); break;
+			case Shader::eHull:     context->HSSetConstantBuffers(index, 1, &emptyBuffer); break;
+			case Shader::eDomain:   context->DSSetConstantBuffers(index, 1, &emptyBuffer); break;
+			case Shader::eCompute:  context->CSSetConstantBuffers(index, 1, &emptyBuffer); break;
+			}
+		}
+	}
+
 
 	void D3D11Context::RHISetShaderProgram(RHIShaderProgram* shaderProgram)
 	{
@@ -627,6 +700,17 @@ namespace Render
 
 	void D3D11Context::commitRenderShaderState()
 	{
+#define CLEAR_SHADER_STATE( SHADER_TYPE )\
+		mShaderBoundState[SHADER_TYPE].clearState<SHADER_TYPE>(mDeviceContext.get());
+
+		CLEAR_SHADER_STATE(Shader::eVertex);
+		CLEAR_SHADER_STATE(Shader::ePixel);
+		CLEAR_SHADER_STATE(Shader::eGeometry);
+		CLEAR_SHADER_STATE(Shader::eHull);
+		CLEAR_SHADER_STATE(Shader::eDomain);
+
+#undef CLEAR_SHADER_STATE
+
 #define SET_SHADER( SHADER_TYPE )\
 			if( mBoundedShaderDirtyMask & BIT(SHADER_TYPE) )\
 			{\
@@ -657,6 +741,59 @@ namespace Render
 #undef SET_SHADER
 #undef COMMIT_SHADER_STATE
 	}
+
+	void D3D11Context::RHISetRasterizerState(RHIRasterizerState& rasterizerState)
+	{
+		mDeviceContext->RSSetState(D3D11Cast::GetResource(rasterizerState));
+	}
+
+	void D3D11Context::RHISetBlendState(RHIBlendState& blendState)
+	{
+		mDeviceContext->OMSetBlendState(D3D11Cast::GetResource(blendState), Vector4(0, 0, 0, 0), 0xffffffff);
+	}
+
+	void D3D11Context::RHISetDepthStencilState(RHIDepthStencilState& depthStencilState, uint32 stencilRef)
+	{
+		mDeviceContext->OMSetDepthStencilState(D3D11Cast::GetResource(depthStencilState), stencilRef);
+	}
+
+	void D3D11Context::RHISetViewport(int x, int y, int w, int h)
+	{
+		D3D11_VIEWPORT vp;
+		vp.Width = w;
+		vp.Height = h;
+		vp.MinDepth = 0.0f;
+		vp.MaxDepth = 1.0f;
+		vp.TopLeftX = x;
+		vp.TopLeftY = y;
+		mDeviceContext->RSSetViewports(1, &vp);
+	}
+
+	void D3D11Context::RHISetScissorRect(int x, int y, int w, int h)
+	{
+		D3D11_RECT rect;
+		rect.top = x;
+		rect.left = y;
+		rect.bottom = x + w;
+		rect.right = y + h;
+		mDeviceContext->RSSetScissorRects(1, &rect);
+	}
+
+	void D3D11Context::PostDrawPrimitive()
+	{
+		return;
+#define CLEAR_SHADER_STATE( SHADER_TYPE )\
+		mShaderBoundState[SHADER_TYPE].clearState<SHADER_TYPE>(mDeviceContext.get());
+
+		CLEAR_SHADER_STATE(Shader::eVertex);
+		CLEAR_SHADER_STATE(Shader::ePixel);
+		CLEAR_SHADER_STATE(Shader::eGeometry);
+		CLEAR_SHADER_STATE(Shader::eHull);
+		CLEAR_SHADER_STATE(Shader::eDomain);
+
+#undef CLEAR_SHADER_STATE
+	}
+
 
 	void D3D11Context::commitComputeState()
 	{

@@ -15,8 +15,8 @@ namespace Render
 #if CORE_SHARE_CODE
 	RHISystem* gRHISystem = nullptr;
 #endif
-
-
+	float gRHIClipZMin = 0;
+	float gRHIProjectYSign = 1;
 #define EXECUTE_RHI_FUNC( CODE ) gRHISystem->CODE
 
 	bool RHISystemInitialize(RHISytemName name, RHISystemInitParam const& initParam)

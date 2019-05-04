@@ -170,7 +170,7 @@ namespace Render
 			initializeRenderState();
 
 
-			RHISetupFixedPipelineState(commandList, mView.worldToView, mView.viewToClip);
+			RHISetupFixedPipelineState(commandList, mView.worldToClip);
 			mMesh.draw(commandList, LinearColor(0, 1, 0, 1));
 
 

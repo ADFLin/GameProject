@@ -356,9 +356,10 @@ public:
 		GameWindow& window = Global::GetDrawEngine().getWindow();
 
 		RHICommandList& commandList = RHICommandList::GetImmediateList();
-
+		Vec2i screenSize = Global::GetDrawEngine().getScreenSize();
 		glMatrixMode(GL_PROJECTION);
 		glLoadIdentity();
+		//glLoadMatrixf(AdjProjectionMatrixForRHI(OrthoMatrix(window.getWidth(), window.getHeight(), 1, -1)));
 		glOrtho(0, window.getWidth(), window.getHeight(), 0 ,  1, -1);
 		glMatrixMode(GL_MODELVIEW);
 		glLoadIdentity();
@@ -366,7 +367,8 @@ public:
 		glClearColor(0.2, 0.2, 0.2, 1);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
-		Vec2i screenSize = Global::GetDrawEngine().getScreenSize();
+		RHISetRasterizerState(commandList, TStaticRasterizerState< ECullMode::None >::GetRHI() );
+		
 		DrawUtility::DrawTexture(commandList, *mTexture, Vec2i(0, 0), screenSize);
 		g.beginRender();
 

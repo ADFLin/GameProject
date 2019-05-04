@@ -193,7 +193,7 @@ namespace CB
 			RHISetDepthStencilState(commandList, TStaticDepthStencilState<>::GetRHI());
 
 			glMatrixMode(GL_PROJECTION);
-			Matrix4 matProj = PerspectiveMatrix( Math::Deg2Rad(45.0f) , (GLdouble)width / (GLdouble)height, 0.1f, 1000.0f);
+			Matrix4 matProj = AdjProjectionMatrixForRHI( PerspectiveMatrix( Math::Deg2Rad(45.0f) , (GLdouble)width / (GLdouble)height, 0.1f, 1000.0f) );
 			glLoadMatrixf(matProj);
 
 			glMatrixMode(GL_MODELVIEW);

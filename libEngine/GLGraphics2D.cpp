@@ -146,32 +146,23 @@ void GLGraphics2D::beginRender()
 	using namespace Render;
 	RHICommandList& commandList = RHICommandList::GetImmediateList();
 
+	RHISetViewport(commandList, 0, 0, mWidth, mHeight);
+
 	RHISetShaderProgram(commandList, nullptr);
 	RHISetDepthStencilState(commandList, StaticDepthDisableState::GetRHI());
 	RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
 	RHISetRasterizerState(commandList, TStaticRasterizerState< ECullMode::None >::GetRHI());
 
-	glDisable(GL_TEXTURE_2D);
+	RHISetupFixedPipelineState(commandList, AdjProjectionMatrixForRHI(OrthoMatrix(0 , mWidth, mHeight, 0 , -1, 1)));
+	RHISetInputStream(commandList, TStaticRenderRTInputLayout<RTVF_XY>::GetRHI() , nullptr , 0 );
 
-	glViewport(0, 0, mWidth, mHeight);
-	glMatrixMode( GL_PROJECTION );
-	glPushMatrix();
-	glLoadIdentity();
-	glOrtho( 0 , mWidth , mHeight , 0 , -1 , 1 );
-	glMatrixMode( GL_MODELVIEW );
-	glPushMatrix();
-	glLoadIdentity();
+	glDisable(GL_TEXTURE_2D);
 }
 
 void GLGraphics2D::endRender()
 {
 	glFlush();
 	glMatrixMode(GL_MODELVIEW);
-	glPopMatrix();
-	glMatrixMode(GL_PROJECTION);
-	glPopMatrix();
-	glMatrixMode(GL_MODELVIEW);
-
 	glPopAttrib();
 }
 
@@ -409,6 +400,8 @@ void GLGraphics2D::drawTextImpl(float  ox, float  oy, char const* str)
 	mFont->draw( Vector2(int(ox),int(oy)) , str );
 }
 
+#define USE_RENDER_RT 1
+
 void GLGraphics2D::drawPolygonBuffer()
 {
 #if	IGNORE_NSIGHT_UNSUPPORT_CODE
@@ -416,8 +409,11 @@ void GLGraphics2D::drawPolygonBuffer()
 #endif
 
 	assert(!mBuffer.empty());
+
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+
 	glEnableClientState(GL_VERTEX_ARRAY);
-	glVertexPointer(2, GL_FLOAT, 0, &mBuffer[0]);
+	glVertexPointer(2, GL_FLOAT, sizeof(float) * 2 , &mBuffer[0]);
 	if( mDrawBrush )
 	{
 		glColor4f(mColorBrush.r, mColorBrush.g, mColorBrush.b, mAlpha);
@@ -429,6 +425,7 @@ void GLGraphics2D::drawPolygonBuffer()
 		glDrawArrays(GL_LINE_LOOP, 0, mBuffer.size() / 2);
 	}
 	glDisableClientState(GL_VERTEX_ARRAY);
+
 }
 
 void GLGraphics2D::drawLineBuffer()

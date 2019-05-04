@@ -2,7 +2,7 @@
 #ifndef RHICommon_H_F71942CB_2583_4990_B63B_D7B4FC78E1DB
 #define RHICommon_H_F71942CB_2583_4990_B63B_D7B4FC78E1DB
 
-#include "BaseType.h"
+#include "RHIType.h"
 #include "RHIDefine.h"
 
 #include "MarcoCommon.h"
@@ -304,11 +304,11 @@ namespace Render
 	class RHITextureDepth : public RHITextureBase
 	{
 	public:
-		Texture::DepthFormat getFormat() { return mFromat; }
+		Texture::DepthFormat getFormat() { return mFormat; }
 		int  getSizeX() const { return mSizeX; }
 		int  getSizeY() const { return mSizeY; }
 
-		Texture::DepthFormat mFromat;
+		Texture::DepthFormat mFormat;
 		int mSizeX;
 		int mSizeY;
 	};
@@ -534,25 +534,6 @@ namespace Render
 	};
 
 
-	struct InputStreamDefine
-	{
-		RHIVertexBuffer* vertexBuffers[MAX_INPUT_STREAM_NUM];
-		int              numVertexBuffer;
-		RHIIndexBuffer*  indexBuffer;
-		RHIInputLayout*  inputLayout;
-
-		InputStreamDefine()
-		{
-			::memset(this, 0, sizeof(*this));
-		}
-	};
-
-
-	class RHIInputStreamState : public RHIResource
-	{
-
-	};
-
 	class RHIBufferBase : public RHIResource
 	{
 	public:
@@ -588,6 +569,20 @@ namespace Render
 		RHIIndexBuffer() {}
 
 		bool  isIntType() const { return mElementSize == 4; }
+	};
+
+	struct InputStreamInfo
+	{
+		RHIVertexBuffer* vertexBuffer;
+		uint32 offset;
+		int32  stride;
+
+		InputStreamInfo()
+		{
+			vertexBuffer = nullptr;
+			offset = 0;
+			stride = -1;
+		}
 	};
 
 	struct SamplerStateInitializer

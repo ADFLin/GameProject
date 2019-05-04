@@ -8,6 +8,9 @@
 
 namespace Render
 {
+	extern float gRHIClipZMin;
+
+
 	enum ColorWriteMask
 	{
 		CWM_NONE = 0,

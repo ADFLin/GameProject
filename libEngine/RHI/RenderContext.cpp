@@ -78,69 +78,39 @@ namespace Render
 		return program;
 	}
 
-
-	void ViewInfo::setupTransform(Matrix4 const& inViewMatrix, Matrix4 const& inProjectMatrix)
+	//ref ViewParam.sgc
+	struct GPU_BUFFER_ALIGN ViewBufferData
 	{
-		worldToClipPrev = worldToClip;
+		DECLARE_BUFFER_STRUCT(ViewBlock);
 
-		worldToView = inViewMatrix;
-		float det;
-		worldToView.inverse(viewToWorld, det);
-		worldPos = TransformPosition(Vector3(0, 0, 0), viewToWorld);
-		viewToClip = inProjectMatrix;
-		worldToClip = worldToView * viewToClip;
+		Matrix4  worldToView;
+		Matrix4  worldToClip;
+		Matrix4  viewToWorld;
+		Matrix4  viewToClip;
+		Matrix4  clipToView;
+		Matrix4  clipToWorld;
+		Matrix4  worldToClipPrev;
+		Vector4  rectPosAndSizeInv;
+		Vector3 worldPos;
+		float  realTime;
+		Vector3 direction;
+		float  gameTime;
+		int    frameCount;
+		int    dummy[3];
+	};
 
-		viewToClip.inverse(clipToView, det);
-		clipToWorld = clipToView * viewToWorld;
-
-		direction = getViewForwardDir();
-
-		updateFrustumPlanes();
-
-		mbDataDirty = true;
-	}
-
-	IntVector2 ViewInfo::getViewportSize() const
+	void ViewInfo::updateBuffer()
 	{
-		int values[4];
-		glGetIntegerv(GL_VIEWPORT, values);
-		return IntVector2(values[2], values[3]);
-	}
-
-	void ViewInfo::setupShader(RHICommandList& commandList, ShaderProgram& program)
-	{
-		//ref ViewParam.sgc
-#if 1
-		struct GPU_BUFFER_ALIGN ViewBufferData
-		{
-			DECLARE_BUFFER_STRUCT(ViewBlock);
-
-			Matrix4  worldToView;
-			Matrix4  worldToClip;
-			Matrix4  viewToWorld;
-			Matrix4  viewToClip;
-			Matrix4  clipToView;
-			Matrix4  clipToWorld;
-			Matrix4  worldToClipPrev;
-			Vector4  rectPosAndSizeInv;
-			Vector3 worldPos;
-			float  realTime;
-			Vector3 direction;
-			float  gameTime;
-			int    frameCount;
-			int    dummy[3];
-		};
-
 		if( !mUniformBuffer.isValid() )
 		{
-			mUniformBuffer = RHICreateVertexBuffer(sizeof(ViewBufferData) , 1 , BCF_UsageDynamic );
+			mUniformBuffer = RHICreateVertexBuffer(sizeof(ViewBufferData), 1, BCF_UsageDynamic);
 		}
 
 		if( mbDataDirty )
 		{
 			mbDataDirty = false;
 
-			void* ptr = RHILockBuffer(mUniformBuffer , ELockAccess::WriteDiscard );
+			void* ptr = RHILockBuffer(mUniformBuffer, ELockAccess::WriteDiscard);
 			ViewBufferData& data = *(ViewBufferData*)ptr;
 			data.worldPos = worldPos;
 			data.direction = direction;
@@ -156,30 +126,42 @@ namespace Render
 			data.rectPosAndSizeInv.x = rectOffset.x;
 			data.rectPosAndSizeInv.y = rectOffset.y;
 			data.rectPosAndSizeInv.z = 1.0 / float(rectSize.x);
-			data.rectPosAndSizeInv.w = 1.0 / float(rectSize.y);	
+			data.rectPosAndSizeInv.w = 1.0 / float(rectSize.y);
 			data.frameCount = frameCount;
 			RHIUnlockBuffer(mUniformBuffer);
 		}
+	}
 
+	void ViewInfo::setupTransform(Matrix4 const& inViewMatrix, Matrix4 const& inProjectMatrix)
+	{
+		worldToClipPrev = worldToClip;
+
+		worldToView = inViewMatrix;
+		float det;
+		worldToView.inverse(viewToWorld, det);
+		worldPos = TransformPosition(Vector3(0, 0, 0), viewToWorld);
+		viewToClip =  AdjProjectionMatrixForRHI( inProjectMatrix );
+		worldToClip = worldToView * viewToClip;
+
+		viewToClip.inverse(clipToView, det);
+		clipToWorld = clipToView * viewToWorld;
+
+		direction = getViewForwardDir();
+
+		updateFrustumPlanes();
+
+		mbDataDirty = true;
+	}
+
+	IntVector2 ViewInfo::getViewportSize() const
+	{
+		return rectSize;
+	}
+
+	void ViewInfo::setupShader(RHICommandList& commandList, ShaderProgram& program)
+	{
+		updateBuffer();
 		program.setStructuredUniformBufferT<ViewBufferData>(commandList, *mUniformBuffer);
-
-#else
-		program.setParam(commandList, SHADER_PARAM(View.worldPos), worldPos);
-		program.setParam(commandList, SHADER_PARAM(View.direction), direction);
-		program.setParam(commandList, SHADER_PARAM(View.worldToView), worldToView);
-		program.setParam(commandList, SHADER_PARAM(View.worldToClip), worldToClip);
-		program.setParam(commandList, SHADER_PARAM(View.viewToWorld), viewToWorld);
-		program.setParam(commandList, SHADER_PARAM(View.viewToClip), viewToClip);
-		program.setParam(commandList, SHADER_PARAM(View.clipToView), clipToView);
-		program.setParam(commandList, SHADER_PARAM(View.clipToWorld), clipToWorld);
-		program.setParam(commandList, SHADER_PARAM(View.gameTime), gameTime);
-		program.setParam(commandList, SHADER_PARAM(View.realTime), realTime);
-		viewportParam.x = rectOffset.x;
-		viewportParam.y = rectOffset.y;
-		viewportParam.z = 1.0 / float(rectSize.x);
-		viewportParam.w = 1.0 / float(rectSize.y);
-		program.setParam(commandList, SHADER_PARAM(View.viewportPosAndSizeInv), viewportParam);
-#endif
 	}
 
 	void ViewInfo::updateFrustumPlanes()
@@ -213,7 +195,7 @@ namespace Render
 		Vector4 col3 = clipToWorld.col(3);
 
 		frustumPlanes[0] = Plane::FromVector4(col3 - col2);  //zFar
-		frustumPlanes[1] = Plane::FromVector4(col3 + col2);  //zNear
+		frustumPlanes[1] = Plane::FromVector4(col3 - gRHIClipZMin * col2);  //zNear
 		frustumPlanes[2] = Plane::FromVector4(col3 - col0);  //top
 		frustumPlanes[3] = Plane::FromVector4(col3 + col0);  //bottom
 		frustumPlanes[4] = Plane::FromVector4(col3 - col0);  //right

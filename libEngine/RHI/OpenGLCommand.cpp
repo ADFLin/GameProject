@@ -184,6 +184,10 @@ namespace Render
 			glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
 		}
 
+		gRHIClipZMin = -1;
+		gRHIProjectYSign = 1;
+
+
 		if( 1 )
 		{
 			mProfileCore = new OpenglProfileCore;
@@ -591,19 +595,16 @@ namespace Render
 		glScissor(x, y, w, h);
 	}
 
-	void OpenGLContext::RHIDrawPrimitive(PrimitiveType type, int start, int nv)
-	{
-		glDrawArrays(GLConvert::To(type), start, nv);
-	}
 
-	void OpenGLContext::RHISetupFixedPipelineState(Matrix4 const& matModelView, Matrix4 const& matProj, int numTexture , RHITexture2D const** textures )
+
+	void OpenGLContext::RHISetupFixedPipelineState(Matrix4 const& transform, RHITexture2D* textures[], int numTexture)
 	{
 		RHISetShaderProgram(nullptr);
 
 		glMatrixMode(GL_PROJECTION);
-		glLoadMatrixf(matProj);
+		glLoadMatrixf(transform);
 		glMatrixMode(GL_MODELVIEW);
-		glLoadMatrixf(matModelView);
+		glLoadIdentity();
 		if( numTexture )
 		{
 			glEnable(GL_TEXTURE_2D);
@@ -620,27 +621,69 @@ namespace Render
 		}
 	}
 
-	void OpenGLContext::RHISetIndexBuffer(RHIIndexBuffer* indexBuffer)
+	void OpenGLContext::RHISetInputStream(RHIInputLayout& inputLayout, InputStreamInfo inputStreams[], int numInputStream)
 	{
-		OpenGLCast::To(indexBuffer)->bind();
+		if( mLastInputLayout.isValid() )
+		{
+			if( mWasBindAttrib )
+			{
+				OpenGLCast::To(mLastInputLayout)->unbindAttrib(mNumInputStream);
+			}
+			else
+			{
+				OpenGLCast::To(mLastInputLayout)->unbindPointer();
+			}
+		}
+		mNumInputStream = numInputStream;
+		if( numInputStream )
+		{
+			std::copy(inputStreams, inputStreams + numInputStream, mUsedInputStreams);
+		}
+		mLastInputLayout = &inputLayout;
+		
 	}
 
-	void OpenGLContext::RHIDrawIndexedPrimitive(PrimitiveType type, ECompValueType indexType, int indexStart, int nIndex , uint32 baseVertex )
+	void OpenGLContext::RHISetIndexBuffer(RHIIndexBuffer* indexBuffer)
 	{
-		assert(indexType == CVT_UInt || indexType == CVT_UShort);
+		mLastIndexBuffer = indexBuffer;	
+	}
+
+	void OpenGLContext::RHIDrawPrimitive(PrimitiveType type, int start, int nv)
+	{
+		if( !commitInputStream() )
+			return;
+
+		glDrawArrays(GLConvert::To(type), start, nv);
+	}
+
+	void OpenGLContext::RHIDrawIndexedPrimitive(PrimitiveType type, int indexStart, int nIndex , uint32 baseVertex )
+	{
+		if( !mLastIndexBuffer.isValid() )
+		{
+			return;
+		}
+
+		if( !commitInputStream() )
+			return;
+
+		OpenGLCast::To(mLastIndexBuffer)->bind();
+		GLenum indexType = mLastIndexBuffer->isIntType() ? GL_UNSIGNED_INT : GL_UNSIGNED_SHORT;
 		if( baseVertex )
 		{
-			glDrawElementsBaseVertex(GLConvert::To(type), nIndex, GLConvert::To(indexType), (void*)indexStart, baseVertex);
+			glDrawElementsBaseVertex(GLConvert::To(type), nIndex, indexType, (void*)indexStart, baseVertex);
 		}
 		else
 		{
-			glDrawElements(GLConvert::To(type), nIndex, GLConvert::To(indexType), (void*)indexStart);
+			glDrawElements(GLConvert::To(type), nIndex, indexType, (void*)indexStart);
 		}
-		
+		OpenGLCast::To(mLastIndexBuffer)->unbind();
 	}
 
 	void OpenGLContext::RHIDrawPrimitiveIndirect(PrimitiveType type, RHIVertexBuffer* commandBuffer, int offset , int numCommand, int commandStride )
 	{
+		if( !commitInputStream() )
+			return;
+
 		assert(commandBuffer);
 		GLenum priType = GLConvert::To(type);
 
@@ -656,34 +699,67 @@ namespace Render
 		glBindBuffer(GL_DRAW_INDIRECT_BUFFER, 0);
 	}
 
-	void OpenGLContext::RHIDrawIndexedPrimitiveIndirect(PrimitiveType type, ECompValueType indexType, RHIVertexBuffer* commandBuffer, int offset , int numCommand, int commandStride)
+	void OpenGLContext::RHIDrawIndexedPrimitiveIndirect(PrimitiveType type, RHIVertexBuffer* commandBuffer, int offset , int numCommand, int commandStride)
 	{
+		if( !mLastIndexBuffer.isValid() )
+		{
+			return;
+		}
+
+		if( !commitInputStream() )
+			return;
+
+		OpenGLCast::To(mLastIndexBuffer)->bind();
 		assert(commandBuffer);
 		GLenum priType = GLConvert::To(type);
-
+		GLenum indexType = mLastIndexBuffer->isIntType() ? GL_UNSIGNED_INT : GL_UNSIGNED_SHORT;
 		glBindBuffer(GL_DRAW_INDIRECT_BUFFER, OpenGLCast::GetHandle(*commandBuffer));
 		if( numCommand > 1 )
 		{
-			glMultiDrawElementsIndirect(priType, GLConvert::To(indexType) , (void*)offset, numCommand, commandStride);
+			glMultiDrawElementsIndirect(priType, indexType, (void*)offset, numCommand, commandStride);
 		}
 		else
 		{
-			glDrawElementsIndirect(priType, GLConvert::To(indexType) , (void*)offset);
+			glDrawElementsIndirect(priType, indexType, (void*)offset);
 		}
 		glBindBuffer(GL_DRAW_INDIRECT_BUFFER, 0);
+		OpenGLCast::To(mLastIndexBuffer)->unbind();
 	}
 
 	void OpenGLContext::RHIDrawPrimitiveInstanced(PrimitiveType type, int vStart, int nv, int numInstance)
 	{
+		if( !commitInputStream() )
+			return;
+
 		GLenum priType = GLConvert::To(type);
 		glDrawArraysInstanced(priType, vStart, nv, numInstance);
+	}
+
+	void OpenGLContext::RHIDrawPrimitiveUP(PrimitiveType type, void const* pVertices, int numVerex, int vetexStride)
+	{
+		if( pVertices == nullptr )
+			return;
+		if( !commitInputStreamUP(pVertices, vetexStride) )
+			return;
+
+		glDrawArrays(GLConvert::To(type), 0, numVerex);
+	}
+
+	void OpenGLContext::RHIDrawIndexedPrimitiveUP(PrimitiveType type, void const* pVertices, int numVerex, int vetexStride, int const* pIndices, int numIndex)
+	{
+		if( pVertices == nullptr || pIndices == nullptr )
+			return;
+
+		if( !commitInputStreamUP(pVertices, vetexStride) )
+			return;
+
+		glDrawElements(GLConvert::To(type), numIndex, GL_UNSIGNED_INT, (void*)pIndices);
 	}
 
 	void OpenGLContext::RHIDispatchCompute(uint32 numGroupX, uint32 numGroupY, uint32 numGroupZ)
 	{
 		glDispatchCompute(numGroupX, numGroupY, numGroupZ);
 	}
-
 
 	void OpenGLContext::RHISetShaderProgram(RHIShaderProgram* shaderProgram)
 	{
@@ -695,6 +771,11 @@ namespace Render
 			static_cast<OpenGLShaderProgram&>(*shaderProgram).bind();
 			resetBindIndex();
 			mLastShaderProgram = shaderProgram;
+			mbUseFixedPipeline = false;
+		}
+		else
+		{
+			mbUseFixedPipeline = true;
 		}
 	}
 

@@ -78,7 +78,7 @@ uint32 FCRC::Value32(uint8 const* pData, size_t numData)
 	uint32 result = 0xffffffff;
 	for( uint i = 0; i < numData; ++i )
 	{
-		uint32 index = (result ^ pData[i]) & 0xff;
+		uint32 index = ((result >> 24 ) ^ pData[i]) & 0xff;
 		result = (result << 8) ^ CRCTable32[index];
 	}
 	return result ^ 0xffffffff;

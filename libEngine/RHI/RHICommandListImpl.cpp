@@ -32,9 +32,9 @@ namespace Render
 		RHI_COMMAND_FUNC(commandList, RHIDrawPrimitive(type, start, nv));
 	}
 
-	void RHIDrawIndexedPrimitive(RHICommandList& commandList, PrimitiveType type, ECompValueType indexType, int indexStart, int nIndex, uint32 baseVertex)
+	void RHIDrawIndexedPrimitive(RHICommandList& commandList, PrimitiveType type, int indexStart, int nIndex, uint32 baseVertex)
 	{
-		RHI_COMMAND_FUNC(commandList, RHIDrawIndexedPrimitive(type, indexType, indexStart, nIndex, baseVertex));
+		RHI_COMMAND_FUNC(commandList, RHIDrawIndexedPrimitive(type, indexStart, nIndex, baseVertex));
 	}
 
 	void RHIDrawPrimitiveIndirect(RHICommandList& commandList, PrimitiveType type, RHIVertexBuffer* commandBuffer, int offset, int numCommand, int commandStride)
@@ -42,9 +42,9 @@ namespace Render
 		RHI_COMMAND_FUNC(commandList, RHIDrawPrimitiveIndirect(type, commandBuffer, offset, numCommand, commandStride));
 	}
 
-	void RHIDrawIndexedPrimitiveIndirect(RHICommandList& commandList, PrimitiveType type, ECompValueType indexType, RHIVertexBuffer* commandBuffer, int offset, int numCommand, int commandStride)
+	void RHIDrawIndexedPrimitiveIndirect(RHICommandList& commandList, PrimitiveType type, RHIVertexBuffer* commandBuffer, int offset, int numCommand, int commandStride)
 	{
-		RHI_COMMAND_FUNC(commandList, RHIDrawIndexedPrimitiveIndirect(type, indexType, commandBuffer, offset, numCommand, commandStride));
+		RHI_COMMAND_FUNC(commandList, RHIDrawIndexedPrimitiveIndirect(type, commandBuffer, offset, numCommand, commandStride));
 	}
 
 	void RHIDrawPrimitiveInstanced(RHICommandList& commandList, PrimitiveType type, int vStart, int nv, int numInstance)
@@ -52,24 +52,29 @@ namespace Render
 		RHI_COMMAND_FUNC(commandList, RHIDrawPrimitiveInstanced(type, vStart, nv, numInstance));
 	}
 
-	void RHIDrawPrimitiveUP(RHICommandList& commandList, PrimitiveType type, int numPrimitive, void* pVertices, int numVerex, int vetexStride)
+	void RHIDrawPrimitiveUP(RHICommandList& commandList, PrimitiveType type, void const* pVertices, int numVerex, int vetexStride)
 	{
-		RHI_COMMAND_FUNC(commandList, RHIDrawPrimitiveUP(type, numPrimitive, pVertices, numVerex, vetexStride));
+		RHI_COMMAND_FUNC(commandList, RHIDrawPrimitiveUP(type, pVertices, numVerex, vetexStride));
 	}
 
-	void RHIDrawIndexedPrimitiveUP(RHICommandList& commandList, PrimitiveType type, int numPrimitive, void* pVertices, int numVerex, int vetexStride, int* pIndices, int numIndex)
+	void RHIDrawIndexedPrimitiveUP(RHICommandList& commandList, PrimitiveType type, void const* pVertices, int numVerex, int vetexStride, int const* pIndices, int numIndex)
 	{
-		RHI_COMMAND_FUNC(commandList, RHIDrawIndexedPrimitiveUP(type, numPrimitive, pVertices, numVerex, vetexStride, pIndices, numIndex));
+		RHI_COMMAND_FUNC(commandList, RHIDrawIndexedPrimitiveUP(type, pVertices, numVerex, vetexStride, pIndices, numIndex));
 	}
 
-	void RHISetupFixedPipelineState(RHICommandList& commandList, Matrix4 const& matModelView, Matrix4 const& matProj, int numTexture /*= 0*/, RHITexture2D const** textures /*= nullptr*/)
+	void RHISetupFixedPipelineState(RHICommandList& commandList, Matrix4 const& transform, RHITexture2D* textures[], int numTexture)
 	{
-		RHI_COMMAND_FUNC(commandList, RHISetupFixedPipelineState(matModelView, matProj, numTexture, textures));
+		RHI_COMMAND_FUNC(commandList, RHISetupFixedPipelineState(transform, textures, numTexture));
 	}
 
-	void RHISetFrameBuffer(RHICommandList& commandList, RHIFrameBuffer& frameBuffer, RHITextureDepth* overrideDepthTexture /*= nullptr*/)
+	void RHISetFrameBuffer(RHICommandList& commandList, RHIFrameBuffer* frameBuffer, RHITextureDepth* overrideDepthTexture /*= nullptr*/)
 	{
 		RHI_COMMAND_FUNC(commandList, RHISetFrameBuffer(frameBuffer, overrideDepthTexture));
+	}
+
+	void RHISetInputStream(RHICommandList& commandList, RHIInputLayout& inputLayout, InputStreamInfo inputStreams[], int numInputStream)
+	{
+		RHI_COMMAND_FUNC(commandList, RHISetInputStream(inputLayout, inputStreams, numInputStream));
 	}
 
 	void RHISetIndexBuffer(RHICommandList& commandList, RHIIndexBuffer* indexBuffer)
@@ -86,6 +91,5 @@ namespace Render
 	{
 		RHI_COMMAND_FUNC(commandList, RHISetShaderProgram(shaderProgram));
 	}
-
 
 }//namespace Render

@@ -147,7 +147,7 @@ namespace CB
 		glMatrixMode(GL_PROJECTION);
 		glLoadMatrixf(mViewInfo.viewToClip);
 		glMatrixMode(GL_MODELVIEW);
-		glLoadMatrixf( mViewInfo.worldToView );
+		glLoadMatrixf(mViewInfo.worldToView);
 	}
 
 	void CurveRenderer::endRender()
@@ -180,7 +180,7 @@ namespace CB
 
 			Color4f const& surfaceColor = surface.getColor();
 			Color4f const color = Color4f(1 - surfaceColor.r, 1 - surfaceColor.g, 1 - surfaceColor.b);
-			RHISetupFixedPipelineState(commandList, mViewInfo.worldToView, mViewInfo.viewToClip);
+			RHISetupFixedPipelineState(commandList, mViewInfo.worldToClip);
 			drawMeshLine( surface , color );
 
 			glDisable(GL_POLYGON_OFFSET_FILL);
@@ -312,6 +312,8 @@ namespace CB
 
 	void CurveRenderer::drawAxis()
 	{
+		return;
+
 		glBegin(GL_LINES);
 
 		glColor3f(1, 0, 0);

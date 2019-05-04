@@ -873,7 +873,7 @@ namespace Go
 			float const xMax = (mGame.getInstance().getCurrentStep() + 1) / 2 + 1;
 			float const yMin = 0;
 			float const yMax = 100;
-			Matrix4 matProj = OrthoMatrix(xMin - 1, xMax, yMin - 5, yMax + 5, -1, 1);
+			Matrix4 matProj = AdjProjectionMatrixForRHI( OrthoMatrix(xMin - 1, xMax, yMin - 5, yMax + 5, -1, 1) );
 
 			glLoadMatrixf(matProj);
 			glMatrixMode(GL_MODELVIEW);

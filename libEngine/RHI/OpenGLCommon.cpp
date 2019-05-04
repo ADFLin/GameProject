@@ -350,7 +350,7 @@ namespace Render
 		if( numSamples < 1 )
 			numSamples = 1;
 
-		mFromat = format;
+		mFormat = format;
 		mNumMipLevel = numMipLevel;
 		mNumSamples = numSamples;
 		mSizeX = width;
@@ -1265,11 +1265,12 @@ namespace Render
 		});
 	}
 
-	void OpenGLInputLayout::bindAttrib(RHIVertexBuffer* vertexBuffer[], int numVertexBuffer, LinearColor const* overwriteColor)
+	void OpenGLInputLayout::bindAttrib(InputStreamInfo inputStreams[], int numInputStream, LinearColor const* overwriteColor /*= nullptr*/)
 	{
-		for( int i = 0; i < numVertexBuffer; ++i )
+		for( int i = 0; i < numInputStream; ++i )
 		{
-			GL_BIND_LOCK_OBJECT(*vertexBuffer[i]);
+			auto& inputStream = inputStreams[i];
+			OpenGLCast::To(inputStream.vertexBuffer)->bind();
 			int index = 0;
 			for( ; index < mElements.size(); ++index )
 			{
@@ -1277,8 +1278,34 @@ namespace Render
 				if( e.idxStream > index )
 					break;
 
+				int stride = (inputStream.stride >= 0) ? inputStream.stride : inputStream.vertexBuffer->getElementSize();
 				glEnableVertexAttribArray(e.attribute);
-				glVertexAttribPointer(e.attribute, e.componentNum, e.componentType, e.bNormalize, e.stride, (void*)e.offset);
+				glVertexAttribPointer(e.attribute, e.componentNum, e.componentType, e.bNormalize, stride , (void*)( inputStream.offset + e.offset) );
+			}
+			OpenGLCast::To(inputStream.vertexBuffer)->unbind();
+		}
+		if( overwriteColor )
+		{
+			glDisableVertexAttribArray(Vertex::ATTRIBUTE_COLOR);
+			glVertexAttrib4fv(Vertex::ATTRIBUTE_COLOR, *overwriteColor);
+		}
+	}
+
+	void OpenGLInputLayout::bindAttribUP(InputStreamInfo inputStreams[], int numInputStream, LinearColor const* overwriteColor )
+	{
+		for( int i = 0; i < numInputStream; ++i )
+		{
+			auto& inputStream = inputStreams[i];
+			int index = 0;
+			for( ; index < mElements.size(); ++index )
+			{
+				auto const& e = mElements[index];
+				if( e.idxStream > index )
+					break;
+
+				assert(inputStream.stride >= 0);
+				glEnableVertexAttribArray(e.attribute);
+				glVertexAttribPointer(e.attribute, e.componentNum, e.componentType, e.bNormalize, inputStream.stride, (void*)(inputStream.offset + e.offset));
 			}
 		}
 		if( overwriteColor )
@@ -1288,11 +1315,11 @@ namespace Render
 		}
 	}
 
-	void OpenGLInputLayout::unbindAttrib(int numVertexBuffer, LinearColor const* overwriteColor)
+	void OpenGLInputLayout::unbindAttrib(int numInputStream, LinearColor const* overwriteColor)
 	{
 		for( auto const& e : mElements )
 		{
-			if ( e.idxStream >= numVertexBuffer )
+			if ( e.idxStream >= numInputStream )
 				break;
 			glDisableVertexAttribArray(e.attribute);
 		}
@@ -1304,50 +1331,155 @@ namespace Render
 
 	}
 
+	void BindElementPointer(OpenGLInputLayout::Element const& e, uint32 offset, uint32 stride, bool& haveTex)
+	{
+		switch( e.semantic )
+		{
+		case Vertex::ePosition:
+			glEnableClientState(GL_VERTEX_ARRAY);
+			glVertexPointer(e.componentNum, e.componentType, stride, (void*)(offset));
+			break;
+		case Vertex::eNormal:
+			assert(e.componentNum == 3);
+			glEnableClientState(GL_NORMAL_ARRAY);
+			glNormalPointer(e.componentType, stride, (void*)(offset));
+			break;
+		case Vertex::eColor:
+			if( e.idx == 0 )
+			{
+				glEnableClientState(GL_COLOR_ARRAY);
+				glColorPointer(e.componentNum, e.componentType, stride, (void*)(offset));
+			}
+			else
+			{
+				glEnableClientState(GL_SECONDARY_COLOR_ARRAY);
+				glSecondaryColorPointer(e.componentNum, e.componentType, stride, (void*)(offset));
+			}
+			break;
+		case Vertex::eTangent:
+			glClientActiveTexture(GL_TEXTURE0 + (Vertex::ATTRIBUTE_TANGENT - Vertex::ATTRIBUTE_TEXCOORD));
+			glEnableClientState(GL_TEXTURE_COORD_ARRAY);
+			glTexCoordPointer(e.componentNum, e.componentType, stride, (void*)(offset));
+			haveTex = true;
+			break;
+		case Vertex::eTexcoord:
+			glClientActiveTexture(GL_TEXTURE0 + e.idx);
+			glEnableClientState(GL_TEXTURE_COORD_ARRAY);
+			glTexCoordPointer(e.componentNum, e.componentType, stride, (void*)(offset));
+			haveTex = true;
+			break;
+		}
+	}
+
+	void UnbindElementPointer(OpenGLInputLayout::Element const& e, LinearColor const* overwriteColor, bool& haveTex)
+	{
+		switch( e.semantic )
+		{
+		case Vertex::ePosition:
+			glDisableClientState(GL_VERTEX_ARRAY);
+			break;
+		case Vertex::eNormal:
+			glDisableClientState(GL_NORMAL_ARRAY);
+			break;
+		case Vertex::eColor:
+			if( overwriteColor == nullptr )
+				glDisableClientState((e.idx == 0) ? GL_COLOR_ARRAY : GL_SECONDARY_COLOR_ARRAY);
+			break;
+		case Vertex::eTangent:
+			haveTex = true;
+			glClientActiveTexture(GL_TEXTURE0 + (Vertex::ATTRIBUTE_TANGENT - Vertex::ATTRIBUTE_TEXCOORD));
+			glDisableClientState(GL_TEXTURE_COORD_ARRAY);
+			break;
+		case Vertex::eTexcoord:
+			haveTex = true;
+			glClientActiveTexture(GL_TEXTURE0 + e.idx);
+			glDisableClientState(GL_TEXTURE_COORD_ARRAY);
+			break;
+		}
+	}
+
+	void OpenGLInputLayout::bindPointer(InputStreamInfo inputStreams[], int numInputStream)
+	{
+		if( numInputStream == 1 )
+		{
+			OpenGLCast::To(inputStreams[0].vertexBuffer)->bind();
+			bool haveTex = false;
+			for( auto const& e : mElements )
+			{
+				uint32 offset = inputStreams[e.idxStream].offset + e.offset;
+				uint32 stride = inputStreams[e.idxStream].stride > 0 ? inputStreams[e.idxStream].stride : e.stride;
+				BindElementPointer(e, offset, stride, haveTex);
+			}
+			OpenGLCast::To(inputStreams[0].vertexBuffer)->unbind();
+		}
+		else
+		{
+			bool haveTex = false;
+
+			for( int i = 0; i < numInputStream; ++i )
+			{
+				auto& inputStream = inputStreams[i];
+
+				OpenGLCast::To(inputStream.vertexBuffer)->bind();
+				int index = 0;
+				for( ; index < mElements.size(); ++index )
+				{
+					auto const& e = mElements[index];
+					if( e.idxStream > index )
+						break;
+
+					uint32 offset = inputStreams[e.idxStream].offset + e.offset;
+					uint32 stride = inputStreams[e.idxStream].stride > 0 ? inputStreams[e.idxStream].stride : e.stride;
+					BindElementPointer(e, offset, stride, haveTex);
+
+				}
+				OpenGLCast::To(inputStream.vertexBuffer)->unbind();
+			}
+		}
+	}
+
+	void OpenGLInputLayout::bindPointerUP(InputStreamInfo inputStreams[], int numInputStream, LinearColor const* overwriteColor)
+	{
+		if( numInputStream == 1 )
+		{
+			bool haveTex = false;
+			for( auto const& e : mElements )
+			{
+				uint32 offset = inputStreams[e.idxStream].offset + e.offset;
+				uint32 stride = inputStreams[e.idxStream].stride;
+				BindElementPointer(e, offset, stride, haveTex);
+			}
+		}
+		else
+		{
+			bool haveTex = false;
+
+			for( int i = 0; i < numInputStream; ++i )
+			{
+				auto& inputStream = inputStreams[i];
+				int index = 0;
+				for( ; index < mElements.size(); ++index )
+				{
+					auto const& e = mElements[index];
+					if( e.idxStream > index )
+						break;
+
+					uint32 offset = inputStreams[e.idxStream].offset + e.offset;
+					uint32 stride = inputStreams[e.idxStream].stride;
+					BindElementPointer(e, offset, stride, haveTex);
+				}
+			}
+		}
+	}
+
 	void OpenGLInputLayout::bindPointer(LinearColor const* overwriteColor)
 	{
 		bool haveTex = false;
 		for( auto const& e : mElements )
 		{
-			switch( e.semantic )
-			{
-			case Vertex::ePosition:
-				glEnableClientState(GL_VERTEX_ARRAY);
-				glVertexPointer(e.componentNum, e.componentType, e.stride, (void*)e.offset);
-				break;
-			case Vertex::eNormal:
-				assert(e.componentNum == 3);
-				glEnableClientState(GL_NORMAL_ARRAY);
-				glNormalPointer(e.componentType, e.stride, (void*)e.offset);
-				break;
-			case Vertex::eColor:
-				if( e.idx == 0 )
-				{
-					if( overwriteColor == nullptr )
-					{
-						glEnableClientState(GL_COLOR_ARRAY);
-						glColorPointer(e.componentNum, e.componentType, e.stride, (void*)e.offset);
-					}
-				}
-				else
-				{
-					glEnableClientState(GL_SECONDARY_COLOR_ARRAY);
-					glSecondaryColorPointer(e.componentNum, e.componentType, e.stride, (void*)e.offset);
-				}
-				break;
-			case Vertex::eTangent:
-				glClientActiveTexture(GL_TEXTURE0 + (Vertex::ATTRIBUTE_TANGENT - Vertex::ATTRIBUTE_TEXCOORD));
-				glEnableClientState(GL_TEXTURE_COORD_ARRAY);
-				glTexCoordPointer(e.componentNum, e.componentType, e.stride, (void*)e.offset);
-				haveTex = true;
-				break;
-			case Vertex::eTexcoord:
-				glClientActiveTexture(GL_TEXTURE0 + e.idx);
-				glEnableClientState(GL_TEXTURE_COORD_ARRAY);
-				glTexCoordPointer(e.componentNum, e.componentType, e.stride, (void*)e.offset);
-				haveTex = true;
-				break;
-			}
+			uint32 offset = 0;
+			uint32 stride = e.stride;
+			BindElementPointer(e, offset, stride, haveTex);
 		}
 
 		if( overwriteColor )
@@ -1361,29 +1493,7 @@ namespace Render
 		bool haveTex = false;
 		for( auto const& e : mElements )
 		{
-			switch( e.semantic )
-			{
-			case Vertex::ePosition:
-				glDisableClientState(GL_VERTEX_ARRAY);
-				break;
-			case Vertex::eNormal:
-				glDisableClientState(GL_NORMAL_ARRAY);
-				break;
-			case Vertex::eColor:
-				if( overwriteColor == nullptr )
-					glDisableClientState((e.idx == 0) ? GL_COLOR_ARRAY : GL_SECONDARY_COLOR_ARRAY);
-				break;
-			case Vertex::eTangent:
-				haveTex = true;
-				glClientActiveTexture(GL_TEXTURE0 + (Vertex::ATTRIBUTE_TANGENT - Vertex::ATTRIBUTE_TEXCOORD));
-				glDisableClientState(GL_TEXTURE_COORD_ARRAY);
-				break;
-			case Vertex::eTexcoord:
-				haveTex = true;
-				glClientActiveTexture(GL_TEXTURE0 + e.idx);
-				glDisableClientState(GL_TEXTURE_COORD_ARRAY);
-				break;
-			}
+			UnbindElementPointer(e, overwriteColor , haveTex);
 		}
 
 		if( overwriteColor )

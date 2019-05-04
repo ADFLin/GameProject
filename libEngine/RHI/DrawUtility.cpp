@@ -495,6 +495,47 @@ namespace Render
 	IMPLEMENT_SHADER_PROGRAM(CopyTextureBiasProgram);
 	IMPLEMENT_SHADER_PROGRAM(MappingTextureColorProgram);
 
+
+	class SimplePipelineProgram : public GlobalShaderProgram
+	{
+		DECLARE_SHADER_PROGRAM(SimplePipelineProgram, Global)
+
+		static void SetupShaderCompileOption(ShaderCompileOption&) {}
+		static char const* GetShaderFileName()
+		{
+			return "Shader/SimplePipelineShader";
+		}
+		static TArrayView< ShaderEntryInfo const > GetShaderEntries()
+		{
+			static ShaderEntryInfo const entries[] =
+			{
+				{ Shader::eVertex , SHADER_ENTRY(MainVS) },
+				{ Shader::ePixel  , SHADER_ENTRY(MainPS) },
+			};
+			return entries;
+		}
+	public:
+		void bindParameters(ShaderParameterMap& parameterMap)
+		{
+			parameterMap.bind(mParamTexture, SHADER_PARAM(Texture));
+			parameterMap.bind(mParamColor, SHADER_PARAM(Color));
+			parameterMap.bind(mParamXForm, SHADER_PARAM(XForm));
+		}
+
+		void setParameters(RHICommandList& commandList, Matrix4 const& transform, Vector4 const& color, RHITexture2D* copyTexture )
+		{
+			setTexture(commandList, mParamTexture, copyTexture ? *copyTexture : *GWhiteTexture2D );
+			setParam(commandList, mParamColor, color);
+			setParam(commandList, mParamXForm, transform);
+		}
+
+		ShaderParameter mParamTexture;
+		ShaderParameter mParamColor;
+		ShaderParameter mParamXForm;
+	};
+
+	IMPLEMENT_SHADER_PROGRAM(SimplePipelineProgram)
+
 	bool ShaderHelper::init()
 	{
 		ShaderCompileOption option;
@@ -510,32 +551,32 @@ namespace Render
 		mProgMappingTextureColor = ShaderManager::Get().getGlobalShaderT<MappingTextureColorProgram>(true);
 		if( mProgMappingTextureColor == nullptr )
 			return false;
-
-		if( !mFrameBuffer.create() )
+		mProgSimplePipeline = ShaderManager::Get().getGlobalShaderT<SimplePipelineProgram>(true);
+		if( mProgSimplePipeline == nullptr )
 			return false;
 
-		mFrameBuffer.addTexture(*GWhiteTexture2D);
+		mFrameBuffer = RHICreateFrameBuffer();
 		return true;
 	}
 
 	void ShaderHelper::clearBuffer(RHICommandList& commandList, RHITexture2D& texture, float clearValue[])
 	{
-		mFrameBuffer.setTexture(0, texture);
-		GL_BIND_LOCK_OBJECT(mFrameBuffer);
+		mFrameBuffer->setTexture(0, texture);
+		RHISetFrameBuffer(commandList, mFrameBuffer);
 		glClearBufferfv(GL_COLOR, 0, (float const*)clearValue);
 	}
 
 	void ShaderHelper::clearBuffer(RHICommandList& commandList, RHITexture2D& texture, uint32 clearValue[])
 	{
-		mFrameBuffer.setTexture(0, texture);
-		GL_BIND_LOCK_OBJECT(mFrameBuffer);
+		mFrameBuffer->setTexture(0, texture);
+		RHISetFrameBuffer(commandList, mFrameBuffer);
 		glClearBufferuiv(GL_COLOR, 0, clearValue);
 	}
 
 	void ShaderHelper::clearBuffer(RHICommandList& commandList, RHITexture2D& texture, int32 clearValue[])
 	{
-		mFrameBuffer.setTexture(0, texture);
-		GL_BIND_LOCK_OBJECT(mFrameBuffer);
+		mFrameBuffer->setTexture(0, texture);
+		RHISetFrameBuffer(commandList, mFrameBuffer);
 		glClearBufferiv(GL_COLOR, 0, clearValue);
 	}
 
@@ -570,10 +611,10 @@ namespace Render
 
 	void ShaderHelper::copyTexture(RHICommandList& commandList, RHITexture2D& destTexture, RHITexture2D& srcTexture)
 	{
-		mFrameBuffer.setTexture(0, destTexture);
-		mFrameBuffer.bind();
+		mFrameBuffer->setTexture(0, destTexture);
+		RHISetFrameBuffer(commandList, mFrameBuffer);
 		copyTextureToBuffer(commandList, srcTexture);
-		mFrameBuffer.unbind();
+		RHISetFrameBuffer(commandList, nullptr);
 	}
 
 	void ShaderHelper::reload()

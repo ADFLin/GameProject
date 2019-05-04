@@ -437,7 +437,7 @@
     <ClInclude Include="RefCount.h" />
     <ClInclude Include="CoreShare.h" />
     <ClInclude Include="ReflectionCollect.h" />
-    <ClInclude Include="RHI\BaseType.h" />
+    <ClInclude Include="RHI\RHIType.h" />
     <ClInclude Include="RHI\D3D11Command.h" />
     <ClInclude Include="RHI\D3D11Common.h" />
     <ClInclude Include="RHI\D3D11ShaderCommon.h" />

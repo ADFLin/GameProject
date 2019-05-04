@@ -54,32 +54,25 @@ namespace Render
 
 
 		void RHIDrawPrimitive(PrimitiveType type, int start, int nv);
-		void RHIDrawIndexedPrimitive(PrimitiveType type, ECompValueType indexType, int indexStart, int nIndex, uint32 baseVertex);
+		void RHIDrawIndexedPrimitive(PrimitiveType type, int indexStart, int nIndex, uint32 baseVertex);
 		void RHIDrawPrimitiveIndirect(PrimitiveType type, RHIVertexBuffer* commandBuffer, int offset, int numCommand, int commandStride);
-		void RHIDrawIndexedPrimitiveIndirect(PrimitiveType type, ECompValueType indexType, RHIVertexBuffer* commandBuffer, int offset, int numCommand, int commandStride);
+		void RHIDrawIndexedPrimitiveIndirect(PrimitiveType type, RHIVertexBuffer* commandBuffer, int offset, int numCommand, int commandStride);
 		void RHIDrawPrimitiveInstanced(PrimitiveType type, int vStart, int nv, int numInstance);
-		void RHIDrawPrimitiveUP(PrimitiveType type, int numPrimitive, void* pVertices, int numVerex, int vetexStride)
-		{
 
+		void RHIDrawPrimitiveUP(PrimitiveType type, void const* pVertices, int numVerex, int vetexStride);
 
-		}
+		void RHIDrawIndexedPrimitiveUP(PrimitiveType type, void const* pVertices, int numVerex, int vetexStride, int const* pIndices, int numIndex);
 
-		void RHIDrawIndexedPrimitiveUP(PrimitiveType type, int numPrimitive, void* pVertices, int numVerex, int vetexStride, int* pIndices, int numIndex)
-		{
+		void RHISetupFixedPipelineState(Matrix4 const& transform, RHITexture2D* textures[], int numTexture);
 
-		}
-
-		void RHISetupFixedPipelineState(Matrix4 const& matModelView, Matrix4 const& matProj, int numTexture, RHITexture2D const** textures);
-
-		void RHISetFrameBuffer(RHIFrameBuffer& frameBuffer, RHITextureDepth* overrideDepthTexture /*= nullptr*/)
+		void RHISetFrameBuffer(RHIFrameBuffer* frameBuffer, RHITextureDepth* overrideDepthTexture )
 		{
 			if( mLastFrameBuffer.isValid() )
 			{
 				OpenGLCast::To(mLastFrameBuffer)->unbind();
 			}
 
-			mLastFrameBuffer = &frameBuffer;
-
+			mLastFrameBuffer = frameBuffer;
 			if( mLastFrameBuffer.isValid() )
 			{
 				OpenGLCast::To(mLastFrameBuffer)->bind();
@@ -91,7 +84,7 @@ namespace Render
 
 
 		}
-
+		void RHISetInputStream(RHIInputLayout& inputLayout, InputStreamInfo inputStreams[], int numInputStream);
 		void RHISetIndexBuffer(RHIIndexBuffer* buffer);
 		void RHIDispatchCompute(uint32 numGroupX, uint32 numGroupY, uint32 numGroupZ);
 
@@ -121,6 +114,55 @@ namespace Render
 		void setShaderAtomicCounterBuffer(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHIVertexBuffer& buffer);
 
 		static int const IdxTextureAutoBindStart = 2;
+
+		bool commitInputStream()
+		{
+			if( !mLastInputLayout.isValid() )
+				return false;
+
+			mWasBindAttrib = false;
+			if( mbUseFixedPipeline )
+			{
+				OpenGLCast::To(mLastInputLayout)->bindPointer(mUsedInputStreams, mNumInputStream);
+			}
+			else
+			{
+				OpenGLCast::To(mLastInputLayout)->bindAttrib(mUsedInputStreams, mNumInputStream);
+				mWasBindAttrib = true;
+			}
+			return true;
+		}
+
+		bool commitInputStreamUP(void  const* pVertices, int vetexStride)
+		{
+			if( !mLastInputLayout.isValid() )
+				return false;
+
+			if( mNumInputStream != 0 )
+				return false;
+
+			mUsedInputStreams[0].offset = (uint32)pVertices;
+			mUsedInputStreams[0].stride = vetexStride;
+			mNumInputStream = 1;
+			mWasBindAttrib = false;
+			if( mbUseFixedPipeline )
+			{
+				OpenGLCast::To(mLastInputLayout)->bindPointerUP(mUsedInputStreams, mNumInputStream);
+			}
+			else
+			{
+				OpenGLCast::To(mLastInputLayout)->bindAttribUP(mUsedInputStreams, mNumInputStream);
+				mWasBindAttrib = true;
+			}
+			return true;
+		}
+
+		bool commitInputStreamUP()
+		{
+			if( !mLastInputLayout.isValid() )
+				return false;
+			return true;
+		}
 		void resetBindIndex()
 		{
 			mIdxTextureAutoBind = IdxTextureAutoBindStart;
@@ -132,9 +174,18 @@ namespace Render
 		int  mNextUniformSlot;
 		int  mNextStorageSlot;
 
+		RHIIndexBufferRef   mLastIndexBuffer;
 		RHIShaderProgramRef mLastShaderProgram;
-		RHIFrameBufferRef mLastFrameBuffer;
-		OpenGLDeviceState mDeviceState;
+		RHIFrameBufferRef   mLastFrameBuffer;
+		OpenGLDeviceState   mDeviceState;
+
+		bool mbUseFixedPipeline = true;
+		bool mWasBindAttrib = false;
+		RHIInputLayoutRef   mLastInputLayout;
+	
+		static int const MaxSimulationInputStreamSlots = 8;
+		InputStreamInfo     mUsedInputStreams[MaxSimulationInputStreamSlots];
+		int mNumInputStream;
 
 	};
 

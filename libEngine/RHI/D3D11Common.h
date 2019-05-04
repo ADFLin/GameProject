@@ -30,6 +30,7 @@ namespace Render
 	struct TD3D11TypeTraits { typedef void ImplType; };
 
 	class D3D11Texture2D;
+	class D3D11TextureDepth;
 	class D3D11VertexBuffer;
 	class D3D11IndexBuffer;
 	class D3D11UniformBuffer;
@@ -38,6 +39,7 @@ namespace Render
 	class D3D11InputLayout;
 	class D3D11ShaderResourceView;
 	class D3D11SamplerState;
+	class D3D11DepthStencilState;
 
 	template<>
 	struct TD3D11TypeTraits< RHITexture1D > 
@@ -51,11 +53,19 @@ namespace Render
 		typedef D3D11Texture2D ImplType;  
 	};
 	template<>
-	struct TD3D11TypeTraits< RHITexture3D > { typedef ID3D11Texture3D ResourceType; };
+	struct TD3D11TypeTraits< RHITexture3D > 
+	{ 
+		typedef ID3D11Texture3D ResourceType; 
+		//typedef D3D11Texture3D ImplType;
+	};
 	//template<>
-	//struct TD3D11TextureTraits< RHITextureCube > { typedef ID3D11TextureArray ResourceType; };
-	//template<>
-	//struct TD3D11TextureTraits< RHITextureDepth > { typedef ID3D11Texture2D ResourceType; };
+	//struct TD3D11TypeTraits< RHITextureCube > { typedef ID3D11TextureArray ResourceType; };
+	template<>
+	struct TD3D11TypeTraits< RHITextureDepth > 
+	{ 
+		typedef ID3D11Texture2D ResourceType; 
+		typedef D3D11TextureDepth ImplType;
+	};
 	template<>
 	struct TD3D11TypeTraits< RHIVertexBuffer > 
 	{ 
@@ -98,12 +108,19 @@ namespace Render
 		typedef ID3D11SamplerState ResourceType;
 		typedef D3D11SamplerState ImplType;
 	};
+	template<>
+	struct TD3D11TypeTraits< RHIDepthStencilState >
+	{
+		typedef ID3D11DepthStencilState ResourceType;
+		typedef D3D11DepthStencilState ImplType;
+	};
 
 	struct D3D11Conv
 	{
 		static D3D_PRIMITIVE_TOPOLOGY To(PrimitiveType type);
 		static DXGI_FORMAT To(Vertex::Format format, bool bNormalize);
 		static DXGI_FORMAT To(Texture::Format format);
+		static DXGI_FORMAT To(Texture::DepthFormat format);
 		static D3D11_BLEND To(Blend::Factor factor);
 		static D3D11_BLEND_OP To(Blend::Operation op);
 		static D3D11_CULL_MODE To(ECullMode mode);
@@ -111,6 +128,8 @@ namespace Render
 		static D3D11_MAP To(ELockAccess access);
 		static D3D11_FILTER To(Sampler::Filter filter);
 		static D3D11_TEXTURE_ADDRESS_MODE To(Sampler::AddressMode mode);
+		static D3D11_COMPARISON_FUNC To(ECompareFun func);
+		static D3D11_STENCIL_OP To(Stencil::Operation op);
 	};
 
 	template< class RHIResoureType >
@@ -225,6 +244,45 @@ namespace Render
 
 	};
 
+
+	class D3D11TextureDepth : public TD3D11Resource< RHITextureDepth >
+	{
+	public:
+		D3D11TextureDepth(Texture::DepthFormat format, Texture2DCreationResult& creationResult)
+			:mSRV( creationResult.SRV.release())
+		{
+			mFormat = format;
+			mResource = creationResult.resource.release();
+			D3D11_TEXTURE2D_DESC desc;
+			mResource->GetDesc(&desc);
+			mSizeX = desc.Width;
+			mSizeY = desc.Height;
+			mNumSamples = desc.SampleDesc.Count;
+			mNumMipLevel = desc.MipLevels;
+
+			if( mSRV.getResource() )
+				mSRV.getResource()->AddRef();
+
+			TComPtr<ID3D11Device> device;
+			mResource->GetDevice(&device);
+			HRESULT hr = device->CreateDepthStencilView(mResource, nullptr, &mDSV);
+			if( hr != S_OK )
+			{
+				int i = 1;
+			}
+		}
+
+		virtual void releaseResource()
+		{
+			SAFE_RELEASE(mSRV.mResource);
+			SAFE_RELEASE(mDSV);
+			TD3D11Resource< RHITextureDepth >::releaseResource();
+		}
+
+		D3D11ShaderResourceView  mSRV;
+		ID3D11DepthStencilView*  mDSV;
+	};
+
 	template< class RHIBufferType >
 	class TD3D11Buffer : public TD3D11Resource< RHIBufferType >
 	{
@@ -311,6 +369,16 @@ namespace Render
 		}
 	};
 
+
+	class D3D11DepthStencilState : public TD3D11Resource< RHIDepthStencilState >
+	{
+	public:
+		D3D11DepthStencilState(ID3D11DepthStencilState* inResource)
+		{
+			mResource = inResource;
+		}
+	};
+
 	class D3D11SamplerState : public TD3D11Resource< RHISamplerState >
 	{
 	public:
@@ -343,6 +411,9 @@ namespace Render
 
 		template< class T >
 		static auto GetResource(T& RHIObject) { return D3D11Cast::To(&RHIObject)->getResource(); }
+
+		template< class T >
+		static auto GetResource(T* RHIObject) { return RHIObject ? D3D11Cast::To(RHIObject)->getResource() : nullptr; }
 
 		template< class T >
 		static auto GetResource(TRefCountPtr<T>& refPtr) { return D3D11Cast::To(refPtr)->getResource(); }

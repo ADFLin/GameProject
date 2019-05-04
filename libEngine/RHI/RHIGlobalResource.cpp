@@ -48,20 +48,20 @@ namespace Render
 
 		if( gRHISystem->getName() == RHISytemName::Opengl )
 		{
-			OpenGLCast::To(GWhiteTextureCube)->bind();
+			OpenGLCast::To(GWhiteTextureCube.getResource())->bind();
 			glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 			glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 			glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 			glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 			glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
-			OpenGLCast::To(GWhiteTextureCube)->unbind();
+			OpenGLCast::To(GWhiteTextureCube.getResource())->unbind();
 
-			OpenGLCast::To(GWhiteTexture2D)->bind();
+			OpenGLCast::To(GWhiteTexture2D.getResource())->bind();
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-			OpenGLCast::To(GWhiteTexture2D)->unbind();
+			OpenGLCast::To(GWhiteTexture2D.getResource())->unbind();
 		}
 
 		GDefalutMaterial = new MaterialMaster;

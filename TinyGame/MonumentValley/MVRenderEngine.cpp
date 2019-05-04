@@ -110,12 +110,11 @@ namespace MV
 	void RenderEngine::renderScene(Mat4 const& matView)
 	{
 		RHICommandList& commandList = *mCommandList;
-		Mat4 matViewInv;
 		float det;
-		matView.inverse( matViewInv , det );
+		matView.inverse(mViewToWorld, det );
 
 		RHISetShaderProgram(commandList, mEffect.getRHIResource());
-		mEffect.setParam(commandList, SHADER_PARAM(View.viewToWorld) , matViewInv );
+		mEffect.setParam(commandList, SHADER_PARAM(ViewToWorld) , mViewToWorld);
 
 		glLoadMatrixf( matView );
 		renderGroup( mParam.world->mRootGroup );
@@ -139,6 +138,7 @@ namespace MV
 		glTranslatef( pos.x , pos.y , pos.z );
 		mEffect.setParam(commandList, paramDirX , (int)block.rotation[0] );
 		mEffect.setParam(commandList, paramDirZ , (int)block.rotation[2] );
+		mEffect.setParam(commandList, SHADER_PARAM(ViewToWorld), mViewToWorld);
 		mMesh[ block.idMesh ].draw(commandList);
 
 		for( int i = 0 ; i < 6 ; ++i )
@@ -168,6 +168,7 @@ namespace MV
 		glTranslatef( pos.x , pos.y , pos.z );
 		mEffect.setParam(commandList, paramDirX , (int)Dir::X );
 		mEffect.setParam(commandList, paramDirZ , (int)Dir::Z );
+		mEffect.setParam(commandList, SHADER_PARAM(ViewToWorld), mViewToWorld);
 		Quat q; q.setEulerZYX( rotation.z , rotation.y , rotation.x );
 		glMultMatrixf( Matrix4::Rotate( q ) );
 		mMesh[ idMesh ].draw(commandList);
@@ -181,6 +182,7 @@ namespace MV
 		glTranslatef( pos.x , pos.y , pos.z );
 		mEffect.setParam(commandList, paramDirX , (int)rotation[0] );
 		mEffect.setParam(commandList, paramDirZ , (int)rotation[2] );
+		mEffect.setParam(commandList, SHADER_PARAM(ViewToWorld), mViewToWorld);
 		mMesh[ idMesh ].draw(commandList);
 		glPopMatrix();
 	}
@@ -261,6 +263,7 @@ namespace MV
 
 		mEffect.setParam(commandList, paramDirX , (int)actor.rotation[0] );
 		mEffect.setParam(commandList, paramDirZ , (int)actor.rotation[2] );
+		mEffect.setParam(commandList, SHADER_PARAM(ViewToWorld), mViewToWorld);
 
 		glColor3f( 0.5 , 0.5 , 0.5 );
 

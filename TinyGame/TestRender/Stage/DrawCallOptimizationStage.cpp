@@ -721,9 +721,9 @@ namespace Render
 
 						if( curProgram != program )
 						{
-							RHISetShaderProgram(commandList, curProgram->getRHIResource());
+							RHISetShaderProgram(commandList, program->getRHIResource());
 							curProgram = program;
-							mView.setupShader(commandList, *curProgram);
+							mView.setupShader(commandList, *program);
 						}
 
 						object.material->setupShader(commandList, *curProgram);

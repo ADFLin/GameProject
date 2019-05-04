@@ -99,6 +99,7 @@ namespace Render
 		}
 
 		bool  bUseReverse = false;
+		bool  bLeftHandCoord = false;
 		float mNear;
 		float mFar;
 		float mYFov;

@@ -285,20 +285,23 @@ namespace Render
 				glClearDepth(mViewFrustum.bUseReverse ? 0 : 1);
 				glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-				RHISetupFixedPipelineState(commandList, mView.worldToView, mView.viewToClip);
+#if 0
+				RHISetupFixedPipelineState(commandList, mView.worldToClip);
 				DrawUtility::AixsLine(commandList);
 
-				RHISetupFixedPipelineState(commandList, Matrix4::Scale(1.5) * Matrix4::Translate(2, 2, 2) * mView.worldToView, mView.viewToClip);
+				RHISetupFixedPipelineState(commandList, Matrix4::Scale(1.5) * Matrix4::Translate(2, 2, 2) * mView.worldToClip);
 				mSimpleMeshs[SimpleMeshId::Doughnut].draw(commandList, LinearColor(1, 0.5, 0));
 
-				RHISetupFixedPipelineState(commandList, Matrix4::Scale(1) * Matrix4::Translate(7, 2, -2) * mView.worldToView, mView.viewToClip);
+				RHISetupFixedPipelineState(commandList, Matrix4::Scale(1) * Matrix4::Translate(7, 2, -2) * mView.worldToClip);
 				mSimpleMeshs[SimpleMeshId::Box].draw(commandList, LinearColor(0.25, 0.5, 1));
+#endif
+
 
 
 				{
 					RHISetBlendState(commandList, TStaticAlphaToCoverageBlendState<>::GetRHI());
-					//RHITexture2D const* textures[] = { mGrassTexture.get() };
-					//RHISetupFixedPipelineState(Matrix4::Scale(1) * Matrix4::Translate(0, 0, 12) * mView.worldToView, mView.viewToClip , 1 , textures);
+					//RHITexture2D* textures[] = { mGrassTexture.get() };
+					//RHISetupFixedPipelineState(Matrix4::Scale(1) * Matrix4::Translate(0, 0, 12) * mView.worldToClip , textures, 1 );
 					RHISetShaderProgram(commandList, mProgGrass.getRHIResource());
 					mView.setupShader(commandList, mProgGrass);
 					mProgGrass.setTexture(commandList, SHADER_PARAM(Texture), *mGrassTexture , SHADER_PARAM(TextureSampler) , TStaticSamplerState< Sampler::eTrilinear > ::GetRHI());
@@ -316,7 +319,7 @@ namespace Render
 				{
 					GPU_PROFILE("LightPoints");
 					//FIXME
-					RHISetupFixedPipelineState(commandList, mView.worldToView, mView.viewToClip);
+					RHISetupFixedPipelineState(commandList, mView.worldToClip);
 					drawLightPoints(commandList, mView, MakeView(mLights));
 
 				}
@@ -332,7 +335,7 @@ namespace Render
 
 			if( mDepthBuffer->getNumSamples() != 1 )
 			{
-				RHISetFrameBuffer(commandList, *mResolveFrameBuffer);
+				RHISetFrameBuffer(commandList, mResolveFrameBuffer);
 
 				GPU_PROFILE("ResolveDepth");
 				RHISetRasterizerState(commandList, TStaticRasterizerState< ECullMode::None >::GetRHI());
@@ -347,7 +350,7 @@ namespace Render
 			{
 				mSmokeFrameBuffer->setTexture(0, *mSmokeFrameTextures[indexFrameTexture]);		
 				//mFrameBuffer.removeDepthBuffer();
-				RHISetFrameBuffer(commandList, *mSmokeFrameBuffer);
+				RHISetFrameBuffer(commandList, mSmokeFrameBuffer);
 				glClearColor(0, 0, 0, 1);
 				GLfloat clearValueA[] = { 0 ,0, 0, 1 };
 				GLfloat clearValueB[] = { 0 ,0, 0, 1 };

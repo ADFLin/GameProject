@@ -251,7 +251,7 @@ namespace Render
 
 			RHISetDepthStencilState(commandList, TStaticDepthStencilState<>::GetRHI());
 			{
-				RHISetupFixedPipelineState(commandList, mView.worldToView, mView.viewToClip);
+				RHISetupFixedPipelineState(commandList, mView.worldToClip);
 				DrawUtility::AixsLine(commandList);
 			}
 			{

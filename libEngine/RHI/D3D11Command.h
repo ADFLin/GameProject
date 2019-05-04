@@ -115,6 +115,8 @@ namespace Render
 
 		template< Shader::Type TypeValue >
 		void commitState( ID3D11DeviceContext* context);
+		template< Shader::Type TypeValue >
+		void clearState(ID3D11DeviceContext* context);
 
 		static int constexpr MaxConstBufferNum = 1;
 		uint32 mConstBufferDirtyMask;
@@ -139,7 +141,6 @@ namespace Render
 
 	};
 
-
 	class D3D11Context : public RHIContext
 	{
 	public:
@@ -154,63 +155,37 @@ namespace Render
 			}
 			return true;
 		}
-		void RHISetRasterizerState(RHIRasterizerState& rasterizerState)
-		{
-			mDeviceContext->RSSetState(D3D11Cast::GetResource(rasterizerState));
-		}
 
-		void RHISetBlendState(RHIBlendState& blendState)
-		{
-			mDeviceContext->OMSetBlendState(D3D11Cast::GetResource(blendState), Vector4(0, 0, 0, 0), 0xffffffff);
-		}
+		void RHISetRasterizerState(RHIRasterizerState& rasterizerState);
+		void RHISetBlendState(RHIBlendState& blendState);
+		void RHISetDepthStencilState(RHIDepthStencilState& depthStencilState, uint32 stencilRef);
+		void RHISetViewport(int x, int y, int w, int h);
+		void RHISetScissorRect(int x, int y, int w, int h);
 
-		void RHISetDepthStencilState(RHIDepthStencilState& depthStencilState, uint32 stencilRef)
-		{
-
-		}
-
-		void RHISetViewport(int x, int y, int w, int h)
-		{
-			D3D11_VIEWPORT vp;
-			vp.Width = w;
-			vp.Height = h;
-			vp.MinDepth = 0.0f;
-			vp.MaxDepth = 1.0f;
-			vp.TopLeftX = x;
-			vp.TopLeftY = y;
-			mDeviceContext->RSSetViewports(1, &vp);
-		}
-
-		void RHISetScissorRect(int x, int y, int w, int h)
-		{
-			D3D11_RECT rect;
-			rect.top = x;
-			rect.left = y;
-			rect.bottom = x + w;
-			rect.right = y + h;
-			mDeviceContext->RSSetScissorRects(1, &rect);
-		}
-
+		void PostDrawPrimitive();
 		void RHIDrawPrimitive(PrimitiveType type, int start, int nv)
 		{
 			commitRenderShaderState();
 			mDeviceContext->IASetPrimitiveTopology(D3D11Conv::To(type));
 			mDeviceContext->Draw(nv, start);
+			PostDrawPrimitive();
 		}
 
-		void RHIDrawIndexedPrimitive(PrimitiveType type, ECompValueType indexType, int indexStart, int nIndex, uint32 baseVertex)
+		void RHIDrawIndexedPrimitive(PrimitiveType type, int indexStart, int nIndex, uint32 baseVertex)
 		{
 			commitRenderShaderState();
 			mDeviceContext->IASetPrimitiveTopology(D3D11Conv::To(type));
 			mDeviceContext->DrawIndexed(nIndex , indexStart , baseVertex);
+			PostDrawPrimitive();
 		}
 
 		void RHIDrawPrimitiveIndirect(PrimitiveType type, RHIVertexBuffer* commandBuffer, int offset, int numCommand, int commandStride)
 		{
 			commitRenderShaderState();
 			mDeviceContext->IASetPrimitiveTopology(D3D11Conv::To(type));
+			PostDrawPrimitive();
 		}
-		void RHIDrawIndexedPrimitiveIndirect(PrimitiveType type, ECompValueType indexType, RHIVertexBuffer* commandBuffer, int offset, int numCommand, int commandStride)
+		void RHIDrawIndexedPrimitiveIndirect(PrimitiveType type, RHIVertexBuffer* commandBuffer, int offset, int numCommand, int commandStride)
 		{
 			commitRenderShaderState();
 			mDeviceContext->IASetPrimitiveTopology(D3D11Conv::To(type));
@@ -222,39 +197,72 @@ namespace Render
 			{
 				//
 			}
+			PostDrawPrimitive();
 		}
 		void RHIDrawPrimitiveInstanced(PrimitiveType type, int vStart, int nv, int numInstance)
 		{
 			commitRenderShaderState();
 			mDeviceContext->DrawInstanced(nv, numInstance, vStart, 0);
+			PostDrawPrimitive();
 		}
 
-		void RHIDrawPrimitiveUP(PrimitiveType type, int numPrimitive, void* pVertices, int numVerex, int vetexStride)
+		void RHIDrawPrimitiveUP(PrimitiveType type, void const* pVertices, int numVerex, int vetexStride)
 		{
 			commitRenderShaderState();
 
-
+			PostDrawPrimitive();
 		}
 
-		void RHIDrawIndexedPrimitiveUP(PrimitiveType type, int numPrimitive, void* pVertices, int numVerex, int vetexStride, int* pIndices, int numIndex)
+		void RHIDrawIndexedPrimitiveUP(PrimitiveType type, void const* pVertices, int numVerex, int vetexStride, int const* pIndices, int numIndex)
 		{
 			commitRenderShaderState();
+
+			PostDrawPrimitive();
 		}
 
 
-		void RHISetupFixedPipelineState(Matrix4 const& matModelView, Matrix4 const& matProj, int numTexture, RHITexture2D const** textures)
+		void RHISetupFixedPipelineState(Matrix4 const& transform, RHITexture2D* textures[], int numTexture)
 		{
 
 		}
 
-		void RHISetFrameBuffer(RHIFrameBuffer& frameBuffer, RHITextureDepth* overrideDepthTexture /*= nullptr*/)
+		void RHISetFrameBuffer(RHIFrameBuffer* frameBuffer, RHITextureDepth* overrideDepthTexture /*= nullptr*/)
 		{
 
 		}
 
+	
+		void RHISetInputStream(RHIInputLayout& inputLayout, InputStreamInfo inputStreams[], int numInputStream)
+		{
+			int const MaxStreamNum = 16;
+			assert(numInputStream <= MaxStreamNum);
+			ID3D11Buffer* buffers[MaxStreamNum];
+			UINT strides[MaxStreamNum];
+			UINT offsets[MaxStreamNum];
+			
+			for( int i = 0; i < numInputStream; ++i )
+			{
+				if( inputStreams[i].vertexBuffer )
+				{
+					buffers[i] = D3D11Cast::GetResource(inputStreams[i].vertexBuffer);
+					offsets[i] = inputStreams[i].offset;
+					strides[i] = inputStreams[i].stride >= 0 ? inputStreams[i].stride : inputStreams[i].vertexBuffer->getElementSize();
+				}
+
+			}
+			mDeviceContext->IASetInputLayout(D3D11Cast::GetResource(inputLayout));
+			mDeviceContext->IASetVertexBuffers(0, numInputStream, buffers, strides, offsets);
+		}
 		void RHISetIndexBuffer(RHIIndexBuffer* indexBuffer)
 		{
-			mDeviceContext->IASetIndexBuffer(D3D11Cast::To(indexBuffer)->getResource(), indexBuffer->getSize() == 4 ? DXGI_FORMAT_R32_UINT : DXGI_FORMAT_R16_UINT, 0);
+			if( indexBuffer )
+			{
+				mDeviceContext->IASetIndexBuffer(D3D11Cast::To(indexBuffer)->getResource(), indexBuffer->isIntType() ? DXGI_FORMAT_R32_UINT : DXGI_FORMAT_R16_UINT, 0);
+			}
+			else
+			{
+				mDeviceContext->IASetIndexBuffer(nullptr, DXGI_FORMAT_R32_UINT, 0);
+			}	
 		}
 
 		void RHIDispatchCompute(uint32 numGroupX, uint32 numGroupY, uint32 numGroupZ)
@@ -369,10 +377,7 @@ namespace Render
 			return nullptr;
 		}
 
-		RHITextureDepth* RHICreateTextureDepth(Texture::DepthFormat format, int w, int h, int numMipLevel, int numSamples)
-		{
-			return nullptr;
-		}
+		RHITextureDepth* RHICreateTextureDepth(Texture::DepthFormat format, int w, int h, int numMipLevel, int numSamples);
 
 		RHIVertexBuffer*  RHICreateVertexBuffer(uint32 vertexSize, uint32 numVertices, uint32 creationFlag, void* data);
 
@@ -395,26 +400,14 @@ namespace Render
 
 		RHIRasterizerState* RHICreateRasterizerState(RasterizerStateInitializer const& initializer);
 		RHIBlendState* RHICreateBlendState(BlendStateInitializer const& initializer);
-
-		RHIDepthStencilState* RHICreateDepthStencilState(DepthStencilStateInitializer const& initializer)
-		{
-			return nullptr;
-		}
+		RHIDepthStencilState* RHICreateDepthStencilState(DepthStencilStateInitializer const& initializer);
 
 		RHIShader* RHICreateShader(Shader::Type type);
 		RHIShaderProgram* RHICreateShaderProgram();
-		void* lockBufferInternal(ID3D11Resource* resource, ELockAccess access, uint32 offset, uint32 size)
-		{
-			D3D11_MAPPED_SUBRESOURCE mappedData;
-			HRESULT hr = mDeviceContext->Map(resource, 0, D3D11Conv::To(access), 0, &mappedData);
-			if( hr != S_OK )
-			{
-				return nullptr;
-			}
-			return (uint8*)mappedData.pData + offset;
-		}
 
-		bool createTexture2DInternal( DXGI_FORMAT format, int width, int height, int numMipLevel, int numSamples, uint32 creationFlag, void* data, uint32 pixelSize , Texture2DCreationResult& outResult );
+		bool createTexture2DInternal(DXGI_FORMAT format, int width, int height, int numMipLevel, int numSamples, uint32 creationFlag, void* data, uint32 pixelSize, bool bDepth, Texture2DCreationResult& outResult);
+		void* lockBufferInternal(ID3D11Resource* resource, ELockAccess access, uint32 offset, uint32 size);
+
 
 		bool createFrameSwapChain(HWND hWnd, int w, int h, bool bWindowed, FrameSwapChain& outResult)
 		{

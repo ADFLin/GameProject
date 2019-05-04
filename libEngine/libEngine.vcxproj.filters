@@ -894,9 +894,6 @@
     <ClInclude Include="RHI\VertexFactory.h">
       <Filter>RHI</Filter>
     </ClInclude>
-    <ClInclude Include="RHI\BaseType.h">
-      <Filter>RHI</Filter>
-    </ClInclude>
     <ClInclude Include="RHI\DrawUtility.h">
       <Filter>RHI</Filter>
     </ClInclude>
@@ -1058,6 +1055,9 @@
     </ClInclude>
     <ClInclude Include="Core\CRC.h">
       <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="RHI\RHIType.h">
+      <Filter>RHI</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

@@ -1,7 +1,7 @@
 #ifndef GLCommon_h__
 #define GLCommon_h__
 
-#include "BaseType.h"
+#include "RHIType.h"
 #include "RHIDefine.h"
 #include "RHICommon.h"
 
@@ -181,7 +181,6 @@ namespace Render
 		static GLenum constexpr EnumValue = GL_TEXTURE_2D; 
 		static GLenum constexpr EnumValueMultisample = GL_TEXTURE_2D_MULTISAMPLE;
 	};
-
 
 	class OpenGLShaderResourceView : public TOpenGLSimpleResource< RHIShaderResourceView >
 	{
@@ -625,13 +624,16 @@ namespace Render
 	{
 	public:
 		OpenGLInputLayout( InputLayoutDesc const& desc );
+		void bindAttrib( InputStreamInfo inputStreams[], int numInputStream, LinearColor const* overwriteColor = nullptr);
+		void bindAttribUP(InputStreamInfo inputStreams[], int numInputStream, LinearColor const* overwriteColor = nullptr);
+		void unbindAttrib(int numInputStream, LinearColor const* overwriteColor = nullptr);
 
-		void bindAttrib( RHIVertexBuffer* vertexBuffer[] , int numVertexBuffer , LinearColor const* overwriteColor = nullptr);
-		void unbindAttrib(int numVertexBuffer, LinearColor const* overwriteColor = nullptr);
-
+		
 		void bindPointer(LinearColor const* overwriteColor = nullptr);
-
+		void bindPointerUP(InputStreamInfo inputStreams[], int numInputStream, LinearColor const* overwriteColor = nullptr);
+		void bindPointer(InputStreamInfo inputStreams[], int numInputStream);
 		void unbindPointer(LinearColor const* overwriteColor = nullptr);
+
 		struct Element
 		{
 			uint8  semantic;
@@ -646,6 +648,7 @@ namespace Render
 
 		};
 
+		std::vector< uint32 >  mDefaultStreamSizes;
 		std::vector< Element > mElements;
 	};
 
@@ -659,47 +662,65 @@ namespace Render
 	class OpenGLShader;
 	class ShaderProgram;
 
+	template< class TRHIResource >
+	struct TOpengGLResourceTraits {};
+
+	template<> struct TOpengGLResourceTraits< RHITexture1D > { typedef OpenGLTexture1D ImplType; };
+	template<> struct TOpengGLResourceTraits< RHITexture2D > { typedef OpenGLTexture2D ImplType; };
+	template<> struct TOpengGLResourceTraits< RHITexture3D > { typedef OpenGLTexture3D ImplType; };
+	template<> struct TOpengGLResourceTraits< RHITextureCube > { typedef OpenGLTextureCube ImplType; };
+	template<> struct TOpengGLResourceTraits< RHITexture2DArray > { typedef OpenGLTexture2DArray ImplType; };
+	template<> struct TOpengGLResourceTraits< RHITextureDepth > { typedef OpenGLTextureDepth ImplType; };
+	template<> struct TOpengGLResourceTraits< RHIVertexBuffer > { typedef OpenGLVertexBuffer ImplType; };
+	template<> struct TOpengGLResourceTraits< RHIIndexBuffer > { typedef OpenGLIndexBuffer ImplType; };
+	template<> struct TOpengGLResourceTraits< RHIInputLayout > { typedef OpenGLInputLayout ImplType; };
+	template<> struct TOpengGLResourceTraits< RHISamplerState > { typedef OpenGLSamplerState ImplType; };
+	template<> struct TOpengGLResourceTraits< RHIBlendState > { typedef OpenGLBlendState ImplType; };
+	template<> struct TOpengGLResourceTraits< RHIRasterizerState > { typedef OpenGLRasterizerState ImplType; };
+	template<> struct TOpengGLResourceTraits< RHIDepthStencilState > { typedef OpenGLDepthStencilState ImplType; };
+	template<> struct TOpengGLResourceTraits< RHIFrameBuffer > { typedef OpenGLFrameBuffer ImplType; };
+
 	struct OpenGLCast
 	{
-		static OpenGLTexture1D* To(RHITexture1D* tex) { return static_cast<OpenGLTexture1D*>(tex); }
-		static OpenGLTexture2D* To(RHITexture2D* tex) { return static_cast<OpenGLTexture2D*>(tex); }
-		static OpenGLTexture3D* To(RHITexture3D* tex) { return static_cast<OpenGLTexture3D*>(tex); }
-		static OpenGLTextureCube* To(RHITextureCube* tex) { return static_cast<OpenGLTextureCube*>(tex); }
-		static OpenGLTexture2DArray* To(RHITexture2DArray* tex) { return static_cast<OpenGLTexture2DArray*>(tex); }
-		static OpenGLTextureDepth* To(RHITextureDepth* tex) { return static_cast<OpenGLTextureDepth*>(tex); }
-
-		static OpenGLTexture1D const* To(RHITexture1D const* tex) { return static_cast<OpenGLTexture1D const*>(tex); }
-		static OpenGLTexture2D const* To(RHITexture2D const* tex) { return static_cast<OpenGLTexture2D const*>(tex); }
-		static OpenGLTexture3D const* To(RHITexture3D const* tex) { return static_cast<OpenGLTexture3D const*>(tex); }
-		static OpenGLTextureCube const* To(RHITextureCube const* tex) { return static_cast<OpenGLTextureCube const*>(tex); }
-		static OpenGLTexture2DArray const* To(RHITexture2DArray const* tex) { return static_cast<OpenGLTexture2DArray const*>(tex); }
-		static OpenGLTextureDepth const* To(RHITextureDepth const* tex) { return static_cast<OpenGLTextureDepth const*>(tex); }
-		
-		static OpenGLVertexBuffer* To(RHIVertexBuffer* buffer) { return static_cast<OpenGLVertexBuffer*>(buffer); }
-		static OpenGLIndexBuffer* To(RHIIndexBuffer* buffer) { return static_cast<OpenGLIndexBuffer*>(buffer); }
-
-		static OpenGLInputLayout*  To(RHIInputLayout* inputLayout) { return static_cast<OpenGLInputLayout*>(inputLayout); }
-		static OpenGLSamplerState* To(RHISamplerState* state ) { return static_cast<OpenGLSamplerState*>(state); }
-		static OpenGLFrameBuffer*  To(RHIFrameBuffer* frameBuffer) { return static_cast<OpenGLFrameBuffer*>(frameBuffer); }
-
-		static OpenGLFrameBuffer* To(OpenGLFrameBuffer* buffer) { return buffer; }
-
-		template < class T >
-		static auto To(TRefCountPtr<T>& ptr) { return To(ptr.get()); }
-
-		template < class T >
-		static GLuint GetHandle(T& RHIObject)
+		template< class TRHIResource >
+		static auto To(TRHIResource* resource)
 		{
-			return OpenGLCast::To(&RHIObject)->getHandle();
+			return static_cast< TOpengGLResourceTraits< TRHIResource >::ImplType* >(resource);
+		}
+		template< class TRHIResource >
+		static auto To(TRHIResource const* resource)
+		{
+			return static_cast< TOpengGLResourceTraits< TRHIResource >::ImplType const* >(resource);
+		}
+		template< class TRHIResource >
+		static auto& To(TRHIResource& resource)
+		{
+			return static_cast< TOpengGLResourceTraits< TRHIResource >::ImplType& >(resource);
+		}
+		template< class TRHIResource >
+		static auto& To(TRHIResource const& resource)
+		{
+			return static_cast< TOpengGLResourceTraits< TRHIResource >::ImplType const& >(resource);
 		}
 
-		template < class T >
-		static GLuint GetHandle(T const& RHIObject)
+		static auto To(OpenGLFrameBuffer* buffer) { return buffer; }
+
+		template < class TRHIResource >
+		static auto To(TRefCountPtr<TRHIResource>& ptr) { return To(ptr.get()); }
+
+		template < class TRHIResource >
+		static GLuint GetHandle(TRHIResource& RHIObject)
 		{
-			return OpenGLCast::To(const_cast<T*>(&RHIObject))->getHandle();
+			return OpenGLCast::To(RHIObject).getHandle();
 		}
-		template < class T >
-		static GLuint GetHandle(TRefCountPtr<T>& refPtr )
+
+		template < class TRHIResource >
+		static GLuint GetHandle(TRHIResource const& RHIObject)
+		{
+			return OpenGLCast::To(RHIObject).getHandle();
+		}
+		template < class TRHIResource >
+		static GLuint GetHandle(TRefCountPtr<TRHIResource>& refPtr)
 		{
 			return OpenGLCast::To(refPtr)->getHandle();
 		}

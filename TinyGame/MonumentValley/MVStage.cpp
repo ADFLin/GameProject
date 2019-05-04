@@ -18,7 +18,7 @@
 
 namespace MV
 {
-
+	using namespace Render;
 
 	BlockModel gModels[] =
 	{
@@ -589,13 +589,24 @@ namespace MV
 	{
 		GameWindow& window = Global::GetDrawEngine().getWindow();
 
+		RHICommandList& commandList = RHICommandList::GetImmediateList();
+
+
+
 		glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
 
-		glMatrixMode(GL_PROJECTION);
-		float width = mViewWidth ;
+		float width = mViewWidth;
 		float height = width * window.getHeight() / window.getWidth();
-		glLoadMatrixf( OrthoMatrix( width , height , -100 , 100 ) );
+
+		RHISetupFixedPipelineState(commandList, AdjProjectionMatrixForRHI(OrthoMatrix(width, height, -100, 100)));
+		RHISetInputStream(commandList, TStaticRenderRTInputLayout<RTVF_XY>::GetRHI() , nullptr , 0 );
+
+		glMatrixMode(GL_PROJECTION);
+
+		glLoadMatrixf( AdjProjectionMatrixForRHI(OrthoMatrix( width , height , -100 , 100 )) );
 		glMatrixMode(GL_MODELVIEW);
+
+		
 
 		Vec3f viewPos = getViewPos();
 
@@ -624,6 +635,8 @@ namespace MV
 
 				int vp[4];
 				glViewport( 0 , 0 , window.getWidth() , window.getHeight() );
+			
+
 				glMatrixMode( GL_PROJECTION );
 				glLoadIdentity();
 				glOrtho(0 , window.getWidth() , 0 , window.getHeight() , -1 , 1 );
@@ -750,6 +763,7 @@ namespace MV
 		param.world = &mWorld;
 
 		mRenderEngine.renderScene( matView );
+		return;
 
 		if ( param.bShowNavPath )
 		{

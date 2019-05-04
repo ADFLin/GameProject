@@ -2,9 +2,9 @@
 
 struct VSInput
 {
-	float3 pos : ATTRIBUTE0;
-	float3 color : ATTRIBUTE1;
-	float2 uv : ATTRIBUTE2;
+	float3 pos : ATTRIBUTE_POSITION;
+	float3 color : ATTRIBUTE_COLOR;
+	float2 uv : ATTRIBUTE_TEXCOORD;
 };
 struct VSOutput
 {
@@ -19,7 +19,8 @@ float4x4 XForm;
 void MainVS(in VSInput input, out VSOutput output)
 {
 	//output.svPosition = mul(XForm, float4(input.pos.xy, 0.5, 1));
-	output.svPosition = mul( View.worldToClip , float4(input.pos.xy, 0.0, 1) );
+	float4 worldPos = mul(XForm, float4(input.pos.xyz, 1) );
+	output.svPosition = mul( View.worldToClip , worldPos);
 	output.color = input.color;
 	output.uv = input.uv;
 }
@@ -44,7 +45,7 @@ void MainPS(in VSOutput input, out float4 OutColor : SV_Target0)
 {
 	float3 c = float3(CBuffer.red, CBuffer.green, CBuffer.blue);
 	float4 color = Texture.Sample(TextureSampler, input.uv);
-	OutColor = float4(c * Color * input.color * color.rgb, 1);
-	//OutColor = float4(c, 1);
+	//OutColor = float4(c * Color * input.color * color.rgb, 1);
+	OutColor = float4(input.color, 1);
 	//OutColor = float4(Color* input.color, 1 );
 }

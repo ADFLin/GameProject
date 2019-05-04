@@ -19,7 +19,9 @@ namespace Render
 			{
 				glGenVertexArrays(1, &VAOHandle);
 				glBindVertexArray(VAOHandle);
-				OpenGLCast::To(inputLayout)->bindAttrib(&vertexBuffer , 1 );
+				InputStreamInfo inputStream;
+				inputStream.vertexBuffer = vertexBuffer;
+				OpenGLCast::To(inputLayout)->bindAttrib(&inputStream, 1 );
 				glBindVertexArray(0);
 				OpenGLCast::To(inputLayout)->unbindAttrib(1);
 			}
@@ -33,7 +35,7 @@ namespace Render
 				if( meshElement.indexBuffer )
 				{
 					RHISetIndexBuffer(commandList, meshElement.indexBuffer);
-					RHIDrawIndexedPrimitive(commandList, primitiveType, meshElement.indexBuffer->isIntType() ? CVT_UInt : CVT_UShort, meshElement.idxStart, meshElement.numElement);
+					RHIDrawIndexedPrimitive(commandList, primitiveType, meshElement.idxStart, meshElement.numElement);
 				}
 				else
 				{
@@ -55,7 +57,7 @@ namespace Render
 				if( meshElement.indexBuffer )
 				{
 					RHISetIndexBuffer(commandList, meshElement.indexBuffer);
-					RHIDrawIndexedPrimitive(commandList, primitiveType, meshElement.indexBuffer->isIntType() ? CVT_UInt : CVT_UShort , meshElement.idxStart , meshElement.numElement );
+					RHIDrawIndexedPrimitive(commandList, primitiveType, meshElement.idxStart , meshElement.numElement );
 				}
 				else
 				{
@@ -80,9 +82,12 @@ namespace Render
 
 
 		RHIVertexBuffer* vertexBuffer = mVertexBuffer;
+
 		glGenVertexArrays(1, &mVAO);
 		glBindVertexArray(mVAO);
-		OpenGLCast::To(mInputLayout)->bindAttrib(&vertexBuffer, 1 );
+		InputStreamInfo inputStream;
+		inputStream.vertexBuffer = vertexBuffer;
+		OpenGLCast::To(mInputLayout)->bindAttrib(&inputStream, 1 );
 		glBindVertexArray(0);
 		OpenGLCast::To(mInputLayout)->unbindAttrib(1);
 		if( !ShaderManager::Get().loadFile(

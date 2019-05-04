@@ -549,14 +549,14 @@ namespace Render
 	};
 
 
-#define IMPLEMENT_DEFERRED_SHADER( LIGHT_TYPE , NAME )\
-	IMPLEMENT_SHADER_PROGRAM_T(template<>, TDeferredLightingProgram< LIGHT_TYPE >);\
-	typedef TDeferredLightingProgram< LIGHT_TYPE , true > DeferredLightingProgram##NAME;\
+#define IMPLEMENT_DEFERRED_SHADER( NAME )\
+	IMPLEMENT_SHADER_PROGRAM_T(template<>, TDeferredLightingProgram< LightType::NAME >);\
+	typedef TDeferredLightingProgram< LightType::NAME , true > DeferredLightingProgram##NAME;\
 	IMPLEMENT_SHADER_PROGRAM_T(template<>, DeferredLightingProgram##NAME);
 
-	IMPLEMENT_DEFERRED_SHADER(LightType::Spot, Spot);
-	IMPLEMENT_DEFERRED_SHADER(LightType::Point, Point);
-	IMPLEMENT_DEFERRED_SHADER(LightType::Directional, Directional);
+	IMPLEMENT_DEFERRED_SHADER(Spot);
+	IMPLEMENT_DEFERRED_SHADER(Point);
+	IMPLEMENT_DEFERRED_SHADER(Directional);
 
 #undef IMPLEMENT_DEFERRED_SHADER
 

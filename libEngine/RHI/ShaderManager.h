@@ -148,7 +148,7 @@ namespace Render
 				if( (shaderMask & BIT(i)) == 0 )
 					continue;
 				entries[indexUsed].type = Shader::Type(i);
-				entries[indexUsed].name = (entryNames) ? entryNames[indexUsed] : nullptr;
+				entries[indexUsed].name = (entryNames) ? entryNames[indexUsed] : "main";
 				++indexUsed;
 			}
 			return{ entries , indexUsed };

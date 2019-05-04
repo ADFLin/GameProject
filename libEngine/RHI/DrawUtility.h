@@ -59,17 +59,47 @@ namespace Render
 		RTVF_XY_CA_T2 = RTVF_XY | RTVF_CA | RTVF_TEX_UV,
 	};
 
+	template< uint32 VF, uint32 SEMANTIC >
+	struct VertexElementOffset
+	{
+		enum { Result = sizeof(float) * (VF & RTS_ELEMENT_MASK) + VertexElementOffset< (VF >> RTS_ELEMENT_BIT_OFFSET), SEMANTIC - 1 >::Result };
+	};
+
+	template< uint32 VF >
+	struct VertexElementOffset< VF, 0 >
+	{
+		enum { Result = 0 };
+	};
+
+
+#define USE_SEMANTIC( S ) ( ( VertexFormat ) & RTS_ELEMENT( S , RTS_ELEMENT_MASK ) )
+#define VERTEX_ELEMENT_SIZE( S ) ( USE_SEMANTIC( S ) >> ( RTS_ELEMENT_BIT_OFFSET * S ) )
+#define VETEX_ELEMENT_OFFSET( S ) VertexElementOffset< VertexFormat , S >::Result
+
+
+#define  ENCODE_VECTOR_FORAMT( TYPE , NUM ) (( TYPE << 2 ) | ( NUM - 1 ) )
+
+
 	template < uint32 VertexFormat >
-	class TStaticRenderRTInputLayout
+	class TStaticRenderRTInputLayout : public StaticRHIStateT< TStaticRenderRTInputLayout< VertexFormat > , RHIInputLayout >
 	{
 	public:
-		static InputLayoutDesc const& Get()
+		static RHIInputLayoutRef CreateRHI()
 		{
-
-
-
+			InputLayoutDesc desc;
+			if( USE_SEMANTIC(RTS_Position) )
+				desc.addElement(0, Vertex::ATTRIBUTE_POSITION, Vertex::Format(ENCODE_VECTOR_FORAMT(CVT_Float, VERTEX_ELEMENT_SIZE(RTS_Position))), false);
+			if( USE_SEMANTIC(RTS_Color) )
+				desc.addElement(0, Vertex::ATTRIBUTE_COLOR, Vertex::Format(ENCODE_VECTOR_FORAMT(CVT_Float, VERTEX_ELEMENT_SIZE(RTS_Color))), false);
+			if( USE_SEMANTIC(RTS_Normal) )
+				desc.addElement(0, Vertex::ATTRIBUTE_NORMAL, Vertex::Format(ENCODE_VECTOR_FORAMT(CVT_Float, VERTEX_ELEMENT_SIZE(RTS_Normal))), false);
+			if( USE_SEMANTIC(RTS_Texcoord) )
+				desc.addElement(0, Vertex::ATTRIBUTE_TEXCOORD, Vertex::Format(ENCODE_VECTOR_FORAMT(CVT_Float, VERTEX_ELEMENT_SIZE(RTS_Texcoord))), false);
+			return RHICreateInputLayout(desc);
 		}
 	};
+
+#define  USE_INPUTOUT 1
 
 	template < uint32 VertexFormat >
 	class TRenderRT
@@ -77,71 +107,131 @@ namespace Render
 	public:
 		FORCEINLINE static void Draw(RHICommandList& commandList, PrimitiveType type, RHIVertexBuffer& buffer , int nV, int vertexStride = GetVertexSize())
 		{
+#if USE_INPUTOUT
+			InputStreamInfo inputStream;
+			inputStream.vertexBuffer = &buffer;
+			inputStream.offset = 0;
+			inputStream.stride = vertexStride;
+			RHISetInputStream(commandList, TStaticRenderRTInputLayout<VertexFormat>::GetRHI(), &inputStream, 1);
+			RHIDrawPrimitive(commandList, type, 0, nV);
+#else
+
 			BindVertexPointer((uint8 const*)0, vertexStride);
 			buffer.bind();
-			RHIDrawPrimitive(type, 0, nV);
+			glDrawArrays(GLConvert::To(type), 0, nv);
 			buffer.unbind();
 			UnbindVertexPointer();
+#endif
 		}
 
 		FORCEINLINE static void Draw(RHICommandList& commandList, PrimitiveType type, RHIVertexBuffer& buffer,  int nV, LinearColor const& color, int vertexStride = GetVertexSize())
 		{
+#if USE_INPUTOUT
+			InputStreamInfo inputStream;
+			inputStream.vertexBuffer = &buffer;
+			inputStream.offset = 0;
+			inputStream.stride = vertexStride;
+			RHISetInputStream(commandList, TStaticRenderRTInputLayout<VertexFormat>::GetRHI(), &inputStream, 1);
+			RHIDrawPrimitive(commandList, type, 0, nV);
+#else
 			BindVertexPointer((uint8 const*)0, vertexStride ,&color);
 			buffer.bind();
-			RHIDrawPrimitive(commandList, type, 0, nV);
+			glDrawArrays(GLConvert::To(type), 0, nv);
 			buffer.unbind();
-			UnbindVertexPointer(&color);
+			UnbindVertexPointer();
+#endif
 		}
 
 		FORCEINLINE static void DrawShader(RHICommandList& commandList, PrimitiveType type, RHIVertexBuffer& buffer, int nV, int vertexStride = GetVertexSize())
 		{
+#if USE_INPUTOUT
+			InputStreamInfo inputStream;
+			inputStream.vertexBuffer = &buffer;
+			inputStream.offset = 0;
+			inputStream.stride = vertexStride;
+			RHISetInputStream(commandList, TStaticRenderRTInputLayout<VertexFormat>::GetRHI(), &inputStream, 1);
+			RHIDrawPrimitive(commandList, type, 0, nV);
+#else
 			BindVertexAttrib((uint8 const*)0, vertexStride);
 			buffer.bind();
-			RHIDrawPrimitive(commandList, type, 0, nV);
+			glDrawArrays(GLConvert::To(type), 0, nv);
 			buffer.unbind();
 			UnbindVertexAttrib();
+#endif
 		}
 
 		FORCEINLINE static void Draw(RHICommandList& commandList, PrimitiveType type, void const* vetrices, int nV, LinearColor const& color, int vertexStride = GetVertexSize())
 		{
+#if USE_INPUTOUT
+			RHISetInputStream(commandList, TStaticRenderRTInputLayout<VertexFormat>::GetRHI(), nullptr, 0);
+			RHIDrawPrimitiveUP(commandList, type, vetrices, nV, vertexStride);
+#else
 			BindVertexPointer((uint8 const*)vetrices, vertexStride , &color );
-			RHIDrawPrimitive(commandList, type, 0, nV);
+			glDrawArrays(GLConvert::To(type), 0, nv);
 			UnbindVertexPointer(&color);
+#endif
 		}
 
 		FORCEINLINE static void Draw(RHICommandList& commandList, PrimitiveType type, void const* vetrices, int nV, int vertexStride = GetVertexSize())
 		{
+#if USE_INPUTOUT
+			RHISetInputStream(commandList, TStaticRenderRTInputLayout<VertexFormat>::GetRHI(), nullptr, 0);
+			RHIDrawPrimitiveUP(commandList, type, vetrices , nV , vertexStride);
+#else
 			BindVertexPointer((uint8 const*)vetrices, vertexStride);
-			RHIDrawPrimitive(commandList, type, 0, nV);
+			glDrawArrays(GLConvert::To(type), 0, nv);
 			UnbindVertexPointer();
+#endif
 		}
 
 		FORCEINLINE static void DrawShader(RHICommandList& commandList, PrimitiveType type, void const* vetrices, int nV, int vertexStride = GetVertexSize())
 		{
+#if USE_INPUTOUT
+			RHISetInputStream(commandList, TStaticRenderRTInputLayout<VertexFormat>::GetRHI(), nullptr, 0);
+			RHIDrawPrimitiveUP(commandList, type, vetrices, nV, vertexStride);
+#else
+
 			BindVertexAttrib((uint8 const*)vetrices, vertexStride);
-			RHIDrawPrimitive(commandList, type, 0, nV);
+			glDrawArrays(GLConvert::To(type), 0, nv);
 			UnbindVertexAttrib();
+#endif
 		}
 
 		FORCEINLINE static void DrawIndexed(RHICommandList& commandList, PrimitiveType type, void const* vetrices, int nV, int const* indices, int nIndex, int vertexStride = GetVertexSize())
 		{
+#if USE_INPUTOUT
+			RHISetInputStream(commandList, TStaticRenderRTInputLayout<VertexFormat>::GetRHI(), nullptr, 0);
+			RHIDrawPrimitiveUP(commandList, type, vetrices, nV, vertexStride);
+#else
+
 			BindVertexPointer((uint8 const*)vetrices, vertexStride);
 			glDrawElements(GLConvert::To(type), nIndex, GL_UNSIGNED_INT, indices);
 			UnbindVertexPointer();
+#endif
 		}
 
 		FORCEINLINE static void DrawIndexed(RHICommandList& commandList, PrimitiveType type, void const* vetrices, int nV, int const* indices, int nIndex, LinearColor const& color , int vertexStride = GetVertexSize())
 		{
+#if USE_INPUTOUT
+			RHISetInputStream(commandList, TStaticRenderRTInputLayout<VertexFormat>::GetRHI(), nullptr, 0);
+			RHIDrawIndexedPrimitiveUP(commandList, type, vetrices, nV, vertexStride , indices , nIndex);
+#else
 			BindVertexPointer((uint8 const*)vetrices, vertexStride, &color );
 			glDrawElements(GLConvert::To(type), nIndex, GL_UNSIGNED_INT, indices);
 			UnbindVertexPointer(&color);
+#endif
 		}
 
 		FORCEINLINE static void DrawIndexedShader(RHICommandList& commandList, PrimitiveType type, void const* vetrices, int nV, int const* indices, int nIndex, int vertexStride = GetVertexSize())
 		{
+#if USE_INPUTOUT
+			RHISetInputStream(commandList, TStaticRenderRTInputLayout<VertexFormat>::GetRHI(), nullptr, 0);
+			RHIDrawIndexedPrimitiveUP(commandList, type, vetrices, nV, vertexStride, indices, nIndex);
+#else
 			BindVertexAttrib((uint8 const*)vetrices, vertexStride);
 			glDrawElements(GLConvert::To(type), nIndex, GL_UNSIGNED_INT, indices);
 			UnbindVertexAttrib();
+#endif
 		}
 
 		FORCEINLINE static int GetVertexSize()
@@ -150,21 +240,7 @@ namespace Render
 		}
 
 	//private:
-		template< uint32 VF, uint32 SEMANTIC >
-		struct VertexElementOffset
-		{
-			enum { Result = sizeof(float) * (VF & RTS_ELEMENT_MASK) + VertexElementOffset< (VF >> RTS_ELEMENT_BIT_OFFSET), SEMANTIC - 1 >::Result };
-		};
 
-		template< uint32 VF >
-		struct VertexElementOffset< VF, 0 >
-		{
-			enum { Result = 0 };
-		};
-
-#define USE_SEMANTIC( S ) ( ( VertexFormat ) & RTS_ELEMENT( S , RTS_ELEMENT_MASK ) )
-#define VERTEX_ELEMENT_SIZE( S ) ( USE_SEMANTIC( S ) >> ( RTS_ELEMENT_BIT_OFFSET * S ) )
-#define VETEX_ELEMENT_OFFSET( S ) VertexElementOffset< VertexFormat , S >::Result
 
 		FORCEINLINE static void BindVertexPointer(uint8 const* v, uint32 vertexStride , LinearColor const* overwriteColor = nullptr )
 		{
@@ -264,11 +340,12 @@ namespace Render
 #undef VERTEX_ATTRIB_UNBIND
 		}
 
+	};
+
+
 #undef VETEX_ELEMENT_OFFSET
 #undef VERTEX_ELEMENT_SIZE
 #undef USE_SEMANTIC
-
-	};
 
 	class DrawUtility
 	{
@@ -399,7 +476,7 @@ namespace Render
 		{
 			glMatrixMode(GL_PROJECTION);
 			glPushMatrix();
-			glLoadMatrixf(projMat);
+			glLoadMatrixf( AdjProjectionMatrixForRHI(projMat) );
 			glMatrixMode(GL_MODELVIEW);
 			glPushMatrix();
 			glLoadMatrixf(viewMat);
@@ -409,7 +486,7 @@ namespace Render
 		{
 			glMatrixMode(GL_PROJECTION);
 			glPushMatrix();
-			glLoadMatrixf(projMat);
+			glLoadMatrixf( AdjProjectionMatrixForRHI(projMat) );
 			glMatrixMode(GL_MODELVIEW);
 			glPushMatrix();
 			glLoadIdentity();
@@ -468,11 +545,13 @@ namespace Render
 
 		void reload();
 
-		class CopyTextureProgram* mProgCopyTexture;
-		class CopyTextureMaskProgram* mProgCopyTextureMask;
-		class CopyTextureBiasProgram* mProgCopyTextureBias;
+		class CopyTextureProgram*         mProgCopyTexture;
+		class CopyTextureMaskProgram*     mProgCopyTextureMask;
+		class CopyTextureBiasProgram*     mProgCopyTextureBias;
 		class MappingTextureColorProgram* mProgMappingTextureColor;
-		OpenGLFrameBuffer mFrameBuffer;
+		class SimplePipelineProgram*      mProgSimplePipeline;
+
+		RHIFrameBufferRef mFrameBuffer;
 
 	};
 }//namespace GL

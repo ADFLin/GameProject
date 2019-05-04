@@ -427,6 +427,7 @@ copy $(TargetDir)EngineShare.dll  $(ProjectDir)out\</Command>
     <None Include="out\Shader\SimpleBasePass.sgc" />
     <None Include="out\Shader\SimpleElement.sgc" />
     <None Include="out\Shader\GeometryTestCommon.sgc" />
+    <None Include="out\Shader\SimplePipelineShader.sgc" />
     <None Include="out\Shader\SkyBox.sgc" />
     <None Include="out\Shader\SSAO.sgc" />
     <None Include="out\Shader\Terrain.sgc" />

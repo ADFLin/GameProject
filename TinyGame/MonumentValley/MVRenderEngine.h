@@ -126,6 +126,12 @@ namespace MV
 		bool   bShowGroupColor;
 	};
 
+	struct View
+	{
+		Mat4 worldToClip;
+		Mat4 worldToView;
+	};
+
 	class RenderEngine : public CModifyCreator
 	{
 	public:
@@ -160,6 +166,7 @@ namespace MV
 
 		RenderParam mParam;
 
+		Mat4 mViewToWorld;
 		Render::RHICommandList* mCommandList;
 		Render::ShaderProgram   mEffect;
 		Render::ShaderParameter paramDirX;
@@ -176,6 +183,12 @@ namespace MV
 			return &mCacheBuffer[0];
 		}
 
+		void pushMatrix() { mWorldXFormStack.push_back(mWorldXFormStack.back()); }
+		void popMatrix()  { mWorldXFormStack.pop_back(); }
+		void loadMatrix(Mat4 const& m) { mWorldXFormStack.back() = m; }
+		void multiMatrix(Mat4 const& m){ mWorldXFormStack.back() = m * mWorldXFormStack.back(); }
+
+		std::vector< Mat4 > mWorldXFormStack;
 
 
 	};

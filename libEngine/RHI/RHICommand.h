@@ -123,21 +123,25 @@ namespace Render
 
 	
 	void RHIDrawPrimitive(RHICommandList& commandList, PrimitiveType type, int vStart, int nv);
-	void RHIDrawIndexedPrimitive(RHICommandList& commandList, PrimitiveType type, ECompValueType indexType, int indexStart, int nIndex, uint32 baseVertex = 0);
+	void RHIDrawIndexedPrimitive(RHICommandList& commandList, PrimitiveType type, int indexStart, int nIndex, uint32 baseVertex = 0);
 	void RHIDrawPrimitiveIndirect(RHICommandList& commandList, PrimitiveType type, RHIVertexBuffer* commandBuffer, int offset = 0, int numCommand = 1, int commandStride = 0);
-	void RHIDrawIndexedPrimitiveIndirect(RHICommandList& commandList, PrimitiveType type, ECompValueType indexType , RHIVertexBuffer* commandBuffer, int offset = 0, int numCommand = 1, int commandStride = 0);
+	void RHIDrawIndexedPrimitiveIndirect(RHICommandList& commandList, PrimitiveType type, RHIVertexBuffer* commandBuffer, int offset = 0, int numCommand = 1, int commandStride = 0);
 	void RHIDrawPrimitiveInstanced(RHICommandList& commandList, PrimitiveType type, int vStart, int nv, int numInstance );
 
-	void RHIDrawPrimitiveUP(RHICommandList& commandList, PrimitiveType type, int numPrimitive, void* pVertices, int numVerex, int vetexStride);
-	void RHIDrawIndexedPrimitiveUP(RHICommandList& commandList, PrimitiveType type, int numPrimitive, void* pVertices, int numVerex, int vetexStride , int* pIndices , int numIndex );
+	void RHIDrawPrimitiveUP(RHICommandList& commandList, PrimitiveType type, void const* pVertices, int numVerex, int vetexStride);
+	void RHIDrawIndexedPrimitiveUP(RHICommandList& commandList, PrimitiveType type, void const* pVertices, int numVerex, int vetexStride , int const* pIndices , int numIndex );
 
-	void RHISetupFixedPipelineState(RHICommandList& commandList, Matrix4 const& matModelView, Matrix4 const& matProj, int numTexture = 0, RHITexture2D const** textures = nullptr);
-	void RHISetFrameBuffer(RHICommandList& commandList, RHIFrameBuffer& frameBuffer, RHITextureDepth* overrideDepthTexture = nullptr);
+	void RHISetupFixedPipelineState(RHICommandList& commandList, Matrix4 const& transform, RHITexture2D* textures[] = nullptr, int numTexture = 0);
+	void RHISetFrameBuffer(RHICommandList& commandList, RHIFrameBuffer* frameBuffer, RHITextureDepth* overrideDepthTexture = nullptr);
+
+	void RHISetInputStream(RHICommandList& commandList, RHIInputLayout& inputLayout, InputStreamInfo inputStreams[], int numInputStream);
 
 	void RHISetIndexBuffer(RHICommandList& commandList, RHIIndexBuffer* indexBuffer);
 
 	void RHIDispatchCompute(RHICommandList& commandList, uint32 numGroupX, uint32 numGroupY, uint32 numGroupZ );
 	void RHISetShaderProgram(RHICommandList& commandList, RHIShaderProgram* shaderProgram);
+
+
 #define RHI_FUNC( FUN ) virtual FUN = 0
 
 	class RHISystem

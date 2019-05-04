@@ -1,7 +1,7 @@
 #include "TestRenderStageBase.h"
 
 #include "RHI/RHIDefine.h"
-#include "RHI/BaseType.h"
+#include "RHI/RHIType.h"
 #include "RHI/RHICommon.h"
 #include "RHI/D3D11Command.h"
 
@@ -66,9 +66,17 @@ namespace Render
 		static int constexpr MaxConstBufferNum = 1;
 
 		FrameSwapChain mSwapChain;
-
+		RHITextureDepthRef mDepthTexture;
 		RHITexture2DRef mTexture;
+		
 		TStructuredBuffer< ColourBuffer > mCBuffer;
+		TComPtr< ID3D11RenderTargetView > renderTargetView;
+		RHIInputLayoutRef  mInputLayout;
+		RHIVertexBufferRef mVertexBuffer;
+		RHIIndexBufferRef  mIndexBuffer;
+
+		RHIInputLayoutRef  mAxisInputLayout;
+		RHIVertexBufferRef mAxisVertexBuffer;
 
 		virtual RHITargetName getRHITargetName() { return RHITargetName::D3D11; }
 
@@ -79,12 +87,18 @@ namespace Render
 			Vector2 uv;
 		};
 
+		struct AxisVertex
+		{
+			Vector3 pos;
+			Vector3 color;
+		};
+
 		virtual bool onInit()
 		{
 			if( !BaseClass::onInit() )
 				return false;
 
-			//VERIFY_RETURN_FALSE( createSimpleMesh() );
+			VERIFY_RETURN_FALSE( createSimpleMesh() );
 
 			mRHISystem = static_cast<D3D11System*>(gRHISystem);
 
@@ -99,13 +113,15 @@ namespace Render
 
 			{
 				VERIFY_RETURN_FALSE(mCBuffer.initializeResource(1));
-				auto pData = mCBuffer.lock();
+				{
+					auto pData = mCBuffer.lock();
 
-				pData->red = 1;
-				pData->green = 0;
-				pData->blue = 0.5;
+					pData->red = 1;
+					pData->green = 0;
+					pData->blue = 0.5;
 
-				mCBuffer.unlock();
+					mCBuffer.unlock();
+				}
 			}
 
 			mTexture = RHIUtility::LoadTexture2DFromFile("Texture/rocks.png");
@@ -116,35 +132,57 @@ namespace Render
 			TComPtr< ID3D11Device >& device = mRHISystem->mDevice;
 			TComPtr< ID3D11Texture2D > backBuffer;
 			VERIFY_D3D11RESULT_RETURN_FALSE( mSwapChain.ptr->GetBuffer(0, IID_PPV_ARGS(&backBuffer)));
-
 			VERIFY_D3D11RESULT_RETURN_FALSE( device->CreateRenderTargetView( backBuffer , NULL, &renderTargetView) );
+			mDepthTexture = RHICreateTextureDepth(Texture::eDepth32F, window.getWidth(), window.getHeight() );
+
+
 			TComPtr< ID3D11DeviceContext >& context = mRHISystem->mDeviceContext;
 
 			{
 				MyVertex vertices[] =
 				{
 					Vector2(0.5, 0.5),Vector3(1, 1, 1),Vector2(1, 1),
-					Vector2(0.5,-0.5),Vector3(0, 0, 1),Vector2(1, 0),
 					Vector2(-0.5,0.5),Vector3(0, 1, 0),Vector2(0, 1),
-					Vector2(-0.5,-0.5),Vector3(1, 0, 0),Vector2(0, 0),			
+					Vector2(-0.5,-0.5),Vector3(1, 0, 0),Vector2(0, 0),
+					Vector2(0.5,-0.5),Vector3(0, 0, 1),Vector2(1, 0),
 				};
 
 				VERIFY_RETURN_FALSE( mVertexBuffer = RHICreateVertexBuffer(sizeof(MyVertex), ARRAY_SIZE(vertices), BCF_DefalutValue, vertices) );
 
 				InputLayoutDesc desc;
-				desc.addElement(0, Vertex::ATTRIBUTE0, Vertex::eFloat2);
-				desc.addElement(0, Vertex::ATTRIBUTE1, Vertex::eFloat3);
-				desc.addElement(0, Vertex::ATTRIBUTE2, Vertex::eFloat2);
+				desc.addElement(0, Vertex::ATTRIBUTE_POSITION, Vertex::eFloat2);
+				desc.addElement(0, Vertex::ATTRIBUTE_COLOR, Vertex::eFloat3);
+				desc.addElement(0, Vertex::ATTRIBUTE_TEXCOORD, Vertex::eFloat2);
 				VERIFY_RETURN_FALSE( mInputLayout = RHICreateInputLayout(desc) );
+
+				int32 indices[] = { 0 , 1 , 2 , 0 , 2 , 3 };
+				VERIFY_RETURN_FALSE(mIndexBuffer = RHICreateIndexBuffer( ARRAY_SIZE(indices) , true , BCF_DefalutValue , indices ) );
+			}
+
+			{
+				AxisVertex vertices[] =
+				{
+					{ Vector3(0,0,0),Vector3(1,0,0) },
+					{ Vector3(1,0,0),Vector3(1,0,0) },
+					{ Vector3(0,0,0),Vector3(0,1,0) },
+					{ Vector3(0,1,0),Vector3(0,1,0) },
+					{ Vector3(0,0,0),Vector3(0,0,1) },
+					{ Vector3(0,0,1),Vector3(0,0,1) },
+				};
+
+				VERIFY_RETURN_FALSE(mAxisVertexBuffer = RHICreateVertexBuffer(sizeof(AxisVertex), ARRAY_SIZE(vertices), BCF_DefalutValue, vertices));
+
+				InputLayoutDesc desc;
+				desc.addElement(0, Vertex::ATTRIBUTE_POSITION, Vertex::eFloat3);
+				desc.addElement(0, Vertex::ATTRIBUTE_COLOR, Vertex::eFloat3);
+				VERIFY_RETURN_FALSE(mAxisInputLayout = RHICreateInputLayout(desc));
 			}
 
 			::Global::GUI().cleanupWidget();
 			restart();
 			return true;
 		}
-		TComPtr< ID3D11RenderTargetView > renderTargetView;
-		RHIInputLayoutRef mInputLayout;
-		RHIVertexBufferRef mVertexBuffer;
+
 		virtual void onEnd()
 		{
 			BaseClass::onEnd();
@@ -188,40 +226,75 @@ namespace Render
 
 			Matrix4 matView = mCamera.getViewMatrix();
 			mView.setupTransform(matView, mViewFrustum.getPerspectiveMatrix());
+			mView.updateBuffer();
 
 			TComPtr< ID3D11DeviceContext >& context = mRHISystem->mDeviceContext;
 			TComPtr< ID3D11Device >& device = mRHISystem->mDevice;
 
 			context->ClearRenderTargetView(renderTargetView ,Vector4(0.2, 0.2, 0.2,1));
-			context->OMSetRenderTargets(1, &renderTargetView, NULL);
-
+			context->ClearDepthStencilView(D3D11Cast::To(mDepthTexture)->mDSV, D3D11_CLEAR_DEPTH, 1.0, 0);
+			context->OMSetRenderTargets(1, &renderTargetView, D3D11Cast::To(mDepthTexture)->mDSV );
+			
 			RHISetViewport(commandList, 0, 0, window.getWidth(), window.getHeight());
 
-			RHISetRasterizerState(commandList, TStaticRasterizerState< ECullMode::None >::GetRHI());
-			RHISetBlendState(commandList, TStaticBlendState< CWM_RGBA, Blend::eOne, Blend::eOne >::GetRHI());
+			RHISetRasterizerState(commandList, TStaticRasterizerState<>::GetRHI());
+			RHISetDepthStencilState(commandList, TStaticDepthStencilState<>::GetRHI());
+			RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
 
 			RHISetShaderProgram(commandList, mProgTest.getRHIResource());
 
-
 			float c = 0.5 * Math::Sin(worldTime) + 0.5;
-			Matrix4 xform = Matrix4::Rotate(Vector3(0, 0, 1), angle) * Matrix4::Translate(Vector3(0.2, 0, 0));
+
+			{
+				auto pData = mCBuffer.lock();
+
+				pData->red = 1;
+				pData->green = c;
+				pData->blue = 0.5;
+
+				mCBuffer.unlock();
+			}
+
 			mProgTest.setTexture(commandList, SHADER_PARAM(Texture), *mTexture, SHADER_PARAM(TextureSampler), TStaticSamplerState < Sampler::eTrilinear >::GetRHI());
-			mProgTest.setParam(commandList, SHADER_PARAM(XForm), xform);
+			
 			mProgTest.setParam(commandList, SHADER_PARAM(Color), Vector3(c, c, c));
 			mProgTest.setStructuredUniformBufferT< ColourBuffer >(commandList, *mCBuffer.getRHI());
 			mView.setupShader(commandList, mProgTest);
-
+			Matrix4 xform = Matrix4::Translate(Vector3(0, 0, 0));
+			mProgTest.setParam(commandList, SHADER_PARAM(XForm), xform);
 			{
-				UINT stride = sizeof(MyVertex);
-				UINT offset = 0;
-				context->IASetInputLayout(D3D11Cast::GetResource(mInputLayout));
-				ID3D11Buffer* buffers[] = { D3D11Cast::GetResource(mVertexBuffer) };
-				context->IASetVertexBuffers(0, 1, buffers, &stride, &offset);
-				RHIDrawPrimitive(commandList, PrimitiveType::TriangleStrip, 0, 4);
+				InputStreamInfo inputStream;
+				inputStream.vertexBuffer = mVertexBuffer;
+				RHISetInputStream(commandList, *mInputLayout, &inputStream, 1);
+				RHISetIndexBuffer(commandList, mIndexBuffer);
+				RHIDrawIndexedPrimitive(commandList, PrimitiveType::TriangleList, 0 , mIndexBuffer->getNumElements(), 0);
+			}
+		
+			xform = Matrix4::Rotate(Vector3(0, 0, 1), angle) * Matrix4::Translate(Vector3(0, 0, 1));
+			mProgTest.setParam(commandList, SHADER_PARAM(XForm), xform);
+			{
+				InputStreamInfo inputStream;
+				inputStream.vertexBuffer = mVertexBuffer;
+				RHISetInputStream(commandList, *mInputLayout, &inputStream, 1);
+				RHISetIndexBuffer(commandList, mIndexBuffer);
+				RHIDrawIndexedPrimitive(commandList, PrimitiveType::TriangleList, 0, mIndexBuffer->getNumElements(), 0);
+			}
+			mProgTest.setParam(commandList, SHADER_PARAM(XForm), Matrix4::Identity());
+			{
+				InputStreamInfo inputStream;
+				inputStream.vertexBuffer = mAxisVertexBuffer;
+				RHISetInputStream(commandList, *mAxisInputLayout, &inputStream , 1 );
+
+				RHIDrawPrimitive(commandList, PrimitiveType::LineList, 0, 6);
 			}
 
 
+			mProgTest.setParam(commandList, SHADER_PARAM(XForm), Matrix4::Translate( -10 , 0 , 10 ));
+			{
+				mSimpleMeshs[SimpleMeshId::Doughnut].drawShader(commandList);
+			}
 			context->Flush();
+
 
 			if( !::Global::GetDrawEngine().bUsePlatformBuffer )
 			{
@@ -239,6 +312,30 @@ namespace Render
 				::BitBlt(g.getRenderDC(), 0, 0, w, h, hDC, 0, 0, SRCCOPY);
 				VERIFY_D3D11RESULT( surface->ReleaseDC(NULL) , );
 			}
+		}
+
+
+		bool onKey(unsigned key, bool isDown)
+		{
+			if( isDown )
+			{
+				switch( key )
+				{
+				case Keyboard::eX:
+					{
+						auto pData = mCBuffer.lock();
+
+						pData->red = 0;
+						pData->green = 1;
+						pData->blue = 0;
+
+						mCBuffer.unlock();
+					}
+					return false;
+				}
+			}
+
+			return BaseClass::onKey(key, isDown);
 		}
 
 		bool onMouse(MouseMsg const& msg)

@@ -36,26 +36,22 @@ namespace Math
 
 		Vector4 operator + (Vector4 const& rhs) const { return Vector4(x + rhs.x, y + rhs.y, z + rhs.z, w + rhs.w); }
 		Vector4 operator - (Vector4 const& rhs) const { return Vector4(x - rhs.x, y - rhs.y, z - rhs.z, w - rhs.w); }
-
 		operator float*() { return &x; }
 		operator float const*() const { return &x; }
 
 		float x , y , z , w;
 	};
 
-	template< class T >
 	FORCEINLINE Vector4 operator * (float s, Vector4 const& v)
 	{
 		return Vector4(s*v.x, s*v.y, s*v.z , s*v.w);
 	}
 
-	template< class T >
 	FORCEINLINE Vector4 operator*(Vector4 const& v, float s)
 	{
 		return Vector4(s*v.x, s*v.y, s*v.z, s*v.w);
 	}
 
-	template< class T >
 	FORCEINLINE Vector4 operator/(Vector4 const& v, float s)
 	{
 		return Vector4(v.x / s, v.y / s, v.z / s , v.w / s);

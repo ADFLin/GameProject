@@ -2,7 +2,7 @@
 #ifndef SceneScript_H_3F3F71B4_4B75_4F3F_B556_4C10CF688F7C
 #define SceneScript_H_3F3F71B4_4B75_4F3F_B556_4C10CF688F7C
 
-#include "RHI/BaseType.h"
+#include "RHI/RHIType.h"
 #include "RHI/LazyObject.h"
 
 namespace Render

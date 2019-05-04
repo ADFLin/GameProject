@@ -718,9 +718,7 @@ namespace Render
 				RHISetShaderProgram(commandList, mProgWater->getRHIResource());
 				mProgWater->setParameters(commandList, mTileNum, *mWaterDataBuffers[mIndexWaterBufferUsing].getRHI());
 				mView.setupShader(commandList, *mProgWater);
-				//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 				mTileMesh.drawShader(commandList, LinearColor(1, 0, 0));
-				glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 			}
 
 			for( auto const& primitive : mPrimitives )
@@ -770,7 +768,7 @@ namespace Render
 				};
 
 				RHISetShaderProgram(commandList, mProgSpline->getRHIResource());
-				mProgSpline->setParam(commandList, SHADER_PARAM(XForm), OrthoMatrix(0, width, 0, height, -100, 100));
+				mProgSpline->setParam(commandList, SHADER_PARAM(XForm), AdjProjectionMatrixForRHI(OrthoMatrix(0, width, 0, height, -100, 100) ));
 				mProgSpline->setParam(commandList, SHADER_PARAM(TessOuter0), TessFactor2);
 				mProgSpline->setParam(commandList, SHADER_PARAM(TessOuter1), TessFactor1);
 				glPatchParameteri(GL_PATCH_VERTICES, 4);
@@ -804,7 +802,7 @@ namespace Render
 				Matrix4 worldToLocal;
 				float det;
 				localToWorld.inverseAffine(worldToLocal, det);
-				program->setParam(commandList, SHADER_PARAM(XForm), OrthoMatrix(0, width, 0, height, -100, 100));
+				program->setParam(commandList, SHADER_PARAM(XForm), AdjProjectionMatrixForRHI( OrthoMatrix(0, width, 0, height, -100, 100) ) );
 				program->setTexture(commandList, SHADER_PARAM(BaseTexture), *mBaseTexture);
 				program->setParam(commandList, SHADER_PARAM(Primitive.localToWorld), localToWorld );
 				program->setParam(commandList, SHADER_PARAM(Primitive.worldToLocal), worldToLocal );

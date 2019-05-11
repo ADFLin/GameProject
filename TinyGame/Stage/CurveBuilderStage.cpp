@@ -112,7 +112,7 @@ namespace CB
 			surface->setRangeV(Range(Min, Max));
 
 #if _DEBUG
-			int NumX = 100, NumY = 100;
+			int NumX = 10, NumY = 10;
 #else
 			int NumX = 300, NumY = 300;
 #endif

@@ -758,8 +758,10 @@ namespace Go
 			}
 		}
 
-		if ( bDrawFontCacheTexture )
+		if( bDrawFontCacheTexture )
+		{
 			DrawUtility::DrawTexture(commandList, FontCharCache::Get().mTextAtlas.getTexture(), Vector2(0, 0), Vector2(600, 600));
+		}
 
 		g.endRender();
 	}
@@ -867,17 +869,12 @@ namespace Go
 
 			RHISetViewport(commandList, renderPos.x, screenSize.y - ( renderPos.y + renderSize.y ) , renderSize.x, renderSize.y);
 			MatrixSaveScope matrixSaveScope;
-			glMatrixMode(GL_PROJECTION);
 
 			float const xMin = 0;
 			float const xMax = (mGame.getInstance().getCurrentStep() + 1) / 2 + 1;
 			float const yMin = 0;
 			float const yMax = 100;
 			Matrix4 matProj = AdjProjectionMatrixForRHI( OrthoMatrix(xMin - 1, xMax, yMin - 5, yMax + 5, -1, 1) );
-
-			glLoadMatrixf(matProj);
-			glMatrixMode(GL_MODELVIEW);
-			glLoadIdentity();
 
 			Vector3 colors[2] = { Vector3(1,0,0) , Vector3(0,1,0) };
 			float alpha[2] = { 0.4 , 0.4 };
@@ -904,11 +901,12 @@ namespace Go
 						Vector4(colors[i], alpha[i]),
 						Vector4(0.3 * colors[i], alpha[i]));
 
-					TRenderRT< RTVF_XY >::DrawShader(commandList, PrimitiveType::LineStrip, &winRateHistory[0], winRateHistory.size());
-					RHISetShaderProgram(commandList, nullptr);
+					TRenderRT< RTVF_XY >::Draw(commandList, PrimitiveType::LineStrip, &winRateHistory[0], winRateHistory.size());
 				}
+
 				RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
-				TRenderRT< RTVF_XY >::Draw(commandList, PrimitiveType::LineStrip, &winRateHistory[0], winRateHistory.size(), colors[i]);
+				RHISetupFixedPipelineState(commandList, matProj );
+				TRenderRT< RTVF_XY >::Draw(commandList, PrimitiveType::LineStrip, &winRateHistory[0], winRateHistory.size() , colors[i] );
 			}
 
 			static std::vector<Vector2> buffer;
@@ -925,10 +923,11 @@ namespace Go
 				buffer.push_back(Vector2(x, yMax));
 			}
 
+			RHISetupFixedPipelineState(commandList, matProj);
 			if( !buffer.empty() )
-			{
-				RHISetBlendState(commandList, TStaticBlendState< CWM_RGBA, Blend::eOne , Blend::eOne >::GetRHI());
-				TRenderRT< RTVF_XY >::Draw(commandList, PrimitiveType::LineList, &buffer[0], buffer.size(), LinearColor(0.3, 0.3, 0.3));
+			{			
+				RHISetBlendState(commandList, TStaticBlendState< CWM_RGBA, Blend::eOne , Blend::eOne >::GetRHI());		
+				TRenderRT< RTVF_XY >::Draw(commandList, PrimitiveType::LineList, &buffer[0], buffer.size(), LinearColor(0, 0, 1));
 			}
 
 			{

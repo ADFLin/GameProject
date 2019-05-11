@@ -747,7 +747,7 @@ namespace Render
 		Render::SimpleCamera  mCamStorage[2];
 		CameraMove  mCameraMove;
 		ViewFrustum mViewFrustum;
-
+		ViewInfo mCameraView;
 		
 		typedef std::unique_ptr< SceneAsset > SceneAssetPtr;
 		std::vector< SceneAssetPtr > mSceneAssets;

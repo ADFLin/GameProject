@@ -191,6 +191,9 @@ float parallaxSoftShadowMultiplier(in vec3 L, in vec2 initialTexCoord,
 
 void MainPS()
 {
+	gl_FragColor = vec4(1,0,0, 1.0);
+	return;
+
 	vec3 E = normalize( viewOffset );
 	vec3 L = normalize( lightOffset );
 
@@ -201,6 +204,8 @@ void MainPS()
 	pomParams.parallaxScale = parallaxScale;
 	pomParams.iteratorParams = float2(30, 105);
 	pomParams.shadowIteratorParams = float2(15, 40);
+	pomParams.iteratorParams = float2(3, 10);
+	pomParams.shadowIteratorParams = float2(1, 4);
 	
 	POMOutput pomOutput = POMapping(texNormal , pomParams, E, gl_TexCoord[0].st);
 	float parallaxDepth = pomOutput.depth;

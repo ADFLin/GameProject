@@ -13,21 +13,8 @@
 
 class IStreamSerializer;
 
-#define GPU_BUFFER_ALIGN alignas(16)
-
 namespace Render
 {
-	enum class DeviceVendorName
-	{
-		Unknown,
-		NVIDIA ,
-		ATI,
-		Intel ,	
-	};
-
-	extern DeviceVendorName gRHIDeviceVendorName;
-
-
 	class RHITexture1D;
 	class RHITexture2D;
 	class RHITexture3D; 
@@ -58,9 +45,7 @@ namespace Render
 		//
 		CVT_NInt8,
 		CVT_NInt16,
-
 	};
-
 
 	struct Texture
 	{
@@ -136,8 +121,8 @@ namespace Render
 		static Vector3 GetFaceDir(Face face);
 
 		static Vector3 GetFaceUpDir(Face face);
-		static uint32 GetFormatSize(Format format);
-		static uint32 GetComponentNum(Format format);
+		static uint32  GetFormatSize(Format format);
+		static uint32  GetComponentNum(Format format);
 
 		enum DepthFormat
 		{
@@ -377,10 +362,16 @@ namespace Render
 			eByte3 = ENCODE_VECTOR_FORAMT(CVT_Byte, 3),
 			eByte4 = ENCODE_VECTOR_FORAMT(CVT_Byte, 4),
 
-#undef ENCODE_VECTOR_FORAMT
 			eUnknowFormat,
 		};
 
+		static Format GetFormat(ECompValueType InType, uint8 numElement)
+		{
+			assert(numElement <= 4);
+			return Format(ENCODE_VECTOR_FORAMT(InType, numElement));
+		}
+
+#undef ENCODE_VECTOR_FORAMT
 
 		static int    GetFormatSize(uint8 format);
 		enum Semantic
@@ -573,13 +564,13 @@ namespace Render
 
 	struct InputStreamInfo
 	{
-		RHIVertexBuffer* vertexBuffer;
+		RHIVertexBuffer* buffer;
 		uint32 offset;
 		int32  stride;
 
 		InputStreamInfo()
 		{
-			vertexBuffer = nullptr;
+			buffer = nullptr;
 			offset = 0;
 			stride = -1;
 		}
@@ -593,6 +584,12 @@ namespace Render
 		Sampler::AddressMode addressW;
 	};
 
+	class RHISamplerState : public RHIResource
+	{
+
+	};
+
+
 	struct RasterizerStateInitializer
 	{
 		EFillMode fillMode;
@@ -600,6 +597,11 @@ namespace Render
 
 		bool      bEnableScissor;
 	};
+
+	class RHIRasterizerState : public RHIResource
+	{
+	};
+
 
 	struct DepthStencilStateInitializer
 	{
@@ -619,6 +621,11 @@ namespace Render
 		bool   bWriteDepth;
 	};
 
+
+	class RHIDepthStencilState : public RHIResource
+	{
+	};
+
 	constexpr int NumBlendStateTarget = 1;
 	struct BlendStateInitializer
 	{
@@ -636,23 +643,11 @@ namespace Render
 		TargetValue    targetValues[NumBlendStateTarget];
 	};
 
-	class RHISamplerState : public RHIResource
-	{
-
-	};
-
 	class RHIBlendState : public RHIResource
 	{
 	};
 
-	class RHIRasterizerState : public RHIResource
-	{
-	};
 
-
-	class RHIDepthStencilState : public RHIResource
-	{
-	};
 
 
 	typedef TRefCountPtr< RHITextureBase > RHITextureRef;

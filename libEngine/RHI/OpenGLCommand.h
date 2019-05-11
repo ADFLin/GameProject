@@ -59,11 +59,11 @@ namespace Render
 		void RHIDrawIndexedPrimitiveIndirect(PrimitiveType type, RHIVertexBuffer* commandBuffer, int offset, int numCommand, int commandStride);
 		void RHIDrawPrimitiveInstanced(PrimitiveType type, int vStart, int nv, int numInstance);
 
-		void RHIDrawPrimitiveUP(PrimitiveType type, void const* pVertices, int numVerex, int vetexStride);
+		void RHIDrawPrimitiveUP(PrimitiveType type, int numVertex, VertexDataInfo dataInfos[], int numData);
 
-		void RHIDrawIndexedPrimitiveUP(PrimitiveType type, void const* pVertices, int numVerex, int vetexStride, int const* pIndices, int numIndex);
+		void RHIDrawIndexedPrimitiveUP(PrimitiveType type, int numVerex, VertexDataInfo dataInfos[], int numVertexData, int const* pIndices, int numIndex);
 
-		void RHISetupFixedPipelineState(Matrix4 const& transform, RHITexture2D* textures[], int numTexture);
+		void RHISetupFixedPipelineState(Matrix4 const& transform, LinearColor const& color, RHITexture2D* textures[], int numTexture);
 
 		void RHISetFrameBuffer(RHIFrameBuffer* frameBuffer, RHITextureDepth* overrideDepthTexture )
 		{
@@ -133,17 +133,17 @@ namespace Render
 			return true;
 		}
 
-		bool commitInputStreamUP(void  const* pVertices, int vetexStride)
+		bool commitInputStreamUP(VertexDataInfo dataInfos[], int numData)
 		{
 			if( !mLastInputLayout.isValid() )
 				return false;
-
-			if( mNumInputStream != 0 )
-				return false;
-
-			mUsedInputStreams[0].offset = (uint32)pVertices;
-			mUsedInputStreams[0].stride = vetexStride;
-			mNumInputStream = 1;
+			
+			for( int i = 0 ; i < numData; ++i )
+			{
+				mUsedInputStreams[i].offset = (uint32)dataInfos[i].ptr;
+				mUsedInputStreams[i].stride = dataInfos[i].stride;
+			}
+			mNumInputStream = numData;
 			mWasBindAttrib = false;
 			if( mbUseFixedPipeline )
 			{

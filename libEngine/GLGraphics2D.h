@@ -67,15 +67,8 @@ public:
 		mColorBrush = color;
 	}
 
-	void  beginClip(Vec2i const& pos, Vec2i const& size)
-	{
-		glEnable(GL_SCISSOR_TEST);
-		glScissor(pos.x, mHeight - pos.y - size.y , size.x,  size.y);
-	}
-	void  endClip()
-	{
-		glDisable(GL_SCISSOR_TEST);
-	}
+	void  beginClip(Vec2i const& pos, Vec2i const& size);
+	void  endClip();
 
 	void  beginBlend( Vector2 const& pos , Vector2 const& size , float alpha );
 	void  endBlend();
@@ -123,6 +116,8 @@ private:
 
 	void drawPolygonBuffer();
 	void drawLineBuffer();
+
+	Render::RHICommandList& GetCommandList();
 	int       mWidth;
 	int       mHeight;
 

@@ -1270,7 +1270,7 @@ namespace Render
 		for( int i = 0; i < numInputStream; ++i )
 		{
 			auto& inputStream = inputStreams[i];
-			OpenGLCast::To(inputStream.vertexBuffer)->bind();
+			OpenGLCast::To(inputStream.buffer)->bind();
 			int index = 0;
 			for( ; index < mElements.size(); ++index )
 			{
@@ -1278,11 +1278,11 @@ namespace Render
 				if( e.idxStream > index )
 					break;
 
-				int stride = (inputStream.stride >= 0) ? inputStream.stride : inputStream.vertexBuffer->getElementSize();
+				int stride = (inputStream.stride >= 0) ? inputStream.stride : inputStream.buffer->getElementSize();
 				glEnableVertexAttribArray(e.attribute);
 				glVertexAttribPointer(e.attribute, e.componentNum, e.componentType, e.bNormalize, stride , (void*)( inputStream.offset + e.offset) );
 			}
-			OpenGLCast::To(inputStream.vertexBuffer)->unbind();
+			OpenGLCast::To(inputStream.buffer)->unbind();
 		}
 		if( overwriteColor )
 		{
@@ -1291,7 +1291,7 @@ namespace Render
 		}
 	}
 
-	void OpenGLInputLayout::bindAttribUP(InputStreamInfo inputStreams[], int numInputStream, LinearColor const* overwriteColor )
+	void OpenGLInputLayout::bindAttribUP(InputStreamInfo inputStreams[], int numInputStream)
 	{
 		for( int i = 0; i < numInputStream; ++i )
 		{
@@ -1304,14 +1304,23 @@ namespace Render
 					break;
 
 				assert(inputStream.stride >= 0);
-				glEnableVertexAttribArray(e.attribute);
-				glVertexAttribPointer(e.attribute, e.componentNum, e.componentType, e.bNormalize, inputStream.stride, (void*)(inputStream.offset + e.offset));
+				
+				if( inputStream.stride > 0 )
+				{
+					glEnableVertexAttribArray(e.attribute);
+					glVertexAttribPointer(e.attribute, e.componentNum, e.componentType, e.bNormalize, inputStream.stride, (void*)(inputStream.offset + e.offset));
+				}
+				else
+				{
+					switch( e.componentNum )
+					{
+					case 1: glVertexAttrib1fv(e.attribute, (float*)(inputStream.offset + e.offset)); break;
+					case 2: glVertexAttrib2fv(e.attribute, (float*)(inputStream.offset + e.offset)); break;
+					case 3: glVertexAttrib3fv(e.attribute, (float*)(inputStream.offset + e.offset)); break;
+					case 4: glVertexAttrib4fv(e.attribute, (float*)(inputStream.offset + e.offset)); break;
+					}
+				}			
 			}
-		}
-		if( overwriteColor )
-		{
-			glDisableVertexAttribArray(Vertex::ATTRIBUTE_COLOR);
-			glVertexAttrib4fv(Vertex::ATTRIBUTE_COLOR, *overwriteColor);
 		}
 	}
 
@@ -1323,16 +1332,11 @@ namespace Render
 				break;
 			glDisableVertexAttribArray(e.attribute);
 		}
-
-		if( overwriteColor )
-		{
-			glDisableVertexAttribArray(Vertex::ATTRIBUTE_COLOR);
-		}
-
 	}
 
 	void BindElementPointer(OpenGLInputLayout::Element const& e, uint32 offset, uint32 stride, bool& haveTex)
 	{
+		offset += e.offset;
 		switch( e.semantic )
 		{
 		case Vertex::ePosition:
@@ -1371,6 +1375,55 @@ namespace Render
 		}
 	}
 
+	void BindElementData(OpenGLInputLayout::Element const& e, uint32 offset, uint32 stride)
+	{
+		offset += e.offset;
+		switch( e.semantic )
+		{
+		case Vertex::ePosition:
+			switch( e.componentNum )
+			{
+			case 1: glVertex2f(*(float*)(offset), 0); break;
+			case 2: glVertex2fv((float*)(offset)); break;
+			case 3: glVertex3fv((float*)(offset)); break;
+			case 4: glVertex4fv((float*)(offset)); break;
+			}
+			break;
+		case Vertex::eNormal:
+			assert(e.componentNum == 3);
+			glNormal3fv((float*)e.offset); break;
+			break;
+		case Vertex::eColor:
+			if( e.idx == 0 )
+			{
+				switch( e.componentNum )
+				{
+				case 3: glColor4fv((float*)(offset)); break;
+				case 4: glColor3fv((float*)(offset)); break;
+				}
+			}
+			break;
+		case Vertex::eTangent:
+			switch( e.componentNum )
+			{
+			case 1: glMultiTexCoord1fv(GL_TEXTURE0 + (Vertex::ATTRIBUTE_TANGENT - Vertex::ATTRIBUTE_TEXCOORD), (float*)(offset));
+			case 2: glMultiTexCoord2fv(GL_TEXTURE0 + (Vertex::ATTRIBUTE_TANGENT - Vertex::ATTRIBUTE_TEXCOORD), (float*)(offset));
+			case 3: glMultiTexCoord3fv(GL_TEXTURE0 + (Vertex::ATTRIBUTE_TANGENT - Vertex::ATTRIBUTE_TEXCOORD), (float*)(offset));
+			case 4: glMultiTexCoord4fv(GL_TEXTURE0 + (Vertex::ATTRIBUTE_TANGENT - Vertex::ATTRIBUTE_TEXCOORD), (float*)(offset));
+			}
+			break;
+		case Vertex::eTexcoord:
+			switch( e.componentNum )
+			{
+			case 1: glMultiTexCoord1fv(GL_TEXTURE0 + e.idx, (float*)(offset));
+			case 2: glMultiTexCoord2fv(GL_TEXTURE0 + e.idx, (float*)(offset));
+			case 3: glMultiTexCoord3fv(GL_TEXTURE0 + e.idx, (float*)(offset));
+			case 4: glMultiTexCoord4fv(GL_TEXTURE0 + e.idx, (float*)(offset));
+			}
+			break;
+		}
+	}
+
 	void UnbindElementPointer(OpenGLInputLayout::Element const& e, LinearColor const* overwriteColor, bool& haveTex)
 	{
 		switch( e.semantic )
@@ -1402,15 +1455,15 @@ namespace Render
 	{
 		if( numInputStream == 1 )
 		{
-			OpenGLCast::To(inputStreams[0].vertexBuffer)->bind();
+			OpenGLCast::To(inputStreams[0].buffer)->bind();
 			bool haveTex = false;
 			for( auto const& e : mElements )
 			{
-				uint32 offset = inputStreams[e.idxStream].offset + e.offset;
+				uint32 offset = inputStreams[e.idxStream].offset;
 				uint32 stride = inputStreams[e.idxStream].stride > 0 ? inputStreams[e.idxStream].stride : e.stride;
 				BindElementPointer(e, offset, stride, haveTex);
 			}
-			OpenGLCast::To(inputStreams[0].vertexBuffer)->unbind();
+			OpenGLCast::To(inputStreams[0].buffer)->unbind();
 		}
 		else
 		{
@@ -1420,7 +1473,7 @@ namespace Render
 			{
 				auto& inputStream = inputStreams[i];
 
-				OpenGLCast::To(inputStream.vertexBuffer)->bind();
+				OpenGLCast::To(inputStream.buffer)->bind();
 				int index = 0;
 				for( ; index < mElements.size(); ++index )
 				{
@@ -1428,26 +1481,29 @@ namespace Render
 					if( e.idxStream > index )
 						break;
 
-					uint32 offset = inputStreams[e.idxStream].offset + e.offset;
+					uint32 offset = inputStreams[e.idxStream].offset;
 					uint32 stride = inputStreams[e.idxStream].stride > 0 ? inputStreams[e.idxStream].stride : e.stride;
 					BindElementPointer(e, offset, stride, haveTex);
 
 				}
-				OpenGLCast::To(inputStream.vertexBuffer)->unbind();
+				OpenGLCast::To(inputStream.buffer)->unbind();
 			}
 		}
 	}
 
-	void OpenGLInputLayout::bindPointerUP(InputStreamInfo inputStreams[], int numInputStream, LinearColor const* overwriteColor)
+	void OpenGLInputLayout::bindPointerUP(InputStreamInfo inputStreams[], int numInputStream)
 	{
 		if( numInputStream == 1 )
 		{
 			bool haveTex = false;
 			for( auto const& e : mElements )
 			{
-				uint32 offset = inputStreams[e.idxStream].offset + e.offset;
+				uint32 offset = inputStreams[e.idxStream].offset;
 				uint32 stride = inputStreams[e.idxStream].stride;
-				BindElementPointer(e, offset, stride, haveTex);
+				if( stride > 0 )
+					BindElementPointer(e, offset, stride, haveTex);
+				else
+					BindElementData(e, offset, stride);
 			}
 		}
 		else
@@ -1464,9 +1520,12 @@ namespace Render
 					if( e.idxStream > index )
 						break;
 
-					uint32 offset = inputStreams[e.idxStream].offset + e.offset;
+					uint32 offset = inputStreams[e.idxStream].offset;
 					uint32 stride = inputStreams[e.idxStream].stride;
-					BindElementPointer(e, offset, stride, haveTex);
+					if( stride > 0 )
+						BindElementPointer(e, offset, stride, haveTex);
+					else
+						BindElementData(e, offset, stride);
 				}
 			}
 		}

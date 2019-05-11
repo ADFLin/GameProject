@@ -774,7 +774,7 @@ namespace Render
 				DeferredLightingProgram* program = mProgLightingScreenRect[(int)light.type];
 				RHISetShaderProgram(commandList, program->getRHIResource());
 				BindShaderParam(commandList, *program);
-				DrawUtility::ScreenRectShader(commandList);
+				DrawUtility::ScreenRect(commandList);
 
 				//glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
 			}
@@ -856,6 +856,7 @@ namespace Render
 
 	void GBufferParamData::drawTextures(RHICommandList& commandList, IntVector2 const& size , IntVector2 const& gapSize )
 	{
+
 		int width = size.x;
 		int height = size.y;
 		int gapX = gapSize.x;
@@ -1036,7 +1037,7 @@ namespace Render
 			RHISetShaderProgram(commandList, mProgSSAOGenerate->getRHIResource());
 			view.setupShader(commandList, *mProgSSAOGenerate);
 			mProgSSAOGenerate->setParameters(commandList, sceneRenderTargets , &mKernelVectors[0], mKernelVectors.size());
-			DrawUtility::ScreenRectShader(commandList);
+			DrawUtility::ScreenRect(commandList);
 		}
 
 
@@ -1046,20 +1047,24 @@ namespace Render
 			GL_BIND_LOCK_OBJECT(mFrameBuffer);
 			RHISetShaderProgram(commandList, mProgSSAOBlur->getRHIResource());
 			mProgSSAOBlur->setParameters(commandList, *mSSAOTexture);
-			DrawUtility::ScreenRectShader(commandList);
+			DrawUtility::ScreenRect(commandList);
 		}
+
 
 		{
 			GPU_PROFILE("SSAO-Ambient");
-				//sceneRenderTargets.swapFrameBufferTexture();
+			//sceneRenderTargets.swapFrameBufferTexture();
 
 			RHISetBlendState(commandList, TStaticBlendState< CWM_RGBA , Blend::eOne, Blend::eOne >::GetRHI());
 			GL_BIND_LOCK_OBJECT(sceneRenderTargets.getFrameBuffer());
 			RHISetShaderProgram(commandList, mProgAmbient->getRHIResource());
 			mProgAmbient->setParameters(commandList, sceneRenderTargets, *mSSAOTextureBlur);
-			DrawUtility::ScreenRectShader(commandList);
+			DrawUtility::ScreenRect(commandList);
 			
 		}
+
+
+		return;
 	}
 
 	void PostProcessSSAO::drawSSAOTexture(RHICommandList& commandList, IntVector2 const& pos, IntVector2 const& size)
@@ -1302,6 +1307,7 @@ namespace Render
 			MatrixSaveScope matScope(matProj);
 
 			RHISetDepthStencilState(commandList, StaticDepthDisableState::GetRHI());
+			RHISetRasterizerState(commandList, TStaticRasterizerState<ECullMode::None>::GetRHI());
 			DrawUtility::DrawTexture(commandList, *mShaderData.colorStorageTexture, IntVector2(0, 0), IntVector2(200, 200));
 			glMemoryBarrier(GL_ALL_BARRIER_BITS);
 
@@ -1413,7 +1419,14 @@ namespace Render
 		}
 
 		if( sceneRenderTargets )
+		{
+			//RHISetFrameBuffer(commandList, &sceneRenderTargets->getFrameBuffer());
 			sceneRenderTargets->getFrameBuffer().bind();
+		}
+		else
+		{
+			RHISetFrameBuffer(commandList, nullptr);
+		}
 
 		if( bUseBMA )
 		{
@@ -1431,6 +1444,7 @@ namespace Render
 		{
 			RHISetDepthStencilState(commandList, TStaticDepthStencilState< bWriteDepth >::GetRHI());
 		}
+
 		if( 1 )
 		{
 			GPU_PROFILE("BasePass");
@@ -1448,7 +1462,7 @@ namespace Render
 
 		}
 
-		//if(0 )
+		if( 1 )
 		{
 			GPU_PROFILE("Resolve");
 
@@ -1489,8 +1503,11 @@ namespace Render
 		}
 
 		if( sceneRenderTargets )
+		{
+			//RHISetFrameBuffer(commandList, nullptr);
 			sceneRenderTargets->getFrameBuffer().unbind();
-
+		}
+		RHISetShaderProgram(commandList, nullptr);
 		RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
 		RHISetDepthStencilState(commandList, TStaticDepthStencilState<>::GetRHI());
 		RHISetRasterizerState(commandList, TStaticRasterizerState<>::GetRHI());
@@ -1903,7 +1920,7 @@ namespace Render
 			RHISetShaderProgram(commandList, mProgBlurV->getRHIResource());
 			mProgBlurV->setTexture(commandList, SHADER_PARAM(Texture), frameTexture , SHADER_PARAM(TextureSampler), sampler);
 
-			DrawUtility::ScreenRectShader(commandList);
+			DrawUtility::ScreenRect(commandList);
 		}
 
 		{
@@ -1918,7 +1935,7 @@ namespace Render
 			RHISetShaderProgram(commandList, mProgBlurHAndCombine->getRHIResource());
 			mProgBlurHAndCombine->setParameters(commandList, *mTextureBlurR, *mTextureBlurG, *mTextureBlurB);
 			//mProgBlurHAndCombine->setTexture(SHADER_PARAM(Texture), frameTexture, sampler);
-			DrawUtility::ScreenRectShader(commandList);
+			DrawUtility::ScreenRect(commandList);
 		}	
 	}
 

@@ -4,36 +4,36 @@
 
 #include "RHI/RHICommand.h"
 #include "RHI/RHICommon.h"
+#include "RHI/RHIGlobalResource.h"
+#include "RHI/DrawUtility.h"
+
 
 
 #include <cassert>
 #include <algorithm>
 
 
-static char const* vertexShader = 
-R"SHADER_CODE__(
-varying vec2 vTexCoord;
-void main(void)
-{
-	vTexCoord = gl_MultiTexCoord0.xy;
-	gl_Position = ftransform();
-}
-)SHADER_CODE__";
+static char const* vertexShader = CODE_STRING(
+	varying vec2 vTexCoord;
+	void main(void)
+	{
+		vTexCoord = gl_MultiTexCoord0.xy;
+		gl_Position = ftransform();
+	}
+);
 
-static char const* fragmentShader =
-R"SHADER_CODE__(
+static char const* fragmentShader = CODE_STRING(
 	sampler2D myTexture;
 	varying vec2 vTexCoord;
 	uniform vec3 colorKey;
-	void main(void)"
+	void main(void)
 	{
 		vec4 color = texture2D(myTexture, vTexCoord);
-		if (color.rgb == colorKey )
-			"discard;
+		if( color.rgb == colorKey )
+			discard;
 		gl_FragColor = color;
 	}
-)SHADER_CODE__";
-
+);
 #if 1
 #define DRAW_LINE_IMPL( EXPR )\
 	mBuffer.clear();\
@@ -144,8 +144,8 @@ void GLGraphics2D::beginRender()
 	glPushAttrib(GL_ENABLE_BIT | GL_VIEWPORT_BIT);
 
 	using namespace Render;
-	RHICommandList& commandList = RHICommandList::GetImmediateList();
-
+	RHICommandList& commandList = GetCommandList();
+	
 	RHISetViewport(commandList, 0, 0, mWidth, mHeight);
 
 	RHISetShaderProgram(commandList, nullptr);
@@ -304,9 +304,13 @@ void GLGraphics2D::emitVertex( float v[] )
 
 void GLGraphics2D::drawPixel(Vector2 const& p , Color3ub const& color)
 {
-	glBegin( GL_POINTS );
-	glVertex2i( p.x , p.y );
-	glEnd();
+	using namespace Render;
+	struct Vertex_XY_CA
+	{
+		Math::Vector2 pos;
+		Color4f c;
+	} v = { p , Color4f( color , mAlpha ) };
+	TRenderRT<RTVF_XY_CA>::Draw( GetCommandList() , PrimitiveType::Points, &v, 1);
 }
 
 void GLGraphics2D::drawRect(int left , int top , int right , int bottom)
@@ -410,6 +414,10 @@ void GLGraphics2D::drawPolygonBuffer()
 
 	assert(!mBuffer.empty());
 
+#if 0
+
+
+#else
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 
 	glEnableClientState(GL_VERTEX_ARRAY);
@@ -425,6 +433,7 @@ void GLGraphics2D::drawPolygonBuffer()
 		glDrawArrays(GL_LINE_LOOP, 0, mBuffer.size() / 2);
 	}
 	glDisableClientState(GL_VERTEX_ARRAY);
+#endif
 
 }
 
@@ -446,6 +455,12 @@ void GLGraphics2D::drawLineBuffer()
 	}
 }
 
+
+Render::RHICommandList& GLGraphics2D::GetCommandList()
+{
+	using namespace Render;
+	return RHICommandList::GetImmediateList();
+}
 
 void GLGraphics2D::drawTexture(GLTexture2D& texture, Vector2 const& pos, Color3ub const& color /*= Color3ub(255, 255, 255)*/)
 {
@@ -480,16 +495,30 @@ void GLGraphics2D::drawTexture(GLTexture2D& texture, Vector2 const& pos, Vector2
 	glDisable(GL_TEXTURE_2D);
 }
 
+void GLGraphics2D::beginClip(Vec2i const& pos, Vec2i const& size)
+{
+	using namespace Render;
+	RHISetRasterizerState(GetCommandList(), TStaticRasterizerState< ECullMode::None , EFillMode::Solid , true >::GetRHI());
+	RHISetScissorRect(GetCommandList(), pos.x, mHeight - pos.y - size.y, size.x, size.y);
+}
+
+void GLGraphics2D::endClip()
+{
+	using namespace Render;
+	RHISetRasterizerState(GetCommandList(), TStaticRasterizerState< ECullMode::None, EFillMode::Solid, false >::GetRHI());
+}
+
 void GLGraphics2D::beginBlend(Vector2 const& pos , Vector2 const& size , float alpha)
 {
-	glEnable( GL_BLEND );
-	glBlendFunc( GL_SRC_ALPHA , GL_ONE_MINUS_SRC_ALPHA );
+	using namespace Render;
+	RHISetBlendState(GetCommandList(), TStaticBlendState< CWM_RGBA , Blend::eSrcAlpha , Blend::eOneMinusSrcAlpha >::GetRHI());
 	mAlpha = alpha;
 }
 
 void GLGraphics2D::endBlend()
 {
-	glDisable( GL_BLEND );
+	using namespace Render;
+	RHISetBlendState(GetCommandList(), TStaticBlendState<>::GetRHI());
 	mAlpha = 1.0f;
 }
 

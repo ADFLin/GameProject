@@ -291,7 +291,7 @@ namespace Render
 			RHISetDepthStencilState(commandList, StaticDepthDisableState::GetRHI());
 			RHISetBlendState(commandList, TStaticBlendState< CWM_RGB >::GetRHI());
 			mProgTonemap->setParameters(commandList, context);
-			DrawUtility::ScreenRectShader(commandList);
+			DrawUtility::ScreenRect(commandList);
 		}
 
 		{
@@ -415,7 +415,7 @@ namespace Render
 			updateShader.setParam(commandList, SHADER_PARAM(FaceDir), Texture::GetFaceDir(Texture::Face(i)));
 			updateShader.setParam(commandList, SHADER_PARAM(FaceUpDir), Texture::GetFaceUpDir(Texture::Face(i)));
 			shaderSetup(commandList);
-			DrawUtility::ScreenRectShader(commandList);
+			DrawUtility::ScreenRect(commandList);
 		}
 	}
 
@@ -468,7 +468,7 @@ namespace Render
 
 			RHISetShaderProgram(commandList, mProgPreIntegrateBRDFGen->getRHIResource());
 			mProgPreIntegrateBRDFGen->setParam(commandList, SHADER_PARAM(BRDFSampleCount), setting.BRDFSampleCount);
-			DrawUtility::ScreenRectShader(commandList);
+			DrawUtility::ScreenRect(commandList);
 		}
 	}
 

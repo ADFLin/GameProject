@@ -22,6 +22,13 @@ namespace Render
 		Vector2 tex;
 	};
 
+	struct VertexXY_CA_T1
+	{
+		Vector2 pos;
+		LinearColor color;
+		Vector2 tex;
+	};
+
 	static const VertexXYZW_T1 GScreenVertices[] =
 	{
 		{ Vector4(-1 , -1 , 0 , 1) , Vector2(0,0) },
@@ -82,6 +89,21 @@ namespace Render
 		TRenderRT< RTVF_XYZ_C >::Draw(commandList, PrimitiveType::LineList, v, 6, 2 * sizeof(Vector3));
 	}
 
+	void DrawUtility::Rect(RHICommandList& commandList, int x, int y, int width, int height , LinearColor const& color )
+	{
+		float x2 = x + width;
+		float y2 = y + height;
+		VertexXY_CA_T1 vertices[] =
+		{
+			{ Vector2(x , y) , color , Vector2(0,0) },
+			{ Vector2(x2 , y) , color , Vector2(1,0) },
+			{ Vector2(x2 , y2) , color, Vector2(1,1) },
+			{ Vector2(x , y2) , color , Vector2(0,1) },
+		};
+
+		TRenderRT< RTVF_XY_CA_T2 >::Draw(commandList, PrimitiveType::Quad, vertices, 4);
+	}
+
 	void DrawUtility::Rect(RHICommandList& commandList, int x, int y, int width, int height)
 	{
 		float x2 = x + width;
@@ -97,19 +119,7 @@ namespace Render
 		TRenderRT< RTVF_XY_T2 >::Draw(commandList, PrimitiveType::Quad, vertices, 4);
 	}
 
-	void Render::DrawUtility::Rect(RHICommandList& commandList, int width, int height)
-	{
-		VertexXY_T1 vertices[] =
-		{
-			{ Vector2(0 , 0 ) , Vector2(0,0) },
-			{ Vector2(width , 0 ) , Vector2(1,0) },
-			{ Vector2(width , height ) , Vector2(1,1) },
-			{ Vector2(0 , height ) , Vector2(0,1) },
-		};
-		TRenderRT< RTVF_XY_T2 >::Draw(commandList, PrimitiveType::Quad, vertices, 4);
-	}
-
-	void DrawUtility::RectShader(RHICommandList& commandList, int width, int height)
+	void DrawUtility::Rect(RHICommandList& commandList, int width, int height)
 	{
 		VertexXY_T1 vertices[] =
 		{
@@ -118,7 +128,7 @@ namespace Render
 			{ Vector2(width , height) , Vector2(1,1) },
 			{ Vector2(0 , height) , Vector2(0,1) },
 		};
-		TRenderRT< RTVF_XY_T2 >::DrawShader(commandList, PrimitiveType::Quad, vertices, 4);
+		TRenderRT< RTVF_XY_T2 >::Draw(commandList, PrimitiveType::Quad, vertices, 4);
 	}
 
 	void DrawUtility::ScreenRect(RHICommandList& commandList)
@@ -126,12 +136,7 @@ namespace Render
 		TRenderRT< RTVF_XYZW_T2 >::Draw(commandList, PrimitiveType::Quad, GScreenVertices, 4);
 	}
 
-	void DrawUtility::ScreenRectShader(RHICommandList& commandList)
-	{
-		TRenderRT< RTVF_XYZW_T2 >::DrawShader(commandList, PrimitiveType::Quad, GScreenVertices, 4);
-	}
-
-	void DrawUtility::ScreenRectShader(RHICommandList& commandList, int with, int height)
+	void DrawUtility::ScreenRect(RHICommandList& commandList, int with, int height)
 	{
 		VertexXYZW_T1 screenVertices[] =
 		{
@@ -140,7 +145,7 @@ namespace Render
 			{ Vector4(1, 1 , 0 , 1) , Vector2(with,height) },
 			{ Vector4(-1, 1, 0 , 1) , Vector2(0,height) },
 		};
-		TRenderRT< RTVF_XYZW_T2 >::DrawShader(commandList, PrimitiveType::Quad, screenVertices, 4);
+		TRenderRT< RTVF_XYZW_T2 >::Draw(commandList, PrimitiveType::Quad, screenVertices, 4);
 	}
 
 	void DrawUtility::Sprite(RHICommandList& commandList, Vector2 const& pos, Vector2 const& size, Vector2 const& pivot)
@@ -180,8 +185,7 @@ namespace Render
 		glEnable(GL_TEXTURE_2D);
 		{
 			GL_BIND_LOCK_OBJECT(texture);
-			glColor4fv(color);
-			DrawUtility::Rect(commandList, pos.x, pos.y, size.x, size.y);
+			DrawUtility::Rect(commandList, pos.x, pos.y, size.x, size.y, color);
 		}
 		glDisable(GL_TEXTURE_2D);
 	}
@@ -192,8 +196,7 @@ namespace Render
 		{
 			GL_BIND_LOCK_OBJECT(texture);
 			glBindSampler( 0 , OpenGLCast::GetHandle(sampler) );
-			glColor4fv(color);
-			DrawUtility::Rect(commandList, pos.x, pos.y, size.x, size.y);
+			DrawUtility::Rect(commandList, pos.x, pos.y, size.x, size.y, color);
 		}
 		glDisable(GL_TEXTURE_2D);
 	}
@@ -272,78 +275,6 @@ namespace Render
 			TRenderRT< RTVF_XY | RTVF_TEX_UVW >::Draw(commandList, PrimitiveType::Quad, vertices, ARRAY_SIZE(vertices));
 		}
 		glDisable(GL_TEXTURE_CUBE_MAP);
-	}
-
-	void Font::buildFontImage(int size, HDC hDC)
-	{
-		HFONT	font;										// Windows Font ID
-		HFONT	oldfont;									// Used For Good House Keeping
-
-		base = glGenLists(96);								// Storage For 96 Characters
-
-		int height = -(int)(fabs((float)10 * size *GetDeviceCaps(hDC, LOGPIXELSY) / 72) / 10.0 + 0.5);
-
-		font = CreateFont(
-			height,					    // Height Of Font
-			0,								// Width Of Font
-			0,								// Angle Of Escapement
-			0,								// Orientation Angle
-			FW_BOLD,						// Font Weight
-			FALSE,							// Italic
-			FALSE,							// Underline
-			FALSE,							// Strikeout
-			ANSI_CHARSET,					// Character Set Identifier
-			OUT_TT_PRECIS,					// Output Precision
-			CLIP_DEFAULT_PRECIS,			// Clipping Precision
-			ANTIALIASED_QUALITY,			// Output Quality
-			FF_DONTCARE | DEFAULT_PITCH,		// Family And Pitch
-			TEXT("²Ó©úÅé"));			    // Font Name
-
-		oldfont = (HFONT)SelectObject(hDC, font);           // Selects The Font We Want
-		wglUseFontBitmaps(hDC, 32, 96, base);				// Builds 96 Characters Starting At Character 32
-		SelectObject(hDC, oldfont);							// Selects The Font We Want
-		DeleteObject(font);									// Delete The Font
-	}
-
-	void Font::printf(const char *fmt, ...)
-	{
-		if( fmt == NULL )									// If There's No Text
-			return;											// Do Nothing
-
-		va_list	ap;
-		char    text[512];								// Holds Our String
-
-		va_start(ap, fmt);									// Parses The String For Variables
-		vsprintf(text, fmt, ap);						// And Converts Symbols To Actual Numbers
-		va_end(ap);											// Results Are Stored In Text
-
-		glPushAttrib(GL_LIST_BIT);							// Pushes The Display List Bits
-		glListBase(base - 32);								// Sets The Base Character to 32
-		glCallLists(strlen(text), GL_UNSIGNED_BYTE, text);	// Draws The Display List Text
-		glPopAttrib();										// Pops The Display List Bits
-	}
-
-
-	void Font::print(char const* str)
-	{
-		if( str == NULL )									// If There's No Text
-			return;											// Do Nothing
-		glPushAttrib(GL_LIST_BIT);							// Pushes The Display List Bits
-		glListBase(base - 32);								// Sets The Base Character to 32
-		glCallLists(strlen(str), GL_UNSIGNED_BYTE, str);	// Draws The Display List Text
-		glPopAttrib();										// Pops The Display List Bits
-	}
-
-
-	Font::~Font()
-	{
-		if( base )
-			glDeleteLists(base, 96);
-	}
-
-	void Font::create(int size, HDC hDC)
-	{
-		buildFontImage(size, hDC);
 	}
 
 
@@ -564,6 +495,7 @@ namespace Render
 		mFrameBuffer->setTexture(0, texture);
 		RHISetFrameBuffer(commandList, mFrameBuffer);
 		glClearBufferfv(GL_COLOR, 0, (float const*)clearValue);
+		RHISetFrameBuffer(commandList, nullptr);
 	}
 
 	void ShaderHelper::clearBuffer(RHICommandList& commandList, RHITexture2D& texture, uint32 clearValue[])
@@ -571,6 +503,7 @@ namespace Render
 		mFrameBuffer->setTexture(0, texture);
 		RHISetFrameBuffer(commandList, mFrameBuffer);
 		glClearBufferuiv(GL_COLOR, 0, clearValue);
+		RHISetFrameBuffer(commandList, nullptr);
 	}
 
 	void ShaderHelper::clearBuffer(RHICommandList& commandList, RHITexture2D& texture, int32 clearValue[])
@@ -578,6 +511,7 @@ namespace Render
 		mFrameBuffer->setTexture(0, texture);
 		RHISetFrameBuffer(commandList, mFrameBuffer);
 		glClearBufferiv(GL_COLOR, 0, clearValue);
+		RHISetFrameBuffer(commandList, nullptr);
 	}
 
 
@@ -585,28 +519,32 @@ namespace Render
 	{
 		RHISetShaderProgram(commandList, mProgCopyTexture->getRHIResource());
 		mProgCopyTexture->setParameters(commandList, copyTexture);
-		DrawUtility::ScreenRectShader(commandList);
+		DrawUtility::ScreenRect(commandList);
+		RHISetShaderProgram(commandList, nullptr);
 	}
 
 	void ShaderHelper::copyTextureMaskToBuffer(RHICommandList& commandList, RHITexture2D& copyTexture, Vector4 const& colorMask)
 	{
 		RHISetShaderProgram(commandList, mProgCopyTextureMask->getRHIResource());
 		mProgCopyTextureMask->setParameters(commandList, copyTexture, colorMask);
-		DrawUtility::ScreenRectShader(commandList);
+		DrawUtility::ScreenRect(commandList);
+		RHISetShaderProgram(commandList, nullptr);
 	}
 
 	void ShaderHelper::copyTextureBiasToBuffer(RHICommandList& commandList, RHITexture2D& copyTexture, float colorBais[2])
 	{
 		RHISetShaderProgram(commandList, mProgCopyTextureBias->getRHIResource());
 		mProgCopyTextureBias->setParameters(commandList, copyTexture, colorBais);
-		DrawUtility::ScreenRectShader(commandList);
+		DrawUtility::ScreenRect(commandList);
+		RHISetShaderProgram(commandList, nullptr);
 	}
 
 	void ShaderHelper::mapTextureColorToBuffer(RHICommandList& commandList, RHITexture2D& copyTexture, Vector4 const& colorMask, float valueFactor[2])
 	{
 		RHISetShaderProgram(commandList, mProgMappingTextureColor->getRHIResource());
 		mProgMappingTextureColor->setParameters(commandList, copyTexture, colorMask, valueFactor);
-		DrawUtility::ScreenRectShader(commandList);
+		DrawUtility::ScreenRect(commandList);
+		RHISetShaderProgram(commandList, nullptr);
 	}
 
 	void ShaderHelper::copyTexture(RHICommandList& commandList, RHITexture2D& destTexture, RHITexture2D& srcTexture)

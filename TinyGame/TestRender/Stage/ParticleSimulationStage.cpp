@@ -772,7 +772,7 @@ namespace Render
 				mProgSpline->setParam(commandList, SHADER_PARAM(TessOuter0), TessFactor2);
 				mProgSpline->setParam(commandList, SHADER_PARAM(TessOuter1), TessFactor1);
 				glPatchParameteri(GL_PATCH_VERTICES, 4);
-				TRenderRT< RTVF_XY | RTVF_C > ::DrawShader(commandList, SplineProgram::UseTesselation ? PrimitiveType::Patchs : PrimitiveType::LineStrip , vertices, 4);
+				TRenderRT< RTVF_XY | RTVF_C > ::Draw(commandList, SplineProgram::UseTesselation ? PrimitiveType::Patchs : PrimitiveType::LineStrip , vertices, 4);
 	
 			}
 
@@ -837,7 +837,7 @@ namespace Render
 
 				int indices[] = { 0 , 1 , 2 , 1 , 3 , 2 };
 
-				TRenderRT< RTVF_XYZ_C_N_T2 > ::DrawIndexedShader(commandList,
+				TRenderRT< RTVF_XYZ_C_N_T2 > ::DrawIndexed(commandList,
 					bUseTessellation ? PrimitiveType::Patchs : PrimitiveType::TriangleList, 
 					vertices, ARRAY_SIZE(vertices) , indices , ARRAY_SIZE(indices) );
 #else

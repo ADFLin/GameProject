@@ -113,6 +113,7 @@ namespace Render
 		drawShaderInternal(commandList, 0, (mIndexBuffer) ? mIndexBuffer->getNumElements() : mVertexBuffer->getNumElements(), &color);
 	}
 
+#define USE_INPUT_STREAM 1
 	void Mesh::drawSection(RHICommandList& commandList, int idx, bool bUseVAO)
 	{
 		if( mVertexBuffer == nullptr )
@@ -131,14 +132,11 @@ namespace Render
 	void Mesh::drawInternal(RHICommandList& commandList, int idxStart, int num, RHIIndexBuffer* indexBuffer , LinearColor const* color)
 	{
 		assert(mVertexBuffer != nullptr);
-#if 1
+#if USE_INPUT_STREAM
 		InputStreamInfo inputStream;
-		inputStream.vertexBuffer = mVertexBuffer;
+		inputStream.buffer = mVertexBuffer;
 		RHISetInputStream(commandList, *mInputLayout, &inputStream, 1);
-#else
-		OpenGLCast::To(mVertexBuffer)->bind();
-		OpenGLCast::To(mInputLayout)->bindPointer(color);
-#endif
+
 		if( indexBuffer )
 		{
 			RHISetIndexBuffer(commandList, indexBuffer);
@@ -148,9 +146,21 @@ namespace Render
 		{
 			RHIDrawPrimitive(commandList, mType, idxStart, num);
 		}
-#if 1
-
 #else
+		OpenGLCast::To(mVertexBuffer)->bind();
+		OpenGLCast::To(mInputLayout)->bindPointer(color);
+
+		if( indexBuffer )
+		{
+			OpenGLCast::To(indexBuffer)->bind();
+			GLenum indexType = indexBuffer->isIntType() ? GL_UNSIGNED_INT : GL_UNSIGNED_SHORT;
+			glDrawElements(GLConvert::To(mType), num, indexType, (void*)0);
+			OpenGLCast::To(indexBuffer)->unbind();
+		}
+		else
+		{
+			glDrawArrays(GLConvert::To(mType), 0, num);
+		}
 		CheckGLStateValid();
 
 		OpenGLCast::To(mInputLayout)->unbindPointer(color);
@@ -161,9 +171,9 @@ namespace Render
 
 	void Mesh::drawShaderInternalEx(RHICommandList& commandList, PrimitiveType type , int idxStart, int num, RHIIndexBuffer* indexBuffer, LinearColor const* color /*= nullptr*/)
 	{
-#if 1
+#if USE_INPUT_STREAM
 		InputStreamInfo inputStream;
-		inputStream.vertexBuffer = mVertexBuffer;
+		inputStream.buffer = mVertexBuffer;
 		RHISetInputStream(commandList, *mInputLayout, &inputStream, 1);
 		if( indexBuffer )
 		{
@@ -179,12 +189,14 @@ namespace Render
 		bindVAO(color);
 		if( indexBuffer )
 		{
-			RHISetIndexBuffer(commandList, indexBuffer);
-			RHIDrawIndexedPrimitive(commandList, type, idxStart, num);
+			OpenGLCast::To(indexBuffer)->bind();
+			GLenum indexType = indexBuffer->isIntType() ? GL_UNSIGNED_INT : GL_UNSIGNED_SHORT;
+			glDrawElements(GLConvert::To(type), num, indexType, (void*)0);
+			OpenGLCast::To(indexBuffer)->unbind();
 		}
 		else
 		{
-			RHIDrawPrimitive(commandList, type, idxStart, num);
+			glDrawArrays(GLConvert::To(type), 0, num);
 		}
 
 		CheckGLStateValid();
@@ -206,7 +218,7 @@ namespace Render
 
 			RHIVertexBuffer* vertexBuffer = mVertexBuffer;
 			InputStreamInfo inputStream;
-			inputStream.vertexBuffer = vertexBuffer;
+			inputStream.buffer = vertexBuffer;
 			OpenGLCast::To( mInputLayout )->bindAttrib(&inputStream, 1 , color);
 
 			//if( mIndexBuffer )
@@ -1251,7 +1263,7 @@ namespace Render
 
 		char const* dirPos = FileUtility::GetFileName(path);
 
-		std::string dir = std::string(path, dirPos - path + 1);
+		std::string dir = std::string(path, dirPos - path );
 
 		std::string err = tinyobj::LoadObj(shapes, materials, path , dir.c_str());
 

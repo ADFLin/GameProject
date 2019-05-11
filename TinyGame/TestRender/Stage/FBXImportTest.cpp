@@ -565,7 +565,7 @@ namespace Render
 				RHISetDepthStencilState(commandList, StaticDepthDisableState::GetRHI());
 				RHISetBlendState(commandList, TStaticBlendState< CWM_RGB >::GetRHI());
 				mProgTonemap->setParameters(commandList, context);
-				DrawUtility::ScreenRectShader(commandList);
+				DrawUtility::ScreenRect(commandList);
 			}
 
 			{

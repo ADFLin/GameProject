@@ -468,6 +468,7 @@
     <ClInclude Include="RHI\ShaderCore.h" />
     <ClInclude Include="RHI\ShaderFormat.h" />
     <ClInclude Include="RHI\ShaderProgram.h" />
+    <ClInclude Include="RHI\SimpleRenderState.h" />
     <ClInclude Include="RHI\TextureAtlas.h" />
     <ClInclude Include="RHI\VertexFactory.h" />
     <ClInclude Include="Serialize\DataBitSerialize.h" />

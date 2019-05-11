@@ -12,37 +12,6 @@
 
 namespace Render
 {
-	template < uint32 VertexFormat >
-	class TRenderRT_D3D
-	{
-
-	public:
-		FORCEINLINE static void Draw(PrimitiveType type, void const* vetrices, int nV, int vertexStride = GetVertexSize())
-		{
-
-		}
-
-		template< uint32 VF, uint32 SEMANTIC >
-		struct VertexElementOffset
-		{
-			enum { Result = sizeof(float) * (VF & RTS_ELEMENT_MASK) + VertexElementOffset< (VF >> RTS_ELEMENT_BIT_OFFSET), SEMANTIC - 1 >::Result };
-		};
-
-		template< uint32 VF >
-		struct VertexElementOffset< VF, 0 >
-		{
-			enum { Result = 0 };
-		};
-
-#define USE_SEMANTIC( S ) ( ( VertexFormat ) & RTS_ELEMENT( S , RTS_ELEMENT_MASK ) )
-#define VERTEX_ELEMENT_SIZE( S ) ( USE_SEMANTIC( S ) >> ( RTS_ELEMENT_BIT_OFFSET * S ) )
-#define VETEX_ELEMENT_OFFSET( S ) VertexElementOffset< VertexFormat , S >::Result
-
-
-#undef USE_SEMANTIC
-#undef VERTEX_ELEMENT_SIZE
-#undef VETEX_ELEMENT_OFFSET
-	};
 
 	struct GPU_BUFFER_ALIGN ColourBuffer
 	{
@@ -53,8 +22,6 @@ namespace Render
 	};
 
 	
-
-
 	class TestD3D11Stage : public TestRenderStageBase
 	{
 		typedef TestRenderStageBase BaseClass;
@@ -264,7 +231,7 @@ namespace Render
 			mProgTest.setParam(commandList, SHADER_PARAM(XForm), xform);
 			{
 				InputStreamInfo inputStream;
-				inputStream.vertexBuffer = mVertexBuffer;
+				inputStream.buffer = mVertexBuffer;
 				RHISetInputStream(commandList, *mInputLayout, &inputStream, 1);
 				RHISetIndexBuffer(commandList, mIndexBuffer);
 				RHIDrawIndexedPrimitive(commandList, PrimitiveType::TriangleList, 0 , mIndexBuffer->getNumElements(), 0);
@@ -274,7 +241,7 @@ namespace Render
 			mProgTest.setParam(commandList, SHADER_PARAM(XForm), xform);
 			{
 				InputStreamInfo inputStream;
-				inputStream.vertexBuffer = mVertexBuffer;
+				inputStream.buffer = mVertexBuffer;
 				RHISetInputStream(commandList, *mInputLayout, &inputStream, 1);
 				RHISetIndexBuffer(commandList, mIndexBuffer);
 				RHIDrawIndexedPrimitive(commandList, PrimitiveType::TriangleList, 0, mIndexBuffer->getNumElements(), 0);
@@ -282,7 +249,7 @@ namespace Render
 			mProgTest.setParam(commandList, SHADER_PARAM(XForm), Matrix4::Identity());
 			{
 				InputStreamInfo inputStream;
-				inputStream.vertexBuffer = mAxisVertexBuffer;
+				inputStream.buffer = mAxisVertexBuffer;
 				RHISetInputStream(commandList, *mAxisInputLayout, &inputStream , 1 );
 
 				RHIDrawPrimitive(commandList, PrimitiveType::LineList, 0, 6);
@@ -292,6 +259,42 @@ namespace Render
 			mProgTest.setParam(commandList, SHADER_PARAM(XForm), Matrix4::Translate( -10 , 0 , 10 ));
 			{
 				mSimpleMeshs[SimpleMeshId::Doughnut].drawShader(commandList);
+			}
+
+
+			mProgTest.setParam(commandList, SHADER_PARAM(XForm), Matrix4::Translate(10, 0, 0));
+			{
+				struct Vertex_XYZ_C
+				{
+					Vector3 pos;
+					Vector3 color;
+				};
+				
+				Vertex_XYZ_C vetices[] =
+				{
+					{ Vector3(0,0,0) , Vector3(1,0,0) },
+					{ Vector3(2,0,0) , Vector3(0,1,0) },
+					{ Vector3(2,2,0) , Vector3(1,1,1) },
+					{ Vector3(0,2,0) , Vector3(0,0,1) },
+				};
+				TRenderRT< RTVF_XYZ_C >::Draw(commandList, PrimitiveType::Quad, vetices, 4);
+			}
+
+			mProgTest.setParam(commandList, SHADER_PARAM(XForm), Matrix4::Translate(0, 10, 0));
+			{
+				struct Vertex_XYZ
+				{
+					Vector3 pos;
+				};
+
+				Vertex_XYZ vetices[] =
+				{
+					{ Vector3(0,0,0) },
+					{ Vector3(2,0,0) },
+					{ Vector3(2,2,0) },
+					{ Vector3(0,2,0) },
+				};
+				TRenderRT< RTVF_XYZ >::Draw(commandList, PrimitiveType::Quad, vetices, 4, Vector3(1, 0, 0));
 			}
 			context->Flush();
 

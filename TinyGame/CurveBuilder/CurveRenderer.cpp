@@ -301,11 +301,11 @@ namespace CB
 		int const stride = data->getVertexSize();
 		if( data->getNormalOffset() != -1 )
 		{
-			TRenderRT< RTVF_XYZ_CA_N >::DrawIndexedShader(*mCommandList, PrimitiveType::TriangleList, vertexData, data->getVertexNum(), data->getIndexData(), data->getIndexNum() , data->getVertexSize());
+			TRenderRT< RTVF_XYZ_CA_N >::DrawIndexed(*mCommandList, PrimitiveType::TriangleList, vertexData, data->getVertexNum(), data->getIndexData(), data->getIndexNum() , data->getVertexSize());
 		}
 		else
 		{
-			TRenderRT< RTVF_XYZ_CA >::DrawIndexedShader(*mCommandList, PrimitiveType::TriangleList, vertexData, data->getVertexNum(), data->getIndexData(), data->getIndexNum(), data->getVertexSize());
+			TRenderRT< RTVF_XYZ_CA >::DrawIndexed(*mCommandList, PrimitiveType::TriangleList, vertexData, data->getVertexNum(), data->getIndexData(), data->getIndexNum(), data->getVertexSize());
 		}
 	}
 
@@ -396,7 +396,7 @@ namespace CB
 		RHISetShaderProgram(commandList, mProgMeshNormalVisualize->getRHIResource());
 		mProgMeshNormalVisualize->setParameters(commandList, Vector4(1,0,0,1) , length , d , surface.getParamU().getNumData());
 		mViewInfo.setupShader(commandList, *mProgMeshNormalVisualize);
-		TRenderRT< RTVF_XYZ_CA_N >::DrawShader(commandList, PrimitiveType::Points, data->getVertexData(), data->getVertexNum(), data->getVertexSize());
+		TRenderRT< RTVF_XYZ_CA_N >::Draw(commandList, PrimitiveType::Points, data->getVertexData(), data->getVertexNum(), data->getVertexSize());
 
 	}
 

@@ -300,8 +300,6 @@ namespace Render
 
 				{
 					RHISetBlendState(commandList, TStaticAlphaToCoverageBlendState<>::GetRHI());
-					//RHITexture2D* textures[] = { mGrassTexture.get() };
-					//RHISetupFixedPipelineState(Matrix4::Scale(1) * Matrix4::Translate(0, 0, 12) * mView.worldToClip , textures, 1 );
 					RHISetShaderProgram(commandList, mProgGrass.getRHIResource());
 					mView.setupShader(commandList, mProgGrass);
 					mProgGrass.setTexture(commandList, SHADER_PARAM(Texture), *mGrassTexture , SHADER_PARAM(TextureSampler) , TStaticSamplerState< Sampler::eTrilinear > ::GetRHI());
@@ -344,7 +342,7 @@ namespace Render
 
 				RHISetShaderProgram(commandList, mProgResolveDepth->getRHIResource());
 				mProgResolveDepth->setTexture(commandList, SHADER_PARAM(UnsolvedDepthTexture), *mDepthBuffer);
-				DrawUtility::ScreenRectShader(commandList, mDepthBuffer->getSizeX() , mDepthBuffer->getSizeY());
+				DrawUtility::ScreenRect(commandList, mDepthBuffer->getSizeX() , mDepthBuffer->getSizeY());
 			}
 
 			{
@@ -367,7 +365,7 @@ namespace Render
 				mProgSmokeRender->setStructuredStorageBufferT< TiledLightInfo >(commandList, *mLightsBuffer.getRHI());
 				mProgSmokeRender->setParam(commandList, SHADER_PARAM(TiledLightNum), (int)mLights.size());
 				mProgSmokeRender->setTexture(commandList, SHADER_PARAM(SceneDepthTexture), *mResolvedDepthBuffer);
-				DrawUtility::ScreenRectShader(commandList);
+				DrawUtility::ScreenRect(commandList);
 			}
 
 			{
@@ -381,7 +379,7 @@ namespace Render
 				RHISetShaderProgram(commandList, mProgSmokeBlend->getRHIResource());
 				mProgSmokeBlend->setParameters(commandList, mView, *mSmokeFrameTextures[indexFrameTexture], *mSmokeFrameTextures[1 - indexFrameTexture]);
 				mProgSmokeBlend->setTexture(commandList, SHADER_PARAM(DepthTexture), *mSmokeDepthTexture);
-				DrawUtility::ScreenRectShader(commandList);
+				DrawUtility::ScreenRect(commandList);
 			}
 		}
 

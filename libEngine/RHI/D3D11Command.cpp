@@ -562,6 +562,327 @@ namespace Render
 	}
 
 
+	bool D3D11Context::initialize(TComPtr< ID3D11Device >& device, TComPtr<ID3D11DeviceContext >& deviceContext)
+	{
+		mDeviceContext = deviceContext;
+		for( int i = 0; i < Shader::Count; ++i )
+		{
+			mBoundedShaders[i].resource = nullptr;
+			mShaderBoundState[i].initialize(device, deviceContext);
+		}
+
+		uint32 dynamicVBufferSize[] = { sizeof(float) * 512 , sizeof(float) * 1024 , sizeof(float) * 1024 * 4 , sizeof(float) * 1024 * 8 };
+		mDynamicVBuffer.initialize(device, D3D11_BIND_VERTEX_BUFFER, dynamicVBufferSize, ARRAY_SIZE(dynamicVBufferSize));
+		uint32 dynamicIBufferSize[] = { sizeof(uint32) * 3 * 16 , sizeof(uint32) * 3 * 64  , sizeof(uint32) * 3 * 256 , sizeof(uint32) * 3 * 1024 };
+		mDynamicIBuffer.initialize(device, D3D11_BIND_INDEX_BUFFER, dynamicIBufferSize, ARRAY_SIZE(dynamicIBufferSize));
+		return true;
+	}
+
+	void D3D11Context::release()
+	{
+		mDynamicVBuffer.release();
+		mDynamicIBuffer.release();
+	}
+
+	void D3D11Context::RHISetRasterizerState(RHIRasterizerState& rasterizerState)
+	{
+		mDeviceContext->RSSetState(D3D11Cast::GetResource(rasterizerState));
+	}
+
+	void D3D11Context::RHISetBlendState(RHIBlendState& blendState)
+	{
+		mDeviceContext->OMSetBlendState(D3D11Cast::GetResource(blendState), Vector4(0, 0, 0, 0), 0xffffffff);
+	}
+
+	void D3D11Context::RHISetDepthStencilState(RHIDepthStencilState& depthStencilState, uint32 stencilRef)
+	{
+		mDeviceContext->OMSetDepthStencilState(D3D11Cast::GetResource(depthStencilState), stencilRef);
+	}
+
+	void D3D11Context::RHISetViewport(int x, int y, int w, int h)
+	{
+		D3D11_VIEWPORT vp;
+		vp.Width = w;
+		vp.Height = h;
+		vp.MinDepth = 0.0f;
+		vp.MaxDepth = 1.0f;
+		vp.TopLeftX = x;
+		vp.TopLeftY = y;
+		mDeviceContext->RSSetViewports(1, &vp);
+	}
+
+	void D3D11Context::RHISetScissorRect(int x, int y, int w, int h)
+	{
+		D3D11_RECT rect;
+		rect.top = x;
+		rect.left = y;
+		rect.bottom = x + w;
+		rect.right = y + h;
+		mDeviceContext->RSSetScissorRects(1, &rect);
+	}
+
+	void D3D11Context::PostDrawPrimitive()
+	{
+		return;
+#define CLEAR_SHADER_STATE( SHADER_TYPE )\
+		mShaderBoundState[SHADER_TYPE].clearState<SHADER_TYPE>(mDeviceContext.get());
+
+		CLEAR_SHADER_STATE(Shader::eVertex);
+		CLEAR_SHADER_STATE(Shader::ePixel);
+		CLEAR_SHADER_STATE(Shader::eGeometry);
+		CLEAR_SHADER_STATE(Shader::eHull);
+		CLEAR_SHADER_STATE(Shader::eDomain);
+
+#undef CLEAR_SHADER_STATE
+	}
+
+
+	bool D3D11Context::determitPrimitiveTopologyUP(PrimitiveType primitiveType, int num, int const* pIndices, D3D_PRIMITIVE_TOPOLOGY& outPrimitiveTopology, ID3D11Buffer** outIndexBuffer, int& outIndexNum)
+	{
+		if( primitiveType == PrimitiveType::Quad )
+		{
+			int numQuad = num / 4;
+			int indexBufferSize = sizeof(uint32) * numQuad * 6;
+			void* pIndexBufferData = mDynamicIBuffer.lock(mDeviceContext, indexBufferSize);
+			if( pIndexBufferData == nullptr )
+				return false;
+
+			uint32* pData = (uint32*)pIndexBufferData;
+			if( pIndices )
+			{
+				for( int i = 0; i < numQuad; ++i )
+				{
+					pData[0] = pIndices[0];
+					pData[1] = pIndices[1];
+					pData[2] = pIndices[2];
+					pData[3] = pIndices[0];
+					pData[4] = pIndices[2];
+					pData[5] = pIndices[3];
+					pData += 6;
+					pIndices += 4;
+				}
+			}
+			else
+			{
+				for( int i = 0; i < numQuad; ++i )
+				{
+					pData[0] = i + 0;
+					pData[1] = i + 1;
+					pData[2] = i + 2;
+					pData[3] = i + 0;
+					pData[4] = i + 2;
+					pData[5] = i + 3;
+					pData += 6;
+				}
+			}
+			outPrimitiveTopology = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+			*outIndexBuffer = mDynamicIBuffer.unlock(mDeviceContext);
+			outIndexNum = numQuad * 6;
+			return true;
+		}
+		else if( primitiveType == PrimitiveType::LineLoop )
+		{
+			if( pIndices )
+			{
+				int indexBufferSize = sizeof(uint32) * (num + 1);
+				void* pIndexBufferData = mDynamicIBuffer.lock(mDeviceContext, indexBufferSize);
+				if( pIndexBufferData == nullptr )
+					return false;
+				uint32* pData = (uint32*)pIndexBufferData;
+				for( int i = 0; i < num; ++i )
+				{
+					pData[i] = pIndices[i];
+				}
+				pData[num] = pIndices[0];
+				*outIndexBuffer = mDynamicIBuffer.unlock(mDeviceContext);
+				outIndexNum = num + 1;
+
+			}
+
+			outPrimitiveTopology = D3D11_PRIMITIVE_TOPOLOGY_LINESTRIP;
+			return true;
+		}
+
+		outPrimitiveTopology = D3D11Conv::To(primitiveType);
+		if( outPrimitiveTopology != D3D_PRIMITIVE_TOPOLOGY_UNDEFINED )
+		{
+			if( pIndices )
+			{
+				uint32 indexBufferSize = num * sizeof(uint32);
+				void* pIndexBufferData = mDynamicIBuffer.lock(mDeviceContext, indexBufferSize);
+				if( pIndexBufferData == nullptr )
+					return false;
+
+				memcpy(pIndexBufferData, pIndices, indexBufferSize);
+				*outIndexBuffer = mDynamicIBuffer.unlock(mDeviceContext);
+			}
+			return true;
+		}
+
+		return false;
+	}
+
+	void D3D11Context::RHIDrawPrimitiveUP(PrimitiveType type, int numVertex, VertexDataInfo dataInfos[], int numVertexData)
+	{
+		assert(numVertexData <= MAX_INPUT_STREAM_NUM);
+		D3D_PRIMITIVE_TOPOLOGY primitiveTopology;
+		ID3D11Buffer* indexBuffer = nullptr;
+		int numDrawIndex;
+		if( !determitPrimitiveTopologyUP(type, numVertex, nullptr, primitiveTopology, &indexBuffer, numDrawIndex) )
+			return;
+
+		if( type == PrimitiveType::LineLoop )
+			++numVertex;
+		uint32 vertexBufferSize = 0;
+		for( int i = 0; i < numVertexData; ++i )
+		{
+			vertexBufferSize += (D3D11BUFFER_ALIGN * dataInfos[i].size + D3D11BUFFER_ALIGN - 1) / D3D11BUFFER_ALIGN;
+		}
+
+		uint8* pVBufferData = (uint8*)mDynamicVBuffer.lock(mDeviceContext, vertexBufferSize);
+		if( pVBufferData )
+		{
+			commitRenderShaderState();
+
+			ID3D11Buffer* vertexBuffer = mDynamicVBuffer.getLockedBuffer();
+			uint32 dataOffset = 0;
+			UINT strides[MAX_INPUT_STREAM_NUM];
+			UINT offsets[MAX_INPUT_STREAM_NUM];
+			ID3D11Buffer* vertexBuffers[MAX_INPUT_STREAM_NUM];
+			for( int i = 0; i < numVertexData; ++i )
+			{
+				auto const& info = dataInfos[i];
+				strides[i] = dataInfos[i].stride;
+				offsets[i] = dataOffset;
+				vertexBuffers[i] = vertexBuffer;
+
+				if( type == PrimitiveType::LineLoop )
+				{
+					memcpy(pVBufferData + dataOffset, info.ptr, info.size + info.stride);
+					dataOffset += info.size + info.stride;
+				}
+				else
+				{
+					memcpy(pVBufferData + dataOffset, info.ptr, info.size);
+					dataOffset += info.size;
+				}
+			}
+
+			mDynamicVBuffer.unlock(mDeviceContext);
+			mDeviceContext->IASetPrimitiveTopology(primitiveTopology);
+			mDeviceContext->IASetVertexBuffers(0, numVertexData, vertexBuffers, strides, offsets);
+			if( indexBuffer )
+			{
+				mDeviceContext->IASetIndexBuffer(indexBuffer, DXGI_FORMAT_R32_UINT, 0);
+				mDeviceContext->DrawIndexed(numDrawIndex, 0, 0);
+			}
+			else
+			{
+				mDeviceContext->Draw(numVertex, 0);
+			}
+			PostDrawPrimitive();
+		}
+	}
+
+	void D3D11Context::RHIDrawIndexedPrimitiveUP(PrimitiveType type, int numVertex, VertexDataInfo dataInfos[], int numVertexData, int const* pIndices, int numIndex)
+	{
+		D3D_PRIMITIVE_TOPOLOGY primitiveTopology;
+		ID3D11Buffer* indexBuffer = nullptr;
+		int numDrawIndex;
+		if( !determitPrimitiveTopologyUP(type, numIndex, pIndices, primitiveTopology, &indexBuffer, numDrawIndex) )
+			return;
+
+		uint32 vertexBufferSize = 0;
+		for( int i = 0; i < numVertexData; ++i )
+		{
+			vertexBufferSize += (D3D11BUFFER_ALIGN * dataInfos[i].size + D3D11BUFFER_ALIGN - 1) / D3D11BUFFER_ALIGN;
+		}
+
+		void* pVBufferData = mDynamicVBuffer.lock(mDeviceContext, vertexBufferSize);
+		if( pVBufferData )
+		{
+			commitRenderShaderState();
+
+			ID3D11Buffer* vertexBuffer = mDynamicVBuffer.getLockedBuffer();
+			uint32 dataOffset = 0;
+			UINT strides[MAX_INPUT_STREAM_NUM];
+			UINT offsets[MAX_INPUT_STREAM_NUM];
+			ID3D11Buffer* vertexBuffers[MAX_INPUT_STREAM_NUM];
+			for( int i = 0; i < numVertexData; ++i )
+			{
+				auto const& info = dataInfos[i];
+				strides[i] = dataInfos[i].stride;
+				offsets[i] = dataOffset;
+				vertexBuffers[i] = vertexBuffer;
+
+				memcpy(pVBufferData, info.ptr, info.size);
+				dataOffset += info.size;
+			}
+
+			mDynamicVBuffer.unlock(mDeviceContext);
+			mDeviceContext->IASetPrimitiveTopology(primitiveTopology);
+			mDeviceContext->IASetVertexBuffers(0, numVertexData, vertexBuffers, strides, offsets);
+
+			mDeviceContext->IASetIndexBuffer(indexBuffer, DXGI_FORMAT_R32_UINT, 0);
+			mDeviceContext->DrawIndexed(numDrawIndex, 0, 0);
+			PostDrawPrimitive();
+		}
+	}
+
+	void D3D11Context::commitRenderShaderState()
+	{
+#define CLEAR_SHADER_STATE( SHADER_TYPE )\
+		mShaderBoundState[SHADER_TYPE].clearState<SHADER_TYPE>(mDeviceContext.get());
+
+		CLEAR_SHADER_STATE(Shader::eVertex);
+		CLEAR_SHADER_STATE(Shader::ePixel);
+		CLEAR_SHADER_STATE(Shader::eGeometry);
+		CLEAR_SHADER_STATE(Shader::eHull);
+		CLEAR_SHADER_STATE(Shader::eDomain);
+
+#undef CLEAR_SHADER_STATE
+
+#define SET_SHADER( SHADER_TYPE )\
+			if( mBoundedShaderDirtyMask & BIT(SHADER_TYPE) )\
+			{\
+				setShader< SHADER_TYPE >( mBoundedShaders[SHADER_TYPE] );\
+			}
+
+		if( mBoundedShaderDirtyMask )
+		{
+			SET_SHADER(Shader::eVertex);
+			SET_SHADER(Shader::ePixel);
+			SET_SHADER(Shader::eGeometry);
+			SET_SHADER(Shader::eHull);
+			SET_SHADER(Shader::eDomain);
+			mBoundedShaderDirtyMask = (mBoundedShaderDirtyMask & BIT(Shader::eCompute));
+		}
+#define COMMIT_SHADER_STATE( SHADER_TYPE )\
+		if( mBoundedShaderMask & BIT(SHADER_TYPE) )\
+		{\
+			mShaderBoundState[SHADER_TYPE].commitState<SHADER_TYPE>(mDeviceContext.get());\
+		}
+
+		COMMIT_SHADER_STATE(Shader::eVertex);
+		COMMIT_SHADER_STATE(Shader::ePixel);
+		COMMIT_SHADER_STATE(Shader::eGeometry);
+		COMMIT_SHADER_STATE(Shader::eHull);
+		COMMIT_SHADER_STATE(Shader::eDomain);
+
+#undef SET_SHADER
+#undef COMMIT_SHADER_STATE
+	}
+
+	void D3D11Context::commitComputeState()
+	{
+		if( mBoundedShaderDirtyMask & BIT(Shader::eCompute) )
+		{
+			setShader<Shader::eCompute>(mBoundedShaders[Shader::eCompute]);
+			mBoundedShaderDirtyMask &= ~BIT(Shader::eCompute);
+		}
+		mShaderBoundState[Shader::eCompute].commitState<Shader::eCompute>(mDeviceContext.get());
+	}
+
 	void D3D11Context::RHISetShaderProgram(RHIShaderProgram* shaderProgram)
 	{
 		if( shaderProgram == nullptr )
@@ -696,113 +1017,6 @@ namespace Render
 		{
 			mShaderBoundState[type].setUniformBuffer(shaderParam, buffer);
 		});
-	}
-
-	void D3D11Context::commitRenderShaderState()
-	{
-#define CLEAR_SHADER_STATE( SHADER_TYPE )\
-		mShaderBoundState[SHADER_TYPE].clearState<SHADER_TYPE>(mDeviceContext.get());
-
-		CLEAR_SHADER_STATE(Shader::eVertex);
-		CLEAR_SHADER_STATE(Shader::ePixel);
-		CLEAR_SHADER_STATE(Shader::eGeometry);
-		CLEAR_SHADER_STATE(Shader::eHull);
-		CLEAR_SHADER_STATE(Shader::eDomain);
-
-#undef CLEAR_SHADER_STATE
-
-#define SET_SHADER( SHADER_TYPE )\
-			if( mBoundedShaderDirtyMask & BIT(SHADER_TYPE) )\
-			{\
-				setShader< SHADER_TYPE >( mBoundedShaders[SHADER_TYPE] );\
-			}
-
-		if( mBoundedShaderDirtyMask )
-		{
-			SET_SHADER(Shader::eVertex);
-			SET_SHADER(Shader::ePixel);
-			SET_SHADER(Shader::eGeometry);
-			SET_SHADER(Shader::eHull);
-			SET_SHADER(Shader::eDomain);
-			mBoundedShaderDirtyMask = ( mBoundedShaderDirtyMask & BIT(Shader::eCompute) );
-		}
-#define COMMIT_SHADER_STATE( SHADER_TYPE )\
-		if( mBoundedShaderMask & BIT(SHADER_TYPE) )\
-		{\
-			mShaderBoundState[SHADER_TYPE].commitState<SHADER_TYPE>(mDeviceContext.get());\
-		}
-
-		COMMIT_SHADER_STATE(Shader::eVertex);
-		COMMIT_SHADER_STATE(Shader::ePixel);
-		COMMIT_SHADER_STATE(Shader::eGeometry);
-		COMMIT_SHADER_STATE(Shader::eHull);
-		COMMIT_SHADER_STATE(Shader::eDomain);
-
-#undef SET_SHADER
-#undef COMMIT_SHADER_STATE
-	}
-
-	void D3D11Context::RHISetRasterizerState(RHIRasterizerState& rasterizerState)
-	{
-		mDeviceContext->RSSetState(D3D11Cast::GetResource(rasterizerState));
-	}
-
-	void D3D11Context::RHISetBlendState(RHIBlendState& blendState)
-	{
-		mDeviceContext->OMSetBlendState(D3D11Cast::GetResource(blendState), Vector4(0, 0, 0, 0), 0xffffffff);
-	}
-
-	void D3D11Context::RHISetDepthStencilState(RHIDepthStencilState& depthStencilState, uint32 stencilRef)
-	{
-		mDeviceContext->OMSetDepthStencilState(D3D11Cast::GetResource(depthStencilState), stencilRef);
-	}
-
-	void D3D11Context::RHISetViewport(int x, int y, int w, int h)
-	{
-		D3D11_VIEWPORT vp;
-		vp.Width = w;
-		vp.Height = h;
-		vp.MinDepth = 0.0f;
-		vp.MaxDepth = 1.0f;
-		vp.TopLeftX = x;
-		vp.TopLeftY = y;
-		mDeviceContext->RSSetViewports(1, &vp);
-	}
-
-	void D3D11Context::RHISetScissorRect(int x, int y, int w, int h)
-	{
-		D3D11_RECT rect;
-		rect.top = x;
-		rect.left = y;
-		rect.bottom = x + w;
-		rect.right = y + h;
-		mDeviceContext->RSSetScissorRects(1, &rect);
-	}
-
-	void D3D11Context::PostDrawPrimitive()
-	{
-		return;
-#define CLEAR_SHADER_STATE( SHADER_TYPE )\
-		mShaderBoundState[SHADER_TYPE].clearState<SHADER_TYPE>(mDeviceContext.get());
-
-		CLEAR_SHADER_STATE(Shader::eVertex);
-		CLEAR_SHADER_STATE(Shader::ePixel);
-		CLEAR_SHADER_STATE(Shader::eGeometry);
-		CLEAR_SHADER_STATE(Shader::eHull);
-		CLEAR_SHADER_STATE(Shader::eDomain);
-
-#undef CLEAR_SHADER_STATE
-	}
-
-
-	void D3D11Context::commitComputeState()
-	{
-		if( mBoundedShaderDirtyMask & BIT(Shader::eCompute) )
-		{
-			setShader<Shader::eCompute>(mBoundedShaders[Shader::eCompute]);
-			mBoundedShaderDirtyMask &= ~BIT(Shader::eCompute);
-		}
-		mShaderBoundState[Shader::eCompute].commitState<Shader::eCompute>(mDeviceContext.get());
 	}
 
 }//namespace Render

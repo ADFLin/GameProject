@@ -597,7 +597,7 @@ namespace Render
 
 
 
-	void OpenGLContext::RHISetupFixedPipelineState(Matrix4 const& transform, RHITexture2D* textures[], int numTexture)
+	void OpenGLContext::RHISetupFixedPipelineState(Matrix4 const& transform, LinearColor const& color, RHITexture2D* textures[], int numTexture)
 	{
 		RHISetShaderProgram(nullptr);
 
@@ -605,6 +605,8 @@ namespace Render
 		glLoadMatrixf(transform);
 		glMatrixMode(GL_MODELVIEW);
 		glLoadIdentity();
+
+		glColor4fv(color);
 		if( numTexture )
 		{
 			glEnable(GL_TEXTURE_2D);
@@ -735,22 +737,20 @@ namespace Render
 		glDrawArraysInstanced(priType, vStart, nv, numInstance);
 	}
 
-	void OpenGLContext::RHIDrawPrimitiveUP(PrimitiveType type, void const* pVertices, int numVerex, int vetexStride)
+	void OpenGLContext::RHIDrawPrimitiveUP(PrimitiveType type, int numVertex, VertexDataInfo dataInfos[], int numData)
 	{
-		if( pVertices == nullptr )
-			return;
-		if( !commitInputStreamUP(pVertices, vetexStride) )
+		if( !commitInputStreamUP(dataInfos, numData) )
 			return;
 
-		glDrawArrays(GLConvert::To(type), 0, numVerex);
+		glDrawArrays(GLConvert::To(type), 0, numVertex);
 	}
 
-	void OpenGLContext::RHIDrawIndexedPrimitiveUP(PrimitiveType type, void const* pVertices, int numVerex, int vetexStride, int const* pIndices, int numIndex)
+	void OpenGLContext::RHIDrawIndexedPrimitiveUP(PrimitiveType type, int numVerex, VertexDataInfo dataInfos[], int numVertexData , int const* pIndices, int numIndex)
 	{
-		if( pVertices == nullptr || pIndices == nullptr )
+		if( pIndices == nullptr )
 			return;
 
-		if( !commitInputStreamUP(pVertices, vetexStride) )
+		if( !commitInputStreamUP(dataInfos, numVertexData) )
 			return;
 
 		glDrawElements(GLConvert::To(type), numIndex, GL_UNSIGNED_INT, (void*)pIndices);

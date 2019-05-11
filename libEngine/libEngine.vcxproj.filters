@@ -1059,6 +1059,9 @@
     <ClInclude Include="RHI\RHIType.h">
       <Filter>RHI</Filter>
     </ClInclude>
+    <ClInclude Include="RHI\SimpleRenderState.h">
+      <Filter>RHI</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="ObjectHandle.cpp">

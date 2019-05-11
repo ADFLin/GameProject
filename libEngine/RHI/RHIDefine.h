@@ -6,10 +6,22 @@
 #define SHADER_ENTRY( NAME ) #NAME
 #define SHADER_PARAM( NAME ) #NAME
 
+#define GPU_BUFFER_ALIGN alignas(16)
+
 namespace Render
 {
 	extern float gRHIClipZMin;
+	extern float gRHIProjectYSign;
 
+	enum class DeviceVendorName
+	{
+		Unknown,
+		NVIDIA,
+		ATI,
+		Intel,
+	};
+
+	extern DeviceVendorName gRHIDeviceVendorName;
 
 	enum ColorWriteMask
 	{

@@ -179,9 +179,9 @@ namespace Lighting2D
 				if( !mBuffers.empty() )
 				{
 #if SHADOW_USE_GEOMETRY_SHADER
-					TRenderRT< RTVF_XY >::DrawShader(commandList, PrimitiveType::LineList, &mBuffers[0], mBuffers.size());
+					TRenderRT< RTVF_XY >::Draw(commandList, PrimitiveType::LineList, &mBuffers[0], mBuffers.size());
 #else
-					TRenderRT< RTVF_XY >::DrawShader(commandList, PrimitiveType::Quad, &mBuffers[0], mBuffers.size());
+					TRenderRT< RTVF_XY >::Draw(commandList, PrimitiveType::Quad, &mBuffers[0], mBuffers.size());
 #endif
 				}
 			}
@@ -197,7 +197,7 @@ namespace Lighting2D
 			{
 				RHISetShaderProgram(commandList, mProgLighting.getRHIResource());
 				mProgLighting.setParameters(commandList, light.pos, light.color);
-				DrawUtility::RectShader(commandList, w, h);
+				DrawUtility::Rect(commandList, w, h);
 			}
 			
 			

@@ -20,7 +20,7 @@ namespace Render
 				glGenVertexArrays(1, &VAOHandle);
 				glBindVertexArray(VAOHandle);
 				InputStreamInfo inputStream;
-				inputStream.vertexBuffer = vertexBuffer;
+				inputStream.buffer = vertexBuffer;
 				OpenGLCast::To(inputLayout)->bindAttrib(&inputStream, 1 );
 				glBindVertexArray(0);
 				OpenGLCast::To(inputLayout)->unbindAttrib(1);
@@ -86,7 +86,7 @@ namespace Render
 		glGenVertexArrays(1, &mVAO);
 		glBindVertexArray(mVAO);
 		InputStreamInfo inputStream;
-		inputStream.vertexBuffer = vertexBuffer;
+		inputStream.buffer = vertexBuffer;
 		OpenGLCast::To(mInputLayout)->bindAttrib(&inputStream, 1 );
 		glBindVertexArray(0);
 		OpenGLCast::To(mInputLayout)->unbindAttrib(1);

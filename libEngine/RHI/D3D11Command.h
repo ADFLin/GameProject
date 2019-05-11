@@ -140,21 +140,110 @@ namespace Render
 		uint32 mSamplerDirtyMask;
 
 	};
+	static constexpr uint32  D3D11BUFFER_ALIGN = 4;
+	class D3D11DynamicBuffer
+	{
+	public:
+		D3D11DynamicBuffer(){}
+
+		~D3D11DynamicBuffer() { assert(mBuffers.empty()); }
+
+		
+		bool initialize(TComPtr< ID3D11Device >&  device, uint32 inBindFlags, uint32 initialBufferSizes[], int numInitialBuffer)
+		{
+			mBindFlags = inBindFlags;
+			std::sort(initialBufferSizes, initialBufferSizes + numInitialBuffer, [](auto lhs, auto rhs) { return lhs < rhs; });
+			for( int i = 0; i < numInitialBuffer; ++i )
+			{
+				uint32 bufferSize = (D3D11BUFFER_ALIGN * initialBufferSizes[i] + D3D11BUFFER_ALIGN - 1) / D3D11BUFFER_ALIGN;
+				pushNewBuffer(device, bufferSize);
+			}
+			return true;
+		}
+
+		void release()
+		{
+			for( ID3D11Buffer* buffer : mBuffers )
+			{
+				buffer->Release();
+			}
+			mBuffers.clear();
+			mBufferSizes.clear();
+			mLockedIndex = -1;
+		}
+
+		bool pushNewBuffer(TComPtr< ID3D11Device >&  device, uint32 bufferSize)
+		{
+			D3D11_BUFFER_DESC bufferDesc = { 0 };
+			bufferDesc.ByteWidth = bufferSize;
+			bufferDesc.Usage = D3D11_USAGE_DYNAMIC;
+			bufferDesc.BindFlags = mBindFlags;
+			bufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+			bufferDesc.MiscFlags = 0;
+			bufferDesc.StructureByteStride = 0;
+			TComPtr<ID3D11Buffer> BufferResource;
+			HRESULT hr = device->CreateBuffer(&bufferDesc, nullptr, &BufferResource);
+			if( hr != S_OK )
+			{
+				return false;
+			}
+			mBuffers.push_back(BufferResource.release());
+			mBufferSizes.push_back(bufferSize);
+			return true;
+		}
+
+		void* lock( ID3D11DeviceContext* context , uint32 size )
+		{
+			size = (D3D11BUFFER_ALIGN * size + D3D11BUFFER_ALIGN - 1) / D3D11BUFFER_ALIGN;
+			int index = 0;
+			for( ; index < mBufferSizes.size(); ++index )
+			{
+				if ( mBufferSizes[index] >= size )
+					break;
+			}
+			if( index == mBuffers.size() )
+			{
+				TComPtr< ID3D11Device > device;
+				mBuffers[0]->GetDevice(&device);
+				if( device == nullptr )
+					return nullptr;
+				if( pushNewBuffer(device, size) )
+					return nullptr;
+			}
+
+	
+			D3D11_MAPPED_SUBRESOURCE mappedSubresource;
+			HRESULT hr = context->Map(mBuffers[index], 0, D3D11_MAP_WRITE_DISCARD, 0 , &mappedSubresource );
+			if( hr != S_OK )
+			{
+				return nullptr;
+			}
+			mLockedIndex = index;
+			return mappedSubresource.pData;
+
+		}
+		ID3D11Buffer* unlock(ID3D11DeviceContext* context)
+		{
+			assert(mLockedIndex >= 0);
+			ID3D11Buffer* buffer = mBuffers[mLockedIndex];
+			context->Unmap( mBuffers[mLockedIndex] , 0);
+			mLockedIndex = -1;
+			return buffer;
+		}
+		ID3D11Buffer* getLockedBuffer() { return mBuffers[mLockedIndex]; }
+		std::vector< ID3D11Buffer* > mBuffers;
+		std::vector< uint32 >        mBufferSizes;
+		uint32 mBindFlags;
+		int    mLockedIndex = -1;
+	};
 
 	class D3D11Context : public RHIContext
 	{
 	public:
 
-		bool initialize(TComPtr< ID3D11Device >&  device , TComPtr<ID3D11DeviceContext >& deviceContext)
-		{
-			mDeviceContext = deviceContext;
-			for( int i = 0; i < Shader::Count; ++i )
-			{
-				mBoundedShaders[i].resource = nullptr;
-				mShaderBoundState[i].initialize(device, deviceContext);
-			}
-			return true;
-		}
+		bool initialize(TComPtr< ID3D11Device >&  device , TComPtr<ID3D11DeviceContext >& deviceContext);
+
+		void release();
 
 		void RHISetRasterizerState(RHIRasterizerState& rasterizerState);
 		void RHISetBlendState(RHIBlendState& blendState);
@@ -206,22 +295,14 @@ namespace Render
 			PostDrawPrimitive();
 		}
 
-		void RHIDrawPrimitiveUP(PrimitiveType type, void const* pVertices, int numVerex, int vetexStride)
-		{
-			commitRenderShaderState();
-
-			PostDrawPrimitive();
-		}
-
-		void RHIDrawIndexedPrimitiveUP(PrimitiveType type, void const* pVertices, int numVerex, int vetexStride, int const* pIndices, int numIndex)
-		{
-			commitRenderShaderState();
-
-			PostDrawPrimitive();
-		}
 
 
-		void RHISetupFixedPipelineState(Matrix4 const& transform, RHITexture2D* textures[], int numTexture)
+		void RHIDrawPrimitiveUP(PrimitiveType type, int numVertex, VertexDataInfo dataInfos[], int numVertexData);
+
+		void RHIDrawIndexedPrimitiveUP(PrimitiveType type, int numVertex, VertexDataInfo dataInfos[], int numVertexData, int const* pIndices, int numIndex);
+
+
+		void RHISetupFixedPipelineState(Matrix4 const& transform, LinearColor const& color , RHITexture2D* textures[], int numTexture)
 		{
 
 		}
@@ -242,16 +323,19 @@ namespace Render
 			
 			for( int i = 0; i < numInputStream; ++i )
 			{
-				if( inputStreams[i].vertexBuffer )
+				if( inputStreams[i].buffer )
 				{
-					buffers[i] = D3D11Cast::GetResource(inputStreams[i].vertexBuffer);
+					buffers[i] = D3D11Cast::GetResource(inputStreams[i].buffer);
 					offsets[i] = inputStreams[i].offset;
-					strides[i] = inputStreams[i].stride >= 0 ? inputStreams[i].stride : inputStreams[i].vertexBuffer->getElementSize();
+					strides[i] = inputStreams[i].stride >= 0 ? inputStreams[i].stride : inputStreams[i].buffer->getElementSize();
 				}
 
 			}
 			mDeviceContext->IASetInputLayout(D3D11Cast::GetResource(inputLayout));
-			mDeviceContext->IASetVertexBuffers(0, numInputStream, buffers, strides, offsets);
+			if( numInputStream )
+			{
+				mDeviceContext->IASetVertexBuffers(0, numInputStream, buffers, strides, offsets);
+			}		
 		}
 		void RHISetIndexBuffer(RHIIndexBuffer* indexBuffer)
 		{
@@ -277,8 +361,10 @@ namespace Render
 		void commitRenderShaderState();
 
 		void commitComputeState();
+		bool determitPrimitiveTopologyUP(PrimitiveType primitiveType, int num, int const* pIndices, D3D_PRIMITIVE_TOPOLOGY& outPrimitiveTopology, ID3D11Buffer** outIndexBuffer, int& outIndexNum);
 
 
+		//
 		template< Shader::Type TypeValue >
 		void setShader(D3D11ShaderVariant const& shaderVariant);
 
@@ -310,12 +396,19 @@ namespace Render
 		void setShaderStorageBuffer(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHIVertexBuffer& buffer) {}
 		void setShaderAtomicCounterBuffer(RHIShaderProgram& shaderProgram, ShaderParameter const& param, RHIVertexBuffer& buffer) {}
 
+
 		uint32                mBoundedShaderMask = 0;
 		uint32                mBoundedShaderDirtyMask = 0;
 		D3D11ShaderVariant    mBoundedShaders[Shader::Count];
 		D3D11ShaderBoundState mShaderBoundState[Shader::Count];
+
+		D3D11DynamicBuffer    mDynamicVBuffer;
+		D3D11DynamicBuffer    mDynamicIBuffer;
 		TComPtr< ID3D11DeviceContext >  mDeviceContext;
+
 	};
+
+
 
 
 	class D3D11System : public RHISystem
@@ -323,7 +416,10 @@ namespace Render
 	public:
 		RHISytemName getName() const { return RHISytemName::D3D11; }
 		bool initialize(RHISystemInitParam const& initParam);
-		void shutdown(){}
+		void shutdown()
+		{
+			mRenderContext.release();
+		}
 		virtual ShaderFormat* createShaderFormat();
 
 

@@ -52,19 +52,37 @@ namespace Render
 		RHI_COMMAND_FUNC(commandList, RHIDrawPrimitiveInstanced(type, vStart, nv, numInstance));
 	}
 
-	void RHIDrawPrimitiveUP(RHICommandList& commandList, PrimitiveType type, void const* pVertices, int numVerex, int vetexStride)
+	void RHIDrawPrimitiveUP(RHICommandList& commandList, PrimitiveType type, void const* pVertices, int numVertex, int vetexStride)
 	{
-		RHI_COMMAND_FUNC(commandList, RHIDrawPrimitiveUP(type, pVertices, numVerex, vetexStride));
+		VertexDataInfo info;
+		info.ptr = pVertices;
+		info.size = vetexStride * numVertex;
+		info.stride = vetexStride;
+		RHI_COMMAND_FUNC(commandList, RHIDrawPrimitiveUP(type, numVertex, &info , 1 ));
 	}
 
-	void RHIDrawIndexedPrimitiveUP(RHICommandList& commandList, PrimitiveType type, void const* pVertices, int numVerex, int vetexStride, int const* pIndices, int numIndex)
+	void RHIDrawPrimitiveUP(RHICommandList& commandList, PrimitiveType type, int numVertex, VertexDataInfo dataInfos[], int numData)
 	{
-		RHI_COMMAND_FUNC(commandList, RHIDrawIndexedPrimitiveUP(type, pVertices, numVerex, vetexStride, pIndices, numIndex));
+		RHI_COMMAND_FUNC(commandList, RHIDrawPrimitiveUP(type, numVertex, dataInfos, numData));
 	}
 
-	void RHISetupFixedPipelineState(RHICommandList& commandList, Matrix4 const& transform, RHITexture2D* textures[], int numTexture)
+	void RHIDrawIndexedPrimitiveUP(RHICommandList& commandList, PrimitiveType type, void const* pVertices, int numVertex, int vetexStride, int const* pIndices, int numIndex)
 	{
-		RHI_COMMAND_FUNC(commandList, RHISetupFixedPipelineState(transform, textures, numTexture));
+		VertexDataInfo info;
+		info.ptr = pVertices;
+		info.size = vetexStride * numVertex;
+		info.stride = vetexStride;
+		RHI_COMMAND_FUNC(commandList, RHIDrawIndexedPrimitiveUP(type, numVertex, &info, 1, pIndices, numIndex));
+	}
+
+	void RHIDrawIndexedPrimitiveUP(RHICommandList& commandList, PrimitiveType type, int numVerex, VertexDataInfo dataInfos[], int numVertexData, int const* pIndices, int numIndex)
+	{
+		RHI_COMMAND_FUNC(commandList, RHIDrawIndexedPrimitiveUP(type, numVerex, dataInfos, numVertexData, pIndices, numIndex));
+	}
+
+	void RHISetupFixedPipelineState(RHICommandList& commandList, Matrix4 const& transform, LinearColor const& color, RHITexture2D* textures[], int numTexture)
+	{
+		RHI_COMMAND_FUNC(commandList, RHISetupFixedPipelineState(transform, color, textures, numTexture));
 	}
 
 	void RHISetFrameBuffer(RHICommandList& commandList, RHIFrameBuffer* frameBuffer, RHITextureDepth* overrideDepthTexture /*= nullptr*/)

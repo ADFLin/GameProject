@@ -104,7 +104,6 @@ void BassPassPS()
 	float  pixelDepth = 0.5 * OutputVS.pos.z + 0.5;
 
 #endif //USE_MATERIAL
-
 	OITProcessPS(float4(pixelColor, pixelAlpha), pixelDepth);
 }
 

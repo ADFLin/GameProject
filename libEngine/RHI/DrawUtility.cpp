@@ -1,6 +1,7 @@
 #include "DrawUtility.h"
 
 #include "ShaderManager.h"
+#include "ProfileSystem.h"
 
 namespace Render
 {
@@ -469,6 +470,7 @@ namespace Render
 
 	bool ShaderHelper::init()
 	{
+		TIME_SCOPE("ShaderHelper Init");
 		ShaderCompileOption option;
 		mProgCopyTexture = ShaderManager::Get().getGlobalShaderT<CopyTextureProgram>(true);
 		if( mProgCopyTexture == nullptr )

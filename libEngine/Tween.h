@@ -158,11 +158,11 @@ namespace Tween
 				TimeType time = mCurTime + dt;
 				if ( time < mDurtion )
 				{
-					_this()->accessValue( time );
+					_this()->assignValue( time );
 				}
 				else
 				{
-					_this()->accessValue( mDurtion );
+					_this()->assignValue( mDurtion );
 				}
 			}
 
@@ -184,7 +184,7 @@ namespace Tween
 
 					if ( mCurTime < mDurtion )
 					{
-						_this()->accessValue( mCurTime );
+						_this()->assignValue( mCurTime );
 						break;
 					}
 					else if ( mRepeat != 0 )
@@ -195,7 +195,7 @@ namespace Tween
 					}
 					else // mCurTime > mDurtion
 					{
-						_this()->accessValue( mDurtion );
+						_this()->assignValue( mDurtion );
 						CBP::finishCB();
 						return time - ( mDurtion - mCurTime );
 					}
@@ -203,7 +203,7 @@ namespace Tween
 				return time;
 			}
 
-			void accessValue( TimeType t ){}
+			void assignValue( TimeType t ){}
 
 
 			bool  isFinished() const           { return mRepeat == 0 && mCurTime > mDurtion; }
@@ -251,7 +251,7 @@ namespace Tween
 
 			}
 
-			void accessValue( TimeType t )
+			void assignValue( TimeType t )
 			{
 				PropData::update< Fun >( t , mDurtion );
 			}
@@ -350,7 +350,7 @@ namespace Tween
 				return *_this();
 			}
 
-			void accessValue( float t )
+			void assignValue(TimeType t )
 			{
 				for( PropValueVec::iterator iter = mProps.begin() , end = mProps.end() ;
 					iter != end ; ++iter )

@@ -75,6 +75,19 @@ bool ImageMergeHelper::addImage(int id, int w, int h)
 	return true;
 }
 
+int ImageMergeHelper::calcUsageArea() const
+{
+	int result = 0;
+	for( Node* node : mImageNodeMap )
+	{
+		if( node && node->imageID != ErrorImageID )
+		{
+			result += node->rect.w * node->rect.h;
+		}
+	}
+	return result;
+}
+
 ImageMergeHelper::Node* ImageMergeHelper::insertNode(Node* curNode)
 {
 	assert(curNode);

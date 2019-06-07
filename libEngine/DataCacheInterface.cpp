@@ -32,8 +32,7 @@ public:
 		FixString<512> fileName;
 		fileName.format("%s_%s_%0llX", key.typeName, key.version, key.keySuffix.value);
 		uint32 nameHash = HashValue(fileName.data(), fileName.length());
-
-		outPath.format("%s/%d/%d/%d/%s.ddc", mCacheDir.c_str(), nameHash % 10, (nameHash / 10) % 10, (nameHash / 10) % 10, fileName.c_str());
+		outPath.format("%s/%d/%d/%d/%s.ddc", mCacheDir.c_str(), nameHash % 10, (nameHash / 10) % 10, (nameHash / 100) % 10, fileName.c_str());
 	}
 	virtual bool save(DataCacheKey const& key, TArrayView<uint8> saveData) override
 	{
@@ -79,12 +78,9 @@ public:
 				return false;
 		}
 
-		if( !inDelegate(fs) )
+		if( !inDelegate(fs) || !fs.isValid() )
 		{
-			return false;
-		}
-		if( !fs.isValid() )
-		{
+			FileSystem::DeleteFile(filePath);
 			return false;
 		}
 		fs.close();

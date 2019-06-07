@@ -35,6 +35,8 @@ public:
 
 	bool  addImage(int id, int w, int h);
 	Node const* getNode(int id) const { return mImageNodeMap[id]; }
+	int   getTotalArea() const { return mRoot->rect.w * mRoot->rect.h; }
+	int   calcUsageArea() const;
 
 protected:
 

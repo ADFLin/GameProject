@@ -47,9 +47,14 @@ namespace Render
 		RHI_COMMAND_FUNC(commandList, RHIDrawIndexedPrimitiveIndirect(type, commandBuffer, offset, numCommand, commandStride));
 	}
 
-	void RHIDrawPrimitiveInstanced(RHICommandList& commandList, PrimitiveType type, int vStart, int nv, int numInstance)
+	void RHIDrawPrimitiveInstanced(RHICommandList& commandList, PrimitiveType type, int vStart, int nv, uint32 numInstance, uint32 baseInstance)
 	{
-		RHI_COMMAND_FUNC(commandList, RHIDrawPrimitiveInstanced(type, vStart, nv, numInstance));
+		RHI_COMMAND_FUNC(commandList, RHIDrawPrimitiveInstanced(type, vStart, nv, numInstance, baseInstance));
+	}
+
+	void RHIDrawIndexedPrimitiveInstanced(RHICommandList& commandList, PrimitiveType type, int indexStart, int nIndex, uint32 numInstance, uint32 baseVertex, uint32 baseInstance)
+	{
+		RHI_COMMAND_FUNC(commandList, RHIDrawIndexedPrimitiveInstanced(type, indexStart, nIndex, numInstance, baseVertex , baseInstance));
 	}
 
 	void RHIDrawPrimitiveUP(RHICommandList& commandList, PrimitiveType type, void const* pVertices, int numVertex, int vetexStride)
@@ -90,7 +95,7 @@ namespace Render
 		RHI_COMMAND_FUNC(commandList, RHISetFrameBuffer(frameBuffer, overrideDepthTexture));
 	}
 
-	void RHISetInputStream(RHICommandList& commandList, RHIInputLayout& inputLayout, InputStreamInfo inputStreams[], int numInputStream)
+	void RHISetInputStream(RHICommandList& commandList, RHIInputLayout* inputLayout, InputStreamInfo inputStreams[], int numInputStream)
 	{
 		RHI_COMMAND_FUNC(commandList, RHISetInputStream(inputLayout, inputStreams, numInputStream));
 	}

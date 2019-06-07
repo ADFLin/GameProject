@@ -8,22 +8,21 @@ namespace Render
 		context.setWorld(worldTrans);
 		{
 			//GPU_PROFILE("MeshDraw %s", name.c_str());
-			drawShader(context.getCommnadList());
+			draw(context.getCommnadList());
 		}
 	}
 
 	void StaticMesh::render(Matrix4 const& worldTrans, RenderContext& context)
 	{
-		for( int i = 0; i < mSections.size(); ++i )
+		for( int idxSection = 0; idxSection < mSections.size(); ++idxSection )
 		{
-			Material* material = getMaterial(i);
+			Material* material = getMaterial(idxSection);
 			context.setMaterial(material);
 			context.setWorld(worldTrans);
-
 			{
 				char const* matName = material ? material->getMaster()->mName.c_str() : "DefalutMaterial";
-				//GPU_PROFILE( "MeshDraw %s %s %d" , name.c_str() , matName , mSections[i].num);
-				drawSection(context.getCommnadList(),i, true);
+				//GPU_PROFILE( "MeshDraw %s %s %d" , name.c_str() , matName , mSections[idxSection].num);
+				drawSection( context.getCommnadList(), idxSection );
 			}
 		}
 	}

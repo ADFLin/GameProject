@@ -228,7 +228,7 @@ namespace Render
 	{
 	public:
 		virtual bool update(int ox, int oy, int w, int h, Texture::Format format, void* data, int level = 0) = 0;
-		virtual bool update(int ox, int oy, int w, int h, Texture::Format format, int pixelStride, void* data, int level = 0) = 0;
+		virtual bool update(int ox, int oy, int w, int h, Texture::Format format, int dataImageWidth, void* data, int level = 0) = 0;
 
 		int  getSizeX() const { return mSizeX; }
 		int  getSizeY() const { return mSizeY; }
@@ -374,6 +374,7 @@ namespace Render
 #undef ENCODE_VECTOR_FORAMT
 
 		static int    GetFormatSize(uint8 format);
+
 		enum Semantic
 		{
 			ePosition,
@@ -401,6 +402,8 @@ namespace Render
 			ATTRIBUTE13,
 			ATTRIBUTE14,
 			ATTRIBUTE15,
+
+			ATTRIBUTE_UNUSED = 0xff,
 
 
 			// for NVidia
@@ -433,6 +436,11 @@ namespace Render
 			ATTRIBUTE_TEXCOORD6 = ATTRIBUTE14,
 			//ATTRIBUTE_TEXCOORD7 = ATTRIBUTE15,
 		};
+
+
+		static Semantic AttributeToSemantic(uint8 attribute, uint8& idx);
+
+		static uint8 SemanticToAttribute(Semantic s, uint8 idx);
 	};
 
 	enum TextureCreationFlag : uint32
@@ -457,24 +465,25 @@ namespace Render
 	};
 
 
-	struct InputElement
+	struct InputElementDesc
 	{
-		uint8 idxStream;
-		uint8 attribute;
-		uint8 format;
-		uint8 offset;
-		uint8 semantic;
-		uint8 idx;
-		bool  bNormalize;
+		uint8  idxStream;
+		uint8  attribute;
+		uint16 format;
+		uint16 offset;
+		uint16 instanceStepRate;
+		bool   bNormalized;
+		bool   bIntanceData;
 
-		bool operator == (InputElement const& rhs) const
+		bool operator == (InputElementDesc const& rhs) const
 		{
 			return idxStream == rhs.idxStream && 
 				   attribute == rhs.attribute &&
 				   format == rhs.format &&
 				   offset == rhs.offset &&
-				   idx == rhs.idx &&
-				   bNormalize == rhs.bNormalize;
+				   instanceStepRate == rhs.instanceStepRate &&
+				   bNormalized == rhs.bNormalized &&
+				   bIntanceData == rhs.bIntanceData;
 		}
 	};
 
@@ -485,22 +494,27 @@ namespace Render
 	public:
 		InputLayoutDesc();
 
-		uint8 getVertexSize(int idxStream = 0) const { return mVertexSizes[idxStream]; }
-		int   getSematicOffset(Vertex::Semantic s) const;
-		int   getSematicOffset(Vertex::Semantic s, int idx) const;
-		Vertex::Format  getSematicFormat(Vertex::Semantic s) const;
-		Vertex::Format  getSematicFormat(Vertex::Semantic s, int idx) const;
+		
+
 		uint8 getOffset(int idx) const { return mElements[idx].offset; }
+		uint8 getVertexSize(int idxStream = 0) const { return mVertexSizes[idxStream]; }
+		void  setVertexSize(int idxStream, uint8 size){  mVertexSizes[idxStream] = size;  }
 
-		InputLayoutDesc&   addElement(Vertex::Semantic s, Vertex::Format f, uint8 idx = 0);
-		InputLayoutDesc&   addElement(uint8 attribute, Vertex::Format f, bool bNormailze = false);
+		InputLayoutDesc&   addElement(uint8 idxStream, uint8 attribute, Vertex::Format f, bool bNormailzed = false, bool bInstanceData = false, int stridePerStride = 0);
+
+
+		InputElementDesc const* findElementByAttribute(uint8 attribute) const;
+		int                getAttributeOffset(uint8 attribute) const;
+		Vertex::Format     getAttributeFormat(uint8 attribute) const;
+		int                getAttributeStreamIndex(uint8 attribute) const;
+
 		InputLayoutDesc&   addElement(uint8 idxStream, Vertex::Semantic s, Vertex::Format f, uint8 idx = 0);
-		InputLayoutDesc&   addElement(uint8 idxStream, uint8 attribute, Vertex::Format f, bool bNormailze = false);
 
-		InputElement const*   findBySematic(Vertex::Semantic s, int idx) const;
-		InputElement const*   findBySematic(Vertex::Semantic s) const;
-
-		std::vector< InputElement > mElements;
+		InputElementDesc const*   findElementBySematic(Vertex::Semantic s, int idx = 0) const;
+		int                getSematicOffset(Vertex::Semantic s, int idx = 0) const;
+		Vertex::Format     getSematicFormat(Vertex::Semantic s, int idx = 0) const;
+		
+		std::vector< InputElementDesc > mElements;
 		uint8   mVertexSizes[MAX_INPUT_STREAM_NUM];
 
 		void updateVertexSize();

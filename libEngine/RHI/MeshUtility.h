@@ -90,13 +90,10 @@ namespace Render
 		void draw(RHICommandList& commandList);
 		void draw(RHICommandList& commandList, LinearColor const& color);
 
-		void drawAdjShader(RHICommandList& commandList, LinearColor const& color);
+		void drawAdj(RHICommandList& commandList, LinearColor const& color);
 		void drawTessellation(RHICommandList& commandList, bool bUseAdjBuffer = false);
 
-		void drawShader(RHICommandList& commandList);
-		void drawShader(RHICommandList& commandList, LinearColor const& color);
-
-		void drawSection(RHICommandList& commandList, int idx, bool bUseVAO = false);
+		void drawSection(RHICommandList& commandList, int idx);
 
 		void drawInternal(RHICommandList& commandList, int idxStart, int num, LinearColor const* color = nullptr)
 		{
@@ -109,27 +106,22 @@ namespace Render
 		}
 		void drawShaderInternal(RHICommandList& commandList, int idxStart, int num, RHIIndexBuffer* indexBuffer, LinearColor const* color /*= nullptr*/);
 		void drawShaderInternalEx(RHICommandList& commandList, PrimitiveType type, int idxStart, int num, RHIIndexBuffer* indexBuffer, LinearColor const* color /*= nullptr*/);
-		void bindVAO(LinearColor const* color = nullptr);
-		void unbindVAO()
-		{
-			glBindVertexArray(0);
-		}
 
 		VertexElementReader makePositionReader(uint8 const* pData)
 		{
 			VertexElementReader result;
 			result.numVertex = mVertexBuffer->getNumElements();
 			result.vertexDataStride = mVertexBuffer->getElementSize();
-			result.pVertexData = pData + mInputLayoutDesc.getSematicOffset(Vertex::ePosition);
+			result.pVertexData = pData + mInputLayoutDesc.getAttributeOffset(Vertex::ATTRIBUTE_POSITION);
 			return result;
 		}
 
-		VertexElementReader makeUVReader(uint8 const* pData)
+		VertexElementReader makeUVReader(uint8 const* pData , int index = 0 )
 		{
 			VertexElementReader result;
 			result.numVertex = mVertexBuffer->getNumElements();
 			result.vertexDataStride = mVertexBuffer->getElementSize();
-			result.pVertexData = pData + mInputLayoutDesc.getSematicOffset(Vertex::eTexcoord);
+			result.pVertexData = pData + mInputLayoutDesc.getAttributeOffset(Vertex::ATTRIBUTE_TEXCOORD + index);
 			return result;
 		}
 
@@ -140,6 +132,7 @@ namespace Render
 
 		bool save(IStreamSerializer& serializer);
 		bool load(IStreamSerializer& serializer);
+
 		PrimitiveType       mType;
 		InputLayoutDesc     mInputLayoutDesc;
 		RHIInputLayoutRef   mInputLayout;
@@ -147,7 +140,6 @@ namespace Render
 		RHIIndexBufferRef   mIndexBuffer;
 		RHIIndexBufferRef   mVertexAdjIndexBuffer;
 		RHIIndexBufferRef   mTessAdjIndexBuffer;
-		uint32              mVAO;
 
 		std::vector< MeshSection > mSections;
 	};

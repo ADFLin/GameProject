@@ -354,26 +354,27 @@ namespace Tetris
 
 		unsigned hit = testCollision( piece , x , y );
 
-		if ( !hit )
-			return hit;
+		if ( hit )
+		{
+			if( hit == HIT_BLOCK && testCollision(piece, x, y + 1) == 0 )
+			{
+				y += 1;
+				return hit;
+			}
+			if( hit == HIT_LEFT_SIDE && testCollision(piece, x + 1, y) == 0 )
+			{
+				x += 1;
+				return hit;
+			}
+			if( hit == HIT_RIGHT_SIDE && testCollision(piece, x - 1, y) == 0 )
+			{
+				x -= 1;
+				return hit;
+			}
 
-		if ( hit == HIT_BLOCK && testCollision( piece , x  , y + 1 ) == 0 )
-		{
-			y += 1;
-			return hit;
-		}
-		if ( hit == HIT_LEFT_SIDE && testCollision( piece , x + 1 , y ) == 0 )
-		{
-			x += 1;
-			return hit;
-		}
-		if ( hit == HIT_RIGHT_SIDE && testCollision( piece , x - 1 , y ) == 0 )
-		{
-			x -= 1;
-			return hit;
+			piece.rotate(beCW ? 1 : -1);
 		}
 
-		piece.rotate(beCW ? 1 : -1);
 		return hit;
 	}
 

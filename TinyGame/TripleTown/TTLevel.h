@@ -112,6 +112,7 @@ namespace TripleTown
 		ObjectId    id;
 		int         meta;
 		unsigned    checkCount;
+		bool        bSpecial;
 		union
 		{
 			//for Object
@@ -120,6 +121,18 @@ namespace TripleTown
 			int     checkResult;
 		};
 		TerrainType terrainBase;
+
+		static Tile InitTile()
+		{
+			Tile tile;
+			tile.id = OBJ_NULL;
+			tile.meta = 0;
+			tile.link = 0;
+			tile.bSpecial = false;
+			tile.terrainBase = TT_LAND;
+			tile.checkCount = 0;
+			return tile;
+		}
 
 		TerrainType getTerrain() const 
 		{
@@ -166,11 +179,15 @@ namespace TripleTown
 
 		virtual void notifyActorMoved( ObjectId id , TilePos const& posFrom , TilePos const& posTo ){}
 
+		virtual void notifyWorldRestore(){}
+
 		virtual void prevRemoveActor(Tile const& tile, ActorData const& actor) {}
 		virtual void postRemoveActor(TilePos const& pos, ObjectId id) {}
-		virtual void prevPrevCreateLand(){}
-		virtual void postCreateLand(){}
+		virtual void prevPrevSetupLand(){}
+		virtual void postSetupLand(){}
 
+		virtual void notifyAddPoints( int points ){}
+		virtual void notifyAddCoins(int coins) {}
 	};
 
 	struct ObjectInfo
@@ -179,7 +196,8 @@ namespace TripleTown
 		ObjectClass* typeClass;
 		ObjectId     idUpgrade;
 		int          numUpgrade;
-		int          randRate;
+		float        randRate;
+		int          points;
 	};
 
 	class World
@@ -188,17 +206,95 @@ namespace TripleTown
 
 
 	};
+
+
+	struct LevelState
+	{
+	public:
+		void copy(LevelState& other)
+		{
+
+
+
+		}
+
+		void swap(LevelState& other)
+		{
+
+
+		}
+
+		void save( DataSteamBuffer& dataBuffer )
+		{
+
+		}
+
+		template< class OP >
+		void serialize( OP&& op)
+		{
+			uint32 version = 0;
+			op & version;
+
+			uint8 sizeX, sizeY;
+			if( OP::IsSaving )
+			{
+				sizeX = mMap.getSizeX();
+				sizeY = mMap.getSizeY();
+				op & sizeX & sizeY;
+			}
+			else
+			{
+				op & sizeX & sizeY;
+				mMap.resize(sizeX, sizeY);
+			}
+			op & IStreamSerializer::MakeSequence(mMap.getRawData(), mMap.getRawDataSize());
+
+			op & mNumEmptyTile & mStep;
+			op & mObjQueue & mIdxNextUse;
+			op & mActorStorage & mIdxUpdateQueue & mIdxFreeEntity;
+		}
+		TileMap     mMap;
+		int         mNumEmptyTile;
+		int         mStep;
+
+
+		static int const ObjQueueSize = 5;
+		ObjectId    mObjQueue[ObjQueueSize];
+		int         mIdxNextUse;
+
+
+		typedef std::vector< int >       IdxList;
+		typedef std::vector< ActorData > EntityMap;
+		EntityMap  mActorStorage;
+		IdxList    mIdxUpdateQueue;
+		int        mIdxFreeEntity;
+
+	};
+	struct PlayerData
+	{
+	public:
+		virtual int  getPoints() const { return 0; }
+		virtual int  getCoins() const { return 0; }
+		virtual void addPoints(int points) {}
+		virtual void addCoins(int coins) {}
+	};
 	
-	class Level
+	class Level : public LevelState
 	{
 	public:
 		Level();
 
-		void         create( LandType type );
+		void         setupLand( LandType type, bool bTestMode = false);
 		void         restart();
 		
-		LevelListener& getListener(){ return *mAnimMgr; }
-		void           setListener( LevelListener* manager );
+		LevelListener& getListener(){ return *mListener; }
+		void           setListener( LevelListener* listener );
+
+		PlayerData&  getPlayerData() { return *mPlayerData; }
+		void         setPlayerData(PlayerData& playerData)
+		{
+			mPlayerData = &playerData;
+		}
 
 		int          getUpgradeNum( ObjectId id );
 		ObjectId     getUpgradeId( ObjectId id );
@@ -211,7 +307,7 @@ namespace TripleTown
 
 		bool         useObject( TilePos const& pos , ObjectId id );
 		int          peekObject( TilePos const& pos , ObjectId id , TilePos posRemove[] );
-		void         addObject( TilePos const& pos , ObjectId id );
+		void         addObject( TilePos const& pos , ObjectId id , bool bInit = false );
 		bool         isMapRange( TilePos const& pos ) const {  return mMap.checkRange( pos.x , pos.y );  }
 
 		int          getEmptyTileNum() const { return mNumEmptyTile; }
@@ -253,8 +349,6 @@ namespace TripleTown
 		void    rebuildLink( TilePos const& pos , ObjectId id );
 		int     relink_R( TilePos const& pos , ObjectId id , int idxRoot );
 		
-
-		bool   testCheckCount( Tile& tile );
 		void   checkActor( Tile& tile , TilePos const& pos );
 
 		int    getConnectObjectPos( TilePos const& pos , ObjectId id , TilePos posConnect[] );
@@ -280,57 +374,53 @@ namespace TripleTown
 		struct KillInfo
 		{
 			TilePos pos;
-			int step;
+			int     step;
 		};
 		int     killConnectActor_R( TilePos const& pos , unsigned bitMask , KillInfo& info );
 		void    killActor( Tile& tile , ActorData& e );
 
-		
-
+		void     addPoints(ObjectId id);
 		LandType    mLandType;
-		int         mStep;
-		int         mNumEmptyTile;
-		TileMap     mMap;
-		
+
 		Tile*   getConnectTile( TilePos const& pos , int dir );
 
+		TerrainType mBGTerrain;
 
-		
 		void      resetObjectQueue();
-		static int const ObjQueueSize = 5;
-		ObjectId  mObjQueue[ ObjQueueSize ];
-		int       mIdxNextUse;
 
-		LevelListener* mAnimMgr;
+
+		LevelListener* mListener;
+		PlayerData*    mPlayerData;
 
 		
 		void    removeActor( Tile& tile );
 		void    moveActor( Tile& tile , ActorData& e , TilePos const& toPos );
-		
-		
+	
 
-		typedef std::vector< int >       IdxList;
-		typedef std::vector< ActorData > EntityMap;
-		EntityMap  mActorStorage;
-		IdxList    mIdxUpdateQueue;
-		int        mIdxFreeEntity;
 
 		struct ProduceInfo
 		{
 			ObjectId id;
-			int      rate;
+			float    rate;
 		};
-		void      setupRandProduce( ProduceInfo const replace[] , int num );
+		enum EProduceOverwriteMode
+		{
+			ReplaceObject ,
+			ReplaceAll ,
+		};
+		void      setupRandProduce(EProduceOverwriteMode mode , ProduceInfo const overwriteProduces[] , int num );
 		ObjectId  randomObject();
 		
-		TerrainType mBGTerrain;
+
 		ProduceInfo mRandProduceMap[ NUM_OBJ ];
 		int         mNumRandProduces;
-		int         mTotalRate;
+		float       mTotalRate;
 
+		bool        testCheckCount(Tile& tile);
 		void        increaseCheckCount();
-		unsigned      mCheckCount;
-		static ObjectInfo const& getInfo( ObjectId id );
+		unsigned    mCheckCount;
+
+		static ObjectInfo const& GetInfo( ObjectId id );
 		
 
 

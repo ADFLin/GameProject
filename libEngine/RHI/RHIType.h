@@ -12,6 +12,7 @@
 #include "Math/Transform.h"
 #include "TVector2.h"
 #include "TVector3.h"
+#include "TVector4.h"
 #include "ReflectionCollect.h"
 
 #include "Core/Color.h"
@@ -22,6 +23,7 @@ namespace Render
 {
 	using IntVector2 = TVector2<int>;
 	using IntVector3 = TVector3<int>;
+	using IntVector4 = TVector4<int>;
 
 
 	using ::Math::Vector2;

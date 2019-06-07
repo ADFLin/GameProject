@@ -18,7 +18,7 @@ CORE_API void LogError  (char const* str);
 CORE_API void LogDevMsg (int level, char const* str);
 CORE_API void LogWarning(int level, char const* str);
 
-#define LOG_BUFFER_SIZE 10240
+#define LOG_BUFFER_SIZE 102400
 
 template< class ...Arg >
 void LogMsg(char const* format, Arg ...arg)

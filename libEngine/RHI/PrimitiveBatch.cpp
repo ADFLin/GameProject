@@ -10,7 +10,7 @@ namespace Render
 	{
 		RHICommandList& commandList = context.getCommnadList();
 
-		GLenum primitivTypeGL = GLConvert::To(primitiveType);
+		GLenum primitivTypeGL = OpenGLTranlate::To(primitiveType);
 
 		context.setMaterial(material);
 		if( context.bBindAttrib )
@@ -74,8 +74,8 @@ namespace Render
 	bool SimpleElementRenderer::init()
 	{
 		InputLayoutDesc desc;
-		desc.addElement(Vertex::ATTRIBUTE_POSITION, Vertex::eFloat4);
-		desc.addElement(Vertex::ATTRIBUTE_COLOR, Vertex::eFloat4);
+		desc.addElement(0, Vertex::ATTRIBUTE_POSITION, Vertex::eFloat4);
+		desc.addElement(0, Vertex::ATTRIBUTE_COLOR, Vertex::eFloat4);
 
 		mInputLayout = RHICreateInputLayout(desc);
 		mVertexBuffer = RHICreateVertexBuffer(sizeof(SimpleVertex), MaxVertexSize, BCF_UsageDynamic);
@@ -109,7 +109,7 @@ namespace Render
 		glBindVertexArray(mVAO);
 		context.setShader(mShader);
 		mShader.setParam(commandList, SHADER_PARAM(VertexTransform), context.getView().worldToClip);
-		glDrawArrays(GLConvert::To(PrimitiveType::TriangleList), 0, numVertices);
+		glDrawArrays(OpenGLTranlate::To(PrimitiveType::TriangleList), 0, numVertices);
 		glBindVertexArray(0);
 	}
 

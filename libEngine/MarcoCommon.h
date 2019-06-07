@@ -35,7 +35,7 @@ size_t array_size(T(&ar)[N]) { return N; }
 #define NEVER_REACH( STR ) assert( !STR )
 
 #define FAIL_LOG_MSG_GENERATE( CODE , FILE , LINE )\
-	LogWarning(1, "Init Fail => File = %s Line = %s : %s ", FILE, #LINE, #CODE)
+	LogWarning(1, "Init Fail => File: %s (%s) : %s ", FILE, #LINE, #CODE)
 
 #define VERIFY_FAILCODE_INNEAR( CODE , FAILCODE , FILE , LINE  )\
 	{ if( !( CODE ) ) { FAIL_LOG_MSG_GENERATE( CODE, FILE , LINE ); FAILCODE; } }

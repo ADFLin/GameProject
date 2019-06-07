@@ -18,11 +18,20 @@ namespace Render
 		void finalize();
 
 		int  addImageFile(char const* path);
-		int  addImage(int w, int h, Texture::Format format, void* data, int pixelStride = 0);
+		bool addImageFile(int id , char const* path);
+		int  addImage(int w, int h, Texture::Format format, void* data, int dataImageWidth = 0);
+		bool addImage(int id, int w, int h, Texture::Format format, void* data, int dataImageWidth = 0)
+		{
+			return addImageInteranl(id, w, h, format, data, dataImageWidth);
+		}
+
+		bool addImageInteranl(int id, int w, int h, Texture::Format format, void* data, int dataImageWidth);
 		void getRectUV(int id, Vector2& outMin, Vector2& outMax) const;
 
 		RHITexture2D& getTexture() { return *mTexture; }
 		int  getTextureNum() const { return mNextImageId; }
+
+		float calcUsageAreaRatio();
 
 
 		int              mBorder;

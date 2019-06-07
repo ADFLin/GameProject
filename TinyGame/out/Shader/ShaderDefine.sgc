@@ -23,11 +23,11 @@
 
 #endif
 
-#define ATTRIBUTE_POSITION ATTRIBUTE0
-#define ATTRIBUTE_TANGENT ATTRIBUTE15
-#define ATTRIBUTE_NORMAL ATTRIBUTE2
-#define ATTRIBUTE_COLOR ATTRIBUTE3
-#define ATTRIBUTE_TEXCOORD ATTRIBUTE8
+#define ATTRIBUTE_POSITION  ATTRIBUTE0
+#define ATTRIBUTE_NORMAL    ATTRIBUTE2
+#define ATTRIBUTE_COLOR     ATTRIBUTE3
+#define ATTRIBUTE_TANGENT   ATTRIBUTE15
+#define ATTRIBUTE_TEXCOORD  ATTRIBUTE8
 #define ATTRIBUTE_TEXCOORD1 ATTRIBUTE9
 #define ATTRIBUTE_TEXCOORD2 ATTRIBUTE10
 #define ATTRIBUTE_TEXCOORD3 ATTRIBUTE11
@@ -58,81 +58,110 @@
 #define out
 #define inout
 
-template< class T >
-struct TVec2
+template< class T , class VecType >
+struct VecOpT
 {
-	TVec2(T);
-	TVec2(T, T);
-	T x, y;
-	T r, g;
-	T s, t;
 
-	TVec2 operator + (TVec2);
-	TVec2 operator - (TVec2);
-	TVec2 operator * (TVec2);
-	TVec2 operator / (TVec2);
+	VecType operator + (VecType);
+	VecType operator - (VecType);
+	VecType operator * (VecType);
+	VecType operator / (VecType);
+	VecType operator + (T);
+	VecType operator * (T);
+	VecType operator / (T);
+	VecType operator - (T);
 
+	VecType operator - (void);
+
+	friend VecType operator * (T, VecType);
 	T operator[](int);
 };
 
 template< class T >
-struct TVec3 : TVec2<T>
+struct TVec2 : VecOpT< T , TVec2<T> >
 {
+	T x, y;
+	T r, g;
+	T s, t;
+	TVec2<T> xx, yy;
+	TVec2<T> xy, st;
+
+	TVec2();
+	TVec2(T);
+	TVec2(T, T);
+};
+
+template< class T >
+struct TVec3 : TVec2<T>, VecOpT< T, TVec3<T> >
+{
+	TVec3<T> xxx, yyy, zzz, xyz;
+	TVec2<T> xz, yz;
+	T  z, b, p;
+
+	TVec3();
 	TVec3(T);
 	TVec3(T, T, T);
 	TVec3(TVec2, T);
-	TVec3 xxx, yyy, zzz, xyz;
-	TVec2 xy, st;
-	TVec2 xz, yz;
-	T  z, b, p;
-
-	TVec3 operator + (TVec3);
-	TVec3 operator - (TVec3);
-	TVec3 operator * (TVec3);
-	TVec3 operator / (TVec3);
-
-	TVec3& operator += (TVec3);
+	
+	template< class Q >
+	explicit operator TVec2<Q>();
 };
 
 template< class T >
-struct TVec4 : TVec3<T>
+struct TVec4 : TVec3<T> , VecOpT< T, TVec4<T> >
 {
-	TVec4(T);
-	TVec4(T, T, T, T);
-	TVec4(TVec3, T);
-	TVec3 xyz, rgb, stp;
+	TVec3<T> xyz, rgb, stp;
 	T  w, a, q;
 
-	TVec2 zw;
-	TVec3 rga;
+	TVec2<T> zw;
+	TVec3<T> rga;
 
-	TVec4 operator + (TVec4);
-	TVec4 operator - (TVec4);
-	TVec4 operator * (TVec4);
-	TVec4 operator / (TVec4);
+	TVec4();
+	TVec4(T);
+	TVec4(T, T, T, T);
+	TVec4(TVec2, TVec2);
+	TVec4(TVec3, T);
+
+	template< class Q >
+	explicit operator TVec3<Q>();
+	template< class Q >
+	explicit operator TVec2<Q>();
+};
+
+template< class T , 
+	template< class > class TMat , 
+	template< class > class TRow , 
+	template< class > class TCol >
+struct MatOpT
+{
+	typedef TMat<T> MatType;
+	typedef TRow<T> RowType;
+	typedef TCol<T> ColType;
+
+	MatOpT(ColType, ColType, ColType);
+	ColType operator[](int);
+	MatType operator * (MatType);
+	RowType operator * (ColType);
+	friend MatType operator ( T , MatType );
 };
 
 
 template< class T >
-struct TMat3x3
+struct TMat3x3 : MatOpT< T, TMat3x3 , TVec3 , TVec3 >
 {
-	TVec3<T> operator[](int);
 };
 template< class T >
-struct TMat4x3
+struct TMat4x3 : MatOpT< T, TMat4x3, TVec4, TVec3 >
 {
-	TVec3<T> operator[](int);
 };
 template< class T >
-struct TMat3x4
+struct TMat3x4 : MatOpT< T, TMat3x4, TVec3, TVec4 >
 {
-	TVec4<T> operator[](int);
 };
 template< class T >
-struct TMat4x4
+struct TMat4x4 : MatOpT< T, TMat4x4, TVec4, TVec4 >
 {
-	TVec4<T> operator[](int);
-	operator TMat3x3<T>();
+	explicit operator TMat3x3<T>();
 };
 
 typedef TVec4<float> float4;
@@ -206,6 +235,12 @@ VECTOR_FUNCTION_LIST(Pow5T)
 
 #else
 
+template< class T >
+T atan(T, T);
+template< class T >
+T max(T, T);
+template< class T >
+T min(T, T);
 
 template< class T >
 bool any(T);
@@ -228,10 +263,16 @@ float4x4 mul(float4x4, float4x4);
 float4   mul(float4, float4x4);
 float3   mul(float3, float3x3);
 
-
-float    saturate(float);
+template< class T >
+T    saturate(T);
 float3   reflect(float3, float3);
-float3   normalize(float3);
+
+template< class T >
+TVec2<T> normalize(TVec2<T>);
+template< class T >
+TVec3<T> normalize(TVec3<T>);
+template< class T >
+TVec4<T> normalize(TVec4<T>);
 
 template< class T >
 T   lerp(T, T, float);

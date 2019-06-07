@@ -2,20 +2,42 @@
 #include "ViewParam.sgc"
 #include "PrimitiveParam.sgc"
 
+#ifndef USE_INSTANCED
+#define USE_INSTANCED 0
+#endif // !USE_INSTANCED
+
 struct VSOutputParameters
 {
 	float2 UVs;
+	float4 color;
 };
 #if VERTEX_SHADER
 
 DECLARE_VERTEX_INPUT(float3, Pos, ATTRIBUTE_POSITION)
 DECLARE_VERTEX_INPUT(float2, UVs, ATTRIBUTE_TEXCOORD)
+#if USE_INSTANCED
+DECLARE_VERTEX_INPUT(float4, InstanceParam0, ATTRIBUTE10)
+DECLARE_VERTEX_INPUT(float4, InstanceParam1, ATTRIBUTE11)
+DECLARE_VERTEX_INPUT(float4, InstanceParam2, ATTRIBUTE12)
+DECLARE_VERTEX_INPUT(float4, InstanceParam3, ATTRIBUTE13)
+#endif
 out VSOutputParameters VSOutput;
 void MainVS()
 {
 	VSOutput.UVs = VERTEX_INPUT(UVs);
-
-	float4 worldPos = Primitive.localToWorld * float4(VERTEX_INPUT(Pos), 1);
+	
+#if USE_INSTANCED
+	VSOutput.color = float4(1, 1, 1, 1);
+	float4x4 instanceTransform;
+	instanceTransform[0] = float4(VERTEX_INPUT(InstanceParam0).xyz, 0);
+	instanceTransform[1] = float4(VERTEX_INPUT(InstanceParam1).xyz, 0);
+	instanceTransform[2] = float4(VERTEX_INPUT(InstanceParam2).xyz, 0);
+	instanceTransform[3] = float4(VERTEX_INPUT(InstanceParam3).xyz, 1);
+	float4 worldPos = Primitive.localToWorld * ( instanceTransform * float4(VERTEX_INPUT(Pos), 1) );
+#else
+	VSOutput.color = float4(1,1,1,1);
+	float4 worldPos = Primitive.localToWorld * (float4(VERTEX_INPUT(Pos), 1));
+#endif
 	gl_Position = View.worldToClip * worldPos;
 }
 
@@ -23,7 +45,7 @@ void MainVS()
 
 #if PIXEL_SHADER
 
-float mip_map_level(float2 texture_coordinate)
+float MipmapLevel(float2 texture_coordinate)
 {
 	float2  dx_vtc = dFdx(texture_coordinate);
 	float2  dy_vtc = dFdy(texture_coordinate);
@@ -37,7 +59,7 @@ layout(location = 0) out float4 OutColor;
 void MainPS()
 {
 	float mipScale = 0.01;
-	float4 color = texture(Texture, VSOutput.UVs);
+	float4 color = VSOutput.color * texture(Texture, VSOutput.UVs);
 
 	if( color.a < 0.3 )
 	{
@@ -46,7 +68,7 @@ void MainPS()
 	
 #if 1
 	float2 texSize = textureSize(Texture, 0);
-	color.a *= 1 + max(0, mip_map_level(VSOutput.UVs * texSize)) * mipScale;
+	color.a *= 1 + max(0, MipmapLevel(VSOutput.UVs * texSize)) * mipScale;
 	color.a = (color.a - 0.85) / max(fwidth(color.a), 0.0001) + 0.5;
 #endif
 	OutColor = color;

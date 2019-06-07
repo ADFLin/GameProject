@@ -50,6 +50,10 @@ private:
 
 #if CORE_SHARE_CODE
 
+
+HighResClock* TimeScope::sClock = nullptr;
+
+
 #if 0
 Mutex gInstanceLock;
 std::atomic< ProfileSystem* > gInstance;

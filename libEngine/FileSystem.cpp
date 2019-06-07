@@ -43,6 +43,7 @@ bool FileSystem::CreateDirectory(char const* pathDir)
 		} 
 		return false;
 	}
+	return true;
 #else
 	return false;
 #endif

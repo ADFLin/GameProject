@@ -636,8 +636,10 @@ namespace Render
 	bool ShaderManager::updateShaderInternal(ShaderProgram& shaderProgram, ShaderProgramCompileInfo& info , bool bForceReload )
 	{
 		if( !bForceReload && getCache()->loadCacheData(*mShaderFormat, info) )
+		{
+			LogMsg("%s Use Cache Data", info.shaders[0].filePath.c_str());
 			return true;
-
+		}
 		if( !shaderProgram.mRHIResource.isValid() )
 		{
 			shaderProgram.mRHIResource = RHICreateShaderProgram();

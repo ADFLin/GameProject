@@ -733,7 +733,7 @@ namespace Render
 						object.param.localToWorld.inverseAffine(worldToLocal, det);
 						curProgram->setParam(commandList, SHADER_PARAM(Primitive.worldToLocal), worldToLocal);
 
-						object.mesh->drawShader(commandList);
+						object.mesh->draw(commandList);
 
 						++indexObject;
 					}

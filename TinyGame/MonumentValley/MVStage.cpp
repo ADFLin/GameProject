@@ -599,7 +599,7 @@ namespace MV
 		float height = width * window.getHeight() / window.getWidth();
 
 		RHISetupFixedPipelineState(commandList, AdjProjectionMatrixForRHI(OrthoMatrix(width, height, -100, 100)));
-		RHISetInputStream(commandList, TStaticRenderRTInputLayout<RTVF_XY>::GetRHI() , nullptr , 0 );
+		RHISetInputStream(commandList, &TStaticRenderRTInputLayout<RTVF_XY>::GetRHI() , nullptr , 0 );
 
 		glMatrixMode(GL_PROJECTION);
 

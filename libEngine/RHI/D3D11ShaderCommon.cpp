@@ -171,6 +171,7 @@ namespace Render
 		byteCode.assign((uint8*)inByteCode->GetBufferPointer() , (uint8*)(inByteCode->GetBufferPointer()) + inByteCode->GetBufferSize());
 		mResource.type = type;
 		mResource.ptr->AddRef();
+		return true;
 	}
 
 	bool D3D11Shader::GenerateParameterMap(std::vector< uint8 > const& byteCode, ShaderParameterMap& parameterMap)
@@ -226,6 +227,8 @@ namespace Render
 				break;
 			}
 		}
+
+		return true;
 	}
 
 }

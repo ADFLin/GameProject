@@ -590,7 +590,7 @@ namespace Render
 				Vector3(1,-1,0),
 			};
 			int   idx[6] = { 0 , 1 , 2 , 0 , 2 , 3 };
-			mSpherePlane.mInputLayoutDesc.addElement(Vertex::ePosition, Vertex::eFloat3);
+			mSpherePlane.mInputLayoutDesc.addElement(0, Vertex::ePosition, Vertex::eFloat3);
 			VERIFY_RETURN_FALSE(mSpherePlane.createRHIResource(&v[0], 4, &idx[0], 6, true));
 
 			VERIFY_RETURN_FALSE(MeshBuild::Tile(mTileMesh, mTileNum - 1, 100, false));
@@ -660,7 +660,7 @@ namespace Render
 			mProgSphere.setParam(commandList, SHADER_PARAM(Sphere.radius), radius);
 			mProgSphere.setParam(commandList, SHADER_PARAM(Sphere.worldPos), pos);
 			
-			mSpherePlane.drawShader(commandList);
+			mSpherePlane.draw(commandList);
 		}
 
 		void upateWaterData(RHICommandList& commandList, float dt)
@@ -718,7 +718,7 @@ namespace Render
 				RHISetShaderProgram(commandList, mProgWater->getRHIResource());
 				mProgWater->setParameters(commandList, mTileNum, *mWaterDataBuffers[mIndexWaterBufferUsing].getRHI());
 				mView.setupShader(commandList, *mProgWater);
-				mTileMesh.drawShader(commandList, LinearColor(1, 0, 0));
+				mTileMesh.draw(commandList, LinearColor(1, 0, 0));
 			}
 
 			for( auto const& primitive : mPrimitives )

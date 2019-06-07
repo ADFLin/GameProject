@@ -24,13 +24,14 @@ namespace Render
 		RHI_FUNC(void RHIDrawIndexedPrimitive(PrimitiveType type, int indexStart, int nIndex, uint32 baseVertex));
 		RHI_FUNC(void RHIDrawPrimitiveIndirect(PrimitiveType type, RHIVertexBuffer* commandBuffer, int offset, int numCommand, int commandStride));
 		RHI_FUNC(void RHIDrawIndexedPrimitiveIndirect(PrimitiveType type, RHIVertexBuffer* commandBuffer, int offset, int numCommand, int commandStride));
-		RHI_FUNC(void RHIDrawPrimitiveInstanced(PrimitiveType type, int vStart, int nv, int numInstance));
-
+		RHI_FUNC(void RHIDrawPrimitiveInstanced(PrimitiveType type, int vStart, int nv, uint32 numInstance, uint32 baseInstance));
+		RHI_FUNC(void RHIDrawIndexedPrimitiveInstanced(PrimitiveType type, int indexStart, int nIndex, uint32 numInstance, uint32 baseVertex, uint32 baseInstance));
+		
 		RHI_FUNC(void RHIDrawPrimitiveUP(PrimitiveType type, int numVertex, VertexDataInfo dataInfos[], int numData));
 		RHI_FUNC(void RHIDrawIndexedPrimitiveUP(PrimitiveType type, int numVertex, VertexDataInfo dataInfos[], int numVertexData, int const* pIndices, int numIndex));
 
 		RHI_FUNC(void RHISetFrameBuffer(RHIFrameBuffer* frameBuffer, RHITextureDepth* overrideDepthTexture));
-		RHI_FUNC(void RHISetInputStream(RHIInputLayout& inputLayout, InputStreamInfo inputStreams[], int numInputStream));
+		RHI_FUNC(void RHISetInputStream(RHIInputLayout* inputLayout, InputStreamInfo inputStreams[], int numInputStream));
 		RHI_FUNC(void RHISetIndexBuffer(RHIIndexBuffer* indexBuffer));
 		RHI_FUNC(void RHISetupFixedPipelineState(Matrix4 const& transform, LinearColor const& color, RHITexture2D* textures[], int numTexture));
 

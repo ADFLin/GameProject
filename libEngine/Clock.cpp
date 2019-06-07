@@ -2,6 +2,7 @@
 
 #include <algorithm>
 
+
 HighResClock::HighResClock()
 {
 	QueryPerformanceFrequency(&mClockFrequency);

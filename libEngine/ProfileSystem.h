@@ -6,6 +6,8 @@
 
 #include "Core/IntegerType.h"
 #include "MarcoCommon.h"
+#include "LogSystem.h"
+#include "Clock.h"
 
 #include <unordered_map>
 
@@ -271,6 +273,31 @@ public:
 	CORE_API  ProfileSampleScope( const char * name , unsigned flag = 0 );
 	CORE_API ~ProfileSampleScope( void );
 };
+
+
+struct TimeScope
+{
+	TimeScope(char const* name)
+	{
+		if( sClock == nullptr )
+		{
+			sClock = new HighResClock;
+		}
+		mName = name;
+		sClock->reset();
+	}
+	~TimeScope()
+	{
+		LogMsg("%s = %.3f", mName, sClock->getTimeMicroseconds() / 1000.0f);
+	}
+
+private:
+	CORE_API static HighResClock* sClock;
+	char const*   mName;
+};
+
+#define TIME_SCOPE( NAME ) TimeScope ANONYMOUS_VARIABLE(timeScope)( NAME );
+
 
 
 #endif // ProfileSystem_H_246AD834_B5C3_4C3C_B24C_D6ECCC926F75

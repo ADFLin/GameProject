@@ -33,13 +33,13 @@ namespace Render
 
 	enum RenderRTVertexFormat
 	{
-		RTVF_XY = RTS_ELEMENT(RTS_Position, 2),
-		RTVF_XYZ = RTS_ELEMENT(RTS_Position, 3),
-		RTVF_XYZW = RTS_ELEMENT(RTS_Position, 4),
-		RTVF_C = RTS_ELEMENT(RTS_Color, 3),
-		RTVF_CA = RTS_ELEMENT(RTS_Color, 4),
-		RTVF_N = RTS_ELEMENT(RTS_Normal, 3),
-		RTVF_TEX_UV = RTS_ELEMENT(RTS_Texcoord, 2),
+		RTVF_XY      = RTS_ELEMENT(RTS_Position, 2),
+		RTVF_XYZ     = RTS_ELEMENT(RTS_Position, 3),
+		RTVF_XYZW    = RTS_ELEMENT(RTS_Position, 4),
+		RTVF_C       = RTS_ELEMENT(RTS_Color, 3),
+		RTVF_CA      = RTS_ELEMENT(RTS_Color, 4),
+		RTVF_N       = RTS_ELEMENT(RTS_Normal, 3),
+		RTVF_TEX_UV  = RTS_ELEMENT(RTS_Texcoord, 2),
 		RTVF_TEX_UVW = RTS_ELEMENT(RTS_Texcoord, 3),
 
 		RTVF_XYZ_C       = RTVF_XYZ | RTVF_C,
@@ -76,34 +76,33 @@ namespace Render
 	};
 
 
-#define USE_SEMANTIC( VF , S ) ( ( VertexFormat ) & RTS_ELEMENT( S , RTS_ELEMENT_MASK ) )
+#define USE_SEMANTIC( VF , S ) ( ( VF ) & RTS_ELEMENT( S , RTS_ELEMENT_MASK ) )
 #define VERTEX_ELEMENT_SIZE( VF , S ) ( USE_SEMANTIC( VF , S ) >> ( RTS_ELEMENT_BIT_OFFSET * S ) )
 #define VETEX_ELEMENT_OFFSET( VF , S ) VertexElementOffset< VF , S >::Result
 
 
 #define  ENCODE_VECTOR_FORAMT( TYPE , NUM ) (( TYPE << 2 ) | ( NUM - 1 ) )
-	template < uint32 VertexFormat >
+	template < uint32 VertexFormat , uint32 SkipVertexFormat = 0 >
 	inline void SetupRenderRTInputLayoutDesc(int indexStream , InputLayoutDesc& desc )
 	{
 		if( USE_SEMANTIC(VertexFormat, RTS_Position) )
-			desc.addElement(indexStream, Vertex::ATTRIBUTE_POSITION, Vertex::GetFormat(CVT_Float, VERTEX_ELEMENT_SIZE(VertexFormat, RTS_Position)), false);
+			desc.addElement(indexStream, USE_SEMANTIC(SkipVertexFormat, RTS_Position) ? Vertex::ATTRIBUTE_UNUSED : Vertex::ATTRIBUTE_POSITION, Vertex::GetFormat(CVT_Float, VERTEX_ELEMENT_SIZE(VertexFormat, RTS_Position)), false);
 		if( USE_SEMANTIC(VertexFormat, RTS_Color) )
-			desc.addElement(indexStream, Vertex::ATTRIBUTE_COLOR, Vertex::GetFormat(CVT_Float, VERTEX_ELEMENT_SIZE(VertexFormat, RTS_Color)), false);
+			desc.addElement(indexStream, USE_SEMANTIC(SkipVertexFormat, RTS_Color) ? Vertex::ATTRIBUTE_UNUSED : Vertex::ATTRIBUTE_COLOR, Vertex::GetFormat(CVT_Float, VERTEX_ELEMENT_SIZE(VertexFormat, RTS_Color)), false);
 		if( USE_SEMANTIC(VertexFormat, RTS_Normal) )
-			desc.addElement(indexStream, Vertex::ATTRIBUTE_NORMAL, Vertex::GetFormat(CVT_Float, VERTEX_ELEMENT_SIZE(VertexFormat, RTS_Normal)), false);
+			desc.addElement(indexStream, USE_SEMANTIC(SkipVertexFormat, RTS_Normal) ? Vertex::ATTRIBUTE_UNUSED : Vertex::ATTRIBUTE_NORMAL, Vertex::GetFormat(CVT_Float, VERTEX_ELEMENT_SIZE(VertexFormat, RTS_Normal)), false);
 		if( USE_SEMANTIC(VertexFormat, RTS_Texcoord) )
-			desc.addElement(indexStream, Vertex::ATTRIBUTE_TEXCOORD, Vertex::GetFormat(CVT_Float, VERTEX_ELEMENT_SIZE(VertexFormat, RTS_Texcoord)), false);
+			desc.addElement(indexStream, USE_SEMANTIC(SkipVertexFormat, RTS_Texcoord) ? Vertex::ATTRIBUTE_UNUSED : Vertex::ATTRIBUTE_TEXCOORD, Vertex::GetFormat(CVT_Float, VERTEX_ELEMENT_SIZE(VertexFormat, RTS_Texcoord)), false);
 	}
 
 	template < uint32 VertexFormat0 , uint32 VertexFormat1 = 0 >
 	class TStaticRenderRTInputLayout : public StaticRHIResourceT< TStaticRenderRTInputLayout< VertexFormat0 , VertexFormat1 > , RHIInputLayout >
 	{
 	public:
-		static_assert((VertexFormat0 & VertexFormat1) == 0, "Error Vertex Format");
 		static RHIInputLayoutRef CreateRHI()
 		{
 			InputLayoutDesc desc;
-			SetupRenderRTInputLayoutDesc< VertexFormat0 >(0, desc);
+			SetupRenderRTInputLayoutDesc< VertexFormat0 , VertexFormat1 >(0, desc);
 			SetupRenderRTInputLayoutDesc< VertexFormat1 >(1, desc);
 			return RHICreateInputLayout(desc);
 		}
@@ -131,26 +130,26 @@ namespace Render
 			inputStream.buffer = &buffer;
 			inputStream.offset = 0;
 			inputStream.stride = vertexStride;
-			RHISetInputStream(commandList, TStaticRenderRTInputLayout<VertexFormat>::GetRHI(), &inputStream, 1);
+			RHISetInputStream(commandList, &TStaticRenderRTInputLayout<VertexFormat>::GetRHI(), &inputStream, 1);
 			RHIDrawPrimitive(commandList, type, 0, numVertex);
 		}
 
 		FORCEINLINE static void Draw(RHICommandList& commandList, PrimitiveType type, void const* vetrices, int numVertex, int vertexStride = GetVertexSize())
 		{
-			RHISetInputStream(commandList, TStaticRenderRTInputLayout<VertexFormat>::GetRHI(), nullptr, 0);
+			RHISetInputStream(commandList, &TStaticRenderRTInputLayout<VertexFormat>::GetRHI(), nullptr, 0);
 			RHIDrawPrimitiveUP(commandList, type, vetrices , numVertex, vertexStride);
 		}
 
 
 		FORCEINLINE static void DrawIndexed(RHICommandList& commandList, PrimitiveType type, void const* vetrices, int numVertex, int const* indices, int nIndex, int vertexStride = GetVertexSize())
 		{
-			RHISetInputStream(commandList, TStaticRenderRTInputLayout<VertexFormat>::GetRHI(), nullptr, 0);
-			RHIDrawPrimitiveUP(commandList, type, vetrices, numVertex, vertexStride);
+			RHISetInputStream(commandList, &TStaticRenderRTInputLayout<VertexFormat>::GetRHI(), nullptr, 0);
+			RHIDrawIndexedPrimitiveUP(commandList, type, vetrices, numVertex, vertexStride , indices , nIndex );
 		}
 
 		FORCEINLINE static void Draw(RHICommandList& commandList, PrimitiveType type, void const* vetrices, int numVertex, LinearColor const& color, int vertexStride = GetVertexSize())
 		{
-			RHISetInputStream(commandList, TStaticRenderRTInputLayout<VertexFormat , RTVF_CA >::GetRHI(), nullptr, 0);
+			RHISetInputStream(commandList, &TStaticRenderRTInputLayout<VertexFormat , RTVF_CA >::GetRHI(), nullptr, 0);
 			VertexDataInfo infos[2];
 			infos[0].ptr = vetrices;
 			infos[0].size = numVertex * vertexStride;
@@ -163,7 +162,8 @@ namespace Render
 
 		FORCEINLINE static void DrawIndexed(RHICommandList& commandList, PrimitiveType type, void const* vetrices, int numVertex, int const* indices, int nIndex, LinearColor const& color, int vertexStride = GetVertexSize())
 		{
-			RHISetInputStream(commandList, TStaticRenderRTInputLayout<VertexFormat, RTVF_CA >::GetRHI(), nullptr, 0);
+			RHISetInputStream(commandList, &TStaticRenderRTInputLayout<VertexFormat, RTVF_CA >::GetRHI(), nullptr, 0);
+			VertexDataInfo infos[2];
 			infos[0].ptr = vetrices;
 			infos[0].size = numVertex * vertexStride;
 			infos[0].stride = vertexStride;

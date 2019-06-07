@@ -132,7 +132,7 @@ namespace Render
 		ECullMode CullMode = ECullMode::Back,
 		EFillMode FillMode = EFillMode::Solid,
 		bool bEnableScissor = false >
-		class TStaticRasterizerState : public StaticRHIResourceT<
+	class TStaticRasterizerState : public StaticRHIResourceT<
 		TStaticRasterizerState< CullMode, FillMode, bEnableScissor >,
 		RHIRasterizerState >
 	{
@@ -202,7 +202,7 @@ namespace Render
 		Stencil::Operation ZPassOp = Stencil::eKeep,
 		uint32 StencilReadMask = -1,
 		uint32 StencilWriteMask = -1 >
-		class TStaticDepthStencilState : public TStaticDepthStencilSeparateState<
+	class TStaticDepthStencilState : public TStaticDepthStencilSeparateState<
 		bWriteDepth, DepthFun, bEnableStencilTest,
 		StencilFun, StencilFailOp, ZFailOp, ZPassOp,
 		StencilFun, StencilFailOp, ZFailOp, ZPassOp,

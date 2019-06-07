@@ -255,7 +255,7 @@ namespace Render
 		void RHIDrawPrimitive(PrimitiveType type, int start, int nv)
 		{
 			commitRenderShaderState();
-			mDeviceContext->IASetPrimitiveTopology(D3D11Conv::To(type));
+			mDeviceContext->IASetPrimitiveTopology(D3D11Translate::To(type));
 			mDeviceContext->Draw(nv, start);
 			PostDrawPrimitive();
 		}
@@ -263,7 +263,7 @@ namespace Render
 		void RHIDrawIndexedPrimitive(PrimitiveType type, int indexStart, int nIndex, uint32 baseVertex)
 		{
 			commitRenderShaderState();
-			mDeviceContext->IASetPrimitiveTopology(D3D11Conv::To(type));
+			mDeviceContext->IASetPrimitiveTopology(D3D11Translate::To(type));
 			mDeviceContext->DrawIndexed(nIndex , indexStart , baseVertex);
 			PostDrawPrimitive();
 		}
@@ -271,13 +271,13 @@ namespace Render
 		void RHIDrawPrimitiveIndirect(PrimitiveType type, RHIVertexBuffer* commandBuffer, int offset, int numCommand, int commandStride)
 		{
 			commitRenderShaderState();
-			mDeviceContext->IASetPrimitiveTopology(D3D11Conv::To(type));
+			mDeviceContext->IASetPrimitiveTopology(D3D11Translate::To(type));
 			PostDrawPrimitive();
 		}
 		void RHIDrawIndexedPrimitiveIndirect(PrimitiveType type, RHIVertexBuffer* commandBuffer, int offset, int numCommand, int commandStride)
 		{
 			commitRenderShaderState();
-			mDeviceContext->IASetPrimitiveTopology(D3D11Conv::To(type));
+			mDeviceContext->IASetPrimitiveTopology(D3D11Translate::To(type));
 			if( numCommand )
 			{
 				mDeviceContext->DrawInstancedIndirect(D3D11Cast::GetResource(*commandBuffer), offset);
@@ -288,14 +288,21 @@ namespace Render
 			}
 			PostDrawPrimitive();
 		}
-		void RHIDrawPrimitiveInstanced(PrimitiveType type, int vStart, int nv, int numInstance)
+		void RHIDrawPrimitiveInstanced(PrimitiveType type, int vStart, int nv, uint32 numInstance, uint32 baseInstance)
 		{
 			commitRenderShaderState();
-			mDeviceContext->DrawInstanced(nv, numInstance, vStart, 0);
+			mDeviceContext->IASetPrimitiveTopology(D3D11Translate::To(type));
+			mDeviceContext->DrawInstanced(nv, numInstance, vStart, baseInstance);
 			PostDrawPrimitive();
 		}
 
-
+		void RHIDrawIndexedPrimitiveInstanced(PrimitiveType type, int indexStart, int nIndex, uint32 numInstance, uint32 baseVertex, uint32 baseInstance)
+		{
+			commitRenderShaderState();
+			mDeviceContext->IASetPrimitiveTopology(D3D11Translate::To(type));
+			mDeviceContext->DrawIndexedInstanced( nIndex , numInstance , indexStart , baseVertex , baseInstance);
+			PostDrawPrimitive();
+		}
 
 		void RHIDrawPrimitiveUP(PrimitiveType type, int numVertex, VertexDataInfo dataInfos[], int numVertexData);
 
@@ -313,7 +320,7 @@ namespace Render
 		}
 
 	
-		void RHISetInputStream(RHIInputLayout& inputLayout, InputStreamInfo inputStreams[], int numInputStream)
+		void RHISetInputStream(RHIInputLayout* inputLayout, InputStreamInfo inputStreams[], int numInputStream)
 		{
 			int const MaxStreamNum = 16;
 			assert(numInputStream <= MaxStreamNum);
@@ -331,7 +338,7 @@ namespace Render
 				}
 
 			}
-			mDeviceContext->IASetInputLayout(D3D11Cast::GetResource(inputLayout));
+			mDeviceContext->IASetInputLayout(inputLayout ? D3D11Cast::GetResource(inputLayout) : nullptr);
 			if( numInputStream )
 			{
 				mDeviceContext->IASetVertexBuffers(0, numInputStream, buffers, strides, offsets);
@@ -490,8 +497,7 @@ namespace Render
 			return nullptr;
 		}
 
-		RHIInputLayout*   RHICreateInputLayout(InputLayoutDesc const& desc);
-
+		RHIInputLayout*  RHICreateInputLayout(InputLayoutDesc const& desc);
 		RHISamplerState* RHICreateSamplerState(SamplerStateInitializer const& initializer);
 
 		RHIRasterizerState* RHICreateRasterizerState(RasterizerStateInitializer const& initializer);
@@ -541,7 +547,7 @@ namespace Render
 					HashCombine(hash, HashValue(&e , sizeof(e)) );
 				}
 			}
-			std::vector< InputElement > elements;
+			std::vector< InputElementDesc > elements;
 			uint32 hash;
 
 			uint32 getHash() const { return hash; }
@@ -552,7 +558,7 @@ namespace Render
 			}
 		};
 
-		std::unordered_map< InputLayoutKey, TComPtr< ID3D11InputLayout >, MemberFunHasher > mInputLayoutMap;
+		std::unordered_map< InputLayoutKey, RHIInputLayoutRef , MemberFunHasher > mInputLayoutMap;
 		D3D11Context   mRenderContext;
 		FrameSwapChain mSwapChain;
 		TComPtr< ID3D11Device > mDevice;

@@ -19,8 +19,13 @@
 
 #include "DataCacheInterface.h"
 
+#include "Clock.h"
+
+
 namespace Render
 {
+
+
 	class StaticMesh;
 
 	class TINY_API TextureShowFrame : public GWidget
@@ -86,6 +91,111 @@ namespace Render
 		return true;
 	}
 
+	class InstancedMesh
+	{
+	public:
+
+		void setMesh(Mesh& InMesh)
+		{
+			mMesh = &InMesh;
+			InputLayoutDesc desc = InMesh.mInputLayoutDesc;
+			desc.addElement(1, Vertex::ATTRIBUTE10, Vertex::eFloat4, false, true, 1);
+			desc.addElement(1, Vertex::ATTRIBUTE11, Vertex::eFloat4, false, true, 1);
+			desc.addElement(1, Vertex::ATTRIBUTE12, Vertex::eFloat4, false, true, 1);
+			desc.addElement(1, Vertex::ATTRIBUTE13, Vertex::eFloat4, false, true, 1);
+			mInputLayout = RHICreateInputLayout(desc);
+		}
+
+		int addInstance(Vector3 const& pos, Vector3 const& scale, Quaternion const& rotation, Vector4 const& param)
+		{
+			Matrix4 xform = Matrix4::Scale(scale) * Matrix4::Rotate(rotation) * Matrix4::Translate(pos);
+
+			int result = mInstanceTransforms.size();
+			mInstanceTransforms.push_back(xform);
+			mInstanceParams.push_back(param);
+			bBufferValid = false;
+			return result;
+		}
+
+		bool UpdateInstanceBuffer()
+		{
+			if( !mInstancedBuffer.isValid() )
+			{
+				mInstancedBuffer = RHICreateVertexBuffer(sizeof(Vector4) * 4, mInstanceTransforms.size(), BCF_UsageDynamic, nullptr);
+				if( !mInstancedBuffer.isValid() )
+				{
+					LogMsg("Can't create vertex buffer!!");
+					return false;
+				}
+			}
+			else
+			{
+				if( mInstancedBuffer->getNumElements() < mInstanceTransforms.size() )
+				{
+					mInstancedBuffer->resetData(sizeof(Vector4) * 4, mInstanceTransforms.size(), BCF_UsageDynamic, nullptr);
+				}
+			}
+
+			Vector4* ptr = (Vector4*)RHILockBuffer(mInstancedBuffer, ELockAccess::WriteOnly);
+			if( ptr == nullptr )
+			{
+				return false;
+			}
+
+			for( int i = 0; i < mInstanceTransforms.size(); ++i )
+			{
+				ptr[0] = mInstanceTransforms[i].row(0);
+				ptr[0].w = mInstanceParams[i].x;
+				ptr[1] = mInstanceTransforms[i].row(1);
+				ptr[1].w = mInstanceParams[i].y;
+				ptr[2] = mInstanceTransforms[i].row(2);
+				ptr[2].w = mInstanceParams[i].z;
+				ptr[3] = mInstanceTransforms[i].row(3);
+				ptr[3].w = mInstanceParams[i].w;
+
+				ptr += 4;
+			}
+			RHIUnlockBuffer(mInstancedBuffer);
+
+			return true;
+		}
+
+		void draw(RHICommandList& comandList)
+		{
+			if( !bBufferValid )
+			{
+				if( UpdateInstanceBuffer() )
+				{
+					bBufferValid = true;
+				}
+				else
+				{
+					return;
+				}
+			}
+			InputStreamInfo inputStreams[2];
+			inputStreams[0].buffer = mMesh->mVertexBuffer;
+			inputStreams[1].buffer = mInstancedBuffer;
+			RHISetInputStream(comandList, mInputLayout, inputStreams, 2);
+			if( mMesh->mIndexBuffer.isValid() )
+			{
+				RHISetIndexBuffer(comandList, mMesh->mIndexBuffer);
+				RHIDrawIndexedPrimitiveInstanced(comandList, mMesh->mType, 0, mMesh->mIndexBuffer->getNumElements(), mInstanceParams.size());
+			}
+			else
+			{
+				RHIDrawPrimitiveInstanced(comandList, mMesh->mType, 0, mMesh->mVertexBuffer->getNumElements(), mInstanceParams.size());
+			}
+		}
+
+		Mesh* mMesh;
+
+		RHIInputLayoutRef mInputLayout;
+		RHIVertexBufferRef mInstancedBuffer;
+		std::vector< Matrix4 > mInstanceTransforms;
+		std::vector< Vector4 > mInstanceParams;
+		bool bBufferValid = false;
+	};
 
 	class ViewFrustum
 	{

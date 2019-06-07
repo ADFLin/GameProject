@@ -2,7 +2,7 @@
 
 namespace Render
 {
-	D3D_PRIMITIVE_TOPOLOGY D3D11Conv::To(PrimitiveType type)
+	D3D_PRIMITIVE_TOPOLOGY D3D11Translate::To(PrimitiveType type)
 	{
 		switch( type )
 		{
@@ -24,7 +24,7 @@ namespace Render
 		return D3D_PRIMITIVE_TOPOLOGY_UNDEFINED;
 	}
 
-	DXGI_FORMAT D3D11Conv::To(Texture::Format format)
+	DXGI_FORMAT D3D11Translate::To(Texture::Format format)
 	{
 		switch( format )
 		{
@@ -68,7 +68,7 @@ namespace Render
 		return DXGI_FORMAT_UNKNOWN;
 	}
 
-	DXGI_FORMAT D3D11Conv::To(Texture::DepthFormat format)
+	DXGI_FORMAT D3D11Translate::To(Texture::DepthFormat format)
 	{
 		switch( format )
 		{
@@ -91,7 +91,7 @@ namespace Render
 
 	}
 
-	D3D11_BLEND D3D11Conv::To(Blend::Factor factor)
+	D3D11_BLEND D3D11Translate::To(Blend::Factor factor)
 	{
 		switch( factor )
 		{
@@ -111,7 +111,7 @@ namespace Render
 		return D3D11_BLEND_ONE;
 	}
 
-	D3D11_BLEND_OP D3D11Conv::To(Blend::Operation op)
+	D3D11_BLEND_OP D3D11Translate::To(Blend::Operation op)
 	{
 		switch( op )
 		{
@@ -126,7 +126,7 @@ namespace Render
 
 
 
-	D3D11_CULL_MODE D3D11Conv::To(ECullMode mode)
+	D3D11_CULL_MODE D3D11Translate::To(ECullMode mode)
 	{
 		switch( mode )
 		{
@@ -137,7 +137,7 @@ namespace Render
 		return D3D11_CULL_NONE;
 	}
 
-	D3D11_FILL_MODE D3D11Conv::To(EFillMode mode)
+	D3D11_FILL_MODE D3D11Translate::To(EFillMode mode)
 	{
 		switch( mode )
 		{
@@ -150,7 +150,7 @@ namespace Render
 		return D3D11_FILL_SOLID;
 	}
 
-	DXGI_FORMAT D3D11Conv::To(Vertex::Format format , bool bNormalize)
+	DXGI_FORMAT D3D11Translate::To(Vertex::Format format , bool bNormalized)
 	{
 		switch( format )
 		{
@@ -171,28 +171,28 @@ namespace Render
 		case Vertex::eInt3: return DXGI_FORMAT_R32G32B32_UINT;
 		case Vertex::eInt4: return DXGI_FORMAT_R32G32B32A32_UINT;
 
-		case Vertex::eUShort1: return (bNormalize) ? DXGI_FORMAT_R16_UNORM : DXGI_FORMAT_R16_UINT;
-		case Vertex::eUShort2: return (bNormalize) ? DXGI_FORMAT_R16G16_UNORM : DXGI_FORMAT_R16G16_UINT;
-		//case Vertex::eUShort3: return (bNormalize) ? DXGI_FORMAT_R16G16B16_UNORM : DXGI_FORMAT_R16G16B16_UINT;
-		case Vertex::eUShort4: return (bNormalize) ? DXGI_FORMAT_R16G16B16A16_UNORM : DXGI_FORMAT_R16G16B16A16_UINT;
-		case Vertex::eShort1: return (bNormalize) ? DXGI_FORMAT_R16_SNORM : DXGI_FORMAT_R16_SINT;
-		case Vertex::eShort2: return (bNormalize) ? DXGI_FORMAT_R16G16_SNORM : DXGI_FORMAT_R16G16_SINT;
-		//case Vertex::eShort3: return (bNormalize) ? DXGI_FORMAT_R16G16B16_SNORM : DXGI_FORMAT_R16G16B16_SINT;
-		case Vertex::eShort4: return (bNormalize) ? DXGI_FORMAT_R16G16B16A16_SNORM : DXGI_FORMAT_R16G16B16A16_SINT;
-		case Vertex::eUByte1: return (bNormalize) ? DXGI_FORMAT_R8_UNORM : DXGI_FORMAT_R8_UINT;
-		case Vertex::eUByte2: return (bNormalize) ? DXGI_FORMAT_R8G8_UNORM : DXGI_FORMAT_R8G8_UINT;
-		//case Vertex::eUByte3: return (bNormalize) ? DXGI_FORMAT_R8G8B8_UNORM : DXGI_FORMAT_R8G8B8_UINT;
-		case Vertex::eUByte4: return (bNormalize) ? DXGI_FORMAT_R8G8B8A8_UNORM : DXGI_FORMAT_R8G8B8A8_UINT;
-		case Vertex::eByte1: return (bNormalize) ? DXGI_FORMAT_R8_SNORM : DXGI_FORMAT_R8_SINT;
-		case Vertex::eByte2: return (bNormalize) ? DXGI_FORMAT_R8G8_SNORM : DXGI_FORMAT_R8G8_SINT;
-		//case Vertex::eByte3: return (bNormalize) ? DXGI_FORMAT_R8G8B8_SNORM : DXGI_FORMAT_R8G8B8_SINT;
-		case Vertex::eByte4: return (bNormalize) ? DXGI_FORMAT_R8G8B8A8_SNORM : DXGI_FORMAT_R8G8B8A8_SINT;
+		case Vertex::eUShort1: return (bNormalized) ? DXGI_FORMAT_R16_UNORM : DXGI_FORMAT_R16_UINT;
+		case Vertex::eUShort2: return (bNormalized) ? DXGI_FORMAT_R16G16_UNORM : DXGI_FORMAT_R16G16_UINT;
+		//case Vertex::eUShort3: return (bNormalized) ? DXGI_FORMAT_R16G16B16_UNORM : DXGI_FORMAT_R16G16B16_UINT;
+		case Vertex::eUShort4: return (bNormalized) ? DXGI_FORMAT_R16G16B16A16_UNORM : DXGI_FORMAT_R16G16B16A16_UINT;
+		case Vertex::eShort1: return (bNormalized) ? DXGI_FORMAT_R16_SNORM : DXGI_FORMAT_R16_SINT;
+		case Vertex::eShort2: return (bNormalized) ? DXGI_FORMAT_R16G16_SNORM : DXGI_FORMAT_R16G16_SINT;
+		//case Vertex::eShort3: return (bNormalized) ? DXGI_FORMAT_R16G16B16_SNORM : DXGI_FORMAT_R16G16B16_SINT;
+		case Vertex::eShort4: return (bNormalized) ? DXGI_FORMAT_R16G16B16A16_SNORM : DXGI_FORMAT_R16G16B16A16_SINT;
+		case Vertex::eUByte1: return (bNormalized) ? DXGI_FORMAT_R8_UNORM : DXGI_FORMAT_R8_UINT;
+		case Vertex::eUByte2: return (bNormalized) ? DXGI_FORMAT_R8G8_UNORM : DXGI_FORMAT_R8G8_UINT;
+		//case Vertex::eUByte3: return (bNormalized) ? DXGI_FORMAT_R8G8B8_UNORM : DXGI_FORMAT_R8G8B8_UINT;
+		case Vertex::eUByte4: return (bNormalized) ? DXGI_FORMAT_R8G8B8A8_UNORM : DXGI_FORMAT_R8G8B8A8_UINT;
+		case Vertex::eByte1: return (bNormalized) ? DXGI_FORMAT_R8_SNORM : DXGI_FORMAT_R8_SINT;
+		case Vertex::eByte2: return (bNormalized) ? DXGI_FORMAT_R8G8_SNORM : DXGI_FORMAT_R8G8_SINT;
+		//case Vertex::eByte3: return (bNormalized) ? DXGI_FORMAT_R8G8B8_SNORM : DXGI_FORMAT_R8G8B8_SINT;
+		case Vertex::eByte4: return (bNormalized) ? DXGI_FORMAT_R8G8B8A8_SNORM : DXGI_FORMAT_R8G8B8A8_SINT;
 		}
 		return DXGI_FORMAT_UNKNOWN;
 	}
 
 
-	D3D11_MAP D3D11Conv::To(ELockAccess access)
+	D3D11_MAP D3D11Translate::To(ELockAccess access)
 	{
 		switch( access )
 		{
@@ -204,7 +204,7 @@ namespace Render
 		return D3D11_MAP_READ_WRITE;
 	}
 
-	D3D11_FILTER D3D11Conv::To(Sampler::Filter filter)
+	D3D11_FILTER D3D11Translate::To(Sampler::Filter filter)
 	{
 		switch( filter )
 		{
@@ -221,50 +221,46 @@ namespace Render
 		return D3D11_FILTER_MIN_MAG_MIP_POINT;
 	}
 
-	D3D11_TEXTURE_ADDRESS_MODE D3D11Conv::To(Sampler::AddressMode mode)
+	D3D11_TEXTURE_ADDRESS_MODE D3D11Translate::To(Sampler::AddressMode mode)
 	{
 		switch( mode )
 		{
-		case Sampler::eWarp:
-			return D3D11_TEXTURE_ADDRESS_WRAP;
-		case Sampler::eClamp:
-			return D3D11_TEXTURE_ADDRESS_CLAMP;
-		case Sampler::eMirror:
-			return D3D11_TEXTURE_ADDRESS_MIRROR;
-		case Sampler::eBorder:
-			return D3D11_TEXTURE_ADDRESS_BORDER;
+		case Sampler::eWarp:   return D3D11_TEXTURE_ADDRESS_WRAP;
+		case Sampler::eClamp:  return D3D11_TEXTURE_ADDRESS_CLAMP;
+		case Sampler::eMirror: return D3D11_TEXTURE_ADDRESS_MIRROR;
+		case Sampler::eBorder: return D3D11_TEXTURE_ADDRESS_BORDER;
 		}
 		return D3D11_TEXTURE_ADDRESS_WRAP;
 	}
 
-	D3D11_COMPARISON_FUNC D3D11Conv::To(ECompareFun func)
+	D3D11_COMPARISON_FUNC D3D11Translate::To(ECompareFun func)
 	{
 		switch( func )
 		{
-		case ECompareFun::Never: return D3D11_COMPARISON_NEVER;
-		case ECompareFun::Less:  return D3D11_COMPARISON_LESS;
-		case ECompareFun::Equal: return D3D11_COMPARISON_EQUAL;
-		case ECompareFun::NotEqual: return D3D11_COMPARISON_NOT_EQUAL;
-		case ECompareFun::LessEqual: return D3D11_COMPARISON_LESS_EQUAL;
-		case ECompareFun::Greater: return D3D11_COMPARISON_GREATER;
+		case ECompareFun::Never:        return D3D11_COMPARISON_NEVER;
+		case ECompareFun::Less:         return D3D11_COMPARISON_LESS;
+		case ECompareFun::Equal:        return D3D11_COMPARISON_EQUAL;
+		case ECompareFun::NotEqual:     return D3D11_COMPARISON_NOT_EQUAL;
+		case ECompareFun::LessEqual:    return D3D11_COMPARISON_LESS_EQUAL;
+		case ECompareFun::Greater:      return D3D11_COMPARISON_GREATER;
 		case ECompareFun::GeraterEqual: return D3D11_COMPARISON_GREATER_EQUAL;
-		case ECompareFun::Always: return D3D11_COMPARISON_ALWAYS;
+		case ECompareFun::Always:       return D3D11_COMPARISON_ALWAYS;
 		}
 		return D3D11_COMPARISON_NEVER;
 	}
 
-	D3D11_STENCIL_OP D3D11Conv::To(Stencil::Operation op)
+	D3D11_STENCIL_OP D3D11Translate::To(Stencil::Operation op)
 	{
 		switch( op )
 		{
-		case Stencil::eKeep: return D3D11_STENCIL_OP_KEEP;
-		case Stencil::eZero: return D3D11_STENCIL_OP_ZERO;
-		case Stencil::eReplace:return D3D11_STENCIL_OP_REPLACE;
-		case Stencil::eIncr:   return D3D11_STENCIL_OP_INCR_SAT;
+		case Stencil::eKeep:    return D3D11_STENCIL_OP_KEEP;
+		case Stencil::eZero:    return D3D11_STENCIL_OP_ZERO;
+		case Stencil::eReplace: return D3D11_STENCIL_OP_REPLACE;
+		case Stencil::eIncr:    return D3D11_STENCIL_OP_INCR_SAT;
 		case Stencil::eIncrWarp:return D3D11_STENCIL_OP_INCR;
-		case Stencil::eDecr:return D3D11_STENCIL_OP_DECR_SAT;
+		case Stencil::eDecr:    return D3D11_STENCIL_OP_DECR_SAT;
 		case Stencil::eDecrWarp:return D3D11_STENCIL_OP_DECR;
-		case Stencil::eInvert:return D3D11_STENCIL_OP_INVERT;
+		case Stencil::eInvert:  return D3D11_STENCIL_OP_INVERT;
 		}
 		return D3D11_STENCIL_OP_KEEP;
 	}

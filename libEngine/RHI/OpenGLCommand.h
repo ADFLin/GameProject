@@ -57,10 +57,10 @@ namespace Render
 		void RHIDrawIndexedPrimitive(PrimitiveType type, int indexStart, int nIndex, uint32 baseVertex);
 		void RHIDrawPrimitiveIndirect(PrimitiveType type, RHIVertexBuffer* commandBuffer, int offset, int numCommand, int commandStride);
 		void RHIDrawIndexedPrimitiveIndirect(PrimitiveType type, RHIVertexBuffer* commandBuffer, int offset, int numCommand, int commandStride);
-		void RHIDrawPrimitiveInstanced(PrimitiveType type, int vStart, int nv, int numInstance);
+		void RHIDrawPrimitiveInstanced(PrimitiveType type, int vStart, int nv, uint32 numInstance, uint32 baseInstance);
+		void RHIDrawIndexedPrimitiveInstanced(PrimitiveType type, int indexStart, int nIndex, uint32 numInstance, uint32 baseVertex, uint32 baseInstance);
 
 		void RHIDrawPrimitiveUP(PrimitiveType type, int numVertex, VertexDataInfo dataInfos[], int numData);
-
 		void RHIDrawIndexedPrimitiveUP(PrimitiveType type, int numVerex, VertexDataInfo dataInfos[], int numVertexData, int const* pIndices, int numIndex);
 
 		void RHISetupFixedPipelineState(Matrix4 const& transform, LinearColor const& color, RHITexture2D* textures[], int numTexture);
@@ -84,7 +84,7 @@ namespace Render
 
 
 		}
-		void RHISetInputStream(RHIInputLayout& inputLayout, InputStreamInfo inputStreams[], int numInputStream);
+		void RHISetInputStream(RHIInputLayout* inputLayout, InputStreamInfo inputStreams[], int numInputStream);
 		void RHISetIndexBuffer(RHIIndexBuffer* buffer);
 		void RHIDispatchCompute(uint32 numGroupX, uint32 numGroupY, uint32 numGroupZ);
 
@@ -117,18 +117,18 @@ namespace Render
 
 		bool commitInputStream()
 		{
-			if( !mLastInputLayout.isValid() )
-				return false;
-
-			mWasBindAttrib = false;
-			if( mbUseFixedPipeline )
+			if( mLastInputLayout.isValid() )
 			{
-				OpenGLCast::To(mLastInputLayout)->bindPointer(mUsedInputStreams, mNumInputStream);
-			}
-			else
-			{
-				OpenGLCast::To(mLastInputLayout)->bindAttrib(mUsedInputStreams, mNumInputStream);
-				mWasBindAttrib = true;
+				mWasBindAttrib = false;
+				if( mbUseFixedPipeline )
+				{
+					OpenGLCast::To(mLastInputLayout)->bindPointer(mUsedInputStreams, mNumInputStream);
+				}
+				else
+				{
+					OpenGLCast::To(mLastInputLayout)->bindAttrib(mUsedInputStreams, mNumInputStream);
+					mWasBindAttrib = true;
+				}
 			}
 			return true;
 		}

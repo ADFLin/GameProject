@@ -56,25 +56,68 @@ namespace Render
 		return result;
 	}
 
-	int TextureAtlas::addImage(int w, int h, Texture::Format format, void* data, int pixelStride)
+	bool TextureAtlas::addImageFile(int id, char const* path)
 	{
-		if( !mHelper.addImage(mNextImageId, w + 2 * mBorder, h + 2 * mBorder) )
+		int w;
+		int h;
+		int comp;
+		unsigned char* image = stbi_load(path, &w, &h, &comp, STBI_default);
+
+		if( !image )
+			return false;
+
+		int result = -1;
+
+		Texture::Format format = Texture::eRGBA8;
+		//#TODO
+		switch( comp )
+		{
+		case 3:
+			format = Texture::eRGB8;
+			break;
+		case 4:
+			format = Texture::eRGBA8;
+			break;
+		default:
+			return false;
+		}
+
+		if( !addImageInteranl(id, w, h, format, image, 0) )
+			return false;
+
+		if( mNextImageId <= id )
+			mNextImageId = id + 1;
+
+		return true;
+	}
+
+	int TextureAtlas::addImage(int w, int h, Texture::Format format, void* data, int dataImageWidth)
+	{
+		if( !addImageInteranl(mNextImageId, w, h, format, data, dataImageWidth) )
 			return -1;
 
-		auto rect = mHelper.getNode(mNextImageId)->rect;
+		int result = mNextImageId;
+		++mNextImageId;
+		return result;
+	}
 
-		if( pixelStride )
+	bool TextureAtlas::addImageInteranl(int id , int w, int h, Texture::Format format, void* data, int dataImageWidth)
+	{
+		if( !mHelper.addImage(id, w + 2 * mBorder, h + 2 * mBorder) )
+			return false;
+
+		auto rect = mHelper.getNode(id)->rect;
+
+		if( dataImageWidth )
 		{
-			mTexture->update(rect.x + mBorder, rect.y + mBorder, w, h, format, pixelStride, data);
+			mTexture->update(rect.x + mBorder, rect.y + mBorder, w, h, format, dataImageWidth, data);
 		}
 		else
 		{
 			mTexture->update(rect.x + mBorder, rect.y + mBorder, w, h, format, data);
 		}
-		
-		int result = mNextImageId;
-		++mNextImageId;
-		return result;
+
+		return true;
 	}
 
 	void TextureAtlas::getRectUV(int id, Vector2& outMin, Vector2& outMax) const
@@ -84,6 +127,11 @@ namespace Render
 		outMin.y = float(rect.y + mBorder) / mTexture->getSizeY();
 		outMax.x = float(rect.x + rect.w - mBorder) / mTexture->getSizeX();
 		outMax.y = float(rect.y + rect.h - mBorder) / mTexture->getSizeY();
+	}
+
+	float TextureAtlas::calcUsageAreaRatio()
+	{
+		return float(mHelper.calcUsageArea()) / mHelper.getTotalArea();
 	}
 
 }//namespace Render

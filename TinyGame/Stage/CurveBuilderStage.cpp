@@ -74,9 +74,9 @@ namespace CB
 			::Global::GUI().cleanupWidget();
 
 			{
-				Surface3D* surface = createSurfaceXY("x + x", Color4f(0.2, 0.6, 0.4, 0.3));
+				Surface3D* surface = createSurfaceXY("x", Color4f(0.2, 0.6, 0.4, 0.3));
 				//Surface3D* surface = createSurfaceXY("cos(0.1*(x*x+y*y) + 0.01*t)", Color4f(0.2, 0.6, 0.4, 0.3));
-				surface = createSurfaceXY("sin(x)*cos(y+0.01*t)", Color4f(0.2, 0.6, 0.4, 0.5));
+				surface = createSurfaceXY("sin(x)", Color4f(1, 0.6, 0.4, 0.5));
 				//surface = createSurfaceXY("sin(0.1*(x*x+y*y) + 0.01*t)", Color4f(0.2, 0.6, 0.1, 0.3) );
 
 				GTextCtrl* textCtrl = new GTextCtrl(UI_ANY, Vec2i(100, 100), 200, nullptr);
@@ -112,7 +112,7 @@ namespace CB
 			surface->setRangeV(Range(Min, Max));
 
 #if _DEBUG
-			int NumX = 10, NumY = 10;
+			int NumX = 20, NumY = 20;
 #else
 			int NumX = 300, NumY = 300;
 #endif
@@ -128,6 +128,8 @@ namespace CB
 
 		virtual void onEnd()
 		{
+			::Global::GetDrawEngine().shutdownRHI(true);
+
 			BaseClass::onEnd();
 		}
 
@@ -182,8 +184,7 @@ namespace CB
 			int width = ::Global::GetDrawEngine().getScreenWidth();
 			int height = ::Global::GetDrawEngine().getScreenHeight();
 
-
-			glClearDepth(1.0f);							// Depth Buffer Setup
+			glClearDepth(1.0f);
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 			glClearColor(0.7f, 0.7f, 0.7f, 1.0f);
 
@@ -192,14 +193,8 @@ namespace CB
 			RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
 			RHISetDepthStencilState(commandList, TStaticDepthStencilState<>::GetRHI());
 
-			glMatrixMode(GL_PROJECTION);
-			Matrix4 matProj = AdjProjectionMatrixForRHI( PerspectiveMatrix( Math::Deg2Rad(45.0f) , (GLdouble)width / (GLdouble)height, 0.1f, 1000.0f) );
-			glLoadMatrixf(matProj);
-
-			glMatrixMode(GL_MODELVIEW);
+			Matrix4 matProj = AdjProjectionMatrixForRHI( PerspectiveMatrix( Math::Deg2Rad(45.0f) , float(width) / height, 0.1f, 1000.0f) );
 			Matrix4 matView = mCamera.getViewMatrix();
-			glLoadMatrixf(matView);
-
 			mRenderer->getViewInfo().setupTransform(matView, matProj);
 			mRenderer->beginRender(commandList);
 			{

@@ -115,10 +115,10 @@ namespace Render
 		typedef D3D11DepthStencilState ImplType;
 	};
 
-	struct D3D11Conv
+	struct D3D11Translate
 	{
 		static D3D_PRIMITIVE_TOPOLOGY To(PrimitiveType type);
-		static DXGI_FORMAT To(Vertex::Format format, bool bNormalize);
+		static DXGI_FORMAT To(Vertex::Format format, bool bNormalized);
 		static DXGI_FORMAT To(Texture::Format format);
 		static DXGI_FORMAT To(Texture::DepthFormat format);
 		static D3D11_BLEND To(Blend::Factor factor);
@@ -224,7 +224,7 @@ namespace Render
 			return true;
 		}
 
-		bool update(int ox, int oy, int w, int h, Texture::Format format, int pixelStride, void* data, int level)
+		bool update(int ox, int oy, int w, int h, Texture::Format format, int dataImageWidth, void* data, int level)
 		{
 			TComPtr<ID3D11Device> device;
 			mResource->GetDevice(&device);
@@ -237,7 +237,8 @@ namespace Render
 			box.right = ox + w;
 			box.top = oy;
 			box.bottom = oy + h;
-			deviceContext->UpdateSubresource(mResource, level, &box, data, w * pixelStride, w * h * pixelStride);
+			//@FIXME : error
+			deviceContext->UpdateSubresource(mResource, level, &box, data, dataImageWidth * Texture::GetFormatSize(format), h * dataImageWidth * Texture::GetFormatSize(format));
 			return true;
 		}
 

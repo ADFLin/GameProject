@@ -54,7 +54,7 @@ public:
 		mHour = hour;
 		mMinute = minute;
 		mSecond = sec;
-		mMillisecond = mMillisecond;
+		mMillisecond = millisecond;
 		mCachedDayOfWeek = -1;
 	}
 	int32 getYear() const { return mYear; }

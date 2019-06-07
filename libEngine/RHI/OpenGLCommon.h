@@ -23,6 +23,7 @@
 
 namespace Render
 {
+	bool VerifyOpenGLStatus();
 
 	template< class RMPolicy >
 	class TOpenGLObject : public RefCountedObjectT< TOpenGLObject< RMPolicy > >
@@ -241,7 +242,7 @@ namespace Render
 		bool create(Texture::Format format, int width, int height, int numMipLevel, int numSamples, uint32 createFlags, void* data, int alignment);
 
 		bool update(int ox, int oy, int w, int h, Texture::Format format, void* data, int level);
-		bool update(int ox, int oy, int w, int h, Texture::Format format, int pixelStride, void* data, int level);
+		bool update(int ox, int oy, int w, int h, Texture::Format format, int dataImageWidth, void* data, int level);
 	};
 
 
@@ -256,7 +257,7 @@ namespace Render
 	public:
 		bool create(Texture::Format format, int size, int numMipLevel, uint32 creationFlags, void* data[]);
 		bool update(Texture::Face face, int ox, int oy, int w, int h, Texture::Format format, void* data, int level );
-		bool update(Texture::Face face, int ox, int oy, int w, int h, Texture::Format format, int pixelStride, void* data, int level );
+		bool update(Texture::Face face, int ox, int oy, int w, int h, Texture::Format format, int dataImageWidth, void* data, int level );
 	};
 
 	class OpenGLTexture2DArray : public TOpengGLTexture< RHITexture2DArray >
@@ -271,7 +272,7 @@ namespace Render
 		bool create(Texture::DepthFormat format, int width, int height, int numMipLevel, int numSamples);
 	};
 
-	class GLConvert
+	class OpenGLTranlate
 	{
 	public:
 		static GLenum To(EAccessOperator op);
@@ -299,7 +300,7 @@ namespace Render
 
 		static GLenum VertexComponentType(uint8 format)
 		{
-			return GLConvert::To(Vertex::GetCompValueType(Vertex::Format(format)));
+			return OpenGLTranlate::To(Vertex::GetCompValueType(Vertex::Format(format)));
 		}
 	};
 
@@ -408,7 +409,7 @@ namespace Render
 		void* lock(ELockAccess access)
 		{
 			glBindBuffer(GLBufferType, getHandle());
-			void* result = glMapBuffer(GLBufferType, GLConvert::To(access));
+			void* result = glMapBuffer(GLBufferType, OpenGLTranlate::To(access));
 			glBindBuffer(GLBufferType, 0);
 			return result;
 		}
@@ -453,7 +454,7 @@ namespace Render
 		bool resetDataInternal(uint32 elementSize, uint32 numElements, uint32 creationFlags, void* initData)
 		{
 			glBindBuffer(GLBufferType, getHandle());
-			glBufferData(GLBufferType, elementSize * numElements , initData, GLConvert::BufferUsageEnum(creationFlags));
+			glBufferData(GLBufferType, elementSize * numElements , initData, OpenGLTranlate::BufferUsageEnum(creationFlags));
 			glBindBuffer(GLBufferType, 0);
 
 			mCreationFlags = creationFlags;
@@ -635,16 +636,17 @@ namespace Render
 
 		struct Element
 		{
+			GLenum componentType;
+			uint32 stride;
+			uint16 instanceStepRate;
 			uint8  semantic;
 			uint8  offset;
 			uint8  idxStream;
 			uint8  attribute;
-			uint32 stride;
-			bool   bNormalize;
-			int    componentNum;
-			GLenum componentType;
+			uint8  componentNum;
 			uint8  idx;
-
+			bool   bNormalized;
+			bool   bInstanceData;	
 		};
 
 		std::vector< uint32 >  mDefaultStreamSizes;

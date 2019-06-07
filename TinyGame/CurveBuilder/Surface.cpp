@@ -89,7 +89,7 @@ namespace CB
 		, mNeedDrawMesh(true)
 		, mNeedDrawNormal(false)
 		, mNeedDrawLine(true)
-		, mMeshLineDensity(0.3f)
+		, mMeshLineDensity(1.0f)
 		, mParamU(Range(-10, 10), 0)
 		, mParamV(Range(-10, 10), 0)
 

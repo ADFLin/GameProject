@@ -10,45 +10,54 @@ namespace Render
 
 	uint32 RHIResource::TotalCount = 0;
 
-	bool CheckGLStateValid()
+	bool VerifyOpenGLStatus()
 	{
 		GLenum error = glGetError();
-		if( error != GL_NO_ERROR )
+		if( error == GL_NO_ERROR )
+			return true;
+		switch( error )
 		{
-			int i = 1;
-			return false;
+#define CASE_CODE( ENUM ) case ENUM : LogMsg( "Error code = %u (%s)" , error , #ENUM ); break;
+			CASE_CODE(GL_INVALID_ENUM);
+			CASE_CODE(GL_INVALID_VALUE);
+			CASE_CODE(GL_INVALID_OPERATION);
+			CASE_CODE(GL_INVALID_FRAMEBUFFER_OPERATION);
+			CASE_CODE(GL_STACK_UNDERFLOW);
+			CASE_CODE(GL_STACK_OVERFLOW);
+#undef CASE_CODE
+		default:
+			LogMsg("Unknown error code = %u", error);
 		}
-
-		return true;
+		return false;
 	}
 
 
 	bool  UpdateTexture2D(GLenum textureEnum, int ox, int oy, int w, int h, Texture::Format format, void* data, int level)
 	{
-		glTexSubImage2D(textureEnum, level, ox, oy, w, h, GLConvert::PixelFormat(format), GLConvert::TextureComponentType(format), data);
-		bool result = CheckGLStateValid();
+		glTexSubImage2D(textureEnum, level, ox, oy, w, h, OpenGLTranlate::PixelFormat(format), OpenGLTranlate::TextureComponentType(format), data);
+		bool result = VerifyOpenGLStatus();
 		return result;
 
 	}
 
-	bool  UpdateTexture2D(GLenum textureEnum, int ox, int oy, int w, int h, Texture::Format format, int pixelStride, void* data, int level)
+	bool  UpdateTexture2D(GLenum textureEnum, int ox, int oy, int w, int h, Texture::Format format, int dataImageWidth, void* data, int level)
 	{
 #if 1
-		::glPixelStorei(GL_UNPACK_ROW_LENGTH, pixelStride);
-		glTexSubImage2D(textureEnum, level, ox, oy, w, h, GLConvert::PixelFormat(format), GLConvert::TextureComponentType(format), data);
-		bool result = CheckGLStateValid();
+		::glPixelStorei(GL_UNPACK_ROW_LENGTH, dataImageWidth);
+		glTexSubImage2D(textureEnum, level, ox, oy, w, h, OpenGLTranlate::PixelFormat(format), OpenGLTranlate::TextureComponentType(format), data);
+		bool result = VerifyOpenGLStatus();
 		::glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
 #else
-		GLenum formatGL = GLConvert::PixelFormat(format);
-		GLenum typeGL = GLConvert::TextureComponentType(format);
+		GLenum formatGL = OpenGLTranlate::PixelFormat(format);
+		GLenum typeGL = OpenGLTranlate::TextureComponentType(format);
 		uint8* pData = (uint8*)data;
-		int dataStride = pixelStride * Texture::GetFormatSize(format);
+		int dataStride = dataImageWidth * Texture::GetFormatSize(format);
 		for( int dy = 0; dy < h; ++dy )
 		{
 			glTexSubImage2D(textureEnum, level, ox, oy + dy, w, 1, formatGL, typeGL, pData);
 			pData += dataStride;
 		}
-		bool result = CheckGLStateValid();
+		bool result = VerifyOpenGLStatus();
 #endif
 		return result;
 	}
@@ -69,8 +78,8 @@ namespace Render
 
 		glTexParameteri(TypeEnumGL, GL_TEXTURE_BASE_LEVEL, 0);
 		glTexParameteri(TypeEnumGL, GL_TEXTURE_MAX_LEVEL, numMipLevel - 1);
-		glTexImage1D(TypeEnumGL, 0, GLConvert::To(format), length, 0,
-					 GLConvert::BaseFormat(format), GLConvert::TextureComponentType(format), data);
+		glTexImage1D(TypeEnumGL, 0, OpenGLTranlate::To(format), length, 0,
+					 OpenGLTranlate::BaseFormat(format), OpenGLTranlate::TextureComponentType(format), data);
 
 		if( numMipLevel > 1 )
 		{
@@ -83,7 +92,7 @@ namespace Render
 		}
 		glTexParameteri(TypeEnumGL, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-		CheckGLStateValid();
+		VerifyOpenGLStatus();
 		unbind();
 		return true;
 	}
@@ -91,8 +100,8 @@ namespace Render
 	bool OpenGLTexture1D::update(int offset, int length, Texture::Format format, void* data, int level /*= 0*/)
 	{
 		bind();
-		glTexSubImage1D(TypeEnumGL, level, offset, length, GLConvert::PixelFormat(format), GLConvert::TextureComponentType(format), data);
-		bool result = CheckGLStateValid();
+		glTexSubImage1D(TypeEnumGL, level, offset, length, OpenGLTranlate::PixelFormat(format), OpenGLTranlate::TextureComponentType(format), data);
+		bool result = VerifyOpenGLStatus();
 		unbind();
 		return result;
 	}
@@ -118,7 +127,7 @@ namespace Render
 
 		if( numSamples > 1 )
 		{
-			glTexImage2DMultisample(TypeEnumGLMultisample, numSamples, GLConvert::To(format), width, height, true);
+			glTexImage2DMultisample(TypeEnumGLMultisample, numSamples, OpenGLTranlate::To(format), width, height, true);
 		}
 		else
 		{
@@ -129,14 +138,14 @@ namespace Render
 			if( alignment && alignment != GLDefalutUnpackAlignment )
 			{
 				glPixelStorei(GL_UNPACK_ALIGNMENT, alignment);
-				glTexImage2D(TypeEnumGL, 0, GLConvert::To(format), width, height, 0,
-							 GLConvert::BaseFormat(format), GLConvert::TextureComponentType(format), data);
+				glTexImage2D(TypeEnumGL, 0, OpenGLTranlate::To(format), width, height, 0,
+							 OpenGLTranlate::BaseFormat(format), OpenGLTranlate::TextureComponentType(format), data);
 				glPixelStorei(GL_UNPACK_ALIGNMENT, GLDefalutUnpackAlignment);
 			}
 			else
 			{
-				glTexImage2D(TypeEnumGL, 0, GLConvert::To(format), width, height, 0,
-							 GLConvert::BaseFormat(format), GLConvert::TextureComponentType(format), data);
+				glTexImage2D(TypeEnumGL, 0, OpenGLTranlate::To(format), width, height, 0,
+							 OpenGLTranlate::BaseFormat(format), OpenGLTranlate::TextureComponentType(format), data);
 			}
 
 
@@ -153,7 +162,7 @@ namespace Render
 
 		}
 
-		CheckGLStateValid();
+		VerifyOpenGLStatus();
 		unbind();
 		return true;
 	}
@@ -171,7 +180,7 @@ namespace Render
 		return result;
 	}
 
-	bool OpenGLTexture2D::update(int ox, int oy, int w, int h, Texture::Format format, int pixelStride, void* data, int level /*= 0 */)
+	bool OpenGLTexture2D::update(int ox, int oy, int w, int h, Texture::Format format, int dataImageWidth, void* data, int level /*= 0 */)
 	{
 		if( mNumSamples > 1 )
 		{
@@ -179,7 +188,7 @@ namespace Render
 		}
 
 		bind();
-		bool result = UpdateTexture2D(TypeEnumGL, ox, oy, w, h, format, pixelStride, data, level);
+		bool result = UpdateTexture2D(TypeEnumGL, ox, oy, w, h, format, dataImageWidth, data, level);
 		unbind();
 		return result;
 	}
@@ -207,15 +216,15 @@ namespace Render
 
 		if( numSamples > 1 )
 		{
-			glTexImage3DMultisample(TypeEnumGLMultisample, numSamples, GLConvert::To(format), sizeX, sizeY, sizeZ, true);
+			glTexImage3DMultisample(TypeEnumGLMultisample, numSamples, OpenGLTranlate::To(format), sizeX, sizeY, sizeZ, true);
 		}
 		else
 		{
 			glTexParameteri(TypeEnumGL, GL_TEXTURE_BASE_LEVEL, 0);
 			glTexParameteri(TypeEnumGL, GL_TEXTURE_MAX_LEVEL, numMipLevel - 1);
 
-			glTexImage3D(TypeEnumGL, 0, GLConvert::To(format), sizeX, sizeY, sizeZ, 0,
-						 GLConvert::BaseFormat(format), GLConvert::TextureComponentType(format), data);
+			glTexImage3D(TypeEnumGL, 0, OpenGLTranlate::To(format), sizeX, sizeY, sizeZ, 0,
+						 OpenGLTranlate::BaseFormat(format), OpenGLTranlate::TextureComponentType(format), data);
 
 			if( numMipLevel > 1 )
 			{
@@ -252,8 +261,8 @@ namespace Render
 		{
 
 			glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0,
-						 GLConvert::To(format), size, size, 0,
-						 GLConvert::BaseFormat(format), GLConvert::TextureComponentType(format), 
+						 OpenGLTranlate::To(format), size, size, 0,
+						 OpenGLTranlate::BaseFormat(format), OpenGLTranlate::TextureComponentType(format), 
 						 data ? data[i] : nullptr );
 		}
 
@@ -281,10 +290,10 @@ namespace Render
 		return result;
 	}
 
-	bool OpenGLTextureCube::update(Texture::Face face, int ox, int oy, int w, int h, Texture::Format format, int pixelStride, void* data, int level)
+	bool OpenGLTextureCube::update(Texture::Face face, int ox, int oy, int w, int h, Texture::Format format, int dataImageWidth, void* data, int level)
 	{
 		bind();
-		bool result = UpdateTexture2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + face, ox, oy, w, h, format, pixelStride , data, level);
+		bool result = UpdateTexture2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + face, ox, oy, w, h, format, dataImageWidth, data, level);
 		unbind();
 		return result;
 	}
@@ -312,15 +321,15 @@ namespace Render
 
 		if( numSamples > 1 )
 		{
-			glTexImage3DMultisample(TypeEnumGLMultisample, numSamples, GLConvert::To(format), width, height , layerSize, true);
+			glTexImage3DMultisample(TypeEnumGLMultisample, numSamples, OpenGLTranlate::To(format), width, height , layerSize, true);
 		}
 		else
 		{
 			glTexParameteri(TypeEnumGL, GL_TEXTURE_BASE_LEVEL, 0);
 			glTexParameteri(TypeEnumGL, GL_TEXTURE_MAX_LEVEL, numMipLevel - 1);
 
-			glTexImage3D(TypeEnumGL, 0, GLConvert::To(format), width, height, layerSize, 0,
-						 GLConvert::BaseFormat(format), GLConvert::TextureComponentType(format), data);
+			glTexImage3D(TypeEnumGL, 0, OpenGLTranlate::To(format), width, height, layerSize, 0,
+						 OpenGLTranlate::BaseFormat(format), OpenGLTranlate::TextureComponentType(format), data);
 
 			if( numMipLevel > 1 )
 			{
@@ -335,7 +344,7 @@ namespace Render
 
 		}
 
-		CheckGLStateValid();
+		VerifyOpenGLStatus();
 		unbind();
 		return true;
 	}
@@ -359,15 +368,15 @@ namespace Render
 		bind();
 		if( numSamples > 1 )
 		{
-			glTexImage2DMultisample(TypeEnumGLMultisample, numSamples, GLConvert::To(format), width, height, true);
+			glTexImage2DMultisample(TypeEnumGLMultisample, numSamples, OpenGLTranlate::To(format), width, height, true);
 		}
 		else
 		{
 			glTexParameteri(TypeEnumGL, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 			glTexParameteri(TypeEnumGL, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-			glTexImage2D(TypeEnumGL, 0, GLConvert::To(format), width, height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+			glTexImage2D(TypeEnumGL, 0, OpenGLTranlate::To(format), width, height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
 		}
-		CheckGLStateValid();
+		VerifyOpenGLStatus();
 		unbind();
 		return true;	
 	}
@@ -767,7 +776,7 @@ namespace Render
 
 
 
-	GLenum GLConvert::To(Texture::Format format)
+	GLenum OpenGLTranlate::To(Texture::Format format)
 	{
 		return gTexConvMap[(int)format].foramt;
 	}
@@ -804,7 +813,7 @@ namespace Render
 		return gTexConvMap[format].compNum;
 	}
 
-	GLenum GLConvert::To(EAccessOperator op)
+	GLenum OpenGLTranlate::To(EAccessOperator op)
 	{
 		switch( op )
 		{
@@ -816,7 +825,7 @@ namespace Render
 		return GL_READ_WRITE;
 	}
 
-	GLenum GLConvert::To(PrimitiveType type)
+	GLenum OpenGLTranlate::To(PrimitiveType type)
 	{
 		switch( type )
 		{
@@ -834,7 +843,7 @@ namespace Render
 		return GL_POINTS;
 	}
 
-	GLenum GLConvert::To(Shader::Type type)
+	GLenum OpenGLTranlate::To(Shader::Type type)
 	{
 		switch( type )
 		{
@@ -848,7 +857,7 @@ namespace Render
 		return 0;
 	}
 
-	GLenum GLConvert::To(ELockAccess access)
+	GLenum OpenGLTranlate::To(ELockAccess access)
 	{
 		switch( access )
 		{
@@ -863,7 +872,7 @@ namespace Render
 		return GL_READ_ONLY;
 	}
 
-	GLenum GLConvert::To(Blend::Factor factor)
+	GLenum OpenGLTranlate::To(Blend::Factor factor)
 	{
 		switch( factor )
 		{
@@ -881,7 +890,7 @@ namespace Render
 		return GL_ONE;
 	}
 
-	GLenum GLConvert::To(Blend::Operation op)
+	GLenum OpenGLTranlate::To(Blend::Operation op)
 	{
 		switch( op )
 		{
@@ -894,7 +903,7 @@ namespace Render
 		return GL_FUNC_ADD;
 	}
 
-	GLenum GLConvert::To(ECompareFun fun)
+	GLenum OpenGLTranlate::To(ECompareFun fun)
 	{
 		switch( fun )
 		{
@@ -918,7 +927,7 @@ namespace Render
 		return GL_LESS;
 	}
 
-	GLenum GLConvert::To(Stencil::Operation op)
+	GLenum OpenGLTranlate::To(Stencil::Operation op)
 	{
 		switch( op )
 		{
@@ -943,7 +952,7 @@ namespace Render
 	}
 
 
-	GLenum GLConvert::To(ECullMode mode)
+	GLenum OpenGLTranlate::To(ECullMode mode)
 	{
 		switch( mode )
 		{
@@ -953,7 +962,7 @@ namespace Render
 		return GL_FRONT;
 	}
 
-	GLenum GLConvert::To(EFillMode mode)
+	GLenum OpenGLTranlate::To(EFillMode mode)
 	{
 		switch( mode )
 		{
@@ -964,7 +973,7 @@ namespace Render
 		return GL_FILL;
 	}
 
-	GLenum GLConvert::To(ECompValueType type)
+	GLenum OpenGLTranlate::To(ECompValueType type)
 	{
 		switch( type )
 		{
@@ -982,7 +991,7 @@ namespace Render
 		return GL_FLOAT;
 	}
 
-	GLenum GLConvert::To(Sampler::Filter filter)
+	GLenum OpenGLTranlate::To(Sampler::Filter filter)
 	{
 		switch( filter )
 		{
@@ -1000,7 +1009,7 @@ namespace Render
 		return GL_NEAREST;
 	}
 
-	GLenum GLConvert::To(Sampler::AddressMode mode)
+	GLenum OpenGLTranlate::To(Sampler::AddressMode mode)
 	{
 		switch( mode )
 		{
@@ -1016,7 +1025,7 @@ namespace Render
 		return GL_REPEAT;
 	}
 
-	GLenum GLConvert::To(Texture::DepthFormat format)
+	GLenum OpenGLTranlate::To(Texture::DepthFormat format)
 	{
 		switch( format )
 		{
@@ -1034,7 +1043,7 @@ namespace Render
 		return 0;
 	}
 
-	GLenum GLConvert::BaseFormat(Texture::Format format)
+	GLenum OpenGLTranlate::BaseFormat(Texture::Format format)
 	{
 		switch( format )
 		{
@@ -1060,7 +1069,7 @@ namespace Render
 		return 0;
 	}
 
-	GLenum GLConvert::PixelFormat(Texture::Format format)
+	GLenum OpenGLTranlate::PixelFormat(Texture::Format format)
 	{
 		switch( format )
 		{
@@ -1085,12 +1094,12 @@ namespace Render
 		return 0;
 	}
 
-	GLenum GLConvert::TextureComponentType(Texture::Format format)
+	GLenum OpenGLTranlate::TextureComponentType(Texture::Format format)
 	{
 		return gTexConvMap[format].compType;
 	}
 
-	GLenum GLConvert::Image2DType(Texture::Format format)
+	GLenum OpenGLTranlate::Image2DType(Texture::Format format)
 	{
 		switch( format )
 		{
@@ -1116,30 +1125,13 @@ namespace Render
 		return 0;
 	}
 
-	GLenum GLConvert::BufferUsageEnum(uint32 creationFlags)
+	GLenum OpenGLTranlate::BufferUsageEnum(uint32 creationFlags)
 	{
 		if( creationFlags & BCF_UsageDynamic )
 			return GL_DYNAMIC_DRAW;
 		else if( creationFlags & BCF_UsageStage )
 			return GL_STREAM_DRAW;
 		return GL_STATIC_DRAW;
-	}
-
-	int Vertex::GetFormatSize(uint8 format)
-	{
-		int num = Vertex::GetComponentNum(format);
-		switch( Vertex::GetCompValueType(Vertex::Format(format)) )
-		{
-		case CVT_Float:  return sizeof(float) * num;
-		case CVT_Half:   return sizeof(float)/2 * num;
-		case CVT_UInt:   return sizeof(uint32) * num;
-		case CVT_Int:    return sizeof(int) * num;
-		case CVT_UShort: return sizeof(uint16) * num;
-		case CVT_Short:  return sizeof(int16) * num;
-		case CVT_UByte:  return sizeof(uint8) * num;
-		case CVT_Byte:   return sizeof(int8) * num;
-		}
-		return 0;
 	}
 
 
@@ -1174,11 +1166,11 @@ namespace Render
 			return false;
 		}
 
-		glSamplerParameteri(getHandle(), GL_TEXTURE_MIN_FILTER, GLConvert::To(initializer.filter));
+		glSamplerParameteri(getHandle(), GL_TEXTURE_MIN_FILTER, OpenGLTranlate::To(initializer.filter));
 		glSamplerParameteri(getHandle(), GL_TEXTURE_MAG_FILTER, initializer.filter == Sampler::ePoint ? GL_NEAREST : GL_LINEAR);
-		glSamplerParameteri(getHandle(), GL_TEXTURE_WRAP_S, GLConvert::To(initializer.addressU));
-		glSamplerParameteri(getHandle(), GL_TEXTURE_WRAP_T, GLConvert::To(initializer.addressV));
-		glSamplerParameteri(getHandle(), GL_TEXTURE_WRAP_R, GLConvert::To(initializer.addressW));
+		glSamplerParameteri(getHandle(), GL_TEXTURE_WRAP_S, OpenGLTranlate::To(initializer.addressU));
+		glSamplerParameteri(getHandle(), GL_TEXTURE_WRAP_T, OpenGLTranlate::To(initializer.addressV));
+		glSamplerParameteri(getHandle(), GL_TEXTURE_WRAP_R, OpenGLTranlate::To(initializer.addressW));
 		return true;
 	}
 
@@ -1195,12 +1187,12 @@ namespace Render
 
 			targetValueGL.bSeparateBlend = (targetValue.srcColor != targetValue.srcAlpha) || (targetValue.destColor != targetValue.destAlpha);
 
-			targetValueGL.srcColor = GLConvert::To(targetValue.srcColor);
-			targetValueGL.srcAlpha = GLConvert::To(targetValue.srcAlpha);
-			targetValueGL.destColor = GLConvert::To(targetValue.destColor);
-			targetValueGL.destAlpha = GLConvert::To(targetValue.destAlpha);
-			targetValueGL.op = GLConvert::To(targetValue.op);
-			targetValueGL.opAlpha = GLConvert::To(targetValue.opAlpha);
+			targetValueGL.srcColor = OpenGLTranlate::To(targetValue.srcColor);
+			targetValueGL.srcAlpha = OpenGLTranlate::To(targetValue.srcAlpha);
+			targetValueGL.destColor = OpenGLTranlate::To(targetValue.destColor);
+			targetValueGL.destAlpha = OpenGLTranlate::To(targetValue.destAlpha);
+			targetValueGL.op = OpenGLTranlate::To(targetValue.op);
+			targetValueGL.opAlpha = OpenGLTranlate::To(targetValue.opAlpha);
 		}
 	}
 
@@ -1208,20 +1200,20 @@ namespace Render
 	{
 		//When depth testing is disabled, writes to the depth buffer are also disabled
 		mStateValue.bEnableDepthTest = (initializer.depthFun != ECompareFun::Always) || (initializer.bWriteDepth);
-		mStateValue.depthFun = GLConvert::To(initializer.depthFun);
+		mStateValue.depthFun = OpenGLTranlate::To(initializer.depthFun);
 		mStateValue.bWriteDepth = initializer.bWriteDepth;
 
 		mStateValue.bEnableStencilTest = initializer.bEnableStencilTest;
 
-		mStateValue.stencilFun = GLConvert::To(initializer.stencilFun);
-		mStateValue.stencilFailOp = GLConvert::To(initializer.stencilFailOp);
-		mStateValue.stencilZFailOp = GLConvert::To(initializer.zFailOp);
-		mStateValue.stencilZPassOp = GLConvert::To(initializer.zPassOp);
+		mStateValue.stencilFun = OpenGLTranlate::To(initializer.stencilFun);
+		mStateValue.stencilFailOp = OpenGLTranlate::To(initializer.stencilFailOp);
+		mStateValue.stencilZFailOp = OpenGLTranlate::To(initializer.zFailOp);
+		mStateValue.stencilZPassOp = OpenGLTranlate::To(initializer.zPassOp);
 
-		mStateValue.stencilFunBack = GLConvert::To(initializer.stencilFunBack);
-		mStateValue.stencilFailOpBack = GLConvert::To(initializer.stencilFailOpBack);
-		mStateValue.stencilZFailOpBack = GLConvert::To(initializer.zFailOpBack);
-		mStateValue.stencilZPassOpBack = GLConvert::To(initializer.zPassOpBack);
+		mStateValue.stencilFunBack = OpenGLTranlate::To(initializer.stencilFunBack);
+		mStateValue.stencilFailOpBack = OpenGLTranlate::To(initializer.stencilFailOpBack);
+		mStateValue.stencilZFailOpBack = OpenGLTranlate::To(initializer.zFailOpBack);
+		mStateValue.stencilZPassOpBack = OpenGLTranlate::To(initializer.zPassOpBack);
 
 		mStateValue.bUseSeparateStencilOp =
 			(mStateValue.stencilFailOp != mStateValue.stencilFailOpBack) ||
@@ -1237,8 +1229,8 @@ namespace Render
 	{
 		mStateValue.bEnableCull = initializer.cullMode != ECullMode::None;
 		mStateValue.bEnableScissor = initializer.bEnableScissor;
-		mStateValue.cullFace = GLConvert::To(initializer.cullMode);
-		mStateValue.fillMode = GLConvert::To(initializer.fillMode);
+		mStateValue.cullFace = OpenGLTranlate::To(initializer.cullMode);
+		mStateValue.fillMode = OpenGLTranlate::To(initializer.fillMode);
 	}
 
 	OpenGLInputLayout::OpenGLInputLayout(InputLayoutDesc const& desc)
@@ -1248,13 +1240,14 @@ namespace Render
 			Element element;
 			element.idxStream = e.idxStream;
 			element.attribute = e.attribute;
-			element.bNormalize = e.bNormalize;
+			element.bNormalized = e.bNormalized;
+			element.bInstanceData = e.bIntanceData;
+			element.instanceStepRate = e.instanceStepRate;
 			element.componentNum = Vertex::GetComponentNum(e.format);
-			element.componentType = GLConvert::VertexComponentType(e.format);
+			element.componentType = OpenGLTranlate::VertexComponentType(e.format);
 			element.stride = desc.getVertexSize(e.idxStream);
 			element.offset = e.offset;
-			element.semantic = e.semantic;
-			element.idx = e.idx;
+			element.semantic = Vertex::AttributeToSemantic(e.attribute , element.idx);
 
 			mElements.push_back(element);
 		}
@@ -1267,23 +1260,28 @@ namespace Render
 
 	void OpenGLInputLayout::bindAttrib(InputStreamInfo inputStreams[], int numInputStream, LinearColor const* overwriteColor /*= nullptr*/)
 	{
-		for( int i = 0; i < numInputStream; ++i )
+		assert(numInputStream > 0);
+		int index = 0;
+		for( int indexStream = 0; indexStream < numInputStream; ++indexStream )
 		{
-			auto& inputStream = inputStreams[i];
+			auto& inputStream = inputStreams[indexStream];
+			int stride = (inputStream.stride >= 0) ? inputStream.stride : inputStream.buffer->getElementSize();
+
 			OpenGLCast::To(inputStream.buffer)->bind();
-			int index = 0;
 			for( ; index < mElements.size(); ++index )
 			{
 				auto const& e = mElements[index];
-				if( e.idxStream > index )
+				if( e.idxStream > indexStream )
 					break;
 
-				int stride = (inputStream.stride >= 0) ? inputStream.stride : inputStream.buffer->getElementSize();
 				glEnableVertexAttribArray(e.attribute);
-				glVertexAttribPointer(e.attribute, e.componentNum, e.componentType, e.bNormalize, stride , (void*)( inputStream.offset + e.offset) );
+				if ( e.bInstanceData )
+					glVertexBindingDivisor(e.attribute, e.instanceStepRate);
+				glVertexAttribPointer(e.attribute, e.componentNum, e.componentType, e.bNormalized, stride, (void*)(inputStream.offset + e.offset));			
 			}
-			OpenGLCast::To(inputStream.buffer)->unbind();
 		}
+
+		OpenGLCast::To(inputStreams[0].buffer)->unbind();
 		if( overwriteColor )
 		{
 			glDisableVertexAttribArray(Vertex::ATTRIBUTE_COLOR);
@@ -1293,33 +1291,35 @@ namespace Render
 
 	void OpenGLInputLayout::bindAttribUP(InputStreamInfo inputStreams[], int numInputStream)
 	{
-		for( int i = 0; i < numInputStream; ++i )
+		assert(numInputStream > 0);
+		int index = 0;
+		for( int indexStream = 0; indexStream < numInputStream; ++indexStream )
 		{
-			auto& inputStream = inputStreams[i];
-			int index = 0;
+			auto& inputStream = inputStreams[indexStream];
+			assert(inputStream.stride >= 0);
+
 			for( ; index < mElements.size(); ++index )
 			{
 				auto const& e = mElements[index];
-				if( e.idxStream > index )
+				if( e.idxStream > indexStream )
 					break;
 
-				assert(inputStream.stride >= 0);
-				
+				uintptr_t offset = inputStream.offset + e.offset;
 				if( inputStream.stride > 0 )
 				{
 					glEnableVertexAttribArray(e.attribute);
-					glVertexAttribPointer(e.attribute, e.componentNum, e.componentType, e.bNormalize, inputStream.stride, (void*)(inputStream.offset + e.offset));
+					glVertexAttribPointer(e.attribute, e.componentNum, e.componentType, e.bNormalized, inputStream.stride, (void*)offset);
 				}
 				else
 				{
 					switch( e.componentNum )
 					{
-					case 1: glVertexAttrib1fv(e.attribute, (float*)(inputStream.offset + e.offset)); break;
-					case 2: glVertexAttrib2fv(e.attribute, (float*)(inputStream.offset + e.offset)); break;
-					case 3: glVertexAttrib3fv(e.attribute, (float*)(inputStream.offset + e.offset)); break;
-					case 4: glVertexAttrib4fv(e.attribute, (float*)(inputStream.offset + e.offset)); break;
+					case 1: glVertexAttrib1fv(e.attribute, (float*)offset); break;
+					case 2: glVertexAttrib2fv(e.attribute, (float*)offset); break;
+					case 3: glVertexAttrib3fv(e.attribute, (float*)offset); break;
+					case 4: glVertexAttrib4fv(e.attribute, (float*)offset); break;
 					}
-				}			
+				}
 			}
 		}
 	}
@@ -1330,7 +1330,11 @@ namespace Render
 		{
 			if ( e.idxStream >= numInputStream )
 				break;
+
+			if ( e.bInstanceData )
+				glVertexAttribDivisor(e.attribute, 0);
 			glDisableVertexAttribArray(e.attribute);
+			
 		}
 	}
 
@@ -1560,7 +1564,9 @@ namespace Render
 			glColor4f(1, 1, 1, 1);
 		}
 		if( haveTex )
+		{
 			glClientActiveTexture(GL_TEXTURE0);
+		}
 	}
 
 

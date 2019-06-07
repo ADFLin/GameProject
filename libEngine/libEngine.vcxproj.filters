@@ -1062,6 +1062,9 @@
     <ClInclude Include="RHI\SimpleRenderState.h">
       <Filter>RHI</Filter>
     </ClInclude>
+    <ClInclude Include="TVector4.h">
+      <Filter>Math</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="ObjectHandle.cpp">

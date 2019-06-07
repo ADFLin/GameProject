@@ -489,6 +489,7 @@
     <ClInclude Include="Template\ArrayView.h" />
     <ClInclude Include="Template\StringView.h" />
     <ClInclude Include="Template\TypeFormatTraits.h" />
+    <ClInclude Include="TVector4.h" />
     <ClInclude Include="WindowsMessageHander.h" />
     <ClInclude Include="TaskBase.h" />
     <ClInclude Include="TCycleNumber.h" />

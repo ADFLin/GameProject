@@ -35,51 +35,61 @@ namespace Render
 		uint32 colorW[] = { 0xffffffff , 0xffffffff , 0xffffffff , 0xffffffff , 0xffffffff , 0xffffffff , 0xffffffff , 0xffffffff };
 		uint32 colorB[] = { 0, 0 , 0 , 0 , 0 , 0 , 0 , 0 };
 
-		VERIFY_RETURN_FALSE(GWhiteTexture1D.initialize( RHICreateTexture1D(Texture::eRGBA8, 2, 1, BCF_DefalutValue, colorW) ) );
-		VERIFY_RETURN_FALSE(GBlackTexture1D.initialize( RHICreateTexture1D(Texture::eRGBA8, 2, 1, BCF_DefalutValue, colorB) ) );
-		VERIFY_RETURN_FALSE(GWhiteTexture2D.initialize( RHICreateTexture2D(Texture::eRGBA8, 2, 2, 1, 1, BCF_DefalutValue, colorW)) );
-		VERIFY_RETURN_FALSE(GBlackTexture2D.initialize( RHICreateTexture2D(Texture::eRGBA8, 2, 2, 1, 1, BCF_DefalutValue, colorB)) );
-		VERIFY_RETURN_FALSE(GWhiteTexture3D.initialize( RHICreateTexture3D(Texture::eRGBA8, 2, 2, 2, 1, 1, BCF_DefalutValue, colorW)) );
-		VERIFY_RETURN_FALSE(GBlackTexture3D.initialize( RHICreateTexture3D(Texture::eRGBA8, 2, 2, 2, 1, 1, BCF_DefalutValue, colorB)) );
-		void* cubeWData[] = { colorW , colorW , colorW , colorW , colorW , colorW };
-		VERIFY_RETURN_FALSE(GWhiteTextureCube.initialize( RHICreateTextureCube(Texture::eRGBA8, 2, 0, BCF_DefalutValue, cubeWData) ) );
-		void* cubeBData[] = { colorB , colorB , colorB , colorB , colorB , colorB };
-		VERIFY_RETURN_FALSE(GBlackTextureCube.initialize( RHICreateTextureCube(Texture::eRGBA8, 2, 0, BCF_DefalutValue, cubeBData) ) );
-
-		if( gRHISystem->getName() == RHISytemName::Opengl )
 		{
-			OpenGLCast::To(GWhiteTextureCube.getResource())->bind();
-			glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-			glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-			glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-			glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-			glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
-			OpenGLCast::To(GWhiteTextureCube.getResource())->unbind();
+			TIME_SCOPE("GlobalTexture");
+			VERIFY_RETURN_FALSE(GWhiteTexture1D.initialize(RHICreateTexture1D(Texture::eRGBA8, 2, 1, BCF_DefalutValue, colorW)));
+			VERIFY_RETURN_FALSE(GBlackTexture1D.initialize(RHICreateTexture1D(Texture::eRGBA8, 2, 1, BCF_DefalutValue, colorB)));
+			VERIFY_RETURN_FALSE(GWhiteTexture2D.initialize(RHICreateTexture2D(Texture::eRGBA8, 2, 2, 1, 1, BCF_DefalutValue, colorW)));
+			VERIFY_RETURN_FALSE(GBlackTexture2D.initialize(RHICreateTexture2D(Texture::eRGBA8, 2, 2, 1, 1, BCF_DefalutValue, colorB)));
+			VERIFY_RETURN_FALSE(GWhiteTexture3D.initialize(RHICreateTexture3D(Texture::eRGBA8, 2, 2, 2, 1, 1, BCF_DefalutValue, colorW)));
+			VERIFY_RETURN_FALSE(GBlackTexture3D.initialize(RHICreateTexture3D(Texture::eRGBA8, 2, 2, 2, 1, 1, BCF_DefalutValue, colorB)));
+			void* cubeWData[] = { colorW , colorW , colorW , colorW , colorW , colorW };
+			VERIFY_RETURN_FALSE(GWhiteTextureCube.initialize(RHICreateTextureCube(Texture::eRGBA8, 2, 0, BCF_DefalutValue, cubeWData)));
+			void* cubeBData[] = { colorB , colorB , colorB , colorB , colorB , colorB };
+			VERIFY_RETURN_FALSE(GBlackTextureCube.initialize(RHICreateTextureCube(Texture::eRGBA8, 2, 0, BCF_DefalutValue, cubeBData)));
 
-			OpenGLCast::To(GWhiteTexture2D.getResource())->bind();
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-			OpenGLCast::To(GWhiteTexture2D.getResource())->unbind();
+			if( gRHISystem->getName() == RHISytemName::Opengl )
+			{
+				OpenGLCast::To(GWhiteTextureCube.getResource())->bind();
+				glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+				glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+				glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+				glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+				glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+				OpenGLCast::To(GWhiteTextureCube.getResource())->unbind();
+
+				OpenGLCast::To(GWhiteTexture2D.getResource())->bind();
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+				OpenGLCast::To(GWhiteTexture2D.getResource())->unbind();
+			}
+		}
+		{
+			TIME_SCOPE("EmptyMaterial");
+			GDefalutMaterial = new MaterialMaster;
+			if( !GDefalutMaterial->loadFile("EmptyMaterial") )
+				return false;
 		}
 
-		GDefalutMaterial = new MaterialMaster;
-		if( !GDefalutMaterial->loadFile("EmptyMaterial") )
-			return false;
+		{
+			TIME_SCOPE("EmptyTexture");
+			GDefaultMaterialTexture2D.initialize(RHIUtility::LoadTexture2DFromFile("Texture/Gird.png"));
+			if( !GDefaultMaterialTexture2D.isValid() )
+				return false;
+		}
+		{
+			TIME_SCOPE("SimpleBasePass");
+			ShaderCompileOption option;
+			VertexFactoryType::DefaultType->getCompileOption(option);
 
-		GDefaultMaterialTexture2D.initialize(RHIUtility::LoadTexture2DFromFile("Texture/Gird.png"));
-		if( !GDefaultMaterialTexture2D.isValid() )
-			return false;
-
-		ShaderCompileOption option;
-		VertexFactoryType::DefaultType->getCompileOption(option);
-
-		if( !ShaderManager::Get().loadFile(
-			GSimpleBasePass,
-			"Shader/SimpleBasePass",
-			SHADER_ENTRY(BassPassVS), SHADER_ENTRY(BasePassPS), option, nullptr) )
-			return false;
+			if( !ShaderManager::Get().loadFile(
+				GSimpleBasePass,
+				"Shader/SimpleBasePass",
+				SHADER_ENTRY(BassPassVS), SHADER_ENTRY(BasePassPS), option, nullptr) )
+				return false;
+		}
 
 		return true;
 	}

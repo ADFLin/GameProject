@@ -463,7 +463,10 @@ namespace Render
 		{
 			view.setupShader(commandList, *this);
 			setTexture(commandList, mParamFrameTexture, frameTexture, mParamFrameTextureSampler, TStaticSamplerState<Sampler::eBilinear>::GetRHI());
-			setTexture(commandList, mParamHistroyTexture, historyTexture, mParamHistroyTextureSampler, TStaticSamplerState<Sampler::eBilinear>::GetRHI());
+			if( mParamHistroyTexture.isBound() )
+			{
+				setTexture(commandList, mParamHistroyTexture, historyTexture, mParamHistroyTextureSampler, TStaticSamplerState<Sampler::eBilinear>::GetRHI());
+			}
 		}
 
 		ShaderParameter mParamFrameTexture;
@@ -529,6 +532,9 @@ namespace Render
 		RHITexture2DRef    mGrassTexture;
 		Mesh  mGrassPlane;
 		ShaderProgram    mProgGrass;
+		ShaderProgram    mProgGrassInstanced;
+		InstancedMesh    mInstanceMesh;
+		bool             mbDrawInstaced = true;
 
 		SmokeParams mSmokeParams;
 		float mDensityFactor = 1.0;

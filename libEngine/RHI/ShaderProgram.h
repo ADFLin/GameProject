@@ -25,15 +25,15 @@ namespace Render
 		virtual void bindParameters(ShaderParameterMap& parameterMap) {}
 
 
-		void setParam(RHICommandList& commandList, char const* name, int v1);
-		void setParam(RHICommandList& commandList, char const* name, int v1, int v2);
-		void setParam(RHICommandList& commandList, char const* name, int v1, int v2, int v3);
-		void setParam(RHICommandList& commandList, char const* name, int v1, int v2, int v3, int v4);
+		void setParam(RHICommandList& commandList, char const* name, int v1) { setParamT(commandList, name, v1); }
+		void setParam(RHICommandList& commandList, char const* name, int v1, int v2) { setParamT(commandList, name, IntVector2(v1, v2)); }
+		void setParam(RHICommandList& commandList, char const* name, int v1, int v2, int v3) { setParamT(commandList, name, IntVector3(v1, v2, v3)); }
+		void setParam(RHICommandList& commandList, char const* name, int v1, int v2, int v3, int v4) { setParamT(commandList, name, IntVector4(v1, v2, v3, v4)); }
 
-		void setParam(RHICommandList& commandList, char const* name, float v1);
-		void setParam(RHICommandList& commandList, char const* name, float v1, float v2);
-		void setParam(RHICommandList& commandList, char const* name, float v1, float v2, float v3);
-		void setParam(RHICommandList& commandList, char const* name, float v1, float v2, float v3, float v4);
+		void setParam(RHICommandList& commandList, char const* name, float v1) { setParamT(commandList, name, v1); }
+		void setParam(RHICommandList& commandList, char const* name, float v1, float v2) { setParamT(commandList, name, Vector2(v1, v2)); }
+		void setParam(RHICommandList& commandList, char const* name, float v1, float v2, float v3) { setParamT(commandList, name, Vector3(v1, v2, v3)); }
+		void setParam(RHICommandList& commandList, char const* name, float v1, float v2, float v3, float v4) { setParamT(commandList, name, Vector4(v1, v2, v3, v4)); }
 
 		void setMatrix33(RHICommandList& commandList, char const* name, float const* value, int num = 1);
 		void setMatrix44(RHICommandList& commandList, char const* name, float const* value, int num = 1);
@@ -41,14 +41,27 @@ namespace Render
 		void setVector3(RHICommandList& commandList, char const* name, float const v[], int num);
 		void setVector4(RHICommandList& commandList, char const* name, float const v[], int num);
 
-		void setParam(RHICommandList& commandList, char const* name, Vector2 const& v) { setParam(commandList, name, v.x, v.y); }
-		void setParam(RHICommandList& commandList, char const* name, Vector3 const& v) { setParam(commandList, name, v.x, v.y, v.z); }
-		void setParam(RHICommandList& commandList, char const* name, Vector4 const& v) { setParam(commandList, name, v.x, v.y, v.z, v.w); }
+		void setParam(RHICommandList& commandList, char const* name, IntVector2 const& v) { setParamT(commandList, name, v); }
+		void setParam(RHICommandList& commandList, char const* name, IntVector3 const& v) { setParamT(commandList, name, v); }
+		void setParam(RHICommandList& commandList, char const* name, IntVector4 const& v) { setParamT(commandList, name, v); }
+
+		void setParam(RHICommandList& commandList, char const* name, Vector2 const& v) { setParamT(commandList, name, v); }
+		void setParam(RHICommandList& commandList, char const* name, Vector3 const& v) { setParamT(commandList, name, v); }
+		void setParam(RHICommandList& commandList, char const* name, Vector4 const& v) { setParamT(commandList, name, v); }
 		void setParam(RHICommandList& commandList, char const* name, Matrix4 const& m) { setMatrix44(commandList, name, m, 1); }
 		void setParam(RHICommandList& commandList, char const* name, Matrix3 const& m) { setMatrix33(commandList, name, m, 1); }
 		void setParam(RHICommandList& commandList, char const* name, Matrix4 const v[], int num) { setMatrix44(commandList, name, v[0], num); }
 		void setParam(RHICommandList& commandList, char const* name, Vector3 const v[], int num) { setVector3(commandList, name, (float*)&v[0], num); }
 		void setParam(RHICommandList& commandList, char const* name, Vector4 const v[], int num) { setVector4(commandList, name, (float*)&v[0], num); }
+
+		template< class T >
+		void setParamT(RHICommandList& commandList, char const* name, T const& v)
+		{
+			ShaderParameter param;
+			if( !getParameter(name, param) )
+				return;
+			setParam(commandList, param, v);
+		}
 
 
 		void setRWTexture(RHICommandList& commandList, char const* name, RHITextureBase& texture, EAccessOperator op = AO_READ_AND_WRITE);
@@ -74,6 +87,7 @@ namespace Render
 		void setParam(RHICommandList& commandList, ShaderParameter const& param, int v1);
 		void setParam(RHICommandList& commandList, ShaderParameter const& param, IntVector2 const& v);
 		void setParam(RHICommandList& commandList, ShaderParameter const& param, IntVector3 const& v);
+		void setParam(RHICommandList& commandList, ShaderParameter const& param, IntVector4 const& v);
 		void setParam(RHICommandList& commandList, ShaderParameter const& param, float v1);
 		void setParam(RHICommandList& commandList, ShaderParameter const& param, Vector2 const& v);
 		void setParam(RHICommandList& commandList, ShaderParameter const& param, Vector3 const& v);

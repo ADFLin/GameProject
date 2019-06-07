@@ -232,7 +232,7 @@ namespace Render
 			{
 				InputStreamInfo inputStream;
 				inputStream.buffer = mVertexBuffer;
-				RHISetInputStream(commandList, *mInputLayout, &inputStream, 1);
+				RHISetInputStream(commandList, mInputLayout, &inputStream, 1);
 				RHISetIndexBuffer(commandList, mIndexBuffer);
 				RHIDrawIndexedPrimitive(commandList, PrimitiveType::TriangleList, 0 , mIndexBuffer->getNumElements(), 0);
 			}
@@ -242,7 +242,7 @@ namespace Render
 			{
 				InputStreamInfo inputStream;
 				inputStream.buffer = mVertexBuffer;
-				RHISetInputStream(commandList, *mInputLayout, &inputStream, 1);
+				RHISetInputStream(commandList, mInputLayout, &inputStream, 1);
 				RHISetIndexBuffer(commandList, mIndexBuffer);
 				RHIDrawIndexedPrimitive(commandList, PrimitiveType::TriangleList, 0, mIndexBuffer->getNumElements(), 0);
 			}
@@ -250,7 +250,7 @@ namespace Render
 			{
 				InputStreamInfo inputStream;
 				inputStream.buffer = mAxisVertexBuffer;
-				RHISetInputStream(commandList, *mAxisInputLayout, &inputStream , 1 );
+				RHISetInputStream(commandList, mAxisInputLayout, &inputStream , 1 );
 
 				RHIDrawPrimitive(commandList, PrimitiveType::LineList, 0, 6);
 			}
@@ -258,7 +258,7 @@ namespace Render
 
 			mProgTest.setParam(commandList, SHADER_PARAM(XForm), Matrix4::Translate( -10 , 0 , 10 ));
 			{
-				mSimpleMeshs[SimpleMeshId::Doughnut].drawShader(commandList);
+				mSimpleMeshs[SimpleMeshId::Doughnut].draw(commandList);
 			}
 
 

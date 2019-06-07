@@ -388,6 +388,7 @@ copy $(TargetDir)EngineShare.dll  $(ProjectDir)out\</Command>
     <None Include="out\Shader\Game\SimpleSpriteParticle.sgc" />
     <None Include="out\Shader\Game\Sphere.sgc" />
     <None Include="out\Shader\Game\Spline.sgc" />
+    <None Include="out\Shader\Game\TexcoordVisualize.sgc" />
     <None Include="out\Shader\Game\UnderCurveArea.sgc" />
     <None Include="out\Shader\Game\Water.sgc" />
     <None Include="out\Shader\Game\WaterSimulation.sgc" />

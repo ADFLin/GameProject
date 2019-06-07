@@ -1276,7 +1276,7 @@ namespace Render
 				Vector4(1,1,0,1) , Vector4(-1,1,0,1) , Vector4(-1,-1,0,1) , Vector4(1,-1,0,1)
 			};
 			int indices[] = { 0 , 1 , 2 , 0 , 2 , 3 };
-			mScreenMesh.mInputLayoutDesc.addElement(Vertex::ATTRIBUTE_POSITION, Vertex::eFloat4);
+			mScreenMesh.mInputLayoutDesc.addElement(0, Vertex::ATTRIBUTE_POSITION, Vertex::eFloat4);
 			if( !mScreenMesh.createRHIResource(v, 4, indices, 6, true) )
 				return false;
 		}
@@ -1343,15 +1343,15 @@ namespace Render
 			mShaderBassPassTest.setParam(commandList, SHADER_PARAM(BaseColor), color[0]);
 
 			mShaderBassPassTest.setParam(commandList, SHADER_PARAM(WorldTransform), Matrix4::Identity());
-			mesh.drawShader(commandList);
+			mesh.draw(commandList);
 			glMemoryBarrier(GL_ALL_BARRIER_BITS);
 
 			mShaderBassPassTest.setParam(commandList, SHADER_PARAM(WorldTransform), Matrix4::Translate(Vector3(10,0,0)));
-			mesh.drawShader(commandList);
+			mesh.draw(commandList);
 			glMemoryBarrier(GL_ALL_BARRIER_BITS);
 
 			mShaderBassPassTest.setParam(commandList, SHADER_PARAM(WorldTransform), Matrix4::Translate(Vector3(-10, 0, 0)));
-			mesh.drawShader(commandList);
+			mesh.draw(commandList);
 			glMemoryBarrier(GL_ALL_BARRIER_BITS);
 			
 		};
@@ -1485,7 +1485,7 @@ namespace Render
 					BMAResolveProgram* shaderprogram = mShaderBMAResolves[i];
 					RHISetShaderProgram(commandList, shaderprogram->getRHIResource());
 					shaderprogram->setParameters(commandList, mShaderData );
-					mScreenMesh.drawShader(commandList);
+					mScreenMesh.draw(commandList);
 				}
 
 			}
@@ -1496,7 +1496,7 @@ namespace Render
 				BMAResolveProgram* shaderprogram = mShaderBMAResolves[0];
 				RHISetShaderProgram(commandList, shaderprogram->getRHIResource());
 				shaderprogram->setParameters(commandList, mShaderData);
-				mScreenMesh.drawShader(commandList);
+				mScreenMesh.draw(commandList);
 			}
 
 			

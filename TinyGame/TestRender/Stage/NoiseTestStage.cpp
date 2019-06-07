@@ -17,6 +17,8 @@ namespace Render
 	IMPLEMENT_SHADER_PROGRAM(SmokeRenderProgram);
 	IMPLEMENT_SHADER_PROGRAM(SmokeBlendProgram);
 
+
+	int const gGrassNum = 5000;
 	bool NoiseTestStage::onInit()
 	{
 		::Global::GetDrawEngine().changeScreenSize(1024, 768);
@@ -64,8 +66,16 @@ namespace Render
 
 		mGrassTexture = RHIUtility::LoadTexture2DFromFile("Texture/Grass.png", TextureLoadOption().SRGB().MipLevel(10).ReverseH());
 		MeshBuild::Plane(mGrassPlane, Vector3(0, 0, 0), Vector3(1, 0, 0), Vector3(0, 0, 1), Vector2(1, float(mGrassTexture->getSizeY()) / mGrassTexture->getSizeX()), 1);
+		mInstanceMesh.setMesh(mGrassPlane);
+		for( int n = 0; n < gGrassNum; ++n )
+		{
+			for( int i = 0; i < 10; ++i )
+			{
+				mInstanceMesh.addInstance(Vector3(n / 100, n % 100, 12), Vector3(1, 1, 1), Quaternion::Rotate(Vector3(0, 0, 1), 2 * PI * i / 10), Vector4(0, 0, 0, 0));
+			}
+		}
 		ShaderManager::Get().loadFileSimple(mProgGrass, "Shader/Game/Grass");
-
+		ShaderManager::Get().loadFileSimple(mProgGrassInstanced, "Shader/Game/Grass", "#define USE_INSTANCED 1\n");
 		mProgNoise = ShaderManager::Get().getGlobalShaderT< TNoiseShaderProgram<true, false> >(true);
 		mProgNoiseUseTexture = ShaderManager::Get().getGlobalShaderT< TNoiseShaderProgram<true, true> >(true);
 		mProgNoiseTest = ShaderManager::Get().getGlobalShaderT< NoiseShaderTestProgram >(true);
@@ -229,6 +239,8 @@ namespace Render
 		::Global::GUI().cleanupWidget();
 
 		auto devFrame = WidgetUtility::CreateDevFrame();
+		WidgetPropery::Bind(devFrame->addCheckBox(UI_ANY, "Use Instanced"), mbDrawInstaced);
+
 		devFrame->addText("FBM Shift");
 		WidgetPropery::Bind(devFrame->addSlider(UI_ANY), mData.FBMFactor.x, 0, 20);
 		devFrame->addText("FBM Scale");
@@ -285,31 +297,41 @@ namespace Render
 				glClearDepth(mViewFrustum.bUseReverse ? 0 : 1);
 				glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-#if 0
+#if 1
 				RHISetupFixedPipelineState(commandList, mView.worldToClip);
 				DrawUtility::AixsLine(commandList);
 
-				RHISetupFixedPipelineState(commandList, Matrix4::Scale(1.5) * Matrix4::Translate(2, 2, 2) * mView.worldToClip);
-				mSimpleMeshs[SimpleMeshId::Doughnut].draw(commandList, LinearColor(1, 0.5, 0));
+				RHISetupFixedPipelineState(commandList, Matrix4::Scale(1.5) * Matrix4::Translate(2, 2, 2) * mView.worldToClip, LinearColor(1, 0.5, 0));
+				mSimpleMeshs[SimpleMeshId::Doughnut].draw(commandList);
 
-				RHISetupFixedPipelineState(commandList, Matrix4::Scale(1) * Matrix4::Translate(7, 2, -2) * mView.worldToClip);
-				mSimpleMeshs[SimpleMeshId::Box].draw(commandList, LinearColor(0.25, 0.5, 1));
+				RHISetupFixedPipelineState(commandList, Matrix4::Scale(1) * Matrix4::Translate(7, 2, -2) * mView.worldToClip, LinearColor(0.25, 0.5, 1));
+				mSimpleMeshs[SimpleMeshId::Box].draw(commandList);
 #endif
 
 
 
 				{
+					GPU_PROFILE("DrawGrass");
 					RHISetBlendState(commandList, TStaticAlphaToCoverageBlendState<>::GetRHI());
-					RHISetShaderProgram(commandList, mProgGrass.getRHIResource());
-					mView.setupShader(commandList, mProgGrass);
-					mProgGrass.setTexture(commandList, SHADER_PARAM(Texture), *mGrassTexture , SHADER_PARAM(TextureSampler) , TStaticSamplerState< Sampler::eTrilinear > ::GetRHI());
+					auto& progGrass = (mbDrawInstaced) ? mProgGrassInstanced : mProgGrass;
+					RHISetShaderProgram(commandList, progGrass.getRHIResource());
+					mView.setupShader(commandList, progGrass);
+					progGrass.setTexture(commandList, SHADER_PARAM(Texture), *mGrassTexture , SHADER_PARAM(TextureSampler) , TStaticSamplerState< Sampler::eTrilinear > ::GetRHI());
 
-					for( int n = 0 ; n < 100 ; ++n )
+					if( mbDrawInstaced )
 					{
-						for( int i = 0; i < 10; ++i )
+						progGrass.setParam(commandList, SHADER_PARAM(Primitive.localToWorld), Matrix4::Identity());
+						mInstanceMesh.draw(commandList);
+					}
+					else
+					{
+						for( int n = 0; n < gGrassNum; ++n )
 						{
-							mProgGrass.setParam(commandList, SHADER_PARAM(Primitive.localToWorld), Matrix4::Rotate(Vector3(0, 0, 1), 2 * PI * i / 10) * Matrix4::Scale(1) * Matrix4::Translate( n / 10 , n % 10 , 12));
-							mGrassPlane.drawShader(commandList);
+							for( int i = 0; i < 10; ++i )
+							{
+								progGrass.setParam(commandList, SHADER_PARAM(Primitive.localToWorld), Matrix4::Rotate(Vector3(0, 0, 1), 2 * PI * i / 10) * Matrix4::Scale(1) * Matrix4::Translate(n / 100, n % 100, 12));
+								mGrassPlane.draw(commandList);
+							}
 						}
 					}
 				}

@@ -24,6 +24,13 @@ namespace Render
 
 		//TODO: use uniform buffer
 		Matrix4  world;
+		RHIVertexBuffer* primitiveBuffer;
+
+		MeshBatchElement()
+		{
+			indexBuffer = nullptr;
+			primitiveBuffer = nullptr;
+		}
 	};
 
 	struct MeshBatch

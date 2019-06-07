@@ -264,7 +264,7 @@ namespace Render
 				return true;
 			mGLObject.destroyHandle();
 		}
-		return mGLObject.fetchHandle(GLConvert::To(type));
+		return mGLObject.fetchHandle(OpenGLTranlate::To(type));
 	}
 
 	GLuint OpenGLShader::getGLParam(GLuint val)

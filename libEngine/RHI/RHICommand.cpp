@@ -9,6 +9,8 @@
 
 #include <cassert>
 #include "stb/stb_image.h"
+#include "DataCacheInterface.h"
+#include "Serialize/DataStream.h"
 
 namespace Render
 {
@@ -225,10 +227,11 @@ namespace Render
 				stbi_image_free(data);
 			}
 		}
-		int   width;
-		int   height;
-		int   numComponent;
-		void* data;
+		int    width;
+		int    height;
+		int    numComponent;
+		uint64 dataSize;
+		void*  data;
 
 		bool load(char const* path, TextureLoadOption const& option)
 		{
@@ -236,15 +239,64 @@ namespace Render
 			if( option.bHDR )
 			{
 				data = stbi_loadf(path, &width, &height, &numComponent, STBI_default);
+				dataSize = sizeof(float) * numComponent * width * height;
 			}
 			else
 			{
 				data = stbi_load(path, &width, &height, &numComponent, STBI_default);
+				dataSize = sizeof(uint8) * numComponent * width * height;
 			}
 			stbi_set_flip_vertically_on_load(false);
 			return data != nullptr;
 		}
 	};
+
+	RHITexture2D* RHIUtility::LoadTexture2DFromFile(DataCacheInterface& dataCache, char const* path, TextureLoadOption const& option)
+	{
+		DataCacheKey cacheKey;
+		cacheKey.typeName = "TEXTURE";
+		cacheKey.version = "8AE15F61-E1DC-4639-B7D8-409CF17933F0";
+		cacheKey.keySuffix.add(path, option.bHDR, option.bReverseH, option.bSRGB, option.creationFlags, option.numMipLevel);
+
+
+		void* pData;
+		STBImageData imageData;
+		std::vector< uint8 > cachedImageData;
+		auto LoadCache = [&imageData, &cachedImageData](IStreamSerializer& serializer)-> bool
+		{
+			serializer >> imageData.width;
+			serializer >> imageData.height;
+			serializer >> imageData.numComponent;
+			serializer >> imageData.dataSize;
+
+			cachedImageData.resize(imageData.dataSize);
+			serializer.read(cachedImageData.data(), imageData.dataSize);
+			return true;
+		};
+		if( !dataCache.loadDelegate(cacheKey, LoadCache) )
+		{
+			if( !imageData.load(path, option) )
+				return false;
+
+			pData = imageData.data;
+			dataCache.saveDelegate(cacheKey, [&imageData](IStreamSerializer& serializer)-> bool
+			{
+				serializer << imageData.width;
+				serializer << imageData.height;
+				serializer << imageData.numComponent;
+				serializer << imageData.dataSize;
+				serializer.write(imageData.data, imageData.dataSize);
+				return true;
+			});
+		}
+		else
+		{
+
+			pData = cachedImageData.data();
+		}
+
+		return RHICreateTexture2D(option.getFormat(imageData.numComponent), imageData.width, imageData.height, option.numMipLevel, 1, option.creationFlags, pData, 1);
+	}
 
 	RHITexture2D* RHIUtility::LoadTexture2DFromFile(char const* path , TextureLoadOption const& option )
 	{

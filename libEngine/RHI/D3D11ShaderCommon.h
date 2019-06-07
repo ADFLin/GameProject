@@ -125,7 +125,7 @@ namespace Render
 			auto const& entry = mParamEntryMap[parameter.mLoc];
 
 			ShaderParamEntry* pParamEntry = &mParamEntries[entry.paramIndex];
-			for( int i = 0; i < entry.numParam; ++i )
+			for( int i = entry.numParam; i ; --i )
 			{
 				func( pParamEntry->type , pParamEntry->param );
 				++pParamEntry;

@@ -44,7 +44,6 @@ namespace Render
 	{
 	public:
 		virtual VertexFactoryType& getType() = 0;
-		InputLayoutDesc*  vertexDecl;
 		static VertexFactoryShaderData* CreateShaderData() { return nullptr; }
 		static void ModifyCompilationOption(ShaderCompileOption& option){}
 	};

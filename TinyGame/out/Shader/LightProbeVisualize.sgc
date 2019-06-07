@@ -94,7 +94,7 @@ void MainVS()
 	float2 vertexPos = VertexMap[ gl_VertexID ];
 	float3 probePos = LPV.startPos + LPV.gridSize * (float(gridId % LPV.gridNum.x ) * LPV.xAxis + float(gridId / LPV.gridNum.x) * LPV.yAxis);
 
-	float3 spherePosInView = float3(View.worldToView * vec4(probePos, 1.0));
+	float3 spherePosInView = float3(View.worldToView * float4(probePos, 1.0));
 	float3 offsetInView = float3(
 		CalcVertexOffset(float2(spherePosInView.x, SCENE_DEPTH_FACTOR * spherePosInView.z), LPV.probeRadius, vertexPos.x),
 		CalcVertexOffset(float2(spherePosInView.y, SCENE_DEPTH_FACTOR * spherePosInView.z), LPV.probeRadius, vertexPos.y),
@@ -138,7 +138,7 @@ void MainPS()
 
 	float3 worldPos = View.worldPos + cameraDir * t;
 
-	float4 clipPos = View.worldToClip * vec4(worldPos, 1.0);
+	float4 clipPos = View.worldToClip * float4(worldPos, 1.0);
 	float4 NDC = clipPos / clipPos.w;
 	
 	WritePixelDepth(NDC.z);
@@ -212,7 +212,7 @@ void MainPS()
 	float3 Lo = NoL * shading * radiance;
 
 	float3 envSpecular = GetIBLSpecularColor(specularColor, R, NoV, material.roughness);
-	float3 ambient = ( GetIrradianceColor( N ) * material.baseColor + envSpecular )  * material.ao;
+	float3 ambient = ( GetIrradianceColor( N ) * material.baseColor * 0 + envSpecular )  * material.ao;
 	//ambient *= 0.0;
 	float3 color = ambient + Lo;
 

@@ -10,111 +10,71 @@ namespace Render
 		std::fill_n(mVertexSizes, MAX_INPUT_STREAM_NUM, 0);
 	}
 
-	static Vertex::Semantic AttributeToSemantic(uint8 attribute, uint8& idx)
-	{
-		switch( attribute )
-		{
-		case Vertex::ATTRIBUTE_POSITION: idx = 0; return Vertex::ePosition;
-		case Vertex::ATTRIBUTE_COLOR: idx = 0; return Vertex::eColor;
-		case Vertex::ATTRIBUTE_COLOR2: idx = 1; return Vertex::eColor;
-		case Vertex::ATTRIBUTE_NORMAL: idx = 0; return Vertex::eNormal;
-		case Vertex::ATTRIBUTE_TANGENT: idx = 0; return Vertex::eTangent;
-		}
-
-		idx = attribute - Vertex::ATTRIBUTE_TEXCOORD;
-		return Vertex::eTexcoord;
-	}
-
-	static uint8 SemanticToAttribute(Vertex::Semantic s, uint8 idx)
-	{
-		switch( s )
-		{
-		case Vertex::ePosition: return Vertex::ATTRIBUTE_POSITION;
-		case Vertex::eColor:    assert(idx < 2); return Vertex::ATTRIBUTE_COLOR + idx;
-		case Vertex::eNormal:   return Vertex::ATTRIBUTE_NORMAL;
-		case Vertex::eTangent:  return Vertex::ATTRIBUTE_TANGENT;
-		case Vertex::eTexcoord: assert(idx < 7); return Vertex::ATTRIBUTE_TEXCOORD + idx;
-		}
-		return 0;
-	}
-
-	InputLayoutDesc& InputLayoutDesc::addElement(Vertex::Semantic s, Vertex::Format f, uint8 idx /*= 0 */)
-	{
-		InputElement element;
-		element.idxStream = 0;
-		element.attribute = SemanticToAttribute(s, idx);
-		element.format = f;
-		element.offset = mVertexSizes[element.idxStream];
-		element.semantic = s;
-		element.idx = idx;
-		element.bNormalize = false;
-		mElements.push_back(element);
-		mVertexSizes[element.idxStream] += Vertex::GetFormatSize(f);
-		return *this;
-	}
-
-	InputLayoutDesc& InputLayoutDesc::addElement(uint8 attribute, Vertex::Format f, bool bNormailze)
-	{
-		InputElement element;
-		element.idxStream = 0;
-		element.attribute = attribute;
-		element.format = f;
-		element.offset = mVertexSizes[element.idxStream];
-		element.semantic = AttributeToSemantic(attribute, element.idx);
-		element.bNormalize = bNormailze;
-		mElements.push_back(element);
-		mVertexSizes[element.idxStream] += Vertex::GetFormatSize(f);
-		return *this;
-	}
-
 	InputLayoutDesc& InputLayoutDesc::addElement(uint8 idxStream, Vertex::Semantic s, Vertex::Format f, uint8 idx /*= 0 */)
 	{
-		InputElement element;
+		InputElementDesc element;
 		element.idxStream = idxStream;
-		element.attribute = SemanticToAttribute(s, idx);
+		element.attribute = Vertex::SemanticToAttribute(s, idx);
 		element.format = f;
 		element.offset = mVertexSizes[element.idxStream];
-		element.semantic = s;
-		element.idx = idx;
-		element.bNormalize = false;
+		element.bNormalized = false;
+		element.bIntanceData = false;
+		element.instanceStepRate = 0;
 		mElements.push_back(element);
 		mVertexSizes[element.idxStream] += Vertex::GetFormatSize(f);
 		return *this;
 	}
 
-	InputLayoutDesc& InputLayoutDesc::addElement(uint8 idxStream, uint8 attribute, Vertex::Format f, bool bNormailze)
+	InputLayoutDesc& InputLayoutDesc::addElement(uint8 idxStream, uint8 attribute, Vertex::Format f, bool bNormailze, bool bInstanceData, int instanceStepRate)
 	{
-		InputElement element;
-		element.idxStream = idxStream;
-		element.attribute = attribute;
-		element.format = f;
-		element.offset = mVertexSizes[element.idxStream];
-		element.semantic = AttributeToSemantic(attribute, element.idx);
-		element.bNormalize = bNormailze;
-		mElements.push_back(element);
-		mVertexSizes[element.idxStream] += Vertex::GetFormatSize(f);
+		if ( attribute != Vertex::ATTRIBUTE_UNUSED )
+		{
+			InputElementDesc element;
+			element.idxStream = idxStream;
+			element.attribute = attribute;
+			element.format = f;
+			element.offset = mVertexSizes[element.idxStream];
+			element.bNormalized = bNormailze;
+			element.bIntanceData = bInstanceData;
+			element.instanceStepRate = instanceStepRate;
+			mElements.push_back(element);
+		}
+		mVertexSizes[idxStream] += Vertex::GetFormatSize(f);
 		return *this;
 	}
 
-
-	InputElement const* InputLayoutDesc::findBySematic(Vertex::Semantic s, int idx) const
+	InputElementDesc const* InputLayoutDesc::findElementByAttribute(uint8 attribute) const
 	{
 		for( auto const& decl : mElements )
 		{
-			if( decl.semantic == s && decl.idx == idx )
+			if( decl.attribute == attribute )
 				return &decl;
 		}
 		return nullptr;
 	}
 
-	InputElement const* InputLayoutDesc::findBySematic(Vertex::Semantic s) const
+	int InputLayoutDesc::getAttributeOffset(uint8 attribute) const
 	{
-		for( auto const& decl : mElements )
-		{
-			if( decl.semantic == s )
-				return &decl;
-		}
-		return nullptr;
+		InputElementDesc const* info = findElementByAttribute(attribute);
+		return info ? info->offset : -1;
+	}
+
+	Vertex::Format InputLayoutDesc::getAttributeFormat(uint8 attribute) const
+	{
+		InputElementDesc const* info = findElementByAttribute(attribute);
+		return (info) ? Vertex::Format(info->format) : Vertex::eUnknowFormat;
+	}
+
+	int InputLayoutDesc::getAttributeStreamIndex(uint8 attribute) const
+	{
+		InputElementDesc const* info = findElementByAttribute(attribute);
+		return (info) ? info->idxStream : -1;
+	}
+
+	InputElementDesc const* InputLayoutDesc::findElementBySematic(Vertex::Semantic s, int idx) const
+	{
+		uint8 attribute = Vertex::SemanticToAttribute(s, idx);
+		return findElementByAttribute(attribute);
 	}
 
 	void InputLayoutDesc::updateVertexSize()
@@ -126,27 +86,15 @@ namespace Render
 		}
 	}
 
-	int InputLayoutDesc::getSematicOffset(Vertex::Semantic s) const
-	{
-		InputElement const* info = findBySematic(s);
-		return (info) ? info->offset : -1;
-	}
-
 	int InputLayoutDesc::getSematicOffset(Vertex::Semantic s, int idx) const
 	{
-		InputElement const* info = findBySematic(s, idx);
+		InputElementDesc const* info = findElementBySematic(s, idx);
 		return (info) ? info->offset : -1;
-	}
-
-	Vertex::Format InputLayoutDesc::getSematicFormat(Vertex::Semantic s) const
-	{
-		InputElement const* info = findBySematic(s);
-		return (info) ? Vertex::Format(info->format) : Vertex::eUnknowFormat;
 	}
 
 	Vertex::Format InputLayoutDesc::getSematicFormat(Vertex::Semantic s, int idx) const
 	{
-		InputElement const* info = findBySematic(s, idx);
+		InputElementDesc const* info = findElementBySematic(s, idx);
 		return (info) ? Vertex::Format(info->format) : Vertex::eUnknowFormat;
 	}
 
@@ -173,5 +121,50 @@ namespace Render
 	}
 
 
+	int Vertex::GetFormatSize(uint8 format)
+	{
+		int num = Vertex::GetComponentNum(format);
+		switch( Vertex::GetCompValueType(Vertex::Format(format)) )
+		{
+		case CVT_Float:  return sizeof(float) * num;
+		case CVT_Half:   return sizeof(float) / 2 * num;
+		case CVT_UInt:   return sizeof(uint32) * num;
+		case CVT_Int:    return sizeof(int) * num;
+		case CVT_UShort: return sizeof(uint16) * num;
+		case CVT_Short:  return sizeof(int16) * num;
+		case CVT_UByte:  return sizeof(uint8) * num;
+		case CVT_Byte:   return sizeof(int8) * num;
+		}
+		return 0;
+	}
+
+
+	Vertex::Semantic Vertex::AttributeToSemantic(uint8 attribute, uint8& idx)
+	{
+		switch( attribute )
+		{
+		case Vertex::ATTRIBUTE_POSITION: idx = 0; return Vertex::ePosition;
+		case Vertex::ATTRIBUTE_COLOR: idx = 0; return Vertex::eColor;
+		case Vertex::ATTRIBUTE_COLOR2: idx = 1; return Vertex::eColor;
+		case Vertex::ATTRIBUTE_NORMAL: idx = 0; return Vertex::eNormal;
+		case Vertex::ATTRIBUTE_TANGENT: idx = 0; return Vertex::eTangent;
+		}
+
+		idx = attribute - Vertex::ATTRIBUTE_TEXCOORD;
+		return Vertex::eTexcoord;
+	}
+
+	uint8 Vertex::SemanticToAttribute(Semantic s, uint8 idx)
+	{
+		switch( s )
+		{
+		case Vertex::ePosition: return Vertex::ATTRIBUTE_POSITION;
+		case Vertex::eColor:    assert(idx < 2); return Vertex::ATTRIBUTE_COLOR + idx;
+		case Vertex::eNormal:   return Vertex::ATTRIBUTE_NORMAL;
+		case Vertex::eTangent:  return Vertex::ATTRIBUTE_TANGENT;
+		case Vertex::eTexcoord: assert(idx < 7); return Vertex::ATTRIBUTE_TEXCOORD + idx;
+		}
+		return 0;
+	}
 
 }//namespace Render

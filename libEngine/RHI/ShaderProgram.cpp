@@ -6,13 +6,10 @@ namespace Render
 {
 #define CHECK_PARAMETER( PARAM ) if ( !PARAM.isBound() ){ LogWarning( 0 ,"Shader Param not bounded" ); return; }
 
-
-	RHIContext& GetContext(RHICommandList& commandList)
+	static RHIContext& GetContext(RHICommandList& commandList)
 	{
 		return static_cast<RHICommandListImpl&>(commandList).getExecutionContext();
 	}
-
-
 
 	ShaderProgram::ShaderProgram()
 	{
@@ -68,74 +65,6 @@ namespace Render
 		GetContext(commandList).setShaderRWTexture(*mRHIResource, param, texture, op);
 	}
 
-
-	void ShaderProgram::setParam(RHICommandList& commandList, char const* name, int v1)
-	{
-		ShaderParameter param;
-		if( !getParameter(name, param) )
-			return;
-		GetContext(commandList).setShaderValue(*mRHIResource, param, &v1, 1);
-	}
-
-	void ShaderProgram::setParam(RHICommandList& commandList, char const* name, int v1, int v2)
-	{
-		ShaderParameter param;
-		if( !getParameter(name, param) )
-			return;
-		int values[] = { v1 , v2 };
-		GetContext(commandList).setShaderValue(*mRHIResource, param, values, 2);
-	}
-
-	void ShaderProgram::setParam(RHICommandList& commandList, char const* name, int v1, int v2, int v3)
-	{
-		ShaderParameter param;
-		if( !getParameter(name, param) )
-			return;
-		int values[] = { v1 , v2 , v3 };
-		GetContext(commandList).setShaderValue(*mRHIResource, param, values, 3);
-	}
-
-	void ShaderProgram::setParam(RHICommandList& commandList, char const* name, int v1, int v2, int v3, int v4)
-	{
-		ShaderParameter param;
-		if( !getParameter(name, param) )
-			return;
-		int values[] = { v1 , v2 , v3 , v4 };
-		GetContext(commandList).setShaderValue(*mRHIResource, param, values, 4);
-	}
-
-	void ShaderProgram::setParam(RHICommandList& commandList, char const* name, float v1)
-	{
-		ShaderParameter param;
-		if( !getParameter(name, param) )
-			return;
-		setParam(commandList, param, v1);
-	}
-
-	void ShaderProgram::setParam(RHICommandList& commandList, char const* name, float v1, float v2)
-	{
-		ShaderParameter param;
-		if( !getParameter(name, param) )
-			return;
-		setParam(commandList, param, Vector2(v1, v2));
-	}
-
-	void ShaderProgram::setParam(RHICommandList& commandList, char const* name, float v1, float v2, float v3)
-	{
-		ShaderParameter param;
-		if( !getParameter(name, param) )
-			return;
-		setParam(commandList, param, Vector3(v1, v2, v3));
-	}
-
-	void ShaderProgram::setParam(RHICommandList& commandList, char const* name, float v1, float v2, float v3, float v4)
-	{
-		ShaderParameter param;
-		if( !getParameter(name, param) )
-			return;
-		setParam(commandList, param, Vector4(v1, v2, v3, v4));
-	}
-
 	void ShaderProgram::setParam(RHICommandList& commandList, char const* name, float const v[], int num)
 	{
 		ShaderParameter param;
@@ -160,6 +89,12 @@ namespace Render
 	{
 		CHECK_PARAMETER(param);
 		GetContext(commandList).setShaderValue(*mRHIResource, param, (int const*)&v, 3);
+	}
+
+	void ShaderProgram::setParam(RHICommandList& commandList, ShaderParameter const& param, IntVector4 const& v)
+	{
+		CHECK_PARAMETER(param);
+		GetContext(commandList).setShaderValue(*mRHIResource, param, (int const*)&v, 4);
 	}
 
 	void ShaderProgram::setParam(RHICommandList& commandList, ShaderParameter const& param, float v1)
@@ -215,6 +150,7 @@ namespace Render
 		CHECK_PARAMETER(param);
 		GetContext(commandList).setShaderValue(*mRHIResource, param, v, num);
 	}
+
 
 	void ShaderProgram::setVector3(RHICommandList& commandList, char const* name, float const v[], int num)
 	{

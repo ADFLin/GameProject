@@ -14,12 +14,23 @@
 #include "TextureId.h"
 #include "CppVersion.h"
 
+#include "RHI/OpenGLCommand.h"
+#include "RHI/RHIGlobalResource.h"
+#include "RHI/DrawUtility.h"
+
+#define USE_TEXTURE_ATLAS 1
+#define USE_COMPACT_IMAGE 1
+
+#define USE_BATCHED_RENDER 1
+
 namespace TripleTown
 {
 	float AnimTime = 0.3f;
 	int const GameTilesTexLength = 512;
 	int const TileImageLength = 112;
 	int const ItemOutLineLength = 112;
+
+	char const* gResourceDir = "TripleTown";
 
 	uint32 nextPowOf2( uint32 n )
 	{
@@ -70,14 +81,163 @@ namespace TripleTown
 	Vec2i const TileSize = Vec2i( TileLength , TileLength );
 
 	Color3ub const MASK_KEY( 255 , 255 , 255 );
-	struct ImageInfo
+	struct ItemImageInfo
 	{
 		int id;
 		int addition;
 		char const* fileName;
+
+		
+	};
+	int GetItemImageId(int id , EItemImage::Type type) { return TEX_ID_NUM + id * EItemImage::Count + type; }
+	int GetTexImageId(int id){ return id; }
+
+	
+	struct TexHeader
+	{
+		uint32 width;
+		uint32 height;
+		uint32 size;
+		uint32 colorBits;
+		uint32 unkonw[9];
+		uint32 dataSize;
 	};
 
-	ImageInfo gImageInfo[] =
+	struct Color16
+	{
+		uint16 a : 4;
+		uint16 b : 4;
+		uint16 g : 4;
+		uint16 r : 4;
+	};
+
+
+	struct TexImageData
+	{
+		uint32 width;
+		uint32 height;
+		std::vector< uint32 > data;
+
+		bool load(char const* path)
+		{
+			using std::ios;
+			std::ifstream fs(path, ios::binary);
+			if( !fs.is_open() )
+				return false;
+
+			fs.seekg(0, ios::beg);
+			ios::pos_type pos = fs.tellg();
+
+			fs.seekg(0, ios::end);
+			int sizeFile = fs.tellg() - pos;
+
+			fs.seekg(0, ios::beg);
+
+			TexHeader header;
+			fs.read((char*)&header, sizeof(header));
+
+			width = header.width;
+			height = header.height;
+
+			data.resize(width * height);
+			switch( header.colorBits )
+			{
+			case 4:
+				
+				fs.read((char*)&data[0], 4 * data.size() );
+				break;
+			case 3:
+				{
+					unsigned char* pData = (unsigned char*)&data[0];
+					Color16 c;
+					assert(sizeof(c) == 2);
+					for( int i = 0; i < width * height; ++i )
+					{
+						fs.read((char*)pData, sizeof(uint8) * 3);
+						pData[3] = 255;
+						pData += 4;
+					}
+
+				}
+				break;
+			case 2:
+				{
+					unsigned char* pData = (unsigned char*)&data[0];
+					Color16 c;
+					assert(sizeof(c) == 2);
+					for( int i = 0; i < width * height; ++i )
+					{
+						fs.read((char*)&c, sizeof(c));
+
+						pData[0] = unsigned char(unsigned(255 * c.r) / 16);
+						pData[1] = unsigned char(unsigned(255 * c.g) / 16);
+						pData[2] = unsigned char(unsigned(255 * c.b) / 16);
+						pData[3] = unsigned char(unsigned(255 * c.a) / 16);
+
+						pData += 4;
+					}
+				}
+				break;
+			case 1:
+				{
+					unsigned char* pData = (unsigned char*)&data[0];
+					uint8 c;
+					for( int i = 0; i < width * height; ++i )
+					{
+						fs.read((char*)&c, sizeof(c));
+						pData[0] =
+						pData[1] = 
+						pData[2] =
+						pData[3] = c;
+						pData += 4;
+					}
+				}
+				break;
+			default:
+				LogWarning(0, "Can't load image %s", path);
+				return false;
+			}
+
+			return true;
+		}
+
+		int getCompactOffset(int startPos, int offsetStride, int offsetSize, int checkStride, int checkSize)
+		{
+			uint32* pStart = data.data() + startPos;
+			int result = 0;
+			for( int i = 0; i < offsetSize; ++i )
+			{
+				uint32* pCur = pStart + i * offsetStride;
+				for( int n = 0; n < checkSize; ++n )
+				{
+					if( *pCur & 0xff000000 )
+						return result;
+
+					pCur += checkStride;
+				}
+				++result;
+			}
+			return result;
+		}
+		void calcCompactSize(Vec2i& compactMin, Vec2i& compactMax)
+		{
+			compactMin.x = getCompactOffset(0, 1, width, width, height);
+			compactMax.x = width - getCompactOffset(width - 1, -1, width - compactMin.x, width, height);
+			compactMin.y = getCompactOffset(compactMin.x, width, height, 1, compactMax.x - compactMin.x);
+			compactMax.y = height - getCompactOffset(compactMin.x + (height - 1) * width, -width, height - compactMin.y, 1, compactMax.x - compactMin.x);
+		}
+	};
+
+
+	class BatchedDrawer
+	{
+
+
+
+
+	};
+
+	ItemImageInfo gItemImageList[] =
 	{
 		{ OBJ_GRASS , 0 , "grass" } ,
 		{ OBJ_BUSH , 1 , "bush" } ,
@@ -104,7 +264,6 @@ namespace TripleTown
 		{ OBJ_ROBOT , 0  , "bomb" } ,
 	};
 
-
 	Scene::Scene()
 	{
 		mLevel = NULL;
@@ -113,22 +272,171 @@ namespace TripleTown
 		mPosPeek = Vec2i( -1 , -1 );
 	}
 
+	Scene::~Scene()
+	{
+		if( mLevel )
+			mLevel->setListener(NULL);
+
+		releaseResource();
+	}
+
+	void Scene::releaseResource()
+	{
+
+	}
+
 	float value;
 	bool Scene::init()
 	{
 		//glEnable( GL_DEPTH_TEST );
-
-		glClearColor( 100 / 255.f , 100 / 255.f , 100 / 255.f  , 1 );
-		
+	
 		if ( !loadResource() )
 			return false;
 
 		mItemScale = 0.8f;
 		mMouseAnim = nullptr;
-		mTweener.tweenValue< Easing::CLinear >( mItemScale , 0.65f , 0.8f , 1 ).cycle();
+		mTweener.tweenValue< Easing::CIOQuad >( mItemScale , 0.65f , 0.8f , 1 ).cycle();
 
 		return true;
 	}
+
+	bool Scene::loadResource()
+	{
+
+		FixString< 256 > path;
+		unsigned w, h;
+
+		uint32 data[] = 
+		{ 
+			0x00 , 0x00 , 0x00 , 0x00 , 
+		};
+
+		GLuint tex;
+		glGenTextures( 1 , &tex );
+		glBindTexture( GL_TEXTURE_2D , tex );	
+		glTexParameteri( GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR );
+		glTexParameteri( GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_LINEAR );
+		glTexImage2D( GL_TEXTURE_2D , 0 , GL_RGBA , 2 , 2 , 0, GL_RGBA , GL_UNSIGNED_BYTE , &data[0] );
+
+		if ( !VerifyOpenGLStatus() )
+		{
+			int i = 1;
+		}
+
+		VERIFY_RETURN_FALSE(mTexAtlas.initialize(Texture::eRGBA8, 2048, 2048 , 1 ));
+
+		std::fill_n( mTexMap , (int)TEX_ID_NUM , 0 );
+
+		for( int i = 0; i < TEX_ID_NUM; ++i )
+		{
+			path.format("%s/%s.tex", gResourceDir, gTextureName[i]);
+			VERIFY_RETURN_FALSE(loadTextureImageResource(path, i));
+		}
+
+		for( int i = 0 ; i < ARRAY_SIZE( gItemImageList ) ; ++i )
+		{
+			ItemImageInfo& info = gItemImageList[i];
+			VERIFY_RETURN_FALSE(loadItemImageResource(info));
+		}
+
+
+
+		LogMsg("Atlas = %f", mTexAtlas.calcUsageAreaRatio());
+		return true;
+	}
+
+
+	RHITexture2DRef LoadTexture(char const* path)
+	{
+		TexImageData imageData;
+		if( !imageData.load(path) )
+			return nullptr;
+
+		return RHICreateTexture2D(Texture::eRGBA8, imageData.width, imageData.height, 0, 1, TCF_DefalutValue, imageData.data.data());
+	}
+
+	bool Scene::loadTextureImageResource( char const* path , int textureId )
+	{
+		TexImageData imageData;
+		if( !imageData.load(path) )
+			return false;
+
+		glGenTextures(1, &mTexMap[ textureId ]);
+		glBindTexture(GL_TEXTURE_2D, mTexMap[textureId]);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, imageData.width, imageData.height, 0, GL_RGBA, GL_UNSIGNED_BYTE, imageData.data.data());
+
+		if( !VerifyOpenGLStatus() )
+		{
+			//return false;
+		}
+
+		if( !mTexAtlas.addImage(textureId , imageData.width, imageData.height, Texture::eRGBA8, imageData.data.data()) )
+			return false;
+
+		return true;
+	}
+
+	bool Scene::loadItemImageResource(ItemImageInfo& info)
+	{
+		FixString< 256 > path;
+		unsigned w, h;
+		path.format("%s/item_%s.tex", gResourceDir, info.fileName);
+
+		VERIFY_RETURN_FALSE(loadImageTexFile(path, info.id, EItemImage::eNormal));
+		path.format("%s/item_%s_outline.tex", gResourceDir, info.fileName);
+		VERIFY_RETURN_FALSE(loadImageTexFile(path, info.id, EItemImage::eOutline));
+
+		if( info.addition )
+		{
+			path.format("%s/item_%s2.tex", gResourceDir, info.fileName);
+			VERIFY_RETURN_FALSE(loadImageTexFile(path, info.id, EItemImage::eAddition));
+
+			path.format("%s/item_%s2_outline.tex", gResourceDir, info.fileName);
+			VERIFY_FAILCODE(loadImageTexFile(path, info.id, EItemImage::eAdditionOutline), LogMsg("Path = %s", path.c_str()); );
+		}
+
+		return true;
+
+	}
+
+	bool Scene::loadImageTexFile(char const* path, int itemId, EItemImage::Type imageType)
+	{
+		TexImageData imageData;
+		if( !imageData.load(path) )
+			return false;
+
+		GLuint& tex = mTexItemMap[itemId][imageType];
+		glGenTextures(1, &tex);
+		glBindTexture(GL_TEXTURE_2D, tex);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, imageData.width, imageData.height, 0, GL_RGBA, GL_UNSIGNED_BYTE, imageData.data.data());
+
+		if( !VerifyOpenGLStatus() )
+		{
+			return false;
+		}
+
+#if USE_COMPACT_IMAGE
+		Vec2i compactMin, compactMax;
+		imageData.calcCompactSize(compactMin, compactMax);
+		Vec2i compactSize = compactMax - compactMin;
+		if( !mTexAtlas.addImage(GetItemImageId(itemId, imageType), compactSize.x, compactSize.y, Texture::eRGBA8, imageData.data.data() + compactMin.x + compactMin.y * imageData.width, imageData.width) )
+			return false;
+
+		mItemCompactMap[itemId][imageType].offset = Vector2(compactMin) / Vector2(imageData.width, imageData.height);
+		mItemCompactMap[itemId][imageType].size = Vector2(compactSize) / Vector2(imageData.width, imageData.height);
+#else
+
+		if( !mTexAtlas.addImage(GetItemImageId(itemId, imageType), imageData.width, imageData.height, Texture::eRGBA8, imageData.data.data()) )
+			return false;
+#endif
+
+		return true;
+	}
+
 
 	void Scene::setupLevel( Level& level )
 	{
@@ -166,7 +474,7 @@ namespace TripleTown
 						break;
 					}
 				}
-				else if ( Level::getInfo( tile.id ).typeClass->getType() == OT_BASIC )
+				else if ( Level::GetInfo( tile.id ).typeClass->getType() == OT_BASIC )
 				{
 					FixString< 32 > str;
 					str.format( "%d" , mLevel->getLinkNum( TilePos( i , j ) ) );
@@ -246,7 +554,7 @@ namespace TripleTown
 		}
 	}
 
-	void Scene::postCreateLand()
+	void Scene::postSetupLand()
 	{
 		mMap.resize( mLevel->getMap().getSizeX() , mLevel->getMap().getSizeY() );
 
@@ -274,6 +582,13 @@ namespace TripleTown
 		mLevel->clickTile( tPos );
 	}
 
+	ObjectId Scene::getObjectId(Vec2i const& pos)
+	{
+		TilePos tPos = calcTilePos(pos);
+		if( !mLevel->isMapRange(tPos) )
+			return OBJ_NULL;
+		return mLevel->getObjectId(mLevel->getTile(tPos));
+	}
 	void Scene::peekObject( Vec2i const& pos )
 	{
 		TilePos tPos = calcTilePos( pos );
@@ -317,48 +632,19 @@ namespace TripleTown
 		}
 	}
 
-	bool Scene::loadFile( char const* name , GLuint& tex , unsigned& outWidth , unsigned& outHeight )
-	{
-		int w;
-		int h;
-		int comp;
-		unsigned char* image = stbi_load(name, &w, &h, &comp, STBI_default);
-
-		if( !image )
-			return false;
-
-		outWidth = w;
-		outHeight = h;
-
-		glGenTextures(1, &tex);
-		glBindTexture(GL_TEXTURE_2D, tex);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-		//#TODO
-		switch( comp )
-		{
-		case 3:
-			glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8, w, h, 0, GL_RGB, GL_UNSIGNED_BYTE, image);
-			glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
-			break;
-		case 4:
-			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, image);
-			break;
-		}
-		//glGenerateMipmap( GL_TEXTURE_2D );
-		stbi_image_free(image);
-		return true;
-	}
-
-
 	void Scene::render()
 	{
-		glDisable( GL_CULL_FACE );
-		glDisable( GL_DEPTH_TEST );
+
+		RHICommandList& commandList = RHICommandList::GetImmediateList();
+		RHISetDepthStencilState(commandList, StaticDepthDisableState::GetRHI());
+		RHISetRasterizerState(commandList, TStaticRasterizerState< ECullMode::None >::GetRHI());
+
 		glColor3f(1,1,1);
 
 		float scaleItem = 0.8f;
+		glClearColor(100 / 255.f, 100 / 255.f, 100 / 255.f, 1);
+		glClearDepth(1.0);
+		glClearStencil(0);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
 
 		int wScreen = ::Global::GetDrawEngine().getScreenWidth();
@@ -372,25 +658,17 @@ namespace TripleTown
 
 		float scaleMap = float( TileLength ) / TileImageLength;
 	
-		glPushMatrix();
-		glTranslatef( mMapOffset.x , mMapOffset.y , 0 );
-		glScalef( scaleMap , scaleMap , 1 );
-#if 0
-		for( int i = 0 ; i < ARRAY_SIZE( gImageInfo ) ; ++i )
-		{
-			glLoadIdentity();
-			ImageInfo& info = gImageInfo[i];
-			int ox = ( info.w - 96 ) / 2;
-			int oy = ( info.h - 96 ) / 2;
-			glTranslated( 100 * ( i % 5 ) - ox + 100 , 100 * ( i / 5 ) - oy + 100 , 0 );
-			drawItemImage( mTexItemMap[ info.id ][0] );
-			
-		}
-#endif
+
+		mRenderState.pushTransform( Transform2D( Vector2(scaleMap , scaleMap ) , mMapOffset) );
+
 		TileMap const& map = mLevel->getMap();
 
 		glEnable( GL_TEXTURE_2D );
+#if USE_TEXTURE_ATLAS
+		glBindTexture( GL_TEXTURE_2D, OpenGLCast::GetHandle( mTexAtlas.getTexture() ) );
+#else
 		glBindTexture( GL_TEXTURE_2D , mTexMap[ TID_GAME_TILES ] );
+#endif
 
 		for( int j = 0 ; j < map.getSizeY() ; ++j )
 		{
@@ -399,8 +677,8 @@ namespace TripleTown
 				Vec2i pos = mMapOffset + TileLength * Vec2i( i , j );
 				Tile const& tile = map.getData( i , j );
 
-				glPushMatrix();
-				glTranslated( i * TileImageLength , j * TileImageLength , -1 );
+				//depth offset = -1
+				mRenderState.pushTransform(Transform2D::Translate(i * TileImageLength, j * TileImageLength) );
 
 				switch( tile.getTerrain() )
 				{
@@ -414,18 +692,33 @@ namespace TripleTown
 					break;
 				case TT_GRASS:
 				default:
-					float tw = float( TileImageLength ) / GameTilesTexLength;
-					float th = float( TileImageLength ) / GameTilesTexLength;
-					drawQuad( TileImageLength , TileImageLength , 0 , th , tw , -th );
+					{
+
+						float tw = float(TileImageLength) / GameTilesTexLength;
+						float th = -float(TileImageLength) / GameTilesTexLength;
+						float tx = 0;
+						float ty = -th;
+#if USE_TEXTURE_ATLAS
+						Vector2 uvMin, uvMax;
+						mTexAtlas.getRectUV( GetTexImageId( TID_GAME_TILES ) , uvMin, uvMax);
+						Vector2 size = uvMax - uvMin;
+						tx = uvMin.x + size.x * tx;
+						ty = uvMin.y + size.y * ty;
+						tw *= size.x;
+						th *= size.y;
+#endif
+						drawQuad(TileImageLength, TileImageLength, tx , ty , tw , th);
+					}
 				}
-				glPopMatrix();
+
+				mRenderState.popTransform();
 			}
 		}
 
-		glDisable( GL_TEXTURE_2D );
-
-		glEnable( GL_BLEND );
-		glBlendFunc( GL_SRC_ALPHA , GL_ONE_MINUS_SRC_ALPHA );
+#if USE_BATCHED_RENDER
+		submitRenderCommand(commandList);
+#endif
+		RHISetBlendState(commandList, TStaticBlendState< CWM_RGBA , Blend::eSrcAlpha , Blend::eOneMinusSrcAlpha >::GetRHI());
 
 		TilePos posTileMouse = calcTilePos( mLastMousePos );
 		bool renderQueue = true;
@@ -438,7 +731,8 @@ namespace TripleTown
 
 				Tile const& tile = map.getData( i , j );
 
-				glPushMatrix();
+				mRenderState.pushTransform(Transform2D::Identity());
+
 				if ( tile.isEmpty() )
 				{
 					if ( posTileMouse.x == i && posTileMouse.y == j )
@@ -451,81 +745,98 @@ namespace TripleTown
 					TileData const& data = mMap.getData( i , j );
 					if ( tile.haveActor() )
 					{
-						glTranslatef( data.pos.x , data.pos.y , j );
-						glPushMatrix();
-						glTranslatef( ( TileImageLength - ItemImageSize.x ) / 2 , TileImageLength - ItemImageSize.y , 0 );
-						drawItem( mTexMap[ TID_ITEM_SHADOW_LARGE ] );
+						//depth offset = j
+						mRenderState.multiTransform(Transform2D::Translate(data.pos.x, data.pos.y));
+						mRenderState.pushTransform(Transform2D::Translate((TileImageLength - ItemImageSize.x) / 2, TileImageLength - ItemImageSize.y));
+
+						drawItemByTexId( TID_ITEM_SHADOW_LARGE );
 
 						ActorData& e = mLevel->getActor( tile );
-						drawItem( mTexItemMap[ e.id ][ 0 ] );
-						glPopMatrix();
+						drawItem( e.id, EItemImage::eNormal );
+
+						mRenderState.popTransform();
+
 					}
 					else if ( tile.id != OBJ_NULL )
 					{
-						glTranslatef( data.pos.x , data.pos.y , j );
-						glPushMatrix();
-						glTranslatef( ( TileImageLength - ItemImageSize.x ) / 2 , TileImageLength - ItemImageSize.y , 0 );
-						drawItem( mTexMap[ TID_ITEM_SHADOW_LARGE ] );
+						//depth offset = j
+						mRenderState.multiTransform(Transform2D::Translate(data.pos.x, data.pos.y));
+						mRenderState.pushTransform(Transform2D::Translate((TileImageLength - ItemImageSize.x) / 2, TileImageLength - ItemImageSize.y));
 
-						drawItem( mTexItemMap[ tile.id ][ 0 ] );
-						glPopMatrix();
+						drawItemByTexId( TID_ITEM_SHADOW_LARGE );
+
+						drawItem( tile.id , (tile.bSpecial && gItemImageList[tile.id].addition ) ? EItemImage::eAddition : EItemImage::eNormal );
+
+						mRenderState.popTransform();
 
 						if ( tile.id == OBJ_STOREHOUSE )
 						{
 							if ( tile.meta )
 							{
-								glPushMatrix();
-								glTranslatef( TileImageLength / 2 , TileImageLength / 2 , 0.1 );
-								glScalef( scaleItem , scaleItem , 1 );
-								drawItemCenter( mTexItemMap[ tile.meta ][ 0 ] );
-								glPopMatrix();
+								//depth offset = 0.1
+								mRenderState.pushTransform(Transform2D( Vector2(scaleItem, scaleItem) , Vector2(TileImageLength / 2, TileImageLength / 2)) );
+								drawItemCenter( tile.meta , EItemImage::eNormal );
+								mRenderState.popTransform();
 							}
 						}
 					}
 				}
-				glPopMatrix();
+				mRenderState.popTransform();
+
 			}
 		}
 
-		
+#if USE_BATCHED_RENDER
+		submitRenderCommand(commandList);
+#endif
+
 		if ( renderQueue )
 		{
 			if ( mLevel->isMapRange( posTileMouse ) )
 			{
-				glPushMatrix();
-				glLoadIdentity();
-				glTranslatef( mLastMousePos.x , mLastMousePos.y  , 10 );
-				glScalef( mItemScale * scaleMap , mItemScale * scaleMap , 1 );
-				drawItemCenter( mTexItemMap[ mLevel->getQueueObject() ][ 0 ] );
+				//depth offset = 10
+				mRenderState.pushTransform(Transform2D( Vector2(mItemScale * scaleMap, mItemScale * scaleMap) , Vector2(mLastMousePos) ) , false);
+
+				drawItemCenter( mLevel->getQueueObject() , EItemImage::eNormal );
 				//drawItemOutline( mTexItemMap[ mLevel->getQueueObject() ][ 2 ] );
-				glPopMatrix();
+				mRenderState.popTransform();
+
 			}
 		}
 		else
 		{
-			glPushMatrix();
-			glTranslatef( posTileMouse.x * TileImageLength , posTileMouse.y * TileImageLength , 50 );
-			drawImage( mTexMap[ TID_UI_CURSOR ] , TileImageLength , TileImageLength );
-			glTranslatef(  TileImageLength / 2 , TileImageLength / 2 , 0 );
-			glScalef( mItemScale , mItemScale , 1 );
-			drawItemCenter( mTexItemMap[ mLevel->getQueueObject() ][ 0 ] );
+
+			//depth = 50
+			mRenderState.pushTransform(Transform2D::Translate(posTileMouse.x * TileImageLength, posTileMouse.y * TileImageLength));
+			drawImageByTextId(TID_UI_CURSOR, Vector2(TileImageLength, TileImageLength));
+			mRenderState.multiTransform(Transform2D(Vector2(mItemScale, mItemScale), 0.5 * Vector2(TileImageLength, TileImageLength)));
+
+			drawItemCenter( mLevel->getQueueObject(), EItemImage::eNormal );
 			//drawItemOutline( mTexItemMap[ mLevel->getQueueObject() ][ 2 ] );
-			glPopMatrix();
+			mRenderState.popTransform();
+
 		}
-		
-		
-
+			
 #if 1
-		glPushMatrix();
-		glLoadIdentity();
-		glTranslatef( 0 , 0 , 20 );
-		glScalef( scaleMap , scaleMap , 1 );
-		drawImageInvTexY( mTexMap[ TID_GRASS_OUTLINE ] , TileImageLength , TileImageLength );
-		glPopMatrix();
-#endif
-		glDisable( GL_BLEND );
+		if ( mPreviewTexture.isValid() && 0 )
+		{
+			mRenderState.pushTransform(Transform2D(Vector2(scaleMap, scaleMap), Vector2(0, 0)), false);
 
-		glPopMatrix();
+			drawImageInvTexY(OpenGLCast::GetHandle(mPreviewTexture), 700, 700);
+
+			mRenderState.popTransform();
+
+		}
+#endif
+
+		mRenderState.popTransform();
+
+#if USE_BATCHED_RENDER
+		submitRenderCommand(commandList);
+#endif
+
+		assert(mRenderState.xfromStack.size() == 1);
+		glDisable(GL_TEXTURE_2D);
 	}
 
 	void Scene::drawItemOutline( GLuint tex )
@@ -538,85 +849,159 @@ namespace TripleTown
 		glDisable( GL_TEXTURE_2D );
 	}
 
-	void Scene::drawItem( GLuint tex )
+
+	void Scene::drawItemByTexId(int texId)
 	{
-		glEnable( GL_TEXTURE_2D );
-		glBindTexture( GL_TEXTURE_2D , tex );
-		drawQuad( ItemImageSize.x , ItemImageSize.y , 0 , 1 , 1 , -1 );
-		glDisable( GL_TEXTURE_2D );
+#if USE_TEXTURE_ATLAS
+		Vector2 uvMin, uvMax;
+		mTexAtlas.getRectUV(GetTexImageId(texId), uvMin, uvMax);
+		drawQuad(ItemImageSize.x, ItemImageSize.y, uvMin.x, uvMax.y, uvMax.x - uvMin.x, uvMin.y - uvMax.y);
+#else
+		glEnable(GL_TEXTURE_2D);
+		glBindTexture(GL_TEXTURE_2D, mTexMap[texId]);
+		drawQuad(ItemImageSize.x, ItemImageSize.y, 0, 1, 1, -1);
+		glDisable(GL_TEXTURE_2D);
+
+#endif
 	}
 
-	void Scene::drawItemCenter( GLuint tex )
+	void Scene::drawImageByTextId(int texId, Vector2 size)
 	{
-		int x =  - ItemImageSize.x / 2;
+#if USE_TEXTURE_ATLAS
+		Vector2 uvMin, uvMax;
+		mTexAtlas.getRectUV(GetTexImageId(texId), uvMin, uvMax);
+		drawQuad(size.x, size.y, uvMin.x, uvMin.y, uvMax.x - uvMin.x, uvMax.y - uvMin.y);
+#else
+		glEnable(GL_TEXTURE_2D);
+		glBindTexture(GL_TEXTURE_2D, mTexMap[texId]);
+		drawQuad(size.x, size.y, 0, 0, 1, 1);
+		glDisable(GL_TEXTURE_2D);
+#endif
+	}
+
+	void Scene::drawItem(int itemId, EItemImage::Type imageType)
+	{
+#if USE_TEXTURE_ATLAS
+		Vector2 uvMin, uvMax;
+		mTexAtlas.getRectUV(GetItemImageId(itemId, imageType), uvMin, uvMax);
+	
+#if USE_COMPACT_IMAGE
+		CompactImageInfo const& info = mItemCompactMap[itemId][imageType];
+		Vector2 offset = info.offset * Vector2(ItemImageSize);
+		Vector2 size = info.size * Vector2(ItemImageSize);
+		drawQuad(offset.x , ItemImageSize.y - offset.y - size.y , size.x , size.y , uvMin.x, uvMax.y, uvMax.x - uvMin.x, uvMin.y - uvMax.y);
+#else
+		drawQuad(ItemImageSize.x, ItemImageSize.y, uvMin.x, uvMax.y, uvMax.x - uvMin.x, uvMin.y - uvMax.y);
+#endif
+
+#else
+		glEnable(GL_TEXTURE_2D);
+		glBindTexture(GL_TEXTURE_2D, mTexItemMap[itemId][imageType]);
+		drawQuad(ItemImageSize.x, ItemImageSize.y, 0, 1, 1, -1);
+		glDisable(GL_TEXTURE_2D);
+#endif
+	}
+
+	void Scene::drawItemCenter(int itemId, EItemImage::Type imageType)
+	{
+		int x = -ItemImageSize.x / 2;
 		int y = TileImageLength / 2 - ItemImageSize.y;
-		glEnable( GL_TEXTURE_2D );
-		glBindTexture( GL_TEXTURE_2D , tex );
-		drawQuad( x , y , ItemImageSize.x , ItemImageSize.y , 0 , 1 , 1 , -1 );
-		glDisable( GL_TEXTURE_2D );
+#if USE_TEXTURE_ATLAS
+		Vector2 uvMin, uvMax;
+		mTexAtlas.getRectUV(GetItemImageId(itemId, imageType), uvMin, uvMax);
+#if USE_COMPACT_IMAGE
+		CompactImageInfo const& info = mItemCompactMap[itemId][imageType];
+		Vector2 offset = info.offset * Vector2(ItemImageSize);
+		Vector2 size = info.size * Vector2(ItemImageSize);
+		drawQuad(x + offset.x , y + ItemImageSize.y - offset.y - size.y , size.x, size.y, uvMin.x, uvMax.y, uvMax.x - uvMin.x, uvMin.y - uvMax.y);
+#else
+		drawQuad(x, y, ItemImageSize.x, ItemImageSize.y, uvMin.x, uvMax.y, uvMax.x - uvMin.x, uvMin.y - uvMax.y);
+#endif
+
+#else
+		glEnable(GL_TEXTURE_2D);
+		glBindTexture(GL_TEXTURE_2D, mTexItemMap[itemId][imageType]);
+		drawQuad(x, y, ItemImageSize.x, ItemImageSize.y, 0, 1, 1, -1);
+		glDisable(GL_TEXTURE_2D);
+#endif
 	}
 
-	void Scene::drawItem( Texture& tex  )
+	void Scene::emitQuad(Vector2 const& p1, Vector2 const& p2, Vector2 const& uvMin, Vector2 const& uvMax)
 	{
-		glEnable( GL_TEXTURE_2D );
-		tex.bind();
-		drawQuad( ItemImageSize.x , ItemImageSize.y , 0 , 1 * tex.mScaleT , 1 * tex.mScaleS , -1 * tex.mScaleT );
-		glDisable( GL_TEXTURE_2D );
+		Vector2 v1 = mRenderState.getTransform().transformPosition(p1);
+		Vector2 v2 = mRenderState.getTransform().transformPosition(p2);
+#if USE_BATCHED_RENDER
+		mBatchedVertices.push_back({ v1 ,uvMin });
+		mBatchedVertices.push_back({ Vector2(v2.x , v1.y) , Vector2(uvMax.x, uvMin.y) });
+		mBatchedVertices.push_back({ v2 , uvMax });
+		mBatchedVertices.push_back({ Vector2(v1.x  , v2.y) , Vector2(uvMin.x, uvMax.y) });
+#else
+		glBegin(GL_QUADS);
+		glTexCoord2f(uvMin.x, uvMin.y); glVertex2f(v1.x, v1.y);
+		glTexCoord2f(uvMax.x, uvMin.y); glVertex2f(v2.x, v1.y);
+		glTexCoord2f(uvMax.x, uvMax.y); glVertex2f(v2.x, v2.y);
+		glTexCoord2f(uvMin.x, uvMax.y); glVertex2f(v1.x, v2.y);
+		glEnd();
+#endif
 	}
 
-	void Scene::drawItemCenter( Texture& tex )
+	void Scene::submitRenderCommand( RHICommandList& commandList )
 	{
-		int x =  - ItemImageSize.x / 2;
-		int y = TileImageLength / 2 - ItemImageSize.y;
-		glEnable( GL_TEXTURE_2D );
-		tex.bind();
-		drawQuad( x , y , ItemImageSize.x , ItemImageSize.y , 0 , 1 * tex.mScaleT , 1 * tex.mScaleS , -1 * tex.mScaleT );
-		glDisable( GL_TEXTURE_2D );
+		if( !mBatchedVertices.empty() )
+		{
+			TRenderRT< RTVF_XY_T2 >::Draw(commandList, PrimitiveType::Quad, mBatchedVertices.data(), mBatchedVertices.size());
+			mBatchedVertices.clear();
+		}
 	}
 
-
-	void Scene::drawQuadRotateTex90( int x , int y , int w , int h , float tx , float ty , float tw , float th )
+	void Scene::drawQuadRotateTex90(float x, float y, float w, float h, float tx, float ty, float tw, float th)
 	{
-		int x2 = x + w;
-		int y2 = y + h;
+		float x2 = x + w;
+		float y2 = y + h;
 		float tx2 = tx + tw;
 		float ty2 = ty + th;
-		glBegin( GL_QUADS );
-		glTexCoord2f( tx2 , ty  );glVertex2i( x  , y  ); 
-		glTexCoord2f( tx2 , ty2 );glVertex2i( x2 , y  );
-		glTexCoord2f( tx  , ty2 );glVertex2i( x2 , y2 );
-		glTexCoord2f( tx  , ty  );glVertex2i( x  , y2 );
+
+	
+		Vector2 v1 = mRenderState.getTransform().transformPosition(Vector2(x, y));
+		Vector2 v2 = mRenderState.getTransform().transformPosition(Vector2(x2, y2));
+#if USE_BATCHED_RENDER
+		mBatchedVertices.push_back({ v1 ,Vector2(tx2, ty) });
+		mBatchedVertices.push_back({ Vector2(v2.x , v1.y) , Vector2(tx2, ty2) });
+		mBatchedVertices.push_back({ v2 , Vector2(tx, ty2) });
+		mBatchedVertices.push_back({ Vector2(v1.x  , v2.y) , Vector2(tx, ty) });
+#else
+		glBegin(GL_QUADS);
+		glTexCoord2f(tx2, ty);  glVertex2f(v1.x, v1.y);
+		glTexCoord2f(tx2, ty2); glVertex2f(v2.x, v1.y);
+		glTexCoord2f(tx, ty2);  glVertex2f(v2.x, v2.y);
+		glTexCoord2f(tx, ty);   glVertex2f(v1.x, v2.y);
 		glEnd();
+#endif		
 	}
 
 
-	void Scene::drawQuad( int x , int y , int w , int h , float tx , float ty , float tw , float th )
+	void Scene::drawQuad(float x, float y, float w, float h, float tx, float ty, float tw, float th)
 	{
-		int x2 = x + w;
-		int y2 = y + h;
+		float x2 = x + w;
+		float y2 = y + h;
 		float tx2 = tx + tw;
 		float ty2 = ty + th;
-		glBegin( GL_QUADS );
-		glTexCoord2f( tx  , ty  );glVertex2i( x  , y  ); 
-		glTexCoord2f( tx2 , ty  );glVertex2i( x2 , y  );
-		glTexCoord2f( tx2 , ty2 );glVertex2i( x2 , y2 );
-		glTexCoord2f( tx  , ty2 );glVertex2i( x  , y2 );
-		glEnd();
+		emitQuad(Vector2(x, y), Vector2(x2, y2), Vector2(tx, ty), Vector2(tx2, ty2));
 	}
 
-	void Scene::drawQuad( int w , int h , float tx , float ty , float tw , float th )
+	void Scene::drawQuad(float w , float h , float tx , float ty , float tw , float th )
 	{
 		float tx2 = tx + tw;
 		float ty2 = ty + th;
-		glBegin( GL_QUADS );
-		glTexCoord2f( tx  , ty  );glVertex2i( 0 , 0 ); 
-		glTexCoord2f( tx2 , ty  );glVertex2i( w , 0 );
-		glTexCoord2f( tx2 , ty2 );glVertex2i( w , h );
-		glTexCoord2f( tx  , ty2 );glVertex2i( 0 , h );
-		glEnd();
+		emitQuad(Vector2(0, 0), Vector2(w, h), Vector2(tx, ty), Vector2(tx2, ty2));
 	}
 
-	void Scene::drawRoadTile( int x , int y , int dir )
+	void Scene::emitQuad(Vector2 const& size, Vector2 const& uvMin, Vector2 const& uvMax)
+	{
+		emitQuad(Vector2(0, 0), size, uvMin, uvMax);
+	}
+
+	void Scene::drawRoadTile(int x, int y, int dir)
 	{
 		drawTileImpl( x , y , dir , TT_ROAD , gRoadTexCoord );
 	}
@@ -661,7 +1046,7 @@ namespace TripleTown
 		//  0   1
 		//  2   3
 
-		bool checkSpecial = ( con == 0x2 && tId == TT_WATER );
+		bool bCheckSpecial = ( con == 0x2 && tId == TT_WATER );
 		if ( con )
 		{
 			switch( dir )
@@ -669,7 +1054,7 @@ namespace TripleTown
 			case 0:
 				tw = -tLen; th = -tLen;
 				tx += tLen; ty += tLen;
-				if ( checkSpecial )
+				if ( bCheckSpecial )
 				{
 					tx += tw;
 					tw = -tw;
@@ -685,7 +1070,7 @@ namespace TripleTown
 				break;
 			case 3:
 				tw = tLen; th = tLen;
-				if ( checkSpecial )
+				if ( bCheckSpecial )
 				{
 					tx += tw;
 					tw = -tw;
@@ -698,12 +1083,27 @@ namespace TripleTown
 				th = -th;
 			}
 		}
+
+
 		int ox = offsetFactorX[ dir ] * TileImageLength / 2;
 		int oy = offsetFactorY[ dir ] * TileImageLength / 2;
-		if ( checkSpecial )
-			drawQuadRotateTex90( ox , oy , TileImageLength / 2 , TileImageLength / 2 , tx , ty , tw , th );
+#if USE_TEXTURE_ATLAS
+		Vector2 uvMin, uvMax;
+		mTexAtlas.getRectUV(GetTexImageId(TID_GAME_TILES), uvMin, uvMax);
+		Vector2 size = uvMax - uvMin;
+		tx = uvMin.x + size.x * tx;
+		ty = uvMin.y + size.y * ty;
+		tw *= size.x;
+		th *= size.y;
+#endif
+		if( bCheckSpecial )
+		{
+			drawQuadRotateTex90(ox, oy, TileImageLength / 2, TileImageLength / 2, tx, ty, tw, th);
+		}
 		else
-			drawQuad( ox , oy , TileImageLength / 2 , TileImageLength / 2 , tx , ty , tw , th );
+		{
+			drawQuad(ox, oy, TileImageLength / 2, TileImageLength / 2, tx, ty, tw, th);
+		}
 
 	}
 
@@ -712,149 +1112,6 @@ namespace TripleTown
 
 	}
 
-	bool Scene::loadResource()
-	{
-		char const* dir = "TripleTown";
-		FixString< 128 > path;
-		unsigned w , h;
-
-		uint32 data[] = 
-		{ 
-			0x00 , 0x00 , 0x00 , 0x00 , 
-		};
-
-		GLuint tex;
-		glGenTextures( 1 , &tex );
-		glBindTexture( GL_TEXTURE_2D , tex );	
-		glTexParameteri( GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR );
-		glTexParameteri( GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_LINEAR );
-		glTexImage2D( GL_TEXTURE_2D , 0 , GL_RGBA , 2 , 2 , 0, GL_RGBA , GL_UNSIGNED_BYTE , &data[0] );
-
-		GLenum error = glGetError();
-		if ( error != GL_NO_ERROR )
-		{
-			int i = 1;
-		}
-
-		std::fill_n( mTexMap , (int)TEX_ID_NUM , 0 );
-
-		for( int i = 0 ; i < ARRAY_SIZE( gImageInfo ) ; ++i )
-		{
-			ImageInfo& info = gImageInfo[i];
-
-			path.format( "%s/item_%s.tex" , dir , info.fileName );
-			
-			if ( !loadTexFile( path , mTexItemMap[ info.id ][ 0 ] , w , h ) )
-				return false;
-
-			//if ( !mTexItemMap[ info.id ][ 0 ].loadFile( path ) )
-				//return false;
-
-			if ( info.addition )
-			{
-				path.format( "%s/item_%s2.tex" , dir , info.fileName );
-				if ( !loadTexFile( path , mTexItemMap[ info.id ][ 1 ] , w , h ) )
-					return false;
-
-				//if ( !mTexItemMap[ info.id ][ 1 ].loadFile( path ) )
-					//return false;
-			}
-
-			path.format( "%s/item_%s_outline.tex" , dir , info.fileName );
-			if ( !loadTexFile( path , mTexItemMap[ info.id ][ 2 ] , w , h ) )
-				return false;
-		}
-
-		for( int i = 0 ; i < TEX_ID_NUM ; ++i )
-		{
-			path.format( "%s/%s.tex" , dir , gTextureName[i] );
-			if ( !loadTexFile( path , mTexMap[ i ] , w , h ) )
-				return false;
-		}
-		return true;
-	}
-
-
-	struct TexHeader
-	{
-		uint32 width;
-		uint32 height;
-		uint32 size;
-		uint32 colorBits;
-		uint32 unkonw[9];
-		uint32 dataSize;
-	};
-
-	struct Color16
-	{
-		uint16 a : 4;
-		uint16 b : 4;
-		uint16 g : 4;
-		uint16 r : 4;
-	};
-
-
-	bool Scene::loadTexFile( char const* path , GLuint& tex , unsigned& w , unsigned& h )
-	{
-		using std::ios;
-		std::ifstream fs( path , ios::binary );
-		if ( !fs.is_open() )
-			return false;
-
-		fs.seekg( 0 , ios::beg );
-		ios::pos_type pos = fs.tellg();
-
-		fs.seekg( 0 , ios::end );
-		int sizeFile = fs.tellg() - pos;
-
-		fs.seekg( 0 , ios::beg );
-
-		TexHeader header;
-		fs.read( (char*)&header , sizeof( header ) );
-
-		w = header.width;
-		h = header.height;
-		std::vector< unsigned char > data;
-		switch ( header.colorBits )
-		{
-		case 4:
-			data.resize( header.dataSize );
-			fs.read( (char*)&data[0] , header.dataSize );
-			break;
-		case 2:
-			{
-				data.resize( header.dataSize * 2 );
-				unsigned char* pData = &data[0];
-				Color16 c;
-				assert( sizeof(c) == 2 );
-				for ( int i = 0 ; i < w * h ; ++i )
-				{
-					fs.read( (char*)&c , sizeof(c) );
-
-					pData[0] = unsigned char( unsigned( 255 * c.r ) / 16 );
-					pData[1] = unsigned char( unsigned( 255 * c.g ) / 16 );
-					pData[2] = unsigned char( unsigned( 255 * c.b ) / 16 );
-					pData[3] = unsigned char( unsigned( 255 * c.a ) / 16 );
-
-					pData  += 4;
-				}
-			}
-			break;
-		}
-		glGenTextures( 1 , &tex );
-		glBindTexture( GL_TEXTURE_2D , tex );	
-		glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR );
-		glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_LINEAR );
-		glTexImage2D( GL_TEXTURE_2D , 0 , GL_RGBA , w , h , 0, GL_RGBA , GL_UNSIGNED_BYTE , &data[0] );
-
-		GLenum error = glGetError();
-		if ( error != GL_NO_ERROR )
-		{
-			LogMsg( "Load texture Fail error code = %d" , (int)error );
-			//return false;
-		}
-		return true;
-	}
 
 	TilePos Scene::calcTilePos( Vec2i const& pos )
 	{
@@ -864,13 +1121,6 @@ namespace TripleTown
 		return tPos;
 	}
 
-	void Scene::drawImage( GLuint tex , int w , int h )
-	{
-		glEnable( GL_TEXTURE_2D );
-		glBindTexture( GL_TEXTURE_2D , tex );
-		drawQuad( w , h , 0 , 0 , 1 , 1 );
-		glDisable( GL_TEXTURE_2D );
-	}
 
 	void Scene::drawImageInvTexY( GLuint tex , int w , int h )
 	{
@@ -891,8 +1141,8 @@ namespace TripleTown
 			float const height = 1500;
 			float const dest = d / 2;
 			if ( t < dest )
-				return Fun()( t , b , Vector2( 0, -height ) , dest );
-			return Fun()( t - dest , b + c - Vector2( 0, height ) , Vector2( 0, height ) , dest );
+				return Fun().operator()<Vector2>( t , b , Vector2( 0, -height ) , dest );
+			return Fun().operator()<Vector2>(t - dest , b + c - Vector2( 0, height ) , Vector2( 0, height ) , dest );
 		}
 		
 	};
@@ -900,8 +1150,8 @@ namespace TripleTown
 	{
 		TileData& data = mMap.getData( posTo.x , posTo.y );
 
-		Vector2 posRFrom = TileImageLength * Vector2( posFrom );
-		Vector2 posRTo = TileImageLength * Vector2( posTo );
+		Vector2 posRFrom = float(TileImageLength) * Vector2( posFrom );
+		Vector2 posRTo = float(TileImageLength) * Vector2( posTo );
 		switch( id )
 		{
 		case OBJ_BEAR:
@@ -919,118 +1169,12 @@ namespace TripleTown
 		mTweener.update( delta );
 	}
 
-	Scene::~Scene()
+
+	void Scene::loadPreviewTexture(char const* name)
 	{
-		if ( mLevel )
-			mLevel->setListener( NULL );
-
-		releaseResource();
-	}
-
-	void Scene::releaseResource()
-	{
-
-	}
-
-
-	bool Texture::loadFile( char const* path )
-	{
-		using std::ios;
-		std::ifstream fs( path , ios::binary );
-		if ( !fs.is_open() )
-			return false;
-
-		TexHeader header;
-		fs.read( (char*)&header , sizeof( header ) );
-
-		uint32 fixW = nextPowOf2( header.width );
-		uint32 fixH = nextPowOf2( header.height );
-	
-		mScaleS = float( header.width ) / fixW;
-		mScaleT = float( header.height ) / fixH;
-
-		std::vector< unsigned char > data;
-
-		if ( fixW == header.width && fixH == header.height )
-		{
-			switch ( header.colorBits )
-			{
-			case 4:
-				data.resize( header.dataSize );
-				fs.read( (char*)&data[0] , header.dataSize );
-				break;
-			case 2:
-				{
-					data.resize( header.dataSize * 2 );
-					unsigned char* pData = &data[0];
-					Color16 c;
-					assert( sizeof(c) == 2 );
-					for ( int i = 0 ; i < header.width * header.height ; ++i )
-					{
-						fs.read( (char*)&c , sizeof(c) );
-
-						pData[0] = unsigned char( unsigned( 255 * c.r ) / 16 );
-						pData[1] = unsigned char( unsigned( 255 * c.g ) / 16 );
-						pData[2] = unsigned char( unsigned( 255 * c.b ) / 16 );
-						pData[3] = unsigned char( unsigned( 255 * c.a ) / 16 );
-
-						pData += 4;
-					}
-				}
-				break;
-			}
-		}
-		else
-		{
-			switch ( header.colorBits )
-			{
-			case 4:
-				{
-					data.resize( 4 * fixW * fixH , 0 );
-					unsigned offset = 4 * fixW;
-					unsigned char* pData = &data[0];
-					for ( int i = 0 ; i < header.height ; ++i )
-					{
-						fs.read( (char*)pData , header.width * 4 );
-						pData += offset;
-					}
-				}
-				break;
-			case 2:
-				{
-					data.resize( header.dataSize * 2 , 0 );
-					unsigned char* pData = &data[0];
-					Color16 c;
-					assert( sizeof(c) == 2 );
-					for ( int i = 0 ; i < header.width * header.height ; ++i )
-					{
-						fs.read( (char*)&c , sizeof(c) );
-
-						pData[0] = unsigned char( unsigned( 255 * c.r ) / 16 );
-						pData[1] = unsigned char( unsigned( 255 * c.g ) / 16 );
-						pData[2] = unsigned char( unsigned( 255 * c.b ) / 16 );
-						pData[3] = unsigned char( unsigned( 255 * c.a ) / 16 );
-
-						pData  += 4;
-					}
-				}
-				break;
-			}
-		}
-		glGenTextures( 1 , &mTex );
-		glBindTexture( GL_TEXTURE_2D , mTex );	
-		glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR );
-		glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_LINEAR );
-		glTexImage2D( GL_TEXTURE_2D , 0 , GL_RGBA , fixW , fixH , 0, GL_RGBA , GL_UNSIGNED_BYTE , &data[0] );
-
-		GLenum error = glGetError();
-		if ( error != GL_NO_ERROR )
-		{
-			LogMsg( "Load texture Fail error code = %d" , (int)error );
-			//return false;
-		}
-		return true;
-
+		FixString< 1024 > path;
+		path.format("TripleTown/%s", name);
+		mPreviewTexture = LoadTexture(path);
 	}
 
 }//namespace TripleTown

@@ -23,26 +23,21 @@
 
 namespace Render
 {
-	bool CheckGLStateValid();
+	bool VerifyOpenGLStatus();
 	bool gbOptimizeVertexCache = false;
 
 	Mesh::Mesh()
 	{
 		mType = PrimitiveType::TriangleList;
-		mVAO = 0;
 	}
 
 	Mesh::~Mesh()
 	{
-		if( mVAO )
-		{
-			glDeleteVertexArrays(1, &mVAO);
-		}
+
 	}
 
 	bool Mesh::createRHIResource(void* pVertex, int nV, void* pIdx, int nIndices, bool bIntIndex)
 	{
-
 		mInputLayout = RHICreateInputLayout(mInputLayoutDesc);
 		if( !mInputLayout.isValid() )
 			return false;
@@ -80,7 +75,7 @@ namespace Render
 		drawInternal(commandList, 0, (mIndexBuffer) ? mIndexBuffer->getNumElements() : mVertexBuffer->getNumElements(), &color);
 	}
 
-	void Mesh::drawAdjShader(RHICommandList& commandList, LinearColor const& color)
+	void Mesh::drawAdj(RHICommandList& commandList, LinearColor const& color)
 	{
 		if( mVertexBuffer == nullptr || mVertexAdjIndexBuffer == nullptr )
 			return;
@@ -99,43 +94,21 @@ namespace Render
 		drawShaderInternalEx(commandList, PrimitiveType::Patchs, 0, indexBuffer->getNumElements(), indexBuffer, nullptr);
 	}
 
-	void Mesh::drawShader(RHICommandList& commandList)
-	{
-		if( mVertexBuffer == nullptr )
-			return;
-		drawShaderInternal(commandList, 0, (mIndexBuffer) ? mIndexBuffer->getNumElements() : mVertexBuffer->getNumElements());
-	}
 
-	void Mesh::drawShader(RHICommandList& commandList, LinearColor const& color)
-	{
-		if( mVertexBuffer == nullptr )
-			return;
-		drawShaderInternal(commandList, 0, (mIndexBuffer) ? mIndexBuffer->getNumElements() : mVertexBuffer->getNumElements(), &color);
-	}
-
-#define USE_INPUT_STREAM 1
-	void Mesh::drawSection(RHICommandList& commandList, int idx, bool bUseVAO)
+	void Mesh::drawSection(RHICommandList& commandList, int idx)
 	{
 		if( mVertexBuffer == nullptr )
 			return;
 		MeshSection& section = mSections[idx];
-		if( bUseVAO )
-		{
-			drawShaderInternal(commandList, section.start, section.num);
-		}
-		else
-		{
-			drawInternal(commandList, section.start, section.num);
-		}
+		drawShaderInternal(commandList, section.start, section.num);
 	}
 
 	void Mesh::drawInternal(RHICommandList& commandList, int idxStart, int num, RHIIndexBuffer* indexBuffer , LinearColor const* color)
 	{
 		assert(mVertexBuffer != nullptr);
-#if USE_INPUT_STREAM
 		InputStreamInfo inputStream;
 		inputStream.buffer = mVertexBuffer;
-		RHISetInputStream(commandList, *mInputLayout, &inputStream, 1);
+		RHISetInputStream(commandList, mInputLayout, &inputStream, 1);
 
 		if( indexBuffer )
 		{
@@ -146,35 +119,13 @@ namespace Render
 		{
 			RHIDrawPrimitive(commandList, mType, idxStart, num);
 		}
-#else
-		OpenGLCast::To(mVertexBuffer)->bind();
-		OpenGLCast::To(mInputLayout)->bindPointer(color);
-
-		if( indexBuffer )
-		{
-			OpenGLCast::To(indexBuffer)->bind();
-			GLenum indexType = indexBuffer->isIntType() ? GL_UNSIGNED_INT : GL_UNSIGNED_SHORT;
-			glDrawElements(GLConvert::To(mType), num, indexType, (void*)0);
-			OpenGLCast::To(indexBuffer)->unbind();
-		}
-		else
-		{
-			glDrawArrays(GLConvert::To(mType), 0, num);
-		}
-		CheckGLStateValid();
-
-		OpenGLCast::To(mInputLayout)->unbindPointer(color);
-		OpenGLCast::To(mVertexBuffer)->unbind();
-#endif
 	}
-
 
 	void Mesh::drawShaderInternalEx(RHICommandList& commandList, PrimitiveType type , int idxStart, int num, RHIIndexBuffer* indexBuffer, LinearColor const* color /*= nullptr*/)
 	{
-#if USE_INPUT_STREAM
 		InputStreamInfo inputStream;
 		inputStream.buffer = mVertexBuffer;
-		RHISetInputStream(commandList, *mInputLayout, &inputStream, 1);
+		RHISetInputStream(commandList, mInputLayout, &inputStream, 1);
 		if( indexBuffer )
 		{
 			RHISetIndexBuffer(commandList, indexBuffer);
@@ -184,54 +135,11 @@ namespace Render
 		{
 			RHIDrawPrimitive(commandList, type, idxStart, num);
 		}
-#else
-		assert(mVertexBuffer != nullptr);
-		bindVAO(color);
-		if( indexBuffer )
-		{
-			OpenGLCast::To(indexBuffer)->bind();
-			GLenum indexType = indexBuffer->isIntType() ? GL_UNSIGNED_INT : GL_UNSIGNED_SHORT;
-			glDrawElements(GLConvert::To(type), num, indexType, (void*)0);
-			OpenGLCast::To(indexBuffer)->unbind();
-		}
-		else
-		{
-			glDrawArrays(GLConvert::To(type), 0, num);
-		}
-
-		CheckGLStateValid();
-		unbindVAO();
-#endif
 	}
 	void Mesh::drawShaderInternal(RHICommandList& commandList, int idxStart, int num, RHIIndexBuffer* indexBuffer, LinearColor const* color /*= nullptr*/)
 	{
 		drawShaderInternalEx(commandList, mType , idxStart, num, indexBuffer, color);
 	}
-
-	void Mesh::bindVAO(LinearColor const* color)
-	{
-		if( mVAO == 0 )
-		{
-			glGenVertexArrays(1, &mVAO);
-			glBindVertexArray(mVAO);
-
-
-			RHIVertexBuffer* vertexBuffer = mVertexBuffer;
-			InputStreamInfo inputStream;
-			inputStream.buffer = vertexBuffer;
-			OpenGLCast::To( mInputLayout )->bindAttrib(&inputStream, 1 , color);
-
-			//if( mIndexBuffer )
-			//	OpenGLCast::To( mIndexBuffer )->bind();
-			glBindVertexArray(0);
-			//if( mIndexBuffer )
-			//	OpenGLCast::To( mIndexBuffer )->unbind();
-
-			OpenGLCast::To(mInputLayout)->unbindAttrib(1 , color);
-		}
-		glBindVertexArray(mVAO);
-	}
-
 
 	bool Mesh::generateVertexAdjacency()
 	{	
@@ -260,6 +168,9 @@ namespace Render
 			RHIUnlockBuffer(mVertexBuffer);
 			RHIUnlockBuffer(mIndexBuffer);
 		};
+		if( pVertex == nullptr || pIndex == nullptr )
+			return false;
+
 		std::vector< int > tempBuffer;
 		int numTriangles = 0;
 		int* pIndexData = MeshUtility::ConvertToTriangleList(mType, pIndex, mIndexBuffer->getNumElements(), mIndexBuffer->isIntType(), tempBuffer, numTriangles);
@@ -296,6 +207,10 @@ namespace Render
 			RHIUnlockBuffer(mVertexBuffer);
 			RHIUnlockBuffer(mIndexBuffer);
 		};
+
+		if( pVertex == nullptr || pIndex == nullptr )
+			return false;
+
 		bool bIntType = mIndexBuffer->isIntType();
 		serializer << vertexDataSize;
 		serializer.write(pVertex, vertexDataSize);
@@ -571,9 +486,9 @@ namespace Render
 		//need texcoord?
 #define TILE_NEED_TEXCOORD 1
 
-		mesh.mInputLayoutDesc.addElement( Vertex::ePosition , Vertex::eFloat3 );
+		mesh.mInputLayoutDesc.addElement(0, Vertex::ePosition , Vertex::eFloat3 );
 #if TILE_NEED_TEXCOORD
-		mesh.mInputLayoutDesc.addElement( Vertex::eTexcoord , Vertex::eFloat2, 0);
+		mesh.mInputLayoutDesc.addElement(0, Vertex::eTexcoord , Vertex::eFloat2, 0);
 #endif
 		
 		struct MyVertex
@@ -704,9 +619,9 @@ namespace Render
 		assert(sectors > 0);
 		assert(radius > 0);
 
-		mesh.mInputLayoutDesc.addElement(Vertex::ePosition, Vertex::eFloat3);
-		mesh.mInputLayoutDesc.addElement(Vertex::eNormal, Vertex::eFloat3);
-		mesh.mInputLayoutDesc.addElement(Vertex::eTexcoord, Vertex::eFloat2);
+		mesh.mInputLayoutDesc.addElement(0, Vertex::ePosition, Vertex::eFloat3);
+		mesh.mInputLayoutDesc.addElement(0, Vertex::eNormal, Vertex::eFloat3);
+		mesh.mInputLayoutDesc.addElement(0, Vertex::eTexcoord, Vertex::eFloat2);
 		// #FIXME: Bug
 		//mesh.mDecl.addElement(Vertex::eTexcoord, Vertex::eFloat4, 1);
 		int size = mesh.mInputLayoutDesc.getVertexSize() / sizeof(float);
@@ -832,8 +747,8 @@ namespace Render
 
 	bool MeshBuild::SkyBox(Mesh& mesh)
 	{
-		mesh.mInputLayoutDesc.addElement( Vertex::ePosition , Vertex::eFloat3 );
-		mesh.mInputLayoutDesc.addElement( Vertex::eTexcoord , Vertex::eFloat3 , 0 );
+		mesh.mInputLayoutDesc.addElement(0, Vertex::ePosition , Vertex::eFloat3 );
+		mesh.mInputLayoutDesc.addElement(0, Vertex::eTexcoord , Vertex::eFloat3 , 0 );
 		Vector3 v[] = 
 		{
 			Vector3(1,1,1),Vector3(1,1,1),
@@ -862,10 +777,10 @@ namespace Render
 	}
 	bool MeshBuild::CubeShare(Mesh& mesh, float halfLen)
 	{
-		mesh.mInputLayoutDesc.addElement(Vertex::ePosition, Vertex::eFloat3);
-		mesh.mInputLayoutDesc.addElement(Vertex::eNormal, Vertex::eFloat3);
-		mesh.mInputLayoutDesc.addElement(Vertex::eTexcoord, Vertex::eFloat2, 0);
-		mesh.mInputLayoutDesc.addElement(Vertex::eTangent, Vertex::eFloat4);
+		mesh.mInputLayoutDesc.addElement(0, Vertex::ePosition, Vertex::eFloat3);
+		mesh.mInputLayoutDesc.addElement(0, Vertex::eNormal, Vertex::eFloat3);
+		mesh.mInputLayoutDesc.addElement(0, Vertex::eTexcoord, Vertex::eFloat2, 0);
+		mesh.mInputLayoutDesc.addElement(0, Vertex::eTangent, Vertex::eFloat4);
 		struct MyVertex
 		{
 			Vector3 pos;
@@ -908,10 +823,10 @@ namespace Render
 
 	bool MeshBuild::Cube( Mesh& mesh , float halfLen )
 	{
-		mesh.mInputLayoutDesc.addElement( Vertex::ePosition , Vertex::eFloat3 );
-		mesh.mInputLayoutDesc.addElement( Vertex::eNormal , Vertex::eFloat3 );
-		mesh.mInputLayoutDesc.addElement( Vertex::eTexcoord , Vertex::eFloat2 , 0 );
-		mesh.mInputLayoutDesc.addElement( Vertex::eTangent , Vertex::eFloat4 );
+		mesh.mInputLayoutDesc.addElement(0, Vertex::ePosition , Vertex::eFloat3 );
+		mesh.mInputLayoutDesc.addElement(0, Vertex::eNormal , Vertex::eFloat3 );
+		mesh.mInputLayoutDesc.addElement(0, Vertex::eTexcoord , Vertex::eFloat2 , 0 );
+		mesh.mInputLayoutDesc.addElement(0, Vertex::eTangent , Vertex::eFloat4 );
 		struct MyVertex
 		{
 			Vector3 pos;
@@ -990,9 +905,9 @@ namespace Render
 
 	bool MeshBuild::Doughnut(Mesh& mesh, float radius, float ringRadius, int rings, int sectors)
 	{
-		mesh.mInputLayoutDesc.addElement( Vertex::ePosition , Vertex::eFloat3 );
-		mesh.mInputLayoutDesc.addElement( Vertex::eNormal , Vertex::eFloat3 );
-		//mesh.mDecl.addElement( Vertex::eTexcoord , Vertex::eFloat2 );
+		mesh.mInputLayoutDesc.addElement(0, Vertex::ATTRIBUTE_POSITION, Vertex::eFloat3 );
+		mesh.mInputLayoutDesc.addElement(0, Vertex::ATTRIBUTE_NORMAL, Vertex::eFloat3 );
+		//mesh.mInputLayoutDesc.addElement( 0, Vertex::ATTRIBUTE_TEXCOORD , Vertex::eFloat2 );
 		int size = mesh.mInputLayoutDesc.getVertexSize() / sizeof( float );
 
 		float sf = 2 * Math::PI / sectors;
@@ -1089,10 +1004,10 @@ namespace Render
 
 	bool MeshBuild::Plane(Mesh& mesh , Vector3 const& offset , Vector3 const& normal , Vector3 const& dirY , Vector2 const& size, float texFactor)
 	{
-		mesh.mInputLayoutDesc.addElement( Vertex::ePosition , Vertex::eFloat3 );
-		mesh.mInputLayoutDesc.addElement( Vertex::eNormal   , Vertex::eFloat3 );
-		mesh.mInputLayoutDesc.addElement( Vertex::eTexcoord , Vertex::eFloat2 , 0 );
-		mesh.mInputLayoutDesc.addElement( Vertex::eTangent , Vertex::eFloat4 );
+		mesh.mInputLayoutDesc.addElement(0, Vertex::ATTRIBUTE_POSITION, Vertex::eFloat3);
+		mesh.mInputLayoutDesc.addElement(0, Vertex::ATTRIBUTE_NORMAL, Vertex::eFloat3);
+		mesh.mInputLayoutDesc.addElement(0, Vertex::ATTRIBUTE_TEXCOORD, Vertex::eFloat2);
+		mesh.mInputLayoutDesc.addElement(0, Vertex::ATTRIBUTE_TANGENT, Vertex::eFloat4);
 
 		Vector3 axisZ = Math::GetNormal( normal );
 		Vector3 axisY = dirY - axisZ * ( axisZ.dot(dirY) );
@@ -1138,12 +1053,12 @@ namespace Render
 			uint8   boneIndices[4];
 			Vector4 blendWeight;
 		};
-		mesh.mInputLayoutDesc.addElement(Vertex::ATTRIBUTE_POSITION, Vertex::eFloat3);
-		mesh.mInputLayoutDesc.addElement(Vertex::ATTRIBUTE_NORMAL, Vertex::eFloat3);
-		mesh.mInputLayoutDesc.addElement(Vertex::ATTRIBUTE_TANGENT, Vertex::eFloat4);
-		mesh.mInputLayoutDesc.addElement(Vertex::ATTRIBUTE_TEXCOORD, Vertex::eFloat2);
-		mesh.mInputLayoutDesc.addElement(Vertex::ATTRIBUTE_BONEINDEX, Vertex::eUInt4);
-		mesh.mInputLayoutDesc.addElement(Vertex::ATTRIBUTE_BLENDWEIGHT, Vertex::eFloat4);
+		mesh.mInputLayoutDesc.addElement(0, Vertex::ATTRIBUTE_POSITION, Vertex::eFloat3);
+		mesh.mInputLayoutDesc.addElement(0, Vertex::ATTRIBUTE_NORMAL, Vertex::eFloat3);
+		mesh.mInputLayoutDesc.addElement(0, Vertex::ATTRIBUTE_TANGENT, Vertex::eFloat4);
+		mesh.mInputLayoutDesc.addElement(0, Vertex::ATTRIBUTE_TEXCOORD, Vertex::eFloat2);
+		mesh.mInputLayoutDesc.addElement(0, Vertex::ATTRIBUTE_BONEINDEX, Vertex::eUInt4);
+		mesh.mInputLayoutDesc.addElement(0, Vertex::ATTRIBUTE_BLENDWEIGHT, Vertex::eFloat4);
 
 		float du = 1.0 / (nx - 1);
 		float dv = 1.0 / (ny - 1);
@@ -1231,8 +1146,8 @@ namespace Render
 			indices[i] = idx;
 		}
 
-		mesh.mInputLayoutDesc.addElement(Vertex::ePosition, Vertex::eFloat3);
-		mesh.mInputLayoutDesc.addElement(Vertex::eNormal, Vertex::eFloat3);
+		mesh.mInputLayoutDesc.addElement(0, Vertex::ATTRIBUTE_POSITION, Vertex::eFloat3);
+		mesh.mInputLayoutDesc.addElement(0, Vertex::ATTRIBUTE_NORMAL, Vertex::eFloat3);
 		if( !mesh.createRHIResource(&vertices[0], numVertex, &indices[0], data.numIndex, true) )
 			return false;
 		return true;
@@ -1295,13 +1210,13 @@ namespace Render
 		if(  numVertex == 0 )
 			return false;
 
-		mesh.mInputLayoutDesc.addElement(Vertex::ePosition, Vertex::eFloat3);
-		mesh.mInputLayoutDesc.addElement(Vertex::eNormal, Vertex::eFloat3);
+		mesh.mInputLayoutDesc.addElement(0, Vertex::ePosition, Vertex::eFloat3);
+		mesh.mInputLayoutDesc.addElement(0, Vertex::eNormal, Vertex::eFloat3);
 		
 		if( !shapes[0].mesh.texcoords.empty() )
 		{
-			mesh.mInputLayoutDesc.addElement(Vertex::eTexcoord, Vertex::eFloat2, 0);
-			mesh.mInputLayoutDesc.addElement(Vertex::eTangent, Vertex::eFloat4);
+			mesh.mInputLayoutDesc.addElement(0, Vertex::eTexcoord, Vertex::eFloat2, 0);
+			mesh.mInputLayoutDesc.addElement(0, Vertex::eTangent, Vertex::eFloat4);
 		}
 
 		int vertexSize = mesh.mInputLayoutDesc.getVertexSize() / sizeof(float);
@@ -1525,10 +1440,10 @@ namespace Render
 
 	bool MeshBuild::PlaneZ(Mesh& mesh, float len, float texFactor)
 	{
-		mesh.mInputLayoutDesc.addElement( Vertex::ePosition , Vertex::eFloat3 );
-		mesh.mInputLayoutDesc.addElement( Vertex::eNormal   , Vertex::eFloat3 );
-		mesh.mInputLayoutDesc.addElement( Vertex::eTexcoord , Vertex::eFloat2 , 0 );
-		mesh.mInputLayoutDesc.addElement( Vertex::eTangent , Vertex::eFloat4 );
+		mesh.mInputLayoutDesc.addElement(0, Vertex::ePosition , Vertex::eFloat3 );
+		mesh.mInputLayoutDesc.addElement(0, Vertex::eNormal   , Vertex::eFloat3 );
+		mesh.mInputLayoutDesc.addElement(0, Vertex::eTexcoord , Vertex::eFloat2 , 0 );
+		mesh.mInputLayoutDesc.addElement(0, Vertex::eTangent , Vertex::eFloat4 );
 		struct MyVertex 
 		{
 			Vector3 v;
@@ -1660,8 +1575,8 @@ namespace Render
 
 	bool MeshBuild::IcoSphere(Mesh& mesh , float radius , int numDiv )
 	{
-		mesh.mInputLayoutDesc.addElement( Vertex::ePosition , Vertex::eFloat3 );
-		mesh.mInputLayoutDesc.addElement( Vertex::eNormal   , Vertex::eFloat3 );
+		mesh.mInputLayoutDesc.addElement(0, Vertex::ePosition , Vertex::eFloat3 );
+		mesh.mInputLayoutDesc.addElement(0, Vertex::eNormal   , Vertex::eFloat3 );
 
 		struct VertexTraits
 		{
@@ -1683,7 +1598,7 @@ namespace Render
 
 	bool MeshBuild::LightSphere(Mesh& mesh)
 	{
-		mesh.mInputLayoutDesc.addElement(Vertex::ePosition, Vertex::eFloat3);
+		mesh.mInputLayoutDesc.addElement(0, Vertex::ePosition, Vertex::eFloat3);
 		struct VertexTraits
 		{
 			struct Type
@@ -1702,7 +1617,7 @@ namespace Render
 	bool MeshBuild::LightCone(Mesh& mesh)
 	{
 		int numSide = 96;
-		mesh.mInputLayoutDesc.addElement(Vertex::ePosition, Vertex::eFloat3);
+		mesh.mInputLayoutDesc.addElement(0, Vertex::ePosition, Vertex::eFloat3);
 
 		int size = mesh.mInputLayoutDesc.getVertexSize() / sizeof(float);
 

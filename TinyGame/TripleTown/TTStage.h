@@ -10,62 +10,36 @@
 
 #include "Widget/WidgetUtility.h"
 
+#include "FileSystem.h"
+
 namespace TripleTown
 {
 
 	class LevelStage : public StageBase
+		             , public PlayerData
 	{
 		typedef StageBase BaseClass;
 	public:
 		virtual bool onInit();
-		virtual void onEnd()
-		{
-			::Global::GetDrawEngine().stopOpenGL();
-		}
-		virtual void onRestart( bool beInit )
-		{
-			if ( beInit )
-			{
-				mLevel.create( LT_LAKE );
-			}
-			mLevel.restart();
-		}
-		virtual void onRender( float dFrame )
-		{
-			GameWindow& window = ::Global::GetDrawEngine().getWindow();
-			mScene.render();
-		}
+		virtual void onEnd();
+		virtual void onRestart( bool beInit );
+		virtual void onRender( float dFrame );
 
-		virtual bool onMouse( MouseMsg const& msg )
+		virtual bool onMouse( MouseMsg const& msg );
+
+		virtual bool onKey( unsigned key , bool isDown );
+		virtual bool onWidgetEvent(int event, int id, GWidget* ui) 
 		{
-			mScene.setLastMousePos( msg.getPos() );
-			if ( msg.onLeftDown() )
+			switch( id )
 			{
-				mScene.click( msg.getPos() );
+			case UI_RESTART_GAME:
+				mLevel.restart();
 				return false;
+			default:
+				break;
 			}
-			else if ( msg.onMoving() )
-			{
-				mScene.peekObject( msg.getPos() );
-			}
-			return true;
+			return BaseClass::onWidgetEvent(event, id, ui); 
 		}
-
-		virtual bool onKey( unsigned key , bool isDown )
-		{
-			if ( !isDown )
-				return true;
-
-			switch( key )
-			{
-			case 'S': mLevel.setQueueObject( OBJ_BEAR ); return false;
-			case 'A': mLevel.setQueueObject( OBJ_GRASS ); return false;
-			case 'Q': mLevel.setQueueObject( OBJ_CRYSTAL ); return false;
-			case 'W': mLevel.setQueueObject( OBJ_ROBOT ); return false;
-			}
-			return true;
-		}
-
 		virtual void onUpdate( long time )
 		{
 			BaseClass::onUpdate( time );
@@ -84,8 +58,25 @@ namespace TripleTown
 			mScene.updateFrame( frame );
 		}
 
+		FileIterator mIterator;
+
 		Scene mScene;
 		Level mLevel;
+
+		virtual int getPoints() const override { return mPlayerPoints; }
+		virtual int getCoins() const override { return mPlayerCoins; }
+		virtual void addPoints(int points) override
+		{
+			mPlayerPoints += points;
+		}
+		virtual void addCoins(int coins) override
+		{
+			mPlayerCoins += coins;
+		}
+
+		int mPlayerPoints;
+		int mPlayerCoins;
+
 	};
 
 

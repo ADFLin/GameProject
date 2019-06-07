@@ -13,12 +13,12 @@ namespace Render
 		VERIFY_D3D11RESULT_RETURN_FALSE(D3D11CreateDevice(NULL, D3D_DRIVER_TYPE_HARDWARE, NULL, flag, NULL, 0, D3D11_SDK_VERSION, &mDevice, NULL, &mDeviceContext));
 
 		TComPtr< IDXGIDevice > pDXGIDevice;
-		VERIFY_D3D11RESULT_RETURN_FALSE( mDevice->QueryInterface(__uuidof(IDXGIDevice), (void **)&pDXGIDevice) );
+		VERIFY_D3D11RESULT_RETURN_FALSE(mDevice->QueryInterface(__uuidof(IDXGIDevice), (void **)&pDXGIDevice));
 		TComPtr< IDXGIAdapter > pDXGIAdapter;
-		VERIFY_D3D11RESULT_RETURN_FALSE( pDXGIDevice->GetAdapter(&pDXGIAdapter) );
+		VERIFY_D3D11RESULT_RETURN_FALSE(pDXGIDevice->GetAdapter(&pDXGIAdapter));
 
 		DXGI_ADAPTER_DESC adapterDesc;
-		VERIFY_D3D11RESULT_RETURN_FALSE( pDXGIAdapter->GetDesc(&adapterDesc) );
+		VERIFY_D3D11RESULT_RETURN_FALSE(pDXGIAdapter->GetDesc(&adapterDesc));
 
 		switch( adapterDesc.VendorId )
 		{
@@ -36,13 +36,13 @@ namespace Render
 
 	ShaderFormat* D3D11System::createShaderFormat()
 	{
-		return new ShaderFormatHLSL( mDevice );
+		return new ShaderFormatHLSL(mDevice);
 	}
 
 	RHITexture2D* D3D11System::RHICreateTexture2D(Texture::Format format, int w, int h, int numMipLevel, int numSamples, uint32 createFlags, void* data, int dataAlign)
 	{
 		Texture2DCreationResult creationResult;
-		if ( createTexture2DInternal(D3D11Conv::To(format), w, h, numMipLevel, numSamples, createFlags , data, Texture::GetFormatSize(format), false ,creationResult ) )
+		if( createTexture2DInternal(D3D11Translate::To(format), w, h, numMipLevel, numSamples, createFlags, data, Texture::GetFormatSize(format), false, creationResult) )
 		{
 			return new D3D11Texture2D(format, creationResult);
 		}
@@ -53,7 +53,7 @@ namespace Render
 	{
 		uint32 creationFlag = 0;
 		Texture2DCreationResult creationResult;
-		if( createTexture2DInternal(D3D11Conv::To(format), w, h, numMipLevel, numSamples, creationFlag, nullptr, 0, true, creationResult) )
+		if( createTexture2DInternal(D3D11Translate::To(format), w, h, numMipLevel, numSamples, creationFlag, nullptr, 0, true, creationResult) )
 		{
 			return new D3D11TextureDepth(format, creationResult);
 		}
@@ -72,7 +72,7 @@ namespace Render
 		bufferDesc.ByteWidth = vertexSize * numVertices;
 		bufferDesc.Usage = (creationFlag & BCF_UsageDynamic) ? D3D11_USAGE_DYNAMIC : D3D11_USAGE_DEFAULT;
 		bufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-		if ( creationFlag & BCF_CreateSRV )
+		if( creationFlag & BCF_CreateSRV )
 			bufferDesc.BindFlags |= D3D11_BIND_SHADER_RESOURCE;
 
 		bufferDesc.CPUAccessFlags = (creationFlag & BCF_UsageDynamic) ? D3D11_CPU_ACCESS_WRITE : 0;
@@ -80,13 +80,13 @@ namespace Render
 		bufferDesc.StructureByteStride = 0;
 
 		TComPtr<ID3D11Buffer> BufferResource;
-		VERIFY_D3D11RESULT( 
-			mDevice->CreateBuffer(&bufferDesc, data ? &initData : nullptr , &BufferResource) ,
+		VERIFY_D3D11RESULT(
+			mDevice->CreateBuffer(&bufferDesc, data ? &initData : nullptr, &BufferResource),
 			{
 				return nullptr;
 			});
 
-		D3D11VertexBuffer* buffer = new D3D11VertexBuffer( mDevice , BufferResource.release() , numVertices , vertexSize , creationFlag );
+		D3D11VertexBuffer* buffer = new D3D11VertexBuffer(mDevice, BufferResource.release(), numVertices, vertexSize, creationFlag);
 
 		return buffer;
 	}
@@ -99,7 +99,7 @@ namespace Render
 		initData.SysMemSlicePitch = 0;
 
 		D3D11_BUFFER_DESC bufferDesc = { 0 };
-		bufferDesc.ByteWidth = nIndices * ( bIntIndex ? 4 : 2 );
+		bufferDesc.ByteWidth = nIndices * (bIntIndex ? 4 : 2);
 		bufferDesc.Usage = (creationFlag & BCF_UsageDynamic) ? D3D11_USAGE_DYNAMIC : D3D11_USAGE_DEFAULT;
 		bufferDesc.BindFlags = D3D11_BIND_INDEX_BUFFER;
 		if( creationFlag & BCF_CreateSRV )
@@ -116,14 +116,14 @@ namespace Render
 				return nullptr;
 			});
 
-		D3D11IndexBuffer* buffer = new D3D11IndexBuffer(mDevice, BufferResource.release(), nIndices , bIntIndex , creationFlag);
+		D3D11IndexBuffer* buffer = new D3D11IndexBuffer(mDevice, BufferResource.release(), nIndices, bIntIndex, creationFlag);
 		return buffer;
 	}
 
 	void* D3D11System::lockBufferInternal(ID3D11Resource* resource, ELockAccess access, uint32 offset, uint32 size)
 	{
 		D3D11_MAPPED_SUBRESOURCE mappedData;
-		HRESULT hr = mDeviceContext->Map(resource, 0, D3D11Conv::To(access), 0, &mappedData);
+		HRESULT hr = mDeviceContext->Map(resource, 0, D3D11Translate::To(access), 0, &mappedData);
 		if( hr != S_OK )
 		{
 			return nullptr;
@@ -151,88 +151,84 @@ namespace Render
 		mDeviceContext->Unmap(D3D11Cast::GetResource(*buffer), 0);
 	}
 
-
 	RHIInputLayout* D3D11System::RHICreateInputLayout(InputLayoutDesc const& desc)
 	{
-		TComPtr< ID3D11InputLayout > inputLayoutResource;
-		
+
 		InputLayoutKey key(desc);
 		auto iter = mInputLayoutMap.find(key);
-		if( iter == mInputLayoutMap.end() )
+		if( iter != mInputLayoutMap.end() )
 		{
+			return iter->second;
+		}
 
-			char const* FakeCodeTemplate = CODE_STRING(
-				struct VSInput
+		char const* FakeCodeTemplate = CODE_STRING(
+			struct VSInput
+		{
+			%s
+		};
+		void MainVS(in VSInput input, out float4 svPosition : SV_POSITION)
+		{
+			svPosition = float4(0, 0, 0, 1);
+		}
+		);
+
+		std::string vertexCode;
+		for( auto const& e : key.elements )
+		{
+			FixString< 128 > str;
+			str.format("%s v%d : ATTRIBUTE%d;", "float4", e.attribute, e.attribute);
+			vertexCode += str.c_str();
+		}
+		FixString<512> fakeCode;
+		fakeCode.format(FakeCodeTemplate, vertexCode.c_str());
+
+		TComPtr< ID3D10Blob > errorCode;
+		TComPtr< ID3D10Blob > byteCode;
+		FixString<32> profileName = FD3D11Utility::GetShaderProfile(mDevice, Shader::eVertex);
+
+		uint32 compileFlag = 0 /*| D3D10_SHADER_PACK_MATRIX_ROW_MAJOR*/;
+		VERIFY_D3D11RESULT(
+			D3DX11CompileFromMemory(fakeCode, FCString::Strlen(fakeCode), "ShaderCode", NULL, NULL, SHADER_ENTRY(MainVS), profileName, compileFlag, 0, NULL, &byteCode, &errorCode, NULL),
 			{
-				%s
-			};
-			void MainVS(in VSInput input, out float4 svPosition : SV_POSITION)
-			{
-				svPosition = float4(0, 0, 0, 1);
-			}
-			);
-
-			std::string vertexCode;
-			for( auto const& e : key.elements )
-			{
-				FixString< 128 > str;
-				str.format("%s v%d : ATTRIBUTE%d;", "float4", e.attribute, e.attribute);
-				vertexCode += str.c_str();
-			}
-			FixString<512> fakeCode;
-			fakeCode.format(FakeCodeTemplate, vertexCode.c_str());
-
-			TComPtr< ID3D10Blob > errorCode;
-			TComPtr< ID3D10Blob > byteCode;
-			FixString<32> profileName = FD3D11Utility::GetShaderProfile(mDevice, Shader::eVertex);
-
-			uint32 compileFlag = 0 /*| D3D10_SHADER_PACK_MATRIX_ROW_MAJOR*/;
-			VERIFY_D3D11RESULT(
-				D3DX11CompileFromMemory(fakeCode, FCString::Strlen(fakeCode), "ShaderCode", NULL, NULL, SHADER_ENTRY(MainVS), profileName, compileFlag, 0, NULL, &byteCode, &errorCode, NULL),
-				{
-					LogWarning(0, "Compile Error %s", errorCode->GetBufferPointer());
-					return nullptr;
-				}
-			);
-
-			std::vector< D3D11_INPUT_ELEMENT_DESC > descList;
-			for( auto const& e : desc.mElements )
-			{
-				D3D11_INPUT_ELEMENT_DESC element;
-
-				element.SemanticName = "ATTRIBUTE";
-				element.SemanticIndex = e.attribute;
-				element.Format = D3D11Conv::To(Vertex::Format(e.format), e.bNormalize);
-				element.InputSlot = e.idxStream;
-				element.AlignedByteOffset = e.offset;
-				element.InputSlotClass = D3D11_INPUT_PER_VERTEX_DATA;
-				element.InstanceDataStepRate = 0;
-
-				descList.push_back(element);
-			}
-
-			VERIFY_D3D11RESULT(
-				mDevice->CreateInputLayout(&descList[0], descList.size(), byteCode->GetBufferPointer(), byteCode->GetBufferSize(), &inputLayoutResource),
+				LogWarning(0, "Compile Error %s", errorCode->GetBufferPointer());
 				return nullptr;
-			);
+			}
+		);
 
-			mInputLayoutMap.emplace(key, inputLayoutResource);
-		}
-		else
+		std::vector< D3D11_INPUT_ELEMENT_DESC > descList;
+		for( auto const& e : desc.mElements )
 		{
-			inputLayoutResource = iter->second;
+			D3D11_INPUT_ELEMENT_DESC element;
+
+			element.SemanticName = "ATTRIBUTE";
+			element.SemanticIndex = e.attribute;
+			element.Format = D3D11Translate::To(Vertex::Format(e.format), e.bNormalized);
+			element.InputSlot = e.idxStream;
+			element.AlignedByteOffset = e.offset;
+			element.InputSlotClass = e.bIntanceData ? D3D11_INPUT_PER_INSTANCE_DATA : D3D11_INPUT_PER_VERTEX_DATA;
+			element.InstanceDataStepRate = e.bIntanceData ? e.instanceStepRate : 0;
+
+			descList.push_back(element);
 		}
 
-		return new D3D11InputLayout( inputLayoutResource.release() );
+		TComPtr< ID3D11InputLayout > inputLayoutResource;
+		VERIFY_D3D11RESULT(
+			mDevice->CreateInputLayout(&descList[0], descList.size(), byteCode->GetBufferPointer(), byteCode->GetBufferSize(), &inputLayoutResource),
+			return nullptr;
+		);
+
+		RHIInputLayout* inputLayout = new D3D11InputLayout(inputLayoutResource.release());
+		mInputLayoutMap.emplace(key, inputLayout);
+		return inputLayout;
 	}
 
 	RHISamplerState* D3D11System::RHICreateSamplerState(SamplerStateInitializer const& initializer)
 	{
 		D3D11_SAMPLER_DESC desc = {};
-		desc.Filter = D3D11Conv::To(initializer.filter);
-		desc.AddressU = D3D11Conv::To(initializer.addressU);
-		desc.AddressV = D3D11Conv::To(initializer.addressV);
-		desc.AddressW = D3D11Conv::To(initializer.addressW);
+		desc.Filter = D3D11Translate::To(initializer.filter);
+		desc.AddressU = D3D11Translate::To(initializer.addressU);
+		desc.AddressV = D3D11Translate::To(initializer.addressV);
+		desc.AddressW = D3D11Translate::To(initializer.addressW);
 
 		TComPtr<ID3D11SamplerState> samplerResource;
 		VERIFY_D3D11RESULT( mDevice->CreateSamplerState(&desc , &samplerResource) , );
@@ -246,8 +242,8 @@ namespace Render
 	RHIRasterizerState* D3D11System::RHICreateRasterizerState(RasterizerStateInitializer const& initializer)
 	{
 		D3D11_RASTERIZER_DESC desc = {};
-		desc.FillMode = D3D11Conv::To(initializer.fillMode);
-		desc.CullMode = D3D11Conv::To(initializer.cullMode);
+		desc.FillMode = D3D11Translate::To(initializer.fillMode);
+		desc.CullMode = D3D11Translate::To(initializer.cullMode);
 		desc.FrontCounterClockwise = TRUE;
 		desc.DepthBias = 0;
 		desc.DepthBiasClamp = 0;
@@ -288,12 +284,12 @@ namespace Render
 
 			targetValueD3D11.BlendEnable = (targetValue.srcColor != Blend::eOne) || (targetValue.srcAlpha != Blend::eOne) ||
 				(targetValue.destColor != Blend::eZero) || (targetValue.destAlpha != Blend::eZero);
-			targetValueD3D11.BlendOp = D3D11Conv::To(targetValue.op);
-			targetValueD3D11.SrcBlend = D3D11Conv::To(targetValue.srcColor);
-			targetValueD3D11.DestBlend = D3D11Conv::To(targetValue.destColor);
-			targetValueD3D11.BlendOpAlpha = D3D11Conv::To(targetValue.opAlpha);
-			targetValueD3D11.SrcBlendAlpha = D3D11Conv::To(targetValue.srcAlpha);
-			targetValueD3D11.DestBlendAlpha = D3D11Conv::To(targetValue.destAlpha);
+			targetValueD3D11.BlendOp = D3D11Translate::To(targetValue.op);
+			targetValueD3D11.SrcBlend = D3D11Translate::To(targetValue.srcColor);
+			targetValueD3D11.DestBlend = D3D11Translate::To(targetValue.destColor);
+			targetValueD3D11.BlendOpAlpha = D3D11Translate::To(targetValue.opAlpha);
+			targetValueD3D11.SrcBlendAlpha = D3D11Translate::To(targetValue.srcAlpha);
+			targetValueD3D11.DestBlendAlpha = D3D11Translate::To(targetValue.destAlpha);
 
 		}
 
@@ -311,20 +307,20 @@ namespace Render
 		D3D11_DEPTH_STENCIL_DESC desc;
 		desc.DepthEnable = (initializer.depthFun != ECompareFun::Always) || (initializer.bWriteDepth);
 		desc.DepthWriteMask = initializer.bWriteDepth ? D3D11_DEPTH_WRITE_MASK_ALL : D3D11_DEPTH_WRITE_MASK_ZERO;
-		desc.DepthFunc = D3D11Conv::To( initializer.depthFun );
+		desc.DepthFunc = D3D11Translate::To( initializer.depthFun );
 		desc.StencilEnable = initializer.bEnableStencilTest;
 		desc.StencilReadMask = initializer.stencilReadMask;
 		desc.StencilWriteMask = initializer.stencilWriteMask;
 
-		desc.FrontFace.StencilFunc = D3D11Conv::To(initializer.stencilFun);
-		desc.FrontFace.StencilPassOp = D3D11Conv::To(initializer.zPassOp);
-		desc.FrontFace.StencilDepthFailOp = D3D11Conv::To( initializer.zFailOp );
-		desc.FrontFace.StencilFailOp = D3D11Conv::To( initializer.stencilFailOp );
+		desc.FrontFace.StencilFunc = D3D11Translate::To(initializer.stencilFun);
+		desc.FrontFace.StencilPassOp = D3D11Translate::To(initializer.zPassOp);
+		desc.FrontFace.StencilDepthFailOp = D3D11Translate::To( initializer.zFailOp );
+		desc.FrontFace.StencilFailOp = D3D11Translate::To( initializer.stencilFailOp );
 	
-		desc.BackFace.StencilFunc = D3D11Conv::To(initializer.stencilFunBack);
-		desc.BackFace.StencilPassOp = D3D11Conv::To(initializer.zPassOpBack);
-		desc.BackFace.StencilDepthFailOp = D3D11Conv::To(initializer.zFailOpBack);
-		desc.BackFace.StencilFailOp = D3D11Conv::To(initializer.stencilFailOpBack);
+		desc.BackFace.StencilFunc = D3D11Translate::To(initializer.stencilFunBack);
+		desc.BackFace.StencilPassOp = D3D11Translate::To(initializer.zPassOpBack);
+		desc.BackFace.StencilDepthFailOp = D3D11Translate::To(initializer.zFailOpBack);
+		desc.BackFace.StencilFailOp = D3D11Translate::To(initializer.stencilFailOpBack);
 		
 		TComPtr< ID3D11DepthStencilState > stateResource;
 		VERIFY_D3D11RESULT(mDevice->CreateDepthStencilState(&desc, &stateResource), );
@@ -703,7 +699,7 @@ namespace Render
 			return true;
 		}
 
-		outPrimitiveTopology = D3D11Conv::To(primitiveType);
+		outPrimitiveTopology = D3D11Translate::To(primitiveType);
 		if( outPrimitiveTopology != D3D_PRIMITIVE_TOPOLOGY_UNDEFINED )
 		{
 			if( pIndices )

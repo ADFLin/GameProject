@@ -154,7 +154,7 @@ void GLGraphics2D::beginRender()
 	RHISetRasterizerState(commandList, TStaticRasterizerState< ECullMode::None >::GetRHI());
 
 	RHISetupFixedPipelineState(commandList, AdjProjectionMatrixForRHI(OrthoMatrix(0 , mWidth, mHeight, 0 , -1, 1)));
-	RHISetInputStream(commandList, TStaticRenderRTInputLayout<RTVF_XY>::GetRHI() , nullptr , 0 );
+	RHISetInputStream(commandList, &TStaticRenderRTInputLayout<RTVF_XY>::GetRHI() , nullptr , 0 );
 
 	glDisable(GL_TEXTURE_2D);
 }

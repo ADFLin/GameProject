@@ -9,6 +9,8 @@
 
 namespace Math
 {
+
+	// P M(Trans) = P * M(S) * M(R) * M(T)
 	class Transform
 	{
 	public:
@@ -72,21 +74,16 @@ namespace Math
 		Transform inverse() const;
 
 		// this * rel = rhs
-		Transform getRelTransform(Transform const& rhs) const
-		{
-			//#TODO : improve
-			return inverse() * rhs;
-		}
+		Transform getRelTransform(Transform const& rhs) const;
 
 		// rel * this = rhs
-		Transform getLocalRelTransform(Transform const& rhs) const
-		{
-			//#TODO : improve
-			return rhs * inverse();
-		}
+		Transform getLocalRelTransform(Transform const& rhs) const;
 
 		Matrix4 toMatrix();
 		Matrix4 toMatrixNoScale();
+
+
+		Vector3  getSafeInvScale() const;
 	};
 
 }//namespace Math

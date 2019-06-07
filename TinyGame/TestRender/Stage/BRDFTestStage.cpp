@@ -4,6 +4,7 @@
 
 #include "DataCacheInterface.h"
 #include "DataSteamBuffer.h"
+#include "ProfileSystem.h"
 
 
 namespace Render
@@ -165,11 +166,20 @@ namespace Render
 
 
 		char const* HDRImagePath = "Texture/HDR/A.hdr";
-		VERIFY_RETURN_FALSE(mHDRImage = RHIUtility::LoadTexture2DFromFile("Texture/HDR/A.hdr", TextureLoadOption().HDR().ReverseH()));
-		VERIFY_RETURN_FALSE(mBuilder.loadOrBuildResource(::Global::DataCache() , HDRImagePath, *mHDRImage, mIBLResource));
+		{
+			TIME_SCOPE("HDR Texture");
+			VERIFY_RETURN_FALSE(mHDRImage = RHIUtility::LoadTexture2DFromFile(::Global::DataCache() , "Texture/HDR/A.hdr", TextureLoadOption().HDR().ReverseH()));
+		}
+		{
+			TIME_SCOPE("IBL");
+			VERIFY_RETURN_FALSE(mBuilder.loadOrBuildResource(::Global::DataCache(), HDRImagePath, *mHDRImage, mIBLResource));
+		}
 
-		VERIFY_RETURN_FALSE(mRockTexture = RHIUtility::LoadTexture2DFromFile("Texture/rocks.jpg", TextureLoadOption().SRGB().ReverseH()));
-		VERIFY_RETURN_FALSE(mNormalTexture = RHIUtility::LoadTexture2DFromFile("Texture/N.png", TextureLoadOption()));
+		{
+			TIME_SCOPE("BRDF Texture");
+			VERIFY_RETURN_FALSE(mRockTexture = RHIUtility::LoadTexture2DFromFile(::Global::DataCache(), "Texture/rocks.jpg", TextureLoadOption().SRGB().ReverseH()));
+			VERIFY_RETURN_FALSE(mNormalTexture = RHIUtility::LoadTexture2DFromFile(::Global::DataCache(), "Texture/N.png", TextureLoadOption()));
+		}
 
 		reigsterTexture("HDR", *mHDRImage);
 		reigsterTexture("Rock", *mRockTexture);
@@ -178,9 +188,12 @@ namespace Render
 
 		VERIFY_RETURN_FALSE(MeshBuild::SkyBox(mSkyBox));
 
-		mProgVisualize = ShaderManager::Get().getGlobalShaderT< LightProbeVisualizeProgram >(true);
-		mProgTonemap = ShaderManager::Get().getGlobalShaderT< TonemapProgram >(true);
-		mProgSkyBox = ShaderManager::Get().getGlobalShaderT< SkyBoxProgram >(true);
+		{
+			TIME_SCOPE("BRDF Shader");
+			mProgVisualize = ShaderManager::Get().getGlobalShaderT< LightProbeVisualizeProgram >(true);
+			mProgTonemap = ShaderManager::Get().getGlobalShaderT< TonemapProgram >(true);
+			mProgSkyBox = ShaderManager::Get().getGlobalShaderT< SkyBoxProgram >(true);
+		}
 		
 		mParamBuffer.initializeResource(1);
 		{
@@ -211,7 +224,6 @@ namespace Render
 		RHICommandList& commandList = RHICommandList::GetImmediateList();
 
 		initializeRenderState();
-
 		{
 			GPU_PROFILE("Scene");
 			mSceneRenderTargets.attachDepthTexture();
@@ -246,14 +258,16 @@ namespace Render
 				}
 				
 				mView.setupShader(commandList, *mProgSkyBox);
-				mSkyBox.drawShader(commandList);
+				mSkyBox.draw(commandList);
 			}
 
 			RHISetDepthStencilState(commandList, TStaticDepthStencilState<>::GetRHI());
+
 			{
 				RHISetupFixedPipelineState(commandList, mView.worldToClip);
 				DrawUtility::AixsLine(commandList);
 			}
+
 			{
 				GPU_PROFILE("LightProbe Visualize");
 
@@ -262,13 +276,14 @@ namespace Render
 				mProgVisualize->setTexture(commandList, SHADER_PARAM(NormalTexture), mNormalTexture);
 				mView.setupShader(commandList, *mProgVisualize);
 				mProgVisualize->setParameters(commandList, mIBLResource);
+				RHISetInputStream(commandList, nullptr , nullptr , 0 );
 				RHIDrawPrimitiveInstanced(commandList, PrimitiveType::Quad, 0, 4, mParams.gridNum.x * mParams.gridNum.y);
 			}
-
 		}
 
 
 		RHISetDepthStencilState(commandList, StaticDepthDisableState::GetRHI());
+
 		{
 			RHISetViewport(commandList, 0, 0, screenSize.x, screenSize.y);
 			OrthoMatrix matProj(0, screenSize.x, 0, screenSize.y, -1, 1);
@@ -356,6 +371,7 @@ namespace Render
 				{
 					return false;
 				}
+
 
 				dataCache.saveDelegate(cacheKey, [&resource](IStreamSerializer& serializer) -> bool
 				{
@@ -470,6 +486,8 @@ namespace Render
 			mProgPreIntegrateBRDFGen->setParam(commandList, SHADER_PARAM(BRDFSampleCount), setting.BRDFSampleCount);
 			DrawUtility::ScreenRect(commandList);
 		}
+
+		return true;
 	}
 
 }

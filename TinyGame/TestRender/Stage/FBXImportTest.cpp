@@ -2,7 +2,7 @@
 #include "TestRenderStageBase.h"
 
 #include "Core/ScopeExit.h"
-
+#include "ProfileSystem.h"
 #include "fbxsdk.h"
 #if _DEBUG
 #pragma comment(lib, "debug/libfbxsdk.lib")
@@ -119,25 +119,25 @@ namespace Render
 
 			void getMeshInputLayout(InputLayoutDesc& inputLayout, bool bAddNormalTangent)
 			{
-				inputLayout.addElement(Vertex::ATTRIBUTE_POSITION, Vertex::eFloat3);
+				inputLayout.addElement(0, Vertex::ATTRIBUTE_POSITION, Vertex::eFloat3);
 				if( !colors.empty() )
 				{
-					inputLayout.addElement(Vertex::ATTRIBUTE_COLOR, Vertex::eFloat4);
+					inputLayout.addElement(0, Vertex::ATTRIBUTE_COLOR, Vertex::eFloat4);
 				}
 				if( !normals.empty() || bAddNormalTangent )
 				{
-					inputLayout.addElement(Vertex::ATTRIBUTE_NORMAL, Vertex::eFloat3);
+					inputLayout.addElement(0, Vertex::ATTRIBUTE_NORMAL, Vertex::eFloat3);
 				}
 				if( !tangents.empty() || bAddNormalTangent )
 				{
-					inputLayout.addElement(Vertex::ATTRIBUTE_TANGENT, Vertex::eFloat4);
+					inputLayout.addElement(0, Vertex::ATTRIBUTE_TANGENT, Vertex::eFloat4);
 				}
 				if( !texcoords.empty() )
 				{
 					int idxTex = 0;
 					for( auto const& texInfo : texcoords )
 					{
-						inputLayout.addElement(Vertex::ATTRIBUTE_TEXCOORD + idxTex, Vertex::eFloat2);
+						inputLayout.addElement(0, Vertex::ATTRIBUTE_TEXCOORD + idxTex, Vertex::eFloat2);
 					}
 				}
 			}
@@ -435,21 +435,35 @@ namespace Render
 		bool mbUseMipMap = true;
 		bool mbUseShaderBlit = false;
 		float mSkyLightInstensity = 1.0;
+
+
 		virtual bool onInit()
 		{
 			if( !BaseClass::onInit() )
 				return false;
+			HighResClock mClock;
+			{
+				TIME_SCOPE("EnvLightingTest Shader");
+				VERIFY_RETURN_FALSE(ShaderManager::Get().loadFile(mTestShader, "Shader/Game/EnvLightingTest", SHADER_ENTRY(MainVS), SHADER_ENTRY(MainPS), nullptr));
+			}
+			{
+				TIME_SCOPE("Mesh Texture");
+				VERIFY_RETURN_FALSE(mDiffuseTexture = RHIUtility::LoadTexture2DFromFile(::Global::DataCache(), "Mesh/Cerberus/Cerberus_A.tga" , TextureLoadOption().SRGB().MipLevel(10).ReverseH()));
+				VERIFY_RETURN_FALSE(mNormalTexture = RHIUtility::LoadTexture2DFromFile(::Global::DataCache(), "Mesh/Cerberus/Cerberus_N.tga", TextureLoadOption().MipLevel(10).ReverseH()));
+				VERIFY_RETURN_FALSE(mMetalTexture = RHIUtility::LoadTexture2DFromFile(::Global::DataCache(), "Mesh/Cerberus/Cerberus_M.tga", TextureLoadOption().MipLevel(10).ReverseH()));
+				VERIFY_RETURN_FALSE(mRoughnessTexture = RHIUtility::LoadTexture2DFromFile(::Global::DataCache(), "Mesh/Cerberus/Cerberus_R.tga", TextureLoadOption().MipLevel(10).ReverseH()));
+			}
+			{
+				TIME_SCOPE("FBX Mesh");
+				char const* filePath = "Mesh/Cerberus/Cerberus_LP.FBX";
+				BuildMesh(mMesh, filePath, [filePath](Mesh& mesh) ->bool
+				{
+					FBXImporter importer;
+					VERIFY_RETURN_FALSE(importer.import(filePath, mesh));
 
-			VERIFY_RETURN_FALSE(ShaderManager::Get().loadFile(mTestShader , "Shader/Game/EnvLightingTest", SHADER_ENTRY(MainVS), SHADER_ENTRY(MainPS) , nullptr ) );
-			VERIFY_RETURN_FALSE(mDiffuseTexture = RHIUtility::LoadTexture2DFromFile("Mesh/Cerberus/Cerberus_A.tga" , TextureLoadOption().SRGB().MipLevel(10).ReverseH()));
-			VERIFY_RETURN_FALSE(mNormalTexture = RHIUtility::LoadTexture2DFromFile("Mesh/Cerberus/Cerberus_N.tga", TextureLoadOption().MipLevel(10).ReverseH()));
-			VERIFY_RETURN_FALSE(mMetalTexture = RHIUtility::LoadTexture2DFromFile("Mesh/Cerberus/Cerberus_M.tga", TextureLoadOption().MipLevel(10).ReverseH()));
-			VERIFY_RETURN_FALSE(mRoughnessTexture = RHIUtility::LoadTexture2DFromFile("Mesh/Cerberus/Cerberus_R.tga", TextureLoadOption().MipLevel(10).ReverseH()));
-
-			FBXImporter importer;
-			
-			char const* filePath = "Mesh/Cerberus/Cerberus_LP.FBX";
-			VERIFY_RETURN_FALSE( importer.import(filePath, mMesh) );
+					return true;
+				});
+			}
 
 			auto frame = ::Global::GUI().findTopWidget< DevFrame >();
 			WidgetPropery::Bind(frame->addCheckBox(UI_ANY, "Use MinpMap"), mbUseMipMap);
@@ -505,7 +519,7 @@ namespace Render
 					}
 
 					mView.setupShader(commandList, *mProgSkyBox);
-					mSkyBox.drawShader(commandList);
+					mSkyBox.draw(commandList);
 				}
 
 				RHISetDepthStencilState(commandList, TStaticDepthStencilState<>::GetRHI());
@@ -525,7 +539,7 @@ namespace Render
 					mTestShader.setTexture(commandList, SHADER_PARAM(RoughnessTexture), mRoughnessTexture, SHADER_PARAM(RoughnessTextureSampler), samplerState);
 					mTestShader.setParam(commandList, SHADER_PARAM(SkyLightInstensity), mSkyLightInstensity);
 					mTestShader.mParamIBL.setParameters(commandList, mTestShader, mIBLResource);
-					mMesh.drawShader(commandList);
+					mMesh.draw(commandList);
 				}
 				if ( 0 )
 				{

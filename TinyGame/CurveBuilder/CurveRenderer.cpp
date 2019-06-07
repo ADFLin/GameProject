@@ -143,11 +143,7 @@ namespace CB
 		mCommandList = &commandList;
 		mTranslucentDraw.clear();
 
-		//#TODO : REMOVE
-		glMatrixMode(GL_PROJECTION);
-		glLoadMatrixf(mViewInfo.viewToClip);
-		glMatrixMode(GL_MODELVIEW);
-		glLoadMatrixf(mViewInfo.worldToView);
+		RHISetupFixedPipelineState(commandList, mViewInfo.worldToClip);
 	}
 
 	void CurveRenderer::endRender()
@@ -180,7 +176,7 @@ namespace CB
 
 			Color4f const& surfaceColor = surface.getColor();
 			Color4f const color = Color4f(1 - surfaceColor.r, 1 - surfaceColor.g, 1 - surfaceColor.b);
-			RHISetupFixedPipelineState(commandList, mViewInfo.worldToClip);
+			RHISetupFixedPipelineState(commandList, mViewInfo.worldToClip, color);
 			drawMeshLine( surface , color );
 
 			glDisable(GL_POLYGON_OFFSET_FILL);
@@ -210,7 +206,7 @@ namespace CB
 		}
 		if( surface.needDrawNormal() )
 		{
-			drawMeshNormal(surface, 0.1);
+			drawMeshNormal(surface, 0.5);
 		}
 	}
 	template< bool bHaveNormal >
@@ -276,6 +272,7 @@ namespace CB
 
 		glColor4fv(color);
 		glEnableClientState(GL_VERTEX_ARRAY);
+		glDisableClientState(GL_COLOR_ARRAY);
 		glVertexPointer(3, GL_FLOAT, data->getVertexSize() , pPositionData);
 		for( int n = 0; n < nx; ++n )
 			glDrawArrays(GL_LINE_STRIP, numDataV * n * d, numDataV);
@@ -301,49 +298,50 @@ namespace CB
 		int const stride = data->getVertexSize();
 		if( data->getNormalOffset() != -1 )
 		{
-			TRenderRT< RTVF_XYZ_CA_N >::DrawIndexed(*mCommandList, PrimitiveType::TriangleList, vertexData, data->getVertexNum(), data->getIndexData(), data->getIndexNum() , data->getVertexSize());
+			TRenderRT< RTVF_XYZ_CA_N >::DrawIndexed(*mCommandList, PrimitiveType::TriangleList, vertexData, data->getVertexNum(), data->getIndexData(), data->getIndexNum() , surface.getColor() , data->getVertexSize());
 		}
 		else
 		{
-			TRenderRT< RTVF_XYZ_CA >::DrawIndexed(*mCommandList, PrimitiveType::TriangleList, vertexData, data->getVertexNum(), data->getIndexData(), data->getIndexNum(), data->getVertexSize());
+			TRenderRT< RTVF_XYZ_CA >::DrawIndexed(*mCommandList, PrimitiveType::TriangleList, vertexData, data->getVertexNum(), data->getIndexData(), data->getIndexNum(), surface.getColor() , data->getVertexSize());
 		}
 	}
 
 
 	void CurveRenderer::drawAxis()
 	{
-		return;
+		//return;
+		struct Vertex_XYZ_C
+		{
+			Vector3 pos;
+			Vector3 color;
+		};
 
-		glBegin(GL_LINES);
+		{
+			Vertex_XYZ_C axisVertices[] =
+			{
+				{ Vector3(mAxis[0].range.Min, mAxis[1].range.Min, mAxis[2].range.Min), Vector3(1, 0, 0) },
+				{ Vector3(mAxis[0].range.Max, mAxis[1].range.Min, mAxis[2].range.Min), Vector3(1, 0, 0) },
+				{ Vector3(mAxis[0].range.Min, mAxis[1].range.Min, mAxis[2].range.Min), Vector3(0, 1, 0) },
+				{ Vector3(mAxis[0].range.Min, mAxis[1].range.Max, mAxis[2].range.Min), Vector3(0, 1, 0) },
+				{ Vector3(mAxis[0].range.Min, mAxis[1].range.Min, mAxis[2].range.Min), Vector3(0, 0, 1) },
+				{ Vector3(mAxis[0].range.Min, mAxis[1].range.Min, mAxis[2].range.Max), Vector3(0, 0, 1) },
+			};
+			TRenderRT<RTVF_XYZ_C>::Draw(*mCommandList, PrimitiveType::LineList, axisVertices, ARRAY_SIZE(axisVertices));
+		}
 
-		glColor3f(1, 0, 0);
-		glVertex3f(mAxis[0].range.Min, mAxis[1].range.Min, mAxis[2].range.Min);
-		glVertex3f(mAxis[0].range.Max, mAxis[1].range.Min, mAxis[2].range.Min);
+		{
+			Vertex_XYZ_C axisVertices[] =
+			{
+				{ Vector3(mAxis[0].range.Min, 0, 0), Vector3(1, 0, 0) },
+				{ Vector3(mAxis[0].range.Max, 0, 0), Vector3(1, 0, 0) },
+				{ Vector3(0, mAxis[1].range.Min, 0), Vector3(0, 1, 0) },
+				{ Vector3(0, mAxis[1].range.Max, 0), Vector3(0, 1, 0) },
+				{ Vector3(0, 0, mAxis[2].range.Min), Vector3(0, 0, 1) },
+				{ Vector3(0, 0, mAxis[2].range.Max), Vector3(0, 0, 1) },
+			};
+			TRenderRT<RTVF_XYZ_C>::Draw(*mCommandList, PrimitiveType::LineList, axisVertices, ARRAY_SIZE(axisVertices));
+		}
 
-		glColor3f(0, 1, 0);
-		glVertex3f(mAxis[0].range.Min, mAxis[1].range.Min, mAxis[2].range.Min);
-		glVertex3f(mAxis[0].range.Min, mAxis[1].range.Max, mAxis[2].range.Min);
-
-		glColor3f(0, 0, 1);
-		glVertex3f(mAxis[0].range.Min, mAxis[1].range.Min, mAxis[2].range.Min);
-		glVertex3f(mAxis[0].range.Min, mAxis[1].range.Min, mAxis[2].range.Max);
-
-		glEnd();
-		glBegin(GL_LINES);
-
-		glColor3f(1, 0, 0);
-		glVertex3f(mAxis[0].range.Min, 0, 0);
-		glVertex3f(mAxis[0].range.Max, 0, 0);
-
-		glColor3f(0, 1, 0);
-		glVertex3f(0, mAxis[1].range.Min, 0);
-		glVertex3f(0, mAxis[1].range.Max, 0);
-
-		glColor3f(0, 0, 1);
-		glVertex3f(0, 0, mAxis[2].range.Min);
-		glVertex3f(0, 0, mAxis[2].range.Max);
-
-		glEnd();
 
 		glEnable(GL_LINE_STIPPLE);
 		glLineStipple(1, 0xAAAA);  /*  dotted  */

@@ -104,15 +104,15 @@ public:
 
 		return true; 
 	}
-	void onEnd(){}
-	long onUpdate( long shouldTime ){ return shouldTime; }
+	void finalizeGame() CRTP_OVERRIDE {}
+	long handleGameUpdate( long shouldTime ) CRTP_OVERRIDE { return shouldTime; }
 
 	typedef RegionManager::RegionList RegionList;
 	typedef RegionManager::PortalList PortalList;
 
 	static int const CellLength = 10;
 
-	void onRender()
+	void handerGameRender() CRTP_OVERRIDE
 	{
 
 		WinGdiGraphics2D& g = mRenderSystem->getGraphics2D();
@@ -130,20 +130,17 @@ public:
 
 		g.setBrush( Color3ub( 255 , 255 , 0 ) );
 
-		for( RegionList::iterator iter = regionList.begin();
-			 iter != regionList.end() ; ++iter )
+		for( Region* region : regionList )
 		{
-			rect_t& rect = (*iter)->getRect();
+			rect_t& rect = region->getRect();
 			g.drawRect( CellLength * rect.getMin()  + MapOffset, CellLength * rect.getSize() );
 		}
 
 
 		g.setPen( Color3ub( 255 , 0 , 0 ), 2 );
 		PortalList& pList = mRegionMgr->mProtalList;
-		for( PortalList::iterator iter = pList.begin() ;
-			  iter != pList.end() ; ++iter )
+		for( Portal* portal : pList )
 		{
-			Portal* portal = *iter;
 			if ( portal->dir % 2 )
 				g.drawLine( CellLength * Vec2i( portal->range.min , portal->value )+ MapOffset, 
 						   CellLength * Vec2i( portal->range.max , portal->value )+ MapOffset);
@@ -189,18 +186,15 @@ public:
 
 		if ( !path.empty() )
 		{
-			
-
 			Vec2i prevPos = CellLength * path.front().pos + MapOffset;
 
-			for( std::list< AStar::FindState >::iterator iter = path.begin();
-				iter != path.end() ; ++iter )
+			for( auto& state : path )
 			{
-				Vec2i pos2 = CellLength * iter->pos + MapOffset;
-				if ( iter->portal )
+				Vec2i pos2 = CellLength * state.pos + MapOffset;
+				if ( state.portal )
 				{
 					Vec2i pos1 = pos2;
-					int conDir = iter->portal->getConnectDir( *iter->region );
+					int conDir = state.portal->getConnectDir( *state.region );
 					int idx = conDir % 2;
 
 					pos1[idx] += ( conDir / 2  == 0 ) ? CellLength : -CellLength;
@@ -228,13 +222,13 @@ public:
 	}
 
 
-	bool onChar( unsigned code )
+	bool handleCharEvent( unsigned code ) CRTP_OVERRIDE
 	{
 
 
 		return true;
 	}
-	bool onMouse( MouseMsg& msg )
+	bool handleMouseEvent( MouseMsg const& msg ) CRTP_OVERRIDE
 	{ 
 		Vec2i mapPos = ( msg.getPos() - Vec2i( 20 , 20 ) ) / CellLength ;
 		if ( msg.onLeftDown() )
@@ -250,7 +244,7 @@ public:
 		return true; 
 	}
 
-	bool onKey( unsigned key , bool isDown )
+	bool handleKeyEvent( unsigned key , bool isDown ) CRTP_OVERRIDE
 	{
 		if ( isDown)
 		{
@@ -285,7 +279,7 @@ public:
 					astar.mEndPos = endPos;
 					if ( astar.sreach( state ) )
 					{
-						AStar::TPortalAStar::NodeType* node = astar.getPath();
+						AStar::PortalAStar::NodeType* node = astar.getPath();
 
 						path.clear();
 
@@ -309,7 +303,7 @@ public:
 
 	RegionManager* mRegionMgr;
 
-	AStar::TPortalAStar astar;
+	AStar::PortalAStar astar;
 	
 	Vec2i    curPos;
 	Region*  curRegion;

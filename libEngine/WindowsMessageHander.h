@@ -6,6 +6,7 @@
 #include "WindowsHeader.h"
 #include "SystemMessage.h"
 #include "MetaBase.h"
+#include "Core/CRTPCheck.h"
 
 enum
 {
@@ -46,14 +47,14 @@ public:
 	}
 
 public:
-	bool onMouse( MouseMsg const& msg ){ return true; }
-	bool onKey( unsigned key , bool isDown ){ return true; }
-	bool onChar( unsigned code ){ return true; }
-	bool onActivate( bool beA ){ return true; }
-	void onPaint( HDC hDC ){}
-	bool onDestroy(HWND hWnd) { return true; }
-	bool onIMEChar(){ return true;}
-	bool onPaste(){ return true; }
+	CRTP_FUNC bool handleMouseEvent( MouseMsg const& msg ){ return true; }
+	CRTP_FUNC bool handleKeyEvent( unsigned key , bool isDown ){ return true; }
+	CRTP_FUNC bool handleCharEvent( unsigned code ){ return true; }
+	CRTP_FUNC bool handleWindowActivation( bool beA ){ return true; }
+	CRTP_FUNC void handleWindowPaint( HDC hDC ){}
+	CRTP_FUNC bool handleWindowDestroy(HWND hWnd) { return true; }
+	CRTP_FUNC bool handleIMECharEvent(){ return true;}
+	CRTP_FUNC bool handleDataPaste(){ return true; }
 
 public:
 	static LRESULT CALLBACK MsgProc( HWND hWnd , UINT msg , WPARAM wParam , LPARAM lParam );
@@ -71,32 +72,32 @@ private:
 
 	inline bool _procKeyMsg( HWND hWnd , UINT msg , WPARAM wParam , LPARAM lParam , LRESULT& result )
 	{
-		return _this()->onKey( unsigned(wParam) , msg == WM_KEYDOWN );
+		return _this()->handleKeyEvent( unsigned(wParam) , msg == WM_KEYDOWN );
 	}
 
 	inline bool _procCharMsg( HWND hWnd ,UINT msg , WPARAM wParam , LPARAM lParam , LRESULT& result )
 	{
-		return _this()->onChar( unsigned(wParam) );
+		return _this()->handleCharEvent( unsigned(wParam) );
 	}
 	inline bool _procActivateMsg( HWND hWnd ,UINT msg , WPARAM wParam , LPARAM lParam , LRESULT& result )
 	{
 		if ( wParam == WA_ACTIVE || wParam == WA_CLICKACTIVE )
-			return _this()->onActivate( true );
+			return _this()->handleWindowActivation( true );
 		else if ( wParam == WA_INACTIVE )
-			return _this()->onActivate( false );
+			return _this()->handleWindowActivation( false );
 		return true;
 	}
 	bool _procPaintMsg( HWND hWnd ,UINT msg , WPARAM wParam , LPARAM lParam , LRESULT& result )
 	{
 		HDC hDC = ::BeginPaint( hWnd , NULL );
-		_this()->onPaint( hDC );
+		_this()->handleWindowPaint( hDC );
 		::EndPaint( hWnd , NULL );
 		return false;
 	}
 
 	bool _procDestroyMsg( HWND hWnd ,UINT msg , WPARAM , LPARAM , LRESULT& result )
 	{
-		if( _this()->onDestroy(hWnd) )
+		if( _this()->handleWindowDestroy(hWnd) )
 		{
 			::PostQuitMessage(0);
 		}
@@ -105,7 +106,7 @@ private:
 
 	bool _procPasteMsg( HWND hWnd ,UINT msg , WPARAM , LPARAM , LRESULT& result )
 	{
-		return _this()->onPaste();
+		return _this()->handleDataPaste();
 	}
 	inline  T* _this(){ return static_cast< T* >( this ); }
 
@@ -231,7 +232,7 @@ bool WindowsMessageHandlerT<T,MSG>::_procMouseMsg( HWND hWnd , UINT msg , WPARAM
 	if (x >= 32767) x -= 65536;
 	if (y >= 32767) y -= 65536;
 
-	return _this()->onMouse( MouseMsg( x , y , button , mMouseState ) );
+	return _this()->handleMouseEvent( MouseMsg( x , y , button , mMouseState ) );
 }
 
 #endif // WindowsMessageHander_H_B9615608_C535_4E09_881F_D1CDF5D3734E

@@ -13,26 +13,26 @@ struct  GrowThrowPolicy
 };
 
 
-class  DataSteamBuffer : public TStreamBuffer< GrowThrowPolicy >
+class DataStreamBuffer : public TStreamBuffer< GrowThrowPolicy >
 {
 public:
-	DataSteamBuffer();
-	DataSteamBuffer( size_t size );
+	DataStreamBuffer();
+	DataStreamBuffer( size_t size );
 
 #if 0
 	DataSteamBuffer( DataSteamBuffer const& rhs ){ moveData( const_cast< DataSteamBuffer& >( rhs ) ); }
 	DataSteamBuffer& operator = ( DataSteamBuffer const& rhs ){ cleanup(); moveData( const_cast< DataSteamBuffer& >( rhs ) ); return *this;  }
 #else
-	DataSteamBuffer(DataSteamBuffer const& rhs) = delete;
-	DataSteamBuffer& operator = (DataSteamBuffer const& rhs) = delete;
+	DataStreamBuffer(DataStreamBuffer const& rhs) = delete;
+	DataStreamBuffer& operator = (DataStreamBuffer const& rhs) = delete;
 #endif
 
 #if CPP_RVALUE_REFENCE_SUPPORT
-	DataSteamBuffer(DataSteamBuffer&& rhs) { moveData(rhs); }
-	DataSteamBuffer& operator = (DataSteamBuffer&& rhs) { cleanup(); moveData(rhs); return *this; }
+	DataStreamBuffer(DataStreamBuffer&& rhs) { moveData(rhs); }
+	DataStreamBuffer& operator = (DataStreamBuffer&& rhs) { cleanup(); moveData(rhs); return *this; }
 #endif
 
-	~DataSteamBuffer();
+	~DataStreamBuffer();
 
 	void resize( size_t size );
 	void cleanup();
@@ -44,10 +44,10 @@ public:
 	void fill( char const* str , size_t max );
 	void take( char* str );
 	void take( char* str , size_t max );
-	void copy( DataSteamBuffer const& rhs );
+	void copy( DataStreamBuffer const& rhs );
 
 private:
-	void moveData( DataSteamBuffer& other );
+	void moveData( DataStreamBuffer& other );
 };
 
 

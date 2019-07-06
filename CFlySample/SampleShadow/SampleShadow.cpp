@@ -403,7 +403,7 @@ public:
 		return time;
 	}
 
-	bool onKey( unsigned key , bool isDown )
+	bool handleKeyEvent( unsigned key , bool isDown )
 	{
 		if ( !isDown )
 			return false;
@@ -414,7 +414,7 @@ public:
 		case 'P': lightHeight -= 1; break;
 		}
 
-		return SampleBase::onKey( key , isDown );
+		return SampleBase::handleKeyEvent( key , isDown );
 	}
 
 

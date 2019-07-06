@@ -203,8 +203,8 @@ namespace Bubble
 		}
 		virtual void setupGame( StageManager& manager , StageBase* subStage ){}
 		//for network
-		virtual void doExportSetting( DataSteamBuffer& buffer ){}
-		virtual void doImportSetting( DataSteamBuffer& buffer ){}
+		virtual void doExportSetting( DataStreamBuffer& buffer ){}
+		virtual void doImportSetting( DataStreamBuffer& buffer ){}
 	};
 
 	SettingHepler* GameModule::createSettingHelper( SettingHelperType type )

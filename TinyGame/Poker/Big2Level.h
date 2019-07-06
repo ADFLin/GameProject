@@ -18,7 +18,7 @@ namespace Poker { namespace Big2 {
 	int const PlayerCardNum = 13;
 
 	typedef FixVector< Card , 13 > CardDeck;
-	inline void removeCards( CardDeck& cards , int* pIndex , int num )
+	inline void RemoveCards( CardDeck& cards , int* pIndex , int num )
 	{
 		int temp[ 52 ];
 		std::copy( pIndex , pIndex + num , temp );

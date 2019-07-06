@@ -159,9 +159,9 @@ public:
 		mGameUI = nullptr;
 	}
 
-	void onIdle( long time )        
+	void handleGameIdle( long time ) CRTP_OVERRIDE
 	{
-		onRender();
+		handerGameRender();
 	}
 
 	CEntity* createBoxEntity( Vec3D const& pos )
@@ -202,7 +202,7 @@ public:
 
 	GameFramework* mGameFramework;
 	IGameMod*      mGameMod;
-	bool onInit()                   
+	bool initializeGame() CRTP_OVERRIDE
 	{
 		int w = 1024;
 		int h = 768;
@@ -401,14 +401,14 @@ public:
 
 	CGameUI*  mGameUI;
 
-	void onEnd()                    
+	void finalizeGame() CRTP_OVERRIDE
 	{
 		delete mGameFramework;
 		delete mGameMod;
 	}
 
 	typedef std::vector< CEntity* > EntityList;
-	long onUpdate( long shouldTime )
+	long handleGameUpdate( long shouldTime ) CRTP_OVERRIDE
 	{ 
 		ProfileSystem::Get().incrementFrameCount();
 
@@ -476,7 +476,7 @@ public:
 	}
 
 
-	void onRender()                 
+	void handerGameRender() CRTP_OVERRIDE
 	{
 		PROFILE_ENTRY("onRender");
 
@@ -529,7 +529,7 @@ public:
 	}
 
 
-	bool onMouse( MouseMsg& msg )
+	bool handleMouseEvent( MouseMsg const& msg ) CRTP_OVERRIDE
 	{
 		static Vec2i pos;
 
@@ -552,7 +552,7 @@ public:
 		return true;
 	}
 
-	bool onKey( unsigned key , bool isDown )
+	bool handleKeyEvent( unsigned key , bool isDown ) CRTP_OVERRIDE
 	{
 		if ( !isDown )
 			return false;

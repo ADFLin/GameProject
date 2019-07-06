@@ -411,6 +411,7 @@
     <ClCompile Include="TestMisc\Test\BoneIKTest.cpp" />
     <ClCompile Include="TestMisc\Test\DelegateTest.cpp" />
     <ClCompile Include="TestMisc\Test\FunctionFitTest.cpp" />
+    <ClCompile Include="TestMisc\Test\HTTPTest.cpp" />
     <ClCompile Include="TestMisc\Test\MatrixTest.cpp" />
     <ClCompile Include="TestMisc\Test\MultiThreadTest.cpp" />
     <ClCompile Include="TestMisc\Test\PreprocessTest.cpp" />

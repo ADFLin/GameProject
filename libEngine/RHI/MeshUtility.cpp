@@ -1,15 +1,19 @@
 #include "MeshUtility.h"
 
+#include "RHICommand.h"
+
 #include "WindowsHeader.h"
 #include "MarcoCommon.h"
 #include "FixString.h"
 #include "FileSystem.h"
+#include "LogSystem.h"
 
 #include "Core/ScopeExit.h"
 #include "DataStructure/KDTree.h"
 #include "Math/PrimitiveTest.h"
 #include "AsyncWork.h"
 #include "Serialize/DataStream.h"
+
 
 #include "tinyobjloader/tiny_obj_loader.h"
 #include "NvTriStrip/NvTriStrip.h"
@@ -2282,4 +2286,4 @@ namespace Render
 	}
 
 
-}//namespace GL
+}//namespace Render

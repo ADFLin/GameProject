@@ -34,14 +34,45 @@ void IGameModule::beginPlay( StageModeType type, StageManager& manger )
 {
 	switch( type )
 	{
-	case SMT_SINGLE_GAME: manger.changeStage( STAGE_SINGLE_GAME ); break;
-	case SMT_REPLAY: manger.changeStage( STAGE_REPLAY_GAME ); break;
+	case SMT_SINGLE_GAME:
+		{
+			AttribValue value(ATTR_SINGLE_SUPPORT);
+			if( getAttribValue(value) && value.iVal )
+			{
+				manger.changeStage(STAGE_SINGLE_GAME);
+			}
+			else
+			{
+
+
+			}
+		}
+		break;
+	case SMT_REPLAY: 
+		{
+			AttribValue value(ATTR_REPLAY_SUPPORT);
+			if( getAttribValue(value) && value.iVal )
+			{
+				manger.changeStage(STAGE_REPLAY_GAME);
+			}
+			else
+			{
+
+
+			}
+		}
+		break;
 	case SMT_NET_GAME: 
 		{
 			AttribValue value(ATTR_NET_SUPPORT);
 			if( getAttribValue(value) && value.iVal )
 			{
 				manger.changeStage( STAGE_NET_GAME );
+			}
+			else
+			{
+
+
 			}
 		}
 		break;

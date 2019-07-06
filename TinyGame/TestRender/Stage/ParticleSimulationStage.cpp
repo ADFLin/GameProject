@@ -1,5 +1,6 @@
 #include "TestRenderStageBase.h"
 
+#include "RHI/RHICommand.h"
 
 namespace Render
 {

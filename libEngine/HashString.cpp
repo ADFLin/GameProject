@@ -2,7 +2,7 @@
 
 #include "CString.h"
 #include "FixString.h"
-#include "TypeHash.h"
+#include "Core/TypeHash.h"
 #include "MetaBase.h"
 
 #include <functional>

@@ -1,6 +1,8 @@
 #ifndef GameLoop_h__
 #define GameLoop_h__
 
+#include "Core/CRTPCheck.h"
+
 class PlatformPolicy
 {
 public:
@@ -33,12 +35,13 @@ public:
 	void run();
 	
 protected:
-	void onIdle( long time )        {}
-	bool onInit()                   { return true; }
-	void onEnd()                    {}
-	long onUpdate( long shouldTime ){ return shouldTime; }
-	void onRender()                 {}
-	void onLoopBusy( long deltaTime ){}
+
+	CRTP_FUNC bool initializeGame(){ return true; }
+	CRTP_FUNC void finalizeGame(){}
+	CRTP_FUNC long handleGameUpdate( long shouldTime ){ return shouldTime; }
+	CRTP_FUNC void handleGameIdle(long time){}
+	CRTP_FUNC void handerGameRender(){}
+	CRTP_FUNC void handleGameLoopBusy( long deltaTime ){}
 
 private:
 	long  mFrameTime;
@@ -51,7 +54,7 @@ private:
 template < class T  , class PP  >
 void GameLoopT< T , PP >::run()
 {
-	if ( !_this()->onInit() ) 
+	if ( !_this()->initializeGame() )
 		return;
 
 	long beforeTime = Platform::getMillionSecond();
@@ -63,14 +66,14 @@ void GameLoopT< T , PP >::run()
 
 		if ( intervalTime < mUpdateTime )
 		{
-			_this()->onIdle( mUpdateTime - intervalTime );
+			_this()->handleGameIdle( mUpdateTime - intervalTime );
 
 		}
 		else
 		{
 			if( intervalTime > mBusyTime )
 			{
-				_this()->onLoopBusy(intervalTime);
+				_this()->handleGameLoopBusy(intervalTime);
 				beforeTime = presentTime - mUpdateTime;
 				intervalTime = mUpdateTime;
 			}
@@ -83,8 +86,8 @@ void GameLoopT< T , PP >::run()
 			if( mIsOver )
 				break;
 
-			long updateTime = _this()->onUpdate(intervalTime);
-			_this()->onRender();
+			long updateTime = _this()->handleGameUpdate(intervalTime);
+			_this()->handerGameRender();
 
 			beforeTime += updateTime;
 			mFrameTime += updateTime;
@@ -92,7 +95,7 @@ void GameLoopT< T , PP >::run()
 		}
 	}
 
-	_this()->onEnd();
+	_this()->finalizeGame();
 }
 
 

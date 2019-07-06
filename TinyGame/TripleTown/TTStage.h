@@ -58,7 +58,7 @@ namespace TripleTown
 			mScene.updateFrame( frame );
 		}
 
-		FileIterator mIterator;
+		FileIterator mFileIterator;
 
 		Scene mScene;
 		Level mLevel;

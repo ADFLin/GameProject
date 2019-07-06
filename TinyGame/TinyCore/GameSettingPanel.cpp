@@ -1,7 +1,7 @@
 #include "TinyGamePCH.h"
 #include "GameSettingPanel.h"
 
-#include "DataSteamBuffer.h"
+#include "DataStreamBuffer.h"
 #include "GameWidgetID.h"
 
 #include "RenderUtility.h"

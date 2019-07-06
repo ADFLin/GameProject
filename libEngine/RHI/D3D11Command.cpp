@@ -163,20 +163,20 @@ namespace Render
 
 		char const* FakeCodeTemplate = CODE_STRING(
 			struct VSInput
-		{
-			%s
-		};
-		void MainVS(in VSInput input, out float4 svPosition : SV_POSITION)
-		{
-			svPosition = float4(0, 0, 0, 1);
-		}
+			{
+				%s
+			};
+			void MainVS(in VSInput input, out float4 svPosition : SV_POSITION)
+			{
+				svPosition = float4(0, 0, 0, 1);
+			}
 		);
 
 		std::string vertexCode;
 		for( auto const& e : key.elements )
 		{
 			FixString< 128 > str;
-			str.format("%s v%d : ATTRIBUTE%d;", "float4", e.attribute, e.attribute);
+			str.format("float%d v%d : ATTRIBUTE%d;", Vertex::GetComponentNum(e.format) , e.attribute, e.attribute );
 			vertexCode += str.c_str();
 		}
 		FixString<512> fakeCode;

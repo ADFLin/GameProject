@@ -15,6 +15,8 @@ class IStreamSerializer;
 
 namespace Render
 {
+	class RHICommandList;
+
 	class RHITexture1D;
 	class RHITexture2D;
 	class RHITexture3D; 
@@ -305,10 +307,10 @@ namespace Render
 		virtual void setupTextureLayer(RHITextureCube& target, int level = 0 ) = 0;
 		virtual int  addTexture(RHITextureCube& target, Texture::Face face, int level = 0) = 0;
 		virtual int  addTexture(RHITexture2D& target, int level = 0) = 0;
-		virtual int  addTexture(RHITexture2DArray& target, int idexLayer, int level = 0) = 0;
+		virtual int  addTexture(RHITexture2DArray& target, int indexLayer, int level = 0) = 0;
 		virtual void setTexture(int idx, RHITexture2D& target, int level = 0) = 0;
 		virtual void setTexture(int idx, RHITextureCube& target, Texture::Face face, int level = 0) = 0;
-		virtual void setTexture(int idx, RHITexture2DArray& target, int idexLayer, int level = 0) = 0;
+		virtual void setTexture(int idx, RHITexture2DArray& target, int indexLayer, int level = 0) = 0;
 
 		virtual void setDepth(RHITextureDepth& target) = 0; 
 	};

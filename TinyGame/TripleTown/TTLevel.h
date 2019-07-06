@@ -6,6 +6,9 @@
 #include "DataStructure/TTable.h"
 #include "DataStructure/IntrList.h"
 
+#include "Serialize/StreamBuffer.h"
+#include "DataStreamBuffer.h"
+
 namespace TripleTown
 {
 
@@ -173,7 +176,7 @@ namespace TripleTown
 	class LevelListener
 	{
 	public:
-		virtual void notifyBasicObjectAdded( TilePos const& pos , ObjectId id ){}
+		virtual void notifyObjectAdded( TilePos const& pos , ObjectId id ){}
 		virtual void notifyObjectRemoved( TilePos const& pos , ObjectId id ){}
 		virtual void nodifyActorAdded( TilePos const& pos , ObjectId id ){}
 
@@ -184,6 +187,7 @@ namespace TripleTown
 		virtual void prevRemoveActor(Tile const& tile, ActorData const& actor) {}
 		virtual void postRemoveActor(TilePos const& pos, ObjectId id) {}
 		virtual void prevPrevSetupLand(){}
+		virtual void postSetupMap(){}
 		virtual void postSetupLand(){}
 
 		virtual void notifyAddPoints( int points ){}
@@ -207,30 +211,27 @@ namespace TripleTown
 
 	};
 
-
 	struct LevelState
 	{
 	public:
-		void copy(LevelState& other)
+
+
+		void importState( DataStreamBuffer& dataBuffer )
 		{
-
-
-
+			auto serializer = MakeBufferSerializer(dataBuffer);
+			IStreamSerializer::ReadOp op(serializer);
+			serialize(op);
 		}
 
-		void swap(LevelState& other)
+		void exportState( DataStreamBuffer& dataBuffer)
 		{
-
-
-		}
-
-		void save( DataSteamBuffer& dataBuffer )
-		{
-
+			auto serializer = MakeBufferSerializer(dataBuffer);
+			IStreamSerializer::WriteOp op(serializer);
+			serialize(op);
 		}
 
 		template< class OP >
-		void serialize( OP&& op)
+		void serialize( OP& op)
 		{
 			uint32 version = 0;
 			op & version;
@@ -429,7 +430,7 @@ namespace TripleTown
 		friend class ECFunLand;
 		friend class ECBasicLand;
 		friend class ECActor;
-		friend class ECTool;
+		friend class ECToolBase;
 		friend class ECCrystal;
 		friend class ECBear;
 	};

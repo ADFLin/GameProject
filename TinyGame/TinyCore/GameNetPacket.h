@@ -5,7 +5,7 @@
 
 #include "NetSocket.h"
 #include "SocketBuffer.h"
-#include "DataSteamBuffer.h"
+#include "DataStreamBuffer.h"
 
 #include "GameConfig.h"
 #include "GamePlayer.h"
@@ -73,7 +73,7 @@ public:
 };
 
 
-inline SocketBuffer& operator >> ( SocketBuffer& buffer , DataSteamBuffer& dataBuffer )
+inline SocketBuffer& operator >> ( SocketBuffer& buffer , DataStreamBuffer& dataBuffer )
 {
 	size_t size;
 	buffer.take( size );
@@ -81,7 +81,7 @@ inline SocketBuffer& operator >> ( SocketBuffer& buffer , DataSteamBuffer& dataB
 	return buffer;
 }
 
-inline SocketBuffer& operator << ( SocketBuffer& buffer , DataSteamBuffer& dataBuffer )
+inline SocketBuffer& operator << ( SocketBuffer& buffer , DataStreamBuffer& dataBuffer )
 {
 	size_t size = dataBuffer.getAvailableSize();
 	buffer.fill( size );
@@ -201,7 +201,7 @@ public:
 class GDPFrameStream : public GameFramePacket< GDPFrameStream , GDP_FARME_STREAM >
 {
 public:
-	DataSteamBuffer buffer;
+	DataStreamBuffer buffer;
 
 	template < class BufferOP >
 	void  operateBuffer( BufferOP& op )
@@ -213,7 +213,7 @@ public:
 class GDPStream : public GamePacket< GDPStream , GDP_STREAM >
 {
 public:
-	DataSteamBuffer buffer;
+	DataStreamBuffer buffer;
 	template < class BufferOP >
 	void  operateBuffer( BufferOP& op )
 	{
@@ -239,7 +239,7 @@ class CSPRawData : public GamePacket< CSPRawData , CSP_RAW_DATA >
 {
 public:
 	int   id;
-	DataSteamBuffer buffer;
+	DataStreamBuffer buffer;
 
 	template < class BufferOP >
 	void  operateBuffer( BufferOP& op )

@@ -15,12 +15,12 @@ namespace Zuma
 
 		void release();
 
-		static DXTexture2D& castImpl( ITexture2D& tex )
+		static DXTexture2D& CastToImpl( ITexture2D& tex )
 		{
 			return static_cast< DXTexture2D& >( tex );
 		}
 
-		static DXTexture2D const& castImpl(ITexture2D const& tex)
+		static DXTexture2D const& CastToImpl(ITexture2D const& tex)
 		{
 			return static_cast<DXTexture2D const&>(tex);
 		}
@@ -112,7 +112,7 @@ namespace Zuma
 		bool loadGIFAlpha( DXTexture2D& texture , char const* path );
 		LPDIRECT3DDEVICE9 getD3DDevice() const { return mD3DDevice; }
 
-		static LPDIRECT3DTEXTURE9 getD3DTexture( ITexture2D const& texture ){ return DXTexture2D::castImpl(texture).getD3DTexture(); }
+		static LPDIRECT3DTEXTURE9 getD3DTexture( ITexture2D const& texture ){ return DXTexture2D::CastToImpl(texture).getD3DTexture(); }
 		static int const MaxPolygonSize = 64;
 		LPDIRECT3DDEVICE9 mD3DDevice;
 		LPD3DXMATRIXSTACK mWorldMatStack;

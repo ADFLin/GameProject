@@ -17,7 +17,7 @@ FrameDataManager::FrameDataManager()
 	mLastDataFrame = 0;
 }
 
-void FrameDataManager::addFrameData(int32 frame , DataSteamBuffer& buffer )
+void FrameDataManager::addFrameData(int32 frame , DataStreamBuffer& buffer )
 {
 	if ( mLastDataFrame < frame )
 		mLastDataFrame = frame;
@@ -295,7 +295,7 @@ bool SVSyncFrameManager::sendFrameData()
 #endif
 	mWorker->sendCommand( UseChannel , mFrameStream.get() , WSF_IGNORE_LOCAL );
 
-	DataSteamBuffer buffer;
+	DataStreamBuffer buffer;
 	buffer.copy( mFrameStream->buffer );
 
 	mFrameMgr.addFrameData( mFrameStream->frame , buffer );

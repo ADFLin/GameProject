@@ -229,7 +229,7 @@ namespace Tetris
 				{
 					IPlayerManager* playerManager = getStageMode()->getPlayerManager();
 					mLastGameOrder = mGameMode->markRecord( 
-						getRecordManager(),
+						GetRecordManager(),
 						playerManager->getPlayer( playerManager->getUserID() ) );
 
 					if ( /*mLastGameOrder < 10 &&*/ mGameMode->getModeID() == MODE_TS_CHALLENGE )
@@ -635,6 +635,7 @@ namespace Tetris
 			CREATE_BUTTON( UI_PRACTICE_MODE , LOCTEXT("Practice Mode") );
 			//CREATE_BUTTON( UI_TIME_MODE     , LAN("Time Mode")     );
 			CREATE_BUTTON( UI_SHOW_SCORE    , LOCTEXT("Show Score")    );
+			CREATE_BUTTON( UI_ABOUT_GAME    , LOCTEXT("About Game"));
 			CREATE_BUTTON( UI_GAME_OPTION   , LOCTEXT("Option")        );
 			CREATE_BUTTON( UI_MAIN_MENU     , LOCTEXT("Back Main Menu"));
 			break;
@@ -693,6 +694,7 @@ namespace Tetris
 
 	bool AboutGameStage::onInit()
 	{
+		Global::GUI().cleanupWidget();
 		curIndex = 0;
 		return true;
 	}
@@ -739,8 +741,8 @@ namespace Tetris
 	void AboutGameStage::productSprite( PieceSprite& spr )
 	{
 		PieceTemplateSet& tempSet = PieceTemplateSet::GetClassic();
-		tempSet.setTemplate( tempSet.getTemplateNum() % Global::Random() , spr.piece );
-		spr.piece.rotate( spr.piece.getDirectionNum() % Global::Random() );
+		tempSet.setTemplate(Global::Random() % tempSet.getTemplateNum() , spr.piece );
+		spr.piece.rotate(Global::Random() % spr.piece.getDirectionNum() );
 		spr.angle    = RandomFloat() * 2 * PI;
 		spr.angleVel = RandomFloat( -1 , 1 ) * 5;
 		spr.vel   =  500 * Vector2( RandomFloat( -1 , 1 )  , RandomFloat( -1 , 1 ) );
@@ -812,7 +814,7 @@ namespace Tetris
 
 		highLightRecordOrder = order;
 		//highLightRecord = Tetris::getRecordManager().getRecord();
-		auto recordIter = Tetris::getRecordManager().getRecords();
+		auto recordIter = Tetris::GetRecordManager().getRecords();
 
 		for ( int i = 0 ; i < order && recordIter ; ++i , ++recordIter ){}
 
@@ -906,7 +908,7 @@ namespace Tetris
 
 		g.setTextColor(Color3ub(255 , 255 , 255) );
 
-		auto recordIter = Tetris::getRecordManager().getRecords();
+		auto recordIter = Tetris::GetRecordManager().getRecords();
 		for( int i = 0 ; i < RecordManager::NumMaxRecord; ++i  )
 		{
 			y += d;

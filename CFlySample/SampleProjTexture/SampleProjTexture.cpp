@@ -200,7 +200,7 @@ public:
 
 	 }
 
-	 bool onKey( unsigned key , bool isDown )
+	 bool handleKeyEvent( unsigned key , bool isDown )
 	 {
 		 if ( !isDown )
 			 return false;
@@ -211,7 +211,7 @@ public:
 		 case 'P': viewCamera->rotate( CF_AXIS_X , Math::Deg2Rad(-1) , CFTO_LOCAL );  break;
 		 }
 
-		 return SampleBase::onKey( key , isDown );
+		 return SampleBase::handleKeyEvent( key , isDown );
 	 }
 
 

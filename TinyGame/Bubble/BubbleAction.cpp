@@ -70,7 +70,7 @@ namespace Bubble
 
 	}
 
-	void CServerFrameCollector::processClientFrameData( unsigned pID , DataSteamBuffer& buffer )
+	void CServerFrameCollector::processClientFrameData( unsigned pID , DataStreamBuffer& buffer )
 	{
 		if( buffer.getAvailableSize() )
 		{
@@ -81,7 +81,7 @@ namespace Bubble
 			if( data.port == ERROR_ACTION_PORT )
 			{
 
-
+				return;
 			}
 
 			unsigned dataPos = mPortDataMap[data.port];

@@ -1,7 +1,7 @@
 #ifndef Entity_h__
 #define Entity_h__
 
-#include "TypeHash.h"
+#include "Core/TypeHash.h"
 
 #include <vector>
 #include <unordered_map>

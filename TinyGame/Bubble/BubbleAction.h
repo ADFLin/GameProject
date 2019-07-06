@@ -64,7 +64,7 @@ namespace Bubble
 		typedef TServerKeyFrameCollector< BuFrameData > BaseClass;
 	public:
 		CServerFrameCollector();
-		void processClientFrameData( unsigned pID , DataSteamBuffer& buffer );
+		void processClientFrameData( unsigned pID , DataStreamBuffer& buffer );
 	};
 
 }// namespace Bubble

@@ -83,7 +83,7 @@ namespace BomberMan
 			static_cast< LevelStage* >( subStage )->setMode( mMode );
 			mMode = NULL;
 		}
-		virtual void doExportSetting( DataSteamBuffer& buffer )
+		virtual void doExportSetting( DataStreamBuffer& buffer )
 		{
 			buffer.fill( (int)mMode->getId() );
 			switch( mMode->getId() )
@@ -97,7 +97,7 @@ namespace BomberMan
 			}
 
 		}
-		virtual void doImportSetting( DataSteamBuffer& buffer )
+		virtual void doImportSetting( DataStreamBuffer& buffer )
 		{
 			getSettingPanel()->removeChildWithMask( MASK_BASE );
 

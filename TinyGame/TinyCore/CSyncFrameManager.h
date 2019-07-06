@@ -4,7 +4,7 @@
 #include "CFrameActionNetEngine.h"
 #include "GameControl.h"
 #include "GamePlayer.h"
-#include "DataSteamBuffer.h"
+#include "DataStreamBuffer.h"
 #include "Holder.h"
 
 #include <vector>
@@ -29,7 +29,7 @@ public:
 
 	void       beginFrame();
 	void       endFrame();
-	void       addFrameData(int32 frame , DataSteamBuffer& buffer );
+	void       addFrameData(int32 frame , DataStreamBuffer& buffer );
 	bool       canAdvanceFrame();
 	void       setFrame(int32 frame ){ mCurFrame = frame; }
 	int32      getFrame(){ return mCurFrame; }
@@ -45,7 +45,7 @@ public:
 		mDataQueue.swap(emptyQueue);
 	}
 
-	typedef std::list< DataSteamBuffer > DataList;
+	typedef std::list< DataStreamBuffer > DataList;
 	struct FrameData
 	{
 		int32              frame;
@@ -133,7 +133,7 @@ private:
 		PlayerId id;
 		int      recvFrame;
 		int      sendFrame;
-		DataSteamBuffer buffer;
+		DataStreamBuffer buffer;
 
 		ClientFrameData() = default;
 		ClientFrameData(ClientFrameData const&) = delete;

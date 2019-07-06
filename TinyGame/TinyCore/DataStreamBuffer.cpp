@@ -1,5 +1,5 @@
 #include "TinyGamePCH.h"
-#include "DataSteamBuffer.h"
+#include "DataStreamBuffer.h"
 
 #include <algorithm>
 
@@ -30,26 +30,26 @@ bool GrowThrowPolicy::CheckTake(char*& data , size_t& max , size_t cur , size_t 
 
 }
 
-DataSteamBuffer::DataSteamBuffer()
+DataStreamBuffer::DataStreamBuffer()
 {
 
 }
 
-DataSteamBuffer::DataSteamBuffer( size_t size )
+DataStreamBuffer::DataStreamBuffer( size_t size )
 {
 	mData = new char[ size ];
 	mMaxSize = size;
 	clear();
 }
 
-void DataSteamBuffer::resize( size_t size )
+void DataStreamBuffer::resize( size_t size )
 {
 	cleanup();
 	mData = new char[ size ];
 	mMaxSize = size;
 }
 
-void DataSteamBuffer::cleanup()
+void DataStreamBuffer::cleanup()
 {
 	delete[] mData;
 	mData = NULL;
@@ -57,24 +57,24 @@ void DataSteamBuffer::cleanup()
 	clear();
 }
 
-DataSteamBuffer::~DataSteamBuffer()
+DataStreamBuffer::~DataStreamBuffer()
 {
 	delete [] mData;
 }
 
-void DataSteamBuffer::fill( char const* str )
+void DataStreamBuffer::fill( char const* str )
 {
 	size_t len = strlen( str ) + 1;
 	fill( (void*)str , len );
 }
 
-void DataSteamBuffer::fill( char const* str , size_t max )
+void DataStreamBuffer::fill( char const* str , size_t max )
 {
 	size_t len = strnlen( str , max );
 	fill( (void*)str , len );
 }
 
-void DataSteamBuffer::take( char* str )
+void DataStreamBuffer::take( char* str )
 {
 	size_t avialable = getAvailableSize();
 
@@ -86,7 +86,7 @@ void DataSteamBuffer::take( char* str )
 	mUseSize += len;
 }
 
-void DataSteamBuffer::take( char* str , size_t max )
+void DataStreamBuffer::take( char* str , size_t max )
 {
 	size_t avialable = getAvailableSize();
 
@@ -100,7 +100,7 @@ void DataSteamBuffer::take( char* str , size_t max )
 	mUseSize += len;
 }
 
-void DataSteamBuffer::copy( DataSteamBuffer const& rhs )
+void DataStreamBuffer::copy( DataStreamBuffer const& rhs )
 {
 	if ( mMaxSize < rhs.mFillSize )
 	{
@@ -113,7 +113,7 @@ void DataSteamBuffer::copy( DataSteamBuffer const& rhs )
 	mUseSize  = rhs.mUseSize;
 }
 
-void DataSteamBuffer::moveData( DataSteamBuffer& other )
+void DataStreamBuffer::moveData( DataStreamBuffer& other )
 {
 	mData     = other.mData;
 	mFillSize = other.mFillSize;

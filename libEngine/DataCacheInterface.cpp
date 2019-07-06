@@ -1,7 +1,7 @@
 #include "DataCacheInterface.h"
 
 #include "Core/FNV1a.h"
-#include "TypeHash.h"
+#include "Core/TypeHash.h"
 #include "FixString.h"
 #include "Serialize/FileStream.h"
 #include "FileSystem.h"

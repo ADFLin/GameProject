@@ -27,11 +27,13 @@ namespace TripleTown
 		onRestart(true);
 
 
-		FileSystem::FindFiles("TripleTown", ".tex", mIterator);
-		mScene.loadPreviewTexture(mIterator.getFileName());
+		FileSystem::FindFiles("TripleTown", ".tex", mFileIterator);
+		mScene.loadPreviewTexture(mFileIterator.getFileName());
 
 		auto frame = WidgetUtility::CreateDevFrame();
 		frame->addButton( UI_RESTART_GAME , "Restart");
+		WidgetPropery::Bind(frame->addCheckBox(UI_ANY, "Show preview texture"), mScene.bShowPreviewTexture);
+		WidgetPropery::Bind(frame->addCheckBox(UI_ANY, "Show TexAtlas"), mScene.bShowTexAtlas);
 		return true;
 	}
 
@@ -46,6 +48,12 @@ namespace TripleTown
 		SimpleTextLayout layout;
 		layout.show(g, "Points = %d", mPlayerPoints);
 		layout.show(g, "Coins = %d", mPlayerCoins);
+
+		if( mScene.bShowPreviewTexture )
+		{
+			layout.show(g, "Preview Texture = %s", mFileIterator.getFileName());
+		}
+
 		g.endRender();
 	}
 
@@ -107,10 +115,10 @@ namespace TripleTown
 		case 'Q': mLevel.setQueueObject(OBJ_CRYSTAL); return false;
 		case 'W': mLevel.setQueueObject(OBJ_ROBOT); return false;
 		case Keyboard::eX:
-			if( mIterator.haveMore() )
+			if( mFileIterator.haveMore() )
 			{
-				mIterator.goNext();
-				mScene.loadPreviewTexture(mIterator.getFileName());
+				mFileIterator.goNext();
+				mScene.loadPreviewTexture(mFileIterator.getFileName());
 			}
 			break;
 		}

@@ -126,7 +126,7 @@ public:
 
 	void update( long time ){ mManager.update(); }
 	void render()           { mManager.render(); }
-	bool procMouse( MouseMsg& msg )       { return mManager.procMouseMsg( msg ); }
+	bool procMouse( MouseMsg const& msg )       { return mManager.procMouseMsg( msg ); }
 	bool procKey( unsigned key , bool isDown ){ return mManager.procKeyMsg( key , isDown ); }
 	bool procChar( unsigned key )             { return mManager.procCharMsg( key ); }
 

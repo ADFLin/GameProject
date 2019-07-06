@@ -25,13 +25,14 @@ namespace Render
 
 	enum ColorWriteMask
 	{
-		CWM_NONE = 0,
+		CWM_None = 0,
 		CWM_R = 1 << 0,
 		CWM_G = 1 << 1,
 		CWM_B = 1 << 2,
 		CWM_A = 1 << 3,
 		CWM_RGB = CWM_R | CWM_G | CWM_B ,
 		CWM_RGBA = CWM_RGB | CWM_A ,
+		CWM_Alpha = CWM_A ,
 	};
 
 

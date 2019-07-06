@@ -1,0 +1,17 @@
+#pragma once
+#ifndef CRTPCheck_H_D24F83C8_D494_4AC6_93C8_AC32D9909A55
+#define CRTPCheck_H_D24F83C8_D494_4AC6_93C8_AC32D9909A55
+
+#ifndef USE_CRTP_CHECK
+#define USE_CRTP_CHECK 0
+#endif
+
+#if USE_CRTP_CHECK
+#define CRTP_OVERRIDE override
+#define CRTP_FUNC     virtual
+#else
+#define CRTP_OVERRIDE
+#define CRTP_FUNC    
+#endif
+
+#endif // CRTPCheck_H_D24F83C8_D494_4AC6_93C8_AC32D9909A55

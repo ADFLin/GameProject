@@ -1,7 +1,11 @@
-#ifndef GLDrawUtility_h__
-#define GLDrawUtility_h__
+#pragma once
+#ifndef DrawUtility_H_AB9DF39A_A67B_496E_A2F9_E6C58BD2572C
+#define DrawUtility_H_AB9DF39A_A67B_496E_A2F9_E6C58BD2572C
 
-#include "MeshUtility.h"
+#include "RHI/MeshUtility.h"
+#include "RHI/RHIGlobalResource.h"
+#include "RHI/RHICommand.h"
+//#REMOVE_ME
 #include "OpenGLCommon.h"
 
 #include "Singleton.h"
@@ -96,7 +100,7 @@ namespace Render
 	}
 
 	template < uint32 VertexFormat0 , uint32 VertexFormat1 = 0 >
-	class TStaticRenderRTInputLayout : public StaticRHIResourceT< TStaticRenderRTInputLayout< VertexFormat0 , VertexFormat1 > , RHIInputLayout >
+	class TStaticRenderRTInputLayout : public StaticRHIResourceT< TStaticRenderRTInputLayout< VertexFormat0, VertexFormat1> , RHIInputLayout >
 	{
 	public:
 		static RHIInputLayoutRef CreateRHI()
@@ -260,7 +264,7 @@ namespace Render
 		FORCEINLINE static void UnbindVertexAttrib(LinearColor const* overwriteColor = nullptr)
 		{
 #define VERTEX_ATTRIB_UNBIND( ATTR , RTS )\
-			if( USE_SEMANTIC(RTS) )\
+			if( USE_SEMANTIC(VertexFormat , RTS) )\
 			{\
 				glDisableVertexAttribArray(Vertex::ATTR);\
 			}
@@ -475,6 +479,7 @@ namespace Render
 		RHIFrameBufferRef mFrameBuffer;
 
 	};
-}//namespace GL
 
-#endif // GLDrawUtility_h__
+}//namespace Render
+
+#endif // DrawUtility_H_AB9DF39A_A67B_496E_A2F9_E6C58BD2572C

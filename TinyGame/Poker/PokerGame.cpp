@@ -13,7 +13,7 @@
 #include "GameSettingPanel.h"
 #include "Widget/GameRoomUI.h"
 #include "GameWidgetID.h"
-#include "DataSteamBuffer.h"
+#include "DataStreamBuffer.h"
 
 namespace Poker
 {
@@ -178,13 +178,13 @@ namespace Poker
 		{
 
 		}
-		virtual void doExportSetting( DataSteamBuffer& buffer )
+		virtual void doExportSetting( DataStreamBuffer& buffer )
 		{
 			int rule = mGame->getRule();
 			buffer.fill( rule );
 
 		}
-		virtual void doImportSetting( DataSteamBuffer& buffer )
+		virtual void doImportSetting( DataStreamBuffer& buffer )
 		{
 			getSettingPanel()->removeChildWithMask( MASK_BASE | MASK_RULE );
 			getSettingPanel()->adjustChildLayout();

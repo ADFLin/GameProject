@@ -158,15 +158,16 @@ namespace Zuma
 	public:
 		ZumaGame(){}
 		//GameLoop
-		bool   onInit();
-		void   onRender(){ GameCore::render( 0.0f ); }
-		void   onEnd(){ GameCore::cleanup(); }
-		void   onIdle( long time ){ onRender();  }
-		long   onUpdate( long time ){ GameCore::update( time ); return time; }
+		bool   initializeGame() CRTP_OVERRIDE;
+		void   finalizeGame() CRTP_OVERRIDE { GameCore::cleanup(); }
+		void   handerGameRender() CRTP_OVERRIDE { GameCore::render( 0.0f ); }	
+		void   handleGameIdle( long time ) CRTP_OVERRIDE { handerGameRender();  }
+		long   handleGameUpdate( long time ) CRTP_OVERRIDE { GameCore::update( time ); return time; }
+
 		//SysMsgHandler
-		bool   onMouse( MouseMsg const& msg ){ return GameCore::onMouse( msg );}
-		bool   onKey( unsigned key , bool isDown ){ return GameCore::onKey( key , isDown ); }
-		bool   onActivate( bool beA ){ isGmaePause = !beA; return true; }
+		bool   handleMouseEvent( MouseMsg const& msg ) CRTP_OVERRIDE { return GameCore::onMouse( msg );}
+		bool   handleKeyEvent( unsigned key , bool isDown ) CRTP_OVERRIDE { return GameCore::onKey( key , isDown ); }
+		bool   handleWindowActivation( bool beA ) CRTP_OVERRIDE { isGmaePause = !beA; return true; }
 	};
 
 }//namespace Zuma

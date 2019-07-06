@@ -3,6 +3,7 @@
 
 #include "TVector2.h"
 #include "Math/Vector2.h"
+#include "Core/IntegerType.h"
 
 using ::Math::Vector2;
 
@@ -92,9 +93,9 @@ namespace Bubble
 		Vector2 calcCellCenterPos( int index );
 		Vector2 calcCellCenterPos( int layer , int nx );
 
-		short const* getLastPopCellIndex() const { return mIndexPopCell; }
+		int16 const* getLastPopCellIndex() const { return mIndexPopCell; }
 		int          getLastPopCellNum()   const { return mNumPopCell; }
-		short const* getLastFallCellIndex()const { return mIndexFallCell; }
+		int16 const* getLastFallCellIndex()const { return mIndexFallCell; }
 		int          getLastFallCellNum()  const { return mNumFallCell; }
 
 		float        getTopOffset(){ return mTopOffset; }
@@ -108,8 +109,8 @@ namespace Bubble
 		float  mTopOffset;
 		int    mNumPopCell;
 		int    mNumFallCell;
-		short* mIndexPopCell;
-		short* mIndexFallCell;
+		int16* mIndexPopCell;
+		int16* mIndexFallCell;
 
 
 		struct PosCache* mPosCache;
@@ -133,10 +134,10 @@ namespace Bubble
 
 		};
 
-		bool checkColFlag( int idx , unsigned bit ){ assert( !getCell( idx ).isBlock() ); return ( mColFlag[idx] & bit ) != 0; }
-		void addColFlag  ( int idx , unsigned bit ){ assert( !getCell( idx ).isBlock() ); mColFlag[idx] |=  bit;  }
+		bool checkColFlag( int idx , uint8 bit ){ assert( !getCell( idx ).isBlock() ); return ( mColFlag[idx] & bit ) != 0; }
+		void addColFlag  ( int idx , uint8 bit ){ assert( !getCell( idx ).isBlock() ); mColFlag[idx] |=  bit;  }
 
-		unsigned char*  mColFlag;
+		uint8*  mColFlag;
 	};
 
 	class LevelListener;
@@ -159,7 +160,7 @@ namespace Bubble
 	protected:
 		void     update( float dt );
 		void     shoot( Bubble* bubble );
-		void     roteRight( float delta );
+		void     rotateRight( float delta );
 		unsigned updateShootBubble( Bubble& bubble , float totalTime );
 		typedef std::list< Bubble* > BubbleList;
 

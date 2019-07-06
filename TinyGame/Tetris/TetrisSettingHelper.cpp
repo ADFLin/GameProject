@@ -4,7 +4,7 @@
 #include "TetrisStage.h"
 #include "TetrisLevelManager.h"
 
-#include "DataSteamBuffer.h"
+#include "DataStreamBuffer.h"
 #include "GameSettingPanel.h"
 #include "Widget/GameRoomUI.h"
 
@@ -75,7 +75,7 @@ namespace Tetris
 		}
 	}
 
-	void CNetRoomSettingHelper::doImportSetting( DataSteamBuffer& buffer )
+	void CNetRoomSettingHelper::doImportSetting( DataStreamBuffer& buffer )
 	{
 		mSettingPanel->removeChildWithMask( MASK_BASE | MASK_MODE );
 		mSettingPanel->adjustChildLayout();
@@ -105,7 +105,7 @@ namespace Tetris
 		return true;
 	}
 
-	void CNetRoomSettingHelper::doExportSetting(DataSteamBuffer& buffer)
+	void CNetRoomSettingHelper::doExportSetting(DataStreamBuffer& buffer)
 	{
 		buffer.fill( mInfo.mode );
 		buffer.fill( mMaxPlayerNum );

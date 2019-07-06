@@ -68,8 +68,8 @@ namespace GreedySnake
 
 		}
 
-		virtual void doExportSetting( DataSteamBuffer& buffer ){}
-		virtual void doImportSetting( DataSteamBuffer& buffer ){}
+		virtual void doExportSetting( DataStreamBuffer& buffer ){}
+		virtual void doImportSetting( DataStreamBuffer& buffer ){}
 	};
 
 	SettingHepler* GameModule::createSettingHelper( SettingHelperType type )

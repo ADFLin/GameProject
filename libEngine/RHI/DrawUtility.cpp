@@ -3,6 +3,8 @@
 #include "ShaderManager.h"
 #include "ProfileSystem.h"
 
+#include "RHI/RHICommand.h"
+
 namespace Render
 {
 	struct VertexXYZ_T1

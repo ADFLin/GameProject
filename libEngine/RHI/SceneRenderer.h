@@ -8,6 +8,8 @@
 #include "MeshUtility.h"
 #include "RenderContext.h"
 
+//#REMOVE ME
+#include "OpenGLCommon.h"
 
 namespace Render
 {

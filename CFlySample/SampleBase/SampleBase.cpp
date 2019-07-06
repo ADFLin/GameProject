@@ -24,7 +24,7 @@ int WINAPI WinMain (HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR szCmdLine
 }
 
 
-bool SampleBase::onInit()
+bool SampleBase::initializeGame()
 {
 	m_frameCount = 0;
 	m_fps = 0.0f;
@@ -60,7 +60,7 @@ bool SampleBase::onInit()
 	return onSetupSample();
 }
 
-bool SampleBase::onMouse( MouseMsg& msg )
+bool SampleBase::handleMouseEvent( MouseMsg const& msg )
 {
 	if ( msg.onLeftDown() )
 	{
@@ -89,7 +89,7 @@ bool SampleBase::onMouse( MouseMsg& msg )
 	return true;
 }
 
-bool SampleBase::onKey( unsigned key , bool isDown )
+bool SampleBase::handleKeyEvent( unsigned key , bool isDown )
 {
 	float moveSpeed = 10;
 	if ( !isDown )
@@ -107,7 +107,7 @@ bool SampleBase::onKey( unsigned key , bool isDown )
 	return true;
 }
 
-void SampleBase::onRender()
+void SampleBase::handerGameRender()
 {
 	onRenderScene();
 

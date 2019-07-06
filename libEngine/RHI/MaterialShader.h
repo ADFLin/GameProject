@@ -4,7 +4,7 @@
 
 #include "GlobalShader.h"
 
-#include "TypeHash.h"
+#include "Core/TypeHash.h"
 #include "CoreShare.h"
 #include <unordered_map>
 
@@ -17,9 +17,11 @@ namespace Render
 
 	class MaterialShaderProgram : public GlobalShaderProgram
 	{
+		typedef GlobalShaderProgram BaseClass;
 	public:
 		static void SetupShaderCompileOption(ShaderCompileOption& option)
 		{
+			BaseClass::SetupShaderCompileOption(option);
 			option.addDefine(SHADER_PARAM(USE_MATERIAL), true);
 		}
 

@@ -2,7 +2,7 @@
 #ifndef ShaderCore_H_999A5DE0_B9BF_41DF_8A7A_28D440730A62
 #define ShaderCore_H_999A5DE0_B9BF_41DF_8A7A_28D440730A62
 
-#include "OpenGLCommon.h"
+#include "RHICommon.h"
 
 #include "HashString.h"
 #include "FixString.h"

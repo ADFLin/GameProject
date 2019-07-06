@@ -10,7 +10,7 @@
 #include "Widget/GameRoomUI.h"
 #include "GameSettingPanel.h"
 #include "GameWidgetID.h"
-#include "DataSteamBuffer.h"
+#include "DataStreamBuffer.h"
 
 namespace CAR
 {
@@ -145,11 +145,11 @@ namespace CAR
 			LevelStage* myStage = static_cast< LevelStage* >( subStage );
 			myStage->getSetting().mUseExpansionMask = mExpMask;
 		}
-		virtual void doExportSetting( DataSteamBuffer& buffer )
+		virtual void doExportSetting( DataStreamBuffer& buffer )
 		{
 			buffer.fill( mExpMask );
 		}
-		virtual void doImportSetting( DataSteamBuffer& buffer )
+		virtual void doImportSetting( DataStreamBuffer& buffer )
 		{
 			getSettingPanel()->removeChildWithMask( MASK_BASE | MASK_RULE );
 			getSettingPanel()->adjustChildLayout();

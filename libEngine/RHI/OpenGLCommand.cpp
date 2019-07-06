@@ -658,7 +658,7 @@ namespace Render
 		if( !commitInputStream() )
 			return;
 
-		glDrawArrays(OpenGLTranlate::To(type), start, nv);
+		glDrawArrays(OpenGLTranslate::To(type), start, nv);
 	}
 
 	void OpenGLContext::RHIDrawIndexedPrimitive(PrimitiveType type, int indexStart, int nIndex , uint32 baseVertex )
@@ -675,11 +675,11 @@ namespace Render
 		GLenum indexType = mLastIndexBuffer->isIntType() ? GL_UNSIGNED_INT : GL_UNSIGNED_SHORT;
 		if( baseVertex )
 		{
-			glDrawElementsBaseVertex(OpenGLTranlate::To(type), nIndex, indexType, (void*)indexStart, baseVertex);
+			glDrawElementsBaseVertex(OpenGLTranslate::To(type), nIndex, indexType, (void*)indexStart, baseVertex);
 		}
 		else
 		{
-			glDrawElements(OpenGLTranlate::To(type), nIndex, indexType, (void*)indexStart);
+			glDrawElements(OpenGLTranslate::To(type), nIndex, indexType, (void*)indexStart);
 		}
 		OpenGLCast::To(mLastIndexBuffer)->unbind();
 	}
@@ -690,7 +690,7 @@ namespace Render
 			return;
 
 		assert(commandBuffer);
-		GLenum priType = OpenGLTranlate::To(type);
+		GLenum priType = OpenGLTranslate::To(type);
 
 		glBindBuffer(GL_DRAW_INDIRECT_BUFFER, OpenGLCast::GetHandle(*commandBuffer));
 		if( numCommand > 1 )
@@ -721,7 +721,7 @@ namespace Render
 
 		OpenGLCast::To(mLastIndexBuffer)->bind();
 		assert(commandBuffer);
-		GLenum priType = OpenGLTranlate::To(type);
+		GLenum priType = OpenGLTranslate::To(type);
 		GLenum indexType = mLastIndexBuffer->isIntType() ? GL_UNSIGNED_INT : GL_UNSIGNED_SHORT;
 		glBindBuffer(GL_DRAW_INDIRECT_BUFFER, OpenGLCast::GetHandle(*commandBuffer));
 		if( numCommand > 1 )
@@ -741,7 +741,7 @@ namespace Render
 		if( !commitInputStream() )
 			return;
 
-		GLenum priType = OpenGLTranlate::To(type);
+		GLenum priType = OpenGLTranslate::To(type);
 		if( baseInstance )
 		{
 			glDrawArraysInstancedBaseInstance(priType, vStart, nv, numInstance, baseInstance);
@@ -761,7 +761,7 @@ namespace Render
 		}
 		if( !commitInputStream() )
 			return;
-		GLenum priType = OpenGLTranlate::To(type);
+		GLenum priType = OpenGLTranslate::To(type);
 	
 		OpenGLCast::To(mLastIndexBuffer)->bind();
 		GLenum indexType = mLastIndexBuffer->isIntType() ? GL_UNSIGNED_INT : GL_UNSIGNED_SHORT;
@@ -796,7 +796,7 @@ namespace Render
 		if( !commitInputStreamUP(dataInfos, numData) )
 			return;
 
-		glDrawArrays(OpenGLTranlate::To(type), 0, numVertex);
+		glDrawArrays(OpenGLTranslate::To(type), 0, numVertex);
 	}
 
 	void OpenGLContext::RHIDrawIndexedPrimitiveUP(PrimitiveType type, int numVerex, VertexDataInfo dataInfos[], int numVertexData , int const* pIndices, int numIndex)
@@ -807,7 +807,7 @@ namespace Render
 		if( !commitInputStreamUP(dataInfos, numVertexData) )
 			return;
 
-		glDrawElements(OpenGLTranlate::To(type), numIndex, GL_UNSIGNED_INT, (void*)pIndices);
+		glDrawElements(OpenGLTranslate::To(type), numIndex, GL_UNSIGNED_INT, (void*)pIndices);
 	}
 
 	void OpenGLContext::RHIDispatchCompute(uint32 numGroupX, uint32 numGroupY, uint32 numGroupZ)
@@ -955,7 +955,7 @@ namespace Render
 		OpenGLShaderResourceView const& resourceViewImpl = static_cast<OpenGLShaderResourceView const&>(*texture.getBaseResourceView());
 		int idx = mIdxTextureAutoBind;
 		++mIdxTextureAutoBind;
-		glBindImageTexture(idx, resourceViewImpl.handle, 0, GL_FALSE, 0, OpenGLTranlate::To(op), OpenGLTranlate::To(texture.getFormat()));
+		glBindImageTexture(idx, resourceViewImpl.handle, 0, GL_FALSE, 0, OpenGLTranslate::To(op), OpenGLTranslate::To(texture.getFormat()));
 		glUniform1i(param.mLoc, idx);
 	}
 

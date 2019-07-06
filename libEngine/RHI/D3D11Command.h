@@ -9,7 +9,7 @@
 #include "D3D11Common.h"
 #include "FixString.h"
 #include "Core/ScopeExit.h"
-#include "TypeHash.h"
+#include "Core/TypeHash.h"
 
 
 #include <D3D11Shader.h>

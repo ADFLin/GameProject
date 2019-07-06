@@ -17,7 +17,7 @@ namespace Tetris
 {
 	EXPORT_GAME_MODULE(GameModule)
 
-	RecordManager& getRecordManager()
+	RecordManager& GetRecordManager()
 	{
 		static RecordManager manager;
 		return manager;
@@ -190,14 +190,14 @@ namespace Tetris
 	}
 
 	void GameModule::enter()
-{
-		getRecordManager().init();
+	{
+		GetRecordManager().init();
 	}
 
 	void GameModule::exit()
 	{
-		getRecordManager().saveFile( "record.dat" );
-		getRecordManager().clear();
+		GetRecordManager().saveFile( "record.dat" );
+		GetRecordManager().clear();
 	}
 
 

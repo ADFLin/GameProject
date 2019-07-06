@@ -126,10 +126,8 @@ namespace Bubble
 
 	void Scene::renderBubbleList( Graphics2D& g , Vector2 const& pos , BubbleList& bList )
 	{
-		for( BubbleList::iterator iter = bList.begin() ,iterEnd = bList.end() ;
-			iter != iterEnd ; ++iter )
+		for( SceneBubble* bubble : bList )
 		{
-			SceneBubble* bubble = *iter;
 			Vector2 bPos = pos + bubble->pos;
 
 			if ( bubble->alpha != 1.0f )
@@ -146,7 +144,6 @@ namespace Bubble
 				renderBubble( g , pos + bubble->pos , bubble->color );
 			}
 		}
-
 	}
 
 	void Scene::renderBubble( Graphics2D& g , Vector2 const& pos , int color )
@@ -269,7 +266,7 @@ namespace Bubble
 			iter != mFallList.end() ; )
 		{
 			SceneBubble* bubble = *iter;
-			bool beDelete = false;
+			bool bNeedDestroy = false;
 
 			switch( bubble->type )
 			{
@@ -278,7 +275,7 @@ namespace Bubble
 				bubble->update( dt );
 
 				if ( bubble->pos.y > getLevel().getMaxDepth() + 200 )
-					beDelete = true;
+					bNeedDestroy = true;
 
 				break;
 
@@ -287,12 +284,12 @@ namespace Bubble
 				bubble->update( dt );
 
 				if ( bubble->alpha < 0 )
-					beDelete = true;
+					bNeedDestroy = true;
 
 				break;
 			}
 
-			if ( beDelete )
+			if ( bNeedDestroy )
 			{
 				delete bubble;
 				iter = mFallList.erase( iter );
@@ -304,9 +301,9 @@ namespace Bubble
 		}
 	}
 
-	void Scene::roteRight( float delta )
+	void Scene::rotateRight( float delta )
 	{
-		getLevel().roteRight( delta );
+		getLevel().rotateRight( delta );
 	}
 
 	void Scene::fireAction(ActionPort port, ActionTrigger& trigger )
@@ -324,15 +321,15 @@ namespace Bubble
 
 		if ( trigger.detect(port, ACT_BB_ROTATE_LEFT ) )
 		{
-			roteRight( angle );
+			rotateRight( angle );
 		}
 		else if ( trigger.detect(port, ACT_BB_ROTATE_RIGHT ) )
 		{
-			roteRight( -angle );
+			rotateRight( -angle );
 		}
 		else if ( trigger.detect(port, ACT_BB_MOUSE_ROTATE , &offset ) )
 		{
-			roteRight( mouseAngle * offset );
+			rotateRight( mouseAngle * offset );
 		}
 	}
 

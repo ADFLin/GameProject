@@ -4,7 +4,7 @@
 #include "CARGameInput.h"
 
 #include "Coroutine.h"
-#include "DataSteamBuffer.h"
+#include "DataStreamBuffer.h"
 #include "DataTransfer.h"
 
 
@@ -193,7 +193,7 @@ namespace CAR
 		//Networking
 		IDataTransfer*   mDataTransfer;
 		//Replay
-		DataSteamBuffer  mRecordAction;
+		DataStreamBuffer  mRecordAction;
 		bool             mbReplayMode;
 
 		bool             mbWaitReply;

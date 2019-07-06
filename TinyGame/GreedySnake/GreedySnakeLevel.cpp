@@ -118,16 +118,18 @@ namespace GreedySnake
 		}
 		if ( mask & eFOOD_MASK )
 		{
-			for( FoodVec::iterator iter = mFoodVec.begin();
-				iter != mFoodVec.end() ; ++iter )
+			if( tile.itemMask )
 			{
-				if ( iter->pos == pos )
+				for( FoodVec::iterator iter = mFoodVec.begin();
+					iter != mFoodVec.end(); ++iter )
 				{
-					hitResult = iter->type;
-					return eFOOD_MASK;
+					if( iter->pos == pos )
+					{
+						hitResult = iter->type;
+						return eFOOD_MASK;
+					}
 				}
 			}
-
 		}
 		return eNO_HIT_MASK;
 	}
@@ -290,26 +292,39 @@ namespace GreedySnake
 
 	void Level::addFood(Vec2i const& pos, int type)
 	{
+		assert(mMap.getData(pos.x, pos.y).itemMask == 0);
 		FoodInfo info;
 		info.pos  = pos;
 		info.type = type;
+		mMap.getData(pos.x, pos.y).itemMask = 1;
 		mFoodVec.push_back( info );
 	}
 
 	void Level::removeAllFood()
 	{
+		for( FoodVec::iterator iter = mFoodVec.begin();
+			iter != mFoodVec.end(); )
+		{
+			mMap.getData(iter->pos.x, iter->pos.y).itemMask = 0;
+		}
 		mFoodVec.clear();
 	}
 
 	void Level::removeFood( Vec2i const& pos )
 	{
+
 		for( FoodVec::iterator iter = mFoodVec.begin();
 			 iter != mFoodVec.end(); )
 		{
-			if ( iter->pos == pos )
-				iter = mFoodVec.erase( iter );
+			if( iter->pos == pos )
+			{
+				iter = mFoodVec.erase(iter);
+				mMap.getData(pos.x, pos.y).itemMask = 0;
+			}
 			else
+			{
 				++iter;
+			}
 		}
 	}
 
@@ -356,7 +371,7 @@ namespace GreedySnake
 		{
 			mListener->onCollideTerrain( snake , tile.terrain );
 		}
-		else
+		else if ( tile.itemMask )
 		{
 			for( FoodVec::iterator iter = mFoodVec.begin();
 				iter != mFoodVec.end() ; )

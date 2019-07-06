@@ -1,3 +1,4 @@
+#include "MiscTestRegister.h"
 #include "PlatformThread.h"
 
 #include "SystemPlatform.h"

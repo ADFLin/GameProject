@@ -31,7 +31,7 @@ namespace Bubble
 		void   updateFrame( int frame );
 
 		void   shoot();
-		void   roteRight( float delta );
+		void   rotateRight( float delta );
 		void   render( Graphics2D& g );
 
 		void   fireAction(ActionPort port, ActionTrigger& tigger );

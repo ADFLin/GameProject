@@ -50,9 +50,9 @@ namespace Bubble
 		int num = mNumLayer * mNumCellLayer;
 		mNumCellData = num;
 
-		mIndexPopCell  = new short[ 2 * num ];
+		mIndexPopCell  = new int16[ 2 * num ];
 		mIndexFallCell = mIndexPopCell + num;
-		mColFlag       = new unsigned char[ num ];
+		mColFlag       = new uint8[ num ];
 
 		mCellData = new BubbleCell[ num ];
 
@@ -241,9 +241,9 @@ namespace Bubble
 
 		mIndexPopCell[0] = index;
 
-		short* idxCur   = mIndexPopCell;
-		short* idxPop   = mIndexPopCell;
-		short* idxCheck = mIndexPopCell + mNumCellData;
+		int16* idxCur   = mIndexPopCell;
+		int16* idxPop   = mIndexPopCell;
+		int16* idxCheck = mIndexPopCell + mNumCellData;
 
 		do
 		{
@@ -284,7 +284,7 @@ namespace Bubble
 
 		result |= BUBBLE_POP;
 
-		short* idxEnd = mIndexPopCell + mNumCellData;
+		int16* idxEnd = mIndexPopCell + mNumCellData;
 
 		int tempNumFallCell;
 		tempNumFallCell = mNumFallCell = 0;
@@ -358,7 +358,7 @@ namespace Bubble
 		setupCell( num , (int)(mMaxDepth / g_BubbleDiameter) + 5 );
 
 
-		roteRight( 0 );
+		rotateRight( 0 );
 	}
 
 	void Level::update( float dt )
@@ -477,7 +477,7 @@ namespace Bubble
 		mShootBubbleColor = Global::RandomNet() % g_BubbleColorNum + 1;
 	}
 
-	void Level::roteRight( float delta )
+	void Level::rotateRight( float delta )
 	{
 		static float const MaxBarrelAngle = DEG2RAD( 87 );
 		mLauncherAngle += delta;

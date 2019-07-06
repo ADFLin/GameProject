@@ -182,7 +182,7 @@ public:
 	~RomeCityGame(){}
 
 public:  //GameCore
-	bool onInit()
+	bool initializeGame() CRTP_OVERRIDE
 	{
 		PROFILE_ENTRY( "Game::Init" )
 
@@ -207,16 +207,13 @@ public:  //GameCore
 		return true;
 	}
 
-
-
-
-	void onEnd()
+	void finalizeGame() CRTP_OVERRIDE
 	{
 		rcDataManager::ReleaseInstance();
 
 		mRenderSystem.reset( NULL );
 	}
-	long onUpdate( long shouldTime )
+	long handleGameUpdate( long shouldTime ) CRTP_OVERRIDE
 	{ 
 		ProfileSystem::Get().incrementFrameCount();
 
@@ -233,7 +230,7 @@ public:  //GameCore
 
 		return shouldTime; 
 	}
-	void onRender()
+	void handerGameRender() CRTP_OVERRIDE
 	{
 		PROFILE_ENTRY( "Game::Render" )
 
@@ -270,7 +267,7 @@ public:  //GameCore
 	}
 
 
-	void onIdle( long time )
+	void handleGameIdle( long time ) CRTP_OVERRIDE
 	{  
 		PROFILE_ENTRY( "Game::onIdle" )
 		SystemPlatform::Sleep( time );  
@@ -302,7 +299,7 @@ public:  //GameCore
 
 
 public:// System Message
-	bool  onMouse( MouseMsg& msg )
+	bool  handleMouseEvent( MouseMsg const& msg ) CRTP_OVERRIDE
 	{
 		if ( !rcGUISystem::Get().procMouse( msg ) )
 			return true;
@@ -425,7 +422,7 @@ public:// System Message
 
 		return true; 
 	}
-	bool  onChar( unsigned code ){ return true; }
+	bool  handleCharEvent( unsigned code ) CRTP_OVERRIDE { return true; }
 
 	bool initTestVariable()
 	{

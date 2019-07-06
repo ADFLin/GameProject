@@ -1065,6 +1065,9 @@
     <ClInclude Include="TVector4.h">
       <Filter>Math</Filter>
     </ClInclude>
+    <ClInclude Include="Core\CRTPCheck.h">
+      <Filter>Core</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="ObjectHandle.cpp">

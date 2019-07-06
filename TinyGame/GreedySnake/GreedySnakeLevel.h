@@ -153,8 +153,10 @@ namespace GreedySnake
 
 	struct MapTileData 
 	{
-		int      terrain;
-		unsigned snakeMask;
+		uint8    terrain;
+		uint8    snakeMask;
+		uint8    itemMask;
+		uint8    dummy;
 	};
 
 	enum class MapBoundType

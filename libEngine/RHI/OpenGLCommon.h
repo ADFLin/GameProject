@@ -272,7 +272,7 @@ namespace Render
 		bool create(Texture::DepthFormat format, int width, int height, int numMipLevel, int numSamples);
 	};
 
-	class OpenGLTranlate
+	class OpenGLTranslate
 	{
 	public:
 		static GLenum To(EAccessOperator op);
@@ -300,7 +300,7 @@ namespace Render
 
 		static GLenum VertexComponentType(uint8 format)
 		{
-			return OpenGLTranlate::To(Vertex::GetCompValueType(Vertex::Format(format)));
+			return OpenGLTranslate::To(Vertex::GetCompValueType(Vertex::Format(format)));
 		}
 	};
 
@@ -338,10 +338,10 @@ namespace Render
 
 		int  addTexture(RHITexture2D& target, int level = 0);
 		int  addTexture(RHITextureCube& target, Texture::Face face, int level = 0);
-		int  addTexture(RHITexture2DArray& target, int idexLayer, int level = 0);
+		int  addTexture(RHITexture2DArray& target, int indexLayer, int level = 0);
 		void setTexture(int idx, RHITexture2D& target, int level = 0);
 		void setTexture(int idx, RHITextureCube& target, Texture::Face face, int level = 0);
-		void setTexture(int idx, RHITexture2DArray& target, int idexLayer, int level = 0);
+		void setTexture(int idx, RHITexture2DArray& target, int indexLayer, int level = 0);
 
 		
 		void bindDepthOnly();
@@ -365,7 +365,7 @@ namespace Render
 			union
 			{
 				uint8  idxFace;
-				int    idxLayer;
+				int    indexLayer;
 			};
 		};
 		void setRenderBufferInternal(GLuint handle);
@@ -409,7 +409,7 @@ namespace Render
 		void* lock(ELockAccess access)
 		{
 			glBindBuffer(GLBufferType, getHandle());
-			void* result = glMapBuffer(GLBufferType, OpenGLTranlate::To(access));
+			void* result = glMapBuffer(GLBufferType, OpenGLTranslate::To(access));
 			glBindBuffer(GLBufferType, 0);
 			return result;
 		}
@@ -454,7 +454,7 @@ namespace Render
 		bool resetDataInternal(uint32 elementSize, uint32 numElements, uint32 creationFlags, void* initData)
 		{
 			glBindBuffer(GLBufferType, getHandle());
-			glBufferData(GLBufferType, elementSize * numElements , initData, OpenGLTranlate::BufferUsageEnum(creationFlags));
+			glBufferData(GLBufferType, elementSize * numElements , initData, OpenGLTranslate::BufferUsageEnum(creationFlags));
 			glBindBuffer(GLBufferType, 0);
 
 			mCreationFlags = creationFlags;

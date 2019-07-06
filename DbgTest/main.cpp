@@ -10,7 +10,7 @@ class AStartTest : public GameLoopT< AStartTest , WindowsPlatform >
 	             , public WindowsMessageHandlerT< AStartTest >
 {
 public:
-	bool onInit()
+	bool initializeGame() CRTP_OVERRIDE
 	{ 
 		if ( !WinFrame::create( TEXT("Test") , 800 , 600 , WindowsMessageHandler::MsgProc ) )
 			return false;

@@ -15,7 +15,8 @@
 
 
 #include <gl/GL.h>
-
+#include "Math/SIMD.h"
+#define USE_SIMD 1
 
 class Graphics2D;
 
@@ -55,7 +56,7 @@ namespace TripleTown
 		{
 			float c, s;
 			Math::SinCos(angle, s, c);
-			return Matrix2( c, s, s, c);
+			return Matrix2( c, s, -s, c);
 		}
 
 		static Matrix2 Scale(Vector2 const& scale)
@@ -65,6 +66,17 @@ namespace TripleTown
 		
 		Matrix2 operator * (Matrix2 const& rhs) const
 		{
+#if USE_SIMD
+			__m128 lv = _mm_loadu_ps(value);
+			__m128 rv = _mm_loadu_ps(rhs.value);
+			__m128 r02 = _mm_shuffle_ps(rv, rv, _MM_SHUFFLE(2, 0, 2, 0));
+			__m128 r13 = _mm_shuffle_ps(rv, rv, _MM_SHUFFLE(3, 1, 3, 1));
+			return Matrix2(
+				_mm_dp_ps(lv, r02, 0x31).m128_f32[0],
+				_mm_dp_ps(lv, r13, 0x31).m128_f32[0],
+				_mm_dp_ps(lv, r02, 0xc1).m128_f32[0],
+				_mm_dp_ps(lv, r13, 0xc1).m128_f32[0]);
+#else	
 #define MAT_MUL( v1 , v2 , idx1 , idx2 ) v1[2*idx1]*v2[idx2] + v1[2*idx1+1]*v2[idx2+2]
 
 			return Matrix2(
@@ -73,18 +85,37 @@ namespace TripleTown
 				MAT_MUL(value, rhs.value, 1, 0),
 				MAT_MUL(value, rhs.value, 1, 1));
 #undef MAT_MUL
+#endif
+
 		}
 
 		friend Vector2 operator * ( Vector2 const& lhs, Matrix2 const& rhs )
 		{
+#if USE_SIMD
+			__m128 lv = _mm_setr_ps(lhs.x, lhs.x, lhs.y, lhs.y);
+			__m128 mv = _mm_loadu_ps(rhs.value);
+			__m128 xv = _mm_dp_ps(lv, mv, 0x51);
+			__m128 yv = _mm_dp_ps(lv, mv, 0xa1);
+			return Vector2(xv.m128_f32[0], yv.m128_f32[0]);
+
+#else	
 			return Vector2(lhs[0] * rhs.m[0][0] + lhs[1] * rhs.m[1][0],
 						   lhs[0] * rhs.m[0][1] + lhs[1] * rhs.m[1][1]);
+#endif
 		}
 
 		friend Vector2 operator * (Matrix2 const& lhs, Vector2 const& rhs)
 		{
+#if USE_SIMD
+			__m128 rv = _mm_setr_ps(rhs.x, rhs.y, rhs.x, rhs.y);
+			__m128 mv = _mm_loadu_ps(lhs.value);
+			__m128 xv = _mm_dp_ps(mv, rv, 0x31);
+			__m128 yv = _mm_dp_ps(mv, rv, 0xc1);
+			return Vector2(xv.m128_f32[0], yv.m128_f32[0]);
+#else	
 			return Vector2(lhs.m[0][0] * rhs[0] + lhs.m[0][1] * rhs[1],
 						   lhs.m[1][0] * rhs[0] + lhs.m[1][1] * rhs[1]);
+#endif
 		}
 		union 
 		{
@@ -135,9 +166,24 @@ namespace TripleTown
 			result.offset = Vector2(x,y);
 			return  result;
 		}
+
+		static Vector2 MulOffset(Vector2 const& v, Matrix2 const& m, Vector2 const& offset)
+		{
+#if USE_SIMD
+			__m128 rv = _mm_setr_ps(v.x, v.x, v.y, v.y);
+			__m128 mv = _mm_loadu_ps(m.value);
+			__m128 xv = _mm_dp_ps(rv, mv, 0x51);
+			__m128 yv = _mm_dp_ps(rv, mv, 0xa2);
+			__m128 resultV = _mm_add_ps( _mm_add_ps(xv,yv) , _mm_setr_ps(offset.x, offset.y, 0, 0) );
+			return Vector2( resultV.m128_f32[0] , resultV.m128_f32[1] );
+#else
+
+			return v * m + offset;
+#endif
+		}
 		Vector2 transformPosition(Vector2 const& pos) const
 		{
-			return pos * M + offset;
+			return MulOffset(pos, M, offset);
 		}
 		Vector2 transformVector(Vector2 const& v) const
 		{
@@ -152,7 +198,7 @@ namespace TripleTown
 			//[ P  1 ] [ Pr 1 ]     [ P * Mr + Pr   1 ]
 			Transform2D result;
 			result.M = M * rhs.M;
-			result.offset = offset * rhs.M + rhs.offset;
+			result.offset = MulOffset( offset , rhs.M , rhs.offset );
 			return result;
 		}
 
@@ -169,6 +215,7 @@ namespace TripleTown
 		LinearColor    color;
 		std::vector< Transform2D > xfromStack;
 		RHITexture2DRef texture;
+		Matrix4        projection;
 
 		Transform2D const& getTransform() const { return xfromStack.back(); }
 		Transform2D&       getTransform()       { return xfromStack.back(); }
@@ -238,9 +285,7 @@ namespace TripleTown
 		void  render( Graphics2D& g );
 		void  renderTile( Graphics2D& g , Vec2i const& pos , ObjectId id , int meta = 0 );
 
-		//AnimManager
-		void  notifyActorMoved( ObjectId id , TilePos const& posFrom , TilePos const& posTo );
-		void  postSetupLand();
+
 
 		void  drawQuad(float x , float y , float w , float h , float tx , float ty , float tw , float th );
 		void  drawQuad(float w , float h , float tx , float ty , float tw , float th );
@@ -261,23 +306,29 @@ namespace TripleTown
 
 		bool  loadImageTexFile(char const* path, int itemId, EItemImage::Type imageType);
 
-		void drawRoadTile( int x , int y , int dir );
-		void drawLakeTile( int x , int y , int dir );
-		void drawTileImpl( int x , int y , int dir , TerrainType tId , float const (*texCoord)[2] );
-		void drawTile( int x , int y , Tile const& tile );
+		void drawTilePartImpl( int x , int y , int dir , TerrainType tId , float const (*texCoord)[2] );
 
 		bool loadTextureImageResource(char const* path, int textureId);
-		bool loadItemImageResource( struct ItemImageInfo& info);
+		bool loadItemImageResource( struct ItemImageLoadInfo& info);
 		TilePos calcTilePos(Vec2i const& pos);
 		void  drawQuadRotateTex90(float x , float y , float w , float h , float tx , float ty , float tw , float th );
 
 		void loadPreviewTexture(char const* name);
 
+
+		bool bShowPreviewTexture = false;
+		bool bShowTexAtlas = false;
 		struct TileData
 		{
 			Vector2 pos;
-			float scale;
-			unsigned char con[4];
+			Vector2 animOffset;
+			float   scale;
+			float   shadowScale;
+
+			bool    bTexDirty;
+			bool    bSpecial[4];
+			Vector2 texPos[4];
+			Vector2 texSize[4];
 		};
 		TGrid2D< TileData > mMap;
 		Level*     mLevel;
@@ -286,7 +337,7 @@ namespace TripleTown
 		Vec2i      mLastMousePos;
 
 
-		struct CompactImageInfo
+		struct CompactRect
 		{
 			Vector2 offset;
 			Vector2 size;
@@ -296,19 +347,21 @@ namespace TripleTown
 		int        mNumPosRemove;
 		Vec2i      mPosPeek;
 
-		struct Item {};
 
 		typedef Tween::GroupTweener< float > Tweener;
 		Tweener::IComponent* mMouseAnim;
-
 		Tweener    mTweener; 
-
 		float      mItemScale;
 
-		GLuint     mTexMap[ 64 ];
+		RHITexture2DRef mTexMap[64];
 
-		CompactImageInfo mItemCompactMap[NUM_OBJ][EItemImage::Count];
-		GLuint     mTexItemMap[ NUM_OBJ ][EItemImage::Count];
+		struct ItemImageInfo
+		{
+			CompactRect     rect;
+			RHITexture2DRef texture;
+		};
+		ItemImageInfo    mItemImageMap[NUM_OBJ][EItemImage::Count];
+
 
 		RHITexture2DRef mPreviewTexture;
 		RHITexture2DRef mFontTextures[2];
@@ -324,6 +377,16 @@ namespace TripleTown
 		void submitRenderCommand(RHICommandList& commandList);
 
 		//ImageTexture    mTexItemMap[ NUM_OBJ ][ 2 ];
+
+		//LevelListener
+		virtual void postSetupLand() override;
+		virtual void postSetupMap() override;
+		virtual void notifyObjectAdded(TilePos const& pos, ObjectId id) override;
+		virtual void notifyObjectRemoved(TilePos const& pos, ObjectId id) override;
+		virtual void notifyActorMoved(ObjectId id, TilePos const& posFrom, TilePos const& posTo) override;
+
+		void markTileDirty(TilePos const& pos);
+
 	};
 
 }//namespace TripleTown

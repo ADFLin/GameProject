@@ -639,6 +639,8 @@ namespace TripleTown
 			break;
 		}
 
+		getListener().postSetupMap();
+
 		if( bTestMode )
 		{
 			ProduceInfo const infoTest[] =
@@ -938,6 +940,8 @@ namespace TripleTown
 		tile.bSpecial = false;
 		--mNumEmptyTile;
 		addPoints(id);
+
+		mListener->notifyObjectAdded(pos, id);
 	}
 
 	int Level::markObjectWithLink( Tile& tile , TilePos const& pos , ObjectId id )
@@ -1036,6 +1040,8 @@ namespace TripleTown
 		++mNumEmptyTile;
 
 		GetInfo( id ).typeClass->onRemove( *this , pos , id );
+
+		mListener->notifyObjectRemoved(pos, id);
 
 	}
 

@@ -144,22 +144,19 @@ protected:
 
 public: 
 	//GameLoop
-	bool  onInit();
-	void  onEnd();
-
-
-
-	long  onUpdate(long shouldTime);
-	void  onRender();
-	void  onIdle( long time );
+	bool  initializeGame() CRTP_OVERRIDE;
+	void  finalizeGame() CRTP_OVERRIDE;
+	long  handleGameUpdate(long shouldTime) CRTP_OVERRIDE;
+	void  handerGameRender() CRTP_OVERRIDE;
+	void  handleGameIdle( long time ) CRTP_OVERRIDE;
 
 	//SysMsgHandler
-	bool  onMouse( MouseMsg const& msg );
-	bool  onKey( unsigned key , bool isDown );
-	bool  onChar( unsigned code );
-	bool  onActivate( bool beA );
-	void  onPaint( HDC hDC );
-	bool  onDestroy( HWND hWnd );
+	bool  handleMouseEvent( MouseMsg const& msg ) CRTP_OVERRIDE;
+	bool  handleKeyEvent( unsigned key , bool isDown ) CRTP_OVERRIDE;
+	bool  handleCharEvent( unsigned code )  CRTP_OVERRIDE;
+	bool  handleWindowActivation( bool beA ) CRTP_OVERRIDE;
+	void  handleWindowPaint( HDC hDC ) CRTP_OVERRIDE;
+	bool  handleWindowDestroy( HWND hWnd ) CRTP_OVERRIDE;
 
 	// TaskHandler
 	void  onTaskMessage( TaskBase* task , TaskMsg const& msg );

@@ -159,7 +159,7 @@ namespace Lighting2D
 					Stencil::eKeep , Stencil::eKeep , Stencil::eReplace ,0x1 
 				>::GetRHI(), 0x1 );
 			
-			RHISetBlendState(commandList, TStaticBlendState< CWM_NONE >::GetRHI());
+			RHISetBlendState(commandList, TStaticBlendState< CWM_None >::GetRHI());
 
 			{
 

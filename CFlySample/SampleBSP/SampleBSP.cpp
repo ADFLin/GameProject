@@ -93,7 +93,7 @@ public:
 		}
 	}
 
-	bool onKey( unsigned key , bool isDown )
+	bool handleKeyEvent( unsigned key , bool isDown )
 	{
 		if ( !isDown )
 			return false;
@@ -117,7 +117,7 @@ public:
 			break;
 		}
 
-		return BaseClass::onKey( key , isDown );
+		return BaseClass::handleKeyEvent( key , isDown );
 	}
 
 	enum Mode

@@ -50,7 +50,7 @@ namespace Render
 			OpenGLCast::To(&texture)->bind();
 			for( int i = 0; i < Texture::FaceCount; ++i )
 			{
-				glGetTexImage(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, level, OpenGLTranlate::BaseFormat(format), OpenGLTranlate::TextureComponentType(format), &outData[faceDataSize*i]);
+				glGetTexImage(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, level, OpenGLTranslate::BaseFormat(format), OpenGLTranslate::TextureComponentType(format), &outData[faceDataSize*i]);
 			}
 			OpenGLCast::To(&texture)->unbind();
 		}
@@ -61,7 +61,7 @@ namespace Render
 			int dataSize = Math::Max(texture.getSizeX() >> level, 1) * Math::Max(texture.getSizeY() >> level, 1) * formatSize;
 			outData.resize(dataSize);
 			OpenGLCast::To(&texture)->bind();
-			glGetTexImage(GL_TEXTURE_2D, level, OpenGLTranlate::BaseFormat(format), OpenGLTranlate::TextureComponentType(format), &outData[0]);
+			glGetTexImage(GL_TEXTURE_2D, level, OpenGLTranslate::BaseFormat(format), OpenGLTranslate::TextureComponentType(format), &outData[0]);
 			OpenGLCast::To(&texture)->unbind();
 		}
 	};

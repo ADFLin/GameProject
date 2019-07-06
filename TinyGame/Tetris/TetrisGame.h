@@ -11,7 +11,7 @@
 namespace Tetris
 {
 	class RecordManager;
-	RecordManager& getRecordManager();
+	RecordManager& GetRecordManager();
 
 	union GameInfoData;	
 	typedef SimpleController MyController;

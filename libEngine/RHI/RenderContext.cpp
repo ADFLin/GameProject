@@ -3,6 +3,9 @@
 #include "Material.h"
 #include "RHICommand.h"
 
+//#TODO: remove me
+#include "OpenGLCommon.h"
+
 namespace Render
 {
 	void RenderTechnique::setupWorld(RenderContext& context, Matrix4 const& mat)

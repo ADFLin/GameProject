@@ -692,7 +692,7 @@ void NetRoomStage::procRawData( IComPacket* cp)
 void NetRoomStage::generateSetting( CSPRawData& com )
 {
 	com.id = SETTING_DATA_ID;
-	DataSteamBuffer& buffer = com.buffer;
+	DataStreamBuffer& buffer = com.buffer;
 
 	buffer.fill( Global::GameManager().getRunningGame()->getName() );
 	mHelper->exportSetting( buffer );

@@ -6,7 +6,7 @@
 #include "CARExpansion.h"
 #include "CARMapTile.h"
 
-#include "TypeHash.h"
+#include "Core/TypeHash.h"
 
 #include <map>
 #include <set>

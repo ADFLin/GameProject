@@ -235,7 +235,7 @@ namespace Poker { namespace Big2 {
 			sData.card[i] = info.card[i].getIndex();
 		}
 		CardDeck& cards = getSlotOwnCards( slotId );
-		removeCards( cards , pIndex , numCard );
+		RemoveCards( cards , pIndex , numCard );
 
 		mLastShowCard = info;
 
@@ -538,7 +538,7 @@ namespace Poker { namespace Big2 {
 					mSlotCardNum[ myData->slotId ] -= myData->num;
 					if ( myData->slotId == getPlayerStatus().slotId )
 					{
-						removeCards( getOwnCards() , mLastShowIndex , myData->num );
+						RemoveCards( getOwnCards() , mLastShowIndex , myData->num );
 					}
 					
 					mLastShowCard.power = myData->power;

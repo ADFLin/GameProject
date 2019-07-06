@@ -164,7 +164,7 @@ TinyGameApp::~TinyGameApp()
 
 }
 
-bool TinyGameApp::onInit()
+bool TinyGameApp::initializeGame()
 {
 	ConsoleSystem::Get().initialize();
 
@@ -237,7 +237,7 @@ bool TinyGameApp::onInit()
 	return true;
 }
 
-void TinyGameApp::onEnd()
+void TinyGameApp::finalizeGame()
 {
 	cleanup();
 
@@ -270,7 +270,7 @@ void TinyGameApp::cleanup()
 	Global::Finalize();
 }
 
-long TinyGameApp::onUpdate( long shouldTime )
+long TinyGameApp::handleGameUpdate( long shouldTime )
 {
 	int  numFrame = shouldTime / getUpdateTime();
 	long updateTime = numFrame * getUpdateTime();
@@ -309,7 +309,7 @@ long TinyGameApp::onUpdate( long shouldTime )
 }
 
 
-void TinyGameApp::onIdle(long time)
+void TinyGameApp::handleGameIdle(long time)
 {
 	if ( mbLockFPS )
 		SystemPlatform::Sleep(time);
@@ -318,7 +318,7 @@ void TinyGameApp::onIdle(long time)
 }
 
 
-void TinyGameApp::onRender()
+void TinyGameApp::handerGameRender()
 {
 	render( 0.0f );
 }
@@ -423,7 +423,7 @@ void TinyGameApp::setConsoleShowMode(ConsoleShowMode mode)
 	
 }
 
-bool TinyGameApp::onMouse( MouseMsg const& msg )
+bool TinyGameApp::handleMouseEvent( MouseMsg const& msg )
 {
 	bool result = true;
 
@@ -453,7 +453,7 @@ bool TinyGameApp::onMouse( MouseMsg const& msg )
 	return result;
 }
 
-bool TinyGameApp::onKey( unsigned key , bool isDown )
+bool TinyGameApp::handleKeyEvent( unsigned key , bool isDown )
 {
 	if ( isDown )
 	{
@@ -478,7 +478,7 @@ bool TinyGameApp::onKey( unsigned key , bool isDown )
 	return result;
 }
 
-bool TinyGameApp::onChar( unsigned code )
+bool TinyGameApp::handleCharEvent( unsigned code )
 {
 	bool result = ::Global::GUI().procCharMsg(code);
 	if( result )
@@ -488,7 +488,7 @@ bool TinyGameApp::onChar( unsigned code )
 	return result;
 }
 
-bool TinyGameApp::onDestroy(HWND hWnd )
+bool TinyGameApp::handleWindowDestroy(HWND hWnd )
 {
 	if( mGameWindow.getHWnd() == hWnd )
 	{
@@ -498,7 +498,7 @@ bool TinyGameApp::onDestroy(HWND hWnd )
 	return false;
 }
 
-void TinyGameApp::onPaint(HDC hDC)
+void TinyGameApp::handleWindowPaint(HDC hDC)
 {
 	if( !::Global::GetDrawEngine().isInitialized() )
 		return;
@@ -506,7 +506,7 @@ void TinyGameApp::onPaint(HDC hDC)
 	render(0.0f);
 }
 
-bool TinyGameApp::onActivate( bool beA )
+bool TinyGameApp::handleWindowActivation( bool beA )
 {
 	return true;
 }

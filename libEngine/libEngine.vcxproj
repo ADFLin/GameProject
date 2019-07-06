@@ -338,6 +338,7 @@
     <ClInclude Include="Collision2D\SATSolver.h" />
     <ClInclude Include="Core\Color.h" />
     <ClInclude Include="Core\CRC.h" />
+    <ClInclude Include="Core\CRTPCheck.h" />
     <ClInclude Include="Core\FNV1a.h" />
     <ClInclude Include="Core\LockFreeList.h" />
     <ClInclude Include="Core\MD5.h" />

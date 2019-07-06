@@ -194,6 +194,8 @@ void ClientWorker::notifyConnectionFail( NetConnection* con )
 
 void ClientWorker::procClockSynd_NetThread( IComPacket* cp)
 {
+	assert(IsInNetThread());
+
 	CSPClockSynd* com = cp->cast< CSPClockSynd >();
 
 	switch( com->code )

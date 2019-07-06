@@ -1,9 +1,11 @@
-#ifndef GLUtility_h__
-#define GLUtility_h__
+#pragma once
+#ifndef MeshUtility_H_DB22DAD5_683A_440F_B891_952ABF13FABD
+#define MeshUtility_H_DB22DAD5_683A_440F_B891_952ABF13FABD
 
-#include "OpenGLCommon.h"
-#include "RHICommand.h"
+#include "RHI/RHICommon.h"
+
 #include "MarcoCommon.h"
+
 #include <string>
 
 class QueueThreadPool;
@@ -236,6 +238,6 @@ namespace Render
 	};
 
 
-}//namespace GL
+}//namespace Render
 
-#endif // GLUtility_h__
+#endif // MeshUtility_H_DB22DAD5_683A_440F_B891_952ABF13FABD

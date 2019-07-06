@@ -55,16 +55,6 @@ namespace Render
 		mShadowMap = RHICreateTextureCube(Texture::eFloatRGBA, ShadowTextureSize);
 		if( !mShadowMap.isValid())
 			return false;
-
-
-		OpenGLCast::To(mShadowMap)->bind();
-		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
-		OpenGLCast::To(mShadowMap)->unbind();
-
 		mShadowMap2 = RHICreateTexture2D(Texture::eFloatRGBA, ShadowTextureSize, ShadowTextureSize);
 		if( !mShadowMap2.isValid() )
 			return false;
@@ -202,7 +192,8 @@ namespace Render
 		light.setupShaderGlobalParam(commandList, mProgLighting);
 
 		//mProgLighting.setParam(SHADER_PARAM(worldToLightView) , worldToLightView );
-		mProgLighting.setTexture(commandList, SHADER_PARAM(ShadowTextureCube), *mShadowMap);
+		mProgLighting.setTexture(commandList, SHADER_PARAM(ShadowTextureCube), *mShadowMap, SHADER_PARAM(ShadowTextureCubeSampler) ,
+								 TStaticSamplerState<Sampler::eBilinear , Sampler::eClamp , Sampler::eClamp , Sampler::eClamp >::GetRHI() );
 		mProgLighting.setParam(commandList, SHADER_PARAM(DepthParam), Vector2( depthParam[0], depthParam[1] ));
 
 		mEffectCur = &mProgLighting;
@@ -700,7 +691,7 @@ namespace Render
 				glClear(GL_STENCIL_BUFFER_BIT);
 				mLightBuffer.unbind();
 
-				RHISetBlendState(commandList, TStaticBlendState< CWM_NONE >::GetRHI());
+				RHISetBlendState(commandList, TStaticBlendState< CWM_None >::GetRHI());
 				//if ( debugMode != DebugMode::eShowVolume )
 				{
 					RHISetRasterizerState(commandList, TStaticRasterizerState< ECullMode::Back >::GetRHI());
@@ -951,6 +942,7 @@ namespace Render
 		void setParameters(RHICommandList& commandList, RHITexture2D& SSAOTexture);
 
 		ShaderParameter mParamTextureSSAO;
+		ShaderParameter mParamTextureSamplerSSAO;
 	};
 
 	IMPLEMENT_SHADER_PROGRAM(SSAOBlurProgram);
@@ -978,6 +970,7 @@ namespace Render
 
 		GBufferShaderParameters mParamGBuffer;
 		ShaderParameter mParamTextureSSAO;
+		ShaderParameter mParamTextureSamplerSSAO;
 	};
 
 	IMPLEMENT_SHADER_PROGRAM(SSAOAmbientProgram)
@@ -991,25 +984,9 @@ namespace Render
 		if( !mSSAOTexture.isValid() )
 			return false;
 
-		OpenGLCast::To(mSSAOTexture)->bind();
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
-		OpenGLCast::To(mSSAOTexture)->unbind();
-
 		mSSAOTextureBlur = RHICreateTexture2D(Texture::eFloatRGBA, size.x, size.y);
 		if( !mSSAOTextureBlur.isValid() )
 			return false;
-
-		OpenGLCast::To(mSSAOTextureBlur)->bind();
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
-		OpenGLCast::To(mSSAOTextureBlur)->unbind();
 
 		mFrameBuffer.addTexture(*mSSAOTexture);
 
@@ -1448,7 +1425,7 @@ namespace Render
 		if( 1 )
 		{
 			GPU_PROFILE("BasePass");
-			RHISetBlendState(commandList, TStaticBlendState<CWM_NONE>::GetRHI());
+			RHISetBlendState(commandList, TStaticBlendState<CWM_None>::GetRHI());
 
 			uint32* value = (uint32*)RHILockBuffer(mShaderData.storageUsageCounter , ELockAccess::WriteOnly);
 			*value = 0;
@@ -1604,23 +1581,27 @@ namespace Render
 	void SSAOBlurProgram::bindParameters(ShaderParameterMap& parameterMap)
 {
 		parameterMap.bind(mParamTextureSSAO, SHADER_PARAM(TextureSSAO));
+		parameterMap.bind(mParamTextureSamplerSSAO, SHADER_PARAM(TextureSamplerSSAO));
 	}
 
 	void SSAOBlurProgram::setParameters(RHICommandList& commandList, RHITexture2D& SSAOTexture)
 	{
-		setTexture(commandList, mParamTextureSSAO, SSAOTexture);
+		setTexture( commandList, mParamTextureSSAO, SSAOTexture , mParamTextureSamplerSSAO,
+				   TStaticSamplerState<Sampler::eBilinear , Sampler::eClamp , Sampler::eClamp , Sampler::eClamp >::GetRHI() );
 	}
 
 	void SSAOAmbientProgram::bindParameters(ShaderParameterMap& parameterMap)
 {
 		mParamGBuffer.bindParameters(parameterMap);
 		parameterMap.bind(mParamTextureSSAO, SHADER_PARAM(TextureSSAO));
+		parameterMap.bind(mParamTextureSamplerSSAO, SHADER_PARAM(TextureSamplerSSAO));
 	}
 
 	void SSAOAmbientProgram::setParameters(RHICommandList& commandList, SceneRenderTargets& sceneRenderTargets, RHITexture2D& SSAOTexture)
 	{
 		mParamGBuffer.setParameters(commandList, *this, sceneRenderTargets.getGBuffer());
-		setTexture(commandList, mParamTextureSSAO, SSAOTexture);
+		setTexture(commandList, mParamTextureSSAO, SSAOTexture , mParamTextureSamplerSSAO ,
+				   TStaticSamplerState<Sampler::eBilinear, Sampler::eClamp, Sampler::eClamp, Sampler::eClamp >::GetRHI());
 	}
 
 	void GBufferShaderParameters::bindParameters(ShaderParameterMap& parameterMap, bool bUseDepth /*= false */)

@@ -198,7 +198,7 @@ bool D3D9RenderSystem::loadTexture( ITexture2D& texture , char const* path , cha
 	if ( !haveImage && !haveAlpha )
 		return false;
 
-	DXTexture2D& texDX = DXTexture2D::castImpl( texture );
+	DXTexture2D& texDX = DXTexture2D::CastToImpl( texture );
 
 	if ( haveImage )
 	{
@@ -324,7 +324,7 @@ void D3D9RenderSystem::loadWorldMatrix( Vector2 const& pos , Vector2 const& dir 
 
 void D3D9RenderSystem::drawBitmap( ITexture2D const& tex , unsigned flag  )
 {
-	DXTexture2D const& texture = DXTexture2D::castImpl( tex  );
+	DXTexture2D const& texture = DXTexture2D::CastToImpl( tex  );
 
 	pushWorldTransform();
 
@@ -351,7 +351,7 @@ void D3D9RenderSystem::drawBitmap( ITexture2D const& tex , unsigned flag  )
 
 void D3D9RenderSystem::drawBitmap( ITexture2D const& tex , Vector2 const& texPos , Vector2 const& texSize, unsigned flag /*= 0 */ )
 {
-	DXTexture2D const& texture = DXTexture2D::castImpl( tex  );
+	DXTexture2D const& texture = DXTexture2D::CastToImpl( tex  );
 
 	RECT rect;
 	rect.left = texPos.x;
@@ -383,7 +383,7 @@ void D3D9RenderSystem::drawBitmap( ITexture2D const& tex , Vector2 const& texPos
 void D3D9RenderSystem::drawBitmapWithinMask( ITexture2D const& tex , ITexture2D const& mask , Vector2 const& pos , unsigned flag /*= 0 */ )
 {
 
-	DXTexture2D const& texDX = DXTexture2D::castImpl( tex );
+	DXTexture2D const& texDX = DXTexture2D::CastToImpl( tex );
 
 	setupBlend( tex.ownAlpha() ,  flag );
 

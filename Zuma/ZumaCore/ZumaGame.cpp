@@ -498,7 +498,7 @@ namespace Zuma
 	}
 
 
-	bool ZumaGame::onInit()
+	bool ZumaGame::initializeGame()
 	{
 		if ( !GameCore::init( *this ) )
 			return false;

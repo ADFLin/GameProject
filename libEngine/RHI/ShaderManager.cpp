@@ -785,6 +785,6 @@ namespace Render
 	}
 
 
-}//namespace GL
+}//namespace Render
 
 

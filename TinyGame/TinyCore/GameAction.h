@@ -1,7 +1,7 @@
 #ifndef GameAction_h__
 #define GameAction_h__
 
-#include "DataSteamBuffer.h"
+#include "DataStreamBuffer.h"
 #include "GameNetPacket.h"
 #include "GameWorker.h"
 #include "Holder.h"
@@ -233,7 +233,7 @@ public:
 
 	//for server
 	virtual bool  prevProcCommand() override { return true; }
-	virtual void  processClientFrameData(unsigned pID, DataSteamBuffer& stream) {}
+	virtual void  processClientFrameData(unsigned pID, DataStreamBuffer& stream) {}
 	virtual void  reflashPlayer(IPlayerManager& playerManager) {}
 };
 
@@ -269,7 +269,7 @@ public:
 
 	}
 
-	void processClientFrameData( unsigned pID , DataSteamBuffer& buffer )
+	void processClientFrameData( unsigned pID , DataStreamBuffer& buffer )
 	{
 		if ( buffer.getAvailableSize() )
 		{

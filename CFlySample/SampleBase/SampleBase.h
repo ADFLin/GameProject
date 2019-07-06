@@ -47,8 +47,8 @@ class SampleBase : public GameLoopT< SampleBase , WindowsPlatform >
 public:
 	virtual bool onSetupSample(){ return true; }
 	virtual void onExitSample(){}
-	virtual bool onMouse( MouseMsg& msg );
-	virtual bool onKey( unsigned key , bool isDown );
+	virtual bool handleMouseEvent( MouseMsg const& msg ) CRTP_OVERRIDE;
+	virtual bool handleKeyEvent( unsigned key , bool isDown ) CRTP_OVERRIDE;
 	virtual long onUpdate( long time ){ return time; }
 
 	virtual void onRenderScene()
@@ -61,12 +61,12 @@ public:
 	float getFPS(){ return m_fps; }
 	void  createCoorditeAxis( float len );
 
-	void onIdle( long time ){ onRender(); }
+	void handleGameIdle( long time ) CRTP_OVERRIDE { handerGameRender(); }
 
 private:
-	void onRender();
-	bool onInit();
-	void onEnd(){  onExitSample();  }
+	void handerGameRender();
+	bool initializeGame() CRTP_OVERRIDE;
+	void finalizeGame() CRTP_OVERRIDE {  onExitSample();  }
 
 
 	template < class T , class PP >

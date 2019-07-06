@@ -98,7 +98,7 @@ public:
 struct SimpleTextLayout
 {
 	template< class Graphics2D, class ...Args>
-	void show(Graphics2D& g, char const* format, Args&& ...args)
+	FORCEINLINE void show(Graphics2D& g, char const* format, Args&& ...args)
 	{
 		FixString< 512 > str;
 		str.format(format, args...);
@@ -106,7 +106,7 @@ struct SimpleTextLayout
 		posY += offset;
 	}
 	template< class Graphics2D, class ...Args>
-	void show(Graphics2D& g, char const* str)
+	FORCEINLINE void show(Graphics2D& g, char const* str)
 	{
 		g.drawText(Vector2(posX, posY), str);
 		posY += offset;

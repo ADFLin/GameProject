@@ -34,7 +34,7 @@ namespace Render
 
 	bool  UpdateTexture2D(GLenum textureEnum, int ox, int oy, int w, int h, Texture::Format format, void* data, int level)
 	{
-		glTexSubImage2D(textureEnum, level, ox, oy, w, h, OpenGLTranlate::PixelFormat(format), OpenGLTranlate::TextureComponentType(format), data);
+		glTexSubImage2D(textureEnum, level, ox, oy, w, h, OpenGLTranslate::PixelFormat(format), OpenGLTranslate::TextureComponentType(format), data);
 		bool result = VerifyOpenGLStatus();
 		return result;
 
@@ -44,12 +44,12 @@ namespace Render
 	{
 #if 1
 		::glPixelStorei(GL_UNPACK_ROW_LENGTH, dataImageWidth);
-		glTexSubImage2D(textureEnum, level, ox, oy, w, h, OpenGLTranlate::PixelFormat(format), OpenGLTranlate::TextureComponentType(format), data);
+		glTexSubImage2D(textureEnum, level, ox, oy, w, h, OpenGLTranslate::PixelFormat(format), OpenGLTranslate::TextureComponentType(format), data);
 		bool result = VerifyOpenGLStatus();
 		::glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
 #else
-		GLenum formatGL = OpenGLTranlate::PixelFormat(format);
-		GLenum typeGL = OpenGLTranlate::TextureComponentType(format);
+		GLenum formatGL = OpenGLTranslate::PixelFormat(format);
+		GLenum typeGL = OpenGLTranslate::TextureComponentType(format);
 		uint8* pData = (uint8*)data;
 		int dataStride = dataImageWidth * Texture::GetFormatSize(format);
 		for( int dy = 0; dy < h; ++dy )
@@ -78,8 +78,8 @@ namespace Render
 
 		glTexParameteri(TypeEnumGL, GL_TEXTURE_BASE_LEVEL, 0);
 		glTexParameteri(TypeEnumGL, GL_TEXTURE_MAX_LEVEL, numMipLevel - 1);
-		glTexImage1D(TypeEnumGL, 0, OpenGLTranlate::To(format), length, 0,
-					 OpenGLTranlate::BaseFormat(format), OpenGLTranlate::TextureComponentType(format), data);
+		glTexImage1D(TypeEnumGL, 0, OpenGLTranslate::To(format), length, 0,
+					 OpenGLTranslate::BaseFormat(format), OpenGLTranslate::TextureComponentType(format), data);
 
 		if( numMipLevel > 1 )
 		{
@@ -100,7 +100,7 @@ namespace Render
 	bool OpenGLTexture1D::update(int offset, int length, Texture::Format format, void* data, int level /*= 0*/)
 	{
 		bind();
-		glTexSubImage1D(TypeEnumGL, level, offset, length, OpenGLTranlate::PixelFormat(format), OpenGLTranlate::TextureComponentType(format), data);
+		glTexSubImage1D(TypeEnumGL, level, offset, length, OpenGLTranslate::PixelFormat(format), OpenGLTranslate::TextureComponentType(format), data);
 		bool result = VerifyOpenGLStatus();
 		unbind();
 		return result;
@@ -127,7 +127,7 @@ namespace Render
 
 		if( numSamples > 1 )
 		{
-			glTexImage2DMultisample(TypeEnumGLMultisample, numSamples, OpenGLTranlate::To(format), width, height, true);
+			glTexImage2DMultisample(TypeEnumGLMultisample, numSamples, OpenGLTranslate::To(format), width, height, true);
 		}
 		else
 		{
@@ -138,14 +138,14 @@ namespace Render
 			if( alignment && alignment != GLDefalutUnpackAlignment )
 			{
 				glPixelStorei(GL_UNPACK_ALIGNMENT, alignment);
-				glTexImage2D(TypeEnumGL, 0, OpenGLTranlate::To(format), width, height, 0,
-							 OpenGLTranlate::BaseFormat(format), OpenGLTranlate::TextureComponentType(format), data);
+				glTexImage2D(TypeEnumGL, 0, OpenGLTranslate::To(format), width, height, 0,
+							 OpenGLTranslate::BaseFormat(format), OpenGLTranslate::TextureComponentType(format), data);
 				glPixelStorei(GL_UNPACK_ALIGNMENT, GLDefalutUnpackAlignment);
 			}
 			else
 			{
-				glTexImage2D(TypeEnumGL, 0, OpenGLTranlate::To(format), width, height, 0,
-							 OpenGLTranlate::BaseFormat(format), OpenGLTranlate::TextureComponentType(format), data);
+				glTexImage2D(TypeEnumGL, 0, OpenGLTranslate::To(format), width, height, 0,
+							 OpenGLTranslate::BaseFormat(format), OpenGLTranslate::TextureComponentType(format), data);
 			}
 
 
@@ -216,15 +216,15 @@ namespace Render
 
 		if( numSamples > 1 )
 		{
-			glTexImage3DMultisample(TypeEnumGLMultisample, numSamples, OpenGLTranlate::To(format), sizeX, sizeY, sizeZ, true);
+			glTexImage3DMultisample(TypeEnumGLMultisample, numSamples, OpenGLTranslate::To(format), sizeX, sizeY, sizeZ, true);
 		}
 		else
 		{
 			glTexParameteri(TypeEnumGL, GL_TEXTURE_BASE_LEVEL, 0);
 			glTexParameteri(TypeEnumGL, GL_TEXTURE_MAX_LEVEL, numMipLevel - 1);
 
-			glTexImage3D(TypeEnumGL, 0, OpenGLTranlate::To(format), sizeX, sizeY, sizeZ, 0,
-						 OpenGLTranlate::BaseFormat(format), OpenGLTranlate::TextureComponentType(format), data);
+			glTexImage3D(TypeEnumGL, 0, OpenGLTranslate::To(format), sizeX, sizeY, sizeZ, 0,
+						 OpenGLTranslate::BaseFormat(format), OpenGLTranslate::TextureComponentType(format), data);
 
 			if( numMipLevel > 1 )
 			{
@@ -261,8 +261,8 @@ namespace Render
 		{
 
 			glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0,
-						 OpenGLTranlate::To(format), size, size, 0,
-						 OpenGLTranlate::BaseFormat(format), OpenGLTranlate::TextureComponentType(format), 
+						 OpenGLTranslate::To(format), size, size, 0,
+						 OpenGLTranslate::BaseFormat(format), OpenGLTranslate::TextureComponentType(format), 
 						 data ? data[i] : nullptr );
 		}
 
@@ -321,15 +321,15 @@ namespace Render
 
 		if( numSamples > 1 )
 		{
-			glTexImage3DMultisample(TypeEnumGLMultisample, numSamples, OpenGLTranlate::To(format), width, height , layerSize, true);
+			glTexImage3DMultisample(TypeEnumGLMultisample, numSamples, OpenGLTranslate::To(format), width, height , layerSize, true);
 		}
 		else
 		{
 			glTexParameteri(TypeEnumGL, GL_TEXTURE_BASE_LEVEL, 0);
 			glTexParameteri(TypeEnumGL, GL_TEXTURE_MAX_LEVEL, numMipLevel - 1);
 
-			glTexImage3D(TypeEnumGL, 0, OpenGLTranlate::To(format), width, height, layerSize, 0,
-						 OpenGLTranlate::BaseFormat(format), OpenGLTranlate::TextureComponentType(format), data);
+			glTexImage3D(TypeEnumGL, 0, OpenGLTranslate::To(format), width, height, layerSize, 0,
+						 OpenGLTranslate::BaseFormat(format), OpenGLTranslate::TextureComponentType(format), data);
 
 			if( numMipLevel > 1 )
 			{
@@ -368,13 +368,13 @@ namespace Render
 		bind();
 		if( numSamples > 1 )
 		{
-			glTexImage2DMultisample(TypeEnumGLMultisample, numSamples, OpenGLTranlate::To(format), width, height, true);
+			glTexImage2DMultisample(TypeEnumGLMultisample, numSamples, OpenGLTranslate::To(format), width, height, true);
 		}
 		else
 		{
 			glTexParameteri(TypeEnumGL, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 			glTexParameteri(TypeEnumGL, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-			glTexImage2D(TypeEnumGL, 0, OpenGLTranlate::To(format), width, height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+			glTexImage2D(TypeEnumGL, 0, OpenGLTranslate::To(format), width, height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
 		}
 		VerifyOpenGLStatus();
 		unbind();
@@ -406,10 +406,10 @@ namespace Render
 	}
 
 
-	int OpenGLFrameBuffer::addTexture(RHITexture2DArray& target, int idexLayer, int level /*= 0*/)
+	int OpenGLFrameBuffer::addTexture(RHITexture2DArray& target, int indexLayer, int level /*= 0*/)
 	{
 		int idx = mTextures.size();
-		setTexture(idx, target, idexLayer , level);
+		setTexture(idx, target, indexLayer, level);
 		return idx;
 	}
 
@@ -445,7 +445,7 @@ namespace Render
 		setTexture2DInternal( idx , OpenGLCast::GetHandle( target ) , GL_TEXTURE_CUBE_MAP_POSITIVE_X + face , level );
 	}
 
-	void OpenGLFrameBuffer::setTexture(int idx, RHITexture2DArray& target, int idexLayer, int level /*= 0*/)
+	void OpenGLFrameBuffer::setTexture(int idx, RHITexture2DArray& target, int indexLayer, int level /*= 0*/)
 	{
 		assert(idx <= mTextures.size());
 		if( idx == mTextures.size() )
@@ -455,10 +455,10 @@ namespace Render
 
 		BufferInfo& info = mTextures[idx];
 		info.bufferRef = &target;
-		info.idxLayer = idexLayer;
+		info.indexLayer = indexLayer;
 		info.level = level;
 		info.typeEnumGL = OpenGLCast::To(&target)->getGLTypeEnum();
-		setTextureLayerInternal(idx, OpenGLCast::GetHandle(target), info.typeEnumGL , level , idexLayer );
+		setTextureLayerInternal(idx, OpenGLCast::GetHandle(target), info.typeEnumGL , level , indexLayer);
 	}
 
 
@@ -776,7 +776,7 @@ namespace Render
 
 
 
-	GLenum OpenGLTranlate::To(Texture::Format format)
+	GLenum OpenGLTranslate::To(Texture::Format format)
 	{
 		return gTexConvMap[(int)format].foramt;
 	}
@@ -813,7 +813,7 @@ namespace Render
 		return gTexConvMap[format].compNum;
 	}
 
-	GLenum OpenGLTranlate::To(EAccessOperator op)
+	GLenum OpenGLTranslate::To(EAccessOperator op)
 	{
 		switch( op )
 		{
@@ -825,7 +825,7 @@ namespace Render
 		return GL_READ_WRITE;
 	}
 
-	GLenum OpenGLTranlate::To(PrimitiveType type)
+	GLenum OpenGLTranslate::To(PrimitiveType type)
 	{
 		switch( type )
 		{
@@ -843,7 +843,7 @@ namespace Render
 		return GL_POINTS;
 	}
 
-	GLenum OpenGLTranlate::To(Shader::Type type)
+	GLenum OpenGLTranslate::To(Shader::Type type)
 	{
 		switch( type )
 		{
@@ -857,7 +857,7 @@ namespace Render
 		return 0;
 	}
 
-	GLenum OpenGLTranlate::To(ELockAccess access)
+	GLenum OpenGLTranslate::To(ELockAccess access)
 	{
 		switch( access )
 		{
@@ -872,7 +872,7 @@ namespace Render
 		return GL_READ_ONLY;
 	}
 
-	GLenum OpenGLTranlate::To(Blend::Factor factor)
+	GLenum OpenGLTranslate::To(Blend::Factor factor)
 	{
 		switch( factor )
 		{
@@ -890,7 +890,7 @@ namespace Render
 		return GL_ONE;
 	}
 
-	GLenum OpenGLTranlate::To(Blend::Operation op)
+	GLenum OpenGLTranslate::To(Blend::Operation op)
 	{
 		switch( op )
 		{
@@ -903,7 +903,7 @@ namespace Render
 		return GL_FUNC_ADD;
 	}
 
-	GLenum OpenGLTranlate::To(ECompareFun fun)
+	GLenum OpenGLTranslate::To(ECompareFun fun)
 	{
 		switch( fun )
 		{
@@ -927,7 +927,7 @@ namespace Render
 		return GL_LESS;
 	}
 
-	GLenum OpenGLTranlate::To(Stencil::Operation op)
+	GLenum OpenGLTranslate::To(Stencil::Operation op)
 	{
 		switch( op )
 		{
@@ -952,7 +952,7 @@ namespace Render
 	}
 
 
-	GLenum OpenGLTranlate::To(ECullMode mode)
+	GLenum OpenGLTranslate::To(ECullMode mode)
 	{
 		switch( mode )
 		{
@@ -962,7 +962,7 @@ namespace Render
 		return GL_FRONT;
 	}
 
-	GLenum OpenGLTranlate::To(EFillMode mode)
+	GLenum OpenGLTranslate::To(EFillMode mode)
 	{
 		switch( mode )
 		{
@@ -973,7 +973,7 @@ namespace Render
 		return GL_FILL;
 	}
 
-	GLenum OpenGLTranlate::To(ECompValueType type)
+	GLenum OpenGLTranslate::To(ECompValueType type)
 	{
 		switch( type )
 		{
@@ -991,7 +991,7 @@ namespace Render
 		return GL_FLOAT;
 	}
 
-	GLenum OpenGLTranlate::To(Sampler::Filter filter)
+	GLenum OpenGLTranslate::To(Sampler::Filter filter)
 	{
 		switch( filter )
 		{
@@ -1009,7 +1009,7 @@ namespace Render
 		return GL_NEAREST;
 	}
 
-	GLenum OpenGLTranlate::To(Sampler::AddressMode mode)
+	GLenum OpenGLTranslate::To(Sampler::AddressMode mode)
 	{
 		switch( mode )
 		{
@@ -1025,7 +1025,7 @@ namespace Render
 		return GL_REPEAT;
 	}
 
-	GLenum OpenGLTranlate::To(Texture::DepthFormat format)
+	GLenum OpenGLTranslate::To(Texture::DepthFormat format)
 	{
 		switch( format )
 		{
@@ -1043,7 +1043,7 @@ namespace Render
 		return 0;
 	}
 
-	GLenum OpenGLTranlate::BaseFormat(Texture::Format format)
+	GLenum OpenGLTranslate::BaseFormat(Texture::Format format)
 	{
 		switch( format )
 		{
@@ -1069,7 +1069,7 @@ namespace Render
 		return 0;
 	}
 
-	GLenum OpenGLTranlate::PixelFormat(Texture::Format format)
+	GLenum OpenGLTranslate::PixelFormat(Texture::Format format)
 	{
 		switch( format )
 		{
@@ -1094,12 +1094,12 @@ namespace Render
 		return 0;
 	}
 
-	GLenum OpenGLTranlate::TextureComponentType(Texture::Format format)
+	GLenum OpenGLTranslate::TextureComponentType(Texture::Format format)
 	{
 		return gTexConvMap[format].compType;
 	}
 
-	GLenum OpenGLTranlate::Image2DType(Texture::Format format)
+	GLenum OpenGLTranslate::Image2DType(Texture::Format format)
 	{
 		switch( format )
 		{
@@ -1125,7 +1125,7 @@ namespace Render
 		return 0;
 	}
 
-	GLenum OpenGLTranlate::BufferUsageEnum(uint32 creationFlags)
+	GLenum OpenGLTranslate::BufferUsageEnum(uint32 creationFlags)
 	{
 		if( creationFlags & BCF_UsageDynamic )
 			return GL_DYNAMIC_DRAW;
@@ -1166,11 +1166,11 @@ namespace Render
 			return false;
 		}
 
-		glSamplerParameteri(getHandle(), GL_TEXTURE_MIN_FILTER, OpenGLTranlate::To(initializer.filter));
+		glSamplerParameteri(getHandle(), GL_TEXTURE_MIN_FILTER, OpenGLTranslate::To(initializer.filter));
 		glSamplerParameteri(getHandle(), GL_TEXTURE_MAG_FILTER, initializer.filter == Sampler::ePoint ? GL_NEAREST : GL_LINEAR);
-		glSamplerParameteri(getHandle(), GL_TEXTURE_WRAP_S, OpenGLTranlate::To(initializer.addressU));
-		glSamplerParameteri(getHandle(), GL_TEXTURE_WRAP_T, OpenGLTranlate::To(initializer.addressV));
-		glSamplerParameteri(getHandle(), GL_TEXTURE_WRAP_R, OpenGLTranlate::To(initializer.addressW));
+		glSamplerParameteri(getHandle(), GL_TEXTURE_WRAP_S, OpenGLTranslate::To(initializer.addressU));
+		glSamplerParameteri(getHandle(), GL_TEXTURE_WRAP_T, OpenGLTranslate::To(initializer.addressV));
+		glSamplerParameteri(getHandle(), GL_TEXTURE_WRAP_R, OpenGLTranslate::To(initializer.addressW));
 		return true;
 	}
 
@@ -1187,12 +1187,12 @@ namespace Render
 
 			targetValueGL.bSeparateBlend = (targetValue.srcColor != targetValue.srcAlpha) || (targetValue.destColor != targetValue.destAlpha);
 
-			targetValueGL.srcColor = OpenGLTranlate::To(targetValue.srcColor);
-			targetValueGL.srcAlpha = OpenGLTranlate::To(targetValue.srcAlpha);
-			targetValueGL.destColor = OpenGLTranlate::To(targetValue.destColor);
-			targetValueGL.destAlpha = OpenGLTranlate::To(targetValue.destAlpha);
-			targetValueGL.op = OpenGLTranlate::To(targetValue.op);
-			targetValueGL.opAlpha = OpenGLTranlate::To(targetValue.opAlpha);
+			targetValueGL.srcColor = OpenGLTranslate::To(targetValue.srcColor);
+			targetValueGL.srcAlpha = OpenGLTranslate::To(targetValue.srcAlpha);
+			targetValueGL.destColor = OpenGLTranslate::To(targetValue.destColor);
+			targetValueGL.destAlpha = OpenGLTranslate::To(targetValue.destAlpha);
+			targetValueGL.op = OpenGLTranslate::To(targetValue.op);
+			targetValueGL.opAlpha = OpenGLTranslate::To(targetValue.opAlpha);
 		}
 	}
 
@@ -1200,20 +1200,20 @@ namespace Render
 	{
 		//When depth testing is disabled, writes to the depth buffer are also disabled
 		mStateValue.bEnableDepthTest = (initializer.depthFun != ECompareFun::Always) || (initializer.bWriteDepth);
-		mStateValue.depthFun = OpenGLTranlate::To(initializer.depthFun);
+		mStateValue.depthFun = OpenGLTranslate::To(initializer.depthFun);
 		mStateValue.bWriteDepth = initializer.bWriteDepth;
 
 		mStateValue.bEnableStencilTest = initializer.bEnableStencilTest;
 
-		mStateValue.stencilFun = OpenGLTranlate::To(initializer.stencilFun);
-		mStateValue.stencilFailOp = OpenGLTranlate::To(initializer.stencilFailOp);
-		mStateValue.stencilZFailOp = OpenGLTranlate::To(initializer.zFailOp);
-		mStateValue.stencilZPassOp = OpenGLTranlate::To(initializer.zPassOp);
+		mStateValue.stencilFun = OpenGLTranslate::To(initializer.stencilFun);
+		mStateValue.stencilFailOp = OpenGLTranslate::To(initializer.stencilFailOp);
+		mStateValue.stencilZFailOp = OpenGLTranslate::To(initializer.zFailOp);
+		mStateValue.stencilZPassOp = OpenGLTranslate::To(initializer.zPassOp);
 
-		mStateValue.stencilFunBack = OpenGLTranlate::To(initializer.stencilFunBack);
-		mStateValue.stencilFailOpBack = OpenGLTranlate::To(initializer.stencilFailOpBack);
-		mStateValue.stencilZFailOpBack = OpenGLTranlate::To(initializer.zFailOpBack);
-		mStateValue.stencilZPassOpBack = OpenGLTranlate::To(initializer.zPassOpBack);
+		mStateValue.stencilFunBack = OpenGLTranslate::To(initializer.stencilFunBack);
+		mStateValue.stencilFailOpBack = OpenGLTranslate::To(initializer.stencilFailOpBack);
+		mStateValue.stencilZFailOpBack = OpenGLTranslate::To(initializer.zFailOpBack);
+		mStateValue.stencilZPassOpBack = OpenGLTranslate::To(initializer.zPassOpBack);
 
 		mStateValue.bUseSeparateStencilOp =
 			(mStateValue.stencilFailOp != mStateValue.stencilFailOpBack) ||
@@ -1229,8 +1229,8 @@ namespace Render
 	{
 		mStateValue.bEnableCull = initializer.cullMode != ECullMode::None;
 		mStateValue.bEnableScissor = initializer.bEnableScissor;
-		mStateValue.cullFace = OpenGLTranlate::To(initializer.cullMode);
-		mStateValue.fillMode = OpenGLTranlate::To(initializer.fillMode);
+		mStateValue.cullFace = OpenGLTranslate::To(initializer.cullMode);
+		mStateValue.fillMode = OpenGLTranslate::To(initializer.fillMode);
 	}
 
 	OpenGLInputLayout::OpenGLInputLayout(InputLayoutDesc const& desc)
@@ -1244,7 +1244,7 @@ namespace Render
 			element.bInstanceData = e.bIntanceData;
 			element.instanceStepRate = e.instanceStepRate;
 			element.componentNum = Vertex::GetComponentNum(e.format);
-			element.componentType = OpenGLTranlate::VertexComponentType(e.format);
+			element.componentType = OpenGLTranslate::VertexComponentType(e.format);
 			element.stride = desc.getVertexSize(e.idxStream);
 			element.offset = e.offset;
 			element.semantic = Vertex::AttributeToSemantic(e.attribute , element.idx);
@@ -1571,4 +1571,4 @@ namespace Render
 
 
 
-}//namespace GL
+}//namespace Render

@@ -4,7 +4,7 @@
 #include "GameWidget.h"
 #include "GameModule.h"
 
-class DataSteamBuffer;
+class DataStreamBuffer;
 
 class  BaseSettingPanel : public GPanel
 {

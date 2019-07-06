@@ -429,7 +429,7 @@ namespace Go
 
 		void onRender(float dFrame);
 
-		void drawAnalysis(GLGraphics2D& g , RenderContext &context);
+		void drawAnalysis(GLGraphics2D& g , RenderContext& context);
 
 
 		virtual bool onWidgetEvent(int event, int id, GWidget* ui) override;

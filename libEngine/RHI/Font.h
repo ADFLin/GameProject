@@ -8,7 +8,7 @@
 
 #include "Singleton.h"
 #include "HashString.h"
-#include "TypeHash.h"
+#include "Core/TypeHash.h"
 #include "CoreShare.h"
 
 #include <unordered_map>

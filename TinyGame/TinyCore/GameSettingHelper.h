@@ -10,7 +10,7 @@ class ServerWorker;
 class GameSettingPanel;
 class PlayerListPanel;
 class StageManager;
-class DataSteamBuffer;
+class DataStreamBuffer;
 class GameStageBase;
 
 class  NetRoomSettingHelper : public SettingHepler
@@ -33,8 +33,8 @@ public:
 		doSetupSetting( mServer != NULL );
 	}
 
-	TINY_API void importSetting( DataSteamBuffer& buffer );
-	TINY_API void exportSetting( DataSteamBuffer& buffer );
+	TINY_API void importSetting( DataStreamBuffer& buffer );
+	TINY_API void exportSetting( DataStreamBuffer& buffer );
 
 	TINY_API void sendSlotStateSV();
 	TINY_API bool addPlayerSV( PlayerId id );
@@ -44,8 +44,8 @@ public:
 	virtual void clearUserUI() = 0;
 	virtual void setupGame( StageManager& manager, StageBase* gameStage ){}
 	virtual void doSetupSetting( bool beServer ) = 0;
-	virtual void doExportSetting( DataSteamBuffer& buffer ) = 0;
-	virtual void doImportSetting( DataSteamBuffer& buffer ) = 0;
+	virtual void doExportSetting( DataStreamBuffer& buffer ) = 0;
+	virtual void doImportSetting( DataStreamBuffer& buffer ) = 0;
 
 	virtual bool onWidgetEvent( int event ,int id , GWidget* widget ){ return true; }
 

@@ -33,7 +33,7 @@ namespace AStar
 	{
 
 	};
-	class TPortalAStar : public AStarT< TPortalAStar , PortalNode >
+	class PortalAStar : public AStarT< PortalAStar , PortalNode >
 	{
 
 	public:

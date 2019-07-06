@@ -329,7 +329,7 @@ public:
 		return time;
 	}
 
-	bool onKey( unsigned key , bool isDown )
+	bool handleKeyEvent( unsigned key , bool isDown )
 	{
 		if ( !isDown )
 			return false;
@@ -343,7 +343,7 @@ public:
 		case 'P': std::swap( mMainCamera , cam );break;
 		case 'O': g_useObjFrushumClip = !g_useObjFrushumClip; break;
 		default:
-			SampleBase::onKey( key , isDown );
+			SampleBase::handleKeyEvent( key , isDown );
 		}
 		return true;
 	}

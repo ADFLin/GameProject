@@ -246,12 +246,10 @@ void MainMenuStage::doChangeWidgetGroup( StageGroupID group )
 			GameModuleVec games;
 			Global::GameManager().classifyGame( ATTR_SINGLE_SUPPORT , games );
 
-			for( GameModuleVec::iterator iter = games.begin() ; 
-				 iter != games.end() ; ++iter )
+			for( IGameModule* game : games )
 			{
-				IGameModule* g = *iter;
-				GWidget* widget = CREATE_BUTTON( UI_GAME_BUTTON , g->getName() );
-				widget->setUserData( intptr_t(g) );
+				GWidget* widget = CREATE_BUTTON( UI_GAME_BUTTON , game->getName() );
+				widget->setUserData( intptr_t(game) );
 			}
 			CREATE_BUTTON( UI_BACK_GROUP    , LOCTEXT("Back")          );
 		}

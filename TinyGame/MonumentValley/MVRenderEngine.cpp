@@ -1,8 +1,11 @@
 #include "MVRenderEngine.h"
 
-#include "RHI/OpenGLCommon.h"
+
 #include "RHI/DrawUtility.h"
 #include "RHI/ShaderManager.h"
+#include "RHI/RHICommand.h"
+
+#include "RHI/OpenGLCommon.h"
 
 #include "FixString.h"
 

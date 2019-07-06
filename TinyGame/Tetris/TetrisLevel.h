@@ -96,7 +96,11 @@ namespace Tetris
 	public:
 		PieceTemplateSet( PieceTemplate temp[] , int num );
 		int   getTemplateNum() const { return mNum; }
-		void  setTemplate( int idx , Piece& piece ){ piece.setTemplate( mTemps[ idx ] ); }
+		void  setTemplate( int idx , Piece& piece )
+		{
+			assert(0 <= idx && idx < mNum);
+			piece.setTemplate( mTemps[ idx ] ); 
+		}
 
 		static PieceTemplateSet& GetClassic();
 	private:

@@ -437,7 +437,7 @@ public:
 		glPushAttrib(GL_LIST_BIT | GL_CURRENT_BIT  | GL_ENABLE_BIT | GL_TRANSFORM_BIT);	
 		
 		glMatrixMode(GL_MODELVIEW);
-		glDisable(GL_LIGHTING);
+		//glDisable(GL_LIGHTING);
 		glEnable(GL_TEXTURE_2D);
 		glDisable(GL_DEPTH_TEST);
 		glEnable(GL_BLEND);

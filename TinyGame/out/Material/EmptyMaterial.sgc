@@ -8,25 +8,25 @@ uniform sampler2D BaseTexture;
 
 #if VERTEX_SHADER
 
-void  CalcMaterialInputVS(inout MaterialInputVS input, inout MaterialParametersVS parameters)
+void  CalcMaterialInputVS(inout MaterialInputVS inputVS, inout MaterialParametersVS parameters)
 {
-	input.worldOffset = float3(0.0);
+	inputVS.worldOffset = float3(0.0);
 }
 
 #endif //VERTEX_SHADER
 
 #if PIXEL_SHADER
 
-void CalcMaterialInputPS(inout MaterialInputPS input, inout MaterialParametersPS parameters)
+void CalcMaterialInputPS(inout MaterialInputPS inputPS, inout MaterialParametersPS parameters)
 {
-	input.shadingModel = SHADINGMODEL_DEFAULT_LIT;
-	input.baseColor = texture2D(BaseTexture, parameters.texCoords[0].xy).rgb * parameters.vectexColor.rgb;
-	input.metallic  = 0.1;
-	input.roughness = 0.9;
-	input.specular  = 0.1;
+	inputPS.shadingModel = SHADINGMODEL_DEFAULT_LIT;
+	inputPS.baseColor = texture2D(BaseTexture, parameters.texCoords[0].xy).rgb * parameters.vectexColor.rgb;
+	inputPS.metallic  = 0.1;
+	inputPS.roughness = 0.9;
+	inputPS.specular  = 0.1;
 	float2 value = 2 * frac(5 * (parameters.texCoords[0].xy)) - 1;
-	//input.mask = value.x * value.y > 0 ? 1 : 0;
-	//input.emissiveColor = abs( float3(0.3, 0.3, 0.3) * parameters.worldNormal );
+	//inputPS.mask = value.x * value.y > 0 ? 1 : 0;
+	//inputPS.emissiveColor = abs( float3(0.3, 0.3, 0.3) * parameters.worldNormal );
 }
 
 #endif //PIXEL_SHADER

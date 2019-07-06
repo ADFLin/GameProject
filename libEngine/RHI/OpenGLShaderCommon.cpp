@@ -9,6 +9,7 @@
 #include <sstream>
 #include "FileSystem.h"
 #include "Core\StringConv.h"
+#include "CString.h"
 
 namespace Render
 {
@@ -328,7 +329,7 @@ namespace Render
 
 		inoutCode += "#define COMPILER_GLSL 1\n";
 
-		if( entry.name )
+		if( entry.name && FCString::Compare(entry.name , "main") != 0 )
 		{
 			inoutCode += "#define ";
 			inoutCode += entry.name;

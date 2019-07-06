@@ -68,25 +68,25 @@ float3 CalcSphereWorldOffset( float3 sphereCenter , float radius , float4 vertex
 }
 
 
-void  CalcMaterialInputVS(inout MaterialInputVS input, inout MaterialParametersVS parameters)
+void  CalcMaterialInputVS(inout MaterialInputVS inputVS, inout MaterialParametersVS parameters)
 {
-	input.worldOffset = CalcSphereWorldOffset(Sphere.pos, Sphere.radius, parameters.vertexPos) - parameters.worldPos;
+	inputVS.worldOffset = CalcSphereWorldOffset(Sphere.pos, Sphere.radius, parameters.vertexPos) - parameters.worldPos;
 }
 
 #endif //VERTEX_SHADER
 
 #if PIXEL_SHADER
 
-void CalcMaterialInputPS(inout MaterialInputPS input, inout MaterialParametersPS parameters)
+void CalcMaterialInputPS(inout MaterialInputPS inputPS, inout MaterialParametersPS parameters)
 {
-	input.shadingModel = SHADINGMODEL_DEFAULT_LIT;
-	input.baseColor = parameters.vectexColor.rgb;
-	input.baseColor = float3(0.6,0,0);
+	inputPS.shadingModel = SHADINGMODEL_DEFAULT_LIT;
+	inputPS.baseColor = parameters.vectexColor.rgb;
+	inputPS.baseColor = float3(0.6,0,0);
 	
-	input.metallic = 0.6;
-	input.roughness = 0.3;
-	input.specular = 0.9;
-	//input.roughness = 1.0;
+	inputPS.metallic = 0.6;
+	inputPS.roughness = 0.3;
+	inputPS.specular = 0.9;
+	//inputPS.roughness = 1.0;
 
 	// ( ld + vd * t ) ^ 2 = r^2 ; ld = camPos - sphere.pos
 	// t^2 + 2 ( ld * vd ) t + ( ld^2 - r^2 ) = 0
@@ -101,12 +101,12 @@ void CalcMaterialInputPS(inout MaterialInputPS input, inout MaterialParametersPS
 	{
 #define USE_DEBUG_SHOW 0
 #if USE_DEBUG_SHOW
-		input.baseColor = float3(1.0, 1.0, 1.0);
+		inputPS.baseColor = float3(1.0, 1.0, 1.0);
 		float4 clipPos = View.worldToClip * float4(parameters.worldPos, 1);
-		input.depthOffset = clipPos.z / clipPos.w - parameters.clipPos.z;
-		input.normal = -View.direction;
+		inputPS.depthOffset = clipPos.z / clipPos.w - parameters.clipPos.z;
+		inputPS.normal = -View.direction;
 #else
-		input.mask = 0;
+		inputPS.mask = 0;
 #endif
 	}
 	else
@@ -114,12 +114,12 @@ void CalcMaterialInputPS(inout MaterialInputPS input, inout MaterialParametersPS
 		float t = -b - sqrt(d);
 		float3 spherePixelPos = View.worldPos + vd * t;
 		float3 worldNormal = (spherePixelPos - Sphere.pos.xyz) / Sphere.radius;
-		input.normal = normalize(worldNormal);
+		inputPS.normal = normalize(worldNormal);
 		float4 clipPos = View.worldToClip * float4(spherePixelPos, 1);
-		input.depthOffset = clipPos.z / clipPos.w - parameters.clipPos.z;
+		inputPS.depthOffset = clipPos.z / clipPos.w - parameters.clipPos.z;
 	}
-	input.emissiveColor = float3(0, 0, 0);
-	//input.emissiveColor = abs( float3(0.3, 0.3, 0.3) * parameters.worldNormal );
+	inputPS.emissiveColor = float3(0, 0, 0);
+	//inputPS.emissiveColor = abs( float3(0.3, 0.3, 0.3) * parameters.worldNormal );
 }
 
 #endif // PIXEL_SHADER

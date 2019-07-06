@@ -40,9 +40,9 @@ struct MaterialParametersVS
 
 MaterialInputVS InitMaterialInputVS()
 {
-	MaterialInputVS input;
-	input.worldOffset = float3(0.0);
-	return input;
+	MaterialInputVS inputVS;
+	inputVS.worldOffset = float3(0.0);
+	return inputVS;
 }
 
 #endif //VERTEX_SHADER
@@ -86,18 +86,18 @@ struct MaterialInputDS
 
 MaterialInputPS InitMaterialInputPS()
 {
-	MaterialInputPS input;
-	input.baseColor = float3(0.0);
-	input.normal = float3(0.0, 0.0, 1);
-	input.emissiveColor = float3(0.0);
-	input.metallic = 0.0;
-	input.specular = 0.0;
-	input.roughness = 0.0;
-	input.mask = 1.0;
-	input.opacity = 0.5;
-	input.shadingModel = SHADINGMODEL_DEFAULT_LIT;
-	input.depthOffset = 0.0;
-	return input;
+	MaterialInputPS inputPS;
+	inputPS.baseColor = float3(0.0);
+	inputPS.normal = float3(0.0, 0.0, 1);
+	inputPS.emissiveColor = float3(0.0);
+	inputPS.metallic = 0.0;
+	inputPS.specular = 0.0;
+	inputPS.roughness = 0.0;
+	inputPS.mask = 1.0;
+	inputPS.opacity = 0.5;
+	inputPS.shadingModel = SHADINGMODEL_DEFAULT_LIT;
+	inputPS.depthOffset = 0.0;
+	return inputPS;
 }
 
 float3 GetTextureNormal(sampler2D texture, float2 UVs)

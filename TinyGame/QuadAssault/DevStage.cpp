@@ -16,6 +16,8 @@
 #include "RHI/RHICommand.h"
 #include "RHI/ShaderManager.h"
 
+#include "RHI/OpenGLCommon.h"
+
 class WidgetTest : public TestBase
 {
 

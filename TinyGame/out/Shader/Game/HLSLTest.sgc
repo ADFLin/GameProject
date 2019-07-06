@@ -16,13 +16,13 @@ struct VSOutput
 
 float4x4 XForm;
 
-void MainVS(in VSInput input, out VSOutput output)
+void MainVS(in VSInput inputVS, out VSOutput output)
 {
-	//output.svPosition = mul(XForm, float4(input.pos.xy, 0.5, 1));
-	float4 worldPos = mul(XForm, float4(input.pos.xyz, 1) );
+	//output.svPosition = mul(XForm, float4(inputVS.pos.xy, 0.5, 1));
+	float4 worldPos = mul(XForm, float4(inputVS.pos.xyz, 1) );
 	output.svPosition = mul( View.worldToClip , worldPos);
-	output.color = input.color;
-	output.uv = input.uv;
+	output.color = inputVS.color;
+	output.uv = inputVS.uv;
 }
 
 struct ColourBuffer
@@ -41,11 +41,11 @@ cbuffer ColourBufferBlock
 Texture2D Texture;
 SamplerState TextureSampler;
 float3 Color;
-void MainPS(in VSOutput input, out float4 OutColor : SV_Target0)
+void MainPS(in VSOutput inputVS, out float4 OutColor : SV_Target0)
 {
 	float3 c = float3(CBuffer.red, CBuffer.green, CBuffer.blue);
-	float4 color = Texture.Sample(TextureSampler, input.uv);
-	//OutColor = float4(c * Color * input.color * color.rgb, 1);
-	OutColor = float4(input.color, 1);
-	//OutColor = float4(Color* input.color, 1 );
+	float4 color = Texture.Sample(TextureSampler, inputVS.uv);
+	//OutColor = float4(c * Color * inputVS.color * color.rgb, 1);
+	OutColor = float4(inputVS.color, 1);
+	//OutColor = float4(Color* inputVS.color, 1 );
 }

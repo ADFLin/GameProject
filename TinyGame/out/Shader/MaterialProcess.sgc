@@ -5,14 +5,14 @@
 //Material Template
 #if 0
 #if VERTEX_SHADER
-void  CalcMaterialInputVS(inout MaterialInputVS input, in MaterialParametersVS parameters)
+void  CalcMaterialInputVS(inout MaterialInputVS inputVS, in MaterialParametersVS parameters)
 {
 }
 
 #endif //VERTEX_SHADER
 
 #if PIXEL_SHADER
-void CalcMaterialInputPS(inout MaterialInputPS input, in MaterialParametersPS parameters)
+void CalcMaterialInputPS(inout MaterialInputPS inputPS, in MaterialParametersPS parameters)
 {
 }
 #endif //PIXEL_SHADER
@@ -20,24 +20,24 @@ void CalcMaterialInputPS(inout MaterialInputPS input, in MaterialParametersPS pa
 
 #if PIXEL_SHADER
 
-float3 GetMaterialWorldNormal(in MaterialInputPS input, inout MaterialParametersPS parameters)
+float3 GetMaterialWorldNormal(in MaterialInputPS inputPS, inout MaterialParametersPS parameters)
 {
 #if MATERIAL_USE_WORLD_NORMAL
-	return input.normal;
+	return inputPS.normal;
 #else
 
-	return normalize(parameters.tangentToWorld * input.normal);
+	return normalize(parameters.tangentToWorld * inputPS.normal);
 #endif
 }
 
-float3 GetMaterialWorldPositionAndCheckDepthOffset(in MaterialInputPS input, inout MaterialParametersPS parameters)
+float3 GetMaterialWorldPositionAndCheckDepthOffset(in MaterialInputPS inputPS, inout MaterialParametersPS parameters)
 {
 	float3 worldPos = parameters.worldPos;
 #if MATERIAL_USE_DEPTH_OFFSET
 	float4 NDC = parameters.NDC;
-	if( input.depthOffset != 0 )
+	if(inputPS.depthOffset != 0 )
 	{
-		NDC.z += input.depthOffset;
+		NDC.z += inputPS.depthOffset;
 		float4 worldPosH = View.clipToWorld * NDC;
 		worldPos = worldPosH.xyz / worldPosH.w;
 	}
@@ -47,13 +47,13 @@ float3 GetMaterialWorldPositionAndCheckDepthOffset(in MaterialInputPS input, ino
 	
 }
 
-void CalcMaterialParameters(inout MaterialInputPS input, inout MaterialParametersPS parameters)
+void CalcMaterialParameters(inout MaterialInputPS inputPS, inout MaterialParametersPS parameters)
 {
 
-	CalcMaterialInputPS(input, parameters);
+	CalcMaterialInputPS(inputPS, parameters);
 
 #if MATERIAL_BLENDING_MASKED
-	if( input.mask < 0.01 )
+	if(inputPS.mask < 0.01 )
 		discard;
 #endif
 }

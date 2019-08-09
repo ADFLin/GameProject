@@ -103,7 +103,7 @@ bool Game::init( char const* pathConfig , Vec2i const& screenSize , bool bCreate
 	glLoadIdentity();	
 	glPushAttrib( GL_DEPTH_BUFFER_BIT | GL_LIGHTING_BIT );
 	glDisable( GL_DEPTH_TEST );
-	glDisable( GL_LIGHTING );	
+	//glDisable( GL_LIGHTING );	
 	
 
 	QA_LOG("Game Init!");

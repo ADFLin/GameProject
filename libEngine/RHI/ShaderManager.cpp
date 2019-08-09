@@ -589,7 +589,7 @@ namespace Render
 
 	bool ShaderManager::loadSimple(ShaderProgram& shaderProgram, char const* fileNameVS, char const* fileNamePS, char const* def, char const* additionalCode)
 	{
-		ShaderEntryInfo entries[3] =
+		ShaderEntryInfo entries[2] =
 		{
 			{ Shader::eVertex , "main" },
 			{ Shader::ePixel , "main" },

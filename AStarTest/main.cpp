@@ -112,7 +112,7 @@ public:
 
 	static int const CellLength = 10;
 
-	void handerGameRender() CRTP_OVERRIDE
+	void handleGameRender() CRTP_OVERRIDE
 	{
 
 		WinGdiGraphics2D& g = mRenderSystem->getGraphics2D();

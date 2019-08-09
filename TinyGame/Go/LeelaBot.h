@@ -266,7 +266,7 @@ namespace Go
 			eWeightName ,
 		};
 	
-		virtual bool initilize(void* settingData) override;
+		virtual bool initialize(void* settingData) override;
 		virtual bool isGPUBased() const override { return true; }
 		virtual bool getMetaData(int id, uint8* dataBuffer, int size);
 
@@ -290,7 +290,7 @@ namespace Go
 	class AQBot : public TGTPLikeBot< AQAppRun >
 	{
 	public:
-		virtual bool initilize(void* settingData) override;
+		virtual bool initialize(void* settingData) override;
 		virtual bool isGPUBased() const override { return true; }
 	};
 

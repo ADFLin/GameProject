@@ -37,7 +37,7 @@ namespace CAR
 		TileId    id;
 		SideData  sides[ NumSide ];
 		FarmData  farms[ NumFarm ];
-		TileContentType    contentFlag;
+		TileContentMask    contentFlag;
 
 		SideType getLinkType( int lDir ) const{  return sides[lDir].linkType;  }
 
@@ -52,9 +52,10 @@ namespace CAR
 		bool     canLinkRoad( int lDir ) const { return CanLinkRoad(sides[lDir].linkType); }
 		bool     canLinkFarm( int lDir ) const {  return CanLinkFarm( sides[lDir].linkType );  }
 		bool     isSemiCircularCity( int lDir ) const;
-		bool     isHalflingType() const {  return !!(contentFlag & TileContent::eHalfling);  }
+		bool     isHalflingType() const {  return !!(contentFlag & BIT(TileContent::eHalfling));  }
 		bool     haveSideType( SideType type ) const;
 		bool     haveRiver() const { return haveSideType( SideType::eRiver ); }
+
 
 		static bool CanLink( SideType typeA , SideType typeB );
 
@@ -143,12 +144,15 @@ namespace CAR
 
 		bool     have(TileContent::Enum context) const
 		{
-			return !!(mTile->contentFlag & context);
+			return !!(mTile->contentFlag & BIT(context));
 		}
 		SideContentType getSideContnet( int dir ) const;
-		TileContentType getTileContent() const;
+		TileContentMask getTileContent() const;
 
 		unsigned calcSideRoadLinkMeskToCenter() const;
+
+		Vec2i     getAircaftDirOffset() const;
+
 
 		static unsigned LocalToWorldRoadLinkMask( unsigned mask , int rotation );
 		static unsigned LocalToWorldSideLinkMask( unsigned mask , int rotation );

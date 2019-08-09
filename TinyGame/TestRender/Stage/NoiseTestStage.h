@@ -262,7 +262,6 @@ namespace Render
 
 	class NoiseShaderProgramBase : public GlobalShaderProgram
 	{
-		DECLARE_SHADER_PROGRAM(NoiseShaderProgramBase, Global);
 	public:
 		static void SetupShaderCompileOption(ShaderCompileOption& option)
 		{

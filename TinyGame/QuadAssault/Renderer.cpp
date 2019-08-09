@@ -1,7 +1,7 @@
 #include "Renderer.h"
 
 static IRenderer* gLink;
-static bool beInitilized  = false;
+static bool bInitialized  = false;
 
 struct RendererInitHelper
 {
@@ -22,7 +22,7 @@ void IRenderer::cleanup()
 
 void IRenderer::initialize()
 {
-	if ( beInitilized )
+	if ( bInitialized )
 		return;
 
 	IRenderer* link = gLink;
@@ -31,5 +31,5 @@ void IRenderer::initialize()
 		link->init();
 		link = link->mLink;
 	}
-	beInitilized = true;
+	bInitialized = true;
 }

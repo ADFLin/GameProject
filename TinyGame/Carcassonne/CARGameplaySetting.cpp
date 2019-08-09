@@ -36,9 +36,8 @@ namespace CAR
 	unsigned GameplaySetting::getFollowerMask() const
 	{
 		unsigned const BaseFollowrMask =
-			BIT(ActorType::eMeeple) | BIT(ActorType::eBigMeeple) |
-			BIT(ActorType::eMayor) | BIT(ActorType::eWagon) |
-			BIT(ActorType::eBarn) | BIT(ActorType::ePhantom);
+			BIT(ActorType::eMeeple) | BIT(ActorType::eBigMeeple) | BIT(ActorType::eAbbot) |
+			BIT(ActorType::eMayor) | BIT(ActorType::eWagon) | BIT(ActorType::ePhantom);
 
 		return BaseFollowrMask;
 	}

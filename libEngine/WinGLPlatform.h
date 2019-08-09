@@ -19,7 +19,7 @@ public:
 
 	OpenGLSupportT(){ mhRC = NULL; }
 
-	bool initilize( HDC hDC , BYTE colorDepth , bool beWindow = true )
+	bool initialize( HDC hDC , BYTE colorDepth , bool beWindow = true )
 	{
 		PIXELFORMATDESCRIPTOR pfd;
 		::ZeroMemory( &pfd , sizeof( pfd ) );
@@ -235,7 +235,7 @@ private:
 template < class T >
 bool WinGLFrameT<T>::createGLContext( BYTE colorDepth )
 {
-	OpenGLSupport::initilize( this->getHDC() , colorDepth );
+	OpenGLSupport::initialize( this->getHDC() , colorDepth );
 
 	RECT rect;
 	GetClientRect( this->getHWnd() , &rect );

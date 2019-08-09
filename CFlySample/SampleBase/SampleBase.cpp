@@ -107,7 +107,7 @@ bool SampleBase::handleKeyEvent( unsigned key , bool isDown )
 	return true;
 }
 
-void SampleBase::handerGameRender()
+void SampleBase::handleGameRender()
 {
 	onRenderScene();
 

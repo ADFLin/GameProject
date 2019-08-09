@@ -147,7 +147,7 @@ class CardLib
 public:
 	CardLib();
 	~CardLib();
-	static bool isInitilized(){ return hCardDll != NULL; }
+	static bool isInitialized(){ return hCardDll != NULL; }
 	static int  CardSizeX;
 	static int  CardSizeY;
 private:

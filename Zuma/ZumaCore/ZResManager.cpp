@@ -6,11 +6,13 @@
 #include "IRenderSystem.h"
 
 #include "FileSystem.h"
+#include "FixString.h"
 
-bool isFileExist( char const* path , char const* subFileName )
+bool IsFileExist( char const* path , char const* subFileName )
 {
-	std::string pathFile = std::string(path) + subFileName;
-	return FileSystem::IsExist( pathFile.c_str() );
+	FixString<512> filePath;
+	filePath.format("%s%s", path, subFileName);
+	return FileSystem::IsExist(filePath);
 }
 
 namespace Zuma
@@ -165,17 +167,17 @@ namespace Zuma
 		{
 			info.path = mCurDir + str;
 
-			if ( isFileExist( info.path.c_str() , ".gif") )
+			if ( IsFileExist( info.path.c_str() , ".gif") )
 			{
 				info.path += ".gif";
 				info.flag |= IMG_FMT_GIF;
 			}
-			else if ( isFileExist( info.path.c_str() , ".jpg"))
+			else if ( IsFileExist( info.path.c_str() , ".jpg"))
 			{
 				info.path += ".jpg";
 				info.flag |= IMG_FMT_JPG;
 			}
-			else if ( isFileExist( info.path.c_str() , ".bmp"))
+			else if ( IsFileExist( info.path.c_str() , ".bmp"))
 			{
 				info.path += ".bmp";
 				info.flag |= IMG_FMT_BMP;
@@ -207,7 +209,7 @@ namespace Zuma
 		{
 			std::string path = mCurDir + "_" + str;
 
-			if ( isFileExist( path.c_str() , ".gif" ) )
+			if ( IsFileExist( path.c_str() , ".gif" ) )
 			{
 				if ( info.path.empty() )
 					info.flag |= IMG_ALPHA_ONLY;
@@ -233,17 +235,17 @@ namespace Zuma
 		std::string str;
 		info.path = mCurDir + node->getStringProperty( "path" );
 
-		if ( isFileExist( info.path.c_str() , ".wav") )
+		if ( IsFileExist( info.path.c_str() , ".wav") )
 		{
 			info.path += ".wav";
 			info.flag |= SND_FMT_WAV;
 		}
-		else if ( isFileExist( info.path.c_str() , ".ogg"))
+		else if ( IsFileExist( info.path.c_str() , ".ogg"))
 		{
 			info.path += ".ogg";
 			info.flag |= SND_FMT_OGG;
 		}
-		else if ( isFileExist( info.path.c_str() , ".mp3"))
+		else if ( IsFileExist( info.path.c_str() , ".mp3"))
 		{
 			info.path += ".mp3";
 			info.flag |= SND_FMT_MP3;
@@ -364,17 +366,17 @@ namespace Zuma
 		{
 			info.path = mCurDir  + str;
 
-			if ( isFileExist( info.path.c_str() , ".gif") )
+			if ( IsFileExist( info.path.c_str() , ".gif") )
 			{
 				info.path += ".gif";
 				info.flag |= IMG_FMT_GIF;
 			}
-			else if ( isFileExist( info.path.c_str() , ".jpg"))
+			else if ( IsFileExist( info.path.c_str() , ".jpg"))
 			{
 				info.path += ".jpg";
 				info.flag |= IMG_FMT_JPG;
 			}
-			else if ( isFileExist( info.path.c_str() , ".bmp"))
+			else if ( IsFileExist( info.path.c_str() , ".bmp"))
 			{
 				info.path += ".bmp";
 				info.flag |= IMG_FMT_BMP;
@@ -406,7 +408,7 @@ namespace Zuma
 		{
 			str = mCurDir + "_" + str;
 
-			if ( isFileExist( str.c_str() , ".gif" ) )
+			if ( IsFileExist( str.c_str() , ".gif" ) )
 			{
 				if ( info.path.empty() )
 					info.flag |= IMG_ALPHA_ONLY;
@@ -437,12 +439,12 @@ namespace Zuma
 
 		info.path = mCurDir  + str;
 
-		if ( isFileExist( info.path.c_str() , ".wav") )
+		if ( IsFileExist( info.path.c_str() , ".wav") )
 		{
 			info.path += ".wav";
 			info.flag |= SND_FMT_WAV;
 		}
-		else if ( isFileExist( info.path.c_str() , ".ogg"))
+		else if ( IsFileExist( info.path.c_str() , ".ogg"))
 		{
 			info.path += ".ogg";
 			info.flag |= SND_FMT_OGG;

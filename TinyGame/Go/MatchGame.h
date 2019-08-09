@@ -172,7 +172,10 @@ namespace Go
 		{
 			return mHash == other.mHash;
 		}
-
+		bool operator != (MatchParamKey const& other) const
+		{
+			return mHash != other.mHash;
+		}
 		void setValue(std::string const&paramString)
 		{
 			mHash = FNV1a::MakeStringHash< uint64 >(paramString.c_str());
@@ -186,7 +189,7 @@ namespace Go
 
 		std::string    paramString;
 		MatchParamKey  paramKey;
-		int winCount;
+		uint32 winCount;
 
 		FixString< 128 > getName() const;
 		bool   isBot() const { return type != ControllerType::ePlayer; }
@@ -374,7 +377,7 @@ namespace Go
 			return result.c_str();
 		}
 
-		void addMatchResult(MatchPlayer players[2], GameSetting const& gameSetting);
+		void addMatchResult(MatchPlayer players[2], GameSetting const& gameSetting , uint32* savedWinCounts = nullptr);
 
 		void checkMapValid()
 		{
@@ -406,7 +409,7 @@ namespace Go
 		bool        bSwapColor = false;
 		bool        bAutoRun = false;
 		bool        bSaveSGF = false;
-		int         historyWinCounts[2];
+		uint32      historyWinCounts[2];
 
 
 		MatchPlayer& getPlayer(int color)

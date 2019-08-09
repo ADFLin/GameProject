@@ -104,9 +104,9 @@ namespace FlappyBird
 
 	struct ColObject
 	{
-		ColType type;
-		Vector2   pos;
-		Vector2   size;
+		ColType  type;
+		Vector2  pos;
+		Vector2  size;
 	};
 
 	static bool testInterection(float len, float min, float max)

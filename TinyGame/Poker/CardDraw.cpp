@@ -185,7 +185,7 @@ namespace Poker {
 		case eWin7:		
 			return new Win7CardShow( Global::GetDrawEngine().getWindow().getHDC() );
 		case eWinXP:
-			if ( CardLib::isInitilized() )
+			if ( CardLib::isInitialized() )
 				return new CCardDraw;
 		}
 		return new DBGCardDraw;

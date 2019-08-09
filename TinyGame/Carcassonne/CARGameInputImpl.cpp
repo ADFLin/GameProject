@@ -458,7 +458,7 @@ namespace CAR
 	{
 		if ( mActionData )
 		{
-			mActionData->resultSkipAction = true;
+			mActionData->bSkipActionForResult = true;
 			postActionCom( nullptr );
 		}
 	}

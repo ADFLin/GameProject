@@ -12,41 +12,49 @@ namespace CAR
 	enum Expansion : uint8
 	{
 		// ?:process -:Done +:Tested T:Title Edit
+		//Major
 		EXP_INNS_AND_CATHEDRALS,         //
 		EXP_TRADERS_AND_BUILDERS,        //
 		EXP_THE_PRINCESS_AND_THE_DRAGON, //+T +Dragon
 		EXP_THE_TOWER,                   //-Tower
 		EXP_ABBEY_AND_MAYOR,             //
+		
 		EXP_KING_AND_ROBBER,             //
+		EXP_THE_COUNT_OF_CARCASSONNE,
+		EXP_THE_RIVER_II,                //+T 
+		EXP_HERETICS_AND_SHRINES,
+
+		EXP_THE_CATAPULT,
 		EXP_BRIDGES_CASTLES_AND_BAZAARS, //
 		EXP_HILLS_AND_SHEEP,             //-T -Vineyards -Hill -shepherd -ST_HalfSeparate
+		EXP_THE_WHEEL_OF_FORTUNE ,
 
-		EXP_THE_RIVER,                   //+T +RiverRule
-		EXP_THE_RIVER_II,                //+T 
-
-		EXP_CASTLES,                     //?T ?CastleTile ?RoadCityScoring ?CastleFeature
-		EXP_PHANTOM,
-		EXP_HERETICS_AND_SHRINES,
-		EXP_ABBOT ,
+		//Minor
+		EXP_THE_ABBOT,
+		EXP_CASTLES_IN_GERMANY,           //?T ?CastleTile ?RoadCityScoring ?CastleFeature	
 		EXP_CROP_CIRCLE_I,
-		EXP_CROP_CIRCLE_II,
-		EXP_THE_FLY_MACHINES,
-		EXP_GOLDMINES,
-		EXP_THE_SCHOOL ,
+		EXP_CROP_CIRCLE_II, //Mini 7
+		EXP_DARMSTADT_PROMO ,
+		EXP_THE_FERRIES , //Mini 3
+		EXP_THE_FLIER,     //Mini 1
+		EXP_GAMES_QUARTERLY_11_EXPANSION ,
+		EXP_THE_GOLDMINES, //Mini 4
 		EXP_THE_FESTIVAL ,
-
-		EXP_THE_ROBBERS ,
 		EXP_HALFLINGS_I ,                //?T
  		EXP_HALFLINGS_II ,               //?T
-
-
-		EXP_THE_COUNT_OF_CARCASSONNE ,
-		EXP_LA_PORXADA ,
 		EXP_LITTLE_BUILDINGS ,
-		EXP_MAGE_AND_WITCH ,
-		EXP_THE_MESSSAGES ,
+		EXP_MAGE_AND_WITCH , //Mini 5
+		EXP_THE_MESSSAGES , //Mini 2
 		EXP_MONASTERIES ,
-
+		EXP_THE_PHANTOM,
+		EXP_THE_PLAGUE ,
+		EXP_LA_PORXADA,
+		EXP_THE_RIVER_I,                   //+T +RiverRule
+		EXP_THE_ROBBERS , //Mini 6
+		EXP_RUSSIAN_PROMOS ,
+		EXP_THE_SCHOOL,
+		EXP_SPIEL_2014_PROMO ,
+		EXP_THE_TUNNEL ,
 		EXP_THE_WIND_ROSES,             //+T ?StartTile
 
 		NUM_EXPANSIONS,
@@ -104,6 +112,7 @@ namespace CAR
 		eFlyMahine ,
 		eCropCircle ,
 		eShrine ,
+		eFair ,
 
 		eFestival ,
 		eWindRose ,
@@ -130,12 +139,12 @@ namespace CAR
 
 	struct TileDefine
 	{
-		uint8  numPiece;
+		uint8  numPieces;
 		uint8  linkType[4];
 		uint8  sideLink[2];
 		uint16 roadLink[2];
-		uint32 content;
-		uint16 sideContent[4];
+		TileContentMask content;
+		SideContentType sideContent[4];
 		uint8  centerFarmMask;
 		uint8  farmLink[6];
 		uint8  tag;

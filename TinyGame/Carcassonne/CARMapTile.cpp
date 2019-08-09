@@ -150,6 +150,18 @@ namespace CAR
 		return LocalToWorldRoadLinkMask( roadMask , rotation );
 	}
 
+	Vec2i MapTile::getAircaftDirOffset() const
+	{
+		assert( getTileContent() & BIT(TileContent::eAircraft ));
+		Vec2i localOffset = Vec2i(0,0);
+		for( int i = 0; i < TilePiece::NumSide; ++i )
+		{
+			if( mTile->sides[i].contentFlag & SideContent::eAircraftDirMark )
+				localOffset += FDir::LinkOffset(i);
+		}
+		return FDir::ToWorld(localOffset , rotation);
+	}
+
 	unsigned MapTile::LocalToWorldRoadLinkMask(unsigned roadMask, int rotation)
 	{
 		unsigned bitCenter = roadMask & TilePiece::CenterMask;
@@ -209,7 +221,7 @@ namespace CAR
 		return mTile->sides[dirLocal].contentFlag;
 	}
 
-	TileContentType MapTile::getTileContent() const
+	TileContentMask MapTile::getTileContent() const
 	{
 		return mTile->contentFlag;
 	}
@@ -282,7 +294,7 @@ namespace CAR
 				tileMerge->farms[iter.index].sideLinkMask |= sideMask;
 			}
 		}
-		tileMerge->contentFlag = ( TileContent::eTemp | ( mTile->contentFlag | tile.contentFlag ) ) & ~TileContent::eHalfling;
+		tileMerge->contentFlag = ( BIT(TileContent::eTemp) | ( mTile->contentFlag | tile.contentFlag ) ) & ~BIT(TileContent::eHalfling);
 		tileMerge->id = TEMP_TILE_ID;
 
 		//update

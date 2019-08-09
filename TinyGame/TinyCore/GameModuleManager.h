@@ -14,7 +14,8 @@ public:
 	~GameModuleManager();
 
 	TINY_API bool            loadModule( char const* path );
-	TINY_API void            cleanup();
+	TINY_API void            cleanupModuleInstances();
+	TINY_API void            cleanupModuleMemory();
 	TINY_API void            classifyGame( int attrID , GameModuleVec& games );
 	TINY_API IGameModule*    changeGame( char const* name );
 	TINY_API bool            changeGame(IGameModule* game);

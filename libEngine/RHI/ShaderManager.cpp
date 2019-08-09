@@ -277,7 +277,7 @@ namespace Render
 			delete mShaderFormat;
 			mShaderFormat = nullptr;
 		}
-		cleanupGlobalShader();
+		//cleanupGlobalShader();
 	}
 
 

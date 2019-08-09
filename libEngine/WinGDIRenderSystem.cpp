@@ -16,13 +16,7 @@ WinGdiGraphics2D::WinGdiGraphics2D( HDC hDC )
 	,mhDCRender( hDC )
 	,mhDCTarget( hDC )
 {
-	mbPenManaged   = false;
-	mbBrushManaged = false;
-	mbFontManaged  = false;
-
-	mhCurPen   = NULL;
-	mhCurBrush = NULL;
-	mhCurFont  = NULL;
+	mhClipRegion = NULL;
 
 	if ( mhDCTarget )
 		::SetBkMode( mhDCTarget , TRANSPARENT );
@@ -46,24 +40,10 @@ void WinGdiGraphics2D::releaseReources()
 
 void WinGdiGraphics2D::releaseUsedResources()
 {
-	if (mbFontManaged)
-	{
-		::DeleteObject(mhCurFont);
-		mhCurFont = NULL;
-		mbFontManaged = false;
-	}
-	if (mbBrushManaged)
-	{
-		::DeleteObject(mhCurBrush);
-		mhCurBrush = NULL;
-		mbBrushManaged = false;
-	}
-	if (mbPenManaged)
-	{
-		::DeleteObject(mhCurPen);
-		mhCurPen = NULL;
-		mbPenManaged = false;
-	}
+	mCurFont.release();
+	mCurBrush.release();
+	mCurPen.release();
+
 	if ( mhClipRegion )
 	{
 		LogWarning(0, "Forget Call end clip!!");
@@ -74,42 +54,29 @@ void WinGdiGraphics2D::releaseUsedResources()
 
 void WinGdiGraphics2D::setPenImpl( HPEN hPen , bool beManaged  )
 {
-	if ( hPen != mhCurPen )
+	if ( hPen != mCurPen )
 	{
-		if( mbPenManaged )
-			::DeleteObject(mhCurPen);
-
+		mCurPen.set(hPen, beManaged);
 		::SelectObject(getRenderDC(), hPen);
-
-		mhCurPen = hPen;
-		mbPenManaged = beManaged;
 	}
 }
 
 void WinGdiGraphics2D::setBrushImpl( HBRUSH hBrush , bool beManaged )
 {
-	if ( hBrush != mhCurBrush )
+	if ( hBrush != mCurBrush )
 	{
-		if( mbBrushManaged )
-			::DeleteObject(mhCurBrush);
-
+		mCurBrush.set(hBrush, beManaged);
 		::SelectObject(getRenderDC(), hBrush);
-		mhCurBrush = hBrush;
-		mbBrushManaged = beManaged;
 	}
 }
 
 
 void WinGdiGraphics2D::setFontImpl( HFONT hFont , bool beManaged )
 {
-	if ( hFont != mhCurFont )
+	if ( hFont != mCurFont )
 	{
-		if( mbFontManaged )
-			::DeleteObject(mhCurFont);
-
+		mCurFont.set(hFont, beManaged);
 		::SelectObject(getRenderDC(), hFont);
-		mhCurFont = hFont;
-		mbFontManaged = beManaged;
 	}
 }
 
@@ -193,8 +160,9 @@ void WinGdiGraphics2D::beginBlend( Vec2i const& pos , Vec2i const& size , float 
 
 	::SetViewportOrgEx( mBlendDC.getDC() , -mBlendPos.x , -mBlendPos.y , NULL );
 
-	::SelectObject( mBlendDC.getDC() , mhCurBrush );
-	::SelectObject( mBlendDC.getDC() , mhCurPen );
+	::SelectObject( mBlendDC.getDC(), mCurBrush );
+	::SelectObject( mBlendDC.getDC(), mCurPen );
+	::SelectObject( mBlendDC.getDC(), mCurFont );
 
 	setRenderDC( mBlendDC.getDC() );
 

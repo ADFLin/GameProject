@@ -213,6 +213,7 @@ namespace CAR
 		}
 #if CAR_USE_INPUT_COMMAND
 		std::for_each(mInputCommands.begin(), mInputCommands.end(), [](auto com) { delete com; });
+		mInputCommands.clear();
 #endif
 	}
 
@@ -1362,32 +1363,35 @@ namespace CAR
 		return Vector2(0,0);
 	}
 
-	void LevelStage::notifyPlaceTile( TileId id , MapTile* mapTiles[] , int numMapTile )
+	void LevelStage::notifyPlaceTiles( TileId id , MapTile* mapTiles[] , int numMapTile )
 	{
 		mTileShowObject->show( false );
 		
-		MapTile& mapTile = *mapTiles[0];
-
-		using namespace CFly;
-		Object* obj = mScene->createObject();
-		float x = mapTile.pos.x;
-		float y = mapTile.pos.y;
-		obj->setLocalPosition( Vector3(x,y,0) );
-		obj->setLocalOrientation( CF_AXIS_Z , Math::Deg2Rad(90*mapTile.rotation) );
-		createTileMesh( obj , id );
-		//obj->setRenderOption( CFRO_CULL_FACE , CF_CULL_NONE );
-
-		if( mapTile.getId() == TEMP_TILE_ID )
+		for( int i = 0 ; i < 1 ; ++i )
 		{
-			setTileObjectTexture(obj, mapTile.mergedTileId[0], 0);
-			setTileObjectTexture(obj, mapTile.mergedTileId[1], 1);
+			MapTile& mapTile = *mapTiles[i];
+
+			using namespace CFly;
+			Object* obj = mScene->createObject();
+			float x = mapTile.pos.x;
+			float y = mapTile.pos.y;
+			obj->setLocalPosition(Vector3(x, y, 0));
+			obj->setLocalOrientation(CF_AXIS_Z, Math::Deg2Rad(90 * mapTile.rotation));
+			createTileMesh(obj, id);
+			//obj->setRenderOption( CFRO_CULL_FACE , CF_CULL_NONE );
+
+			if( mapTile.getId() == TEMP_TILE_ID )
+			{
+				setTileObjectTexture(obj, mapTile.mergedTileId[0], 0);
+				setTileObjectTexture(obj, mapTile.mergedTileId[1], 1);
+			}
+			else
+			{
+				setTileObjectTexture(obj, mapTile.getId());
+			}
+
+			mRenderObjects.push_back(obj);
 		}
-		else
-		{
-			setTileObjectTexture(obj, mapTile.getId());
-		}
-		
-		mRenderObjects.push_back( obj );
 
 	}
 
@@ -1643,7 +1647,7 @@ namespace CAR
 		case EXP_BASIC: dir = "Basic"; break;
 		case EXP_INNS_AND_CATHEDRALS: dir = "InnCathedral"; break;
 		case EXP_TRADERS_AND_BUILDERS: dir = "TraderBuilder"; break;
-		case EXP_THE_RIVER: dir = "River"; break;
+		case EXP_THE_RIVER_I: dir = "River"; break;
 		case EXP_THE_RIVER_II: dir = "River2" ; break;
 		case EXP_THE_PRINCESS_AND_THE_DRAGON: dir = "PrincessDragon"; break;
 		case EXP_THE_TOWER: dir = "Tower"; break;
@@ -1651,7 +1655,7 @@ namespace CAR
 		case EXP_BRIDGES_CASTLES_AND_BAZAARS: dir = "BridgeCastleBazaar"; break;
 		case EXP_KING_AND_ROBBER: dir = "KingRobber"; break;
 		case EXP_HILLS_AND_SHEEP: dir = "HillsSheep"; break;
-		case EXP_CASTLES: dir = "Castle"; break;
+		case EXP_CASTLES_IN_GERMANY: dir = "Castle"; break;
 		case EXP_HALFLINGS_I: dir = "Halfling1"; break;
 		case EXP_HALFLINGS_II: dir = "Halfling2"; break;
 		case EXP_THE_WIND_ROSES: dir = "WindRose"; break;

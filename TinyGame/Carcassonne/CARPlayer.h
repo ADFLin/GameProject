@@ -50,15 +50,13 @@ namespace CAR
 		void setFieldValue(FieldType::Enum type, int value , int index = 0 );
 		int  modifyFieldValue( FieldType::Enum type , int value = 1 );
 
-		static int const MaxAcotrSlotNum = 10;
-
 		int mPlayOrder;
 		int mId;
 		int mTeam;
 
 		int mScore;
-		std::vector< int > mFieldValues;
 
+		std::vector< int > mFieldValues;
 		GameplaySetting* mSetting;
 
 		GameParamCollection& GetParamCollection(PlayerBase& t);

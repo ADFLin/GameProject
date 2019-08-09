@@ -30,6 +30,5 @@ namespace Render
 #endif //CORE_SHARE_CODE
 
 
-
 }//namespace RenderGL
 

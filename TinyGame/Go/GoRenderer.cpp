@@ -223,6 +223,7 @@ namespace Go
 #if DRAW_TEXTURE
 			RHISetBlendState(commandList, TStaticBlendState< CWM_RGBA, Blend::eSrcAlpha, Blend::eOneMinusSrcAlpha >::GetRHI());
 
+
 			glEnable(GL_TEXTURE_2D);
 			glActiveTexture(GL_TEXTURE0);
 #endif
@@ -254,6 +255,7 @@ namespace Go
 			RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
 #endif
 		}
+
 
 
 		{

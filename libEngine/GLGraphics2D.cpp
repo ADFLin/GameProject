@@ -156,7 +156,7 @@ void GLGraphics2D::beginRender()
 	RHISetupFixedPipelineState(commandList, AdjProjectionMatrixForRHI(OrthoMatrix(0 , mWidth, mHeight, 0 , -1, 1)));
 	RHISetInputStream(commandList, &TStaticRenderRTInputLayout<RTVF_XY>::GetRHI() , nullptr , 0 );
 
-	glDisable(GL_TEXTURE_2D);
+	//glDisable(GL_TEXTURE_2D);
 }
 
 void GLGraphics2D::endRender()
@@ -408,6 +408,8 @@ void GLGraphics2D::drawTextImpl(float  ox, float  oy, char const* str)
 
 void GLGraphics2D::drawPolygonBuffer()
 {
+
+	using namespace Render;
 #if	IGNORE_NSIGHT_UNSUPPORT_CODE
 	return;
 #endif
@@ -415,9 +417,20 @@ void GLGraphics2D::drawPolygonBuffer()
 	assert(!mBuffer.empty());
 
 #if 0
-
+	if( mDrawBrush )
+	{
+		glColor4f(mColorBrush.r, mColorBrush.g, mColorBrush.b, mAlpha);
+		glDrawArrays(GL_POLYGON, 0, mBuffer.size() / 2);
+	}
+	if( mDrawPen )
+	{
+		glColor4f(mColorPen.r, mColorPen.g, mColorPen.b, mAlpha);
+		glDrawArrays(GL_LINE_LOOP, 0, mBuffer.size() / 2);
+	}
 
 #else
+
+	RHISetInputStream(GetCommandList(), nullptr, nullptr, 0);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 
 	glEnableClientState(GL_VERTEX_ARRAY);

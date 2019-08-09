@@ -13,9 +13,17 @@
 
 namespace FlappyBird
 {
+	class AgentBase
+	{
+	public:
+		FCNeuralNetwork FNN;
+		GenotypePtr     genotype;	
+		NNScale*        inputsAndSignals = nullptr;
 
+	};
 
-	class Agent : public IController
+	class Agent : public AgentBase 
+		        , public IController
 	{
 	public:
 
@@ -23,11 +31,8 @@ namespace FlappyBird
 		float lifeTime = 0;
 
 		BirdEntity    hostBird;
-		GenotypePtr   genotype;
-		FCNeuralNetwork FNN;
-		NNScale*      inputsAndSignals = nullptr;
 
-		void init(FCNNLayout& layout);
+		void init(FCNNLayout const& layout);
 		void setGenotype(GenotypePtr  inGenotype);
 		void restart();
 		void tick();
@@ -41,6 +46,8 @@ namespace FlappyBird
 
 	struct TrainDataSetting
 	{
+		FCNNLayout* netLayout;
+
 		int    numAgents;
 		uint64 initWeightSeed;
 
@@ -52,6 +59,8 @@ namespace FlappyBird
 		float mutationValueDelta;
 		TrainDataSetting()
 		{
+			netLayout = nullptr;
+
 			numAgents = 200;
 			initWeightSeed = 0;
 			numPoolDataSelectUsed = 5;
@@ -82,10 +91,7 @@ namespace FlappyBird
 		void randomizeData();
 		void clearData();
 
-
-		FCNNLayout mNNLayout;
-
-		TrainDataSetting setting;
+		TrainDataSetting const* setting;
 		int    generation;
 		Agent* curBestAgent = nullptr;
 		std::vector< NNScale > bestInputsAndSignals;
@@ -165,7 +171,7 @@ namespace FlappyBird
 	{
 	public:
 		~TrainManager();
-		void init(TrainWorkSetting const& inSetting);
+		void init(TrainWorkSetting const& inSetting , int topology[] , int numTopology);
 
 		void startTrain();
 		void stopTrain();
@@ -180,14 +186,18 @@ namespace FlappyBird
 			return MakeLockedObjectHandle(mGenePool, &mPoolMutex); 
 		}
 
-		void stopAllWork();
+		TrainDataSetting& getDataSetting() { return setting.dataSetting; }
 
+		void stopAllWork();
+		FCNNLayout& getNetLayout() { return mNNLayout; }
 
 		TrainWorkSetting setting;
+
 		float topFitness = 0;
 	private:
 		
 		std::vector< std::unique_ptr<TrainWork> > mWorks;
+		FCNNLayout mNNLayout;
 		Mutex    mPoolMutex;
 		GenePool mGenePool;
 		QueueThreadPool  mWorkRunPool;

@@ -282,7 +282,7 @@ public:
 		delete this;
 	}
 
-	static bool initilize()
+	static bool initialize()
 	{
 		if ( FT_Init_FreeType( &sLibrary ) ) 
 		{
@@ -607,7 +607,7 @@ bool RenderSystem::init( PlatformWindow* window )
 		if( !mContext )
 			return false;
 
-		QA_LOG("Initilize glew...");
+		QA_LOG("initialize glew...");
 		GLenum result = glewInit();
 		if( result != GLEW_OK )
 		{
@@ -618,7 +618,7 @@ bool RenderSystem::init( PlatformWindow* window )
 #if USE_SFML_WINDOW
 		mRenderWindow = &window->mImpl;
 #elif USE_FREETYPE
-		CFont::initilize();
+		CFont::initialize();
 		mRenderWindow = &window;
 #else
 		mRenderWindow = window;

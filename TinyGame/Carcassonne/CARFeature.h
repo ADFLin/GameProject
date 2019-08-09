@@ -90,7 +90,7 @@ namespace CAR
 		void        addActor( LevelActor& actor );
 		void        removeActor( LevelActor& actor );
 		LevelActor* removeActorByIndex( int index );
-		bool        testInRange( Vec2i const& min , Vec2i const& max );
+		bool        testInRectArea( Vec2i const& min , Vec2i const& max );
 		int         calcScore(GamePlayerManager& playerManager, FeatureScoreInfo& outResult);
 
 		virtual bool checkComplete() const { return false; }
@@ -109,7 +109,7 @@ namespace CAR
 		void generateMajority( std::vector< FeatureControllerScoreInfo >& controllerScores);
 		int  evalMajorityControl(std::vector< FeatureControllerScoreInfo >& controllerScores);
 		void addMapTile( MapTile& mapTile ){ mapTiles.insert( &mapTile ); }
-		bool haveTileContent(unsigned contentMask) const;
+		bool haveTileContent(TileContentMask contentMask) const;
 
 		template< class T >
 		static void MergeData( T& to , T const& src )
@@ -159,7 +159,7 @@ namespace CAR
 		virtual bool getActorPos( MapTile const& mapTile , ActorPos& actorPos );
 		virtual int  getScoreTileNum() const { return mapTiles.size(); }
 
-		int getSideContentNum(unsigned contentMask);
+		int getSideContentNum(SideContentType contentMask);
 		bool checkNodesConnected() const;
 
 		int calcOpenCount();
@@ -312,7 +312,11 @@ namespace CAR
 
 		std::vector< MapTile* > neighborTiles;
 
-		virtual bool checkComplete() const override { return neighborTiles.size() == 10; }
+		virtual bool checkComplete() const override 
+		{ 
+			assert(mapTiles.size() == 2);
+			return neighborTiles.size() == 10; 
+		}
 		virtual int  getActorPutInfo( int playerId , int posMeta , MapTile& mapTile, std::vector< ActorPosInfo >& outInfo ) override;
 		virtual void mergeData( FeatureBase& other , MapTile const& putData , int meta );
 		virtual int  doCalcScore( GamePlayerManager& playerManager , FeatureScoreInfo& outResult) override;

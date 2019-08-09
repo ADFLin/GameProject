@@ -44,7 +44,9 @@ namespace Render
 
 				//#FIXME
 				if( gRHISystem->getName() != RHISytemName::D3D11 )
+				{
 					InitGlobalRHIResource();
+				}
 			}		
 		}
 		

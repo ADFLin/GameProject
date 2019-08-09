@@ -573,7 +573,7 @@ namespace Go
 
 		static Zen::CoreSetting GetCoreConfigSetting();
 
-		virtual bool initilize(void* settingData) override;
+		virtual bool initialize(void* settingData) override;
 		virtual void destroy() override;
 		virtual bool setupGame(GameSetting const& setting) override;
 		virtual bool restart() override;

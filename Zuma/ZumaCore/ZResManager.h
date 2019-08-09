@@ -8,7 +8,7 @@
 
 #define USE_NEW_XML 1
 
-bool isFileExist( char const* path , char const* subFileName );
+bool IsFileExist( char const* path , char const* subFileName );
 
 #if USE_NEW_XML
 

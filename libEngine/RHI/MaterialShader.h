@@ -8,6 +8,7 @@
 #include "CoreShare.h"
 #include <unordered_map>
 
+#include "LogSystem.h"
 //#MOVE
 
 namespace Render
@@ -19,6 +20,7 @@ namespace Render
 	{
 		typedef GlobalShaderProgram BaseClass;
 	public:
+
 		static void SetupShaderCompileOption(ShaderCompileOption& option)
 		{
 			BaseClass::SetupShaderCompileOption(option);

@@ -8,7 +8,6 @@ namespace BoneIK
 {
 	using namespace Math;
 
-	typedef Vector2 Vector2;
 	struct BoneState
 	{
 		Vector2 pos;

@@ -3,6 +3,7 @@
 
 #include "CARMapTile.h"
 #include "CARDebug.h"
+#include "CARExpansion.h"
 
 #include <algorithm>
 
@@ -38,13 +39,13 @@ namespace CAR
 #if TARGET_PLATFORM_64BITS
 	int FBit::ToIndex64(unsigned bit)
 	{
-		assert((bit & 0xffffffffffffffff) == bit);
+		assert((bit & 0xffffffffffffffffULL) == bit);
 		assert((bit & (bit - 1)) == 0);
 		int result = 0;
-		if( bit & 0xffffffff00000000 ) { result += 32; bit >>= 32; }
-		if( bit & 0x00000000ffff0000 ) { result += 16; bit >>= 16; }
-		if( bit & 0x000000000000ff00 ) { result += 8; bit >>= 8; }
-		if( bit & 0x00000000000000f0 ) { result += 4; bit >>= 4; }
+		if( bit & 0xffffffff00000000ULL ) { result += 32; bit >>= 32; }
+		if( bit & 0x00000000ffff0000ULL ) { result += 16; bit >>= 16; }
+		if( bit & 0x000000000000ff00ULL ) { result += 8; bit >>= 8; }
+		if( bit & 0x00000000000000f0ULL ) { result += 4; bit >>= 4; }
 		return result + gBitIndexMap[bit];
 	}
 #endif
@@ -536,6 +537,24 @@ namespace CAR
 		return false;
 	}
 
+	int WorldTileManager::getNeighborCount(Vec2i const& pos, TileContentMask content)
+	{
+		int result = 0;
+		for( int i = 0; i < FDir::NeighborNum; ++i )
+		{
+			Vec2i nPos = pos + FDir::NeighborOffset(i);
+			MapTile* mapTile = findMapTile(nPos);
+			if( mapTile )
+			{
+				if( mapTile->getTileContent() & content )
+				{
+					++result;
+				}
+			}
+		}
+		return result;
+	}
+
 	TileSetManager::TileSetManager()
 	{
 
@@ -626,7 +645,7 @@ namespace CAR
 		}
 
 		TileSet tileSet;
-		tileSet.numPiece = tileDef[0].numPiece;
+		tileSet.numPieces = tileDef[0].numPieces;
 		tileSet.tiles = tiles;
 		tileSet.tag = tileDef[0].tag;
 		tileSet.type = TileType::eDouble;
@@ -647,19 +666,18 @@ namespace CAR
 		setupTile( *tile , tileDef );
 
 		TileSet tileSet;
-		tileSet.numPiece = tileDef.numPiece;
+		tileSet.numPieces = tileDef.numPieces;
 		tileSet.tiles = tile;
 		tileSet.tag = tileDef.tag;
 		tileSet.type = TileType::eSimple;
-
-		mTileMap.push_back( tileSet );
-
 		if ( tile->haveRiver() )
 		{
 			group = TileSet::eRiver;
 		}
 
 		tileSet.group = group;
+
+		mTileMap.push_back(tileSet);
 		mSetMap[ group ].push_back( id );
 
 		return mTileMap[ id ];
@@ -667,7 +685,7 @@ namespace CAR
 
 	void TileSetManager::setupTile(TilePiece& tile , TileDefine const& tileDef)
 	{
-		bool isHalflingType = !!(tileDef.content & TileContent::eHalfling );
+		bool isHalflingType = !!(tileDef.content & BIT(TileContent::eHalfling) );
 		for( int i = 0; i < TilePiece::NumSide; ++i )
 		{
 			tile.sides[i].linkType = (SideType)tileDef.linkType[i];

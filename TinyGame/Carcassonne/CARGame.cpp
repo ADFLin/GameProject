@@ -68,7 +68,7 @@ namespace CAR
 		{ EXP_THE_TOWER , "The Tower" } ,
 		{ EXP_ABBEY_AND_MAYOR , "Abbey And Mayor" } ,
 		{ EXP_KING_AND_ROBBER , "King And Robber" } ,
-		{ EXP_THE_RIVER , "The River" } ,
+		{ EXP_THE_RIVER_I , "The River" } ,
 		{ EXP_THE_RIVER_II , "The River II" } ,
 		{ EXP_BRIDGES_CASTLES_AND_BAZAARS , "Bridges , Castles And Bazaars" } , 
 	};

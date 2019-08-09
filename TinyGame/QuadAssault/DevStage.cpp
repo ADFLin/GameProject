@@ -15,7 +15,8 @@
 #include "RHI/ShaderCore.h"
 #include "RHI/RHICommand.h"
 #include "RHI/ShaderManager.h"
-
+//#REMOVE
+#include "RHI/OpenGLCommon.h"
 class WidgetTest : public TestBase
 {
 

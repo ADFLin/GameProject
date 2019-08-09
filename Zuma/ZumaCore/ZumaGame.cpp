@@ -62,12 +62,12 @@ namespace Zuma
 		}
 	}
 
-	bool GameCore::init( GameInitializer& initilizer )
+	bool GameCore::init( GameInitializer& initializer )
 	{
-		if ( !initilizer.setupWindow( "Zuma Clone" , g_ScreenWidth , g_ScreenHeight ) )
+		if ( !initializer.setupWindow( "Zuma Clone" , g_ScreenWidth , g_ScreenHeight ) )
 			return false;
 
-		sRenderSystem = initilizer.createRenderSystem();
+		sRenderSystem = initializer.createRenderSystem();
 
 		if ( !sRenderSystem )
 			return false;

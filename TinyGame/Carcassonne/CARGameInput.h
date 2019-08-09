@@ -16,14 +16,14 @@ namespace CAR
 		{
 			playerId = -1;
 			bCanSkip = true;
-			resultSkipAction = false;
+			bSkipActionForResult = false;
 		}
 
 		template< class T >
 		T* cast(){ return static_cast< T* >( this ); }
 		int  playerId;
 		bool bCanSkip;
-		bool resultSkipAction;
+		bool bSkipActionForResult;
 	};
 
 
@@ -44,6 +44,7 @@ namespace CAR
 	enum ActionOptionGroup
 	{
 		ACTOPT_GROUP_DRAW_TILE ,
+		ACTOPT_GROUP_MOVE_THE_WOOD,
 		ACTOPT_GROUP_SHEPHERD ,
 		ACTOPT_GROUP_LA_PORXADA,
 		ACTOPT_GROUP_MOVE_MAGE_OR_WITCH ,
@@ -58,6 +59,13 @@ namespace CAR
 		ACTOPT_TILE_USE_RANDOM_TILE ,
 		ACTOPT_TILE_USE_ABBEY ,
 		ACTOPT_TILE_USE_HALFLING_TILE ,
+		//ACTOPT_GROUP_MOVE_THE_WOOD
+		ACTOPT_MTW_PLACE_FIGURES ,
+		ACTOPT_MTW_PLACE_FOLLOWER_ON_THE_WHEEL_OF_FORTUNE,
+		ACTOPT_MTW_REMOVE_ABBOT,
+		ACTOPT_MTW_PLACE_TOWER ,
+		ACTOPT_MTW_PLACE_LITTLE_BUILDING,
+		ACTOPT_MTW_MOVE_FARIY ,
 		//ACTOPT_GROUP_SHEPHERD
 		ACTOPT_SHEPHERD_EXPAND_THE_FLOCK ,
 		ACTOPT_SHEPHERD_HERD_THE_FLOCK_INTO_THE_STABLE ,

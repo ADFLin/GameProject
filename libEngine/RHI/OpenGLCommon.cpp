@@ -259,7 +259,6 @@ namespace Render
 		glTexParameteri(TypeEnumGL, GL_TEXTURE_MAX_LEVEL, numMipLevel - 1);
 		for( int i = 0; i < 6; ++i )
 		{
-
 			glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0,
 						 OpenGLTranslate::To(format), size, size, 0,
 						 OpenGLTranslate::BaseFormat(format), OpenGLTranslate::TextureComponentType(format), 
@@ -907,22 +906,14 @@ namespace Render
 	{
 		switch( fun )
 		{
-		case ECompareFun::Never:
-			return GL_NEVER;
-		case ECompareFun::Less:
-			return GL_LESS;
-		case ECompareFun::Equal:
-			return GL_EQUAL;
-		case ECompareFun::NotEqual:
-			return GL_NOTEQUAL;
-		case ECompareFun::LessEqual:
-			return GL_LEQUAL;
-		case ECompareFun::Greater:
-			return GL_GREATER;
-		case ECompareFun::GeraterEqual:
-			return GL_GEQUAL;
-		case ECompareFun::Always:
-			return GL_ALWAYS;
+		case ECompareFun::Never:       return GL_NEVER;
+		case ECompareFun::Less:        return GL_LESS;
+		case ECompareFun::Equal:       return GL_EQUAL;
+		case ECompareFun::NotEqual:    return GL_NOTEQUAL;
+		case ECompareFun::LessEqual:   return GL_LEQUAL;
+		case ECompareFun::Greater:     return GL_GREATER;
+		case ECompareFun::GeraterEqual:return GL_GEQUAL;
+		case ECompareFun::Always:      return GL_ALWAYS;
 		}
 		return GL_LESS;
 	}
@@ -931,22 +922,14 @@ namespace Render
 	{
 		switch( op )
 		{
-		case Stencil::eKeep:
-			return GL_KEEP;
-		case Stencil::eZero:
-			return GL_ZERO;
-		case Stencil::eReplace:
-			return GL_REPLACE;
-		case Stencil::eIncr:
-			return GL_INCR;
-		case Stencil::eIncrWarp:
-			return GL_INCR_WRAP;
-		case Stencil::eDecr:
-			return GL_DECR;
-		case Stencil::eDecrWarp:
-			return GL_DECR_WRAP;
-		case Stencil::eInvert:
-			return GL_INVERT;
+		case Stencil::eKeep:     return GL_KEEP;
+		case Stencil::eZero:     return GL_ZERO;
+		case Stencil::eReplace:  return GL_REPLACE;
+		case Stencil::eIncr:     return GL_INCR;
+		case Stencil::eIncrWarp: return GL_INCR_WRAP;
+		case Stencil::eDecr:     return GL_DECR;
+		case Stencil::eDecrWarp: return GL_DECR_WRAP;
+		case Stencil::eInvert:   return GL_INVERT;
 		}
 		return GL_KEEP;
 	}
@@ -995,16 +978,11 @@ namespace Render
 	{
 		switch( filter )
 		{
-		case Sampler::ePoint:
-			return GL_NEAREST;
-		case Sampler::eBilinear:
-			return GL_LINEAR;
-		case Sampler::eTrilinear:
-			return GL_LINEAR_MIPMAP_LINEAR;
-		case Sampler::eAnisotroicPoint:
-			return GL_LINEAR;
-		case Sampler::eAnisotroicLinear:
-			return GL_LINEAR_MIPMAP_LINEAR;
+		case Sampler::ePoint:            return GL_NEAREST;
+		case Sampler::eBilinear:         return GL_LINEAR;
+		case Sampler::eTrilinear:        return GL_LINEAR_MIPMAP_LINEAR;
+		case Sampler::eAnisotroicPoint:  return GL_LINEAR;
+		case Sampler::eAnisotroicLinear: return GL_LINEAR_MIPMAP_LINEAR;
 		}
 		return GL_NEAREST;
 	}
@@ -1013,14 +991,10 @@ namespace Render
 	{
 		switch( mode )
 		{
-		case Sampler::eWarp:
-			return GL_REPEAT;
-		case Sampler::eClamp:
-			return GL_CLAMP_TO_EDGE;
-		case Sampler::eMirror:
-			return GL_MIRRORED_REPEAT;
-		case Sampler::eBorder:
-			return GL_CLAMP_TO_BORDER;
+		case Sampler::eWarp:   return GL_REPEAT;
+		case Sampler::eClamp:  return GL_CLAMP_TO_EDGE;
+		case Sampler::eMirror: return GL_MIRRORED_REPEAT;
+		case Sampler::eBorder: return GL_CLAMP_TO_BORDER;
 		}
 		return GL_REPEAT;
 	}
@@ -1497,9 +1471,10 @@ namespace Render
 
 	void OpenGLInputLayout::bindPointerUP(InputStreamInfo inputStreams[], int numInputStream)
 	{
+		bool haveTex = false;
 		if( numInputStream == 1 )
 		{
-			bool haveTex = false;
+
 			for( auto const& e : mElements )
 			{
 				uint32 offset = inputStreams[e.idxStream].offset;
@@ -1512,8 +1487,6 @@ namespace Render
 		}
 		else
 		{
-			bool haveTex = false;
-
 			for( int i = 0; i < numInputStream; ++i )
 			{
 				auto& inputStream = inputStreams[i];
@@ -1533,6 +1506,7 @@ namespace Render
 				}
 			}
 		}
+
 	}
 
 	void OpenGLInputLayout::bindPointer(LinearColor const* overwriteColor)

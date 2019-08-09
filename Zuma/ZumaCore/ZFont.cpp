@@ -292,7 +292,7 @@ namespace Zuma
 		layer->imagePath += "fonts/";
 		layer->imagePath += token;
 
-		if ( isFileExist( layer->imagePath.c_str() , ".gif") )
+		if ( IsFileExist( layer->imagePath.c_str() , ".gif") )
 			layer->imagePath += ".gif";
 		else
 			layer->imagePath.clear();

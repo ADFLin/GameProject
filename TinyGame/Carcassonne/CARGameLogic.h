@@ -74,7 +74,7 @@ namespace CAR
 
 		
 		void   loadSetting( bool bInit );
-		void   calcPlayerDeployActorPos(PlayerBase& player, MapTile* deplyMapTiles[], int numDeployTile, unsigned actorMask, bool haveUsePortal);
+		void   calcPlayerDeployActorPos(PlayerBase& player, MapTile* deplyMapTiles[], int numDeployTile, unsigned actorMask, bool haveUsePortal, unsigned ignoreFeatureMask);
 		int    getRemainingTileNum();
 		TileId drawPlayTile();
 
@@ -93,6 +93,19 @@ namespace CAR
 		int    modifyPlayerScore( int playerId, int value , EScroeType scoreType = EScroeType::Normal );
 		void   calcFinalScore();
 
+
+		struct FeatureUpdateInfo
+		{
+			FeatureUpdateInfo(FeatureBase* inFeature, bool inbAbbeyUpdate = false)
+				:feature(inFeature)
+				, bAbbeyUpdate(inbAbbeyUpdate)
+			{
+			}
+			FeatureBase* feature;
+			bool bAbbeyUpdate;
+		};
+		typedef std::vector< FeatureUpdateInfo > FeatureUpdateInfoVec;
+
 		struct TurnContext
 		{
 			TurnContext(PlayerBase* inPlayer , IGameInput& inInput)
@@ -103,6 +116,7 @@ namespace CAR
 
 			PlayerBase* getPlayer() { return mPlayer; }
 			IGameInput& getInput() { return mInput; }
+			FeatureUpdateInfoVec& getUpdateFeatures() { return mUpdateFeatures; }
 
 			TurnStatus  result;
 #if CAR_LOGIC_DEBUG
@@ -111,15 +125,17 @@ namespace CAR
 		private:
 			PlayerBase* mPlayer;
 			IGameInput& mInput;
+			FeatureUpdateInfoVec mUpdateFeatures;
 		};
 
 		struct CastleScoreInfo;
 
 		void resolvePlayerTurn(TurnContext& turnContext );
-		void resolveDeployActor(TurnContext& turnContext, MapTile* deployMapTiles[], int numDeployTile, unsigned actorMask, bool haveUsePortal, bool& haveDone);
+		void resolveDeployActor(TurnContext& turnContext, MapTile* deployMapTiles[], int numDeployTile, unsigned actorMask, bool haveUsePortal, unsigned ignoreFeatureMask, bool& haveDone);
 		void resolveMoveFairyToNextFollower(TurnContext& turnContext, bool& haveDone);
 		void resolvePlaceTile(TurnContext& turnContext, MapTile* placeMapTiles[] , int& numMapTile );
-		void resolvePortalUse(TurnContext& turnContext, MapTile*& deployMapTile, bool& haveUsePortal);
+		void resolvePortalUse(TurnContext& turnContext, MapTile*& outDeployMapTile);
+		void resolveeAircraftUse(TurnContext& turnContext, MapTile* aircraftTile, MapTile*& outDeployMapTile);
 		void resolveExpendShepherdFarm(TurnContext& turnContext, FeatureBase* feature );
 		void resolveCompletedCastles(TurnContext& turnContext , std::vector< FeatureScoreInfo >& featureScoreList );
 		void resolveDrawTile(TurnContext& turnContext, bool& haveHillTile );
@@ -142,22 +158,42 @@ namespace CAR
 
 		struct UpdateTileFeatureResult
 		{
-			UpdateTileFeatureResult()
+			UpdateTileFeatureResult(FeatureUpdateInfoVec& inUpdateFeatures)
+				:mUpdateFeatures(inUpdateFeatures)
 			{
 				numSideFeatureMerged = 0;
 			}
 
 			int numSideFeatureMerged;
+			
+			bool addUpdateFeature(FeatureBase* feature, bool bAbbeyUpdate)
+			{
+				FeatureUpdateInfoVec::iterator iter =
+					std::find_if(mUpdateFeatures.begin(), mUpdateFeatures.end(), FindFeature(feature));
+				if( iter != mUpdateFeatures.end() )
+				{
+					if( iter->bAbbeyUpdate )
+						iter->bAbbeyUpdate = bAbbeyUpdate;
+
+					return false;
+				}
+				else
+				{
+					mUpdateFeatures.push_back(FeatureUpdateInfo(feature, bAbbeyUpdate));
+					return true;
+				}
+			}
+			FeatureUpdateInfoVec& mUpdateFeatures;
 		};
 
 		void updateTileFeature( MapTile& mapTile , UpdateTileFeatureResult& updateResult );
 		void checkCastleComplete(FeatureBase &feature, int score);
 		void expandSheepFlock(LevelActor* actor);
 		void updateBarnFarm(FarmFeature* farm, FeatureScoreInfo& featureScore);
-		bool checkHaveBuilderFeatureExpend(PlayerBase* trunPlayer);
+		bool checkHaveBuilderFeatureExpend(PlayerBase* turnPlayer, FeatureUpdateInfoVec const& updateFeatures);
 		bool checkGameStatus( TurnStatus& result );
 
-		PlayerBase* getTurnPlayer(){ return mPlayerOrders[ mIdxPlayerTrun ]; }
+		PlayerBase* getTurnPlayer(){ return mOrderedPlayers[ mIdxPlayerTrun ]; }
 	
 		void  returnActorToPlayer( LevelActor* actor );
 		void  removeActor(LevelActor* actor)
@@ -168,7 +204,7 @@ namespace CAR
 
 		void  shuffleTiles( TileId* begin , TileId* end );
 
-		int   getActorPutInfo(int playerId , MapTile& mapTile , bool bUsageMagicPortal , std::vector< ActorPosInfo >& outInfo);
+		int   getActorPutInfo(int playerId , MapTile& mapTile , bool haveUsePortal, unsigned ignoreFeatureMask, std::vector< ActorPosInfo >& outInfo);
 
 		void   getMinTitlesNoCompletedFeature(FeatureType::Enum type, unsigned playerMask, unsigned actorTypeMask, std::vector<FeatureBase*>& outFeatures);
 		void   getFeatureNeighborMapTile(FeatureBase& feature, MapTileSet& outMapTile);
@@ -188,7 +224,6 @@ namespace CAR
 		void       destroyFeature( FeatureBase* build );
 
 		std::vector< FeatureBase* > mFeatureMap;
-		int mIndexCacheBuild;
 
 		int getFollowers( unsigned playerIdMask , ActorList& outActors , LevelActor* actorSkip  = nullptr );
 		LevelActor* createActor( ActorType type );
@@ -231,21 +266,10 @@ namespace CAR
 
 		std::vector< Vec2i >  mPlaceTilePosList;
 		std::vector< TileId > mTilesQueue;
-		std::vector< PlayerBase* > mPlayerOrders;
+		std::vector< PlayerBase* > mOrderedPlayers;
 		std::vector< ActorPosInfo > mActorDeployPosList;
 
-		bool addUpdateFeature( FeatureBase* feature , bool bAbbeyUpdate = false );
 		void placeAllTileDebug( int numRow );
-		struct FeatureUpdateInfo
-		{
-			FeatureUpdateInfo( FeatureBase* inFeature , bool inbAbbeyUpdate = false )
-				:feature( inFeature )
-				,bAbbeyUpdate( inbAbbeyUpdate )
-			{
-			}
-			FeatureBase* feature;
-			bool bAbbeyUpdate;
-		};
 
 		struct FindFeature
 		{ 
@@ -257,8 +281,7 @@ namespace CAR
 			FeatureBase* feature;
 		};
 		
-		typedef std::vector< FeatureUpdateInfo > FeatureUpdateInfoVec;
-		FeatureUpdateInfoVec mUpdateFeatures;
+
 
 		//EXP_THE_PRINCESS_AND_THE_DRAGON
 		LevelActor*  mDragon;
@@ -314,6 +337,8 @@ namespace CAR
 		//EXP_CASTLES
 		std::vector< GermanCastleFeature* > mGermanCastles;
 
+		//EXP_THE_SCHOOL
+		LevelActor* mTecher;
 
 		//EXP_MAGE_AND_WITCH
 		LevelActor* mMage;

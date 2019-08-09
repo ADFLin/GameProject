@@ -523,7 +523,7 @@ namespace Render
 
 
 		template< class Op >
-		void serialize(Op op)
+		void serialize(Op& op)
 		{
 			op & mElements;
 			if( Op::IsLoading )

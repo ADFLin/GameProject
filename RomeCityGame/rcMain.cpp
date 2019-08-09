@@ -230,7 +230,7 @@ public:  //GameCore
 
 		return shouldTime; 
 	}
-	void handerGameRender() CRTP_OVERRIDE
+	void handleGameRender() CRTP_OVERRIDE
 	{
 		PROFILE_ENTRY( "Game::Render" )
 

@@ -262,8 +262,6 @@ namespace Go
 
 		GameProxy mGame;
 
-		MatchResultMap mMatchResultMap;
-
 		bool bDrawDebugMsg = false;
 		bool bDrawFontCacheTexture = false;
 		BoardRenderer mBoardRenderer;
@@ -411,6 +409,11 @@ namespace Go
 		GWidget* mWinRateWidget = nullptr;
 		bool    mbRestartLearning = false;
 
+		MatchResultMap mMatchResultMap;
+		uint32         mLastMatchRecordWinCounts[2];
+		void recordMatchResult( bool bSaveToFile );
+
+
 		GameProxy& getViewingGame()
 		{
 			if( bTryPlayingGame )
@@ -444,6 +447,7 @@ namespace Go
 		void updateFrame(int frame) {}
 
 		void cleanupModeData(bool bEndStage = false);
+
 		void keepLeelaProcessRunning(long time);
 
 		void processLearningCommand();
@@ -453,6 +457,7 @@ namespace Go
 		void resetGameParam();
 		void resetTurnParam();
 		void restartAutoMatch();
+		void postMatchGameEnd();
 
 		bool buildLearningMode();
 		bool buildAnalysisMode();

@@ -5,29 +5,21 @@
 
 #include <algorithm>
 
-#define INPUT_MODE 0
 
 namespace FlappyBird
 {
-#if INPUT_MODE == 0
-	int gDefaultTopology[] = { 3 , 5 , 7 , 5 , 3 , 1 };
-#elif INPUT_MODE == 1
-	int gDefaultTopology[] = { 5 , 7 , 4 , 1 };
-#else
-	int gDefaultTopology[] = { 2 , 4 , 1 };
-#endif
 
-
-	void Agent::init( FCNNLayout& layout )
+	void Agent::init(FCNNLayout const& layout )
 	{
 		FNN.init(layout);
 		GenotypePtr pGT = std::make_shared<Genotype>();
-		pGT->data.resize(FNN.getLayout().getWeightNum());
+		pGT->data.resize(layout.getWeightNum());
 		setGenotype(pGT);
 	}
 
 	void Agent::setGenotype(GenotypePtr inGenotype)
 	{
+		assert(FNN.getLayout().getWeightNum() == inGenotype->data.size());
 		genotype = inGenotype;
 		FNN.setWeights(inGenotype->data);
 	}
@@ -151,20 +143,20 @@ namespace FlappyBird
 
 	void TrainData::init(TrainDataSetting const& inSetting)
 	{
-		setting = inSetting;
-		mNNLayout.init(gDefaultTopology, ARRAY_SIZE(gDefaultTopology));
+		setting = &inSetting;
 
-		assert(setting.numAgents > 0);
+		FCNNLayout& netLayout = *inSetting.netLayout;
+		assert(setting->numAgents > 0);
 		generation = 0;
-		for( int i = 0; i < setting.numAgents; ++i )
+		for( int i = 0; i < setting->numAgents; ++i )
 		{
 			auto pAgent = std::make_unique< Agent >();
-			pAgent->init( mNNLayout );
+			pAgent->init(netLayout);
 			pAgent->randomizeData(GA.mRand);
 			mAgents.push_back(std::move(pAgent));
 		}
 		FCNeuralNetwork& FNN = mAgents[0]->FNN;
-		bestInputsAndSignals.resize(FNN.getLayout().getInputNum() + FNN.getLayout().getHiddenNodeNum() + FNN.getLayout().getOutputNum());
+		bestInputsAndSignals.resize(netLayout.getInputNum() + netLayout.getHiddenNodeNum() + netLayout.getOutputNum());
 	}
 
 	void TrainData::tick()
@@ -190,20 +182,22 @@ namespace FlappyBird
 
 	void TrainData::usePoolData(GenePool& pool)
 	{
-		setting.numAgents = pool.getDataSet().size();
-		if( mAgents.size() != setting.numAgents )
+		FCNNLayout const& netLayout = *setting->netLayout;
+
+		assert( setting->numAgents == pool.getDataSet().size() );
+		if( mAgents.size() != setting->numAgents )
 		{
-			if( mAgents.size() > setting.numAgents )
+			if( mAgents.size() > setting->numAgents )
 			{
 				mAgents.resize(pool.getDataSet().size());
 			}
 			else
 			{
-				int numNewAgents = setting.numAgents - mAgents.size();
+				int numNewAgents = setting->numAgents - mAgents.size();
 				for( int i = 0; i < numNewAgents; ++i )
 				{
 					auto pAgent = std::make_unique< Agent >();
-					pAgent->init( mNNLayout );
+					pAgent->init(netLayout);
 					mAgents.push_back(std::move(pAgent));
 				}
 			}
@@ -226,7 +220,7 @@ namespace FlappyBird
 
 		if( genePool && !genePool->mStorage.empty() )
 		{
-			int poolSelectionNum = std::min(setting.numPoolDataSelectUsed, (int)genePool->mStorage.size());
+			int poolSelectionNum = std::min(setting->numPoolDataSelectUsed, (int)genePool->mStorage.size());
 			for( int i = 0; i < poolSelectionNum; ++i )
 			{
 				tempSelections.push_back((*genePool)[i]);
@@ -244,14 +238,14 @@ namespace FlappyBird
 			return p1->fitness > p2->fitness;
 		});
 
-		tempSelections.resize( setting.numTrainDataSelect );
+		tempSelections.resize( setting->numTrainDataSelect );
 
 		std::vector< GenotypePtr > selections;
-		GA.select(setting.numTrainDataSelect, tempSelections, selections);
+		GA.select(setting->numTrainDataSelect, tempSelections, selections);
 		
 		std::vector< GenotypePtr > offsprings;
 		GA.crossover(mAgents.size(), selections, offsprings);
-		GA.mutate(offsprings, setting.mutationGeneProb ,setting.mutationValueProb, setting.mutationValueDelta);
+		GA.mutate(offsprings, setting->mutationGeneProb ,setting->mutationValueProb, setting->mutationValueDelta);
 
 		if ( genePool )
 		{
@@ -291,6 +285,7 @@ namespace FlappyBird
 
 	void TrainData::inputData(IStreamSerializer::ReadOp& op)
 	{
+		FCNNLayout const& netLayout = *setting->netLayout;
 		int numAgentData;
 		op & numAgentData;
 
@@ -298,9 +293,6 @@ namespace FlappyBird
 		{
 			int dataSize;
 			op & dataSize;
-			std::vector<int> topology;
-			op & topology;
-			mNNLayout.init(&topology[0], topology.size());
 
 			for( int i = 0; i < numAgentData; ++i )
 			{
@@ -309,7 +301,7 @@ namespace FlappyBird
 				op & gt->data;
 
 				auto pAgent = std::make_unique< Agent >();
-				pAgent->FNN.init(mNNLayout);
+				pAgent->FNN.init(netLayout);
 				pAgent->setGenotype(gt);
 				mAgents.push_back(std::move(pAgent));
 			}
@@ -326,9 +318,6 @@ namespace FlappyBird
 			int dataSize = mAgents[0]->genotype->data.size();
 			op & dataSize;
 
-			std::vector<int> topology;
-			mAgents[0]->FNN.getLayout().getTopology(topology);
-			op & topology;
 			for( int i = 0; i < mAgents.size(); ++i )
 			{
 				Genotype* gt = mAgents[i]->genotype.get();
@@ -440,10 +429,12 @@ namespace FlappyBird
 		stopAllWork();
 	}
 
-	void TrainManager::init(TrainWorkSetting const& inSetting)
+	void TrainManager::init(TrainWorkSetting const& inSetting, int topology[], int numTopology)
 	{
 		setting = inSetting;
+		setting.dataSetting.netLayout = &mNNLayout;
 		mGenePool.maxPoolNum = setting.masterPoolNum;
+		mNNLayout.init(topology, numTopology);
 		mWorkRunPool.init(setting.numWorker);
 	}
 
@@ -477,6 +468,11 @@ namespace FlappyBird
 		}
 
 		IStreamSerializer::ReadOp op(serializer);
+		data.setting = &getDataSetting();
+
+		std::vector<int> topology;
+		op & topology;
+		mNNLayout.init(&topology[0], topology.size());
 
 		{
 			Mutex::Locker locker(mPoolMutex);
@@ -517,6 +513,11 @@ namespace FlappyBird
 		}
 
 		IStreamSerializer::WriteOp op(serializer);
+
+
+		std::vector<int> topology;
+		mNNLayout.getTopology(topology);
+		op & topology;
 
 		{
 			Mutex::Locker locker(mPoolMutex);
@@ -573,7 +574,7 @@ namespace FlappyBird
 
 	void NeuralNetworkRenderer::draw(IGraphics2D& g)
 	{
-		FCNNLayout& NNLayout = FNN.getLayout();
+		FCNNLayout const& NNLayout = FNN.getLayout();
 		for( int i = 0; i < NNLayout.getInputNum(); ++i )
 		{
 			Vector2 pos = getInputNodePos(i);
@@ -586,7 +587,7 @@ namespace FlappyBird
 		int idxPrevLayerSignal = 0;
 		for( int i = 0; i <= NNLayout.getHiddenLayerNum(); ++i )
 		{
-			NeuralFullConLayer& layer = NNLayout.getLayer(i);
+			NeuralFullConLayer const& layer = NNLayout.getLayer(i);
 			int prevNodeNum = NNLayout.getPrevLayerNodeNum(i);
 			for( int idxNode = 0; idxNode < layer.numNode; ++idxNode )
 			{

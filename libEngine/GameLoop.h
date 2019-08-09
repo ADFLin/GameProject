@@ -40,7 +40,7 @@ protected:
 	CRTP_FUNC void finalizeGame(){}
 	CRTP_FUNC long handleGameUpdate( long shouldTime ){ return shouldTime; }
 	CRTP_FUNC void handleGameIdle(long time){}
-	CRTP_FUNC void handerGameRender(){}
+	CRTP_FUNC void handleGameRender(){}
 	CRTP_FUNC void handleGameLoopBusy( long deltaTime ){}
 
 private:
@@ -87,7 +87,7 @@ void GameLoopT< T , PP >::run()
 				break;
 
 			long updateTime = _this()->handleGameUpdate(intervalTime);
-			_this()->handerGameRender();
+			_this()->handleGameRender();
 
 			beforeTime += updateTime;
 			mFrameTime += updateTime;

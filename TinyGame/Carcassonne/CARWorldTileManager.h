@@ -3,7 +3,6 @@
 
 #include "CARCommon.h"
 #include "CARLevelActor.h"
-#include "CARExpansion.h"
 #include "CARMapTile.h"
 
 #include "Core/TypeHash.h"
@@ -17,6 +16,8 @@ namespace CAR
 {
 	class TilePiece;
 	class MapTile;
+
+	struct TileDefine;
 	struct ExpansionContent;
 
 	struct TileType
@@ -45,7 +46,7 @@ namespace CAR
 		TilePiece*     tiles;
 		EGroup         group;
 		uint32         tag;
-		int            numPiece;
+		int            numPieces;
 	};
 
 	typedef std::vector< TileId > TileIdVec;
@@ -74,7 +75,7 @@ namespace CAR
 	private:
 		void     setupTile( TilePiece& tile , TileDefine const& tileDef );
 		TileSet& createSingleTileSet( TileDefine const& tileDef , TileSet::EGroup group = TileSet::eCommon );
-		TileSet& createDoubleTileSet(TileDefine const tileDef[] , TileSet::EGroup group );
+		TileSet& createDoubleTileSet( TileDefine const tileDef[] , TileSet::EGroup group );
 		unsigned calcFarmSideLinkMask( unsigned linkMask );
 		
 
@@ -102,6 +103,7 @@ namespace CAR
 		uint8 checkRiverConnect : 1;
 		uint8 checkRiverDirection: 1;
 		uint8 checkDontNearSameTag : 1;
+		uint8 checkNeighborCloisterOrShrine : 1;
 
 		int   dirNeedUseBridge;
 		int   idxTileUseBridge;
@@ -135,6 +137,8 @@ namespace CAR
 		auto        createWorldTileIterator() const { return MakeIterator(mMap); }
 		auto        createEmptyLinkPosIterator() const { return MakeIterator(mEmptyLinkPosSet); }
 
+		int         getNeighborCount(Vec2i const& pos, TileContentMask content);
+
 	private:
 		bool        canPlaceTileList( TileId tileId , int numTile , Vec2i const& pos , int rotation , PlaceTileParam& param );
 		
@@ -153,6 +157,8 @@ namespace CAR
 		bool        canPlaceTileInternal( TilePiece const& tile , Vec2i const& pos , int rotation , PlaceTileParam& param , PlaceResult& result );
 		bool        canMergeHalflingTile(TilePiece const& tile, MapTile* halflingTile, PlaceTileParam& param);
 		bool        checkRiverLinkDirection( Vec2i const& pos , int dirLink , int dir );
+
+
 		void        incCheckCount();
 
 
@@ -160,7 +166,7 @@ namespace CAR
 		{
 			bool operator() ( Vec2i const& v1 , Vec2i const& v2 ) const
 			{
-				return ( v1.x < v2.x ) || ( !(v1.x == v2.x) && v1.y < v2.y );
+				return ( v1.x < v2.x ) || ( !(v2.x < v1.x) && v1.y < v2.y );
 			}
 		};
 		struct VecHasher
@@ -174,11 +180,16 @@ namespace CAR
 		};
 
 		std::vector< MapTile* > mHalflingTiles;
+#if 0
+		typedef std::map< Vec2i , MapTile , VecCmp > WorldTileMap;
+		typedef std::set< Vec2i , VecCmp > PosSet;
+#else
 		typedef std::unordered_map< Vec2i, MapTile, VecHasher > WorldTileMap;
-		//typedef std::map< Vec2i , MapTile , VecCmp > WorldTileMap;
-		WorldTileMap    mMap;
-		//typedef std::set< Vec2i , VecCmp > PosSet;
 		typedef std::unordered_set< Vec2i, VecHasher > PosSet;
+#endif
+
+		WorldTileMap    mMap;
+
 		PosSet          mEmptyLinkPosSet;
 
 		TileSetManager* mTileSetManager;

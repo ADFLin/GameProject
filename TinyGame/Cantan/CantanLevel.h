@@ -215,7 +215,7 @@ namespace Cantan
 		{
 			bool operator() ( Vec2i const& v1 , Vec2i const& v2 ) const
 			{
-				return ( v1.x < v2.x ) || ( !(v1.x < v2.x) && v1.y < v2.y );
+				return ( v1.x < v2.x ) || ( !(v2.x < v1.x) && v1.y < v2.y );
 			}
 		};
 		typedef std::map< Vec2i , MapNode* , VecCmp > PosNodeMap;

@@ -2,6 +2,8 @@
 
 #include "RHI/RHICommandListImpl.h"
 
+#include "LogSystem.h"
+
 namespace Render
 {
 #define CHECK_PARAMETER( PARAM ) if ( !PARAM.isBound() ){ LogWarning( 0 ,"Shader Param not bounded" ); return; }

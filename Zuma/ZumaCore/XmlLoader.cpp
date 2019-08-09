@@ -317,9 +317,9 @@ IXmlNodePtr CXmlNodeBase::getChild( char const* name )
 		node->mNodeImpl = &pt;
 		return node;
 	}
-	catch ( boost::property_tree::ptree_bad_path& )
+	catch ( boost::property_tree::ptree_bad_path& e )
 	{
-		//::WarmingMsg( 0 , e.what() );
+		LogWarning( 0 , e.what() );
 		return NULL;
 	}
 }
@@ -413,7 +413,7 @@ IXmlDocumentPtr IXmlDocument::CreateFromFile( char const* path )
 	}
 	catch (boost::property_tree::xml_parser_error& e)
 	{
-		LogError( e.what() );
+		LogWarning( 0 , e.what() );
 		return NULL;
 	}
 }

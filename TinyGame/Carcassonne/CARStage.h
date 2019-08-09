@@ -200,7 +200,7 @@ namespace CAR
 		Vector2 getActorPosMapOffset( ActorPos const& pos );
 
 		//IGameEventListener
-		virtual void notifyPlaceTile( TileId id , MapTile* mapTiles[] , int numMapTile );
+		virtual void notifyPlaceTiles( TileId id , MapTile* mapTiles[] , int numMapTile ) override;
 		
 		//
 		void setTileObjectTexture( CFly::Object* obj, TileId id , int idMesh = 0 );

@@ -38,8 +38,6 @@ namespace Render
 		class GlobalShaderProgramClass const* myClass;
 	};
 
-
-
 	class GlobalShaderProgramClass
 	{
 	public:

@@ -31,7 +31,7 @@ namespace CAR
 
 	typedef TVector2<int> Vec2i;
 
-	inline bool isInRange( Vec2i const& pos , Vec2i const& min , Vec2i const& max )
+	inline bool IsInRect( Vec2i const& pos , Vec2i const& min , Vec2i const& max )
 	{
 		return min.x <= pos.x && pos.x <= max.x &&
 			   min.y <= pos.y && pos.y <= max.y;

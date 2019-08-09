@@ -407,7 +407,7 @@ namespace Go
 		return setting;
 	}
 
-	bool ZenBot::initilize(void* settingData)
+	bool ZenBot::initialize(void* settingData)
 	{
 		switch( mCoreVersion )
 		{

@@ -69,7 +69,7 @@ namespace Go
 		}
 		if( bot )
 		{
-			if( !bot->initilize(botSetting) )
+			if( !bot->initialize(botSetting) )
 			{
 				bot.release();
 				return false;
@@ -107,7 +107,7 @@ namespace Go
 
 
 
-	void MatchResultMap::addMatchResult(MatchPlayer players[2], GameSetting const& gameSetting)
+	void MatchResultMap::addMatchResult(MatchPlayer players[2], GameSetting const& gameSetting, uint32* savedWinCounts)
 	{
 		MatchKey key;
 		key.setValue(players, gameSetting);
@@ -116,20 +116,31 @@ namespace Go
 
 		resultData.gameSetting = ToString(gameSetting);
 
-		if( key.playerParamKeys[0] == players[0].paramKey )
+		int idx0 = 0;
+		int idx1 = 1;
+
+		if( key.playerParamKeys[0] != players[0].paramKey )
 		{
-			resultData.winCounts[0] += players[0].winCount;
-			resultData.winCounts[1] += players[1].winCount;
-			resultData.playerSetting[0] = players[0].paramString;
-			resultData.playerSetting[1] = players[1].paramString;
+			std::swap(idx0, idx1);
+		}
+
+		if( savedWinCounts )
+		{
+			assert(players[0].winCount >= savedWinCounts[0] &&
+				   players[1].winCount >= savedWinCounts[1]);
+			resultData.winCounts[0] += (players[idx0].winCount - savedWinCounts[idx0]);
+			resultData.winCounts[1] += (players[idx1].winCount - savedWinCounts[idx1]);
+
+			savedWinCounts[0] = players[0].winCount;
+			savedWinCounts[1] = players[1].winCount;
 		}
 		else
 		{
-			resultData.winCounts[1] += players[0].winCount;
-			resultData.winCounts[0] += players[1].winCount;
-			resultData.playerSetting[1] = players[0].paramString;
-			resultData.playerSetting[0] = players[1].paramString;
+			resultData.winCounts[0] += players[idx0].winCount;
+			resultData.winCounts[1] += players[idx1].winCount;
 		}
+		resultData.playerSetting[0] = players[idx0].paramString;
+		resultData.playerSetting[1] = players[idx1].paramString;
 	}
 
 	bool MatchResultMap::convertLeelaWeight(LeelaWeightTable const& table)

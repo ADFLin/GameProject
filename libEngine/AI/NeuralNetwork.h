@@ -9,7 +9,7 @@
 
 typedef double NNScale;
 typedef NNScale (*NNActivationFun)(NNScale);
-
+typedef void    (*NNActivationTrasnformFunc)(NNScale* inoutValues, int numValues);
 template< class T , class Q , class Fun >
 void Transform(T begin, T end, T dest, Fun fun = Fun())
 {
@@ -88,11 +88,25 @@ public:
 };
 
 
+template< NNScale (*Func)(NNScale) >
+struct FNNFuncHelper
+{
+	static void Trasnform(NNScale* inoutValues, int numValues)
+	{
+		for( int i = numValues; i ; --i )
+		{
+			*inoutValues = (*Func)(*inoutValues);
+			++inoutValues;
+		}
+	}
+};
+
 struct NeuralLayer
 {
 	int weightOffset;
 	NNActivationFun fun;
 	NNActivationFun funDif;
+	NNActivationTrasnformFunc transformFunc;
 	int numNode;
 	NeuralLayer()
 	{
@@ -100,6 +114,7 @@ struct NeuralLayer
 		weightOffset = 0;
 		fun = NNFun::Sigmoid;
 		funDif = NNFun::SigmoidDif;
+		transformFunc = FNNFuncHelper< &NNFun::Sigmoid >::Trasnform;
 		//fun = NNFun::ReLU;
 	}
 };
@@ -120,6 +135,7 @@ struct NeuralConv2DLayer : NeuralLayer
 	NeuralConv2DLayer()
 	{
 		fun = NNFun::ReLU;
+		transformFunc = FNNFuncHelper< &NNFun::ReLU >::Trasnform;
 	}
 };
 
@@ -133,9 +149,20 @@ struct NerualPool2DLayer : NeuralLayer
 class FNNCalc
 {
 public:
-	static void LayerFrontFeedback(NeuralFullConLayer& layer, NNScale weightData[], int numInput, NNScale inputs[], NNScale outputs[]);
-	static void LayerFrontFeedback(NeuralFullConLayer& layer, NNScale weightData[], int numInput, NNScale inputs[], NNScale outputs[], NNScale outNetworkInputs[]);
-	static void LayerFrontFeedback(NeuralConv2DLayer& layer, NNScale weightData[], int numSliceInput, int inputSize[], NNScale inputs[], NNScale outputs[]);
+	static void LayerFrontFeedback(
+		NeuralFullConLayer const& layer, NNScale* RESTRICT weightData, 
+		int numInput, NNScale* RESTRICT inputs, 
+		NNScale* RESTRICT outputs);
+
+	static void LayerFrontFeedback(
+		NeuralFullConLayer const& layer, NNScale* RESTRICT weightData, 
+		int numInput, NNScale* RESTRICT inputs,
+		NNScale* RESTRICT outputs, NNScale* RESTRICT outNetworkInputs);
+
+	static void LayerFrontFeedback(
+		NeuralConv2DLayer const& layer, NNScale* RESTRICT weightData, 
+		int numSliceInput, int  inputSize[],
+		NNScale* RESTRICT inputs, NNScale* RESTRICT outputs);
 
 
 	static FORCEINLINE NNScale VectorDot(int dim, NNScale* RESTRICT a, NNScale* RESTRICT b)
@@ -168,7 +195,7 @@ public:
 	void init(int numInput, int numOutput, int numHiddenLayer, int const hiddenlayerNodeNum[]);
 
 	NeuralFullConLayer& getLayer(int idx) { return mLayers[idx]; }
-
+	NeuralFullConLayer const& getLayer(int idx) const { return mLayers[idx]; }
 	void getTopology(std::vector<int>& outTopology);
 
 
@@ -198,7 +225,7 @@ public:
 class FCNeuralNetwork
 {
 public:
-	void init(FCNNLayout& inLayout)
+	void init(FCNNLayout const& inLayout)
 	{
 		mLayout = &inLayout;
 	}
@@ -213,10 +240,10 @@ public:
 	void calcForwardFeedback(NNScale inputs[], NNScale outputs[]);
 	void calcForwardFeedbackSignal(NNScale inputs[], NNScale outSingnals[]);
 	void calcForwardFeedbackSignal(NNScale inputs[], NNScale outSingnals[], NNScale outNetworkInputs[]);
-	FCNNLayout& getLayout() { return *mLayout; }
+	FCNNLayout const& getLayout() { return *mLayout; }
 private:
 	
-	FCNNLayout* mLayout = nullptr;
+	FCNNLayout const* mLayout = nullptr;
 	NNScale* mWeights;	
 };
 

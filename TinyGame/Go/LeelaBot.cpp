@@ -1113,7 +1113,7 @@ namespace Go
 	}
 
 
-	bool LeelaBot::initilize(void* settingData)
+	bool LeelaBot::initialize(void* settingData)
 	{
 		if( settingData )
 		{
@@ -1153,7 +1153,7 @@ namespace Go
 		return buildProcessT< GTPOutputThread >(path, command);
 	}
 
-	bool AQBot::initilize(void* settingData)
+	bool AQBot::initialize(void* settingData)
 	{
 		if( !mAI.buildPlayGame() )
 			return false;

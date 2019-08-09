@@ -101,13 +101,46 @@ private:
 	XFORM    mXFormStack[ MaxXFormStackNum ];
 	int      mNumStack;
 
-	bool     mbBrushManaged;
-	bool     mbPenManaged;
-	bool     mbFontManaged;
+	template< class T >
+	struct TGdiObject
+	{
+		TGdiObject()
+		{
+			handle = NULL;
+		}
+		~TGdiObject()
+		{
+			assert(handle == NULL);
+		}
 
-	HBRUSH   mhCurBrush;
-	HPEN     mhCurPen;
-	HFONT    mhCurFont;
+		void set(T newHandle, bool bInManaged)
+		{
+			if ( handle && bManaged )
+				::DeleteObject(handle);
+
+			handle = newHandle;
+			bManaged = bInManaged;
+		}
+		void release()
+		{
+			if ( handle )
+			{
+				if( bManaged )
+				{
+					::DeleteObject(handle);
+				}
+				handle = NULL;
+			}
+		}
+		operator T() { return handle; }
+		T    handle;
+		bool bManaged;
+	};
+
+	TGdiObject<HBRUSH> mCurBrush;
+	TGdiObject<HPEN>   mCurPen;
+	TGdiObject<HFONT>  mCurFont;
+
 
 	unsigned mBlendCount;
 	float    mBlendAlpha;

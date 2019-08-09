@@ -229,7 +229,8 @@ namespace Render
 
 	class ShaderResource
 	{
-
+	public:
+		virtual ~ShaderResource();
 	};
 
 

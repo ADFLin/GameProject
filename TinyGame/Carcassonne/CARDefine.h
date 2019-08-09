@@ -53,50 +53,51 @@ namespace CAR
 
 
 	typedef uint16 SideContentType;
-	typedef uint32 TileContentType;
+	typedef uint32 TileContentMask;
 
 	struct TileContent
 	{
 		enum Enum
 		{
-			eCloister            = BIT(0) ,
-			eCathedral           = BIT(1) , //EXP_INNS_AND_CATHEDRALS
-			eVolcano             = BIT(2) , //EXP_THE_PRINCESS_AND_THE_DRAGON 
-			eTheDragon           = BIT(3) , //EXP_THE_PRINCESS_AND_THE_DRAGON 
-			eMagicPortal         = BIT(4) , //EXP_THE_PRINCESS_AND_THE_DRAGON
-			eTowerFoundation     = BIT(7) , //EXP_THE_TOWER
-			eBazaar              = BIT(8) , //EXP_BRIDGES_CASTLES_AND_BAZAARS
-			eHill                = BIT(9) , //EXP_HILLS_AND_SHEEP
-			eVineyard            = BIT(10), //EXP_HILLS_AND_SHEEP
-			eHalfling            = BIT(11), //EXP_HALFLINGS_I EXP_HALFLINGS_II
-			eLaPorxada           = BIT(12), //EXP_LA_PORXADA
-			eMage                = BIT(13), //EXP_MAGE_AND_WITCH
-			eGold                = BIT(14), //EXP_GOLDMINES
-			eFlyMachine          = BIT(15), //EXP_THE_FLY_MACHINES
-			eCropCirclePitchfork = BIT(16), //EXP_CROP_CIRCLE_I EXP_CROP_CIRCLE_II
-			eCropCircleClub      = BIT(17), //EXP_CROP_CIRCLE_I EXP_CROP_CIRCLE_II
-			eCropCircleShield    = BIT(18), //EXP_CROP_CIRCLE_I EXP_CROP_CIRCLE_II
-			eBesieger            = BIT(19),
-			eShrine              = BIT(20), //EXP_HERETICS_AND_SHRINES
-			eMonastery           = BIT(21),
-			eFestival            = BIT(22), //EXP_THE_FESTIVAL
-			eWindRose_W          = BIT(23),
-			eWindRose_N          = BIT(24),
-			eWindRose_S          = BIT(25),
-			eWindRose_E          = BIT(26),
-			eBlueWindRose        = BIT(27),
-			eFair                = BIT(28),
+			eCloister            ,
+			eCathedral           , //EXP_INNS_AND_CATHEDRALS
+			eVolcano             , //EXP_THE_PRINCESS_AND_THE_DRAGON 
+			eTheDragon           , //EXP_THE_PRINCESS_AND_THE_DRAGON 
+			eMagicPortal         , //EXP_THE_PRINCESS_AND_THE_DRAGON
+			eTowerFoundation     , //EXP_THE_TOWER
+			eBazaar              , //EXP_BRIDGES_CASTLES_AND_BAZAARS
+			eHill                , //EXP_HILLS_AND_SHEEP ?
+			eVineyard            , //EXP_HILLS_AND_SHEEP
+			eHalfling            , //EXP_HALFLINGS_I EXP_HALFLINGS_II
+			eLaPorxada           , //EXP_LA_PORXADA
+			eMage                , //EXP_MAGE_AND_WITCH
+			eGold                , //EXP_GOLDMINES
+			eAircraft            , //EXP_THE_FLIER
+			eCropCirclePitchfork , //EXP_CROP_CIRCLE_I EXP_CROP_CIRCLE_II
+			eCropCircleClub      , //EXP_CROP_CIRCLE_I EXP_CROP_CIRCLE_II
+			eCropCircleShield    , //EXP_CROP_CIRCLE_I EXP_CROP_CIRCLE_II
+			eBesieger            ,
+			eShrine              , //EXP_HERETICS_AND_SHRINES
+			eMonastery           ,
+			eFestival            , //EXP_THE_FESTIVAL
+			eWindRose_W          ,
+			eWindRose_N          ,
+			eWindRose_S          ,
+			eWindRose_E          ,
+			eBlueWindRose        ,
+			eFair                ,
+			eGarden              ,
 			//runtime
-			eTemp                = BIT(31) ,
+			eTemp                ,
 
-			LastMaskPlusOne,
-			MaxMaskIndex = BitMaskToIndex<uint32>(LastMaskPlusOne - 1),
+
+			Count ,
 		};
 
-		static uint32 const FeatureMask = eCloister | eShrine | eMonastery;
-		static uint32 const CropCircleMask = eCropCirclePitchfork | eCropCircleClub | eCropCircleShield;
-		static uint32 const OrangeWindRoseMask = eWindRose_W | eWindRose_N | eWindRose_S | eWindRose_E;
-		static uint32 const WindRoseMask = OrangeWindRoseMask | eBlueWindRose;
+		static TileContentMask const FeatureMask = BIT(eCloister) | BIT(eShrine) | BIT(eMonastery);
+		static TileContentMask const CropCircleMask = BIT(eCropCirclePitchfork) | BIT(eCropCircleClub) | BIT(eCropCircleShield);
+		static TileContentMask const OrangeWindRoseMask = BIT(eWindRose_W) | BIT(eWindRose_N) | BIT(eWindRose_S) | BIT(eWindRose_E);
+		static TileContentMask const WindRoseMask = OrangeWindRoseMask | BIT(eBlueWindRose);
 	};
 
 	struct  SideContent
@@ -115,17 +116,18 @@ namespace CAR
 			eSchool              = BIT(9) , //EXP_THE_SCHOOL
 			eGermanCastle        = BIT(10),
 			eCityOfCarcassonne   = BIT(11),
+			eAircraftDirMark     = BIT(12),
 
 			LastMaskPlusOne ,
-			MaxMaskIndex = BitMaskToIndex<uint16>( LastMaskPlusOne - 1 ),
+			MaxMaskIndex = BitMaskToIndex<SideContentType>( LastMaskPlusOne - 1 ),
 		};
 
-		static unsigned const InsideLinkTypeMask = eSchool | eGermanCastle;
+		static SideContentType const InternalLinkTypeMask = eSchool | eGermanCastle;
 	};
 
 
 	static_assert(SideContent::MaxMaskIndex < 8 * sizeof(SideContentType), "SideContentType can't set all SideContent enum");
-	static_assert(TileContent::MaxMaskIndex < 8 * sizeof(TileContentType), "TileContentType can't set all TileContent enum");
+	static_assert(TileContent::Count < 8 * sizeof(TileContentMask), "TileContentType can't set all TileContent enum");
 
 
 	namespace ECityQuarter
@@ -150,6 +152,7 @@ namespace CAR
 			eTileCorner ,
 			ePlayer ,
 			eCityQuarter ,
+			eScoreBoard ,
 			eNone ,
 		};
 		ActorPos( Enum aType , int aMeta )
@@ -209,6 +212,8 @@ namespace CAR
 		eWitch, //EXP_MAGE_AND_WITCH
 		eBigPinkPig ,
 		eTecher , //EXP_THE_SCHOOL
+
+		eFair , //EXP_THE_CATAPULT
 
 		NUM_ACTOR_TYPE  ,
 		NUM_PLAYER_ACTOR_TYPE = eDragon ,

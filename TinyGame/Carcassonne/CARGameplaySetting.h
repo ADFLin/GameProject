@@ -55,7 +55,7 @@ namespace CAR
 			return mFieldInfos[type].num;
 		}
 
-		bool use(Expansion exp) const { return mUseExpansionMask.check(exp); }
+		bool haveUse(Expansion exp) const { return mUseExpansionMask.check(exp); }
 
 		struct FieldInfo
 		{
@@ -190,7 +190,7 @@ namespace CAR
 		ProcSequenceRule(ProcFunc, rules...);
 	}
 
-	template< class T, class ...TRule >
+	template< class T >
 	void ProcSequenceRule(T& ProcFunc, Rule rule)
 	{
 		ProcFunc(rule);
@@ -212,12 +212,12 @@ namespace CAR
 		CASE(EXP_KING_AND_ROBBER, Rule::eKingAndRobber);
 		CASE(EXP_BRIDGES_CASTLES_AND_BAZAARS, Rule::eBridge, Rule::eCastleToken, Rule::eBazaar);
 		CASE(EXP_HILLS_AND_SHEEP, Rule::eShepherdAndSheep, Rule::eUseHill, Rule::eUseVineyard);
-		CASE(EXP_CASTLES, Rule::eHaveGermanCastleTile);
-		CASE(EXP_PHANTOM, Rule::ePhantom);
+		CASE(EXP_CASTLES_IN_GERMANY, Rule::eHaveGermanCastleTile);
+		CASE(EXP_THE_PHANTOM, Rule::ePhantom);
 		CASE(EXP_CROP_CIRCLE_I, Rule::eCropCircle);
 		CASE(EXP_CROP_CIRCLE_II, Rule::eCropCircle);
-		CASE(EXP_THE_FLY_MACHINES, Rule::eFlyMahine);
-		CASE(EXP_GOLDMINES, Rule::eGold);
+		CASE(EXP_THE_FLIER, Rule::eFlyMahine);
+		CASE(EXP_THE_GOLDMINES, Rule::eGold);
 		CASE(EXP_LA_PORXADA, Rule::eLaPorxada);
 		CASE(EXP_MAGE_AND_WITCH, Rule::eMageAndWitch);
 		CASE(EXP_THE_MESSSAGES, Rule::eMessage);

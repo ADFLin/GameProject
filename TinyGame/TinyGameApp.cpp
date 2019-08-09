@@ -253,13 +253,16 @@ void TinyGameApp::cleanup()
 	Global::GUI().cleanupWidget(true , true);
 
 	MiscTestRegister::GetList().clear();
-	Global::GameManager().cleanup();
+
+	Global::GameManager().cleanupModuleInstances();
 
 	Global::GUI().finalize();
 
 	Global::GetDrawEngine().release();
 
 	Global::GetAssetManager().cleanup();
+
+	Global::GameManager().cleanupModuleMemory();
 
 	importUserProfile();
 
@@ -318,7 +321,7 @@ void TinyGameApp::handleGameIdle(long time)
 }
 
 
-void TinyGameApp::handerGameRender()
+void TinyGameApp::handleGameRender()
 {
 	render( 0.0f );
 }

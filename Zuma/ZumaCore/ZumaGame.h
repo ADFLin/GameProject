@@ -114,7 +114,7 @@ namespace Zuma
 	public:
 		GameCore();
 		~GameCore();
-		bool   init( GameInitializer& initilizer );
+		bool   init( GameInitializer& initializer );
 		void   update( long time );
 		void   render( float dFrame );
 		void   cleanup();
@@ -160,8 +160,8 @@ namespace Zuma
 		//GameLoop
 		bool   initializeGame() CRTP_OVERRIDE;
 		void   finalizeGame() CRTP_OVERRIDE { GameCore::cleanup(); }
-		void   handerGameRender() CRTP_OVERRIDE { GameCore::render( 0.0f ); }	
-		void   handleGameIdle( long time ) CRTP_OVERRIDE { handerGameRender();  }
+		void   handleGameRender() CRTP_OVERRIDE { GameCore::render( 0.0f ); }	
+		void   handleGameIdle( long time ) CRTP_OVERRIDE { handleGameRender();  }
 		long   handleGameUpdate( long time ) CRTP_OVERRIDE { GameCore::update( time ); return time; }
 
 		//SysMsgHandler

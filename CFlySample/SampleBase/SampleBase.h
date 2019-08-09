@@ -61,10 +61,10 @@ public:
 	float getFPS(){ return m_fps; }
 	void  createCoorditeAxis( float len );
 
-	void handleGameIdle( long time ) CRTP_OVERRIDE { handerGameRender(); }
+	void handleGameIdle( long time ) CRTP_OVERRIDE { handleGameRender(); }
 
 private:
-	void handerGameRender();
+	void handleGameRender();
 	bool initializeGame() CRTP_OVERRIDE;
 	void finalizeGame() CRTP_OVERRIDE {  onExitSample();  }
 

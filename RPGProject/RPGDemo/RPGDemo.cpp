@@ -161,7 +161,7 @@ public:
 
 	void handleGameIdle( long time ) CRTP_OVERRIDE
 	{
-		handerGameRender();
+		handleGameRender();
 	}
 
 	CEntity* createBoxEntity( Vec3D const& pos )
@@ -476,7 +476,7 @@ public:
 	}
 
 
-	void handerGameRender() CRTP_OVERRIDE
+	void handleGameRender() CRTP_OVERRIDE
 	{
 		PROFILE_ENTRY("onRender");
 

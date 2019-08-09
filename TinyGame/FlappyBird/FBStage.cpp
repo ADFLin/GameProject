@@ -40,6 +40,15 @@ namespace FlappyBird
 		getLevel().onBirdCollsion = CollisionDelegate(this, &LevelStage::notifyBridCollsion);
 		getLevel().onGameOver = LevelOverDelegate(this, &LevelStage::notifyGameOver);
 
+#define INPUT_MODE 0
+
+#if INPUT_MODE == 0
+		int gDefaultTopology[] = { 3 , 5 , 7 , 5 , 3 , 1 };
+#elif INPUT_MODE == 1
+		int gDefaultTopology[] = { 5 , 7 , 4 , 1 };
+#else
+		int gDefaultTopology[] = { 2 , 4 , 1 };
+#endif
 		if( mbTrainMode )
 		{
 			mTrainManager = std::make_unique<TrainManager>();
@@ -48,12 +57,11 @@ namespace FlappyBird
 			TrainWorkSetting setting;
 			setting.numWorker = 8;
 			setting.maxGeneration = 0;
-			setting.dataSetting.mutationValueDelta = mutationValueDelta;
 
-			mTrainManager->init(setting);
+			mTrainManager->init(setting, gDefaultTopology , ARRAY_SIZE(gDefaultTopology));
 			mTrainManager->startTrain();
 
-			TrainDataSetting dataSetting;
+			TrainDataSetting& dataSetting = mTrainManager->getDataSetting();
 			dataSetting.numAgents = 200;
 			dataSetting.mutationValueDelta = mutationValueDelta;
 			mTrainData = std::make_unique< TrainData >();
@@ -102,6 +110,7 @@ namespace FlappyBird
 				{
 					getLevel().removeAllBird();
 					TLockedObject< GenePool > pGenePool = mTrainManager->lockPool();
+					mTrainManager->getDataSetting().numAgents = pGenePool->getDataSet().size();
 					mTrainData->usePoolData(*pGenePool);
 					mTrainData->addAgentToLevel(getLevel());
 					restart();
@@ -247,6 +256,7 @@ namespace FlappyBird
 				ScopeTickCount scope(time);
 				getLevel().removeAllBird();
 				TLockedObject< GenePool > pGenePool = mTrainManager->lockPool();
+				mTrainManager->getDataSetting().numAgents = pGenePool->getDataSet().size();
 				mTrainData->usePoolData(*pGenePool);
 				mTrainData->addAgentToLevel(getLevel());
 			}

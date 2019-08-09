@@ -6,7 +6,7 @@
 
 NNScale* FCNeuralNetwork::getWeights(int idxLayer, int idxNode)
 {
-	FCNNLayout& NNLayout = getLayout();
+	FCNNLayout const& NNLayout = getLayout();
 
 	NeuralFullConLayer const& layer = NNLayout.mLayers[idxLayer];
 	NNScale* result = &mWeights[layer.weightOffset];
@@ -17,14 +17,14 @@ NNScale* FCNeuralNetwork::getWeights(int idxLayer, int idxNode)
 
 void FCNeuralNetwork::calcForwardFeedbackSignal(NNScale inputs[], NNScale outSingnals[])
 {
-	FCNNLayout& NNLayout = getLayout();
+	FCNNLayout const& NNLayout = getLayout();
 
 	NNScale* tempInputs = inputs;
 	NNScale* tempOutputs = &outSingnals[0];
 	int curInputNum = NNLayout.getInputNum();
 	for( int i = 0; i < NNLayout.mLayers.size(); ++i )
 	{
-		auto& layer = NNLayout.mLayers[i];
+		auto const& layer = NNLayout.mLayers[i];
 		FNNCalc::LayerFrontFeedback(layer, mWeights, curInputNum, tempInputs, tempOutputs);
 		curInputNum = layer.numNode;
 		tempInputs = tempOutputs;
@@ -34,7 +34,7 @@ void FCNeuralNetwork::calcForwardFeedbackSignal(NNScale inputs[], NNScale outSin
 
 void FCNeuralNetwork::calcForwardFeedback(NNScale inputs[], NNScale outputs[])
 {
-	FCNNLayout& NNLayout = getLayout();
+	FCNNLayout const& NNLayout = getLayout();
 
 	NNScale* tempInputs = (NNScale*)alloca( 2 * NNLayout.getMaxLayerNodeNum() * sizeof(NNScale));
 	NNScale* tempOutputs = tempInputs + NNLayout.getMaxLayerNodeNum();
@@ -54,7 +54,7 @@ void FCNeuralNetwork::calcForwardFeedback(NNScale inputs[], NNScale outputs[])
 
 void FCNeuralNetwork::calcForwardFeedbackSignal(NNScale inputs[], NNScale outSingnals[], NNScale outNetworkInputs[])
 {
-	FCNNLayout& NNLayout = getLayout();
+	FCNNLayout const& NNLayout = getLayout();
 
 	NNScale* tempInputs = inputs;
 	NNScale* tempOutputs = &outSingnals[0];
@@ -72,9 +72,9 @@ void FCNeuralNetwork::calcForwardFeedbackSignal(NNScale inputs[], NNScale outSin
 }
 
 
-void FNNCalc::LayerFrontFeedback(NeuralFullConLayer& layer, NNScale weightData[], int numInput, NNScale inputs[], NNScale outputs[] , NNScale outNetworkInputs[] )
+void FNNCalc::LayerFrontFeedback(NeuralFullConLayer const& layer, NNScale* RESTRICT weightData, int numInput, NNScale* RESTRICT inputs, NNScale* RESTRICT outputs, NNScale* RESTRICT outNetworkInputs )
 {
-	NNScale* pWeight = &weightData[layer.weightOffset];
+	NNScale* pWeight = weightData + layer.weightOffset;
 	NNScale* pInput = inputs;
 	NNScale* pOutput = outputs;
 	NNScale* pNetworkInput = outNetworkInputs;
@@ -91,20 +91,15 @@ void FNNCalc::LayerFrontFeedback(NeuralFullConLayer& layer, NNScale weightData[]
 		*pOutput = value;
 		++pOutput;
 	}
-	if( layer.fun )
+	if( layer.transformFunc )
 	{
-		pOutput = outputs;
-		for( int i = 0; i < layer.numNode; ++i )
-		{
-			*pOutput = layer.fun(*pOutput);
-			++pOutput;
-		}
+		(*layer.transformFunc)(outputs, layer.numNode);
 	}
 }
 
-void FNNCalc::LayerFrontFeedback(NeuralFullConLayer& layer, NNScale weightData[] , int numInput, NNScale inputs[], NNScale outputs[])
+void FNNCalc::LayerFrontFeedback(NeuralFullConLayer const& layer, NNScale* RESTRICT weightData, int numInput, NNScale* RESTRICT inputs, NNScale* RESTRICT outputs)
 {
-	NNScale* pWeight = &weightData[layer.weightOffset];
+	NNScale* pWeight = weightData + layer.weightOffset;
 	NNScale* pInput = inputs;
 	NNScale* pOutput = outputs;
 	
@@ -118,18 +113,14 @@ void FNNCalc::LayerFrontFeedback(NeuralFullConLayer& layer, NNScale weightData[]
 		*pOutput = value;
 		++pOutput;
 	}
-	if( layer.fun )
+
+	if( layer.transformFunc )
 	{
-		pOutput = outputs;
-		for( int i = 0; i < layer.numNode; ++i )
-		{
-			*pOutput = layer.fun(*pOutput);
-			++pOutput;
-		}
+		(*layer.transformFunc)(outputs, layer.numNode);
 	}
 }
 
-void FNNCalc::LayerFrontFeedback(NeuralConv2DLayer& layer, NNScale weightData[], int numSliceInput, int inputSize[], NNScale inputs[], NNScale outputs[])
+void FNNCalc::LayerFrontFeedback(NeuralConv2DLayer const& layer, NNScale* RESTRICT weightData, int numSliceInput, int inputSize[], NNScale* RESTRICT inputs, NNScale* RESTRICT outputs)
 {
 
 	int const nx = inputSize[0] - layer.convSize + 1;
@@ -140,7 +131,7 @@ void FNNCalc::LayerFrontFeedback(NeuralConv2DLayer& layer, NNScale weightData[],
 	int const sliceOutputSize = nx * ny;
 	int const inputStride = inputSize[0];
 
-	NNScale* pWeight = &weightData[layer.weightOffset];
+	NNScale* pWeight = weightData + layer.weightOffset;
 	NNScale* pInput = inputs;
 	NNScale* pOutput = outputs;
 
@@ -198,15 +189,11 @@ void FNNCalc::LayerFrontFeedback(NeuralConv2DLayer& layer, NNScale weightData[],
 		pOutput += sliceOutputSize;
 	}
 
-	if( layer.fun )
+
+	if( layer.transformFunc )
 	{
-		pOutput = outputs;
 		int num = sliceOutputSize * layer.numNode;
-		for( int i = 0; i < num; ++i )
-		{
-			*pOutput = layer.fun(*pOutput);
-			++pOutput;
-		}
+		(*layer.transformFunc)(outputs, num);
 	}
 }
 

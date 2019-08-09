@@ -1369,6 +1369,8 @@ namespace Go
 			mMatchData.historyWinCounts[0] = 0;
 			mMatchData.historyWinCounts[1] = 0;
 		}
+		mLastMatchRecordWinCounts[0] = 0;
+		mLastMatchRecordWinCounts[1] = 0;
 
 		bool haveBot = mMatchData.players[0].type != ControllerType::ePlayer ||
 			           mMatchData.players[1].type != ControllerType::ePlayer;
@@ -1440,8 +1442,7 @@ namespace Go
 			break;
 		case GameMode::Match:
 			{
-				mMatchResultMap.addMatchResult(mMatchData.players, mGame.getSetting());
-				mMatchResultMap.save(MATCH_RESULT_PATH);
+				recordMatchResult( true );
 			}
 			mMatchData.cleanup();
 			break;
@@ -1506,9 +1507,7 @@ namespace Go
 				mGame.playPass();
 
 				if( mGame.getInstance().getLastPassCount() >= 2 )
-				{
-					LogMsg("GameEnd");
-					
+				{				
 					if( mMatchData.bSaveSGF )
 						saveMatchGameSGF();
 
@@ -1521,7 +1520,7 @@ namespace Go
 					else if( mMatchData.bAutoRun )
 					{
 						unknownWinerCount += 1;
-						restartAutoMatch();
+						postMatchGameEnd();
 					}
 				}
 				else
@@ -1545,7 +1544,7 @@ namespace Go
 				if( mMatchData.bAutoRun )
 				{
 					mMatchData.getPlayer(com.winner).winCount += 1;
-					restartAutoMatch();
+
 				}
 				else
 				{
@@ -1555,6 +1554,9 @@ namespace Go
 					str.format("%s Win", name);
 					::Global::GUI().showMessageBox(UI_ANY, str, GMB_OK);
 				}
+
+				postMatchGameEnd();
+
 			}
 			break;
 		case GameCommand::eResign:
@@ -1574,8 +1576,6 @@ namespace Go
 					{
 						mMatchData.getPlayer(StoneColor::eBlack).winCount += 1;
 					}
-
-					restartAutoMatch();
 				}
 				else
 				{
@@ -1585,6 +1585,8 @@ namespace Go
 					str.format("%s Resigned", name);
 					::Global::GUI().showMessageBox(UI_ANY, str, GMB_OK);
 				}
+
+				postMatchGameEnd();
 			}
 			break;
 		case GameCommand::eUndo:
@@ -1888,6 +1890,13 @@ namespace Go
 		return bAnalysisPondering;
 	}
 
+	void LeelaZeroGoStage::recordMatchResult( bool bSaveToFile )
+	{
+		mMatchResultMap.addMatchResult(mMatchData.players, mGame.getSetting(), mLastMatchRecordWinCounts);
+		if ( bSaveToFile )
+			mMatchResultMap.save(MATCH_RESULT_PATH);
+	}
+
 	bool LeelaZeroGoStage::saveMatchGameSGF()
 	{
 		DateTime date = SystemPlatform::GetLocalTime();
@@ -1933,6 +1942,17 @@ namespace Go
 		if( bot )
 		{
 			bot->thinkNextMove(mGame.getInstance().getNextPlayColor());
+		}
+	}
+
+	void LeelaZeroGoStage::postMatchGameEnd()
+	{
+		LogMsg("GameEnd");
+		recordMatchResult(true);
+
+		if( mMatchData.bAutoRun )
+		{
+			restartAutoMatch();
 		}
 	}
 

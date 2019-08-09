@@ -185,7 +185,7 @@ namespace CAR
 		return numController;
 	}
 
-	bool FeatureBase::haveTileContent(unsigned contentMask) const
+	bool FeatureBase::haveTileContent(TileContentMask contentMask) const
 	{
 		for (auto mapTile : mapTiles)
 		{
@@ -256,13 +256,13 @@ namespace CAR
 		}
 	}
 
-	bool FeatureBase::testInRange(Vec2i const& min , Vec2i const& max)
+	bool FeatureBase::testInRectArea(Vec2i const& min , Vec2i const& max)
 	{
 		for( MapTileSet::iterator iter = mapTiles.begin() , itEnd = mapTiles.end() ;
 			iter != itEnd ; ++iter )
 		{
 			MapTile* mapTile = *iter;
-			if ( isInRange( mapTile->pos , min , max ) )
+			if ( IsInRect( mapTile->pos , min , max ) )
 				return true;
 		}
 		return false;
@@ -358,7 +358,7 @@ namespace CAR
 		return result;
 	}
 
-	int SideFeature::getSideContentNum(unsigned contentMask)
+	int SideFeature::getSideContentNum(SideContentType contentMask)
 	{
 		int result = 0;
 		for( int i = 0 ; i < nodes.size() ; ++i )
@@ -366,7 +366,7 @@ namespace CAR
 			SideNode* node = nodes[i];
 
 			MapTile const* mapTile = node->getMapTile();
-			uint32 content = mapTile->getSideContnet( node->index ) & contentMask;
+			SideContentType content = mapTile->getSideContnet( node->index ) & contentMask;
 			while ( content )
 			{
 				content &= ~FBit::Extract( content );
@@ -389,7 +389,7 @@ namespace CAR
 			//#TODO: use feature type check
 			switch( mapTile->getTileContent() & TileContent::FeatureMask )
 			{
-			case TileContent::eCloister:
+			case BIT(TileContent::eCloister):
 				outFeatures.insert(mapTile->group);
 				break;
 			}
@@ -406,7 +406,7 @@ namespace CAR
 			{
 				if( linkNode.type == eInsideLink )
 				{
-					switch( mapTile->getSideContnet(dir1) & SideContent::InsideLinkTypeMask )
+					switch( mapTile->getSideContnet(dir1) & SideContent::InternalLinkTypeMask )
 					{
 					case SideContent::eSchool:
 						{
@@ -417,7 +417,7 @@ namespace CAR
 							{
 								int invDir = FDir::Inverse(dir1);
 								assert(mapTileLink->sideNodes[invDir].type == SideType::eInsideLink);
-								assert((mapTileLink->getSideContnet(invDir) & SideContent::InsideLinkTypeMask) == SideContent::eSchool);
+								assert((mapTileLink->getSideContnet(invDir) & SideContent::InternalLinkTypeMask) == SideContent::eSchool);
 
 								unsigned roadMaskLink = mapTileLink->getRoadLinkMask(invDir);
 								int dir2;
@@ -635,7 +635,7 @@ namespace CAR
 
 	bool CityFeature::isBesieged() const
 	{
-		return haveTileContent(TileContent::eBesieger);
+		return haveTileContent(BIT(TileContent::eBesieger));
 	}
 
 	bool CityFeature::haveAdjacentCloister() const
@@ -817,7 +817,7 @@ namespace CAR
 
 	int CloisterFeature::getActorPutInfo(int playerId , int posMeta , MapTile& mapTile , std::vector< ActorPosInfo >& outInfo)
 	{
-		unsigned actorMasks[DefaultActorMaskNum] = { BIT( ActorType::eWagon ) , 0 , 0 };
+		unsigned actorMasks[DefaultActorMaskNum] = { BIT( ActorType::eWagon ) | BIT( ActorType::eAbbot ), 0 , 0 };
 		return getDefaultActorPutInfo( playerId , ActorPos( ActorPos::eTile , posMeta ) , mapTile, actorMasks , outInfo );
 	}
 

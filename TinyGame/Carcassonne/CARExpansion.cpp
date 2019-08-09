@@ -27,25 +27,25 @@ namespace CAR
 #define SHS	SideContent::eHalfSeparate
 #define SSC	SideContent::eSchool
 
-#define TCL TileContent::eCloister
-#define TCA TileContent::eCathedral
-#define TMP TileContent::eMagicPortal
-#define TDR TileContent::eTheDragon
-#define TVO TileContent::eVolcano
-#define TTF TileContent::eTowerFoundation
-#define TBZ TileContent::eBazaar
-#define TVI TileContent::eVineyard
-#define THL TileContent::eHalfling
-#define TLP TileContent::eLaPorxada
-#define TMG TileContent::eMage
-#define TGO TileContent::eGold
-#define TBE TileContent::eBesieger
+#define TCL BIT(TileContent::eCloister)
+#define TCA BIT(TileContent::eCathedral)
+#define TMP BIT(TileContent::eMagicPortal)
+#define TDR BIT(TileContent::eTheDragon)
+#define TVO BIT(TileContent::eVolcano)
+#define TTF BIT(TileContent::eTowerFoundation)
+#define TBZ BIT(TileContent::eBazaar)
+#define TVI BIT(TileContent::eVineyard)
+#define THL BIT(TileContent::eHalfling)
+#define TLP BIT(TileContent::eLaPorxada)
+#define TMG BIT(TileContent::eMage)
+#define TGO BIT(TileContent::eGold)
+#define TBE BIT(TileContent::eBesieger)
 
-#define TWE	TileContent::eWindRose_E
-#define TWN TileContent::eWindRose_N
-#define TWW TileContent::eWindRose_W
-#define TWS	TileContent::eWindRose_S
-#define TBW	TileContent::eBlueWindRose
+#define TWE	BIT(TileContent::eWindRose_E)
+#define TWN BIT(TileContent::eWindRose_N)
+#define TWW BIT(TileContent::eWindRose_W)
+#define TWS	BIT(TileContent::eWindRose_S)
+#define TBW	BIT(TileContent::eBlueWindRose)
 
 #define BIT2( A , B )     ( BIT(A)|BIT(B) )
 #define BIT3( A , B , C ) ( BIT(A)|BIT(B)|BIT(C) )
@@ -329,7 +329,7 @@ namespace CAR
 		EXPDATA(0, EXP_INNS_AND_CATHEDRALS , DataInnCathedral)
 		EXPDATA(0, EXP_TRADERS_AND_BUILDERS , DataTraderBuilder)
 		EXPDATA(0, EXP_KING_AND_ROBBER , DataKingRobber)
-		EXPDATA(0, EXP_THE_RIVER , DataRiver1)
+		EXPDATA(0, EXP_THE_RIVER_I , DataRiver1)
 		EXPDATA(0, EXP_THE_PRINCESS_AND_THE_DRAGON , DataPrincessDragon)
 		EXPDATA(0, EXP_THE_TOWER , DataTower)
 		EXPDATA(0, EXP_ABBEY_AND_MAYOR , DataAbbeyMayor)
@@ -337,7 +337,7 @@ namespace CAR
 		EXPDATA(0, EXP_BRIDGES_CASTLES_AND_BAZAARS , DataBrigeCastleBazaar)
 		EXPDATA(0, EXP_HILLS_AND_SHEEP , DataHillsSheep)
 
-		EXPDATA(0, EXP_CASTLES , DataCastle)
+		EXPDATA(0, EXP_CASTLES_IN_GERMANY , DataCastle)
 		EXPDATA(0, EXP_THE_SCHOOL, DataSchool)
 		EXPDATA(0, EXP_HALFLINGS_I , DataHalflings1 )
 

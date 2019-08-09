@@ -5,6 +5,7 @@
 #include "Math/Math2D.h"
 
 typedef Math::Vector2 Vector2;
+
 class SATSolver
 {
 public:

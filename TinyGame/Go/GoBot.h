@@ -88,7 +88,7 @@ namespace Go
 	class IBotInterface
 	{
 	public:
-		virtual bool initilize(void* settingData) = 0;
+		virtual bool initialize(void* settingData) = 0;
 		virtual void destroy() = 0;
 		virtual bool setupGame(GameSetting const& setting ) = 0;
 		virtual bool restart() = 0;
@@ -117,7 +117,7 @@ namespace Go
 		{
 		}
 
-		virtual bool initilize(void* settingData) override { return true; }
+		virtual bool initialize(void* settingData) override { return true; }
 		virtual void destroy() override {}
 		virtual bool setupGame(GameSetting const& setting) override { if( bUsedInMatch ) return true; return mBot->setupGame(setting); }
 		virtual bool restart() override { if( bUsedInMatch ) return true; return mBot->restart(); }

@@ -99,6 +99,7 @@ namespace Render
 			desc.addElement(indexStream, USE_SEMANTIC(SkipVertexFormat, RTS_Texcoord) ? Vertex::ATTRIBUTE_UNUSED : Vertex::ATTRIBUTE_TEXCOORD, Vertex::GetFormat(CVT_Float, VERTEX_ELEMENT_SIZE(VertexFormat, RTS_Texcoord)), false);
 	}
 
+
 	template < uint32 VertexFormat0 , uint32 VertexFormat1 = 0 >
 	class TStaticRenderRTInputLayout : public StaticRHIResourceT< TStaticRenderRTInputLayout< VertexFormat0, VertexFormat1> , RHIInputLayout >
 	{
@@ -181,106 +182,6 @@ namespace Render
 		{
 			return (int)VertexElementOffset< VertexFormat , RTS_MAX >::Result;
 		}
-
-	//private:
-		FORCEINLINE static void BindVertexPointer(uint8 const* v, uint32 vertexStride , LinearColor const* overwriteColor = nullptr )
-		{
-			if( USE_SEMANTIC(VertexFormat, RTS_Position) )
-			{
-				glEnableClientState(GL_VERTEX_ARRAY);
-				glVertexPointer( VERTEX_ELEMENT_SIZE(VertexFormat, RTS_Position) , GL_FLOAT, vertexStride, v + VETEX_ELEMENT_OFFSET(VertexFormat, RTS_Position ));
-			}
-
-			if ( overwriteColor )
-			{
-				glColor4fv(*overwriteColor);
-			}
-			else if( USE_SEMANTIC(VertexFormat, RTS_Color) )
-			{
-				glEnableClientState(GL_COLOR_ARRAY);
-				glColorPointer(VERTEX_ELEMENT_SIZE(VertexFormat, RTS_Color), GL_FLOAT, vertexStride, v + VETEX_ELEMENT_OFFSET(VertexFormat, RTS_Color));
-			}
-
-			if( USE_SEMANTIC(VertexFormat, RTS_Normal) )
-			{
-				static_assert( !USE_SEMANTIC(VertexFormat, RTS_Normal) || VERTEX_ELEMENT_SIZE(VertexFormat, RTS_Normal) == 3 , "normal size need equal 3" );
-				glEnableClientState(GL_NORMAL_ARRAY);
-				glNormalPointer( GL_FLOAT , vertexStride, v + VETEX_ELEMENT_OFFSET(VertexFormat, RTS_Normal));
-			}
-
-			if( USE_SEMANTIC(VertexFormat, RTS_Texcoord) )
-			{
-				glClientActiveTexture(GL_TEXTURE0);
-				glEnableClientState(GL_TEXTURE_COORD_ARRAY);
-				glTexCoordPointer(VERTEX_ELEMENT_SIZE(VertexFormat, RTS_Texcoord), GL_FLOAT, vertexStride, v + VETEX_ELEMENT_OFFSET(VertexFormat, RTS_Texcoord));
-			}
-		}
-
-		FORCEINLINE static void UnbindVertexPointer(LinearColor const* overwriteColor = nullptr )
-		{
-			if( USE_SEMANTIC(VertexFormat, RTS_Position) )
-			{
-				glDisableClientState(GL_VERTEX_ARRAY);
-			}
-			if( overwriteColor == nullptr && USE_SEMANTIC(VertexFormat, RTS_Color) )
-			{
-				glDisableClientState(GL_COLOR_ARRAY);
-			}
-			if( USE_SEMANTIC(VertexFormat, RTS_Normal) )
-			{
-				glDisableClientState(GL_NORMAL_ARRAY);
-			}
-			if( USE_SEMANTIC(VertexFormat, RTS_Texcoord) )
-			{
-				glClientActiveTexture(GL_TEXTURE0);
-				glDisableClientState(GL_TEXTURE_COORD_ARRAY);
-			}
-		}
-
-		FORCEINLINE static void BindVertexAttrib(uint8 const* v, uint32 vertexStride , LinearColor const* overwriteColor = nullptr )
-		{
-#define VERTEX_ATTRIB_BIND( ATTR , RTS )\
-			if( USE_SEMANTIC(VertexFormat, RTS ) )\
-			{\
-				glEnableVertexAttribArray(Vertex::ATTR);\
-				glVertexAttribPointer(Vertex::ATTR, VERTEX_ELEMENT_SIZE(VertexFormat, RTS), GL_FLOAT, GL_FALSE, vertexStride, v + VETEX_ELEMENT_OFFSET(VertexFormat, RTS));\
-			}
-
-			VERTEX_ATTRIB_BIND(ATTRIBUTE_POSITION, RTS_Position);
-			if( overwriteColor )
-			{
-				glVertexAttrib4fv(Vertex::ATTRIBUTE_COLOR, *overwriteColor);
-			}
-			else
-			{
-				VERTEX_ATTRIB_BIND(ATTRIBUTE_COLOR, RTS_Color);
-			}
-			VERTEX_ATTRIB_BIND(ATTRIBUTE_NORMAL, RTS_Normal);		
-			VERTEX_ATTRIB_BIND(ATTRIBUTE_TEXCOORD, RTS_Texcoord);
-
-#undef VERTEX_ATTRIB_BIND
-		}
-
-		FORCEINLINE static void UnbindVertexAttrib(LinearColor const* overwriteColor = nullptr)
-		{
-#define VERTEX_ATTRIB_UNBIND( ATTR , RTS )\
-			if( USE_SEMANTIC(VertexFormat , RTS) )\
-			{\
-				glDisableVertexAttribArray(Vertex::ATTR);\
-			}
-
-			VERTEX_ATTRIB_UNBIND(ATTRIBUTE_POSITION, RTS_Position);
-			VERTEX_ATTRIB_UNBIND(ATTRIBUTE_NORMAL, RTS_Normal);
-			if ( overwriteColor ){}
-			else
-			{
-				VERTEX_ATTRIB_UNBIND(ATTRIBUTE_COLOR, RTS_Color);
-			}
-			VERTEX_ATTRIB_UNBIND(ATTRIBUTE_TEXCOORD, RTS_Texcoord);
-
-#undef VERTEX_ATTRIB_UNBIND
-		}
-
 	};
 
 

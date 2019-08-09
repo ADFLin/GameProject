@@ -45,22 +45,34 @@ bool GameModuleManager::registerModule( IModuleInterface* module , char const* l
 	return true;
 }
 
-void GameModuleManager::cleanup()
+void GameModuleManager::cleanupModuleInstances()
 {
 	if ( mGameRunning )
+	{
 		mGameRunning->exit();
-	mGameRunning = NULL;
+		mGameRunning = nullptr;
+	}
 
-	visitInternal( [](ModuleData& info) ->bool
+	visitInternal([](ModuleData& info) ->bool
 	{
 		info.instance->cleanup();
 		info.instance->deleteThis();
+		info.instance = nullptr;
+		return true;
+	});
+}
+
+void GameModuleManager::cleanupModuleMemory()
+{
+	visitInternal([](ModuleData& info) ->bool
+	{
+		assert(info.instance == nullptr);
 		::FreeLibrary(info.hModule);
 		return true;
 	});
 
-	mNameToModuleMap.clear();
 	mModuleDataList.clear();
+	mNameToModuleMap.clear();
 }
 
 void GameModuleManager::classifyGame( int attrID , GameModuleVec& games )
@@ -139,7 +151,7 @@ GameModuleManager::GameModuleManager()
 
 GameModuleManager::~GameModuleManager()
 {
-	cleanup();
+	cleanupModuleInstances();
 }
 
 

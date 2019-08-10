@@ -213,6 +213,7 @@ namespace FlappyBird
 	}
 
 	void TrainData::runEvolution(GenePool* genePool)
+
 	{
 		++generation;
 		int numGen = mAgents.size();

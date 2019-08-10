@@ -95,7 +95,7 @@ public:
 	void clear();
 
 	void removeIdentical(float fitnessError, NNScale dataError);
-	bool haveEqualGenotype(GenotypePtr gt, float fitnessError, NNScale dataError, int startIndex = 0);
+	bool haveIdenticalGenotype(GenotypePtr gt, float fitnessError, NNScale dataError, int startIndex = 0);
 
 	static void RemoveIdenticalGenotype(std::vector< GenotypePtr >& sortedGenotypes, float fitnessError, NNScale dataError);
 

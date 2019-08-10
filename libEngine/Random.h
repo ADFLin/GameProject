@@ -25,7 +25,7 @@ namespace Random
 
 		uint32 rand()
 		{
-			unsigned long a, b, c, d;
+			uint32 a, b, c, d;
 			a = state[index];
 			c = state[(index+13)&15];
 			b = a^c^(a<<16)^(c<<15);

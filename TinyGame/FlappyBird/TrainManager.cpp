@@ -259,12 +259,12 @@ namespace FlappyBird
 			float const fitnessError = 1e-3;
 			NNScale const dataError = 1e-6;
 			std::sort(temps.begin(), temps.end(), GenePool::FitnessCmp());
-			GenePool::RemoveEqualGenotype(temps, fitnessError, dataError);
+			GenePool::RemoveIdenticalGenotype(temps, fitnessError, dataError);
 			for( int i = 0; i < temps.size(); ++i )
 			{
 				genePool->add(temps[i]);
 			}
-			genePool->removeEqual(fitnessError, dataError);
+			genePool->removeIdentical(fitnessError, dataError);
 		}
 		else
 		{
@@ -348,9 +348,9 @@ namespace FlappyBird
 	{
 		trainData.runEvolution(&genePool);
 
-		bool const bRestData = maxGeneration && ( trainData.generation > maxGeneration );
+		bool const bRestData = ( maxGeneration && ( trainData.generation > maxGeneration ) );
+		bool const bClearPool = (trainData.generation > 500 && genePool[0]->fitness < 50);
 		bool bSendData = bRestData || (SystemPlatform::GetTickCount() - lastUpdateTime > 10000);
-		
 		if( bSendData )
 		{
 			int numAdded;
@@ -361,7 +361,7 @@ namespace FlappyBird
 				TLockedObject< GenePool > masterPool = manager->lockPool();
 				numAdded = masterPool->appendWithCopy(genePool , fitnessError , dataError );
 
-				masterPool->removeEqual(fitnessError, dataError);
+				masterPool->removeIdentical(fitnessError, dataError);
 				if( !masterPool->mStorage.empty() )
 					manager->topFitness = (*masterPool)[0]->fitness;
 
@@ -373,11 +373,16 @@ namespace FlappyBird
 
 		}
 
-		if( bRestData )
+		if( bRestData || bClearPool )
 		{
 			trainData.randomizeData();
 			trainData.generation = 0;
 		}
+		if( bClearPool )
+		{
+			genePool.clear();
+		}
+
 		restartGame();
 	}
 

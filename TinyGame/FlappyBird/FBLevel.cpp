@@ -13,6 +13,7 @@ namespace FlappyBird
 		mTimerProduce = 0;
 		mIsOver = false;
 		mActiveBirds.clear();
+		mLastPipeHeight = 0;
 
 		for( auto bird : mAllBirds )
 		{
@@ -109,18 +110,48 @@ namespace FlappyBird
 
 			int const BlockTimer = int(BlockDistance / BirdTickOffset);
 
-			float const HeightMax = WorldHeight - BlockGap - 0.5f - 1.5;
-			float const HeightMin = 1.0f;
+			if( bDiffcultMode )
+			{
+				float const HeightMax = WorldHeight - BlockGap - 0.5f - 1.5;
+				float const HeightMin = 1.0f;
 
-			float height = HeightMin + (HeightMax - HeightMin) * ::Global::Random() / float(RAND_MAX);
-			float const posProduce = WorldWidth + 1.0f;
+				float halfHeight = 0.5 * (HeightMax + HeightMin);
+				float deltaHeight = 0.5 * (HeightMax - HeightMin);
+				float height;
+				if( mLastPipeHeight > halfHeight )
+				{
+					height = halfHeight - deltaHeight * ::Global::Random() / float(RAND_MAX);
+				}
+				else
+				{
+					height = halfHeight + deltaHeight * ::Global::Random() / float(RAND_MAX);
+				}
+				float const posProduce = WorldWidth + 1.0f;
 
-			PipeInfo pipe;
-			pipe.buttonHeight = height;
-			pipe.topHeight = height + BlockGap;
-			pipe.width = BlockWidth;
-			pipe.posX = posProduce;
-			addPipe(pipe);
+				PipeInfo pipe;
+				pipe.buttonHeight = height;
+				pipe.topHeight = height + BlockGap;
+				pipe.width = BlockWidth;
+				pipe.posX = posProduce;
+				addPipe(pipe);
+				mLastPipeHeight = height;
+			}
+			else
+			{
+				float const HeightMax = WorldHeight - BlockGap - 0.5f - 1.5;
+				float const HeightMin = 1.0f;
+
+				float height = HeightMin + (HeightMax - HeightMin) * ::Global::Random() / float(RAND_MAX);
+				float const posProduce = WorldWidth + 1.0f;
+
+				PipeInfo pipe;
+				pipe.buttonHeight = height;
+				pipe.topHeight = height + BlockGap;
+				pipe.width = BlockWidth;
+				pipe.posX = posProduce;
+				addPipe(pipe);
+				mLastPipeHeight = height;
+			}
 
 			mTimerProduce = BlockTimer;
 		}

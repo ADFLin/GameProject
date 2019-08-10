@@ -64,7 +64,7 @@ public:
 	}
 
 	void randomizeData(NNRand& random, NNScale valueMin, NNScale valueMax);
-	bool isDataEquivalent(DataType const& otherData, NNScale maxError = 1e-10);
+	bool isDataIdentical(DataType const& otherData, NNScale maxError = 1e-10);
 
 	float    fitness;
 	DataType data;
@@ -94,10 +94,10 @@ public:
 	bool add(GenotypePtr pGenotype);
 	void clear();
 
-	void removeEqual(float fitnessError, NNScale dataError);
+	void removeIdentical(float fitnessError, NNScale dataError);
 	bool haveEqualGenotype(GenotypePtr gt, float fitnessError, NNScale dataError, int startIndex = 0);
 
-	static void RemoveEqualGenotype(std::vector< GenotypePtr >& sortedGenotypes, float fitnessError, NNScale dataError);
+	static void RemoveIdenticalGenotype(std::vector< GenotypePtr >& sortedGenotypes, float fitnessError, NNScale dataError);
 
 	std::vector< GenotypePtr > const& getDataSet() { return mStorage; }
 

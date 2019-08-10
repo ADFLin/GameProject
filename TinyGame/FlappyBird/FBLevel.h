@@ -179,6 +179,8 @@ namespace FlappyBird
 		float mMoveDistance;
 
 		bool mIsOver = true;
+		bool bDiffcultMode = true;
+		float mLastPipeHeight = 0;
 		int  mTimerProduce;
 
 		typedef std::list< ColObject > ColObjectList;

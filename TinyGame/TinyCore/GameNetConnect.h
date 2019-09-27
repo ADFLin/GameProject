@@ -54,7 +54,7 @@ public:
 	//TCP Client
 	virtual void notifyConnectionFail( NetConnection* con ){}
 	virtual void notifyConnectionOpen( NetConnection* con ){}
-	virtual void notifyConnectClose( NetConnection* con , NetCloseReason reason ){}
+	virtual void notifyConnectionClose( NetConnection* con , NetCloseReason reason ){}
 
 	//UDP Server/Client
 	virtual void notifyConnectionSend( NetConnection* con ){}

@@ -139,7 +139,7 @@ namespace SR
 
 		void draw(Graphics2D& g)
 		{
-			mBufferDC.bitBlt(g.getRenderDC(), 0, 0);
+			mBufferDC.bitBltTo(g.getRenderDC(), 0, 0);
 		}
 
 		Vec2i const& getSize() const { return mSize; }

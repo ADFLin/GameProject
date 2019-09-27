@@ -17,7 +17,7 @@ namespace Poker { namespace Big2 {
 	op(DATA_CDPlayerPass)\
 	op(DATA_SDGameOver)
 
-	DEFINE_DATA2ID( DATA_LIST , COMMON_ID_LIST )
+DEFINE_DATA2ID( DATA_LIST , COMMON_ID_LIST )
 
 
 #undef DATA_LIST

@@ -70,7 +70,9 @@
     <OutDir>$(SolutionDir)$(Configuration)\</OutDir>
     <IntDir>$(Configuration)\$(ProjectName)\</IntDir>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <IntDir>$(Platform)\$(Configuration)\$(ProjectName)\</IntDir>
+  </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <OutDir>$(SolutionDir)$(Configuration)\</OutDir>
     <IntDir>$(Configuration)\$(ProjectName)\</IntDir>
@@ -120,7 +122,7 @@
       <PrecompiledHeaderFile>TestMiscPCH.h</PrecompiledHeaderFile>
       <ProgramDataBaseFileName>$(IntDir)vc$(PlatformToolsetVersion).pdb</ProgramDataBaseFileName>
       <WarningLevel>Level3</WarningLevel>
-      <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
+      <DebugInformationFormat>OldStyle</DebugInformationFormat>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <BrowseInformation>true</BrowseInformation>
     </ClCompile>
@@ -228,6 +230,15 @@
     <ClInclude Include="LordMonarch\LmLevel.h" />
     <ClInclude Include="Mario\MBLevel.h" />
     <ClInclude Include="Mario\MBStage.h" />
+    <ClInclude Include="Minesweeper\CSolverFrame.h" />
+    <ClInclude Include="Minesweeper\CSPSolveStrategy.h" />
+    <ClInclude Include="Minesweeper\ExpSolveStrategy.h" />
+    <ClInclude Include="Minesweeper\GameInterface.h" />
+    <ClInclude Include="Minesweeper\GControlerWin7.h" />
+    <ClInclude Include="Minesweeper\ImageScanser.h" />
+    <ClInclude Include="Minesweeper\InputHook.h" />
+    <ClInclude Include="Minesweeper\MineDefines.h" />
+    <ClInclude Include="Minesweeper\MineSweeperSolver.h" />
     <ClInclude Include="MonumentValley\MVCommon.h" />
     <ClInclude Include="MonumentValley\MVLevel.h" />
     <ClInclude Include="MonumentValley\MVObject.h" />
@@ -276,6 +287,15 @@
     <ClCompile Include="FlappyBird\TrainManager.cpp" />
     <ClCompile Include="Mario\MBLevel.cpp" />
     <ClCompile Include="Mario\MBStage.cpp" />
+    <ClCompile Include="Minesweeper\CSolverFrame.cpp" />
+    <ClCompile Include="Minesweeper\CSPSolveStrategy.cpp" />
+    <ClCompile Include="Minesweeper\ExpSolveStrategy.cpp" />
+    <ClCompile Include="Minesweeper\GControlerWin7.cpp" />
+    <ClCompile Include="Minesweeper\ImageScanser.cpp" />
+    <ClCompile Include="Minesweeper\InputHook.cpp" />
+    <ClCompile Include="Minesweeper\MinesweeperHook.cpp" />
+    <ClCompile Include="Minesweeper\MineSweeperSolver.cpp" />
+    <ClCompile Include="Minesweeper\MineLevelStage.cpp" />
     <ClCompile Include="MonumentValley\MVCommon.cpp" />
     <ClCompile Include="MonumentValley\MVLevel.cpp" />
     <ClCompile Include="MonumentValley\MVObject.cpp" />
@@ -415,6 +435,7 @@
     <ClCompile Include="TestMisc\Test\MatrixTest.cpp" />
     <ClCompile Include="TestMisc\Test\MultiThreadTest.cpp" />
     <ClCompile Include="TestMisc\Test\PreprocessTest.cpp" />
+    <ClCompile Include="TestMisc\Test\PWTest.cpp" />
     <ClCompile Include="TestMisc\Test\SpatialIndexTest.cpp" />
     <ClCompile Include="TripleTown\TTLevel.cpp" />
     <ClCompile Include="TripleTown\TTScene.cpp" />

@@ -6,6 +6,7 @@
 #include "RHI/TextureAtlas.h"
 
 #include "RandomUtility.h"
+#include "Go/GoCore.h"
 
 #define DRAW_TEXTURE 1
 
@@ -49,16 +50,20 @@ namespace Go
 
 		Vector2 getIntersectionPos(int i, int j) const
 		{
-			return renderPos + cellLength * Vector2(i, j);
+			return renderPos + cellLength * Vector2(i, board.getSize() - 1 - j);
 		}
 		Vec2i getCoord( Vector2 const& pos ) const
 		{
-			return (pos - renderPos + 0.5 * Vector2(cellLength, cellLength) ) / cellLength;
+			Vec2i result = (pos - renderPos + 0.5 * Vector2(cellLength, cellLength) ) / cellLength;
+			result.y = board.getSize() - 1 - result.y;
+			return result;
 		}
-		static Vec2i CalcCoord(Vector2 const& coordPos , Vector2 const& renderPos , float scale )
+		static Vec2i CalcCoord(Vector2 const& coordPos , Vector2 const& renderPos , float scale , int boradSize )
 		{
 			float cellLength = DefalutCellLength * scale;
-			return (coordPos - renderPos + 0.5 * Vector2(cellLength, cellLength)) / cellLength;
+			Vec2i result = (coordPos - renderPos + 0.5 * Vector2(cellLength, cellLength)) / cellLength;
+			result.y = boradSize - 1 - result.y;
+			return result;
 		}
 	};
 
@@ -95,7 +100,7 @@ namespace Go
 		}
 
 		Vector2 getStonePos(RenderContext const& context, int i, int j);
-		Vector2 getIntersectionPos(RenderContext const& context, int i, int j);
+
 		void drawBorad(GLGraphics2D& g, RenderContext const& context);
 
 		void addBatchedSprite(int id, Vector2 pos, Vector2 size, Vector2 pivot, Vector4 color);
@@ -114,6 +119,11 @@ namespace Go
 
 			NumTexture,
 		};
+		struct TextureInfo
+		{
+			Vector2 uvMin, uvMax;
+		};
+		TextureInfo mTexInfos[NumTexture];
 		Render::RHITexture2DRef mTextures[NumTexture];
 
 		std::vector< Vector2 > mNoiseOffsets;

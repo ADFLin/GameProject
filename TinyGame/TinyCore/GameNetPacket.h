@@ -56,10 +56,10 @@ enum NetPacketID
 };
 
 
-class AllocTake : public SocketBuffer::Take
+class AllocTakeOperator : public SocketBuffer::TakeOperator
 {
 public:
-	AllocTake( SocketBuffer& buffer ):SocketBuffer::Take( buffer ){}
+	AllocTakeOperator( SocketBuffer& buffer ):SocketBuffer::TakeOperator( buffer ){}
 
 	static void* alloc( unsigned size ){ return malloc( size ); }
 	static void  free( void* ptr ){ ::free( ptr ); }
@@ -155,12 +155,12 @@ public:
 	GamePacket():IComPacket( ID ){}
 	void doRead( SocketBuffer& buffer )
 	{  
-		AllocTake takeOp( buffer ); 
+		AllocTakeOperator takeOp( buffer ); 
 		static_cast<T*>( this )->operateBuffer( takeOp );      
 	}
 	void doWrite( SocketBuffer& buffer )
 	{  
-		SocketBuffer::Fill fillOp( buffer );
+		SocketBuffer::FillOperator fillOp( buffer );
 		static_cast<T*>( this )->operateBuffer( fillOp ); 
 	}
 	template < class BufferOP >
@@ -184,13 +184,13 @@ public:
 	void doRead( SocketBuffer& buffer )
 	{  
 		buffer.take( frame ); 
-		AllocTake takeOp( buffer ); 
+		AllocTakeOperator takeOp( buffer ); 
 		static_cast<T*>( this )->operateBuffer( takeOp );      
 	}
 	void doWrite( SocketBuffer& buffer )
 	{  
 		buffer.fill( frame ); 
-		SocketBuffer::Fill fillOp( buffer );
+		SocketBuffer::FillOperator fillOp( buffer );
 		static_cast<T*>( this )->operateBuffer( fillOp ); 
 	}
 	template < class BufferOP >
@@ -316,9 +316,9 @@ public:
 class CSPPlayerState : public GamePacket< CSPPlayerState , CSP_PLAYER_STATE >
 {
 public:
-	unsigned playerId;
+	int8     playerId;
 	uint8    state;
-	uint8    action;
+	//uint8    action;
 
 	void setServerState( uint8 inState )
 	{
@@ -328,7 +328,7 @@ public:
 	template < class BufferOP >
 	void  operateBuffer( BufferOP& op )
 	{
-		op & playerId & state & action;
+		op & playerId & state;
 	}
 
 };

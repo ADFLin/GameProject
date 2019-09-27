@@ -4,6 +4,8 @@
 #include "GameWidget.h"
 #include "GameWidgetID.h"
 
+#include "Core\StringConv.h"
+
 class DevFrame : public GFrame
 {
 public:
@@ -64,9 +66,11 @@ struct WidgetPropery
 	{
 		return std::atoi(widget->getValue());
 	}
-	static void Set(GTextCtrl* widget, float value)
+
+	template< class T >
+	static void Set(GTextCtrl* widget, T value)
 	{
-		return widget->setValue(std::to_string(value).c_str());
+		return widget->setValue( FStringConv::From(value) );
 	}
 
 	static void Bind(GSlider* widget, float& valueRef, float min, float max)

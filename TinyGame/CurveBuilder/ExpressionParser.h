@@ -1,11 +1,15 @@
 #ifndef ExpressionParser_H
 #define ExpressionParser_H
 
+#include "Template\ArrayView.h"
+
 #include <string>
 #include <vector>
 #include <map>
 #include <cmath>
 #include <cassert>
+
+
 
 using std::string;
 
@@ -21,7 +25,7 @@ enum class ValueLayout
 	Double,
 	Float,
 
-	Real = Double,
+	Real = sizeof(RealType) == sizeof(double) ? Double : Float,
 };
 
 inline uint32 GetLayoutSize(ValueLayout layout)
@@ -36,44 +40,123 @@ inline uint32 GetLayoutSize(ValueLayout layout)
 	}
 	return 0;
 }
-struct FunInfo
+
+template< class T >
+struct TTypeToValueLayout {};
+template<>
+struct TTypeToValueLayout< double >
+{
+	static const ValueLayout Result = ValueLayout::Double;
+};
+template<>
+struct TTypeToValueLayout< float >
+{
+	static const ValueLayout Result = ValueLayout::Float;
+};
+template<>
+struct TTypeToValueLayout< int32 >
+{
+	static const ValueLayout Result = ValueLayout::Int32;
+};
+
+struct FuncSignatureInfo
 {
 	static int const MaxArgNum = 8;
-	void* ptrFun;
-	int   numParam;
-	ValueLayout argLayouts[MaxArgNum];
+	TArrayView< ValueLayout const > argLayouts;
 	ValueLayout returnLayout;
 
-
-	bool isSameLayout(FunInfo const& rhs) const
-	{
-		if( returnLayout != rhs.returnLayout )
-			return false;
-		if( numParam == rhs.numParam )
-			return false;
-
-		for( int i = 0; i < numParam; ++i )
-		{
-			if( argLayouts[i] != rhs.argLayouts[i] )
-				return false;
-		}
-		return true;
-	}
-
-	bool operator == ( FunInfo const& rhs ) const
-	{
-		if( ptrFun != rhs.ptrFun )
-			return false;
-
-		return true;
-	}
-
-#if 0
-	template< class RT , class ...Args >
-	static FunInfo Get(RT(*fun)(...Args))
+	FuncSignatureInfo(ValueLayout inRTLayout, ValueLayout const* inArgs, int numArgs)
+		:argLayouts(inArgs, numArgs)
+		,returnLayout(inRTLayout)
 	{
 	}
-#endif
+};
+
+template< class T >
+struct TGetFuncSignature
+{
+
+};
+
+
+template< class RT >
+struct TGetFuncSignature< RT (*)() >
+{
+	static FuncSignatureInfo const& Result()
+	{
+		static FuncSignatureInfo sResult{ TTypeToValueLayout<RT>::Result , nullptr , 0 };
+		return sResult;
+	}
+};
+template< class RT, class T0 >
+struct TGetFuncSignature< RT (*)(T0) >
+{
+	static FuncSignatureInfo const& Result()
+	{
+		static ValueLayout const sArgs[] = { TTypeToValueLayout<T0>::Result };
+		static FuncSignatureInfo sResult{ TTypeToValueLayout<RT>::Result , sArgs , 1 };
+		return sResult;
+	}
+};
+template< class RT, class T0, class T1 >
+struct TGetFuncSignature< RT(*)(T0, T1) >
+{
+	static FuncSignatureInfo const& Result()
+	{
+		static ValueLayout const sArgs[] = { TTypeToValueLayout<T0>::Result , TTypeToValueLayout<T1>::Result };
+		static FuncSignatureInfo sResult{ TTypeToValueLayout<RT>::Result , sArgs , 2 };
+		return sResult;
+	}
+};
+template< class RT, class T0, class T1, class T2>
+struct TGetFuncSignature< RT(*)(T0, T1, T2) >
+{
+	static FuncSignatureInfo const& Result()
+	{
+		static ValueLayout const sArgs[] = { TTypeToValueLayout<T0>::Result, TTypeToValueLayout<T1>::Result, TTypeToValueLayout<T2>::Result };
+		static FuncSignatureInfo sResult{ TTypeToValueLayout<RT>::Result , sArgs , 3 };
+		return sResult;
+	}
+};
+
+template< class RT, class T0, class T1, class T2, class T3>
+struct TGetFuncSignature< RT(*)(T0, T1, T2, T3) >
+{
+	static FuncSignatureInfo const& Result()
+	{
+		static ValueLayout const sArgs[] = { TTypeToValueLayout<T0>::Result, TTypeToValueLayout<T1>::Result, TTypeToValueLayout<T2>::Result, TTypeToValueLayout<T3>::Result };
+		static FuncSignatureInfo sResult{ TTypeToValueLayout<RT>::Result , sArgs , 4 };
+		return sResult;
+	}
+};
+
+
+struct FuncInfo
+{
+	void* funcPtr;
+	FuncSignatureInfo const* signature;
+	template< class T >
+	FuncInfo(T func)
+		:funcPtr(func)
+		,signature( &TGetFuncSignature<T>::Result() )
+	{
+
+	}
+
+
+	int getArgNum() const { return signature->argLayouts.size(); }
+
+
+	bool isSameLayout(FuncInfo const& rhs) const
+	{
+		return signature == rhs.signature;
+	}
+
+	bool operator == ( FuncInfo const& rhs ) const
+	{
+		return (funcPtr == rhs.funcPtr);
+	}
+
 };
 
 struct ConstValueInfo
@@ -88,7 +171,9 @@ struct ConstValueInfo
 	};
 
 	ConstValueInfo(){}
-	ConstValueInfo(RealType value):layout(ValueLayout::Real), toReal(value){}
+	ConstValueInfo(double value):layout(ValueLayout::Double), toDouble(value){}
+	ConstValueInfo(float  value):layout(ValueLayout::Float), toFloat(value) {}
+	ConstValueInfo(int32  value):layout(ValueLayout::Int32), toInt32(value) {}
 
 	bool operator == (ConstValueInfo const& rhs ) const
 	{
@@ -132,6 +217,9 @@ struct VarValueInfo
 	ValueLayout layout;
 	void* ptr;
 
+	VarValueInfo(double* pValue) :layout(ValueLayout::Double), ptr(pValue) {}
+	VarValueInfo(float*  pValue) :layout(ValueLayout::Float), ptr(pValue) {}
+	VarValueInfo(int32*  pValue) :layout(ValueLayout::Int32), ptr(pValue) {}
 
 	void assignTo(void* data) const
 	{
@@ -267,9 +355,9 @@ struct SymbolEntry
 {
 	enum Type
 	{
-		eFun,
+		eFunction,
 		eConstValue,
-		eVar,
+		eVariable,
 		eInputVar,
 	};
 	Type type;
@@ -277,32 +365,33 @@ struct SymbolEntry
 	union
 	{
 		uint8          inputIndex;
-		FunInfo        fun;
+		FuncInfo       func;
 		ConstValueInfo constValue;
 		VarValueInfo   varValue;
 	};
 
 	SymbolEntry() {}
-	SymbolEntry(FunInfo const& funInfo)
-		:type(eFun)
-		,fun(funInfo)
+	SymbolEntry(FuncInfo const& funInfo)
+		:type(eFunction)
+		,func(funInfo)
 	{
 	}
 
 	SymbolEntry(ConstValueInfo value)
 		:type(eConstValue)
-		, constValue(value)
+		,constValue(value)
 	{
 	}
-	SymbolEntry(RealType* ptr)
-		:type(eVar)
+	SymbolEntry(VarValueInfo value)
+		:type(eVariable)
+		,varValue(value)
 	{
-		varValue.ptr = ptr;
-		varValue.layout = ValueLayout::Real;
+
 	}
+
 	SymbolEntry(uint8 index)
 		:type(eInputVar)
-		, inputIndex(index)
+		,inputIndex(index)
 	{
 	}
 };
@@ -311,25 +400,24 @@ class SymbolTable
 {
 public:
 	// can redefine
-	void            defineConst( char const* name ,RealType val )  { mNameToEntryMap[name] = val; }
-	void            defineVar( char const* name , RealType* varPtr){  mNameToEntryMap[name] = varPtr; }
-	void            defineVarInput(char const* name, uint8 inputIndex) { mNameToEntryMap[name] = inputIndex; }
-	void            defineFun( char const* name , FunType0 fun ){  defineFunInternal(name,(void*)fun,0);  }
-	void            defineFun( char const* name , FunType1 fun ){  defineFunInternal(name,(void*)fun,1);  }
-	void            defineFun( char const* name , FunType2 fun ){  defineFunInternal(name,(void*)fun,2);  }
-	void            defineFun( char const* name , FunType3 fun ){  defineFunInternal(name,(void*)fun,3);  }
-	void            defineFun( char const* name , FunType4 fun ){  defineFunInternal(name,(void*)fun,4);  }
-	void            defineFun( char const* name , FunType5 fun ){  defineFunInternal(name,(void*)fun,5);  }
+	template< class T >
+	void            defineConst(char const* name, T val) { mNameToEntryMap[name] = ConstValueInfo(val); }
+	template< class T >
+	void            defineVar( char const* name , T* varPtr){  mNameToEntryMap[name] = VarValueInfo(varPtr); }
+	template< class T>
+	void            defineFun(char const* name, T fun ) { mNameToEntryMap[name] = FuncInfo(fun); }
 
+	void            defineVarInput(char const* name, uint8 inputIndex) { mNameToEntryMap[name] = inputIndex; }
+	
 	ConstValueInfo const* findConst(std::string const& name) const;
-	FunInfo const*        findFun(std::string const& name) const;
+	FuncInfo const*        findFun(std::string const& name) const;
 	VarValueInfo const*   findVar(std::string const& name ) const;
 	int             findInput(std::string const& name) const;
-	char const*     getFunName( FunInfo const& info ) const;
+	char const*     getFunName( FuncInfo const& info ) const;
 	char const*     getVarName( void* var ) const;
 
-	bool            isFunDefined(std::string const& name) const{  return isDefinedInternal( name , SymbolEntry::eFun ); }
-	bool            isVarDefined(std::string const& name) const{ return isDefinedInternal(name, SymbolEntry::eVar ); }
+	bool            isFunDefined(std::string const& name) const{  return isDefinedInternal( name , SymbolEntry::eFunction ); }
+	bool            isVarDefined(std::string const& name) const{ return isDefinedInternal(name, SymbolEntry::eVariable ); }
 	bool            isConstDefined(std::string const& name ) const{ return isDefinedInternal(name, SymbolEntry::eConstValue); }
 
 	int             getVarTable( char const* varStr[], double varVal[] ) const;
@@ -356,15 +444,6 @@ protected:
 	{
 		return findSymbol(name, type) != nullptr;
 	}
-
-	void defineFunInternal( char const* name ,void* funPtr ,int num )
-	{
-		FunInfo info;
-		info.ptrFun = funPtr;
-		info.numParam = num;
-		mNameToEntryMap[name] = info;
-	}
-
 	std::map< std::string, SymbolEntry > mNameToEntryMap;
 
 };
@@ -509,7 +588,7 @@ public:
 	void codeConstValue(ConstValueInfo const&val);
 	void codeVar( VarValueInfo const& varInfo);
 	void codeInput(uint8 inputIndex);
-	void codeFunction(FunInfo const& info);
+	void codeFunction(FuncInfo const& info);
 	void codeBinaryOp(TokenType type,bool isReverse);
 	void codeUnaryOp(TokenType type);
 	void codeEnd();
@@ -564,7 +643,7 @@ void ParseResult::generateCode( TCodeGenerator& generator , int numInput, ValueL
 			switch( unit.type & TOKEN_MASK )
 			{
 			case TOKEN_FUN:
-				generator.codeFunction(unit.symbol->fun);
+				generator.codeFunction(unit.symbol->func);
 				break;
 			case TOKEN_UNARY_OP:
 				generator.codeUnaryOp(unit.type);

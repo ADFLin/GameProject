@@ -49,7 +49,7 @@ namespace Poker { namespace Holdem {
 		void render( Graphics2D& g );
 
 
-		void betRequest( BetType type , int money = 0 )
+		void betRequest( EBetAction type , int money = 0 )
 		{
 			mLevel->betRequest( type , money );
 		}
@@ -58,7 +58,7 @@ namespace Poker { namespace Holdem {
 
 
 		virtual void onBetCall( int slot );
-		virtual void onBetResult( int slot , BetType type , int money )
+		virtual void onBetResult( int slot , EBetAction type , int money )
 		{
 
 		}

@@ -120,7 +120,7 @@ namespace Go
 		void addBaseWidget();
 
 		void addLeelaParamWidget(int id , int idxPlayer );
-
+		void addKataPramWidget(int id, int idxPlayer);
 		void addZenParamWidget(int id, int idxPlayer);
 
 		GChoice* addPlayerChoice(int idxPlayer, char const* title);
@@ -145,6 +145,21 @@ namespace Go
 		}
 
 		bool setupMatchSetting(MatchGameData& matchData , GameSetting& setting);
+
+
+		template< class T , class Widget >
+		T getParamValue(int id)
+		{
+			return WidgetPropery::Get<T>(findChildT<Widget>(id));
+		}
+	};
+
+	class GameHook
+	{
+
+
+
+
 	};
 
 	class BoardFrame : public GFrame
@@ -340,6 +355,8 @@ namespace Go
 
 			~GameStatusQuery()
 			{
+				while( mbWaitInitialize ){}
+
 				if( mBot )
 				{
 					mBot->release();
@@ -368,17 +385,47 @@ namespace Go
 
 			bool ensureBotInitialized()
 			{
+				if( mbWaitInitialize )
+					return false;
+
 				if( mBot == nullptr )
 				{
 					mBot.reset(Zen::TBotCore<7>::Create<Zen::TBotCore<7>>());
-					if( !mBot->initialize() )
-					{
-						mBot.release();
-						return false;
-					}
+					mbWaitInitialize = true;
+					auto work = new InitializeWork(*this);
+					work->start();
 				}
-				return true;
+
+				return !mbWaitInitialize;
 			}
+
+			struct InitializeWork : public RunnableThreadT<InitializeWork >
+			{
+			public:
+				InitializeWork(GameStatusQuery& query)
+					:mQuery(query)
+				{
+				}
+
+				unsigned run()
+				{
+					if( !mQuery.mBot->initialize() )
+					{
+						mQuery.mBot.release();
+					}
+					return 0;
+				}
+				void exit() 
+				{ 
+					mQuery.mbWaitInitialize = false;
+					delete this;
+				}
+
+				GameStatusQuery& mQuery;
+
+			};
+
+			volatile bool mbWaitInitialize = false;
 			Guid mLastQueryId;
 			int  mNextCopyStep;
 			std::unique_ptr< Zen::TBotCore<7> > mBot;
@@ -386,6 +433,7 @@ namespace Go
 
 		bool bUpdateTerritory = false;
 		bool bShowTerritory = false;
+		bool bTerritoryInfoValid = false;
 		Zen::TerritoryInfo mShowTerritoryInfo;
 		GameStatusQuery mStatusQuery;
 
@@ -398,16 +446,16 @@ namespace Go
 		
 		PlayVertex  bestMoveVertex;
 		
-		bool    bReviewingGame = false;
+		bool       bReviewingGame = false;
 		GameProxy  mReviewGame;
-		bool    bTryPlayingGame = false;
-		GameProxy  mTryPlayGame;
+		bool       bTryPlayingGame = false;
+		GameProxy  mTryPlayGame;	
+		Vec2i      mTryPlayWidgetPos = Vec2i(0,0);
 		TryPlayBoardFrame* mTryPlayWidget = nullptr;
-		Vec2i   mTryPlayWidgetPos = Vec2i(0,0);
 
 		GWidget* mGamePlayWidget = nullptr;
 		GWidget* mWinRateWidget = nullptr;
-		bool    mbRestartLearning = false;
+		bool     mbRestartLearning = false;
 
 		MatchResultMap mMatchResultMap;
 		uint32         mLastMatchRecordWinCounts[2];

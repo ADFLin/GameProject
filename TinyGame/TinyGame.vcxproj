@@ -73,6 +73,7 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
+    <IntDir>$(Platform)\$(Configuration)\$(ProjectName)\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <OutDir>$(SolutionDir)$(Configuration)\</OutDir>
@@ -135,7 +136,7 @@ copy $(TargetDir)EngineShare.dll  $(ProjectDir)out\</Command>
     <ClCompile>
       <AdditionalOptions>/MP %(AdditionalOptions)</AdditionalOptions>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>.;TinyCore;../libEngine;../OtherLib;out/Shader;../CFlyMain;../Zuma;../OtherLib/boost;../OtherLib/glew;../OtherLib/DirectX/Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>.;TinyCore;../libEngine;../OtherLib;out/Shader;../CFlyMain;../Zuma;../OtherLib/boost;../OtherLib/glew;../OtherLib/DirectX/Include;../OtherLib/Box2D;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>_WINDOWS;DEBUG;TG_DLL;CORE_SHARE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MinimalRebuild>false</MinimalRebuild>
       <BasicRuntimeChecks>Default</BasicRuntimeChecks>
@@ -144,7 +145,7 @@ copy $(TargetDir)EngineShare.dll  $(ProjectDir)out\</Command>
       <PrecompiledHeaderFile>TinyGamePCH.h</PrecompiledHeaderFile>
       <ProgramDataBaseFileName>$(IntDir)vc$(PlatformToolsetVersion).pdb</ProgramDataBaseFileName>
       <WarningLevel>Level3</WarningLevel>
-      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <DebugInformationFormat>OldStyle</DebugInformationFormat>
       <ForcedIncludeFiles>TinyGamePCH.h;%(ForcedIncludeFiles)</ForcedIncludeFiles>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <OpenMPSupport>false</OpenMPSupport>
@@ -153,7 +154,7 @@ copy $(TargetDir)EngineShare.dll  $(ProjectDir)out\</Command>
     </ClCompile>
     <Link>
       <AdditionalDependencies>Msimg32.lib;d3d9.lib;d3dx9d.lib;dsound.lib;dinput8.lib;dxguid.lib;winmm.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>../OtherLib/Boost/lib/x64;../OtherLib/DirectX/Lib/x64;../OtherLib/PerfSDK;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>../OtherLib/Boost/lib/x64;../OtherLib/DirectX/Lib/x64;../OtherLib/PerfSDK;../OtherLib/Vulkan/Lib/x64;../OtherLib/Box2D/Lib/x64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <GenerateDebugInformation>DebugFastLink</GenerateDebugInformation>
       <SubSystem>Windows</SubSystem>
       <RandomizedBaseAddress>false</RandomizedBaseAddress>
@@ -303,9 +304,11 @@ copy $(TargetDir)EngineShare.dll  $(ProjectDir)out\</Command>
     <ClInclude Include="CellWalker.h" />
     <ClInclude Include="Go\GoBot.h" />
     <ClInclude Include="Go\GoRenderer.h" />
+    <ClInclude Include="Go\ImageProcessing.h" />
     <ClInclude Include="Go\LeelaBot.h" />
     <ClInclude Include="Go\LeelaZeroGoStage.h" />
     <ClInclude Include="Go\MatchGame.h" />
+    <ClInclude Include="Go\MonitorBot.h" />
     <ClInclude Include="NesEmulator.h" />
     <ClInclude Include="RandomUtility.h" />
     <ClInclude Include="Geometry2d.h" />

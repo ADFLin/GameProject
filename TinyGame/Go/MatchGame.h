@@ -15,10 +15,9 @@ namespace Go
 	{
 		ePlayer = 0,
 		eLeelaZero,
+		eKata,
 		eAQ,
-		eZenV7,
-		eZenV6,
-		eZenV4,
+		eZen,
 
 		Count,
 	};
@@ -32,14 +31,12 @@ namespace Go
 			return "Player";
 		case ControllerType::eLeelaZero:
 			return "LeelaZero";
+		case ControllerType::eKata:
+			return "Kata";
 		case ControllerType::eAQ:
 			return "AQ";
-		case ControllerType::eZenV7:
-			return "Zen7";
-		case ControllerType::eZenV6:
-			return "Zen6";
-		case ControllerType::eZenV4:
-			return "Zen4";
+		case ControllerType::eZen:
+			return "Zen";
 		}
 
 		return "Unknown";

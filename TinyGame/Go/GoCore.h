@@ -86,6 +86,14 @@ namespace Go
 
 		bool isOnBoard() const { return data > 0; }
 
+		static PlayVertex OnBoard(int x, int y)
+		{
+			PlayVertex result;
+			result.x = x;
+			result.y = y;
+			return result;
+		}
+
 		static PlayVertex Pass()
 		{
 			PlayVertex result; 
@@ -379,8 +387,8 @@ namespace Go
 
 		int     getCurrentStep() const	{  return mCurrentStep; }
 		int     getLastStep() const  {  return mStepHistory.size() - 1;  }
-		bool    getStepPos(int step, int outPos[2]) const;
-		bool    getLastStepPos(int outPos[2]) const { return getStepPos(getCurrentStep() - 1, outPos); }
+		PlayVertex getStepPos(int step) const;
+		PlayVertex getLastStepPos() const { return getStepPos(getCurrentStep() - 1); }
 
 		int     getLastPassCount() const;
 

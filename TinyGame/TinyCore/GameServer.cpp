@@ -273,7 +273,7 @@ void ServerWorker::notifyConnectionAccpet( NetConnection* con )
 	}
 }
 
-void ServerWorker::notifyConnectClose( NetConnection* con , NetCloseReason reason )
+void ServerWorker::notifyConnectionClose( NetConnection* con , NetCloseReason reason )
 {
 	NetClientData* client  = static_cast< NetClientData::TCPClient* >( con )->client;
 	PlayerId playerId = client->ownerId;
@@ -322,10 +322,14 @@ void ServerWorker::notifyConnectClose( NetConnection* con , NetCloseReason reaso
 		break;
 	}
 
-	SPPlayerStatus infoCom;
-	getPlayerManager()->getPlayerInfo( infoCom.info );
-	infoCom.numPlayer = (uint8) getPlayerManager()->getPlayerNum();
-	sendTcpCommand( &infoCom );
+	addGameThreadCommnad([this]
+	{
+		SPPlayerStatus infoCom;
+		getPlayerManager()->getPlayerInfo(infoCom.info);
+		infoCom.numPlayer = (uint8)getPlayerManager()->getPlayerNum();
+		sendTcpCommand(&infoCom);
+	});
+
 }
 
 void ServerWorker::procUdpCon_NetThread( IComPacket* cp )
@@ -389,10 +393,7 @@ void ServerWorker::procLogin( IComPacket* cp)
 	{
 		addNetThreadCommnad([this,client]
 		{
-			mNetSelect.removeSocket(client->tcpChannel.getSocket());
-			mNetSelect.removeSocket(client->udpChannel.getSocket());
-			mClientManager.removeClient(client);
-			
+			removeClient(client);
 		});
 		return;
 	}
@@ -606,7 +607,7 @@ void ServerWorker::procComMsg_NetThread( IComPacket* cp)
 			sendAddr = *(NetAddress*)com->getUserData();
 		}
 
-		if( gethostname(hostname, 256) == 0 )
+		if( gethostname(hostname, hostname.max_size()) == 0 )
 		{
 			hostent* hn = gethostbyname(hostname);
 			FixString<32> ip = inet_ntoa(*(struct in_addr *)hn->h_addr_list[0]);
@@ -654,9 +655,8 @@ void ServerWorker::removeConnect_NetThread( NetClientData* client , bool bRMPlay
 		{
 			client->ownerId = ERROR_PLAYER_ID;
 		}
-		mNetSelect.removeSocket(client->tcpChannel.getSocket());
-		mNetSelect.removeSocket(client->udpChannel.getSocket());
-		mClientManager.removeClient(client);
+
+		removeClient(client);
 
 		addGameThreadCommnad([this, playerId, bRMPlayer]
 		{
@@ -691,6 +691,8 @@ void ServerWorker::doUpdate( long time )
 
 bool ServerWorker::kickPlayer( unsigned id )
 {
+	assert(IsInGameThead());
+
 	if ( mPlayerManager->getUserID() == id )
 		return false;
 

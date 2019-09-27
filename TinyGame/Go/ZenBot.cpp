@@ -391,10 +391,9 @@ int runBotTest()
 namespace Go
 {
 
-	ZenBot::ZenBot(int version /*= 6*/) 
-		:mCoreVersion(version)
+	ZenBot::ZenBot() 
 	{
-
+		mCoreVersion = -1;
 	}
 
 	Zen::CoreSetting ZenBot::GetCoreConfigSetting()
@@ -409,7 +408,9 @@ namespace Go
 
 	bool ZenBot::initialize(void* settingData)
 	{
-		switch( mCoreVersion )
+		auto const& setting = (settingData) ? *static_cast<Zen::CoreSetting*>(settingData) : GetCoreConfigSetting();
+		mCoreVersion = setting.version;
+		switch( setting.version )
 		{
 		case 4: mCore.reset(buildCoreT< 4 >()); break;
 		case 6: mCore.reset(buildCoreT< 6 >()); break;
@@ -422,16 +423,7 @@ namespace Go
 			return false;
 
 		mCore->caputureResource();
-
-		if( settingData )
-		{
-			mCore->setCoreSetting(*static_cast<Zen::CoreSetting*>(settingData));
-		}
-		else
-		{
-			Zen::CoreSetting setting = GetCoreConfigSetting();
-			mCore->setCoreSetting(setting);
-		}
+		mCore->setCoreSetting(setting);
 		return true;
 	}
 
@@ -570,6 +562,25 @@ namespace Go
 				}
 			}
 		}
+	}
+
+	bool ZenBot::getMetaData(int id, uint8* dataBuffer, int size)
+	{
+
+		switch( id )
+		{
+		case ZenMetaParam::eVersion:
+			{
+				if( size == sizeof(int) )
+				{
+					*((int*)dataBuffer) = mCoreVersion;
+					return true;
+				}
+			}
+		default:
+			break;
+		}
+		return false;
 	}
 
 }

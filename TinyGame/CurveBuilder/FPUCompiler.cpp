@@ -299,7 +299,7 @@ public:
 		mNumInstruction += 2;
 
 		// ??
-		//m_pData->pushCode(MSTART);
+		//mData->pushCode(MSTART);
 		//++m_NumInstruction;
 	}
 
@@ -333,11 +333,11 @@ public:
 		mPrevValue.idxStack = findStack(mPrevValue);
 	}
 
-	void codeFunction(FunInfo const& info)
+	void codeFunction(FuncInfo const& info)
 	{
 		checkStackPrevValPtr();
 
-		int   numParam = info.numParam;
+		int   numParam = info.getArgNum();
 		int   numSPUParam = numParam;
 
 		unsigned espOffset = sizeof(ValueType) * numParam;
@@ -378,7 +378,7 @@ public:
 		}
 
 		Asm::sub(esp, imm8u(uint8(espOffset)));
-		Asm::call(ptr((void*)&info.ptrFun));
+		Asm::call(ptr((void*)&info.funcPtr));
 		Asm::add(esp, imm8u(uint8(espOffset)));
 
 		mRegStack.push_back(ValueInfo());
@@ -628,7 +628,7 @@ public:
 		mStackValues.push_back(info);
 	}
 
-	void codeFunction(FunInfo const& info);
+	void codeFunction(FuncInfo const& info);
 	void codeBinaryOp(TokenType type, bool isReverse)
 	{
 		if( type == BOP_ASSIGN )

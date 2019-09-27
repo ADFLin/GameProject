@@ -127,7 +127,7 @@ void ClientWorker::notifyConnectionOpen( NetConnection* con )
 	}
 }
 
-void ClientWorker::notifyConnectClose( NetConnection* con , NetCloseReason reason )
+void ClientWorker::notifyConnectionClose( NetConnection* con , NetCloseReason reason )
 {
 	assert( con == &mTcpClient );
 
@@ -353,8 +353,14 @@ void ClientWorker::connect( char const* hostName , char const* loginName )
 		mLoginName = loginName;
 	else
 		mLoginName = "Player";
-	mTcpClient.connect( hostName , TG_TCP_PORT );
-	mNetSelect.addSocket( mTcpClient.getSocket() );
+
+	FixString<512> temploginName = loginName;
+	FixString<512> tempHostName = hostName;
+	addNetThreadCommnad([tempHostName,this]()
+	{
+		mTcpClient.connect(tempHostName, TG_TCP_PORT);
+		mNetSelect.addSocket(mTcpClient.getSocket());
+	});
 }
 
 void CLPlayerManager::updatePlayer( PlayerInfo* info[] , int num )

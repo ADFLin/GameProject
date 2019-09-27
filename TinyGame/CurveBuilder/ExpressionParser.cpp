@@ -33,7 +33,7 @@ void ExprParse::print(  Unit const& unit , SymbolTable const& table )
 	case VALUE_CONST: cout << unit.constValue.toReal ; break;
 	case FUN_DEF:
 		{
-			char const* name = table.getFunName( unit.symbol->fun );
+			char const* name = table.getFunName( unit.symbol->func );
 			if ( name )
 				cout << name;
 			else
@@ -190,7 +190,7 @@ bool ExpressionParser::analyzeTokenUnit( char const* expr , SymbolTable const& t
 			{
 				switch( symbol->type )
 				{
-				case SymbolEntry::eFun:
+				case SymbolEntry::eFunction:
 					{
 						type = FUN_DEF;
 						infixCode.push_back(Unit(type, symbol));
@@ -202,7 +202,7 @@ bool ExpressionParser::analyzeTokenUnit( char const* expr , SymbolTable const& t
 						infixCode.push_back(Unit(type, symbol->constValue));
 					}
 					break;
-				case SymbolEntry::eVar:
+				case SymbolEntry::eVariable:
 					{
 						type = VALUE_VARIABLE;
 						infixCode.push_back(Unit(type, symbol));
@@ -482,7 +482,7 @@ bool ParseResult::optimizeValueOrder( int index )
 			}
 			else if( IsFunction( elem2.type ) )
 			{
-				num -= (elem2.symbol->fun.numParam -1 );
+				num -= (elem2.symbol->func.getArgNum() -1 );
 			}
 
 		} while ( num > 0 );
@@ -750,8 +750,8 @@ bool ParseResult::optimizeConstValue( int index )
 	else if ( IsFunction( elem.type ) )
 	{
 		RealType val[5];
-		int num = elem.symbol->fun.numParam;
-		void* funPtr = elem.symbol->fun.ptrFun;
+		int num = elem.symbol->func.getArgNum();
+		void* funPtr = elem.symbol->func.funcPtr;
 		bool testOk =true;
 		for ( int j = 0 ; j < num ;++j)
 		{
@@ -1146,7 +1146,7 @@ int ExprTreeBuilder::checkTreeError_R( int idxNode )
 			++numVar;
 		}
 
-		if ( numVar != unit.symbol->fun.numParam )
+		if ( numVar != unit.symbol->func.getArgNum() )
 			return TREE_FUN_PARAM_NUM_NO_MATCH;
 	}
 
@@ -1243,8 +1243,8 @@ bool ExprTreeBuilder::optimizeNodeConstValue( int idxNode )
 	else if ( ExprParse::IsFunction( unit.type ) )
 	{
 		RealType params[5];
-		int   numParam = unit.symbol->fun.numParam;
-		void* ptrFun = unit.symbol->fun.ptrFun;
+		int   numParam = unit.symbol->func.getArgNum();
+		void* ptrFun = unit.symbol->func.funcPtr;
 
 		if ( numParam )
 		{
@@ -1373,12 +1373,12 @@ void ExprTreeBuilder::printTree( SymbolTable const& table )
 	}
 }
 
-char const* SymbolTable::getFunName( FunInfo const& info ) const
+char const* SymbolTable::getFunName( FuncInfo const& info ) const
 {
 	for( auto const& pair : mNameToEntryMap )
 	{
-		if( pair.second.type == SymbolEntry::eFun &&
-		    pair.second.fun == info )
+		if( pair.second.type == SymbolEntry::eFunction &&
+		    pair.second.func == info )
 			return pair.first.c_str();
 	}
 	return nullptr;
@@ -1388,7 +1388,7 @@ char const* SymbolTable::getVarName( void* var ) const
 {
 	for( auto const& pair : mNameToEntryMap )
 	{
-		if( pair.second.type == SymbolEntry::eVar &&
+		if( pair.second.type == SymbolEntry::eVariable &&
 		    pair.second.varValue.ptr == var )
 			return pair.first.c_str();
 	}
@@ -1397,7 +1397,7 @@ char const* SymbolTable::getVarName( void* var ) const
 
 VarValueInfo const* SymbolTable::findVar( std::string const& name ) const
 {
-	auto entry = findSymbol(name, SymbolEntry::eVar);
+	auto entry = findSymbol(name, SymbolEntry::eVariable);
 	if( entry )
 	{
 		return &entry->varValue;
@@ -1415,12 +1415,12 @@ int SymbolTable::findInput(std::string const& name) const
 	return -1;
 }
 
-FunInfo const* SymbolTable::findFun(std::string const& name ) const
+FuncInfo const* SymbolTable::findFun(std::string const& name ) const
 {
-	auto entry = findSymbol(name, SymbolEntry::eFun);
+	auto entry = findSymbol(name, SymbolEntry::eFunction);
 	if( entry )
 	{
-		return &entry->fun;
+		return &entry->func;
 	}
 	return nullptr;
 }
@@ -1440,7 +1440,7 @@ int SymbolTable::getVarTable( char const* varStr[],double varVal[] ) const
 	int index = 0;
 	for( auto iter = mNameToEntryMap.begin(); iter != mNameToEntryMap.end(); ++iter )
 	{
-		if ( iter->second.type != SymbolEntry::eVar )
+		if ( iter->second.type != SymbolEntry::eVariable )
 			continue;
 
 		if ( varStr ) varStr[index] = iter->first.c_str();

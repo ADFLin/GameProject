@@ -118,7 +118,7 @@
       <PrecompiledHeaderFile>TestRenderPCH.h</PrecompiledHeaderFile>
       <ProgramDataBaseFileName>$(IntDir)vc$(PlatformToolsetVersion).pdb</ProgramDataBaseFileName>
       <WarningLevel>Level3</WarningLevel>
-      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <DebugInformationFormat>OldStyle</DebugInformationFormat>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <BrowseInformation>true</BrowseInformation>
       <ForcedIncludeFiles>TestRenderPCH.h</ForcedIncludeFiles>

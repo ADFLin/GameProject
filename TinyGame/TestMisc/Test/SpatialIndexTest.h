@@ -15,7 +15,7 @@
 
 typedef Math::Vector2 Vector2;
 typedef Math::TBoundBox< Vector2 > BoundBox2D;
-typedef Math::TRay< Vector2 > Ray;
+typedef Math::TRay< Vector2 > Ray2D;
 
 typedef TKDTree< 2 > KDTree;
 
@@ -41,7 +41,7 @@ public:
 	};
 	KDTree    mTree;
 
-	Ray       mTestRay;
+	Ray2D       mTestRay;
 	KDTree::RayResult mRayResult;
 	SpatialIndexTestStage()
 	{

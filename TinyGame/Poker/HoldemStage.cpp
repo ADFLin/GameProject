@@ -25,16 +25,16 @@ namespace Poker { namespace Holdem {
 			switch( id )
 			{
 			case UI_FOLD:
-				mServer->procBetRequest( pos , BET_FOLD , 0 );
+				mServer->procBetRequest( pos , EBetAction::Fold , 0 );
 				break;
 			case UI_ALL_IN:
-				mServer->procBetRequest( pos ,BET_ALL_IN , 0 );
+				mServer->procBetRequest( pos ,EBetAction::AllIn , 0 );
 				break;
 			case UI_RISE:
-				mServer->procBetRequest( pos ,BET_RAISE , mServer->getRule().bigBlind );
+				mServer->procBetRequest( pos ,EBetAction::Raise , mServer->getRule().bigBlind );
 				break;
 			case UI_CALL:
-				mServer->procBetRequest( pos , BET_CALL , 0 );
+				mServer->procBetRequest( pos , EBetAction::Call , 0 );
 				break;
 			case UI_RISE_MONEY:
 				break;
@@ -51,7 +51,7 @@ namespace Poker { namespace Holdem {
 
 	LevelStage::LevelStage()
 	{
-
+		mDevPanel = nullptr;
 	}
 
 	void LevelStage::setupLocalGame( LocalPlayerManager& playerManager )
@@ -187,7 +187,10 @@ namespace Poker { namespace Holdem {
 	void LevelStage::tick()
 	{
 		BaseClass::tick();
-		mDevPanel->show(mServerLevel->isPlaying());
+		if( mDevPanel )
+		{
+			mDevPanel->show(mServerLevel->isPlaying());
+		}
 	}
 
 	void LevelStage::onRoundEnd()

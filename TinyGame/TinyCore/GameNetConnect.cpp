@@ -47,7 +47,7 @@ bool NetConnection::checkConnectStatus( long time )
 	long const TimeOut = 30 * 1000;
 	if ( time - mLastRespondTime > TimeOut )
 	{
-		mListener->notifyConnectClose( this , NetCloseReason::Timeout );
+		mListener->notifyConnectionClose( this , NetCloseReason::Timeout );
 		return false;
 	}
 	return true;
@@ -220,7 +220,7 @@ void TcpClient::onConnect( NetSocket& socket )
 void TcpClient::onClose( NetSocket& socket , bool beGraceful )
 {
 	LogMsg( "Connection close" );
-	mListener->notifyConnectClose( this , NetCloseReason::ShutDown );
+	mListener->notifyConnectionClose( this , NetCloseReason::ShutDown );
 }
 
 void TcpServer::onAcceptable( NetSocket& socket )

@@ -113,16 +113,16 @@ namespace Poker { namespace Holdem {
 			switch( id )
 			{
 			case UI_FOLD:
-				mScene->betRequest( BET_FOLD );
+				mScene->betRequest( EBetAction::Fold );
 				break;
 			case UI_ALL_IN:
-				mScene->betRequest( BET_ALL_IN );
+				mScene->betRequest( EBetAction::AllIn );
 				break;
 			case UI_RISE:
-				mScene->betRequest( BET_RAISE , mScene->getLevel().getRule().bigBlind );
+				mScene->betRequest( EBetAction::Raise , mScene->getLevel().getRule().bigBlind );
 				break;
 			case UI_CALL:
-				mScene->betRequest( BET_CALL );
+				mScene->betRequest( EBetAction::Call );
 				break;
 			case UI_RISE_MONEY:
 				break;
@@ -214,7 +214,7 @@ namespace Poker { namespace Holdem {
 		if ( getLevel().getPlayerPos() != -1 )
 		{
 			str.clear();
-			if ( mLevel->getPlayerSlot().state == SLOT_PLAY )
+			if ( mLevel->getPlayerSlot().status == ESlotStatus::Playing )
 			{
 				for( int i = 0; i < PocketCardNum; ++i )
 				{
@@ -246,10 +246,10 @@ namespace Poker { namespace Holdem {
 		FixString<64> str;
 
 		g.setTextColor(Color3ub(255 , 0 , 0) );
-		switch( info.state )
+		switch( info.status )
 		{
-		case SLOT_WAIT_NEXT:
-		case SLOT_PLAY:
+		case ESlotStatus::WaitNext:
+		case ESlotStatus::Playing:
 			{
 				char const* betState[] = { "None" , "Fold" , "Call" , "Raise" , "All In" };
 
@@ -261,7 +261,7 @@ namespace Poker { namespace Holdem {
 				}
 				str.format( "%d-%s %d " , posSlot , name , info.ownMoney );
 				g.drawText( pos , str );
-				str.format( "%s %d %d %d %d" , betState[ info.betType ] , info.betMoney[0] , info.betMoney[1] , info.betMoney[2] , info.betMoney[3] );
+				str.format( "%s %d %d %d %d" , betState[ int(info.lastAction) ] , info.betMoney[0] , info.betMoney[1] , info.betMoney[2] , info.betMoney[3] );
 				g.drawText( pos + Vec2i( 0 , 15 ) , str );
 
 				if ( mLevel->getButtonPos() == posSlot )
@@ -270,7 +270,7 @@ namespace Poker { namespace Holdem {
 				}
 			}
 			break;
-		case SLOT_EMPTY:
+		case ESlotStatus::Empty:
 			str.format( "%d-(Empty)" , posSlot );
 			g.drawText( pos , str );
 			break;
@@ -314,7 +314,7 @@ namespace Poker { namespace Holdem {
 		Vec2i worldPos = widget->getWorldPos();
 
 		g.setTextColor(Color3ub(255, 255, 0));
-		if ( info.state != SLOT_EMPTY )
+		if ( info.status != ESlotStatus::Empty )
 		{
 			GamePlayer* player = mPlayerMgr->getPlayer( info.playerId );
 			if ( player )
@@ -330,12 +330,12 @@ namespace Poker { namespace Holdem {
 
 	void Scene::drawSlot( Graphics2D& g , Vec2i const& pos , SlotInfo const& info )
 	{
-		if ( info.state == SLOT_EMPTY || info.state == SLOT_WAIT_NEXT )
+		if ( info.status == ESlotStatus::Empty || info.status == ESlotStatus::WaitNext )
 			return;
 
 		if ( getLevel().getBetStep() != STEP_NO_BET )
 		{
-			if ( info.betType != BET_FOLD )
+			if ( info.lastAction != EBetAction::Fold )
 			{
 				Vec2i cardPos = pos - mCardDraw->getSize() / 2;
 				

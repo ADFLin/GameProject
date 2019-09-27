@@ -26,8 +26,8 @@ void CWorkerDataTransfer::sendTcpCommand( int recvId , IComPacket* cp )
 void CWorkerDataTransfer::sendData( int recvId , int dataId , void* data , int num )
 {
 	mStream.buffer.clear();
-	mStream.buffer.fill( mSlotId );
-	mStream.buffer.fill( dataId  );
+	mStream.buffer.fillConv<int8>( mSlotId );
+	mStream.buffer.fillConv<int8>( dataId  );
 	mStream.buffer.fill( num );
 	mStream.buffer.fill( data , num );
 	sendTcpCommand( recvId , &mStream );
@@ -36,11 +36,11 @@ void CWorkerDataTransfer::sendData( int recvId , int dataId , void* data , int n
 void CWorkerDataTransfer::procPacket( IComPacket* cp)
 {
 	GDPStream* com = cp->cast< GDPStream >();
+	size_t pos = com->buffer.getUseSize();
 	int slotId;
 	int dataId;
-	size_t pos = com->buffer.getUseSize();
-	com->buffer.take( slotId );
-	com->buffer.take( dataId );
+	com->buffer.takeConv<int8>( slotId );
+	com->buffer.takeConv<int8>( dataId );
 	int dataSizeRecord;
 	com->buffer.take(dataSizeRecord);
 	char* data = com->buffer.getData() + com->buffer.getUseSize();

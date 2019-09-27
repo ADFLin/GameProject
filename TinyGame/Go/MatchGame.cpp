@@ -5,6 +5,7 @@
 
 #include "FileSystem.h"
 #include "StringParse.h"
+#include "Core\StringConv.h"
 
 namespace Go
 {
@@ -26,6 +27,12 @@ namespace Go
 				weightName.resize(8);
 
 			result += weightName;
+		}
+		else if( type == ControllerType::eZen )
+		{
+			int version;
+			bot->getMetaDataT(ZenMetaParam::eVersion, version);
+			result += FStringConv::From(version);
 		}
 		return result;
 	}
@@ -53,17 +60,14 @@ namespace Go
 			case ControllerType::eLeelaZero:
 				bot.reset(new LeelaBot());
 				break;
+			case ControllerType::eKata:
+				bot.reset(new KataBot());
+				break;
 			case ControllerType::eAQ:
 				bot.reset(new AQBot());
 				break;
-			case ControllerType::eZenV7:
-				bot.reset(new ZenBot(7));
-				break;
-			case ControllerType::eZenV6:
-				bot.reset(new ZenBot(6));
-				break;
-			case ControllerType::eZenV4:
-				bot.reset(new ZenBot(4));
+			case ControllerType::eZen:
+				bot.reset(new ZenBot());
 				break;
 			}
 		}
@@ -92,11 +96,20 @@ namespace Go
 				paramString += mySetting->toParamString();
 			}
 			break;
+		case ControllerType::eKata:
+			{
+				auto mySetting = static_cast<KataAISetting*>(botSetting);
+			}
+			break;
 		case ControllerType::eAQ:
 			break;
-		case ControllerType::eZenV7:
-		case ControllerType::eZenV6:
-		case ControllerType::eZenV4:
+
+		case ControllerType::eZen:
+			{
+				auto mySetting = static_cast<Zen::CoreSetting*>(botSetting);
+				paramString += " ";
+				paramString += FStringConv::From(mySetting->version);
+			}
 			break;
 		default:
 			NEVER_REACH("Error Controller Type");

@@ -19,13 +19,14 @@ namespace Go
 		VERIFY_RETURN_FALSE(mTextureAtlas.addImageFile("Go/blackStone.png") == 0);
 		VERIFY_RETURN_FALSE(mTextureAtlas.addImageFile("Go/WhiteStone.png") == 1);
 
-#define TEXTURE( ID , PATH )\
+#define TEXTURE( ID , PATH , bGetUV )\
 			mTextures[ID] = RHIUtility::LoadTexture2DFromFile(PATH);\
-			VERIFY_RETURN_FALSE( mTextures[ID].isValid() );
+			VERIFY_RETURN_FALSE( mTextures[ID].isValid() );\
+			if ( bGetUV ) mTextureAtlas.getRectUV(ID, mTexInfos[ID].uvMin , mTexInfos[ID].uvMax);
 
-		TEXTURE(TextureId::eBlockStone, "Go/blackStone.png");
-		TEXTURE(TextureId::eWhiteStone, "Go/WhiteStone.png");
-		TEXTURE(TextureId::eBoardA, "Go/badukpan4.png");
+		TEXTURE(TextureId::eBlockStone, "Go/blackStone.png", true);
+		TEXTURE(TextureId::eWhiteStone, "Go/WhiteStone.png", true);
+		TEXTURE(TextureId::eBoardA, "Go/badukpan4.png", false);
 #undef TEXTURE
 
 		return true;
@@ -111,11 +112,6 @@ namespace Go
 		return pos;
 	}
 
-	Vector2 BoardRenderer::getIntersectionPos(RenderContext const& context, int i, int j)
-	{
-		return context.renderPos + context.cellLength * Vector2(i, j);
-	}
-
 	void BoardRenderer::drawBorad(GLGraphics2D& g , RenderContext const& context)
 	{
 		using namespace Render;
@@ -166,7 +162,7 @@ namespace Go
 			if( bDrawCoord )
 			{
 				FixString< 64 > str;
-				str.format("%2d", i + 1);
+				str.format("%2d", boardSize - i );
 				g.drawText(posH - Vector2(30, 8), str);
 				g.drawText(posH + Vector2(12 + length, -8), str);
 
@@ -269,7 +265,7 @@ namespace Go
 					int data = context.board.getData(i, j);
 					if( data )
 					{
-						Vector2 pos = context.renderPos + context.cellLength * Vector2(i, j);
+						Vector2 pos = context.getIntersectionPos(i, j);
 						//Vector2 pos = getStonePos(renderPos, board, i, j);
 						FixString<128> str;
 
@@ -305,8 +301,8 @@ namespace Go
 	{
 		Vector2 posLT = pos - size.mul(pivot);
 		Vector2 posRB = posLT + size;
-		Vector2 min, max;
-		mTextureAtlas.getRectUV(id, min, max);
+		Vector2 const& min = mTexInfos[id].uvMin;
+		Vector2 const& max = mTexInfos[id].uvMax;
 		mSpriteVertices.push_back({ posLT , color , min });
 		mSpriteVertices.push_back({ Vector2(posLT.x , posRB.y) , color , Vector2(min.x , max.y) });
 		mSpriteVertices.push_back({ posRB , color , max });

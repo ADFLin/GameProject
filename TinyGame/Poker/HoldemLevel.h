@@ -52,40 +52,40 @@ namespace Poker { namespace Holdem {
 		NUM_BET_STEP ,
 	};
 
-	enum BetType
+	enum class EBetAction : uint8
 	{
-		BET_NONE  ,
-		BET_FOLD  , //±óµP  
-		BET_CALL  , //¸òµP
-		BET_RAISE , //¥[ª`
-		BET_ALL_IN,
+		None  ,
+		Fold  , //±óµP  
+		Call  , //¸òµP
+		Raise , //¥[ª`
+		AllIn ,
 	};
 
-	enum SlotState
+	enum class ESlotStatus : uint8
 	{
-		SLOT_EMPTY ,
-		SLOT_WAIT_NEXT ,
-		SLOT_PLAY  ,
+		Empty ,
+		WaitNext ,
+		Playing  ,
 	};
 
 	struct SlotInfo
 	{
 		SlotInfo()
 		{
-			state    = SLOT_EMPTY;
+			status    = ESlotStatus::Empty;
 			playerId = -1;
-			betType  = BET_NONE;
+			lastAction  = EBetAction::None;
 			ownMoney = 0;
 		}
-		int       pos;
-		SlotState state;
-		unsigned  playerId;
-		BetType   betType;
-		int       ownMoney;
-		int       betMoney[ NUM_BET_STEP ];
-		int       totalBetMoney;
-		int       betMoneyOrder;
-		char      pocketCards[2];
+		int         pos;
+		ESlotStatus status;
+		unsigned    playerId;
+		EBetAction  lastAction;
+		int         ownMoney;
+		int         betMoney[ NUM_BET_STEP ];
+		int         totalBetMoney;
+		int         betMoneyOrder;
+		char        pocketCards[2];
 	};
 
 
@@ -125,7 +125,7 @@ namespace Poker { namespace Holdem {
 		void      doInitNewRound();
 		void      doNewRound( int posButton , int posBet );
 		void      doNextStep( BetStep step , char cards[] );
-		void      doBet( int pos , BetType type , int money );
+		void      doBet( int pos , EBetAction type , int money );
 		void      doWinMoney( int pos , int money );
 		void      doRoundEnd();
 
@@ -158,7 +158,7 @@ namespace Poker { namespace Holdem {
 		{
 		public:
 			virtual void onBetCall( int slot ){}
-			virtual void onBetResult( int slot , BetType type , int money ){}
+			virtual void onBetResult( int slot , EBetAction type , int money ){}
 			virtual void onShowDown( SlotTrickInfo info[] , int num ){}
 			virtual void onRoundEnd(){}
 			virtual void onPlayerLessBetMoney(int slot) {}
@@ -170,7 +170,7 @@ namespace Poker { namespace Holdem {
 		void addPlayer( unsigned playerId , int pos , int money );
 		void removePlayer( int pos );
 
-		void procBetRequest( int pos , BetType type , int money );
+		void procBetRequest( int pos , EBetAction type , int money );
 
 	private:
 		void showHandCard( uint32 betTypeMask );
@@ -205,7 +205,7 @@ namespace Poker { namespace Holdem {
 		public:
 			virtual void onBetCall( int slot ){}
 			virtual void onNextStep( BetStep step , char card[] ){}
-			virtual void onBetResult( int slot , BetType type , int money ){}
+			virtual void onBetResult( int slot , EBetAction type , int money ){}
 			virtual void onShowDown( SlotTrickInfo info[] , int num ){}
 			virtual void onShowPocketCard(){}
 		};
@@ -217,7 +217,7 @@ namespace Poker { namespace Holdem {
 		SlotInfo&     getPlayerSlot() { return getSlotInfo(mPosPlayer); }
 
 		void          procRecvData( int recvId , int dataId , void* data , int dataSize );
-		void          betRequest( BetType type , int money = 0 );
+		void          betRequest( EBetAction type , int money = 0 );
 		Card          getPoketCard( int idx ){ return Card( getPlayerSlot().pocketCards[ idx ] ); }
 
 

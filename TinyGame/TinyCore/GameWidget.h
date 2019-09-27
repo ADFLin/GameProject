@@ -322,8 +322,8 @@ class  GPanel : public GUI::PanelT< GPanel >
 public:
 	enum RenderType
 	{
-		eRoundRectType ,
-		eRectType ,
+		eRoundRectType,
+		eRectType,
 	};
 
 	TINY_API GPanel( int id , Vec2i const& pos , Vec2i const& size  , GWidget* parent );

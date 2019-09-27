@@ -44,7 +44,7 @@ namespace Poker { namespace Holdem {
 			int num;
 			int index[ MaxCardNum ];
 		};
-		static int makePower( CardGroup group , int c0 = 0 , int c1 = 0 , int c2 = 0, int c3 = 0 , int c4 = 0 )
+		static int MakePower( CardGroup group , int c0 = 0 , int c1 = 0 , int c2 = 0, int c3 = 0 , int c4 = 0 )
 		{
 			return ( group << 20 ) | ( c0 << 16 ) | ( c1 << 12 ) | ( c2 << 8 ) | ( c3 << 4 ) | c4;
 		}
@@ -250,7 +250,7 @@ namespace Poker { namespace Holdem {
 		if ( idxSub == idxMaxNumGroup )
 			--idxSub;
 		idxCardTake[ 4 ] = faceGroup[ idxSub ].idx;
-		return makePower( CG_FOUR_OF_A_KIND , 
+		return MakePower( CG_FOUR_OF_A_KIND , 
 			maxNumGroup.power , faceGroup[ idxSub ].power );
 	}
 
@@ -268,7 +268,7 @@ namespace Poker { namespace Holdem {
 			idxCardTake[i] = maxNumGroup.idx + i;
 		for( int i = 0 ; i < 2 ; ++i )
 			idxCardTake[3+i] = faceGroup[ idxSub[i] ].idx;
-		return makePower( CG_THREE_OF_A_KIND , 
+		return MakePower( CG_THREE_OF_A_KIND , 
 			maxNumGroup.power , 
 			faceGroup[ idxSub[0] ].power , 
 			faceGroup[ idxSub[1] ].power );
@@ -290,7 +290,7 @@ namespace Poker { namespace Holdem {
 		for( int i = 0 ; i < 2 ; ++i )
 			idxCardTake[2+i] = faceGroup[ idxSubPair ].idx + i;
 		idxCardTake[4] = faceGroup[ idxSub2 ].idx;
-		return makePower( CG_TWO_PAIRS ,
+		return MakePower( CG_TWO_PAIRS ,
 			maxNumGroup.power , 
 			faceGroup[ idxSubPair ].power , 
 			faceGroup[ idxSub2 ].power );
@@ -315,7 +315,7 @@ namespace Poker { namespace Holdem {
 		for( int i = 0 ; i < 3 ; ++i )
 			idxCardTake[2+i] = faceGroup[ idxSub[i] ].idx;
 
-		return makePower( CG_PAIR , 
+		return MakePower( CG_PAIR , 
 			maxNumGroup.power , 
 			faceGroup[ idxSub[0] ].power , 
 			faceGroup[ idxSub[1] ].power , 
@@ -329,7 +329,7 @@ namespace Poker { namespace Holdem {
 			idxCardTake[i] = maxNumGroup.idx + i;
 		for( int i = 0 ; i < 2 ; ++i )
 			idxCardTake[3+i] = faceGroup[ idxSubPair ].idx + i;
-		return makePower( CG_FULL_HOUSE , 
+		return MakePower( CG_FULL_HOUSE , 
 			maxNumGroup.power , faceGroup[ idxSubPair ].power );
 	}
 
@@ -342,7 +342,7 @@ namespace Poker { namespace Holdem {
 				idxGroup += 13;
 			idxCardTake[i] = faceGroup[ idxGroup ].idx;
 		}
-		return makePower( CG_STRAIGHT , faceGroup[ idxStraight ].power );
+		return MakePower( CG_STRAIGHT , faceGroup[ idxStraight ].power );
 	}
 
 	int CardTrickHelper::makeStraightFlush(int idxCardTake[] , int idxStraight , int idxFlushSuit , Card sortedCards[])
@@ -366,11 +366,11 @@ namespace Poker { namespace Holdem {
 
 		if ( faceGroup[ idxStraight ].rank == Card::ToRank( Card::eACE ) )
 		{
-			return makePower( CG_ROYAL_FLUSH );
+			return MakePower( CG_ROYAL_FLUSH );
 		}
 		else
 		{
-			return makePower( CG_STRAIGHT_FLUSH , faceGroup[ idxStraight ].power );
+			return MakePower( CG_STRAIGHT_FLUSH , faceGroup[ idxStraight ].power );
 		}
 	}
 
@@ -384,7 +384,7 @@ namespace Poker { namespace Holdem {
 			idxCardTake[i] = idx;
 			power[i] = gFaceRankPower[ sortedCards[ idx ].getFaceRank() ];
 		}
-		return makePower( CG_FLUSH , power[0] , power[1] , power[2] , power[3] , power[4] );
+		return MakePower( CG_FLUSH , power[0] , power[1] , power[2] , power[3] , power[4] );
 	}
 
 	int CardTrickHelper::makeHighHand(int idxCardTake[])
@@ -396,7 +396,7 @@ namespace Poker { namespace Holdem {
 			power[i] = group.power;
 			idxCardTake[i] = group.idx;
 		}
-		return makePower( CG_HIGH_HAND , power[0] , power[1] , power[2] , power[3] , power[4] );
+		return MakePower( CG_HIGH_HAND , power[0] , power[1] , power[2] , power[3] , power[4] );
 	}
 
 	static int NextPos( int pos )
@@ -414,10 +414,10 @@ namespace Poker { namespace Holdem {
 	};
 	struct SCDBetInfo
 	{
-		char pos;
-		char step;
-		char type;
-		int  money;
+		char  pos;
+		char  step;
+		uint8 type;
+		int   money;
 	};
 
 	struct SDSlotInfo
@@ -471,7 +471,6 @@ namespace Poker { namespace Holdem {
 
 	struct SDTrickResult
 	{
-		static int const BaseSize;
 		char numSlotTrick;
 		SlotTrickInfo info[ MaxPlayerNum ];
 
@@ -493,8 +492,8 @@ namespace Poker { namespace Holdem {
 		char         numPot;
 		char         numWinner[ MaxPlayerNum ];
 		SDWinnerInfo info[ MaxPlayerNum * MaxPlayerNum ];
-
 	};
+
 	int const SDWinnerResult::BaseSize = sizeof( SDWinnerResult ) - sizeof( SDWinnerInfo ) * MaxPlayerNum * MaxPlayerNum;
 
 #define DATA_LIST( op )\
@@ -559,7 +558,7 @@ namespace Poker { namespace Holdem {
 		doNextStep( STEP_HOLE_CARDS , NULL );
 	}
 
-	void LevelBase::doBet( int pos , BetType type , int money )
+	void LevelBase::doBet( int pos , EBetAction type , int money )
 	{
 		assert(isPlaying());
 
@@ -568,9 +567,9 @@ namespace Poker { namespace Holdem {
 
 		SlotInfo& info = getSlotInfo( pos );
 
-		info.betType = type;
+		info.lastAction = type;
 
-		if ( type != BET_FOLD )
+		if ( type != EBetAction::Fold )
 		{
 			int delta = money - info.betMoney[ mBetStep ];
 			info.ownMoney -= delta;
@@ -592,11 +591,11 @@ namespace Poker { namespace Holdem {
 		for( int i = 0 ; i < MaxPlayerNum ; ++i )
 		{
 			SlotInfo& info = getSlotInfo( i );
-			if ( info.state != SLOT_PLAY )
+			if ( info.status != ESlotStatus::Playing )
 				continue;
 
-			if ( info.betType != BET_FOLD )
-				info.betType = BET_NONE;
+			if ( info.lastAction != EBetAction::Fold )
+				info.lastAction = EBetAction::None;
 		}
 
 		mBetStep     = step;
@@ -636,7 +635,7 @@ namespace Poker { namespace Holdem {
 		{ 
 			pos = NextPos( pos );
 		}
-		while ( getSlotInfo( pos ).state != SLOT_PLAY );
+		while ( getSlotInfo( pos ).status != ESlotStatus::Playing );
 		return pos;
 	}
 
@@ -646,7 +645,7 @@ namespace Poker { namespace Holdem {
 		{ 
 			pos = PrevPos( pos );
 		}
-		while ( getSlotInfo( pos ).state != SLOT_PLAY );
+		while ( getSlotInfo( pos ).status != ESlotStatus::Playing );
 		return pos;
 	}
 
@@ -672,7 +671,7 @@ namespace Poker { namespace Holdem {
 		for( int i = 0 ; i < MaxPlayerNum ; ++i )
 		{
 			SlotInfo& info = getSlotInfo( i );
-			if ( info.state != SLOT_PLAY )
+			if ( info.status != ESlotStatus::Playing )
 				continue;
 
 			if ( info.betMoneyOrder != -1 )
@@ -753,9 +752,9 @@ namespace Poker { namespace Holdem {
 		{
 			SlotInfo& slot = getSlotInfo(i);
 
-			if( slot.state != SLOT_PLAY )
+			if( slot.status != ESlotStatus::Playing )
 				continue;
-			if( !(BIT(slot.betType) & betTypeMask) )
+			if( !(BIT(uint32(slot.lastAction)) & betTypeMask) )
 				continue;
 			int idx = data.numPlayer;
 			data.pocketCardInfos[idx].pos = slot.pos;
@@ -795,7 +794,7 @@ namespace Poker { namespace Holdem {
 			{
 				SCDBetInfo* myData = static_cast< SCDBetInfo* >( data );
 				if ( mBetStep == myData->step )
-					procBetRequest( myData->pos , BetType( myData->type ) , myData->money );
+					procBetRequest( myData->pos , EBetAction( myData->type ) , myData->money );
 			}
 			break;
 		}
@@ -812,11 +811,11 @@ namespace Poker { namespace Holdem {
 		for ( int i = 0 ; i < MaxPlayerNum ; ++i )
 		{
 			SlotInfo const& info = getSlotInfo( i );
-			switch( info.state )
+			switch( info.status )
 			{
-			case SLOT_PLAY:
-			case SLOT_WAIT_NEXT:
-				if ( info.state == SLOT_WAIT_NEXT )
+			case ESlotStatus::Playing:
+			case ESlotStatus::WaitNext:
+				if ( info.status == ESlotStatus::WaitNext )
 					data.info[ num ].playerId = -( int(info.playerId) + 1 );
 				else
 					data.info[ num ].playerId = ( int(info.playerId) + 1 );
@@ -843,7 +842,7 @@ namespace Poker { namespace Holdem {
 			for( int i = 0 ; i < MaxPlayerNum; ++i )
 			{
 				SlotInfo& info = getSlotInfo( i );
-				if ( info.state != SLOT_PLAY )
+				if ( info.status != ESlotStatus::Playing )
 					continue;
 				info.ownMoney += info.totalBetMoney;
 				info.totalBetMoney = 0;
@@ -856,7 +855,7 @@ namespace Poker { namespace Holdem {
 		for( int i = 0 ; i < MaxPlayerNum; ++i )
 		{
 			SlotInfo& info = getSlotInfo( i );
-			if ( info.state == SLOT_EMPTY )
+			if ( info.status == ESlotStatus::Empty )
 				continue;
 
 			if ( info.ownMoney < getRule().bigBlind )
@@ -866,17 +865,17 @@ namespace Poker { namespace Holdem {
 
 				if( info.ownMoney < getRule().bigBlind )
 				{
-					info.state = SLOT_WAIT_NEXT;
+					info.status = ESlotStatus::WaitNext;
 					//FIXME
 					continue;
 				}
 			}
 
 			++numPlaying;
-			info.betType = BET_NONE;
-			if ( info.state == SLOT_WAIT_NEXT )
+			info.lastAction = EBetAction::None;
+			if ( info.status == ESlotStatus::WaitNext )
 			{
-				info.state = SLOT_PLAY;
+				info.status = ESlotStatus::Playing;
 				info.betMoney[ STEP_HOLE_CARDS ] = getRule().bigBlind;
 			}
 			else
@@ -894,7 +893,7 @@ namespace Poker { namespace Holdem {
 			posButton = NextPos( posButton );
 			SlotInfo& info = getSlotInfo( posButton );
 
-			if ( getSlotInfo( posButton ).state == SLOT_PLAY )
+			if ( getSlotInfo( posButton ).status == ESlotStatus::Playing )
 				break;
 		}
 
@@ -944,7 +943,7 @@ namespace Poker { namespace Holdem {
 			for( int i = 0 ; i < numPlaying ; ++i )
 			{
 				SlotInfo& info = getSlotInfo( pos );
-				if ( info.state == SLOT_PLAY )
+				if ( info.status == ESlotStatus::Playing )
 				{
 					mSlotPocketCards[ pos ][ n ] = Card( mDecks.back() );
 					mDecks.pop_back();
@@ -960,17 +959,17 @@ namespace Poker { namespace Holdem {
 			for( int i = 0 ; i < MaxPlayerNum ; ++i )
 			{
 				SlotInfo& info = getSlotInfo( i );
-				switch( info.state )
+				switch( info.status )
 				{
-				case SLOT_PLAY: 
+				case ESlotStatus::Playing: 
 					data.startBetMoney[i] = info.betMoney[ STEP_HOLE_CARDS ];
 					data.ownMoney[i] = info.ownMoney;
 					break;
-				case SLOT_WAIT_NEXT:
+				case ESlotStatus::WaitNext:
 					data.startBetMoney[i] = -2;
 					data.ownMoney[i] = info.ownMoney;
 					break;
-				case SLOT_EMPTY:
+				case ESlotStatus::Empty:
 					data.startBetMoney[i] = -1;
 					data.ownMoney[i] = 0;
 					break;	
@@ -981,10 +980,10 @@ namespace Poker { namespace Holdem {
 			{
 				SlotInfo& slot = getSlotInfo( i );
 
-				if ( slot.state == SLOT_EMPTY )
+				if ( slot.status == ESlotStatus::Empty )
 					continue;
 				
-				if( slot.state == SLOT_PLAY )
+				if( slot.status == ESlotStatus::Playing )
 				{
 					for( int n = 0; n < PocketCardNum; ++n )
 					{
@@ -1009,7 +1008,7 @@ namespace Poker { namespace Holdem {
 		}
 	}
 
-	void ServerLevel::procBetRequest( int pos , BetType type , int money )
+	void ServerLevel::procBetRequest( int pos , EBetAction type , int money )
 	{
 		if( !isPlaying() )
 			return;
@@ -1024,10 +1023,10 @@ namespace Poker { namespace Holdem {
 		int slotMoney = info.ownMoney + info.betMoney[ mBetStep ];
 		switch( type )
 		{
-		case BET_FOLD:
+		case EBetAction::Fold:
 			--mNumBet;
 			break;
-		case BET_CALL:
+		case EBetAction::Call:
 			if ( slotMoney <= getMaxBetMoney() )
 				return;
 			betMoney = getMaxBetMoney();
@@ -1035,7 +1034,7 @@ namespace Poker { namespace Holdem {
 			++mNumCall;
 			break;
 
-		case BET_RAISE:
+		case EBetAction::Raise:
 			if ( info.ownMoney < money )
 				return;
 			if ( money < getRule().bigBlind || money % getRule().smallBlind != 0 )
@@ -1046,7 +1045,7 @@ namespace Poker { namespace Holdem {
 			needRecount = true;
 			break;
 
-		case BET_ALL_IN:
+		case EBetAction::AllIn:
 			betMoney    = slotMoney;
 			mPosLastBet = pos;
 			++mNumAllIn;
@@ -1063,7 +1062,7 @@ namespace Poker { namespace Holdem {
 			mNumFinishBet = mNumAllIn;
 			mNumCall = 0;
 		}
-		if ( type != BET_FOLD )
+		if ( type != EBetAction::Fold )
 			++mNumFinishBet;
 
 		doBet( pos , type , betMoney );
@@ -1072,7 +1071,7 @@ namespace Poker { namespace Holdem {
 			SCDBetInfo data;
 			
 			data.pos   = pos;
-			data.type  = type;
+			data.type  = uint8(type);
 			data.step  = mBetStep;
 			data.money = betMoney;
 			getTransfer().sendData( SLOT_SERVER, data);
@@ -1088,7 +1087,7 @@ namespace Poker { namespace Holdem {
 				for(;;)
 				{
 					posWin = nextPlayingPos( posWin );
-					if ( getSlotInfo( posWin ).betType == BET_NONE )
+					if ( getSlotInfo( posWin ).lastAction == EBetAction::None )
 						break;
 				}
 			}
@@ -1097,7 +1096,7 @@ namespace Poker { namespace Holdem {
 			for( int i = 0 ; i < MaxPlayerNum ; ++ i )
 			{
 				SlotInfo& info = getSlotInfo( i );
-				if ( info.state != SLOT_PLAY )
+				if ( info.status != ESlotStatus::Playing )
 					continue;
 
 				totalMoney += info.totalBetMoney;
@@ -1122,7 +1121,7 @@ namespace Poker { namespace Holdem {
 		{
 			if( mNumAllIn == mNumBet )
 			{
-				showHandCard(BIT(BET_ALL_IN));
+				showHandCard(BIT(uint32(EBetAction::AllIn)));
 			}
 			//
 			do 
@@ -1139,8 +1138,8 @@ namespace Poker { namespace Holdem {
 			for(;;)
 			{
 				pos = nextPlayingPos( pos );
-				if ( getSlotInfo( pos ).betType != BET_FOLD && 
-					 getSlotInfo( pos ).betType != BET_ALL_IN )
+				if ( getSlotInfo( pos ).lastAction != EBetAction::Fold && 
+					 getSlotInfo( pos ).lastAction != EBetAction::AllIn )
 					break;
 			}
 
@@ -1194,8 +1193,8 @@ namespace Poker { namespace Holdem {
 			for(;;)
 			{
 				mPosCurBet = nextPlayingPos( mPosCurBet );
-				if ( getSlotInfo( mPosCurBet ).betType != BET_FOLD && 
-					 getSlotInfo( mPosCurBet ).betType != BET_ALL_IN )
+				if ( getSlotInfo( mPosCurBet ).lastAction != EBetAction::Fold && 
+					 getSlotInfo( mPosCurBet ).lastAction != EBetAction::AllIn )
 					break;
 			}
 
@@ -1237,7 +1236,7 @@ namespace Poker { namespace Holdem {
 		{
 			SlotInfo& info = getSlotInfo( pos );
 
-			if ( info.state != SLOT_PLAY )
+			if ( info.status != ESlotStatus::Playing )
 				continue;
 
 			CardTrickInfo& trickInfo = storage[ numPlayer ];
@@ -1248,7 +1247,7 @@ namespace Poker { namespace Holdem {
 			trickInfo.pos = pos;
 			trickInfo.betMoney = info.totalBetMoney;
 
-			if ( info.betType != BET_FOLD )
+			if ( info.lastAction != EBetAction::Fold )
 			{
 				if ( info.totalBetMoney != cmpMoney )
 				{
@@ -1426,8 +1425,8 @@ namespace Poker { namespace Holdem {
 			for( int i = betOrderLast + 1 ; i < MaxPlayerNum ; ++i )
 				data.numWinner[ i ] = 0;
 			data.numPot = betOrderLast + 1;
-		 getTransfer().sendData( SLOT_SERVER , DATA2ID( SDWinnerResult ) , &data ,
-				SDWinnerResult::BaseSize + countInfo * sizeof( SDWinnerInfo ) );
+		 
+			getTransfer().sendData( SLOT_SERVER , data , SDWinnerResult::BaseSize + countInfo * sizeof( SDWinnerInfo ) );
 		}
 		else
 		{
@@ -1435,7 +1434,7 @@ namespace Poker { namespace Holdem {
 			for( int i = 0 ; i < MaxPlayerNum ; ++i )
 			{
 				SlotInfo& info = getSlotInfo( i );
-				if ( info.state != SLOT_PLAY )
+				if ( info.status != ESlotStatus::Playing )
 					continue;
 				totalMoney += info.totalBetMoney;
 
@@ -1470,8 +1469,7 @@ namespace Poker { namespace Holdem {
 				doWinMoney( pos[i] , winMoney[i] );
 			}
 
-			getTransfer().sendData( SLOT_SERVER , DATA2ID( SDWinnerResult ) , &data ,
-				SDWinnerResult::BaseSize + numWinner * sizeof( SDWinnerInfo ) );
+			getTransfer().sendData( SLOT_SERVER , data , SDWinnerResult::BaseSize + numWinner * sizeof( SDWinnerInfo ) );
 		}
 	}
 
@@ -1505,7 +1503,7 @@ namespace Poker { namespace Holdem {
 		SlotInfo& info = getSlotInfo( pos );
 		info.playerId  = playerId;
 		info.ownMoney  = money;
-		info.state     = SLOT_WAIT_NEXT;
+		info.status    = ESlotStatus::WaitNext;
 	}
 
 	ClientLevel::ClientLevel()
@@ -1541,20 +1539,20 @@ namespace Poker { namespace Holdem {
 						++cur;
 						if ( slotData.playerId > 0 )
 						{
-							slot.state    = SLOT_PLAY;
+							slot.status    = ESlotStatus::Playing;
 							slot.playerId = unsigned( slotData.playerId - 1 );
 
 						}
 						else if ( slotData.playerId < 0 )
 						{
-							slot.state    = SLOT_WAIT_NEXT;
+							slot.status    = ESlotStatus::WaitNext;
 							slot.playerId = unsigned( -slotData.playerId - 1 );
 						}
 						slot.ownMoney = slotData.money;
 					}
 					else
 					{
-						slot.state    = SLOT_EMPTY;
+						slot.status    = ESlotStatus::Empty;
 						slot.playerId = -1;
 						slot.ownMoney = 0;
 					}
@@ -1571,20 +1569,20 @@ namespace Poker { namespace Holdem {
 				{
 					SlotInfo& info = getSlotInfo( i );
 
-					info.betType = BET_NONE;
+					info.lastAction = EBetAction::None;
 					info.ownMoney = myData->ownMoney[i];
 					switch ( myData->startBetMoney[i] )
 					{
 					case -1:
-						info.state = SLOT_EMPTY;
+						info.status = ESlotStatus::Empty;
 						info.betMoney[ STEP_HOLE_CARDS ] = 0;
 						break;
 					case -2:
-						info.state = SLOT_WAIT_NEXT;
+						info.status = ESlotStatus::WaitNext;
 						info.betMoney[ STEP_HOLE_CARDS ] = 0;
 						break;
 					default:
-						info.state = SLOT_PLAY;
+						info.status = ESlotStatus::Playing;
 						info.betMoney[ STEP_HOLE_CARDS ] = myData->startBetMoney[i];
 						break;
 					}
@@ -1612,9 +1610,9 @@ namespace Poker { namespace Holdem {
 			{
 				SCDBetInfo* myData = static_cast< SCDBetInfo* >( data );
 
-				doBet( myData->pos , BetType( myData->type ) , myData->money );
+				doBet( myData->pos , EBetAction( myData->type ) , myData->money );
 				if ( mListener )
-					mListener->onBetResult( myData->pos , BetType( myData->type ) , myData->money );
+					mListener->onBetResult( myData->pos , EBetAction( myData->type ) , myData->money );
 			}
 			break;
 		case DATA2ID( SDNextStep ):
@@ -1669,18 +1667,18 @@ namespace Poker { namespace Holdem {
 		}
 	}
 
-	void ClientLevel::betRequest( BetType type , int money )
+	void ClientLevel::betRequest( EBetAction type , int money )
 	{
 		if ( mPosCurBet != mPosPlayer )
 			return;
 
 		SCDBetInfo data;
 		data.pos   = mPosPlayer;
-		data.type  = type;
+		data.type  = uint8(type);
 		data.step  = mBetStep;
 		switch( type )
 		{
-		case BET_RAISE:
+		case EBetAction::Raise:
 			data.money = getMaxBetMoney() + money;
 			break;
 		}

@@ -44,6 +44,7 @@ namespace Zen
 
 	struct CoreSetting
 	{
+		int   version;
 		int   numThreads;
 		int   numSimulations;
 		float amafWightFactor;
@@ -59,6 +60,7 @@ namespace Zen
 
 		CoreSetting()
 		{
+			version = 7;
 			numThreads = 1;
 			numSimulations = 1000000;
 			//numSimulations = 100000;
@@ -553,12 +555,20 @@ namespace Go
 		};
 	}
 
+	namespace ZenMetaParam
+	{
+
+		enum 
+		{
+			eVersion ,
+		};
+	}
 	class ZenBot : public IBotInterface
 	{
 
 	public:
 
-		ZenBot(int version = 7);
+		ZenBot();
 
 		template< int Version >
 		Zen::IBotCore* buildCoreT()
@@ -586,7 +596,7 @@ namespace Go
 		virtual bool isGPUBased() const override { return false; }
 
 		virtual void update(IGameCommandListener& listener) override;
-
+		virtual bool getMetaData(int id, uint8* dataBuffer, int size) override;
 		static Zen::Color ToZColor(int color)
 		{
 			switch( color )

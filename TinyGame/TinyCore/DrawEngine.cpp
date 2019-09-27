@@ -230,7 +230,7 @@ void DrawEngine::endRender()
 	}
 	if( bUsePlatformBuffer )
 	{
-		mBufferDC.bitBlt(getWindow().getHDC());
+		mBufferDC.bitBltTo(getWindow().getHDC());
 	}
 }
 

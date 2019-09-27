@@ -27,12 +27,12 @@ namespace Poker {
 			if( card == Card::None() )
 				return;
 			cdtDraw( mBugFixDC.getDC() , 0  , 0 , card.getIndex() , mdFACES , RGB( 0,0,0 )  );
-			mBugFixDC.bitBlt( g.getRenderDC() , pos.x , pos.y  );
+			mBugFixDC.bitBltTo( g.getRenderDC() , pos.x , pos.y  );
 		}
 		void drawCardBack( Graphics2D& g , Vec2i const& pos )
 		{
 			cdtDraw( mBugFixDC.getDC() , 0 , 0 , 58 , mdBACKS, RGB( 255 , 255 , 255 ) );
-			mBugFixDC.bitBlt( g.getRenderDC() , pos.x , pos.y  );
+			mBugFixDC.bitBltTo( g.getRenderDC() , pos.x , pos.y  );
 		}
 		void release()
 		{
@@ -105,14 +105,14 @@ namespace Poker {
 				return;
 
 			Vec2i const& posImg = mCardPos[ card.getIndex() ];
-			mBmpDC.bitBlt( g.getRenderDC() , pos.x , pos.y , posImg.x , posImg.y , CardSize.x , CardSize.y );
+			mBmpDC.bitBltTo( g.getRenderDC() , pos.x , pos.y , posImg.x , posImg.y , CardSize.x , CardSize.y );
 		}
 		void drawCardBack( Graphics2D& g , Vec2i const& pos )
 		{
 			PosInfo const& info = CardBackPos[ type ];
 			int x = info.x;
 			int y = info.y;
-			mBmpDC.bitBlt( g.getRenderDC() , pos.x , pos.y , x * CardSize.x , y * CardSize.y , CardSize.x , CardSize.y );
+			mBmpDC.bitBltTo( g.getRenderDC() , pos.x , pos.y , x * CardSize.x , y * CardSize.y , CardSize.x , CardSize.y );
 		}
 
 		void release()

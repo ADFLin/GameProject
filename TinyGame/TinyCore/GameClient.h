@@ -47,7 +47,7 @@ public:
 protected:
 	
 	void  notifyConnectionOpen( NetConnection* con );
-	void  notifyConnectClose( NetConnection* con , NetCloseReason reason );
+	void  notifyConnectionClose( NetConnection* con , NetCloseReason reason );
 	void  notifyConnectionFail( NetConnection* con );
 	void  notifyConnectionSend(NetConnection* con);
 	bool  notifyConnectionRecv( NetConnection* con , SocketBuffer& buffer , NetAddress* clientAddr );

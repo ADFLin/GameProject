@@ -325,7 +325,7 @@ protected:
 	virtual void notifyConnectionSend( NetConnection* con );
 	virtual bool notifyConnectionRecv( NetConnection* con , SocketBuffer& buffer ,NetAddress* clientAddr );
 	virtual void notifyConnectionAccpet( NetConnection* con );
-	virtual void notifyConnectClose( NetConnection* con , NetCloseReason reason );
+	virtual void notifyConnectionClose( NetConnection* con , NetCloseReason reason );
 
 public:
 	TINY_API bool kickPlayer( unsigned id );
@@ -335,6 +335,13 @@ public:
 
 	void  generatePlayerStatus( SPPlayerStatus& comPS );
 	/////////////////////////////////////////////////
+
+	void removeClient(NetClientData* client)
+	{
+		mNetSelect.removeSocket(client->tcpChannel.getSocket());
+		mNetSelect.removeSocket(client->udpChannel.getSocket());
+		mClientManager.removeClient(client);
+	}
 
 protected:
 	void procLogin      ( IComPacket* cp);

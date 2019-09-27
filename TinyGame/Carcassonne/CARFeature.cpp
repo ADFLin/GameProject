@@ -130,6 +130,8 @@ namespace CAR
 
 	int FeatureBase::evalMajorityControl(std::vector< FeatureControllerScoreInfo >& controllerScores)
 	{
+		assert(!controllerScores.empty());
+
 		struct CmpFun
 		{
 			CmpFun()
@@ -168,6 +170,7 @@ namespace CAR
 		};
 
 
+
 		CmpFun fun;
 		std::sort( controllerScores.begin() , controllerScores.end() , fun );
 
@@ -175,9 +178,9 @@ namespace CAR
 		if ( controllerScores[0].majority != 0 )
 		{
 			++numController;
-			for( int i = 1; i < controllerScores.size() ; ++i )
+			for( int i = 1; i < controllerScores.size(); ++i )
 			{
-				if ( fun.isEqual( controllerScores[0] , controllerScores[i] ) == false )
+				if( fun.isEqual(controllerScores[0], controllerScores[i]) == false )
 					break;
 				++numController;
 			}
@@ -198,6 +201,8 @@ namespace CAR
 	int FeatureBase::generateController(std::vector< FeatureControllerScoreInfo >& controllerScores)
 	{
 		generateMajority(controllerScores);
+		if( controllerScores.empty() )
+			return 0;
 		return evalMajorityControl(controllerScores);
 	}
 

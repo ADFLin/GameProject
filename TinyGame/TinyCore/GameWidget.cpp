@@ -47,9 +47,7 @@ void WidgetRenderer::drawButton( IGraphics2D& g , Vec2i const& pos , Vec2i const
 	}
 
 	RenderUtility::DrawCapsuleX( g , renderPos , size );
-
 	RenderUtility::SetPen( g , EColor::Null );
-
 	RenderUtility::SetBrush( g ,  EColor::White , COLOR_NORMAL );
 	RenderUtility::DrawCapsuleX( g , renderPos + Vec2i( 3 , 2 ) , size - Vec2i( 4 , 6 ) );
 

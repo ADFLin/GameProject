@@ -26,7 +26,7 @@ namespace CB
 			ExpressionParser parser;
 			result = parser.parse(expr, mSymbolDefine);
 		}
-		catch( ParseException& e )
+		catch( ParseException&  )
 		{
 			return false;
 		}
@@ -48,14 +48,14 @@ namespace CB
 		table.defineVarInput("u", 0);
 		table.defineVarInput("v", 1);
 
-		table.defineFun("sin", sin);
-		table.defineFun("cos", cos);
-		table.defineFun("tan", tan);
-		table.defineFun("exp", exp);
-		table.defineFun("ln", log);
-		table.defineFun("log", log10);
-		table.defineFun("sqrt", sqrt);
-		table.defineFun("pow", pow);
+		table.defineFun("sin", static_cast< RealType (*)(RealType) >(sin));
+		table.defineFun("cos", static_cast< RealType(*)(RealType) >(cos));
+		table.defineFun("tan", static_cast< RealType(*)(RealType) >(tan));
+		table.defineFun("exp", static_cast< RealType(*)(RealType) >(exp));
+		table.defineFun("ln", static_cast< RealType(*)(RealType) >(log));
+		table.defineFun("log", static_cast< RealType(*)(RealType) >(log10));
+		table.defineFun("sqrt", static_cast< RealType(*)(RealType) >(sqrt));
+		table.defineFun("pow", static_cast< RealType(*)(RealType, RealType) >(pow));
 	}
 
 }//namespace CB

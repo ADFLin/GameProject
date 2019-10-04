@@ -4,10 +4,10 @@
 
 #include "MetaBase.h"
 
-SUPPORT_BINARY_OPERATOR(HaveSerializerOutput, operator<<, &, const&);
-SUPPORT_BINARY_OPERATOR(HaveSerializerInput, operator >> , &, &);
-SUPPORT_BINARY_OPERATOR(HaveBitDataOutput, operator<<, &, const &);
-SUPPORT_BINARY_OPERATOR(HaveBitDataInput, operator >> , &, &);
+DEFINE_SUPPORT_BINARY_OPERATOR_TYPE(HaveSerializerOutput, operator<<, &, const&);
+DEFINE_SUPPORT_BINARY_OPERATOR_TYPE(HaveSerializerInput, operator >> , &, &);
+DEFINE_SUPPORT_BINARY_OPERATOR_TYPE(HaveBitDataOutput, operator<<, &, const &);
+DEFINE_SUPPORT_BINARY_OPERATOR_TYPE(HaveBitDataInput, operator >> , &, &);
 
 template< class T >
 struct TTypeSupportSerializeOPFunc

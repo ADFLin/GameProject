@@ -46,11 +46,22 @@ namespace Meta
 
 
 	template < class T >
-	struct IsPointer : HaveResult< false >{};
+	struct RemoveCV { typedef T Type; };
 	template < class T >
-	struct IsPointer< T* > : HaveResult< true >{};
+	struct RemoveCV< T const > { typedef T Type; };
 	template < class T >
-	struct IsPointer< T const* > : HaveResult< true >{};
+	struct RemoveCV< volatile T const > { typedef T Type; };
+
+
+	template < class T >
+	struct IsPointerInternal : HaveResult< false > {};
+	template < class T >
+	struct IsPointerInternal< T* > : HaveResult< true >{};
+	template < class T >
+	struct IsPointerInternal< T const* > : HaveResult< true >{};
+
+	template < class T >
+	struct IsPointer : IsPointerInternal< typename RemoveCV<T>::Type > {};
 
 	template < class T >
 	struct IsPrimary : HaveResult< IsPointer<T>::Value >
@@ -59,24 +70,23 @@ namespace Meta
 #define DEINE_PRIMARY_TYPE( type )\
 	template <> struct IsPrimary< type > : HaveResult< true >{};
 
+#define DEINE_PRIMARY_TYPE_WITH_UNSIGNED( type )\
+	DEINE_PRIMARY_TYPE( type )\
+	DEINE_PRIMARY_TYPE( unsigned type)
+
 	DEINE_PRIMARY_TYPE( bool )
 
-	DEINE_PRIMARY_TYPE( char )
-	DEINE_PRIMARY_TYPE( short )
-	DEINE_PRIMARY_TYPE( int )
-	DEINE_PRIMARY_TYPE( long )
-	DEINE_PRIMARY_TYPE( long long )
-
-	DEINE_PRIMARY_TYPE( unsigned char )
-	DEINE_PRIMARY_TYPE( unsigned short )
-	DEINE_PRIMARY_TYPE( unsigned int )
-	DEINE_PRIMARY_TYPE( unsigned long )
-	DEINE_PRIMARY_TYPE( unsigned long long )
+	DEINE_PRIMARY_TYPE_WITH_UNSIGNED( char )
+	DEINE_PRIMARY_TYPE_WITH_UNSIGNED( short )
+	DEINE_PRIMARY_TYPE_WITH_UNSIGNED( int )
+	DEINE_PRIMARY_TYPE_WITH_UNSIGNED( long )
+	DEINE_PRIMARY_TYPE_WITH_UNSIGNED( long long )
 
 	DEINE_PRIMARY_TYPE( double )
 	DEINE_PRIMARY_TYPE( float )
 
 #undef DEINE_PRIMARY_TYPE
+#undef DEINE_PRIMARY_TYPE_WITH_UNSIGNED
 
 
 	template < class T > 
@@ -112,7 +122,7 @@ namespace Meta
 }//namespace Meta
 
 template< class T, class ...Args >
-struct HaveFunCallOperatorImpl
+struct HaveFunctionCallOperatorImpl
 {
 	template< class U, decltype(std::declval<U>()(std::declval<Args>()...))(U::*)(Args...) >
 	struct SFINAE {};
@@ -124,21 +134,21 @@ struct HaveFunCallOperatorImpl
 };
 
 template< class T, class ...Args >
-struct HaveFunCallOperator : Meta::HaveResult< HaveFunCallOperatorImpl< T, Args... >::Value >
+struct HaveFuncionCallOperator : Meta::HaveResult< HaveFunctionCallOperatorImpl< T, Args... >::Value >
 {
 
 };
 
-#define SUPPORT_BINARY_OPERATOR( OP_NAME, OP, PARAM1_MODIFFER, PARAM2_MODIFFER)\
-	struct OP_NAME##Detial\
+#define DEFINE_SUPPORT_BINARY_OPERATOR_TYPE( OP_NAME, OP, PARAM1_MODIFFER, PARAM2_MODIFFER)\
+	struct OP_NAME##Detail\
 	{\
 		template < class P1 >\
-		friend void OP (P1&, OP_NAME##Detial);\
+		friend void OP (P1&, OP_NAME##Detail);\
 		template < class P1 , class P2 , class RT >\
 		struct EvalType\
 		{\
 			typedef RT (*Fun)(P1 PARAM1_MODIFFER , P2 PARAM2_MODIFFER );\
-            typedef void (*NoSupportFun) (P1&, OP_NAME##Detial);\
+            typedef void (*NoSupportFun) (P1&, OP_NAME##Detail);\
 		};\
 		template< class P1 , class P2 , typename EvalType<P1,P2,decltype( OP ( std::declval<P1>(), std::declval<P2>() ) )>::Fun fun >\
 		static auto Test(P1*) -> decltype( OP ( std::declval<P1>(), std::declval<P2>() ) );\
@@ -151,7 +161,7 @@ struct HaveFunCallOperator : Meta::HaveResult< HaveFunCallOperatorImpl< T, Args.
 		};\
 	};\
 	template< class P1 , class P2>\
-	struct OP_NAME : Meta::HaveResult< OP_NAME##Detial::Impl< P1 , P2 >::Value > {};
+	struct OP_NAME : Meta::HaveResult< OP_NAME##Detail::Impl< P1 , P2 >::Value > {};
 
 
 #endif // MetaTemplate_h__

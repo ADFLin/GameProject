@@ -63,6 +63,7 @@ namespace Render
 		{
 			eRGBA8,
 			eRGB8,
+			eBGRA8 ,
 
 			eR16,
 			eR8,

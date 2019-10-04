@@ -44,27 +44,35 @@ public:
 
 
 template < class T >
-struct TColorTypeTraits
+struct TColorElementTraits
 {
 
 };
 
 template <>
-struct TColorTypeTraits< float >
+struct TColorElementTraits< float >
 {
 	static float Min() { return 0.0f; }
 	static float Max() { return 1.0f; }
-	static float Normlize(uint8 value)
+	static float Normalize(uint8 value)
 	{
 		return float(value) / 255.0f;
+	}
+	static float Normalize(float value)
+	{
+		return value;
 	}
 
 };
 template <>
-struct TColorTypeTraits< uint8 >
+struct TColorElementTraits< uint8 >
 {
 	static uint8 Min() { return 0x00; }
 	static uint8 Max() { return 0xff; }
+	static uint8 Normalize(uint8 value)
+	{
+		return value;
+	}
 	static uint8 Normalize(float value)
 	{
 		return uint8(255 * value);
@@ -78,7 +86,7 @@ class TColor3
 public:
 	using Vector3 = Math::Vector3;
 	
-	typedef TColorTypeTraits< T > ColorTypeTraints;
+	typedef TColorElementTraits< T > CET;
 
 	T  r, g, b;
 
@@ -100,18 +108,18 @@ public:
 
 	template< class Q >
 	TColor3(TColor3<Q> const& c)
-		: r(ColorTypeTraints::Normlize(c.r))
-		, g(ColorTypeTraints::Normlize(c.g))
-		, b(ColorTypeTraints::Normlize(c.b))
+		: r(CET::Normalize(c.r))
+		, g(CET::Normalize(c.g))
+		, b(CET::Normalize(c.b))
 	{
 	}
 
 	template< class Q >
 	TColor3& operator = (TColor3< Q > const& rhs)
 	{
-		r = ColorTypeTraints::Normlize(rhs.r);
-		g = ColorTypeTraints::Normlize(rhs.g);
-		b = ColorTypeTraints::Normlize(rhs.b);
+		r = CET::Normalize(rhs.r);
+		g = CET::Normalize(rhs.g);
+		b = CET::Normalize(rhs.b);
 		return *this;
 	}
 
@@ -132,10 +140,11 @@ public:
 	T a;
 
 	TColor4() {}
-	TColor4(T cr, T cg, T cb, T ca = ColorTypeTraints::Max()) :TColor3<T>(cr, cg, cb), a(ca) {}
-	TColor4(TColor3<T> const& rh , float ca = ColorTypeTraints::Max()) :TColor3<T>(rh), a(ca) {}
+	TColor4(T cr, T cg, T cb, T ca = CET::Max()) :TColor3<T>(cr, cg, cb), a(ca) {}
+	TColor4(TColor3<T> const& rh , float ca = CET::Max()) :TColor3<T>(rh), a(ca) {}
+
 	TColor4(T const* v) :TColor3<T>(v), a(v[3]) {}
-	TColor4(Vector3 const& v) :TColor3<T>(v) , a(ColorTypeTraints::Max()){}
+	TColor4(Vector3 const& v) :TColor3<T>(v) , a(CET::Max()){}
 	TColor4(Vector4 const& v) :TColor3<T>(v), a(v.w) {}
 
 	TColor4& operator = (TColor3< T > const& rhs)
@@ -143,10 +152,30 @@ public:
 		r = rhs.r;
 		g = rhs.g;
 		b = rhs.b;
-		a = ColorTypeTraints::Max();
+		a = CET::Max();
 		return *this;
 	}
 
+	template< class Q >
+	TColor4(TColor4<Q> const& c)
+		: r(CET::Normalize(c.r))
+		, g(CET::Normalize(c.g))
+		, b(CET::Normalize(c.b))
+		, a(CET::Normalize(c.a))
+	{
+	}
+
+	template< class Q >
+	TColor4& operator = (TColor4< Q > const& rhs)
+	{
+		r = CET::Normalize(rhs.r);
+		g = CET::Normalize(rhs.g);
+		b = CET::Normalize(rhs.b);
+		a = CET::Normalize(rhs.a);
+		return *this;
+	}
+
+	TColor4 bgra() { return TColor4(b, g, r, a); }
 	operator T const*() const { return &r; }
 	operator T*      () { return &r; }
 	uint32 toARGB() const { return FColor::ToARGB(r, g, b, a); }

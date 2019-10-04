@@ -1395,7 +1395,7 @@ char const* SymbolTable::getVarName( void* var ) const
 	return nullptr;
 }
 
-VarValueInfo const* SymbolTable::findVar( std::string const& name ) const
+VariableInfo const* SymbolTable::findVar( std::string const& name ) const
 {
 	auto entry = findSymbol(name, SymbolEntry::eVariable);
 	if( entry )
@@ -1415,7 +1415,7 @@ int SymbolTable::findInput(std::string const& name) const
 	return -1;
 }
 
-FuncInfo const* SymbolTable::findFun(std::string const& name ) const
+FuncInfo const* SymbolTable::findFunc(std::string const& name ) const
 {
 	auto entry = findSymbol(name, SymbolEntry::eFunction);
 	if( entry )

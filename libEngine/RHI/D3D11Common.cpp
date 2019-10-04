@@ -30,6 +30,7 @@ namespace Render
 		{
 		case Texture::eRGB8:
 		case Texture::eRGBA8: return DXGI_FORMAT_R8G8B8A8_UNORM;
+		case Texture::eBGRA8: return DXGI_FORMAT_B8G8R8A8_UNORM;
 		case Texture::eR16:   return DXGI_FORMAT_R16_UNORM;
 		case Texture::eR8:    return DXGI_FORMAT_R8_UNORM;
 		case Texture::eR32F:  return DXGI_FORMAT_R32_FLOAT;

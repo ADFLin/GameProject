@@ -118,75 +118,69 @@ BOOL FPlatformProcess::ResumeProcess(HANDLE ProcessHandle)
 	return TRUE;
 }
 
+template< class TFun >
+void VisitProcess( TFun&& fun )
+{
+	HANDLE hSnapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, NULL);
+	if( hSnapshot != INVALID_HANDLE_VALUE )
+	{
+		PROCESSENTRY32 entry;
+		entry.dwSize = sizeof(PROCESSENTRY32);
+		if( Process32First(hSnapshot, &entry) == TRUE )
+		{
+			do
+			{
+				if ( !fun( entry ) )
+					break;
+			}
+			while( Process32Next(hSnapshot, &entry) == TRUE );
+		}
+		CloseHandle(hSnapshot);
+	}
+}
+
 DWORD FPlatformProcess::FindPIDByName(TCHAR const* name)
 {
-	PROCESSENTRY32 entry;
-
-	entry.dwFlags = sizeof(PROCESSENTRY32);
-
-	HANDLE hSnapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, NULL);
-
 	DWORD result = -1;
-	if( Process32First(hSnapshot, &entry) == TRUE )
+	VisitProcess([&result , name](PROCESSENTRY32 const& entry)
 	{
-		while( Process32Next(hSnapshot, &entry) == TRUE )
+		if( FCString::CompareIgnoreCase(entry.szExeFile, name) == 0 )
 		{
-			if( FCString::CompareIgnoreCase(entry.szExeFile, name) == 0 )
-			{
-				result = entry.th32ProcessID;
-				break;
-			}
+			result = entry.th32ProcessID;
+			return false;
 		}
-	}
-	CloseHandle(hSnapshot);
+		return true;
+	});
 	return result;
 }
 
 DWORD FPlatformProcess::FindPIDByParentPID(DWORD parentID)
 {
-	PROCESSENTRY32 entry;
-
-	entry.dwFlags = sizeof(PROCESSENTRY32);
-
-	HANDLE hSnapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, NULL);
-
 	DWORD result = -1;
-	if( Process32First(hSnapshot, &entry) == TRUE )
+	VisitProcess([&result, parentID](PROCESSENTRY32 const& entry)
 	{
-		while( Process32Next(hSnapshot, &entry) == TRUE )
+		if( entry.th32ParentProcessID == parentID )
 		{
-			if( entry.th32ParentProcessID == parentID )
-			{
-				result = entry.th32ProcessID;
-				break;
-			}
+			result = entry.th32ProcessID;
+			return false;
 		}
-	}
-	CloseHandle(hSnapshot);
+		return true;
+	});
 	return result;
 }
 
 DWORD FPlatformProcess::FindPIDByNameAndParentPID(TCHAR const* name, DWORD parentID)
 {
-	PROCESSENTRY32 entry;
-
-	entry.dwFlags = sizeof(PROCESSENTRY32);
-
-	HANDLE hSnapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, NULL);
-
 	DWORD result = -1;
-	if( Process32First(hSnapshot, &entry) == TRUE )
+	VisitProcess([&result, name, parentID](PROCESSENTRY32 const& entry)
 	{
-		while( Process32Next(hSnapshot, &entry) == TRUE )
+		if( FCString::Compare(entry.szExeFile, name) == 0 &&
+		   entry.th32ParentProcessID == parentID )
 		{
-			if( FCString::Compare(entry.szExeFile, name) == 0 &&
-			   entry.th32ParentProcessID == parentID )
-			{
-				result = entry.th32ProcessID;
-				break;
-			}
+			result = entry.th32ProcessID;
+			return false;
 		}
-	}
-	CloseHandle(hSnapshot);
+		return true;
+	});
 	return result;
 }

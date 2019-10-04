@@ -69,6 +69,7 @@ struct  ThrowCheckPolicy
 };
 
 
+
 template< class CheckPolicy = AssertCheckPolicy >
 class TStreamBuffer
 {
@@ -124,6 +125,20 @@ public:
 		mUseSize += num;
 	}
 
+	template< class ConvType , class T >
+	void fillConv(T const& val)
+	{
+		ConvType temp = val;
+		fill(temp);
+	}
+
+	template< class ConvType, class T >
+	void takeConv(T& val)
+	{
+		ConvType temp;
+		take(temp);
+		val = temp;
+	}
 
 	template< class Q >
 	void fill( TStreamBuffer< Q >& buffer , size_t num )
@@ -140,7 +155,7 @@ public:
 			return;
 
 		typedef typename Meta::Select< 
-			(sizeof(T) > 8) && Meta::IsPod< T >::Value ,
+			(sizeof(T) > 8) && ( Meta::IsPod< T >::Value || TTypeSerializeAsRawData<T>::Value ) ,
 			MemcpyStrategy , AssignStrategy 
 		>::Type Strategy;
 
@@ -155,7 +170,7 @@ public:
 			return;
 
 		typedef typename Meta::Select< 
-			( sizeof( T ) > 8 ) && Meta::IsPod< T >::Value , 
+			( sizeof( T ) > 8 ) && (Meta::IsPod< T >::Value || TTypeSerializeAsRawData<T>::Value),
 			MemcpyStrategy , AssignStrategy 
 		>::Type Strategy;
 

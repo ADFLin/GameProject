@@ -61,11 +61,11 @@ public:
 	template< class T >
 	SocketBuffer& operator << ( T const & val ){ fill( val ); return *this;  }
 
-	struct Take
+	struct TakeOperator
 	{
-		typedef Take ThisType;
+		typedef TakeOperator ThisType;
 		enum { IsTake = 1 , IsFill = 0 };
-		Take( SocketBuffer& buffer ): buffer( buffer ){}
+		TakeOperator( SocketBuffer& buffer ): buffer( buffer ){}
 		template< class T >
 		inline ThisType& operator & ( T&  val ){  buffer >> val; return *this;  }
 		template< int N >
@@ -85,11 +85,11 @@ public:
 	};
 
 
-	struct Fill
+	struct FillOperator
 	{
-		typedef Fill ThisType;
+		typedef FillOperator ThisType;
 		enum { IsTake = 0 , IsFill = 1 };
-		Fill( SocketBuffer& buffer ): buffer( buffer ){}
+		FillOperator( SocketBuffer& buffer ): buffer( buffer ){}
 		template< class T >
 		inline ThisType& operator & ( T&  val ){  buffer << val; return *this;  }
 		template< int N >

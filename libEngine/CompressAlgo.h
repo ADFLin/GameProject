@@ -247,7 +247,8 @@ public:
 
 #include <map>
 #include <unordered_map>
-#include "TypeHash.h"
+#include "Core/TypeHash.h"
+
 class LZ78Compress
 {
 

@@ -11,7 +11,7 @@ namespace Math
 	{
 		assert(rayDir.isNormalized());
 
-		float dMin = Math::MinFloat; // 0 for ray
+		float dMin = -Math::MaxFloat; // 0 for ray
 		float dMax = Math::MaxFloat;
 		for( int i = 0; i < GetDim<VectorType>::Result; ++i )
 		{
@@ -54,6 +54,49 @@ namespace Math
 		return LineBoxTestT(rayPos, rayDir, boxMin, boxMax, outDistances);
 	}
 
+
+	inline bool IsInside(Vector2 const& min, Vector2 const& max, Vector2 const& p)
+	{
+		return min.x < p.x && p.x < max.x &&
+			min.y < p.y && p.y < max.y;
+	}
+
+	static bool RayAABB(Vector2 const& org, Vector2 const& dir, Vector2 const& min, Vector2 const& max, float& outT)
+	{
+		float factor[2];
+		for( int i = 0; i < 2; ++i )
+		{
+			if( dir[i] > FLT_DIV_ZERO_EPSILON )
+			{
+				factor[i] = (min[i] - org[i]) / dir[i];
+			}
+			else if( dir[i] < -FLT_DIV_ZERO_EPSILON )
+			{
+				factor[i] = (max[i] - org[i]) / dir[i];
+			}
+			else
+			{
+				factor[i] = std::numeric_limits<float>::min();
+			}
+		}
+
+		int idx = (factor[0] > factor[1]) ? (0) : (1);
+		if( factor[idx] < 0 )
+			return false;
+
+		Vector2 p = org + dir * factor[idx];
+		int idx1 = (idx + 1) % 2;
+		if( min[idx1] > p[idx1] || p[idx1] > max[idx1] )
+		{
+			return false;
+		}
+
+		outT = factor[idx];
+		return true;
+
+	}
+
+
 	static bool IsIntersect(float minA, float maxA, float minB, float maxB)
 	{
 		if( maxA < minB )
@@ -71,6 +114,21 @@ namespace Math
 	bool BoxBoxTest(Vector3 const& aMin, Vector3 const& aMax, Vector3 const& bMin, Vector3 const& bMax)
 	{
 		return IsIntersect(aMin.x, aMax.x, bMin.x, bMax.x) && IsIntersect(aMin.y, aMax.y, bMin.y, bMax.y) && IsIntersect(aMin.z, aMax.z, bMin.z, bMax.z);;
+	}
+
+
+	bool LineLineTest(Vector2 const& posA, Vector2 const& dirA, Vector2 const& posB, Vector2 const& dirB, Vector2& outPos)
+	{
+		//[ dax -dbx ][ta] = [ pbx-pax ]
+		//[ day -dby ][tb] = [ pby-pay ]
+		float det = dirA.x * dirB.y - dirA.y * dirB.x;
+		if( Math::Abs(det) < FLT_DIV_ZERO_EPSILON )
+			return false;
+
+		Vector2 dPos = posB - posA;
+		float t = (dPos.x * dirB.y - dPos.y * dirB.x) / det;
+		outPos = posA + t * dirA;
+		return true;
 	}
 
 	bool LineCircleTest(Vector2 const& rPos, Vector2 const& rDir, Vector2 const& cPos, float cRadius, float t[])
@@ -116,16 +174,15 @@ namespace Math
 		if( snom <= 0.0f && tnom <= 0.0f )
 			return a;  // Vertex region early out
 
-					   // Compute parametric position u for projection P・ of P on BC,
-					   // P・ = B + u*BC, u = unom/(unom+udenom)
+		// Compute parametric position u for projection P・ of P on BC,
+		 // P・ = B + u*BC, u = unom/(unom+udenom)
 		float unom = Math::Dot(bp, bc), udenom = -Math::Dot(cp, bc);
 		if( sdenom <= 0.0f && unom <= 0.0f )
 			return b; // Vertex region early out
 		if( tdenom <= 0.0f && udenom <= 0.0f )
 			return c; // Vertex region early out
 
-					  // P is outside (or on) AB if the triple scalar product [N PA PB] <= 0
-
+		// P is outside (or on) AB if the triple scalar product [N PA PB] <= 0
 		float vc = Math::Dot(n, Math::Cross(ap, bp));
 		// If P outside AB and within feature region of AB,
 		// return projection of P onto AB

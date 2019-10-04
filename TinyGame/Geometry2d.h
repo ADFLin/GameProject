@@ -1,11 +1,14 @@
 #ifndef Geometry2d_h__
 #define Geometry2d_h__
 
-#include "TVector2.h"
+#include "Math/Vector2.h"
+#include "Math/PrimitiveTest.h"
+
+#include <vector>
 
 namespace Geom2D
 {
-	typedef TVector2< float > Vector2;
+	typedef Math::Vector2 Vector2;
 
 	template< class T >
 	struct PolyProperty
@@ -19,19 +22,18 @@ namespace Geom2D
 
 	namespace Poly
 	{
-		template< class T >
-		void Setup( T& p , int size ){ PolyProperty< T >::Setup( p , size ); }
-		template< class T >
-		int  Size( T const& p ){ return PolyProperty< T >::Size( p ); }
-		template< class T >
-		Vector2 const& Vertex( T const& p , int idx ){ return PolyProperty< T >::Vertex( p , idx ); }
-		template< class T >
-		void UpdateVertex( T& p , int idx , Vector2 const& value ){ return PolyProperty< T >::UpdateVertex( p , idx , value ); }
-
+		template< class TPoly >
+		void Setup(TPoly& p , int size ){ PolyProperty< TPoly >::Setup( p , size ); }
+		template< class TPoly >
+		int  Size(TPoly const& p ){ return PolyProperty< TPoly >::Size( p ); }
+		template< class TPoly >
+		Vector2 const& Vertex(TPoly const& p , int idx ){ return PolyProperty< TPoly >::Vertex( p , idx ); }
+		template< class TPoly >
+		void UpdateVertex(TPoly& p , int idx , Vector2 const& value ){ return PolyProperty< TPoly >::UpdateVertex( p , idx , value ); }
 	}
 
-	template< class T1 >
-	bool TestInSide( T1 const& poly , Vector2 const& pos )
+	template< class TPoly >
+	bool TestInSide(TPoly const& poly , Vector2 const& pos )
 	{
 		int num = Poly::Size( poly );
 		int idxPrev = num - 1;
@@ -53,6 +55,31 @@ namespace Geom2D
 			}
 		}
 		return ( count & 0x1 ) != 0 ;
+	}
+
+
+	template< class TPoly >
+	bool IsConvex(TPoly const& poly)
+	{
+		int num = Poly::Size(poly);
+		assert(num > 2);
+
+		int idxPrev = num - 1;
+		unsigned count = 0;
+		Vector2 dirPrev = Poly::Vertex(poly, 0) - Poly::Vertex(poly, num - 1);
+		Vector2 dirCur = Poly::Vertex(poly, 1) - Poly::Vertex(poly, 0);
+		float ang = dirPrev.cross(dirCur);
+
+		for( int i = 1; i < num; idxPrev = i, ++i )
+		{
+			dirPrev = dirCur;
+			dirCur = Poly::Vertex(poly, (i + 1) % num) - Poly::Vertex(poly, i);
+
+			if( ang * dirPrev.cross(dirCur) < 0 )
+				return false;
+		}
+
+		return true;
 	}
 
 	template< class T1 , class T2 , class T3 >
@@ -130,22 +157,22 @@ namespace Geom2D
 		}
 	}
 
-
-	template< class T >
+	template< class TPoly >
 	class QHullSolver
 	{
 	private:
-		T*     mPoly;
-		int*   mOut;
+		TPoly const* mPoly;
+		int*   mOutIndices;
 		Vector2 const& getVertex( int idx ){ return Poly::Vertex( *mPoly , idx ); }
 	public:
-		int solve( T& poly , int outIndex[] )
+
+		int solve(TPoly const& poly, int outHullIndices[])
 		{
 			int numV = Poly::Size( poly );
 			if ( numV <= 3 )
 			{
 				for( int i = 0 ; i < numV ; ++i )
-					outIndex[i] = i;
+					outHullIndices[i] = i;
 				return numV;
 			}
 
@@ -180,7 +207,7 @@ namespace Geom2D
 			}
 
 			mPoly = &poly;
-			mOut = outIndex;
+			mOutIndices = outHullIndices;
 			int num;
 			int idxQuad[5] = { xI[0] , yI[0] , xI[1] , yI[1] , xI[0] };
 
@@ -190,7 +217,7 @@ namespace Geom2D
 				int i2 = idxQuad[i+1];
 				if ( i1 != i2 )
 				{
-					*mOut++ = i1;
+					*mOutIndices++ = i1;
 					if ( nV )
 					{
 						num = constuct_R( pIdx , nV , i1 , i2 );
@@ -199,7 +226,7 @@ namespace Geom2D
 					}
 				}
 			}
-			return mOut - outIndex;
+			return mOutIndices - outHullIndices;
 		}
 		int  constuct_R( int pIdx[] , int nV , int i1 , int i2 )
 		{
@@ -210,7 +237,7 @@ namespace Geom2D
 			switch( num )
 			{
 			case 0: return 0;
-			case 1: *mOut++ = pIdx[0]; return 1;
+			case 1: *mOutIndices++ = pIdx[0]; return 1;
 			default:
 				{
 					int iMax = pIdx[0];
@@ -218,7 +245,7 @@ namespace Geom2D
 					int* pTemp = pIdx + 1;
 					int temp = constuct_R( pTemp  , n , i1 , iMax );
 					n -= temp;
-					*mOut++ = iMax;
+					*mOutIndices++ = iMax;
 					if ( n )
 					{
 						pTemp += temp;
@@ -278,15 +305,235 @@ namespace Geom2D
 
 	};
 
-	template< class T >
-	inline int QuickHull( T& poly , int outIndex[] )
+	template< class TPoly >
+	inline int QuickHull(TPoly const& poly , int outHullIndices[] )
 	{
-		QHullSolver< T > solver;
-		return solver.solve( poly , outIndex );
+		QHullSolver< TPoly > solver;
+		return solver.solve( poly , outHullIndices );
 	}
 
 
+	template< class TConvexVertexProvider >
+	inline void CalcMinimumBoundingRectangleImpl(TConvexVertexProvider&& provider, int numHullVertex , Vector2& outCenter, Vector2& outAxisX, Vector2& outSize)
+	{
+		// rotating calipers algorithm
+		if( numHullVertex <= 3 )
+		{
+			switch( numHullVertex )
+			{
+			case 0:
+				outCenter = Vector2::Zero();
+				outSize = Vector2::Zero();		
+				outAxisX = Vector2::Zero();
+				break;
+			case 1:
+				outCenter = provider(0);
+				outSize = Vector2::Zero();
+				outAxisX = Vector2::Zero();
+				break;
+			case 2:
+				{
+					Vector2 const& v0 = provider(0);
+					Vector2 const& v1 = provider(1);
+					outCenter = 0.5 * (v0 + v1);
+					Vector2 dir = v1 - v0;
+					float dist = dir.normalize();
+					outSize = Vector2(dist, 0);
+					outAxisX = dir;
+				}
+				break;
+			case 3:
+				{
+					float maxDot = 0;
+					int indexStart = -1;
+					for( int i = 0; i < 3; ++i )
+					{
+						Vector2 const& v0 = provider(i);
+						Vector2 const& v1 = provider((i+1)%3);
+						
+						Vector2 dir = v1 - v0;
+						float len = dir.normalize();
+						float dotAbs = Math::Abs( dir.dot(Vector2(1, 0)) );
+						if ( dotAbs > maxDot )
+						{
+							Vector2 const& v2 = provider((i + 2) % 3);
+							if ( dir.dot( v2 - v0 ) >= 0 &&
+								 dir.dot( v1 - v2 ) >= 0 )
+							{
+								outAxisX = dir;
+								outSize.x = len;
+								indexStart = i;
+								maxDot = dotAbs;
+							}
+						}
+					}
 
+					assert(indexStart != -1);
+
+					Vector2 const& v0 = provider(indexStart);
+					Vector2 const& v2 = provider((indexStart + 2) % 3);
+					Vector2 dir = v2 - v0;
+					outSize.y = outAxisX.cross(dir);
+					outCenter = v0 + 0.5 * (outSize.x * outAxisX + outSize.y * Math::Perp(outAxisX));
+				}
+				break;
+			}
+			return;
+		}
+		enum ERectSide
+		{
+			LEFT, BOTTOM, RIGHT,TOP,
+		};
+		ERectSide const NextSide[] = { BOTTOM , RIGHT , TOP , LEFT };
+		ERectSide const PairSide[] = { RIGHT , TOP , LEFT , BOTTOM };
+		int boundIndices[4];
+		{
+			Vector2 minValue = Vector2(Math::MaxFloat, Math::MaxFloat);
+			Vector2 maxValue = Vector2(-Math::MaxFloat, -Math::MaxFloat);
+			for( int i = 0; i < numHullVertex; ++i )
+			{
+				Vector2 const& v = provider(i);
+
+				if( v.x < minValue.x )
+				{
+					boundIndices[LEFT] = i;
+					minValue.x = v.x;
+				}
+				if( v.x > maxValue.x )
+				{
+					boundIndices[RIGHT] = i;
+					maxValue.x = v.x;
+				}
+				if( v.y < minValue.y )
+				{
+					boundIndices[BOTTOM] = i;
+					minValue.y = v.y;
+				}
+				if( v.y > maxValue.y )
+				{
+					boundIndices[TOP] = i;
+					maxValue.y = v.y;
+				}
+			}
+		}
+		Vector2 sideDirs[4];
+		sideDirs[LEFT]   = Vector2(0,-1);
+		sideDirs[RIGHT]  = Vector2(0, 1);
+		sideDirs[BOTTOM] = Vector2(1, 0);
+		sideDirs[TOP]    = Vector2(-1, 0);
+
+		auto GetVertex = [&](ERectSide side) -> Vector2
+		{
+			return provider(boundIndices[side]);
+		};
+		auto GetNextVertex = [&](ERectSide side) -> Vector2
+		{
+			return provider((boundIndices[side] + 1) % numHullVertex );
+		};
+
+		auto GetInterection = [&](ERectSide s1, ERectSide s2) -> Vector2
+		{
+			Vector2 result;
+			bool bHad = Math::LineLineTest(GetVertex(s1), sideDirs[s1], GetVertex(s2), sideDirs[s2], result);
+			assert(bHad);
+			return result;
+		};
+
+
+		float bestArea = Math::MaxFloat;
+		for( int n = 0 ; n < numHullVertex ; ++n )
+		{
+			float maxDotAngle = -Math::MaxFloat;
+			int sideSelected = -1;
+			Vector2 dirSelected;
+			for( int i = 0; i < 4; ++i )
+			{
+				Vector2 const& v0 = GetVertex(ERectSide(i));
+				Vector2 const& v1 = GetNextVertex(ERectSide(i));
+				Vector2 edgeDir = Math::GetNormal(v1 - v0);
+				float dotAngle = edgeDir.dot(sideDirs[i]);
+				if( dotAngle > maxDotAngle )
+				{
+					maxDotAngle = dotAngle;
+					sideSelected = i;
+					dirSelected = edgeDir;
+				}
+			}
+
+			assert(sideSelected != -1);
+			sideDirs[sideSelected] = dirSelected;
+			sideDirs[PairSide[sideSelected]] = -dirSelected;
+			ERectSide nextSide = NextSide[sideSelected];
+			sideDirs[nextSide] = Math::Perp(dirSelected);
+			sideDirs[PairSide[nextSide]] = -sideDirs[nextSide];
+
+			boundIndices[sideSelected] = (boundIndices[sideSelected] + 1) % numHullVertex;
+
+#if 1
+			float width = sideDirs[BOTTOM].dot(GetVertex(RIGHT) - GetVertex(LEFT));
+			float height = sideDirs[RIGHT].dot(GetVertex(TOP) - GetVertex(BOTTOM));
+			float area = width * height;
+			if( area < bestArea )
+			{
+				outSize = Vector2(width, height);
+				outCenter = GetInterection(LEFT, BOTTOM) + 0.5 * (width * sideDirs[BOTTOM] + height * sideDirs[RIGHT]);
+				outAxisX = sideDirs[BOTTOM];
+				bestArea = area;
+			}
+#else
+			Vector2 LT = GetInterection(LEFT, TOP);
+			Vector2 RT = GetInterection(RIGHT, TOP);
+			Vector2 LB = GetInterection(LEFT, BOTTOM);
+
+			float width = Math::Distance(LT, RT);
+			float height = Math::Distance(LT, LB);
+			float area = width * height;
+			if( area < bestArea )
+			{
+				outCenter = 0.5 * (RT + LB);
+				outSize = Vector2(width, height);
+				outAxisX = Math::GetNormal(RT - LT);
+				bestArea = area;
+			}
+#endif
+		} 
+	}
+
+	template< class TPoly >
+	inline void CalcMinimumBoundingRectangle(TPoly const& poly, int hullIndices[], int numHullVertex, Vector2& outCenter, Vector2& outAxisX, Vector2& outSize)
+	{
+		auto Provider = [&](int index) -> Vector2 const&
+		{
+			return Poly::Vertex(poly, hullIndices[index]);
+		};
+		CalcMinimumBoundingRectangleImpl(Provider, numHullVertex, outCenter, outAxisX, outSize);
+	}
+
+	template< class TPoly >
+	inline void CalcMinimumBoundingRectangle(TPoly const& poly, Vector2& outCenter, Vector2& outAxisX, Vector2& outSize)
+	{
+		std::vector< int > hullIndices(Poly::Size(poly));
+		QHullSolver< TPoly > solver;
+		int numHullVertex = solver.solve(poly, hullIndices.data());
+
+		auto Provider = [&](int index) -> Vector2 const&
+		{
+			return Poly::Vertex(poly, hullIndices[index]);
+		};
+		CalcMinimumBoundingRectangleImpl(Provider, numHullVertex, outCenter, outAxisX, outSize);
+	}
+
+
+	template< class TPoly >
+	inline void CalcMinimumBoundingRectangleForConvex(TPoly const& poly, Vector2& outCenter, Vector2& outAxisX, Vector2& outSize)
+	{
+		assert(IsConvex(poly));
+		auto Provider = [&](int index) -> Vector2 const&
+		{
+			return Poly::Vertex(poly, index);
+		};
+		CalcMinimumBoundingRectangleImpl(Provider, Poly::Size(poly), outCenter, outAxisX, outSize);
+	}
 
 }
 #endif // Geometry2d_h__

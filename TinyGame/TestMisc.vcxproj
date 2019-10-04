@@ -418,6 +418,8 @@
     </ClCompile>
     <ClCompile Include="TestMisc\Stage\AudioTestStage.cpp" />
     <ClCompile Include="TestMisc\Stage\BloxorzStage.cpp" />
+    <ClCompile Include="TestMisc\Stage\CompressionTestStage.cpp" />
+    <ClCompile Include="TestMisc\Stage\Geometry2dTestStage.cpp" />
     <ClCompile Include="TestMisc\Stage\GGJStage.cpp" />
     <ClCompile Include="TestMisc\Stage\RubiksStage.cpp" />
     <ClCompile Include="TestMisc\Stage\StickMoveStage.cpp" />

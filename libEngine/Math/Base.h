@@ -17,67 +17,71 @@ namespace Math
 	float constexpr MinFloat = FLT_MIN;
 	float constexpr PI = 3.141592654f;
 
-	inline int FloorToInt(float val) { return (int)::floor(val); }
-	inline int CeilToInt(float val) { return (int)::ceil(val); }
+	FORCEINLINE int FloorToInt(float val) { return (int)::floor(val); }
+	FORCEINLINE int CeilToInt(float val) { return (int)::ceil(val); }
 
-	inline float Square(float val) { return val * val; }
-	inline float Floor( float val ){ return ::floor( val ); }
-	inline float Sqrt( float val ){ return ::sqrt( val ); }
-	inline float InvSqrt( float val ){ return 1.0f / Sqrt( val ); }
-	inline float Sin( float val ){ return ::sin( val ); }
-	inline float Cos( float val ){ return ::cos( val ); }
-	inline float Tan( float val ){ return ::tan( val ); }
-	inline void  SinCos( float val , float& s , float& c  ){ s = ::sin( val ); c = ::cos( val ); }
-	inline float ACos( float val){ return ::acos( val ); }
-	inline float ASin( float val){ return ::asin( val ); }
-	inline float ATan( float val ){ return ::atan( val ); }
-	inline float Abs( float val ){ return ::fabs( val ); }
-	inline float ATan2( float y , float x ){ return ::atan2( y ,x ); }
-	inline float Frac(float val) { float temp; return ::modf(val, &temp); }
-	inline float Log(float val) { return ::logf(val); }
-	inline float LogX(float base, float value) { return Log(value) / Log(base); }
+	FORCEINLINE float Square(float val) { return val * val; }
+	FORCEINLINE float Floor( float val ){ return ::floor( val ); }
+	FORCEINLINE float Sqrt( float val ){ return ::sqrt( val ); }
+	FORCEINLINE float InvSqrt( float val ){ return 1.0f / Sqrt( val ); }
+	FORCEINLINE float Sin( float val ){ return ::sin( val ); }
+	FORCEINLINE float Cos( float val ){ return ::cos( val ); }
+	FORCEINLINE float Tan( float val ){ return ::tan( val ); }
+	FORCEINLINE void  SinCos( float val , float& s , float& c  ){ s = ::sin( val ); c = ::cos( val ); }
+	FORCEINLINE float ACos( float val){ return ::acos( val ); }
+	FORCEINLINE float ASin( float val){ return ::asin( val ); }
+	FORCEINLINE float ATan( float val ){ return ::atan( val ); }
+	FORCEINLINE float Abs( float val ){ return ::fabs( val ); }
+	FORCEINLINE float ATan2( float y , float x ){ return ::atan2( y ,x ); }
+	FORCEINLINE float Frac(float val) { float temp; return ::modf(val, &temp); }
+	FORCEINLINE float Log(float val) { return ::logf(val); }
+	FORCEINLINE float LogX(float base, float value) { return Log(value) / Log(base); }
 
-	inline double FloorToInt(double val) { return ::floor(val); }
-	inline double Abs(double val) { return ::abs(val); }
-	inline double Tanh(double val) { return ::tanh(val); }
-	inline double Exp(double val) { return ::exp(val); }
+	FORCEINLINE double FloorToInt(double val) { return ::floor(val); }
+	FORCEINLINE double Abs(double val) { return ::abs(val); }
+	FORCEINLINE double Tanh(double val) { return ::tanh(val); }
+	FORCEINLINE double Exp(double val) { return ::exp(val); }
 
-
-	inline float Round( float value ){ return ::floor( value + 0.5f ); }
-	inline float Fmod( float v1 , float v2 ){ return ::fmod( v1 , v2 ); }
-	inline float Deg2Rad( float val ){ return val * Math::PI / 180.0f; }
-	inline float Rad2Deg( float val ){ return val * 180.0f / Math::PI; }
-	inline float Pow(float base, float exp) { return ::pow(base, exp); }
-	inline float Lerp(float form, float to, float alpha) { return form * (1 - alpha) + to * alpha;  }
-
-	template< class T >
-	inline T Squre(T val) { return val * val; }
+	FORCEINLINE float Round( float value ){ return ::floor( value + 0.5f ); }
+	FORCEINLINE float Fmod( float v1 , float v2 ){ return ::fmod( v1 , v2 ); }
+	FORCEINLINE float Deg2Rad( float val ){ return val * Math::PI / 180.0f; }
+	FORCEINLINE float Rad2Deg( float val ){ return val * 180.0f / Math::PI; }
+	FORCEINLINE float Pow(float base, float exp) { return ::pow(base, exp); }
+	FORCEINLINE float Lerp(float form, float to, float alpha) { return form * (1 - alpha) + to * alpha;  }
 
 	template< class T >
-	inline T Min(T v1, T v2) { return (v1 < v2) ? v1 : v2; }
+	FORCEINLINE T Squre(T val) { return val * val; }
+
 	template< class T >
-	inline T Max(T v1, T v2) { return (v1 > v2) ? v1 : v2; }
+	FORCEINLINE T Min(T v1, T v2) { return (v1 < v2) ? v1 : v2; }
 	template< class T >
-	inline T Clamp(T val, T minVal, T maxVal)
+	FORCEINLINE T Max(T v1, T v2) { return (v1 > v2) ? v1 : v2; }
+
+	template< class T >
+	FORCEINLINE T Clamp(T val, T minVal, T maxVal)
 	{
-		return Min(Max(minVal, val), maxVal);
+		if( val < minVal )
+			return minVal;
+		if( val > maxVal )
+			return maxVal;
+		return val;
 	}
 
 	template< class T >
-	static T LinearLerp(T const& p0, T const& p1, float alpha)
+	FORCEINLINE T LinearLerp(T const& p0, T const& p1, float alpha)
 	{
 		return (1 - alpha) * p0 + alpha * p1;
 	}
 
 	template< class T >
-	static T BezierLerp(T const& p0, T const& p1, T const& p2, float alpha)
+	FORCEINLINE T BezierLerp(T const& p0, T const& p1, T const& p2, float alpha)
 	{
 		float frac = 1 - alpha;
 		return (frac * frac) * p0 + (2 * frac * alpha) * p1 + (alpha * alpha) * p2;
 	}
 
 	template< class T >
-	static T BezierLerp(T const& p0, T const& p1, T const& p2, T const& p3, float alpha)
+	FORCEINLINE T BezierLerp(T const& p0, T const& p1, T const& p2, T const& p3, float alpha)
 	{
 		float frac = 1 - alpha;
 		float frac2 = frac * frac;
@@ -86,7 +90,7 @@ namespace Math
 	}
 
 	template< class T >
-	static bool Barycentric(T const& p, T const& a, T const& b, T const& c, float coord[])
+	FORCEINLINE bool Barycentric(T const& p, T const& a, T const& b, T const& c, float coord[])
 	{
 		T v0 = b - a, v1 = c - a, v2 = p - a;
 		float d00 = v0.dot(v0);

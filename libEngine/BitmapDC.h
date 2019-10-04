@@ -19,9 +19,9 @@ public:
 	bool    initialize( HDC hDC , BITMAPINFO* info , void** data = 0 );
 	void    release();
 
-
-	void    bitBlt( HDC hdc, int x = 0,int y = 0 );
-	void    bitBlt( HDC hdc, int x ,int y , int sx , int sy , int w , int h );
+	void    bitBltFrom(HDC hDC, int x, int y);
+	void    bitBltTo( HDC hdc, int x = 0,int y = 0 );
+	void    bitBltTo( HDC hdc, int x ,int y , int sx , int sy , int w , int h );
 	void    bitBltTransparent( HDC hdc , COLORREF color , int x = 0,int y = 0 );
 	HDC     getDC() const { return mhDC; }
 	HBITMAP getBitmap(){ return mhBmp ; }

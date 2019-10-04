@@ -73,8 +73,7 @@ namespace Render
 			if( mHandle )
 			{
 				RMPolicy::Destroy(mHandle);
-				GLenum error = glGetError();
-				if( error != GL_NO_ERROR )
+				if( !VerifyOpenGLStatus() )
 				{
 					//#TODO
 					LogError("Can't Destory GL Object");

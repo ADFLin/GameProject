@@ -1,14 +1,14 @@
-#include "TestStageHeader.h"
+#include "Stage/TestStageHeader.h"
 
 #include "CompressAlgo.h"
-
-#include "Chromatron/GameData1.h"
-
-#include "DataSteamBuffer.h"
-#include "DataStream.h"
 #include "BitUtility.h"
 
 #include "HashString.h"
+
+#include "Chromatron/GameData1.h"
+#include "Serialize/DataStream.h"
+#include "DataStreamBuffer.h"
+#include "Serialize/FileStream.h"
 
 template< class T >
 struct DataFoo
@@ -94,34 +94,38 @@ REGISTER_MISC_TEST("HashString Test", HashStringTest);
 //
 //};
 
-SUPPORT_BINARY_OPERATOR(HaveAdd , operator+ , const& , const&)
+DEFINE_SUPPORT_BINARY_OPERATOR_TYPE(HaveAdd , operator+ , const& , const&)
 
 
 struct MyDataFoo{};
 
-DataSerializer& operator >> (DataSerializer& serializer, THuffmanTree<uint8>::Dictionary& dict)
+#if 0
+IStreamSerializer& operator >> (IStreamSerializer& serializer, THuffmanTree<uint8>::Dictionary& dict)
 {
-	DataSerializer::BitReader writer(serializer.getStream());
+	IStreamSerializer::BitReader writer(serializer);
 	return serializer;
 }
+#endif
 
 
 
 namespace Compression
 {
 
-	DataSerializer::BitWriter& operator << (DataSerializer::BitWriter& writer, THuffmanTree<uint8>::Dictionary::Node const& node)
+#if 0
+	IStreamSerializer::BitWriter& operator << (IStreamSerializer::BitWriter& writer, THuffmanTree<uint8>::Dictionary::Node const& node)
 	{
 		return writer;
 	}
 
 
-	DataSerializer& operator << (DataSerializer& serializer, THuffmanTree<uint8>::Dictionary const& dict)
+	IStreamSerializer& operator << (IStreamSerializer& serializer, THuffmanTree<uint8>::Dictionary const& dict)
 	{
 		int bitNum = 1 + BitUtility::CountLeadingZeros(dict.nodes.size());
-		DataSerializer::BitWriter writer(serializer.getStream());
+		IStreamSerializer::BitWriter writer(serializer);
 		return serializer;
 	}
+#endif
 
 
 	class VectorBuffer
@@ -199,7 +203,7 @@ namespace Compression
 	};
 
 
-	SUPPORT_BINARY_OPERATOR(HaveSerializeOutput, operator<< , & , const& );
+	DEFINE_SUPPORT_BINARY_OPERATOR_TYPE(HaveSerializeOutput, operator<< , & , const& );
 
 
 	typedef Foo& (*Fun)(Foo& foo, MyTest const& v);
@@ -218,9 +222,9 @@ namespace Compression
 		{
 
 
-			int a = HaveFunCallOperator< FooCall, int >::Value;
-			int a2 = HaveFunCallOperator< FooCall, uint32 >::Value;
-			int v = HaveBitDataOutput< DataSerializer::BitWriter, uint32 >::Value;
+			int a = HaveFuncionCallOperator< FooCall, int >::Value;
+			int a2 = HaveFuncionCallOperator< FooCall, uint32 >::Value;
+			int v = HaveBitDataOutput< IStreamSerializer::BitWriter, uint32 >::Value;
 
 			int i = HaveSerializeOutput< Foo , MyTest >::Value;
 			int i2 = HaveSerializeOutput< Foo , int >::Value;
@@ -281,18 +285,17 @@ namespace Compression
 				{
 					srcData.push_back(i);
 				}
-				DataSteamBuffer Buffer;
-				auto dataStream = MakeBufferDataSteam(Buffer);
-				DataSerializer serializer(dataStream);
+				DataStreamBuffer Buffer;
+				auto serializer = MakeBufferSerializer(Buffer);
 				{
-					DataSerializer::WriteOp writeOp(serializer);
-					writeOp & DataSerializer::MakeArrayBit(srcData, 11);
+					IStreamSerializer::WriteOp writeOp(serializer);
+					writeOp & IStreamSerializer::MakeArrayBit(srcData, 11);
 				}
 				
 				destData.resize(255);
 				{
-					DataSerializer::ReadOp readOp(serializer);
-					readOp & DataSerializer::MakeArrayBit(destData, 11);
+					IStreamSerializer::ReadOp readOp(serializer);
+					readOp & IStreamSerializer::MakeArrayBit(destData, 11);
 				}
 				int i = 1;
 			}
@@ -323,15 +326,14 @@ namespace Compression
 
 				mTree.generateDictionary(dict);
 
-				DataSteamBuffer compressBuffer;
+				DataStreamBuffer compressBuffer;
 
 				size_t posHeader = compressBuffer.getFillSize();
 				compressBuffer.fillValue(0, sizeof(CompressHeader));
 
-				auto dataStream = MakeBufferDataSteam(compressBuffer);
-				DataSerializer serializer(dataStream);
-				DataSerializer::WriteOp writeOp(serializer);
-				writeOp & dict;
+				auto serializer = MakeBufferSerializer(compressBuffer);
+				IStreamSerializer::WriteOp writeOp(serializer);
+				//writeOp & dict;
 				size_t sizeDict = compressBuffer.getFillSize() - posHeader;
 				writeOp & codeBuffer;
 				size_t totalsize = compressBuffer.getFillSize() - posHeader;
@@ -347,21 +349,20 @@ namespace Compression
 
 			std::vector< uint8 > decompressBuffer;
 			{
-				FileStream fileStream;
-				if( !fileStream.open("testcpr.cpr") )
+				InputFileSerializer fileSerializer;
+				if( !fileSerializer.open("testcpr.cpr") )
 				{
 					return;
 				}
 
-				DataSerializer serializer(fileStream);
-				DataSerializer::ReadOp readOp(serializer);
+				IStreamSerializer::ReadOp readOp(fileSerializer);
 
 				CompressHeader header;
 
 				HuffmanTree::Dictionary dict;
 				std::vector< uint8 > codeBuffer;
 				readOp & header;
-				readOp & dict;
+				//readOp & dict;
 				readOp & codeBuffer;
 
 				TStreamBuffer<ThrowCheckPolicy> buffer((char*)&codeBuffer[0], codeBuffer.size());

@@ -788,8 +788,6 @@ namespace Asmeta
 			encodeModRM( rm , reg );
 		}
 
-
-
 		template< int Size , class RMType >
 		ASMETA_INLINE void encodeIntInistWRM( uint8 op , RMType const& rm , uint8 reg )
 		{

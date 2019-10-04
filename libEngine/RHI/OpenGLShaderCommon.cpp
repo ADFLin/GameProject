@@ -292,7 +292,7 @@ namespace Render
 		uint8* pData = outBinary.data();
 		// BinaryFormat is stored at the start of ProgramBinary array
 		glGetProgramBinary(handle, binaryLength, &binaryLength, (GLenum*)pData, pData + sizeof(GLenum));
-		if( glGetError() != GL_NO_ERROR )
+		if( !VerifyOpenGLStatus() )
 		{
 
 			return false;
@@ -349,7 +349,7 @@ namespace Render
 
 		GLenum format = *(GLenum*)binaryCode.data();
 		glProgramBinary(shaderProgramImpl.getHandle(), format, binaryCode.data() + sizeof(GLenum), binaryCode.size() - sizeof(GLenum));
-		if( glGetError() != GL_NO_ERROR )
+		if( !VerifyOpenGLStatus() )
 		{
 			return false;
 		}

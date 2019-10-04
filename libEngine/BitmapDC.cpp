@@ -90,15 +90,6 @@ void BitmapDC::clear()
 	::PatBlt(mhDC, 0 , 0 , mWidth , mHeight , BLACKNESS);
 }
 
-void BitmapDC::bitBlt( HDC hdc, int x ,int y )
-{
-	::BitBlt( hdc , x, y , mWidth , mHeight, mhDC, 0,0,SRCCOPY );
-}
-
-void BitmapDC::bitBlt( HDC hdc, int x ,int y , int sx , int sy , int w , int h )
-{
-	::BitBlt( hdc , x, y , w , h , mhDC, sx , sy ,SRCCOPY );
-}
 
 bool BitmapDC::initialize( HDC hDC , int w , int h )
 {
@@ -149,6 +140,7 @@ bool BitmapDC::initialize( HDC hDC , BITMAPINFO* info , void** data )
 	return true;
 }
 
+
 bool BitmapDC::initialize( HDC hDC, LPSTR file )
 {
 	assert(mhDC == NULL);
@@ -176,6 +168,22 @@ bool BitmapDC::initialize( HDC hDC, LPSTR file )
 void BitmapDC::release()
 {
 	cleanup();
+}
+
+
+void BitmapDC::bitBltTo(HDC hdc, int x, int y)
+{
+	::BitBlt(hdc, x, y, mWidth, mHeight, mhDC, 0, 0, SRCCOPY);
+}
+
+void BitmapDC::bitBltTo(HDC hdc, int x, int y, int sx, int sy, int w, int h)
+{
+	::BitBlt(hdc, x, y, w, h, mhDC, sx, sy, SRCCOPY);
+}
+
+void BitmapDC::bitBltFrom(HDC hDC, int x, int y)
+{
+	::BitBlt(mhDC, x, y, mWidth , mHeight, hDC, 0, 0, SRCCOPY);
 }
 
 void BitmapDC::bitBltTransparent( HDC hdc , COLORREF color , int x /*= 0*/,int y /*= 0 */ )

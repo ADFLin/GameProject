@@ -256,7 +256,7 @@ void WinGdiGraphics2D::popXForm()
 void WinGdiGraphics2D::drawTexture( GdiTexture& texture , Vec2i const& pos )
 {
 	GDI_PROFILE( "WinGdiGraphics2D::drawTexture" )
-	texture.mImpl.bitBlt( getRenderDC() , pos.x , pos.y );
+	texture.mImpl.bitBltTo( getRenderDC() , pos.x , pos.y );
 }
 
 void WinGdiGraphics2D::drawTexture( GdiTexture& texture , Vec2i const& pos , Color3ub const& color )
@@ -382,7 +382,7 @@ void WinGdiRenderSystem::beginRender()
 void WinGdiRenderSystem::endRender()
 {
 	mGraphics.endRender();
-	mBufferDC.bitBlt( mhDCWindow );
+	mBufferDC.bitBltTo( mhDCWindow );
 }
 
 HFONT WinGdiRenderSystem::createFont( int size , char const* faceName , bool beBold , bool beItalic )

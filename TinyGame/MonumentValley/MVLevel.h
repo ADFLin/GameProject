@@ -5,8 +5,6 @@
 #include "MVWorld.h"
 #include "MVSpaceControl.h"
 
-class DataSerializer;
-
 namespace MV
 {
 	class IModifyCreator

@@ -177,7 +177,7 @@ namespace Math
 			:center(0.5f * (max + min))
 		{
 			Vector3 extrent = max - min;
-			radius = 0.5f * Math::Max(Math::Max(extrent.x, extrent.y), extrent.z);
+			radius = 0.5f * Math::Max(extrent.x, Math::Max(extrent.y, extrent.z));
 			assert(radius >= 0);
 		}
 

@@ -59,15 +59,26 @@ struct TTypeToValueLayout< int32 >
 	static const ValueLayout Result = ValueLayout::Int32;
 };
 
+
+enum class EFuncCall
+{
+	Cdecl,
+	Thiscall,
+	Clrcall ,
+	Stdcall ,
+	Fastcall,
+};
+
 struct FuncSignatureInfo
 {
-	static int const MaxArgNum = 8;
-	TArrayView< ValueLayout const > argLayouts;
-	ValueLayout returnLayout;
+	TArrayView< ValueLayout const > argTypes;
+	ValueLayout returnType;
+	EFuncCall   call;
 
 	FuncSignatureInfo(ValueLayout inRTLayout, ValueLayout const* inArgs, int numArgs)
-		:argLayouts(inArgs, numArgs)
-		,returnLayout(inRTLayout)
+		:argTypes(inArgs, numArgs)
+		,returnType(inRTLayout)
+		,call( EFuncCall::Cdecl )
 	{
 	}
 };
@@ -144,8 +155,9 @@ struct FuncInfo
 	}
 
 
-	int getArgNum() const { return signature->argLayouts.size(); }
-
+	int         getArgNum() const { return signature->argTypes.size(); }
+	ValueLayout getArgType(int idx) { return signature->argTypes[idx]; }
+	ValueLayout getReturnType() { return signature->returnType; }
 
 	bool isSameLayout(FuncInfo const& rhs) const
 	{
@@ -212,14 +224,14 @@ struct ConstValueInfo
 	}
 };
 
-struct VarValueInfo
+struct VariableInfo
 {
 	ValueLayout layout;
 	void* ptr;
 
-	VarValueInfo(double* pValue) :layout(ValueLayout::Double), ptr(pValue) {}
-	VarValueInfo(float*  pValue) :layout(ValueLayout::Float), ptr(pValue) {}
-	VarValueInfo(int32*  pValue) :layout(ValueLayout::Int32), ptr(pValue) {}
+	VariableInfo(double* pValue) :layout(ValueLayout::Double), ptr(pValue) {}
+	VariableInfo(float*  pValue) :layout(ValueLayout::Float), ptr(pValue) {}
+	VariableInfo(int32*  pValue) :layout(ValueLayout::Int32), ptr(pValue) {}
 
 	void assignTo(void* data) const
 	{
@@ -367,7 +379,7 @@ struct SymbolEntry
 		uint8          inputIndex;
 		FuncInfo       func;
 		ConstValueInfo constValue;
-		VarValueInfo   varValue;
+		VariableInfo   varValue;
 	};
 
 	SymbolEntry() {}
@@ -382,7 +394,7 @@ struct SymbolEntry
 		,constValue(value)
 	{
 	}
-	SymbolEntry(VarValueInfo value)
+	SymbolEntry(VariableInfo value)
 		:type(eVariable)
 		,varValue(value)
 	{
@@ -403,16 +415,17 @@ public:
 	template< class T >
 	void            defineConst(char const* name, T val) { mNameToEntryMap[name] = ConstValueInfo(val); }
 	template< class T >
-	void            defineVar( char const* name , T* varPtr){  mNameToEntryMap[name] = VarValueInfo(varPtr); }
+	void            defineVar( char const* name , T* varPtr){  mNameToEntryMap[name] = VariableInfo(varPtr); }
 	template< class T>
-	void            defineFun(char const* name, T fun ) { mNameToEntryMap[name] = FuncInfo(fun); }
+	void            defineFunc(char const* name, T fun ) { mNameToEntryMap[name] = FuncInfo(fun); }
 
 	void            defineVarInput(char const* name, uint8 inputIndex) { mNameToEntryMap[name] = inputIndex; }
 	
 	ConstValueInfo const* findConst(std::string const& name) const;
-	FuncInfo const*        findFun(std::string const& name) const;
-	VarValueInfo const*   findVar(std::string const& name ) const;
-	int             findInput(std::string const& name) const;
+	FuncInfo const*       findFunc(std::string const& name) const;
+	VariableInfo const*   findVar(std::string const& name ) const;
+	int                   findInput(std::string const& name) const;
+
 	char const*     getFunName( FuncInfo const& info ) const;
 	char const*     getVarName( void* var ) const;
 
@@ -586,7 +599,7 @@ public:
 	typedef ParseResult::TokenType TokenType;
 	void codeInit();
 	void codeConstValue(ConstValueInfo const&val);
-	void codeVar( VarValueInfo const& varInfo);
+	void codeVar( VariableInfo const& varInfo);
 	void codeInput(uint8 inputIndex);
 	void codeFunction(FuncInfo const& info);
 	void codeBinaryOp(TokenType type,bool isReverse);

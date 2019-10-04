@@ -110,7 +110,7 @@ public:
 		TokenType type;
 		union
 		{
-			VarValueInfo const* var;
+			VariableInfo const* var;
 			int     idxCV;
 			int     idxInput;
 		};
@@ -238,6 +238,34 @@ public:
 	}
 
 	template< class ...Args >
+	int emitStoreValueWithLayout(ValueLayout layout, Args&& ...args)
+	{
+		switch( layout )
+		{
+		case ValueLayout::Double: Asm::fst(qword_ptr(args...)); break;
+		case ValueLayout::Float:  Asm::fst(dword_ptr(args...)); break;
+		case ValueLayout::Int32:  Asm::fist(dword_ptr(args...)); break;
+		default:
+			assert(0);
+		}
+		return 1;
+	}
+
+	template< class ...Args >
+	int emitStoreValuePopWithLayout(ValueLayout layout, Args&& ...args)
+	{
+		switch( layout )
+		{
+		case ValueLayout::Double: Asm::fstp(qword_ptr(args...)); break;
+		case ValueLayout::Float:  Asm::fstp(dword_ptr(args...)); break;
+		case ValueLayout::Int32:  Asm::fistp(dword_ptr(args...)); break;
+		default:
+			assert(0);
+		}
+		return 1;
+	}
+
+	template< class ...Args >
 	int emitLoadValueWithLayout(ValueLayout layout, Args&& ...args)
 	{
 		switch( layout )
@@ -315,7 +343,7 @@ public:
 		mPrevValue.idxStack = findStack(mPrevValue);
 	}
 
-	void codeVar(VarValueInfo const& varInfo)
+	void codeVar(VariableInfo const& varInfo)
 	{
 		checkStackPrevValPtr();
 
@@ -393,15 +421,7 @@ public:
 	{
 		if( opType == BOP_ASSIGN )
 		{
-			switch( mPrevValue.var->layout )
-			{
-			case ValueLayout::Double:
-				Asm::fst(VALUE_PTR(mPrevValue.var->ptr)); break;
-			default:
-				assert(0);
-			}
-			
-			++mNumInstruction;
+			mNumInstruction += emitStoreValueWithLayout(mPrevValue.var->layout, mPrevValue.var->ptr);
 		}
 		else
 		{
@@ -611,7 +631,7 @@ public:
 		info.idxStack = -1;
 		mStackValues.push_back(info);
 	}
-	void codeVar(VarValueInfo const& varInfo)
+	void codeVar(VariableInfo const& varInfo)
 	{
 		ValueInfo info;
 		info.type = VALUE_VARIABLE;
@@ -633,23 +653,15 @@ public:
 	{
 		if( type == BOP_ASSIGN )
 		{
-			ValueInfo Var = mStackValues.back();
+			ValueInfo valueVar = mStackValues.back();
 			mStackValues.pop_back();
 			ValueInfo& value = mStackValues.back();
 			if( value.type == TOKEN_NONE )
 			{
-				switch( Var.var->layout )
-				{
-				case ValueLayout::Double:Asm::fst(qword_ptr(Var.var->ptr)); break;
-				case ValueLayout::Float: Asm::fst(dword_ptr(Var.var->ptr)); break;
-				case ValueLayout::Int32: Asm::fist(dword_ptr(Var.var->ptr)); break;
-				default:
-					assert(0);
-				}
+				mNumInstruction += emitStoreValueWithLayout(valueVar.var->layout, valueVar.var->ptr);
 			}
 			else
 			{
-
 				uint8 indexReg = getRegIndex(value);
 				if( indexReg != -1 )
 				{
@@ -658,15 +670,7 @@ public:
 				else
 				{
 					mNumInstruction += emitLoadValue(value);
-					switch( Var.var->layout )
-					{
-					case ValueLayout::Double:Asm::fst(qword_ptr(Var.var->ptr)); break;
-					case ValueLayout::Float: Asm::fst(dword_ptr(Var.var->ptr)); break;
-					case ValueLayout::Int32: Asm::fist(dword_ptr(Var.var->ptr)); break;
-					default:
-						assert(0);
-					}
-					
+					mNumInstruction += emitStoreValueWithLayout(valueVar.var->layout, valueVar.var->ptr);	
 					//TODO: use move?
 				}
 			}

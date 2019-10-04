@@ -717,6 +717,7 @@ namespace Render
 #endif
 		TEXTURE_INFO(Texture::eRGBA8   ,GL_RGBA8   ,4,GL_UNSIGNED_BYTE)
 		TEXTURE_INFO(Texture::eRGB8    ,GL_RGB8    ,3,GL_UNSIGNED_BYTE)
+		TEXTURE_INFO(Texture::eBGRA8   ,GL_RGBA8   ,4,GL_UNSIGNED_BYTE)
 
 		TEXTURE_INFO(Texture::eR16     ,GL_R16     ,1,GL_UNSIGNED_SHORT)
 		TEXTURE_INFO(Texture::eR8      ,GL_R8      ,1,GL_UNSIGNED_BYTE)
@@ -1023,8 +1024,10 @@ namespace Render
 		{
 		case Texture::eRGB8: case Texture::eRGB32F:case Texture::eRGB16F: case Texture::eSRGB:
 			return GL_RGB;
-		case Texture::eRGBA8:case Texture::eRGBA32F:case Texture::eRGBA16F: case  Texture::eSRGBA:
+		case Texture::eRGBA8: case Texture::eRGBA32F:case Texture::eRGBA16F: case  Texture::eSRGBA:
 			return GL_RGBA;
+		case Texture::eBGRA8:
+			return GL_BGRA;
 		case Texture::eR32F: case Texture::eR16: case Texture::eR8:
 			return GL_RED;
 		case Texture::eR8I:case Texture::eR16I:case Texture::eR32I:
@@ -1059,7 +1062,7 @@ namespace Render
 		case Texture::eRGB8I:case Texture::eRGB16I:case Texture::eRGB32I:
 		case Texture::eRGB8U:case Texture::eRGB16U:case Texture::eRGB32U:
 			return GL_RGB;
-		case Texture::eRGBA8: case Texture::eSRGBA:
+		case Texture::eRGBA8: case Texture::eBGRA8: case Texture::eSRGBA:
 		case Texture::eRGBA32F:case Texture::eRGBA16F:
 		case Texture::eRGBA8I:case Texture::eRGBA16I:case Texture::eRGBA32I:
 		case Texture::eRGBA8U:case Texture::eRGBA16U:case Texture::eRGBA32U:
@@ -1077,7 +1080,7 @@ namespace Render
 	{
 		switch( format )
 		{
-		case Texture::eRGBA8:
+		case Texture::eRGBA8:case Texture::eBGRA8:
 		case Texture::eRGB8:
 		case Texture::eR32F:case Texture::eR16:case Texture::eR8:
 		case Texture::eRGB32F:

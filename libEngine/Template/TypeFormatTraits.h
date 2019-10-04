@@ -19,8 +19,8 @@ struct TTypeFormatTraits< TYPE >\
 };
 
 DEFINE_TYPE_FORMAT(bool, "%d")
-DEFINE_TYPE_FORMAT(float, "%f")
-DEFINE_TYPE_FORMAT(double, "%lf")
+DEFINE_TYPE_FORMAT(float, "%g")
+DEFINE_TYPE_FORMAT(double, "%lg")
 DEFINE_TYPE_FORMAT(unsigned, "%u")
 DEFINE_TYPE_FORMAT(long unsigned, "%lu")
 DEFINE_TYPE_FORMAT(long long unsigned, "%llu")

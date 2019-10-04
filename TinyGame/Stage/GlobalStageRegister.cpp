@@ -23,9 +23,7 @@ StageInfo gPreRegisterStageGroup[] =
 
 	STAGE_INFO("Bsp Test"    , Bsp2D::TestStage , EStageGroup::Test) ,
 	STAGE_INFO("A-Star Test" , AStar::TestStage , EStageGroup::Test) ,
-	STAGE_INFO("SAT Col Test" , G2D::TestStage , EStageGroup::Test) ,
 
-	STAGE_INFO("QHull Test"   , G2D::QHullTestStage , EStageGroup::Test) ,
 	STAGE_INFO("RB Tree Test"   , TreeTestStage , EStageGroup::Test)  ,
 	STAGE_INFO("Tween Test"  , TweenTestStage , EStageGroup::Test) ,
 

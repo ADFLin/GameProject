@@ -56,6 +56,10 @@ namespace Math
 		return a.dot(c) * b - b.dot(c) * a;
 	}
 
+	inline Vector2 Perp(Vector2 const& v)
+	{
+		return Vector2(-v.y, v.x);
+	}
 
 }
 

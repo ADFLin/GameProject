@@ -118,6 +118,11 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "TestRender", "TinyGame\Test
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "TestWorking", "TinyGame\TestWorking.vcxproj", "{08264290-5951-496C-87F1-17681A758D17}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tools", "Tools", "{9DBF1436-98DB-4EBE-ABF7-8666841E14EB}"
+	ProjectSection(SolutionItems) = preProject
+		Tools\GameProject.natvis = Tools\GameProject.natvis
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32

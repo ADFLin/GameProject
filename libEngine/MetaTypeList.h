@@ -49,7 +49,7 @@ namespace Meta
 		enum { Result = N };
 	};
 
-	namespace detial
+	namespace Detail
 	{
 		template< class TList , int N >
 		struct ListLenghImpl
@@ -90,10 +90,10 @@ namespace Meta
 	}
 
 	template< class TList >
-	struct ListLengh : detial::ListLenghImpl< TList , 0 >{};
+	struct ListLengh : Detail::ListLenghImpl< TList , 0 >{};
 
 	template< class TList , class T >
-	struct ListFind : detial::ListFindImpl< TList , T , 0 >{};
+	struct ListFind : Detail::ListFindImpl< TList , T , 0 >{};
 
 
 

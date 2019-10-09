@@ -11,7 +11,6 @@
 #include "CppVersion.h"
 
 #include "LogSystem.h"
-#include "TVector2.h"
 
 #include "RefCount.h"
 

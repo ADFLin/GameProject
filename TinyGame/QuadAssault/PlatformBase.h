@@ -4,7 +4,7 @@
 #include "Core/IntegerType.h"
 #include "SystemMessage.h"
 
-#include "TVector2.h"
+#include "Math/TVector2.h"
 typedef TVector2< int > Vec2i;
 
 struct  GLConfig

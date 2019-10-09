@@ -1,7 +1,7 @@
 #ifndef Rect_h__028D948C_C13C_4C3B_BADB_C6A4B8405647
 #define Rect_h__028D948C_C13C_4C3B_BADB_C6A4B8405647
 
-#include "TVector2.h"
+#include "Math/TVector2.h"
 
 template< class T >
 struct TRect

@@ -1,7 +1,7 @@
 #ifndef BubbleLevel_h__
 #define BubbleLevel_h__
 
-#include "TVector2.h"
+#include "Math/TVector2.h"
 #include "Math/Vector2.h"
 #include "Core/IntegerType.h"
 

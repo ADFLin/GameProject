@@ -25,6 +25,25 @@ void ChildProcess::cleanup()
 #undef SAFE_RELEASE_HANDLE
 }
 
+void ChildProcess::terminate()
+{
+	if( mProcess )
+	{
+		TerminateProcess(mProcess, -1);
+	}
+	cleanup();
+}
+
+bool ChildProcess::resume()
+{
+	return !!FPlatformProcess::ResumeProcess(mProcess);
+}
+
+bool ChildProcess::suspend()
+{
+	return !!FPlatformProcess::SuspendProcess(mProcess);
+}
+
 bool ChildProcess::create(char const* path, char const* command /*= nullptr*/)
 {
 	SECURITY_ATTRIBUTES saAttr;
@@ -90,6 +109,43 @@ bool ChildProcess::create(char const* path, char const* command /*= nullptr*/)
 	CloseHandle(procInfo.hThread);
 	mProcess = procInfo.hProcess;
 
+	return true;
+}
+
+bool ChildProcess::writeInputStream(void const* buffer, int maxSize, int& outWriteSize)
+{
+	DWORD numWrite = 0;
+	if( ::WriteFile(mExecuteInWrite, buffer, maxSize, &numWrite, nullptr) )
+	{
+		outWriteSize = numWrite;
+		return true;
+	}
+	return false;
+}
+
+bool ChildProcess::readOutputStream(void* buffer, int maxSize, int& outReadSize)
+{
+	DWORD numRead = 0;
+	if( ::ReadFile(mExecuteOutRead, buffer, maxSize, &numRead, nullptr) )
+	{
+		outReadSize = numRead;
+		return true;
+	}
+	return false;
+}
+
+void ChildProcess::waitCompletion()
+{
+	::WaitForSingleObject(mProcess, INFINITE);
+}
+
+bool ChildProcess::getExitCode(int32& outCode)
+{
+	DWORD exitCode = 0;
+	if( !GetExitCodeProcess(mProcess, &exitCode) )
+		return false;
+
+	outCode = exitCode;
 	return true;
 }
 

@@ -18,18 +18,22 @@
 
 #include "ImageProcessing.h"
 #include "ProfileSystem.h"
-#define MATCH_RESULT_PATH "Go/MatchResult.data"
-
-
-REGISTER_STAGE("LeelaZero Learning", Go::LeelaZeroGoStage, EStageGroup::Test);
-
-#define DERAULT_LEELA_WEIGHT_NAME "6615567eaa3adc8ea695682fcfbd7eaa3bb557d3720d2b61610b66006104050e"
 
 #include <Dbghelp.h>
 #include "Core/ScopeExit.h"
 #include "RenderUtility.h"
 #include "Math/PrimitiveTest.h"
 #include "Math/GeometryPrimitive.h"
+
+#include "Hardware/GPUDeviceQuery.h"
+
+#define MATCH_RESULT_PATH "Go/MatchResult.data"
+
+REGISTER_STAGE("LeelaZero Learning", Go::LeelaZeroGoStage, EStageGroup::Test);
+
+#define DERAULT_LEELA_WEIGHT_NAME "6615567eaa3adc8ea695682fcfbd7eaa3bb557d3720d2b61610b66006104050e"
+
+
 #pragma comment (lib,"Dbghelp.lib")
 
 //#pragma optimize( "", off )
@@ -609,6 +613,34 @@ namespace Go
 	};
 	ZenithGo7Hook GHook;
 
+
+	TConsoleVariable< int > TestValue(0, "TestValue");
+
+	template< class TGraphics2D >
+	static void DrawRect(TGraphics2D& g, Vector2 const& pos, Vector2 const& size, Vector2 const& poivt)
+	{
+#if 0
+		Vector2 sizeAbs = size;
+		Vector2 renderPos = pos;
+		if( size.x < 0 )
+		{
+			sizeAbs.x = -size.x;
+			renderPos.x -= sizeAbs.x;
+		}
+		if( size.y < 0 )
+		{
+			sizeAbs.y = -size.y;
+			renderPos.y -= sizeAbs.y;
+		}
+		renderPos -= sizeAbs * poivt;
+		g.drawRect(renderPos, sizeAbs);
+#else
+		Vector2 renderPos = pos - Abs(size) * poivt;
+		g.drawRect(renderPos, size);
+#endif
+
+	}
+
 	bool LeelaZeroGoStage::onInit()
 	{
 		GHook.initialize();
@@ -621,6 +653,12 @@ namespace Go
 		if( !::Global::GetDrawEngine().startOpenGL(8) )
 			return false;
 
+
+		mDeviceQuery = GPUDeviceQuery::Create();
+		if( mDeviceQuery == nullptr )
+		{
+			LogWarning(0, "GPU device query can't create");
+		}
 
 		//ILocalization::Get().changeLanguage(LAN_ENGLISH);
 
@@ -719,6 +757,13 @@ namespace Go
 					return false;
 				});
 				WidgetPropery::Bind(frame->addCheckBox(UI_ANY, "Show Analysis"), bShowAnalysis);
+				frame->addButton("Restart Leela", [this](int eventId, GWidget* widget)->bool
+				{
+					cleanupModeData();
+					buildAnalysisMode(false);
+					return false;
+				});
+				mModeWidget = widget;
 				::Global::GUI().addWidget(frame);
 
 			}
@@ -1026,9 +1071,6 @@ namespace Go
 	}
 
 
-	TConsoleVariable< int > TestValue(0, "TestValue");
-
-
 	void LeelaZeroGoStage::onRender(float dFrame)
 	{
 		using namespace Render;
@@ -1088,6 +1130,35 @@ namespace Go
 			g.drawTexture(*GHook.mDebugTextures[debugId], Vector2(100, 100), Vector2(600, 600));
 		}
 		
+		if( mDeviceQuery )
+		{
+			GPUStatus status;
+			if ( mDeviceQuery->getGPUStatus(0, status) )
+			{
+				RenderUtility::SetFont(g, FONT_S8);
+
+				float const width = 15;
+
+				Vector2 renderPos = ::Global::GetDrawEngine().getScreenSize() - Vector2(5, 5);
+				Vector2 renderSize = Vector2(width, 100 * float(status.usage) / 100 );
+				RenderUtility::SetPen(g, EColor::Red);
+				RenderUtility::SetBrush(g, EColor::Red);
+				g.drawRect(renderPos - renderSize, renderSize);
+
+				Vector2 textSize = Vector2(width, 20);
+				g.setTextColor(Color3ub(0, 255, 255));
+				g.drawText(renderPos - textSize, textSize, FStringConv::From(status.usage));
+
+				renderPos.x -= width + 5;
+				renderSize = Vector2(width, 100 * float(status.temperature) / 100);
+				RenderUtility::SetPen(g, EColor::Yellow);
+				RenderUtility::SetBrush(g, EColor::Yellow);
+				g.drawRect(renderPos - renderSize, renderSize);
+
+				g.setTextColor(Color3ub(0, 0, 255));
+				g.drawText(renderPos - textSize, textSize, FStringConv::From(status.temperature));
+			}
+		}
 
 		FixString< 512 > str;
 		g.setTextColor(Color3ub(255, 0, 0));
@@ -1459,15 +1530,15 @@ namespace Go
 	}
 
 
-	template< class Fun >
-	void LeelaZeroGoStage::executeAnalysisAICommand(Fun&& fun, bool bKeepPonder /*= true*/)
+	template< class TFunc >
+	void LeelaZeroGoStage::executeAnalysisAICommand(TFunc&& func, bool bKeepPonder /*= true*/)
 	{
 		assert(bAnalysisEnabled);
 
 		if( bAnalysisPondering )
 			mLeelaAIRun.stopPonder();
 
-		fun();
+		func();
 
 		analysisResult.clear();
 		if( bAnalysisPondering && bKeepPonder )
@@ -1622,16 +1693,19 @@ namespace Go
 		return true;
 	}
 
-	bool LeelaZeroGoStage::buildAnalysisMode()
+	bool LeelaZeroGoStage::buildAnalysisMode( bool bRestartGame )
 	{
-		if( !tryEnableAnalysis(false) )
+		if( !tryEnableAnalysis( !bRestartGame ) )
 			return false;
 
 		mGameMode = GameMode::Analysis;
-		GameSetting setting;
-		setting.komi = 7.5;
-		mGame.setSetting(setting);
-		resetGameParam();
+		if( bRestartGame )
+		{
+			GameSetting setting;
+			setting.komi = 7.5;
+			mGame.setSetting(setting);
+			resetGameParam();
+		}
 		return true;
 	}
 
@@ -1779,6 +1853,8 @@ namespace Go
 	{
 		mGameMode = GameMode::Match;
 
+		mMatchData.startTime = SystemPlatform::GetLocalTime();
+
 		unknownWinerCount = 0;
 		bool bSwap;
 		auto matchResultData = mMatchResultMap.getMatchResult(mMatchData.players, setting , bSwap );
@@ -1856,6 +1932,12 @@ namespace Go
 			else
 				mGamePlayWidget->show(false);
 		}
+
+		if( mModeWidget )
+		{
+			mModeWidget->destroy();
+			mModeWidget = nullptr;
+		}
 		bPauseGame = false;
 
 		switch( mGameMode )
@@ -1931,9 +2013,6 @@ namespace Go
 
 				if( mGame.getInstance().getLastPassCount() >= 2 )
 				{				
-					if( mMatchData.bSaveSGF )
-						saveMatchGameSGF();
-
 					if( mMatchData.players[0].type == ControllerType::eLeelaZero ||
 					    mMatchData.players[1].type == ControllerType::eLeelaZero )
 					{
@@ -1943,7 +2022,7 @@ namespace Go
 					else if( mMatchData.bAutoRun )
 					{
 						unknownWinerCount += 1;
-						postMatchGameEnd();
+						postMatchGameEnd(nullptr);
 					}
 				}
 				else
@@ -1967,7 +2046,6 @@ namespace Go
 				if( mMatchData.bAutoRun )
 				{
 					mMatchData.getPlayer(com.winner).winCount += 1;
-
 				}
 				else
 				{
@@ -1978,16 +2056,15 @@ namespace Go
 					::Global::GUI().showMessageBox(UI_ANY, str, GMB_OK);
 				}
 
-				postMatchGameEnd();
+				FixString<128> matchResult;
+				matchResult.format("%s+%g", com.winner == StoneColor::eBlack ? "B" : "W", com.winNum);
+				postMatchGameEnd(matchResult);
 
 			}
 			break;
 		case GameCommand::eResign:
 			{
 				LogMsg("GameEnd");
-
-				if( mMatchData.bSaveSGF )
-					saveMatchGameSGF();
 
 				if( mMatchData.bAutoRun )
 				{
@@ -2008,8 +2085,9 @@ namespace Go
 					str.format("%s Resigned", name);
 					::Global::GUI().showMessageBox(UI_ANY, str, GMB_OK);
 				}
-
-				postMatchGameEnd();
+				FixString<128> matchResult;
+				matchResult.format("%s+R", StoneColor::Opposite(color) == StoneColor::eBlack ? "B" : "W");
+				postMatchGameEnd(matchResult);
 			}
 			break;
 		case GameCommand::eUndo:
@@ -2123,7 +2201,7 @@ namespace Go
 	void LeelaZeroGoStage::processLearningCommand()
 	{
 		assert(mGameMode == GameMode::Learning);
-		auto ProcFun = [&](GameCommand& com)
+		auto ProcFunc = [&](GameCommand& com)
 		{
 			if( mbRestartLearning )
 				return;
@@ -2220,7 +2298,7 @@ namespace Go
 			}
 		};
 
-		mLeelaAIRun.outputThread->procOutputCommand(ProcFun);
+		mLeelaAIRun.outputThread->procOutputCommand(ProcFunc);
 	}
 
 
@@ -2321,9 +2399,9 @@ namespace Go
 			mMatchResultMap.save(MATCH_RESULT_PATH);
 	}
 
-	bool LeelaZeroGoStage::saveMatchGameSGF()
+	bool LeelaZeroGoStage::saveMatchGameSGF(char const* matchResult)
 	{
-		DateTime date = SystemPlatform::GetLocalTime();
+		DateTime& date = mMatchData.startTime;
 
 		FixString< 512 > path;
 		path.format("Go/Save/%04d-%02d-%02d-%02d-%02d-%02d.sgf", date.getYear(), date.getMonth(), date.getDay(), date.getHour(), date.getMinute(), date.getSecond());
@@ -2334,6 +2412,8 @@ namespace Go
 		description.blackName = mMatchData.getPlayer(StoneColor::eBlack).getName();
 		description.whiteName = mMatchData.getPlayer(StoneColor::eWhite).getName();
 		description.date = dateString.c_str();
+		if( matchResult )
+			description.mathResult = matchResult;
 
 		return mGame.getInstance().saveSGF(path, &description);
 	}
@@ -2369,9 +2449,14 @@ namespace Go
 		}
 	}
 
-	void LeelaZeroGoStage::postMatchGameEnd()
+	void LeelaZeroGoStage::postMatchGameEnd(char const* matchResult)
 	{
 		LogMsg("GameEnd");
+		if( mMatchData.bSaveSGF )
+		{
+			saveMatchGameSGF(matchResult);
+		}
+
 		recordMatchResult(true);
 
 		if( mMatchData.bAutoRun )

@@ -10,9 +10,9 @@
 #include "Math/Matrix3.h"
 #include "Math/Quaternion.h"
 #include "Math/Transform.h"
-#include "TVector2.h"
-#include "TVector3.h"
-#include "TVector4.h"
+#include "Math/TVector2.h"
+#include "Math/TVector3.h"
+#include "Math/TVector4.h"
 #include "ReflectionCollect.h"
 
 #include "Core/Color.h"

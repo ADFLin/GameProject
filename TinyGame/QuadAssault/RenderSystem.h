@@ -4,7 +4,7 @@
 #include "Base.h"
 #include "Platform.h"
 
-#include "TVector2.h"
+#include "Math/TVector2.h"
 
 class TextureManager;
 

@@ -1,7 +1,7 @@
 #include "Stage/TestStageHeader.h"
 
-#include "TVector2.h"
-#include "Geometry2d.h"
+#include "Math/TVector2.h"
+#include "Math/GeometryAlgo2D.h"
 #include "Collision2D/SATSolver.h"
 
 #include "Math/Math2D.h"

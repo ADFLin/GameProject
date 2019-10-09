@@ -86,6 +86,10 @@ public:
 	void  drawPolygon( Vec2i pos[] , int num );
 	void  drawRoundRect( Vector2 const& pos , Vector2 const& rectSize , Vector2 const& circleSize );
 
+	void  fillGradientRect(Vector2 const& posLT, Color3ub const& colorLT,
+						   Vector2 const& posRB, Color3ub const& colorRB, bool bHGrad);
+
+
 	void  drawTexture(GLTexture2D& texture, Vector2 const& pos, Color3ub const& color = Color3ub(255, 255, 255));
 	void  drawTexture(GLTexture2D& texture, Vector2 const& pos, Vector2 const& size , Color3ub const& color = Color3ub(255,255,255) );
 	void  drawTexture(GLTexture2D& texture, Vector2 const& pos, Vector2 const& texPos, Vector2 const& texSize, Color3ub const& color);

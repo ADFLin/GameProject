@@ -11,7 +11,7 @@
 #include "Asset.h"
 
 #include "MarcoCommon.h"
-#include "TVector3.h"
+#include "Math/TVector3.h"
 #include "FastDelegate/FastDelegate.h"
 #include "RandomUtility.h"
 

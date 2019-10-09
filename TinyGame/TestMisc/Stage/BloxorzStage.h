@@ -3,8 +3,8 @@
 
 #include "StageBase.h"
 
-#include "TVector3.h"
-#include "TVector2.h"
+#include "Math/TVector3.h"
+#include "Math/TVector2.h"
 #include "Core/IntegerType.h"
 
 #include "WinGLPlatform.h"

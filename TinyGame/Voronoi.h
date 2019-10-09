@@ -1,6 +1,7 @@
 #ifndef Voronoi_h__
 #define Voronoi_h__
 
+#include "Math/TVector2.h"
 
 #include <queue>
 #include <set>
@@ -8,7 +9,6 @@
 #include <list>
 #include <cassert>
 
-#include "TVector2.h"
 
 namespace Voronoi
 {

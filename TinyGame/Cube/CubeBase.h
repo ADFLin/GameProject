@@ -4,7 +4,7 @@
 #include "Math/Vector3.h"
 #include "Math/Quaternion.h"
 
-#include "TVector3.h"
+#include "Math/TVector3.h"
 
 #include <cmath>
 #include <cassert>

@@ -1,7 +1,7 @@
 #ifndef SysMsg_h__
 #define SysMsg_h__
 
-#include "TVector2.h"
+#include "Math/TVector2.h"
 typedef TVector2< int > Vec2i;
 
 #ifndef BIT

@@ -311,7 +311,6 @@ copy $(TargetDir)EngineShare.dll  $(ProjectDir)out\</Command>
     <ClInclude Include="Go\MonitorBot.h" />
     <ClInclude Include="NesEmulator.h" />
     <ClInclude Include="RandomUtility.h" />
-    <ClInclude Include="Geometry2d.h" />
     <ClInclude Include="Go\GoCore.h" />
     <ClInclude Include="Go\GoStage.h" />
     <ClInclude Include="Go\zen.h" />

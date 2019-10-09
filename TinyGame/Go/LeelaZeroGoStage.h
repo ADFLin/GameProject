@@ -24,6 +24,8 @@ using namespace Render;
 
 #define DETECT_LEELA_PROCESS 0
 
+class GPUDeviceQuery;
+
 namespace Go
 {
 
@@ -298,8 +300,8 @@ namespace Go
 			return false;
 		}
 
-		template< class Fun >
-		void executeAnalysisAICommand(Fun&& fun, bool bKeepPonder = true);
+		template< class TFunc >
+		void executeAnalysisAICommand(TFunc&& fun, bool bKeepPonder = true);
 
 		bool bAnalysisEnabled = false;
 		bool bAnalysisPondering;
@@ -315,6 +317,8 @@ namespace Go
 		int  unknownWinerCount = 0;
 		MatchGameData mMatchData;
 		FixString<32> mLastGameResult;
+
+		GPUDeviceQuery* mDeviceQuery = nullptr;
 
 		void drawWinRateDiagram( Vec2i const& renderPos ,  Vec2i const& renderSize );
 
@@ -455,6 +459,7 @@ namespace Go
 
 		GWidget* mGamePlayWidget = nullptr;
 		GWidget* mWinRateWidget = nullptr;
+		GWidget* mModeWidget = nullptr;
 		bool     mbRestartLearning = false;
 
 		MatchResultMap mMatchResultMap;
@@ -471,7 +476,7 @@ namespace Go
 			return mGame;
 		}
 
-		bool saveMatchGameSGF();
+		bool saveMatchGameSGF(char const* matchResult = nullptr);
 	
 
 		virtual bool onInit();
@@ -505,10 +510,10 @@ namespace Go
 		void resetGameParam();
 		void resetTurnParam();
 		void restartAutoMatch();
-		void postMatchGameEnd();
+		void postMatchGameEnd(char const* matchResult);
 
 		bool buildLearningMode();
-		bool buildAnalysisMode();
+		bool buildAnalysisMode(bool bRestartGame = true);
 		bool buildPlayMode();
 		bool buildLeelaMatchMode();
 		bool buildLeelaZenMatchMode();

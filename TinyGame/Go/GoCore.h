@@ -299,6 +299,7 @@ namespace Go
 		std::string blackName;
 		std::string whiteName;
 		std::string date;
+		std::string mathResult;
 	};
 
 	class IGameCopier

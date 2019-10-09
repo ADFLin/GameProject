@@ -57,62 +57,15 @@ public:
 
 	void cleanup();
 
-	void terminate()
-	{
-		if( mProcess )
-		{
-			TerminateProcess(mProcess, -1);
-		}
-		cleanup();
-	}
-	bool resume()
-	{
-		return !!FPlatformProcess::ResumeProcess(mProcess);
-	}
+	void terminate();
+	bool resume();
+	void waitCompletion();
 
-	bool suspend()
-	{
-		return !!FPlatformProcess::SuspendProcess(mProcess);
-	}
-
+	bool suspend();
 	bool create(char const* path, char const* command = nullptr);
-
-	bool writeInputStream(void const* buffer, int maxSize, int& outWriteSize)
-	{
-		DWORD numWrite = 0;
-		if( ::WriteFile(mExecuteInWrite, buffer, maxSize, &numWrite, nullptr) )
-		{
-			outWriteSize = numWrite;
-			return true;
-		}
-		return false;
-	}
-
-	bool readOutputStream(void* buffer, int maxSize, int& outReadSize)
-	{
-		DWORD numRead = 0;
-		if( ::ReadFile(mExecuteOutRead, buffer, maxSize, &numRead, nullptr) )
-		{
-			outReadSize = numRead;
-			return true;
-		}
-		return false;
-	}
-
-	void waitToComplete()
-	{
-		::WaitForSingleObject(mProcess, INFINITE);
-	}
-
-	bool getExitCode(int32& outCode)
-	{
-		DWORD exitCode = 0;
-		if( !GetExitCodeProcess(mProcess, &exitCode) )
-			return false;
-
-		outCode = exitCode;
-		return true;
-	}
+	bool writeInputStream(void const* buffer, int maxSize, int& outWriteSize);
+	bool readOutputStream(void* buffer, int maxSize, int& outReadSize);
+	bool getExitCode(int32& outCode);
 };
 
 #endif // WindowsProcess_H_3E773242_ECA6_4021_A191_E5E7F911B4CA

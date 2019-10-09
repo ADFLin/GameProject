@@ -4,7 +4,7 @@
 #include "TetrisLevelManager.h"
 #include "TetrisGameInfo.h"
 
-#include "TVector2.h"
+#include "Math/TVector2.h"
 typedef TVector2< int > Vec2i;
 
 class  CLPlayerManager;

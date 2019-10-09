@@ -705,12 +705,6 @@
     <ClInclude Include="CoreShare.h">
       <Filter>Config</Filter>
     </ClInclude>
-    <ClInclude Include="TVector3.h">
-      <Filter>Math</Filter>
-    </ClInclude>
-    <ClInclude Include="TVector2.h">
-      <Filter>Math</Filter>
-    </ClInclude>
     <ClInclude Include="StringParse.h">
       <Filter>Utility</Filter>
     </ClInclude>
@@ -1062,11 +1056,20 @@
     <ClInclude Include="RHI\SimpleRenderState.h">
       <Filter>RHI</Filter>
     </ClInclude>
-    <ClInclude Include="TVector4.h">
-      <Filter>Math</Filter>
-    </ClInclude>
     <ClInclude Include="Core\CRTPCheck.h">
       <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Math\GeometryAlgo2D.h">
+      <Filter>Math</Filter>
+    </ClInclude>
+    <ClInclude Include="Math\TVector2.h">
+      <Filter>Math</Filter>
+    </ClInclude>
+    <ClInclude Include="Math\TVector3.h">
+      <Filter>Math</Filter>
+    </ClInclude>
+    <ClInclude Include="Math\TVector4.h">
+      <Filter>Math</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

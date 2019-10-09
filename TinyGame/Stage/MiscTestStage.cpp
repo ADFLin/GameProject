@@ -374,8 +374,8 @@ struct FooFun
 static CoroutineType::pull_type gCor;
 static FunctionJumper gJumper;
 
-template< class Fun >
-void foo( Fun fun )
+template< class TFunc >
+void foo( TFunc fun )
 {
 	static int i = 2;
 	boost::unwrap_ref(fun)(i);

@@ -71,13 +71,13 @@ namespace Go
 		{
 			mOutputCommands.push_back(com);
 		}
-		template< class T >
-		void procOutputCommand(T fun)
+		template< class TFunc >
+		void procOutputCommand(TFunc&& func)
 		{
 			bRequestRestart = false;
 			for( GameCommand& com : mOutputCommands )
 			{
-				fun(com);
+				func(com);
 				if ( bRequestRestart )
 					break;
 			}

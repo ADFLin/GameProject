@@ -5,7 +5,7 @@
 
 #include "Core/IntegerType.h"
 
-#include "TVector2.h"
+#include "Math/TVector2.h"
 #include "TCycleNumber.h"
 #ifndef BIT
 #define BIT( n ) ( 1 << ( n ) )

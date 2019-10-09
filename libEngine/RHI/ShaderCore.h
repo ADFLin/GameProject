@@ -177,11 +177,8 @@ namespace Render
 			param = iter->second;
 			return true;
 		}
-#if _DEBUG
-		std::unordered_map< std::string, ShaderParameter > mMap;
-#else
+
 		std::unordered_map< HashString , ShaderParameter > mMap;
-#endif
 	};
 
 

@@ -358,6 +358,11 @@ void GLGraphics2D::drawRoundRect(Vector2 const& pos , Vector2 const& rectSize , 
 	DRAW_IMPL( emitRoundRectVertex( pos , rectSize , circleSize / 2 ) );
 }
 
+void GLGraphics2D::fillGradientRect(Vector2 const& posLT, Color3ub const& colorLT, Vector2 const& posRB, Color3ub const& colorRB, bool bHGrad)
+{
+
+}
+
 void GLGraphics2D::setTextColor(Color3ub const& color)
 {
 	mColorFont = color;

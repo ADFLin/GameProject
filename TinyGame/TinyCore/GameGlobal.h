@@ -3,7 +3,7 @@
 
 #include "GameShare.h"
 
-#include "TVector2.h"
+#include "Math/TVector2.h"
 #include "Math/Vector2.h"
 #include "FixString.h"
 #include "Core/IntegerType.h"

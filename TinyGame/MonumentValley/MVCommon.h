@@ -1,8 +1,8 @@
 #ifndef MVCommon_h__
 #define MVCommon_h__
 
-#include "TVector3.h"
-#include "TVector2.h"
+#include "Math/TVector3.h"
+#include "Math/TVector2.h"
 
 #include "Math/Quaternion.h"
 #include "Math/Matrix4.h"

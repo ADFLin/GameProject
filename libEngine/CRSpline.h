@@ -53,7 +53,7 @@ protected:
 };
 
 
-#include "TVector2.h"
+#include "Math/TVector2.h"
 
 class CRSpline2D : public CRSplineT< TVector2< float > >
 {

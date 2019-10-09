@@ -1,7 +1,7 @@
 #ifndef QixLevel_h__
 #define QixLevel_h__
 
-#include "TVector2.h"
+#include "Math/TVector2.h"
 
 namespace Qix
 {

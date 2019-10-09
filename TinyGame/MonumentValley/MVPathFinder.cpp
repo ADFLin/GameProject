@@ -6,9 +6,7 @@ namespace MV
 {
 	struct AStarNode : AStar::NodeBaseT< AStarNode , FindState , int >
 	{
-
-
-
+		AStarNode* child;
 	};
 
 	class AStarFinder : public AStar::AStarT< AStarFinder , AStarNode >
@@ -99,7 +97,8 @@ namespace MV
 			}
 		}
 
-		FindState mGoal;
+		SreachResult mSreachResult;
+		FindState    mGoal;
 	};
 
 	AStarFinder gFinderImpl;
@@ -107,8 +106,9 @@ namespace MV
 	bool PathFinder::find(FindState const& from , FindState const& to )
 	{
 		gFinderImpl.mGoal = to;
-		if ( !gFinderImpl.sreach( from ) )
+		if ( !gFinderImpl.sreach( from , gFinderImpl.mSreachResult) )
 			return false;
+
 		return true;
 	}
 
@@ -183,11 +183,21 @@ namespace MV
 		pathNodes.push_back( pathNode );
 	}
 
-	void PathFinder::contructPath( Path& path , PointVec& points , World const& world )
+	void PathFinder::contructPath(Path& path , PointVec& points , World const& world )
 	{
 		path.mNodes.clear();
 
-		AStarFinder::NodeType* aNode = gFinderImpl.getPath();
+		gFinderImpl.constructPath(gFinderImpl.mSreachResult.globalNode,
+			[](AStarFinder::NodeType* node )
+			{
+				if( node->parent )
+				{
+					node->parent->child = node;
+				}
+			}
+		);
+
+		AStarFinder::NodeType* aNode = gFinderImpl.mSreachResult.startNode;
 		AStarFinder::NodeType* aNodeNext; 
 
 		Block*   prevBlock = NULL;

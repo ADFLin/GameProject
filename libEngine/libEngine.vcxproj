@@ -373,9 +373,13 @@
     <ClInclude Include="GameFramework\EntityManager.h" />
     <ClInclude Include="Hardware\GPUDeviceQuery.h" />
     <ClInclude Include="Json.h" />
+    <ClInclude Include="Math\GeometryAlgo2D.h" />
     <ClInclude Include="Math\GeometryPrimitive.h" />
     <ClInclude Include="Math\PrimitiveTest.h" />
     <ClInclude Include="Math\SIMD.h" />
+    <ClInclude Include="Math\TVector2.h" />
+    <ClInclude Include="Math\TVector3.h" />
+    <ClInclude Include="Math\TVector4.h" />
     <ClInclude Include="Misc\Guid.h" />
     <ClInclude Include="Misc\ImageMergeHelper.h" />
     <ClInclude Include="ObjectHandle.h" />
@@ -490,7 +494,6 @@
     <ClInclude Include="Template\ArrayView.h" />
     <ClInclude Include="Template\StringView.h" />
     <ClInclude Include="Template\TypeFormatTraits.h" />
-    <ClInclude Include="TVector4.h" />
     <ClInclude Include="WindowsMessageHander.h" />
     <ClInclude Include="TaskBase.h" />
     <ClInclude Include="TCycleNumber.h" />
@@ -508,8 +511,6 @@
     <ClInclude Include="WidgetCommon.hpp" />
     <ClInclude Include="WidgetCore.h" />
     <ClInclude Include="WidgetCore.hpp" />
-    <ClInclude Include="TVector2.h" />
-    <ClInclude Include="TVector3.h" />
     <ClInclude Include="Tween.h" />
     <ClInclude Include="TypeCast.h" />
     <ClInclude Include="UnitTest.h" />

@@ -5,9 +5,11 @@
 
 #include "Core/FNV1a.h"
 #include "Misc/Guid.h"
+#include "SystemPlatform.h"
 
 #include <unordered_map>
 #include <algorithm>
+
 
 namespace Go
 {
@@ -407,7 +409,7 @@ namespace Go
 		bool        bAutoRun = false;
 		bool        bSaveSGF = false;
 		uint32      historyWinCounts[2];
-
+		DateTime    startTime;
 
 		MatchPlayer& getPlayer(int color)
 		{

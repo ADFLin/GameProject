@@ -4,7 +4,6 @@
 #include "TTLevel.h"
 
 #include "Tween.h"
-#include "TVector2.h"
 
 #include "DataStructure/Grid2D.h"
 #include "DataStructure/TTable.h"

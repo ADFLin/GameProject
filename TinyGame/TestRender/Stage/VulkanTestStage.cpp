@@ -1083,7 +1083,7 @@ namespace RenderVulkan
 			{
 				return false;
 			}
-			process.waitToComplete();
+			process.waitCompletion();
 			int32 exitCode;
 			if( !process.getExitCode(exitCode) || exitCode != 0 )
 			{

@@ -17,12 +17,6 @@
 #include "AStarDefultPolicy.h"
 
 
-enum
-{
-	ASTAR_SREACHING ,
-	ASTAR_SREACH_SUCCESS ,
-	ASTAR_SREACH_FAIL ,
-};
 
 #ifndef BIT
 #define BIT( n ) ( 1 << ( n ) )
@@ -30,6 +24,14 @@ enum
 
 namespace AStar
 {
+	enum ESrachStatus
+	{
+		eSREACHING,
+		eSREACH_SUCCESS,
+		eSREACH_FAIL,
+	};
+
+
 	template < class T >
 	class AllocatePolicy
 	{
@@ -101,6 +103,7 @@ namespace AStar
 	};
 
 
+
 	template< class T , class NodeTraits >
 	class AStarCoreT
 	{
@@ -140,32 +143,30 @@ namespace AStar
 		void      processNeighborNode( NodeType& node ){  NEVER_REACH("Need impl processNeighborNode"); }
 
 
-		//===optional===//
-		void      prevProcNeighborNode( NodeType& node ){}
-		void      postProcNeighborNode( NodeType& node ){}
-		void      onFindGoal( NodeType& node ){}
-
 		typename MapType::iterator findNode( MapType& map , StateType& state )
 		{  
 			ASTAR_PROFILE( "findNode" );
-			return std::find_if( map.begin() , map.end() , FindNodeFun( *this, state ) ); 
+			return std::find_if( map.begin() , map.end() , 
+				[this, &state](NodeType* node)
+				{
+					return _this()->isEqual(node->state, state);
+				}
+			); 
 		}
 
-		template< class Fun >
-		void cleanupNode( MapType& map , Fun funClear)
+		template< class TFunc >
+		void cleanupNode( MapType& map , TFunc&& funcCleaup )
 		{
 			ASTAR_PROFILE( "clearNode" );
 			using std::for_each;
-			for_each( map.begin() , map.end() , funClear );
+			for_each( map.begin() , map.end() , std::forward<TFunc>(funcCleaup) );
 			map.clear();
 		}
 		//////////////////////////////////////////////////////////////////
 	public:
 		AStarT()
 		{
-			mPath = NULL;
-			mCache = NULL;
-			mNumPathNode = 0;
+			mCache = nullptr;
 		}
 
 		~AStarT(){  cleanup( false );  }
@@ -173,38 +174,69 @@ namespace AStar
 		QueueType&  getQueue(){ return mQueue; }
 		MapType&    getMap(){ return mMap; }
 
-		void startSreach( StateType const& start );
-		int  sreachStep();
 
-		bool sreach( StateType const& start )
+		struct SreachResult
 		{
-			startSreach( start );
+			NodeType*   startNode;
+			NodeType*   globalNode;
+		};
+
+
+		void startSreach( StateType const& start , SreachResult& sreachResult);
+		ESrachStatus  sreachStep(SreachResult& sreachResult);
+
+		bool sreach( StateType const& start, SreachResult& sreachResult)
+		{
+			startSreach( start , sreachResult);
 
 			int result;
 			do 
 			{
-				result = sreachStep();
+				result = sreachStep(sreachResult);
 			}
-			while ( result == ASTAR_SREACHING );
+			while ( result == eSREACHING );
 
-			return result == ASTAR_SREACH_SUCCESS;
+			return result == eSREACH_SUCCESS;
 		}
 
-		NodeType* getPath(){ return mPath; }
-		int       getPathNodeNum() const { return mNumPathNode; }
-
+		template< class TFunc >
+		int constructPath(NodeType* globalNode, TFunc&& func)
+		{
+			NodeType* node = globalNode;
+			int nodeCount = 0;
+			do
+			{
+				node->flag |= NodeType::ePATH;
+				NodeType* parent = node->parent;
+				func(node);
+				node = parent;
+				++nodeCount;
+			}
+			while( node != nullptr );
+			return nodeCount;
+		}
 	protected:
 
-		void cleanup( bool beCache )
+		void cleanup( bool bAddToCache )
 		{
 			mQueue.clear();
-			if ( beCache )
+			if ( bAddToCache )
 			{
-				_this()->cleanupNode( getMap() , CacheFun(*this) );
+				_this()->cleanupNode(getMap(), 
+					[this](NodeType* node)
+					{
+						addToCache(node);
+					}
+				);
 			}
 			else
 			{
-				_this()->cleanupNode( getMap() , FreeFun(*this) );
+				_this()->cleanupNode( getMap() , 
+					[this](NodeType* node)
+					{
+						deleteNode(node);
+					}
+				);
 				cleanupCache();
 			}
 		}
@@ -214,72 +246,32 @@ namespace AStar
 		}
 		bool addSreachNode( StateType& nextState , NodeType& node , ScoreType dist );
 
-		struct FindNodeFun
-		{
-			typedef StateType StateType; 
-			FindNodeFun( AStarT& a , StateType& s ):aStar ( a ),state( s ){}
-			bool operator()( NodeType* node ){  return aStar._this()->isEqual( node->state , state );  }
-			StateType& getState(){ return state; }
-			StateType& state;
-			AStarT&    aStar;
-		};
-
-		struct CacheFun
-		{
-			CacheFun( AStarT& a ):aStar( a ){}
-			void operator()( NodeType* node )
-			{   
-				aStar.addCache( node );
-			}
-			NodeType* cache;
-			AStarT&   aStar;
-		};
-
-		struct CacheNonpathFun
-		{
-			CacheNonpathFun( AStarT& a ):aStar( a ){}
-			void operator()( NodeType* node )
-			{   
-				if ( node->flag & NodeType::ePATH )
-					return;
-				aStar.addCache( node );
-			}
-			AStarT&   aStar;
-		};
-
-		struct FreeFun
-		{
-			FreeFun( AStarT& a ):aStar( a ){}
-			void operator()( NodeType* node )
-			{   
-				aStar.free( node );
-			}
-			AStarT&   aStar;
-		};
-
-		struct FreeNonpathFun
-		{
-			FreeNonpathFun( AStarT& a ):aStar( a ){}
-			void operator()( NodeType* node )
-			{   
-				if ( node->flag & NodeType::ePATH )
-					return;
-				aStar.free( node );
-			}
-			AStarT&   aStar;
-		};
-
-		void cleanupNonpathNode( bool beCache )
+		void cleanupNonpathNode( bool bAddToCache )
 		{
 			using std::for_each;
 
-			if ( beCache )
+			if ( bAddToCache )
 			{
-				for_each( mMap.begin() , mMap.end() , CacheNonpathFun(*this) );
+				for_each( mMap.begin() , mMap.end() , 
+					[this](NodeType* node)
+					{
+						if( node->flag & NodeType::ePATH )
+							return;
+						addToCache(node);
+					}
+				);
 			}
 			else
 			{
-				for_each( mMap.begin() , mMap.end() , FreeNonpathFun(*this) );
+				for_each( mMap.begin() , mMap.end() , 
+					[this](NodeType* node)
+					{
+						if( node->flag & NodeType::ePATH )
+							return;
+						
+						deleteNode(node);
+					}
+				);
 				cleanupCache();
 			}
 			mMap.clear();
@@ -287,6 +279,7 @@ namespace AStar
 		}
 
 	private:
+
 		NodeType* fetchNode()
 		{
 			if ( mCache )
@@ -297,9 +290,16 @@ namespace AStar
 			}
 			return Allocator::alloc();
 		}
-		void addCache( NodeType* node )
+
+
+		void deleteNode(NodeType* node)
 		{
-			node->child = mCache;
+			Allocator::free(node);
+		}
+
+		void addToCache( NodeType* node )
+		{
+			node->parent = mCache;
 			mCache = node;
 		}
 
@@ -309,29 +309,12 @@ namespace AStar
 			while( cur )
 			{
 				NodeType* temp = cur;
-				cur = cur->child;
-				Allocator::free( temp );
+				cur = cur->parent;
+				deleteNode( temp );
 			}
 			mCache = NULL;
 		}
 
-		void constructPath( NodeType* node )
-		{
-			mNumPathNode = 1;
-			while ( node->parent )
-			{
-				NodeType* parent = node->parent;
-				parent->child = node;
-				node = parent;
-				node->flag |= NodeType::ePATH;
-				++mNumPathNode;
-			}
-			mPath = node;
-		}
-
-		int          mNumPathNode;
-		StateType    mStartState;
-		NodeType*    mPath;
 		NodeType*    mCache;
 		QueueType    mQueue;
 		MapType      mMap;
@@ -343,31 +326,32 @@ namespace AStar
 #define CLASS_PARAM T,MT,AP,MP,QP
 
 	template< TEMPLATE_PARAM >
-	void AStarT< CLASS_PARAM >::startSreach( StateType const& start )
+	void AStarT< CLASS_PARAM >::startSreach( StateType const& start , SreachResult& sreachResult)
 	{
 		ASTAR_PROFILE( "start" );
 
 		cleanup( true );
-		mStartState = start;
 
 		NodeType* node = fetchNode();
-		node->state  = mStartState;
+		node->state  = start;
 		node->parent = NULL;
 		node->child  = NULL;
 		node->f = 0;
 		node->g = 0;
 		node->flag = 0;
+
+		sreachResult.startNode = node;
 		mQueue.insert( node );
 	}
 
 	template< TEMPLATE_PARAM >
-	int  AStarT< CLASS_PARAM >::sreachStep()
+	ESrachStatus  AStarT< CLASS_PARAM >::sreachStep( SreachResult& sreachResult)
 	{
 		NodeType* node;
 		for(;;)
 		{
 			if ( mQueue.empty() )
-				return ASTAR_SREACH_FAIL;
+				return eSREACH_FAIL;
 
 			node = mQueue.front();
 
@@ -375,7 +359,7 @@ namespace AStar
 
 			if ( node->flag & NodeType::eREMOVE )
 			{
-				addCache( node );
+				addToCache( node );
 			}
 			else
 			{
@@ -383,22 +367,20 @@ namespace AStar
 			}
 		}
 
+		node->flag |= NodeType::eCLOSE;
+
 		if ( _this()->isGoal( node->state ) )
 		{
-			_this()->onFindGoal( *node );
-			constructPath( node );
-			return ASTAR_SREACH_SUCCESS;
+			sreachResult.globalNode = node;
+			return eSREACH_SUCCESS;
 		}
 
-		_this()->prevProcNeighborNode( *node );
 		{
 			ASTAR_PROFILE( "processNeighborNode" );
 			_this()->processNeighborNode( *node );
 		}
-		_this()->postProcNeighborNode( *node );
 
-		node->flag |= NodeType::eCLOSE;
-		return ASTAR_SREACHING;
+		return eSREACHING;
 	}
 
 	template< TEMPLATE_PARAM >
@@ -408,7 +390,7 @@ namespace AStar
 
 		ScoreType newG = nodeLink.g + dist;
 
-		NodeType* nodeNew = NULL;
+		NodeType* nodeNew = nullptr;
 
 		{
 			ASTAR_PROFILE( "FindNode" );

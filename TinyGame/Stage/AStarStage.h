@@ -2,9 +2,11 @@
 #define AStarStage_h__
 
 #include "StageBase.h"
+#include "Math/TVector2.h"
+
 #include "Algo/AStar.h"
 #include "AStarTile2D.h"
-#include "TVector2.h"
+
 
 #include <algorithm>
 
@@ -325,6 +327,10 @@ namespace AStar
 	{
 		typedef StageBase BaseClass;
 	public:
+
+		typedef MyAStar::NodeType Node;
+
+
 		TestStage()
 		{
 
@@ -383,11 +389,9 @@ namespace AStar
 
 
 			
-			if ( mPath )
+			if ( mGlobalNode )
 			{
 				MyAStar::MapType& map = mAStar.getMap();
-
-				
 
 				for ( MyAStar::MapType::iterator iter = map.begin() , itEnd = map.end();
 					iter != itEnd ; ++iter )
@@ -415,16 +419,16 @@ namespace AStar
 
 				RenderUtility::SetPen( g , EColor::Red );
 
-				MyAStar::NodeType* node = mPath;
-				Vec2i prevPos = convertToScreen( mStartPos ) + Vec2i( TileLen , TileLen ) / 2;
-				do
+				
+				Vec2i prevPos = convertToScreen( mGlobalNode->state ) + Vec2i( TileLen , TileLen ) / 2;
+				Node* node = mGlobalNode->parent;
+				while( node )
 				{
 					Vec2i pos = convertToScreen( node->state ) + Vec2i( TileLen , TileLen ) / 2;
 					g.drawLine( pos , prevPos );
-					node = node->child;
+					node = node->parent;
 					prevPos = pos;
 				}
-				while( node );
 			}
 		}
 
@@ -434,7 +438,7 @@ namespace AStar
 			mAStar.inputMap( 15 , 15 , map );
 			mAStar.mClearance = 1;
 			mStartPos = Vec2i( 0 ,0 );
-			mPath = nullptr;
+			mGlobalNode = nullptr;
 		}
 
 
@@ -462,22 +466,16 @@ namespace AStar
 				}
 				else if ( msg.onRightDown() )
 				{
-					mPath = nullptr;
 					mAStar.mGoalPos = tilePos;
-					if ( mAStar.sreach( mStartPos ) )
-					{
-						mPath = mAStar.getPath();
-					}
+					findPath();
 				}
 				else if ( msg.onMiddleDown() )
 				{
 					MyAStar::Tile& tile = mAStar.mMap.getData( tilePos.x , tilePos.y );
 					tile.terrain = ( tile.terrain ) ? 0 : 1;
 					mAStar.updateClearance( tilePos.x , tilePos.y );
-					if ( mAStar.sreach( mStartPos ) )
-					{
-						mPath = mAStar.getPath();
-					}
+
+					findPath();
 				}
 			}
 
@@ -493,25 +491,38 @@ namespace AStar
 			{
 			case Keyboard::eR: restart(); break;
 			case Keyboard::eQ:
-				++mAStar.mClearance; 
-				if ( mAStar.sreach( mStartPos ) )
 				{
-					mPath = mAStar.getPath();
+					++mAStar.mClearance;
+					findPath();
 				}
 				break;
 			case Keyboard::eW:
-				--mAStar.mClearance;
-				if ( mAStar.mClearance <= 0 )
-					mAStar.mClearance = 1;
-				if ( mAStar.sreach( mStartPos ) )
 				{
-					mPath = mAStar.getPath();
+					--mAStar.mClearance;
+					if( mAStar.mClearance <= 0 )
+						mAStar.mClearance = 1;
+
+					findPath();
 				}
 				break;
 			}
 			return false;
 		}
-		MyAStar::NodeType* mPath;
+
+		void findPath()
+		{
+			MyAStar::SreachResult sreachResult;
+			if( mAStar.sreach(mStartPos, sreachResult) )
+			{
+				mGlobalNode = sreachResult.globalNode;
+			}
+			else
+			{
+				mGlobalNode = nullptr;
+			}
+		}
+
+		Node*   mGlobalNode;
 		Vec2i   mStartPos;
 		MyAStar mAStar;
 	};

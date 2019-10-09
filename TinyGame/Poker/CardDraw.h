@@ -3,7 +3,7 @@
 
 #include "PokerBase.h"
 class Graphics2D;
-#include "TVector2.h"
+#include "Math/TVector2.h"
 typedef TVector2< int > Vec2i;
 
 namespace Poker

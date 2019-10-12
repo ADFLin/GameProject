@@ -5,7 +5,7 @@
 #include "ProfileSystem.h"
 #define  TPROFILE  PROFILE_ENTRY
 
-#include "TVector2.h"
+#include "Math/TVector2.h"
 typedef TVector2< int > Vec2i;
 
 #include "CppVersion.h"

@@ -4,7 +4,7 @@
 #include "Algo/AStar.h"
 
 #include "TQuadTree.h"
-#include "TVector2.h"
+#include "Math/TVector2.h"
 
 #include <algorithm>
 #include <cassert>

@@ -160,7 +160,8 @@ public:
 	virtual  rcPath*  sreachPath( Vec2i const& from )
 	{
 		PROFILE_ENTRY( "sreachPath" );
-		startSreach( from );
+		SreachResult sreachResult;
+		startSreach( from , sreachResult );
 		static int maxSreachStep = 100000;
 		int result;
 		int step = 0;
@@ -172,16 +173,17 @@ public:
 			if ( step > maxSreachStep )
 				return NULL;
 
-			result = sreachStep();
+			result = sreachStep(sreachResult);
 		}
-		while( result == ASTAR_SREACHING );
+		while( result == AStar::eSREACHING );
 
-		if ( result == ASTAR_SREACH_FAIL )
+		if ( result == AStar::eSREACH_FAIL )
 			return NULL;
 
 		int dir = 0;
 
 		rcPath* path = new rcPath;
+#if 0
 
 		NodeType* curNode = getPath();
 		NodeType* prevNode;
@@ -223,6 +225,7 @@ public:
 				num = 0;
 			}
 		}
+#endif
 
 		return path;
 	}

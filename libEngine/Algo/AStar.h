@@ -80,7 +80,6 @@ namespace AStar
 		ScoreType g;
 		ScoreType f;
 		T*        parent;
-		T*        child;
 		uint8     flag;
 
 		bool isClose(){ return ( flag & eCLOSE ) != 0; }
@@ -124,7 +123,7 @@ namespace AStar
 		T* _this(){ return static_cast< T* >( this ); }
 
 	public:
-		typedef AStarT< T , Node , AllocatePolicy , MapPolicy , QueuePolicy >  AStar;
+		typedef AStarT< T , Node , AllocatePolicy , MapPolicy , QueuePolicy >  AStarType;
 		typedef Node                             NodeType;
 		typedef AllocatePolicy< NodeType >       Allocator;
 		typedef MapPolicy< NodeType* >           MapType;
@@ -285,7 +284,7 @@ namespace AStar
 			if ( mCache )
 			{
 				NodeType* result = mCache;
-				mCache = mCache->child;
+				mCache = mCache->parent;
 				return result;
 			}
 			return Allocator::alloc();
@@ -334,8 +333,7 @@ namespace AStar
 
 		NodeType* node = fetchNode();
 		node->state  = start;
-		node->parent = NULL;
-		node->child  = NULL;
+		node->parent = nullptr;
 		node->f = 0;
 		node->g = 0;
 		node->flag = 0;
@@ -424,7 +422,6 @@ namespace AStar
 				nodeNew = fetchNode();
 				nodeNew->state  = nextState;
 				nodeNew->flag = 0;
-				nodeNew->child  = NULL;
 				mMap.insert( nodeNew );
 			}
 

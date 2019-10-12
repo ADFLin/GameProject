@@ -162,7 +162,7 @@ namespace Chromatron
 				iter != mMapDCList.end() ;++iter )
 			{
 				Device* dc = iter->dc;
-				dc->getFlag().removeBits( DFB_GOAL | DFB_LAZY_EFFECT | DFB_SHOT_DOWN );
+				dc->getFlag().removeBits( DFB_GOAL | DFB_LAZY_EFFECT | DFB_SHUTDOWN );
 
 				iter->lazyColor    = 0;
 				iter->receivedColor= 0;

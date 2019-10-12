@@ -275,19 +275,17 @@ public:
 					AStar::FindState state;
 					state.pos = startPos;
 					state.region = curRegion;
-
+					AStar::PortalAStar::SreachResult sreachResult;
 					astar.mEndPos = endPos;
-					if ( astar.sreach( state ) )
+					if ( astar.sreach( state , sreachResult) )
 					{
-						AStar::PortalAStar::NodeType* node = astar.getPath();
-
 						path.clear();
-
-						while( node )
-						{
-							path.push_back( node->state );
-							node = node->child;
-						}
+						astar.constructPath( sreachResult.globalNode ,
+							[this](AStar::PortalAStar::NodeType* node)
+							{
+								path.push_back(node->state);
+							}
+						);
 					}
 				}
 				break;

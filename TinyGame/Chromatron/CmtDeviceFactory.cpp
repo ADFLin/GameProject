@@ -483,7 +483,7 @@ namespace Chromatron
 			}
 			else if ( dc.getFlag() & DFB_LAZY_EFFECT )
 			{
-				dc.getFlag().addBits( DFB_SHOT_DOWN );
+				dc.getFlag().addBits( DFB_SHUTDOWN );
 				context.notifyStatus( TSS_LOGIC_ERROR );
 			}
 			else

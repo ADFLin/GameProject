@@ -320,7 +320,7 @@ namespace Chromatron
 		Dir invDir = light.getDir().inverse();
 		tile.addReceivedLightColor(invDir, light.getColor());
 
-		if( dc.getFlag() & DFB_SHOT_DOWN )
+		if( dc.getFlag() & DFB_SHUTDOWN )
 			return TSS_OK;
 
 		if( dc.getFlag() & DFB_LAZY_EFFECT )

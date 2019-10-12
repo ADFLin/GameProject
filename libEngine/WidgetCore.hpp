@@ -411,6 +411,7 @@ void TWidgetManager<T>::prevProcMsg()
 {
 	mProcessingMsg = true;
 }
+
 template< class T >
 void TWidgetManager<T>::postProcMsg()
 {
@@ -446,10 +447,14 @@ bool TWidgetManager<T>::procMouseMsg( MouseMsg const& msg )
 		ui = hitTest( mMouseMsg.getPos() );
 	}
 
-	if( mNamedSlots[ESlotName::LastMouseMsg] )
+	if (mNamedSlots[ESlotName::LastMouseMsg])
+	{
 		clearNamedSlot(ESlotName::LastMouseMsg);
-	if ( ui )
-		setNamedSlot(ESlotName::LastMouseMsg , *ui);
+	}
+	if (ui)
+	{
+		setNamedSlot(ESlotName::LastMouseMsg, *ui);
+	}
 
 	{
 		WIDGET_PROFILE_ENTRY("Msg Process");

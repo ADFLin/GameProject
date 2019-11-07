@@ -422,7 +422,7 @@ namespace Render
 	{
 	public:
 		RHISytemName getName() const { return RHISytemName::D3D11; }
-		bool initialize(RHISystemInitParam const& initParam);
+		bool initialize(RHISystemInitParams const& initParam);
 		void shutdown()
 		{
 			mRenderContext.release();
@@ -558,7 +558,7 @@ namespace Render
 			}
 		};
 
-		std::unordered_map< InputLayoutKey, RHIInputLayoutRef , MemberFunHasher > mInputLayoutMap;
+		std::unordered_map< InputLayoutKey, RHIInputLayoutRef , MemberFuncHasher > mInputLayoutMap;
 		D3D11Context   mRenderContext;
 		FrameSwapChain mSwapChain;
 		TComPtr< ID3D11Device > mDevice;

@@ -116,7 +116,6 @@ namespace Render
 	}
 
 
-
 	void OpenGLShaderProgram::generateParameterMap(ShaderParameterMap& parameterMap)
 	{
 		uint32 handle = getHandle();

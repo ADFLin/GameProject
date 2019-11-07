@@ -427,7 +427,7 @@ namespace FlappyBird
 
 	void TrainWork::stopRun()
 	{
-		SystemPlatform::InterlockedExchange(&bNeedStop, 1);
+		SystemPlatform::AtomExchange(&bNeedStop, 1);
 	}
 
 	TrainManager::~TrainManager()

@@ -92,7 +92,7 @@ public:
 	static TINY_API int  Random();
 	static TINY_API void RandSeed(unsigned seed );
 
-	static TINY_API GameModuleManager& GameManager();
+	static TINY_API GameModuleManager& ModuleManager();
 	static TINY_API AssetManager&      GetAssetManager();
 
 	static TINY_API IGameInstance*     GameInstacne();

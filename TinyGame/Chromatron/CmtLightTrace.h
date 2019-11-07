@@ -14,6 +14,7 @@ namespace Chromatron
 		void         advance(){  ++mAge; mEndPos += GetDirOffset( mDir );  }
 
 		void         setColor( Color color ){ mColor = color; }
+		void         changeDir(Dir dir) { mDir = dir; }
 		Color        getColor()    const { return mColor; }
 		int          getParam()    const { return mParam; }
 		Dir   const& getDir()      const { return mDir; }

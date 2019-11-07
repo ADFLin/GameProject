@@ -70,15 +70,11 @@ namespace Chromatron
 		void         update( WorldUpdateContext& context ){ mInfo->funUpdate( *this , context ); }
 		void         effect( WorldUpdateContext& context , LightTrace const& light ){  mInfo->funEffect( *this , context , light ); }
 
-
 		bool         checkFinish(WorldUpdateContext& context) { return mInfo->funCheck(*this, context); }
-
-		
 
 		bool         isRotatable() const { return !mFlag.checkBits( DFB_UNROTATABLE ); }
 		bool         isStatic()    const { return mFlag.checkBits( DFB_STATIC ); }
 		bool         isInWorld()   const { return mFlag.checkBits( DFB_IN_WORLD ); }
-		void         setMovable( bool beM );
 		void         setStatic( bool beS );
 
 		bool         rotate(Dir dir , bool beForce = false );

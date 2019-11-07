@@ -37,6 +37,9 @@ namespace Chromatron
 		delete dc;
 	}
 
+	static int const QSpinUp = 1;
+	static int const QSpinDown = -1;
+
 	struct DeviceFun
 	{
 		static Dir IncidentDir( Device const& dc , LightTrace const& light )
@@ -51,6 +54,15 @@ namespace Chromatron
 			else
 				return Color( ( ( color & ( COLOR_G | COLOR_R ) ) << 1 ) | ( ( color & COLOR_B ) >> 2 ) );
 		}
+
+		static Dir Rotate(Dir dir , bool bCW)
+		{
+			if( bCW )
+				return dir + Dir::ValueChecked(1);
+			else
+				return dir - Dir::ValueChecked(1);
+		}
+
 		template< DeviceTag ID >
 		static void Effect( Device& dc , WorldUpdateContext& context , LightTrace const& light ){}
 		template< DeviceTag ID >
@@ -62,13 +74,13 @@ namespace Chromatron
 	template<>
 	void DeviceFun::Update< DC_LIGHTSOURCE >( Device& dc , WorldUpdateContext& context )
 	{
-		context.addEffectLight( dc.getPos() , dc.getColor() , dc.getDir() );
+		context.addEffectedLight( dc.getPos() , dc.getColor() , dc.getDir() );
 	}
 
 	template<>
 	void DeviceFun::Effect< DC_PINWHEEL >( Device& dc , WorldUpdateContext& context , LightTrace const& light )
 	{
-		context.addEffectLight( dc.getPos() , light.getColor() , light.getDir() );
+		context.addEffectedLight( dc.getPos() , light.getColor() , light.getDir() );
 	}
 
 	template<>
@@ -103,7 +115,7 @@ namespace Chromatron
 		//int dout=2*m_dir-arcdir;
 		dir = dc.getDir() - dir;
 
-		context.addEffectLight( dc.getPos() ,light.getColor(),dir);
+		context.addEffectedLight( dc.getPos() ,light.getColor(),dir);
 	}
 
 	template<>
@@ -112,7 +124,7 @@ namespace Chromatron
 		Dir dir = IncidentDir( dc, light );
 		if( dir == 0 || dir == 4 )
 		{
-			context.addEffectLight( dc.getPos() , light.getColor(), light.getDir() );
+			context.addEffectedLight( dc.getPos() , light.getColor(), light.getDir() );
 		}
 	}
 
@@ -127,9 +139,9 @@ namespace Chromatron
 		dir = dc.getDir() - dir;
 
 		//if ( dir != light.getDir().inverse() )
-		context.addEffectLight( dc.getPos() , light.getColor(), dir );
+		context.addEffectedLight( dc.getPos() , light.getColor(), dir );
 
-		context.addEffectLight( dc.getPos() , light.getColor(), light.getDir() );
+		context.addEffectedLight( dc.getPos() , light.getColor(), light.getDir() );
 	}
 
 	template<>
@@ -143,7 +155,7 @@ namespace Chromatron
 		//int dout=2*m_dir-arcdir+1;
 		dir = dc.getDir() - dir + Dir(1);
 
-		context.addEffectLight( dc.getPos() , light.getColor(),dir);
+		context.addEffectedLight( dc.getPos() , light.getColor(),dir);
 	}
 
 	template<>
@@ -161,17 +173,17 @@ namespace Chromatron
 		if( ( color & COLOR_R ) && outR[dir] != -1 )
 		{
 			Dir outDir = invDir + Dir( outR[dir] );
-			context.addEffectLight( dc.getPos() , COLOR_R , outDir );
+			context.addEffectedLight( dc.getPos() , COLOR_R , outDir );
 		}
 		if( ( color & COLOR_G ) && outG[dir] != -1 )
 		{
 			Dir outDir = invDir + Dir( outG[dir] );
-			context.addEffectLight( dc.getPos() , COLOR_G , outDir );
+			context.addEffectedLight( dc.getPos() , COLOR_G , outDir );
 		}
 		if( ( color & COLOR_B ) && outB[dir] != -1 )
 		{
 			Dir outDir = invDir + Dir( outB[dir] );
-			context.addEffectLight( dc.getPos() , COLOR_B , outDir );
+			context.addEffectedLight( dc.getPos() , COLOR_B , outDir );
 		}
 	}
 
@@ -186,7 +198,7 @@ namespace Chromatron
 		Color color = Color( light.getColor() & dc.getColor() );
 		if (  color )
 		{
-			context.addEffectLight( dc.getPos() , color , light.getDir() );
+			context.addEffectedLight( dc.getPos() , color , light.getDir() );
 		}
 	}
 
@@ -201,7 +213,30 @@ namespace Chromatron
 		Color color = light.getColor();
 		Color outColor = DopplerColor( color , dir == Dir::ValueChecked(0) );
 
-		context.addEffectLight( dc.getPos() , outColor,light.getDir() );
+		context.addEffectedLight( dc.getPos() , outColor,light.getDir() );
+	}
+
+
+	template<>
+	void DeviceFun::Effect< DC_SPINSPLITTER >(Device& dc, WorldUpdateContext& context, LightTrace const& light)
+	{
+		Dir dir = IncidentDir(dc, light);
+
+		if( (dir % 2) == 1 )
+			return;
+
+		if ( light.getParam() == 0 )
+		{
+			context.addEffectedLight(dc.getPos(), light.getColor(), light.getDir());
+		}
+		else
+		{
+			bool bCW = light.getParam() == QSpinUp;
+			if( dir == 2 || dir == 6 )
+				bCW = !bCW;
+
+			context.addEffectedLight(dc.getPos(), light.getColor(), Rotate(light.getDir(), bCW));
+		}
 	}
 
 	class QTangterEffectSolver : public LightSyncProcessor
@@ -209,9 +244,6 @@ namespace Chromatron
 	public:
 		QTangterEffectSolver( WorldUpdateContext& context ):mContext( context ){}
 		~QTangterEffectSolver(){}
-
-		static int const QSpinUp   =  1;
-		static int const QSpinDown = -1;
 
 		void solve( Vec2i const& pos , LightTrace const& light )
 		{
@@ -230,7 +262,8 @@ namespace Chromatron
 		{
 			assert( BitUtility::CountSet((uint8)color) == 1 );
 
-			if ( !( mContext.getTile( pos ).getReceivedLightColor( dir.inverse() ) & color ) )
+			Color receivedColor = mContext.getTile(pos).getReceivedLightColor(dir.inverse());
+			//if ( !(receivedColor & color ) )
 			{
 				mTransmitLights.clear();
 				mCheckLights.clear();
@@ -245,28 +278,55 @@ namespace Chromatron
 			return true;
 		}
 
+
+		enum EDeivcePassStep
+		{
+			PrevSpinSplitter,
+			SpinSplitter,
+			PostSpinSplitter,
+			Doppler,
+			PosetDoppler,
+		};
+
 		virtual bool prevEffectDevice( Device& dc  , LightTrace const& light , int passStep )
 		{
-			bool result = true;
+			bool result = false;
 
 			switch( dc.getId() )
 			{
 			case DC_DOPPLER:
-				if ( passStep == 1 )
+				if ( passStep == EDeivcePassStep::Doppler )
 				{
 					Dir dir = DeviceFun::IncidentDir( dc , light );
 					if ( dir == 0 || dir == 4 )
 					{
 						bool isSameDir = ( dir == 0 );
-						applyQuantumEffect( light , !isSameDir );
+						applyDopplerEffect( light , !isSameDir );
 					}
-				}
-				else
-				{
-					result = false;
+					result = true;
 				}
 				break;
+			case DC_SPINSPLITTER:
+				if( passStep == EDeivcePassStep::SpinSplitter )
+				{
+					Dir dir = DeviceFun::IncidentDir(dc, light);
+					if( (dir % 2) == 0 )
+					{
+						bool bCW = (light.getParam() == QSpinUp);
+						if( dir == 2 || dir == 6)
+						   bCW = !bCW;
+						applySpinSplitterEffect(light, (light.getParam() == QSpinUp ) ? QSpinDown : QSpinUp , bCW );
+					}
+					result = true;
+				}
+				break;
+			default:
+				if ( passStep == EDeivcePassStep::PrevSpinSplitter )
+				{
+					result = true;
+				}
 			}
+
 
 			if ( result )
 			{
@@ -344,19 +404,30 @@ namespace Chromatron
 			return true;
 		}
 
-		void applyQuantumEffect( LightTrace const& light , bool beSameDir )
+		void applyDopplerEffect( LightTrace const& light , bool beSameDir )
 		{
-			LightList&  lightList = mTransmitLights;
-			for( LightList::iterator iter = lightList.begin();
-				iter != lightList.end();++iter )
+			for( auto& lightOther : mTransmitLights )
 			{
-				if ( iter->getParam() != light.getParam() )
+				if ( lightOther.getParam() != light.getParam() )
 				{
-					Color outColor = DeviceFun::DopplerColor( iter->getColor() , beSameDir );
-					iter->setColor( outColor );
+					Color outColor = DeviceFun::DopplerColor(lightOther.getColor() , beSameDir );
+					lightOther.setColor( outColor );
 				}
 			}
 		}
+
+		void applySpinSplitterEffect(LightTrace const& light, int QState , bool bCW )
+		{
+			for( auto& lightOther : mTransmitLights )
+			{
+				if( lightOther.getParam() == QState )
+				{
+					Dir dir = DeviceFun::Rotate(lightOther.getDir(), bCW);
+					lightOther.changeDir(dir);
+				}
+			}
+		}
+
 
 		WorldUpdateContext& mContext;
 		LightList  mTransmitLights;
@@ -375,30 +446,6 @@ namespace Chromatron
 		solver.solve( dc.getPos() , light );
 	}
 
-	class QRotatorEffectSolver : public LightSyncProcessor
-	{
-	public:
-		QRotatorEffectSolver( WorldUpdateContext& context ):mContext( context ){}
-
-		void solve( Vec2i const& pos , LightTrace const& light )
-		{
-			bool keep = true;
-		}
-
-		WorldUpdateContext& mContext;
-	};
-
-	template<>
-	void DeviceFun::Effect< DC_QUANROTATOR >( Device& dc , WorldUpdateContext& context , LightTrace const& light )
-	{
-		Dir dir = IncidentDir( dc, light );	
-		if ( dir != 0 ) 
-			return;
-
-		//QRotatorEffectSolver solver( context );
-		//solver.solve( dc.getPos() , light );
-	}
-
 
 	template<>
 	void DeviceFun::Effect< DC_TELEPORTER >( Device& dc , WorldUpdateContext& context , LightTrace const& light )
@@ -415,7 +462,7 @@ namespace Chromatron
 
 			if ( pDC->getId() == DC_TELEPORTER )
 			{
-				context.addEffectLight( pDC->getPos() , light.getColor(), dir );
+				context.addEffectedLight( pDC->getPos() , light.getColor(), dir );
 				return;
 			}
 		}
@@ -430,7 +477,7 @@ namespace Chromatron
 
 		Color color = Color( light.getColor() & filterColor[select] );
 		if (color) 
-			context.addEffectLight( dc.getPos() ,  color, light.getDir());
+			context.addEffectedLight( dc.getPos() ,  color, light.getDir());
 
 	}
 
@@ -440,7 +487,7 @@ namespace Chromatron
 		Dir turnDir = ( dc.getFlag() & DFB_CLOCKWISE ) ?Dir(-2):Dir(2);
 		Dir outDir(light.getDir() + turnDir);
 
-		context.addEffectLight( dc.getPos() , light.getColor(), outDir );
+		context.addEffectedLight( dc.getPos() , light.getColor(), outDir );
 	}
 
 	template<>
@@ -451,14 +498,14 @@ namespace Chromatron
 			return;
 
 		dir = dc.getDir() - dir;
-		context.addEffectLight( dc.getPos() , light.getColor(), dir );
+		context.addEffectedLight( dc.getPos() , light.getColor(), dir );
 	}
 
 	template<>
 	void DeviceFun::Effect< DC_STARBURST >( Device& dc , WorldUpdateContext& context , LightTrace const& light )
 	{
 		for(int i= (light.getDir()+1)%2 ; i < NumDir ; i+=2 )
-			context.addEffectLight( dc.getPos() , light.getColor(), Dir::ValueChecked( i ) );
+			context.addEffectedLight( dc.getPos() , light.getColor(), Dir::ValueChecked( i ) );
 	}
 
 	template<>
@@ -478,7 +525,7 @@ namespace Chromatron
 		{
 			if ( !prevColor )
 			{
-				context.addEffectLight( dc.getPos() , color, light.getDir() );
+				context.addEffectedLight( dc.getPos() , color, light.getDir() );
 				//dc.removeFlagBit( FB_BLOCK_EFFECT );
 			}
 			else if ( dc.getFlag() & DFB_LAZY_EFFECT )
@@ -503,7 +550,7 @@ namespace Chromatron
 		Dir dir = IncidentDir( dc, light );
 		//int dout=2*m_dir-arcdir+1;
 		dir = dc.getDir() - dir + Dir(1);
-		context.addEffectLight( dc.getPos() , light.getColor() , dir );
+		context.addEffectedLight( dc.getPos() , light.getColor() , dir );
 	}
 
 	template<>
@@ -521,7 +568,7 @@ namespace Chromatron
 		Color color = Color( colorT & colorD );
 		if ( color )
 		{
-			context.addEffectLight( dc.getPos() , color , dc.getDir().inverse() );
+			context.addEffectedLight( dc.getPos() , color , dc.getDir().inverse() );
 		}
 	}
 
@@ -540,7 +587,7 @@ namespace Chromatron
 		Color color = Color( colorT & colorD );
 		if ( color == COLOR_R || color == COLOR_G || color == COLOR_B )
 		{
-			context.addEffectLight( dc.getPos() , color , dc.getDir().inverse() );
+			context.addEffectedLight( dc.getPos() , color , dc.getDir().inverse() );
 		}
 	}
 
@@ -559,7 +606,7 @@ namespace Chromatron
 		Color color = Color( colorT | colorD );
 		if ( color )
 		{
-			context.addEffectLight( dc.getPos() , color , dc.getDir().inverse() );
+			context.addEffectedLight( dc.getPos() , color , dc.getDir().inverse() );
 		}
 	}
 
@@ -589,10 +636,10 @@ namespace Chromatron
 		DC_INFO( DC_STARBURST    , DFB_REMOVE_QSTATE | DFB_UNROTATABLE )
 		DC_INFO( DC_COMPLEMENTOR , DFB_REMOVE_QSTATE )
 		DC_INFO( DC_QUADBENDER   , DFB_DRAW_FRIST )
-		DC_INFO( DC_LOGICGATE_AND , DFB_REMOVE_QSTATE )
+		DC_INFO( DC_LOGICGATE_AND, DFB_REMOVE_QSTATE )
 		DC_INFO( DC_LOGICGATE_AND_PRIMARY , DFB_REMOVE_QSTATE )
-		DC_INFO( DC_LOGICGATE_OR  , DFB_REMOVE_QSTATE )
-		DC_INFO( DC_QUANROTATOR   , 0 )
+		DC_INFO( DC_LOGICGATE_OR , DFB_REMOVE_QSTATE )
+		DC_INFO( DC_SPINSPLITTER      , DFB_DRAW_FRIST )
 	END_DC_INFO()
 
 

@@ -110,10 +110,10 @@ public:
 	bool toFloat(float& value) const
 	{
 		//TODO : optimize
-		StdString temp = toStdString();
+		auto temp = toCString<128>();
 		T* endPtr;
-		value = FCString::Strtof(temp.c_str(), &endPtr);
-		return endPtr == &temp.back() + 1;
+		value = FCString::Strtof(temp, &endPtr);
+		return endPtr == temp.mPtr + mNum;
 	}
 protected:
 

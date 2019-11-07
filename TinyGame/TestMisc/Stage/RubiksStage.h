@@ -75,7 +75,7 @@ namespace Rubiks
 		template <class T>
 		inline void hash_combine(std::size_t& seed, const T& v)
 		{
-			std::tr1::hash<T> hasher;
+			std::hash<T> hasher;
 			seed ^= hasher(v) + 0x9e3779b9 + (seed<<6) + (seed>>2);
 		}
 		void updateHash()
@@ -282,7 +282,7 @@ namespace Rubiks
 			}
 		};
 
-		typedef std::tr1::unordered_set< CubeState* , StateHash , StateEqual > StateSet;
+		typedef std::unordered_set< CubeState* , StateHash , StateEqual > StateSet;
 		StateSet mCheckedStates;
 
 		CubeState mInitState;

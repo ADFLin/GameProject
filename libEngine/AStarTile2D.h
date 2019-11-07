@@ -7,7 +7,6 @@
 #include "Math/TVector2.h"
 #include "DataStructure/Grid2D.h"
 
-
 #include <iterator>
 #include <list>
 
@@ -15,7 +14,7 @@ namespace AStar
 {
 	typedef TVector2< int > Vec2i;
 
-	struct Tile2DNode : NodeBaseT< Tile2DNode , Vec2i , int >
+	struct Tile2DNode : public NodeBaseT< Tile2DNode , Vec2i , int >
 	{
 
 	};
@@ -149,19 +148,29 @@ namespace AStar
 		      template< class , class > class QueuePolicy = STLHeapQueuePolicy  >
 	class AStarTile2DT : public AStarT < T , Tile2DNode , AllocatePolicy , Tile2DMapPolicy , QueuePolicy >
 	{
+		typedef AStarT < T, Tile2DNode, AllocatePolicy, Tile2DMapPolicy, QueuePolicy > BaseClass;
 	public:
 		typedef AStarTile2DT< T , AllocatePolicy , QueuePolicy > AStarTile2D;
+
+		//vc bug?
+		using NodeType = Tile2DNode;
+		using StateType = Tile2DNode::StateType;
+		using MapType = Tile2DMapPolicy< NodeType* >;
+
 
 		AStarTile2DT()
 		{
 
 		}
 
-		bool isEqual( StateType& state1,StateType& state2 ){  return state1 == state2; }
+#if 1
+		bool isEqual(StateType& state1, StateType& state2 ){  return state1 == state2; }
+
 		typename MapType::iterator findNode( MapType& map , StateType& state )
 		{ 
 			return map.find( state );
 		}
+#endif
 
 	};
 

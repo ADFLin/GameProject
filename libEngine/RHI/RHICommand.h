@@ -14,6 +14,7 @@
 #endif
 
 class DataCacheInterface;
+struct ImageData;
 
 namespace Render
 {
@@ -25,14 +26,14 @@ namespace Render
 		Opengl,
 	};
 
-	struct RHISystemInitParam
+	struct RHISystemInitParams
 	{
 		int  numSamples;
 #if SYS_PLATFORM_WIN
 		HWND hWnd;
 		HDC  hDC;
 
-		RHISystemInitParam()
+		RHISystemInitParams()
 		{
 			numSamples = 1;
 		}
@@ -46,7 +47,7 @@ namespace Render
 		virtual void Present() = 0;
 	};
 
-	bool RHISystemInitialize(RHISytemName name , RHISystemInitParam const& initParam );
+	bool RHISystemInitialize(RHISytemName name , RHISystemInitParams const& initParam );
 	void RHISystemShutdown();
 	bool RHIBeginRender();
 	void RHIEndRender(bool bPresent);
@@ -159,7 +160,7 @@ namespace Render
 	{
 	public:
 		virtual RHISytemName getName() const = 0;
-		virtual bool initialize(RHISystemInitParam const& initParam) { return true; }
+		virtual bool initialize(RHISystemInitParams const& initParam) { return true; }
 		virtual void shutdown(){}
 		virtual class ShaderFormat* createShaderFormat() { return nullptr; }
 		
@@ -272,6 +273,7 @@ namespace Render
 		static RHITexture2D* LoadTexture2DFromFile(char const* path, TextureLoadOption const& option = TextureLoadOption() );
 		static RHITexture2D* LoadTexture2DFromFile(DataCacheInterface& dataCache, char const* path, TextureLoadOption const& option);
 		static RHITextureCube* LoadTextureCubeFromFile(char const* paths[], TextureLoadOption const& option = TextureLoadOption());
+		static RHITexture2D* CreateTexture2D(ImageData const& imageData, TextureLoadOption const& option);
 	};
 
 

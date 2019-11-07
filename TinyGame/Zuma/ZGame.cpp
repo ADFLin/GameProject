@@ -205,11 +205,14 @@ namespace Zuma
 		mCore = NULL;
 	}
 
-	void GameModule::beginPlay( StageModeType type, StageManager& manger )
+	void GameModule::beginPlay( StageManager& manger, StageModeType modeType )
 	{		
-		if ( mCore == NULL )
+		if( mCore == NULL )
+		{
 			mCore = new GameCore;
-		IGameModule::beginPlay( type , manger );
+		}
+
+		changeDefaultStage(manger, modeType);
 	}
 
 	void GameModule::enter()

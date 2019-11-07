@@ -9,12 +9,14 @@ namespace Cube
 
 	bool TestStage::onInit()
 	{
-		::Global::GUI().cleanupWidget();
-
-		Global::GetDrawEngine().startOpenGL();
+		VERIFY_RETURN_FALSE( Global::GetDrawEngine().startOpenGL() );
+		
 		GameWindow& window = Global::GetDrawEngine().getWindow();
 
+		::Global::GUI().cleanupWidget();
+
 		mCamera.setPos( Vec3f( -10 , 0 , 0 ) );
+
 
 		Level::init();
 

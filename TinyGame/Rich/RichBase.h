@@ -23,8 +23,6 @@ namespace Rich
 	typedef int AreaType;
 	typedef std::string String;
 
-	namespace stdex = std::tr1;
-
 	ActorId const ERROR_ACTOR_ID = ActorId( -1 );
 
 	typedef TVector2< int > MapCoord;

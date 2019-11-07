@@ -406,7 +406,7 @@ namespace Render
 	class EnvTestProgram : public ShaderProgram
 	{
 		typedef ShaderProgram BaseClass;
-		virtual void bindParameters(ShaderParameterMap& parameterMap)
+		virtual void bindParameters(ShaderParameterMap const& parameterMap)
 		{
 			BaseClass::bindParameters(parameterMap);
 			mParamIBL.bindParameters(parameterMap);

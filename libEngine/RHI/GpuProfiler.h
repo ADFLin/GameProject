@@ -18,8 +18,10 @@ namespace Render
 	public:
 		virtual ~RHIProfileCore(){}
 
+		virtual void releaseRHI() = 0;
+
 		virtual void beginFrame() = 0;
-		virtual void endFrame() = 0;
+		virtual bool endFrame() = 0;
 		virtual uint32 fetchTiming() = 0;
 
 		virtual void startTiming(uint32 timingHandle) = 0;
@@ -27,6 +29,8 @@ namespace Render
 		virtual bool getTimingDurtion(uint32 timingHandle, uint64& outDurtion) = 0;
 		virtual double getCycleToMillisecond() = 0;
 	};
+
+#define RHI_ERROR_PROFILE_HANDLE uint32(-1)
 
 	struct GpuProfileSample
 	{
@@ -77,9 +81,10 @@ namespace Render
 
 	struct GpuProfileScope
 	{
+
 		GpuProfileScope(char const* name)
 		{
-			init(name);
+			sample = GpuProfiler::Get().startSample(name);
 		}
 
 		template< class ...Args>
@@ -87,12 +92,15 @@ namespace Render
 		{
 			FixString< 256 > name;
 			name.format(format, std::forward< Args >(args)...);
-			init(name);
+			sample = GpuProfiler::Get().startSample(name);
 		}
 
-		~GpuProfileScope();
-	private:
-		void init(char const* name);
+		~GpuProfileScope()
+		{
+			if( sample )
+				GpuProfiler::Get().endSample(*sample);
+		}
+
 		GpuProfileSample* sample;
 	};
 

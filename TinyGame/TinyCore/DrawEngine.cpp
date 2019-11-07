@@ -63,7 +63,7 @@ IGraphics2D& DrawEngine::getIGraphics()
 	static TGraphics2DProxy< Graphics2D > proxyPlatform( *mPlatformGraphics );
 	static TGraphics2DProxy< GLGraphics2D > proxyGL( *mGLGraphics );
 	static TGraphics2DProxy< Render::RHIGraphics2D > proxyRHI( *mRHIGraphics );
-	if ( mRHIName == RHITargetName::OpenGL ) 
+	if ( isUsageRHIGraphic2D() )
 		return proxyGL;
 	return proxyPlatform;
 }
@@ -119,7 +119,7 @@ void DrawEngine::update(long deltaTime)
 	}
 }
 
-bool DrawEngine::initializeRHI(RHITargetName targetName, int numSamples)
+bool DrawEngine::initializeRHI(RHITargetName targetName, RHIInitializeParams initParams)
 {
 	if( isRHIEnabled() )
 		return true;
@@ -134,8 +134,8 @@ bool DrawEngine::initializeRHI(RHITargetName targetName, int numSamples)
 
 	setupBuffer(getScreenWidth(), getScreenHeight());
 
-	RHISystemInitParam initParam;
-	initParam.numSamples = numSamples;
+	RHISystemInitParams initParam;
+	initParam.numSamples = initParams.numSamples;
 	initParam.hWnd = getWindow().getHWnd();
 	initParam.hDC = getWindow().getHDC();
 
@@ -189,7 +189,9 @@ void DrawEngine::shutdownRHI(bool bDeferred)
 
 bool DrawEngine::startOpenGL( int numSamples )
 {
-	return initializeRHI(RHITargetName::OpenGL, numSamples);
+	RHIInitializeParams initParams;
+	initParams.numSamples = numSamples;
+	return initializeRHI(RHITargetName::OpenGL, initParams);
 }
 
 void DrawEngine::stopOpenGL(bool bDeferred)

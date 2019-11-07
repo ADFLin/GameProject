@@ -235,7 +235,7 @@ public:
 	}
 
 	T const& getValue() const { return mValueRef; }
-	TConsoleVariable operator = (T const& val) { mValueRef = val; }
+	TConsoleVariableRef& operator = (T const& val) { mValueRef = val; return *this; }
 	operator T() { return mValueRef; }
 
 	TVariableConsoleCommad<T>* mCommand;

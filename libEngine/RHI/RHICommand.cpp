@@ -8,9 +8,9 @@
 #include "ShaderManager.h"
 
 #include <cassert>
-#include "stb/stb_image.h"
 #include "DataCacheInterface.h"
 #include "Serialize/DataStream.h"
+#include "Image/ImageData.h"
 
 namespace Render
 {
@@ -21,7 +21,7 @@ namespace Render
 	float gRHIProjectYSign = 1;
 #define EXECUTE_RHI_FUNC( CODE ) gRHISystem->CODE
 
-	bool RHISystemInitialize(RHISytemName name, RHISystemInitParam const& initParam)
+	bool RHISystemInitialize(RHISytemName name, RHISystemInitParams const& initParam)
 	{
 		if( gRHISystem == nullptr )
 		{
@@ -215,43 +215,7 @@ namespace Render
 #undef SWITCH_CULL_MODE
 	}
 
-	struct STBImageData
-	{
-		STBImageData()
-		{
-			data = nullptr;
-		}
 
-		~STBImageData()
-		{
-			if( data )
-			{
-				stbi_image_free(data);
-			}
-		}
-		int    width;
-		int    height;
-		int    numComponent;
-		uint64 dataSize;
-		void*  data;
-
-		bool load(char const* path, TextureLoadOption const& option)
-		{
-			stbi_set_flip_vertically_on_load(option.bReverseH);
-			if( option.bHDR )
-			{
-				data = stbi_loadf(path, &width, &height, &numComponent, STBI_default);
-				dataSize = sizeof(float) * numComponent * width * height;
-			}
-			else
-			{
-				data = stbi_load(path, &width, &height, &numComponent, STBI_default);
-				dataSize = sizeof(uint8) * numComponent * width * height;
-			}
-			stbi_set_flip_vertically_on_load(false);
-			return data != nullptr;
-		}
-	};
 
 	RHITexture2D* RHIUtility::LoadTexture2DFromFile(DataCacheInterface& dataCache, char const* path, TextureLoadOption const& option)
 	{
@@ -262,7 +226,7 @@ namespace Render
 
 
 		void* pData;
-		STBImageData imageData;
+		ImageData imageData;
 		std::vector< uint8 > cachedImageData;
 		auto LoadCache = [&imageData, &cachedImageData](IStreamSerializer& serializer)-> bool
 		{
@@ -277,7 +241,7 @@ namespace Render
 		};
 		if( !dataCache.loadDelegate(cacheKey, LoadCache) )
 		{
-			if( !imageData.load(path, option) )
+			if( !imageData.load(path, option.bHDR, option.bReverseH) )
 				return false;
 
 			pData = imageData.data;
@@ -302,8 +266,8 @@ namespace Render
 
 	RHITexture2D* RHIUtility::LoadTexture2DFromFile(char const* path , TextureLoadOption const& option )
 	{
-		STBImageData imageData;
-		if( !imageData.load(path, option) )
+		ImageData imageData;
+		if( !imageData.load(path, option.bHDR , option.bReverseH) )
 			return false;
 
 		return RHICreateTexture2D(option.getFormat(imageData.numComponent), imageData.width, imageData.height, option.numMipLevel, 1 , option.creationFlags, imageData.data, 1);
@@ -311,18 +275,23 @@ namespace Render
 
 	RHITextureCube* RHIUtility::LoadTextureCubeFromFile(char const* paths[], TextureLoadOption const& option)
 	{
-		STBImageData imageDatas[Texture::FaceCount];
+		ImageData imageDatas[Texture::FaceCount];
 
 		void* data[Texture::FaceCount];
 		for( int i = 0; i < Texture::FaceCount; ++i )
 		{
-			if( !imageDatas[i].load(paths[i], option) )
+			if( !imageDatas[i].load(paths[i], option.bHDR, option.bReverseH) )
 				return false;
 
 			data[i] = imageDatas[i].data;
 		}
 
 		return RHICreateTextureCube(option.getFormat(imageDatas[0].numComponent), imageDatas[0].width, option.numMipLevel, option.creationFlags, data);
+	}
+
+	RHITexture2D* RHIUtility::CreateTexture2D(ImageData const& imageData, TextureLoadOption const& option)
+	{
+		return RHICreateTexture2D(option.getFormat(imageData.numComponent), imageData.width, imageData.height, option.numMipLevel, 1, option.creationFlags, imageData.data, 1);
 	}
 
 	Texture::Format TextureLoadOption::getFormat(int numComponent) const

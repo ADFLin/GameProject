@@ -187,9 +187,10 @@ namespace RenderVulkan
 			mIndexNextQuery = 0;
 		}
 
-		virtual void endFrame()
+		virtual bool endFrame()
 		{
 			vkGetQueryPoolResults(mDevice, mTimestampQueryPool, 0, mIndexNextQuery, mIndexNextQuery * sizeof(uint64), mTimesampResult.data(), sizeof(uint64), VK_QUERY_RESULT_64_BIT | VK_QUERY_RESULT_WAIT_BIT );
+			return true;
 		}
 
 		virtual uint32 fetchTiming()

@@ -11,4 +11,16 @@ namespace Render
 
 	}
 
+	bool ShaderParameter::bind(ShaderParameterMap const& paramMap, char const* name)
+	{
+		auto iter = paramMap.mMap.find(name);
+		if( iter == paramMap.mMap.end() )
+		{
+			return false;
+		}
+
+		mLoc = iter->second.mLoc;
+		return true;
+	}
+
 }//namespace Render

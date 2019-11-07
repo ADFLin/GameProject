@@ -8,6 +8,7 @@
 #if CPP_CHARCONV_SUPPORT
 #include <charconv>
 #endif
+
 template< class T >
 struct TStringFormatInitializer
 {
@@ -16,7 +17,9 @@ struct TStringFormatInitializer
 	void operator()( CharT(&data)[N] ) const
 	{
 #if CPP_CHARCONV_SUPPORT
-		std::to_chars(data, data + N, value);
+		CharT* ptr = std::to_chars(data, data + N, value).ptr;
+		assert(ptr < data + N );
+		*ptr = 0;
 #else
 		FCString::PrintfT(data, TTypeFormatTraits<T>::GetString(), value);
 #endif

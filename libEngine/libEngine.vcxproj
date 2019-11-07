@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<Project DefaultTargets="Build" ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+<Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">
       <Configuration>Debug</Configuration>
@@ -21,30 +21,30 @@
   <PropertyGroup Label="Globals">
     <ProjectGuid>{C1B32C2B-9A40-4874-869F-FCC57BB1D93F}</ProjectGuid>
     <RootNamespace>LibEngine</RootNamespace>
-    <WindowsTargetPlatformVersion>8.1</WindowsTargetPlatformVersion>
+    <WindowsTargetPlatformVersion>10.0.17763.0</WindowsTargetPlatformVersion>
     <ProjectName>EngineCore</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
     <ConfigurationType>StaticLibrary</ConfigurationType>
-    <PlatformToolset>v140</PlatformToolset>
+    <PlatformToolset>v141</PlatformToolset>
     <CharacterSet>NotSet</CharacterSet>
     <WholeProgramOptimization>true</WholeProgramOptimization>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <ConfigurationType>StaticLibrary</ConfigurationType>
-    <PlatformToolset>v140</PlatformToolset>
+    <PlatformToolset>v141</PlatformToolset>
     <CharacterSet>NotSet</CharacterSet>
     <WholeProgramOptimization>true</WholeProgramOptimization>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
     <ConfigurationType>StaticLibrary</ConfigurationType>
-    <PlatformToolset>v140</PlatformToolset>
+    <PlatformToolset>v141</PlatformToolset>
     <CharacterSet>NotSet</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <ConfigurationType>StaticLibrary</ConfigurationType>
-    <PlatformToolset>v140</PlatformToolset>
+    <PlatformToolset>v141</PlatformToolset>
     <CharacterSet>NotSet</CharacterSet>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
@@ -91,6 +91,7 @@
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <RemoveUnreferencedCodeData>false</RemoveUnreferencedCodeData>
       <BrowseInformation>true</BrowseInformation>
+      <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <ProjectReference>
       <LinkLibraryDependencies>true</LinkLibraryDependencies>
@@ -140,6 +141,7 @@
       <ProgramDataBaseFileName>$(IntDir)vc$(PlatformToolsetVersion).pdb</ProgramDataBaseFileName>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <EnableEnhancedInstructionSet>NotSet</EnableEnhancedInstructionSet>
+      <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <ProjectReference>
       <LinkLibraryDependencies>true</LinkLibraryDependencies>
@@ -243,10 +245,11 @@
     <ClCompile Include="FlowSystem.cpp" />
     <ClCompile Include="GameFramework\EntityManager.cpp" />
     <ClCompile Include="Hardware\GPUDeviceQuery.cpp" />
+    <ClCompile Include="Image\GIFLoader.cpp" />
+    <ClCompile Include="Image\ImageData.cpp" />
     <ClCompile Include="Json.cpp" />
     <ClCompile Include="LogSystem.cpp" />
     <ClCompile Include="FileSystem.cpp" />
-    <ClCompile Include="GIFLoader.cpp" />
     <ClCompile Include="GLGraphics2D.cpp" />
     <ClCompile Include="HashString.cpp" />
     <ClCompile Include="Math\BigFloat.cpp" />
@@ -372,6 +375,8 @@
     <ClInclude Include="Delegate.h" />
     <ClInclude Include="GameFramework\EntityManager.h" />
     <ClInclude Include="Hardware\GPUDeviceQuery.h" />
+    <ClInclude Include="Image\GIFLoader.h" />
+    <ClInclude Include="Image\ImageData.h" />
     <ClInclude Include="Json.h" />
     <ClInclude Include="Math\GeometryAlgo2D.h" />
     <ClInclude Include="Math\GeometryPrimitive.h" />
@@ -380,6 +385,9 @@
     <ClInclude Include="Math\TVector2.h" />
     <ClInclude Include="Math\TVector3.h" />
     <ClInclude Include="Math\TVector4.h" />
+    <ClInclude Include="Meta\MetaBase.h" />
+    <ClInclude Include="Meta\MetaFunction.h" />
+    <ClInclude Include="Meta\MetaTypeList.h" />
     <ClInclude Include="Misc\Guid.h" />
     <ClInclude Include="Misc\ImageMergeHelper.h" />
     <ClInclude Include="ObjectHandle.h" />
@@ -401,7 +409,6 @@
     <ClInclude Include="FunCallback.h" />
     <ClInclude Include="GameEngine.h" />
     <ClInclude Include="GameLoop.h" />
-    <ClInclude Include="GIFLoader.h" />
     <ClInclude Include="GLConfig.h" />
     <ClInclude Include="GLGraphics2D.h" />
     <ClInclude Include="Graphics2DBase.h" />
@@ -422,9 +429,6 @@
     <ClInclude Include="Math\Vector3.h" />
     <ClInclude Include="Math\Vector4.h" />
     <ClInclude Include="MemorySecurity.h" />
-    <ClInclude Include="MetaBase.h" />
-    <ClInclude Include="MetaFunction.h" />
-    <ClInclude Include="MetaTypeList.h" />
     <ClInclude Include="MortonCode.h" />
     <ClInclude Include="Phy2D\Base.h" />
     <ClInclude Include="Phy2D\Collision.h" />

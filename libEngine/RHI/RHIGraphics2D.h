@@ -24,8 +24,8 @@ namespace Render
 
 		typedef TRenderRT< RTVF_XYZ_CA > MyRender;
 
-		void flushCommond();
-		void addPolygon(Vector2 v[], int numV, Color4f const* color, float depth,  Color4f const* lineColor ,float lineDepth );
+		void flushCommond(RHICommandList& commandList);
+		void addPolygon(Vector2 v[], int numV, Color4f const* color, float depth, Color4f const* lineColor, float lineDepth);
 		void addPolygonLine(Vector2 v[], int numV, Color4f const& color, float depth);
 		void reverseColoredVertex(int num);
 		
@@ -107,13 +107,13 @@ namespace Render
 
 		void  beginClip(Vec2i const& pos, Vec2i const& size)
 		{
-			RHISetRasterizerState(RHICommandList::GetImmediateList(), TStaticRasterizerState< ECullMode::None , EFillMode::Solid , true >::GetRHI());
-			RHISetScissorRect(RHICommandList::GetImmediateList(), pos.x, pos.y, size.x, size.y);
+			RHISetRasterizerState(GetCommandList(), TStaticRasterizerState< ECullMode::None , EFillMode::Solid , true >::GetRHI());
+			RHISetScissorRect(GetCommandList(), pos.x, pos.y, size.x, size.y);
 		}
 		void  endClip()
 		{
-			RHISetRasterizerState(RHICommandList::GetImmediateList(), TStaticRasterizerState< ECullMode::None, EFillMode::Solid, false >::GetRHI());
-			RHISetScissorRect(RHICommandList::GetImmediateList() );
+			RHISetRasterizerState(GetCommandList(), TStaticRasterizerState< ECullMode::None, EFillMode::Solid, false >::GetRHI());
+			RHISetScissorRect(GetCommandList());
 		}
 
 		void  beginBlend(Vector2 const& pos, Vector2 const& size, float alpha);
@@ -166,9 +166,13 @@ namespace Render
 		void drawPolygonBuffer();
 		void drawLineBuffer();
 
+		RHICommandList& GetCommandList()
+		{
+			return RHICommandList::GetImmediateList();
+		}
 		void   flushCommand()
 		{
-			mBatchedDrawer.flushCommond();
+			mBatchedDrawer.flushCommond(GetCommandList());
 			mDepth = 0;
 		}
 		int       mWidth;

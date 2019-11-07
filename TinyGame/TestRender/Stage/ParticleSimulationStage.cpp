@@ -66,7 +66,7 @@ namespace Render
 		typedef ParticleSimBaseProgram BaseClass;
 
 
-		void bindParameters(ShaderParameterMap& parameterMap)
+		void bindParameters(ShaderParameterMap const& parameterMap)
 		{
 		}
 
@@ -100,11 +100,11 @@ namespace Render
 		DECLARE_SHADER_PROGRAM(ParticleUpdateProgram, Global);
 		typedef ParticleSimBaseProgram BaseClass;
 
-		void bindParameters(ShaderParameterMap& parameterMap)
+		void bindParameters(ShaderParameterMap const& parameterMap)
 		{
 			BaseClass::bindParameters(parameterMap);
-			parameterMap.bind( mParamDeltaTime , SHADER_PARAM(DeltaTime));
-			parameterMap.bind( mParamNumCollisionPrimitive , SHADER_PARAM(NumCollisionPrimitive));
+			mParamDeltaTime.bind(parameterMap, SHADER_PARAM(DeltaTime));
+			mParamNumCollisionPrimitive.bind(parameterMap, SHADER_PARAM(NumCollisionPrimitive));
 		}
 
 		void setParameters(RHICommandList& commandList,
@@ -147,9 +147,9 @@ namespace Render
 		DECLARE_SHADER_PROGRAM(SimpleSpriteParticleProgram, Global);
 		typedef GlobalShaderProgram BaseClass;
 
-		void bindParameters(ShaderParameterMap& parameterMap)
+		void bindParameters(ShaderParameterMap const& parameterMap)
 		{
-			parameterMap.bind(mParamBaseTexture, SHADER_PARAM(BaseTexture));
+			mParamBaseTexture.bind(parameterMap, SHADER_PARAM(BaseTexture));
 		}
 
 		void setParameters(RHICommandList& commandList,
@@ -193,7 +193,7 @@ namespace Render
 
 		static bool constexpr UseTesselation = true;
 
-		void bindParameters(ShaderParameterMap& parameterMap)
+		void bindParameters(ShaderParameterMap const& parameterMap)
 		{
 
 		}
@@ -246,7 +246,7 @@ namespace Render
 		DECLARE_SHADER_PROGRAM(TTessellationProgram, Global);
 		typedef GlobalShaderProgram BaseClass;
 
-		void bindParameters(ShaderParameterMap& parameterMap)
+		void bindParameters(ShaderParameterMap const& parameterMap)
 		{
 
 		}
@@ -306,13 +306,13 @@ namespace Render
 		DECLARE_SHADER_PROGRAM(WaterSimulationProgram, Global);
 		typedef GlobalShaderProgram BaseClass;
 
-		void bindParameters(ShaderParameterMap& parameterMap)
+		void bindParameters(ShaderParameterMap const& parameterMap)
 		{
 			BaseClass::bindParameters(parameterMap);
-			parameterMap.bind(mParamDataIn, SHADER_PARAM(WaterDataInBlock));
-			parameterMap.bind(mParamDataOut, SHADER_PARAM(WaterDataOutBlock));
-			parameterMap.bind(mParamWaterParam, SHADER_PARAM(WaterParam));
-			parameterMap.bind(mParamTileNum, SHADER_PARAM(TileNum));
+			mParamDataIn.bind(parameterMap, SHADER_PARAM(WaterDataInBlock));
+			mParamDataOut.bind(parameterMap, SHADER_PARAM(WaterDataOutBlock));
+			mParamWaterParam.bind(parameterMap, SHADER_PARAM(WaterParam));
+			mParamTileNum.bind(parameterMap, SHADER_PARAM(TileNum));
 		}
 
 		void setParameters(RHICommandList& commandList, Vector4 const& param , int TileNum , RHIVertexBuffer& DataIn , RHIVertexBuffer& DataOut )
@@ -355,11 +355,11 @@ namespace Render
 		DECLARE_SHADER_PROGRAM(WaterUpdateNormalProgram, Global);
 		typedef GlobalShaderProgram BaseClass;
 
-		void bindParameters(ShaderParameterMap& parameterMap)
+		void bindParameters(ShaderParameterMap const& parameterMap)
 		{
 			BaseClass::bindParameters(parameterMap);
-			parameterMap.bind(mParamData, SHADER_PARAM(WaterDataOutBlock));
-			parameterMap.bind(mParamTileNum, SHADER_PARAM(TileNum));
+			mParamData.bind(parameterMap, SHADER_PARAM(WaterDataOutBlock));
+			mParamTileNum.bind(parameterMap, SHADER_PARAM(TileNum));
 		}
 
 		void setParameters(RHICommandList& commandList, int TileNum, RHIVertexBuffer& Data)
@@ -398,11 +398,11 @@ namespace Render
 		DECLARE_SHADER_PROGRAM(WaterProgram, Global);
 		typedef GlobalShaderProgram BaseClass;
 
-		void bindParameters(ShaderParameterMap& parameterMap)
+		void bindParameters(ShaderParameterMap const& parameterMap)
 		{
 			BaseClass::bindParameters(parameterMap);
-			parameterMap.bind(mParamDataIn, SHADER_PARAM(WaterDataInBlock));
-			parameterMap.bind(mParamTileNum, SHADER_PARAM(TileNum));
+			mParamDataIn.bind(parameterMap, SHADER_PARAM(WaterDataInBlock));
+			mParamTileNum.bind(parameterMap, SHADER_PARAM(TileNum));
 		}
 
 		void setParameters(RHICommandList& commandList, int TileNum, RHIVertexBuffer& DataIn)

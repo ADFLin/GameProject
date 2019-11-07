@@ -505,6 +505,7 @@ namespace Render
 
 		InputLayoutDesc&   addElement(uint8 idxStream, uint8 attribute, Vertex::Format f, bool bNormailzed = false, bool bInstanceData = false, int stridePerStride = 0);
 
+		void setElementUnusable(uint8 attribute);
 
 		InputElementDesc const* findElementByAttribute(uint8 attribute) const;
 		int                getAttributeOffset(uint8 attribute) const;

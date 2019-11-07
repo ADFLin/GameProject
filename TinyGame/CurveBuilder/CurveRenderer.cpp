@@ -21,7 +21,7 @@ namespace CB
 		}
 
 
-		void bindParameters(ShaderParameterMap& parameterMap)
+		void bindParameters(ShaderParameterMap const& parameterMap)
 		{
 
 		}
@@ -58,7 +58,7 @@ namespace CB
 			option.addDefine(SHADER_PARAM(USE_OIT), true);
 		}
 
-		void bindParameters(ShaderParameterMap& parameterMap)
+		void bindParameters(ShaderParameterMap const& parameterMap)
 		{
 			BaseClass::bindParameters(parameterMap);
 			mParamOITCommon.bindParameters(parameterMap);
@@ -92,11 +92,11 @@ namespace CB
 			return enties;
 		}
 
-		void bindParameters(ShaderParameterMap& parameterMap)
+		void bindParameters(ShaderParameterMap const& parameterMap)
 		{
-			parameterMap.bind(mParamNormalLength, SHADER_PARAM(NormalLength));
-			parameterMap.bind(mParamNormalColor, SHADER_PARAM(NormalColor));
-			parameterMap.bind(mParamDensityAndSize, SHADER_PARAM(DensityAndSize));
+			mParamNormalLength.bind(parameterMap, SHADER_PARAM(NormalLength));
+			mParamNormalColor.bind(parameterMap, SHADER_PARAM(NormalColor));
+			mParamDensityAndSize.bind(parameterMap, SHADER_PARAM(DensityAndSize));
 		}
 
 		void setParameters(RHICommandList& commandList, Vector4 const& inColor , float inNormalLength , int inDensity , int inSize )

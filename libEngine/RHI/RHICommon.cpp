@@ -43,6 +43,11 @@ namespace Render
 		return *this;
 	}
 
+	void InputLayoutDesc::setElementUnusable(uint8 attribute)
+	{
+
+	}
+
 	InputElementDesc const* InputLayoutDesc::findElementByAttribute(uint8 attribute) const
 	{
 		for( auto const& decl : mElements )

@@ -1,7 +1,7 @@
 #ifndef StreamBuffer_h__
 #define StreamBuffer_h__
 
-#include "MetaBase.h"
+#include "Meta/MetaBase.h"
 #include "CompilerConfig.h"
 #include "DataStream.h"
 

@@ -6,7 +6,7 @@
 
 #include "ResID.h"
 #include "ZFont.h"
-#include "GIFLoader.h"
+#include "Image/GIFLoader.h"
 
 #include "glexten.h"
 #include <olectl.h>

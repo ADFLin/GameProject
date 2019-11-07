@@ -502,7 +502,7 @@ namespace Poker { namespace Big2 {
 			to.x = ( ::Global::Random() % 50 ) - 25;
 			to.y = ( ::Global::Random() % 50 ) - 25;
 			mTweener.tweenValue< Easing::OExpo >( mShowCardOffset[ tPos ] , Vector2( from ) , to , 500 )
-				.finishCallback( std::tr1::bind( &Scene::drawLastCardOnBitmap , this ) );
+				.finishCallback( std::bind( &Scene::drawLastCardOnBitmap , this ) );
 			for( int i = 0 ; i < info->num ; ++i )
 			{
 				mShowCardTrans[i].offset.x = ( ::Global::Random() % 5 ) - 2;
@@ -834,7 +834,7 @@ namespace Poker { namespace Big2 {
 			if ( count )
 			{
 				msScene->getTweener().tweenValue< Easing::IOCubic >( mCardPosOffset , 0.0f , float( ( mCurCardNum - mClinetCards->size() ) * NextOffset * 0.5f ) , AnimTime )
-					.finishCallback( std::tr1::bind( &CardListUI::animFinish , this ) );
+					.finishCallback( std::bind( &CardListUI::animFinish , this ) );
 				mHaveAnim = true;
 			}
 		}

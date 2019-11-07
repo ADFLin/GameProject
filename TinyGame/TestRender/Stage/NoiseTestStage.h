@@ -283,14 +283,14 @@ namespace Render
 		}
 
 
-		virtual void bindParameters(ShaderParameterMap& parameterMap) override
+		virtual void bindParameters(ShaderParameterMap const& parameterMap) override
 		{
-			parameterMap.bind(mParamTime, SHADER_PARAM(Time));
-			parameterMap.bind(mParamFBMFactor, SHADER_PARAM(FBMFactor));
-			parameterMap.bind(mParamRandTexture, SHADER_PARAM(RandTexture));
-			parameterMap.bind(mParamNoiseTexture, SHADER_PARAM(NoiseTexture));
-			parameterMap.bind(mParamVolumeTexture, SHADER_PARAM(VolumeTexture));
-			parameterMap.bind(mParamNoiseVolumeTexture, SHADER_PARAM(NoiseVolumeTexture));
+			mParamTime.bind(parameterMap, SHADER_PARAM(Time));
+			mParamFBMFactor.bind(parameterMap, SHADER_PARAM(FBMFactor));
+			mParamRandTexture.bind(parameterMap, SHADER_PARAM(RandTexture));
+			mParamNoiseTexture.bind(parameterMap, SHADER_PARAM(NoiseTexture));
+			mParamVolumeTexture.bind(parameterMap, SHADER_PARAM(VolumeTexture));
+			mParamNoiseVolumeTexture.bind(parameterMap, SHADER_PARAM(NoiseVolumeTexture));
 
 		}
 
@@ -377,7 +377,8 @@ namespace Render
 
 	};
 
-#define SHADER_BIND_PARAM( NAME ) parameterMap.bind(mParam##NAME, SHADER_PARAM(NAME))
+#define SHADER_BIND_PARAM( NAME ) mParam##NAME.bind(parameterMap, SHADER_PARAM(NAME))
+
 	class SmokeRenderProgram : public NoiseShaderProgramBase
 	{
 		typedef NoiseShaderProgramBase BaseClass;
@@ -398,7 +399,7 @@ namespace Render
 			return entries;
 		}
 
-		virtual void bindParameters(ShaderParameterMap& parameterMap) override
+		virtual void bindParameters(ShaderParameterMap const& parameterMap) override
 		{
 			BaseClass::bindParameters(parameterMap);
 			SHADER_BIND_PARAM(VolumeMin);
@@ -451,7 +452,7 @@ namespace Render
 			return entries;
 		}
 
-		virtual void bindParameters(ShaderParameterMap& parameterMap) override
+		virtual void bindParameters(ShaderParameterMap const& parameterMap) override
 		{
 			BaseClass::bindParameters(parameterMap);
 			SHADER_BIND_PARAM(FrameTexture);
@@ -513,6 +514,8 @@ namespace Render
 		SmokeRenderProgram*     mProgSmokeRender;
 		SmokeBlendProgram*      mProgSmokeBlend;
 
+		class PointToRectOutlineProgram* mProgPointToRectOutline;
+
 		ResovleDepthProgram*    mProgResolveDepth;
 
 		TStructuredBuffer< TiledLightInfo > mLightsBuffer;
@@ -529,11 +532,16 @@ namespace Render
 		RHITexture2DRef    mScreenBuffer;
 
 		RHITexture2DRef    mGrassTexture;
-		Mesh  mGrassPlane;
+		Mesh  mGrassMesh;
+		Mesh  mGrassMeshOpt;
+		bool  mbUseOptMesh = false;
+
 		ShaderProgram    mProgGrass;
 		ShaderProgram    mProgGrassInstanced;
-		InstancedMesh    mInstanceMesh;
+		InstancedMesh    mInstancedMesh;
 		bool             mbDrawInstaced = true;
+
+		std::vector< Vector2 > mImagePixels;
 
 		SmokeParams mSmokeParams;
 		float mDensityFactor = 1.0;

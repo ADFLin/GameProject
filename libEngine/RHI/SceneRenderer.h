@@ -103,7 +103,7 @@ namespace Render
 	class GBufferShaderParameters
 	{
 	public:
-		void bindParameters(ShaderParameterMap& parameterMap, bool bUseDepth = false);
+		void bindParameters(ShaderParameterMap const& parameterMap, bool bUseDepth = false);
 
 		void setParameters(RHICommandList& commandList, ShaderProgram& program, GBufferParamData& GBufferData);
 		void setParameters(RHICommandList& commandList, ShaderProgram& program, SceneRenderTargets& sceneRenderTargets);
@@ -416,12 +416,12 @@ namespace Render
 	struct OITCommonParameter
 	{
 
-		void bindParameters(ShaderParameterMap& parameterMap)
+		void bindParameters(ShaderParameterMap const& parameterMap)
 		{
-			parameterMap.bind(mParamColorStorageTexture, SHADER_PARAM(ColorStorageRWTexture));
-			parameterMap.bind(mParamNodeAndDepthStorageTexture, SHADER_PARAM(NodeAndDepthStorageRWTexture));
-			parameterMap.bind(mParamNodeHeadTexture, SHADER_PARAM(NodeHeadRWTexture));
-			parameterMap.bind(mParamNextIndex, SHADER_PARAM(NextIndex));
+			mParamColorStorageTexture.bind(parameterMap, SHADER_PARAM(ColorStorageRWTexture));
+			mParamNodeAndDepthStorageTexture.bind(parameterMap, SHADER_PARAM(NodeAndDepthStorageRWTexture));
+			mParamNodeHeadTexture.bind(parameterMap, SHADER_PARAM(NodeHeadRWTexture));
+			mParamNextIndex.bind(parameterMap, SHADER_PARAM(NextIndex));
 		}
 
 		void setParameters(RHICommandList& commandList, ShaderProgram& shader , OITShaderData& data)

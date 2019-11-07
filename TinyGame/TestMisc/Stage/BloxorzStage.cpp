@@ -407,7 +407,7 @@ namespace Bloxorz
 		}
 		float time = 0.4f;
 		mRotateAngle = 0;
-		mTweener.tweenValue< Easing::OQuad >( mRotateAngle , 0.0f , 90.0f , time ).finishCallback( std::tr1::bind( &TestStage::moveObject , this ) );
+		mTweener.tweenValue< Easing::OQuad >( mRotateAngle , 0.0f , 90.0f , time ).finishCallback( std::bind( &TestStage::moveObject , this ) );
 		Vec3f to;
 		to.x = testObj.getPos().x + 1;
 		to.y = testObj.getPos().y + 1;

@@ -71,9 +71,6 @@
     <Filter Include="Memory">
       <UniqueIdentifier>{5365de4e-dbab-4145-8e9c-9bbaa473a9fa}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Core\Meta">
-      <UniqueIdentifier>{f23b0b33-c6a3-4d1d-a6e1-8688ad60752d}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Compiler">
       <UniqueIdentifier>{3d52d85a-20f4-4166-8ea6-9248666a8d99}</UniqueIdentifier>
     </Filter>
@@ -131,6 +128,9 @@
     <Filter Include="Serialize">
       <UniqueIdentifier>{0666c421-5573-437b-9242-765ac0d902aa}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Meta">
+      <UniqueIdentifier>{dca9d62c-e6fd-42f1-bf94-6421eeda46c8}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="AppEntry.cpp">
@@ -186,9 +186,6 @@
     </ClCompile>
     <ClCompile Include="UnitTest\TestClass.cpp">
       <Filter>UnitTest</Filter>
-    </ClCompile>
-    <ClCompile Include="GIFLoader.cpp">
-      <Filter>Image</Filter>
     </ClCompile>
     <ClCompile Include="GLGraphics2D.cpp">
       <Filter>Opengl</Filter>
@@ -424,6 +421,12 @@
     <ClCompile Include="Core\CRC.cpp">
       <Filter>Core</Filter>
     </ClCompile>
+    <ClCompile Include="Image\ImageData.cpp">
+      <Filter>Image</Filter>
+    </ClCompile>
+    <ClCompile Include="Image\GIFLoader.cpp">
+      <Filter>Image</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ConsoleSystem.h">
@@ -573,9 +576,6 @@
     <ClInclude Include="UnitTest.h">
       <Filter>UnitTest</Filter>
     </ClInclude>
-    <ClInclude Include="GIFLoader.h">
-      <Filter>Image</Filter>
-    </ClInclude>
     <ClInclude Include="Any.h">
       <Filter>Core</Filter>
     </ClInclude>
@@ -689,15 +689,6 @@
     </ClInclude>
     <ClInclude Include="DataBitSerialize.h">
       <Filter>Utility</Filter>
-    </ClInclude>
-    <ClInclude Include="MetaTypeList.h">
-      <Filter>Core\Meta</Filter>
-    </ClInclude>
-    <ClInclude Include="MetaFunction.h">
-      <Filter>Core\Meta</Filter>
-    </ClInclude>
-    <ClInclude Include="MetaBase.h">
-      <Filter>Core\Meta</Filter>
     </ClInclude>
     <ClInclude Include="LogSystem.h">
       <Filter>標頭檔</Filter>
@@ -1070,6 +1061,21 @@
     </ClInclude>
     <ClInclude Include="Math\TVector4.h">
       <Filter>Math</Filter>
+    </ClInclude>
+    <ClInclude Include="Meta\MetaBase.h">
+      <Filter>Meta</Filter>
+    </ClInclude>
+    <ClInclude Include="Meta\MetaFunction.h">
+      <Filter>Meta</Filter>
+    </ClInclude>
+    <ClInclude Include="Meta\MetaTypeList.h">
+      <Filter>Meta</Filter>
+    </ClInclude>
+    <ClInclude Include="Image\ImageData.h">
+      <Filter>Image</Filter>
+    </ClInclude>
+    <ClInclude Include="Image\GIFLoader.h">
+      <Filter>Image</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

@@ -22,8 +22,8 @@ namespace Math
 	{
 		modifyOrientation( q );
 		modifyTranslation( pos );
-		m_val[3] = m_val[7] = m_val[11]= 0;
-		m_val[15] = 1.0f;
+		mValues[3] = mValues[7] = mValues[11]= 0;
+		mValues[15] = 1.0f;
 	}
 
 	void Matrix4::modifyOrientation( Quaternion const& q )
@@ -40,10 +40,10 @@ namespace Math
 	{
 		assert( isAffine() );
 
-		float m00 = m_m[0][0], m01 = m_m[0][1], m02 = m_m[0][2];
-		float m10 = m_m[1][0], m11 = m_m[1][1], m12 = m_m[1][2];
-		float m20 = m_m[2][0], m21 = m_m[2][1], m22 = m_m[2][2];
-		float m30 = m_m[3][0], m31 = m_m[3][1], m32 = m_m[3][2];
+		float m00 = mM[0][0], m01 = mM[0][1], m02 = mM[0][2];
+		float m10 = mM[1][0], m11 = mM[1][1], m12 = mM[1][2];
+		float m20 = mM[2][0], m21 = mM[2][1], m22 = mM[2][2];
+		float m30 = mM[3][0], m31 = mM[3][1], m32 = mM[3][2];
 
 		float v0 = m20 * m31 - m21 * m30;
 		float v1 = m20 * m32 - m22 * m30;
@@ -92,10 +92,10 @@ namespace Math
 	bool  Matrix4::inverse( Matrix4& m , float& det ) const
 	{
 		//inv(M) = cofactor / det(M)
-		float m00 = m_m[0][0], m01 = m_m[0][1], m02 = m_m[0][2], m03 = m_m[0][3];
-		float m10 = m_m[1][0], m11 = m_m[1][1], m12 = m_m[1][2], m13 = m_m[1][3];
-		float m20 = m_m[2][0], m21 = m_m[2][1], m22 = m_m[2][2], m23 = m_m[2][3];
-		float m30 = m_m[3][0], m31 = m_m[3][1], m32 = m_m[3][2], m33 = m_m[3][3];
+		float m00 = mM[0][0], m01 = mM[0][1], m02 = mM[0][2], m03 = mM[0][3];
+		float m10 = mM[1][0], m11 = mM[1][1], m12 = mM[1][2], m13 = mM[1][3];
+		float m20 = mM[2][0], m21 = mM[2][1], m22 = mM[2][2], m23 = mM[2][3];
+		float m30 = mM[3][0], m31 = mM[3][1], m32 = mM[3][2], m33 = mM[3][3];
 
 		float v0 = m20 * m31 - m21 * m30;
 		float v1 = m20 * m32 - m22 * m30;
@@ -180,7 +180,7 @@ namespace Math
 
 	bool Matrix4::isAffine() const
 	{
-		return m_val[3] == 0 && m_val[7] == 0 && m_val[11] == 0 && m_val[15] == 1.0;
+		return mValues[3] == 0 && mValues[7] == 0 && mValues[11] == 0 && mValues[15] == 1.0;
 	}
 
 }

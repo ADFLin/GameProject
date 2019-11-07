@@ -190,14 +190,15 @@ void ReplayEditStage::viewReplay()
 	if ( !mIsReplay )
 		return;
 
-	IGameModule* game = Global::GameManager().changeGame( mGameInfo.name );
+	IGameModule* game = Global::ModuleManager().changeGame( mGameInfo.name );
 	if ( game )
 	{
-		game->beginPlay( SMT_REPLAY , *getManager() );
+		game->beginPlay( *getManager() , SMT_REPLAY );
 		//#TODO
-		if( auto gameStage = dynamic_cast<GameStageBase*>(getManager()->getNextStage()) )
+		StageBase* nextStage = getManager()->getNextStage();
+		if( auto gameStage = nextStage->getGameStage() )
 		{
-			if ( auto replayMode = dynamic_cast<ReplayStageMode*>(gameStage->getStageMode()) )
+			if ( auto replayMode = gameStage->getStageMode()->getReplayMode() )
 			{
 				replayMode->setReplayPath(mReplayFilePath);
 

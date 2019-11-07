@@ -17,9 +17,20 @@ namespace Cube
 		return nullptr;
 	}
 
-	void GameModule::beginPlay( StageModeType type, StageManager& manger )
+	bool GameModule::getAttribValue(AttribValue& value)
 	{
-		IGameModule::beginPlay( type , manger );
+		switch( value.id )
+		{
+		case ATTR_SINGLE_SUPPORT:
+			value.iVal = 1;
+			return true;
+		}
+		return false;
+	}
+
+	void GameModule::beginPlay(StageManager& manger, StageModeType modeType)
+	{
+		changeDefaultStage(manger, modeType);
 	}
 
 	void GameModule::enter()

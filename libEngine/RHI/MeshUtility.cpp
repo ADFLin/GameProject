@@ -46,6 +46,13 @@ namespace Render
 		if( !mInputLayout.isValid() )
 			return false;
 
+#if 0
+		InputLayoutDesc desc = mInputLayoutDesc;
+		desc.setElementUnusable(Vertex::ATTRIBUTE_COLOR);
+		desc.addElement(1, Vertex::ATTRIBUTE_COLOR, Vertex::eFloat4);
+		mInputLayoutOverwriteColor = RHICreateInputLayout(mInputLayoutDesc);
+#endif
+
 		mVertexBuffer = RHICreateVertexBuffer(mInputLayoutDesc.getVertexSize(), nV, 0 , pVertex);
 		if( !mVertexBuffer.isValid() )
 			return false;
@@ -1803,7 +1810,7 @@ namespace Render
 	{
 		if( bIntType )
 		{
-			return ConvertToTriangleListIndices<int32>(type, (int*)pIndexData, numIndices, outConvertBuffer, outNumTriangles);
+			return ConvertToTriangleListIndices<int32>(type, (int32*)pIndexData, numIndices, outConvertBuffer, outNumTriangles);
 		}
 		else
 		{

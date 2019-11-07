@@ -70,7 +70,7 @@ namespace Cube
 
 		}
 
-		typedef std::tr1::unordered_map< uint64 , WorldData* > WDMap;
+		typedef std::unordered_map< uint64 , WorldData* > WDMap;
 
 		typedef std::vector< WorldData* > WorldDataVec;
 

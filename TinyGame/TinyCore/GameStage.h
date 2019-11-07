@@ -76,6 +76,8 @@ public:
 	virtual bool onKey(unsigned key, bool isDown);
 	virtual bool onWidgetEvent(int event, int id, GWidget* ui);
 
+	virtual GameStageBase* getGameStage() override { return this; }
+
 	virtual void onChangeState(GameState state) {}
 	virtual IFrameActionTemplate* createActionTemplate(unsigned version) { return NULL; }           
 
@@ -83,7 +85,7 @@ public:
 	GameStageMode*   getStageMode() { return mStageMode; }
 
 	ActionProcessor& getActionProcessor() { return mProcessor; }
-	IGameModule*   getGame() { return mGame; }
+	IGameModule*     getGame() { return mGame; }
 	long             getTickTime() { return mTickTime; }
 
 	bool             changeState(GameState state);

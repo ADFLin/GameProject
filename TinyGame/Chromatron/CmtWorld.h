@@ -94,23 +94,6 @@ namespace Chromatron
 
 	};
 
-	enum TransmitStatus
-	{
-		TSS_OK         ,
-		TSS_LOGIC_ERROR  ,
-		TSS_RECALC       ,
-		TSS_INFINITE_LOOP,
-	};
-
-	typedef  std::list< LightTrace > LightList;
-	class WorldUpdateContext;
-
-	class LightSyncProcessor
-	{
-	public:
-		virtual bool prevEffectDevice(Device& dc, LightTrace const& light, int passStep) = 0;
-		virtual bool prevAddLight(Vec2i const& pos, Color color, Dir dir, int param, int age) = 0;
-	};
 
 	class World
 	{
@@ -143,6 +126,24 @@ namespace Chromatron
 		TGrid2D< Tile >  mTileMap;
 	};
 
+
+	enum TransmitStatus
+	{
+		TSS_OK,
+		TSS_LOGIC_ERROR,
+		TSS_RECALC,
+		TSS_INFINITE_LOOP,
+	};
+
+	typedef  std::list< LightTrace > LightList;
+
+	class LightSyncProcessor
+	{
+	public:
+		virtual bool prevEffectDevice(Device& dc, LightTrace const& light, int passStep) = 0;
+		virtual bool prevAddLight(Vec2i const& pos, Color color, Dir dir, int param, int age) = 0;
+	};
+
 	class WorldUpdateContext
 	{
 	public:
@@ -151,11 +152,11 @@ namespace Chromatron
 		World& getWorld(){ return mWorld; }
 
 		TransmitStatus transmitLight();
-		TransmitStatus transmitLightSync( LightSyncProcessor& processor,LightList& transmitLights);
+		TransmitStatus transmitLightSync( LightSyncProcessor& processor, LightList& transmitLights);
 		TransmitStatus evalDeviceEffect(Device& dc, LightTrace const& light);
 
 		Tile&  getTile(Vec2i const& pos) { return mWorld.getTile(pos); }
-		void   addEffectLight( Vec2i const& pos , Color color , Dir dir );
+		void   addEffectedLight( Vec2i const& pos , Color color , Dir dir );
 		void   prevUpdate();
 
 		void   setLightParam( int param ){ mLightParam = param; }

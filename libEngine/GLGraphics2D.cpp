@@ -53,7 +53,7 @@ static char const* fragmentShader = CODE_STRING(
 class BatchedDrawer
 {
 public:
-	void sendDrawCommond()
+	void flushDrawCommond( Render::RHICommandList& commandList )
 	{
 
 
@@ -406,7 +406,7 @@ void GLGraphics2D::drawTextImpl(float  ox, float  oy, char const* str)
 #endif
 	assert( mFont );
 	glColor4f( mColorFont.r , mColorFont.g , mColorFont.b , 1.0 );
-	mFont->draw( Vector2(int(ox),int(oy)) , str );
+	mFont->draw(GetCommandList(), Vector2(int(ox),int(oy)) , str );
 }
 
 #define USE_RENDER_RT 1
@@ -421,20 +421,17 @@ void GLGraphics2D::drawPolygonBuffer()
 
 	assert(!mBuffer.empty());
 
-#if 0
+#if 1
+
 	if( mDrawBrush )
 	{
-		glColor4f(mColorBrush.r, mColorBrush.g, mColorBrush.b, mAlpha);
-		glDrawArrays(GL_POLYGON, 0, mBuffer.size() / 2);
+		TRenderRT<RTVF_XY>::Draw(GetCommandList(), PrimitiveType::Polygon, mBuffer.data(), mBuffer.size() / 2, LinearColor(mColorBrush, mAlpha));
 	}
 	if( mDrawPen )
 	{
-		glColor4f(mColorPen.r, mColorPen.g, mColorPen.b, mAlpha);
-		glDrawArrays(GL_LINE_LOOP, 0, mBuffer.size() / 2);
+		TRenderRT<RTVF_XY>::Draw(GetCommandList(), PrimitiveType::LineLoop, mBuffer.data(), mBuffer.size() / 2, LinearColor(mColorPen, mAlpha));
 	}
-
 #else
-
 	RHISetInputStream(GetCommandList(), nullptr, nullptr, 0);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 
@@ -451,6 +448,7 @@ void GLGraphics2D::drawPolygonBuffer()
 		glDrawArrays(GL_LINE_LOOP, 0, mBuffer.size() / 2);
 	}
 	glDisableClientState(GL_VERTEX_ARRAY);
+
 #endif
 
 }

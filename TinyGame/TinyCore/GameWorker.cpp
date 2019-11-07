@@ -102,7 +102,7 @@ void NetWorker::entryNetThread()
 {
 	gSocketThreadId = PlatformThread::GetCurrentThreadId();
 
-	SystemPlatform::InterlockedExchange(&mbRequestExitNetThread, 0);
+	SystemPlatform::AtomExchange(&mbRequestExitNetThread, 0);
 
 	mNetRunningTime = 0;
 	int64 beforeTime = SystemPlatform::GetTickCount();
@@ -173,7 +173,7 @@ void NetWorker::closeNetwork()
 	}
 
 #if TINY_USE_NET_THREAD
-	SystemPlatform::InterlockedExchange(&mbRequestExitNetThread, 1);
+	SystemPlatform::AtomExchange(&mbRequestExitNetThread, 1);
 	mSocketThread.join();
 #endif
 

@@ -5,12 +5,12 @@
 #include <vector>
 #include <algorithm>
 
-#include "MetaBase.h"
+#include "Meta/MetaBase.h"
 
 namespace Tween
 {
-	typedef std::tr1::function< void () > FinishCallback;
-	typedef std::tr1::function< void () > StartCallback;
+	typedef std::function< void () > FinishCallback;
+	typedef std::function< void () > StartCallback;
 
 	class Access
 	{

@@ -4,7 +4,7 @@
 #include "FixString.h"
 #include "Core/TypeHash.h"
 #include "TypeConstruct.h"
-#include "MetaBase.h"
+#include "Meta/MetaBase.h"
 
 #include <functional>
 #include <cassert>
@@ -118,6 +118,13 @@ struct NameSlot
 		return stricmp(str, other);
 	}
 
+	int compareN(char const* other, int len , bool bCaseSensitive)
+	{
+		if( bCaseSensitive )
+			return str.compareN(other, len);
+		return strnicmp(str, other, len);
+	}
+
 };
 
 struct HashStringInternal
@@ -168,6 +175,60 @@ void HashString::init(char const* str, bool bCaseSensitive)
 	for( ; slot; slot = slot->next )
 	{
 		if( hashValue == slot->hashValue && slot->compare(str, bCaseSensitive) == 0 )
+			break;
+	}
+
+	if( slot == nullptr )
+	{
+		int idx = HashStringInternal::sNameSlots.size();
+		void* ptr = HashStringInternal::sNameSlots.addUninitialized();
+
+		slot = new (ptr) NameSlot;
+		slot->hashValue = hashValue;
+		slot->str = str;
+		slot->index = idx;
+		slot->next = nullptr;
+
+		//#TODO : thread-safe
+		if( NameSlot::sHashTail[idxHash] )
+			NameSlot::sHashTail[idxHash]->next = slot;
+
+		NameSlot::sHashTail[idxHash] = slot;
+
+		if( NameSlot::sHashHead[idxHash] == nullptr )
+			NameSlot::sHashHead[idxHash] = slot;
+	}
+
+	mIndex = slot->index << 1;
+	if( !bCaseSensitive )
+		mIndex |= 0x1;
+	mNumber = 0;
+}
+
+void HashString::init(char const* str, int len, bool bCaseSensitive /*= true*/)
+{
+	if( str == nullptr || len == 0 )
+	{
+		mIndex = 0;
+		mNumber = 0;
+		return;
+	}
+
+#if 0
+	FixString< MaxHashStringLength > temp;
+	if( !bCaseSensitive )
+	{
+		FString::Stricpy(temp, str);
+		str = temp;
+	}
+#endif
+
+	uint32 hashValue = FCString::StriHash(str, len);
+	uint32 idxHash = hashValue % NameSlotHashBucketSize;
+	NameSlot* slot = NameSlot::sHashHead[idxHash];
+	for( ; slot; slot = slot->next )
+	{
+		if( hashValue == slot->hashValue && slot->compareN(str, len, bCaseSensitive) == 0 )
 			break;
 	}
 

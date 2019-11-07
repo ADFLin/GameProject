@@ -123,6 +123,18 @@ enum class RHITargetName
 	Vulkan ,
 };
 
+struct RHIInitializeParams
+{
+	int32 numSamples;
+
+
+	RHIInitializeParams()
+	{
+		numSamples = 1;
+	}
+
+};
+
 class IGameWindowProvider
 {
 public:
@@ -159,11 +171,17 @@ public:
 	TINY_API void drawProfile(Vec2i const& pos);
 
 
-	bool isRHIEnabled() { return mRHIName != RHITargetName::None; }
-	bool isOpenGLEnabled(){ return mRHIName == RHITargetName::OpenGL; }
+	bool isRHIEnabled() const { return mRHIName != RHITargetName::None; }
+	bool isOpenGLEnabled() const { return mRHIName == RHITargetName::OpenGL; }
+	bool isUsageRHIGraphic2D() const
+	{
+		if( mRHIName == RHITargetName::OpenGL )
+			return true;
+		return false;
+	}
 	bool isInitialized() { return mbInitialized; }
 
-	TINY_API bool  initializeRHI(RHITargetName targetName , int numSamples);
+	TINY_API bool  initializeRHI(RHITargetName targetName , RHIInitializeParams initParams = RHIInitializeParams() );
 	TINY_API void  shutdownRHI(bool bDeferred);
 	TINY_API bool  startOpenGL( int numSamples = 1 );
 	TINY_API void  stopOpenGL(bool bDeferred = false);

@@ -146,7 +146,11 @@ namespace Render
 			}
 
 			::Global::GUI().cleanupWidget();
+			
+
+			WidgetUtility::CreateDevFrame();
 			restart();
+			
 			return true;
 		}
 
@@ -182,6 +186,8 @@ namespace Render
 
 		void onRender(float dFrame)
 		{
+			GPU_PROFILE("Render");
+
 			Graphics2D& g = Global::GetGraphics2D();
 
 			RHICommandList& commandList = RHICommandList::GetImmediateList();
@@ -213,6 +219,7 @@ namespace Render
 			float c = 0.5 * Math::Sin(worldTime) + 0.5;
 
 			{
+				GPU_PROFILE("Lock Buffer");
 				auto pData = mCBuffer.lock();
 
 				pData->red = 1;
@@ -222,30 +229,36 @@ namespace Render
 				mCBuffer.unlock();
 			}
 
-			mProgTest.setTexture(commandList, SHADER_PARAM(Texture), *mTexture, SHADER_PARAM(TextureSampler), TStaticSamplerState < Sampler::eTrilinear >::GetRHI());
-			
-			mProgTest.setParam(commandList, SHADER_PARAM(Color), Vector3(c, c, c));
-			mProgTest.setStructuredUniformBufferT< ColourBuffer >(commandList, *mCBuffer.getRHI());
-			mView.setupShader(commandList, mProgTest);
-			Matrix4 xform = Matrix4::Translate(Vector3(0, 0, 0));
-			mProgTest.setParam(commandList, SHADER_PARAM(XForm), xform);
 			{
-				InputStreamInfo inputStream;
-				inputStream.buffer = mVertexBuffer;
-				RHISetInputStream(commandList, mInputLayout, &inputStream, 1);
-				RHISetIndexBuffer(commandList, mIndexBuffer);
-				RHIDrawIndexedPrimitive(commandList, PrimitiveType::TriangleList, 0 , mIndexBuffer->getNumElements(), 0);
+				GPU_PROFILE("Triangle");
+
+				mProgTest.setTexture(commandList, SHADER_PARAM(Texture), *mTexture, SHADER_PARAM(TextureSampler), TStaticSamplerState < Sampler::eTrilinear >::GetRHI());
+
+				mProgTest.setParam(commandList, SHADER_PARAM(Color), Vector3(c, c, c));
+				mProgTest.setStructuredUniformBufferT< ColourBuffer >(commandList, *mCBuffer.getRHI());
+				mView.setupShader(commandList, mProgTest);
+				Matrix4 xform = Matrix4::Translate(Vector3(0, 0, 0));
+				mProgTest.setParam(commandList, SHADER_PARAM(XForm), xform);
+				{
+					InputStreamInfo inputStream;
+					inputStream.buffer = mVertexBuffer;
+					RHISetInputStream(commandList, mInputLayout, &inputStream, 1);
+					RHISetIndexBuffer(commandList, mIndexBuffer);
+					RHIDrawIndexedPrimitive(commandList, PrimitiveType::TriangleList, 0, mIndexBuffer->getNumElements(), 0);
+				}
+
+				xform = Matrix4::Rotate(Vector3(0, 0, 1), angle) * Matrix4::Translate(Vector3(0, 0, 1));
+				mProgTest.setParam(commandList, SHADER_PARAM(XForm), xform);
+				{
+					InputStreamInfo inputStream;
+					inputStream.buffer = mVertexBuffer;
+					RHISetInputStream(commandList, mInputLayout, &inputStream, 1);
+					RHISetIndexBuffer(commandList, mIndexBuffer);
+					RHIDrawIndexedPrimitive(commandList, PrimitiveType::TriangleList, 0, mIndexBuffer->getNumElements(), 0);
+				}
 			}
 		
-			xform = Matrix4::Rotate(Vector3(0, 0, 1), angle) * Matrix4::Translate(Vector3(0, 0, 1));
-			mProgTest.setParam(commandList, SHADER_PARAM(XForm), xform);
-			{
-				InputStreamInfo inputStream;
-				inputStream.buffer = mVertexBuffer;
-				RHISetInputStream(commandList, mInputLayout, &inputStream, 1);
-				RHISetIndexBuffer(commandList, mIndexBuffer);
-				RHIDrawIndexedPrimitive(commandList, PrimitiveType::TriangleList, 0, mIndexBuffer->getNumElements(), 0);
-			}
+
 			mProgTest.setParam(commandList, SHADER_PARAM(XForm), Matrix4::Identity());
 			{
 				InputStreamInfo inputStream;
@@ -255,65 +268,85 @@ namespace Render
 				RHIDrawPrimitive(commandList, PrimitiveType::LineList, 0, 6);
 			}
 
-
-			mProgTest.setParam(commandList, SHADER_PARAM(XForm), Matrix4::Translate( -10 , 0 , 10 ));
 			{
-				mSimpleMeshs[SimpleMeshId::Doughnut].draw(commandList);
+				GPU_PROFILE("Doughnut");
+				mProgTest.setParam(commandList, SHADER_PARAM(XForm), Matrix4::Translate(-10, 0, 10));
+				{
+					mSimpleMeshs[SimpleMeshId::Doughnut].draw(commandList);
+				}
+			}
+			{
+				GPU_PROFILE("Sphere");
+				mProgTest.setParam(commandList, SHADER_PARAM(XForm), Matrix4::Translate(-10, 5, 5));
+				{
+					mSimpleMeshs[SimpleMeshId::Sphere].draw(commandList);
+				}
 			}
 
-
-			mProgTest.setParam(commandList, SHADER_PARAM(XForm), Matrix4::Translate(10, 0, 0));
 			{
-				struct Vertex_XYZ_C
+				GPU_PROFILE("Quad");
+
+				mProgTest.setParam(commandList, SHADER_PARAM(XForm), Matrix4::Translate(10, 0, 0));
 				{
-					Vector3 pos;
-					Vector3 color;
-				};
-				
-				Vertex_XYZ_C vetices[] =
+					struct Vertex_XYZ_C
+					{
+						Vector3 pos;
+						Vector3 color;
+					};
+
+					Vertex_XYZ_C vetices[] =
+					{
+						{ Vector3(0,0,0) , Vector3(1,0,0) },
+						{ Vector3(2,0,0) , Vector3(0,1,0) },
+						{ Vector3(2,2,0) , Vector3(1,1,1) },
+						{ Vector3(0,2,0) , Vector3(0,0,1) },
+					};
+					TRenderRT< RTVF_XYZ_C >::Draw(commandList, PrimitiveType::Quad, vetices, 4);
+				}
+
+				mProgTest.setParam(commandList, SHADER_PARAM(XForm), Matrix4::Translate(0, 10, 0));
 				{
-					{ Vector3(0,0,0) , Vector3(1,0,0) },
-					{ Vector3(2,0,0) , Vector3(0,1,0) },
-					{ Vector3(2,2,0) , Vector3(1,1,1) },
-					{ Vector3(0,2,0) , Vector3(0,0,1) },
-				};
-				TRenderRT< RTVF_XYZ_C >::Draw(commandList, PrimitiveType::Quad, vetices, 4);
+					struct Vertex_XYZ
+					{
+						Vector3 pos;
+					};
+
+					Vertex_XYZ vetices[] =
+					{
+						{ Vector3(0,0,0) },
+						{ Vector3(2,0,0) },
+						{ Vector3(2,2,0) },
+						{ Vector3(0,2,0) },
+					};
+					TRenderRT< RTVF_XYZ >::Draw(commandList, PrimitiveType::Quad, vetices, 4, Vector3(1, 0, 0));
+				}
+
 			}
 
-			mProgTest.setParam(commandList, SHADER_PARAM(XForm), Matrix4::Translate(0, 10, 0));
 			{
-				struct Vertex_XYZ
-				{
-					Vector3 pos;
-				};
+				GPU_PROFILE("Context Flush");
 
-				Vertex_XYZ vetices[] =
-				{
-					{ Vector3(0,0,0) },
-					{ Vector3(2,0,0) },
-					{ Vector3(2,2,0) },
-					{ Vector3(0,2,0) },
-				};
-				TRenderRT< RTVF_XYZ >::Draw(commandList, PrimitiveType::Quad, vetices, 4, Vector3(1, 0, 0));
+				context->Flush();
 			}
-			context->Flush();
-
-
-			if( !::Global::GetDrawEngine().bUsePlatformBuffer )
 			{
-				mSwapChain.ptr->Present(1, 0);
-			}
-			else
-			{
-				TComPtr<IDXGISurface1> surface;
-				VERIFY_D3D11RESULT( mSwapChain.ptr->GetBuffer(0, IID_PPV_ARGS(&surface)) , );
-				HDC hDC;
-				VERIFY_D3D11RESULT( surface->GetDC(FALSE, &hDC) , );
+				GPU_PROFILE("Present");
 
-				int w = ::Global::GetDrawEngine().getScreenWidth();
-				int h = ::Global::GetDrawEngine().getScreenHeight();
-				::BitBlt(g.getRenderDC(), 0, 0, w, h, hDC, 0, 0, SRCCOPY);
-				VERIFY_D3D11RESULT( surface->ReleaseDC(NULL) , );
+				if( !::Global::GetDrawEngine().bUsePlatformBuffer )
+				{
+					mSwapChain.ptr->Present(1, 0);
+				}
+				else
+				{
+					TComPtr<IDXGISurface1> surface;
+					VERIFY_D3D11RESULT(mSwapChain.ptr->GetBuffer(0, IID_PPV_ARGS(&surface)), );
+					HDC hDC;
+					VERIFY_D3D11RESULT(surface->GetDC(FALSE, &hDC), );
+
+					int w = ::Global::GetDrawEngine().getScreenWidth();
+					int h = ::Global::GetDrawEngine().getScreenHeight();
+					::BitBlt(g.getRenderDC(), 0, 0, w, h, hDC, 0, 0, SRCCOPY);
+					VERIFY_D3D11RESULT(surface->ReleaseDC(NULL), );
+				}
 			}
 		}
 

@@ -118,7 +118,7 @@ bool NetRoomStage::onInit()
 			mPlayerPanel->addPlayer( player->getInfo() );
 		}
 
-		IGameModule* curGame = Global::GameManager().getRunningGame();
+		IGameModule* curGame = Global::ModuleManager().getRunningGame();
 		mSettingPanel->setGame( curGame ? curGame->getName() : NULL );
 
 		mHelper->sendSlotStateSV();
@@ -162,7 +162,7 @@ bool NetRoomStage::setupUI(bool bFullSetting)
 {
 
 	GameModuleVec gameVec;
-	Global::GameManager().classifyGame( ATTR_NET_SUPPORT , gameVec );
+	Global::ModuleManager().classifyGame( ATTR_NET_SUPPORT , gameVec );
 	if ( gameVec.empty() )
 	{
 		return false;
@@ -491,17 +491,17 @@ void NetRoomStage::procPlayerState( IComPacket* cp )
 			mReadyButton->enable( false );
 			mExitButton->enable( false );
 
-			assert( Global::GameManager().getRunningGame() );
+			assert( Global::ModuleManager().getRunningGame() );
 
-			Global::GameManager().getRunningGame()->beginPlay( SMT_NET_GAME , *getManager() );
+			Global::ModuleManager().getRunningGame()->beginPlay(  *getManager() , SMT_NET_GAME );
 
 			StageBase* nextStage = getManager()->getNextStage();
 			if( nextStage )
 			{
 				//#TODO
-				if( auto gameStage = dynamic_cast<GameStageBase*>(nextStage) )
+				if( auto gameStage = nextStage->getGameStage() )
 				{
-					auto netStageMode = dynamic_cast<NetLevelStageMode*>(gameStage->getStageMode());
+					auto netStageMode = gameStage->getStageMode()->getNetLevelMode();
 					if( netStageMode )
 					{
 						netStageMode->initWorker(mWorker, mServer);
@@ -694,14 +694,14 @@ void NetRoomStage::generateSetting( CSPRawData& com )
 	com.id = SETTING_DATA_ID;
 	DataStreamBuffer& buffer = com.buffer;
 
-	buffer.fill( Global::GameManager().getRunningGame()->getName() );
+	buffer.fill( Global::ModuleManager().getRunningGame()->getName() );
 	mHelper->exportSetting( buffer );
 }
 
 
 void NetRoomStage::setupGame( char const* name )
 {
-	IGameModule* game = Global::GameManager().changeGame( name );
+	IGameModule* game = Global::ModuleManager().changeGame( name );
 
 	if( game )
 	{

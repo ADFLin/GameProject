@@ -91,11 +91,11 @@ namespace Render
 		}
 		virtual bool getParameter(char const* name, ShaderParameter& outParam)
 		{
-			return mParameterMap.bind(outParam, name);
+			return outParam.bind(mParameterMap, name);
 		}
 		virtual bool getResourceParameter(EShaderResourceType resourceType, char const* name, ShaderParameter& outParam)
 		{
-			return mParameterMap.bind(outParam, name);
+			return outParam.bind(mParameterMap, name);
 		}
 
 

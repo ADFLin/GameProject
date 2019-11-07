@@ -193,7 +193,7 @@ namespace Render
 	{
 	public:
 		RHISytemName getName() const  { return RHISytemName::Opengl; }
-		bool initialize(RHISystemInitParam const& initParam);
+		bool initialize(RHISystemInitParams const& initParam);
 		void shutdown();
 		class ShaderFormat* createShaderFormat();
 		bool RHIBeginRender();

@@ -304,7 +304,7 @@ void LevelStage::tick()
 		mGameOverTimer -= TICK_TIME;
 
 	if( mGameOverTimer <= 0.0 )
-		mScreenFade.fadeOut( std::tr1::bind( &LevelStage::changeMenuStage , this ) );
+		mScreenFade.fadeOut( std::bind( &LevelStage::changeMenuStage , this ) );
 
 }
 
@@ -479,7 +479,7 @@ void LevelStage::onWidgetEvent( int event , int id , QWidget* sender )
 		getGame()->addStage( new MenuStage , true );
 		break;
 	case UI_EXIT_GAME:
-		mScreenFade.fadeOut( std::tr1::bind( &IGame::stopPlay , getGame() ) );
+		mScreenFade.fadeOut( std::bind( &IGame::stopPlay , getGame() ) );
 		break;
 	}
 	BaseClass::onWidgetEvent( event , id , sender );

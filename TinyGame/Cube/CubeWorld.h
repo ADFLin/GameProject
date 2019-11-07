@@ -132,7 +132,7 @@ namespace Cube
 		Chunk* getChunk( int x , int y );
 
 		Chunk* getChunk( ChunkPos const& pos );
-		typedef std::tr1::unordered_map< uint64 , Chunk* > ChunkMap;
+		typedef std::unordered_map< uint64 , Chunk* > ChunkMap;
 		ChunkMap mMap;
 	};
 

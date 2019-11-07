@@ -21,7 +21,7 @@ namespace TowerDefend
 		StageBase*      createStage( unsigned id );
 		bool            getAttribValue( AttribValue& value ){ return false; }
 
-		void beginPlay( StageModeType type, StageManager& manger );
+		void beginPlay( StageManager& manger, StageModeType modeType ) override;
 		virtual void    deleteThis(){ delete this; }
 
 	private:

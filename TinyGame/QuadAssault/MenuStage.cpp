@@ -196,7 +196,7 @@ void MenuStage::onWidgetEvent( int event , int id , QWidget* sender )
 		changeState( MS_SELECT_MENU );
 		break;
 	case UI_EXIT:
-		mScreenFade.fadeOut( std::tr1::bind( &GameStage::stop , this ) );
+		mScreenFade.fadeOut( std::bind( &GameStage::stop , this ) );
 		break;
 	case UI_DEV_TEST:
 		{

@@ -6,7 +6,7 @@
 #include "ZFont.h"
 #include "ResID.h"
 
-#include "GIFLoader.h"
+#include "Image/GIFLoader.h"
 
 namespace Zuma
 {

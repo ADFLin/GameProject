@@ -2,7 +2,8 @@
 #ifndef TypeConstruct_H_CF8B1CE1_FBAC_450E_B932_B8C76DF1B46A
 #define TypeConstruct_H_CF8B1CE1_FBAC_450E_B932_B8C76DF1B46A
 
-#include "MetaBase.h"
+#include "Meta/MetaBase.h"
+
 class TypeDataHelper
 {
 public:

@@ -293,14 +293,15 @@ namespace MRT
 		station->visual->setUserData((intptr_t)station);
 		station->visual->setRenderCallback(
 			RenderCallBack::Create([](GWidget* widget)
-		{
-			Graphics2D& g = ::Global::GetGraphics2D();
-			Station* station = (Station*)widget->getUserData();
-			FixString<256> str;
-			str.format("%s %.2f", station->name.c_str(), station->totalDistance);
+			{
+				Graphics2D& g = ::Global::GetGraphics2D();
+				Station* station = (Station*)widget->getUserData();
+				FixString<256> str;
+				str.format("%s %.2f", station->name.c_str(), station->totalDistance);
 
-			g.drawText(widget->getWorldPos(), widget->getSize(), str);
-		}));
+				g.drawText(widget->getWorldPos(), widget->getSize(), str);
+			})
+		);
 		::Global::GUI().addWidget(station->visual);
 		return station;
 	}

@@ -47,12 +47,15 @@ namespace Meta{
 
 	template < class T , class RT >
 	struct IsMemberFunPointer< RT (T::*)() > : HaveResult< true >{};
-	template < class T , class RT , class P1 >
-	struct IsMemberFunPointer< RT (T::*)( P1 ) > : HaveResult< true >{};
-	template < class T , class RT , class P1 , class P2 >
-	struct IsMemberFunPointer< RT (T::*)( P1 , P2 ) > : HaveResult< true >{};
-	template < class T , class RT , class P1 , class P2 , class P3 >
-	struct IsMemberFunPointer< RT (T::*)( P1 , P2 , P3 ) > : HaveResult< true >{};
+	template < class T , class RT , class ...Args >
+	struct IsMemberFunPointer< RT (T::*)( Args... ) > : HaveResult< true >{};
+	
+	template < class T , int Index >
+	struct GetArgType {};
+
+
+
+
 
 }//namespace Meta
 

@@ -268,22 +268,22 @@ namespace Render
 		cleanup();
 	}
 
-	void FontDrawer::draw(Vector2 const& pos, char const* str)
+	void FontDrawer::draw(RHICommandList& commandList, Vector2 const& pos, char const* str)
 	{
 		assert(isValid());
 		if( str == nullptr )
 			return;
 
 		std::wstring text = FCString::CharToWChar(str);
-		drawImpl(pos, text.c_str());
+		drawImpl(commandList, pos, text.c_str());
 	}
 
-	void FontDrawer::draw(Vector2 const& pos, wchar_t const* str)
+	void FontDrawer::draw(RHICommandList& commandList, Vector2 const& pos, wchar_t const* str)
 	{
 		assert(isValid());
 		if( str == nullptr )
 			return;
-		drawImpl(pos, str);
+		drawImpl(commandList, pos, str);
 	}
 
 	Vector2 FontDrawer::calcTextExtent(wchar_t const* str)
@@ -340,7 +340,7 @@ namespace Render
 		return calcTextExtent(text.c_str());
 	}
 
-	void FontDrawer::drawImpl(Vector2 const& pos, wchar_t const* str)
+	void FontDrawer::drawImpl(RHICommandList& commandList, Vector2 const& pos, wchar_t const* str)
 	{
 		mBuffer.clear();
 		Vector2 curPos = pos;

@@ -164,7 +164,7 @@ namespace Render
 		if( !BaseClass::onInit() )
 			return false;
 
-		if( !::Global::GetDrawEngine().initializeRHI(getRHITargetName(), 1) )
+		if( !::Global::GetDrawEngine().initializeRHI(getRHITargetName()) )
 		{
 			LogWarning(0, "Can't Initialize RHI System! ");
 			return false;
@@ -184,7 +184,7 @@ namespace Render
 
 		mCamera.lookAt(Vector3(20, 20, 20) , Vector3(0, 0, 0), Vector3(0, 0, 1));
 
-		ConsoleSystem::Get().registerCommand("ShowTexture", &TestRenderStageBase::executeShowTexture, this);
+		ConsoleSystem::Get().registerCommand("ShowTexture", &TestRenderStageBase::handleShowTexture, this);
 
 		return true;
 	}

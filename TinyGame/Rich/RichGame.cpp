@@ -17,10 +17,9 @@ namespace Rich
 		return nullptr;
 	}
 
-	void GameModule::beginPlay( StageModeType type, StageManager& manger )
+	void GameModule::beginPlay( StageManager& manger, StageModeType modeType )
 	{
-		IGameModule::beginPlay( type , manger );
-
+		changeDefaultStage(manger, modeType);
 	}
 
 }//namespace Rich

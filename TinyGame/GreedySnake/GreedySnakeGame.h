@@ -12,7 +12,7 @@ namespace GreedySnake
 	{
 	public:
 		
-		virtual void   beginPlay( StageModeType type, StageManager& manger );
+		virtual void   beginPlay( StageManager& manger, StageModeType modeType ) override;
 		virtual void   deleteThis(){ delete this; }
 
 	public:

@@ -48,7 +48,7 @@ inline void HashCombine(uint32& seed, const T& v)
 	seed ^= hasher(v) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
 }
 
-struct MemberFunHasher
+struct MemberFuncHasher
 {
 	template< class T >
 	uint32 operator()(T const& value) const noexcept { return value.getHash(); }

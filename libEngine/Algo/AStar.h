@@ -12,10 +12,7 @@
 #   define  ASTAR_PROFILE( name )
 #endif
 
-
-
 #include "AStarDefultPolicy.h"
-
 
 
 #ifndef BIT
@@ -67,8 +64,8 @@ namespace AStar
 	struct NodeBaseT
 	{
 		typedef NodeBaseT< T , STATE , SCORE > NodeBase;
-		typedef typename STATE StateType;
-		typedef typename SCORE ScoreType;
+		typedef STATE StateType;
+		typedef SCORE ScoreType;
 
 		enum NodeFlag
 		{
@@ -124,13 +121,24 @@ namespace AStar
 
 	public:
 		typedef AStarT< T , Node , AllocatePolicy , MapPolicy , QueuePolicy >  AStarType;
+		
+		
+#if 0
 		typedef Node                             NodeType;
 		typedef AllocatePolicy< NodeType >       Allocator;
 		typedef MapPolicy< NodeType* >           MapType;
 		typedef QueuePolicy< NodeType* , typename NodeType::CmpFun > QueueType;
 		typedef typename NodeType::ScoreType     ScoreType;
 		typedef typename NodeType::StateType     StateType;
+#else
+		using NodeType = Node;
+		using Allocator = AllocatePolicy< NodeType >;
+		using MapType = MapPolicy< NodeType* >;
+		using QueueType = QueuePolicy< NodeType*, typename NodeType::CmpFun >;
+		using ScoreType = typename NodeType::ScoreType;
+		using StateType = typename NodeType::StateType;
 
+#endif
 		///////////////////////////////////////////////////////
 		//=== override function ================//
 	protected:

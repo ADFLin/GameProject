@@ -135,6 +135,7 @@ namespace Render
 		TriangleFan,
 		LineLoop,
 		Quad,
+		Polygon ,
 		
 		Patchs ,
 	};

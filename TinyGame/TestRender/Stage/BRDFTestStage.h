@@ -92,9 +92,9 @@ namespace Render
 	public:
 		void bindParameters(ShaderParameterMap const& parameterMap)
 		{
-			parameterMap.bind(mParamIrradianceTexture, SHADER_PARAM(IrradianceTexture));
-			parameterMap.bind(mParamPrefilteredTexture, SHADER_PARAM(PrefilteredTexture));
-			parameterMap.bind(mParamPreIntegratedBRDFTexture, SHADER_PARAM(PreIntegratedBRDFTexture));
+			mParamIrradianceTexture.bind(parameterMap, SHADER_PARAM(IrradianceTexture));
+			mParamPrefilteredTexture.bind(parameterMap, SHADER_PARAM(PrefilteredTexture));
+			mParamPreIntegratedBRDFTexture.bind(parameterMap, SHADER_PARAM(PreIntegratedBRDFTexture));
 		}
 		void setParameters(RHICommandList& commandList, ShaderProgram& shader , IBLResource& resource)
 		{
@@ -167,7 +167,7 @@ namespace Render
 			return entries;
 		}
 
-		void bindParameters(ShaderParameterMap& parameterMap)
+		void bindParameters(ShaderParameterMap const& parameterMap)
 		{
 			mParamIBL.bindParameters(parameterMap);
 		}
@@ -190,12 +190,12 @@ namespace Render
 
 	struct PostProcessParameters
 	{
-		void bindParameters(ShaderParameterMap& parameterMap)
+		void bindParameters(ShaderParameterMap const& parameterMap)
 		{
 			for( int i = 0; i < MaxInputNum; ++i )
 			{
 				FixString<128> name;
-				parameterMap.bind(mParamTextureInput[i], name.format("TextureInput%d", i));
+				mParamTextureInput[i].bind(parameterMap, name.format("TextureInput%d", i));
 			}
 		}
 
@@ -238,9 +238,9 @@ namespace Render
 			return entries;
 		}
 
-		void bindParameters(ShaderParameterMap& parameterMap)
+		void bindParameters(ShaderParameterMap const& parameterMap)
 		{
-			parameterMap.bind(mParamTargetTexture, SHADER_PARAM(TargetTexture));
+			mParamTargetTexture.bind(parameterMap, SHADER_PARAM(TargetTexture));
 		}
 		void setParameters(RHICommandList& commandList, PostProcessContext const& context, RHITexture2D& targetTexture)
 		{
@@ -272,7 +272,7 @@ namespace Render
 			return entries;
 		}
 
-		void bindParameters(ShaderParameterMap& parameterMap)
+		void bindParameters(ShaderParameterMap const& parameterMap)
 		{
 			mParamPostProcess.bindParameters(parameterMap);
 		}

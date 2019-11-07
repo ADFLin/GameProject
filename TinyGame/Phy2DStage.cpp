@@ -26,9 +26,11 @@ namespace Phy2D
 
 		if( !BaseClass::onInit() )
 			return false;
-		::Global::GUI().cleanupWidget();
+
 		if( !::Global::GetDrawEngine().startOpenGL() )
 			return false;
+
+		::Global::GUI().cleanupWidget();
 		return true;
 	}
 

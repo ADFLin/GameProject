@@ -30,6 +30,21 @@ public:
 		}
 	}
 
+	TComPtr(TComPtr<T>&& other)
+	{
+		mPtr = other.mPtr;
+		other.mPtr = nullptr;
+	}
+
+	TComPtr(TComPtr<T> const& other)
+	{
+		mPtr = other.mPtr;
+		if( mPtr )
+		{
+			mPtr->AddRef();
+		}
+	}
+
 	void reset()
 	{
 		if( mPtr )

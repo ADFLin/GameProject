@@ -421,7 +421,8 @@ out int gl_ViewportIndex; //Requires GL 4.1 or ARB_viewport_array.
 						  //key
 int max_vertices;
 int invocations;
-enum
+
+enum GeometryInputTag
 {
 	points,
 	lines,
@@ -430,7 +431,7 @@ enum
 	triangles_adjacency,
 };
 
-enum
+enum GeometryOuputTag
 {
 	points,
 	line_strip,
@@ -452,8 +453,7 @@ in int gl_SampleMaskIn[]; //OpenGL 4.0
 in int gl_Layer; //OpenGL 4.3
 in int gl_ViewportIndex; //OpenGL 4.3
 
-
-						 //layout (depth_<condition>) out float gl_FragDepth;
+ //layout (depth_<condition>) out float gl_FragDepth;
 out float gl_FragDepth;
 
 enum

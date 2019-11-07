@@ -67,15 +67,15 @@ class MandelbrotProgram : public GlobalShaderProgram
 	static int constexpr SizeY = 16;
 
 
-	void bindParameters(ShaderParameterMap& parameterMap)
+	void bindParameters(ShaderParameterMap const& parameterMap)
 	{
-		parameterMap.bind(mParamCoordParam, SHADER_PARAM(CoordParam));
-		parameterMap.bind(mParamCoordParam2, SHADER_PARAM(CoordParam2));
-		parameterMap.bind(mParamTextureSize, SHADER_PARAM(ViewSize));
-		parameterMap.bind(mParamMaxIteration, SHADER_PARAM(MaxIteration));
-		parameterMap.bind(mParamColorMapParam, SHADER_PARAM(ColorMapParam));
-		parameterMap.bind(mParamColorRWTexture, SHADER_PARAM(ColorRWTexture));
-		parameterMap.bind(mParamColorMapTexture, SHADER_PARAM(ColorMapTexture));
+		mParamCoordParam.bind(parameterMap, SHADER_PARAM(CoordParam));
+		mParamCoordParam2.bind(parameterMap, SHADER_PARAM(CoordParam2));
+		mParamTextureSize.bind(parameterMap, SHADER_PARAM(ViewSize));
+		mParamMaxIteration.bind(parameterMap, SHADER_PARAM(MaxIteration));
+		mParamColorMapParam.bind(parameterMap, SHADER_PARAM(ColorMapParam));
+		mParamColorRWTexture.bind(parameterMap, SHADER_PARAM(ColorRWTexture));
+		mParamColorMapTexture.bind(parameterMap, SHADER_PARAM(ColorMapTexture));
 	}
 
 	void setParameters(RHICommandList& commandList, MandelbrotParam const& param , RHITexture2D& colorTexture , RHITexture1D& colorMapTexture )

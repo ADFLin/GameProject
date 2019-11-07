@@ -2,7 +2,7 @@
 #ifndef SerializeFwd_H_A7297718_219D_4AB8_8139_11C3B1DDAC5F
 #define SerializeFwd_H_A7297718_219D_4AB8_8139_11C3B1DDAC5F
 
-#include "MetaBase.h"
+#include "Meta/MetaBase.h"
 
 DEFINE_SUPPORT_BINARY_OPERATOR_TYPE(HaveSerializerOutput, operator<<, &, const&);
 DEFINE_SUPPORT_BINARY_OPERATOR_TYPE(HaveSerializerInput, operator >> , &, &);

@@ -7,12 +7,6 @@
 
 #include <windows.h>
 
-#undef InterlockedIncrement
-#undef InterlockedDecrement
-#undef InterlockedCompareExchange
-#undef InterlockedExchange
-#undef InterlockedExchangeAdd
-#undef InterlockedAdd
 #undef GetOpenFileName
 #undef GetEnvironmentVariable
 #undef CreateDirectory

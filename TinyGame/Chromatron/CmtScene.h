@@ -18,7 +18,7 @@ namespace Chromatron
 
 		void restart();
 
-		void setupLevel( Level& level , bool beCreateMode = false );
+		void setupLevel( Level& level , bool bCreationMode = false );
 		void reset();
 		void tick();
 		void updateFrame( int frame );
@@ -32,6 +32,8 @@ namespace Chromatron
 		Level& getLevel(){ return *mLevel;  }
 		void   setWorldPos( Vec2i const& pos ){ mWorldPos = pos; }
 
+
+		bool isCreationMode() const { return mbCreationMode; }
 
 	private:
 
@@ -56,7 +58,7 @@ namespace Chromatron
 
 		bool      mOldInWorld;
 		bool      mNeedUpdateLevel;
-		bool      mbCreateMdoe;
+		bool      mbCreationMode;
 
 		DeviceId  mIdCreateDC;
 		Color     mEditColor;

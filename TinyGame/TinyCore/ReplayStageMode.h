@@ -99,7 +99,7 @@ public:
 	}
 
 	LocalPlayerManager* getPlayerManager();
-
+	virtual ReplayStageMode* getReplayMode() override { return this; }
 	
 protected:
 	bool prevStageInit();

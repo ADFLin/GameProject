@@ -623,6 +623,7 @@ namespace Render
 	{
 	public:
 		OpenGLInputLayout( InputLayoutDesc const& desc );
+
 		void bindAttrib( InputStreamInfo inputStreams[], int numInputStream, LinearColor const* overwriteColor = nullptr);
 		void bindAttribUP(InputStreamInfo inputStreams[], int numInputStream);
 		void unbindAttrib(int numInputStream, LinearColor const* overwriteColor = nullptr);

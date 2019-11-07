@@ -18,7 +18,7 @@ namespace TowerDefend
 		return NULL;
 	}
 
-	void GameModule::beginPlay( StageModeType type, StageManager& manger )
+	void GameModule::beginPlay( StageManager& manger, StageModeType modeType )
 	{
 		manger.changeStage( STAGE_SINGLE_GAME );
 	}

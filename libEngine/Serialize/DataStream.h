@@ -3,10 +3,13 @@
 
 #include "SerializeFwd.h"
 #include "DataBitSerialize.h"
-#include "MetaBase.h"
+#include "Meta/MetaBase.h"
 
 #include <vector>
+#include <set>
 #include <map>
+#include <unordered_set>
+#include <unordered_map>
 #include <string>
 
 
@@ -256,7 +259,7 @@ public:
 		this->write(size);
 		if( size )
 		{
-			this->write(value.data(), size);
+			this->writeSequence(value.data(), size);
 		}
 	}
 
@@ -272,7 +275,12 @@ public:
 		}
 	}
 	template< class K, class V, class KF, class A >
-	void write(std::map< K, V, KF, A > const& mapValue)
+	void write(std::map< K, V, KF, A > const& mapValue) { writeMap(mapValue); }
+	template< class K, class V, class H , class KF, class A >
+	void write(std::unordered_map< K, V, H , KF, A > const& mapValue) { writeMap(mapValue); }
+
+	template< class MapType >
+	void writeMap(MapType const& mapValue)
 	{
 		uint32 size = mapValue.size();
 		this->write(size);
@@ -287,7 +295,12 @@ public:
 	}
 
 	template< class K, class V, class KF, class A >
-	void read(std::map< K, V, KF, A >& mapValue)
+	void read(std::map< K, V, KF, A >& mapValue) { readMap(mapValue); }
+	template< class K, class V, class H, class KF, class A >
+	void read(std::unordered_map< K, V, H, KF, A >& mapValue) { readMap(mapValue); }
+
+	template< class MapType >
+	void readMap(MapType& mapValue)
 	{
 		uint32 size = 0;
 		this->read(size);

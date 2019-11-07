@@ -95,7 +95,7 @@ namespace Render
 	{
 	public:
 
-		void setMesh(Mesh& InMesh)
+		void setupMesh(Mesh& InMesh)
 		{
 			mMesh = &InMesh;
 			InputLayoutDesc desc = InMesh.mInputLayoutDesc;
@@ -104,6 +104,15 @@ namespace Render
 			desc.addElement(1, Vertex::ATTRIBUTE12, Vertex::eFloat4, false, true, 1);
 			desc.addElement(1, Vertex::ATTRIBUTE13, Vertex::eFloat4, false, true, 1);
 			mInputLayout = RHICreateInputLayout(desc);
+		}
+
+		void changeMesh(Mesh& InMesh)
+		{
+			if( mMesh == &InMesh )
+				return;
+
+			setupMesh(InMesh);
+
 		}
 
 		int addInstance(Vector3 const& pos, Vector3 const& scale, Quaternion const& rotation, Vector4 const& param)
@@ -156,35 +165,37 @@ namespace Render
 				ptr += 4;
 			}
 			RHIUnlockBuffer(mInstancedBuffer);
-
 			return true;
 		}
 
 		void draw(RHICommandList& comandList)
 		{
-			if( !bBufferValid )
+			if( mMesh && mMesh->mVertexBuffer.isValid() )
 			{
-				if( UpdateInstanceBuffer() )
+				if( !bBufferValid )
 				{
-					bBufferValid = true;
+					if( UpdateInstanceBuffer() )
+					{
+						bBufferValid = true;
+					}
+					else
+					{
+						return;
+					}
+				}
+				InputStreamInfo inputStreams[2];
+				inputStreams[0].buffer = mMesh->mVertexBuffer;
+				inputStreams[1].buffer = mInstancedBuffer;
+				RHISetInputStream(comandList, mInputLayout, inputStreams, 2);
+				if( mMesh->mIndexBuffer.isValid() )
+				{
+					RHISetIndexBuffer(comandList, mMesh->mIndexBuffer);
+					RHIDrawIndexedPrimitiveInstanced(comandList, mMesh->mType, 0, mMesh->mIndexBuffer->getNumElements(), mInstanceParams.size());
 				}
 				else
 				{
-					return;
+					RHIDrawPrimitiveInstanced(comandList, mMesh->mType, 0, mMesh->mVertexBuffer->getNumElements(), mInstanceParams.size());
 				}
-			}
-			InputStreamInfo inputStreams[2];
-			inputStreams[0].buffer = mMesh->mVertexBuffer;
-			inputStreams[1].buffer = mInstancedBuffer;
-			RHISetInputStream(comandList, mInputLayout, inputStreams, 2);
-			if( mMesh->mIndexBuffer.isValid() )
-			{
-				RHISetIndexBuffer(comandList, mMesh->mIndexBuffer);
-				RHIDrawIndexedPrimitiveInstanced(comandList, mMesh->mType, 0, mMesh->mIndexBuffer->getNumElements(), mInstanceParams.size());
-			}
-			else
-			{
-				RHIDrawPrimitiveInstanced(comandList, mMesh->mType, 0, mMesh->mVertexBuffer->getNumElements(), mInstanceParams.size());
 			}
 		}
 
@@ -378,7 +389,7 @@ namespace Render
 
 		void drawLightPoints(RHICommandList& commandList, ViewInfo& view, TArrayView< LightInfo > lights);
 
-		void executeShowTexture(char const* name)
+		void handleShowTexture(char const* name)
 		{
 			auto iter = mTextureMap.find(name);
 			if( iter != mTextureMap.end() )
@@ -389,7 +400,7 @@ namespace Render
 			}
 		}
 
-		void reigsterTexture(char const* name, RHITexture2D& texture)
+		void registerTexture(char const* name, RHITexture2D& texture)
 		{
 			mTextureMap.emplace(name, &texture);
 		}

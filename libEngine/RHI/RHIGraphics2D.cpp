@@ -63,13 +63,14 @@ namespace Render
 
 	void RHIGraphics2D::beginRender()
 	{
+		RHICommandList& commandList = GetCommandList();
 		glPushAttrib(GL_ENABLE_BIT | GL_VIEWPORT_BIT);
 		
-		RHISetDepthStencilState(RHICommandList::GetImmediateList(), TStaticDepthStencilState<>::GetRHI());
+		RHISetDepthStencilState(commandList, TStaticDepthStencilState<>::GetRHI());
 		//glDisable(GL_DEPTH_TEST);
 		glDisable(GL_CULL_FACE);
 
-		RHISetViewport(RHICommandList::GetImmediateList(), 0, 0, mWidth, mHeight);
+		RHISetViewport(commandList, 0, 0, mWidth, mHeight);
 		glMatrixMode(GL_PROJECTION);
 		glPushMatrix();
 		glLoadIdentity();
@@ -300,7 +301,7 @@ namespace Render
 		assert(mFont);
 		flushCommand();
 		glColor4f(mColorFont.r, mColorFont.g, mColorFont.b, mAlpha);
-		mFont->draw( Vector2(ox,oy) , str );
+		mFont->draw(GetCommandList(), Vector2(ox,oy) , str );
 	}
 
 	void RHIGraphics2D::drawPolygonBuffer()
@@ -328,18 +329,18 @@ namespace Render
 	void RHIGraphics2D::beginBlend(Vector2 const& pos, Vector2 const& size, float alpha)
 	{
 		flushCommand();
-		RHISetBlendState(RHICommandList::GetImmediateList(), TStaticBlendState< CWM_RGBA , Blend::eSrcAlpha , Blend::eOneMinusSrcAlpha >::GetRHI());
+		RHISetBlendState(GetCommandList(), TStaticBlendState< CWM_RGBA , Blend::eSrcAlpha , Blend::eOneMinusSrcAlpha >::GetRHI());
 		mAlpha = alpha;
 	}
 
 	void RHIGraphics2D::endBlend()
 	{
 		flushCommand();
-		RHISetBlendState(RHICommandList::GetImmediateList(), TStaticBlendState<>::GetRHI());
+		RHISetBlendState(GetCommandList(), TStaticBlendState<>::GetRHI());
 		mAlpha = 1.0f;
 	}
 
-	void BatchedDrawer::flushCommond()
+	void BatchedDrawer::flushCommond(RHICommandList& commandList)
 	{
 		//FIXME
 		if( !mSurfaceVertices.empty() && !mSurfaceIndices.empty() )
@@ -347,6 +348,7 @@ namespace Render
 			//MyRender::BindVertexPointer((uint8*)&mSurfaceVertices[0], MyRender::GetVertexSize());
 			//RHIDrawIndexedPrimitive(RHICommandList::GetImmediateList(), PrimitiveType::TriangleList, CVT_UInt, (int)&mSurfaceIndices[0] , mSurfaceIndices.size());
 			//MyRender::UnbindVertexPointer();
+
 
 			mSurfaceVertices.clear();
 			mSurfaceIndices.clear();

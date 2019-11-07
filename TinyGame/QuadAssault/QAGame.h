@@ -17,7 +17,7 @@ public:
 	virtual GameController& getController() override;
 
 	virtual bool getAttribValue(AttribValue& value) override;
-	virtual void beginPlay(StageModeType type, StageManager& manger) override;
+	virtual void beginPlay(StageManager& manger, StageModeType modeType) override;
 	virtual void endPlay() override;
 
 };

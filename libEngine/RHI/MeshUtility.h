@@ -138,6 +138,7 @@ namespace Render
 		PrimitiveType       mType;
 		InputLayoutDesc     mInputLayoutDesc;
 		RHIInputLayoutRef   mInputLayout;
+		RHIInputLayoutRef   mInputLayoutOverwriteColor;
 		RHIVertexBufferRef  mVertexBuffer;
 		RHIIndexBufferRef   mIndexBuffer;
 		RHIIndexBufferRef   mVertexAdjIndexBuffer;

@@ -30,16 +30,17 @@ GameController& IGameModule::getController()
 	return gEmptyController;
 }
 
-void IGameModule::beginPlay( StageModeType type, StageManager& manger )
+bool IGameModule::changeDefaultStage(StageManager& stageManager, StageModeType modeType)
 {
-	switch( type )
+	switch( modeType )
 	{
 	case SMT_SINGLE_GAME:
 		{
 			AttribValue value(ATTR_SINGLE_SUPPORT);
 			if( getAttribValue(value) && value.iVal )
 			{
-				manger.changeStage(STAGE_SINGLE_GAME);
+				stageManager.changeStage(STAGE_SINGLE_GAME);
+				return true;
 			}
 			else
 			{
@@ -48,12 +49,13 @@ void IGameModule::beginPlay( StageModeType type, StageManager& manger )
 			}
 		}
 		break;
-	case SMT_REPLAY: 
+	case SMT_REPLAY:
 		{
 			AttribValue value(ATTR_REPLAY_SUPPORT);
 			if( getAttribValue(value) && value.iVal )
 			{
-				manger.changeStage(STAGE_REPLAY_GAME);
+				stageManager.changeStage(STAGE_REPLAY_GAME);
+				return true;
 			}
 			else
 			{
@@ -62,12 +64,13 @@ void IGameModule::beginPlay( StageModeType type, StageManager& manger )
 			}
 		}
 		break;
-	case SMT_NET_GAME: 
+	case SMT_NET_GAME:
 		{
 			AttribValue value(ATTR_NET_SUPPORT);
 			if( getAttribValue(value) && value.iVal )
 			{
-				manger.changeStage( STAGE_NET_GAME );
+				stageManager.changeStage(STAGE_NET_GAME);
+				return true;
 			}
 			else
 			{
@@ -77,4 +80,6 @@ void IGameModule::beginPlay( StageModeType type, StageManager& manger )
 		}
 		break;
 	}
+
+	return false;
 }

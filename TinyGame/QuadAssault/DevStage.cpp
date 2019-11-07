@@ -87,17 +87,17 @@ public:
 	{
 	public:
 
-		void bindParameters(Render::ShaderParameterMap& parameterMap)
+		void bindParameters(Render::ShaderParameterMap const& parameterMap)
 		{
-			parameterMap.bind(paramTexMaterial, SHADER_PARAM(texMaterial));
-			parameterMap.bind(paramTexBaseColor, SHADER_PARAM(texBaseColor));
-			parameterMap.bind(paramTexNormal, SHADER_PARAM(texNormal));
-			parameterMap.bind(paramPos, SHADER_PARAM(gLight.pos));
-			parameterMap.bind(paramColor, SHADER_PARAM(gLight.color));
-			parameterMap.bind(paramRadius, SHADER_PARAM(gLight.radius));
-			parameterMap.bind(paramAmbIntensity, SHADER_PARAM(gLight.ambIntensity));
-			parameterMap.bind(paramDifIntensity, SHADER_PARAM(gLight.difIntensity));
-			parameterMap.bind(paramSpeIntensity, SHADER_PARAM(gLight.speIntensity));
+			paramTexMaterial.bind(parameterMap, SHADER_PARAM(texMaterial));
+			paramTexBaseColor.bind(parameterMap, SHADER_PARAM(texBaseColor));
+			paramTexNormal.bind(parameterMap, SHADER_PARAM(texNormal));
+			paramPos.bind(parameterMap, SHADER_PARAM(gLight.pos));
+			paramColor.bind(parameterMap, SHADER_PARAM(gLight.color));
+			paramRadius.bind(parameterMap, SHADER_PARAM(gLight.radius));
+			paramAmbIntensity.bind(parameterMap, SHADER_PARAM(gLight.ambIntensity));
+			paramDifIntensity.bind(parameterMap, SHADER_PARAM(gLight.difIntensity));
+			paramSpeIntensity.bind(parameterMap, SHADER_PARAM(gLight.speIntensity));
 		}
 
 		void setTextureParameters(Render::RHICommandList& commandList, GBuffer* buffer , Render::RHITexture1D& texMat )
@@ -132,12 +132,12 @@ public:
 	class GeomShaderProgram : public Render::ShaderProgram
 	{
 	public:
-		void bindParameters(Render::ShaderParameterMap& parameterMap)
+		void bindParameters(Render::ShaderParameterMap const& parameterMap)
 		{
-			parameterMap.bind(paramTexDiffuse , SHADER_PARAM(texDiffuse) );
-			parameterMap.bind(paramTexNormal , SHADER_PARAM(texNormal) );
-			parameterMap.bind(paramTexGlow ,SHADER_PARAM(texGlow) );
-			parameterMap.bind(paramMatId , SHADER_PARAM(matId) );
+			paramTexDiffuse.bind(parameterMap, SHADER_PARAM(texDiffuse) );
+			paramTexNormal.bind(parameterMap, SHADER_PARAM(texNormal) );
+			paramTexGlow.bind(parameterMap,SHADER_PARAM(texGlow) );
+			paramMatId.bind(parameterMap, SHADER_PARAM(matId) );
 		}
 		void setTextureParameters(Render::RHICommandList& commandList, Render::RHITexture2D* texDif , Render::RHITexture2D* texN , Render::RHITexture2D* texG )
 		{

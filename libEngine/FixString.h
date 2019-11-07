@@ -68,6 +68,7 @@ public:
 	FORCEINLINE operator CharT*      () { return mData; }
 
 	FORCEINLINE int   compare(CharT const* str) const { return FCString::Compare(mData, str); }
+	FORCEINLINE int   compareN(CharT const* str, int len) const { return FCString::CompareN(mData, str, len); }
 	FORCEINLINE size_t max_size() const{  return N;  }
 
 private:

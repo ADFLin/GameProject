@@ -74,6 +74,7 @@ struct VecOpT
 	VecType operator - (void);
 
 	friend VecType operator * (T, VecType);
+
 	T operator[](int);
 };
 
@@ -89,6 +90,7 @@ struct TVec2 : VecOpT< T , TVec2<T> >
 	TVec2();
 	TVec2(T);
 	TVec2(T, T);
+
 };
 
 template< class T >
@@ -105,6 +107,7 @@ struct TVec3 : TVec2<T>, VecOpT< T, TVec3<T> >
 	
 	template< class Q >
 	explicit operator TVec2<Q>();
+
 };
 
 template< class T >
@@ -120,12 +123,14 @@ struct TVec4 : TVec3<T> , VecOpT< T, TVec4<T> >
 	TVec4(T);
 	TVec4(T, T, T, T);
 	TVec4(TVec2, TVec2);
+	TVec4(TVec2, T, T);
 	TVec4(TVec3, T);
 
 	template< class Q >
 	explicit operator TVec3<Q>();
 	template< class Q >
 	explicit operator TVec2<Q>();
+
 };
 
 template< class T , 

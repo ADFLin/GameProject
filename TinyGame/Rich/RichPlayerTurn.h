@@ -48,7 +48,7 @@ namespace Rich
 
 	};
 
-	typedef stdex::function< void ( ActionReplyData const& ) > ReqCallback;
+	typedef std::function< void ( ActionReplyData const& ) > ReqCallback;
 
 	class ITurnControl
 	{

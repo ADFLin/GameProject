@@ -1,7 +1,7 @@
 #include "GpuProfiler.h"
 
-
 #include <cstdarg>
+#include "SystemPlatform.h"
 
 namespace Render
 {
@@ -37,22 +37,30 @@ namespace Render
 	{
 		if( mCore )
 		{
-			endSample(*mRootSample);
-			mCore->endFrame();
-
-			if ( mbStartSampling )
+			if( mbStartSampling )
 			{
-				for( int i = 0; i < mNumSampleUsed; ++i )
+				endSample(*mRootSample);
+				if( mCore->endFrame() )
 				{
-					GpuProfileSample* sample = mSamples[i].get();
-					uint64 time;
-					while( !mCore->getTimingDurtion(sample->timingHandle, time) )
+					for( int i = 0; i < mNumSampleUsed; ++i )
 					{
+						GpuProfileSample* sample = mSamples[i].get();
 
+						if( sample->timingHandle != RHI_ERROR_PROFILE_HANDLE )
+						{
+							uint64 time;
+							while( !mCore->getTimingDurtion(sample->timingHandle, time) )
+							{
+								SystemPlatform::Sleep(0);
+							}
+							sample->time = double(time) * mCycleToSecond;
+						}
+						else
+						{
+							sample->time = -1;
+						}
 					}
-					sample->time = double(time) * mCycleToSecond;
 				}
-
 				mbStartSampling = false;
 			}
 		}
@@ -80,13 +88,15 @@ namespace Render
 		sample->level = mCurLevel;
 		++mCurLevel;
 		++mNumSampleUsed;
-		mCore->startTiming(sample->timingHandle);
+		if ( sample->timingHandle != RHI_ERROR_PROFILE_HANDLE )
+			mCore->startTiming(sample->timingHandle);
 		return sample;
 	}
 
 	void GpuProfiler::endSample(GpuProfileSample& sample)
 	{
-		mCore->endTiming(sample.timingHandle);
+		if( sample.timingHandle != RHI_ERROR_PROFILE_HANDLE )
+			mCore->endTiming(sample.timingHandle);
 		--mCurLevel;
 	}
 
@@ -104,18 +114,6 @@ namespace Render
 		{
 			mSamples.clear();
 		}
-	}
-
-
-	void GpuProfileScope::init(char const* name)
-	{
-		sample = GpuProfiler::Get().startSample(name);
-	}
-
-	GpuProfileScope::~GpuProfileScope()
-	{
-		if ( sample )
-			GpuProfiler::Get().endSample(*sample);
 	}
 
 }//namespace Render

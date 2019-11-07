@@ -18,7 +18,7 @@ enum StateTransition
 class SrceenFade
 {
 public:
-	typedef std::tr1::function< void () > Callback;
+	typedef std::function< void () > Callback;
 
 	SrceenFade();
 

@@ -22,7 +22,7 @@ namespace Render
 		void releaseRHI() { mRHIResource.release(); }
 
 		virtual ~ShaderProgram();
-		virtual void bindParameters(ShaderParameterMap& parameterMap) {}
+		virtual void bindParameters(ShaderParameterMap const& parameterMap) {}
 
 
 		void setParam(RHICommandList& commandList, char const* name, int v1) { setParamT(commandList, name, v1); }
@@ -92,6 +92,9 @@ namespace Render
 		void setParam(RHICommandList& commandList, ShaderParameter const& param, Vector2 const& v);
 		void setParam(RHICommandList& commandList, ShaderParameter const& param, Vector3 const& v);
 		void setParam(RHICommandList& commandList, ShaderParameter const& param, Vector4 const& v);
+
+		void setParam(RHICommandList& commandList, ShaderParameter const& param, LinearColor const& v);
+
 		void setParam(RHICommandList& commandList, ShaderParameter const& param, Matrix4 const& m);
 		void setParam(RHICommandList& commandList, ShaderParameter const& param, Matrix3 const& m);
 		void setParam(RHICommandList& commandList, ShaderParameter const& param, Matrix4 const v[], int num);

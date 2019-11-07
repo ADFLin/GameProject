@@ -3,11 +3,140 @@
 #include "D3D11ShaderCommon.h"
 
 #include "LogSystem.h"
+#include "GpuProfiler.h"
 
 namespace Render
 {
 
-	bool D3D11System::initialize(RHISystemInitParam const& initParam)
+#define RESULT_FAILED( hr ) ( hr ) != S_OK
+	class D3D11ProfileCore : public RHIProfileCore
+	{
+	public:
+
+		D3D11ProfileCore()
+		{
+			mCycleToMillisecond = 0;
+		}
+
+		bool init(TComPtr<ID3D11Device> const& device,
+				  TComPtr<ID3D11DeviceContext> const& deviceContext)
+		{
+			mDevice = device;
+			mDeviceContext = deviceContext;
+
+			D3D11_QUERY_DESC desc;
+			desc.Query = D3D11_QUERY_TIMESTAMP_DISJOINT;
+			desc.MiscFlags = 0;
+			if( RESULT_FAILED(mDevice->CreateQuery(&desc, &mQueryDisjoint)) )
+				return false;
+
+			return true;
+		}
+		virtual void beginFrame() override
+		{
+			mDeviceContext->Begin(mQueryDisjoint);
+		}
+
+		virtual bool endFrame() override
+		{
+			mDeviceContext->End(mQueryDisjoint);
+
+			while( mDeviceContext->GetData(mQueryDisjoint, NULL, 0, 0) == S_FALSE )
+			{
+				SystemPlatform::Sleep(0); 
+			}
+
+			D3D10_QUERY_DATA_TIMESTAMP_DISJOINT tsDisjoint;
+			mDeviceContext->GetData(mQueryDisjoint, &tsDisjoint, sizeof(tsDisjoint), 0);
+			if( tsDisjoint.Disjoint )
+			{
+				return false;
+			}
+			tsDisjoint.Frequency;
+			return true;
+		}
+
+		virtual uint32 fetchTiming() override
+		{
+			D3D11_QUERY_DESC desc;
+			desc.Query = D3D11_QUERY_TIMESTAMP;
+			desc.MiscFlags = 0;
+			TComPtr< ID3D11Query > startQuery;
+			TComPtr< ID3D11Query > endQuery;
+			if ( RESULT_FAILED(mDevice->CreateQuery(&desc, &startQuery)) ||
+				 RESULT_FAILED(mDevice->CreateQuery(&desc, &endQuery)) )
+				return RHI_ERROR_PROFILE_HANDLE;
+
+			uint32 result = mStartQueries.size();
+			mStartQueries.push_back(std::move(startQuery));
+			mEndQueries.push_back(std::move(endQuery));
+			return result;
+		}
+
+		virtual void startTiming(uint32 timingHandle) override
+		{
+			mDeviceContext->End(mStartQueries[timingHandle]);
+		}
+
+		virtual void endTiming(uint32 timingHandle) override
+		{
+			mDeviceContext->End(mEndQueries[timingHandle]);
+		}
+
+		virtual bool getTimingDurtion(uint32 timingHandle, uint64& outDurtion) override
+		{
+			if( RESULT_FAILED(mDeviceContext->GetData(mStartQueries[timingHandle], NULL, 0, 0)) ||
+			    RESULT_FAILED(mDeviceContext->GetData(mEndQueries[timingHandle], NULL, 0, 0)) )
+				return false;
+
+			UINT64 startData;
+			mDeviceContext->GetData(mStartQueries[timingHandle], &startData, sizeof(startData), 0);
+			UINT64 endData;
+			mDeviceContext->GetData(mEndQueries[timingHandle], &endData, sizeof(endData), 0);
+			outDurtion = endData - startData;
+			return true;
+		}
+
+		virtual double getCycleToMillisecond() override
+		{
+			if( mCycleToMillisecond == 0 )
+			{
+				mDeviceContext->Begin(mQueryDisjoint);
+				mDeviceContext->End(mQueryDisjoint);
+
+				while( RESULT_FAILED( mDeviceContext->GetData(mQueryDisjoint, NULL, 0, 0) ) )
+				{
+					SystemPlatform::Sleep(0);
+				}
+
+				D3D10_QUERY_DATA_TIMESTAMP_DISJOINT tsDisjoint;
+				mDeviceContext->GetData(mQueryDisjoint, &tsDisjoint, sizeof(tsDisjoint), 0);
+				mCycleToMillisecond = double(1000) / tsDisjoint.Frequency;
+			}
+
+			return mCycleToMillisecond;
+		}	
+
+		virtual void releaseRHI() override
+		{
+			mQueryDisjoint.reset();
+			mStartQueries.clear();
+			mEndQueries.clear();
+			mDeviceContext.reset();
+			mDevice.reset();
+		}
+		double mCycleToMillisecond;
+
+		TComPtr< ID3D11Query > mQueryDisjoint;
+
+		std::vector< TComPtr< ID3D11Query > > mStartQueries;
+		std::vector< TComPtr< ID3D11Query > > mEndQueries;
+
+		TComPtr<ID3D11DeviceContext> mDeviceContext;
+		TComPtr<ID3D11Device> mDevice;
+	};
+
+	bool D3D11System::initialize(RHISystemInitParams const& initParam)
 	{
 		uint32 flag = D3D11_CREATE_DEVICE_BGRA_SUPPORT | D3D11_CREATE_DEVICE_DEBUG;
 		VERIFY_D3D11RESULT_RETURN_FALSE(D3D11CreateDevice(NULL, D3D_DRIVER_TYPE_HARDWARE, NULL, flag, NULL, 0, D3D11_SDK_VERSION, &mDevice, NULL, &mDeviceContext));
@@ -31,6 +160,18 @@ namespace Render
 		gRHIProjectYSign = -1;
 		mRenderContext.initialize(mDevice, mDeviceContext);
 		mImmediateCommandList = new RHICommandListImpl(mRenderContext);
+#if 1
+		D3D11ProfileCore* profileCore = new D3D11ProfileCore;
+		if( profileCore->init(mDevice, mDeviceContext) )
+		{
+			GpuProfiler::Get().setCore(profileCore);
+		}
+		else
+		{
+			delete profileCore;
+		}
+#endif
+
 		return true;
 	}
 
@@ -539,8 +680,8 @@ namespace Render
 		}
 	}
 
-	template< Render::Shader::Type TypeValue >
-	void Render::D3D11ShaderBoundState::clearState(ID3D11DeviceContext* context)
+	template< Shader::Type TypeValue >
+	void D3D11ShaderBoundState::clearState(ID3D11DeviceContext* context)
 	{
 		for( int index = 0; index < 2; ++index )
 		{

@@ -1,7 +1,7 @@
 #ifndef Flag_h__
 #define Flag_h__
 
-#include "MetaBase.h"
+#include "Meta/MetaBase.h"
 #include "Core/IntegerType.h"
 
 #ifndef BIT

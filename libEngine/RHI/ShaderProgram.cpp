@@ -123,6 +123,12 @@ namespace Render
 		GetContext(commandList).setShaderValue(*mRHIResource, param, (float const*)&v, 4);
 	}
 
+	void ShaderProgram::setParam(RHICommandList& commandList, ShaderParameter const& param, LinearColor const& v)
+	{
+		CHECK_PARAMETER(param);
+		GetContext(commandList).setShaderValue(*mRHIResource, param, (float const*)&v, 4);
+	}
+
 	void ShaderProgram::setParam(RHICommandList& commandList, ShaderParameter const& param, Matrix4 const& m)
 	{
 		CHECK_PARAMETER(param);

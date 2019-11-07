@@ -106,12 +106,12 @@ namespace Go
 			};
 			return enties;
 		}
-		void bindParameters(ShaderParameterMap& parameterMap)
+		void bindParameters(ShaderParameterMap const& parameterMap)
 		{
-			parameterMap.bind(mParamAxisValue, SHADER_PARAM(AxisValue));
-			parameterMap.bind(mParamProjMatrix, SHADER_PARAM(ProjMatrix));
-			parameterMap.bind(mParamUpperColor, SHADER_PARAM(UpperColor));
-			parameterMap.bind(mParamLowerColor, SHADER_PARAM(LowerColor));
+			mParamAxisValue.bind(parameterMap, SHADER_PARAM(AxisValue));
+			mParamProjMatrix.bind(parameterMap, SHADER_PARAM(ProjMatrix));
+			mParamUpperColor.bind(parameterMap, SHADER_PARAM(UpperColor));
+			mParamLowerColor.bind(parameterMap, SHADER_PARAM(LowerColor));
 		}
 		void setParameters(RHICommandList& commandList, float axisValue, Matrix4 const& projMatrix, Vector4 const& upperColor, Vector4 const& lowerColor)
 		{

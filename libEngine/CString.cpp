@@ -25,6 +25,19 @@ uint32 FCString::StriHash(char const* str)
 	return result;
 }
 
+uint32 FCString::StriHash(char const* str, int len)
+{
+	uint32 result = 5381;
+	while( len )
+	{
+		uint32 c = (uint32)tolower(*str);
+		result = ((result << 5) + result) + c; /* hash * 33 + c */
+		++str;
+		--len;
+	}
+	return result;
+}
+
 std::wstring FCString::CharToWChar(const char *c)
 {
 	const size_t cSize = strlen(c) + 1;

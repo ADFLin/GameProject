@@ -15,6 +15,7 @@ namespace Render
 	class RHICommandList;
 	class RHIContext;
 	struct ShaderEntryInfo;
+	class ShaderParameterMap;
 
 	class ShaderCompileOption
 	{
@@ -134,7 +135,7 @@ namespace Render
 
 		}
 		ShaderParameter(uint32 inBindIndex, uint16 inOffset, uint16 inSize)
-			:bindIndex(inBindIndex),offset(inOffset),size(inSize)
+			:bindIndex(inBindIndex), offset(inOffset), size(inSize)
 		{
 
 		}
@@ -142,9 +143,11 @@ namespace Render
 		{
 			return mLoc != -1;
 		}
+
+		bool bind(ShaderParameterMap const& paramMap, char const* name);
 	public:
 		friend class ShaderProgram;
-		union 
+		union
 		{
 			int32 mLoc;
 			struct
@@ -157,29 +160,20 @@ namespace Render
 	};
 
 
-	struct ShaderParameterMap
-	{
 
+	class ShaderParameterMap
+	{
+	public:
 		void addParameter(char const* name, uint32 bindIndex, uint16 offset = 0, uint16 size = 0)
 		{
 			ShaderParameter entry = { bindIndex, offset, size };
 			mMap.emplace(name, entry);
 		}
 
-		bool bind(ShaderParameter& param, char const* name) const
-		{
-			auto iter = mMap.find(name);
-			if( iter == mMap.end() )
-			{
-				param = ShaderParameter();
-				return false;
-			}
-			param = iter->second;
-			return true;
-		}
-
-		std::unordered_map< HashString , ShaderParameter > mMap;
+		std::unordered_map< HashString, ShaderParameter > mMap;
 	};
+
+
 
 
 	struct StructuredBufferInfo

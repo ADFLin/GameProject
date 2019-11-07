@@ -186,6 +186,7 @@ public:
 	virtual PlayerConnetionClosedAction resolveConnectClosed_NetThread(ServerResolveContext& context, NetCloseReason reason) override;
 	virtual void resolveReconnect_NetThread(ServerResolveContext& context) override;
 
+	virtual NetLevelStageMode* getNetLevelMode() override { return this; }
 };
 
 

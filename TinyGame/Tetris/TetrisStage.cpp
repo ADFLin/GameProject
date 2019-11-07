@@ -548,7 +548,7 @@ namespace Tetris
 			{
 				Vec2i pos = ::Global::GUI().calcScreenCenterPos( OptionNoteBook::UI_Size );
 				OptionNoteBook* book = new OptionNoteBook( UI_GAME_OPTION , pos  , NULL );
-				book->init( Global::GameManager().getRunningGame()->getController() );
+				book->init( Global::ModuleManager().getRunningGame()->getController() );
 				::Global::GUI().addWidget( book );
 				book->setTop();
 				book->doModal();

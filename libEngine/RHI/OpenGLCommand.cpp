@@ -109,16 +109,16 @@ namespace Render
 	class OpenglProfileCore : public RHIProfileCore
 	{
 	public:
-		virtual void release()
+		virtual void releaseRHI()
 		{
 		}
 		virtual void beginFrame()
 		{
 
 		}
-		virtual void endFrame()
+		virtual bool endFrame()
 		{
-
+			return true;
 		}
 		virtual uint32 fetchTiming()
 		{
@@ -152,7 +152,7 @@ namespace Render
 
 	};
 
-	bool OpenGLSystem::initialize(RHISystemInitParam const& initParam)
+	bool OpenGLSystem::initialize(RHISystemInitParams const& initParam)
 	{
 		WGLPixelFormat format;
 		format.numSamples = initParam.numSamples;

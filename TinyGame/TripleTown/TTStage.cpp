@@ -8,7 +8,6 @@ namespace TripleTown
 
 	bool LevelStage::onInit()
 	{
-
 		::Global::GUI().cleanupWidget();
 
 		if( !::Global::GetDrawEngine().startOpenGL() )

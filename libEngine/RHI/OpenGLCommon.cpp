@@ -837,6 +837,7 @@ namespace Render
 		case PrimitiveType::LineLoop:      return GL_LINE_LOOP;
 		case PrimitiveType::TriangleAdjacency:   return GL_TRIANGLES_ADJACENCY;
 		case PrimitiveType::Quad:          return GL_QUADS;
+		case PrimitiveType::Polygon:       return GL_POLYGON;
 		case PrimitiveType::Points:        return GL_POINTS;
 		case PrimitiveType::Patchs:        return GL_PATCHES;
 		}
@@ -1379,8 +1380,8 @@ namespace Render
 			{
 				switch( e.componentNum )
 				{
-				case 3: glColor4fv((float*)(offset)); break;
-				case 4: glColor3fv((float*)(offset)); break;
+				case 3: glColor3fv((float*)(offset)); break;
+				case 4: glColor4fv((float*)(offset)); break;
 				}
 			}
 			break;

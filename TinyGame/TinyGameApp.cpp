@@ -46,6 +46,8 @@
 
 int g_DevMsgLevel = -1;
 
+bool gbProfileGPU = false;
+
 TINY_API IGameNetInterface* gGameNetInterfaceImpl;
 TINY_API IDebugInterface*   gDebugInterfaceImpl;
 
@@ -220,10 +222,10 @@ bool TinyGameApp::initializeGame()
 	char const* gameName;
 	if ( ::Global::GameConfig().tryGetStringValue( "DefaultGame" , nullptr , gameName ) )
 	{
-		IGameModule* game = ::Global::GameManager().changeGame( gameName );
+		IGameModule* game = ::Global::ModuleManager().changeGame( gameName );
 		if ( game )
 		{
-			game->beginPlay( SMT_SINGLE_GAME , *this );
+			game->beginPlay( *this, SMT_SINGLE_GAME );
 			havePlayGame = true;
 		}
 	}
@@ -234,6 +236,8 @@ bool TinyGameApp::initializeGame()
 	}
 	
 	mFPSCalc.init( getMillionSecond() );
+
+	ConsoleSystem::Get().registerCommand("ProfileGPU", &TinyGameApp::handleToggleProflieGPU, this);
 	return true;
 }
 
@@ -254,7 +258,7 @@ void TinyGameApp::cleanup()
 
 	MiscTestRegister::GetList().clear();
 
-	Global::GameManager().cleanupModuleInstances();
+	Global::ModuleManager().cleanupModuleInstances();
 
 	Global::GUI().finalize();
 
@@ -262,7 +266,7 @@ void TinyGameApp::cleanup()
 
 	Global::GetAssetManager().cleanup();
 
-	Global::GameManager().cleanupModuleMemory();
+	Global::ModuleManager().cleanupModuleMemory();
 
 	importUserProfile();
 
@@ -302,9 +306,11 @@ long TinyGameApp::handleGameUpdate( long shouldTime )
 
 		::Global::GUI().update();
 
-		IGameModule* game = Global::GameManager().getRunningGame();
-		if ( game )
+		IGameModule* game = Global::ModuleManager().getRunningGame();
+		if( game )
+		{
 			game->getController().clearFrameInput();
+		}
 	}
 
 	gLogPrinter.update( updateTime );
@@ -348,7 +354,7 @@ void TinyGameApp::loadModules()
 				continue;
 #endif
 
-			Global::GameManager().loadModule( fileName );
+			Global::ModuleManager().loadModule( fileName );
 		}
 	}
 }
@@ -430,7 +436,7 @@ bool TinyGameApp::handleMouseEvent( MouseMsg const& msg )
 {
 	bool result = true;
 
-	IGameModule* game = Global::GameManager().getRunningGame();
+	IGameModule* game = Global::ModuleManager().getRunningGame();
 	if ( game )
 	{
 		GameController& controller = game->getController();
@@ -531,6 +537,11 @@ void TinyGameApp::onTaskMessage( TaskBase* task , TaskMsg const& msg )
 	}
 }
 
+void TinyGameApp::handleToggleProflieGPU()
+{
+	gbProfileGPU = !gbProfileGPU;
+}
+
 void TinyGameApp::render( float dframe )
 {
 	using namespace Render;
@@ -538,12 +549,13 @@ void TinyGameApp::render( float dframe )
 	if ( getNextStage() || mbInitializingStage )
 		return;
 
-	DrawEngine& de = Global::GetDrawEngine();
+	DrawEngine& drawEngine = Global::GetDrawEngine();
 
-	if ( !de.beginRender() )
+	if ( !drawEngine.beginRender() )
 		return;
 
-	GpuProfiler::Get().beginFrame();
+	if ( gbProfileGPU )
+		GpuProfiler::Get().beginFrame();
 
 	bool bDrawScene = ( mStageMode == nullptr ) || mStageMode->canRender();
 
@@ -556,9 +568,8 @@ void TinyGameApp::render( float dframe )
 		if( mRenderEffect )
 			mRenderEffect->onRender(dt);
 
-		if( de.isRHIEnabled() )
+		if( drawEngine.isUsageRHIGraphic2D() )
 			::Global::GetRHIGraphics2D().beginRender();
-
 
 		{
 			GPU_PROFILE("GUI");
@@ -567,7 +578,7 @@ void TinyGameApp::render( float dframe )
 	}
 	else
 	{
-		if( de.isRHIEnabled() )
+		if( drawEngine.isUsageRHIGraphic2D() )
 			::Global::GetRHIGraphics2D().beginRender();
 	}
 
@@ -577,7 +588,8 @@ void TinyGameApp::render( float dframe )
 	}
 
 
-	GpuProfiler::Get().endFrame();
+	if( gbProfileGPU )
+		GpuProfiler::Get().endFrame();
 	
 	mFPSCalc.increaseFrame(getMillionSecond());
 	IGraphics2D& g = ::Global::GetIGraphics2D();
@@ -590,6 +602,8 @@ void TinyGameApp::render( float dframe )
 		//g.drawText(Vec2i(5, 15), str.format("mode = %d", (int)mConsoleShowMode));
 	}
 
+
+	if( gbProfileGPU )
 	{
 
 		g.setTextColor(Color3ub(255, 0, 0));
@@ -624,10 +638,10 @@ void TinyGameApp::render( float dframe )
 		}
 	}
 
-	if( de.isRHIEnabled() )
+	if( drawEngine.isUsageRHIGraphic2D() )
 		::Global::GetRHIGraphics2D().endRender();
 		
-	de.endRender();
+	drawEngine.endRender();
 }
 
 void TinyGameApp::exportUserProfile()
@@ -677,13 +691,13 @@ StageBase* TinyGameApp::createStage( StageID stageId )
 {
 	StageBase* newStage = NULL;
 
-	IGameModule* curGame = Global::GameManager().getRunningGame();
+	IGameModule* curGame = Global::ModuleManager().getRunningGame();
 
 	if ( curGame )
 	{
 		newStage = curGame->createStage( stageId );
 
-		if( GameStageBase* gameStage = dynamic_cast<GameStageBase*>(newStage) )
+		if( GameStageBase* gameStage = newStage->getGameStage() )
 		{
 			GameStageMode* stageMode = createGameStageMode(stageId);
 			gameStage->setupStageMode(stageMode);
@@ -753,7 +767,7 @@ bool TinyGameApp::initializeStage(StageBase* stage)
 {
 	TGuardValue< bool > initializingStageGuard(mbInitializingStage, true);
 
-	if( auto gameStage = dynamic_cast<GameStageBase*>(stage) )
+	if( auto gameStage = stage->getGameStage() )
 	{
 		mStageMode = gameStage->getStageMode();
 		if( !mStageMode->prevStageInit() )

@@ -150,18 +150,18 @@ public:
 
 
 	static char const* GetEnvironmentVariable( char const* key );
-	static int32    InterlockedExchange(volatile int32* ptr, int32 value);
-	static int64    InterlockedExchange(volatile int64* ptr, int64 value);
-	static int32    InterlockedExchangeAdd(volatile int32* ptr, int32 value);
-	static int64    InterlockedExchangeAdd(volatile int64* ptr, int64 value);
-	static int32    InterlockedCompareExchange(volatile int32* ptr, int32 exchange, int32 comperand);
-	static int64    InterlockedCompareExchange(volatile int64* ptr, int64 exchange , int64 comperand);
-	static int32    InterlockedAdd(volatile int32* ptr, int32 value);
-	static int64    InterlockedAdd(volatile int64* ptr, int64 value);
-	static int32    InterlockedIncrement(volatile int32* ptr);
-	static int64    InterlockedIncrement(volatile int64* ptr);
-	static int32    InterlockedDecrement(volatile int32* ptr);
-	static int64    InterlockedDecrement(volatile int64* ptr);
+	static int32    AtomExchange(volatile int32* ptr, int32 value);
+	static int64    AtomExchange(volatile int64* ptr, int64 value);
+	static int32    AtomExchangeAdd(volatile int32* ptr, int32 value);
+	static int64    AtomExchangeAdd(volatile int64* ptr, int64 value);
+	static int32    AtomCompareExchange(volatile int32* ptr, int32 exchange, int32 comperand);
+	static int64    AtomCompareExchange(volatile int64* ptr, int64 exchange , int64 comperand);
+	static int32    AtomAdd(volatile int32* ptr, int32 value);
+	static int64    AtomAdd(volatile int64* ptr, int64 value);
+	static int32    AtomIncrement(volatile int32* ptr);
+	static int64    AtomIncrement(volatile int64* ptr);
+	static int32    AtomDecrement(volatile int32* ptr);
+	static int64    AtomDecrement(volatile int64* ptr);
 	static int32    AtomicRead(volatile int32* ptr);
 	static int64    AtomicRead(volatile int64* ptr);
 

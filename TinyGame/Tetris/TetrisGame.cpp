@@ -175,13 +175,17 @@ namespace Tetris
 	}
 
 
-	void GameModule::beginPlay( StageModeType type, StageManager& manger )
+	void GameModule::beginPlay( StageManager& manger, StageModeType modeType )
 	{
 		LogMsg( "Run Tetris!!!" );
-		if ( type == SMT_SINGLE_GAME )
-			manger.changeStage( STAGE_GAME_MENU );
+		if( modeType == SMT_SINGLE_GAME )
+		{
+			manger.changeStage(STAGE_GAME_MENU);
+		}
 		else
-			IGameModule::beginPlay( type , manger );
+		{
+			changeDefaultStage(manger, modeType);
+		}
 	}
 
 	GameModule::GameModule()

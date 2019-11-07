@@ -340,7 +340,7 @@ namespace Chromatron
 		return mStatus;
 	}
 
-	void WorldUpdateContext::addEffectLight(Vec2i const& pos, Color color, Dir dir)
+	void WorldUpdateContext::addEffectedLight(Vec2i const& pos, Color color, Dir dir)
 	{
 		if ( color == COLOR_NULL )
 			return;

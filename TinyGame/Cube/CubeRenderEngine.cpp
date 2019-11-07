@@ -107,7 +107,7 @@ namespace Cube
 		cPos.setBlockPos( bx , by );
 		int len = 1;
 
-		glPolygonMode(GL_FRONT, GL_LINE);
+		//glPolygonMode(GL_FRONT, GL_LINE);
 		for( int i = -len ; i <= len ; ++i )
 		{
 			for( int j = -len ; j <= len ; ++j )

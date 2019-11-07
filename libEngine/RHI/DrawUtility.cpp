@@ -300,9 +300,9 @@ namespace Render
 			return entries;
 		}
 	public:
-		void bindParameters(ShaderParameterMap& parameterMap)
+		void bindParameters(ShaderParameterMap const& parameterMap)
 		{
-			parameterMap.bind(mParamCopyTexture, SHADER_PARAM(CopyTexture));
+			mParamCopyTexture.bind(parameterMap, SHADER_PARAM(CopyTexture));
 		}
 
 		void setParameters(RHICommandList& commandList, RHITexture2D& copyTexture)
@@ -333,10 +333,10 @@ namespace Render
 			return entries;
 		}
 	public:
-		void bindParameters(ShaderParameterMap& parameterMap)
+		void bindParameters(ShaderParameterMap const& parameterMap)
 		{
-			parameterMap.bind(mParamCopyTexture, SHADER_PARAM(CopyTexture));
-			parameterMap.bind(mParamColorMask, SHADER_PARAM(ColorMask));
+			mParamCopyTexture.bind(parameterMap, SHADER_PARAM(CopyTexture));
+			mParamColorMask.bind(parameterMap, SHADER_PARAM(ColorMask));
 		}
 		void setParameters(RHICommandList& commandList, RHITexture2D& copyTexture, Vector4 const& colorMask)
 		{
@@ -370,10 +370,10 @@ namespace Render
 	public:
 
 
-		void bindParameters(ShaderParameterMap& parameterMap)
+		void bindParameters(ShaderParameterMap const& parameterMap)
 		{
-			parameterMap.bind(mParamCopyTexture, SHADER_PARAM(CopyTexture));
-			parameterMap.bind(mParamColorBais, SHADER_PARAM(ColorBais));
+			mParamCopyTexture.bind(parameterMap, SHADER_PARAM(CopyTexture));
+			mParamColorBais.bind(parameterMap, SHADER_PARAM(ColorBais));
 		}
 		void setParameters(RHICommandList& commandList, RHITexture2D& copyTexture, float colorBais[2])
 		{
@@ -405,11 +405,11 @@ namespace Render
 			return entries;
 		}
 	public:
-		void bindParameters(ShaderParameterMap& parameterMap)
+		void bindParameters(ShaderParameterMap const& parameterMap)
 		{
-			parameterMap.bind(mParamCopyTexture, SHADER_PARAM(CopyTexture));
-			parameterMap.bind(mParamColorMask, SHADER_PARAM(ColorMask));
-			parameterMap.bind(mParamValueFactor, SHADER_PARAM(ValueFactor));
+			mParamCopyTexture.bind(parameterMap, SHADER_PARAM(CopyTexture));
+			mParamColorMask.bind(parameterMap, SHADER_PARAM(ColorMask));
+			mParamValueFactor.bind(parameterMap, SHADER_PARAM(ValueFactor));
 		}
 
 		void setParameters(RHICommandList& commandList, RHITexture2D& copyTexture, Vector4 const& colorMask, float valueFactor[2])
@@ -449,11 +449,11 @@ namespace Render
 			return entries;
 		}
 	public:
-		void bindParameters(ShaderParameterMap& parameterMap)
+		void bindParameters(ShaderParameterMap const& parameterMap)
 		{
-			parameterMap.bind(mParamTexture, SHADER_PARAM(Texture));
-			parameterMap.bind(mParamColor, SHADER_PARAM(Color));
-			parameterMap.bind(mParamXForm, SHADER_PARAM(XForm));
+			mParamTexture.bind(parameterMap, SHADER_PARAM(Texture));
+			mParamColor.bind(parameterMap, SHADER_PARAM(Color));
+			mParamXForm.bind(parameterMap, SHADER_PARAM(XForm));
 		}
 
 		void setParameters(RHICommandList& commandList, Matrix4 const& transform, Vector4 const& color, RHITexture2D* copyTexture )

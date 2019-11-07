@@ -8,6 +8,7 @@
 class StageManager;
 class IGameModule;
 class GameModuleManager;
+class GameStageBase;
 class MouseMsg;
 class NetWorker;
 class GWidget;
@@ -56,6 +57,9 @@ public:
 
 	virtual bool onWidgetEvent( int event , int id , GWidget* ui ){ return true; }
 	virtual void onTaskMessage( TaskBase* task , TaskMsg const& msg );
+
+	virtual GameStageBase* getGameStage() { return nullptr; }
+
 
 	StageManager*  getManager(){ return mManager; }
 

@@ -4,7 +4,7 @@
 
 #include "CoreShare.h"
 #include "Core/IntegerType.h"
-
+#include "Template/StringView.h"
 
 
 enum class EName : uint8
@@ -31,6 +31,11 @@ public:
 	HashString(char const* str, bool bCaseSensitive = true)
 	{
 		init(str, bCaseSensitive);
+	}
+
+	HashString(StringView const& str, bool bCaseSensitive = true)
+	{
+		init(str.data(), str.size(), bCaseSensitive);
 	}
 	bool operator == (HashString const& rhs) const
 	{
@@ -60,6 +65,7 @@ public:
 	CORE_API friend uint32 hash_value(HashString const & string);
 private:
 	CORE_API void init(char const* str, bool bCaseSensitive = true);
+	CORE_API void init(char const* str, int len , bool bCaseSensitive = true);
 	uint32 getSlotIndex() const { return mIndex >> 1;  }
 	bool   isCastSensitive() const { return !(mIndex & 0x1);  }
 	CORE_API HashString(EName name, char const* str);

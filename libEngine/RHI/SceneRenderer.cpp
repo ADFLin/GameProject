@@ -473,7 +473,7 @@ namespace Render
 	class DeferredLightingProgram : public GlobalShaderProgram
 	{
 	public:
-		void bindParameters(ShaderParameterMap& parameterMap)
+		void bindParameters(ShaderParameterMap const& parameterMap)
 		{
 			mParamGBuffer.bindParameters(parameterMap, true);
 		}
@@ -908,7 +908,7 @@ namespace Render
 			return entries;
 		}
 	public:
-		void bindParameters(ShaderParameterMap& parameterMap);
+		void bindParameters(ShaderParameterMap const& parameterMap);
 		void setParameters(RHICommandList& commandList, SceneRenderTargets& sceneRenderTargets, Vector3 kernelVectors[], int numKernelVector);
 
 		GBufferShaderParameters mParamGBuffer;
@@ -938,7 +938,7 @@ namespace Render
 			return entries;
 		}
 	public:
-		void bindParameters(ShaderParameterMap& parameterMap);
+		void bindParameters(ShaderParameterMap const& parameterMap);
 		void setParameters(RHICommandList& commandList, RHITexture2D& SSAOTexture);
 
 		ShaderParameter mParamTextureSSAO;
@@ -965,7 +965,7 @@ namespace Render
 			return entries;
 		}
 	public:
-		void bindParameters(ShaderParameterMap& parameterMap);
+		void bindParameters(ShaderParameterMap const& parameterMap);
 		void setParameters(RHICommandList& commandList, SceneRenderTargets& sceneRenderTargets, RHITexture2D& SSAOTexture);
 
 		GBufferShaderParameters mParamGBuffer;
@@ -1190,7 +1190,7 @@ namespace Render
 
 		DECLARE_SHADER_PROGRAM(BMAResolveProgram, Global);
 
-		void bindParameters(ShaderParameterMap& parameterMap);
+		void bindParameters(ShaderParameterMap const& parameterMap);
 
 		void setParameters(RHICommandList& commandList, OITShaderData& data);
 
@@ -1516,7 +1516,7 @@ namespace Render
 			return entries;
 		}
 
-		void bindParameters(ShaderParameterMap& parameterMap)
+		void bindParameters(ShaderParameterMap const& parameterMap)
 		{
 			BaseClass::bindParameters(parameterMap);
 			mParamOITCommon.bindParameters(parameterMap);
@@ -1548,11 +1548,11 @@ namespace Render
 		static_cast<OITBBasePassProgram&>(program).setParameters(context.getCommnadList(), mShaderData);
 	}
 
-	void BMAResolveProgram::bindParameters(ShaderParameterMap& parameterMap)
+	void BMAResolveProgram::bindParameters(ShaderParameterMap const& parameterMap)
 {
-		parameterMap.bind(mParamColorStorageTexture, SHADER_PARAM(ColorStorageTexture));
-		parameterMap.bind(mParamNodeAndDepthStorageTexture, SHADER_PARAM(NodeAndDepthStorageTexture));
-		parameterMap.bind(mParamNodeHeadTexture, SHADER_PARAM(NodeHeadTexture));
+		mParamColorStorageTexture.bind(parameterMap, SHADER_PARAM(ColorStorageTexture));
+		mParamNodeAndDepthStorageTexture.bind(parameterMap, SHADER_PARAM(NodeAndDepthStorageTexture));
+		mParamNodeHeadTexture.bind(parameterMap, SHADER_PARAM(NodeHeadTexture));
 	}
 
 	void BMAResolveProgram::setParameters(RHICommandList& commandList, OITShaderData& data )
@@ -1562,12 +1562,12 @@ namespace Render
 		setRWTexture(commandList, mParamNodeHeadTexture, *data.nodeHeadTexture, AO_READ_AND_WRITE);
 	}
 
-	void SSAOGenerateProgram::bindParameters(ShaderParameterMap& parameterMap)
+	void SSAOGenerateProgram::bindParameters(ShaderParameterMap const& parameterMap)
 {
 		mParamGBuffer.bindParameters(parameterMap , true);
-		parameterMap.bind(mParamKernelNum, SHADER_PARAM(KernelNum));
-		parameterMap.bind(mParamKernelVectors, SHADER_PARAM(KernelVectors));
-		parameterMap.bind(mParamOcclusionRadius, SHADER_PARAM(OcclusionRadius));
+		mParamKernelNum.bind(parameterMap, SHADER_PARAM(KernelNum));
+		mParamKernelVectors.bind(parameterMap, SHADER_PARAM(KernelVectors));
+		mParamOcclusionRadius.bind(parameterMap, SHADER_PARAM(OcclusionRadius));
 	}
 
 	void SSAOGenerateProgram::setParameters(RHICommandList& commandList, SceneRenderTargets& sceneRenderTargets, Vector3 kernelVectors[], int numKernelVector)
@@ -1578,10 +1578,10 @@ namespace Render
 		setParam(commandList, mParamOcclusionRadius, 0.5f);
 	}
 
-	void SSAOBlurProgram::bindParameters(ShaderParameterMap& parameterMap)
+	void SSAOBlurProgram::bindParameters(ShaderParameterMap const& parameterMap)
 {
-		parameterMap.bind(mParamTextureSSAO, SHADER_PARAM(TextureSSAO));
-		parameterMap.bind(mParamTextureSamplerSSAO, SHADER_PARAM(TextureSamplerSSAO));
+		mParamTextureSSAO.bind(parameterMap, SHADER_PARAM(TextureSSAO));
+		mParamTextureSamplerSSAO.bind(parameterMap, SHADER_PARAM(TextureSamplerSSAO));
 	}
 
 	void SSAOBlurProgram::setParameters(RHICommandList& commandList, RHITexture2D& SSAOTexture)
@@ -1590,11 +1590,11 @@ namespace Render
 				   TStaticSamplerState<Sampler::eBilinear , Sampler::eClamp , Sampler::eClamp , Sampler::eClamp >::GetRHI() );
 	}
 
-	void SSAOAmbientProgram::bindParameters(ShaderParameterMap& parameterMap)
+	void SSAOAmbientProgram::bindParameters(ShaderParameterMap const& parameterMap)
 {
 		mParamGBuffer.bindParameters(parameterMap);
-		parameterMap.bind(mParamTextureSSAO, SHADER_PARAM(TextureSSAO));
-		parameterMap.bind(mParamTextureSamplerSSAO, SHADER_PARAM(TextureSamplerSSAO));
+		mParamTextureSSAO.bind(parameterMap, SHADER_PARAM(TextureSSAO));
+		mParamTextureSamplerSSAO.bind(parameterMap, SHADER_PARAM(TextureSamplerSSAO));
 	}
 
 	void SSAOAmbientProgram::setParameters(RHICommandList& commandList, SceneRenderTargets& sceneRenderTargets, RHITexture2D& SSAOTexture)
@@ -1604,15 +1604,15 @@ namespace Render
 				   TStaticSamplerState<Sampler::eBilinear, Sampler::eClamp, Sampler::eClamp, Sampler::eClamp >::GetRHI());
 	}
 
-	void GBufferShaderParameters::bindParameters(ShaderParameterMap& parameterMap, bool bUseDepth /*= false */)
+	void GBufferShaderParameters::bindParameters(ShaderParameterMap const& parameterMap, bool bUseDepth /*= false */)
 	{
-		parameterMap.bind(mParamGBufferTextureA, SHADER_PARAM(GBufferTextureA));
-		parameterMap.bind(mParamGBufferTextureB, SHADER_PARAM(GBufferTextureB));
-		parameterMap.bind(mParamGBufferTextureC, SHADER_PARAM(GBufferTextureC));
-		parameterMap.bind(mParamGBufferTextureD, SHADER_PARAM(GBufferTextureD));
+		mParamGBufferTextureA.bind(parameterMap, SHADER_PARAM(GBufferTextureA));
+		mParamGBufferTextureB.bind(parameterMap, SHADER_PARAM(GBufferTextureB));
+		mParamGBufferTextureC.bind(parameterMap, SHADER_PARAM(GBufferTextureC));
+		mParamGBufferTextureD.bind(parameterMap, SHADER_PARAM(GBufferTextureD));
 		if( bUseDepth )
 		{
-			parameterMap.bind(mParamFrameDepthTexture, SHADER_PARAM(FrameDepthTexture));
+			mParamFrameDepthTexture.bind(parameterMap, SHADER_PARAM(FrameDepthTexture));
 		}
 	}
 
@@ -1807,11 +1807,11 @@ namespace Render
 			};
 			return entries;
 		}
-		void bindParameters(ShaderParameterMap& parameterMap)
+		void bindParameters(ShaderParameterMap const& parameterMap)
 		{
-			parameterMap.bind(mParamTextureR, SHADER_PARAM(TextureR));
-			parameterMap.bind(mParamTextureG, SHADER_PARAM(TextureG));
-			parameterMap.bind(mParamTextureB, SHADER_PARAM(TextureB));
+			mParamTextureR.bind(parameterMap, SHADER_PARAM(TextureR));
+			mParamTextureG.bind(parameterMap, SHADER_PARAM(TextureG));
+			mParamTextureB.bind(parameterMap, SHADER_PARAM(TextureB));
 		}
 
 		void setParameters(RHICommandList& commandList, RHITexture2D& textureR, RHITexture2D& textureG, RHITexture2D& textureB)
@@ -1929,10 +1929,10 @@ namespace Render
 		static int constexpr SizeZ = 8;
 
 
-		void bindParameters(ShaderParameterMap& parameterMap)
+		void bindParameters(ShaderParameterMap const& parameterMap)
 		{
-			parameterMap.bind(mParamBufferRW, SHADER_PARAM(TargetRWTexture));
-			parameterMap.bind(mParamClearValue, SHADER_PARAM(ClearValue));
+			mParamBufferRW.bind(parameterMap, SHADER_PARAM(TargetRWTexture));
+			mParamClearValue.bind(parameterMap, SHADER_PARAM(ClearValue));
 		}
 
 		void setParameters(RHICommandList& commandList, RHITexture3D& Buffer , Vector4 const& clearValue)
@@ -1989,12 +1989,12 @@ namespace Render
 		static int constexpr GroupSizeX = 8;
 		static int constexpr GroupSizeY = 8;
 
-		void bindParameters(ShaderParameterMap& parameterMap)
+		void bindParameters(ShaderParameterMap const& parameterMap)
 		{
-			parameterMap.bind(mParamVolumeBufferA, SHADER_PARAM(VolumeBufferA));
-			parameterMap.bind(mParamVolumeBufferB, SHADER_PARAM(VolumeBufferB));
-			parameterMap.bind(mParamScatteringRWBuffer, SHADER_PARAM(ScatteringRWBuffer));
-			parameterMap.bind(mParamTiledLightNum, SHADER_PARAM(TiledLightNum));
+			mParamVolumeBufferA.bind(parameterMap, SHADER_PARAM(VolumeBufferA));
+			mParamVolumeBufferB.bind(parameterMap, SHADER_PARAM(VolumeBufferB));
+			mParamScatteringRWBuffer.bind(parameterMap, SHADER_PARAM(ScatteringRWBuffer));
+			mParamTiledLightNum.bind(parameterMap, SHADER_PARAM(TiledLightNum));
 		}
 
 		void setParameters(RHICommandList& commandList, ViewInfo& view , VolumetricLightingParameter& parameter )

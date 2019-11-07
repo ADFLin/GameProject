@@ -109,8 +109,9 @@ namespace BT
 		if ( mNodeIter == getNode< SelectorNode >()->_getChildren().end() )
 			return TS_FAILED;
 
-		walker.enterNode( **mNodeIter , this );
+		BTNode& executionNode = **mNodeIter;
 		++mNodeIter;
+		walker.enterNode( executionNode , this );
 		return TS_SUSPENDED;
 	}
 
@@ -139,8 +140,9 @@ namespace BT
 		if ( mNodeIter == getNode< SequenceNode >()->_getChildren().end() )
 			return TS_FAILED;
 
-		walker.enterNode( **mNodeIter , this );
+		BTNode& executionNode = **mNodeIter;
 		++mNodeIter;
+		walker.enterNode(executionNode, this );
 		return TS_SUSPENDED;
 	}
 

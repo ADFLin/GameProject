@@ -38,41 +38,49 @@ namespace Render
 		{
 		}
 
-		std::string name;
-		int  size;
-		bool bBold = false;
-		bool bUnderLine = false;
-
-		uint32 getHash() const
-		{
-			if( !bHashComputed )
-			{
-				bHashComputed = true;
-				cacheHash = hash_value(name);
-				HashCombine(cacheHash, size);
-				HashCombine(cacheHash, bBold);
-				HashCombine(cacheHash, bUnderLine);
-			}
-			return cacheHash;
-		}
-
 		bool operator == (FontFaceInfo const& rhs) const
 		{
 			return name == rhs.name &&
-				size == rhs.size &&
-				bBold == rhs.bBold &&
-				bUnderLine == rhs.bUnderLine;
+				   size == rhs.size &&
+				   bBold == rhs.bBold &&
+				   bUnderLine == rhs.bUnderLine;
 		}
-	private:
-		mutable uint32 cacheHash;
-		mutable bool   bHashComputed = false;
+
+		HashString name;
+		int  size;
+		bool bBold = false;
+		bool bUnderLine = false;
 	};
-}
 
-EXPORT_MEMBER_HASH_TO_STD(Render::FontFaceInfo)
 
-namespace Render
-{
+
+	struct FontFaceKey
+	{
+		FontFaceKey(FontFaceInfo const& fontFace)
+			:fontFace(fontFace)
+		{
+			cachedHash = hash_value(fontFace.name);
+			HashCombine(cachedHash, fontFace.size);
+			HashCombine(cachedHash, fontFace.bBold);
+			HashCombine(cachedHash, fontFace.bUnderLine);
+
+		}
+
+		bool operator == (FontFaceKey const& rhs) const
+		{
+			return fontFace == rhs.fontFace;
+		}
+
+		uint32 getHash() const
+		{
+			return cachedHash;
+		}
+
+	private:
+		FontFaceInfo   fontFace;
+		uint32         cachedHash;
+	};
+
 	class ICharDataProvider
 	{
 	public:
@@ -128,15 +136,12 @@ namespace Render
 		CORE_API CharDataSet* getCharDataSet(FontFaceInfo const& fontFace);
 
 		TextureAtlas mTextAtlas;
-		std::unordered_map< FontFaceInfo , CharDataSet* > mCharDataSetMap;
+		std::unordered_map< FontFaceKey , CharDataSet* , MemberFuncHasher > mCharDataSetMap;
 		bool bInitialized = false;
-
 #if SYS_PLATFORM_WIN
 		HDC hDC;
 #endif
 	};
-
-
 
 	class FontDrawer
 	{
@@ -147,14 +152,14 @@ namespace Render
 		bool initialize(FontFaceInfo const& fontFace);
 		bool isValid() const { return mCharDataSet != nullptr; }
 		void cleanup();
-		void draw(Vector2 const& pos, char const* str);
-		void draw(Vector2 const& pos, wchar_t const* str);
+		void draw(RHICommandList& commandList, Vector2 const& pos, char const* str);
+		void draw(RHICommandList& commandList, Vector2 const& pos, wchar_t const* str);
 		int  getSize() const { return mSize; }
 		int  getFontHeight() const { return mCharDataSet->getFontHeight(); }
 		Vector2 calcTextExtent(wchar_t const* str);
 		Vector2 calcTextExtent(char const* str);
 	private:
-		void drawImpl(Vector2 const& pos, wchar_t const* str);
+		void drawImpl(RHICommandList& commandList, Vector2 const& pos, wchar_t const* str);
 		CharDataSet* mCharDataSet;
 		struct TextVertex
 		{
@@ -167,6 +172,9 @@ namespace Render
 	};
 
 }
+
+
+
 
 
 #endif // Font_H_9A126205_99D2_45E0_8375_78A1FA3950E3

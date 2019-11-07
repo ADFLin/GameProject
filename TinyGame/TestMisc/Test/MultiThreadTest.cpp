@@ -19,7 +19,7 @@ public:
 			list->push(idx * count + i);
 			//SystemPlatform::Sleep(rand() % 10);
 		}
-		SystemPlatform::InterlockedIncrement(pNumFinish);
+		SystemPlatform::AtomIncrement(pNumFinish);
 		LogMsg("%d Thead is finished", idx);
 		return 0; 	
 	}

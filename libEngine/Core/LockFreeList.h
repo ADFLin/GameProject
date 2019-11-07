@@ -29,10 +29,10 @@ public:
 		{
 			Node* headLocal = (Node*)SystemPlatform::AtomicRead((intptr_t*)&mHead);
 			newHead->next = headLocal;
-			if( SystemPlatform::InterlockedCompareExchange((intptr_t*)&mHead, (intptr_t)newHead, (intptr_t)headLocal) == (intptr_t)headLocal )
+			if( SystemPlatform::AtomCompareExchange((intptr_t*)&mHead, (intptr_t)newHead, (intptr_t)headLocal) == (intptr_t)headLocal )
 				break;
 
-			SystemPlatform::InterlockedIncrement(&numMissed);
+			SystemPlatform::AtomIncrement(&numMissed);
 		}
 	}
 
@@ -43,7 +43,7 @@ public:
 		{
 			headLocal = (Node*)SystemPlatform::AtomicRead((intptr_t*)&mHead);
 			Node* newHead = headLocal->next;
-			if( SystemPlatform::InterlockedCompareExchange((intptr_t*)&mHead, (intptr_t)newHead, (intptr_t)headLocal) == (intptr_t)headLocal )
+			if( SystemPlatform::AtomCompareExchange((intptr_t*)&mHead, (intptr_t)newHead, (intptr_t)headLocal) == (intptr_t)headLocal )
 				break;
 		}
 		assert(headLocal);

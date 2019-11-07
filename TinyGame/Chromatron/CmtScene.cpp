@@ -52,10 +52,10 @@ namespace Chromatron
 		mEditColor = COLOR_W;
 	}
 
-	void Scene::setupLevel( Level& level , bool beCreateMode )
+	void Scene::setupLevel( Level& level , bool bCreationMode )
 	{
 		mLevel = &level;
-		mbCreateMdoe = beCreateMode;
+		mbCreationMode = bCreationMode;
 		reset();
 	}
 
@@ -80,7 +80,7 @@ namespace Chromatron
 
 		drawStorage(g , mWorldPos + StorageMapPosOffset , getLevel() );
 
-		if ( mbCreateMdoe )
+		if ( mbCreationMode )
 		{
 			RenderUtility::SetPen( g , EColor::Gray );
 			RenderUtility::SetBrush( g , EColor::Blue , COLOR_LIGHT );
@@ -121,7 +121,7 @@ namespace Chromatron
 		if ( msg.onLeftDown() )
 		{
 			mDownDC = getDevice( msg.getPos() );
-			if ( mbCreateMdoe )
+			if ( mbCreationMode )
 			{
 				if ( mDownDC == NULL )
 				{
@@ -164,7 +164,7 @@ namespace Chromatron
 				mDragDC = NULL;
 				mNeedUpdateLevel = true;
 			}
-			else if ( mbCreateMdoe && mIdCreateDC != ErrorDeviceId )
+			else if ( mbCreationMode && mIdCreateDC != ErrorDeviceId )
 			{
 				Vec2i cPos;
 				Level::PosType pt = getCellPos( msg.x() , msg.y() , cPos );
@@ -361,6 +361,13 @@ namespace Chromatron
 				DRAW_RECT( size2 );
 				RenderUtility::SetBrush( g , EColor::Blue );
 				DRAW_RECT2( size2 , offset2 );
+			}
+			break;
+		case  DC_SPINSPLITTER:
+			{
+				RenderUtility::SetPen(g, EColor::Black);
+				g.setBrush(Color3ub(200, 200, 200));
+				DRAW_RECT(Vec2i(10,10));
 			}
 			break;
 		case DC_MULTIFILTER:
@@ -608,7 +615,7 @@ namespace Chromatron
 	void Scene::restart()
 	{
 		getLevel().restart();
-		if ( mbCreateMdoe )
+		if ( mbCreationMode )
 		{
 			getLevel().clearData();
 

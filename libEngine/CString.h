@@ -3,7 +3,7 @@
 #define CString_H_68B1FD83_57D7_4E26_B8F4_683C9097A912
 
 #include "MemorySecurity.h"
-#include "MetaBase.h"
+#include "Meta/MetaBase.h"
 #include "Core/IntegerType.h"
 
 #include <string>
@@ -138,7 +138,7 @@ struct FCString
 	static void Stricpy(char * dest, char const* src);
 
 	static uint32 StriHash(char const* str);
-
+	static uint32 StriHash(char const* str, int len);
 
 	static std::wstring CharToWChar(const char *c);
 };

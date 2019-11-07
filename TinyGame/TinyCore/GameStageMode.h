@@ -17,6 +17,9 @@ class  IReplayRecorder;
 class  IPlayerManager;
 class  GameStageBase;
 
+class ReplayStageMode;
+class NetLevelStageMode;
+
 class GameStageMode
 {
 public:
@@ -41,6 +44,9 @@ public:
 	virtual bool   saveReplay(char const* name) { return false; }
 	virtual IPlayerManager* getPlayerManager() = 0;
 	virtual bool   tryChangeState(GameState state) { return true; }
+
+	virtual ReplayStageMode* getReplayMode() { return nullptr; }
+	virtual NetLevelStageMode* getNetLevelMode() { return nullptr; }
 	
 	StageModeType getModeType() const { return mStageMode;  }
 	bool  changeState(GameState state);

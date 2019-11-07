@@ -85,7 +85,7 @@ public:
 	virtual void enter(){}
 	virtual void exit(){} 
 	//
-	virtual void beginPlay( StageModeType type, StageManager& manger );
+	virtual void beginPlay(StageManager& manger, StageModeType modeType) = 0;
 	virtual void endPlay(){}
 
 	virtual IGameInstance*        createInstance() { return nullptr; }
@@ -100,6 +100,9 @@ public:
 
 	//old replay version
 	virtual ReplayTemplate*       createReplayTemplate( unsigned version ){ return nullptr; }
+
+
+	bool changeDefaultStage(StageManager& stageManager, StageModeType modeType);
 };
 
 typedef IModuleInterface* (*CreateModuleFun)();

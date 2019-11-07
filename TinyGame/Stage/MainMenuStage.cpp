@@ -244,7 +244,7 @@ void MainMenuStage::doChangeWidgetGroup( StageGroupID group )
 	case UI_SINGLEPLAYER:
 		{
 			GameModuleVec games;
-			Global::GameManager().classifyGame( ATTR_SINGLE_SUPPORT , games );
+			Global::ModuleManager().classifyGame( ATTR_SINGLE_SUPPORT , games );
 
 			for( IGameModule* game : games )
 			{
@@ -327,7 +327,7 @@ bool MainMenuStage::onWidgetEvent( int event , int id , GWidget* ui )
 		case UI_FREECELL_TEST:
 		case UI_BIG2_TEST:
 			{
-				IGameModule* game = Global::GameManager().changeGame( "Poker" );
+				IGameModule* game = Global::ModuleManager().changeGame( "Poker" );
 				if ( !game )
 					return false;
 				Poker::GameRule rule;
@@ -365,8 +365,8 @@ bool MainMenuStage::onWidgetEvent( int event , int id , GWidget* ui )
 		case UI_GAME_BUTTON:
 			{
 				IGameModule* game = reinterpret_cast< IGameModule* >( ui->getUserData() );
-				Global::GameManager().changeGame( game->getName() );
-				game->beginPlay( SMT_SINGLE_GAME , *getManager() );
+				Global::ModuleManager().changeGame( game->getName() );
+				game->beginPlay( *getManager(), SMT_SINGLE_GAME );
 			}
 			return false;
 		case UI_GAME_OPTION:
@@ -382,10 +382,10 @@ bool MainMenuStage::onWidgetEvent( int event , int id , GWidget* ui )
 	}
 	else if ( id < UI_SINGLE_DEV_INDEX + MAX_NUM_GROUP )
 	{
-		IGameModule* game = Global::GameManager().changeGame( gSingleDev[ id - UI_SINGLE_DEV_INDEX ].game );
+		IGameModule* game = Global::ModuleManager().changeGame( gSingleDev[ id - UI_SINGLE_DEV_INDEX ].game );
 		if ( !game )
 			return false;
-		game->beginPlay( SMT_SINGLE_GAME , *getManager() );
+		game->beginPlay( *getManager() , SMT_SINGLE_GAME );
 		return false;
 	}
 	else

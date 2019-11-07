@@ -118,7 +118,7 @@ namespace Chromatron
 		void     installDevice( Device& dc , Vec2i const& pos , bool inWorld );
 
 		
-		void   resetDeviceFlag( bool beRestart );
+		void   resetDeviceFlag( bool bRestart );
 
 		static int const MaxNumMapDC  = 15 * 15;
 

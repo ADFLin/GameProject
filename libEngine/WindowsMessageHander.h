@@ -5,7 +5,7 @@
 
 #include "WindowsHeader.h"
 #include "SystemMessage.h"
-#include "MetaBase.h"
+#include "Meta/MetaBase.h"
 #include "Core/CRTPCheck.h"
 
 enum

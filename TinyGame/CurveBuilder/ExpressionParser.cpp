@@ -183,8 +183,7 @@ bool ExpressionParser::analyzeTokenUnit( char const* expr , SymbolTable const& t
 
 		if ( type == TOKEN_TYPE_ERROR )
 		{
-			std::string buffer = token.toStdString();
-			SymbolEntry const* symbol = table.findSymbol(buffer);
+			SymbolEntry const* symbol = table.findSymbol(token.toCString());
 
 			if ( symbol )
 			{
@@ -219,7 +218,7 @@ bool ExpressionParser::analyzeTokenUnit( char const* expr , SymbolTable const& t
 			else
 			{
 				char* ptrEnd;
-				RealType val = RealType(strtod(buffer.c_str(), &ptrEnd));
+				RealType val = RealType(strtod(token.toCString(), &ptrEnd));
 				if( *ptrEnd == '\0' )
 				{
 					type = VALUE_CONST;
@@ -1395,7 +1394,7 @@ char const* SymbolTable::getVarName( void* var ) const
 	return nullptr;
 }
 
-VariableInfo const* SymbolTable::findVar( std::string const& name ) const
+VariableInfo const* SymbolTable::findVar(char const* name) const
 {
 	auto entry = findSymbol(name, SymbolEntry::eVariable);
 	if( entry )
@@ -1405,7 +1404,7 @@ VariableInfo const* SymbolTable::findVar( std::string const& name ) const
 	return nullptr;
 }
 
-int SymbolTable::findInput(std::string const& name) const
+int SymbolTable::findInput(char const*  name) const
 {
 	auto entry = findSymbol(name, SymbolEntry::eInputVar);
 	if( entry )
@@ -1415,7 +1414,7 @@ int SymbolTable::findInput(std::string const& name) const
 	return -1;
 }
 
-FuncInfo const* SymbolTable::findFunc(std::string const& name ) const
+FuncInfo const* SymbolTable::findFunc(char const* name) const
 {
 	auto entry = findSymbol(name, SymbolEntry::eFunction);
 	if( entry )
@@ -1425,7 +1424,7 @@ FuncInfo const* SymbolTable::findFunc(std::string const& name ) const
 	return nullptr;
 }
 
-ConstValueInfo const* SymbolTable::findConst(std::string const& name ) const
+ConstValueInfo const* SymbolTable::findConst(char const* name) const
 {
 	auto entry = findSymbol(name, SymbolEntry::eConstValue);
 	if( entry )

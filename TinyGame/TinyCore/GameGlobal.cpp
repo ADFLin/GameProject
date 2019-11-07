@@ -111,7 +111,7 @@ IGraphics2D& Global::GetIGraphics2D()
 	return GetDrawEngine().getIGraphics();
 }
 
-GameModuleManager& Global::GameManager()
+GameModuleManager& Global::ModuleManager()
 {
 	static GameModuleManager manager;
 	return manager;

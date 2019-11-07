@@ -29,7 +29,7 @@ public:
 		if( !BaseClass::onInit() )
 			return false;
 
-		if( !::Global::GetDrawEngine().initializeRHI(RHITargetName::OpenGL, 1) )
+		if( !::Global::GetDrawEngine().initializeRHI(RHITargetName::OpenGL) )
 			return false;
 
 		::Global::GUI().cleanupWidget();

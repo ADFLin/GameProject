@@ -6,11 +6,12 @@
 #include "WindowsHeader.h"
 #include <Commdlg.h>
 #include <intrin.h>
+//#include <xatomic.h>
+#include <winnt.h>
 #else
 #include <ctime>
 #include "MemorySecurity.h"
 #endif
-
 
 
 int SystemPlatform::GetProcessorNumber()
@@ -69,7 +70,7 @@ char const* SystemPlatform::GetEnvironmentVariable(char const* key)
 #endif
 }
 
-int32 SystemPlatform::InterlockedExchange(volatile int32* ptr, int32 value)
+int32 SystemPlatform::AtomExchange(volatile int32* ptr, int32 value)
 {
 #if SYS_PLATFORM_WIN
 	return (int32)::_InterlockedExchange((volatile long*)ptr, (long)value);
@@ -78,16 +79,16 @@ int32 SystemPlatform::InterlockedExchange(volatile int32* ptr, int32 value)
 #endif
 }
 
-int64 SystemPlatform::InterlockedExchange(volatile int64* ptr, int64 value)
+int64 SystemPlatform::AtomExchange(volatile int64* ptr, int64 value)
 {
 #if SYS_PLATFORM_WIN
-	return (int64)::_InterlockedExchange64((volatile __int64*)ptr, (__int64)value);
+	return (int64)InterlockedExchange64((volatile __int64*)ptr, (__int64)value);
 #else
 #error no impl
 #endif
 }
 
-int32 SystemPlatform::InterlockedExchangeAdd(volatile int32* ptr, int32 value)
+int32 SystemPlatform::AtomExchangeAdd(volatile int32* ptr, int32 value)
 {
 #if SYS_PLATFORM_WIN
 	return (int32)::_InterlockedExchangeAdd((volatile long*)ptr, (long)value);
@@ -96,82 +97,82 @@ int32 SystemPlatform::InterlockedExchangeAdd(volatile int32* ptr, int32 value)
 #endif
 }
 
-int64 SystemPlatform::InterlockedExchangeAdd(volatile int64* ptr, int64 value)
+int64 SystemPlatform::AtomExchangeAdd(volatile int64* ptr, int64 value)
 {
 #if SYS_PLATFORM_WIN
-	return (int64)::_InterlockedExchangeAdd64((volatile __int64*)ptr, (__int64)value);
+	return (int64)InterlockedExchangeAdd64((volatile __int64*)ptr, (__int64)value);
 #else
 #error no impl
 #endif
 }
 
-int32 SystemPlatform::InterlockedAdd(volatile int32* ptr, int32 value)
+int32 SystemPlatform::AtomAdd(volatile int32* ptr, int32 value)
 {
 #if SYS_PLATFORM_WIN
-	return (int32)::_InterlockedAdd((volatile long*)ptr, (long)value);
+	return (int32)InterlockedAdd((volatile long*)ptr, (long)value);
 #else
 #error no impl
 #endif
 }
 
-int64 SystemPlatform::InterlockedAdd(volatile int64* ptr, int64 value)
+int64 SystemPlatform::AtomAdd(volatile int64* ptr, int64 value)
 {
 #if SYS_PLATFORM_WIN
-	return (int64)::_InterlockedAdd64((volatile __int64*)ptr, (__int64)value);
+	return (int64)InterlockedAdd64((volatile __int64*)ptr, (__int64)value);
 #else
 #error no impl
 #endif
 }
 
-int32 SystemPlatform::InterlockedCompareExchange(volatile int32* ptr, int32 exchange, int32 comperand)
+int32 SystemPlatform::AtomCompareExchange(volatile int32* ptr, int32 exchange, int32 comperand)
 {
 #if SYS_PLATFORM_WIN
-	return (int32)::_InterlockedCompareExchange((volatile long*)ptr, (long)exchange,(long)comperand);
+	return (int32)InterlockedCompareExchange((volatile long*)ptr, (long)exchange,(long)comperand);
 #else
 #error no impl
 #endif
 }
 
-int64 SystemPlatform::InterlockedCompareExchange(volatile int64* ptr, int64 exchange, int64 comperand)
+int64 SystemPlatform::AtomCompareExchange(volatile int64* ptr, int64 exchange, int64 comperand)
 {
 #if SYS_PLATFORM_WIN
-	return (int64)::_InterlockedCompareExchange64((volatile __int64*)ptr, (__int64)exchange, (__int64)comperand);
+	return (int64)InterlockedCompareExchange64((volatile __int64*)ptr, (__int64)exchange, (__int64)comperand);
 #else
 #error no impl
 #endif
 }
 
-int32 SystemPlatform::InterlockedIncrement(volatile int32* ptr)
+int32 SystemPlatform::AtomIncrement(volatile int32* ptr)
 {
 #if SYS_PLATFORM_WIN
-	return ::_InterlockedIncrement((volatile long*)ptr);
+	return _InterlockedIncrement((volatile long*)ptr);
 #else
 #error no impl
 #endif
 }
 
-int64 SystemPlatform::InterlockedIncrement(volatile int64* ptr)
+int64 SystemPlatform::AtomIncrement(volatile int64* ptr)
 {
 #if SYS_PLATFORM_WIN
-	return ::_InterlockedIncrement64((volatile __int64*)ptr);
+	return InterlockedIncrement64((volatile __int64*)ptr);
 #else
 #error no impl
 #endif
 }
 
-int32 SystemPlatform::InterlockedDecrement(volatile int32* ptr)
+int32 SystemPlatform::AtomDecrement(volatile int32* ptr)
 {
 #if SYS_PLATFORM_WIN
-	return ::_InterlockedDecrement((volatile long*)ptr);
+	return _InterlockedDecrement((volatile long*)ptr);
 #else
 #error no impl
 #endif
 }
 
-int64 SystemPlatform::InterlockedDecrement(volatile int64* ptr)
+int64 SystemPlatform::AtomDecrement(volatile int64* ptr)
 {
 #if SYS_PLATFORM_WIN
-	return ::_InterlockedDecrement64((volatile __int64*)ptr);
+	return InterlockedDecrement64((volatile __int64*)ptr);
 #else
 #error no impl
 #endif
@@ -180,7 +181,7 @@ int64 SystemPlatform::InterlockedDecrement(volatile int64* ptr)
 int32 SystemPlatform::AtomicRead(volatile int32* ptr)
 {
 #if SYS_PLATFORM_WIN
-	return ::_InterlockedCompareExchange((volatile long*)ptr ,0 ,0);
+	return _InterlockedCompareExchange((volatile long*)ptr ,0 ,0);
 #else
 #error no impl
 #endif
@@ -189,7 +190,7 @@ int32 SystemPlatform::AtomicRead(volatile int32* ptr)
 int64 SystemPlatform::AtomicRead(volatile int64* ptr)
 {
 #if SYS_PLATFORM_WIN
-	return (int64)::_InterlockedCompareExchange64((volatile __int64*)ptr, 0, 0);
+	return (int64)_InterlockedCompareExchange64((volatile __int64*)ptr, 0, 0);
 #else
 #error no impl
 #endif

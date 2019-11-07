@@ -572,29 +572,38 @@ public:
 		return true;
 	}
 
-	bool getGPUStatus(int idx, GPUStatus& status)
+	bool getGPUStatus(int idx, GPUStatus& status, GPUStatus::QueryMask mask )
 	{
 		NvPhysicalGpuHandle handle = mGpuHandles[idx];
-		NV_GPU_THERMAL_SETTINGS setting;
-		setting.version = NV_GPU_THERMAL_SETTINGS_VER;
-		if( !checkNvStatus(NvAPI_GPU_GetThermalSettings(handle, 0, &setting)) )
-			return false;
-		status.temperature = setting.sensor[0].currentTemp;
+		if ( mask & GPUStatus::eTemperature )
+		{
+			NV_GPU_THERMAL_SETTINGS setting;
+			setting.version = NV_GPU_THERMAL_SETTINGS_VER;
+			if( !checkNvStatus(NvAPI_GPU_GetThermalSettings(handle, 0, &setting)) )
+				return false;
+			status.temperature = setting.sensor[0].currentTemp;
+		}
 
-		NV_DISPLAY_DRIVER_MEMORY_INFO info;
-		info.version = NV_DISPLAY_DRIVER_MEMORY_INFO_VER;
+		if( mask & GPUStatus::eMemory )
+		{
+			NV_DISPLAY_DRIVER_MEMORY_INFO info;
+			info.version = NV_DISPLAY_DRIVER_MEMORY_INFO_VER;
 
-		if( !checkNvStatus(NvAPI_GPU_GetMemoryInfo(handle, &info)) )
-			return false;
-		status.freeMemory = info.curAvailableDedicatedVideoMemory;
-		status.totalMemory = info.dedicatedVideoMemory;
+			if( !checkNvStatus(NvAPI_GPU_GetMemoryInfo(handle, &info)) )
+				return false;
+			status.freeMemory = info.curAvailableDedicatedVideoMemory;
+			status.totalMemory = info.dedicatedVideoMemory;
+		}
 
-		NvUsages nvUsages;
-		nvUsages.version = NV_USAGES_VER;
-		if( !checkNvStatus(NvAPI_GPU_GetUsages(handle, &nvUsages)) )
-			return false;
+		if( mask & GPUStatus::eUsage )
+		{
+			NvUsages nvUsages;
+			nvUsages.version = NV_USAGES_VER;
+			if( !checkNvStatus(NvAPI_GPU_GetUsages(handle, &nvUsages)) )
+				return false;
 
-		status.usage = nvUsages.usages[2];
+			status.usage = nvUsages.usages[2];
+		}
 		return true;
 	}
 	int getDisplyNum() { return mDisplays.size(); }

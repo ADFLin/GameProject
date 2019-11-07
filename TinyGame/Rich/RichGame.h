@@ -15,7 +15,7 @@ namespace Rich
 		virtual void  exit(){} 
 		virtual void  deleteThis(){ delete this; }
 		//
-		virtual void beginPlay( StageModeType type, StageManager& manger );
+		virtual void beginPlay( StageManager& manger, StageModeType modeType ) override;
 	public:
 		virtual char const*           getName(){ return "Rich"; }
 		virtual GameController&       getController(){ return IGameModule::getController(); }

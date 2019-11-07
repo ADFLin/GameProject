@@ -99,7 +99,7 @@ bool QuadAssaultModule::getAttribValue(AttribValue& value)
 	return false;
 }
 
-void QuadAssaultModule::beginPlay(StageModeType type, StageManager& manger)
+void QuadAssaultModule::beginPlay(StageManager& manger, StageModeType modeType)
 {
 	ProxyStage* stage = new ProxyStage;
 	manger.setNextStage(stage);

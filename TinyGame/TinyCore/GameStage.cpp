@@ -56,7 +56,7 @@ GameStageBase::GameStageBase()
 
 bool GameStageBase::onInit()
 {
-	mGame = Global::GameManager().getRunningGame();
+	mGame = Global::ModuleManager().getRunningGame();
 
 	if( !mStageMode )
 	{

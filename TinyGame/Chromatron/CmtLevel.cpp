@@ -61,7 +61,7 @@ namespace Chromatron
 		:mWorld( MapSize , MapSize )
 	{
 		mIsGoal = false;
-		std::fill_n( mStorgeMap , MaxNumUserDC , (Device*)NULL );
+		std::fill_n( mStorgeMap , MaxNumUserDC , nullptr );
 	}
 
 	Level::~Level()
@@ -75,7 +75,7 @@ namespace Chromatron
 		if( mWorld.isValidRange(pos) )
 			return mWorld.getTile(pos).getDevice();
 
-		return NULL;
+		return nullptr;
 	}
 
 	void Level::restart()
@@ -113,14 +113,11 @@ namespace Chromatron
 
 	bool Level::moveDevice(Device& dc,const Vec2i& pos , bool inWorld ,bool beForce )
 	{
-		//assert( ( dc.getFlag() & FB_IS_USING ) != 0 ||
-		//	     ( (  dc.isInWorld() &&  getWorldMapDevice( dc.getPos()) == &dc ) ||
-		//	       ( !dc.isInWorld() && m_StorgeMap[ dc.getPos().x ] == &dc ) ) );
 
 		if ( inWorld )
 		{
 			if ( !mWorld.isValidRange(pos) ||
-				!mWorld.canSetup( pos ) ) 
+				 !mWorld.canSetup( pos ) ) 
 				return false;
 		}
 		else
@@ -153,29 +150,24 @@ namespace Chromatron
 		return false;
 	}
 
-
-	void Level::resetDeviceFlag( bool beRestart )
+	void Level::resetDeviceFlag( bool bRestart )
 	{
-		if ( beRestart )
+		if ( bRestart )
 		{
-			for( MapDCInfoList::iterator iter = mMapDCList.begin(); 
-				iter != mMapDCList.end() ;++iter )
+			for( auto& deviceTile : mMapDCList )
 			{
-				Device* dc = iter->dc;
-				dc->getFlag().removeBits( DFB_GOAL | DFB_LAZY_EFFECT | DFB_SHUTDOWN );
-
-				iter->lazyColor    = 0;
-				iter->receivedColor= 0;
-				iter->emittedColor = 0;
+				deviceTile.dc->getFlag().removeBits( DFB_GOAL | DFB_LAZY_EFFECT | DFB_SHUTDOWN );
+				deviceTile.lazyColor    = 0;
+				deviceTile.receivedColor= 0;
+				deviceTile.emittedColor = 0;
 			}
 		}
 		else
 		{
-			for( MapDCInfoList::iterator iter = mMapDCList.begin(); 
-				iter != mMapDCList.end() ;++iter )
+			for( auto& deviceTile : mMapDCList )
 			{
-				iter->emittedColor = 0;
-				iter->receivedColor= 0;
+				deviceTile.emittedColor = 0;
+				deviceTile.receivedColor= 0;
 			}
 		}
 	}
@@ -183,41 +175,39 @@ namespace Chromatron
 	void Level::updateWorld()
 	{
 		WorldUpdateContext context( mWorld );
-		resetDeviceFlag(true);
-		bool recalc;
+
+		
+		bool bRecalc = false;
 		do
 		{
-			recalc = false;
+			resetDeviceFlag( !bRecalc );
 			context.prevUpdate();
-			for (MapDCInfoList::iterator iter = mMapDCList.begin();
-				iter != mMapDCList.end(); ++iter)
+
+			for( auto& deviceTile : mMapDCList )
 			{
-				Device* dc = iter->dc;
-				dc->update(context);
+				deviceTile.dc->update(context);
 			}
 
 			switch ( context.transmitLight() )
 			{
 			case TSS_LOGIC_ERROR:
 			case TSS_RECALC:
-				recalc = true;
+				bRecalc = true;
 				break;
 			case TSS_INFINITE_LOOP:
+				bRecalc = false;
 				break;
 			}
 
-			if (recalc)
-				resetDeviceFlag(false);
-
-		} while (recalc);
+		} while (bRecalc);
 
 
 		bool goal = true;
 
-		for( MapDCInfoList::iterator iter = mMapDCList.begin(); 
-			iter != mMapDCList.end() ;++iter )
+
+		for( auto& deviceTile : mMapDCList )
 		{
-			Device* dc = iter->dc;
+			Device* dc = deviceTile.dc;
 
 			if ( !dc->checkFinish( context ) )
 			{

@@ -89,7 +89,6 @@ struct TGetFuncSignature
 
 };
 
-
 template< class RT >
 struct TGetFuncSignature< RT (*)() >
 {
@@ -99,44 +98,14 @@ struct TGetFuncSignature< RT (*)() >
 		return sResult;
 	}
 };
-template< class RT, class T0 >
-struct TGetFuncSignature< RT (*)(T0) >
-{
-	static FuncSignatureInfo const& Result()
-	{
-		static ValueLayout const sArgs[] = { TTypeToValueLayout<T0>::Result };
-		static FuncSignatureInfo sResult{ TTypeToValueLayout<RT>::Result , sArgs , 1 };
-		return sResult;
-	}
-};
-template< class RT, class T0, class T1 >
-struct TGetFuncSignature< RT(*)(T0, T1) >
-{
-	static FuncSignatureInfo const& Result()
-	{
-		static ValueLayout const sArgs[] = { TTypeToValueLayout<T0>::Result , TTypeToValueLayout<T1>::Result };
-		static FuncSignatureInfo sResult{ TTypeToValueLayout<RT>::Result , sArgs , 2 };
-		return sResult;
-	}
-};
-template< class RT, class T0, class T1, class T2>
-struct TGetFuncSignature< RT(*)(T0, T1, T2) >
-{
-	static FuncSignatureInfo const& Result()
-	{
-		static ValueLayout const sArgs[] = { TTypeToValueLayout<T0>::Result, TTypeToValueLayout<T1>::Result, TTypeToValueLayout<T2>::Result };
-		static FuncSignatureInfo sResult{ TTypeToValueLayout<RT>::Result , sArgs , 3 };
-		return sResult;
-	}
-};
 
-template< class RT, class T0, class T1, class T2, class T3>
-struct TGetFuncSignature< RT(*)(T0, T1, T2, T3) >
+template< class RT, class ...Args >
+struct TGetFuncSignature< RT (*)(Args...) >
 {
 	static FuncSignatureInfo const& Result()
 	{
-		static ValueLayout const sArgs[] = { TTypeToValueLayout<T0>::Result, TTypeToValueLayout<T1>::Result, TTypeToValueLayout<T2>::Result, TTypeToValueLayout<T3>::Result };
-		static FuncSignatureInfo sResult{ TTypeToValueLayout<RT>::Result , sArgs , 4 };
+		static ValueLayout const sArgs[] = { TTypeToValueLayout<Args>::Result... };
+		static FuncSignatureInfo sResult{ TTypeToValueLayout<RT>::Result , sArgs , sizeof...(Args) };
 		return sResult;
 	}
 };
@@ -421,43 +390,48 @@ public:
 
 	void            defineVarInput(char const* name, uint8 inputIndex) { mNameToEntryMap[name] = inputIndex; }
 	
-	ConstValueInfo const* findConst(std::string const& name) const;
-	FuncInfo const*       findFunc(std::string const& name) const;
-	VariableInfo const*   findVar(std::string const& name ) const;
-	int                   findInput(std::string const& name) const;
+	ConstValueInfo const* findConst(char const* name) const;
+	FuncInfo const*       findFunc(char const* name) const;
+	VariableInfo const*   findVar(char const* name) const;
+	int                   findInput(char const* name) const;
 
 	char const*     getFunName( FuncInfo const& info ) const;
 	char const*     getVarName( void* var ) const;
 
-	bool            isFunDefined(std::string const& name) const{  return isDefinedInternal( name , SymbolEntry::eFunction ); }
-	bool            isVarDefined(std::string const& name) const{ return isDefinedInternal(name, SymbolEntry::eVariable ); }
-	bool            isConstDefined(std::string const& name ) const{ return isDefinedInternal(name, SymbolEntry::eConstValue); }
+	bool            isFunDefined(char const* name) const{  return isDefinedInternal( name , SymbolEntry::eFunction ); }
+	bool            isVarDefined(char const* name) const{ return isDefinedInternal(name, SymbolEntry::eVariable ); }
+	bool            isConstDefined(char const* name) const{ return isDefinedInternal(name, SymbolEntry::eConstValue); }
 
 	int             getVarTable( char const* varStr[], double varVal[] ) const;
 
 
-	SymbolEntry const* findSymbol(std::string const& name) const
+	SymbolEntry const* findSymbol(char const* name) const
 	{
 		auto iter = mNameToEntryMap.find(name);
-		if( iter == mNameToEntryMap.end() )
-			return nullptr;
-		return &iter->second;
+		if( iter != mNameToEntryMap.end() )
+			return &iter->second;
+			
+		return nullptr;
 	}
-	SymbolEntry const* findSymbol(std::string const& name, SymbolEntry::Type type) const
+	SymbolEntry const* findSymbol(char const* name, SymbolEntry::Type type) const
 	{
 		auto iter = mNameToEntryMap.find(name);
-		if( iter == mNameToEntryMap.end() || iter->second.type != type )
-			return nullptr;
-		return &iter->second;
+		if( iter != mNameToEntryMap.end() )
+		{
+			if( iter->second.type == type )
+				return &iter->second;
+		}
+		
+		return nullptr;
 	}
 protected:
 
 
-	bool  isDefinedInternal(std::string const& name, SymbolEntry::Type type) const
+	bool  isDefinedInternal(char const* name, SymbolEntry::Type type) const
 	{
 		return findSymbol(name, type) != nullptr;
 	}
-	std::map< std::string, SymbolEntry > mNameToEntryMap;
+	std::map< HashString, SymbolEntry > mNameToEntryMap;
 
 };
 

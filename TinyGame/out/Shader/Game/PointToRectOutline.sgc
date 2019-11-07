@@ -1,0 +1,63 @@
+#include "Common.sgc"
+
+uniform float4x4 ViewProjectMatrix;
+float4 ProjectVertex(float2 v)
+{
+	return ViewProjectMatrix * float4(v, 0, 1);
+}
+
+#if VERTEX_SHADER
+
+DECLARE_VERTEX_INPUT( float2 , Pos , ATTRIBUTE_POSITION )
+void MainVS()
+{
+#if 1
+	gl_Position = float4(VERTEX_INPUT(Pos), 0.0, 1.0);
+#else
+	gl_Position = ProjectVertex(VERTEX_INPUT(Pos));
+#endif
+}
+#endif
+
+#if GEOMETRY_SHADER
+
+uniform float HalfSize;
+
+
+layout(points, invocations = 1) in;
+layout(line_strip, max_vertices = 5) out;
+void MainGS()
+{
+	float2 offset = float2(HalfSize, HalfSize);
+	float4 LT = ProjectVertex( gl_in[0].gl_Position.xy + offset * float2(-1, 1) );
+	float4 RT = ProjectVertex( gl_in[0].gl_Position.xy + offset * float2(1, 1) );
+	float4 RB = ProjectVertex( gl_in[0].gl_Position.xy + offset * float2(1, -1) );
+	float4 LB = ProjectVertex( gl_in[0].gl_Position.xy + offset * float2(-1, -1) );
+
+	gl_Position = LT;
+	EmitVertex();
+	gl_Position = LB;
+	EmitVertex();
+	gl_Position = RB;
+	EmitVertex();
+	gl_Position = RT;
+	EmitVertex();
+	gl_Position = LT;
+	EmitVertex();
+
+	EndPrimitive();
+}
+
+
+#endif
+
+
+#if PIXEL_SHADER
+layout(location = 0) out float4 OutColor;
+uniform float4 Color = float4(1,1,0,1);
+void MainPS()
+{
+	OutColor = Color;
+}
+
+#endif

@@ -19,9 +19,9 @@ namespace Math
 
 	bool Matrix3::inverse( Matrix3& m , float& det ) const
 	{
-		float m00 = m_m[0][0], m01 = m_m[0][1], m02 = m_m[0][2];
-		float m10 = m_m[1][0], m11 = m_m[1][1], m12 = m_m[1][2];
-		float m20 = m_m[2][0], m21 = m_m[2][1], m22 = m_m[2][2];
+		float m00 = mM[0][0], m01 = mM[0][1], m02 = mM[0][2];
+		float m10 = mM[1][0], m11 = mM[1][1], m12 = mM[1][2];
+		float m20 = mM[2][0], m21 = mM[2][1], m22 = mM[2][2];
 
 		float t00 = + ( m11 * m22 - m12 * m21 );
 		float t10 = - ( m10 * m22 - m12 * m20 );

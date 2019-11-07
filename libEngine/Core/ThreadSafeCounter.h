@@ -11,10 +11,10 @@ public:
 	TThreadSafeCounter(T value):mValue(value) {}
 	TThreadSafeCounter(){}
 
-	T add(T value) { return SystemPlatform::InterlockedAdd(&mValue , value); }
-	T set(T value) { return SystemPlatform::InterlockedExchange(&mValue , value); }
+	T add(T value) { return SystemPlatform::AtomLockedAdd(&mValue , value); }
+	T set(T value) { return SystemPlatform::AtomExchange(&mValue , value); }
 	T get() const { return mValue; }
-	T reset(){ return SystemPlatform::InterlockedExchange(&mValue , 0); }
+	T reset(){ return SystemPlatform::AtomExchange(&mValue , 0); }
 
 	volatile T mValue;
 };

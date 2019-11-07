@@ -3,7 +3,7 @@
 
 #include "RenderUtility.h"
 
-#include "GIFLoader.h"
+#include "Image/GIFLoader.h"
 #include "BitmapDC.h"
 #include "MarcoCommon.h"
 

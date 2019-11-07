@@ -26,7 +26,7 @@ namespace Chromatron
 	public:
 		LevelStage();
 
-		bool   changeLevel( int level ){ return changeLevelInternal( level , false ); }
+		bool   changeLevel( int indexLevel ){ return changeLevelInternal(indexLevel, false ); }
 	protected:
 		bool   onInit();
 		void   onEnd();
@@ -46,7 +46,7 @@ namespace Chromatron
 
 		Level& getCurLevel(){ return mScene.getLevel(); }
 		bool   tryUnlockLevel();
-		bool   changeLevelInternal( int level , bool haveChangeData , bool beCreateMode = false );
+		bool   changeLevelInternal( int indexLevel, bool haveChangeData , bool beCreateMode = false );
 		void   drawStatusPanel( GWidget* widget );
 
 	private:
@@ -70,8 +70,12 @@ namespace Chromatron
 
 		int    mNumLevelSolved;
 
-		Level* mLevelStorage[ MaxNumLevel ];
-		State  mLevelState[ MaxNumLevel ];
+		struct LevelData
+		{
+			Level* level;
+			State  state;
+		};
+		LevelData mLevels[MaxNumLevel];
 		int    mNumLevel;
 	};
 

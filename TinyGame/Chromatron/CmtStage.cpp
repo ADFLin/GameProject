@@ -38,7 +38,11 @@ namespace Chromatron
 	{
 		mIndexLevel = -1;
 		mNumLevel   = 0;
-		std::fill_n( mLevelStorage , MaxNumLevel , (Level*) 0 );
+
+		LevelData data;
+		data.level = nullptr;
+		data.state = eLOCK;
+		std::fill_n( mLevels , MaxNumLevel , data );
 	}
 
 	bool LevelStage::onInit()
@@ -140,7 +144,7 @@ namespace Chromatron
 	{
 		mScene.tick();
 
-		State state = mLevelState[ mIndexLevel ];
+		State& state = mLevels[ mIndexLevel ].state;
 		switch( state )
 		{
 		case eHAVE_SOLVED:
@@ -148,7 +152,7 @@ namespace Chromatron
 			if ( getCurLevel().isGoal() )
 			{
 				++mNumLevelSolved;
-				mLevelState[ mIndexLevel ] = eSOLVED;
+				state = eSOLVED;
 				if ( state == eUNSOLVED )
 				{
 					tryUnlockLevel();
@@ -159,7 +163,7 @@ namespace Chromatron
 			if ( !getCurLevel().isGoal() )
 			{
 				--mNumLevelSolved;
-				mLevelState[ mIndexLevel ] = eHAVE_SOLVED;
+				state = eHAVE_SOLVED;
 			}
 			break;
 		}
@@ -226,13 +230,13 @@ namespace Chromatron
 			{
 				for( int i = 1 ; i < mNumLevel - 1 ; ++i )
 				{
-					int level = mIndexLevel + i;
-					if ( level >= mNumLevel )
-						level -= mNumLevel;
+					int idxLevel = mIndexLevel + i;
+					if ( idxLevel >= mNumLevel )
+						idxLevel -= mNumLevel;
 
-					if ( !mLevelStorage[level]->isGoal() )
+					if ( !mLevels[idxLevel].level->isGoal() )
 					{
-						changeLevel( level );
+						changeLevel( idxLevel );
 						break;
 					}
 				}
@@ -250,9 +254,8 @@ namespace Chromatron
 	{
 		for( int i = 0 ; i < mNumLevel ; ++i )
 		{
-			assert( mLevelStorage[i] );
-			delete mLevelStorage[i];
-			mLevelStorage[i] = NULL;
+			delete mLevels[i].level;
+			mLevels[i].level = nullptr;
 		}
 		mNumLevel = 0;
 	}
@@ -261,13 +264,13 @@ namespace Chromatron
 	{
 		cleanupGameData();
 
-		bool beCreateMode = false;
+		bool bCreationMode = false;
 
 		if ( idxPackage == IdxCreateMode )
 		{
-			beCreateMode = true;
+			bCreationMode = true;
 
-			mLevelStorage[ 0 ] = new Level;
+			mLevels[ 0 ].level = new Level;
 			mNumLevel = 1;
 		}
 		else
@@ -279,7 +282,13 @@ namespace Chromatron
 			assert( header->numLevel <= MaxNumLevel );
 			std::istringstream ss( str , std::ios::binary  );
 
-			mNumLevel = Level::LoadData( ss , mLevelStorage , MaxNumLevel );
+		
+			Level* loadedLevels[MaxNumLevel];
+			mNumLevel = Level::LoadData( ss , loadedLevels, MaxNumLevel );
+			for( int i = 0; i < mNumLevel; ++i )
+			{
+				mLevels[i].level = loadedLevels[i];
+			}
 
 			if ( mNumLevel != header->numLevel )
 			{
@@ -299,32 +308,33 @@ namespace Chromatron
 		mNumLevelSolved = 0;
 		for( int i = 0 ; i < mNumLevel ; ++i )
 		{
-			mLevelStorage[i]->updateWorld();
-			if ( mLevelStorage[i]->isGoal() )
+			Level* level = mLevels[i].level;
+			level->updateWorld();
+			if ( level->isGoal() )
 			{
 				++mNumLevelSolved;
-				mLevelState[ i ] = eSOLVED;
+				mLevels[ i ].state = eSOLVED;
 			}
 			else
 			{
-				mLevelState[ i ] = eUNSOLVED;
+				mLevels[i].state = eUNSOLVED;
 			}
 		}
-		changeLevelInternal( 0 , true , beCreateMode );
+		changeLevelInternal( 0 , true , bCreationMode );
 
 		return true;
 	}
 
-	bool LevelStage::changeLevelInternal( int level , bool haveChangeData , bool beCreateMode )
+	bool LevelStage::changeLevelInternal( int indexLevel , bool haveChangeData , bool bCreationMode )
 	{
-		if ( 0 > level || level >= mNumLevel )
+		if ( 0 > indexLevel || indexLevel >= mNumLevel )
 			return false;
 
-		if ( !haveChangeData && level == mIndexLevel )
+		if ( !haveChangeData && indexLevel == mIndexLevel )
 			return false;
 
-		mScene.setupLevel( *mLevelStorage[ level ] , beCreateMode );
-		mIndexLevel = level;
+		mScene.setupLevel( *mLevels[ indexLevel ].level , bCreationMode );
+		mIndexLevel = indexLevel;
 
 		int const showLevelNum = 7;
 		int num = 2 * showLevelNum + 1;
@@ -353,10 +363,10 @@ namespace Chromatron
 			FixString< 32 > str;
 			int idx = mMinChoiceLevel + i;
 			str.format( "Level %d %s" , idx + 1 , 
-				idx != mIndexLevel && ( mLevelState[idx] == eSOLVED ) ? "(O)" : "" );
+				idx != mIndexLevel && ( mLevels[idx].state == eSOLVED ) ? "(O)" : "" );
 			mLevelChoice->addItem( str );
 		}
-		mLevelChoice->setSelection( level - mMinChoiceLevel );
+		mLevelChoice->setSelection( indexLevel - mMinChoiceLevel );
 		return true;
 	}
 
@@ -377,7 +387,7 @@ namespace Chromatron
 			for ( int i = 0 ; i < mNumLevel ; ++i )
 			{
 				char buffer[ 256 ];
-				int len = mLevelStorage[i]->generateDCStateCode( buffer , 256 );
+				int len = mLevels[i].level->generateDCStateCode( buffer , 256 );
 				buffer[ len ] = '\0';
 				code += buffer;
 			}
@@ -402,7 +412,7 @@ namespace Chromatron
 			int maxLen = strlen( code );
 			for ( int i = 0 ; i < mNumLevel ; ++i )
 			{
-				int len = mLevelStorage[i]->loadDCStateFromCode( code , maxLen );
+				int len = mLevels[i].level->loadDCStateFromCode(code, maxLen);
 
 				if ( len == 0 )
 				{
@@ -442,7 +452,7 @@ namespace Chromatron
 		RenderUtility::SetFont( g , FONT_S16 );
 		g.setTextColor(Color3ub(255 , 0 , 0) );
 		pos = widget->getWorldPos() + Vec2i( 0 , widget->getSize().y - 30 );
-		if ( mLevelState[ mIndexLevel ] == eSOLVED )
+		if ( mLevels[ mIndexLevel ].state == eSOLVED )
 		{
 			g.drawText( pos , size , "You Win!" );
 		}

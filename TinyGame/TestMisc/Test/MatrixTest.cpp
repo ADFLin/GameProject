@@ -476,7 +476,7 @@ namespace Homework
 		{
 		}
 
-		Matrix(SparseMatrix const& rhs)
+		Matrix(SparseMatrix<T> const& rhs)
 			:MatrixBase(rhs.row, rhs.col)
 			,data(rhs.row*rhs.col , 0)
 		{

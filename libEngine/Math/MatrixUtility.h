@@ -11,8 +11,8 @@ namespace Math
 	class MatrixUtility
 	{
 	public:
-		template< class Matrix >
-		static void toQuaternion( Matrix const& m , Quaternion& q )
+		template< class TMatrix >
+		static void toQuaternion(TMatrix const& m , Quaternion& q )
 		{
 			float tr = m(0,0)+m(1,1)+m(2,2);
 			if (tr>0)	
@@ -46,8 +46,8 @@ namespace Math
 			}
 		}
 
-		template< class Matrix >
-		static inline Vector3 rotate( Vector3 const& v  , Matrix const& m )
+		template< class TMatrix >
+		FORCEINLINE static Vector3 Rotate( Vector3 const& v  , TMatrix const& m )
 		{
 			return Vector3(
 				v[0] * m( 0 , 0 ) + v[1] * m( 1 , 0 ) + v[2] * m( 2 , 0 ) ,
@@ -55,8 +55,8 @@ namespace Math
 				v[0] * m( 0 , 2 ) + v[1] * m( 1 , 2 ) + v[2] * m( 2 , 2 ) );
 		}
 
-		template< class Matrix >
-		static inline Vector3 rotateInverse( Vector3 const& v , Matrix const& m )
+		template< class TMatrix >
+		FORCEINLINE static Vector3 RotateInverse( Vector3 const& v , TMatrix const& m )
 		{
 			return Vector3(
 				m( 0 , 0 )*v[0] + m( 0 , 1 )*v[1] + m( 0 , 2 )*v[2] ,
@@ -65,8 +65,8 @@ namespace Math
 		}
 
 
-		template< class Matrix >
-		static void setRotationX( Matrix& m , float angle )
+		template< class TMatrix >
+		static void setRotationX(TMatrix& m , float angle )
 		{
 			float c,s;
 			Math::SinCos( angle , s , c );
@@ -75,8 +75,8 @@ namespace Math
 				0 , -s , c );
 		}
 
-		template< class Matrix >
-		static void setRotationY( Matrix& m ,float angle )
+		template< class TMatrix >
+		FORCEINLINE static void setRotationY(TMatrix& m ,float angle )
 		{
 			float c,s;
 			Math::SinCos( angle , s , c );
@@ -85,8 +85,8 @@ namespace Math
 				s , 0 ,  c );
 		}
 
-		template< class Matrix >
-		static void setRotationZ( Matrix& m ,float angle )
+		template< class TMatrix >
+		FORCEINLINE static void setRotationZ(TMatrix& m ,float angle )
 		{
 			float c,s;
 			Math::SinCos( angle , s , c );
@@ -95,8 +95,8 @@ namespace Math
 				0 , 0 ,  1 );
 		}
 
-		template< class Matrix >
-		static void modifyOrientation( Matrix& m , Quaternion const& q )
+		template< class TMatrix >
+		static void modifyOrientation(TMatrix& m , Quaternion const& q )
 		{
 			float d = q.length2();
 			assert( d > 1e-5 );
@@ -121,8 +121,8 @@ namespace Math
 			m( 2 , 2 ) = 1.0f - (xx+yy);
 		}
 
-		template< class Matrix >
-		static void setRotation( Matrix& m , Vector3 const& axis , float angle )
+		template< class TMatrix >
+		static void setRotation(TMatrix& m , Vector3 const& axis , float angle )
 		{
 			// R = cos(theta ) I + sin(theta)[k]x + ( 1 - cos(theta) )[k]x[k]
 			//           0    kz  -ky                  kx^2   kx*ky kx*kz

@@ -189,7 +189,7 @@ void PoolRunableThread::waitTokill()
 {
 	{
 		Mutex::Locker locker(mWaitWorkMutex);
-		SystemPlatform::InterlockedExchange(&mWantDie, 1);
+		SystemPlatform::AtomExchange(&mWantDie, 1);
 		mWaitWorkCV.notifyOne();
 	}
 	

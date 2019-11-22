@@ -3,16 +3,16 @@
 #include "MemorySecurity.h"
 #include "LogSystem.h"
 #include <cstdlib>
+#include <malloc.h>
 
 
 #define STRING_BUFFER_SIZE 256
 #define DATA_BUFFER_SIZE 1024
 
 
-ConsoleCommandBase::ConsoleCommandBase(char const* inName, int inNumParam, char const** inParmFormat)
+ConsoleCommandBase::ConsoleCommandBase(char const* inName, TArrayView< ConsoleArgTypeInfo const > inArgs)
 	:name(inName)
-	,numParam(inNumParam)
-	,paramFormat(inParmFormat)
+	,args(inArgs)
 {
 
 }
@@ -51,6 +51,7 @@ void ConsoleSystem::finalize()
 	{
 		delete iter->second;
 	}
+	mNameMap.clear();
 }
 
 
@@ -110,6 +111,7 @@ void ConsoleSystem::unregisterCommandByName(char const* name)
 	}
 	mNameMap.erase(iter);
 }
+
 void ConsoleSystem::insertCommand(ConsoleCommandBase* com)
 {
 	std::pair<CommandMap::iterator, bool> result =
@@ -118,19 +120,27 @@ void ConsoleSystem::insertCommand(ConsoleCommandBase* com)
 		delete com;
 }
 
-
 bool ConsoleSystem::executeCommand(char const* comStr)
 {
 	bool result = executeCommandImpl(comStr);
 	if( result )
 	{
-		::LogMsg("Com : \"%s\"", comStr);
+		LogMsg("Com : \"%s\"", comStr);
 	}
 	else
 	{
-		::LogMsg("Com : Fail \"%s\" : %s", comStr, mLastErrorMsg.c_str());
+		LogMsg("Com : Fail \"%s\" : %s", comStr, mLastErrorMsg.c_str());
 	}
 	return result;
+}
+
+
+ConsoleCommandBase* ConsoleSystem::findCommand(char const* str)
+{
+	CommandMap::iterator iter = mNameMap.find(str);
+	if (iter == mNameMap.end())
+		return nullptr;
+	return iter->second;
 }
 
 #endif //CORE_SHARE_CODE
@@ -149,36 +159,50 @@ bool ConsoleSystem::executeCommandImpl(char const* comStr)
 		return false;
 	}
 
-	if( context.command->numParam != context.numParam )
+#if 0
+	if( context.command->args.size() != context.numArgs )
 	{
-		mLastErrorMsg = "Parameter number is not match";
+		mLastErrorMsg = "Arg number is not match";
 		return false;
 	}
+#endif
 
-	void* comParamData[NumMaxParams];
-	uint8 dataBuffer[DATA_BUFFER_SIZE];
-	uint8* pData = dataBuffer;
-	for( int i = 0; i < context.command->numParam; ++i )
+	int totalArgSize = 0;
+	for (auto const& arg : context.command->args)
 	{
-		char const* format = context.command->paramFormat[i];
-		int num = fillParameterData(context, pData, format);
-		if( num == 0 )
+		totalArgSize += arg.size;
+	}
+
+#if 1
+	uint8* dataBuffer = (uint8*)alloca(totalArgSize);
+#else
+	uint8 dataBuffer[DATA_BUFFER_SIZE];
+#endif
+	void*  argData[NumMaxParams];
+	assert(context.command->args.size() <= NumMaxParams);
+	uint8* pData = dataBuffer;
+	for( int argIndex = 0; argIndex < context.command->args.size(); ++argIndex )
+	{
+		ConsoleArgTypeInfo const& arg = context.command->args[argIndex];
+
+		if (!fillParameterData(context, arg, pData))
 			return false;
 
-		comParamData[i] = pData;
-		pData += num;
+		argData[argIndex] = pData;
+		pData += arg.size;
 	}
-	context.command->execute(comParamData);
+	context.command->execute(argData);
 
 	return true;
 }
 
-int  ConsoleSystem::fillParameterData(ExecuteContext& context , uint8* data , char const* format)
+bool ConsoleSystem::fillParameterData(ExecuteContext& context, ConsoleArgTypeInfo const& arg, uint8* outData)
 {
-	char const* fptr = format;
-	int result = 0;
+	char const* fptr = arg.format;
+	int fillSize = 0;
 	while( 1 )
 	{
+
 		while( fptr[0] != '%' &&
 			   fptr[0] != '\0')
 		{
@@ -188,15 +212,15 @@ int  ConsoleSystem::fillParameterData(ExecuteContext& context , uint8* data , ch
 		if ( *fptr =='\0' )
 			break;
 
-		if ( context.numUsedParam >= context.numParam )
+		if ( context.numUsedParam >= context.numArgs )
 		{
 			mLastErrorMsg = "less param : ";
 			mLastErrorMsg += context.command->name;
-			for ( int i = 0 ; i < context.command->numParam ; ++ i )
+			for ( int i = 0 ; i < context.command->args.size() ; ++ i )
 			{
 				mLastErrorMsg += std::string(" ");
 
-				char const* pStr = context.command->paramFormat[i];
+				char const* pStr = context.command->args[i].format;
 				switch( pStr[1] )
 				{
 				case 'd': mLastErrorMsg += "#int"; break;
@@ -218,14 +242,14 @@ int  ConsoleSystem::fillParameterData(ExecuteContext& context , uint8* data , ch
 		{
 			++paramString;
 			ConsoleCommandBase* cdata = findCommand( paramString );
-			if ( !cdata )
+			if ( !cdata || cdata->args.size() != 1)
 			{
 				mLastErrorMsg = "No match ComVar";
 				return 0;
 			}
-			if ( !strncmp( cdata->paramFormat[0] , fptr , strlen(cdata->paramFormat[0]) ) )
+			if ( !strncmp( cdata->args[0].format , fptr , strlen(cdata->args[0].format) ) )
 			{
-				cdata->getValue( data );
+				cdata->getValue( outData );
 			}
 			else
 			{
@@ -237,7 +261,7 @@ int  ConsoleSystem::fillParameterData(ExecuteContext& context , uint8* data , ch
 		{
 			if ( fptr[1] != 's' )
 			{
-				int num = sscanf_s( paramString , fptr , data );
+				int num = sscanf_s( paramString , fptr , outData );
 				if ( num == 0 )
 				{
 					mLastErrorMsg = "param error";
@@ -246,7 +270,7 @@ int  ConsoleSystem::fillParameterData(ExecuteContext& context , uint8* data , ch
 			}
 			else
 			{
-				char const** ptr = ( char const** ) data;
+				char const** ptr = ( char const** )outData;
 				*ptr = paramString;
 			}
 		}
@@ -259,41 +283,37 @@ int  ConsoleSystem::fillParameterData(ExecuteContext& context , uint8* data , ch
 			void * vptr;
 		}debugPtr;
 
-		debugPtr.vptr = data;
+		debugPtr.vptr = outData;
 
+		int elementSize = 0;
 		switch( fptr[1] )
 		{
-		case 'd': result += sizeof(int); break;
-		case 'f': result += sizeof(float); break;
-		case 's': result += sizeof(char*); break;
-		case 'u': result += sizeof(unsigned); break;
+		case 'd': elementSize = sizeof(int); break;
+		case 'f': elementSize = sizeof(float); break;
+		case 's': elementSize = sizeof(char*); break;
+		case 'u': elementSize = sizeof(unsigned); break;
 		case 'l':
 			if ( fptr[2] == 'f')
-				result += sizeof(double);
+				elementSize = sizeof(double);
 			break;
 		}
+
+		outData += elementSize;
+		fillSize += elementSize;
 
 		++context.numUsedParam;
 		++fptr;
 	}
-	return result;
+
+	return fillSize != 0;
 }
 
-
-
-ConsoleCommandBase* ConsoleSystem::findCommand( char const* str )
-{
-	CommandMap::iterator iter = mNameMap.find( str );
-	if ( iter == mNameMap.end() )
-		return nullptr;
-	return iter->second;
-}
 
 #include "StringParse.h"
 
 bool ConsoleSystem::ExecuteContext::init(char const* inCommandString)
 {
-	numParam = 0;
+	numArgs = 0;
 	numUsedParam = 0;
 	buffer = inCommandString;
 	StringView token;
@@ -315,8 +335,8 @@ bool ConsoleSystem::ExecuteContext::init(char const* inCommandString)
 			*const_cast<char*>(token.data() + token.length()) = 0;
 			++data;
 		}
-		paramStrings[ numParam ] = token.data();
-		++numParam;
+		paramStrings[ numArgs ] = token.data();
+		++numArgs;
 	}
 
 	return true;

@@ -50,7 +50,7 @@ namespace Tetris
 		return new TetrisReplayTemplate;
 	}
 
-	bool GameModule::getAttribValue( AttribValue& value )
+	bool GameModule::queryAttribute( GameAttribute& value )
 	{
 		switch( value.id )
 		{

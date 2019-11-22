@@ -20,18 +20,18 @@
 #	define TINY_API
 #endif
 
-#define TINY_USE_NET_THREAD 1
+#define TINY_USE_NET_THREAD 0
 
 #ifndef TINY_USE_NET_THREAD
 #define TINY_USE_NET_THREAD 0
 #endif
 
 #if TINY_USE_NET_THREAD
-#define DEFINE_MUTEX( MUTEX ) Mutex MUTEX;
-#define MUTEX_LOCK( MUTEX ) Mutex::Locker MARCO_NAME_COMBINE_2( locker , __LINE__ )( MUTEX );
+#define NET_MUTEX( MUTEX ) Mutex MUTEX;
+#define NET_MUTEX_LOCK( MUTEX ) Mutex::Locker MARCO_NAME_COMBINE_2( locker , __LINE__ )( MUTEX );
 #else
-#define DEFINE_MUTEX( MUTEX )
-#define MUTEX_LOCK( MUTEX ) 
+#define NET_MUTEX( MUTEX )
+#define NET_MUTEX_LOCK( MUTEX ) 
 #endif //HAVE_NET_THREAD
 
 

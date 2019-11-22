@@ -231,7 +231,7 @@ void TcpServer::onAcceptable( NetSocket& socket )
 
 void NetBufferOperator::fillBuffer( SocketBuffer& buffer , unsigned num )
 {
-	MUTEX_LOCK( mMutexBuffer );
+	NET_MUTEX_LOCK( mMutexBuffer );
 
 	bool done = false;
 	int  count = 1;
@@ -254,7 +254,7 @@ void NetBufferOperator::fillBuffer( SocketBuffer& buffer , unsigned num )
 
 bool NetBufferOperator::sendData( NetSocket& socket , NetAddress* addr )
 {
-	MUTEX_LOCK( mMutexBuffer );
+	NET_MUTEX_LOCK( mMutexBuffer );
 
 	int count = 0;
 
@@ -295,7 +295,7 @@ bool NetBufferOperator::sendData( NetSocket& socket , NetAddress* addr )
 
 bool NetBufferOperator::recvData(NetSocket& socket, int len, NetAddress* addr /*= NULL */)
 {
-	MUTEX_LOCK(mMutexBuffer);
+	NET_MUTEX_LOCK(mMutexBuffer);
 
 	int count = 0;
 	while (count < 10)
@@ -331,7 +331,7 @@ bool NetBufferOperator::recvData(NetSocket& socket, int len, NetAddress* addr /*
 
 void NetBufferOperator::clear()
 {
-	MUTEX_LOCK( mMutexBuffer )
+	NET_MUTEX_LOCK( mMutexBuffer )
 	mBuffer.clear();
 }
 

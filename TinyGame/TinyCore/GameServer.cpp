@@ -38,7 +38,7 @@ LocalWorker* ServerWorker::createLocalWorker( char const* userName )
 
 void ServerWorker::sendClientTcpCommand( NetClientData& client , IComPacket* cp )
 {
-	WriteComToBuffer( client.tcpChannel.getSendCtrl() , cp );
+	FNetCommand::Write( client.tcpChannel.getSendCtrl() , cp );
 }
 
 bool ServerWorker::doStartNetwork()
@@ -173,7 +173,7 @@ bool ServerWorker::notifyConnectionRecv( NetConnection* connection , SocketBuffe
 		}
 		else
 		{
-			result = EvalCommand(client->udpChannel, getEvaluator(), buffer, CLIENT_GROUP , client);
+			result = FNetCommand::Eval(client->udpChannel, getEvaluator(), buffer, CLIENT_GROUP , client);
 		}
 
 		return result;
@@ -405,7 +405,7 @@ void ServerWorker::procEcho( IComPacket* cp)
 	CPEcho* com = cp->cast< CPEcho >();
 	NetClientData* client = static_cast< NetClientData*>(cp->getUserData());
 	assert( client );
-	WriteComToBuffer( client->udpChannel.getSendCtrl() , cp );
+	FNetCommand::Write( client->udpChannel.getSendCtrl() , cp );
 }
 
 
@@ -774,7 +774,7 @@ SVPlayerManager::~SVPlayerManager()
 
 SNetPlayer* SVPlayerManager::createNetPlayer( ServerWorker* server , char const* name , NetClientData* client  )
 {
-	MUTEX_LOCK( mMutexPlayerTable );
+	NET_MUTEX_LOCK( mMutexPlayerTable );
 
 	SNetPlayer* player = new SNetPlayer( server , client );
 
@@ -807,7 +807,7 @@ SNetPlayer* SVPlayerManager::createNetPlayer( ServerWorker* server , char const*
 
 SUserPlayer* SVPlayerManager::createUserPlayer( LocalWorker* worker , char const* name )
 {
-	MUTEX_LOCK( mMutexPlayerTable );
+	NET_MUTEX_LOCK( mMutexPlayerTable );
 
 	if ( mUserID != ERROR_PLAYER_ID )
 	{	
@@ -843,7 +843,7 @@ void SVPlayerManager::removePlayerFlag( unsigned bitPos )
 }
 bool SVPlayerManager::checkPlayerFlag( unsigned bitPos , bool beNet )
 {
-	MUTEX_LOCK( mMutexPlayerTable );
+	NET_MUTEX_LOCK( mMutexPlayerTable );
 	bool result = true;
 	if ( beNet )
 	{
@@ -871,7 +871,7 @@ bool SVPlayerManager::checkPlayerFlag( unsigned bitPos , bool beNet )
 
 void SVPlayerManager::getPlayerInfo( PlayerInfo* info[] )
 {
-	MUTEX_LOCK( mMutexPlayerTable );
+	NET_MUTEX_LOCK( mMutexPlayerTable );
 	int i = 0;
 	for ( PlayerTable::iterator iter = mPlayerTable.begin();
 		iter != mPlayerTable.end() ; ++iter )
@@ -883,7 +883,7 @@ void SVPlayerManager::getPlayerInfo( PlayerInfo* info[] )
 
 void SVPlayerManager::getPlayerFlag( int flags[] )
 {
-	MUTEX_LOCK( mMutexPlayerTable );
+	NET_MUTEX_LOCK( mMutexPlayerTable );
 	int i = 0;
 	for ( PlayerTable::iterator iter = mPlayerTable.begin();
 		iter != mPlayerTable.end() ; ++iter )
@@ -895,7 +895,7 @@ void SVPlayerManager::getPlayerFlag( int flags[] )
 
 void SVPlayerManager::cleanup()
 {
-	MUTEX_LOCK( mMutexPlayerTable );
+	NET_MUTEX_LOCK( mMutexPlayerTable );
 	for( PlayerTable::iterator iter = mPlayerTable.begin() ; 
 		iter != mPlayerTable.end() ; ++iter )
 	{
@@ -907,7 +907,7 @@ void SVPlayerManager::cleanup()
 
 bool SVPlayerManager::removePlayer( PlayerId id )
 {
-	MUTEX_LOCK( mMutexPlayerTable );
+	NET_MUTEX_LOCK( mMutexPlayerTable );
 
 	ServerPlayer* player = getPlayer(id);
 
@@ -930,7 +930,7 @@ bool SVPlayerManager::removePlayer( PlayerId id )
 
 void SVPlayerManager::sendCommand( int channel , IComPacket* cp , unsigned flag )
 {
-	MUTEX_LOCK( mMutexPlayerTable );
+	NET_MUTEX_LOCK( mMutexPlayerTable );
 	for( PlayerTable::iterator iter = mPlayerTable.begin();
 		iter != mPlayerTable.end(); ++iter )
 	{
@@ -943,7 +943,7 @@ void SVPlayerManager::sendCommand( int channel , IComPacket* cp , unsigned flag 
 
 void SVPlayerManager::sendTcpCommand( IComPacket* cp )
 {
-	MUTEX_LOCK( mMutexPlayerTable );
+	NET_MUTEX_LOCK( mMutexPlayerTable );
 	for( PlayerTable::iterator iter = mPlayerTable.begin();
 		 iter != mPlayerTable.end(); ++iter )
 	{
@@ -954,7 +954,7 @@ void SVPlayerManager::sendTcpCommand( IComPacket* cp )
 
 void SVPlayerManager::sendUdpCommand( IComPacket* cp )
 {
-	MUTEX_LOCK( mMutexPlayerTable );
+	NET_MUTEX_LOCK( mMutexPlayerTable );
 	for( PlayerTable::iterator iter = mPlayerTable.begin();
 		iter != mPlayerTable.end(); ++iter )
 	{
@@ -967,7 +967,7 @@ void SVPlayerManager::insertPlayer( ServerPlayer* player , char const* name , Pl
 {
 	PlayerId id;
 
-	MUTEX_LOCK( mMutexPlayerTable );
+	NET_MUTEX_LOCK( mMutexPlayerTable );
 	id = (PlayerId)mPlayerTable.insert( player );
 
 	player->init( mPlayerInfo[ id ] );
@@ -981,7 +981,7 @@ void SVPlayerManager::insertPlayer( ServerPlayer* player , char const* name , Pl
 
 SLocalPlayer* SVPlayerManager::swepNetPlayerToLocal( SNetPlayer* player )
 {
-	MUTEX_LOCK( mMutexPlayerTable );
+	NET_MUTEX_LOCK( mMutexPlayerTable );
 
 	SLocalPlayer* sPlayer = new SLocalPlayer();
 	sPlayer->init( player->getInfo() );
@@ -998,7 +998,7 @@ ServerPlayer* SVPlayerManager::getPlayer( PlayerId id )
 	if ( id == ERROR_PLAYER_ID )
 		return NULL;
 
-	MUTEX_LOCK( mMutexPlayerTable );
+	NET_MUTEX_LOCK( mMutexPlayerTable );
 	if ( mPlayerTable.getItem( id ) )
 		return  *mPlayerTable.getItem( id );
 	return NULL;
@@ -1006,7 +1006,7 @@ ServerPlayer* SVPlayerManager::getPlayer( PlayerId id )
 
 size_t  SVPlayerManager::getPlayerNum()
 {
-	MUTEX_LOCK( mMutexPlayerTable ); 
+	NET_MUTEX_LOCK( mMutexPlayerTable ); 
 	return mPlayerTable.size();
 }
 
@@ -1144,7 +1144,7 @@ void ServerClientManager::sendTcpCommand( ComEvaluator& evaluator , IComPacket* 
 		iter != mSessionMap.end(); ++iter )
 	{
 		NetClientData* client = iter->second;
-		WriteComToBuffer( client->tcpChannel.getSendCtrl() , cp );
+		FNetCommand::Write( client->tcpChannel.getSendCtrl() , cp );
 	}
 }
 
@@ -1155,7 +1155,7 @@ void ServerClientManager::sendUdpCommand( ComEvaluator& evaluator , IComPacket* 
 		iter != mSessionMap.end(); ++iter )
 	{
 		NetClientData* client = iter->second;
-		WriteComToBuffer( client->udpChannel.getSendCtrl() , cp );
+		FNetCommand::Write( client->udpChannel.getSendCtrl() , cp );
 	}
 }
 
@@ -1319,13 +1319,13 @@ void LocalWorker::update_NetThread(long time)
 void LocalWorker::sendCommand(int channel , IComPacket* cp , unsigned flag)
 {
 	//MUTEX_LOCK(mMutexBuffer);
-	::WriteComToBuffer( mSendBuffer , cp );
+	FNetCommand::Write( mSendBuffer , cp );
 }
 
 void LocalWorker::recvCommand(IComPacket* cp)
 {
 	//MUTEX_LOCK(mMutexBuffer);
-	::WriteComToBuffer( mRecvBuffer , cp );
+	FNetCommand::Write( mRecvBuffer , cp );
 }
 
 void SNetPlayer::sendCommand( int channel , IComPacket* cp )
@@ -1337,22 +1337,22 @@ void SNetPlayer::sendCommand( int channel , IComPacket* cp )
 	switch( channel )
 	{
 	case CHANNEL_GAME_NET_TCP:
-		WriteComToBuffer( mClient->tcpChannel.getSendCtrl() , cp );
+		FNetCommand::Write( mClient->tcpChannel.getSendCtrl() , cp );
 		break;
 	case CHANNEL_GAME_NET_UDP_CHAIN:
-		WriteComToBuffer( mClient->udpChannel.getSendCtrl() , cp );
+		FNetCommand::Write( mClient->udpChannel.getSendCtrl() , cp );
 		break;
 	}
 }
 
 void SNetPlayer::sendTcpCommand( IComPacket* cp )
 {
-	WriteComToBuffer( mClient->tcpChannel.getSendCtrl() , cp );
+	FNetCommand::Write( mClient->tcpChannel.getSendCtrl() , cp );
 }
 
 void SNetPlayer::sendUdpCommand( IComPacket* cp )
 {
-	WriteComToBuffer( mClient->udpChannel.getSendCtrl() , cp );
+	FNetCommand::Write( mClient->udpChannel.getSendCtrl() , cp );
 }
 
 SNetPlayer::SNetPlayer( ServerWorker* server , NetClientData* client ) 

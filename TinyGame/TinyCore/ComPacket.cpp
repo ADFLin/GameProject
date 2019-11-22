@@ -35,7 +35,7 @@ bool ComEvaluator::evalCommand( SocketBuffer& buffer , int group , void* userDat
 
 		ICPFactory* factory;
 		{
-			MUTEX_LOCK( mMutexCPFactoryMap );
+			NET_MUTEX_LOCK( mMutexCPFactoryMap );
 			factory = findFactory( comID );
 		}
 		if ( factory == NULL )
@@ -55,7 +55,7 @@ bool ComEvaluator::evalCommand( SocketBuffer& buffer , int group , void* userDat
 
 		if (  factory->workerFun || factory->userFun )
 		{
-			MUTEX_LOCK( mMutexProcCPList );
+			NET_MUTEX_LOCK( mMutexProcCPList );
 
 			UserCom com;
 			com.factory   = factory;
@@ -164,7 +164,7 @@ bool ComEvaluator::ReadBuffer( SocketBuffer& buffer , IComPacket* cp )
 
 void ComEvaluator::procCommand()
 {
-	MUTEX_LOCK( mMutexProcCPList );
+	NET_MUTEX_LOCK( mMutexProcCPList );
 
 	for( ComPacketList::iterator iter = mProcCPList.begin();
 		iter != mProcCPList.end() ;  ++iter )
@@ -186,7 +186,7 @@ void ComEvaluator::procCommand()
 
 void ComEvaluator::procCommand(  ComVisitor& visitor )
 {
-	MUTEX_LOCK( mMutexProcCPList );
+	NET_MUTEX_LOCK( mMutexProcCPList );
 
 	for( ComPacketList::iterator iter = mProcCPList.begin();
 		iter != mProcCPList.end() ;  )
@@ -219,7 +219,7 @@ void ComEvaluator::procCommand(  ComVisitor& visitor )
 
 void ComEvaluator::removeProcesserFun( void* processer )
 {
-	MUTEX_LOCK( mMutexCPFactoryMap );
+	NET_MUTEX_LOCK( mMutexCPFactoryMap );
 	for( CPFactoryMap::iterator iter = mCPFactoryMap.begin();
 		iter != mCPFactoryMap.end() ; ++iter )
 	{

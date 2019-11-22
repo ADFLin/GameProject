@@ -8,7 +8,7 @@
 #include "GameWorker.h"
 #include "GameGUISystem.h"
 
-#include "ZenBot.h"
+#include "Bots/ZenBot.h"
 
 namespace Go
 {

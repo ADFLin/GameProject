@@ -19,6 +19,7 @@ namespace Math
 
 	FORCEINLINE int FloorToInt(float val) { return (int)::floor(val); }
 	FORCEINLINE int CeilToInt(float val) { return (int)::ceil(val); }
+	FORCEINLINE int RoundToInt(float val) { return (int)::round(val); }
 
 	FORCEINLINE float Square(float val) { return val * val; }
 	FORCEINLINE float Floor( float val ){ return ::floor( val ); }
@@ -36,6 +37,12 @@ namespace Math
 	FORCEINLINE float Frac(float val) { float temp; return ::modf(val, &temp); }
 	FORCEINLINE float Log(float val) { return ::logf(val); }
 	FORCEINLINE float LogX(float base, float value) { return Log(value) / Log(base); }
+
+	template <typename T>
+	FORCEINLINE float Sign(T x)
+	{
+		return (T(0) < x) - (x < T(0));
+	}
 
 	FORCEINLINE double FloorToInt(double val) { return ::floor(val); }
 	FORCEINLINE double Abs(double val) { return ::abs(val); }

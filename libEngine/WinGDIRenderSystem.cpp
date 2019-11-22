@@ -155,16 +155,16 @@ void WinGdiGraphics2D::beginBlend( Vec2i const& pos , Vec2i const& size , float 
 	mBlendSize  = size;
 	mBlendAlpha = alpha;
 
-	::BitBlt( mBlendDC.getDC() , 0 , 0 , size.x , size.y , 
+	::BitBlt( mBlendDC.getHandle() , 0 , 0 , size.x , size.y , 
 		      mhDCTarget , mBlendPos.x , mBlendPos.y ,SRCCOPY );
 
-	::SetViewportOrgEx( mBlendDC.getDC() , -mBlendPos.x , -mBlendPos.y , NULL );
+	::SetViewportOrgEx( mBlendDC.getHandle() , -mBlendPos.x , -mBlendPos.y , NULL );
 
-	::SelectObject( mBlendDC.getDC(), mCurBrush );
-	::SelectObject( mBlendDC.getDC(), mCurPen );
-	::SelectObject( mBlendDC.getDC(), mCurFont );
+	::SelectObject( mBlendDC.getHandle(), mCurBrush );
+	::SelectObject( mBlendDC.getHandle(), mCurPen );
+	::SelectObject( mBlendDC.getHandle(), mCurFont );
 
-	setRenderDC( mBlendDC.getDC() );
+	setRenderDC( mBlendDC.getHandle() );
 
 	++mBlendCount;
 }
@@ -177,10 +177,10 @@ void WinGdiGraphics2D::endBlend()
 	bfn.BlendFlags  = 0;
 	bfn.SourceConstantAlpha = BYTE( 255 * mBlendAlpha );
 
-	::SetViewportOrgEx( mBlendDC.getDC() , 0 , 0 , NULL );
+	::SetViewportOrgEx( mBlendDC.getHandle() , 0 , 0 , NULL );
 
 	::AlphaBlend( mhDCTarget,  mBlendPos.x , mBlendPos.y  , mBlendSize.x , mBlendSize.y ,
-		          mBlendDC.getDC(), 0 , 0 , mBlendSize.x , mBlendSize.y , bfn );
+		          mBlendDC.getHandle(), 0 , 0 , mBlendSize.x , mBlendSize.y , bfn );
 
 	--mBlendCount;
 
@@ -269,21 +269,21 @@ void WinGdiGraphics2D::drawTexture( GdiTexture& texture , Vec2i const& pos , Vec
 {
 	GDI_PROFILE( "WinGdiGraphics2D::drawTexture" )
 	::BitBlt( getRenderDC() , pos.x , pos.y , texSize.x , texSize.y , 
-		texture.mImpl.getDC() , texPos.x , texPos.y , SRCCOPY );
+		texture.mImpl.getHandle() , texPos.x , texPos.y , SRCCOPY );
 }
 
 void WinGdiGraphics2D::drawTexture( GdiTexture& texture , Vec2i const& pos , Vec2i const& texPos , Vec2i const& texSize , Color3ub const& color )
 {
 	GDI_PROFILE( "WinGdiGraphics2D::drawTexture" )
 	::TransparentBlt( getRenderDC() , pos.x , pos.y , texSize.x , texSize.y , 
-		texture.mImpl.getDC() , texPos.x , texPos.y , texSize.x , texSize.y , color.toXBGR()  );
+		texture.mImpl.getHandle() , texPos.x , texPos.y , texSize.x , texSize.y , color.toXBGR()  );
 }
 
 void WinGdiGraphics2D::drawTexture(GdiTexture& texture, Vec2i const& pos, Vec2i const& size)
 {
 	GDI_PROFILE("WinGdiGraphics2D::drawTexture")
 	::StretchBlt( getRenderDC(), pos.x, pos.y, size.x , size.y ,
-				 texture.mImpl.getDC(), 0, 0, texture.getWidth(), texture.getHeight(), SRCCOPY);
+				 texture.mImpl.getHandle(), 0, 0, texture.getWidth(), texture.getHeight(), SRCCOPY);
 }
 
 void WinGdiGraphics2D::drawText( Vec2i const& pos , char const* str )
@@ -366,7 +366,7 @@ uint8* GdiTexture::getRawData()
 
 WinGdiRenderSystem::WinGdiRenderSystem( HWND hWnd , HDC hDC ) 
 	:mBufferDC( hDC , hWnd )
-	,mGraphics( mBufferDC.getDC() )
+	,mGraphics( mBufferDC.getHandle() )
 	,mhDCWindow( hDC )
 {
 

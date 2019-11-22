@@ -96,7 +96,7 @@ public:
 	virtual GameController&       getController() = 0;
 	virtual StageBase*            createStage( unsigned id ){ return nullptr; }
 	virtual SettingHepler*        createSettingHelper( SettingHelperType type ){ return nullptr; }
-	virtual bool                  getAttribValue( AttribValue& value ){ return false; }
+	virtual bool                  queryAttribute( GameAttribute& value ){ return false; }
 
 	//old replay version
 	virtual ReplayTemplate*       createReplayTemplate( unsigned version ){ return nullptr; }

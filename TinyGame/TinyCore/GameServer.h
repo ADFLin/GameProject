@@ -255,7 +255,7 @@ protected:
 
 	
 	ServerPlayerListener* mListener;
-	DEFINE_MUTEX( mMutexPlayerTable );
+	NET_MUTEX( mMutexPlayerTable );
 	typedef TTable< ServerPlayer* > PlayerTable; 
 	PlayerTable  mPlayerTable;
 	unsigned     mUserID;
@@ -390,7 +390,7 @@ protected:
 	void procClockSynd  ( IComPacket* cp);
 	friend class ServerWorker;
 protected:
-	DEFINE_MUTEX(mMutexBuffer);
+	NET_MUTEX(mMutexBuffer);
 	SocketBuffer      mSendBuffer;
 	SocketBuffer      mRecvBuffer;
 	SVPlayerManager*  mPlayerMgr;

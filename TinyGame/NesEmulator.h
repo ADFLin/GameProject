@@ -2,7 +2,7 @@
 #ifndef NesEmulator_H_81C456EE_828C_409A_8999_A180FF580D60
 #define NesEmulator_H_81C456EE_828C_409A_8999_A180FF580D60
 
-namespace Nes
+namespace NesSpace
 {
 	class IIODevice
 	{

@@ -49,7 +49,7 @@ bool NetSocket::connect( NetAddress const& addr )
 	{
 		mState = SKS_CONNECTING;
 	}
-	
+
 	return true;
 }
 
@@ -355,10 +355,10 @@ void NetSocket::close()
 
 }
 
-static bool sInitSystem = false;
-bool NetSocket::initSystem()
+static bool bNetSocketSystemInitialized = false;
+bool NetSocket::StartupSystem()
 {
-	if ( sInitSystem )
+	if ( bNetSocketSystemInitialized )
 		return true;
 
 	WSADATA wsaData;
@@ -366,17 +366,22 @@ bool NetSocket::initSystem()
 		return false;
 
 
-	sInitSystem  = true;
+	bNetSocketSystemInitialized  = true;
 	return true;
 }
 
-void NetSocket::exitSystem()
+void NetSocket::ShutdownSystem()
 {
-	if ( sInitSystem )
+	if ( bNetSocketSystemInitialized )
 	{
 		WSACleanup();
-		sInitSystem = false;
+		bNetSocketSystemInitialized = false;
 	}
+}
+
+bool NetSocket::IsInitialized()
+{
+	return bNetSocketSystemInitialized;
 }
 
 int NetSocket::getLastError()

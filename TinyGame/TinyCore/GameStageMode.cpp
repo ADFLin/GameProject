@@ -68,8 +68,8 @@ bool LevelStageMode::saveReplay(char const* name)
 		return false;
 
 	mReplayRecorder->stop();
-	AttribValue attrInfo(ATTR_REPLAY_INFO, &mReplayRecorder->getReplay().getInfo());
-	if( !getStage()->getAttribValue(attrInfo) )
+	GameAttribute attrInfo(ATTR_REPLAY_INFO, &mReplayRecorder->getReplay().getInfo());
+	if( !getStage()->queryAttribute(attrInfo) )
 	{
 		return false;
 	}
@@ -93,8 +93,8 @@ bool LevelStageMode::buildReplayRecorder()
 	if( !game )
 		return false;
 
-	AttribValue replaySupport(ATTR_REPLAY_SUPPORT);
-	if( !game->getAttribValue(replaySupport) )
+	GameAttribute replaySupport(ATTR_REPLAY_SUPPORT);
+	if( !game->queryAttribute(replaySupport) )
 		return false;
 	if( replaySupport.iVal == 0 )
 		return false;
@@ -108,8 +108,8 @@ bool LevelStageMode::buildReplayRecorder()
 		mReplayRecorder.reset(
 			new ReplayRecorder(actionTemplate, mReplayFrame));
 
-		AttribValue dataValue(ATTR_REPLAY_INFO_DATA, &mReplayRecorder->getReplay().getInfo());
-		if( !getStage()->getAttribValue(dataValue) )
+		GameAttribute dataValue(ATTR_REPLAY_INFO_DATA, &mReplayRecorder->getReplay().getInfo());
+		if( !getStage()->queryAttribute(dataValue) )
 		{
 			mReplayRecorder.clear();
 		}

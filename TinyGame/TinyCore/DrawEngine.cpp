@@ -88,7 +88,7 @@ void DrawEngine::initialize(IGameWindowProvider& provider)
 	mWindowProvider = &provider;
 	mGameWindow = &provider.getMainWindow();
 	mBufferDC.initialize(mGameWindow->getHDC() , mGameWindow->getHWnd() );
-	mPlatformGraphics.reset ( new Graphics2D( mBufferDC.getDC() ) );
+	mPlatformGraphics.reset ( new Graphics2D( mBufferDC.getHandle() ) );
 	RenderUtility::Initialize();
 
 	mGLGraphics.reset(new GLGraphics2D);
@@ -383,5 +383,5 @@ void DrawEngine::setupBuffer( int w , int h )
 		mBufferDC.initialize( getWindow().getHDC() , w , h );
 	}
 
-	mPlatformGraphics->setTargetDC( mBufferDC.getDC() );
+	mPlatformGraphics->setTargetDC( mBufferDC.getHandle() );
 }

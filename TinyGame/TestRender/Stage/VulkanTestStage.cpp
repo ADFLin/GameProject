@@ -52,31 +52,15 @@ namespace Meta
 	};
 
 	template< class ...Args >
-	struct GetArgsLength {};
-
-	template<>
-	struct GetArgsLength<>
-	{
-		enum { Value = 0 };
-	};
-
-	template< class T, class ...Args >
-	struct GetArgsLength< T, Args... >
-	{
-		enum { Value = 1 + GetArgsLength< Args...>::Value };
-	};
-
-	template< class ...Args >
 	struct TypeList
 	{
-		enum { Length = GetArgsLength< Args... >::Value; };
+		enum { Length = sizeof...( Args ); };
 	};
 
-
 	template< class FunType >
-	struct FunTraits {};
+	struct FuncTraits {};
 	template< class RT, class ...Args >
-	struct FunTraits< RT(*)(Args...) >
+	struct FuncTraits< RT(*)(Args...) >
 	{
 		typedef TypeList< Args... > ArgList;
 	};
@@ -89,30 +73,30 @@ namespace RenderVulkan
 	using namespace Meta;
 	using namespace Render;
 
-	template< class ...FunArgs, class ...Args >
-	FORCEINLINE static auto GetEnumValues(VkResult(VKAPI_CALL &Fun)(FunArgs...), Args... args)
+	template< class ...FuncArgs, class ...Args >
+	FORCEINLINE static auto GetEnumValues(VkResult(VKAPI_CALL &Func)(FuncArgs...), Args... args)
 	{
 		using namespace Meta;
-		typedef typename GetArgsType< GetArgsLength< FunArgs... >::Value - 1, FunArgs... >::Type ArgType;
+		typedef typename GetArgsType< sizeof...(FuncArgs) - 1, FuncArgs... >::Type ArgType;
 		typedef typename std::remove_pointer< ArgType >::type PropertyType;
 		uint32_t count = 0;
-		VERIFY_VK_FAILCDOE(Fun(std::forward<Args>(args)..., &count, nullptr), );
+		VERIFY_VK_FAILCDOE(Func(std::forward<Args>(args)..., &count, nullptr), );
 		std::vector< PropertyType > result{ count };
-		VERIFY_VK_FAILCDOE(Fun(std::forward<Args>(args)..., &count, result.data()), );
+		VERIFY_VK_FAILCDOE(Func(std::forward<Args>(args)..., &count, result.data()), );
 		return result;
 	}
 
-	template< class ...FunArgs, class ...Args >
-	FORCEINLINE static auto GetEnumValues(void(VKAPI_CALL &Fun)(FunArgs...), Args... args)
+	template< class ...FuncArgs, class ...Args >
+	FORCEINLINE static auto GetEnumValues(void(VKAPI_CALL &Func)(FuncArgs...), Args... args)
 	{
 		using namespace Meta;
-		typedef typename GetArgsType< GetArgsLength< FunArgs... >::Value - 1, FunArgs... >::Type ArgType;
+		typedef typename GetArgsType< sizeof...(FuncArgs) - 1, FuncArgs... >::Type ArgType;
 		typedef typename std::remove_pointer< ArgType >::type PropertyType;
 
 		uint32_t count = 0;
-		Fun(std::forward<Args>(args)..., &count, nullptr);
+		Func(std::forward<Args>(args)..., &count, nullptr);
 		std::vector< PropertyType > result{ count };
-		Fun(std::forward<Args>(args)..., &count, result.data());
+		Func(std::forward<Args>(args)..., &count, result.data());
 		return result;
 	}
 
@@ -1025,7 +1009,7 @@ namespace RenderVulkan
 					    ( memoryProperties.memoryTypes[idx].propertyFlags & propertyFlags) == propertyFlags )
 						return idx;
 				}
-				::LogError("No memory type");
+				LogError("No memory type");
 				return 0;
 			};
 			VkMemoryAllocateInfo memoryInfo = {};

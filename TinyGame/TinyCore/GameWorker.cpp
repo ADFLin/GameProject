@@ -9,7 +9,6 @@ ComWorker::ComWorker()
 
 }
 
-
 void ComWorker::update( long time )
 {
 	if ( mComListener )
@@ -79,28 +78,29 @@ NetWorker::NetWorker()
 NetWorker::~NetWorker()
 {
 	{
-		MUTEX_LOCK( mMutexUdpComList );
+		NET_MUTEX_LOCK( mMutexUdpComList );
 		mUdpComList.clear();
 	}
 #if TINY_USE_NET_THREAD
 	mSocketThread.stop();
-	NetSocket::exitSystem();
 #endif
+
+	NetSocket::ShutdownSystem();
 }
 
-uint32 gSocketThreadId = 0;
+#if TINY_USE_NET_THREAD
+uint32 gNetThreadId = 0;
 bool IsInNetThread()
 {
-#if TINY_USE_NET_THREAD
-	return gSocketThreadId == PlatformThread::GetCurrentThreadId();
-#else
-	return IsInGameThead();
-#endif
+	return gNetThreadId == PlatformThread::GetCurrentThreadId();
 }
+#endif
 
+
+#if TINY_USE_NET_THREAD
 void NetWorker::entryNetThread()
 {
-	gSocketThreadId = PlatformThread::GetCurrentThreadId();
+	gNetThreadId = PlatformThread::GetCurrentThreadId();
 
 	SystemPlatform::AtomExchange(&mbRequestExitNetThread, 0);
 
@@ -141,20 +141,21 @@ void NetWorker::entryNetThread()
 
 	clenupNetResource();
 }
+#endif
 
 bool NetWorker::startNetwork()
 {
 	try 
 	{
-		if ( !NetSocket::initSystem() )
+		if ( !NetSocket::StartupSystem() )
 			return false;
 
 		if ( !doStartNetwork() )
 			return false;
-
+#if TINY_USE_NET_THREAD
 		if ( !mSocketThread.start() )
 			return false;
-
+#endif
 	}
 	catch ( std::exception& e )
 	{
@@ -168,7 +169,7 @@ bool NetWorker::startNetwork()
 void NetWorker::closeNetwork()
 {
 	{
-		MUTEX_LOCK(mMutexUdpComList);
+		NET_MUTEX_LOCK(mMutexUdpComList);
 		mUdpComList.clear();
 	}
 
@@ -179,12 +180,12 @@ void NetWorker::closeNetwork()
 
 	doCloseNetwork();
 
-	NetSocket::exitSystem();
+	NetSocket::ShutdownSystem();
 }
 
 void NetWorker::sendUdpCom( NetSocket& socket )
 {
-	MUTEX_LOCK( mMutexUdpComList );
+	NET_MUTEX_LOCK( mMutexUdpComList );
 	UdpComList::iterator iter = mUdpComList.begin();
 	for( ; iter != mUdpComList.end() ; ++iter )
 	{
@@ -217,7 +218,7 @@ bool NetWorker::addUdpCom( IComPacket* cp , NetAddress const& addr )
 {
 	try
 	{
-		MUTEX_LOCK( mMutexUdpComList );
+		NET_MUTEX_LOCK( mMutexUdpComList );
 		size_t fillSize = ComEvaluator::WriteBuffer( mUdpSendBuffer , cp );
 		UdpCom uc;
 		uc.addr     = addr;
@@ -234,7 +235,7 @@ bool NetWorker::addUdpCom( IComPacket* cp , NetAddress const& addr )
 
 
 
-bool EvalCommand( UdpChain& chain , ComEvaluator& evaluator , SocketBuffer& buffer , int group , void* userData )
+bool FNetCommand::Eval( UdpChain& chain , ComEvaluator& evaluator , SocketBuffer& buffer , int group , void* userData )
 {
 	uint32 readSize;
 	while( chain.readPacket( buffer , readSize ) )
@@ -261,13 +262,13 @@ bool EvalCommand( UdpChain& chain , ComEvaluator& evaluator , SocketBuffer& buff
 	return true;
 }
 
-unsigned WriteComToBuffer(NetBufferOperator& bufferCtrl , IComPacket* cp)
+unsigned FNetCommand::Write(NetBufferOperator& bufferCtrl , IComPacket* cp)
 {
 	TLockedObject< SocketBuffer > buffer = bufferCtrl.lockBuffer();
-	return WriteComToBuffer( *buffer , cp );
+	return Write( *buffer , cp );
 }
 
-unsigned WriteComToBuffer( SocketBuffer& buffer , IComPacket* cp )
+unsigned FNetCommand::Write( SocketBuffer& buffer , IComPacket* cp )
 {
 	assert( cp );
 

@@ -23,7 +23,7 @@ namespace GreedySnake
 		return NULL;
 	}
 
-	bool GameModule::getAttribValue( AttribValue& value )
+	bool GameModule::queryAttribute( GameAttribute& value )
 	{
 		switch( value.id )
 		{

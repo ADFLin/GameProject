@@ -23,7 +23,7 @@ public:
 	void    bitBltTo( HDC hdc, int x = 0,int y = 0 );
 	void    bitBltTo( HDC hdc, int x ,int y , int sx , int sy , int w , int h );
 	void    bitBltTransparent( HDC hdc , COLORREF color , int x = 0,int y = 0 );
-	HDC     getDC() const { return mhDC; }
+	HDC     getHandle() const { return mhDC; }
 	HBITMAP getBitmap(){ return mhBmp ; }
 	void    clear();
 	int     getWidth() const { return mWidth; }

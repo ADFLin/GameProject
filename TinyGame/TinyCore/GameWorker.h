@@ -175,6 +175,7 @@ class Channel
 typedef std::function< void() > NetCommandDelegate;
 
 
+#define NETWORKER_PROCESS_COMMAND_DEFERRED (TINY_USE_NET_THREAD  || 1 )
 
 class  NetWorker : public ComWorker
 {
@@ -198,15 +199,21 @@ protected:
 	virtual void  clenupNetResource(){}
 	virtual bool  update_NetThread(long time)
 	{
+#if NETWORKER_PROCESS_COMMAND_DEFERRED
 		processNetThreadCommnads();
+#endif
 		return true;
 	}
 	virtual void  doUpdate(long time) 
 	{
+
 #if !TINY_USE_NET_THREAD
 		update_NetThread(time);
 #endif
+
+#if NETWORKER_PROCESS_COMMAND_DEFERRED
 		processGameThreadCommnads();
+#endif
 	}
 protected:
 	typedef fastdelegate::FastDelegate< void ( )> SocketFun;
@@ -216,35 +223,47 @@ protected:
 	typedef std::vector< INetStateListener* > NetMsgListenerVec;
 	INetStateListener* mNetListener;
 
+	template< class Fun >
+	void addGameThreadCommnad(Fun&& fun)
+	{
+#if NETWORKER_PROCESS_COMMAND_DEFERRED
+		NET_MUTEX_LOCK(mMutexGameThreadCommands);
+		mGameThreadCommands.push_back(std::forward<Fun>(fun));
+#else
+		fun();
+#endif
+	}
+	template< class Fun >
+	void addNetThreadCommnad(Fun&& fun)
+	{
+#if NETWORKER_PROCESS_COMMAND_DEFERRED
+		NET_MUTEX_LOCK(mMutexNetThreadCommands);
+		mNetThreadCommands.push_back(std::forward<Fun>(fun));
+#else
+		fun();
+#endif
+	}
+
+#if NETWORKER_PROCESS_COMMAND_DEFERRED
 	void processGameThreadCommnads()
 	{
 		processThreadCommandInternal(mGameThreadCommands
 #if TINY_USE_NET_THREAD
-									 , mMutexGameThreadCommands
+			, mMutexGameThreadCommands
 #endif
 		);
 	}
-	template< class Fun >
-	void addGameThreadCommnad(Fun&& fun)
-	{
-		MUTEX_LOCK(mMutexGameThreadCommands);
-		mGameThreadCommands.push_back(std::forward<Fun>(fun));
-	}
+
 	void processNetThreadCommnads()
 	{
 		assert(IsInNetThread());
 		processThreadCommandInternal(mNetThreadCommands
 #if TINY_USE_NET_THREAD
-									 , mMutexNetThreadCommands
+			, mMutexNetThreadCommands
 #endif
 		);
 	}
-	template< class Fun >
-	void addNetThreadCommnad(Fun&& fun)
-	{
-		MUTEX_LOCK(mMutexNetThreadCommands);
-		mNetThreadCommands.push_back(std::forward<Fun>(fun));
-	}
+#endif
 
 private:
 	struct UdpCom
@@ -253,19 +272,21 @@ private:
 		size_t      dataSize;
 	};
 	typedef std::vector< UdpCom > UdpComList;
-	DEFINE_MUTEX( mMutexUdpComList )
+	NET_MUTEX( mMutexUdpComList )
 	UdpComList    mUdpComList;
 	SocketBuffer  mUdpSendBuffer;
+#if TINY_USE_NET_THREAD
 	SocketThread  mSocketThread;
+#endif
 	long          mNetRunningTime;
 
 
 
-
-	DEFINE_MUTEX(mMutexNetThreadCommands)
+#if NETWORKER_PROCESS_COMMAND_DEFERRED
+	NET_MUTEX(mMutexNetThreadCommands)
 	std::vector< NetCommandDelegate > mNetThreadCommands;
 
-	DEFINE_MUTEX(mMutexGameThreadCommands)
+	NET_MUTEX(mMutexGameThreadCommands)
 	std::vector< NetCommandDelegate > mGameThreadCommands;
 
 
@@ -275,22 +296,28 @@ private:
 #endif
 	)
 	{
-		MUTEX_LOCK(MutexCommands);
+		NET_MUTEX_LOCK(MutexCommands);
 		for( auto const& command : commands )
 		{
 			command();
 		}
 		commands.clear();
 	}
+#endif
+
 #if TINY_USE_NET_THREAD
 	volatile int32 mbRequestExitNetThread;
 	void  entryNetThread();
 #endif
 };
 
+class FNetCommand
+{
+public:
+	static bool Eval(UdpChain& chain, ComEvaluator& evaluator, SocketBuffer& buffer, int group = -1, void* userData = nullptr);
+	static unsigned Write(NetBufferOperator& bufferCtrl, IComPacket* cp);
+	static unsigned Write(SocketBuffer& buffer, IComPacket* cp);
+};
 
-bool EvalCommand( UdpChain& chain , ComEvaluator& evaluator , SocketBuffer& buffer , int group = -1 , void* userData = nullptr );
-unsigned WriteComToBuffer( NetBufferOperator& bufferCtrl , IComPacket* cp );
-unsigned WriteComToBuffer( SocketBuffer& buffer , IComPacket* cp );
 
 #endif // GameWorker_H_414D91B7_E6B1_4BF0_9900_CF50D7AA77F2

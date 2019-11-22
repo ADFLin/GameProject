@@ -38,7 +38,7 @@ public:
 	typedef std::list< ServerInfo > ServerInfoList;
 	ServerInfoList mServerList;
 
-	DEFINE_MUTEX( mMutexUI )
+	NET_MUTEX( mMutexUI )
 	int           mConCount;
 	ClientWorker* mWorker;
 	GListCtrl*    mServerListCtrl;

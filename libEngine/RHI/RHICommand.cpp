@@ -68,7 +68,7 @@ namespace Render
 
 		if( 1 )
 		{
-			::LogMsg("%d RHI Resource not release" , RHIResource::TotalCount );
+			LogMsg("%d RHI Resource not release" , RHIResource::TotalCount );
 		}
 	}
 

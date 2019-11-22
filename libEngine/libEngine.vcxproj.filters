@@ -441,9 +441,6 @@
     <ClInclude Include="FlowSystem.h">
       <Filter>標頭檔</Filter>
     </ClInclude>
-    <ClInclude Include="FunCallback.h">
-      <Filter>標頭檔</Filter>
-    </ClInclude>
     <ClInclude Include="GameEngine.h">
       <Filter>標頭檔</Filter>
     </ClInclude>
@@ -1076,6 +1073,9 @@
     </ClInclude>
     <ClInclude Include="Image\GIFLoader.h">
       <Filter>Image</Filter>
+    </ClInclude>
+    <ClInclude Include="FunctionTraits.h">
+      <Filter>標頭檔</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

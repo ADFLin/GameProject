@@ -24,7 +24,7 @@ namespace Zuma
 		virtual GameController&   getController(){ return IGameModule::getController(); }
 		virtual StageBase*        createStage( unsigned id );
 		virtual SettingHepler*    createSettingHelper( SettingHelperType type ){ return NULL; }
-		virtual bool              getAttribValue( AttribValue& value );
+		virtual bool              queryAttribute( GameAttribute& value );
 
 		GameCore* mCore;
 	};

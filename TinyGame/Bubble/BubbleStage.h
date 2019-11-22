@@ -22,8 +22,8 @@ namespace Bubble
 		//GameSubStage
 		void  tick();
 		void  updateFrame( int frame );
-		virtual bool getAttribValue( AttribValue& value );
-		virtual bool setupAttrib( AttribValue const& value )
+		virtual bool queryAttribute( GameAttribute& value );
+		virtual bool setupAttribute( GameAttribute const& value )
 		{ 
 			switch( value.id )
 			{
@@ -32,7 +32,7 @@ namespace Bubble
 			case ATTR_GAME_INFO:
 				return true;
 			}
-			return BaseClass::setupAttrib( value ); 
+			return BaseClass::setupAttribute( value ); 
 		}
 
 		bool onWidgetEvent( int event , int id , GWidget* ui );

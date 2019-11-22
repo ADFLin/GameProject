@@ -1,10 +1,10 @@
 #include "TinyGamePCH.h"
 #include "GoStage.h"
+#include "Bots/ZenBot.h"
 
 #include "RenderUtility.h"
 #include "PlatformThread.h"
 #include "SystemPlatform.h"
-#include "ZenBot.h"
 #include "FixString.h"
 
 namespace Go

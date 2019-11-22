@@ -333,7 +333,7 @@ namespace Tetris
 	}
 
 
-	bool LevelStage::setupAttrib( AttribValue const& value )
+	bool LevelStage::setupAttribute( GameAttribute const& value )
 	{
 		switch( value.id )
 		{
@@ -387,7 +387,7 @@ namespace Tetris
 	}
 
 
-	bool LevelStage::getAttribValue( AttribValue& value )
+	bool LevelStage::queryAttribute( GameAttribute& value )
 	{
 		switch( value.id )
 		{
@@ -423,7 +423,7 @@ namespace Tetris
 			}
 			return true;
 		}
-		return BaseClass::getAttribValue( value );
+		return BaseClass::queryAttribute( value );
 	}
 
 	void LevelStage::setupLocalGame( LocalPlayerManager& playerManager )
@@ -586,7 +586,7 @@ namespace Tetris
 				{
 					GameStageBase* stage = static_cast< GameStageBase* >(getManager()->changeStage( STAGE_SINGLE_GAME ) );
 
-					if ( stage->setupAttrib( AttribValue( ATTR_GAME_INFO , &info ) )  )
+					if ( stage->setupAttribute( GameAttribute( ATTR_GAME_INFO , &info ) )  )
 						isOK = true;
 				}
 

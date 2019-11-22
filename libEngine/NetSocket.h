@@ -196,8 +196,9 @@ public:
 
 	SocketState getState(){ return mState; }
 
-	static bool initSystem();
-	static void exitSystem();
+	static bool StartupSystem();
+	static void ShutdownSystem();
+	static bool IsInitialized();
 
 	bool setBroadcast();
 

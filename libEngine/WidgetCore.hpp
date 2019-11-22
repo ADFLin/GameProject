@@ -3,6 +3,7 @@
 #define WidgetCore_H_0D21F7C5_C362_437A_8BC5_D4C98EDB3024
 
 #include "WidgetCore.h"
+#include "LogSystem.h"
 #include <cassert>
 
 template< class T >

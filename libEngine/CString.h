@@ -5,6 +5,7 @@
 #include "MemorySecurity.h"
 #include "Meta/MetaBase.h"
 #include "Core/IntegerType.h"
+#include "Template/TypeFormatTraits.h"
 
 #include <string>
 #include <cassert>
@@ -92,36 +93,66 @@ struct FCString
 	FORCEINLINE static float   Strtof(char const* s, char** end) { return ::strtof(s, end); }
 	FORCEINLINE static float   Strtof(wchar_t const* s, wchar_t** end) { return ::wcstof(s, end); }
 
-	template <typename T>
-	struct TIsValidFormatType
+
+	template< class CharT >
+	static CharT const* FindChar(CharT const* str, CharT c)
 	{
-	private:
-		static uint32 Tester(uint32);
-		static uint32 Tester(uint16);
-		static uint32 Tester(uint8);
-		static uint32 Tester(int32);
-		static uint32 Tester(uint64);
-		static uint32 Tester(int64);
-		static uint32 Tester(short);
-		static uint32 Tester(double);
-		static uint32 Tester(float);
-		static uint32 Tester(long);
-		static uint32 Tester(unsigned long);
-		static uint32 Tester(char);
-		static uint32 Tester(bool);
-		static uint32 Tester(const void*);
-		static uint8  Tester(...);
+		while (*str != 0)
+		{
+			if (*str == c)
+				break;
+			++str;
+		}
+		return str;
+	}
 
-		static T DeclValT();
+	template< class CharT, class T >
+	static bool CheckForamtStringInternal(CharT const*& format, T&& t)
+	{
+		format = FindChar(format, '%');
+		if (*format == 0)
+		{
+			LogWarning(0, "Format string args is less than inpput args");
+			return false;
+		}
+		char const* strFormat = TTypeFormatTraits<std::remove_reference_t<T>>::GetString();
+		int lenFormat = FCString::Strlen(strFormat);
+		if (FCString::CompareN(strFormat, format, lenFormat) != 0)
+		{
+			LogWarning(0, "Format string args is less than inpput args");
+			return false;
+		}
+		format += lenFormat;
+		return true;
+	}
 
-	public:
-		enum { Value = sizeof(Tester(DeclValT())) == sizeof(uint32) };
-	};
+	template< class CharT >
+	static bool CheckForamtString(CharT const* format)
+	{
+		return true;
+	}
+
+	template< class CharT, class T >
+	static bool CheckForamtString(CharT const* format, T&& t)
+	{
+		return CheckForamtStringInternal(format, std::forward<T>(t));
+	}
+
+	template< class CharT , class T, class ...Args >
+	static bool CheckForamtString(CharT const* format, T&& t , Args&& ...args )
+	{
+		if (!CheckForamtStringInternal(format, std::forward<T>(t)))
+			return false;
+
+		return CheckForamtString(format, std::forward<Args>(args)...);
+	}
+
 
 	template< class CharT , int N , class ...Args>
 	FORCEINLINE static int  PrintfT(CharT(&str)[N], CharT const* fmt, Args&& ...args)
 	{
 		static_assert(Meta::And< TIsValidFormatType< Args >... >::Value == true , "Arg Type Error");
+		//assert(CheckForamtString(fmt, args...));
 		return FCString::PrintfImpl(str, N , fmt, args...);
 	}
 

@@ -38,8 +38,8 @@ bool GameModuleManager::registerModule( IModuleInterface* module , char const* l
 
 	if( gameModule )
 	{
-		AttribValue attrSetting(ATTR_CONTROLLER_DEFUAULT_SETTING);
-		gameModule->getAttribValue(attrSetting);
+		GameAttribute attrSetting(ATTR_CONTROLLER_DEFUAULT_SETTING);
+		gameModule->queryAttribute(attrSetting);
 	}
 
 	return true;
@@ -79,12 +79,12 @@ void GameModuleManager::classifyGame( int attrID , GameModuleVec& games )
 {
 	visitInternal( [ attrID , &games ](ModuleData& info)-> bool
 	{
-		AttribValue    attrValue(attrID);
+		GameAttribute    attrValue(attrID);
 
 		if( info.instance->isGameModule() )
 		{
 			IGameModule* gameModule = static_cast<IGameModule*>(info.instance);
-			if( gameModule->getAttribValue(attrValue) )
+			if( gameModule->queryAttribute(attrValue) )
 			{
 				if( attrValue.iVal )
 				{

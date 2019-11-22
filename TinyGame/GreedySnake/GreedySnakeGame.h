@@ -21,7 +21,7 @@ namespace GreedySnake
 		virtual GameController&    getController() override { return mController; }
 		virtual StageBase*         createStage(unsigned id) override;
 		virtual SettingHepler*     createSettingHelper( SettingHelperType type ) override;
-		virtual bool               getAttribValue( AttribValue& value ) override;
+		virtual bool               queryAttribute( GameAttribute& value ) override;
 
 		SimpleController   mController;
 	};

@@ -5,25 +5,108 @@
 #include "CoreShare.h"
 
 
-#include "FunCallback.h"
+#include "FunctionTraits.h"
 #include <cstring>
 #include "Singleton.h"
 #include "FixString.h"
 #include "HashString.h"
 #include "TypeConstruct.h"
+#include "Math/Vector2.h"
+#include "Math/Vector3.h"
+#include "Math/Vector4.h"
+#include "Template/ArrayView.h"
 
 #include <string>
 #include <map>
 
+
+struct ConsoleArgTypeInfo
+{
+	int size;
+	char const* format;
+	int numElements;
+};
+
+
+template< class T>
+struct TCommandArgTypeTraits {};
+
+#define DEFINE_COM_ARG_TYPE_TRAITS( TYPE , FORMAT , NUM_ELEMENTS ) \
+	template<>\
+	struct TCommandArgTypeTraits< TYPE >\
+	{ \
+		static ConsoleArgTypeInfo GetInfo()\
+		{\
+			return { sizeof(TYPE) , FORMAT , NUM_ELEMENTS };\
+		}\
+	};
+
+
+DEFINE_COM_ARG_TYPE_TRAITS(bool, "%d", 1)
+DEFINE_COM_ARG_TYPE_TRAITS(float, "%f", 1)
+DEFINE_COM_ARG_TYPE_TRAITS(double, "%lf", 1)
+DEFINE_COM_ARG_TYPE_TRAITS(unsigned, "%u", 1)
+DEFINE_COM_ARG_TYPE_TRAITS(int, "%d", 1)
+DEFINE_COM_ARG_TYPE_TRAITS(unsigned char, "%u", 1)
+DEFINE_COM_ARG_TYPE_TRAITS(char, "%d", 1)
+DEFINE_COM_ARG_TYPE_TRAITS(char*, "%s", 1)
+DEFINE_COM_ARG_TYPE_TRAITS(char const*, "%s", 1)
+DEFINE_COM_ARG_TYPE_TRAITS(Math::Vector2, "%f%f", 1)
+DEFINE_COM_ARG_TYPE_TRAITS(Math::Vector3, "%f%f%f", 2)
+DEFINE_COM_ARG_TYPE_TRAITS(Math::Vector4, "%f%f%f%f", 3)
+
+
+template< class FuncSig >
+struct TCommandFuncTraints {};
+
+template < class RT >
+struct TCommandFuncTraints< RT(*)() >
+{
+	static TArrayView< ConsoleArgTypeInfo const > GetArgs()
+	{
+		return TArrayView< ConsoleArgTypeInfo const >();
+	}
+};
+
+template < class RT, class ...Args  >
+struct TCommandFuncTraints< RT(*)(Args...) >
+{
+	static TArrayView< ConsoleArgTypeInfo const > GetArgs()
+	{
+		static ConsoleArgTypeInfo const sArgs[] = { TCommandArgTypeTraits< Meta::TypeTraits<Args>::BaseType >::GetInfo()... };
+		return MakeView( sArgs );
+	}
+};
+
+template < class RT, class T >
+struct TCommandFuncTraints< RT(T::*)() >
+{
+	static TArrayView< ConsoleArgTypeInfo const > GetArgs()
+	{
+		return TArrayView< ConsoleArgTypeInfo const >();
+	}
+};
+
+template < class RT, class T, class ...Args >
+struct TCommandFuncTraints< RT(T::*)(Args...) >
+{
+	static TArrayView< ConsoleArgTypeInfo const > GetArgs()
+	{
+		static ConsoleArgTypeInfo const sArgs[] = { TCommandArgTypeTraits< Meta::TypeTraits<Args>::BaseType >::GetInfo()... };
+		return MakeView(sArgs);
+	}
+};
+
+
+
 class ConsoleCommandBase
 {
 public:
- 	ConsoleCommandBase( char const* inName , int inNumParam , char const** inPararmFormat );
+ 	ConsoleCommandBase( char const* inName , TArrayView< ConsoleArgTypeInfo const > inArgs );
 	virtual ~ConsoleCommandBase(){}
 
-	std::string  name;
-	char const** paramFormat;
-	int          numParam;
+	std::string   name;
+	TArrayView< ConsoleArgTypeInfo const > args;
 
 	virtual void execute( void* argsData[] ) = 0;
 	virtual void getValue( void* pDest ){}
@@ -34,38 +117,34 @@ public:
 template < class FunSig , class T = void >
 struct TMemberFunConsoleCommand : public ConsoleCommandBase
 {
-	FunSig fun;
+	FunSig mFunc;
 	T*     mObject;
 
-	TMemberFunConsoleCommand( char const* inName , FunSig inFun, T* inObj = NULL )
-		:ConsoleCommandBase(inName,
-			detail::FunTraits<FunSig>::NumParam ,
-			detail::FunTraits<FunSig>::getParam() )
-		,fun(inFun), mObject(inObj)
+	TMemberFunConsoleCommand( char const* inName , FunSig inFunc, T* inObj = NULL )
+		:ConsoleCommandBase(inName, TCommandFuncTraints<FunSig>::GetArgs() )
+		, mFunc(inFunc), mObject(inObj)
 	{
 	}
 
 	virtual void execute(void* argsData[]) override
 	{
-		ExecuteCallbackFun(  fun , mObject, argsData );
+		Meta::Invoke(mFunc, mObject, argsData );
 	}
 };
 
 template < class FunSig >
 struct BaseFunCom : public ConsoleCommandBase
 {
-	FunSig mFun;
-	BaseFunCom( char const* inName, void* inFun)
-		:ConsoleCommandBase(inName,
-			detail::FunTraits<FunSig>::NumParam ,
-			detail::FunTraits<FunSig>::getParam() )
-		,mFun(inFun)
+	FunSig mFunc;
+	BaseFunCom( char const* inName, FunSig inFunc)
+		:ConsoleCommandBase(inName, TCommandFuncTraints<FunSig>::GetArgs() )
+		,mFunc(inFunc)
 	{
 	}
 
 	virtual void execute(void* argsData[]) override
 	{
-		ExecuteCallbackFun( mFun , argsData);
+		Meta::Invoke(mFunc, argsData);
 	}
 };
 
@@ -76,11 +155,16 @@ struct TVariableConsoleCommad : public ConsoleCommandBase
 	Type* mPtr;
 
 	TVariableConsoleCommad( char const* inName, Type* inPtr )
-		:ConsoleCommandBase(inName, 1 , detail::TypeToParam< Type >::getParam() )
+		:ConsoleCommandBase(inName, GetArg() )
 		,mPtr(inPtr)
 	{
 	}
 
+	static TArrayView< ConsoleArgTypeInfo const > GetArg()
+	{
+		static ConsoleArgTypeInfo const sArg = TCommandArgTypeTraits<Type>::GetInfo();
+		return TArrayView< ConsoleArgTypeInfo const >(&sArg , 1);
+	}
 	virtual void execute(void* argsData[]) override
 	{
 		TypeDataHelper::Assign(mPtr, *(Type*)argsData[0]);
@@ -110,6 +194,8 @@ public:
 
 	CORE_API void        unregisterCommand( ConsoleCommandBase* commond );
 	CORE_API void        unregisterCommandByName( char const* name );
+
+	CORE_API ConsoleCommandBase* findCommand(char const* comName);
 
 
 	CORE_API void     insertCommand(ConsoleCommandBase* com);
@@ -149,14 +235,13 @@ protected:
 		ConsoleCommandBase*    command;
 		char const* commandString;
 		char const* paramStrings[NumMaxParams];
-		int  numParam;
+		int  numArgs;
 		int  numUsedParam;
 		bool init(char const* inCommandString);
 	};
 
-	int  fillParameterData(ExecuteContext& context , uint8* data , char const* format );
+	bool fillParameterData(ExecuteContext& context , ConsoleArgTypeInfo const& arg, uint8* outData );
 	bool executeCommandImpl(char const* comStr);
-	ConsoleCommandBase* findCommand( char const* str );
 
 
 	struct StrCmp
@@ -166,34 +251,15 @@ protected:
 			return strcmp(s1, s2) < 0;
 		}
 	};
-
-	typedef std::map< char const* , ConsoleCommandBase* ,StrCmp > CommandMap;
+	typedef std::map< char const* , ConsoleCommandBase* , StrCmp > CommandMap;
 
 	CommandMap  mNameMap;
 	bool        mbInitialized = false;
 	ConsoleCommandBase* mRegisterdCommand = nullptr;
 	std::string  mLastErrorMsg;
 
-	friend struct ConsoleCommandBase;
+	friend class ConsoleCommandBase;
 };
-
-template < class T >
-inline void MakeConsoleCommand( char const* name , T* obj )
-{
-	TVariableConsoleCommad<T>* command = new TVariableConsoleCommad<T>( name , obj );
-}
-
-template < class FunSig , class T >
-inline void MakeConsoleCommand( char const* name , FunSig fun , T* obj )
-{
-	TMemberFunConsoleCommand<FunSig , T >* command = new TMemberFunConsoleCommand<FunSig , T >( name ,fun , obj );
-}
-
-template < class FunSig >
-inline void MakeConsoleCommand( char const* name , FunSig fun )
-{
-	BaseFunCom<FunSig>* command = new BaseFunCom<FunSig>( name ,fun );
-}
 
 template< class T >
 class TConsoleVariable
@@ -207,7 +273,10 @@ public:
 	}
 	~TConsoleVariable()
 	{
-		ConsoleSystem::Get().unregisterCommand( mCommand );
+		if (ConsoleSystem::Get().isInitialized())
+		{
+			ConsoleSystem::Get().unregisterCommand(mCommand);
+		}
 	}
 
 	T const& getValue() const { return mValue; }
@@ -231,7 +300,10 @@ public:
 	}
 	~TConsoleVariableRef()
 	{
-		ConsoleSystem::Get().unregisterCommand(mCommand);
+		if (ConsoleSystem::Get().isInitialized())
+		{
+			ConsoleSystem::Get().unregisterCommand(mCommand);
+		}
 	}
 
 	T const& getValue() const { return mValueRef; }

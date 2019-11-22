@@ -82,7 +82,7 @@ public:
 		processor.addInput(*this);
 	}
 	ActionProcessor& getActionProcessor(){ return mProcessor; }
-	bool  sendFrameData() = 0;
+	virtual bool  sendFrameData() = 0;
 	//ActionInpput
 	bool  scanInput( bool beUpdateFrame );
 	bool  checkAction( ActionParam& param );

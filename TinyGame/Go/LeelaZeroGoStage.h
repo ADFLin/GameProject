@@ -10,8 +10,8 @@
 #include "Go/GoBot.h"
 #include "Widget/WidgetUtility.h"
 
-#include "ZenBot.h"
-#include "LeelaBot.h"
+#include "Bots/ZenBot.h"
+#include "Bots/LeelaBot.h"
 
 #include "FileSystem.h"
 #include "Delegate.h"

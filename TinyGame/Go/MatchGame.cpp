@@ -1,7 +1,9 @@
 #include "MatchGame.h"
 
-#include "ZenBot.h"
-#include "LeelaBot.h"
+#include "Bots/ZenBot.h"
+#include "Bots/LeelaBot.h"
+#include "Bots/AQBot.h"
+#include "Bots/KataBot.h"
 
 #include "FileSystem.h"
 #include "StringParse.h"

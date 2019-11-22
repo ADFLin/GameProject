@@ -22,12 +22,14 @@ namespace Go
 			eParam ,
 		};
 		int   id;
+
+		typedef uint32 ParamIdType;
 		union
 		{
 			int   color;
 			struct
 			{
-				uint8 paramId;
+				ParamIdType paramId;
 				union 
 				{
 					int   intParam;
@@ -49,28 +51,28 @@ namespace Go
 			};
 		};
 
-		void setParam(uint8 inParamId , int param)
+		void setParam(ParamIdType inParamId , int param)
 		{
 			id = GameCommand::eParam;
 			paramId = inParamId;
 			intParam = param;
 		}
 
-		void setParam(uint8 inParamId, char const* param)
+		void setParam(ParamIdType inParamId, char const* param)
 		{
 			id = GameCommand::eParam;
 			paramId = inParamId;
 			strParam = param;
 		}
 
-		void setParam(uint8 inParamId, float param)
+		void setParam(ParamIdType inParamId, float param)
 		{
 			id = GameCommand::eParam;
 			paramId = inParamId;
 			floatParam = param;
 		}
 
-		void setParam(uint8 inParamId, void* param)
+		void setParam(ParamIdType inParamId, void* param)
 		{
 			id = GameCommand::eParam;
 			paramId = inParamId;

@@ -105,17 +105,17 @@ namespace GreedySnake
 		mScene->updateFrame( frame );
 	}
 
-	bool LevelStage::getAttribValue( AttribValue& value )
+	bool LevelStage::queryAttribute( GameAttribute& value )
 	{
-		if ( BaseClass::getAttribValue( value ) )
+		if ( BaseClass::queryAttribute( value ) )
 			return true;
 
 		return false;
 	}
 
-	bool LevelStage::setupAttrib( AttribValue const& value )
+	bool LevelStage::setupAttribute( GameAttribute const& value )
 	{
-		if ( BaseClass::setupAttrib( value ) )
+		if ( BaseClass::setupAttribute( value ) )
 			return true;
 
 		return false;

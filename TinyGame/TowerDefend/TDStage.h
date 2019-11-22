@@ -48,13 +48,13 @@ namespace TowerDefend
 			mLevel->update( frame );
 			::Global::GUI().updateFrame( frame , getTickTime() );
 		}
-		virtual bool getAttribValue( AttribValue& value )
+		virtual bool queryAttribute( GameAttribute& value )
 		{ 
-			return BaseClass::getAttribValue( value ); 
+			return BaseClass::queryAttribute( value ); 
 		}
-		virtual bool setupAttrib( AttribValue const& value )
+		virtual bool setupAttribute( GameAttribute const& value )
 		{
-			return BaseClass::setupAttrib( value );
+			return BaseClass::setupAttribute( value );
 		}
 
 		virtual bool onInit();

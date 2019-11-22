@@ -16,7 +16,7 @@ namespace Cube
 		//ReplayTemplate* createReplayTemplate( unsigned version );
 		//GameSubStage*   createSubStage( unsigned id );
 		StageBase*      createStage( unsigned id );
-		bool            getAttribValue( AttribValue& value );
+		bool            queryAttribute( GameAttribute& value );
 
 		virtual void beginPlay( StageManager& manger, StageModeType modeType ) override;
 		virtual void enter();

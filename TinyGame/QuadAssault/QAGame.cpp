@@ -88,7 +88,7 @@ GameController& QuadAssaultModule::getController()
 	return IGameModule::getController();
 }
 
-bool QuadAssaultModule::getAttribValue(AttribValue& value)
+bool QuadAssaultModule::queryAttribute(GameAttribute& value)
 {
 	switch( value.id )
 	{

@@ -25,7 +25,7 @@ namespace Tetris
 		SettingHepler*  createSettingHelper( SettingHelperType type );
 		ReplayTemplate* createReplayTemplate( unsigned version );
 		StageBase*      createStage( unsigned id );
-		bool            getAttribValue( AttribValue& value );
+		bool            queryAttribute( GameAttribute& value );
 
 		virtual void    beginPlay( StageManager& manger, StageModeType modeType ) override;
 		virtual void    enter();

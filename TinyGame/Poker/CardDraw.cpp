@@ -26,12 +26,12 @@ namespace Poker {
 		{
 			if( card == Card::None() )
 				return;
-			cdtDraw( mBugFixDC.getDC() , 0  , 0 , card.getIndex() , mdFACES , RGB( 0,0,0 )  );
+			cdtDraw( mBugFixDC.getHandle() , 0  , 0 , card.getIndex() , mdFACES , RGB( 0,0,0 )  );
 			mBugFixDC.bitBltTo( g.getRenderDC() , pos.x , pos.y  );
 		}
 		void drawCardBack( Graphics2D& g , Vec2i const& pos )
 		{
-			cdtDraw( mBugFixDC.getDC() , 0 , 0 , 58 , mdBACKS, RGB( 255 , 255 , 255 ) );
+			cdtDraw( mBugFixDC.getHandle() , 0 , 0 , 58 , mdBACKS, RGB( 255 , 255 , 255 ) );
 			mBugFixDC.bitBltTo( g.getRenderDC() , pos.x , pos.y  );
 		}
 		void release()

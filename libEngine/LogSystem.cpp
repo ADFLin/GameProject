@@ -47,11 +47,8 @@ public:
 	{
 		LogOutputList& outputList = chanelListenerList[channel];
 
-		LogOutputList::iterator itEnd = outputList.end();
-		for( LogOutputList::iterator iter = outputList.begin();
-			iter != itEnd; ++iter )
+		for(LogOutput* output : outputList)
 		{
-			LogOutput* output = *iter;
 			if( !output->filterLog(channel, level) )
 				continue;
 
@@ -62,7 +59,7 @@ public:
 	void   sendMessageV( LogChannel channel , char const* format, int level , va_list argptr  )
 	{
 		char buffer[10240];
-		vsprintf_s( buffer , format , argptr );
+		FCString::PrintfV(buffer, format, argptr);
 		sendMessage(channel, level , buffer);
 	}
 };
@@ -135,6 +132,8 @@ void LogOutput::removeChannel(LogChannel channel)
 	LogManager::Get().removeListener(channel, this);
 }
 
+#endif //CORE_SHARE_CODE
+
 #else
 
 LogOutput::~LogOutput(){}
@@ -143,4 +142,3 @@ void LogOutput::removeChannel(LogChannel channel){}
 
 #endif
 
-#endif //CORE_SHARE_CODE

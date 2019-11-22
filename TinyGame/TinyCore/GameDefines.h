@@ -9,7 +9,7 @@ enum StageModeType
 	SMT_REPLAY      ,
 };
 
-enum GameAttrib
+enum GameAttribName
 {
 	//Game
 	ATTR_GAME_VERSION    ,
@@ -31,14 +31,14 @@ enum GameAttrib
 };
 
 
-struct AttribValue
+struct GameAttribute
 {
-	AttribValue( int id ): id( id ){ ptr = 0; }
-	AttribValue( int id , int val ):id( id ),iVal( val ){}
-	AttribValue( int id , long val ):id( id ),iVal( val ){}
-	AttribValue( int id , float val ):id( id ),fVal( val ){}
-	AttribValue( int id , char const* val ):id( id ),str( val ){}
-	AttribValue( int id , void* val ):id( id ),ptr( val ){}
+	GameAttribute( int id ): id( id ){ ptr = 0; }
+	GameAttribute( int id , int val ):id( id ),iVal( val ){}
+	GameAttribute( int id , long val ):id( id ),iVal( val ){}
+	GameAttribute( int id , float val ):id( id ),fVal( val ){}
+	GameAttribute( int id , char const* val ):id( id ),str( val ){}
+	GameAttribute( int id , void* val ):id( id ),ptr( val ){}
 	int id;
 	union
 	{

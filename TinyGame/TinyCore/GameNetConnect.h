@@ -70,7 +70,14 @@ public:
 
 	SocketBuffer& getBuffer(){ return mBuffer; }
 	void     clear();
-	auto     lockBuffer(){ return MakeLockedObjectHandle( mBuffer , &mMutexBuffer ); }
+	auto     lockBuffer()
+	{ 
+#if TINY_USE_NET_THREAD
+		return MakeLockedObjectHandle( mBuffer , &mMutexBuffer ); 
+#else
+		return MakeLockedObjectHandle(mBuffer, nullptr);
+#endif
+	}
 	void     fillBuffer( SocketBuffer& buffer , unsigned num );
 
 	bool     sendData( NetSocket& socket , NetAddress* addr = NULL );
@@ -78,7 +85,7 @@ public:
 private:
 
 	SocketBuffer   mBuffer;
-	DEFINE_MUTEX( mMutexBuffer )
+	NET_MUTEX( mMutexBuffer )
 };
 
 

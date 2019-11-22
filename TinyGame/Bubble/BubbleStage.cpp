@@ -173,9 +173,9 @@ namespace Bubble
 		mDataManager.updateFrame( frame );
 	}
 
-	bool LevelStage::getAttribValue( AttribValue& value )
+	bool LevelStage::queryAttribute( GameAttribute& value )
 	{
-		return BaseClass::getAttribValue( value );
+		return BaseClass::queryAttribute( value );
 	}
 
 

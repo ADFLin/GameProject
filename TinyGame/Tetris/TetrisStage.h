@@ -58,8 +58,8 @@ namespace Tetris
 		void setupScene( IPlayerManager& playerMgr );
 		bool onWidgetEvent( int event , int id , GWidget* ui );
 		void onChangeState( GameState state );
-		bool getAttribValue( AttribValue& value );
-		bool setupAttrib( AttribValue const& value );
+		bool queryAttribute( GameAttribute& value );
+		bool setupAttribute( GameAttribute const& value );
 
 		bool setupGame( GameInfo &gameInfo );
 

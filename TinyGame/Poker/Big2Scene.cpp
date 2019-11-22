@@ -466,7 +466,7 @@ namespace Poker { namespace Big2 {
 		mHelper.parse( &cards[0] , cards.size() );
 		mRestIterator = true;
 
-		Graphics2D g( mShowCardBmp.getDC() );
+		Graphics2D g( mShowCardBmp.getHandle() );
 		g.setBrush( Color3ub( 0 , 255 , 0 ) );
 		g.drawRect( Vec2i(-1,-1) , Vec2i( mShowCardBmp.getWidth() + 2 , mShowCardBmp.getHeight() + 2 ) );
 
@@ -611,7 +611,7 @@ namespace Poker { namespace Big2 {
 
 	void Scene::drawLastCardOnBitmap()
 	{
-		Graphics2D g( mShowCardBmp.getDC() );
+		Graphics2D g( mShowCardBmp.getHandle() );
 		drawLastShowCard( g , Vec2i( mShowCardBmp.getWidth() / 2 , mShowCardBmp.getHeight() / 2 ) , false );
 	}
 

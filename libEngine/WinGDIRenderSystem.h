@@ -22,6 +22,8 @@ public:
 	int   getHeight() const { return mImpl.getHeight(); }
 	uint8* getRawData();
 
+	BitmapDC& getContext() { return mImpl; }
+
 private:
 
 	friend class WinGdiGraphics2D;

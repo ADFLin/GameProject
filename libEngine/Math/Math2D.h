@@ -13,7 +13,7 @@ namespace Math
 		Rotation2D() {}
 		Rotation2D(float angle) { setAngle(angle); }
 
-
+		static Rotation2D Angle(float angle) { return Rotation2D(angle); }
 		static Rotation2D Identity() { return Rotation2D(1, 0); }
 		static Rotation2D Make( Vector2 const& from , Vector2 const& to );
 
@@ -94,7 +94,6 @@ namespace Math
 			:mP(p), mR(r)
 		{
 		}
-
 
 		Vector2 const& getPos() const { return mP; }
 		Rotation2D const& getRotation() const { return mR; }

@@ -549,10 +549,10 @@ namespace Go
 				if ( mCore->getBestThinkMove(infoList, ARRAY_SIZE(infoList)) )
 				{
 					std::sort(infoList, infoList + ARRAY_SIZE(infoList),
-							  [](auto& lhs, auto &rhs)
-					{
-						return lhs.winRate > rhs.winRate;
-					}
+						[](auto& lhs, auto &rhs)
+						{
+							return lhs.winRate > rhs.winRate;
+						}
 					);
 
 					auto& bestInfo = infoList[0];

@@ -13,7 +13,7 @@ class INetFrameManager
 {
 public:
 	virtual ActionProcessor& getActionProcessor() = 0;
-	virtual bool sendFrameData() = 0;
+
 	virtual int  evalFrame( IFrameUpdater& updater , int updateFrames , int maxDelayFrames )= 0;
 	virtual void resetFrameData() = 0;
 

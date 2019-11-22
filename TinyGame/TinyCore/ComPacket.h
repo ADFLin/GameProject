@@ -156,16 +156,16 @@ private:
 	typedef std::list< UserCom > ComPacketList;
 
 	CPFactoryMap  mCPFactoryMap;
-	DEFINE_MUTEX( mMutexCPFactoryMap )
+	NET_MUTEX( mMutexCPFactoryMap )
 	ComPacketList mProcCPList;
-	DEFINE_MUTEX( mMutexProcCPList )
+	NET_MUTEX( mMutexProcCPList )
 };
 
 
 template< class GamePacket , class T , class Fun >
 bool ComEvaluator::setUserFun( T* processer , Fun fun )
 {
-	MUTEX_LOCK( mMutexCPFactoryMap );
+	NET_MUTEX_LOCK( mMutexCPFactoryMap );
 	ICPFactory* factory = addFactory< GamePacket >();
 	if ( !factory )
 		return false;
@@ -181,7 +181,7 @@ bool ComEvaluator::setUserFun( T* processer , Fun fun )
 template< class GamePacket , class T , class Fun >
 bool ComEvaluator::setWorkerFun( T* processer, Fun fun , void* )
 {
-	MUTEX_LOCK( mMutexCPFactoryMap );
+	NET_MUTEX_LOCK( mMutexCPFactoryMap );
 	ICPFactory* factory = addFactory< GamePacket >();
 	if ( !factory )
 		return false;
@@ -196,7 +196,7 @@ bool ComEvaluator::setWorkerFun( T* processer, Fun fun , void* )
 template< class GamePacket , class T , class Fun >
 bool ComEvaluator::setWorkerFun( T* processer, Fun fun , Fun funSocket )
 {
-	MUTEX_LOCK( mMutexCPFactoryMap );
+	NET_MUTEX_LOCK( mMutexCPFactoryMap );
 	ICPFactory* factory = addFactory< GamePacket >();
 	if ( !factory )
 		return false;
@@ -215,7 +215,7 @@ bool ComEvaluator::setWorkerFun( T* processer, Fun fun , Fun funSocket )
 template< class GamePacket >
 ComEvaluator::ICPFactory* ComEvaluator::addFactory()
 {
-	MUTEX_LOCK( mMutexCPFactoryMap );
+	NET_MUTEX_LOCK( mMutexCPFactoryMap );
 	ICPFactory* factory = findFactory( GamePacket::PID );
 	if ( factory == nullptr )
 	{

@@ -25,7 +25,7 @@ namespace BomberMan
 		virtual GameController&       getController(){ return mController;  }
 		virtual StageBase*            createStage(unsigned id);
 		virtual SettingHepler*        createSettingHelper( SettingHelperType type );
-		virtual bool                  getAttribValue( AttribValue& value );
+		virtual bool                  queryAttribute( GameAttribute& value );
 
 		//old replay version
 		virtual ReplayTemplate*       createReplayTemplate( unsigned version ){ return NULL; }

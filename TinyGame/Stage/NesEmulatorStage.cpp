@@ -6,7 +6,7 @@
 
 
 
-class SimpleDevice : public Nes::IIODevice
+class SimpleDevice : public NesSpace::IIODevice
 {
 
 public:
@@ -91,6 +91,80 @@ public:
 };
 
 
+#include "NesEmu/Nes.h"
+#include "NesEmu/Renderer.h"
+#include "NesEmu/Base.h"
+#include "NesEmu/Input.h"
+
+class NesEmuRenderer : public Renderer
+{
+
+public:
+	virtual void SetWindowTitle(const char* title) override
+	{
+		
+	}
+
+
+	virtual void Create(size_t screenWidth, size_t screenHeight) override
+	{
+		Graphics2D& g = ::Global::GetGraphics2D();
+		for (int i = 0; i < 2; ++i)
+		{
+			if (!mBuffers[i].create(g.getRenderDC(), screenHeight, screenHeight, (void**)&mpBufferData[i]))
+			{
+
+			}
+		}
+	}
+
+
+	virtual void Destroy() override
+	{
+
+
+	}
+
+
+	virtual void Clear(const Color4& color = Color4::Black()) override
+	{
+		BitmapDC& context = mBuffers[mIndexCurBuffer].getContext();
+		HBRUSH hBrush = ::CreateSolidBrush(RGB(color.R(), color.G(), color.B()));
+		::FillRect(context.getHandle(), NULL, hBrush);
+		::DeleteObject(hBrush);
+	}
+
+
+	virtual void DrawPixel(int32 x, int32 y, const Color4& color) override
+	{
+		BitmapDC& context = mBuffers[mIndexCurBuffer].getContext();
+		if (0 <= x && x < context.getWidth() && 0 <= y && y < context.getHeight())
+		{
+			int index = context.getWidth() * (context.getHeight() - y - 1) + x;
+			mpBufferData[mIndexCurBuffer][index] = color.argb;
+		}
+
+	}
+
+	virtual void Present() override
+	{
+		mIndexCurBuffer = 1 - mIndexCurBuffer;
+	}
+
+	void render(Graphics2D& g)
+	{
+		GdiTexture& texture = mBuffers[1 - mIndexCurBuffer];
+		g.drawTexture(texture, Vec2i(100, 100), 3 * texture.getSize() / 2);
+	}
+
+
+	GdiTexture mBuffers[2];
+	uint32*    mpBufferData[2];
+	int        mIndexCurBuffer = 0;
+
+};
+
+
 class NesEmulatorTestStage : public StageBase
 {
 	typedef StageBase BaseClass;
@@ -113,11 +187,13 @@ public:
 
 	}
 
-	Nes::IMechine* mMechine = nullptr;
+	NesSpace::IMechine* mMechine = nullptr;
 	
 
+	NesEmuRenderer mRenderer;
+	std::shared_ptr<Nes> mNes;
 
-
+	bool bUseNewEmu = false;
 	virtual bool onInit()
 	{
 		if( !BaseClass::onInit() )
@@ -126,7 +202,7 @@ public:
 		if( !mDevice.init(::Global::GetGraphics2D()) )
 			return false;
 
-		mMechine = Nes::IMechine::Create();
+		mMechine = NesSpace::IMechine::Create();
 		mMechine->setIODevice(mDevice);
 		char const* path = "Nes/SMB3_JP.nes";
 		if( !mMechine->loadRom(path) )
@@ -136,7 +212,15 @@ public:
 
 		DevFrame* frame = WidgetUtility::CreateDevFrame();
 		frame->addButton(UI_LOAD_ROM, "Load Rom");
+
+		mNes = std::make_shared<Nes>();
+		mNes->Initialize(mRenderer);
+
+		mNes->LoadRom("Nes/SMB3_JP.nes");
 		restart();
+
+
+
 		return true;
 	}
 
@@ -150,13 +234,31 @@ public:
 
 	void restart() 
 	{
-		mMechine->reset();
-		
+		if (bUseNewEmu)
+		{
+			mNes->Reset();
+		}
+		else
+		{
+			mMechine->reset();
+		}	
 	}
 	void tick() 
 	{
-		int cycle = 178977.25 / gDefaultTickTime;
-		mMechine->run(cycle);
+		if (bUseNewEmu)
+		{
+			bool const bPaused = false;
+			Input::Update();
+			//Debugger::Update();
+			mNes->ExecuteFrame(bPaused);
+		}
+		else
+		{
+			int cycle = Math::FloorToInt(178977.25 / gDefaultTickTime);
+			mMechine->run(cycle);
+		}
+
+
 	}
 	void updateFrame(int frame) {}
 
@@ -174,8 +276,15 @@ public:
 	void onRender(float dFrame)
 	{
 		Graphics2D& g = Global::GetGraphics2D();
+		if (bUseNewEmu)
+		{
+			mRenderer.render(g);
+		}
+		else
+		{
+			mDevice.render(g);
+		}
 
-		mDevice.render(g);
 	}
 
 	bool onMouse(MouseMsg const& msg)

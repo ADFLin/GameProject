@@ -10,7 +10,7 @@
 #include "Holder.h"
 #include "CppVersion.h"
 
-struct AttribValue;
+struct GameAttribute;
 
 #define  LAST_REPLAY_NAME     "LastReplay.rpf"
 #define  REPLAY_DIR           "Replay"
@@ -22,7 +22,6 @@ enum class GameState
 	Pause,
 	End,
 };
-
 
 struct GameLevelInfo
 {
@@ -59,8 +58,8 @@ public:
 	virtual void setupScene(IPlayerManager& playerManager) {}
 
 
-	virtual bool getAttribValue(AttribValue& value) { return false; }
-	virtual bool setupAttrib(AttribValue const& value) { return false; }
+	virtual bool queryAttribute(GameAttribute& value) { return false; }
+	virtual bool setupAttribute(GameAttribute const& value) { return false; }
 
 	virtual bool onInit();
 	virtual void onEnd();
@@ -94,7 +93,7 @@ public:
 
 	GameStageMode*   mStageMode;
 	ActionProcessor  mProcessor;
-	IGameModule*   mGame;
+	IGameModule*     mGame;
 	long             mTickTime;
 };
 

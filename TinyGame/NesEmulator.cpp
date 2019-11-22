@@ -16,7 +16,7 @@
 #include <SDL.h>
 #endif
 
-namespace Nes
+namespace NesSpace
 {
 /* NESEMU1 : EMULATOR FOR THE NINTENDO ENTERTAINMENT SYSTEM (R) ARCHITECTURE  */
 /* Written by and copyright (C) 2011  Joel Yliluoma - http://iki.fi/bisqwit/  */
@@ -744,20 +744,21 @@ void PPU::render_pixel()
 
 	// Overlay the sprites
 	if( showsp )
-		for( unsigned sno = 0; sno < sprrenpos; ++sno )
+	{
+		for (unsigned sno = 0; sno < sprrenpos; ++sno)
 		{
 			auto& s = OAM3[sno];
 			// Check if this sprite is horizontally in range
 			unsigned xdiff = x - s.x;
-			if( xdiff >= 8 ) continue; // Also matches negative values
+			if (xdiff >= 8) continue; // Also matches negative values
 									   // Determine which pixel to display; skip transparent pixels
-			if( !(s.attr & 0x40) ) xdiff = 7 - xdiff;
+			if (!(s.attr & 0x40)) xdiff = 7 - xdiff;
 			uint8 spritepixel = (s.pattern >> (xdiff * 2)) & 3;
-			if( !spritepixel ) continue;
+			if (!spritepixel) continue;
 			// Register sprite-0 hit if applicable
-			if( x < 255 && pixel && s.sprindex == 0 ) reg.SP0hit = true;
+			if (x < 255 && pixel && s.sprindex == 0) reg.SP0hit = true;
 			// Render the pixel unless behind-background placement wanted
-			if( !(s.attr & 0x20) || !pixel )
+			if (!(s.attr & 0x20) || !pixel)
 			{
 				attr = (s.attr & 3) + 4;
 				pixel = spritepixel;
@@ -765,6 +766,7 @@ void PPU::render_pixel()
 			// Only process the first non-transparent sprite pixel.
 			break;
 		}
+	}
 	pixel = palette[(attr * 4 + pixel) & 0x1F] & (reg.Grayscale ? 0x30 : 0x3F);
 	IO::PutPixel(x, scanline, pixel | (reg.EmpRGB << 6), cycle_counter);
 }
@@ -1133,6 +1135,7 @@ uint8 CPU::MemAccess(uint16 addr, uint8 v)
 	return 0;
 }
 
+PRAGMA_ENABLE_OPTIMIZE
 
 // Execute a single CPU instruction, defined by opcode "op".
 template<uint16 op>
@@ -1225,6 +1228,8 @@ void CPU::Ins() // With template magic, the compiler will literally synthesize >
 																					*/
 }
 
+
+
 void CPU::Op()
 {
 	/* Check the state of NMI flag */
@@ -1256,6 +1261,7 @@ void CPU::Op()
 	bReset = false;
 }
 
+PRAGMA_DISABLE_OPTIMIZE
 
 
 bool LoadRom(char const* path, GamePak& pak)

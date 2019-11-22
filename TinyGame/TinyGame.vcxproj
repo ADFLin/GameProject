@@ -92,19 +92,20 @@
       <AdditionalIncludeDirectories>.;TinyCore;../libEngine;../OtherLib;out/Shader;../CFlyMain;../Zuma;../OtherLib/boost;../OtherLib/glew;../OtherLib/DirectX/Include;../OtherLib/Box2D;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;_WINDOWS;DEBUG;TG_DLL;CORE_SHARE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MinimalRebuild>false</MinimalRebuild>
-      <BasicRuntimeChecks>Default</BasicRuntimeChecks>
+      <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile>TinyGamePCH.h</PrecompiledHeaderFile>
       <ProgramDataBaseFileName>$(IntDir)vc$(PlatformToolsetVersion).pdb</ProgramDataBaseFileName>
       <WarningLevel>Level3</WarningLevel>
-      <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <ForcedIncludeFiles>TinyGamePCH.h;%(ForcedIncludeFiles)</ForcedIncludeFiles>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <OpenMPSupport>false</OpenMPSupport>
-      <BrowseInformation>true</BrowseInformation>
+      <BrowseInformation>false</BrowseInformation>
       <EnableEnhancedInstructionSet>NoExtensions</EnableEnhancedInstructionSet>
       <LanguageStandard>stdcpp17</LanguageStandard>
+      <RemoveUnreferencedCodeData>false</RemoveUnreferencedCodeData>
     </ClCompile>
     <Link>
       <AdditionalDependencies>Msimg32.lib;d3d9.lib;d3dx9d.lib;dsound.lib;dinput8.lib;dxguid.lib;winmm.lib;%(AdditionalDependencies)</AdditionalDependencies>
@@ -261,12 +262,36 @@ copy $(TargetDir)EngineShare.dll  $(ProjectDir)out\</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\OtherLib\NesEmu\Apu.cpp" />
+    <ClCompile Include="..\OtherLib\NesEmu\AudioDriver.cpp" />
+    <ClCompile Include="..\OtherLib\NesEmu\Cartridge.cpp" />
+    <ClCompile Include="..\OtherLib\NesEmu\ControllerPorts.cpp" />
+    <ClCompile Include="..\OtherLib\NesEmu\Cpu.cpp" />
+    <ClCompile Include="..\OtherLib\NesEmu\Debugger.cpp" />
+    <ClCompile Include="..\OtherLib\NesEmu\Input.cpp" />
+    <ClCompile Include="..\OtherLib\NesEmu\TestMain.cpp" />
+    <ClCompile Include="..\OtherLib\NesEmu\Mapper1.cpp" />
+    <ClCompile Include="..\OtherLib\NesEmu\Mapper4.cpp" />
+    <ClCompile Include="..\OtherLib\NesEmu\MemoryBus.cpp" />
+    <ClCompile Include="..\OtherLib\NesEmu\Nes.cpp" />
+    <ClCompile Include="..\OtherLib\NesEmu\OpCodeTable.cpp" />
+    <ClCompile Include="..\OtherLib\NesEmu\Ppu.cpp" />
+    <ClCompile Include="..\OtherLib\NesEmu\Renderer.cpp" />
+    <ClCompile Include="..\OtherLib\NesEmu\RewindManager.cpp" />
+    <ClCompile Include="..\OtherLib\NesEmu\Rom.cpp" />
+    <ClCompile Include="..\OtherLib\NesEmu\Stream.cpp" />
+    <ClCompile Include="..\OtherLib\NesEmu\System.cpp" />
     <ClCompile Include="AngryBird\AngryBirdStage.cpp" />
     <ClCompile Include="AngryBird\GameObject.cpp" />
     <ClCompile Include="AngryBird\HeaderPCH.cpp" />
     <ClCompile Include="Bsp2D.cpp" />
+    <ClCompile Include="Go\Bots\AQBot.cpp" />
+    <ClCompile Include="Go\Bots\GTPBotBase.cpp" />
+    <ClCompile Include="Go\Bots\GTPOutput.cpp" />
+    <ClCompile Include="Go\Bots\KataBot.cpp" />
+    <ClCompile Include="Go\Bots\LeelaBot.cpp" />
+    <ClCompile Include="Go\Bots\ZenBot.cpp" />
     <ClCompile Include="Go\GoRenderer.cpp" />
-    <ClCompile Include="Go\LeelaBot.cpp" />
     <ClCompile Include="Go\LeelaZeroGoStage.cpp" />
     <ClCompile Include="Go\MatchGame.cpp" />
     <ClCompile Include="NesEmulator.cpp">
@@ -275,7 +300,6 @@ copy $(TargetDir)EngineShare.dll  $(ProjectDir)out\</Command>
     </ClCompile>
     <ClCompile Include="Go\GoCore.cpp" />
     <ClCompile Include="Go\GoStage.cpp" />
-    <ClCompile Include="Go\ZenBot.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Stage\AStarStage.cpp" />
     <ClCompile Include="Stage\CurveBuilderStage.cpp" />
@@ -300,15 +324,54 @@ copy $(TargetDir)EngineShare.dll  $(ProjectDir)out\</Command>
     <ClCompile Include="Voronoi.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\OtherLib\NesEmu\Apu.h" />
+    <ClInclude Include="..\OtherLib\NesEmu\AudioDriver.h" />
+    <ClInclude Include="..\OtherLib\NesEmu\Base.h" />
+    <ClInclude Include="..\OtherLib\NesEmu\Bitfield.h" />
+    <ClInclude Include="..\OtherLib\NesEmu\Cartridge.h" />
+    <ClInclude Include="..\OtherLib\NesEmu\CircularBuffer.h" />
+    <ClInclude Include="..\OtherLib\NesEmu\ControllerPorts.h" />
+    <ClInclude Include="..\OtherLib\NesEmu\Cpu.h" />
+    <ClInclude Include="..\OtherLib\NesEmu\CpuInternalRam.h" />
+    <ClInclude Include="..\OtherLib\NesEmu\Debugger.h" />
+    <ClInclude Include="..\OtherLib\NesEmu\FrameTimer.h" />
+    <ClInclude Include="..\OtherLib\NesEmu\Input.h" />
+    <ClInclude Include="..\OtherLib\NesEmu\InputKey.h" />
+    <ClInclude Include="..\OtherLib\NesEmu\IO.h" />
+    <ClInclude Include="..\OtherLib\NesEmu\Mapper.h" />
+    <ClInclude Include="..\OtherLib\NesEmu\Mapper0.h" />
+    <ClInclude Include="..\OtherLib\NesEmu\Mapper1.h" />
+    <ClInclude Include="..\OtherLib\NesEmu\Mapper2.h" />
+    <ClInclude Include="..\OtherLib\NesEmu\Mapper3.h" />
+    <ClInclude Include="..\OtherLib\NesEmu\Mapper4.h" />
+    <ClInclude Include="..\OtherLib\NesEmu\Mapper7.h" />
+    <ClInclude Include="..\OtherLib\NesEmu\Memory.h" />
+    <ClInclude Include="..\OtherLib\NesEmu\MemoryBus.h" />
+    <ClInclude Include="..\OtherLib\NesEmu\MemoryMap.h" />
+    <ClInclude Include="..\OtherLib\NesEmu\Nes.h" />
+    <ClInclude Include="..\OtherLib\NesEmu\OpCodeTable.h" />
+    <ClInclude Include="..\OtherLib\NesEmu\Ppu.h" />
+    <ClInclude Include="..\OtherLib\NesEmu\Renderer.h" />
+    <ClInclude Include="..\OtherLib\NesEmu\RewindBuffer.h" />
+    <ClInclude Include="..\OtherLib\NesEmu\RewindManager.h" />
+    <ClInclude Include="..\OtherLib\NesEmu\Rom.h" />
+    <ClInclude Include="..\OtherLib\NesEmu\Serializer.h" />
+    <ClInclude Include="..\OtherLib\NesEmu\Stream.h" />
+    <ClInclude Include="..\OtherLib\NesEmu\System.h" />
     <ClInclude Include="..\va_stdafx.h" />
     <ClInclude Include="AngryBird\GameObject.h" />
     <ClInclude Include="AngryBird\HeaderPCH.h" />
     <ClInclude Include="Bsp2D.h" />
     <ClInclude Include="CellWalker.h" />
+    <ClInclude Include="Go\Bots\AQBot.h" />
+    <ClInclude Include="Go\Bots\GTPBotBase.h" />
+    <ClInclude Include="Go\Bots\GTPOutput.h" />
+    <ClInclude Include="Go\Bots\KataBot.h" />
+    <ClInclude Include="Go\Bots\LeelaBot.h" />
+    <ClInclude Include="Go\Bots\ZenBot.h" />
     <ClInclude Include="Go\GoBot.h" />
     <ClInclude Include="Go\GoRenderer.h" />
     <ClInclude Include="Go\ImageProcessing.h" />
-    <ClInclude Include="Go\LeelaBot.h" />
     <ClInclude Include="Go\LeelaZeroGoStage.h" />
     <ClInclude Include="Go\MatchGame.h" />
     <ClInclude Include="Go\MonitorBot.h" />
@@ -316,8 +379,6 @@ copy $(TargetDir)EngineShare.dll  $(ProjectDir)out\</Command>
     <ClInclude Include="RandomUtility.h" />
     <ClInclude Include="Go\GoCore.h" />
     <ClInclude Include="Go\GoStage.h" />
-    <ClInclude Include="Go\zen.h" />
-    <ClInclude Include="Go\ZenBot.h" />
     <ClInclude Include="Stage\FlowGameStage.h" />
     <ClInclude Include="Stage\MainMenuStage.h" />
     <ClInclude Include="resource.h" />

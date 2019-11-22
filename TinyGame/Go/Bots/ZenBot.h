@@ -6,7 +6,7 @@
 //#include "zen.h"
 
 #include <cassert>
-#include "GoBot.h"
+#include "Go/GoBot.h"
 
 namespace Zen
 {

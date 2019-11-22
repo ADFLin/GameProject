@@ -67,7 +67,6 @@ protected:
 	void  procPlayerState ( IComPacket* cp);
 	void  procClockSynd_NetThread( IComPacket* cp);
 	
-
 	/////////////////////////////////
 
 	TPtrHolder< CLPlayerManager > mPlayerManager;
@@ -116,7 +115,7 @@ private:
 	};
 	typedef std::list< SendInfo > SendInfoList;
 
-	DEFINE_MUTEX( mMutexBuffer )
+	NET_MUTEX( mMutexBuffer )
 	SendInfoList mInfoList;
 	SocketBuffer mBuffer;
 	NetBufferOperator& mBufferCtrl;
@@ -128,11 +127,11 @@ public:
 	RecvDelayCtrl( int size );
 
 	void update( long time , UdpClient& client , ComEvaluator& evaluator );
-	bool add( SocketBuffer& buffer , bool isUdpPacket );
+	bool add( SocketBuffer& buffer , bool bUDPPacket);
 private:
 	struct RecvInfo
 	{
-		bool        isUdpPacket;
+		bool        bUDPPacket;
 		long        time;
 		unsigned    size;
 	};

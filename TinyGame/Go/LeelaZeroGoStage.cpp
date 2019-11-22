@@ -1,5 +1,8 @@
 #include "LeelaZeroGoStage.h"
 
+#include "Bots/AQBot.h"
+#include "Bots/KataBot.h"
+
 #include "StringParse.h"
 #include "RandomUtility.h"
 #include "Widget/WidgetUtility.h"
@@ -36,7 +39,7 @@ REGISTER_STAGE("LeelaZero Learning", Go::LeelaZeroGoStage, EStageGroup::Test);
 
 #pragma comment (lib,"Dbghelp.lib")
 
-//#pragma optimize( "", off )
+
 namespace Go
 {
 	void RunConvertWeight(LeelaWeightTable const& table)
@@ -681,7 +684,7 @@ namespace Go
 
 		mGame.setup(19);
 
-		auto GameActionFun = [&](GameProxy& game)
+		auto GameActionDelegate = [&](GameProxy& game)
 		{
 			if( &game == &getViewingGame() )
 			{
@@ -695,9 +698,9 @@ namespace Go
 			}
 		};
 
-		mGame.onStateChanged = GameActionFun;
-		mReviewGame.onStateChanged = GameActionFun;
-		mTryPlayGame.onStateChanged = GameActionFun;
+		mGame.onStateChanged = GameActionDelegate;
+		mReviewGame.onStateChanged = GameActionDelegate;
+		mTryPlayGame.onStateChanged = GameActionDelegate;
 
 		mMatchResultMap.load(MATCH_RESULT_PATH);
 		mMatchResultMap.checkMapValid();
@@ -1456,7 +1459,7 @@ namespace Go
 
 		if( !bTerritoryInfoValid )
 		{
-			::LogWarning(0, "Can't get QueryTerritory");
+			LogWarning(0, "Can't get QueryTerritory");
 		}
 	}
 
@@ -2134,10 +2137,18 @@ namespace Go
 				break;
 			case LeelaGameParam::eWinRate:
 			case ZenGameParam::eWinRate:
+			case KataGameParam::eWinRate:
 				if ( !bPrevGameCom )
 				{
 					Vector2 v;
-					v.x = ( mGame.getInstance().getCurrentStep() + 1 ) / 2;
+					if (com.paramId == KataGameParam::eWinRate)
+					{
+						v.x = (mGame.getInstance().getCurrentStep() + 2) / 2;
+					}
+					else
+					{
+						v.x = (mGame.getInstance().getCurrentStep() + 1) / 2;
+					}
 					v.y = com.floatParam;
 					mWinRateHistory[indexPlayer].push_back(v);
 

@@ -64,8 +64,8 @@ bool GameStageBase::onInit()
 		mStageMode->mCurStage = this;
 	}
 
-	AttribValue attrTime(ATTR_TICK_TIME);
-	if( getAttribValue(attrTime) )
+	GameAttribute attrTime(ATTR_TICK_TIME);
+	if( queryAttribute(attrTime) )
 	{
 		mTickTime = attrTime.iVal;
 	}

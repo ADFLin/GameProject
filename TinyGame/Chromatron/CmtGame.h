@@ -23,7 +23,7 @@ namespace Chromatron
 		virtual GameController&       getController(){ return IGameModule::getController(); }
 		virtual StageBase*            createStage( unsigned id );
 		virtual SettingHepler*        createSettingHelper( SettingHelperType type ){ return NULL; }
-		virtual bool                  getAttribValue( AttribValue& value );
+		virtual bool                  queryAttribute( GameAttribute& value );
 
 		//old replay version
 		virtual ReplayTemplate*       createReplayTemplate( unsigned version ){ return NULL; }

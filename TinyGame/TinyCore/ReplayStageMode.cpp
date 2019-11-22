@@ -231,8 +231,8 @@ bool ReplayStageMode::prevStageInit()
 		return false;
 	}
 
-	AttribValue attrInfo(ATTR_REPLAY_INFO, &info);
-	if( !stage->setupAttrib(attrInfo) )
+	GameAttribute attrInfo(ATTR_REPLAY_INFO, &info);
+	if( !stage->setupAttribute(attrInfo) )
 	{
 		return false;
 	}
@@ -290,8 +290,8 @@ bool ReplayStageMode::postStageInit()
 	stage->setupScene(*mPlayerManager.get());
 
 
-	AttribValue attrPos(ATTR_REPLAY_UI_POS);
-	if( !stage->getAttribValue(attrPos) )
+	GameAttribute attrPos(ATTR_REPLAY_UI_POS);
+	if( !stage->queryAttribute(attrPos) )
 	{
 		attrPos.v2.x = 0;
 		attrPos.v2.y = 0;

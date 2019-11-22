@@ -26,7 +26,7 @@ namespace Bubble
 		GameController& getController(){  return mController;  }
 		ReplayTemplate* createReplayTemplate( unsigned version );
 		StageBase*      createStage( unsigned id );
-		bool            getAttribValue( AttribValue& value );
+		bool            queryAttribute( GameAttribute& value );
 		SettingHepler*  createSettingHelper( SettingHelperType type );
 		void beginPlay( StageManager& manger, StageModeType modeType ) override;
 		virtual void    deleteThis(){ delete this; }

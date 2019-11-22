@@ -166,6 +166,17 @@ TinyGameApp::~TinyGameApp()
 
 }
 
+
+void Foo(int a, int b)
+{
+	LogMsg("%d+%d=%d", a, b, a + b);
+}
+
+void Foo2(Vector2 const& a, Vector2 const& b)
+{
+	Vector2 c = a + b;
+	LogMsg("%f %f", c.x, c.y);
+}
 bool TinyGameApp::initializeGame()
 {
 	ConsoleSystem::Get().initialize();
@@ -238,6 +249,8 @@ bool TinyGameApp::initializeGame()
 	mFPSCalc.init( getMillionSecond() );
 
 	ConsoleSystem::Get().registerCommand("ProfileGPU", &TinyGameApp::handleToggleProflieGPU, this);
+	ConsoleSystem::Get().registerCommand("Foo", Foo);
+	ConsoleSystem::Get().registerCommand("Foo2", Foo2);
 	return true;
 }
 
@@ -696,11 +709,13 @@ StageBase* TinyGameApp::createStage( StageID stageId )
 	if ( curGame )
 	{
 		newStage = curGame->createStage( stageId );
-
-		if( GameStageBase* gameStage = newStage->getGameStage() )
+		if ( newStage )
 		{
-			GameStageMode* stageMode = createGameStageMode(stageId);
-			gameStage->setupStageMode(stageMode);
+			if (GameStageBase* gameStage = newStage->getGameStage())
+			{
+				GameStageMode* stageMode = createGameStageMode(stageId);
+				gameStage->setupStageMode(stageMode);
+			}
 		}
 	}
 

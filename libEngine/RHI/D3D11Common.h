@@ -297,7 +297,7 @@ namespace Render
 				HRESULT hr = device->CreateShaderResourceView(resource, NULL, &mSRVResource);
 				if( hr != S_OK )
 				{
-					::LogWarning(0, "Can't buffer's SRV ! error code : %d", hr);
+					LogWarning(0, "Can't buffer's SRV ! error code : %d", hr);
 				}
 			}
 			if( creationFlag & BCF_CreateUAV )

@@ -19,7 +19,7 @@ namespace TowerDefend
 			return NULL;
 		}
 		StageBase*      createStage( unsigned id );
-		bool            getAttribValue( AttribValue& value ){ return false; }
+		bool            queryAttribute( GameAttribute& value ){ return false; }
 
 		void beginPlay( StageManager& manger, StageModeType modeType ) override;
 		virtual void    deleteThis(){ delete this; }

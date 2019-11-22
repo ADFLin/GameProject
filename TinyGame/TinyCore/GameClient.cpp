@@ -159,14 +159,14 @@ bool ClientWorker::notifyConnectionRecv( NetConnection* con , SocketBuffer& buff
 		}
 		else
 		{
-			return EvalCommand( mUdpClient , getEvaluator() , buffer );
+			return FNetCommand::Eval( mUdpClient , getEvaluator() , buffer );
 		}
 	}
 	else
 	{
 		if (con == &mUdpClient)
 		{
-			return EvalCommand(mUdpClient, getEvaluator(), buffer);
+			return FNetCommand::Eval(mUdpClient, getEvaluator(), buffer);
 		}
 		else
 		{
@@ -322,10 +322,10 @@ void ClientWorker::sendCommand( int channel , IComPacket* cp , unsigned flag )
 	switch( channel )
 	{
 	case CHANNEL_GAME_NET_TCP:
-		WriteComToBuffer( mTcpClient.getSendCtrl() , cp );
+		FNetCommand::Write( mTcpClient.getSendCtrl() , cp );
 		break;
 	case CHANNEL_GAME_NET_UDP_CHAIN:
-		WriteComToBuffer( mUdpClient.getSendCtrl() , cp );
+		FNetCommand::Write( mUdpClient.getSendCtrl() , cp );
 		break;
 	}	
 }
@@ -489,7 +489,7 @@ SendDelayCtrl::SendDelayCtrl( NetBufferOperator& bufferCtrl )
 
 void SendDelayCtrl::update( long time )
 {
-	MUTEX_LOCK( mMutexBuffer );
+	NET_MUTEX_LOCK( mMutexBuffer );
 
 	mCurTime = time;
 	
@@ -513,11 +513,11 @@ void SendDelayCtrl::update( long time )
 
 bool SendDelayCtrl::add( IComPacket* cp )
 {
-	MUTEX_LOCK( mMutexBuffer );
+	NET_MUTEX_LOCK( mMutexBuffer );
 
 	SendInfo info;
 
-	info.size = WriteComToBuffer( mBuffer , cp );
+	info.size = FNetCommand::Write( mBuffer , cp );
 
 	if ( info.size == 0 )
 		return false;
@@ -552,9 +552,9 @@ void RecvDelayCtrl::update( long time , UdpClient& client , ComEvaluator& evalua
 		mBuffer.setFillSize( size );
 		try
 		{
-			if ( iter->isUdpPacket )
+			if ( iter->bUDPPacket )
 			{
-				EvalCommand( client , evaluator , mBuffer , -1 );
+				FNetCommand::Eval( client , evaluator , mBuffer , -1 );
 			}
 			else
 			{
@@ -582,12 +582,12 @@ void RecvDelayCtrl::update( long time , UdpClient& client , ComEvaluator& evalua
 	}
 }
 
-bool RecvDelayCtrl::add( SocketBuffer& buffer , bool isUdpPacket )
+bool RecvDelayCtrl::add( SocketBuffer& buffer , bool bUDPPacket)
 {
 	RecvInfo info;
 
 	info.size        = (unsigned)buffer.getAvailableSize();
-	info.isUdpPacket = isUdpPacket;
+	info.bUDPPacket = bUDPPacket;
 
 	bool done = false;
 	int  count = 1;

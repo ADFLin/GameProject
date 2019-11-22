@@ -117,7 +117,7 @@ public:
 	void prevListenAction()
 	{
 		mActivePortMask = 0;
-		for( size_t i = 0 ; i < mNumPort ; ++i )
+		for(uint32 i = 0 ; i < mNumPort ; ++i )
 		{
 			mFrameData[i].keyActBit = 0;
 		}
@@ -152,7 +152,7 @@ public:
 
 	void postRestoreData(bool bHaveData)
 	{
-		for( size_t i = 0; i < mNumPort; ++i )
+		for(uint32 i = 0; i < mNumPort; ++i )
 		{
 			mPortDataMap[mFrameData[i].port] = (unsigned)i;
 		}
@@ -166,7 +166,7 @@ public:
 		{
 			if ( T::IsSaving )
 			{
-				for( size_t i = 0; i < mNumPort; ++i )
+				for(uint32 i = 0; i < mNumPort; ++i )
 				{
 					if( mActivePortMask & BIT(mFrameData[i].port) )
 					{
@@ -177,7 +177,7 @@ public:
 			else
 			{
 				mNumPort = BitUtility::CountSet(mActivePortMask);
-				for( size_t i = 0; i < mNumPort; ++i )
+				for(uint32 i = 0; i < mNumPort; ++i )
 				{
 					op & mFrameData[i];
 				}
@@ -195,7 +195,7 @@ public:
 
 		msg.format("%ld =", frame);
 		int count = 0;
-		for( size_t i = 0; i < mNumPort; ++i )
+		for(uint32 i = 0; i < mNumPort; ++i )
 		{
 			FrameData& data = mFrameData[i];
 			if( data.keyActBit )
@@ -215,7 +215,7 @@ public:
 protected:
 	uint32  mActivePortMask;
 	size_t  mDataMaxNum;
-	size_t  mNumPort;
+	uint32  mNumPort;
 	TArrayHolder<FrameData> mFrameData;
 	TArrayHolder<unsigned > mPortDataMap;
 

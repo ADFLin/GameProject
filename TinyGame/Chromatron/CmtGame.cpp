@@ -7,7 +7,7 @@ namespace Chromatron
 {
 	EXPORT_GAME_MODULE(GameModule)
 
-	bool GameModule::getAttribValue( AttribValue& value )
+	bool GameModule::queryAttribute( GameAttribute& value )
 	{
 		switch( value.id )
 		{

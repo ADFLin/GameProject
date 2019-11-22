@@ -4,6 +4,14 @@
 #include "Math/Base.h"
 #include "Math/Math2D.h"
 
+
+template< class T >
+struct TRange
+{
+	T max;
+	T min;
+};
+
 namespace BoneIK
 {
 	using namespace Math;
@@ -11,18 +19,19 @@ namespace BoneIK
 	struct BoneState
 	{
 		Vector2 pos;
-		float rotation;
+		float   rotation;
 	};
 
 	struct Bone
 	{
 		Vector2 pos;
-		float angles[2];
+		float   angle;
 	};
+
 	struct BoneContraint
 	{
 		bool  bUsed;
-		float value[2];
+		TRange< float > limits;
 	};
 
 	struct BoneLink
@@ -32,6 +41,10 @@ namespace BoneIK
 		BoneContraint contraint;
 	};
 
+	struct BoneChain
+	{
+		std::vector< BoneLink > links;
+	};
 
 
 	class TestStage : public StageBase
@@ -53,7 +66,7 @@ namespace BoneIK
 
 			Vector2 v3 = rotation.rotate(v1);
 
-			initBones({ Vector2(0,0) , Vector2(0,10) , Vector2(0,30) , Vector2(0,35) , Vector2(0,50) });
+			initBones({ Vector2(0,0) , Vector2(0,10) , Vector2(0,30) , Vector2(0,45) , Vector2(0,50) });
 			::Global::GUI().cleanupWidget();
 			auto frame = WidgetUtility::CreateDevFrame();
 			restart();
@@ -92,8 +105,6 @@ namespace BoneIK
 				g.drawRect(rPos - RectSize / 2 , RectSize );
 			}
 
-
-
 			if( haveIKState )
 			{
 				RenderUtility::SetPen(g, EColor::Green);
@@ -117,7 +128,7 @@ namespace BoneIK
 
 		Vector2 ToScreenPos(Vector2 const& pos)
 		{
-			return 4 * pos + Vector2(400, 300);
+			return 4.0f * pos + Vector2(400, 300);
 		}
 		Vector2 ToWorldPos(Vector2 const& sPos)
 		{
@@ -141,25 +152,52 @@ namespace BoneIK
 
 		void solveIK()
 		{
-
+			int const maxIteration = 1000;
+			int solveCount = 0;
 			mBoneState.resize(mBones.size());
-			for( int i = 0; i < mBones.size(); ++i )
+			for (;;)
 			{
-				mBoneState[i].pos = mBones[i].pos;
-			}
+				for (int i = 0; i < mBones.size(); ++i)
+				{
+					mBoneState[i].pos = mBones[i].pos;
+				}
 
-			switch( mUsageMethod )
-			{
-			case BoneIK::TestStage::FABRIK:
-				solveFabrik(mBoneState, mLastTargetPos, 0);
-				break;
-			case BoneIK::TestStage::CCD:
-				solveCCD(mBoneState, mLastTargetPos, 0);
-				break;
-			default:
-				break;
+				Vector2 dirTarget = mLastTargetPos - mBoneState[0].pos;
+				Vector2 dirBone   = mBoneState.back().pos - mBoneState[0].pos;
+
+				Rotation2D rotation = Rotation2D::Make( Math::GetNormal( dirBone ) , Math::GetNormal( dirTarget ) );
+				float angle = rotation.getAngle();
+
+				float deltaAngle = Math::Abs(angle) - Math::Deg2Rad(45);
+
+				rotate(mBoneState, mBones[0].pos, Math::Sign(angle) * deltaAngle);
+
+				if (solveCount > 0)
+				{
+					rotate(mBoneState, mBones[0].pos, solveCount * Math::Deg2Rad(5));
+				}
+
+				bool bOK = true;
+				switch (mUsageMethod)
+				{
+				case BoneIK::TestStage::FABRIK:
+					bOK = solveFabrik(mBoneState, mLastTargetPos, 0, maxIteration);
+					break;
+				case BoneIK::TestStage::CCD:
+					bOK = solveCCD(mBoneState, mLastTargetPos, 0, maxIteration);
+					break;
+				default:
+					break;
+				}
+
+				if (bOK)
+					break;
+
+				++solveCount;
+				LogWarning(0 , "Can't solve IK %d ", solveCount);
 			}
 		}
+
 
 		enum SolveMethod
 		{
@@ -210,8 +248,6 @@ namespace BoneIK
 			}
 		}
 
-
-
 		SolveMethod mUsageMethod = SolveMethod::FABRIK;
 		std::vector< Bone > mBones;
 		std::vector< BoneLink > mLinks;
@@ -219,7 +255,16 @@ namespace BoneIK
 
 		Vector2 mLastTargetPos;
 
-		void solveFabrik(std::vector< BoneState >& inoutState , Vector2 const& targetPos , float targetRotation )
+		void rotate(std::vector< BoneState >& inoutState, Vector2 pivot , Rotation2D rotation)
+		{
+			for (int i = 0; i < inoutState.size(); ++i)
+			{
+				Vector2 offset = inoutState[i].pos - pivot;
+				inoutState[i].pos = pivot + rotation.rotate( offset );
+			}
+		}
+
+		bool solveFabrik(std::vector< BoneState >& inoutState , Vector2 const& targetPos , float targetRotation , int maxIteration )
 		{
 			assert(mBones.size() <= inoutState.size());
 
@@ -230,7 +275,6 @@ namespace BoneIK
 			{
 				maxDistance += link.dist;
 			}
-
 			Vector2 targetOffset = targetPos - inoutState[0].pos;
 			if( targetOffset.length2() > maxDistance * maxDistance )
 			{
@@ -267,13 +311,21 @@ namespace BoneIK
 					dist = Distance(inoutState[indexEffector].pos, targetPos);
 
 					++numIterator;
+					if (numIterator >= maxIteration)
+					{
+						LogWarning(0, "FABRIK reach max iterator!");
+						return false;
+					}
 				}
+
 
 				LogMsg("FABRIK IterNum = %d", numIterator);
 			} 
+
+			return true;
 		}
 
-		void solveCCD(std::vector< BoneState >& inoutState, Vector2 const& targetPos, float targetRotation)
+		bool solveCCD(std::vector< BoneState >& inoutState, Vector2 const& targetPos, float targetRotation, int maxIteration )
 		{
 
 			assert(mBones.size() <= inoutState.size());
@@ -317,10 +369,18 @@ namespace BoneIK
 
 					dist = Distance(inoutState[indexEffector].pos, targetPos);
 					++numIterator;
+
+					if (numIterator > maxIteration)
+					{
+						LogWarning(0, "CCD reach max iterator!");
+						return false;
+					}
 				}
 
 				LogMsg("CCD IterNum = %d", numIterator);
 			}
+
+			return true;
 
 		}
 	protected:

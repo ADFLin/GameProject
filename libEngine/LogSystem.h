@@ -21,7 +21,7 @@ CORE_API void LogWarning(int level, char const* str);
 #define LOG_BUFFER_SIZE 102400
 
 template< class ...Arg >
-void LogMsg(char const* format, Arg ...arg)
+FORCEINLINE void LogMsg(char const* format, Arg ...arg)
 {
 	char buffer[LOG_BUFFER_SIZE];
 	FCString::PrintfT(buffer, format, arg...);
@@ -29,7 +29,7 @@ void LogMsg(char const* format, Arg ...arg)
 }
 
 template< class ...Arg >
-void LogError(char const* format, Arg ...arg)
+FORCEINLINE void LogError(char const* format, Arg ...arg)
 {
 	char buffer[LOG_BUFFER_SIZE];
 	FCString::PrintfT(buffer, format, arg...);
@@ -37,7 +37,7 @@ void LogError(char const* format, Arg ...arg)
 }
 
 template< class ...Arg >
-void LogDevMsg(int level, char const* format, Arg ...arg)
+FORCEINLINE void LogDevMsg(int level, char const* format, Arg ...arg)
 {
 	char buffer[LOG_BUFFER_SIZE];
 	FCString::PrintfT(buffer, format, arg...);
@@ -45,7 +45,7 @@ void LogDevMsg(int level, char const* format, Arg ...arg)
 }
 
 template< class ...Arg >
-void LogWarning(int level, char const* format, Arg ...arg)
+FORCEINLINE void LogWarning(int level, char const* format, Arg ...arg)
 {
 	char buffer[LOG_BUFFER_SIZE];
 	FCString::PrintfT(buffer, format, arg...);

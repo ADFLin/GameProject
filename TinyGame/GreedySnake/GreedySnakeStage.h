@@ -29,8 +29,8 @@ namespace GreedySnake
 		bool onKey(unsigned key, bool isDown);
 		void onRender( float dFrame );
 
-		bool                  getAttribValue( AttribValue& value );
-		bool                  setupAttrib( AttribValue const& value );
+		bool                  queryAttribute( GameAttribute& value );
+		bool                  setupAttribute( GameAttribute const& value );
 		IFrameActionTemplate* createActionTemplate( unsigned version );
 		bool                  setupNetwork( NetWorker* netWorker , INetEngine** engine );
 

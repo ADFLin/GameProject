@@ -36,8 +36,8 @@ bool IGameModule::changeDefaultStage(StageManager& stageManager, StageModeType m
 	{
 	case SMT_SINGLE_GAME:
 		{
-			AttribValue value(ATTR_SINGLE_SUPPORT);
-			if( getAttribValue(value) && value.iVal )
+			GameAttribute value(ATTR_SINGLE_SUPPORT);
+			if( queryAttribute(value) && value.iVal )
 			{
 				stageManager.changeStage(STAGE_SINGLE_GAME);
 				return true;
@@ -51,8 +51,8 @@ bool IGameModule::changeDefaultStage(StageManager& stageManager, StageModeType m
 		break;
 	case SMT_REPLAY:
 		{
-			AttribValue value(ATTR_REPLAY_SUPPORT);
-			if( getAttribValue(value) && value.iVal )
+			GameAttribute value(ATTR_REPLAY_SUPPORT);
+			if( queryAttribute(value) && value.iVal )
 			{
 				stageManager.changeStage(STAGE_REPLAY_GAME);
 				return true;
@@ -66,8 +66,8 @@ bool IGameModule::changeDefaultStage(StageManager& stageManager, StageModeType m
 		break;
 	case SMT_NET_GAME:
 		{
-			AttribValue value(ATTR_NET_SUPPORT);
-			if( getAttribValue(value) && value.iVal )
+			GameAttribute value(ATTR_NET_SUPPORT);
+			if( queryAttribute(value) && value.iVal )
 			{
 				stageManager.changeStage(STAGE_NET_GAME);
 				return true;

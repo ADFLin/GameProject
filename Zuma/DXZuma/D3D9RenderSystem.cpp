@@ -1,7 +1,7 @@
 #include "ZumaPCH.h"
 #include "D3D9RenderSystem.h"
 
-#include "GIFLoader.h"
+#include "Image/GIFLoader.h"
 #include "ZFont.h"
 
 namespace Zuma

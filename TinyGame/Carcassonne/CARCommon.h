@@ -96,7 +96,7 @@ namespace CAR
 			return FBit::MaskIterator< NumBits >(mask, index);
 		}
 		void operator ++(int) {}
-		void operator ++(void){}
+		void operator ++(){}
 	};
 
 	static Vec2i const gDirOffset[] =

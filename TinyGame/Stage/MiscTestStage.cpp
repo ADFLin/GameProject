@@ -358,11 +358,11 @@ struct FooFun
 	void foo( CoroutineType::push_type& ca )
 	{ 
 		int process = 0;
-		while ( 1 )
+		while ( true )
 		{
 			FixString< 32 > str;
 			process = num;
-			GButton* button = new GButton( CoroutineTestStage::UI_TEST_BUTTON , Vec2i( 100 , 100 + 30 * process ) , Vec2i( 100 , 20 ) , NULL );
+			GButton* button = new GButton( CoroutineTestStage::UI_TEST_BUTTON , Vec2i( 100 , 100 + 30 * process ) , Vec2i( 100 , 20 ) , nullptr );
 			button->setTitle( str.format( "%d" , num ) );
 			::Global::GUI().addWidget( button );
 			ca( process );
@@ -389,7 +389,7 @@ struct Foo
 };
 void foo2()
 {
-	GButton* button = new GButton( CoroutineTestStage::UI_TEST_BUTTON2 , Vec2i( 200 , 100  ) , Vec2i( 100 , 20 ) , NULL );
+	GButton* button = new GButton( CoroutineTestStage::UI_TEST_BUTTON2 , Vec2i( 200 , 100  ) , Vec2i( 100 , 20 ) , nullptr );
 	button->setTitle( "foo2" );
 	::Global::GUI().addWidget( button );
 	gJumper.jump();
@@ -481,10 +481,9 @@ namespace Bsp2D
 		mSegment[0] = Vector2( 0 , 0 );
 		mSegment[1] = Vector2( 10 , 10 );
 
-		for( PolyAreaVec::iterator iter = mPolyAreaMap.begin() , itEnd = mPolyAreaMap.end();
-			 iter != itEnd ; ++iter )
+		for(auto poly : mPolyAreaMap)
 		{
-			delete *iter;
+			delete poly;
 		}
 		mPolyAreaMap.clear();
 		mTree.clear();

@@ -157,7 +157,7 @@ namespace CAR
 		};
 		ActorPos( Enum aType , int aMeta )
 			:type( aType ),meta( aMeta ){}
-		ActorPos(){}
+		ActorPos()= default;
 
 		static ActorPos None() { return ActorPos(eNone, 0); }
 		static ActorPos Tile() { return ActorPos(eTile, 0); }

@@ -56,7 +56,7 @@ namespace Poker { namespace Big2 {
 
 	void TrickHelper::init()
 	{
-		mParseCards = NULL;
+		mParseCards = nullptr;
 
 		int* curPtr = mIndexStorge;
 #define  SET_POS( POS , NUM )\
@@ -80,11 +80,11 @@ namespace Poker { namespace Big2 {
 	{
 		mParseCards = sortedCards;
 
-		for( int i = 0 ; i < 4 ; ++i )
-			mSuitGroup[i].num = 0;
+		for(auto& group : mSuitGroups)
+			group.num = 0;
 
-		for( int i = 0 ; i < NumGroupPos ; ++i )
-			mDataGroups[i].num = 0;
+		for(auto & group : mDataGroups)
+			group.num = 0;
 
 		if ( numCard )
 		{
@@ -205,7 +205,7 @@ namespace Poker { namespace Big2 {
 
 		for( int i = 0 ; i < 4 ; ++i )
 		{
-			if ( mSuitGroup[i].num >= 5 )
+			if ( mSuitGroups[i].num >= 5 )
 			{
 				addDataGroup( POS_FLUSH , i );
 			}
@@ -247,8 +247,9 @@ namespace Poker { namespace Big2 {
 				if ( getData( POS_STRAIGHT ).num )
 				{
 					iterData.condition = 0;
-					for( int i = 0 ; i < 5 ; ++i )
-						straight.index[i] = 0;
+					for(int& index : straight.indices)
+						index = 0;
+
 					straight.cur = 4;
 					return true;
 				}
@@ -263,7 +264,7 @@ namespace Poker { namespace Big2 {
 					data.count = 0;
 					data.cur = 0;
 					int idxGroup = getData( POS_FLUSH ).index[0];
-					data.initCombine( mSuitGroup[ idxGroup ].num );
+					data.initCombine( mSuitGroups[ idxGroup ].num );
 					return true;
 				}
 			}
@@ -340,9 +341,9 @@ namespace Poker { namespace Big2 {
 
 				bool needRest = false;
 
-				while ( 1 )
+				while ( true )
 				{
-					straight.index[ straight.cur ] += 1;
+					straight.indices[ straight.cur ] += 1;
 					int idxGroup = getData( POS_STRAIGHT ).index[ iterData.condition ];
 					if ( straight.cur == 4 && mFaceGroups[ idxGroup ].rank == 9 )
 					{
@@ -353,7 +354,7 @@ namespace Poker { namespace Big2 {
 						idxGroup += straight.cur;
 					}
 
-					if (  straight.index[ straight.cur ] < mFaceGroups[ idxGroup ].num )
+					if (  straight.indices[ straight.cur ] < mFaceGroups[ idxGroup ].num )
 					{
 						if ( needRest )
 							straight.cur = 4;
@@ -367,7 +368,7 @@ namespace Poker { namespace Big2 {
 						if(  iterData.condition < getData( POS_STRAIGHT ).num )
 						{
 							for( int i = 0 ; i < 4 ; ++i )
-								straight.index[i] = 0;
+								straight.indices[i] = 0;
 							straight.cur = 4;
 							return true;
 						}
@@ -381,7 +382,7 @@ namespace Poker { namespace Big2 {
 					{
 						for ( int i = 4; i > straight.cur ; --i )
 						{
-							straight.index[i] = 0;
+							straight.indices[i] = 0;
 						}
 						needRest = true;
 					}
@@ -395,9 +396,9 @@ namespace Poker { namespace Big2 {
 				if ( data.count < mDataGroups[ CG_FLUSH ].num )
 				{
 					int idxGroup = mDataGroups[POS_FLUSH].index[ data.count ];
-					if ( data.nextCombine( mSuitGroup[ idxGroup ].num , 5 ) )
+					if ( data.nextCombine( mSuitGroups[ idxGroup ].num , 5 ) )
 						return true;
-					data.initCombine( mSuitGroup[ idxGroup ].num );
+					data.initCombine( mSuitGroups[ idxGroup ].num );
 					data.count += 1;
 				}
 				if ( data.count >= mDataGroups[ CG_FLUSH ].num )
@@ -529,12 +530,12 @@ namespace Poker { namespace Big2 {
 				int idxGroup = getData( POS_STRAIGHT ).index[ iterData.condition ];
 
 				for( int i = 0 ; i < 4 ; ++i )
-					outIndex[i] = mFaceGroups[ idxGroup + i ].index + straight.index[i];
+					outIndex[i] = mFaceGroups[ idxGroup + i ].index + straight.indices[i];
 
 				if ( mFaceGroups[ idxGroup ].rank == Card::ToRank( Card::eN10 ) )
-					outIndex[4] = mFaceGroups[ 0 ].index + straight.index[4];
+					outIndex[4] = mFaceGroups[ 0 ].index + straight.indices[4];
 				else
-					outIndex[4] = mFaceGroups[ idxGroup + 4 ].index + straight.index[4];
+					outIndex[4] = mFaceGroups[ idxGroup + 4 ].index + straight.indices[4];
 
 				if ( power )
 				{
@@ -550,7 +551,7 @@ namespace Poker { namespace Big2 {
 				IterFlush& data = iterData.flush;
 				int idxGroup = getData( POS_FLUSH ).index[ data.count ];
 				for( int i = 0 ; i < 5 ; ++i )
-					outIndex[i] = mSuitGroup[ idxGroup ].index[ data.combine[i] ];
+					outIndex[i] = mSuitGroups[ idxGroup ].index[ data.combine[i] ];
 
 				if ( power )
 				{
@@ -564,8 +565,8 @@ namespace Poker { namespace Big2 {
 
 		case CG_FULL_HOUSE:
 			{
-				valueIteratorOnePair( iterData.face[1] , outIndex , NULL );
-				valueIteratorThreeOfKind( iterData.face[0] , outIndex + 2 , NULL );
+				valueIteratorOnePair( iterData.face[1] , outIndex , nullptr );
+				valueIteratorThreeOfKind( iterData.face[0] , outIndex + 2 , nullptr );
 				
 				if ( power )
 				{
@@ -580,7 +581,7 @@ namespace Poker { namespace Big2 {
 			{
 				int idxGroup = getData( POS_FOUR_OF_KIND ).index[ iterData.face[0].count ];
 
-				valueIteratorSingle( iterData.face[1] , outIndex , NULL );
+				valueIteratorSingle( iterData.face[1] , outIndex , nullptr );
 				for( int i = 0 ; i < 4 ; ++i )
 					outIndex[i + 1] = mFaceGroups[ idxGroup ].index + i;
 
@@ -881,7 +882,7 @@ namespace Poker { namespace Big2 {
 
 	void TrickHelper::addSuitGroup( Card const& card , int index )
 	{
-		SuitGroup& group = mSuitGroup[ card.getSuit() ];
+		SuitGroup& group = mSuitGroups[ card.getSuit() ];
 		group.index[ group.num++ ] = index;
 	}
 
@@ -924,7 +925,7 @@ namespace Poker { namespace Big2 {
 
 	TrickIterator::TrickIterator()
 	{
-		mHelper = NULL;
+		mHelper = nullptr;
 		mGroup  = CG_NONE;
 		mbOK = false;
 	}
@@ -933,12 +934,12 @@ namespace Poker { namespace Big2 {
 	{
 		mbOK = mHelper->nextIterator( mGroup , mIterData );
 		if ( mbOK )
-			mHelper->valueIterator( mGroup , mIterData , mIndex , NULL );
+			mHelper->valueIterator( mGroup , mIterData , mIndex , nullptr );
 	}
 
 	void TrickIterator::goNext( int power )
 	{
-		while( 1 )
+		while( true )
 		{
 			mbOK = mHelper->nextIterator( mGroup , mIterData );
 			if ( !mbOK )
@@ -955,7 +956,7 @@ namespace Poker { namespace Big2 {
 	{
 		mbOK = mHelper->initIterator( mGroup , mIterData );
 		if ( mbOK )
-			mHelper->valueIterator( mGroup , mIterData , mIndex , NULL );
+			mHelper->valueIterator( mGroup , mIterData , mIndex , nullptr );
 	}
 
 	bool TrickIterator::reset( int power )
@@ -964,7 +965,7 @@ namespace Poker { namespace Big2 {
 		if ( !mbOK )
 			return false;
 
-		while( 1 )
+		while( true )
 		{
 			int curPower;
 			mHelper->valueIterator( mGroup , mIterData , mIndex , &curPower );

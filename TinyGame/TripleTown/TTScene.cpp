@@ -146,7 +146,7 @@ namespace TripleTown
 				break;
 			case 3:
 				{
-					uint8* pData = (uint8*)&data[0];
+					auto* pData = (uint8*)&data[0];
 					for( int i = 0; i < width * height; ++i )
 					{
 						fs.read((char*)pData, sizeof(uint8) * 3);
@@ -158,7 +158,7 @@ namespace TripleTown
 				break;
 			case 2:
 				{
-					uint8* pData = (uint8*)&data[0];
+					auto* pData = (uint8*)&data[0];
 					Color16 c;
 					assert(sizeof(c) == 2);
 					for( int i = 0; i < width * height; ++i )
@@ -176,7 +176,7 @@ namespace TripleTown
 				break;
 			case 1:
 				{
-					uint8* pData = (uint8*)&data[0];
+					auto* pData = (uint8*)&data[0];
 					uint8 c;
 					for( int i = 0; i < width * height; ++i )
 					{
@@ -262,7 +262,7 @@ namespace TripleTown
 
 	Scene::Scene()
 	{
-		mLevel = NULL;
+		mLevel = nullptr;
 		mMapOffset = Vec2i( 0 , 0 );
 		mNumPosRemove = 0;
 		mPosPeek = Vec2i( -1 , -1 );
@@ -271,7 +271,7 @@ namespace TripleTown
 	Scene::~Scene()
 	{
 		if( mLevel )
-			mLevel->setListener(NULL);
+			mLevel->setListener(nullptr);
 
 		releaseResource();
 	}

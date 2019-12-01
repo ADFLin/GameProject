@@ -16,7 +16,7 @@
 
 namespace AStar
 {
-	typedef TVector2< int > Vec2i;
+	using Vec2i = TVector2< int >;
 
 	class PathGraph
 	{
@@ -290,7 +290,7 @@ namespace AStar
 		};
 
 		static uint8 const MaxClearance = 8;
-		typedef TGrid2D< Tile > TileMap;
+		using TileMap = TGrid2D< Tile >;
 		TileMap mMap;
 		
 		uint8   mClearance;
@@ -311,10 +311,10 @@ namespace AStar
 	class TestStage : public StageBase
 		            , public View
 	{
-		typedef StageBase BaseClass;
+		using BaseClass = StageBase;
 	public:
 
-		typedef MyAStar::NodeType Node;
+		using Node = MyAStar::NodeType;
 
 
 		TestStage()
@@ -322,7 +322,7 @@ namespace AStar
 
 		}
 
-		virtual bool onInit()
+		bool onInit() override
 		{
 			::Global::GUI().cleanupWidget();
 			restart();
@@ -330,7 +330,7 @@ namespace AStar
 			return true;
 		}
 
-		virtual void onUpdate( long time )
+		void onUpdate( long time ) override
 		{
 			BaseClass::onUpdate( time );
 
@@ -341,7 +341,7 @@ namespace AStar
 			updateFrame( frame );
 		}
 
-		void onRender( float dFrame )
+		void onRender( float dFrame ) override
 		{
 			Graphics2D& g = Global::GetGraphics2D();
 
@@ -432,7 +432,7 @@ namespace AStar
 
 		}
 
-		bool onMouse( MouseMsg const& msg )
+		bool onMouse( MouseMsg const& msg ) override
 		{
 			if ( !BaseClass::onMouse( msg ) )
 				return false;
@@ -462,7 +462,7 @@ namespace AStar
 			return true;
 		}
 
-		bool onKey( unsigned key , bool isDown )
+		bool onKey( unsigned key , bool isDown ) override
 		{
 			if ( !isDown )
 				return false;

@@ -124,7 +124,7 @@ namespace CAR
 
 
 			D3DDevice* d3dDevice = mWorld->getD3DDevice();
-			d3dDevice->CreateOffscreenPlainSurface( window.getWidth() , window.getHeight() , D3DFMT_X8R8G8B8 , D3DPOOL_SYSTEMMEM , &mSurfaceBufferTake , NULL );
+			d3dDevice->CreateOffscreenPlainSurface( window.getWidth() , window.getHeight() , D3DFMT_X8R8G8B8 , D3DPOOL_SYSTEMMEM , &mSurfaceBufferTake , nullptr );
 
 			mWorld->setDir( DIR_TEXTURE , "CAR" );
 
@@ -205,9 +205,9 @@ namespace CAR
 		mInput.exitGame();
 		if ( !bEndStage )
 		{
-			for( int i = 0; i < mRenderObjects.size(); ++i )
+			for(auto object : mRenderObjects)
 			{
-				mRenderObjects[i]->release();
+				object->release();
 			}
 			mRenderObjects.clear();
 		}
@@ -340,12 +340,11 @@ namespace CAR
 
 				if ( feature->group != -1 )
 				{
-					for( MapTileSet::iterator iter = feature->mapTiles.begin() , itEnd = feature->mapTiles.end() ;
-						iter != itEnd ; ++iter )
+					for(auto mapTile : feature->mapTiles)
 					{
 						RenderUtility::SetBrush( g , EColor::Null );
 						RenderUtility::SetPen( g , EColor::Red );
-						drawTileRect( g , (*iter)->pos );
+						drawTileRect( g , mapTile->pos );
 					}
 
 					switch( feature->type )
@@ -355,11 +354,9 @@ namespace CAR
 						{
 							RenderUtility::SetBrush( g , EColor::Red );
 							RenderUtility::SetPen( g , EColor::Red );
-							SideFeature* sideFeature = static_cast< SideFeature* >( feature );
-							for( std::vector< SideNode* >::iterator iter = sideFeature->nodes.begin() , itEnd = sideFeature->nodes.end();
-								iter != itEnd ; ++iter )
+							auto sideFeature = static_cast< SideFeature* >( feature );
+							for(auto node : sideFeature->nodes)
 							{
-								SideNode* node = *iter;
 								Vec2i size( 4 , 4 );
 								g.drawRect( convertToScreenPos( Vector2( node->getMapTile()->pos ) + SidePos[ node->index ] ) - size / 2 , size );
 							}
@@ -370,10 +367,8 @@ namespace CAR
 							RenderUtility::SetBrush( g , EColor::Red );
 							RenderUtility::SetPen( g , EColor::Red );
 							FarmFeature* farm = static_cast< FarmFeature* >( feature );
-							for( std::vector< FarmNode* >::iterator iter = farm->nodes.begin() , itEnd = farm->nodes.end();
-								iter != itEnd ; ++iter )
+							for(auto node : farm->nodes)
 							{
-								FarmNode* node = *iter;
 								Vec2i size( 4 ,4 );
 								g.drawRect( convertToScreenPos( Vector2(  node->getMapTile()->pos ) + FarmPos[ node->index ] ) - size / 2 , size );
 							}
@@ -485,9 +480,8 @@ namespace CAR
 				drawTile( g , Vector2(mCurMapPos) , world.getTile( mGameLogic.mUseTileId ) , mRotation );
 			}
 
-			for( int i = 0  ; i < mGameLogic.mPlaceTilePosList.size() ; ++i )
+			for(Vec2i const& pos : mGameLogic.mPlaceTilePosList)
 			{
-				Vec2i pos = mGameLogic.mPlaceTilePosList[i];
 				RenderUtility::SetBrush( g , EColor::Null );
 				RenderUtility::SetPen( g , EColor::Green );
 				drawTileRect( g , pos );
@@ -540,7 +534,7 @@ namespace CAR
 
 						if ( widget->getID() == UI_ACTOR_POS_BUTTON )
 						{
-							ActorPosButton* button = widget->cast< ActorPosButton >();
+							auto button = widget->cast< ActorPosButton >();
 							ActorPosInfo& info = mGameLogic.mActorDeployPosList[ button->indexPos ];
 							Vector2 posNode = calcActorMapPos( info.pos , *info.mapTile );
 							//posBase + getActorPosMapOffset( info.pos );
@@ -735,14 +729,14 @@ namespace CAR
 			break;
 		case FeatureType::eCloister:
 			{
-				CloisterFeature* myFeature = static_cast< CloisterFeature* >( build );
+				auto myFeature = static_cast< CloisterFeature* >( build );
 				g.drawText( tempPos , str.format( " Cloister: LinkTile=%d" , myFeature->neighborTiles.size() ) );
 				tempPos.y += offsetY;
 			}
 			break;
 		case FeatureType::eGarden:
 			{
-				GardenFeature* myFeature = static_cast<GardenFeature*>(build);
+				auto myFeature = static_cast<GardenFeature*>(build);
 				g.drawText(tempPos, str.format(" Garden: LinkTile=%d", myFeature->neighborTiles.size()));
 				tempPos.y += offsetY;
 			}
@@ -1193,11 +1187,11 @@ namespace CAR
 			break;
 		case ACTION_SELECT_ACTOR_INFO:
 			{
-				GameSelectActorInfoData* myData = data->cast< GameSelectActorInfoData >();
+				auto myData = data->cast< GameSelectActorInfoData >();
 
 				if ( myData->bCanSkip )
 				{
-					GButton* button = new GButton( UI_ACTION_SKIP , Vec2i( 20 , 270 ) , Vec2i( 50 , 20 ) , nullptr );
+					auto button = new GButton( UI_ACTION_SKIP , Vec2i( 20 , 270 ) , Vec2i( 50 , 20 ) , nullptr );
 					button->setTitle( "Skip" );
 					addActionWidget( button );
 				}
@@ -1205,7 +1199,7 @@ namespace CAR
 				for( int i = 0 ; i < myData->numSelection ; ++i )
 				{
 					Vec2i pos = Vec2i(300,200);
-					SelectButton* button = new SelectButton( UI_ACTOR_INFO_BUTTON , pos + Vec2i(30,0) , Vec2i(20,20) , nullptr );
+					auto button = new SelectButton( UI_ACTOR_INFO_BUTTON , pos + Vec2i(30,0) , Vec2i(20,20) , nullptr );
 					button->index = i;
 					button->actorInfo = &myData->actorInfos[i];
 					button->mapPos = pos;
@@ -1215,18 +1209,18 @@ namespace CAR
 			break;
 		case ACTION_SELECT_MAPTILE:
 			{
-				GameSelectMapTileData* myData = data->cast< GameSelectMapTileData >();
+				auto myData = data->cast< GameSelectMapTileData >();
 
 				if ( myData->bCanSkip )
 				{
-					GButton* button = new GButton( UI_ACTION_SKIP , Vec2i( 20 , 270 ) , Vec2i( 50 , 20 ) , nullptr );
+					auto button = new GButton( UI_ACTION_SKIP , Vec2i( 20 , 270 ) , Vec2i( 50 , 20 ) , nullptr );
 					button->setTitle( "Skip" );
 					addActionWidget( button );
 				}
 
 				if ( myData->reason == SAR_WAGON_MOVE_TO_FEATURE )
 				{
-					GameFeatureTileSelectData* selectData = data->cast< GameFeatureTileSelectData >();
+					auto selectData = data->cast< GameFeatureTileSelectData >();
 					for( int n = 0 ; n < selectData->infos.size() ; ++n )
 					{
 						GameFeatureTileSelectData::Info& info = selectData->infos[n];
@@ -1237,7 +1231,7 @@ namespace CAR
 							ActorPos actorPos;
 							info.feature->getActorPos( *mapTile , actorPos );
 							Vector2 pos = calcActorMapPos( actorPos , *mapTile );
-							SelectButton* button = new SelectButton( UI_MAP_TILE_BUTTON , convertToScreenPos( pos ) , Vec2i(20,20) , nullptr );
+							auto button = new SelectButton( UI_MAP_TILE_BUTTON , convertToScreenPos( pos ) , Vec2i(20,20) , nullptr );
 							button->index   = idx;
 							button->mapTile = mapTile;
 							button->mapPos  = pos;
@@ -1251,7 +1245,7 @@ namespace CAR
 					{
 						MapTile* mapTile = myData->mapTiles[i];
 						Vector2 pos = mapTile->pos;
-						SelectButton* button = new SelectButton( UI_MAP_TILE_BUTTON , convertToScreenPos( pos ) , Vec2i(20,20) , nullptr );
+						auto button = new SelectButton( UI_MAP_TILE_BUTTON , convertToScreenPos( pos ) , Vec2i(20,20) , nullptr );
 						button->index = i;
 						button->mapTile = mapTile;
 						button->mapPos = pos;
@@ -1269,7 +1263,7 @@ namespace CAR
 			break;
 		case ACTION_AUCTION_TILE:
 			{
-				AuctionPanel* panel = new AuctionPanel( UI_AUCTION_TILE_PANEL , Vec2i( 100,100) , nullptr );
+				auto panel = new AuctionPanel( UI_AUCTION_TILE_PANEL , Vec2i( 100,100) , nullptr );
 
 				panel->mSprite = mSceneUI->createSprite();
 				panel->init( *this , data->cast< GameAuctionTileData >() );
@@ -1631,9 +1625,9 @@ namespace CAR
 
 	void LevelStage::removeGameActionUI()
 	{
-		for( int i = 0 ; i < mGameActionUI.size() ; ++i )
+		for(auto widget : mGameActionUI)
 		{
-			mGameActionUI[i]->destroy();
+			widget->destroy();
 		}
 		mGameActionUI.clear();
 	}
@@ -1758,13 +1752,13 @@ namespace CAR
 			mSprite->createRectArea( pos.x , pos.y , tileSize , tileSize , str );
 		}
 
-		GSlider* slider = new GSlider( UI_SCORE , Vec2i( 10 , 80 ) , 100 , true , this );
+		auto slider = new GSlider( UI_SCORE , Vec2i( 10 , 80 ) , 100 , true , this );
 		slider->showValue();
 		slider->setRange( 0 , 20 );
 		slider->setValue(0);
 
 
-		GButton* button = new GButton( UI_OK , Vec2i( 120 , 80 ) , Vec2i( 60 , 25 ) , this );
+		auto button = new GButton( UI_OK , Vec2i( 120 , 80 ) , Vec2i( 60 , 25 ) , this );
 		button->setTitle( "OK" );
 	}
 

@@ -103,7 +103,7 @@ namespace Poker { namespace Big2 {
 		struct  IterStraight
 		{
 			int cur;
-			int index[5];
+			int indices[5];
 		};
 		struct IterData
 		{
@@ -156,7 +156,7 @@ namespace Poker { namespace Big2 {
 			int num;
 		};
 
-		SuitGroup mSuitGroup[ 4 ];
+		SuitGroup mSuitGroups[ 4 ];
 		DataGroup mDataGroups[ NumGroupPos ];
 		int       mIndexStorge[ 52 ];
 		Card*     mParseCards;

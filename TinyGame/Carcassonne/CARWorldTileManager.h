@@ -55,7 +55,7 @@ namespace CAR
 	class TileSetManager
 	{
 	public:
-		TileSetManager();
+		TileSetManager() = default;
 		~TileSetManager();
 
 		void  addExpansion(Expansion exp);

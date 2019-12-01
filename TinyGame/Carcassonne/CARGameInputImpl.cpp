@@ -350,7 +350,7 @@ namespace CAR
 				if ( com.numParam != 3 )
 					return false;
 
-				GamePlaceTileData* myData = static_cast< GamePlaceTileData* >( mActionData );
+				auto* myData = static_cast< GamePlaceTileData* >( mActionData );
 				myData->resultPos.x = com.getInt(0);
 				myData->resultPos.y = com.getInt(1);
 				myData->resultRotation = com.getInt(2);
@@ -361,7 +361,7 @@ namespace CAR
 				if ( com.numParam != 2 )
 					return false;
 
-				GameDeployActorData* myData = static_cast< GameDeployActorData* >( mActionData );
+				auto myData = static_cast< GameDeployActorData* >( mActionData );
 				myData->resultIndex = com.getInt(0);
 				myData->resultType  = (ActorType) com.getInt(1);
 			}
@@ -373,13 +373,13 @@ namespace CAR
 				if ( com.numParam != 1 )
 					return false;
 
-				GameSelectActionData* myData = static_cast< GameSelectActionData* >( mActionData );
+				auto myData = static_cast< GameSelectActionData* >( mActionData );
 				myData->resultIndex = com.getInt(0);
 			}
 			break;
 		case ACTION_AUCTION_TILE:
 			{
-				GameAuctionTileData* myData = static_cast< GameAuctionTileData* >( mActionData );
+				auto myData = static_cast< GameAuctionTileData* >( mActionData );
 
 				if ( com.numParam != ( myData->playerId == myData->pIdRound ? 2 : 1 ) )
 					return false;
@@ -396,7 +396,7 @@ namespace CAR
 				if( com.numParam != 1 )
 					return false;
 
-				GameExchangeActorPosData* myData = static_cast<GameExchangeActorPosData*>(mActionData);
+				auto myData = static_cast<GameExchangeActorPosData*>(mActionData);
 				myData->resultActorType = (ActorType)com.getInt(0);
 			}
 			break;
@@ -426,7 +426,7 @@ namespace CAR
 				if ( com.numParam != 1 )
 					return false;
 
-				TileId id = (TileId)com.getInt(0);
+				auto id = (TileId)com.getInt(0);
 				if ( mGameLogic->changePlaceTile( id ) == false )
 					return false;
 			}
@@ -475,13 +475,13 @@ namespace CAR
 		{
 		case DATA2ID( ActionCom ):
 			{
-				ActionCom* myData = static_cast< ActionCom* >( data );
+				auto myData = static_cast< ActionCom* >( data );
 				executeActionCom( *myData );
 			}
 			break;
 		case DATA2ID( SkipCom ):
 			{
-				SkipCom* myData = static_cast< SkipCom* >( data );
+				auto myData = static_cast< SkipCom* >( data );
 				if ( myData->action == getReplyAction() )
 				{
 					doSkip();

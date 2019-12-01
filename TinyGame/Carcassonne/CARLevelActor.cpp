@@ -8,9 +8,8 @@ namespace CAR
 
 	bool ActorContainer::haveOtherActor(int playerId)
 	{
-		for( int i = 0 ; i < mActors.size() ; ++i )
+		for(LevelActor* actor : mActors)
 		{
-			LevelActor* actor = mActors[i];
 			if ( actor->ownerId != CAR_ERROR_PLAYER_ID &&  actor->ownerId != playerId )
 				return true;
 		}

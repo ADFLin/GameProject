@@ -352,11 +352,11 @@ namespace CAR
 		
 		if ( mapTilePlace == nullptr )
 		{
-			WorldTileMap::iterator iter = mMap.insert(std::make_pair(pos, MapTile(tile, rotation))).first;
+			auto iter = mMap.insert(std::make_pair(pos, MapTile(tile, rotation))).first;
 			assert(iter != mMap.end());
 
 			{
-				PosSet::iterator iter = mEmptyLinkPosSet.find(pos);
+				auto iter = mEmptyLinkPosSet.find(pos);
 				if( iter != mEmptyLinkPosSet.end() )
 					mEmptyLinkPosSet.erase(iter);
 			}
@@ -496,10 +496,9 @@ namespace CAR
 		++mCheckCount;
 		if ( mCheckCount == 0 )
 		{
-			for( WorldTileMap::iterator iter = mMap.begin() , itEnd = mMap.end();
-				iter != itEnd ; ++iter )
+			for(auto& pair : mMap)
 			{
-				iter->second.checkCount = 0;
+				pair.second.checkCount = 0;
 			}
 		}
 	}
@@ -553,11 +552,6 @@ namespace CAR
 			}
 		}
 		return result;
-	}
-
-	TileSetManager::TileSetManager()
-	{
-
 	}
 
 	TileSetManager::~TileSetManager()

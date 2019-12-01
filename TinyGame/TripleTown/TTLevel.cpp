@@ -41,13 +41,13 @@ namespace TripleTown
 	{
 	public:
 		ECFunLand():ObjectClass( OT_FUN_LAND ){}
-		virtual void setup( Level& level , Tile& tile , TilePos const& pos , ObjectId id )
+		void setup( Level& level , Tile& tile , TilePos const& pos , ObjectId id ) override
 		{
 			assert( tile.id == OBJ_NULL && !tile.haveActor() );
 			level.markObject( tile , pos , id );
 		}
 
-		virtual bool use( Level& level , Tile& tile , TilePos const& pos , ObjectId id )
+		bool use( Level& level , Tile& tile , TilePos const& pos , ObjectId id ) override
 		{
 			if ( !tile.isEmpty() )
 				return false;
@@ -61,29 +61,29 @@ namespace TripleTown
 	{
 	public:
 		ECBasicLand():ObjectClass( OT_BASIC ){}
-		virtual void setup( Level& level , Tile& tile , TilePos const& pos , ObjectId id )
+		void setup( Level& level , Tile& tile , TilePos const& pos , ObjectId id ) override
 		{
 			assert( tile.isEmpty() );
 			level.markObjectWithLink( tile , pos , id );
 		}
 
-		virtual bool use( Level& level , Tile& tile , TilePos const& pos , ObjectId id )
+		bool use( Level& level , Tile& tile , TilePos const& pos , ObjectId id ) override
 		{
 			return addObject( level , tile , pos , id );
 		}
 
-		virtual int peek( Level& level , Tile& tile , TilePos const& pos , ObjectId id , TilePos posRemove[] )
+		int peek( Level& level , Tile& tile , TilePos const& pos , ObjectId id , TilePos posRemove[] ) override
 		{
 			if ( !tile.isEmpty() )
 				return 0;
 			return peekObject( level , pos , id , posRemove );
 		}
-		virtual bool effect( Level& level , Tile& tile , TilePos const& pos )
+		bool effect( Level& level , Tile& tile , TilePos const& pos ) override
 		{
 			return checkUpgrade( level , tile , pos );
 		}
 
-		virtual void onRemove(Level& level , TilePos const& pos , ObjectId id )
+		void onRemove(Level& level , TilePos const& pos , ObjectId id ) override
 		{
 			level.relinkNeighborTile( pos , id );
 		}
@@ -179,7 +179,7 @@ namespace TripleTown
 		typedef ECBasicLand BaseClass;
 	public:
 		ECChest( int numTool ):mNumTool( numTool ){}
-		virtual void play( Level& level , Tile& tile , TilePos const& pos , ObjectId id )
+		void play( Level& level , Tile& tile , TilePos const& pos , ObjectId id ) override
 		{
 			assert( tile.id == OBJ_CHEST || tile.id == OBJ_LARGE_CHEST );
 			level.removeObject(tile, pos);
@@ -191,7 +191,7 @@ namespace TripleTown
 
 		}
 
-		virtual int peek(Level& level, Tile& tile, TilePos const& pos, ObjectId id, TilePos posRemove[])
+		int peek(Level& level, Tile& tile, TilePos const& pos, ObjectId id, TilePos posRemove[]) override
 		{
 			if( id == OBJ_LARGE_CHEST )
 				return 0;
@@ -209,13 +209,13 @@ namespace TripleTown
 	public:
 		ECActor():ObjectClass( OT_ACTOR ){}
 
-		virtual void setup( Level& level , Tile& tile , TilePos const& pos , ObjectId id )
+		void setup( Level& level , Tile& tile , TilePos const& pos , ObjectId id ) override
 		{
 			assert( tile.isEmpty() );
 			level.addActor( tile , pos , id );
 		}
 
-		virtual bool use( Level& level , Tile& tile , TilePos const& pos , ObjectId id )
+		bool use( Level& level , Tile& tile , TilePos const& pos , ObjectId id ) override
 		{
 			if ( !tile.isEmpty() )
 				return false;
@@ -234,7 +234,7 @@ namespace TripleTown
 
 		virtual bool  useTool( Level& level , ActorData& e , ObjectId id ){ return false; }
 
-		virtual bool  effect( Level& level , Tile& tile , TilePos const& pos )
+		bool  effect( Level& level , Tile& tile , TilePos const& pos ) override
 		{
 			ActorData& e = level.getActor( tile );
 			if ( level.updateActorState( e ) && e.state == STATE_DEAD )
@@ -250,13 +250,13 @@ namespace TripleTown
 	class ECBearBase : public ECActor
 	{
 	public:
-		virtual void onRemove( Level& level , TilePos const& pos , ObjectId id )
+		void onRemove( Level& level , TilePos const& pos , ObjectId id ) override
 		{
 			ObjectId upId = level.getUpgradeId( id );
 			level.addObject( pos , upId );
 		}
 
-		virtual bool useTool( Level& level , ActorData& e , ObjectId id )
+		bool useTool( Level& level , ActorData& e , ObjectId id ) override
 		{
 			switch( id )
 			{
@@ -284,7 +284,7 @@ namespace TripleTown
 	{
 	public:
 
-		virtual void evalState( Level& level , ActorData& e )
+		void evalState( Level& level , ActorData& e ) override
 		{
 			if ( level.getEmptyTileNum() == 0 )
 			{
@@ -292,7 +292,7 @@ namespace TripleTown
 			}
 		}
 
-		virtual void evolve( Level& level , ActorData& e )
+		void evolve( Level& level , ActorData& e ) override
 		{
 			switch( e.state )
 			{
@@ -334,7 +334,7 @@ namespace TripleTown
 	class ECBear : public ECBearBase 
 	{
 	public:
-		virtual void evalState( Level& level , ActorData& e )
+		void evalState( Level& level , ActorData& e ) override
 		{
 			if ( level.getEmptyTileNum() == 0 || !checkBearAlive( level , e ) )
 			{
@@ -342,7 +342,7 @@ namespace TripleTown
 			}
 		}
 
-		virtual void evolve( Level& level , ActorData& e )
+		void evolve( Level& level , ActorData& e ) override
 		{
 			switch( e.state )
 			{
@@ -452,7 +452,7 @@ namespace TripleTown
 	class ECStoreHouse : public ECFunLand
 	{
 	public:
-		virtual void play( Level& level , Tile& tile , TilePos const& pos , ObjectId id )
+		void play( Level& level , Tile& tile , TilePos const& pos , ObjectId id ) override
 		{
 			if ( tile.meta )
 			{
@@ -471,7 +471,7 @@ namespace TripleTown
 	class ECCrystal : public ECToolBase
 	{
 	public:
-		virtual bool use( Level& level , Tile& tile , TilePos const& pos , ObjectId id )
+		bool use( Level& level , Tile& tile , TilePos const& pos , ObjectId id ) override
 		{
 			assert( id == OBJ_CRYSTAL );
 			if ( !tile.isEmpty() )
@@ -484,7 +484,7 @@ namespace TripleTown
 			return ECBasicLand::addObject( level , tile , pos , idUsed );
 		}
 
-		virtual int peek( Level& level , Tile& tile , TilePos const& pos , ObjectId id , TilePos posRemove[] )
+		int peek( Level& level , Tile& tile , TilePos const& pos , ObjectId id , TilePos posRemove[] ) override
 		{
 			if( !tile.isEmpty() )
 				return 0;
@@ -542,7 +542,7 @@ namespace TripleTown
 	class ECRobot : public ECToolBase
 	{
 	public:
-		virtual bool use( Level& level , Tile& tile , TilePos const& pos  , ObjectId id )
+		bool use( Level& level , Tile& tile , TilePos const& pos  , ObjectId id ) override
 		{
 			if ( tile.isEmpty() )
 				return false;
@@ -606,7 +606,7 @@ namespace TripleTown
 
 		mLandType = type;
 
-		ProduceInfo const* pInfo = NULL;
+		ProduceInfo const* pInfo = nullptr;
 		int          numInfo = 0;
 
 		ProduceInfo const infoPeaceful[] =
@@ -853,11 +853,10 @@ namespace TripleTown
 			}
 		}
 	
-		for( IdxList::iterator iter = mIdxUpdateQueue.begin();
-			iter != mIdxUpdateQueue.end() ; ++iter )
+		for(int & iter : mIdxUpdateQueue)
 		{
-			ActorData& e = mActorStorage[ *iter ];
-			assert( getTile( e.pos ).meta == *iter );
+			ActorData& e = mActorStorage[ iter ];
+			assert( getTile( e.pos ).meta == iter );
 			ECActor::FromId( e.id )->evolve( *this , e  );
 		}
 	}
@@ -1025,7 +1024,7 @@ namespace TripleTown
 	{
 		TilePos nPos = getNeighborPos( pos , dir );
 		if ( !isMapRange( nPos ) )
-			return NULL;
+			return nullptr;
 		return &getTile( nPos );
 	}
 

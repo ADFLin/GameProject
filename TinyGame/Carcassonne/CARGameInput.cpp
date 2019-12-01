@@ -6,10 +6,10 @@ namespace CAR
 {
 	void GameFeatureTileSelectData::fill(std::vector<FeatureBase*> const& linkFeatures, std::vector<MapTile*>& mapTileStorage, bool bCheckCanDeployFollower)
 	{
-		for( int n = 0; n < linkFeatures.size(); ++n )
+		for(auto linkFeature : linkFeatures)
 		{
 			Info info;
-			info.feature = linkFeatures[n];
+			info.feature = linkFeature;
 			info.index = mapTileStorage.size();
 			info.num = 0;
 			for( MapTile* mapTile : info.feature->mapTiles )

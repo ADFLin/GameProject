@@ -11,14 +11,14 @@ using namespace Render;
 
 class FontDrawTestStage : public StageBase
 {
-	typedef StageBase BaseClass;
+	using BaseClass = StageBase;
 public:
 	FontDrawTestStage() {}
 
 
 	RHITexture2DRef mTexture;
 
-	virtual bool onInit()
+	bool onInit() override
 	{
 		if( !BaseClass::onInit() )
 			return false;
@@ -125,7 +125,7 @@ public:
 	CharDataSet* mBigCharDataSet;
 	CharDataSet::CharData charData;
 
-	virtual void onEnd()
+	void onEnd() override
 	{
 		BaseClass::onEnd();
 	}
@@ -134,7 +134,7 @@ public:
 	void tick() {}
 	void updateFrame(int frame) {}
 
-	virtual void onUpdate(long time)
+	void onUpdate(long time) override
 	{
 		BaseClass::onUpdate(time);
 
@@ -145,7 +145,7 @@ public:
 		updateFrame(frame);
 	}
 
-	void onRender(float dFrame)
+	void onRender(float dFrame) override
 	{
 		GLGraphics2D& g = ::Global::GetRHIGraphics2D();
 		RHICommandList& commandList = RHICommandList::GetImmediateList();
@@ -217,14 +217,14 @@ public:
 
 	}
 
-	bool onMouse(MouseMsg const& msg)
+	bool onMouse(MouseMsg const& msg) override
 	{
 		if( !BaseClass::onMouse(msg) )
 			return false;
 		return true;
 	}
 
-	bool onKey(unsigned key, bool isDown)
+	bool onKey(unsigned key, bool isDown) override
 	{
 		if( !isDown )
 			return false;
@@ -237,7 +237,7 @@ public:
 		return false;
 	}
 
-	virtual bool onWidgetEvent(int event, int id, GWidget* ui) override
+	bool onWidgetEvent(int event, int id, GWidget* ui) override
 	{
 		switch( id )
 		{

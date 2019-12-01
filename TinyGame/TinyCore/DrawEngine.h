@@ -1,5 +1,5 @@
-#ifndef DrawEngine_h__
-#define DrawEngine_h__
+#ifndef DrawEngine_H_DF5BDDB2_F138_477D_88F6_4D1A6637C253
+#define DrawEngine_H_DF5BDDB2_F138_477D_88F6_4D1A6637C253
 
 #include "GameConfig.h"
 #include "BitmapDC.h"
@@ -229,4 +229,4 @@ protected:
 
 
 
-#endif // DrawEngine_h__
+#endif // DrawEngine_H_DF5BDDB2_F138_477D_88F6_4D1A6637C253

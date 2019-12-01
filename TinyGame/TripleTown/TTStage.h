@@ -20,15 +20,15 @@ namespace TripleTown
 	{
 		typedef StageBase BaseClass;
 	public:
-		virtual bool onInit();
-		virtual void onEnd();
+		bool onInit() override;
+		void onEnd() override;
 		virtual void onRestart( bool beInit );
-		virtual void onRender( float dFrame );
+		void onRender( float dFrame ) override;
 
-		virtual bool onMouse( MouseMsg const& msg );
+		bool onMouse( MouseMsg const& msg ) override;
 
-		virtual bool onKey( unsigned key , bool isDown );
-		virtual bool onWidgetEvent(int event, int id, GWidget* ui) 
+		bool onKey( unsigned key , bool isDown ) override;
+		bool onWidgetEvent(int event, int id, GWidget* ui) override 
 		{
 			switch( id )
 			{
@@ -40,7 +40,7 @@ namespace TripleTown
 			}
 			return BaseClass::onWidgetEvent(event, id, ui); 
 		}
-		virtual void onUpdate( long time )
+		void onUpdate( long time ) override
 		{
 			BaseClass::onUpdate( time );
 
@@ -63,13 +63,13 @@ namespace TripleTown
 		Scene mScene;
 		Level mLevel;
 
-		virtual int getPoints() const override { return mPlayerPoints; }
-		virtual int getCoins() const override { return mPlayerCoins; }
-		virtual void addPoints(int points) override
+		int getPoints() const override { return mPlayerPoints; }
+		int getCoins() const override { return mPlayerCoins; }
+		void addPoints(int points) override
 		{
 			mPlayerPoints += points;
 		}
-		virtual void addCoins(int coins) override
+		void addCoins(int coins) override
 		{
 			mPlayerCoins += coins;
 		}

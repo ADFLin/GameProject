@@ -207,8 +207,8 @@ public:
 
 		 switch( key )
 		 {
-		 case 'O': viewCamera->rotate( CF_AXIS_X , Math::Deg2Rad(1) , CFTO_LOCAL);  break;
-		 case 'P': viewCamera->rotate( CF_AXIS_X , Math::Deg2Rad(-1) , CFTO_LOCAL );  break;
+		 case Keyboard::eO: viewCamera->rotate( CF_AXIS_X , Math::Deg2Rad(1) , CFTO_LOCAL);  break;
+		 case Keyboard::eP: viewCamera->rotate( CF_AXIS_X , Math::Deg2Rad(-1) , CFTO_LOCAL );  break;
 		 }
 
 		 return SampleBase::handleKeyEvent( key , isDown );

@@ -501,14 +501,14 @@ namespace Bsp2D
 			float speed = 0.4f;
 			Vector2 offset = Vector2(0,0);
 
-			if ( im.isKeyDown( 'W' ) )
+			if ( im.isKeyDown(Keyboard::eW) )
 				offset += Vector2(0,-1);
-			else if ( im.isKeyDown( 'S' ) )
+			else if ( im.isKeyDown(Keyboard::eS) )
 				offset += Vector2(0,1);
 
-			if ( im.isKeyDown( 'A' ) )
+			if ( im.isKeyDown(Keyboard::eA) )
 				offset += Vector2(-1,0);
-			else if ( im.isKeyDown( 'D' ) )
+			else if ( im.isKeyDown(Keyboard::eD) )
 				offset += Vector2(1,0);
 
 			float len = offset.length2();
@@ -1297,7 +1297,7 @@ bool MiscTestStage::onInit()
 	auto& const entries = MiscTestRegister::GetList();
 	for( auto entry : entries )
 	{
-		addTest(entry.name, entry.fun);
+		addTest(entry.name, entry.func);
 	}
 	restart();
 
@@ -1305,7 +1305,7 @@ bool MiscTestStage::onInit()
 }
 
 
-void MiscTestStage::addTest(char const* name , TestFun const& fun)
+void MiscTestStage::addTest(char const* name , TestFun const& func)
 {
 	Vec2i pos;
 	pos.x = 20 + 120 * ( mInfos.size() % 5 );
@@ -1316,7 +1316,7 @@ void MiscTestStage::addTest(char const* name , TestFun const& fun)
 	::Global::GUI().addWidget( button );
 
 	TestInfo info;
-	info.fun = fun;
+	info.func = func;
 	mInfos.push_back( info );
 }
 
@@ -1329,11 +1329,11 @@ bool MiscTestStage::onWidgetEvent(int event , int id , GWidget* ui)
 	public: 
 		unsigned run()
 		{
-			fun();
+			func();
 			return 0;
 		}
 		void exit(){ delete this; }
-		MiscTestStage::TestFun fun;
+		MiscTestStage::TestFun func;
 	};
 
 	switch ( id )
@@ -1341,7 +1341,7 @@ bool MiscTestStage::onWidgetEvent(int event , int id , GWidget* ui)
 	case UI_TEST_BUTTON:
 		{
 			MyRunnable* t = new MyRunnable;
-			t->fun = mInfos[ ui->getUserData() ].fun;
+			t->func = mInfos[ ui->getUserData() ].func;
 			t->start();
 		}
 		return false;
@@ -1392,3 +1392,42 @@ namespace SIMD
 }
 
 REGISTER_MISC_TEST("SIMD Test", SIMD::TestFun);
+
+#include "minisat/core/Solver.h"
+void SATTest()
+{
+// main.cpp:
+
+	using Minisat::mkLit;
+	using Minisat::lbool;
+
+	Minisat::Solver solver;
+	// Create variables
+	auto A = solver.newVar();
+	auto B = solver.newVar();
+	auto C = solver.newVar();
+
+	// Create the clauses
+	solver.addClause(mkLit(A), mkLit(B), mkLit(C));
+	solver.addClause(~mkLit(A), mkLit(B), mkLit(C));
+	solver.addClause(mkLit(A), ~mkLit(B), mkLit(C));
+	solver.addClause(mkLit(A), mkLit(B), ~mkLit(C));
+
+	// Check for solution and retrieve model if found
+	auto sat = solver.solve();
+	if (sat) 
+	{
+		std::string str;
+		str += "SAT\n";
+		str += "Model found:\n";
+		str += "A := "; str += FStringConv::From(solver.modelValue(A) == l_True); str += '\n';
+		str += "B := "; str += FStringConv::From(solver.modelValue(B) == l_True); str += '\n';
+		str += "C := "; str += FStringConv::From(solver.modelValue(C) == l_True); str += '\n';
+		LogMsg(str.c_str());
+	}
+	else
+	{
+		std::clog << "UNSAT\n";
+	}
+}
+REGISTER_MISC_TEST("SAT Test", SATTest);

@@ -26,8 +26,8 @@ public:
 	GameMenuStage();
 	bool onInit();
 	void onUpdate( long time );
-	bool onMouse( MouseMsg const& msg );
-
+	bool onMouse( MouseMsg const& msg ) override;
+	bool onKey(unsigned key, bool isDown) override;
 
 	void changeWidgetGroup( StageGroupID group )
 	{
@@ -60,6 +60,9 @@ public:
 	GWidget* createButton( int delay , int id , char const* title , Vec2i const& pos , Vec2i const& size );
 
 	void onTaskMessage( TaskBase* task , TaskMsg const& msg );
+
+
+
 
 protected:
 	typedef std::vector< TaskBase* > TaskList;

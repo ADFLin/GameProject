@@ -785,12 +785,12 @@ namespace Render
 				return false;
 			switch( key )
 			{
-			case 'W': mCamera.moveFront(1); break;
-			case 'S': mCamera.moveFront(-1); break;
-			case 'D': mCamera.moveRight(1); break;
-			case 'A': mCamera.moveRight(-1); break;
-			case 'Z': mCamera.moveUp(0.5); break;
-			case 'X': mCamera.moveUp(-0.5); break;
+			case Keyboard::eW: mCamera.moveFront(1); break;
+			case Keyboard::eS: mCamera.moveFront(-1); break;
+			case Keyboard::eD: mCamera.moveRight(1); break;
+			case Keyboard::eA: mCamera.moveRight(-1); break;
+			case Keyboard::eZ: mCamera.moveUp(0.5); break;
+			case Keyboard::eX: mCamera.moveUp(-0.5); break;
 			case Keyboard::eR: restart(); break;
 			case Keyboard::eF2:
 				{

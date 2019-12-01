@@ -35,8 +35,8 @@ namespace CAR
 	};
 #define CAR_INPUT_COMMAND( CODE , ...)\
 	{\
-		auto fun = [__VA_ARGS__](CGameInput& mInput) CODE; \
-		addInputCommand( new TFunInputCommand< decltype ( fun ) >( fun ) );\
+		auto func = [__VA_ARGS__](CGameInput& mInput) CODE; \
+		addInputCommand( new TFunInputCommand< decltype ( func ) >( func ) );\
 	}
 #else
 #define CAR_INPUT_COMMAND( CODE , ...) CODE

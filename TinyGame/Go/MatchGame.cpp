@@ -60,15 +60,19 @@ namespace Go
 			case ControllerType::ePlayer:
 				break;
 			case ControllerType::eLeelaZero:
+				botParamBase = BotParam::LeelaBase;
 				bot.reset(new LeelaBot());
 				break;
 			case ControllerType::eKata:
+				botParamBase = BotParam::KataBase;
 				bot.reset(new KataBot());
 				break;
 			case ControllerType::eAQ:
+				botParamBase = BotParam::AQBase;
 				bot.reset(new AQBot());
 				break;
 			case ControllerType::eZen:
+				botParamBase = BotParam::ZenBase;
 				bot.reset(new ZenBot());
 				break;
 			}

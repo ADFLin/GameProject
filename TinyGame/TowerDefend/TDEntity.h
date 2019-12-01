@@ -11,7 +11,7 @@ namespace TowerDefend
 	class World;
 
 	enum EntityEvent;
-	typedef fastdelegate::FastDelegate< void ( EntityEvent , Entity* ) > EntityEventFun;
+	typedef fastdelegate::FastDelegate< void ( EntityEvent , Entity* ) > EntityEventFunc;
 
 	enum EntityFlag
 	{
@@ -241,7 +241,7 @@ protected:\
 		}
 
 		void   sendEvent( EntityEvent type , Entity* entity );
-		void   listenEvent( EntityEventFun fun , EntityFilter const& filter );
+		void   listenEvent( EntityEventFunc func , EntityFilter const& filter );
 
 	private:
 
@@ -252,7 +252,7 @@ protected:\
 
 		struct CallbackData
 		{
-			EntityEventFun fun;
+			EntityEventFunc func;
 			EntityFilter   filter;
 		};
 		typedef std::vector< CallbackData > CallbackVec;

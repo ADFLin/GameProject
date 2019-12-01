@@ -131,6 +131,9 @@
     <Filter Include="Meta">
       <UniqueIdentifier>{dca9d62c-e6fd-42f1-bf94-6421eeda46c8}</UniqueIdentifier>
     </Filter>
+    <Filter Include="OtherLib\minisat">
+      <UniqueIdentifier>{8e429900-dede-426f-b67c-523616ccedce}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="AppEntry.cpp">
@@ -426,6 +429,21 @@
     </ClCompile>
     <ClCompile Include="Image\GIFLoader.cpp">
       <Filter>Image</Filter>
+    </ClCompile>
+    <ClCompile Include="..\OtherLib\minisat\core\Main.cc">
+      <Filter>OtherLib\minisat</Filter>
+    </ClCompile>
+    <ClCompile Include="..\OtherLib\minisat\core\Solver.cc">
+      <Filter>OtherLib\minisat</Filter>
+    </ClCompile>
+    <ClCompile Include="..\OtherLib\minisat\core\SolverTypes.cc">
+      <Filter>OtherLib\minisat</Filter>
+    </ClCompile>
+    <ClCompile Include="..\OtherLib\minisat\utils\Options.cc">
+      <Filter>OtherLib\minisat</Filter>
+    </ClCompile>
+    <ClCompile Include="..\OtherLib\minisat\utils\System.cc">
+      <Filter>OtherLib\minisat</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

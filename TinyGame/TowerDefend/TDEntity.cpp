@@ -134,14 +134,14 @@ namespace TowerDefend
 	}
 
 
-	void EntityManager::listenEvent( EntityEventFun fun , EntityFilter const& filter )
+	void EntityManager::listenEvent( EntityEventFunc func, EntityFilter const& filter )
 	{
-		if ( !fun )
+		if ( !func )
 			return;
 
 		CallbackData data;
 		data.filter   = filter;
-		data.fun      = fun;
+		data.func     = func;
 		mEventCallbacks.push_back( data );
 	}
 
@@ -152,7 +152,7 @@ namespace TowerDefend
 		{
 			if ( !entity->testFilter( iter->filter ) )
 				continue;
-			iter->fun( type , entity );
+			iter->func( type , entity );
 		}
 	}
 

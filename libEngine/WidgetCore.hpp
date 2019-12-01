@@ -554,7 +554,7 @@ WidgetCoreT<T>* TWidgetManager<T>::getKeyInputWidget()
 
 template< class T >
 template< class Fun >
-bool TWidgetManager<T>::processMessage(WidgetCore* ui, WidgetInternalFlag flag , WidgetInternalFlag unhandledFlag , Fun fun)
+bool TWidgetManager<T>::processMessage(WidgetCore* ui, WidgetInternalFlag flag , WidgetInternalFlag unhandledFlag , Fun func)
 {
 	bool result = true;
 	while( ui != nullptr )
@@ -563,7 +563,7 @@ bool TWidgetManager<T>::processMessage(WidgetCore* ui, WidgetInternalFlag flag ,
 		{
 			if( ui->checkFlag(unhandledFlag) )
 			{
-				result = fun(ui);
+				result = func(ui);
 				if( !result )
 					break;
 			}
@@ -572,7 +572,7 @@ bool TWidgetManager<T>::processMessage(WidgetCore* ui, WidgetInternalFlag flag ,
 		}
 		else
 		{
-			result = fun(ui);
+			result = func(ui);
 			break;
 		}
 	}

@@ -207,7 +207,7 @@ namespace BomberMan
 
 		switch( key )
 		{
-		case 'R': getStageMode()->restart(false); break;
+		case Keyboard::eR: getStageMode()->restart(false); break;
 		}
 		return false;
 	}

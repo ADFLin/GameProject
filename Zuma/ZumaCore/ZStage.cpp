@@ -70,14 +70,14 @@ namespace Zuma
 	{
 		switch( key )
 		{
-		case 'S': 
+		case Keyboard::eS:
 			savePathVertex( lvInfo.pathCurve[curCurveIndex].c_str() , vtxVec ); 
 			break;
-		case 'A': addPoint( mousePos ); break;
-		case 'C': clearPoint(); break;
-		case 'M': togglePointMask( mousePos ); break;
-		case 'L': sendEvent( EVT_EXIT_DEV_STAGE , &lvInfo );
-		case 'P': 
+		case Keyboard::eA: addPoint( mousePos ); break;
+		case Keyboard::eC: clearPoint(); break;
+		case Keyboard::eM: togglePointMask( mousePos ); break;
+		case Keyboard::eL: sendEvent( EVT_EXIT_DEV_STAGE , &lvInfo );
+		case Keyboard::eP:
 			buildCurve( (curCurveIndex + 1) % lvInfo.numCurve );
 			break;
 		}

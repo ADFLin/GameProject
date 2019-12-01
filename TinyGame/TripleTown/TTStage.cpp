@@ -109,10 +109,10 @@ namespace TripleTown
 
 		switch( key )
 		{
-		case 'S': mLevel.setQueueObject(OBJ_BEAR); return false;
-		case 'A': mLevel.setQueueObject(OBJ_GRASS); return false;
-		case 'Q': mLevel.setQueueObject(OBJ_CRYSTAL); return false;
-		case 'W': mLevel.setQueueObject(OBJ_ROBOT); return false;
+		case Keyboard::eS: mLevel.setQueueObject(OBJ_BEAR); return false;
+		case Keyboard::eA: mLevel.setQueueObject(OBJ_GRASS); return false;
+		case Keyboard::eQ: mLevel.setQueueObject(OBJ_CRYSTAL); return false;
+		case Keyboard::eW: mLevel.setQueueObject(OBJ_ROBOT); return false;
 		case Keyboard::eX:
 			if( mFileIterator.haveMore() )
 			{

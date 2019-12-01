@@ -550,7 +550,7 @@ namespace Go
 	{
 		enum
 		{
-			eBestMoveVertex = 200,
+			eBestMoveVertex ,
 			eWinRate ,
 		};
 	}

@@ -7,7 +7,7 @@
 
 
 #define SYNTAX_ERROR( MSG ) throw SyntaxError( MSG );
-#define FUNCTION_CHECK( fun ) fun
+#define FUNCTION_CHECK( func ) func
 
 namespace CPP
 {

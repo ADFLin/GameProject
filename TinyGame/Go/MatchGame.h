@@ -24,6 +24,13 @@ namespace Go
 		Count,
 	};
 
+	namespace BotParam
+	{
+		constexpr uint32 LeelaBase = 0;
+		constexpr uint32 KataBase = 200;
+		constexpr uint32 ZenBase = 400;
+		constexpr uint32 AQBase = 600;
+	}
 
 	inline char const* GetControllerName(ControllerType type)
 	{
@@ -189,6 +196,7 @@ namespace Go
 		std::string    paramString;
 		MatchParamKey  paramKey;
 		uint32 winCount;
+		uint32 botParamBase;
 
 		FixString< 128 > getName() const;
 		bool   isBot() const { return type != ControllerType::ePlayer; }

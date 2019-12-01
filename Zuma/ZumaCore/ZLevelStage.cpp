@@ -136,13 +136,13 @@ namespace Zuma
 
 		switch ( key )
 		{
-		case 'O':
+		case Keyboard::eO:
 			sendEvent( EVT_CHANGE_DEV_STAGE , &mLevel.getInfo() );
 			break;
-		case 'N':
+		case Keyboard::eN:
 			sendEvent( EVT_LEVEL_CHANGE_NEXT , &mLevel.getInfo() );
 			break;
-		case 'P':
+		case Keyboard::eP:
 			mPauseGame = !mPauseGame;
 			break;
 		}

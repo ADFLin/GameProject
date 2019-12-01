@@ -13,21 +13,21 @@
 struct MiscTestEntry
 {
 	FixString< 128 > name;
-	std::function< void() > fun;
+	std::function< void() > func;
 };
 
 class MiscTestRegister
 {
 public:
-	TINY_API MiscTestRegister(char const* name, std::function< void() > const& fun);
+	TINY_API MiscTestRegister(char const* name, std::function< void() > const& func);
 	static TINY_API std::vector<MiscTestEntry>& GetList();
 };
 
-#define  REGISTER_MISC_TEST_INNER( name , fun )\
-	static MiscTestRegister ANONYMOUS_VARIABLE( MARCO_NAME_COMBINE_2( g_MiscTest , __LINE__ ) )( name , fun );
+#define  REGISTER_MISC_TEST_INNER( name , func )\
+	static MiscTestRegister ANONYMOUS_VARIABLE( MARCO_NAME_COMBINE_2( g_MiscTest , __LINE__ ) )( name , func );
 
-#define  REGISTER_MISC_TEST( name , fun )\
-	REGISTER_MISC_TEST_INNER( name , fun )
+#define  REGISTER_MISC_TEST( name , func )\
+	REGISTER_MISC_TEST_INNER( name , func )
 
 
 

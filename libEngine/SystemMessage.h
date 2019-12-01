@@ -104,10 +104,10 @@ struct Keyboard
 class SysMessage
 {
 public:
-	SysMessage( MsgType type) : m_type( type ){}
-	MsgType getType(){ return m_type; }
+	SysMessage( MsgType type) : mType( type ){}
+	MsgType getType(){ return mType; }
 private:
-	MsgType m_type;
+	MsgType mType;
 };
 
 struct Mouse

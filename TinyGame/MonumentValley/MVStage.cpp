@@ -339,14 +339,14 @@ namespace MV
 		{
 			switch( key )
 			{
-			case 'R': restart( false ); break;
+			case Keyboard::eR: restart( false ); break;
 			case Keyboard::eUP: world.action( player , 0 ); break;
 			case Keyboard::eDOWN: world.action( player , 1 ); break;
 			case Keyboard::eLEFT: world.action( player , 2 ); break;
 			case Keyboard::eRIGHT: world.action( player , 3 ); break;
-			//case 'D': mWorld.player.rotate( 3 ); break;
-			//case 'A': mWorld.player.rotate( 1 ); break;
-			case 'Q':
+			//case Keyboard::eD: mWorld.player.rotate( 3 ); break;
+			//case Keyboard::eA: mWorld.player.rotate( 1 ); break;
+			case Keyboard::eQ:
 				break;
 			}
 
@@ -354,12 +354,12 @@ namespace MV
 			{
 				switch( key )
 				{
-				case 'W': mCamera.moveFront( 0.5 ); break;
-				case 'S': mCamera.moveFront( -0.5 ); break;
-				case 'D': mCamera.moveRight( 0.5 ); break;
-				case 'A': mCamera.moveRight( -0.5 ); break;
-				//case 'Z': mCamera.moveUp( 0.5 ); break;
-				//case 'X': mCamera.moveUp( -0.5 ); break;
+				case Keyboard::eW: mCamera.moveFront( 0.5 ); break;
+				case Keyboard::eS: mCamera.moveFront( -0.5 ); break;
+				case Keyboard::eD: mCamera.moveRight( 0.5 ); break;
+				case Keyboard::eA: mCamera.moveRight( -0.5 ); break;
+				//case Keyboard::eZ: mCamera.moveUp( 0.5 ); break;
+				//case Keyboard::eX: mCamera.moveUp( -0.5 ); break;
 				}
 			}
 
@@ -406,10 +406,10 @@ namespace MV
 
 		switch( key )
 		{
-		case 'T':
+		case Keyboard::eT:
 			world.putActor( player , editPos );
 			break;
-		case 'Q':
+		case Keyboard::eQ:
 			if ( mEditType == NUM_EDIT_MODE - 1 )
 				mEditType = EditType(0);
 			else
@@ -432,13 +432,13 @@ namespace MV
 		{
 			switch( key )
 			{
-			case 'W': editPos.y += 1; break;
-			case 'S': editPos.y -= 1; break;
-			case 'D': editPos.x += 1; break;
-			case 'A': editPos.x -= 1; break;
-			case 'Z': editPos.z += 1; break;
-			case 'X': editPos.z -= 1; break;
-			KEY_CHANGE_INDEX_RANGE( 'U' , 'I' , idxGroupUse , world.mGroups );
+			case Keyboard::eW: editPos.y += 1; break;
+			case Keyboard::eS: editPos.y -= 1; break;
+			case Keyboard::eD: editPos.x += 1; break;
+			case Keyboard::eA: editPos.x -= 1; break;
+			case Keyboard::eZ: editPos.z += 1; break;
+			case Keyboard::eX: editPos.z -= 1; break;
+			KEY_CHANGE_INDEX_RANGE(Keyboard::eU , Keyboard::eI , idxGroupUse , world.mGroups );
 			}
 		}
 
@@ -461,18 +461,18 @@ namespace MV
 	{
 		switch( key )
 		{
-		case 'W': editMeshPos.y = snapValue( editMeshPos.y + snapOffset() ); break;
-		case 'S': editMeshPos.y = snapValue( editMeshPos.y - snapOffset() ); break;
-		case 'D': editMeshPos.x = snapValue( editMeshPos.x + snapOffset() ); break;
-		case 'A': editMeshPos.x = snapValue( editMeshPos.x - snapOffset() ); break;
-		case 'Z': editMeshPos.z = snapValue( editMeshPos.z + snapOffset() ); break;
-		case 'X': editMeshPos.z = snapValue( editMeshPos.z - snapOffset() ); break;
+		case Keyboard::eW: editMeshPos.y = snapValue( editMeshPos.y + snapOffset() ); break;
+		case Keyboard::eS: editMeshPos.y = snapValue( editMeshPos.y - snapOffset() ); break;
+		case Keyboard::eD: editMeshPos.x = snapValue( editMeshPos.x + snapOffset() ); break;
+		case Keyboard::eA: editMeshPos.x = snapValue( editMeshPos.x - snapOffset() ); break;
+		case Keyboard::eZ: editMeshPos.z = snapValue( editMeshPos.z + snapOffset() ); break;
+		case Keyboard::eX: editMeshPos.z = snapValue( editMeshPos.z - snapOffset() ); break;
 
-			KEY_CHANGE_INDEX_RANGE( 'U' , 'I' , editIdxMeshSelect , Level::mMeshVec );
+			KEY_CHANGE_INDEX_RANGE(Keyboard::eU , Keyboard::eI , editIdxMeshSelect , Level::mMeshVec );
 			KEY_CHANGE_VAR_RANGE( Keyboard::eDOWN , Keyboard::eUP , editMeshId , NUM_MESH );
 		case Keyboard::eLEFT: --editSnapFactor; break;
 		case Keyboard::eRIGHT: ++editSnapFactor; break;
-		case 'E': Level::createMesh( editMeshPos , editMeshId , Vec3f(0,0,0)  ); break;
+		case Keyboard::eE: Level::createMesh( editMeshPos , editMeshId , Vec3f(0,0,0)  ); break;
 		case Keyboard::eDELETE:
 			if ( editIdxMeshSelect != -1 )
 			{
@@ -488,14 +488,15 @@ namespace MV
 
 		switch( key )
 		{
-			KEY_CHANGE_VAR_RANGE( 'O' , 'P' , editModelId , ARRAY_SIZE( gModels ) );
-		case 'G':
+			KEY_CHANGE_VAR_RANGE(Keyboard::eO , Keyboard::eP , editModelId , ARRAY_SIZE( gModels ) );
+		case Keyboard::eG:
 			world.createGroup( getUseGroup() );
 			break;
-		case 'K': case 'L':
+		case Keyboard::eK:
+		case Keyboard::eL:
 			if ( world.checkPos( editPos ) )
 			{
-				Dir axis = ( key == 'L') ? Dir::Z : Dir::X;
+				Dir axis = ( key == Keyboard::eL) ? Dir::Z : Dir::X;
 				int id =  world.getBlock( editPos );
 				if ( id )
 				{
@@ -506,14 +507,14 @@ namespace MV
 				}
 			}
 			break;
-		case 'E':
+		case Keyboard::eE:
 			if ( world.checkPos( editPos ) &&
 				world.getBlock( editPos ) == 0 )
 			{
 				createBlock( editPos , editModelId );
 			}
 			break;
-		case 'M':
+		case Keyboard::eM:
 			{
 				for( auto block : mSelectBlocks )
 				{
@@ -542,9 +543,9 @@ namespace MV
 		ISpaceModifier* modifier = getUseModifier();
 		switch( key )
 		{
-			KEY_CHANGE_INDEX_RANGE( 'O' , 'P' , idxModifierUse , Level::mModifiers );
-			KEY_CHANGE_INDEX_RANGE( 'M' , 'N' , idxSpaceCtrlUse , Level::mSpaceCtrlors );
-		case 'K': case 'L':
+			KEY_CHANGE_INDEX_RANGE(Keyboard::eO, Keyboard::eP , idxModifierUse , Level::mModifiers );
+			KEY_CHANGE_INDEX_RANGE(Keyboard::eM, Keyboard::eN , idxSpaceCtrlUse , Level::mSpaceCtrlors );
+		case Keyboard::eK: case Keyboard::eL:
 			{
 				if ( modifier && modifier->getType() == SNT_ROTATOR )
 				{
@@ -554,17 +555,17 @@ namespace MV
 				}
 			}
 			break;
-		case 'C':
+		case Keyboard::eC:
 			{
 
 			}
 			break;
-		case 'R': 
+		case Keyboard::eR:
 			{
 				IRotator* rotator = Level::createRotator( editPos , Dir::Z );
 			}
 			break;
-		case 'G':
+		case Keyboard::eG:
 			{
 				ObjectGroup* group = getUseGroup();
 				if ( modifier && group )

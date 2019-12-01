@@ -167,6 +167,11 @@
     </ProjectReference>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\OtherLib\minisat\core\Main.cc" />
+    <ClCompile Include="..\OtherLib\minisat\core\Solver.cc" />
+    <ClCompile Include="..\OtherLib\minisat\core\SolverTypes.cc" />
+    <ClCompile Include="..\OtherLib\minisat\utils\Options.cc" />
+    <ClCompile Include="..\OtherLib\minisat\utils\System.cc" />
     <ClCompile Include="..\OtherLib\NvTess\nvtess.cpp">
       <Optimization Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">MaxSpeed</Optimization>
       <IntrinsicFunctions Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</IntrinsicFunctions>

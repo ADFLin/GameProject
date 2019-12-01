@@ -391,6 +391,8 @@ namespace Go
 #define INFO_MOVE_STR "info move"
 					while( StartWith(buffer, "info move") )
 					{
+						buffer += StrLen(INFO_MOVE_STR);
+
 						FixString<128>  coord;
 						int   visits = 0;
 						int   winrate = 0;
@@ -398,7 +400,7 @@ namespace Go
 						int   lcb = 0;
 						int   order = 0;
 						int   numRead = 0;
-						if( sscanf(buffer, "info move %s visits %d winrate %d prior %d lcb %d order %d pv%n", coord.data(), &visits, &winrate, &prior, &lcb , &order, &numRead) == 6 )
+						if( sscanf(buffer, "%s visits %d winrate %d prior %d lcb %d order %d pv%n", coord.data(), &visits, &winrate, &prior, &lcb , &order, &numRead) == 6 )
 						{
 							PlayVertex vertex = GetVertex(coord);
 							if( vertex == PlayVertex::Undefiend() )
@@ -439,8 +441,10 @@ namespace Go
 			case GTPCommand::eStopPonder:
 			case GTPCommand::eGenmove:
 				{
-					if( StartWith( buffer , "Playerouts:" ) )
+#define PLAYOUTS_STR "Playouts:"
+					if( StartWith( buffer , PLAYOUTS_STR) )
 					{
+						buffer += StrLen(PLAYOUTS_STR);
 						FixString<128>  coord;
 						//int   nodeVisited;
 						float winRate;
@@ -448,7 +452,7 @@ namespace Go
 						int   playout;
 						int   numRead;
 
-						if (sscanf(buffer, "Playouts: %d, Win: %f%% , PV: %s%n", &playout, &winRate, coord.data(), &numRead) == 3)
+						if (sscanf(buffer, "%d, Win: %f%% , PV: %s%n", &playout, &winRate, coord.data(), &numRead) == 3)
 						{
 							PlayVertex vertex = GetVertex(coord);
 							if (vertex == PlayVertex::Undefiend())

@@ -190,7 +190,7 @@ namespace Chromatron
 
 		switch( key )
 		{
-		case 'R': break;
+		case Keyboard::eR: break;
 		}
 		return false;
 	}

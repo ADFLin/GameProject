@@ -13,11 +13,11 @@ namespace Shoot2D
 	{
 		::GetKeyboardState(m_key);
 
-		bool left  = KeyDown('A');
-		bool right = KeyDown('D');
-		bool top   = KeyDown('W');
-		bool down  = KeyDown('S');
-		bool fire  = KeyDown('K');
+		bool left  = KeyDown(Keyboard::eA);
+		bool right = KeyDown(Keyboard::eD);
+		bool top   = KeyDown(Keyboard::eW);
+		bool down  = KeyDown(Keyboard::eS);
+		bool fire  = KeyDown(Keyboard::eK);
 
 		Vec2D speed = obj.getVelocity();
 		float maxSpeed = 100;

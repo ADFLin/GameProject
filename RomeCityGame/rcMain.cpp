@@ -399,23 +399,23 @@ public:// System Message
 		int moveSpeed = 5;
 		switch( key )
 		{
-		case 'S': vp.shiftScreenOffset( Vec2i( 0 , moveSpeed ) ); break;
-		case 'W': vp.shiftScreenOffset( Vec2i( 0 , -moveSpeed ) ); break;
-		case 'A': vp.shiftScreenOffset( Vec2i( -moveSpeed , 0 ) ); break;
-		case 'D': vp.shiftScreenOffset( Vec2i( moveSpeed , 0 ) ); break;
-		case 'Q':
+		case Keyboard::eS: vp.shiftScreenOffset( Vec2i( 0 , moveSpeed ) ); break;
+		case Keyboard::eW: vp.shiftScreenOffset( Vec2i( 0 , -moveSpeed ) ); break;
+		case Keyboard::eA: vp.shiftScreenOffset( Vec2i( -moveSpeed , 0 ) ); break;
+		case Keyboard::eD: vp.shiftScreenOffset( Vec2i( moveSpeed , 0 ) ); break;
+		case Keyboard::eQ:
 			idx += 1;
 			mChioceBuildingTag = buildingList[idx.getValue() ];
 			break;
-		case 'E':
+		case Keyboard::eE:
 			idx -= 1;
 			mChioceBuildingTag = buildingList[idx.getValue() ];
 			break;
-		case VK_F1:
+		case Keyboard::eF1:
 			dir += 1;
 			mLevelScene->getViewPort().setDir( rcViewport::ViewDir( dir.getValue() ) );
 			break;
-		case VK_F2:
+		case Keyboard::eF2:
 			ProfileSystem::Get().cleanup();
 			break;
 		}

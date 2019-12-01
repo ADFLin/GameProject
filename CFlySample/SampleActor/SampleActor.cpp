@@ -336,12 +336,12 @@ public:
 
 		switch( key )
 		{
-		case VK_UP:    cam->translate( Vector3( 0,0,10 ) , CFTO_LOCAL ); break;
-		case VK_DOWN:  cam->translate( Vector3( 0,0,-10 ) , CFTO_LOCAL); break;
-		case VK_LEFT:  cam->translate( Vector3( -10 ,0 , 0 ) , CFTO_LOCAL ); break;
-		case VK_RIGHT: cam->translate( Vector3( 10 ,0 , 0 ) , CFTO_LOCAL ); break;
-		case 'P': std::swap( mMainCamera , cam );break;
-		case 'O': g_useObjFrushumClip = !g_useObjFrushumClip; break;
+		case Keyboard::eUP:    cam->translate( Vector3( 0,0,10 ) , CFTO_LOCAL ); break;
+		case Keyboard::eDOWN:  cam->translate( Vector3( 0,0,-10 ) , CFTO_LOCAL); break;
+		case Keyboard::eLEFT:  cam->translate( Vector3( -10 ,0 , 0 ) , CFTO_LOCAL ); break;
+		case Keyboard::eRIGHT: cam->translate( Vector3( 10 ,0 , 0 ) , CFTO_LOCAL ); break;
+		case Keyboard::eP: std::swap( mMainCamera , cam );break;
+		case Keyboard::eO: g_useObjFrushumClip = !g_useObjFrushumClip; break;
 		default:
 			SampleBase::handleKeyEvent( key , isDown );
 		}

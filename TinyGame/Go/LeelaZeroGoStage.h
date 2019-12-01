@@ -372,15 +372,15 @@ namespace Go
 			}
 			virtual void emitPlayStone(int x, int y, int color) override
 			{
-				mBot->playStone(x, y, color == StoneColor::eBlack ? Zen::Color::Black : Zen::Color::White);
+				mBot->playStone(x, y, ZenBot::ToZColor(color));
 			}
 			virtual void emitAddStone(int x, int y, int color) override
 			{
-				mBot->addStone(x, y, color == StoneColor::eBlack ? Zen::Color::Black : Zen::Color::White);
+				mBot->addStone(x, y, ZenBot::ToZColor(color));
 			}
 			virtual void emitPlayPass(int color) override
 			{
-				mBot->playPass(color == StoneColor::eBlack ? Zen::Color::Black : Zen::Color::White);
+				mBot->playPass(ZenBot::ToZColor(color));
 			}
 			virtual void emitUndo() override
 			{

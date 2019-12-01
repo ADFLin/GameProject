@@ -65,6 +65,21 @@ bool GameMenuStage::onMouse( MouseMsg const& msg )
 }
 
 
+bool GameMenuStage::onKey(unsigned key, bool isDown)
+{
+	if (isDown)
+	{
+		switch ( key )
+		{
+		case Keyboard::eESCAPE:
+			popWidgetGroup();
+			return false;
+		}
+	}
+
+	return BaseClass::onKey(key, isDown);
+}
+
 void GameMenuStage::fadeoutGroup( int dDelay )
 {
 	int delay = 0;
@@ -101,4 +116,3 @@ void GameMenuStage::onTaskMessage( TaskBase* task , TaskMsg const& msg )
 			mSkipTasks.erase( iter );
 	}
 }
-

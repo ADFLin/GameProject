@@ -8,7 +8,7 @@
 #include <vector>
 
 typedef double NNScale;
-typedef NNScale (*NNActivationFun)(NNScale);
+typedef NNScale (*NNActivationFunc)(NNScale);
 typedef void    (*NNActivationTrasnformFunc)(NNScale* inoutValues, int numValues);
 template< class T , class Q , class Fun >
 void Transform(T begin, T end, T dest, Fun fun = Fun())
@@ -104,16 +104,16 @@ struct FNNFuncHelper
 struct NeuralLayer
 {
 	int weightOffset;
-	NNActivationFun fun;
-	NNActivationFun funDif;
+	NNActivationFunc func;
+	NNActivationFunc funcDif;
 	NNActivationTrasnformFunc transformFunc;
 	int numNode;
 	NeuralLayer()
 	{
 		numNode = 0;
 		weightOffset = 0;
-		fun = NNFun::Sigmoid;
-		funDif = NNFun::SigmoidDif;
+		func = NNFun::Sigmoid;
+		funcDif = NNFun::SigmoidDif;
 		transformFunc = FNNFuncHelper< &NNFun::Sigmoid >::Trasnform;
 		//fun = NNFun::ReLU;
 	}
@@ -134,7 +134,7 @@ struct NeuralConv2DLayer : NeuralLayer
 
 	NeuralConv2DLayer()
 	{
-		fun = NNFun::ReLU;
+		func = NNFun::ReLU;
 		transformFunc = FNNFuncHelper< &NNFun::ReLU >::Trasnform;
 	}
 };
@@ -206,10 +206,10 @@ public:
 	int getHiddenLayerNum() const { return mLayers.size() - 1; }
 	int getInputNum()  const { return mNumInput; }
 	int getOutputNum() const { return mLayers.back().numNode; }
-	void setActivationFunction(int idxLayer, NNActivationFun fun)
+	void setActivationFunction(int idxLayer, NNActivationFunc func)
 	{
-		assert(fun);
-		mLayers[idxLayer].fun = fun;
+		assert(func);
+		mLayers[idxLayer].func = func;
 	}
 
 	int getHiddenNodeNum() const;

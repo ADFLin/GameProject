@@ -245,12 +245,12 @@ namespace CB
 			switch( key )
 			{
 			case Keyboard::eR: restart(); break;
-			case 'W': mCamera.moveFront(moveDist); break;
-			case 'S': mCamera.moveFront(-moveDist); break;
-			case 'D': mCamera.moveRight(moveDist); break;
-			case 'A': mCamera.moveRight(-moveDist); break;
-			case 'Z': mCamera.moveUp(0.5); break;
-			case 'X': mCamera.moveUp(-0.5); break;
+			case Keyboard::eW: mCamera.moveFront(moveDist); break;
+			case Keyboard::eS: mCamera.moveFront(-moveDist); break;
+			case Keyboard::eD: mCamera.moveRight(moveDist); break;
+			case Keyboard::eA: mCamera.moveRight(-moveDist); break;
+			case Keyboard::eZ: mCamera.moveUp(0.5); break;
+			case Keyboard::eX: mCamera.moveUp(-0.5); break;
 			case Keyboard::eF5: mRenderer->reloadShaer(); break;
 			case Keyboard::eADD: modifyParamIncrement(0.5); break;
 			case Keyboard::eSUBTRACT: modifyParamIncrement(2); break;

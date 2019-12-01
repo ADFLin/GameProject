@@ -19,7 +19,7 @@
 #include "RHI/SceneRenderer.cpp"
 #endif
 
-#define EXPORT_FUN(fun) static auto MARCO_NAME_COMBINE_2( GExportFun , __LINE__ ) = &fun;
+#define EXPORT_FUN(funcc) static auto MARCO_NAME_COMBINE_2( GExportFun , __LINE__ ) = &func;
 
 
 #undef EXPORT_FUN

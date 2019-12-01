@@ -104,6 +104,7 @@ namespace Go
 		virtual bool getMetaData(int id , uint8* dataBuffer , int size) { return false; }
 		virtual bool isGPUBased() const { return false; }
 
+
 		template< class T >
 		bool getMetaDataT(int id, T& data)
 		{

@@ -177,11 +177,11 @@ namespace TowerDefend
 			EntityFilter filter;
 			filter.bitType  = ET_UNIT;
 			filter.bitOwner = BIT( mMonsterPlayerInfo.id );
-			getEntityMgr().listenEvent( EntityEventFun( this , &Level::onMonsterEvent ) , filter );
+			getEntityMgr().listenEvent( EntityEventFunc( this , &Level::onMonsterEvent ) , filter );
 
 			filter.bitType  = ET_ACTOR;
 			filter.bitOwner = BIT( mPlayerInfo.id );
-			getEntityMgr().listenEvent( EntityEventFun( this , &Level::onPlayerEvent ) , filter );
+			getEntityMgr().listenEvent( EntityEventFunc( this , &Level::onPlayerEvent ) , filter );
 
 
 			DrawEngine& de = ::Global::GetDrawEngine();

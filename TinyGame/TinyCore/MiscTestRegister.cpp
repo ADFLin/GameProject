@@ -6,9 +6,9 @@ std::vector< MiscTestEntry>& GetRegisterMiscTestEntries()
 	return gRegisterMiscTestEntries;
 }
 
-MiscTestRegister::MiscTestRegister(char const* name, std::function< void() > const& fun)
+MiscTestRegister::MiscTestRegister(char const* name, std::function< void() > const& func)
 {
-	GetRegisterMiscTestEntries().push_back({ name , fun });
+	GetRegisterMiscTestEntries().push_back({ name , func });
 }
 
 std::vector<MiscTestEntry>& MiscTestRegister::GetList()

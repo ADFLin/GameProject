@@ -42,6 +42,7 @@ REGISTER_STAGE("LeelaZero Learning", Go::LeelaZeroGoStage, EStageGroup::Test);
 
 namespace Go
 {
+
 	void RunConvertWeight(LeelaWeightTable const& table)
 	{
 
@@ -2114,65 +2115,72 @@ namespace Go
 			}
 			break;
 
-		case GameCommand::eParam:
-			switch( com.paramId )
-			{
-			case LeelaGameParam::eBestMoveVertex:
-				{
-					LeelaThinkInfo* info = static_cast<LeelaThinkInfo*>(com.ptrParam);
-					bestMoveVertex = info->v;
-					bestThinkInfo = *info;
-				}
-				break;
-			case ZenGameParam::eBestMoveVertex:
-				{
-					Zen::ThinkInfo* info = static_cast<Zen::ThinkInfo*>(com.ptrParam);
-					bestMoveVertex = info->v;
-					bestThinkInfo.v = info->v;
-					bestThinkInfo.nodeVisited = 0;
-					bestThinkInfo.vSeq = info->vSeq;
-					bestThinkInfo.winRate = info->winRate;
-					bestThinkInfo.evalValue = 0;
-				}
-				break;
-			case LeelaGameParam::eWinRate:
-			case ZenGameParam::eWinRate:
-			case KataGameParam::eWinRate:
-				if ( !bPrevGameCom )
-				{
-					Vector2 v;
-					if (com.paramId == KataGameParam::eWinRate)
-					{
-						v.x = (mGame.getInstance().getCurrentStep() + 2) / 2;
-					}
-					else
-					{
-						v.x = (mGame.getInstance().getCurrentStep() + 1) / 2;
-					}
-					v.y = com.floatParam;
-					mWinRateHistory[indexPlayer].push_back(v);
+#define LEELA_PARAM_REMAP(NAME) (BotParam::LeelaBase + LeelaGameParam::NAME)
+#define ZEN_PARAM_REMAP(NAME) (BotParam::ZenBase + ZenGameParam::NAME)
+#define KATA_PARAM_REMAP(NAME) (BotParam::KataBase + KataGameParam::NAME)
 
-					if( mWinRateWidget == nullptr )
+		case GameCommand::eParam:
+			{
+				uint32 paramRemapId = com.paramId + mMatchData.players[indexPlayer].botParamBase;
+				switch (paramRemapId)
+				{
+				case LEELA_PARAM_REMAP(eBestMoveVertex):
 					{
-						Vec2i screenSize = ::Global::GetDrawEngine().getScreenSize();
-						Vec2i widgetSize = { 260 , 310 };
-						Vec2i widgetPos = { screenSize.x - (widgetSize.x + 20), screenSize.y - ( widgetSize.y + 20 ) };
-						mWinRateWidget = new GFrame( UI_ANY , widgetPos , widgetSize , nullptr );
-						mWinRateWidget->setColor(Color3ub(0, 0, 0));
-						mWinRateWidget->setRenderCallback(
-							RenderCallBack::Create([this](GWidget* widget)
-							{
-								Vec2i screenSize = ::Global::GetDrawEngine().getScreenSize();
-								Vec2i diagramPos  = widget->getWorldPos() + Vec2i(5, 5);
-								Vec2i diagramSize = widget->getSize() - 2 * Vec2i(5, 5);
-								drawWinRateDiagram(diagramPos, diagramSize);
-							})
-						);
-						::Global::GUI().addWidget(mWinRateWidget);
+						LeelaThinkInfo* info = static_cast<LeelaThinkInfo*>(com.ptrParam);
+						bestMoveVertex = info->v;
+						bestThinkInfo = *info;
 					}
-					//LogMsg("Win rate = %.2f", com.floatParam);
+					break;
+				case ZEN_PARAM_REMAP(eBestMoveVertex):
+					{
+						Zen::ThinkInfo* info = static_cast<Zen::ThinkInfo*>(com.ptrParam);
+						bestMoveVertex = info->v;
+						bestThinkInfo.v = info->v;
+						bestThinkInfo.nodeVisited = 0;
+						bestThinkInfo.vSeq = info->vSeq;
+						bestThinkInfo.winRate = info->winRate;
+						bestThinkInfo.evalValue = 0;
+					}
+					break;
+				case LEELA_PARAM_REMAP(eWinRate):
+				case ZEN_PARAM_REMAP(eWinRate):
+				case KATA_PARAM_REMAP(eWinRate):
+					if (!bPrevGameCom)
+					{
+						Vector2 v;
+						if (paramRemapId == KATA_PARAM_REMAP(eWinRate))
+						{
+							v.x = (mGame.getInstance().getCurrentStep() + 2) / 2;
+						}
+						else
+						{
+							v.x = (mGame.getInstance().getCurrentStep() + 1) / 2;
+						}
+						v.y = com.floatParam;
+						mWinRateHistory[indexPlayer].push_back(v);
+
+						if (mWinRateWidget == nullptr)
+						{
+							Vec2i screenSize = ::Global::GetDrawEngine().getScreenSize();
+							Vec2i widgetSize = { 260 , 310 };
+							Vec2i widgetPos = { screenSize.x - (widgetSize.x + 20), screenSize.y - (widgetSize.y + 20) };
+							mWinRateWidget = new GFrame(UI_ANY, widgetPos, widgetSize, nullptr);
+							mWinRateWidget->setColor(Color3ub(0, 0, 0));
+							mWinRateWidget->setRenderCallback(
+								RenderCallBack::Create([this](GWidget* widget)
+								{
+									Vec2i screenSize = ::Global::GetDrawEngine().getScreenSize();
+									Vec2i diagramPos = widget->getWorldPos() + Vec2i(5, 5);
+									Vec2i diagramSize = widget->getSize() - 2 * Vec2i(5, 5);
+									drawWinRateDiagram(diagramPos, diagramSize);
+								})
+							);
+							::Global::GUI().addWidget(mWinRateWidget);
+						}
+						//LogMsg("Win rate = %.2f", com.floatParam);
+					}
+					break;
 				}
-				break;
 			}
 			break;
 		case GameCommand::eAddStone:

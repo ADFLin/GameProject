@@ -106,7 +106,7 @@ namespace Tween
 	{
 		T*   _this(){ return static_cast< T* >( this ); }
 	public:
-		T&   finishCallback( FinishCallback fun ){ mFinishFun = fun; return *_this(); }
+		T&   finishCallback( FinishCallback func ){ mFinishFun = func; return *_this(); }
 	protected:
 		void finishCB(){ if ( mFinishFun ) mFinishFun(); }
 	private:

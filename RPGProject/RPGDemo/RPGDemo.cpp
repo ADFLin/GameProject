@@ -559,23 +559,23 @@ public:
 
 		switch( key )
 		{
-		case VK_ESCAPE: setLoopOver( true ); break;
-		//case 'W': mCFCamera->translate( Vec3D( 0,0,10 ) , CFly::CFTO_LOCAL); break;
-		//case 'S': mCFCamera->translate( Vec3D( 0,0,-10 ) , CFly::CFTO_LOCAL); break;
-		//case 'A': mCFCamera->translate( Vec3D( 10 ,0 , 0 ), CFly::CFTO_LOCAL ); break;
-		//case 'D': mCFCamera->translate( Vec3D( -10 ,0 , 0 ) , CFly::CFTO_LOCAL ); break;
+		case Keyboard::eESCAPE: setLoopOver( true ); break;
+		//case Keyboard::eW: mCFCamera->translate( Vec3D( 0,0,10 ) , CFly::CFTO_LOCAL); break;
+		//case Keyboard::eS: mCFCamera->translate( Vec3D( 0,0,-10 ) , CFly::CFTO_LOCAL); break;
+		//case Keyboard::eA: mCFCamera->translate( Vec3D( 10 ,0 , 0 ), CFly::CFTO_LOCAL ); break;
+		//case Keyboard::eD: mCFCamera->translate( Vec3D( -10 ,0 , 0 ) , CFly::CFTO_LOCAL ); break;
 
-		//case 'W': mCamControl->moveForward(); break;
-		//case 'S': mCamControl->moveBack(); break;
-		//case 'A': mCamControl->moveLeft(); break;
-		//case 'D': mCamControl->moveRight(); break;
-		//case 'O': mBloodBarComp->setLife( mBloodBarComp->getLife() - 10 ); break;
-		//case 'P': mBloodBarComp->setLife( mBloodBarComp->getLife() + 10 ); break;
-		case 'L': mPlayer->attack(); break;
-		case 'M': mActorModel->changeAction( ANIM_ATTACK , true ); break;
-		case 'N': mActorModel->changeAction( ANIM_WAIT , true ); break;
-		case 'K': if ( mCDMask ) mCDMask->restore( 2 ); break;
-		case 'R':
+		//case Keyboard::eW: mCamControl->moveForward(); break;
+		//case Keyboard::eS: mCamControl->moveBack(); break;
+		//case Keyboard::eA: mCamControl->moveLeft(); break;
+		//case Keyboard::eD: mCamControl->moveRight(); break;
+		//case Keyboard::eO: mBloodBarComp->setLife( mBloodBarComp->getLife() - 10 ); break;
+		//case Keyboard::eP: mBloodBarComp->setLife( mBloodBarComp->getLife() + 10 ); break;
+		case Keyboard::eL: mPlayer->attack(); break;
+		case Keyboard::eM: mActorModel->changeAction( ANIM_ATTACK , true ); break;
+		case Keyboard::eN: mActorModel->changeAction( ANIM_WAIT , true ); break;
+		case Keyboard::eK: if ( mCDMask ) mCDMask->restore( 2 ); break;
+		case Keyboard::eR:
 			createBoxEntity( Vec3D(200,200,200) );
 			break;
 

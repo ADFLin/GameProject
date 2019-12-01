@@ -10,7 +10,7 @@ namespace Go
 	{
 		enum
 		{
-			eWinRate = 400,
+			eWinRate,
 		};
 	}
 

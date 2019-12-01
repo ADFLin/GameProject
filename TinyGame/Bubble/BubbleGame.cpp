@@ -182,9 +182,9 @@ namespace Bubble
 			return true;
 		case ATTR_CONTROLLER_DEFUAULT_SETTING:
 			mController.clearAllKey();
-			mController.initKey( ACT_BB_ROTATE_LEFT   ,        1 , 'A' , Keyboard::eLEFT  );
-			mController.initKey( ACT_BB_ROTATE_RIGHT  ,        1 , 'D' , Keyboard::eRIGHT );
-			mController.initKey( ACT_BB_SHOOT         , KEY_ONCE , 'W' , Keyboard::eUP    );
+			mController.initKey( ACT_BB_ROTATE_LEFT   ,        1 , Keyboard::eA , Keyboard::eLEFT  );
+			mController.initKey( ACT_BB_ROTATE_RIGHT  ,        1 , Keyboard::eD , Keyboard::eRIGHT );
+			mController.initKey( ACT_BB_SHOOT         , KEY_ONCE , Keyboard::eW , Keyboard::eUP    );
 			return true;
 		}
 		return false;

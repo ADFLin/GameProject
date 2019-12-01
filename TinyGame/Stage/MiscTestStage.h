@@ -67,11 +67,11 @@ public:
 	}
 
 	typedef std::function< void() > TestFun; 
-	void addTest( char const* name , TestFun const& fun );
+	void addTest( char const* name , TestFun const& func );
 
 	struct TestInfo
 	{
-		TestFun fun;
+		TestFun func;
 	};
 	std::vector< TestInfo > mInfos;
 
@@ -1618,10 +1618,10 @@ public:
 		switch( key )
 		{
 		case Keyboard::eR: restart(); break;
-			//case 'D': snake.changeMoveDir( DIR_WEST ); break;
-			//case 'A': snake.changeMoveDir( DIR_EAST ); break;
-			//case 'W': snake.changeMoveDir( DIR_NORTH ); break;
-			//case 'S': snake.changeMoveDir( DIR_SOUTH ); break;
+		case Keyboard::eD: break;
+		case Keyboard::eA: break;
+		case Keyboard::eW: break;
+		case Keyboard::eS: break;
 		}
 		return BaseClass::onKey( key , isDown );
 	}
@@ -1713,10 +1713,6 @@ public:
 		switch( key )
 		{
 		case Keyboard::eR: restart(); break;
-			//case 'D': snake.changeMoveDir( DIR_WEST ); break;
-			//case 'A': snake.changeMoveDir( DIR_EAST ); break;
-			//case 'W': snake.changeMoveDir( DIR_NORTH ); break;
-			//case 'S': snake.changeMoveDir( DIR_SOUTH ); break;
 		}
 		return false;
 	}

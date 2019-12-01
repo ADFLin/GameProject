@@ -35,12 +35,12 @@ namespace BomberMan
 		case ATTR_REPLAY_SUPPORT:
 			return false;
 		case ATTR_CONTROLLER_DEFUAULT_SETTING:
-			mController.initKey( ACT_BM_MOVE_LEFT  , 0 , 'A' , Keyboard::eLEFT );
-			mController.initKey( ACT_BM_MOVE_RIGHT , 0 , 'D' , Keyboard::eRIGHT );
-			mController.initKey( ACT_BM_MOVE_TOP   , 0 , 'W' , Keyboard::eUP );
-			mController.initKey( ACT_BM_MOVE_DOWN  , 0 , 'S' , Keyboard::eDOWN );
-			mController.initKey( ACT_BM_BOMB     , KEY_ONCE , 'L' );
-			mController.initKey( ACT_BM_FUNCTION , KEY_ONCE , 'K' );
+			mController.initKey( ACT_BM_MOVE_LEFT  , 0 , Keyboard::eA , Keyboard::eLEFT );
+			mController.initKey( ACT_BM_MOVE_RIGHT , 0 , Keyboard::eD , Keyboard::eRIGHT );
+			mController.initKey( ACT_BM_MOVE_TOP   , 0 , Keyboard::eW , Keyboard::eUP );
+			mController.initKey( ACT_BM_MOVE_DOWN  , 0 , Keyboard::eS , Keyboard::eDOWN );
+			mController.initKey( ACT_BM_BOMB     , KEY_ONCE , Keyboard::eL );
+			mController.initKey( ACT_BM_FUNCTION , KEY_ONCE , Keyboard::eK );
 			return true;
 		}
 		return false;

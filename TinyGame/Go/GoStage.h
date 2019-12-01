@@ -151,7 +151,7 @@ namespace Go
 				return true;
 			switch( key )
 			{
-			case 'R': mGame.restart(); break;
+			case Keyboard::eR: mGame.restart(); break;
 			}
 			return false;
 		}

@@ -36,11 +36,11 @@ namespace GreedySnake
 			return true;
 		case ATTR_CONTROLLER_DEFUAULT_SETTING:
 			mController.clearAllKey();
-			mController.initKey( ACT_GS_MOVE_E , KEY_ONCE , 'D' , Keyboard::eRIGHT );
-			mController.initKey( ACT_GS_MOVE_N , KEY_ONCE , 'W' , Keyboard::eUP    );
-			mController.initKey( ACT_GS_MOVE_S , KEY_ONCE , 'S' , Keyboard::eDOWN  );
-			mController.initKey( ACT_GS_MOVE_W , KEY_ONCE , 'A' , Keyboard::eLEFT  );
-			mController.initKey( ACT_GS_CHANGE_DIR, KEY_ONCE, 'E');
+			mController.initKey( ACT_GS_MOVE_E , KEY_ONCE , Keyboard::eD , Keyboard::eRIGHT );
+			mController.initKey( ACT_GS_MOVE_N , KEY_ONCE , Keyboard::eW , Keyboard::eUP    );
+			mController.initKey( ACT_GS_MOVE_S , KEY_ONCE , Keyboard::eS , Keyboard::eDOWN  );
+			mController.initKey( ACT_GS_MOVE_W , KEY_ONCE , Keyboard::eA , Keyboard::eLEFT  );
+			mController.initKey( ACT_GS_CHANGE_DIR, KEY_ONCE, Keyboard::eE);
 			return true;
 		}
 		return false;

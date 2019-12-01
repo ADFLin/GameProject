@@ -223,10 +223,10 @@ namespace Phy2D
 		switch( key )
 		{
 		case Keyboard::eR: restart(); break;
-		case 'D': moveObject(Vector2(speed, 0)); break;
-		case 'A': moveObject(Vector2(-speed, 0)); break;
-		case 'W': moveObject(Vector2(0, speed)); break;
-		case 'S': moveObject(Vector2(0, -speed)); break;
+		case Keyboard::eD: moveObject(Vector2(speed, 0)); break;
+		case Keyboard::eA: moveObject(Vector2(-speed, 0)); break;
+		case Keyboard::eW: moveObject(Vector2(0, speed)); break;
+		case Keyboard::eS: moveObject(Vector2(0, -speed)); break;
 		case Keyboard::eLEFT:
 			mObjects[1].mXForm.rotate(0.01); break;
 		case Keyboard::eRIGHT:
@@ -404,11 +404,11 @@ namespace Phy2D
 		switch( key )
 		{
 		case Keyboard::eR: restart(); break;
-		case 'D':  break;
-		case 'A': break;
-		case 'W': break;
-		case 'S': break;
-		case 'E':
+		case Keyboard::eD:  break;
+		case Keyboard::eA: break;
+		case Keyboard::eW: break;
+		case Keyboard::eS: break;
+		case Keyboard::eE:
 		{
 			BodyInfo info;
 			RigidBody* body = mWorld.createRigidBody(&mCircleShape, info);

@@ -147,10 +147,10 @@ struct HaveFuncionCallOperator : Meta::HaveResult< HaveFunctionCallOperatorImpl<
 		template < class P1 , class P2 , class RT >\
 		struct EvalType\
 		{\
-			typedef RT (*Fun)(P1 PARAM1_MODIFFER , P2 PARAM2_MODIFFER );\
+			typedef RT (*Func)(P1 PARAM1_MODIFFER , P2 PARAM2_MODIFFER );\
             typedef void (*NoSupportFun) (P1&, OP_NAME##Detail);\
 		};\
-		template< class P1 , class P2 , typename EvalType<P1,P2,decltype( OP ( std::declval<P1>(), std::declval<P2>() ) )>::Fun fun >\
+		template< class P1 , class P2 , typename EvalType<P1,P2,decltype( OP ( std::declval<P1>(), std::declval<P2>() ) )>::Func func >\
 		static auto Test(P1*) -> decltype( OP ( std::declval<P1>(), std::declval<P2>() ) );\
 		template< class P1 , class P2 , typename EvalType<P1,P2,void>::NoSupportFun >\
 		static Meta::FalseType  Test(...);\

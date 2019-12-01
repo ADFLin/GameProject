@@ -381,14 +381,14 @@ namespace Rubiks
 			{
 
 			case Keyboard::eR: restart(); break;
-			case 'A': rotateCube( FaceLeft , bInvRotation ); break;
-			case 'S': rotateCube( FaceFront , bInvRotation); break;
-			case 'D': rotateCube( FaceRight , bInvRotation ); break;
-			case 'F': rotateCube( FaceBack , bInvRotation ); break;
-			case 'W': rotateCube( FaceUp  , bInvRotation ); break;
-			case 'X': rotateCube( FaceDown , bInvRotation ); break;
-			case 'E': bInvRotation = !bInvRotation; break;
-			case 'P':
+			case Keyboard::eA: rotateCube( FaceLeft , bInvRotation ); break;
+			case Keyboard::eS: rotateCube( FaceFront , bInvRotation); break;
+			case Keyboard::eD: rotateCube( FaceRight , bInvRotation ); break;
+			case Keyboard::eF: rotateCube( FaceBack , bInvRotation ); break;
+			case Keyboard::eW: rotateCube( FaceUp  , bInvRotation ); break;
+			case Keyboard::eX: rotateCube( FaceDown , bInvRotation ); break;
+			case Keyboard::eE: bInvRotation = !bInvRotation; break;
+			case Keyboard::eP:
 				{
 					solver.mInitState = mState[ idxCur ];
 					solver.mFinalState.setGlobalState();

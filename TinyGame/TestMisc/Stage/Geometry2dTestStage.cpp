@@ -433,8 +433,8 @@ namespace G2D
 			switch( key )
 			{
 			case Keyboard::eR: restart(); break;
-			case 'W': mMode = (mMode == MODE_CIRCLE) ? MODE_POLY : MODE_CIRCLE; break;
-			case 'Q': updateCollision(); break;
+			case Keyboard::eW: mMode = (mMode == MODE_CIRCLE) ? MODE_POLY : MODE_CIRCLE; break;
+			case Keyboard::eQ: updateCollision(); break;
 			}
 			return false;
 		}

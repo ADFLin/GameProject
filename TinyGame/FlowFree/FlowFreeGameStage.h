@@ -4,10 +4,11 @@
 #include "Template/ArrayView.h"
 #include "PlatformThread.h"
 
-
 #include "minisat/core/Solver.h"
 
-namespace Flow
+#include <array>
+
+namespace FlowFree
 {
 	int const DirCount = 4;
 	Vec2i const gDirOffset[] = { Vec2i(1,0) , Vec2i(0,1) , Vec2i(-1,0) , Vec2i(0,-1) };
@@ -194,27 +195,27 @@ namespace Flow
 
 		}
 
-		ColorType getFunFlowColor( int dir = -1, ColorType color = 0 ) const
+		ColorType getFunFlowColor( int dir = -1, ColorType inColor = 0 ) const
 		{
 			switch( func )
 			{
 			case CellFunc::Empty:
 				{
 					int count = 0;
-					ColorType outColor = color;
-					for( int i = 0; i < DirCount; ++i )
+					ColorType outColor = inColor;
+					for(ColorType color : colors)
 					{
-						if( colors[i] == 0 )
+						if( color == 0 )
 							continue;
 
-						if( color && colors[i] != color )
+						if( inColor && color != inColor )
 							return 0;
 
 						++count;
 						if( count >= 2 )
 							return 0;
 
-						outColor = colors[i];
+						outColor = color;
 					}
 
 					return outColor;
@@ -231,7 +232,7 @@ namespace Flow
 						}
 					}
 
-					if( color && color != funcMeta )
+					if( inColor && inColor != funcMeta )
 						return 0;
 
 					return funcMeta;
@@ -250,7 +251,7 @@ namespace Flow
 					else
 					{
 						int outColor = colors[InverseDir(dir)];
-						if( color && outColor != color )
+						if( inColor && outColor != inColor )
 							return 0;
 
 						return outColor;
@@ -1250,8 +1251,8 @@ namespace Flow
 
 		struct VarInfo
 		{
-			SATVar colors[MaxColorCount];
-			SATVar conTypes[ConnectTypeCount];
+			std::array< SATVar , MaxColorCount > colors;
+			std::array< SATVar , ConnectTypeCount > conTypes;
 		};
 
 		TGrid2D< VarInfo > mVarMap;

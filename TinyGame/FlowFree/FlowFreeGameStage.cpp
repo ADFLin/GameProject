@@ -1,11 +1,10 @@
-#include "FlowGameStage.h"
+#include "FlowFreeGameStage.h"
 #include "BitUtility.h"
 
-REGISTER_STAGE("Flow Game", Flow::TestStage , EStageGroup::Test);
+REGISTER_STAGE("Flow Free Game", FlowFree::TestStage , EStageGroup::Test);
 
 
-
-namespace Flow
+namespace FlowFree
 {
 	struct LevelData
 	{

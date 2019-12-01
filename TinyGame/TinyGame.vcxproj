@@ -304,7 +304,6 @@ copy $(TargetDir)EngineShare.dll  $(ProjectDir)out\</Command>
     <ClCompile Include="Stage\AStarStage.cpp" />
     <ClCompile Include="Stage\CurveBuilderStage.cpp" />
     <ClCompile Include="Stage\DeviceInfoStage.cpp" />
-    <ClCompile Include="Stage\FlowGameStage.cpp" />
     <ClCompile Include="Stage\FontDrawStage.cpp" />
     <ClCompile Include="Stage\NesEmulatorStage.cpp" />
     <ClCompile Include="Stage\GlobalStageRegister.cpp" />
@@ -379,7 +378,6 @@ copy $(TargetDir)EngineShare.dll  $(ProjectDir)out\</Command>
     <ClInclude Include="RandomUtility.h" />
     <ClInclude Include="Go\GoCore.h" />
     <ClInclude Include="Go\GoStage.h" />
-    <ClInclude Include="Stage\FlowGameStage.h" />
     <ClInclude Include="Stage\MainMenuStage.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="Stage\AgarStage.h" />

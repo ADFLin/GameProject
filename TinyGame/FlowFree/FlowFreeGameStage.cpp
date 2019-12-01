@@ -281,4 +281,90 @@ namespace FlowFree
 		}
 	}
 
+	bool TestStage::onMouse(MouseMsg const& msg)
+	{
+		if (!BaseClass::onMouse(msg))
+			return false;
+
+		if (msg.onLeftDown())
+		{
+			Vec2i cPos = ToCellPos(msg.getPos());
+
+			if (mLevel.isValidCellPos(cPos))
+			{
+				bStartFlowOut = true;
+				flowOutColor = mLevel.getCellChecked(cPos).getFunFlowColor();
+				flowOutCellPos = cPos;
+				if (mLevel.breakFlow(cPos, 0, 0) == Level::BreakResult::NoBreak)
+				{
+
+
+
+				}
+			}
+		}
+		else if (msg.onLeftUp())
+		{
+			bStartFlowOut = false;
+		}
+
+
+		if (bStartFlowOut && msg.onMoving())
+		{
+			Vec2i cPos = ToCellPos(msg.getPos());
+
+			if (mLevel.isValidCellPos(cPos))
+			{
+				Vec2i cOffset = cPos - flowOutCellPos;
+				Vec2i cOffsetAbs = Abs(cOffset);
+				int d = cOffsetAbs.x + cOffsetAbs.y;
+				if (d > 0)
+				{
+					if (d == 1)
+					{
+						int dir;
+						if (cOffset.x == 1)
+						{
+							dir = 0;
+						}
+						else if (cOffset.y == 1)
+						{
+							dir = 1;
+						}
+						else if (cOffset.x == -1)
+						{
+							dir = 2;
+						}
+						else
+						{
+							dir = 3;
+						}
+
+						if (mLevel.breakFlow(cPos, dir, flowOutColor) == Level::BreakResult::HaveBreakSameColor)
+						{
+							flowOutCellPos = cPos;
+						}
+						else
+						{
+							ColorType linkColor = mLevel.linkFlow(flowOutCellPos, dir);
+							if (linkColor)
+							{
+								flowOutCellPos = cPos;
+								flowOutColor = linkColor;
+							}
+						}
+					}
+					else
+					{
+
+
+
+					}
+				}
+			}
+		}
+
+		return true;
+	}
+
 }//namespace Flow

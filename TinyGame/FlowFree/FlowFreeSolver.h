@@ -227,7 +227,7 @@ namespace FlowFree
 	class SATSolverEdge : public SATSolverBase
 	{
 	public:
-		void solve(Level& level);
+		bool solve(Level& level);
 
 		struct EdgeVar
 		{
@@ -312,7 +312,7 @@ namespace FlowFree
 		int   mColorCount;
 		Vec2i mSize;
 
-		void solve(Level& level);
+		bool solve(Level& level);
 
 		struct VarInfo
 		{

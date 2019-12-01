@@ -10,6 +10,7 @@ namespace FlowFree
 {
 	int const DirCount = 4;
 	Vec2i const gDirOffset[] = { Vec2i(1,0) , Vec2i(0,1) , Vec2i(-1,0) , Vec2i(0,-1) };
+	
 	using ColorType = uint8;
 	using EdgeMask = uint8;
 
@@ -23,7 +24,7 @@ namespace FlowFree
 			Top,
 		};
 	}
-	int InverseDir(int dir)
+	FORCEINLINE int InverseDir(int dir)
 	{
 		return (dir + (DirCount / 2)) % DirCount;
 	}

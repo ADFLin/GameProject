@@ -285,6 +285,9 @@ copy $(TargetDir)EngineShare.dll  $(ProjectDir)out\</Command>
     <ClCompile Include="AngryBird\GameObject.cpp" />
     <ClCompile Include="AngryBird\HeaderPCH.cpp" />
     <ClCompile Include="Bsp2D.cpp" />
+    <ClCompile Include="FlowFree\FlowFreeGameStage.cpp" />
+    <ClCompile Include="FlowFree\FlowFreeLevel.cpp" />
+    <ClCompile Include="FlowFree\FlowFreeSolver.cpp" />
     <ClCompile Include="Go\Bots\AQBot.cpp" />
     <ClCompile Include="Go\Bots\GTPBotBase.cpp" />
     <ClCompile Include="Go\Bots\GTPOutput.cpp" />
@@ -362,6 +365,9 @@ copy $(TargetDir)EngineShare.dll  $(ProjectDir)out\</Command>
     <ClInclude Include="AngryBird\HeaderPCH.h" />
     <ClInclude Include="Bsp2D.h" />
     <ClInclude Include="CellWalker.h" />
+    <ClInclude Include="FlowFree\FlowFreeGameStage.h" />
+    <ClInclude Include="FlowFree\FlowFreeLevel.h" />
+    <ClInclude Include="FlowFree\FlowFreeSolver.h" />
     <ClInclude Include="Go\Bots\AQBot.h" />
     <ClInclude Include="Go\Bots\GTPBotBase.h" />
     <ClInclude Include="Go\Bots\GTPOutput.h" />

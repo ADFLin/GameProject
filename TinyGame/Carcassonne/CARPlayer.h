@@ -17,7 +17,7 @@ namespace CAR
 			mScore = 0;
 			mSetting = nullptr;
 		}
-		virtual ~PlayerBase(){}
+		virtual ~PlayerBase() = default;
 		
 		void startTurn(){}
 		void endTurn(){}
@@ -39,11 +39,17 @@ namespace CAR
 
 		bool haveActor( ActorType type ) const { return getActorValue( type ) != 0; }
 		int  getActorValue( ActorType type ) const
-		{ return getFieldValue( FieldType::Enum( FieldType::eActorStart + type ) ); }
+		{ 
+			return getFieldValue( FieldType::Enum( FieldType::eActorStart + type ) );
+		}
 		void setActorValue( ActorType type , int value )
-		{  setFieldValue( FieldType::Enum( FieldType::eActorStart + type ) , value );  }
+		{  
+			setFieldValue( FieldType::Enum( FieldType::eActorStart + type ) , value );  
+		}
 		int  modifyActorValue( ActorType type , int value = 1 )
-		{  return modifyFieldValue( FieldType::Enum( FieldType::eActorStart + type ) , value ); }
+		{  
+			return modifyFieldValue( FieldType::Enum( FieldType::eActorStart + type ) , value ); 
+		}
 
 		int  getFieldValue( FieldType::Enum type , int index = 0 ) const;
 		void setFieldArrayValues(FieldType::Enum type, int* values, int num);

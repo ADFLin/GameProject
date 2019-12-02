@@ -18,8 +18,8 @@ namespace CAR
 	class MapTile;
 	class LevelActor;
 
-	typedef uint32 TileId;
-	typedef int    PlayerId;
+	using TileId   = uint32;
+	using PlayerId = int;
 
 	TileId const FAIL_TILE_ID = TileId(-1);
 	TileId const TEMP_TILE_ID = TileId(-2);
@@ -52,8 +52,8 @@ namespace CAR
 	};
 
 
-	typedef uint16 SideContentType;
-	typedef uint32 TileContentMask;
+	using SideContentType = uint16;
+	using TileContentMask = uint32;
 
 	struct TileContent
 	{

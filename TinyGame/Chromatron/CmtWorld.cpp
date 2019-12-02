@@ -112,7 +112,7 @@ namespace Chromatron
 		int length = getMapSizeX() * getMapSizeY();
 		for (int i=0;i<length ; ++i )
 		{
-			mTileMap[i].setDeviceData( NULL );
+			mTileMap[i].setDeviceData( nullptr );
 		}
 	}
 
@@ -139,7 +139,7 @@ namespace Chromatron
 			if ( pDC )
 				return pDC;
 		}
-		return NULL;
+		return nullptr;
 	}
 
 
@@ -152,7 +152,7 @@ namespace Chromatron
 		:mWorld(world)
 	{
 		mLightAge = 0;
-		mStatus = TSS_OK;
+		mStatus = ETransmitStatus::OK;
 	}
 
 	void WorldUpdateContext::prevUpdate()
@@ -161,11 +161,11 @@ namespace Chromatron
 		mLightParam = 0;
 		mLightCount = 0;
 		mNormalLights.clear();
-		mStatus = TSS_OK;
+		mStatus = ETransmitStatus::OK;
 		mbSyncMode = false;
 	}
 
-	TransmitStatus WorldUpdateContext::transmitLight()
+	ETransmitStatus WorldUpdateContext::transmitLight()
 	{
 		int loopCount = 0;
 		while( !mNormalLights.empty() )
@@ -185,8 +185,8 @@ namespace Chromatron
 				Device* dc = pTile->getDevice();
 				if( dc )
 				{
-					TransmitStatus status = evalDeviceEffect(*dc, light);
-					if( status != TSS_OK )
+					ETransmitStatus status = evalDeviceEffect(*dc, light);
+					if( status != ETransmitStatus::OK )
 						return status;
 				}
 			}
@@ -195,12 +195,12 @@ namespace Chromatron
 			++loopCount;
 
 			if( loopCount > MaxTransmitLightNum )
-				return TSS_INFINITE_LOOP;
+				return ETransmitStatus::InfiniteLoop;
 		}
-		return TSS_OK;
+		return ETransmitStatus::OK;
 	}
 
-	TransmitStatus WorldUpdateContext::transmitLightSync(LightSyncProcessor& processor, LightList& transmitLights)
+	ETransmitStatus WorldUpdateContext::transmitLightSync(LightSyncProcessor& processor, LightList& transmitLights)
 	{
 		LightSyncScope syncScope(*this, processor, transmitLights);
 	
@@ -249,7 +249,7 @@ namespace Chromatron
 
 					if( processor.prevEffectDevice(*dc, light, passStep) )
 					{
-						if( evalDeviceEffect(*dc, light) != TSS_OK )
+						if( evalDeviceEffect(*dc, light) != ETransmitStatus::OK )
 							goto OutLoop;
 
 						transmitLights.erase(lightIter);
@@ -265,7 +265,7 @@ namespace Chromatron
 			++stepCount;
 			if( stepCount > MaxTransmitStepCount )
 			{
-				notifyStatus(TSS_INFINITE_LOOP);
+				notifyStatus(ETransmitStatus::InfiniteLoop);
 				goto OutLoop;
 			}
 		}
@@ -295,7 +295,7 @@ namespace Chromatron
 
 		if( !getWorld().isValidRange(light.getEndPos()) )
 		{
-			*curTile = NULL;
+			*curTile = nullptr;
 			return false;
 		}
 
@@ -313,7 +313,7 @@ namespace Chromatron
 		return true;
 	}
 
-	TransmitStatus WorldUpdateContext::evalDeviceEffect(Device& dc, LightTrace const& light)
+	ETransmitStatus WorldUpdateContext::evalDeviceEffect(Device& dc, LightTrace const& light)
 	{
 		Tile& tile = getTile(dc.getPos());
 
@@ -321,16 +321,16 @@ namespace Chromatron
 		tile.addReceivedLightColor(invDir, light.getColor());
 
 		if( dc.getFlag() & DFB_SHUTDOWN )
-			return TSS_OK;
+			return ETransmitStatus::OK;
 
 		if( dc.getFlag() & DFB_LAZY_EFFECT )
 		{
 			Color lazyColor = tile.getLazyLightColor(invDir);
 			if( lazyColor && tile.getReceivedLightColor(invDir) != lazyColor )
-				return TSS_OK;
+				return ETransmitStatus::OK;
 		}
 
-		mStatus = TSS_OK;
+		mStatus = ETransmitStatus::OK;
 		int prevAge = mLightAge;
 		mLightAge = light.getAge();
 

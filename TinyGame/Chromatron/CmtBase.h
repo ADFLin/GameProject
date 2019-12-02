@@ -14,10 +14,13 @@
 
 namespace Chromatron
 {
-	typedef TVector2< int > Vec2i;
-	typedef unsigned DeviceId;
-	typedef unsigned Color;
+	using Vec2i = TVector2< int >;
+	using DeviceId = unsigned;
+	
 	DeviceId const ErrorDeviceId = DeviceId( -1 );
+
+	int const NumDir = 8;
+	using Dir = TCycleNumber< NumDir, int >;
 
 	inline bool IsInRect( Vec2i const& pt , Vec2i const& rectPos , Vec2i const& rectSize )
 	{
@@ -37,12 +40,8 @@ namespace Chromatron
 		COLOR_CB   = COLOR_W & (~COLOR_B),
 		
 	};
-
+	using Color = unsigned;
 	inline Color Complementary( Color color ){ return Color( COLOR_W & (~color) );	 }
-
-	int const NumDir = 8;
-	typedef TCycleNumber< NumDir , int > Dir;
-
 
 }//namespace Chromatron
 

@@ -12,12 +12,12 @@ class EmptyStageMode : public GameStageMode
 {
 public:
 	EmptyStageMode():GameStageMode( SMT_UNKNOW ){}
-	virtual IPlayerManager* getPlayerManager() override
+	IPlayerManager* getPlayerManager() override
 	{
 		return &mPlayerManager;
 	}
 
-	void updateTime(long time)
+	void updateTime(long time) override
 	{
 		int frame = time / mCurStage->getTickTime();
 		ActionProcessor& processor = mCurStage->getActionProcessor();

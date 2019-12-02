@@ -95,7 +95,7 @@ protected:
 		NoStage ,
 		InitFail ,
 	};
-	virtual StageBase* resolveChangeStageFail( FailReason reason ){  return NULL;  }
+	virtual StageBase* resolveChangeStageFail( FailReason reason ){  return nullptr;  }
 	virtual void       postStageChange(StageBase* stage) {}
 	virtual bool       initializeStage(StageBase* stage) { return stage->onInit(); }
 	virtual void       prevStageChange(){}

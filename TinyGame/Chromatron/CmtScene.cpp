@@ -40,13 +40,13 @@ namespace Chromatron
 	Scene::Scene() 
 		:mWorldPos( DefaultWorldMapPos )
 	{
-		mLevel = NULL;
+		mLevel = nullptr;
 		mIdCreateDC = ErrorDeviceId;
 	}
 
 	void Scene::reset()
 	{
-		mDownDC = mUpDC = mDragDC = NULL;
+		mDownDC = mUpDC = mDragDC = nullptr;
 		mNeedUpdateLevel = true;
 		mIdCreateDC = ErrorDeviceId;
 		mEditColor = COLOR_W;
@@ -110,7 +110,7 @@ namespace Chromatron
 		Vec2i cPos;
 		Level::PosType pt = getCellPos( pos.x , pos.y , cPos );
 		if ( pt == Level::PT_NONE )
-			return NULL;
+			return nullptr;
 		return getLevel().getDevice( pt , cPos );
 	}
 
@@ -123,7 +123,7 @@ namespace Chromatron
 			mDownDC = getDevice( msg.getPos() );
 			if ( mbCreationMode )
 			{
-				if ( mDownDC == NULL )
+				if ( mDownDC == nullptr )
 				{
 					mIdCreateDC = getToolDevice( msg.getPos() );
 					if ( mIdCreateDC == ErrorDeviceId )
@@ -147,7 +147,7 @@ namespace Chromatron
 				Vec2i cPos;
 				Level::PosType pt = getCellPos( msg.x() , msg.y() , cPos );
 				bool haveMoveDC;
-				if(  mUpDC == NULL )
+				if(  mUpDC == nullptr )
 					haveMoveDC = getLevel().moveDevice( *mDragDC , pt , cPos );
 				else
 					haveMoveDC = false;
@@ -161,7 +161,7 @@ namespace Chromatron
 					}
 				}
 
-				mDragDC = NULL;
+				mDragDC = nullptr;
 				mNeedUpdateLevel = true;
 			}
 			else if ( mbCreationMode && mIdCreateDC != ErrorDeviceId )
@@ -175,7 +175,7 @@ namespace Chromatron
 				mIdCreateDC = ErrorDeviceId;
 			}
 
-			mDownDC = NULL;
+			mDownDC = nullptr;
 		}
 		else if ( msg.onRightDown() )
 		{
@@ -188,7 +188,7 @@ namespace Chromatron
 		}
 		else if ( msg.onMoving() )
 		{
-			if ( mDragDC == NULL )
+			if ( mDragDC == nullptr )
 			{
 				if ( mDownDC )
 				{

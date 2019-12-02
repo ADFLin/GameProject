@@ -3,20 +3,20 @@
 class TestWorkingModule : public IModuleInterface
 {
 public:
-	virtual bool initialize() override
+	bool initialize() override
 	{
 		return true;
 	}
-	virtual void cleanup() override
+	void cleanup() override
 	{
 		
 	}
-	virtual bool isGameModule() const override
+	bool isGameModule() const override
 	{
 		return false;
 	}
 
-	virtual void deleteThis() override
+	void deleteThis() override
 	{
 		delete this;
 	}

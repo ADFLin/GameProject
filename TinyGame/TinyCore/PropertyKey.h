@@ -1,11 +1,10 @@
 #ifndef PropertyKey_h__
 #define PropertyKey_h__
 
-
 #include <string>
 #include <sstream>
 #include <fstream>
-#include <map>
+#include <unordered_map>
 
 class  KeyValue
 {
@@ -70,7 +69,8 @@ protected:
 			return ::strcmp( s1 , s2 ) < 0;
 		}
 	};
-	typedef std::map< std::string , KeyValue > KeyValueMap;
+	using KeyValueMap = std::unordered_map< std::string , KeyValue >;
+
 	friend class PropertyKey;
 	int  mSequenceOrder = -1;
 	KeyValueMap mKeyMap;
@@ -120,7 +120,8 @@ private:
 	bool  tryGetValueT( char const* keyName , char const* group , T& value );
 
 	int   parseLine( char* buffer , KeySection** curSection );
-	typedef std::map< std::string , KeySection > KeySectionMap;
+
+	using KeySectionMap = std::unordered_map< std::string , KeySection >;
 	KeySectionMap mSectionMap;
 
 	int mNextSectionSeqOrder;

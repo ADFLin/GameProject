@@ -70,12 +70,12 @@ protected:
 
 class LevelStageMode : public GameStageMode
 {
-	typedef GameStageMode BaseClass;
+	using BaseClass = GameStageMode;
 public:
 	LevelStageMode(StageModeType mode);
 
-	void   onRestart(uint64& seed);
-	bool   saveReplay(char const* name);
+	void   onRestart(uint64& seed) override;
+	bool   saveReplay(char const* name) override;
 
 protected:
 	bool buildReplayRecorder();

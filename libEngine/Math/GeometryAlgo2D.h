@@ -8,12 +8,12 @@
 
 namespace Geom2D
 {
-	typedef Math::Vector2 Vector2;
+	using Vector2 = Math::Vector2;
 
 	template< class T >
 	struct PolyProperty
 	{
-		typedef T PolyType;
+		using PolyType = T;
 		static void  Setup( PolyType& p, int size );
 		static int   Size( PolyType const& p);
 		static Vector2 const& Vertex( PolyType const& p, int idx );
@@ -62,7 +62,10 @@ namespace Geom2D
 	bool IsConvex(TPoly const& poly)
 	{
 		int num = Poly::Size(poly);
-		assert(num > 2);
+		if (num <= 2)
+		{
+			return false;
+		}
 
 		int idxPrev = num - 1;
 		unsigned count = 0;
@@ -75,8 +78,10 @@ namespace Geom2D
 			dirPrev = dirCur;
 			dirCur = Poly::Vertex(poly, (i + 1) % num) - Poly::Vertex(poly, i);
 
-			if( ang * dirPrev.cross(dirCur) < 0 )
+			if (ang * dirPrev.cross(dirCur) < 0)
+			{
 				return false;
+			}
 		}
 
 		return true;
@@ -264,7 +269,7 @@ namespace Geom2D
 			Vector2 d = getVertex(i1) - v2;
 
 			float valMax = 0;
-			int*  itMax = 0;
+			int*  itMax = nullptr;
 
 			int*  iter = pIdx;
 			int*  itEnd = pIdx + nV;

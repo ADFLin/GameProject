@@ -45,7 +45,7 @@ class IFrameActionTemplate;
 
 class GameStageBase : public StageBase
 {
-	typedef StageBase BaseClass;
+	using BaseClass = StageBase;
 public:
 
 	GameStageBase();
@@ -61,24 +61,25 @@ public:
 	virtual bool queryAttribute(GameAttribute& value) { return false; }
 	virtual bool setupAttribute(GameAttribute const& value) { return false; }
 
-	virtual bool onInit();
-	virtual void onEnd();
-	virtual void onRestart(bool beInit) {}
-	virtual void onRender(float dFrame) {}
-	virtual void onUpdate(long time);
+	bool onInit() override;
+	void onEnd() override;
+	
+	void onRender(float dFrame) override {}
+	void onUpdate(long time) override;
 
+	virtual void onRestart(bool beInit) {}
 	virtual void tick() {}
 	virtual void updateFrame(int frame) {}
 
-	virtual bool onMouse(MouseMsg const& msg) { return true; }
-	virtual bool onChar(unsigned code) { return true; }
-	virtual bool onKey(unsigned key, bool isDown);
-	virtual bool onWidgetEvent(int event, int id, GWidget* ui);
+	bool onMouse(MouseMsg const& msg) override { return true; }
+	bool onChar(unsigned code) override { return true; }
+	bool onKey(unsigned key, bool isDown) override;
+	bool onWidgetEvent(int event, int id, GWidget* ui) override;
 
-	virtual GameStageBase* getGameStage() override { return this; }
+	GameStageBase* getGameStage() override { return this; }
 
 	virtual void onChangeState(GameState state) {}
-	virtual IFrameActionTemplate* createActionTemplate(unsigned version) { return NULL; }           
+	virtual IFrameActionTemplate* createActionTemplate(unsigned version) { return nullptr; }           
 
 	void             setupStageMode(GameStageMode* mode);
 	GameStageMode*   getStageMode() { return mStageMode; }

@@ -9,12 +9,12 @@
 
 class TaskBase;
 
-typedef unsigned StageGroupID;
+using StageGroupID = unsigned;
 
 class GameMenuStage : public StageBase
 	                , public TaskListener
 {
-	typedef StageBase BaseClass;
+	using BaseClass = StageBase;
 public:
 
 	enum
@@ -24,8 +24,8 @@ public:
 	};
 
 	GameMenuStage();
-	bool onInit();
-	void onUpdate( long time );
+	bool onInit() override;
+	void onUpdate( long time ) override;
 	bool onMouse( MouseMsg const& msg ) override;
 	bool onKey(unsigned key, bool isDown) override;
 
@@ -59,14 +59,14 @@ public:
 	void     fadeoutGroup( int dDelay );
 	GWidget* createButton( int delay , int id , char const* title , Vec2i const& pos , Vec2i const& size );
 
-	void onTaskMessage( TaskBase* task , TaskMsg const& msg );
+	void onTaskMessage( TaskBase* task , TaskMsg const& msg ) override;
 
 
 
 
 protected:
-	typedef std::vector< TaskBase* > TaskList;
-	typedef std::vector< GWidget* > UIList;
+	using TaskList = std::vector< TaskBase* >;
+	using UIList   = std::vector< GWidget* >;
 
 	TaskList      mSkipTasks;
 	UIList        mGroupUI;

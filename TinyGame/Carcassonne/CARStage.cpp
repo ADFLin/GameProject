@@ -30,7 +30,7 @@ namespace CAR
 	{
 	public:
 		TFunInputCommand(Fun inFun) :fun(inFun) {}
-		virtual void execute(CGameInput& input) override { fun(input); }
+		void execute(CGameInput& input) override { fun(input); }
 		Fun fun;
 	};
 #define CAR_INPUT_COMMAND( CODE , ...)\
@@ -251,7 +251,7 @@ namespace CAR
 	{
 
 		::Graphics2D& g = Global::GetGraphics2D();
-		if ( 1 )
+		if ( true )
 		{
 			mScene->render( mCamera , mViewport );
 			mSceneUI->render2D( mViewport , CFly::CFRF_CLEAR_Z );
@@ -366,7 +366,7 @@ namespace CAR
 						{
 							RenderUtility::SetBrush( g , EColor::Red );
 							RenderUtility::SetPen( g , EColor::Red );
-							FarmFeature* farm = static_cast< FarmFeature* >( feature );
+							auto* farm = static_cast< FarmFeature* >( feature );
 							for(auto node : farm->nodes)
 							{
 								Vec2i size( 4 ,4 );
@@ -380,10 +380,8 @@ namespace CAR
 
 		}
 
-		for( int i = 0 ; i < mGameLogic.mActors.size() ; ++i )
+		for(LevelActor* actor : mGameLogic.mActors)
 		{
-			LevelActor* actor = mGameLogic.mActors[i];
-
 			if ( actor->mapTile == nullptr )
 				continue;
 
@@ -1149,7 +1147,7 @@ namespace CAR
 					int num = 0;
 					for( auto iter = TBitMaskIterator< 32 >(info.actorTypeMask); iter; ++iter )
 					{
-						ActorPosButton* button = new ActorPosButton( UI_ACTOR_POS_BUTTON ,  convertToScreenPos( pos + offset * num  ) - size / 2 , size , nullptr );
+						auto* button = new ActorPosButton( UI_ACTOR_POS_BUTTON ,  convertToScreenPos( pos + offset * num  ) - size / 2 , size , nullptr );
 						button->indexPos = i;
 						button->type     = ActorType( iter.index );
 						button->info     = &info;
@@ -1162,7 +1160,7 @@ namespace CAR
 			break;
 		case ACTION_SELECT_ACTOR:
 			{
-				GameSelectActorData* myData = data->cast< GameSelectActorData >();
+				auto* myData = data->cast< GameSelectActorData >();
 
 				if ( myData->bCanSkip )
 				{
@@ -1256,7 +1254,7 @@ namespace CAR
 			break;
 		case ACTION_SELECT_ACTION_OPTION:
 			{
-				GameSelectActionOptionData* myData = data->cast< GameSelectActionOptionData >();
+				auto* myData = data->cast< GameSelectActionOptionData >();
 
 
 			}
@@ -1272,7 +1270,7 @@ namespace CAR
 			break;
 		case ACTION_BUY_AUCTIONED_TILE:
 			{
-				GameAuctionTileData* myData = data->cast< GameAuctionTileData >();
+				auto* myData = data->cast< GameAuctionTileData >();
 				FixString< 512 > str;
 				::Global::GUI().showMessageBox( UI_BUY_AUCTION_TILE , str.format( "Can You Buy Tile : Score = %d , Id = %d" , myData->maxScore , myData->pIdCallMaxScore ) );
 			}

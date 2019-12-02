@@ -74,17 +74,17 @@ void KeyValue::setString(char const* value)
 
 KeyValue* KeySection::getKeyValue( char const* keyName )
 {
-	KeyValueMap::iterator iter = mKeyMap.find( keyName );
+	auto iter = mKeyMap.find( keyName );
 	if ( iter != mKeyMap.end() )
 		return &iter->second;
-	return NULL;
+	return nullptr;
 }
 
 void KeySection::serializtion( std::ostream& os )
 {
 	std::vector< KeyValueMap::iterator > sortedValueIters;
 
-	for( KeyValueMap::iterator iter = mKeyMap.begin();
+	for( auto iter = mKeyMap.begin();
 		iter != mKeyMap.end() ; ++iter )
 	{
 		sortedValueIters.push_back(iter);	
@@ -112,9 +112,9 @@ KeyValue* PropertyKey::getKeyValue( char const* group, char const* keyName )
 	if ( !group )
 		group = GLOBAL_SECTION;
 
-	KeySectionMap::iterator iter = mSectionMap.find( group );
+	auto iter = mSectionMap.find( group );
 	if ( iter == mSectionMap.end() )
-		return NULL;
+		return nullptr;
 
 	return iter->second.getKeyValue( keyName );
 }
@@ -198,7 +198,7 @@ bool PropertyKey::saveFile( char const* path )
 	if ( !fs )
 		return false;
 
-	KeySectionMap::iterator globalIter = mSectionMap.find( GLOBAL_SECTION );
+	auto globalIter = mSectionMap.find( GLOBAL_SECTION );
 
 	if( globalIter != mSectionMap.end() )
 	{
@@ -208,7 +208,7 @@ bool PropertyKey::saveFile( char const* path )
 
 	std::vector < KeySectionMap::iterator > sortedSectionIters;
 
-	for( KeySectionMap::iterator iter = mSectionMap.begin();
+	for( auto iter = mSectionMap.begin();
 		iter != mSectionMap.end() ; ++iter )
 	{
 		if ( iter == globalIter )
@@ -288,7 +288,7 @@ int PropertyKey::parseLine( char* buffer , KeySection** curSection )
 
 		token = skipTo( token , ']' );
 
-		if ( token == NULL )
+		if ( token == nullptr )
 			return PARSE_SECTION_ERROR;
 
 		cutBackSpace( token );

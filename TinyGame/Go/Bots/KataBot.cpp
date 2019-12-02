@@ -12,7 +12,7 @@ namespace Go
 	{
 	public:
 
-		virtual void procDumpCommandMsg(GTPCommand com, char* buffer, int num) 
+		void procDumpCommandMsg(GTPCommand com, char* buffer, int num) override 
 		{
 			if ( com.id == GTPCommand::eGenmove )
 			{
@@ -45,7 +45,7 @@ namespace Go
 		}
 		else
 		{
-			GTPLikeAppRun::thinkNextMove(color);
+			return GTPLikeAppRun::thinkNextMove(color);
 		}
 	}
 

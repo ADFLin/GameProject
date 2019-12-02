@@ -11,7 +11,7 @@
 #include <limits>
 namespace G2D
 {
-	typedef std::vector< Vector2 > Vertices;
+	using Vertices = std::vector< Vector2 >;
 	inline Vector2 normalize(Vector2 const& v)
 	{
 		float len = sqrt(v.length2());
@@ -27,7 +27,7 @@ namespace Geom2D
 	template<>
 	struct PolyProperty< ::G2D::Vertices >
 	{
-		typedef ::G2D::Vertices PolyType;
+		using PolyType = ::G2D::Vertices;
 		static void  Setup(PolyType& p, int size) { p.resize(size); }
 		static int   Size(PolyType const& p) { return p.size(); }
 		static Vector2 const& Vertex(PolyType const& p, int idx) { return p[idx]; }
@@ -39,7 +39,7 @@ namespace G2D
 
 	class QHullTestStage : public StageBase
 	{
-		typedef StageBase BaseClass;
+		using BaseClass = StageBase;
 	public:
 		QHullTestStage()
 			:mTestPos(0, 0)
@@ -79,7 +79,7 @@ namespace G2D
 			mbConvex = Geom2D::IsConvex(mVertices);
 		}
 
-		virtual bool onInit()
+		bool onInit() override
 		{
 
 			{
@@ -91,12 +91,12 @@ namespace G2D
 			return true;
 		}
 
-		virtual void onEnd()
+		void onEnd() override
 		{
 
 		}
 
-		virtual void onUpdate(long time)
+		void onUpdate(long time) override
 		{
 			BaseClass::onUpdate(time);
 
@@ -107,7 +107,7 @@ namespace G2D
 			updateFrame(frame);
 		}
 
-		void onRender(float dFrame)
+		void onRender(float dFrame) override
 		{
 			Graphics2D& g = Global::GetGraphics2D();
 
@@ -149,9 +149,9 @@ namespace G2D
 			RenderUtility::SetBrush(g, EColor::Red);
 			if( !mVertices.empty() )
 			{
-				for( int i = 0; i < mVertices.size(); ++i )
+				for(auto const& v : mVertices)
 				{
-					mRenderer.drawCircle(g, mVertices[i], 0.5);
+					mRenderer.drawCircle(g, v, 0.5);
 				}
 			}
 
@@ -180,7 +180,7 @@ namespace G2D
 
 		}
 
-		bool onMouse(MouseMsg const& msg)
+		bool onMouse(MouseMsg const& msg) override
 		{
 			if( !BaseClass::onMouse(msg) )
 				return false;
@@ -217,7 +217,7 @@ namespace G2D
 				mbInside = Geom2D::TestInSide(mVertices, mTestPos);
 		}
 
-		bool onKey(unsigned key, bool isDown)
+		bool onKey(unsigned key, bool isDown) override
 		{
 			if( !isDown )
 				return false;
@@ -250,7 +250,7 @@ namespace G2D
 
 	class TestStage : public StageBase
 	{
-		typedef StageBase BaseClass;
+		using BaseClass = StageBase;
 	public:
 		TestStage() {}
 
@@ -264,23 +264,23 @@ namespace G2D
 		Mode mMode;
 
 
-		virtual bool onInit()
+		bool onInit() override
 		{
 			mMode = MODE_CIRCLE;
 			mR = 10.0f;
 			mPA = Vector2(10, 10);
 			float const len1 = 10;
-			mVA.push_back(Vector2(len1, 0));
-			mVA.push_back(Vector2(0, len1));
-			mVA.push_back(Vector2(-len1, 0));
-			mVA.push_back(Vector2(0, -len1));
+			mVA.emplace_back(len1, 0);
+			mVA.emplace_back(0, len1);
+			mVA.emplace_back(-len1, 0);
+			mVA.emplace_back(0, -len1);
 
 			mPB = Vector2(20, 20);
 			float const len2 = 7;
-			mVB.push_back(Vector2(len2, len2));
-			mVB.push_back(Vector2(-len2, len2));
-			mVB.push_back(Vector2(-len2, -len2));
-			mVB.push_back(Vector2(len2, -len2));
+			mVB.emplace_back(len2, len2);
+			mVB.emplace_back(-len2, len2);
+			mVB.emplace_back(-len2, -len2);
+			mVB.emplace_back(len2, -len2);
 
 
 			Geom2D::MinkowskiSum(mVA, mVB, mPoly);
@@ -331,7 +331,7 @@ namespace G2D
 			g.drawPolygon(buf, num);
 		}
 
-		virtual void onUpdate(long time)
+		void onUpdate(long time) override
 		{
 			BaseClass::onUpdate(time);
 
@@ -342,7 +342,7 @@ namespace G2D
 			updateFrame(frame);
 		}
 
-		void onRender(float dFrame)
+		void onRender(float dFrame) override
 		{
 			Graphics2D& g = Global::GetGraphics2D();
 
@@ -405,7 +405,7 @@ namespace G2D
 
 		}
 
-		bool onMouse(MouseMsg const& msg)
+		bool onMouse(MouseMsg const& msg) override
 		{
 			static Vec2i oldPos;
 			if( msg.onLeftDown() )
@@ -425,7 +425,7 @@ namespace G2D
 			return false;
 		}
 
-		bool onKey(unsigned key, bool isDown)
+		bool onKey(unsigned key, bool isDown) override
 		{
 			if( !isDown )
 				return false;

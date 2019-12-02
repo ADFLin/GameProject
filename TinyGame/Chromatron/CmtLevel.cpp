@@ -80,18 +80,14 @@ namespace Chromatron
 
 	void Level::restart()
 	{
-		for( DeviceVec::iterator iter = mUserDC.begin();
-			iter != mUserDC.end() ; ++iter )
+		for(Device* dc : mUserDC)
 		{
-			Device* dc = *iter;
 			uninstallDevice( *dc );
 		}
 
 		int index = 0;
-		for( DeviceVec::iterator iter = mUserDC.begin();
-			iter != mUserDC.end() ; ++iter )
+		for(Device * dc : mUserDC)
 		{
-			Device* dc = *iter;
 			dc->changeDir( Dir::ValueChecked( 0 ) );
 			installDevice( *dc , Vec2i( index , 0 ) , false );
 			++index;
@@ -108,7 +104,7 @@ namespace Chromatron
 		case PT_STROAGE:
 			return getStorageDevice( pos.x );
 		}
-		return NULL;
+		return nullptr;
 	}
 
 	bool Level::moveDevice(Device& dc,const Vec2i& pos , bool inWorld ,bool beForce )
@@ -190,11 +186,11 @@ namespace Chromatron
 
 			switch ( context.transmitLight() )
 			{
-			case TSS_LOGIC_ERROR:
-			case TSS_RECALC:
+			case ETransmitStatus::LogicError:
+			case ETransmitStatus::RecalcRequired:
 				bRecalc = true;
 				break;
-			case TSS_INFINITE_LOOP:
+			case ETransmitStatus::InfiniteLoop:
 				bRecalc = false;
 				break;
 			}
@@ -233,14 +229,14 @@ namespace Chromatron
 		mUserDC.clear();
 		mWorld.clearDevice();
 		mMapDCList.clear();
-		std::fill_n( mStorgeMap , MaxNumUserDC , (Device*)0 );
+		std::fill_n( mStorgeMap , MaxNumUserDC , nullptr );
 	}
 
 
 	Device* Level::createDevice( DeviceId id , PosType posType , Vec2i const& pos , Dir dir , Color color , bool beUserDC )
 	{
 		if ( posType == PT_NONE )
-			return NULL;
+			return nullptr;
 
 		return createDevice( id , pos , dir , color , beUserDC , posType == PT_WORLD );
 	}
@@ -248,17 +244,17 @@ namespace Chromatron
 	Device* Level::createDevice( DeviceId id , Vec2i const& pos , Dir dir ,Color color , bool beUserDC ,bool inWorld  )
 	{
 		if ( !isValidRange( pos , inWorld ) )
-			return NULL;
+			return nullptr;
 
 		if ( inWorld )
 		{
 			if ( !mWorld.canSetup( pos ) )
-				return NULL;
+				return nullptr;
 		}
 		else
 		{
 			if ( mStorgeMap[pos.x] || ( DeviceFactory::GetInfo( id ).flag & DFB_STATIC ) )
-				return NULL;
+				return nullptr;
 		}
 
 		Device* dc = DeviceFactory::Create( id , dir , color );
@@ -384,8 +380,7 @@ namespace Chromatron
 		int   num = 0;
 		int   prevID = -1;
 
-		Device* prevDC = NULL;
-
+		Device* prevDC = nullptr;
 
 		for( int j = 0; j < getMapSize() ; ++j )
 		{
@@ -395,7 +390,7 @@ namespace Chromatron
 
 				Device* dc = tile.getDevice();
 
-				Device* curDC = ( dc && dc->isStatic() ) ? dc : NULL ;
+				Device* curDC = ( dc && dc->isStatic() ) ? dc : nullptr ;
 				int     curID  = ( curDC ) ? dc->getId() : tile.getType();
 
 				if ( prevID == -1 )
@@ -460,7 +455,7 @@ namespace Chromatron
 
 		int numDC  = 1;
 
-		while( 1 )
+		while( true )
 		{
 			Device*  prevDC = *iter;
 			++iter;
@@ -633,13 +628,10 @@ namespace Chromatron
 	int Level::generateDCStateCode( char* buf , int maxLen )
 	{
 		int len = 0;
-		for( DeviceVec::iterator iter = mUserDC.begin();
-			iter != mUserDC.end(); ++iter )
+		for( Device* dc : mUserDC )
 		{
 			if ( len > maxLen - 2 )
 				break;
-
-			Device* dc = *iter;
 
 			DcStateCoder coder;
 			coder.encode( buf , *dc );
@@ -658,7 +650,7 @@ namespace Chromatron
 		bool  inWorld;
 
 		int len = 0;
-		for( int i = 0 ; i < (int)mUserDC.size() ; ++i )
+		for(Device* dc : mUserDC)
 		{
 			if ( len > maxLen - 2 )
 				break;
@@ -666,8 +658,8 @@ namespace Chromatron
 			DcStateCoder decoder;
 			decoder.decode( code , pos , dir , inWorld );
 
-			moveDevice( *mUserDC[i] , pos , inWorld , false );
-			mUserDC[i]->changeDir( dir , false );
+			moveDevice( *dc , pos , inWorld , false );
+			dc->changeDir( dir , false );
 
 			len  += 2;
 			code += 2;
@@ -770,7 +762,7 @@ namespace Chromatron
 
 		if ( dc.isInWorld() )
 		{
-			mWorld.getTile( dc.getPos() ).setDeviceData( NULL );
+			mWorld.getTile( dc.getPos() ).setDeviceData( nullptr );
 
 			for( MapDCInfoList::iterator iter = mMapDCList.begin();
 				 iter != mMapDCList.end() ; ++iter )
@@ -785,7 +777,7 @@ namespace Chromatron
 		}
 		else
 		{
-			mStorgeMap[ dc.getPos().x ] = NULL;
+			mStorgeMap[ dc.getPos().x ] = nullptr;
 		}
 	}
 
@@ -798,7 +790,7 @@ namespace Chromatron
 
 		GameInfoHeaderV2* gameHeader = (GameInfoHeaderV2*) malloc( gameHeaderSize );
 
-		if ( gameHeader == NULL )
+		if ( gameHeader == nullptr )
 			return false;
 
 		ON_SCOPE_EXIT
@@ -841,8 +833,8 @@ namespace Chromatron
 	int Level::LoadData( std::istream& stream , Level*  level[] , int num )
 	{
 		using std::ios;
-		typedef GameInfoHeaderBaseV2 GameInfoHeaderBaseLD;
-		typedef GameInfoHeaderV2 GameInfoHeaderLD;
+		using GameInfoHeaderBaseLD = GameInfoHeaderBaseV2;
+		using GameInfoHeaderLD = GameInfoHeaderV2;
 
 		GameInfoHeaderBaseLD tempHeader;
 
@@ -851,7 +843,7 @@ namespace Chromatron
 		stream.read( (char*) &tempHeader , sizeof(tempHeader) );
 
 		GameInfoHeaderLD* gameHeader = (GameInfoHeaderLD*) malloc( tempHeader.headerSize );
-		if ( gameHeader == NULL )
+		if ( gameHeader == nullptr )
 			return 0;
 
 		ON_SCOPE_EXIT
@@ -884,8 +876,8 @@ namespace Chromatron
 	bool Level::loadLevel(Level& level, std::istream& stream, int idxLevelData)
 	{
 		using std::ios;
-		typedef GameInfoHeaderBaseV2 GameInfoHeaderBaseLD;
-		typedef GameInfoHeaderV2 GameInfoHeaderLD;
+		using GameInfoHeaderBaseLD = GameInfoHeaderBaseV2;
+		using GameInfoHeaderLD = GameInfoHeaderV2;
 
 		GameInfoHeaderBaseLD tempHeader;
 
@@ -894,7 +886,7 @@ namespace Chromatron
 		stream.read((char*)&tempHeader, sizeof(tempHeader));
 
 		GameInfoHeaderLD* gameHeader = (GameInfoHeaderLD*)malloc(tempHeader.headerSize);
-		if (gameHeader == NULL)
+		if (gameHeader == nullptr)
 			return false;
 
 		ON_SCOPE_EXIT

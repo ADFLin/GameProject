@@ -13,22 +13,22 @@ namespace CAR
 	public:
 		GameModule();
 		virtual ~GameModule();
-		virtual bool  initialize(){ return true; }
-		virtual void  cleanup(){}
-		virtual void  enter(){}
-		virtual void  exit(){} 
-		virtual void  deleteThis(){ delete this; }
+		bool  initialize() override{ return true; }
+		void  cleanup() override{}
+		void  enter() override{}
+		void  exit() override{} 
+		void  deleteThis() override{ delete this; }
 		//
-		virtual void beginPlay( StageManager& manger, StageModeType modeType ) override;
+		void beginPlay( StageManager& manger, StageModeType modeType ) override;
 	public:
-		virtual char const*           getName(){ return CAR_GAME_NAME; }
-		virtual GameController&       getController(){ return IGameModule::getController(); }
-		virtual StageBase*            createStage( unsigned id );
-		virtual SettingHepler*        createSettingHelper( SettingHelperType type );
-		virtual bool                  queryAttribute( GameAttribute& value );
+		char const*           getName() override{ return CAR_GAME_NAME; }
+		GameController&       getController() override{ return IGameModule::getController(); }
+		StageBase*            createStage( unsigned id ) override;
+		SettingHepler*        createSettingHelper( SettingHelperType type ) override;
+		bool                  queryAttribute( GameAttribute& value ) override;
 
 		//old replay version
-		virtual ReplayTemplate*       createReplayTemplate( unsigned version ){ return NULL; }
+		ReplayTemplate*       createReplayTemplate( unsigned version ) override{ return nullptr; }
 
 	public:
 	};

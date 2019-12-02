@@ -283,7 +283,7 @@ namespace Render
 		}
 
 
-		virtual void bindParameters(ShaderParameterMap const& parameterMap) override
+		void bindParameters(ShaderParameterMap const& parameterMap) override
 		{
 			mParamTime.bind(parameterMap, SHADER_PARAM(Time));
 			mParamFBMFactor.bind(parameterMap, SHADER_PARAM(FBMFactor));
@@ -334,7 +334,7 @@ namespace Render
 
 	class NoiseShaderTestProgram : public NoiseShaderProgramBase
 	{
-		typedef NoiseShaderProgramBase BaseClass;
+		using BaseClass = NoiseShaderProgramBase;
 		DECLARE_SHADER_PROGRAM(NoiseShaderTestProgram, Global);
 	public:
 		static TArrayView< ShaderEntryInfo const > GetShaderEntries()
@@ -353,7 +353,7 @@ namespace Render
 	template< bool bUseRandTexture, bool bUseFBMFactor = true >
 	class TNoiseShaderProgram : public NoiseShaderProgramBase
 	{
-		typedef NoiseShaderProgramBase BaseClass;
+		using BaseClass = NoiseShaderProgramBase;
 		DECLARE_SHADER_PROGRAM(TNoiseShaderProgram, Global);
 	public:
 		static void SetupShaderCompileOption(ShaderCompileOption& option)
@@ -381,7 +381,7 @@ namespace Render
 
 	class SmokeRenderProgram : public NoiseShaderProgramBase
 	{
-		typedef NoiseShaderProgramBase BaseClass;
+		using BaseClass = NoiseShaderProgramBase;
 		DECLARE_SHADER_PROGRAM(SmokeRenderProgram, Global);
 	public:
 		static char const* GetShaderFileName()
@@ -399,7 +399,7 @@ namespace Render
 			return entries;
 		}
 
-		virtual void bindParameters(ShaderParameterMap const& parameterMap) override
+		void bindParameters(ShaderParameterMap const& parameterMap) override
 		{
 			BaseClass::bindParameters(parameterMap);
 			SHADER_BIND_PARAM(VolumeMin);
@@ -434,7 +434,7 @@ namespace Render
 
 	class SmokeBlendProgram : public GlobalShaderProgram
 	{
-		typedef GlobalShaderProgram BaseClass;
+		using BaseClass = GlobalShaderProgram;
 		DECLARE_SHADER_PROGRAM(SmokeBlendProgram, Global);
 	public:
 		static char const* GetShaderFileName()
@@ -452,7 +452,7 @@ namespace Render
 			return entries;
 		}
 
-		virtual void bindParameters(ShaderParameterMap const& parameterMap) override
+		void bindParameters(ShaderParameterMap const& parameterMap) override
 		{
 			BaseClass::bindParameters(parameterMap);
 			SHADER_BIND_PARAM(FrameTexture);
@@ -478,7 +478,7 @@ namespace Render
 
 	class ResovleDepthProgram : public GlobalShaderProgram
 	{
-		typedef GlobalShaderProgram BaseClass;
+		using BaseClass = GlobalShaderProgram;
 		DECLARE_SHADER_PROGRAM(ResovleDepthProgram, Global);
 	public:
 		static char const* GetShaderFileName()
@@ -502,7 +502,7 @@ namespace Render
 	class NoiseTestStage : public TestRenderStageBase
 
 	{
-		typedef TestRenderStageBase BaseClass;
+		using BaseClass = TestRenderStageBase;
 	public:
 		NoiseTestStage() {}
 
@@ -550,8 +550,8 @@ namespace Render
 		float mAlbedo = 1;
 		std::vector< LightInfo > mLights;
 
-		virtual bool onInit();
-		virtual void onEnd();
+		bool onInit() override;
+		void onEnd() override;
 
 		void updateLightToBuffer()
 		{
@@ -573,29 +573,29 @@ namespace Render
 		}
 
 
-		void restart()
+		void restart() override
 		{
 			mData.time = 0;
 		}
-		void tick() {}
-		void updateFrame(int frame) {}
+		void tick() override {}
+		void updateFrame(int frame) override {}
 
-		virtual void onUpdate(long time)
+		void onUpdate(long time) override
 		{
 			BaseClass::onUpdate(time);
 			mData.time += float(time) / 1000.0f;
 		}
 
-		void onRender(float dFrame);
+		void onRender(float dFrame) override;
 
-		bool onMouse(MouseMsg const& msg)
+		bool onMouse(MouseMsg const& msg) override
 		{
 			if( !BaseClass::onMouse(msg) )
 				return false;
 			return true;
 		}
 
-		bool onKey(unsigned key, bool isDown)
+		bool onKey(unsigned key, bool isDown) override
 		{
 			if( !isDown )
 				return false;
@@ -607,7 +607,7 @@ namespace Render
 			return BaseClass::onKey(key, isDown);
 		}
 
-		virtual bool onWidgetEvent(int event, int id, GWidget* ui) override
+		bool onWidgetEvent(int event, int id, GWidget* ui) override
 		{
 			switch( id )
 			{

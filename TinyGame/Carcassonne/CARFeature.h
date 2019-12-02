@@ -67,20 +67,20 @@ namespace CAR
 		}
 	};
 
-	typedef std::unordered_set< MapTile* > MapTileSet;
-	typedef std::unordered_set< unsigned > GroupSet;
+	using MapTileSet = std::unordered_set< MapTile* >;
+	using GroupSet   = std::unordered_set< unsigned >;
 
 	class  FeatureBase : public ActorContainer
 	{
 	public:
 
-		typedef MapTile::FarmNode FarmNode;
-		typedef MapTile::SideNode SideNode;
+		using FarmNode = MapTile::FarmNode;
+		using SideNode = MapTile::SideNode;
 		FeatureBase()
 		{
 			userData = nullptr;
 		}
-		virtual ~FeatureBase(){}
+		virtual ~FeatureBase() = default;
 
 		int         group;
 		int         type;
@@ -144,7 +144,7 @@ namespace CAR
 
 	class SideFeature : public FeatureBase
 	{
-		typedef FeatureBase BaseClass;
+		using BaseClass = FeatureBase;
 	public:
 		SideFeature();
 
@@ -152,12 +152,12 @@ namespace CAR
 		int  openCount;
 		int  halfSepareteCount;
 
-		virtual void mergeData( FeatureBase& other , MapTile const& putData , int meta );
+		void mergeData( FeatureBase& other , MapTile const& putData , int meta ) override;
 		virtual void addNode( MapTile& mapData , unsigned dirMask , SideNode* linkNode );
 		virtual void addAbbeyNode( MapTile& mapData , int dir );
-		virtual void generateRoadLinkFeatures( WorldTileManager& worldTileManager, GroupSet& outFeatures );
-		virtual bool getActorPos( MapTile const& mapTile , ActorPos& actorPos );
-		virtual int  getScoreTileNum() const { return mapTiles.size(); }
+		void generateRoadLinkFeatures( WorldTileManager& worldTileManager, GroupSet& outFeatures ) override;
+		bool getActorPos( MapTile const& mapTile , ActorPos& actorPos ) override;
+		int  getScoreTileNum() const override { return mapTiles.size(); }
 
 		int getSideContentNum(SideContentType contentMask);
 		bool checkNodesConnected() const;
@@ -169,24 +169,24 @@ namespace CAR
 
 	class RoadFeature : public SideFeature
 	{
-		typedef SideFeature BaseClass;
+		using BaseClass = SideFeature;
 	public:
 		static int const Type = FeatureType::eRoad;
 		RoadFeature();
-		virtual void mergeData( FeatureBase& other , MapTile const& putData , int meta ) override;
-		virtual void addNode( MapTile& mapData , unsigned dirMask , SideNode* linkNode ) override;
-		virtual int  getActorPutInfo( int playerId , int posMeta , MapTile& mapTile, std::vector< ActorPosInfo >& outInfo ) override;
-		virtual bool checkComplete() const override;
-		virtual int  calcPlayerScore(PlayerBase* player) override;
-		virtual int  getScoreTileNum() const { return mapTiles.size(); }
-		virtual void onAddFollower(LevelActor& actor) override { actor.className = EFollowerClassName::Thief; }
+		void mergeData( FeatureBase& other , MapTile const& putData , int meta ) override;
+		void addNode( MapTile& mapData , unsigned dirMask , SideNode* linkNode ) override;
+		int  getActorPutInfo( int playerId , int posMeta , MapTile& mapTile, std::vector< ActorPosInfo >& outInfo ) override;
+		bool checkComplete() const override;
+		int  calcPlayerScore(PlayerBase* player) override;
+		int  getScoreTileNum() const override { return mapTiles.size(); }
+		void onAddFollower(LevelActor& actor) override { actor.className = EFollowerClassName::Thief; }
 		bool      haveInn;
 	};
 
 	class FarmFeature;
 	class CityFeature : public SideFeature
 	{
-		typedef SideFeature BaseClass;
+		using BaseClass = SideFeature;
 	public:
 		static int const Type = FeatureType::eCity;
 		CityFeature();
@@ -202,16 +202,16 @@ namespace CAR
 		bool haveAdjacentCloister() const;
 
 
-		virtual void mergeData( FeatureBase& other , MapTile const& putData , int meta ) override;
-		virtual void addNode( MapTile& mapData , unsigned dirMask , SideNode* linkNode ) override;
-		virtual int  getActorPutInfo( int playerId , int posMeta , MapTile& mapTile, std::vector< ActorPosInfo >& outInfo ) override;
-		virtual bool checkComplete() const override;
-		virtual int  calcPlayerScore( PlayerBase* player );
-		virtual void onAddFollower(LevelActor& actor) override 
+		void mergeData( FeatureBase& other , MapTile const& putData , int meta ) override;
+		void addNode( MapTile& mapData , unsigned dirMask , SideNode* linkNode ) override;
+		int  getActorPutInfo( int playerId , int posMeta , MapTile& mapTile, std::vector< ActorPosInfo >& outInfo ) override;
+		bool checkComplete() const override;
+		int  calcPlayerScore( PlayerBase* player ) override;
+		void onAddFollower(LevelActor& actor) override 
 		{ 
 			actor.className = EFollowerClassName::Knight;
 		}
-		virtual int doCalcScore( GamePlayerManager& playerManager , FeatureScoreInfo& outResult) override;
+		int doCalcScore( GamePlayerManager& playerManager , FeatureScoreInfo& outResult) override;
 	};
 
 	class CityOfCarcassonneFeature : public FeatureBase
@@ -219,33 +219,33 @@ namespace CAR
 	public:
 		static int const Type = FeatureType::eCityOfCarcassonne;
 
-		virtual bool checkComplete() const { return true; }
-		virtual int  getActorPutInfo(int playerId, int posMeta, MapTile& mapTile, std::vector< ActorPosInfo >& outInfo) { return 0; }
-		virtual void generateRoadLinkFeatures(WorldTileManager& worldTileManager, GroupSet& outFeatures) {}
-		virtual bool updateForAdjacentTile(MapTile& tile) { return false; }
-		virtual void mergeData(FeatureBase& other, MapTile const& putData, int meta) { NEVER_REACH("City of Carcassonne can't be merged"); }
-		virtual int  calcPlayerScore(PlayerBase* player) { return 0; }
-		virtual int  doCalcScore(GamePlayerManager& playerManager, FeatureScoreInfo& outResult) { return -1; }
-		virtual bool getActorPos(MapTile const& mapTile, ActorPos& actorPos) { return false; }
-		virtual int  getScoreTileNum() const { return 0; }
-		virtual void onAddFollower(LevelActor& actor) {}
+		bool checkComplete() const override { return true; }
+		int  getActorPutInfo(int playerId, int posMeta, MapTile& mapTile, std::vector< ActorPosInfo >& outInfo) override { return 0; }
+		void generateRoadLinkFeatures(WorldTileManager& worldTileManager, GroupSet& outFeatures) override {}
+		bool updateForAdjacentTile(MapTile& tile) override { return false; }
+		void mergeData(FeatureBase& other, MapTile const& putData, int meta) override { NEVER_REACH("City of Carcassonne can't be merged"); }
+		int  calcPlayerScore(PlayerBase* player) override { return 0; }
+		int  doCalcScore(GamePlayerManager& playerManager, FeatureScoreInfo& outResult) override { return -1; }
+		bool getActorPos(MapTile const& mapTile, ActorPos& actorPos) override { return false; }
+		int  getScoreTileNum() const override { return 0; }
+		void onAddFollower(LevelActor& actor) override {}
 	};
 
 	class FarmFeature : public FeatureBase
 	{
-		typedef FeatureBase BaseClass;
+		using BaseClass = FeatureBase;
 	public:
 		FarmFeature();
 
 		static int const Type = FeatureType::eFarm;
 
 		void addNode( MapTile& mapData , unsigned idxMask , FarmNode* linkNode );
-		virtual void mergeData( FeatureBase& other , MapTile const& putData , int meta ) override;
-		virtual int  getActorPutInfo( int playerId , int posMeta , MapTile& mapTile, std::vector< ActorPosInfo >& outInfo ) override;
-		virtual bool checkComplete() const override { return false; }
-		virtual int  doCalcScore( GamePlayerManager& playerManager , FeatureScoreInfo& outResult) override;
-		virtual int  calcPlayerScore( PlayerBase* player );
-		virtual void onAddFollower(LevelActor& actor) override
+		void mergeData( FeatureBase& other , MapTile const& putData , int meta ) override;
+		int  getActorPutInfo( int playerId , int posMeta , MapTile& mapTile, std::vector< ActorPosInfo >& outInfo ) override;
+		bool checkComplete() const override { return false; }
+		int  doCalcScore( GamePlayerManager& playerManager , FeatureScoreInfo& outResult) override;
+		int  calcPlayerScore( PlayerBase* player ) override;
+		void onAddFollower(LevelActor& actor) override
 		{
 			actor.className = EFollowerClassName::Farmer;
 		}
@@ -262,13 +262,13 @@ namespace CAR
 	{
 	public:
 		std::vector< MapTile* > neighborTiles;
-		virtual bool checkComplete() const { return neighborTiles.size() == 8; }
-		virtual int  getScoreTileNum() const { return neighborTiles.size() + 1; }
-		virtual void mergeData(FeatureBase& other, MapTile const& putData, int meta) { NEVER_REACH("Feature can't be merged!!"); }
-		virtual int doCalcScore(GamePlayerManager& playerManager, FeatureScoreInfo& outResult) override;
-		virtual bool updateForAdjacentTile(MapTile& tile) override;
+		bool checkComplete() const override { return neighborTiles.size() == 8; }
+		int  getScoreTileNum() const override { return neighborTiles.size() + 1; }
+		void mergeData(FeatureBase& other, MapTile const& putData, int meta) override { NEVER_REACH("Feature can't be merged!!"); }
+		int doCalcScore(GamePlayerManager& playerManager, FeatureScoreInfo& outResult) override;
+		bool updateForAdjacentTile(MapTile& tile) override;
 
-		virtual bool getActorPos(MapTile const& mapTile, ActorPos& actorPos) override;
+		bool getActorPos(MapTile const& mapTile, ActorPos& actorPos) override;
 	};
 
 	class CloisterFeature : public AdjacentTileScoringFeature
@@ -279,10 +279,10 @@ namespace CAR
 
 		CloisterFeature* challenger;
 
-		virtual int  getActorPutInfo(int playerId, int posMeta, MapTile& mapTile, std::vector< ActorPosInfo >& outInfo) override;
-		virtual int  calcPlayerScore(PlayerBase* player) override;
-		virtual void generateRoadLinkFeatures(WorldTileManager& worldTileManager, GroupSet& outFeatures) override;
-		virtual void onAddFollower(LevelActor& actor) override
+		int  getActorPutInfo(int playerId, int posMeta, MapTile& mapTile, std::vector< ActorPosInfo >& outInfo) override;
+		int  calcPlayerScore(PlayerBase* player) override;
+		void generateRoadLinkFeatures(WorldTileManager& worldTileManager, GroupSet& outFeatures) override;
+		void onAddFollower(LevelActor& actor) override
 		{
 			actor.className = EFollowerClassName::Monk;
 		}
@@ -293,10 +293,10 @@ namespace CAR
 	public:
 		static int const Type = FeatureType::eGarden;
 		GardenFeature();
-		virtual int  getActorPutInfo(int playerId, int posMeta, MapTile& mapTile, std::vector< ActorPosInfo >& outInfo) override;
-		virtual int  calcPlayerScore(PlayerBase* player) override;
-		virtual void generateRoadLinkFeatures(WorldTileManager& worldTileManager, GroupSet& outFeatures) override;
-		virtual void onAddFollower(LevelActor& actor) override
+		int  getActorPutInfo(int playerId, int posMeta, MapTile& mapTile, std::vector< ActorPosInfo >& outInfo) override;
+		int  calcPlayerScore(PlayerBase* player) override;
+		void generateRoadLinkFeatures(WorldTileManager& worldTileManager, GroupSet& outFeatures) override;
+		void onAddFollower(LevelActor& actor) override
 		{
 			assert(actor.type == ActorType::eAbbot);
 			actor.className = EFollowerClassName::Abbot;
@@ -312,19 +312,19 @@ namespace CAR
 
 		std::vector< MapTile* > neighborTiles;
 
-		virtual bool checkComplete() const override 
+		bool checkComplete() const override 
 		{ 
 			assert(mapTiles.size() == 2);
 			return neighborTiles.size() == 10; 
 		}
-		virtual int  getActorPutInfo( int playerId , int posMeta , MapTile& mapTile, std::vector< ActorPosInfo >& outInfo ) override;
-		virtual void mergeData( FeatureBase& other , MapTile const& putData , int meta );
-		virtual int  doCalcScore( GamePlayerManager& playerManager , FeatureScoreInfo& outResult) override;
-		virtual int  calcPlayerScore(PlayerBase* player) override;
-		virtual void generateRoadLinkFeatures( WorldTileManager& worldTileManager, GroupSet& outFeatures ) override;
-		virtual bool updateForAdjacentTile(MapTile& tile) override;
-		virtual bool getActorPos(MapTile const& mapTile , ActorPos& actorPos) override;
-		virtual void onAddFollower(LevelActor& actor) override
+		int  getActorPutInfo( int playerId , int posMeta , MapTile& mapTile, std::vector< ActorPosInfo >& outInfo ) override;
+		void mergeData( FeatureBase& other , MapTile const& putData , int meta ) override;
+		int  doCalcScore( GamePlayerManager& playerManager , FeatureScoreInfo& outResult) override;
+		int  calcPlayerScore(PlayerBase* player) override;
+		void generateRoadLinkFeatures( WorldTileManager& worldTileManager, GroupSet& outFeatures ) override;
+		bool updateForAdjacentTile(MapTile& tile) override;
+		bool getActorPos(MapTile const& mapTile , ActorPos& actorPos) override;
+		void onAddFollower(LevelActor& actor) override
 		{
 			actor.className = EFollowerClassName::Lord;
 		}

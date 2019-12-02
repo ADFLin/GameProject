@@ -2,7 +2,7 @@
 #include "StageBase.h"
 
 
-StageBase::StageBase() : mManager( NULL )
+StageBase::StageBase() : mManager( nullptr )
 {
 	
 }
@@ -46,7 +46,7 @@ void StageBase::onTaskMessage( TaskBase* task , TaskMsg const& msg )
 
 void StageManager::setNextStage( StageBase* chStage )
 {
-	if ( chStage == NULL )
+	if ( chStage == nullptr )
 		chStage = resolveChangeStageFail( FailReason::NoStage );
 
 	if ( chStage )
@@ -66,7 +66,7 @@ public:
 
 StageManager::StageManager() 
 	:mCurStage(  new EmptyStage )
-	,mNextStage( NULL )
+	,mNextStage( nullptr )
 {
 
 }
@@ -89,7 +89,7 @@ void StageManager::setupStage()
 		mCurStage->onInitFail();
 
 		StageBase* stage = resolveChangeStageFail( FailReason::InitFail );
-		if ( stage == NULL )
+		if ( stage == nullptr )
 		{
 			stage = new EmptyStage;
 		}
@@ -122,7 +122,7 @@ void StageManager::checkNewStage()
 		postStageEnd();
 
 		mCurStage = mNextStage;
-		mNextStage = NULL;
+		mNextStage = nullptr;
 		setupStage();
 	}
 }
@@ -136,12 +136,12 @@ void StageManager::cleanup()
 	{
 		mCurStage->onEnd();
 		delete mCurStage;
-		mCurStage = NULL;
+		mCurStage = nullptr;
 
 		postStageEnd();
 	}
 
 	delete mNextStage;
-	mNextStage = NULL;
+	mNextStage = nullptr;
 
 }

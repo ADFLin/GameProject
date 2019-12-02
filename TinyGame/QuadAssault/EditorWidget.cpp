@@ -138,10 +138,8 @@ void PropFrame::changeEdit( IEditable& obj )
 
 void PropFrame::cleanupAllPorp()
 {
-	for( PropInfoVec::iterator iter= mPorps.begin() , itEnd = mPorps.end();
-		iter != itEnd ; ++iter )
+	for(PropInfo & data : mPorps)
 	{
-		PropInfo& data = *iter;
 		data.widget->destroy();
 		data.name->release();
 	}
@@ -258,7 +256,7 @@ void PropFrame::removeEdit()
 	if ( mEditObj )
 	{
 		cleanupAllPorp();
-		mEditObj = NULL;
+		mEditObj = nullptr;
 	}
 }
 
@@ -331,24 +329,23 @@ ActionEditFrame::ActionEditFrame( int id , Vec2i const& pos , QWidget* widget )
 	:BaseClass( id , pos , Vec2i( ListCtrlWidth + ButtonSize().x + 4 + 3 , 200 ) , widget )
 {
 	mListCtrl = new QListCtrl( UI_ACTION_LISTCTRL , Vec2i( 2 , TopSideHeight + 2 ) , Vec2i( 100 , 100 ) , this );
-	mTrigger = NULL;
+	mTrigger = nullptr;
 }
 
 void ActionEditFrame::setupActionList( ActionCreator& creator )
 {
 	Vec2i  basePos = Vec2i( ListCtrlWidth + 2 + 3 , TopSideHeight + 2 );
-	ActionFactoryMap& of = creator.getFactoryMap();
+	ActionFactoryMap& map = creator.getFactoryMap();
 	int num = 0;
-	for( ActionFactoryMap::iterator iter = of.begin() , itEnd = of.end();
-		iter != itEnd ; ++iter )
+	for(auto & factory : map)
 	{
 		Vec2i pos = basePos;
 		pos.y += num  * ( ButtonSize().y + 2 );
 		QTextButton* button = new QTextButton( UI_ACTION_SELECT , pos , ButtonSize() , this );
 		button->text->setFont( getGame()->getFont(0) );
 		button->text->setCharSize( 20 );
-		button->text->setString( iter->first );
-		button->setUserData( (void*)iter->second );
+		button->text->setString( factory.first );
+		button->setUserData( (void*)factory.second );
 		++num;
 	}
 }
@@ -359,10 +356,8 @@ void ActionEditFrame::refreshList()
 	if ( mTrigger )
 	{
 		ActionList& actions = mTrigger->getActions();
-		for( ActionList::iterator iter = actions.begin() ,itEnd = actions.end();
-			iter != itEnd; ++iter )
+		for(Action* act : actions)
 		{
-			Action* act = *iter;
 			unsigned idx = mListCtrl->addItem( act->getName() );
 			mListCtrl->setItemData( idx , (void*) act );
 		}

@@ -4,6 +4,8 @@
 #include "CmtBase.h"
 #include "CmtWorld.h"
 
+#include "Core/IntegerType.h"
+
 #include <vector>
 #include <iostream>
 
@@ -14,13 +16,12 @@ namespace Chromatron
 
 	bool    data2CppCharString( char const* dataPath  , char const* varName );
 
-	typedef unsigned char uint8;
 	struct GameInfoHeader
 	{
-		unsigned  totalSize;
+		unsigned   totalSize;
 		uint8      version;
 		uint8      numLevel;
-		unsigned  offsetLevel[];
+		unsigned   offsetLevel[0];
 	};
 
 
@@ -80,18 +81,15 @@ namespace Chromatron
 		template< class Fun >
 		void      visitAllDevice( Fun fun )
 		{
-			for (MapDCInfoList::iterator iter = mMapDCList.begin();
-				iter != mMapDCList.end(); ++iter)
+			for (auto & data : mMapDCList)
 			{
-				Device* dc = iter->dc;
+				Device* dc = data.dc;
 				if (dc->isStatic())
 					fun(dc);
 			}
 
-			for (DeviceVec::iterator iter = mUserDC.begin();
-				iter != mUserDC.end(); ++iter)
+			for (Device * dc : mUserDC)
 			{
-				Device* dc = *iter;
 				fun(dc);
 			}
 
@@ -122,14 +120,14 @@ namespace Chromatron
 
 		static int const MaxNumMapDC  = 15 * 15;
 
-		typedef std::list< DeviceTileData > MapDCInfoList;
+		using MapDCInfoList = std::list< DeviceTileData >;
 		MapDCInfoList mMapDCList;
 
 		bool        mIsGoal;
 		World       mWorld;
 		Device*     mStorgeMap[ MaxNumUserDC ];
 
-		typedef std::vector< Device* > DeviceVec;
+		using DeviceVec = std::vector< Device* >;
 		static void removeDevice( DeviceVec& dcVec , Device& dc );
 
 		DeviceVec   mUserDC;

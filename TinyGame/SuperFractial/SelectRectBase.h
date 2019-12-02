@@ -22,7 +22,8 @@ class SelectRectBase
 {
 public:
 
-	typedef TVector2<int> Vec2i;
+	using Vec2i = TVector2<int>;
+
 	enum
 	{
 		OUTSIDE    = 0x000,

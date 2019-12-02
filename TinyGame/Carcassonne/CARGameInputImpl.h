@@ -113,8 +113,8 @@ namespace CAR
 
 	class CGameInput : public IGameInput
 	{
-		typedef boost::coroutines::asymmetric_coroutine< void >::pull_type ExecType;
-		typedef boost::coroutines::asymmetric_coroutine< void >::push_type YeildType;
+		using ExecType  = boost::coroutines::asymmetric_coroutine< void >::pull_type;
+		using YeildType = boost::coroutines::asymmetric_coroutine< void >::push_type;
 
 	public:
 		CGameInput();

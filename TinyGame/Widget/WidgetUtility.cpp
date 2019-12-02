@@ -100,7 +100,7 @@ DevFrame* WidgetUtility::CreateDevFrame( Vec2i const& size )
 
 	Vec2i screenSize = Global::GetDrawEngine().getScreenSize();
 
-	DevFrame* frame = new DevFrame( UI_ANY , Vec2i( screenSize.x - size.x - 5 , 5 ) , size  , NULL );
+	DevFrame* frame = new DevFrame( UI_ANY , Vec2i( screenSize.x - size.x - 5 , 5 ) , size  , nullptr );
 	frame->setRenderType( GPanel::eRectType );
 	frame->addButton( UI_MAIN_MENU , "Main Menu" );
 	system.addWidget( frame );

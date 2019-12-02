@@ -39,9 +39,9 @@ namespace Go
 		std::vector< char > debugString;
 #endif
 
-		unsigned run();
+		unsigned run() override;
 
-		void update();
+		void update() override;
 
 		virtual void processBuffer() {}
 
@@ -57,7 +57,7 @@ namespace Go
 
 	class GTPOutputThread : public CGameOutputThread
 	{
-		typedef CGameOutputThread BaseClass;
+		using BaseClass = CGameOutputThread;
 	public:
 		int  mColor;
 		bool bThinking;
@@ -65,19 +65,19 @@ namespace Go
 		//TCycleQueue<GTPCommand> mProcQueue;
 		std::vector< GTPCommand > mProcQueue;
 
-		virtual void restart()
+		void restart() override
 		{
 			BaseClass::restart();
 			bThinking = false;
 			mProcQueue.clear();
 		}
 
+		void processBuffer() override;
+
 		virtual void dumpCommandMsgBegin(GTPCommand com) {}
 		virtual void procDumpCommandMsg(GTPCommand com, char* buffer, int num) {}
 		virtual void dumpCommandMsgEnd(GTPCommand com) {}
 		virtual void onOutputCommand(GTPCommand com, GameCommand const& outCom) {}
-
-		void processBuffer();
 
 		GTPCommand getHeadRequest()
 		{

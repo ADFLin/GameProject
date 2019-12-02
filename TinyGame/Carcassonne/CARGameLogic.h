@@ -104,7 +104,7 @@ namespace CAR
 			FeatureBase* feature;
 			bool bAbbeyUpdate;
 		};
-		typedef std::vector< FeatureUpdateInfo > FeatureUpdateInfoVec;
+		using FeatureUpdateInfoVec = std::vector< FeatureUpdateInfo >;
 
 		struct TurnContext
 		{
@@ -168,8 +168,7 @@ namespace CAR
 			
 			bool addUpdateFeature(FeatureBase* feature, bool bAbbeyUpdate)
 			{
-				FeatureUpdateInfoVec::iterator iter =
-					std::find_if(mUpdateFeatures.begin(), mUpdateFeatures.end(), FindFeature(feature));
+				auto iter = std::find_if(mUpdateFeatures.begin(), mUpdateFeatures.end(), FindFeature(feature));
 				if( iter != mUpdateFeatures.end() )
 				{
 					if( iter->bAbbeyUpdate )
@@ -179,7 +178,7 @@ namespace CAR
 				}
 				else
 				{
-					mUpdateFeatures.push_back(FeatureUpdateInfo(feature, bAbbeyUpdate));
+					mUpdateFeatures.emplace_back(feature, bAbbeyUpdate);
 					return true;
 				}
 			}
@@ -211,8 +210,10 @@ namespace CAR
 		int    getMaxFieldValuePlayer( FieldType::Enum type , PlayerBase* outPlayer[] , int& maxValue );
 		int    updatePosibleLinkPos( PlaceTileParam& param );
 		int    updatePosibleLinkPos();
-		typedef MapTile::FarmNode FarmNode;
-		typedef MapTile::SideNode SideNode;
+
+
+		using FarmNode = MapTile::FarmNode;
+		using SideNode = MapTile::SideNode;
 
 		FarmFeature*  updateFarm( MapTile& mapTile , unsigned idxLinkMask );
 		FeatureBase*  updateBasicSideFeature( MapTile& mapTile, unsigned dirLinkMask, SideType linkType , UpdateTileFeatureResult& updateResult);
@@ -318,11 +319,12 @@ namespace CAR
 			Vec2i max;
 			std::vector< CastleScoreInfo > featureScores;
 		};
-		typedef TIntrList< 
+
+		using CastleInfoList = TIntrList< 
 			CastleInfo , 
 			MemberHook< CastleInfo , &CastleInfo::node > , 
 			PointerType 
-		> CastleInfoList;
+		>;
 		CastleInfoList mCastles;
 		CastleInfoList mCastlesRoundBuild;
 

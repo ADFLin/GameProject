@@ -23,9 +23,8 @@ namespace CAR
 	{
 		unsigned actorTypeMask = 0;
 		unsigned actorTypeMaskOther = 0;
-		for( int i = 0 ; i < mActors.size() ; ++i )
+		for(LevelActor * actor : mActors)
 		{
-			LevelActor* actor = mActors[i];
 			if ( actor->ownerId == CAR_ERROR_PLAYER_ID )
 				continue;
 
@@ -263,10 +262,8 @@ namespace CAR
 
 	bool FeatureBase::testInRectArea(Vec2i const& min , Vec2i const& max)
 	{
-		for( MapTileSet::iterator iter = mapTiles.begin() , itEnd = mapTiles.end() ;
-			iter != itEnd ; ++iter )
+		for(MapTile* mapTile : mapTiles)
 		{
-			MapTile* mapTile = *iter;
 			if ( IsInRect( mapTile->pos , min , max ) )
 				return true;
 		}
@@ -306,9 +303,9 @@ namespace CAR
 
 	bool SideFeature::checkNodesConnected() const
 	{
-		for( int i = 0 ; i < nodes.size() ; ++i )
+		for(auto node : nodes)
 		{
-			if ( nodes[i]->outConnect == nullptr )
+			if ( node->outConnect == nullptr )
 				return false;
 		}
 		return true;
@@ -366,10 +363,8 @@ namespace CAR
 	int SideFeature::getSideContentNum(SideContentType contentMask)
 	{
 		int result = 0;
-		for( int i = 0 ; i < nodes.size() ; ++i )
+		for(SideNode* node : nodes)
 		{
-			SideNode* node = nodes[i];
-
 			MapTile const* mapTile = node->getMapTile();
 			SideContentType content = mapTile->getSideContnet( node->index ) & contentMask;
 			while ( content )
@@ -446,9 +441,8 @@ namespace CAR
 
 	void SideFeature::generateRoadLinkFeatures(WorldTileManager& worldTileManager, GroupSet& outFeatures)
 	{
-		for( int i = 0 ; i < nodes.size() ; ++i )
+		for(FeatureBase::SideNode* node : nodes)
 		{
-			SideNode* node = nodes[i];
 			MapTile const* mapTile = node->getMapTile();
 			GenerateSideFeatureRoadLinkFeatures_R(worldTileManager, mapTile, group, node->index, outFeatures);
 		}
@@ -779,10 +773,8 @@ namespace CAR
 
 	int AdjacentTileScoringFeature::doCalcScore(GamePlayerManager& playerManager, FeatureScoreInfo& outResult)
 	{
-		for (int i = 0; i < mActors.size(); ++i)
+		for (LevelActor * actor : mActors)
 		{
-			LevelActor* actor = mActors[i];
-
 			int majority = getMajorityValue(actor->type);
 
 			if (majority > 0)
@@ -834,9 +826,8 @@ namespace CAR
 		{
 			if ( mSetting->have( Rule::eUseVineyard) )
 			{
-				for( int i = 0; i < neighborTiles.size(); ++i )
+				for(MapTile * mapTile : neighborTiles)
 				{
-					MapTile* mapTile = neighborTiles[i];
 					if( mapTile->have( TileContent::eVineyard ) )
 					{
 						result += CAR_PARAM_VALUE(VineyardAdditionScore);
@@ -908,7 +899,6 @@ namespace CAR
 	void GermanCastleFeature::mergeData(FeatureBase& other , MapTile const& putData , int meta)
 	{
 		assert( 0 );
-		return;
 	}
 
 	int GermanCastleFeature::calcPlayerScore(PlayerBase* player)
@@ -918,9 +908,8 @@ namespace CAR
 		{
 			if( mSetting->have(Rule::eUseVineyard) )
 			{
-				for( int i = 0; i < neighborTiles.size(); ++i )
+				for(MapTile * mapTile : neighborTiles)
 				{
-					MapTile* mapTile = neighborTiles[i];
 					if( mapTile->have( TileContent::eVineyard ) )
 					{
 						result += CAR_PARAM_VALUE(VineyardAdditionScore);
@@ -933,10 +922,8 @@ namespace CAR
 
 	int GermanCastleFeature::doCalcScore( GamePlayerManager& playerManager , FeatureScoreInfo& outResult)
 	{
-		for( int i = 0 ; i < mActors.size() ; ++i )
+		for(LevelActor * actor : mActors)
 		{
-			LevelActor* actor = mActors[i];
-
 			int majority = getMajorityValue( actor->type );
 
 			if ( majority > 0 )

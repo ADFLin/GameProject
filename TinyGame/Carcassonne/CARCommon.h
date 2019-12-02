@@ -29,7 +29,7 @@ namespace CAR
 	class PlayerBase;
 
 
-	typedef TVector2<int> Vec2i;
+	using Vec2i = TVector2<int>;
 
 	inline bool IsInRect( Vec2i const& pos , Vec2i const& min , Vec2i const& max )
 	{

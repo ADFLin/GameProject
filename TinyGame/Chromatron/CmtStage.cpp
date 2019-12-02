@@ -53,7 +53,7 @@ namespace Chromatron
 		Vec2i buttonSize( 60 , 25 );
 
 		int screenWidth = Global::GetDrawEngine().getScreenWidth();
-		GPanel* panel = new GPanel( UI_ANY , Vec2i(0,0) , Vec2i( screenWidth , 30 ) , NULL );
+		GPanel* panel = new GPanel( UI_ANY , Vec2i(0,0) , Vec2i( screenWidth , 30 ) , nullptr );
 		panel->setRenderType( GPanel::eRectType );
 		::Global::GUI().addWidget( panel );
 
@@ -96,7 +96,7 @@ namespace Chromatron
 		}
 		choice->addItem( "Create Mode" );
 
-		GPanel* statusPanel = new GPanel( UI_ANY , Vec2i( 10 , 120 ) , Vec2i( 150 , 300 ) , NULL );
+		GPanel* statusPanel = new GPanel( UI_ANY , Vec2i( 10 , 120 ) , Vec2i( 150 , 300 ) , nullptr );
 		statusPanel->setRenderCallback( RenderCallBack::Create( this , &LevelStage::drawStatusPanel ) );
 		::Global::GUI().addWidget( statusPanel );
 

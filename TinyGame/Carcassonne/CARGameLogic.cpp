@@ -64,15 +64,15 @@ namespace CAR
 
 	void GameLogic::cleanupData()
 	{
-		for( int i = 0 ; i < mActors.size() ; ++i )
+		for(auto* actor : mActors)
 		{
-			deleteActor( mActors[i] );
+			deleteActor( actor );
 		}
 		mActors.clear();
 
-		for( int i = 0 ; i < mFeatureMap.size() ; ++i )
+		for(auto* feature : mFeatureMap)
 		{
-			delete mFeatureMap[i];
+			delete feature;
 		}
 		mFeatureMap.clear();
 
@@ -963,7 +963,8 @@ namespace CAR
 										break;
 									}
 								}
-							} while (0);
+							} 
+							while (false);
 
 							if ( numDeployTile )
 							{
@@ -2410,17 +2411,17 @@ namespace CAR
 			}
 			else
 			{
-				for( int i = 0 ; i < wagonGroup.size() ; ++i )
+				for(auto* actor : wagonGroup)
 				{
-					returnActorToPlayer( wagonGroup[i] );
+					returnActorToPlayer(actor);
 				}
 			}
 		}
 
 		//m)
-		for( int i = 0 ; i < otherGroup.size() ; ++i )
+		for(auto* actor : otherGroup)
 		{
-			returnActorToPlayer( otherGroup[i] );
+			returnActorToPlayer(actor);
 		}
 	}
 
@@ -2760,8 +2761,8 @@ namespace CAR
 						{
 							for( int i = 0 ; i < numMerged ; ++i )
 							{
-								FeatureUpdateInfoVec::iterator iterNew = std::find_if(updateResult.mUpdateFeatures.begin() , updateResult.mUpdateFeatures.end() , FindFeature( featureNew ) );
-								FeatureUpdateInfoVec::iterator iterMerged = std::find_if(updateResult.mUpdateFeatures.begin() , updateResult.mUpdateFeatures.end() , FindFeature( featureMerged[i] ) );
+								auto iterNew = std::find_if(updateResult.mUpdateFeatures.begin() , updateResult.mUpdateFeatures.end() , FindFeature( featureNew ) );
+								auto iterMerged = std::find_if(updateResult.mUpdateFeatures.begin() , updateResult.mUpdateFeatures.end() , FindFeature( featureMerged[i] ) );
 
 								if ( iterNew->bAbbeyUpdate )
 									iterNew->bAbbeyUpdate = iterMerged->bAbbeyUpdate;
@@ -3513,7 +3514,7 @@ namespace CAR
 			{
 				int messageSocre = 0;
 				FeatureBase* result = nullptr;
-				for( int i = 0; i < mFeatureMap.size(); ++i )
+				for (int i = 0; i < mFeatureMap.size(); ++i)
 				{
 					FeatureBase* feature = mFeatureMap[i];
 
@@ -4023,10 +4024,9 @@ namespace CAR
 
 	bool GameLogic::checkHaveBuilderFeatureExpend(PlayerBase* turnPlayer, FeatureUpdateInfoVec const& updateFeatures)
 	{
-		for( FeatureUpdateInfoVec::const_iterator iter = updateFeatures.begin(), itEnd = updateFeatures.end();
-			iter != itEnd ; ++iter )
+		for (auto const& updateFeature : updateFeatures)
 		{
-			FeatureBase* feature = iter->feature;
+			FeatureBase* feature = updateFeature.feature;
 			if ( feature->group == ERROR_GROUP_ID )
 				continue;
 
@@ -4038,7 +4038,7 @@ namespace CAR
 	
 			if ( mSetting->have( Rule::eHaveAbbeyTile ) )
 			{
-				if ( iter->bAbbeyUpdate )
+				if ( updateFeature.bAbbeyUpdate )
 					continue;
 			}
 

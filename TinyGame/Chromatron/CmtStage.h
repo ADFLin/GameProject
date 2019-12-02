@@ -10,7 +10,7 @@ namespace Chromatron
 
 	class LevelStage : public StageBase
 	{
-		typedef StageBase BaseClass;
+		using BaseClass = StageBase;
 
 		enum
 		{
@@ -28,13 +28,13 @@ namespace Chromatron
 
 		bool   changeLevel( int indexLevel ){ return changeLevelInternal(indexLevel, false ); }
 	protected:
-		bool   onInit();
-		void   onEnd();
-		void   onUpdate( long time );
-		void   onRender( float dFrame );
-		bool   onWidgetEvent( int event , int id , GWidget* ui );
-		bool   onKey( unsigned key , bool isDown );
-		bool   onMouse( MouseMsg const& msg );
+		bool   onInit() override;
+		void   onEnd() override;
+		void   onUpdate( long time ) override;
+		void   onRender( float dFrame ) override;
+		bool   onWidgetEvent( int event , int id , GWidget* ui ) override;
+		bool   onKey( unsigned key , bool isDown ) override;
+		bool   onMouse( MouseMsg const& msg ) override;
 
 		void   tick();
 		void   updateFrame( int frame );

@@ -286,10 +286,10 @@ namespace Go
 		bool operator == (GameSetting const& rhs)
 		{
 			return boardSize == rhs.boardSize &&
-				numHandicap == rhs.numHandicap &&
-				komi == rhs.komi &&
-				bBlackFrist == rhs.bBlackFrist 	&& 
-				bFixedHandicap == rhs.boardSize;
+				   numHandicap == rhs.numHandicap &&
+				   komi == rhs.komi &&
+				   bBlackFrist == rhs.bBlackFrist && 
+				   bFixedHandicap == rhs.bFixedHandicap;
 		}
 	};
 

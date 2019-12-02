@@ -35,7 +35,7 @@ namespace Chromatron
 		{
 		case STAGE_SINGLE_GAME: return new LevelStage;
 		}
-		return NULL;
+		return nullptr;
 	}
 
 

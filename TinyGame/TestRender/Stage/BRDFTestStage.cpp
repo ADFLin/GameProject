@@ -63,7 +63,7 @@ namespace Render
 	class EquirectangularToCubeProgram : public GlobalShaderProgram
 	{
 	public:
-		typedef GlobalShaderProgram BaseClass;
+		using BaseClass = GlobalShaderProgram;
 		DECLARE_SHADER_PROGRAM(EquirectangularToCubeProgram, Global);
 
 		static char const* GetShaderFileName()
@@ -85,7 +85,7 @@ namespace Render
 	class IrradianceGenProgram : public GlobalShaderProgram
 	{
 	public:
-		typedef GlobalShaderProgram BaseClass;
+		using BaseClass = GlobalShaderProgram;
 		DECLARE_SHADER_PROGRAM(IrradianceGenProgram, Global);
 
 		static char const* GetShaderFileName()
@@ -106,7 +106,7 @@ namespace Render
 	class PrefilteredGenProgram : public GlobalShaderProgram
 	{
 	public:
-		typedef GlobalShaderProgram BaseClass;
+		using BaseClass = GlobalShaderProgram;
 		DECLARE_SHADER_PROGRAM(PrefilteredGenProgram, Global);
 
 		static char const* GetShaderFileName()
@@ -127,7 +127,7 @@ namespace Render
 	class PreIntegrateBRDFGenProgram : public GlobalShaderProgram
 	{
 	public:
-		typedef GlobalShaderProgram BaseClass;
+		using BaseClass = GlobalShaderProgram;
 		DECLARE_SHADER_PROGRAM(PreIntegrateBRDFGenProgram, Global);
 
 		static char const* GetShaderFileName()

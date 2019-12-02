@@ -150,7 +150,7 @@ namespace Render
 	class LightProbeVisualizeProgram : public GlobalShaderProgram
 	{
 	public:
-		typedef GlobalShaderProgram BaseClass;
+		using BaseClass = GlobalShaderProgram;
 		DECLARE_SHADER_PROGRAM(LightProbeVisualizeProgram, Global);
 
 		static char const* GetShaderFileName()
@@ -167,7 +167,7 @@ namespace Render
 			return entries;
 		}
 
-		void bindParameters(ShaderParameterMap const& parameterMap)
+		void bindParameters(ShaderParameterMap const& parameterMap) override
 		{
 			mParamIBL.bindParameters(parameterMap);
 		}
@@ -221,7 +221,7 @@ namespace Render
 	{
 	public:
 
-		typedef GlobalShaderProgram BaseClass;
+		using BaseClass = GlobalShaderProgram;
 		DECLARE_SHADER_PROGRAM(BloomDownsample, Global);
 
 		static char const* GetShaderFileName()
@@ -238,7 +238,7 @@ namespace Render
 			return entries;
 		}
 
-		void bindParameters(ShaderParameterMap const& parameterMap)
+		void bindParameters(ShaderParameterMap const& parameterMap) override
 		{
 			mParamTargetTexture.bind(parameterMap, SHADER_PARAM(TargetTexture));
 		}
@@ -254,7 +254,7 @@ namespace Render
 	class TonemapProgram : public GlobalShaderProgram
 	{
 	public:
-		typedef GlobalShaderProgram BaseClass;
+		using BaseClass = GlobalShaderProgram;
 		DECLARE_SHADER_PROGRAM(TonemapProgram, Global);
 
 
@@ -272,7 +272,7 @@ namespace Render
 			return entries;
 		}
 
-		void bindParameters(ShaderParameterMap const& parameterMap)
+		void bindParameters(ShaderParameterMap const& parameterMap) override
 		{
 			mParamPostProcess.bindParameters(parameterMap);
 		}
@@ -288,7 +288,7 @@ namespace Render
 	class SkyBoxProgram : public GlobalShaderProgram
 	{
 	public:
-		typedef GlobalShaderProgram BaseClass;
+		using BaseClass = GlobalShaderProgram;
 		DECLARE_SHADER_PROGRAM(SkyBoxProgram, Global);
 
 		static char const* GetShaderFileName()
@@ -337,7 +337,7 @@ namespace Render
 
 	class BRDFTestStage : public TestRenderStageBase
 	{
-		typedef TestRenderStageBase BaseClass;
+		using BaseClass = TestRenderStageBase;
 	public:
 		BRDFTestStage() {}
 
@@ -365,27 +365,27 @@ namespace Render
 
 		IBLResource mIBLResource;
 
-		virtual bool onInit();
+		bool onInit() override;
 
-		virtual void onEnd()
+		void onEnd() override
 		{
 			ShaderManager::Get().unregisterShaderAssets(::Global::GetAssetManager());
 			BaseClass::onEnd();
 		}
 
-		void restart()
+		void restart() override
 		{
 
 		}
-		void tick()
+		void tick() override
 		{
 
 		}
-		void updateFrame(int frame)
+		void updateFrame(int frame) override
 		{
 		}
 
-		virtual void onUpdate(long time)
+		void onUpdate(long time) override
 		{
 
 		}
@@ -410,16 +410,16 @@ namespace Render
 		};
 		int SkyboxShowIndex = ESkyboxShow::Normal;
 
-		void onRender(float dFrame);
+		void onRender(float dFrame) override;
 
-		bool onMouse(MouseMsg const& msg)
+		bool onMouse(MouseMsg const& msg) override
 		{
 			if( !BaseClass::onMouse(msg) )
 				return false;
 			return true;
 		}
 
-		bool onKey(unsigned key, bool isDown)
+		bool onKey(unsigned key, bool isDown) override
 		{
 			if( !isDown )
 				return false;
@@ -436,7 +436,7 @@ namespace Render
 			return BaseClass::onKey(key, isDown);
 		}
 
-		virtual bool onWidgetEvent(int event, int id, GWidget* ui) override
+		bool onWidgetEvent(int event, int id, GWidget* ui) override
 		{
 			switch( id )
 			{

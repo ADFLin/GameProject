@@ -32,7 +32,7 @@ namespace CAR
 		{
 			return new CAR::LevelStage;
 		}
-		return NULL;
+		return nullptr;
 	}
 
 	bool GameModule::queryAttribute( GameAttribute& value )
@@ -95,23 +95,23 @@ namespace CAR
 			MASK_BASE = BIT(1) ,
 			MASK_RULE = BIT(2) ,
 		};
-		virtual bool checkSettingSV()
+		bool checkSettingSV() override
 		{
-			SVPlayerManager* playerMgr = static_cast< SVPlayerManager* >( getPlayerListPanel()->getPlayerManager() );
+			auto* playerMgr = static_cast< SVPlayerManager* >( getPlayerListPanel()->getPlayerManager() );
 			return true;
 		}
-		virtual void clearUserUI()
+		void clearUserUI() override
 		{
 			getSettingPanel()->removeChildWithMask( MASK_BASE | MASK_RULE );
 		}
-		virtual void doSetupSetting( bool beServer )
+		void doSetupSetting( bool beServer ) override
 		{
 			mExpMask.clear();
 			setMaxPlayerNum( CAR::MaxPlayerNum );
 			setupBaseUI();
 		}
 
-		virtual bool onWidgetEvent( int event ,int id , GWidget* widget )
+		bool onWidgetEvent( int event ,int id , GWidget* widget ) override
 		{
 			if ( UI_EXP <= id && id < UI_EXP_END )
 			{
@@ -140,16 +140,16 @@ namespace CAR
 			}
 		}
 
-		virtual void setupGame( StageManager& manager , StageBase* subStage )
+		void setupGame( StageManager& manager , StageBase* subStage ) override
 		{
-			LevelStage* myStage = static_cast< LevelStage* >( subStage );
+			auto* myStage = static_cast< LevelStage* >( subStage );
 			myStage->getSetting().mUseExpansionMask = mExpMask;
 		}
-		virtual void doExportSetting( DataStreamBuffer& buffer )
+		void doExportSetting( DataStreamBuffer& buffer ) override
 		{
 			buffer.fill( mExpMask );
 		}
-		virtual void doImportSetting( DataStreamBuffer& buffer )
+		void doImportSetting( DataStreamBuffer& buffer ) override
 		{
 			getSettingPanel()->removeChildWithMask( MASK_BASE | MASK_RULE );
 			getSettingPanel()->adjustChildLayout();
@@ -168,7 +168,7 @@ namespace CAR
 		case SHT_NET_ROOM_HELPER:
 			return new CNetRoomSettingHelper( this );
 		}
-		return NULL;
+		return nullptr;
 	}
 
 }//namespace CAR

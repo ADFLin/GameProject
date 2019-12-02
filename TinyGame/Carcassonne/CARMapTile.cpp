@@ -360,9 +360,9 @@ namespace CAR
 
 	bool TilePiece::haveSideType(SideType type) const
 	{
-		for( int i = 0; i < NumSide; ++i )
+		for(auto const& side : sides)
 		{
-			if( sides[i].linkType == type )
+			if( side.linkType == type )
 				return true;
 		}
 		return false;

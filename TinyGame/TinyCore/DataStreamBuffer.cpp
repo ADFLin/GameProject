@@ -52,7 +52,7 @@ void DataStreamBuffer::resize( size_t size )
 void DataStreamBuffer::cleanup()
 {
 	delete[] mData;
-	mData = NULL;
+	mData = nullptr;
 	mMaxSize = 0;
 	clear();
 }

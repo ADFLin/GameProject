@@ -205,7 +205,7 @@ namespace Render
 				const bool bReplace = true;
 				FbxNodeAttribute* ConvertedNode = mGeometryConverter->Triangulate(pFBXMesh, bReplace);
 
-				if( ConvertedNode != NULL && ConvertedNode->GetAttributeType() == FbxNodeAttribute::eMesh )
+				if( ConvertedNode != nullptr && ConvertedNode->GetAttributeType() == FbxNodeAttribute::eMesh )
 				{
 					pFBXMesh = (FbxMesh*)ConvertedNode;
 				}
@@ -405,8 +405,8 @@ namespace Render
 	};
 	class EnvTestProgram : public ShaderProgram
 	{
-		typedef ShaderProgram BaseClass;
-		virtual void bindParameters(ShaderParameterMap const& parameterMap)
+		using BaseClass = ShaderProgram;
+		void bindParameters(ShaderParameterMap const& parameterMap) override
 		{
 			BaseClass::bindParameters(parameterMap);
 			mParamIBL.bindParameters(parameterMap);
@@ -417,7 +417,7 @@ namespace Render
 
 	class FBXImportTestStage : public BRDFTestStage
 	{
-		typedef BRDFTestStage BaseClass;
+		using BaseClass = BRDFTestStage;
 	public:
 		FBXImportTestStage()
 		{
@@ -437,7 +437,7 @@ namespace Render
 		float mSkyLightInstensity = 1.0;
 
 
-		virtual bool onInit()
+		bool onInit() override
 		{
 			if( !BaseClass::onInit() )
 				return false;
@@ -472,13 +472,13 @@ namespace Render
  			return true;
 		}
 
-		virtual void onEnd()
+		void onEnd() override
 		{
 			mTestShader.releaseRHI();
 			BaseClass::onEnd();
 		}
 
-		void onRender(float dFrame)
+		void onRender(float dFrame) override
 		{
 
 			Vec2i screenSize = ::Global::GetDrawEngine().getScreenSize();

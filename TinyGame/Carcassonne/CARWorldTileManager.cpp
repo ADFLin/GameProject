@@ -485,7 +485,7 @@ namespace CAR
 
 	MapTile* WorldTileManager::findMapTile(Vec2i const& pos)
 	{
-		WorldTileMap::iterator iter = mMap.find( pos );
+		auto iter = mMap.find( pos );
 		if ( iter == mMap.end() )
 			return nullptr;
 		return &iter->second;
@@ -574,9 +574,8 @@ namespace CAR
 
 	void TileSetManager::cleanup()
 	{
-		for( int i = 0 ; i < mTileMap.size(); ++i )
+		for(TileSet& tileSet : mTileMap)
 		{
-			TileSet& tileSet = mTileMap[i];
 			switch( tileSet.type )
 			{
 			case TileType::eHalfling:
@@ -591,9 +590,9 @@ namespace CAR
 			}
 		}
 
-		for( int i = 0 ; i < TileSet::NumGroup ; ++i )
+		for(auto& set : mSetMap)
 		{
-			mSetMap[i].clear();
+			set.clear();
 		}
 		mTileMap.clear();
 	}

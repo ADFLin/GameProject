@@ -30,9 +30,9 @@ namespace Chromatron
 	class LightTrace;
 	class Device;
 
-	typedef void (*EffectFun)( Device& , WorldUpdateContext& , LightTrace const& );
-	typedef void (*UpdateFun)( Device& , WorldUpdateContext& );
-	typedef bool (*CheckFun)( Device& , WorldUpdateContext& );
+	using EffectFun = void (*)( Device& , WorldUpdateContext& , LightTrace const& );
+	using UpdateFun = void (*)( Device& , WorldUpdateContext& );
+	using CheckFun  = bool (*)( Device& , WorldUpdateContext& );
 
 	struct DeviceInfo
 	{
@@ -42,7 +42,7 @@ namespace Chromatron
 		UpdateFun funUpdate;
 		CheckFun  funCheck;
 
-		DeviceInfo(){}
+		DeviceInfo()= default;
 		DeviceInfo( DeviceId id , unsigned flag , EffectFun fun , UpdateFun funUpdate , CheckFun funCheck )
 			:id(id)
 			,flag(flag)
@@ -54,7 +54,7 @@ namespace Chromatron
 
 	class Device
 	{
-		typedef FlagValue< unsigned > Flag;
+		using Flag = FlagValue< unsigned >;
 	public:
 
 		Device( DeviceInfo const& info , Dir dir, Color color = COLOR_NULL );

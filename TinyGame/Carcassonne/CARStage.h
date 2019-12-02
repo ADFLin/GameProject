@@ -29,11 +29,11 @@ namespace CAR
 
 	class ActorPosButton : public GButtonBase
 	{
-		typedef GButtonBase BaseClass;
+		using BaseClass = GButtonBase;
 	public:
 		ActorPosButton( int id , Vec2i const& pos , Vec2i const& size  , GWidget* parent );
 
-		void onRender();
+		void onRender() override;
 
 		ActorPosInfo* info;
 		ActorType type;
@@ -43,12 +43,12 @@ namespace CAR
 
 	class SelectButton : public GButtonBase
 	{
-		typedef GButtonBase BaseClass;
+		using BaseClass = GButtonBase;
 	public:
 		SelectButton( int id , Vec2i const& pos , Vec2i const& size  , GWidget* parent )
 			:BaseClass(id,pos,size,parent){}
 
-		void onRender();
+		void onRender() override;
 
 		union
 		{
@@ -67,7 +67,7 @@ namespace CAR
 
 	class AuctionPanel : public GPanel
 	{
-		typedef GPanel BaseClass;
+		using BaseClass = GPanel;
 
 	public:
 		AuctionPanel( int id , Vec2i const& pos , GWidget* parent )
@@ -90,8 +90,8 @@ namespace CAR
 
 		void init( LevelStage& stage , GameAuctionTileData* data);
 		void fireInput( CGameInput& input );
-		void onRender();
-		virtual bool onChildEvent( int event , int id , GWidget* ui );
+		void onRender() override;
+		bool onChildEvent( int event , int id , GWidget* ui ) override;
 
 		CFly::Sprite* mSprite;
 		GameAuctionTileData* mData;
@@ -112,7 +112,7 @@ namespace CAR
 	class NetGameRandom : public GameRandom
 	{
 	public:
-		int getInt()
+		int getInt() override
 		{
 			return ::Global::RandomNet();
 		}
@@ -120,38 +120,38 @@ namespace CAR
 	class LevelStage : public GameStageBase
 		             , public IGameEventListener
 	{
-		typedef GameStageBase BaseClass;
+		using BaseClass = GameStageBase;
 	public:
 		LevelStage(){}
 
-		virtual bool onInit();
-		virtual void onEnd();
+		bool onInit() override;
+		void onEnd() override;
 
 
 
-		virtual void onRestart(bool bInit);
-		virtual void onRender( float dFrame );
-		virtual bool onWidgetEvent(int event , int id , GWidget* ui);
-		virtual bool onKey( unsigned key , bool isDown );
-		virtual bool onMouse( MouseMsg const& msg );
+		void onRestart(bool bInit) override;
+		void onRender( float dFrame ) override;
+		bool onWidgetEvent(int event , int id , GWidget* ui) override;
+		bool onKey( unsigned key , bool isDown ) override;
+		bool onMouse( MouseMsg const& msg ) override;
 
 
-		virtual bool setupNetwork( NetWorker* worker , INetEngine** engine ){ return true; }
-		virtual void buildServerLevel( GameLevelInfo& info )
+		bool setupNetwork( NetWorker* worker , INetEngine** engine ) override{ return true; }
+		void buildServerLevel( GameLevelInfo& info ) override
 		{
 			info.seed = 10;
 		}
-		virtual void setupLevel(GameLevelInfo const& info) override
+		void setupLevel(GameLevelInfo const& info) override
 		{
 			Global::RandSeedNet(info.seed);
 		}
 
-		virtual void setupLocalGame( LocalPlayerManager& playerManager );
-		virtual void setupScene( IPlayerManager& playerManager );
+		void setupLocalGame( LocalPlayerManager& playerManager ) override;
+		void setupScene( IPlayerManager& playerManager ) override;
 		
-		void tick();
+		void tick() override;
 
-		void updateFrame( int frame )
+		void updateFrame( int frame ) override
 		{
 
 
@@ -200,7 +200,7 @@ namespace CAR
 		Vector2 getActorPosMapOffset( ActorPos const& pos );
 
 		//IGameEventListener
-		virtual void notifyPlaceTiles( TileId id , MapTile* mapTiles[] , int numMapTile ) override;
+		void notifyPlaceTiles( TileId id , MapTile* mapTiles[] , int numMapTile ) override;
 		
 		//
 		void setTileObjectTexture( CFly::Object* obj, TileId id , int idMesh = 0 );
@@ -227,8 +227,8 @@ namespace CAR
 	protected:
 
 
-		typedef MapTile::SideNode SideNode;
-		typedef MapTile::FarmNode FarmNode;
+		using SideNode = MapTile::SideNode;
+		using FarmNode = MapTile::FarmNode;
 
 		CGameInput        mInput;
 		GameLogic         mGameLogic;

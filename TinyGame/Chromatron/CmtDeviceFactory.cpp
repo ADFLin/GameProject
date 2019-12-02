@@ -243,7 +243,7 @@ namespace Chromatron
 	{
 	public:
 		QTangterEffectSolver( WorldUpdateContext& context ):mContext( context ){}
-		~QTangterEffectSolver(){}
+		~QTangterEffectSolver()= default;
 
 		void solve( Vec2i const& pos , LightTrace const& light )
 		{
@@ -268,10 +268,10 @@ namespace Chromatron
 				mTransmitLights.clear();
 				mCheckLights.clear();
 
-				mTransmitLights.push_back(LightTrace(pos, color, dir + Dir::ValueChecked(2), QSpinUp));
-				mTransmitLights.push_back(LightTrace(pos, color, dir - Dir::ValueChecked(2), QSpinDown));
+				mTransmitLights.emplace_back(pos, color, dir + Dir::ValueChecked(2), QSpinUp);
+				mTransmitLights.emplace_back(pos, color, dir - Dir::ValueChecked(2), QSpinDown);
 
-				if( mContext.transmitLightSync(*this, mTransmitLights) != TSS_OK )
+				if( mContext.transmitLightSync(*this, mTransmitLights) != ETransmitStatus::OK )
 					return false;
 			}
 
@@ -288,7 +288,7 @@ namespace Chromatron
 			PosetDoppler,
 		};
 
-		virtual bool prevEffectDevice( Device& dc  , LightTrace const& light , int passStep )
+		bool prevEffectDevice( Device& dc  , LightTrace const& light , int passStep ) override
 		{
 			bool result = false;
 
@@ -345,7 +345,7 @@ namespace Chromatron
 			return result;
 		}
 
-		bool prevAddLight( Vec2i const& pos , Color color , Dir dir , int param , int age )
+		bool prevAddLight( Vec2i const& pos , Color color , Dir dir , int param , int age ) override
 		{
 			if ( param != QSpinUp && param != QSpinDown )
 			{
@@ -531,14 +531,14 @@ namespace Chromatron
 			else if ( dc.getFlag() & DFB_LAZY_EFFECT )
 			{
 				dc.getFlag().addBits( DFB_SHUTDOWN );
-				context.notifyStatus( TSS_LOGIC_ERROR );
+				context.notifyStatus( ETransmitStatus::LogicError );
 			}
 			else
 			{
 				dc.getFlag().addBits( DFB_LAZY_EFFECT );
 				Dir invDir = light.getDir().inverse();
 				tile.setLazyLightColor( invDir , tile.getReceivedLightColor( invDir ) );
-				context.notifyStatus( TSS_RECALC );
+				context.notifyStatus( ETransmitStatus::RecalcRequired );
 			}
 
 		}

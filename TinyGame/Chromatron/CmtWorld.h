@@ -41,8 +41,14 @@ namespace Chromatron
 	public:
 
 		Tile( MapType typeID = MT_EMPTY )
-			:mType(typeID),mDCData( 0 ),mLightPathColor(0){}
-		~Tile(){}
+			:mType(typeID)
+			,mDCData( nullptr )
+			,mLightPathColor(0)
+		{
+
+		}
+
+		~Tile()= default;
 
 
 		MapType       getType()   const { return mType; }
@@ -127,15 +133,15 @@ namespace Chromatron
 	};
 
 
-	enum TransmitStatus
+	enum class ETransmitStatus : uint8
 	{
-		TSS_OK,
-		TSS_LOGIC_ERROR,
-		TSS_RECALC,
-		TSS_INFINITE_LOOP,
+		OK,
+		LogicError,
+		RecalcRequired,
+		InfiniteLoop,
 	};
 
-	typedef  std::list< LightTrace > LightList;
+	using LightList = std::list< LightTrace >;
 
 	class LightSyncProcessor
 	{
@@ -151,9 +157,9 @@ namespace Chromatron
 
 		World& getWorld(){ return mWorld; }
 
-		TransmitStatus transmitLight();
-		TransmitStatus transmitLightSync( LightSyncProcessor& processor, LightList& transmitLights);
-		TransmitStatus evalDeviceEffect(Device& dc, LightTrace const& light);
+		ETransmitStatus transmitLight();
+		ETransmitStatus transmitLightSync( LightSyncProcessor& processor, LightList& transmitLights);
+		ETransmitStatus evalDeviceEffect(Device& dc, LightTrace const& light);
 
 		Tile&  getTile(Vec2i const& pos) { return mWorld.getTile(pos); }
 		void   addEffectedLight( Vec2i const& pos , Color color , Dir dir );
@@ -162,7 +168,7 @@ namespace Chromatron
 		void   setLightParam( int param ){ mLightParam = param; }
 		void   setSyncMode( bool beS ){ mbSyncMode = beS; }
 		bool   isSyncMode(){ return mbSyncMode; }
-		void   notifyStatus( TransmitStatus status ){ mStatus = status;  }
+		void   notifyStatus( ETransmitStatus status ){ mStatus = status;  }
 		int    getLightCount() const { return mLightCount; }
 
 	private:
@@ -198,7 +204,7 @@ namespace Chromatron
 
 		int              mLightParam;
 		int              mLightAge;
-		TransmitStatus   mStatus;
+		ETransmitStatus  mStatus;
 		World&           mWorld;
 
 		bool             mbSyncMode;

@@ -11,7 +11,7 @@ namespace CAR
 	class FeatureBase;
 
 
-	typedef std::vector< class LevelActor* > ActorList;
+	using ActorList = std::vector< class LevelActor* >;
 
 	class ActorContainer
 	{

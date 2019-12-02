@@ -49,7 +49,7 @@ namespace CAR
 		int            numPieces;
 	};
 
-	typedef std::vector< TileId > TileIdVec;
+	using TileIdVec = std::vector< TileId >;
 
 
 	class TileSetManager
@@ -181,11 +181,11 @@ namespace CAR
 
 		std::vector< MapTile* > mHalflingTiles;
 #if 0
-		typedef std::map< Vec2i , MapTile , VecCmp > WorldTileMap;
-		typedef std::set< Vec2i , VecCmp > PosSet;
+		using WorldTileMap = std::map< Vec2i , MapTile , VecCmp >;
+		using PosSet = std::set< Vec2i , VecCmp >;
 #else
-		typedef std::unordered_map< Vec2i, MapTile, VecHasher > WorldTileMap;
-		typedef std::unordered_set< Vec2i, VecHasher > PosSet;
+		using WorldTileMap = std::unordered_map< Vec2i, MapTile, VecHasher >;
+		using PosSet = std::unordered_set< Vec2i, VecHasher >;
 #endif
 
 		WorldTileMap    mMap;

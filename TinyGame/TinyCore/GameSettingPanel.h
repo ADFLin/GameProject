@@ -29,7 +29,7 @@ public:
 		return ui;
 	}
 
-	void      setEventCallback(EvtCallBack callback) { mCallback = callback; }
+	void      setEventCallback(WidgetEventCallBack callback) { mCallback = callback; }
 
 protected:
 
@@ -41,13 +41,13 @@ protected:
 	{
 		std::string   title;
 		Vec2i         titlePos;
-		EvtCallBack   callback;
+		WidgetEventCallBack   callback;
 		unsigned      mask;
 		int           sortOrder;
 		GWidget*      ui;
 	};
 
-	EvtCallBack  mCallback;
+	WidgetEventCallBack  mCallback;
 	typedef std::vector< SettingInfo > SettingInfoVec;
 	SettingInfoVec mSettingInfoVec;
 	Vec2i   mOffset;

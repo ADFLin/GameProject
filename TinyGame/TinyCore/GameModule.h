@@ -9,7 +9,7 @@
 #include "FastDelegate/FastDelegate.h"
 
 class GWidget;
-typedef fastdelegate::FastDelegate< bool ( int , int , GWidget* ) > EvtCallBack;
+using WidgetEventCallBack = fastdelegate::FastDelegate< bool ( int , int , GWidget* ) >;
 
 class StageBase;
 class StageManager;
@@ -38,7 +38,7 @@ class SettingHepler
 public:
 	SettingHepler()
 	{
-		mListener = NULL;
+		mListener = nullptr;
 	}
 	virtual ~SettingHepler(){}
 	virtual void  addGUIControl( GWidget* ui ) = 0;
@@ -90,7 +90,7 @@ public:
 
 	virtual IGameInstance*        createInstance() { return nullptr; }
 
-	virtual bool isGameModule() const override { return true; }
+	bool isGameModule() const final { return true; }
 public:
 	virtual char const*           getName() = 0;
 	virtual GameController&       getController() = 0;
@@ -105,7 +105,7 @@ public:
 	bool changeDefaultStage(StageManager& stageManager, StageModeType modeType);
 };
 
-typedef IModuleInterface* (*CreateModuleFun)();
+using CreateModuleFun = IModuleInterface* (*)();
 
 #define CREATE_MODULE CreateModule
 #define CREATE_MODULE_STR MAKE_STRING(CREATE_MODULE)

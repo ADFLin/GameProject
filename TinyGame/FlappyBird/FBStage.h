@@ -70,7 +70,7 @@ namespace FlappyBird
 		}
 
 		bool onMouse( MouseMsg const& msg );
-		bool onKey(unsigned key, bool isDown);
+		bool onKey(KeyMsg const& msg);
 		bool onWidgetEvent( int event , int id , GWidget* ui );
 
 

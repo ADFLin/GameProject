@@ -13,7 +13,7 @@
 
 namespace GGJ
 {
-	typedef std::string String;
+	using String = std::string;
 
 	class Random
 	{
@@ -322,7 +322,7 @@ namespace GGJ
 
 	class TestStage : public StageBase
 	{
-		typedef StageBase BaseClass;
+		using BaseClass = StageBase;
 	public:
 
 		WorldCondition worldCond;
@@ -331,15 +331,15 @@ namespace GGJ
 		Random rand;
 		TestStage(){}
 
-		virtual bool onInit();
+		bool onInit() override;
 
-		virtual void onEnd()
+		void onEnd() override
 		{
 
 			//::Global::GetDrawEngine().stopOpenGL();
 		}
 
-		virtual void onUpdate( long time )
+		void onUpdate( long time ) override
 		{
 			BaseClass::onUpdate( time );
 
@@ -350,7 +350,7 @@ namespace GGJ
 			updateFrame( frame );
 		}
 
-		void onRender( float dFrame );
+		void onRender( float dFrame ) override;
 
 		void restart();
 
@@ -365,21 +365,21 @@ namespace GGJ
 
 		}
 
-		bool onMouse( MouseMsg const& msg )
+		bool onMouse( MouseMsg const& msg ) override
 		{
 			if ( !BaseClass::onMouse( msg ) )
 				return false;
 			return true;
 		}
 
-		bool onKey( unsigned key , bool isDown )
+		bool onKey(KeyMsg const& msg) override
 		{
-			if ( !isDown )
+			if ( !msg.isDown() )
 				return false;
 
-			switch( key )
+			switch(msg.getCode())
 			{
-			case Keyboard::eR: restart(); break;
+			case EKeyCode::R: restart(); break;
 			}
 			return false;
 		}

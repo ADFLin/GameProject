@@ -212,38 +212,38 @@ namespace Phy2D
 		g.endRender();
 	}
 
-	bool CollideTestStage::onKey(unsigned key, bool isDown)
+	bool CollideTestStage::onKey(KeyMsg const& msg)
 	{
-		if( !isDown )
+		if( !msg.isDown())
 			return false;
 
 		static int idx = 0;
 		static int idx2 = 0;
 		float speed = 0.013;
-		switch( key )
+		switch(msg.getCode())
 		{
-		case Keyboard::eR: restart(); break;
-		case Keyboard::eD: moveObject(Vector2(speed, 0)); break;
-		case Keyboard::eA: moveObject(Vector2(-speed, 0)); break;
-		case Keyboard::eW: moveObject(Vector2(0, speed)); break;
-		case Keyboard::eS: moveObject(Vector2(0, -speed)); break;
-		case Keyboard::eLEFT:
+		case EKeyCode::R: restart(); break;
+		case EKeyCode::D: moveObject(Vector2(speed, 0)); break;
+		case EKeyCode::A: moveObject(Vector2(-speed, 0)); break;
+		case EKeyCode::W: moveObject(Vector2(0, speed)); break;
+		case EKeyCode::S: moveObject(Vector2(0, -speed)); break;
+		case EKeyCode::Left:
 			mObjects[1].mXForm.rotate(0.01); break;
-		case Keyboard::eRIGHT:
+		case EKeyCode::Right:
 			mObjects[1].mXForm.rotate(-0.01); break;
-		case Keyboard::eNUM1:
+		case EKeyCode::Num1:
 			++idx; if( idx >= ARRAY_SIZE(mShapes) ) idx = 0;
 			mObjects[0].mShape = mShapes[idx];
 			break;
-		case Keyboard::eNUM2:
+		case EKeyCode::Num2:
 			--idx; if( idx < 0 ) idx = ARRAY_SIZE(mShapes) - 1;
 			mObjects[0].mShape = mShapes[idx];
 			break;
-		case Keyboard::eNUM3:
+		case EKeyCode::Num3:
 			++idx2; if( idx2 >= ARRAY_SIZE(mShapes) ) idx2 = 0;
 			mObjects[1].mShape = mShapes[idx2];
 			break;
-		case Keyboard::eNUM4:
+		case EKeyCode::Num4:
 			--idx2; if( idx2 < 0 ) idx2 = ARRAY_SIZE(mShapes) - 1;
 			mObjects[1].mShape = mShapes[idx2];
 			break;
@@ -395,27 +395,27 @@ namespace Phy2D
 		g.endRender();
 	}
 
-	bool WorldTestStage::onKey(unsigned key, bool isDown)
+	bool WorldTestStage::onKey(KeyMsg const& msg)
 	{
-		if( !isDown )
+		if( !msg.isDown())
 			return false;
 
 		float speed = 0.013;
-		switch( key )
+		switch( msg.getCode() )
 		{
-		case Keyboard::eR: restart(); break;
-		case Keyboard::eD:  break;
-		case Keyboard::eA: break;
-		case Keyboard::eW: break;
-		case Keyboard::eS: break;
-		case Keyboard::eE:
+		case EKeyCode::R: restart(); break;
+		case EKeyCode::D:  break;
+		case EKeyCode::A: break;
+		case EKeyCode::W: break;
+		case EKeyCode::S: break;
+		case EKeyCode::E:
 		{
 			BodyInfo info;
 			RigidBody* body = mWorld.createRigidBody(&mCircleShape, info);
 			body->setPos(Vector2(0, 30));
 		}
 		break;
-		case Keyboard::eF2:
+		case EKeyCode::F2:
 		{
 			if( gDebugStep )
 			{

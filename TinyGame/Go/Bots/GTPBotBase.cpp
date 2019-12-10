@@ -110,6 +110,14 @@ namespace Go
 		return true;
 	}
 
+	bool GTPLikeAppRun::readBoard(int* outData)
+	{
+		if (!inputCommand("showboard\n", { GTPCommand::eShowBoard , 0 }))
+			return false;
+		static_cast<GTPOutputThread*>(outputThread)->mOutReadBoard = outData;
+		return true;
+	}
+
 	bool GTPLikeAppRun::inputCommand(char const* command, GTPCommand com)
 	{
 		if (!inputProcessStream(command))

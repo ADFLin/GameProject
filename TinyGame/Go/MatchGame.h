@@ -9,6 +9,7 @@
 
 #include <unordered_map>
 #include <algorithm>
+#include <memory>
 
 
 namespace Go
@@ -54,7 +55,7 @@ namespace Go
 
 	class GameProxy;
 
-	typedef std::function< void(GameProxy& game) > GameEventDelegate;
+	using GameEventDelegate = std::function< void(GameProxy& game) >;
 
 	class GameProxy
 	{
@@ -191,7 +192,7 @@ namespace Go
 	struct MatchPlayer
 	{
 		ControllerType type;
-		std::unique_ptr< IBotInterface > bot;
+		std::unique_ptr< IBot > bot;
 
 		std::string    paramString;
 		MatchParamKey  paramKey;
@@ -443,9 +444,9 @@ namespace Go
 
 		void cleanup()
 		{
-			for( int i = 0; i < 2; ++i )
+			for(auto & player : players)
 			{
-				auto& bot = players[i].bot;
+				auto& bot = player.bot;
 				if( bot )
 				{
 					bot->destroy();
@@ -458,7 +459,7 @@ namespace Go
 		{
 			return players[idxPlayerTurn];
 		}
-		IBotInterface* getCurTurnBot()
+		IBot* getCurTurnBot()
 		{
 			return players[idxPlayerTurn].bot.get();
 		}

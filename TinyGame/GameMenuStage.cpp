@@ -65,19 +65,19 @@ bool GameMenuStage::onMouse( MouseMsg const& msg )
 }
 
 
-bool GameMenuStage::onKey(unsigned key, bool isDown)
+bool GameMenuStage::onKey(KeyMsg const& msg)
 {
-	if (isDown)
+	if (msg.isDown())
 	{
-		switch ( key )
+		switch (msg.getCode())
 		{
-		case Keyboard::eESCAPE:
+		case EKeyCode::Escape:
 			popWidgetGroup();
 			return false;
 		}
 	}
 
-	return BaseClass::onKey(key, isDown);
+	return BaseClass::onKey(msg);
 }
 
 void GameMenuStage::fadeoutGroup( int dDelay )

@@ -65,9 +65,9 @@ public:
 		return mGame->onMouse(msg);
 	}
 
-	virtual bool onKey(unsigned key, bool isDown) override
+	virtual bool onKey(KeyMsg const& msg) override
 	{
-		return mGame->onKey(key, isDown);
+		return mGame->onKey(msg);
 	}
 
 };

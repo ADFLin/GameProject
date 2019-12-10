@@ -120,7 +120,7 @@ namespace Bloxorz
 
 		bool onMouse( MouseMsg const& msg );
 
-		bool onKey( unsigned key , bool isDown );
+		bool onKey(KeyMsg const& msg);
 
 
 		void drawObjectBody( Vec3f const& color );

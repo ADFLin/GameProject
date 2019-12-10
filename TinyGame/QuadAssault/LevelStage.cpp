@@ -122,16 +122,16 @@ bool LevelStageBase::onMouse( MouseMsg const& msg )
 	return true;
 }
 
-bool LevelStageBase::onKey( unsigned key , bool isDown )
+bool LevelStageBase::onKey(KeyMsg const& msg)
 {
-	if ( !isDown )
+	if ( !msg.isDown() )
 		return false;
 
-	switch( key )
+	switch(msg.getCode())
 	{
-	case Keyboard::eF2:
+	case EKeyCode::F2:
 		break;
-	case Keyboard::eESCAPE:
+	case EKeyCode::Escape:
 		GUISystem::Get().findTopWidget( UI_MENU_PANEL )->show( true );
 		mPause = true;
 		break;
@@ -285,13 +285,13 @@ void LevelStage::tick()
 
 	float rotateSpeed = Math::Deg2Rad( 150 );
 	float moveAcc = 1;
-	if(Input::isKeyPressed(Keyboard::eLEFT) || Input::isKeyPressed(Keyboard::eA))
+	if(Input::isKeyPressed(EKeyCode::Left) || Input::isKeyPressed(EKeyCode::A))
 		player->rotate(-rotateSpeed*TICK_TIME);
-	if(Input::isKeyPressed(Keyboard::eRIGHT) || Input::isKeyPressed(Keyboard::eD))
+	if(Input::isKeyPressed(EKeyCode::Right) || Input::isKeyPressed(EKeyCode::D))
 		player->rotate( rotateSpeed*TICK_TIME);
-	if(Input::isKeyPressed(Keyboard::eUP) || Input::isKeyPressed(Keyboard::eW))
+	if(Input::isKeyPressed(EKeyCode::Up) || Input::isKeyPressed(EKeyCode::W))
 		player->addMoment( moveAcc);
-	if(Input::isKeyPressed(Keyboard::eDOWN) || Input::isKeyPressed(Keyboard::eS))
+	if(Input::isKeyPressed(EKeyCode::Down) || Input::isKeyPressed(EKeyCode::S))
 		player->addMoment(-moveAcc);
 	if(Platform::IsButtonPressed( Mouse::eLBUTTON ) )
 		player->shoot( wPosMouse );
@@ -429,41 +429,41 @@ bool LevelStage::onMouse( MouseMsg const& msg )
 extern bool gUseGroupRender;
 #include <iostream>
 
-bool LevelStage::onKey( unsigned key , bool isDown )
+bool LevelStage::onKey(KeyMsg const& msg)
 {
-	if ( !isDown )
-		return false;
-
-	switch( key )
+	if ( msg.isDown() )
 	{
-	case Keyboard::eF4:
+		switch (msg.getCode())
 		{
-			LevelEditStage* stage = new LevelEditStage;
-			//FIXME
-			stage->mLevel  = mLevel;
-			stage->mCamera = mCamera;
-			stage->mWorldScaleFactor = mWorldScaleFactor;
-			stage->mObjectCreator = mObjectCreator;
-			stage->mActionCreator = mActionCreator;
-			getGame()->addStage( stage , false );
+		case EKeyCode::F4:
+			{
+				LevelEditStage* stage = new LevelEditStage;
+				//FIXME
+				stage->mLevel = mLevel;
+				stage->mCamera = mCamera;
+				stage->mWorldScaleFactor = mWorldScaleFactor;
+				stage->mObjectCreator = mObjectCreator;
+				stage->mActionCreator = mActionCreator;
+				getGame()->addStage(stage, false);
+			}
+			break;
+		case EKeyCode::F2:
+			{
+				gUseGroupRender = !gUseGroupRender;
+				std::cout << "gUseGroupRender =" << gUseGroupRender << std::endl;
+			}
+
+			break;
+		case EKeyCode::Q:
+			mTweener.tweenValue< Easing::OQuad >(mWorldScaleFactor, mWorldScaleFactor, std::max(mWorldScaleFactor + 0.25f, 0.25f), 1.0f);
+			break;
+		case EKeyCode::E:
+			mTweener.tweenValue< Easing::OQuad >(mWorldScaleFactor, mWorldScaleFactor, mWorldScaleFactor - 0.25f, 1.0f);
+			break;
 		}
-		break;
-	case Keyboard::eF2:
-		{
-			gUseGroupRender = !gUseGroupRender;
-			std::cout << "gUseGroupRender =" << gUseGroupRender << std::endl;
-		}
-		
-		break;
-	case Keyboard::eQ:
-		mTweener.tweenValue< Easing::OQuad >( mWorldScaleFactor , mWorldScaleFactor , std::max( mWorldScaleFactor + 0.25f , 0.25f ) , 1.0f );
-		break;
-	case Keyboard::eE:
-		mTweener.tweenValue< Easing::OQuad >( mWorldScaleFactor , mWorldScaleFactor , mWorldScaleFactor - 0.25f , 1.0f );
-		break;
 	}
 
-	return BaseClass::onKey( key , isDown );
+	return BaseClass::onKey( msg );
 }
 
 

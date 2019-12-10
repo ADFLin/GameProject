@@ -28,7 +28,7 @@ bool StageBase::onChar( unsigned code )
 	return true;
 }
 
-bool StageBase::onKey( unsigned key , bool isDown )
+bool StageBase::onKey(KeyMsg const& msg)
 {
 	return true;
 }

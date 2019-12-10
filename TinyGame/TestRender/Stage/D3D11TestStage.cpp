@@ -351,13 +351,13 @@ namespace Render
 		}
 
 
-		bool onKey(unsigned key, bool isDown)
+		bool onKey(KeyMsg const& msg)
 		{
-			if( isDown )
+			if(msg.isDown())
 			{
-				switch( key )
+				switch( msg.getCode() )
 				{
-				case Keyboard::eX:
+				case EKeyCode::X:
 					{
 						auto pData = mCBuffer.lock();
 
@@ -371,7 +371,7 @@ namespace Render
 				}
 			}
 
-			return BaseClass::onKey(key, isDown);
+			return BaseClass::onKey(msg);
 		}
 
 		bool onMouse(MouseMsg const& msg)

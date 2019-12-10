@@ -117,12 +117,12 @@ KeyButton::KeyButton( int id , Vec2i const& pos , ControlAction action , GWidget
 	setCurKey( sController->getKey( 0 ,mAction ) );
 }
 
-bool KeyButton::onKeyMsg( unsigned key , bool isDown )
+bool KeyButton::onKeyMsg(KeyMsg const& msg)
 {
-	if ( sInputButton == this && isDown )
+	if ( sInputButton == this && msg.isDown() )
 	{
-		setCurKey( key );
-		sInputButton = NULL;
+		setCurKey( msg.getCode() );
+		sInputButton = nullptr;
 		return false;
 	}
 	return true;

@@ -443,14 +443,14 @@ public:
 
 	Vector2 mPosOnMouse;
 
-	bool onKey(unsigned key, bool isDown)
+	bool onKey(KeyMsg const& msg)
 	{
-		if( !isDown )
+		if( !msg.isDown() )
 			return false;
-		switch( key )
+		switch(msg.getCode())
 		{
-		case Keyboard::eR: restart(); break;
-		case Keyboard::eF5: ShaderManager::Get().reloadShader(*mProgMandelbrot); updateTexture(); break;
+		case EKeyCode::R: restart(); break;
+		case EKeyCode::F5: ShaderManager::Get().reloadShader(*mProgMandelbrot); updateTexture(); break;
 		}
 		return false;
 	}

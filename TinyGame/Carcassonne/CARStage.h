@@ -132,7 +132,7 @@ namespace CAR
 		void onRestart(bool bInit) override;
 		void onRender( float dFrame ) override;
 		bool onWidgetEvent(int event , int id , GWidget* ui) override;
-		bool onKey( unsigned key , bool isDown ) override;
+		bool onKey(KeyMsg const& msg) override;
 		bool onMouse( MouseMsg const& msg ) override;
 
 

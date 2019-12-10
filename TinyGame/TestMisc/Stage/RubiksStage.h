@@ -372,23 +372,23 @@ namespace Rubiks
 			return true;
 		}
 
-		bool onKey( unsigned key , bool isDown )
+		bool onKey(KeyMsg const& msg)
 		{
-			if ( !isDown )
+			if ( !msg.isDown())
 				return false;
 
-			switch( key )
+			switch(msg.getCode())
 			{
 
-			case Keyboard::eR: restart(); break;
-			case Keyboard::eA: rotateCube( FaceLeft , bInvRotation ); break;
-			case Keyboard::eS: rotateCube( FaceFront , bInvRotation); break;
-			case Keyboard::eD: rotateCube( FaceRight , bInvRotation ); break;
-			case Keyboard::eF: rotateCube( FaceBack , bInvRotation ); break;
-			case Keyboard::eW: rotateCube( FaceUp  , bInvRotation ); break;
-			case Keyboard::eX: rotateCube( FaceDown , bInvRotation ); break;
-			case Keyboard::eE: bInvRotation = !bInvRotation; break;
-			case Keyboard::eP:
+			case EKeyCode::R: restart(); break;
+			case EKeyCode::A: rotateCube( FaceLeft , bInvRotation ); break;
+			case EKeyCode::S: rotateCube( FaceFront , bInvRotation); break;
+			case EKeyCode::D: rotateCube( FaceRight , bInvRotation ); break;
+			case EKeyCode::F: rotateCube( FaceBack , bInvRotation ); break;
+			case EKeyCode::W: rotateCube( FaceUp  , bInvRotation ); break;
+			case EKeyCode::X: rotateCube( FaceDown , bInvRotation ); break;
+			case EKeyCode::E: bInvRotation = !bInvRotation; break;
+			case EKeyCode::P:
 				{
 					solver.mInitState = mState[ idxCur ];
 					solver.mFinalState.setGlobalState();

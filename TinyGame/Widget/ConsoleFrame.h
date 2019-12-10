@@ -137,7 +137,7 @@ public:
 	};
 
 	virtual void onRender();
-	virtual bool onKeyMsg(unsigned key, bool isDown);
+	virtual bool onKeyMsg(KeyMsg const& msg);
 	virtual bool onCharMsg(unsigned code);
 	virtual bool onChildEvent(int event, int id, GWidget* ui);
 	struct ComLine

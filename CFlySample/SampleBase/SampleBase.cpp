@@ -97,11 +97,11 @@ bool SampleBase::handleKeyEvent( unsigned key , bool isDown )
 
 	switch( key )
 	{
-	case Keyboard::eESCAPE: setLoopOver( true ); break;
-	case Keyboard::eW: mMainCamera->translate( Vector3( 0,0,-moveSpeed ) , CFTO_LOCAL ); break;
-	case Keyboard::eS: mMainCamera->translate( Vector3( 0,0,moveSpeed ) , CFTO_LOCAL ); break;
-	case Keyboard::eA: mMainCamera->translate( Vector3( -moveSpeed ,0 , 0 ) , CFTO_LOCAL ); break;
-	case Keyboard::eD: mMainCamera->translate( Vector3( moveSpeed ,0 , 0 ) , CFTO_LOCAL ); break;
+	case EKeyCode::Escape: setLoopOver( true ); break;
+	case EKeyCode::W: mMainCamera->translate( Vector3( 0,0,-moveSpeed ) , CFTO_LOCAL ); break;
+	case EKeyCode::S: mMainCamera->translate( Vector3( 0,0,moveSpeed ) , CFTO_LOCAL ); break;
+	case EKeyCode::A: mMainCamera->translate( Vector3( -moveSpeed ,0 , 0 ) , CFTO_LOCAL ); break;
+	case EKeyCode::D: mMainCamera->translate( Vector3( moveSpeed ,0 , 0 ) , CFTO_LOCAL ); break;
 	}
 
 	return true;

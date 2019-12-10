@@ -126,15 +126,15 @@ void LevelEditStage::onUpdate( float deltaT )
 {	
 	float speed=250;
 
-	if( Input::isKeyPressed( Keyboard::eLSHIFT ) )
+	if( Input::isKeyPressed( EKeyCode::LShift ) )
 		speed=750;
-	if( Input::isKeyPressed( Keyboard::eLEFT ) || Input::isKeyPressed( Keyboard::eA ) )
+	if( Input::isKeyPressed( EKeyCode::Left ) || Input::isKeyPressed( EKeyCode::A ) )
 		mCamera->setPos(mCamera->getPos()+Vec2f(-speed*deltaT,0));
-	if( Input::isKeyPressed( Keyboard::eRIGHT ) || Input::isKeyPressed( Keyboard::eD) )
+	if( Input::isKeyPressed( EKeyCode::Right ) || Input::isKeyPressed( EKeyCode::D) )
 		mCamera->setPos(mCamera->getPos()+Vec2f(speed*deltaT,0));
-	if( Input::isKeyPressed( Keyboard::eUP ) || Input::isKeyPressed( Keyboard::eW ) )
+	if( Input::isKeyPressed( EKeyCode::Up ) || Input::isKeyPressed( EKeyCode::W ) )
 		mCamera->setPos(mCamera->getPos()+Vec2f(0, -speed*deltaT));
-	if( Input::isKeyPressed( Keyboard::eDOWN ) || Input::isKeyPressed( Keyboard::eS ) )
+	if( Input::isKeyPressed( EKeyCode::Down ) || Input::isKeyPressed( EKeyCode::S ) )
 		mCamera->setPos(mCamera->getPos()+Vec2f(0, speed*deltaT));
 
 	getGame()->procSystemEvent();
@@ -210,19 +210,19 @@ bool LevelEditStage::onMouse( MouseMsg const& msg )
 
 
 
-bool LevelEditStage::onKey( unsigned key , bool isDown )
+bool LevelEditStage::onKey(KeyMsg const& msg)
 {
-	if ( !mMode->onKey( key , isDown ) )
+	if ( !mMode->onKey(msg) )
 		return false;
 
-	if ( isDown )
+	if ( msg.isDown() )
 	{
-		switch( key )
+		switch( msg.getCode() )
 		{
-		case Keyboard::eF1:
+		case EKeyCode::F1:
 			stop();
 			break;
-		case Keyboard::eF4:
+		case EKeyCode::F4:
 			{
 				RenderEngine* renderEngine = getGame()->getRenderEenine();
 				if( renderEngine->getAmbientLight().x==0.1f)
@@ -231,14 +231,14 @@ bool LevelEditStage::onKey( unsigned key , bool isDown )
 					renderEngine->setAmbientLight( Vec3f(0.1f, 0.1f, 0.1f) );
 			}
 			break;
-		case Keyboard::eF6:
+		case EKeyCode::F6:
 			{
 				String path = LEVEL_DIR;
 				path += gMapFileName;
 				saveLevel( path.c_str() );				
 			}
 			break;
-		case Keyboard::eG:
+		case EKeyCode::G:
 			{
 				Vec2f wPos = convertToWorldPos( getGame()->getMousePos() );
 				std::cout << "X: " << wPos.x << std::endl;
@@ -247,7 +247,7 @@ bool LevelEditStage::onKey( unsigned key , bool isDown )
 			break;
 		}
 	}
-	return BaseClass::onKey( key , isDown );
+	return BaseClass::onKey( msg );
 }
 
 void LevelEditStage::onWidgetEvent( int event , int id , QWidget* sender )
@@ -480,18 +480,18 @@ void TileEditMode::enumProp( IPropEditor& editor )
 	editor.addProp( "Meta" , mTile->meta );
 }
 
-bool TileEditMode::onKey( unsigned key , bool isDown )
+bool TileEditMode::onKey(KeyMsg const& msg)
 {
-	if ( !isDown )
+	if ( !msg.isDown())
 		return true;
 
-	switch( key )
+	switch(msg.getCode())
 	{
-	case Keyboard::eNUM1: setEditType( BID_FLAT ); return false;
-	case Keyboard::eNUM2: setEditType( BID_WALL ); return false;
-	case Keyboard::eNUM3: setEditType( BID_GAP );  return false;
-	case Keyboard::eNUM4: setEditType( BID_DOOR ); return false;
-	case Keyboard::eNUM7: setEditType( BID_ROCK ); return false;
+	case EKeyCode::Num1: setEditType( BID_FLAT ); return false;
+	case EKeyCode::Num2: setEditType( BID_WALL ); return false;
+	case EKeyCode::Num3: setEditType( BID_GAP );  return false;
+	case EKeyCode::Num4: setEditType( BID_DOOR ); return false;
+	case EKeyCode::Num7: setEditType( BID_ROCK ); return false;
 	}
 	return true;
 }
@@ -623,12 +623,12 @@ bool ObjectEditMode::onMouse( MouseMsg const& msg )
 	{
 		if ( mObject && msg.isLeftDown() )
 		{
-			if ( Input::isKeyPressed( Keyboard::eLSHIFT ) )
+			if ( Input::isKeyPressed( EKeyCode::LShift ) )
 			{
 				mObject->setPos( wPos );
 				getWorld().mPropFrame->inputData();
 			}
-			else if ( Input::isKeyPressed( Keyboard::eLCONTROL ) )
+			else if ( Input::isKeyPressed( EKeyCode::LControl ) )
 			{
 				Actor* actor = mObject->tryCast< Actor >();
 				if ( actor )

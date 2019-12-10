@@ -10,7 +10,7 @@ namespace Math
 	class Rotation2D
 	{
 	public:
-		Rotation2D() {}
+		Rotation2D() = default;
 		Rotation2D(float angle) { setAngle(angle); }
 
 		static Rotation2D Angle(float angle) { return Rotation2D(angle); }

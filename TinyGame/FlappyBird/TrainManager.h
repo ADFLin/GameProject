@@ -2,8 +2,6 @@
 #ifndef TrainManager_H_1AA8F01D_3E72_4D7F_8447_38AF459C75A2
 #define TrainManager_H_1AA8F01D_3E72_4D7F_8447_38AF459C75A2
 
-#include "FBLevel.h"
-
 #include "RenderUtility.h"
 #include "Serialize/DataStream.h"
 
@@ -13,35 +11,45 @@
 
 namespace FlappyBird
 {
-	class AgentBase
+	class Agent;
+	class TrainData;
+
+
+	class AgentEntity
 	{
 	public:
-		FCNeuralNetwork FNN;
-		GenotypePtr     genotype;	
-		NNScale*        inputsAndSignals = nullptr;
-
+		virtual ~AgentEntity() {}
+		virtual void release() = 0;
 	};
 
-	class Agent : public AgentBase 
-		        , public IController
+	using TrainCompletedDelegate = std::function< void() >;
+	class AgentWorld
+	{
+	public:
+		virtual ~AgentWorld() {}
+		virtual void release() = 0;
+
+		virtual void setup(TrainData& trainData) = 0;
+		virtual void restart(TrainData& trainData) = 0;
+		virtual void tick(TrainData& trainData) = 0;
+
+		TrainCompletedDelegate onTrainCompleted;
+	};
+
+
+	class Agent
 	{
 	public:
 
-		bool  bCompleted = false;
-		float lifeTime = 0;
-
-		BirdEntity    hostBird;
+		~Agent();
+		FCNeuralNetwork FNN;
+		GenotypePtr     genotype;
+		NNScale*        inputsAndSignals = nullptr;
+		AgentEntity*    entity = nullptr;
 
 		void init(FCNNLayout const& layout);
 		void setGenotype(GenotypePtr  inGenotype);
-		void restart();
-		void tick();
 		void randomizeData(NNRand& random);
-		// IController
-		virtual void updateInput(GameLevel& world, BirdEntity& bird) override;
-
-		void getPipeInputs(NNScale inputs[], PipeInfo const& pipe );
-
 	};
 
 	struct TrainDataSetting
@@ -57,6 +65,7 @@ namespace FlappyBird
 		float mutationGeneProb;
 		float mutationValueProb;
 		float mutationValueDelta;
+
 		TrainDataSetting()
 		{
 			netLayout = nullptr;
@@ -76,14 +85,11 @@ namespace FlappyBird
 	class TrainData
 	{
 	public:
-		void init(TrainDataSetting const& inSetting);
+		void init( TrainDataSetting const& inSetting );
 		
-		void tick();
-		void restart();
+		void findBestAgnet();
 		void usePoolData(GenePool& pool);
 		void runEvolution(GenePool* genePool);
-
-		void addAgentToLevel(GameLevel& level);
 
 		void inputData(IStreamSerializer::ReadOp& op );
 		void outputData(IStreamSerializer::WriteOp& op );
@@ -105,50 +111,47 @@ namespace FlappyBird
 	{
 	public:
 
-		TrainWork()
-		{
-
-		}
+		TrainWork() = default;
 
 		~TrainWork()
 		{
-			if( bManageLevel )
+			if (world)
 			{
-				delete level;
+				world->release();
 			}
 		}
 		void restartGame()
 		{
-			level->restart();
-			trainData.restart();
+			world->restart(trainData);
 		}
-		void setupWorkEnv();
-		void stopRun();
 
-		void notifyGameOver(GameLevel& level);
-		CollisionResponse notifyCollision(BirdEntity& bird, ColObject& obj);
+		void stopRun();
+		void sendDataToMaster();
+
+		void handleTrainCompleted();
+
 		//IQueuedWork
-		virtual void executeWork();
-		virtual void abandon()
+		void executeWork() override;
+		void abandon() override
 		{
 
 		}
-		virtual void release()
+		void release() override
 		{
 
 		}
 		//~IQueuedWork
-		int  index = 0;
-		int64 lastUpdateTime = 0;
+		int       index = 0;
+		int64     lastUpdateTime = 0;
 		volatile int32 bNeedStop = 0;
 		TrainData  trainData;
-		GenePool genePool;
-		GameLevel* level = nullptr;
-		bool bManageLevel = false;
+		GenePool   genePool;
 		TrainManager* manager = nullptr;
 		int maxGeneration = 0;
+		AgentWorld* world = nullptr;
 	};
 
+	using AgentWorldCreationDeletgate = std::function < AgentWorld* () >;
 	struct TrainWorkSetting
 	{
 		int numWorker;
@@ -156,6 +159,7 @@ namespace FlappyBird
 		int masterPoolNum;
 		int workerPoolNum;
 
+		AgentWorldCreationDeletgate worldFactory;
 		TrainDataSetting dataSetting;
 
 		TrainWorkSetting()

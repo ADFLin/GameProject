@@ -830,12 +830,12 @@ namespace Tetris
 			ch = 126;
 	}
 
-	bool RecordStage::onKey( unsigned key , bool isDown )
+	bool RecordStage::onKey(KeyMsg const& msg)
 	{
-		if ( !chName || !isDown )
+		if ( !chName || !msg.isDown())
 			return true;
 
-		switch ( key )
+		switch (msg.getCode())
 		{
 		case VK_UP   : limitChar( ++highLightRecord->name[ idxChar ] ); break;
 		case VK_DOWN : limitChar( --highLightRecord->name[ idxChar ] ); break;

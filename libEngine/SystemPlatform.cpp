@@ -8,10 +8,13 @@
 #include <intrin.h>
 //#include <xatomic.h>
 #include <winnt.h>
+#include <shlobj_core.h>
 #else
 #include <ctime>
 #include "MemorySecurity.h"
 #endif
+#include "Core/ScopeExit.h"
+
 
 
 int SystemPlatform::GetProcessorNumber()
@@ -230,7 +233,7 @@ DateTime SystemPlatform::GetLocalTime()
 
 #include "FileSystem.h"
 
-bool SystemPlatform::OpenFileName(char inoutPath[], int pathSize, char const* initDir)
+bool SystemPlatform::OpenFileName(char inoutPath[], int pathSize, char const* initDir, char const* title )
 {
 #if SYS_PLATFORM_WIN
 	OPENFILENAME ofn;
@@ -242,8 +245,7 @@ bool SystemPlatform::OpenFileName(char inoutPath[], int pathSize, char const* in
 	ofn.nMaxFile = pathSize;
 	ofn.lpstrFilter = "All\0*.*\0Text\0*.TXT\0";
 	ofn.nFilterIndex = 1;
-	ofn.lpstrFileTitle = NULL;
-	ofn.nMaxFileTitle = 0;
+	ofn.lpstrTitle = title;
 	ofn.lpstrInitialDir = initDir;
 	if( inoutPath )
 		ofn.nFileOffset = FileUtility::GetFileName(inoutPath) - inoutPath;
@@ -261,6 +263,68 @@ bool SystemPlatform::OpenFileName(char inoutPath[], int pathSize, char const* in
 	}
 
 	return true;
+#else
+	return false;
+#endif
+}
+
+#if SYS_PLATFORM_WIN
+
+int CALLBACK BrowseForFolderCallback(HWND hwnd, UINT uMsg, LPARAM lp, LPARAM pData)
+{
+	char szPath[MAX_PATH];
+
+	switch (uMsg)
+	{
+	case BFFM_INITIALIZED:
+		SendMessage(hwnd, BFFM_SETSELECTION, TRUE, pData);
+		break;
+#if 0
+	case BFFM_SELCHANGED:
+		if (SHGetPathFromIDList((LPITEMIDLIST)lp, szPath))
+		{
+			SendMessage(hwnd, BFFM_SETSTATUSTEXT, 0, (LPARAM)szPath);
+		}
+		break;
+#endif
+	}
+
+	return 0;
+}
+
+#endif
+
+bool SystemPlatform::OpenDirectoryName(char outPath[], int pathSize, char const* initDir /*= nullptr*/, char const* title )
+{
+#if SYS_PLATFORM_WIN
+	BROWSEINFO bi = { 0 };
+
+	::OleInitialize(NULL);
+	ON_SCOPE_EXIT
+	{
+		 ::OleUninitialize();
+	};
+	
+	bi.lpszTitle = title;
+	bi.lpfn = BrowseForFolderCallback;
+	bi.lParam = (LPARAM)initDir;
+	bi.ulFlags = BIF_USENEWUI;
+	bi.pszDisplayName = nullptr;
+	LPITEMIDLIST pidl = SHBrowseForFolder(&bi);
+	if (pidl != NULL)
+	{
+		ON_SCOPE_EXIT
+		{
+			CoTaskMemFree(pidl);
+		};
+		if (SHGetPathFromIDList(pidl, outPath))
+		{
+			return true;
+		}
+
+	}
+
+	return false;
 #else
 	return false;
 #endif

@@ -32,7 +32,7 @@ namespace Zuma
 
 		virtual void onRender( IRenderSystem& rs );
 		virtual bool onMouse( MouseMsg const& msg );
-		virtual void onKey( unsigned key , bool isDown );
+		virtual void onKey( KeyMsg const& msg );
 		virtual void onUpdate( long time );
 		virtual bool onEvent( int evtID , ZEventData const& data , ZEventHandler* sender );
 

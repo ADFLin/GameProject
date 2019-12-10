@@ -341,7 +341,7 @@ void WidgetCoreT<T>::doRenderAll()
 	render();
 	postRender();
 
-	bool bClipTest = _this()->haveChildClipTest();
+	bool const bClipTest = _this()->haveChildClipTest();
 
 	if ( bClipTest )
 	{
@@ -411,6 +411,7 @@ TWidgetManager<T>::~TWidgetManager()
 template< class T >
 void TWidgetManager<T>::prevProcMsg()
 {
+	assert(mProcessingMsg == false);
 	mProcessingMsg = true;
 }
 
@@ -430,7 +431,7 @@ bool TWidgetManager<T>::procMouseMsg( MouseMsg const& msg )
 
 	bool result = true;
 
-	mMouseMsg = msg;
+	mLastMouseMsg = msg;
 
 	WidgetCore* ui = nullptr;
 	if ( mNamedSlots[ESlotName::Capture] )
@@ -439,14 +440,14 @@ bool TWidgetManager<T>::procMouseMsg( MouseMsg const& msg )
 	}
 	else if( mNamedSlots[ESlotName::Modal] )
 	{
-		if( mNamedSlots[ESlotName::Modal]->hitTest(mMouseMsg.getPos()) )
+		if( mNamedSlots[ESlotName::Modal]->hitTest(mLastMouseMsg.getPos()) )
 		{
-			ui = mNamedSlots[ESlotName::Modal]->hitTestChildren(mMouseMsg.getPos() - mNamedSlots[ESlotName::Modal]->getPos());
+			ui = mNamedSlots[ESlotName::Modal]->hitTestChildren(mLastMouseMsg.getPos() - mNamedSlots[ESlotName::Modal]->getPos());
 		}		
 	}
 	else
 	{
-		ui = hitTest( mMouseMsg.getPos() );
+		ui = hitTest( mLastMouseMsg.getPos() );
 	}
 
 	if (mNamedSlots[ESlotName::LastMouseMsg])
@@ -509,14 +510,14 @@ bool TWidgetManager<T>::procMouseMsg( MouseMsg const& msg )
 			}
 			else
 			{
-				result = ui->onMouseMsg( mMouseMsg );
+				result = ui->onMouseMsg( mLastMouseMsg );
 				while ( result && ui->checkFlag( WIF_REROUTE_MOUSE_EVENT_UNHANDLED ) )
 				{
 					if ( ui->isTop() )
 						break;
 
 					ui = static_cast< T* >( ui->getParent() );
-					result = ui->onMouseMsg( mMouseMsg );
+					result = ui->onMouseMsg( mLastMouseMsg );
 
 					if( mNamedSlots[ESlotName::LastMouseMsg] )
 						clearNamedSlot(ESlotName::LastMouseMsg);
@@ -525,7 +526,7 @@ bool TWidgetManager<T>::procMouseMsg( MouseMsg const& msg )
 				}
 			}
 
-			//while ( bool still = ui->onMouseMsg( mMouseMsg ) )
+			//while ( bool still = ui->onMouseMsg( mLastMouseMsg ) )
 			//{
 			//	ui = ui->getParent();
 			//	if ( !still || ui == getRoot() )
@@ -553,8 +554,8 @@ WidgetCoreT<T>* TWidgetManager<T>::getKeyInputWidget()
 
 
 template< class T >
-template< class Fun >
-bool TWidgetManager<T>::processMessage(WidgetCore* ui, WidgetInternalFlag flag , WidgetInternalFlag unhandledFlag , Fun func)
+template< class Func >
+bool TWidgetManager<T>::processMessage(WidgetCore* ui, WidgetInternalFlag flag , WidgetInternalFlag unhandledFlag , Func func)
 {
 	bool result = true;
 	while( ui != nullptr )
@@ -592,12 +593,12 @@ bool TWidgetManager<T>::procCharMsg( unsigned code )
 }
 
 template< class T >
-bool TWidgetManager<T>::procKeyMsg( unsigned key , bool isDown )
+bool TWidgetManager<T>::procKeyMsg(KeyMsg const& msg)
 {
 	ProcMsgScope scope(this);
-	bool result = processMessage(getKeyInputWidget(), WIF_REROUTE_KEY_EVENT, WIF_REROUTE_KEY_EVENT_UNHANDLED, [key, isDown](WidgetCore* ui)
+	bool result = processMessage(getKeyInputWidget(), WIF_REROUTE_KEY_EVENT, WIF_REROUTE_KEY_EVENT_UNHANDLED, [msg](WidgetCore* ui)
 	{
-		return ui->onKeyMsg(key, isDown);
+		return ui->onKeyMsg(msg);
 	});
 	return result;
 }

@@ -23,7 +23,7 @@ class ISystemListener
 public:
 	virtual bool onSystemEvent( SystemEvent event ){ return true; }
 	virtual bool onMouse( MouseMsg const& msg ){ return true; }
-	virtual bool onKey( unsigned key , bool beDown ){ return true; }
+	virtual bool onKey( KeyMsg const& msg ){ return true; }
 	virtual bool onChar( unsigned code ){ return true; }
 };
 

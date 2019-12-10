@@ -29,7 +29,7 @@ public:
 	virtual void onRender();
 	virtual void onExit();
 	virtual bool onMouse( MouseMsg const& msg );
-	virtual bool onKey( unsigned key , bool isDown );
+	virtual bool onKey(KeyMsg const& msg);
 	virtual void onWidgetEvent( int event , int id , QWidget* sender );
 
 private:

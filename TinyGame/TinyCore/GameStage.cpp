@@ -96,9 +96,9 @@ void GameStageBase::onUpdate(long time)
 	BaseClass::onUpdate(time);
 }
 
-bool GameStageBase::onKey(unsigned key, bool isDown)
+bool GameStageBase::onKey(KeyMsg const& msg)
 {
-	return mStageMode->onKey(key, isDown);
+	return mStageMode->onKey(msg);
 }
 
 bool GameStageBase::onWidgetEvent(int event, int id, GWidget* ui)

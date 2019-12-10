@@ -181,16 +181,16 @@ namespace GreedySnake
 		return true;
 	}
 
-	bool LevelStage::onKey(unsigned key, bool isDown)
+	bool LevelStage::onKey(KeyMsg const& msg)
 	{
-		if( !BaseClass::onKey(key, isDown) )
+		if( !BaseClass::onKey(msg) )
 			return false;
 
-		if ( isDown )
+		if (msg.isDown())
 		{
-			switch( key )
+			switch(msg.getCode())
 			{
-			case Keyboard::eR:
+			case EKeyCode::R:
 				getStageMode()->restart(false);
 				Global::Debug().clearDebugMsg();
 				break;

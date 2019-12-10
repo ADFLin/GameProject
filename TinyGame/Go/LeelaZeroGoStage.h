@@ -31,7 +31,7 @@ namespace Go
 
 	class GoReplayFrame : public GFrame
 	{
-		typedef GFrame BaseClass;
+		using BaseClass = GFrame;
 
 
 
@@ -42,25 +42,25 @@ namespace Go
 
 	class GFilePicker : public GWidget
 	{
-		typedef GWidget BaseClass;
+		using BaseClass = GWidget;
 	public:
 		GFilePicker(int id, Vec2i const& pos, Vec2i const& size, GWidget* parent)
 			:BaseClass(pos, size, parent)
 		{
 			mID = id;
-			GButton* button = new GButton(UI_ANY, Vec2i(size.x - 20 ,0), Vec2i(20, size.y), this);
+			auto* button = new GButton(UI_ANY, Vec2i(size.x - 20 ,0), Vec2i(20, size.y), this);
 			button->setTitle("..");
 			button->onEvent = [this](int event, GWidget*) -> bool
 			{
-				SystemPlatform::OpenFileName(filePath, filePath.max_size(), nullptr);
-				return false;
+				if (SystemPlatform::OpenFileName(filePath, filePath.max_size(), nullptr, nullptr) )
+					return false;
 			};
 		}
 
 		FixString<512> filePath;
 		bool bShowFileNameOnly = true;
 
-		virtual void onRender() override
+		void onRender() override
 		{
 			IGraphics2D& g = ::Global::GetIGraphics2D();
 
@@ -84,7 +84,7 @@ namespace Go
 
 	class MatchSettingPanel : public BaseSettingPanel
 	{
-		typedef BaseSettingPanel BaseClass;
+		using BaseClass = BaseSettingPanel;
 	public:
 		enum
 		{
@@ -127,7 +127,7 @@ namespace Go
 
 		GChoice* addPlayerChoice(int idxPlayer, char const* title);
 
-		virtual bool onChildEvent(int event, int id, GWidget* ui) override
+		bool onChildEvent(int event, int id, GWidget* ui) override
 		{
 			switch( id )
 			{
@@ -146,7 +146,7 @@ namespace Go
 			return BaseClass::onChildEvent(event, id, ui);
 		}
 
-		bool setupMatchSetting(MatchGameData& matchData , GameSetting& setting);
+		bool setupMatchSetting(MatchGameData& matchData , GameSetting& outSetting);
 
 
 		template< class T , class Widget >
@@ -156,22 +156,16 @@ namespace Go
 		}
 	};
 
-	class GameHook
-	{
-
-
-
-
-	};
 
 	class BoardFrame : public GFrame
 	{
 	public:
-		typedef GFrame BaseClass;
+		using BaseClass = GFrame;
 
 		BoardFrame( GameProxy& game , int id, Vec2i const& pos, Vec2i const size, GWidget* parent)
 			:GFrame(id, pos, size, parent)
 			,renderContext(game.getBoard(), getWorldPos() + GetBorder(), CalcRenderScale(size))
+			,mBorad(game.getBoard())
 		{
 
 		}
@@ -187,28 +181,21 @@ namespace Go
 		{
 			return Vec2i(20, 20);
 		}
-		virtual void onRender()
-		{
-			BaseClass::onRender();
-			GLGraphics2D& g = ::Global::GetRHIGraphics2D();
-			{
-				TGuardValue<bool> gurdValue(renderer->bDrawCoord, false);
-				renderer->drawBorad(g, renderContext);
-			}
-		}
-		virtual void onChangePos(Vec2i const& pos, bool bParentMove) override
+		void onRender() override;
+		void onChangePos(Vec2i const& pos, bool bParentMove) override
 		{
 			BaseClass::onChangePos(pos, bParentMove);
 			renderContext.renderPos = getWorldPos() + GetBorder();
 		}
 		RenderContext  renderContext;
 		BoardRenderer* renderer;
+		Board const&   mBorad;
 	};
 
 	class TryPlayBoardFrame : public BoardFrame
 	{
 	public:
-		typedef BoardFrame BaseClass;
+		using BaseClass = BoardFrame;
 
 		TryPlayBoardFrame(int id, Vec2i const& pos, Vec2i const size, GWidget* parent)
 			:BoardFrame(game , id, pos, size, parent)
@@ -216,7 +203,7 @@ namespace Go
 
 		}
 
-		virtual bool onMouseMsg(MouseMsg const& msg)
+		bool onMouseMsg(MouseMsg const& msg) override
 		{
 			if( msg.onLeftDown() )
 			{
@@ -244,7 +231,7 @@ namespace Go
 
 	class LeelaZeroGoStage : public StageBase
 	{
-		typedef StageBase BaseClass;
+		using BaseClass = StageBase;
 	public:
 		LeelaZeroGoStage() {}
 
@@ -366,23 +353,23 @@ namespace Go
 					mBot->release();
 				}
 			}
-			virtual void emitSetup(GameSetting const& setting) override
+			void emitSetup(GameSetting const& setting) override
 			{
 				mBot->startGame(setting);
 			}
-			virtual void emitPlayStone(int x, int y, int color) override
+			void emitPlayStone(int x, int y, int color) override
 			{
 				mBot->playStone(x, y, ZenBot::ToZColor(color));
 			}
-			virtual void emitAddStone(int x, int y, int color) override
+			void emitAddStone(int x, int y, int color) override
 			{
 				mBot->addStone(x, y, ZenBot::ToZColor(color));
 			}
-			virtual void emitPlayPass(int color) override
+			void emitPlayPass(int color) override
 			{
 				mBot->playPass(ZenBot::ToZColor(color));
 			}
-			virtual void emitUndo() override
+			void emitUndo() override
 			{
 				mBot->undo();
 			}
@@ -443,7 +430,8 @@ namespace Go
 
 		void updateViewGameTerritory();
 
-		static void DrawTerritoryStatus( BoardRenderer& renderer , RenderContext const& context ,  Zen::TerritoryInfo const& info);
+		void drawAnalysis(GLGraphics2D& g, SimpleRenderState& renderState, RenderContext& context);
+		static void DrawTerritoryStatus( BoardRenderer& renderer , SimpleRenderState& renderState, RenderContext const& context ,  Zen::TerritoryInfo const& info);
 
 
 		std::vector< Vector2 > mWinRateHistory[2];
@@ -462,6 +450,9 @@ namespace Go
 		GWidget* mModeWidget = nullptr;
 		bool     mbRestartLearning = false;
 
+		int mBotBoardState[19 * 19];
+		bool mbBotBoardStateValid = false;
+
 		MatchResultMap mMatchResultMap;
 		uint32         mLastMatchRecordWinCounts[2];
 		void recordMatchResult( bool bSaveToFile );
@@ -479,21 +470,14 @@ namespace Go
 		bool saveMatchGameSGF(char const* matchResult = nullptr);
 	
 
-		virtual bool onInit();
-		virtual void onEnd();
-		virtual void onUpdate(long time);
+		bool onInit() override;
+		void onEnd() override;
+		void onUpdate(long time) override;
 
-		void onRender(float dFrame);
-
-		void drawAnalysis(GLGraphics2D& g , RenderContext& context);
-
-
-		virtual bool onWidgetEvent(int event, int id, GWidget* ui) override;
-
-		bool onMouse(MouseMsg const& msg);
-
-
-		virtual bool onKey(unsigned key, bool isDown) override;
+		void onRender(float dFrame) override;
+		bool onWidgetEvent(int event, int id, GWidget* ui) override;
+		bool onMouse(MouseMsg const& msg) override;
+		bool onKey(KeyMsg const& msg) override;
 
 
 		void tick() {}

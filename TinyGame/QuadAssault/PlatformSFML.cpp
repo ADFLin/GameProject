@@ -36,130 +36,130 @@ sf::Keyboard::Key convertToSFKey( unsigned key )
 	//FIXME
 	switch( key )
 	{
-	case Keyboard::eCANCEL : break;
+	case EKeyCode::Cancel : break;
 
-	case Keyboard::eBACK:           break;
-	case Keyboard::eTAB:            break;
-	case Keyboard::eCLEAR:          break;
-	case Keyboard::eRETURN:         break;
+	case EKeyCode::Back:           break;
+	case EKeyCode::Tab:            break;
+	case EKeyCode::Clear:          break;
+	case EKeyCode::Return:         break;
 
-	case Keyboard::eSHIFT:          break;
-	case Keyboard::eCONTROL:        break;
-	case Keyboard::eMENU:           break;
-	case Keyboard::ePAUSE:          break;
-	case Keyboard::eCAPITAL:        break;
+	case EKeyCode::Shift:          break;
+	case EKeyCode::Control:        break;
+	case EKeyCode::Menu:           break;
+	case EKeyCode::Pause:          break;
+	case EKeyCode::Capital:        break;
 
-	case Keyboard::eKANA:           break;
-	case Keyboard::eJUNJA:          break; 
-	case Keyboard::eFINAL:          break;
-	case Keyboard::eHANJA:          break;
+	case EKeyCode::Kana:           break;
+	case EKeyCode::Junja:          break; 
+	case EKeyCode::Final:          break;
+	case EKeyCode::Hanja:          break;
 
-	case Keyboard::eESCAPE:         break;
+	case EKeyCode::Escape:         break;
 
-	case Keyboard::eCONVERT:        break;
-	case Keyboard::eNONCONVERT:     break;
-	case Keyboard::eACCEPT:         break;
-	case Keyboard::eMODECHANGE:     break;
+	case EKeyCode::Convert:        break;
+	case EKeyCode::NonConvert:     break;
+	case EKeyCode::Accept:         break;
+	case EKeyCode::ModeChange:     break;
 
-	case Keyboard::eSPACE:          break;
-	case Keyboard::ePRIOR:          break;
-	case Keyboard::eNEXT:           break;
-	case Keyboard::eEND:            break;
-	case Keyboard::eHOME:           break;
-	case Keyboard::eLEFT:           break;
-	case Keyboard::eUP:             break;
-	case Keyboard::eRIGHT:          break;
-	case Keyboard::eDOWN:           break;
-	case Keyboard::eSELECT:         break;
-	case Keyboard::ePRINT:          break;
-	case Keyboard::eEXECUTE:        break;
-	case Keyboard::eSNAPSHOT:       break;
-	case Keyboard::eINSERT:         break;
-	case Keyboard::eDELETE:         break;
-	case Keyboard::eHELP:           break;
+	case EKeyCode::Space:          break;
+	case EKeyCode::Prior:          break;
+	case EKeyCode::Next:           break;
+	case EKeyCode::End:            break;
+	case EKeyCode::Home:           break;
+	case EKeyCode::Left:           break;
+	case EKeyCode::Up:             break;
+	case EKeyCode::Right:          break;
+	case EKeyCode::Down:           break;
+	case EKeyCode::Select:         break;
+	case EKeyCode::Print:          break;
+	case EKeyCode::Execute:        break;
+	case EKeyCode::Snapshot:       break;
+	case EKeyCode::Insert:         break;
+	case EKeyCode::Delete:         break;
+	case EKeyCode::Help:           break;
 
-	case Keyboard::eNUM0: return sf::Keyboard::Num0; 
-	case Keyboard::eNUM1: return sf::Keyboard::Num1; 
-	case Keyboard::eNUM2: return sf::Keyboard::Num2; 
-	case Keyboard::eNUM3: return sf::Keyboard::Num3; 
-	case Keyboard::eNUM4: return sf::Keyboard::Num4; 
-	case Keyboard::eNUM5: return sf::Keyboard::Num5; 
-	case Keyboard::eNUM6: return sf::Keyboard::Num6; 
-	case Keyboard::eNUM7: return sf::Keyboard::Num7; 
-	case Keyboard::eNUM8: return sf::Keyboard::Num8; 
-	case Keyboard::eNUM9: return sf::Keyboard::Num9; 
-	case Keyboard::eA: return sf::Keyboard::A;    
-	case Keyboard::eB: return sf::Keyboard::B;  
-	case Keyboard::eC: return sf::Keyboard::C;  
-	case Keyboard::eD: return sf::Keyboard::D;  
-	case Keyboard::eE: return sf::Keyboard::E;  
-	case Keyboard::eF: return sf::Keyboard::F;  
-	case Keyboard::eG: return sf::Keyboard::G;  
-	case Keyboard::eH: return sf::Keyboard::H;  
-	case Keyboard::eI: return sf::Keyboard::I;  
-	case Keyboard::eJ: return sf::Keyboard::J;  
-	case Keyboard::eK: return sf::Keyboard::K;   
-	case Keyboard::eL: return sf::Keyboard::L; 
-	case Keyboard::eM: return sf::Keyboard::M; 
-	case Keyboard::eN: return sf::Keyboard::N; 
-	case Keyboard::eO: return sf::Keyboard::O; 
-	case Keyboard::eP: return sf::Keyboard::P;
-	case Keyboard::eQ: return sf::Keyboard::Q; 
-	case Keyboard::eR: return sf::Keyboard::R; 
-	case Keyboard::eS: return sf::Keyboard::S; 
-	case Keyboard::eT: return sf::Keyboard::T; 
-	case Keyboard::eU: return sf::Keyboard::U;
-	case Keyboard::eV: return sf::Keyboard::V; 
-	case Keyboard::eW: return sf::Keyboard::W; 
-	case Keyboard::eX: return sf::Keyboard::X; 
-	case Keyboard::eY: return sf::Keyboard::Y; 
-	case Keyboard::eZ: return sf::Keyboard::Z;
+	case EKeyCode::Num0: return sf::Keyboard::Num0; 
+	case EKeyCode::Num1: return sf::Keyboard::Num1; 
+	case EKeyCode::Num2: return sf::Keyboard::Num2; 
+	case EKeyCode::Num3: return sf::Keyboard::Num3; 
+	case EKeyCode::Num4: return sf::Keyboard::Num4; 
+	case EKeyCode::Num5: return sf::Keyboard::Num5; 
+	case EKeyCode::Num6: return sf::Keyboard::Num6; 
+	case EKeyCode::Num7: return sf::Keyboard::Num7; 
+	case EKeyCode::Num8: return sf::Keyboard::Num8; 
+	case EKeyCode::Num9: return sf::Keyboard::Num9; 
+	case EKeyCode::A: return sf::Keyboard::A;    
+	case EKeyCode::B: return sf::Keyboard::B;  
+	case EKeyCode::C: return sf::Keyboard::C;  
+	case EKeyCode::D: return sf::Keyboard::D;  
+	case EKeyCode::E: return sf::Keyboard::E;  
+	case EKeyCode::F: return sf::Keyboard::F;  
+	case EKeyCode::G: return sf::Keyboard::G;  
+	case EKeyCode::H: return sf::Keyboard::H;  
+	case EKeyCode::I: return sf::Keyboard::I;  
+	case EKeyCode::J: return sf::Keyboard::J;  
+	case EKeyCode::K: return sf::Keyboard::K;   
+	case EKeyCode::L: return sf::Keyboard::L; 
+	case EKeyCode::M: return sf::Keyboard::M; 
+	case EKeyCode::N: return sf::Keyboard::N; 
+	case EKeyCode::O: return sf::Keyboard::O; 
+	case EKeyCode::P: return sf::Keyboard::P;
+	case EKeyCode::Q: return sf::Keyboard::Q; 
+	case EKeyCode::R: return sf::Keyboard::R; 
+	case EKeyCode::S: return sf::Keyboard::S; 
+	case EKeyCode::T: return sf::Keyboard::T; 
+	case EKeyCode::U: return sf::Keyboard::U;
+	case EKeyCode::V: return sf::Keyboard::V; 
+	case EKeyCode::W: return sf::Keyboard::W; 
+	case EKeyCode::X: return sf::Keyboard::X; 
+	case EKeyCode::Y: return sf::Keyboard::Y; 
+	case EKeyCode::Z: return sf::Keyboard::Z;
 
-	case Keyboard::eSLEEP:                    break;
+	case EKeyCode::Sleep:                    break;
 
-	case Keyboard::eNUMPAD0: return sf::Keyboard::Numpad0;
-	case Keyboard::eNUMPAD1: return sf::Keyboard::Numpad1;
-	case Keyboard::eNUMPAD2: return sf::Keyboard::Numpad2;
-	case Keyboard::eNUMPAD3: return sf::Keyboard::Numpad3;
-	case Keyboard::eNUMPAD4: return sf::Keyboard::Numpad4;
-	case Keyboard::eNUMPAD5: return sf::Keyboard::Numpad5;
-	case Keyboard::eNUMPAD6: return sf::Keyboard::Numpad6;
-	case Keyboard::eNUMPAD7: return sf::Keyboard::Numpad7;
-	case Keyboard::eNUMPAD8: return sf::Keyboard::Numpad8;
-	case Keyboard::eNUMPAD9: return sf::Keyboard::Numpad9;
+	case EKeyCode::Numpad0: return sf::Keyboard::Numpad0;
+	case EKeyCode::Numpad1: return sf::Keyboard::Numpad1;
+	case EKeyCode::Numpad2: return sf::Keyboard::Numpad2;
+	case EKeyCode::Numpad3: return sf::Keyboard::Numpad3;
+	case EKeyCode::Numpad4: return sf::Keyboard::Numpad4;
+	case EKeyCode::Numpad5: return sf::Keyboard::Numpad5;
+	case EKeyCode::Numpad6: return sf::Keyboard::Numpad6;
+	case EKeyCode::Numpad7: return sf::Keyboard::Numpad7;
+	case EKeyCode::Numpad8: return sf::Keyboard::Numpad8;
+	case EKeyCode::Numpad9: return sf::Keyboard::Numpad9;
 
-	case Keyboard::eMULTIPLY:                  break;
-	case Keyboard::eADD:                       break;
-	case Keyboard::eSEPARATOR:                 break;
-	case Keyboard::eSUBTRACT:                  break;
-	case Keyboard::eDECIMAL:                   break;
-	case Keyboard::eDIVIDE:                    break;
+	case EKeyCode::Multiply:                  break;
+	case EKeyCode::Add:                       break;
+	case EKeyCode::Separator:                 break;
+	case EKeyCode::Subtract:                  break;
+	case EKeyCode::Decimal:                   break;
+	case EKeyCode::Divide:                    break;
 
-	case Keyboard::eF1:  return sf::Keyboard::F1;
-	case Keyboard::eF2:  return sf::Keyboard::F2;
-	case Keyboard::eF3:  return sf::Keyboard::F3; 
-	case Keyboard::eF4:  return sf::Keyboard::F4; 
-	case Keyboard::eF5:  return sf::Keyboard::F5;
-	case Keyboard::eF6:  return sf::Keyboard::F6;
-	case Keyboard::eF7:  return sf::Keyboard::F7; 
-	case Keyboard::eF8:  return sf::Keyboard::F8;
-	case Keyboard::eF9:  return sf::Keyboard::F9;
-	case Keyboard::eF10: return sf::Keyboard::F10;
-	case Keyboard::eF11: return sf::Keyboard::F11;
-	case Keyboard::eF12: return sf::Keyboard::F12; 
-	case Keyboard::eF13: return sf::Keyboard::F13;
-	case Keyboard::eF14: return sf::Keyboard::F14; 
-	case Keyboard::eF15: return sf::Keyboard::F15;
+	case EKeyCode::F1:  return sf::Keyboard::F1;
+	case EKeyCode::F2:  return sf::Keyboard::F2;
+	case EKeyCode::F3:  return sf::Keyboard::F3; 
+	case EKeyCode::F4:  return sf::Keyboard::F4; 
+	case EKeyCode::F5:  return sf::Keyboard::F5;
+	case EKeyCode::F6:  return sf::Keyboard::F6;
+	case EKeyCode::F7:  return sf::Keyboard::F7; 
+	case EKeyCode::F8:  return sf::Keyboard::F8;
+	case EKeyCode::F9:  return sf::Keyboard::F9;
+	case EKeyCode::F10: return sf::Keyboard::F10;
+	case EKeyCode::F11: return sf::Keyboard::F11;
+	case EKeyCode::F12: return sf::Keyboard::F12; 
+	case EKeyCode::F13: return sf::Keyboard::F13;
+	case EKeyCode::F14: return sf::Keyboard::F14; 
+	case EKeyCode::F15: return sf::Keyboard::F15;
 
-	case Keyboard::eNUMLOCK:  break;
-	case Keyboard::eSCROLL:   break;
+	case EKeyCode::NumLock:  break;
+	case EKeyCode::Scroll:   break;
 
-	case Keyboard::eLSHIFT:    return sf::Keyboard::LShift;
-	case Keyboard::eRSHIFT:    return sf::Keyboard::RShift;
-	case Keyboard::eLCONTROL:  return sf::Keyboard::LControl;
-	case Keyboard::eRCONTROL:  return sf::Keyboard::RControl;
-	case Keyboard::eLMENU:     return sf::Keyboard::LAlt;
-	case Keyboard::eRMENU:     return sf::Keyboard::RAlt;
+	case EKeyCode::LShift:    return sf::Keyboard::LShift;
+	case EKeyCode::RShift:    return sf::Keyboard::RShift;
+	case EKeyCode::LControl:  return sf::Keyboard::LControl;
+	case EKeyCode::RControl:  return sf::Keyboard::RControl;
+	case EKeyCode::LMenu:     return sf::Keyboard::LAlt;
+	case EKeyCode::RMenu:     return sf::Keyboard::RAlt;
 	}
 
 	return sf::Keyboard::Unknown;
@@ -223,28 +223,28 @@ int convertSFKey( sf::Keyboard::Key key )
 	if ( key == sf::Keyboard::Unknown )
 		return -1;
 	if ( key <= sf::Keyboard::Z )
-		return Keyboard::eA + ( key - sf::Keyboard::A );
+		return EKeyCode::A + ( key - sf::Keyboard::A );
 	if ( key <= sf::Keyboard::Num9 )
-		return Keyboard::eNUM0 + ( key - sf::Keyboard::Num0 );
+		return EKeyCode::Num0 + ( key - sf::Keyboard::Num0 );
 
 	//FIXME
 	switch( key )
 	{
-	case sf::Keyboard::Escape: return Keyboard::eESCAPE;
-	case sf::Keyboard::Return: return Keyboard::eRETURN;
-	case sf::Keyboard::BackSpace: return Keyboard::eBACK;
-	case sf::Keyboard::Left:  return Keyboard::eLEFT;
-	case sf::Keyboard::Right: return Keyboard::eRIGHT;
-	case sf::Keyboard::Up:    return Keyboard::eUP;
-	case sf::Keyboard::Down:  return Keyboard::eDOWN;
-	case sf::Keyboard::Pause: return Keyboard::ePAUSE;
+	case sf::Keyboard::Escape: return EKeyCode::Escape;
+	case sf::Keyboard::Return: return EKeyCode::Return;
+	case sf::Keyboard::BackSpace: return EKeyCode::Back;
+	case sf::Keyboard::Left:  return EKeyCode::Left;
+	case sf::Keyboard::Right: return EKeyCode::Right;
+	case sf::Keyboard::Up:    return EKeyCode::Up;
+	case sf::Keyboard::Down:  return EKeyCode::Down;
+	case sf::Keyboard::Pause: return EKeyCode::Pause;
 	}
 	if ( key <  sf::Keyboard::Numpad0 )
 		return -1;
 	if ( key <= sf::Keyboard::Numpad9 )
-		return Keyboard::eNUMPAD0 + ( key - sf::Keyboard::Numpad0 );
+		return EKeyCode::Numpad0 + ( key - sf::Keyboard::Numpad0 );
 	if ( key <= sf::Keyboard::F15 )
-		return Keyboard::eF1 + ( key - sf::Keyboard::F1 );
+		return EKeyCode::F1 + ( key - sf::Keyboard::F1 );
 
 	return -1;
 }
@@ -277,9 +277,9 @@ void GameWindowSFML::procSystemMessage()
 		case sf::Event::KeyPressed:
 		case sf::Event::KeyReleased:
 			{
-				int key = convertSFKey( event.key.code );
+				unsigned key = convertSFKey( event.key.code );
 				if ( key != -1 )
-					mListener->onKey( key , event.type == sf::Event::KeyPressed );
+					mListener->onKey( KeyMsg( EKeyCode::Type( key ) , event.type == sf::Event::KeyPressed ) );
 			}
 			break;
 		case sf::Event::MouseButtonReleased:

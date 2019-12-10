@@ -566,7 +566,7 @@ namespace Render
 
 		bool onMouse( MouseMsg const& msg );
 
-		bool onKey( unsigned key , bool isDown );
+		bool onKey(KeyMsg const& msg);
 		
 		enum
 		{

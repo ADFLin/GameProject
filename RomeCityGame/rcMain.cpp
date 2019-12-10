@@ -371,7 +371,7 @@ public:// System Message
 			g.drawCircle( sPos , 3 );
 		}
 	}
-	bool  onKey( unsigned key , bool isDown )
+	bool  onKey(KeyMsg const& msg)
 	{ 
 		if ( !isDown )
 			return true;
@@ -399,23 +399,23 @@ public:// System Message
 		int moveSpeed = 5;
 		switch( key )
 		{
-		case Keyboard::eS: vp.shiftScreenOffset( Vec2i( 0 , moveSpeed ) ); break;
-		case Keyboard::eW: vp.shiftScreenOffset( Vec2i( 0 , -moveSpeed ) ); break;
-		case Keyboard::eA: vp.shiftScreenOffset( Vec2i( -moveSpeed , 0 ) ); break;
-		case Keyboard::eD: vp.shiftScreenOffset( Vec2i( moveSpeed , 0 ) ); break;
-		case Keyboard::eQ:
+		case EKeyCode::S: vp.shiftScreenOffset( Vec2i( 0 , moveSpeed ) ); break;
+		case EKeyCode::W: vp.shiftScreenOffset( Vec2i( 0 , -moveSpeed ) ); break;
+		case EKeyCode::A: vp.shiftScreenOffset( Vec2i( -moveSpeed , 0 ) ); break;
+		case EKeyCode::D: vp.shiftScreenOffset( Vec2i( moveSpeed , 0 ) ); break;
+		case EKeyCode::Q:
 			idx += 1;
 			mChioceBuildingTag = buildingList[idx.getValue() ];
 			break;
-		case Keyboard::eE:
+		case EKeyCode::E:
 			idx -= 1;
 			mChioceBuildingTag = buildingList[idx.getValue() ];
 			break;
-		case Keyboard::eF1:
+		case EKeyCode::F1:
 			dir += 1;
 			mLevelScene->getViewPort().setDir( rcViewport::ViewDir( dir.getValue() ) );
 			break;
-		case Keyboard::eF2:
+		case EKeyCode::F2:
 			ProfileSystem::Get().cleanup();
 			break;
 		}

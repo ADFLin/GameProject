@@ -545,8 +545,10 @@ FStringParse::TokenType FStringParse::StringToken(char const*& inoutStr, char co
 		{
 			return FStringParse::eNoToken;
 		}
-		if( *FindChar( dropDelims , cur ) )
+		if (*FindChar(dropDelims, cur) == 0)
+		{
 			break;
+		}
 
 		cur = *(inoutStr++);
 	}

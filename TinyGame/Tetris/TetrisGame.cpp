@@ -61,13 +61,13 @@ namespace Tetris
 			return true;
 		case ATTR_CONTROLLER_DEFUAULT_SETTING:
 			mController.clearAllKey();
-			mController.initKey( ACT_MOVE_LEFT  , 2 , Keyboard::eA , Keyboard::eLEFT);
-			mController.initKey( ACT_MOVE_RIGHT , 2 , Keyboard::eD , Keyboard::eRIGHT);
-			mController.initKey( ACT_MOVE_DOWN  , 1 , Keyboard::eS , Keyboard::eDOWN);
-			mController.initKey( ACT_ROTATE_CW  , KEY_ONCE , Keyboard::eK , Keyboard::eNUM1 );
-			mController.initKey( ACT_ROTATE_CCW , KEY_ONCE , Keyboard::eL , Keyboard::eNUM2 );
-			mController.initKey( ACT_HOLD_PIECE , KEY_ONCE , Keyboard::eI , Keyboard::eNUM3 );
-			mController.initKey( ACT_FALL_PIECE , KEY_ONCE , Keyboard::eJ , Keyboard::eNUM0 );
+			mController.initKey( ACT_MOVE_LEFT  , 2 , EKeyCode::A , EKeyCode::Left);
+			mController.initKey( ACT_MOVE_RIGHT , 2 , EKeyCode::D , EKeyCode::Right);
+			mController.initKey( ACT_MOVE_DOWN  , 1 , EKeyCode::S , EKeyCode::Down);
+			mController.initKey( ACT_ROTATE_CW  , KEY_ONCE , EKeyCode::K , EKeyCode::Num1 );
+			mController.initKey( ACT_ROTATE_CCW , KEY_ONCE , EKeyCode::L , EKeyCode::Num2 );
+			mController.initKey( ACT_HOLD_PIECE , KEY_ONCE , EKeyCode::I , EKeyCode::Num3 );
+			mController.initKey( ACT_FALL_PIECE , KEY_ONCE , EKeyCode::J , EKeyCode::Num0 );
 			return true;
 		}
 		return false;

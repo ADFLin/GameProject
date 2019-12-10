@@ -410,8 +410,8 @@ public:
 
 		switch( key )
 		{
-		case Keyboard::eO: lightHeight += 1; break;
-		case Keyboard::eP: lightHeight -= 1; break;
+		case EKeyCode::O: lightHeight += 1; break;
+		case EKeyCode::P: lightHeight -= 1; break;
 		}
 
 		return SampleBase::handleKeyEvent( key , isDown );

@@ -419,21 +419,19 @@ namespace Render
 			return true;
 		}
 
-		bool onKey(unsigned key, bool isDown) override
+		bool onKey(KeyMsg const& msg) override
 		{
-			if( !isDown )
-				return false;
-			switch( key )
+			if( !msg.isDown())
 			{
-			case Keyboard::eX:
-
-
-				
-				break;
-			default:
-				break;
+				switch (msg.getCode())
+				{
+				case EKeyCode::X:
+					break;
+				default:
+					break;
+				}
 			}
-			return BaseClass::onKey(key, isDown);
+			return BaseClass::onKey(msg);
 		}
 
 		bool onWidgetEvent(int event, int id, GWidget* ui) override

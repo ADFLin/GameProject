@@ -475,27 +475,31 @@ bool TinyGameApp::handleMouseEvent( MouseMsg const& msg )
 	return result;
 }
 
-bool TinyGameApp::handleKeyEvent( unsigned key , bool isDown )
+bool TinyGameApp::handleKeyEvent(KeyMsg const& msg)
 {
-	if ( isDown )
+	if ( msg.isDown() )
 	{
-		if ( key == Keyboard::eF1 )
+		switch (msg.getCode())
 		{
-			mGameWindow.toggleFullscreen();
-		}
-		else if( key == Keyboard::eOEM3 )
-		{
-			setConsoleShowMode( ConsoleShowMode(( int(mConsoleShowMode) + 1 ) % int(ConsoleShowMode::Count) ) );
-		}
-		if( key == Keyboard::eX )
-		{
+		case EKeyCode::F1:
+			{
+				mGameWindow.toggleFullscreen();
+			}
+			break;
+		case EKeyCode::Oem3:
+			{
+				setConsoleShowMode(ConsoleShowMode((int(mConsoleShowMode) + 1) % int(ConsoleShowMode::Count)));
+			}
+			break;
+		case EKeyCode::X:
 			loadModules();
+			break;
 		}
 	}
-	bool result = ::Global::GUI().procKeyMsg( key , isDown );
+	bool result = ::Global::GUI().procKeyMsg(msg);
 	if( result )
 	{
-		result = getCurStage()->onKey( key , isDown );
+		result = getCurStage()->onKey(msg);
 	}
 	return result;
 }

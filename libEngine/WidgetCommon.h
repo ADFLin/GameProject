@@ -236,7 +236,7 @@ public:
 
 public:
 	//virtual 
-	bool onKeyMsg(unsigned key, bool isDown);
+	bool onKeyMsg(KeyMsg const& msg);
 	//virtual 
 	bool onCharMsg(unsigned code);
 
@@ -349,10 +349,10 @@ protected:
 	void onRemoveItem( Item& item ){}
 protected:
 	void tryMoveSelect( bool beNext );
-	bool onKeyMsg( unsigned key , bool isDown );
+	bool onKeyMsg(KeyMsg const& msg);
 
 
-	typedef std::vector< Item > ItemVec;
+	using ItemVec = std::vector< Item >;
 	ItemVec    mItemList;
 	int        mCurSelect;
 };
@@ -448,40 +448,15 @@ template < class CoreImpl >
 class TWidgetLibrary
 {
 public:
-	typedef CoreImpl                    Widget;
-	typedef WidgetCoreT< CoreImpl >     Core;
-	typedef TWidgetManager< CoreImpl >  Manager;  
-
-#if CPP_USING_TYPE_ALIAS_SUPPORT
+	using Widget = CoreImpl;
+	using Core = WidgetCoreT< CoreImpl >;
+	using Manager = TWidgetManager< CoreImpl >;  
 
 #define DEFINE_UI_CLASS( Class , BaseClass )\
 	template< class Impl >\
 	using Class = BaseClass< Impl , CoreImpl >;
 
 	DEFINE_UI_CLASS(SliderT, WSliderT)
-
-#else
-
-#define DEFINE_UI_CLASS( Class , BaseClass )\
-	template < class Impl >\
-	class Class : public BaseClass< Impl , CoreImpl >\
-	{\
-	public:\
-		Class( Vec2i const& pos , Vec2i const& size  , CoreImpl* node )\
-			: BaseClass < Impl , CoreImpl >( pos ,size ,node ){}\
-	};
-
-	template < class Impl >
-	class SliderT : public WSliderT< Impl , CoreImpl >
-	{
-	public:
-		SliderT( Vec2i const& pos , int length , Vec2i const& sizeTip  ,
-			bool beH  , int minRange , int maxRange , CoreImpl* parent )
-			:WSliderT< Impl , CoreImpl >( pos , length , sizeTip  , beH  , minRange , maxRange ,  parent ){}
-	};
-
-#endif
-
 	DEFINE_UI_CLASS(PanelT, WPanelT)
 	DEFINE_UI_CLASS(ButtonT, WButtonT)
 	DEFINE_UI_CLASS(TextCtrlT, WTextCtrlT)

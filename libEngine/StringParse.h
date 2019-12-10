@@ -125,20 +125,20 @@ public:
 class StringTokenizer
 {
 public:
-	StringTokenizer() { mNextToken = NULL; }
+	StringTokenizer() { mNextToken = nullptr; }
 	StringTokenizer(char* str) { begin(str); }
 
 	void begin(char* str)
 	{
 		mStr = str;
-		mNextToken = NULL;
+		mNextToken = nullptr;
 	}
 
 	char* nextToken()
 	{
 		assert(mStr || mNextToken);
 		char* out = strtok_s(mStr, " \r\t\n", &mNextToken);
-		mStr = NULL;
+		mStr = nullptr;
 		return out;
 	}
 
@@ -146,7 +146,7 @@ public:
 	{
 		assert(mStr || mNextToken);
 		char* out = strtok_s(mStr, delim, &mNextToken);
-		mStr = NULL;
+		mStr = nullptr;
 		return out;
 	}
 

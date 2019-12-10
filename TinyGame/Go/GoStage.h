@@ -145,13 +145,13 @@ namespace Go
 		void drawStone( Graphics2D& g , Vec2i const& pos , int color );
 
 		virtual bool onMouse( MouseMsg const& msg );
-		virtual bool onKey( unsigned key , bool isDown )
+		virtual bool onKey( KeyMsg const& msg )
 		{
-			if ( !isDown )
+			if ( !msg.isDown())
 				return true;
-			switch( key )
+			switch(msg.getCode())
 			{
-			case Keyboard::eR: mGame.restart(); break;
+			case EKeyCode::R: mGame.restart(); break;
 			}
 			return false;
 		}

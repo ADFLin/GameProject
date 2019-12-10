@@ -71,7 +71,7 @@ namespace Zuma
 		virtual void onUpdate( long time ){}
 		virtual void onRender( IRenderSystem& RDSystem ){}
 		virtual bool onMouse( MouseMsg const& msg ){ return true; }
-		virtual void onKey( unsigned key , bool isDown ){}
+		virtual void onKey( KeyMsg const& msg ){}
 
 		virtual void onEnd(){}
 		virtual void onStart(){}
@@ -117,7 +117,7 @@ namespace Zuma
 		void  buildCurve( int idx );
 
 		virtual void onRender( IRenderSystem& RDSystem );
-		virtual void onKey( unsigned key , bool isDown );
+		virtual void onKey( KeyMsg const& msg );
 		virtual bool onMouse( MouseMsg const& msg );
 
 		void clearPoint();
@@ -158,7 +158,7 @@ namespace Zuma
 
 		virtual void onRender( IRenderSystem& RDSystem );
 		virtual bool onMouse( MouseMsg const& msg ){ return true; }
-		virtual void onKey( unsigned key , bool isDown ){}
+		virtual void onKey( KeyMsg const& msg ){}
 		virtual void onUpdate( long time );
 		virtual void onStart();
 
@@ -201,7 +201,7 @@ namespace Zuma
 		ZMainMenuStage();
 
 		void onRender( IRenderSystem& RDSystem );
-		void onKey( unsigned key , bool isDown ){}
+		void onKey( KeyMsg const& msg ){}
 		void onUpdate( long time );
 
 		virtual void onEnd(){}
@@ -223,7 +223,7 @@ namespace Zuma
 		virtual void onRender( IRenderSystem& RDSystem );
 
 		virtual bool onMouse( MouseMsg const& msg ){ return true; }
-		virtual void onKey( unsigned key , bool isDown ){}
+		virtual void onKey( KeyMsg const& msg ){}
 		virtual void onUpdate( long time );
 
 		virtual void onEnd(){}

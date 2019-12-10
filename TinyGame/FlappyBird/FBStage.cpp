@@ -17,6 +17,226 @@ namespace FlappyBird
 {
 	using namespace Render;
 
+	REGISTER_STAGE2("FlappyBird Test", LevelStage, EStageGroup::Dev, 2);
+
+
+	class AgentBird : public AgentEntity
+		            , public IController
+	{
+	public:
+		AgentBird(Agent& agent)
+		{
+			mAgent = &agent;
+			agent.entity = this;
+		}
+		//IController
+		void updateInput(GameLevel& world, BirdEntity& bird) override
+		{
+			assert(&hostBird == &bird);
+			NNScale inputs[8];
+			std::fill_n(inputs, ARRAY_SIZE(inputs), NNScale(0));
+			assert(ARRAY_SIZE(inputs) >= mAgent->FNN.getLayout().getInputNum());
+
+			switch (mAgent->FNN.getLayout().getInputNum())
+			{
+			case 2:
+				{
+					inputs[0] = 1;
+					if (!world.mPipes.empty())
+					{
+						PipeInfo& pipe = world.mPipes[0];
+						getPipeInputs(inputs, pipe);
+					}
+				}
+				break;
+			case 3:
+				{
+					inputs[0] = 1;
+					if (!world.mPipes.empty())
+					{
+						PipeInfo& pipe = world.mPipes[0];
+						getPipeInputs(inputs, pipe);
+					}
+					inputs[2] = bird.getVel() / WorldHeight;
+				}
+				break;
+			case 4:
+				{
+					inputs[0] = inputs[2] = 1;
+					if (!world.mPipes.empty())
+					{
+						PipeInfo& pipe = world.mPipes[0];
+						getPipeInputs(inputs, pipe);
+
+						if (world.mPipes.size() >= 2)
+						{
+							PipeInfo& pipe = world.mPipes[1];
+							getPipeInputs(&inputs[2], pipe);
+						}
+					}
+				}
+				break;
+			case 5:
+				{
+					inputs[0] = inputs[2] = 1;
+					if (!world.mPipes.empty())
+					{
+						PipeInfo& pipe = world.mPipes[0];
+						getPipeInputs(inputs, pipe);
+
+						if (pipe.posX - BirdRadius <= bird.getPos().x && bird.getPos().x <= pipe.posX + pipe.width + BirdRadius)
+							inputs[4] = 1;
+
+						if (world.mPipes.size() >= 2)
+						{
+							PipeInfo& pipe = world.mPipes[1];
+							getPipeInputs(&inputs[2], pipe);
+						}
+					}
+				}
+				break;
+			default:
+				break;
+			}
+
+			NNScale output;
+			mAgent->FNN.calcForwardFeedback(inputs, &output);
+			if (output >= 0.5)
+			{
+				bird.fly();
+			}
+
+			if (mAgent->inputsAndSignals)
+			{
+				std::copy(inputs, inputs + mAgent->FNN.getLayout().getInputNum(), mAgent->inputsAndSignals);
+				mAgent->FNN.calcForwardFeedbackSignal(inputs, mAgent->inputsAndSignals + mAgent->FNN.getLayout().getInputNum());
+			}
+		}
+		void getPipeInputs(NNScale inputs[], PipeInfo const& pipe)
+		{
+			inputs[0] = (pipe.posX - hostBird.getPos().x) / WorldHeight;
+			inputs[1] = (0.5 * (pipe.topHeight + pipe.buttonHeight) - hostBird.getPos().y) / WorldHeight;
+		}
+
+		void release() override
+		{
+			delete this;
+		}
+
+		void tick()
+		{
+			if (bCompleted)
+				return;
+
+			if (!hostBird.bActive)
+			{
+				mAgent->genotype->fitness = lifeTime;
+				bCompleted = true;
+				return;
+			}
+
+			lifeTime += TickTime;
+			mAgent->genotype->fitness = lifeTime;
+		}
+
+		void restart()
+		{
+			bCompleted = false;
+			lifeTime = 0;
+		}
+
+		bool       bCompleted = false;
+		float      lifeTime = 0;
+		Agent*     mAgent;
+		BirdEntity hostBird;
+	};
+
+	class AgentBirdWorld : public AgentWorld
+	{
+	public:
+		void setup(TrainData& trainData) override
+		{
+			SpawnAgents(mLevel, trainData);
+			mLevel.onBirdCollsion = CollisionDelegate(this, &AgentBirdWorld::handleCollision);
+			mLevel.onGameOver = LevelOverDelegate(this, &AgentBirdWorld::handleGameOver);
+		}
+
+		void restart(TrainData& trainData) override
+		{
+			RestartAgents(trainData);
+			mLevel.restart();
+		}
+
+		void tick(TrainData& trainData) override
+		{
+			TickAgents(trainData);
+			mLevel.tick();
+		}
+
+		void handleGameOver(GameLevel& level)
+		{
+			onTrainCompleted();
+		}
+
+		CollisionResponse handleCollision(BirdEntity& bird, ColObject& obj)
+		{
+			switch (obj.type)
+			{
+			case CT_PIPE_BOTTOM:
+			case CT_PIPE_TOP:
+				bird.bActive = false;
+				break;
+			case CT_SCORE:
+				break;
+			}
+			return GetDefaultColTypeResponse(obj.type);
+		}
+
+		static void SpawnAgents(GameLevel& level , TrainData& trainData)
+		{
+			for (auto& agentPtr : trainData.mAgents)
+			{
+				if (agentPtr->entity == nullptr)
+				{
+					auto entity = new AgentBird(*agentPtr);
+					level.addBird(entity->hostBird, entity);
+				}
+				else
+				{
+					auto* entity = static_cast<AgentBird*>(agentPtr->entity);
+					level.addBird(entity->hostBird, entity);
+				}
+			}
+		}
+
+		static void TickAgents(TrainData& trainData)
+		{
+			for (auto& agentPtr : trainData.mAgents)
+			{
+				auto* entity = static_cast<AgentBird*>(agentPtr->entity);
+				entity->tick();
+			}
+		}
+
+		static void RestartAgents(TrainData& trainData)
+		{
+			for (auto& agentPtr : trainData.mAgents)
+			{
+				auto* entity = static_cast<AgentBird*>(agentPtr->entity);
+				entity->restart();
+			}
+		}
+
+
+
+		GameLevel mLevel;
+
+		void release() override
+		{
+			delete this;
+		}
+	};
+
 	LevelStage::LevelStage()
 	{
 
@@ -57,6 +277,10 @@ namespace FlappyBird
 			TrainWorkSetting setting;
 			setting.numWorker = 8;
 			setting.maxGeneration = 0;
+			setting.worldFactory = []() -> AgentWorld*
+			{
+				return new AgentBirdWorld;
+			};
 
 			mTrainManager->init(setting, gDefaultTopology , ARRAY_SIZE(gDefaultTopology));
 			mTrainManager->startTrain();
@@ -66,7 +290,7 @@ namespace FlappyBird
 			dataSetting.mutationValueDelta = mutationValueDelta;
 			mTrainData = std::make_unique< TrainData >();
 			mTrainData->init(dataSetting);
-			mTrainData->addAgentToLevel(getLevel());
+			AgentBirdWorld::SpawnAgents(mLevel, *mTrainData);
 		}
 		else
 		{
@@ -99,7 +323,7 @@ namespace FlappyBird
 				{
 					removeTrainData();
 					mTrainManager->loadData("genepool_001.cpr", *mTrainData);
-					mTrainData->addAgentToLevel(getLevel());
+					AgentBirdWorld::SpawnAgents(mLevel, *mTrainData);
 					restart();
 				}
 				return false;
@@ -112,7 +336,7 @@ namespace FlappyBird
 					TLockedObject< GenePool > pGenePool = mTrainManager->lockPool();
 					mTrainManager->getDataSetting().numAgents = pGenePool->getDataSet().size();
 					mTrainData->usePoolData(*pGenePool);
-					mTrainData->addAgentToLevel(getLevel());
+					AgentBirdWorld::SpawnAgents(mLevel, *mTrainData);
 					restart();
 				}
 				return false;
@@ -167,9 +391,13 @@ namespace FlappyBird
 
 	void LevelStage::restart()
 	{
+		if (mTrainData)
+		{
+			AgentBirdWorld::RestartAgents(*mTrainData);
+		}
+
 		getLevel().restart();
-		if ( mTrainData )
-			mTrainData->restart();
+
 		mScore = 0;
 
 		if( rand() % 2 )
@@ -187,8 +415,11 @@ namespace FlappyBird
 
 	void LevelStage::tick()
 	{
-		if( mTrainData )
-			mTrainData->tick();
+		if (mTrainData)
+		{
+			AgentBirdWorld::TickAgents(*mTrainData);
+			mTrainData->findBestAgnet();
+		}
 
 		getLevel().tick();
 
@@ -229,15 +460,15 @@ namespace FlappyBird
 		return false;
 	}
 
-	bool LevelStage::onKey(unsigned key, bool isDown)
+	bool LevelStage::onKey(KeyMsg const& msg)
 	{
-		if( !isDown )
+		if( !msg.isDown() )
 			return false;
 
-		switch( key )
+		switch(msg.getCode())
 		{
-		case Keyboard::eR: restart(); break;
-		case 'S':
+		case EKeyCode::R: restart(); break;
+		case EKeyCode::S:
 			if( !getLevel().mIsOver )
 				mBird.fly();
 			break;
@@ -258,7 +489,7 @@ namespace FlappyBird
 				TLockedObject< GenePool > pGenePool = mTrainManager->lockPool();
 				mTrainManager->getDataSetting().numAgents = pGenePool->getDataSet().size();
 				mTrainData->usePoolData(*pGenePool);
-				mTrainData->addAgentToLevel(getLevel());
+				AgentBirdWorld::SpawnAgents(getLevel(), *mTrainData);
 			}
 			else
 			{
@@ -277,12 +508,7 @@ namespace FlappyBird
 			if( mScore > mMaxScore )
 				mMaxScore = mScore;
 
-			GMsgBox* box = new GMsgBox(UI_ANY, Vec2i(0, 0), NULL, GMB_OK);
-
-			Vec2i pos = GUISystem::calcScreenCenterPos(box->getSize());
-			box->setPos(pos);
-			box->setTitle("You Die!");
-			::Global::GUI().addWidget(box);
+			Global::GUI().showMessageBox(UI_ANY, "You Die!", GMB_OK);
 		}
 	}
 
@@ -421,7 +647,7 @@ namespace FlappyBird
 		{
 			for( auto& pAgent : mTrainData->mAgents )
 			{
-				BirdEntity& bird = pAgent->hostBird;
+				BirdEntity& bird = static_cast< AgentBird* >( pAgent->entity )->hostBird;
 				if( bird.bActive || bird.getPos().x > -BirdRadius )
 					drawBird(g, bird);
 			}
@@ -472,7 +698,7 @@ namespace FlappyBird
 			str.format("Generation = %d", mTrainData->generation);
 			g.drawText(startPos, str);
 
-			float curBestFitness = (mTrainData->curBestAgent) ? mTrainData->curBestAgent->lifeTime : 0;
+			float curBestFitness = (mTrainData->curBestAgent) ? mTrainData->curBestAgent->genotype->fitness : 0;
 			str.format("TopFitness = %.3f , Fitness = %.3f  ", mTrainManager->topFitness , curBestFitness );
 			g.drawText(startPos + Vec2i(0, 15), str);
 
@@ -642,5 +868,6 @@ namespace FlappyBird
 		}
 		RHISetBlendState(commandList, TStaticBlendState<>::GetRHI());
 	}
+
 
 }//namespace FlappyBird

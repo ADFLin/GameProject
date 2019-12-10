@@ -59,9 +59,8 @@ void FCNeuralNetwork::calcForwardFeedbackSignal(NNScale inputs[], NNScale outSin
 	NNScale* tempInputs = inputs;
 	NNScale* tempOutputs = &outSingnals[0];
 	int curInputNum = NNLayout.getInputNum();
-	for( int i = 0; i < NNLayout.mLayers.size(); ++i )
+	for(const NeuralFullConLayer& layer : NNLayout.mLayers)
 	{
-		auto& layer = NNLayout.mLayers[i];
 		FNNCalc::LayerFrontFeedback(layer, mWeights, curInputNum, tempInputs, tempOutputs , outNetworkInputs );
 
 		tempInputs = tempOutputs;

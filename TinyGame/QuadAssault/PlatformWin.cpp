@@ -110,7 +110,7 @@ bool GameWindowWin::procMsg( UINT message, WPARAM wParam, LPARAM lParam )
 		return precMouseMsg( message , wParam , lParam );
 
 	case WM_KEYDOWN: case WM_KEYUP: 
-		return mListener->onKey( wParam , message == WM_KEYDOWN );
+		return mListener->onKey( KeyMsg( EKeyCode::Type( wParam ) , message == WM_KEYDOWN ) );
 	case WM_CHAR:
 		return mListener->onChar( wParam );
 	}

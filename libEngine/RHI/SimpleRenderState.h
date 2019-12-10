@@ -19,6 +19,7 @@ namespace Render
 		{
 			mColor = color;
 		}
+
 		void setupPipeline( RHICommandList& commandList , RHITexture2D* textre )
 		{
 			RHISetupFixedPipelineState(commandList, mTransformStack.back(), mColor, &textre, textre ? 1 : 0);
@@ -35,6 +36,13 @@ namespace Render
 		{
 			assert(!mTransformStack.empty());
 			mTransformStack.pop_back();
+		}
+
+		void commitPipelineState()
+		{
+
+
+
 		}
 
 		LinearColor     mColor;

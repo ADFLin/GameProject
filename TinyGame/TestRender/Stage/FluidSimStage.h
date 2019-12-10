@@ -24,7 +24,7 @@ namespace Phy2D
 	public:
 		FluidSimStage() {}
 
-		virtual bool onInit()
+		bool onInit() override
 		{
 			if( !BaseClass::onInit() )
 				return false;
@@ -33,12 +33,12 @@ namespace Phy2D
 			return true;
 		}
 
-		virtual void onEnd()
+		void onEnd() override
 		{
 			BaseClass::onEnd();
 		}
 
-		virtual void onUpdate(long time)
+		void onUpdate(long time) override
 		{
 			BaseClass::onUpdate(time);
 
@@ -49,7 +49,7 @@ namespace Phy2D
 			updateFrame(frame);
 		}
 
-		void onRender(float dFrame)
+		void onRender(float dFrame) override
 		{
 			Graphics2D& g = Global::GetGraphics2D();
 		}
@@ -57,19 +57,19 @@ namespace Phy2D
 		void restart() {}
 		void tick() {}
 		void updateFrame(int frame) {}
-		bool onMouse(MouseMsg const& msg)
+		bool onMouse(MouseMsg const& msg) override
 		{
 			if( !BaseClass::onMouse(msg) )
 				return false;
 			return true;
 		}
-		bool onKey(unsigned key, bool isDown)
+		bool onKey(KeyMsg const& msg) override
 		{
-			if( !isDown )
+			if( !msg.isDown())
 				return false;
-			switch( key )
+			switch(msg.getCode())
 			{
-			case Keyboard::eR: restart(); break;
+			case EKeyCode::R: restart(); break;
 			}
 			return false;
 		}

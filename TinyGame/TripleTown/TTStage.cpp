@@ -80,7 +80,7 @@ namespace TripleTown
 		mScene.setLastMousePos(msg.getPos());
 		if( msg.onLeftDown() )
 		{
-			if( InputManager::Get().isKeyDown(Keyboard::eCONTROL) )
+			if( InputManager::Get().isKeyDown(EKeyCode::Control) )
 			{
 				ObjectId id = mScene.getObjectId(msg.getPos());
 				if( id != OBJ_NULL )
@@ -102,18 +102,18 @@ namespace TripleTown
 		return true;
 	}
 
-	bool LevelStage::onKey(unsigned key, bool isDown)
+	bool LevelStage::onKey(KeyMsg const& msg)
 	{
-		if( !isDown )
+		if( !msg.isDown() )
 			return true;
 
-		switch( key )
+		switch(msg.getCode())
 		{
-		case Keyboard::eS: mLevel.setQueueObject(OBJ_BEAR); return false;
-		case Keyboard::eA: mLevel.setQueueObject(OBJ_GRASS); return false;
-		case Keyboard::eQ: mLevel.setQueueObject(OBJ_CRYSTAL); return false;
-		case Keyboard::eW: mLevel.setQueueObject(OBJ_ROBOT); return false;
-		case Keyboard::eX:
+		case EKeyCode::S: mLevel.setQueueObject(OBJ_BEAR); return false;
+		case EKeyCode::A: mLevel.setQueueObject(OBJ_GRASS); return false;
+		case EKeyCode::Q: mLevel.setQueueObject(OBJ_CRYSTAL); return false;
+		case EKeyCode::W: mLevel.setQueueObject(OBJ_ROBOT); return false;
+		case EKeyCode::X:
 			if( mFileIterator.haveMore() )
 			{
 				mFileIterator.goNext();

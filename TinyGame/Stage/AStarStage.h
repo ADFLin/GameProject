@@ -462,21 +462,21 @@ namespace AStar
 			return true;
 		}
 
-		bool onKey( unsigned key , bool isDown ) override
+		bool onKey(KeyMsg const& msg) override
 		{
-			if ( !isDown )
+			if ( !msg.isDown())
 				return false;
 
-			switch( key )
+			switch(msg.getCode())
 			{
-			case Keyboard::eR: restart(); break;
-			case Keyboard::eQ:
+			case EKeyCode::R: restart(); break;
+			case EKeyCode::Q:
 				{
 					++mAStar.mClearance;
 					findPath();
 				}
 				break;
-			case Keyboard::eW:
+			case EKeyCode::W:
 				{
 					--mAStar.mClearance;
 					if( mAStar.mClearance <= 0 )

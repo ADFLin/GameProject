@@ -129,20 +129,20 @@ namespace Zuma
 		return true;
 	}
 
-	void LevelStage::onKey( unsigned key , bool isDown )
+	void LevelStage::onKey(KeyMsg const& msg)
 	{
-		if ( !isDown )
+		if ( !msg.isDown() )
 			return;
 
-		switch ( key )
+		switch (msg.getCode())
 		{
-		case Keyboard::eO:
+		case EKeyCode::O:
 			sendEvent( EVT_CHANGE_DEV_STAGE , &mLevel.getInfo() );
 			break;
-		case Keyboard::eN:
+		case EKeyCode::N:
 			sendEvent( EVT_LEVEL_CHANGE_NEXT , &mLevel.getInfo() );
 			break;
-		case Keyboard::eP:
+		case EKeyCode::P:
 			mPauseGame = !mPauseGame;
 			break;
 		}

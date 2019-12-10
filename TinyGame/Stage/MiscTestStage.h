@@ -40,7 +40,7 @@ class TaskBase;
 
 class MiscTestStage : public StageBase
 {
-	typedef StageBase BaseClass;
+	using BaseClass = StageBase;
 public:
 	MiscTestStage(){}
 
@@ -48,14 +48,14 @@ public:
 	{
 		UI_TEST_BUTTON = BaseClass::NEXT_UI_ID ,
 	};
-	virtual bool onInit();
+	bool onInit() override;
 
-	virtual void onEnd()
+	void onEnd() override
 	{
 
 	}
 
-	virtual void onUpdate( long time )
+	void onUpdate( long time ) override
 	{
 		BaseClass::onUpdate( time );
 
@@ -66,7 +66,7 @@ public:
 		updateFrame( frame );
 	}
 
-	typedef std::function< void() > TestFun; 
+	using TestFun = std::function< void() >; 
 	void addTest( char const* name , TestFun const& func );
 
 	struct TestInfo
@@ -75,7 +75,7 @@ public:
 	};
 	std::vector< TestInfo > mInfos;
 
-	void onRender( float dFrame )
+	void onRender( float dFrame ) override
 	{
 		Graphics2D& g = Global::GetGraphics2D();
 	}
@@ -96,26 +96,26 @@ public:
 
 	}
 
-	bool onMouse( MouseMsg const& msg )
+	bool onMouse( MouseMsg const& msg ) override
 	{
 		if ( !BaseClass::onMouse( msg ) )
 			return false;
 		return true;
 	}
 
-	bool onKey( unsigned key , bool isDown )
+	bool onKey(KeyMsg const& msg) override
 	{
-		if ( !isDown )
+		if ( !msg.isDown())
 			return false;
 
-		switch( key )
+		switch(msg.getCode())
 		{
-		case Keyboard::eR: restart(); break;
+		case EKeyCode::R: restart(); break;
 		}
 		return false;
 	}
 
-	virtual bool onWidgetEvent(int event , int id , GWidget* ui);
+	bool onWidgetEvent(int event , int id , GWidget* ui) override;
 
 protected:
 
@@ -136,11 +136,11 @@ public:
 
 class BSplineTestStage : public StageBase
 {
-	typedef StageBase BaseClass;
+	using BaseClass = StageBase;
 public:
 	BSplineTestStage(){}
 
-	typedef TQBezierSpline< Vector2 > MySpline;
+	using MySpline = TQBezierSpline< Vector2 >;
 
 	MySpline mSpline;
 
@@ -156,19 +156,19 @@ public:
 		}
 	}
 
-	virtual bool onInit()
+	bool onInit() override
 	{
 		::Global::GUI().cleanupWidget();
 		restart();
 		return true;
 	}
 
-	virtual void onEnd()
+	void onEnd() override
 	{
 
 	}
 
-	virtual void onUpdate( long time )
+	void onUpdate( long time ) override
 	{
 		BaseClass::onUpdate( time );
 
@@ -179,7 +179,7 @@ public:
 		updateFrame( frame );
 	}
 
-	void onRender( float dFrame )
+	void onRender( float dFrame ) override
 	{
 		Graphics2D& g = Global::GetGraphics2D();
 
@@ -210,7 +210,7 @@ public:
 
 	}
 
-	bool onMouse( MouseMsg const& msg )
+	bool onMouse( MouseMsg const& msg ) override
 	{
 		if ( !BaseClass::onMouse( msg ) )
 			return false;
@@ -222,14 +222,14 @@ public:
 		return true;
 	}
 
-	bool onKey( unsigned key , bool isDown )
+	bool onKey(KeyMsg const& msg) override
 	{
-		if ( !isDown )
+		if ( !msg.isDown())
 			return false;
 
-		switch( key )
+		switch(msg.getCode())
 		{
-		case Keyboard::eR: restart(); break;
+		case EKeyCode::R: restart(); break;
 		}
 		return false;
 	}
@@ -250,7 +250,7 @@ protected:
 
 class XMLPraseTestStage : public StageBase
 {
-	typedef StageBase BaseClass;
+	using BaseClass = StageBase;
 public:
 	XMLPraseTestStage(){}
 
@@ -450,19 +450,19 @@ public:
 			mOut.push_back( value );
 	}
 
-	virtual bool onInit()
+	bool onInit() override
 	{
 		::Global::GUI().cleanupWidget();
 		restart();
 		return true;
 	}
 
-	virtual void onEnd()
+	void onEnd() override
 	{
 
 	}
 
-	virtual void onUpdate( long time )
+	void onUpdate( long time ) override
 	{
 		BaseClass::onUpdate( time );
 
@@ -473,7 +473,7 @@ public:
 		updateFrame( frame );
 	}
 
-	void onRender( float dFrame )
+	void onRender( float dFrame ) override
 	{
 		Graphics2D& g = Global::GetGraphics2D();
 
@@ -528,21 +528,21 @@ public:
 
 	}
 
-	bool onMouse( MouseMsg const& msg )
+	bool onMouse( MouseMsg const& msg ) override
 	{
 		if ( !BaseClass::onMouse( msg ) )
 			return false;
 		return true;
 	}
 
-	bool onKey( unsigned key , bool isDown )
+	bool onKey(KeyMsg const& msg) override
 	{
-		if ( !isDown )
+		if ( !msg.isDown())
 			return false;
 
-		switch( key )
+		switch(msg.getCode())
 		{
-		case Keyboard::eR: restart(); break;
+		case EKeyCode::R: restart(); break;
 		}
 		return false;
 	}
@@ -567,7 +567,7 @@ namespace MRT
 	struct Station;
 	struct LinkInfo;
 	struct StationCmp;
-	typedef TFibonaccilHeap< Station*, StationCmp > StationHeap;
+	using StationHeap = TFibonaccilHeap< Station*, StationCmp >;
 	struct Station
 	{
 		std::string name;
@@ -708,7 +708,7 @@ namespace MRT
 
 	class GStationInfoFrame : public GFrame 
 	{
-		typedef GFrame BaseClass;
+		using BaseClass = GFrame;
 	public:
 		GStationInfoFrame(int id, Vec2i const& pos, GWidget* parent)
 			:BaseClass(id, pos, Vec2i(100,100) , parent )
@@ -723,7 +723,7 @@ namespace MRT
 
 	class TestStage : public StageBase
 	{
-		typedef StageBase BaseClass;
+		using BaseClass = StageBase;
 	public:
 
 		enum
@@ -741,9 +741,9 @@ namespace MRT
 
 		bool loadData(char const* data);
 
-		virtual bool onInit();
+		bool onInit() override;
 
-		virtual void onEnd()
+		void onEnd() override
 		{
 			cleanupData();
 		}
@@ -759,7 +759,7 @@ namespace MRT
 			mNetwork.cleanup();
 			mStationSelected = nullptr;
 		}
-		virtual void onUpdate( long time )
+		void onUpdate( long time ) override
 		{
 			BaseClass::onUpdate( time );
 
@@ -770,7 +770,7 @@ namespace MRT
 			updateFrame( frame );
 		}
 
-		void onRender( float dFrame );
+		void onRender( float dFrame ) override;
 
 		void restart()
 		{
@@ -794,22 +794,22 @@ namespace MRT
 			return link;
 		}
 
-		bool onWidgetEvent(int event, int id, GWidget* ui);
-		bool onMouse( MouseMsg const& msg )
+		bool onWidgetEvent(int event, int id, GWidget* ui) override;
+		bool onMouse( MouseMsg const& msg ) override
 		{
 			if ( !BaseClass::onMouse( msg ) )
 				return false;
 			return true;
 		}
 
-		bool onKey( unsigned key , bool isDown )
+		bool onKey(KeyMsg const& msg) override
 		{
-			if ( !isDown )
+			if ( !msg.isDown())
 				return false;
 
-			switch( key )
+			switch(msg.getCode())
 			{
-			case Keyboard::eR: restart(); break;
+			case EKeyCode::R: restart(); break;
 			}
 			return false;
 		}
@@ -837,13 +837,13 @@ namespace MRT
 
 class GLGraphics2DTestStage : public StageBase
 {
-	typedef StageBase BaseClass;
+	using BaseClass = StageBase;
 public:
 	GLGraphics2DTestStage()
 	{
 	}
 
-	virtual bool onInit()
+	bool onInit() override
 	{
 		::Global::GetDrawEngine().changeScreenSize(1600, 1200);
 		::Global::GUI().cleanupWidget();
@@ -858,12 +858,12 @@ public:
 		return true;
 	}
 
-	virtual void onEnd()
+	void onEnd() override
 	{
 		::Global::GetDrawEngine().stopOpenGL();
 	}
 
-	virtual void onUpdate( long time )
+	void onUpdate( long time ) override
 	{
 		BaseClass::onUpdate( time );
 
@@ -874,7 +874,7 @@ public:
 		updateFrame( frame );
 	}
 
-	void onRender( float dFrame );
+	void onRender( float dFrame ) override;
 
 
 	void restart()
@@ -893,21 +893,21 @@ public:
 
 	}
 
-	bool onMouse( MouseMsg const& msg )
+	bool onMouse( MouseMsg const& msg ) override
 	{
 		if ( !BaseClass::onMouse( msg ) )
 			return false;
 		return true;
 	}
 
-	bool onKey( unsigned key , bool isDown )
+	bool onKey(KeyMsg const& msg) override
 	{
-		if ( !isDown )
+		if ( !msg.isDown())
 			return false;
 
-		switch( key )
+		switch(msg.getCode())
 		{
-		case Keyboard::eR: restart(); break;
+		case EKeyCode::R: restart(); break;
 		}
 		return false;
 	}
@@ -924,14 +924,14 @@ protected:
 
 class TileMapTestStage : public StageBase
 {
-	typedef StageBase BaseClass;
+	using BaseClass = StageBase;
 public:
 	TileMapTestStage()
 	{
 
 	}
 
-	virtual bool onInit()
+	bool onInit() override
 	{
 		::Global::GUI().cleanupWidget();
 
@@ -957,7 +957,7 @@ public:
 		return true;
 	}
 
-	virtual void onUpdate( long time )
+	void onUpdate( long time ) override
 	{
 		BaseClass::onUpdate( time );
 
@@ -968,7 +968,7 @@ public:
 		updateFrame( frame );
 	}
 
-	void onRender( float dFrame )
+	void onRender( float dFrame ) override
 	{
 		Graphics2D& g = Global::GetGraphics2D();
 
@@ -1015,13 +1015,13 @@ public:
 	{
 		Vector2 dir = Vector2(0,0);
 		InputManager& input = InputManager::Get();
-		if ( input.isKeyDown( Keyboard::eA ) )
+		if ( input.isKeyDown( EKeyCode::A ) )
 			dir.x -= 1;
-		else if ( input.isKeyDown( Keyboard::eD ) )
+		else if ( input.isKeyDown( EKeyCode::D ) )
 			dir.x += 1;
-		if ( input.isKeyDown( Keyboard::eW ) )
+		if ( input.isKeyDown( EKeyCode::W ) )
 			dir.y -= 1;
-		else if ( input.isKeyDown( Keyboard::eS ) )
+		else if ( input.isKeyDown( EKeyCode::S ) )
 			dir.y += 1;
 
 		if ( dir.length2() > 0 )
@@ -1060,21 +1060,21 @@ public:
 
 	}
 
-	bool onMouse( MouseMsg const& msg )
+	bool onMouse( MouseMsg const& msg ) override
 	{
 		if ( !BaseClass::onMouse( msg ) )
 			return false;
 		return true;
 	}
 
-	bool onKey( unsigned key , bool isDown )
+	bool onKey(KeyMsg const& msg) override
 	{
-		if ( !isDown )
+		if ( !msg.isDown())
 			return false;
 
-		switch( key )
+		switch(msg.getCode())
 		{
-		case Keyboard::eR: restart(); break;
+		case EKeyCode::R: restart(); break;
 		}
 		return false;
 	}
@@ -1090,7 +1090,7 @@ protected:
 
 namespace TankGame
 {
-	typedef TVector2< float > Vector2;
+	using Vector2 = TVector2< float >;
 
 
 	class Rotation
@@ -1147,11 +1147,11 @@ namespace TankGame
 
 	class TestStage : public StageBase
 	{
-		typedef StageBase BaseClass;
+		using BaseClass = StageBase;
 	public:
 		TestStage(){}
 
-		virtual bool onInit()
+		bool onInit() override
 		{
 			::Global::GUI().cleanupWidget();
 
@@ -1162,12 +1162,12 @@ namespace TankGame
 			return true;
 		}
 
-		virtual void onEnd()
+		void onEnd() override
 		{
 			Global::GetDrawEngine().stopOpenGL();
 		}
 
-		virtual void onUpdate( long time )
+		void onUpdate( long time ) override
 		{
 			BaseClass::onUpdate( time );
 
@@ -1178,7 +1178,7 @@ namespace TankGame
 			updateFrame( frame );
 		}
 
-		void onRender( float dFrame )
+		void onRender( float dFrame ) override
 		{
 			Graphics2D& g = Global::GetGraphics2D();
 		}
@@ -1200,7 +1200,7 @@ namespace TankGame
 
 		}
 
-		bool onMouse( MouseMsg const& msg )
+		bool onMouse( MouseMsg const& msg ) override
 		{
 			if ( !BaseClass::onMouse( msg ) )
 				return false;
@@ -1208,14 +1208,14 @@ namespace TankGame
 			return true;
 		}
 
-		bool onKey( unsigned key , bool isDown )
+		bool onKey(KeyMsg const& msg) override
 		{
-			if ( !isDown )
+			if ( !msg.isDown())
 				return false;
 
-			switch( key )
+			switch(msg.getCode())
 			{
-			case Keyboard::eR: restart(); break;
+			case EKeyCode::R: restart(); break;
 			}
 			return false;
 		}
@@ -1228,7 +1228,7 @@ namespace TankGame
 
 class CoroutineTestStage : public StageBase
 {
-	typedef StageBase BaseClass;
+	using BaseClass = StageBase;
 
 public:
 	enum
@@ -1236,8 +1236,8 @@ public:
 		UI_TEST_BUTTON = BaseClass::NEXT_UI_ID ,
 		UI_TEST_BUTTON2 ,
 	};
-	virtual bool onInit();
-	virtual bool onWidgetEvent( int event , int id , GWidget* ui );
+	bool onInit() override;
+	bool onWidgetEvent( int event , int id , GWidget* ui ) override;
 
 };
 
@@ -1278,7 +1278,7 @@ namespace Bsp2D
 	class TestStage : public StageBase
 		            , public MyRenderer
 	{
-		typedef StageBase BaseClass;
+		using BaseClass = StageBase;
 	public:
 
 		enum
@@ -1300,7 +1300,7 @@ namespace Bsp2D
 
 		ControlMode mCtrlMode;
 		TPtrHolder< PolyArea >  mPolyEdit;
-		typedef std::vector< PolyArea* > PolyAreaVec;
+		using PolyAreaVec = std::vector< PolyArea* >;
 		PolyAreaVec mPolyAreaMap;
 		Tree     mTree;
 		bool     mDrawTree;
@@ -1342,9 +1342,9 @@ namespace Bsp2D
 			tree.build( list , 1 , Vector2( -1000 , -1000 ) , Vector2(1000, 1000 ) );
 		}
 
-		virtual bool onInit();
+		bool onInit() override;
 
-		virtual void onUpdate( long time )
+		void onUpdate( long time ) override
 		{
 			BaseClass::onUpdate( time );
 
@@ -1357,7 +1357,7 @@ namespace Bsp2D
 
 
 
-		void onRender( float dFrame );
+		void onRender( float dFrame ) override;
 
 		void restart();
 		void tick();
@@ -1367,9 +1367,9 @@ namespace Bsp2D
 		}
 
 
-		bool onMouse( MouseMsg const& msg );
-		bool onKey( unsigned key , bool isDown );
-		bool onWidgetEvent( int event , int id , GWidget* ui );
+		bool onMouse( MouseMsg const& msg ) override;
+		bool onKey(KeyMsg const& msg) override;
+		bool onWidgetEvent( int event , int id , GWidget* ui ) override;
 
 	protected:
 
@@ -1384,18 +1384,18 @@ namespace Bsp2D
 
 class TweenTestStage : public StageBase
 {
-	typedef StageBase BaseClass;
+	using BaseClass = StageBase;
 public:
 	TweenTestStage(){}
 
-	virtual bool onInit()
+	bool onInit() override
 	{
 		::Global::GUI().cleanupWidget();
 		restart();
 		return true;
 	}
 
-	virtual void onUpdate( long time )
+	void onUpdate( long time ) override
 	{
 		BaseClass::onUpdate( time );
 
@@ -1406,7 +1406,7 @@ public:
 		updateFrame( frame );
 	}
 
-	void onRender( float dFrame )
+	void onRender( float dFrame ) override
 	{
 		Graphics2D& g = Global::GetGraphics2D();
 
@@ -1443,7 +1443,7 @@ public:
 		mTweener.update( frame * gDefaultTickTime / 1000.0f );
 	}
 
-	bool onMouse( MouseMsg const& msg )
+	bool onMouse( MouseMsg const& msg ) override
 	{
 		if ( !BaseClass::onMouse( msg ) )
 			return false;
@@ -1451,14 +1451,14 @@ public:
 		return true;
 	}
 
-	bool onKey( unsigned key , bool isDown )
+	bool onKey(KeyMsg const& msg) override
 	{
-		if ( !isDown )
+		if ( !msg.isDown())
 			return false;
 
-		switch( key )
+		switch(msg.getCode())
 		{
-		case Keyboard::eR: restart(); break;
+		case EKeyCode::R: restart(); break;
 		}
 		return false;
 	}
@@ -1467,7 +1467,7 @@ public:
 	Vector2 mPos;
 	float radius;
 
-	typedef Tween::GroupTweener< float > MyTweener;
+	using MyTweener = Tween::GroupTweener< float >;
 	MyTweener mTweener;
 };
 
@@ -1477,7 +1477,7 @@ public:
 
 class TreeTestStage : public StageBase
 {
-	typedef StageBase BaseClass;
+	using BaseClass = StageBase;
 public:
 	TreeTestStage()
 	{
@@ -1495,8 +1495,8 @@ public:
 	{
 		UI_NUMBER_TEXT = BaseClass::NEXT_UI_ID,
 	};
-	typedef TRedBlackTree< int , Data > MyTree;
-	typedef MyTree::Node Node;
+	using MyTree = TRedBlackTree< int , Data >;
+	using Node = MyTree::Node;
 
 	class DataUpdateVisitor
 	{
@@ -1520,7 +1520,7 @@ public:
 		int depth;
 		int pos;
 	};
-	virtual bool onInit()
+	bool onInit() override
 	{
 		::Global::GUI().cleanupWidget();
 
@@ -1537,7 +1537,7 @@ public:
 		return true;
 	}
 
-	virtual void onUpdate( long time )
+	void onUpdate( long time ) override
 	{
 		BaseClass::onUpdate( time );
 
@@ -1577,7 +1577,7 @@ public:
 	};
 
 
-	void onRender( float dFrame )
+	void onRender( float dFrame ) override
 	{
 		Graphics2D& g = Global::GetGraphics2D();
 
@@ -1603,31 +1603,31 @@ public:
 
 	}
 
-	bool onMouse( MouseMsg const& msg )
+	bool onMouse( MouseMsg const& msg ) override
 	{
 		if ( !BaseClass::onMouse( msg ) )
 			return false;
 		return true;
 	}
 
-	bool onKey( unsigned key , bool isDown )
+	bool onKey(KeyMsg const& msg) override
 	{
-		if ( !isDown )
+		if ( !msg.isDown() )
 			return false;
 
-		switch( key )
+		switch(msg.getCode())
 		{
-		case Keyboard::eR: restart(); break;
-		case Keyboard::eD: break;
-		case Keyboard::eA: break;
-		case Keyboard::eW: break;
-		case Keyboard::eS: break;
+		case EKeyCode::R: restart(); break;
+		case EKeyCode::D: break;
+		case EKeyCode::A: break;
+		case EKeyCode::W: break;
+		case EKeyCode::S: break;
 		}
-		return BaseClass::onKey( key , isDown );
+		return BaseClass::onKey(msg);
 	}
 
 
-	bool onWidgetEvent( int event , int id , GWidget* ui )
+	bool onWidgetEvent( int event , int id , GWidget* ui ) override
 	{
 		switch( id )
 		{
@@ -1662,11 +1662,11 @@ protected:
 
 class NetTestStage : public GameStageBase
 {
-	typedef GameStageBase BaseClass;
+	using BaseClass = GameStageBase;
 public:
 	NetTestStage(){}
 
-	virtual bool onInit()
+	bool onInit() override
 	{
 		if( !BaseClass::onInit() )
 			return false;
@@ -1675,7 +1675,7 @@ public:
 		return true;
 	}
 
-	void onRender( float dFrame )
+	void onRender( float dFrame ) override
 	{
 		Graphics2D& g = Global::GetGraphics2D();
 	}
@@ -1687,17 +1687,17 @@ public:
 	}
 
 
-	void tick()
+	void tick() override
 	{
 
 	}
 
-	void updateFrame( int frame )
+	void updateFrame( int frame ) override
 	{
 
 	}
 
-	bool onMouse( MouseMsg const& msg )
+	bool onMouse( MouseMsg const& msg ) override
 	{
 		if ( !BaseClass::onMouse( msg ) )
 			return false;
@@ -1705,14 +1705,14 @@ public:
 		return true;
 	}
 
-	bool onKey( unsigned key , bool isDown )
+	bool onKey(KeyMsg const& msg) override
 	{
-		if ( !isDown )
+		if ( !msg.isDown())
 			return false;
 
-		switch( key )
+		switch(msg.getCode())
 		{
-		case Keyboard::eR: restart(); break;
+		case EKeyCode::R: restart(); break;
 		}
 		return false;
 	}
@@ -1729,23 +1729,23 @@ namespace Net
 	class NetEngine : public INetEngine
 	{
 	public:
-		virtual bool build( BuildParam& buildParam )
+		bool build( BuildParam& buildParam ) override
 		{
 			mTickTime = buildParam.tickTime;
 			return true;
 		}
-		virtual void update( IFrameUpdater& updater , long time )
+		void update( IFrameUpdater& updater , long time ) override
 		{
 			int numFrame = time / mTickTime;
 			for( int i = 0 ; i < numFrame ; ++i )
 				updater.tick();
 			updater.updateFrame( numFrame );
 		}
-		virtual void setupInputAI( IPlayerManager& manager )
+		void setupInputAI( IPlayerManager& manager ) override
 		{
 
 		}
-		virtual void release()
+		void release() override
 		{
 			delete this;
 		}
@@ -1811,7 +1811,7 @@ namespace Net
 			return obj;
 		}
 
-		typedef std::vector< INetObject* > ObjectVec;
+		using ObjectVec = std::vector< INetObject* >;
 		ObjectVec mObjects;
 	};
 
@@ -1822,11 +1822,11 @@ namespace Net
 
 	class TestStage : public GameStageBase
 	{
-		typedef GameStageBase BaseClass;
+		using BaseClass = GameStageBase;
 	public:
 		TestStage(){}
 
-		virtual bool onInit()
+		bool onInit() override
 		{
 			if ( !BaseClass::onInit() )
 				return false;
@@ -1840,12 +1840,12 @@ namespace Net
 
 		}
 
-		void tick()
+		void tick() override
 		{
 
 		}
 
-		void setupScene( IPlayerManager& playerManager )
+		void setupScene( IPlayerManager& playerManager ) override
 		{
 			for( auto iter = playerManager.createIterator(); iter ; ++iter )
 			{
@@ -1859,13 +1859,13 @@ namespace Net
 			}
 		}
 
-		void updateFrame( int frame )
+		void updateFrame( int frame ) override
 		{
 		
 
 		}
 
-		void onRender( float dFrame )
+		void onRender( float dFrame ) override
 		{
 			Graphics2D& g = Global::GetGraphics2D();
 
@@ -1878,7 +1878,7 @@ namespace Net
 		}
 
 
-		bool onMouse( MouseMsg const& msg )
+		bool onMouse( MouseMsg const& msg ) override
 		{
 			if ( !BaseClass::onMouse( msg ) )
 				return false;
@@ -1886,14 +1886,14 @@ namespace Net
 			return true;
 		}
 
-		bool onKey( unsigned key , bool isDown )
+		bool onKey(KeyMsg const& msg) override
 		{
-			if ( !isDown )
+			if ( !msg.isDown())
 				return false;
 			return true;
 		}
 
-		bool setupNetwork( NetWorker* worker , INetEngine** engine )
+		bool setupNetwork( NetWorker* worker , INetEngine** engine ) override
 		{
 			*engine = new NetEngine;
 			return true;

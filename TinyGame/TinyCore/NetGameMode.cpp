@@ -451,7 +451,7 @@ void NetRoomStage::onUpdate( long time )
 	if (mServer)
 	{
 		static bool bFired = false;
-		if (InputManager::Get().isKeyDown(Keyboard::eX))
+		if (InputManager::Get().isKeyDown(EKeyCode::X))
 		{
 			if ( !bFired )
 			{
@@ -1038,9 +1038,9 @@ bool NetLevelStageMode::onWidgetEvent(int event, int id, GWidget* ui)
 	return true;
 }
 
-bool NetLevelStageMode::onKey(unsigned key, bool isDown)
+bool NetLevelStageMode::onKey(KeyMsg const& msg)
 {
-	if( isDown && key == Keyboard::eTAB )
+	if(msg.isDown() && msg.getCode() == EKeyCode::Tab )
 	{
 		bool beShow = !mMsgPanel->isShow();
 		mMsgPanel->show(beShow);
@@ -1053,7 +1053,7 @@ bool NetLevelStageMode::onKey(unsigned key, bool isDown)
 		return false;
 	}
 
-	if( !BaseClass::onKey(key, isDown) )
+	if( !BaseClass::onKey(msg) )
 		return false;
 
 	return true;

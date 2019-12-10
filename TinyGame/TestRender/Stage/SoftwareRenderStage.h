@@ -21,7 +21,7 @@ namespace SR
 {
 	using namespace Render;
 
-	typedef Math::Transform XForm;
+	using XForm = Math::Transform;
 	struct Color
 	{
 		union
@@ -362,7 +362,7 @@ namespace SR
 	{
 
 	public:
-		virtual bool raycast(RayTrace const& trace, RayResult& result)
+		bool raycast(RayTrace const& trace, RayResult& result) override
 		{
 			float distances[2];
 			if( !LineSphereTest(trace.pos, trace.dir, Vector3::Zero(), radius, distances) )
@@ -393,7 +393,7 @@ namespace SR
 		{
 
 		}
-		virtual bool raycast(RayTrace const& trace, RayResult& result)
+		bool raycast(RayTrace const& trace, RayResult& result) override
 		{
 			float DoN = normal.dot(trace.dir);
 			if( Math::Abs( DoN ) < 1e-5 )
@@ -424,10 +424,10 @@ namespace SR
 		
 	};
 
-	typedef TRefCountPtr< Material >   MaterialPtr;
-	typedef TRefCountPtr< PrimitiveShape > PrimitiveShapePtr;
+	using MaterialPtr = TRefCountPtr< Material >;
+	using PrimitiveShapePtr = TRefCountPtr< PrimitiveShape >;
 
-	typedef TRefCountPtr< ObjectBase > ObjectPtr;
+	using ObjectPtr = TRefCountPtr< ObjectBase >;
 
 	class KDTree
 	{
@@ -489,7 +489,7 @@ namespace SR
 		PrimitiveShapePtr shape;
 	};
 
-	typedef TRefCountPtr< PrimitiveObject > PrimitiveObjectPtr;
+	using PrimitiveObjectPtr = TRefCountPtr< PrimitiveObject >;
 
 	class Camera : public ObjectBase
 	{
@@ -566,7 +566,7 @@ namespace SR
 
 	class TestStage : public StageBase
 	{
-		typedef StageBase BaseClass;
+		using BaseClass = StageBase;
 	public:
 
 		bool bRayTracerUsed = true;
@@ -581,16 +581,16 @@ namespace SR
 
 		void setupScene();
 
-		virtual bool onInit();
+		bool onInit() override;
 
 
-		virtual void onEnd()
+		void onEnd() override
 		{
 
 			BaseClass::onEnd();
 		}
 
-		virtual void onUpdate(long time)
+		void onUpdate(long time) override
 		{
 			BaseClass::onUpdate(time);
 
@@ -620,7 +620,7 @@ namespace SR
 
 		void renderTest1();
 
-		void onRender(float dFrame)
+		void onRender(float dFrame) override
 		{
 			if( bRayTracerUsed )
 			{
@@ -652,23 +652,23 @@ namespace SR
 
 		}
 
-		bool onMouse(MouseMsg const& msg)
+		bool onMouse(MouseMsg const& msg) override
 		{
 			if( !BaseClass::onMouse(msg) )
 				return false;
 			return true;
 		}
 
-		bool onKey(unsigned key, bool isDown)
+		bool onKey(KeyMsg const& msg) override
 		{
-			if( !isDown )
+			if( !msg.isDown() )
 				return false;
 
-			switch( key )
+			switch(msg.getCode())
 			{
-			case Keyboard::eR: restart(); break;
-			case Keyboard::eP: bPause = !bPause; break;
-			case Keyboard::eF2: bRayTracerUsed = !bRayTracerUsed; break;
+			case EKeyCode::R: restart(); break;
+			case EKeyCode::P: bPause = !bPause; break;
+			case EKeyCode::F2: bRayTracerUsed = !bRayTracerUsed; break;
 			}
 			return false;
 		}

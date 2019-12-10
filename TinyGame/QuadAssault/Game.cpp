@@ -289,12 +289,12 @@ bool Game::onMouse( MouseMsg const& msg )
 	return true;
 }
 
-bool Game::onKey( unsigned key , bool isDown )
+bool Game::onKey(KeyMsg const& msg)
 {
-	if ( !GUISystem::Get().mManager.procKeyMsg( key , isDown ) )
+	if ( !GUISystem::Get().mManager.procKeyMsg( msg ) )
 		return true;
 
-	mStageStack.back()->onKey( key , isDown );
+	mStageStack.back()->onKey( msg );
 	return true;
 }
 

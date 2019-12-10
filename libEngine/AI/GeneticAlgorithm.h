@@ -7,7 +7,8 @@
 #include <vector>
 #include <memory>
 #include <intrin.h>
-typedef double NNScale;
+
+using NNScale = double;
 
 class NNRand
 {
@@ -48,7 +49,7 @@ class Genotype
 {
 public:
 
-	typedef std::vector< NNScale > DataType;
+	using DataType = std::vector< NNScale >;
 
 	Genotype(DataType const& inData)
 		:data(inData)
@@ -71,7 +72,7 @@ public:
 
 };
 
-typedef std::shared_ptr< Genotype > GenotypePtr;
+using GenotypePtr = std::shared_ptr< Genotype >;
 
 class GenePool
 {
@@ -108,7 +109,7 @@ public:
 class GeneticAlgorithm
 {
 public:
-	typedef std::vector< NNScale > DataType;
+	using DataType = std::vector< NNScale >;
 	float selectPowerFactor = 5;
 
 	void select(int numSelection, std::vector< GenotypePtr > const& candidates, std::vector< GenotypePtr >& outSelections);

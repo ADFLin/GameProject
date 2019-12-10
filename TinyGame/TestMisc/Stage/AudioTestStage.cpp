@@ -738,7 +738,7 @@ public:
 
 	bool onMouse(MouseMsg const& msg);
 
-	bool onKey(unsigned key, bool isDown);
+	bool onKey(KeyMsg const& msg);
 
 
 protected:
@@ -944,18 +944,18 @@ void AudioTestStage::onRender(float dFrame)
 	g.drawRect(org, Vector2(mNumFreqGroup * 5, 10));
 }
 
-bool AudioTestStage::onKey(unsigned key, bool isDown)
+bool AudioTestStage::onKey(KeyMsg const& msg)
 {
-	if( !isDown )
+	if( !msg.isDown() )
 		return false;
-	switch( key )
+	switch(msg.getCode())
 	{
-	case Keyboard::eR: restart(); break;
-	case Keyboard::eB:
+	case EKeyCode::R: restart(); break;
+	case EKeyCode::B:
 		mAudioDevice->stopAllSound();
 		mAudioHandle = mAudioDevice->playSound2D(&mSoundWave, 1.0, false);
 		break;
-	case Keyboard::eZ:
+	case EKeyCode::Z:
 		mSoundWave.PCMData.clear();
 		break;
 	}

@@ -862,17 +862,17 @@ namespace Render
 			return true;
 		}
 
-		bool onKey(unsigned key, bool isDown)
+		bool onKey(KeyMsg const& msg)
 		{
-			if( isDown )
+			if( msg.isDown() )
 			{
-				switch( key )
+				switch( msg.getCode() )
 				{
-				case Keyboard::eLEFT: --TessFactor1; break;
-				case Keyboard::eRIGHT: ++TessFactor1; break;
-				case Keyboard::eDOWN: --TessFactor2; break;
-				case Keyboard::eUP: ++TessFactor2; break;
-				case Keyboard::eF2:
+				case EKeyCode::Left: --TessFactor1; break;
+				case EKeyCode::Right: ++TessFactor1; break;
+				case EKeyCode::Down: --TessFactor2; break;
+				case EKeyCode::Up: ++TessFactor2; break;
+				case EKeyCode::F2:
 					{
 						ShaderManager::Get().reloadAll();
 						//initParticleData(RHICommandList::GetImmediateList());
@@ -880,7 +880,7 @@ namespace Render
 					break;
 				}
 			}
-			return BaseClass::onKey(key , isDown);
+			return BaseClass::onKey(msg);
 		}
 
 		virtual bool onWidgetEvent(int event, int id, GWidget* ui) override

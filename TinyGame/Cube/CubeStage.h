@@ -151,17 +151,17 @@ namespace Cube
 			return true;
 		}
 
-		bool onKey( unsigned key , bool isDown )
+		bool onKey(KeyMsg const& msg)
 		{
-			if ( !isDown )
+			if ( !msg.isDown() )
 				return false;
 
-			switch( key )
+			switch(msg.getCode())
 			{
-			case Keyboard::eR: restart(); break;
-			case Keyboard::eW: mCamera.moveFront( 0.5 ); break;
-			case Keyboard::eS: mCamera.moveFront( -0.5 ); break;
-			case Keyboard::eUP: mCamera.setPos( mCamera.getPos() + Vec3f( 0,0,2) );break;
+			case EKeyCode::R: restart(); break;
+			case EKeyCode::W: mCamera.moveFront( 0.5 ); break;
+			case EKeyCode::S: mCamera.moveFront( -0.5 ); break;
+			case EKeyCode::Up: mCamera.setPos( mCamera.getPos() + Vec3f( 0,0,2) );break;
 			}
 			return false;
 		}

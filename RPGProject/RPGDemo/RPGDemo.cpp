@@ -559,23 +559,23 @@ public:
 
 		switch( key )
 		{
-		case Keyboard::eESCAPE: setLoopOver( true ); break;
-		//case Keyboard::eW: mCFCamera->translate( Vec3D( 0,0,10 ) , CFly::CFTO_LOCAL); break;
-		//case Keyboard::eS: mCFCamera->translate( Vec3D( 0,0,-10 ) , CFly::CFTO_LOCAL); break;
-		//case Keyboard::eA: mCFCamera->translate( Vec3D( 10 ,0 , 0 ), CFly::CFTO_LOCAL ); break;
-		//case Keyboard::eD: mCFCamera->translate( Vec3D( -10 ,0 , 0 ) , CFly::CFTO_LOCAL ); break;
+		case EKeyCode::Escape: setLoopOver( true ); break;
+		//case EKeyCode::W: mCFCamera->translate( Vec3D( 0,0,10 ) , CFly::CFTO_LOCAL); break;
+		//case EKeyCode::S: mCFCamera->translate( Vec3D( 0,0,-10 ) , CFly::CFTO_LOCAL); break;
+		//case EKeyCode::A: mCFCamera->translate( Vec3D( 10 ,0 , 0 ), CFly::CFTO_LOCAL ); break;
+		//case EKeyCode::D: mCFCamera->translate( Vec3D( -10 ,0 , 0 ) , CFly::CFTO_LOCAL ); break;
 
-		//case Keyboard::eW: mCamControl->moveForward(); break;
-		//case Keyboard::eS: mCamControl->moveBack(); break;
-		//case Keyboard::eA: mCamControl->moveLeft(); break;
-		//case Keyboard::eD: mCamControl->moveRight(); break;
-		//case Keyboard::eO: mBloodBarComp->setLife( mBloodBarComp->getLife() - 10 ); break;
-		//case Keyboard::eP: mBloodBarComp->setLife( mBloodBarComp->getLife() + 10 ); break;
-		case Keyboard::eL: mPlayer->attack(); break;
-		case Keyboard::eM: mActorModel->changeAction( ANIM_ATTACK , true ); break;
-		case Keyboard::eN: mActorModel->changeAction( ANIM_WAIT , true ); break;
-		case Keyboard::eK: if ( mCDMask ) mCDMask->restore( 2 ); break;
-		case Keyboard::eR:
+		//case EKeyCode::W: mCamControl->moveForward(); break;
+		//case EKeyCode::S: mCamControl->moveBack(); break;
+		//case EKeyCode::A: mCamControl->moveLeft(); break;
+		//case EKeyCode::D: mCamControl->moveRight(); break;
+		//case EKeyCode::O: mBloodBarComp->setLife( mBloodBarComp->getLife() - 10 ); break;
+		//case EKeyCode::P: mBloodBarComp->setLife( mBloodBarComp->getLife() + 10 ); break;
+		case EKeyCode::L: mPlayer->attack(); break;
+		case EKeyCode::M: mActorModel->changeAction( ANIM_ATTACK , true ); break;
+		case EKeyCode::N: mActorModel->changeAction( ANIM_WAIT , true ); break;
+		case EKeyCode::K: if ( mCDMask ) mCDMask->restore( 2 ); break;
+		case EKeyCode::R:
 			createBoxEntity( Vec3D(200,200,200) );
 			break;
 

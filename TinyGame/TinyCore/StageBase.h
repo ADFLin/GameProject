@@ -53,7 +53,7 @@ public:
 	
 	virtual bool onChar( unsigned code );
 	virtual bool onMouse( MouseMsg const& msg );
-	virtual bool onKey( unsigned key , bool isDown );
+	virtual bool onKey( KeyMsg const& msg );
 
 	virtual bool onWidgetEvent( int event , int id , GWidget* ui ){ return true; }
 	virtual void onTaskMessage( TaskBase* task , TaskMsg const& msg );

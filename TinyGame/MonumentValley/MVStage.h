@@ -74,7 +74,7 @@ namespace MV
 
 		bool onMouse( MouseMsg const& msg );
 		bool onWidgetEvent(int event , int id , GWidget* ui);
-		bool onKey( unsigned key , bool isDown );
+		bool onKey(KeyMsg const& msg);
 		void onKeyDown_EditMode(unsigned key);
 
 		void onKeyDown_EditSpaceNode(unsigned key);

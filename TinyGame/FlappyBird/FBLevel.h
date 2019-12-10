@@ -183,7 +183,7 @@ namespace FlappyBird
 		float mLastPipeHeight = 0;
 		int  mTimerProduce;
 
-		typedef std::list< ColObject > ColObjectList;
+		using ColObjectList = std::list< ColObject >;
 
 		std::vector< PipeInfo > mPipes;
 		ColObjectList mColObjects;

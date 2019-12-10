@@ -479,14 +479,14 @@ void DevStage::onRender()
 	getRenderSystem()->drawText( mDevMsg , Vec2f( 5 ,5 ) , TEXT_SIDE_LEFT | TEXT_SIDE_TOP );
 }
 
-bool DevStage::onKey(unsigned key , bool isDown)
+bool DevStage::onKey(KeyMsg const& msg)
 {
-	if ( !isDown )
+	if ( !msg.isDown())
 		return false;
 
-	switch( key )
+	switch(msg.getCode())
 	{
-	case Keyboard::eESCAPE:
+	case EKeyCode::Escape:
 		getGame()->addStage( new MenuStage , true );
 		break;
 	}

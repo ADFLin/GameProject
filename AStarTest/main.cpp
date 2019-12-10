@@ -250,25 +250,25 @@ public:
 		{
 			switch( key )
 			{
-			case Keyboard::eQ: ++mCellSize; break;
-			case Keyboard::eA: --mCellSize; break;
-			case Keyboard::eLEFT:
+			case EKeyCode::Q: ++mCellSize; break;
+			case EKeyCode::A: --mCellSize; break;
+			case EKeyCode::Left:
 				if ( curPortal != mRegionMgr->mProtalList.begin() )
 					--curPortal;
 				break;
-			case Keyboard::eRIGHT:
+			case EKeyCode::Right:
 				if ( curPortal != mRegionMgr->mProtalList.end() )
 					++curPortal;
 				break;
-			case Keyboard::eW:
+			case EKeyCode::W:
 				startPos = curPos;
 				curRegion = mRegionMgr->getRegion( startPos );
 				break;
-			case Keyboard::eE:
+			case EKeyCode::E:
 				mRegionMgr->removeBlock( curPos );
 				curPortal = mRegionMgr->mProtalList.begin();
 				break;
-			case Keyboard::eS:
+			case EKeyCode::S:
 				endPos = curPos;
 				if ( curRegion )
 				{

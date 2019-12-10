@@ -64,9 +64,9 @@ template< class T >
 class WidgetCoreT : public WidgetCoreBase
 {
 	T* _this() { return static_cast<T*>(this); }
-	typedef TRect< int > Rect;
+	using Rect = TRect< int >;
+	using WidgetCore = WidgetCoreT<T>;
 
-	typedef WidgetCoreT<T> WidgetCore;
 public:
 	
 	WidgetCoreT(Vec2i const& pos, Vec2i const& size, T* parent);
@@ -135,7 +135,7 @@ protected:
 public:
 
 	virtual void  deleteThis() { delete this; }
-	virtual bool  onKeyMsg(unsigned key, bool isDown) { (void)key; (void)isDown; return true; }
+	virtual bool  onKeyMsg(KeyMsg const& msg) { (void)msg; return true; }
 	virtual bool  onCharMsg(unsigned code) { (void)code; return true; }
 	virtual bool  onMouseMsg(MouseMsg const& msg) { (void)msg; return false; }
 
@@ -201,7 +201,7 @@ private:
 
 protected:
 
-	typedef TIntrList< T, MemberHook< WidgetCoreBase, &WidgetCoreBase::mLinkHook > > WidgetList;
+	using WidgetList = TIntrList< T, MemberHook< WidgetCoreBase, &WidgetCoreBase::mLinkHook > >;
 	static void SetTopInternal(WidgetList& list, WidgetCoreT* ui , bool bAlwaysTop );
 
 	static WidgetCoreT*  hitTestInternal(Vec2i const& testPos, WidgetList& Widgetlist);
@@ -222,7 +222,7 @@ protected:
 template < class T >
 class TWidgetManager
 {
-	typedef WidgetCoreT< T > WidgetCore;
+	using WidgetCore = WidgetCoreT< T >;
 public:
 	TWidgetManager();
 	~TWidgetManager();
@@ -235,7 +235,7 @@ public:
 	void      cleanupWidgets( bool bGlobalIncluded = false);
 
 	bool      isTopWidget( WidgetCore* ui );
-	MouseMsg& getLastMouseMsg(){ return mMouseMsg; }
+	MouseMsg& getLastMouseMsg(){ return mLastMouseMsg; }
 
 	T*        hitTest( Vec2i const& testPos );
 
@@ -253,7 +253,7 @@ public:
 	void      endModal(WidgetCore* ui );
 
 	bool      procMouseMsg( MouseMsg const& msg );
-	bool      procKeyMsg( unsigned key , bool isDown );
+	bool      procKeyMsg( KeyMsg const& msg );
 	bool      procCharMsg( unsigned code );
 
 	void      focusWidget(WidgetCore* ui );
@@ -278,8 +278,8 @@ protected:
 	void        prevProcMsg();
 	void        postProcMsg();
 
-	template< class Fun >
-	bool processMessage(WidgetCore* ui, WidgetInternalFlag flag, WidgetInternalFlag unhandledFlag, Fun fun);
+	template< class Func >
+	bool processMessage(WidgetCore* ui, WidgetInternalFlag flag, WidgetInternalFlag unhandledFlag, Func func);
 
 	struct ProcMsgScope
 	{
@@ -322,12 +322,12 @@ private:
 	
 	WidgetCore*    getKeyInputWidget();
 
-	typedef typename WidgetCore::WidgetList WidgetList;
+	using WidgetList = typename WidgetCore::WidgetList;
 	WidgetList   mTopWidgetList;
 	WidgetList   mDeferredDestroyWidgets;
 
 	bool         mProcessingMsg;
-	MouseMsg     mMouseMsg;
+	MouseMsg     mLastMouseMsg;
 
 	friend class WidgetCore;
 private:

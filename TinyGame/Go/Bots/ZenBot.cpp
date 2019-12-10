@@ -474,7 +474,7 @@ namespace Go
 	}
 
 	bool ZenBot::requestUndo()
-	{
+{
 		if( bWaitResult )
 		{
 			bWaitResult = false;
@@ -581,6 +581,20 @@ namespace Go
 			break;
 		}
 		return false;
+	}
+
+	EBotExecuteResult ZenBot::readBoard(int* outState)
+	{
+		int size = mCore->getBoardSize();
+		for (int j = 0; j < size; ++j)
+		{
+			for (int i = 0; i < size; ++i)
+			{
+				*outState = FormZColor(mCore->getBoardColor(i, j));
+				++outState;
+			}
+		}
+		return BOT_OK;
 	}
 
 }

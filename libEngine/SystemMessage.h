@@ -2,7 +2,9 @@
 #define SysMsg_h__
 
 #include "Math/TVector2.h"
-typedef TVector2< int > Vec2i;
+#include "Core/IntegerType.h"
+
+using Vec2i = TVector2< int >;
 
 #ifndef BIT
 #define BIT(i) ( 1 << (i) )
@@ -16,95 +18,93 @@ enum MsgType
 	MSG_TYPE_KEY   ,
 };
 
-struct Keyboard 
+namespace EKeyCode 
 {
-	enum Enum
+	enum Type
 	{
-		eCANCEL         = 0x03 ,
-		eBACK           = 0x08 ,
-		eTAB            = 0x09 ,
-		eCLEAR          = 0x0C ,
-		eRETURN         = 0x0D ,
+		Cancel         = 0x03 ,
+		Back           = 0x08 ,
+		Tab            = 0x09 ,
+		Clear          = 0x0C ,
+		Return         = 0x0D ,
 
-		eSHIFT          = 0x10 ,
-		eCONTROL        = 0x11 ,
-		eMENU           = 0x12 ,
-		ePAUSE          = 0x13 ,
-		eCAPITAL        = 0x14 ,
+		Shift          = 0x10 ,
+		Control        = 0x11 ,
+		Menu           = 0x12 ,
+		Pause          = 0x13 ,
+		Capital        = 0x14 ,
 
-		eKANA           = 0x15 ,
-		eJUNJA          = 0x17 , 
-		eFINAL          = 0x18 ,
-		eHANJA          = 0x19 ,
+		Kana           = 0x15 ,
+		Junja          = 0x17 , 
+		Final          = 0x18 ,
+		Hanja          = 0x19 ,
 
-		eESCAPE         = 0x1B ,
+		Escape         = 0x1B ,
 
-		eCONVERT        = 0x1C ,
-		eNONCONVERT     = 0x1D ,
-		eACCEPT         = 0x1E ,
-		eMODECHANGE     = 0x1F ,
+		Convert        = 0x1C ,
+		NonConvert     = 0x1D ,
+		Accept         = 0x1E ,
+		ModeChange     = 0x1F ,
 
-		eSPACE          = 0x20 ,
-		ePRIOR          = 0x21 ,
-		eNEXT           = 0x22 ,
-		eEND            = 0x23 ,
-		eHOME           = 0x24 ,
-		eLEFT           = 0x25 ,
-		eUP             = 0x26 ,
-		eRIGHT          = 0x27 ,
-		eDOWN           = 0x28 ,
-		eSELECT         = 0x29 ,
-		ePRINT          = 0x2A ,
-		eEXECUTE        = 0x2B ,
-		eSNAPSHOT       = 0x2C ,
-		eINSERT         = 0x2D ,
-		eDELETE         = 0x2E ,
-		eHELP           = 0x2F ,
+		Space          = 0x20 ,
+		Prior          = 0x21 ,
+		Next           = 0x22 ,
+		End            = 0x23 ,
+		Home           = 0x24 ,
+		Left           = 0x25 ,
+		Up             = 0x26 ,
+		Right          = 0x27 ,
+		Down           = 0x28 ,
+		Select         = 0x29 ,
+		Print          = 0x2A ,
+		Execute        = 0x2B ,
+		Snapshot       = 0x2C ,
+		Insert         = 0x2D ,
+		Delete         = 0x2E ,
+		Help           = 0x2F ,
 
-		eNUM0           = '0' ,
-		eNUM1 , eNUM2 , eNUM3 , eNUM4 , eNUM5 ,
-		eNUM6 , eNUM7 , eNUM8 , eNUM9 ,
-		eA              = 'A',
-		eB , eC , eD , eE , eF ,
-		eG , eH , eI , eJ , eK ,
-		eL , eM , eN , eO , eP ,
-		eQ , eR , eS , eT , eU ,
-		eV , eW , eX , eY , eZ ,
+		Num0           = '0' ,
+		Num1 , Num2 , Num3 , Num4 , Num5 , Num6 , Num7 , Num8 , Num9 ,
 
-		eSLEEP          = 0x5F ,
+		A              = 'A',
+		B , C , D , E , F , G , H , I , J , K ,
+		L , M , N , O , P , Q , R , S , T , U , V , 
+		W , X , Y , Z ,
 
-		eNUMPAD0        = 0x60 ,
-		eNUMPAD1 , eNUMPAD2 , eNUMPAD3 , eNUMPAD4 , eNUMPAD5 ,
-		eNUMPAD6 , eNUMPAD7 , eNUMPAD8 , eNUMPAD9 ,
-		eMULTIPLY       = 0x6A ,
-		eADD            = 0x6B ,
-		eSEPARATOR      = 0x6C ,
-		eSUBTRACT       = 0x6D ,
-		eDECIMAL        = 0x6E ,
-		eDIVIDE         = 0x6F ,
+		Sleep          = 0x5F ,
 
-		eF1             = 0x70 ,
-		eF2 , eF3 , eF4 , eF5 , eF6 , 
-		eF7 , eF8 , eF9 , eF10 , eF11 , 
-		eF12 , eF13 , eF14 , eF15 ,
+		Numpad0        = 0x60 ,
+		Numpad1 , Numpad2 , Numpad3 , Numpad4 , Numpad5 , Numpad6 , Numpad7 , Numpad8 , Numpad9 ,
 
-		eNUMLOCK        = 0x90 ,
-		eSCROLL         = 0x91 ,
+		Multiply       = 0x6A ,
+		Add            = 0x6B ,
+		Separator      = 0x6C ,
+		Subtract       = 0x6D ,
+		Decimal        = 0x6E ,
+		Divide         = 0x6F ,
 
-		eLSHIFT         = 0xA0 ,
-		eRSHIFT         = 0xA1 ,
-		eLCONTROL       = 0xA2 ,
-		eRCONTROL       = 0xA3 ,
-		eLMENU          = 0xA4 ,
-		eRMENU          = 0xA5 ,
+		F1             = 0x70 ,
+		F2 , F3 , F4 , F5 , F6 , F7  , F8 , F9 , F10 , 
+		F11 , F12 , F13 , F14 , F15 ,
 
-		eOEM3          = 0xC0 ,
+		NumLock        = 0x90 ,
+		Scroll         = 0x91 ,
+
+		LShift         = 0xA0 ,
+		RShift         = 0xA1 ,
+		LControl       = 0xA2 ,
+		RControl       = 0xA3 ,
+		LMenu          = 0xA4 ,
+		RMenu          = 0xA5 ,
+
+		Oem3           = 0xC0 ,
 	};
-};
-class SysMessage
+}
+
+class SystemMessage
 {
 public:
-	SysMessage( MsgType type) : mType( type ){}
+	SystemMessage( MsgType type) : mType( type ){}
 	MsgType getType(){ return mType; }
 private:
 	MsgType mType;
@@ -139,23 +139,22 @@ enum MouseState
 
 
 
-class MouseMsg : public SysMessage
+class MouseMsg : public SystemMessage
 {
 public:
-	typedef unsigned short uint16;
 	MouseMsg()
-		: SysMessage( MSG_TYPE_MOUSE )
+		: SystemMessage( MSG_TYPE_MOUSE )
 		, msg(0),state(0)
 	{
 
 	}
 	MouseMsg( Vec2i const& pos , uint16 m , uint16 s )
-		: SysMessage( MSG_TYPE_MOUSE )
+		: SystemMessage( MSG_TYPE_MOUSE )
 		, pos( pos ), msg( m ), state(s )
 	{
 	}
 	MouseMsg( int x , int y , uint16 m , uint16 s )
-		: SysMessage( MSG_TYPE_MOUSE )
+		: SystemMessage( MSG_TYPE_MOUSE )
 		,pos(x,y),msg( m ) ,state(s)
 	{
 	}
@@ -189,6 +188,25 @@ private:
 	Vec2i  pos;
 	uint16  msg;
 	uint16  state;
+};
+
+class KeyMsg : public SystemMessage
+{
+public:
+	KeyMsg(EKeyCode::Type code, bool bDown)
+		:SystemMessage(MSG_TYPE_KEY)
+		,mCode(code)
+		,mbDown(bDown)
+	{
+
+	}
+
+	EKeyCode::Type getCode() const { return mCode; }
+	bool isDown() const { return mbDown; }
+
+
+	EKeyCode::Type mCode;
+	bool mbDown;
 };
 
 #endif // SysMsg_h__

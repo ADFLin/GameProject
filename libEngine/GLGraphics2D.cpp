@@ -109,7 +109,7 @@ GLGraphics2D::GLGraphics2D()
 	:mWidth(1)
 	,mHeight(1)
 {
-	mFont = NULL;
+	mFont = nullptr;
 	mWidthPen = 1;
 	mDrawBrush = true;
 	mDrawPen   = true;

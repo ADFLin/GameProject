@@ -10,11 +10,11 @@ namespace Math
 	{
 	public:
 		Vector2() = default;
-		Vector2(Vector2 const& rhs) = default;
+		constexpr Vector2(Vector2 const& rhs) = default;
 
 		template< class T >
-		Vector2(TVector2< T > const& rhs) :TVector2<float>(rhs) {}
-		Vector2(float x, float y) :TVector2<float>(x, y) {}
+		constexpr Vector2(TVector2< T > const& rhs) :TVector2<float>(rhs) {}
+		constexpr Vector2(float x, float y) :TVector2<float>(x, y) {}
 		float normalize()
 		{
 			float len = Math::Sqrt(length2());

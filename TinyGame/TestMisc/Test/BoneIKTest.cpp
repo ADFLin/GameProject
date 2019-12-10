@@ -212,17 +212,17 @@ namespace BoneIK
 			solveIK();
 		}
 
-		bool onKey(unsigned key, bool isDown)
+		bool onKey(KeyMsg const& msg)
 		{
-			if( !isDown )
+			if( !msg.isDown())
 				return false;
-			switch( key )
+			switch(msg.getCode())
 			{
-			case Keyboard::eR: restart(); break;
-			case Keyboard::eNUM1:
+			case EKeyCode::R: restart(); break;
+			case EKeyCode::Num1:
 				changeMethod( SolveMethod::FABRIK );
 				break;
-			case Keyboard::eNUM2:
+			case EKeyCode::Num2:
 				changeMethod( SolveMethod::CCD );
 				break;
 

@@ -62,6 +62,8 @@ public:
 private:
 	static WindowsMessageHandlerT* s_MsgHandler;
 
+	static EKeyCode::Type ConvToKeyCode(WPARAM wParam) { return EKeyCode::Type(wParam); }
+
 	inline bool _procDefault( HWND hWnd , UINT msg , WPARAM wParam , LPARAM lParam , LRESULT& result )
 	{
 		return true;
@@ -72,7 +74,7 @@ private:
 
 	inline bool _procKeyMsg( HWND hWnd , UINT msg , WPARAM wParam , LPARAM lParam , LRESULT& result )
 	{
-		return _this()->handleKeyEvent( unsigned(wParam) , msg == WM_KEYDOWN );
+		return _this()->handleKeyEvent( KeyMsg(ConvToKeyCode(wParam) , msg == WM_KEYDOWN) );
 	}
 
 	inline bool _procCharMsg( HWND hWnd ,UINT msg , WPARAM wParam , LPARAM lParam , LRESULT& result )

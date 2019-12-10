@@ -88,11 +88,11 @@ public:
 #if 0
 class TemplateTestStage : public StageBase
 {
-	typedef StageBase BaseClass;
+	using BaseClass = StageBase;
 public:
 	TemplateTestStage() {}
 
-	virtual bool onInit()
+	bool onInit() override
 	{
 		if( !BaseClass::onInit() )
 			return false;
@@ -101,7 +101,7 @@ public:
 		return true;
 	}
 
-	virtual void onEnd()
+	void onEnd() override
 	{
 		BaseClass::onEnd();
 	}
@@ -110,7 +110,7 @@ public:
 	void tick() {}
 	void updateFrame(int frame) {}
 
-	virtual void onUpdate(long time)
+	void onUpdate(long time) override
 	{
 		BaseClass::onUpdate(time);
 
@@ -121,30 +121,31 @@ public:
 		updateFrame(frame);
 	}
 
-	void onRender(float dFrame)
+	void onRender(float dFrame) override
 	{
 		Graphics2D& g = Global::GetGraphics2D();
 	}
 
-	bool onMouse(MouseMsg const& msg)
+	bool onMouse(MouseMsg const& msg) override
 	{
 		if( !BaseClass::onMouse(msg) )
 			return false;
 		return true;
 	}
 
-	bool onKey(unsigned key, bool isDown)
+	bool onKey(KeyMsg const& msg) override
 	{
-		if( !isDown )
+		if( !msg.isDown() )
 			return false;
-		switch( key )
+
+		switch( msg.getCode() )
 		{
-		case Keyboard::eR: restart(); break;
+		case EKeyCode::R: restart(); break;
 		}
-		return false;
+		return BaseClass::onKey(msg);
 	}
 
-	virtual bool onWidgetEvent(int event, int id, GWidget* ui) override
+	bool onWidgetEvent(int event, int id, GWidget* ui) override
 	{
 		switch( id )
 		{

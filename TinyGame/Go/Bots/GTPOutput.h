@@ -65,6 +65,8 @@ namespace Go
 		//TCycleQueue<GTPCommand> mProcQueue;
 		std::vector< GTPCommand > mProcQueue;
 
+		int* mOutReadBoard = nullptr;
+
 		void restart() override
 		{
 			BaseClass::restart();
@@ -78,6 +80,8 @@ namespace Go
 		virtual void procDumpCommandMsg(GTPCommand com, char* buffer, int num) {}
 		virtual void dumpCommandMsgEnd(GTPCommand com) {}
 		virtual void onOutputCommand(GTPCommand com, GameCommand const& outCom) {}
+
+		void popHeadComandMsg();
 
 		GTPCommand getHeadRequest()
 		{

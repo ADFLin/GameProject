@@ -224,15 +224,15 @@ public:
 		return true;
 	}
 
-	bool onKey(unsigned key, bool isDown) override
+	bool onKey(KeyMsg const& msg) override
 	{
-		if( !isDown )
+		if( !msg.isDown())
 			return false;
-		switch( key )
+		switch(msg.getCode())
 		{
-		case Keyboard::eR: restart(); break;
-		case Keyboard::eF5: glEnable(GL_MULTISAMPLE); break;
-		case Keyboard::eF6: glDisable(GL_MULTISAMPLE); break;
+		case EKeyCode::R: restart(); break;
+		case EKeyCode::F5: glEnable(GL_MULTISAMPLE); break;
+		case EKeyCode::F6: glDisable(GL_MULTISAMPLE); break;
 		}
 		return false;
 	}

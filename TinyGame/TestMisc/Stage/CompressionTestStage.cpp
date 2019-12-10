@@ -434,14 +434,14 @@ namespace Compression
 			return true;
 		}
 
-		bool onKey(unsigned key, bool isDown)
+		bool onKey(KeyMsg const& msg)
 		{
-			if( !isDown )
+			if( !msg.isDown())
 				return false;
 
-			switch( key )
+			switch(msg.getCode())
 			{
-			case Keyboard::eR: restart(); break;
+			case EKeyCode::R: restart(); break;
 			}
 			return false;
 		}

@@ -500,14 +500,14 @@ namespace Bsp2D
 			float speed = 0.4f;
 			Vector2 offset = Vector2(0,0);
 
-			if ( im.isKeyDown(Keyboard::eW) )
+			if ( im.isKeyDown(EKeyCode::W) )
 				offset += Vector2(0,-1);
-			else if ( im.isKeyDown(Keyboard::eS) )
+			else if ( im.isKeyDown(EKeyCode::S) )
 				offset += Vector2(0,1);
 
-			if ( im.isKeyDown(Keyboard::eA) )
+			if ( im.isKeyDown(EKeyCode::A) )
 				offset += Vector2(-1,0);
-			else if ( im.isKeyDown(Keyboard::eD) )
+			else if ( im.isKeyDown(EKeyCode::D) )
 				offset += Vector2(1,0);
 
 			float len = offset.length2();
@@ -826,17 +826,17 @@ namespace Bsp2D
 		return false;
 	}
 
-	bool TestStage::onKey( unsigned key , bool isDown )
+	bool TestStage::onKey(KeyMsg const& msg)
 	{
-		if ( !isDown )
+		if ( !msg.isDown())
 			return false;
 
-		switch( key )
+		switch(msg.getCode())
 		{
-		case Keyboard::eR: restart(); break;
-		case 'Q': --gIdxNode; break;
-		case Keyboard::eW: ++gIdxNode; break;
-		case Keyboard::eF2: gShowEdgeNormal = !gShowEdgeNormal; break;
+		case EKeyCode::R: restart(); break;
+		case EKeyCode::Q: --gIdxNode; break;
+		case EKeyCode::W: ++gIdxNode; break;
+		case EKeyCode::F2: gShowEdgeNormal = !gShowEdgeNormal; break;
 		}
 
 

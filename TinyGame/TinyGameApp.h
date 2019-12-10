@@ -152,7 +152,7 @@ public:
 
 	//SysMsgHandler
 	bool  handleMouseEvent( MouseMsg const& msg ) CRTP_OVERRIDE;
-	bool  handleKeyEvent( unsigned key , bool isDown ) CRTP_OVERRIDE;
+	bool  handleKeyEvent(KeyMsg const& msg) CRTP_OVERRIDE;
 	bool  handleCharEvent( unsigned code )  CRTP_OVERRIDE;
 	bool  handleWindowActivation( bool beA ) CRTP_OVERRIDE;
 	void  handleWindowPaint( HDC hDC ) CRTP_OVERRIDE;

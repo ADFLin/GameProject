@@ -21,7 +21,7 @@ namespace Bejeweled
 		void updateFrame( int frame );
 
 		bool onMouse( MouseMsg const& msg );
-		bool onKey( unsigned key , bool isDown );
+		bool onKey(KeyMsg const& msg);
 	protected:
 		Scene mScene;
 	};

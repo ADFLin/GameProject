@@ -8,6 +8,7 @@
 #include "RHI/DrawUtility.h"
 #include "RHI/GpuProfiler.h"
 #include "RHI/RHICommand.h"
+#include "RHI/SimpleRenderState.h"
 
 namespace Go
 {
@@ -35,9 +36,9 @@ namespace Go
 	void BoardRenderer::releaseRHI()
 	{
 		mTextureAtlas.finalize();
-		for( int i = 0; i < NumTexture; ++i )
+		for(auto & mTexture : mTextures)
 		{
-			mTextures[i].release();
+			mTexture.release();
 		}
 	}
 
@@ -54,7 +55,7 @@ namespace Go
 	}
 
 
-	void BoardRenderer::drawStoneSequence(RenderContext const& context, std::vector<PlayVertex> const& vertices, int colorStart, float opacity)
+	void BoardRenderer::drawStoneSequence( SimpleRenderState& renderState , RenderContext const& context, std::vector<PlayVertex> const& vertices, int colorStart, float opacity)
 	{
 		using namespace Render;
 		using namespace Go;
@@ -77,10 +78,8 @@ namespace Go
 				{
 					int x = v.x;
 					int y = v.y;
-
-
 					Vector2 pos = getStonePos(context, x, y);
-					drawStone(g, pos, color, context.stoneRadius, context.scale, opacity);
+					drawStone(g, renderState, pos, color, context.stoneRadius, context.scale, opacity);
 					color = StoneColor::Opposite(color);
 				}
 			}
@@ -103,6 +102,10 @@ namespace Go
 		}
 	}
 
+	void BoardRenderer::drawStoneNumber(SimpleRenderState& renderState, RenderContext const& context, int number)
+	{
+
+	}
 
 	Vector2 BoardRenderer::getStonePos(RenderContext const& context, int i, int j)
 	{
@@ -112,7 +115,7 @@ namespace Go
 		return pos;
 	}
 
-	void BoardRenderer::drawBorad(GLGraphics2D& g , RenderContext const& context)
+	void BoardRenderer::drawBorad(GLGraphics2D& g , SimpleRenderState& renderState, RenderContext const& context, int const* overrideStoneState )
 	{
 		using namespace Render;
 		using namespace Go;
@@ -223,15 +226,33 @@ namespace Go
 			glEnable(GL_TEXTURE_2D);
 			glActiveTexture(GL_TEXTURE0);
 #endif
-			for( int i = 0; i < boardSize; ++i )
+			if (overrideStoneState)
 			{
-				for( int j = 0; j < boardSize; ++j )
+				for (int j = 0; j < boardSize; ++j)
 				{
-					int data = context.board.getData(i, j);
-					if( data )
+					for (int i = 0; i < boardSize; ++i)
 					{
-						Vector2 pos = getStonePos(context, i, j);
-						drawStone( g , pos, data , context.stoneRadius , context.scale);
+						int data = overrideStoneState[j * boardSize + i];
+						if (data != StoneColor::eEmpty)
+						{
+							Vector2 pos = getStonePos(context, i, j);
+							drawStone(g, renderState, pos, data, context.stoneRadius, context.scale);
+						}
+					}
+				}
+			}
+			else
+			{
+				for (int j = 0; j < boardSize; ++j)		
+				{
+					for (int i = 0; i < boardSize; ++i)
+					{
+						int data = context.board.getData(i, j);
+						if (data != StoneColor::eEmpty)
+						{
+							Vector2 pos = getStonePos(context, i, j);
+							drawStone(g, renderState, pos, data, context.stoneRadius, context.scale);
+						}
 					}
 				}
 			}
@@ -253,7 +274,7 @@ namespace Go
 		}
 
 
-
+		if (overrideStoneState == nullptr)
 		{
 
 			Vector2 halfCellSize = 0.5 * Vector2(context.cellLength, context.cellLength);
@@ -309,7 +330,7 @@ namespace Go
 		mSpriteVertices.push_back({ Vector2(posRB.x , posLT.y) , color , Vector2(max.x , min.y) });
 	}
 
-	void BoardRenderer::drawStone(GLGraphics2D& g, Vector2 const& pos, int color , float stoneRadius , float scale , float opaticy)
+	void BoardRenderer::drawStone(GLGraphics2D& g, SimpleRenderState& renderState, Vector2 const& pos, int color , float stoneRadius , float scale , float opaticy)
 	{
 		RHICommandList& commandList = RHICommandList::GetImmediateList();
 
@@ -325,6 +346,7 @@ namespace Go
 			int id = (color == StoneColor::eBlack) ? TextureId::eBlockStone : TextureId::eWhiteStone;	
 			{
 				GL_BIND_LOCK_OBJECT(mTextures[id]);
+
 
 				glColor4f(0, 0, 0, 0.2 * opaticy);
 				DrawUtility::Sprite(commandList, pos + scale * Vector2(2, 2), 2.1 * Vector2(stoneRadius, stoneRadius), Vector2(0.5, 0.5));

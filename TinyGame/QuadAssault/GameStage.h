@@ -7,6 +7,7 @@
 class Game;
 class QWidget;
 class MouseMsg;
+class KeyMsg;
 
 enum StateTransition
 {
@@ -51,7 +52,7 @@ public:
 	virtual void onRender() = 0;
 
 	virtual bool onMouse( MouseMsg const& msg ){ return true; }
-	virtual bool onKey( unsigned key , bool isDown ){ return true; }
+	virtual bool onKey(KeyMsg const& msg) { return true; }
 	virtual void onWidgetEvent( int event , int id , QWidget* sender ){}
 
 	void  stop(){ mNeedStop = true; }

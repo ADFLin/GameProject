@@ -26,7 +26,7 @@ namespace GreedySnake
 		void onChangeState( GameState state );
 	
 		bool onWidgetEvent( int event , int id , GWidget* ui );
-		bool onKey(unsigned key, bool isDown);
+		bool onKey(KeyMsg const& msg);
 		void onRender( float dFrame );
 
 		bool                  queryAttribute( GameAttribute& value );

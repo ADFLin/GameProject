@@ -65,14 +65,14 @@ namespace Voronoi
 			return true;
 		}
 
-		bool onKey( unsigned key , bool isDown )
+		bool onKey(KeyMsg const& msg)
 		{
 			if ( !isDown )
 				return false;
 
 			switch( key )
 			{
-			case Keyboard::eR: restart(); break;
+			case EKeyCode::R: restart(); break;
 			}
 			return false;
 		}

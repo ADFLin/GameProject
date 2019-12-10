@@ -54,7 +54,7 @@ public:
 	virtual void onMouse( bool beIn ){  /*sendEvent( ( beIn ) ? EVT_ENTER_UI : EVT_EXIT_UI );*/  }
 	virtual void onRender(){}
 	virtual void onUpdateUI(){}
-	virtual bool onKeyMsg( unsigned key , bool beDown ){ return true; }
+	virtual bool onKeyMsg(KeyMsg const& msg){ return true; }
 	virtual void onHotkey( unsigned key ){}
 	virtual void onFocus( bool beF ){}
 

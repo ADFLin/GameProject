@@ -66,18 +66,18 @@ namespace Zuma
 		buildCurve( 0 );
 	}
 
-	void ZDevStage::onKey( unsigned key , bool isDown )
+	void ZDevStage::onKey(KeyMsg const& msg)
 	{
-		switch( key )
+		switch(msg.getCode())
 		{
-		case Keyboard::eS:
+		case EKeyCode::S:
 			savePathVertex( lvInfo.pathCurve[curCurveIndex].c_str() , vtxVec ); 
 			break;
-		case Keyboard::eA: addPoint( mousePos ); break;
-		case Keyboard::eC: clearPoint(); break;
-		case Keyboard::eM: togglePointMask( mousePos ); break;
-		case Keyboard::eL: sendEvent( EVT_EXIT_DEV_STAGE , &lvInfo );
-		case Keyboard::eP:
+		case EKeyCode::A: addPoint( mousePos ); break;
+		case EKeyCode::C: clearPoint(); break;
+		case EKeyCode::M: togglePointMask( mousePos ); break;
+		case EKeyCode::L: sendEvent( EVT_EXIT_DEV_STAGE , &lvInfo );
+		case EKeyCode::P:
 			buildCurve( (curCurveIndex + 1) % lvInfo.numCurve );
 			break;
 		}

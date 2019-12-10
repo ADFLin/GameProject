@@ -6,7 +6,7 @@
 
 namespace Go
 {
-	typedef TVector2<int> Vec2i;
+	using Vec2i = TVector2<int>;
 
 	struct GameCommand
 	{
@@ -19,11 +19,12 @@ namespace Go
 			ePlayStone ,
 			eAddStone  ,
 			eEnd   ,
+			eBoardState ,
 			eParam ,
 		};
 		int   id;
 
-		typedef uint32 ParamIdType;
+		using ParamIdType = uint32;
 		union
 		{
 			int   color;
@@ -49,6 +50,8 @@ namespace Go
 				uint8 playColor;
 				uint8 pos[2];
 			};
+
+			int* pBoardData;
 		};
 
 		void setParam(ParamIdType inParamId , int param)
@@ -86,8 +89,15 @@ namespace Go
 		virtual void notifyCommand(GameCommand const& com) = 0;
 	};
 
+	enum EBotExecuteResult
+	{
+		BOT_OK ,
+		BOT_FAIL ,
+		BOT_WAIT , 
+	};
 
-	class IBotInterface
+
+	class IBot
 	{
 	public:
 		virtual bool initialize(void* settingData) = 0;
@@ -98,11 +108,15 @@ namespace Go
 		virtual bool playPass(int color) = 0;
 		virtual bool undo() = 0;
 		virtual bool requestUndo() = 0;
+
 		virtual bool thinkNextMove(int color) = 0;
 		virtual bool isThinking() = 0;
 		virtual void update(IGameCommandListener& listener) = 0;
 		virtual bool getMetaData(int id , uint8* dataBuffer , int size) { return false; }
 		virtual bool isGPUBased() const { return false; }
+
+		
+		virtual EBotExecuteResult readBoard(int* outState) { return BOT_FAIL; }
 
 
 		template< class T >
@@ -112,31 +126,34 @@ namespace Go
 		}
 	};
 
-	class PorxyBot : public IBotInterface
+	class PorxyBot : public IBot
 	{
 	public:
-		PorxyBot(IBotInterface& inBot, bool inbUseInMatch)
+		PorxyBot(IBot& inBot, bool inbUseInMatch)
 			:mBot(&inBot), bUsedInMatch(inbUseInMatch)
 		{
 		}
 
-		virtual bool initialize(void* settingData) override { return true; }
-		virtual void destroy() override {}
-		virtual bool setupGame(GameSetting const& setting) override { if( bUsedInMatch ) return true; return mBot->setupGame(setting); }
-		virtual bool restart() override { if( bUsedInMatch ) return true; return mBot->restart(); }
-		virtual bool playStone(int x, int y, int color) override { if( bUsedInMatch ) return true; return mBot->playStone(x, y, color); }
-		virtual bool playPass(int color) override { if( bUsedInMatch ) return true; return mBot->playPass(color); }
-		virtual bool undo() override { if( bUsedInMatch ) return true; return mBot->undo(); }
-		virtual bool requestUndo() override { if( bUsedInMatch ) return true; return mBot->requestUndo();  }
-		virtual bool thinkNextMove(int color) override { return mBot->thinkNextMove(color);  }
-		virtual bool isThinking() override { return mBot->isThinking(); }
-		virtual void update(IGameCommandListener& listener) override { mBot->update(listener); }
-		virtual bool getMetaData(int id, uint8* dataBuffer, int size) { return mBot->getMetaData(id , dataBuffer , size); }
-		virtual bool isGPUBased() const { return mBot->isGPUBased(); }
+		bool initialize(void* settingData) override { return true; }
+		void destroy() override {}
+		bool setupGame(GameSetting const& setting) override { if( bUsedInMatch ) return true; return mBot->setupGame(setting); }
+		bool restart() override { if( bUsedInMatch ) return true; return mBot->restart(); }
+		bool playStone(int x, int y, int color) override { if( bUsedInMatch ) return true; return mBot->playStone(x, y, color); }
+		bool playPass(int color) override { if( bUsedInMatch ) return true; return mBot->playPass(color); }
+		bool undo() override { if( bUsedInMatch ) return true; return mBot->undo(); }
+		
+		bool thinkNextMove(int color) override { return mBot->thinkNextMove(color);  }
+		bool isThinking() override { return mBot->isThinking(); }
+		void update(IGameCommandListener& listener) override { mBot->update(listener); }
+		bool getMetaData(int id, uint8* dataBuffer, int size) override { return mBot->getMetaData(id , dataBuffer , size); }
+		bool isGPUBased() const override { return mBot->isGPUBased(); }
 
+		bool requestUndo() override { if (bUsedInMatch) return true; return mBot->requestUndo(); }
+
+		EBotExecuteResult readBoard(int* outState) override { return mBot->readBoard(outState); }
 	private:
 
-		IBotInterface* mBot;
+		IBot* mBot;
 		bool bUsedInMatch = false;
 
 	};

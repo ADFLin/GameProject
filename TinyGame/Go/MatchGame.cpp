@@ -51,7 +51,7 @@ namespace Go
 
 		if( otherPlayer && otherPlayer->bot && otherPlayer->paramKey == paramKey )
 		{
-			bot.reset(new PorxyBot(*otherPlayer->bot, true));
+			bot = std::make_unique<PorxyBot>(*otherPlayer->bot, true);
 		}
 		else
 		{
@@ -61,19 +61,19 @@ namespace Go
 				break;
 			case ControllerType::eLeelaZero:
 				botParamBase = BotParam::LeelaBase;
-				bot.reset(new LeelaBot());
+				bot = std::make_unique<LeelaBot>();
 				break;
 			case ControllerType::eKata:
 				botParamBase = BotParam::KataBase;
-				bot.reset(new KataBot());
+				bot = std::make_unique<KataBot>();
 				break;
 			case ControllerType::eAQ:
 				botParamBase = BotParam::AQBase;
-				bot.reset(new AQBot());
+				bot = std::make_unique<AQBot>();
 				break;
 			case ControllerType::eZen:
 				botParamBase = BotParam::ZenBase;
-				bot.reset(new ZenBot());
+				bot = std::make_unique<ZenBot>();
 				break;
 			}
 		}

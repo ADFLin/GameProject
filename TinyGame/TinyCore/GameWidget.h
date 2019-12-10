@@ -68,7 +68,7 @@ class UIMotionTask;
 class WidgetRenderer;
 class GWidget;
 
-typedef std::function< bool (int event  , GWidget* ) > WidgetEventDelegate;
+using WidgetEventDelegate = std::function< bool (int event  , GWidget* ) >;
 
 struct WidgetColor
 {
@@ -138,7 +138,7 @@ public:
 	virtual void onMouse( bool beIn ){  /*sendEvent( ( beIn ) ? EVT_ENTER_UI : EVT_EXIT_UI );*/  }
 	virtual void onRender(){}
 	virtual void onUpdateUI(){}
-	virtual bool onKeyMsg( unsigned key , bool isDown ){ return true; }
+	virtual bool onKeyMsg(KeyMsg const& msg){ return true; }
 	virtual void onHotkey( unsigned key ){}
 	virtual void onFocus( bool beF ){}
 	virtual void onChangePos(Vec2i const& newPos, bool bParentMove) {}
@@ -193,21 +193,21 @@ protected:
 class WidgetPos
 {
 public:
-	typedef GWidget DataType;
-	typedef Vector2   ValueType;
+	using DataType = GWidget;
+	using ValueType = Vector2;
 	void operator()( DataType& data , ValueType const& value ){ data.setPos( value ); }
 };
 
 class WidgetSize
 {
 public:
-	typedef GWidget DataType;
-	typedef Vector2   ValueType;
+	using DataType = GWidget;
+	using ValueType = Vector2;
 	void operator()( DataType& data , ValueType const& value ){ data.setSize( value ); }
 };
 
-typedef TWidgetLibrary< GWidget > GUI;
-typedef GUI::Manager         UIManager;
+using GUI = TWidgetLibrary< GWidget >;
+using UIManager = GUI::Manager;
 
 
 class RenderCallBack 
@@ -367,7 +367,7 @@ public:
 
 class  GSlider : public GUI::SliderT< GSlider >
 {
-	typedef GUI::SliderT< GSlider > BaseClass;
+	using BaseClass = GUI::SliderT< GSlider >;
 public:
 	TINY_API GSlider( int id , Vec2i const& pos , int length , bool beH , GWidget* parent );
 	static Vec2i TipSize;
@@ -397,7 +397,7 @@ public:
 
 class  GTextCtrl : public GUI::TextCtrlT< GTextCtrl >
 {
-	typedef GUI::TextCtrlT< GTextCtrl > BaseClass;
+	using BaseClass = GUI::TextCtrlT< GTextCtrl >;
 public:
 	static const int UI_Height = 20;
 	TINY_API GTextCtrl( int id , Vec2i const& pos , int length , GWidget* parent );
@@ -409,7 +409,7 @@ public:
 
 class GText : public GUI::Widget
 {
-	typedef GUI::Widget BaseClass;
+	using BaseClass = GUI::Widget;
 public:
 	TINY_API GText( Vec2i const& pos, Vec2i const& size, GWidget* parent);
 	TINY_API void onRender();
@@ -420,7 +420,7 @@ public:
 
 class  GChoice : public GUI::ChoiceT< GChoice >
 {
-	typedef GUI::ChoiceT< GChoice > BaseClass;
+	using BaseClass = GUI::ChoiceT< GChoice >;
 
 public:
 	TINY_API GChoice( int id , Vec2i const& pos , Vec2i const& size , GWidget* parent );
@@ -436,7 +436,7 @@ public:
 
 class  GListCtrl : public GUI::ListCtrlT< GListCtrl >
 {
-	typedef GUI::ListCtrlT< GListCtrl > BaseClass;
+	using BaseClass = GUI::ListCtrlT< GListCtrl >;
 public:
 	TINY_API GListCtrl( int id , Vec2i const& pos , Vec2i const& size , GWidget* parent );
 
@@ -449,7 +449,7 @@ public:
 
 class GFileListCtrl : public GListCtrl
 {
-	typedef GListCtrl BaseClass;
+	using BaseClass = GListCtrl;
 public:
 	TINY_API GFileListCtrl(int id, Vec2i const& pos, Vec2i const& size, GWidget* parent);
 
@@ -496,7 +496,7 @@ enum WidgetMotionType
 class UIMotionTask : public LifeTimeTask
 {
 public:
-	typedef void (UIMotionTask ::*MotionFun)();
+	using MotionFun = void (UIMotionTask ::*)();
 
 	TINY_API UIMotionTask( GWidget* _ui , Vec2i const& _ePos , long time , WidgetMotionType type );
 	void   release();

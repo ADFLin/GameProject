@@ -16,7 +16,7 @@ void NetRoomSettingHelper::addGUIControl( GWidget* ui )
 	case UI_GAME_SETTING_PANEL:
 		{
 			mSettingPanel = GUI::CastFast< GameSettingPanel >( ui );
-			mSettingPanel->setEventCallback( EvtCallBack( this , &NetRoomSettingHelper::onWidgetEvent ) );
+			mSettingPanel->setEventCallback( WidgetEventCallBack( this , &NetRoomSettingHelper::onWidgetEvent ) );
 		}
 		break;
 	case UI_PLAYER_LIST_PANEL:

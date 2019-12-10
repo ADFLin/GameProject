@@ -72,8 +72,8 @@ public:
 	virtual void updateFrame(int frame) {}
 
 	bool onMouse(MouseMsg const& msg) override { return true; }
+	bool onKey(KeyMsg const& msg) override;
 	bool onChar(unsigned code) override { return true; }
-	bool onKey(unsigned key, bool isDown) override;
 	bool onWidgetEvent(int event, int id, GWidget* ui) override;
 
 	GameStageBase* getGameStage() override { return this; }

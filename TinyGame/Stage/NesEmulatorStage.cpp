@@ -74,14 +74,14 @@ public:
 	{
 		ButtonState p1;
 		p1.value = 0;
-		p1.left = InputManager::Get().isKeyDown(Keyboard::eD);
-		p1.right = InputManager::Get().isKeyDown(Keyboard::eA);
-		p1.up = InputManager::Get().isKeyDown(Keyboard::eW);
-		p1.down = InputManager::Get().isKeyDown(Keyboard::eS);
-		p1.a = InputManager::Get().isKeyDown(Keyboard::eK);
-		p1.b = InputManager::Get().isKeyDown(Keyboard::eL);
-		p1.start = InputManager::Get().isKeyDown(Keyboard::eN);
-		p1.select = InputManager::Get().isKeyDown(Keyboard::eB);
+		p1.left = InputManager::Get().isKeyDown(EKeyCode::D);
+		p1.right = InputManager::Get().isKeyDown(EKeyCode::A);
+		p1.up = InputManager::Get().isKeyDown(EKeyCode::W);
+		p1.down = InputManager::Get().isKeyDown(EKeyCode::S);
+		p1.a = InputManager::Get().isKeyDown(EKeyCode::K);
+		p1.b = InputManager::Get().isKeyDown(EKeyCode::L);
+		p1.start = InputManager::Get().isKeyDown(EKeyCode::N);
+		p1.select = InputManager::Get().isKeyDown(EKeyCode::B);
 
 		input[0] = p1.value;
 		input[1] = 0;
@@ -294,15 +294,15 @@ public:
 		return true;
 	}
 
-	bool onKey(unsigned key, bool isDown)
+	bool onKey(KeyMsg const& msg)
 	{
-		if( !isDown )
+		if( !msg.isDown())
 			return false;
-		switch( key )
+		switch( msg.getCode() )
 		{
-		case Keyboard::eR: restart(); break;
+		case EKeyCode::R: restart(); break;
 		}
-		return false;
+		return BaseClass::onKey(msg);
 	}
 
 	SimpleDevice mDevice;

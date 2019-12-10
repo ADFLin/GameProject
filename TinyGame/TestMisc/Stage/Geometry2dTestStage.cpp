@@ -188,7 +188,7 @@ namespace G2D
 			if( msg.onLeftDown() )
 			{
 				Vector2 wPos = mRenderer.convertToWorld(msg.getPos());
-				if( InputManager::Get().isKeyDown(Keyboard::eCONTROL) )
+				if( InputManager::Get().isKeyDown(EKeyCode::Control) )
 				{
 					updateTestPos(wPos);
 
@@ -217,14 +217,14 @@ namespace G2D
 				mbInside = Geom2D::TestInSide(mVertices, mTestPos);
 		}
 
-		bool onKey(unsigned key, bool isDown) override
+		bool onKey(KeyMsg const& msg) override
 		{
-			if( !isDown )
+			if( !msg.isDown())
 				return false;
 
-			switch( key )
+			switch(msg.getCode())
 			{
-			case Keyboard::eR: restart(); break;
+			case EKeyCode::R: restart(); break;
 			}
 			return false;
 		}
@@ -425,16 +425,16 @@ namespace G2D
 			return false;
 		}
 
-		bool onKey(unsigned key, bool isDown) override
+		bool onKey(KeyMsg const& msg) override
 		{
-			if( !isDown )
+			if( !msg.isDown() )
 				return false;
 
-			switch( key )
+			switch(msg.getCode())
 			{
-			case Keyboard::eR: restart(); break;
-			case Keyboard::eW: mMode = (mMode == MODE_CIRCLE) ? MODE_POLY : MODE_CIRCLE; break;
-			case Keyboard::eQ: updateCollision(); break;
+			case EKeyCode::R: restart(); break;
+			case EKeyCode::W: mMode = (mMode == MODE_CIRCLE) ? MODE_POLY : MODE_CIRCLE; break;
+			case EKeyCode::Q: updateCollision(); break;
 			}
 			return false;
 		}

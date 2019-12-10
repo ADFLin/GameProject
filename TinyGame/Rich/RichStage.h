@@ -224,7 +224,7 @@ namespace Rich
 				return false;
 			return true;  
 		}
-		virtual bool onKey( unsigned key , bool isDown ){  return true;  }
+		virtual bool onKey(KeyMsg const& msg){  return true;  }
 
 		GameInputController mUserController;
 

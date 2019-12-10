@@ -373,13 +373,13 @@ copy $(TargetDir)EngineShare.dll  $(ProjectDir)out\</Command>
     <ClInclude Include="Go\Bots\GTPOutput.h" />
     <ClInclude Include="Go\Bots\KataBot.h" />
     <ClInclude Include="Go\Bots\LeelaBot.h" />
+    <ClInclude Include="Go\Bots\MonitorBot.h" />
     <ClInclude Include="Go\Bots\ZenBot.h" />
     <ClInclude Include="Go\GoBot.h" />
     <ClInclude Include="Go\GoRenderer.h" />
     <ClInclude Include="Go\ImageProcessing.h" />
     <ClInclude Include="Go\LeelaZeroGoStage.h" />
     <ClInclude Include="Go\MatchGame.h" />
-    <ClInclude Include="Go\MonitorBot.h" />
     <ClInclude Include="NesEmulator.h" />
     <ClInclude Include="RandomUtility.h" />
     <ClInclude Include="Go\GoCore.h" />

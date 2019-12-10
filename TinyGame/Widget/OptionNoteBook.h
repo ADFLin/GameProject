@@ -10,7 +10,7 @@ public:
 	static Vec2i const UI_Size;
 	KeyButton( int id , Vec2i const& pos , ControlAction action , GWidget* parent );
 
-	virtual bool onKeyMsg( unsigned key , bool isDown );
+	virtual bool onKeyMsg(KeyMsg const& msg);
 	virtual void onClick();
 	virtual void onMouse( bool beInside );
 

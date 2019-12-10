@@ -27,7 +27,7 @@ public:
 	bool onInit() override;
 	void onUpdate( long time ) override;
 	bool onMouse( MouseMsg const& msg ) override;
-	bool onKey(unsigned key, bool isDown) override;
+	bool onKey(KeyMsg const& msg) override;
 
 	void changeWidgetGroup( StageGroupID group )
 	{

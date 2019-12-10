@@ -27,7 +27,7 @@ namespace Go
 		std::string blackNetworkName;
 		std::string whiteNetworkName;
 
-		void processBuffer()
+		void processBuffer() override
 		{
 			if( mNumUsed )
 			{
@@ -243,7 +243,9 @@ namespace Go
 		int  indexResultWrite = 0;
 		bool bPondering = false;
 
-		virtual void dumpCommandMsgBegin(GTPCommand com) 
+	
+		bool bReadingBoard = false;
+		void dumpCommandMsgBegin(GTPCommand com) override 
 		{
 			switch( com.id )
 			{
@@ -264,13 +266,16 @@ namespace Go
 				break;
 			case GTPCommand::eQuit:
 				break;
+			case GTPCommand::eShowBoard:
+				bReadingBoard = true;
+				break;
 
 			default:
 				break;
 			}
 		}
 
-		virtual void dumpCommandMsgEnd(GTPCommand com) 
+		void dumpCommandMsgEnd(GTPCommand com) override 
 		{
 			switch( com.id )
 			{
@@ -381,7 +386,7 @@ namespace Go
 
 		bool bRecvThinkInfo = false;
 		LeelaThinkInfo bestThinkInfo;
-		virtual void procDumpCommandMsg(GTPCommand com, char* buffer, int num)
+		void procDumpCommandMsg(GTPCommand com, char* buffer, int num) override
 		{
 			switch( com.id )
 			{
@@ -487,14 +492,63 @@ namespace Go
 					}
 					else if( readThinkInfo( buffer , num ) )
 					{
-
+						
 					}
 				}
 				break;
+			case GTPCommand::eShowBoard:
+				{
+					char* endRead;
+					int y = strtol(buffer, (char**)&endRead, 10);
+					if (buffer != endRead)
+					{
+						buffer = endRead;
+						int x = 0;
+						
+						int* pData = mOutReadBoard + LeelaGoSize * (y - 1);
+
+						StringView token;
+						FStringParse::TokenType tokenType;
+						char const* readBuffer = buffer;
+
+						int count = 0;
+						while( (tokenType = FStringParse::StringToken(readBuffer, " ()", ".+XO\n", token) ) != FStringParse::eNoToken )
+						{					
+							if (tokenType == FStringParse::eDelimsType )
+							{					
+								if (token[0] == '\n')
+									break;
+
+								switch (token[0])
+								{
+								case '+':
+								case '.': 
+									*pData = StoneColor::eEmpty; ++pData; ++count; break;
+								case 'X': *pData = StoneColor::eBlack; ++pData; ++count; break;
+								case 'O': *pData = StoneColor::eBlack; ++pData; ++count; break;
+								}
+
+								if (count == LeelaGoSize)
+									break;
+							}
+						}
+
+						if (y == 1)
+						{
+							GameCommand com;
+							com.id = GameCommand::eBoardState;
+							com.pBoardData = mOutReadBoard;
+							mOutReadBoard = nullptr;
+							addOutputCommand( com );
+
+							popHeadComandMsg();
+						}
+					}
+				}
 			}
 		}
 
-		virtual void onOutputCommand(GTPCommand com, GameCommand const& outCom) override
+		void onOutputCommand(GTPCommand com, GameCommand const& outCom) override
 		{
 			switch( com.id )
 			{

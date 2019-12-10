@@ -236,24 +236,24 @@ namespace CB
 			return true;
 		}
 
-		bool onKey(unsigned key, bool isDown)
+		bool onKey(KeyMsg const& msg)
 		{
-			if( !isDown )
+			if( !msg.isDown())
 				return false;
 
 			float moveDist = 0.1;
-			switch( key )
+			switch(msg.getCode())
 			{
-			case Keyboard::eR: restart(); break;
-			case Keyboard::eW: mCamera.moveFront(moveDist); break;
-			case Keyboard::eS: mCamera.moveFront(-moveDist); break;
-			case Keyboard::eD: mCamera.moveRight(moveDist); break;
-			case Keyboard::eA: mCamera.moveRight(-moveDist); break;
-			case Keyboard::eZ: mCamera.moveUp(0.5); break;
-			case Keyboard::eX: mCamera.moveUp(-0.5); break;
-			case Keyboard::eF5: mRenderer->reloadShaer(); break;
-			case Keyboard::eADD: modifyParamIncrement(0.5); break;
-			case Keyboard::eSUBTRACT: modifyParamIncrement(2); break;
+			case EKeyCode::R: restart(); break;
+			case EKeyCode::W: mCamera.moveFront(moveDist); break;
+			case EKeyCode::S: mCamera.moveFront(-moveDist); break;
+			case EKeyCode::D: mCamera.moveRight(moveDist); break;
+			case EKeyCode::A: mCamera.moveRight(-moveDist); break;
+			case EKeyCode::Z: mCamera.moveUp(0.5); break;
+			case EKeyCode::X: mCamera.moveUp(-0.5); break;
+			case EKeyCode::F5: mRenderer->reloadShaer(); break;
+			case EKeyCode::Add: modifyParamIncrement(0.5); break;
+			case EKeyCode::Subtract: modifyParamIncrement(2); break;
 			}
 			return false;
 		}

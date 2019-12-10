@@ -42,7 +42,7 @@ public:
 	TINY_API void         updateFrame( int frame , long tickTime );
 
 	TINY_API bool         procMouseMsg(MouseMsg const& msg);
-	TINY_API bool         procKeyMsg(unsigned key, bool isDown);
+	TINY_API bool         procKeyMsg(KeyMsg const& msg);
 	TINY_API bool         procCharMsg(unsigned code);
 
 	typedef Tween::GroupTweener< float > Tweener;

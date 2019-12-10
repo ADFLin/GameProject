@@ -30,7 +30,7 @@ namespace Render
 
 	class TINY_API TextureShowFrame : public GWidget
 	{
-		typedef GWidget BaseClass;
+		using BaseClass = GWidget;
 	public:
 		TextureShowFrame(int id, Vec2i const& pos, Vec2i const& size, GWidget* parent)
 			:BaseClass(pos, size, parent)
@@ -40,8 +40,8 @@ namespace Render
 
 		RHITexture2DRef texture;
 	
-		virtual void onRender() override;
-		virtual bool onMouseMsg(MouseMsg const& msg) override;
+		void onRender() override;
+		bool onMouseMsg(MouseMsg const& msg) override;
 
 	};
 
@@ -260,7 +260,7 @@ namespace Render
 	class TINY_API TestRenderStageBase : public StageBase
 		                               , public SharedAssetData
 	{
-		typedef StageBase BaseClass;
+		using BaseClass = StageBase;
 	public:
 		TestRenderStageBase() {}
 
@@ -269,14 +269,14 @@ namespace Render
 		SimpleCamera  mCamera;
 		bool          mbGamePased;
 
-		virtual bool onInit();
+		bool onInit() override;
 
-		virtual void onEnd();
+		void onEnd() override;
 
 		virtual void restart(){}
 		virtual void tick() {}
 		virtual void updateFrame(int frame) {}
-		virtual void onUpdate(long time)
+		void onUpdate(long time) override
 		{
 			BaseClass::onUpdate(time);
 
@@ -330,7 +330,7 @@ namespace Render
 
 		}
 
-		bool onMouse(MouseMsg const& msg)
+		bool onMouse(MouseMsg const& msg) override
 		{
 			static Vec2i oldPos = msg.getPos();
 
@@ -351,20 +351,20 @@ namespace Render
 			return true;
 		}
 
-		bool onKey(unsigned key, bool isDown)
+		bool onKey(KeyMsg const& msg) override
 		{
-			if( !isDown )
+			if( !msg.isDown())
 				return false;
-			switch( key )
+			switch(msg.getCode())
 			{
-			case Keyboard::eW: mCamera.moveFront(1); break;
-			case Keyboard::eS: mCamera.moveFront(-1); break;
-			case Keyboard::eD: mCamera.moveRight(1); break;
-			case Keyboard::eA: mCamera.moveRight(-1); break;
-			case Keyboard::eZ: mCamera.moveUp(0.5); break;
-			case Keyboard::eX: mCamera.moveUp(-0.5); break;
-			case Keyboard::eR: restart(); break;
-			case Keyboard::eF2:
+			case EKeyCode::W: mCamera.moveFront(1); break;
+			case EKeyCode::S: mCamera.moveFront(-1); break;
+			case EKeyCode::D: mCamera.moveRight(1); break;
+			case EKeyCode::A: mCamera.moveRight(-1); break;
+			case EKeyCode::Z: mCamera.moveUp(0.5); break;
+			case EKeyCode::X: mCamera.moveUp(-0.5); break;
+			case EKeyCode::R: restart(); break;
+			case EKeyCode::F2:
 				{
 					ShaderManager::Get().reloadAll();
 					//initParticleData();
@@ -375,7 +375,7 @@ namespace Render
 		}
 
 
-		virtual bool onWidgetEvent(int event, int id, GWidget* ui) override
+		bool onWidgetEvent(int event, int id, GWidget* ui) override
 		{
 			switch( id )
 			{

@@ -267,13 +267,13 @@ void MenuStage::onRender()
 	mScreenFade.render();
 }
 
-bool MenuStage::onKey( unsigned key , bool isDown )
+bool MenuStage::onKey(KeyMsg const& msg)
 {
-	if ( !isDown )
+	if ( !msg.isDown() )
 		return true;
-	switch( key )
+	switch(msg.getCode())
 	{
-	case Keyboard::eESCAPE:
+	case EKeyCode::Escape:
 		if( mState == MS_SELECT_MENU )
 			stop();
 		else

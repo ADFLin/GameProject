@@ -128,7 +128,7 @@ namespace Go
 			int index;
 		};
 
-		typedef char DataType;
+		using DataType = char;
 		enum Dir
 		{
 			eLeft  = 0,
@@ -208,7 +208,7 @@ namespace Go
 
 		}
 	private:
-		typedef short LinkType;
+		using LinkType = short;
 
 		int      calcLinkIndex( int idx , int dir ) const { return idx + mIndexOffset[ dir ]; }
 		int      offsetIndex( int idx , int ox , int oy ){  return idx + ox + oy * getDataSizeX(); }
@@ -293,6 +293,46 @@ namespace Go
 		}
 	};
 
+	
+	template< class TFunc >
+	void VisitFixedHandicapPositions( int size , int numHandicap ,  TFunc&& func )
+	{
+		int const posMax = size - 1;
+		int const posMid = posMax / 2;
+		int const starOffset = 3;
+		int const startMaxOffset = posMax - starOffset;
+#define HANDICAP_POS( POSX , POSY ) func(POSX, POSY);
+
+		switch (numHandicap)
+		{
+		case 5:
+			HANDICAP_POS(posMid, posMid);
+			goto Mark4;
+		case 7:
+			HANDICAP_POS(posMid, posMid);
+			goto Mark6;
+		case 9:
+			HANDICAP_POS(posMid, posMid);
+		case 8:
+			HANDICAP_POS(posMid, starOffset);
+			HANDICAP_POS(posMid, startMaxOffset);
+		Mark6:
+		case 6:
+			HANDICAP_POS(startMaxOffset, posMid);
+			HANDICAP_POS(starOffset, posMid);
+		Mark4:
+		case 4:
+			HANDICAP_POS(startMaxOffset, starOffset);
+		case 3:
+			HANDICAP_POS(starOffset, startMaxOffset);
+		case 2:
+			HANDICAP_POS(starOffset, starOffset);
+			HANDICAP_POS(startMaxOffset, startMaxOffset);
+		}
+#undef HANDICAP_POS
+	}
+
+
 
 	struct GameDescription
 	{
@@ -315,8 +355,8 @@ namespace Go
 	class Game
 	{
 	public:
-		typedef Board::DataType DataType;
-		typedef Board::Pos      Pos;
+		using DataType = Board::DataType;
+		using Pos = Board::Pos;
 
 		Game();
 
@@ -427,7 +467,7 @@ namespace Go
 		void      removeKOState( DataType playColor , Pos const* pos );
 		std::vector< KOState >   mSimpleKOStates;
 
-		typedef std::vector< StepInfo > StepVec;
+		using StepVec = std::vector< StepInfo >;
 		StepVec   mStepHistory;
 
 		void takeData( SocketBuffer& buffer );

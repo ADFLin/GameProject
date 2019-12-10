@@ -12,6 +12,11 @@
 
 class GLGraphics2D;
 
+namespace Render
+{
+	class SimpleRenderState;
+}
+
 namespace Go
 {
 	using namespace Render;
@@ -93,19 +98,17 @@ namespace Go
 			return mNoiseOffsets[(i * boradSize + j) % mNoiseOffsets.size()];
 		}
 
-		void drawStoneSequence(RenderContext const& context, std::vector<PlayVertex> const& vertices , int colorStart , float opacity);
-		void drawStoneNumber(RenderContext const& context, int number)
-		{
+		void drawStoneSequence(SimpleRenderState& renderState, RenderContext const& context, std::vector<PlayVertex> const& vertices , int colorStart , float opacity);
+		void drawStoneNumber(SimpleRenderState& renderState, RenderContext const& context, int number);
 
-		}
 
 		Vector2 getStonePos(RenderContext const& context, int i, int j);
 
-		void drawBorad(GLGraphics2D& g, RenderContext const& context);
+		void drawBorad(GLGraphics2D& g, SimpleRenderState& renderState, RenderContext const& context, int const* overrideStoneState = nullptr );
 
 		void addBatchedSprite(int id, Vector2 pos, Vector2 size, Vector2 pivot, Vector4 color);
 
-		void drawStone(GLGraphics2D& g, Vector2 const& pos, int color, float stoneRadius, float scale, float opaticy = 1.0 );
+		void drawStone(GLGraphics2D& g, SimpleRenderState& renderState, Vector2 const& pos, int color, float stoneRadius, float scale, float opaticy = 1.0 );
 
 
 

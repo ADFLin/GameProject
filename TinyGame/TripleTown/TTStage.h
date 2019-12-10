@@ -27,7 +27,7 @@ namespace TripleTown
 
 		bool onMouse( MouseMsg const& msg ) override;
 
-		bool onKey( unsigned key , bool isDown ) override;
+		bool onKey(KeyMsg const& msg) override;
 		bool onWidgetEvent(int event, int id, GWidget* ui) override 
 		{
 			switch( id )

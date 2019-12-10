@@ -67,7 +67,7 @@ namespace Rich
 			return true;
 		}
 		bool onMouse( MouseMsg const& msg );
-		bool onKey( unsigned key , bool isDown )
+		bool onKey(KeyMsg const& msg)
 		{
 			return true;
 		}

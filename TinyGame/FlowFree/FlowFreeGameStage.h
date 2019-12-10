@@ -91,15 +91,15 @@ namespace FlowFree
 
 		bool onMouse(MouseMsg const& msg) override;
 
-		bool onKey(unsigned key, bool isDown) override
+		bool onKey(KeyMsg const& msg) override
 		{
-			if( !isDown )
+			if( !msg.isDown() )
 				return false;
-			switch( key )
+			switch(msg.getCode())
 			{
-			case Keyboard::eR: restart(); break;
-			case Keyboard::eX: mSolver.solveNext(); break;
-			case Keyboard::eC: for (int i = 0; i < 97; ++i) mSolver.solveNext(); break;
+			case EKeyCode::R: restart(); break;
+			case EKeyCode::X: mSolver.solveNext(); break;
+			case EKeyCode::C: for (int i = 0; i < 97; ++i) mSolver.solveNext(); break;
 			}
 			return false;
 		}

@@ -59,16 +59,16 @@ namespace Bejeweled
 		return mScene.procMouseMsg( msg );
 	}
 
-	bool TestStage::onKey( unsigned key , bool isDown )
+	bool TestStage::onKey(KeyMsg const& msg)
 	{
-		if ( !isDown )
+		if ( !msg.isDown())
 			return false;
 
-		switch( key )
+		switch(msg.getCode())
 		{
-		case Keyboard::eR: restart(); break;
+		case EKeyCode::R: restart(); break;
 		default:
-			mScene.procKey( key , isDown );
+			mScene.procKey( msg );
 		}
 		return false;
 	}

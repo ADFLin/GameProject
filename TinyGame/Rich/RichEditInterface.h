@@ -5,6 +5,7 @@
 
 class GWidget;
 class MouseMsg;
+class KeyMsg;
 
 namespace Rich
 {
@@ -25,7 +26,7 @@ namespace Rich
 		virtual void stopEdit(){}
 		virtual bool onWidgetEvent( int event , int id , GWidget* widget ){  return true;  }
 		virtual bool onMouse( MouseMsg const& msg ){  return true;  }
-		virtual bool onKey( unsigned key , bool isDown ){  return true;  }
+		virtual bool onKey(KeyMsg const& msg){  return true;  }
 	};
 
 

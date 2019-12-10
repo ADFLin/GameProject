@@ -138,17 +138,17 @@ void TItemOwnerUI<Impl, CoreImpl>::tryMoveSelect( bool beNext )
 }
 
 template < class Impl, class CoreImpl >
-bool TItemOwnerUI<Impl, CoreImpl>::onKeyMsg( unsigned key , bool isDown )
+bool TItemOwnerUI<Impl, CoreImpl>::onKeyMsg(KeyMsg const& msg)
 {
-	if ( !isDown )
+	if ( !msg.isDown() )
 		return true;
 
-	switch( key )
+	switch( msg.getCode() )
 	{
-	case Keyboard::eUP: 
+	case EKeyCode::Up: 
 		tryMoveSelect( false );
 		return false;
-	case Keyboard::eDOWN:
+	case EKeyCode::Down:
 		tryMoveSelect( true );
 		return false;
 	}
@@ -254,13 +254,13 @@ bool WTextCtrlT<Impl, CoreImpl>::isDoubleChar( int pos )
 }
 
 template < class Impl , class CoreImpl >
-bool WTextCtrlT<Impl, CoreImpl>::onKeyMsg( unsigned key , bool isDown )
+bool WTextCtrlT<Impl, CoreImpl>::onKeyMsg( KeyMsg const& msg )
 {
-	if ( isDown )
+	if ( msg.isDown() )
 	{
-		switch( key )
+		switch( msg.getCode() )
 		{
-		case Keyboard::eBACK:
+		case EKeyCode::Back:
 			if ( mKeyInPos > 0 && mValue.size() > 0 )
 			{
 				int offset = isDoubleChar( mKeyInPos - 1 ) ? 2 : 1;
@@ -269,22 +269,22 @@ bool WTextCtrlT<Impl, CoreImpl>::onKeyMsg( unsigned key , bool isDown )
 				_this()->onEditText();
 			}
 			break;
-		case Keyboard::eRIGHT:
+		case EKeyCode::Right:
 			mKeyInPos += isDoubleChar( mKeyInPos ) ? 2 : 1;
 			if ( mKeyInPos > int( mValue.size() ) )
 				mKeyInPos = int( mValue.size() );
 			break;
-		case Keyboard::eLEFT:
+		case EKeyCode::Left:
 			mKeyInPos -= isDoubleChar( mKeyInPos - 1 ) ? 2 : 1;
 			if ( mKeyInPos < 0 )
 				mKeyInPos = 0;
 			break;
-		case Keyboard::eRETURN:
+		case EKeyCode::Return:
 			getManager()->focusWidget(NULL);
 			_this()->onPressEnter();
 			break;
 
-		case Keyboard::eV:
+		case EKeyCode::V:
 #ifdef SYS_PLATFORM_WIN
 			if ( ::GetKeyState( VK_CONTROL ) < 0 )
 			{

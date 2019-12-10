@@ -137,14 +137,14 @@ namespace Lighting2D
 
 		bool onMouse( MouseMsg const& msg );
 
-		bool onKey( unsigned key , bool isDown )
+		bool onKey(KeyMsg const& msg)
 		{
-			if ( !isDown )
+			if ( !msg.isDown() )
 				return false;
 
-			switch( key )
+			switch(msg.getCode())
 			{
-			case Keyboard::eR: restart(); break;
+			case EKeyCode::R: restart(); break;
 			}
 			return false;
 		}

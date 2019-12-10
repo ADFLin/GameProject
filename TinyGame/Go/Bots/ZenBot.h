@@ -114,6 +114,7 @@ namespace Zen
 		virtual bool     playStone(int x, int y, Color color) = 0;
 		virtual void     playPass(Color color = Color::Empty) = 0;
 		virtual bool     undo() = 0;
+		virtual int      getBoardSize() const = 0;
 		virtual Color    getBoardColor(int x, int y) = 0;
 		virtual void     getTerritoryStatictics(int territoryStatictics[19][19]) = 0;
 		virtual int      getBlackPrisonerNum() = 0;
@@ -167,7 +168,7 @@ namespace Zen
 
 		bool isInitialized() const
 		{
-			return mhModule != NULL;
+			return mhModule != nullptr;
 		}
 
 		HMODULE mhModule;
@@ -223,7 +224,7 @@ namespace Zen
 	template< int Version , class Lib = DynamicLibrary >
 	class TBotCore : public IBotCore , public Lib
 	{
-		typedef Lib ZenLibrary;
+		using ZenLibrary = Lib;
 	public:
 
 		bool caputureResource()
@@ -274,13 +275,24 @@ namespace Zen
 			ZenLibrary::release();
 		}
 
-		void startGame(GameSetting const& setting)
+		void startGame(GameSetting const& setting) override
 		{
 			mBoardSize = setting.boardSize;
 
 			ZenClearBoard();
 			ZenSetBoardSize(setting.boardSize);
-			ZenFixedHandicap(setting.numHandicap);
+
+			if (setting.numHandicap && setting.bFixedHandicap )
+			{
+				//ZenFixedHandicap(setting.numHandicap);
+				Go::VisitFixedHandicapPositions( mBoardSize, setting.numHandicap,
+					[&](int x, int y)
+					{
+						ZenAddStone(x , y, (int)Color::Black);
+					}
+				);
+			}
+
 			ZenSetKomi(setting.komi);
 			ZenSetNextColor(setting.bBlackFrist ? (int)Color::Black : (int)Color::White);
 			if( Version == 6 )
@@ -290,23 +302,25 @@ namespace Zen
 
 		}
 
-		void doInitializeResource()
+		int getBoardSize() const override { return mBoardSize; }
+
+		void doInitializeResource() override
 		{
 			ZenClearBoard();
 		}
 
-		void doReleaseResource()
+		void doReleaseResource() override
 		{
 
 		}
 
-		void restart()
+		void restart() override
 		{
 			ZenStopThinking();
 			ZenClearBoard();
 		}
 
-		void think(ThinkResult& result , Color color )
+		void think(ThinkResult& result , Color color ) override
 		{
 			if( color == Color::Empty )
 				color = (Color)ZenGetNextColor();
@@ -320,7 +334,7 @@ namespace Zen
 			ZenReadGeneratedMove(result.x, result.y, result.bPass, result.bResign);
 		}
 
-		bool getBestThinkMove( ThinkInfo infoList[] , int num )
+		bool getBestThinkMove( ThinkInfo infoList[] , int num ) override
 		{
 			for( int i = 0; i < num ; ++i )
 			{
@@ -336,7 +350,7 @@ namespace Zen
 				info.v.y = y;
 
 				char* pData = buf;
-				while( 1 )
+				while( true )
 				{
 					uint8 pos[2];
 					int numRead = Go::ReadCoord(pData, pos);
@@ -360,7 +374,7 @@ namespace Zen
 			return true;
 		}
 
-		void  getTerritoryStatictics(TerritoryInfo& info)
+		void  getTerritoryStatictics(TerritoryInfo& info) override
 		{
 			if( mBoardSize == 0 )
 				return;
@@ -446,18 +460,18 @@ namespace Zen
 				color = (Color)ZenGetNextColor();
 			ZenStartThinking((int)color);
 		}
-		void stopThink()
+		void stopThink() override
 		{
 			ZenStopThinking();
 		}
-		bool isThinking() { return ZenIsThinking(); }
-		void getThinkResult(ThinkResult& result)
+		bool isThinking() override { return ZenIsThinking(); }
+		void getThinkResult(ThinkResult& result) override
 		{
 			ZenReadGeneratedMove(result.x, result.y, result.bPass, result.bResign);
 			result.winRate = ZenGetBestMoveRate();
 		}
 
-		bool playStone(int x, int y, Color color)
+		bool playStone(int x, int y, Color color) override
 		{
 			return ZenPlay(x, y, (int)color);
 		}
@@ -465,16 +479,16 @@ namespace Zen
 		{
 			return ZenAddStone(x, y, (int)color);
 		}
-		void playPass(Color color)
+		void playPass(Color color) override
 		{
 			ZenPass((int)color);
 		}
-		bool undo()
+		bool undo() override
 		{
 			return ZenUndo(ZenGetNextColor() == (int)Color::Black ? (int)Color::White : (int)Color::Black);
 		}
 
-		void setCoreSetting(CoreSetting const& setting)
+		void setCoreSetting(CoreSetting const& setting) override
 		{
 			ZenSetNumberOfThreads(setting.numThreads);
 			ZenSetNumberOfSimulations(setting.numSimulations);
@@ -492,7 +506,7 @@ namespace Zen
 			ZenSetMaxTime(setting.maxTime);
 		}
 
-		Color getBoardColor(int x, int y) { return (Color)ZenGetBoardColor(x, y); }
+		Color getBoardColor(int x, int y) override { return (Color)ZenGetBoardColor(x, y); }
 		void  getTerritoryStatictics(int territoryStatictics[19][19]) override
 		{
 			ZenGetTerritoryStatictics(territoryStatictics);
@@ -504,9 +518,9 @@ namespace Zen
 				ZenGetPriorKnowledge(PriorKnowledge);
 			}
 		}
-		int getBlackPrisonerNum() { return ZenGetNumBlackPrisoners(); }
-		int getWhitePrisonerNum() { return ZenGetNumWhitePrisoners(); }
-		Color getNextColor() { return Color(ZenGetNextColor()); }
+		int getBlackPrisonerNum() override { return ZenGetNumBlackPrisoners(); }
+		int getWhitePrisonerNum() override { return ZenGetNumWhitePrisoners(); }
+		Color getNextColor() override { return Color(ZenGetNextColor()); }
 
 
 	protected:
@@ -563,7 +577,7 @@ namespace Go
 			eVersion ,
 		};
 	}
-	class ZenBot : public IBotInterface
+	class ZenBot : public IBot
 	{
 
 	public:
@@ -573,7 +587,7 @@ namespace Go
 		template< int Version >
 		Zen::IBotCore* buildCoreT()
 		{
-			typedef Zen::TBotCore< Version > ZenCore;
+			using ZenCore = Zen::TBotCore< Version >;
 
 			ZenCore* core = ZenCore::Create();
 			if( !core->initialize() )
@@ -583,20 +597,36 @@ namespace Go
 
 		static Zen::CoreSetting GetCoreConfigSetting();
 
-		virtual bool initialize(void* settingData) override;
-		virtual void destroy() override;
-		virtual bool setupGame(GameSetting const& setting) override;
-		virtual bool restart() override;
-		virtual bool playStone(int x, int y, int color) override;
-		virtual bool playPass(int color) override;
-		virtual bool undo() override;
-		virtual bool requestUndo() override;
-		virtual bool thinkNextMove(int color) override;
-		virtual bool isThinking() override;
-		virtual bool isGPUBased() const override { return false; }
+		bool initialize(void* settingData) override;
+		void destroy() override;
+		bool setupGame(GameSetting const& setting) override;
+		bool restart() override;
+		bool playStone(int x, int y, int color) override;
+		bool playPass(int color) override;
+		bool undo() override;
+		bool requestUndo() override;
+		bool thinkNextMove(int color) override;
+		bool isThinking() override;
+		bool isGPUBased() const override { return false; }
 
-		virtual void update(IGameCommandListener& listener) override;
-		virtual bool getMetaData(int id, uint8* dataBuffer, int size) override;
+		void update(IGameCommandListener& listener) override;
+		bool getMetaData(int id, uint8* dataBuffer, int size) override;
+		EBotExecuteResult readBoard(int* outState) override;
+
+		static int FormZColor(Zen::Color color)
+		{
+			switch (color)
+			{
+			case Zen::Color::Empty: return StoneColor::eEmpty;
+			case Zen::Color::White: return StoneColor::eWhite;
+			case Zen::Color::Black: return StoneColor::eBlack;
+			}
+
+			NEVER_REACH("Error Color Value");
+			return StoneColor::eEmpty;
+
+		}
+
 		static Zen::Color ToZColor(int color)
 		{
 			switch( color )
@@ -606,7 +636,7 @@ namespace Go
 			case StoneColor::eEmpty: return Zen::Color::Empty;
 			}
 
-			assert(0);
+			NEVER_REACH("Error Color Value");
 			return Zen::Color::Empty;
 		}
 

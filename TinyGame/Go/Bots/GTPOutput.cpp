@@ -186,6 +186,15 @@ namespace Go
 		}
 	}
 
+	void GTPOutputThread::popHeadComandMsg()
+	{
+		//mProcQueue.pop_front();
+		GTPCommand com = mProcQueue.front();
+		mProcQueue.erase(mProcQueue.begin());
+		bDumping = false;
+		dumpCommandMsgEnd(com);
+	}
+
 	bool GTPOutputThread::parseLine(char* buffer, int num)
 	{
 		//LogMsg("%s", buffer);
@@ -201,6 +210,8 @@ namespace Go
 		if (*cur == '=')
 		{
 			cur = FStringParse::SkipSpace(cur + 1);
+
+			bool bCommadTextReadFinish = true;
 
 			switch (com.id)
 			{
@@ -240,24 +251,26 @@ namespace Go
 				}
 				break;
 			case GTPCommand::eFinalScore:
-			{
-				GameCommand gameCom;
-				gameCom.id = GameCommand::eEnd;
-				gameCom.winner = ParseResult(cur, gameCom.winNum);
-				addOutputCommand(gameCom);
-			}
-			break;
+				{
+					GameCommand gameCom;
+					gameCom.id = GameCommand::eEnd;
+					gameCom.winner = ParseResult(cur, gameCom.winNum);
+					addOutputCommand(gameCom);
+				}
+				break;
+			case  GTPCommand::eShowBoard:
+				{
+					bCommadTextReadFinish = false;
+				}
+				break;
 
 			default:
 				break;
 			}
 
-			if (com.id != GTPCommand::eNone)
+			if (com.id != GTPCommand::eNone && bCommadTextReadFinish )
 			{
-				//mProcQueue.pop_front();
-				mProcQueue.erase(mProcQueue.begin());
-				bDumping = false;
-				dumpCommandMsgEnd(com);
+				popHeadComandMsg();
 			}
 		}
 		else if (*cur == '?')

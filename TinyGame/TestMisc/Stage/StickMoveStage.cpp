@@ -285,7 +285,7 @@ namespace StickMove
 
 
 			mPanel = new BaseSettingPanel(UI_ANY, Vec2i(500, 0), Vec2i(300, 400), nullptr);
-			mPanel->setEventCallback(EvtCallBack(this, &TestStage::notifySettingEvent));
+			mPanel->setEventCallback(WidgetEventCallBack(this, &TestStage::notifySettingEvent));
 			{
 				auto slider = mPanel->addSlider(UI_BoundSizeX, "BoundSizeX");
 				slider->setRange(10, 400);
@@ -408,15 +408,15 @@ namespace StickMove
 			return true;
 		}
 
-		bool onKey(unsigned key, bool isDown)
+		bool onKey(KeyMsg const& msg)
 		{
-			if( !isDown )
+			if( !msg.isDown() )
 				return false;
 
-			switch( key )
+			switch(msg.getCode())
 			{
-			case Keyboard::eR: restart(); break;
-			case Keyboard::eT:
+			case EKeyCode::R: restart(); break;
+			case EKeyCode::T:
 				{
 					Stick stick;
 					stick.init(mMoveBound , Vector2(0,0) , Vector2( Global::Random() % 100 , 0 ) );

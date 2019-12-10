@@ -38,9 +38,9 @@ void ConsoleFrame::onRender()
 	}
 }
 
-bool ConsoleFrame::onKeyMsg(unsigned key, bool isDown)
+bool ConsoleFrame::onKeyMsg(KeyMsg const& msg)
 {
-	if( key == Keyboard::eTAB )
+	if( msg.getCode() == EKeyCode::Tab )
 	{
 		if( mIndexFoundComUsed == -1 )
 		{
@@ -64,9 +64,9 @@ bool ConsoleFrame::onKeyMsg(unsigned key, bool isDown)
 		}
 		return false;
 	}
-	bool result = mComText->onKeyMsg(key, isDown);
+	bool result = mComText->onKeyMsg(msg);
 
-	if( key == Keyboard::eRETURN )
+	if( msg.getCode() == EKeyCode::Return )
 	{
 
 	}

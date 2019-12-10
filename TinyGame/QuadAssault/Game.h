@@ -36,7 +36,7 @@ public:
 	IFont*        getFont( int idx ){  return mFonts[idx]; }
 
 	virtual bool onMouse( MouseMsg const& msg );
-	virtual bool onKey( unsigned key , bool beDown );
+	virtual bool onKey( KeyMsg const& msg );
 	virtual bool onChar( unsigned code );
 	virtual bool onSystemEvent( SystemEvent event );
 

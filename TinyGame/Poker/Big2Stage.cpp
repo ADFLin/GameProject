@@ -227,7 +227,7 @@ namespace Poker { namespace Big2 {
 		InputManager& manager = InputManager::Get();
 		if ( mServerLevel )
 		{
-			if (  manager.isKeyDown(Keyboard::eR) )
+			if (  manager.isKeyDown(EKeyCode::R) )
 			{
 				if ( canPass )
 				{

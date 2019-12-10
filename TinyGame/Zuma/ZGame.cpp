@@ -137,9 +137,9 @@ namespace Zuma
 			return mGameCore->onMouse( msg ); 
 		}
 
-		virtual bool onKey( unsigned key , bool isDown )
+		virtual bool onKey(KeyMsg const& msg)
 		{ 
-			return mGameCore->onKey( key , isDown );
+			return mGameCore->onKey(msg);
 		}
 
 		virtual bool onEvent( int evtID , ZEventData const& data , ZEventHandler* sender )

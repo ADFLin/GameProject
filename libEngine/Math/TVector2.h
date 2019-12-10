@@ -11,17 +11,17 @@ public:
 	typedef T ScaleType;
 	
 	TVector2() = default;
-	TVector2(TVector2 const& rhs) = default;
+	constexpr TVector2(TVector2 const& rhs) = default;
 
-	TVector2( RefConstType x ,RefConstType y){ setValue(x,y); }
-
-	template< class Q >
-	TVector2( TVector2<Q> const& v ){ setValue( T(v.x) , T(v.y) ); }
+	constexpr TVector2( RefConstType x ,RefConstType y):x(x),y(y){}
 
 	template< class Q >
-	TVector2& operator = (TVector2<Q> const& v){  x = T(v.x);  y = T(v.y);  return *this; }
+	constexpr TVector2( TVector2<Q> const& v ){ setValue( T(v.x) , T(v.y) ); }
 
-	void     setValue( RefConstType vx,RefConstType vy){	x = vx; y = vy;  }
+	template< class Q >
+	constexpr TVector2& operator = (TVector2<Q> const& v){  x = T(v.x);  y = T(v.y);  return *this; }
+
+	constexpr void  setValue( RefConstType vx,RefConstType vy){	x = vx; y = vy;  }
 	T        dot  ( TVector2 const& v ) const { return x * v.x + y * v.y ; }
 	T        cross( TVector2 const& v ) const { return x * v.y - y * v.x ; }
 	T        length2()                  const { return x * x + y * y; }

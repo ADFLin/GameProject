@@ -22,6 +22,7 @@ namespace Go
 			ePass,
 			eUndo,
 			eFinalScore,
+			eShowBoard,
 			eQuit,
 
 			eStartPonder,
@@ -109,6 +110,7 @@ namespace Go
 		bool requestUndo();
 		bool setupGame(GameSetting const& setting);
 		bool showResult();
+		bool readBoard(int* outData);
 
 		bool inputCommand(char const* command, GTPCommand com);
 		bool inputProcessStream(char const* command, int length = 0);
@@ -132,47 +134,47 @@ namespace Go
 
 
 	template< class T >
-	class TGTPLikeBot : public IBotInterface
+	class TGTPLikeBot : public IBot
 	{
 	public:
-		virtual void destroy()
+		void destroy() override
 		{
 			mAI.stop();
 		}
-		virtual bool setupGame(GameSetting const& setting) override
+		bool setupGame(GameSetting const& setting) override
 		{
 			return mAI.setupGame(setting);
 		}
-		virtual bool restart() override
+		bool restart() override
 		{
 			return mAI.restart();
 		}
-		virtual bool playStone(int x, int y, int color) override
+		bool playStone(int x, int y, int color) override
 		{
 			return mAI.playStone(x, y, color);
 		}
-		virtual bool playPass(int color) override
+		bool playPass(int color) override
 		{
 			return mAI.playPass(color);
 		}
-		virtual bool undo() override
+		bool undo() override
 		{
 			return mAI.undo();
 		}
-		virtual bool requestUndo() override
+		bool requestUndo() override
 		{
 			return mAI.requestUndo();
 		}
-		virtual bool thinkNextMove(int color) override
+		bool thinkNextMove(int color) override
 		{
 			return mAI.thinkNextMove(color);
 		}
-		virtual bool isThinking() override
+		bool isThinking() override
 		{
 			//TODO
 			return false;
 		}
-		virtual void update(IGameCommandListener& listener) override
+		void update(IGameCommandListener& listener) override
 		{
 			mAI.update();
 			auto MyFun = [&](GameCommand const& com)
@@ -181,6 +183,8 @@ namespace Go
 			};
 			mAI.outputThread->procOutputCommand(MyFun);
 		}
+
+		EBotExecuteResult readBoard(int* outState) override { mAI.readBoard(outState); return BOT_WAIT; }
 
 		bool inputProcessStream(char const* command)
 		{

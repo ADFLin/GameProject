@@ -237,13 +237,13 @@ namespace Bloxorz
 	{
 		if ( mMoveCur == DIR_NONE )
 		{
-			if ( InputManager::Get().isKeyDown( Keyboard::eA ) )
+			if ( InputManager::Get().isKeyDown( EKeyCode::A ) )
 				requestMove( DIR_NX );
-			else if ( InputManager::Get().isKeyDown( Keyboard::eD ) )
+			else if ( InputManager::Get().isKeyDown( EKeyCode::D ) )
 				requestMove( DIR_X ); 
-			else if ( InputManager::Get().isKeyDown( Keyboard::eS ) )
+			else if ( InputManager::Get().isKeyDown( EKeyCode::S ) )
 				requestMove( DIR_NY );
-			else if ( InputManager::Get().isKeyDown( Keyboard::eW ) )
+			else if ( InputManager::Get().isKeyDown( EKeyCode::W ) )
 				requestMove( DIR_Y );
 		}
 	}
@@ -497,14 +497,14 @@ namespace Bloxorz
 		return eGoal;
 	}
 
-	bool TestStage::onKey(unsigned key , bool isDown)
+	bool TestStage::onKey(KeyMsg const& msg)
 	{
-		if ( !isDown )
+		if ( !msg.isDown())
 			return false;
 
-		switch( key )
+		switch(msg.getCode())
 		{
-		case Keyboard::eR: restart(); break;
+		case EKeyCode::R: restart(); break;
 		}
 		return false;
 	}

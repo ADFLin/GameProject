@@ -183,14 +183,14 @@ namespace Chromatron
 		return false;
 	}
 
-	bool LevelStage::onKey( unsigned key , bool isDown )
+	bool LevelStage::onKey(KeyMsg const& msg)
 	{
-		if ( !isDown )
+		if ( !msg.isDown())
 			return false;
 
-		switch( key )
+		switch(msg.getCode())
 		{
-		case Keyboard::eR: break;
+		case EKeyCode::R: break;
 		}
 		return false;
 	}

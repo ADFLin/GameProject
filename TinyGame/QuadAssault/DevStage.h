@@ -26,7 +26,7 @@ public:
 	virtual void onExit();
 	virtual void onUpdate( float deltaT );
 	virtual void onRender();
-	virtual bool onKey( unsigned key , bool isDown );
+	virtual bool onKey(KeyMsg const& msg);
 	virtual bool onMouse(MouseMsg const& msg);
 
 	FPtr< TestBase > mTest;

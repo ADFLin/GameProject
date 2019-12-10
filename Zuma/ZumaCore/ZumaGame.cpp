@@ -441,17 +441,17 @@ namespace Zuma
 
 	}
 
-	bool GameCore::onKey( unsigned key , bool isDown )
+	bool GameCore::onKey(KeyMsg const& msg)
 	{
-		getCurStage()->onKey( key , isDown );
+		getCurStage()->onKey(msg);
 
-		switch ( key )
+		switch ( msg.getCode() )
 		{
-		case VK_LEFT  : DBG_X -= 1; break;
-		case VK_DOWN  : DBG_Y -= 1; break;
-		case VK_RIGHT : DBG_X += 1; break;
-		case VK_UP    : DBG_Y += 1; break;
-			//case VK_F1    : toggleFullscreen(); break;
+		case EKeyCode::Left  : DBG_X -= 1; break;
+		case EKeyCode::Down  : DBG_Y -= 1; break;
+		case EKeyCode::Right : DBG_X += 1; break;
+		case EKeyCode::Up    : DBG_Y += 1; break;
+		//case EKeyCode::F1    : toggleFullscreen(); break;
 		}
 		return true;
 	}

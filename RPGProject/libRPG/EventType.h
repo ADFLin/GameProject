@@ -69,26 +69,26 @@ struct TEvent
 	void*        data;
 };
 
-class EvtCallBack
+class EventCallBack
 {
 public:
 	template< class T , class Fun >
-	EvtCallBack( T* ptr , Fun fun )
+	EventCallBack( T* ptr , Fun fun )
 	{
 		mCallback.bind( ptr , fun );
 	}
 	template< class Fun >
-	EvtCallBack( Fun fun )
+	EventCallBack( Fun fun )
 	{
 		mCallback.bind( fun );
 	}
-	EvtCallBack(){}
+	EventCallBack(){}
 
 	void exec( TEvent const& event ){ mCallback( event ); }
 
-	EvtCallBack& operator = ( EvtCallBack const& rh ){ mCallback = rh.mCallback ; return *this; }
-	bool operator == ( EvtCallBack const& rh ) const { return mCallback == rh.mCallback ; }
-	bool operator != ( EvtCallBack const& rh ) const { return mCallback != rh.mCallback ; }
+	EventCallBack& operator = ( EventCallBack const& rh ){ mCallback = rh.mCallback ; return *this; }
+	bool operator == ( EventCallBack const& rh ) const { return mCallback == rh.mCallback ; }
+	bool operator != ( EventCallBack const& rh ) const { return mCallback != rh.mCallback ; }
 private:
 	fastdelegate::FastDelegate< void ( TEvent const& ) > mCallback;
 };

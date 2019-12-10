@@ -334,21 +334,21 @@ namespace Bejeweled
 		addGemAnim( idx2 , pos1 , pos2 , TimeSwapGem );
 	}
 
-	bool Scene::procKey( unsigned key , bool isDown )
+	bool Scene::procKey( KeyMsg const& msg )
 	{
-		if ( !isDown )
+		if ( !msg.isDown() )
 			return false;
 
 		if ( mCtrlMode == CM_CHOICE_GEM2 )
 		{
-			switch( key )
+			switch(msg.getCode())
 			{
-			case '1':
-			case '2':
-			case '3':
-			case '4':
-			case '5':
-				getLevel().setBoardGem( mIndexSwapCell[0] , key - '1' + 1 );
+			case EKeyCode::Num1:
+			case EKeyCode::Num2:
+			case EKeyCode::Num3:
+			case EKeyCode::Num4:
+			case EKeyCode::Num5:
+				getLevel().setBoardGem( mIndexSwapCell[0] , msg.getCode() - EKeyCode::Num1 + 1 );
 				mCtrlMode = CM_CHOICE_GEM1;
 				break;
 			}

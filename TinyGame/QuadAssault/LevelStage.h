@@ -64,7 +64,7 @@ public:
 	virtual void onExit();
 	virtual void onWidgetEvent( int event , int id , QWidget* sender );
 	virtual bool onMouse( MouseMsg const& msg );
-	virtual bool onKey( unsigned key , bool isDown );
+	virtual bool onKey(KeyMsg const& msg);
 
 protected:
 
@@ -105,7 +105,7 @@ public:
 	virtual void onWidgetEvent( int event , int id , QWidget* sender );
 	virtual void onLevelEvent( LevelEvent const& event );
 	virtual bool onMouse( MouseMsg const& msg );
-	virtual bool onKey( unsigned key , bool isDown );
+	virtual bool onKey( KeyMsg const& msg );
 
 	void renderLoading();
 

@@ -2,6 +2,7 @@
 
 #include "Bots/AQBot.h"
 #include "Bots/KataBot.h"
+#include "Bots/MonitorBot.h"
 
 #include "StringParse.h"
 #include "RandomUtility.h"
@@ -18,6 +19,7 @@
 #include "RHI/DrawUtility.h"
 #include "RHI/GpuProfiler.h"
 #include "RHI/ShaderManager.h"
+#include "RHI/SimpleRenderState.h"
 
 #include "ImageProcessing.h"
 #include "ProfileSystem.h"
@@ -25,8 +27,7 @@
 #include <Dbghelp.h>
 #include "Core/ScopeExit.h"
 #include "RenderUtility.h"
-#include "Math/PrimitiveTest.h"
-#include "Math/GeometryPrimitive.h"
+
 
 #include "Hardware/GPUDeviceQuery.h"
 
@@ -110,7 +111,7 @@ namespace Go
 			};
 			return enties;
 		}
-		void bindParameters(ShaderParameterMap const& parameterMap)
+		void bindParameters(ShaderParameterMap const& parameterMap) override
 		{
 			mParamAxisValue.bind(parameterMap, SHADER_PARAM(AxisValue));
 			mParamProjMatrix.bind(parameterMap, SHADER_PARAM(ProjMatrix));
@@ -162,459 +163,6 @@ namespace Go
 	}
 
 
-	HWND GetProcessWindow(DWORD processId)
-	{
-		struct FindData
-		{
-			DWORD  processId;
-			HWND   result;
-
-
-			static BOOL CALLBACK Callback(HWND hWnd, LPARAM param)
-			{
-				auto myData = (FindData*)param;
-				DWORD processId = -1;
-				::GetWindowThreadProcessId(hWnd, &processId);
-				if( processId == myData->processId )
-				{
-					myData->result = hWnd;
-					return FALSE;
-				}
-				return TRUE;
-			}
-		};
-
-		FindData findData;
-		findData.processId = processId;
-		findData.result = NULL;
-		::EnumWindows(FindData::Callback, (LPARAM)&findData);
-		return findData.result;
-	}
-
-	int GetProcessWindows(DWORD processId, std::vector< HWND >& outHandles)
-	{
-		struct FindData
-		{
-			FindData(std::vector< HWND >& outHandles)
-				:outHandles(outHandles)
-			{
-				numHandles = 0;
-			}
-			std::vector< HWND >& outHandles;
-			int    numHandles;
-			DWORD  processId;
-			static BOOL CALLBACK Callback(HWND hWnd, LPARAM param)
-			{
-				auto myData = (FindData*)param;
-				DWORD processId = -1;
-				::GetWindowThreadProcessId(hWnd, &processId);
-
-				if( processId == myData->processId )
-				{
-					myData->outHandles.push_back(hWnd);
-					++myData->numHandles;
-				}
-				return TRUE;
-			}
-		};
-
-		FindData findData(outHandles);
-		findData.processId = processId;
-		::EnumWindows(FindData::Callback, (LPARAM)&findData);
-		return findData.numHandles;
-
-	}
-
-	HWND GetProcessWindow(DWORD processId, TCHAR const* title, TCHAR const* className = nullptr)
-	{
-		struct FindData
-		{
-			TCHAR const* title;
-			TCHAR const* className;
-			DWORD  processId;
-			HWND   result;
-
-
-			static BOOL CALLBACK Callback(HWND hWnd, LPARAM param)
-			{
-				auto myData = (FindData*)param;
-				DWORD processId = -1;
-				::GetWindowThreadProcessId(hWnd, &processId);
-
-				if( processId == myData->processId )
-				{
-					TCHAR windowTitle[512];
-					int len = GetWindowText(hWnd, windowTitle, ARRAY_SIZE(windowTitle));
-					if( myData->className )
-					{
-						TCHAR className[512];
-						int len = GetClassName(hWnd, className, ARRAY_SIZE(className));
-						if( len <= 0 || FCString::CompareN(myData->className, className, len) != 0 )
-							return TRUE;
-					}
-					if ( myData->title )
-					{
-						TCHAR windowTitle[512];
-						int len = GetWindowText(hWnd, windowTitle, ARRAY_SIZE(windowTitle));
-						if( len <= 0 || FCString::CompareN(myData->title, windowTitle, len) != 0 )
-							return TRUE;
-					}
-
-					myData->result = hWnd;
-					return FALSE;
-				}
-				return TRUE;
-			}
-		};
-
-		FindData findData;
-		findData.processId = processId;
-		findData.title = title;
-		findData.className = className;
-		findData.result = NULL;
-		::EnumWindows(FindData::Callback, (LPARAM)&findData);
-		return findData.result;
-	}
-
-	struct WindowImageHook
-	{
-		WindowImageHook()
-		{
-			mhWindow = NULL;
-			mBitmapData = nullptr;
-		}
-
-		static HWND FindChildWindow(HWND hWnd , TCHAR const* childWindowClass, TCHAR const* childWindowName , int maxDepth )
-		{
-			HWND result;
-			result = FindWindowEx(hWnd, NULL, childWindowClass, childWindowName);
-			if( result )
-				return result;
-
-			if ( maxDepth >= 0 )
-			{
-				HWND hChild = NULL;
-				for( ;;)
-				{
-					hChild = FindWindowEx(hWnd, hChild, nullptr, nullptr);
-					if( hChild == NULL )
-						break;
-#if 0
-					TCHAR testTitle[512];
-					GetWindowText(hChild, testTitle, ARRAY_SIZE(testTitle));
-					TCHAR className[512];
-					GetClassName(hChild, className, ARRAY_SIZE(className));
-
-					if( FCString::Compare(TEXT("CRoomPanel"), testTitle) == 0 )
-					{
-						int i = 1;
-					}
-#endif
-					result = FindChildWindow(hChild, childWindowClass, childWindowName , maxDepth - 1 );
-					if( result )
-						return result;
-				}
-			}
-			return NULL;
-		}
-
-		bool initialize(TCHAR const* processName , TCHAR const* windowTitle, TCHAR const* windowClassName , TCHAR const* childWindowName , TCHAR const* childWindowClass)
-		{
-			DWORD PID = FPlatformProcess::FindPIDByName(processName);
-			if( PID == -1 )
-			{
-				return false;
-			}
-
-
-			std::vector< HWND > windowHandles;
-			GetProcessWindows(PID, windowHandles);
-			for( HWND hWnd : windowHandles )
-			{
-				if( windowTitle )
-				{
-					TCHAR testTitle[512];
-					int len = GetWindowText(hWnd, testTitle, ARRAY_SIZE(testTitle));
-					if( len <= 0 || FCString::CompareN(windowTitle, testTitle, len) != 0 )
-						continue;
-				}
-				if( windowClassName )
-				{
-
-					TCHAR className[512];
-					int len = GetClassName(hWnd, className, ARRAY_SIZE(className));
-					if( len <= 0 || FCString::CompareN(windowClassName, className, len) != 0 )
-						continue;
-				}
-
-				TCHAR testTitle[512];
-				int len = GetWindowText(hWnd, testTitle, ARRAY_SIZE(testTitle));
-
-				mhWindow = FindChildWindow(hWnd, childWindowClass, childWindowName , 3);
-				if ( mhWindow )
-					break;
-			}
-
-			if( mhWindow == NULL )
-			{
-				return false;
-			}
-
-			return true;
-		}
-
-
-		bool bNeedUpdate;
-		void updateImage()
-		{
-			if( mhWindow == NULL )
-				return;
-
-			HDC hDC = GetDC(mhWindow);
-			ON_SCOPE_EXIT
-			{
-				ReleaseDC(mhWindow, hDC);
-			};
-			RECT rect;
-			GetClientRect(mhWindow, &rect);
-			int width = rect.right - rect.left;
-			int height = rect.bottom - rect.top;
-
-
-			if( width != mBoardImage.getWidth() || height != mBoardImage.getHeight() )
-			{
-				mBitmapData = nullptr;
-				mBoardImage.release();
-				BITMAPINFO& bmpInfo = *(BITMAPINFO*)(alloca(sizeof(BITMAPINFOHEADER) + sizeof(RGBQUAD) * 0));
-				bmpInfo.bmiHeader.biSize = sizeof(bmpInfo.bmiHeader);
-				bmpInfo.bmiHeader.biWidth = width;
-				bmpInfo.bmiHeader.biHeight = -height;
-				bmpInfo.bmiHeader.biPlanes = 1;
-				bmpInfo.bmiHeader.biBitCount = 32;
-				bmpInfo.bmiHeader.biCompression = BI_RGB;
-				bmpInfo.bmiHeader.biXPelsPerMeter = 0;
-				bmpInfo.bmiHeader.biYPelsPerMeter = 0;
-				bmpInfo.bmiHeader.biSizeImage = 0;
-				if( !mBoardImage.initialize(hDC, &bmpInfo, (void**)&mBitmapData) )
-				{
-
-
-
-				}
-				bNeedUpdate = true;
-			}
-
-			if( bNeedUpdate )
-			{
-				bNeedUpdate = false;
-
-				if( mBoardImage.getBitmap() != NULL )
-				{
-					mBoardImage.bitBltFrom(hDC, 0, 0);
-					mDebugTextures[eOrigin] = RHICreateTexture2D(Texture::eBGRA8, mBoardImage.getWidth(), mBoardImage.getHeight(), 0, 1, TCF_DefalutValue, (void*)mBitmapData);
-					buildGird();
-
-					time = GetTickCount();
-
-				}
-			}
-			else if ( GetTickCount() - time > 1000 )
-			{
-				Vector2 rectMin = Vector2(0, 0);
-				Vector2 rectMax = Vector2(width, height);
-				Graphics2D g(hDC);
-				RenderUtility::SetPen(g, EColor::Red);
-				for( auto line : mLines )
-				{
-					Ray ray = ToRay(line);
-					ray.pos = 2 * ray.pos + Vector2(width, height) / 2;
-					float distances[2];
-					if( Math::LineBoxTest(ray.pos, ray.dir, rectMin, rectMax, distances) )
-					{
-						Vector2 p1 = ray.getPosition(distances[0]);
-						Vector2 p2 = ray.getPosition(distances[1]);
-						g.drawLine(p1, p2);
-					}
-				}
-
-			}
-		}
-
-		long time;
-		std::vector< HoughLine > mLines;
-		typedef Math::TRay<Vector2> Ray;
-
-		static Ray ToRay(HoughLine const& line)
-		{
-			float s, c;
-			Math::SinCos(Math::Deg2Rad(line.theta), s, c );
-			Ray result;
-			result.dir = Vector2(s, -c);
-			result.pos = line.dist * Vector2(c, s);
-			return result;
-		}
-
-		void buildGird()
-		{
-			int width = mBoardImage.getWidth();
-			int height = mBoardImage.getHeight();
-
-			std::vector< Color4f > imageData(width * height, Color4f(0, 0, 0, 0));
-			TImageView< Color4f > imageView(imageData.data(), width, height);
-
-			for( int y = 0; y < imageView.getHeight(); ++y )
-			{
-				for( int x = 0; x < imageView.getWidth(); ++x )
-				{
-					Color4ub& c = mBitmapData[y * width + x];
-					imageView(x, y) = c.bgra();
-				}
-			}
-			std::vector< float > grayScaleData(width * height);
-			TImageView< float > grayView(grayScaleData.data(), width, height);
-
-			{
-				TIME_SCOPE("GrayScale");
-				GrayScale(imageView, grayView);
-			}
-			mDebugTextures[eGrayScale] = RHICreateTexture2D(Texture::eR32F, grayView.getWidth(), grayView.getHeight(), 0, 1, TCF_DefalutValue, (void*)grayView.getData());
-
-			std::vector< float > downSampleData;
-			TImageView< float > downSampleView;
-			{
-				TIME_SCOPE("Downsample");
-				Downsample(grayView, downSampleData, downSampleView);
-			}
-
-			TImageView< float >& usedView = downSampleView;
-
-			std::vector< float > edgeData(usedView.getWidth() * usedView.getHeight(), 0);
-			TImageView< float > edgeView(edgeData.data(), usedView.getWidth(), usedView.getHeight());
-			{
-				TIME_SCOPE("Sobel");
-				Sobel(usedView, edgeView);
-			}
-#if 0
-			{
-				TIME_SCOPE("Downsample");
-				Downsample(edgeView, downSampleData, downSampleView);
-			}
-#endif
-			mDebugTextures[eEdgeDetect] = RHICreateTexture2D(Texture::eR32F, edgeView.getWidth(), edgeView.getHeight(), 0, 1, TCF_DefalutValue, (void*)edgeView.getData());
-
-			std::vector< float > houghData;
-			TImageView< float > houghView;
-			mLines.clear();
-			{
-				TIME_SCOPE("LineHough");
-				HoughSetting setting;
-				HoughLines(setting, edgeView, houghData,  houghView, mLines);
-			}
-
-			std::sort(mLines.begin(), mLines.end(), [](HoughLine const& lineA, HoughLine const& lineB) -> bool
-			{
-				if( lineA.theta < lineB.theta )
-					return true;
-
-				if( lineA.theta == lineB.theta )
-					return lineA.dist < lineB.dist;
-
-				return false;
-			});
-
-			for( int i = 0; i < mLines.size(); ++i )
-			{
-				for( int j = i + 1; j < mLines.size(); ++j )
-				{
-					auto& lineA = mLines[i];
-					auto& lineB = mLines[j];
-
-					if( Math::Abs(lineA.theta - lineB.theta) < 1 &&
-					    Math::Abs(lineA.dist - lineB.dist) < 4 )
-					{
-						lineA.dist = 0.5 *(lineA.dist + lineB.dist);
-						if( j != mLines.size() - 1 )
-						{
-							std::swap(mLines[j], mLines.back());
-						}
-						mLines.pop_back();
-						--j;
-					}
-					else
-					{
-						continue;
-					}
-				}
-			}
-
-
-			mDebugTextures[eLineHough] = RHICreateTexture2D(Texture::eR32F, houghView.getWidth(), houghView.getHeight(), 0, 1, TCF_DefalutValue, (void*)houghView.getData());
-		}
-
-		HWND      mhWindow;
-		BitmapDC  mBoardImage;
-		Color4ub* mBitmapData;
-
-
-		enum 
-		{
-			eOrigin ,
-			eGrayScale ,
-			eDownSample ,
-			eEdgeDetect ,
-			eLineHough ,
-			DebugTextureCount ,
-		};
-		RHITexture2DRef mDebugTextures[DebugTextureCount];
-	};
-
-	class ZenithGo7Hook : public GameHook
-		                , public WindowImageHook
-	{
-	public:
-		ZenithGo7Hook()
-		{
-
-		}
-
-		bool initialize()
-		{
-			if( !WindowImageHook::initialize(TEXT("zenith.exe"), TEXT("Zenith Go 7"), nullptr , nullptr , TEXT("AfxFrameOrView90su")) )
-				return false;
-
-			return true;
-		}
-
-		void update(long time)
-		{
-			WindowImageHook::updateImage();
-		}
-	};
-
-
-	class FoxWQHook : public GameHook
-		            , public WindowImageHook
-	{
-	public:
-		FoxWQHook()
-		{
-
-		}
-
-		bool initialize()
-		{
-			if( !WindowImageHook::initialize(TEXT("foxwq.exe"), nullptr , TEXT("#32770"), TEXT("CChessboardPanel"), nullptr) )
-				return false;
-
-			return true;
-		}
-
-
-		void update(long time)
-		{
-			WindowImageHook::updateImage();
-		}
-	};
 	ZenithGo7Hook GHook;
 
 
@@ -805,7 +353,7 @@ namespace Go
 
 		devFrame->addButton("Run Custom Match", [&](int eventId, GWidget* widget) ->bool 
 		{
-			MatchSettingPanel* panel = new MatchSettingPanel( UI_ANY , Vec2i( 100 , 100 ) , Vec2i(300 , 400 ) , nullptr );
+			auto* panel = new MatchSettingPanel( UI_ANY , Vec2i( 100 , 100 ) , Vec2i(300 , 400 ) , nullptr );
 			panel->onEvent = [&](int eventId, GWidget* widget)
 			{
 				cleanupModeData();
@@ -985,10 +533,10 @@ namespace Go
 		{
 			if ( !bPauseGame )
 			{
-				IBotInterface* bot = mMatchData.getCurTurnBot();
-				for( int i = 0; i < 2; ++i )
+				IBot* bot = mMatchData.getCurTurnBot();
+				for(auto& player : mMatchData.players)
 				{
-					IBotInterface* bot = mMatchData.players[i].bot.get();
+					IBot* bot = player.bot.get();
 
 					if( bot )
 					{
@@ -996,7 +544,7 @@ namespace Go
 						{
 							LeelaZeroGoStage* me;
 							int  indexPlayer;
-							virtual void notifyCommand(GameCommand const& com) override
+							void notifyCommand(GameCommand const& com) override
 							{
 								me->notifyPlayerCommand(indexPlayer, com);
 							}
@@ -1081,23 +629,25 @@ namespace Go
 
 		using namespace Go;
 
+
+
 		glClear(GL_COLOR_BUFFER_BIT);
 
 		GLGraphics2D& g = ::Global::GetRHIGraphics2D();
 		RHICommandList& commandList = RHICommandList::GetImmediateList();
 
 		g.beginRender();
-
+		SimpleRenderState renderState;
 
 		auto& viewingGame = getViewingGame();
 
 		RenderContext context( viewingGame.getBoard() , BoardPos , RenderBoardScale );
 
-		mBoardRenderer.drawBorad( g , context );
+		mBoardRenderer.drawBorad( g , renderState, context , mbBotBoardStateValid ? mBotBoardState : nullptr);
 
 		if( bShowTerritory && bTerritoryInfoValid )
 		{
-			DrawTerritoryStatus(mBoardRenderer, context, mShowTerritoryInfo);
+			DrawTerritoryStatus(mBoardRenderer, renderState, context, mShowTerritoryInfo);
 		}
 
 		auto lastPlayPos =  viewingGame.getInstance().getLastStepPos();
@@ -1111,14 +661,14 @@ namespace Go
 
 		if( bAnalysisEnabled && bShowAnalysis && analysisPonderColor == mGame.getInstance().getNextPlayColor() )
 		{
-			drawAnalysis( g , context );
+			drawAnalysis( g , renderState, context );
 		}
 
 		if( bestMoveVertex.isOnBoard() )
 		{
 			if( showBranchVertex == bestMoveVertex && !bestThinkInfo.vSeq.empty() )
 			{
-				mBoardRenderer.drawStoneSequence(context, bestThinkInfo.vSeq, mGame.getInstance().getNextPlayColor(), 0.7);
+				mBoardRenderer.drawStoneSequence(renderState, context, bestThinkInfo.vSeq, mGame.getInstance().getNextPlayColor(), 0.7);
 			}
 
 			Vector2 pos = context.getIntersectionPos(bestMoveVertex.x, bestMoveVertex.y);
@@ -1262,7 +812,7 @@ namespace Go
 		g.endRender();
 	}
 
-	void LeelaZeroGoStage::drawAnalysis(GLGraphics2D& g, RenderContext &context)
+	void LeelaZeroGoStage::drawAnalysis(GLGraphics2D& g, SimpleRenderState& renderState , RenderContext &context)
 	{
 		GPU_PROFILE("Draw Analysis");
 
@@ -1274,7 +824,7 @@ namespace Go
 		}
 		if( iter != analysisResult.end() )
 		{
-			mBoardRenderer.drawStoneSequence(context, iter->vSeq, mGame.getInstance().getNextPlayColor(), 0.7);
+			mBoardRenderer.drawStoneSequence(renderState, context, iter->vSeq, mGame.getInstance().getNextPlayColor(), 0.7);
 		}
 		else
 		{
@@ -1410,13 +960,13 @@ namespace Go
 			float offset = 25;
 			for( float y = 10; y < yMax; y += 10 )
 			{
-				buffer.push_back(Vector2(xMin, y));
-				buffer.push_back(Vector2(xMax, y));
+				buffer.emplace_back(xMin, y);
+				buffer.emplace_back(xMax, y);
 			}
 			for( float x = offset; x < xMax; x += offset )
 			{
-				buffer.push_back(Vector2(x, yMin));
-				buffer.push_back(Vector2(x, yMax));
+				buffer.emplace_back(x, yMin);
+				buffer.emplace_back(x, yMax);
 			}
 
 			RHISetupFixedPipelineState(commandList, matProj);
@@ -1464,7 +1014,7 @@ namespace Go
 		}
 	}
 
-	void LeelaZeroGoStage::DrawTerritoryStatus(BoardRenderer& renderer, RenderContext const& context, Zen::TerritoryInfo const& info)
+	void LeelaZeroGoStage::DrawTerritoryStatus(BoardRenderer& renderer, SimpleRenderState& renderState, RenderContext const& context, Zen::TerritoryInfo const& info)
 	{
 		GPU_PROFILE("Draw Territory");
 
@@ -1577,7 +1127,7 @@ namespace Go
 				}
 				else if ( mGameMode == GameMode::Match )
 				{
-					bool bForcePlay = InputManager::Get().isKeyDown(Keyboard::eCONTROL);
+					bool bForcePlay = InputManager::Get().isKeyDown(EKeyCode::Control);
 					if( bForcePlay )
 					{
 						auto bot = mMatchData.getCurTurnBot();
@@ -1586,7 +1136,7 @@ namespace Go
 				else if( mGameMode == GameMode::Analysis )
 				{
 					int color = mGame.getInstance().getNextPlayColor();
-					if( InputManager::Get().isKeyDown(Keyboard::eCONTROL) )
+					if( InputManager::Get().isKeyDown(EKeyCode::Control) )
 					{
 						if( mGame.addStone(pos.x, pos.y, color) )
 						{
@@ -1636,20 +1186,43 @@ namespace Go
 		return true;
 	}
 
-	bool LeelaZeroGoStage::onKey(unsigned key, bool isDown)
+	bool LeelaZeroGoStage::onKey( KeyMsg const& msg )
 	{
-		if( !isDown )
+		if( !msg.isDown())
 			return false;
-		switch( key )
+		switch(msg.getCode())
 		{
-		case Keyboard::eL: mBoardRenderer.bDrawLinkInfo = !mBoardRenderer.bDrawLinkInfo; break;
-		case Keyboard::eZ: mBoardRenderer.bUseBatchedRender = !mBoardRenderer.bUseBatchedRender; break;
-		case Keyboard::eN: mBoardRenderer.bUseNoiseOffset = !mBoardRenderer.bUseNoiseOffset; break;
-		case Keyboard::eF2: bDrawDebugMsg = !bDrawDebugMsg; break;
-		case Keyboard::eF5: saveMatchGameSGF(); break;
-		case Keyboard::eF6: restartAutoMatch(); break;
-		case Keyboard::eF9: ShaderManager::Get().reloadShader( *mProgUnderCurveArea ); break;
-		case Keyboard::eX:
+		case EKeyCode::L: mBoardRenderer.bDrawLinkInfo = !mBoardRenderer.bDrawLinkInfo; break;
+		case EKeyCode::Z: mBoardRenderer.bUseBatchedRender = !mBoardRenderer.bUseBatchedRender; break;
+		case EKeyCode::N: mBoardRenderer.bUseNoiseOffset = !mBoardRenderer.bUseNoiseOffset; break;
+		case EKeyCode::O:
+			{
+				if (mGameMode == GameMode::Match)
+				{
+					if (mbBotBoardStateValid)
+					{
+						mbBotBoardStateValid = !mbBotBoardStateValid;
+					}
+					else
+					{
+						IBot* bot = mMatchData.players[0].bot ? mMatchData.players[0].bot.get() : mMatchData.players[1].bot.get();
+						if (bot)
+						{
+							if (bot->readBoard(mBotBoardState) == BOT_OK)
+							{
+								mbBotBoardStateValid = true;
+								LogMsg("Show Bot Board State");
+							}
+						}
+					}
+				}
+			}
+			break;
+		case EKeyCode::F2: bDrawDebugMsg = !bDrawDebugMsg; break;
+		case EKeyCode::F5: saveMatchGameSGF(); break;
+		case EKeyCode::F6: restartAutoMatch(); break;
+		case EKeyCode::F9: ShaderManager::Get().reloadShader( *mProgUnderCurveArea ); break;
+		case EKeyCode::X:
 			if( !bAnalysisEnabled && mGameMode == GameMode::Match )
 			{
 				tryEnableAnalysis(true);
@@ -1659,20 +1232,20 @@ namespace Go
 				toggleAnalysisPonder();
 			}
 			break;
-		case Keyboard::eC:
+		case EKeyCode::C:
 			if ( mGameMode == GameMode::Match )
 			{
 				if( mMatchData.players[0].type == ControllerType::eLeelaZero ||
 				    mMatchData.players[1].type == ControllerType::eLeelaZero )
 				{
-					LeelaBot* bot = static_cast<LeelaBot*>((mMatchData.players[0].type == ControllerType::eLeelaZero) ? mMatchData.players[0].bot.get() : mMatchData.players[1].bot.get());
+					auto* bot = static_cast<LeelaBot*>((mMatchData.players[0].type == ControllerType::eLeelaZero) ? mMatchData.players[0].bot.get() : mMatchData.players[1].bot.get());
 					bot->mAI.inputCommand("showboard\n", { GTPCommand::eNone , 0 });
 				}
 			}
 			break;
-		case Keyboard::eV: glEnable(GL_MULTISAMPLE); break;
-		case Keyboard::eB: glDisable(GL_MULTISAMPLE); break;
-		case Keyboard::eQ: bDrawFontCacheTexture = !bDrawFontCacheTexture; break;
+		case EKeyCode::V: glEnable(GL_MULTISAMPLE); break;
+		case EKeyCode::B: glDisable(GL_MULTISAMPLE); break;
+		case EKeyCode::Q: bDrawFontCacheTexture = !bDrawFontCacheTexture; break;
 		}
 		return false;
 	}
@@ -1717,7 +1290,7 @@ namespace Go
 	{
 		std::string bestWeigetName = LeelaAppRun::GetBestWeightName();
 		char const* weightName = nullptr;
-		if( bestWeigetName != "" )
+		if( !bestWeigetName.empty() )
 		{
 			weightName = bestWeigetName.c_str();
 			::Global::GameConfig().setKeyValue("LeelaLastMatchWeight", "Go", weightName);
@@ -1892,9 +1465,9 @@ namespace Go
 		
 		int indexBlack = (mMatchData.bSwapColor) ? 1 : 0;
 		bool bHavePlayerController = false;
-		for( int i = 0; i < 2; ++i )
+		for(auto& player : mMatchData.players)
 		{
-			IBotInterface* bot = mMatchData.players[i].bot.get();
+			IBot* bot = player.bot.get();
 			if( bot )
 			{
 				bot->setupGame(setting);
@@ -1905,6 +1478,10 @@ namespace Go
 			}
 		}
 
+		if (mMatchData.bAutoRun && setting.numHandicap > 0)
+		{
+			bSwapEachMatch = false;
+		}
 
 		if( bHavePlayerController )
 		{
@@ -1917,7 +1494,7 @@ namespace Go
 		if( mMatchData.bSwapColor )
 			mMatchData.idxPlayerTurn = 1 - mMatchData.idxPlayerTurn;
 
-		IBotInterface* bot = mMatchData.getCurTurnBot();
+		IBot* bot = mMatchData.getCurTurnBot();
 		if( bot )
 		{
 			bot->thinkNextMove(mGame.getInstance().getNextPlayColor());
@@ -2020,7 +1597,7 @@ namespace Go
 					if( mMatchData.players[0].type == ControllerType::eLeelaZero ||
 					    mMatchData.players[1].type == ControllerType::eLeelaZero )
 					{
-						LeelaBot* bot = static_cast< LeelaBot* >( (mMatchData.players[0].type == ControllerType::eLeelaZero ) ? mMatchData.players[0].bot.get() : mMatchData.players[1].bot.get());
+						auto* bot = static_cast< LeelaBot* >( (mMatchData.players[0].type == ControllerType::eLeelaZero ) ? mMatchData.players[0].bot.get() : mMatchData.players[1].bot.get());
 						bot->mAI.showResult();
 					}
 					else if( mMatchData.bAutoRun )
@@ -2032,7 +1609,7 @@ namespace Go
 				else
 				{
 					mMatchData.advanceStep();
-					IBotInterface* bot = mMatchData.getCurTurnBot();
+					IBot* bot = mMatchData.getCurTurnBot();
 					if( bot )
 					{
 						bot->playPass(color);
@@ -2103,7 +1680,7 @@ namespace Go
 					mWinRateHistory[indexPlayer].pop_back();
 				}
 				mMatchData.advanceStep();
-				IBotInterface* bot = mMatchData.getCurTurnBot();
+				IBot* bot = mMatchData.getCurTurnBot();
 				if( bot )
 				{
 					bot->undo();
@@ -2114,7 +1691,12 @@ namespace Go
 				}
 			}
 			break;
-
+		case GameCommand::eBoardState:
+			{
+				mbBotBoardStateValid = true;
+				LogMsg("Show Bot Board State");
+			}
+			break;
 #define LEELA_PARAM_REMAP(NAME) (BotParam::LeelaBase + LeelaGameParam::NAME)
 #define ZEN_PARAM_REMAP(NAME) (BotParam::ZenBase + ZenGameParam::NAME)
 #define KATA_PARAM_REMAP(NAME) (BotParam::KataBase + KataGameParam::NAME)
@@ -2126,14 +1708,14 @@ namespace Go
 				{
 				case LEELA_PARAM_REMAP(eBestMoveVertex):
 					{
-						LeelaThinkInfo* info = static_cast<LeelaThinkInfo*>(com.ptrParam);
+						auto* info = static_cast<LeelaThinkInfo*>(com.ptrParam);
 						bestMoveVertex = info->v;
 						bestThinkInfo = *info;
 					}
 					break;
 				case ZEN_PARAM_REMAP(eBestMoveVertex):
 					{
-						Zen::ThinkInfo* info = static_cast<Zen::ThinkInfo*>(com.ptrParam);
+						auto* info = static_cast<Zen::ThinkInfo*>(com.ptrParam);
 						bestMoveVertex = info->v;
 						bestThinkInfo.v = info->v;
 						bestThinkInfo.nodeVisited = 0;
@@ -2194,7 +1776,7 @@ namespace Go
 					resetTurnParam();
 
 					mMatchData.advanceStep();
-					IBotInterface* bot = mMatchData.getCurTurnBot();
+					IBot* bot = mMatchData.getCurTurnBot();
 					if( bot )
 					{
 						bot->playStone(com.pos[0], com.pos[1], color);
@@ -2329,15 +1911,51 @@ namespace Go
 		bTerritoryInfoValid = false;
 
 		resetTurnParam();
-		for( int i = 0; i < 2; ++i )
+		for(auto& v : mWinRateHistory)
 		{
-			mWinRateHistory[i].clear();
-			mWinRateHistory[i].push_back(Vector2(0, 50));
+			v.clear();
+			v.emplace_back(0, 50);
 		}
 		if( mWinRateWidget )
 		{
 			mWinRateWidget->destroy();
 			mWinRateWidget = nullptr;
+		}
+	}
+
+	void LeelaZeroGoStage::resetTurnParam()
+	{
+		bestMoveVertex = PlayVertex::Undefiend();
+	}
+
+	void LeelaZeroGoStage::restartAutoMatch()
+	{
+		LogMsg("==Restart Auto Match==");
+		if( bSwapEachMatch )
+		{
+			mMatchData.bSwapColor = !mMatchData.bSwapColor;
+		}
+
+
+		mMatchData.idxPlayerTurn = (mGame.getSetting().bBlackFrist) ? 0 : 1;
+		if( mMatchData.bSwapColor )
+			mMatchData.idxPlayerTurn = 1 - mMatchData.idxPlayerTurn;
+
+		resetGameParam();
+
+
+		for(auto & player : mMatchData.players)
+		{
+			if( player.bot )
+			{
+				player.bot->restart();
+			}
+		}
+
+		IBot* bot = mMatchData.getCurTurnBot();
+		if( bot )
+		{
+			bot->thinkNextMove(mGame.getInstance().getNextPlayColor());
 		}
 	}
 
@@ -2362,23 +1980,23 @@ namespace Go
 			public:
 				MyCopier(LeelaAppRun& AI) :AI(AI) {}
 
-				virtual void emitSetup(GameSetting const& setting) override
+				void emitSetup(GameSetting const& setting) override
 				{
 					AI.setupGame(setting);
 				}
-				virtual void emitPlayStone(int x, int y, int color) override
+				void emitPlayStone(int x, int y, int color) override
 				{
 					AI.playStone(x, y, color);
 				}
-				virtual void emitAddStone(int x, int y, int color) override
+				void emitAddStone(int x, int y, int color) override
 				{
 					AI.addStone(x, y, color);
 				}
-				virtual void emitPlayPass(int color) override
+				void emitPlayPass(int color) override
 				{
 					AI.playPass(color);
 				}
-				virtual void emitUndo()
+				void emitUndo() override
 				{
 					AI.undo();
 				}
@@ -2437,37 +2055,6 @@ namespace Go
 		return mGame.getInstance().saveSGF(path, &description);
 	}
 
-	void LeelaZeroGoStage::restartAutoMatch()
-	{
-		LogMsg("==Restart Auto Match==");
-		if( bSwapEachMatch )
-		{
-			mMatchData.bSwapColor = !mMatchData.bSwapColor;
-		}
-
-
-		mMatchData.idxPlayerTurn = (mGame.getSetting().bBlackFrist) ? 0 : 1;
-		if( mMatchData.bSwapColor )
-			mMatchData.idxPlayerTurn = 1 - mMatchData.idxPlayerTurn;
-
-		resetGameParam();
-
-
-		for( int i = 0; i < 2; ++i )
-		{
-			if( mMatchData.players[i].bot )
-			{
-				mMatchData.players[i].bot->restart();
-			}
-		}
-
-		IBotInterface* bot = mMatchData.getCurTurnBot();
-		if( bot )
-		{
-			bot->thinkNextMove(mGame.getInstance().getNextPlayColor());
-		}
-	}
-
 	void LeelaZeroGoStage::postMatchGameEnd(char const* matchResult)
 	{
 		LogMsg("GameEnd");
@@ -2491,7 +2078,7 @@ namespace Go
 			Vec2i screenSize = Global::GetDrawEngine().getScreenSize();
 
 			Vec2i size = Vec2i(150,200);
-			auto devFrame = new DevFrame(UI_ANY, Vec2i(screenSize.x - size.x - 5, 300), size , NULL);
+			auto devFrame = new DevFrame(UI_ANY, Vec2i(screenSize.x - size.x - 5, 300), size , nullptr);
 
 			devFrame->addButton("Play Pass", [&](int eventId, GWidget* widget) -> bool
 			{
@@ -2555,11 +2142,6 @@ namespace Go
 		notifyPlayerCommand(mMatchData.idxPlayerTurn, com);
 	}
 
-	void LeelaZeroGoStage::resetTurnParam()
-	{
-		bestMoveVertex = PlayVertex::Undefiend();
-	}
-
 	void MatchSettingPanel::addBaseWidget()
 	{
 		GChoice* choice;
@@ -2596,7 +2178,7 @@ namespace Go
 		GTextCtrl* textCtrl;
 		textCtrl = addTextCtrl(id + UPARAM_VISITS, "Visit Num", BIT(idxPlayer), idxPlayer);
 		textCtrl->setValue(std::to_string(setting.visits).c_str());
-		GFilePicker*  filePicker = addWidget< GFilePicker >(id + UPARAM_WEIGHT_NAME, "Weight Name", BIT(idxPlayer), idxPlayer);
+		auto*  filePicker = addWidget< GFilePicker >(id + UPARAM_WEIGHT_NAME, "Weight Name", BIT(idxPlayer), idxPlayer);
 		filePicker->filePath.format("%s/%s/%s", LeelaAppRun::InstallDir, LEELA_NET_DIR_NAME ,LeelaAppRun::GetBestWeightName().c_str());
 		filePicker->filePath.replace('/', '\\');
 	}
@@ -2653,7 +2235,7 @@ namespace Go
 		return choice;
 	}
 
-	bool MatchSettingPanel::setupMatchSetting(MatchGameData& matchData, GameSetting& setting)
+	bool MatchSettingPanel::setupMatchSetting(MatchGameData& matchData, GameSetting& outSetting)
 	{
 		ControllerType types[2] =
 		{
@@ -2665,6 +2247,20 @@ namespace Go
 
 		matchData.bAutoRun = getParamValue< bool, GCheckBox >(UI_AUTO_RUN);
 		matchData.bSaveSGF = getParamValue< bool, GCheckBox >(UI_SAVE_SGF);
+
+
+		outSetting.numHandicap = findChildT<GChoice>(UI_FIXED_HANDICAP)->getSelection();
+		if (outSetting.numHandicap)
+		{
+			outSetting.bBlackFrist = false;
+			outSetting.komi = 0.5;
+		}
+		else
+		{
+			outSetting.bBlackFrist = true;
+			outSetting.komi = 7.5;
+		}
+
 		for( int i = 0; i < 2; ++i )
 		{
 			int id = (i) ? UI_CONTROLLER_TYPE_B : UI_CONTROLLER_TYPE_A;
@@ -2679,7 +2275,7 @@ namespace Go
 					setting.visits = getParamValue< int, GTextCtrl >(id + UPARAM_VISITS);
 					//setting.bUseModifyVersion = true;
 					setting.seed = generateRandSeed();
-					if( bHavePlayerController )
+					if( bHavePlayerController || outSetting.numHandicap)
 					{
 						setting.resignpct = 0;
 					}
@@ -2719,19 +2315,19 @@ namespace Go
 			}
 		}
 
-		setting.numHandicap = findChildT<GChoice>(UI_FIXED_HANDICAP)->getSelection();
-		if( setting.numHandicap )
-		{
-			setting.bBlackFrist = false;
-			setting.komi = 0.5;
-		}
-		else
-		{
-			setting.bBlackFrist = true;
-			setting.komi = 7.5;
-		}
 		return true;
 	}
 
+
+	void BoardFrame::onRender()
+	{
+		BaseClass::onRender();
+		GLGraphics2D& g = ::Global::GetRHIGraphics2D();
+		{
+			TGuardValue<bool> gurdValue(renderer->bDrawCoord, false);
+			SimpleRenderState renderState;
+			renderer->drawBorad(g, renderState, renderContext);
+		}
+	}
 
 }//namespace Go

@@ -748,23 +748,23 @@ namespace CAR
 	}
 
 
-	bool LevelStage::onKey(unsigned key , bool isDown)
+	bool LevelStage::onKey(KeyMsg const& msg)
 	{
-		if ( !isDown )
+		if ( !msg.isDown())
 			return false;
 
 		float offset = 0.2f;
-		switch( key )
+		switch(msg.getCode())
 		{
-		case Keyboard::eZ: mb2DView = !mb2DView; setRenderOffset( mRenderOffset ); break;
-		case Keyboard::eR: getStageMode()->restart( false ); break;
-		case Keyboard::eF: gDrawFarmLink = !gDrawFarmLink; break;
-		case Keyboard::eS: gDrawSideLink = !gDrawSideLink; break;
-		case Keyboard::eQ: 
+		case EKeyCode::Z: mb2DView = !mb2DView; setRenderOffset( mRenderOffset ); break;
+		case EKeyCode::R: getStageMode()->restart( false ); break;
+		case EKeyCode::F: gDrawFarmLink = !gDrawFarmLink; break;
+		case EKeyCode::S: gDrawSideLink = !gDrawSideLink; break;
+		case EKeyCode::Q: 
 			++mRotation; 
 			if ( mRotation == FDir::TotalNum ) mRotation = 0; 
 			break;
-		case Keyboard::eE: 
+		case EKeyCode::E: 
 			if ( canInput() )
 			{
 				TileId id = mGameLogic.mUseTileId + 1;
@@ -775,7 +775,7 @@ namespace CAR
 				updateShowTileObject( id );
 			}
 			break;
-		case Keyboard::eW: 
+		case EKeyCode::W: 
 			if ( canInput() )
 			{
 				TileId id = mGameLogic.mUseTileId;
@@ -788,21 +788,21 @@ namespace CAR
 				updateShowTileObject( id );
 			}
 			break;
-		case Keyboard::eO: 
+		case EKeyCode::O: 
 			++mIdxShowFeature; 
 			if ( mIdxShowFeature == mGameLogic.mFeatureMap.size() ) 
 				mIdxShowFeature = 0;
 			break;
-		case Keyboard::eP: 
+		case EKeyCode::P: 
 			if ( mIdxShowFeature == 0 ) 
 				mIdxShowFeature = mGameLogic.mFeatureMap.size() - 1;
 			else
 				--mIdxShowFeature;
 			break;
-		case Keyboard::eUP:    setRenderOffset( mRenderOffset - Vector2( 0,offset ) ); break;
-		case Keyboard::eDOWN:  setRenderOffset( mRenderOffset + Vector2( 0,offset ) ); break;
-		case Keyboard::eLEFT:  setRenderOffset( mRenderOffset + Vector2( offset , 0 ) ); break;
-		case Keyboard::eRIGHT: setRenderOffset( mRenderOffset - Vector2( offset , 0 ) ); break;
+		case EKeyCode::Up:    setRenderOffset( mRenderOffset - Vector2( 0,offset ) ); break;
+		case EKeyCode::Down:  setRenderOffset( mRenderOffset + Vector2( 0,offset ) ); break;
+		case EKeyCode::Left:  setRenderOffset( mRenderOffset + Vector2( offset , 0 ) ); break;
+		case EKeyCode::Right: setRenderOffset( mRenderOffset - Vector2( offset , 0 ) ); break;
 		}
 		return false;
 	}

@@ -779,20 +779,20 @@ namespace Render
 			return true;
 		}
 
-		bool onKey(unsigned key, bool isDown)
+		bool onKey(KeyMsg const& msg)
 		{
-			if( !isDown )
+			if( !msg.isDown())
 				return false;
-			switch( key )
+			switch(msg.getCode())
 			{
-			case Keyboard::eW: mCamera.moveFront(1); break;
-			case Keyboard::eS: mCamera.moveFront(-1); break;
-			case Keyboard::eD: mCamera.moveRight(1); break;
-			case Keyboard::eA: mCamera.moveRight(-1); break;
-			case Keyboard::eZ: mCamera.moveUp(0.5); break;
-			case Keyboard::eX: mCamera.moveUp(-0.5); break;
-			case Keyboard::eR: restart(); break;
-			case Keyboard::eF2:
+			case EKeyCode::W: mCamera.moveFront(1); break;
+			case EKeyCode::S: mCamera.moveFront(-1); break;
+			case EKeyCode::D: mCamera.moveRight(1); break;
+			case EKeyCode::A: mCamera.moveRight(-1); break;
+			case EKeyCode::Z: mCamera.moveUp(0.5); break;
+			case EKeyCode::X: mCamera.moveUp(-0.5); break;
+			case EKeyCode::R: restart(); break;
+			case EKeyCode::F2:
 				{
 					ShaderManager::Get().reloadAll();
 					//initParticleData();

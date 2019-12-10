@@ -98,10 +98,10 @@ void GameModuleManager::classifyGame( int attrID , GameModuleVec& games )
 
 IModuleInterface* GameModuleManager::findModule( char const* name )
 {
-	ModuleMap::iterator iter = mNameToModuleMap.find( name );
+	auto iter = mNameToModuleMap.find( name );
 	if ( iter != mNameToModuleMap.end() )
 		return iter->second;
-	return NULL;
+	return nullptr;
 }
 
 IGameModule* GameModuleManager::changeGame( char const* name )
@@ -110,7 +110,7 @@ IGameModule* GameModuleManager::changeGame( char const* name )
 
 	if ( module && module->isGameModule() )
 	{
-		IGameModule* gameModule = static_cast<IGameModule*>(module);
+		auto* gameModule = static_cast<IGameModule*>(module);
 		if( changeGame(gameModule) )
 			return gameModule;
 	}
@@ -146,7 +146,7 @@ bool GameModuleManager::changeGame(IGameModule* gameModule)
 
 GameModuleManager::GameModuleManager()
 {
-	mGameRunning = NULL;
+	mGameRunning = nullptr;
 }
 
 GameModuleManager::~GameModuleManager()
@@ -195,7 +195,7 @@ bool GameModuleManager::loadModule( char const* path )
 
 	TScopeRelease< HMODULE, ModouleReleasePolicy > scopeRelease( hModule );
 	char const* funName = CREATE_MODULE_STR;
-	CreateModuleFun createFun = (CreateModuleFun)GetProcAddress(hModule, CREATE_MODULE_STR);
+	auto createFun = (CreateModuleFun)GetProcAddress(hModule, CREATE_MODULE_STR);
 #else
 
 	CreateModuleFun createFun = nullptr;

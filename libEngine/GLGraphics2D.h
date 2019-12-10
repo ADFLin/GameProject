@@ -13,9 +13,9 @@
 #include <cmath>
 #include <vector>
 
-typedef Math::Vector2 Vector2;
-typedef Render::FontDrawer GLFont;
-typedef Render::RHITexture2D GLTexture2D; 
+using Vector2 = Math::Vector2;
+using GLFont = Render::FontDrawer;
+using GLTexture2D = Render::RHITexture2D; 
 
 class GLGraphics2D
 {

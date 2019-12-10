@@ -45,15 +45,15 @@ namespace Mario
 	void TestStage::tick()
 	{
 		InputManager& input = InputManager::Get();
-		if( input.isKeyDown(Keyboard::eD) )
+		if( input.isKeyDown(EKeyCode::D) )
 			player.button |= ACB_RIGHT;
-		if( input.isKeyDown(Keyboard::eA) )
+		if( input.isKeyDown(EKeyCode::A) )
 			player.button |= ACB_LEFT;
-		if( input.isKeyDown(Keyboard::eW) )
+		if( input.isKeyDown(EKeyCode::W) )
 			player.button |= ACB_UP;
-		if( input.isKeyDown(Keyboard::eS) )
+		if( input.isKeyDown(EKeyCode::S) )
 			player.button |= ACB_DOWN;
-		if( input.isKeyDown(Keyboard::eK) )
+		if( input.isKeyDown(EKeyCode::K) )
 			player.button |= ACB_JUMP;
 
 		player.tick();

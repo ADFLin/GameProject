@@ -100,17 +100,17 @@ public:
 
 		switch( key )
 		{
-		case Keyboard::eQ:
+		case EKeyCode::Q:
 			--mIdxLeafDBG;
 			if ( mIdxLeafDBG < 0 )
 				mIdxLeafDBG = mBspTree.getLeafNum() - 1;
 			break;
-		case Keyboard::eE:
+		case EKeyCode::E:
 			++mIdxLeafDBG;
 			if ( mIdxLeafDBG >= mBspTree.getLeafNum() )
 				mIdxLeafDBG = 0;
 			break;
-		case Keyboard::eR:
+		case EKeyCode::R:
 			mIdxLeafDBG += 20;
 			if ( mIdxLeafDBG >= mBspTree.getLeafNum() )
 				mIdxLeafDBG = 0;

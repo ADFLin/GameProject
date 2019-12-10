@@ -133,11 +133,11 @@ bool GUISystem::procMouseMsg(MouseMsg const& msg)
 	return getManager().procMouseMsg(msg);
 }
 
-bool GUISystem::procKeyMsg(unsigned key, bool isDown)
+bool GUISystem::procKeyMsg(KeyMsg const& msg)
 {
 	if( mHideWidgets || mbSkipKeyEvent )
 		return true;
-	return getManager().procKeyMsg(key, isDown);
+	return getManager().procKeyMsg(msg);
 }
 
 bool GUISystem::procCharMsg(unsigned code)

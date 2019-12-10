@@ -74,7 +74,7 @@ namespace Phy2D
 			mIsCollided = mCollision.test( &mObjects[0] , &mObjects[1] , mContact );
 		}
 
-		bool onKey( unsigned key , bool isDown );
+		bool onKey(KeyMsg const& msg);
 	protected:
 		Contact mContact;
 
@@ -129,7 +129,7 @@ namespace Phy2D
 		}
 
 
-		bool onKey( unsigned key , bool isDown );
+		bool onKey(KeyMsg const& msg);
 	protected:
 
 		RigidBody*   mBody[2];

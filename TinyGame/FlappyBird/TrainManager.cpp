@@ -9,7 +9,15 @@
 namespace FlappyBird
 {
 
-	void Agent::init(FCNNLayout const& layout )
+	Agent::~Agent()
+	{
+		if (entity)
+		{
+			entity->release();
+		}
+	}
+
+	void Agent::init(FCNNLayout const& layout)
 	{
 		FNN.init(layout);
 		GenotypePtr pGT = std::make_shared<Genotype>();
@@ -24,124 +32,13 @@ namespace FlappyBird
 		FNN.setWeights(inGenotype->data);
 	}
 
-	void Agent::restart()
-	{
-		bCompleted = false;
-		lifeTime = 0;
-		hostBird.reset();
-	}
-
-	void Agent::tick()
-	{
-		if( bCompleted )
-			return;
-
-		if( !hostBird.bActive )
-		{
-			genotype->fitness = lifeTime;
-			bCompleted = true;
-			return;
-		}
-
-		lifeTime += TickTime;
-		genotype->fitness = lifeTime;
-	}
 
 	void Agent::randomizeData(NNRand& random)
 	{
 		genotype->randomizeData(random, -1, 1);
 	}
 
-	void Agent::updateInput(GameLevel& world, BirdEntity& bird)
-	{
-		assert(&hostBird == &bird);
-		NNScale inputs[8];
-		std::fill_n(inputs, ARRAY_SIZE(inputs), NNScale(0));
-		assert(ARRAY_SIZE(inputs) >= FNN.getLayout().getInputNum() );
-
-		switch( FNN.getLayout().getInputNum() )
-		{
-		case 2:
-			{
-				inputs[0] = 1;
-				if( !world.mPipes.empty() )
-				{
-					PipeInfo& pipe = world.mPipes[0];
-					getPipeInputs(inputs, pipe);
-				}
-			}
-			break;
-		case 3:
-			{
-				inputs[0] = 1;
-				if( !world.mPipes.empty() )
-				{
-					PipeInfo& pipe = world.mPipes[0];
-					getPipeInputs(inputs, pipe);
-				}
-				inputs[2] = bird.getVel() / WorldHeight;
-			}
-			break;
-		case 4:
-			{
-				inputs[0] = inputs[2] = 1;
-				if( !world.mPipes.empty() )
-				{
-					PipeInfo& pipe = world.mPipes[0];
-					getPipeInputs(inputs, pipe);
-
-					if( world.mPipes.size() >= 2 )
-					{
-						PipeInfo& pipe = world.mPipes[1];
-						getPipeInputs(&inputs[2], pipe);
-					}
-				}
-			}
-			break;
-		case 5:
-			{
-				inputs[0] = inputs[2] = 1;
-				if( !world.mPipes.empty() )
-				{
-					PipeInfo& pipe = world.mPipes[0];
-					getPipeInputs(inputs, pipe);
-
-					if( pipe.posX - BirdRadius <= bird.getPos().x && bird.getPos().x <= pipe.posX + pipe.width + BirdRadius )
-						inputs[4] = 1;
-
-					if( world.mPipes.size() >= 2 )
-					{
-						PipeInfo& pipe = world.mPipes[1];
-						getPipeInputs(&inputs[2], pipe);
-					}
-				}
-			}
-			break;
-		default:
-			break;
-		}
-
-		NNScale output;
-		FNN.calcForwardFeedback(inputs, &output);
-		if( output >= 0.5 )
-		{
-			bird.fly();
-		}
-
-		if( inputsAndSignals )
-		{
-			std::copy(inputs, inputs + FNN.getLayout().getInputNum(), inputsAndSignals);
-			FNN.calcForwardFeedbackSignal(inputs, inputsAndSignals + FNN.getLayout().getInputNum());
-		}
-	}
-
-	void Agent::getPipeInputs(NNScale inputs[], PipeInfo const& pipe )
-	{
-		inputs[0] = (pipe.posX - hostBird.getPos().x) / WorldHeight;
-		inputs[1] = (0.5 * (pipe.topHeight + pipe.buttonHeight) - hostBird.getPos().y) / WorldHeight;
-	}
-
-	void TrainData::init(TrainDataSetting const& inSetting)
+	void TrainData::init(TrainDataSetting const& inSetting )
 	{
 		setting = &inSetting;
 
@@ -159,26 +56,22 @@ namespace FlappyBird
 		bestInputsAndSignals.resize(netLayout.getInputNum() + netLayout.getHiddenNodeNum() + netLayout.getOutputNum());
 	}
 
-	void TrainData::tick()
+	void TrainData::findBestAgnet()
 	{
-		for( auto& pAgent : mAgents )
+		for( auto& agentPtr : mAgents )
 		{
-			pAgent->tick();
-			if( curBestAgent == nullptr || curBestAgent->lifeTime < pAgent->lifeTime )
+			if( curBestAgent == nullptr || curBestAgent->genotype->fitness < agentPtr->genotype->fitness)
 			{
-				curBestAgent = pAgent.get();
+				if (curBestAgent)
+				{
+					curBestAgent->inputsAndSignals = nullptr;
+				}
+				curBestAgent = agentPtr.get();
 				curBestAgent->inputsAndSignals = &bestInputsAndSignals[0];
 			}
 		}
 	}
 
-	void TrainData::restart()
-	{
-		for( auto& pAgent : mAgents )
-		{
-			pAgent->restart();
-		}
-	}
 
 	void TrainData::usePoolData(GenePool& pool)
 	{
@@ -228,16 +121,17 @@ namespace FlappyBird
 			}
 		}
 
-		for( int i = 0; i < mAgents.size(); ++i )
+		for(auto& agentPtr : mAgents)
 		{
-			tempSelections.push_back(mAgents[i]->genotype);
+			tempSelections.push_back(agentPtr->genotype);
 		}
 
 		std::sort(tempSelections.begin(), tempSelections.end(),
-				  [](GenotypePtr const& p1, GenotypePtr const& p2) -> bool
-		{
-			return p1->fitness > p2->fitness;
-		});
+			[](GenotypePtr const& p1, GenotypePtr const& p2) -> bool
+			{
+				return p1->fitness > p2->fitness;
+			}
+		);
 
 		tempSelections.resize( setting->numTrainDataSelect );
 
@@ -261,9 +155,9 @@ namespace FlappyBird
 			NNScale const dataError = 1e-6;
 			std::sort(temps.begin(), temps.end(), GenePool::FitnessCmp());
 			GenePool::RemoveIdenticalGenotype(temps, fitnessError, dataError);
-			for( int i = 0; i < temps.size(); ++i )
+			for(auto& gene : temps)
 			{
-				genePool->add(temps[i]);
+				genePool->add(gene);
 			}
 			genePool->removeIdentical(fitnessError, dataError);
 		}
@@ -276,19 +170,13 @@ namespace FlappyBird
 		}
 	}
 
-	void TrainData::addAgentToLevel(GameLevel& level)
-	{
-		for( auto& pAgent : mAgents )
-		{
-			level.addBird(pAgent->hostBird , pAgent.get() );
-		}
-	}
-
 	void TrainData::inputData(IStreamSerializer::ReadOp& op)
 	{
 		FCNNLayout const& netLayout = *setting->netLayout;
 		int numAgentData;
 		op & numAgentData;
+
+		mAgents.clear();
 
 		if( numAgentData )
 		{
@@ -319,9 +207,9 @@ namespace FlappyBird
 			int dataSize = mAgents[0]->genotype->data.size();
 			op & dataSize;
 
-			for( int i = 0; i < mAgents.size(); ++i )
+			for(auto& agentPtr : mAgents)
 			{
-				Genotype* gt = mAgents[i]->genotype.get();
+				Genotype* gt = agentPtr->genotype.get();
 				op & gt->fitness;
 				op & gt->data;
 			}
@@ -345,33 +233,16 @@ namespace FlappyBird
 		mAgents.clear();
 	}
 
-	void TrainWork::notifyGameOver(GameLevel&)
+	void TrainWork::handleTrainCompleted()
 	{
 		trainData.runEvolution(&genePool);
 
 		bool const bRestData = ( maxGeneration && ( trainData.generation > maxGeneration ) );
 		bool const bClearPool = (trainData.generation > 500 && genePool[0]->fitness < 50);
-		bool bSendData = bRestData || (SystemPlatform::GetTickCount() - lastUpdateTime > 10000);
-		if( bSendData )
+		bool bSendDataToMaster = bRestData || (SystemPlatform::GetTickCount() - lastUpdateTime > 10000);
+		if( bSendDataToMaster )
 		{
-			int numAdded;
-			{
-				float const fitnessError = 1e-3;
-				NNScale const dataError = 1e-6;
-
-				TLockedObject< GenePool > masterPool = manager->lockPool();
-				numAdded = masterPool->appendWithCopy(genePool , fitnessError , dataError );
-
-				masterPool->removeIdentical(fitnessError, dataError);
-				if( !masterPool->mStorage.empty() )
-					manager->topFitness = (*masterPool)[0]->fitness;
-
-				lastUpdateTime = SystemPlatform::GetTickCount();
-			}
-		
-			LogMsg("Num %d genotype add to master Pool : index = %d ,genteration = %d , topFitness = %f", 
-				  numAdded , index , trainData.generation , genePool[0]->fitness);
-
+			sendDataToMaster();
 		}
 
 		if( bRestData || bClearPool )
@@ -384,50 +255,46 @@ namespace FlappyBird
 			genePool.clear();
 		}
 
-		restartGame();
-	}
-
-	CollisionResponse TrainWork::notifyCollision(BirdEntity& bird, ColObject& obj)
-	{
-		switch( obj.type )
-		{
-		case CT_PIPE_BOTTOM:
-		case CT_PIPE_TOP:
-			bird.bActive = false;
-			break;
-		case CT_SCORE:
-			break;
-		}
-		return GetDefaultColTypeResponse(obj.type);
+		world->restart(trainData);
 	}
 
 	void TrainWork::executeWork()
 	{
-		setupWorkEnv();
+		world->onTrainCompleted = std::bind( &TrainWork::handleTrainCompleted , this );
+		world->setup(trainData);
+		world->restart(trainData);
+
 		while( !bNeedStop )
 		{
-			trainData.tick();
-			level->tick();
+			//trainData.findBestAgnet();
+			world->tick(trainData);
 		}
-	}
-
-	void TrainWork::setupWorkEnv()
-	{
-		if( level == nullptr )
-		{
-			level = new GameLevel;
-			bManageLevel = true;
-		}
-		level->onGameOver = LevelOverDelegate(this, &TrainWork::notifyGameOver);
-		level->onBirdCollsion = CollisionDelegate(this, &TrainWork::notifyCollision);
-		trainData.addAgentToLevel(*level);
-
-		restartGame();
 	}
 
 	void TrainWork::stopRun()
 	{
 		SystemPlatform::AtomExchange(&bNeedStop, 1);
+	}
+
+	void TrainWork::sendDataToMaster()
+	{
+		int numAdded;
+		{
+			float const fitnessError = 1e-3;
+			NNScale const dataError = 1e-6;
+
+			TLockedObject< GenePool > masterPool = manager->lockPool();
+			numAdded = masterPool->appendWithCopy(genePool, fitnessError, dataError);
+
+			masterPool->removeIdentical(fitnessError, dataError);
+			if (!masterPool->mStorage.empty())
+				manager->topFitness = (*masterPool)[0]->fitness;
+
+			lastUpdateTime = SystemPlatform::GetTickCount();
+		}
+
+		LogMsg("Num %d genotype add to master Pool : index = %d ,genteration = %d , topFitness = %f",
+			numAdded, index, trainData.generation, genePool[0]->fitness);
 	}
 
 	TrainManager::~TrainManager()
@@ -451,9 +318,11 @@ namespace FlappyBird
 			auto work = std::make_unique< TrainWork >();
 			work->index = i;
 			work->manager = this;
-			work->trainData.init(setting.dataSetting);
 			work->maxGeneration = setting.maxGeneration;
 			work->genePool.maxPoolNum = setting.workerPoolNum;
+			work->world = setting.worldFactory();
+			work->trainData.init(setting.dataSetting);
+
 			mWorkRunPool.addWork(work.get());
 			mWorks.push_back(std::move(work));
 		}
